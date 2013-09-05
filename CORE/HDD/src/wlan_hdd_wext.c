@@ -3875,6 +3875,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     hdd_wext_state_t  *pWextState =  WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+    tSmeConfigParams smeConfig;
     int *value = (int *)extra;
     int sub_cmd = value[0];
     int set_value = value[1];
@@ -3897,15 +3898,16 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
     {
         case WE_SET_11D_STATE:
         {
-            tSmeConfigParams smeConfig;
             if((ENABLE_11D == set_value) || (DISABLE_11D == set_value)) {
 
-                sme_GetConfigParam(hHal,&smeConfig);
+                sme_GetConfigParam(hHal, &smeConfig);
                 smeConfig.csrConfig.Is11dSupportEnabled = (v_BOOL_t)set_value;
 
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("11D state=%ld!!\n"),smeConfig.csrConfig.Is11dSupportEnabled);
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                        ("11D state=%ld!!\n"),
+                        smeConfig.csrConfig.Is11dSupportEnabled);
 
-                sme_UpdateConfig(hHal,&smeConfig);
+                sme_UpdateConfig(hHal, &smeConfig);
             }
             else {
                return -EINVAL;
@@ -4335,7 +4337,6 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 
         case WE_SET_CHWIDTH:
         {
-           tSmeConfigParams smeconfig;
            bool chwidth;
            hdd_context_t *phddctx = WLAN_HDD_GET_CTX(pAdapter);
            /*updating channel bonding only on 5Ghz*/
@@ -4350,15 +4351,15 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                        phddctx->cfg_ini->nChannelBondingMode5GHz)))
                chwidth = true;
 
-           sme_GetConfigParam(hHal, &smeconfig);
+           sme_GetConfigParam(hHal, &smeConfig);
            switch (set_value) {
            case eHT_CHANNEL_WIDTH_20MHZ:
-                smeconfig.csrConfig.channelBondingMode5GHz =
+                smeConfig.csrConfig.channelBondingMode5GHz =
                                           WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
                 break;
            case eHT_CHANNEL_WIDTH_40MHZ:
                 if (chwidth)
-                    smeconfig.csrConfig.channelBondingMode5GHz =
+                    smeConfig.csrConfig.channelBondingMode5GHz =
                                      phddctx->cfg_ini->nChannelBondingMode5GHz;
                 else
                     return -EINVAL;
@@ -4366,7 +4367,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                 break;
            case eHT_CHANNEL_WIDTH_80MHZ:
                 if (chwidth)
-                    smeconfig.csrConfig.channelBondingMode5GHz =
+                    smeConfig.csrConfig.channelBondingMode5GHz =
                                      phddctx->cfg_ini->nChannelBondingMode5GHz;
                 else
                     return -EINVAL;
@@ -4381,7 +4382,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                                          (int)WMI_VDEV_PARAM_CHWIDTH,
                                          set_value, VDEV_CMD);
            if (!ret)
-               sme_UpdateConfig(hHal, &smeconfig);
+               sme_UpdateConfig(hHal, &smeConfig);
 
            break;
         }
