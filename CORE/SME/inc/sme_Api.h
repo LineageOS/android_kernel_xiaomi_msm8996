@@ -2867,4 +2867,5 @@ eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus sme_SendRateUpdateInd(tHalHandle hHal, tSirRateUpdateInd *rateUpdateParams);
+eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pBSSId );
 #endif //#if !defined( __SME_API_H )
