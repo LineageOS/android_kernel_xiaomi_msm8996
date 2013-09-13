@@ -55,9 +55,254 @@
 	VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, ## args)
 #define TLSHIM_LOGP(args...) \
 	VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL, ## args)
+
+#ifdef FEATURE_WLAN_CCX
+
 /************************/
-/*    Internal Func	*/
+/*   Internal defines   */
 /************************/
+#define SIZEOF_80211_HDR (sizeof(struct ieee80211_frame))
+#define LLC_SNAP_SIZE 8
+
+/* Cisco Aironet SNAP hdr */
+static u_int8_t AIRONET_SNAP_HEADER[] =  {0xAA, 0xAA, 0x03, 0x00, 0x40,
+	0x96, 0x00, 0x00 };
+
+/*
+ * @brief:  Creates vos_pkt_t for IAPP packet and routes them to PE/LIM.
+ * @detail: This function will be executed by new deferred task. It calls
+ *          in the function to process and route IAPP frame. After IAPP
+ *          has been processed, it will free the passed adb_nbuf_t pointer.
+ *          This function will run in non interrupt context
+ * @param:  ptr_work - pointer to work struct containing passed parameters
+ *          from calling function.
+ */
+void
+tlshim_mgmt_over_data_rx_handler(struct work_struct *ptr_work)
+{
+    struct deferred_iapp_work *ptr_my_work
+        = container_of(ptr_work, struct deferred_iapp_work, deferred_work);
+    pVosContextType pVosGCtx = ptr_my_work->pVosGCtx;
+    u_int8_t *data = adf_nbuf_data(ptr_my_work->nbuf);
+    u_int32_t data_len = adf_nbuf_len(ptr_my_work->nbuf);
+    struct ol_txrx_vdev_t *vdev = ptr_my_work->vdev;
+
+    /*
+     * data : is a either data starting from snap hdr or 802.11 frame
+     * data_len : length of above data
+     */
+
+    struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
+        pVosGCtx);
+    vos_pkt_t *rx_pkt;
+    adf_nbuf_t wbuf;
+    struct ieee80211_frame *wh;
+
+    if (!tl_shim->mgmt_rx) {
+        TLSHIM_LOGE("Not registered for Mgmt rx, dropping the frame");
+        /* this buffer is used now, free it */
+        adf_nbuf_free(ptr_my_work->nbuf);
+        /* set inUse to false, so that next IAPP frame can be processed */
+        ptr_my_work->inUse = false;
+        return;
+    }
+
+    /*
+     * allocate rx_packet: this will be used for encapsulating a
+     * sk_buff which then is passed to peHandleMgmtFrame(ptr fn)
+     * along with vos_ctx.
+     */
+    rx_pkt = vos_mem_malloc(sizeof(*rx_pkt));
+    if (!rx_pkt) {
+        TLSHIM_LOGE("Failed to allocate rx packet");
+        /* this buffer is used now, free it */
+        adf_nbuf_free(ptr_my_work->nbuf);
+        /* set inUse to false, so that next IAPP frame can be processed */
+        ptr_my_work->inUse = false;
+        return;
+    }
+
+    vos_mem_zero(rx_pkt, sizeof(*rx_pkt));
+
+    /*
+     * TODO: also check if following is used for IAPP
+     * if yes, find out how to populate this
+     * rx_pkt->pkt_meta.channel = 0;
+     */
+    rx_pkt->pkt_meta.snr = rx_pkt->pkt_meta.rssi = 0;
+
+    rx_pkt->pkt_meta.timestamp = (u_int32_t) jiffies;
+    rx_pkt->pkt_meta.mpdu_hdr_len = SIZEOF_80211_HDR;
+
+    /*
+     * mpdu len and data len will be different for native and non native
+     * format
+     */
+    if (vdev->pdev->frame_format == wlan_frm_fmt_native_wifi) {
+        rx_pkt->pkt_meta.mpdu_len = data_len;
+        rx_pkt->pkt_meta.mpdu_data_len = data_len -
+            rx_pkt->pkt_meta.mpdu_hdr_len;
+    }
+    else {
+        rx_pkt->pkt_meta.mpdu_len = data_len +
+            rx_pkt->pkt_meta.mpdu_hdr_len - ETHERNET_HDR_LEN;
+        rx_pkt->pkt_meta.mpdu_data_len = data_len - ETHERNET_HDR_LEN;
+    }
+
+    /* allocate a sk_buff with enough memory for 802.11 IAPP frame */
+    wbuf = adf_nbuf_alloc(NULL, roundup(rx_pkt->pkt_meta.mpdu_len, 4),
+        0, 4, FALSE);
+    if (!wbuf) {
+        TLSHIM_LOGE("Failed to allocate wbuf for mgmt rx");
+        vos_mem_free(rx_pkt);
+        /* this buffer is used now, free it */
+        adf_nbuf_free(ptr_my_work->nbuf);
+        /* set inUse to false, so that next IAPP frame can be processed */
+        ptr_my_work->inUse = false;
+        return;
+    }
+
+    adf_nbuf_put_tail(wbuf, data_len);
+    adf_nbuf_set_protocol(wbuf, ETH_P_SNAP);
+
+    /* wh will contain 802.11 frame, it will be encpsulated inside sk_buff */
+    wh = (struct ieee80211_frame *) adf_nbuf_data(wbuf);
+
+    /* set mpdu hdr pointre to data of sk_buff */
+    rx_pkt->pkt_meta.mpdu_hdr_ptr = adf_nbuf_data(wbuf);
+    /* set mpdu data pointer to appropriate offset from hdr */
+    rx_pkt->pkt_meta.mpdu_data_ptr = rx_pkt->pkt_meta.mpdu_hdr_ptr +
+    rx_pkt->pkt_meta.mpdu_hdr_len;
+    /* encapsulate newly allocated sk_buff in rx_pkt */
+    rx_pkt->pkt_buf = wbuf;
+
+    if (vdev->pdev->frame_format == wlan_frm_fmt_native_wifi) {
+        /* if native wifi: copy full frame */
+        adf_os_mem_copy(wh, data, data_len);
+    }
+    else {
+        /*
+        * if not native wifi populate: copy just part after 802.11 hdr
+        * i.e. part starting from snap header
+        */
+        tpCcxIappHdr iapp_hdr_ptr = (tpCcxIappHdr)&data[ETHERNET_HDR_LEN];
+        u_int8_t *snap_hdr_ptr = &(((u_int8_t*)wh)[SIZEOF_80211_HDR]);
+        tpSirMacFrameCtl ptr_80211_FC = (tpSirMacFrameCtl)&wh->i_fc;
+        ptr_80211_FC->protVer = SIR_MAC_PROTOCOL_VERSION;
+        ptr_80211_FC->type = SIR_MAC_DATA_FRAME;
+        ptr_80211_FC->subType = SIR_MAC_DATA_QOS_DATA;
+        ptr_80211_FC->toDS = 0;
+        ptr_80211_FC->fromDS = 1;
+        ptr_80211_FC->moreFrag = 0;
+        ptr_80211_FC->retry = 0;
+        ptr_80211_FC->powerMgmt = 0;
+        ptr_80211_FC->moreData = 0;
+        ptr_80211_FC->wep = 0;
+        ptr_80211_FC->order = 0;
+
+        wh->i_dur[0] = 0;
+        wh->i_dur[1] = 0;
+
+        adf_os_mem_copy(&wh->i_addr1, &iapp_hdr_ptr->DestMac[0],
+            ETHERNET_ADDR_LEN);
+        adf_os_mem_copy(&wh->i_addr2, &iapp_hdr_ptr->SrcMac[0],
+            ETHERNET_ADDR_LEN);
+        adf_os_mem_copy(&wh->i_addr3, &vdev->last_real_peer->mac_addr.raw[0],
+            ETHERNET_ADDR_LEN);
+
+        wh->i_seq[0] = 0;
+        wh->i_seq[1] = 0;
+
+        adf_os_mem_copy( snap_hdr_ptr, &data[ETHERNET_HDR_LEN],
+        data_len - ETHERNET_HDR_LEN);
+    }
+
+    tl_shim->mgmt_rx(pVosGCtx, rx_pkt);
+    /* this buffer is used now, free it */
+    adf_nbuf_free(ptr_my_work->nbuf);
+    /* set inUse to false, so that next IAPP frame can be processed */
+    ptr_my_work->inUse = false;
+}
+
+/*
+ * @brief: This function creates the deferred task and schedules it. this is
+ *         still in interrrupt context. The deferred task is created to run
+ *         in non interrut context as a memory allocation of vos_pkt_t is
+ *         needed and memory allocation should not be done in interrupt
+ *         context.
+ * @param - pVosGCtx - vos context
+ * @param - data - data containing ieee80211 IAPP frame
+ * @param - data_len - data len containing ieee80211 IAPP frame
+ * @param - vdev - virtual device
+ */
+void
+tlshim_mgmt_over_data_rx_handler_non_interrupt_ctx(pVosContextType pVosGCtx,
+	adf_nbuf_t nbuf, struct ol_txrx_vdev_t *vdev)
+{
+    struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
+        pVosGCtx);
+
+    /*
+     * if there is already a deferred IAPP processing, do not start
+     * another. Instead drop it as IAPP frames are not critical and
+     * can be dropped without any disruptive effects.
+     */
+    if(tl_shim->iapp_work.inUse == false) {
+        tl_shim->iapp_work.pVosGCtx = pVosGCtx;
+        tl_shim->iapp_work.nbuf = nbuf;
+        tl_shim->iapp_work.vdev = vdev;
+        tl_shim->iapp_work.inUse = true;
+        schedule_work(&(tl_shim->iapp_work.deferred_work));
+        return;
+    }
+
+    /* Previous IAPP frame is not yet processed, drop this frame */
+    TLSHIM_LOGE("Dropping IAPP frame because previous is yet unprocessed");
+    /*
+     * TODO: If needed this can changed to have queue rather
+     * than drop frame
+     */
+    adf_nbuf_free(nbuf);
+    return;
+}
+
+/*
+ * @brief: This checks if frame is IAPP and if yes routes them to PE/LIM
+ * @param - pVosGCtx - vos context
+ * @param - msdu - frame
+ * @param - sta_id - station ID
+ */
+bool
+tlshim_check_n_process_iapp_frame (pVosContextType pVosGCtx,
+	adf_nbuf_t msdu, u_int16_t sta_id)
+{
+    u_int8_t *data = adf_nbuf_data(msdu);
+    u_int8_t offset_snap_header;
+    struct ol_txrx_pdev_t *pdev = pVosGCtx->pdev_txrx_ctx;
+    struct ol_txrx_peer_t *peer =
+    ol_txrx_peer_find_by_local_id(pVosGCtx->pdev_txrx_ctx, sta_id);
+    struct ol_txrx_vdev_t *vdev = peer->vdev;
+
+    /* frame format is natve wifi */
+    if(pdev->frame_format == wlan_frm_fmt_native_wifi)
+        offset_snap_header = SIZEOF_80211_HDR;
+    else
+        offset_snap_header = ETHERNET_HDR_LEN;
+
+    if(vos_mem_compare( &data[offset_snap_header],
+        &AIRONET_SNAP_HEADER[0], LLC_SNAP_SIZE) == VOS_TRUE) {
+        /* process IAPP frames */
+        tlshim_mgmt_over_data_rx_handler_non_interrupt_ctx(pVosGCtx,
+            msdu, vdev);
+        /* if returned true: the packet will not be passed to upper layer */
+        return true;
+    }
+
+    /* if returned false the packet will be handled by the upper layer */
+    return false;
+}
+
+#endif /* FEATURE_WLAN_CCX */
 
 #ifdef QCA_WIFI_ISOC
 static void tlshim_mgmt_rx_dxe_handler(void *context, adf_nbuf_t buflist)
@@ -341,10 +586,28 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 		buf = rx_buf_list;
 		while (buf) {
 			next_buf = adf_nbuf_queue_next(buf);
-			ret = sta_info->data_rx(vos_ctx, buf, staid);
-			if (ret != VOS_STATUS_SUCCESS)
-				adf_nbuf_free(buf);
-			buf = next_buf;
+
+#ifdef FEATURE_WLAN_CCX
+        /*
+         * in case following returns true, a defered task was created
+         * inside function, which does following:
+         * 1) create vos packet
+         * 2) send to PE/LIM
+         * 3) free the involved sk_buff
+         */
+        if(tlshim_check_n_process_iapp_frame(vos_ctx, buf, staid)) {
+            buf = next_buf;
+            continue;
+        }
+#endif
+            /*
+             * above returned false, the packet was not IAPP.
+             * process normally
+             */
+            ret = sta_info->data_rx(vos_ctx, buf, staid);
+            if (ret != VOS_STATUS_SUCCESS)
+                adf_nbuf_free(buf);
+            buf = next_buf;
 		}
 	} else /* This should not happen if sta_info->registered is true */
 		goto drop_rx_buf;
@@ -930,7 +1193,10 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 	}
 
 	INIT_WORK(&tl_shim->cache_flush_work, tl_shim_cache_flush_work);
-
+#ifdef FEATURE_WLAN_CCX
+    INIT_WORK(&(tl_shim->iapp_work.deferred_work),
+        tlshim_mgmt_over_data_rx_handler);
+#endif
 	/*
 	 * TODO: Allocate memory for tx callback for maximum supported
 	 * vdevs to maintain tx callbacks per vdev.

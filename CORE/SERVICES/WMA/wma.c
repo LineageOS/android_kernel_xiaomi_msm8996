@@ -6453,10 +6453,81 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 }
 #endif /* FEATURE_OEM_DATA_SUPPORT */
 
+#ifdef FEATURE_WLAN_CCX
+
+#define TSM_DELAY_HISTROGRAM_BINS 4
+/*
+ * @brief: A parallel function to WDA_ProcessTsmStatsReq for pronto. This
+ *         function fetches stats from data path APIs and post
+ *         WDA_TSM_STATS_RSP msg back to LIM.
+ * @param: wma_handler - handle to wma
+ * @param: pTsmStats - TSM stats struct that needs to be populated and
+ *         passed in message.
+ */
+
+VOS_STATUS wma_process_tsm_stats_req(tp_wma_handle wma_handler,
+	tTSMStats *pTsmStats)
+{
+    int tid = pTsmStats->tid;
+    u_int8_t counter;
+    u_int32_t queue_delay_microsec = 0;
+    u_int32_t tx_delay_microsec = 0;
+    u_int16_t packet_count = 0;
+    u_int16_t packet_loss_count = 0;
+    /*
+     * The number of histrogram bin report by data path api are different
+     * than required by TSM, hence different (6) size array used
+     */
+    u_int16_t bin_values[QCA_TX_DELAY_HIST_REPORT_BINS] = {0,};
+
+    ol_txrx_pdev_handle pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+    wma_handler->vos_context);
+
+    /* get required values from data path APIs */
+    ol_tx_delay(pdev, &queue_delay_microsec, &tx_delay_microsec, tid);
+    ol_tx_delay_hist(pdev, bin_values, tid);
+    ol_tx_packet_count(pdev, &packet_count, &packet_loss_count, tid );
+
+    /* populate pTsmStats */
+    pTsmStats->tsmMetrics.UplinkPktQueueDly = queue_delay_microsec;
+    /* store only required number of bin values */
+    for ( counter = 0; counter < TSM_DELAY_HISTROGRAM_BINS; counter++)
+    {
+        pTsmStats->tsmMetrics.UplinkPktQueueDlyHist[counter] =
+            bin_values[counter];
+    }
+    pTsmStats->tsmMetrics.UplinkPktTxDly = tx_delay_microsec;
+    pTsmStats->tsmMetrics.UplinkPktLoss = packet_loss_count;
+    pTsmStats->tsmMetrics.UplinkPktCount = packet_count;
+
+    /*
+     * No need to populate roaming delay and roaming count as they are
+     * being populated just before sending IAPP frame out
+     */
+
+    /* post this message to LIM/PE */
+    wma_send_msg(wma_handler, WDA_TSM_STATS_RSP, (void *)pTsmStats , 0) ;
+    return VOS_STATUS_SUCCESS;
+}
+
+#endif
+
 static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 {
-	msg->status = eHAL_STATUS_SUCCESS;
-	wma_send_msg(wma, WDA_ADD_TS_RSP, msg, 0);
+#ifdef FEATURE_WLAN_CCX
+    /*
+     * msmt_interval is in unit called TU (1 TU = 1024 us)
+     * max value of msmt_interval cannot make resulting
+     * interval_miliseconds overflow 32 bit
+     */
+    ol_txrx_pdev_handle pdev =
+        vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+    tANI_U32 intervalMiliseconds =
+        (msg->tsm_interval*1024)/1000;
+        ol_tx_set_compute_interval(pdev, intervalMiliseconds);
+#endif
+    msg->status = eHAL_STATUS_SUCCESS;
+    wma_send_msg(wma, WDA_ADD_TS_RSP, msg, 0);
 }
 
 static void wma_data_tx_ack_work_handler(struct work_struct *ack_work)
@@ -6799,6 +6870,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 	}
 
 	switch (msg->type) {
+#ifdef FEATURE_WLAN_CCX
+        case WDA_TSM_STATS_REQ:
+            WMA_LOGA("McThread: WDA_TSM_STATS_REQ");
+            wma_process_tsm_stats_req(wma_handle, (tTSMStats *)msg->bodyptr);
+        break;
+#endif
 		case WNI_CFG_DNLD_REQ:
 			WMA_LOGA("McThread: WNI_CFG_DNLD_REQ");
 			vos_status = wma_wni_cfg_dnld(wma_handle);

@@ -1071,9 +1071,19 @@ tSirRetStatus limUpdateAdmitPolicy(tpAniSirGlobal    pMac)
 \param       tSirMacTspecIE tspecIE
 \param       tSirTclasInfo   *tclasInfo
 \param       tANI_U8           tclasProc
+\param       tANI_U16          tsm_interval
 \return eSirRetStatus - status
   -------------------------------------------------------------*/
-
+#ifdef FEATURE_WLAN_CCX
+tSirRetStatus
+limSendHalMsgAddTs(
+  tpAniSirGlobal pMac,
+  tANI_U16       staIdx,
+  tANI_U8         tspecIdx,
+  tSirMacTspecIE tspecIE,
+  tANI_U8        sessionId,
+  tANI_U16       tsm_interval)
+#else
 tSirRetStatus
 limSendHalMsgAddTs(
   tpAniSirGlobal pMac,
@@ -1081,6 +1091,7 @@ limSendHalMsgAddTs(
   tANI_U8         tspecIdx,
   tSirMacTspecIE tspecIE,
   tANI_U8        sessionId)
+#endif
 {
     tSirMsgQ msg;
     tpAddTsParams pAddTsParam;
@@ -1097,6 +1108,10 @@ limSendHalMsgAddTs(
     palCopyMemory(pMac->hHdd, &pAddTsParam->tspec, &tspecIE, sizeof(tSirMacTspecIE));
     pAddTsParam->sessionId = sessionId;
  
+#ifdef FEATURE_WLAN_CCX
+    pAddTsParam->tsm_interval = tsm_interval;
+#endif
+
     msg.type = WDA_ADD_TS_REQ;
     msg.bodyptr = pAddTsParam;
     msg.bodyval = 0;

@@ -981,7 +981,10 @@ typedef struct
   tANI_U16 tspecIdx; //TSPEC handler uniquely identifying a TSPEC for a STA in a BSS
   tSirMacTspecIE   tspec;
   eHalStatus       status;
-  tANI_U8          sessionId;          //PE session id for PE<->HAL interface 
+  tANI_U8          sessionId;          //PE session id for PE<->HAL interface
+#ifdef FEATURE_WLAN_CCX
+  tANI_U16         tsm_interval; // TSM interval period passed from lim to wda
+#endif
 } tAddTsParams, *tpAddTsParams;
 
 typedef struct
