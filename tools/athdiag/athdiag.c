@@ -46,6 +46,7 @@
 #include <errno.h>
 #include <sys/time.h>
 
+#include <a_osapi.h>
 #include <athdefs.h>
 #include <a_types.h>
 
@@ -69,23 +70,78 @@
 #define DIAG_WRITE_TARGET     2
 #define DIAG_READ_WORD        3
 #define DIAG_WRITE_WORD       4
+#define DIAG_DUMP_TARGET      5
 
-#define ADDRESS_FLAG                    0x001
-#define LENGTH_FLAG                     0x002
-#define PARAM_FLAG                      0x004
-#define FILE_FLAG                       0x008
-#define UNUSED0x010                     0x010
-#define AND_OP_FLAG                     0x020
-#define BITWISE_OP_FLAG                 0x040
-#define QUIET_FLAG                      0x080
-#define OTP_FLAG                        0x100
+
+#define ADDRESS_FLAG                    0x0001
+#define LENGTH_FLAG                     0x0002
+#define PARAM_FLAG                      0x0004
+#define FILE_FLAG                       0x0008
+#define UNUSED0x010                     0x0010
+#define AND_OP_FLAG                     0x0020
+#define BITWISE_OP_FLAG                 0x0040
+#define QUIET_FLAG                      0x0080
+#define OTP_FLAG                        0x0100
+#define HEX_FLAG                        0x0200
 /* dump file mode,x: hex mode; other binary mode. */
-#define HEX_FLAG                        0x200
-#define UNUSED0x400                     0x400
-#define DEVICE_FLAG                     0x800
+#define UNUSED0x400                     0x0400
+#define DEVICE_FLAG                     0x0800
+#define TARGET_FLAG                     0x1000
+#define PATH_FLAG                       0x2000
+
 
 /* Limit malloc size when reading/writing file */
 #define MAX_BUF                         (8*1024)
+
+#define DUMP_DRAM_START_ADDR 0x400000
+#define DUMP_DRAM_LEN        0x50000
+
+
+#define PEREGRINE_REG_PART1_START_ADDR 0x4000
+#define PEREGRINE_REG_PART1_LEN        0x2000
+#define PEREGRINE_REG_PART2_START_ADDR 0x8000
+#define PEREGRINE_REG_PART2_LEN        0x58000
+
+#define AR6320V1_REG_PART1_START_ADDR 0x0                 /*RTC_SOC_BASE_ADDRESS*/
+#define AR6320V1_REG_PART1_LEN        (0x800 - 0x0)       /*WLAN_MBOX_BASE_ADDRESS - RTC_SOC_BASE_ADDRESS*/
+#define AR6320V1_REG_PART2_START_ADDR 0x27000             /*STEREO_BASE_ADDRESS*/
+#define AR6320V1_REG_PART2_LEN        (0x60000 - 0x27000) /*USB_BASE_ADDRESS - STEREO_BASE_ADDRESS*/
+
+
+struct ath_target_reg_info {
+    A_UINT32 reg_start;
+    A_UINT32 reg_len;
+    const char *reg_info;
+    const char *save_file;
+};
+
+static const struct ath_target_reg_info reg_ar9888_v2[] = {
+    {DUMP_DRAM_START_ADDR,           DUMP_DRAM_LEN,           "DRAM",      "fwdump_prgr_v2_dram"},
+    {PEREGRINE_REG_PART1_START_ADDR, PEREGRINE_REG_PART1_LEN, "REG_PART1", "fwdump_prgr_v2_reg1"},
+    {PEREGRINE_REG_PART2_START_ADDR, PEREGRINE_REG_PART2_LEN, "REG_PART2", "fwdump_prgr_v2_reg2"},
+    {0, 0, 0, 0}
+};
+
+static const struct ath_target_reg_info reg_ar6320_v1[] = {
+    {DUMP_DRAM_START_ADDR,          DUMP_DRAM_LEN,          "DRAM",      "fwdump_rome_v1_dram"},
+    {AR6320V1_REG_PART1_START_ADDR, AR6320V1_REG_PART1_LEN, "REG_PART1", "fwdump_rome_v1_reg1"},
+    {AR6320V1_REG_PART2_START_ADDR, AR6320V1_REG_PART2_LEN, "REG_PART2", "fwdump_rome_v1_reg2"},
+    {0, 0, 0, 0}
+};
+
+
+#define INVALID_TARGET_INDEX    0xffff
+struct ath_target_info {
+    const char *name;
+    const struct ath_target_reg_info *reg_info;
+};
+
+static const struct ath_target_info target_info[] = {
+    {"AR9888_v2", reg_ar9888_v2},
+    {"AR6320_v1", reg_ar6320_v1},
+};
+
+
 
 unsigned int flag;
 const char *progname;
@@ -100,6 +156,7 @@ const char commands[] =
                                    --[value|param]=<value>\n\
 --otp --read --address=<otp offset> --length=<bytes> --file=<filename>\n\
 --otp --write --address=<otp offset> --file=<filename>\n\
+--dump --target=<target name> [--hex] [--path=<pathname>]\n\
 --quiet\n\
 --device=<device name> (if not default)\n\
 The options can also be given in the abbreviated form --option=x or -o x.\n\
@@ -138,6 +195,17 @@ usage(void)
     fprintf(stderr, "usage:\n%s ", progname);
     fprintf(stderr, "%s\n", commands);
     exit(-1);
+}
+
+void
+list_supported_target_names()
+{
+    int i, target_num = sizeof(target_info)/sizeof(target_info[0]);
+
+    fprintf(stderr, "supported target parameter as follow:\n");
+    for (i = 0; i < target_num; i++) {
+        fprintf(stderr, "\t--target=%s\n", target_info[i].name);
+    }
 }
 
 void
@@ -205,15 +273,12 @@ WriteTargetRange(int dev, A_UINT32 address, A_UINT8 *buffer, A_UINT32 length)
 {
     int nbyte;
     unsigned int remaining;
-    A_UINT8 *tbuffer = NULL;
 
-    fprintf(stderr, "add 0x%x buff 0x%x\n", address, *((A_UINT32 *)buffer));
-    remaining = sizeof(address) + length;
-    while (remaining > sizeof(address)) {
-        tbuffer = (A_UINT8 *)MALLOC(remaining);
-        memcpy(tbuffer, (A_UINT8 *)(&address), sizeof(address));
-        memcpy(tbuffer + sizeof(address), buffer, remaining - sizeof(address));
-        nbyte = write(dev, tbuffer, (size_t)remaining);
+    (void)lseek(dev, address, SEEK_SET);
+
+    remaining = length;
+    while (remaining) {
+        nbyte = write(dev, buffer, (size_t)remaining);
         if (nbyte <= 0) {
             fprintf(stderr, "err %s failed (nbyte=%d, address=0x%x"
                     " remaining=%d).\n",
@@ -224,7 +289,6 @@ WriteTargetRange(int dev, A_UINT32 address, A_UINT8 *buffer, A_UINT32 length)
         remaining -= nbyte;
         buffer += nbyte;
         address += nbyte;
-        free(tbuffer);
     }
 }
 
@@ -251,7 +315,7 @@ ValidWriteOTP(int dev, A_UINT32 offset, A_UINT8 *buffer, A_UINT32 length)
     A_UINT32 i;
     A_UINT8 *otp_contents;
 
-    otp_contents = (A_UINT8 *)MALLOC(length);
+    otp_contents = MALLOC(length);
     ReadTargetOTP(dev, offset, otp_contents, length);
 
     for (i=0; i<length; i++) {
@@ -327,6 +391,70 @@ WriteTargetOTP(int dev, A_UINT32 offset, A_UINT8 *buffer, A_UINT32 length)
     WriteTargetWord(dev, RTC_SOC_BASE_ADDRESS+OTP_OFFSET, 0);
 }
 
+void
+DumpTargetMem(int dev, unsigned int target_idx, char *pathname)
+{
+    const struct ath_target_reg_info *reg_info;
+    FILE * dump_fd;
+    char filename[PATH_MAX], tempfn[PATH_MAX];
+    A_UINT8 *buffer;
+    unsigned int i, address, length, remaining;
+
+    buffer = (A_UINT8 *)MALLOC(MAX_BUF);
+    reg_info = target_info[target_idx].reg_info;
+
+    while ((reg_info->reg_start != 0) || (reg_info->reg_len != 0)) {
+        memset(filename, 0, sizeof(filename));
+        snprintf(filename, sizeof(filename), "%s%s", pathname,
+                 reg_info->save_file);
+        snprintf(tempfn, sizeof(tempfn), "%s", filename);
+        if(flag & HEX_FLAG) {
+            snprintf(filename, sizeof(filename), "%s.txt", tempfn);
+        } else {
+            snprintf(filename, sizeof(filename), "%s.bin", tempfn);
+        }
+
+        if ((dump_fd = fopen(filename, "wb+")) == NULL) {
+            fprintf(stderr, "err %s cannot create/open output file (%s)\n",
+                        __FUNCTION__, filename);
+            reg_info++;
+            continue;
+        }
+
+        remaining = length = reg_info->reg_len;
+        address   = reg_info->reg_start;
+        if(flag & HEX_FLAG) {
+            fprintf(dump_fd,"target mem dump area[0x%08x - 0x%08x]",address,
+                    address+length);
+        }
+
+        nqprintf("DIAG Read Target (address: 0x%x, length: %d, filename: %s)\n",
+                    address, length, filename);
+
+        while (remaining) {
+            length = (remaining > MAX_BUF) ? MAX_BUF : remaining;
+            ReadTargetRange(dev, address, buffer, length);
+            if(flag & HEX_FLAG) {
+                for(i=0; i<length; i+=4) {
+                    if(i%16 == 0)
+                        fprintf(dump_fd,"\n0x%08x:\t",address+i);
+                    fprintf(dump_fd,"0x%08x\t",*(A_UINT32*)(buffer+i));
+                }
+            } else {
+                fwrite(buffer,1 , length, dump_fd);
+            }
+            remaining -= length;
+            address += length;
+        }
+
+        fclose(dump_fd);
+        reg_info++;
+    }
+    free(buffer);
+}
+
+
+
 unsigned int
 parse_address(char *optarg)
 {
@@ -339,18 +467,36 @@ parse_address(char *optarg)
     return address;
 }
 
+unsigned int
+parse_target_index(char *optarg)
+{
+    unsigned int i, index = INVALID_TARGET_INDEX;
+
+    for (i = 0; i < sizeof(target_info)/sizeof(target_info[0]); i++) {
+        if (strncmp(optarg, target_info[i].name, sizeof(target_info[i].name)) == 0) {
+            /* found */
+            index = i;
+            break;
+        }
+    }
+
+    return index;
+}
+
 int
 main (int argc, char **argv) {
     int c, fd, dev;
     int i;
     FILE * dump_fd;
-    unsigned int address = 0, length = 0;
+    unsigned int address = 0, target_idx = 0, length = 0;
     A_UINT32 param;
-    char filename[PATH_MAX];
+    char filename[PATH_MAX], tempfn[PATH_MAX];
+    char pathname[PATH_MAX];
     char devicename[PATH_MAX];
     unsigned int cmd = 0;
     A_UINT8 *buffer;
     unsigned int bitwise_mask = 0;
+
     progname = argv[0];
 
     if (argc == 1) usage();
@@ -358,6 +504,7 @@ main (int argc, char **argv) {
     flag = 0;
     memset(filename, '\0', sizeof(filename));
     memset(devicename, '\0', sizeof(devicename));
+    memset(tempfn, '\0', sizeof(tempfn));
 
     while (1) {
         int option_index = 0;
@@ -365,22 +512,25 @@ main (int argc, char **argv) {
             {"address", 1, NULL, 'a'},
             {"and", 1, NULL, 'n'},
             {"device", 1, NULL, 'D'},
+            {"dump", 0, NULL, 'd'},
             {"get", 0, NULL, 'g'},
             {"file", 1, NULL, 'f'},
+            {"hex", 0, NULL, 'x'},
             {"length", 1, NULL, 'l'},
             {"or", 1, NULL, 'o'},
             {"otp", 0, NULL, 'O'},
             {"param", 1, NULL, 'p'},
+            {"path", 1, NULL, 'P'},
             {"quiet", 0, NULL, 'q'},
             {"read", 0, NULL, 'r'},
             {"set", 0, NULL, 's'},
+            {"target", 1, NULL, 't'},
             {"value", 1, NULL, 'p'},
             {"write", 0, NULL, 'w'},
-            {"hex", 0, NULL, 'x'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "xrwgsqOf:l:a:p:c:n:o:D:",
+        c = getopt_long (argc, argv, "xrwgsqdOf:l:a:p:c:n:o:D:t:P:",
                          long_options, &option_index);
         if (c == -1)
             break;
@@ -400,6 +550,10 @@ main (int argc, char **argv) {
 
         case 's':
             cmd = DIAG_WRITE_WORD;
+            break;
+
+        case 'd':
+            cmd = DIAG_DUMP_TARGET;
             break;
 
         case 'f':
@@ -441,6 +595,23 @@ main (int argc, char **argv) {
             flag |= QUIET_FLAG;
             break;
 
+        case 't':
+            target_idx = parse_target_index(optarg);
+            if (target_idx != INVALID_TARGET_INDEX) {
+                flag |= TARGET_FLAG;
+            }
+            break;
+
+        case 'P':
+            memset(pathname, '\0', sizeof(pathname));
+            snprintf(pathname, sizeof(pathname), "%s", optarg);
+            if (pathname[strlen(pathname)-1] != '/') {
+                snprintf(tempfn, sizeof(tempfn),"%s", pathname);
+                snprintf(pathname, sizeof(pathname),"%s/", tempfn);
+            }
+            flag |= PATH_FLAG;
+            break;
+
         case 'D':
             snprintf(devicename, sizeof(devicename), "%s%s", optarg,
                      "/athdiag");
@@ -462,12 +633,13 @@ main (int argc, char **argv) {
         if (!(flag & DEVICE_FLAG)) {
             FILE *find_dev;
             size_t nbytes;
+
             /*
              * Convenience: if no device was specified on the command
              * line, try to figure it out.  Typically there's only a
              * single device anyway.
              */
-            find_dev = popen("find /proc -name athdiagpfs | head -1", "r");
+            find_dev = popen("busybox find /proc -name athdiagpfs | busybox head -1", "r");
             if (find_dev) {
                 nbytes=fread(devicename, 1, sizeof(devicename), find_dev);
                 pclose(find_dev);
@@ -498,7 +670,7 @@ main (int argc, char **argv) {
         if ((flag & (ADDRESS_FLAG | LENGTH_FLAG | FILE_FLAG)) ==
                 (ADDRESS_FLAG | LENGTH_FLAG | FILE_FLAG))
         {
-            if (((int)(dump_fd = fopen(filename, "wb+"))) < 0)
+            if ((dump_fd = fopen(filename, "wb+")) == NULL)
             {
                 fprintf(stderr, "err %s cannot create/open output file (%s)\n",
                         __FUNCTION__, filename);
@@ -741,9 +913,27 @@ main (int argc, char **argv) {
                 nqprintf("DIAG Write Word (address: 0x%x, param:"
                          " 0x%x)\n", address, param);
             }
+
             WriteTargetWord(dev, address, param);
         }
         else usage();
+        break;
+
+    case DIAG_DUMP_TARGET:
+        if (!(flag & TARGET_FLAG)) {
+            list_supported_target_names();
+            usage(); /* no target specified */
+        }
+
+        if (!(flag & PATH_FLAG)) {
+            memset(pathname, '\0', sizeof(filename));
+            if (getcwd(pathname, sizeof(pathname)-1) != NULL)
+                printf("%s\n",pathname);
+            snprintf(tempfn, sizeof(tempfn), "%s", pathname);
+            snprintf(pathname, sizeof(pathname), "%s/", tempfn);
+        }
+
+        DumpTargetMem(dev, target_idx, pathname);
         break;
 
     default:
