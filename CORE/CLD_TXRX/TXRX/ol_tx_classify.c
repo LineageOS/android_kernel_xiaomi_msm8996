@@ -44,7 +44,6 @@
 #include <enet.h>             /* ETHERTYPE_VLAN, etc. */
 #include <ieee80211_common.h>        /* ieee80211_frame */
 
-
 /*
  * In theory, this tx classify code could be used on the host or in the target.
  * Thus, this code uses generic OS primitives, that can be aliased to either
@@ -261,32 +260,6 @@ ol_tx_tid(
         tid = HTT_TX_EXT_TID_INVALID;
     }
     return tid;
-}
-
-static A_UINT8 *
-ol_tx_dest_addr_find(
-    struct ol_txrx_pdev_t *pdev,
-    adf_nbuf_t tx_nbuf)
-{
-    A_UINT8 *hdr_ptr;
-    void *datap = adf_nbuf_data(tx_nbuf);
-
-    if (pdev->frame_format == wlan_frm_fmt_raw) {
-        /* adjust hdr_ptr to RA */
-        struct ieee80211_frame *wh = (struct ieee80211_frame *)datap;
-        hdr_ptr = wh->i_addr1;
-    } else if (pdev->frame_format == wlan_frm_fmt_native_wifi) {
-        /* adjust hdr_ptr to RA */
-        struct ieee80211_frame *wh = (struct ieee80211_frame *)datap;
-        hdr_ptr = wh->i_addr1;
-    } else if (pdev->frame_format == wlan_frm_fmt_802_3) {
-        hdr_ptr = datap;
-    } else {
-        adf_os_print("Invalid standard frame type: %d\n", pdev->frame_format);
-        adf_os_assert(0);
-        hdr_ptr = NULL;
-    }
-    return hdr_ptr;
 }
 
 struct ol_tx_frms_queue_t *

@@ -861,6 +861,8 @@ endif
 
 ifeq ($(CONFIG_QCOM_CCX),y)
 CDEFINES += -DFEATURE_WLAN_CCX
+CDEFINES += -DQCA_COMPUTE_TX_DELAY
+CDEFINES += -DQCA_COMPUTE_TX_DELAY_PER_TID
 endif
 
 #normally, TDLS negative behavior is not needed
