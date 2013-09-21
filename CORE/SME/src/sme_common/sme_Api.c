@@ -66,6 +66,7 @@
 #include "csrInternal.h"
 #include "wlan_qct_wda.h"
 #include "halMsgApi.h"
+#include "vos_utils.h"
 
 #include "sapApi.h"
 
@@ -8932,3 +8933,75 @@ eHalStatus sme_MoveCsrToScanStateForPno (tHalHandle hHal, tANI_U8 sessionId)
     return status;
 }
 #endif
+
+eHalStatus sme_getValidChannelList(tHalHandle hHal, tANI_U8 *numChannels,
+                                   tANI_U8 **chanList)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus status;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (HAL_STATUS_SUCCESS(status))
+    {
+        *numChannels =
+            pMac->roam.neighborRoamInfo.cfgParams.channelInfo.numOfChannels;
+        vos_mem_copy(*chanList,
+            &pMac->roam.neighborRoamInfo.cfgParams.channelInfo.ChannelList,
+            *numChannels);
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return status;
+}
+
+#ifdef QCA_WIFI_2_0
+eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
+                              tSmeChannelInfo *chanInfo)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus status;
+    tANI_U8 i;
+    eAniBoolean found = false;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (HAL_STATUS_SUCCESS(status))
+    {
+        for (i = 0 ; i < WNI_CFG_VALID_CHANNEL_LIST_LEN; i++)
+        {
+            if (pMac->scan.defaultPowerTable[i].chanId == chanId)
+            {
+                chanInfo->chan_id = chanId;
+                chanInfo->mhz = vos_chan_to_freq(chanId);
+                chanInfo->band_center_freq1 = chanInfo->mhz;
+                chanInfo->band_center_freq2 = 0;
+
+                if (chanInfo->mhz < SME_2_4_GHZ_MAX_FREQ)
+                {
+                    SME_SET_CHANNEL_MODE(chanInfo, SME_MODE_11G);
+                }
+                else
+                {
+                    SME_SET_CHANNEL_MODE(chanInfo, SME_MODE_11A);
+                }
+
+                SME_SET_CHANNEL_MAX_POWER(chanInfo,
+                                          pMac->scan.defaultPowerTable[i].pwr);
+
+                SME_SET_CHANNEL_REG_POWER(chanInfo,
+                                          pMac->scan.defaultPowerTable[i].pwr);
+
+                /* TODO: Set CHANNEL_MIN_POWER */
+                /* TODO: Set CHANNEL_ANTENNA_MAX */
+                /* TODO: Set CHANNEL_REG_CLASSID */
+
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            status = eHAL_STATUS_FAILURE;
+
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return status;
+}
+#endif /* QCA_WIFI_2_0 */

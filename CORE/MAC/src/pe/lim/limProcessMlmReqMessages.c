@@ -1931,10 +1931,16 @@ static void limProcessMlmOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         pMac->lim.gLimPrevMlmState = pMac->lim.gLimMlmState;
 
+#ifdef QCA_WIFI_2_0
+        PELOG2(limLog(pMac, LOG2,
+                      FL("%s: Calling limSendHalOemDataReq"), __func__);)
+        limSendHalOemDataReq(pMac);
+#else
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION, pMac->lim.gLimMlmState));
 
         //Now request for link suspension
         limSuspendLink(pMac, eSIR_CHECK_LINK_TRAFFIC_BEFORE_SCAN, limSetOemDataReqMode, NULL);
+#endif
     }
     else
     {

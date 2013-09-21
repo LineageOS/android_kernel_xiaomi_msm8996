@@ -308,6 +308,7 @@ eHalStatus sme_HandleOemDataRsp(tHalHandle hHal, tANI_U8* pMsg)
             break;
         }
 
+#ifndef QCA_WIFI_2_0
         pEntry = csrLLPeekHead( &pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK );
         if(pEntry)
         {
@@ -359,7 +360,34 @@ eHalStatus sme_HandleOemDataRsp(tHalHandle hHal, tANI_U8* pMsg)
 
         oemData_ReleaseOemDataReqCommand(pMac, pCommand, eHAL_STATUS_SUCCESS);
         pMac->oemData.oemDataReqActive = eANI_BOOLEAN_FALSE;
+#else /* QCA_WIFI_2_0 */
+        /* In this case, there can be multiple OEM Data Responses for one
+         * OEM Data request, SME does not peek into data response so SME
+         * can not know which response is the last one. So SME clears active
+         * request command on receiving first response and thereafter SME
+         * passes each sunsequent response to upper user layer.
+         */
+        pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
+        if (pEntry)
+        {
+            pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
+            if (eSmeCommandOemDataReq == pCommand->command)
+            {
+                if (csrLLRemoveEntry(&pMac->sme.smeCmdActiveList,
+                                     &pCommand->Link, LL_ACCESS_LOCK))
+                {
+                    vos_mem_set(&(pCommand->u.oemDataCmd),
+                                sizeof(tOemDataCmd), 0);
+                    smeReleaseCommand(pMac, pCommand);
+                }
+            }
+        }
 
+        pOemDataRsp = (tSirOemDataRsp *)pMsg;
+
+        smsLog(pMac, LOG1, "calling send_oem_data_rsp_msg");
+        send_oem_data_rsp_msg(sizeof(tOemDataRsp), &pOemDataRsp->oemDataRsp[0]);
+#endif /* QCA_WIFI_2_0 */
     } while(0);
 
     return status;

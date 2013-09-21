@@ -366,6 +366,10 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctl to trigger reassociation */
 
 #define WLAN_SET_POWER_PARAMS        (SIOCIWFIRSTPRIV + 29)
+#ifdef FEATURE_OEM_DATA_SUPPORT
+/* Private ioctl to get capability information for OEM Data Request/Response */
+#define WLAN_PRIV_GET_OEM_DATA_CAP   (SIOCIWFIRSTPRIV + 30)
+#endif
 #define WLAN_GET_LINK_SPEED          (SIOCIWFIRSTPRIV + 31)
 
 #define WLAN_STATS_INVALID            0
@@ -2439,7 +2443,6 @@ static int iw_get_linkspeed(struct net_device *dev,
   /* a value is being successfully returned */
    return 0;
 }
-
 
 /*
  * Support for the RSSI & RSSI-APPROX private commands
@@ -7609,6 +7612,9 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_SET_MCBC_FILTER           - SIOCIWFIRSTPRIV]   = iw_set_dynamic_mcbc_filter,
    [WLAN_PRIV_CLEAR_MCBC_FILTER         - SIOCIWFIRSTPRIV]   = iw_clear_dynamic_mcbc_filter,
    [WLAN_SET_POWER_PARAMS               - SIOCIWFIRSTPRIV]   = iw_set_power_params_priv,
+#ifdef FEATURE_OEM_DATA_SUPPORT
+   [WLAN_PRIV_GET_OEM_DATA_CAP - SIOCIWFIRSTPRIV] = iw_get_oem_data_cap,
+#endif
    [WLAN_GET_LINK_SPEED                 - SIOCIWFIRSTPRIV]   = iw_get_linkspeed,
 };
 
@@ -8322,11 +8328,17 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         0,
         "setpowerparams" },
+#ifdef FEATURE_OEM_DATA_SUPPORT
+    {
+        WLAN_PRIV_GET_OEM_DATA_CAP,
+        0,
+        IW_PRIV_TYPE_BYTE | sizeof(struct iw_oem_data_cap),
+        "getOemDataCap" },
+#endif
     {
         WLAN_GET_LINK_SPEED,
         IW_PRIV_TYPE_CHAR | 18,
         IW_PRIV_TYPE_CHAR | 3, "getLinkSpeed" },
-   
 };
 
 

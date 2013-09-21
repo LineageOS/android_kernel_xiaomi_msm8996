@@ -1002,13 +1002,16 @@ void limOemDataRspHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tA
 
 void limProcessOemDataRsp(tpAniSirGlobal pMac, tANI_U32* body)
 {
-    eHalStatus status = eHAL_STATUS_SUCCESS;
     tpLimMlmOemDataRsp mlmOemDataRsp = NULL;
+#ifndef QCA_WIFI_2_0
+    eHalStatus status = eHAL_STATUS_SUCCESS;
     tpStartOemDataRsp oemDataRsp = NULL;
+#endif
 
     //Process all the messages for the lim queue
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
 
+#ifndef QCA_WIFI_2_0
     oemDataRsp = (tpStartOemDataRsp)(body);
 
     status = palAllocateMemory(pMac->hHdd, (void**)(&mlmOemDataRsp), sizeof(tLimMlmOemDataRsp));
@@ -1026,6 +1029,13 @@ void limProcessOemDataRsp(tpAniSirGlobal pMac, tANI_U32* body)
     palFreeMemory(pMac->hHdd, (void*)(oemDataRsp));
 
     limResumeLink(pMac, limOemDataRspHandleResumeLinkRsp, (tANI_U32*)mlmOemDataRsp);
+#else
+    mlmOemDataRsp = (tpLimMlmOemDataRsp) body;
+
+    PELOG1(limLog(pMac, LOG1, FL("%s: sending oem data response msg to sme"),
+                  __func__);)
+    limPostSmeMessage(pMac, LIM_MLM_OEM_DATA_CNF, (tANI_U32*)(mlmOemDataRsp));
+#endif
 
     return;
 }

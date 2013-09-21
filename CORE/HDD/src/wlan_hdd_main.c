@@ -2206,6 +2206,8 @@ void hdd_update_tgt_cfg(void *context, void *param)
                MAC_ADDR_ARRAY(hdd_ctx->cfg_ini->intfMacAddr[0].bytes));
     }
 
+    hdd_ctx->target_fw_version = cfg->target_fw_version;
+
     hdd_update_tgt_services(hdd_ctx, &cfg->services);
 
     hdd_update_tgt_ht_cap(hdd_ctx, &cfg->ht_cap);
@@ -5556,6 +5558,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #else
    hif_init_adf_ctx(adf_ctx, hif_sc);
    ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
+
+   /* store target type and target version info in hdd ctx */
+   pHddCtx->target_type = ((struct ol_softc *)hif_sc)->target_type;
 #endif
    ((VosContextType*)(pVosContext))->adf_ctx = adf_ctx;
 #endif /* QCA_WIFI_2_0 */
@@ -5986,6 +5991,18 @@ register_wiphy:
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: btc_activate_service failed",__func__);
       goto err_nl_srv;
    }
+
+#ifdef FEATURE_OEM_DATA_SUPPORT
+#ifdef QCA_WIFI_2_0
+   //Initialize the OEM service
+   if (oem_activate_service(pHddCtx) != 0)
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: oem_activate_service failed", __func__);
+      goto err_nl_srv;
+   }
+#endif
+#endif
 
 #ifdef PTT_SOCK_SVC_ENABLE
    //Initialize the PTT service

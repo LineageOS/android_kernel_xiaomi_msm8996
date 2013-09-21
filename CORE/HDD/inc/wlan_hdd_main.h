@@ -909,6 +909,16 @@ struct hdd_context_s
    /** ptt Process ID*/
    v_SINT_t ptt_pid;
 
+#ifdef FEATURE_OEM_DATA_SUPPORT
+#ifdef QCA_WIFI_2_0
+   /* OEM App registered or not */
+   v_BOOL_t oem_app_registered;
+
+   /* OEM App Process ID */
+   v_SINT_t oem_pid;
+#endif
+#endif
+
    v_U8_t change_iface;
 
    /** Concurrency Parameters*/
@@ -970,6 +980,10 @@ struct hdd_context_s
     v_U8_t configuredMcastBcastFilter;
 
     v_U8_t sus_res_mcastbcast_filter;
+#ifdef QCA_WIFI_2_0
+    v_U32_t target_type;
+    v_U32_t target_fw_version;
+#endif
 };
 
 
