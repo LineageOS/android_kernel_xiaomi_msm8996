@@ -1974,8 +1974,8 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 
     hif_state->fw_indicator_address = FW_INDICATOR_ADDRESS;
     hif_state->targid = A_TARGET_ID(sc->hif_device);
-#if CONFIG_ATH_PCIE_MAX_PERF
-    /* Force AWAKE forever */
+#if CONFIG_ATH_PCIE_MAX_PERF || CONFIG_ATH_PCIE_AWAKE_WHILE_DRIVER_LOAD
+    /* Force AWAKE forever/till the driver is loaded */
     HIFTargetSleepStateAdjust(hif_state->targid, FALSE, TRUE);
 #endif
 
@@ -2297,6 +2297,13 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
             }
         }
     }
+}
+
+void
+HIFSetTargetSleep(HIF_DEVICE *hif_device, A_BOOL sleep_ok, A_BOOL wait_for_it)
+{
+    struct HIF_CE_state *hif_state = (struct HIF_CE_state *)hif_device;
+    HIFTargetSleepStateAdjust(hif_state->targid, sleep_ok, wait_for_it);
 }
 
 A_BOOL

@@ -673,12 +673,15 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
    {
       VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_FATAL,
                "Failed to get ready event from target firmware");
+      HTCSetTargetToSleep(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext));
       macStop(gpVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
       ccmStop(gpVosContext->pMACContext);
       HTCStop(gpVosContext->htc_ctx);
       VOS_ASSERT( 0 );
       return VOS_STATUS_E_FAILURE;
    }
+
+   HTCSetTargetToSleep(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext));
 #endif
 #endif /* QCA_WIFI_2_0 */
 
