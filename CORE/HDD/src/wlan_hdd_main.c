@@ -2085,6 +2085,17 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
     if (pconfig->enableTxBF && !cfg->vht_su_bformee)
         pconfig->enableTxBF = cfg->vht_su_bformee;
 
+    status = ccmCfgSetInt(hdd_ctx->hHal,
+                          WNI_CFG_VHT_SU_BEAMFORMEE_CAP,
+                          pconfig->enableTxBF, NULL,
+                          eANI_BOOLEAN_FALSE);
+
+    if (status == eHAL_STATUS_FAILURE) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                  "%s: could not set VHT SU BEAMFORMEE CAP",
+                  __func__);
+    }
+
     /* Get VHT MU Beamformer cap */
     status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_MU_BEAMFORMER_CAP,
                           &value);
@@ -2146,8 +2157,15 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
         value = 0;
     }
 
-    /* set VHT MAX AMPDU Len exp */
-    if (value && !cfg->vht_max_ampdu_len_exp) {
+    /*
+     * VHT max AMPDU len exp:
+     * override if user configured value is too high
+     * that the target cannot support.
+     * Even though Rome publish ampdu_len=7, it can
+     * only support 4 because of some h/w bug.
+     */
+
+    if (value > cfg->vht_max_ampdu_len_exp) {
         status = ccmCfgSetInt(hdd_ctx->hHal,
                               WNI_CFG_VHT_AMPDU_LEN_EXPONENT,
                               cfg->vht_max_ampdu_len_exp, NULL,

@@ -1576,6 +1576,16 @@ typedef enum
 #define CFG_ENABLE_RX_STBC_MAX                   ( 1 )
 #define CFG_ENABLE_RX_STBC_DEFAULT               ( 1 )
 
+#define CFG_ENABLE_TX_STBC                       "gEnableTXSTBC"
+#define CFG_ENABLE_TX_STBC_MIN                   ( 0 )
+#define CFG_ENABLE_TX_STBC_MAX                   ( 1 )
+#define CFG_ENABLE_TX_STBC_DEFAULT               ( 0 )
+
+#define CFG_ENABLE_RX_LDPC                       "gEnableRXLDPC"
+#define CFG_ENABLE_RX_LDPC_MIN                   ( 0 )
+#define CFG_ENABLE_RX_LDPC_MAX                   ( 1 )
+#define CFG_ENABLE_RX_LDPC_DEFAULT               ( 0 )
+
 /* 
  * Enable/Disable vsta based on MAX Assoc limit 
  * defined in WCNSS_qcom_cfg.ini.
@@ -1791,6 +1801,11 @@ typedef enum
 #define CFG_VHT_AMPDU_LEN_EXPONENT_MIN                 ( 0 )
 #define CFG_VHT_AMPDU_LEN_EXPONENT_MAX                 ( 7 )
 #define CFG_VHT_AMPDU_LEN_EXPONENT_DEFAULT             ( 3 )
+
+#define CFG_VHT_MPDU_LEN_NAME                          "gVhtMpduLen"
+#define CFG_VHT_MPDU_LEN_MIN                           ( 0 )
+#define CFG_VHT_MPDU_LEN_MAX                           ( 2 )
+#define CFG_VHT_MPDU_LEN_DEFAULT                       ( 0 )
 #endif
 
 /*--------------------------------------------------------------------------- 
@@ -2138,6 +2153,8 @@ typedef struct
    v_U16_t                     configMccParam;
    v_U32_t                     numBuffAdvert;
    v_BOOL_t                    enableRxSTBC;
+   v_BOOL_t                    enableTxSTBC;
+   v_BOOL_t                    enableRxLDPC;
 #ifdef FEATURE_WLAN_TDLS       
    v_BOOL_t                    fEnableTDLSSupport;
    v_BOOL_t                    fEnableTDLSImplicitTrigger;
@@ -2178,6 +2195,7 @@ typedef struct
    v_BOOL_t                    fP2pListenOffload;
 #ifdef WLAN_FEATURE_11AC
    v_U8_t                      fVhtAmpduLenExponent;
+   v_U32_t                     vhtMpduLen;
 #endif
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 

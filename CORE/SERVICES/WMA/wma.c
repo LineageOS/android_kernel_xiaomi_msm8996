@@ -2780,7 +2780,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	wmi_buf_t buf;
 	int32_t len;
 	int32_t ret, max_rates, i;
-	u_int8_t rx_stbc;
+	u_int8_t rx_stbc, tx_stbc;
 	u_int8_t *rate_pos, *buf_ptr;
 	wmi_rate_set peer_legacy_rates, peer_ht_rates;
         wmi_vht_rate_set *mcs;
@@ -2917,6 +2917,13 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		cmd->peer_flags |= WMI_PEER_STBC;
 		cmd->peer_rate_caps |= (rx_stbc << WMI_RC_RX_STBC_FLAG_S);
 	}
+
+        tx_stbc = (params->ht_caps & IEEE80211_HTCAP_C_TXSTBC) >>
+                        IEEE80211_HTCAP_C_TXSTBC_S;
+        if (tx_stbc) {
+                cmd->peer_flags |= WMI_PEER_STBC;
+                cmd->peer_rate_caps |= (tx_stbc << WMI_RC_TX_STBC_FLAG_S);
+        }
 
 	if (params->htLdpcCapable || params->vhtLdpcCapable)
 		cmd->peer_flags |= WMI_PEER_LDPC;
@@ -7734,6 +7741,14 @@ static inline void wma_update_target_ht_cap(tp_wma_handle wh,
 
 	/* RF chains */
 	cfg->num_rf_chains = wh->num_rf_chains;
+
+        WMA_LOGD("\n%s: ht_cap_info - %x ht_rx_stbc - %d, ht_tx_stbc - %d\n\
+                mpdu_density - %d ht_rx_ldpc - %d ht_sgi_20 - %d\n\
+                ht_sgi_40 - %d num_rf_chains - %d \n", __func__,
+                wh->ht_cap_info, cfg->ht_rx_stbc, cfg->ht_tx_stbc,
+                cfg->mpdu_density, cfg->ht_rx_ldpc, cfg->ht_sgi_20,
+                cfg->ht_sgi_40, cfg->num_rf_chains);
+
 }
 
 #ifdef WLAN_FEATURE_11AC
@@ -7742,11 +7757,11 @@ static inline void wma_update_target_vht_cap(tp_wma_handle wh,
 {
 	/* Max MPDU length */
 	if (wh->vht_cap_info & IEEE80211_VHTCAP_MAX_MPDU_LEN_3839)
-		cfg->vht_max_mpdu = 3839;
+		cfg->vht_max_mpdu = 0;
 	else if (wh->vht_cap_info & IEEE80211_VHTCAP_MAX_MPDU_LEN_7935)
-		cfg->vht_max_mpdu = 7935;
+		cfg->vht_max_mpdu = 1;
 	else if (wh->vht_cap_info & IEEE80211_VHTCAP_MAX_MPDU_LEN_11454)
-		cfg->vht_max_mpdu = 11454;
+		cfg->vht_max_mpdu = 2;
 	else
 		cfg->vht_max_mpdu = 0;
 
@@ -7776,7 +7791,11 @@ static inline void wma_update_target_vht_cap(tp_wma_handle wh,
 	cfg->vht_tx_stbc = wh->vht_cap_info & IEEE80211_VHTCAP_TX_STBC;
 
 	/* RX STBC capability */
-	cfg->vht_rx_stbc = wh->vht_cap_info & IEEE80211_VHTCAP_RX_STBC;
+        cfg->vht_rx_stbc = wh->vht_cap_info & IEEE80211_VHTCAP_RX_STBC;
+
+        cfg->vht_max_ampdu_len_exp = (wh->vht_cap_info &
+                                     IEEE80211_VHTCAP_MAX_AMPDU_LEN_EXP)
+                                      >> IEEE80211_VHTCAP_MAX_AMPDU_LEN_EXP_S;
 
 	/* SU beamformer cap */
 	cfg->vht_su_bformer = wh->vht_cap_info & IEEE80211_VHTCAP_SU_BFORMER;
@@ -7796,6 +7815,14 @@ static inline void wma_update_target_vht_cap(tp_wma_handle wh,
 
 	/* VHT TXOP PS cap */
 	cfg->vht_txop_ps = wh->vht_cap_info & IEEE80211_VHTCAP_TXOP_PS;
+
+        WMA_LOGD("\n %s: max_mpdu %d supp_chan_width %x rx_ldpc %x\n \
+                short_gi_80 %x tx_stbc %x rx_stbc %x txop_ps %x\n \
+                su_bformee %x mu_bformee %x max_ampdu_len_exp %d\n",
+                __func__, cfg->vht_max_mpdu, cfg->supp_chan_width,
+                cfg->vht_rx_ldpc, cfg->vht_short_gi_80, cfg->vht_tx_stbc,
+                cfg->vht_rx_stbc, cfg->vht_txop_ps, cfg->vht_su_bformee,
+                cfg->vht_mu_bformee, cfg->vht_max_ampdu_len_exp);
 }
 #endif	/* #ifdef WLAN_FEATURE_11AC */
 

@@ -2044,6 +2044,20 @@ REG_VARIABLE( CFG_ENABLE_RX_STBC, WLAN_PARAM_Integer,
               CFG_ENABLE_RX_STBC_DEFAULT,
               CFG_ENABLE_RX_STBC_MIN,
               CFG_ENABLE_RX_STBC_MAX ),
+REG_VARIABLE( CFG_ENABLE_TX_STBC, WLAN_PARAM_Integer,
+              hdd_config_t, enableTxSTBC,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_ENABLE_TX_STBC_DEFAULT,
+              CFG_ENABLE_TX_STBC_MIN,
+              CFG_ENABLE_TX_STBC_MAX ),
+
+REG_VARIABLE( CFG_ENABLE_RX_LDPC, WLAN_PARAM_Integer,
+              hdd_config_t, enableRxLDPC,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_ENABLE_RX_LDPC_DEFAULT,
+              CFG_ENABLE_RX_LDPC_MIN,
+              CFG_ENABLE_RX_LDPC_MAX ),
+
 #ifdef FEATURE_WLAN_TDLS
 REG_VARIABLE( CFG_TDLS_SUPPORT_ENABLE, WLAN_PARAM_Integer,
               hdd_config_t, fEnableTDLSSupport,
@@ -2296,6 +2310,13 @@ REG_VARIABLE( CFG_VHT_AMPDU_LEN_EXPONENT_NAME, WLAN_PARAM_Integer,
                CFG_VHT_AMPDU_LEN_EXPONENT_DEFAULT,
                CFG_VHT_AMPDU_LEN_EXPONENT_MIN,
                CFG_VHT_AMPDU_LEN_EXPONENT_MAX),
+
+REG_VARIABLE( CFG_VHT_MPDU_LEN_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, vhtMpduLen,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK ,
+               CFG_VHT_MPDU_LEN_DEFAULT,
+               CFG_VHT_MPDU_LEN_MIN,
+               CFG_VHT_MPDU_LEN_MAX),
 #endif
 
 };
@@ -3794,6 +3815,14 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
                    }
                }
           }
+           if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_MAX_MPDU_LENGTH,
+                           pConfig->vhtMpduLen, NULL,
+                           eANI_BOOLEAN_FALSE)
+               == eHAL_STATUS_FAILURE)
+           {
+               fStatus = FALSE;
+               hddLog(LOGE, "Could not pass on WNI_CFG_VHT_MAX_MPDU_LENGTH to CCM\n");
+           }
        }
    }
 #endif
@@ -3817,6 +3846,8 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
      val16 = (tANI_U16)val;
      phtCapInfo = (tSirMacHTCapabilityInfo *)&val16;
      phtCapInfo->rxSTBC = pConfig->enableRxSTBC;
+     phtCapInfo->txSTBC = pConfig->enableTxSTBC;
+     phtCapInfo->advCodingCap = pConfig->enableRxLDPC;
 
      if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_HT_CAP_INFO,
                      *(tANI_U16 *)phtCapInfo, NULL, eANI_BOOLEAN_FALSE)
@@ -3832,6 +3863,22 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
      {
          fStatus = FALSE;
          hddLog(LOGE, "Could not pass on WNI_CFG_VHT_RXSTBC to CCM\n");
+     }
+
+     if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_TXSTBC,
+                     pConfig->enableTxSTBC, NULL, eANI_BOOLEAN_FALSE)
+         ==eHAL_STATUS_FAILURE)
+     {
+         fStatus = FALSE;
+         hddLog(LOGE, "Could not pass on WNI_CFG_VHT_TXSTBC to CCM\n");
+     }
+
+     if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_LDPC_CODING_CAP,
+                     pConfig->enableRxLDPC, NULL, eANI_BOOLEAN_FALSE)
+         ==eHAL_STATUS_FAILURE)
+     {
+         fStatus = FALSE;
+         hddLog(LOGE, "Could not pass on WNI_CFG_VHT_LDPC_CODING_CAP to CCM\n");
      }
 
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
