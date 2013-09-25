@@ -1701,6 +1701,7 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.txBFCsnValue = pParam->txBFCsnValue;
         pMac->roam.configParam.enable2x2= pParam->enable2x2;
         pMac->roam.configParam.enableVhtFor24GHz = pParam->enableVhtFor24GHz;
+        pMac->roam.configParam.txMuBformee= pParam->enableMuBformee;
 #endif
         pMac->roam.configParam.txLdpcEnable = pParam->enableTxLdpc;
     }
@@ -1782,6 +1783,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->nVhtChannelWidth = pMac->roam.configParam.nVhtChannelWidth;
         pParam->enableTxBF = pMac->roam.configParam.txBFEnable;
         pParam->txBFCsnValue = pMac->roam.configParam.txBFCsnValue;
+        pParam->enableMuBformee = pMac->roam.configParam.txMuBformee;
 #endif
         pParam->enableTxLdpc = pMac->roam.configParam.txLdpcEnable;
         csrSetChannels(pMac, pParam);
@@ -12301,6 +12303,11 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         // txBFCsnValue
         *pBuf = (tANI_U8)pMac->roam.configParam.txBFCsnValue;
         pBuf++;
+
+        // txMuBformee
+        *pBuf = (tANI_U8)pMac->roam.configParam.txMuBformee;
+        pBuf++;
+
 #endif
         //BssDesc
         csrPrepareJoinReassocReqBuffer( pMac, pBssDescription, pBuf,

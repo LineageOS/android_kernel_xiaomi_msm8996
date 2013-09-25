@@ -3634,10 +3634,17 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams params)
 		}
                 /* This is set when Other partner is Bformer
                 and we are capable bformee(enabled both in ini and fw) */
-                txbf_en.sutxbfee =  params->staContext.vhtTxBFCapable;
-                txbf_en.mutxbfee = 0;
+                txbf_en.sutxbfee = params->staContext.vhtTxBFCapable;
+                txbf_en.mutxbfee = params->staContext.vhtTxMUBformeeCapable;
                 txbf_en.sutxbfer = 0;
                 txbf_en.mutxbfer = 0;
+
+                /* When MU TxBfee is set, SU TxBfee must be set by default */
+                if (txbf_en.mutxbfee)
+                        txbf_en.sutxbfee = txbf_en.mutxbfee;
+
+                WMA_LOGD("txbf_en.sutxbfee %d txbf_en.mutxbfee %d\n",
+                        txbf_en.sutxbfee, txbf_en.mutxbfee);
 
                 wmi_unified_vdev_set_param_send(wma->wmi_handle,
                         params->staContext.smesessionId, WMI_VDEV_PARAM_TXBF,
@@ -3872,9 +3879,16 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
         /* This is set when Other partner is Bformer
         and we are capable bformee(enabled both in ini and fw) */
         txbf_en.sutxbfee =  add_sta->vhtTxBFCapable;
-        txbf_en.mutxbfee = 0;
+        txbf_en.mutxbfee = add_sta->vhtTxMUBformeeCapable;
         txbf_en.sutxbfer = 0;
         txbf_en.mutxbfer = 0;
+
+        /* When MU TxBfee is set, SU TxBfee must be set by default */
+        if (txbf_en.mutxbfee)
+                txbf_en.sutxbfee = txbf_en.mutxbfee;
+
+        WMA_LOGD("txbf_en.sutxbfee %d txbf_en.mutxbfee %d\n",
+                txbf_en.sutxbfee, txbf_en.mutxbfee);
 
         wmi_unified_vdev_set_param_send(wma->wmi_handle, add_sta->smesessionId,
                                 WMI_VDEV_PARAM_TXBF, *((A_UINT8 *)&txbf_en));

@@ -1297,6 +1297,11 @@ typedef enum
 #define CFG_VHT_ENABLE_2x2_CAP_FEATURE_MAX     ( 1 )
 #define CFG_VHT_ENABLE_2x2_CAP_FEATURE_DEFAULT ( 0 )
 
+#define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE         "gEnableMuBformee"
+#define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MIN     ( 0 )
+#define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MAX     ( 1 )
+#define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_DEFAULT ( 0 )
+
 #endif
 
 #define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
@@ -2123,6 +2128,7 @@ typedef struct
    v_U8_t                      vhtTxMCS2x2;
    v_BOOL_t                    enable2x2;
    v_BOOL_t                    enableVhtFor24GHzBand;
+   v_BOOL_t                    enableMuBformee;
 #endif
    v_U8_t                      enableModulatedDTIM;
    v_U32_t                     fEnableMCAddrList;

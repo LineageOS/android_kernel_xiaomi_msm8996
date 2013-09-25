@@ -1996,6 +1996,12 @@ REG_VARIABLE( CFG_ENABLE_VHT_FOR_24GHZ_NAME, WLAN_PARAM_Integer,
              CFG_ENABLE_VHT_FOR_24GHZ_DEFAULT,
              CFG_ENABLE_VHT_FOR_24GHZ_MIN,
              CFG_ENABLE_VHT_FOR_24GHZ_MAX),
+REG_VARIABLE( CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE, WLAN_PARAM_Integer,
+             hdd_config_t, enableMuBformee,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_DEFAULT,
+             CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MIN,
+             CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MAX ),
 #endif
 
 REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
@@ -3769,6 +3775,25 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
                hddLog(LOGE, "Could not pass on WNI_CFG_VHT_AMPDU_LEN_EXPONENT to CCM\n");
            }
 
+           /* Change MU Bformee only when TxBF is enabled */
+           if (pConfig->enableTxBF)
+           {
+               ccmCfgGetInt(pHddCtx->hHal, WNI_CFG_VHT_MU_BEAMFORMEE_CAP,
+                            &temp);
+
+               if(temp != pConfig->enableMuBformee)
+               {
+                   if(ccmCfgSetInt(pHddCtx->hHal,
+                           WNI_CFG_VHT_MU_BEAMFORMEE_CAP,
+                           pConfig->enableMuBformee, NULL,
+                           eANI_BOOLEAN_FALSE) ==eHAL_STATUS_FAILURE)
+                   {
+                        fStatus = FALSE;
+                        hddLog(LOGE, "Could not pass on\
+                               WNI_CFG_VHT_MU_BEAMFORMEE_CAP to CCM\n");
+                   }
+               }
+          }
        }
    }
 #endif
@@ -3957,6 +3982,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
     smeConfig.csrConfig.txBFCsnValue = pConfig->txBFCsnValue;
     smeConfig.csrConfig.enable2x2 = pConfig->enable2x2;
     smeConfig.csrConfig.enableVhtFor24GHz = pConfig->enableVhtFor24GHzBand;
+    smeConfig.csrConfig.enableMuBformee = pConfig->enableMuBformee;
 #endif
    smeConfig.csrConfig.AdHocChannel5G            = pConfig->AdHocChannel5G;
    smeConfig.csrConfig.AdHocChannel24            = pConfig->AdHocChannel24G;

@@ -1157,6 +1157,11 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
+    //MuBformee
+    pJoinReq->txMuBformee= *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
 
     // Extract Titan CB Neighbor BSS info
     pJoinReq->cbNeighbors.cbBssFoundPri = *pBuf;

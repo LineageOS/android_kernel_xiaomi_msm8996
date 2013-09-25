@@ -2671,6 +2671,7 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
         }
         pAddStaParams->maxAmpduSize = (tANI_U8)ampduLenExponent;
     }
+    pAddStaParams->vhtTxMUBformeeCapable = psessionEntry->txMuBformee;
 #endif
 
     /* For Self STA get the LDPC capability from session i.e config.ini*/
@@ -3347,6 +3348,12 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
                 {
                     pAddBssParams->staContext.vhtTxBFCapable = 1;
                 }
+
+                if (pAssocRsp->VHTCaps.muBeamformerCap &&
+                    psessionEntry->txMuBformee )
+                {
+                    pAddBssParams->staContext.vhtTxMUBformeeCapable = 1;
+                }
             }
 #endif
 
@@ -3656,6 +3663,12 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
                      psessionEntry->txBFIniFeatureEnabled )
                 {
                     pAddBssParams->staContext.vhtTxBFCapable = 1;
+                }
+
+                if ( pBeaconStruct->VHTCaps.muBeamformerCap &&
+                     psessionEntry->txMuBformee )
+                {
+                     pAddBssParams->staContext.vhtTxMUBformeeCapable = 1;
                 }
             }
 #endif
