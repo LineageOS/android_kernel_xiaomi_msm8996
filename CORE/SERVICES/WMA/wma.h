@@ -374,6 +374,11 @@ typedef struct {
 	u_int8_t is_fw_assert;
 	struct wma_wow wow;
 	u_int8_t no_of_suspend_ind;
+
+	/* Have a back up of arp info to send along
+	 * with ns info suppose if ns also enabled
+	 */
+	tSirHostOffloadReq mArpInfo;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
