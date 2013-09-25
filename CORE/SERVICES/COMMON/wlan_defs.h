@@ -101,7 +101,6 @@ typedef enum {
                                  ((mode) == MODE_11NG_HT40))
 #define IS_MODE_11GONLY(mode)   ((mode) == MODE_11GONLY)
 
-
 enum {
     REGDMN_MODE_11A              = 0x00001,      /* 11a channels */
     REGDMN_MODE_TURBO            = 0x00002,      /* 11a turbo-only channels */
@@ -123,6 +122,9 @@ enum {
     REGDMN_MODE_11AC_VHT40PLUS   = 0x40000,      /* 5Ghz, VHT40 + channels */
     REGDMN_MODE_11AC_VHT40MINUS  = 0x80000,      /* 5Ghz  VHT40 - channels */
     REGDMN_MODE_11AC_VHT80       = 0x100000,     /* 5Ghz, VHT80 channels */
+    REGDMN_MODE_11AC_VHT20_2G    = 0x200000,     /* 2Ghz, VHT20 */
+    REGDMN_MODE_11AC_VHT40_2G    = 0x400000,     /* 2Ghz, VHT40 */
+    REGDMN_MODE_11AC_VHT80_2G    = 0x800000,     /* 2Ghz, VHT80 */
 };
 
 #define REGDMN_MODE_ALL       (0xFFFFFFFF)       /* REGDMN_MODE_ALL is defined out of the enum
@@ -437,6 +439,5 @@ struct wlan_dbg_stats {
     struct wlan_dbg_rx_stats rx;
     struct wlan_dbg_peer_stats peer;
 };
-
 
 #endif /* __WLANDEFS_H__ */
