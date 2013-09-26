@@ -6475,6 +6475,119 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 	return;
 }
 #endif /* FEATURE_OEM_DATA_SUPPORT */
+static int wma_process_receive_filter_set_filter_req(tp_wma_handle wma_handle,
+						tSirRcvPktFilterCfgType *rcv_filter_param)
+{
+	wmi_chatter_coalescing_add_filter_cmd_fixed_param *cmd;
+	chatter_pkt_coalescing_filter *cmd_filter;
+	u_int8_t *buf_ptr;
+	wmi_buf_t buf;
+	int num_rules = 1; /* Only one rule at a time */
+	int len;
+	int err;
+	int i;
+
+	/* allocate the memory */
+	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE + sizeof(*cmd_filter) * num_rules;
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send set_param cmd");
+		vos_mem_free(rcv_filter_param);
+		return -ENOMEM;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+
+	/* fill the fixed part */
+	cmd = (wmi_chatter_coalescing_add_filter_cmd_fixed_param *) buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_chatter_coalescing_add_filter_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+					wmi_chatter_coalescing_add_filter_cmd_fixed_param));
+	cmd->num_of_filters = num_rules;
+
+	/* specify the type of data in the subsequent buffer */
+	buf_ptr += sizeof(*cmd);
+	cmd_filter = (chatter_pkt_coalescing_filter *) buf_ptr;
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+			num_rules * sizeof(chatter_pkt_coalescing_filter));
+
+	/* fill the actual filter data */
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	cmd_filter = (chatter_pkt_coalescing_filter *) buf_ptr;
+
+	WMITLV_SET_HDR(&cmd_filter->tlv_header,
+			WMITLV_TAG_STRUC_wmi_chatter_pkt_coalescing_filter,
+			WMITLV_GET_STRUCT_TLVLEN(chatter_pkt_coalescing_filter));
+
+	cmd_filter->filter_id = rcv_filter_param->filterId;
+	cmd_filter->max_coalescing_delay = rcv_filter_param->coalesceTime;
+	cmd_filter->pkt_type = CHATTER_COALESCING_PKT_TYPE_UNICAST |
+				CHATTER_COALESCING_PKT_TYPE_MULTICAST |
+				CHATTER_COALESCING_PKT_TYPE_BROADCAST;
+	cmd_filter->num_of_test_field = MIN(rcv_filter_param->numFieldParams,
+						CHATTER_MAX_FIELD_TEST);
+
+	for (i = 0; i < cmd_filter->num_of_test_field; i++) {
+		cmd_filter->test_fields[i].offset = rcv_filter_param->paramsData[i].dataOffset;
+		cmd_filter->test_fields[i].length = MIN(rcv_filter_param->paramsData[i].dataLength,
+							CHATTER_MAX_TEST_FIELD_LEN32);
+		cmd_filter->test_fields[i].test = rcv_filter_param->paramsData[i].cmpFlag;
+		memcpy(&cmd_filter->test_fields[i].value, rcv_filter_param->paramsData[i].compareData,
+			cmd_filter->test_fields[i].length);
+		memcpy(&cmd_filter->test_fields[i].mask, rcv_filter_param->paramsData[i].dataMask,
+			cmd_filter->test_fields[i].length);
+	}
+	WMA_LOGD("Chatter packets, adding filter with id: %d, num_test_fields=%d",cmd_filter->filter_id,
+		cmd_filter->num_of_test_field);
+	/* send the command along with data */
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+					WMI_CHATTER_ADD_COALESCING_FILTER_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_param cmd");
+		wmi_buf_free(buf);
+		vos_mem_free(rcv_filter_param);
+		return -EIO;
+	}
+	vos_mem_free(rcv_filter_param);
+	return 0; /* SUCCESS */
+}
+
+static int wma_process_receive_filter_clear_filter_req(tp_wma_handle wma_handle,
+						tSirRcvFltPktClearParam *rcv_clear_param)
+{
+	wmi_chatter_coalescing_delete_filter_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int err;
+
+	/* allocate the memory */
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, sizeof(*cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send set_param cmd");
+		vos_mem_free(rcv_clear_param);
+		return -ENOMEM;
+	}
+
+	/* fill the fixed part */
+	cmd = (wmi_chatter_coalescing_delete_filter_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_chatter_coalescing_delete_filter_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+					wmi_chatter_coalescing_delete_filter_cmd_fixed_param));
+	cmd->filter_id = rcv_clear_param->filterId;
+	WMA_LOGD("Chatter packets, clearing filter with id: %d",cmd->filter_id);
+
+	/* send the command along with data */
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+				sizeof(*cmd), WMI_CHATTER_DELETE_COALESCING_FILTER_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_param cmd");
+		wmi_buf_free(buf);
+		vos_mem_free(rcv_clear_param);
+		return -EIO;
+	}
+	vos_mem_free(rcv_clear_param);
+	return 0; /* SUCCESS */
+}
 
 #ifdef FEATURE_WLAN_CCX
 
@@ -7057,6 +7170,17 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_ADD_TS_REQ:
 			wma_add_ts_req(wma_handle, (tAddTsParams *)msg->bodyptr);
 			break;
+
+		case WDA_RECEIVE_FILTER_SET_FILTER_REQ:
+			wma_process_receive_filter_set_filter_req(wma_handle,
+						(tSirRcvPktFilterCfgType *)msg->bodyptr);
+			break;
+
+		case WDA_RECEIVE_FILTER_CLEAR_FILTER_REQ:
+			wma_process_receive_filter_clear_filter_req(wma_handle,
+						(tSirRcvFltPktClearParam *)msg->bodyptr);
+			break;
+
 		case WDA_WOWL_ADD_BCAST_PTRN:
 			wma_wow_add_pattern(wma_handle,
 					   (tpSirWowlAddBcastPtrn)msg->bodyptr);
