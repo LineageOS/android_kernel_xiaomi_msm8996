@@ -1093,47 +1093,13 @@ void hdd_suspend_wlan(void)
       }
    }
 
-#ifndef QCA_WIFI_2_0
-   /*Suspend notification sent down to driver*/
-   hdd_conf_suspend_ind(pHddCtx, pAdapter);
-#endif
-
-#ifdef WLAN_FEATURE_GTK_OFFLOAD
-       if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
-           (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode))
-       {
-           eHalStatus ret;
-           hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-           if ((eConnectionState_Associated == pHddStaCtx->conn_info.connState) &&
-               (GTK_OFFLOAD_ENABLE == pHddStaCtx->gtkOffloadReqParams.ulFlags ))
-           {
-               tSirGtkOffloadParams hddGtkOffloadReqParams;
-               vos_mem_copy(&hddGtkOffloadReqParams,
-                     &pHddStaCtx->gtkOffloadReqParams,
-                     sizeof (tSirGtkOffloadParams));
-
-               ret = sme_SetGTKOffload(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                              &hddGtkOffloadReqParams, pAdapter->sessionId);
-               if (eHAL_STATUS_SUCCESS != ret)
-               {
-                   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                           "%s: sme_SetGTKOffload failed, returned %d",
-                           __func__, ret);
-               }
-
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                       "%s: sme_SetGTKOffload successfull", __func__);
-           }
-       }
-#endif
-
 #ifdef QCA_WIFI_2_0
 send_suspend_ind:
+#endif
     /* Keep this suspend indication at the end (before processing next adaptor)
      * for discrete. This indication is considered as trigger point to start
      * WOW (if wow is enabled). */
    hdd_conf_suspend_ind(pHddCtx, pAdapter);
-#endif
 
    status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
    pAdapterNode = pNext;
