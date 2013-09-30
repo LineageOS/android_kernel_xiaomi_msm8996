@@ -855,6 +855,8 @@ typedef PACKED_PRE struct PACKED_POST
 extern v_BOOL_t sys_validateStaConfig(void *pImage, unsigned long cbFile,
                                void **ppStaConfig, v_SIZE_t *pcbStaConfig);
 extern void vos_WDAComplete_cback(v_PVOID_t pVosContext);
+extern void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
+		u_int16_t regdmn5G, int8_t ctl2G, int8_t ctl5G);
 
 #ifdef QCA_WIFI_ISOC
 VOS_STATUS wma_cfg_download_isoc(v_VOID_t *vos_context, 
@@ -893,6 +895,8 @@ VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
 		u_int32_t vdev_type, bool add_del);
 #ifndef QCA_WIFI_ISOC
 int regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2);
+void regdmn_get_ctl_info(u_int32_t reg_dmn, u_int32_t modesAvail,
+		u_int32_t modeSelect);
 #endif
 
 #define WMA_FW_PHY_STATS	0x1

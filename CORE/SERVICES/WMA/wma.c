@@ -7765,6 +7765,37 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len, WMI_INIT_CMDID);
 }
 
+static void wma_set_regdomain(u_int32_t regdmn)
+{
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+	u_int32_t modeSelect = 0xFFFFFFFF;
+
+	switch (wma->phy_capability) {
+	case WMI_11G_CAPABILITY:
+	case WMI_11NG_CAPABILITY:
+		modeSelect &= ~(REGDMN_MODE_11A | REGDMN_MODE_TURBO |
+			REGDMN_MODE_108A | REGDMN_MODE_11A_HALF_RATE |
+			REGDMN_MODE_11A_QUARTER_RATE | REGDMN_MODE_11NA_HT20 |
+			REGDMN_MODE_11NA_HT40PLUS | REGDMN_MODE_11NA_HT40MINUS |
+			REGDMN_MODE_11AC_VHT20 | REGDMN_MODE_11AC_VHT40PLUS |
+			REGDMN_MODE_11AC_VHT40MINUS | REGDMN_MODE_11AC_VHT80);
+		break;
+	case WMI_11A_CAPABILITY:
+	case WMI_11NA_CAPABILITY:
+	case WMI_11AC_CAPABILITY:
+		modeSelect &= ~(REGDMN_MODE_11B | REGDMN_MODE_11G |
+			REGDMN_MODE_108G | REGDMN_MODE_11NG_HT20 |
+			REGDMN_MODE_11NG_HT40PLUS | REGDMN_MODE_11NG_HT40MINUS |
+			REGDMN_MODE_11AC_VHT20_2G | REGDMN_MODE_11AC_VHT40_2G |
+			REGDMN_MODE_11AC_VHT80_2G);
+		break;
+	}
+
+	regdmn_get_ctl_info(regdmn, wma->reg_cap.wireless_modes, modeSelect);
+	return;
+}
+
 /* function   : wma_rx_ready_event
  * Descriptin :  
  * Args       :        
@@ -7843,6 +7874,7 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 #endif
 
 	vos_event_set(&wma_handle->wma_ready_event);
+	wma_set_regdomain(wma_handle->reg_cap.eeprom_rd);
 
 	WMA_LOGD("Exit");
 }
@@ -8750,3 +8782,35 @@ tANI_U8 wma_getFwWlanFeatCaps(tANI_U8 featEnumValue)
        return gFwWlanFeatCaps & featEnumValue;
 }
 
+void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
+		u_int16_t regdmn5G, int8_t ctl2G, int8_t ctl5G)
+{
+	wmi_buf_t buf;
+	wmi_pdev_set_regdomain_cmd_fixed_param *cmd;
+	int32_t len = sizeof(*cmd);
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s : wmi_buf_alloc failed", __func__);
+		return;
+	}
+	cmd = (wmi_pdev_set_regdomain_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_pdev_set_regdomain_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_pdev_set_regdomain_cmd_fixed_param));
+	cmd->reg_domain = reg_dmn;
+	cmd->reg_domain_2G = regdmn2G;
+	cmd->reg_domain_5G = regdmn5G;
+	cmd->conformance_test_limit_2G = ctl2G;
+	cmd->conformance_test_limit_5G = ctl5G;
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				WMI_PDEV_SET_REGDOMAIN_CMDID)) {
+		WMA_LOGP("Failed to send pdev set regdomain command");
+		adf_nbuf_free(buf);
+	}
+	return;
+}

@@ -315,9 +315,12 @@ typedef struct ath_hal_reg_dmn_tables {
     const REG_DMN_PAIR_MAPPING    *regDomainPairs;
     /* allCountries: Master list of freq. bands (flags, settings) */
     const COUNTRY_CODE_TO_ENUM_RD *allCountries;
+    /* regDomains: Array of supported reg domains */
+    const REG_DOMAIN *regDomains;
 
     u_int16_t regDomainPairsCt;    /* Num reg domain pair entries */
     u_int16_t allCountriesCt;      /* Num country entries */
+    u_int16_t regDomainsCt;        /* Num reg domain entries */
 } HAL_REG_DMN_TABLES;
 
 /*
