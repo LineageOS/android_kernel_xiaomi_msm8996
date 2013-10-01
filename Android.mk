@@ -1,5 +1,8 @@
 # Android makefile for the WLAN Module
 
+# Assume no targets will be supported
+WLAN_CHIPSET :=
+
 # Build/Package options for 8084 target
 ifeq ($(call is-board-platform,apq8084),true)
 WLAN_CHIPSET := qca_cld
