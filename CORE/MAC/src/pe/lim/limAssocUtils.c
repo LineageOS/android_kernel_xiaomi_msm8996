@@ -3379,9 +3379,9 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
                      (tANI_U8 *)&pAssocRsp->HTCaps + sizeof(tANI_U8),
                      sizeof(pAddBssParams->staContext.ht_caps));
 
-        //If WMM IE or 802.11E IE is not present and AP is HT AP then enable WMM
-        if ((psessionEntry->limWmeEnabled && (pAssocRsp->wmeEdcaPresent || pAddBssParams->htCapable)) ||
-                (psessionEntry->limQosEnabled && (pAssocRsp->edcaPresent || pAddBssParams->htCapable)))
+        //If WMM IE or 802.11E IE is present then enable WMM
+        if ((psessionEntry->limWmeEnabled && pAssocRsp->wmeEdcaPresent) ||
+                (psessionEntry->limQosEnabled && pAssocRsp->edcaPresent))
             pAddBssParams->staContext.wmmEnabled = 1;
         else 
             pAddBssParams->staContext.wmmEnabled = 0;
