@@ -3216,12 +3216,12 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       pWlanDev->watchdog_timeo = HDD_TX_TIMEOUT;
       pWlanDev->hard_header_len += LIBRA_HW_NEEDED_HEADROOM;
 
-      if (pHddCtx->cfg_ini->enableTCPChkSumOffld) {
+      if (pHddCtx->cfg_ini->enableTCPChkSumOffld)
          pWlanDev->features |= NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM;
+
 #if defined (QCA_WIFI_2_0) && !defined (QCA_WIFI_ISOC)
-         pWlanDev->features |= NETIF_F_RXCSUM;
+      pWlanDev->features |= NETIF_F_RXCSUM;
 #endif
-      }
 
       hdd_set_station_ops( pAdapter->dev );
 
