@@ -3337,22 +3337,27 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             pAddBssParams->staContext.htCapable = 1;
             pAddBssParams->staContext.greenFieldCapable  = ( tANI_U8 )pAssocRsp->HTCaps.greenField;
             pAddBssParams->staContext.lsigTxopProtection = ( tANI_U8 )pAssocRsp->HTCaps.lsigTXOPProtection;
+#ifdef WLAN_FEATURE_11AC
+            if (psessionEntry->vhtCapability && pBeaconStruct->VHTCaps.present)
+            {
+                pAddBssParams->staContext.vhtCapable = 1;
+                if ((pAssocRsp->VHTCaps.suBeamFormerCap ||
+                     pAssocRsp->VHTCaps.muBeamformerCap) &&
+                     psessionEntry->txBFIniFeatureEnabled)
+                {
+                    pAddBssParams->staContext.vhtTxBFCapable = 1;
+                }
+            }
+#endif
+
             if( (pAssocRsp->HTCaps.supportedChannelWidthSet) &&
                 (chanWidthSupp) )
             {
                 pAddBssParams->staContext.txChannelWidthSet = ( tANI_U8 )pAssocRsp->HTInfo.recommendedTxWidthSet;
-                
 #ifdef WLAN_FEATURE_11AC
-                if (psessionEntry->vhtCapability && ( pBeaconStruct->VHTCaps.present ))
+                if (pAddBssParams->staContext.vhtCapable)
                 {
-                    pAddBssParams->staContext.vhtCapable = 1;
                     pAddBssParams->staContext.vhtTxChannelWidthSet = pAssocRsp->VHTOperation.chanWidth; //pMac->lim.apChanWidth;
-                    if ( (pAssocRsp->VHTCaps.suBeamFormerCap ||
-                          pAssocRsp->VHTCaps.muBeamformerCap) &&
-                          psessionEntry->txBFIniFeatureEnabled )
-                    {
-                        pAddBssParams->staContext.vhtTxBFCapable = 1;
-                    }
                 }
 #endif
             }
@@ -3642,23 +3647,29 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
             pAddBssParams->staContext.htCapable = 1;
             pAddBssParams->staContext.greenFieldCapable  = ( tANI_U8 ) pBeaconStruct->HTCaps.greenField;
             pAddBssParams->staContext.lsigTxopProtection = ( tANI_U8 ) pBeaconStruct->HTCaps.lsigTXOPProtection;
+#ifdef WLAN_FEATURE_11AC
+            if (psessionEntry->vhtCapability && pBeaconStruct->VHTCaps.present)
+            {
+                pAddBssParams->staContext.vhtCapable = 1;
+                if ((pBeaconStruct->VHTCaps.suBeamFormerCap ||
+                     pBeaconStruct->VHTCaps.muBeamformerCap) &&
+                     psessionEntry->txBFIniFeatureEnabled )
+                {
+                    pAddBssParams->staContext.vhtTxBFCapable = 1;
+                }
+            }
+#endif
             if( (pBeaconStruct->HTCaps.supportedChannelWidthSet) &&
                 (chanWidthSupp) )
             {
                 pAddBssParams->staContext.txChannelWidthSet = ( tANI_U8 )pBeaconStruct->HTInfo.recommendedTxWidthSet;
-          #ifdef WLAN_FEATURE_11AC
-                if (psessionEntry->vhtCapability && ( pBeaconStruct->VHTCaps.present ))
+#ifdef WLAN_FEATURE_11AC
+                if (pAddBssParams->staContext.vhtCapable)
                 {
-                    pAddBssParams->staContext.vhtCapable = 1;
-                    pAddBssParams->staContext.vhtTxChannelWidthSet = pBeaconStruct->VHTOperation.chanWidth; 
-                    if ((pBeaconStruct->VHTCaps.suBeamFormerCap ||
-                         pBeaconStruct->VHTCaps.muBeamformerCap) &&
-                         psessionEntry->txBFIniFeatureEnabled )
-                    {
-                        pAddBssParams->staContext.vhtTxBFCapable = 1;
-                    }
+                    pAddBssParams->staContext.vhtTxChannelWidthSet =
+                                     pBeaconStruct->VHTOperation.chanWidth;
                 }
-          #endif
+#endif
             }
             else
             {
