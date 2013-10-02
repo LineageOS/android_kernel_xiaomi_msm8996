@@ -2000,6 +2000,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	/* TODO: handle all the other flags also */
 	cmd->notify_scan_events = WMI_SCAN_EVENT_STARTED |
 				WMI_SCAN_EVENT_START_FAILED |
+				WMI_SCAN_EVENT_FOREIGN_CHANNEL |
 				WMI_SCAN_EVENT_COMPLETED;
 
 	cmd->dwell_time_active = scan_req->maxChannelTime;
