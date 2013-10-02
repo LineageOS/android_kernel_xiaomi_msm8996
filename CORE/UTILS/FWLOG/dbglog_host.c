@@ -36,6 +36,13 @@
 #include "wma.h"
 #include "ol_defines.h"
 
+#include <net/sock.h>
+#include <linux/netlink.h>
+
+struct sock *nl_sk = NULL;
+int g_pid;
+bool appstarted = FALSE;
+
 #ifdef WLAN_OPEN_SOURCE
 #include <linux/debugfs.h>
 #endif /* WLAN_OPEN_SOURCE */
@@ -64,7 +71,7 @@ ATH_DEBUG_INSTANTIATE_MODULE_VAR(fwlog,
 
 module_dbg_print mod_print[WLAN_MODULE_ID_MAX];
 
-A_UINT32 dbglog_process_type = DBGLOG_PROCESS_DEFAULT;
+A_UINT32 dbglog_process_type = DBGLOG_PROCESS_NET_RAW;
 
 A_STATUS
 wmi_config_debug_module_cmd(wmi_unified_t  wmi_handle, A_UINT32 param, A_UINT32 val,
@@ -1256,6 +1263,40 @@ dbglog_debugfs_raw_data(wmi_unified_t wmi_handle, const u_int8_t *buf, A_UINT32 
 #endif /* WLAN_OPEN_SOURCE */
 
 int
+dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer, A_UINT32 len)
+{
+    struct sk_buff *skb_out;
+    struct nlmsghdr *nlh;
+    int res = 0;
+    struct dbglog_slot *slot;
+    size_t slot_len;
+
+    if (WARN_ON(len > ATH6KL_FWLOG_PAYLOAD_SIZE))
+        return -ENODEV;
+
+    slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE;
+
+    skb_out = nlmsg_new(slot_len, 0);
+    if (!skb_out)
+    {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Failed to allocate new skb\n"));
+        return -1;
+    }
+
+    nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, slot_len, 0);
+    slot = (struct dbglog_slot *) nlmsg_data(nlh);
+    slot->timestamp = cpu_to_le32(jiffies);
+    slot->length = cpu_to_le32(len);
+    memcpy(slot->payload, buffer, len);
+    NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+
+    nlmsg_unicast(nl_sk,
+		        skb_out,
+			g_pid);
+    return res;
+}
+
+int
 dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
 {
     tp_wma_handle wma = (tp_wma_handle)scn;
@@ -1280,7 +1321,7 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
     } else {
         param_buf = (WMI_DEBUG_MESG_EVENTID_param_tlvs *) data;
         if (!param_buf) {
-            AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Get NULL point message from FW\n"));
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Get NULL point message from FW\n"));
             return -1;
         }
 
@@ -1301,6 +1342,17 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
 
     if ( dbglog_process_type == DBGLOG_PROCESS_PRINT_RAW) {
         return dbglog_print_raw_data(buffer, length);
+    }
+
+    if ( dbglog_process_type == DBGLOG_PROCESS_NET_RAW) {
+        if(appstarted){
+            return dbglog_process_netlink_data((wmi_unified_t)wma->wmi_handle,
+			                                      (A_UINT8 *)buffer,
+					                      len);
+        } else {
+            return 0;
+        }
+
     }
 
 #ifdef WLAN_OPEN_SOURCE
@@ -2640,6 +2692,50 @@ int dbglog_debugfs_remove(wmi_unified_t wmi_handle)
     return TRUE;
 }
 #endif /* WLAN_OPEN_SOURCE */
+static void nl_recv_msg(struct sk_buff *skb)
+{
+    struct nlmsghdr *nlh;
+
+    nlh = (struct nlmsghdr *)skb->data;
+    g_pid = nlh->nlmsg_pid; /*pid of sending process */
+    appstarted = TRUE;
+}
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
+struct netlink_kernel_cfg cfg = {
+	    .input = nl_recv_msg,
+};
+#endif
+
+int dbglog_netlink_init(wmi_unified_t wmi_handle)
+{
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
+    nl_sk = netlink_kernel_create(&init_net,
+		                  CLD_NETLINK_USER,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0))
+                                       THIS_MODULE,
+#endif
+                                  &cfg);
+#else
+    nl_sk = netlink_kernel_create(&init_net,
+		                  CLD_NETLINK_USER,
+                                  0,
+                                  nl_recv_msg,
+                                  NULL,
+                                  THIS_MODULE);
+#endif
+    if (!nl_sk)
+    {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Error creating socket. \n"));
+        return -1;
+    }
+    return A_OK;
+}
+
+void dbglog_netlink_deinit(wmi_unified_t wmi_handle)
+{
+    netlink_kernel_release(nl_sk);
+}
 
 int dbglog_parser_type_init(wmi_unified_t wmi_handle, int type)
 {
@@ -2674,6 +2770,10 @@ dbglog_init(wmi_unified_t wmi_handle)
     if(res != 0)
         return res;
 
+    res = dbglog_netlink_init(wmi_handle);
+    if(res != 0)
+        return res;
+
 #ifdef WLAN_OPEN_SOURCE
     /* Initialize the fw debug log queue */
     skb_queue_head_init(&wmi_handle->dbglog.fwlog_queue);
@@ -2699,6 +2799,8 @@ dbglog_deinit(wmi_unified_t wmi_handle)
     /* Deinitialize the debugfs */
     dbglog_debugfs_remove(wmi_handle);
 #endif /* WLAN_OPEN_SOURCE */
+
+    dbglog_netlink_deinit(wmi_handle);
 
     res = wmi_unified_unregister_event_handler(wmi_handle, WMI_DEBUG_MESG_EVENTID);
     if(res != 0)
