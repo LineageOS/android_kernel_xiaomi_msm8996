@@ -4470,6 +4470,12 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     switch ( pCommand->u.roamCmd.roamReason )
     {
     case eCsrForcedDisassoc:
+        if (eCSR_ROAMING_STATE_IDLE == pMac->roam.curState[sessionId]) {
+            smsLog(pMac, LOGE, FL("Ignore eCsrForcedDisassoc cmd on roam state"
+                                  " %d"), eCSR_ROAMING_STATE_IDLE);
+            return eHAL_STATUS_FAILURE;
+        }
+
         status = csrRoamProcessDisassocDeauth( pMac, pCommand, TRUE, FALSE );
         csrFreeRoamProfile(pMac, sessionId);
         break;
