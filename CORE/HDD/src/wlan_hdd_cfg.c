@@ -2282,6 +2282,16 @@ REG_VARIABLE( CFG_P2P_LISTEN_OFFLOAD_NAME, WLAN_PARAM_Integer,
              CFG_P2P_LISTEN_OFFLOAD_DEFAULT,
              CFG_P2P_LISTEN_OFFLOAD_DISABLE,
              CFG_P2P_LISTEN_OFFLOAD_ENABLE ),
+
+#ifdef WLAN_FEATURE_11AC
+REG_VARIABLE( CFG_VHT_AMPDU_LEN_EXPONENT_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, fVhtAmpduLenExponent,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK ,
+               CFG_VHT_AMPDU_LEN_EXPONENT_DEFAULT,
+               CFG_VHT_AMPDU_LEN_EXPONENT_MIN,
+               CFG_VHT_AMPDU_LEN_EXPONENT_MAX),
+#endif
+
 };
 
 /*
@@ -3748,6 +3758,17 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
                fStatus = FALSE;
                hddLog(LOGE, "Could not pass on WNI_CFG_VHT_TX_MCS_MAP to CCM\n");
            }
+
+           // Hardware is capable of doing 128K AMPDU in 11AC mode
+           if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_AMPDU_LEN_EXPONENT,
+                           pConfig->fVhtAmpduLenExponent, NULL,
+                           eANI_BOOLEAN_FALSE)
+               == eHAL_STATUS_FAILURE)
+           {
+               fStatus = FALSE;
+               hddLog(LOGE, "Could not pass on WNI_CFG_VHT_AMPDU_LEN_EXPONENT to CCM\n");
+           }
+
        }
    }
 #endif

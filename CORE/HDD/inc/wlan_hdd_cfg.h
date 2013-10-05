@@ -1780,6 +1780,13 @@ typedef enum
 #define CFG_P2P_LISTEN_OFFLOAD_ENABLE                   ( 1 )
 #define CFG_P2P_LISTEN_OFFLOAD_DEFAULT                  ( CFG_P2P_LISTEN_OFFLOAD_DISABLE )
 
+#ifdef WLAN_FEATURE_11AC
+//Macro to handle maximum receive AMPDU size configuration
+#define CFG_VHT_AMPDU_LEN_EXPONENT_NAME                "gVhtAmpduLenExponent"
+#define CFG_VHT_AMPDU_LEN_EXPONENT_MIN                 ( 0 )
+#define CFG_VHT_AMPDU_LEN_EXPONENT_MAX                 ( 7 )
+#define CFG_VHT_AMPDU_LEN_EXPONENT_DEFAULT             ( 3 )
+#endif
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -2163,6 +2170,9 @@ typedef struct
    v_BOOL_t                    enablefwprint;
    v_BOOL_t                    enablefwlog;
    v_BOOL_t                    fP2pListenOffload;
+#ifdef WLAN_FEATURE_11AC
+   v_U8_t                      fVhtAmpduLenExponent;
+#endif
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

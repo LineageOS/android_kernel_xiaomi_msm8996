@@ -2550,6 +2550,8 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
     tSirRetStatus     retCode = eSIR_SUCCESS;
     tSirMacAddr staMac;
     tANI_U32 listenInterval = WNI_CFG_LISTEN_INTERVAL_STADEF;
+    tANI_U32 ampduLenExponent = 0;
+
     /*This self Sta dot 11 mode comes from the cfg and the expectation here is
      * that cfg carries the systemwide capability that device under
      * consideration can support. This capability gets plumbed into the cfg
@@ -2658,6 +2660,17 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
         limLog( pMac, LOG1, FL("VHT WIDTH SET %d"),pAddStaParams->vhtTxChannelWidthSet);
     }
     pAddStaParams->vhtTxBFCapable = psessionEntry->txBFIniFeatureEnabled;
+
+    // In 11ac mode, the hardware is capable of supporting 128K AMPDU size
+    if ( IS_DOT11_MODE_VHT(selfStaDot11Mode) )
+    {
+        if(wlan_cfgGetInt(pMac, WNI_CFG_VHT_AMPDU_LEN_EXPONENT, &ampduLenExponent)
+            != eSIR_SUCCESS)
+        {
+           limLog(pMac, LOGP, FL("Couldn't get WNI_CFG_VHT_AMPDU_LEN_EXPONENT"));
+        }
+        pAddStaParams->maxAmpduSize = (tANI_U8)ampduLenExponent;
+    }
 #endif
 
     /* For Self STA get the LDPC capability from session i.e config.ini*/

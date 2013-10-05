@@ -189,7 +189,7 @@ typedef struct
     // FIXME
     //Add these fields to message
     tANI_U8 us32MaxAmpduDuration;                //in units of 32 us.
-    tANI_U8 maxAmpduSize;                        // 0 : 8k , 1 : 16k, 2 : 32k, 3 : 64k
+    tANI_U8 maxAmpduSize;                        // 0 : 8k , 1 : 16k, 2 : 32k, 3 : 64k, 4 : 128k
     tANI_U8 maxAmpduDensity;                     // 3 : 0~7 : 2^(11nAMPDUdensity -4)
     tANI_U8 maxAmsduSize;                        // 1 : 3839 bytes, 0 : 7935 bytes
 
