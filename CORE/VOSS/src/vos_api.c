@@ -680,7 +680,17 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
       return VOS_STATUS_E_FAILURE;
    }
 #ifndef QCA_WIFI_ISOC
-   wma_wait_for_ready_event(gpVosContext->pWDAContext);
+   vStatus = wma_wait_for_ready_event(gpVosContext->pWDAContext);
+   if (!VOS_IS_STATUS_SUCCESS(vStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_FATAL,
+               "Failed to get ready event from target firmware");
+      macStop(gpVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
+      ccmStop(gpVosContext->pMACContext);
+      HTCStop(gpVosContext->htc_ctx);
+      VOS_ASSERT( 0 );
+      return VOS_STATUS_E_FAILURE;
+   }
 #endif
 #endif /* QCA_WIFI_2_0 */
 
