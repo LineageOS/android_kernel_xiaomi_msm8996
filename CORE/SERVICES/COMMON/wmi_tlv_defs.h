@@ -378,6 +378,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_p2p_set_noa_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_ba_req_ssn_cmd_sub_struct_param,
     WMITLV_TAG_STRUC_wmi_ba_req_ssn_event_sub_struct_param,
+    WMITLV_TAG_STRUC_wmi_sta_smps_param_cmd_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -501,8 +502,8 @@ typedef enum {
     OP(WMI_STA_SMPS_FORCE_MODE_CMDID) \
     OP(WMI_SET_MCASTBCAST_FILTER_CMDID) \
     OP(WMI_P2P_SET_OPPPS_PARAM_CMDID) \
-    OP(WMI_FWTEST_P2P_SET_NOA_PARAM_CMDID)
-
+    OP(WMI_FWTEST_P2P_SET_NOA_PARAM_CMDID) \
+    OP(WMI_STA_SMPS_PARAM_CMDID)
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
  * Otherwise, these WMI TLV Functions will be process them.
@@ -1275,6 +1276,13 @@ WMITLV_CREATE_PARAM_STRUC(WMI_RESMGR_SET_CHAN_LATENCY_CMDID);
             wmi_sta_smps_force_mode_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_STA_SMPS_FORCE_MODE_CMDID);
+
+/* STA SMPS Param CMD */
+#define WMITLV_TABLE_WMI_STA_SMPS_PARAM_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sta_smps_param_cmd_fixed_param, \
+            wmi_sta_smps_param_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_STA_SMPS_PARAM_CMDID);
 
 /************************** TLV definitions of WMI events *******************************/
 

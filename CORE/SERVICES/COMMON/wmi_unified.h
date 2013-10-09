@@ -521,6 +521,8 @@ typedef enum {
     /** STA SMPS Configuration */
     /** force SMPS mode */
     WMI_STA_SMPS_FORCE_MODE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_STA_SMPS),
+    /** set SMPS parameters */
+    WMI_STA_SMPS_PARAM_CMDID,
 } WMI_CMD_ID;
 
 typedef enum {
@@ -893,6 +895,20 @@ typedef struct {
          *     wlan_host_mem_req mem_reqs[];
          */
 } wmi_service_ready_event_fixed_param;
+
+#ifdef ROME_LTE_COEX_FREQ_AVOID
+typedef struct {
+    A_UINT32 start_freq; //start frequency, not channel center freq
+    A_UINT32 end_freq;//end frequency
+}avoid_freq_range_desc;
+
+typedef struct {
+    //bad channel range count, multi range is allowed, 0 means all channel clear
+    A_UINT32 num_freq_ranges;
+    //multi range with num_freq_ranges, LTE advance multi carrier, CDMA,etc
+    avoid_freq_range_desc avd_freq_range[0];
+}wmi_wlan_avoid_freq_ranges_event;
+#endif
 
 /** status consists of  upper 16 bits fo A_STATUS status and lower 16 bits of module ID that retuned status */
 #define WLAN_INIT_STATUS_SUCCESS   0x0
@@ -1457,7 +1473,7 @@ typedef struct {
  * descriptor up to the host.
  */
  /* ATH_MAX_ANTENNA value (4) can't be changed without breaking the compatibility */
-#define ATH_MAX_ANTENNA 4 /* To support 4 chains */
+#define ATH_MAX_ANTENNA 4 /* To support beelinear, which is up to 4 chains */
 typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mgmt_rx_hdr */
     /** channel on which this frame is received. */
@@ -5796,6 +5812,33 @@ typedef struct {
     /** The mode of SMPS that is to be forced in the FW. */
     A_UINT32 forced_mode;
 } wmi_sta_smps_force_mode_cmd_fixed_param;
+
+/** WMI_STA_SMPS_PARAM_CMDID */
+typedef enum {
+    /** RSSI threshold to enter Dynamic SMPS mode from inactive mode */
+    WMI_STA_SMPS_PARAM_UPPER_RSSI_THRESH = 0,
+    /** RSSI threshold to enter Stalled-D-SMPS mode from D-SMPS mode or
+     * to enter D-SMPS mode from Stalled-D-SMPS mode */
+    WMI_STA_SMPS_PARAM_STALL_RSSI_THRESH = 1,
+    /** RSSI threshold to disable SMPS modes */
+    WMI_STA_SMPS_PARAM_LOWER_RSSI_THRESH = 2,
+    /** Upper threshold for beacon-RSSI. Used to reduce RX chainmask. */
+    WMI_STA_SMPS_PARAM_UPPER_BRSSI_THRESH = 3,
+    /** Lower threshold for beacon-RSSI. Used to increase RX chainmask. */
+    WMI_STA_SMPS_PARAM_LOWER_BRSSI_THRESH = 4
+} wmi_sta_smps_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_sta_smps_param_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /** Unique id identifying the VDEV */
+    A_UINT32 vdev_id;
+    /** SMPS parameter (see wmi_sta_smps_param) */
+    A_UINT32 param;
+    /** Value of SMPS parameter */
+    A_UINT32 value;
+} wmi_sta_smps_param_cmd_fixed_param;
 
 #ifdef __cplusplus
 }
