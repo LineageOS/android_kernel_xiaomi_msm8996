@@ -35,8 +35,8 @@
 /*
  * default limit of 8 VAPs per device.
  */
-/* Rome PRD support 5 vdevs */
-#define CFG_TGT_NUM_VDEV                4
+/* Rome PRD support 3 vdevs */
+#define CFG_TGT_NUM_VDEV                3
 
 /*
  * We would need 1 AST entry per peer. Scale it by a factor of 2 to minimize hash collisions.
@@ -74,12 +74,29 @@
  * reorder buffering, PN checking need to be done in target. This determines
  * maximum number of peers suported by target in offload mode
  */
-#define CFG_TGT_NUM_OFFLOAD_PEERS       (CFG_TGT_NUM_PEERS + CFG_TGT_NUM_VDEV)
+
+/*
+ * The current firmware implementation requires the number of offload peers
+ * should be (number of vdevs + 1).
+
+ * The reason for this is the firmware clubbed the self peer and offload peer
+ * in the same pool. So if the firmware wanted to support n vdevs then the
+ * number of offload peer must be n+1 of which n buffers will be used for
+ * self peer and the remaining 1 is used for offload peer to support chatter
+ * mode for single STA.
+
+ * Technically the macro should be 1 however the current firmware requires n+1.
+
+ * TODO: This MACRO need to be modified in the future, if the firmware modified
+ * to allocate buffers for self peer and offload peer independently.
+ */
+
+#define CFG_TGT_NUM_OFFLOAD_PEERS       (CFG_TGT_NUM_VDEV+1)
 
 /*
  * Number of reorder buffers used in offload mode
  */
-#define CFG_TGT_NUM_OFFLOAD_REORDER_BUFFS   8
+#define CFG_TGT_NUM_OFFLOAD_REORDER_BUFFS   4
 
 /*
  * keys per peer node
