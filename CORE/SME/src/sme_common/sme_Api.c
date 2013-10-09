@@ -6637,6 +6637,14 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
        return status;  
    }
 
+   status = WDA_SetCountryCode(pMac, pMsg->countryCode);
+   if ( status != eHAL_STATUS_SUCCESS )
+   {
+      smsLog(pMac, LOGE, FL("Fail to set countryCode: %c%c"), pMsg->countryCode[0],
+             pMsg->countryCode[1]);
+      return status;
+   }
+
    /* purge current scan results
     if i don't do this than I still get old ap's (of different country code) as available (even if they are powered off). 
     Looks like a bug in current scan sequence. 
