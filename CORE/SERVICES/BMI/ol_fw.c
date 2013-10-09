@@ -721,7 +721,7 @@ int ol_download_firmware(struct ol_softc *scn)
 		address = BMI_SEGMENTED_WRITE_ADDR;
 		printk("%s: Using 0x%x for the remainder of init\n", __func__, address);
 
-		if ( ((scn->target_version != AR6320_REV1_VERSION) || (scn->target_version != AR6320_REV1_1_VERSION)) && scn->enablesinglebinary == FALSE ) {
+		if ( scn->enablesinglebinary == FALSE ) {
 			status = ol_transfer_bin_file(scn, ATH_OTP_FILE,
 						      address, TRUE);
 			if (status == EOK) {
