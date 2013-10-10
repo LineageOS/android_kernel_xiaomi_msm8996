@@ -1164,6 +1164,86 @@ static int wma_gtk_offload_status_event(void *handle, u_int8_t *event,
 }
 #endif
 
+#ifdef FEATURE_OEM_DATA_SUPPORT
+static int wma_oem_data_rsp_event_callback(void *handle, u_int8_t *datap,
+						 u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	WMI_OEM_DATA_RSP_EVENTID_param_tlvs *param_buf;
+	u_int8_t *data;
+	u_int32_t datalen;
+	tStartOemDataRsp *pStartOemDataRsp;
+
+	param_buf = (WMI_OEM_DATA_RSP_EVENTID_param_tlvs *)datap;
+	if (!param_buf) {
+		WMA_LOGE("%s: Received NULL buf ptr from FW", __func__);
+		return -ENOMEM;
+	}
+
+	data = param_buf->data;
+	datalen = param_buf->num_data;
+
+	if (!data) {
+		WMA_LOGE("%s: Received NULL data from FW", __func__);
+		return -EINVAL;
+	}
+
+	if (datalen > OEM_DATA_RSP_SIZE) {
+		WMA_LOGE("%s: Received data len (%d) exceeds max value (%d)",
+		         __func__, datalen, OEM_DATA_RSP_SIZE);
+		return -EINVAL;
+	}
+
+	pStartOemDataRsp = vos_mem_malloc(sizeof(tStartOemDataRsp));
+
+	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
+	vos_mem_copy(&pStartOemDataRsp->oemDataRsp[0], data, datalen);
+
+	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)pStartOemDataRsp, 0);
+	vos_mem_free(data);
+	return 0;
+}
+
+static int wma_oem_data_error_report_event_callback(void *handle,
+	u_int8_t *datap, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	WMI_OEM_DATA_ERROR_REPORT_EVENTID_param_tlvs *param_buf;
+	u_int8_t *data;
+	u_int32_t datalen;
+	tStartOemDataRsp *pStartOemDataRsp;
+
+	param_buf = (WMI_OEM_DATA_ERROR_REPORT_EVENTID_param_tlvs *)datap;
+	if (!param_buf) {
+		WMA_LOGE("%s: Received NULL buf ptr from FW", __func__);
+		return -ENOMEM;
+	}
+
+	data = param_buf->data;
+	datalen = param_buf->num_data;
+
+	if (!data) {
+		WMA_LOGE("%s: Received NULL data from FW", __func__);
+		return -EINVAL;
+	}
+
+	if (datalen > OEM_DATA_RSP_SIZE) {
+		WMA_LOGE("%s: Received data len (%d) exceeds max value (%d)",
+		         __func__, datalen, OEM_DATA_RSP_SIZE);
+		return -EINVAL;
+	}
+
+	pStartOemDataRsp = vos_mem_malloc(sizeof(tStartOemDataRsp));
+
+	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
+	vos_mem_copy(&pStartOemDataRsp->oemDataRsp[0], data, datalen);
+
+	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)data, 0);
+	vos_mem_free(data);
+	return 0;
+}
+#endif /* FEATURE_OEM_DATA_SUPPORT */
+
 /*
  * Allocate and init wmi adaptation layer.
  */
@@ -1302,6 +1382,17 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_PEER_STA_KICKOUT_EVENTID,
 					   wma_peer_sta_kickout_event_handler);
+
+#ifdef FEATURE_OEM_DATA_SUPPORT
+		wmi_unified_register_event_handler(wma_handle->wmi_handle,
+						   WMI_OEM_DATA_RSP_EVENTID,
+						   wma_oem_data_rsp_event_callback);
+
+		wmi_unified_register_event_handler(wma_handle->wmi_handle,
+						   WMI_OEM_DATA_ERROR_REPORT_EVENTID,
+						   wma_oem_data_error_report_event_callback);
+#endif
+
 	/* Firmware debug log */
 	vos_status = dbglog_init(wma_handle->wmi_handle);
 	if (vos_status != VOS_STATUS_SUCCESS) {
@@ -6308,6 +6399,53 @@ static void wma_process_update_opmode(tp_wma_handle wma_handle,
                            update_vht_opmode->smesessionId);
 }
 
+#ifdef FEATURE_OEM_DATA_SUPPORT
+static void wma_start_oem_data_req(tp_wma_handle wma_handle,
+				tStartOemDataReq *startOemDataReq)
+{
+	wmi_buf_t buf;
+	u_int8_t *cmd;
+	int ret = 0;
+
+	WMA_LOGD("%s: Send OEM Data Request to target", __func__);
+
+	if (!startOemDataReq)
+		return;
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not send Oem data request cmd", __func__);
+		return;
+	}
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle,
+		                   (OEM_DATA_REQ_SIZE + WMI_TLV_HDR_SIZE));
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+		return;
+	}
+
+	cmd = (u_int8_t *)wmi_buf_data(buf);
+
+	WMITLV_SET_HDR(cmd, WMITLV_TAG_ARRAY_BYTE,
+			       OEM_DATA_REQ_SIZE);
+	cmd += WMI_TLV_HDR_SIZE;
+	vos_mem_copy(cmd, &startOemDataReq->oemDataReq[0], OEM_DATA_REQ_SIZE);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			(OEM_DATA_REQ_SIZE +
+			 WMI_TLV_HDR_SIZE),
+			WMI_OEM_DATA_REQ_CMDID);
+
+	if (ret != 0) {
+		WMA_LOGE("%s:wmi cmd send failed", __func__);
+		adf_nbuf_free(buf);
+		return;
+	}
+
+	return;
+}
+#endif /* FEATURE_OEM_DATA_SUPPORT */
+
 static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 {
 	msg->status = eHAL_STATUS_SUCCESS;
@@ -6721,6 +6859,13 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 				(tpSirGtkOffloadGetInfoRspParams)msg->bodyptr);
 			break;
 #endif /* WLAN_FEATURE_GTK_OFFLOAD */
+
+#ifdef FEATURE_OEM_DATA_SUPPORT
+		case WDA_START_OEM_DATA_REQ:
+			wma_start_oem_data_req(wma_handle,
+					(tStartOemDataReq *)msg->bodyptr);
+#endif /* FEATURE_OEM_DATA_SUPPORT */
+
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -7559,6 +7704,7 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 #endif	/* #ifdef WLAN_FEATURE_11AC */
 
 #ifndef QCA_WIFI_ISOC
+ hdd_tgt_cfg.target_fw_version = wma_handle->target_fw_version;
 	wma_handle->tgt_cfg_update_cb(hdd_ctx, &hdd_tgt_cfg);
 #endif
 }
@@ -7723,6 +7869,8 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
         wma_handle->vht_supp_mcs = ev->vht_supp_mcs;
 #endif
 	wma_handle->num_rf_chains = ev->num_rf_chains;
+
+	wma_handle->target_fw_version = ev->fw_build_vers;
 
 	 /* TODO: Recheck below line to dump service ready event */
 	 /* dbg_print_wmi_service_11ac(ev); */

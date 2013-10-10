@@ -680,10 +680,18 @@ typedef struct {
 #ifdef FEATURE_OEM_DATA_SUPPORT 
 
 #ifndef OEM_DATA_REQ_SIZE
+#ifdef QCA_WIFI_2_0
+#define OEM_DATA_REQ_SIZE 276
+#else
 #define OEM_DATA_REQ_SIZE 134
 #endif
+#endif
 #ifndef OEM_DATA_RSP_SIZE
+#ifdef QCA_WIFI_2_0
+#define OEM_DATA_RSP_SIZE 1720
+#else
 #define OEM_DATA_RSP_SIZE 1968
+#endif
 #endif
 
 typedef struct

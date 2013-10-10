@@ -326,6 +326,7 @@ typedef struct {
 	wmi_abi_version target_abi_vers; /* The target firmware version */
 	/* The final negotiated ABI version to be used for communicating */
 	wmi_abi_version final_abi_vers;
+	v_U32_t target_fw_version; /* Target f/w build version */
 	bool wmi_ready;
 	u_int32_t wlan_init_status;
 	adf_os_device_t adf_dev;

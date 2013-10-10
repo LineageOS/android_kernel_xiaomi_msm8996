@@ -864,17 +864,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_WOW_ENABLE_DISABLE_WAKE_EVENT_CMDID);
 
 /* RTT measurement request Cmd */
 #define WMITLV_TABLE_WMI_RTT_MEASREQ_CMDID(id,op,buf,len) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_rtt_measreq_head, wmi_rtt_measreq_head, fixed_param, WMITLV_SIZE_FIX) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_channel, wmi_channel, channel, WMITLV_SIZE_FIX) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_rtt_measreq_body, body, WMITLV_SIZE_VAR)
-
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_RTT_MEASREQ_CMDID);
 
 /* RTT TSF Cmd */
 #define WMITLV_TABLE_WMI_RTT_TSF_CMDID(id,op,buf,len) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_rtt_tsf_cmd_fixed_param, wmi_rtt_tsf_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_channel, wmi_channel, channel, WMITLV_SIZE_FIX)
-
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_RTT_TSF_CMDID);
 
 /* Spectral scan configure Cmd */
@@ -1382,9 +1377,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_EVENTID);
 WMITLV_CREATE_PARAM_STRUC(WMI_WOW_WAKEUP_HOST_EVENTID);
 
 /* RTT error report Event */
-#define WMITLV_TABLE_WMI_RTT_ERROR_REPORT_EVENTID(id,op,buf,len)                                                         \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_rtt_event_header, wmi_rtt_event_hdr, rtt_hdr, WMITLV_SIZE_FIX) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_rtt_error_report_event_fixed_param, wmi_rtt_error_report_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+#define WMITLV_TABLE_WMI_RTT_ERROR_REPORT_EVENTID(id,op,buf,len)    \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_RTT_ERROR_REPORT_EVENTID);
 
 /* Echo Event */
@@ -1448,7 +1442,6 @@ WMITLV_CREATE_PARAM_STRUC(WMI_DEBUG_PRINT_EVENTID);
 
 /* RTT measurement report Event */
 #define WMITLV_TABLE_WMI_RTT_MEASUREMENT_REPORT_EVENTID(id,op,buf,len) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_rtt_event_header, wmi_rtt_event_hdr, rtt_hdr, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_RTT_MEASUREMENT_REPORT_EVENTID);
 
