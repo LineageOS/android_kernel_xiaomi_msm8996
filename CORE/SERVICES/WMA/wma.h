@@ -903,6 +903,7 @@ VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
 int regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2);
 void regdmn_get_ctl_info(u_int32_t reg_dmn, u_int32_t modesAvail,
 		u_int32_t modeSelect);
+int32_t regdmn_get_regdmn_for_country(u_int8_t *alpha2);
 #endif
 
 #define WMA_FW_PHY_STATS	0x1

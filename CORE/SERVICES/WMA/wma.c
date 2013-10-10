@@ -9179,6 +9179,25 @@ eHalStatus wma_set_htconfig(tANI_U8 vdev_id, tANI_U16 ht_capab, int value)
 	return (ret)? eHAL_STATUS_FAILURE : eHAL_STATUS_SUCCESS;
 }
 
+eHalStatus WMA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId)
+{
+	if(VOS_STATUS_SUCCESS != vos_nv_setRegDomain(clientCtxt, regId))
+		return eHAL_STATUS_INVALID_PARAMETER;
+
+	return eHAL_STATUS_SUCCESS;
+}
+
+eHalStatus WMA_SetCountryCode(v_VOID_t *client_ctx, tANI_U8 *countrycode)
+{
+	int32_t regdmn;
+	regdmn = regdmn_get_regdmn_for_country(countrycode);
+	if (regdmn < 0)
+		return eHAL_STATUS_FAILURE;
+
+	wma_set_regdomain(regdmn);
+	return eHAL_STATUS_SUCCESS;
+}
+
 tANI_U8 wma_getFwWlanFeatCaps(tANI_U8 featEnumValue)
 {
        return gFwWlanFeatCaps & featEnumValue;

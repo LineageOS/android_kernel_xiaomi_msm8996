@@ -1252,6 +1252,7 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 #ifdef QCA_WIFI_2_0
 
 #define WDA_SetRegDomain WMA_SetRegDomain
+#define WDA_SetCountryCode WMA_SetCountryCode
 #define WDA_SetHTConfig wma_set_htconfig
 #define WDA_UpdateRssiBmps WMA_UpdateRssiBmps
 
@@ -1261,6 +1262,11 @@ eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
 static int WDA_SetHTConfig(tANI_U8 sessionId, tANI_U16 htCapab, int value)
 {
 	return 0;
+}
+
+static inline eHalStatus WDA_SetCountryCode(v_VOID_t *client_ctx, tANI_U8 *countrycode)
+{
+   return eHAL_STATUS_SUCCESS;
 }
 
 /* -----------------------------------------------------------------
