@@ -1763,6 +1763,11 @@ typedef enum
 #define CFG_ENABLE_TCP_CHKSUM_OFFLOAD_MIN                       ( 0 )
 #define CFG_ENABLE_TCP_CHKSUM_OFFLOAD_DEFAULT                   ( 0 )
 
+#define CFG_ENABLE_IP_CHKSUM_OFFLOAD                        "gEnableIPChecksumOffload"
+#define CFG_ENABLE_IP_CHKSUM_OFFLOAD_DISABLE                ( 0 )
+#define CFG_ENABLE_IP_CHKSUM_OFFLOAD_ENABLE                 ( 1 )
+#define CFG_ENABLE_IP_CHKSUM_OFFLOAD_DEFAULT                ( CFG_ENABLE_IP_CHKSUM_OFFLOAD_DISABLE )
+
 /*
  * Power Save Offload
  */
@@ -2189,6 +2194,7 @@ typedef struct
    char                        listOfNon11acCountryCode[128];
    v_U8_t                      fScanOffload;
    v_BOOL_t                    enableTCPChkSumOffld;
+   v_BOOL_t                    enableIPChecksumOffload;
    v_BOOL_t                    enablePowersaveOffload;
    v_BOOL_t                    enablefwprint;
    v_BOOL_t                    enablefwlog;

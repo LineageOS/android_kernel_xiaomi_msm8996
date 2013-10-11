@@ -714,6 +714,10 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 
 	adf_nbuf_map_single(adf_ctx, skb, ADF_OS_DMA_TO_DEVICE);
 
+	if ((tl_shim->ip_checksum_offload) && (skb->protocol == htons(ETH_P_IP))
+		 && (skb->ip_summed == CHECKSUM_PARTIAL))
+		skb->ip_summed = CHECKSUM_COMPLETE;
+
 	/* Terminate the (single-element) list of tx frames */
 	skb->next = NULL;
 	ret = tl_shim->tx(peer->vdev, skb);
@@ -1202,6 +1206,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 	 * vdevs to maintain tx callbacks per vdev.
 	 */
 
+	tl_shim->ip_checksum_offload = tl_cfg->ip_checksum_offload;
 	return status;
 }
 

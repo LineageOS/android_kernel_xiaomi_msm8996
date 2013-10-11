@@ -2055,6 +2055,7 @@ vos_fetch_tl_cfg_parms
   pTLConfig->ucAcWeights[3] = pConfig->WfqVoWeight;
   pTLConfig->uDelayedTriggerFrmInt = pConfig->DelayedTriggerFrmInt;
   pTLConfig->uMinFramesProcThres = pConfig->MinFramesProcThres;
+  pTLConfig->ip_checksum_offload = pConfig->enableIPChecksumOffload;
 
 }
 

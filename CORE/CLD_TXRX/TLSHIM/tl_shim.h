@@ -67,6 +67,7 @@ struct txrx_tl_shim_ctx {
      */
 struct deferred_iapp_work iapp_work;
 #endif
+	v_BOOL_t ip_checksum_offload;
 };
 
 /*
