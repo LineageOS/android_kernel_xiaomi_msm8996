@@ -421,6 +421,10 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 
 	ENTER();
 
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_TL, NULL)) {
+		TLSHIM_LOGP("%s: Driver load/unload in progress", __func__);
+		return skb;
+	}
 	/*
 	 * TODO: How sta_id is created and used for IBSS mode?.
 	 */
