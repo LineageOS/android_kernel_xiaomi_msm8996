@@ -3145,7 +3145,9 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
     v_U32_t roamId= 0xFF;
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
     hdd_hostapd_state_t *pHostapdState;
+#ifndef QCA_WIFI_2_0
     VOS_STATUS vos_status;
+#endif
     eHalStatus halStatus;
 
     ENTER();
@@ -3362,6 +3364,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                 setKey.peerMac[4], setKey.peerMac[5],
                 setKey.keyDirection);
 
+#ifndef QCA_WIFI_2_0
         vos_status = wlan_hdd_check_ula_done(pAdapter);
 
         if ( vos_status != VOS_STATUS_SUCCESS )
@@ -3375,6 +3378,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
             return -EINVAL;
 
         }
+#endif
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
         /* The supplicant may attempt to set the PTK once pre-authentication
