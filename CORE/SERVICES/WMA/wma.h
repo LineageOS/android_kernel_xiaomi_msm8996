@@ -45,7 +45,7 @@
   --------          ---           -----------------------------------------
   12/03/2013        Ganesh        Created module for WMA
                     Kondabattini
-  27/03/2013        Ganesh        Rx Mgmt Related added 
+  27/03/2013        Ganesh        Rx Mgmt Related added
                     Babu
   ==========================================================================*/
 #ifndef WMA_H
@@ -81,13 +81,13 @@
    In prima 12 HW stations are supported including BCAST STA(staId 0)
    and SELF STA(staId 1) so total ASSOC stations which can connect to Prima
    SoftAP = 12 - 1(Self STa) - 1(Bcast Sta) = 10 Stations. */
-   
+
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
-#define WMA_MAX_SUPPORTED_STAS    38 
+#define WMA_MAX_SUPPORTED_STAS    38
 #else
-#define WMA_MAX_SUPPORTED_STAS    12 
+#define WMA_MAX_SUPPORTED_STAS    12
 #endif
-#define WMA_MAX_SUPPORTED_BSS     5 
+#define WMA_MAX_SUPPORTED_BSS     5
 
 #define FRAGMENT_SIZE 3072
 
@@ -121,7 +121,7 @@
 #define WMA_LOGA(fmt, args...) \
 	printk(KERN_INFO "\n%s-%d: " fmt, __func__, __LINE__, ## args)
 #else
-#define WMA_LOGA(fmt, args...) 
+#define WMA_LOGA(fmt, args...)
 #endif
 
 #define     ALIGNED_WORD_SIZE       4
@@ -277,6 +277,11 @@ struct wma_txrx_node {
 #endif
 	v_BOOL_t ptrn_match_enable;
 	v_BOOL_t conn_state;
+	/* BSS parameters cached for use in WDA_ADD_STA */
+    tSirMacBeaconInterval   beaconInterval;
+    tANI_U8                 llbCoexist;
+    tANI_U8                 shortSlotTimeSupported;
+    tANI_U8                 dtimPeriod;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -404,13 +409,13 @@ of NV fragment is nt possbile.The next multiple of 1Kb is 3K */
 
 typedef struct
 {
-  v_VOID_t *pConfigBuffer; 
-  
+  v_VOID_t *pConfigBuffer;
+
   /*Length of the config buffer above*/
   v_U16_t usConfigBufferLen;
-  
+
   /*Production or FTM driver*/
-  t_wma_drv_type driver_type; 
+  t_wma_drv_type driver_type;
 
   /*The user data passed in by UMAC, it will be sent back when the above
     function pointer will be called */
@@ -422,7 +427,7 @@ typedef struct
 }t_wma_start_req;
 
 /* Message types for messages exchanged between WDI and HAL */
-typedef enum 
+typedef enum
 {
    //Init/De-Init
    WLAN_HAL_START_REQ = 0,
@@ -492,7 +497,7 @@ typedef enum
    WLAN_HAL_MIC_FAILURE_IND             = 52,
    WLAN_HAL_FATAL_ERROR_IND             = 53,
    WLAN_HAL_SET_KEYDONE_MSG             = 54,
-   
+
    //NV Interface
    WLAN_HAL_DOWNLOAD_NV_REQ             = 55,
    WLAN_HAL_DOWNLOAD_NV_RSP             = 56,
@@ -511,11 +516,11 @@ typedef enum
    WLAN_HAL_DELETE_STA_CONTEXT_IND         = 67,
    WLAN_HAL_UPDATE_PROBE_RSP_TEMPLATE_REQ  = 68,
    WLAN_HAL_UPDATE_PROBE_RSP_TEMPLATE_RSP  = 69,
-   
+
   // PTT interface support
    WLAN_HAL_PROCESS_PTT_REQ   = 70,
    WLAN_HAL_PROCESS_PTT_RSP   = 71,
-   
+
    // BTAMP related events
    WLAN_HAL_SIGNAL_BTAMP_EVENT_REQ  = 72,
    WLAN_HAL_SIGNAL_BTAMP_EVENT_RSP  = 73,
@@ -574,7 +579,7 @@ typedef enum
    //P2P  WLAN_FEATURE_P2P
    WLAN_HAL_SET_P2P_GONOA_REQ      = 119,
    WLAN_HAL_SET_P2P_GONOA_RSP      = 120,
-   
+
    //WLAN Dump commands
    WLAN_HAL_DUMP_COMMAND_REQ       = 121,
    WLAN_HAL_DUMP_COMMAND_RSP       = 122,
@@ -594,7 +599,7 @@ typedef enum
    // Coex Indication
    WLAN_HAL_COEX_IND               = 129,
 
-   // Tx Complete Indication 
+   // Tx Complete Indication
    WLAN_HAL_OTA_TX_COMPL_IND       = 130,
 
    //Host Suspend/resume messages
@@ -608,7 +613,7 @@ typedef enum
    WLAN_HAL_GET_TX_POWER_RSP       = 137,
 
    WLAN_HAL_P2P_NOA_ATTR_IND       = 138,
-   
+
    WLAN_HAL_ENABLE_RADAR_DETECT_REQ  = 139,
    WLAN_HAL_ENABLE_RADAR_DETECT_RSP  = 140,
    WLAN_HAL_GET_TPC_REPORT_REQ       = 141,
@@ -616,7 +621,7 @@ typedef enum
    WLAN_HAL_RADAR_DETECT_IND         = 143,
    WLAN_HAL_RADAR_DETECT_INTR_IND    = 144,
    WLAN_HAL_KEEP_ALIVE_REQ           = 145,
-   WLAN_HAL_KEEP_ALIVE_RSP           = 146,      
+   WLAN_HAL_KEEP_ALIVE_RSP           = 146,
 
    /*PNO messages*/
    WLAN_HAL_SET_PREF_NETWORK_REQ     = 147,
@@ -625,25 +630,25 @@ typedef enum
    WLAN_HAL_SET_RSSI_FILTER_RSP      = 150,
    WLAN_HAL_UPDATE_SCAN_PARAM_REQ    = 151,
    WLAN_HAL_UPDATE_SCAN_PARAM_RSP    = 152,
-   WLAN_HAL_PREF_NETW_FOUND_IND      = 153, 
+   WLAN_HAL_PREF_NETW_FOUND_IND      = 153,
 
    WLAN_HAL_SET_TX_PER_TRACKING_REQ  = 154,
    WLAN_HAL_SET_TX_PER_TRACKING_RSP  = 155,
    WLAN_HAL_TX_PER_HIT_IND           = 156,
-   
+
    WLAN_HAL_8023_MULTICAST_LIST_REQ   = 157,
-   WLAN_HAL_8023_MULTICAST_LIST_RSP   = 158,   
+   WLAN_HAL_8023_MULTICAST_LIST_RSP   = 158,
 
    WLAN_HAL_SET_PACKET_FILTER_REQ     = 159,
-   WLAN_HAL_SET_PACKET_FILTER_RSP     = 160,   
+   WLAN_HAL_SET_PACKET_FILTER_RSP     = 160,
    WLAN_HAL_PACKET_FILTER_MATCH_COUNT_REQ   = 161,
-   WLAN_HAL_PACKET_FILTER_MATCH_COUNT_RSP   = 162,   
+   WLAN_HAL_PACKET_FILTER_MATCH_COUNT_RSP   = 162,
    WLAN_HAL_CLEAR_PACKET_FILTER_REQ         = 163,
-   WLAN_HAL_CLEAR_PACKET_FILTER_RSP         = 164,  
-   /*This is temp fix. Should be removed once 
+   WLAN_HAL_CLEAR_PACKET_FILTER_RSP         = 164,
+   /*This is temp fix. Should be removed once
     * Host and Riva code is in sync*/
    WLAN_HAL_INIT_SCAN_CON_REQ               = 165,
-    
+
    WLAN_HAL_SET_POWER_PARAMS_REQ            = 166,
    WLAN_HAL_SET_POWER_PARAMS_RSP            = 167,
 
@@ -652,7 +657,7 @@ typedef enum
 
    // wake reason indication (WOW)
    WLAN_HAL_WAKE_REASON_IND                 = 170,
-   // GTK offload support 
+   // GTK offload support
    WLAN_HAL_GTK_OFFLOAD_REQ                 = 171,
    WLAN_HAL_GTK_OFFLOAD_RSP                 = 172,
    WLAN_HAL_GTK_OFFLOAD_GETINFO_REQ         = 173,
@@ -667,12 +672,12 @@ typedef enum
 
   WLAN_HAL_UPDATE_VHT_OP_MODE_REQ          = 182,
   WLAN_HAL_UPDATE_VHT_OP_MODE_RSP          = 183,
- 
+
    WLAN_HAL_P2P_NOA_START_IND               = 184,
 
    WLAN_HAL_GET_ROAM_RSSI_REQ               = 185,
    WLAN_HAL_GET_ROAM_RSSI_RSP               = 186,
-   
+
    WLAN_HAL_CLASS_B_STATS_IND               = 187,
    WLAN_HAL_DEL_BA_IND                      = 188,
    WLAN_HAL_DHCP_START_IND                  = 189,
@@ -716,14 +721,14 @@ typedef PACKED_PRE struct PACKED_POST
 {
     /* Fragment sequence number of the NV Image. Note that NV Image might not
      * fit into one message due to size limitation of the SMD channel FIFO. UMAC
-     * can hence choose to chop the NV blob into multiple fragments starting with 
-     * seqeunce number 0, 1, 2 etc. The last fragment MUST be indicated by 
+     * can hence choose to chop the NV blob into multiple fragments starting with
+     * seqeunce number 0, 1, 2 etc. The last fragment MUST be indicated by
      * marking the isLastFragment field to 1. Note that all the NV blobs would be
      * concatenated together by HAL without any padding bytes in between.*/
     tANI_U16 fragNumber;
 
     /* Is this the last fragment? When set to 1 it indicates that no more fragments
-     * will be sent by UMAC and HAL can concatenate all the NV blobs rcvd & proceed 
+     * will be sent by UMAC and HAL can concatenate all the NV blobs rcvd & proceed
      * with the parsing. HAL would generate a WLAN_HAL_DOWNLOAD_NV_RSP to the
      * WLAN_HAL_DOWNLOAD_NV_REQ after it receives each fragment */
     tANI_U16 isLastFragment;
@@ -865,7 +870,7 @@ extern void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
 		u_int16_t regdmn5G, int8_t ctl2G, int8_t ctl5G);
 
 #ifdef QCA_WIFI_ISOC
-VOS_STATUS wma_cfg_download_isoc(v_VOID_t *vos_context, 
+VOS_STATUS wma_cfg_download_isoc(v_VOID_t *vos_context,
 		tp_wma_handle wma_handle);
 
 VOS_STATUS wma_nv_download_start(v_VOID_t *handle);
@@ -875,7 +880,7 @@ VOS_STATUS wma_cfg_nv_get_hal_message_buffer(tp_wma_handle wma_handle,
 		u_int8_t **pMsgBuffer, u_int16_t *pusDataOffset,
 		u_int16_t *pusBufferSize);
 
-VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context, 
+VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 		t_wma_start_req *wdi_start_params );
 
 VOS_STATUS wma_htc_cfg_nv_connect_service(tp_wma_handle wma_handle);
@@ -893,8 +898,8 @@ enum frame_index {
 	FRAME_INDEX_MAX
 };
 
-VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id, 
-		ol_txrx_vdev_handle tx_rx_vdev_handle, u_int8_t *mac, 
+VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
+		ol_txrx_vdev_handle tx_rx_vdev_handle, u_int8_t *mac,
 		u_int32_t vdev_type, bool add_del);
 #ifndef QCA_WIFI_ISOC
 int regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2);

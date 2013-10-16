@@ -389,8 +389,8 @@ next_nbuf:
 /*AR9888/AR6320  noise floor approx value*/
 #define TLSHIM_TGT_NOISE_FLOOR_DBM (-96)
 
-static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
-				       u_int32_t data_len)
+static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
+				       u_int32_t data_len, bool saved_beacon)
 {
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
 	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
@@ -401,6 +401,7 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 	vos_pkt_t *rx_pkt;
 	adf_nbuf_t wbuf;
 	struct ieee80211_frame *wh;
+	u_int8_t mgt_type, mgt_subtype;
 
 	param_tlvs = (WMI_MGMT_RX_EVENTID_param_tlvs *) data;
 	if (!param_tlvs) {
@@ -441,6 +442,13 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 	rx_pkt->pkt_meta.mpdu_data_len = hdr->buf_len -
 					 rx_pkt->pkt_meta.mpdu_hdr_len;
 
+    /*
+     * saved_beacon means this beacon is a duplicate of one
+     * sent earlier. roamCandidateInd flag is used to indicate to
+     * PE that roam scan finished and a better candidate AP
+     * was found.
+     */
+	rx_pkt->pkt_meta.roamCandidateInd = saved_beacon ? 1 : 0;
 	/* Why not just use rx_event->hdr.buf_len? */
 	wbuf = adf_nbuf_alloc(NULL,
 			      roundup(hdr->buf_len, 4),
@@ -490,9 +498,49 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 		return 0;
 	}
 
+	/* If it is a beacon/probe response, save it for future use */
+	mgt_type    = (wh)->i_fc[0] & IEEE80211_FC0_TYPE_MASK;
+	mgt_subtype = (wh)->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK;
+
+	if (mgt_type == IEEE80211_FC0_TYPE_MGT &&
+		(mgt_subtype == IEEE80211_FC0_SUBTYPE_BEACON || mgt_subtype == IEEE80211_FC0_SUBTYPE_PROBE_RESP))
+	{
+	    /* remember this beacon to be used later for better_ap event */
+	    if (tl_shim->last_beacon_data) {
+                vos_mem_free(tl_shim->last_beacon_data);
+                tl_shim->last_beacon_data = NULL;
+		tl_shim->last_beacon_len = 0;
+	    }
+	    if((tl_shim->last_beacon_data = vos_mem_malloc(data_len))) {
+			vos_mem_copy(tl_shim->last_beacon_data, data, data_len);
+			tl_shim->last_beacon_len = data_len;
+	    }
+	}
 	return tl_shim->mgmt_rx(vos_ctx, rx_pkt);
 }
+
+static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
+				       u_int32_t data_len)
+{
+	return (tlshim_mgmt_rx_process(context, data, data_len, FALSE));
+}
 #endif
+/*
+ * tlshim_mgmt_roam_event_ind() is called from WMA layer when
+ * BETTER_AP_FOUND event is received from roam engine.
+ */
+int tlshim_mgmt_roam_event_ind(void *context)
+{
+	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
+	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
+							   vos_ctx);
+	VOS_STATUS ret = VOS_STATUS_SUCCESS;
+	if (tl_shim->last_beacon_data && tl_shim->last_beacon_len)
+	{
+		ret = tlshim_mgmt_rx_process(context, tl_shim->last_beacon_data, tl_shim->last_beacon_len, TRUE);
+	}
+	return ret;
+}
 
 static void tl_shim_flush_rx_frames(void *vos_ctx,
 				    struct txrx_tl_shim_ctx *tl_shim,
@@ -1155,11 +1203,15 @@ VOS_STATUS WLANTL_Close(void *vos_ctx)
 {
 	struct txrx_tl_shim_ctx *tl_shim;
 
-	ENTER();
-	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-	wdi_in_pdev_detach(((pVosContextType) vos_ctx)->pdev_txrx_ctx, 1);
-	vos_free_context(vos_ctx, VOS_MODULE_ID_TL, tl_shim);
-	return VOS_STATUS_SUCCESS;
+    ENTER();
+    tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+    wdi_in_pdev_detach(((pVosContextType) vos_ctx)->pdev_txrx_ctx, 1);
+    // Delete beacon buffer hanging off tl_shim
+    if (tl_shim->last_beacon_data) {
+        vos_mem_free(tl_shim->last_beacon_data);
+    }
+    vos_free_context(vos_ctx, VOS_MODULE_ID_TL, tl_shim);
+    return VOS_STATUS_SUCCESS;
 }
 
 /*
