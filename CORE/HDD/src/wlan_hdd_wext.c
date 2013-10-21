@@ -199,6 +199,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_TXRX_FWSTATS             38
 #define WE_SET_VHT_RATE                 39
 #define WE_DBGLOG_REPORT_ENABLE         40
+#define WE_TXRX_FWSTATS_RESET           41
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -4625,6 +4626,15 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 			   set_value, VDEV_CMD);
 	   break;
 	}
+
+	case WE_TXRX_FWSTATS_RESET:
+	{
+           hddLog(LOG1, "WE_TXRX_FWSTATS_RESET val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+			   (int)WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
+			   set_value, VDEV_CMD);
+	   break;
+	}
 #endif
         default:
         {
@@ -7830,6 +7840,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "txrx_fw_stats" },
+
+    {   WE_TXRX_FWSTATS_RESET,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "txrx_fw_st_rst" },
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,

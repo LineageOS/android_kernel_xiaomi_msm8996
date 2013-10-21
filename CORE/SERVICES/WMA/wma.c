@@ -3073,6 +3073,24 @@ wmi_unified_pdev_set_param(wmi_unified_t wmi_handle, WMI_PDEV_PARAM param_id,
 	return ret;
 }
 
+static int32_t wma_txrx_fw_stats_reset(tp_wma_handle wma_handle,
+					uint8_t vdev_id, u_int32_t value)
+{
+	struct ol_txrx_stats_req req;
+	ol_txrx_vdev_handle vdev;
+
+	vdev = wma_find_vdev_by_id(wma_handle, vdev_id);
+	if (!vdev) {
+		WMA_LOGE("%s:Invalid vdev handle", __func__);
+		return -EINVAL;
+	}
+	vos_mem_zero(&req, sizeof(req));
+	req.stats_type_reset_mask = value;
+	ol_txrx_fw_stats_get(vdev, &req);
+
+	return 0;
+}
+
 static int32_t wma_set_txrx_fw_stats_level(tp_wma_handle wma_handle,
 					   uint8_t vdev_id, u_int32_t value)
 {
@@ -3113,6 +3131,11 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 		ret = wma_set_txrx_fw_stats_level(wma_handle,
 						  privcmd->param_vdev_id,
 						  privcmd->param_value);
+		break;
+	case WMA_VDEV_TXRX_FWSTATS_RESET_CMDID:
+		ret = wma_txrx_fw_stats_reset(wma_handle,
+						privcmd->param_vdev_id,
+						privcmd->param_value);
 		break;
 	default:
 		WMA_LOGE("Invalid wma config command id:%d",

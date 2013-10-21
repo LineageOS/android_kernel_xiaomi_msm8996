@@ -987,6 +987,7 @@ struct wma_set_key_params {
  */
 enum wma_cfg_cmd_id {
        WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID = WMI_CMDID_MAX,
+       WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
        /* Add any new command before this */
        WMA_CMD_ID_MAX
 };
