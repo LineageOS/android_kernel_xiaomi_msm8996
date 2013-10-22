@@ -6526,7 +6526,6 @@ static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_inf
             break;
 
         case WLAN_KEEP_ALIVE_UNSOLICIT_ARP_RSP:
-#ifdef QCA_WIFI_ISOC
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: Keep Alive Request: Tx UnSolicited ARP RSP\n",
                __func__);
 
@@ -6543,11 +6542,6 @@ static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_inf
             pRequest->destMacAddr[2], pRequest->destMacAddr[3],
             pRequest->destMacAddr[4], pRequest->destMacAddr[5]);
             break;
-#else
-            hddLog(VOS_TRACE_LEVEL_ERROR, "UnSolicited ARP response type not"
-                                          "supported");
-            return -EINVAL;
-#endif
       }
 
     /* Execute keep alive request. The reason that we can copy the request information
@@ -8305,7 +8299,7 @@ static const struct iw_priv_args we_private_args[] = {
 
     {
         WLAN_SET_KEEPALIVE_PARAMS,
-        IW_PRIV_TYPE_BYTE  | sizeof(tKeepAliveRequest),
+        IW_PRIV_TYPE_BYTE  | WE_MAX_STR_LEN,
         0,
         "setKeepAlive" },
 #ifdef WLAN_FEATURE_PACKET_FILTERING
