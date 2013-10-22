@@ -1702,29 +1702,54 @@ err:
 	return VOS_STATUS_E_FAILURE;
 }
 
-static void wma_set_sta_null_keep_alive(tp_wma_handle wma, u_int8_t vdev_id,
-				   v_U32_t timeperiod)
+static void wma_set_sta_keep_alive(tp_wma_handle wma, u_int8_t vdev_id,
+				   v_U32_t method, v_U32_t timeperiod,
+				   u_int8_t *hostv4addr, u_int8_t *destv4addr,
+				   u_int8_t *destmac)
 {
 	wmi_buf_t buf;
-	wmi_vdev_set_keepalive_cmd_fixed_param *cmd;
+	WMI_STA_KEEPALIVE_CMD_fixed_param *cmd;
+	WMI_STA_KEEPALVE_ARP_RESPONSE *arp_rsp;
+	u_int8_t *buf_ptr;
+	int len;
 
 	WMA_LOGD("%s: Enter", __func__);
-	buf = wmi_buf_alloc(wma->wmi_handle, sizeof(*cmd));
+	len = sizeof(*cmd) + sizeof(*arp_rsp);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
 	if (!buf) {
 		 WMA_LOGE("wmi_buf_alloc failed");
 		 return;
 	}
 
-	cmd = (wmi_vdev_set_keepalive_cmd_fixed_param *) wmi_buf_data(buf);
+	cmd = (WMI_STA_KEEPALIVE_CMD_fixed_param *) wmi_buf_data(buf);
+	buf_ptr = (u_int8_t *)cmd;
 	WMITLV_SET_HDR(&cmd->tlv_header,
-		       WMITLV_TAG_STRUC_wmi_vdev_set_keepalive_cmd_fixed_param,
+		       WMITLV_TAG_STRUC_WMI_STA_KEEPALIVE_CMD_fixed_param,
 		       WMITLV_GET_STRUCT_TLVLEN(
-			       wmi_vdev_set_keepalive_cmd_fixed_param));
-	cmd->keepaliveInterval = timeperiod;
+			       WMI_STA_KEEPALIVE_CMD_fixed_param));
+	cmd->interval = timeperiod;
+	cmd->enable = (timeperiod)? 1:0;
 	cmd->vdev_id = vdev_id;
-	WMA_LOGD("Keep Alive: vdev_id:%d interval:%u", vdev_id, timeperiod);
-	if (wmi_unified_cmd_send(wma->wmi_handle, buf, sizeof(*cmd),
-				 WMI_VDEV_SET_KEEPALIVE_CMDID)) {
+	WMA_LOGD("Keep Alive: vdev_id:%d interval:%u method:%d", vdev_id,
+		 timeperiod, method);
+	arp_rsp = (WMI_STA_KEEPALVE_ARP_RESPONSE *)(buf_ptr + sizeof(*cmd));
+	WMITLV_SET_HDR(&arp_rsp->tlv_header,
+		       WMITLV_TAG_STRUC_WMI_STA_KEEPALVE_ARP_RESPONSE,
+		       WMITLV_GET_STRUCT_TLVLEN(WMI_STA_KEEPALVE_ARP_RESPONSE));
+
+	if (method == SIR_KEEP_ALIVE_UNSOLICIT_ARP_RSP) {
+		cmd->method = WMI_STA_KEEPALIVE_METHOD_UNSOLICITED_ARP_RESPONSE;
+		vos_mem_copy(&arp_rsp->sender_prot_addr, hostv4addr,
+				SIR_IPV4_ADDR_LEN);
+		vos_mem_copy(&arp_rsp->target_prot_addr, destv4addr,
+				SIR_IPV4_ADDR_LEN);
+		WMI_CHAR_ARRAY_TO_MAC_ADDR(destmac,&arp_rsp->dest_mac_addr);
+	} else {
+		cmd->method = WMI_STA_KEEPALIVE_METHOD_NULL_FRAME;
+	}
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				 WMI_STA_KEEPALIVE_CMDID)) {
 		WMA_LOGE("Failed to set KeepAlive");
 		adf_nbuf_free(buf);
 	}
@@ -1864,9 +1889,13 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 			cfg_val = DEFAULT_INFRA_STA_KEEP_ALIVE_PERIOD;
 		}
 
-		wma_set_sta_null_keep_alive(wma_handle,
-					    self_sta_req->sessionId,
-					    cfg_val);
+		wma_set_sta_keep_alive(wma_handle,
+				       self_sta_req->sessionId,
+				       SIR_KEEP_ALIVE_NULL_PKT,
+				       cfg_val,
+				       NULL,
+				       NULL,
+				       NULL);
 		break;
 	}
 
@@ -5266,17 +5295,13 @@ static void wma_set_keepalive_req(tp_wma_handle wma,
 				  tSirKeepAliveReq *keepalive)
 {
 	WMA_LOGD("KEEPALIVE:PacketType:%d", keepalive->packetType);
-	if (keepalive->packetType == SIR_KEEP_ALIVE_NULL_PKT)
-		wma_set_sta_null_keep_alive(wma, keepalive->sessionId,
-					    keepalive->timePeriod);
-#ifdef QCA_WIFI_ISOC
-	else if (keepalive->packetType == SIR_KEEP_ALIVE_UNSOLICIT_ARP_RSP)
-		wma_set_sta_arp_keep_alive(wma, keepalive->sessionId,
-					   keepalive->hostIpv4Addr,
-					   keepalive->destIpv4Addr,
-					   keepalive->destMacAddr,
-					   keepalive->timePeriod);
-#endif
+	wma_set_sta_keep_alive(wma, keepalive->sessionId,
+				    keepalive->packetType,
+				    keepalive->timePeriod,
+				    keepalive->hostIpv4Addr,
+				    keepalive->destIpv4Addr,
+				    keepalive->destMacAddr);
+
 	vos_mem_free(keepalive);
 }
 /*

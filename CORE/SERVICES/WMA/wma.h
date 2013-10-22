@@ -880,9 +880,6 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 
 VOS_STATUS wma_htc_cfg_nv_connect_service(tp_wma_handle wma_handle);
 VOS_STATUS wma_hal_stop_isoc(tp_wma_handle wma_handle);
-void wma_set_sta_arp_keep_alive(tp_wma_handle wma, u_int8_t vdev_id,
-				u_int8_t *hostv4addr, u_int8_t *destv4addr,
-				u_int8_t *destmac, v_U32_t timeperiod);
 #endif
 
 /**
