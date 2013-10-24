@@ -1999,7 +1999,8 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	} else {
 		WMA_LOGE("Failed to get value for WNI_CFG_FRAGMENTATION_THRESHOLD, leaving unchanged");
 	}
-	if (self_sta_req->type == WMI_VDEV_TYPE_STA) {
+	if (self_sta_req->type == WMI_VDEV_TYPE_STA &&
+        mac->roam.configParam.isFastRoamIniFeatureEnabled) {
         /* Enable roaming offload
 		 * return value is not significant because some firmware versions may have
 		 * roam offload always enabled. It will stay enabled even if this command fails.
@@ -2986,6 +2987,10 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle, u_int8_t
     if (!pMac) {
         return VOS_STATUS_SUCCESS;
     }
+	if (!pMac->roam.configParam.isFastRoamIniFeatureEnabled) {
+		/* Fast roaming is disabled */
+		return VOS_STATUS_SUCCESS;
+	}
     if (pMac->roam.roamSession[sessionId].connectedProfile.SSID.length == 0) {
         /* No need to configure roam scan for null SSID. */
         return VOS_STATUS_SUCCESS;
@@ -3025,8 +3030,11 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 wma_handle->vos_context);
     A_UINT32    mode;
 
-    vos_trace_setValue(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG, 1);
     WMA_LOGI("%s: command 0x%x\n", __func__, roam_req->Command);
+	if (!pMac->roam.configParam.isFastRoamIniFeatureEnabled) {
+		/* Fast roaming is disabled */
+		return VOS_STATUS_SUCCESS;
+	}
     switch (roam_req->Command) {
         case ROAM_SCAN_OFFLOAD_START:
         case ROAM_SCAN_OFFLOAD_STOP:
