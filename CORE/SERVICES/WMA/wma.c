@@ -8291,20 +8291,13 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 		     param_buf->wmi_service_bitmap,
 		     sizeof(wma_handle->wmi_service_bitmap));
 #ifndef QCA_WIFI_ISOC
-	 if (!WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
-				     WMI_SERVICE_BEACON_OFFLOAD)) {
-
-		WMA_LOGD("%s: FW doesn't have beacon offload capability, "
-			 "enabling host based beaconing support\n", __func__);
-
-		/* SWBA event handler for beacon transmission */
-		status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
-						   WMI_HOST_SWBA_EVENTID,
-						   wma_beacon_swba_handler);
-		if (status) {
-			WMA_LOGE("Failed to register swba beacon event cb");
-			return;
-		}
+	/* SWBA event handler for beacon transmission */
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+						    WMI_HOST_SWBA_EVENTID,
+						    wma_beacon_swba_handler);
+	if (status) {
+		WMA_LOGE("Failed to register swba beacon event cb");
+		return;
 	}
 #endif
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
