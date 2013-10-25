@@ -7562,7 +7562,7 @@ wma_data_tx_ack_comp_hdlr(void *wma_context,
 
 		ack_work =
 		adf_os_mem_alloc(NULL, sizeof(struct wma_tx_ack_work_ctx));
-
+		wma_handle->ack_work_ctx = ack_work;
 		if(ack_work) {
 			INIT_WORK(&ack_work->ack_cmp_work,
 					wma_data_tx_ack_work_handler);
@@ -8617,6 +8617,14 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 	if (vos_get_conparam() == VOS_FTM_MODE) {
 		vos_status = VOS_STATUS_SUCCESS;
 		goto end;
+	}
+#endif
+
+#ifdef WLAN_OPEN_SOURCE
+	if (wma_handle->ack_work_ctx) {
+		cancel_work_sync(&wma_handle->ack_work_ctx->ack_cmp_work);
+		adf_os_mem_free(wma_handle->ack_work_ctx);
+		wma_handle->ack_work_ctx = NULL;
 	}
 #endif
 

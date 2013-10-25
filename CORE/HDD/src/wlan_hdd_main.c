@@ -3311,12 +3311,13 @@ static eHalStatus hdd_smeCloseSessionCallback(void *pContext)
 
    clear_bit(SME_SESSION_OPENED, &pAdapter->event_flags);
 
+#ifndef WLAN_OPEN_SOURCE
    /* need to make sure all of our scheduled work has completed.
     * This callback is called from MC thread context, so it is safe to
     * to call below flush workqueue API from here.
     */
    flush_scheduled_work();
-
+#endif
    /* We can be blocked while waiting for scheduled work to be
     * flushed, and the adapter structure can potentially be freed, in
     * which case the magic will have been reset.  So make sure the

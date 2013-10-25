@@ -1532,6 +1532,11 @@ VOS_STATUS hdd_wmm_adapter_close ( hdd_adapter_t* pAdapter )
    {
       pQosContext = list_first_entry(&pAdapter->hddWmmStatus.wmmContextList,
                                      hdd_wmm_qos_context_t, node);
+#ifdef WLAN_OPEN_SOURCE
+      /* cancel all scheduled work queues */
+      cancel_work_sync(&pQosContext->wmmAcSetupImplicitQos);
+#endif
+
 #ifdef FEATURE_WLAN_CCX
       hdd_wmm_disable_inactivity_timer(pQosContext);
 #endif

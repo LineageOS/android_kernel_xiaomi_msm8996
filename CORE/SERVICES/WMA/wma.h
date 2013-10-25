@@ -384,6 +384,7 @@ typedef struct {
 	 * with ns info suppose if ns also enabled
 	 */
 	tSirHostOffloadReq mArpInfo;
+	struct wma_tx_ack_work_ctx *ack_work_ctx;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
