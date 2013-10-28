@@ -271,7 +271,7 @@ struct wma_txrx_node {
 	struct scan_param scan_info;
 	u_int32_t type;
 	u_int32_t sub_type;
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 	v_BOOL_t nlo_match_evt_received;
 	v_BOOL_t pno_in_progress;
 #endif
@@ -1006,7 +1006,7 @@ typedef struct wma_trigger_uapsd_params
 VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 			tp_wma_trigger_uapsd_params trigger_uapsd_params);
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 
 #define WMA_NLO_FREQ_THRESH          1000         /* in MHz */
 #define WMA_SEC_TO_MSEC(sec)         (sec * 1000) /* sec to msec */

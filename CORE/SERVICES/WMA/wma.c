@@ -6241,7 +6241,7 @@ VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 	return VOS_STATUS_SUCCESS;
 }
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 
 /* Request FW to start PNO operation */
 static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
@@ -7984,7 +7984,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_set_keepalive_req(wma_handle,
 					(tSirKeepAliveReq *)msg->bodyptr);
 			break;
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 		case WDA_SET_PNO_REQ:
 			wma_config_pno(wma_handle,
 				       (tpSirPNOScanReq)msg->bodyptr);
@@ -8381,7 +8381,7 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	return 0;
 }
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 
 /* Record NLO match event comes from FW. It's a indication that
  * one of the profile is matched.
@@ -8528,7 +8528,7 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		goto end;
 	}
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
 				   WMI_SERVICE_NLO)) {
 
@@ -8833,7 +8833,7 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	/* ARP offload */
 	cfg->arp_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 						  WMI_SERVICE_ARPNS_OFFLOAD);
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 	/* PNO offload */
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_NLO))
 		cfg->pno_offload = TRUE;
