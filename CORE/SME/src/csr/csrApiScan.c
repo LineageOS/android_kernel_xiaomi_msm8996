@@ -4722,7 +4722,6 @@ tANI_BOOLEAN csrScanIsWildCardScan( tpAniSirGlobal pMac, tSmeCmd *pCommand )
 eHalStatus csrSavePnoScanResults(tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp)
 {
     tSirBssDescription *pSirBssDescription;
-    tDot11fBeaconIEs *pIesLocal = NULL;
     tANI_U32 cbScanResult = GET_FIELD_OFFSET( tSirSmeScanRsp, bssDescription )
                             + sizeof(tSirBssDescription);  //We need at least one CB
     tCsrScanResult *pScanResult = NULL;
@@ -4730,7 +4729,7 @@ eHalStatus csrSavePnoScanResults(tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp)
     v_TIME_t timer;
     tANI_U32 cbParsed;
     tANI_U32 cbBssDesc;
-    tANI_U8 ieLen;
+    tANI_U16 ieLen;
 
     if ((cbScanResult > pScanRsp->length ) ||
         (( eSIR_SME_SUCCESS != pScanRsp->statusCode ) &&
@@ -4760,10 +4759,9 @@ eHalStatus csrSavePnoScanResults(tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp)
         }
 
         palZeroMemory( pMac->hHdd, pScanResult, sizeof(tCsrScanResult) + ieLen);
-        pIesLocal = (tDot11fBeaconIEs *)( pScanResult->Result.pvIes );
 
         if (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac,
-            pSirBssDescription, &pIesLocal)))
+            pSirBssDescription, (tDot11fBeaconIEs **)&pScanResult->Result.pvIes)))
         {
             smsLog(pMac, LOGE, FL("  Cannot parse IEs"));
             csrFreeScanResultEntry(pMac, pScanResult);
@@ -4778,9 +4776,12 @@ eHalStatus csrSavePnoScanResults(tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp)
 
         // Remove duplicate entry
         csrRemoveDupBssDescription( pMac, &pScanResult->Result.BssDescriptor,
-                                    pIesLocal, &tmpSsid , &timer );
+                         (tDot11fBeaconIEs *)pScanResult->Result.pvIes,
+                         &tmpSsid , &timer );
+
         //Add to scan cache
-        csrScanAddResult(pMac, pScanResult, pIesLocal);
+        csrScanAddResult(pMac, pScanResult,
+                         (tDot11fBeaconIEs *)pScanResult->Result.pvIes);
 
         // skip over the BSS description to the next one...
         cbParsed += cbBssDesc;
