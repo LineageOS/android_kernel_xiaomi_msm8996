@@ -1095,6 +1095,45 @@ static int wma_beacon_swba_handler(void *handle, u_int8_t *event, u_int32_t len)
 }
 #endif
 
+static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	WMI_CSA_HANDLING_EVENTID_param_tlvs *param_buf;
+	wmi_csa_event_fixed_param *csa_event;
+	u_int8_t bssid[IEEE80211_ADDR_LEN];
+	u_int8_t vdev_id = 0;
+	struct ieee80211_channelswitch_ie *csa_ie;
+	tpCSAOffloadParams csa_offload_event;
+
+	param_buf = (WMI_CSA_HANDLING_EVENTID_param_tlvs *) event;
+	if (!param_buf) {
+		WMA_LOGE("Invalid csa event buffer");
+		return -EINVAL;
+	}
+	csa_event = param_buf->fixed_param;
+	WMI_MAC_ADDR_TO_CHAR_ARRAY(&csa_event->i_addr2, &bssid[0]);
+
+	if (wma_find_vdev_by_bssid(wma, bssid, &vdev_id) == NULL) {
+		WMA_LOGE("Invalid bssid received %s:%d", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	csa_offload_event = vos_mem_malloc(sizeof(*csa_offload_event));
+	if (!csa_offload_event) {
+		WMA_LOGE("VOS MEM Alloc Failed for csa_offload_event");
+		return -EINVAL;
+	}
+
+	vos_mem_zero(csa_offload_event, sizeof(*csa_offload_event));
+	csa_offload_event->sessionId = vdev_id;
+	csa_ie = (struct ieee80211_channelswitch_ie *)(&csa_event->csa_ie[0]);
+	csa_offload_event->channel = csa_ie->newchannel;
+	csa_offload_event->switchmode = csa_ie->switchmode;
+
+	wma_send_msg(wma, WDA_CSA_OFFLOAD_EVENT, (void *)csa_offload_event, 0);
+	return 0;
+}
+
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 static int wma_gtk_offload_status_event(void *handle, u_int8_t *event,
 					u_int32_t len)
@@ -4787,6 +4826,34 @@ send_rsp:
 	wma_send_msg(wma, WDA_ADD_STA_RSP, (void *)add_sta, 0);
 }
 
+static int wmi_unified_csa_offload_enable(tp_wma_handle wma,
+		u_int8_t vdev_id)
+{
+	wmi_csa_offload_enable_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(*cmd);
+
+	WMA_LOGD("%s: vdev_id %d", __func__, vdev_id);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s:wmi_buf_alloc failed\n", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_csa_offload_enable_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_csa_offload_enable_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_csa_offload_enable_cmd_fixed_param));
+	cmd->vdev_id = vdev_id;
+	cmd->csa_offload_enable = WMI_CSA_OFFLOAD_ENABLE;
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				WMI_CSA_OFFLOAD_ENABLE_CMDID)) {
+		WMA_LOGP("Failed to send CSA offload enable command");
+		wmi_buf_free(buf);
+		return -EIO;
+	}
+	return 0;
+}
+
 static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 {
 	ol_txrx_pdev_handle pdev;
@@ -4837,6 +4904,17 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 			iface->dtimPeriod, iface->shortSlotTimeSupported, iface->llbCoexist);
 
 	wma_roam_scan_offload_init_connect(wma, params->smesessionId);
+
+	params->csaOffloadEnable = 0;
+	if (WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+				WMI_SERVICE_CSA_OFFLOAD)) {
+		params->csaOffloadEnable = 1;
+		if (wmi_unified_csa_offload_enable(wma, params->smesessionId) < 0) {
+			WMA_LOGE("Unable to enable CSA offload for vdev_id:%d",
+					params->smesessionId);
+		}
+	}
+
 	if (wmi_unified_vdev_up_send(wma->wmi_handle, params->smesessionId,
 				     params->assocId, params->bssId) < 0) {
 		WMA_LOGP("Failed to send vdev up cmd: vdev %d bssid %pM\n",
@@ -9067,6 +9145,19 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 		return;
 	}
 #endif
+
+	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+				WMI_SERVICE_CSA_OFFLOAD)) {
+		WMA_LOGD("%s: FW support CSA offload capability", __func__);
+		status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_CSA_HANDLING_EVENTID,
+				wma_csa_offload_handler);
+		if (status) {
+			WMA_LOGE("Failed to register CSA offload event cb");
+			return;
+		}
+	}
+
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
 				   WMI_SERVICE_GTK_OFFLOAD)) {
