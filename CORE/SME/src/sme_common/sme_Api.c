@@ -1474,6 +1474,9 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    /* update the p2p listen offload setting */
    pMac->fP2pListenOffload = pSmeConfigParams->fP2pListenOffload;
 
+   /* update p2p offload status */
+   pMac->pnoOffload = pSmeConfigParams->pnoOffload;
+
    return status;
 }
 
@@ -6410,69 +6413,66 @@ eHalStatus sme_PreferredNetworkFoundInd (tHalHandle hHal, void* pMsg)
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
    eHalStatus status = eHAL_STATUS_SUCCESS;
    tSirPrefNetworkFoundInd *pPrefNetworkFoundInd = (tSirPrefNetworkFoundInd *)pMsg;
-#ifndef FEATURE_WLAN_PNO_OFFLOAD
    v_U8_t dumpSsId[SIR_MAC_MAX_SSID_LENGTH + 1];
    tANI_U8 ssIdLength = 0;
-#endif
 
    if (NULL == pMsg)
    {
       smsLog(pMac, LOGE, "in %s msg ptr is NULL", __func__);
-      status = eHAL_STATUS_FAILURE;
+      return eHAL_STATUS_FAILURE;
    }
-   else
+
+   if (pMac->pnoOffload)
    {
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
       /* Call Preferred Network Found Indication callback routine. */
       if (pMac->pmc.prefNetwFoundCB != NULL)
       {
          pMac->pmc.prefNetwFoundCB(
-             pMac->pmc.preferredNetworkFoundIndCallbackContext,
-             pPrefNetworkFoundInd);
+              pMac->pmc.preferredNetworkFoundIndCallbackContext,
+              pPrefNetworkFoundInd);
       }
-#else
-      if (pPrefNetworkFoundInd->ssId.length > 0)
-      {
-         ssIdLength = CSR_MIN(SIR_MAC_MAX_SSID_LENGTH,
-                              pPrefNetworkFoundInd->ssId.length);
-         vos_mem_copy(dumpSsId, pPrefNetworkFoundInd->ssId.ssId, ssIdLength);
-         dumpSsId[ssIdLength] = 0;
-         smsLog(pMac, LOG2, "%s:SSID=%s frame length %d",
-             __func__, dumpSsId, pPrefNetworkFoundInd->frameLength);
-
-         //Save the frame to scan result
-         if (pPrefNetworkFoundInd->mesgLen > sizeof(tSirPrefNetworkFoundInd))
-         {
-            //we may have a frame
-            status = csrScanSavePreferredNetworkFound(pMac,
-                        pPrefNetworkFoundInd);
-            if (!HAL_STATUS_SUCCESS(status))
-            {
-               smsLog(pMac, LOGE, FL(" fail to save preferred network"));
-            }
-         }
-         else
-         {
-            smsLog(pMac, LOGE, FL(" not enough data length %d needed %d"),
-               pPrefNetworkFoundInd->mesgLen, sizeof(tSirPrefNetworkFoundInd));
-         }
-
-         /* Call Preferred Netowrk Found Indication callback routine. */
-         if (HAL_STATUS_SUCCESS(status) && (pMac->pmc.prefNetwFoundCB != NULL))
-         {
-            pMac->pmc.prefNetwFoundCB(
-                pMac->pmc.preferredNetworkFoundIndCallbackContext,
-                pPrefNetworkFoundInd);
-         }
-      }
-      else
-      {
-         smsLog(pMac, LOGE, "%s: callback failed - SSID is NULL", __func__);
-         status = eHAL_STATUS_FAILURE;
-      }
-#endif
+      return status;
    }
 
+   if (pPrefNetworkFoundInd->ssId.length > 0)
+   {
+       ssIdLength = CSR_MIN(SIR_MAC_MAX_SSID_LENGTH,
+                          pPrefNetworkFoundInd->ssId.length);
+       vos_mem_copy(dumpSsId, pPrefNetworkFoundInd->ssId.ssId, ssIdLength);
+       dumpSsId[ssIdLength] = 0;
+       smsLog(pMac, LOG2, "%s:SSID=%s frame length %d",
+           __func__, dumpSsId, pPrefNetworkFoundInd->frameLength);
+
+       //Save the frame to scan result
+       if (pPrefNetworkFoundInd->mesgLen > sizeof(tSirPrefNetworkFoundInd))
+       {
+          //we may have a frame
+          status = csrScanSavePreferredNetworkFound(pMac,
+                      pPrefNetworkFoundInd);
+          if (!HAL_STATUS_SUCCESS(status))
+          {
+             smsLog(pMac, LOGE, FL(" fail to save preferred network"));
+          }
+       }
+       else
+       {
+          smsLog(pMac, LOGE, FL(" not enough data length %d needed %d"),
+             pPrefNetworkFoundInd->mesgLen, sizeof(tSirPrefNetworkFoundInd));
+       }
+
+       /* Call Preferred Netowrk Found Indication callback routine. */
+       if (HAL_STATUS_SUCCESS(status) && (pMac->pmc.prefNetwFoundCB != NULL))
+       {
+          pMac->pmc.prefNetwFoundCB(
+              pMac->pmc.preferredNetworkFoundIndCallbackContext,
+              pPrefNetworkFoundInd);
+       }
+    }
+    else
+    {
+       smsLog(pMac, LOGE, "%s: callback failed - SSID is NULL", __func__);
+       status = eHAL_STATUS_FAILURE;
+    }
 
    return(status);
 }
@@ -8914,7 +8914,7 @@ int sme_UpdateHTConfig(tHalHandle hHal, tANI_U8 sessionId, tANI_U16 htCapab,
    return 0;
 }
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 /*--------------------------------------------------------------------------
 
   \brief sme_MoveCsrToScanStateForPno() - Request CSR module to be in Scan state

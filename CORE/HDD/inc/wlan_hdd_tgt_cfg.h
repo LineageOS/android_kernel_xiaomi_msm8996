@@ -37,7 +37,7 @@ struct hdd_tgt_services {
 	u_int32_t ap_dfs;
 	u_int32_t en_11ac;
 	u_int32_t arp_offload;
-#if defined (QCA_WIFI_2_0) && defined(FEATURE_WLAN_PNO_OFFLOAD)
+#ifdef FEATURE_WLAN_SCAN_PNO
 	v_BOOL_t  pno_offload;
 #endif
 };

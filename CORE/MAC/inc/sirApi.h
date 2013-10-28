@@ -3463,7 +3463,7 @@ typedef struct sSirWlanSetRxpFilters
 #define SIR_PNO_MAX_NETW_CHANNELS_EX  60
 #define SIR_PNO_MAX_SUPP_NETWORKS  16
 #define SIR_PNO_MAX_SCAN_TIMERS    10
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 /* TODO: Need to sync max ie len size with FW */
 #define SIR_PNO_MAX_IE_LEN         500
 #endif
@@ -3524,9 +3524,7 @@ typedef struct sSirPNOScanReq
   tANI_U8             ucNetworksCount;
   tSirNetworkType     aNetworks[SIR_PNO_MAX_SUPP_NETWORKS];
   tSirScanTimersType  scanTimers;
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
   tANI_U8             sessionId;
-#endif
 
   /*added by SME*/
   tANI_U16  us24GProbeTemplateLen;

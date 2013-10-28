@@ -4718,7 +4718,7 @@ tANI_BOOLEAN csrScanIsWildCardScan( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         (pCommand->u.scanCmd.u.scanRequest.SSIDs.numOfSSIDs != 1) ));
 }
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 eHalStatus csrSavePnoScanResults(tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp)
 {
     tSirBssDescription *pSirBssDescription;
@@ -4892,14 +4892,14 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
             status = eHAL_STATUS_FAILURE;
         }
     }
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
-    else if (!HAL_STATUS_SUCCESS(csrSavePnoScanResults(pMac, pScanRsp)))
+#ifdef FEATURE_WLAN_SCAN_PNO
+    else if (pMac->pnoOffload && !HAL_STATUS_SUCCESS(csrSavePnoScanResults(pMac, pScanRsp)))
     {
         smsLog( pMac, LOGW, "CSR: Unable to store scan results for PNO" );
         status = eHAL_STATUS_FAILURE;
     }
 #endif
-    else
+    else if (pMac->pnoOffload == FALSE)
     {
         smsLog( pMac, LOGW, "CSR: Scan Completion called but NO commands are ACTIVE ..." );
         status = eHAL_STATUS_FAILURE;
@@ -7640,7 +7640,7 @@ tANI_BOOLEAN csrRoamIsValidChannel( tpAniSirGlobal pMac, tANI_U8 channel )
     return fValid;
 }
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 void csrMoveToScanStateForPno( tpAniSirGlobal pMac, tANI_U8 sessionId )
 {
     tCsrRoamSession *pSession = &pMac->roam.roamSession[sessionId];
@@ -7653,7 +7653,6 @@ void csrMoveToScanStateForPno( tpAniSirGlobal pMac, tANI_U8 sessionId )
     pSession->lastRoamStateBeforePno =
                csrRoamStateChange(pMac, eCSR_ROAMING_STATE_SCANNING, sessionId);
 }
-#endif
 
 eHalStatus csrScanSavePreferredNetworkFound(tpAniSirGlobal pMac,
             tSirPrefNetworkFoundInd *pPrefNetworkFoundInd)
@@ -7824,6 +7823,7 @@ eHalStatus csrScanSavePreferredNetworkFound(tpAniSirGlobal pMac,
 
    return eHAL_STATUS_SUCCESS;
 }
+#endif
 
 #ifdef FEATURE_WLAN_LFR
 void csrInitOccupiedChannelsList(tpAniSirGlobal pMac)

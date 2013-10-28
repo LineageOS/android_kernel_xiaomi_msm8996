@@ -1766,7 +1766,7 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
 
     /* ARP offload: override user setting if invalid  */
     cfg_ini->fhostArpOffload &= cfg->arp_offload;
-#if defined (QCA_WIFI_2_0) && defined(FEATURE_WLAN_PNO_OFFLOAD)
+#ifdef FEATURE_WLAN_SCAN_PNO
     /* PNO offload */
     if (cfg->pno_offload)
         cfg_ini->PnoOffload = TRUE;

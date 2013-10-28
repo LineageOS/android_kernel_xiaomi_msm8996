@@ -607,7 +607,7 @@ int wlan_hdd_cfg80211_register(struct device *dev,
                  |  WIPHY_FLAG_TDLS_EXTERNAL_SETUP;
 #endif
 #ifdef FEATURE_WLAN_SCAN_PNO
-#if defined (QCA_WIFI_2_0) && defined(FEATURE_WLAN_PNO_OFFLOAD)
+#if defined (QCA_WIFI_2_0)
     if (pCfg->PnoOffload) {
 #endif
     /* TODO: Current discrete FW is lacking few enhancement
@@ -619,7 +619,7 @@ int wlan_hdd_cfg80211_register(struct device *dev,
         wiphy->max_sched_scan_ssids = MAX_SCAN_SSID;
         wiphy->max_match_sets       = SIR_PNO_MAX_SUPP_NETWORKS;
 #endif
-#if defined (QCA_WIFI_2_0) && defined(FEATURE_WLAN_PNO_OFFLOAD)
+#if defined (QCA_WIFI_2_0)
         wiphy->max_sched_scan_ie_len = SIR_PNO_MAX_IE_LEN;
     }
 #endif

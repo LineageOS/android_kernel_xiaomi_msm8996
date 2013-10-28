@@ -4811,7 +4811,7 @@ limSendBeaconInd(tpAniSirGlobal pMac, tpPESession psessionEntry){
     return;
 }
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 /**
  * limSendSmeScanCacheUpdatedInd()
  *
@@ -4865,7 +4865,7 @@ void limSendScanOffloadComplete(tpAniSirGlobal pMac,
             pScanEvent->sessionId,
             0);
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
     limSendSmeScanCacheUpdatedInd();
 #endif
 }
