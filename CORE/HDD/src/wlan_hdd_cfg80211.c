@@ -610,15 +610,9 @@ int wlan_hdd_cfg80211_register(struct device *dev,
 #if defined (QCA_WIFI_2_0)
     if (pCfg->PnoOffload) {
 #endif
-    /* TODO: Current discrete FW is lacking few enhancement
-     * (like RSSI threshold configuration, App IE configuration, etc)
-     * with respect to PNO. Lets not expose sched scan capability
-     * in wiphy->flags until FW meets LA PNO requirement. */
-#if 0
         wiphy->flags |= WIPHY_FLAG_SUPPORTS_SCHED_SCAN;
         wiphy->max_sched_scan_ssids = MAX_SCAN_SSID;
         wiphy->max_match_sets       = SIR_PNO_MAX_SUPP_NETWORKS;
-#endif
 #if defined (QCA_WIFI_2_0)
         wiphy->max_sched_scan_ie_len = SIR_PNO_MAX_IE_LEN;
     }
