@@ -572,6 +572,7 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_SME_SCAN_CACHE_UPDATED     (SIR_HAL_ITC_MSG_TYPES_BEGIN + 207)
 #endif
 #endif
+#define SIR_CSA_OFFLOAD_EVENT              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 208)
 
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF)
 // CFG message types

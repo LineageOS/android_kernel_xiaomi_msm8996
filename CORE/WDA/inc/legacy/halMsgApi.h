@@ -278,6 +278,9 @@ typedef struct
     /*if this is a P2P Capable Sta*/
     tANI_U8     p2pCapableSta;
 
+    /*CSA offload enable flag */
+    tANI_U8     csaOffloadEnable;
+
 #ifdef WLAN_FEATURE_11AC
     tANI_U8    vhtCapable;
     tANI_U8    vhtTxChannelWidthSet;
@@ -958,6 +961,12 @@ typedef struct
     eHalStatus status;
 
 }tSwitchChannelParams, *tpSwitchChannelParams;
+
+typedef struct CSAOffloadParams {
+   u_int8_t sessionId;
+   u_int8_t channel;
+   u_int8_t switchmode;
+}*tpCSAOffloadParams, tCSAOffloadParams;
 
 typedef void (*tpSetLinkStateCallback)(tpAniSirGlobal pMac, void *msgParam );
 

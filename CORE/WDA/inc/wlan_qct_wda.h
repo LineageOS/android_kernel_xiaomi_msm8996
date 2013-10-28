@@ -1153,6 +1153,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 /* FTM CMD MSG */
 #define WDA_FTM_CMD_REQ        SIR_PTT_MSG_TYPES_BEGIN
 #define WDA_FTM_CMD_RSP        SIR_PTT_MSG_TYPES_END
+#define WDA_CSA_OFFLOAD_EVENT  SIR_CSA_OFFLOAD_EVENT
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 /*Requests sent to lower driver*/

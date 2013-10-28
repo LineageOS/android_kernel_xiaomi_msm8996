@@ -386,6 +386,11 @@ typedef struct sPESession           // Added to Support BT-AMP
      */
     tANI_U8  gUapsdPerAcDeliveryEnableMask;
 
+    /* Flag to skip CSA IE processing when CSA
+     * offload is enabled.
+     */
+    tANI_U8  csaOffloadEnable;
+
     /* Used on STA for AC downgrade. This is a dynamic mask
      * setting which keep tracks of ACs being admitted.
      * If bit is set to 0: That partiular AC is not admitted

@@ -185,8 +185,9 @@ tSirRetStatus limStartChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEnt
     
     /*If channel switch is already running and it is on a different session, just return*/  
     /*This need to be removed for MCC */
-    if( limIsChanSwitchRunning (pMac) &&
-        psessionEntry->gLimSpecMgmt.dot11hChanSwState != eLIM_11H_CHANSW_RUNNING )
+    if ((limIsChanSwitchRunning (pMac) &&
+        psessionEntry->gLimSpecMgmt.dot11hChanSwState != eLIM_11H_CHANSW_RUNNING) ||
+        psessionEntry->csaOffloadEnable)
     {
        limLog(pMac, LOGW, FL("Ignoring channel switch on session %d"), psessionEntry->peSessionId);
        return eSIR_SUCCESS;
