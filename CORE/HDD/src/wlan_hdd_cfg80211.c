@@ -7220,8 +7220,11 @@ static int wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
         /*Copying list of valid channel into request */
         memcpy(pPnoRequest->aNetworks[i].aChannels, valid_ch, num_ch);
         pPnoRequest->aNetworks[i].ucChannelCount = num_ch;
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)) && defined (QCA_WIFI_2_0)
+        pPnoRequest->aNetworks[i].rssiThreshold = request->rssi_thold;
+#else
         pPnoRequest->aNetworks[i].rssiThreshold = 0; //Default value
+#endif
     }
 
     /* framework provides interval in ms */

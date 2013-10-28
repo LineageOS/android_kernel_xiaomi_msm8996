@@ -3502,7 +3502,7 @@ typedef struct
   tANI_U32    bcastNetwType;
   tANI_U8     ucChannelCount;
   tANI_U8     aChannels[SIR_PNO_MAX_NETW_CHANNELS_EX];
-  tANI_U8     rssiThreshold;
+  tANI_S32    rssiThreshold;
 } tSirNetworkType;
 
 typedef struct
