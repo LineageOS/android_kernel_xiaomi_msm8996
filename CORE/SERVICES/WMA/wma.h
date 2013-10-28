@@ -1007,7 +1007,13 @@ VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 			tp_wma_trigger_uapsd_params trigger_uapsd_params);
 
 #ifdef FEATURE_WLAN_PNO_OFFLOAD
-#define WMA_NLO_FREQ_THRESH	1000  /* in MHz */
+
+#define WMA_NLO_FREQ_THRESH          1000         /* in MHz */
+#define WMA_SEC_TO_MSEC(sec)         (sec * 1000) /* sec to msec */
+
+/* Default rssi threshold defined in CFG80211 */
+#define WMA_RSSI_THOLD_DEFAULT   -300
+
 #endif
 
 /* U-APSD maximum service period of peer station */

@@ -6263,7 +6263,8 @@ static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
 
 	len += sizeof(u_int32_t) * MIN(pno->aNetworks[0].ucChannelCount,
 				   WMI_NLO_MAX_CHAN);
-	len += sizeof(u_int32_t) * MIN(pno->ucNetworksCount, WMI_NLO_MAX_SSIDS);
+	len += sizeof(nlo_configured_parameters) *
+				MIN(pno->ucNetworksCount, WMI_NLO_MAX_SSIDS);
 
 	buf = wmi_buf_alloc(wma->wmi_handle, len);
 	if (!buf) {
@@ -6281,6 +6282,14 @@ static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
 	cmd->vdev_id = pno->sessionId;
 	cmd->flags = WMI_NLO_CONFIG_START;
 
+	/* Copy scan interval */
+	if (pno->scanTimers.ucScanTimersCount) {
+		cmd->fast_scan_period =
+		   WMA_SEC_TO_MSEC(pno->scanTimers.aTimerValues[0].uTimerValue);
+		cmd->slow_scan_period = cmd->fast_scan_period;
+		WMA_LOGD("Scan period : %d msec", cmd->slow_scan_period);
+	}
+
 	buf_ptr += sizeof(wmi_nlo_config_cmd_fixed_param);
 
 	cmd->no_of_ssids = MIN(pno->ucNetworksCount, WMI_NLO_MAX_SSIDS);
@@ -6291,6 +6300,9 @@ static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
 
 	nlo_list = (nlo_configured_parameters *) buf_ptr;
 	for (i = 0; i < cmd->no_of_ssids; i++) {
+		WMITLV_SET_HDR(&nlo_list[i].tlv_header,
+			WMITLV_TAG_ARRAY_BYTE,
+			WMITLV_GET_STRUCT_TLVLEN(nlo_configured_parameters));
 		/* Copy ssid and it's length */
 		nlo_list[i].ssid.valid = TRUE;
 		nlo_list[i].ssid.ssid.ssid_len = pno->aNetworks[i].ssId.length;
@@ -6300,6 +6312,16 @@ static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
 		WMA_LOGD("index: %d ssid: %s len: %d", i,
 			 nlo_list[i].ssid.ssid.ssid,
 			 nlo_list[i].ssid.ssid.ssid_len);
+
+		/* Copy rssi threshold */
+		if (pno->aNetworks[i].rssiThreshold &&
+		    pno->aNetworks[i].rssiThreshold > WMA_RSSI_THOLD_DEFAULT) {
+			nlo_list[i].rssi_cond.valid = TRUE;
+			nlo_list[i].rssi_cond.rssi =
+				pno->aNetworks[i].rssiThreshold;
+			WMA_LOGD("RSSI threshold : %d dBm",
+				nlo_list[i].rssi_cond.rssi);
+		}
 	}
 	buf_ptr += cmd->no_of_ssids * sizeof(nlo_configured_parameters);
 
@@ -6322,17 +6344,9 @@ static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
 	}
 	buf_ptr += cmd->num_of_channels * sizeof(u_int32_t);
 
-
-	/* TODO: PNO offload present in discrete firmware is implemented
-	 * by keeping Windows requirement. Following options are missing
-	 * in current discrete firmware to meet linux requirement.
-	 *     1) Option to configure Sched scan period.
-	 *     2) Option to configure RSSI threshold.
-	 *     3) Option to configure APP IE (comes from wpa_supplicant).
-	 * Until firmware team brings above changes, lets live with what's
-	 * available.
+	/* TODO: Discrete firmware doesn't have command/option to configure
+	 * App IE which comes from wpa_supplicant as of part PNO start request.
 	 */
-
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				   WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID);
 	if (ret) {
@@ -6376,6 +6390,11 @@ static VOS_STATUS wma_pno_stop(tp_wma_handle wma, u_int8_t vdev_id)
 
 	cmd = (wmi_nlo_config_cmd_fixed_param *) wmi_buf_data(buf);
 	buf_ptr = (u_int8_t *) cmd;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_nlo_config_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_nlo_config_cmd_fixed_param));
+
 	cmd->vdev_id = vdev_id;
 	cmd->flags = WMI_NLO_CONFIG_STOP;
 	buf_ptr += sizeof(*cmd);
@@ -8397,11 +8416,19 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 					u_int32_t len)
 {
 	tp_wma_handle wma = (tp_wma_handle) handle;
-	wmi_nlo_event *nlo_event = (wmi_nlo_event *) event;
+	wmi_nlo_event *nlo_event;
+	WMI_NLO_SCAN_COMPLETE_EVENTID_param_tlvs *param_buf =
+			(WMI_NLO_SCAN_COMPLETE_EVENTID_param_tlvs *) event;
 	tSirScanOffloadEvent *scan_event;
 	struct wma_txrx_node *node;
 	VOS_STATUS status;
 
+	if (!param_buf) {
+		WMA_LOGE("Invalid NLO scan comp event buffer");
+		return -EINVAL;
+	}
+
+	nlo_event = param_buf->fixed_param;
 	WMA_LOGD("PNO scan completion event received for vdev %d",
 		 nlo_event->vdev_id);
 
