@@ -345,6 +345,7 @@ static void wma_vdev_start_rsp(tp_wma_handle wma,
 		add_bss->status = VOS_STATUS_E_FAILURE;
 		goto send_fail_resp;
 	}
+	vos_mem_zero(bcn, sizeof(*bcn));
 	bcn->buf = adf_nbuf_alloc(NULL, WMA_BCN_BUF_MAX_SIZE, 0,
 				  sizeof(u_int32_t), 0);
 	if (!bcn->buf) {
@@ -354,9 +355,6 @@ static void wma_vdev_start_rsp(tp_wma_handle wma,
 		add_bss->status = VOS_STATUS_E_FAILURE;
 		goto send_fail_resp;
 	}
-	bcn->len = 0;
-	bcn->dtim_count = 0;
-	bcn->dma_mapped = 0;
 	bcn->seq_no = MIN_SW_SEQ;
 	adf_os_spinlock_init(&bcn->lock);
 
@@ -989,17 +987,17 @@ static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 	if (WMI_UNIFIED_NOA_ATTR_IS_MODIFIED(p2p_noa_info)) {
 		vos_mem_zero(&noa_ie, sizeof(noa_ie));
 
-		noa_ie.index = WMI_UNIFIED_NOA_ATTR_INDEX_GET(p2p_noa_info);
-		noa_ie.oppPS = WMI_UNIFIED_NOA_ATTR_OPP_PS_GET(p2p_noa_info);
-		noa_ie.ctwindow = WMI_UNIFIED_NOA_ATTR_CTWIN_GET(p2p_noa_info);
-		noa_ie.num_descriptors = WMI_UNIFIED_NOA_ATTR_NUM_DESC_GET(
+		noa_ie.index = (u_int8_t)WMI_UNIFIED_NOA_ATTR_INDEX_GET(p2p_noa_info);
+		noa_ie.oppPS = (u_int8_t)WMI_UNIFIED_NOA_ATTR_OPP_PS_GET(p2p_noa_info);
+		noa_ie.ctwindow = (u_int8_t)WMI_UNIFIED_NOA_ATTR_CTWIN_GET(p2p_noa_info);
+		noa_ie.num_descriptors = (u_int8_t)WMI_UNIFIED_NOA_ATTR_NUM_DESC_GET(
 				p2p_noa_info);
 		WMA_LOGI("%s: index %lu, oppPs %lu, ctwindow %lu, "
 			"num_descriptors = %lu", __func__, noa_ie.index,
 			noa_ie.oppPS, noa_ie.ctwindow, noa_ie.num_descriptors);
 		for(i = 0; i < noa_ie.num_descriptors; i++) {
 			noa_ie.noa_descriptors[i].type_count =
-				p2p_noa_info->noa_descriptors[i].type_count;
+				 (u_int8_t)p2p_noa_info->noa_descriptors[i].type_count;
 			noa_ie.noa_descriptors[i].duration =
 				p2p_noa_info->noa_descriptors[i].duration;
 			noa_ie.noa_descriptors[i].interval =
