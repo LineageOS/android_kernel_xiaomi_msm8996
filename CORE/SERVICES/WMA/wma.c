@@ -508,6 +508,10 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 		CFG_TGT_DEFAULT_GTK_OFFLOAD_MAX_VDEV,
 		CFG_TGT_NUM_MSDU_DESC,
 		CFG_TGT_MAX_FRAG_TABLE_ENTRIES,
+		0,
+		0,
+		0,
+		CFG_TGT_MAX_MULTICAST_FILTER_ENTRIES,
 	};
 
 	WMITLV_SET_HDR(&tgt_cfg.tlv_header,WMITLV_TAG_STRUC_wmi_resource_config,
@@ -7586,6 +7590,64 @@ wma_data_tx_ack_comp_hdlr(void *wma_context,
 	adf_nbuf_free(netbuf);
 }
 
+static int wma_add_clear_mcbc_filter(tp_wma_handle wma_handle, uint8_t vdev_id,
+					tSirMacAddr multicastAddr, bool clearList)
+{
+	WMI_SET_MCASTBCAST_FILTER_CMD_fixed_param *cmd;
+	wmi_buf_t buf;
+	int err;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, sizeof(*cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send set_param cmd");
+		return -ENOMEM;
+	}
+
+	cmd = (WMI_SET_MCASTBCAST_FILTER_CMD_fixed_param *) wmi_buf_data(buf);
+	vos_mem_zero(cmd, sizeof(*cmd));
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_WMI_SET_MCASTBCAST_FILTER_CMD_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+					WMI_SET_MCASTBCAST_FILTER_CMD_fixed_param));
+	cmd->action = (clearList? WMI_MCAST_FILTER_DELETE : WMI_MCAST_FILTER_SET);
+	cmd->vdev_id = vdev_id;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(multicastAddr, &cmd->mcastbdcastaddr);
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+					sizeof(*cmd), WMI_SET_MCASTBCAST_FILTER_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_param cmd");
+		adf_os_mem_free(buf);
+		return -EIO;
+	}
+	return 0;
+}
+
+static VOS_STATUS wma_process_mcbc_set_filter_req(tp_wma_handle wma_handle,
+                                               tSirRcvFltMcAddrList *mcbc_param)
+{
+	uint8_t vdev_id = 0;
+	int i;
+
+	if(mcbc_param->ulMulticastAddrCnt <= 0) {
+		WMA_LOGE("Number of multicast addresses is 0");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (!wma_find_vdev_by_addr(wma_handle, mcbc_param->selfMacAddr, &vdev_id)) {
+		WMA_LOGE("%s: Failed to find vdev id for %pM\n",
+						__func__, mcbc_param->bssId);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	for (i = 0; i < mcbc_param->ulMulticastAddrCnt; i++) {
+		wma_add_clear_mcbc_filter(wma_handle, vdev_id,
+					mcbc_param->multicastAddr[i],
+					(mcbc_param->action == 1));
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 #define GTK_OFFLOAD_ENABLE	0
 #define GTK_OFFLOAD_DISABLE	1
@@ -8066,6 +8128,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_WLAN_RESUME_REQ:
 			wma_resume_req(wma_handle,
 				       (tpSirWlanResumeParam)msg->bodyptr);
+			break;
+		case WDA_8023_MULTICAST_LIST_REQ:
+			wma_process_mcbc_set_filter_req(wma_handle,
+				       (tpSirRcvFltMcAddrList)msg->bodyptr);
 			break;
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 		case WDA_GTK_OFFLOAD_REQ:

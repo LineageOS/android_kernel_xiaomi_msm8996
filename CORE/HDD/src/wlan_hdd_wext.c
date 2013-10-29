@@ -6294,7 +6294,8 @@ static int iw_set_dynamic_mcbc_filter(struct net_device *dev,
        return -EBUSY;
     }
 
-    if (HDD_MULTICAST_FILTER_LIST == pRequest->mcastBcastFilterSetting)
+    if ((HDD_MULTICAST_FILTER_LIST == pRequest->mcastBcastFilterSetting) ||
+        (HDD_MULTICAST_FILTER_LIST_CLEAR == pRequest->mcastBcastFilterSetting))
     {
 #ifdef WLAN_FEATURE_PACKET_FILTERING
 
@@ -6322,6 +6323,11 @@ static int iw_set_dynamic_mcbc_filter(struct net_device *dev,
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s MC Addr for Idx %d ="MAC_ADDRESS_STR, __func__,
                    idx, MAC_ADDR_ARRAY(mc_addr_list_ptr->multicastAddr[idx]));
         }
+
+        if (HDD_MULTICAST_FILTER_LIST_CLEAR == pRequest->mcastBcastFilterSetting)
+            mc_addr_list_ptr->action = 1; //clear
+        else
+            mc_addr_list_ptr->action = 0; //set
 
         ret_val = sme_8023MulticastList(hHal, pAdapter->sessionId, mc_addr_list_ptr);
         vos_mem_free(mc_addr_list_ptr);
@@ -6426,6 +6432,7 @@ static int iw_clear_dynamic_mcbc_filter(struct net_device *dev,
             return -EINVAL;
         }
     }
+
     return 0;
 }
 

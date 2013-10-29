@@ -3774,6 +3774,7 @@ typedef struct sSirRcvFltMcAddrList
   tSirMacAddr    multicastAddr[SIR_MAX_NUM_MULTICAST_ADDRESS];
   tSirMacAddr    selfMacAddr;
   tSirMacAddr    bssId;
+  tANI_U8        action;
 } tSirRcvFltMcAddrList, *tpSirRcvFltMcAddrList;
 #endif // WLAN_FEATURE_PACKET_FILTERING
 

@@ -1414,6 +1414,7 @@ typedef enum
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST              0x02
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST    0x03
 #define HDD_MULTICAST_FILTER_LIST                              0x04
+#define HDD_MULTICAST_FILTER_LIST_CLEAR                        0x05
 
 /*
  *
