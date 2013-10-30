@@ -6242,7 +6242,7 @@ static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
 
 		WMA_LOGD("Ch[%d]: %d MHz", i, channel_list[i]);
 	}
-	buf_ptr += cmd->num_of_channels * sizeof(u_int32+t);
+	buf_ptr += cmd->num_of_channels * sizeof(u_int32_t);
 
 
 	/* TODO: PNO offload present in discrete firmware is implemented
