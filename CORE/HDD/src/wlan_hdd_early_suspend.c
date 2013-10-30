@@ -528,27 +528,31 @@ void hdd_conf_hostoffload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
         else
         {
             //Disable ARPOFFLOAD
-            if (pHddCtx->cfg_ini->fhostArpOffload)
+            if (eConnectionState_Associated ==
+                    (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState)
             {
-                vstatus = hdd_conf_arp_offload(pAdapter, fenable);
-                if (!VOS_IS_STATUS_SUCCESS(vstatus))
+                if (pHddCtx->cfg_ini->fhostArpOffload)
                 {
-                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                          "Failed to disable ARPOffload Feature %d", vstatus);
+                    vstatus = hdd_conf_arp_offload(pAdapter, fenable);
+                    if (!VOS_IS_STATUS_SUCCESS(vstatus))
+                    {
+                        hddLog(VOS_TRACE_LEVEL_ERROR,
+                             "Failed to disable ARPOffload Feature %d", vstatus);
+                    }
                 }
-            }
-            //Disable GTK_OFFLOAD
+               //Disable GTK_OFFLOAD
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
-            hdd_conf_gtk_offload(pAdapter, fenable);
+                hdd_conf_gtk_offload(pAdapter, fenable);
 #endif
 
 #ifdef WLAN_NS_OFFLOAD
-            //Disable NSOFFLOAD
-            if (pHddCtx->cfg_ini->fhostNSOffload)
-            {
-                hdd_conf_ns_offload(pAdapter, fenable);
-            }
+                //Disable NSOFFLOAD
+                if (pHddCtx->cfg_ini->fhostNSOffload)
+                {
+                    hdd_conf_ns_offload(pAdapter, fenable);
+                }
 #endif
+            }
         }
     }
     return;
