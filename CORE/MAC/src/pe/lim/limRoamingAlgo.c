@@ -47,15 +47,15 @@
 
 
 /** ----------------------------------------------------------------------
-\fn      limSelectsBackgroundScanMode() 
-\brief   This function is called by limIsBackgroundScanAllowed(). 
-\        Here LIM decides whether we shall enforce this background 
-\        scan or let HAL decide whether to proceed with the background 
+\fn      limSelectsBackgroundScanMode()
+\brief   This function is called by limIsBackgroundScanAllowed().
+\        Here LIM decides whether we shall enforce this background
+\        scan or let HAL decide whether to proceed with the background
 \        scan as HAL sees fits.  LIM shall enforce background scan if:
 \        1) station is not in link established state
 \        2) station is in link established state, but there has been
 \           max number of consecutive background scan failure.
-\ 
+\
 \param   tpAniSirGlobal  pMac
 \return  none
 \ ------------------------------------------------------------------------- */
@@ -68,7 +68,7 @@ tSirBackgroundScanMode limSelectsBackgroundScanMode(tpAniSirGlobal pMac)
         limLog(pMac, LOGP, FL("Fail to get WNI_CFG_MAX_CONSECUTIVE_BACKGROUND_SCAN_FAILURE value"));
         return eSIR_NORMAL_BACKGROUND_SCAN;
     }
-  
+
     if (cfgVal == 0)
         return eSIR_NORMAL_BACKGROUND_SCAN;
 
@@ -92,7 +92,7 @@ tSirBackgroundScanMode limSelectsBackgroundScanMode(tpAniSirGlobal pMac)
 /** -----------------------------------------------------------
 \fn      limIsBackgroundScanAllowed
 \brief   This function determines if background scan should be
-\        allowed. It is called by limTriggerBackgroundScan(). 
+\        allowed. It is called by limTriggerBackgroundScan().
 \param   tpAniSirGlobal  pMac
 \return  none
 \ ------------------------------------------------------------- */
@@ -135,10 +135,10 @@ static tANI_U8  limIsBackgroundScanAllowed(tpAniSirGlobal pMac)
 \        when there is an exisiting link with an AP.
 \        SME_SCAN_REQ is issued to SME state machine with Active
 \        scanning is performed on one channel at a time.
-\ 
+\
 \        Assumptions:
-\        Valid channel list at CFG is either populated by Roaming 
-\        algorithm upon determining/selecting a regulatory domain 
+\        Valid channel list at CFG is either populated by Roaming
+\        algorithm upon determining/selecting a regulatory domain
 \        or by default has all 36 possible channels.
 \
 \param   tpAniSirGlobal  pMac
@@ -183,7 +183,7 @@ void limTriggerBackgroundScan(tpAniSirGlobal pMac)
     smeScanReq.bssType     = eSIR_INFRASTRUCTURE_MODE;
     palCopyMemory( pMac->hHdd, (tANI_U8 *) smeScanReq.bssId,
                   (tANI_U8 *) &bcAddr, sizeof(tSirMacAddr));
- 
+
     if (wlan_cfgGetStr(pMac, WNI_CFG_SSID,
                     (tANI_U8 *) (smeScanReq.ssId[0].ssId),
                     (tANI_U32 *) &ssidLen) != eSIR_SUCCESS)
@@ -218,16 +218,20 @@ void limTriggerBackgroundScan(tpAniSirGlobal pMac)
     smeScanReq.returnAfterFirstMatch = 0;
     smeScanReq.returnUniqueResults   = 1;
 
-    //At the first channel scan, clear the cached results 
+    //At the first channel scan, clear the cached results
     if(pMac->lim.gLimBackgroundScanChannelId == 0)
     {
-        smeScanReq.returnFreshResults    = SIR_BG_SCAN_PURGE_RESUTLS|SIR_BG_SCAN_RETURN_FRESH_RESULTS;
+        /*
+         * Do not purge while starting a scan. Rome firmware sends results
+         * of roaming scan into this cache.
+         */
+        smeScanReq.returnFreshResults    = SIR_BG_SCAN_RETURN_FRESH_RESULTS;
     }
     else
     {
         smeScanReq.returnFreshResults    = SIR_BG_SCAN_RETURN_FRESH_RESULTS;
     }
-   
+
 
     smeScanReq.channelList.numChannels = 1;
     if (pMac->lim.gLimBackgroundScanChannelId >= len)
@@ -237,7 +241,7 @@ void limTriggerBackgroundScan(tpAniSirGlobal pMac)
         PELOGE(limLog(pMac, LOGE, FL("Skipping Background Scan since the channel list is exhausted."));)
         PELOGE(limLog(pMac, LOGE, FL("SME should send WNI_CFG_BACKGROUND_SCAN_PERIOD indication to start the background scan again."));)
 
-        /* Stop the BG scan timer here. SME should send WNI_CFG_BACKGROUND_SCAN_PERIOD 
+        /* Stop the BG scan timer here. SME should send WNI_CFG_BACKGROUND_SCAN_PERIOD
          * indication to start the background scan again.
          */
         if (TX_TIMER_VALID(pMac->lim.limTimers.gLimBackgroundScanTimer))
@@ -263,17 +267,17 @@ void limTriggerBackgroundScan(tpAniSirGlobal pMac)
 
     smeScanReq.uIEFieldLen = 0;
     smeScanReq.uIEFieldOffset = sizeof(tSirSmeScanReq);
-    
+
     backgroundScan = limSelectsBackgroundScanMode(pMac);
     PELOG1(limLog(pMac, LOG1, FL("Performing (mode %d) Background Scan "), backgroundScan);)
     smeScanReq.backgroundScanMode = backgroundScan;
-    
+
     //determine whether to send the results or not, If so, notify the BG scan results to SME
     if (pMac->lim.gLimBackgroundScanChannelId >= len)
     {
         pMac->lim.gLimReportBackgroundScanResults = TRUE;
     }
-    
+
     limPostSmeMessage(pMac,
                       eWNI_SME_SCAN_REQ,
                       (tANI_U32 *) &smeScanReq);
@@ -282,8 +286,8 @@ void limTriggerBackgroundScan(tpAniSirGlobal pMac)
 
 /** ----------------------------------------------------------------------
 \fn      limAbortBackgroundScan
-\brief   This function aborts background scan and send scan 
-\        response to SME. 
+\brief   This function aborts background scan and send scan
+\        response to SME.
 \param   tpAniSirGlobal  pMac
 \return  none
 \ ------------------------------------------------------------------------- */
@@ -291,12 +295,12 @@ void limAbortBackgroundScan(tpAniSirGlobal pMac)
 {
     tANI_U16  scanRspLen = 8;
 
-    if(pMac->lim.gLimBackgroundScanTerminate == FALSE) 
+    if(pMac->lim.gLimBackgroundScanTerminate == FALSE)
     {
         limLog(pMac, LOGE, FL("Abort Background Scan "));
         if (TX_TIMER_VALID(pMac->lim.limTimers.gLimBackgroundScanTimer))
         {
-            limDeactivateAndChangeTimer(pMac, eLIM_BACKGROUND_SCAN_TIMER); 
+            limDeactivateAndChangeTimer(pMac, eLIM_BACKGROUND_SCAN_TIMER);
         }
 
         pMac->lim.gLimBackgroundScanTerminate = TRUE;
@@ -310,11 +314,11 @@ void limAbortBackgroundScan(tpAniSirGlobal pMac)
                          pMac->lim.gLimSmeScanResultLength -
                          sizeof(tSirBssDescription);
             limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS, 0, 0);
-        }       
+        }
     }
 
     // reset background scan variables
-    pMac->lim.gLimBackgroundScanChannelId = 0;   
+    pMac->lim.gLimBackgroundScanChannelId = 0;
     return;
 }
 
