@@ -1,81 +1,41 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
- * Permission to use, copy, modify, and/or distribute this software for
- * any purpose with or without fee is hereby granted, provided that the
- * above copyright notice and this permission notice appear in all
- * copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
- * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
- * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
- * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
- * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
- * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
  */
 
-/*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
- */
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <signal.h>
+#include <string.h>
+#include <unistd.h>
 
-/* Host Debug log implementation */
-
-
-#include "athdefs.h"
-#include "a_types.h"
+#include <athdefs.h>
+#include <a_types.h>
+#include "dbglog.h"
+#include "dbglog_id.h"
 #include "dbglog_host.h"
-#include "wmi.h"
-#include "wmi_unified_api.h"
-#include "wma.h"
+
+#include "a_debug.h"
 #include "ol_defines.h"
+#include "ah_osdep.h"
 
-#include <net/sock.h>
-#include <linux/netlink.h>
 
-struct sock *nl_sk = NULL;
-int g_pid;
-bool appstarted = FALSE;
+#ifdef CONFIG_ANDROID_LOG
 
-#ifdef WLAN_OPEN_SOURCE
-#include <linux/debugfs.h>
-#endif /* WLAN_OPEN_SOURCE */
-#include "wmi_unified_priv.h"
+#include <android/log.h>
 
-#define CLD_DEBUGFS_DIR          "cld"
-#define DEBUGFS_BLOCK_NAME       "dbglog_block"
-
-#define ATH_MODULE_NAME fwlog
-#include <a_debug.h>
-#define FWLOG_DEBUG   ATH_DEBUG_MAKE_MODULE_MASK(0)
-
-#if defined(DEBUG)
-
-static ATH_DEBUG_MASK_DESCRIPTION g_fwlogDebugDescription[] = {
-    {FWLOG_DEBUG,"fwlog"},
-};
-
-ATH_DEBUG_INSTANTIATE_MODULE_VAR(fwlog,
-                                 "fwlog",
-                                "Firmware Debug Log",
-                                 ATH_DEBUG_MASK_DEFAULTS | ATH_DEBUG_INFO | ATH_DEBUG_ERR,
-                                 ATH_DEBUG_DESCRIPTION_COUNT(g_fwlogDebugDescription),
-                                 g_fwlogDebugDescription);
+#define FWDEBUG_LOG_NAME        "ROME"
+#define printf(...) __android_log_print(ANDROID_LOG_INFO, FWDEBUG_LOG_NAME, __VA_ARGS__);
 #endif
 
+unsigned char buf[RECLEN];
+
+#define MAX_DBG_MSGS 256
+
 module_dbg_print mod_print[WLAN_MODULE_ID_MAX];
-
-A_UINT32 dbglog_process_type = DBGLOG_PROCESS_NET_RAW;
-
-A_STATUS
-wmi_config_debug_module_cmd(wmi_unified_t  wmi_handle, A_UINT32 param, A_UINT32 val,
-                            A_UINT32 *module_id_bitmap, A_UINT32 bitmap_len);
 
 const char *dbglog_get_module_str(A_UINT32 module_id)
 {
@@ -866,10 +826,10 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WOW_RECV_MAGIC_PKT",
         "WOW_RECV_BITMAP_PATTERN",
     },
-    {   /* WAL VDEV  */
+    {   /* WAL_VDEV */
         ""
     },
-    {   /* WAL PDEV  */
+    {   /* WAL_PDEV */
         ""
     },
     {   /* TEST  */
@@ -879,7 +839,7 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
     {   /* STA SMPS  */
         ""
     },
-    {
+    {   /* SWBMISS */
         "SWBMISS_DBGID_DEFINITION_START",
         "SWBMISS_ENABLED",
         "SWBMISS_DISABLED",
@@ -912,167 +872,6 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
     },
 };
 
-int dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id,
-                  bool isenable)
-{
-    A_UINT32 val = 0;
-
-    if (mod_id > WLAN_MODULE_ID_MAX) {
-            AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("dbglog_module_log_enable: Invalid module id %d\n",
-                mod_id));
-        return -EINVAL;
-    }
-
-    WMI_DBGLOG_SET_MODULE_ID(val,mod_id);
-    if (isenable) {
-        /* set it to global module level */
-        WMI_DBGLOG_SET_LOG_LEVEL(val,DBGLOG_INFO);
-    } else {
-        /* set it to ERROR level */
-        WMI_DBGLOG_SET_LOG_LEVEL(val,DBGLOG_ERR);
-    }
-    wmi_config_debug_module_cmd(wmi_handle, WMI_DEBUG_LOG_PARAM_LOG_LEVEL,  val, NULL,0);
-
-    return 0;
-}
-
-int dbglog_vap_log_enable(wmi_unified_t  wmi_handle, A_UINT16 vap_id,
-               bool isenable)
-{
-    if (vap_id > DBGLOG_MAX_VDEVID) {
-        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("dbglog_vap_log_enable:Invalid vap_id %d\n",
-        vap_id));
-        return -EINVAL;
-    }
-
-    wmi_config_debug_module_cmd(wmi_handle,
-             isenable ? WMI_DEBUG_LOG_PARAM_VDEV_ENABLE:WMI_DEBUG_LOG_PARAM_VDEV_DISABLE, vap_id, NULL,0 );
-
-    return 0;
-}
-
-int dbglog_set_log_lvl(wmi_unified_t  wmi_handle, DBGLOG_LOG_LVL log_lvl)
-{
-    A_UINT32 val = 0;
-
-    if (log_lvl > DBGLOG_LVL_MAX) {
-        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("dbglog_set_log_lvl:Invalid log level %d\n",
-        log_lvl));
-        return -EINVAL;
-    }
-
-    WMI_DBGLOG_SET_MODULE_ID(val,WMI_DEBUG_LOG_MODULE_ALL);
-    WMI_DBGLOG_SET_LOG_LEVEL(val,log_lvl);
-    wmi_config_debug_module_cmd(wmi_handle, WMI_DEBUG_LOG_PARAM_LOG_LEVEL,  val, NULL,0);
-
-    return 0;
-}
-
-int dbglog_set_mod_log_lvl(wmi_unified_t  wmi_handle, A_UINT32 mod_log_lvl)
-{
-    A_UINT32 val = 0;
-    /* set the global module level to log_lvl */
-    WMI_DBGLOG_SET_MODULE_ID(val,(mod_log_lvl/10));
-    WMI_DBGLOG_SET_LOG_LEVEL(val,(mod_log_lvl%10));
-    wmi_config_debug_module_cmd(wmi_handle, WMI_DEBUG_LOG_PARAM_LOG_LEVEL,  val, NULL,0);
-
-    return 0;
-}
-
-A_STATUS
-wmi_config_debug_module_cmd(wmi_unified_t  wmi_handle, A_UINT32 param, A_UINT32 val,
-                            A_UINT32 *module_id_bitmap, A_UINT32 bitmap_len)
-{
-    wmi_buf_t buf;
-    wmi_debug_log_config_cmd_fixed_param *configmsg;
-    A_STATUS status = A_OK;
-    int i;
-    int len;
-    int8_t *buf_ptr;
-    int32_t *module_id_bitmap_array; /* Used to fomr the second tlv*/
-
-
-    ASSERT(bitmap_len < MAX_MODULE_ID_BITMAP_WORDS);
-
-    /* Allocate size for 2 tlvs - including tlv hdr space for second tlv*/
-    len = sizeof(wmi_debug_log_config_cmd_fixed_param) + WMI_TLV_HDR_SIZE +
-          (sizeof(int32_t) * MAX_MODULE_ID_BITMAP_WORDS);
-    buf = wmi_buf_alloc(wmi_handle, len);
-    if (buf == NULL)
-        return A_NO_MEMORY;
-
-    configmsg = (wmi_debug_log_config_cmd_fixed_param *)(wmi_buf_data(buf));
-    buf_ptr = (int8_t *)configmsg;
-    WMITLV_SET_HDR(&configmsg->tlv_header,
-           WMITLV_TAG_STRUC_wmi_debug_log_config_cmd_fixed_param,
-       WMITLV_GET_STRUCT_TLVLEN(wmi_debug_log_config_cmd_fixed_param));
-    configmsg->dbg_log_param = param;
-    configmsg->value = val;
-    /* Filling in the data part of second tlv -- should follow first tlv _ WMI_TLV_HDR_SIZE*/
-    module_id_bitmap_array = (A_UINT32*)(buf_ptr +
-                             sizeof(wmi_debug_log_config_cmd_fixed_param) +
-                 WMI_TLV_HDR_SIZE);
-    WMITLV_SET_HDR(buf_ptr + sizeof(wmi_debug_log_config_cmd_fixed_param),
-                   WMITLV_TAG_ARRAY_UINT32,
-           sizeof(A_UINT32) * MAX_MODULE_ID_BITMAP_WORDS);
-    if (module_id_bitmap) {
-        for(i=0;i<bitmap_len;++i) {
-            module_id_bitmap_array[i] = module_id_bitmap[i];
-        }
-    }
-
-    AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("wmi_dbg_cfg_send: param 0x%x val 0x%x \n ", param, val));
-
-    status = wmi_unified_cmd_send(wmi_handle, buf,
-                len, WMI_DBGLOG_CFG_CMDID);
-
-    if (status != A_OK)
-        adf_nbuf_free(buf);
-
-    return status;
-}
-
-void
-dbglog_set_vap_enable_bitmap(wmi_unified_t  wmi_handle, A_UINT32 vap_enable_bitmap)
-{
-     wmi_config_debug_module_cmd(wmi_handle,
-		       WMI_DEBUG_LOG_PARAM_VDEV_ENABLE_BITMAP,
-		       vap_enable_bitmap, NULL,0 );
-}
-
-void
-dbglog_set_mod_enable_bitmap(wmi_unified_t  wmi_handle,A_UINT32 log_level, A_UINT32 *mod_enable_bitmap, A_UINT32 bitmap_len )
-{
-     wmi_config_debug_module_cmd(wmi_handle,
-			WMI_DEBUG_LOG_PARAM_MOD_ENABLE_BITMAP,
-			log_level,
-			mod_enable_bitmap,bitmap_len);
-}
-
-int dbglog_report_enable(wmi_unified_t  wmi_handle, bool isenable)
-{
-    int bitmap[2] = {0};
-
-    if (isenable > TRUE) {
-        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("dbglog_report_enable:Invalid value %d\n",
-        isenable));
-        return -EINVAL;
-    }
-
-    if(isenable){
-	/* set the vap enable bitmap */
-        dbglog_set_vap_enable_bitmap(wmi_handle, 0xFFFF);
-	bitmap[0] = 0xFFFFFFFF;
-	bitmap[1] = 0x1F;
-	/* set the module level bitmap  */
-	dbglog_set_mod_enable_bitmap(wmi_handle, 0x0, bitmap, 2);
-    } else {
-        dbglog_set_vap_enable_bitmap(wmi_handle, bitmap[0]);
-        dbglog_set_mod_enable_bitmap(wmi_handle, DBGLOG_LVL_MAX, bitmap, 2);
-    }
-    return 0;
-}
-
 static char *
 dbglog_get_msg(A_UINT32 moduleid, A_UINT32 debugid)
 {
@@ -1102,16 +901,16 @@ dbglog_printf(
     va_list ap;
 
     if (vap_id < DBGLOG_MAX_VDEVID) {
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id));
+        printf(DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id);
     } else {
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] ", timestamp));
+        printf(DBGLOG_PRINT_PREFIX "[%u] ", timestamp);
     }
 
     va_start(ap, fmt);
     vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
 
-    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%s\n", buf));
+    printf("%s\n", buf);
 }
 
 void
@@ -1124,16 +923,16 @@ dbglog_printf_no_line_break(
     va_list ap;
 
     if (vap_id < DBGLOG_MAX_VDEVID) {
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id));
+        printf(DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id);
     } else {
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] ", timestamp));
+        printf(DBGLOG_PRINT_PREFIX "[%u] ", timestamp);
     }
 
     va_start(ap, fmt);
     vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
 
-    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%s", buf));
+    printf("%s", buf);
 }
 
 #define USE_NUMERIC 0
@@ -1145,22 +944,22 @@ dbglog_default_print_handler(A_UINT32 mod_id, A_UINT16 vap_id, A_UINT32 dbg_id,
     int i;
 
     if (vap_id < DBGLOG_MAX_VDEVID) {
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] vap-%u %s ( ", timestamp, vap_id, dbglog_get_msg(mod_id, dbg_id)));
+        printf(DBGLOG_PRINT_PREFIX "[%u] vap-%u %s ( ", timestamp, vap_id, dbglog_get_msg(mod_id, dbg_id));
     } else {
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] %s ( ", timestamp, dbglog_get_msg(mod_id, dbg_id)));
+        printf(DBGLOG_PRINT_PREFIX "[%u] %s ( ", timestamp, dbglog_get_msg(mod_id, dbg_id));
     }
 
     for (i = 0; i < numargs; i++) {
 #if USE_NUMERIC
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%u", args[i]));
+        printf("%u", args[i]);
 #else
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%#x", args[i]));
+        printf("%#x", args[i]);
 #endif
         if ((i + 1) < numargs) {
-            AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (", "));
+            printf(", ");
         }
     }
-    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (" )\n"));
+    printf(" )\n");
 
     return TRUE;
 }
@@ -1177,6 +976,8 @@ dbglog_print_raw_data(A_UINT32 *buffer, A_UINT32 length)
     char parseArgsString[DBGLOG_PARSE_ARGS_STRING_LENGTH];
     char *dbgidString;
 
+    buffer = (A_UINT32 *)buf;
+
     while (count < length) {
 
         debugid = DBGLOG_GET_DBGID(buffer[count + 1]);
@@ -1186,27 +987,26 @@ dbglog_print_raw_data(A_UINT32 *buffer, A_UINT32 length)
 
         if (moduleid < WLAN_MODULE_ID_MAX && debugid < MAX_DBG_MSGS && numargs <= DBGLOG_NUM_ARGS_MAX) {
 
-            OS_MEMZERO(parseArgsString, sizeof(parseArgsString));
+            memset(parseArgsString, 0, sizeof(parseArgsString));
             totalWriteLen = 0;
 
             for (curArgs = 0; curArgs < numargs; curArgs++){
-                // Using sprintf_s instead of sprintf, to avoid length overflow
-                writeLen = snprintf(parseArgsString + totalWriteLen, DBGLOG_PARSE_ARGS_STRING_LENGTH - totalWriteLen, "%x ", buffer[count + 2 + curArgs]);
+                writeLen = snprintf(parseArgsString + totalWriteLen, sizeof(parseArgsString), "%x ", buffer[count + 2 + curArgs]);
                 totalWriteLen += writeLen;
             }
 
             dbgidString = DBG_MSG_ARR[moduleid][debugid];
             if (dbgidString != NULL) {
-                AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("fw:%s(%x %x):%s\n",
+                printf("fw:%s(%x %x):%s\n",
                        dbgidString,
                        timestamp, buffer[count+1],
-                       parseArgsString));
+                       parseArgsString);
             } else {
                 /* host need sync with FW id */
-                AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("fw:%s:m:%x,id:%x(%x %x):%s\n",
+                printf("fw:%s:m:%x,id:%x(%x %x):%s\n",
                        "UNKNOWN", moduleid, debugid,
                        timestamp, buffer[count+1],
-                       parseArgsString));
+                       parseArgsString);
             }
         }
 
@@ -1217,157 +1017,28 @@ dbglog_print_raw_data(A_UINT32 *buffer, A_UINT32 length)
 
 }
 
-#ifdef WLAN_OPEN_SOURCE
-static int
-dbglog_debugfs_raw_data(wmi_unified_t wmi_handle, const u_int8_t *buf, A_UINT32 length)
-{
-    struct fwdebug *fwlog = (struct fwdebug *)&wmi_handle->dbglog;
-    struct dbglog_slot *slot;
-    struct sk_buff *skb;
-    size_t slot_len;
-
-    if (WARN_ON(length > ATH6KL_FWLOG_PAYLOAD_SIZE))
-        return -ENODEV;
-
-    slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE;
-
-    skb = alloc_skb(slot_len, GFP_KERNEL);
-    if (!skb)
-        return -ENOMEM;
-
-    slot = (struct dbglog_slot *) skb_put(skb, slot_len);
-    slot->timestamp = cpu_to_le32(jiffies);
-    slot->length = cpu_to_le32(length);
-    memcpy(slot->payload, buf, length);
-
-    /* Need to pad each record to fixed length ATH6KL_FWLOG_PAYLOAD_SIZE */
-    memset(slot->payload + length, 0, ATH6KL_FWLOG_PAYLOAD_SIZE - length);
-
-    spin_lock(&fwlog->fwlog_queue.lock);
-
-    __skb_queue_tail(&fwlog->fwlog_queue, skb);
-
-    complete(&fwlog->fwlog_completion);
-
-    /* drop oldest entries */
-    while (skb_queue_len(&fwlog->fwlog_queue) >
-           ATH6KL_FWLOG_MAX_ENTRIES) {
-        skb = __skb_dequeue(&fwlog->fwlog_queue);
-        kfree_skb(skb);
-    }
-
-    spin_unlock(&fwlog->fwlog_queue.lock);
-
-    return TRUE;
-}
-#endif /* WLAN_OPEN_SOURCE */
-
 int
-dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer, A_UINT32 len)
+dbglog_parse_debug_logs(u_int8_t *datap, u_int16_t len)
 {
-    struct sk_buff *skb_out;
-    struct nlmsghdr *nlh;
-    int res = 0;
-    struct dbglog_slot *slot;
-    size_t slot_len;
-
-    if (WARN_ON(len > ATH6KL_FWLOG_PAYLOAD_SIZE))
-        return -ENODEV;
-
-    slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE;
-
-    skb_out = nlmsg_new(slot_len, 0);
-    if (!skb_out)
-    {
-        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Failed to allocate new skb\n"));
-        return -1;
-    }
-
-    nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, slot_len, 0);
-    slot = (struct dbglog_slot *) nlmsg_data(nlh);
-    slot->timestamp = cpu_to_le32(jiffies);
-    slot->length = cpu_to_le32(len);
-    memcpy(slot->payload, buffer, len);
-    NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
-
-    nlmsg_unicast(nl_sk,
-		        skb_out,
-			g_pid);
-    return res;
-}
-
-int
-dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
-{
-    tp_wma_handle wma = (tp_wma_handle)scn;
-    A_UINT32 count;
+    A_UINT32 count=0;
+    A_UINT32 timestamp=0;
+    A_UINT32 debugid=0;
+    A_UINT32 moduleid=0;
+    A_UINT16 vapid=0;
+    A_UINT16 numargs=0;
     A_UINT32 *buffer;
-    A_UINT32 timestamp;
-    A_UINT32 debugid;
-    A_UINT32 moduleid;
-    A_UINT16 vapid;
-    A_UINT16 numargs;
-    adf_os_size_t   length;
-    A_UINT32 dropped;
-    WMI_DEBUG_MESG_EVENTID_param_tlvs *param_buf;
-    u_int8_t *datap;
-    u_int32_t len;
+    A_UINT32 length = len >> 2;
 
-    /*when fw asser occurs,host can't use TLV format.*/
-    if (wma->is_fw_assert) {
-	datap = data;
-	len = datalen;
-	wma->is_fw_assert = 0;
-    } else {
-        param_buf = (WMI_DEBUG_MESG_EVENTID_param_tlvs *) data;
-        if (!param_buf) {
-            AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Get NULL point message from FW\n"));
-            return -1;
-        }
-
-        datap = param_buf->bufp;
-        len = param_buf->num_bufp;
-    }
-
-    dropped = *((A_UINT32 *)datap);
-    if (dropped > 0) {
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%d log buffers are dropped \n", dropped));
-    }
-    datap += sizeof(dropped);
-    len -= sizeof(dropped);
-
-    count = 0;
     buffer = (A_UINT32 *)datap;
     length = (len >> 2);
 
-    if ( dbglog_process_type == DBGLOG_PROCESS_PRINT_RAW) {
-        return dbglog_print_raw_data(buffer, length);
-    }
-
-    if ( dbglog_process_type == DBGLOG_PROCESS_NET_RAW) {
-        if(appstarted){
-            return dbglog_process_netlink_data((wmi_unified_t)wma->wmi_handle,
-			                                      (A_UINT8 *)buffer,
-					                      len);
-        } else {
-            return 0;
-        }
-
-    }
-
-#ifdef WLAN_OPEN_SOURCE
-    if (dbglog_process_type == DBGLOG_PROCESS_POOL_RAW) {
-        return dbglog_debugfs_raw_data((wmi_unified_t)wma->wmi_handle,
-                                                     (A_UINT8 *)buffer, len);
-    }
-#endif /* WLAN_OPEN_SOURCE */
-
     while ((count + 2) < length) {
+
         timestamp = DBGLOG_GET_TIME_STAMP(buffer[count]);
-        debugid = DBGLOG_GET_DBGID(buffer[count + 1]);
-        moduleid = DBGLOG_GET_MODULEID(buffer[count + 1]);
-        vapid = DBGLOG_GET_VDEVID(buffer[count + 1]);
-        numargs = DBGLOG_GET_NUMARGS(buffer[count + 1]);
+        debugid = DBGLOG_GET_DBGID(buffer[count+1]);
+        moduleid = DBGLOG_GET_MODULEID(buffer[count+1]);
+        vapid = DBGLOG_GET_VDEVID(buffer[count+1]);
+        numargs = DBGLOG_GET_NUMARGS(buffer[count+1]);
 
         if ((count + 2 + numargs) > length)
             return 0;
@@ -1404,8 +1075,8 @@ dbglog_reg_modprint(A_UINT32 mod_id, module_dbg_print printfn)
     if (!mod_print[mod_id]) {
         mod_print[mod_id] = printfn;
     } else {
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("module print is already registered for this module %d\n",
-               mod_id));
+        printf("module print is already registered for this module %d\n",
+               mod_id);
     }
 }
 
@@ -1535,9 +1206,9 @@ dbglog_sta_powersave_print_handler(
         if (numargs == 2) {
             dbglog_printf(timestamp, vap_id, "STA PS: %s %s",
                     (args[0] == 0 ? "PAUSE_COMPLETE" :
-                     (args[0] == 1 ? "UNPAUSE_COMPLETE" :
-                      (args[0] == 2 ? "SLEEP" :
-                       (args[0] == 3 ? "AWAKE" : "UNKNOWN")))),
+                    (args[0] == 1 ? "UNPAUSE_COMPLETE" :
+                    (args[0] == 2 ? "SLEEP" :
+                    (args[0] == 3 ? "AWAKE" : "UNKNOWN")))),
                     (args[1] == 0 ? "SUCCESS" :
                      (args[1] == 1 ? "TXQ_FLUSH_TIMEOUT" :
                       (args[1] == 2 ? "NO_ACK" :
@@ -1598,7 +1269,7 @@ dbglog_sta_powersave_print_handler(
                 } else {
                     dbglog_printf(timestamp, vap_id, "STA PS SET_PARAM %s => %#x",
                             params[param].name, value);
-                }
+        }
             } else {
                 dbglog_printf(timestamp, vap_id, "STA PS SET_PARAM %x => %#x",
                         param, value);
@@ -2188,7 +1859,7 @@ A_BOOL dbglog_coex_print_handler(
             }
             break;
         case COEX_SCHED_START:
-           if (numargs >= 5 && args[0] < 5 && args[2] < 4 && args[3] < 4 && args[4] < 4) {
+            if (numargs >= 5 && args[0] < 5 && args[2] < 4 && args[3] < 4 && args[4] < 4) {
                 if (args[1] == 0xffffffff) {
                     dbglog_printf(timestamp, vap_id, "%s: %s, DETERMINE_DURATION, %s, %s, %s",
                         dbg_id_str, coex_sched_req[args[0]], coex_trf_mgmt_type[args[2]], wlan_rx_xput_status[args[3]], wlan_rssi_type[args[4]]);
@@ -2320,9 +1991,9 @@ A_BOOL dbglog_coex_print_handler(
                 dbglog_printf_no_line_break(timestamp, vap_id, "%s: %s",
                     dbg_id_str, coex_psp_error_type[args[0]]);
                 for (i = 1; i < numargs; i++) {
-                    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (", %u", args[i]));
+                    printf(", %u", args[i]);
                 }
-                AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("\n"));
+                printf("\n");
             } else {
                 return FALSE;
             }
@@ -2367,9 +2038,9 @@ A_BOOL dbglog_coex_print_handler(
                 dbglog_printf_no_line_break(timestamp, vap_id, "%s: %u",
                         dbg_id_str, args[0]);
                 for (i = 1; i < numargs; i++) {
-                    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (", %u", args[i]));
+                    printf(", %u", args[i]);
                 }
-                AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("\n"));
+                printf("\n");
             } else {
                 return FALSE;
             }
@@ -2528,6 +2199,7 @@ A_BOOL dbglog_smps_print_handler(A_UINT32 mod_id,
         "E_RSSI_BELOW_THRESH",
         "E_FORCED_NONE",
     };
+
     switch(dbg_id) {
     case DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG:
         dbglog_sm_print(timestamp, vap_id, numargs, args, "STA_SMPS SM",
@@ -2565,6 +2237,8 @@ A_BOOL dbglog_smps_print_handler(A_UINT32 mod_id,
                   (args[1] == 0x3 ? "DYNAMIC" : "UNKNOWN"))),
                 args[2]);
         break;
+
+
     default:
         dbglog_printf(
                 timestamp,
@@ -2576,184 +2250,9 @@ A_BOOL dbglog_smps_print_handler(A_UINT32 mod_id,
     return TRUE;
 }
 
-
-#ifdef WLAN_OPEN_SOURCE
-static int dbglog_block_open(struct inode *inode, struct file *file)
+int parser_init()
 {
-    struct fwdebug *fwlog = inode->i_private;
-
-    if (fwlog->fwlog_open)
-        return -EBUSY;
-
-    fwlog->fwlog_open = TRUE;
-
-    file->private_data = inode->i_private;
-    return 0;
-}
-
-static int dbglog_block_release(struct inode *inode, struct file *file)
-{
-    struct fwdebug *fwlog = inode->i_private;
-
-    fwlog->fwlog_open = FALSE;
-
-    return 0;
-}
-
-static ssize_t dbglog_block_read(struct file *file,
-                                       char __user *user_buf,
-                                       size_t count,
-                                       loff_t *ppos)
-{
-    struct fwdebug *fwlog = file->private_data;
-    struct sk_buff *skb;
-    ssize_t ret_cnt;
-    size_t len = 0, not_copied;
-    char *buf;
-    int ret;
-
-    buf = vmalloc(count);
-    if (!buf)
-       return -ENOMEM;
-
-    spin_lock_bh(&fwlog->fwlog_queue.lock);
-
-    if (skb_queue_len(&fwlog->fwlog_queue) == 0) {
-       /* we must init under queue lock */
-       init_completion(&fwlog->fwlog_completion);
-
-       spin_unlock_bh(&fwlog->fwlog_queue.lock);
-
-       ret = wait_for_completion_interruptible(
-                    &fwlog->fwlog_completion);
-       if (ret == -ERESTARTSYS) {
-               vfree(buf);
-               return ret;
-       }
-
-       spin_lock_bh(&fwlog->fwlog_queue.lock);
-    }
-
-    while ((skb = __skb_dequeue(&fwlog->fwlog_queue))) {
-       if (skb->len > count - len) {
-           /* not enough space, put skb back and leave */
-           __skb_queue_head(&fwlog->fwlog_queue, skb);
-           break;
-       }
-
-       memcpy(buf + len, skb->data, skb->len);
-       len += skb->len;
-
-       kfree_skb(skb);
-    }
-
-    spin_unlock_bh(&fwlog->fwlog_queue.lock);
-
-    /* FIXME: what to do if len == 0? */
-    not_copied = copy_to_user(user_buf, buf, len);
-    if (not_copied != 0) {
-        ret_cnt = -EFAULT;
-        goto out;
-    }
-
-    *ppos = *ppos + len;
-
-    ret_cnt = len;
-
-out:
-    vfree(buf);
-
-    return ret_cnt;
-}
-
-static const struct file_operations fops_dbglog_block = {
-    .open = dbglog_block_open,
-    .release = dbglog_block_release,
-    .read = dbglog_block_read,
-    .owner = THIS_MODULE,
-    .llseek = default_llseek,
-};
-
-int dbglog_debugfs_init(wmi_unified_t wmi_handle)
-{
-
-    wmi_handle->debugfs_phy = debugfs_create_dir(CLD_DEBUGFS_DIR, NULL);
-    if (!wmi_handle->debugfs_phy)
-        return -ENOMEM;
-
-    debugfs_create_file(DEBUGFS_BLOCK_NAME, S_IRUSR, wmi_handle->debugfs_phy, &wmi_handle->dbglog,
-                            &fops_dbglog_block);
-
-    return TRUE;
-}
-int dbglog_debugfs_remove(wmi_unified_t wmi_handle)
-{
-    debugfs_remove_recursive(wmi_handle->debugfs_phy);
-    return TRUE;
-}
-#endif /* WLAN_OPEN_SOURCE */
-static void nl_recv_msg(struct sk_buff *skb)
-{
-    struct nlmsghdr *nlh;
-
-    nlh = (struct nlmsghdr *)skb->data;
-    g_pid = nlh->nlmsg_pid; /*pid of sending process */
-    appstarted = TRUE;
-}
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
-struct netlink_kernel_cfg cfg = {
-	    .input = nl_recv_msg,
-};
-#endif
-
-int dbglog_netlink_init(wmi_unified_t wmi_handle)
-{
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
-    nl_sk = netlink_kernel_create(&init_net,
-		                  CLD_NETLINK_USER,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0))
-                                       THIS_MODULE,
-#endif
-                                  &cfg);
-#else
-    nl_sk = netlink_kernel_create(&init_net,
-		                  CLD_NETLINK_USER,
-                                  0,
-                                  nl_recv_msg,
-                                  NULL,
-                                  THIS_MODULE);
-#endif
-    if (!nl_sk)
-    {
-        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Error creating socket. \n"));
-        return -1;
-    }
-    return A_OK;
-}
-
-void dbglog_netlink_deinit(wmi_unified_t wmi_handle)
-{
-    netlink_kernel_release(nl_sk);
-}
-
-int dbglog_parser_type_init(wmi_unified_t wmi_handle, int type)
-{
-    if(type >= DBGLOG_PROCESS_MAX){
-        return A_ERROR;
-    }
-
-    dbglog_process_type = type;
-
-    return A_OK;
-}
-
-int
-dbglog_init(wmi_unified_t wmi_handle)
-{
-    int res = 0;
-    OS_MEMSET(mod_print, 0, sizeof(mod_print));
-
+    /* Registering parser */
     dbglog_reg_modprint(WLAN_MODULE_STA_PWRSAVE, dbglog_sta_powersave_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_AP_PWRSAVE, dbglog_ap_powersave_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_WAL, dbglog_wal_print_handler);
@@ -2765,46 +2264,5 @@ dbglog_init(wmi_unified_t wmi_handle)
     dbglog_reg_modprint(WLAN_MODULE_DATA_TXRX,dbglog_data_txrx_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_STA_SMPS, dbglog_smps_print_handler);
 
-    res = wmi_unified_register_event_handler(wmi_handle, WMI_DEBUG_MESG_EVENTID,
-                       dbglog_parse_debug_logs);
-    if(res != 0)
-        return res;
-
-    res = dbglog_netlink_init(wmi_handle);
-    if(res != 0)
-        return res;
-
-#ifdef WLAN_OPEN_SOURCE
-    /* Initialize the fw debug log queue */
-    skb_queue_head_init(&wmi_handle->dbglog.fwlog_queue);
-    init_completion(&wmi_handle->dbglog.fwlog_completion);
-
-    /* Initialize debugfs */
-    dbglog_debugfs_init(wmi_handle);
-#endif /* WLAN_OPEN_SOURCE */
-
-    return res;
-}
-
-int
-dbglog_deinit(wmi_unified_t wmi_handle)
-{
-    int res = 0;
-
-#ifdef WLAN_OPEN_SOURCE
-    /* DeInitialize the fw debug log queue */
-    skb_queue_purge(&wmi_handle->dbglog.fwlog_queue);
-    complete(&wmi_handle->dbglog.fwlog_completion);
-
-    /* Deinitialize the debugfs */
-    dbglog_debugfs_remove(wmi_handle);
-#endif /* WLAN_OPEN_SOURCE */
-
-    dbglog_netlink_deinit(wmi_handle);
-
-    res = wmi_unified_unregister_event_handler(wmi_handle, WMI_DEBUG_MESG_EVENTID);
-    if(res != 0)
-        return res;
-
-    return res;
+    return 0;
 }

@@ -832,4 +832,111 @@ u_int16_t ol_txrx_local_peer_id(ol_txrx_peer_handle peer);
 #define ol_txrx_local_peer_id(peer) OL_TXRX_INVALID_LOCAL_PEER_ID
 #endif
 
+#ifdef QCA_COMPUTE_TX_DELAY
+/**
+ * @brief updates the compute interval period for TSM stats.
+ * @details
+ * @param interval - interval for stats computation
+ */
+void
+ol_tx_set_compute_interval(
+    ol_txrx_pdev_handle pdev,
+    u_int32_t interval);
+
+/**
+ * @brief Return the uplink (transmitted) packet count and loss count.
+ * @details
+ *  This function will be called for getting uplink packet count and
+ *  loss count for given stream (access category) a regular interval.
+ *  This also resets the counters hence, the value returned is packets
+ *  counted in last 5(default) second interval. These counter are
+ *  incremented per access category in ol_tx_completion_handler()
+ *
+ * @param category - access category of interest
+ * @param out_packet_count - number of packets transmitted
+ * @param out_packet_loss_count - number of packets lost
+ */
+void
+ol_tx_packet_count(
+    ol_txrx_pdev_handle pdev,
+    u_int16_t *out_packet_count,
+    u_int16_t *out_packet_loss_count,
+    int category);
+#endif
+
+/**
+ * @brief Return the average delays for tx frames.
+ * @details
+ *  Return the average of the total time tx frames spend within the driver
+ *  and the average time tx frames take to be transmitted.
+ *  These averages are computed over a 5 second time interval.
+ *  These averages are computed separately for separate access categories,
+ *  if the QCA_COMPUTE_TX_DELAY_PER_AC flag is set.
+ *
+ * @param pdev - the data physical device instance
+ * @param queue_delay_microsec - average time tx frms spend in the WLAN driver
+ * @param tx_delay_microsec - average time for frames to be transmitted
+ * @param category - category (TID) of interest
+ */
+#ifdef QCA_COMPUTE_TX_DELAY
+void
+ol_tx_delay(
+    ol_txrx_pdev_handle pdev,
+    u_int32_t *queue_delay_microsec,
+    u_int32_t *tx_delay_microsec,
+    int category);
+#else
+static inline void
+ol_tx_delay(
+    ol_txrx_pdev_handle pdev,
+    u_int32_t *queue_delay_microsec,
+    u_int32_t *tx_delay_microsec,
+    int category)
+{
+    /* no-op version if QCA_COMPUTE_TX_DELAY is not set */
+    *queue_delay_microsec = *tx_delay_microsec = 0;
+}
+#endif
+
+/*
+ * Bins used for reporting delay histogram:
+ * bin 0:  0 - 10  ms delay
+ * bin 1: 10 - 20  ms delay
+ * bin 2: 20 - 40  ms delay
+ * bin 3: 40 - 80  ms delay
+ * bin 4: 80 - 160 ms delay
+ * bin 5: > 160 ms delay
+ */
+#define QCA_TX_DELAY_HIST_REPORT_BINS 6
+/**
+ * @brief Provide a histogram of tx queuing delays.
+ * @details
+ *  Return a histogram showing the number of tx frames of the specified
+ *  category for each of the delay levels in the histogram bin spacings
+ *  listed above.
+ *  These histograms are computed over a 5 second time interval.
+ *  These histograms are computed separately for separate access categories,
+ *  if the QCA_COMPUTE_TX_DELAY_PER_AC flag is set.
+ *
+ * @param pdev - the data physical device instance
+ * @param bin_values - an array of QCA_TX_DELAY_HIST_REPORT_BINS elements
+ *      This array gets filled in with the histogram bin counts.
+ * @param category - category (TID) of interest
+ */
+#ifdef QCA_COMPUTE_TX_DELAY
+void
+ol_tx_delay_hist(ol_txrx_pdev_handle pdev, u_int16_t *bin_values,
+    int category);
+#else
+static inline void
+ol_tx_delay_hist(ol_txrx_pdev_handle pdev, u_int16_t *bin_values,
+    int category)
+{
+    /* no-op version if QCA_COMPUTE_TX_DELAY is not set */
+    adf_os_assert(bin_values);
+    adf_os_mem_zero(
+        bin_values, QCA_TX_DELAY_HIST_REPORT_BINS * sizeof(*bin_values));
+}
+#endif
+
 #endif /* _OL_TXRX_CTRL_API__H_ */

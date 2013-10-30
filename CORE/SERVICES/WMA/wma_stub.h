@@ -88,10 +88,6 @@ static inline void WMA_UpdateRssiBmps(v_PVOID_t pvosGCtx,
 			  v_U8_t staId, v_S7_t rssi)
 {
 }
-static inline eHalStatus WMA_SetRegDomain(v_VOID_t *client_ctx, v_REGDOMAIN_t regId)
-{
-	return eHAL_STATUS_SUCCESS;
-}
 
 #endif
 

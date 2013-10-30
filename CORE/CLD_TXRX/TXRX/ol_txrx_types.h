@@ -129,6 +129,9 @@ struct ol_tx_desc_t {
 	adf_os_atomic_t ref_cnt;
 	enum htt_tx_status status;
 
+#ifdef QCA_COMPUTE_TX_DELAY
+        u_int32_t entry_timestamp_ticks;
+#endif
 	/*
 	 * Allow tx descriptors to be stored in (doubly-linked) lists.
 	 * This is mainly used for HL tx queuing and scheduling, but is
@@ -274,6 +277,26 @@ typedef struct ol_tx_sched_t *ol_tx_sched_handle;
 #ifndef ol_txrx_local_peer_id_t
 #define ol_txrx_local_peer_id_t u_int8_t /* default */
 #endif
+
+#ifdef QCA_COMPUTE_TX_DELAY
+/*
+ * Delay histogram bins: 16 bins of 10 ms each to count delays
+ * from 0-160 ms, plus one overflow bin for delays > 160 ms.
+ */
+#define QCA_TX_DELAY_HIST_INTERNAL_BINS 17
+#define QCA_TX_DELAY_HIST_INTERNAL_BIN_WIDTH_MS 10
+
+struct ol_tx_delay_data {
+    struct {
+        u_int64_t transmit_sum_ticks;
+        u_int64_t queue_sum_ticks;
+        u_int32_t transmit_num;
+        u_int32_t queue_num;
+    } avgs;
+    u_int16_t hist_bins_queue[QCA_TX_DELAY_HIST_INTERNAL_BINS];
+};
+
+#endif /* QCA_COMPUTE_TX_DELAY */
 
 /*
  * As depicted in the diagram below, the pdev contains an array of
@@ -587,6 +610,31 @@ struct ol_txrx_pdev_t {
 		ol_txrx_peer_handle map[OL_TXRX_NUM_LOCAL_PEER_IDS];
 	} local_peer_ids;
 #endif
+
+#ifdef QCA_COMPUTE_TX_DELAY
+#ifdef QCA_COMPUTE_TX_DELAY_PER_TID
+#define QCA_TX_DELAY_NUM_CATEGORIES \
+    (OL_TX_NUM_TIDS + OL_TX_VDEV_NUM_QUEUES)
+#else
+#define QCA_TX_DELAY_NUM_CATEGORIES 1
+#endif
+	struct {
+	    adf_os_spinlock_t mutex;
+	    struct {
+	        struct ol_tx_delay_data copies[2/*ping-pong updating*/];
+	        int in_progress_idx;
+	        u_int32_t avg_start_time_ticks;
+	    } cats[QCA_TX_DELAY_NUM_CATEGORIES];
+	    u_int32_t tx_compl_timestamp_ticks;
+	    u_int32_t avg_period_ticks;
+	    u_int32_t hist_internal_bin_width_mult;
+	    u_int32_t hist_internal_bin_width_shift;
+	} tx_delay;
+
+	u_int16_t packet_count[QCA_TX_DELAY_NUM_CATEGORIES];
+	u_int16_t packet_loss_count[QCA_TX_DELAY_NUM_CATEGORIES];
+
+#endif /* QCA_COMPUTE_TX_DELAY */
 };
 
 struct ol_txrx_vdev_t {

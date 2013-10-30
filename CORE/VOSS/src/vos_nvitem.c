@@ -1930,7 +1930,7 @@ static int create_crda_regulatory_entry(struct wiphy *wiphy,
        if (wiphy->bands[i] == NULL)
        {
           pr_info("error: wiphy->bands[i] is NULL, i = %d\n", i);
-          return -1;
+          continue;
        }
        // internal channels[] is one continous array for both 2G and 5G bands
        // m is internal starting channel index for each band
@@ -2294,36 +2294,34 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
     if (request->initiator == NL80211_REGDOM_SET_BY_USER)
     {
        wiphy_dbg(wiphy, "info: set by user\n");
-       if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0)
+       if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0) {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
           return;
 #else
           return 0;
 #endif
-       // ToDo
-       /* Don't change default country code to CRDA country code by user req */
+       }
        /* Shouldcall sme_ChangeCountryCode to send a message to trigger read
           regd for new country settings */
-       //sme_ChangeCountryCode(pHddCtx->hHal, NULL,
-       //    &country_code[0], pAdapter, pHddCtx->pvosContext);
+       sme_ChangeCountryCode(pHddCtx->hHal, NULL,
+             &request->alpha2[0], NULL, pHddCtx->pvosContext);
     }
     else if (request->initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE)
     {
        wiphy_dbg(wiphy, "info: set by country IE\n");
-       if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0)
+       if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0) {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
           return;
 #else
           return 0;
 #endif
-       // ToDo
-       /* Intersect of 11d and crda settings */
+       }
 
-       /* Don't change default country code to CRDA country code by 11d req */
-       /* for every adapter call sme_ChangeCountryCode to trigger read regd
+       /* Intersect of 11d and crda settings */
+       /* call sme_ChangeCountryCode to trigger read regd
           for intersected new country settings */
-       // sme_ChangeCountryCode(pHddCtx->hHal, NULL,
-       //    &country_code[0], pAdapter, pHddCtx->pvosContext);
+       sme_ChangeCountryCode(pHddCtx->hHal, NULL,
+             &request->alpha2[0], NULL, pHddCtx->pvosContext);
     }
     else if (request->initiator == NL80211_REGDOM_SET_BY_DRIVER)
     {

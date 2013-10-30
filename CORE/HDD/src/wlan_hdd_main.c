@@ -2085,6 +2085,17 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
     if (pconfig->enableTxBF && !cfg->vht_su_bformee)
         pconfig->enableTxBF = cfg->vht_su_bformee;
 
+    status = ccmCfgSetInt(hdd_ctx->hHal,
+                          WNI_CFG_VHT_SU_BEAMFORMEE_CAP,
+                          pconfig->enableTxBF, NULL,
+                          eANI_BOOLEAN_FALSE);
+
+    if (status == eHAL_STATUS_FAILURE) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                  "%s: could not set VHT SU BEAMFORMEE CAP",
+                  __func__);
+    }
+
     /* Get VHT MU Beamformer cap */
     status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_MU_BEAMFORMER_CAP,
                           &value);
@@ -2146,8 +2157,15 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
         value = 0;
     }
 
-    /* set VHT MAX AMPDU Len exp */
-    if (value && !cfg->vht_max_ampdu_len_exp) {
+    /*
+     * VHT max AMPDU len exp:
+     * override if user configured value is too high
+     * that the target cannot support.
+     * Even though Rome publish ampdu_len=7, it can
+     * only support 4 because of some h/w bug.
+     */
+
+    if (value > cfg->vht_max_ampdu_len_exp) {
         status = ccmCfgSetInt(hdd_ctx->hHal,
                               WNI_CFG_VHT_AMPDU_LEN_EXPONENT,
                               cfg->vht_max_ampdu_len_exp, NULL,
@@ -2205,6 +2223,8 @@ void hdd_update_tgt_cfg(void *context, void *param)
                MAC_ADDRESS_STR, __func__,
                MAC_ADDR_ARRAY(hdd_ctx->cfg_ini->intfMacAddr[0].bytes));
     }
+
+    hdd_ctx->target_fw_version = cfg->target_fw_version;
 
     hdd_update_tgt_services(hdd_ctx, &cfg->services);
 
@@ -3216,12 +3236,14 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       pWlanDev->watchdog_timeo = HDD_TX_TIMEOUT;
       pWlanDev->hard_header_len += LIBRA_HW_NEEDED_HEADROOM;
 
-      if (pHddCtx->cfg_ini->enableTCPChkSumOffld) {
+      if (pHddCtx->cfg_ini->enableIPChecksumOffload)
+         pWlanDev->features |= NETIF_F_HW_CSUM;
+      else if (pHddCtx->cfg_ini->enableTCPChkSumOffld)
          pWlanDev->features |= NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM;
+
 #if defined (QCA_WIFI_2_0) && !defined (QCA_WIFI_ISOC)
-         pWlanDev->features |= NETIF_F_RXCSUM;
+      pWlanDev->features |= NETIF_F_RXCSUM;
 #endif
-      }
 
       hdd_set_station_ops( pAdapter->dev );
 
@@ -5556,6 +5578,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #else
    hif_init_adf_ctx(adf_ctx, hif_sc);
    ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
+
+   /* store target type and target version info in hdd ctx */
+   pHddCtx->target_type = ((struct ol_softc *)hif_sc)->target_type;
 #endif
    ((VosContextType*)(pVosContext))->adf_ctx = adf_ctx;
 #endif /* QCA_WIFI_2_0 */
@@ -5986,6 +6011,18 @@ register_wiphy:
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: btc_activate_service failed",__func__);
       goto err_nl_srv;
    }
+
+#ifdef FEATURE_OEM_DATA_SUPPORT
+#ifdef QCA_WIFI_2_0
+   //Initialize the OEM service
+   if (oem_activate_service(pHddCtx) != 0)
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: oem_activate_service failed", __func__);
+      goto err_nl_srv;
+   }
+#endif
+#endif
 
 #ifdef PTT_SOCK_SVC_ENABLE
    //Initialize the PTT service

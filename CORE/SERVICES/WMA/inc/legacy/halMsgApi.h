@@ -189,7 +189,7 @@ typedef struct
     // FIXME
     //Add these fields to message
     tANI_U8 us32MaxAmpduDuration;                //in units of 32 us.
-    tANI_U8 maxAmpduSize;                        // 0 : 8k , 1 : 16k, 2 : 32k, 3 : 64k
+    tANI_U8 maxAmpduSize;                        // 0 : 8k , 1 : 16k, 2 : 32k, 3 : 64k, 4 : 128k
     tANI_U8 maxAmpduDensity;                     // 3 : 0~7 : 2^(11nAMPDUdensity -4)
     tANI_U8 maxAmsduSize;                        // 1 : 3839 bytes, 0 : 7935 bytes
 
@@ -284,6 +284,7 @@ typedef struct
     tANI_U8    vhtCapable;
     tANI_U8    vhtTxChannelWidthSet;
     tANI_U8    vhtTxBFCapable;
+    tANI_U8    vhtTxMUBformeeCapable;
 #endif
 
     tANI_U8    htLdpcCapable;
@@ -679,10 +680,18 @@ typedef struct {
 #ifdef FEATURE_OEM_DATA_SUPPORT 
 
 #ifndef OEM_DATA_REQ_SIZE
+#ifdef QCA_WIFI_2_0
+#define OEM_DATA_REQ_SIZE 276
+#else
 #define OEM_DATA_REQ_SIZE 134
 #endif
+#endif
 #ifndef OEM_DATA_RSP_SIZE
+#ifdef QCA_WIFI_2_0
+#define OEM_DATA_RSP_SIZE 1720
+#else
 #define OEM_DATA_RSP_SIZE 1968
+#endif
 #endif
 
 typedef struct
@@ -960,7 +969,10 @@ typedef struct
   tANI_U16 tspecIdx; //TSPEC handler uniquely identifying a TSPEC for a STA in a BSS
   tSirMacTspecIE   tspec;
   eHalStatus       status;
-  tANI_U8          sessionId;          //PE session id for PE<->HAL interface 
+  tANI_U8          sessionId;          //PE session id for PE<->HAL interface
+#ifdef FEATURE_WLAN_CCX
+  tANI_U16         tsm_interval; // TSM interval period passed from lim to wma
+#endif
 } tAddTsParams, *tpAddTsParams;
 
 typedef struct

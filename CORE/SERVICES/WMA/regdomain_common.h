@@ -76,222 +76,229 @@
  * frequency bitmasks and flags set.
  */
 
+#include "_ieee80211_common.h"
+#include <a_types.h>
+#include "wlan_defs.h"
 enum EnumRd {
-	/*
-	 * The following regulatory domain definitions are
-	 * found in the EEPROM. Each regulatory domain
-	 * can operate in either a 5GHz or 2.4GHz wireless mode or
-	 * both 5GHz and 2.4GHz wireless modes.
-	 * In general, the value holds no special
-	 * meaning and is used to decode into either specific
-	 * 2.4GHz or 5GHz wireless mode for that particular
-	 * regulatory domain.
-	 */
-	NO_ENUMRD	= 0x00,
-	NULL1_WORLD	= 0x03,		/* For 11b-only countries (no 11a allowed) */
-	NULL1_ETSIB	= 0x07,		/* Israel */
-	NULL1_ETSIC	= 0x08,
-	FCC1_FCCA	= 0x10,		/* USA */
-	FCC1_WORLD	= 0x11,		/* Hong Kong */
-	FCC4_FCCA	= 0x12,		/* USA - Public Safety */
-	FCC5_FCCA	= 0x13,		/* US with no DFS (UNII-1 + UNII-3 Only)*/
-	FCC6_FCCA	= 0x14,		/* Canada for AP only*/
+    /*
+     * The following regulatory domain definitions are
+     * found in the EEPROM. Each regulatory domain
+     * can operate in either a 5GHz or 2.4GHz wireless mode or
+     * both 5GHz and 2.4GHz wireless modes.
+     * In general, the value holds no special
+     * meaning and is used to decode into either specific
+     * 2.4GHz or 5GHz wireless mode for that particular
+     * regulatory domain.
+     */
+    NO_ENUMRD   = 0x00,
+    NULL1_WORLD = 0x03,     /* For 11b-only countries (no 11a allowed) */
+    NULL1_ETSIB = 0x07,     /* Israel */
+    NULL1_ETSIC = 0x08,
+    FCC1_FCCA   = 0x10,     /* USA */
+    FCC1_WORLD  = 0x11,     /* Hong Kong */
+    FCC4_FCCA   = 0x12,     /* USA - Public Safety */
+    FCC5_FCCA   = 0x13,     /* US with no DFS (UNII-1 + UNII-3 Only)*/
+    FCC6_FCCA   = 0x14,     /* Canada for AP only*/
 
-	FCC2_FCCA	= 0x20,		/* Canada */
-	FCC2_WORLD	= 0x21,		/* Australia & HK */
-	FCC2_ETSIC	= 0x22,
-	FCC6_WORLD	= 0x23,		/* Australia for AP only*/
-	FRANCE_RES	= 0x31,		/* Legacy France for OEM */
-	FCC3_FCCA	= 0x3A,		/* USA & Canada w/5470 band, 11h, DFS enabled */
-	FCC3_WORLD	= 0x3B,		/* USA & Canada w/5470 band, 11h, DFS enabled */
-	FCC3_ETSIC	= 0x3F,		/* New Zealand, DFS enabled */
+    FCC2_FCCA   = 0x20,     /* Canada */
+    FCC2_WORLD  = 0x21,     /* Australia & HK */
+    FCC2_ETSIC  = 0x22,
+    FCC6_WORLD  = 0x23,     /* Australia for AP only*/
+    FRANCE_RES  = 0x31,     /* Legacy France for OEM */
+    FCC3_FCCA   = 0x3A,     /* USA & Canada w/5470 band, 11h, DFS enabled */
+    FCC3_WORLD  = 0x3B,     /* USA & Canada w/5470 band, 11h, DFS enabled */
+    FCC3_ETSIC  = 0x3F,     /* New Zealand, DFS enabled */
 
-	ETSI1_WORLD	= 0x37,
-	ETSI3_ETSIA	= 0x32,		/* France (optional) */
-	ETSI2_WORLD	= 0x35,		/* Hungary & others */
-	ETSI3_WORLD	= 0x36,		/* France & others */
-	ETSI4_WORLD	= 0x30,
-	ETSI4_ETSIC	= 0x38,
-	ETSI5_WORLD	= 0x39,
-	ETSI6_WORLD	= 0x34,		/* Bulgaria */
-	ETSI8_WORLD	= 0x3D,		/* Russia */
-	ETSI9_WORLD	= 0x3E,		/* Ukraine */
-	ETSI_RESERVED	= 0x33,		/* Reserved (Do not used) */
+    ETSI1_WORLD = 0x37,
+    ETSI3_ETSIA = 0x32,     /* France (optional) */
+    ETSI2_WORLD = 0x35,     /* Hungary & others */
+    ETSI3_WORLD = 0x36,     /* France & others */
+    ETSI4_WORLD = 0x30,
+    ETSI4_ETSIC = 0x38,
+    ETSI5_WORLD = 0x39,
+    ETSI6_WORLD = 0x34,     /* Bulgaria */
+    ETSI8_WORLD = 0x3D,     /* Russia */
+    ETSI9_WORLD = 0x3E,     /* Ukraine */
+    ETSI_RESERVED   = 0x33,     /* Reserved (Do not used) */
 
-	MKK1_MKKA	= 0x40,		/* Japan (JP1) */
-	MKK1_MKKB	= 0x41,		/* Japan (JP0) */
-	APL4_WORLD	= 0x42,		/* Singapore and Morocco */
-	MKK2_MKKA	= 0x43,		/* Japan with 4.9G channels */
-	APL_RESERVED	= 0x44,		/* Reserved (Do not used)  */
-	APL2_WORLD	= 0x45,		/* Korea */
-	APL2_APLC	= 0x46,
-	APL3_WORLD	= 0x47,
-	MKK1_FCCA	= 0x48,		/* Japan (JP1-1) */
-	APL2_APLD	= 0x49,		/* Korea with 2.3G channels */
-	MKK1_MKKA1	= 0x4A,		/* Japan (JE1) */
-	MKK1_MKKA2	= 0x4B,		/* Japan (JE2) */
-	MKK1_MKKC	= 0x4C,		/* Japan (MKK1_MKKA,except Ch14) */
-	APL2_FCCA	= 0x4D,		/* Mobile customer */
+    MKK1_MKKA   = 0x40,     /* Japan (JP1) */
+    MKK1_MKKB   = 0x41,     /* Japan (JP0) */
+    APL4_WORLD  = 0x42,     /* Singapore and Morocco */
+    MKK2_MKKA   = 0x43,     /* Japan with 4.9G channels */
+    APL_RESERVED    = 0x44,     /* Reserved (Do not used)  */
+    APL2_WORLD  = 0x45,     /* Korea */
+    APL2_APLC   = 0x46,
+    APL3_WORLD  = 0x47,
+    MKK1_FCCA   = 0x48,     /* Japan (JP1-1) */
+    APL2_APLD   = 0x49,     /* Korea with 2.3G channels */
+    MKK1_MKKA1  = 0x4A,     /* Japan (JE1) */
+    MKK1_MKKA2  = 0x4B,     /* Japan (JE2) */
+    MKK1_MKKC   = 0x4C,     /* Japan (MKK1_MKKA,except Ch14) */
+    APL2_FCCA   = 0x4D,     /* Mobile customer */
+    APL11_FCCA  = 0x4F,         /* Specific AP Customer 5GHz, For APs Only */
 
-	APL3_FCCA   = 0x50,
-	APL1_WORLD	= 0x52,		/* Latin America */
-	APL1_FCCA	= 0x53,
-	APL1_APLA	= 0x54,
-	APL1_ETSIC	= 0x55,
-	APL2_ETSIC	= 0x56,		/* Venezuela */
-	APL5_WORLD	= 0x58,		/* Chile */
-	APL6_WORLD	= 0x5B,		/* Singapore */
-	APL7_FCCA   = 0x5C,     /* Taiwan 5.47 Band */
-	APL8_WORLD  = 0x5D,     /* Malaysia 5GHz */
-	APL9_WORLD  = 0x5E,     /* Korea 5GHz, Before 11/2007. Now used only by APs */
-	APL10_WORLD = 0x5F,     /* Korea 5GHz, After 11/2007. For STAs only */
+    APL3_FCCA   = 0x50,
+    APL12_WORLD = 0x51,
+    APL1_WORLD  = 0x52,     /* Latin America */
+    APL1_FCCA   = 0x53,
+    APL1_APLA   = 0x54,
+    APL1_ETSIC  = 0x55,
+    APL2_ETSIC  = 0x56,     /* Venezuela */
+    APL5_WORLD  = 0x58,     /* Chile */
+    APL6_WORLD  = 0x5B,     /* Singapore */
+    APL7_FCCA   = 0x5C,     /* Taiwan 5.47 Band */
+    APL8_WORLD  = 0x5D,     /* Malaysia 5GHz */
+    APL9_WORLD  = 0x5E,     /* Korea 5GHz, Before 11/2007. Now used only by APs */
+    APL10_WORLD = 0x5F,     /* Korea 5GHz, After 11/2007. For STAs only */
 
-	/*
-	 * World mode SKUs
-	 */
-	WOR0_WORLD	= 0x60,		/* World0 (WO0 SKU) */
-	WOR1_WORLD	= 0x61,		/* World1 (WO1 SKU) */
-	WOR2_WORLD	= 0x62,		/* World2 (WO2 SKU) */
-	WOR3_WORLD	= 0x63,		/* World3 (WO3 SKU) */
-	WOR4_WORLD	= 0x64,		/* World4 (WO4 SKU) */
-	WOR5_ETSIC	= 0x65,		/* World5 (WO5 SKU) */
+    /*
+     * World mode SKUs
+     */
+    WOR0_WORLD  = 0x60,     /* World0 (WO0 SKU) */
+    WOR1_WORLD  = 0x61,     /* World1 (WO1 SKU) */
+    WOR2_WORLD  = 0x62,     /* World2 (WO2 SKU) */
+    WOR3_WORLD  = 0x63,     /* World3 (WO3 SKU) */
+    WOR4_WORLD  = 0x64,     /* World4 (WO4 SKU) */
+    WOR5_ETSIC  = 0x65,     /* World5 (WO5 SKU) */
 
-	WOR01_WORLD	= 0x66,		/* World0-1 (WW0-1 SKU) */
-	WOR02_WORLD	= 0x67,		/* World0-2 (WW0-2 SKU) */
-	EU1_WORLD	= 0x68,		/* Same as World0-2 (WW0-2 SKU), except active scan ch1-13. No ch14 */
+    WOR01_WORLD = 0x66,     /* World0-1 (WW0-1 SKU) */
+    WOR02_WORLD = 0x67,     /* World0-2 (WW0-2 SKU) */
+    EU1_WORLD   = 0x68,     /* Same as World0-2 (WW0-2 SKU), except active scan ch1-13. No ch14 */
 
-	WOR9_WORLD	= 0x69,		/* World9 (WO9 SKU) */
-	WORA_WORLD	= 0x6A,		/* WorldA (WOA SKU) */
-	WORB_WORLD	= 0x6B,		/* WorldB (WOB SKU) */
-	WORC_WORLD	= 0x6C,		/* WorldC (WOC SKU) */
+    WOR9_WORLD  = 0x69,     /* World9 (WO9 SKU) */
+    WORA_WORLD  = 0x6A,     /* WorldA (WOA SKU) */
+    WORB_WORLD  = 0x6B,     /* WorldB (WOB SKU) */
+    WORC_WORLD  = 0x6C,     /* WorldC (WOC SKU) */
 
-	MKK3_MKKB	= 0x80,		/* Japan UNI-1 even + MKKB */
-	MKK3_MKKA2	= 0x81,		/* Japan UNI-1 even + MKKA2 */
-	MKK3_MKKC	= 0x82,		/* Japan UNI-1 even + MKKC */
+    MKK3_MKKB   = 0x80,     /* Japan UNI-1 even + MKKB */
+    MKK3_MKKA2  = 0x81,     /* Japan UNI-1 even + MKKA2 */
+    MKK3_MKKC   = 0x82,     /* Japan UNI-1 even + MKKC */
 
-	MKK4_MKKB	= 0x83,		/* Japan UNI-1 even + UNI-2 + MKKB */
-	MKK4_MKKA2	= 0x84,		/* Japan UNI-1 even + UNI-2 + MKKA2 */
-	MKK4_MKKC	= 0x85,		/* Japan UNI-1 even + UNI-2 + MKKC */
+    MKK4_MKKB   = 0x83,     /* Japan UNI-1 even + UNI-2 + MKKB */
+    MKK4_MKKA2  = 0x84,     /* Japan UNI-1 even + UNI-2 + MKKA2 */
+    MKK4_MKKC   = 0x85,     /* Japan UNI-1 even + UNI-2 + MKKC */
 
-	MKK5_MKKB	= 0x86,		/* Japan UNI-1 even + UNI-2 + mid-band + MKKB */
-	MKK5_MKKA2	= 0x87,		/* Japan UNI-1 even + UNI-2 + mid-band + MKKA2 */
-	MKK5_MKKC	= 0x88,		/* Japan UNI-1 even + UNI-2 + mid-band + MKKC */
+    MKK5_MKKB   = 0x86,     /* Japan UNI-1 even + UNI-2 + mid-band + MKKB */
+    MKK5_MKKA2  = 0x87,     /* Japan UNI-1 even + UNI-2 + mid-band + MKKA2 */
+    MKK5_MKKC   = 0x88,     /* Japan UNI-1 even + UNI-2 + mid-band + MKKC */
 
-	MKK6_MKKB	= 0x89,		/* Japan UNI-1 even + UNI-1 odd MKKB */
-	MKK6_MKKA2	= 0x8A,		/* Japan UNI-1 even + UNI-1 odd + MKKA2 */
-	MKK6_MKKC	= 0x8B,		/* Japan UNI-1 even + UNI-1 odd + MKKC */
+    MKK6_MKKB   = 0x89,     /* Japan UNI-1 even + UNI-1 odd MKKB */
+    MKK6_MKKA2  = 0x8A,     /* Japan UNI-1 even + UNI-1 odd + MKKA2 */
+    MKK6_MKKC   = 0x8B,     /* Japan UNI-1 even + UNI-1 odd + MKKC */
 
-	MKK7_MKKB	= 0x8C,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + MKKB */
-	MKK7_MKKA2	= 0x8D,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + MKKA2 */
-	MKK7_MKKC	= 0x8E,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + MKKC */
+    MKK7_MKKB   = 0x8C,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + MKKB */
+    MKK7_MKKA2  = 0x8D,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + MKKA2 */
+    MKK7_MKKC   = 0x8E,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + MKKC */
 
-	MKK8_MKKB	= 0x8F,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + MKKB */
-	MKK8_MKKA2	= 0x90,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + MKKA2 */
-	MKK8_MKKC	= 0x91,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + MKKC */
+    MKK8_MKKB   = 0x8F,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + MKKB */
+    MKK8_MKKA2  = 0x90,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + MKKA2 */
+    MKK8_MKKC   = 0x91,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + MKKC */
 
-	MKK14_MKKA1  = 0x92,     /* Japan UNI-1 even + UNI-1 odd + 4.9GHz + MKKA1 */
-	MKK15_MKKA1  = 0x93,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + 4.9GHz + MKKA1 */
+    MKK14_MKKA1  = 0x92,     /* Japan UNI-1 even + UNI-1 odd + 4.9GHz + MKKA1 */
+    MKK15_MKKA1  = 0x93,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + 4.9GHz + MKKA1 */
 
-	MKK10_FCCA	= 0xD0,		/* Japan UNI-1 even + UNI-2 + 4.9GHz + FCCA */
-	MKK10_MKKA1	= 0xD1,		/* Japan UNI-1 even + UNI-2 + 4.9GHz + MKKA1 */
-	MKK10_MKKC	= 0xD2,		/* Japan UNI-1 even + UNI-2 + 4.9GHz + MKKC */
-	MKK10_MKKA2	= 0xD3,		/* Japan UNI-1 even + UNI-2 + 4.9GHz + MKKA2 */
+    MKK10_FCCA  = 0xD0,     /* Japan UNI-1 even + UNI-2 + 4.9GHz + FCCA */
+    MKK10_MKKA1 = 0xD1,     /* Japan UNI-1 even + UNI-2 + 4.9GHz + MKKA1 */
+    MKK10_MKKC  = 0xD2,     /* Japan UNI-1 even + UNI-2 + 4.9GHz + MKKC */
+    MKK10_MKKA2 = 0xD3,     /* Japan UNI-1 even + UNI-2 + 4.9GHz + MKKA2 */
 
-	MKK11_MKKA	= 0xD4,		/* Japan UNI-1 even + UNI-2 + mid-band + 4.9GHz + MKKA */
-	MKK11_FCCA	= 0xD5,		/* Japan UNI-1 even + UNI-2 + mid-band + 4.9GHz + FCCA */
-	MKK11_MKKA1	= 0xD6,		/* Japan UNI-1 even + UNI-2 + mid-band + 4.9GHz + MKKA1 */
-	MKK11_MKKC	= 0xD7,		/* Japan UNI-1 even + UNI-2 + mid-band + 4.9GHz + MKKC */
-	MKK11_MKKA2	= 0xD8,		/* Japan UNI-1 even + UNI-2 + mid-band + 4.9GHz + MKKA2 */
+    MKK11_MKKA  = 0xD4,     /* Japan UNI-1 even + UNI-2 + mid-band + 4.9GHz + MKKA */
+    MKK11_FCCA  = 0xD5,     /* Japan UNI-1 even + UNI-2 + mid-band + 4.9GHz + FCCA */
+    MKK11_MKKA1 = 0xD6,     /* Japan UNI-1 even + UNI-2 + mid-band + 4.9GHz + MKKA1 */
+    MKK11_MKKC  = 0xD7,     /* Japan UNI-1 even + UNI-2 + mid-band + 4.9GHz + MKKC */
+    MKK11_MKKA2 = 0xD8,     /* Japan UNI-1 even + UNI-2 + mid-band + 4.9GHz + MKKA2 */
 
-	MKK12_MKKA	= 0xD9,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + 4.9GHz + MKKA */
-	MKK12_FCCA	= 0xDA,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + 4.9GHz + FCCA */
-	MKK12_MKKA1	= 0xDB,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + 4.9GHz + MKKA1 */
-	MKK12_MKKC	= 0xDC,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + 4.9GHz + MKKC */
-	MKK12_MKKA2	= 0xDD,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + 4.9GHz + MKKA2 */
+    MKK12_MKKA  = 0xD9,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + 4.9GHz + MKKA */
+    MKK12_FCCA  = 0xDA,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + 4.9GHz + FCCA */
+    MKK12_MKKA1 = 0xDB,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + 4.9GHz + MKKA1 */
+    MKK12_MKKC  = 0xDC,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + 4.9GHz + MKKC */
+    MKK12_MKKA2 = 0xDD,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + 4.9GHz + MKKA2 */
 
-	MKK13_MKKB	= 0xDE,		/* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + MKKB + All passive + no adhoc */
+    MKK13_MKKB  = 0xDE,     /* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + MKKB + All passive + no adhoc */
 
-	/* Following definitions are used only by s/w to map old
-	 * Japan SKUs.
-	 */
-	MKK3_MKKA       = 0xF0,         /* Japan UNI-1 even + MKKA */
-	MKK3_MKKA1      = 0xF1,         /* Japan UNI-1 even + MKKA1 */
-	MKK3_FCCA       = 0xF2,         /* Japan UNI-1 even + FCCA */
-	MKK4_MKKA       = 0xF3,         /* Japan UNI-1 even + UNI-2 + MKKA */
-	MKK4_MKKA1      = 0xF4,         /* Japan UNI-1 even + UNI-2 + MKKA1 */
-	MKK4_FCCA       = 0xF5,         /* Japan UNI-1 even + UNI-2 + FCCA */
-	MKK9_MKKA       = 0xF6,         /* Japan UNI-1 even + 4.9GHz */
-	MKK10_MKKA      = 0xF7,         /* Japan UNI-1 even + UNI-2 + 4.9GHz */
-	MKK6_MKKA1      = 0xF8,		    /* Japan UNI-1 even + UNI-1 odd + UNI-2 + MKKA1 */
-	MKK6_FCCA       = 0xF9,         /* Japan UNI-1 even + UNI-1 odd + UNI-2 + FCCA */
-	MKK7_MKKA1	    = 0xFA,		    /* Japan UNI-1 even + UNI-1 odd + UNI-2 + MKKA1 */
-	MKK7_FCCA       = 0xFB,         /* Japan UNI-1 even + UNI-1 odd + UNI-2 + FCCA */
-	MKK9_FCCA       = 0xFC,         /* Japan UNI-1 even + 4.9GHz + FCCA */
-	MKK9_MKKA1      = 0xFD,         /* Japan UNI-1 even + 4.9GHz + MKKA1 */
-	MKK9_MKKC       = 0xFE,         /* Japan UNI-1 even + 4.9GHz + MKKC */
-	MKK9_MKKA2      = 0xFF,         /* Japan UNI-1 even + 4.9GHz + MKKA2 */
+    /* Following definitions are used only by s/w to map old
+     * Japan SKUs.
+     */
+    MKK3_MKKA       = 0xF0,         /* Japan UNI-1 even + MKKA */
+    MKK3_MKKA1      = 0xF1,         /* Japan UNI-1 even + MKKA1 */
+    MKK3_FCCA       = 0xF2,         /* Japan UNI-1 even + FCCA */
+    MKK4_MKKA       = 0xF3,         /* Japan UNI-1 even + UNI-2 + MKKA */
+    MKK4_MKKA1      = 0xF4,         /* Japan UNI-1 even + UNI-2 + MKKA1 */
+    MKK4_FCCA       = 0xF5,         /* Japan UNI-1 even + UNI-2 + FCCA */
+    MKK9_MKKA       = 0xF6,         /* Japan UNI-1 even + 4.9GHz */
+    MKK10_MKKA      = 0xF7,         /* Japan UNI-1 even + UNI-2 + 4.9GHz */
+    MKK6_MKKA1      = 0xF8,         /* Japan UNI-1 even + UNI-1 odd + UNI-2 + MKKA1 */
+        MKK6_FCCA       = 0xF9,         /* Japan UNI-1 even + UNI-1 odd + UNI-2 + FCCA */
+    MKK7_MKKA1      = 0xFA,         /* Japan UNI-1 even + UNI-1 odd + UNI-2 + MKKA1 */
+    MKK7_FCCA       = 0xFB,         /* Japan UNI-1 even + UNI-1 odd + UNI-2 + FCCA */
+    MKK9_FCCA       = 0xFC,         /* Japan UNI-1 even + 4.9GHz + FCCA */
+    MKK9_MKKA1      = 0xFD,         /* Japan UNI-1 even + 4.9GHz + MKKA1 */
+    MKK9_MKKC       = 0xFE,         /* Japan UNI-1 even + 4.9GHz + MKKC */
+    MKK9_MKKA2      = 0xFF,         /* Japan UNI-1 even + 4.9GHz + MKKA2 */
 
-	/*
-	 * Regulator domains ending in a number (e.g. APL1,
-	 * MK1, ETSI4, etc) apply to 5GHz channel and power
-	 * information.  Regulator domains ending in a letter
-	 * (e.g. APLA, FCCA, etc) apply to 2.4GHz channel and
-	 * power information.
-	 */
-	APL1		= 0x0150,	/* LAT & Asia */
-	APL2		= 0x0250,	/* LAT & Asia */
-	APL3		= 0x0350,	/* Taiwan */
-	APL4		= 0x0450,	/* Jordan */
-	APL5		= 0x0550,	/* Chile */
-	APL6		= 0x0650,	/* Singapore */
-	APL7		= 0x0750,	/* Taiwan, disable ch52 */
-	APL8		= 0x0850,	/* Malaysia */
-	APL9		= 0x0950,	/* Korea. Before 11/2007. Now used only by APs */
-	APL10		= 0x1050,	/* Korea. After 11/2007. For STAs only */
+    /*
+     * Regulator domains ending in a number (e.g. APL1,
+     * MK1, ETSI4, etc) apply to 5GHz channel and power
+     * information.  Regulator domains ending in a letter
+     * (e.g. APLA, FCCA, etc) apply to 2.4GHz channel and
+     * power information.
+     */
+    APL1        = 0x0150,   /* LAT & Asia */
+    APL2        = 0x0250,   /* LAT & Asia */
+    APL3        = 0x0350,   /* Taiwan */
+    APL4        = 0x0450,   /* Jordan */
+    APL5        = 0x0550,   /* Chile */
+    APL6        = 0x0650,   /* Singapore */
+    APL7        = 0x0750,   /* Taiwan, disable ch52 */
+    APL8        = 0x0850,   /* Malaysia */
+    APL9        = 0x0950,   /* Korea. Before 11/2007. Now used only by APs */
+    APL10       = 0x1050,   /* Korea. After 11/2007. For STAs only */
+    APL11       = 0x1150,   /* Specific AP Customer 5GHz, For APs Only */
+    APL12       = 0x1160,   /* Kenya */
 
-	ETSI1		= 0x0130,	/* Europe & others */
-	ETSI2		= 0x0230,	/* Europe & others */
-	ETSI3		= 0x0330,	/* Europe & others */
-	ETSI4		= 0x0430,	/* Europe & others */
-	ETSI5		= 0x0530,	/* Europe & others */
-	ETSI6		= 0x0630,	/* Europe & others */
-	ETSI8		= 0x0830,	/* Russia */
-	ETSI9		= 0x0930,	/* Ukraine */
-	ETSIA		= 0x0A30,	/* France */
-	ETSIB		= 0x0B30,	/* Israel */
-	ETSIC		= 0x0C30,	/* Latin America */
+    ETSI1       = 0x0130,   /* Europe & others */
+    ETSI2       = 0x0230,   /* Europe & others */
+    ETSI3       = 0x0330,   /* Europe & others */
+    ETSI4       = 0x0430,   /* Europe & others */
+    ETSI5       = 0x0530,   /* Europe & others */
+    ETSI6       = 0x0630,   /* Europe & others */
+    ETSI8       = 0x0830,   /* Russia */
+    ETSI9       = 0x0930,   /* Ukraine */
+    ETSIA       = 0x0A30,   /* France */
+    ETSIB       = 0x0B30,   /* Israel */
+    ETSIC       = 0x0C30,   /* Latin America */
 
-	FCC1		= 0x0110,	/* US & others */
-	FCC2		= 0x0120,	/* Canada, Australia & New Zealand */
-	FCC3		= 0x0160,	/* US w/new middle band & DFS */
-	FCC4		= 0x0165,	/* US Public Safety */
-	FCC5		= 0x0510,
-	FCC6		= 0x0610,	/* Canada & Australia */
-	FCCA		= 0x0A10,
+    FCC1        = 0x0110,   /* US & others */
+    FCC2        = 0x0120,   /* Canada, Australia & New Zealand */
+    FCC3        = 0x0160,   /* US w/new middle band & DFS */
+    FCC4        = 0x0165,   /* US Public Safety */
+    FCC5        = 0x0510,
+    FCC6        = 0x0610,   /* Canada & Australia */
+    FCCA        = 0x0A10,
 
-	APLD		= 0x0D50,	/* South Korea */
+    APLD        = 0x0D50,   /* South Korea */
 
-	MKK1		= 0x0140,	/* Japan (UNI-1 odd)*/
-	MKK2		= 0x0240,	/* Japan (4.9 GHz + UNI-1 odd) */
-	MKK3		= 0x0340,	/* Japan (UNI-1 even) */
-	MKK4		= 0x0440,	/* Japan (UNI-1 even + UNI-2) */
-	MKK5		= 0x0540,	/* Japan (UNI-1 even + UNI-2 + mid-band) */
-	MKK6		= 0x0640,	/* Japan (UNI-1 odd + UNI-1 even) */
-	MKK7		= 0x0740,	/* Japan (UNI-1 odd + UNI-1 even + UNI-2 */
-	MKK8		= 0x0840,	/* Japan (UNI-1 odd + UNI-1 even + UNI-2 + mid-band) */
-	MKK9		= 0x0940,	/* Japan (UNI-1 even + 4.9 GHZ) */
-	MKK10		= 0x0B40,	/* Japan (UNI-1 even + UNI-2 + 4.9 GHZ) */
-	MKK11		= 0x1140,	/* Japan (UNI-1 even + UNI-2 + 4.9 GHZ) */
-	MKK12		= 0x1240,	/* Japan (UNI-1 even + UNI-2 + 4.9 GHZ) */
-	MKK13		= 0x0C40,	/* Same as MKK8 but all passive and no adhoc 11a */
-	MKK14       = 0x1440,   /* Japan UNI-1 even + UNI-1 odd + 4.9GHz */
-	MKK15       = 0x1540,   /* Japan UNI-1 even + UNI-1 odd + UNI-2 + 4.9GHz */
-	MKKA		= 0x0A40,	/* Japan */
-	MKKC		= 0x0A50,
+    MKK1        = 0x0140,   /* Japan (UNI-1 odd)*/
+    MKK2        = 0x0240,   /* Japan (4.9 GHz + UNI-1 odd) */
+    MKK3        = 0x0340,   /* Japan (UNI-1 even) */
+    MKK4        = 0x0440,   /* Japan (UNI-1 even + UNI-2) */
+    MKK5        = 0x0540,   /* Japan (UNI-1 even + UNI-2 + mid-band) */
+    MKK6        = 0x0640,   /* Japan (UNI-1 odd + UNI-1 even) */
+    MKK7        = 0x0740,   /* Japan (UNI-1 odd + UNI-1 even + UNI-2 */
+    MKK8        = 0x0840,   /* Japan (UNI-1 odd + UNI-1 even + UNI-2 + mid-band) */
+    MKK9        = 0x0940,   /* Japan (UNI-1 even + 4.9 GHZ) */
+    MKK10       = 0x0B40,   /* Japan (UNI-1 even + UNI-2 + 4.9 GHZ) */
+    MKK11       = 0x1140,   /* Japan (UNI-1 even + UNI-2 + 4.9 GHZ) */
+    MKK12       = 0x1240,   /* Japan (UNI-1 even + UNI-2 + 4.9 GHZ) */
+    MKK13       = 0x0C40,   /* Same as MKK8 but all passive and no adhoc 11a */
+    MKK14       = 0x1440,   /* Japan UNI-1 even + UNI-1 odd + 4.9GHz */
+    MKK15       = 0x1540,   /* Japan UNI-1 even + UNI-1 odd + UNI-2 + 4.9GHz */
+    MKKA        = 0x0A40,   /* Japan */
+    MKKC        = 0x0A50,
 
-	NULL1		= 0x0198,
-	WORLD		= 0x0199,
-	DEBUG_REG_DMN	= 0x01ff,
+    NULL1       = 0x0198,
+    WORLD       = 0x0199,
+    DEBUG_REG_DMN   = 0x01ff,
 };
 
 enum {					/* conformance test limits */
@@ -685,95 +692,105 @@ enum {
  * 5GHz 11A channel tags
  */
 enum {
-	F1_4915_4925,
-	F2_4915_4925,
-	F1_4935_4945,
-	F2_4935_4945,
-	F1_4920_4980,
-	F2_4920_4980,
-	F1_4942_4987,
-	F1_4945_4985,
-	F1_4950_4980,
-	F1_5035_5040,
-	F2_5035_5040,
-	F1_5040_5040,
-	F1_5040_5080,
-	F2_5040_5080,
-	F1_5055_5055,
-	F2_5055_5055,
+    F1_4912_4947,
+    F1_4915_4925,
+    F2_4915_4925,
+    F1_4935_4945,
+    F2_4935_4945,
+    F1_4920_4980,
+    F2_4920_4980,
+    F1_4942_4987,
+    F1_4945_4985,
+    F1_4950_4980,
+    F1_5032_5057,
+    F1_5035_5040,
+    F2_5035_5040,
+    F1_5035_5045,
+    F1_5040_5040,
+    F1_5040_5080,
+    F2_5040_5080,
+    F1_5055_5055,
+    F2_5055_5055,
 
-	F1_5120_5240,
+    F1_5120_5240,
 
-	F1_5170_5230,
-	F2_5170_5230,
+    F1_5170_5230,
+    F2_5170_5230,
 
-	F1_5180_5240,
-	F2_5180_5240,
-	F3_5180_5240,
-	F4_5180_5240,
-	F5_5180_5240,
-	F6_5180_5240,
-	F7_5180_5240,
-	F8_5180_5240,
-	F9_5180_5240,
-	F10_5180_5240,
+    F1_5180_5240,
+    F2_5180_5240,
+    F3_5180_5240,
+    F4_5180_5240,
+    F5_5180_5240,
+    F6_5180_5240,
+    F7_5180_5240,
+    F8_5180_5240,
+    F9_5180_5240,
+    F10_5180_5240,
 
-	F1_5240_5280,
+    F1_5240_5280,
 
-	F1_5260_5280,
+    F1_5260_5280,
 
-	F1_5260_5320,
-	F2_5260_5320,
-	F3_5260_5320,
-	F4_5260_5320,
-	F5_5260_5320,
-	F6_5260_5320,
-	F7_5260_5320,
+    F1_5260_5320,
+    F2_5260_5320,
+    F3_5260_5320,
+    F4_5260_5320,
+    F5_5260_5320,
+    F6_5260_5320,
+    F7_5260_5320,
 
-	F1_5260_5700,
+    F1_5260_5700,
 
-	F1_5280_5320,
+    F1_5280_5320,
+    F2_5280_5320,
+    F1_5500_5560,
 
-	F1_5500_5580,
-	F2_5500_5580,
+    F1_5500_5580,
+    F2_5500_5580,
 
-	F1_5500_5620,
+    F1_5500_5620,
 
     F1_5500_5660,
 
-	F1_5500_5720,
-	F2_5500_5700,
-	F3_5500_5700,
-	F4_5500_5700,
-	F5_5500_5700,
-	F6_5500_5700,
+    F1_5500_5720,
+    F2_5500_5700,
+    F3_5500_5700,
+    F4_5500_5700,
+    F5_5500_5700,
+    F6_5500_5700,
 
-	F1_5660_5700,
-	F2_5660_5700,
-	F3_5660_5700,
+    F1_5660_5700,
+    F2_5660_5720,
+    F3_5660_5720,
 
-	F1_5745_5805,
-	F2_5745_5805,
-	F3_5745_5805,
+    F1_5745_5765,
+
+    F1_5745_5805,
+    F2_5745_5805,
+    F3_5745_5805,
     F4_5745_5805,
 
-	F1_5745_5825,
-	F2_5745_5825,
-	F3_5745_5825,
-	F4_5745_5825,
-	F5_5745_5825,
-	F6_5745_5825,
-        F7_5745_5825,
+    F1_5745_5825,
+    F2_5745_5825,
+    F3_5745_5825,
+    F4_5745_5825,
+    F5_5745_5825,
+    F6_5745_5825,
+    F7_5745_5825,
     F8_5745_5825,
+    F9_5745_5825,
 
-	W1_4920_4980,
-	W1_5040_5080,
-	W1_5170_5230,
-	W1_5180_5240,
-	W1_5260_5320,
-	W1_5745_5825,
-	W1_5500_5700,
-	A_DEMO_ALL_CHANNELS
+    F1_5845_5865,
+
+    W1_4920_4980,
+    W1_5040_5080,
+    W1_5170_5230,
+    W1_5180_5240,
+    W1_5260_5320,
+    W1_5745_5825,
+    W1_5500_5700,
+    A_DEMO_ALL_CHANNELS
 };
 
 static const REG_DMN_FREQ_BAND regDmn5GhzFreq[] = {
@@ -1048,4 +1065,769 @@ static const COMMON_MODE_POWER common_mode_pwrtbl[] = {
 	{ 5470, 5725, 20 }, /* ETSI */
 	{ 5725, 5825, 20 }, /* Singapore */
 	{ 5825, 5850, 23 }  /* Korea */
+};
+
+/*
+ * 5GHz Turbo (dynamic & static) tags
+ */
+
+enum {
+    T1_5130_5650,
+    T1_5150_5670,
+
+    T1_5200_5200,
+    T2_5200_5200,
+    T3_5200_5200,
+    T4_5200_5200,
+    T5_5200_5200,
+    T6_5200_5200,
+    T7_5200_5200,
+    T8_5200_5200,
+
+    T1_5200_5280,
+    T2_5200_5280,
+    T3_5200_5280,
+    T4_5200_5280,
+    T5_5200_5280,
+    T6_5200_5280,
+
+    T1_5200_5240,
+    T1_5210_5210,
+    T2_5210_5210,
+    T3_5210_5210,
+    T4_5210_5210,
+    T5_5210_5210,
+    T6_5210_5210,
+    T7_5210_5210,
+    T8_5210_5210,
+    T9_5210_5210,
+    T10_5210_5210,
+    T1_5240_5240,
+
+    T1_5210_5250,
+    T1_5210_5290,
+    T2_5210_5290,
+    T3_5210_5290,
+
+    T1_5280_5280,
+    T2_5280_5280,
+    T1_5290_5290,
+    T2_5290_5290,
+    T3_5290_5290,
+    T1_5250_5290,
+    T2_5250_5290,
+    T3_5250_5290,
+    T4_5250_5290,
+
+    T1_5540_5660,
+    T2_5540_5660,
+    T3_5540_5660,
+    T1_5760_5800,
+    T2_5760_5800,
+    T3_5760_5800,
+    T4_5760_5800,
+    T5_5760_5800,
+    T6_5760_5800,
+    T7_5760_5800,
+
+    T1_5765_5805,
+    T2_5765_5805,
+    T3_5765_5805,
+    T4_5765_5805,
+    T5_5765_5805,
+    T6_5765_5805,
+    T7_5765_5805,
+    T8_5765_5805,
+    T9_5765_5805,
+
+    WT1_5210_5250,
+    WT1_5290_5290,
+    WT1_5540_5660,
+    WT1_5760_5800,
+};
+
+/*
+ * 2GHz Dynamic turbo tags
+ */
+#ifndef ATH_REMOVE_2G_TURBO_RD_TABLE
+enum {
+    T1_2312_2372,
+    T1_2437_2437,
+    T2_2437_2437,
+    T3_2437_2437,
+    T1_2512_2732
+};
+
+static const REG_DMN_FREQ_BAND regDmn2Ghz11gTurboFreq[] = {
+    { 2312, 2372, 5,  6, 40, 40, NO_DFS, NO_PSCAN, 0},  /* T1_2312_2372 */
+    { 2437, 2437, 5,  6, 40, 40, NO_DFS, NO_PSCAN, 0},  /* T1_2437_2437 */
+    { 2437, 2437, 20, 6, 40, 40, NO_DFS, NO_PSCAN, 0},  /* T2_2437_2437 */
+    { 2437, 2437, 18, 6, 40, 40, NO_DFS, PSCAN_WWR, 0}, /* T3_2437_2437 */
+    { 2512, 2732, 5,  6, 40, 40, NO_DFS, NO_PSCAN, 0},  /* T1_2512_2732 */
+};
+#endif /* ATH_REMOVE_2G_TURBO_RD_TABLE */
+
+static const REG_DOMAIN ahCmnRegDomains[] = {
+
+	{DEBUG_REG_DMN, FCC, DFS_FCC3, NO_PSCAN, NO_REQ,
+		CHAN_11A_BM(A_DEMO_ALL_CHANNELS, F6_5745_5825,
+				-1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+		CHAN_11A_BM(T1_5130_5650, T1_5150_5670, F6_5745_5825,
+					-1, -1, -1, -1, -1, -1, -1, -1, -1)
+		CHAN_11A_BM(T1_5200_5240, T1_5280_5280, T1_5540_5660, T1_5765_5805,
+					-1, -1, -1, -1, -1, -1, -1, -1)
+		BM(F1_2312_2372, F1_2412_2472, F1_2484_2484, F1_2512_2732,
+					-1, -1, -1, -1, -1, -1, -1, -1),
+		BM(G_DEMO_ALMOST_ALL_CHANNELS,
+				G1_2484_2484, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T1_2312_2372, T1_2437_2437, T1_2512_2732,
+				-1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{APL1, FCC, NO_DFS, NO_PSCAN, NO_REQ,
+		BM(F4_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T2_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{APL2, FCC, NO_DFS, NO_PSCAN, NO_REQ,
+		BM(F1_5745_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T2_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{APL3, FCC, DFS_FCC3, PSCAN_FCC, NO_REQ,
+		BM(F1_5280_5320, F6_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5290_5290, T1_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{APL4, FCC, NO_DFS, NO_PSCAN, NO_REQ,
+		BM(F5_5180_5240,  F9_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5210_5210, T3_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5200_5200, T3_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{APL5, FCC, NO_DFS, NO_PSCAN, NO_REQ,
+		BM(F2_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T4_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T4_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{APL6, ETSI, DFS_ETSI, PSCAN_FCC_T | PSCAN_FCC , NO_REQ,
+		BM(F9_5180_5240, F2_5260_5320, F3_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T2_5210_5210, T1_5250_5290, T1_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5200_5280, T5_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{APL7, FCC, DFS_FCC3 | DFS_ETSI, PSCAN_FCC | PSCAN_ETSI , NO_REQ,
+		BM(F2_5280_5320, F2_5500_5580, F3_5660_5720, F7_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T3_5290_5290, T5_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5540_5660, T6_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{APL8, ETSI, NO_DFS, NO_PSCAN, DISALLOW_ADHOC_11A|DISALLOW_ADHOC_11A_TURB,
+		BM(F6_5260_5320, F4_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T2_5290_5290, T2_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5280_5280, T1_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{APL9, ETSI, DFS_ETSI, PSCAN_ETSI, DISALLOW_ADHOC_11A|DISALLOW_ADHOC_11A_TURB,
+		BM(F9_5180_5240, F2_5260_5320, F1_5500_5620, F3_5745_5805, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T3_5290_5290, T5_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5540_5660, T6_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{APL10, ETSI, DFS_ETSI, PSCAN_ETSI , DISALLOW_ADHOC_11A|DISALLOW_ADHOC_11A_TURB,
+		BM(F9_5180_5240, F2_5260_5320, F5_5500_5700, F3_5745_5805, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T3_5290_5290, T5_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5540_5660, T6_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{APL11, ETSI, DFS_ETSI, PSCAN_ETSI , DISALLOW_ADHOC_11A|DISALLOW_ADHOC_11A_TURB,
+		BM(F9_5180_5240, F2_5260_5320, F5_5500_5700, F7_5745_5825, F1_5845_5865, -1, -1, -1, -1, -1, -1, -1),
+		BM(T3_5290_5290, T5_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5540_5660, T6_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{APL12, ETSI, DFS_ETSI, PSCAN_ETSI, DISALLOW_ADHOC_11A|DISALLOW_ADHOC_11A_TURB,
+		BM(F5_5180_5240, F1_5500_5560, F1_5745_5765, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T2_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{ETSI1, ETSI, DFS_ETSI, PSCAN_ETSI, DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		BM(F2_5180_5240, F2_5260_5320, F2_5500_5700, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5210_5290, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T2_5200_5280, T2_5540_5660, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{ETSI2, ETSI, DFS_ETSI, PSCAN_ETSI, DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		BM(F3_5180_5240, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T3_5210_5210, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T2_5200_5200, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{ETSI3, ETSI, DFS_ETSI, PSCAN_ETSI, DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		BM(F4_5180_5240, F2_5260_5320, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5210_5290, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T2_5200_5280, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{ETSI4, ETSI, DFS_ETSI, PSCAN_ETSI, DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		BM(F3_5180_5240, F1_5260_5320, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T2_5210_5290, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T3_5200_5280, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{ETSI5, ETSI, DFS_ETSI, PSCAN_ETSI, DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		BM(F1_5180_5240, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T4_5210_5210, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T3_5200_5200, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{ETSI6, ETSI, DFS_ETSI, PSCAN_ETSI, DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		BM(F5_5180_5240, F1_5260_5280, F3_5500_5700, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5210_5250, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T4_5200_5280, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{ETSI8, ETSI, DFS_ETSI, PSCAN_ETSI, DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		BM(F4_5180_5240, F2_5260_5320, F1_5660_5700, F4_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5210_5290, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T2_5200_5280, T2_5540_5660, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		BMZERO
+	},
+
+	{ETSI9, ETSI, DFS_ETSI, PSCAN_ETSI, DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		BM(F4_5180_5240, F2_5260_5320, F1_5500_5660, F8_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5210_5290, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T2_5200_5280, T2_5540_5660, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		BMZERO
+	},
+
+	{FCC1, FCC, NO_DFS, NO_PSCAN, NO_REQ,
+		BM(F2_5180_5240, F4_5260_5320, F5_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T6_5210_5210, T2_5250_5290, T6_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5200_5240, T2_5280_5280, T7_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{FCC2, FCC, NO_DFS, NO_PSCAN, NO_REQ,
+		BM(F6_5180_5240, F5_5260_5320, F6_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T7_5210_5210, T3_5250_5290, T2_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T7_5200_5200, T1_5240_5240, T2_5280_5280, T1_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{FCC3, FCC, DFS_FCC3, PSCAN_FCC | PSCAN_FCC_T, NO_REQ,
+		BM(F2_5180_5240, F3_5260_5320, F1_5500_5720, F5_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T6_5210_5210, T2_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T4_5200_5200, T8_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+	/*
+
+		Bug Fix: EV 98583 Public Safety channel
+		Exclude the following channel in FCC Public safety domain
+		Uni-1: 5180, 5200, 5220, 5240
+		Uni-2: 5260, 5280, 5300, 5320
+		Uni-3: 5745, 5765, 5785, 5805, 5825
+		*/
+	{FCC4, FCC, DFS_FCC3, PSCAN_FCC | PSCAN_FCC_T, NO_REQ,
+		BM(F1_4942_4987, F1_4945_4985, F1_4950_4980, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T8_5210_5210, T4_5250_5290, T7_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5200_5240, T1_5280_5280, T9_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{FCC5, FCC, NO_DFS, NO_PSCAN, NO_REQ,
+		BM(F2_5180_5240, F6_5745_5825, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T6_5210_5210, T2_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T8_5200_5200, T7_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{FCC6, FCC, DFS_FCC3, PSCAN_FCC, NO_REQ,
+		BM(F8_5180_5240, F5_5260_5320, F1_5500_5580, F2_5660_5720, F6_5745_5825, -1, -1, -1, -1, -1, -1, -1),
+		BM(T7_5210_5210, T3_5250_5290, T2_5760_5800, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T7_5200_5200, T1_5240_5240, T2_5280_5280, T1_5765_5805, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{MKK1, MKK, DFS_MKK4, PSCAN_MKK1 | PSCAN_MKK3, DISALLOW_ADHOC_11A_TURB,
+		BM(F1_5170_5230, F10_5180_5240, F7_5260_5320, F4_5500_5700, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T7_5210_5210, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T5_5200_5200, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{MKK2, MKK, DFS_MKK4, PSCAN_MKK2 | PSCAN_MKK3, DISALLOW_ADHOC_11A_TURB,
+		BM(F2_4915_4925, F2_4935_4945, F1_4920_4980, F1_5035_5040, F2_5055_5055, F1_5040_5080, F1_5170_5230, F10_5180_5240, -1, -1, -1, -1),
+		BM(T7_5210_5210, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T5_5200_5200, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* UNI-1 even */
+	{MKK3, MKK, NO_DFS, PSCAN_MKK3, DISALLOW_ADHOC_11A_TURB,
+		BM(F4_5180_5240, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T9_5210_5210, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5200_5200, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* UNI-1 even + UNI-2 */
+	{MKK4, MKK, DFS_MKK4, PSCAN_MKK3, DISALLOW_ADHOC_11A_TURB,
+		BM(F4_5180_5240, F2_5260_5320, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T10_5210_5210, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T6_5200_5200, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* UNI-1 even + UNI-2 + mid-band */
+	{MKK5, MKK, DFS_MKK4, PSCAN_MKK3, DISALLOW_ADHOC_11A_TURB,
+		BM(F4_5180_5240, F2_5260_5320, F6_5500_5700, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T3_5210_5290, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T5_5200_5280, T3_5540_5660, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* UNI-1 odd + even */
+	{MKK6, MKK, NO_DFS, PSCAN_MKK1, DISALLOW_ADHOC_11A_TURB,
+		BM(F2_5170_5230, F4_5180_5240, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T3_5210_5210, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T6_5200_5200, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* UNI-1 odd + UNI-1 even + UNI-2 */
+	{MKK7, MKK, DFS_MKK4, PSCAN_MKK1 | PSCAN_MKK3 , DISALLOW_ADHOC_11A_TURB,
+		BM(F2_5170_5230, F4_5180_5240, F2_5260_5320, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T3_5210_5290, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T5_5200_5280, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* UNI-1 odd + UNI-1 even + UNI-2 + mid-band */
+	{MKK8, MKK, DFS_MKK4, PSCAN_MKK1 | PSCAN_MKK3 , DISALLOW_ADHOC_11A_TURB,
+		BM(F2_5170_5230, F4_5180_5240, F2_5260_5320, F6_5500_5700, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T3_5210_5290, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T5_5200_5280, T3_5540_5660, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* UNI-1 even + 4.9 GHZ */
+	{MKK9, MKK, NO_DFS, PSCAN_MKK2 | PSCAN_MKK3, DISALLOW_ADHOC_11A_TURB,
+		BM(F1_4912_4947, F1_5032_5057, F1_4915_4925, F1_4935_4945, F2_4920_4980, F1_5035_5045, F1_5055_5055, F2_5040_5080, F4_5180_5240, -1, -1, -1),
+		BM(T9_5210_5210, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5200_5200, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* UNI-1 even + UNI-2 + 4.9 GHZ */
+	{MKK10, MKK, DFS_MKK4, PSCAN_MKK2 | PSCAN_MKK3, DISALLOW_ADHOC_11A_TURB,
+		BM(F1_4912_4947, F1_5032_5057, F1_4915_4925, F1_4935_4945, F2_4920_4980, F1_5035_5045, F1_5055_5055, F2_5040_5080, F4_5180_5240, F2_5260_5320, -1, -1),
+		BM(T3_5210_5290, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5200_5280, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* Japan UNI-1 even + UNI-2 + mid-band + 4.9GHz */
+	{MKK11, MKK, DFS_MKK4, PSCAN_MKK3, DISALLOW_ADHOC_11A_TURB,
+		BM(F1_4912_4947, F1_5032_5057, F1_4915_4925, F1_4935_4945, F2_4920_4980, F1_5035_5045, F1_5055_5055, F2_5040_5080, F4_5180_5240, F2_5260_5320, F6_5500_5700, -1),
+		BM(T3_5210_5290, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5200_5280, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* Japan UNI-1 even + UNI-1 odd + UNI-2 + mid-band + 4.9GHz */
+	{MKK12, MKK, DFS_MKK4, PSCAN_MKK1 | PSCAN_MKK3, DISALLOW_ADHOC_11A_TURB,
+		BM(F1_4915_4925, F1_4935_4945, F2_4920_4980, F1_5040_5040, F1_5055_5055, F2_5040_5080, F2_5170_5230, F4_5180_5240, F2_5260_5320, F6_5500_5700, -1, -1),
+		BM(T3_5210_5290, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(T1_5200_5280, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* UNI-1 odd + UNI-1 even + UNI-2 + mid-band */
+	{MKK13, MKK, DFS_MKK4, PSCAN_MKK1 | PSCAN_MKK3 , DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		BM(F2_5170_5230, F7_5180_5240, F2_5260_5320, F6_5500_5700, -1, -1, -1, -1, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* UNI-1 odd + UNI-1 even + 4.9GHz */
+	{MKK14, MKK, DFS_MKK4, PSCAN_MKK1, DISALLOW_ADHOC_11A_TURB,
+		BM(F1_4915_4925, F1_4935_4945, F2_4920_4980, F1_5040_5040, F2_5040_5080, F1_5055_5055, F2_5170_5230, F4_5180_5240, -1, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/* UNI-1 odd + UNI-1 even + UNI-2 + 4.9GHz */
+	{MKK15, MKK, DFS_MKK4, PSCAN_MKK1 | PSCAN_MKK3, DISALLOW_ADHOC_11A_TURB,
+		BM(F1_4915_4925, F1_4935_4945, F2_4920_4980, F1_5040_5040, F2_5040_5080, F1_5055_5055, F2_5170_5230, F4_5180_5240, F2_5260_5320, -1, -1, -1),
+		BMZERO,
+		BMZERO,
+		BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+
+	/*=== 2 GHz ===*/
+
+	/* Defined here to use when 2G channels are authorised for country K2 */
+	{APLD, NO_CTL, NO_DFS, NO_PSCAN, NO_REQ,
+		CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(F2_2312_2372, F4_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(G2_2312_2372,G4_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BMZERO
+	},
+
+	{ETSIA, NO_CTL, NO_DFS, PSCAN_ETSIA, DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(F1_2457_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(G1_2457_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T2_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{ETSIB, ETSI, NO_DFS, PSCAN_ETSIB, DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(F1_2432_2442, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(G1_2432_2442, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T2_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{ETSIC, ETSI, NO_DFS, PSCAN_ETSIC, DISALLOW_ADHOC_11A | DISALLOW_ADHOC_11A_TURB,
+		CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(F3_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(G3_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T2_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{FCCA, FCC, NO_DFS, NO_PSCAN, NO_REQ,
+		CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(F1_2412_2462, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(G1_2412_2462, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T2_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{MKKA, MKK, NO_DFS, PSCAN_MKKA | PSCAN_MKKA_G | PSCAN_MKKA1 | PSCAN_MKKA1_G | PSCAN_MKKA2 | PSCAN_MKKA2_G, DISALLOW_ADHOC_11A_TURB,
+		CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(F2_2412_2462, F1_2467_2472, F2_2484_2484,
+					-1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(G2_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T2_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{MKKC, MKK, NO_DFS, NO_PSCAN, NO_REQ,
+		CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(F2_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(G2_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T2_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WORLD, ETSI, NO_DFS, NO_PSCAN, NO_REQ,
+		CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(F4_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		BM(G4_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T2_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WOR0_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_PER_11D,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5745_5825, W1_5500_5700,
+				-1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BM(WT1_5210_5250, WT1_5290_5290, WT1_5760_5800,
+					-1, -1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2472_2472, W1_2417_2432,
+					W1_2447_2457, W1_2467_2467, W1_2484_2484, -1, -1, -1, -1),
+		BM(WG1_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WOR01_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_PER_11D,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5170_5230, W1_5745_5825,
+				W1_5500_5700, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BM(WT1_5210_5250, WT1_5290_5290, WT1_5760_5800,
+					-1, -1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2417_2432, W1_2447_2457,
+					-1, -1, -1, -1, -1, -1, -1),
+		BM(WG1_2412_2462, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WOR02_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_PER_11D,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5170_5230, W1_5745_5825,
+				W1_5500_5700, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BM(WT1_5210_5250, WT1_5290_5290, WT1_5760_5800,
+					-1, -1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2472_2472, W1_2417_2432,
+					W1_2447_2457, W1_2467_2467, -1, -1, -1, -1, -1),
+		BM(WG1_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{EU1_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_PER_11D,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5170_5230, W1_5745_5825,
+				W1_5500_5700, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BM(WT1_5210_5250, WT1_5290_5290, WT1_5760_5800,
+					-1, -1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W2_2472_2472, W1_2417_2432,
+					W1_2447_2457, W2_2467_2467, -1, -1, -1, -1, -1),
+		BM(WG2_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WOR1_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_NO_11A,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5170_5230, W1_5745_5825,
+				W1_5500_5700, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2472_2472, W1_2417_2432,
+					W1_2447_2457, W1_2467_2467, W1_2484_2484, -1, -1, -1, -1),
+		BM(WG1_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WOR2_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_NO_11A,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5170_5230, W1_5745_5825,
+				W1_5500_5700, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BM(WT1_5210_5250, WT1_5290_5290, WT1_5760_5800,
+					-1, -1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2472_2472, W1_2417_2432,
+					W1_2447_2457, W1_2467_2467, W1_2484_2484, -1, -1, -1, -1),
+		BM(WG1_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WOR3_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_PER_11D,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5170_5230, W1_5745_5825,
+				-1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BM(WT1_5210_5250, WT1_5290_5290, WT1_5760_5800,
+					-1, -1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2472_2472, W1_2417_2432,
+					W1_2447_2457, W1_2467_2467, -1, -1, -1, -1, -1),
+		BM(WG1_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WOR4_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_NO_11A,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5745_5825,
+				-1, -1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BM(WT1_5210_5250, WT1_5290_5290, WT1_5760_5800,
+					-1, -1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2417_2432, W1_2447_2457,
+					-1, -1, -1, -1, -1, -1, -1),
+		BM(WG1_2412_2462, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WOR5_ETSIC, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_NO_11A,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5745_5825,
+				-1, -1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2472_2472, W1_2417_2432,
+					W1_2447_2457, W1_2467_2467, -1, -1, -1, -1, -1),
+		BM(WG1_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WOR9_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_NO_11A,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5745_5825, W1_5500_5700,
+				-1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BM(WT1_5210_5250, WT1_5290_5290, WT1_5760_5800,
+					-1, -1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2417_2432, W1_2447_2457,
+					-1, -1, -1, -1, -1, -1, -1),
+		BM(WG1_2412_2462, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WORA_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_NO_11A,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5745_5825, W1_5500_5700,
+				-1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2472_2472, W1_2417_2432,
+					W1_2447_2457, W1_2467_2467, -1, -1, -1, -1, -1),
+		BM(WG1_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WORB_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_NO_11A,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5500_5700,
+				-1, -1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2472_2472, W1_2417_2432,
+					W1_2447_2457, W1_2467_2467, -1, -1, -1, -1, -1),
+		BM(WG1_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{WORC_WORLD, NO_CTL, DFS_FCC3 | DFS_ETSI, PSCAN_WWR, ADHOC_PER_11D,
+		CHAN_11A_BM(W1_5260_5320, W1_5180_5240, W1_5500_5700, W1_5745_5825,
+				-1, -1, -1, -1, -1, -1, -1, -1)
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BM(W1_2412_2412, W1_2437_2442, W1_2462_2462, W1_2472_2472, W1_2417_2432,
+					W1_2447_2457, W1_2467_2467, -1, -1, -1, -1, -1),
+		BM(WG1_2412_2472, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+		CHAN_TURBO_G_BM(T3_2437_2437, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+	},
+
+	{NULL1, NO_CTL, NO_DFS, NO_PSCAN, NO_REQ,
+		CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			CHAN_11A_BMZERO
+			BMZERO,
+		BMZERO,
+		CHAN_TURBO_G_BMZERO
+	},
+};
+
+static const struct cmode modes[] = {
+	{ REGDMN_MODE_TURBO,               IEEE80211_CHAN_ST}, /* TURBO means 11a Static Turbo */
+	{ REGDMN_MODE_11A,                 IEEE80211_CHAN_A},
+	{ REGDMN_MODE_11B,                 IEEE80211_CHAN_B},
+	{ REGDMN_MODE_11G,                 IEEE80211_CHAN_PUREG},
+	{ REGDMN_MODE_11G_TURBO,           IEEE80211_CHAN_108G},
+	{ REGDMN_MODE_11A_TURBO,           IEEE80211_CHAN_108A},
+	{ REGDMN_MODE_11NG_HT20,           IEEE80211_CHAN_11NG_HT20},
+	{ REGDMN_MODE_11NG_HT40PLUS,       IEEE80211_CHAN_11NG_HT40PLUS},
+	{ REGDMN_MODE_11NG_HT40MINUS,      IEEE80211_CHAN_11NG_HT40MINUS},
+	{ REGDMN_MODE_11NA_HT20,           IEEE80211_CHAN_11NA_HT20},
+	{ REGDMN_MODE_11NA_HT40PLUS,       IEEE80211_CHAN_11NA_HT40PLUS},
+	{ REGDMN_MODE_11NA_HT40MINUS,      IEEE80211_CHAN_11NA_HT40MINUS},
+	{ REGDMN_MODE_11AC_VHT20,          IEEE80211_CHAN_11AC_VHT20},
+	{ REGDMN_MODE_11AC_VHT40PLUS,      IEEE80211_CHAN_11AC_VHT40PLUS},
+	{ REGDMN_MODE_11AC_VHT40MINUS,     IEEE80211_CHAN_11AC_VHT40MINUS},
+	{ REGDMN_MODE_11AC_VHT80,          IEEE80211_CHAN_11AC_VHT80},
+	{ REGDMN_MODE_11AC_VHT20_2G,       IEEE80211_CHAN_11AC_VHT20_2G},
+	{ REGDMN_MODE_11AC_VHT40_2G,       IEEE80211_CHAN_11AC_VHT40_2G},
+	{ REGDMN_MODE_11AC_VHT80_2G,       IEEE80211_CHAN_11AC_VHT80_2G},
 };

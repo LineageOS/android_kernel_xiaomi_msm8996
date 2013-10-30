@@ -199,6 +199,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_TXRX_FWSTATS             38
 #define WE_SET_VHT_RATE                 39
 #define WE_DBGLOG_REPORT_ENABLE         40
+#define WE_TXRX_FWSTATS_RESET           41
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -366,6 +367,10 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctl to trigger reassociation */
 
 #define WLAN_SET_POWER_PARAMS        (SIOCIWFIRSTPRIV + 29)
+#ifdef FEATURE_OEM_DATA_SUPPORT
+/* Private ioctl to get capability information for OEM Data Request/Response */
+#define WLAN_PRIV_GET_OEM_DATA_CAP   (SIOCIWFIRSTPRIV + 30)
+#endif
 #define WLAN_GET_LINK_SPEED          (SIOCIWFIRSTPRIV + 31)
 
 #define WLAN_STATS_INVALID            0
@@ -2440,7 +2445,6 @@ static int iw_get_linkspeed(struct net_device *dev,
    return 0;
 }
 
-
 /*
  * Support for the RSSI & RSSI-APPROX private commands
  * Per the WiFi framework the response must be of the form
@@ -3875,6 +3879,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     hdd_wext_state_t  *pWextState =  WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+    tSmeConfigParams smeConfig;
     int *value = (int *)extra;
     int sub_cmd = value[0];
     int set_value = value[1];
@@ -3897,15 +3902,16 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
     {
         case WE_SET_11D_STATE:
         {
-            tSmeConfigParams smeConfig;
             if((ENABLE_11D == set_value) || (DISABLE_11D == set_value)) {
 
-                sme_GetConfigParam(hHal,&smeConfig);
+                sme_GetConfigParam(hHal, &smeConfig);
                 smeConfig.csrConfig.Is11dSupportEnabled = (v_BOOL_t)set_value;
 
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("11D state=%ld!!\n"),smeConfig.csrConfig.Is11dSupportEnabled);
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                        ("11D state=%ld!!\n"),
+                        smeConfig.csrConfig.Is11dSupportEnabled);
 
-                sme_UpdateConfig(hHal,&smeConfig);
+                sme_UpdateConfig(hHal, &smeConfig);
             }
             else {
                return -EINVAL;
@@ -4335,7 +4341,6 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 
         case WE_SET_CHWIDTH:
         {
-           tSmeConfigParams smeconfig;
            bool chwidth;
            hdd_context_t *phddctx = WLAN_HDD_GET_CTX(pAdapter);
            /*updating channel bonding only on 5Ghz*/
@@ -4350,15 +4355,15 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                        phddctx->cfg_ini->nChannelBondingMode5GHz)))
                chwidth = true;
 
-           sme_GetConfigParam(hHal, &smeconfig);
+           sme_GetConfigParam(hHal, &smeConfig);
            switch (set_value) {
            case eHT_CHANNEL_WIDTH_20MHZ:
-                smeconfig.csrConfig.channelBondingMode5GHz =
+                smeConfig.csrConfig.channelBondingMode5GHz =
                                           WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
                 break;
            case eHT_CHANNEL_WIDTH_40MHZ:
                 if (chwidth)
-                    smeconfig.csrConfig.channelBondingMode5GHz =
+                    smeConfig.csrConfig.channelBondingMode5GHz =
                                      phddctx->cfg_ini->nChannelBondingMode5GHz;
                 else
                     return -EINVAL;
@@ -4366,7 +4371,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                 break;
            case eHT_CHANNEL_WIDTH_80MHZ:
                 if (chwidth)
-                    smeconfig.csrConfig.channelBondingMode5GHz =
+                    smeConfig.csrConfig.channelBondingMode5GHz =
                                      phddctx->cfg_ini->nChannelBondingMode5GHz;
                 else
                     return -EINVAL;
@@ -4381,7 +4386,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                                          (int)WMI_VDEV_PARAM_CHWIDTH,
                                          set_value, VDEV_CMD);
            if (!ret)
-               sme_UpdateConfig(hHal, &smeconfig);
+               sme_UpdateConfig(hHal, &smeConfig);
 
            break;
         }
@@ -4618,6 +4623,15 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            hddLog(LOG1, "WE_SET_TXRX_FWSTATS val %d", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
 			   (int)WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID,
+			   set_value, VDEV_CMD);
+	   break;
+	}
+
+	case WE_TXRX_FWSTATS_RESET:
+	{
+           hddLog(LOG1, "WE_TXRX_FWSTATS_RESET val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+			   (int)WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
 			   set_value, VDEV_CMD);
 	   break;
 	}
@@ -6512,7 +6526,6 @@ static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_inf
             break;
 
         case WLAN_KEEP_ALIVE_UNSOLICIT_ARP_RSP:
-#ifdef QCA_WIFI_ISOC
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: Keep Alive Request: Tx UnSolicited ARP RSP\n",
                __func__);
 
@@ -6529,11 +6542,6 @@ static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_inf
             pRequest->destMacAddr[2], pRequest->destMacAddr[3],
             pRequest->destMacAddr[4], pRequest->destMacAddr[5]);
             break;
-#else
-            hddLog(VOS_TRACE_LEVEL_ERROR, "UnSolicited ARP response type not"
-                                          "supported");
-            return -EINVAL;
-#endif
       }
 
     /* Execute keep alive request. The reason that we can copy the request information
@@ -7608,6 +7616,9 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_SET_MCBC_FILTER           - SIOCIWFIRSTPRIV]   = iw_set_dynamic_mcbc_filter,
    [WLAN_PRIV_CLEAR_MCBC_FILTER         - SIOCIWFIRSTPRIV]   = iw_clear_dynamic_mcbc_filter,
    [WLAN_SET_POWER_PARAMS               - SIOCIWFIRSTPRIV]   = iw_set_power_params_priv,
+#ifdef FEATURE_OEM_DATA_SUPPORT
+   [WLAN_PRIV_GET_OEM_DATA_CAP - SIOCIWFIRSTPRIV] = iw_get_oem_data_cap,
+#endif
    [WLAN_GET_LINK_SPEED                 - SIOCIWFIRSTPRIV]   = iw_get_linkspeed,
 };
 
@@ -7823,6 +7834,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "txrx_fw_stats" },
+
+    {   WE_TXRX_FWSTATS_RESET,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "txrx_fw_st_rst" },
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
@@ -8283,7 +8299,7 @@ static const struct iw_priv_args we_private_args[] = {
 
     {
         WLAN_SET_KEEPALIVE_PARAMS,
-        IW_PRIV_TYPE_BYTE  | sizeof(tKeepAliveRequest),
+        IW_PRIV_TYPE_BYTE  | WE_MAX_STR_LEN,
         0,
         "setKeepAlive" },
 #ifdef WLAN_FEATURE_PACKET_FILTERING
@@ -8321,11 +8337,17 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         0,
         "setpowerparams" },
+#ifdef FEATURE_OEM_DATA_SUPPORT
+    {
+        WLAN_PRIV_GET_OEM_DATA_CAP,
+        0,
+        IW_PRIV_TYPE_BYTE | sizeof(struct iw_oem_data_cap),
+        "getOemDataCap" },
+#endif
     {
         WLAN_GET_LINK_SPEED,
         IW_PRIV_TYPE_CHAR | 18,
         IW_PRIV_TYPE_CHAR | 3, "getLinkSpeed" },
-   
 };
 
 

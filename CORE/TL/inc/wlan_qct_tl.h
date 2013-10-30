@@ -303,6 +303,9 @@ typedef struct
 
   /* Min Threshold for Processing Frames in TL */
   v_U8_t   uMinFramesProcThres;
+
+  /* Ip checksum offload */
+  v_BOOL_t   ip_checksum_offload;
 }WLANTL_ConfigInfoType;
 
 /*---------------------------------------------------------------------------

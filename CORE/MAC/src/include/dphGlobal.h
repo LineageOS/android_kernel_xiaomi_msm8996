@@ -498,7 +498,7 @@ typedef struct sDphHashNode
 
     // Maximum Rx A-MPDU factor
 
-    tANI_U8 htMaxRxAMpduFactor:2;
+    tANI_U8 htMaxRxAMpduFactor:3;
 
     //
 
@@ -512,7 +512,7 @@ typedef struct sDphHashNode
 
     tANI_U8 htSupportedChannelWidthSet:1;
     tANI_U8 htSecondaryChannelOffset:2;
-    tANI_U8 rsvd1:3;
+    tANI_U8 rsvd1:2;
 
 
     ///////////////////////////////////////////////////////////////////////

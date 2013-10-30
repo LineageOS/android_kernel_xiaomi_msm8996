@@ -27,9 +27,16 @@
 
 #include <adf_os_atomic.h>    /* adf_os_atomic_inc, etc. */
 #include <adf_os_lock.h>      /* adf_os_spinlock */
+#include <adf_os_time.h>      /* adf_os_ticks, etc. */
 #include <adf_nbuf.h>         /* adf_nbuf_t */
+#include <adf_net_types.h>    /* ADF_NBUF_TX_EXT_TID_INVALID */
 
 #include <queue.h>            /* TAILQ */
+#ifdef QCA_COMPUTE_TX_DELAY
+#include <ieee80211.h>        /* ieee80211_frame, etc. */
+#include <enet.h>             /* ethernet_hdr_t, etc. */
+#include <ipv6_defs.h>        /* IPV6_TRAFFIC_CLASS */
+#endif
 
 #include <ol_txrx_api.h>      /* ol_txrx_vdev_handle, etc. */
 #include <ol_htt_tx_api.h>    /* htt_tx_compl_desc_id */
@@ -38,6 +45,9 @@
 #include <ol_ctrl_txrx_api.h>
 #include <ol_txrx_types.h>    /* ol_txrx_vdev_t, etc */
 #include <ol_tx_desc.h>       /* ol_tx_desc_find, ol_tx_desc_frame_free */
+#ifdef QCA_COMPUTE_TX_DELAY
+#include <ol_tx_classify.h>   /* ol_tx_dest_addr_find */
+#endif
 #include <ol_txrx_internal.h> /* OL_TX_DESC_NO_REFS, etc. */
 #include <ol_osif_txrx_api.h>
 #include <ol_tx.h>            /* ol_tx_reinject */
@@ -312,6 +322,19 @@ ol_tx_target_credit_update(struct ol_txrx_pdev_t *pdev, int credit_delta)
     adf_os_atomic_add(credit_delta, &pdev->target_tx_credit);
 }
 
+#ifdef QCA_COMPUTE_TX_DELAY
+
+static void
+ol_tx_delay_compute(
+    struct ol_txrx_pdev_t *pdev,
+    enum htt_tx_status status,
+    u_int16_t *desc_ids,
+    int num_msdus);
+#define OL_TX_DELAY_COMPUTE ol_tx_delay_compute
+#else
+#define OL_TX_DELAY_COMPUTE(pdev, status, desc_ids, num_msdus) /* no-op */
+#endif /* QCA_COMPUTE_TX_DELAY */
+
 #ifndef OL_TX_RESTORE_HDR
 #define OL_TX_RESTORE_HDR(__tx_desc, __msdu)
 #endif
@@ -441,6 +464,8 @@ ol_tx_completion_handler(
     union ol_tx_desc_list_elem_t *tx_desc_last = NULL;
     ol_tx_desc_list tx_descs;
     TAILQ_INIT(&tx_descs);
+
+    OL_TX_DELAY_COMPUTE(pdev, status, desc_ids, num_msdus);
 
     for (i = 0; i < num_msdus; i++) {
         tx_desc_id = desc_ids[i];
@@ -603,3 +628,295 @@ ol_tx_inspect_handler(
     }
 }
 
+#ifdef QCA_COMPUTE_TX_DELAY
+
+void
+ol_tx_set_compute_interval(
+    ol_txrx_pdev_handle pdev,
+    u_int32_t interval)
+{
+    pdev->tx_delay.avg_period_ticks = adf_os_msecs_to_ticks(interval);
+}
+
+void
+ol_tx_packet_count(
+    ol_txrx_pdev_handle pdev,
+    u_int16_t *out_packet_count,
+    u_int16_t *out_packet_loss_count,
+    int category)
+{
+    *out_packet_count = pdev->packet_count[category];
+    *out_packet_loss_count = pdev->packet_loss_count[category];
+    pdev->packet_count[category] =  0;
+    pdev->packet_loss_count[category] = 0;
+}
+
+u_int32_t
+ol_tx_delay_avg(u_int64_t sum, u_int32_t num)
+{
+    u_int32_t sum32;
+    int shift = 0;
+    /*
+     * To avoid doing a 64-bit divide, shift the sum down until it is
+     * no more than 32 bits (and shift the denominator to match).
+     */
+    while ((sum >> 32) != 0) {
+        sum >>= 1;
+        shift++;
+    }
+    sum32 = (u_int32_t) sum;
+    num >>= shift;
+    return (sum32 + (num >> 1)) / num; /* round to nearest */
+}
+
+void
+ol_tx_delay(
+    ol_txrx_pdev_handle pdev,
+    u_int32_t *queue_delay_microsec,
+    u_int32_t *tx_delay_microsec,
+    int category)
+{
+    int index;
+    u_int32_t avg_delay_ticks;
+    struct ol_tx_delay_data *data;
+
+    adf_os_assert(category >= 0 && category < QCA_TX_DELAY_NUM_CATEGORIES);
+
+    adf_os_spin_lock_bh(&pdev->tx_delay.mutex);
+    index = 1 - pdev->tx_delay.cats[category].in_progress_idx;
+
+    data = &pdev->tx_delay.cats[category].copies[index];
+
+    if (data->avgs.transmit_num > 0) {
+        avg_delay_ticks = ol_tx_delay_avg(
+            data->avgs.transmit_sum_ticks, data->avgs.transmit_num);
+        *tx_delay_microsec = adf_os_ticks_to_msecs(avg_delay_ticks * 1000);
+    } else {
+        /*
+         * This case should only happen if there's a query
+         * within 5 sec after the first tx data frame.
+         */
+        *tx_delay_microsec = 0;
+    }
+    if (data->avgs.queue_num > 0) {
+        avg_delay_ticks = ol_tx_delay_avg(
+            data->avgs.queue_sum_ticks, data->avgs.queue_num);
+        *queue_delay_microsec = adf_os_ticks_to_msecs(avg_delay_ticks * 1000);
+    } else {
+        /*
+         * This case should only happen if there's a query
+         * within 5 sec after the first tx data frame.
+         */
+        *queue_delay_microsec = 0;
+    }
+
+    adf_os_spin_unlock_bh(&pdev->tx_delay.mutex);
+}
+
+void
+ol_tx_delay_hist(
+    ol_txrx_pdev_handle pdev,
+    u_int16_t *report_bin_values,
+    int category)
+{
+    int index, i, j;
+    struct ol_tx_delay_data *data;
+
+    adf_os_assert(category >= 0 && category < QCA_TX_DELAY_NUM_CATEGORIES);
+
+    adf_os_spin_lock_bh(&pdev->tx_delay.mutex);
+    index = 1 - pdev->tx_delay.cats[category].in_progress_idx;
+
+    data = &pdev->tx_delay.cats[category].copies[index];
+
+    for (i = 0, j = 0; i < QCA_TX_DELAY_HIST_REPORT_BINS-1; i++) {
+        u_int16_t internal_bin_sum = 0;
+        while (j < (1 << i)) {
+            internal_bin_sum += data->hist_bins_queue[j++];
+        }
+        report_bin_values[i] = internal_bin_sum;
+    }
+    report_bin_values[i] = data->hist_bins_queue[j]; /* overflow */
+
+    adf_os_spin_unlock_bh(&pdev->tx_delay.mutex);
+}
+
+#ifdef QCA_COMPUTE_TX_DELAY_PER_TID
+static u_int8_t
+ol_tx_delay_tid_from_l3_hdr(
+    struct ol_txrx_pdev_t *pdev,
+    adf_nbuf_t msdu,
+    struct ol_tx_desc_t *tx_desc)
+{
+    u_int16_t ethertype;
+    u_int8_t *dest_addr, *l3_hdr;
+    int is_mgmt, is_mcast;
+    int l2_hdr_size;
+
+    dest_addr = ol_tx_dest_addr_find(pdev, msdu);
+    if (NULL == dest_addr) {
+        return ADF_NBUF_TX_EXT_TID_INVALID;
+    }
+    is_mcast = IEEE80211_IS_MULTICAST(dest_addr);
+    is_mgmt = tx_desc->pkt_type >= OL_TXRX_MGMT_TYPE_BASE;
+    if (is_mgmt) {
+        return (is_mcast) ?
+            OL_TX_NUM_TIDS + OL_TX_VDEV_DEFAULT_MGMT :
+            HTT_TX_EXT_TID_MGMT;
+    }
+    if (is_mcast) {
+        return OL_TX_NUM_TIDS + OL_TX_VDEV_MCAST_BCAST;
+    }
+    if (pdev->frame_format == wlan_frm_fmt_802_3) {
+        struct ethernet_hdr_t *enet_hdr;
+        enet_hdr = (struct ethernet_hdr_t *) adf_nbuf_data(msdu);
+        l2_hdr_size = sizeof(struct ethernet_hdr_t);
+        ethertype = (enet_hdr->ethertype[0] << 8) | enet_hdr->ethertype[1];
+        if (!IS_ETHERTYPE(ethertype)) {
+            struct llc_snap_hdr_t *llc_hdr;
+            llc_hdr = (struct llc_snap_hdr_t *)
+                (adf_nbuf_data(msdu) + l2_hdr_size);
+            l2_hdr_size += sizeof(struct llc_snap_hdr_t);
+            ethertype = (llc_hdr->ethertype[0] << 8) | llc_hdr->ethertype[1];
+        }
+    } else {
+        struct llc_snap_hdr_t *llc_hdr;
+        l2_hdr_size = sizeof(struct ieee80211_frame);
+        llc_hdr = (struct llc_snap_hdr_t *) (adf_nbuf_data(msdu)
+            + l2_hdr_size);
+        l2_hdr_size += sizeof(struct llc_snap_hdr_t);
+        ethertype = (llc_hdr->ethertype[0] << 8) | llc_hdr->ethertype[1];
+    }
+    l3_hdr = adf_nbuf_data(msdu) + l2_hdr_size;
+    if (ETHERTYPE_IPV4 == ethertype) {
+        return (((struct ipv4_hdr_t *) l3_hdr)->tos >> 5) & 0x7;
+    } else if (ETHERTYPE_IPV6 == ethertype) {
+        return (IPV6_TRAFFIC_CLASS((struct ipv6_hdr_t *) l3_hdr) >> 5) & 0x7;
+    } else {
+        return ADF_NBUF_TX_EXT_TID_INVALID;
+    }
+}
+#endif
+
+static int
+ol_tx_delay_category(struct ol_txrx_pdev_t *pdev, u_int16_t msdu_id)
+{
+#ifdef QCA_COMPUTE_TX_DELAY_PER_TID
+    struct ol_tx_desc_t *tx_desc = &pdev->tx_desc.array[msdu_id].tx_desc;
+    u_int8_t tid;
+
+    adf_nbuf_t msdu = tx_desc->netbuf;
+    tid = adf_nbuf_get_tid(msdu);
+    if (tid == ADF_NBUF_TX_EXT_TID_INVALID) {
+        tid = ol_tx_delay_tid_from_l3_hdr(pdev, msdu, tx_desc);
+        if (tid == ADF_NBUF_TX_EXT_TID_INVALID) {
+            /* TID could not be determined (this is not an IP frame?) */
+            return -1;
+        }
+    }
+    return tid;
+#else
+    return 0;
+#endif
+}
+
+static inline int
+ol_tx_delay_hist_bin(struct ol_txrx_pdev_t *pdev, u_int32_t delay_ticks)
+{
+    int bin;
+    /*
+     * For speed, multiply and shift to approximate a divide. This causes
+     * a small error, but the approximation error should be much less
+     * than the other uncertainties in the tx delay computation.
+     */
+    bin = (delay_ticks * pdev->tx_delay.hist_internal_bin_width_mult) >>
+        pdev->tx_delay.hist_internal_bin_width_shift;
+    if (bin >= QCA_TX_DELAY_HIST_INTERNAL_BINS) {
+        bin = QCA_TX_DELAY_HIST_INTERNAL_BINS - 1;
+    }
+    return bin;
+}
+
+static void
+ol_tx_delay_compute(
+    struct ol_txrx_pdev_t *pdev,
+    enum htt_tx_status status,
+    u_int16_t *desc_ids,
+    int num_msdus)
+{
+    int i, index, cat;
+    u_int32_t now_ticks = adf_os_ticks();
+    u_int32_t tx_delay_transmit_ticks, tx_delay_queue_ticks;
+    u_int32_t avg_time_ticks;
+    struct ol_tx_delay_data *data;
+
+    adf_os_assert(num_msdus > 0);
+
+    /*
+     * keep static counters for total packet and lost packets
+     * reset them in ol_tx_delay(), function used to fetch the stats
+     */
+
+    cat = ol_tx_delay_category(pdev, desc_ids[0]);
+    if (cat == -1)
+        return;
+
+    pdev->packet_count[cat] = pdev->packet_count[cat] + num_msdus;
+    if (status != htt_tx_status_ok) {
+        for (i = 0; i < num_msdus; i++) {
+            cat = ol_tx_delay_category(pdev, desc_ids[i]);
+            pdev->packet_loss_count[cat]++;
+        }
+        return;
+    }
+
+    /* since we may switch the ping-pong index, provide mutex w. readers */
+    adf_os_spin_lock_bh(&pdev->tx_delay.mutex);
+    index = pdev->tx_delay.cats[cat].in_progress_idx;
+
+    data = &pdev->tx_delay.cats[cat].copies[index];
+
+    if (pdev->tx_delay.tx_compl_timestamp_ticks != 0) {
+        tx_delay_transmit_ticks =
+            now_ticks - pdev->tx_delay.tx_compl_timestamp_ticks;
+        /*
+         * We'd like to account for the number of MSDUs that were
+         * transmitted together, but we don't know this.  All we know
+         * is the number of MSDUs that were acked together.
+         * Since the frame error rate is small, this is nearly the same as
+         * the number of frames transmitted together.
+         */
+        data->avgs.transmit_sum_ticks += tx_delay_transmit_ticks;
+        data->avgs.transmit_num += num_msdus;
+    }
+    pdev->tx_delay.tx_compl_timestamp_ticks = now_ticks;
+
+    for (i = 0; i < num_msdus; i++) {
+        u_int16_t id = desc_ids[i];
+        struct ol_tx_desc_t *tx_desc = &pdev->tx_desc.array[id].tx_desc;
+        int bin;
+
+        tx_delay_queue_ticks = now_ticks - tx_desc->entry_timestamp_ticks;
+
+        data->avgs.queue_sum_ticks += tx_delay_queue_ticks;
+        data->avgs.queue_num++;
+        bin = ol_tx_delay_hist_bin(pdev, tx_delay_queue_ticks);
+        data->hist_bins_queue[bin]++;
+    }
+
+    /* check if it's time to start a new average */
+    avg_time_ticks =
+        now_ticks - pdev->tx_delay.cats[cat].avg_start_time_ticks;
+    if (avg_time_ticks > pdev->tx_delay.avg_period_ticks) {
+        pdev->tx_delay.cats[cat].avg_start_time_ticks = now_ticks;
+        index = 1 - index;
+        pdev->tx_delay.cats[cat].in_progress_idx = index;
+        adf_os_mem_zero(
+            &pdev->tx_delay.cats[cat].copies[index],
+            sizeof(pdev->tx_delay.cats[cat].copies[index]));
+    }
+
+    adf_os_spin_unlock_bh(&pdev->tx_delay.mutex);
+}
+
+#endif /* QCA_COMPUTE_TX_DELAY */

@@ -170,4 +170,5 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
                            v_U8_t *pKey); /* pointer to authentication key */
 
 v_U32_t vos_chan_to_freq(v_U8_t chan);
+v_U8_t vos_freq_to_chan(v_U32_t freq);
 #endif // #if !defined __VOSS_UTILS_H

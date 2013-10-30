@@ -71,6 +71,7 @@ struct hdd_tgt_vht_cap {
 #endif
 
 struct hdd_tgt_cfg {
+	u_int32_t target_fw_version;
 	u_int8_t band_cap;
 	u_int8_t alpha2[3];
 	v_MACADDR_t hw_macaddr;

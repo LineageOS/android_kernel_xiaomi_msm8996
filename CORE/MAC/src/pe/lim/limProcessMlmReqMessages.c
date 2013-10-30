@@ -1384,8 +1384,9 @@ mlm_add_sta(
 {
     tANI_U32 val;
     int      i;
-    
+    tANI_U32 selfStaDot11Mode = 0;
 
+    wlan_cfgGetInt(pMac, WNI_CFG_DOT11_MODE, &selfStaDot11Mode);
     pSta->staType = STA_ENTRY_SELF; // Identifying self
 
     palCopyMemory( pMac->hHdd,  pSta->bssId,   pBssid,  sizeof( tSirMacAddr ));
@@ -1407,7 +1408,7 @@ mlm_add_sta(
     pSta->uAPSD                 = 0;
     pSta->maxSPLen              = 0;
     pSta->us32MaxAmpduDuration  = 0;
-    pSta->maxAmpduSize          = 0; // 0: 8k, 1: 16k,2: 32k,3: 64k
+    pSta->maxAmpduSize          = 0; // 0: 8k, 1: 16k,2: 32k,3: 64k, 4:128k
 
 
     /* For Self STA get the LDPC capability from config.ini*/
@@ -1436,6 +1437,16 @@ mlm_add_sta(
     {
         pSta->vhtCapable = VOS_TRUE;
         pSta->vhtTxBFCapable = psessionEntry->txBFIniFeatureEnabled;
+        pSta->vhtTxMUBformeeCapable = psessionEntry->txMuBformee;
+    }
+
+    // Since this is Self-STA, need to populate Self MAX_AMPDU_SIZE capabilities
+    if( IS_DOT11_MODE_VHT(selfStaDot11Mode) )
+    {
+        val = 0;  // Default 8K AMPDU size
+        if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, WNI_CFG_VHT_AMPDU_LEN_EXPONENT, &val ))
+            limLog(pMac, LOGE, FL("Couldn't get WNI_CFG_VHT_AMPDU_LEN_EXPONENT"));
+        pSta->maxAmpduSize = (tANI_U8) val;
     }
 #endif
 #ifdef WLAN_FEATURE_11AC
@@ -1920,10 +1931,16 @@ static void limProcessMlmOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         pMac->lim.gLimPrevMlmState = pMac->lim.gLimMlmState;
 
+#ifdef QCA_WIFI_2_0
+        PELOG2(limLog(pMac, LOG2,
+                      FL("%s: Calling limSendHalOemDataReq"), __func__);)
+        limSendHalOemDataReq(pMac);
+#else
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION, pMac->lim.gLimMlmState));
 
         //Now request for link suspension
         limSuspendLink(pMac, eSIR_CHECK_LINK_TRAFFIC_BEFORE_SCAN, limSetOemDataReqMode, NULL);
+#endif
     }
     else
     {

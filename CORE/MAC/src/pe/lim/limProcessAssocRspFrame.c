@@ -145,6 +145,14 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
        {
            pStaDs->mlmStaContext.vhtCapability = pAssocRsp->VHTCaps.present;
        }
+
+       // If 11ac is supported and if the peer is sending VHT capabilities,
+       // then htMaxRxAMpduFactor should be overloaded with VHT maxAMPDULenExp
+       if (pAssocRsp->VHTCaps.present)
+       {
+          pStaDs->htMaxRxAMpduFactor = pAssocRsp->VHTCaps.maxAMPDULenExp;
+       }
+
        if (limPopulateOwnRateSet(pMac, &pStaDs->supportedRates, 
                                 pAssocRsp->HTCaps.supportedMCSSet,
                                 false,psessionEntry , &pAssocRsp->VHTCaps) != eSIR_SUCCESS) 

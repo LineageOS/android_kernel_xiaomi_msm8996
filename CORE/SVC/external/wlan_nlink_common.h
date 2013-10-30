@@ -102,6 +102,9 @@ typedef enum eAniNlModuleTypes {
    ANI_NL_MSG_PUMAC = ANI_NL_MSG_BASE + 0x01,// PTT Socket App
    ANI_NL_MSG_PTT   = ANI_NL_MSG_BASE + 0x07,// Quarky GUI
    WLAN_NL_MSG_BTC,
+#ifdef QCA_WIFI_2_0
+   WLAN_NL_MSG_OEM,
+#endif
    ANI_NL_MSG_MAX  
 } tAniNlModTypes, tWlanNlModTypes;
 

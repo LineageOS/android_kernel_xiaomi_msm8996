@@ -560,6 +560,47 @@ ol_txrx_pdev_attach(
 
     OL_TXRX_LOCAL_PEER_ID_POOL_INIT(pdev);
 
+#ifdef QCA_COMPUTE_TX_DELAY
+    adf_os_mem_zero(&pdev->tx_delay, sizeof(pdev->tx_delay));
+    adf_os_spinlock_init(&pdev->tx_delay.mutex);
+
+    /* initialize compute interval with 5 seconds (CCX default) */
+    pdev->tx_delay.avg_period_ticks = adf_os_msecs_to_ticks(5000);
+    {
+        u_int32_t bin_width_1000ticks;
+        bin_width_1000ticks = adf_os_msecs_to_ticks(
+            QCA_TX_DELAY_HIST_INTERNAL_BIN_WIDTH_MS * 1000);
+        /*
+         * Compute a factor and shift that together are equal to the
+         * inverse of the bin_width time, so that rather than dividing
+         * by the bin width time, approximately the same result can be
+         * obtained much more efficiently by a multiply + shift.
+         * multiply_factor >> shift = 1 / bin_width_time, so
+         * multiply_factor = (1 << shift) / bin_width_time.
+         *
+         * Pick the shift semi-arbitrarily.
+         * If we knew statically what the bin_width would be, we could
+         * choose a shift that minimizes the error.
+         * Since the bin_width is determined dynamically, simply use a
+         * shift that is about half of the u_int32_t size.  This should
+         * result in a relatively large multiplier value, which minimizes
+         * the error from rounding the multiplier to an integer.
+         * The rounding error only becomes significant if the tick units
+         * are on the order of 1 microsecond.  In most systems, it is
+         * expected that the tick units will be relatively low-resolution,
+         * on the order of 1 millisecond.  In such systems the rounding
+         * error is negligible.
+         * It would be more accurate to dynamically try out different
+         * shifts and choose the one that results in the smallest rounding
+         * error, but that extra level of fidelity is not needed.
+         */
+        pdev->tx_delay.hist_internal_bin_width_shift = 16;
+        pdev->tx_delay.hist_internal_bin_width_mult =
+            ((1 << pdev->tx_delay.hist_internal_bin_width_shift) *
+            1000 + (bin_width_1000ticks >> 1)) / bin_width_1000ticks;
+    }
+#endif /* QCA_COMPUTE_TX_DELAY */
+
     return pdev; /* success */
 
 fail8:
@@ -684,6 +725,10 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     }
 #endif
     OL_TXRX_LOCAL_PEER_ID_CLEANUP(pdev);
+
+#ifdef QCA_COMPUTE_TX_DELAY
+    adf_os_spinlock_destroy(&pdev->tx_delay.mutex);
+#endif
 
     adf_os_mem_free(pdev);
 }

@@ -714,3 +714,19 @@ v_U32_t vos_chan_to_freq(v_U8_t chan)
      else
         return VOS_5_GHZ_BASE_FREQ + chan * VOS_CHAN_SPACING_5MHZ;
 }
+
+v_U8_t vos_freq_to_chan(v_U32_t freq)
+{
+    v_U8_t chan;
+
+    if (freq > VOS_24_GHZ_BASE_FREQ && freq < VOS_CHAN_14_FREQ)
+        chan = ((freq - VOS_24_GHZ_BASE_FREQ)/VOS_CHAN_SPACING_5MHZ);
+    else if (freq == VOS_CHAN_14_FREQ)
+        chan = VOS_24_GHZ_CHANNEL_14;
+    else if ((freq > VOS_24_GHZ_BASE_FREQ) && (freq < VOS_5_GHZ_BASE_FREQ))
+        chan = (((freq - VOS_CHAN_15_FREQ)/VOS_CHAN_SPACING_20MHZ) +
+                VOS_24_GHZ_CHANNEL_15);
+    else
+        chan = (freq - VOS_5_GHZ_BASE_FREQ)/VOS_CHAN_SPACING_5MHZ;
+    return chan;
+}

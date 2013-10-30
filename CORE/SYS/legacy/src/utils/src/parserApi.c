@@ -3138,6 +3138,19 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     }      
 #endif
 
+#ifdef FEATURE_WLAN_CCX
+    /* copy CCX TPC info element */
+    if (pBeacon->CCXTxmitPower.present) {
+        pBeaconStruct->ccxTxPwr.present = 1;
+        pBeaconStruct->ccxTxPwr.power_limit =
+          pBeacon->CCXTxmitPower.power_limit;
+    }
+    if (pBeacon->QBSSLoad.present) {
+        palCopyMemory(pMac, &pBeaconStruct->QBSSLoad, &pBeacon->QBSSLoad,
+          sizeof(tDot11fIEQBSSLoad));
+    }
+#endif
+
     palFreeMemory(pMac->hHdd, pBeacon);
     return eSIR_SUCCESS;
 
