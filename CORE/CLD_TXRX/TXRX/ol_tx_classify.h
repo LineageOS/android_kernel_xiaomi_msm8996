@@ -35,6 +35,33 @@
 #include <adf_nbuf.h>      /* adf_nbuf_t */
 #include <ol_txrx_types.h> /* ol_txrx_vdev_t, etc. */
 
+static inline u_int8_t *
+ol_tx_dest_addr_find(
+    struct ol_txrx_pdev_t *pdev,
+    adf_nbuf_t tx_nbuf)
+{
+    u_int8_t *hdr_ptr;
+    void *datap = adf_nbuf_data(tx_nbuf);
+
+    if (pdev->frame_format == wlan_frm_fmt_raw) {
+        /* adjust hdr_ptr to RA */
+        struct ieee80211_frame *wh = (struct ieee80211_frame *)datap;
+        hdr_ptr = wh->i_addr1;
+    } else if (pdev->frame_format == wlan_frm_fmt_native_wifi) {
+        /* adjust hdr_ptr to RA */
+        struct ieee80211_frame *wh = (struct ieee80211_frame *)datap;
+        hdr_ptr = wh->i_addr1;
+    } else if (pdev->frame_format == wlan_frm_fmt_802_3) {
+        hdr_ptr = datap;
+    } else {
+        adf_os_print("Invalid standard frame type: %d\n",
+            pdev->frame_format);
+        adf_os_assert(0);
+        hdr_ptr = NULL;
+    }
+    return hdr_ptr;
+}
+
 #if defined(CONFIG_HL_SUPPORT)
 
 /**

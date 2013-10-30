@@ -26,10 +26,10 @@
  */
 
 /**
- * This file defines WMI services bitmap and the set of WMI services . 
- * defines macrso to set/clear/get different service bits from the bitmap. 
+ * This file defines WMI services bitmap and the set of WMI services .
+ * defines macrso to set/clear/get different service bits from the bitmap.
  * the service bitmap is sent up to the host via WMI_READY command.
- *    
+ *
  */
 
 #ifndef _WMI_SERVICES_H_
@@ -79,6 +79,13 @@ typedef  enum  {
     WMI_SERVICE_AP_PS_DETECT_OUT_OF_SYNC, /* detect out-of-sync sleeping stations */
     WMI_SERVICE_EARLY_RX,             /* adaptive early-rx feature */
     WMI_SERVICE_STA_SMPS, /* STA MIMO-PS */
+    WMI_SERVICE_FWTEST,               /* Firmware test service */
+    WMI_SERVICE_STA_WMMAC, /* STA WMMAC */
+    WMI_SERVICE_TDLS,                   /* TDLS support */
+    WMI_SERVICE_BURST,                /* SIFS spaced burst support */
+    WMI_SERVICE_MCC_BCN_INTERVAL_CHANGE,    /* Dynamic beaocn interval change for SAP/P2p GO in MCC scenario */
+    WMI_SERVICE_ADAPTIVE_OCS,    /* Service to support adaptive off-channel scheduler */
+    WMI_SERVICE_BA_SSN_SUPPORT,    /* target will provide Sequence number for the peer/tid combo */
     WMI_MAX_SERVICE=64                /* max service */
 } WMI_SERVICE;
 
@@ -90,15 +97,15 @@ typedef  enum  {
  */
 #define WMI_SERVICE_ENABLE(pwmi_svc_bmap,svc_id) \
     ( (pwmi_svc_bmap)[(svc_id)/(sizeof(A_UINT32))] |= \
-         (1 << ((svc_id)%(sizeof(A_UINT32)))) ) 
+         (1 << ((svc_id)%(sizeof(A_UINT32)))) )
 
 #define WMI_SERVICE_DISABLE(pwmi_svc_bmap,svc_id) \
     ( (pwmi_svc_bmap)[(svc_id)/(sizeof(A_UINT32))] &=  \
-      ( ~(1 << ((svc_id)%(sizeof(A_UINT32)))) ) ) 
-      
+      ( ~(1 << ((svc_id)%(sizeof(A_UINT32)))) ) )
+
 #define WMI_SERVICE_IS_ENABLED(pwmi_svc_bmap,svc_id) \
     ( ((pwmi_svc_bmap)[(svc_id)/(sizeof(A_UINT32))] &  \
-       (1 << ((svc_id)%(sizeof(A_UINT32)))) ) != 0) 
+       (1 << ((svc_id)%(sizeof(A_UINT32)))) ) != 0)
 
 #ifdef __cplusplus
 }

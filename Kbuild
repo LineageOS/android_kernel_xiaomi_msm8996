@@ -50,7 +50,7 @@ endif
 BUILD_DEBUG_VERSION := 1
 
 #Enable this flag to build driver in diag version
-BUILD_DIAG_VERSION := 0
+BUILD_DIAG_VERSION := 1
 
 #Do we panic on bug?  default is to warn
 PANIC_ON_BUG := 0
@@ -137,7 +137,7 @@ CONFIG_QCA_WIFI_FTM := 1
 CONFIG_CHECKSUM_OFFLOAD := 1
 
 #Enable GTK offload
-CONFIG_GTK_OFFLOAD := 0
+CONFIG_GTK_OFFLOAD := 1
 
 ifeq ($(CONFIG_CFG80211),y)
 HAVE_CFG80211 := 1
@@ -861,6 +861,8 @@ endif
 
 ifeq ($(CONFIG_QCOM_CCX),y)
 CDEFINES += -DFEATURE_WLAN_CCX
+CDEFINES += -DQCA_COMPUTE_TX_DELAY
+CDEFINES += -DQCA_COMPUTE_TX_DELAY_PER_TID
 endif
 
 #normally, TDLS negative behavior is not needed

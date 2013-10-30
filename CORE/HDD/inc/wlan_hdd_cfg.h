@@ -1297,6 +1297,11 @@ typedef enum
 #define CFG_VHT_ENABLE_2x2_CAP_FEATURE_MAX     ( 1 )
 #define CFG_VHT_ENABLE_2x2_CAP_FEATURE_DEFAULT ( 0 )
 
+#define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE         "gEnableMuBformee"
+#define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MIN     ( 0 )
+#define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MAX     ( 1 )
+#define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_DEFAULT ( 0 )
+
 #endif
 
 #define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
@@ -1571,6 +1576,16 @@ typedef enum
 #define CFG_ENABLE_RX_STBC_MAX                   ( 1 )
 #define CFG_ENABLE_RX_STBC_DEFAULT               ( 1 )
 
+#define CFG_ENABLE_TX_STBC                       "gEnableTXSTBC"
+#define CFG_ENABLE_TX_STBC_MIN                   ( 0 )
+#define CFG_ENABLE_TX_STBC_MAX                   ( 1 )
+#define CFG_ENABLE_TX_STBC_DEFAULT               ( 0 )
+
+#define CFG_ENABLE_RX_LDPC                       "gEnableRXLDPC"
+#define CFG_ENABLE_RX_LDPC_MIN                   ( 0 )
+#define CFG_ENABLE_RX_LDPC_MAX                   ( 1 )
+#define CFG_ENABLE_RX_LDPC_DEFAULT               ( 0 )
+
 /* 
  * Enable/Disable vsta based on MAX Assoc limit 
  * defined in WCNSS_qcom_cfg.ini.
@@ -1748,6 +1763,11 @@ typedef enum
 #define CFG_ENABLE_TCP_CHKSUM_OFFLOAD_MIN                       ( 0 )
 #define CFG_ENABLE_TCP_CHKSUM_OFFLOAD_DEFAULT                   ( 0 )
 
+#define CFG_ENABLE_IP_CHKSUM_OFFLOAD                        "gEnableIPChecksumOffload"
+#define CFG_ENABLE_IP_CHKSUM_OFFLOAD_DISABLE                ( 0 )
+#define CFG_ENABLE_IP_CHKSUM_OFFLOAD_ENABLE                 ( 1 )
+#define CFG_ENABLE_IP_CHKSUM_OFFLOAD_DEFAULT                ( CFG_ENABLE_IP_CHKSUM_OFFLOAD_DISABLE )
+
 /*
  * Power Save Offload
  */
@@ -1780,6 +1800,18 @@ typedef enum
 #define CFG_P2P_LISTEN_OFFLOAD_ENABLE                   ( 1 )
 #define CFG_P2P_LISTEN_OFFLOAD_DEFAULT                  ( CFG_P2P_LISTEN_OFFLOAD_DISABLE )
 
+#ifdef WLAN_FEATURE_11AC
+//Macro to handle maximum receive AMPDU size configuration
+#define CFG_VHT_AMPDU_LEN_EXPONENT_NAME                "gVhtAmpduLenExponent"
+#define CFG_VHT_AMPDU_LEN_EXPONENT_MIN                 ( 0 )
+#define CFG_VHT_AMPDU_LEN_EXPONENT_MAX                 ( 7 )
+#define CFG_VHT_AMPDU_LEN_EXPONENT_DEFAULT             ( 3 )
+
+#define CFG_VHT_MPDU_LEN_NAME                          "gVhtMpduLen"
+#define CFG_VHT_MPDU_LEN_MIN                           ( 0 )
+#define CFG_VHT_MPDU_LEN_MAX                           ( 2 )
+#define CFG_VHT_MPDU_LEN_DEFAULT                       ( 0 )
+#endif
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -2116,6 +2148,7 @@ typedef struct
    v_U8_t                      vhtTxMCS2x2;
    v_BOOL_t                    enable2x2;
    v_BOOL_t                    enableVhtFor24GHzBand;
+   v_BOOL_t                    enableMuBformee;
 #endif
    v_U8_t                      enableModulatedDTIM;
    v_U32_t                     fEnableMCAddrList;
@@ -2125,6 +2158,8 @@ typedef struct
    v_U16_t                     configMccParam;
    v_U32_t                     numBuffAdvert;
    v_BOOL_t                    enableRxSTBC;
+   v_BOOL_t                    enableTxSTBC;
+   v_BOOL_t                    enableRxLDPC;
 #ifdef FEATURE_WLAN_TDLS       
    v_BOOL_t                    fEnableTDLSSupport;
    v_BOOL_t                    fEnableTDLSImplicitTrigger;
@@ -2159,10 +2194,15 @@ typedef struct
    char                        listOfNon11acCountryCode[128];
    v_U8_t                      fScanOffload;
    v_BOOL_t                    enableTCPChkSumOffld;
+   v_BOOL_t                    enableIPChecksumOffload;
    v_BOOL_t                    enablePowersaveOffload;
    v_BOOL_t                    enablefwprint;
    v_BOOL_t                    enablefwlog;
    v_BOOL_t                    fP2pListenOffload;
+#ifdef WLAN_FEATURE_11AC
+   v_U8_t                      fVhtAmpduLenExponent;
+   v_U32_t                     vhtMpduLen;
+#endif
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

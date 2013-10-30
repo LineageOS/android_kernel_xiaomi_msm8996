@@ -713,15 +713,21 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     len  -= pStartBssReq->operationalRateSet.numRates;
 
     // Extract extendedRateSet
+    pStartBssReq->extendedRateSet.numRates = *pBuf++;
+    len--;
     if ((pStartBssReq->nwType == eSIR_11G_NW_TYPE) ||
         (pStartBssReq->nwType == eSIR_11N_NW_TYPE ))
     {
-        pStartBssReq->extendedRateSet.numRates = *pBuf++;
-        len--;
         palCopyMemory( pMac->hHdd, pStartBssReq->extendedRateSet.rate,
                        pBuf, pStartBssReq->extendedRateSet.numRates);
         pBuf += pStartBssReq->extendedRateSet.numRates;
         len  -= pStartBssReq->extendedRateSet.numRates;
+    }
+    else
+    {
+       pBuf += pStartBssReq->extendedRateSet.numRates;
+       len  -= pStartBssReq->extendedRateSet.numRates;
+       pStartBssReq->extendedRateSet.numRates = 0;
     }
 
     palCopyMemory(pMac->hHdd, &(pStartBssReq->htConfig), pBuf,
@@ -1151,6 +1157,11 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
+    //MuBformee
+    pJoinReq->txMuBformee= *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
 
     // Extract Titan CB Neighbor BSS info
     pJoinReq->cbNeighbors.cbBssFoundPri = *pBuf;

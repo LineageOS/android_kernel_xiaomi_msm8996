@@ -327,6 +327,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8    apCenterChan;
     tANI_U8    apChanWidth;
     tANI_U8    txBFIniFeatureEnabled;
+    tANI_U8    txMuBformee;
 #endif
     tANI_U8            spectrumMgtEnabled;
     /* *********************11H related*****************************/
@@ -339,6 +340,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     /*Flag to Track Status/Indicate HBFailure on this session */
     tANI_BOOLEAN LimHBFailureStatus;
     tANI_U32           gLimPhyMode;
+    tANI_U8            amsduSupportedInBA;
 
     tANI_U8          txLdpcIniFeatureEnabled;
     /**

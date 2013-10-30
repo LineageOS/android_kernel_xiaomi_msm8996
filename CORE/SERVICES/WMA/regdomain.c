@@ -68,19 +68,22 @@
 #include <adf_os_types.h>
 #include "regdomain.h"
 #include "regdomain_common.h"
+#include "wma.h"
 
 #define N(a) (sizeof(a)/sizeof(a[0]))
+
 /*
  * By default, the regdomain tables reference the common tables
  * from regdomain_common.h.  These default tables can be replaced
  * by calls to populate_regdomain_tables functions.
  */
-
 HAL_REG_DMN_TABLES ol_regdmn_Rdt = {
 	ahCmnRegDomainPairs,    /* regDomainPairs */
 	ahCmnAllCountries,      /* allCountries */
+	ahCmnRegDomains,        /* allRegDomains */
 	N(ahCmnRegDomainPairs),    /* regDomainPairsCt */
 	N(ahCmnAllCountries),      /* allCountriesCt */
+	N(ahCmnRegDomains),        /* allRegDomainCt */
 };
 
 static u_int16_t get_eeprom_rd(u_int16_t rd)
@@ -165,6 +168,17 @@ static const REG_DMN_PAIR_MAPPING *get_regdmn_pair(u_int16_t reg_dmn)
 	return NULL;
 }
 
+static const REG_DOMAIN *get_regdmn(u_int16_t reg_dmn)
+{
+	int32_t i;
+
+	for (i = 0; i < ol_regdmn_Rdt.regDomainsCt; i++) {
+		if (ol_regdmn_Rdt.regDomains[i].regDmnEnum == reg_dmn)
+			return &ol_regdmn_Rdt.regDomains[i];
+	}
+	return NULL;
+}
+
 static const COUNTRY_CODE_TO_ENUM_RD *get_country_from_rd(u_int16_t regdmn)
 {
 	int32_t i;
@@ -226,4 +240,215 @@ int32_t regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2)
 	}
 
 	return 0;
+}
+
+/*
+ * Returns regulatory domain for given country string
+ */
+int32_t regdmn_get_regdmn_for_country(u_int8_t *alpha2)
+{
+	u_int8_t i;
+
+	for (i = 0; i < ol_regdmn_Rdt.allCountriesCt; i++) {
+		if ((ol_regdmn_Rdt.allCountries[i].isoName[0] == alpha2[0]) &&
+		    (ol_regdmn_Rdt.allCountries[i].isoName[1] == alpha2[1]))
+			return ol_regdmn_Rdt.allCountries[i].regDmnEnum;
+	}
+	return -1;
+}
+
+/*
+ * Test to see if the bitmask array is all zeros
+ */
+static bool
+isChanBitMaskZero(const u_int64_t *bitmask)
+{
+	int i;
+
+	for (i = 0; i < BMLEN; i++) {
+		if (bitmask[i] != 0)
+			return false;
+	}
+	return true;
+}
+
+/*
+ * Return the mask of available modes based on the hardware
+ * capabilities and the specified country code and reg domain.
+ */
+u_int32_t regdmn_getwmodesnreg(u_int32_t modesAvail,
+		const COUNTRY_CODE_TO_ENUM_RD *country,
+		const REG_DOMAIN *rd5GHz)
+{
+
+	/* Check country regulations for allowed modes */
+	if ((modesAvail & (REGDMN_MODE_11A_TURBO|REGDMN_MODE_TURBO)) &&
+			(!country->allow11aTurbo))
+		modesAvail &= ~(REGDMN_MODE_11A_TURBO | REGDMN_MODE_TURBO);
+
+	if ((modesAvail & REGDMN_MODE_11G_TURBO) &&
+			(!country->allow11gTurbo))
+		modesAvail &= ~REGDMN_MODE_11G_TURBO;
+
+	if ((modesAvail & REGDMN_MODE_11G) &&
+			(!country->allow11g))
+		modesAvail &= ~REGDMN_MODE_11G;
+
+	if ((modesAvail & REGDMN_MODE_11A) &&
+			(isChanBitMaskZero(rd5GHz->chan11a)))
+		modesAvail &= ~REGDMN_MODE_11A;
+
+	if ((modesAvail & REGDMN_MODE_11NG_HT20) &&
+			(!country->allow11ng20))
+		modesAvail &= ~REGDMN_MODE_11NG_HT20;
+
+	if ((modesAvail & REGDMN_MODE_11NA_HT20) &&
+			(!country->allow11na20))
+		modesAvail &= ~REGDMN_MODE_11NA_HT20;
+
+	if ((modesAvail & REGDMN_MODE_11NG_HT40PLUS) &&
+			(!country->allow11ng40))
+		modesAvail &= ~REGDMN_MODE_11NG_HT40PLUS;
+
+	if ((modesAvail & REGDMN_MODE_11NG_HT40MINUS) &&
+			(!country->allow11ng40))
+		modesAvail &= ~REGDMN_MODE_11NG_HT40MINUS;
+
+	if ((modesAvail & REGDMN_MODE_11NA_HT40PLUS) &&
+			(!country->allow11na40))
+		modesAvail &= ~REGDMN_MODE_11NA_HT40PLUS;
+
+	if ((modesAvail & REGDMN_MODE_11NA_HT40MINUS) &&
+			(!country->allow11na40))
+		modesAvail &= ~REGDMN_MODE_11NA_HT40MINUS;
+
+	if ((modesAvail & REGDMN_MODE_11AC_VHT20) &&
+			(!country->allow11na20))
+		modesAvail &= ~REGDMN_MODE_11AC_VHT20;
+
+	if ((modesAvail & REGDMN_MODE_11AC_VHT40PLUS) &&
+			(!country->allow11na40))
+		modesAvail &= ~REGDMN_MODE_11AC_VHT40PLUS;
+
+	if ((modesAvail & REGDMN_MODE_11AC_VHT40MINUS) &&
+			(!country->allow11na40))
+		modesAvail &= ~REGDMN_MODE_11AC_VHT40MINUS;
+
+	if ((modesAvail & REGDMN_MODE_11AC_VHT80) &&
+			(!country->allow11na80))
+		modesAvail &= ~REGDMN_MODE_11AC_VHT80;
+
+	if ((modesAvail & REGDMN_MODE_11AC_VHT20_2G) &&
+			(!country->allow11ng20))
+		modesAvail &= ~REGDMN_MODE_11AC_VHT20_2G;
+
+	return modesAvail;
+}
+
+void regdmn_get_ctl_info(u_int32_t regdmn, u_int32_t modesAvail, u_int32_t modeSelect)
+{
+	const REG_DMN_PAIR_MAPPING *regpair = NULL;
+	const REG_DOMAIN *regdomain2G = NULL;
+	const REG_DOMAIN *regdomain5G = NULL;
+	int8_t ctl_2g, ctl_5g, ctl;
+	const REG_DOMAIN *rd = NULL;
+	const struct cmode *cm;
+	u_int16_t country_code;
+	const COUNTRY_CODE_TO_ENUM_RD *country;
+
+	country_code = regdmn_get_default_country(regdmn);
+	if (country_code == CTRY_DEFAULT && regdmn == CTRY_DEFAULT)
+		country_code = CTRY_UNITED_STATES;
+
+	country = find_country(country_code);
+	if (country != NULL)
+		regdmn = country->regDmnEnum;
+
+	/* get regulatory domain pair */
+	regpair = get_regdmn_pair(regdmn);
+	if (!regpair) {
+		adf_os_print(KERN_ERR "Failed to get regdmn pair");
+		return;
+	}
+
+	regdomain2G = get_regdmn(regpair->regDmn2GHz);
+	if (!regdomain2G) {
+		adf_os_print(KERN_ERR "Failed to get regdmn 2G");
+		return;
+	}
+
+	regdomain5G = get_regdmn(regpair->regDmn5GHz);
+	if (!regdomain5G) {
+		adf_os_print(KERN_ERR "Failed to get regdmn 5G");
+		return;
+	}
+
+	/* find first nible of CTL */
+	ctl_2g = regdomain2G->conformance_test_limit;
+	ctl_5g = regdomain5G->conformance_test_limit;
+
+	/* find second nible of CTL */
+	if (country != NULL)
+		modesAvail = regdmn_getwmodesnreg(modesAvail, country, regdomain5G);
+
+	for (cm = modes; cm < &modes[N(modes)]; cm++) {
+
+		if ((cm->mode & modeSelect) == 0)
+			continue;
+
+		if ((cm->mode & modesAvail) == 0)
+			continue;
+
+		switch (cm->mode) {
+		case REGDMN_MODE_TURBO:
+			rd = regdomain5G;
+			ctl = rd->conformance_test_limit | CTL_TURBO;
+			break;
+		case REGDMN_MODE_11A:
+		case REGDMN_MODE_11NA_HT20:
+		case REGDMN_MODE_11NA_HT40PLUS:
+		case REGDMN_MODE_11NA_HT40MINUS:
+		case REGDMN_MODE_11AC_VHT20:
+		case REGDMN_MODE_11AC_VHT40PLUS:
+		case REGDMN_MODE_11AC_VHT40MINUS:
+		case REGDMN_MODE_11AC_VHT80:
+			rd = regdomain5G;
+			ctl = rd->conformance_test_limit;
+			break;
+		case REGDMN_MODE_11B:
+			rd = regdomain2G;
+			ctl = rd->conformance_test_limit | CTL_11B;
+			break;
+		case REGDMN_MODE_11G:
+		case REGDMN_MODE_11NG_HT20:
+		case REGDMN_MODE_11NG_HT40PLUS:
+		case REGDMN_MODE_11NG_HT40MINUS:
+		case REGDMN_MODE_11AC_VHT20_2G:
+		case REGDMN_MODE_11AC_VHT40_2G:
+		case REGDMN_MODE_11AC_VHT80_2G:
+			rd = regdomain2G;
+			ctl = rd->conformance_test_limit | CTL_11G;
+			break;
+		case REGDMN_MODE_11G_TURBO:
+			rd = regdomain2G;
+			ctl = rd->conformance_test_limit | CTL_108G;
+			break;
+		case REGDMN_MODE_11A_TURBO:
+			rd = regdomain5G;
+			ctl = rd->conformance_test_limit | CTL_108G;
+			break;
+		default:
+			adf_os_print(KERN_ERR "%s: Unkonwn HAL mode 0x%x\n",
+					__func__, cm->mode);
+			continue;
+		}
+
+		if (rd == regdomain2G)
+			ctl_2g = ctl;
+
+		if (rd == regdomain5G)
+			ctl_5g = ctl;
+	}
+	wma_send_regdomain_info(regdmn, regpair->regDmn2GHz,
+			regpair->regDmn5GHz, ctl_2g, ctl_5g);
 }

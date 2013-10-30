@@ -58,7 +58,7 @@
 #endif
 #include "limSessionUtils.h"
 
-#if defined FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_CCX
 #include "ccxApi.h"
 #endif
 #include "wlan_qct_wda.h"
@@ -593,8 +593,7 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
         return;
     }
 #ifdef FEATURE_WLAN_CCX
-    if (addts.tsmPresent)
-    {
+    if (addts.tsmPresent) {
         limLog(pMac, LOGW, "TSM IE Present");
         psessionEntry->ccxContext.tsm.tid = addts.tspec.tsinfo.traffic.userPrio;
         vos_mem_copy(&psessionEntry->ccxContext.tsm.tsmInfo,
@@ -700,7 +699,11 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
        ((upToAc(addts.tspec.tsinfo.traffic.userPrio) < MAX_NUM_AC) &&
        (psessionEntry->gLimEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm)))
     {
+#ifdef FEATURE_WLAN_CCX
+        retval = limSendHalMsgAddTs(pMac, pSta->staIndex, tspecInfo->idx, addts.tspec, psessionEntry->peSessionId, addts.tsmIE.msmt_interval);
+#else
         retval = limSendHalMsgAddTs(pMac, pSta->staIndex, tspecInfo->idx, addts.tspec, psessionEntry->peSessionId);
+#endif
         if(eSIR_SUCCESS != retval)
         {
             limAdmitControlDeleteTS(pMac, pSta->assocId, &addts.tspec.tsinfo, NULL, &tspecInfo->idx);
@@ -1296,6 +1299,8 @@ __limProcessAddBAReq( tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
 
         PELOG2(sirDumpBuf( pMac, SIR_DBG_MODULE_ID, LOG2, pBody, frameLen );)
     }
+
+    psessionEntry->amsduSupportedInBA = frmAddBAReq.AddBAParameterSet.amsduSupported;
 
     pSta = dphLookupHashEntry( pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable );
     if( pSta == NULL )

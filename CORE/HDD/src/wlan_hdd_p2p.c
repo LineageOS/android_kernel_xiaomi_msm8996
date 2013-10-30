@@ -1206,6 +1206,7 @@ int wlan_hdd_add_virtual_intf( struct wiphy *wiphy, char *name,
 
     /*Allow addition multiple interface for WLAN_HDD_P2P_CLIENT session type*/
     if (WLAN_HDD_P2P_CLIENT != wlan_hdd_get_session_type(type) &&
+            WLAN_HDD_INFRA_STATION != wlan_hdd_get_session_type(type) &&
             hdd_get_adapter(pHddCtx, wlan_hdd_get_session_type(type)) != NULL)
     {
        hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Interface type %d already exists. Two"

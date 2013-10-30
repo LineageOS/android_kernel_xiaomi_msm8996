@@ -1617,36 +1617,3 @@ end:
 
 	return vos_status;
 }
-
-void wma_set_sta_arp_keep_alive(tp_wma_handle wma, u_int8_t vdev_id,
-				u_int8_t *hostv4addr, u_int8_t *destv4addr,
-				u_int8_t *destmac, v_U32_t timeperiod)
-{
-	wmi_buf_t buf;
-	WMI_STA_KEEPALIVE_CMD *cmd;
-
-	buf = wmi_buf_alloc(wma->wmi_handle, sizeof(*cmd));
-	if (!buf) {
-		WMA_LOGE("wmi_buf_alloc failed");
-		return;
-	}
-
-	WMA_LOGD("keep alive method ARP_RESPONSE interval:%d", timeperiod);
-	cmd = (WMI_STA_KEEPALIVE_CMD *)wmi_buf_data(buf);
-	cmd->vdev_id = vdev_id;
-	cmd->interval = timeperiod;
-	cmd->enable = (timeperiod)? true : false;
-	cmd->method = WMI_STA_KEEPALIVE_METHOD_UNSOLICITED_ARP_RESPONSE;
-	vos_mem_copy(&cmd->arp_resp.sender_prot_addr, hostv4addr,
-		     SIR_IPV4_ADDR_LEN);
-	vos_mem_copy(&cmd->arp_resp.target_prot_addr, destv4addr,
-		     SIR_IPV4_ADDR_LEN);
-	WMI_CHAR_ARRAY_TO_MAC_ADDR(destmac,&cmd->arp_resp.dest_mac_addr);
-	if (wmi_unified_cmd_send(wma->wmi_handle, buf, sizeof(*cmd),
-				 WMI_STA_KEEPALIVE_CMDID)) {
-		WMA_LOGE("Failed to set KeepAlive");
-		adf_nbuf_free(buf);
-	}
-
-	return;
-}

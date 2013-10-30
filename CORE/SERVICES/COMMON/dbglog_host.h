@@ -38,10 +38,13 @@ extern "C" {
 
 #define MAX_DBG_MSGS 256
 
+#define CLD_NETLINK_USER 17
+
 typedef enum {
     DBGLOG_PROCESS_DEFAULT = 0,
     DBGLOG_PROCESS_PRINT_RAW, /* print them in debug view */
     DBGLOG_PROCESS_POOL_RAW, /* user buffer pool to save them */
+    DBGLOG_PROCESS_NET_RAW, /* user buffer pool to save them */
     DBGLOG_PROCESS_MAX,
 } dbglog_process_t;
 

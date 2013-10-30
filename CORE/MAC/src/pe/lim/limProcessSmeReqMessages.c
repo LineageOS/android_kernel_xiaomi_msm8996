@@ -1699,6 +1699,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         if (psessionEntry->vhtCapability )
         {
             psessionEntry->txBFIniFeatureEnabled = pSmeJoinReq->txBFIniFeatureEnabled;
+            psessionEntry->txMuBformee = pSmeJoinReq->txMuBformee;
 
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO_MED,
                 "***__limProcessSmeJoinReq: txBFIniFeatureEnabled=%d****",

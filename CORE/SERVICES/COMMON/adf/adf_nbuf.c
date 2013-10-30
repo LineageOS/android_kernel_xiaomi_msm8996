@@ -334,6 +334,8 @@ __adf_nbuf_get_tx_cksum(struct sk_buff *skb)
         /* XXX ADF and Linux checksum don't map with 1-to-1. This is not 100%
          * correct. */
         return ADF_NBUF_TX_CKSUM_TCP_UDP;
+    case CHECKSUM_COMPLETE:
+        return ADF_NBUF_TX_CKSUM_TCP_UDP_IP;
     default:
         return ADF_NBUF_TX_CKSUM_NONE;
     }

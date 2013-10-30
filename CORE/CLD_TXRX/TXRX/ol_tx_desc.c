@@ -29,6 +29,9 @@
 #include <adf_nbuf.h>      /* adf_nbuf_t, etc. */
 #include <adf_os_util.h>   /* adf_os_assert */
 #include <adf_os_lock.h>   /* adf_os_spinlock */
+#ifdef QCA_COMPUTE_TX_DELAY
+#include <adf_os_time.h>   /* adf_os_ticks */
+#endif
 #include <queue.h>         /* TAILQ */
 
 #include <ol_htt_tx_api.h> /* htt_tx_desc_id */
@@ -38,7 +41,18 @@
 #include <ol_txrx_internal.h>
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
 #include <ol_txrx_encap.h>  /* OL_TX_RESTORE_HDR, etc*/
-#endif 
+#endif
+
+#ifdef QCA_COMPUTE_TX_DELAY
+static inline void
+OL_TX_TIMESTAMP_SET(struct ol_tx_desc_t *tx_desc)
+{
+    tx_desc->entry_timestamp_ticks = adf_os_ticks();
+}
+#else
+#define OL_TX_TIMESTAMP_SET(tx_desc) /* no-op */
+#endif
+
 static inline struct ol_tx_desc_t *
 ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev)
 {
@@ -51,6 +65,8 @@ ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev)
     }
     adf_os_spin_unlock_bh(&pdev->tx_mutex);
 
+    OL_TX_TIMESTAMP_SET(tx_desc);
+
     return tx_desc;
 }
 
@@ -61,6 +77,7 @@ ol_tx_desc_alloc_hl(struct ol_txrx_pdev_t *pdev)
 
     tx_desc = ol_tx_desc_alloc(pdev);
     if (!tx_desc) return NULL;
+
 
     adf_os_atomic_dec(&pdev->tx_queue.rsrc_cnt);
 

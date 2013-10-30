@@ -1068,19 +1068,30 @@ void sapSortChlWeight(tSapChSelSpectInfo *pSpectInfoParams)
 
     IN
     pSpectInfoParams: Spectrum Info params
+    startChannelNum: Allowed start channel number
+    endChannelNum: Allowed end channel number
 
   RETURN VALUE
     v_U8_t          : Success - Bit mask
 
   SIDE EFFECTS
 ============================================================================*/
-v_U8_t  sapComputeNonOverlapChannel(tSapChSelSpectInfo* pSpectInfoParams)
+v_U8_t  sapComputeNonOverlapChannel(tSapChSelSpectInfo* pSpectInfoParams,
+                                    v_U32_t startChannelNum, v_U32_t endChannelNum)
 {
     v_U8_t nonOverlap = 0;
     tSapSpectChInfo *pSpectCh   = NULL;
     v_U8_t chn_num = 0;
     pSpectCh = pSpectInfoParams->pSpectCh;
     for (chn_num = 0; chn_num < (pSpectInfoParams->numSpectChans); chn_num++) {
+
+        if (startChannelNum > pSpectCh->chNum || endChannelNum < pSpectCh->chNum)
+        {
+            // Channel is not in allowed range
+            pSpectCh++;
+            continue;
+        }
+
         if(pSpectCh->chNum == CHANNEL_1 || pSpectCh->chNum == CHANNEL_6 || pSpectCh->chNum == CHANNEL_11)
         {
             switch(pSpectCh->chNum)
@@ -1164,7 +1175,8 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
 
     // Calculating the Non overlapping Channel Availability */
     if(operatingBand == RF_SUBBAND_2_4_GHZ)
-        nonOverlap = sapComputeNonOverlapChannel(pSpectInfoParams);
+        nonOverlap = sapComputeNonOverlapChannel(pSpectInfoParams, startChannelNum,
+                                                 endChannelNum);
 
     /*Loop till get the best channel in the given range */
     for(count=0; count < pSpectInfoParams->numSpectChans ; count++)

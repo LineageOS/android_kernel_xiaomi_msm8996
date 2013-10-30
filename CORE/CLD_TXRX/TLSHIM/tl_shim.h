@@ -28,6 +28,16 @@
 #ifndef TXRX_TL_SHIM_H
 #define TXRX_TL_SHIM_H
 
+#ifdef FEATURE_WLAN_CCX
+typedef struct deferred_iapp_work {
+    pVosContextType	pVosGCtx;
+    adf_nbuf_t nbuf;
+    struct ol_txrx_vdev_t *vdev;
+    bool inUse;
+    struct work_struct deferred_work;
+} deferred_iapp_work;
+#endif
+
 struct tlshim_buf {
 	struct list_head list;
 	adf_nbuf_t buf;
@@ -49,6 +59,17 @@ struct txrx_tl_shim_ctx {
 	struct tlshim_sta_info sta_info[WLAN_MAX_STA_COUNT];
 	adf_os_spinlock_t bufq_lock;
 	struct work_struct cache_flush_work;
+
+#ifdef FEATURE_WLAN_CCX
+    /*
+     * work structures to defer IAPP processing to
+     * non interrupt context
+     */
+struct deferred_iapp_work iapp_work;
+#endif
+	v_BOOL_t ip_checksum_offload;
+	u_int8_t   *last_beacon_data;
+	u_int32_t   last_beacon_len;
 };
 
 /*

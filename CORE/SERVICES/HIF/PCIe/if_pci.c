@@ -555,15 +555,15 @@ again:
     }
 
 #ifndef REMOVE_PKT_LOG
-#ifndef QCA_WIFI_FTM
-    /*
-     * pktlog initialization
-     */
-    ol_pl_sethandle(&ol_sc->pdev_txrx_handle->pl_dev, ol_sc);
+    if (vos_get_conparam() != VOS_FTM_MODE) {
+        /*
+         * pktlog initialization
+         */
+        ol_pl_sethandle(&ol_sc->pdev_txrx_handle->pl_dev, ol_sc);
 
-    if (pktlogmod_init(ol_sc))
-        printk(KERN_ERR "%s: pktlogmod_init failed\n", __func__);
-#endif
+        if (pktlogmod_init(ol_sc))
+            printk(KERN_ERR "%s: pktlogmod_init failed\n", __func__);
+    }
 #endif
 
 #ifdef WLAN_BTAMP_FEATURE
@@ -847,9 +847,8 @@ hif_pci_remove(struct pci_dev *pdev)
     scn = sc->ol_sc;
 
 #ifndef REMOVE_PKT_LOG
-#ifndef QCA_WIFI_FTM
-    pktlogmod_exit(scn);
-#endif
+    if (vos_get_conparam() != VOS_FTM_MODE)
+        pktlogmod_exit(scn);
 #endif
 
     __hdd_wlan_exit();

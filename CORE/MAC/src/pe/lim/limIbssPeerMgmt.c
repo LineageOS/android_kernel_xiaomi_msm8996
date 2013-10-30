@@ -276,6 +276,10 @@ ibss_sta_caps_update(
         if ( pPeerNode->vhtCapable )
         {
            pStaDs->vhtSupportedChannelWidthSet = pPeerNode->vhtSupportedChannelWidthSet;
+
+           // If in 11AC mode and if session requires 11AC mode, consider peer's
+           // max AMPDU length factor
+           pStaDs->htMaxRxAMpduFactor = pPeerNode->VHTCaps.maxAMPDULenExp;
         }
     }
 #endif
