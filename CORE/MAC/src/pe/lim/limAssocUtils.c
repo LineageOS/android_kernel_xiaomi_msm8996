@@ -3283,6 +3283,9 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
         vos_mem_copy(&pAddBssParams->staContext.vht_caps,
                      (tANI_U8 *)&pAssocRsp->VHTCaps + sizeof(tANI_U8),
                      sizeof(pAddBssParams->staContext.vht_caps));
+        pAddBssParams->staContext.maxAmpduSize =
+                                  SIR_MAC_GET_VHT_MAX_AMPDU_EXPO(
+                                           pAddBssParams->staContext.vht_caps);
     }
     else 
     {
@@ -3379,7 +3382,13 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             pAddBssParams->staContext.fDsssCckMode40Mhz = (tANI_U8)pAssocRsp->HTCaps.dsssCckMode40MHz;
             pAddBssParams->staContext.fShortGI20Mhz = (tANI_U8)pAssocRsp->HTCaps.shortGI20MHz;
             pAddBssParams->staContext.fShortGI40Mhz = (tANI_U8)pAssocRsp->HTCaps.shortGI40MHz;
-            pAddBssParams->staContext.maxAmpduSize= pAssocRsp->HTCaps.maxRxAMPDUFactor;
+#ifdef WLAN_FEATURE_11AC
+            if (!pAddBssParams->staContext.vhtCapable)
+                // Use max ampd factor advertised in HTCAP for non-vht connection
+#endif
+             {
+                pAddBssParams->staContext.maxAmpduSize= pAssocRsp->HTCaps.maxRxAMPDUFactor;
+             }
             if( pAddBssParams->staContext.vhtTxBFCapable && pMac->lim.disableLDPCWithTxbfAP )
             {
                 pAddBssParams->staContext.htLdpcCapable = 0;
