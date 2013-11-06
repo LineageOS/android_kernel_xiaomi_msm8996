@@ -292,6 +292,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_DUMP_CHANINFO_START     11
 #define WE_DUMP_CHANINFO           12
 #define WE_DUMP_WATCHDOG           13
+#ifdef DEBUG
+#define WE_SET_FW_CRASH_INJECT     14
+#endif
 #endif
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_VAR_INT_GET_NONE   (SIOCIWFIRSTPRIV + 7)
@@ -5584,6 +5587,16 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
                                           0, GEN_CMD);
             break;
         }
+#ifdef DEBUG
+        case WE_SET_FW_CRASH_INJECT:
+        {
+           hddLog(LOGE, "WE_FW_CRASH_INJECT");
+           ret = process_wma_set_command((int) pAdapter->sessionId,
+                                         (int) GEN_PARAM_CRASH_INJECT,
+                                         0, GEN_CMD);
+           break;
+        }
+#endif
 #endif
         default:
         {
@@ -8183,6 +8196,12 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "dump_watchdog" },
+#ifdef DEBUG
+    {   WE_SET_FW_CRASH_INJECT,
+        0,
+        0,
+        "crash_inject" },
+#endif
 #endif
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_VAR_INT_GET_NONE,

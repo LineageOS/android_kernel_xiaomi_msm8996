@@ -3942,6 +3942,36 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 	return ret;
 }
 
+static int wmi_crash_inject(wmi_unified_t wmi_handle)
+{
+	int ret = 0;
+	WMI_FORCE_FW_HANG_CMD_fixed_param *cmd;
+	u_int16_t len = sizeof(*cmd);
+	wmi_buf_t buf;
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed!", __func__);
+		return -ENOMEM;
+	}
+
+	cmd = (WMI_FORCE_FW_HANG_CMD_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_WMI_FORCE_FW_HANG_CMD_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(WMI_FORCE_FW_HANG_CMD_fixed_param));
+	cmd->type = 1;
+	cmd->delay_time_ms = 0;
+
+	ret = wmi_unified_cmd_send(wmi_handle, buf, len, WMI_FORCE_FW_HANG_CMDID);
+	if (ret < 0) {
+		WMA_LOGE("%s: Failed to send set param command, ret = %d",
+			__func__, ret);
+		wmi_buf_free(buf);
+	}
+
+	return ret;
+}
+
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					wda_cli_set_cmd_t *privcmd)
 {
@@ -4024,6 +4054,9 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		case GEN_PARAM_DUMP_WATCHDOG:
 			HTCDump(wma->htc_handle, WD_DUMP, false);
+			break;
+		case GEN_PARAM_CRASH_INJECT:
+			ret = wmi_crash_inject(wma->wmi_handle);
 			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
