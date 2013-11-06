@@ -1004,6 +1004,7 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
             return;
         }
         pftSessionEntry->peSessionId = sessionId;
+        pftSessionEntry->smeSessionId = psessionEntry->smeSessionId;
         sirCopyMacAddr(pftSessionEntry->selfMacAddr, psessionEntry->selfMacAddr);
         sirCopyMacAddr(pftSessionEntry->limReAssocbssId, pbssDescription->bssId);
         pftSessionEntry->bssType = psessionEntry->bssType;
