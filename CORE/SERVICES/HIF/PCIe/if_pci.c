@@ -38,6 +38,9 @@
 #include <osapi_linux.h>
 #include "vos_api.h"
 #include "wma_api.h"
+#ifdef CONFIG_CNSS
+#include <net/cnss.h>
+#endif
 
 #ifdef WLAN_BTAMP_FEATURE
 #include "wlan_btc_svc.h"
@@ -1008,6 +1011,18 @@ adf_os_size_t initBufferCount(adf_os_size_t maxSize)
     return maxSize;
 }
 
+#ifdef CONFIG_CNSS
+struct cnss_wlan_driver cnss_wlan_drv_id = {
+	.name       = "hif_pci",
+	.id_table   = hif_pci_id_table,
+	.probe      = hif_pci_probe,
+	.remove     = hif_pci_remove,
+#ifdef ATH_BUS_PM
+	.suspend    = hif_pci_suspend,
+	.resume     = hif_pci_resume,
+#endif
+};
+#else
 MODULE_DEVICE_TABLE(pci, hif_pci_id_table);
 struct pci_driver hif_pci_drv_id = {
 	.name       = "hif_pci",
@@ -1019,15 +1034,24 @@ struct pci_driver hif_pci_drv_id = {
 	.resume     = hif_pci_resume,
 #endif
 };
+#endif
 
 int hif_register_driver(void)
 {
+#ifdef CONFIG_CNSS
+	return cnss_wlan_register_driver(&cnss_wlan_drv_id);
+#else
 	return pci_register_driver(&hif_pci_drv_id);
+#endif
 }
 
 void hif_unregister_driver(void)
 {
+#ifdef CONFIG_CNSS
+	cnss_wlan_unregister_driver(&cnss_wlan_drv_id);
+#else
 	pci_unregister_driver(&hif_pci_drv_id);
+#endif
 }
 
 void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle)
