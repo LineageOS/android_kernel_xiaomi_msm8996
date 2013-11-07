@@ -278,10 +278,13 @@ struct wma_txrx_node {
 	v_BOOL_t ptrn_match_enable;
 	v_BOOL_t conn_state;
 	/* BSS parameters cached for use in WDA_ADD_STA */
-    tSirMacBeaconInterval   beaconInterval;
-    tANI_U8                 llbCoexist;
-    tANI_U8                 shortSlotTimeSupported;
-    tANI_U8                 dtimPeriod;
+	tSirMacBeaconInterval   beaconInterval;
+	tANI_U8                 llbCoexist;
+	tANI_U8                 shortSlotTimeSupported;
+	tANI_U8                 dtimPeriod;
+	WLAN_PHY_MODE           chanmode;
+	tANI_U8                 vht_capable;
+	tANI_U8                 ht_capable;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -954,6 +957,7 @@ struct wma_vdev_start_req {
 	u_int8_t hidden_ssid;
 	u_int8_t pmf_enabled;
 	u_int8_t vht_capable;
+	u_int8_t ht_capable;
 };
 
 struct wma_set_key_params {

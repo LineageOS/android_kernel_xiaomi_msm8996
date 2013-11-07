@@ -3210,6 +3210,7 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	int32_t len;
 	WLAN_PHY_MODE chanmode;
 	u_int8_t *buf_ptr;
+	struct wma_txrx_node *intr = wma->interfaces;
 
 	len = sizeof(*cmd) + sizeof(wmi_channel) +
 	       WMI_TLV_HDR_SIZE;
@@ -3233,16 +3234,20 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	/* Fill channel info */
 	chan->mhz = vos_chan_to_freq(req->chan);
 	chanmode = wma_chan_to_mode(req->chan, req->chan_offset,
-                                    req->vht_capable);
+				req->vht_capable);
+
+	intr[cmd->vdev_id].chanmode = chanmode; /* save channel mode */
+	intr[cmd->vdev_id].ht_capable = req->ht_capable;
+	intr[cmd->vdev_id].vht_capable = req->vht_capable;
 	WMI_SET_CHANNEL_MODE(chan, chanmode);
 	chan->band_center_freq1 = chan->mhz;
 
 	if (chanmode == MODE_11AC_VHT80)
-            chan->band_center_freq1 = vos_chan_to_freq(wma_getCenterChannel
-                                             (req->chan, req->chan_offset));
+		chan->band_center_freq1 = vos_chan_to_freq(wma_getCenterChannel
+			(req->chan, req->chan_offset));
 
 	if ((chanmode == MODE_11NA_HT40) || (chanmode == MODE_11NG_HT40) ||
-            (chanmode == MODE_11AC_VHT40)) {
+			(chanmode == MODE_11AC_VHT40)) {
 		if (req->chan_offset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
 			chan->band_center_freq1 += 10;
 		else
@@ -7923,48 +7928,565 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 	return VOS_STATUS_SUCCESS;
 }
 
+typedef struct {
+	int32_t rate;
+	tANI_U8 flag;
+} wma_search_rate_t;
+
+#define WMA_MAX_OFDM_CCK_RATE_TBL_SIZE 12
+/* In ofdm_cck_rate_tbl->flag, if bit 7 is 1 it's CCK, otherwise it ofdm.
+ * Lower bit carries the ofdm/cck index for encoding the rate */
+static wma_search_rate_t ofdm_cck_rate_tbl[WMA_MAX_OFDM_CCK_RATE_TBL_SIZE] = {
+	{540, 4},            /* 4: OFDM 54 Mbps */
+	{480, 0},            /* 0: OFDM 48 Mbps */
+	{360, 5},            /* 5: OFDM 36 Mbps */
+	{240, 1},            /* 1: OFDM 24 Mbps */
+	{180, 6},            /* 6: OFDM 18 Mbps */
+	{120, 2},            /* 2: OFDM 12 Mbps */
+	{110, (1 << 7)},     /* 0: CCK 11 Mbps Long */
+	{90,  7},            /* 7: OFDM 9 Mbps  */
+	{60,  3},            /* 3: OFDM 6 Mbps  */
+	{55,  ((1 << 7)|1)}, /* 1: CCK 5.5 Mbps Long */
+	{20,  ((1 << 7)|2)}, /* 2: CCK 2 Mbps Long   */
+	{10,  ((1 << 7)|3)}  /* 3: CCK 1 Mbps Long   */
+};
+
+#define WMA_MAX_OFDM_RATE_TBL_SIZE 8
+/* In ofdm_rate_tbl flag carries the ofdm index for encoding the rate */
+static wma_search_rate_t ofdm_rate_tbl[WMA_MAX_OFDM_RATE_TBL_SIZE] = {
+	{540, 4}, /* 4: OFDM 54 Mbps */
+	{480, 0}, /* 0: OFDM 48 Mbps */
+	{360, 5}, /* 5: OFDM 36 Mbps */
+	{240, 1}, /* 1: OFDM 24 Mbps */
+	{180, 6}, /* 6: OFDM 18 Mbps */
+	{120, 2}, /* 2: OFDM 12 Mbps */
+	{90,  7}, /* 7: OFDM 9 Mbps  */
+	{60,  3}  /* 3: OFDM 6 Mbps  */
+};
+
+#define WMA_MAX_CCK_RATE_TBL_SIZE 4
+/* In cck_rate_tbl flag carries the ofdm index for encoding the rate */
+static wma_search_rate_t cck_rate_tbl[WMA_MAX_CCK_RATE_TBL_SIZE] = {
+	{110, 0}, /* 0: CCK 11 Mbps Long */
+	{55,  1}, /* 1: CCK 5.5 Mbps Long */
+	{20,  2}, /* 2: CCK 2 Mbps Long   */
+	{10,  3}  /* 3: CCK 1 Mbps Long   */
+};
+
+#define WMA_MAX_VHT20_RATE_TBL_SIZE 9
+/* In vht20_400ns_rate_tbl flag carries the mcs index for encoding the rate */
+static wma_search_rate_t vht20_400ns_rate_tbl[WMA_MAX_VHT20_RATE_TBL_SIZE] = {
+	{867, 8}, /* MCS8 1SS short GI */
+	{722, 7}, /* MCS7 1SS short GI */
+	{650, 6}, /* MCS6 1SS short GI */
+	{578, 5}, /* MCS5 1SS short GI */
+	{433, 4}, /* MCS4 1SS short GI */
+	{289, 3}, /* MCS3 1SS short GI */
+	{217, 2}, /* MCS2 1SS short GI */
+	{144, 1}, /* MCS1 1SS short GI */
+	{72,  0}  /* MCS0 1SS short GI */
+};
+/* In vht20_800ns_rate_tbl flag carries the mcs index for encoding the rate */
+static wma_search_rate_t vht20_800ns_rate_tbl[WMA_MAX_VHT20_RATE_TBL_SIZE] = {
+	{780, 8}, /* MCS8 1SS long GI */
+	{650, 7}, /* MCS7 1SS long GI */
+	{585, 6}, /* MCS6 1SS long GI */
+	{520, 5}, /* MCS5 1SS long GI */
+	{390, 4}, /* MCS4 1SS long GI */
+	{260, 3}, /* MCS3 1SS long GI */
+	{195, 2}, /* MCS2 1SS long GI */
+	{130, 1}, /* MCS1 1SS long GI */
+	{65,  0}  /* MCS0 1SS long GI */
+};
+
+#define WMA_MAX_VHT40_RATE_TBL_SIZE 10
+/* In vht40_400ns_rate_tbl flag carries the mcs index for encoding the rate */
+static wma_search_rate_t vht40_400ns_rate_tbl[WMA_MAX_VHT40_RATE_TBL_SIZE] = {
+	{2000, 9}, /* MCS9 1SS short GI */
+	{1800, 8}, /* MCS8 1SS short GI */
+	{1500, 7}, /* MCS7 1SS short GI */
+	{1350, 6}, /* MCS6 1SS short GI */
+	{1200, 5}, /* MCS5 1SS short GI */
+	{900,  4}, /* MCS4 1SS short GI */
+	{600,  3}, /* MCS3 1SS short GI */
+	{450,  2}, /* MCS2 1SS short GI */
+	{300,  1}, /* MCS1 1SS short GI */
+	{150,  0}, /* MCS0 1SS short GI */
+};
+static wma_search_rate_t vht40_800ns_rate_tbl[WMA_MAX_VHT40_RATE_TBL_SIZE] = {
+	{1800, 9}, /* MCS9 1SS long GI */
+	{1620, 8}, /* MCS8 1SS long GI */
+	{1350, 7}, /* MCS7 1SS long GI */
+	{1215, 6}, /* MCS6 1SS long GI */
+	{1080, 5}, /* MCS5 1SS long GI */
+	{810,  4}, /* MCS4 1SS long GI */
+	{540,  3}, /* MCS3 1SS long GI */
+	{405,  2}, /* MCS2 1SS long GI */
+	{270,  1}, /* MCS1 1SS long GI */
+	{135,  0}  /* MCS0 1SS long GI */
+};
+
+#define WMA_MAX_VHT80_RATE_TBL_SIZE 10
+static wma_search_rate_t vht80_400ns_rate_tbl[WMA_MAX_VHT80_RATE_TBL_SIZE] = {
+	{4333, 9}, /* MCS9 1SS short GI */
+	{3900, 8}, /* MCS8 1SS short GI */
+	{3250, 7}, /* MCS7 1SS short GI */
+	{2925, 6}, /* MCS6 1SS short GI */
+	{2600, 5}, /* MCS5 1SS short GI */
+	{1950, 4}, /* MCS4 1SS short GI */
+	{1300, 3}, /* MCS3 1SS short GI */
+	{975,  2}, /* MCS2 1SS short GI */
+	{650,  1}, /* MCS1 1SS short GI */
+	{325,  0}  /* MCS0 1SS short GI */
+};
+static wma_search_rate_t vht80_800ns_rate_tbl[WMA_MAX_VHT80_RATE_TBL_SIZE] = {
+	{3900, 9}, /* MCS9 1SS long GI */
+	{3510, 8}, /* MCS8 1SS long GI */
+	{2925, 7}, /* MCS7 1SS long GI */
+	{2633, 6}, /* MCS6 1SS long GI */
+	{2340, 5}, /* MCS5 1SS long GI */
+	{1755, 4}, /* MCS4 1SS long GI */
+	{1170, 3}, /* MCS3 1SS long GI */
+	{878,  2}, /* MCS2 1SS long GI */
+	{585,  1}, /* MCS1 1SS long GI */
+	{293,  0}  /* MCS0 1SS long GI */
+};
+
+#define WMA_MAX_HT20_RATE_TBL_SIZE 8
+static wma_search_rate_t ht20_400ns_rate_tbl[WMA_MAX_HT20_RATE_TBL_SIZE] = {
+	{722, 7}, /* MCS7 1SS short GI */
+	{650, 6}, /* MCS6 1SS short GI */
+	{578, 5}, /* MCS5 1SS short GI */
+	{433, 4}, /* MCS4 1SS short GI */
+	{289, 3}, /* MCS3 1SS short GI */
+	{217, 2}, /* MCS2 1SS short GI */
+	{144, 1}, /* MCS1 1SS short GI */
+	{72,  0}  /* MCS0 1SS short GI */
+};
+static wma_search_rate_t ht20_800ns_rate_tbl[WMA_MAX_HT20_RATE_TBL_SIZE] = {
+	{650, 7}, /* MCS7 1SS long GI */
+	{585, 6}, /* MCS6 1SS long GI */
+	{520, 5}, /* MCS5 1SS long GI */
+	{390, 4}, /* MCS4 1SS long GI */
+	{260, 3}, /* MCS3 1SS long GI */
+	{195, 2}, /* MCS2 1SS long GI */
+	{130, 1}, /* MCS1 1SS long GI */
+	{65,  0}  /* MCS0 1SS long GI */
+};
+
+#define WMA_MAX_HT40_RATE_TBL_SIZE 8
+static wma_search_rate_t ht40_400ns_rate_tbl[WMA_MAX_HT40_RATE_TBL_SIZE] = {
+	{1500, 7}, /* MCS7 1SS short GI */
+	{1350, 6}, /* MCS6 1SS short GI */
+	{1200, 5}, /* MCS5 1SS short GI */
+	{900,  4}, /* MCS4 1SS short GI */
+	{600,  3}, /* MCS3 1SS short GI */
+	{450,  2}, /* MCS2 1SS short GI */
+	{300,  1}, /* MCS1 1SS short GI */
+	{150,  0}  /* MCS0 1SS short GI */
+};
+static wma_search_rate_t ht40_800ns_rate_tbl[WMA_MAX_HT40_RATE_TBL_SIZE] = {
+	{1350, 7}, /* MCS7 1SS long GI */
+	{1215, 6}, /* MCS6 1SS long GI */
+	{1080, 5}, /* MCS5 1SS long GI */
+	{810,  4}, /* MCS4 1SS long GI */
+	{540,  3}, /* MCS3 1SS long GI */
+	{405,  2}, /* MCS2 1SS long GI */
+	{270,  1}, /* MCS1 1SS long GI */
+	{135,  0}  /* MCS0 1SS long GI */
+};
+
+static void wma_bin_serach_rate(wma_search_rate_t *tbl, int32_t tbl_size,
+	tANI_S32 *mbpsx10_rate, tANI_U8 *ret_flag)
+{
+	int32_t upper, lower, mid;
+
+	/* the table is descenting. index holds the largest value and the
+	 * bottom index holds the smallest value */
+
+	upper = 0; /* index 0 */
+	lower = tbl_size -1; /* last index */
+
+	if (*mbpsx10_rate >= tbl[upper].rate) {
+		/* use the largest rate */
+		*mbpsx10_rate = tbl[upper].rate;
+		*ret_flag = tbl[upper].flag;
+		return;
+	} else if (*mbpsx10_rate <= tbl[lower].rate) {
+		/* use the smallest rate */
+		*mbpsx10_rate = tbl[lower].rate;
+		*ret_flag = tbl[lower].flag;
+		return;
+	}
+	/* now we do binery search to get the floor value */
+	while (lower - upper > 1) {
+		mid = (upper + lower) >> 1;
+		if (*mbpsx10_rate == tbl[mid].rate) {
+		/* found the exact match */
+			*mbpsx10_rate = tbl[lower].rate;
+			*ret_flag = tbl[lower].flag;
+			return;
+		} else {
+		/* not found. if mid's rate is larger than input move
+		 * upper to mid. If mid's rate is larger than input
+		 * move lower to mid. */
+			if (*mbpsx10_rate > tbl[mid].rate)
+				lower = mid;
+			else
+				upper = mid;
+		}
+	}
+	/* after the bin serach the lower index is the floow of rate */
+	*mbpsx10_rate = tbl[lower].rate;
+	*ret_flag = tbl[lower].flag;
+	return;
+}
+
+static VOS_STATUS wma_fill_ofdm_mcast_rate(tANI_S32 mbpsx10_rate,
+	tANI_U8 nss, tANI_U8 *rate)
+{
+	int32_t ret = 0;
+	tANI_U8 idx = 0;
+
+	wma_bin_serach_rate(ofdm_rate_tbl, WMA_MAX_OFDM_RATE_TBL_SIZE,
+		&mbpsx10_rate, &idx);
+	*rate |= (idx & 0xF);
+	return ret;
+}
+
+static VOS_STATUS wma_fill_cck_mcast_rate(tANI_S32 mbpsx10_rate,
+	tANI_U8 nss, tANI_U8 *rate)
+{
+	tANI_U8 idx = 0;
+
+	wma_bin_serach_rate(cck_rate_tbl, WMA_MAX_CCK_RATE_TBL_SIZE,
+		&mbpsx10_rate, &idx);
+	*rate |= (1 << 6) | (idx & 0xF); /* set bit 6 to 1 for CCK */
+	return 0;
+}
+
+static VOS_STATUS wma_fill_ofdm_cck_mcast_rate(tANI_S32 mbpsx10_rate,
+	tANI_U8 nss, tANI_U8 *rate)
+{
+	tANI_U8 idx = 0;
+	tANI_S32 tmp_rate = mbpsx10_rate;
+	wma_bin_serach_rate(ofdm_cck_rate_tbl, WMA_MAX_OFDM_CCK_RATE_TBL_SIZE,
+		&tmp_rate, &idx);
+
+	/* if bit 7 is set it uses CCK */
+	if (idx & 0x80)
+		return wma_fill_ofdm_mcast_rate(mbpsx10_rate, nss, rate);
+	else
+		return wma_fill_cck_mcast_rate(mbpsx10_rate, nss, rate);
+}
+
+static void wma_set_ht_vht_mcast_rate(tANI_S32 mbpsx10_rate,
+	tANI_U8 sgi_idx, tANI_S32 sgi_rate,
+	tANI_U8 lgi_idx, tANI_S32 lgi_rate,
+	tANI_U8 premable, tANI_U8 *rate)
+{
+	/* here we choose the closest floor rate between sgi and lgi rates */
+	if (sgi_rate <= mbpsx10_rate && lgi_rate <= mbpsx10_rate) {
+		if (sgi_rate > lgi_rate) {
+			/* sgi is closer to the input rate */
+			*rate |= (premable << 6) | (sgi_idx & 0xF); /* set 2 in bit 6-7 for HT */
+		} else {
+			*rate |= (premable << 6) | (lgi_idx & 0xF);
+		}
+	} else if (sgi_rate > mbpsx10_rate && lgi_rate > mbpsx10_rate) {
+		/* both out of bound. Choose the smaller one */
+		if (sgi_rate > lgi_rate) {
+			*rate |= (premable << 6) | (lgi_idx & 0xF); /* set 2 in bit 6-7 for HT */
+		} else {
+			*rate |= (premable << 6) | (sgi_idx & 0xF); /* set 2 in bit 6-7 for HT */
+		}
+	} else if (sgi_rate > mbpsx10_rate) {
+		/* sgi out of bound but lgi is in bound */
+			*rate |= (premable << 6) | (lgi_idx & 0xF);
+	} else {
+		/* lgi is out of bound but sgi is in bound */
+		*rate |= (premable << 6) | (sgi_idx & 0xF);
+	}
+}
+
+static VOS_STATUS wma_fill_ht20_mcast_rate(tANI_S32 mbpsx10_rate,
+	tANI_U8 nss, tANI_U8 *rate)
+{
+	tANI_U8 sgi_idx = 0, lgi_idx = 0;
+	tANI_S32 sgi_rate, lgi_rate;
+	if (nss == 1)
+		mbpsx10_rate= mbpsx10_rate >> 1;
+
+	sgi_rate = mbpsx10_rate;
+	lgi_rate = mbpsx10_rate;
+	wma_bin_serach_rate(ht20_400ns_rate_tbl, WMA_MAX_HT20_RATE_TBL_SIZE,
+		&sgi_rate, &sgi_idx);
+	wma_bin_serach_rate(ht20_800ns_rate_tbl, WMA_MAX_HT20_RATE_TBL_SIZE,
+		&lgi_rate, &lgi_idx);
+
+	wma_set_ht_vht_mcast_rate(mbpsx10_rate, sgi_idx, sgi_rate,
+		lgi_idx, lgi_rate, 2, rate);
+
+	return 0;
+}
+
+static VOS_STATUS wma_fill_ht40_mcast_rate(tANI_S32 mbpsx10_rate,
+	tANI_U8 nss, tANI_U8 *rate)
+{
+	tANI_U8 sgi_idx = 0, lgi_idx = 0;
+	tANI_S32 sgi_rate, lgi_rate;
+
+	/* for 2x2 divide the rate by 2 */
+	if (nss == 1)
+		mbpsx10_rate= mbpsx10_rate >> 1;
+
+	sgi_rate = mbpsx10_rate;
+	lgi_rate = mbpsx10_rate;
+	wma_bin_serach_rate(ht40_400ns_rate_tbl, WMA_MAX_HT40_RATE_TBL_SIZE,
+		&sgi_rate, &sgi_idx);
+	wma_bin_serach_rate(ht40_800ns_rate_tbl, WMA_MAX_HT40_RATE_TBL_SIZE,
+		&lgi_rate, &lgi_idx);
+
+	wma_set_ht_vht_mcast_rate(mbpsx10_rate, sgi_idx, sgi_rate,
+		lgi_idx, lgi_rate, 2, rate);
+
+	return 0;
+}
+
+static VOS_STATUS wma_fill_vht20_mcast_rate(tANI_S32 mbpsx10_rate,
+	tANI_U8 nss, tANI_U8 *rate)
+{
+	tANI_U8 sgi_idx = 0, lgi_idx = 0;
+	tANI_S32 sgi_rate, lgi_rate;
+
+	/* for 2x2 divide the rate by 2 */
+	if (nss == 1)
+		mbpsx10_rate= mbpsx10_rate >> 1;
+
+	sgi_rate = mbpsx10_rate;
+	lgi_rate = mbpsx10_rate;
+	wma_bin_serach_rate(vht20_400ns_rate_tbl, WMA_MAX_VHT20_RATE_TBL_SIZE,
+		&sgi_rate, &sgi_idx);
+	wma_bin_serach_rate(vht20_800ns_rate_tbl, WMA_MAX_VHT20_RATE_TBL_SIZE,
+		&lgi_rate, &lgi_idx);
+
+	wma_set_ht_vht_mcast_rate(mbpsx10_rate, sgi_idx, sgi_rate,
+		lgi_idx, lgi_rate, 3, rate);
+	return 0;
+}
+
+static VOS_STATUS wma_fill_vht40_mcast_rate(tANI_S32 mbpsx10_rate,
+	tANI_U8 nss, tANI_U8 *rate)
+{
+	tANI_U8 sgi_idx = 0, lgi_idx = 0;
+	tANI_S32 sgi_rate, lgi_rate;
+
+	/* for 2x2 divide the rate by 2 */
+	if (nss == 1)
+		mbpsx10_rate= mbpsx10_rate >> 1;
+
+	sgi_rate = mbpsx10_rate;
+	lgi_rate = mbpsx10_rate;
+	wma_bin_serach_rate(vht40_400ns_rate_tbl, WMA_MAX_VHT40_RATE_TBL_SIZE,
+		&sgi_rate, &sgi_idx);
+	wma_bin_serach_rate(vht40_800ns_rate_tbl, WMA_MAX_VHT40_RATE_TBL_SIZE,
+		&lgi_rate, &lgi_idx);
+
+	wma_set_ht_vht_mcast_rate(mbpsx10_rate, sgi_idx, sgi_rate,
+		lgi_idx, lgi_rate, 3, rate);
+
+	return 0;
+}
+
+static VOS_STATUS wma_fill_vht80_mcast_rate(tANI_S32 mbpsx10_rate,
+	tANI_U8 nss, tANI_U8 *rate)
+{
+	tANI_U8 sgi_idx = 0, lgi_idx = 0;
+	tANI_S32 sgi_rate, lgi_rate;
+
+	/* for 2x2 divide the rate by 2 */
+	if (nss == 1)
+		mbpsx10_rate= mbpsx10_rate >> 1;
+
+	sgi_rate = mbpsx10_rate;
+	lgi_rate = mbpsx10_rate;
+	wma_bin_serach_rate(vht80_400ns_rate_tbl, WMA_MAX_VHT80_RATE_TBL_SIZE,
+		&sgi_rate, &sgi_idx);
+	wma_bin_serach_rate(vht80_800ns_rate_tbl, WMA_MAX_VHT80_RATE_TBL_SIZE,
+		&lgi_rate, &lgi_idx);
+
+	wma_set_ht_vht_mcast_rate(mbpsx10_rate, sgi_idx, sgi_rate,
+		lgi_idx, lgi_rate, 3, rate);
+
+	return 0;
+}
+
+static VOS_STATUS wma_fill_ht_mcast_rate(tANI_S32 mbpsx10_rate,
+	tANI_U8 nss, WLAN_PHY_MODE chanmode, tANI_U8 *rate)
+{
+	int32_t ret = 0;
+
+	switch(chanmode) {
+	case MODE_11NA_HT20:  /* 11a HT20 mode */
+	case MODE_11NG_HT20:  /* 11g HT20 mode */
+		ret = wma_fill_ht20_mcast_rate(mbpsx10_rate, nss, rate);
+		break;
+	case MODE_11NA_HT40:  /* 11a HT40 mode */
+	case MODE_11NG_HT40:  /* 11g HT40 mode */
+		ret = wma_fill_ht40_mcast_rate(mbpsx10_rate, nss, rate);
+		break;
+	default:
+		ret = VOS_STATUS_E_INVAL;
+		break;
+	}
+	return ret;
+}
+
+static VOS_STATUS wma_fill_vht_mcast_rate(tANI_S32 mbpsx10_rate,
+	tANI_U8 nss, WLAN_PHY_MODE chanmode, tANI_U8 *rate)
+{
+	int32_t ret = 0;
+
+	switch(chanmode) {
+	case MODE_11AC_VHT20:
+	case MODE_11AC_VHT20_2G:
+		ret = wma_fill_vht20_mcast_rate(mbpsx10_rate, nss, rate);
+		break;
+	case MODE_11AC_VHT40:
+	case MODE_11AC_VHT40_2G:
+		ret = wma_fill_vht40_mcast_rate(mbpsx10_rate, nss, rate);
+		break;
+	case MODE_11AC_VHT80:
+	case MODE_11AC_VHT80_2G:
+		ret = wma_fill_vht80_mcast_rate(mbpsx10_rate, nss, rate);
+		break;
+	default:
+		ret = VOS_STATUS_E_INVAL;
+		break;
+	}
+	return ret;
+}
+
 /*
  * FUNCTION: wma_process_rate_update_indate
  *
  */
 VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
-                               tSirRateUpdateInd *pRateUpdateParams)
+	tSirRateUpdateInd *pRateUpdateParams)
 {
 	int32_t ret = 0;
 	u_int8_t vdev_id = 0;
 	void *pdev;
+	tANI_S32 mbpsx10_rate = -1;
+	tANI_U32 paramId;
+	tANI_U8 rate = 0;
+	struct wma_txrx_node *intr = wma->interfaces;
 
 	/* Get the vdev id */
 	if (pRateUpdateParams->dev_mode == VOS_STA_SAP_MODE ||
-			pRateUpdateParams->dev_mode == VOS_P2P_GO_MODE)
-		pdev = wma_find_vdev_by_addr(wma, pRateUpdateParams->bssId, &vdev_id);
-	else
-		pdev = wma_find_vdev_by_bssid(wma, pRateUpdateParams->bssId, &vdev_id);
-	if (!pdev) {
-		WMA_LOGE("vdev handle is invalid for %pM", pRateUpdateParams->bssId);
-		vos_mem_free(pRateUpdateParams);
-		return VOS_STATUS_E_INVAL;
-	}
-
-	if (pRateUpdateParams->mcastDataRate > -1) {
-		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
-					WMI_VDEV_PARAM_MCAST_DATA_RATE,
-					pRateUpdateParams->mcastDataRate);
-	} else if (pRateUpdateParams->bcastDataRate > -1) {
-		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
-					WMI_VDEV_PARAM_BCAST_DATA_RATE,
-					pRateUpdateParams->bcastDataRate);
+		pRateUpdateParams->dev_mode == VOS_P2P_GO_MODE)
+	{
+		pdev = wma_find_vdev_by_addr(wma, pRateUpdateParams->bssid, &vdev_id);
 	} else {
-		WMA_LOGE("%s: Error, Invalid rate value", __func__);
+		pdev = wma_find_vdev_by_bssid(wma, pRateUpdateParams->bssid, &vdev_id);
+	}
+	if (!pdev) {
+		WMA_LOGE("vdev handle is invalid for %pM", pRateUpdateParams->bssid);
 		vos_mem_free(pRateUpdateParams);
 		return VOS_STATUS_E_INVAL;
 	}
+	/* set NSS bits (bit 4 - bit 5) */
+	rate |= (pRateUpdateParams->nss & 0x3) << 4;
+
+	/* first check if reliable TX mcast rate is used. If not check the bcast.
+	 * Then is mcast. Mcast rate is saved in mcastDataRate24GHz */
+	if (pRateUpdateParams->reliableMcastDataRateTxFlag > 0) {
+		mbpsx10_rate = pRateUpdateParams->reliableMcastDataRate;
+		paramId = WMI_VDEV_PARAM_MCAST_DATA_RATE;
+	} else if (pRateUpdateParams->bcastDataRate > -1) {
+		mbpsx10_rate = pRateUpdateParams->bcastDataRate;
+		paramId = WMI_VDEV_PARAM_BCAST_DATA_RATE;
+	} else {
+		mbpsx10_rate = pRateUpdateParams->mcastDataRate24GHz;
+		paramId = WMI_VDEV_PARAM_MCAST_DATA_RATE;
+	}
+	WMA_LOGD("%s: bssid = '%pM', vdev_id = %d, bcast = %ld, "
+			"mcast = %ld, NSS = %d, chanmode = %d\n",
+			__func__, pRateUpdateParams->bssid, vdev_id,
+			pRateUpdateParams->bcastDataRate,
+			pRateUpdateParams->mcastDataRate24GHz,
+			pRateUpdateParams->nss, intr[vdev_id].chanmode);
+
+	/* the phymode selection is based on following assumption:
+	 * mbpsx10_rate <= 540: always use BG
+	 * 1x1: 540 < mbpsx10_rate <= 1500: choose HT
+	 * 2x2: 540 < mbpsx10_rate <= 3000: use HT
+	 * rest: use VHT */
+	if ((!intr[vdev_id].ht_capable && !intr[vdev_id].vht_capable) ||
+		mbpsx10_rate <= 540) {
+		switch(intr[vdev_id].chanmode) {
+		case MODE_11G:   /* 11b/g Mode */
+			ret = wma_fill_ofdm_cck_mcast_rate(mbpsx10_rate,
+					pRateUpdateParams->nss, &rate);
+			break;
+		case MODE_11B:   /* 11b Mode */
+			ret = wma_fill_cck_mcast_rate(mbpsx10_rate,
+					pRateUpdateParams->nss, &rate);
+			break;
+		default:
+			ret = wma_fill_ofdm_mcast_rate(mbpsx10_rate,
+					pRateUpdateParams->nss, &rate);
+			break;
+		}
+	} else {
+		switch (intr[vdev_id].chanmode) {
+		case MODE_11NA_HT20:  /* 11a HT20 mode */
+		case MODE_11NG_HT20:  /* 11g HT20 mode */
+		case MODE_11NA_HT40:  /* 11a HT40 mode */
+		case MODE_11NG_HT40:  /* 11g HT40 mode */
+			ret = wma_fill_ht_mcast_rate(mbpsx10_rate,
+					pRateUpdateParams->nss, intr[vdev_id].chanmode, &rate);
+			break;
+		case MODE_11AC_VHT20:
+		case MODE_11AC_VHT40:
+		case MODE_11AC_VHT80:
+		case MODE_11AC_VHT20_2G:
+		case MODE_11AC_VHT40_2G:
+		case MODE_11AC_VHT80_2G:
+			if ((pRateUpdateParams->nss == 0 && mbpsx10_rate <= 150) ||
+				(pRateUpdateParams->nss == 1 && mbpsx10_rate <= 300)) {
+				ret = wma_fill_ht_mcast_rate(mbpsx10_rate,
+					pRateUpdateParams->nss, intr[vdev_id].chanmode, &rate);
+			} else {
+				ret = wma_fill_vht_mcast_rate(mbpsx10_rate,
+					pRateUpdateParams->nss, intr[vdev_id].chanmode, &rate);
+			}
+			break;
+		default:
+			ret = VOS_STATUS_E_INVAL;
+			break;
+		}
+	 }
+
+	if (ret) {
+		WMA_LOGE("%s: Error, Invalid input rate value", __func__);
+		vos_mem_free(pRateUpdateParams);
+		return ret;
+	}
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+			vdev_id, paramId, rate);
+
+	WMA_LOGD("%s:X, ret = %d, vdev_id = %d, chanmode = 0x%x, "
+		"in_rate = %ld, out_rate = 0x%x, NSS = %d\n",
+		__func__, ret, vdev_id, intr[vdev_id].chanmode,
+		mbpsx10_rate, rate, pRateUpdateParams->nss);
 
 	vos_mem_free(pRateUpdateParams);
 	if (ret) {
 		WMA_LOGE("%s: Failed to Set rate, ret = %d", __func__, ret);
 		return VOS_STATUS_E_FAILURE;
 	}
+
 	return VOS_STATUS_SUCCESS;
 }
 

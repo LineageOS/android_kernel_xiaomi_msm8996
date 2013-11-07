@@ -1684,6 +1684,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
            int      targetRate;
            tSirRateUpdateInd *rateUpdate;
            eHalStatus status;
+           hdd_config_t *pConfig = pHddCtx->cfg_ini;
            hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
            /* Move pointer to ahead of SETMCRATE<delimiter> */
            /* input value is in units of hundred kbps */
@@ -1703,12 +1704,13 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 
            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                      "MC Target rate %d", targetRate);
-
+           rateUpdate->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
            rateUpdate->dev_mode = pAdapter->device_mode;
-           rateUpdate->mcastDataRate = targetRate;
+           rateUpdate->mcastDataRate24GHz = targetRate;
+           rateUpdate->mcastDataRate5GHz = targetRate;
            rateUpdate->bcastDataRate = -1;
-           memcpy(rateUpdate->bssId, pHddStaCtx->conn_info.bssId,
-               sizeof(rateUpdate->bssId));
+           memcpy(rateUpdate->bssid, pHddStaCtx->conn_info.bssId,
+               sizeof(rateUpdate->bssid));
 
            status = sme_SendRateUpdateInd(pHddCtx->hHal, rateUpdate);
            if (eHAL_STATUS_SUCCESS != status)
