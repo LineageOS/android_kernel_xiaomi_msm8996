@@ -296,6 +296,7 @@ typedef struct
     tANI_U16   ht_caps;
     tANI_U32   vht_caps;
     tSirNwType nwType;
+    tPowerdBm  maxTxPower;
 } tAddStaParams, *tpAddStaParams;
 
 

@@ -3282,7 +3282,7 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	cmd->beacon_interval = req->beacon_intval;
 	cmd->dtim_period = req->dtim_period;
 	/* FIXME: Find out min, max and regulatory power levels */
-	WMI_SET_CHANNEL_MIN_POWER(chan, req->max_txpow);
+	WMI_SET_CHANNEL_REG_POWER(chan, req->max_txpow);
 
 	/* TODO: Handle regulatory class, max antenna */
 
@@ -4367,7 +4367,8 @@ wma_update_cfg_params(tp_wma_handle wma, tSirMsgQ *cfgParam)
 static void
 wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id,
 		tSirMacBeaconInterval beaconInterval, tANI_U8 dtimPeriod,
-		tANI_U8 shortSlotTimeSupported, tANI_U8 llbCoexist)
+		tANI_U8 shortSlotTimeSupported, tANI_U8 llbCoexist,
+		tPowerdBm maxTxPower)
 {
 	int ret;
 	uint32_t slot_time;
@@ -4385,6 +4386,17 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id,
 					      dtimPeriod);
 	if (ret)
 		WMA_LOGE("failed to set WMI_VDEV_PARAM_DTIM_PERIOD\n");
+
+	if (!maxTxPower)
+	{
+		WMA_LOGE("Setting Tx power limit to 0\n");
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					WMI_VDEV_PARAM_TX_PWRLIMIT,
+					maxTxPower);
+	if (ret)
+		WMA_LOGE("failed to set WMI_VDEV_PARAM_TX_PWRLIMIT\n");
 
 	/* Slot time */
 	if (shortSlotTimeSupported)
@@ -4446,7 +4458,7 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	req.chan = add_bss->currentOperChannel;
 	req.chan_offset = add_bss->currentExtChannel;
         req.vht_capable = add_bss->vhtCapable;
-#if defined WLAN_FEATURE_VOWIF
+#if defined WLAN_FEATURE_VOWIFI
 	req.max_txpow = add_bss->maxTxPower;
 #else
 	req.max_txpow = 0;
@@ -4493,6 +4505,7 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	ol_txrx_peer_handle peer;
 	VOS_STATUS status;
 	struct wma_txrx_node *iface;
+	tPowerdBm maxTxPower = 0;
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 	vdev_id = add_bss->staContext.smesessionId;
@@ -4520,10 +4533,12 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 			req.vdev_id = vdev_id;
 			req.chan = add_bss->currentOperChannel;
 			req.chan_offset = add_bss->currentExtChannel;
-#if defined WLAN_FEATURE_VOWIF
+#if defined WLAN_FEATURE_VOWIFI
 			req.max_txpow = add_bss->maxTxPower;
+			maxTxPower = add_bss->maxTxPower;
 #else
 			req.max_txpow = 0;
+			maxTxPower = 0;
 #endif
 			req.beacon_intval = add_bss->beaconInterval;
 			req.dtim_period = add_bss->dtimPeriod;
@@ -4579,7 +4594,8 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 					   add_bss->staContext.smesessionId);
 			wma_vdev_set_bss_params(wma, add_bss->staContext.smesessionId,
 					add_bss->beaconInterval, add_bss->dtimPeriod,
-					add_bss->shortSlotTimeSupported, add_bss->llbCoexist);
+					add_bss->shortSlotTimeSupported, add_bss->llbCoexist,
+					maxTxPower);
 		}
 		/*
 		 * Store the bssid in interface table, bssid will
@@ -4885,6 +4901,7 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 	ol_txrx_peer_handle peer;
 	struct wma_txrx_node *iface;
+	tPowerdBm maxTxPower;
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 	iface = &wma->interfaces[params->smesessionId];
@@ -4925,9 +4942,14 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		wmi_unified_send_peer_assoc(wma, params->nwType,
 					params);
 	}
+#if defined WLAN_FEATURE_VOWIFI
+	maxTxPower = params->maxTxPower;
+#else
+	maxTxPower = 0;
+#endif
 	wma_vdev_set_bss_params(wma, params->smesessionId, iface->beaconInterval,
-			iface->dtimPeriod, iface->shortSlotTimeSupported, iface->llbCoexist);
-
+				iface->dtimPeriod, iface->shortSlotTimeSupported,
+				iface->llbCoexist, maxTxPower);
 	wma_roam_scan_offload_init_connect(wma, params->smesessionId);
 
 	params->csaOffloadEnable = 0;

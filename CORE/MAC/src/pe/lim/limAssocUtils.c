@@ -2277,6 +2277,8 @@ limAddSta(
     /* Update SME session ID */
     pAddStaParams->smesessionId = psessionEntry->smeSessionId;
 
+    pAddStaParams->maxTxPower = psessionEntry->maxTxPower;
+
     if (psessionEntry->parsedAssocReq != NULL)
     {
     // Get a copy of the already parsed Assoc Request
@@ -2602,6 +2604,8 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
 
     /* Update SME session ID */
     pAddStaParams->smesessionId = psessionEntry->smeSessionId;
+
+    pAddStaParams->maxTxPower = psessionEntry->maxTxPower;
     
   // This will indicate HAL to "allocate" a new STA index
     pAddStaParams->staIdx = staIdx;
