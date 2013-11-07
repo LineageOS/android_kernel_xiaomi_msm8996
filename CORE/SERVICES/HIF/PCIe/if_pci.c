@@ -911,6 +911,11 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     /* TODO: Wait until tx queue drains. Remove this hard coded delay */
     msleep(3*1000); /* 3 sec */
 #endif
+
+#if CONFIG_ATH_PCIE_MAX_PERF
+    /* Max performance path so no need to wake/poll target */
+    A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
+#else
     /* Make sure to wake Target before accessing Target memory */
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
     while (!hif_pci_targ_is_awake(sc, sc->mem)) {
@@ -918,6 +923,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     }
     A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
+#endif
 
     /* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
     if (!wma_is_wow_enabled(vos_get_context(VOS_MODULE_ID_WDA, vos)) &&
@@ -968,6 +974,10 @@ hif_pci_resume(struct pci_dev *pdev)
             pci_write_config_dword(pdev, 0x40, val & 0xffff00ff);
     }
 
+#if CONFIG_ATH_PCIE_MAX_PERF
+    /* Max performance patch so no need to wake/poll target */
+    val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
+#else
     /* Make sure to wake Target before accessing Target memory */
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
     while (!hif_pci_targ_is_awake(sc, sc->mem)) {
@@ -975,6 +985,7 @@ hif_pci_resume(struct pci_dev *pdev)
     }
     val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
+#endif
 
     /* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
     if (!wma_is_wow_enabled(vos_get_context(VOS_MODULE_ID_WDA, vos_context)) &&
