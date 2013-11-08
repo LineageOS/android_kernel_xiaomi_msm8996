@@ -346,6 +346,7 @@ ol_txrx_pdev_attach(
     }
 
     /* link SW tx descs into a freelist */
+    pdev->tx_desc.num_free = desc_pool_size;
     pdev->tx_desc.freelist = &pdev->tx_desc.array[0];
     for (i = 0; i < desc_pool_size-1; i++) {
         pdev->tx_desc.array[i].next = &pdev->tx_desc.array[i+1];
@@ -559,6 +560,8 @@ ol_txrx_pdev_attach(
     #endif
 
     OL_TXRX_LOCAL_PEER_ID_POOL_INIT(pdev);
+
+    pdev->cfg.ll_pause_txq_limit = ol_tx_cfg_max_tx_queue_depth_ll(ctrl_pdev);
 
 #ifdef QCA_COMPUTE_TX_DELAY
     adf_os_mem_zero(&pdev->tx_delay, sizeof(pdev->tx_delay));
@@ -785,6 +788,15 @@ ol_txrx_vdev_attach(
     }
     #endif /* defined(CONFIG_HL_SUPPORT) */
 
+    vdev->ll_pause.is_paused = A_FALSE;
+    vdev->ll_pause.txq.head = vdev->ll_pause.txq.tail = NULL;
+    vdev->ll_pause.txq.depth = 0;
+    adf_os_timer_init(
+            pdev->osdev,
+            &vdev->ll_pause.timer,
+            ol_tx_vdev_ll_pause_queue_send,
+            vdev);
+
     /* add this vdev into the pdev's list */
     TAILQ_INSERT_TAIL(&pdev->vdev_list, vdev, vdev_list_elem);
 
@@ -814,7 +826,7 @@ void ol_txrx_osif_vdev_register(ol_txrx_vdev_handle vdev,
 		txrx_ops->tx.std = vdev->tx = ol_tx_hl;
 		txrx_ops->tx.non_std = ol_tx_non_std_hl;
 	} else {
-		txrx_ops->tx.std = vdev->tx = ol_tx_ll;
+        txrx_ops->tx.std = vdev->tx = OL_TX_LL;
 		txrx_ops->tx.non_std = ol_tx_non_std_ll;
 	}
 }
@@ -876,6 +888,14 @@ ol_txrx_vdev_detach(
         }
     }
     #endif /* defined(CONFIG_HL_SUPPORT) */
+
+    adf_os_timer_cancel(&vdev->ll_pause.timer);
+    adf_os_timer_free(&vdev->ll_pause.timer);
+    while (vdev->ll_pause.txq.head) {
+        adf_nbuf_t next = adf_nbuf_next(vdev->ll_pause.txq.head);
+        adf_nbuf_tx_free(vdev->ll_pause.txq.head, 1 /* error */);
+        vdev->ll_pause.txq.head = next;
+    }
 
     /* remove the vdev from its parent pdev's list */
     TAILQ_REMOVE(&pdev->vdev_list, vdev, vdev_list_elem);

@@ -36,6 +36,7 @@
 #include <ol_txrx_internal.h> /* TXRX_ASSERT1, etc. */
 #include <ol_txrx_types.h>    /* pdev stats */
 #include <ol_tx_desc.h>       /* ol_tx_desc, ol_tx_desc_frame_list_free */
+#include <ol_tx.h>            /* ol_tx_vdev_ll_pause_queue_send */
 #include <ol_tx_sched.h>      /* ol_tx_sched_notify, etc. */
 #include <ol_tx_queue.h>
 #include <ol_txrx_dbg.h>      /* ENABLE_TX_QUEUE_LOG */
@@ -463,49 +464,65 @@ ol_txrx_peer_tid_unpause(ol_txrx_peer_handle peer, int tid)
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
 
+#endif /* defined(CONFIG_HL_SUPPORT) */
+
+#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
+
 void
 ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev)
 {
-    struct ol_txrx_pdev_t *pdev = vdev->pdev;
-    struct ol_txrx_peer_t *peer;
-
     /* TO DO: log the queue pause */
-
     /* acquire the mutex lock, since we'll be modifying the queues */
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
-    adf_os_spin_lock(&pdev->tx_queue_spinlock);
 
-    TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
-        ol_txrx_peer_pause_base(pdev, peer);
+    if (vdev->pdev->cfg.is_high_latency) {
+#if defined(CONFIG_HL_SUPPORT)
+        struct ol_txrx_pdev_t *pdev = vdev->pdev;
+        struct ol_txrx_peer_t *peer;
+        adf_os_spin_lock(&pdev->tx_queue_spinlock);
+        TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+            ol_txrx_peer_pause_base(pdev, peer);
+        }
+        adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+#endif /* defined(CONFIG_HL_SUPPORT) */
+    } else {
+        vdev->ll_pause.is_paused = A_TRUE;
     }
 
-    adf_os_spin_unlock(&pdev->tx_queue_spinlock);
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
 
 void
 ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev)
 {
-    struct ol_txrx_pdev_t *pdev = vdev->pdev;
-    struct ol_txrx_peer_t *peer;
-
     /* TO DO: log the queue unpause */
-
     /* acquire the mutex lock, since we'll be modifying the queues */
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
-    adf_os_spin_lock(&pdev->tx_queue_spinlock);
 
-    TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
-        int i;
-        for (i = 0; i < ARRAY_LEN(peer->txqs); i++) {
-            ol_txrx_peer_tid_unpause_base(pdev, peer, i);
+    if (vdev->pdev->cfg.is_high_latency) {
+#if defined(CONFIG_HL_SUPPORT)
+        struct ol_txrx_pdev_t *pdev = vdev->pdev;
+        struct ol_txrx_peer_t *peer;
+        adf_os_spin_lock(&pdev->tx_queue_spinlock);
+
+        TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+            int i;
+            for (i = 0; i < ARRAY_LEN(peer->txqs); i++) {
+                ol_txrx_peer_tid_unpause_base(pdev, peer, i);
+            }
         }
+        adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+#endif /* defined(CONFIG_HL_SUPPORT) */
+    } else {
+        vdev->ll_pause.is_paused = A_FALSE;
+        ol_tx_vdev_ll_pause_queue_send(vdev);
     }
-
-    adf_os_spin_unlock(&pdev->tx_queue_spinlock);
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
 
+#endif // defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
+
+#if defined(CONFIG_HL_SUPPORT)
 
 /*--- ADDBA triggering functions --------------------------------------------*/
 

@@ -363,6 +363,7 @@ struct ol_txrx_pdev_t {
 	struct {
 		int is_high_latency;
 		int host_addba;
+		int ll_pause_txq_limit;
 	} cfg;
 
 	/* WDI subscriber's event list */
@@ -458,6 +459,7 @@ struct ol_txrx_pdev_t {
 	/* tx descriptor pool */
 	struct {
 		u_int16_t pool_size;
+		u_int16_t num_free;
 		union ol_tx_desc_list_elem_t *array;
 		union ol_tx_desc_list_elem_t *freelist;
 	} tx_desc;
@@ -693,7 +695,20 @@ struct ol_txrx_vdev_t {
 #if defined(CONFIG_HL_SUPPORT)
 	struct ol_tx_frms_queue_t txqs[OL_TX_VDEV_NUM_QUEUES];
 #endif
+
+	struct {
+		struct {
+			adf_nbuf_t head;
+			adf_nbuf_t tail;
+			int depth;
+		} txq;
+		a_bool_t is_paused;
+		adf_os_spinlock_t mutex;
+		adf_os_timer_t timer;
+	} ll_pause;
+
 };
+
 
 struct ol_rx_reorder_array_elem_t {
 	adf_nbuf_t head;

@@ -111,6 +111,129 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
     return NULL; /* all MSDUs were accepted */
 }
 
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+
+#define OL_TX_VDEV_PAUSE_QUEUE_SEND_MARGIN 20
+#define OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS 5
+static void
+ol_tx_vdev_ll_pause_queue_send_base(struct ol_txrx_vdev_t *vdev)
+{
+    int max_to_accept;
+
+    if (vdev->ll_pause.is_paused == A_TRUE) {
+        return;
+    }
+
+    adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
+
+    /*
+     * Send as much of the backlog as possible, but leave some margin
+     * of unallocated tx descriptors that can be used for new frames
+     * being transmitted by other vdevs.
+     * Ideally there would be a scheduler, which would not only leave
+     * some margin for new frames for other vdevs, but also would
+     * fairly apportion the tx descriptors between multiple vdevs that
+     * have backlogs in their pause queues.
+     * However, the fairness benefit of having a scheduler for frames
+     * from multiple vdev's pause queues is not sufficient to outweigh
+     * the extra complexity.
+     */
+    max_to_accept =
+        vdev->pdev->tx_desc.num_free - OL_TX_VDEV_PAUSE_QUEUE_SEND_MARGIN;
+    while (max_to_accept > 0 && vdev->ll_pause.txq.depth) {
+        adf_nbuf_t tx_msdu;
+        max_to_accept--;
+        vdev->ll_pause.txq.depth--;
+        tx_msdu = vdev->ll_pause.txq.head;
+        vdev->ll_pause.txq.head = adf_nbuf_next(tx_msdu);
+        if (NULL == vdev->ll_pause.txq.head) {
+            vdev->ll_pause.txq.tail = NULL;
+        }
+        adf_nbuf_set_next(tx_msdu, NULL);
+        tx_msdu = ol_tx_ll(vdev, tx_msdu);
+        /*
+         * It is unexpected that ol_tx_ll would reject the frame,
+         * since we checked that there's room for it, though there's
+         * an infinitesimal possibility that between the time we checked
+         * the room available and now, a concurrent batch of tx frames
+         * used up all the room.
+         * For simplicity, just drop the frame.
+         */
+        if (tx_msdu) {
+            adf_nbuf_tx_free(tx_msdu, 1 /* error */);
+        }
+    }
+    if (vdev->ll_pause.txq.depth) {
+        adf_os_timer_start(
+                &vdev->ll_pause.timer, OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
+    }
+
+    adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
+}
+
+static adf_nbuf_t
+ol_tx_vdev_pause_queue_append(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu_list)
+{
+    adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
+    while (msdu_list &&
+            vdev->ll_pause.txq.depth < vdev->pdev->cfg.ll_pause_txq_limit)
+    {
+        adf_nbuf_t next = adf_nbuf_next(msdu_list);
+
+        vdev->ll_pause.txq.depth++;
+        if (!vdev->ll_pause.txq.head) {
+            vdev->ll_pause.txq.head = msdu_list;
+            vdev->ll_pause.txq.tail = msdu_list;
+        } else {
+            adf_nbuf_set_next(vdev->ll_pause.txq.tail, msdu_list);
+        }
+        vdev->ll_pause.txq.tail = msdu_list;
+
+        msdu_list = next;
+    }
+    if (vdev->ll_pause.txq.tail) {
+        adf_nbuf_set_next(vdev->ll_pause.txq.tail, NULL);
+    }
+    adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
+
+    adf_os_timer_start(
+            &vdev->ll_pause.timer, OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
+
+    return msdu_list;
+}
+
+/*
+ * Store up the tx frame in the vdev's tx queue if the vdev is paused.
+ * If there are too many frames in the tx queue, reject it.
+ */
+adf_nbuf_t
+ol_tx_ll_queue(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
+{
+    if (vdev->ll_pause.is_paused == A_TRUE) {
+        msdu_list = ol_tx_vdev_pause_queue_append(vdev, msdu_list);
+    } else {
+        if (vdev->ll_pause.txq.depth > 0) {
+            /* not paused, but there is a backlog of frms from a prior pause */
+            msdu_list = ol_tx_vdev_pause_queue_append(vdev, msdu_list);
+            /* send as many frames as possible from the vdevs backlog */
+            ol_tx_vdev_ll_pause_queue_send_base(vdev);
+        } else {
+            /* not paused, and no backlog - send the new frames */
+            msdu_list = ol_tx_ll(vdev, msdu_list);
+        }
+    }
+    return msdu_list;
+}
+#endif
+
+void ol_tx_vdev_ll_pause_queue_send(void *context)
+{
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+    struct ol_txrx_vdev_t *vdev = (struct ol_txrx_vdev_t *) context;
+    ol_tx_vdev_ll_pause_queue_send_base(vdev);
+#endif
+}
+
 static inline int
 OL_TXRX_TX_IS_RAW(enum ol_tx_spec tx_spec)
 {

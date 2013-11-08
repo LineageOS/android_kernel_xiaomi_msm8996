@@ -42,6 +42,17 @@ adf_nbuf_t
 ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list);
 
 adf_nbuf_t
+ol_tx_ll_queue(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list);
+
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+#define OL_TX_LL ol_tx_ll_queue
+#else
+#define OL_TX_LL ol_tx_ll
+#endif
+
+void ol_tx_vdev_ll_pause_queue_send(void *context);
+
+adf_nbuf_t
 ol_tx_non_std_ll(
     ol_txrx_vdev_handle data_vdev,
     enum ol_tx_spec tx_spec,
