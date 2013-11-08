@@ -6505,6 +6505,32 @@ void wma_scan_cache_updated_ind(tp_wma_handle wma)
 
 #define WMA_DUMP_WOW_PTRN
 
+void wma_send_ready_to_suspend_ind(tp_wma_handle wma)
+{
+	tSirReadyToSuspendInd *ready_to_suspend;
+	VOS_STATUS status;
+	vos_msg_t vos_msg;
+	u_int8_t len;
+
+	WMA_LOGD("Posting ready to suspend indication to umac");
+
+	len = sizeof(tSirReadyToSuspendInd);
+	ready_to_suspend = (tSirReadyToSuspendInd *) vos_mem_malloc(len);
+
+	ready_to_suspend->mesgType = eWNI_SME_READY_TO_SUSPEND_IND;
+	ready_to_suspend->mesgLen = len;
+
+	vos_msg.type = eWNI_SME_READY_TO_SUSPEND_IND;
+	vos_msg.bodyptr = (void *) ready_to_suspend;
+	vos_msg.bodyval = 0;
+
+	status = vos_mq_post_message(VOS_MQ_ID_SME, &vos_msg);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to post ready to suspend");
+		vos_mem_free(ready_to_suspend);
+	}
+}
+
 /* Frees memory associated to given pattern ID in wow pattern cache. */
 static inline void wma_free_wow_ptrn(tp_wma_handle wma, u_int8_t ptrn_id)
 {
@@ -7084,6 +7110,8 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	VOS_STATUS ret;
 	u_int8_t i;
 
+	wma->no_of_suspend_ind++;
+
 	if (info->sessionId > wma->max_bssid) {
 		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
 		vos_mem_free(info);
@@ -7098,8 +7126,14 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	}
 
 	if (!wma->wow.magic_ptrn_enable && !iface->ptrn_match_enable) {
-		WMA_LOGD("Both magic and pattern byte match are disabled");
 		vos_mem_free(info);
+
+		if (wma->no_of_suspend_ind == wma_get_vdev_count(wma)) {
+			WMA_LOGD("Both magic and pattern byte match are disabled");
+			wma->no_of_suspend_ind = 0;
+			goto send_ready_to_suspend;
+		}
+
 		return VOS_STATUS_SUCCESS;
 	}
 
@@ -7112,7 +7146,7 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	 * suspend indication received on last vdev before
 	 * enabling wow in fw.
 	 */
-	if (++wma->no_of_suspend_ind < wma_get_vdev_count(wma)) {
+	if (wma->no_of_suspend_ind < wma_get_vdev_count(wma)) {
 		vos_mem_free(info);
 		return VOS_STATUS_SUCCESS;
 	}
@@ -7130,7 +7164,7 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	if (!connected) {
 		WMA_LOGD("All vdev are in disconnected state, skipping wow");
 		vos_mem_free(info);
-		return VOS_STATUS_SUCCESS;
+		goto send_ready_to_suspend;
 	}
 
 	WMA_LOGD("WOW Suspend");
@@ -7144,8 +7178,11 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 		vos_mem_free(info);
 		return ret;
 	}
-
 	vos_mem_free(info);
+
+send_ready_to_suspend:
+	wma_send_ready_to_suspend_ind(wma);
+
 	return VOS_STATUS_SUCCESS;
 }
 

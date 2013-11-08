@@ -898,7 +898,8 @@ hif_pci_remove(struct pci_dev *pdev)
 #define OL_ATH_PCI_PM_CONTROL 0x44
 
 #ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
-void hdd_suspend_wlan(void);
+void hdd_suspend_wlan(void (*callback)(void *callbackContext),
+                      void *callbackContext);
 #endif
 
 static int
@@ -910,7 +911,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     u32 val;
 
 #ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
-    hdd_suspend_wlan();
+    hdd_suspend_wlan(NULL, NULL);
     /* TODO: Wait until tx queue drains. Remove this hard coded delay */
     msleep(3*1000); /* 3 sec */
 #endif
