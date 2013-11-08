@@ -5666,6 +5666,10 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
 {
     int status = 0;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+    /*stop tx queues*/
+    netif_tx_disable(pAdapter->dev);
+    netif_carrier_off(pAdapter->dev);
     pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
     (WLAN_HDD_GET_CTX(pAdapter))->isAmpAllowed = VOS_TRUE;
     INIT_COMPLETION(pAdapter->disconnect_comp_var);
@@ -5683,9 +5687,6 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
     wait_for_completion_interruptible_timeout(
                 &pAdapter->disconnect_comp_var,
                 msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-    /*stop tx queues*/
-    netif_tx_disable(pAdapter->dev);
-    netif_carrier_off(pAdapter->dev);
     return status;
 }
 
