@@ -45,15 +45,6 @@
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
 
-#ifdef QCA_WIFI_2_0
-#define WOWL_PTRN_MAX_SIZE          148
-#define WOWL_PTRN_MASK_MAX_SIZE      19
-#define WOWL_MAX_PTRNS_ALLOWED       22
-#else
-#define WOWL_PTRN_MAX_SIZE          128
-#define WOWL_PTRN_MASK_MAX_SIZE      16
-#define WOWL_MAX_PTRNS_ALLOWED        8
-#endif
 #define WOWL_INTER_PTRN_TOKENIZER   ';'
 #define WOWL_INTRA_PTRN_TOKENIZER   ':'
 

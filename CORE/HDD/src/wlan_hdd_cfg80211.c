@@ -591,6 +591,12 @@ int wlan_hdd_cfg80211_register(struct device *dev,
                  |  WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL
                     | WIPHY_FLAG_OFFCHAN_TX;
 #endif
+
+    wiphy->wowlan.flags = WIPHY_WOWLAN_MAGIC_PKT;
+    wiphy->wowlan.n_patterns = WOWL_MAX_PTRNS_ALLOWED;
+    wiphy->wowlan.pattern_min_len = 1;
+    wiphy->wowlan.pattern_max_len = WOWL_PTRN_MAX_SIZE;
+
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
     if (pCfg->isFastTransitionEnabled
 #ifdef FEATURE_WLAN_LFR
