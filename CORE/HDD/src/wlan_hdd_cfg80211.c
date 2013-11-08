@@ -91,7 +91,9 @@
 #include "wlan_hdd_tdls.h"
 #endif
 #include "wlan_nv.h"
-
+#ifdef QCA_WIFI_2_0
+#include "vos_sched.h"
+#endif
 #if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 #include "testmode.h"
 #endif
@@ -8227,6 +8229,79 @@ static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
 }
 #endif
 
+#ifdef QCA_WIFI_2_0
+int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
+                                   struct cfg80211_wowlan *wow)
+{
+    hdd_context_t *pHddCtx = wiphy_priv(wiphy);
+    pVosSchedContext vosSchedContext = get_vos_sched_ctxt();
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+    hdd_adapter_t *pAdapter;
+    hdd_scaninfo_t *pScanInfo;
+    VOS_STATUS status;
+    int rc;
+
+    /* Stop ongoing scan on each interface */
+    status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
+    {
+        pAdapter = pAdapterNode->pAdapter;
+        pScanInfo = &pAdapter->scan_info;
+
+        if (pScanInfo->mScanPending && pAdapter->request)
+        {
+           INIT_COMPLETION(pScanInfo->abortscan_event_var);
+           hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId);
+
+           status = wait_for_completion_interruptible_timeout(
+                           &pScanInfo->abortscan_event_var,
+                           msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
+           if (!status)
+           {
+              VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                         "%s: Timeout occurred while waiting for abort scan" ,
+                         __func__);
+              return -ETIME;
+           }
+        }
+        status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+        pAdapterNode = pNext;
+    }
+
+    /* Suspend MC thread */
+    set_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
+    wake_up_interruptible(&vosSchedContext->mcWaitQueue);
+
+    /* Wait for suspend confirmation from MC thread */
+    rc = wait_for_completion_interruptible_timeout(&pHddCtx->mc_sus_event_var,
+                                 msecs_to_jiffies(WLAN_WAIT_TIME_MCTHREAD_SUSPEND));
+    if (!rc)
+    {
+        clear_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Failed to stop mc thread", __func__);
+        return -ETIME;
+    }
+
+    pHddCtx->isMcThreadSuspended = TRUE;
+
+    return 0;
+}
+
+int wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
+{
+    hdd_context_t *pHddCtx = wiphy_priv(wiphy);
+    pVosSchedContext vosSchedContext = get_vos_sched_ctxt();
+
+    /* Resume MC thread */
+    complete(&vosSchedContext->ResumeMcEvent);
+
+    pHddCtx->isMcThreadSuspended = FALSE;
+
+    return 0;
+}
+#endif
+
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops =
 {
@@ -8296,6 +8371,10 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
 #endif /*FEATURE_WLAN_SCAN_PNO */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
      .set_mac_acl = wlan_hdd_cfg80211_set_mac_acl,
+#endif
+#ifdef QCA_WIFI_2_0
+     .suspend = wlan_hdd_cfg80211_suspend_wlan,
+     .resume = wlan_hdd_cfg80211_resume_wlan,
 #endif
 };
 
