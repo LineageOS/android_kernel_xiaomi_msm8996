@@ -7652,23 +7652,15 @@ static VOS_STATUS wma_process_mcbc_set_filter_req(tp_wma_handle wma_handle,
 #define GTK_OFFLOAD_ENABLE	0
 #define GTK_OFFLOAD_DISABLE	1
 
-static VOS_STATUS wma_process_gtk_offload_req(tp_wma_handle wma,
-					      tpSirGtkOffloadParams params)
+static VOS_STATUS wma_send_gtk_offload_req(tp_wma_handle wma, u_int8_t vdev_id,
+					   tpSirGtkOffloadParams params)
 {
-	u_int8_t vdev_id;
 	int len;
 	wmi_buf_t buf;
 	WMI_GTK_OFFLOAD_CMD_fixed_param *cmd;
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 
 	WMA_LOGD("%s Enter", __func__);
-
-	/* Get the vdev id */
-	if (!wma_find_vdev_by_bssid(wma, params->bssId, &vdev_id)) {
-		WMA_LOGE("vdev handle is invalid for %pM", params->bssId);
-		status = VOS_STATUS_E_INVAL;
-		goto out;
-	}
 
 	len = sizeof(*cmd);
 
@@ -7710,6 +7702,41 @@ static VOS_STATUS wma_process_gtk_offload_req(tp_wma_handle wma,
 		wmi_buf_free(buf);
 		status = VOS_STATUS_E_FAILURE;
 	}
+out:
+	WMA_LOGD("%s Exit", __func__);
+	return status;
+}
+
+static VOS_STATUS wma_process_gtk_offload_req(tp_wma_handle wma,
+					      tpSirGtkOffloadParams params)
+{
+	u_int8_t vdev_id;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+	WMA_LOGD("%s Enter", __func__);
+
+	/* Get the vdev id */
+	if (!wma_find_vdev_by_bssid(wma, params->bssId, &vdev_id)) {
+		WMA_LOGE("vdev handle is invalid for %pM", params->bssId);
+		status = VOS_STATUS_E_INVAL;
+		goto out;
+	}
+
+	if ((params->ulFlags == GTK_OFFLOAD_ENABLE) &&
+	    (wma->wow.gtk_err_enable == TRUE)) {
+		WMA_LOGD("%s GTK Offload already enabled. Disable it first",
+			 __func__);
+		params->ulFlags = GTK_OFFLOAD_DISABLE;
+		status = wma_send_gtk_offload_req(wma, vdev_id, params);
+		if (status != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("%s Failed to disable GTK Offload", __func__);
+			goto out;
+		}
+		WMA_LOGD("%s Enable GTK Offload again with updated inputs",
+			 __func__);
+		params->ulFlags = GTK_OFFLOAD_ENABLE;
+	}
+	status = wma_send_gtk_offload_req(wma, vdev_id, params);
 out:
 	vos_mem_free(params);
 	WMA_LOGD("%s Exit", __func__);
