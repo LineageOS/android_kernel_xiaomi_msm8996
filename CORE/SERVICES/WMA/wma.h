@@ -388,6 +388,7 @@ typedef struct {
 	 */
 	tSirHostOffloadReq mArpInfo;
 	struct wma_tx_ack_work_ctx *ack_work_ctx;
+	u_int8_t powersave_mode;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1122,4 +1123,13 @@ struct wma_decap_info_t {
 	int32_t hdr_len;
 };
 
+enum powersave_mode {
+	PS_NOT_SUPPORTED = 0,
+	PS_LEGACY_NODEEPSLEEP = 1,
+	PS_QPOWER_NODEEPSLEEP = 2,
+	PS_LEGACY_DEEPSLEEP = 3,
+	PS_QPOWER_DEEPSLEEP = 4
+};
+#define WMA_DEFAULT_QPOWER_MAX_PSPOLL_BEFORE_WAKE 1
+#define WMA_DEFAULT_QPOWER_TX_WAKE_THRESHOLD 2
 #endif

@@ -1446,6 +1446,16 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		WMA_LOGP("Firmware Dbglog initialization failed");
 		goto err_event_init;
 	}
+
+	/*
+	 * Update Powersave mode
+	 * 1 - Legacy Powersave + Deepsleep Disabled
+	 * 2 - QPower + Deepsleep Disabled
+	 * 3 - Legacy Powersave + Deepsleep Enabled
+	 * 4 - QPower + Deepsleep Enabled
+	 */
+	wma_handle->powersave_mode = mac_params->powersaveOffloadEnabled;
+
 	WMA_LOGD("%s: Exit", __func__);
 
 	return VOS_STATUS_SUCCESS;
@@ -5893,6 +5903,18 @@ static int32_t wma_set_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, u_int8_
 		inactivity_time = (u_int32_t)cfg_data_val;
 	}
 
+	/*
+	 * QPower is enabled by default in Firmware
+	 * So Disable QPower explicitly
+	 */
+	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_ENABLE_QPOWER, 0);
+	if (ret) {
+		WMA_LOGE("Disable QPower Failed vdevId", vdev_id);
+		return ret;
+	}
+	WMA_LOGD("QPower Disabled vdevId %d", vdev_id);
+
 	/* Set the Wake Policy to WMI_STA_PS_RX_WAKE_POLICY_POLL_UAPSD*/
 	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
 					WMI_STA_PS_PARAM_RX_WAKE_POLICY,
@@ -5972,14 +5994,132 @@ static int32_t wma_set_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, u_int8_
 	return 0;
 }
 
+static int32_t wma_set_qpower_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, u_int8_t enable)
+{
+	int32_t ret;
+	tANI_U32 cfg_data_val = 0;
+	/* get mac to acess CFG data base */
+	struct sAniSirGlobal *mac =
+		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+		wma->vos_context);
+	u_int32_t tx_wake_threshold = WMA_DEFAULT_QPOWER_TX_WAKE_THRESHOLD;
+	u_int32_t pspoll_count = WMA_DEFAULT_QPOWER_MAX_PSPOLL_BEFORE_WAKE;
+
+	WMA_LOGE("Set QPower Force(1)/Normal(0) Sleep vdevId %d val %d",
+		vdev_id, enable);
+
+	/* Get Configured Ps Poll Count */
+	if (wlan_cfgGetInt(mac, WNI_CFG_MAX_PS_POLL,
+			&cfg_data_val ) != eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+			"Failed to get value for WNI_CFG_MAX_PS_POLL");
+	}
+	if (cfg_data_val) {
+		pspoll_count = (u_int32_t)cfg_data_val;
+	}
+
+	if (enable) {
+		/* override normal configuration and force station asleep */
+		tx_wake_threshold = WMI_STA_PS_TX_WAKE_THRESHOLD_NEVER;
+	}
+
+	/* Enable QPower */
+	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_ENABLE_QPOWER, 1);
+
+	if (ret) {
+		WMA_LOGE("Enable QPower Failed vdevId", vdev_id);
+		return ret;
+	}
+	WMA_LOGD("QPower Enabled vdevId %d", vdev_id);
+
+	/* Set the Wake Policy to WMI_STA_PS_RX_WAKE_POLICY_POLL_UAPSD*/
+	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_PARAM_RX_WAKE_POLICY,
+					WMI_STA_PS_RX_WAKE_POLICY_POLL_UAPSD);
+
+	if (ret) {
+		WMA_LOGE("Setting wake policy to pspoll/uapsd Failed vdevId %d", vdev_id);
+		return ret;
+	}
+	WMA_LOGD("Wake policy set to to pspoll/uapsd vdevId %d",
+		vdev_id);
+
+	/* Set the Tx Wake Threshold */
+	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_PARAM_TX_WAKE_THRESHOLD,
+					tx_wake_threshold);
+
+	if (ret) {
+		WMA_LOGE("Setting TxWake Threshold vdevId %d", vdev_id);
+		return ret;
+	}
+	WMA_LOGD("TxWake Threshold set to %d vdevId %d",
+		tx_wake_threshold, vdev_id);
+
+	/* Set the QPower Ps Poll Count */
+	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_PARAM_QPOWER_PSPOLL_COUNT,
+					pspoll_count);
+
+	if (ret) {
+		WMA_LOGE("Set QPower Ps Poll Count Failed vdevId %d ps poll cnt %d",
+			vdev_id, pspoll_count);
+		return ret;
+	}
+	WMA_LOGD("Set QPower Ps Poll Count vdevId %d ps poll cnt %d",
+		vdev_id, pspoll_count);
+
+	/* Enable Sta Mode Power save */
+	ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, true);
+
+	if (ret) {
+		WMA_LOGE("Enable Sta Mode Ps Failed vdevId %d", vdev_id);
+		return ret;
+	}
+
+	/* Set Listen Interval */
+	if (wlan_cfgGetInt(mac, WNI_CFG_LISTEN_INTERVAL,
+			&cfg_data_val ) != eSIR_SUCCESS)	{
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+			"Failed to get value for WNI_CFG_LISTEN_INTERVAL");
+		cfg_data_val = POWERSAVE_DEFAULT_LISTEN_INTERVAL;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					WMI_VDEV_PARAM_LISTEN_INTERVAL,
+					cfg_data_val);
+	if (ret) {
+		/* Even it fails continue Fw will take default LI */
+		WMA_LOGE("Failed to Set Listen Interval vdevId %d",
+			vdev_id);
+	}
+	WMA_LOGD("Set Listen Interval vdevId %d Listen Intv %d",
+		vdev_id, cfg_data_val);
+	return 0;
+}
+
+static u_int8_t wma_is_qpower_enabled(tp_wma_handle wma)
+{
+	if((wma->powersave_mode == PS_QPOWER_NODEEPSLEEP) ||
+		(wma->powersave_mode == PS_QPOWER_DEEPSLEEP)) {
+		return true;
+	}
+	return false;
+}
+
 static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 {
 	uint32_t vdev_id = ps_req->sessionid;
 	int32_t ret;
+	u_int8_t is_qpower_enabled = wma_is_qpower_enabled(wma);
 
 	if (eSIR_ADDON_NOTHING == ps_req->psSetting) {
 		WMA_LOGD("Enable Sta Mode Ps vdevId %d", vdev_id);
-		ret = wma_set_force_sleep(wma, vdev_id, false);
+		if(is_qpower_enabled)
+			ret = wma_set_qpower_force_sleep(wma, vdev_id, false);
+		else
+			ret = wma_set_force_sleep(wma, vdev_id, false);
 		if (ret) {
 			WMA_LOGE("Enable Sta Ps Failed vdevId %d", vdev_id);
 			ps_req->status = VOS_STATUS_E_FAILURE;
@@ -5999,7 +6139,11 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 		}
 
 		WMA_LOGD("Enable Forced Sleep vdevId %d", vdev_id);
-		ret = wma_set_force_sleep(wma, vdev_id, true);
+		if(is_qpower_enabled)
+			ret = wma_set_qpower_force_sleep(wma, vdev_id, true);
+		else
+			ret = wma_set_force_sleep(wma, vdev_id, true);
+
 		if (ret) {
 			WMA_LOGE("Enable Forced Sleep Failed vdevId %d",
 				vdev_id);
@@ -6052,6 +6196,7 @@ static void wma_enable_uapsd_mode(tp_wma_handle wma,
 	int32_t ret;
 	u_int32_t vdev_id = ps_req->sessionid;
 	u_int32_t uapsd_val = 0;
+	u_int8_t is_qpower_enabled = wma_is_qpower_enabled(wma);
 
 	/* Disable Sta Mode Power save */
 	ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, false);
@@ -6073,7 +6218,10 @@ static void wma_enable_uapsd_mode(tp_wma_handle wma,
 	}
 
 	WMA_LOGD("Enable Forced Sleep vdevId %d", vdev_id);
-	ret = wma_set_force_sleep(wma, vdev_id, true);
+	if(is_qpower_enabled)
+		ret = wma_set_qpower_force_sleep(wma, vdev_id, true);
+	else
+		ret = wma_set_force_sleep(wma, vdev_id, true);
 	if (ret) {
 		WMA_LOGE("Enable Forced Sleep Failed vdevId %d", vdev_id);
 		ps_req->status = VOS_STATUS_E_FAILURE;
@@ -6090,6 +6238,7 @@ static void wma_disable_uapsd_mode(tp_wma_handle wma,
 {
 	int32_t ret;
 	u_int32_t vdev_id = ps_req->sessionid;
+	u_int8_t is_qpower_enabled = wma_is_qpower_enabled(wma);
 
 	WMA_LOGD("Disable Uapsd vdevId %d", vdev_id);
 
@@ -6110,7 +6259,10 @@ static void wma_disable_uapsd_mode(tp_wma_handle wma,
 	}
 
 	/* Re enable Sta Mode Powersave with proper configuration */
-	ret = wma_set_force_sleep(wma, vdev_id, false);
+	if(is_qpower_enabled)
+		ret = wma_set_qpower_force_sleep(wma, vdev_id, false);
+	else
+		ret = wma_set_force_sleep(wma, vdev_id, false);
 	if (ret) {
 		WMA_LOGE("Disable Forced Sleep Failed vdevId %d", vdev_id);
 		ps_req->status = VOS_STATUS_E_FAILURE;
