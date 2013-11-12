@@ -5563,6 +5563,8 @@ static void wma_set_max_tx_power(WMA_HANDLE handle,
 	}
 	else
 		WMA_LOGE("Failed to find vdev to set WMI_VDEV_PARAM_TX_PWRLIMIT");
+
+	wma_send_msg(wma_handle, WDA_SET_MAX_TX_POWER_RSP, tx_pwr_params, 0);
 }
 
 /*
