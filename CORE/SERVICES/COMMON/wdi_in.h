@@ -300,7 +300,7 @@ wdi_in_peer_tid_unpause(ol_txrx_peer_handle data_peer, int tid);
  * @param max_frms - limit on the number of tx frames to release from the
  *      specified TID's queues within the specified peer
  */
-#if defined(CONFIG_HL_SUPPORT)
+#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 void
 wdi_in_tx_release(
     ol_txrx_peer_handle peer,
@@ -323,7 +323,7 @@ wdi_in_tx_release(
  *
  * @param data_vdev - the virtual device being paused
  */
-#if defined(CONFIG_HL_SUPPORT)
+#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 void
 wdi_in_vdev_pause(ol_txrx_vdev_handle data_vdev);
 #else
