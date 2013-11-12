@@ -138,6 +138,8 @@ const char *dbglog_get_module_str(A_UINT32 module_id)
         return "STA_SMPS";
     case WLAN_MODULE_TDLS:
         return "TDLS";
+    case WLAN_MODULE_P2P:
+        return "P2P";
     default:
         return "UNKNOWN";
     }
@@ -515,37 +517,39 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "COEX_DEBUG_MESSAGE_END"
     },
     {
-        "RO_DBGID_DEFINITION_START",
-        "RO_REFRESH_ROAM_TABLE",
-        "RO_UPDATE_ROAM_CANDIDATE",
-        "RO_UPDATE_ROAM_CANDIDATE_CB",
-        "RO_UPDATE_ROAM_CANDIDATE_FINISH",
-        "RO_REFRESH_ROAM_TABLE_DONE",
-        "RO_PERIODIC_SEARCH_CB",
-        "RO_PERIODIC_SEARCH_TIMEOUT",
-        "RO_INIT",
-        "RO_BMISS_STATE1",
-        "RO_BMISS_STATE2",
-        "RO_SET_PERIODIC_SEARCH_ENABLE",
-        "RO_SET_PERIODIC_SEARCH_DISABLE",
-        "RO_ENABLE_SQ_THRESHOLD",
-        "RO_DISABLE_SQ_THRESHOLD",
-        "RO_ADD_BSS_TO_ROAM_TABLE",
-        "RO_SET_PERIODIC_SEARCH_MODE",
-        "RO_CONFIGURE_SQ_THRESHOLD1",
-        "RO_CONFIGURE_SQ_THRESHOLD2",
-        "RO_CONFIGURE_SQ_PARAMS",
-        "RO_LOW_SIGNAL_QUALITY_EVENT",
-        "RO_HIGH_SIGNAL_QUALITY_EVENT",
-        "RO_REMOVE_BSS_FROM_ROAM_TABLE",
-        "RO_UPDATE_CONNECTION_STATE_METRIC",
-        "RO_LOWRSSI_SCAN_PARAMS",
-        "RO_LOWRSSI_SCAN_START",
-        "RO_LOWRSSI_SCAN_END",
-        "RO_LOWRSSI_SCAN_CANCEL",
-        "RO_LOWRSSI_ROAM_CANCEL",
-        "RO_REFRESH_ROAM_CANDIDATE",
-        "RO_DBGID_DEFINITION_END"
+        "ROAM_DBGID_DEFINITION_START",
+        "ROAM_MODULE_INIT",
+        "ROAM_DEV_START",
+        "ROAM_CONFIG_RSSI_THRESH",
+        "ROAM_CONFIG_SCAN_PERIOD",
+        "ROAM_CONFIG_AP_PROFILE",
+        "ROAM_CONFIG_CHAN_LIST",
+        "ROAM_CONFIG_SCAN_PARAMS",
+        "ROAM_CONFIG_RSSI_CHANGE",
+        "ROAM_SCAN_TIMER_START",
+        "ROAM_SCAN_TIMER_EXPIRE",
+        "ROAM_SCAN_TIMER_STOP",
+        "ROAM_SCAN_STARTED",
+        "ROAM_SCAN_COMPLETE",
+        "ROAM_SCAN_CANCELLED",
+        "ROAM_CANDIDATE_FOUND",
+        "ROAM_RSSI_ACTIVE_SCAN",
+        "ROAM_RSSI_ACTIVE_ROAM",
+        "ROAM_RSSI_GOOD",
+        "ROAM_BMISS_FIRST_RECV",
+        "ROAM_DEV_STOP",
+        "ROAM_FW_OFFLOAD_ENABLE",
+        "ROAM_CANDIDATE_SSID_MATCH",
+        "ROAM_CANDIDATE_SECURITY_MATCH",
+        "ROAM_LOW_RSSI_INTERRUPT",
+        "ROAM_HIGH_RSSI_INTERRUPT",
+        "ROAM_SCAN_REQUESTED",
+        "ROAM_BETTER_CANDIDATE_FOUND",
+        "ROAM_BETTER_AP_EVENT",
+        "ROAM_CANCEL_LOW_PRIO_SCAN",
+        "ROAM_FINAL_BMISS_RECVD",
+        "ROAM_CONFIG_SCAN_MODE",
+        "ROAM_DBGID_DEFINITION_END"
     },
     {
         "RESMGR_CHMGR_DEFINITION_START",
@@ -554,6 +558,8 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "RESMGR_CHMGR_RESUME_COMPLETE",
         "RESMGR_CHMGR_VDEV_PAUSE",
         "RESMGR_CHMGR_VDEV_UNPAUSE",
+        "RESMGR_CHMGR_CTS2S_TX_COMP",
+        "RESMGR_CHMGR_CFEND_TX_COMP",
         "RESMGR_CHMGR_DEFINITION_END"
     },
     {
@@ -608,6 +614,15 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "RESMGR_VC_REG_UNREG_LINK",
         "RESMGR_VC_PRINT_LINK",
         "RESMGR_OCS_MISS_TOLERANCE",
+        "RESMGR_DYN_SCH_ALLOCRAM_SIZE",
+        "RESMGR_DYN_SCH_ENABLE",
+        "RESMGR_DYN_SCH_ACTIVE",
+        "RESMGR_DYN_SCH_CH_STATS_START",
+        "RESMGR_DYN_SCH_CH_SX_STATS",
+        "RESMGR_DYN_SCH_TOT_UTIL_PER",
+        "RESMGR_DYN_SCH_HOME_CH_QUOTA",
+        "RESMGR_OCS_REG_RECAL_QUOTA_NOTIF",
+        "RESMGR_OCS_DEREG_RECAL_QUOTA_NOTIF",
         "RESMGR_DEFINITION_END"
     },
     {
@@ -627,6 +642,9 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "VDEV_MGR_VDEV_START_OCS_HP_REQ_COMPLETE",
         "VDEV_MGR_VDEV_START_OCS_HP_REQ_STOP",
         "VDEV_MGR_HP_START_TIME",
+        "VDEV_MGR_VDEV_PAUSE_DELAY_UPDATE",
+        "VDEV_MGR_VDEV_PAUSE_FAIL",
+        "VDEV_MGR_GEN_PERIODIC_NOA",
         "VDEV_MGR_DEFINITION_END",
     },
     {
@@ -754,6 +772,10 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WAL_DBGID_TX_MGMT_COMP_DESCID_STATUS",
         "WAL_DBGID_TX_DATA_COMP_MSDUID_STATUS",
         "WAL_DBGID_RESET_PCU_CYCLE_CNT",
+        "WAL_DBGID_SETUP_RSSI_INTERRUPTS",
+        "WAL_DBGID_BRSSI_CONFIG",
+        "WAL_DBGID_CURRENT_BRSSI_AVE",
+        "WAL_DBGID_BCN_TX_COMP",
         "WAL_DBGID_DEFINITION_END",
     },
     {
@@ -823,6 +845,8 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "P2P_GO_NOA_NOTIF",
         "P2P_GO_TBTT_OFFSET",
         "P2P_GO_GET_NOA_INFO",
+        "P2P_GO_ADD_ONE_SHOT_NOA",
+        "P2P_GO_GET_NOA_IE",
         "P2P_DBGID_DEFINITION_END",
     },
     {
@@ -851,6 +875,8 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WLAN_CHATTER_FILTER_MISS",
         "WLAN_CHATTER_FILTER_FULL",
         "WLAN_CHATTER_FILTER_TM_ADJ",
+        "WLAN_CHATTER_BUFFER_FULL",
+        "WLAN_CHATTER_TIMEOUT",
         "WLAN_CHATTER_DBGID_DEFINITION_END",
     },
     {
@@ -879,7 +905,7 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
     {   /* STA SMPS  */
         ""
     },
-    {
+    {   /* SWBMISS */
         "SWBMISS_DBGID_DEFINITION_START",
         "SWBMISS_ENABLED",
         "SWBMISS_DISABLED",
@@ -1587,6 +1613,11 @@ dbglog_sta_powersave_print_handler(
                 { "RX_WAKE_POLICY", 0 },
                 { "DELAYED_PAUSE_RX_LEAK", 1 },
                 { "TXRX_INACTIVITY_BLOCKED_RETRY", 1 },
+                { "SPEC_WAKE_INTERVAL", 1 },
+                { "MAX_SPEC_NODATA_PSPOLL", 0 },
+                { "ESTIMATED_PSPOLL_RESP_TIME", 1 },
+                { "QPOWER_MAX_PSPOLL_BEFORE_WAKE", 0 },
+                { "QPOWER_ENABLE", 0 },
             };
             A_UINT32 param = args[0];
             A_UINT32 value = args[1];
@@ -2577,6 +2608,89 @@ A_BOOL dbglog_smps_print_handler(A_UINT32 mod_id,
 }
 
 
+A_BOOL
+dbglog_p2p_print_handler(
+        A_UINT32 mod_id,
+        A_UINT16 vap_id,
+        A_UINT32 dbg_id,
+        A_UINT32 timestamp,
+        A_UINT16 numargs,
+        A_UINT32 *args)
+{
+    static const char *states[] = {
+        "ACTIVE",
+        "DOZE",
+        "TX_BCN",
+        "CTWIN",
+        "OPPPS",
+    };
+
+    static const char *events[] = {
+        "ONESHOT_NOA",
+        "CTWINDOW",
+        "PERIODIC_NOA",
+        "IDLE",
+        "NOA_CHANGED",
+        "TBTT",
+        "TX_BCN_CMP",
+        "OPPPS_OK",
+        "OPPPS_CHANGED",
+    };
+
+    switch (dbg_id) {
+    case DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG:
+        dbglog_sm_print(timestamp, vap_id, numargs, args, "P2P GO PS",
+                states, ARRAY_LENGTH(states), events, ARRAY_LENGTH(events));
+        break;
+    default:
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+A_BOOL
+dbglog_pcielp_print_handler(
+        A_UINT32 mod_id,
+        A_UINT16 vap_id,
+        A_UINT32 dbg_id,
+        A_UINT32 timestamp,
+        A_UINT16 numargs,
+        A_UINT32 *args)
+{
+    static const char *states[] = {
+        "STOP",
+        "TX",
+        "RX",
+        "SLEEP",
+        "SUSPEND",
+    };
+
+    static const char *events[] = {
+        "VDEV_UP",
+        "ALL_VDEV_DOWN",
+        "AWAKE",
+        "SLEEP",
+        "TX_ACTIVITY",
+        "TX_INACTIVITY",
+        "TX_AC_CHANGE",
+        "SUSPEND",
+        "RESUME",
+    };
+
+    switch (dbg_id) {
+    case DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG:
+        dbglog_sm_print(timestamp, vap_id, numargs, args, "PCIELP",
+                states, ARRAY_LENGTH(states), events, ARRAY_LENGTH(events));
+        break;
+    default:
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+
 #ifdef WLAN_OPEN_SOURCE
 static int dbglog_block_open(struct inode *inode, struct file *file)
 {
@@ -2764,6 +2878,8 @@ dbglog_init(wmi_unified_t wmi_handle)
     dbglog_reg_modprint(WLAN_MODULE_BEACON,dbglog_beacon_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_DATA_TXRX,dbglog_data_txrx_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_STA_SMPS, dbglog_smps_print_handler);
+    dbglog_reg_modprint(WLAN_MODULE_P2P, dbglog_p2p_print_handler);
+    dbglog_reg_modprint(WLAN_MODULE_PCIELP, dbglog_pcielp_print_handler);
 
     res = wmi_unified_register_event_handler(wmi_handle, WMI_DEBUG_MESG_EVENTID,
                        dbglog_parse_debug_logs);
