@@ -379,6 +379,10 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_ba_req_ssn_cmd_sub_struct_param,
     WMITLV_TAG_STRUC_wmi_ba_req_ssn_event_sub_struct_param,
     WMITLV_TAG_STRUC_wmi_sta_smps_param_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_vdev_set_gtx_params_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mcc_sched_traffic_stats_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mcc_sched_sta_traffic_stats,
+    WMITLV_TAG_STRUC_wmi_offload_bcn_tx_status_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -491,6 +495,7 @@ typedef enum {
     OP(WMI_VDEV_WMM_ADDTS_CMDID) \
     OP(WMI_VDEV_WMM_DELTS_CMDID) \
     OP(WMI_VDEV_SET_WMM_PARAMS_CMDID) \
+    OP(WMI_VDEV_SET_GTX_PARAMS_CMDID) \
     OP(WMI_TDLS_SET_STATE_CMDID) \
     OP(WMI_TDLS_PEER_UPDATE_CMDID) \
     OP(WMI_FWTEST_VDEV_MCC_SET_TBTT_MODE_CMDID) \
@@ -503,7 +508,8 @@ typedef enum {
     OP(WMI_SET_MCASTBCAST_FILTER_CMDID) \
     OP(WMI_P2P_SET_OPPPS_PARAM_CMDID) \
     OP(WMI_FWTEST_P2P_SET_NOA_PARAM_CMDID) \
-    OP(WMI_STA_SMPS_PARAM_CMDID)
+    OP(WMI_STA_SMPS_PARAM_CMDID) \
+    OP(WMI_MCC_SCHED_TRAFFIC_STATS_CMDID)
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
  * Otherwise, these WMI TLV Functions will be process them.
@@ -550,7 +556,8 @@ typedef enum {
     OP(WMI_CAPTUREH_EVENTID) \
     OP(WMI_TDLS_PEER_EVENTID) \
     OP(WMI_VDEV_MCC_BCN_INTERVAL_CHANGE_REQ_EVENTID) \
-    OP(WMI_BA_RSP_SSN_EVENTID)
+    OP(WMI_BA_RSP_SSN_EVENTID) \
+    OP(WMI_OFFLOAD_BCN_TX_STATUS_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1233,6 +1240,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_WMM_DELTS_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_SET_WMM_PARAMS_CMDID);
 
+#define WMITLV_TABLE_WMI_VDEV_SET_GTX_PARAMS_CMDID(id,op,buf,len)                                           \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_set_gtx_params_cmd_fixed_param, wmi_vdev_set_gtx_params_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_SET_GTX_PARAMS_CMDID);
+
 /* TDLS Enable/Disable Cmd */
 #define WMITLV_TABLE_WMI_TDLS_SET_STATE_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_tdls_set_state_cmd_fixed_param, \
@@ -1283,6 +1295,14 @@ WMITLV_CREATE_PARAM_STRUC(WMI_STA_SMPS_FORCE_MODE_CMDID);
             wmi_sta_smps_param_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_STA_SMPS_PARAM_CMDID);
+
+/* MCC Adaptive Scheduler Traffic Stats */
+#define WMITLV_TABLE_WMI_MCC_SCHED_TRAFFIC_STATS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mcc_sched_traffic_stats_cmd_fixed_param, wmi_mcc_sched_traffic_stats_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+				    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_ARRAY_STRUC, wmi_mcc_sched_sta_traffic_stats, mcc_sched_sta_traffic_stats_list, WMITLV_SIZE_VAR)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_MCC_SCHED_TRAFFIC_STATS_CMDID);
+
 
 /************************** TLV definitions of WMI events *******************************/
 
@@ -1518,6 +1538,10 @@ WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_tdls_peer_event_fixed_param, wmi
 #define WMITLV_TABLE_WMI_VDEV_MCC_BCN_INTERVAL_CHANGE_REQ_EVENTID(id,op,buf,len)                                                         \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_mcc_bcn_intvl_change_event_fixed_param, wmi_vdev_mcc_bcn_intvl_change_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_MCC_BCN_INTERVAL_CHANGE_REQ_EVENTID);
+
+#define WMITLV_TABLE_WMI_OFFLOAD_BCN_TX_STATUS_EVENTID(id,op,buf,len)                                                                                                 \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_offload_bcn_tx_status_event_fixed_param, wmi_offload_bcn_tx_status_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+    WMITLV_CREATE_PARAM_STRUC(WMI_OFFLOAD_BCN_TX_STATUS_EVENTID);
 
 #ifdef __cplusplus
 }
