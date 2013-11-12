@@ -9907,14 +9907,6 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 		goto end;
 	}
 
-#ifdef QCA_WIFI_ISOC
-	wma_hal_stop_isoc(wma_handle);
-#else
-	/* Suspend the target and disable interrupt */
-	if (wma_suspend_target(wma_handle, 1))
-		WMA_LOGE("Failed to suspend target\n");
-#endif
-
 #ifdef QCA_WIFI_FTM
 	/*
 	 * Tx mgmt detach requires TXRX context which is not created
@@ -9933,6 +9925,14 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 		adf_os_mem_free(wma_handle->ack_work_ctx);
 		wma_handle->ack_work_ctx = NULL;
 	}
+#endif
+
+#ifdef QCA_WIFI_ISOC
+	wma_hal_stop_isoc(wma_handle);
+#else
+	/* Suspend the target and disable interrupt */
+	if (wma_suspend_target(wma_handle, 1))
+		WMA_LOGE("Failed to suspend target\n");
 #endif
 
 	vos_status = wma_tx_detach(wma_handle);
