@@ -64,15 +64,6 @@
  * this information. */
 static tAniBool glimTriggerBackgroundScanDuringQuietBss_Status = eSIR_TRUE;
 
-/* 11A Channel list to decode RX BD channel information */
-static const tANI_U8 abChannel[]= {36,40,44,48,52,56,60,64,100,104,108,112,116,
-            120,124,128,132,136,140,149,153,157,161,165};
-
-#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-static const tANI_U8 aUnsortedChannelList[]= {52,56,60,64,100,104,108,112,116,
-            120,124,128,132,136,140,36,40,44,48,149,153,157,161,165};
-#endif
-
 //#define LIM_MAX_ACTIVE_SESSIONS 3  //defined temporarily for BT-AMP SUPPORT 
 #define SUCCESS 1                   //defined temporarily for BT-AMP
 
@@ -7378,15 +7369,7 @@ void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
 *****************************************************************/
 tANI_U8 limUnmapChannel(tANI_U8 mapChannel)
 {
-   if( mapChannel > 0 && mapChannel < 25 )
-#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-       if (IS_ROAM_SCAN_OFFLOAD_FEATURE_ENABLE)
-           return aUnsortedChannelList[mapChannel -1];
-       else
-#endif
-     return abChannel[mapChannel -1];
-   else
-     return 0;
+    return WDA_MapChannel(mapChannel);
 }
 
 

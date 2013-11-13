@@ -11613,3 +11613,8 @@ void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
 	}
 	return;
 }
+
+tANI_U8 wma_map_channel(tANI_U8 mapChannel)
+{
+	return mapChannel;
+}
