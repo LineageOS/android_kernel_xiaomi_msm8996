@@ -2415,6 +2415,13 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             }
            break;
         case eCSR_ROAM_LOSTLINK:
+            if(roamResult == eCSR_ROAM_RESULT_LOSTLINK) {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "Roaming started due to connection lost");
+                netif_tx_disable(pAdapter->dev);
+                netif_carrier_off(pAdapter->dev);
+                break;
+            }
         case eCSR_ROAM_DISASSOCIATED:
             {
                 hdd_context_t* pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;

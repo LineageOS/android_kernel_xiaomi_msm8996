@@ -13767,6 +13767,15 @@ static void csrRoamLinkDown(tpAniSirGlobal pMac, tANI_U32 sessionId)
    {
       return;
    }
+   /*
+    * Incase of station mode, immediately stop data transmission whenever
+    * link down is detected.
+    */
+   if (csrRoamIsStaMode(pMac, sessionId)) {
+        smsLog(pMac, LOG1, FL("Inform Link lost for session %d"), sessionId);
+        csrRoamCallCallback(pMac, sessionId, NULL, 0, eCSR_ROAM_LOSTLINK,
+                            eCSR_ROAM_RESULT_LOSTLINK);
+   }
    /* deregister the clients requesting stats from PE/TL & also stop the corresponding timers*/
    csrRoamDeregStatisticsReq(pMac);
    pMac->roam.vccLinkQuality = eCSR_ROAM_LINK_QUAL_POOR_IND;
