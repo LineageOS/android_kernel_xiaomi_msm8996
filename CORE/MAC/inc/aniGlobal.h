@@ -1054,6 +1054,10 @@ typedef struct sAniSirGlobal
 
     /* PNO offload */
     v_BOOL_t pnoOffload;
+
+    csrReadyToSuspendCallback readyToSuspendCallback;
+    void *readyToSuspendContext;
+
 } tAniSirGlobal;
 
 #ifdef FEATURE_WLAN_TDLS

@@ -8230,6 +8230,14 @@ static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
 #endif
 
 #ifdef QCA_WIFI_2_0
+
+void wlan_hdd_cfg80211_ready_to_suspend(void *callbackContext)
+{
+    hdd_context_t *pHddCtx = (hdd_context_t *)callbackContext;
+
+    complete(&pHddCtx->ready_to_suspend);
+}
+
 int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                                    struct cfg80211_wowlan *wow)
 {
@@ -8268,6 +8276,20 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         pAdapterNode = pNext;
     }
 
+    /* Wait for the target to be ready for suspend */
+    INIT_COMPLETION(pHddCtx->ready_to_suspend);
+
+    hdd_suspend_wlan(&wlan_hdd_cfg80211_ready_to_suspend, pHddCtx);
+
+    rc = wait_for_completion_interruptible_timeout(&pHddCtx->ready_to_suspend,
+                             msecs_to_jiffies(WLAN_WAIT_TIME_READY_TO_SUSPEND));
+    if (!rc)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Failed to get ready to suspend", __func__);
+        return -ETIME;
+    }
+
     /* Suspend MC thread */
     set_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
     wake_up_interruptible(&vosSchedContext->mcWaitQueue);
@@ -8297,6 +8319,8 @@ int wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
     complete(&vosSchedContext->ResumeMcEvent);
 
     pHddCtx->isMcThreadSuspended = FALSE;
+
+    hdd_resume_wlan();
 
     return 0;
 }

@@ -1503,6 +1503,39 @@ void sme_ProcessGetGtkInfoRsp( tHalHandle hHal,
 }
 #endif
 
+/*--------------------------------------------------------------------------
+
+  \fn    - sme_ProcessReadyToSuspend
+  \brief - On getting ready to suspend indication, this function calls
+           callback registered (HDD callbacks) with SME to inform
+           ready to suspend indication.
+
+  \param hHal - Handle returned by macOpen.
+
+  \return None
+
+  \sa
+
+  --------------------------------------------------------------------------*/
+void sme_ProcessReadyToSuspend( tHalHandle hHal,
+                            tpSirReadyToSuspendInd pReadyToSuspend)
+{
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   if (NULL == pMac)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+           "%s: pMac is null", __func__);
+       return ;
+   }
+
+   if (NULL != pMac->readyToSuspendCallback)
+   {
+       pMac->readyToSuspendCallback (pMac->readyToSuspendContext);
+       pMac->readyToSuspendCallback = NULL;
+   }
+}
+
 /* ---------------------------------------------------------------------------
     \fn sme_ChangeConfigParams
     \brief The SME API exposed for HDD to provide config params to SME during
@@ -2150,6 +2183,18 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 }
                 break ;
 #endif
+           case eWNI_SME_READY_TO_SUSPEND_IND:
+                if (pMsg->bodyptr)
+                {
+                    sme_ProcessReadyToSuspend(pMac, pMsg->bodyptr);
+                    vos_mem_free(pMsg->bodyptr);
+                }
+                else
+                {
+                    smsLog(pMac, LOGE, "Empty rsp message for (eWNI_SME_READY_TO_SUSPEND_IND), nothing to process");
+                }
+                break ;
+
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -6268,7 +6313,9 @@ eHalStatus sme_ConfigureRxpFilter( tHalHandle hHal,
   
 --------------------------------------------------------------------------- */
 eHalStatus sme_ConfigureSuspendInd( tHalHandle hHal, 
-                          tpSirWlanSuspendParam  wlanSuspendParam)
+                          tpSirWlanSuspendParam  wlanSuspendParam,
+                          csrReadyToSuspendCallback callback,
+                          void *callbackContext)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
@@ -6287,6 +6334,13 @@ eHalStatus sme_ConfigureSuspendInd( tHalHandle hHal,
         }
         sme_ReleaseGlobalLock( &pMac->sme );
     }
+
+    if ( VOS_IS_STATUS_SUCCESS(vosStatus) )
+    {
+        pMac->readyToSuspendCallback = callback;
+        pMac->readyToSuspendContext = callbackContext;
+    }
+
     return(status);
 }
 
