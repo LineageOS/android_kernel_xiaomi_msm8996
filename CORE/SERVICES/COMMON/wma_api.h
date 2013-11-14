@@ -130,5 +130,8 @@ u_int8_t *wma_get_vdev_address_by_vdev_id(u_int8_t vdev_id);
 void *wma_get_beacon_buffer_by_vdev_id(u_int8_t vdev_id,
 				       u_int32_t *buffer_size);
 #endif	/* QCA_WIFI_ISOC */
+
+int process_wma_set_command(int sessid, int paramid,
+                                   int sval, int vpdev);
 tANI_U8 wma_getFwWlanFeatCaps(tANI_U8 featEnumValue);
 #endif

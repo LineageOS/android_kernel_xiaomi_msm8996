@@ -3652,7 +3652,7 @@ static int iw_set_mlme(struct net_device *dev,
 }
 
 #ifdef QCA_WIFI_2_0
-static int process_wma_set_command(int sessid, int paramid,
+int process_wma_set_command(int sessid, int paramid,
                                    int sval, int vpdev)
 {
     int ret = 0;
