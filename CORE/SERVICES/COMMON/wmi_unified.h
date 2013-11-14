@@ -602,6 +602,9 @@ typedef enum {
     /** P2P disc found */
     WMI_P2P_DISC_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_P2P),
 
+    /*send noa info to host when noa is changed for beacon tx offload enable*/
+    WMI_P2P_NOA_EVENTID,
+
     /** WOW wake up host event.generated in response to WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID.
         will cary wake reason */
     WMI_WOW_WAKEUP_HOST_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_WOW),
@@ -5541,6 +5544,14 @@ typedef struct {
      * wmi_mcc_sched_sta_traffic_stats mcc_sched_sta_traffic_stats_list;
      */
 } wmi_mcc_sched_traffic_stats_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_p2p_noa_event_fixed_param  */
+    A_UINT32 vdev_id;
+    /* This TLV is followed by p2p_noa_info for vdev :
+     *     wmi_p2p_noa_info p2p_noa_info;
+     */
+} wmi_p2p_noa_event_fixed_param;
 
 #ifdef __cplusplus
 }

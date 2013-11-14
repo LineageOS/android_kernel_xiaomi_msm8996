@@ -383,6 +383,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_mcc_sched_traffic_stats_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_mcc_sched_sta_traffic_stats,
     WMITLV_TAG_STRUC_wmi_offload_bcn_tx_status_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_p2p_noa_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -557,7 +558,8 @@ typedef enum {
     OP(WMI_TDLS_PEER_EVENTID) \
     OP(WMI_VDEV_MCC_BCN_INTERVAL_CHANGE_REQ_EVENTID) \
     OP(WMI_BA_RSP_SSN_EVENTID) \
-    OP(WMI_OFFLOAD_BCN_TX_STATUS_EVENTID)
+    OP(WMI_OFFLOAD_BCN_TX_STATUS_EVENTID) \
+    OP(WMI_P2P_NOA_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1542,6 +1544,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_MCC_BCN_INTERVAL_CHANGE_REQ_EVENTID);
 #define WMITLV_TABLE_WMI_OFFLOAD_BCN_TX_STATUS_EVENTID(id,op,buf,len)                                                                                                 \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_offload_bcn_tx_status_event_fixed_param, wmi_offload_bcn_tx_status_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
     WMITLV_CREATE_PARAM_STRUC(WMI_OFFLOAD_BCN_TX_STATUS_EVENTID);
+
+/* NOA Event */
+#define WMITLV_TABLE_WMI_P2P_NOA_EVENTID(id,op,buf,len) \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_p2p_noa_event_fixed_param, wmi_p2p_noa_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_p2p_noa_info, wmi_p2p_noa_info, p2p_noa_info, WMITLV_SIZE_FIX)
+    WMITLV_CREATE_PARAM_STRUC(WMI_P2P_NOA_EVENTID);
 
 #ifdef __cplusplus
 }
