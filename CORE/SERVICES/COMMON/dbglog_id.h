@@ -743,8 +743,9 @@ extern "C" {
 #define WLAN_CHATTER_FILTER_MISS 4
 #define WLAN_CHATTER_FILTER_FULL 5
 #define WLAN_CHATTER_FILTER_TM_ADJ  6
-#define WLAN_CHATTER_DBGID_DEFINITION_END 7
-
+#define WLAN_CHATTER_BUFFER_FULL    7
+#define WLAN_CHATTER_TIMEOUT        8
+#define WLAN_CHATTER_DBGID_DEFINITION_END 9
 
 #define WOW_DBGID_DEFINITION_START 0
 #define WOW_ENABLE_CMDID 1
@@ -857,6 +858,23 @@ extern "C" {
 #define RTT_CHANNEL_SWITCH_PREEMPT    18
 #define RTT_CHANNEL_SWITCH_STOP       19
 #define RTT_TIMER_START               20
+/* WLAN HB module DBGIDs */
+#define WLAN_HB_DBGID_DEFINITION_START                  0
+#define WLAN_HB_DBGID_INIT                              1
+#define WLAN_HB_DBGID_TCP_GET_TXBUF_FAIL                2
+#define WLAN_HB_DBGID_TCP_SEND_FAIL                     3
+#define WLAN_HB_DBGID_BSS_PEER_NULL                     4
+#define WLAN_HB_DBGID_UDP_GET_TXBUF_FAIL                5
+#define WLAN_HB_DBGID_UDP_SEND_FAIL                     6
+#define WLAN_HB_DBGID_WMI_CMD_INVALID_PARAM             7
+#define WLAN_HB_DBGID_WMI_CMD_INVALID_OP                8
+#define WLAN_HB_DBGID_WOW_NOT_ENTERED                   9
+#define WLAN_HB_DBGID_ALLOC_SESS_FAIL                   10
+#define WLAN_HB_DBGID_CTX_NULL                          11
+#define WLAN_HB_DBGID_CHKSUM_ERR                        12
+#define WLAN_HB_DBGID_UDP_TX                            13
+#define WLAN_HB_DBGID_TCP_TX                            14
+#define WLAN_HB_DBGID_DEFINITION_END                    15
 
 #ifdef __cplusplus
 }
