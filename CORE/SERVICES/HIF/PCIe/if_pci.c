@@ -858,16 +858,6 @@ hif_pci_remove(struct pci_dev *pdev)
 
     mem = (void __iomem *)sc->mem;
 
-    hif_nointrs(sc);
-#if CONFIG_PCIE_64BIT_MSI
-    OS_FREE_CONSISTENT(scn->sc_osdev, 4, scn->MSI_magic, scn->MSI_magic_dma,
-                       OS_GET_DMA_MEM_CONTEXT(scn, MSI_dmacontext));
-    scn->MSI_magic = NULL;
-    scn->MSI_magic_dma = 0;
-#endif
-    /* Cancel the pending tasklet */
-    tasklet_kill(&sc->intr_tq);
-
 #if defined(CPU_WARM_RESET_WAR)
     /* Currently CPU warm reset sequence is tested only for AR9888_REV2
      * Need to enable for AR9888_REV1 once CPU warm reset sequence is 
@@ -1059,4 +1049,22 @@ void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle)
 {
 	struct ol_softc *sc = (struct ol_softc *)ol_sc;
 	sc->pdev_txrx_handle = txrx_handle;
+}
+
+void hif_disable_isr(void *ol_sc)
+{
+	struct ol_softc *sc = (struct ol_softc *)ol_sc;
+	struct hif_pci_softc *hif_sc = sc->hif_sc;
+	struct ol_softc *scn;
+
+	scn = hif_sc->ol_sc;
+	hif_nointrs(hif_sc);
+#if CONFIG_PCIE_64BIT_MSI
+	OS_FREE_CONSISTENT(scn->sc_osdev, 4, scn->MSI_magic, scn->MSI_magic_dma,
+                       OS_GET_DMA_MEM_CONTEXT(scn, MSI_dmacontext));
+	scn->MSI_magic = NULL;
+	scn->MSI_magic_dma = 0;
+#endif
+	/* Cancel the pending tasklet */
+	tasklet_kill(&hif_sc->intr_tq);
 }

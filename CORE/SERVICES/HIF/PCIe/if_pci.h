@@ -108,6 +108,7 @@ adf_os_size_t initBufferCount(adf_os_size_t maxSize);
 
 /* Function to set the TXRX handle in the ol_sc context */
 void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle);
+void hif_disable_isr(void *ol_sc);
 
 #ifndef REMOVE_PKT_LOG
 extern int pktlogmod_init(void *context);

@@ -88,6 +88,7 @@
 #include "bmi.h"
 #include "ol_fw.h"
 #include "ol_if_athvar.h"
+#include "if_pci.h"
 #else
 #include "htc_api.h"
 #endif /* #ifndef QCA_WIFI_ISOC */
@@ -951,6 +952,9 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
+#ifndef QCA_WIFI_ISOC
+  hif_disable_isr(((VosContextType*)vosContext)->pHIFContext);
+#endif
 
   return VOS_STATUS_SUCCESS;
 }
