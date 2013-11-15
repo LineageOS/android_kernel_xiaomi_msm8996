@@ -574,6 +574,8 @@ typedef struct sSirMbMsgP2p
 #endif
 #define SIR_CSA_OFFLOAD_EVENT              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 208)
 
+#define SIR_HAL_RATE_UPDATE_IND            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 208)
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF)
 // CFG message types
 #define SIR_CFG_MSG_TYPES_BEGIN        (SIR_CFG_MODULE_ID << 8)

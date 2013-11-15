@@ -2859,4 +2859,12 @@ eHalStatus sme_MoveCsrToScanStateForPno (tHalHandle hHal, tANI_U8 sessionId);
 eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
                               tSmeChannelInfo *chanInfo);
 #endif
+/* ---------------------------------------------------------------------------
+    \fn sme_SendRateUpdateInd
+    \brief  API to Update rate
+    \param  hHal - The handle returned by macOpen
+    \param  rateUpdateParams - Pointer to rate update params
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SendRateUpdateInd(tHalHandle hHal, tSirRateUpdateInd *rateUpdateParams);
 #endif //#if !defined( __SME_API_H )

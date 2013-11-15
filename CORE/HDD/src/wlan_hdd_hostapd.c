@@ -1029,6 +1029,38 @@ static iw_softap_setparam(struct net_device *dev,
                 }
                 break;
             }
+        case QCSAP_PARAM_SET_MC_RATE:
+            {
+                tSirRateUpdateInd *rateUpdate;
+
+                rateUpdate = (tSirRateUpdateInd *)
+                             vos_mem_malloc(sizeof(tSirRateUpdateInd));
+                if (NULL == rateUpdate)
+                {
+                   hddLog(VOS_TRACE_LEVEL_ERROR,
+                          "%s: SET_MC_RATE indication alloc fail", __func__);
+                   ret = -1;
+                   break;
+                }
+                vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd ));
+
+                hddLog(VOS_TRACE_LEVEL_INFO, "MC Target rate %d", set_value);
+                memcpy(rateUpdate->bssId,
+                       pHostapdAdapter->macAddressCurrent.bytes,
+                       sizeof(tSirMacAddr));
+                rateUpdate->dev_mode = pHostapdAdapter->device_mode;
+                rateUpdate->mcastDataRate = set_value;
+                rateUpdate->bcastDataRate = -1;
+                status = sme_SendRateUpdateInd(hHal, rateUpdate);
+                if (eHAL_STATUS_SUCCESS != status)
+                {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                            "%s: SET_MC_RATE failed", __func__);
+                    vos_mem_free(rateUpdate);
+                    ret = -1;
+                }
+                break;
+            }
 
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
@@ -2699,6 +2731,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "setMaxAssoc" },
    { QCSAP_PARAM_HIDE_SSID,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "hideSSID" },
+   { QCSAP_PARAM_SET_MC_RATE,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMcRate" },
   { QCSAP_IOCTL_GETPARAM,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },

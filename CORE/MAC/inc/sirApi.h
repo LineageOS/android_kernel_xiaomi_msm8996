@@ -4244,4 +4244,12 @@ typedef struct sSirPsReqData
     tSirAddonPsReq addOnReq;
 } tSirPsReqData,*tpSirPsReqData;
 
+typedef struct sSirRateUpdateInd
+{
+    tSirMacAddr bssId;
+    tVOS_CON_MODE dev_mode;
+    tANI_S32 mcastDataRate; /* mcast rate unit Mbpsx10, -1 : not used */
+    tANI_S32 bcastDataRate; /* bcast rate unit Mbpsx10, -1 : not used */
+} tSirRateUpdateInd, *tpSirRateUpdateInd;
+
 #endif /* __SIR_API_H */

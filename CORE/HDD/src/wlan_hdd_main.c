@@ -1678,6 +1678,48 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
            }
        }
 #endif
+       else if (strncmp(command, "SETMCRATE", 9) == 0)
+       {
+           tANI_U8 *value = command;
+           int      targetRate;
+           tSirRateUpdateInd *rateUpdate;
+           eHalStatus status;
+           hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+           /* Move pointer to ahead of SETMCRATE<delimiter> */
+           /* input value is in units of hundred kbps */
+           value = value + 10;
+           /* Convert the value from ascii to integer, decimal base */
+           ret = kstrtouint(value, 10, &targetRate);
+
+           rateUpdate = (tSirRateUpdateInd *)vos_mem_malloc(sizeof(tSirRateUpdateInd));
+           if (NULL == rateUpdate)
+           {
+              hddLog(VOS_TRACE_LEVEL_ERROR,
+                     "%s: SETMCRATE indication alloc fail", __func__);
+              ret = -EFAULT;
+              goto exit;
+           }
+           vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd ));
+
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                     "MC Target rate %d", targetRate);
+
+           rateUpdate->dev_mode = pAdapter->device_mode;
+           rateUpdate->mcastDataRate = targetRate;
+           rateUpdate->bcastDataRate = -1;
+           memcpy(rateUpdate->bssId, pHddStaCtx->conn_info.bssId,
+               sizeof(rateUpdate->bssId));
+
+           status = sme_SendRateUpdateInd(pHddCtx->hHal, rateUpdate);
+           if (eHAL_STATUS_SUCCESS != status)
+           {
+              hddLog(VOS_TRACE_LEVEL_ERROR,
+                     "%s: SET_MC_RATE failed", __func__);
+              vos_mem_free(rateUpdate);
+              ret = -EFAULT;
+              goto exit;
+           }
+       }
        else {
            hddLog( VOS_TRACE_LEVEL_WARN, "%s: Unsupported GUI command %s",
                    __func__, command);

@@ -7923,6 +7923,51 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 	return VOS_STATUS_SUCCESS;
 }
 
+/*
+ * FUNCTION: wma_process_rate_update_indate
+ *
+ */
+VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
+                               tSirRateUpdateInd *pRateUpdateParams)
+{
+	int32_t ret = 0;
+	u_int8_t vdev_id = 0;
+	void *pdev;
+
+	/* Get the vdev id */
+	if (pRateUpdateParams->dev_mode == VOS_STA_SAP_MODE ||
+			pRateUpdateParams->dev_mode == VOS_P2P_GO_MODE)
+		pdev = wma_find_vdev_by_addr(wma, pRateUpdateParams->bssId, &vdev_id);
+	else
+		pdev = wma_find_vdev_by_bssid(wma, pRateUpdateParams->bssId, &vdev_id);
+	if (!pdev) {
+		WMA_LOGE("vdev handle is invalid for %pM", pRateUpdateParams->bssId);
+		vos_mem_free(pRateUpdateParams);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	if (pRateUpdateParams->mcastDataRate > -1) {
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					WMI_VDEV_PARAM_MCAST_DATA_RATE,
+					pRateUpdateParams->mcastDataRate);
+	} else if (pRateUpdateParams->bcastDataRate > -1) {
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					WMI_VDEV_PARAM_BCAST_DATA_RATE,
+					pRateUpdateParams->bcastDataRate);
+	} else {
+		WMA_LOGE("%s: Error, Invalid rate value", __func__);
+		vos_mem_free(pRateUpdateParams);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	vos_mem_free(pRateUpdateParams);
+	if (ret) {
+		WMA_LOGE("%s: Failed to Set rate, ret = %d", __func__, ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -8195,6 +8240,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 				(tSirRoamOffloadScanReq *)msg->bodyptr);
 		    break;
 
+		case WDA_RATE_UPDATE_IND:
+			wma_process_rate_update_indicate(wma_handle, (tSirRateUpdateInd *)msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
