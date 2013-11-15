@@ -384,6 +384,12 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_mcc_sched_sta_traffic_stats,
     WMITLV_TAG_STRUC_wmi_offload_bcn_tx_status_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_p2p_noa_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_hb_set_enable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_hb_set_tcp_params_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_hb_set_tcp_pkt_filter_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_hb_set_udp_params_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_hb_set_udp_pkt_filter_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_hb_ind_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -510,7 +516,13 @@ typedef enum {
     OP(WMI_P2P_SET_OPPPS_PARAM_CMDID) \
     OP(WMI_FWTEST_P2P_SET_NOA_PARAM_CMDID) \
     OP(WMI_STA_SMPS_PARAM_CMDID) \
-    OP(WMI_MCC_SCHED_TRAFFIC_STATS_CMDID)
+    OP(WMI_MCC_SCHED_TRAFFIC_STATS_CMDID) \
+    OP(WMI_HB_SET_ENABLE_CMDID) \
+    OP(WMI_HB_SET_TCP_PARAMS_CMDID) \
+    OP(WMI_HB_SET_TCP_PKT_FILTER_CMDID) \
+    OP(WMI_HB_SET_UDP_PARAMS_CMDID) \
+    OP(WMI_HB_SET_UDP_PKT_FILTER_CMDID)
+
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
  * Otherwise, these WMI TLV Functions will be process them.
@@ -1291,6 +1303,41 @@ WMITLV_CREATE_PARAM_STRUC(WMI_RESMGR_SET_CHAN_LATENCY_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_STA_SMPS_FORCE_MODE_CMDID);
 
+/* wlan hb enable/disable CMD */
+#define WMITLV_TABLE_WMI_HB_SET_ENABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_hb_set_enable_cmd_fixed_param, \
+            wmi_hb_set_enable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_HB_SET_ENABLE_CMDID);
+
+/* wlan hb set tcp params CMD */
+#define WMITLV_TABLE_WMI_HB_SET_TCP_PARAMS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_hb_set_tcp_params_cmd_fixed_param, \
+            wmi_hb_set_tcp_params_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_HB_SET_TCP_PARAMS_CMDID);
+
+/* wlan hb set tcp pkt filter CMD */
+#define WMITLV_TABLE_WMI_HB_SET_TCP_PKT_FILTER_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_hb_set_tcp_pkt_filter_cmd_fixed_param, \
+            wmi_hb_set_tcp_pkt_filter_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_HB_SET_TCP_PKT_FILTER_CMDID);
+
+/* wlan set udp params CMD */
+#define WMITLV_TABLE_WMI_HB_SET_UDP_PARAMS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_hb_set_udp_params_cmd_fixed_param, \
+            wmi_hb_set_udp_params_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_HB_SET_UDP_PARAMS_CMDID);
+
+/* wlan hb set udp pkt filter CMD */
+#define WMITLV_TABLE_WMI_HB_SET_UDP_PKT_FILTER_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_hb_set_udp_pkt_filter_cmd_fixed_param, \
+            wmi_hb_set_udp_pkt_filter_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_HB_SET_UDP_PKT_FILTER_CMDID);
+
 /* STA SMPS Param CMD */
 #define WMITLV_TABLE_WMI_STA_SMPS_PARAM_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sta_smps_param_cmd_fixed_param, \
@@ -1402,6 +1449,7 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_WOW_EVENT_INFO_fixed_param, WOW_EVENT_INFO_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WOW_EVENT_INFO_SECTION_BITMAP, wow_bitmap_info, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, wow_packet_buffer, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_hb_ind_event_fixed_param, hb_indevt, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WMI_GTK_OFFLOAD_STATUS_EVENT_fixed_param, wow_gtkigtk, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_WOW_WAKEUP_HOST_EVENTID);

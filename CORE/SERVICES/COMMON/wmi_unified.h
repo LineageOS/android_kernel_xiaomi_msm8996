@@ -165,6 +165,7 @@ typedef enum {
     WMI_GRP_TDLS,
     WMI_GRP_RESMGR,
     WMI_GRP_STA_SMPS,
+    WMI_GRP_WLAN_HB
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -526,6 +527,18 @@ typedef enum {
     WMI_STA_SMPS_FORCE_MODE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_STA_SMPS),
     /** set SMPS parameters */
     WMI_STA_SMPS_PARAM_CMDID,
+
+    /* Wlan HB commands*/
+    /* enalbe/disable wlan HB */
+    WMI_HB_SET_ENABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_WLAN_HB),
+    /* set tcp parameters for wlan HB */
+    WMI_HB_SET_TCP_PARAMS_CMDID,
+    /* set tcp pkt filter for wlan HB */
+    WMI_HB_SET_TCP_PKT_FILTER_CMDID,
+    /* set udp parameters for wlan HB */
+    WMI_HB_SET_UDP_PARAMS_CMDID,
+    /* set udp pkt filter for wlan HB */
+    WMI_HB_SET_UDP_PKT_FILTER_CMDID,
 } WMI_CMD_ID;
 
 typedef enum {
@@ -899,6 +912,12 @@ typedef struct {
      * by DMA.
      */
     A_UINT32    num_mem_reqs;
+    /* Max No. scan channels target can support
+     * If FW is too old and doesn't indicate this number, host side value will default to
+     * 0, and host will take the original compatible value (62) for future scan channel
+     * setup.
+     */
+    A_UINT32 max_num_scan_channels;
     /* The TLVs for hal_reg_capabilities, wmi_service_bitmap and mem_reqs[] will follow this TLV.
          *     HAL_REG_CAPABILITIES   hal_reg_capabilities;
          *     A_UINT32 wmi_service_bitmap[WMI_SERVICE_BM_SIZE];
@@ -1361,9 +1380,13 @@ typedef struct {
     A_UINT32 vdev_id;
 } wmi_stop_scan_cmd_fixed_param;
 
+#define MAX_NUM_CHAN_PER_WMI_CMD     58    // each WMI cmd can hold 58 channel entries at most
+#define APPEND_TO_EXISTING_CHAN_LIST 1
+
 typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_scan_chan_list_cmd_fixed_param */
     A_UINT32 num_scan_chans;  /** no of elements in chan_info[] */
+    A_UINT32 flags; /* Flags used to control the behavior of channel list update on target side */
     /** Followed by the variable length TLV chan_info:
      *  wmi_channel chan_info[] */
 } wmi_scan_chan_list_cmd_fixed_param;
@@ -4376,6 +4399,7 @@ typedef enum wake_reason_e {
     WOW_REASON_PATTERN_MATCH_FOUND,
     WOW_REASON_RECV_MAGIC_PATTERN,
     WOW_REASON_P2P_DISC,
+    WOW_REASON_WLAN_HB,
     WOW_REASON_DEBUG_TEST = 0xFF,
 }WOW_WAKE_REASON_TYPE;
 
@@ -5489,6 +5513,88 @@ typedef struct {
     /** The mode of SMPS that is to be forced in the FW. */
     A_UINT32 forced_mode;
 } wmi_sta_smps_force_mode_cmd_fixed_param;
+
+/** wlan HB commands */
+#define WMI_WLAN_HB_ITEM_UDP            0x1
+#define WMI_WLAN_HB_ITEM_TCP            0x2
+#define WMI_WLAN_HB_MAX_FILTER_SIZE     32 /* should be equal to WLAN_HB_MAX_FILTER_SIZE, must be a multiple of 4 bytes */
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_hb_set_enable_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+    A_UINT32 enable;
+    A_UINT32 item;
+    A_UINT32 session;
+} wmi_hb_set_enable_cmd_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_hb_set_tcp_params_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+    A_UINT32 srv_ip;
+    A_UINT32 dev_ip;
+    A_UINT32 seq;
+    A_UINT32 src_port;
+    A_UINT32 dst_port;
+    A_UINT32 interval;
+    A_UINT32 timeout;
+    A_UINT32 session;
+wmi_mac_addr gateway_mac;
+} wmi_hb_set_tcp_params_cmd_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_hb_set_tcp_pkt_filter_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+    A_UINT32 length;
+    A_UINT32 offset;
+    A_UINT32 session;
+    A_UINT8  filter[WMI_WLAN_HB_MAX_FILTER_SIZE];
+} wmi_hb_set_tcp_pkt_filter_cmd_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_hb_set_udp_params_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+    A_UINT32 srv_ip;
+    A_UINT32 dev_ip;
+    A_UINT32 src_port;
+    A_UINT32 dst_port;
+    A_UINT32 interval;
+    A_UINT32 timeout;
+    A_UINT32 session;
+    wmi_mac_addr gateway_mac;
+} wmi_hb_set_udp_params_cmd_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_hb_set_udp_pkt_filter_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+    A_UINT32 length;
+    A_UINT32 offset;
+    A_UINT32 session;
+    A_UINT8  filter[WMI_WLAN_HB_MAX_FILTER_SIZE];
+} wmi_hb_set_udp_pkt_filter_cmd_fixed_param;
+
+/** wlan HB events */
+typedef enum {
+    WMI_WLAN_HB_REASON_UNKNOWN      = 0,
+    WMI_WLAN_HB_REASON_TCP_TIMEOUT  = 1,
+    WMI_WLAN_HB_REASON_UDP_TIMEOUT  = 2,
+} WMI_HB_WAKEUP_REASON;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_hb_ind_event_fixed_param */
+    A_UINT32 vdev_id;    /* unique id identifying the VDEV */
+    A_UINT32 session;    /* Session ID from driver */
+    A_UINT32 reason;     /* wakeup reason */
+} wmi_hb_ind_event_fixed_param;
 
 /** WMI_STA_SMPS_PARAM_CMDID */
 typedef enum {
