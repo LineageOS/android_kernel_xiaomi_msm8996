@@ -1474,6 +1474,9 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    /* update the p2p listen offload setting */
    pMac->fP2pListenOffload = pSmeConfigParams->fP2pListenOffload;
 
+   /* update p2p offload status */
+   pMac->pnoOffload = pSmeConfigParams->pnoOffload;
+
    return status;
 }
 
@@ -3269,6 +3272,25 @@ eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tANI_U8 sessionId, tPmkidCach
    return (status);
 }
 
+eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pBSSId )
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+      if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+      {
+         status = csrRoamDelPMKIDfromCache( pMac, sessionId, pBSSId );
+      }
+      else
+      {
+          status = eHAL_STATUS_INVALID_PARAMETER;
+      }
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+   return (status);
+}
 /* ---------------------------------------------------------------------------
     \fn sme_RoamGetSecurityReqIE
     \brief a wrapper function to request CSR to return the WPA or RSN or WAPI IE CSR
@@ -6410,69 +6432,66 @@ eHalStatus sme_PreferredNetworkFoundInd (tHalHandle hHal, void* pMsg)
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
    eHalStatus status = eHAL_STATUS_SUCCESS;
    tSirPrefNetworkFoundInd *pPrefNetworkFoundInd = (tSirPrefNetworkFoundInd *)pMsg;
-#ifndef FEATURE_WLAN_PNO_OFFLOAD
    v_U8_t dumpSsId[SIR_MAC_MAX_SSID_LENGTH + 1];
    tANI_U8 ssIdLength = 0;
-#endif
 
    if (NULL == pMsg)
    {
       smsLog(pMac, LOGE, "in %s msg ptr is NULL", __func__);
-      status = eHAL_STATUS_FAILURE;
+      return eHAL_STATUS_FAILURE;
    }
-   else
+
+   if (pMac->pnoOffload)
    {
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
       /* Call Preferred Network Found Indication callback routine. */
       if (pMac->pmc.prefNetwFoundCB != NULL)
       {
          pMac->pmc.prefNetwFoundCB(
-             pMac->pmc.preferredNetworkFoundIndCallbackContext,
-             pPrefNetworkFoundInd);
+              pMac->pmc.preferredNetworkFoundIndCallbackContext,
+              pPrefNetworkFoundInd);
       }
-#else
-      if (pPrefNetworkFoundInd->ssId.length > 0)
-      {
-         ssIdLength = CSR_MIN(SIR_MAC_MAX_SSID_LENGTH,
-                              pPrefNetworkFoundInd->ssId.length);
-         vos_mem_copy(dumpSsId, pPrefNetworkFoundInd->ssId.ssId, ssIdLength);
-         dumpSsId[ssIdLength] = 0;
-         smsLog(pMac, LOG2, "%s:SSID=%s frame length %d",
-             __func__, dumpSsId, pPrefNetworkFoundInd->frameLength);
-
-         //Save the frame to scan result
-         if (pPrefNetworkFoundInd->mesgLen > sizeof(tSirPrefNetworkFoundInd))
-         {
-            //we may have a frame
-            status = csrScanSavePreferredNetworkFound(pMac,
-                        pPrefNetworkFoundInd);
-            if (!HAL_STATUS_SUCCESS(status))
-            {
-               smsLog(pMac, LOGE, FL(" fail to save preferred network"));
-            }
-         }
-         else
-         {
-            smsLog(pMac, LOGE, FL(" not enough data length %d needed %d"),
-               pPrefNetworkFoundInd->mesgLen, sizeof(tSirPrefNetworkFoundInd));
-         }
-
-         /* Call Preferred Netowrk Found Indication callback routine. */
-         if (HAL_STATUS_SUCCESS(status) && (pMac->pmc.prefNetwFoundCB != NULL))
-         {
-            pMac->pmc.prefNetwFoundCB(
-                pMac->pmc.preferredNetworkFoundIndCallbackContext,
-                pPrefNetworkFoundInd);
-         }
-      }
-      else
-      {
-         smsLog(pMac, LOGE, "%s: callback failed - SSID is NULL", __func__);
-         status = eHAL_STATUS_FAILURE;
-      }
-#endif
+      return status;
    }
 
+   if (pPrefNetworkFoundInd->ssId.length > 0)
+   {
+       ssIdLength = CSR_MIN(SIR_MAC_MAX_SSID_LENGTH,
+                          pPrefNetworkFoundInd->ssId.length);
+       vos_mem_copy(dumpSsId, pPrefNetworkFoundInd->ssId.ssId, ssIdLength);
+       dumpSsId[ssIdLength] = 0;
+       smsLog(pMac, LOG2, "%s:SSID=%s frame length %d",
+           __func__, dumpSsId, pPrefNetworkFoundInd->frameLength);
+
+       //Save the frame to scan result
+       if (pPrefNetworkFoundInd->mesgLen > sizeof(tSirPrefNetworkFoundInd))
+       {
+          //we may have a frame
+          status = csrScanSavePreferredNetworkFound(pMac,
+                      pPrefNetworkFoundInd);
+          if (!HAL_STATUS_SUCCESS(status))
+          {
+             smsLog(pMac, LOGE, FL(" fail to save preferred network"));
+          }
+       }
+       else
+       {
+          smsLog(pMac, LOGE, FL(" not enough data length %d needed %d"),
+             pPrefNetworkFoundInd->mesgLen, sizeof(tSirPrefNetworkFoundInd));
+       }
+
+       /* Call Preferred Netowrk Found Indication callback routine. */
+       if (HAL_STATUS_SUCCESS(status) && (pMac->pmc.prefNetwFoundCB != NULL))
+       {
+          pMac->pmc.prefNetwFoundCB(
+              pMac->pmc.preferredNetworkFoundIndCallbackContext,
+              pPrefNetworkFoundInd);
+       }
+    }
+    else
+    {
+       smsLog(pMac, LOGE, "%s: callback failed - SSID is NULL", __func__);
+       status = eHAL_STATUS_FAILURE;
+    }
 
    return(status);
 }
@@ -8914,7 +8933,7 @@ int sme_UpdateHTConfig(tHalHandle hHal, tANI_U8 sessionId, tANI_U16 htCapab,
    return 0;
 }
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 /*--------------------------------------------------------------------------
 
   \brief sme_MoveCsrToScanStateForPno() - Request CSR module to be in Scan state
@@ -9013,3 +9032,38 @@ eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
     return status;
 }
 #endif /* QCA_WIFI_2_0 */
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SendRateUpdateInd
+    \brief  API to Update rate
+    \param  hHal - The handle returned by macOpen
+    \param  rateUpdateParams - Pointer to rate update params
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SendRateUpdateInd(tHalHandle hHal, tSirRateUpdateInd *rateUpdateParams)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus status;
+    vos_msg_t msg;
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
+    {
+        msg.type     = WDA_RATE_UPDATE_IND;
+        msg.bodyptr  = rateUpdateParams;
+
+        if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+        {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,"%s: Not able "
+                       "to post WDA_SET_RMC_RATE_IND to WDA!",
+                       __func__);
+
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+
+        sme_ReleaseGlobalLock(&pMac->sme);
+        return eHAL_STATUS_SUCCESS;
+    }
+
+    return status;
+}

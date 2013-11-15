@@ -257,7 +257,16 @@ PREPACK64 struct host_interest_s {
             on the target processor.*/
     /* Bit 1 -- TBD */
 
-    A_UINT32               hi_fw_swap;                               /* 0x104 */
+    A_UINT32               hi_fw_swap;                              /* 0x104 */
+
+    /* global arenas pointer address, used by host driver debug */
+    A_UINT32               hi_dynamic_mem_arenas_addr;              /* 0x108 */
+
+    /* allocated bytes of DRAM use by allocated */
+    A_UINT32               hi_dynamic_mem_allocated;                /* 0x10C */
+
+    /* remaining bytes of DRAM */
+    A_UINT32               hi_dynamic_mem_remaining;                /* 0x110 */
 
 } POSTPACK64;
 

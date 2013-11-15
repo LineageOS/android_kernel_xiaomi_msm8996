@@ -2130,16 +2130,10 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 	          AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("ath: HIF_PCIDeviceProbed get chip id val (%d)\n", rv));
 		  goto done;
 	     }
-	     if (CHIP_ID_VERSION_GET(chip_id) == 0xD) {
+	     if (CHIP_ID_VERSION_GET(chip_id) == 0xD && (CHIP_ID_REVISION_GET(chip_id) == 0x0 || CHIP_ID_REVISION_GET(chip_id) == 0x1)) {
 		  /* for ROME 1.0, 3 banks are switched to IRAM */
 		  AR_DEBUG_PRINTF(ATH_DEBUG_WARN, ("chip ver=0x%x, chip rev=0x%x\n", CHIP_ID_VERSION_GET(chip_id), CHIP_ID_REVISION_GET(chip_id)));
-		   if (CHIP_ID_REVISION_GET(chip_id) == 0x0) {
-			/* for ROME 1.0, 3 banks are switched to IRAM */
-			banks_switched = 3 ;
-		   } else if (CHIP_ID_REVISION_GET(chip_id) == 0x1) {
-			/* for ROME 1.1, 2 banks are switched to IRAM */
-			banks_switched = 2 ;
-		   }
+		  banks_switched = 3;
 	     }
 	     ealloc_value |= ((banks_switched << HI_EARLY_ALLOC_IRAM_BANKS_SHIFT) & HI_EARLY_ALLOC_IRAM_BANKS_MASK);
 	}

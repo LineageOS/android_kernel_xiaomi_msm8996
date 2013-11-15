@@ -107,6 +107,13 @@
 #define WLAN_WAIT_TIME_SESSIONOPENCLOSE  15000
 #define WLAN_WAIT_TIME_ABORTSCAN  2000
 
+#ifdef QCA_WIFI_2_0
+
+/** Maximum time(ms) to wait for mc thread suspend **/
+#define WLAN_WAIT_TIME_MCTHREAD_SUSPEND  1200
+
+#endif
+
 /** Maximum time(ms) to wait for tdls add sta to complete **/
 #define WAIT_TIME_TDLS_ADD_STA      1500
 

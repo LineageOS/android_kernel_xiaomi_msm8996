@@ -1203,15 +1203,23 @@ VOS_STATUS WLANTL_Close(void *vos_ctx)
 {
 	struct txrx_tl_shim_ctx *tl_shim;
 
-    ENTER();
-    tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-    wdi_in_pdev_detach(((pVosContextType) vos_ctx)->pdev_txrx_ctx, 1);
-    // Delete beacon buffer hanging off tl_shim
-    if (tl_shim->last_beacon_data) {
-        vos_mem_free(tl_shim->last_beacon_data);
-    }
-    vos_free_context(vos_ctx, VOS_MODULE_ID_TL, tl_shim);
-    return VOS_STATUS_SUCCESS;
+	ENTER();
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+
+#ifdef WLAN_OPEN_SOURCE
+#ifdef FEATURE_WLAN_CCX
+	cancel_work_sync(&tl_shim->iapp_work.deferred_work);
+#endif
+	cancel_work_sync(&tl_shim->cache_flush_work);
+#endif
+
+	wdi_in_pdev_detach(((pVosContextType) vos_ctx)->pdev_txrx_ctx, 1);
+	// Delete beacon buffer hanging off tl_shim
+	if (tl_shim->last_beacon_data) {
+		vos_mem_free(tl_shim->last_beacon_data);
+	}
+	vos_free_context(vos_ctx, VOS_MODULE_ID_TL, tl_shim);
+	return VOS_STATUS_SUCCESS;
 }
 
 /*

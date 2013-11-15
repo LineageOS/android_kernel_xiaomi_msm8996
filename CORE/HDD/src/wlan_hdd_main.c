@@ -1678,6 +1678,50 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
            }
        }
 #endif
+       else if (strncmp(command, "SETMCRATE", 9) == 0)
+       {
+           tANI_U8 *value = command;
+           int      targetRate;
+           tSirRateUpdateInd *rateUpdate;
+           eHalStatus status;
+           hdd_config_t *pConfig = pHddCtx->cfg_ini;
+           hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+           /* Move pointer to ahead of SETMCRATE<delimiter> */
+           /* input value is in units of hundred kbps */
+           value = value + 10;
+           /* Convert the value from ascii to integer, decimal base */
+           ret = kstrtouint(value, 10, &targetRate);
+
+           rateUpdate = (tSirRateUpdateInd *)vos_mem_malloc(sizeof(tSirRateUpdateInd));
+           if (NULL == rateUpdate)
+           {
+              hddLog(VOS_TRACE_LEVEL_ERROR,
+                     "%s: SETMCRATE indication alloc fail", __func__);
+              ret = -EFAULT;
+              goto exit;
+           }
+           vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd ));
+
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                     "MC Target rate %d", targetRate);
+           rateUpdate->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
+           rateUpdate->dev_mode = pAdapter->device_mode;
+           rateUpdate->mcastDataRate24GHz = targetRate;
+           rateUpdate->mcastDataRate5GHz = targetRate;
+           rateUpdate->bcastDataRate = -1;
+           memcpy(rateUpdate->bssid, pHddStaCtx->conn_info.bssId,
+               sizeof(rateUpdate->bssid));
+
+           status = sme_SendRateUpdateInd(pHddCtx->hHal, rateUpdate);
+           if (eHAL_STATUS_SUCCESS != status)
+           {
+              hddLog(VOS_TRACE_LEVEL_ERROR,
+                     "%s: SET_MC_RATE failed", __func__);
+              vos_mem_free(rateUpdate);
+              ret = -EFAULT;
+              goto exit;
+           }
+       }
        else {
            hddLog( VOS_TRACE_LEVEL_WARN, "%s: Unsupported GUI command %s",
                    __func__, command);
@@ -1766,7 +1810,7 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
 
     /* ARP offload: override user setting if invalid  */
     cfg_ini->fhostArpOffload &= cfg->arp_offload;
-#if defined (QCA_WIFI_2_0) && defined(FEATURE_WLAN_PNO_OFFLOAD)
+#ifdef FEATURE_WLAN_SCAN_PNO
     /* PNO offload */
     if (cfg->pno_offload)
         cfg_ini->PnoOffload = TRUE;
@@ -3311,12 +3355,13 @@ static eHalStatus hdd_smeCloseSessionCallback(void *pContext)
 
    clear_bit(SME_SESSION_OPENED, &pAdapter->event_flags);
 
+#ifndef WLAN_OPEN_SOURCE
    /* need to make sure all of our scheduled work has completed.
     * This callback is called from MC thread context, so it is safe to
     * to call below flush workqueue API from here.
     */
    flush_scheduled_work();
-
+#endif
    /* We can be blocked while waiting for scheduled work to be
     * flushed, and the adapter structure can potentially be freed, in
     * which case the magic will have been reset.  So make sure the

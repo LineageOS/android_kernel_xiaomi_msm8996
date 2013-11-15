@@ -2996,10 +2996,11 @@ eHalStatus pmcSetPreferredNetworkList
                                &pRequestBuf->us5GProbeTemplateLen,
                                pSession);
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
-    sme_MoveCsrToScanStateForPno(hHal, sessionId);
-    pRequestBuf->sessionId = sessionId;
-#endif
+    if (pMac->pnoOffload)
+    {
+       sme_MoveCsrToScanStateForPno(hHal, sessionId);
+       pRequestBuf->sessionId = sessionId;
+    }
 
     msg.type     = WDA_SET_PNO_REQ;
     msg.reserved = 0;

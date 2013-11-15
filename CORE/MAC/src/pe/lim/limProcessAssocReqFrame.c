@@ -1032,7 +1032,7 @@ sendIndToSme:
     pStaDs->curTxMpduCnt = 0;
 
     if(IS_DOT11_MODE_HT(psessionEntry->dot11mode) &&
-      (pAssocReq->HTCaps.present))
+       pAssocReq->HTCaps.present && pAssocReq->wmeInfoPresent)
     {
         pStaDs->htGreenfield = (tANI_U8)pAssocReq->HTCaps.greenField;
         pStaDs->htAMpduDensity = pAssocReq->HTCaps.mpduDensity;
@@ -1074,11 +1074,17 @@ sendIndToSme:
         pStaDs->htLdpcCapable = (tANI_U8)pAssocReq->HTCaps.advCodingCap;
     }
 
-    if(pAssocReq->VHTCaps.present)
+    if(pAssocReq->VHTCaps.present && pAssocReq->wmeInfoPresent)
     {
         pStaDs->vhtLdpcCapable = (tANI_U8)pAssocReq->VHTCaps.ldpcCodingCap;
     }
 
+    if (!pAssocReq->wmeInfoPresent) {
+        pStaDs->mlmStaContext.htCapability = 0;
+#ifdef WLAN_FEATURE_11AC
+        pStaDs->mlmStaContext.vhtCapability = 0;
+#endif
+    }
 #ifdef WLAN_FEATURE_11AC
 if (limPopulateMatchingRateSet(pMac,
                                pStaDs,

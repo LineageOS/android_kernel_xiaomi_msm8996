@@ -568,10 +568,13 @@ typedef struct sSirMbMsgP2p
 #ifndef REMOVE_PKT_LOG
 #define SIR_HAL_PKTLOG_ENABLE_REQ          (SIR_HAL_ITC_MSG_TYPES_BEGIN + 206)
 #endif
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 #define SIR_HAL_SME_SCAN_CACHE_UPDATED     (SIR_HAL_ITC_MSG_TYPES_BEGIN + 207)
 #endif
 #endif
+#define SIR_CSA_OFFLOAD_EVENT              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 208)
+
+#define SIR_HAL_RATE_UPDATE_IND            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 208)
 
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF)
 // CFG message types

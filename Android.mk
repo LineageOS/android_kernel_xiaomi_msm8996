@@ -31,7 +31,7 @@ else
     WLAN_BLD_DIR := vendor/qcom/opensource/wlan
 endif
 
-ifeq ($(call is-android-codename,JELLY_BEAN),true)
+ifeq ($(call is-platform-sdk-version-at-least,16),true)
        DLKM_DIR := $(TOP)/device/qcom/common/dlkm
 else
        DLKM_DIR := build/dlkm
@@ -49,12 +49,12 @@ KBUILD_OPTIONS += $(WLAN_SELECT)
 KBUILD_OPTIONS += $(WLAN_ISOC_SELECT)
 
 include $(CLEAR_VARS)
-#LOCAL_MODULE              := proprietary_$(WLAN_CHIPSET)_wlan.ko
-#LOCAL_MODULE_KBUILD_NAME  := wlan.ko
-#LOCAL_MODULE_TAGS         := debug
-#LOCAL_MODULE_DEBUG_ENABLE := true
-#LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/$(WLAN_CHIPSET)
-#include $(DLKM_DIR)/AndroidKernelModule.mk
+LOCAL_MODULE              := $(WLAN_CHIPSET)_wlan.ko
+LOCAL_MODULE_KBUILD_NAME  := wlan.ko
+LOCAL_MODULE_TAGS         := debug
+LOCAL_MODULE_DEBUG_ENABLE := true
+LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/$(WLAN_CHIPSET)
+include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 # Create Symbolic link

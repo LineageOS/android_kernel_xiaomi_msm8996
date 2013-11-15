@@ -796,6 +796,25 @@ extern "C" {
 #define STA_SMPS_DBGID_SEND_SMPS_ACTION_FRAME           8
 #define SMPS_DBGID_DEFINITION_END                       9
 
+/* RTT module DBGIDs*/
+#define RTT_CALL_FLOW                 0
+#define RTT_REQ_SUB_TYPE              1
+#define RTT_MEAS_REQ_HEAD             2
+#define RTT_MEAS_REQ_BODY             3
+#define RTT_INIT_GLOBAL_STATE         6
+#define RTT_REPORT                    8
+#define RTT_ERROR_REPORT              10
+#define RTT_TIMER_STOP                11
+#define RTT_SEND_TM_FRAME             12
+#define RTT_V3_RESP_CNT               13
+#define RTT_V3_RESP_FINISH            14
+#define RTT_CHANNEL_SWITCH_REQ        15
+#define RTT_CHANNEL_SWITCH_GRANT      16
+#define RTT_CHANNEL_SWITCH_COMPLETE   17
+#define RTT_CHANNEL_SWITCH_PREEMPT    18
+#define RTT_CHANNEL_SWITCH_STOP       19
+#define RTT_TIMER_START               20
+
 #ifdef __cplusplus
 }
 #endif

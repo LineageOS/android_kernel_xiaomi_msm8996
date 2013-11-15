@@ -2616,8 +2616,44 @@ void limSendExitBmpsInd(tpAniSirGlobal pMac, tExitBmpsReason reasonCode,
 
 } /*** end limSendExitBmpsInd() ***/
 
+/*--------------------------------------------------------------------------
+  \brief limHandleCSAoffloadMsg() - Handle CSA offload message
+  \param pMac                     - pointer to global adapter context
+  \param MsgQ                     - Message pointer.
+  \sa
+  --------------------------------------------------------------------------*/
+void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
+{
+   tpPESession psessionEntry;
+   tpCSAOffloadParams csa_params = (tpCSAOffloadParams)(MsgQ->bodyptr);
 
+   if(!csa_params)
+   {
+      limLog(pMac, LOGE, FL("limMsgQ body ptr is NULL"));
+      return;
+   }
 
+   psessionEntry = peFindSessionBySessionId(pMac, csa_params->sessionId);
+   if(!psessionEntry)
+   {
+      limLog(pMac, LOGP, FL("Session does not exist for given sessionID"));
+      goto err;
+   }
+
+   if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
+   {
+      psessionEntry->gLimChannelSwitch.switchMode = csa_params->switchmode;
+      /* timer already started by firmware, switch immediately */
+      psessionEntry->gLimChannelSwitch.switchCount = 0;
+      psessionEntry->gLimChannelSwitch.primaryChannel = csa_params->channel;
+      psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_ONLY;
+      psessionEntry->gLimChannelSwitch.secondarySubBand = PHY_SINGLE_CHANNEL_CENTERED;
+      limPrepareFor11hChannelSwitch(pMac, psessionEntry);
+   }
+
+err:
+   palFreeMemory(pMac->hHdd, (void *)csa_params);
+}
 
 /*--------------------------------------------------------------------------
   \brief peDeleteSession() - Handle the Delete BSS Response from HAL.

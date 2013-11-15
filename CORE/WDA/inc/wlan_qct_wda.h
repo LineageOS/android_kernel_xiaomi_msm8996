@@ -1153,6 +1153,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 /* FTM CMD MSG */
 #define WDA_FTM_CMD_REQ        SIR_PTT_MSG_TYPES_BEGIN
 #define WDA_FTM_CMD_RSP        SIR_PTT_MSG_TYPES_END
+#define WDA_CSA_OFFLOAD_EVENT  SIR_CSA_OFFLOAD_EVENT
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 /*Requests sent to lower driver*/
@@ -1207,7 +1208,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #ifdef QCA_WIFI_2_0
 #define WDA_CLI_SET_CMD             SIR_HAL_CLI_SET_CMD
 #define WDA_CLI_GET_CMD             SIR_HAL_CLI_GET_CMD
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 #define WDA_SME_SCAN_CACHE_UPDATED  SIR_HAL_SME_SCAN_CACHE_UPDATED
 #endif
 #endif
@@ -1215,6 +1216,8 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #ifndef REMOVE_PKT_LOG
 #define WDA_PKTLOG_ENABLE_REQ       SIR_HAL_PKTLOG_ENABLE_REQ
 #endif
+
+#define WDA_RATE_UPDATE_IND         SIR_HAL_RATE_UPDATE_IND
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
@@ -1264,7 +1267,7 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
 static int WDA_SetHTConfig(tANI_U8 sessionId, tANI_U16 htCapab, int value)
 {
-	return 0;
+   return 0;
 }
 
 static inline eHalStatus WDA_SetCountryCode(v_VOID_t *client_ctx, tANI_U8 *countrycode)

@@ -253,7 +253,7 @@ rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
    v_S7_t            currentRSSI = 0;
 
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, "Received Link measurement request");)
+   PELOG1(limLog( pMac, LOG1, "Received Link measurement request");)
 #endif
    if( pRxPacketInfo == NULL || pLinkReq == NULL || pSessionEntry == NULL )
    {
@@ -261,22 +261,66 @@ rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
       return eSIR_FAILURE;
    }
    pHdr = WDA_GET_RX_MAC_HEADER( pRxPacketInfo );
-#if defined WLAN_VOWIFI_DEBUG
-   if( pSessionEntry->maxTxPower != (tPowerdBm) pLinkReq->MaxTxPower.maxTxPower )
+   if( (uint8)(pSessionEntry->maxTxPower) != pLinkReq->MaxTxPower.maxTxPower )
    {
-      PELOGE(limLog( pMac, LOGE, FL(" maxTx power in link request is not same as local...Local = %d LinkReq = %d"),
-           pSessionEntry->maxTxPower, pLinkReq->MaxTxPower.maxTxPower );)
+      PELOGW(limLog( pMac,
+                     LOGW,
+                     FL(" maxTx power in link request is not same as local... "
+                        " Local = %d LinkReq = %d"),
+                     pSessionEntry->maxTxPower,
+                     pLinkReq->MaxTxPower.maxTxPower );)
+      if( (MIN_STA_PWR_CAP_DBM <= pLinkReq->MaxTxPower.maxTxPower) &&
+         (MAX_STA_PWR_CAP_DBM >= pLinkReq->MaxTxPower.maxTxPower) )
+      {
+         LinkReport.txPower = pLinkReq->MaxTxPower.maxTxPower;
+      }
+      else if( MIN_STA_PWR_CAP_DBM > pLinkReq->MaxTxPower.maxTxPower )
+      {
+         LinkReport.txPower = MIN_STA_PWR_CAP_DBM;
+      }
+      else if( MAX_STA_PWR_CAP_DBM < pLinkReq->MaxTxPower.maxTxPower )
+      {
+         LinkReport.txPower = MAX_STA_PWR_CAP_DBM;
+      }
+
+      if( (LinkReport.txPower != (uint8)(pSessionEntry->maxTxPower)) &&
+          (eSIR_SUCCESS == rrmSendSetMaxTxPowerReq ( pMac,
+                                                     (tPowerdBm)(LinkReport.txPower),
+                                                     pSessionEntry)) )
+      {
+         pSessionEntry->maxTxPower = (tPowerdBm)(LinkReport.txPower);
+      }
    }
-#endif
+   else
+   {
+      if( (MIN_STA_PWR_CAP_DBM <= (uint8)(pSessionEntry->maxTxPower)) &&
+         (MAX_STA_PWR_CAP_DBM >= (uint8)(pSessionEntry->maxTxPower)) )
+      {
+         LinkReport.txPower = (uint8)(pSessionEntry->maxTxPower);
+      }
+      else if( MIN_STA_PWR_CAP_DBM > (uint8)(pSessionEntry->maxTxPower) )
+      {
+         LinkReport.txPower = MIN_STA_PWR_CAP_DBM;
+      }
+      else if( MAX_STA_PWR_CAP_DBM < (uint8)(pSessionEntry->maxTxPower) )
+      {
+         LinkReport.txPower = MAX_STA_PWR_CAP_DBM;
+      }
+   }
+   PELOGW(limLog( pMac,
+                  LOGW,
+                  FL(" maxTx power in link request is not same as local... "
+                     " Local = %d Link Report TxPower = %d"),
+                  pSessionEntry->maxTxPower,
+                  LinkReport.txPower );)
 
    LinkReport.dialogToken = pLinkReq->DialogToken.token;
-   LinkReport.txPower = pSessionEntry->txMgmtPower;
    LinkReport.rxAntenna = 0;
    LinkReport.txAntenna = 0;
    currentRSSI = WDA_GET_RX_RSSI_DB(pRxPacketInfo);
 
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, "Received Link report frame with %d", currentRSSI);)
+   PELOG1(limLog( pMac, LOG1, "Received Link report frame with %d", currentRSSI);)
 #endif
 
    // 2008 11k spec reference: 18.4.8.5 RCPI Measurement
@@ -290,7 +334,7 @@ rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
    LinkReport.rsni = WDA_GET_RX_SNR(pRxPacketInfo); 
    
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, "Sending Link report frame");)
+   PELOG1(limLog( pMac, LOG1, "Sending Link report frame");)
 #endif
    return limSendLinkReportActionFrame( pMac, &LinkReport, pHdr->sa, pSessionEntry ); 
 

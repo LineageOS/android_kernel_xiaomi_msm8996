@@ -1828,6 +1828,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             limHandleDeleteBssRsp(pMac,limMsg); //wrapper routine to handle delete bss response 
             break;
 
+        case WDA_CSA_OFFLOAD_EVENT:
+            limHandleCSAoffloadMsg(pMac, limMsg);
+            break;
+
         case WDA_SET_BSSKEY_RSP:
         case WDA_SET_STA_BCASTKEY_RSP:
             limProcessMlmSetBssKeyRsp( pMac, limMsg );
