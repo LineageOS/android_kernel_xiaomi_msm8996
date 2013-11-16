@@ -387,6 +387,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    macOpenParms.driverType         = eDRIVER_TYPE_PRODUCTION;
    macOpenParms.powersaveOffloadEnabled =
       pHddCtx->cfg_ini->enablePowersaveOffload;
+   macOpenParms.maxWoWFilters      = pHddCtx->cfg_ini->maxWoWFilters;
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
 #ifndef QCA_WIFI_ISOC
                        hdd_update_tgt_cfg,

@@ -512,6 +512,7 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 		0,
 		0,
 		CFG_TGT_MAX_MULTICAST_FILTER_ENTRIES,
+		0,
 	};
 
 	WMITLV_SET_HDR(&tgt_cfg.tlv_header,WMITLV_TAG_STRUC_wmi_resource_config,
@@ -1363,6 +1364,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
         mac_params->maxBssId = WMA_MAX_SUPPORTED_BSS;
 	mac_params->frameTransRequired = 0;
 
+	wma_handle->wlan_resource_config.num_wow_filters = mac_params->maxWoWFilters;
 	wma_handle->max_station = mac_params->maxStation;
 	wma_handle->max_bssid = mac_params->maxBssId;
 	wma_handle->frame_xln_reqd = mac_params->frameTransRequired;
@@ -7051,7 +7053,8 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 	WMA_LOGD("Clearing already configured wow patterns in fw");
 
 	/* Clear existing wow patterns in FW. */
-	for (ptrn_id = 0; ptrn_id < WOW_MAX_BITMAP_FILTERS; ptrn_id++) {
+	for (ptrn_id = 0; ptrn_id < wma->wlan_resource_config.num_wow_filters;
+		ptrn_id++) {
 		ret = wma_del_wow_pattern_in_fw(wma, ptrn_id);
 		if(ret != VOS_STATUS_SUCCESS)
 			return ret;
@@ -7061,7 +7064,8 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 
 	/* Send wow patterns to FW if there are any patterns cached
 	 * in local wow pattern cache. */
-	for (ptrn_id = 0; ptrn_id < WOW_MAX_BITMAP_FILTERS; ptrn_id++) {
+	for (ptrn_id = 0; ptrn_id < wma->wlan_resource_config.num_wow_filters;
+		ptrn_id++) {
 		cache = wma->wow.cache[ptrn_id];
 		if (!cache)
 			continue;
@@ -9586,7 +9590,8 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	}
 
 	/* Free wow pattern cache */
-	for (ptrn_id = 0; ptrn_id < WOW_MAX_BITMAP_FILTERS; ptrn_id++)
+	for (ptrn_id = 0; ptrn_id < wma_handle->wlan_resource_config.num_wow_filters;
+		ptrn_id++)
 		wma_free_wow_ptrn(wma_handle, ptrn_id);
 
 	/* unregister Firmware debug log */

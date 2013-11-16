@@ -120,6 +120,7 @@ v_BOOL_t hdd_add_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
   const char *temp;
   tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
   v_U8_t sessionId = pAdapter->sessionId;
+  hdd_context_t *pHddCtx = pAdapter->pHddCtx;
 
   len = find_ptrn_len(ptrn);
 
@@ -130,7 +131,7 @@ v_BOOL_t hdd_add_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
     first_empty_slot = -1;
 
     // Find an empty slot to store the pattern
-    for (i=0; i<WOWL_MAX_PTRNS_ALLOWED; i++)
+    for (i=0; i<pHddCtx->cfg_ini->maxWoWFilters; i++)
     {
       if(g_hdd_wowl_ptrns[i] == NULL) {
         first_empty_slot = i;
@@ -147,7 +148,7 @@ v_BOOL_t hdd_add_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
     }
 
     // Detect duplicate pattern
-    for (i=0; i<WOWL_MAX_PTRNS_ALLOWED; i++)
+    for (i=0; i<pHddCtx->cfg_ini->maxWoWFilters; i++)
     {
       if(g_hdd_wowl_ptrns[i] == NULL) continue;
 
@@ -289,9 +290,10 @@ v_BOOL_t hdd_del_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
   v_BOOL_t patternFound = VOS_FALSE;
   eHalStatus halStatus;
   v_U8_t sessionId = pAdapter->sessionId;
+  hdd_context_t *pHddCtx = pAdapter->pHddCtx;
 
   // Detect pattern
-  for (id=0; id<WOWL_MAX_PTRNS_ALLOWED && g_hdd_wowl_ptrns[id] != NULL; id++)
+  for (id=0; id<pHddCtx->cfg_ini->maxWoWFilters && g_hdd_wowl_ptrns[id] != NULL; id++)
   {
     if(!strcmp(ptrn, g_hdd_wowl_ptrns[id]))
     {

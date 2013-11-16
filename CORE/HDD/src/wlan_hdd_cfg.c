@@ -2326,6 +2326,13 @@ REG_VARIABLE( CFG_VHT_MPDU_LEN_NAME, WLAN_PARAM_Integer,
                CFG_VHT_MPDU_LEN_MAX),
 #endif
 
+REG_VARIABLE( CFG_MAX_WOW_FILTERS_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, maxWoWFilters,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK ,
+               CFG_MAX_WOW_FILTERS_DEFAULT,
+               CFG_MAX_WOW_FILTERS_MIN,
+               CFG_MAX_WOW_FILTERS_MAX),
+
 };
 
 /*

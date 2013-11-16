@@ -957,6 +957,7 @@ typedef struct sMacOpenParameters
     tANI_U32 frameTransRequired;
     tANI_U8 powersaveOffloadEnabled;
     tDriverType  driverType;
+    tANI_U8 maxWoWFilters;
 } tMacOpenParameters;
 
 typedef enum

@@ -5654,6 +5654,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
+#ifndef QCA_WIFI_2_0
+   pHddCtx->cfg_ini->maxWoWFilters = WOWL_MAX_PTRNS_ALLOWED;
+#endif
    /* INI has been read, initialise the configuredMcastBcastFilter with
     * INI value as this will serve as the default value
     */

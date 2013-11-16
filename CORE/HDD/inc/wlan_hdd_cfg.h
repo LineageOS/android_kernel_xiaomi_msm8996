@@ -1814,6 +1814,11 @@ typedef enum
 #define CFG_VHT_MPDU_LEN_DEFAULT                       ( 0 )
 #endif
 
+#define CFG_MAX_WOW_FILTERS_NAME                       "gMaxWoWFilters"
+#define CFG_MAX_WOW_FILTERS_MIN                        ( 0 )
+#define CFG_MAX_WOW_FILTERS_MAX                        ( 22 )
+#define CFG_MAX_WOW_FILTERS_DEFAULT                    ( 22 )
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2204,6 +2209,7 @@ typedef struct
    v_U8_t                      fVhtAmpduLenExponent;
    v_U32_t                     vhtMpduLen;
 #endif
+   v_U8_t                      maxWoWFilters;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
