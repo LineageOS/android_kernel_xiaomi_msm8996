@@ -271,17 +271,20 @@ struct wma_txrx_node {
 	struct scan_param scan_info;
 	u_int32_t type;
 	u_int32_t sub_type;
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 	v_BOOL_t nlo_match_evt_received;
 	v_BOOL_t pno_in_progress;
 #endif
 	v_BOOL_t ptrn_match_enable;
 	v_BOOL_t conn_state;
 	/* BSS parameters cached for use in WDA_ADD_STA */
-    tSirMacBeaconInterval   beaconInterval;
-    tANI_U8                 llbCoexist;
-    tANI_U8                 shortSlotTimeSupported;
-    tANI_U8                 dtimPeriod;
+	tSirMacBeaconInterval   beaconInterval;
+	tANI_U8                 llbCoexist;
+	tANI_U8                 shortSlotTimeSupported;
+	tANI_U8                 dtimPeriod;
+	WLAN_PHY_MODE           chanmode;
+	tANI_U8                 vht_capable;
+	tANI_U8                 ht_capable;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -384,6 +387,7 @@ typedef struct {
 	 * with ns info suppose if ns also enabled
 	 */
 	tSirHostOffloadReq mArpInfo;
+	struct wma_tx_ack_work_ctx *ack_work_ctx;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -953,6 +957,7 @@ struct wma_vdev_start_req {
 	u_int8_t hidden_ssid;
 	u_int8_t pmf_enabled;
 	u_int8_t vht_capable;
+	u_int8_t ht_capable;
 };
 
 struct wma_set_key_params {
@@ -1006,8 +1011,14 @@ typedef struct wma_trigger_uapsd_params
 VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 			tp_wma_trigger_uapsd_params trigger_uapsd_params);
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
-#define WMA_NLO_FREQ_THRESH	1000  /* in MHz */
+#ifdef FEATURE_WLAN_SCAN_PNO
+
+#define WMA_NLO_FREQ_THRESH          1000         /* in MHz */
+#define WMA_SEC_TO_MSEC(sec)         (sec * 1000) /* sec to msec */
+
+/* Default rssi threshold defined in CFG80211 */
+#define WMA_RSSI_THOLD_DEFAULT   -300
+
 #endif
 
 /* U-APSD maximum service period of peer station */

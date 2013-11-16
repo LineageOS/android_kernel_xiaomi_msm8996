@@ -4153,6 +4153,11 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    /* Update the p2p listen offload setting */
    smeConfig.fP2pListenOffload =  pHddCtx->cfg_ini->fP2pListenOffload;
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+   /* Update PNO offoad status */
+   smeConfig.pnoOffload = pHddCtx->cfg_ini->PnoOffload;
+#endif
+
    halStatus = sme_UpdateConfig( pHddCtx->hHal, &smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {

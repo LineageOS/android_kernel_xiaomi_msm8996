@@ -3463,7 +3463,7 @@ typedef struct sSirWlanSetRxpFilters
 #define SIR_PNO_MAX_NETW_CHANNELS_EX  60
 #define SIR_PNO_MAX_SUPP_NETWORKS  16
 #define SIR_PNO_MAX_SCAN_TIMERS    10
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 /* TODO: Need to sync max ie len size with FW */
 #define SIR_PNO_MAX_IE_LEN         500
 #endif
@@ -3502,7 +3502,7 @@ typedef struct
   tANI_U32    bcastNetwType;
   tANI_U8     ucChannelCount;
   tANI_U8     aChannels[SIR_PNO_MAX_NETW_CHANNELS_EX];
-  tANI_U8     rssiThreshold;
+  tANI_S32    rssiThreshold;
 } tSirNetworkType;
 
 typedef struct
@@ -3524,9 +3524,7 @@ typedef struct sSirPNOScanReq
   tANI_U8             ucNetworksCount;
   tSirNetworkType     aNetworks[SIR_PNO_MAX_SUPP_NETWORKS];
   tSirScanTimersType  scanTimers;
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
   tANI_U8             sessionId;
-#endif
 
   /*added by SME*/
   tANI_U16  us24GProbeTemplateLen;
@@ -3776,6 +3774,7 @@ typedef struct sSirRcvFltMcAddrList
   tSirMacAddr    multicastAddr[SIR_MAX_NUM_MULTICAST_ADDRESS];
   tSirMacAddr    selfMacAddr;
   tSirMacAddr    bssId;
+  tANI_U8        action;
 } tSirRcvFltMcAddrList, *tpSirRcvFltMcAddrList;
 #endif // WLAN_FEATURE_PACKET_FILTERING
 
@@ -4245,4 +4244,46 @@ typedef struct sSirPsReqData
     tSirAddonPsReq addOnReq;
 } tSirPsReqData,*tpSirPsReqData;
 
+typedef struct sSirRateUpdateInd
+{
+    tANI_U8 nss; /* 0: 1x1, 1: 2x2 */
+    tSirMacAddr bssid;
+    tVOS_CON_MODE dev_mode;
+    tANI_S32 bcastDataRate; /* bcast rate unit Mbpsx10, -1 : not used */
+    /* 0 implies RA, positive value implies fixed rate, -1 implies ignore this
+     * param.
+     */
+    tANI_S32 ucastDataRate;
+
+    /* TX flag to differentiate between HT20, HT40 etc */
+    tTxrateinfoflags ucastDataRateTxFlag;
+
+    /*
+     * 0 implies MCAST RA, positive value implies fixed rate,
+     * -1 implies ignore this param
+     */
+    tANI_S32 reliableMcastDataRate;//unit Mbpsx10
+
+    /* TX flag to differentiate between HT20, HT40 etc */
+    tTxrateinfoflags reliableMcastDataRateTxFlag;
+
+    /*
+     * MCAST(or BCAST) fixed data rate in 2.4 GHz, unit Mbpsx10,
+     * 0 implies ignore
+     */
+    tANI_U32 mcastDataRate24GHz;
+
+    /* TX flag to differentiate between HT20, HT40 etc */
+    tTxrateinfoflags mcastDataRate24GHzTxFlag;
+
+    /*
+     * MCAST(or BCAST) fixed data rate in 5 GHz,
+     * unit Mbpsx10, 0 implies ignore
+     */
+    tANI_U32 mcastDataRate5GHz;
+
+    /* TX flag to differentiate between HT20, HT40 etc */
+    tTxrateinfoflags mcastDataRate5GHzTxFlag;
+
+} tSirRateUpdateInd, *tpSirRateUpdateInd;
 #endif /* __SIR_API_H */

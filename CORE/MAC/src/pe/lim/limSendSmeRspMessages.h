@@ -72,6 +72,7 @@ void limSendSmePromiscuousModeRsp(tpAniSirGlobal pMac);
 void limSendSmeNeighborBssInd(tpAniSirGlobal,
                               tLimScanResultNode *);
 void limHandleDeleteBssRsp(tpAniSirGlobal pMac,tpSirMsgQ MsgQ);
+void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 void

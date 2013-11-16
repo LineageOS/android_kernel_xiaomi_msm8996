@@ -1199,8 +1199,6 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     // STA sent a traffic spec.
     fAddTS = ( qosMode && pSta && pSta->qos.addtsPresent ) ? 1 : 0;
 
-    PopulateDot11fCapabilities( pMac, &frm.Capabilities, psessionEntry );
-
     frm.Status.status = statusCode;
 
     frm.AID.associd = aid | LIM_AID_MASK;
@@ -1307,6 +1305,10 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
     limUpdateShortPreamble(pMac, peerMacAddr, &beaconParams, psessionEntry);
     limUpdateShortSlotTime(pMac, peerMacAddr, &beaconParams, psessionEntry);
+
+    /* Populate Do11capabilities after updating session with Assos req details
+     */
+    PopulateDot11fCapabilities( pMac, &frm.Capabilities, psessionEntry );
 
     beaconParams.bssIdx = psessionEntry->bssIdx;
 

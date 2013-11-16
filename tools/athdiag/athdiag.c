@@ -614,7 +614,7 @@ main (int argc, char **argv) {
 
         case 'D':
             snprintf(devicename, sizeof(devicename), "%s%s", optarg,
-                     "/athdiag");
+                     "/athdiagpfs");
             flag |= DEVICE_FLAG;
             break;
 
@@ -639,7 +639,7 @@ main (int argc, char **argv) {
              * line, try to figure it out.  Typically there's only a
              * single device anyway.
              */
-            find_dev = popen("busybox find /proc -name athdiagpfs | busybox head -1", "r");
+            find_dev = popen("echo /proc/cld/athdiagpfs", "r");
             if (find_dev) {
                 nbytes=fread(devicename, 1, sizeof(devicename), find_dev);
                 pclose(find_dev);

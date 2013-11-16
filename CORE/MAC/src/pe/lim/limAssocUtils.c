@@ -3114,6 +3114,12 @@ limDelBss(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tANI_U16 bssIdx,tpPESession
     psessionEntry->limMlmState = eLIM_MLM_WT_DEL_BSS_RSP_STATE;
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, eLIM_MLM_WT_DEL_BSS_RSP_STATE));
 
+    if((psessionEntry->peSessionId == pMac->lim.limTimers.gLimJoinFailureTimer.sessionId) &&
+       (VOS_TRUE == tx_timer_running(&pMac->lim.limTimers.gLimJoinFailureTimer)))
+    {
+        limDeactivateAndChangeTimer(pMac, eLIM_JOIN_FAIL_TIMER);
+    }
+
     pDelBssParams->status= eHAL_STATUS_SUCCESS;
     pDelBssParams->respReqd = 1;
     vos_mem_copy(pDelBssParams->bssid, psessionEntry->bssId, sizeof(tSirMacAddr));
@@ -3283,6 +3289,9 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
         vos_mem_copy(&pAddBssParams->staContext.vht_caps,
                      (tANI_U8 *)&pAssocRsp->VHTCaps + sizeof(tANI_U8),
                      sizeof(pAddBssParams->staContext.vht_caps));
+        pAddBssParams->staContext.maxAmpduSize =
+                                  SIR_MAC_GET_VHT_MAX_AMPDU_EXPO(
+                                           pAddBssParams->staContext.vht_caps);
     }
     else 
     {
@@ -3379,7 +3388,13 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             pAddBssParams->staContext.fDsssCckMode40Mhz = (tANI_U8)pAssocRsp->HTCaps.dsssCckMode40MHz;
             pAddBssParams->staContext.fShortGI20Mhz = (tANI_U8)pAssocRsp->HTCaps.shortGI20MHz;
             pAddBssParams->staContext.fShortGI40Mhz = (tANI_U8)pAssocRsp->HTCaps.shortGI40MHz;
-            pAddBssParams->staContext.maxAmpduSize= pAssocRsp->HTCaps.maxRxAMPDUFactor;
+#ifdef WLAN_FEATURE_11AC
+            if (!pAddBssParams->staContext.vhtCapable)
+                // Use max ampd factor advertised in HTCAP for non-vht connection
+#endif
+             {
+                pAddBssParams->staContext.maxAmpduSize= pAssocRsp->HTCaps.maxRxAMPDUFactor;
+             }
             if( pAddBssParams->staContext.vhtTxBFCapable && pMac->lim.disableLDPCWithTxbfAP )
             {
                 pAddBssParams->staContext.htLdpcCapable = 0;

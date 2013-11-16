@@ -4718,11 +4718,10 @@ tANI_BOOLEAN csrScanIsWildCardScan( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         (pCommand->u.scanCmd.u.scanRequest.SSIDs.numOfSSIDs != 1) ));
 }
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 eHalStatus csrSavePnoScanResults(tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp)
 {
     tSirBssDescription *pSirBssDescription;
-    tDot11fBeaconIEs *pIesLocal = NULL;
     tANI_U32 cbScanResult = GET_FIELD_OFFSET( tSirSmeScanRsp, bssDescription )
                             + sizeof(tSirBssDescription);  //We need at least one CB
     tCsrScanResult *pScanResult = NULL;
@@ -4730,7 +4729,7 @@ eHalStatus csrSavePnoScanResults(tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp)
     v_TIME_t timer;
     tANI_U32 cbParsed;
     tANI_U32 cbBssDesc;
-    tANI_U8 ieLen;
+    tANI_U16 ieLen;
 
     if ((cbScanResult > pScanRsp->length ) ||
         (( eSIR_SME_SUCCESS != pScanRsp->statusCode ) &&
@@ -4760,10 +4759,9 @@ eHalStatus csrSavePnoScanResults(tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp)
         }
 
         palZeroMemory( pMac->hHdd, pScanResult, sizeof(tCsrScanResult) + ieLen);
-        pIesLocal = (tDot11fBeaconIEs *)( pScanResult->Result.pvIes );
 
         if (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac,
-            pSirBssDescription, &pIesLocal)))
+            pSirBssDescription, (tDot11fBeaconIEs **)&pScanResult->Result.pvIes)))
         {
             smsLog(pMac, LOGE, FL("  Cannot parse IEs"));
             csrFreeScanResultEntry(pMac, pScanResult);
@@ -4778,9 +4776,12 @@ eHalStatus csrSavePnoScanResults(tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp)
 
         // Remove duplicate entry
         csrRemoveDupBssDescription( pMac, &pScanResult->Result.BssDescriptor,
-                                    pIesLocal, &tmpSsid , &timer );
+                         (tDot11fBeaconIEs *)pScanResult->Result.pvIes,
+                         &tmpSsid , &timer );
+
         //Add to scan cache
-        csrScanAddResult(pMac, pScanResult, pIesLocal);
+        csrScanAddResult(pMac, pScanResult,
+                         (tDot11fBeaconIEs *)pScanResult->Result.pvIes);
 
         // skip over the BSS description to the next one...
         cbParsed += cbBssDesc;
@@ -4891,14 +4892,14 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
             status = eHAL_STATUS_FAILURE;
         }
     }
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
-    else if (!HAL_STATUS_SUCCESS(csrSavePnoScanResults(pMac, pScanRsp)))
+#ifdef FEATURE_WLAN_SCAN_PNO
+    else if (pMac->pnoOffload && !HAL_STATUS_SUCCESS(csrSavePnoScanResults(pMac, pScanRsp)))
     {
         smsLog( pMac, LOGW, "CSR: Unable to store scan results for PNO" );
         status = eHAL_STATUS_FAILURE;
     }
 #endif
-    else
+    else if (pMac->pnoOffload == FALSE)
     {
         smsLog( pMac, LOGW, "CSR: Scan Completion called but NO commands are ACTIVE ..." );
         status = eHAL_STATUS_FAILURE;
@@ -7639,7 +7640,7 @@ tANI_BOOLEAN csrRoamIsValidChannel( tpAniSirGlobal pMac, tANI_U8 channel )
     return fValid;
 }
 
-#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#ifdef FEATURE_WLAN_SCAN_PNO
 void csrMoveToScanStateForPno( tpAniSirGlobal pMac, tANI_U8 sessionId )
 {
     tCsrRoamSession *pSession = &pMac->roam.roamSession[sessionId];
@@ -7652,7 +7653,6 @@ void csrMoveToScanStateForPno( tpAniSirGlobal pMac, tANI_U8 sessionId )
     pSession->lastRoamStateBeforePno =
                csrRoamStateChange(pMac, eCSR_ROAMING_STATE_SCANNING, sessionId);
 }
-#endif
 
 eHalStatus csrScanSavePreferredNetworkFound(tpAniSirGlobal pMac,
             tSirPrefNetworkFoundInd *pPrefNetworkFoundInd)
@@ -7823,6 +7823,7 @@ eHalStatus csrScanSavePreferredNetworkFound(tpAniSirGlobal pMac,
 
    return eHAL_STATUS_SUCCESS;
 }
+#endif
 
 #ifdef FEATURE_WLAN_LFR
 void csrInitOccupiedChannelsList(tpAniSirGlobal pMac)

@@ -620,6 +620,9 @@
 
 #define IS_WES_MODE_ENABLED(x) \
                     ((x)->roam.configParam.isWESModeEnabled)
+#ifdef WLAN_FEATURE_11AC
+#define SIR_MAC_GET_VHT_MAX_AMPDU_EXPO(x) ((((tANI_U32) x) & 0x03800000) >> 23)
+#endif
 
 /// Status Code (present in Management response frames) enum
 

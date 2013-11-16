@@ -7112,6 +7112,7 @@ void limProcessAddStaRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
         palFreeMemory(pMac, pAddStaParams);
         return;
     }
+    psessionEntry->csaOffloadEnable = pAddStaParams->csaOffloadEnable;
     if (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
         (void) limIbssAddStaRsp(pMac, limMsgQ->bodyptr,psessionEntry);
 #ifdef FEATURE_WLAN_TDLS
