@@ -3067,6 +3067,28 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle, u_int8_t
     return vos_status;
 }
 
+/* function   : wma_roam_scan_offload_end_connect
+ * Descriptin : Stop the roam scan by setting scan mode to 0.
+ * Args       :
+ * Returns    :
+ */
+VOS_STATUS wma_roam_scan_offload_end_connect(tp_wma_handle wma_handle, u_int8_t sessionId)
+{
+    VOS_STATUS vos_status;
+    tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
+                wma_handle->vos_context);
+    wmi_start_scan_cmd_fixed_param scan_params;
+
+	if (!pMac->roam.configParam.isFastRoamIniFeatureEnabled) {
+		/* Fast roaming is disabled */
+		return VOS_STATUS_SUCCESS;
+	}
+
+    wma_roam_scan_fill_scan_params(wma_handle, pMac, NULL, &scan_params);
+    vos_status = wma_roam_scan_offload_mode(wma_handle, sessionId, &scan_params,
+            WMI_ROAM_SCAN_MODE_NONE);
+    return vos_status;
+}
 
 /* function   : wma_process_roam_scan_req
  * Descriptin : Main routine to handle ROAM commands coming from CSR module.
@@ -3081,7 +3103,6 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
     wmi_ap_profile ap_profile;
     tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
                 wma_handle->vos_context);
-    A_UINT32    mode;
 	A_INT8      noise_floor = WMI_DEFAULT_NOISE_FLOOR_DBM;
 
     WMA_LOGI("%s: command 0x%x\n", __func__, roam_req->Command);
@@ -3091,7 +3112,6 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 	}
     switch (roam_req->Command) {
         case ROAM_SCAN_OFFLOAD_START:
-        case ROAM_SCAN_OFFLOAD_STOP:
             /*
              * Scan/Roam threshold parameters are translated from fields of tSirRoamOffloadScanReq
              * to WMITLV values sent to Rome firmware.
@@ -3141,13 +3161,12 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 
 
             wma_roam_scan_fill_scan_params(wma_handle, pMac, roam_req, &scan_params);
-            if (roam_req->Command == ROAM_SCAN_OFFLOAD_START) {
-                mode = (WMI_ROAM_SCAN_MODE_PERIODIC | WMI_ROAM_SCAN_MODE_RSSI_CHANGE);
-            } else {
-                mode = WMI_ROAM_SCAN_MODE_NONE; /* STOP */
-            }
             vos_status = wma_roam_scan_offload_mode(wma_handle, roam_req->sessionId, &scan_params,
-                            mode);
+                    (WMI_ROAM_SCAN_MODE_PERIODIC | WMI_ROAM_SCAN_MODE_RSSI_CHANGE));
+            break;
+
+        case ROAM_SCAN_OFFLOAD_STOP:
+            wma_roam_scan_offload_end_connect(wma_handle, roam_req->sessionId);
             break;
 
         case ROAM_SCAN_OFFLOAD_RESTART:
@@ -5480,7 +5499,7 @@ static void wma_delete_sta_req_sta_mode(tp_wma_handle wma,
 {
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 
-	wma_roam_scan_offload_init_connect(wma, params->smesessionId);
+	wma_roam_scan_offload_end_connect(wma, params->smesessionId);
 	if (wmi_unified_vdev_down_send(wma->wmi_handle, params->smesessionId) < 0) {
 		WMA_LOGP("%s: failed to bring down vdev %d\n",
 			 __func__, params->smesessionId);
