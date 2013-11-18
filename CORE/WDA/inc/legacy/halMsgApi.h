@@ -1003,6 +1003,8 @@ typedef struct
   tANI_U16 staIdx;
   tANI_U16 tspecIdx; //TSPEC identifier uniquely identifying a TSPEC for a STA in a BSS
   tSirMacAddr bssId; //TO SUPPORT BT-AMP
+  tANI_U8 sessionId;
+  tANI_U8 userPrio; //TSPEC identifier uniquely identifying a TSPEC for a STA in a BSS
 
 } tDelTsParams, *tpDelTsParams;
 
