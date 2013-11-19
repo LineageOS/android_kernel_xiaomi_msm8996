@@ -5675,7 +5675,7 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
     /*stop tx queues*/
     netif_tx_disable(pAdapter->dev);
     netif_carrier_off(pAdapter->dev);
-    pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
+    pHddStaCtx->conn_info.connState = eConnectionState_Disconnecting;
     (WLAN_HDD_GET_CTX(pAdapter))->isAmpAllowed = VOS_TRUE;
     INIT_COMPLETION(pAdapter->disconnect_comp_var);
     /*issue disconnect*/
