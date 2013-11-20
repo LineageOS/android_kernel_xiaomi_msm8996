@@ -112,6 +112,9 @@
 /** Maximum time(ms) to wait for mc thread suspend **/
 #define WLAN_WAIT_TIME_MCTHREAD_SUSPEND  1200
 
+/** Maximum time(ms) to wait for target to be ready for suspend **/
+#define WLAN_WAIT_TIME_READY_TO_SUSPEND  2000
+
 #endif
 
 /** Maximum time(ms) to wait for tdls add sta to complete **/
@@ -990,6 +993,7 @@ struct hdd_context_s
 #ifdef QCA_WIFI_2_0
     v_U32_t target_type;
     v_U32_t target_fw_version;
+    struct completion ready_to_suspend;
 #endif
 };
 

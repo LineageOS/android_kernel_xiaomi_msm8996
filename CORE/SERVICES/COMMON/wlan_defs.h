@@ -186,6 +186,11 @@ typedef struct {
     A_UINT32 ack_rssi;    /* ACK RSSI: b'7..b'0 avg RSSI across all chain */
     A_UINT32 time_stamp ; /* ACK timestamp (helps determine age) */
     A_UINT32 is_probe;    /* Valid if probing. Else, 0 */
+    A_UINT32 ba_win_size; /* b'7..b0, block Ack Window size, b'31..b8 Resvd */
+    A_UINT32 failed_ba_bmap_0_31;  /* failed BA bitmap 0..31 */
+    A_UINT32 failed_ba_bmap_32_63; /* failed BA bitmap 32..63 */
+    A_UINT32 bmap_tried_0_31;      /* enqued bitmap 0..31 */
+    A_UINT32 bmap_tried_32_63;     /* enqued bitmap 32..63 */
 } RC_TX_DONE_PARAMS;
 
 

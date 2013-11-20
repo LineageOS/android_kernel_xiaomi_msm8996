@@ -385,6 +385,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    */
    macOpenParms.frameTransRequired = 1;
    macOpenParms.driverType         = eDRIVER_TYPE_PRODUCTION;
+   macOpenParms.powersaveOffloadEnabled =
+      pHddCtx->cfg_ini->enablePowersaveOffload;
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
 #ifndef QCA_WIFI_ISOC
                        hdd_update_tgt_cfg,
@@ -460,22 +462,6 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    /* UMA is supported in hardware for performing the
       frame translation 802.11 <-> 802.3 */
    macOpenParms.frameTransRequired = 1;
-   /*
-    * Set Whether Power save Offload enabled or not
-    * This info needs to updated to MAC
-    * before opening sme module
-    * Based on this capability SME decides
-    * whether to open pmc or pmc offload
-    * module.
-    */
-   if(pHddCtx->cfg_ini->enablePowersaveOffload)
-   {
-      macOpenParms.powersaveOffloadEnabled = TRUE;
-   }
-   else
-   {
-      macOpenParms.powersaveOffloadEnabled = FALSE;
-   }
 
    sirStatus = macOpen(&(gpVosContext->pMACContext), gpVosContext->pHDDContext,
                          &macOpenParms);

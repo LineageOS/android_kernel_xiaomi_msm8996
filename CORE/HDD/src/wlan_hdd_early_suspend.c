@@ -863,7 +863,9 @@ void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter)
 }
 
 static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
-                                 hdd_adapter_t *pAdapter)
+                                 hdd_adapter_t *pAdapter,
+                                 void (*callback)(void *callbackContext),
+                                 void *callbackContext)
 {
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
     tpSirWlanSuspendParam wlanSuspendParam =
@@ -914,7 +916,8 @@ static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
                 wlanSuspendParam->connectedState = FALSE;
 
     wlanSuspendParam->sessionId = pAdapter->sessionId;
-    halStatus = sme_ConfigureSuspendInd(pHddCtx->hHal, wlanSuspendParam);
+    halStatus = sme_ConfigureSuspendInd(pHddCtx->hHal, wlanSuspendParam,
+                                        callback, callbackContext);
     if(eHAL_STATUS_SUCCESS == halStatus)
     {
         pHddCtx->hdd_mcastbcast_filter_set = TRUE;
@@ -973,7 +976,8 @@ static void hdd_conf_resume_ind(hdd_adapter_t *pAdapter)
 }
 
 //Suspend routine registered with Android OS
-void hdd_suspend_wlan(void)
+void hdd_suspend_wlan(void (*callback)(void *callbackContext),
+                      void *callbackContext)
 {
    hdd_context_t *pHddCtx = NULL;
    v_CONTEXT_t pVosContext = NULL;
@@ -1103,7 +1107,7 @@ send_suspend_ind:
     /* Keep this suspend indication at the end (before processing next adaptor)
      * for discrete. This indication is considered as trigger point to start
      * WOW (if wow is enabled). */
-   hdd_conf_suspend_ind(pHddCtx, pAdapter);
+   hdd_conf_suspend_ind(pHddCtx, pAdapter, callback, callbackContext);
 
    status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
    pAdapterNode = pNext;
@@ -1427,7 +1431,7 @@ VOS_STATUS hdd_wlan_reset_initialization(void)
 void hdd_set_wlan_suspend_mode(bool suspend)
 {
     if (suspend)
-        hdd_suspend_wlan();
+        hdd_suspend_wlan(NULL, NULL);
     else
         hdd_resume_wlan();
 }

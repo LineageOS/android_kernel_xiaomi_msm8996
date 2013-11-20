@@ -4286,4 +4286,11 @@ typedef struct sSirRateUpdateInd
     tTxrateinfoflags mcastDataRate5GHzTxFlag;
 
 } tSirRateUpdateInd, *tpSirRateUpdateInd;
+
+typedef struct
+{
+  tANI_U16      mesgType;
+  tANI_U16      mesgLen;
+} tSirReadyToSuspendInd, *tpSirReadyToSuspendInd;
+
 #endif /* __SIR_API_H */

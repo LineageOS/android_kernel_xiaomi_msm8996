@@ -190,7 +190,16 @@ extern "C" {
 #define RESMGR_VC_REG_UNREG_LINK                    48
 #define RESMGR_VC_PRINT_LINK                        49
 #define RESMGR_OCS_MISS_TOLERANCE                   50
-#define RESMGR_DEFINITION_END                       51
+#define RESMGR_DYN_SCH_ALLOCRAM_SIZE                51
+#define RESMGR_DYN_SCH_ENABLE                       52
+#define RESMGR_DYN_SCH_ACTIVE                       53
+#define RESMGR_DYN_SCH_CH_STATS_START               54
+#define RESMGR_DYN_SCH_CH_SX_STATS                  55
+#define RESMGR_DYN_SCH_TOT_UTIL_PER                 56
+#define RESMGR_DYN_SCH_HOME_CH_QUOTA                57
+#define RESMGR_OCS_REG_RECAL_QUOTA_NOTIF            58
+#define RESMGR_OCS_DEREG_RECAL_QUOTA_NOTIF          59
+#define RESMGR_DEFINITION_END                       60
 
 /* RESMGR CHNMGR debug ids */
 #define RESMGR_CHMGR_DEFINITION_START               0
@@ -220,7 +229,10 @@ extern "C" {
 #define VDEV_MGR_VDEV_START_OCS_HP_REQ_COMPLETE     13
 #define VDEV_MGR_VDEV_START_OCS_HP_REQ_STOP         14
 #define VDEV_MGR_HP_START_TIME                      15
-#define VDEV_MGR_DEFINITION_END                     16
+#define VDEV_MGR_VDEV_PAUSE_DELAY_UPDATE            16
+#define VDEV_MGR_VDEV_PAUSE_FAIL                    17
+#define VDEV_MGR_GEN_PERIODIC_NOA                   18
+#define VDEV_MGR_DEFINITION_END                     19
 
 /* WHAL debug identifier definitions */
 #define WHAL_DBGID_DEFINITION_START                 0
@@ -478,7 +490,33 @@ extern "C" {
 #define COEX_STATUS_OCS                             211
 #define COEX_STATS_BT                               212
 
-#define COEX_DEBUG_ID_END                           213
+#define COEX_MWS_WLAN_INIT                          213
+#define COEX_MWS_WBTMR_SYNC                         214
+#define COEX_MWS_TYPE2_RX                           215
+#define COEX_MWS_TYPE2_TX                           216
+#define COEX_MWS_WLAN_CHAVD                         217
+#define COEX_MWS_WLAN_CHAVD_INSERT                  218
+#define COEX_MWS_WLAN_CHAVD_MERGE                   219
+#define COEX_MWS_WLAN_CHAVD_RPT                     220
+#define COEX_MWS_CP_MSG_SEND                        221
+#define COEX_MWS_CP_ESCAPE                          222
+#define COEX_MWS_CP_UNFRAME                         223
+#define COEX_MWS_CP_SYNC_UPDATE                     224
+#define COEX_MWS_CP_SYNC                            225
+#define COEX_MWS_CP_WLAN_STATE_IND                  226
+#define COEX_MWS_CP_SYNCRESP_TIMEOUT                227
+#define COEX_MWS_SCHEME_UPDATE                      228
+#define COEX_MWS_WLAN_EVENT                         229
+#define COEX_MWS_UART_UNESCAPE                      230
+#define COEX_MWS_UART_ENCODE_SEND                   231
+#define COEX_MWS_UART_RECV_DECODE                   232
+#define COEX_MWS_UL_HDL                             233
+#define COEX_MWS_REMOTE_EVENT                       234
+#define COEX_MWS_OTHER                              235
+#define COEX_MWS_ERROR                              236
+#define COEX_MWS_ANT_DIVERSITY                      237
+
+#define COEX_DEBUG_ID_END                           238
 
 #define SCAN_START_COMMAND_FAILED                   0
 #define SCAN_STOP_COMMAND_FAILED                    1
@@ -593,7 +631,8 @@ extern "C" {
 #define WAL_DBGID_SETUP_RSSI_INTERRUPTS             55
 #define WAL_DBGID_BRSSI_CONFIG                      56
 #define WAL_DBGID_CURRENT_BRSSI_AVE                 57
-#define WAL_DBGID_DEFINITION_END                    58
+#define WAL_DBGID_BCN_TX_COMP                       58
+#define WAL_DBGID_DEFINITION_END                    59
 
 #define ANI_DBGID_POLL                               0
 #define ANI_DBGID_CONTROL                            1
@@ -672,10 +711,12 @@ extern "C" {
 #define P2P_FIND_NEXT_EVENT_ENTER                           30
 #define P2P_NOA_GO_PRESENT                                  31
 #define P2P_NOA_GO_ABSENT                                   32
-#define	P2P_GO_NOA_NOTIF                                    33
-#define	P2P_GO_TBTT_OFFSET                                  34
-#define	P2P_GO_GET_NOA_INFO                                 35
-#define P2P_DBGID_DEFINITION_END                            36
+#define P2P_GO_NOA_NOTIF                                    33
+#define P2P_GO_TBTT_OFFSET                                  34
+#define P2P_GO_GET_NOA_INFO                                 35
+#define P2P_GO_ADD_ONE_SHOT_NOA                             36
+#define P2P_GO_GET_NOA_IE                                   37
+#define P2P_DBGID_DEFINITION_END                            38
 
 
 //CSA modules DBGIDs
@@ -758,6 +799,7 @@ extern "C" {
 #define ROAM_FINAL_BMISS_RECVD    30
 #define ROAM_CONFIG_SCAN_MODE     31
 #define ROAM_DBGID_DEFINITION_END 32
+
 /* DATA_TXRX module DBGIDs*/
 #define DATA_TXRX_DBGID_DEFINITION_START         0
 #define DATA_TXRX_DBGID_RX_DATA_SEQ_LEN_INFO     1
@@ -784,6 +826,7 @@ extern "C" {
 #define TDLS_DBGID_PEER_EVT_DRP_RSSI           17
 #define TDLS_DBGID_PEER_EVT_DISCOVER           18
 #define TDLS_DBGID_PEER_EVT_DELETE             19
+
 /* SMPS module DBGIDs */
 #define STA_SMPS_DBGID_DEFINITION_START                 0
 #define STA_SMPS_DBGID_CREATE_PDEV_INSTANCE             1

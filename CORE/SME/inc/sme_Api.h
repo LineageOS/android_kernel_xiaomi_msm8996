@@ -1854,8 +1854,10 @@ eHalStatus sme_ConfigureAppsCpuWakeupState( tHalHandle hHal, tANI_BOOLEAN  isApp
   
   
 --------------------------------------------------------------------------- */
-eHalStatus sme_ConfigureSuspendInd( tHalHandle hHal, 
-                             tpSirWlanSuspendParam  wlanSuspendParam);
+eHalStatus sme_ConfigureSuspendInd( tHalHandle hHal,
+                          tpSirWlanSuspendParam  wlanSuspendParam,
+                          csrReadyToSuspendCallback,
+                          void *callbackContext);
 
 /* ---------------------------------------------------------------------------
 

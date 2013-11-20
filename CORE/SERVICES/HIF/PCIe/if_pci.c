@@ -38,6 +38,9 @@
 #include <osapi_linux.h>
 #include "vos_api.h"
 #include "wma_api.h"
+#ifdef CONFIG_CNSS
+#include <net/cnss.h>
+#endif
 
 #ifdef WLAN_BTAMP_FEATURE
 #include "wlan_btc_svc.h"
@@ -895,7 +898,8 @@ hif_pci_remove(struct pci_dev *pdev)
 #define OL_ATH_PCI_PM_CONTROL 0x44
 
 #ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
-void hdd_suspend_wlan(void);
+void hdd_suspend_wlan(void (*callback)(void *callbackContext),
+                      void *callbackContext);
 #endif
 
 static int
@@ -907,10 +911,15 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     u32 val;
 
 #ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
-    hdd_suspend_wlan();
+    hdd_suspend_wlan(NULL, NULL);
     /* TODO: Wait until tx queue drains. Remove this hard coded delay */
     msleep(3*1000); /* 3 sec */
 #endif
+
+#if CONFIG_ATH_PCIE_MAX_PERF
+    /* Max performance path so no need to wake/poll target */
+    A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
+#else
     /* Make sure to wake Target before accessing Target memory */
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
     while (!hif_pci_targ_is_awake(sc, sc->mem)) {
@@ -918,6 +927,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     }
     A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
+#endif
 
     /* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
     if (!wma_is_wow_enabled(vos_get_context(VOS_MODULE_ID_WDA, vos)) &&
@@ -968,6 +978,10 @@ hif_pci_resume(struct pci_dev *pdev)
             pci_write_config_dword(pdev, 0x40, val & 0xffff00ff);
     }
 
+#if CONFIG_ATH_PCIE_MAX_PERF
+    /* Max performance patch so no need to wake/poll target */
+    val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
+#else
     /* Make sure to wake Target before accessing Target memory */
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
     while (!hif_pci_targ_is_awake(sc, sc->mem)) {
@@ -975,6 +989,7 @@ hif_pci_resume(struct pci_dev *pdev)
     }
     val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
+#endif
 
     /* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
     if (!wma_is_wow_enabled(vos_get_context(VOS_MODULE_ID_WDA, vos_context)) &&
@@ -997,6 +1012,18 @@ adf_os_size_t initBufferCount(adf_os_size_t maxSize)
     return maxSize;
 }
 
+#ifdef CONFIG_CNSS
+struct cnss_wlan_driver cnss_wlan_drv_id = {
+	.name       = "hif_pci",
+	.id_table   = hif_pci_id_table,
+	.probe      = hif_pci_probe,
+	.remove     = hif_pci_remove,
+#ifdef ATH_BUS_PM
+	.suspend    = hif_pci_suspend,
+	.resume     = hif_pci_resume,
+#endif
+};
+#else
 MODULE_DEVICE_TABLE(pci, hif_pci_id_table);
 struct pci_driver hif_pci_drv_id = {
 	.name       = "hif_pci",
@@ -1008,15 +1035,24 @@ struct pci_driver hif_pci_drv_id = {
 	.resume     = hif_pci_resume,
 #endif
 };
+#endif
 
 int hif_register_driver(void)
 {
+#ifdef CONFIG_CNSS
+	return cnss_wlan_register_driver(&cnss_wlan_drv_id);
+#else
 	return pci_register_driver(&hif_pci_drv_id);
+#endif
 }
 
 void hif_unregister_driver(void)
 {
+#ifdef CONFIG_CNSS
+	cnss_wlan_unregister_driver(&cnss_wlan_drv_id);
+#else
 	pci_unregister_driver(&hif_pci_drv_id);
+#endif
 }
 
 void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle)
