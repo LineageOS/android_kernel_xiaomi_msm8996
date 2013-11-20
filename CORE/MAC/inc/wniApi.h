@@ -358,6 +358,7 @@ enum eWniMsgTypes
     eWNI_PMC_GTK_OFFLOAD_GETINFO_RSP,
 #endif // WLAN_FEATURE_GTK_OFFLOAD
     eWNI_SME_CANDIDATE_FOUND_IND, //ROAM candidate indication from FW
+    eWNI_SME_READY_TO_SUSPEND_IND,
     eWNI_SME_MSG_TYPES_END
 };
 

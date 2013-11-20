@@ -675,11 +675,13 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
        }
        else if(strncmp(command, "SETSUSPENDMODE", 14) == 0)
        {
+#ifndef QCA_WIFI_2_0
            int suspend = 0;
            tANI_U8 *ptr = (tANI_U8*)command + 15;
 
            suspend = *ptr - '0';
            hdd_set_wlan_suspend_mode(suspend);
+#endif
        }
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
        else if (strncmp(command, "SETROAMTRIGGER", 14) == 0)
@@ -3263,6 +3265,9 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
 #endif
       init_completion(&pHddCtx->mc_sus_event_var);
       init_completion(&pHddCtx->tx_sus_event_var);
+#ifdef QCA_WIFI_2_0
+      init_completion(&pHddCtx->ready_to_suspend);
+#endif
       init_completion(&pAdapter->ula_complete);
       init_completion(&pAdapter->scan_info.scan_req_completion_event);
       init_completion(&pAdapter->scan_info.abortscan_event_var);

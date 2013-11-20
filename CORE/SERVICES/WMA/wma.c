@@ -5563,6 +5563,8 @@ static void wma_set_max_tx_power(WMA_HANDLE handle,
 	}
 	else
 		WMA_LOGE("Failed to find vdev to set WMI_VDEV_PARAM_TX_PWRLIMIT");
+
+	wma_send_msg(wma_handle, WDA_SET_MAX_TX_POWER_RSP, tx_pwr_params, 0);
 }
 
 /*
@@ -6503,6 +6505,32 @@ void wma_scan_cache_updated_ind(tp_wma_handle wma)
 
 #define WMA_DUMP_WOW_PTRN
 
+void wma_send_ready_to_suspend_ind(tp_wma_handle wma)
+{
+	tSirReadyToSuspendInd *ready_to_suspend;
+	VOS_STATUS status;
+	vos_msg_t vos_msg;
+	u_int8_t len;
+
+	WMA_LOGD("Posting ready to suspend indication to umac");
+
+	len = sizeof(tSirReadyToSuspendInd);
+	ready_to_suspend = (tSirReadyToSuspendInd *) vos_mem_malloc(len);
+
+	ready_to_suspend->mesgType = eWNI_SME_READY_TO_SUSPEND_IND;
+	ready_to_suspend->mesgLen = len;
+
+	vos_msg.type = eWNI_SME_READY_TO_SUSPEND_IND;
+	vos_msg.bodyptr = (void *) ready_to_suspend;
+	vos_msg.bodyval = 0;
+
+	status = vos_mq_post_message(VOS_MQ_ID_SME, &vos_msg);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to post ready to suspend");
+		vos_mem_free(ready_to_suspend);
+	}
+}
+
 /* Frees memory associated to given pattern ID in wow pattern cache. */
 static inline void wma_free_wow_ptrn(tp_wma_handle wma, u_int8_t ptrn_id)
 {
@@ -7082,6 +7110,8 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	VOS_STATUS ret;
 	u_int8_t i;
 
+	wma->no_of_suspend_ind++;
+
 	if (info->sessionId > wma->max_bssid) {
 		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
 		vos_mem_free(info);
@@ -7096,8 +7126,14 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	}
 
 	if (!wma->wow.magic_ptrn_enable && !iface->ptrn_match_enable) {
-		WMA_LOGD("Both magic and pattern byte match are disabled");
 		vos_mem_free(info);
+
+		if (wma->no_of_suspend_ind == wma_get_vdev_count(wma)) {
+			WMA_LOGD("Both magic and pattern byte match are disabled");
+			wma->no_of_suspend_ind = 0;
+			goto send_ready_to_suspend;
+		}
+
 		return VOS_STATUS_SUCCESS;
 	}
 
@@ -7110,7 +7146,7 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	 * suspend indication received on last vdev before
 	 * enabling wow in fw.
 	 */
-	if (++wma->no_of_suspend_ind < wma_get_vdev_count(wma)) {
+	if (wma->no_of_suspend_ind < wma_get_vdev_count(wma)) {
 		vos_mem_free(info);
 		return VOS_STATUS_SUCCESS;
 	}
@@ -7128,7 +7164,7 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	if (!connected) {
 		WMA_LOGD("All vdev are in disconnected state, skipping wow");
 		vos_mem_free(info);
-		return VOS_STATUS_SUCCESS;
+		goto send_ready_to_suspend;
 	}
 
 	WMA_LOGD("WOW Suspend");
@@ -7142,8 +7178,11 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 		vos_mem_free(info);
 		return ret;
 	}
-
 	vos_mem_free(info);
+
+send_ready_to_suspend:
+	wma_send_ready_to_suspend_ind(wma);
+
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -7469,19 +7508,25 @@ static int wma_process_receive_filter_clear_filter_req(tp_wma_handle wma_handle,
  *         function fetches stats from data path APIs and post
  *         WDA_TSM_STATS_RSP msg back to LIM.
  * @param: wma_handler - handle to wma
- * @param: pTsmStats - TSM stats struct that needs to be populated and
+ * @param: pTsmStatsMsg - TSM stats struct that needs to be populated and
  *         passed in message.
  */
-
 VOS_STATUS wma_process_tsm_stats_req(tp_wma_handle wma_handler,
-	tTSMStats *pTsmStats)
+	void *pTsmStatsMsg)
 {
-    int tid = pTsmStats->tid;
     u_int8_t counter;
     u_int32_t queue_delay_microsec = 0;
     u_int32_t tx_delay_microsec = 0;
     u_int16_t packet_count = 0;
     u_int16_t packet_loss_count = 0;
+    tpAniTrafStrmMetrics pTsmMetric = NULL;
+#ifdef FEATURE_WLAN_CCX_UPLOAD
+    tpAniGetTsmStatsReq pStats = (tpAniGetTsmStatsReq)pTsmStatsMsg;
+    tpAniGetTsmStatsRsp pTsmRspParams = NULL;
+#else
+    tTSMStats pStats = (tTSMStats)pTsmStatsMsg;
+#endif
+    int tid = pStats->tid;
     /*
      * The number of histrogram bin report by data path api are different
      * than required by TSM, hence different (6) size array used
@@ -7496,29 +7541,49 @@ VOS_STATUS wma_process_tsm_stats_req(tp_wma_handle wma_handler,
     ol_tx_delay_hist(pdev, bin_values, tid);
     ol_tx_packet_count(pdev, &packet_count, &packet_loss_count, tid );
 
-    /* populate pTsmStats */
-    pTsmStats->tsmMetrics.UplinkPktQueueDly = queue_delay_microsec;
+#ifdef FEATURE_WLAN_CCX_UPLOAD
+    pTsmRspParams =
+    (tpAniGetTsmStatsRsp)vos_mem_malloc(sizeof(tAniGetTsmStatsRsp));
+    if(NULL == pTsmRspParams)
+    {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+        "%s: VOS MEM Alloc Failure", __func__);
+        VOS_ASSERT(0);
+        vos_mem_free(pTsmStatsMsg);
+      return VOS_STATUS_E_NOMEM;
+    }
+    pTsmRspParams->staId = pStats->staId;
+    pTsmRspParams->rc    = eSIR_FAILURE;
+    pTsmRspParams->tsmStatsReq = pStats;
+    pTsmMetric = &pTsmRspParams->tsmMetrics;
+#else
+    pTsmMetric = &pStats->tsmMetrics;
+#endif
+    /* populate pTsmMetric */
+    pTsmMetric->UplinkPktQueueDly = queue_delay_microsec;
     /* store only required number of bin values */
     for ( counter = 0; counter < TSM_DELAY_HISTROGRAM_BINS; counter++)
     {
-        pTsmStats->tsmMetrics.UplinkPktQueueDlyHist[counter] =
-            bin_values[counter];
+      pTsmMetric->UplinkPktQueueDlyHist[counter] = bin_values[counter];
     }
-    pTsmStats->tsmMetrics.UplinkPktTxDly = tx_delay_microsec;
-    pTsmStats->tsmMetrics.UplinkPktLoss = packet_loss_count;
-    pTsmStats->tsmMetrics.UplinkPktCount = packet_count;
+    pTsmMetric->UplinkPktTxDly = tx_delay_microsec;
+    pTsmMetric->UplinkPktLoss = packet_loss_count;
+    pTsmMetric->UplinkPktCount = packet_count;
 
     /*
      * No need to populate roaming delay and roaming count as they are
      * being populated just before sending IAPP frame out
      */
-
     /* post this message to LIM/PE */
-    wma_send_msg(wma_handler, WDA_TSM_STATS_RSP, (void *)pTsmStats , 0) ;
+#ifdef FEATURE_WLAN_CCX_UPLOAD
+    wma_send_msg(wma_handler, WDA_TSM_STATS_RSP, (void *)pTsmRspParams , 0) ;
+#else
+    wma_send_msg(wma_handler, WDA_TSM_STATS_RSP, (void *)pTsmStatsMsg , 0) ;
+#endif
     return VOS_STATUS_SUCCESS;
 }
 
-#endif
+#endif /* FEATURE_WLAN_CCX */
 
 static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 {
@@ -8527,7 +8592,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 #ifdef FEATURE_WLAN_CCX
         case WDA_TSM_STATS_REQ:
             WMA_LOGA("McThread: WDA_TSM_STATS_REQ");
-            wma_process_tsm_stats_req(wma_handle, (tTSMStats *)msg->bodyptr);
+            wma_process_tsm_stats_req(wma_handle, (void*)msg->bodyptr);
         break;
 #endif
 		case WNI_CFG_DNLD_REQ:

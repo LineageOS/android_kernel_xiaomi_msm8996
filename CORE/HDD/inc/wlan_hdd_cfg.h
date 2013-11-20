@@ -1773,9 +1773,9 @@ typedef enum
  * Power Save Offload
  */
 #define CFG_POWERSAVE_OFFLOAD_NAME                "gEnablePowerSaveOffload"
-#define CFG_POWERSAVE_OFFLOAD_DISABLE             ( 0 )
-#define CFG_POWERSAVE_OFFLOAD_ENABLE              ( 1 )
-#define CFG_POWERSAVE_OFFLOAD_DEFAULT             ( CFG_POWERSAVE_OFFLOAD_DISABLE )
+#define CFG_POWERSAVE_OFFLOAD_MIN                 ( 0 )
+#define CFG_POWERSAVE_OFFLOAD_MAX                 ( 4 )
+#define CFG_POWERSAVE_OFFLOAD_DEFAULT             ( CFG_POWERSAVE_OFFLOAD_MIN )
 
 /*
  * Firmware uart print

@@ -480,6 +480,20 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    /*Open the WDA module */
    vos_mem_set(&macOpenParms, sizeof(macOpenParms), 0);
    macOpenParms.driverType = eDRIVER_TYPE_MFG;
+
+   pHddCtx = (hdd_context_t*)(gpVosContext->pHDDContext);
+   if((NULL == pHddCtx) ||
+      (NULL == pHddCtx->cfg_ini))
+   {
+     /* Critical Error ...  Cannot proceed further */
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+               "%s: Hdd Context is Null", __func__);
+     VOS_ASSERT(0);
+     goto err_sys_close;
+   }
+
+   macOpenParms.powersaveOffloadEnabled =
+      pHddCtx->cfg_ini->enablePowersaveOffload;
    vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext,
                       NULL, &macOpenParms);
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
@@ -518,29 +532,6 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    /* UMA is supported in hardware for performing the
       frame translation 802.11 <-> 802.3 */
    macOpenParms.frameTransRequired = 1;
-   /*
-    * Set Whether Power save Offload enabled or not
-    * This info needs to updated to MAC
-    * before opening sme module
-    * Based on this capability SME decides
-    * whether to open pmc or pmc offload
-    * module.
-    */
-   pHddCtx = (hdd_context_t*)(gpVosContext->pHDDContext);
-   if((NULL == pHddCtx) ||
-      (NULL == pHddCtx->cfg_ini))
-   {
-     /* Critical Error ...  Cannot proceed further */
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Hdd Context is Null", __func__);
-     VOS_ASSERT(0);
-     goto err_nv_close;
-   }
-
-   if(pHddCtx->cfg_ini->enablePowersaveOffload)
-      macOpenParms.powersaveOffloadEnabled = TRUE;
-   else
-      macOpenParms.powersaveOffloadEnabled = FALSE;
 
    sirStatus = macOpen(&(gpVosContext->pMACContext), gpVosContext->pHDDContext,
                          &macOpenParms);

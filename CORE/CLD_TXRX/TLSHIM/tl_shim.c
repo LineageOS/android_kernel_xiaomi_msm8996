@@ -56,7 +56,7 @@
 #define TLSHIM_LOGP(args...) \
 	VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL, ## args)
 
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
 
 /************************/
 /*   Internal defines   */
@@ -302,7 +302,7 @@ tlshim_check_n_process_iapp_frame (pVosContextType pVosGCtx,
     return false;
 }
 
-#endif /* FEATURE_WLAN_CCX */
+#endif /* defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD) */
 
 #ifdef QCA_WIFI_ISOC
 static void tlshim_mgmt_rx_dxe_handler(void *context, adf_nbuf_t buflist)
@@ -635,7 +635,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 		while (buf) {
 			next_buf = adf_nbuf_queue_next(buf);
 
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
         /*
          * in case following returns true, a defered task was created
          * inside function, which does following:
@@ -1257,7 +1257,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 	}
 
 	INIT_WORK(&tl_shim->cache_flush_work, tl_shim_cache_flush_work);
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
     INIT_WORK(&(tl_shim->iapp_work.deferred_work),
         tlshim_mgmt_over_data_rx_handler);
 #endif
