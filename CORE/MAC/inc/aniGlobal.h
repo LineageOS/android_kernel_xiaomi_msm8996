@@ -1061,6 +1061,13 @@ typedef struct sAniSirGlobal
 
 } tAniSirGlobal;
 
+typedef enum
+{
+    eHIDDEN_SSID_NOT_IN_USE,
+    eHIDDEN_SSID_ZERO_LEN,
+    eHIDDEN_SSID_ZERO_CONTENTS
+} tHiddenssId;
+
 #ifdef FEATURE_WLAN_TDLS
 
 #define RFC1042_HDR_LENGTH      (6)

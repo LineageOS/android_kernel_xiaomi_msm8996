@@ -1809,21 +1809,21 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
     if (params->ssid != NULL)
     {
+        vos_mem_copy(pConfig->SSIDinfo.ssid.ssId, params->ssid, params->ssid_len);
+        pConfig->SSIDinfo.ssid.length = params->ssid_len;
+
         switch (params->hidden_ssid) {
         case NL80211_HIDDEN_SSID_NOT_IN_USE:
                 hddLog(LOG1, "HIDDEN_SSID_NOT_IN_USE");
-                memcpy(pConfig->SSIDinfo.ssid.ssId, params->ssid,
-                       params->ssid_len);
-                pConfig->SSIDinfo.ssid.length = params->ssid_len;
+                pConfig->SSIDinfo.ssidHidden = eHIDDEN_SSID_NOT_IN_USE;
                 break;
         case NL80211_HIDDEN_SSID_ZERO_LEN:
                 hddLog(LOG1, "HIDDEN_SSID_ZERO_LEN");
-                pConfig->SSIDinfo.ssidHidden = VOS_TRUE;
+                pConfig->SSIDinfo.ssidHidden = eHIDDEN_SSID_ZERO_LEN;
                 break;
         case NL80211_HIDDEN_SSID_ZERO_CONTENTS:
                 hddLog(LOG1, "HIDDEN_SSID_ZERO_CONTENTS");
-                pConfig->SSIDinfo.ssidHidden = VOS_TRUE;
-                pConfig->SSIDinfo.ssid.length = params->ssid_len;
+                pConfig->SSIDinfo.ssidHidden = eHIDDEN_SSID_ZERO_CONTENTS;
                 break;
         default:
                 hddLog(LOGE, "Wrong hidden_ssid param %d", params->hidden_ssid);
@@ -1833,20 +1833,21 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 #else
     if (ssid != NULL)
     {
+        vos_mem_copy(pConfig->SSIDinfo.ssid.ssId, ssid, ssid_len);
+        pConfig->SSIDinfo.ssid.length = ssid_len;
+
         switch (hidden_ssid) {
         case NL80211_HIDDEN_SSID_NOT_IN_USE:
                 hddLog(LOG1, "HIDDEN_SSID_NOT_IN_USE");
-                memcpy(pConfig->SSIDinfo.ssid.ssId, ssid, ssid_len);
-                pConfig->SSIDinfo.ssid.length = ssid_len;
+                pConfig->SSIDinfo.ssidHidden = eHIDDEN_SSID_NOT_IN_USE;
                 break;
         case NL80211_HIDDEN_SSID_ZERO_LEN:
                 hddLog(LOG1, "HIDDEN_SSID_ZERO_LEN");
-                pConfig->SSIDinfo.ssidHidden = VOS_TRUE;
+                pConfig->SSIDinfo.ssidHidden = eHIDDEN_SSID_ZERO_LEN;
                 break;
         case NL80211_HIDDEN_SSID_ZERO_CONTENTS:
                 hddLog(LOG1, "HIDDEN_SSID_ZERO_CONTENTS");
-                pConfig->SSIDinfo.ssidHidden = VOS_TRUE;
-                pConfig->SSIDinfo.ssid.length = ssid_len;
+                pConfig->SSIDinfo.ssidHidden = eHIDDEN_SSID_ZERO_CONTENTS;
                 break;
         default:
                 hddLog(LOGE, "Wrong hidden_ssid param %d", hidden_ssid);
