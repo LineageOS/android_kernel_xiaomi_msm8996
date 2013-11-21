@@ -557,6 +557,9 @@ again:
 	goto err_config;
     }
 
+    /* Re-enable ASPM after firmware/OTP download is complete */
+    pci_write_config_dword(pdev, 0x80, lcr_val);
+
 #ifndef REMOVE_PKT_LOG
     if (vos_get_conparam() != VOS_FTM_MODE) {
         /*
