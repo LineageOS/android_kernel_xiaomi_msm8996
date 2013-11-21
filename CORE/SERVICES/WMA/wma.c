@@ -2849,26 +2849,31 @@ error:
 A_UINT32 eCsrAuthType_to_rsn_authmode (eCsrAuthType authtype) {
     switch(authtype) {
         case    eCSR_AUTH_TYPE_OPEN_SYSTEM:
-            return (IEEE80211_AUTH_OPEN);
+            return (WMI_AUTH_OPEN);
         case    eCSR_AUTH_TYPE_WPA:
+            return (WMI_AUTH_WPA);
         case    eCSR_AUTH_TYPE_WPA_PSK:
-            return(IEEE80211_AUTH_WPA);
+            return (WMI_AUTH_WPA_PSK);
         case    eCSR_AUTH_TYPE_RSN:
+            return (WMI_AUTH_RSNA);
         case    eCSR_AUTH_TYPE_RSN_PSK:
+            return (WMI_AUTH_RSNA_PSK);
 #if defined WLAN_FEATURE_VOWIFI_11R
         case    eCSR_AUTH_TYPE_FT_RSN:
+            return (WMI_AUTH_RSNA);
         case    eCSR_AUTH_TYPE_FT_RSN_PSK:
-            return(IEEE80211_AUTH_RSNA);
+            return (WMI_AUTH_RSNA_PSK);
 #endif
 #ifdef FEATURE_WLAN_WAPI
         case    eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE:
+            return (WMI_AUTH_WAPI);
         case    eCSR_AUTH_TYPE_WAPI_WAI_PSK:
-            return(IEEE80211_AUTH_WAPI);
+            return(WMI_AUTH_WAPI_PSK);
 #endif
 #ifdef FEATURE_WLAN_CCX
         case    eCSR_AUTH_TYPE_CCKM_WPA:
         case    eCSR_AUTH_TYPE_CCKM_RSN:
-            return(IEEE80211_AUTH_CCKM);
+            return(WMI_AUTH_CCKM);
 #endif
         default:
             return(WMI_AUTH_NONE);
@@ -2888,19 +2893,20 @@ A_UINT32 eCsrEncryptionType_to_rsn_cipherset (eCsrEncryptionType encr) {
         case    eCSR_ENCRYPT_TYPE_WEP104_STATICKEY:
         case    eCSR_ENCRYPT_TYPE_WEP40:
         case    eCSR_ENCRYPT_TYPE_WEP104:
-            return (IEEE80211_CIPHER_WEP);
+            return (WMI_CIPHER_WEP);
         case    eCSR_ENCRYPT_TYPE_TKIP:
-            return (IEEE80211_CIPHER_TKIP);
+            return (WMI_CIPHER_TKIP);
         case    eCSR_ENCRYPT_TYPE_AES:
-            return (IEEE80211_CIPHER_AES_CCM);
+            return (WMI_CIPHER_AES_CCM);
 #ifdef FEATURE_WLAN_WAPI
         case    eCSR_ENCRYPT_TYPE_WPI:
-            return (IEEE80211_CIPHER_WAPI);
+            return (WMI_CIPHER_WAPI);
 #endif /* FEATURE_WLAN_WAPI */
         case    eCSR_ENCRYPT_TYPE_ANY:
+            return (WMI_CIPHER_ANY);
         case    eCSR_ENCRYPT_TYPE_NONE:
         default:
-            return (IEEE80211_CIPHER_NONE);
+            return (WMI_CIPHER_NONE);
     }
 }
 
