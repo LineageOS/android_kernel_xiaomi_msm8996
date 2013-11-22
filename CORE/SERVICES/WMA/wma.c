@@ -4199,6 +4199,9 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_PDEV_PARAM_RX_CHAIN_MASK:
 			wma->pdevconfig.rxchainmask = privcmd->param_value;
 			break;
+		case WMI_PDEV_PARAM_POWER_GATING_SLEEP:
+			wma->pdevconfig.pwrgating = privcmd->param_value;
+			break;
 		case WMI_PDEV_PARAM_TXPOWER_LIMIT2G:
 			wma->pdevconfig.txpow2g = privcmd->param_value;
 			if ((pMac->roam.configParam.bandCapability ==
@@ -4312,6 +4315,9 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			break;
 		case WMI_PDEV_PARAM_TXPOWER_LIMIT5G:
 			ret = wma->pdevconfig.txpow5g;
+			break;
+                case WMI_PDEV_PARAM_POWER_GATING_SLEEP:
+			ret = wma->pdevconfig.pwrgating;
 			break;
 		default:
 			WMA_LOGE("Invalid cli_get pdev command/Not"
