@@ -256,6 +256,9 @@ typedef struct
 #define QCSAP_DBGLOG_MOD_LOG_LEVEL         36
 #define QCSAP_DBGLOG_TYPE                  37
 #define QCSAP_DBGLOG_REPORT_ENABLE         38
+#ifdef DEBUG
+#define QCSAP_FW_CRASH_INJECT              39
+#endif
 #endif /* QCA_WIFI_2_0 */
 
 enum { 

@@ -109,11 +109,6 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #include "if_pci.h"
-#include <linux/err.h>
-#include <linux/kernel.h>
-#include <net/cnss.h>
-
-struct dev_info *gDevInfo;
 #endif
 
 #ifdef MODULE
@@ -5060,7 +5055,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    // we are about to Request Full Power, and since that is synchronized,
    // the expectation is that by the time Request Full Power has completed,
    // all scans will be cancelled.
-   hdd_abort_mac_scan( pHddCtx, pAdapter->sessionId);
+   if(pAdapter)
+      hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId);
 
    if(!pConfig->enablePowersaveOffload)
    {
@@ -5261,7 +5257,7 @@ void __hdd_wlan_exit(void)
 		return;
 
 	/* module exit should never proceed if SSR is not completed */
-	while(isWDresetInProgress()){
+	while(pHddCtx->isLogpInProgress){
 		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
 			  "%s:SSR in Progress; block rmmod for 1 second!!!",
 			  __func__);
@@ -5596,16 +5592,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: cfg80211 init failed", __func__);
       return -EIO;
    }
-
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-   if (wlan_ssr_init(dev))
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: SSR initialization failed!", __func__);
-
-      wiphy_free(wiphy);
-      return -EIO;
-   }
-#endif
 
    pHddCtx = wiphy_priv(wiphy);
 
@@ -6515,9 +6501,6 @@ static void hdd_driver_exit(void)
 #else
    hif_unregister_driver();
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-   wlan_ssr_deinit();
-#endif
    /*
     * ADF context cannot be freed in hdd_wlan_exit for discrete
     * as it is needed in PCI remove. So free it here.
@@ -7062,110 +7045,6 @@ VOS_STATUS wlan_hdd_restart_driver(hdd_context_t *pHddCtx)
  
    return status;
 }
-
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-/**---------------------------------------------------------------------------
- *  \brief  wlan_discrete_powerup
- *
- *  Function invoked by the SSR framework to power on the target
- *
- *  \param  - None
- *
- *  \return - Success or Failure
- * --------------------------------------------------------------------------*/
-static int wlan_discrete_powerup(void)
-{
-    /* TODO for SSR3*/
-    return TRUE;
-}
-
-/**---------------------------------------------------------------------------
- *  \brief  wlan_discrete_shutdown
- *
- *  Function invoked by the SSR framework to shutdown the target
- *
- *  \param  - None
- *
- *  \return - Success or Failure
- * --------------------------------------------------------------------------*/
-static int wlan_discrete_shutdown(void)
-{
-    /* TODO for SSR3*/
-    return TRUE;
-}
-
-/**---------------------------------------------------------------------------
- *  \brief  wlan_discrete_crash_shutdown
- *
- *  Function invoked by the SSR framework to crash shutdown the target
- *
- *  \param  - None
- *
- *  \return - None
- * --------------------------------------------------------------------------*/
-static void wlan_discrete_crash_shutdown(void)
-{
-    /* Do nothing for SSR1 */
-    return;
-}
-
-/**---------------------------------------------------------------------------
- *  \brief  wlan_ssr_init
- *
- *  Function linking the platform driver to the host driver
- *
- *  \param  - struct device *dev
- *
- *  \return - Success or Failure
- * --------------------------------------------------------------------------*/
-int wlan_ssr_init(struct device *dev)
-{
-    int result = -EEXIST;
-
-    if (!gDevInfo) {
-        /* Attempt to allocate the block of memory for *gDevInfo */
-        gDevInfo = (struct dev_info*)kzalloc(sizeof(*gDevInfo), GFP_KERNEL);
-        if (gDevInfo) {
-            gDevInfo->dev = dev;
-            gDevInfo->dev_shutdown = wlan_discrete_shutdown;
-            gDevInfo->dev_powerup = wlan_discrete_powerup;
-            gDevInfo->dev_crashshutdown = wlan_discrete_crash_shutdown;
-
-            result = cnss_config(gDevInfo);
-            if (result) {
-                kfree(gDevInfo);
-                gDevInfo = NULL;
-            }
-        } else {
-            result = -ENOMEM;
-        }
-    }
-
-    return result;
-}
-
-/**---------------------------------------------------------------------------
- *  \brief  wlan_ssr_deinit
- *
- *  Function de-linking the platform driver to the host driver
- *
- *  \param  - None
- *
- *  \return - None
- * --------------------------------------------------------------------------*/
-void wlan_ssr_deinit()
-{
-    cnss_deinit();
-
-    if (gDevInfo) {
-        /* *gDevInfo has to be deallocated. */
-        kfree(gDevInfo);
-        gDevInfo = NULL;
-    }
-
-    return;
-}
-#endif /* #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) */
 
 //Register the module init/exit functions
 module_init(hdd_module_init);

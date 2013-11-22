@@ -38,6 +38,9 @@
 #include <osapi_linux.h>
 #include "vos_api.h"
 #include "wma_api.h"
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#include "wlan_hdd_power.h"
+#endif
 #ifdef CONFIG_CNSS
 #include <net/cnss.h>
 #endif
@@ -631,6 +634,287 @@ err_region:
     return ret;
 }
 
+/* This function will be called when SSR frame work wants to
+ * power up WLAN host driver when SSR happens. Most of this
+ * function is duplicated from hif_pci_probe().
+ */
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+int hif_pci_reinit(struct pci_dev *pdev, const struct pci_device_id *id)
+{
+    void __iomem *mem;
+    struct hif_pci_softc *sc;
+    struct ol_softc *ol_sc;
+    int probe_again = 0;
+    int ret = 0;
+    u_int16_t device_id;
+    u_int32_t hif_type;
+    u_int32_t target_type;
+    u_int32_t lcr_val;
+
+again:
+    ret = 0;
+
+#define BAR_NUM 0
+    /*
+     * Without any knowledge of the Host, the Target
+     * may have been reset or power cycled and its
+     * Config Space may no longer reflect the PCI
+     * address space that was assigned earlier
+     * by the PCI infrastructure.  Refresh it now.
+     */
+    /* If PCI link is down, return from reinit() */
+    pci_read_config_word(pdev,PCI_DEVICE_ID,&device_id);
+    printk("PCI device id is %04x :%04x\n", device_id, id->device);
+    if (device_id != id->device)  {
+        printk(KERN_ERR "%s: PCI link is down!\n", __func__);
+        /* PCI link is down, so return with error code. */
+        return -EIO;
+    }
+
+    /* FIXME: Commenting out assign_resource
+     * call for dev_attach to work on 2.6.38 kernel
+     */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0) && !defined(__LINUX_ARM_ARCH__)
+    if (pci_assign_resource(pdev, BAR_NUM)) {
+        printk(KERN_ERR "%s: Cannot assign PCI space!\n", __func__);
+        return -EIO;
+    }
+#endif
+
+    if (pci_enable_device(pdev)) {
+        printk(KERN_ERR "%s: Cannot enable PCI device!\n", __func__);
+        return -EIO;
+    }
+
+    /* Request MMIO resources */
+    ret = pci_request_region(pdev, BAR_NUM, "ath");
+    if (ret) {
+        dev_err(&pdev->dev, "%s: PCI MMIO reservation error!\n", __func__);
+        ret = -EIO;
+        goto err_region;
+    }
+
+    ret =  pci_set_dma_mask(pdev, DMA_BIT_MASK(64));
+    if (!ret) {
+        ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
+
+        if (ret) {
+            printk(KERN_ERR "%s: Cannot enable 64-bit consistent DMA!\n",
+                   __func__);
+            goto err_dma;
+        }
+    } else {
+        ret = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
+        if (!ret) {
+            ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+            if (ret) {
+                printk(KERN_ERR "%s: Cannot enable 32-bit consistent DMA!\n",
+                       __func__);
+                goto err_dma;
+            }
+        }
+    }
+
+    /* Set bus master bit in PCI_COMMAND to enable DMA */
+    pci_set_master(pdev);
+
+    /* Temporary FIX: disable ASPM. Will be removed after
+       the OTP is programmed. */
+    pci_read_config_dword(pdev, 0x80, &lcr_val);
+    pci_write_config_dword(pdev, 0x80, (lcr_val & 0xffffff00));
+
+    /* Arrange for access to Target SoC registers */
+    mem = pci_iomap(pdev, BAR_NUM, 0);
+    if (!mem) {
+        printk(KERN_ERR "%s: PCI iomap error!\n", __func__) ;
+        ret = -EIO;
+        goto err_iomap;
+    }
+
+    sc = A_MALLOC(sizeof(*sc));
+    if (!sc) {
+        ret = -ENOMEM;
+        goto err_alloc;
+    }
+
+    OS_MEMZERO(sc, sizeof(*sc));
+    sc->mem = mem;
+    sc->pdev = pdev;
+    sc->dev = &pdev->dev;
+    sc->aps_osdev.bdev = pdev;
+    sc->aps_osdev.device = &pdev->dev;
+    sc->aps_osdev.bc.bc_handle = (void *)mem;
+    sc->aps_osdev.bc.bc_bustype = HAL_BUS_TYPE_PCI;
+    sc->devid = id->device;
+
+    adf_os_spinlock_init(&sc->target_lock);
+
+    sc->cacheline_sz = dma_get_cache_alignment();
+
+    switch (id->device) {
+    case AR9888_DEVICE_ID:
+        hif_type = HIF_TYPE_AR9888;
+        target_type = TARGET_TYPE_AR9888;
+        break;
+    case AR6320_DEVICE_ID:
+        hif_type = HIF_TYPE_AR6320;
+        target_type = TARGET_TYPE_AR6320;
+        break;
+    default:
+        printk(KERN_ERR "%s: Unsupported device ID!\n", __func__);
+        ret = -ENODEV;
+        goto err_tgtstate;
+    }
+
+    /*
+     * Attach Target register table. This is needed early on --
+     * even before BMI -- since PCI and HIF initialization (and BMI init)
+     * directly access Target registers (e.g. CE registers).
+     */
+
+    hif_register_tbl_attach(sc, hif_type);
+    target_register_tbl_attach(sc, target_type);
+    {
+        A_UINT32 fw_indicator;
+#if PCIE_BAR0_READY_CHECKING
+        int wait_limit = 200;
+#endif
+
+        /*
+         * Verify that the Target was started cleanly.
+         *
+         * The case where this is most likely is with an AUX-powered
+         * Target and a Host in WoW mode. If the Host crashes,
+         * loses power, or is restarted (without unloading the driver)
+         * then the Target is left (aux) powered and running. On a
+         * subsequent driver load, the Target is in an unexpected state.
+         * We try to catch that here in order to reset the Target and
+         * retry the probe.
+         */
+        A_PCI_WRITE32(mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
+                      PCIE_SOC_WAKE_V_MASK);
+        while (!hif_pci_targ_is_awake(sc, mem)) {
+            ;
+        }
+
+#if PCIE_BAR0_READY_CHECKING
+        /* Synchronization point: wait the BAR0 is configured. */
+        while (wait_limit-- &&
+            !(A_PCI_READ32(mem + PCIE_LOCAL_BASE_ADDRESS +
+            PCIE_SOC_RDY_STATUS_ADDRESS) & PCIE_SOC_RDY_STATUS_BAR_MASK)) {
+            A_MDELAY(10);
+        }
+        if (wait_limit < 0) {
+            /* AR6320v1 doesn't support checking of BAR0 configuration,
+               takes one sec to wait BAR0 ready. */
+            printk(KERN_INFO "AR6320v1 waits two sec for BAR0 ready.\n");
+        }
+#endif
+
+        fw_indicator = A_PCI_READ32(mem + FW_INDICATOR_ADDRESS);
+        A_PCI_WRITE32(mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
+                      PCIE_SOC_WAKE_RESET);
+
+        if (fw_indicator & FW_IND_INITIALIZED) {
+            probe_again++;
+            printk(KERN_ERR "%s: Target is in an unknown state. "
+                   "Resetting (attempt %d).\n", __func__, probe_again);
+            /* hif_pci_device_reset, below will reset the target. */
+            ret = -EIO;
+            goto err_tgtstate;
+        }
+    }
+
+    ol_sc = A_MALLOC(sizeof(*ol_sc));
+    if (!ol_sc)
+        goto err_attach;
+
+    OS_MEMZERO(ol_sc, sizeof(*ol_sc));
+    ol_sc->sc_osdev = &sc->aps_osdev;
+    ol_sc->hif_sc = (void *)sc;
+    sc->ol_sc = ol_sc;
+    ol_sc->target_type = target_type;
+
+    if (hif_pci_configure(sc, &ol_sc->hif_hdl))
+        goto err_config;
+
+    ol_sc->enableuartprint = 0;
+    ol_sc->enablefwlog = 0;
+    ol_sc->enablesinglebinary = FALSE;
+
+    init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
+
+    if (VOS_STATUS_SUCCESS == hdd_wlan_re_init(ol_sc)) {
+        ret = 0;
+    }
+
+    if (ret) {
+        hif_nointrs(sc);
+        goto err_config;
+    }
+
+#ifndef REMOVE_PKT_LOG
+    if (vos_get_conparam() != VOS_FTM_MODE) {
+        /*
+         * pktlog initialization
+         */
+        ol_pl_sethandle(&ol_sc->pdev_txrx_handle->pl_dev, ol_sc);
+
+        if (pktlogmod_init(ol_sc))
+            printk(KERN_ERR "%s: pktlogmod_init failed!\n", __func__);
+    }
+#endif
+
+#ifdef WLAN_BTAMP_FEATURE
+    /* Send WLAN UP indication to Nlink Service */
+    send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
+#endif
+
+    printk("%s: WLAN host driver reinitiation completed!\n", __func__);
+    return 0;
+
+err_config:
+    A_FREE(ol_sc);
+err_attach:
+    ret = -EIO;
+err_tgtstate:
+    pci_set_drvdata(pdev, NULL);
+    hif_pci_device_reset(sc);
+    A_FREE(sc);
+err_alloc:
+    /* Call HIF PCI free here */
+    printk("%s: HIF PCI free needs to happen here.\n", __func__);
+    pci_iounmap(pdev, mem);
+err_iomap:
+    pci_clear_master(pdev);
+err_dma:
+    pci_release_region(pdev, BAR_NUM);
+err_region:
+    pci_disable_device(pdev);
+
+    if (probe_again && (probe_again <= ATH_PCI_PROBE_RETRY_MAX)) {
+        int delay_time;
+
+        /*
+         * We can get here after a Host crash or power fail when
+         * the Target has aux power. We just did a device_reset,
+         * so we need to delay a short while before we try to
+         * reinitialize. Typically only one retry with the smallest
+         * delay is needed. Target should never need more than a 100Ms
+         * delay; that would not conform to the PCIe std.
+         */
+
+        printk(KERN_INFO "%s: PCI rereinit\n", __func__);
+        /* 10, 40, 90, 100, 100, ... */
+        delay_time = max(100, 10 * (probe_again * probe_again));
+        A_MDELAY(delay_time);
+        goto again;
+    }
+
+    return ret;
+}
+#endif
+
 void
 hif_nointrs(struct hif_pci_softc *sc)
 {
@@ -900,6 +1184,62 @@ hif_pci_remove(struct pci_dev *pdev)
     printk(KERN_INFO "pci_remove\n");
 }
 
+/* This function will be called when SSR framework wants to
+ * shutdown WLAN host driver when SSR happens. Most of this
+ * function is duplicated from hif_pci_remove().
+ */
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+void hif_pci_shutdown(struct pci_dev *pdev)
+{
+    void __iomem *mem;
+    struct hif_pci_softc *sc;
+    struct ol_softc *scn;
+
+    sc = pci_get_drvdata(pdev);
+    /* Attach did not succeed, all resources have been
+     * freed in error handler.
+     */
+    if (!sc)
+        return;
+
+    scn = sc->ol_sc;
+
+#ifndef REMOVE_PKT_LOG
+    if (vos_get_conparam() != VOS_FTM_MODE)
+        pktlogmod_exit(scn);
+#endif
+
+    hdd_wlan_shutdown();
+
+    mem = (void __iomem *)sc->mem;
+
+#if defined(CPU_WARM_RESET_WAR)
+    /* Currently CPU warm reset sequence is tested only for AR9888_REV2
+     * Need to enable for AR9888_REV1 once CPU warm reset sequence is
+     * verified for AR9888_REV1.
+     */
+    if (scn->target_version == AR9888_REV2_VERSION) {
+        hif_pci_device_warm_reset(sc);
+    }
+    else {
+        hif_pci_device_reset(sc);
+    }
+#else
+        hif_pci_device_reset(sc);
+#endif
+
+    pci_disable_msi(pdev);
+    A_FREE(scn);
+    A_FREE(sc);
+    pci_set_drvdata(pdev, NULL);
+    pci_iounmap(pdev, mem);
+    pci_release_region(pdev, BAR_NUM);
+    pci_clear_master(pdev);
+    pci_disable_device(pdev);
+
+    printk("%s: WLAN host driver shutting down completed!\n", __func__);
+}
+#endif
 
 #define OL_ATH_PCI_PM_CONTROL 0x44
 
@@ -1024,6 +1364,8 @@ struct cnss_wlan_driver cnss_wlan_drv_id = {
 	.id_table   = hif_pci_id_table,
 	.probe      = hif_pci_probe,
 	.remove     = hif_pci_remove,
+	.reinit     = hif_pci_reinit,
+	.shutdown   = hif_pci_shutdown,
 #ifdef ATH_BUS_PM
 	.suspend    = hif_pci_suspend,
 	.resume     = hif_pci_resume,

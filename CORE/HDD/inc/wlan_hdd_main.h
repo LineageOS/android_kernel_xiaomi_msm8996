@@ -61,11 +61,6 @@
 #ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
 #endif
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-#include <linux/device.h>
-#include <mach/ramdump.h>
-#include <mach/subsystem_restart.h>
-#endif
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/
@@ -1075,8 +1070,4 @@ VOS_STATUS wlan_hdd_restart_driver(hdd_context_t *pHddCtx);
 void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx);
 void hdd_set_pwrparams(hdd_context_t *pHddCtx);
 void hdd_reset_pwrparams(hdd_context_t *pHddCtx);
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-int wlan_ssr_init(struct device* device);
-void wlan_ssr_deinit(void);
-#endif /* #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) */
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

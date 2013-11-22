@@ -465,12 +465,27 @@ static struct ol_softc *ramdump_scn;
 
 static void ramdump_work_handler(struct work_struct *ramdump)
 {
-	void __iomem *ramdump_base = ioremap(RAMDUMP_LOCATION, TOTAL_DUMP_SIZE);
+	void __iomem *ramdump_base;
+	unsigned long address;
+	unsigned long size;
+
+	/* Get RAM dump memory address and size */
+	if (cnss_get_ramdump_mem(&address, &size)) {
+		printk("No RAM dump will be collected since failed to get "
+			"memory address or size!\n");
+		goto out;
+	}
+
+	ramdump_base = ioremap(address, size);
+	if (!ramdump_base) {
+		printk("No RAM dump will be collected since ramdump_base is NULL!\n");
+		goto out;
+	}
 
 	if (ramdump_scn) {
 		ol_target_coredump(ramdump_scn, ramdump_base, TOTAL_DUMP_SIZE);
 
-		/* Add enough time to collect the RAM dump */
+		printk("%s: RAM dump collecting completed!\n", __func__);
 		msleep(1000);
 	} else {
 		printk("No RAM dump will be collected since ramdump_scn is NULL!\n");
@@ -478,9 +493,9 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 
 	iounmap(ramdump_base);
 
+out:
 	/* Notify SSR framework the target has crashed. */
 	cnss_device_crashed();
-
 	return;
 }
 

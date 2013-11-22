@@ -60,7 +60,6 @@
 
 #define TOTAL_DUMP_SIZE         REGISTER_SIZE + DRAM_SIZE + IRAM_SIZE
 #define PCIE_READ_LIMIT         0x5000
-#define RAMDUMP_LOCATION        0x0D400000
 
 void ol_target_coredump(void *instance, void* memoryBlock,
                         u_int32_t blockLength);

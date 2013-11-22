@@ -80,6 +80,9 @@
 
 #ifdef QCA_WIFI_2_0
 #include "wma.h"
+#ifdef DEBUG
+#include "wma_api.h"
+#endif
 #endif /* QCA_WIFI_2_0 */
 
 #define    IS_UP(_dev) \
@@ -1151,6 +1154,16 @@ static iw_softap_setparam(struct net_device *dev,
                                                set_value, DBG_CMD);
                   break;
              }
+#ifdef DEBUG
+         case QCSAP_FW_CRASH_INJECT:
+             {
+                  hddLog(LOGE, "WE_FW_CRASH_INJECT");
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                                (int)GEN_PARAM_CRASH_INJECT,
+                                                0, GEN_CMD);
+                  break;
+             }
+#endif
 #endif /* QCA_WIFI_2_0 */
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
@@ -2869,6 +2882,12 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "dl_report" },
+#ifdef DEBUG
+    {   QCSAP_FW_CRASH_INJECT,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "crash_inject" },
+#endif
 #endif /* QCA_WIFI_2_0 */
 
   { QCSAP_IOCTL_GETPARAM,

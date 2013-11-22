@@ -93,6 +93,11 @@
 #include "wlan_hdd_power.h"
 #include "wlan_hdd_packet_filtering.h"
 
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#include <wlan_qct_wda.h>
+#include <if_pci.h>
+#endif
+
 #define HDD_SSR_BRING_UP_TIME 10000
 
 static eHalStatus g_full_pwr_status;
@@ -1478,9 +1483,11 @@ VOS_STATUS hdd_wlan_shutdown(void)
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN driver shutting down! ",__func__);
 
+#ifdef QCA_WIFI_ISOC
    /* if re-init never happens, then do SSR1 */
    hdd_ssr_timer_init();
    hdd_ssr_timer_start(HDD_SSR_BRING_UP_TIME);
+#endif
 
    /* Get the global VOSS context. */
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
@@ -1494,7 +1501,14 @@ VOS_STATUS hdd_wlan_shutdown(void)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
       return VOS_STATUS_E_FAILURE;
    }
+
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+    pHddCtx->isLogpInProgress = TRUE;
+#endif
+
    hdd_reset_all_adapters(pHddCtx);
+
 #ifdef QCA_WIFI_ISOC
    /* DeRegister with platform driver as client for Suspend/Resume */
    vosStatus = hddDeregisterPmOps(pHddCtx);
@@ -1524,6 +1538,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
       complete(&vosSchedContext->ResumeMcEvent);
       pHddCtx->isMcThreadSuspended= FALSE;
    }
+#ifdef QCA_WIFI_ISOC
    if(TRUE == pHddCtx->isTxThreadSuspended){
       complete(&vosSchedContext->ResumeTxEvent);
       pHddCtx->isTxThreadSuspended= FALSE;
@@ -1532,6 +1547,8 @@ VOS_STATUS hdd_wlan_shutdown(void)
       complete(&vosSchedContext->ResumeRxEvent);
       pHddCtx->isRxThreadSuspended= FALSE;
    }
+#endif
+
    /* Reset the Suspend Variable */
    pHddCtx->isWlanSuspended = FALSE;
 
@@ -1545,7 +1562,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
    set_bit(MC_POST_EVENT_MASK, &vosSchedContext->mcEventFlag);
    wake_up_interruptible(&vosSchedContext->mcWaitQueue);
    wait_for_completion_interruptible(&vosSchedContext->McShutdown);
-
+#ifdef QCA_WIFI_ISOC
    /* Wait for TX to exit */
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down TX thread",__func__);
    set_bit(TX_SHUTDOWN_EVENT_MASK, &vosSchedContext->txEventFlag);
@@ -1559,6 +1576,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
    set_bit(RX_POST_EVENT_MASK, &vosSchedContext->rxEventFlag);
    wake_up_interruptible(&vosSchedContext->rxWaitQueue);
    wait_for_completion_interruptible(&vosSchedContext->RxShutdown);
+#endif
 
 #ifdef WLAN_BTAMP_FEATURE
    vosStatus = WLANBAP_Stop(pVosContext);
@@ -1568,8 +1586,21 @@ VOS_STATUS hdd_wlan_shutdown(void)
                "%s: Failed to stop BAP",__func__);
    }
 #endif //WLAN_BTAMP_FEATURE
+
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+   vosStatus = WDA_stop(pVosContext, HAL_STOP_TYPE_RF_KILL);
+
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to stop WDA", __func__);
+      VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
+      WDA_setNeedShutdown(pVosContext);
+   }
+#else
    vosStatus = vos_wda_shutdown(pVosContext);
    VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
+#endif
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing SME STOP",__func__);
    /* Stop SME - Cannot invoke vos_stop as vos_stop relies
@@ -1588,12 +1619,18 @@ VOS_STATUS hdd_wlan_shutdown(void)
    vosStatus = WLANTL_Stop(pVosContext);
    VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
 
+#ifndef QCA_WIFI_ISOC
+   hif_disable_isr(((VosContextType*)pVosContext)->pHIFContext);
+#endif
+
    hdd_unregister_mcast_bcast_filter(pHddCtx);
    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Flush Queues",__func__);
    /* Clean up message queues of TX and MC thread */
    vos_sched_flush_mc_mqs(vosSchedContext);
+#ifdef QCA_WIFI_ISOC
    vos_sched_flush_tx_mqs(vosSchedContext);
    vos_sched_flush_rx_mqs(vosSchedContext);
+#endif
 
    /* Deinit all the TX and MC queues */
    vos_sched_deinit_mqs(vosSchedContext);
@@ -1621,7 +1658,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
 /* the HDD interface to WLAN driver re-init.
  * This is called to initialize/start WLAN driver after a shutdown.
  */
-VOS_STATUS hdd_wlan_re_init(void)
+VOS_STATUS hdd_wlan_re_init(void *hif_sc)
 {
    VOS_STATUS       vosStatus;
    v_CONTEXT_t      pVosContext = NULL;
@@ -1635,9 +1672,17 @@ VOS_STATUS hdd_wlan_re_init(void)
    WLANBAP_ConfigType btAmpConfig;
 #endif
 
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+   adf_os_device_t adf_ctx;
+#endif
+
+#ifdef QCA_WIFI_ISOC
    hdd_ssr_timer_del();
+#endif
+
    hdd_prevent_suspend();
 
+#ifdef QCA_WIFI_ISOC
 #ifdef HAVE_WCNSS_CAL_DOWNLOAD
    /* wait until WCNSS driver downloads NV */
    while (!wcnss_device_ready() && 5 >= ++max_retries) {
@@ -1647,6 +1692,42 @@ VOS_STATUS hdd_wlan_re_init(void)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WCNSS driver not ready", __func__);
       goto err_re_init;
    }
+#endif
+#endif
+
+   /* Get the VOS context */
+   pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+   if(pVosContext == NULL)
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed vos_get_global_context",
+             __func__);
+      goto err_re_init;
+   }
+
+   /* Get the HDD context */
+   pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+   if(!pHddCtx)
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HDD context is Null", __func__);
+      goto err_re_init;
+   }
+
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+   /* Initialize the adf_ctx handle */
+   adf_ctx = vos_mem_malloc(sizeof(adf_os_device_t));
+
+   if (!adf_ctx) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx");
+      goto err_re_init;
+   }
+   vos_mem_zero(adf_ctx, sizeof(adf_os_device_t));
+
+   hif_init_adf_ctx(adf_ctx, hif_sc);
+   ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
+
+   /* Store target type and target version info in HDD ctx */
+   pHddCtx->target_type = ((struct ol_softc *)hif_sc)->target_type;
+   ((VosContextType*)(pVosContext))->adf_ctx = adf_ctx;
 #endif
 
    /* The driver should always be initialized in STA mode after SSR */
@@ -1660,13 +1741,10 @@ VOS_STATUS hdd_wlan_re_init(void)
       goto err_re_init;
    }
 
-   /* Get the HDD context. */
-   pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
-   if(!pHddCtx)
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
-      goto err_vosclose;
-   }
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && !defined(REMOVE_PKT_LOG)
+      hif_init_pdev_txrx_handle(hif_sc,
+      vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
+#endif
 
    /* Save the hal context in Adapter */
    pHddCtx->hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, pVosContext );

@@ -2155,6 +2155,37 @@ VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+  if (TRUE == WDA_needShutdown(vosContext))
+  {
+    /* If WDA stop failed, call WDA shutdown to cleanup WDA/WDI. */
+    vosStatus = WDA_shutdown(vosContext, VOS_TRUE);
+    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+    {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to shutdown WDA!", __func__);
+      VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
+    }
+  }
+  else
+  {
+    vosStatus = WDA_close(vosContext);
+    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+    {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to close WDA!", __func__);
+      VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
+    }
+  }
+
+  if (gpVosContext->htc_ctx)
+  {
+    HTCStop(gpVosContext->htc_ctx);
+    HTCDestroy(gpVosContext->htc_ctx);
+    gpVosContext->htc_ctx = NULL;
+  }
+#endif
+
 #ifndef QCA_WIFI_2_0
  /* Let DXE return packets in WDA_close and then free them here */
   vosStatus = vos_packet_close( vosContext );
