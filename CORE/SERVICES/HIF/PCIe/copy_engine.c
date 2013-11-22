@@ -885,6 +885,7 @@ more_completions:
                 /* Break the receive processes by force if force_break set up */
                 if (adf_os_unlikely(sc->force_break))
                 {
+                    adf_os_atomic_set(&CE_state->rx_pending, 1);
                     CE_ENGINE_INT_STATUS_CLEAR(targid, ctrl_addr, HOST_IS_COPY_COMPLETE_MASK);
                     A_TARGET_ACCESS_END(targid);
                     return;
@@ -978,6 +979,7 @@ more_watermarks:
     }
 
     adf_os_spin_unlock(&sc->target_lock);
+    adf_os_atomic_set(&CE_state->rx_pending, 0);
     A_TARGET_ACCESS_END(targid);
 }
 
@@ -996,6 +998,19 @@ CE_per_engine_service_any(int irq, void *arg)
     A_UINT32 intr_summary;
 	
     A_TARGET_ACCESS_BEGIN(targid);
+    if (!adf_os_atomic_read(&sc->tasklet_from_intr)) {
+        for (CE_id=0; CE_id < sc->ce_count; CE_id++) {
+             struct CE_state *CE_state = sc->CE_id_to_state[CE_id];
+             if (adf_os_atomic_read(&CE_state->rx_pending)) {
+                 adf_os_atomic_set(&CE_state->rx_pending, 0);
+                 CE_per_engine_service(sc, CE_id);
+             }
+        }
+
+        A_TARGET_ACCESS_END(targid);
+        return;
+    }
+
     intr_summary = CE_INTERRUPT_SUMMARY(targid);
 	
     for (CE_id=0; intr_summary && (CE_id < sc->ce_count); CE_id++) {
@@ -1183,6 +1198,18 @@ roundup_pwr2(unsigned int n)
     return 0;
 }
 
+bool CE_get_rx_pending(struct hif_pci_softc *sc)
+{
+    int CE_id;
+
+    for (CE_id=0; CE_id < sc->ce_count; CE_id++) {
+         struct CE_state *CE_state = sc->CE_id_to_state[CE_id];
+         if (adf_os_atomic_read(&CE_state->rx_pending))
+             return true;
+    }
+
+    return false;
+}
 /*
  * Initialize a Copy Engine based on caller-supplied attributes.
  * This may be called once to initialize both source and destination
@@ -1234,6 +1261,7 @@ CE_init(struct hif_pci_softc *sc,
     }
     adf_os_spin_unlock(&sc->target_lock);
 
+    adf_os_atomic_init(&CE_state->rx_pending);
     if (attr == NULL) {
         /* Already initialized; caller wants the handle */
         return (struct CE_handle *)CE_state;

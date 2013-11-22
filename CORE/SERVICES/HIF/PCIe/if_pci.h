@@ -85,6 +85,7 @@ struct hif_pci_softc {
     u16 devid;
     struct targetdef_s *targetdef;
     struct hostdef_s *hostdef;
+    atomic_t tasklet_from_intr;
 };
 #define TARGID(sc) ((A_target_id_t)(&(sc)->mem))
 #define TARGID_TO_HIF(targid) (((struct hif_pci_softc *)((char *)(targid) - (char *)&(((struct hif_pci_softc *)0)->mem)))->hif_device)

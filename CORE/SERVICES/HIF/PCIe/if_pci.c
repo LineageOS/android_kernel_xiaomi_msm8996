@@ -56,6 +56,8 @@
 #define AR9888_DEVICE_ID (0x003c)
 #define AR6320_DEVICE_ID (0x003e)
 
+#define MAX_NUM_OF_RECEIVES 1000 /* Maximum number of Rx buf to process before break out */
+
 unsigned int msienable = 0;
 module_param(msienable, int, 0644);
 
@@ -101,6 +103,7 @@ hif_pci_interrupt_handler(int irq, void *arg)
     /* TBDXXX: Add support for WMAC */
 
     sc->irq_event = irq;
+    adf_os_atomic_set(&sc->tasklet_from_intr, 1);
     tasklet_schedule(&sc->intr_tq);
 
     return IRQ_HANDLED;
@@ -134,8 +137,7 @@ bool hif_max_num_receives_reached(unsigned int count)
 #ifdef EPPING_TEST
     return (count > 120);
 #else
-    /* Not implemented yet */
-    return 0;
+    return (count > MAX_NUM_OF_RECEIVES);
 #endif
 }
 
@@ -337,6 +339,16 @@ wlan_tasklet(unsigned long data)
 
     (irqreturn_t)HIF_fw_interrupt_handler(sc->irq_event, sc);
     CE_per_engine_service_any(sc->irq_event, sc);
+    adf_os_atomic_set(&sc->tasklet_from_intr, 0);
+    if (CE_get_rx_pending(sc)) {
+        /*
+         * There are frames pending, schedule tasklet to process them.
+         * Enable the interrupt only when there is no pending frames in
+         * any of the Copy Engine pipes.
+         */
+        tasklet_schedule(&sc->intr_tq);
+        return;
+    }
     if (LEGACY_INTERRUPTS(sc)) {
         /* Enable Legacy PCI line interrupts */
         A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 
@@ -548,6 +560,7 @@ again:
     ol_sc->enablefwlog = 0;
     ol_sc->enablesinglebinary = FALSE;
 
+    adf_os_atomic_init(&sc->tasklet_from_intr);
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
 
     ret = hdd_wlan_startup(&pdev->dev, ol_sc);
