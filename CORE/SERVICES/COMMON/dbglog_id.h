@@ -828,6 +828,27 @@ extern "C" {
 #define TDLS_DBGID_PEER_EVT_DISCOVER           18
 #define TDLS_DBGID_PEER_EVT_DELETE             19
 
+/* TXBF Module IDs */
+#define TXBFEE_DBGID_START                      0
+#define TXBFEE_DBGID_NDPA_RECEIVED              1
+#define TXBFEE_DBGID_HOST_CONFIG_TXBFEE_TYPE    2
+#define TXBFER_DBGID_SEND_NDPA                  3
+#define TXBFER_DBGID_GET_NDPA_BUF_FAIL          4
+#define TXBFER_DBGID_SEND_NDPA_FAIL             5
+#define TXBFER_DBGID_GET_NDP_BUF_FAIL           6
+#define TXBFER_DBGID_SEND_NDP_FAIL              7
+#define TXBFER_DBGID_GET_BRPOLL_BUF_FAIL        8
+#define TXBFER_DBGID_SEND_BRPOLL_FAIL           9
+#define TXBFER_DBGID_HOST_CONFIG_CMDID         10
+#define TXBFEE_DBGID_HOST_CONFIG_CMDID         11
+#define TXBFEE_DBGID_ENABLED_ENABLED_UPLOAD_H  12
+#define TXBFEE_DBGID_UPLOADH_CV_TAG            13
+#define TXBFEE_DBGID_UPLOADH_H_TAG             14
+#define TXBFEE_DBGID_CAPTUREH_RECEIVED         15
+#define TXBFEE_DBGID_PACKET_IS_STEERED         16
+#define TXBFEE_UPLOADH_EVENT_ALLOC_MEM_FAIL    17
+#define TXBFEE_DBGID_END                       18
+
 /* SMPS module DBGIDs */
 #define STA_SMPS_DBGID_DEFINITION_START                 0
 #define STA_SMPS_DBGID_CREATE_PDEV_INSTANCE             1
