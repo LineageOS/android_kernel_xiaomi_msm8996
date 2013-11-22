@@ -1458,6 +1458,19 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	 */
 	wma_handle->powersave_mode = mac_params->powersaveOffloadEnabled;
 
+	/*
+	 * Value of mac_params->wowEnable can be,
+	 * 0 - Disable both magic pattern match and pattern byte match.
+	 * 1 - Enable magic pattern match on all interfaces.
+	 * 2 - Enable pattern byte match on all interfaces.
+	 * 3 - Enable both magic patter and pattern byte match on
+	 *     all interfaces.
+	 */
+	wma_handle->wow.magic_ptrn_enable =
+			(mac_params->wowEnable & 0x01) ? TRUE : FALSE;
+	wma_handle->ptrn_match_enable_all_vdev =
+			(mac_params->wowEnable & 0x02) ? TRUE : FALSE;
+
 	WMA_LOGD("%s: Exit", __func__);
 
 	return VOS_STATUS_SUCCESS;
@@ -1948,6 +1961,28 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 		goto end;
 	}
 	wma_handle->interfaces[self_sta_req->sessionId].handle = txrx_vdev_handle;
+
+	wma_handle->interfaces[self_sta_req->sessionId].ptrn_match_enable =
+		wma_handle->ptrn_match_enable_all_vdev ? TRUE : FALSE;
+
+	if (wlan_cfgGetInt(mac, WNI_CFG_WOWLAN_DEAUTH_ENABLE, &cfg_val)
+			!= eSIR_SUCCESS)
+		wma_handle->wow.deauth_enable = TRUE;
+	else
+		wma_handle->wow.deauth_enable = cfg_val ? TRUE : FALSE;
+
+	if (wlan_cfgGetInt(mac, WNI_CFG_WOWLAN_DISASSOC_ENABLE, &cfg_val)
+			!= eSIR_SUCCESS)
+		wma_handle->wow.disassoc_enable = TRUE;
+	else
+		wma_handle->wow.disassoc_enable = cfg_val ? TRUE : FALSE;
+
+	if (wlan_cfgGetInt(mac, WNI_CFG_WOWLAN_MAX_MISSED_BEACON, &cfg_val)
+			!= eSIR_SUCCESS)
+		wma_handle->wow.bmiss_enable = TRUE;
+	else
+		wma_handle->wow.bmiss_enable = cfg_val ? TRUE : FALSE;
+
 	vos_mem_copy(wma_handle->interfaces[self_sta_req->sessionId].addr,
 		     self_sta_req->selfMacAddr,
 		     sizeof(wma_handle->interfaces[self_sta_req->sessionId].addr));
@@ -6679,8 +6714,6 @@ void wma_scan_cache_updated_ind(tp_wma_handle wma)
 
 #endif
 
-#define WMA_DUMP_WOW_PTRN
-
 void wma_send_ready_to_suspend_ind(tp_wma_handle wma)
 {
 	tSirReadyToSuspendInd *ready_to_suspend;
@@ -6836,15 +6869,18 @@ static VOS_STATUS wma_add_wow_wakeup_event(tp_wma_handle wma,
 
 /* Sends WOW patterns to FW. */
 static VOS_STATUS wma_send_wow_patterns_to_fw(tp_wma_handle wma,
-					      u_int8_t ptrn_id)
+			u_int8_t vdev_id, u_int8_t ptrn_id,
+			u_int8_t *ptrn, u_int8_t ptrn_len,
+			u_int8_t ptrn_offset, u_int8_t *mask,
+			u_int8_t mask_len)
+
 {
 	WMI_WOW_ADD_PATTERN_CMD_fixed_param *cmd;
 	WOW_BITMAP_PATTERN_T *bitmap_pattern;
-	struct wma_wow_ptrn_cache *cache;
 	wmi_buf_t buf;
-	u_int8_t new_mask[SIR_WOWL_BCAST_PATTERN_MAX_SIZE];
-	u_int8_t *buf_ptr, pos, bit_to_check;
+	u_int8_t *buf_ptr;
 #ifdef WMA_DUMP_WOW_PTRN
+	u_int8_t pos;
 	u_int8_t *tmp;
 #endif
 	int32_t len;
@@ -6868,7 +6904,6 @@ static VOS_STATUS wma_send_wow_patterns_to_fw(tp_wma_handle wma,
 		return VOS_STATUS_E_NOMEM;
 	}
 
-	cache = wma->wow.cache[ptrn_id];
 	cmd = (WMI_WOW_ADD_PATTERN_CMD_fixed_param *)wmi_buf_data(buf);
 	buf_ptr = (u_int8_t *)cmd;
 
@@ -6876,7 +6911,7 @@ static VOS_STATUS wma_send_wow_patterns_to_fw(tp_wma_handle wma,
 		       WMITLV_TAG_STRUC_WMI_WOW_ADD_PATTERN_CMD_fixed_param,
 		       WMITLV_GET_STRUCT_TLVLEN(
 				WMI_WOW_ADD_PATTERN_CMD_fixed_param));
-	cmd->vdev_id = cache->vdev_id;
+	cmd->vdev_id = vdev_id;
 	cmd->pattern_id = ptrn_id;
 	cmd->pattern_type = WOW_BITMAP_PATTERN;
 	buf_ptr += sizeof(WMI_WOW_ADD_PATTERN_CMD_fixed_param);
@@ -6890,36 +6925,11 @@ static VOS_STATUS wma_send_wow_patterns_to_fw(tp_wma_handle wma,
 		       WMITLV_TAG_STRUC_WOW_BITMAP_PATTERN_T,
 		       WMITLV_GET_STRUCT_TLVLEN(WOW_BITMAP_PATTERN_T));
 
-	vos_mem_copy(&bitmap_pattern->patternbuf[0], cache->ptrn,
-		     cache->ptrn_len);
-	/*
-	 * Convert received pattern mask value from bit representaion
-	 * to byte representation.
-	 *
-	 * For example, received value from umac,
-	 *
-	 *      Mask value    : A1 (equivalent binary is "1010 0001")
-	 *      Pattern value : 12:00:13:00:00:00:00:44
-	 *
-	 * The value which goes to FW after the conversion from this
-	 * function (1 in mask value will become FF and 0 will
-	 * become 00),
-	 *
-	 *      Mask value    : FF:00:FF:00:0:00:00:FF
-	 *      Pattern value : 12:00:13:00:00:00:00:44
-	 */
-	vos_mem_zero(new_mask, sizeof(new_mask));
-	for (pos = 0; pos < cache->ptrn_len; pos++) {
-		bit_to_check = (WMA_NUM_BITS_IN_BYTE - 1) -
-					(pos % WMA_NUM_BITS_IN_BYTE);
-		bit_to_check = 0x1 << bit_to_check;
-		if (cache->mask[pos / WMA_NUM_BITS_IN_BYTE] & bit_to_check)
-			new_mask[pos] = WMA_WOW_PTRN_MASK_VALID;
-	}
-	vos_mem_copy(&bitmap_pattern->bitmaskbuf[0], new_mask, cache->ptrn_len);
+	vos_mem_copy(&bitmap_pattern->patternbuf[0], ptrn, ptrn_len);
+	vos_mem_copy(&bitmap_pattern->bitmaskbuf[0], mask, mask_len);
 
-	bitmap_pattern->pattern_offset = cache->ptrn_offset;
-	bitmap_pattern->pattern_len = cache->ptrn_len;
+	bitmap_pattern->pattern_offset = ptrn_offset;
+	bitmap_pattern->pattern_len = ptrn_len;
 
 	if(bitmap_pattern->pattern_len > WOW_DEFAULT_BITMAP_PATTERN_SIZE)
 		bitmap_pattern->pattern_len = WOW_DEFAULT_BITMAP_PATTERN_SIZE;
@@ -6930,8 +6940,9 @@ static VOS_STATUS wma_send_wow_patterns_to_fw(tp_wma_handle wma,
 	bitmap_pattern->bitmask_len = bitmap_pattern->pattern_len;
 	bitmap_pattern->pattern_id = ptrn_id;
 
-	WMA_LOGD("pattern id: %d, pattern len: %d vdev id: %d",
-		 cmd->pattern_id, bitmap_pattern->pattern_len, cmd->vdev_id);
+	WMA_LOGD("vdev id : %d, ptrn id: %d, ptrn len: %d, ptrn offset: %d",
+		 cmd->vdev_id, cmd->pattern_id, bitmap_pattern->pattern_len,
+		 bitmap_pattern->pattern_offset);
 
 #ifdef WMA_DUMP_WOW_PTRN
 	printk("Pattern : ");
@@ -7050,6 +7061,238 @@ static VOS_STATUS wma_enable_wow_in_fw(tp_wma_handle wma)
 	return VOS_STATUS_SUCCESS;
 }
 
+/* Sends user configured WOW patterns to the firmware. */
+static VOS_STATUS wma_wow_usr(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	struct wma_wow_ptrn_cache *cache;
+	VOS_STATUS ret = VOS_STATUS_SUCCESS;
+	u_int8_t new_mask[SIR_WOWL_BCAST_PATTERN_MAX_SIZE];
+	u_int8_t bit_to_check, ptrn_id, pos;
+
+	WMA_LOGD("Configuring user wow patterns for vdev %d", vdev_id);
+
+	for (ptrn_id = 0; ptrn_id < WOW_MAX_BITMAP_FILTERS; ptrn_id++) {
+		cache = wma->wow.cache[ptrn_id];
+		if (!cache)
+			continue;
+
+		if (cache->vdev_id != vdev_id)
+			continue;
+		/*
+		 * Convert received pattern mask value from bit representaion
+		 * to byte representation.
+		 *
+		 * For example, received value from umac,
+		 *
+		 *      Mask value    : A1 (equivalent binary is "1010 0001")
+		 *      Pattern value : 12:00:13:00:00:00:00:44
+		 *
+		 * The value which goes to FW after the conversion from this
+		 * function (1 in mask value will become FF and 0 will
+		 * become 00),
+		 *
+		 *      Mask value    : FF:00:FF:00:0:00:00:FF
+		 *      Pattern value : 12:00:13:00:00:00:00:44
+		 */
+		vos_mem_zero(new_mask, sizeof(new_mask));
+		for (pos = 0; pos < cache->ptrn_len; pos++) {
+		     bit_to_check = (WMA_NUM_BITS_IN_BYTE - 1) -
+					(pos % WMA_NUM_BITS_IN_BYTE);
+		     bit_to_check = 0x1 << bit_to_check;
+		     if (cache->mask[pos / WMA_NUM_BITS_IN_BYTE] & bit_to_check)
+				new_mask[pos] = WMA_WOW_PTRN_MASK_VALID;
+		}
+
+		ret = wma_send_wow_patterns_to_fw(wma, vdev_id, ptrn_id,
+				cache->ptrn, cache->ptrn_len,
+				cache->ptrn_offset, new_mask,
+				cache->ptrn_len);
+		if (ret != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("Failed to submit wow pattern to fw (ptrn_id %d)",
+				 ptrn_id);
+			break;
+		}
+	}
+	return ret;
+}
+
+/* Configures default WOW pattern for the given vdev_id which is in AP mode. */
+static VOS_STATUS wma_wow_ap(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	u_int8_t unicast_ptrn[] = { 0x00, 0x00, 0x00,
+		  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		  0x00, 0x08 };
+	u_int8_t unicst_mask[] = { 0x01, 0x00, 0x00,
+		  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		  0x00, 0x7f };
+	u_int8_t unicst_offset = 0;
+	u_int8_t arp_ptrn[] = { 0x08, 0x06 };
+	u_int8_t arp_mask[] = { 0xff, 0xff };
+	u_int8_t arp_offset = 20;
+	u_int8_t discvr_ptrn[] = { 0xe0, 0x00, 0x00, 0xf8 };
+	u_int8_t discvr_mask[] = { 0xf0, 0x00, 0x00, 0xf8 };
+	u_int8_t discvr_offset = 38;
+	u_int8_t dhcp_pattern[] = { 0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x43 /* port 67 */ };
+	u_int8_t dhcp_mask[] = { 0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0xff, 0xff /* port 67 */ };
+	u_int8_t dhcp_offset = 0;
+	VOS_STATUS ret;
+
+	WMA_LOGD("Configuring default AP mode wow pattern for vdev %d",
+		  vdev_id);
+
+	if ((wma->wow.total_free_ptrn_id - wma->wow.used_free_ptrn_id)
+			< WMA_AP_WOW_DEFAULT_PTRN_MAX) {
+		WMA_LOGE("Empty slots are not enough, avaiable only %d",
+		  wma->wow.total_free_ptrn_id - wma->wow.used_free_ptrn_id);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	/* Setup unicast IP, EAPOL-like and ARP pkt pattern */
+	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
+			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
+			unicast_ptrn, sizeof(unicast_ptrn),
+			unicst_offset, unicst_mask, sizeof(unicst_mask));
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to add WOW unicast IP pattern");
+		return ret;
+	}
+
+	/* Setup all ARP pkt pattern */
+	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
+			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
+			arp_ptrn, sizeof(arp_ptrn), arp_offset,
+			arp_mask, sizeof(arp_mask));
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to add WOW ARP pattern");
+		return ret;
+	}
+
+	/*
+	 * Setup multicast pattern for mDNS 224.0.0.251,
+	 * SSDP 239.255.255.250 and LLMNR  224.0.0.252
+	 */
+	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
+			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
+			discvr_ptrn, sizeof(discvr_ptrn), discvr_offset,
+			discvr_mask, sizeof(discvr_mask));
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to add WOW mDNS/SSDP/LLMNR pattern");
+		return ret;
+	}
+
+	/* Setup all DHCP broadcast pkt pattern */
+	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
+			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
+			dhcp_pattern, sizeof(dhcp_pattern), dhcp_offset,
+			dhcp_mask, sizeof(dhcp_mask));
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to add WOW DHCP broadcast pattern");
+		return ret;
+	}
+
+	return ret;
+}
+
+/* Configures default WOW pattern for the given vdev_id which is in STA mode. */
+static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	u_int8_t discvr_ptrn[] = { 0xe0, 0x00, 0x00, 0xf8 };
+	u_int8_t discvr_mask[] = { 0xf0, 0x00, 0x00, 0xf8 };
+	u_int8_t discvr_offset = 38;
+	u_int8_t mac_mask[ETH_ALEN];
+	VOS_STATUS ret;
+
+	WMA_LOGD("Configuring default STA mode wow pattern for vdev %d",
+		  vdev_id);
+
+	if ((wma->wow.total_free_ptrn_id - wma->wow.used_free_ptrn_id)
+			< WMA_STA_WOW_DEFAULT_PTRN_MAX) {
+		WMA_LOGE("Empty slots are not enough, avaiable only %d",
+		  wma->wow.total_free_ptrn_id - wma->wow.used_free_ptrn_id);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	/* Setup unicast pkt pattern */
+	vos_mem_set(&mac_mask, ETH_ALEN, 0xFF);
+	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
+			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
+			wma->interfaces[vdev_id].addr, ETH_ALEN, 0,
+			mac_mask, ETH_ALEN);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to add WOW unicast pattern");
+		return ret;
+	}
+
+	/*
+	 * Setup multicast pattern for mDNS 224.0.0.251,
+	 * SSDP 239.255.255.250 and LLMNR 224.0.0.252
+	 */
+	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
+			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
+			discvr_ptrn, sizeof(discvr_ptrn), discvr_offset,
+			discvr_mask, sizeof(discvr_ptrn));
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to add WOW mDNS/SSDP/LLMNR pattern");
+		return ret;
+	}
+
+	return ret;
+}
+
+/* Finds out list of unused slots in wow pattern cache. Those free slots number
+ * can be used as pattern ID while configuring default wow pattern. */
+static void wma_update_free_wow_ptrn_id(tp_wma_handle wma)
+{
+	struct wma_wow_ptrn_cache *cache;
+	u_int8_t ptrn_id;
+
+	vos_mem_zero(wma->wow.free_ptrn_id, sizeof(wma->wow.free_ptrn_id));
+	wma->wow.total_free_ptrn_id = -1;
+	wma->wow.used_free_ptrn_id = 0;
+
+	for (ptrn_id = 0; ptrn_id < WOW_MAX_BITMAP_FILTERS; ptrn_id++) {
+		cache = wma->wow.cache[ptrn_id];
+		if (!cache) {
+			wma->wow.free_ptrn_id[++wma->wow.total_free_ptrn_id] =
+						ptrn_id;
+			continue;
+		}
+	}
+
+	WMA_LOGD("Total free wow pattern id for default patterns: %d",
+		 wma->wow.total_free_ptrn_id);
+}
+
+/* Returns true if the user configured any wow pattern for given vdev id */
+static bool wma_is_wow_prtn_cached(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	struct wma_wow_ptrn_cache *cache;
+	u_int8_t ptrn_id;
+
+	for (ptrn_id = 0; ptrn_id < WOW_MAX_BITMAP_FILTERS; ptrn_id++) {
+		cache = wma->wow.cache[ptrn_id];
+		if (!cache)
+			continue;
+
+		if (cache->vdev_id == vdev_id)
+			return true;
+	}
+
+	return false;
+}
+
 /*
  * Pushes wow patterns from local cache to FW and configures
  * wakeup trigger events.
@@ -7057,10 +7300,8 @@ static VOS_STATUS wma_enable_wow_in_fw(tp_wma_handle wma)
 static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 {
 	struct wma_txrx_node *iface;
-	struct wma_wow_ptrn_cache *cache;
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
-	v_BOOL_t ptrn_match_event_enable = FALSE;
-	u_int8_t ptrn_id;
+	u_int8_t ptrn_id, vdev_id;
 
 	WMA_LOGD("Clearing already configured wow patterns in fw");
 
@@ -7074,30 +7315,31 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 
 	WMA_LOGD("Configuring wow patterns to fw");
 
-	/* Send wow patterns to FW if there are any patterns cached
-	 * in local wow pattern cache. */
-	for (ptrn_id = 0; ptrn_id < wma->wlan_resource_config.num_wow_filters;
-		ptrn_id++) {
-		cache = wma->wow.cache[ptrn_id];
-		if (!cache)
+	/* Gather list of free ptrn id. This is needed while configuring
+	 * default wow patterns. */
+	wma_update_free_wow_ptrn_id(wma);
+
+	for (vdev_id = 0; vdev_id < wma->max_bssid; vdev_id++) {
+		iface = &wma->interfaces[vdev_id];
+
+		if (!iface->handle ||
+		    !iface->ptrn_match_enable ||
+		    !iface->conn_state)
 			continue;
 
-		iface = &wma->interfaces[cache->vdev_id];
-
-		/* Rule 1: vdev should be in connected state.
-		 * Rule 2: Pattern match should enabled for this vdev
-		 *         by the user. */
-		if(!iface->ptrn_match_enable || !iface->conn_state)
-			continue;
-
-		ret = wma_send_wow_patterns_to_fw(wma, ptrn_id);
-		if (ret != VOS_STATUS_SUCCESS) {
-			WMA_LOGE("Failed to submit wow pattern to fw (ptrn_id %d)",
-				 ptrn_id);
-			return ret;
+		if (wma_is_wow_prtn_cached(wma, vdev_id)) {
+			/* Configure wow patterns provided by the user */
+			ret = wma_wow_usr(wma, vdev_id);
+		} else if (wma_is_vdev_in_ap_mode(wma, vdev_id)) {
+			/* Configure AP mode default wow patterns */
+			ret = wma_wow_ap(wma, vdev_id);
+		} else {
+			/* Configure STA mode default wow patterns */
+			ret = wma_wow_sta(wma, vdev_id);
 		}
 
-		ptrn_match_event_enable = TRUE;
+		if (ret != VOS_STATUS_SUCCESS)
+			return ret;
 	}
 
 	/*
@@ -7105,18 +7347,17 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 	 * only if pattern match event is enabled.
 	 */
 	ret = wma_add_wow_wakeup_event(wma, WOW_PATTERN_MATCH_EVENT,
-				       ptrn_match_event_enable);
+				       TRUE);
 	if (ret != VOS_STATUS_SUCCESS)
 		return ret;
 
-	WMA_LOGD("Pattern byte match is %s in fw",
-		 ptrn_match_event_enable ? "enabled" : "disabled");
+	WMA_LOGD("Pattern byte match is enabled in fw");
 
 	/* Configure magic pattern wakeup event */
 	ret = wma_add_wow_wakeup_event(wma, WOW_MAGIC_PKT_RECVD_EVENT,
 				       wma->wow.magic_ptrn_enable);
 	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGD("Failed to configure magic pattern matching");
+		WMA_LOGE("Failed to configure magic pattern matching");
 	} else {
 		WMA_LOGD("Magic pattern is %s in fw",
 			wma->wow.magic_ptrn_enable ? "enabled" : "disabled");
@@ -7126,7 +7367,7 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 	ret = wma_add_wow_wakeup_event(wma, WOW_DEAUTH_RECVD_EVENT,
 				       wma->wow.deauth_enable);
 	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGD("Failed to configure deauth based wakeup");
+		WMA_LOGE("Failed to configure deauth based wakeup");
 	} else {
 		WMA_LOGD("Deauth based wakeup is %s in fw",
 			 wma->wow.deauth_enable ? "enabled" : "disabled");
@@ -7136,7 +7377,7 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 	ret = wma_add_wow_wakeup_event(wma, WOW_DISASSOC_RECVD_EVENT,
 				       wma->wow.disassoc_enable);
 	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGD("Failed to configure disassoc based wakeup");
+		WMA_LOGE("Failed to configure disassoc based wakeup");
 	} else {
 		WMA_LOGD("Disassoc based wakeup is %s in fw",
 			 wma->wow.disassoc_enable ? "enabled" : "disabled");
@@ -7146,7 +7387,7 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 	ret = wma_add_wow_wakeup_event(wma, WOW_BMISS_EVENT,
 				       wma->wow.bmiss_enable);
 	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGD("Failed to configure beacon miss based wakeup");
+		WMA_LOGE("Failed to configure beacon miss based wakeup");
 	} else {
 		WMA_LOGD("Beacon miss based wakeup is %s in fw",
 			 wma->wow.bmiss_enable ? "enabled" : "disabled");
@@ -7156,7 +7397,7 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 	ret = wma_add_wow_wakeup_event(wma, WOW_GTK_ERR_EVENT,
 				       wma->wow.gtk_err_enable);
 	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGD("Failed to configure GTK based wakeup");
+		WMA_LOGE("Failed to configure GTK based wakeup");
 	} else {
 		WMA_LOGD("GTK based wakeup is %s in fw",
 			 wma->wow.gtk_err_enable ? "enabled" : "disabled");

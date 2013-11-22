@@ -240,6 +240,9 @@ typedef struct {
 #define WMA_WOW_PTRN_MASK_VALID     0xFF
 #define WMA_NUM_BITS_IN_BYTE           8
 
+#define WMA_AP_WOW_DEFAULT_PTRN_MAX    4
+#define WMA_STA_WOW_DEFAULT_PTRN_MAX   2
+
 struct wma_wow_ptrn_cache {
 	u_int8_t vdev_id;
 	u_int8_t *ptrn;
@@ -252,6 +255,11 @@ struct wma_wow_ptrn_cache {
 struct wma_wow {
 	struct wma_wow_ptrn_cache *cache[WOW_MAX_BITMAP_FILTERS];
 	u_int8_t no_of_ptrn_cached;
+
+	u_int8_t free_ptrn_id[WOW_MAX_BITMAP_FILTERS];
+	u_int8_t total_free_ptrn_id;
+	u_int8_t used_free_ptrn_id;
+
 	v_BOOL_t magic_ptrn_enable;
 	v_BOOL_t wow_enable;
 	v_BOOL_t deauth_enable;
@@ -389,6 +397,7 @@ typedef struct {
 	tSirHostOffloadReq mArpInfo;
 	struct wma_tx_ack_work_ctx *ack_work_ctx;
 	u_int8_t powersave_mode;
+	v_BOOL_t ptrn_match_enable_all_vdev;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

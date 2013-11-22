@@ -2333,6 +2333,12 @@ REG_VARIABLE( CFG_MAX_WOW_FILTERS_NAME, WLAN_PARAM_Integer,
                CFG_MAX_WOW_FILTERS_MIN,
                CFG_MAX_WOW_FILTERS_MAX),
 
+REG_VARIABLE( CFG_WOW_STATUS_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, wowEnable,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_WOW_STATUS_DEFAULT,
+               CFG_WOW_ENABLE_MIN,
+               CFG_WOW_ENABLE_MAX),
 };
 
 /*
