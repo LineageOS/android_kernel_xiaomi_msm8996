@@ -294,6 +294,7 @@ struct wma_txrx_node {
 	WLAN_PHY_MODE           chanmode;
 	tANI_U8                 vht_capable;
 	tANI_U8                 ht_capable;
+	v_BOOL_t vdev_up;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)

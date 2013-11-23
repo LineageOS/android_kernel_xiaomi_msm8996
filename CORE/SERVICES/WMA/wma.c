@@ -512,7 +512,7 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 		CFG_TGT_MAX_FRAG_TABLE_ENTRIES,
 		0,
 		0,
-		0,
+		CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV,
 		CFG_TGT_MAX_MULTICAST_FILTER_ENTRIES,
 		0,
 	};
@@ -5780,36 +5780,93 @@ fail:
 	return VOS_STATUS_E_FAILURE;
 }
 
-static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
+static int wmi_unified_bcn_tmpl_send(tp_wma_handle wma,
+				     u_int8_t vdev_id,
+				     tpSendbeaconParams bcn_info)
 {
-	ol_txrx_vdev_handle vdev;
-	u_int8_t vdev_id;
-#ifndef QCA_WIFI_ISOC
+	wmi_bcn_tmpl_cmd_fixed_param  *cmd;
+	wmi_bcn_prb_info *bcn_prb_info;
+	wmi_buf_t wmi_buf;
+	u_int32_t tmpl_len, tmpl_len_aligned, wmi_buf_len;
+	u_int8_t *frm, *buf_ptr;
+	u_int8_t bytes_to_strip;
+	int ret;
+
+	WMA_LOGD("Send beacon template for vdev %d", vdev_id);
+
+	tmpl_len = *(u_int32_t *)&bcn_info->beacon[0];
+
+	bytes_to_strip = sizeof (tANI_U32); /* Exclude beacon length field */
+
+	frm = bcn_info->beacon + bytes_to_strip;
+	tmpl_len_aligned = roundup(tmpl_len, sizeof(A_UINT32));
+
+	wmi_buf_len = sizeof(wmi_bcn_tmpl_cmd_fixed_param) +
+	          sizeof(wmi_bcn_prb_info) + WMI_TLV_HDR_SIZE +
+		  tmpl_len_aligned;
+
+	wmi_buf = wmi_buf_alloc(wma->wmi_handle, wmi_buf_len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+		return -ENOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_bcn_tmpl_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_bcn_tmpl_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_bcn_tmpl_cmd_fixed_param));
+	cmd->vdev_id = vdev_id;
+	cmd->tim_ie_offset = bcn_info->timIeOffset - bytes_to_strip;
+	cmd->buf_len = tmpl_len;
+	buf_ptr += sizeof(wmi_bcn_tmpl_cmd_fixed_param);
+
+	bcn_prb_info = (wmi_bcn_prb_info *)buf_ptr;
+        WMITLV_SET_HDR(&bcn_prb_info->tlv_header,
+			WMITLV_TAG_STRUC_wmi_bcn_prb_info,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_bcn_prb_info));
+	bcn_prb_info->caps = 0;
+	bcn_prb_info->erp = 0;
+	buf_ptr += sizeof(wmi_bcn_prb_info);
+
+	WMITLV_SET_HDR(buf_ptr,	WMITLV_TAG_ARRAY_BYTE, tmpl_len_aligned);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	vos_mem_copy(buf_ptr, frm, tmpl_len);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle,
+			wmi_buf, wmi_buf_len,
+			WMI_BCN_TMPL_CMDID);
+	if (ret) {
+		WMA_LOGE("Failed to send bcn tmpl: %d", ret);
+		wmi_buf_free(wmi_buf);
+	}
+
+	return ret;
+}
+
+VOS_STATUS wma_store_bcn_tmpl(tp_wma_handle wma, u_int8_t vdev_id,
+			      tpSendbeaconParams bcn_info)
+{
 	struct beacon_info *bcn;
 	u_int32_t len;
 	u_int8_t *bcn_payload;
 	struct beacon_tim_ie *tim_ie;
-#endif
-	vdev = wma_find_vdev_by_addr(wma, bcn_info->bssId, &vdev_id);
-	if (!vdev) {
-		WMA_LOGE("%s : failed to get vdev handle\n", __func__);
-		return;
-	}
-#ifndef QCA_WIFI_ISOC
+
 	bcn = wma->interfaces[vdev_id].beacon;
 	if (!bcn || !bcn->buf) {
-		WMA_LOGE("%s: Memory is not allocated to hold bcn template\n",
+		WMA_LOGE("%s: Memory is not allocated to hold bcn template",
 			 __func__);
-		return;
+		return VOS_STATUS_E_INVAL;
 	}
 
 	len = *(u32 *)&bcn_info->beacon[0];
 	if (len > WMA_BCN_BUF_MAX_SIZE) {
-		WMA_LOGE("%s: Received beacon len %d exceeding max limit %d\n",
+		WMA_LOGE("%s: Received beacon len %d exceeding max limit %d",
 			 __func__, len, WMA_BCN_BUF_MAX_SIZE);
-		return;
+		return VOS_STATUS_E_INVAL;
 	}
-	WMA_LOGD("%s: Storing received beacon template buf to local buffer\n",
+	WMA_LOGD("%s: Storing received beacon template buf to local buffer",
 		 __func__);
 	adf_os_spin_lock_bh(&bcn->lock);
 
@@ -5835,17 +5892,50 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 	tim_ie->tim_bitctl = 0;
 
 	adf_nbuf_put_tail(bcn->buf, len);
+	bcn->len = len;
 
 	adf_os_spin_unlock_bh(&bcn->lock);
-	if (!bcn->len) {
-#endif
-		if (wmi_unified_vdev_up_send(wma->wmi_handle, vdev_id, 0,
-					     bcn_info->bssId) < 0)
-			WMA_LOGE("%s : failed to send vdev up\n", __func__);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
+{
+	ol_txrx_vdev_handle vdev;
+	u_int8_t vdev_id;
 #ifndef QCA_WIFI_ISOC
-	}
-	bcn->len = len;
+	VOS_STATUS status;
 #endif
+	vdev = wma_find_vdev_by_addr(wma, bcn_info->bssId, &vdev_id);
+	if (!vdev) {
+		WMA_LOGE("%s : failed to get vdev handle\n", __func__);
+		return;
+	}
+
+#ifndef QCA_WIFI_ISOC
+	if (WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+				   WMI_SERVICE_BEACON_OFFLOAD)) {
+            WMA_LOGE("%s : Beacon Offload Enabled Sending Unified command", __func__);
+
+	    if (wmi_unified_bcn_tmpl_send(wma, vdev_id, bcn_info) < 0){
+                WMA_LOGE("%s : wmi_unified_bcn_tmpl_send Failed ", __func__);
+		return;
+            }
+	} else {
+		status = wma_store_bcn_tmpl(wma, vdev_id, bcn_info);
+		if (status != VOS_STATUS_SUCCESS)
+			return;
+	}
+#endif
+	if (!wma->interfaces[vdev_id].vdev_up) {
+	      if (wmi_unified_vdev_up_send(wma->wmi_handle, vdev_id, 0,
+				      bcn_info->bssId) < 0) {
+		WMA_LOGE("%s : failed to send vdev up", __func__);
+		return;
+	     }
+	     wma->interfaces[vdev_id].vdev_up = TRUE;
+	}
+
 	wma_set_sap_keepalive(wma, vdev_id);
 }
 
