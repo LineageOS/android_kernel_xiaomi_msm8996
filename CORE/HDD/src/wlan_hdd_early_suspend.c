@@ -1108,6 +1108,9 @@ void hdd_suspend_wlan(void (*callback)(void *callbackContext),
 
 #ifdef QCA_WIFI_2_0
 send_suspend_ind:
+   //stop all TX queues before suspend
+   netif_tx_disable(pAdapter->dev);
+
 #endif
     /* Keep this suspend indication at the end (before processing next adaptor)
      * for discrete. This indication is considered as trigger point to start
@@ -1391,6 +1394,12 @@ void hdd_resume_wlan(void)
       }
 
       hdd_conf_resume_ind(pAdapter);
+
+#ifdef QCA_WIFI_2_0
+      //wake the tx queues
+      netif_tx_wake_all_queues(pAdapter->dev);
+#endif
+
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
