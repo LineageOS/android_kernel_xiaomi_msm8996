@@ -1294,6 +1294,67 @@ static int wma_oem_data_error_report_event_callback(void *handle,
 }
 #endif /* FEATURE_OEM_DATA_SUPPORT */
 
+static int wma_p2p_noa_event_handler(void *handle, u_int8_t *event, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	WMI_P2P_NOA_EVENTID_param_tlvs *param_buf;
+	wmi_p2p_noa_event_fixed_param *p2p_noa_event;
+	u_int8_t vdev_id, i;
+	wmi_p2p_noa_info *p2p_noa_info;
+	struct p2p_sub_element_noa noa_ie;
+	u_int8_t *buf_ptr;
+	u_int32_t descriptors;
+
+	param_buf = (WMI_P2P_NOA_EVENTID_param_tlvs *) event;
+	if (!param_buf) {
+		WMA_LOGE("Invalid P2P NoA event buffer");
+		return -EINVAL;
+	}
+
+	p2p_noa_event = param_buf->fixed_param;
+	buf_ptr = (u_int8_t *) p2p_noa_event;
+	buf_ptr += sizeof(wmi_p2p_noa_event_fixed_param);
+	p2p_noa_info = (wmi_p2p_noa_info *) (buf_ptr);
+	vdev_id = p2p_noa_event->vdev_id;
+
+	if (WMI_UNIFIED_NOA_ATTR_IS_MODIFIED(p2p_noa_info)) {
+
+		vos_mem_zero(&noa_ie, sizeof(noa_ie));
+		noa_ie.index = (u_int8_t)WMI_UNIFIED_NOA_ATTR_INDEX_GET(p2p_noa_info);
+		noa_ie.oppPS = (u_int8_t)WMI_UNIFIED_NOA_ATTR_OPP_PS_GET(p2p_noa_info);
+		noa_ie.ctwindow = (u_int8_t)WMI_UNIFIED_NOA_ATTR_CTWIN_GET(p2p_noa_info);
+		descriptors = WMI_UNIFIED_NOA_ATTR_NUM_DESC_GET(p2p_noa_info);
+		noa_ie.num_descriptors = (u_int8_t)descriptors;
+
+		WMA_LOGI("%s: index %lu, oppPs %lu, ctwindow %lu, "
+				"num_descriptors = %lu", __func__, noa_ie.index,
+				noa_ie.oppPS, noa_ie.ctwindow, noa_ie.num_descriptors);
+		for(i = 0; i < noa_ie.num_descriptors; i++) {
+			noa_ie.noa_descriptors[i].type_count =
+				(u_int8_t)p2p_noa_info->noa_descriptors[i].type_count;
+			noa_ie.noa_descriptors[i].duration =
+				p2p_noa_info->noa_descriptors[i].duration;
+			noa_ie.noa_descriptors[i].interval =
+				p2p_noa_info->noa_descriptors[i].interval;
+			noa_ie.noa_descriptors[i].start_time =
+				p2p_noa_info->noa_descriptors[i].start_time;
+			WMA_LOGI("%s: NoA descriptor[%d] type_count %lu, "
+					"duration %lu, interval %lu, start_time = %lu",
+					__func__, i,
+					noa_ie.noa_descriptors[i].type_count,
+					noa_ie.noa_descriptors[i].duration,
+					noa_ie.noa_descriptors[i].interval,
+					noa_ie.noa_descriptors[i].start_time);
+		}
+
+		/* Send a msg to LIM to update the NoA IE in probe response
+		 * frames transmitted by the host */
+		wma_update_probe_resp_noa(wma, &noa_ie);
+	}
+
+	return 0;
+}
+
 /*
  * Allocate and init wmi adaptation layer.
  */
@@ -10740,6 +10801,15 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 		}
 	}
 #endif
+
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+							WMI_P2P_NOA_EVENTID,
+							wma_p2p_noa_event_handler);
+	if (status) {
+		WMA_LOGE("Failed to register WMI_P2P_NOA_EVENTID callback");
+		return;
+	}
+
 	vos_mem_copy(target_cap.wmi_service_bitmap,
 		     param_buf->wmi_service_bitmap,
 		     sizeof(wma_handle->wmi_service_bitmap));
