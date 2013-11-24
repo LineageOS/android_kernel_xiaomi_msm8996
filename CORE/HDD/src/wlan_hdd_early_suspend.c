@@ -713,7 +713,7 @@ VOS_STATUS hdd_conf_arp_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
    tSirHostOffloadReq  offLoadRequest;
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
-   hddLog(VOS_TRACE_LEVEL_ERROR, "%s: \n", __func__);
+   hddLog(VOS_TRACE_LEVEL_INFO, "%s: \n", __func__);
 
    if(fenable)
    {
