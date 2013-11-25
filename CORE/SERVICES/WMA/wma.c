@@ -4623,6 +4623,11 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	vdev_id = add_bss->staContext.smesessionId;
 	iface = &wma->interfaces[vdev_id];
 	if (add_bss->operMode) {
+		// Save parameters later needed by WDA_ADD_STA_REQ
+		iface->beaconInterval = add_bss->beaconInterval;
+		iface->dtimPeriod = add_bss->dtimPeriod;
+		iface->llbCoexist = add_bss->llbCoexist;
+		iface->shortSlotTimeSupported = add_bss->shortSlotTimeSupported;
 		if (add_bss->reassocReq) {
 			// Called in preassoc state. BSSID peer is already added by set_linkstate
 			peer = ol_txrx_find_peer_by_addr(pdev, add_bss->bssId, &peer_id);
@@ -4668,11 +4673,6 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 							WMA_TARGET_REQ_TYPE_VDEV_START);
 				goto peer_cleanup;
 			}
-			// Save parameters later needed by WDA_ADD_STA_REQ
-			iface->beaconInterval = add_bss->beaconInterval;
-			iface->dtimPeriod = add_bss->dtimPeriod;
-			iface->llbCoexist = add_bss->llbCoexist;
-			iface->shortSlotTimeSupported = add_bss->shortSlotTimeSupported;
 			// ADD_BSS_RESP will be deferred to completion of VDEV_START
 
 		    return;
