@@ -8288,6 +8288,62 @@ err:
 	vos_mem_free(msg);
 }
 
+/*
+ * @brief: A function to handle WDA_AGGR_QOS_REQ. This will send out
+ *         ADD_TS requestes to firmware in loop for all the ACs with
+ *         active flow.
+ * @param: wma_handler - handle to wma
+ * @param: pAggrQosRspMsg - combined struct for all ADD_TS requests.
+ */
+static void wma_aggr_qos_req(tp_wma_handle wma, tAggrAddTsParams *pAggrQosRspMsg)
+{
+    int i = 0;
+    wmi_vdev_wmm_addts_cmd_fixed_param *cmd;
+    wmi_buf_t buf;
+    int32_t len = sizeof(*cmd);
+
+    for( i = 0; i < HAL_QOS_NUM_AC_MAX; i++ )
+    {
+      // if flow in this AC is active
+      if ( ((1 << i) & pAggrQosRspMsg->tspecIdx) )
+      {
+        /*
+         * as per implementation of wma_add_ts_req() we
+         * are not waiting any response from firmware so
+         * apart from sending ADDTS to firmware just send
+         * success to upper layers
+         */
+        pAggrQosRspMsg->status[i] = eHAL_STATUS_SUCCESS;
+
+        buf = wmi_buf_alloc(wma->wmi_handle, len);
+        if (!buf) {
+                WMA_LOGP("%s : wmi_buf_alloc failed\n", __func__);
+                goto aggr_qos_exit;
+        }
+        cmd = (wmi_vdev_wmm_addts_cmd_fixed_param *) wmi_buf_data(buf);
+        WMITLV_SET_HDR(&cmd->tlv_header,
+                        WMITLV_TAG_STRUC_wmi_vdev_wmm_addts_cmd_fixed_param,
+                        WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_wmm_addts_cmd_fixed_param));
+        cmd->vdev_id = pAggrQosRspMsg->sessionId;
+        cmd->ac = TID_TO_WME_AC(pAggrQosRspMsg->tspec[i].tsinfo.traffic.userPrio);
+        cmd->medium_time_us = pAggrQosRspMsg->tspec[i].mediumTime * 32;
+        cmd->downgrade_type = WMM_AC_DOWNGRADE_DEPRIO;
+        WMA_LOGD("%s:%d: Addts vdev:%d, ac:%d, mediumTime:%d\n",
+                        __func__, __LINE__, cmd->vdev_id, cmd->ac, cmd->medium_time_us);
+        if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+                                WMI_VDEV_WMM_ADDTS_CMDID)) {
+                WMA_LOGP("Failed to send vdev ADDTS command\n");
+                pAggrQosRspMsg->status[i] = eHAL_STATUS_FAILURE;
+                adf_nbuf_free(buf);
+        }
+      }
+    }
+
+aggr_qos_exit:
+    // send reponse to upper layers from here only.
+    wma_send_msg(wma, WDA_AGGR_QOS_RSP, pAggrQosRspMsg, 0);
+}
+
 static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 {
 	wmi_vdev_wmm_addts_cmd_fixed_param *cmd;
@@ -9488,6 +9544,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_DEL_TS_REQ:
 			wma_del_ts_req(wma_handle, (tDelTsParams *)msg->bodyptr);
 			break;
+
+                case WDA_AGGR_QOS_REQ:
+                        wma_aggr_qos_req(wma_handle, (tAggrAddTsParams *)msg->bodyptr);
+                        break;
 
 		case WDA_RECEIVE_FILTER_SET_FILTER_REQ:
 			wma_process_receive_filter_set_filter_req(wma_handle,
