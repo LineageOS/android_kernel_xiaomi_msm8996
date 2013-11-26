@@ -254,6 +254,7 @@ typedef enum {
     WMI_VDEV_WMM_DELTS_CMDID,
     WMI_VDEV_SET_WMM_PARAMS_CMDID,
     WMI_VDEV_SET_GTX_PARAMS_CMDID,
+    WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMDID,
 
     /* peer specific commands */
 
@@ -5029,6 +5030,17 @@ typedef struct {
     A_UINT32 keepaliveInterval;   /* seconds */
     A_UINT32 keepaliveMethod;   /* seconds */
 } wmi_vdev_get_keepalive_event_fixed_param;
+
+#define IPSEC_NATKEEPALIVE_FILTER_DISABLE 0
+#define IPSEC_NATKEEPALIVE_FILTER_ENABLE  1
+
+typedef struct {
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+    A_UINT32 action;
+} WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMD_fixed_param;
+
+typedef WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMD_fixed_param WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMD;
 
 typedef struct {
     A_UINT32 tlv_header;

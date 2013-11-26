@@ -86,6 +86,7 @@ typedef  enum  {
     WMI_SERVICE_MCC_BCN_INTERVAL_CHANGE,    /* Dynamic beaocn interval change for SAP/P2p GO in MCC scenario */
     WMI_SERVICE_ADAPTIVE_OCS,    /* Service to support adaptive off-channel scheduler */
     WMI_SERVICE_BA_SSN_SUPPORT,    /* target will provide Sequence number for the peer/tid combo */
+    WMI_SERVICE_FILTER_IPSEC_NATKEEPALIVE,
     WMI_SERVICE_WLAN_HB,           /* wlan HB service */
     WMI_MAX_SERVICE=64                /* max service */
 } WMI_SERVICE;
