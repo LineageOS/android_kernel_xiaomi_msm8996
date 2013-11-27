@@ -563,6 +563,9 @@ typedef enum {
     /** eeprom dump event  */
     WMI_PDEV_DUMP_EVENTID,
 
+    /** traffic pause event */
+    WMI_TX_PAUSE_EVENTID,
+
     /* VDEV specific events */
     /** VDEV started event in response to VDEV_START request */
     WMI_VDEV_START_RESP_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_VDEV),
@@ -2023,6 +2026,28 @@ typedef struct {
     A_UINT32 param;
 } wmi_pdev_dump_cmd;
 
+typedef enum {
+    PAUSE_TYPE_CHOP =           0x1, /** for MCC (switch channel), only vdev_map is valid */
+    PAUSE_TYPE_PS =             0x2, /** for peer station sleep in sap mode, only peer_id is valid */
+    PAUSE_TYPE_UAPSD =          0x3, /** for uapsd, only peer_id and tid_map are valid. */
+    PAUSE_TYPE_P2P_CLIENT_NOA = 0x4, /** only vdev_map is valid, actually only one vdev id is set at one time */
+    PAUSE_TYPE_P2P_GO_PS =      0x5, /** only vdev_map is valid, actually only one vdev id is set at one time */
+    PAUSE_TYPE_STA_ADD_BA =     0x6, /** only peer_id and tid_map are valid, actually only one tid is set at one time */
+} wmi_tx_pause_type;
+
+typedef enum {
+    ACTION_PAUSE =     0x0,
+    ACTION_UNPAUSE =   0x1,
+} wmi_tx_pause_action;
+
+typedef struct {
+    A_UINT32 tlv_header;
+    A_UINT32 pause_type;
+    A_UINT32 action;
+    A_UINT32 vdev_map;
+    A_UINT32 peer_id;
+    A_UINT32 tid_map;
+} wmi_tx_pause_event_fixed_param;
 
 #define WMI_TPC_RATE_MAX            160
 /* WMI_TPC_TX_NUM_CHAIN macro can't be changed without breaking the WMI compatibility */
