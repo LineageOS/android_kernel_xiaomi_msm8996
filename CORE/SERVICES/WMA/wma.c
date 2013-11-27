@@ -7763,22 +7763,80 @@ VOS_STATUS wma_process_tsm_stats_req(tp_wma_handle wma_handler,
 
 #endif /* FEATURE_WLAN_CCX */
 
+static void wma_del_ts_req(tp_wma_handle wma, tDelTsParams *msg)
+{
+	wmi_vdev_wmm_delts_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s : wmi_buf_alloc failed\n", __func__);
+		goto err;
+	}
+	cmd = (wmi_vdev_wmm_delts_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_vdev_wmm_delts_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_wmm_delts_cmd_fixed_param));
+	cmd->vdev_id = msg->sessionId;
+	cmd->ac = TID_TO_WME_AC(msg->userPrio);
+
+	WMA_LOGD("Delts vdev:%d, ac:%d, %s:%d\n",
+			cmd->vdev_id, cmd->ac, __FUNCTION__, __LINE__);
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				WMI_VDEV_WMM_DELTS_CMDID)) {
+		WMA_LOGP("Failed to send vdev DELTS command\n");
+		adf_nbuf_free(buf);
+	}
+
+err:
+	vos_mem_free(msg);
+}
+
 static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 {
+	wmi_vdev_wmm_addts_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(*cmd);
+
 #ifdef FEATURE_WLAN_CCX
-    /*
-     * msmt_interval is in unit called TU (1 TU = 1024 us)
-     * max value of msmt_interval cannot make resulting
-     * interval_miliseconds overflow 32 bit
-     */
-    ol_txrx_pdev_handle pdev =
-        vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
-    tANI_U32 intervalMiliseconds =
-        (msg->tsm_interval*1024)/1000;
-        ol_tx_set_compute_interval(pdev, intervalMiliseconds);
+	/*
+	 * msmt_interval is in unit called TU (1 TU = 1024 us)
+	 * max value of msmt_interval cannot make resulting
+	 * interval_miliseconds overflow 32 bit
+	 */
+	ol_txrx_pdev_handle pdev =
+		vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	tANI_U32 intervalMiliseconds =
+		(msg->tsm_interval*1024)/1000;
+	ol_tx_set_compute_interval(pdev, intervalMiliseconds);
 #endif
-    msg->status = eHAL_STATUS_SUCCESS;
-    wma_send_msg(wma, WDA_ADD_TS_RSP, msg, 0);
+	msg->status = eHAL_STATUS_SUCCESS;
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s : wmi_buf_alloc failed\n", __func__);
+		goto err;
+	}
+	cmd = (wmi_vdev_wmm_addts_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_vdev_wmm_addts_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_wmm_addts_cmd_fixed_param));
+	cmd->vdev_id = msg->sessionId;
+	cmd->ac = TID_TO_WME_AC(msg->tspec.tsinfo.traffic.userPrio);
+	cmd->medium_time_us = msg->tspec.mediumTime * 32;
+	cmd->downgrade_type = WMM_AC_DOWNGRADE_DEPRIO;
+	WMA_LOGD("Addts vdev:%d, ac:%d, mediumTime:%d, %s:%d\n",
+			cmd->vdev_id, cmd->ac, cmd->medium_time_us, __func__, __LINE__);
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				WMI_VDEV_WMM_ADDTS_CMDID)) {
+		WMA_LOGP("Failed to send vdev ADDTS command\n");
+		msg->status = eHAL_STATUS_FAILURE;
+		adf_nbuf_free(buf);
+	}
+
+err:
+	wma_send_msg(wma, WDA_ADD_TS_RSP, msg, 0);
 }
 
 static void wma_data_tx_ack_work_handler(struct work_struct *ack_work)
@@ -8930,6 +8988,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 
 		case WDA_ADD_TS_REQ:
 			wma_add_ts_req(wma_handle, (tAddTsParams *)msg->bodyptr);
+			break;
+
+		case WDA_DEL_TS_REQ:
+			wma_del_ts_req(wma_handle, (tDelTsParams *)msg->bodyptr);
 			break;
 
 		case WDA_RECEIVE_FILTER_SET_FILTER_REQ:
