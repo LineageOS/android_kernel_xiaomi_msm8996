@@ -5791,10 +5791,21 @@ static int wmi_unified_bcn_tmpl_send(tp_wma_handle wma,
 	u_int8_t *frm, *buf_ptr;
 	u_int8_t bytes_to_strip;
 	int ret;
+	u_int8_t *p2p_ie;
+	u_int16_t p2p_ie_len = 0;
+
 
 	WMA_LOGD("Send beacon template for vdev %d", vdev_id);
 
+	if (bcn_info->p2pIeOffset) {
+		p2p_ie = bcn_info->beacon + bcn_info->p2pIeOffset;
+		p2p_ie_len = (u_int16_t) p2p_ie[1] + 2;
+	}
+
 	tmpl_len = *(u_int32_t *)&bcn_info->beacon[0];
+	if (p2p_ie_len) {
+		tmpl_len -= (u_int32_t) p2p_ie_len;
+	}
 
 	bytes_to_strip = sizeof (tANI_U32); /* Exclude beacon length field */
 
@@ -5899,6 +5910,56 @@ VOS_STATUS wma_store_bcn_tmpl(tp_wma_handle wma, u_int8_t vdev_id,
 	return VOS_STATUS_SUCCESS;
 }
 
+static int wma_p2p_go_set_beacon_ie(t_wma_handle *wma_handle,
+					A_UINT32 vdev_id, u_int8_t *p2pIe)
+{
+	int ret;
+	wmi_p2p_go_set_beacon_ie_fixed_param *cmd;
+	wmi_buf_t wmi_buf;
+	u_int32_t ie_len, ie_len_aligned, wmi_buf_len;
+	u_int8_t *buf_ptr;
+
+	ie_len = (u_int32_t) (p2pIe[1] + 2);
+
+	ie_len_aligned = roundup(ie_len, sizeof(A_UINT32));
+
+	wmi_buf_len = sizeof(wmi_p2p_go_set_beacon_ie_fixed_param) + ie_len_aligned + WMI_TLV_HDR_SIZE;
+
+	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, wmi_buf_len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+		return -ENOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_p2p_go_set_beacon_ie_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_p2p_go_set_beacon_ie_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_p2p_go_set_beacon_ie_fixed_param));
+	cmd->vdev_id = vdev_id;
+	cmd->ie_buf_len = ie_len;
+
+	buf_ptr += sizeof(wmi_p2p_go_set_beacon_ie_fixed_param);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, ie_len_aligned);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	vos_mem_copy(buf_ptr, p2pIe, ie_len);
+
+	WMA_LOGI("\n%s: Sending WMI_P2P_GO_SET_BEACON_IE", __func__);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle,
+			wmi_buf, wmi_buf_len,
+			WMI_P2P_GO_SET_BEACON_IE
+			);
+	if (ret) {
+		WMA_LOGE("Failed to send bcn tmpl: %d", ret);
+		wmi_buf_free(wmi_buf);
+	}
+
+	WMA_LOGI("\n%s: Successfully sent WMI_P2P_GO_SET_BEACON_IE", __func__);
+	return ret;
+}
+
 static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 {
 	ol_txrx_vdev_handle vdev;
@@ -5906,6 +5967,7 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 #ifndef QCA_WIFI_ISOC
 	VOS_STATUS status;
 #endif
+        u_int8_t *p2p_ie;
 	vdev = wma_find_vdev_by_addr(wma, bcn_info->bssId, &vdev_id);
 	if (!vdev) {
 		WMA_LOGE("%s : failed to get vdev handle\n", __func__);
@@ -5920,7 +5982,17 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 	    if (wmi_unified_bcn_tmpl_send(wma, vdev_id, bcn_info) < 0){
                 WMA_LOGE("%s : wmi_unified_bcn_tmpl_send Failed ", __func__);
 		return;
-            }
+	    }
+
+	    if (bcn_info->p2pIeOffset) {
+		    p2p_ie = bcn_info->beacon + bcn_info->p2pIeOffset;
+		    WMA_LOGI("\n %s: p2pIe is present - vdev_id %hu, p2p_ie = %p, p2p ie len = %hu",
+				    __func__, vdev_id, p2p_ie, p2p_ie[1]);
+		    if (wma_p2p_go_set_beacon_ie(wma, vdev_id, p2p_ie) < 0) {
+			    WMA_LOGE("%s : wmi_unified_bcn_tmpl_send Failed ", __func__);
+			    return;
+		    }
+	    }
 	} else {
 		status = wma_store_bcn_tmpl(wma, vdev_id, bcn_info);
 		if (status != VOS_STATUS_SUCCESS)
