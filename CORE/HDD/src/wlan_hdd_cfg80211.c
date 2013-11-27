@@ -3385,13 +3385,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
            is done. Save the key in the UMAC and include it in the ADD BSS
            request */
         halStatus = sme_FTUpdateKey( WLAN_HDD_GET_HAL_CTX(pAdapter), &setKey);
-        if ( halStatus == eHAL_STATUS_FT_PREAUTH_KEY_SUCCESS )
-        {
-           hddLog(VOS_TRACE_LEVEL_INFO_MED,
-                  "%s: Update PreAuth Key success", __func__);
-           return 0;
-        }
-        else if ( halStatus == eHAL_STATUS_FT_PREAUTH_KEY_FAILED )
+        if ( halStatus == eHAL_STATUS_FT_PREAUTH_KEY_FAILED )
         {
            hddLog(VOS_TRACE_LEVEL_ERROR,
                   "%s: Update PreAuth Key failed", __func__);
