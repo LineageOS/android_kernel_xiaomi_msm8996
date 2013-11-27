@@ -4,7 +4,7 @@
 WLAN_CHIPSET :=
 
 # Build/Package options for 8084 target
-ifeq ($(call is-board-platform,apq8084),true)
+ifeq ($(TARGET_BOARD_PLATFORM),apq8084)
 WLAN_CHIPSET := qca_cld
 WLAN_SELECT := CONFIG_QCA_CLD_WLAN=m
 WLAN_ISOC_SELECT := WLAN_ISOC=n
@@ -31,7 +31,7 @@ else
     WLAN_BLD_DIR := vendor/qcom/opensource/wlan
 endif
 
-ifeq ($(call is-platform-sdk-version-at-least,16),true)
+ifeq (1,$(filter 1,$(shell echo "$$(( $(PLATFORM_SDK_VERSION) >= 16 ))" )))
        DLKM_DIR := $(TOP)/device/qcom/common/dlkm
 else
        DLKM_DIR := build/dlkm
