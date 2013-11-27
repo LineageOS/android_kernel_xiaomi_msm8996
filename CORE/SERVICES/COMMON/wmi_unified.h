@@ -689,7 +689,6 @@ typedef enum {
 
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
-
     /** upload H_CV info WMI event
      * to indicate uploaded H_CV info to host
      */
@@ -699,6 +698,9 @@ typedef enum {
      * to indicate captured H info to host
      */
     WMI_CAPTUREH_EVENTID,
+    /* hw RFkill */
+    WMI_RFKILL_STATE_CHANGE_EVENTID,
+
     /* TDLS Event */
     WMI_TDLS_PEER_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_TDLS),
 } WMI_EVT_ID;
@@ -1983,6 +1985,8 @@ typedef enum {
     WMI_PDEV_PARAM_BURST_DUR,
     /** Set Bursting ENABLE */
     WMI_PDEV_PARAM_BURST_ENABLE,
+    /** HW rfkill config */
+    WMI_PDEV_PARAM_HW_RFKILL_CONFIG,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -5714,6 +5718,27 @@ typedef struct {
      *     wmi_p2p_noa_info p2p_noa_info;
      */
 } wmi_p2p_noa_event_fixed_param;
+
+#define WMI_RFKILL_CFG_RADIO_LEVEL_OFFSET      6
+#define WMI_RFKILL_CFG_RADIO_LEVEL_MASK      0x1
+
+#define WMI_RFKILL_CFG_GPIO_PIN_NUM_OFFSET      0
+#define WMI_RFKILL_CFG_GPIO_PIN_NUM_MASK      0x3f
+
+#define WMI_RFKILL_CFG_PIN_AS_GPIO_OFFSET      7
+#define WMI_RFKILL_CFG_PIN_AS_GPIO_MASK      0xf
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     * */
+    A_UINT32 tlv_header;
+    /** gpip pin number */
+    A_UINT32 gpio_pin_num;
+    /** gpio interupt type */
+    A_UINT32 int_type;
+    /** RF radio status */
+    A_UINT32 radio_state;
+} wmi_rfkill_mode_param;
 
 #ifdef __cplusplus
 }

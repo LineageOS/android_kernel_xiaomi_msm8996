@@ -392,6 +392,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_hb_set_udp_pkt_filter_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_hb_ind_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_tx_pause_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_rfkill_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -575,7 +576,8 @@ typedef enum {
     OP(WMI_BA_RSP_SSN_EVENTID) \
     OP(WMI_OFFLOAD_BCN_TX_STATUS_EVENTID) \
     OP(WMI_P2P_NOA_EVENTID) \
-    OP(WMI_TX_PAUSE_EVENTID)
+    OP(WMI_TX_PAUSE_EVENTID) \
+    OP(WMI_RFKILL_STATE_CHANGE_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1498,6 +1500,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_GPIO_INPUT_EVENTID);
 #define WMITLV_TABLE_WMI_CSA_HANDLING_EVENTID(id,op,buf,len)\
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_csa_event_fixed_param, wmi_csa_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_CSA_HANDLING_EVENTID);
+
+/* Rfkill state change Event */
+#define WMITLV_TABLE_WMI_RFKILL_STATE_CHANGE_EVENTID(id,op,buf,len)\
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_rfkill_event_fixed_param, wmi_rfkill_mode_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_RFKILL_STATE_CHANGE_EVENTID);
 
 /* Debug Message Event */
 #define WMITLV_TABLE_WMI_DEBUG_MESG_EVENTID(id,op,buf,len)\
