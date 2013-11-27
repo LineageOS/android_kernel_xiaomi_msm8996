@@ -6767,8 +6767,10 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 				     u_int32_t len)
 {
+	tp_wma_handle wma = (tp_wma_handle) handle;
 	WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *param_buf;
 	WOW_EVENT_INFO_fixed_param *wake_info;
+	struct wma_txrx_node *node;
 
 	param_buf = (WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *) event;
 	if (!param_buf) {
@@ -6777,8 +6779,18 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	}
 
 	wake_info = param_buf->fixed_param;
-	WMA_LOGD("WOW wakeup host event received (reason: %s)",
-		 wma_wow_wake_reason_str(wake_info->wake_reason));
+
+	WMA_LOGD("WOW wakeup host event received (reason: %s) for vdev %d",
+		 wma_wow_wake_reason_str(wake_info->wake_reason),
+		 wake_info->vdev_id);
+
+	if (wake_info->wake_reason == WOW_REASON_NLOD) {
+		node = &wma->interfaces[wake_info->vdev_id];
+		if (node) {
+			WMA_LOGD("NLO match happened");
+			node->nlo_match_evt_received = TRUE;
+		}
+	}
 
 	return 0;
 }
@@ -7284,7 +7296,7 @@ static VOS_STATUS wma_wow_exit(tp_wma_handle wma,
 static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 {
 	struct wma_txrx_node *iface;
-	v_BOOL_t connected = FALSE;
+	v_BOOL_t connected = FALSE, pno_in_progress = FALSE;
 	VOS_STATUS ret;
 	u_int8_t i;
 
@@ -7337,9 +7349,14 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 			connected = TRUE;
 			break;
 		}
+		if (wma->interfaces[i].pno_in_progress) {
+			WMA_LOGD("PNO is in progress during suspend");
+			pno_in_progress = TRUE;
+			break;
+		}
 	}
 
-	if (!connected) {
+	if (!connected && !pno_in_progress) {
 		WMA_LOGD("All vdev are in disconnected state, skipping wow");
 		vos_mem_free(info);
 		goto send_ready_to_suspend;
