@@ -801,6 +801,9 @@ struct hdd_adapter_s
    v_BOOL_t higherDtimTransition;
 
    hdd_scaninfo_t scan_info;
+#ifdef QCA_WIFI_2_0
+   v_BOOL_t internalCancelRemainOnChReq;
+#endif
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
