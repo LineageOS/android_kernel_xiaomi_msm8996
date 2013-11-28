@@ -218,6 +218,18 @@ struct beacon_tim_ie {
 
 #endif
 
+struct pps {
+	v_BOOL_t paid_match_enable;
+	v_BOOL_t gid_match_enable;
+	v_BOOL_t tim_clear;
+	v_BOOL_t dtim_clear;
+	v_BOOL_t eof_delim;
+	v_BOOL_t mac_match;
+	v_BOOL_t delim_fail;
+	v_BOOL_t nsts_zero;
+	v_BOOL_t rssi_chk;
+};
+
 typedef struct {
 	u_int32_t ani_enable;
 	u_int32_t ani_poll_len;
@@ -243,6 +255,7 @@ typedef struct {
 	u_int32_t tx_rate;
 	u_int32_t ampdu;
 	u_int32_t amsdu;
+        struct pps pps_params;
 } vdev_cli_config_t;
 
 #define WMA_WOW_PTRN_MASK_VALID     0xFF

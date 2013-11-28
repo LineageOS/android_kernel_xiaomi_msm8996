@@ -4354,6 +4354,33 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_VDEV_PARAM_FIXED_RATE:
 			intr[vid].config.tx_rate = privcmd->param_value;
 			break;
+		case WMI_VDEV_PPS_PAID_MATCH:
+			intr[vid].config.pps_params.paid_match_enable = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_GID_MATCH:
+			intr[vid].config.pps_params.gid_match_enable = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_EARLY_TIM_CLEAR:
+			intr[vid].config.pps_params.tim_clear = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_EARLY_DTIM_CLEAR:
+			intr[vid].config.pps_params.dtim_clear = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_EOF_PAD_DELIM:
+			intr[vid].config.pps_params.eof_delim = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_MACADDR_MISMATCH:
+			intr[vid].config.pps_params.mac_match = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_DELIM_CRC_FAIL:
+			intr[vid].config.pps_params.delim_fail = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_GID_NSTS_ZERO:
+			intr[vid].config.pps_params.nsts_zero = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_RSSI_CHECK:
+			intr[vid].config.pps_params.rssi_chk = privcmd->param_value;
+			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set vdev command/Not"
 				" yet implemented 0x%x", privcmd->param_id);
@@ -4464,6 +4491,33 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			break;
 		case WMI_VDEV_PARAM_FIXED_RATE:
 			ret = intr[vdev_id].config.tx_rate;
+			break;
+		case WMI_VDEV_PPS_PAID_MATCH:
+			ret = intr[vdev_id].config.pps_params.paid_match_enable;
+			break;
+		case WMI_VDEV_PPS_GID_MATCH:
+			ret = intr[vdev_id].config.pps_params.gid_match_enable;
+			break;
+		case WMI_VDEV_PPS_EARLY_TIM_CLEAR:
+			ret = intr[vdev_id].config.pps_params.tim_clear;
+			break;
+		case WMI_VDEV_PPS_EARLY_DTIM_CLEAR:
+			ret = intr[vdev_id].config.pps_params.dtim_clear;
+			break;
+		case WMI_VDEV_PPS_EOF_PAD_DELIM:
+			ret = intr[vdev_id].config.pps_params.eof_delim;
+			break;
+		case WMI_VDEV_PPS_MACADDR_MISMATCH:
+			ret = intr[vdev_id].config.pps_params.mac_match;
+			break;
+		case WMI_VDEV_PPS_DELIM_CRC_FAIL:
+			ret = intr[vdev_id].config.pps_params.delim_fail;
+			break;
+		case WMI_VDEV_PPS_GID_NSTS_ZERO:
+			ret = intr[vdev_id].config.pps_params.nsts_zero;
+			break;
+		case WMI_VDEV_PPS_RSSI_CHECK:
+			ret = intr[vdev_id].config.pps_params.rssi_chk;
 			break;
 		default:
 			WMA_LOGE("Invalid cli_get vdev command/Not"
