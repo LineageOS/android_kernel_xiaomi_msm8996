@@ -7030,6 +7030,20 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 	return "unknown";
 }
 
+static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id)
+{
+	tSirSmeMissedBeaconInd *beacon_miss_ind;
+
+	beacon_miss_ind = (tSirSmeMissedBeaconInd *) vos_mem_malloc
+		                             (sizeof(tSirSmeMissedBeaconInd));
+	beacon_miss_ind->messageType = WDA_MISSED_BEACON_IND;
+	beacon_miss_ind->length = sizeof(tSirSmeMissedBeaconInd);
+	beacon_miss_ind->bssIdx = vdev_id;
+
+	wma_send_msg(wma, WDA_MISSED_BEACON_IND,
+		         (void *)beacon_miss_ind, 0);
+}
+
 /*
  * Handler to catch wow wakeup host event. This event will have
  * reason why the firmware has woken the host.
@@ -7053,6 +7067,9 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	WMA_LOGD("WOW wakeup host event received (reason: %s) for vdev %d",
 		 wma_wow_wake_reason_str(wake_info->wake_reason),
 		 wake_info->vdev_id);
+
+	if(wake_info->wake_reason == WOW_REASON_AP_ASSOC_LOST)
+		wma_beacon_miss_handler(wma, wake_info->vdev_id);
 
 	if (wake_info->wake_reason == WOW_REASON_NLOD) {
 		node = &wma->interfaces[wake_info->vdev_id];
@@ -9840,19 +9857,6 @@ static VOS_STATUS wma_tx_detach(tp_wma_handle wma_handle)
 	return VOS_STATUS_SUCCESS;
 }
 
-static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id)
-{
-	tSirSmeMissedBeaconInd *beacon_miss_ind;
-
-	beacon_miss_ind = (tSirSmeMissedBeaconInd *) vos_mem_malloc
-		                             (sizeof(tSirSmeMissedBeaconInd));
-	beacon_miss_ind->messageType = WDA_MISSED_BEACON_IND;
-	beacon_miss_ind->length = sizeof(tSirSmeMissedBeaconInd);
-	beacon_miss_ind->bssIdx = vdev_id;
-
-	wma_send_msg(wma, WDA_MISSED_BEACON_IND,
-		         (void *)beacon_miss_ind, 0);
-}
 /* function   : wma_roam_better_ap_handler
  * Descriptin : Handler for WMI_ROAM_REASON_BETTER_AP event from roam firmware in Rome.
  *            : This event means roam algorithm in Rome has found a better matching
