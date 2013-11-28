@@ -1888,6 +1888,14 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     if (pconfig->ShortGI40MhzEnable && !cfg->ht_sgi_40)
         pconfig->ShortGI40MhzEnable = cfg->ht_sgi_40;
 
+    if (pconfig->enable2x2 && (cfg->num_rf_chains == 2))
+    {
+        pconfig->enable2x2 = 1;
+    }
+    else
+    {
+        pconfig->enable2x2 = 0;
+    }
     status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO,
                           *(tANI_U16 *)phtCapInfo, NULL, eANI_BOOLEAN_FALSE);
     if (status != eHAL_STATUS_SUCCESS)
@@ -1901,15 +1909,18 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                   "%s: Read MCS rate set", __func__);
 
-        for (value = 0; value < cfg->num_rf_chains; value++)
-            mcs_set[value] = WLAN_HDD_RX_MCS_ALL_NSTREAM_RATES;
+        if (pconfig->enable2x2)
+        {
+            for (value = 0; value < cfg->num_rf_chains; value++)
+                mcs_set[value] = WLAN_HDD_RX_MCS_ALL_NSTREAM_RATES;
 
-        status = ccmCfgSetStr(hdd_ctx->hHal, WNI_CFG_SUPPORTED_MCS_SET,
-                              mcs_set, SIZE_OF_SUPPORTED_MCS_SET, NULL,
-                              eANI_BOOLEAN_FALSE);
-        if (status == eHAL_STATUS_FAILURE)
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                      "%s: could not set MCS SET to CCM", __func__);
+            status = ccmCfgSetStr(hdd_ctx->hHal, WNI_CFG_SUPPORTED_MCS_SET,
+                                  mcs_set, SIZE_OF_SUPPORTED_MCS_SET, NULL,
+                                  eANI_BOOLEAN_FALSE);
+            if (status == eHAL_STATUS_FAILURE)
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                          "%s: could not set MCS SET to CCM", __func__);
+        }
     }
 #undef WLAN_HDD_RX_MCS_ALL_NSTREAM_RATES
 }
