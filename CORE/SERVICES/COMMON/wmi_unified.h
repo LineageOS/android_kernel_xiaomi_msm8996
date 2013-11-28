@@ -2832,6 +2832,10 @@ typedef struct {
             WMI_START_EVENT_PARAM resp_type;
             /** status of the response */
             A_UINT32 status;
+            /** Vdev chain mask */
+            A_UINT32 chain_mask;
+            /** Vdev mimo power save mode */
+            A_UINT32 smps_mode;
         } wmi_vdev_start_response_event_fixed_param;
 
         typedef struct {
