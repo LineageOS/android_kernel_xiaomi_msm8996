@@ -66,7 +66,11 @@ extern "C" {
 #define INF_DBGID_DEFINITION_START                    0
 #define INF_ASSERTION_FAILED                          1
 #define INF_TARGET_ID                                 2
-#define INF_DBGID_DEFINITION_END                      3
+#define INF_TARGET_MEM_REMAING			              3
+#define INF_TARGET_MEM_EXT_REMAING                    4
+#define INF_TARGET_MEM_ALLOC_TRACK                    5
+#define INF_TARGET_MEM_ALLOC_RAM                      6
+#define INF_DBGID_DEFINITION_END                      7
 
 /* WMI debug identifier definitions */
 #define WMI_DBGID_DEFINITION_START                    0
@@ -745,7 +749,11 @@ extern "C" {
 #define WLAN_CHATTER_FILTER_TM_ADJ  6
 #define WLAN_CHATTER_BUFFER_FULL    7
 #define WLAN_CHATTER_TIMEOUT        8
-#define WLAN_CHATTER_DBGID_DEFINITION_END 9
+#define WLAN_CHATTER_MC_FILTER_ADD  9
+#define WLAN_CHATTER_MC_FILTER_DEL  10
+#define WLAN_CHATTER_MC_FILTER_ALLOW  11
+#define WLAN_CHATTER_MC_FILTER_DROP  12
+#define WLAN_CHATTER_DBGID_DEFINITION_END 13
 
 #define WOW_DBGID_DEFINITION_START 0
 #define WOW_ENABLE_CMDID 1
