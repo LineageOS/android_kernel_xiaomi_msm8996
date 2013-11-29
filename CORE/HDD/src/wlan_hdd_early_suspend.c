@@ -1393,12 +1393,12 @@ void hdd_resume_wlan(void)
          }
       }
 
-      hdd_conf_resume_ind(pAdapter);
-
 #ifdef QCA_WIFI_2_0
       //wake the tx queues
       netif_tx_wake_all_queues(pAdapter->dev);
 #endif
+
+      hdd_conf_resume_ind(pAdapter);
 
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
