@@ -5040,6 +5040,34 @@ send_rsp:
 	wma_send_msg(wma, WDA_ADD_STA_RSP, (void *)add_sta, 0);
 }
 
+static int wmi_unified_nat_keepalive_enable(tp_wma_handle wma,
+		u_int8_t vdev_id)
+{
+	WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMD_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(*cmd);
+
+	WMA_LOGD("%s: vdev_id %d", __func__, vdev_id);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s:wmi_buf_alloc failed\n", __func__);
+		return -ENOMEM;
+	}
+	cmd = (WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMD_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMD_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMD_fixed_param));
+	cmd->vdev_id = vdev_id;
+	cmd->action = IPSEC_NATKEEPALIVE_FILTER_ENABLE;
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMDID)) {
+		WMA_LOGP("Failed to send NAT keepalive enable command");
+		wmi_buf_free(buf);
+		return -EIO;
+	}
+	return 0;
+}
+
 static int wmi_unified_csa_offload_enable(tp_wma_handle wma,
 		u_int8_t vdev_id)
 {
@@ -5131,6 +5159,14 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		params->csaOffloadEnable = 1;
 		if (wmi_unified_csa_offload_enable(wma, params->smesessionId) < 0) {
 			WMA_LOGE("Unable to enable CSA offload for vdev_id:%d",
+					params->smesessionId);
+		}
+	}
+
+	if (WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+				WMI_SERVICE_FILTER_IPSEC_NATKEEPALIVE)) {
+		if (wmi_unified_nat_keepalive_enable(wma, params->smesessionId) < 0) {
+			WMA_LOGE("Unable to enable NAT keepalive for vdev_id:%d",
 					params->smesessionId);
 		}
 	}
