@@ -133,6 +133,11 @@
 #define WMA_HOST_SCAN_REQUESTOR_ID_PREFIX 0xA000
 #define WMA_HW_DEF_SCAN_MAX_DURATION	  30000 /* 30 secs */
 
+/* Max offchannel duration */
+#define WMA_SCAN_AP_PRESENT_MAX_OFFCHANNEL_NUM 5
+#define WMA_SCAN_MAX_OFFCHANNEL_NUM_ACTIVE     10
+#define WMA_SCAN_MAX_OFFCHANNEL_NUM_PASSIVE    4
+
 #define WMA_INVALID_KEY_IDX	0xff
 
 typedef struct {
