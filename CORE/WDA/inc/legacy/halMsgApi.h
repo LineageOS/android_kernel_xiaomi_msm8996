@@ -36,6 +36,7 @@
 /* operMode in ADD BSS message */
 #define BSS_OPERATIONAL_MODE_AP     0
 #define BSS_OPERATIONAL_MODE_STA    1
+#define BSS_OPERATIONAL_MODE_IBSS   2
 
 /* STA entry type in add sta message */
 #define STA_ENTRY_SELF              0

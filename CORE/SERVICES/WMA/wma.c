@@ -130,6 +130,17 @@
 static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
 
+#ifdef QCA_IBSS_SUPPORT
+static void wma_send_beacon_tmpl(WMA_HANDLE handle,
+                                 u_int8_t vdev_id);
+static void wma_data_tx_ack_comp_hdlr(void *wma_context,
+                                      adf_nbuf_t netbuf,
+                                      int32_t status);
+static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
+                                            tpDelStaSelfParams pdel_sta_self_req_param,
+                                            u_int8_t generateRsp);
+#endif
+
 static tANI_U32 gFwWlanFeatCaps;
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -230,6 +241,31 @@ static bool wma_is_vdev_in_ap_mode(tp_wma_handle wma, u_int8_t vdev_id)
 
 	return false;
 }
+
+#ifdef QCA_IBSS_SUPPORT
+/* Function   : wma_is_vdev_in_ibss_mode
+ s_vdev_in_ibss_mode* Descriptin : Helper function to know whether given vdev id
+ *              is in IBSS mode or not.
+ * Args       : @wma - wma handle, @ vdev_id - vdev ID.
+ * Retruns    : True -  if given vdev id is in IBSS mode.
+ *              False - if given vdev id is not in IBSS mode.
+ */
+static bool wma_is_vdev_in_ibss_mode(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	struct wma_txrx_node *intf = wma->interfaces;
+
+	if (vdev_id > wma->max_bssid) {
+		WMA_LOGP("%s: Invalid vdev_id %hu", __func__, vdev_id);
+		VOS_ASSERT(0);
+		return false;
+	}
+
+	if (intf[vdev_id].type == WMI_VDEV_TYPE_IBSS)
+                return true;
+
+        return false;
+}
+#endif
 
 /*
  * Function     : wma_find_bssid_by_vdev_id
@@ -332,12 +368,23 @@ static void wma_vdev_start_rsp(tp_wma_handle wma,
 #ifndef QCA_WIFI_ISOC
 	struct beacon_info *bcn;
 #endif
+
+#ifdef QCA_IBSS_SUPPORT
+	WMA_LOGD("%s: vdev start response received for %s mode\n", __func__,
+		add_bss->operMode == BSS_OPERATIONAL_MODE_IBSS ? "IBSS" : "non-IBSS");
+#endif
+
 	if (resp_event->status) {
 		add_bss->status = VOS_STATUS_E_FAILURE;
 		goto send_fail_resp;
 	}
+
 #ifndef QCA_WIFI_ISOC
-	if (add_bss->operMode == BSS_OPERATIONAL_MODE_AP) {
+	if ((add_bss->operMode == BSS_OPERATIONAL_MODE_AP)
+#ifdef QCA_IBSS_SUPPORT
+                || (add_bss->operMode == BSS_OPERATIONAL_MODE_IBSS)
+#endif
+        ) {
 	wma->interfaces[resp_event->vdev_id].beacon =
 				vos_mem_malloc(sizeof(struct beacon_info));
 
@@ -673,6 +720,9 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	ol_txrx_peer_handle peer;
 	ol_txrx_pdev_handle pdev;
 	u_int8_t peer_id;
+#ifdef QCA_IBSS_SUPPORT
+        tDelStaSelfParams del_sta_param;
+#endif
 
 	param_buf = (WMI_VDEV_STOPPED_EVENTID_param_tlvs *) cmd_param_info;
 	if (!param_buf) {
@@ -717,6 +767,16 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 			wma->interfaces[resp_event->vdev_id].beacon = NULL;
 		}
 #endif
+
+#ifdef QCA_IBSS_SUPPORT
+		if (wma_is_vdev_in_ibss_mode(wma, params->sessionId)) {
+			del_sta_param.sessionId   = params->sessionId;
+			vos_mem_copy((void *)del_sta_param.selfMacAddr,
+			(void *)params->bssid, VOS_MAC_ADDR_SIZE);
+			wma_vdev_detach(wma, &del_sta_param, 0);
+		}
+#endif
+
 		params->status = VOS_STATUS_SUCCESS;
 		wma_send_msg(wma, WDA_DELETE_BSS_RSP, (void *)params, 0);
 	}
@@ -1649,7 +1709,11 @@ enum wlan_op_mode wma_get_txrx_vdev_type(u_int32_t type)
 		case WMI_VDEV_TYPE_STA:
 			vdev_type = wlan_op_mode_sta;
 			break;
+#ifdef QCA_IBSS_SUPPORT
 		case WMI_VDEV_TYPE_IBSS:
+                        vdev_type = wlan_op_mode_ibss;
+                        break;
+#endif
 		case WMI_VDEV_TYPE_MONITOR:
 		default:
 			WMA_LOGE("Invalid vdev type %u", type);
@@ -1737,7 +1801,8 @@ static int wma_unified_vdev_delete_send(wmi_unified_t wmi_handle, u_int8_t if_id
  * Returns    :
  */
 static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
-				tpDelStaSelfParams pdel_sta_self_req_param)
+				tpDelStaSelfParams pdel_sta_self_req_param,
+                                u_int8_t generateRsp)
 {
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 	void *txrx_hdl;
@@ -1787,7 +1852,11 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 	WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", pdel_sta_self_req_param->sessionId,
 			txrx_hdl);
 
-	wma_send_msg(wma_handle, WDA_DEL_STA_SELF_RSP, (void *)pdel_sta_self_req_param, 0);
+#ifdef QCA_IBSS_SUPPORT
+	if (generateRsp)
+#endif
+		wma_send_msg(wma_handle, WDA_DEL_STA_SELF_RSP, (void *)pdel_sta_self_req_param, 0);
+
 	return status;
 }
 
@@ -1974,7 +2043,8 @@ static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id)
  * Returns    :
  */
 static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
-					   tpAddStaSelfParams self_sta_req)
+					   tpAddStaSelfParams self_sta_req,
+                                           u_int8_t generateRsp)
 {
 	ol_txrx_vdev_handle txrx_vdev_handle = NULL;
 	ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
@@ -2125,7 +2195,12 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 
 end:
 	self_sta_req->status = status;
-	wma_send_msg(wma_handle, WDA_ADD_STA_SELF_RSP, (void *)self_sta_req, 0);
+
+#ifdef QCA_IBSS_SUPPORT
+	if (generateRsp)
+#endif
+		wma_send_msg(wma_handle, WDA_ADD_STA_SELF_RSP, (void *)self_sta_req, 0);
+
 	return txrx_vdev_handle;
 }
 
@@ -3480,6 +3555,9 @@ void wma_vdev_resp_timer(void *data)
 	ol_txrx_peer_handle peer;
 	ol_txrx_pdev_handle pdev;
 	u_int8_t peer_id;
+#ifdef QCA_IBSS_SUPPORT
+        tDelStaSelfParams del_sta_param;
+#endif
 
 	wma = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
@@ -3496,6 +3574,14 @@ void wma_vdev_resp_timer(void *data)
 			(tpDeleteBssParams)tgt_req->user_data;
 		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
 		wma_remove_peer(wma, params->bssid, tgt_req->vdev_id, peer);
+#ifdef QCA_IBSS_SUPPORT
+		if (wma_is_vdev_in_ibss_mode(wma, params->sessionId)) {
+			del_sta_param.sessionId   = params->sessionId;
+                        vos_mem_copy((void *)del_sta_param.selfMacAddr,
+				 (void *)params->bssid, VOS_MAC_ADDR_SIZE);
+                        wma_vdev_detach(wma, &del_sta_param, 0);
+                }
+#endif
 		params->status = VOS_STATUS_E_TIMEOUT;
 		wma_send_msg(wma, WDA_DELETE_BSS_RSP, (void *)params, 0);
 	}
@@ -3763,7 +3849,15 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		       WMITLV_TAG_STRUC_wmi_peer_assoc_complete_cmd_fixed_param,
 		       WMITLV_GET_STRUCT_TLVLEN(
 			       wmi_peer_assoc_complete_cmd_fixed_param));
-	if (wma_is_vdev_in_ap_mode(wma, params->smesessionId))
+
+	/* in ap/ibss mode, use mac address of the peer in the other end as the
+	   new peer address; in sta mode, use bss id to be the new peer address
+	*/
+	if ((wma_is_vdev_in_ap_mode(wma, params->smesessionId))
+#ifdef QCA_IBSS_SUPPORT
+		|| (wma_is_vdev_in_ibss_mode(wma, params->smesessionId))
+#endif
+	)
 		WMI_CHAR_ARRAY_TO_MAC_ADDR(params->staMac, &cmd->peer_macaddr);
 	else
 		WMI_CHAR_ARRAY_TO_MAC_ADDR(params->bssId, &cmd->peer_macaddr);
@@ -4684,6 +4778,141 @@ send_fail_resp:
 	wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)add_bss, 0);
 }
 
+#ifdef QCA_IBSS_SUPPORT
+static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
+{
+	ol_txrx_pdev_handle pdev;
+	ol_txrx_vdev_handle vdev;
+	struct wma_vdev_start_req req;
+	ol_txrx_peer_handle peer;
+	struct wma_target_req *msg;
+	u_int8_t vdev_id, peer_id;
+	VOS_STATUS status;
+        tDelStaSelfParams del_sta_param;
+        tAddStaSelfParams add_sta_self_param;
+
+        WMA_LOGD("%s: add_bss->sessionId = %d\n", __func__, add_bss->sessionId);
+        vdev_id = add_bss->sessionId;
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	vdev = wma_find_vdev_by_id(wma, vdev_id);
+        if (vdev) {
+	        WMA_LOGD("%s: vdev found for vdev id %d. deleting the vdev\n",
+		 __func__, vdev_id);
+
+                TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+	                WMA_LOGE("%s: peer found for vdev id %d. deleting the peer\n",
+			 __func__, vdev_id);
+			wma_remove_peer(wma, (u_int8_t *)&vdev->mac_addr,
+			 vdev_id, peer);
+                        ol_txrx_peer_detach(peer);
+                }
+
+                vos_copy_macaddr((v_MACADDR_t *)&(del_sta_param.selfMacAddr),
+                                 (v_MACADDR_t *)&(vdev->mac_addr));
+                del_sta_param.sessionId   = vdev_id;
+                del_sta_param.status      = 0;
+
+		wma_vdev_detach(wma, &del_sta_param, 0);
+
+        }
+	else {
+		WMA_LOGD("%s: vdev with session id %d not found \n", __func__, vdev_id);
+        }
+
+        /* create new vdev for ibss */
+        vos_copy_macaddr((v_MACADDR_t *)&(add_sta_self_param.selfMacAddr),
+                         (v_MACADDR_t *)&(add_bss->bssId));
+        add_sta_self_param.sessionId = vdev_id;
+        add_sta_self_param.type      = WMI_VDEV_TYPE_IBSS;
+        add_sta_self_param.subType   = 0;
+        add_sta_self_param.status    = 0;
+
+	vdev = wma_vdev_attach(wma, &add_sta_self_param, 0);
+	if (!vdev) {
+		WMA_LOGE("%s: Failed to create vdev\n", __func__);
+		goto send_fail_resp;
+	}
+        WLANTL_RegisterVdev(wma->vos_context, vdev);
+        /* Register with TxRx Module for Data Ack Complete Cb */
+        wdi_in_data_tx_cb_set(vdev, wma_data_tx_ack_comp_hdlr, wma);
+	WMA_LOGE("%s: new vdev created for IBSS\n", __func__);
+
+        /* create self peer */
+	status = wma_create_peer(wma, pdev, vdev, add_bss->bssId, vdev_id);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("%s: Failed to create peer\n", __func__);
+		goto send_fail_resp;
+	}
+
+	peer = ol_txrx_find_peer_by_addr(pdev, add_bss->bssId, &peer_id);
+	if (!peer) {
+		WMA_LOGE("%s Failed to find peer %pM\n", __func__,
+			 add_bss->bssId);
+		goto send_fail_resp;
+	}
+
+        /* set operation mode to be IBSS */
+        add_bss->operMode = BSS_OPERATIONAL_MODE_IBSS;
+
+	msg = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
+				WMA_TARGET_REQ_TYPE_VDEV_START, add_bss);
+	if (!msg) {
+		WMA_LOGP("%s Failed to allocate vdev request vdev_id %d\n",
+			 __func__, vdev_id);
+		goto peer_cleanup;
+	}
+	WMA_LOGD("%s: vdev start request for IBSS enqueued\n", __func__);
+
+	add_bss->staContext.staIdx = ol_txrx_local_peer_id(peer);
+
+	vos_mem_zero(&req, sizeof(req));
+	req.vdev_id = vdev_id;
+	req.chan = add_bss->currentOperChannel;        /* FIXME: verify param value */
+	req.chan_offset = add_bss->currentExtChannel;  /* FIXME: verify param value */
+        req.vht_capable = add_bss->vhtCapable;
+#if defined WLAN_FEATURE_VOWIF
+	req.max_txpow = add_bss->maxTxPower;
+#else
+	req.max_txpow = 0;
+#endif
+	req.beacon_intval = add_bss->beaconInterval;
+	req.dtim_period = add_bss->dtimPeriod;
+	req.hidden_ssid = add_bss->bHiddenSSIDEn;
+	req.is_dfs = add_bss->bSpectrumMgtEnabled;
+	req.oper_mode = BSS_OPERATIONAL_MODE_IBSS;
+	req.ssid.length = add_bss->ssId.length;
+	if (req.ssid.length > 0)
+		vos_mem_copy(req.ssid.ssId, add_bss->ssId.ssId,
+			     add_bss->ssId.length);
+
+        WMA_LOGD("%s: chan %d chan_offset %d\n", __func__, req.chan, req.chan_offset);
+        WMA_LOGD("%s: ssid = %s\n", __func__, req.ssid.ssId);
+
+	status = wma_vdev_start(wma, &req);
+	if (status != VOS_STATUS_SUCCESS) {
+		wma_remove_vdev_req(wma, vdev_id,
+				    WMA_TARGET_REQ_TYPE_VDEV_START);
+		goto peer_cleanup;
+	}
+	WMA_LOGD("%s: vdev start request for IBSS sent to target\n", __func__);
+
+	/* Initialize protection mode to no protection */
+	if (wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					    WMI_VDEV_PARAM_PROTECTION_MODE,
+					    IEEE80211_PROT_NONE)) {
+		WMA_LOGE("Failed to initialize protection mode");
+	}
+
+	return;
+
+peer_cleanup:
+	wma_remove_peer(wma, add_bss->bssId, vdev_id, peer);
+send_fail_resp:
+	add_bss->status = VOS_STATUS_E_FAILURE;
+	wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)add_bss, 0);
+}
+#endif
+
 static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 {
 	ol_txrx_pdev_handle pdev;
@@ -4816,11 +5045,26 @@ send_fail_resp:
 
 static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
 {
-	if ((params->halPersona == VOS_STA_SAP_MODE) ||
-			(params->halPersona == VOS_P2P_GO_MODE))
+        WMA_LOGD("%s: add_bss_param.halPersona = %d\n",
+	         __func__, params->halPersona);
+
+	switch(params->halPersona) {
+
+        case VOS_STA_SAP_MODE:
+        case VOS_P2P_GO_MODE:
 		wma_add_bss_ap_mode(wma, params);
-	else
+                break;
+
+#ifdef QCA_IBSS_SUPPORT
+        case VOS_IBSS_MODE:
+		wma_add_bss_ibss_mode(wma, params);
+                break;
+#endif
+
+        default:
 		wma_add_bss_sta_mode(wma, params);
+                break;
+        }
 }
 
 static int wmi_unified_vdev_up_send(wmi_unified_t wmi,
@@ -5205,14 +5449,26 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 {
 	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
 
+	WMA_LOGD("%s: add_sta->sessionId = %d.\n", __func__, add_sta->smesessionId);
+	WMA_LOGD("%s: add_sta->bssId = %x:%x:%x:%x:%x:%x\n", __func__,
+                 add_sta->bssId[0], add_sta->bssId[1], add_sta->bssId[2],
+                 add_sta->bssId[3], add_sta->bssId[4], add_sta->bssId[5]);
+
 	if (wma_is_vdev_in_ap_mode(wma, add_sta->smesessionId))
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
+#ifdef QCA_IBSS_SUPPORT
+        else if (wma_is_vdev_in_ibss_mode(wma, add_sta->smesessionId))
+		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
+#endif
 
 	switch (oper_mode) {
 	case BSS_OPERATIONAL_MODE_STA:
 		wma_add_sta_req_sta_mode(wma, add_sta);
 		break;
 
+#ifdef QCA_IBSS_SUPPORT
+	case BSS_OPERATIONAL_MODE_IBSS: /* IBSS should share the same code as AP mode */
+#endif
 	case BSS_OPERATIONAL_MODE_AP:
 		wma_add_sta_req_ap_mode(wma, add_sta);
 		break;
@@ -5640,12 +5896,21 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 
 	if (wma_is_vdev_in_ap_mode(wma, del_sta->smesessionId))
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
+#ifdef QCA_IBSS_SUPPORT
+	if (wma_is_vdev_in_ibss_mode(wma, del_sta->smesessionId)) {
+		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
+		WMA_LOGD("%s: to delete sta for IBSS mode\n", __func__);
+        }
+#endif
 
 	switch (oper_mode) {
 	case BSS_OPERATIONAL_MODE_STA:
 		wma_delete_sta_req_sta_mode(wma, del_sta);
 		break;
 
+#ifdef QCA_IBSS_SUPPORT
+	case BSS_OPERATIONAL_MODE_IBSS:  /* IBSS shares AP code */
+#endif
 	case BSS_OPERATIONAL_MODE_AP:
 		wma_delete_sta_req_ap_mode(wma, del_sta);
 		break;
@@ -6122,6 +6387,15 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 
 	wma_set_sap_keepalive(wma, vdev_id);
 }
+
+#ifdef QCA_IBSS_SUPPORT
+static void wma_send_beacon_tmpl(WMA_HANDLE handle,
+                            u_int8_t vdev_id)
+{
+	/*TODO: implement after beacon template is created by PE and send
+	 to target upon received WMI_SEND_BEACON command */
+}
+#endif
 
 #if !defined(REMOVE_PKT_LOG) && !defined(QCA_WIFI_ISOC)
 static VOS_STATUS wma_pktlog_wmi_send_cmd(WMA_HANDLE handle,
@@ -9523,7 +9797,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break ;
 		case WDA_ADD_STA_SELF_REQ:
 			txrx_vdev_handle = wma_vdev_attach(wma_handle,
-					(tAddStaSelfParams *)msg->bodyptr);
+					(tAddStaSelfParams *)msg->bodyptr, 1);
 			if (!txrx_vdev_handle) {
 				WMA_LOGE("Failed to attach vdev");
 			} else {
@@ -9535,7 +9809,8 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			}
 			break;
 		case WDA_DEL_STA_SELF_REQ:
-			wma_vdev_detach(wma_handle, (tDelStaSelfParams *)msg->bodyptr);
+			wma_vdev_detach(wma_handle,
+                            (tDelStaSelfParams *)msg->bodyptr, 1);
 			break;
 		case WDA_START_SCAN_OFFLOAD_REQ:
 			wma_start_scan(wma_handle, msg->bodyptr);
