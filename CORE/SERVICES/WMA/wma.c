@@ -2679,6 +2679,12 @@ VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
 		chan_info->band_center_freq2 = 0;
 
 		WMA_LOGD("chan[%d] = %u", i, chan_info->mhz);
+		if (chan_list->chanParam[i].dfsSet) {
+			WMI_SET_CHANNEL_FLAG(chan_info, WMI_CHAN_FLAG_PASSIVE);
+			WMA_LOGI("chan[%d] DFS[%d]\n",
+					chan_list->chanParam[i].chanId,
+					chan_list->chanParam[i].dfsSet);
+		}
 
 		if (chan_info->mhz < WMA_2_4_GHZ_MAX_FREQ) {
 			WMI_SET_CHANNEL_MODE(chan_info, MODE_11G);

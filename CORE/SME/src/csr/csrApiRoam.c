@@ -505,6 +505,12 @@ eHalStatus csrUpdateChannelList(tCsrScanStruct *pScan)
     {
         pChanList->chanParam[i].chanId = pScan->defaultPowerTable[i].chanId;
         pChanList->chanParam[i].pwr = pScan->defaultPowerTable[i].pwr;
+        /*Set DFS flag for DFS channel*/
+        if (vos_nv_getChannelEnabledState(pChanList->chanParam[i].chanId) ==
+            NV_CHANNEL_DFS)
+            pChanList->chanParam[i].dfsSet = VOS_TRUE;
+        else
+            pChanList->chanParam[i].dfsSet = VOS_FALSE;
     }
 
     if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
