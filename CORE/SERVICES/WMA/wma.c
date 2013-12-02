@@ -11084,6 +11084,8 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 
 	wma_handle->target_fw_version = ev->fw_build_vers;
 
+        WMA_LOGD("%s: Firmware build version : %08x\n", __func__, ev->fw_build_vers);
+
 	 /* TODO: Recheck below line to dump service ready event */
 	 /* dbg_print_wmi_service_11ac(ev); */
 
