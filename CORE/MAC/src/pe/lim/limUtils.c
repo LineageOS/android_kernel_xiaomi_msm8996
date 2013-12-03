@@ -7638,6 +7638,34 @@ tANI_BOOLEAN limCheckVHTOpModeChange( tpAniSirGlobal pMac, tpPESession psessionE
 
     return eANI_BOOLEAN_TRUE;
 }
+
+tANI_BOOLEAN limCheckMembershipUserPosition( tpAniSirGlobal pMac, tpPESession psessionEntry,
+                                             tANI_U32 membership, tANI_U32 userPosition,
+                                             tANI_U8 staId)
+{
+    tUpdateMembership tempParamMembership;
+    tUpdateUserPos tempParamUserPosition;
+
+    tempParamMembership.membership = membership;
+    tempParamMembership.staId  = staId;
+    tempParamMembership.smesessionId = psessionEntry->smeSessionId;
+    palCopyMemory( pMac->hHdd,  tempParamMembership.peer_mac, psessionEntry->bssId,
+                   sizeof( tSirMacAddr ));
+
+
+    limSetMembership( pMac, &tempParamMembership, psessionEntry );
+
+    tempParamUserPosition.userPos = userPosition;
+    tempParamUserPosition.staId  = staId;
+    tempParamUserPosition.smesessionId = psessionEntry->smeSessionId;
+    palCopyMemory( pMac->hHdd,  tempParamUserPosition.peer_mac, psessionEntry->bssId,
+                   sizeof( tSirMacAddr ));
+
+
+    limSetUserPos( pMac, &tempParamUserPosition, psessionEntry );
+
+    return eANI_BOOLEAN_TRUE;
+}
 #endif
 
 tANI_U8 limGetShortSlotFromPhyMode(tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U32 phyMode)

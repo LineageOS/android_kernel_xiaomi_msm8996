@@ -507,6 +507,8 @@ tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg )
         CASE_RETURN_STRING(WDA_SET_TM_LEVEL_REQ);
 #ifdef WLAN_FEATURE_11AC
         CASE_RETURN_STRING(WDA_UPDATE_OP_MODE);
+        CASE_RETURN_STRING(WDA_UPDATE_MEMBERSHIP);
+        CASE_RETURN_STRING(WDA_UPDATE_USERPOS);
 #endif
         default:
             return((tANI_U8*) "UNKNOWN" );

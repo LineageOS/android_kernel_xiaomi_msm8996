@@ -1708,7 +1708,12 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.enable2x2= pParam->enable2x2;
         pMac->roam.configParam.enableVhtFor24GHz = pParam->enableVhtFor24GHz;
         pMac->roam.configParam.txMuBformee= pParam->enableMuBformee;
+        pMac->roam.configParam.enableVhtpAid = pParam->enableVhtpAid;
+        pMac->roam.configParam.enableVhtGid = pParam->enableVhtGid;
 #endif
+        pMac->roam.configParam.enableAmpduPs = pParam->enableAmpduPs;
+        pMac->roam.configParam.enableHtSmps = pParam->enableHtSmps;
+        pMac->roam.configParam.htSmps= pParam->htSmps;
         pMac->roam.configParam.txLdpcEnable = pParam->enableTxLdpc;
 
         pMac->roam.configParam.isCoalesingInIBSSAllowed =
@@ -12356,7 +12361,27 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         *pBuf = (tANI_U8)pMac->roam.configParam.txMuBformee;
         pBuf++;
 
+        // enableVhtpAid
+        *pBuf = (tANI_U8)pMac->roam.configParam.enableVhtpAid;
+        pBuf++;
+
+        // enableVhtGid
+        *pBuf = (tANI_U8)pMac->roam.configParam.enableVhtGid;
+        pBuf++;
+
 #endif
+        // enableAmpduPs
+        *pBuf = (tANI_U8)pMac->roam.configParam.enableAmpduPs;
+        pBuf++;
+
+        // enableHtSmps
+        *pBuf = (tANI_U8)pMac->roam.configParam.enableHtSmps;
+        pBuf++;
+
+        // htSmps
+        *pBuf = (tANI_U8)pMac->roam.configParam.htSmps;
+        pBuf++;
+
         //BssDesc
         csrPrepareJoinReassocReqBuffer( pMac, pBssDescription, pBuf,
                 (tANI_U8)pProfile->uapsd_mask);

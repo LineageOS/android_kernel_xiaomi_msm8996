@@ -227,6 +227,7 @@
 
 //VHT Action Field 
 #ifdef WLAN_FEATURE_11AC
+#define SIR_MAC_VHT_GID_NOTIFICATION           1
 #define SIR_MAC_VHT_OPMODE_NOTIFICATION        2
 #endif
 

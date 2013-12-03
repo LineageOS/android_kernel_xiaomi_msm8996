@@ -2002,7 +2002,42 @@ REG_VARIABLE( CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE, WLAN_PARAM_Integer,
              CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_DEFAULT,
              CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MIN,
              CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MAX ),
+
+REG_VARIABLE( CFG_VHT_ENABLE_PAID_FEATURE, WLAN_PARAM_Integer,
+             hdd_config_t, enableVhtpAid,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_VHT_ENABLE_PAID_FEATURE_DEFAULT,
+             CFG_VHT_ENABLE_PAID_FEATURE_MIN,
+             CFG_VHT_ENABLE_PAID_FEATURE_MAX ),
+
+REG_VARIABLE( CFG_VHT_ENABLE_GID_FEATURE, WLAN_PARAM_Integer,
+             hdd_config_t, enableVhtGid,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_VHT_ENABLE_GID_FEATURE_DEFAULT,
+             CFG_VHT_ENABLE_GID_FEATURE_MIN,
+             CFG_VHT_ENABLE_GID_FEATURE_MAX ),
 #endif
+
+REG_VARIABLE( CFG_ENABLE_AMPDUPS_FEATURE, WLAN_PARAM_Integer,
+             hdd_config_t, enableAmpduPs,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_ENABLE_AMPDUPS_FEATURE_DEFAULT,
+             CFG_ENABLE_AMPDUPS_FEATURE_MIN,
+             CFG_ENABLE_AMPDUPS_FEATURE_MAX ),
+
+REG_VARIABLE( CFG_HT_ENABLE_SMPS_CAP_FEATURE, WLAN_PARAM_Integer,
+             hdd_config_t, enableHtSmps,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_HT_ENABLE_SMPS_CAP_FEATURE_DEFAULT,
+             CFG_HT_ENABLE_SMPS_CAP_FEATURE_MIN,
+             CFG_HT_ENABLE_SMPS_CAP_FEATURE_MAX ),
+
+REG_VARIABLE( CFG_HT_SMPS_CAP_FEATURE, WLAN_PARAM_Integer,
+             hdd_config_t, htSmps,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_HT_SMPS_CAP_FEATURE_DEFAULT,
+             CFG_HT_SMPS_CAP_FEATURE_MIN,
+             CFG_HT_SMPS_CAP_FEATURE_MAX ),
 
 REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
               hdd_config_t, enableFirstScan2GOnly,
@@ -4058,7 +4093,12 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
     smeConfig.csrConfig.enable2x2 = pConfig->enable2x2;
     smeConfig.csrConfig.enableVhtFor24GHz = pConfig->enableVhtFor24GHzBand;
     smeConfig.csrConfig.enableMuBformee = pConfig->enableMuBformee;
+    smeConfig.csrConfig.enableVhtpAid = pConfig->enableVhtpAid;
+    smeConfig.csrConfig.enableVhtGid = pConfig->enableVhtGid;
 #endif
+   smeConfig.csrConfig.enableAmpduPs = pConfig->enableAmpduPs;
+   smeConfig.csrConfig.enableHtSmps = pConfig->enableHtSmps;
+   smeConfig.csrConfig.htSmps = pConfig->htSmps;
    smeConfig.csrConfig.AdHocChannel5G            = pConfig->AdHocChannel5G;
    smeConfig.csrConfig.AdHocChannel24            = pConfig->AdHocChannel24G;
    smeConfig.csrConfig.ProprietaryRatesEnabled   = 0;

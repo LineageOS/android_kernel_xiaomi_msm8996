@@ -1059,7 +1059,12 @@ typedef struct sSirSmeJoinReq
     tANI_U8             txBFIniFeatureEnabled;
     tANI_U8             txBFCsnValue;
     tANI_U8             txMuBformee;
+    tANI_U8             enableVhtpAid;
+    tANI_U8             enableVhtGid;
 #endif
+    tANI_U8             enableAmpduPs;
+    tANI_U8             enableHtSmps;
+    tANI_U8             htSmps;
 
     tAniTitanCBNeighborInfo cbNeighbors;
     tAniBool            spectrumMgtIndicator;

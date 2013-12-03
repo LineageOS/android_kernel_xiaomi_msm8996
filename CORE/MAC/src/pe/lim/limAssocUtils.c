@@ -2676,7 +2676,11 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
         pAddStaParams->maxAmpduSize = (tANI_U8)ampduLenExponent;
     }
     pAddStaParams->vhtTxMUBformeeCapable = psessionEntry->txMuBformee;
+    pAddStaParams->enableVhtpAid = psessionEntry->enableVhtpAid;
 #endif
+    pAddStaParams->enableAmpduPs = psessionEntry->enableAmpduPs;
+    pAddStaParams->enableHtSmps = psessionEntry->enableHtSmps;
+    pAddStaParams->htSmpsconfig = psessionEntry->htSmpsvalue;
 
     /* For Self STA get the LDPC capability from session i.e config.ini*/
     pAddStaParams->htLdpcCapable = 
