@@ -1060,6 +1060,8 @@ typedef struct sAniSirGlobal
     csrReadyToSuspendCallback readyToSuspendCallback;
     void *readyToSuspendContext;
 
+    tANI_U8 isCoalesingInIBSSAllowed;
+
 } tAniSirGlobal;
 
 typedef enum

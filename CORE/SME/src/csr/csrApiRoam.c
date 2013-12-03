@@ -1704,6 +1704,10 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.txMuBformee= pParam->enableMuBformee;
 #endif
         pMac->roam.configParam.txLdpcEnable = pParam->enableTxLdpc;
+
+        pMac->roam.configParam.isCoalesingInIBSSAllowed =
+                               pParam->isCoalesingInIBSSAllowed;
+
     }
 
     return status;
@@ -1786,6 +1790,10 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->enableMuBformee = pMac->roam.configParam.txMuBformee;
 #endif
         pParam->enableTxLdpc = pMac->roam.configParam.txLdpcEnable;
+
+        pParam->isCoalesingInIBSSAllowed =
+                                pMac->roam.configParam.isCoalesingInIBSSAllowed;
+
         csrSetChannels(pMac, pParam);
 
         status = eHAL_STATUS_SUCCESS;
@@ -13055,6 +13063,11 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         // Set wps_state
         *pBuf = pParam->wps_state;
         pBuf++;
+
+	// set isCoalesingInIBSSAllowed
+        *pBuf = pMac->isCoalesingInIBSSAllowed;
+        pBuf++;
+
         //Persona
         *pBuf = (tANI_U8)pParam->bssPersona;
         pBuf++;

@@ -1831,6 +1831,11 @@ typedef enum
 #define CFG_WOW_ENABLE_MAX                            ( 3 )
 #define CFG_WOW_STATUS_DEFAULT                        ( 3 )
 
+#define CFG_COALESING_IN_IBSS_NAME                     "gCoalesingInIBSS"
+#define CFG_COALESING_IN_IBSS_MIN                      (0)
+#define CFG_COALESING_IN_IBSS_MAX                      (1)
+#define CFG_COALESING_IN_IBSS_DEFAULT                  (0) //disabled
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2223,6 +2228,7 @@ typedef struct
 #endif
    v_U8_t                      maxWoWFilters;
    v_U8_t                      wowEnable;
+   v_U8_t                      isCoalesingInIBSSAllowed;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

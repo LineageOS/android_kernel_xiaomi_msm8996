@@ -633,6 +633,8 @@ typedef struct tagCsrConfig
 #endif
     tANI_U8   txLdpcEnable;
 
+    tANI_U8 isCoalesingInIBSSAllowed;
+
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo
