@@ -7694,11 +7694,19 @@ static VOS_STATUS wma_enable_wow_in_fw(tp_wma_handle wma)
 					wmi_wow_enable_cmd_fixed_param));
 	cmd->enable = TRUE;
 
+	vos_event_reset(&wma->target_suspend);
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				   WMI_WOW_ENABLE_CMDID);
 	if (ret) {
 		WMA_LOGE("Failed to enable wow in fw");
 		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (vos_wait_single_event(&wma->target_suspend,
+				  WMA_TGT_SUSPEND_COMPLETE_TIMEOUT)
+				  != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to receive WoW Enable Ack from FW");
 		return VOS_STATUS_E_FAILURE;
 	}
 
