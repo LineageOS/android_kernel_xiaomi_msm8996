@@ -2082,6 +2082,10 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 						self_sta_req->selfMacAddr,
 						self_sta_req->sessionId,
 						txrx_vdev_type);
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+	WMA_LOGE("LL TX Pause Mutex init");
+	adf_os_spinlock_init(&txrx_vdev_handle->ll_pause.mutex);
+#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
 
 	WMA_LOGA("vdev_id %hu, txrx_vdev_handle = %p", self_sta_req->sessionId,
 			txrx_vdev_handle);
@@ -10397,6 +10401,46 @@ skip_pno_cmp_ind:
 
 #endif
 
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
+					u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	WMI_TX_PAUSE_EVENTID_param_tlvs *param_buf;
+	wmi_tx_pause_event_fixed_param  *wmi_event;
+	ol_txrx_vdev_handle txrx_vdev;
+
+	param_buf = (WMI_TX_PAUSE_EVENTID_param_tlvs *) event;
+	if (!param_buf) {
+		WMA_LOGE("Invalid roam event buffer");
+		return -EINVAL;
+	}
+
+	wmi_event = param_buf->fixed_param;
+	WMA_LOGD("tlv_header 0x%x, pause_type 0x%x, action 0x%x, vdev_map 0x%x, peer_id 0x%x, tid_map 0x%x\n",
+		(int)wmi_event->tlv_header, (int)wmi_event->pause_type,
+		(int)wmi_event->action, (int)wmi_event->vdev_map,
+		(int)wmi_event->peer_id, (int)wmi_event->tid_map);
+
+	txrx_vdev = wma->interfaces[wmi_event->vdev_map].handle;
+
+	if (txrx_vdev)
+	{
+		if ((PAUSE_TYPE_CHOP == wmi_event->pause_type) &&
+			(!wmi_event->action))
+		{
+			wdi_in_vdev_pause(txrx_vdev);
+		}
+		if ((PAUSE_TYPE_CHOP == wmi_event->pause_type) &&
+			(wmi_event->action))
+		{
+			wdi_in_vdev_unpause(txrx_vdev);
+		}
+	}
+
+	return 0;
+}
+#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
 /* function   : wma_start
  * Descriptin :
  * Args       :
@@ -10489,6 +10533,14 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		}
 	}
 #endif
+
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+	WMA_LOGE("MCC TX Pause Event Handler register");
+	status = wmi_unified_register_event_handler(
+			wma_handle->wmi_handle,
+			WMI_TX_PAUSE_EVENTID,
+			wma_mcc_vdev_tx_pause_evt_handler);
+#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
 
 	vos_status = VOS_STATUS_SUCCESS;
 
