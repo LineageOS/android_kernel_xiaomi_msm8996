@@ -680,6 +680,8 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  break;
             case eSIR_IBSS_MODE:
                  psessionEntry->limSystemRole = eLIM_STA_IN_IBSS_ROLE;
+                 psessionEntry->isCoalesingInIBSSAllowed =
+                                pSmeStartBssReq->isCoalesingInIBSSAllowed;
                  break;
 
             case eSIR_BTAMP_AP_MODE:

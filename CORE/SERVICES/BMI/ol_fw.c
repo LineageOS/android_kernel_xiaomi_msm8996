@@ -40,6 +40,10 @@
 #include "fw_one_bin.h"
 #include "bin_sig.h"
 
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#include <net/cnss.h>
+#endif
+
 extern int
 dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *datap, u_int32_t len);
 
@@ -456,6 +460,48 @@ u_int32_t host_interest_item_address(u_int32_t target_type, u_int32_t item_offse
 	}
 }
 
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+static struct ol_softc *ramdump_scn;
+
+static void ramdump_work_handler(struct work_struct *ramdump)
+{
+	void __iomem *ramdump_base;
+	unsigned long address;
+	unsigned long size;
+
+	/* Get RAM dump memory address and size */
+	if (cnss_get_ramdump_mem(&address, &size)) {
+		printk("No RAM dump will be collected since failed to get "
+			"memory address or size!\n");
+		goto out;
+	}
+
+	ramdump_base = ioremap(address, size);
+	if (!ramdump_base) {
+		printk("No RAM dump will be collected since ramdump_base is NULL!\n");
+		goto out;
+	}
+
+	if (ramdump_scn) {
+		ol_target_coredump(ramdump_scn, ramdump_base, TOTAL_DUMP_SIZE);
+
+		printk("%s: RAM dump collecting completed!\n", __func__);
+		msleep(1000);
+	} else {
+		printk("No RAM dump will be collected since ramdump_scn is NULL!\n");
+	}
+
+	iounmap(ramdump_base);
+
+out:
+	/* Notify SSR framework the target has crashed. */
+	cnss_device_crashed();
+	return;
+}
+
+static DECLARE_WORK(ramdump_work, ramdump_work_handler);
+#endif
+
 #define REGISTER_DUMP_LEN_MAX   60
 #define REG_DUMP_COUNT		60
 
@@ -521,6 +567,12 @@ void ol_target_failure(void *instance, A_STATUS status)
 	    printk("HifDiagReadiMem FW dbglog_hdr failed\n");
 	    return;
 	}
+
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+	/* Collect the RAM dump through a workqueue */
+	ramdump_scn = scn;
+	schedule_work(&ramdump_work);
+#endif
 
 	dbglog_hdr.dbuf = (struct dbglog_buf_s *)dbglog_hdr_temp.dbuf;
 	dbglog_hdr.dropped = dbglog_hdr_temp.dropped;
@@ -815,3 +867,122 @@ int ol_download_firmware(struct ol_softc *scn)
 
 	return EOK;
 }
+
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+int ol_diag_read(struct ol_softc *scn, u_int8_t* buffer,
+	u_int32_t pos, size_t count)
+{
+	int result = 0;
+
+	if ((count == 4) && ((pos & 3) == 0)) {
+		result = HIFDiagReadAccess(scn->hif_hdl, pos,
+			(u_int32_t*)buffer);
+	} else {
+		size_t amountRead = 0;
+		size_t readSize = PCIE_READ_LIMIT;
+		size_t remainder = 0;
+		if (count > PCIE_READ_LIMIT) {
+			while ((amountRead < count) && (0 == result)) {
+				result = HIFDiagReadMem(scn->hif_hdl, pos,
+					buffer, readSize);
+				if (0 == result) {
+					buffer += readSize;
+					pos += readSize;
+					amountRead += readSize;
+					remainder = count - amountRead;
+					if (remainder < PCIE_READ_LIMIT)
+						readSize = remainder;
+				}
+			}
+		} else {
+			result = HIFDiagReadMem(scn->hif_hdl, pos,
+					buffer, count);
+		}
+	}
+
+	if (!result) {
+		return count;
+	} else {
+		return -EIO;
+	}
+}
+
+/**---------------------------------------------------------------------------
+ *   \brief  ol_target_coredump
+ *
+ *   Function to perform core dump for the target
+ *
+ *   \param:   scn - ol_softc handler
+ *             memoryBlock - non-NULL reserved memory location
+ *             blockLength - size of the dump to collect
+ *
+ *   \return:  None
+ * --------------------------------------------------------------------------*/
+void ol_target_coredump(void *inst, void* memoryBlock, u_int32_t blockLength)
+{
+	struct ol_softc *scn = (struct ol_softc *)inst;
+	char*  bufferLoc = memoryBlock;
+	int result = 0;
+	u_int32_t reg_dump_area = 0;
+	u_int32_t amountRead = 0;
+	u_int32_t sectionCount = 0;
+	u_int32_t pos = 0;
+	u_int32_t readLen = 0;
+
+	/*
+	* SECTION = REGISTER
+	* START   = 0x4000
+	* LENGTH  = 0x6c000
+	*
+	* SECTION = DRAM
+	* START   = 0x400000
+	* LENGTH  = 0x50000
+	*
+	* SECTION = IRAM
+	* START   = 0x980000
+	* LENGTH  = 0x38000
+	*
+	*/
+
+	if (HIFDiagReadMem(scn->hif_hdl,
+		host_interest_item_address(scn->target_type,
+		offsetof(struct host_interest_s, hi_failure_state)),
+		(A_UCHAR*) &reg_dump_area, sizeof(u_int32_t)) != A_OK) {
+		return;
+	}
+
+	while ((sectionCount < 3) && (amountRead < blockLength)) {
+		switch (sectionCount) {
+		case 0:
+			/* REGISTER SECTION */
+			pos = reg_dump_area;
+			readLen = REGISTER_SIZE;
+			break;
+		case 1:
+			/* DRAM SECTION */
+			pos = DRAM_LOCATION;
+			readLen = DRAM_SIZE;
+			break;
+		case 2:
+			/* IRAM SECTION */
+			pos = IRAM_LOCATION;
+			readLen = IRAM_SIZE;
+			break;
+		}
+
+		if ((blockLength - amountRead) >= readLen) {
+			result = ol_diag_read(scn, bufferLoc, pos, readLen);
+			if (result != EIO) {
+				amountRead += result;
+				bufferLoc += result;
+				sectionCount++;
+			} else {
+				break; /* Could not read the section */
+			}
+		} else {
+			break; /* Insufficient room in buffer */
+		}
+	}
+}
+#endif
+

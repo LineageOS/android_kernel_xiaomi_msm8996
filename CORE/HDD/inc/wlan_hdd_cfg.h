@@ -1814,6 +1814,28 @@ typedef enum
 #define CFG_VHT_MPDU_LEN_DEFAULT                       ( 0 )
 #endif
 
+#define CFG_MAX_WOW_FILTERS_NAME                       "gMaxWoWFilters"
+#define CFG_MAX_WOW_FILTERS_MIN                        ( 0 )
+#define CFG_MAX_WOW_FILTERS_MAX                        ( 22 )
+#define CFG_MAX_WOW_FILTERS_DEFAULT                    ( 22 )
+
+/*
+ * WOW Enable/Disable.
+ * 0 - Disable both magic pattern match and pattern byte match.
+ * 1 - Enable magic pattern match on all interfaces.
+ * 2 - Enable pattern byte match on all interfaces.
+ * 3 - Enable both magic patter and pattern byte match on all interfaces.
+ */
+#define CFG_WOW_STATUS_NAME                           "gEnableWoW"
+#define CFG_WOW_ENABLE_MIN                            ( 0 )
+#define CFG_WOW_ENABLE_MAX                            ( 3 )
+#define CFG_WOW_STATUS_DEFAULT                        ( 3 )
+
+#define CFG_COALESING_IN_IBSS_NAME                     "gCoalesingInIBSS"
+#define CFG_COALESING_IN_IBSS_MIN                      (0)
+#define CFG_COALESING_IN_IBSS_MAX                      (1)
+#define CFG_COALESING_IN_IBSS_DEFAULT                  (0) //disabled
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2204,6 +2226,9 @@ typedef struct
    v_U8_t                      fVhtAmpduLenExponent;
    v_U32_t                     vhtMpduLen;
 #endif
+   v_U8_t                      maxWoWFilters;
+   v_U8_t                      wowEnable;
+   v_U8_t                      isCoalesingInIBSSAllowed;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

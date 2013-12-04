@@ -1258,12 +1258,17 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
         case eWNI_SME_SCAN_ABORT_IND:
         {
-            tANI_U8 *pSessionId = (tANI_U8 *)limMsg->bodyptr;
-            limProcessAbortScanInd(pMac, *pSessionId);
-            vos_mem_free((v_VOID_t *)limMsg->bodyptr);
-            limMsg->bodyptr = NULL;
-            break;
-        }
+            tSirMbMsg *pMsg = limMsg->bodyptr;
+            tANI_U8 sessionId;
+            if (pMsg)
+            {
+               sessionId = (tANI_U8) pMsg->data[0];
+               limProcessAbortScanInd(pMac, sessionId);
+               vos_mem_free((v_VOID_t *)limMsg->bodyptr);
+               limMsg->bodyptr = NULL;
+            }
+         }
+         break;
         case eWNI_SME_START_REQ:
         case eWNI_SME_SYS_READY_IND:
 #ifndef WNI_ASKEY_NON_SUPPORT_FEATURE

@@ -1152,6 +1152,7 @@ limSendHalMsgDelTs(
 {
   tSirMsgQ msg;
   tpDelTsParams pDelTsParam;
+  tpPESession psessionEntry = NULL;
 
   if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pDelTsParam, sizeof(tDelTsParams)))
   {
@@ -1168,16 +1169,30 @@ limSendHalMsgDelTs(
   pDelTsParam->staIdx = staIdx;
   pDelTsParam->tspecIdx = tspecIdx;
 
+  psessionEntry = peFindSessionBySessionId(pMac, sessionId);
+  if(psessionEntry == NULL)
+  {
+     PELOGE(limLog(pMac, LOGE,
+              FL("Session does Not exist with given sessionId :%d "),
+              sessionId);)
+     goto err;
+  }
+  pDelTsParam->sessionId = psessionEntry->smeSessionId;
+  pDelTsParam->userPrio = delts.tsinfo.traffic.userPrio;
+
   PELOGW(limLog(pMac, LOGW, FL("calling wdaPostCtrlMsg()"));)
   MTRACE(macTraceMsgTx(pMac, sessionId, msg.type));
 
   if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
   {
      PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg() failed"));)
-     palFreeMemory(pMac->hHdd, (tANI_U8*)pDelTsParam);
-     return eSIR_FAILURE;
+     goto err;
   }
-  return eSIR_SUCCESS;  
+  return eSIR_SUCCESS;
+
+err:
+  palFreeMemory(pMac->hHdd, (tANI_U8*)pDelTsParam);
+  return eSIR_FAILURE;
 }
 
 /** -------------------------------------------------------------

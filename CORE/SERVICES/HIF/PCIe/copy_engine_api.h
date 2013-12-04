@@ -367,6 +367,9 @@ void CE_enable_any_copy_compl_intr(struct hif_pci_softc *sc);
 void CE_disable_any_copy_compl_intr_nolock(struct hif_pci_softc *sc);
 void CE_enable_any_copy_compl_intr_nolock(struct hif_pci_softc *sc);
 
+/* API to check if any of the copy engine pipes has pending frames for prcoessing */
+bool CE_get_rx_pending(struct hif_pci_softc *sc);
+
 /* CE_attr.flags values */
 #define CE_ATTR_NO_SNOOP                0x01  /* Use NonSnooping PCIe accesses? */
 #define CE_ATTR_BYTE_SWAP_DATA          0x02  /* Byte swap data words */

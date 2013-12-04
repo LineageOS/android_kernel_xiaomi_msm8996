@@ -749,8 +749,12 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     netif_tx_disable(dev);
     netif_carrier_off(dev);
 
-    INIT_COMPLETION(pAdapter->disconnect_comp_var);
-    hdd_connSetConnectionState( pHddStaCtx, eConnectionState_Disconnecting );
+    if(pHddStaCtx->conn_info.connState != eConnectionState_Disconnecting)
+    {
+        INIT_COMPLETION(pAdapter->disconnect_comp_var);
+        hdd_connSetConnectionState( pHddStaCtx, eConnectionState_Disconnecting );
+    }
+
     /* If only STA mode is on */
     if((pHddCtx->concurrency_mode <= 1) && (pHddCtx->no_of_sessions[WLAN_HDD_INFRA_STATION] <=1))
     {
@@ -2411,6 +2415,13 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             }
            break;
         case eCSR_ROAM_LOSTLINK:
+            if(roamResult == eCSR_ROAM_RESULT_LOSTLINK) {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "Roaming started due to connection lost");
+                netif_tx_disable(pAdapter->dev);
+                netif_carrier_off(pAdapter->dev);
+                break;
+            }
         case eCSR_ROAM_DISASSOCIATED:
             {
                 hdd_context_t* pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;

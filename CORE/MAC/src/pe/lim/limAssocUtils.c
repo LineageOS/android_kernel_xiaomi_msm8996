@@ -2277,6 +2277,8 @@ limAddSta(
     /* Update SME session ID */
     pAddStaParams->smesessionId = psessionEntry->smeSessionId;
 
+    pAddStaParams->maxTxPower = psessionEntry->maxTxPower;
+
     if (psessionEntry->parsedAssocReq != NULL)
     {
     // Get a copy of the already parsed Assoc Request
@@ -2602,6 +2604,8 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
 
     /* Update SME session ID */
     pAddStaParams->smesessionId = psessionEntry->smeSessionId;
+
+    pAddStaParams->maxTxPower = psessionEntry->maxTxPower;
     
   // This will indicate HAL to "allocate" a new STA index
     pAddStaParams->staIdx = staIdx;
@@ -3236,7 +3240,14 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     palCopyMemory( pMac->hHdd,  pAddBssParams->rateSet.rate,
                    pAssocRsp->supportedRates.rate, pAssocRsp->supportedRates.numRates );
 
-    pAddBssParams->nwType = bssDescription->nwType;
+    if (psessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11B)
+    {
+        pAddBssParams->nwType = eSIR_11B_NW_TYPE;
+    }
+    else
+    {
+        pAddBssParams->nwType = bssDescription->nwType;
+    }
     
     pAddBssParams->shortSlotTimeSupported = (tANI_U8)pAssocRsp->capabilityInfo.shortSlotTime;
     pAddBssParams->llaCoexist = (tANI_U8) psessionEntry->beaconParams.llaCoexist;    

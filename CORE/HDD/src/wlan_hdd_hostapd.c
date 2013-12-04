@@ -78,6 +78,13 @@
 #include <bap_hdd_main.h>
 #include "wlan_hdd_p2p.h"
 
+#ifdef QCA_WIFI_2_0
+#include "wma.h"
+#ifdef DEBUG
+#include "wma_api.h"
+#endif
+#endif /* QCA_WIFI_2_0 */
+
 #define    IS_UP(_dev) \
     (((_dev)->flags & (IFF_RUNNING|IFF_UP)) == (IFF_RUNNING|IFF_UP))
 #define    IS_UP_AUTO(_ic) \
@@ -1075,6 +1082,89 @@ static iw_softap_setparam(struct net_device *dev,
                 break;
             }
 
+#ifdef QCA_WIFI_2_0
+         /* Firmware debug log */
+         case QCSAP_DBGLOG_LOG_LEVEL:
+             {
+                  hddLog(LOG1, "QCSAP_DBGLOG_LOG_LEVEL val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)WMI_DBGLOG_LOG_LEVEL,
+                                               set_value, DBG_CMD);
+                  break;
+             }
+
+         case QCSAP_DBGLOG_VAP_ENABLE:
+             {
+                  hddLog(LOG1, "QCSAP_DBGLOG_VAP_ENABLE val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)WMI_DBGLOG_VAP_ENABLE,
+                                               set_value, DBG_CMD);
+                  break;
+             }
+
+         case QCSAP_DBGLOG_VAP_DISABLE:
+             {
+                  hddLog(LOG1, "QCSAP_DBGLOG_VAP_DISABLE val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)WMI_DBGLOG_VAP_DISABLE,
+                                               set_value, DBG_CMD);
+                  break;
+             }
+
+         case QCSAP_DBGLOG_MODULE_ENABLE:
+             {
+                  hddLog(LOG1, "QCSAP_DBGLOG_MODULE_ENABLE val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)WMI_DBGLOG_MODULE_ENABLE,
+                                               set_value, DBG_CMD);
+                  break;
+             }
+
+         case QCSAP_DBGLOG_MODULE_DISABLE:
+             {
+                  hddLog(LOG1, "QCSAP_DBGLOG_MODULE_DISABLE val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)WMI_DBGLOG_MODULE_DISABLE,
+                                               set_value, DBG_CMD);
+                  break;
+             }
+
+         case QCSAP_DBGLOG_MOD_LOG_LEVEL:
+             {
+                  hddLog(LOG1, "QCSAP_DBGLOG_MOD_LOG_LEVEL val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)WMI_DBGLOG_MOD_LOG_LEVEL,
+                                               set_value, DBG_CMD);
+                  break;
+             }
+
+         case QCSAP_DBGLOG_TYPE:
+             {
+                  hddLog(LOG1, "QCSAP_DBGLOG_TYPE val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)WMI_DBGLOG_TYPE,
+                                               set_value, DBG_CMD);
+                  break;
+             }
+         case QCSAP_DBGLOG_REPORT_ENABLE:
+             {
+                  hddLog(LOG1, "QCSAP_DBGLOG_REPORT_ENABLE val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)WMI_DBGLOG_REPORT_ENABLE,
+                                               set_value, DBG_CMD);
+                  break;
+             }
+#ifdef DEBUG
+         case QCSAP_FW_CRASH_INJECT:
+             {
+                  hddLog(LOGE, "WE_FW_CRASH_INJECT");
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                                (int)GEN_PARAM_CRASH_INJECT,
+                                                0, GEN_CMD);
+                  break;
+             }
+#endif
+#endif /* QCA_WIFI_2_0 */
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
                     sub_cmd, set_value);
@@ -2751,6 +2841,55 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "hideSSID" },
    { QCSAP_PARAM_SET_MC_RATE,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMcRate" },
+
+#ifdef QCA_WIFI_2_0
+ /* Sub-cmds DBGLOG specific commands */
+    {   QCSAP_DBGLOG_LOG_LEVEL ,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_loglevel" },
+
+    {   QCSAP_DBGLOG_VAP_ENABLE ,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_vapon" },
+
+    {   QCSAP_DBGLOG_VAP_DISABLE ,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_vapoff" },
+
+    {   QCSAP_DBGLOG_MODULE_ENABLE ,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_modon" },
+
+    {   QCSAP_DBGLOG_MODULE_DISABLE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_modoff" },
+
+    {   QCSAP_DBGLOG_MOD_LOG_LEVEL,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_mod_loglevel" },
+
+    {   QCSAP_DBGLOG_TYPE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_type" },
+    {   QCSAP_DBGLOG_REPORT_ENABLE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_report" },
+#ifdef DEBUG
+    {   QCSAP_FW_CRASH_INJECT,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "crash_inject" },
+#endif
+#endif /* QCA_WIFI_2_0 */
+
   { QCSAP_IOCTL_GETPARAM,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },

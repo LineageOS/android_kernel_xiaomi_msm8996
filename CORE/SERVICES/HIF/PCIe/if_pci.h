@@ -85,6 +85,7 @@ struct hif_pci_softc {
     u16 devid;
     struct targetdef_s *targetdef;
     struct hostdef_s *hostdef;
+    atomic_t tasklet_from_intr;
 };
 #define TARGID(sc) ((A_target_id_t)(&(sc)->mem))
 #define TARGID_TO_HIF(targid) (((struct hif_pci_softc *)((char *)(targid) - (char *)&(((struct hif_pci_softc *)0)->mem)))->hif_device)
@@ -108,6 +109,9 @@ adf_os_size_t initBufferCount(adf_os_size_t maxSize);
 
 /* Function to set the TXRX handle in the ol_sc context */
 void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle);
+void hif_disable_isr(void *ol_sc);
+
+void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc);
 
 #ifndef REMOVE_PKT_LOG
 extern int pktlogmod_init(void *context);

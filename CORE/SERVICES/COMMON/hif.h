@@ -588,7 +588,13 @@ inline int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *da
  * For maximum performance and no power management, set this to 1.
  * For power management at the cost of performance, set this to 0.
  */
-#define CONFIG_ATH_PCIE_MAX_PERF 1
+#define CONFIG_ATH_PCIE_MAX_PERF 0
+
+/*
+ * For keeping the target awake till the driver is
+ * loaded, set this to 1
+ */
+#define CONFIG_ATH_PCIE_AWAKE_WHILE_DRIVER_LOAD 1
 
 /*
  * When CONFIG_ATH_PCIE_MAX_PERF is 0:
@@ -632,6 +638,8 @@ inline int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *da
 
 extern A_target_id_t HIFGetTargetId(HIF_DEVICE *hifDevice);
 extern void HIFTargetSleepStateAdjust(A_target_id_t targid, A_BOOL sleep_ok, A_BOOL wait_for_it);
+extern void
+HIFSetTargetSleep(HIF_DEVICE *hif_device, A_BOOL sleep_ok, A_BOOL wait_for_it);
 extern A_BOOL HIFTargetForcedAwake(A_target_id_t targid);
 
 #define A_TARGET_ID(hifDevice)                HIFGetTargetId(hifDevice)
@@ -665,6 +673,7 @@ void WAR_PCI_WRITE32(char *addr, u32 offset, u32 value);
 
 #else /* CONFIG_ATH_PCIE_MAX_PERF */
 
+void WAR_PCI_WRITE32(char *addr, u32 offset, u32 value);
 #define A_TARGET_ACCESS_BEGIN(targid) \
         HIFTargetSleepStateAdjust((targid), FALSE, TRUE)
 

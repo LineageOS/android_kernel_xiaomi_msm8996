@@ -1477,6 +1477,9 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    /* update p2p offload status */
    pMac->pnoOffload = pSmeConfigParams->pnoOffload;
 
+   pMac->isCoalesingInIBSSAllowed =
+         pSmeConfigParams->csrConfig.isCoalesingInIBSSAllowed;
+
    return status;
 }
 

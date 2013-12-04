@@ -75,6 +75,16 @@
 #include "vos_sched.h"
 #include "pttMsgApi.h"
 #include "wlan_qct_sys.h"
+
+/* 11A Channel list to decode RX BD channel information */
+static const tANI_U8 abChannel[]= {36,40,44,48,52,56,60,64,100,104,108,112,116,
+            120,124,128,132,136,140,149,153,157,161,165};
+
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+static const tANI_U8 aUnsortedChannelList[]= {52,56,60,64,100,104,108,112,116,
+            120,124,128,132,136,140,36,40,44,48,149,153,157,161,165};
+#endif
+
 /* Used MACRO's */
 /* Get WDA context from vOSS module */
 #define VOS_GET_WDA_CTXT(a)            vos_get_context(VOS_MODULE_ID_WDA, a)
@@ -13719,4 +13729,16 @@ void WDA_TransportChannelDebug
 void WDA_SetEnableSSR(v_BOOL_t enableSSR)
 {
    WDI_SetEnableSSR(enableSSR);
+}
+
+tANI_U8 WDA_MapChannel(tANI_U8 mapChannel)
+{
+   if(mapChannel > 0 && mapChannel < 25)
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+     if(IS_ROAM_SCAN_OFFLOAD_FEATURE_ENABLE)
+        return aUnsortedChannelList[mapChannel - 1];
+#endif
+     return abChannel[mapChannel - 1];
+   else
+     return 0;
 }

@@ -2326,6 +2326,26 @@ REG_VARIABLE( CFG_VHT_MPDU_LEN_NAME, WLAN_PARAM_Integer,
                CFG_VHT_MPDU_LEN_MAX),
 #endif
 
+REG_VARIABLE( CFG_MAX_WOW_FILTERS_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, maxWoWFilters,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK ,
+               CFG_MAX_WOW_FILTERS_DEFAULT,
+               CFG_MAX_WOW_FILTERS_MIN,
+               CFG_MAX_WOW_FILTERS_MAX),
+
+REG_VARIABLE( CFG_WOW_STATUS_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, wowEnable,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_WOW_STATUS_DEFAULT,
+               CFG_WOW_ENABLE_MIN,
+               CFG_WOW_ENABLE_MAX),
+
+REG_VARIABLE( CFG_COALESING_IN_IBSS_NAME , WLAN_PARAM_Integer,
+              hdd_config_t, isCoalesingInIBSSAllowed,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_COALESING_IN_IBSS_DEFAULT,
+              CFG_COALESING_IN_IBSS_MIN,
+              CFG_COALESING_IN_IBSS_MAX ),
 };
 
 /*
@@ -2706,6 +2726,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [enableRxSTBC] Value = [%u] ",pHddCtx->cfg_ini->enableRxSTBC);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableLpwrImgTransition] Value = [%u] ",pHddCtx->cfg_ini->enableLpwrImgTransition);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableSSR] Value = [%u] ",pHddCtx->cfg_ini->enableSSR);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gCoalesingInIBSS] Value = [%lu] " ,pHddCtx->cfg_ini->isCoalesingInIBSSAllowed);
 
 }
 
@@ -4144,6 +4165,11 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.scanCfgAgingTime = pConfig->scanAgingTimeout;
 
    smeConfig.csrConfig.enableTxLdpc = pConfig->enableTxLdpc;
+
+   smeConfig.csrConfig.isCoalesingInIBSSAllowed =
+                   pHddCtx->cfg_ini->isCoalesingInIBSSAllowed;
+
+
 
    /* update SSR config */
    sme_UpdateEnableSSR((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->enableSSR);

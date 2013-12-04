@@ -88,6 +88,7 @@
 #include "bmi.h"
 #include "ol_fw.h"
 #include "ol_if_athvar.h"
+#include "if_pci.h"
 #else
 #include "htc_api.h"
 #endif /* #ifndef QCA_WIFI_ISOC */
@@ -387,6 +388,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    macOpenParms.driverType         = eDRIVER_TYPE_PRODUCTION;
    macOpenParms.powersaveOffloadEnabled =
       pHddCtx->cfg_ini->enablePowersaveOffload;
+   macOpenParms.wowEnable = pHddCtx->cfg_ini->wowEnable;
+   macOpenParms.maxWoWFilters      = pHddCtx->cfg_ini->maxWoWFilters;
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
 #ifndef QCA_WIFI_ISOC
                        hdd_update_tgt_cfg,
@@ -671,12 +674,15 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
    {
       VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_FATAL,
                "Failed to get ready event from target firmware");
+      HTCSetTargetToSleep(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext));
       macStop(gpVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
       ccmStop(gpVosContext->pMACContext);
       HTCStop(gpVosContext->htc_ctx);
       VOS_ASSERT( 0 );
       return VOS_STATUS_E_FAILURE;
    }
+
+   HTCSetTargetToSleep(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext));
 #endif
 #endif /* QCA_WIFI_2_0 */
 
@@ -950,6 +956,9 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
+#ifndef QCA_WIFI_ISOC
+  hif_disable_isr(((VosContextType*)vosContext)->pHIFContext);
+#endif
 
   return VOS_STATUS_SUCCESS;
 }
@@ -2145,6 +2154,37 @@ VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
          "%s: Failed to close SYS", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
+
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+  if (TRUE == WDA_needShutdown(vosContext))
+  {
+    /* If WDA stop failed, call WDA shutdown to cleanup WDA/WDI. */
+    vosStatus = WDA_shutdown(vosContext, VOS_TRUE);
+    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+    {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to shutdown WDA!", __func__);
+      VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
+    }
+  }
+  else
+  {
+    vosStatus = WDA_close(vosContext);
+    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+    {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to close WDA!", __func__);
+      VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
+    }
+  }
+
+  if (gpVosContext->htc_ctx)
+  {
+    HTCStop(gpVosContext->htc_ctx);
+    HTCDestroy(gpVosContext->htc_ctx);
+    gpVosContext->htc_ctx = NULL;
+  }
+#endif
 
 #ifndef QCA_WIFI_2_0
  /* Let DXE return packets in WDA_close and then free them here */

@@ -330,10 +330,10 @@ LIM
 WNI_CFG_RTS_THRESHOLD    I    4    6
 V    RW    NP
 HAL
-0    2347    2347
+0    192000    2347
 V    RW    NP
 HAL
-0    2347    2347
+0    192000    2347
 
 *
 * Short Retry Limit

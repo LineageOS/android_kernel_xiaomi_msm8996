@@ -37,7 +37,7 @@
  * --------------------------------------------------------------------
  *
  */
- 
+
 #include "palTypes.h"
 #include "wniCfgSta.h"
 #include "aniGlobal.h"
@@ -256,7 +256,8 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     if (psessionEntry->ssidHidden)
     {
        pBcn1->SSID.present = 1; //rest of the fileds are 0 for hidden ssid
-       if(psessionEntry->ssId.length)
+       if((psessionEntry->ssId.length) &&
+          (psessionEntry->ssidHidden == eHIDDEN_SSID_ZERO_CONTENTS))
           pBcn1->SSID.num_ssid = psessionEntry->ssId.length;
     }
     else

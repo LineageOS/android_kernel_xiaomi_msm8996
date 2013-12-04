@@ -183,4 +183,9 @@
  */
 #define CFG_TGT_MAX_FRAG_TABLE_ENTRIES 10
 
+/*
+ * Maximum number of VDEV that beacon tx offload will support
+ */
+#define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 2
+
 #endif  /*__WLAN_TGT_DEF_CONFIG_H__ */
