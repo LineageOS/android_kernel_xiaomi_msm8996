@@ -6169,14 +6169,14 @@ fail:
 
 static int wmi_unified_bcn_tmpl_send(tp_wma_handle wma,
 				     u_int8_t vdev_id,
-				     tpSendbeaconParams bcn_info)
+				     tpSendbeaconParams bcn_info,
+				     u_int8_t bytes_to_strip)
 {
 	wmi_bcn_tmpl_cmd_fixed_param  *cmd;
 	wmi_bcn_prb_info *bcn_prb_info;
 	wmi_buf_t wmi_buf;
 	u_int32_t tmpl_len, tmpl_len_aligned, wmi_buf_len;
 	u_int8_t *frm, *buf_ptr;
-	u_int8_t bytes_to_strip;
 	int ret;
 	u_int8_t *p2p_ie;
 	u_int16_t p2p_ie_len = 0;
@@ -6189,12 +6189,19 @@ static int wmi_unified_bcn_tmpl_send(tp_wma_handle wma,
 		p2p_ie_len = (u_int16_t) p2p_ie[1] + 2;
 	}
 
-	tmpl_len = *(u_int32_t *)&bcn_info->beacon[0];
+	/*
+	 * XXX: The first byte of beacon buffer contains beacon length
+	 * only when UMAC in sending the beacon template. In othercases
+	 * (ex: from tbtt update) beacon length is read from beacon
+	 * information.
+	 */
+	if (bytes_to_strip)
+		tmpl_len = *(u_int32_t *)&bcn_info->beacon[0];
+	else
+		tmpl_len = bcn_info->beaconLength;
 	if (p2p_ie_len) {
 		tmpl_len -= (u_int32_t) p2p_ie_len;
 	}
-
-	bytes_to_strip = sizeof (tANI_U32); /* Exclude beacon length field */
 
 	frm = bcn_info->beacon + bytes_to_strip;
 	tmpl_len_aligned = roundup(tmpl_len, sizeof(A_UINT32));
@@ -6278,6 +6285,7 @@ VOS_STATUS wma_store_bcn_tmpl(tp_wma_handle wma, u_int8_t vdev_id,
 			bcn_info->beacon + 4 /* Exclude beacon length field */,
 			len);
 	bcn->tim_ie_offset = bcn_info->timIeOffset - 4;
+	bcn->p2p_ie_offset = bcn_info->p2pIeOffset - 4;
 
 	bcn_payload = adf_nbuf_data(bcn->buf);
 	tim_ie = (struct beacon_tim_ie *)(&bcn_payload[bcn->tim_ie_offset]);
@@ -6296,6 +6304,67 @@ VOS_STATUS wma_store_bcn_tmpl(tp_wma_handle wma, u_int8_t vdev_id,
 
 	return VOS_STATUS_SUCCESS;
 }
+
+static int wma_tbttoffset_update_event_handler(void *handle, u_int8_t *event,
+					       u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	WMI_TBTTOFFSET_UPDATE_EVENTID_param_tlvs *param_buf;
+	wmi_tbtt_offset_event_fixed_param *tbtt_offset_event;
+	struct wma_txrx_node *intf = wma->interfaces;
+	struct ieee80211_frame *wh;
+	struct beacon_info *bcn;
+	tSendbeaconParams bcn_info;
+	u_int8_t *bcn_payload;
+	u_int64_t adjusted_tsf_le;
+	u_int32_t *adjusted_tsf;
+	u_int32_t if_id = 0, vdev_map;
+
+	param_buf = (WMI_TBTTOFFSET_UPDATE_EVENTID_param_tlvs *)event;
+	if(!param_buf) {
+		WMA_LOGE("Invalid tbtt update event buffer");
+		return -EINVAL;
+	}
+	tbtt_offset_event = param_buf->fixed_param;
+	vdev_map = tbtt_offset_event->vdev_map;
+	adjusted_tsf = param_buf->tbttoffset_list;
+
+	for ( ;(vdev_map); vdev_map >>= 1, if_id++) {
+		if (!(vdev_map & 0x1))
+			continue;
+
+		bcn = intf[if_id].beacon;
+		if (!bcn->buf) {
+			WMA_LOGE("%s: Invalid beacon buffer\n", __func__);
+			return -EINVAL;
+		}
+		/* Save the adjusted TSF */
+		intf[if_id].tsfadjust = adjusted_tsf[if_id];
+		/*
+		 * Make the TSF offset negative so beacons in the same
+		 * staggered batch have the same TSF.
+		 */
+		adjusted_tsf_le = cpu_to_le64(0ULL - intf[if_id].tsfadjust);
+
+		/* Update the timstamp in the beacon buffer with adjusted TSF */
+		adf_os_spin_lock_bh(&bcn->lock);
+		bcn_payload = adf_nbuf_data(bcn->buf);
+		wh = (struct ieee80211_frame *) bcn_payload;
+		A_MEMCPY(&wh[1], &adjusted_tsf_le, sizeof(adjusted_tsf_le));
+		vos_mem_zero(&bcn_info, sizeof(bcn_info));
+		bcn_info.beacon = bcn_payload;
+		bcn_info.p2pIeOffset = bcn->p2p_ie_offset;
+		bcn_info.beaconLength = bcn->len;
+		bcn_info.timIeOffset = bcn->tim_ie_offset;
+		adf_os_spin_unlock_bh(&bcn->lock);
+
+		/* Update beacon template in firmware */
+		wmi_unified_bcn_tmpl_send(wma, if_id, &bcn_info, 0);
+	}
+
+	return 0;
+}
+
 
 static int wma_p2p_go_set_beacon_ie(t_wma_handle *wma_handle,
 					A_UINT32 vdev_id, u_int8_t *p2pIe)
@@ -6366,7 +6435,7 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 				   WMI_SERVICE_BEACON_OFFLOAD)) {
             WMA_LOGE("%s : Beacon Offload Enabled Sending Unified command", __func__);
 
-	    if (wmi_unified_bcn_tmpl_send(wma, vdev_id, bcn_info) < 0){
+	    if (wmi_unified_bcn_tmpl_send(wma, vdev_id, bcn_info, 4) < 0){
                 WMA_LOGE("%s : wmi_unified_bcn_tmpl_send Failed ", __func__);
 		return;
 	    }
@@ -6380,10 +6449,11 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 			    return;
 		    }
 	    }
-	} else {
-		status = wma_store_bcn_tmpl(wma, vdev_id, bcn_info);
-		if (status != VOS_STATUS_SUCCESS)
-			return;
+	}
+	status = wma_store_bcn_tmpl(wma, vdev_id, bcn_info);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("%s : wma_store_bcn_tmpl Failed", __func__);
+		return;
 	}
 #endif
 	if (!wma->interfaces[vdev_id].vdev_up) {
@@ -11201,6 +11271,13 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 							wma_p2p_noa_event_handler);
 	if (status) {
 		WMA_LOGE("Failed to register WMI_P2P_NOA_EVENTID callback");
+		return;
+	}
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+						    WMI_TBTTOFFSET_UPDATE_EVENTID,
+						    wma_tbttoffset_update_event_handler);
+	if (status) {
+		WMA_LOGE("Failed to register WMI_TBTTOFFSET_UPDATE_EVENTID callback");
 		return;
 	}
 

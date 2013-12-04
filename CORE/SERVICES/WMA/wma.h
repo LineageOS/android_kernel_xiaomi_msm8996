@@ -201,6 +201,7 @@ struct beacon_info {
 	u_int8_t noa_sub_ie[2 + WMA_NOA_IE_SIZE(WMA_MAX_NOA_DESCRIPTORS)];
 	u_int16_t noa_sub_ie_len;
 	u_int8_t *noa_ie;
+	u_int16_t p2p_ie_offset;
 	adf_os_spinlock_t lock;
 };
 
@@ -301,6 +302,7 @@ struct wma_txrx_node {
 	tANI_U8                 vht_capable;
 	tANI_U8                 ht_capable;
 	v_BOOL_t vdev_up;
+	u_int64_t tsfadjust;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
