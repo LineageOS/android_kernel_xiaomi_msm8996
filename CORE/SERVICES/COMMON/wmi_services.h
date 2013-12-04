@@ -89,6 +89,7 @@ typedef  enum  {
     WMI_SERVICE_FILTER_IPSEC_NATKEEPALIVE,
     WMI_SERVICE_WLAN_HB,           /* wlan HB service */
     WMI_SERVICE_LTE_ANT_SHARE_SUPPORT,       /* support LTE/WLAN antenna sharing */
+    WMI_SERVICE_BATCH_SCAN,        /*Service to support batch scan*/
     WMI_MAX_SERVICE=64                /* max service */
 } WMI_SERVICE;
 

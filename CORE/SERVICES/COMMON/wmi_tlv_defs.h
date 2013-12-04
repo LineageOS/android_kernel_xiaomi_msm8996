@@ -396,6 +396,13 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_dfs_radar_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_ena_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_dis_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_batch_scan_result_scan_list,
+    WMITLV_TAG_STRUC_wmi_batch_scan_result_network_info,
+    WMITLV_TAG_STRUC_wmi_batch_scan_enable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_batch_scan_disable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_batch_scan_trigger_result_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_batch_scan_enabled_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_batch_scan_result_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -530,7 +537,10 @@ typedef enum {
     OP(WMI_HB_SET_UDP_PARAMS_CMDID) \
     OP(WMI_HB_SET_UDP_PKT_FILTER_CMDID) \
     OP(WMI_DFS_PHYERR_FILTER_ENA_CMDID) \
-    OP(WMI_DFS_PHYERR_FILTER_DIS_CMDID)
+    OP(WMI_DFS_PHYERR_FILTER_DIS_CMDID) \
+    OP(WMI_BATCH_SCAN_ENABLE_CMDID) \
+    OP(WMI_BATCH_SCAN_DISABLE_CMDID) \
+    OP(WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -583,7 +593,9 @@ typedef enum {
     OP(WMI_P2P_NOA_EVENTID) \
     OP(WMI_TX_PAUSE_EVENTID) \
     OP(WMI_RFKILL_STATE_CHANGE_EVENTID) \
-    OP(WMI_DFS_RADAR_EVENTID)
+    OP(WMI_DFS_RADAR_EVENTID) \
+    OP(WMI_BATCH_SCAN_ENABLED_EVENTID) \
+    OP(WMI_BATCH_SCAN_RESULT_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1381,6 +1393,21 @@ WMITLV_CREATE_PARAM_STRUC(WMI_STA_SMPS_PARAM_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_MCC_SCHED_TRAFFIC_STATS_CMDID);
 
+#define WMITLV_TABLE_WMI_BATCH_SCAN_ENABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_batch_scan_enable_cmd_fixed_param, wmi_batch_scan_enable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_BATCH_SCAN_ENABLE_CMDID);
+
+#define WMITLV_TABLE_WMI_BATCH_SCAN_DISABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_batch_scan_disable_cmd_fixed_param, wmi_batch_scan_disable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_BATCH_SCAN_DISABLE_CMDID);
+
+#define WMITLV_TABLE_WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_batch_scan_trigger_result_cmd_fixed_param, wmi_batch_scan_trigger_result_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID);
+
 
 /************************** TLV definitions of WMI events *******************************/
 
@@ -1627,6 +1654,16 @@ WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_tdls_peer_event_fixed_param, wmi
 #define WMITLV_TABLE_WMI_VDEV_MCC_BCN_INTERVAL_CHANGE_REQ_EVENTID(id,op,buf,len)                                                         \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_mcc_bcn_intvl_change_event_fixed_param, wmi_vdev_mcc_bcn_intvl_change_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_MCC_BCN_INTERVAL_CHANGE_REQ_EVENTID);
+
+#define WMITLV_TABLE_WMI_BATCH_SCAN_ENABLED_EVENTID(id,op,buf,len)                                                         \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_batch_scan_enabled_event_fixed_param, wmi_batch_scan_enabled_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_BATCH_SCAN_ENABLED_EVENTID);
+
+#define WMITLV_TABLE_WMI_BATCH_SCAN_RESULT_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_batch_scan_result_event_fixed_param, wmi_batch_scan_result_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len,WMITLV_TAG_ARRAY_STRUC, wmi_batch_scan_result_scan_list, scan_list, WMITLV_SIZE_VAR)    \
+    WMITLV_ELEM(id,op,buf,len,WMITLV_TAG_ARRAY_STRUC, wmi_batch_scan_result_network_info, network_list, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_BATCH_SCAN_RESULT_EVENTID);
 
 #define WMITLV_TABLE_WMI_OFFLOAD_BCN_TX_STATUS_EVENTID(id,op,buf,len)                                                                                                 \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_offload_bcn_tx_status_event_fixed_param, wmi_offload_bcn_tx_status_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
