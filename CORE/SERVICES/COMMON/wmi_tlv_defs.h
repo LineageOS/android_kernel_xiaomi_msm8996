@@ -393,6 +393,9 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_hb_ind_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_tx_pause_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_rfkill_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_dfs_radar_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_ena_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_dis_cmd_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -525,7 +528,9 @@ typedef enum {
     OP(WMI_HB_SET_TCP_PARAMS_CMDID) \
     OP(WMI_HB_SET_TCP_PKT_FILTER_CMDID) \
     OP(WMI_HB_SET_UDP_PARAMS_CMDID) \
-    OP(WMI_HB_SET_UDP_PKT_FILTER_CMDID)
+    OP(WMI_HB_SET_UDP_PKT_FILTER_CMDID) \
+    OP(WMI_DFS_PHYERR_FILTER_ENA_CMDID) \
+    OP(WMI_DFS_PHYERR_FILTER_DIS_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -577,7 +582,8 @@ typedef enum {
     OP(WMI_OFFLOAD_BCN_TX_STATUS_EVENTID) \
     OP(WMI_P2P_NOA_EVENTID) \
     OP(WMI_TX_PAUSE_EVENTID) \
-    OP(WMI_RFKILL_STATE_CHANGE_EVENTID)
+    OP(WMI_RFKILL_STATE_CHANGE_EVENTID) \
+    OP(WMI_DFS_RADAR_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1140,6 +1146,18 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_DFS_ENABLE_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_DFS_DISABLE_CMDID);
 
+/* DFS phyerr parse/filter offload enable Cmd */
+#define WMITLV_TABLE_WMI_DFS_PHYERR_FILTER_ENA_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_ena_cmd_fixed_param, wmi_dfs_phyerr_filter_ena_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_DFS_PHYERR_FILTER_ENA_CMDID);
+
+/* DFS phyerr parse/filter offload disable Cmd */
+#define WMITLV_TABLE_WMI_DFS_PHYERR_FILTER_DIS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_dis_cmd_fixed_param, wmi_dfs_phyerr_filter_dis_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_DFS_PHYERR_FILTER_DIS_CMDID);
+
 /* WOW Add Wake Pattern Cmd */
 #define WMITLV_TABLE_WMI_WOW_ADD_WAKE_PATTERN_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_WMI_WOW_ADD_PATTERN_CMD_fixed_param, WMI_WOW_ADD_PATTERN_CMD_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
@@ -1619,6 +1637,11 @@ WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_offload_bcn_tx_status_event_fixe
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_p2p_noa_event_fixed_param, wmi_p2p_noa_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_p2p_noa_info, wmi_p2p_noa_info, p2p_noa_info, WMITLV_SIZE_FIX)
     WMITLV_CREATE_PARAM_STRUC(WMI_P2P_NOA_EVENTID);
+
+/* DFS radar Event */
+#define WMITLV_TABLE_WMI_DFS_RADAR_EVENTID(id,op,buf,len) \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_dfs_radar_event_fixed_param, wmi_dfs_radar_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+    WMITLV_CREATE_PARAM_STRUC(WMI_DFS_RADAR_EVENTID);
 
 #ifdef __cplusplus
 }

@@ -540,6 +540,11 @@ typedef enum {
     WMI_HB_SET_UDP_PARAMS_CMDID,
     /* set udp pkt filter for wlan HB */
     WMI_HB_SET_UDP_PKT_FILTER_CMDID,
+
+    /** enable DFS phyerr/parse filter offload */
+    WMI_DFS_PHYERR_FILTER_ENA_CMDID,
+    /** enable DFS phyerr/parse filter offload */
+    WMI_DFS_PHYERR_FILTER_DIS_CMDID,
 } WMI_CMD_ID;
 
 typedef enum {
@@ -703,6 +708,10 @@ typedef enum {
 
     /* TDLS Event */
     WMI_TDLS_PEER_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_TDLS),
+
+    /** DFS radar event  */
+    WMI_DFS_RADAR_EVENTID,
+
 } WMI_EVT_ID;
 
 #define WMI_OEM_DATA_REQ_CMDID             WMI_RTT_MEASREQ_CMDID
@@ -5330,6 +5339,26 @@ typedef struct {
     /** Reserved for future use */
     A_UINT32    reserved0;
 } wmi_pdev_dfs_disable_cmd_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_ena_cmd_fixed_param
+     */
+    A_UINT32 tlv_header;
+
+    /** Reserved for future use */
+    A_UINT32 reserved0;
+} wmi_dfs_phyerr_filter_ena_cmd_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_dis_cmd_fixed_param
+     */
+    A_UINT32 tlv_header;
+    /** Reserved for future use */
+    A_UINT32 reserved0;
+} wmi_dfs_phyerr_filter_dis_cmd_fixed_param;
+
 /** TDLS COMMANDS */
 
 /* WMI_TDLS_SET_STATE_CMDID */
@@ -5755,6 +5784,55 @@ typedef struct {
     /** RF radio status */
     A_UINT32 radio_state;
 } wmi_rfkill_mode_param;
+
+typedef struct {
+    /** tlv tag and len, tag equals
+     * WMITLV_TAG_STRUC_wmi_dfs_radar_event */
+    A_UINT32 tlv_header;
+
+    /** full 64 tsf timestamp get from MAC tsf timer indicates
+     * the time that the radar event uploading to host, split
+     * it to high 32 bit and lower 32 bit in fulltsf_high and
+     * full_tsf_low
+     */
+    A_UINT32 upload_fullts_low;
+    A_UINT32 upload_fullts_high;
+
+    /** timestamp indicates the time when DFS pulse is detected
+     * equal to ppdu_end_ts - radar_pusle_summary_ts_offset
+     */
+    A_UINT32 pulse_detect_ts;
+
+    /** the duaration of the pulse in us */
+    A_UINT32 pulse_duration;
+
+    /** the center frequency of the radar pulse detected, KHz */
+    A_UINT32 pulse_center_freq;
+
+    /** bandwidth of current DFS channel, MHz */
+    A_UINT32 ch_bandwidth;
+
+    /** center channel frequency1 of current DFS channel, MHz */
+    A_UINT16 ch_center_freq1;
+
+    /** center channel frequency2 of current DFS channel, MHz,
+     * reserved for 160 BW mode
+     */
+    A_UINT16 ch_center_freq2;
+
+    /** flag to indicate if this pulse is chirp */
+    A_UINT8  pulse_is_chirp;
+
+    /** RSSI recorded in the ppdu */
+    A_UINT8  rssi;
+
+    /** extened RSSI info */
+    A_UINT8  rssi_ext;
+
+    /** For 4-byte aligment padding */
+    A_UINT8 reserved;
+
+} wmi_dfs_radar_event_fixed_param;
 
 #ifdef __cplusplus
 }
