@@ -1400,7 +1400,8 @@ limIbssCoalesce(
     limLog(pMac, LOG1, FL("Current BSSID :" MAC_ADDRESS_STR " Received BSSID :" MAC_ADDRESS_STR ),
                                   MAC_ADDR_ARRAY(currentBssId), MAC_ADDR_ARRAY(pHdr->bssId));
     /* Check for IBSS Coalescing only if Beacon is from different BSS */
-    if ( !palEqualMemory( pMac->hHdd, currentBssId, pHdr->bssId, sizeof( tSirMacAddr ) ) )
+    if ( !vos_mem_compare(currentBssId, pHdr->bssId, sizeof( tSirMacAddr ))
+          && psessionEntry->isCoalesingInIBSSAllowed)
     {
         if (! fTsfLater) // No Coalescing happened.
         {
@@ -1419,6 +1420,11 @@ limIbssCoalesce(
                                   MAC_ADDR_ARRAY(currentBssId));
         ibss_bss_delete(pMac,psessionEntry);
         return eSIR_SUCCESS;
+    }
+    else
+    {
+       if (!vos_mem_compare(currentBssId, pHdr->bssId, sizeof( tSirMacAddr )))
+           return eSIR_LIM_IGNORE_BEACON;
     }
 
     // STA in IBSS mode and SSID matches with ours

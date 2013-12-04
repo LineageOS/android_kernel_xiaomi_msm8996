@@ -956,7 +956,9 @@ typedef struct sMacOpenParameters
     tANI_U16 maxBssId;
     tANI_U32 frameTransRequired;
     tANI_U8 powersaveOffloadEnabled;
+    tANI_U8 wowEnable;
     tDriverType  driverType;
+    tANI_U8 maxWoWFilters;
 } tMacOpenParameters;
 
 typedef enum
@@ -1058,7 +1060,16 @@ typedef struct sAniSirGlobal
     csrReadyToSuspendCallback readyToSuspendCallback;
     void *readyToSuspendContext;
 
+    tANI_U8 isCoalesingInIBSSAllowed;
+
 } tAniSirGlobal;
+
+typedef enum
+{
+    eHIDDEN_SSID_NOT_IN_USE,
+    eHIDDEN_SSID_ZERO_LEN,
+    eHIDDEN_SSID_ZERO_CONTENTS
+} tHiddenssId;
 
 #ifdef FEATURE_WLAN_TDLS
 

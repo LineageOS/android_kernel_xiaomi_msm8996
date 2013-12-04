@@ -400,6 +400,9 @@ typedef struct sPESession           // Added to Support BT-AMP
 
     /* Power Save Off load Parameters */
     tPowersaveoffloadInfo pmmOffloadInfo;
+
+    tANI_U8 isCoalesingInIBSSAllowed;
+
 }tPESession, *tpPESession;
 
 #define LIM_MAX_ACTIVE_SESSIONS 4

@@ -131,7 +131,12 @@
 #define WMA_HOST_SCAN_REQID_PREFIX	 0xA000
 /* Prefix used by scan requestor id on host */
 #define WMA_HOST_SCAN_REQUESTOR_ID_PREFIX 0xA000
-#define WMA_HW_DEF_SCAN_MAX_DURATION	  5000 /* 5 secs */
+#define WMA_HW_DEF_SCAN_MAX_DURATION	  30000 /* 30 secs */
+
+/* Max offchannel duration */
+#define WMA_SCAN_AP_PRESENT_MAX_OFFCHANNEL_NUM 5
+#define WMA_SCAN_MAX_OFFCHANNEL_NUM_ACTIVE     10
+#define WMA_SCAN_MAX_OFFCHANNEL_NUM_PASSIVE    4
 
 #define WMA_INVALID_KEY_IDX	0xff
 
@@ -222,6 +227,7 @@ typedef struct {
 	u_int32_t rxchainmask;
 	u_int32_t txpow2g;
 	u_int32_t txpow5g;
+	u_int32_t pwrgating;
 } pdev_cli_config_t;
 
 typedef struct {
@@ -240,6 +246,9 @@ typedef struct {
 #define WMA_WOW_PTRN_MASK_VALID     0xFF
 #define WMA_NUM_BITS_IN_BYTE           8
 
+#define WMA_AP_WOW_DEFAULT_PTRN_MAX    4
+#define WMA_STA_WOW_DEFAULT_PTRN_MAX   2
+
 struct wma_wow_ptrn_cache {
 	u_int8_t vdev_id;
 	u_int8_t *ptrn;
@@ -252,6 +261,11 @@ struct wma_wow_ptrn_cache {
 struct wma_wow {
 	struct wma_wow_ptrn_cache *cache[WOW_MAX_BITMAP_FILTERS];
 	u_int8_t no_of_ptrn_cached;
+
+	u_int8_t free_ptrn_id[WOW_MAX_BITMAP_FILTERS];
+	u_int8_t total_free_ptrn_id;
+	u_int8_t used_free_ptrn_id;
+
 	v_BOOL_t magic_ptrn_enable;
 	v_BOOL_t wow_enable;
 	v_BOOL_t deauth_enable;
@@ -285,6 +299,7 @@ struct wma_txrx_node {
 	WLAN_PHY_MODE           chanmode;
 	tANI_U8                 vht_capable;
 	tANI_U8                 ht_capable;
+	v_BOOL_t vdev_up;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -388,6 +403,8 @@ typedef struct {
 	 */
 	tSirHostOffloadReq mArpInfo;
 	struct wma_tx_ack_work_ctx *ack_work_ctx;
+	u_int8_t powersave_mode;
+	v_BOOL_t ptrn_match_enable_all_vdev;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1122,4 +1139,13 @@ struct wma_decap_info_t {
 	int32_t hdr_len;
 };
 
+enum powersave_mode {
+	PS_NOT_SUPPORTED = 0,
+	PS_LEGACY_NODEEPSLEEP = 1,
+	PS_QPOWER_NODEEPSLEEP = 2,
+	PS_LEGACY_DEEPSLEEP = 3,
+	PS_QPOWER_DEEPSLEEP = 4
+};
+#define WMA_DEFAULT_QPOWER_MAX_PSPOLL_BEFORE_WAKE 1
+#define WMA_DEFAULT_QPOWER_TX_WAKE_THRESHOLD 2
 #endif

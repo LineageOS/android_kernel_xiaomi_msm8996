@@ -122,6 +122,7 @@ struct CE_state {
     unsigned int src_sz_max;
     struct CE_ring_state *src_ring;
     struct CE_ring_state *dest_ring;
+    atomic_t rx_pending;
 };
 
 /* Descriptor rings must be aligned to this boundary */

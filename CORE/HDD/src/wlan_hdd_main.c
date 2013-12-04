@@ -186,6 +186,12 @@ struct completion wlan_start_comp;
 extern void hif_init_adf_ctx(adf_os_device_t adf_ctx, v_VOID_t *hif_sc);
 extern int hif_register_driver(void);
 extern void hif_unregister_driver(void);
+
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+extern int hdd_ftm_start(hdd_context_t *pHddCtx);
+extern int hdd_ftm_stop(hdd_context_t *pHddCtx);
+#endif
+
 #endif
 
 static int hdd_netdev_notifier_call(struct notifier_block * nb,
@@ -4992,7 +4998,14 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 
    if (VOS_FTM_MODE == hdd_get_conparam())
    {
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+      if (hdd_ftm_stop(pHddCtx))
+      {
+          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_stop Failed",__func__);
+      }
+#endif
       wlan_hdd_ftm_close(pHddCtx);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver unloaded",__func__);
       goto free_hdd_ctx;
    }
    //Stop the Interface TX queue.
@@ -5042,7 +5055,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    // we are about to Request Full Power, and since that is synchronized,
    // the expectation is that by the time Request Full Power has completed,
    // all scans will be cancelled.
-   hdd_abort_mac_scan( pHddCtx, pAdapter->sessionId);
+   if(pAdapter)
+      hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId);
 
    if(!pConfig->enablePowersaveOffload)
    {
@@ -5243,7 +5257,7 @@ void __hdd_wlan_exit(void)
 		return;
 
 	/* module exit should never proceed if SSR is not completed */
-	while(isWDresetInProgress()){
+	while(pHddCtx->isLogpInProgress){
 		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
 			  "%s:SSR in Progress; block rmmod for 1 second!!!",
 			  __func__);
@@ -5654,6 +5668,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
+#ifndef QCA_WIFI_2_0
+   pHddCtx->cfg_ini->maxWoWFilters = WOWL_MAX_PTRNS_ALLOWED;
+#endif
    /* INI has been read, initialise the configuredMcastBcastFilter with
     * INI value as this will serve as the default value
     */
@@ -5771,7 +5788,17 @@ register_wiphy:
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
           goto err_free_hdd_context;
       }
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
+
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+      if (hdd_ftm_start(pHddCtx))
+      {
+          wiphy_unregister(wiphy);
+          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_start Failed",__func__);
+          goto err_free_hdd_context;
+      }
+#endif
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded",__func__);
+
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
       complete(&wlan_start_comp);
 #endif

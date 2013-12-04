@@ -138,6 +138,8 @@ const char *dbglog_get_module_str(A_UINT32 module_id)
         return "STA_SMPS";
     case WLAN_MODULE_TDLS:
         return "TDLS";
+    case WLAN_MODULE_P2P:
+        return "P2P";
     default:
         return "UNKNOWN";
     }
@@ -202,11 +204,20 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WMI_CMD_PARAMS",
         "WMI_EVENT_ALLOC_FAILURE",
         "WMI_DBGID_DCS_PARAM_CMD",
+        "WMI_SEND_EVENT_WRONG_TLV",
+        "WMI_SEND_EVENT_NO_TLV_DEF",
         "WMI_DBGID_DEFNITION_END",
     },
     {
         "PS_STA_DEFINITION_START",
         "PS_STA_PM_ARB_REQUEST",
+        "PS_STA_DELIVER_EVENT",
+        "PS_STA_PSPOLL_SEQ_DONE",
+        "PS_STA_COEX_MODE",
+        "PS_STA_PSPOLL_ALLOW",
+        "PS_STA_SET_PARAM",
+        "PS_STA_SPECPOLL_TIMER_STARTED",
+        "PS_STA_SPECPOLL_TIMER_STOPPED",
     },
     {
         "WHAL_DBGID_DEFINITION_START",
@@ -247,56 +258,7 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WHAL_ERROR_INTERRUPT_BB_PANIC",
         "WHAL_ERROR_PAPRD_MAXGAIN_ABOVE_WINDOW",
         "WHAL_ERROR_QCU_HW_PAUSE_MISMATCH",
-        "WHAL_COEX_RESET",
-        "WHAL_COEX_SELF_GEN_MASK",
-        "WHAL_ERROR_COEX_MCI_ISR",
-        "WHAL_COEX_MCI_ISR_IntRaw",
-        "WHAL_COEX_MCI_ISR_Int1Raw",
-        "WHAL_COEX_MCI_ISR_RxMsgRaw",
-        "WHAL_COEX_SENDMSG_QUEUE",
-        "WHAL_COEX_TX_MCI_REMOTE_RESET",
-        "WHAL_COEX_TX_MCI_TYPE_UNKNOWN",
-        "WHAL_COEX_TX_MCI_SYS_SLEEPING",
-        "WHAL_COEX_TX_MCI_REQ_WAKE",
-        "WHAL_COEX_TX_MCI_SYS_WAKING",
-        "WHAL_COEX_TX_MCI_LNA_TAKE",
-        "WHAL_COEX_TX_MCI_LNA_TRANS",
-        "WHAL_COEX_TX_MCI_GPM_UNKNOWN",
-        "WHAL_COEX_TX_MCI_GPM_WLAN_SET_ACL_INACTIVITY",
-        "WHAL_COEX_TX_MCI_GPM_BT_PAUSE_PROFILE",
-        "WHAL_COEX_TX_MCI_GPM_WLAN_PRIO",
-        "WHAL_COEX_TX_MCI_GPM_BT_STATUS_UPDATE",
-        "WHAL_COEX_TX_MCI_GPM_BT_UPDATE_FLAGS",
-        "WHAL_COEX_TX_MCI_GPM_VERSION_QUERY",
-        "WHAL_COEX_TX_MCI_GPM_VERSION_RESPONSE",
-        "WHAL_COEX_TX_MCI_GPM_STATUS_QUERY",
-        "WHAL_COEX_TX_MCI_GPM_HALT_BT_GPM",
-        "WHAL_COEX_TX_MCI_GPM_WLAN_CHANNELS",
-        "WHAL_COEX_TX_MCI_GPM_BT_PROFILE_INFO",
-        "WHAL_COEX_TX_MCI_GPM_BT_CAL_REQ ",
-        "WHAL_COEX_TX_MCI_GPM_BT_CAL_GRANT",
-        "WHAL_COEX_TX_MCI_GPM_BT_CAL_DONE",
-        "WHAL_COEX_TX_MCI_GPM_WLAN_CAL_REQ",
-        "WHAL_COEX_TX_MCI_GPM_WLAN_CAL_GRANT",
-        "WHAL_COEX_TX_MCI_GPM_WLAN_CAL_DONE",
-        "WHAL_COEX_TX_MCI_GPM_BT_DEBUG",
-        "WHAL_COEX_WHAL_MCI_RESET",
-        "WHAL_COEX_POLL_BT_CAL_DONE_TIMEOUT",
-        "WHAL_COEX_WHAL_PAUSE",
-        "WHAL_COEX_RX_MCI_GPM_BT_CAL_REQ",
-        "WHAL_COEX_RX_MCI_GPM_BT_CAL_DONE",
-        "WHAL_COEX_RX_MCI_GPM_BT_CAL_GRANT",
-        "WHAL_COEX_WLAN_CAL_START",
-        "WHAL_COEX_WLAN_CAL_RESULT ",
-        "WHAL_COEX_BtMciState",
-        "WHAL_COEX_BtCalState",
-        "WHAL_COEX_WlanCalState",
-        "WHAL_COEX_RxReqWakeCount",
-        "WHAL_COEX_RxRemoteResetCount",
-        "WHAL_COEX_RESTART_CAL",
-        "WHAL_COEX_WHAL_COEX_RESET",
-        "WHAL_COEX_SELF_GEN_MASK",
-        "WHAL_DBGID_DEFINITION_END"
+        "WHAL_DBGID_DEFINITION_END",
     },
     {
         "COEX_DEBUGID_START",
@@ -499,53 +461,80 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "COEX_PSP_STAT_2",      //                       197
         "COEX_PSP_RX_STATUS_STATE_2",   //               198
         "COEX_PSP_ERROR",       //                       199
-        "COEX_T2BT",    // 200
-        "COEX_BT_DURATION", // 201
-        "COEX_TX_MCI_GPM_WLAN_SCHED_INFO_TRIG", // 202
-        "COEX_TX_MCI_GPM_WLAN_SCHED_INFO_TRIG_RSP", // 203
-        "COEX_TX_MCI_GPM_SCAN_OP",  // 204
-        "COEX_TX_MCI_GPM_BT_PAUSE_GPM_TX",	// 205
-        "COEX_CTS2S_SEND",	// 206
-        "COEX_CTS2S_RESULT",	// 207
-        "COEX_ENTER_OCS",	// 208
-        "COEX_EXIT_OCS",	// 209
-        "COEX_UPDATE_OCS",	// 210
-        "COEX_STATUS_OCS",	// 211
-        "COEX_STATS_BT",	// 212
-        "COEX_DEBUG_MESSAGE_END"
+        "COEX_T2BT",    //                               200
+        "COEX_BT_DURATION", //                           201
+        "COEX_TX_MCI_GPM_WLAN_SCHED_INFO_TRIG", //       202
+        "COEX_TX_MCI_GPM_WLAN_SCHED_INFO_TRIG_RSP", //   203
+        "COEX_TX_MCI_GPM_SCAN_OP",  //                   204
+        "COEX_TX_MCI_GPM_BT_PAUSE_GPM_TX",	//       205
+        "COEX_CTS2S_SEND",	//                       206
+        "COEX_CTS2S_RESULT",	//                       207
+        "COEX_ENTER_OCS",	//                       208
+        "COEX_EXIT_OCS",	//                       209
+        "COEX_UPDATE_OCS",	//                       210
+        "COEX_STATUS_OCS",	//                       211
+        "COEX_STATS_BT",	//                       212
+        "COEX_MWS_WLAN_INIT",
+        "COEX_MWS_WBTMR_SYNC",
+        "COEX_MWS_TYPE2_RX",
+        "COEX_MWS_TYPE2_TX",
+        "COEX_MWS_WLAN_CHAVD",
+        "COEX_MWS_WLAN_CHAVD_INSERT",
+        "COEX_MWS_WLAN_CHAVD_MERGE",
+        "COEX_MWS_WLAN_CHAVD_RPT",
+        "COEX_MWS_CP_MSG_SEND",
+        "COEX_MWS_CP_ESCAPE",
+        "COEX_MWS_CP_UNFRAME",
+        "COEX_MWS_CP_SYNC_UPDATE",
+        "COEX_MWS_CP_SYNC",
+        "COEX_MWS_CP_WLAN_STATE_IND",
+        "COEX_MWS_CP_SYNCRESP_TIMEOUT",
+        "COEX_MWS_SCHEME_UPDATE",
+        "COEX_MWS_WLAN_EVENT",
+        "COEX_MWS_UART_UNESCAPE",
+        "COEX_MWS_UART_ENCODE_SEND",
+        "COEX_MWS_UART_RECV_DECODE",
+        "COEX_MWS_UL_HDL",
+        "COEX_MWS_REMOTE_EVENT",
+        "COEX_MWS_OTHER",
+        "COEX_MWS_ERROR",
+        "COEX_MWS_ANT_DIVERSITY",
+        "COEX_DEBUG_ID_END"
     },
     {
-        "RO_DBGID_DEFINITION_START",
-        "RO_REFRESH_ROAM_TABLE",
-        "RO_UPDATE_ROAM_CANDIDATE",
-        "RO_UPDATE_ROAM_CANDIDATE_CB",
-        "RO_UPDATE_ROAM_CANDIDATE_FINISH",
-        "RO_REFRESH_ROAM_TABLE_DONE",
-        "RO_PERIODIC_SEARCH_CB",
-        "RO_PERIODIC_SEARCH_TIMEOUT",
-        "RO_INIT",
-        "RO_BMISS_STATE1",
-        "RO_BMISS_STATE2",
-        "RO_SET_PERIODIC_SEARCH_ENABLE",
-        "RO_SET_PERIODIC_SEARCH_DISABLE",
-        "RO_ENABLE_SQ_THRESHOLD",
-        "RO_DISABLE_SQ_THRESHOLD",
-        "RO_ADD_BSS_TO_ROAM_TABLE",
-        "RO_SET_PERIODIC_SEARCH_MODE",
-        "RO_CONFIGURE_SQ_THRESHOLD1",
-        "RO_CONFIGURE_SQ_THRESHOLD2",
-        "RO_CONFIGURE_SQ_PARAMS",
-        "RO_LOW_SIGNAL_QUALITY_EVENT",
-        "RO_HIGH_SIGNAL_QUALITY_EVENT",
-        "RO_REMOVE_BSS_FROM_ROAM_TABLE",
-        "RO_UPDATE_CONNECTION_STATE_METRIC",
-        "RO_LOWRSSI_SCAN_PARAMS",
-        "RO_LOWRSSI_SCAN_START",
-        "RO_LOWRSSI_SCAN_END",
-        "RO_LOWRSSI_SCAN_CANCEL",
-        "RO_LOWRSSI_ROAM_CANCEL",
-        "RO_REFRESH_ROAM_CANDIDATE",
-        "RO_DBGID_DEFINITION_END"
+        "ROAM_DBGID_DEFINITION_START",
+        "ROAM_MODULE_INIT",
+        "ROAM_DEV_START",
+        "ROAM_CONFIG_RSSI_THRESH",
+        "ROAM_CONFIG_SCAN_PERIOD",
+        "ROAM_CONFIG_AP_PROFILE",
+        "ROAM_CONFIG_CHAN_LIST",
+        "ROAM_CONFIG_SCAN_PARAMS",
+        "ROAM_CONFIG_RSSI_CHANGE",
+        "ROAM_SCAN_TIMER_START",
+        "ROAM_SCAN_TIMER_EXPIRE",
+        "ROAM_SCAN_TIMER_STOP",
+        "ROAM_SCAN_STARTED",
+        "ROAM_SCAN_COMPLETE",
+        "ROAM_SCAN_CANCELLED",
+        "ROAM_CANDIDATE_FOUND",
+        "ROAM_RSSI_ACTIVE_SCAN",
+        "ROAM_RSSI_ACTIVE_ROAM",
+        "ROAM_RSSI_GOOD",
+        "ROAM_BMISS_FIRST_RECV",
+        "ROAM_DEV_STOP",
+        "ROAM_FW_OFFLOAD_ENABLE",
+        "ROAM_CANDIDATE_SSID_MATCH",
+        "ROAM_CANDIDATE_SECURITY_MATCH",
+        "ROAM_LOW_RSSI_INTERRUPT",
+        "ROAM_HIGH_RSSI_INTERRUPT",
+        "ROAM_SCAN_REQUESTED",
+        "ROAM_BETTER_CANDIDATE_FOUND",
+        "ROAM_BETTER_AP_EVENT",
+        "ROAM_CANCEL_LOW_PRIO_SCAN",
+        "ROAM_FINAL_BMISS_RECVD",
+        "ROAM_CONFIG_SCAN_MODE",
+        "ROAM_DBGID_DEFINITION_END"
     },
     {
         "RESMGR_CHMGR_DEFINITION_START",
@@ -554,6 +543,8 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "RESMGR_CHMGR_RESUME_COMPLETE",
         "RESMGR_CHMGR_VDEV_PAUSE",
         "RESMGR_CHMGR_VDEV_UNPAUSE",
+        "RESMGR_CHMGR_CTS2S_TX_COMP",
+        "RESMGR_CHMGR_CFEND_TX_COMP",
         "RESMGR_CHMGR_DEFINITION_END"
     },
     {
@@ -608,6 +599,15 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "RESMGR_VC_REG_UNREG_LINK",
         "RESMGR_VC_PRINT_LINK",
         "RESMGR_OCS_MISS_TOLERANCE",
+        "RESMGR_DYN_SCH_ALLOCRAM_SIZE",
+        "RESMGR_DYN_SCH_ENABLE",
+        "RESMGR_DYN_SCH_ACTIVE",
+        "RESMGR_DYN_SCH_CH_STATS_START",
+        "RESMGR_DYN_SCH_CH_SX_STATS",
+        "RESMGR_DYN_SCH_TOT_UTIL_PER",
+        "RESMGR_DYN_SCH_HOME_CH_QUOTA",
+        "RESMGR_OCS_REG_RECAL_QUOTA_NOTIF",
+        "RESMGR_OCS_DEREG_RECAL_QUOTA_NOTIF",
         "RESMGR_DEFINITION_END"
     },
     {
@@ -627,23 +627,35 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "VDEV_MGR_VDEV_START_OCS_HP_REQ_COMPLETE",
         "VDEV_MGR_VDEV_START_OCS_HP_REQ_STOP",
         "VDEV_MGR_HP_START_TIME",
+        "VDEV_MGR_VDEV_PAUSE_DELAY_UPDATE",
+        "VDEV_MGR_VDEV_PAUSE_FAIL",
+        "VDEV_MGR_GEN_PERIODIC_NOA",
         "VDEV_MGR_DEFINITION_END",
     },
     {
-      "SCAN_START_COMMAND_FAILED", /* scan */
-      "SCAN_STOP_COMMAND_FAILED",
-      "SCAN_EVENT_SEND_FAILED",
-      "SCAN_ENGINE_START",
-      "SCAN_ENGINE_CANCEL_COMMAND",
-      "SCAN_ENGINE_STOP_DUE_TO_TIMEOUT",
-      "SCAN_EVENT_SEND_TO_HOST",
-      "SCAN_FWLOG_EVENT_ADD",
-      "SCAN_FWLOG_EVENT_REM",
-      "SCAN_FWLOG_EVENT_PREEMPTED",
-      "SCAN_FWLOG_EVENT_RESTARTED",
-      "SCAN_FWLOG_EVENT_COMPLETED",
+        "SCAN_START_COMMAND_FAILED", /* scan */
+        "SCAN_STOP_COMMAND_FAILED",
+        "SCAN_EVENT_SEND_FAILED",
+        "SCAN_ENGINE_START",
+        "SCAN_ENGINE_CANCEL_COMMAND",
+        "SCAN_ENGINE_STOP_DUE_TO_TIMEOUT",
+        "SCAN_EVENT_SEND_TO_HOST",
+        "SCAN_FWLOG_EVENT_ADD",
+        "SCAN_FWLOG_EVENT_REM",
+        "SCAN_FWLOG_EVENT_PREEMPTED",
+        "SCAN_FWLOG_EVENT_RESTARTED",
+        "SCAN_FWLOG_EVENT_COMPLETED",
     },
-    { "" /* Rate ctrl*/
+    {
+        "RATECTRL_DBGID_DEFINITION_START", /* Rate ctrl*/
+        "RATECTRL_DBGID_ASSOC",
+        "RATECTRL_DBGID_NSS_CHANGE",
+        "RATECTRL_DBGID_CHAINMASK_ERR",
+        "RATECTRL_DBGID_UNEXPECTED_FRAME",
+        "RATECTRL_DBGID_WAL_RCQUERY",
+        "RATECTRL_DBGID_WAL_RCUPDATE",
+        "RATECTRL_DBGID_GTX_UPDATE",
+        "RATECTRL_DBGID_DEFINITION_END"
     },
     {
         "AP_PS_DBGID_DEFINITION_START",
@@ -663,6 +675,8 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "AP_PS_DBGID_UAPSD_RESPONSE",
         "AP_PS_DBGID_SEND_COMPLETE",
         "AP_PS_DBGID_SEND_N_COMPLETE",
+        "AP_PS_DBGID_DETECT_OUT_OF_SYNC_STA",
+        "AP_PS_DBGID_DELIVER_CAB",
     },
     {
         "" /* Block Ack */
@@ -683,11 +697,11 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
     { "" /* HOST */
     },
     { "" /* BEACON */
-      "BEACON_EVENT_SWBA_SEND_FAILED",
-      "BEACON_EVENT_EARLY_RX_BMISS_STATUS",
-      "BEACON_EVENT_EARLY_RX_SLEEP_SLOP",
-      "BEACON_EVENT_EARLY_RX_CONT_BMISS_TIMEOUT",
-      "BEACON_EVENT_EARLY_RX_PAUSE_SKIP_BCN_NUM",
+        "BEACON_EVENT_SWBA_SEND_FAILED",
+        "BEACON_EVENT_EARLY_RX_BMISS_STATUS",
+        "BEACON_EVENT_EARLY_RX_SLEEP_SLOP",
+        "BEACON_EVENT_EARLY_RX_CONT_BMISS_TIMEOUT",
+        "BEACON_EVENT_EARLY_RX_PAUSE_SKIP_BCN_NUM",
     },
     { /* Offload Mgr */
         "OFFLOAD_MGR_DBGID_DEFINITION_START",
@@ -754,6 +768,10 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WAL_DBGID_TX_MGMT_COMP_DESCID_STATUS",
         "WAL_DBGID_TX_DATA_COMP_MSDUID_STATUS",
         "WAL_DBGID_RESET_PCU_CYCLE_CNT",
+        "WAL_DBGID_SETUP_RSSI_INTERRUPTS",
+        "WAL_DBGID_BRSSI_CONFIG",
+        "WAL_DBGID_CURRENT_BRSSI_AVE",
+        "WAL_DBGID_BCN_TX_COMP",
         "WAL_DBGID_DEFINITION_END",
     },
     {
@@ -763,7 +781,28 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "" /* pcie lp */
     },
     {
-        "" /* RTT */
+        /* RTT */
+        "RTT_CALL_FLOW",
+        "RTT_REQ_SUB_TYPE",
+        "RTT_MEAS_REQ_HEAD",
+        "RTT_MEAS_REQ_BODY",
+        "",
+        "",
+        "RTT_INIT_GLOBAL_STATE",
+        "",
+        "RTT_REPORT",
+        "",
+        "RTT_ERROR_REPORT",
+        "RTT_TIMER_STOP",
+        "RTT_SEND_TM_FRAME",
+        "RTT_V3_RESP_CNT",
+        "RTT_V3_RESP_FINISH",
+        "RTT_CHANNEL_SWITCH_REQ",
+        "RTT_CHANNEL_SWITCH_GRANT",
+        "RTT_CHANNEL_SWITCH_COMPLETE",
+        "RTT_CHANNEL_SWITCH_PREEMPT",
+        "RTT_CHANNEL_SWITCH_STOP",
+        "RTT_TIMER_START",
     },
     {      /* RESOURCE */
         "RESOURCE_DBGID_DEFINITION_START",
@@ -784,7 +823,24 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         ""
     },
     {   /* ANI  */
-        ""
+        "ANI_DBGID_POLL",
+        "ANI_DBGID_CONTROL",
+        "ANI_DBGID_OFDM_PARAMS",
+        "ANI_DBGID_CCK_PARAMS",
+        "ANI_DBGID_RESET",
+        "ANI_DBGID_RESTART",
+        "ANI_DBGID_OFDM_LEVEL",
+        "ANI_DBGID_CCK_LEVEL",
+        "ANI_DBGID_FIRSTEP",
+        "ANI_DBGID_CYCPWR",
+        "ANI_DBGID_MRC_CCK",
+        "ANI_DBGID_SELF_CORR_LOW",
+        "ANI_DBGID_ENABLE",
+        "ANI_DBGID_CURRENT_LEVEL",
+        "ANI_DBGID_POLL_PERIOD",
+        "ANI_DBGID_LISTEN_PERIOD",
+        "ANI_DBGID_OFDM_LEVEL_CFG",
+        "ANI_DBGID_CCK_LEVEL_CFG"
     },
     {
         "P2P_DBGID_DEFINITION_START",
@@ -823,6 +879,8 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "P2P_GO_NOA_NOTIF",
         "P2P_GO_TBTT_OFFSET",
         "P2P_GO_GET_NOA_INFO",
+        "P2P_GO_ADD_ONE_SHOT_NOA",
+        "P2P_GO_GET_NOA_IE",
         "P2P_DBGID_DEFINITION_END",
     },
     {
@@ -839,6 +897,7 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "CSA_OFFLOAD_WMI_EVENT_ERROR",
         "CSA_OFFLOAD_WMI_EVENT_SENT",
         "CSA_OFFLOAD_WMI_CHANSWITCH_RECV",
+        "CSA_DBGID_DEFINITION_END",
     },
     {   /* NLO offload */
         ""
@@ -851,6 +910,8 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WLAN_CHATTER_FILTER_MISS",
         "WLAN_CHATTER_FILTER_FULL",
         "WLAN_CHATTER_FILTER_TM_ADJ",
+        "WLAN_CHATTER_BUFFER_FULL",
+        "WLAN_CHATTER_TIMEOUT",
         "WLAN_CHATTER_DBGID_DEFINITION_END",
     },
     {
@@ -865,6 +926,7 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WOW_INIT",
         "WOW_RECV_MAGIC_PKT",
         "WOW_RECV_BITMAP_PATTERN",
+        "WOW_DBGID_DEFINITION_END",
     },
     {   /* WAL VDEV  */
         ""
@@ -877,9 +939,18 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "TP_LOCAL_SEND",
     },
     {   /* STA SMPS  */
-        ""
+        "STA_SMPS_DBGID_DEFINITION_START",
+        "STA_SMPS_DBGID_CREATE_PDEV_INSTANCE",
+        "STA_SMPS_DBGID_CREATE_VIRTUAL_CHAN_INSTANCE",
+        "STA_SMPS_DBGID_DELETE_VIRTUAL_CHAN_INSTANCE",
+        "STA_SMPS_DBGID_CREATE_STA_INSTANCE",
+        "STA_SMPS_DBGID_DELETE_STA_INSTANCE",
+        "STA_SMPS_DBGID_VIRTUAL_CHAN_SMPS_START",
+        "STA_SMPS_DBGID_VIRTUAL_CHAN_SMPS_STOP",
+        "STA_SMPS_DBGID_SEND_SMPS_ACTION_FRAME",
+        "SMPS_DBGID_DEFINITION_END",
     },
-    {
+    {   /* SWBMISS */
         "SWBMISS_DBGID_DEFINITION_START",
         "SWBMISS_ENABLED",
         "SWBMISS_DISABLED",
@@ -909,6 +980,45 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "TDLS_DBGID_PEER_EVT_DRP_RSSI",
         "TDLS_DBGID_PEER_EVT_DISCOVER",
         "TDLS_DBGID_PEER_EVT_DELETE",
+    },
+    {   /* HB */
+        "WLAN_HB_DBGID_DEFINITION_START",
+        "WLAN_HB_DBGID_INIT",
+        "WLAN_HB_DBGID_TCP_GET_TXBUF_FAIL",
+        "WLAN_HB_DBGID_TCP_SEND_FAIL",
+        "WLAN_HB_DBGID_BSS_PEER_NULL",
+        "WLAN_HB_DBGID_UDP_GET_TXBUF_FAIL",
+        "WLAN_HB_DBGID_UDP_SEND_FAIL",
+        "WLAN_HB_DBGID_WMI_CMD_INVALID_PARAM",
+        "WLAN_HB_DBGID_WMI_CMD_INVALID_OP",
+        "WLAN_HB_DBGID_WOW_NOT_ENTERED",
+        "WLAN_HB_DBGID_ALLOC_SESS_FAIL",
+        "WLAN_HB_DBGID_CTX_NULL",
+        "WLAN_HB_DBGID_CHKSUM_ERR",
+        "WLAN_HB_DBGID_UDP_TX",
+        "WLAN_HB_DBGID_TCP_TX",
+        "WLAN_HB_DBGID_DEFINITION_END",
+    },
+    {   /* TXBF */
+        "TXBFEE_DBGID_START",
+        "TXBFEE_DBGID_NDPA_RECEIVED",
+        "TXBFEE_DBGID_HOST_CONFIG_TXBFEE_TYPE",
+        "TXBFER_DBGID_SEND_NDPA",
+        "TXBFER_DBGID_GET_NDPA_BUF_FAIL",
+        "TXBFER_DBGID_SEND_NDPA_FAIL",
+        "TXBFER_DBGID_GET_NDP_BUF_FAIL",
+        "TXBFER_DBGID_SEND_NDP_FAIL",
+        "TXBFER_DBGID_GET_BRPOLL_BUF_FAIL",
+        "TXBFER_DBGID_SEND_BRPOLL_FAIL",
+        "TXBFER_DBGID_HOST_CONFIG_CMDID",
+        "TXBFEE_DBGID_HOST_CONFIG_CMDID",
+        "TXBFEE_DBGID_ENABLED_ENABLED_UPLOAD_H",
+        "TXBFEE_DBGID_UPLOADH_CV_TAG",
+        "TXBFEE_DBGID_UPLOADH_H_TAG",
+        "TXBFEE_DBGID_CAPTUREH_RECEIVED",
+        "TXBFEE_DBGID_PACKET_IS_STEERED",
+        "TXBFEE_UPLOADH_EVENT_ALLOC_MEM_FAIL",
+        "TXBFEE_DBGID_END",
     },
 };
 
@@ -1587,6 +1697,11 @@ dbglog_sta_powersave_print_handler(
                 { "RX_WAKE_POLICY", 0 },
                 { "DELAYED_PAUSE_RX_LEAK", 1 },
                 { "TXRX_INACTIVITY_BLOCKED_RETRY", 1 },
+                { "SPEC_WAKE_INTERVAL", 1 },
+                { "MAX_SPEC_NODATA_PSPOLL", 0 },
+                { "ESTIMATED_PSPOLL_RESP_TIME", 1 },
+                { "QPOWER_MAX_PSPOLL_BEFORE_WAKE", 0 },
+                { "QPOWER_ENABLE", 0 },
             };
             A_UINT32 param = args[0];
             A_UINT32 value = args[1];
@@ -2577,6 +2692,89 @@ A_BOOL dbglog_smps_print_handler(A_UINT32 mod_id,
 }
 
 
+A_BOOL
+dbglog_p2p_print_handler(
+        A_UINT32 mod_id,
+        A_UINT16 vap_id,
+        A_UINT32 dbg_id,
+        A_UINT32 timestamp,
+        A_UINT16 numargs,
+        A_UINT32 *args)
+{
+    static const char *states[] = {
+        "ACTIVE",
+        "DOZE",
+        "TX_BCN",
+        "CTWIN",
+        "OPPPS",
+    };
+
+    static const char *events[] = {
+        "ONESHOT_NOA",
+        "CTWINDOW",
+        "PERIODIC_NOA",
+        "IDLE",
+        "NOA_CHANGED",
+        "TBTT",
+        "TX_BCN_CMP",
+        "OPPPS_OK",
+        "OPPPS_CHANGED",
+    };
+
+    switch (dbg_id) {
+    case DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG:
+        dbglog_sm_print(timestamp, vap_id, numargs, args, "P2P GO PS",
+                states, ARRAY_LENGTH(states), events, ARRAY_LENGTH(events));
+        break;
+    default:
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+A_BOOL
+dbglog_pcielp_print_handler(
+        A_UINT32 mod_id,
+        A_UINT16 vap_id,
+        A_UINT32 dbg_id,
+        A_UINT32 timestamp,
+        A_UINT16 numargs,
+        A_UINT32 *args)
+{
+    static const char *states[] = {
+        "STOP",
+        "TX",
+        "RX",
+        "SLEEP",
+        "SUSPEND",
+    };
+
+    static const char *events[] = {
+        "VDEV_UP",
+        "ALL_VDEV_DOWN",
+        "AWAKE",
+        "SLEEP",
+        "TX_ACTIVITY",
+        "TX_INACTIVITY",
+        "TX_AC_CHANGE",
+        "SUSPEND",
+        "RESUME",
+    };
+
+    switch (dbg_id) {
+    case DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG:
+        dbglog_sm_print(timestamp, vap_id, numargs, args, "PCIELP",
+                states, ARRAY_LENGTH(states), events, ARRAY_LENGTH(events));
+        break;
+    default:
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+
 #ifdef WLAN_OPEN_SOURCE
 static int dbglog_block_open(struct inode *inode, struct file *file)
 {
@@ -2764,6 +2962,8 @@ dbglog_init(wmi_unified_t wmi_handle)
     dbglog_reg_modprint(WLAN_MODULE_BEACON,dbglog_beacon_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_DATA_TXRX,dbglog_data_txrx_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_STA_SMPS, dbglog_smps_print_handler);
+    dbglog_reg_modprint(WLAN_MODULE_P2P, dbglog_p2p_print_handler);
+    dbglog_reg_modprint(WLAN_MODULE_PCIELP, dbglog_pcielp_print_handler);
 
     res = wmi_unified_register_event_handler(wmi_handle, WMI_DEBUG_MESG_EVENTID,
                        dbglog_parse_debug_logs);

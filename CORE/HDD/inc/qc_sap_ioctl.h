@@ -246,6 +246,21 @@ typedef struct
 #define MAX_VAR_ARGS         7
 #define QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED (SIOCIWFIRSTPRIV + 31)
 
+#ifdef QCA_WIFI_2_0
+/* Private ioctl for firmware debug log */
+#define QCSAP_DBGLOG_LOG_LEVEL             31
+#define QCSAP_DBGLOG_VAP_ENABLE            32
+#define QCSAP_DBGLOG_VAP_DISABLE           33
+#define QCSAP_DBGLOG_MODULE_ENABLE         34
+#define QCSAP_DBGLOG_MODULE_DISABLE        35
+#define QCSAP_DBGLOG_MOD_LOG_LEVEL         36
+#define QCSAP_DBGLOG_TYPE                  37
+#define QCSAP_DBGLOG_REPORT_ENABLE         38
+#ifdef DEBUG
+#define QCSAP_FW_CRASH_INJECT              39
+#endif
+#endif /* QCA_WIFI_2_0 */
+
 enum { 
     QCSAP_PARAM_MAX_ASSOC = 1,
     QCSAP_PARAM_GET_WLAN_DBG = 4,

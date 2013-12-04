@@ -743,8 +743,9 @@ extern "C" {
 #define WLAN_CHATTER_FILTER_MISS 4
 #define WLAN_CHATTER_FILTER_FULL 5
 #define WLAN_CHATTER_FILTER_TM_ADJ  6
-#define WLAN_CHATTER_DBGID_DEFINITION_END 7
-
+#define WLAN_CHATTER_BUFFER_FULL    7
+#define WLAN_CHATTER_TIMEOUT        8
+#define WLAN_CHATTER_DBGID_DEFINITION_END 9
 
 #define WOW_DBGID_DEFINITION_START 0
 #define WOW_ENABLE_CMDID 1
@@ -827,6 +828,27 @@ extern "C" {
 #define TDLS_DBGID_PEER_EVT_DISCOVER           18
 #define TDLS_DBGID_PEER_EVT_DELETE             19
 
+/* TXBF Module IDs */
+#define TXBFEE_DBGID_START                      0
+#define TXBFEE_DBGID_NDPA_RECEIVED              1
+#define TXBFEE_DBGID_HOST_CONFIG_TXBFEE_TYPE    2
+#define TXBFER_DBGID_SEND_NDPA                  3
+#define TXBFER_DBGID_GET_NDPA_BUF_FAIL          4
+#define TXBFER_DBGID_SEND_NDPA_FAIL             5
+#define TXBFER_DBGID_GET_NDP_BUF_FAIL           6
+#define TXBFER_DBGID_SEND_NDP_FAIL              7
+#define TXBFER_DBGID_GET_BRPOLL_BUF_FAIL        8
+#define TXBFER_DBGID_SEND_BRPOLL_FAIL           9
+#define TXBFER_DBGID_HOST_CONFIG_CMDID         10
+#define TXBFEE_DBGID_HOST_CONFIG_CMDID         11
+#define TXBFEE_DBGID_ENABLED_ENABLED_UPLOAD_H  12
+#define TXBFEE_DBGID_UPLOADH_CV_TAG            13
+#define TXBFEE_DBGID_UPLOADH_H_TAG             14
+#define TXBFEE_DBGID_CAPTUREH_RECEIVED         15
+#define TXBFEE_DBGID_PACKET_IS_STEERED         16
+#define TXBFEE_UPLOADH_EVENT_ALLOC_MEM_FAIL    17
+#define TXBFEE_DBGID_END                       18
+
 /* SMPS module DBGIDs */
 #define STA_SMPS_DBGID_DEFINITION_START                 0
 #define STA_SMPS_DBGID_CREATE_PDEV_INSTANCE             1
@@ -857,6 +879,23 @@ extern "C" {
 #define RTT_CHANNEL_SWITCH_PREEMPT    18
 #define RTT_CHANNEL_SWITCH_STOP       19
 #define RTT_TIMER_START               20
+/* WLAN HB module DBGIDs */
+#define WLAN_HB_DBGID_DEFINITION_START                  0
+#define WLAN_HB_DBGID_INIT                              1
+#define WLAN_HB_DBGID_TCP_GET_TXBUF_FAIL                2
+#define WLAN_HB_DBGID_TCP_SEND_FAIL                     3
+#define WLAN_HB_DBGID_BSS_PEER_NULL                     4
+#define WLAN_HB_DBGID_UDP_GET_TXBUF_FAIL                5
+#define WLAN_HB_DBGID_UDP_SEND_FAIL                     6
+#define WLAN_HB_DBGID_WMI_CMD_INVALID_PARAM             7
+#define WLAN_HB_DBGID_WMI_CMD_INVALID_OP                8
+#define WLAN_HB_DBGID_WOW_NOT_ENTERED                   9
+#define WLAN_HB_DBGID_ALLOC_SESS_FAIL                   10
+#define WLAN_HB_DBGID_CTX_NULL                          11
+#define WLAN_HB_DBGID_CHKSUM_ERR                        12
+#define WLAN_HB_DBGID_UDP_TX                            13
+#define WLAN_HB_DBGID_TCP_TX                            14
+#define WLAN_HB_DBGID_DEFINITION_END                    15
 
 #ifdef __cplusplus
 }

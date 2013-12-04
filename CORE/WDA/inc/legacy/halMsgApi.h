@@ -36,6 +36,7 @@
 /* operMode in ADD BSS message */
 #define BSS_OPERATIONAL_MODE_AP     0
 #define BSS_OPERATIONAL_MODE_STA    1
+#define BSS_OPERATIONAL_MODE_IBSS   2
 
 /* STA entry type in add sta message */
 #define STA_ENTRY_SELF              0
@@ -296,6 +297,7 @@ typedef struct
     tANI_U16   ht_caps;
     tANI_U32   vht_caps;
     tSirNwType nwType;
+    tPowerdBm  maxTxPower;
 } tAddStaParams, *tpAddStaParams;
 
 
@@ -1002,6 +1004,8 @@ typedef struct
   tANI_U16 staIdx;
   tANI_U16 tspecIdx; //TSPEC identifier uniquely identifying a TSPEC for a STA in a BSS
   tSirMacAddr bssId; //TO SUPPORT BT-AMP
+  tANI_U8 sessionId;
+  tANI_U8 userPrio; //TSPEC identifier uniquely identifying a TSPEC for a STA in a BSS
 
 } tDelTsParams, *tpDelTsParams;
 

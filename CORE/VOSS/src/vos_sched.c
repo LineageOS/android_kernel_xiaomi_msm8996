@@ -763,7 +763,7 @@ VosWDThread
           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
           "%s: Trying to do WLAN re-init when it is not shutdown !!",__func__);
         }
-        vosStatus = hdd_wlan_re_init();
+        vosStatus = hdd_wlan_re_init(NULL);
 
         if (! VOS_IS_STATUS_SUCCESS(vosStatus))
         {

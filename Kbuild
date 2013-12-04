@@ -87,6 +87,9 @@ CONFIG_HIF_PCI := 1
 #Enable pci read/write config functions
 CONFIG_ATH_PCI := 1
 
+#Enable IBSS support on CLD
+CONFIG_QCA_IBSS_SUPPORT := 1
+
 #Enable power management suspend/resume functionality to PCI
 CONFIG_ATH_BUS_PM := 1
 
@@ -958,6 +961,10 @@ ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
 CDEFINES += -DQCA_ISOC_PRONTO
 endif
+endif
+
+ifeq ($(CONFIG_QCA_IBSS_SUPPORT), 1)
+CDEFINES += -DQCA_IBSS_SUPPORT
 endif
 
 #Enable Encap/Decap on host

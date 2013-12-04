@@ -1043,7 +1043,9 @@ VOS_STATUS vos_ftm_preStart( v_CONTEXT_t vosContext )
    {
       VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
              "Failed to WDA prestart ");
+#ifdef QCA_WIFI_ISOC
       macStop(pVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
+#endif
       ccmStop(pVosContext->pMACContext);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
@@ -1073,7 +1075,9 @@ VOS_STATUS vos_ftm_preStart( v_CONTEXT_t vosContext )
    {
       VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_FATAL,
                "Failed to Start HTC");
+#ifdef QCA_WIFI_ISOC
       macStop(gpVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
+#endif
       ccmStop(gpVosContext->pMACContext);
       VOS_ASSERT( 0 );
       return VOS_STATUS_E_FAILURE;
@@ -1343,7 +1347,9 @@ static VOS_STATUS wlan_ftm_send_response(hdd_context_t *pHddCtx){
 static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
 {
     VOS_STATUS vStatus          = VOS_STATUS_SUCCESS;
+#ifdef QCA_WIFI_ISOC
     tSirRetStatus sirStatus      = eSIR_SUCCESS;
+#endif
     pVosContextType pVosContext = (pVosContextType)(pHddCtx->pvosContext);
     tHalMacStartParameters halStartParams;
 
@@ -1427,6 +1433,7 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
 
     halStartParams.driverType = eDRIVER_TYPE_MFG;
 
+#ifdef QCA_WIFI_ISOC
     /* Start the MAC */
     sirStatus = macStart(pVosContext->pMACContext,(v_PVOID_t)&halStartParams);
 
@@ -1438,6 +1445,7 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
 
         goto err_wda_stop;
     }
+#endif	/* #ifdef QCA_WIFI_ISOC */
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "%s: MAC correctly started",__func__);
@@ -1447,6 +1455,7 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
 
     return VOS_STATUS_SUCCESS;
 
+#ifdef QCA_WIFI_ISOC
 err_wda_stop:   
    vos_event_reset(&(pVosContext->wdaCompleteEvent));
    WDA_stop(pVosContext, HAL_STOP_TYPE_RF_KILL);
@@ -1466,6 +1475,7 @@ err_wda_stop:
       }
       VOS_ASSERT(0);
    }
+#endif	/* #ifdef QCA_WIFI_ISOC */
 
 err_status_failure:
 
@@ -1473,10 +1483,18 @@ err_status_failure:
 
 }
 
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+int hdd_ftm_start(hdd_context_t *pHddCtx)
+{
+	return wlan_hdd_ftm_start(pHddCtx);
+}
+#endif
 
 static int wlan_ftm_stop(hdd_context_t *pHddCtx)
 {
+#ifdef QCA_WIFI_ISOC
    VOS_STATUS vosStatus;
+#endif
 
    if(pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
    {
@@ -1496,6 +1514,7 @@ static int wlan_ftm_stop(hdd_context_t *pHddCtx)
        }
        else
        {
+#ifdef QCA_WIFI_ISOC
            vosStatus = macStop(hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP );
            if (!VOS_IS_STATUS_SUCCESS(vosStatus))
            {
@@ -1503,6 +1522,7 @@ static int wlan_ftm_stop(hdd_context_t *pHddCtx)
                           "%s: Failed to stop SYS", __func__);
                VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
            }
+#endif
        }
 
 
@@ -1511,6 +1531,13 @@ static int wlan_ftm_stop(hdd_context_t *pHddCtx)
     }
    return WLAN_FTM_SUCCESS;
 }
+
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+int hdd_ftm_stop(hdd_context_t *pHddCtx)
+{
+	return wlan_ftm_stop(pHddCtx);
+}
+#endif
 
 /**---------------------------------------------------------------------------
 

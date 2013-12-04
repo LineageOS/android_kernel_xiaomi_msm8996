@@ -74,6 +74,7 @@ typedef enum {
     GEN_PARAM_DUMP_CHANINFO_START,
     GEN_PARAM_DUMP_CHANINFO,
     GEN_PARAM_DUMP_WATCHDOG,
+    GEN_PARAM_CRASH_INJECT,
 } GEN_PARAM;
 
 #define VDEV_CMD 1
@@ -106,6 +107,8 @@ v_BOOL_t wma_needshutdown(v_VOID_t *vos_context);
 
 VOS_STATUS wma_wait_for_ready_event(WMA_HANDLE handle);
 
+tANI_U8 wma_map_channel(tANI_U8 mapChannel);
+
 int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			int param_id, int vpdev);
 eHalStatus wma_set_htconfig(tANI_U8 vdev_id, tANI_U16 ht_capab, int value);
@@ -130,5 +133,8 @@ u_int8_t *wma_get_vdev_address_by_vdev_id(u_int8_t vdev_id);
 void *wma_get_beacon_buffer_by_vdev_id(u_int8_t vdev_id,
 				       u_int32_t *buffer_size);
 #endif	/* QCA_WIFI_ISOC */
+
+int process_wma_set_command(int sessid, int paramid,
+                                   int sval, int vpdev);
 tANI_U8 wma_getFwWlanFeatCaps(tANI_U8 featEnumValue);
 #endif
