@@ -76,7 +76,7 @@
 /** Private **/
 #define WMA_CFG_NV_DNLD_TIMEOUT            500
 #define WMA_READY_EVENTID_TIMEOUT          2000
-#define WMA_TGT_SUSPEND_COMPLETE_TIMEOUT   200
+#define WMA_TGT_SUSPEND_COMPLETE_TIMEOUT   2000
 #define MAX_MEM_CHUNKS 32
 /*
    In prima 12 HW stations are supported including BCAST STA(staId 0)

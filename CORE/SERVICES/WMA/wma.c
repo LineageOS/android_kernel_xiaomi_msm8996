@@ -11869,7 +11869,8 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 		return -1;
 	}
 	vos_event_reset(&wma_handle->target_suspend);
-	return vos_wait_single_event(&wma_handle->target_suspend, 200);
+	return vos_wait_single_event(&wma_handle->target_suspend,
+				     WMA_TGT_SUSPEND_COMPLETE_TIMEOUT);
 }
 
 void wma_target_suspend_complete(void *context)
