@@ -562,7 +562,6 @@ VOS_STATUS hddDevTmRegisterNotifyCallback(hdd_context_t *pHddCtx)
    return VOS_STATUS_SUCCESS;
 }
 
-#ifdef QCA_WIFI_ISOC
 /*----------------------------------------------------------------------------
 
    @brief Un-Register function
@@ -603,4 +602,3 @@ VOS_STATUS hddDevTmUnregisterNotifyCallback(hdd_context_t *pHddCtx)
 
    return VOS_STATUS_SUCCESS;
 }
-#endif	/* #ifdef QCA_WIFI_ISOC */

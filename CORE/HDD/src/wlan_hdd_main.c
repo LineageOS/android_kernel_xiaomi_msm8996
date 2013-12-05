@@ -5045,13 +5045,12 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDeregisterPmOps failed",__func__);
       VOS_ASSERT(0);
    }
-
+#endif
    vosStatus = hddDevTmUnregisterNotifyCallback(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmUnregisterNotifyCallback failed",__func__);
    }
-#endif
 
    // Cancel any outstanding scan requests.  We are about to close all
    // of our adapters, but an adapter structure is what SME passes back
@@ -6173,8 +6172,8 @@ err_free_power_on_lock:
    free_riva_power_on_lock("wlan");
 
 err_unregister_pmops:
-#ifdef QCA_WIFI_ISOC
    hddDevTmUnregisterNotifyCallback(pHddCtx);
+#ifdef QCA_WIFI_ISOC
    hddDeregisterPmOps(pHddCtx);
 #endif
 
