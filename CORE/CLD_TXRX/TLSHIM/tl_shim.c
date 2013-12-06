@@ -332,7 +332,7 @@ static void tlshim_mgmt_rx_dxe_handler(void *context, adf_nbuf_t buflist)
 		 * that has to be delivered to UMAC
 		 */
 		rx_packet =
-			(vos_pkt_t *)adf_os_mem_alloc(NULL, sizeof(vos_pkt_t));
+			(vos_pkt_t *)vos_mem_malloc(sizeof(vos_pkt_t));
 
 		if(rx_packet == NULL) {
 			TLSHIM_LOGE("Rx Packet Mem Alloc Failed");

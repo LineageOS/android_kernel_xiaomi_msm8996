@@ -5222,7 +5222,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
     * it should be freed after PCI remove
     */
    adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, pVosContext);
-   kfree(adf_ctx);
+   vos_mem_free(adf_ctx);
 #endif
 
    /* free the power on lock from platform driver */
@@ -6516,7 +6516,7 @@ static void hdd_driver_exit(void)
     * as it is needed in PCI remove. So free it here.
     */
    adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, pVosContext);
-   kfree(adf_ctx);
+   vos_mem_free(adf_ctx);
 #endif
 
    vos_preClose( &pVosContext );

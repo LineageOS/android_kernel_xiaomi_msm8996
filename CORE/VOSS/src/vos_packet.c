@@ -69,7 +69,7 @@ VOS_STATUS vos_pkt_return_packet(vos_pkt_t *packet)
    adf_nbuf_free(packet->pkt_buf);
 
    /* Free up the Rx packet */
-   adf_os_mem_free(packet);
+   vos_mem_free(packet);
 
    return VOS_STATUS_SUCCESS;
 }
