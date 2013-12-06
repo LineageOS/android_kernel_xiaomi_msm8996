@@ -533,6 +533,8 @@ struct hdd_station_ctx
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
    tSirGtkOffloadParams gtkOffloadReqParams;
 #endif
+   /*Increment whenever ibss New peer joins and departs the network */
+   int ibss_sta_generation;
 };
 
 #define BSS_STOP    0 

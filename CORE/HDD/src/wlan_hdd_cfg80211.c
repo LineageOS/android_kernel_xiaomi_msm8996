@@ -4741,6 +4741,37 @@ free_mem:
     return status;
 }
 
+void hdd_select_cbmode( hdd_adapter_t *pAdapter,v_U8_t operationChannel)
+{
+    v_U8_t iniDot11Mode =
+               (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->dot11Mode;
+    eHddDot11Mode   hddDot11Mode = iniDot11Mode;
+
+    switch ( iniDot11Mode )
+    {
+        case eHDD_DOT11_MODE_AUTO:
+        case eHDD_DOT11_MODE_11ac:
+        case eHDD_DOT11_MODE_11ac_ONLY:
+#ifdef WLAN_FEATURE_11AC
+              hddDot11Mode = eHDD_DOT11_MODE_11ac;
+#else
+              hddDot11Mode = eHDD_DOT11_MODE_11n;
+#endif
+              break;
+       case eHDD_DOT11_MODE_11n:
+       case eHDD_DOT11_MODE_11n_ONLY:
+             hddDot11Mode = eHDD_DOT11_MODE_11n;
+             break;
+       default:
+             hddDot11Mode = iniDot11Mode;
+             break;
+    }
+    /* This call decides required channel bonding mode */
+    sme_SelectCBMode((WLAN_HDD_GET_CTX(pAdapter)->hHal),
+                     hdd_cfg_xlate_to_csr_phy_mode(hddDot11Mode),
+                     operationChannel);
+}
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_connect_start
  * This function is used to start the association process
@@ -4905,7 +4936,10 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             pRoamProfile->ChannelInfo.ChannelList = NULL;
             pRoamProfile->ChannelInfo.numOfChannels = 0;
         }
-
+        if ( (WLAN_HDD_IBSS == pAdapter->device_mode) && operatingChannel )
+        {
+            hdd_select_cbmode(pAdapter,operatingChannel);
+        }
         /* change conn_state to connecting before sme_RoamConnect(), because sme_RoamConnect()
          * has a direct path to call hdd_smeRoamCallback(), which will change the conn_state
          * If direct path, conn_state will be accordingly changed to NotConnected or Associated
@@ -5942,21 +5976,10 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
 #endif
     {
         u8 channelNum;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
-        if (IEEE80211_BAND_5GHZ == params->chandef.chan->band)
-#else
-        if (IEEE80211_BAND_5GHZ == params->channel->band)
-#endif
-        {
-            hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "%s: IBSS join is called with unsupported band %d",
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
-                    __func__, params->chandef.chan->band);
-#else
-                    __func__, params->channel->band);
-#endif
-            return -EOPNOTSUPP;
-        }
+        v_U32_t numChans = WNI_CFG_VALID_CHANNEL_LIST_LEN;
+        v_U8_t validChan[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+        tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+        int indx;
 
         /* Get channel number */
         channelNum =
@@ -5967,49 +5990,34 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
                                             params->channel->center_freq);
 #endif
 
-        /*TODO: use macro*/
-        if (14 >= channelNum)
+        if (0 != ccmCfgGetStr(hHal, WNI_CFG_VALID_CHANNEL_LIST,
+                              validChan, &numChans))
         {
-            v_U32_t numChans = WNI_CFG_VALID_CHANNEL_LIST_LEN;
-            v_U8_t validChan[WNI_CFG_VALID_CHANNEL_LIST_LEN];
-            tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-            int indx;
-
-            if (0 != ccmCfgGetStr(hHal, WNI_CFG_VALID_CHANNEL_LIST,
-                        validChan, &numChans))
-            {
-                hddLog(VOS_TRACE_LEVEL_ERROR, "%s: No valid channel list",
-                        __func__);
-                return -EOPNOTSUPP;
-            }
-
-            for (indx = 0; indx < numChans; indx++)
-            {
-                if (channelNum == validChan[indx])
-                {
-                    break;
-                }
-            }
-            if (indx >= numChans)
-            {
-                hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Not valid Channel %d",
-                        __func__, channelNum);
-                return -EINVAL;
-            }
-            /* Set the Operational Channel */
-            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: set channel %d", __func__,
-                    channelNum);
-            pRoamProfile->ChannelInfo.numOfChannels = 1;
-            pHddStaCtx->conn_info.operationChannel = channelNum;
-            pRoamProfile->ChannelInfo.ChannelList =
-                &pHddStaCtx->conn_info.operationChannel;
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: No valid channel list",
+                   __func__);
+            return -EOPNOTSUPP;
         }
-        else
+
+        for (indx = 0; indx < numChans; indx++)
         {
-            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Not valid Channel %hu",
+            if (channelNum == validChan[indx])
+            {
+                break;
+            }
+        }
+        if (indx >= numChans)
+        {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Not valid Channel %d",
                     __func__, channelNum);
             return -EINVAL;
         }
+        /* Set the Operational Channel */
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: set channel %d", __func__,
+               channelNum);
+        pRoamProfile->ChannelInfo.numOfChannels = 1;
+        pHddStaCtx->conn_info.operationChannel = channelNum;
+        pRoamProfile->ChannelInfo.ChannelList =
+            &pHddStaCtx->conn_info.operationChannel;
     }
 
     /* Initialize security parameters */
@@ -6023,7 +6031,8 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
 
     /* Issue connect start */
     status = wlan_hdd_cfg80211_connect_start(pAdapter, params->ssid,
-            params->ssid_len, params->bssid, 0);
+                                             params->ssid_len, params->bssid,
+                                             pHddStaCtx->conn_info.operationChannel);
 
     if (NULL != params->bssid &&
         pHddCtx->cfg_ini->isCoalesingInIBSSAllowed == 0 &&
@@ -6031,7 +6040,6 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
     {
         vos_mem_free(params->bssid);
     }
-
 
     if (0 > status)
     {
