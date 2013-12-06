@@ -2083,7 +2083,7 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 						self_sta_req->sessionId,
 						txrx_vdev_type);
 #ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
-	WMA_LOGE("LL TX Pause Mutex init");
+	WMA_LOGD("LL TX Pause Mutex init");
 	adf_os_spinlock_init(&txrx_vdev_handle->ll_pause.mutex);
 #endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
 
@@ -10527,6 +10527,7 @@ skip_pno_cmp_ind:
 #endif
 
 #ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+/* Handle TX pause event from FW */
 static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 					u_int32_t len)
 {
@@ -10534,6 +10535,8 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 	WMI_TX_PAUSE_EVENTID_param_tlvs *param_buf;
 	wmi_tx_pause_event_fixed_param  *wmi_event;
 	ol_txrx_vdev_handle txrx_vdev;
+	u_int8_t vdev_id;
+	A_UINT32 vdev_map;
 
 	param_buf = (WMI_TX_PAUSE_EVENTID_param_tlvs *) event;
 	if (!param_buf) {
@@ -10542,13 +10545,30 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 	}
 
 	wmi_event = param_buf->fixed_param;
-	WMA_LOGD("tlv_header 0x%x, pause_type 0x%x, action 0x%x, vdev_map 0x%x, peer_id 0x%x, tid_map 0x%x\n",
-		(int)wmi_event->tlv_header, (int)wmi_event->pause_type,
-		(int)wmi_event->action, (int)wmi_event->vdev_map,
-		(int)wmi_event->peer_id, (int)wmi_event->tid_map);
+	vdev_map  = wmi_event->vdev_map;
+	/* FW mapped vdev from ID
+	 * vdev_map = (1 << vdev_id)
+	 * So, host should unmap to ID */
+	for (vdev_id = 0; vdev_map != 0; vdev_id++)
+	{
+		if (!(vdev_map & 0x1))
+		{
+			vdev_map >>= 1;
+		}
+		else
+		{
+			WMA_LOGD("Found vdev %d\n", vdev_id);
+			break;
+		}
+	}
 
-	txrx_vdev = wma->interfaces[wmi_event->vdev_map].handle;
+	WMA_LOGD("vdev_id %d, vdev_map 0x%x, tid_map 0x%x,"
+			" pause_type 0x%x, action 0x%x, peer_id 0x%x\n",
+			vdev_id, wmi_event->vdev_map, wmi_event->tid_map,
+			wmi_event->pause_type, wmi_event->action, wmi_event->peer_id);
 
+
+	txrx_vdev = wma->interfaces[vdev_id].handle;
 	if (txrx_vdev)
 	{
 		if ((PAUSE_TYPE_CHOP == wmi_event->pause_type) &&
@@ -10561,6 +10581,7 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 		{
 			wdi_in_vdev_unpause(txrx_vdev);
 		}
+		/* TODO, other types of pause should be added */
 	}
 
 	return 0;

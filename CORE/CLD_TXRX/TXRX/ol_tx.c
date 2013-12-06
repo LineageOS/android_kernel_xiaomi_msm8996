@@ -164,6 +164,7 @@ ol_tx_vdev_ll_pause_queue_send_base(struct ol_txrx_vdev_t *vdev)
         }
     }
     if (vdev->ll_pause.txq.depth) {
+		adf_os_timer_cancel(&vdev->ll_pause.timer);
         adf_os_timer_start(
                 &vdev->ll_pause.timer, OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
     }
@@ -196,6 +197,7 @@ ol_tx_vdev_pause_queue_append(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu_list)
     }
     adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
 
+    adf_os_timer_cancel(&vdev->ll_pause.timer);
     adf_os_timer_start(
             &vdev->ll_pause.timer, OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
 
