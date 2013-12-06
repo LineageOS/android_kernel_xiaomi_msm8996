@@ -7132,7 +7132,7 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
     /*Advance to rssi Threshold*/
     ptr += nOffset;
 
-    sscanf(ptr,"%ld %n",
+    sscanf(ptr,"%hhu %n",
               &(pnoRequest.aNetworks[i].rssiThreshold), &nOffset);
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
