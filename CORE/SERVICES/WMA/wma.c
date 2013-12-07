@@ -3319,10 +3319,10 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 			if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
-			vos_status = wma_roam_scan_offload_chan_list(wma_handle, roam_req->sessionId,
-                                roam_req->ValidChannelCount,
-					            &roam_req->ValidChannelList[0]);
-			if (vos_status != VOS_STATUS_SUCCESS) {
+            vos_status = wma_roam_scan_offload_chan_list(wma_handle, roam_req->sessionId,
+                                roam_req->ConnectedNetwork.ChannelCount,
+                                &roam_req->ConnectedNetwork.ChannelCache[0]);
+            if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
 
@@ -3344,6 +3344,12 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             /*
              * Runtime (after association) changes to rssi thresholds and other parameters.
              */
+            vos_status = wma_roam_scan_offload_chan_list(wma_handle, roam_req->sessionId,
+                                roam_req->ConnectedNetwork.ChannelCount,
+                                &roam_req->ConnectedNetwork.ChannelCache[0]);
+            if (vos_status != VOS_STATUS_SUCCESS) {
+                break;
+            }
 			vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle, roam_req->sessionId,
 					                             (roam_req->LookupThreshold - noise_floor),
 					                             30);
