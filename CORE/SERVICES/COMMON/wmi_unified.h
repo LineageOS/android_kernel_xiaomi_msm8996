@@ -166,7 +166,8 @@ typedef enum {
     WMI_GRP_RESMGR,
     WMI_GRP_STA_SMPS,
     WMI_GRP_WLAN_HB,
-    WMI_GRP_LOCATION_SCAN
+    WMI_GRP_LOCATION_SCAN,
+    WMI_GRP_OEM
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -256,6 +257,9 @@ typedef enum {
     WMI_VDEV_SET_WMM_PARAMS_CMDID,
     WMI_VDEV_SET_GTX_PARAMS_CMDID,
     WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMDID,
+
+    WMI_VDEV_PLMREQ_START_CMDID,
+    WMI_VDEV_PLMREQ_STOP_CMDID,
 
     /* peer specific commands */
 
@@ -552,6 +556,8 @@ typedef enum {
     WMI_BATCH_SCAN_DISABLE_CMDID,
     /*get batch scan result*/
     WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID,
+    /* OEM related cmd */
+    WMI_OEM_REQ_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_OEM),
 } WMI_CMD_ID;
 
 typedef enum {
@@ -724,7 +730,18 @@ typedef enum {
     WMI_BATCH_SCAN_ENABLED_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_LOCATION_SCAN),
     /*batch scan result*/
     WMI_BATCH_SCAN_RESULT_EVENTID,
+    /* OEM Event */
+    WMI_OEM_CAPABILITY_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_OEM),
+    WMI_OEM_MEASUREMENT_REPORT_EVENTID,
+    WMI_OEM_ERROR_REPORT_EVENTID,
 } WMI_EVT_ID;
+
+/* defines for OEM message sub-types */
+#define WMI_OEM_CAPABILITY_REQ     0x01
+#define WMI_OEM_CAPABILITY_RSP     0x02
+#define WMI_OEM_MEASUREMENT_REQ    0x03
+#define WMI_OEM_MEASUREMENT_RSP    0x04
+#define WMI_OEM_ERROR_REPORT_RSP   0x05
 
 #define WMI_OEM_DATA_REQ_CMDID             WMI_RTT_MEASREQ_CMDID
 #define WMI_OEM_DATA_RSP_EVENTID           WMI_RTT_MEASUREMENT_REPORT_EVENTID
@@ -5122,6 +5139,25 @@ typedef struct {
     A_UINT32 mcc_tbttmode;
     wmi_mac_addr mcc_bssid;
 } wmi_vdev_mcc_set_tbtt_mode_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;        /* home vdev id */
+    A_UINT32 meas_token;     /* from measure request frame */
+    A_UINT32 number_bursts;  /* zero keep sending until cancel, bigger than 0 means times e.g. 1,2 */
+    A_UINT32 burst_interval; /* unit in mill seconds, interval between consecutive burst*/
+    A_UINT32 burst_cycle;   /* times cycle through within one burst */
+    A_UINT32 tx_power;      /* for path frame */
+    A_UINT32 off_duration;  /* uint in mill seconds, channel off duraiton for path loss frame sending */
+    wmi_mac_addr dest_mac; /* multicast DA, for path loss frame */
+    A_UINT32 num_chans;
+} wmi_vdev_plmreq_start_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+    A_UINT32 meas_token; /* same value from req*/
+} wmi_vdev_plmreq_stop_cmd_fixed_param;
 
 typedef struct {
 	/* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_p2p_set_noa_cmd_fixed_param  */

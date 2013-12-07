@@ -403,6 +403,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_batch_scan_trigger_result_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_batch_scan_enabled_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_batch_scan_result_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_vdev_plmreq_start_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_vdev_plmreq_stop_cmd_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -430,6 +432,8 @@ typedef enum {
     OP(WMI_ROAM_SCAN_PERIOD) \
     OP(WMI_ROAM_SCAN_RSSI_CHANGE_THRESHOLD) \
     OP(WMI_START_SCAN_CMDID) \
+    OP(WMI_VDEV_PLMREQ_START_CMDID) \
+    OP(WMI_VDEV_PLMREQ_STOP_CMDID) \
     OP(WMI_PDEV_SET_CHANNEL_CMDID) \
     OP(WMI_PDEV_SET_WMM_PARAMS_CMDID) \
     OP(WMI_VDEV_START_REQUEST_CMDID) \
@@ -730,6 +734,17 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SCAN_RSSI_CHANGE_THRESHOLD);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, channel_list, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_CHAN_LIST);
+
+#define WMITLV_TABLE_WMI_VDEV_PLMREQ_START_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_plmreq_start_cmd_fixed_param, wmi_vdev_plmreq_start_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, channel_list, WMITLV_SIZE_VAR)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_PLMREQ_START_CMDID);
+
+#define WMITLV_TABLE_WMI_VDEV_PLMREQ_STOP_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_plmreq_stop_cmd_fixed_param, wmi_vdev_plmreq_stop_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_PLMREQ_STOP_CMDID);
 
 /* Start scan Cmd */
 #define WMITLV_TABLE_WMI_START_SCAN_CMDID(id,op,buf,len) \
