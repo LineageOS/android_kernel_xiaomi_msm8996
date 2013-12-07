@@ -849,13 +849,14 @@ extern "C" {
 #define TXBFER_DBGID_SEND_BRPOLL_FAIL           9
 #define TXBFER_DBGID_HOST_CONFIG_CMDID         10
 #define TXBFEE_DBGID_HOST_CONFIG_CMDID         11
-#define TXBFEE_DBGID_ENABLED_ENABLED_UPLOAD_H  12
+#define TXBFEE_DBGID_ENABLE_UPLOAD_H           12
 #define TXBFEE_DBGID_UPLOADH_CV_TAG            13
 #define TXBFEE_DBGID_UPLOADH_H_TAG             14
 #define TXBFEE_DBGID_CAPTUREH_RECEIVED         15
 #define TXBFEE_DBGID_PACKET_IS_STEERED         16
 #define TXBFEE_UPLOADH_EVENT_ALLOC_MEM_FAIL    17
-#define TXBFEE_DBGID_END                       18
+#define TXBFEE_DBGID_SW_WAR_AID_ZERO           18
+#define TXBFEE_DBGID_END                       19
 
 /* SMPS module DBGIDs */
 #define STA_SMPS_DBGID_DEFINITION_START                 0

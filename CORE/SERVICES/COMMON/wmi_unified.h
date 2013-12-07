@@ -868,6 +868,12 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 
 #define WMI_VHT_CAP_MAX_MPDU_LEN_11454           0x00000002
 
+/* These macros should be used to advertise VHT CAP support */
+#define WMI_VHT_CAP_SU_BFORMER            0x00000800
+#define WMI_VHT_CAP_SU_BFORMEE            0x00001000
+#define WMI_VHT_CAP_MU_BFORMER            0x00080000
+#define WMI_VHT_CAP MU_BFORMEE            0x00100000
+
 /* These macros should be used when we wish to advertise STBC support for
  * only 1SS or 2SS or 3SS. */
 #define WMI_VHT_CAP_RX_STBC_1SS            0x00000100
@@ -4469,6 +4475,7 @@ typedef enum event_type_e {
     WOW_NLO_DETECTED_EVENT,
     WOW_DISASSOC_RECVD_EVENT,
     WOW_PATTERN_MATCH_EVENT,
+    WOW_CSA_IE_EVENT,
 }WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -4486,6 +4493,7 @@ typedef enum wake_reason_e {
     WOW_REASON_RECV_MAGIC_PATTERN,
     WOW_REASON_P2P_DISC,
     WOW_REASON_WLAN_HB,
+    WOW_REASON_CSA_EVENT,
     WOW_REASON_DEBUG_TEST = 0xFF,
 }WOW_WAKE_REASON_TYPE;
 
