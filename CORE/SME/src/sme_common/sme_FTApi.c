@@ -383,24 +383,8 @@ eHalStatus sme_FTUpdateKey( tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo )
     switch(pMac->ft.ftSmeContext.FTState)
     {
     case eFT_SET_KEY_WAIT:
-    if (sme_GetFTPreAuthState (hHal) == TRUE)
-      {
-          status = sme_FTSendUpdateKeyInd(pMac, pFTKeyInfo);
-          if (status != 0 )
-          {
-              smsLog( pMac, LOGE, "%s: Key set failure %d", __func__,
-                      status);
-              pMac->ft.ftSmeContext.setFTPTKState = FALSE;
-              status = eHAL_STATUS_FT_PREAUTH_KEY_FAILED;
-          }
-          else
-          {
-              pMac->ft.ftSmeContext.setFTPTKState = TRUE;
-              status = eHAL_STATUS_FT_PREAUTH_KEY_SUCCESS;
-              smsLog( pMac, LOG1, "%s: Key set success", __func__);
-          }
-          sme_SetFTPreAuthState(hHal, FALSE);
-      }
+
+      status = eHAL_STATUS_FT_PREAUTH_KEY_FAILED;
       pMac->ft.ftSmeContext.FTState = eFT_START_READY;
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
       smsLog( pMac, LOG1, "%s: state changed to %d status %d", __func__,

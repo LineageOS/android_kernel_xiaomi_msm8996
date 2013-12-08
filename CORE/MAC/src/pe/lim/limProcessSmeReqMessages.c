@@ -1694,6 +1694,9 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         psessionEntry->dot11mode  = pSmeJoinReq->dot11mode;
         psessionEntry->nwType = pSmeJoinReq->bssDescription.nwType;
+        psessionEntry->enableAmpduPs = pSmeJoinReq->enableAmpduPs;
+        psessionEntry->enableHtSmps = pSmeJoinReq->enableHtSmps;
+        psessionEntry->htSmpsvalue = pSmeJoinReq->htSmps;
 #ifdef WLAN_FEATURE_11AC
         psessionEntry->vhtCapability = IS_DOT11_MODE_VHT(psessionEntry->dot11mode);
         VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO_MED,
@@ -1702,6 +1705,8 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         {
             psessionEntry->txBFIniFeatureEnabled = pSmeJoinReq->txBFIniFeatureEnabled;
             psessionEntry->txMuBformee = pSmeJoinReq->txMuBformee;
+            psessionEntry->enableVhtpAid = pSmeJoinReq->enableVhtpAid;
+            psessionEntry->enableVhtGid = pSmeJoinReq->enableVhtGid;
 
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO_MED,
                 "***__limProcessSmeJoinReq: txBFIniFeatureEnabled=%d****",

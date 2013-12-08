@@ -630,7 +630,12 @@ typedef struct tagCsrConfig
     tANI_U8   enable2x2;
     tANI_BOOLEAN enableVhtFor24GHz;
     tANI_U8   txMuBformee;
+    tANI_U8   enableVhtpAid;
+    tANI_U8   enableVhtGid;
 #endif
+    tANI_U8   enableAmpduPs;
+    tANI_U8   enableHtSmps;
+    tANI_U8   htSmps;
     tANI_U8   txLdpcEnable;
 
     tANI_U8 isCoalesingInIBSSAllowed;

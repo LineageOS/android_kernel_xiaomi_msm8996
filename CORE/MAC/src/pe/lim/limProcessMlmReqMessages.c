@@ -1448,7 +1448,12 @@ mlm_add_sta(
             limLog(pMac, LOGE, FL("Couldn't get WNI_CFG_VHT_AMPDU_LEN_EXPONENT"));
         pSta->maxAmpduSize = (tANI_U8) val;
     }
+    pSta->enableVhtpAid = psessionEntry->enableVhtpAid;
 #endif
+    pSta->enableAmpduPs = psessionEntry->enableAmpduPs;
+    pSta->enableHtSmps = psessionEntry->enableHtSmps;
+    pSta->htSmpsconfig = psessionEntry->htSmpsvalue;
+
 #ifdef WLAN_FEATURE_11AC
     limPopulateOwnRateSet(pMac, &pSta->supportedRates, NULL, false,psessionEntry,NULL);
 #else

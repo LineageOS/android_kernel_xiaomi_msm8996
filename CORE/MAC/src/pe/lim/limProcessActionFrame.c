@@ -480,6 +480,124 @@ __limProcessOperatingModeActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
     palFreeMemory(pMac->hHdd, pOperatingModeframe);
     return;
 }
+
+static void
+__limProcessGidManagementActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession psessionEntry)
+{
+
+    tpSirMacMgmtHdr         pHdr;
+    tANI_U8                 *pBody;
+    tDot11fVHTGidManagementActionFrame    *pGidManagementframe;
+    tANI_U32                frameLen;
+    tANI_U32                nStatus;
+    eHalStatus              status;
+    tpDphHashNode           pSta;
+    tANI_U16                aid;
+    tANI_U32                membership = 0;
+    tANI_U32                userPosition = 0;
+    tANI_U32                *pMemLower;
+    tANI_U32                *pMemUpper;
+    tANI_U32                *pMemCur;
+
+    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
+    frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+
+    PELOG3(limLog(pMac, LOG3, FL("Received GID Management action frame"));)
+    status = palAllocateMemory( pMac->hHdd, (void **)&pGidManagementframe, sizeof(*pGidManagementframe));
+    if (eHAL_STATUS_SUCCESS != status)
+    {
+        limLog(pMac, LOGE,
+            FL("palAllocateMemory failed, status = %d "), status);
+        return;
+    }
+
+    /* Unpack Gid Mangement Action frame */
+    nStatus = dot11fUnpackVHTGidManagementActionFrame(pMac, pBody, frameLen, pGidManagementframe);
+
+    if( DOT11F_FAILED( nStatus ))
+    {
+        limLog( pMac, LOGE,
+            FL( "Failed to unpack and parse an GidManagement Action frame (0x%08x, %d bytes):"),
+            nStatus,
+            frameLen);
+        palFreeMemory(pMac->hHdd, pGidManagementframe);
+        return;
+    }
+    else if(DOT11F_WARNED( nStatus ))
+    {
+        limLog( pMac, LOGW,
+            FL( "There were warnings while unpacking an GidManagement Action frame (0x%08x, %d bytes):"),
+            nStatus,
+            frameLen);
+    }
+    pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable);
+
+    {
+        limLog(pMac, LOGE,
+            FL(" received Gid Management Action Frame , staIdx = %d"),
+               pSta->staIndex);
+
+        limLog(pMac, LOGE,
+            FL(" MAC - %0x:%0x:%0x:%0x:%0x:%0x"),
+            pHdr->sa[0],
+            pHdr->sa[1],
+            pHdr->sa[2],
+            pHdr->sa[3],
+            pHdr->sa[4],
+            pHdr->sa[5]);
+
+        pMemLower = (tANI_U32 *)pGidManagementframe->VhtMembershipStatusArray.membershipStatusArray;
+        pMemUpper = (tANI_U32 *)&pGidManagementframe->VhtMembershipStatusArray.membershipStatusArray[4];
+
+        if (*pMemLower && *pMemUpper)
+        {
+            limLog(pMac, LOGE,
+                FL(" received frame with multiple group ID set\
+                    , staIdx = %d"), pSta->staIndex);
+            goto out;
+        }
+        if (*pMemLower)
+        {
+            pMemCur = pMemLower;
+        }
+        else if (*pMemUpper)
+        {
+            pMemCur = pMemUpper;
+            membership += sizeof(tANI_U32);
+        }
+        else
+        {
+            limLog(pMac, LOGE,
+                FL(" received Gid Management Frame with no group ID set\
+                    , staIdx = %d"), pSta->staIndex);
+            goto out;
+        }
+        while (!(*pMemCur & 1))
+        {
+                *pMemCur >>= 1;
+                ++membership;
+        }
+        if (*pMemCur)
+        {
+                limLog(pMac, LOGE,
+                    FL(" received frame with multiple group ID set\
+                    , staIdx = %d"), pSta->staIndex);
+                goto out;
+        }
+
+        /*Just read the last two bits */
+        userPosition = pGidManagementframe->VhtUserPositionArray.userPositionArray[membership]
+                                            & 0x3;
+
+        limCheckMembershipUserPosition( pMac, psessionEntry, membership,
+                                 userPosition, pSta->staIndex);
+    }
+out:
+    palFreeMemory(pMac->hHdd, pGidManagementframe);
+    return;
+}
+
 #endif
 
 static void
@@ -2278,6 +2396,11 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
             {
                 case  SIR_MAC_VHT_OPMODE_NOTIFICATION:
                     __limProcessOperatingModeActionFrame(pMac,pRxPacketInfo,psessionEntry);                
+                break;
+                case  SIR_MAC_VHT_GID_NOTIFICATION:
+                    /* Only if ini supports it */
+                    if (psessionEntry->enableVhtGid)
+                      __limProcessGidManagementActionFrame(pMac,pRxPacketInfo,psessionEntry);
                 break;
                 default:
                 break;

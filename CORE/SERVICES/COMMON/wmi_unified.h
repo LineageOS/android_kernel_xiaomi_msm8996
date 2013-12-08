@@ -165,14 +165,16 @@ typedef enum {
     WMI_GRP_TDLS,
     WMI_GRP_RESMGR,
     WMI_GRP_STA_SMPS,
-    WMI_GRP_WLAN_HB
+    WMI_GRP_WLAN_HB,
+    WMI_GRP_LOCATION_SCAN,
+    WMI_GRP_OEM
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
 #define WMI_EVT_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
 
 /**
- * Command IDs and commange events.
+ * Command IDs and commange events
  */
 typedef enum {
     /** initialize the wlan sub system */
@@ -255,6 +257,9 @@ typedef enum {
     WMI_VDEV_SET_WMM_PARAMS_CMDID,
     WMI_VDEV_SET_GTX_PARAMS_CMDID,
     WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMDID,
+
+    WMI_VDEV_PLMREQ_START_CMDID,
+    WMI_VDEV_PLMREQ_STOP_CMDID,
 
     /* peer specific commands */
 
@@ -540,6 +545,19 @@ typedef enum {
     WMI_HB_SET_UDP_PARAMS_CMDID,
     /* set udp pkt filter for wlan HB */
     WMI_HB_SET_UDP_PKT_FILTER_CMDID,
+    /** enable DFS phyerr/parse filter offload */
+    WMI_DFS_PHYERR_FILTER_ENA_CMDID,
+    /** enable DFS phyerr/parse filter offload */
+    WMI_DFS_PHYERR_FILTER_DIS_CMDID,
+    /*location scan commands*/
+    /*start batch scan*/
+    WMI_BATCH_SCAN_ENABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_LOCATION_SCAN),
+    /*stop batch scan*/
+    WMI_BATCH_SCAN_DISABLE_CMDID,
+    /*get batch scan result*/
+    WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID,
+    /* OEM related cmd */
+    WMI_OEM_REQ_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_OEM),
 } WMI_CMD_ID;
 
 typedef enum {
@@ -703,7 +721,27 @@ typedef enum {
 
     /* TDLS Event */
     WMI_TDLS_PEER_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_TDLS),
+
+    /** DFS radar event  */
+    WMI_DFS_RADAR_EVENTID,
+
+    /*location scan event*/
+    /*report the firmware's capability of batch scan*/
+    WMI_BATCH_SCAN_ENABLED_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_LOCATION_SCAN),
+    /*batch scan result*/
+    WMI_BATCH_SCAN_RESULT_EVENTID,
+    /* OEM Event */
+    WMI_OEM_CAPABILITY_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_OEM),
+    WMI_OEM_MEASUREMENT_REPORT_EVENTID,
+    WMI_OEM_ERROR_REPORT_EVENTID,
 } WMI_EVT_ID;
+
+/* defines for OEM message sub-types */
+#define WMI_OEM_CAPABILITY_REQ     0x01
+#define WMI_OEM_CAPABILITY_RSP     0x02
+#define WMI_OEM_MEASUREMENT_REQ    0x03
+#define WMI_OEM_MEASUREMENT_RSP    0x04
+#define WMI_OEM_ERROR_REPORT_RSP   0x05
 
 #define WMI_OEM_DATA_REQ_CMDID             WMI_RTT_MEASREQ_CMDID
 #define WMI_OEM_DATA_RSP_EVENTID           WMI_RTT_MEASUREMENT_REPORT_EVENTID
@@ -846,6 +884,12 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 #define WMI_VHT_CAP_TX_FIXED_ANT                 0x20000000
 
 #define WMI_VHT_CAP_MAX_MPDU_LEN_11454           0x00000002
+
+/* These macros should be used to advertise VHT CAP support */
+#define WMI_VHT_CAP_SU_BFORMER            0x00000800
+#define WMI_VHT_CAP_SU_BFORMEE            0x00001000
+#define WMI_VHT_CAP_MU_BFORMER            0x00080000
+#define WMI_VHT_CAP MU_BFORMEE            0x00100000
 
 /* These macros should be used when we wish to advertise STBC support for
  * only 1SS or 2SS or 3SS. */
@@ -2789,6 +2833,18 @@ typedef enum {
 
     /** Roaming offload */
     WMI_VDEV_PARAM_ROAM_FW_OFFLOAD,
+
+    /* set packet power save */
+    WMI_VDEV_PPS_PAID_MATCH,
+    WMI_VDEV_PPS_GID_MATCH,
+    WMI_VDEV_PPS_EARLY_TIM_CLEAR,
+    WMI_VDEV_PPS_EARLY_DTIM_CLEAR,
+    WMI_VDEV_PPS_EOF_PAD_DELIM,
+    WMI_VDEV_PPS_MACADDR_MISMATCH,
+    WMI_VDEV_PPS_DELIM_CRC_FAIL,
+    WMI_VDEV_PPS_GID_NSTS_ZERO,
+    WMI_VDEV_PPS_RSSI_CHECK,
+    WMI_VDEV_VHT_SET_GID_MGMT,
 } WMI_VDEV_PARAM;
 
 enum wmi_pkt_type {
@@ -4436,6 +4492,7 @@ typedef enum event_type_e {
     WOW_NLO_DETECTED_EVENT,
     WOW_DISASSOC_RECVD_EVENT,
     WOW_PATTERN_MATCH_EVENT,
+    WOW_CSA_IE_EVENT,
 }WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -4453,6 +4510,7 @@ typedef enum wake_reason_e {
     WOW_REASON_RECV_MAGIC_PATTERN,
     WOW_REASON_P2P_DISC,
     WOW_REASON_WLAN_HB,
+    WOW_REASON_CSA_EVENT,
     WOW_REASON_DEBUG_TEST = 0xFF,
 }WOW_WAKE_REASON_TYPE;
 
@@ -5083,6 +5141,25 @@ typedef struct {
 } wmi_vdev_mcc_set_tbtt_mode_cmd_fixed_param;
 
 typedef struct {
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;        /* home vdev id */
+    A_UINT32 meas_token;     /* from measure request frame */
+    A_UINT32 number_bursts;  /* zero keep sending until cancel, bigger than 0 means times e.g. 1,2 */
+    A_UINT32 burst_interval; /* unit in mill seconds, interval between consecutive burst*/
+    A_UINT32 burst_cycle;   /* times cycle through within one burst */
+    A_UINT32 tx_power;      /* for path frame */
+    A_UINT32 off_duration;  /* uint in mill seconds, channel off duraiton for path loss frame sending */
+    wmi_mac_addr dest_mac; /* multicast DA, for path loss frame */
+    A_UINT32 num_chans;
+} wmi_vdev_plmreq_start_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+    A_UINT32 meas_token; /* same value from req*/
+} wmi_vdev_plmreq_stop_cmd_fixed_param;
+
+typedef struct {
 	/* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_p2p_set_noa_cmd_fixed_param  */
     A_UINT32 tlv_header;
     /* unique id identifying the VDEV, generated by the caller */
@@ -5318,6 +5395,26 @@ typedef struct {
     /** Reserved for future use */
     A_UINT32    reserved0;
 } wmi_pdev_dfs_disable_cmd_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_ena_cmd_fixed_param
+     */
+    A_UINT32 tlv_header;
+
+    /** Reserved for future use */
+    A_UINT32 reserved0;
+} wmi_dfs_phyerr_filter_ena_cmd_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_dis_cmd_fixed_param
+     */
+    A_UINT32 tlv_header;
+    /** Reserved for future use */
+    A_UINT32 reserved0;
+} wmi_dfs_phyerr_filter_dis_cmd_fixed_param;
+
 /** TDLS COMMANDS */
 
 /* WMI_TDLS_SET_STATE_CMDID */
@@ -5715,6 +5812,69 @@ typedef struct {
      */
 } wmi_mcc_sched_traffic_stats_cmd_fixed_param;
 
+typedef struct
+{
+    A_UINT32 tlv_header;     /* TLV tag and len; tag equals  WMITLV_TAG_STRUC_wmi_batch_scan_enable_cmd_fixed_param */
+    /* unique id identifying the VDEV, generated by the caller */
+    A_UINT32 vdev_id;
+    /*Batch scan enable command parameters*/
+    A_UINT32 scanInterval;
+    A_UINT32 numScan2Batch;
+    A_UINT32 bestNetworks;
+    A_UINT32 rfBand;
+    A_UINT32 rtt;
+} wmi_batch_scan_enable_cmd_fixed_param;
+
+typedef struct
+{
+    A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_batch_scan_enabled_event_fixed_param  */
+    A_UINT32 supportedMscan;
+} wmi_batch_scan_enabled_event_fixed_param;
+
+typedef struct
+{
+    A_UINT32 tlv_header;     /* TLV tag and len; tag equals  WMITLV_TAG_STRUC_wmi_batch_scan_disable_cmd_fixed_param */
+/* unique id identifying the VDEV, generated by the caller */
+    A_UINT32 vdev_id;
+    A_UINT32   param;
+} wmi_batch_scan_disable_cmd_fixed_param;
+
+typedef struct
+{
+    A_UINT32 tlv_header;     /* TLV tag and len; tag equals  WMITLV_TAG_STRUC_wmi_batch_scan_trigger_result_cmd_fixed_param */
+    /** unique id identifying the VDEV, generated by the caller */
+    A_UINT32 vdev_id;
+    A_UINT32 param;
+} wmi_batch_scan_trigger_result_cmd_fixed_param;
+
+typedef struct
+{
+    A_UINT32 tlv_header;
+    wmi_mac_addr   bssid;     /* BSSID */
+    wmi_ssid   ssid;     /* SSID */
+    A_UINT32   ch;           /* Channel */
+    A_UINT32   rssi;         /* RSSI or Level */
+    /* Timestamp when Network was found. Used to calculate age based on timestamp in GET_RSP msg header */
+    A_UINT32  timestamp;
+} wmi_batch_scan_result_network_info;
+
+typedef struct
+{
+    A_UINT32 tlv_header;
+    A_UINT32 scanId;                         /* Scan List ID. */
+    /* No of AP in a Scan Result. Should be same as bestNetwork in SET_REQ msg */
+    A_UINT32 numNetworksInScanList;
+    A_UINT32 netWorkStartIndex;  /* indicate the start index of network info*/
+} wmi_batch_scan_result_scan_list;
+
+typedef struct
+{
+    A_UINT32 tlv_header;
+    A_UINT32 timestamp;   /*timestamp of batch scan event*/
+    A_UINT32 numScanLists;  /*number of scan in this event*/
+    A_UINT32 isLastResult;  /*is this event a last event of the whole batch scan*/
+}  wmi_batch_scan_result_event_fixed_param;
+
 typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_p2p_noa_event_fixed_param  */
     A_UINT32 vdev_id;
@@ -5743,6 +5903,55 @@ typedef struct {
     /** RF radio status */
     A_UINT32 radio_state;
 } wmi_rfkill_mode_param;
+
+typedef struct {
+    /** tlv tag and len, tag equals
+     * WMITLV_TAG_STRUC_wmi_dfs_radar_event */
+    A_UINT32 tlv_header;
+
+    /** full 64 tsf timestamp get from MAC tsf timer indicates
+     * the time that the radar event uploading to host, split
+     * it to high 32 bit and lower 32 bit in fulltsf_high and
+     * full_tsf_low
+     */
+    A_UINT32 upload_fullts_low;
+    A_UINT32 upload_fullts_high;
+
+    /** timestamp indicates the time when DFS pulse is detected
+     * equal to ppdu_end_ts - radar_pusle_summary_ts_offset
+     */
+    A_UINT32 pulse_detect_ts;
+
+    /** the duaration of the pulse in us */
+    A_UINT32 pulse_duration;
+
+    /** the center frequency of the radar pulse detected, KHz */
+    A_UINT32 pulse_center_freq;
+
+    /** bandwidth of current DFS channel, MHz */
+    A_UINT32 ch_bandwidth;
+
+    /** center channel frequency1 of current DFS channel, MHz */
+    A_UINT16 ch_center_freq1;
+
+    /** center channel frequency2 of current DFS channel, MHz,
+     * reserved for 160 BW mode
+     */
+    A_UINT16 ch_center_freq2;
+
+    /** flag to indicate if this pulse is chirp */
+    A_UINT8  pulse_is_chirp;
+
+    /** RSSI recorded in the ppdu */
+    A_UINT8  rssi;
+
+    /** extened RSSI info */
+    A_UINT8  rssi_ext;
+
+    /** For 4-byte aligment padding */
+    A_UINT8 reserved;
+
+} wmi_dfs_radar_event_fixed_param;
 
 #ifdef __cplusplus
 }

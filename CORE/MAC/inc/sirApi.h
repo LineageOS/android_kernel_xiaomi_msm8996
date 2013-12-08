@@ -1059,7 +1059,12 @@ typedef struct sSirSmeJoinReq
     tANI_U8             txBFIniFeatureEnabled;
     tANI_U8             txBFCsnValue;
     tANI_U8             txMuBformee;
+    tANI_U8             enableVhtpAid;
+    tANI_U8             enableVhtGid;
 #endif
+    tANI_U8             enableAmpduPs;
+    tANI_U8             enableHtSmps;
+    tANI_U8             htSmps;
 
     tAniTitanCBNeighborInfo cbNeighbors;
     tAniBool            spectrumMgtIndicator;
@@ -4220,6 +4225,7 @@ typedef struct sSirUpdateChanParam
 {
     tANI_U8 chanId;
     tANI_U8 pwr;
+    tANI_BOOLEAN dfsSet;
 } tSirUpdateChanParam, *tpSirUpdateChanParam;
 
 typedef struct sSirUpdateChan

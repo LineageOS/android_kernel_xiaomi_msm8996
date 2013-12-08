@@ -385,5 +385,22 @@ ol_cfg_addba_retry(ol_pdev_handle pdev)
     return 0; /* disabled for now */
 }
 
+/**
+ * @brief How many frames to hold in a paused vdev's tx queue in LL systems
+ */
+static inline int
+ol_tx_cfg_max_tx_queue_depth_ll(ol_pdev_handle pdev)
+{
+    /*
+     * Store up to 700 frames for a paused vdev.
+     * For example, if the vdev is sending 300 Mbps of traffic, and the
+     * PHY is capable of 600 Mbps, then it will take 56 ms for the PHY to
+     * drain both the 700 frames that are queued initially, plus the next
+     * 700 frames that come in while the PHY is catching up.
+     * So in this example scenario, the PHY will remain fully utilized
+     * in a MCC system that has a channel-switching period of 56 ms or less.
+     */
+    return 700;
+}
 
 #endif /* _OL_CFG__H_ */

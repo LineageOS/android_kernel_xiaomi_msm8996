@@ -40,7 +40,7 @@
 #include "fw_one_bin.h"
 #include "bin_sig.h"
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 #include <net/cnss.h>
 #endif
 
@@ -460,7 +460,7 @@ u_int32_t host_interest_item_address(u_int32_t target_type, u_int32_t item_offse
 	}
 }
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 static struct ol_softc *ramdump_scn;
 
 static void ramdump_work_handler(struct work_struct *ramdump)
@@ -568,7 +568,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 	    return;
 	}
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 	/* Collect the RAM dump through a workqueue */
 	ramdump_scn = scn;
 	schedule_work(&ramdump_work);

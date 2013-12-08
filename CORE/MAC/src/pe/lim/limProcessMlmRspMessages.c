@@ -4925,4 +4925,5 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
                     "Received unhandled scan event %lu", pScanEvent->event);
     }
+    vos_mem_free(buf);
 }

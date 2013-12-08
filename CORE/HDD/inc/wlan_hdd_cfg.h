@@ -1302,7 +1302,31 @@ typedef enum
 #define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MAX     ( 1 )
 #define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_DEFAULT ( 0 )
 
+#define CFG_VHT_ENABLE_PAID_FEATURE             "gEnablePAID"
+#define CFG_VHT_ENABLE_PAID_FEATURE_MIN         ( 0 )
+#define CFG_VHT_ENABLE_PAID_FEATURE_MAX         ( 1 )
+#define CFG_VHT_ENABLE_PAID_FEATURE_DEFAULT     ( 0 )
+
+#define CFG_VHT_ENABLE_GID_FEATURE              "gEnableGID"
+#define CFG_VHT_ENABLE_GID_FEATURE_MIN          ( 0 )
+#define CFG_VHT_ENABLE_GID_FEATURE_MAX          ( 1 )
+#define CFG_VHT_ENABLE_GID_FEATURE_DEFAULT      ( 0 )
 #endif
+
+#define CFG_ENABLE_AMPDUPS_FEATURE              "gEnableAMPDUPS"
+#define CFG_ENABLE_AMPDUPS_FEATURE_MIN          ( 0 )
+#define CFG_ENABLE_AMPDUPS_FEATURE_MAX          ( 1 )
+#define CFG_ENABLE_AMPDUPS_FEATURE_DEFAULT      ( 0 )
+
+#define CFG_HT_ENABLE_SMPS_CAP_FEATURE          "gEnableHtSMPS"
+#define CFG_HT_ENABLE_SMPS_CAP_FEATURE_MIN      ( 0 )
+#define CFG_HT_ENABLE_SMPS_CAP_FEATURE_MAX      ( 1 )
+#define CFG_HT_ENABLE_SMPS_CAP_FEATURE_DEFAULT  ( 0 )
+
+#define CFG_HT_SMPS_CAP_FEATURE                 "gHtSMPS"
+#define CFG_HT_SMPS_CAP_FEATURE_MIN             ( 0 )
+#define CFG_HT_SMPS_CAP_FEATURE_MAX             ( 3 )
+#define CFG_HT_SMPS_CAP_FEATURE_DEFAULT         ( 3 )
 
 #define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
 #define CFG_REPORT_MAX_LINK_SPEED_MIN              ( eHDD_LINK_SPEED_REPORT_ACTUAL )
@@ -2172,7 +2196,12 @@ typedef struct
    v_BOOL_t                    enable2x2;
    v_BOOL_t                    enableVhtFor24GHzBand;
    v_BOOL_t                    enableMuBformee;
+   v_BOOL_t                    enableVhtpAid;
+   v_BOOL_t                    enableVhtGid;
 #endif
+   v_U8_t                      enableAmpduPs;
+   v_U8_t                      enableHtSmps;
+   v_U8_t                      htSmps;
    v_U8_t                      enableModulatedDTIM;
    v_U32_t                     fEnableMCAddrList;
    v_BOOL_t                    enableFirstScan2GOnly;

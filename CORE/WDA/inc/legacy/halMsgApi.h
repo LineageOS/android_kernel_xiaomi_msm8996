@@ -287,7 +287,12 @@ typedef struct
     tANI_U8    vhtTxChannelWidthSet;
     tANI_U8    vhtTxBFCapable;
     tANI_U8    vhtTxMUBformeeCapable;
+    tANI_U8    enableVhtpAid;
+    tANI_U8    enableVhtGid;
 #endif
+    tANI_U8    enableAmpduPs;
+    tANI_U8    enableHtSmps;
+    tANI_U8    htSmpsconfig;
 
     tANI_U8    htLdpcCapable;
     tANI_U8    vhtLdpcCapable;
@@ -892,6 +897,23 @@ typedef struct
    tANI_U16  smesessionId;
    tSirMacAddr peer_mac;
 }tUpdateVHTOpMode, *tpUpdateVHTOpMode;
+
+typedef struct
+{
+   tANI_U32  membership;
+   tANI_U16  staId;
+   tANI_U16  smesessionId;
+   tSirMacAddr peer_mac;
+}tUpdateMembership, *tpUpdateMembership;
+
+typedef struct
+{
+   tANI_U32  userPos;
+   tANI_U16  staId;
+   tANI_U16  smesessionId;
+   tSirMacAddr peer_mac;
+}tUpdateUserPos, *tpUpdateUserPos;
+
 #endif
 
 //HAL MSG: SIR_HAL_UPDATE_CF_IND
