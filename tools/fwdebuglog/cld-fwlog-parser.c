@@ -1040,14 +1040,27 @@ dbglog_print_raw_data(A_UINT32 *buffer, A_UINT32 length)
                 totalWriteLen += writeLen;
             }
 
-            dbgidString = DBG_MSG_ARR[moduleid][debugid];
-            if (dbgidString != NULL) {
-                printf("fw:%s(%x %x):%s\n",
-                       dbgidString,
+            if (debugid < MAX_DBG_MSGS){
+                dbgidString = DBG_MSG_ARR[moduleid][debugid];
+                if (dbgidString != NULL) {
+                    printf("fw:%s(%x %x):%s\n",
+                           dbgidString,
+                           timestamp, buffer[count+1],
+                           parseArgsString);
+                } else {
+                    /* host need sync with FW id */
+                    printf("fw:%s:m:%x,id:%x(%x %x):%s\n",
+                           "UNKNOWN", moduleid, debugid,
+                           timestamp, buffer[count+1],
+                           parseArgsString);
+                }
+            } else if (debugid == DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG) {
+                /* specific debugid */
+                printf("fw:%s:m:%x,id:%x(%x %x):%s\n",
+                       "DBGLOG_SM_MSG", moduleid, debugid,
                        timestamp, buffer[count+1],
                        parseArgsString);
             } else {
-                /* host need sync with FW id */
                 printf("fw:%s:m:%x,id:%x(%x %x):%s\n",
                        "UNKNOWN", moduleid, debugid,
                        timestamp, buffer[count+1],
@@ -2294,6 +2307,88 @@ A_BOOL dbglog_smps_print_handler(A_UINT32 mod_id,
                 timestamp,
                 vap_id,
                 "STA_SMPS: UNKNOWN DBGID!");
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+A_BOOL
+dbglog_p2p_print_handler(
+        A_UINT32 mod_id,
+        A_UINT16 vap_id,
+        A_UINT32 dbg_id,
+        A_UINT32 timestamp,
+        A_UINT16 numargs,
+        A_UINT32 *args)
+{
+    static const char *states[] = {
+        "ACTIVE",
+        "DOZE",
+        "TX_BCN",
+        "CTWIN",
+        "OPPPS",
+    };
+
+    static const char *events[] = {
+        "ONESHOT_NOA",
+        "CTWINDOW",
+        "PERIODIC_NOA",
+        "IDLE",
+        "NOA_CHANGED",
+        "TBTT",
+        "TX_BCN_CMP",
+        "OPPPS_OK",
+        "OPPPS_CHANGED",
+    };
+
+    switch (dbg_id) {
+    case DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG:
+        dbglog_sm_print(timestamp, vap_id, numargs, args, "P2P GO PS",
+                states, ARRAY_LENGTH(states), events, ARRAY_LENGTH(events));
+        break;
+    default:
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+A_BOOL
+dbglog_pcielp_print_handler(
+        A_UINT32 mod_id,
+        A_UINT16 vap_id,
+        A_UINT32 dbg_id,
+        A_UINT32 timestamp,
+        A_UINT16 numargs,
+        A_UINT32 *args)
+{
+    static const char *states[] = {
+        "STOP",
+        "TX",
+        "RX",
+        "SLEEP",
+        "SUSPEND",
+    };
+
+    static const char *events[] = {
+        "VDEV_UP",
+        "ALL_VDEV_DOWN",
+        "AWAKE",
+        "SLEEP",
+        "TX_ACTIVITY",
+        "TX_INACTIVITY",
+        "TX_AC_CHANGE",
+        "SUSPEND",
+        "RESUME",
+    };
+
+    switch (dbg_id) {
+    case DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG:
+        dbglog_sm_print(timestamp, vap_id, numargs, args, "PCIELP",
+                states, ARRAY_LENGTH(states), events, ARRAY_LENGTH(events));
+        break;
+    default:
         return FALSE;
     }
 

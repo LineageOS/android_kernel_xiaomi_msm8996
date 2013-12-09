@@ -60,6 +60,7 @@ ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev)
 
     adf_os_spin_lock_bh(&pdev->tx_mutex);
     if (pdev->tx_desc.freelist) {
+        pdev->tx_desc.num_free--;
         tx_desc = &pdev->tx_desc.freelist->tx_desc;
         pdev->tx_desc.freelist = pdev->tx_desc.freelist->next;
     }
@@ -97,6 +98,7 @@ ol_tx_desc_free(struct ol_txrx_pdev_t *pdev, struct ol_tx_desc_t *tx_desc)
     adf_os_spin_lock_bh(&pdev->tx_mutex);
     ((union ol_tx_desc_list_elem_t *) tx_desc)->next = pdev->tx_desc.freelist;
     pdev->tx_desc.freelist = (union ol_tx_desc_list_elem_t *) tx_desc;
+    pdev->tx_desc.num_free++;
     adf_os_spin_unlock_bh(&pdev->tx_mutex);
 }
 

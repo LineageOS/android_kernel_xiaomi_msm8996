@@ -66,7 +66,11 @@ extern "C" {
 #define INF_DBGID_DEFINITION_START                    0
 #define INF_ASSERTION_FAILED                          1
 #define INF_TARGET_ID                                 2
-#define INF_DBGID_DEFINITION_END                      3
+#define INF_TARGET_MEM_REMAING			              3
+#define INF_TARGET_MEM_EXT_REMAING                    4
+#define INF_TARGET_MEM_ALLOC_TRACK                    5
+#define INF_TARGET_MEM_ALLOC_RAM                      6
+#define INF_DBGID_DEFINITION_END                      7
 
 /* WMI debug identifier definitions */
 #define WMI_DBGID_DEFINITION_START                    0
@@ -745,7 +749,11 @@ extern "C" {
 #define WLAN_CHATTER_FILTER_TM_ADJ  6
 #define WLAN_CHATTER_BUFFER_FULL    7
 #define WLAN_CHATTER_TIMEOUT        8
-#define WLAN_CHATTER_DBGID_DEFINITION_END 9
+#define WLAN_CHATTER_MC_FILTER_ADD  9
+#define WLAN_CHATTER_MC_FILTER_DEL  10
+#define WLAN_CHATTER_MC_FILTER_ALLOW  11
+#define WLAN_CHATTER_MC_FILTER_DROP  12
+#define WLAN_CHATTER_DBGID_DEFINITION_END 13
 
 #define WOW_DBGID_DEFINITION_START 0
 #define WOW_ENABLE_CMDID 1
@@ -841,13 +849,14 @@ extern "C" {
 #define TXBFER_DBGID_SEND_BRPOLL_FAIL           9
 #define TXBFER_DBGID_HOST_CONFIG_CMDID         10
 #define TXBFEE_DBGID_HOST_CONFIG_CMDID         11
-#define TXBFEE_DBGID_ENABLED_ENABLED_UPLOAD_H  12
+#define TXBFEE_DBGID_ENABLE_UPLOAD_H           12
 #define TXBFEE_DBGID_UPLOADH_CV_TAG            13
 #define TXBFEE_DBGID_UPLOADH_H_TAG             14
 #define TXBFEE_DBGID_CAPTUREH_RECEIVED         15
 #define TXBFEE_DBGID_PACKET_IS_STEERED         16
 #define TXBFEE_UPLOADH_EVENT_ALLOC_MEM_FAIL    17
-#define TXBFEE_DBGID_END                       18
+#define TXBFEE_DBGID_SW_WAR_AID_ZERO           18
+#define TXBFEE_DBGID_END                       19
 
 /* SMPS module DBGIDs */
 #define STA_SMPS_DBGID_DEFINITION_START                 0

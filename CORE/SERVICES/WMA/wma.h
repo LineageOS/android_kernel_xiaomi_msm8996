@@ -76,6 +76,7 @@
 /** Private **/
 #define WMA_CFG_NV_DNLD_TIMEOUT            500
 #define WMA_READY_EVENTID_TIMEOUT          2000
+#define WMA_TGT_SUSPEND_COMPLETE_TIMEOUT   2000
 #define MAX_MEM_CHUNKS 32
 /*
    In prima 12 HW stations are supported including BCAST STA(staId 0)
@@ -200,6 +201,7 @@ struct beacon_info {
 	u_int8_t noa_sub_ie[2 + WMA_NOA_IE_SIZE(WMA_MAX_NOA_DESCRIPTORS)];
 	u_int16_t noa_sub_ie_len;
 	u_int8_t *noa_ie;
+	u_int16_t p2p_ie_offset;
 	adf_os_spinlock_t lock;
 };
 
@@ -215,6 +217,18 @@ struct beacon_tim_ie {
 #define WMA_TIM_SUPPORTED_PVB_LENGTH (HAL_NUM_STA / 8) + 1
 
 #endif
+
+struct pps {
+	v_BOOL_t paid_match_enable;
+	v_BOOL_t gid_match_enable;
+	v_BOOL_t tim_clear;
+	v_BOOL_t dtim_clear;
+	v_BOOL_t eof_delim;
+	v_BOOL_t mac_match;
+	v_BOOL_t delim_fail;
+	v_BOOL_t nsts_zero;
+	v_BOOL_t rssi_chk;
+};
 
 typedef struct {
 	u_int32_t ani_enable;
@@ -241,6 +255,7 @@ typedef struct {
 	u_int32_t tx_rate;
 	u_int32_t ampdu;
 	u_int32_t amsdu;
+        struct pps pps_params;
 } vdev_cli_config_t;
 
 #define WMA_WOW_PTRN_MASK_VALID     0xFF
@@ -300,6 +315,7 @@ struct wma_txrx_node {
 	tANI_U8                 vht_capable;
 	tANI_U8                 ht_capable;
 	v_BOOL_t vdev_up;
+	u_int64_t tsfadjust;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)

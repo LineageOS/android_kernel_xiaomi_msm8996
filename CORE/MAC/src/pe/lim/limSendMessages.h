@@ -58,6 +58,14 @@ tANI_U32 limGetCenterChannel(tpAniSirGlobal pMac,
                              tANI_U8 primarychanNum,
                              ePhyChanBondState secondaryChanOffset, 
                              tANI_U8 chanWidth);
+
+tSirRetStatus limSetMembership(tpAniSirGlobal pMac,
+                                tUpdateMembership *pTempParam,
+                                tpPESession  psessionEntry );
+
+tSirRetStatus limSetUserPos(tpAniSirGlobal pMac,
+                                tUpdateUserPos *pTempParam,
+                                tpPESession  psessionEntry );
 #endif
 #if defined WLAN_FEATURE_VOWIFI  
 tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac, tANI_U8 chnlNumber, 

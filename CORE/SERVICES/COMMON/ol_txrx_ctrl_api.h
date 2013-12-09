@@ -281,7 +281,7 @@ ol_txrx_tx_release(
  *
  * @param data_vdev - the virtual device being paused
  */
-#if defined(CONFIG_HL_SUPPORT)
+#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 void
 ol_txrx_vdev_pause(ol_txrx_vdev_handle data_vdev);
 #else
@@ -296,7 +296,7 @@ ol_txrx_vdev_pause(ol_txrx_vdev_handle data_vdev);
  *
  * @param data_vdev - the virtual device being unpaused
  */
-#if defined(CONFIG_HL_SUPPORT)
+#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 void
 ol_txrx_vdev_unpause(ol_txrx_vdev_handle data_vdev);
 #else

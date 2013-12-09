@@ -1305,14 +1305,27 @@ dbglog_print_raw_data(A_UINT32 *buffer, A_UINT32 length)
                 totalWriteLen += writeLen;
             }
 
-            dbgidString = DBG_MSG_ARR[moduleid][debugid];
-            if (dbgidString != NULL) {
-                AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("fw:%s(%x %x):%s\n",
-                       dbgidString,
+            if (debugid < MAX_DBG_MSGS){
+                dbgidString = DBG_MSG_ARR[moduleid][debugid];
+                if (dbgidString != NULL) {
+                    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("fw:%s(%x %x):%s\n",
+                           dbgidString,
+                           timestamp, buffer[count+1],
+                           parseArgsString));
+                } else {
+                    /* host need sync with FW id */
+                    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("fw:%s:m:%x,id:%x(%x %x):%s\n",
+                           "UNKNOWN", moduleid, debugid,
+                           timestamp, buffer[count+1],
+                           parseArgsString));
+                }
+            } else if (debugid == DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG) {
+                /* specific debugid */
+                AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("fw:%s:m:%x,id:%x(%x %x):%s\n",
+                       "DBGLOG_SM_MSG", moduleid, debugid,
                        timestamp, buffer[count+1],
                        parseArgsString));
             } else {
-                /* host need sync with FW id */
                 AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("fw:%s:m:%x,id:%x(%x %x):%s\n",
                        "UNKNOWN", moduleid, debugid,
                        timestamp, buffer[count+1],
@@ -1764,6 +1777,24 @@ A_BOOL dbglog_ratectrl_print_handler(
         case RATECTRL_DBGID_WAL_RCUPDATE:
             dbglog_printf(timestamp, vap_id, "ratectrl_dbgid_wal_rcupdate [numelems %d ppduflag 0x%x] ",
                     args[0], args[1]);
+			break;
+		case RATECTRL_DBGID_GTX_UPDATE:
+		{
+										  switch (args[0]) {
+										  case 255:
+											  dbglog_printf(timestamp, vap_id, "GtxInitPwrCfg [bw[last %d|cur %d] rtcode 0x%x tpc %d tpc_init_pwr_cfg %d] ",
+												  args[1] >> 8, args[1] & 0xff, args[2], args[3], args[4]);
+											  break;
+										  case 254:
+											  dbglog_printf(timestamp, vap_id, "gtx_cfg_addr [RTMask0@0x%x PERThreshold@0x%x gtxTPCMin@0x%x userGtxMask@0x%x] ",
+												  args[1], args[2], args[3], args[4]);
+											  break;
+										  default:
+											  dbglog_printf(timestamp, vap_id, "gtx_update [act %d bw %d rix 0x%x tpc %d per %d lastrssi %d] ",
+												  args[0], args[1], args[2], args[3], args[4], args[5]);
+										  }
+		}
+			break;
     }
     return TRUE;
 }

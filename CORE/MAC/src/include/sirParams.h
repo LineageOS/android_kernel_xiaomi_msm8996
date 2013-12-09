@@ -576,6 +576,11 @@ typedef struct sSirMbMsgP2p
 
 #define SIR_HAL_RATE_UPDATE_IND            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 208)
 
+#ifdef WLAN_FEATURE_11AC
+#define SIR_HAL_UPDATE_MEMBERSHIP             (SIR_HAL_ITC_MSG_TYPES_BEGIN + 210)
+#define SIR_HAL_UPDATE_USERPOS                (SIR_HAL_ITC_MSG_TYPES_BEGIN + 211)
+#endif
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF)
 // CFG message types
 #define SIR_CFG_MSG_TYPES_BEGIN        (SIR_CFG_MODULE_ID << 8)

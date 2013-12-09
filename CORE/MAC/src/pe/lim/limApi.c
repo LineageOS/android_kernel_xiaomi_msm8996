@@ -2195,6 +2195,9 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
     tANI_U32                     framelen;
     tANI_U8                      *pBody;
     tSirMacCapabilityInfo     capabilityInfo;
+    tpSirMacMgmtHdr           pHdr=NULL;
+    tpPESession               psessionEntry=NULL;
+    tANI_U8                   sessionId;
 
     /*
     * 
@@ -2230,12 +2233,6 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
     framelen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
     pBody    = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
 
-   /* Note sure if this is sufficient, basically this condition allows all probe responses and 
-    *   beacons from an infrastructure network 
-    */
-        *((tANI_U16*) &capabilityInfo) = sirReadU16(pBody+ LIM_BCN_PR_CAPABILITY_OFFSET);
-    if(!capabilityInfo.ibss)
-        return eMGMT_DROP_NO_DROP;
 #if 0
     //Allow the mgmt frames to be queued if STA not in IBSS mode.
     if (pMac->lim.gLimSystemRole != eLIM_STA_IN_IBSS_ROLE)
@@ -2249,8 +2246,14 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
         //drop the frame if length is less than 12
         if(framelen < LIM_MIN_BCN_PR_LENGTH)
             return eMGMT_DROP_INVALID_SIZE;
-        
+
         *((tANI_U16*) &capabilityInfo) = sirReadU16(pBody+ LIM_BCN_PR_CAPABILITY_OFFSET);
+
+        /* Note sure if this is sufficient, basically this condition allows all probe responses and
+         *   beacons from an infrastructure network
+         */
+        if(!capabilityInfo.ibss)
+            return eMGMT_DROP_NO_DROP;
 
         //This can be enhanced to even check the SSID before deciding to enque the frame.
         if(capabilityInfo.ess)
@@ -2259,6 +2262,13 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
     else if( (subType == SIR_MAC_MGMT_PROBE_REQ) &&
                 (!WDA_GET_RX_BEACON_SENT(pRxPacketInfo)))
     {
+        pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+        psessionEntry = peFindSessionByBssid(pMac, pHdr->bssId, &sessionId);
+        if ((psessionEntry &&
+                    psessionEntry->limSystemRole != eLIM_STA_IN_IBSS_ROLE) ||
+                (!psessionEntry))
+            return eMGMT_DROP_NO_DROP;
+
         //Drop the Probe Request in IBSS mode, if STA did not send out the last beacon
         //In IBSS, the node which sends out the beacon, is supposed to respond to ProbeReq
         return eMGMT_DROP_NOT_LAST_IBSS_BCN;

@@ -157,6 +157,9 @@ extern void wlan_hdd_cfg80211_update_replayCounterCallback(void *callbackContext
                             tpSirGtkOffloadGetInfoRspParams pGtkOffloadGetInfoRsp);
 #endif
 
+void hdd_select_cbmode( hdd_adapter_t *pAdapter,v_U8_t operationChannel);
+
+
 #if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) \
     && !defined(QCA_WIFI_ISOC) && defined(CONFIG_NL80211_TESTMODE)
 void wlan_hdd_testmode_rx_event(void *buf, size_t buf_len);

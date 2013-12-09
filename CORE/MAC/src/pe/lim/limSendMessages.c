@@ -775,7 +775,90 @@ tSirRetStatus limSendModeUpdate(tpAniSirGlobal pMac,
 
     return retCode;
 }
-#endif 
+
+tSirRetStatus limSetMembership(tpAniSirGlobal pMac,
+                                tUpdateMembership *pTempParam,
+                                tpPESession  psessionEntry )
+{
+    tUpdateMembership *pMembership = NULL;
+    tSirRetStatus   retCode = eSIR_SUCCESS;
+    tSirMsgQ msgQ;
+
+    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
+          (void **) &pMembership, sizeof(tUpdateMembership)))
+    {
+        limLog( pMac, LOGP,
+            FL( "Unable to PAL allocate memory during Update Membership Mode" ));
+        return eSIR_MEM_ALLOC_FAILED;
+    }
+    palCopyMemory( pMac->hHdd, (tANI_U8 *)pMembership, pTempParam, sizeof(tUpdateMembership));
+    msgQ.type =  WDA_UPDATE_MEMBERSHIP;
+    msgQ.reserved = 0;
+    msgQ.bodyptr = pMembership;
+    msgQ.bodyval = 0;
+    PELOG3(limLog( pMac, LOG3,
+                FL( "Sending WDA_UPDATE_MEMBERSHIP" ));)
+    if(NULL == psessionEntry)
+    {
+        MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
+    }
+    else
+    {
+        MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
+    }
+    if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
+    {
+        palFreeMemory(pMac->hHdd, pMembership);
+        limLog( pMac, LOGP,
+                    FL("Posting  WDA_UPDATE_MEMBERSHIP to WDA failed, reason=%X"),
+                    retCode );
+    }
+
+    return retCode;
+}
+
+tSirRetStatus limSetUserPos(tpAniSirGlobal pMac,
+                                tUpdateUserPos *pTempParam,
+                                tpPESession  psessionEntry )
+{
+    tUpdateUserPos *pUserPos = NULL;
+    tSirRetStatus   retCode = eSIR_SUCCESS;
+    tSirMsgQ msgQ;
+
+    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
+          (void **) &pUserPos, sizeof(tUpdateUserPos)))
+    {
+        limLog( pMac, LOGP,
+            FL( "Unable to PAL allocate memory during Update User Position" ));
+        return eSIR_MEM_ALLOC_FAILED;
+    }
+    palCopyMemory( pMac->hHdd, (tANI_U8 *)pUserPos, pTempParam, sizeof(tUpdateUserPos));
+    msgQ.type =  WDA_UPDATE_USERPOS;
+    msgQ.reserved = 0;
+    msgQ.bodyptr = pUserPos;
+    msgQ.bodyval = 0;
+    PELOG3(limLog( pMac, LOG3,
+                FL( "Sending WDA_UPDATE_USERPOS" ));)
+    if(NULL == psessionEntry)
+    {
+        MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
+    }
+    else
+    {
+        MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
+    }
+    if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
+    {
+        palFreeMemory(pMac->hHdd, pUserPos);
+        limLog( pMac, LOGP,
+                    FL("Posting  WDA_UPDATE_USERPOS to WDA failed, reason=%X"),
+                    retCode );
+    }
+
+    return retCode;
+}
+
+#endif
 
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
 /** ---------------------------------------------------------

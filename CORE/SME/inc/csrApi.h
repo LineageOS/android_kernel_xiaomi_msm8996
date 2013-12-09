@@ -1070,7 +1070,12 @@ typedef struct tagCsrConfigParam
     tANI_U8   enable2x2;
     tANI_BOOLEAN    enableVhtFor24GHz;
     tANI_U8   enableMuBformee;
+    tANI_U8    enableVhtpAid;
+    tANI_U8    enableVhtGid;
 #endif
+    tANI_U8    enableAmpduPs;
+    tANI_U8    enableHtSmps;
+    tANI_U8    htSmps;
 
     /*
     * To enable/disable scanning only 2.4Ghz channels on first scan
