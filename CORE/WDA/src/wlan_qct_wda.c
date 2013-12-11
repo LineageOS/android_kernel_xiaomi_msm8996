@@ -255,7 +255,7 @@ VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
    if(!VOS_IS_STATUS_SUCCESS(status)) 
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "WDI Sync Event init failed - status = %d\n", status);
+                "WDI Sync Event init failed - status = %d", status);
       goto error;
    }
    /* Init Frame transfer event */
@@ -263,21 +263,21 @@ VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
    if(!VOS_IS_STATUS_SUCCESS(status)) 
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "VOS Mgmt Frame Event init failed - status = %d\n", status);
+                "VOS Mgmt Frame Event init failed - status = %d", status);
       goto error;
    }
    status = vos_event_init(&wdaContext->suspendDataTxEvent);
    if(!VOS_IS_STATUS_SUCCESS(status)) 
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-            "VOS suspend data tx Event init failed - status = %d\n", status);
+            "VOS suspend data tx Event init failed - status = %d", status);
       goto error;
    }
    status = vos_event_init(&wdaContext->waitOnWdiIndicationCallBack);
    if(!VOS_IS_STATUS_SUCCESS(status)) 
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-            "VOS wait On Wdi Ind Event init failed - status = %d\n", status);
+            "VOS wait On Wdi Ind Event init failed - status = %d", status);
       goto error;
    }
    vos_trace_setLevel(VOS_MODULE_ID_WDA,VOS_TRACE_LEVEL_ERROR);
@@ -1884,7 +1884,7 @@ VOS_STATUS WDA_close(v_PVOID_t pVosContext)
    if(!VOS_IS_STATUS_SUCCESS(vstatus)) 
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "WDI Sync Event destroy failed - status = %d\n", status);
+                "WDI Sync Event destroy failed - status = %d", status);
       status = VOS_STATUS_E_FAILURE;
    }
 
@@ -1892,21 +1892,21 @@ VOS_STATUS WDA_close(v_PVOID_t pVosContext)
    if(!VOS_IS_STATUS_SUCCESS(vstatus))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "VOS Event destroy failed - status = %d\n", status);
+                  "VOS Event destroy failed - status = %d", status);
       status = VOS_STATUS_E_FAILURE;
    }
    vstatus = vos_event_destroy(&wdaContext->suspendDataTxEvent);
    if(!VOS_IS_STATUS_SUCCESS(vstatus))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "VOS Event destroy failed - status = %d\n", status);
+                  "VOS Event destroy failed - status = %d", status);
       status = VOS_STATUS_E_FAILURE;
    }
    vstatus = vos_event_destroy(&wdaContext->waitOnWdiIndicationCallBack);
    if(!VOS_IS_STATUS_SUCCESS(vstatus))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "VOS Event destroy failed - status = %d\n", status);
+                  "VOS Event destroy failed - status = %d", status);
       status = VOS_STATUS_E_FAILURE;
    }
    /* free WDA context */
@@ -2186,14 +2186,14 @@ VOS_STATUS WDA_SuspendDataTxCallback( v_PVOID_t      pvosGCtx,
    if(!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                      "NEW VOS Event Set failed - status = %d \n", vosStatus);
+                      "NEW VOS Event Set failed - status = %d", vosStatus);
    }
    /* If TL suspended had timedout before this callback was called, resume back 
    * TL.*/
    if (pWDA->txSuspendTimedOut) 
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "Late TLSuspendCallback, resuming TL back again\n");
+                  "Late TLSuspendCallback, resuming TL back again");
       WDA_ResumeDataTx(pWDA);
       pWDA->txSuspendTimedOut = FALSE;
    }
@@ -2214,7 +2214,7 @@ VOS_STATUS WDA_SuspendDataTx(tWDA_CbContext *pWDA)
    if (pWDA->txSuspendTimedOut) 
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-         "TL suspend timedout previously, CB not called yet\n");
+         "TL suspend timedout previously, CB not called yet");
         return status;
    }
    /* Reset the event to be not signalled */
@@ -2222,7 +2222,7 @@ VOS_STATUS WDA_SuspendDataTx(tWDA_CbContext *pWDA)
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                            "VOS Event reset failed - status = %d\n",status);
+                            "VOS Event reset failed - status = %d",status);
       return VOS_STATUS_E_FAILURE;
    }
    /*Indicate TL to suspend transmission for all Sta Id */
@@ -4141,7 +4141,7 @@ static inline v_U8_t WDA_ConvertWniCfgIdToHALCfgId(v_U32_t wniCfgId)
       default:
       {
          VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-               "There is no HAL CFG Id corresponding to WNI CFG Id: %d\n",
+               "There is no HAL CFG Id corresponding to WNI CFG Id: %d",
                        wniCfgId);
          return VOS_STATUS_E_INVAL;
       }
@@ -4165,7 +4165,7 @@ void WDA_UpdateCfgCallback(WDI_Status   wdiStatus, void* pUserData)
    if(WDI_STATUS_SUCCESS != wdiStatus)
    {
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "%s: CFG (%d) config failure \n", __func__, 
+                  "%s: CFG (%d) config failure", __func__,
               ((tHalCfg *)(wdiCfgParam->pConfigBuffer))->type);
    }
    
@@ -4222,7 +4222,7 @@ VOS_STATUS WDA_UpdateCfg(tWDA_CbContext *pWDA, tSirMsgQ *cfgParam)
    if(NULL == wdiCfgReqParam->pConfigBuffer)
    {
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                             "%s: VOS MEM Alloc Failure \n", __func__);
+                             "%s: VOS MEM Alloc Failure", __func__);
       vos_mem_free(wdiCfgReqParam);
       VOS_ASSERT(0);
       return VOS_STATUS_E_NOMEM;
@@ -4237,7 +4237,7 @@ VOS_STATUS WDA_UpdateCfg(tWDA_CbContext *pWDA, tSirMsgQ *cfgParam)
                                                       &val) != eSIR_SUCCESS)
    {
        VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                              "Failed to cfg get id %d\n", cfgParam->bodyval);
+                              "Failed to cfg get id %d", cfgParam->bodyval);
        vos_mem_free(wdiCfgReqParam->pConfigBuffer);
        vos_mem_free(wdiCfgReqParam);
        return eSIR_FAILURE;
@@ -4304,7 +4304,7 @@ VOS_STATUS WDA_GetWepKeysFromCfg( tWDA_CbContext *pWDA,
                                      &val ))
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                            "WEP Key index [%d] may not configured in CFG\n",i);
+                            "WEP Key index [%d] may not configured in CFG",i);
       }
       else
       {
@@ -5600,7 +5600,7 @@ VOS_STATUS WDA_ProcessAddBASessionReq(tWDA_CbContext *pWDA,
     ((WLANTL_STA_CONNECTED != tlSTAState) && (WLANTL_STA_AUTHENTICATED != tlSTAState)))
    {
        VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-        "Peer staIdx %d hasn't established yet(%d). Send ADD BA failure to PE.\n", pAddBAReqParams->staIdx, tlSTAState );
+        "Peer staIdx %d hasn't established yet(%d). Send ADD BA failure to PE.", pAddBAReqParams->staIdx, tlSTAState );
        status = WDI_STATUS_E_NOT_ALLOWED;
        pAddBAReqParams->status =
              CONVERT_WDI2SIR_STATUS(status) ;
@@ -5618,9 +5618,9 @@ VOS_STATUS WDA_ProcessAddBASessionReq(tWDA_CbContext *pWDA,
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-       "Failure in ADD BA Session REQ Params WDI API, free all the memory =%d\n", status);
+       "Failure in ADD BA Session REQ Params WDI API, free all the memory =%d", status);
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-       "Send ADD BA failure response to PE\n");
+       "Send ADD BA failure response to PE");
       pAddBAReqParams->status =
             CONVERT_WDI2SIR_STATUS(status) ;
       WDA_SendMsg(pWDA, WDA_ADDBA_RSP, (void *)pAddBAReqParams , 0) ;
@@ -7684,7 +7684,7 @@ VOS_STATUS WDA_ProcessSetPwrSaveCfgReq(tWDA_CbContext *pWDA,
    if(NULL == configParam)
    {
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "%s: VOS MEM Alloc Failure \n", __func__);
+                "%s: VOS MEM Alloc Failure", __func__);
       VOS_ASSERT(0);
       vos_mem_free(pWdaParams);
       vos_mem_free(wdiPowerSaveCfg);
@@ -8047,7 +8047,7 @@ void WDA_ConfigureRxpFilterRespCallback(WDI_Status   wdiStatus, void* pUserData)
    if(WDI_STATUS_SUCCESS != wdiStatus)
    {
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "%s: RXP config filter failure \n", __func__ );
+                  "%s: RXP config filter failure", __func__ );
    }
    if(NULL == pWdaParams)
    {
@@ -8246,7 +8246,7 @@ void WDA_ProcessWlanResumeCallback(
    if(WDI_STATUS_SUCCESS != resumeRspParams->wdiStatus)
    {
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Process Wlan Resume failure \n", __func__ );
+                  "%s: Process Wlan Resume failure", __func__ );
    }
    vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
    vos_mem_free(pWdaParams->wdaMsgParam);
@@ -10517,12 +10517,12 @@ VOS_STATUS WDA_HALDumpCmdReq(tpAniSirGlobal   pMac, tANI_U32  cmd,
       if ( vStatus == VOS_STATUS_E_TIMEOUT )
       {
          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Timeout occurred before WDA_HALDUMP complete\n",__func__);
+         "%s: Timeout occurred before WDA_HALDUMP complete",__func__);
       }
       else
       {
          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: WDA_HALDUMP reporting  other error \n",__func__);
+         "%s: WDA_HALDUMP reporting  other error",__func__);
       }
       VOS_ASSERT(0);
    }
@@ -11030,7 +11030,7 @@ VOS_STATUS WDA_TxComplete( v_PVOID_t pVosContext, vos_pkt_t *pData,
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                      "NEW VOS Event Set failed - status = %d \n", status);
+                      "NEW VOS Event Set failed - status = %d", status);
    }
    return status;
 }
@@ -11067,7 +11067,7 @@ VOS_STATUS WDA_TxPacket(void *pWDA_handle,
    }
    
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH, 
-               "Tx Mgmt Frame Subtype: %d alloc(%p)\n", pFc->subType, pFrmBuf);
+               "Tx Mgmt Frame Subtype: %d alloc(%p)", pFc->subType, pFrmBuf);
    pMac = (tpAniSirGlobal )VOS_GET_MAC_CTXT(pWDA->pVosContext);
    if(NULL == pMac)
    {
@@ -11088,7 +11088,7 @@ VOS_STATUS WDA_TxPacket(void *pWDA_handle,
        {
            /* Already TxComp is active no need to active again */
            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                   "There is already one request pending for tx complete\n");
+                   "There is already one request pending for tx complete");
            pWDA->pAckTxCbFunc( pMac, 0);
            pWDA->pAckTxCbFunc = NULL;
 
@@ -11121,7 +11121,7 @@ VOS_STATUS WDA_TxPacket(void *pWDA_handle,
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                            "VOS Event reset failed - status = %d\n",status);
+                            "VOS Event reset failed - status = %d",status);
       pCompFunc(pWDA->pVosContext, (vos_pkt_t *)pFrmBuf, 1);
       if( pAckTxComp )
       {
@@ -11191,7 +11191,7 @@ VOS_STATUS WDA_TxPacket(void *pWDA_handle,
                      WDA_TxComplete, NULL, txFlag)) != VOS_STATUS_SUCCESS) 
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                       "Sending Mgmt Frame failed - status = %d\n", status);
+                       "Sending Mgmt Frame failed - status = %d", status);
       pCompFunc(VOS_GET_MAC_CTXT(pWDA->pVosContext), (vos_pkt_t *)pFrmBuf, 1);
       vos_atomic_set_U32(&pWDA->VosPacketToFree, (v_U32_t)WDA_TX_PACKET_FREED);/*reset the VosPacket_freed*/
       if( pAckTxComp )
@@ -11941,11 +11941,11 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
                    WDA_ProcessUpdateOpMode(pWDA, (tUpdateVHTOpMode *)pMsg->bodyptr);
               else
                    VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                                            " VHT OpMode Feature is Not Supported \n");
+                                            " VHT OpMode Feature is Not Supported");
           } 
           else 
                    VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                                            " 11AC Feature is Not Supported \n");
+                                            " 11AC Feature is Not Supported");
           break;
       }
 #endif
@@ -13127,14 +13127,14 @@ void WDA_ProcessTxCompleteTimeOutInd(tWDA_CbContext* pWDA)
    if( pWDA->pAckTxCbFunc )
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                                      "TxComplete timer expired\n");
+                                      "TxComplete timer expired");
       pWDA->pAckTxCbFunc( pMac, 0);
       pWDA->pAckTxCbFunc = NULL;
    }
    else
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-            "There is no request pending for TxComplete and wait timer expired\n");
+            "There is no request pending for TxComplete and wait timer expired");
    }
 }
 /*
@@ -14139,19 +14139,19 @@ VOS_STATUS WDA_ProcessReceiveFilterSetFilterReq (tWDA_CbContext *pWDA,
                     &pRcvPktFilterCfg->paramsData[i],
                     sizeof(pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.paramsData[i]));
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
-                 "Proto %d Comp Flag %d \n",
+                 "Proto %d Comp Flag %d",
                  pwdiSetRcvPktFilterReqParamsType->
                          wdiPktFilterCfg.paramsData[i].protocolLayer, 
                  pwdiSetRcvPktFilterReqParamsType->
                          wdiPktFilterCfg.paramsData[i].cmpFlag);
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
-                 "Data Offset %d Data Len %d\n",
+                 "Data Offset %d Data Len %d",
                  pwdiSetRcvPktFilterReqParamsType->
                          wdiPktFilterCfg.paramsData[i].dataOffset, 
                  pwdiSetRcvPktFilterReqParamsType->
                          wdiPktFilterCfg.paramsData[i].dataLength);
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
-                 "CData: %d:%d:%d:%d:%d:%d\n",
+                 "CData: %d:%d:%d:%d:%d:%d",
                  pwdiSetRcvPktFilterReqParamsType->
                          wdiPktFilterCfg.paramsData[i].compareData[0], 
                  pwdiSetRcvPktFilterReqParamsType->
@@ -14165,7 +14165,7 @@ VOS_STATUS WDA_ProcessReceiveFilterSetFilterReq (tWDA_CbContext *pWDA,
                  pwdiSetRcvPktFilterReqParamsType->
                          wdiPktFilterCfg.paramsData[i].compareData[5]);
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
-                 "MData: %d:%d:%d:%d:%d:%d\n",
+                 "MData: %d:%d:%d:%d:%d:%d",
                  pwdiSetRcvPktFilterReqParamsType->
                          wdiPktFilterCfg.paramsData[i].dataMask[0], 
                  pwdiSetRcvPktFilterReqParamsType->
@@ -14753,21 +14753,21 @@ VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext, wpt_boolean closeTransport)
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "VOS Event destroy failed - status = %d\n", status);
+                  "VOS Event destroy failed - status = %d", status);
       status = VOS_STATUS_E_FAILURE;
    }
    status = vos_event_destroy(&pWDA->suspendDataTxEvent);
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "VOS Event destroy failed - status = %d\n", status);
+                  "VOS Event destroy failed - status = %d", status);
       status = VOS_STATUS_E_FAILURE;
    }
    status = vos_event_destroy(&pWDA->waitOnWdiIndicationCallBack);
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "VOS Event destroy failed - status = %d\n", status);
+                  "VOS Event destroy failed - status = %d", status);
       status = VOS_STATUS_E_FAILURE;
    }
    /* free WDA context */
