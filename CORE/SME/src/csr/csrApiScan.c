@@ -1949,13 +1949,9 @@ eHalStatus csrScanHandleCapChangeScanComplete(tpAniSirGlobal pMac, tANI_U32 sess
             }//Have scan result
             else
             {
-                smsLog(pMac, LOGW, FL("cannot find matching BSS of %02X-%02X-%02X-%02X-%02X-%02X"),
-                        pSession->connectedProfile.bssid[0],
-                        pSession->connectedProfile.bssid[1],
-                        pSession->connectedProfile.bssid[2],
-                        pSession->connectedProfile.bssid[3],
-                        pSession->connectedProfile.bssid[4],
-                        pSession->connectedProfile.bssid[5]);
+                smsLog(pMac, LOGW, FL("cannot find matching BSS of "
+                       MAC_ADDRESS_STR),
+                       MAC_ADDR_ARRAY(pSession->connectedProfile.bssid));
                 //Disconnect
                 csrRoamDisconnectInternal(pMac, sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
             }
@@ -2211,17 +2207,13 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                 /* re-assign preference value based on modified rssi bucket */
                 pBssDesc->preferValue = csrGetBssPreferValue(pMac, (int)pBssDesc->Result.BssDescriptor.rssi);
 
-                smsLog(pMac, LOG2, FL("BSSID(%02X:%02X:%02X:%02X:%02X:%02X) Rssi(%d) Chnl(%d) PrefVal(%u) SSID=%.*s"),
-                 pBssDesc->Result.BssDescriptor.bssId[0],
-                 pBssDesc->Result.BssDescriptor.bssId[1],
-                 pBssDesc->Result.BssDescriptor.bssId[2],
-                 pBssDesc->Result.BssDescriptor.bssId[3],
-                 pBssDesc->Result.BssDescriptor.bssId[4],
-                 pBssDesc->Result.BssDescriptor.bssId[5],
-                 pBssDesc->Result.BssDescriptor.rssi,
-                 pBssDesc->Result.BssDescriptor.channelId,
-                 pBssDesc->preferValue,
-                 pBssDesc->Result.ssId.length, pBssDesc->Result.ssId.ssId);
+                smsLog(pMac, LOG2, FL("BSSID("MAC_ADDRESS_STR
+                       ") Rssi(%d) Chnl(%d) PrefVal(%u) SSID=%.*s"),
+                       MAC_ADDR_ARRAY(pBssDesc->Result.BssDescriptor.bssId),
+                       pBssDesc->Result.BssDescriptor.rssi,
+                       pBssDesc->Result.BssDescriptor.channelId,
+                       pBssDesc->preferValue,
+                       pBssDesc->Result.ssId.length, pBssDesc->Result.ssId.ssId);
 
                 pEntry = csrLLNext(&pMac->scan.scanResultList, pEntry, LL_ACCESS_NOLOCK);
             }
@@ -4078,9 +4070,10 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                             csrFreeScanFilter( pMac, &filter );
                             if(fMatch)
                             {
-                                smsLog(pMac, LOGW, "   Matching roam profile BSSID %02X-%02X-%02X-%02X-%02X-%02X causing ambiguous domain info",
-                                    pSirBssDesc->bssId[0], pSirBssDesc->bssId[1], pSirBssDesc->bssId[2], 
-                                    pSirBssDesc->bssId[3], pSirBssDesc->bssId[4], pSirBssDesc->bssId[5]);
+                                smsLog(pMac, LOGW, "Matching roam profile "
+                                       "BSSID " MAC_ADDRESS_STR
+                                       " causing ambiguous domain info",
+                                       MAC_ADDR_ARRAY(pSirBssDesc->bssId));
                                 pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_TRUE;
                                 break;
                             }
@@ -4092,9 +4085,10 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                         //User doesn't give profile and just connect to anything.
                         if(csrMatchBSSToConnectProfile(pMac, &pSession->connectedProfile, pSirBssDesc, pIesLocal))
                         {
-                            smsLog(pMac, LOGW, "   Matching connect profile BSSID %02X-%02X-%02X-%02X-%02X-%02X causing ambiguous domain info",
-                                pSirBssDesc->bssId[0], pSirBssDesc->bssId[1], pSirBssDesc->bssId[2],
-                                pSirBssDesc->bssId[3], pSirBssDesc->bssId[4], pSirBssDesc->bssId[5]);
+                            smsLog(pMac, LOGW, "Matching connect profile BSSID "
+                                   MAC_ADDRESS_STR
+                                   " causing ambiguous domain info",
+                                   MAC_ADDR_ARRAY(pSirBssDesc->bssId));
                             //Tush
                             pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_TRUE;
                             if(csrIsBssidMatch(pMac, (tCsrBssid *)&pSirBssDesc->bssId, 
@@ -5392,14 +5386,9 @@ tANI_BOOLEAN csrScanAgeOutBss(tpAniSirGlobal pMac, tCsrScanResult *pResult)
                                              pSession->pConnectBssDesc, NULL, FALSE))
               )
             {
-                smsLog(pMac, LOGW, "Aging out BSS %02X-%02X-%02X-%02X-%02X-%02X Channel %d",
-                                          pResult->Result.BssDescriptor.bssId[0],
-                                          pResult->Result.BssDescriptor.bssId[1],
-                                          pResult->Result.BssDescriptor.bssId[2],
-                                          pResult->Result.BssDescriptor.bssId[3],
-                                          pResult->Result.BssDescriptor.bssId[4],
-                                          pResult->Result.BssDescriptor.bssId[5],
-                                          pResult->Result.BssDescriptor.channelId);
+                smsLog(pMac, LOGW, "Aging out BSS "MAC_ADDRESS_STR" Channel %d",
+                       MAC_ADDR_ARRAY(pResult->Result.BssDescriptor.bssId),
+                       pResult->Result.BssDescriptor.channelId);
                 //No need to hold the spin lock because caller should hold the lock for pMac->scan.scanResultList
                 if( csrLLRemoveEntry(&pMac->scan.scanResultList, &pResult->Link, LL_ACCESS_NOLOCK) )
                 {

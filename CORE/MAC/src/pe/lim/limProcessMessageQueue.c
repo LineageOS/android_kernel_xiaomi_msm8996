@@ -1836,15 +1836,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
                                 ("TDLS setup rsp timer expires ")) ;
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-                       ("TDLS setup rsp timer expires for peer:")) ;
-            VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-                    ("%02X, %02X, %02X,%02X, %02X, %02X"),
-                                    peerMac[0],
-                                    peerMac[1],
-                                    peerMac[2],
-                                    peerMac[3],
-                                    peerMac[4],
-                                    peerMac[5]);
+                     ("TDLS setup rsp timer expires for peer:"
+                      MAC_ADDRESS_STR), MAC_ADDR_ARRAY(peerMac));
 
             limTdlsFindLinkPeer(pMac, peerMac, &setupPeer) ;
             if(NULL != setupPeer)
@@ -1864,15 +1857,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
                                 ("TDLS setup CNF timer expires ")) ;
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-                      ("TDLS setup CNF timer expires for peer:")) ;
-            VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-                         ("%02X, %02X, %02X,%02X, %02X, %02X"),
-                                    peerMac[0],
-                                    peerMac[1],
-                                    peerMac[2],
-                                    peerMac[3],
-                                    peerMac[4],
-                                    peerMac[5]);
+                      ("TDLS setup CNF timer expires for peer: "
+                       MAC_ADDRESS_STR), MAC_ADDR_ARRAY(peerMac));
             limTdlsFindLinkPeer(pMac, peerMac, &setupPeer) ;
             if(NULL != setupPeer)
             {
