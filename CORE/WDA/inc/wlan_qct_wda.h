@@ -353,6 +353,13 @@ typedef eHalStatus (*pWDAAckFnTxComp)(tpAniSirGlobal, tANI_U32);
 /* generic callback for updating parameters from target to UMAC */
 typedef void (*wda_tgt_cfg_cb) (void *context, void *param);
 
+/*
+ * callback for Indicating Radar to HDD and disable Tx Queues
+ * to stop accepting data Tx packets from netif as radar is
+ * found on the current operating channel
+ */
+typedef void (*wda_dfs_radar_indication_cb) (void *context, void *param);
+
 typedef struct
 {
    tANI_U16 ucValidStaIndex ;
@@ -492,7 +499,9 @@ VOS_STATUS WDA_TxPacket(void *pWDA,
  */
 
 VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
-                    wda_tgt_cfg_cb pTgtUpdCB, tMacOpenParameters *pMacParams ) ;
+                    wda_tgt_cfg_cb pTgtUpdCB,
+                    wda_dfs_radar_indication_cb radar_ind_cb,
+                    tMacOpenParameters *pMacParams ) ;
 
 #ifdef QCA_WIFI_2_0
 #define WDA_start wma_start

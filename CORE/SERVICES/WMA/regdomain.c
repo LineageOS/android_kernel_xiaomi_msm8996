@@ -478,3 +478,25 @@ void regdmn_set_regval(struct regulatory *reg)
 	regdmn_get_ctl_info(reg, wma->reg_cap.wireless_modes, modeSelect);
 	return;
 }
+
+/* get the ctl from regdomain */
+u_int8_t regdmn_get_ctl_for_regdmn(u_int32_t reg_dmn)
+{
+   u_int8_t i;
+   u_int8_t default_regdmn_ctl = FCC;
+
+   if (reg_dmn == CTRY_DEFAULT)
+   {
+      return default_regdmn_ctl;
+   }
+   else
+   {
+      for (i = 0; i < ol_regdmn_Rdt.regDomainsCt; i++)
+      {
+         if (ol_regdmn_Rdt.regDomains[i].regDmnEnum == reg_dmn)
+            return ol_regdmn_Rdt.regDomains[i].conformance_test_limit;
+      }
+   }
+   return -1;
+}
+

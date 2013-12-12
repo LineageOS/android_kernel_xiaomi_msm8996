@@ -67,6 +67,7 @@
 #include "sirMacProtDef.h"
 #include "wlan_qct_wda.h"
 #include "ol_txrx_types.h"
+#include "wlan_qct_wda.h"
 #include <linux/workqueue.h>
 
 /* Platform specific configuration for max. no. of fragments */
@@ -139,7 +140,7 @@
 #define WMA_SCAN_MAX_OFFCHANNEL_NUM_PASSIVE    4
 
 #define WMA_INVALID_KEY_IDX	0xff
-
+#define WMA_DFS_RADAR_FOUND   1
 typedef struct {
 	HTC_ENDPOINT_ID endpoint_id;
 }t_cfg_nv_param;
@@ -430,6 +431,8 @@ typedef struct {
 	struct wma_mem_chunk mem_chunks[MAX_MEM_CHUNKS];
 #endif
 	wda_tgt_cfg_cb tgt_cfg_update_cb;
+   /*Callback to indicate radar to HDD*/
+   wda_dfs_radar_indication_cb dfs_radar_indication_cb;
 	HAL_REG_CAPABILITIES reg_cap;
 	u_int32_t scan_id;
 	struct wma_txrx_node *interfaces;
@@ -471,6 +474,9 @@ typedef struct {
 	u_int8_t ol_ini_info;
         u_int8_t ibss_started;
         tSetBssKeyParams ibsskey_info;
+
+   /*DFS umac interface information*/
+   struct ieee80211com *dfs_ic;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -990,6 +996,13 @@ VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
 		ol_txrx_vdev_handle tx_rx_vdev_handle, u_int8_t *mac,
 		u_int32_t vdev_type, bool add_del);
 
+#ifndef QCA_WIFI_ISOC
+int32_t regdmn_get_regdmn_for_country(u_int8_t *alpha2);
+
+/*get the ctl from regdomain*/
+u_int8_t regdmn_get_ctl_for_regdmn(u_int32_t reg_dmn);
+#endif
+
 #define WMA_FW_PHY_STATS	0x1
 #define WMA_FW_RX_REORDER_STATS 0x2
 #define WMA_FW_RX_RC_STATS	0x3
@@ -1260,4 +1273,42 @@ typedef struct {
 
 #endif /* FEATURE_WLAN_TDLS */
 
+/*
+ * Structure to indicate RADAR
+ */
+
+struct wma_dfs_radar_indication {
+    /* unique id identifying the VDEV */
+    A_UINT32        vdev_id;
+    /*Channel number on which the RADAR is present */
+    u_int8_t        ieee_chan_number;
+    /* Channel Frequency*/
+    A_UINT32        chan_freq;
+    /* Flag to Indicate RADAR presence on the
+     * current operating channel
+     */
+    u_int32_t       dfs_radar_status;
+    /* Flag to indicate use NOL */
+    int             use_nol;
+};
+
+/*
+ * WMA-DFS Hooks
+ */
+int ol_if_dfs_attach(struct ieee80211com *ic, void *ptr, void *radar_info);
+u_int64_t ol_if_get_tsf64(struct ieee80211com *ic);
+int ol_if_dfs_disable(struct ieee80211com *ic);
+struct ieee80211_channel * ieee80211_find_channel(struct ieee80211com *ic,
+                                     int freq, u_int32_t flags);
+int ol_if_dfs_enable(struct ieee80211com *ic, int *is_fastclk, void *pe);
+u_int32_t ieee80211_ieee2mhz(u_int32_t chan, u_int32_t flags);
+int ol_if_dfs_get_ext_busy(struct ieee80211com *ic);
+int ol_if_dfs_get_mib_cycle_counts_pct(struct ieee80211com *ic,
+          u_int32_t *rxc_pcnt, u_int32_t *rxf_pcnt, u_int32_t *txf_pcnt);
+u_int16_t ol_if_dfs_usenol(struct ieee80211com *ic);
+void ieee80211_mark_dfs(struct ieee80211com *ic,
+                               struct ieee80211_channel *ichan);
+int  wma_dfs_indicate_radar(struct ieee80211com *ic,
+                               struct ieee80211_channel *ichan);
+u_int16_t   dfs_usenol(struct ieee80211com *ic);
 #endif

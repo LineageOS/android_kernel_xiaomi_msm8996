@@ -87,7 +87,6 @@
 #include "testmode.h"
 #endif
 
-
 #if !defined(REMOVE_PKT_LOG) && !defined(QCA_WIFI_ISOC)
 #include "pktlog_ac.h"
 #endif
@@ -98,6 +97,9 @@
 #include "csrApi.h"
 #include "ol_fw.h"
 
+#include "wma_dfs_interface.h"
+#include "dfs_interface.h"
+#include "radar_filters.h"
 /* ################### defines ################### */
 #define WMA_2_4_GHZ_MAX_FREQ  3000
 #define WOW_CSA_EVENT_OFFSET 12
@@ -126,6 +128,11 @@
 #define AGC_DUMP  1
 #define CHAN_DUMP 2
 #define WD_DUMP   3
+
+/* conformance test limits */
+#define FCC       0x10
+#define MKK       0x40
+#define ETSI      0x30
 
 #define WMI_DEFAULT_NOISE_FLOOR_DBM (-96)
 
@@ -162,6 +169,23 @@ static VOS_STATUS
 wma_process_ftm_command(tp_wma_handle wma_handle,
 			struct ar6k_testmode_cmd_data *msg_buffer);
 #endif
+
+/*DFS Attach*/
+struct ieee80211com* wma_dfs_attach(struct ieee80211com *ic);
+
+/*Configure DFS with radar tables and regulatory domain*/
+void wma_dfs_configure(struct ieee80211com *ic);
+
+/*Configure the current channel with the DFS*/
+struct ieee80211_channel *
+wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
+                          wmi_channel *chan,
+                          WLAN_PHY_MODE chanmode,
+                          struct wma_vdev_start_req *req);
+
+/* Configure the regulatory domain for DFS radar filter initialization*/
+int wma_set_dfs_regdomain(tp_wma_handle wma,u_int32_t regdmn);
+
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
 {
@@ -1601,6 +1625,146 @@ static int wma_tdls_event_handler(void *handle, u_int8_t *event, u_int32_t len)
 #endif /* FEATURE_WLAN_TDLS */
 
 /*
+ * WMI Handler for WMI_PHYERR_EVENTID event from firmware.
+ * This handler is currently handling only DFS phy errors.
+ * Return- 1:Success, 0:Failure
+ */
+static int wma_unified_phyerr_rx_event_handler(void * handle,
+                                       u_int8_t *data, u_int32_t datalen)
+{
+    tp_wma_handle wma = (tp_wma_handle) handle;
+    WMI_PHYERR_EVENTID_param_tlvs *param_tlvs;
+    wmi_comb_phyerr_rx_hdr *pe_hdr;
+    u_int8_t *bufp;
+    wmi_single_phyerr_rx_event *ev;
+    struct ieee80211com *ic = wma->dfs_ic;
+    adf_os_size_t n;
+    A_UINT64 tsf64 = 0;
+    int phy_err_code = 0;
+    int error = 0;
+    param_tlvs = (WMI_PHYERR_EVENTID_param_tlvs *)data;
+
+    if (!param_tlvs)
+    {
+        WMA_LOGE("%s: Received NULL data from FW", __func__);
+        return 0;
+    }
+
+    pe_hdr = param_tlvs->hdr;
+    if (pe_hdr == NULL)
+    {
+        WMA_LOGE("%s: Received Data PE Header is NULL", __func__);
+        return 0;
+    }
+
+    /* Ensure it's at least the size of the header */
+    if (datalen < sizeof(*pe_hdr))
+    {
+        WMA_LOGE("%s:  Expected minimum size %d, received %d",
+                  __func__, sizeof(*pe_hdr), datalen);
+        return 0;
+    }
+
+	 /*
+     * Reconstruct the 64 bit event TSF.  This isn't from the MAC, it's
+     * at the time the event was sent to us, the TSF value will be
+     * in the future.
+     */
+    tsf64 = pe_hdr->tsf_l32;
+    tsf64 |= (((uint64_t) pe_hdr->tsf_u32) << 32);
+
+    /*
+     * Loop over the bufp, extracting out phyerrors
+     * wmi_unified_comb_phyerr_rx_event.bufp is a char pointer,
+     * which isn't correct here - what we have received here
+     * is an array of TLV-style PHY errors.
+     * We should ensure that we only decode 'num_phyerr_events'
+     * worth of events!
+     */
+    n = 0;/* Start just after the header */
+    bufp = param_tlvs->bufp;
+    while (n < pe_hdr->buf_len)
+    {
+        /* ensure there's at least space for the header */
+        if ((pe_hdr->buf_len - n) < sizeof(ev->hdr))
+        {
+            WMA_LOGE("%s: Not enough space.(datalen=%d, n=%d, hdr=%d bytes",
+                      __func__,pe_hdr->buf_len,n,sizeof(ev->hdr));
+            error = 1;
+            break;
+        }
+        /*
+         * Obtain a pointer to the beginning of the current event.
+         * data[0] is the beginning of the WMI payload.
+         */
+        ev = (wmi_single_phyerr_rx_event *) &bufp[n];
+
+        /*
+         * Sanity check the buffer length of the event against
+         * what we currently have.
+         * Since buf_len is 32 bits, we check if it overflows
+         * a large 32 bit value.  It's not 0x7fffffff because
+         * we increase n by (buf_len + sizeof(hdr)), which would
+         * in itself cause n to overflow.
+         * If "int" is 64 bits then this becomes a moot point.
+         */
+        if (ev->hdr.buf_len > 0x7f000000)
+        {
+            WMA_LOGE("%s:buf_len is garbage (0x%x)",__func__,
+                                              ev->hdr.buf_len);
+            error = 1;
+            break;
+        }
+        if (n + ev->hdr.buf_len > pe_hdr->buf_len)
+        {
+            WMA_LOGE("%s: buf_len exceeds available space n=%d,"
+                          "buf_len=%d, datalen=%d",
+                          __func__,n,ev->hdr.buf_len,pe_hdr->buf_len);
+            error = 1;
+            break;
+        }
+        phy_err_code = WMI_UNIFIED_PHYERRCODE_GET(&ev->hdr);
+
+        /*
+         * If the phyerror category matches,
+         * pass radar events to the dfs pattern matching code.
+         * Don't pass radar events with no buffer payload.
+         */
+        if (phy_err_code == 0x5 || phy_err_code == 0x24)
+        {
+            if (ev->hdr.buf_len > 0)
+            {
+                WMA_LOGA("%s:Posting the Phyerror to DFS for processing",
+                                                                 __func__);
+                /* Calling in to the DFS module to process the phyerr */
+                dfs_process_phyerr(ic, &ev->bufp[0], ev->hdr.buf_len,
+                            WMI_UNIFIED_RSSI_COMB_GET(&ev->hdr) & 0xff,
+                            /* Extension RSSI */
+                            WMI_UNIFIED_RSSI_COMB_GET(&ev->hdr) & 0xff,
+                            ev->hdr.tsf_timestamp,
+                            tsf64);
+            }
+        }
+
+		  /*
+         * Advance the buffer pointer to the next PHY error.
+         * buflen is the length of this payload, so we need to
+         * advance past the current header _AND_ the payload.
+         */
+        n += sizeof(*ev) + ev->hdr.buf_len;
+
+    }/*end while()*/
+    if (error)
+    {
+        return (0);
+    }
+    else
+    {
+        return (1);
+    }
+}
+
+/*
  * Allocate and init wmi adaptation layer.
  */
 VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
@@ -1661,6 +1825,11 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		WMA_LOGP("failed to init cfg handle");
 		goto err_wmi_attach;
 	}
+	/*Allocate dfs_ic and initialize DFS */
+	wma_handle->dfs_ic = wma_dfs_attach(wma_handle->dfs_ic);
+   if(wma_handle->dfs_ic == NULL) {
+      WMA_LOGP("Memory allocation failed for dfs_ic");
+   }
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 	if (vos_get_conparam() == VOS_FTM_MODE)
@@ -1692,6 +1861,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 					   wma_unified_debug_print_event_handler);
 
 	wma_handle->tgt_cfg_update_cb = tgt_cfg_cb;
+   wma_handle->dfs_radar_indication_cb = radar_ind_cb;
 
 #ifdef QCA_WIFI_ISOC
 	vos_status = vos_event_init(&wma_handle->cfg_nv_tx_complete);
@@ -1754,7 +1924,10 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 				    WMI_OEM_ERROR_REPORT_EVENTID,
 				    wma_oem_error_report_event_callback);
 #endif
-
+   /*register phyerr event handler for handling DFS errors */
+   wmi_unified_register_event_handler(wma_handle->wmi_handle,
+                  WMI_PHYERR_EVENTID,
+                  wma_unified_phyerr_rx_event_handler);
 	/* Firmware debug log */
 	vos_status = dbglog_init(wma_handle->wmi_handle);
 	if (vos_status != VOS_STATUS_SUCCESS) {
@@ -4330,10 +4503,18 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	 * If that is ever the case we would insert the decision whether to
 	 * enable the firmware flag here.
 	 */
-	if (req->is_dfs) {
-		WMI_SET_CHANNEL_FLAG(chan, WMI_CHAN_FLAG_DFS);
-		cmd->disable_hw_ack = (req->oper_mode) ? 0 : 1;
-	}
+
+   /*
+    * If the Channel is DFS,
+    * set the WMI_CHAN_FLAG_DFS flag
+    */
+   if (req->is_dfs) {
+      /* provide the current channel to DFS*/
+      wma->dfs_ic->ic_curchan =
+         wma_dfs_configure_channel(wma->dfs_ic,chan,chanmode,req);
+      WMI_SET_CHANNEL_FLAG(chan, WMI_CHAN_FLAG_DFS);
+      cmd->disable_hw_ack = (req->oper_mode) ? 0 : 1;
+   }
 
 	cmd->beacon_interval = req->beacon_intval;
 	cmd->dtim_period = req->dtim_period;
@@ -13251,6 +13432,37 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	}
 }
 
+static void wma_set_regdomain(u_int32_t regdmn)
+{
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+	u_int32_t modeSelect = 0xFFFFFFFF;
+   wma->dfs_ic->current_dfs_regdomain = wma_set_dfs_regdomain(wma,regdmn);
+	switch (wma->phy_capability) {
+	case WMI_11G_CAPABILITY:
+	case WMI_11NG_CAPABILITY:
+		modeSelect &= ~(REGDMN_MODE_11A | REGDMN_MODE_TURBO |
+			REGDMN_MODE_108A | REGDMN_MODE_11A_HALF_RATE |
+			REGDMN_MODE_11A_QUARTER_RATE | REGDMN_MODE_11NA_HT20 |
+			REGDMN_MODE_11NA_HT40PLUS | REGDMN_MODE_11NA_HT40MINUS |
+			REGDMN_MODE_11AC_VHT20 | REGDMN_MODE_11AC_VHT40PLUS |
+			REGDMN_MODE_11AC_VHT40MINUS | REGDMN_MODE_11AC_VHT80);
+		break;
+	case WMI_11A_CAPABILITY:
+	case WMI_11NA_CAPABILITY:
+	case WMI_11AC_CAPABILITY:
+		modeSelect &= ~(REGDMN_MODE_11B | REGDMN_MODE_11G |
+			REGDMN_MODE_108G | REGDMN_MODE_11NG_HT20 |
+			REGDMN_MODE_11NG_HT40PLUS | REGDMN_MODE_11NG_HT40MINUS |
+			REGDMN_MODE_11AC_VHT20_2G | REGDMN_MODE_11AC_VHT40_2G |
+			REGDMN_MODE_11AC_VHT80_2G);
+		break;
+	}
+
+	regdmn_get_ctl_info(regdmn, wma->reg_cap.wireless_modes, modeSelect);
+	return;
+}
+
 /* function   : wma_rx_ready_event
  * Descriptin :
  * Args       :
@@ -14580,3 +14792,289 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 }
 #endif /* FEATURE_WLAN_TDLS */
 
+/*
+ * Attach DFS methods to the umac state.
+ */
+struct ieee80211com* wma_dfs_attach(struct ieee80211com *dfs_ic)
+{
+    /*Allocate memory for dfs_ic before passing it up to dfs_attach()*/
+    dfs_ic = (struct ieee80211com *)
+              OS_MALLOC(NULL, sizeof(struct ieee80211com), GFP_ATOMIC);
+    if (dfs_ic == NULL)
+    {
+        WMA_LOGE("%s:Allocation of dfs_ic failed %zu",
+                              __func__, sizeof(struct ieee80211com));
+        return NULL;
+    }
+    OS_MEMZERO(dfs_ic, sizeof (struct ieee80211com));
+    /* DFS pattern matching hooks */
+    dfs_ic->ic_dfs_attach = ol_if_dfs_attach;
+    dfs_ic->ic_dfs_disable = ol_if_dfs_disable;
+    dfs_ic->ic_find_channel = ieee80211_find_channel;
+    dfs_ic->ic_dfs_enable = ol_if_dfs_enable;
+    dfs_ic->ic_ieee2mhz = ieee80211_ieee2mhz;
+
+    /* Hardware facing hooks */
+    dfs_ic->ic_get_ext_busy = ol_if_dfs_get_ext_busy;
+    dfs_ic->ic_get_mib_cycle_counts_pct =
+                             ol_if_dfs_get_mib_cycle_counts_pct;
+    dfs_ic->ic_get_TSF64 = ol_if_get_tsf64;
+
+    /* NOL related hooks */
+    dfs_ic->ic_dfs_usenol = ol_if_dfs_usenol;
+    /*
+     * Hooks from wma/dfs/ back
+     * into the PE/SME
+     * and shared DFS code
+     */
+    dfs_ic->ic_dfs_notify_radar = ieee80211_mark_dfs;
+
+    /* Initializes DFS Data Structures and queues*/
+    dfs_attach(dfs_ic);
+
+    return dfs_ic;
+}
+
+/*
+ * Configures Radar Filters during
+ * vdev start/channel change/regulatory domain
+ * change.This Configuration enables to program
+ * the DFS pattern matching module.
+ */
+void
+wma_dfs_configure(struct ieee80211com *ic)
+{
+    struct ath_dfs_radar_tab_info rinfo;
+    int dfsdomain;
+    if(ic == NULL)
+    {
+        WMA_LOGE("%s: DFS ic is Invalid\n",__func__);
+        return;
+    }
+
+    dfsdomain = ic->current_dfs_regdomain;
+    WMA_LOGI("%s: DFS REG DOMAIN = %d\n",__func__,dfsdomain);
+    /* Fetch current radar patterns from the lmac */
+    OS_MEMZERO(&rinfo, sizeof(rinfo));
+
+    /*
+     * Look up the current DFS
+     * regulatory domain and decide
+     * which radar pulses to use.
+     */
+    switch (dfsdomain)
+    {
+    case DFS_FCC_DOMAIN:
+        WMA_LOGI("%s: DFS-FCC domain\n",__func__);
+        rinfo.dfsdomain = DFS_FCC_DOMAIN;
+        rinfo.dfs_radars = dfs_fcc_radars;
+        rinfo.numradars = ARRAY_LENGTH(dfs_fcc_radars);
+        rinfo.b5pulses = dfs_fcc_bin5pulses;
+        rinfo.numb5radars = ARRAY_LENGTH(dfs_fcc_bin5pulses);
+    break;
+    case DFS_ETSI_DOMAIN:
+        WMA_LOGI("%s: DFS-ETSI domain\n",__func__);
+        rinfo.dfsdomain = DFS_ETSI_DOMAIN;
+        rinfo.dfs_radars = dfs_etsi_radars;
+        rinfo.numradars = ARRAY_LENGTH(dfs_etsi_radars);
+        rinfo.b5pulses = NULL;
+        rinfo.numb5radars = 0;
+    break;
+    case DFS_MKK4_DOMAIN:
+        WMA_LOGI("%s: DFS-MKK4 domain\n",__func__);
+        rinfo.dfsdomain = DFS_MKK4_DOMAIN;
+        rinfo.dfs_radars = dfs_mkk4_radars;
+        rinfo.numradars = ARRAY_LENGTH(dfs_mkk4_radars);
+        rinfo.b5pulses = dfs_jpn_bin5pulses;
+        rinfo.numb5radars = ARRAY_LENGTH(dfs_jpn_bin5pulses);
+    break;
+    default:
+        WMA_LOGI("%s: DFS-UNINT domain\n",__func__);
+        rinfo.dfsdomain = DFS_UNINIT_DOMAIN;
+        rinfo.dfs_radars = NULL;
+        rinfo.numradars = 0;
+        rinfo.b5pulses = NULL;
+        rinfo.numb5radars = 0;
+    break;
+    }
+
+    /*
+     * Set the regulatory domain,
+     * radar pulse table and enable
+     * radar events if required.
+     */
+    dfs_radar_enable(ic, &rinfo);
+}
+
+/*
+ * Set the Channel parameters in to DFS module
+ * Also,configure the DFS radar filters for
+ * matching the DFS phyerrors.
+ */
+struct ieee80211_channel *
+wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
+                          wmi_channel *chan,
+                          WLAN_PHY_MODE chanmode,
+                          struct wma_vdev_start_req *req)
+{
+    if(dfs_ic == NULL)
+    {
+        WMA_LOGE("%s: DFS ic is Invalid\n",__func__);
+        return NULL;
+    }
+    dfs_ic->ic_curchan = (struct ieee80211_channel *) OS_MALLOC(NULL,
+                                        sizeof(struct ieee80211_channel),
+                                        GFP_ATOMIC);
+    if (dfs_ic->ic_curchan == NULL)
+    {
+        WMA_LOGE("allocation of dfs_ic->ic_curchan failed %zu \n",
+                                     __func__,
+                                     sizeof(struct ieee80211_channel));
+        return NULL;
+    }
+    OS_MEMZERO(dfs_ic->ic_curchan, sizeof (struct ieee80211_channel));
+
+    dfs_ic->ic_curchan->ic_ieee = req->chan;
+    dfs_ic->ic_curchan->ic_freq = chan->mhz;
+    dfs_ic->ic_curchan->ic_vhtop_ch_freq_seg1 = chan->band_center_freq1;
+    dfs_ic->ic_curchan->ic_vhtop_ch_freq_seg2 = chan->band_center_freq2;
+
+    if ( (dfs_ic->ic_curchan->ic_ieee >= WMA_11A_CHANNEL_BEGIN) &&
+         (dfs_ic->ic_curchan->ic_ieee <= WMA_11A_CHANNEL_END) )
+    {
+        dfs_ic->ic_curchan->ic_flags |= IEEE80211_CHAN_5GHZ;
+    }
+    if(chanmode == MODE_11AC_VHT80)
+    {
+        dfs_ic->ic_curchan->ic_flags |= IEEE80211_CHAN_VHT80;
+    }
+    if (req->chan_offset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+    {
+        dfs_ic->ic_curchan->ic_flags |=
+                (req->vht_capable ?
+                 IEEE80211_CHAN_VHT40PLUS : IEEE80211_CHAN_HT40PLUS);
+    }
+    else if (req->chan_offset == PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
+    {
+        dfs_ic->ic_curchan->ic_flags |=
+                (req->vht_capable ?
+                 IEEE80211_CHAN_VHT40MINUS : IEEE80211_CHAN_HT40MINUS);
+    }
+    else if (req->chan_offset == PHY_SINGLE_CHANNEL_CENTERED)
+    {
+        dfs_ic->ic_curchan->ic_flags |=
+           (req->vht_capable ? IEEE80211_CHAN_VHT20 : IEEE80211_CHAN_HT20);
+    }
+        dfs_ic->ic_curchan->ic_flagext |= IEEE80211_CHAN_DFS;
+
+    if (req->oper_mode == BSS_OPERATIONAL_MODE_AP)
+    {
+        dfs_ic->ic_opmode = IEEE80211_M_HOSTAP;
+        dfs_ic->vdev_id   = req->vdev_id;
+    }
+
+    /*
+     * Configuring the DFS with current channel and the radar filters
+     */
+    wma_dfs_configure(dfs_ic);
+    WMA_LOGI("%s: DFS- CHANNEL CONFIGURED\n",__func__);
+    return dfs_ic->ic_curchan;
+}
+/*
+ * Configure the regulatory domain for DFS radar filter initialization
+ */
+int
+wma_set_dfs_regdomain(tp_wma_handle wma,u_int32_t regdmn)
+{
+    u_int8_t ctl;
+    if (regdmn < 0)
+    {
+        WMA_LOGE("%s:DFS-Invalid regdomain\n",__func__);
+        return -1;
+    }
+    ctl = regdmn_get_ctl_for_regdmn(regdmn);
+    if (!ctl)
+    {
+        WMA_LOGI("%s:DFS-Invalid CTL\n",__func__);
+        return -1;
+    }
+    if (ctl == FCC)
+    {
+        WMA_LOGI("%s:DFS- CTL = FCC\n",__func__);
+        wma->dfs_ic->current_dfs_regdomain = DFS_FCC_DOMAIN;
+    }
+    else if (ctl == ETSI)
+    {
+        WMA_LOGI("%s:DFS- CTL = ETSI\n",__func__);
+        wma->dfs_ic->current_dfs_regdomain = DFS_ETSI_DOMAIN;
+    }
+    else if (ctl == MKK)
+    {
+        WMA_LOGI("%s:DFS- CTL = MKK\n",__func__);
+        wma->dfs_ic->current_dfs_regdomain = DFS_MKK4_DOMAIN;
+    }
+    return wma->dfs_ic->current_dfs_regdomain;
+}
+
+/*
+ * Indicate Radar to SAP/HDD
+ */
+int
+wma_dfs_indicate_radar(struct ieee80211com *ic,
+                                     struct ieee80211_channel *ichan)
+{
+    tp_wma_handle wma;
+    void *hdd_ctx;
+    struct wma_dfs_radar_indication *radar_event;
+    struct hdd_dfs_radar_ind hdd_radar_event;
+    void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+    wma = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+    hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD,wma->vos_context);
+
+    if (wma == NULL)
+    {
+        WMA_LOGE("%s:DFS- Invalid wma\n",__func__);
+        return (0);
+    }
+    if (wma->dfs_ic != ic)
+    {
+        WMA_LOGE("%s:DFS- Invalid WMA handle\n",__func__);
+        return (0);
+    }
+    radar_event = (struct wma_dfs_radar_indication *)
+                   OS_MALLOC(NULL,
+                             sizeof(struct wma_dfs_radar_indication),
+                             GFP_ATOMIC);
+    if (radar_event == NULL)
+    {
+        WMA_LOGE("%s:DFS- Invalid radar_event\n",__func__);
+        return (0);
+    }
+
+    /*
+     * Do not post multiple Radar events on the same channel.
+     */
+    if ( ichan->ic_ieee  != (wma->dfs_ic->last_radar_found_chan) )
+    {
+        wma->dfs_ic->last_radar_found_chan = ichan->ic_ieee;
+        /* Indicate the radar event to HDD to stop the netif Tx queues*/
+        hdd_radar_event.ieee_chan_number = ichan->ic_ieee;
+        hdd_radar_event.chan_freq = ichan->ic_freq;
+        hdd_radar_event.dfs_radar_status = WMA_DFS_RADAR_FOUND;
+        wma->dfs_radar_indication_cb(hdd_ctx,&hdd_radar_event);
+        WMA_LOGE("%s:DFS- RADAR INDICATED TO HDD\n",__func__);
+
+       /*
+        * Indicate to the radar event to SAP to
+        * select a new channel and set CSA IE
+        */
+       radar_event->vdev_id = ic->vdev_id;
+       radar_event->ieee_chan_number = ichan->ic_ieee;
+       radar_event->chan_freq = ichan->ic_freq;
+       radar_event->dfs_radar_status = WMA_DFS_RADAR_FOUND;
+       radar_event->use_nol = ic->ic_dfs_usenol(ic);
+       wma_send_msg(wma, WDA_DFS_RADAR_IND, (void *)radar_event, 0);
+       WMA_LOGE("%s:DFS- WDA_DFS_RADAR_IND Message Posted\n",__func__);
+   }
+   return 1;
+}
