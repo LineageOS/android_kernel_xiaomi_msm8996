@@ -52,6 +52,10 @@
 #include "wlan_hdd_tdls.h"
 #endif
 
+#ifdef IPA_OFFLOAD
+#include <wlan_hdd_ipa.h>
+#endif
+
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/ 
@@ -864,6 +868,10 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    //Get TL AC corresponding to Qdisc queue index/AC.
    ac = hdd_QdiscAcToTlAC[skb->queue_mapping];
 
+#ifdef IPA_OFFLOAD
+   if(!(NBUF_OWNER_ID(skb) == IPA_NBUF_OWNER_ID)) {
+#endif
+
    /* Check if the buffer has enough header room */
    skb = skb_unshare(skb, GFP_ATOMIC);
    if (!skb)
@@ -877,7 +885,9 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        if (!skb)
            goto drop_pkt;
    }
-
+#ifdef IPA_OFFLOAD
+   }
+#endif
    //user priority from IP header, which is already extracted and set from
    //select_queue call back function
    up = skb->priority;

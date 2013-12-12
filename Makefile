@@ -1,3 +1,7 @@
+
+KERN_DIR ?= /lib/modules/$(shell uname -r)/build
+-include $(KERN_DIR)/.config
+
 # We can build either as part of a standalone Kernel build or part
 # of an Android build.  Determine which mechanism is being used
 #ifeq ($(MODNAME),)
@@ -126,6 +130,11 @@ CONFIG_CHECKSUM_OFFLOAD := 1
 CONFIG_GTK_OFFLOAD := 1
 endif
 
+#Enable IPA offload
+ifeq ($(CONFIG_IPA), y)
+CONFIG_IPA_OFFLOAD := 1
+endif
+
 ifeq ($(CONFIG_CFG80211),y)
 HAVE_CFG80211 := 1
 else
@@ -243,6 +252,10 @@ HDD_OBJS := 	$(HDD_SRC_DIR)/bap_hdd_main.o \
 		$(HDD_SRC_DIR)/wlan_hdd_wext.o \
 		$(HDD_SRC_DIR)/wlan_hdd_wmm.o \
 		$(HDD_SRC_DIR)/wlan_hdd_wowl.o
+
+ifeq ($(CONFIG_IPA_OFFLOAD), 1)
+HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_ipa.o
+endif
 
 ifeq ($(HAVE_CFG80211),1)
 HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_cfg80211.o \
@@ -1053,6 +1066,11 @@ ifeq ($(CONFIG_CHECKSUM_OFFLOAD), 1)
 CDEFINES += -DCHECKSUM_OFFLOAD
 endif
 
+#Enable Checksum Offload support
+ifeq ($(CONFIG_IPA_OFFLOAD), 1)
+CDEFINES += -DIPA_OFFLOAD -DHDD_IPA_USE_IPA_RM_TIMER
+endif
+
 #Enable GTK Offload
 ifeq ($(CONFIG_GTK_OFFLOAD), 1)
 CDEFINES += -DWLAN_FEATURE_GTK_OFFLOAD
@@ -1074,7 +1092,6 @@ EXTRA_CFLAGS += $(CDEFINES)
 obj-m := $(MODNAME).o
 wlan-objs := $(OBJS)
 
-KERN_DIR ?= /lib/modules/$(shell uname -r)/build
 PWD = $(shell pwd)
 
 all:

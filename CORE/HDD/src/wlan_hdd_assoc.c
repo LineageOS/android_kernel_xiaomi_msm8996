@@ -63,6 +63,9 @@
 #endif
 #include "sme_Api.h"
 
+#ifdef IPA_OFFLOAD
+#include <wlan_hdd_ipa.h>
+#endif
 v_BOOL_t mibIsDot11DesiredBssTypeInfrastructure( hdd_adapter_t *pAdapter );
 
 struct ether_addr
@@ -780,6 +783,12 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     netif_tx_disable(dev);
     netif_carrier_off(dev);
 
+#ifdef IPA_OFFLOAD
+    if (hdd_ipa_is_enabled(pHddCtx))
+	    hdd_ipa_wlan_evt(pAdapter, pHddStaCtx->conn_info.staId[0],
+                                 WLAN_STA_DISCONNECT, pAdapter->dev->dev_addr);
+#endif
+
     if(pHddStaCtx->conn_info.connState != eConnectionState_Disconnecting)
     {
         INIT_COMPLETION(pAdapter->disconnect_comp_var);
@@ -1034,11 +1043,23 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
       WLANTL_STA_CONNECTED : WLANTL_STA_AUTHENTICATED;
    // Register the Station with TL...
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "%s: HDD register TL ucInitState=%d", __func__, staDesc.ucInitState );
+#ifdef IPA_OFFLOAD
+   if (hdd_ipa_is_enabled(pHddCtx)) {
+      vosStatus = WLANTL_RegisterSTAClient( pHddCtx->pvosContext,
+                                         hdd_ipa_process_rxt,
+                                         hdd_tx_complete_cbk,
+                                         hdd_tx_fetch_packet_cbk, &staDesc,
+                                         pBssDesc->rssi );
+   } else {
+#endif
    vosStatus = WLANTL_RegisterSTAClient( pHddCtx->pvosContext,
                                          hdd_rx_packet_cbk,
                                          hdd_tx_complete_cbk,
                                          hdd_tx_fetch_packet_cbk, &staDesc,
                                          pBssDesc->rssi );
+#ifdef IPA_OFFLOAD
+   }
+#endif
 
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
@@ -1239,6 +1260,12 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         }
 #endif
         pHddCtx->sta_to_adapter[pRoamInfo->staId] = pAdapter;
+
+#ifdef IPA_OFFLOAD
+    if (hdd_ipa_is_enabled(pHddCtx))
+        hdd_ipa_wlan_evt(pAdapter, pRoamInfo->staId, WLAN_STA_CONNECT,
+                                                       pAdapter->dev->dev_addr);
+#endif
 
 #ifdef FEATURE_WLAN_TDLS
         wlan_hdd_tdls_connection_callback(pAdapter);
@@ -2144,10 +2171,21 @@ VOS_STATUS hdd_roamRegisterTDLSSTA( hdd_adapter_t *pAdapter,
     staDesc.ucInitState = WLANTL_STA_CONNECTED ;
 
    /* Register the Station with TL...  */
+#ifdef IPA_OFFLOAD
+    if (hdd_ipa_is_enabled(pHddCtx)) {
+       vosStatus = WLANTL_RegisterSTAClient( pVosContext,
+                                          hdd_ipa_process_rxt,
+                                          hdd_tx_complete_cbk,
+                                          hdd_tx_fetch_packet_cbk, &staDesc, 0 );
+    } else {
+#endif
     vosStatus = WLANTL_RegisterSTAClient( pVosContext,
                                           hdd_rx_packet_cbk,
                                           hdd_tx_complete_cbk,
                                           hdd_tx_fetch_packet_cbk, &staDesc, 0 );
+#ifdef IPA_OFFLOAD
+	}
+#endif
 
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {

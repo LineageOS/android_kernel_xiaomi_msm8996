@@ -629,7 +629,10 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 
 		/* Flush the cached frames to HDD before passing new rx frame */
 		tl_shim_flush_rx_frames(vos_ctx, tl_shim, staid, 0);
-
+#ifdef IPA_OFFLOAD
+		ret = sta_info->data_rx(vos_ctx, rx_buf_list, staid);
+		if (ret == VOS_STATUS_E_INVAL) {
+#endif
 		buf = rx_buf_list;
 		while (buf) {
 			next_buf = adf_nbuf_queue_next(buf);
@@ -656,6 +659,9 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
                 adf_nbuf_free(buf);
             buf = next_buf;
 		}
+#ifdef IPA_OFFLOAD
+	}
+#endif
 	} else /* This should not happen if sta_info->registered is true */
 		goto drop_rx_buf;
 
@@ -757,8 +763,19 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 	}
 
 	/* Zero out skb's context buffer for the driver to use */
+#ifdef IPA_OFFLOAD
+	if ((NBUF_OWNER_ID(skb) == IPA_NBUF_OWNER_ID)
+					&& NBUF_CALLBACK_FN(skb)) {
+		uint32_t skb_owner_id = NBUF_OWNER_ID(skb);
+		__adf_nbuf_callback_fn skb_cb_fn =  NBUF_CALLBACK_FN(skb);
+		adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
+		NBUF_OWNER_ID(skb) = skb_owner_id;
+		NBUF_CALLBACK_FN(skb) = skb_cb_fn;
+	} else
+		adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
+#else
 	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
-
+#endif
 	adf_nbuf_map_single(adf_ctx, skb, ADF_OS_DMA_TO_DEVICE);
 
 	if ((tl_shim->ip_checksum_offload) && (skb->protocol == htons(ETH_P_IP))

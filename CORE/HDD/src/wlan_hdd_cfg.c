@@ -2912,6 +2912,42 @@ REG_VARIABLE( CFG_ENABLE_FW_LOG_NAME, WLAN_PARAM_Integer,
              CFG_ENABLE_FW_LOG_DISABLE,
              CFG_ENABLE_FW_LOG_ENABLE),
 
+#ifdef IPA_OFFLOAD
+REG_VARIABLE( CFG_IPA_OFFLOAD_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, IpaEnable,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_IPA_OFFLOAD_DEFAULT,
+             CFG_IPA_OFFLOAD_DISABLE,
+             CFG_IPA_OFFLOAD_ENABLE ),
+
+REG_VARIABLE( CFG_IPA_IPV6_OFFLOAD_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, IpaIPv6Enable,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_IPA_IPV6_OFFLOAD_DEFAULT,
+             CFG_IPA_IPV6_OFFLOAD_DISABLE,
+             CFG_IPA_IPV6_OFFLOAD_ENABLE ),
+
+REG_VARIABLE( CFG_IPA_DESC_SIZE_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, IpaDescSize,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_IPA_DESC_SIZE_DEFAULT,
+             CFG_IPA_DESC_SIZE_MIN,
+             CFG_IPA_DESC_SIZE_MAX ),
+
+REG_VARIABLE( CFG_IPA_PRE_FILTER_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, IpaPreFilterEnable,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_IPA_PRE_FILTER_DEFAULT,
+             CFG_IPA_PRE_FILTER_DISABLE,
+             CFG_IPA_PRE_FILTER_ENABLE ),
+
+REG_VARIABLE( CFG_IPA_RM_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, IpaRMEnable,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_IPA_RM_DEFAULT,
+             CFG_IPA_RM_DISABLE,
+             CFG_IPA_RM_ENABLE ),
+#endif
 REG_VARIABLE( CFG_P2P_LISTEN_OFFLOAD_NAME, WLAN_PARAM_Integer,
              hdd_config_t, fP2pListenOffload,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -3356,6 +3392,13 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nSelect5GHzMargin] Value = [%u] ",pHddCtx->cfg_ini->nSelect5GHzMargin);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gCoalesingInIBSS] Value = [%u] ",pHddCtx->cfg_ini->isCoalesingInIBSSAllowed);
 
+#ifdef IPA_OFFLOAD
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAEnable] Value = [%u] ",pHddCtx->cfg_ini->IpaEnable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAIPv6Enable] Value = [%u] ",pHddCtx->cfg_ini->IpaIPv6Enable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPARMEnable] Value = [%u] ",pHddCtx->cfg_ini->IpaRMEnable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAPreFilterEnable] Value = [%u] ",pHddCtx->cfg_ini->IpaPreFilterEnable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPADescSize] Value = [%u] ",pHddCtx->cfg_ini->IpaDescSize);
+#endif
 }
 
 

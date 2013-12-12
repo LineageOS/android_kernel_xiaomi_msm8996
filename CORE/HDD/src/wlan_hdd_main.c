@@ -111,6 +111,9 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #endif /* FEATURE_WLAN_CH_AVOID */
 #include "wlan_hdd_debugfs.h"
 
+#ifdef IPA_OFFLOAD
+#include <wlan_hdd_ipa.h>
+#endif
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #include "if_pci.h"
 #endif
@@ -7980,6 +7983,9 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 
    hdd_close_all_adapters( pHddCtx );
 
+#ifdef IPA_OFFLOAD
+   hdd_ipa_cleanup(pHddCtx);
+#endif
 
    //Free up dynamically allocated members inside HDD Adapter
    kfree(pHddCtx->cfg_ini);
@@ -9166,6 +9172,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
       hdd_set_idle_ps_config(pHddCtx, TRUE);
    }
+#ifdef IPA_OFFLOAD
+   if (hdd_ipa_init(pHddCtx) == VOS_STATUS_E_FAILURE)
+	goto err_nl_srv;
+#endif
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
    complete(&wlan_start_comp);
