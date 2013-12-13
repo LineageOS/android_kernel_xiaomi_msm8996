@@ -4963,7 +4963,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            hddLog(LOG1, "WMI_VDEV_PPS_PAID_MATCH val %d ", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
                            (int)WMI_VDEV_PPS_PAID_MATCH,
-                           set_value, VDEV_CMD);
+                           set_value, PPS_CMD);
            break;
         }
 
@@ -4974,7 +4974,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 	   hddLog(LOG1, "WMI_VDEV_PPS_GID_MATCH val %d ", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
                            (int)WMI_VDEV_PPS_GID_MATCH,
-                           set_value, VDEV_CMD);
+                           set_value, PPS_CMD);
            break;
         }
 
@@ -4985,7 +4985,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            hddLog(LOG1, " WMI_VDEV_PPS_EARLY_TIM_CLEAR val %d ", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
                            (int)WMI_VDEV_PPS_EARLY_TIM_CLEAR,
-                           set_value, VDEV_CMD);
+                           set_value, PPS_CMD);
            break;
         }
 
@@ -4996,7 +4996,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            hddLog(LOG1, "WMI_VDEV_PPS_EARLY_DTIM_CLEAR val %d", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
                            (int)WMI_VDEV_PPS_EARLY_DTIM_CLEAR,
-                           set_value, VDEV_CMD);
+                           set_value, PPS_CMD);
            break;
         }
 
@@ -5007,7 +5007,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            hddLog(LOG1, "WMI_VDEV_PPS_EOF_PAD_DELIM val %d ", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
                            (int)WMI_VDEV_PPS_EOF_PAD_DELIM,
-                           set_value, VDEV_CMD);
+                           set_value, PPS_CMD);
            break;
         }
 
@@ -5018,7 +5018,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            hddLog(LOG1, "WMI_VDEV_PPS_MACADDR_MISMATCH val %d ", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
                            (int)WMI_VDEV_PPS_MACADDR_MISMATCH,
-                           set_value, VDEV_CMD);
+                           set_value, PPS_CMD);
            break;
         }
 
@@ -5029,7 +5029,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            hddLog(LOG1, "WMI_VDEV_PPS_DELIM_CRC_FAIL val %d ", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
                            (int)WMI_VDEV_PPS_DELIM_CRC_FAIL,
-                           set_value, VDEV_CMD);
+                           set_value, PPS_CMD);
            break;
         }
 
@@ -5041,7 +5041,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            hddLog(LOG1, "WMI_VDEV_PPS_GID_NSTS_ZERO val %d ", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
                            (int)WMI_VDEV_PPS_GID_NSTS_ZERO,
-                           set_value, VDEV_CMD);
+                           set_value, PPS_CMD);
            break;
         }
 
@@ -5053,7 +5053,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            hddLog(LOG1, "WMI_VDEV_PPS_RSSI_CHECK val %d ", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
                            (int)WMI_VDEV_PPS_RSSI_CHECK,
-                           set_value, VDEV_CMD);
+                           set_value, PPS_CMD);
            break;
         }
 
@@ -5462,6 +5462,96 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
             break;
         }
 
+	case WE_GET_PPS_PAID_MATCH:
+        {
+            hddLog(LOG1, "GET WMI_VDEV_PPS_PAID_MATCH");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PPS_PAID_MATCH,
+                                         PPS_CMD);
+            break;
+        }
+
+	case WE_GET_PPS_GID_MATCH:
+        {
+            hddLog(LOG1, "GET WMI_VDEV_PPS_GID_MATCH");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PPS_GID_MATCH,
+                                         PPS_CMD);
+            break;
+	}
+
+	case WE_GET_PPS_EARLY_TIM_CLEAR:
+        {
+            hddLog(LOG1, "GET WMI_VDEV_PPS_EARLY_TIM_CLEAR");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PPS_EARLY_TIM_CLEAR,
+                                         PPS_CMD);
+            break;
+	}
+
+	case WE_GET_PPS_EARLY_DTIM_CLEAR:
+        {
+            hddLog(LOG1, "GET WMI_VDEV_PPS_EARLY_DTIM_CLEAR");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PPS_EARLY_DTIM_CLEAR,
+                                         PPS_CMD);
+            break;
+	}
+
+	case WE_GET_PPS_EOF_PAD_DELIM:
+        {
+            hddLog(LOG1, "GET WMI_VDEV_PPS_EOF_PAD_DELIM");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PPS_EOF_PAD_DELIM,
+                                         PPS_CMD);
+            break;
+	}
+
+	case WE_GET_PPS_MACADDR_MISMATCH:
+        {
+            hddLog(LOG1, "GET WMI_VDEV_PPS_MACADDR_MISMATCH");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PPS_MACADDR_MISMATCH,
+                                         PPS_CMD);
+            break;
+	}
+
+	case WE_GET_PPS_DELIM_CRC_FAIL:
+        {
+            hddLog(LOG1, "GET WMI_VDEV_PPS_DELIM_CRC_FAIL");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PPS_DELIM_CRC_FAIL,
+                                         PPS_CMD);
+            break;
+	}
+
+	case WE_GET_PPS_GID_NSTS_ZERO:
+        {
+            hddLog(LOG1, "GET WMI_VDEV_PPS_GID_NSTS_ZERO");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PPS_GID_NSTS_ZERO,
+                                         PPS_CMD);
+            break;
+	}
+
+	case WE_GET_PPS_RSSI_CHECK:
+	{
+
+            hddLog(LOG1, "GET WMI_VDEV_PPS_RSSI_CHECK");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PPS_RSSI_CHECK,
+                                         PPS_CMD);
+            break;
+	}
 #endif
 
         default:
@@ -6101,90 +6191,7 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
 
             break;
         }
-	case WE_GET_PPS_PAID_MATCH:
-        {
-            hddLog(LOG1, "GET WMI_VDEV_PPS_PAID_MATCH");
-            *value = wma_cli_get_command(wmapvosContext,
-                                         (int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PPS_PAID_MATCH,
-                                         VDEV_CMD);
-            break;
-        }
-	case WE_GET_PPS_GID_MATCH:
-        {
-            hddLog(LOG1, "GET WMI_VDEV_PPS_GID_MATCH");
-            *value = wma_cli_get_command(wmapvosContext,
-                                         (int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PPS_GID_MATCH,
-                                         VDEV_CMD);
-            break;
-	}
-	case WE_GET_PPS_EARLY_TIM_CLEAR:
-        {
-            hddLog(LOG1, "GET WMI_VDEV_PPS_EARLY_TIM_CLEAR");
-            *value = wma_cli_get_command(wmapvosContext,
-                                         (int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PPS_EARLY_TIM_CLEAR,
-                                         VDEV_CMD);
-            break;
-	}
-	case WE_GET_PPS_EARLY_DTIM_CLEAR:
-        {
-            hddLog(LOG1, "GET WMI_VDEV_PPS_EARLY_DTIM_CLEAR");
-            *value = wma_cli_get_command(wmapvosContext,
-                                         (int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PPS_EARLY_DTIM_CLEAR,
-                                         VDEV_CMD);
-            break;
-	}
-	case WE_GET_PPS_EOF_PAD_DELIM:
-        {
-            hddLog(LOG1, "GET WMI_VDEV_PPS_EOF_PAD_DELIM");
-            *value = wma_cli_get_command(wmapvosContext,
-                                         (int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PPS_EOF_PAD_DELIM,
-                                         VDEV_CMD);
-            break;
-	}
-	case WE_GET_PPS_MACADDR_MISMATCH:
-        {
-            hddLog(LOG1, "GET WMI_VDEV_PPS_MACADDR_MISMATCH");
-            *value = wma_cli_get_command(wmapvosContext,
-                                         (int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PPS_MACADDR_MISMATCH,
-                                         VDEV_CMD);
-            break;
-	}
-	case WE_GET_PPS_DELIM_CRC_FAIL:
-        {
-            hddLog(LOG1, "GET WMI_VDEV_PPS_DELIM_CRC_FAIL");
-            *value = wma_cli_get_command(wmapvosContext,
-                                         (int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PPS_DELIM_CRC_FAIL,
-                                         VDEV_CMD);
-            break;
-	}
-	case WE_GET_PPS_GID_NSTS_ZERO:
-        {
-            hddLog(LOG1, "GET WMI_VDEV_PPS_GID_NSTS_ZERO");
-            *value = wma_cli_get_command(wmapvosContext,
-                                         (int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PPS_GID_NSTS_ZERO,
-                                         VDEV_CMD);
-            break;
-	}
-	case WE_GET_PPS_RSSI_CHECK:
-	{
-
-            hddLog(LOG1, "GET WMI_VDEV_PPS_RSSI_CHECK");
-            *value = wma_cli_get_command(wmapvosContext,
-                                         (int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PPS_RSSI_CHECK,
-                                         VDEV_CMD);
-            break;
-	}
 #endif
-
         case WE_ENABLE_DXE_STALL_DETECT:
         {
             tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
