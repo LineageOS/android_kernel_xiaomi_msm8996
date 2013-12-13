@@ -5257,7 +5257,7 @@ static int wmi_crash_inject(wmi_unified_t wmi_handle)
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					wda_cli_set_cmd_t *privcmd)
 {
-	int ret = 0, vid = privcmd->param_vdev_id;
+	int ret = 0, vid = privcmd->param_vdev_id, pps_val = 0;
 	struct wma_txrx_node *intr = wma->interfaces;
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
@@ -5402,6 +5402,61 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		}
 		break;
+	case PPS_CMD:
+		WMA_LOGD("dbg pid %d pval %d", privcmd->param_id,
+				privcmd->param_value);
+		switch (privcmd->param_id) {
+
+		case WMI_VDEV_PPS_PAID_MATCH:
+			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
+				   (PKT_PWR_SAVE_PAID_MATCH & 0xffff);
+			intr[vid].config.pps_params.paid_match_enable = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_GID_MATCH:
+			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
+				   (PKT_PWR_SAVE_GID_MATCH & 0xffff);
+			intr[vid].config.pps_params.gid_match_enable = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_EARLY_TIM_CLEAR:
+			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
+				   (PKT_PWR_SAVE_EARLY_TIM_CLEAR & 0xffff);
+			intr[vid].config.pps_params.tim_clear = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_EARLY_DTIM_CLEAR:
+			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
+				   (PKT_PWR_SAVE_EARLY_DTIM_CLEAR & 0xffff);
+			intr[vid].config.pps_params.dtim_clear = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_EOF_PAD_DELIM:
+			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
+				   (PKT_PWR_SAVE_EOF_PAD_DELIM & 0xffff);
+			intr[vid].config.pps_params.eof_delim = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_MACADDR_MISMATCH:
+			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
+				   (PKT_PWR_SAVE_MACADDR_MISMATCH & 0xffff);
+			intr[vid].config.pps_params.mac_match = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_DELIM_CRC_FAIL:
+			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
+				   (PKT_PWR_SAVE_DELIM_CRC_FAIL & 0xffff);
+			intr[vid].config.pps_params.delim_fail = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_GID_NSTS_ZERO:
+			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
+				   (PKT_PWR_SAVE_GID_NSTS_ZERO & 0xffff);
+			intr[vid].config.pps_params.nsts_zero = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_RSSI_CHECK:
+			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
+				   (PKT_PWR_SAVE_RSSI_CHECK & 0xffff);
+			intr[vid].config.pps_params.rssi_chk = privcmd->param_value;
+			break;
+		default:
+			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
+			break;
+		}
+		break;
 	default:
 		WMA_LOGE("Invalid vpdev command id");
 	}
@@ -5430,33 +5485,6 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		case WMI_VDEV_PARAM_FIXED_RATE:
 			intr[vid].config.tx_rate = privcmd->param_value;
-			break;
-		case WMI_VDEV_PPS_PAID_MATCH:
-			intr[vid].config.pps_params.paid_match_enable = privcmd->param_value;
-			break;
-		case WMI_VDEV_PPS_GID_MATCH:
-			intr[vid].config.pps_params.gid_match_enable = privcmd->param_value;
-			break;
-		case WMI_VDEV_PPS_EARLY_TIM_CLEAR:
-			intr[vid].config.pps_params.tim_clear = privcmd->param_value;
-			break;
-		case WMI_VDEV_PPS_EARLY_DTIM_CLEAR:
-			intr[vid].config.pps_params.dtim_clear = privcmd->param_value;
-			break;
-		case WMI_VDEV_PPS_EOF_PAD_DELIM:
-			intr[vid].config.pps_params.eof_delim = privcmd->param_value;
-			break;
-		case WMI_VDEV_PPS_MACADDR_MISMATCH:
-			intr[vid].config.pps_params.mac_match = privcmd->param_value;
-			break;
-		case WMI_VDEV_PPS_DELIM_CRC_FAIL:
-			intr[vid].config.pps_params.delim_fail = privcmd->param_value;
-			break;
-		case WMI_VDEV_PPS_GID_NSTS_ZERO:
-			intr[vid].config.pps_params.nsts_zero = privcmd->param_value;
-			break;
-		case WMI_VDEV_PPS_RSSI_CHECK:
-			intr[vid].config.pps_params.rssi_chk = privcmd->param_value;
 			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set vdev command/Not"
@@ -5529,6 +5557,15 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 				" yet implemented 0x%x", privcmd->param_id);
 			break;
 		}
+	} else if (5 == privcmd->param_vp_dev) {
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, privcmd->param_vdev_id,
+					      WMI_VDEV_PARAM_PACKET_POWERSAVE,
+					      pps_val);
+		if (ret)
+			WMA_LOGE("Failed to send wmi packet power save cmd");
+		else
+			WMA_LOGD("Sent packet power save cmd %d value %x to target",
+				 privcmd->param_id, pps_val);
 	}
 }
 
@@ -5569,33 +5606,7 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 		case WMI_VDEV_PARAM_FIXED_RATE:
 			ret = intr[vdev_id].config.tx_rate;
 			break;
-		case WMI_VDEV_PPS_PAID_MATCH:
-			ret = intr[vdev_id].config.pps_params.paid_match_enable;
-			break;
-		case WMI_VDEV_PPS_GID_MATCH:
-			ret = intr[vdev_id].config.pps_params.gid_match_enable;
-			break;
-		case WMI_VDEV_PPS_EARLY_TIM_CLEAR:
-			ret = intr[vdev_id].config.pps_params.tim_clear;
-			break;
-		case WMI_VDEV_PPS_EARLY_DTIM_CLEAR:
-			ret = intr[vdev_id].config.pps_params.dtim_clear;
-			break;
-		case WMI_VDEV_PPS_EOF_PAD_DELIM:
-			ret = intr[vdev_id].config.pps_params.eof_delim;
-			break;
-		case WMI_VDEV_PPS_MACADDR_MISMATCH:
-			ret = intr[vdev_id].config.pps_params.mac_match;
-			break;
-		case WMI_VDEV_PPS_DELIM_CRC_FAIL:
-			ret = intr[vdev_id].config.pps_params.delim_fail;
-			break;
-		case WMI_VDEV_PPS_GID_NSTS_ZERO:
-			ret = intr[vdev_id].config.pps_params.nsts_zero;
-			break;
-		case WMI_VDEV_PPS_RSSI_CHECK:
-			ret = intr[vdev_id].config.pps_params.rssi_chk;
-			break;
+
 		default:
 			WMA_LOGE("Invalid cli_get vdev command/Not"
 					" yet implemented 0x%x", param_id);
@@ -5651,6 +5662,40 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			break;
 		default:
 			WMA_LOGE("Invalid generic vdev command/Not"
+					" yet implemented 0x%x", param_id);
+			return -EINVAL;
+		}
+	} else if (PPS_CMD == vpdev) {
+		switch (param_id) {
+		case WMI_VDEV_PPS_PAID_MATCH:
+			ret = intr[vdev_id].config.pps_params.paid_match_enable;
+			break;
+		case WMI_VDEV_PPS_GID_MATCH:
+			ret = intr[vdev_id].config.pps_params.gid_match_enable;
+			break;
+		case WMI_VDEV_PPS_EARLY_TIM_CLEAR:
+			ret = intr[vdev_id].config.pps_params.tim_clear;
+			break;
+		case WMI_VDEV_PPS_EARLY_DTIM_CLEAR:
+			ret = intr[vdev_id].config.pps_params.dtim_clear;
+			break;
+		case WMI_VDEV_PPS_EOF_PAD_DELIM:
+			ret = intr[vdev_id].config.pps_params.eof_delim;
+			break;
+		case WMI_VDEV_PPS_MACADDR_MISMATCH:
+			ret = intr[vdev_id].config.pps_params.mac_match;
+			break;
+		case WMI_VDEV_PPS_DELIM_CRC_FAIL:
+			ret = intr[vdev_id].config.pps_params.delim_fail;
+			break;
+		case WMI_VDEV_PPS_GID_NSTS_ZERO:
+			ret = intr[vdev_id].config.pps_params.nsts_zero;
+			break;
+		case WMI_VDEV_PPS_RSSI_CHECK:
+			ret = intr[vdev_id].config.pps_params.rssi_chk;
+			break;
+		default:
+			WMA_LOGE("Invalid pps vdev command/Not"
 					" yet implemented 0x%x", param_id);
 			return -EINVAL;
 		}
