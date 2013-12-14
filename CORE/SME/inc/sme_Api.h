@@ -3294,4 +3294,15 @@ eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal,
 
 eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal,
                    tANI_U8 sessionId, tANI_U8 dfsCacWaitStatus);
+/* -------------------------------------------------------------------------
+   \fn sme_RoamCsaIeRequest
+   \brief API to request CSA IE transmission from PE
+   \param hHal - The handle returned by macOpen
+   \param sessionId - session ID
+   \param pDfsCsaReq - CSA IE request
+   \return eHalStatus
+---------------------------------------------------------------------------*/
+eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tANI_U8 sessionId,
+                  tANI_U8 targetChannel, tANI_U8 csaIeReqd);
+
 #endif //#if !defined( __SME_API_H )

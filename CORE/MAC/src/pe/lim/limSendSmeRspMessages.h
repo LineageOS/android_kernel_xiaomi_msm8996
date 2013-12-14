@@ -128,6 +128,9 @@ void limSendSmeDfsEventNotify(tpAniSirGlobal pMac, tANI_U16 msgType,
 void limSendSmeAPChannelSwitchResp(tpAniSirGlobal pMac,
                                    tpPESession psessionEntry,
                                    tpSwitchChannelParams pChnlParams);
+void
+limProcessBeaconTxSuccessInd(tpAniSirGlobal pMac, tANI_U16 msgType,
+                                       void *event);
 
 #endif /* __LIM_SEND_SME_RSP_H */
 

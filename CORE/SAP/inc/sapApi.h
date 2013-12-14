@@ -192,6 +192,7 @@ typedef enum {
     eSAP_MAC_TRIG_STOP_BSS_EVENT,
     eSAP_UNKNOWN_STA_JOIN, /* Event send when a STA in neither white list or black list tries to associate in softap mode */
     eSAP_MAX_ASSOC_EXCEEDED, /* Event send when a new STA is rejected association since softAP max assoc limit has reached */
+    eSAP_CHANNEL_CHANGE_EVENT,
 } eSapHddEvent;
 
 typedef enum {
@@ -363,8 +364,11 @@ typedef struct sap_MaxAssocExceededEvent_s {
     v_MACADDR_t    macaddr;  
 } tSap_MaxAssocExceededEvent;
 
-/* 
-   This struct will be filled in and passed to tpWLAN_SAPEventCB that is provided during WLANSAP_StartBss call   
+typedef struct sap_OperatingChannelChangeEvent_s {
+   tANI_U8 operatingChannel;
+} tSap_OperatingChannelChangeEvent;
+/*
+   This struct will be filled in and passed to tpWLAN_SAPEventCB that is provided during WLANSAP_StartBss call
    The event id corresponding to structure  in the union is defined in comment next to the structure
 */
 
@@ -386,6 +390,7 @@ typedef struct sap_Event_s {
         tSap_SendActionCnf                        sapActionCnf;  /* eSAP_SEND_ACTION_CNF */ 
         tSap_UnknownSTAJoinEvent                  sapUnknownSTAJoin; /* eSAP_UNKNOWN_STA_JOIN */
         tSap_MaxAssocExceededEvent                sapMaxAssocExceeded; /* eSAP_MAX_ASSOC_EXCEEDED */
+        tSap_OperatingChannelChangeEvent          sapChannelChange; /* eSAP_CHANNEL_CHANGE_EVENT */
     } sapevt;
 } tSap_Event, *tpSap_Event;
 
@@ -1596,6 +1601,28 @@ VOS_STATUS_SUCCESS:  Success
 SIDE EFFECTS
 ============================================================================*/
 VOS_STATUS WLANSAP_StartBeaconReq(v_PVOID_t pSapCtx);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_DfsSendCSAIeRequest
+
+  DESCRIPTION
+   This API is used to send channel switch announcement request to PE
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  sapContext: Pointer to vos global context structure
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx);
 
 
 #ifdef __cplusplus

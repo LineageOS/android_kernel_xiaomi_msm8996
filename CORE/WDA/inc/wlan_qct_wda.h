@@ -1313,6 +1313,11 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 /* Message to Indicate Radar Presence on SAP Channel */
 #define WDA_DFS_RADAR_IND           SIR_HAL_DFS_RADAR_IND
 
+/* Message to indicate beacon tx completion after beacon template update
+ * beacon offload case
+ */
+#define WDA_DFS_BEACON_TX_SUCCESS_IND   SIR_HAL_BEACON_TX_SUCCESS_IND
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames

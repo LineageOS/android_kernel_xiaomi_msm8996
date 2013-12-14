@@ -323,6 +323,33 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     {
       PopulateDot11fPowerConstraints( pMac, &pBcn2->PowerConstraints );
       PopulateDot11fTPCReport( pMac, &pBcn2->TPCReport, psessionEntry);
+
+      /* Need to insert channel switch announcement here */
+      if ((psessionEntry->limSystemRole == eLIM_AP_ROLE ||
+           psessionEntry->limSystemRole == eLIM_P2P_DEVICE_GO) &&
+           psessionEntry->dfsIncludeChanSwIe == VOS_TRUE)
+      {
+         /* Channel switch announcement only if radar is detected
+          * and SAP has instructed to announce channel switch IEs
+          * in beacon and probe responses
+          */
+         PopulateDot11fChanSwitchAnn(pMac, &pBcn2->ChanSwitchAnn,
+                                     psessionEntry);
+
+         /* TODO: depending the CB mode, extended channel switch announcement
+          * need to be called
+          */
+         /*PopulateDot11fExtChanSwitchAnn(pMac, &pBcn2->ExtChanSwitchAnn,
+                                        psessionEntry);*/
+#ifdef WLAN_FEATURE_11AC
+         /* TODO: If in 11AC mode, wider bw channel switch announcement needs
+          * to be called
+          */
+         /*PopulateDot11fWiderBWChanSwitchAnn(pMac, &pBcn2->WiderBWChanSwitchAnn,
+                                            psessionEntry);*/
+#endif
+
+      }
     }
 
 

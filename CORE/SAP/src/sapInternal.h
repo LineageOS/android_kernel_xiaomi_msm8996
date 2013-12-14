@@ -150,6 +150,11 @@ typedef struct sSapDfsInfo {
     v_U8_t              target_channel;
     v_U8_t              last_radar_found_channel;
     v_U8_t              ignore_cac;
+
+    /* Requests for Channel Switch Announcement IE
+     * generation and transmission
+     */
+    v_U8_t              csaIERequired;
 }tSapDfsInfo;
 
 typedef struct sSapContext {

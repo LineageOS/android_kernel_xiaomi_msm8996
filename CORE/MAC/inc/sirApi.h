@@ -4748,6 +4748,7 @@ typedef struct sSirSmeDfsEventInd
 typedef struct sSirChanChangeRequest
 {
     tANI_U16     messageType;
+    tANI_U16     messageLen;
     tANI_U8      sessionId;
     tANI_U8      targetChannel;
 }tSirChanChangeRequest, *tpSirChanChangeRequest;
@@ -4763,9 +4764,35 @@ typedef struct sSirChanChangeResponse
 typedef struct sSirStartBeaconIndication
 {
     tANI_U16     messageType;
+    tANI_U16     messageLen;
     tANI_U8      sessionId;
     tANI_U8      beaconStartStatus;
-
 }tSirStartBeaconIndication, *tpSirStartBeaconIndication;
+
+/* Message format for requesting channel switch announcement to lower layers */
+typedef struct sSirDfsCsaIeRequest
+{
+    tANI_U16 msgType;
+    tANI_U16 msgLen;
+    tANI_U8  sessionId;
+    tANI_U8  targetChannel;
+    tANI_U8  csaIeRequired;
+}tSirDfsCsaIeRequest, *tpSirDfsCsaIeRequest;
+
+/* Indication from lower layer indicating the completion of first beacon send
+ * after the beacon template update
+ */
+typedef struct sSirFirstBeaconTxCompleteInd
+{
+   tANI_U16 messageType; // eWNI_SME_MISSED_BEACON_IND
+   tANI_U16 length;
+   tANI_U8  bssIdx;
+}tSirFirstBeaconTxCompleteInd, *tpSirFirstBeaconTxCompleteInd;
+
+typedef struct sSirSmeCSAIeTxCompleteRsp
+{
+    tANI_U8  sessionId;
+    tANI_U8  chanSwIeTxStatus;
+}tSirSmeCSAIeTxCompleteRsp, *tpSirSmeCSAIeTxCompleteRsp;
 
 #endif /* __SIR_API_H */

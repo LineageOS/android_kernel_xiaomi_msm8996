@@ -872,6 +872,11 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             hdd_stop_p2p_link(pHostapdAdapter, usrDataForCallback);
             return VOS_STATUS_SUCCESS;
 
+        case eSAP_CHANNEL_CHANGE_EVENT:
+            hddLog(LOG1, FL("Received eSAP_CHANNEL_CHANGE_EVENT event\n"));
+            /* TODO Need to indicate operating channel change to hostapd */
+            return VOS_STATUS_SUCCESS;
+
         default:
             hddLog(LOG1,"SAP message is not handled\n");
             goto stopbss;

@@ -385,7 +385,9 @@ enum eWniMsgTypes
     eWNI_SME_CHANNEL_CHANGE_REQ,//Channel Change Request from SAP
     eWNI_SME_CHANNEL_CHANGE_RSP,// Channel Change Response from WMA
     eWNI_SME_START_BEACON_REQ,//Start Beacon Transmission.
-
+    eWNI_SME_DFS_BEACON_CHAN_SW_IE_REQ, //Transmit CSA IE in beacons
+    eWNI_SME_DFS_CSAIE_TX_COMPLETE_IND, //To indicate completion of CSA IE
+                                        //update in beacons/probe rsp
     eWNI_SME_MSG_TYPES_END
 };
 

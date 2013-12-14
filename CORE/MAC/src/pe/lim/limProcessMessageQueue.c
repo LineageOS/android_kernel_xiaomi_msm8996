@@ -2073,6 +2073,31 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         /* limmsg->bodyptr will be freed up by SME/CSR */
         break;
 
+    case WDA_DFS_BEACON_TX_SUCCESS_IND:
+        limProcessBeaconTxSuccessInd(pMac, limMsg->type,
+                              (void *)limMsg->bodyptr);
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        break;
+
+    case eWNI_SME_DFS_BEACON_CHAN_SW_IE_REQ:
+        limProcessSmeReqMessages(pMac, limMsg);
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        break;
+
+    case eWNI_SME_CHANNEL_CHANGE_REQ:
+        limProcessSmeReqMessages(pMac, limMsg);
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        break;
+
+    case eWNI_SME_START_BEACON_REQ:
+        limProcessSmeReqMessages(pMac, limMsg);
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        break;
+
     default:
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);
         limMsg->bodyptr = NULL;

@@ -4758,7 +4758,7 @@ void hdd_dfs_indicate_radar(void *context, void *param)
                 {
                    netif_stop_subqueue(pAdapter->dev, txQueueId);
                 }
-                break;
+                return;
             }
             else
             {
