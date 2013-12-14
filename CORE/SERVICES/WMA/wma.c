@@ -109,6 +109,15 @@
 /* default value */
 #define DEFAULT_INFRA_STA_KEEP_ALIVE_PERIOD  20
 #define DEFAULT_MAX_IDLETIME 20
+/* pdev vdev and peer stats*/
+#define FW_PDEV_STATS_SET 0x1
+#define FW_VDEV_STATS_SET 0x2
+#define FW_PEER_STATS_SET 0x4
+#define FW_STATS_SET 0x7
+/*AR9888/AR6320  noise floor approx value
+ * similar to the mentioned the TLSHIM
+ */
+#define WMA_TGT_NOISE_FLOOR_DBM (-96)
 /*There is no standard way of caluclating minimum inactive
  *timer and max unresposive timer from max inactive timer
  *the below expression are taken from qca_main code
@@ -883,6 +892,208 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	}
 	vos_timer_destroy(&req_msg->event_timeout);
 	vos_mem_free(req_msg);
+	return 0;
+}
+
+static void wma_update_pdev_stats(tp_wma_handle wma,
+					wmi_pdev_stats *pdev_stats)
+{
+	tAniGetPEStatsRsp *stats_rsp_params;
+	tANI_U32 temp_mask;
+	tANI_U8 *stats_buf;
+	tCsrGlobalClassAStatsInfo *classa_stats = NULL;
+	struct wma_txrx_node *node;
+	u_int8_t i;
+
+	for (i = 0; i < wma->max_bssid; i++) {
+		node = &wma->interfaces[i];
+		stats_rsp_params = node->stats_rsp;
+		if (stats_rsp_params) {
+			node->fw_stats_set |= FW_PDEV_STATS_SET;
+			WMA_LOGD("<---FW PDEV STATS received for vdevId:%d",
+				i);
+			stats_buf = (tANI_U8 *) (stats_rsp_params + 1);
+			temp_mask = stats_rsp_params->statsMask;
+			if (temp_mask & (1 << eCsrSummaryStats))
+				stats_buf += sizeof(tCsrSummaryStatsInfo);
+
+			if (temp_mask & (1 << eCsrGlobalClassAStats)) {
+				classa_stats =
+				       (tCsrGlobalClassAStatsInfo *) stats_buf;
+				classa_stats->max_pwr = pdev_stats->chan_tx_pwr;
+			}
+		}
+	}
+}
+
+static void wma_update_vdev_stats(tp_wma_handle wma,
+					wmi_vdev_stats *vdev_stats)
+{
+	tAniGetPEStatsRsp *stats_rsp_params;
+	tCsrSummaryStatsInfo *summary_stats = NULL;
+	tANI_U8 *stats_buf;
+	struct wma_txrx_node *node;
+	tANI_U8 i;
+	v_S7_t rssi = 0;
+	tAniGetRssiReq *pGetRssiReq = (tAniGetRssiReq*)wma->pGetRssiReq;
+
+	node = &wma->interfaces[vdev_stats->vdev_id];
+	stats_rsp_params = node->stats_rsp;
+	if (stats_rsp_params) {
+		stats_buf = (tANI_U8 *) (stats_rsp_params + 1);
+		node->fw_stats_set |=  FW_VDEV_STATS_SET;
+		WMA_LOGD("<---FW VDEV STATS received for vdevId:%d",
+			vdev_stats->vdev_id);
+		if (stats_rsp_params->statsMask &
+			(1 << eCsrSummaryStats)) {
+			summary_stats = (tCsrSummaryStatsInfo *) stats_buf;
+			for (i=0 ; i < 4 ; i++) {
+				summary_stats->tx_frm_cnt[i] =
+					vdev_stats->tx_frm_cnt[i];
+				summary_stats->fail_cnt[i] =
+					vdev_stats->fail_cnt[i];
+				summary_stats->multiple_retry_cnt[i] =
+					vdev_stats->multiple_retry_cnt[i];
+			}
+
+			summary_stats->rx_frm_cnt = vdev_stats->rx_frm_cnt;
+			summary_stats->rx_error_cnt = vdev_stats->rx_err_cnt;
+			summary_stats->rx_discard_cnt =
+						vdev_stats->rx_discard_cnt;
+			summary_stats->ack_fail_cnt = vdev_stats->ack_fail_cnt;
+			summary_stats->rts_succ_cnt = vdev_stats->rts_succ_cnt;
+			summary_stats->rts_fail_cnt = vdev_stats->rts_fail_cnt;
+		}
+	}
+
+	if (pGetRssiReq &&
+		pGetRssiReq->sessionId == vdev_stats->vdev_id) {
+		if((vdev_stats->vdev_snr.dat_snr > 0) &&
+			(vdev_stats->vdev_snr.bcn_snr > 0))
+			rssi = (vdev_stats->vdev_snr.dat_snr + vdev_stats->vdev_snr.bcn_snr)/2;
+		else
+			rssi = vdev_stats->vdev_snr.bcn_snr;
+
+		/* Get the absolute rssi value from the current rssi value
+		 * the sinr value is hardcoded into 0 in the core stack
+		 */
+		WMA_LOGD("vdev id %d beancon snr %d data snr %d",
+				vdev_stats->vdev_id,
+				vdev_stats->vdev_snr.bcn_snr,
+				vdev_stats->vdev_snr.dat_snr);
+
+		rssi = rssi + WMA_TGT_NOISE_FLOOR_DBM;
+		WMA_LOGD("Average Rssi = %d, vdev id= %d", rssi,
+				pGetRssiReq->sessionId);
+
+		/* update the average rssi value to UMAC layer */
+		if (NULL != pGetRssiReq->rssiCallback) {
+			((tCsrRssiCallback)(pGetRssiReq->rssiCallback))(rssi,pGetRssiReq->staId,
+					 pGetRssiReq->pDevContext);
+		}
+
+		vos_mem_free(pGetRssiReq);
+		wma->pGetRssiReq = NULL;
+	}
+}
+
+static void wma_post_stats(tp_wma_handle wma, struct wma_txrx_node *node)
+{
+	tAniGetPEStatsRsp *stats_rsp_params;
+
+	stats_rsp_params = node->stats_rsp;
+	/* send response to UMAC*/
+	wma_send_msg(wma, WDA_GET_STATISTICS_RSP, (void *)stats_rsp_params, 0) ;
+	node->stats_rsp = NULL;
+	node->fw_stats_set = 0;
+}
+
+static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
+{
+	tAniGetPEStatsRsp *stats_rsp_params;
+	tCsrGlobalClassAStatsInfo *classa_stats = NULL;
+	struct wma_txrx_node *node;
+	tANI_U8 *stats_buf, vdev_id, macaddr[IEEE80211_ADDR_LEN];
+	tANI_U32 temp_mask;
+
+	WMI_MAC_ADDR_TO_CHAR_ARRAY(&peer_stats->peer_macaddr, &macaddr[0]);
+	if (!wma_find_vdev_by_bssid(wma, macaddr, &vdev_id))
+		return;
+
+	node = &wma->interfaces[vdev_id];
+	if (node->stats_rsp) {
+		node->fw_stats_set |=  FW_PEER_STATS_SET;
+		WMA_LOGD("<-- FW PEER STATS received for vdevId:%d", vdev_id);
+		stats_rsp_params = (tAniGetPEStatsRsp *) node->stats_rsp;
+		stats_buf = (tANI_U8 *) (stats_rsp_params + 1);
+		temp_mask = stats_rsp_params->statsMask;
+		if (temp_mask & (1 << eCsrSummaryStats))
+			stats_buf += sizeof(tCsrSummaryStatsInfo);
+
+		if (temp_mask & (1 << eCsrGlobalClassAStats)) {
+			classa_stats = (tCsrGlobalClassAStatsInfo *) stats_buf;
+			WMA_LOGD("peer tx rate:%d", peer_stats->peer_tx_rate);
+			/*The linkspeed returned by fw is in kbps so convert
+			 *it in to units of 500kbps which is expected by UMAC*/
+			if (peer_stats->peer_tx_rate) {
+				classa_stats->tx_rate =
+					peer_stats->peer_tx_rate/500;
+			}
+			/* currently tx rate flags are not provided by
+			 * the fw*/
+			classa_stats->tx_rate_flags = eHAL_TX_RATE_LEGACY;
+		}
+
+		if (node->fw_stats_set & FW_STATS_SET) {
+			WMA_LOGD("<--STATS RSP VDEV_ID:%d", vdev_id);
+			wma_post_stats(wma, node);
+		}
+	}
+}
+
+static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
+				       u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	wmi_stats_event_fixed_param *event;
+	wmi_pdev_stats *pdev_stats;
+	wmi_vdev_stats *vdev_stats;
+	wmi_peer_stats *peer_stats;
+	WMI_UPDATE_STATS_EVENTID_param_tlvs *param_buf;
+	u_int8_t i, *temp;
+
+	WMA_LOGD("%s: Enter", __func__);
+	param_buf = (WMI_UPDATE_STATS_EVENTID_param_tlvs *)cmd_param_info;
+	if (!param_buf)
+		return -1;
+
+	event = param_buf->fixed_param;
+	temp = (A_UINT8 *)param_buf->data;
+	if (event->num_pdev_stats > 0) {
+		for (i = 0; i < event->num_pdev_stats; i++) {
+			pdev_stats = (wmi_pdev_stats*)temp;
+			wma_update_pdev_stats(wma, pdev_stats);
+			temp += sizeof(wmi_pdev_stats);
+		}
+	}
+
+	if (event->num_vdev_stats > 0) {
+		for (i = 0; i < event->num_vdev_stats; i++) {
+			vdev_stats = (wmi_vdev_stats *)temp;
+			wma_update_vdev_stats(wma, vdev_stats);
+			temp += sizeof(wmi_vdev_stats);
+		}
+	}
+
+	if (event->num_peer_stats > 0) {
+		for (i = 0; i < event->num_peer_stats; i++) {
+			peer_stats = (wmi_peer_stats *)temp;
+			wma_update_peer_stats(wma, peer_stats);
+			temp += sizeof(wmi_peer_stats);
+		}
+	}
+
+	WMA_LOGD("%s: Exit", __func__);
 	return 0;
 }
 
@@ -1973,6 +2184,11 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 					   WMI_PEER_STA_KICKOUT_EVENTID,
 					   wma_peer_sta_kickout_event_handler);
 
+	/* register for stats response event */
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					   WMI_UPDATE_STATS_EVENTID,
+					   wma_stats_event_handler);
+
 #ifdef FEATURE_OEM_DATA_SUPPORT
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 				    WMI_OEM_CAPABILITY_EVENTID,
@@ -3039,91 +3255,6 @@ error:
 
 }
 
-/*AR9888/AR6320  noise floor approx value
- * similar to the mentioned the TLSHIM
- */
-#define WMA_TGT_NOISE_FLOOR_DBM (-96)
-/*
- * WMI event handler for periodic target stats event
- */
-
-static int wmi_unified_update_stats_event_handler(void* handle,
-				u_int8_t *data, u_int32_t datalen)
-{
-	wmi_stats_event_fixed_param *ev;
-	A_UINT8 *temp = NULL;
-	A_UINT8 i;
-	WMI_UPDATE_STATS_EVENTID_param_tlvs *param_buf;
-	tp_wma_handle wma = (tp_wma_handle) handle;
-	A_UINT8 rssi = 0;
-	tAniGetRssiReq *pGetRssiReq = (tAniGetRssiReq*)wma->pGetRssiReq;
-	u_int8_t vdev_id = 0;
-	wmi_vdev_stats *vdev_stats = NULL;
-
-	if(NULL != pGetRssiReq)
-		vdev_id = pGetRssiReq->sessionId;
-	WMA_LOGD("%s: vdev_id %d\n", __func__,  vdev_id);
-	param_buf = (WMI_UPDATE_STATS_EVENTID_param_tlvs *)data;
-	if (!param_buf) {
-		WMA_LOGE("%s: Received NULL buf ptr from FW", __func__);
-		return VOS_STATUS_E_NOMEM;
-	}
-	ev = param_buf->fixed_param;
-	if (NULL != param_buf->data)
-		temp = (A_UINT8 *)param_buf->data;
-	if (NULL != ev) {
-		for (i = 0; i < ev->num_vdev_stats; i++) {
-			if(NULL == temp )
-				continue ;
-			vdev_stats = (wmi_vdev_stats *)temp;
-			if(NULL == vdev_stats)
-				continue;
-			WMA_LOGE("vdev id %d beancon snr %d data snr %d\n",
-				vdev_stats->vdev_id, vdev_stats->vdev_snr.bcn_snr,
-				vdev_stats->vdev_snr.dat_snr);
-			/* if the data average rssi present return that,
-			 * else return beacon average rssi
-			 */
-			if (vdev_stats->vdev_id == vdev_id) {
-				if((vdev_stats->vdev_snr.dat_snr > 0) && (vdev_stats->vdev_snr.bcn_snr > 0))
-					rssi = (vdev_stats->vdev_snr.dat_snr + vdev_stats->vdev_snr.bcn_snr)/2;
-				else
-					rssi = vdev_stats->vdev_snr.bcn_snr;
-				/* Get the absolute rssi value from the current rssi value
-				 * the sinr value is hardcoded into 0 in the core stack
-				 */
-				rssi = rssi + WMA_TGT_NOISE_FLOOR_DBM;
-				WMA_LOGE("Average Rssi = %d, vdev id= %d",(int)rssi, vdev_id);
-
-				/* update the average rssi value to UMAC layer */
-				if ((NULL != pGetRssiReq) && (NULL != pGetRssiReq->rssiCallback)) {
-					((tCsrRssiCallback)(pGetRssiReq->rssiCallback))(rssi,pGetRssiReq->staId,
-						 pGetRssiReq->pDevContext);
-					pGetRssiReq->rssiCallback = NULL;
-					vos_mem_free(pGetRssiReq);
-					wma->pGetRssiReq = NULL;
-				}
-				else {
-					WMA_LOGE("WMA pGetRssiReq->rssiCallback is NULL");
-					if (NULL != pGetRssiReq) {
-						vos_mem_free(pGetRssiReq);
-						wma->pGetRssiReq = NULL;
-					}
-				}
-				break;
-			}
-
-			temp += sizeof(wmi_vdev_stats);
-		}
-	}
-
-	return VOS_STATUS_SUCCESS;
-}
-
-
-/*
- * Return the data rssi for the given peer.
- */
 VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq)
 {
 	wmi_buf_t buf;
@@ -7654,6 +7785,12 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
                 goto out;
         }
 
+	/*Free the allocated stats response buffer for the the session*/
+	if (wma->interfaces[params->smesessionId].stats_rsp) {
+		vos_mem_free(wma->interfaces[params->smesessionId].stats_rsp);
+		wma->interfaces[params->smesessionId].stats_rsp = NULL;
+	}
+
         if (wlan_op_mode_ibss == txrx_vdev->opmode) {
                 wma->ibss_started = 0;
         }
@@ -10295,6 +10432,58 @@ int wma_is_wow_mode_selected(WMA_HANDLE handle)
 	return wma->wow.wow_enable;
 }
 
+tAniGetPEStatsRsp * wma_get_stats_rsp_buf(tAniGetPEStatsReq *get_stats_param)
+{
+	tAniGetPEStatsRsp *stats_rsp_params;
+	tANI_U32 len, temp_mask, counter = 0;
+
+	len= sizeof(tAniGetPEStatsRsp);
+	temp_mask = get_stats_param->statsMask;
+
+	while (temp_mask) {
+		if (temp_mask & 1) {
+			switch (counter) {
+			case eCsrSummaryStats:
+				len += sizeof(tCsrSummaryStatsInfo);
+				break;
+			case eCsrGlobalClassAStats:
+				len += sizeof(tCsrGlobalClassAStatsInfo);
+				break;
+			case eCsrGlobalClassBStats:
+				len += sizeof(tCsrGlobalClassBStatsInfo);
+				break;
+			case eCsrGlobalClassCStats:
+				len += sizeof(tCsrGlobalClassCStatsInfo);
+				break;
+			case eCsrGlobalClassDStats:
+				len += sizeof(tCsrGlobalClassDStatsInfo);
+				break;
+			case eCsrPerStaStats:
+				len += sizeof(tCsrPerStaStatsInfo);
+				break;
+			}
+		}
+
+		counter++;
+		temp_mask >>= 1;
+	}
+
+	stats_rsp_params = (tAniGetPEStatsRsp *)vos_mem_malloc(len);
+	if (!stats_rsp_params) {
+		WMA_LOGE("memory allocation failed for tAniGetPEStatsRsp");
+		VOS_ASSERT(0);
+		return NULL;
+	}
+
+	vos_mem_zero(stats_rsp_params, len);
+	stats_rsp_params->staId = get_stats_param->staId;
+	stats_rsp_params->statsMask = get_stats_param->statsMask;
+	stats_rsp_params->msgType = WDA_GET_STATISTICS_RSP;
+	stats_rsp_params->msgLen = len - sizeof(tAniGetPEStatsRsp);
+	stats_rsp_params->rc = eHAL_STATUS_SUCCESS;
+	return stats_rsp_params;
+}
+
 /* function    : wma_get_stats_req
  * Description : return the statistics
  * Args        : wma handle, pointer to tAniGetPEStatsReq
@@ -10304,32 +10493,70 @@ static void wma_get_stats_req(WMA_HANDLE handle,
 		tAniGetPEStatsReq *get_stats_param)
 {
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	struct wma_txrx_node *node;
+	wmi_buf_t buf;
+	wmi_request_stats_cmd_fixed_param *cmd;
 	tAniGetPEStatsRsp *pGetPEStatsRspParams;
+	u_int8_t len = sizeof(wmi_request_stats_cmd_fixed_param);
 
-	if(get_stats_param)
-		vos_mem_free(get_stats_param);
-
-	pGetPEStatsRspParams =
-		(tAniGetPEStatsRsp *)vos_mem_malloc(sizeof(tAniGetPEStatsRsp));
-
-	if(!pGetPEStatsRspParams) {
-		WMA_LOGE("%s: Memory Allocation Failure", __func__);
-		return;
+	WMA_LOGD("%s: Enter", __func__);
+	node = &wma_handle->interfaces[get_stats_param->sessionId];
+	if (node->stats_rsp) {
+		pGetPEStatsRspParams = node->stats_rsp;
+		if (pGetPEStatsRspParams->staId == get_stats_param->staId &&
+			pGetPEStatsRspParams->statsMask ==
+				get_stats_param->statsMask) {
+			WMA_LOGI("Stats for staId %d with stats mask %d "
+				 "is pending.... ignore new request",
+				 get_stats_param->staId,
+				 get_stats_param->statsMask);
+			goto end;
+		} else {
+			vos_mem_free(node->stats_rsp);
+			node->stats_rsp = NULL;
+			node->fw_stats_set = 0;
+		}
 	}
 
-	vos_mem_zero(pGetPEStatsRspParams, sizeof(tAniGetPEStatsRsp));
-	pGetPEStatsRspParams->msgLen = sizeof(tAniGetPEStatsRsp);
+	pGetPEStatsRspParams = wma_get_stats_rsp_buf(get_stats_param);
+	if (!pGetPEStatsRspParams)
+		goto end;
 
-	/* TODO: As of now there is no WMI command to get the
-	 * statistics. If WMI command for getting stats is available,
-	 * then send the WMI command for getting the stats.
-	 * Return status as FAILURE for now */
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed to allocate wmi buffer", __func__);
+		goto failed;
+	}
+
+	node->fw_stats_set = 0;
+	node->stats_rsp = pGetPEStatsRspParams;
+	cmd = (wmi_request_stats_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_request_stats_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_request_stats_cmd_fixed_param));
+	cmd->stats_id = WMI_REQUEST_PEER_STAT|WMI_REQUEST_PDEV_STAT|
+			WMI_REQUEST_VDEV_STAT;
+	cmd->vdev_id = get_stats_param->sessionId;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(node->bssid, &cmd->peer_macaddr);
+	WMA_LOGD("STATS REQ VDEV_ID:%d-->", cmd->vdev_id);
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				WMI_REQUEST_STATS_CMDID)) {
+
+		vos_mem_free(buf);
+		goto failed;
+	}
+
+	goto end;
+failed:
+
 	pGetPEStatsRspParams->rc = eHAL_STATUS_FAILURE;
-
+	node->stats_rsp = NULL;
 	/* send response to UMAC*/
 	wma_send_msg(wma_handle, WDA_GET_STATISTICS_RSP, pGetPEStatsRspParams,
 			0) ;
-
+end:
+	vos_mem_free(get_stats_param);
+	WMA_LOGD("%s: Exit", __func__);
 	return;
 }
 
@@ -12969,14 +13196,6 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 						wma_wow_wakeup_host_event);
 	if (status) {
 		WMA_LOGP("Failed to register wow wakeup host event handler");
-		vos_status = VOS_STATUS_E_FAILURE;
-		goto end;
-	}
-	/* register target stats event handler */
-	status = wmi_unified_register_event_handler(wma_handle->wmi_handle, WMI_UPDATE_STATS_EVENTID,
-						wmi_unified_update_stats_event_handler);
-	if (status) {
-		WMA_LOGP("Failed to register stats event handler");
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto end;
 	}

@@ -3030,7 +3030,8 @@ static VOS_STATUS  wlan_hdd_get_classAstats_for_station(hdd_adapter_t *pAdapter,
                                   0, // not periodic
                                   FALSE, //non-cached results
                                   staid,
-                                  &context);
+                                  &context,
+                                  pAdapter->sessionId );
    if (eHAL_STATUS_SUCCESS != hstatus)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,

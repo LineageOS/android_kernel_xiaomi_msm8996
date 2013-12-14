@@ -4875,13 +4875,15 @@ eHalStatus sme_GetTsmStats(tHalHandle hHal,
     \param cache - If requester is happy with cached stats
     \param staId - The station ID for which the stats is requested for
     \param pContext - user context to be passed back along with the callback
+    \param sessionId - sme session interface
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus sme_GetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId,
                              tANI_U32 statsMask,
                              tCsrStatsCallback callback,
                              tANI_U32 periodicity, tANI_BOOLEAN cache,
-                             tANI_U8 staId, void *pContext)
+                             tANI_U8 staId, void *pContext,
+                             tANI_U8 sessionId)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -4890,7 +4892,8 @@ eHalStatus sme_GetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId
    if ( HAL_STATUS_SUCCESS( status ) )
    {
       status = csrGetStatistics( pMac, requesterId , statsMask, callback,
-                                 periodicity, cache, staId, pContext);
+                                 periodicity, cache, staId, pContext,
+                                 sessionId );
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 

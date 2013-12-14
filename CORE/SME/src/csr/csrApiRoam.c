@@ -218,7 +218,8 @@ VOS_STATUS csrRoamVccTriggerRssiIndCallback(tHalHandle hHal,
                                             void * context);
 static void csrRoamLinkDown(tpAniSirGlobal pMac, tANI_U32 sessionId);
 void csrRoamVccTrigger(tpAniSirGlobal pMac);
-eHalStatus csrSendMBStatsReqMsg( tpAniSirGlobal pMac, tANI_U32 statsMask, tANI_U8 staId);
+eHalStatus csrSendMBStatsReqMsg( tpAniSirGlobal pMac, tANI_U32 statsMask,
+                                 tANI_U8 staId, tANI_U8 sessionId);
 /*
     pStaEntry is no longer invalid upon the return of this function.
 */
@@ -230,7 +231,10 @@ tCsrStatsClientReqInfo * csrRoamInsertEntryIntoList( tpAniSirGlobal pMac,
                                                      tCsrStatsClientReqInfo *pStaEntry);
 void csrRoamStatsClientTimerHandler(void *pv);
 tCsrPeStatsReqInfo *  csrRoamCheckPeStatsReqList(tpAniSirGlobal pMac, tANI_U32  statsMask, 
-                                                 tANI_U32 periodicity, tANI_BOOLEAN *pFound, tANI_U8 staId);
+                                                 tANI_U32 periodicity,
+                                                 tANI_BOOLEAN *pFound,
+                                                 tANI_U8 staId,
+                                                 tANI_U8 sessionId);
 void csrRoamReportStatistics(tpAniSirGlobal pMac, tANI_U32 statsMask, 
                              tCsrStatsCallback callback, tANI_U8 staId, void *pContext);
 void csrRoamSaveStatsFromTl(tpAniSirGlobal pMac, WLANTL_TRANSFER_STA_TYPE *pTlStats);
@@ -14595,7 +14599,8 @@ void csrRoamPeStatsTimerHandler(void *pv)
       if(!pPeStatsReqListEntry->rspPending)
       {
          status = csrSendMBStatsReqMsg(pMac, pPeStatsReqListEntry->statsMask & ~(1 << eCsrGlobalClassDStats), 
-                                       pPeStatsReqListEntry->staId);
+                                       pPeStatsReqListEntry->staId,
+                                       pPeStatsReqListEntry->sessionId);
          if(!HAL_STATUS_SUCCESS(status))
          {
             smsLog(pMac, LOGE, FL("csrRoamPeStatsTimerHandler:failed to send down stats req to PE"));
@@ -14663,7 +14668,8 @@ void csrRoamStatsClientTimerHandler(void *pv)
 
 
 
-eHalStatus csrSendMBStatsReqMsg( tpAniSirGlobal pMac, tANI_U32 statsMask, tANI_U8 staId)
+eHalStatus csrSendMBStatsReqMsg( tpAniSirGlobal pMac, tANI_U32 statsMask,
+                                 tANI_U8 staId, tANI_U8 sessionId)
 {
    tAniGetPEStatsReq *pMsg;
    eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -14678,6 +14684,7 @@ eHalStatus csrSendMBStatsReqMsg( tpAniSirGlobal pMac, tANI_U32 statsMask, tANI_U
    pMsg->msgLen = (tANI_U16)sizeof(tAniGetPEStatsReq);
    pMsg->staId = staId;
    pMsg->statsMask = statsMask;
+   pMsg->sessionId = sessionId;
    status = palSendMBMessage(pMac->hHdd, pMsg );    
    if(!HAL_STATUS_SUCCESS(status))
    {
@@ -15270,7 +15277,8 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
                             tANI_U32 statsMask, 
                             tCsrStatsCallback callback, 
                             tANI_U32 periodicity, tANI_BOOLEAN cache, 
-                            tANI_U8 staId, void *pContext)
+                            tANI_U8 staId, void *pContext,
+                            tANI_U8 sessionId)
 {  
    tCsrStatsClientReqInfo staEntry;
    tCsrStatsClientReqInfo *pStaEntry = NULL;
@@ -15365,6 +15373,7 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
       staEntry.staId = staId;
       staEntry.pMac = pMac;
       staEntry.timerExpired = FALSE;
+      staEntry.sessionId = sessionId;
    
    
       //if periodic report requested with non cached result from PE/TL
@@ -15377,7 +15386,8 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
          
             //check if same request made already & waiting for rsp
             pPeStaEntry = csrRoamCheckPeStatsReqList(pMac, statsMask & ~(1 << eCsrGlobalClassDStats), 
-                                               periodicity, &found, staId);
+                                               periodicity, &found, staId,
+                                               sessionId);
             if(!pPeStaEntry)
             {
                //bail out, maxed out on number of req for PE
@@ -15462,7 +15472,10 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
          if(statsMask & ~(1 << eCsrGlobalClassDStats))
          {
             //send down a req
-            status = csrSendMBStatsReqMsg(pMac, statsMask & ~(1 << eCsrGlobalClassDStats), staId);
+            status = csrSendMBStatsReqMsg(pMac,
+                                     statsMask & ~(1 << eCsrGlobalClassDStats),
+                                     staId,
+                                     sessionId);
             if(!HAL_STATUS_SUCCESS(status))
             {
                smsLog(pMac, LOGE, FL("csrGetStatistics:failed to send down stats req to PE"));
@@ -15930,8 +15943,12 @@ eHalStatus csrRoamOffloadScanRspHdlr(tpAniSirGlobal pMac, tANI_U8 reason)
 }
 #endif
 
-tCsrPeStatsReqInfo * csrRoamCheckPeStatsReqList(tpAniSirGlobal pMac, tANI_U32  statsMask, 
-                                                tANI_U32 periodicity, tANI_BOOLEAN *pFound, tANI_U8 staId)
+tCsrPeStatsReqInfo * csrRoamCheckPeStatsReqList(tpAniSirGlobal pMac,
+                                                tANI_U32  statsMask,
+                                                tANI_U32 periodicity,
+                                                tANI_BOOLEAN *pFound,
+                                                tANI_U8 staId,
+                                                tANI_U8 sessionId)
 {
    tANI_BOOLEAN found = FALSE;
    eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -15968,6 +15985,7 @@ tCsrPeStatsReqInfo * csrRoamCheckPeStatsReqList(tpAniSirGlobal pMac, tANI_U32  s
       staEntry.staId = staId;
       staEntry.statsMask = statsMask;
       staEntry.timerRunning = FALSE;
+      staEntry.sessionId = sessionId;
       pTempStaEntry = csrRoamInsertEntryIntoPeStatsReqList(pMac, &pMac->roam.peStatsReqList, &staEntry); 
       if(!pTempStaEntry)
       {
@@ -15997,7 +16015,10 @@ tCsrPeStatsReqInfo * csrRoamCheckPeStatsReqList(tpAniSirGlobal pMac, tANI_U32  s
       if(!pTempStaEntry->rspPending && 
          !pTempStaEntry->periodicity)
       {
-         status = csrSendMBStatsReqMsg(pMac, statsMask & ~(1 << eCsrGlobalClassDStats), staId);
+         status = csrSendMBStatsReqMsg(pMac,
+                                     statsMask & ~(1 << eCsrGlobalClassDStats),
+                                     staId,
+                                     sessionId);
          if(!HAL_STATUS_SUCCESS(status))
          {
             smsLog(pMac, LOGE, FL("csrRoamCheckPeStatsReqList:failed to send down stats req to PE"));

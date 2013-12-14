@@ -2102,6 +2102,7 @@ typedef struct sAniGetPEStatsReq
     tANI_U16                msgLen;  // length of the entire request
     tANI_U32                staId;  // Per STA stats request must contain valid
     tANI_U32                statsMask;  // categories of stats requested. look at ePEStatsMask
+    tANI_U8                 sessionId;
 } tAniGetPEStatsReq, *tpAniGetPEStatsReq;
 
 /*

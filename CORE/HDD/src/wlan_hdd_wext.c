@@ -1677,7 +1677,8 @@ static int iw_get_bitrate(struct net_device *dev,
                                SME_GLOBAL_CLASSD_STATS |
                                SME_PER_STA_STATS,
                                hdd_StatisticsCB, 0, FALSE,
-                               pHddStaCtx->conn_info.staId[0], pAdapter );
+                               pHddStaCtx->conn_info.staId[0], pAdapter,
+                               pAdapter->sessionId );
 
       if(eHAL_STATUS_SUCCESS != status)
       {
@@ -2415,7 +2416,8 @@ VOS_STATUS  wlan_hdd_get_classAstats(hdd_adapter_t *pAdapter)
                                   0, // not periodic
                                   FALSE, //non-cached results
                                   pHddStaCtx->conn_info.staId[0],
-                                  &context);
+                                  &context,
+                                  pAdapter->sessionId );
    if (eHAL_STATUS_SUCCESS != hstatus)
    {
        hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -2531,7 +2533,8 @@ VOS_STATUS  wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter)
                                0, // not periodic
                                FALSE, //non-cached results
                                pHddStaCtx->conn_info.staId[0],
-                               &context);
+                               &context,
+                               pAdapter->sessionId);
    if (eHAL_STATUS_SUCCESS != hstatus)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -7833,7 +7836,9 @@ static int iw_get_statistics(struct net_device *dev,
                        SME_GLOBAL_CLASSD_STATS |
                        SME_PER_STA_STATS,
                        hdd_StatisticsCB, 0, FALSE,
-                       (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.staId[0], pAdapter );
+                       (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.staId[0],
+                       pAdapter,
+                       pAdapter->sessionId );
 
     if (eHAL_STATUS_SUCCESS != status)
     {
@@ -7860,7 +7865,9 @@ static int iw_get_statistics(struct net_device *dev,
                        SME_GLOBAL_CLASSD_STATS |
                        SME_PER_STA_STATS,
                        NULL, 0, FALSE,
-                       (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.staId[0], pAdapter );
+                       (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.staId[0],
+                       pAdapter,
+                       pAdapter->sessionId );
 
        return -EINVAL;
     }

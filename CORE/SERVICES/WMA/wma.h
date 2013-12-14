@@ -397,6 +397,8 @@ struct wma_txrx_node {
 	wma_igtk_key_t key;
 #endif /* WLAN_FEATURE_11W */
 	u_int32_t uapsd_cached_val;
+	tAniGetPEStatsRsp       *stats_rsp;
+	tANI_U8                 fw_stats_set;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
