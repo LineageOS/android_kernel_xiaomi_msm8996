@@ -1220,6 +1220,7 @@ struct hdd_context_s
 #ifdef QCA_WIFI_2_0
     v_U32_t target_type;
     v_U32_t target_fw_version;
+    v_U32_t dfs_radar_found;
 #endif
     struct regulatory reg;
 #ifdef FEATURE_WLAN_CH_AVOID

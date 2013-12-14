@@ -1422,4 +1422,20 @@ eHalStatus csrHandoffRequest(tpAniSirGlobal pMac, tCsrHandoffRequest *pHandoffIn
 tANI_BOOLEAN csrRoamIsStaMode(tpAniSirGlobal pMac, tANI_U32 sessionId);
 #endif
 
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+eHalStatus csrEnableRMC(tpAniSirGlobal pMac, tANI_U32 sessionId);
+eHalStatus csrDisableRMC(tpAniSirGlobal pMac, tANI_U32 sessionId);
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+/* Post Channel Change Indication */
+eHalStatus csrRoamChannelChangeReq( tpAniSirGlobal pMac,
+                     tANI_U32 sessionId, tANI_U8 targetChannel);
+
+/* Post Beacon Tx Start Indication */
+eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac,
+                     tANI_U32 sessionId, tANI_U8 dfsCacWaitStatus);
+
+eHalStatus
+csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
+                     tANI_U8 targetChannel, tANI_U8 csaIeReqd);
 #endif

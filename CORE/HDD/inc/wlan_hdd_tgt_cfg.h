@@ -93,4 +93,10 @@ struct hdd_tgt_cfg {
 #endif
 };
 
+struct hdd_dfs_radar_ind {
+        u_int8_t   ieee_chan_number;
+        u_int32_t  chan_freq;
+        u_int32_t  dfs_radar_status;
+};
+
 #endif /* HDD_TGT_CFG_H */

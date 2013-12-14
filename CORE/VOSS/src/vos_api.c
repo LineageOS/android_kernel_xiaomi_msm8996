@@ -405,6 +405,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 #if defined (QCA_WIFI_2_0) && \
    !defined (QCA_WIFI_ISOC)
                        hdd_update_tgt_cfg,
+                       hdd_dfs_indicate_radar,
 #else
                        NULL,
 #endif

@@ -466,6 +466,13 @@ typedef enum
     eCSR_ROAM_CCX_ADJ_AP_REPORT_IND,
     eCSR_ROAM_CCX_BCN_REPORT_IND,
 #endif /* FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
+
+    // Radar indication from lower layers
+    eCSR_ROAM_DFS_RADAR_IND,
+    eCSR_ROAM_SET_CHANNEL_RSP,
+
+    // Channel sw update notification
+    eCSR_ROAM_DFS_CHAN_SW_NOTIFY
 }eRoamCmdStatus;
 
 
@@ -559,6 +566,16 @@ typedef enum
     eCSR_ROAM_RESULT_TDLS_SHOULD_PEER_DISCONNECTED,
 #endif
 #endif
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+    eCSR_ROAM_RESULT_IBSS_PEER_INFO_SUCCESS,
+    eCSR_ROAM_RESULT_IBSS_PEER_INFO_FAILED,
+#endif
+    eCSR_ROAM_RESULT_DFS_RADAR_FOUND_IND,
+    eCSR_ROAM_RESULT_CHANNEL_CHANGE_SUCCESS,
+    eCSR_ROAM_RESULT_CHANNEL_CHANGE_FAILURE,
+    eCSR_ROAM_RESULT_DFS_CHANSW_UPDATE_SUCCESS,
+    eCSR_ROAM_RESULT_DFS_CHANSW_UPDATE_FAILURE,
 }eCsrRoamResult;
 
 
@@ -1203,6 +1220,8 @@ typedef struct tagCsrRoamInfo
     tANI_U8* assocReqPtr;
 
     tANI_S8 rxRssi;
+    tSirSmeDfsEventInd dfs_event;
+    tSirChanChangeResponse *channelChangeRespEvent;
 }tCsrRoamInfo;
 
 

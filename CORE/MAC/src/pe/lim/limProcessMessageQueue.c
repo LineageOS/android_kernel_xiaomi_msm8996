@@ -1762,6 +1762,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case SIR_LIM_UPDATE_OLBC_CACHEL_TIMEOUT:
             limHandleUpdateOlbcCache(pMac);
             break;
+
 #if 0
         case SIR_LIM_WPS_OVERLAP_TIMEOUT:
             limProcessWPSOverlapTimeout(pMac);
@@ -2065,6 +2066,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
        limMsg->bodyptr = NULL;
        break;
     }
+
+   case WDA_DFS_RADAR_IND:
+        limSendSmeDfsEventNotify(pMac, limMsg->type,
+                          (void *)limMsg->bodyptr);
+        /* limmsg->bodyptr will be freed up by SME/CSR */
+        break;
 
     default:
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);

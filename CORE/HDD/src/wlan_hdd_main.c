@@ -4718,6 +4718,56 @@ void hdd_update_tgt_cfg(void *context, void *param)
     hdd_update_tgt_vht_cap(hdd_ctx, &cfg->vht_cap);
 #endif  /* #ifdef WLAN_FEATURE_11AC */
 }
+
+/* This function is invoked when a radar in found on the
+ * SAP current operating channel and Data Tx from netif
+ * has to be stopped to honor the DFS regulations.
+ * Actions: Stop the netif Tx queues,Indicate Radar present
+ * in HDD context for future usage.
+ */
+void hdd_dfs_indicate_radar(void *context, void *param)
+{
+    hdd_context_t *pHddCtx= (hdd_context_t *)context;
+    struct hdd_dfs_radar_ind *hdd_radar_event =
+                              (struct hdd_dfs_radar_ind*)param;
+    hdd_adapter_list_node_t *pAdapterNode = NULL,
+                            *pNext = NULL;
+    hdd_adapter_t *pAdapter;
+    VOS_STATUS status;
+    v_U8_t txQueueId;
+
+    if (pHddCtx == NULL)
+    {
+        return;
+    }
+    if (hdd_radar_event == NULL)
+    {
+        return;
+    }
+    if (VOS_TRUE == hdd_radar_event->dfs_radar_status)
+    {
+        pHddCtx->dfs_radar_found = VOS_TRUE;
+
+        status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+        while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
+        {
+            pAdapter = pAdapterNode->pAdapter;
+            if (WLAN_HDD_SOFTAP == pAdapter->device_mode)
+            {
+                for (txQueueId = 0; txQueueId < NUM_TX_QUEUES; txQueueId++)
+                {
+                   netif_stop_subqueue(pAdapter->dev, txQueueId);
+                }
+                break;
+            }
+            else
+            {
+                status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+                pAdapterNode = pNext;
+            }
+        }
+    }
+}
 #endif  /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
 
 /**---------------------------------------------------------------------------

@@ -17166,6 +17166,7 @@ VOS_STATUS csrSetCCKMIe(tpAniSirGlobal pMac, const tANI_U8 sessionId,
     pSession->suppCckmIeInfo.cckmIeLen = ccKmIeLen;
     return status;
 }
+
 /* ---------------------------------------------------------------------------
     \fn csrRoamReadTSF
     \brief  This function reads the TSF; and also add the time elapsed since
@@ -17196,3 +17197,76 @@ VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp)
     return status;
 }
 #endif /*FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
+
+/*
+ * Post Channel Change Request to LIM
+ * This API is primarily used to post
+ * Channel Change Req for SAP
+ */
+eHalStatus
+csrRoamChannelChangeReq( tpAniSirGlobal pMac, tANI_U32 sessionId,
+                                    tANI_U8 targetChannel)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tSirChanChangeRequest *pMsg;
+    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+
+    if (NULL == pSession)
+    {
+        smsLog( pMac, LOGE, FL
+                ( " Session does not exist for session id %d" ), sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    pMsg = vos_mem_malloc( sizeof(tSirChanChangeRequest) );
+    if (!pMsg)
+    {
+        return ( eHAL_STATUS_FAILURE );
+    }
+
+    vos_mem_set((void *)pMsg, sizeof( tSirChanChangeRequest ), 0);
+
+    pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_CHANNEL_CHANGE_REQ);
+    pMsg->sessionId = sessionId;
+    pMsg->targetChannel = targetChannel;
+
+    status = palSendMBMessage(pMac->hHdd, pMsg);
+
+    return ( status );
+}
+
+/*
+ * Post Beacon Tx Start request to LIM
+ * immediately after SAP CAC WAIT is
+ * completed without any RADAR indications.
+ */
+eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac, tANI_U32 sessionId,
+                                                  tANI_U8 dfsCacWaitStatus)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tSirStartBeaconIndication *pMsg;
+    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+
+    if (NULL == pSession)
+    {
+        smsLog( pMac, LOGE, FL
+                ( " Session does not exist for session id %d" ), sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    pMsg = vos_mem_malloc(sizeof(tSirStartBeaconIndication));
+
+    if (!pMsg)
+    {
+        return eHAL_STATUS_FAILURE;
+    }
+
+    vos_mem_set((void *)pMsg, sizeof( tSirStartBeaconIndication ), 0);
+    pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_START_BEACON_REQ);
+    pMsg->sessionId = sessionId;
+    pMsg->beaconStartStatus  = dfsCacWaitStatus;
+
+    status = palSendMBMessage(pMac->hHdd, pMsg);
+
+    return ( status );
+}

@@ -498,10 +498,15 @@ VOS_STATUS WDA_TxPacket(void *pWDA,
  * open WDA context
  */
 
+#ifndef QCA_WIFI_ISOC
 VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
-                    wda_tgt_cfg_cb pTgtUpdCB,
-                    wda_dfs_radar_indication_cb radar_ind_cb,
-                    tMacOpenParameters *pMacParams ) ;
+                          wda_tgt_cfg_cb pTgtUpdCB,
+                          wda_dfs_radar_indication_cb radar_ind_cb,
+                          tMacOpenParameters *pMacParams ) ;
+#else
+VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
+                    wda_tgt_cfg_cb pTgtUpdCB, tMacOpenParameters *pMacParams ) ;
+#endif
 
 #ifdef QCA_WIFI_2_0
 #define WDA_start wma_start
@@ -1304,6 +1309,9 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_TDLS_PEER_DISCONNECTED    SIR_HAL_TDLS_PEER_DISCONNECTED
 #endif
 #endif
+
+/* Message to Indicate Radar Presence on SAP Channel */
+#define WDA_DFS_RADAR_IND           SIR_HAL_DFS_RADAR_IND
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 

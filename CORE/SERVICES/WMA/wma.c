@@ -1678,9 +1678,7 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
      * wmi_unified_comb_phyerr_rx_event.bufp is a char pointer,
      * which isn't correct here - what we have received here
      * is an array of TLV-style PHY errors.
-     * We should ensure that we only decode 'num_phyerr_events'
-     * worth of events!
-     */
+     */
     n = 0;/* Start just after the header */
     bufp = param_tlvs->bufp;
     while (n < pe_hdr->buf_len)
@@ -1704,8 +1702,8 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
          * what we currently have.
          * Since buf_len is 32 bits, we check if it overflows
          * a large 32 bit value.  It's not 0x7fffffff because
-         * we increase n by (buf_len + sizeof(hdr)), which would
-         * in itself cause n to overflow.
+         * we increase n by (buf_len + sizeof(hdr)), which would
+         * in itself cause n to overflow.
          * If "int" is 64 bits then this becomes a moot point.
          */
         if (ev->hdr.buf_len > 0x7f000000)
@@ -1746,11 +1744,11 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
             }
         }
 
-		  /*
-         * Advance the buffer pointer to the next PHY error.
-         * buflen is the length of this payload, so we need to
-         * advance past the current header _AND_ the payload.
-         */
+        /*
+         * Advance the buffer pointer to the next PHY error.
+         * buflen is the length of this payload, so we need to
+         * advance past the current header _AND_ the payload.
+         */
         n += sizeof(*ev) + ev->hdr.buf_len;
 
     }/*end while()*/
@@ -1769,6 +1767,7 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
  */
 VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		    wda_tgt_cfg_cb tgt_cfg_cb,
+		    wda_dfs_radar_indication_cb radar_ind_cb,
 		    tMacOpenParameters *mac_params)
 {
 	tp_wma_handle wma_handle;
@@ -1928,6 +1927,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
    wmi_unified_register_event_handler(wma_handle->wmi_handle,
                   WMI_PHYERR_EVENTID,
                   wma_unified_phyerr_rx_event_handler);
+
 	/* Firmware debug log */
 	vos_status = dbglog_init(wma_handle->wmi_handle);
 	if (vos_status != VOS_STATUS_SUCCESS) {
@@ -13432,12 +13432,12 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	}
 }
 
-static void wma_set_regdomain(u_int32_t regdmn)
+static void wma_set_regdomain(struct regulatory *regdmn)
 {
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 	u_int32_t modeSelect = 0xFFFFFFFF;
-   wma->dfs_ic->current_dfs_regdomain = wma_set_dfs_regdomain(wma,regdmn);
+   wma->dfs_ic->current_dfs_regdomain = wma_set_dfs_regdomain(wma, regdmn->reg_domain);
 	switch (wma->phy_capability) {
 	case WMI_11G_CAPABILITY:
 	case WMI_11NG_CAPABILITY:
@@ -14984,7 +14984,7 @@ wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
  * Configure the regulatory domain for DFS radar filter initialization
  */
 int
-wma_set_dfs_regdomain(tp_wma_handle wma,u_int32_t regdmn)
+wma_set_dfs_regdomain(tp_wma_handle wma, u_int32_t regdmn)
 {
     u_int8_t ctl;
     if (regdmn < 0)

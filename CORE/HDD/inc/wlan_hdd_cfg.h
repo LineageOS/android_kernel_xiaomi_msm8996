@@ -2670,6 +2670,7 @@ static __inline unsigned long utilMin( unsigned long a, unsigned long b )
 #if defined (QCA_WIFI_2_0) && \
    !defined (QCA_WIFI_ISOC)
 void hdd_update_tgt_cfg(void *context, void *param);
+void hdd_dfs_indicate_radar(void *context, void *param);
 #endif /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
 
 #endif

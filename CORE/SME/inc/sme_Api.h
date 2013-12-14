@@ -3288,4 +3288,10 @@ eHalStatus sme_AddChAvoidCallback
    void (*pCallbackfn)(void *hdd_context, void *indi_param)
 );
 #endif /* FEATURE_WLAN_CH_AVOID */
+
+eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal,
+                   tANI_U8 sessionId, tANI_U8 targetChannel);
+
+eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal,
+                   tANI_U8 sessionId, tANI_U8 dfsCacWaitStatus);
 #endif //#if !defined( __SME_API_H )

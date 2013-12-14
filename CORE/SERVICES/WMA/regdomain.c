@@ -372,7 +372,7 @@ u_int32_t regdmn_getwmodesnreg(u_int32_t modesAvail,
 	return modesAvail;
 }
 
-static void regdmn_get_ctl_info(struct regulatory *reg, u_int32_t modesAvail,
+void regdmn_get_ctl_info(struct regulatory *reg, u_int32_t modesAvail,
      u_int32_t modeSelect)
 {
 	const REG_DOMAIN *regdomain2G = NULL;

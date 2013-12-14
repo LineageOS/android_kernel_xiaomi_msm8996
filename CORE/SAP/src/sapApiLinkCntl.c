@@ -409,7 +409,18 @@ WLANSAP_RoamCallback
                             (v_PVOID_t) eSAP_STATUS_SUCCESS );
         break;
 
-        default:
+       case eCSR_ROAM_DFS_RADAR_IND:
+           VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                     "In %s, Received Radar Indication", __func__);
+           sapContext->SapDfsInfo.target_channel =
+                     sapIndicateRadar(sapContext, pCsrRoamInfo->dfs_event);
+           break;
+       case eCSR_ROAM_SET_CHANNEL_RSP:
+           VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                     "In %s, Received set channel response", __func__);
+           break;
+
+       default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, CSR roamStatus not handled roamStatus = %s (%d)\n",
                        __func__, get_eRoamCmdStatus_str(roamStatus), roamStatus);
             break;
@@ -559,13 +570,29 @@ WLANSAP_RoamCallback
         case eCSR_ROAM_RESULT_INFRA_STARTED:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)\n",
                        __func__, "eCSR_ROAM_RESULT_INFRA_STARTED", roamResult);
-            /* Fill in the event structure */ 
-            sapEvent.event = eSAP_MAC_START_BSS_SUCCESS;
-            sapEvent.params = pCsrRoamInfo;
-            sapEvent.u1 = roamStatus;
-            sapEvent.u2 = roamResult;
+            /*
+             * If the Current Channel is DFS then move the
+             * SAP State eSAP_DFS_CAC_WAIT and post the
+             * eSAP_DFS_CHANNEL_CAC_START event
+             */
+            if (vos_nv_getChannelEnabledState(sapContext->channel) == NV_CHANNEL_DFS)
+            {
+                 sapContext->sapsMachine = eSAP_DFS_CAC_WAIT;
+                 sapEvent.event = eSAP_DFS_CHANNEL_CAC_START;
+                 sapEvent.params = pCsrRoamInfo;
+                 sapEvent.u1 = 0;
+                 sapEvent.u2 = 0;
+            }
+            else
+            {
+                /* Fill in the event structure */
+                sapEvent.event = eSAP_MAC_START_BSS_SUCCESS;
+                sapEvent.params = pCsrRoamInfo;
+                sapEvent.u1 = roamStatus;
+                sapEvent.u2 = roamResult;
+            }
 
-            /* Handle event */ 
+            /* Handle event */
             vosStatus = sapFsm(sapContext, &sapEvent);
             if(!VOS_IS_STATUS_SUCCESS(vosStatus))
             {
@@ -636,6 +663,114 @@ WLANSAP_RoamCallback
             }
 
             break;
+
+        case eCSR_ROAM_RESULT_DFS_RADAR_FOUND_IND:
+            if (eSAP_DFS_CAC_WAIT == sapContext->sapsMachine)
+            {
+                if (VOS_TRUE == sapContext->SapDfsInfo.sap_radar_found_status)
+                {
+                    /*
+                     * If Radar is found, while in DFS CAC WAIT State then
+                     * post stop and destroy the CAC timer and post a
+                     * eSAP_DFS_CHANNEL_CAC_RADAR_FOUND  to sapFsm.
+                     */
+                    vos_timer_stop(&sapContext->SapDfsInfo.sap_dfs_cac_timer);
+                    vos_timer_destroy(&sapContext->SapDfsInfo.sap_dfs_cac_timer);
+                    sapContext->SapDfsInfo.is_dfs_cac_timer_running = 0;
+
+                    sapEvent.event = eSAP_DFS_CHANNEL_CAC_RADAR_FOUND;
+                    sapEvent.params = 0;
+                    sapEvent.u1 = 0;
+                    sapEvent.u2 = 0;
+                    vosStatus = sapFsm(sapContext, &sapEvent);
+                    if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+                    {
+                        halStatus = eHAL_STATUS_FAILURE;
+                    }
+                }
+            }
+            else
+            {
+                /* Further actions to be taken here */
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                         "In %s, eCSR_ROAM_RESULT_DFS_RADAR_FOUND_IND received in"
+                         "(%d) state\n", __func__, sapContext->sapsMachine);
+            }
+            break;
+        case eCSR_ROAM_RESULT_CHANNEL_CHANGE_SUCCESS:
+        {
+            /* Channel change is successful. If the new channel is a DFS
+             * channel, then we will to perform channel availability check
+             * for 60 seconds
+             */
+            sapContext->channel =
+                  sapContext->SapDfsInfo.target_channel;
+
+            /* Identify if this is channel change in radar detected state */
+            if (VOS_TRUE == sapContext->SapDfsInfo.sap_radar_found_status &&
+                eSAP_DISCONNECTING == sapContext->sapsMachine)
+            {
+               /* check if currently selected channel is a DFS channel */
+               if (NV_CHANNEL_DFS ==
+                     vos_nv_getChannelEnabledState(sapContext->channel))
+               {
+                  sapContext->sapsMachine = eSAP_DISCONNECTED;
+
+                  VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                            "In %s, from state %s => %s", __func__,
+                            "eSAP_DISCONNECTING", "DISCONNECTED");
+
+                  /* DFS Channel */
+                  sapEvent.event = eSAP_DFS_CHANNEL_CAC_START;
+                  sapEvent.params = pCsrRoamInfo;
+                  sapEvent.u1 = 0;
+                  sapEvent.u2 = 0;
+               }
+               else
+               {
+                  /* non-DFS channel */
+                  sapContext->sapsMachine = eSAP_STARTING;
+
+                  VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                            "In %s, from state %s => %s", __func__,
+                            "eSAP_DISCONNECTING", "eSAP_STARTING");
+
+                  sapContext->SapDfsInfo.sap_radar_found_status = VOS_FALSE;
+                  sapEvent.event = eSAP_MAC_START_BSS_SUCCESS;
+                  sapEvent.params = pCsrRoamInfo;
+                  sapEvent.u1 = eCSR_ROAM_INFRA_IND;
+                  sapEvent.u2 = eCSR_ROAM_RESULT_INFRA_STARTED;
+               }
+
+               /* Handle the event */
+               vosStatus = sapFsm(sapContext, &sapEvent);
+               if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+               {
+                  halStatus = eHAL_STATUS_FAILURE;
+               }
+
+            }
+            else
+            {
+               /* We may have a requirment in the future for SAP to perform
+                * channel change, hence leaving this here
+                */
+            }
+
+            break;
+        }
+
+        case eCSR_ROAM_RESULT_CHANNEL_CHANGE_FAILURE:
+        {
+            /* This is much more serious issue, we have to vacate the
+             * channel due to the presence of radar but our channel change
+             * failed, stop the BSS operation completely and inform hostapd
+             */
+            sapContext->sapsMachine = eSAP_DISCONNECTED;
+
+            /* Inform cfg80211 and hostapd that BSS is not alive anymore */
+        }
+
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, CSR roamResult = %s (%d) not handled\n",
                        __func__,get_eCsrRoamResult_str(roamResult),roamResult);

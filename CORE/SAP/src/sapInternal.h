@@ -121,6 +121,7 @@ typedef struct sSapContext tSapContext;
 typedef enum {
     eSAP_DISCONNECTED,
     eSAP_CH_SELECT,
+    eSAP_DFS_CAC_WAIT,
     eSAP_STARTING,
     eSAP_STARTED,
     eSAP_DISCONNECTING
@@ -136,6 +137,20 @@ typedef enum {
 typedef struct sSapQosCfg {
     v_U8_t              WmmIsEnabled;
 } tSapQosCfg;
+
+typedef struct sSapDfsInfo {
+    vos_timer_t         sap_dfs_cac_timer;
+    v_U8_t              sap_radar_found_status;
+    v_U8_t              is_dfs_cac_timer_running;
+
+    /*
+     * New channel to move to when a  Radar is
+     * detected on current Channel
+     */
+    v_U8_t              target_channel;
+    v_U8_t              last_radar_found_channel;
+    v_U8_t              ignore_cac;
+}tSapDfsInfo;
 
 typedef struct sSapContext {
 
@@ -208,6 +223,18 @@ typedef struct sSapContext {
 
     // session to scan
     tANI_BOOLEAN        isScanSessionOpen;
+    /*
+     * This list of channels will hold 5Ghz enabled,DFS in the
+     * Current RegDomain.This list will be used to select a channel,
+     * for SAP to start including any DFS channel and also to select
+     * any random channel[5Ghz-(NON-DFS/DFS)],if SAP is operating
+     * on a DFS channel and a RADAR is detected on the channel.
+     */
+    tSapChannelListInfo SapAllChnlList;
+
+    //Information Required for SAP DFS Master mode
+    tSapDfsInfo         SapDfsInfo;
+
 } *ptSapContext;
 
 
@@ -771,6 +798,23 @@ eCsrPhyMode sapConvertSapPhyModeToCsrPhyMode( eSapPhyMode sapPhyMode );
 ============================================================================*/
 void sapUpdateUnsafeChannelList(void);
 #endif /* FEATURE_WLAN_CH_AVOID */
+
+/*---------------------------------------------------------------------------
+FUNCTION  sapIndicateRadar
+
+DESCRIPTION Function to implement actions on Radar Detection when SAP is on
+            DFS Channel
+
+DEPENDENCIES PARAMETERS
+IN sapContext : Sap Context which hold SapDfsInfo
+   dfs_event : Event from DFS Module
+
+RETURN VALUE  : Target Channel For SAP to Move on to when Radar is Detected.
+
+SIDE EFFECTS
+---------------------------------------------------------------------------*/
+v_U8_t
+sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event);
 
 #ifdef __cplusplus
 }

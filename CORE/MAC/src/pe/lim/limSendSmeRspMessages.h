@@ -123,5 +123,11 @@ void limSendSmeTdlsEventNotify(tpAniSirGlobal pMac, tANI_U16 msgType,
 #endif
 #endif
 
+void limSendSmeDfsEventNotify(tpAniSirGlobal pMac, tANI_U16 msgType,
+                                       void *event);
+void limSendSmeAPChannelSwitchResp(tpAniSirGlobal pMac,
+                                   tpPESession psessionEntry,
+                                   tpSwitchChannelParams pChnlParams);
+
 #endif /* __LIM_SEND_SME_RSP_H */
 

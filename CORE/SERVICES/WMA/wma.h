@@ -998,6 +998,8 @@ VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
 
 #ifndef QCA_WIFI_ISOC
 int32_t regdmn_get_regdmn_for_country(u_int8_t *alpha2);
+void regdmn_get_ctl_info(struct regulatory *reg, u_int32_t modesAvail,
+     u_int32_t modeSelect);
 
 /*get the ctl from regdomain*/
 u_int8_t regdmn_get_ctl_for_regdmn(u_int32_t reg_dmn);

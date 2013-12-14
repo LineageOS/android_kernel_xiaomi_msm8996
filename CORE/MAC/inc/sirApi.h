@@ -4736,4 +4736,36 @@ typedef struct sSirChAvoidIndType
 } tSirChAvoidIndType;
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+typedef struct sSirSmeDfsEventInd
+{
+    tANI_U32     sessionId;
+    tANI_U8      ieee_chan_number;
+    tANI_U32     chan_freq;
+    tANI_U32     dfs_radar_status;
+    int          use_nol;
+}tSirSmeDfsEventInd, *tpSirSmeDfsEventInd;
+
+typedef struct sSirChanChangeRequest
+{
+    tANI_U16     messageType;
+    tANI_U8      sessionId;
+    tANI_U8      targetChannel;
+}tSirChanChangeRequest, *tpSirChanChangeRequest;
+
+typedef struct sSirChanChangeResponse
+{
+    tANI_U8                  sessionId;
+    tANI_U8                  newChannelNumber;
+    tANI_U8                  channelChangeStatus;
+    ePhyChanBondState        secondaryChannelOffset;
+}tSirChanChangeResponse, *tpSirChanChangeResponse;
+
+typedef struct sSirStartBeaconIndication
+{
+    tANI_U16     messageType;
+    tANI_U8      sessionId;
+    tANI_U8      beaconStartStatus;
+
+}tSirStartBeaconIndication, *tpSirStartBeaconIndication;
+
 #endif /* __SIR_API_H */

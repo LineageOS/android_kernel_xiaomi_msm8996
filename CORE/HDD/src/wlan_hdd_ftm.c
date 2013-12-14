@@ -562,8 +562,14 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
 
    macOpenParms.powersaveOffloadEnabled =
       pHddCtx->cfg_ini->enablePowersaveOffload;
+#ifndef QCA_WIFI_ISOC
+   vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext,
+                      NULL, NULL,
+                      &macOpenParms);
+#else
    vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext,
                       NULL, &macOpenParms);
+#endif
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       /* Critical Error ...  Cannot proceed further */

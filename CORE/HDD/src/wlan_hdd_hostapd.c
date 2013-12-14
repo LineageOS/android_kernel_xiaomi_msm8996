@@ -461,6 +461,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     hdd_context_t *pHddCtx;
     hdd_scaninfo_t *pScanInfo  = NULL;
     struct iw_michaelmicfailure msg;
+    v_U8_t txQueueId;
 
     dev = (struct net_device *)usrDataForCallback;
     pHostapdAdapter = netdev_priv(dev);
@@ -555,6 +556,18 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                     pHddApCtx->wepKey[i].keyLength = 0;
                 }
            }
+
+            // We should restart OS transmit queues if we came here after
+            // radar detection and channel change
+            if (VOS_TRUE == pHddCtx->dfs_radar_found)
+            {
+               pHddCtx->dfs_radar_found = VOS_FALSE;
+               for (txQueueId = 0; txQueueId < NUM_TX_QUEUES; txQueueId++)
+               {
+                  netif_stop_subqueue(dev, txQueueId);
+               }
+            }
+
             //Fill the params for sending IWEVCUSTOM Event with SOFTAP.enabled
             startBssEvent = "SOFTAP.enabled";
             memset(&we_custom_start_event, '\0', sizeof(we_custom_start_event));

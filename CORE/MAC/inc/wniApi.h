@@ -380,6 +380,12 @@ enum eWniMsgTypes
 #ifdef FEATURE_WLAN_CH_AVOID
     eWNI_SME_CH_AVOID_IND,
 #endif /* FEATURE_WLAN_CH_AVOID */
+    /* DFS EVENTS */
+    eWNI_SME_DFS_RADAR_FOUND, //RADAR found indication from DFS
+    eWNI_SME_CHANNEL_CHANGE_REQ,//Channel Change Request from SAP
+    eWNI_SME_CHANNEL_CHANGE_RSP,// Channel Change Response from WMA
+    eWNI_SME_START_BEACON_REQ,//Start Beacon Transmission.
+
     eWNI_SME_MSG_TYPES_END
 };
 

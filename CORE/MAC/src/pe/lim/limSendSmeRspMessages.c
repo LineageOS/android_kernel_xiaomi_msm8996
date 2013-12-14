@@ -2916,6 +2916,7 @@ void limSendSmeMaxAssocExceededNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
     return;
 }
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+
 /** -----------------------------------------------------------------
   \brief limSendSmeCandidateFoundInd() - sends
          eWNI_SME_CANDIDATE_FOUND_IND
@@ -2957,3 +2958,51 @@ limSendSmeCandidateFoundInd(tpAniSirGlobal pMac, tANI_U8  sessionId)
 
 } /*** end limSendSmeCandidateFoundInd() ***/
 #endif //WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+
+/** -----------------------------------------------------------------
+  \brief limSendSmeDfsEventNotify() - sends
+   eWNI_SME_DFS_RADAR_FOUND
+   After receiving WMI_PHYERR_EVENTID indication frame from FW, this
+   function sends a eWNI_SME_DFS_RADAR_FOUND to SME to notify
+   that a RADAR is found on current operating channel and SAP-
+   has to move to a new channel.
+   \param pMac - global mac structure
+   \param msgType - message type received from lower layer
+   \param event - event data received from lower layer
+   \return none
+   \sa
+----------------------------------------------------------------- */
+void
+limSendSmeDfsEventNotify(tpAniSirGlobal pMac, tANI_U16 msgType, void *event)
+{
+    tSirMsgQ mmhMsg;
+    mmhMsg.type = eWNI_SME_DFS_RADAR_FOUND;
+    mmhMsg.bodyptr = event;
+    mmhMsg.bodyval = 0;
+    limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
+    return;
+}
+
+/** -----------------------------------------------------------------
+  \brief limSendSmeAPChannelSwitchResp() - sends
+   eWNI_SME_CHANNEL_CHANGE_RSP
+   After receiving WDA_SWITCH_CHANNEL_RSP indication this
+   function sends a eWNI_SME_CHANNEL_CHANGE_RSP to SME to notify
+   that the Channel change has been done to the specified target
+   channel in the Channel change request
+   \param pMac - global mac structure
+   \param psessionEntry - session info
+   \param pChnlParams - Channel switch params
+--------------------------------------------------------------------*/
+void
+limSendSmeAPChannelSwitchResp(tpAniSirGlobal pMac,
+                              tpPESession psessionEntry,
+                              tpSwitchChannelParams pChnlParams)
+{
+    tSirMsgQ mmhMsg;
+    mmhMsg.type = eWNI_SME_CHANNEL_CHANGE_RSP;
+    mmhMsg.bodyptr = (void *)pChnlParams;
+    mmhMsg.bodyval = 0;
+    limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
+    return;
+}
