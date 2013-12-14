@@ -162,6 +162,9 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
                tTdlsPeerStateParams *peerStateParams);
 #endif
 
+static eHalStatus wma_set_smps_params(tp_wma_handle wma_handle,
+                                 tANI_U8 vdev_id, int value);
+
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 void wma_utf_attach(tp_wma_handle wma_handle);
 void wma_utf_detach(tp_wma_handle wma_handle);
@@ -5269,6 +5272,14 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 						privcmd->param_vdev_id,
 						privcmd->param_value);
 		break;
+        case WMI_STA_SMPS_FORCE_MODE_CMDID:
+                  wma_set_mimops(wma_handle, privcmd->param_vdev_id,
+                                 privcmd->param_value);
+                break;
+        case WMI_STA_SMPS_PARAM_CMDID:
+                  wma_set_smps_params(wma_handle, privcmd->param_vdev_id,
+                                 privcmd->param_value);
+                break;
 	default:
 		WMA_LOGE("Invalid wma config command id:%d",
 			 privcmd->param_id);
@@ -15264,4 +15275,38 @@ wma_dfs_indicate_radar(struct ieee80211com *ic,
        WMA_LOGE("%s:DFS- WDA_DFS_RADAR_IND Message Posted\n",__func__);
    }
    return 1;
+}
+
+static eHalStatus wma_set_smps_params(tp_wma_handle wma, tANI_U8 vdev_id, int value)
+{
+        int ret = eHAL_STATUS_SUCCESS;
+        wmi_sta_smps_param_cmd_fixed_param *cmd;
+        wmi_buf_t buf;
+        u_int16_t len = sizeof(*cmd);
+
+        buf = wmi_buf_alloc(wma->wmi_handle, len);
+        if (!buf) {
+                WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+                return -ENOMEM;
+        }
+        cmd = (wmi_sta_smps_param_cmd_fixed_param *) wmi_buf_data(buf);
+        WMITLV_SET_HDR(&cmd->tlv_header,
+                WMITLV_TAG_STRUC_wmi_sta_smps_param_cmd_fixed_param,
+                WMITLV_GET_STRUCT_TLVLEN(
+                wmi_sta_smps_param_cmd_fixed_param));
+
+        cmd->vdev_id = vdev_id;
+        cmd->value = value & WMA_SMPS_MASK_LOWER_16BITS;
+        cmd->param = (value >> WMA_SMPS_PARAM_VALUE_S) & WMA_SMPS_MASK_UPPER_3BITS;
+
+        WMA_LOGD("Setting vdev %d value = %x param %x \n", vdev_id, cmd->value, cmd->param);
+
+        ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+                                    WMI_STA_SMPS_PARAM_CMDID);
+        if (ret < 0) {
+                WMA_LOGE("Failed to send set Mimo PS ret = %d", ret);
+                wmi_buf_free(buf);
+        }
+
+        return ret;
 }

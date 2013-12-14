@@ -204,6 +204,8 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define  WE_PPS_RSSI_CHECK              53
 #define WE_ENABLE_STRICT_FCC_REG        54
 
+#define WE_SET_HTSMPS                   55
+
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
 #define WE_GET_11D_STATE     1
@@ -395,6 +397,10 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #endif
 #endif
 #define WLAN_GET_LINK_SPEED          (SIOCIWFIRSTPRIV + 31)
+
+/* Private ioctls and their sub-ioctls */
+#define WLAN_PRIV_SET_TWO_INT_GET_NONE   (SIOCIWFIRSTPRIV + 28)
+#define WE_SET_SMPS_PARAM    1
 
 #define WLAN_STATS_INVALID            0
 #define WLAN_STATS_RETRY_CNT          1
@@ -5057,6 +5063,16 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            break;
         }
 
+        case WE_SET_HTSMPS:
+        {
+            hddLog(LOG1, "WE_SET_HTSMPS val %d", set_value);
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                            (int)WMI_STA_SMPS_FORCE_MODE_CMDID,
+                             set_value, VDEV_CMD);
+            break;
+        }
+
+
 #endif
         default:
         {
@@ -8537,6 +8553,41 @@ VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *i
   return VOS_STATUS_SUCCESS;
 }/*iw_set_power_params*/
 
+int iw_set_two_ints_getnone(struct net_device *dev, struct iw_request_info *info,
+                       union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    int *value = (int *)extra;
+    int sub_cmd = value[0];
+    int ret = 0;
+
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                                  "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EBUSY;
+    }
+
+    switch(sub_cmd)
+    {
+        case WE_SET_SMPS_PARAM:
+        {
+            hddLog(LOG1, "WE_SET_SMPS_PARAM val %d %d", value[1], value[2]);
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                            (int)WMI_STA_SMPS_PARAM_CMDID,
+                             value[1] << WMA_SMPS_PARAM_VALUE_S | value[2], VDEV_CMD);
+            break;
+        }
+
+        default:
+        {
+            hddLog(LOGE, "Invalid IOCTL command %d",  sub_cmd);
+            break;
+        }
+    }
+    return ret;
+}
+
 
 // Define the Wireless Extensions to the Linux Network Device structure
 // A number of these routines are NULL (meaning they are not implemented.)
@@ -8650,6 +8701,7 @@ static const iw_handler we_private[] = {
 #endif
 #endif
    [WLAN_GET_LINK_SPEED                 - SIOCIWFIRSTPRIV]   = iw_get_linkspeed,
+   [WLAN_PRIV_SET_TWO_INT_GET_NONE      - SIOCIWFIRSTPRIV]   = iw_set_two_ints_getnone,
 };
 
 /*Maximum command length can be only 15 */
@@ -8942,6 +8994,10 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_PPS_RSSI_CHECK,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "rssi_chk" },
+
+    {   WE_SET_HTSMPS,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "htsmps" },
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
@@ -9524,6 +9580,16 @@ static const struct iw_priv_args we_private_args[] = {
         WLAN_GET_LINK_SPEED,
         IW_PRIV_TYPE_CHAR | 18,
         IW_PRIV_TYPE_CHAR | 5, "getLinkSpeed" },
+
+    /* handlers for main ioctl */
+    {   WLAN_PRIV_SET_TWO_INT_GET_NONE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
+        0,
+        "" },
+    {   WE_SET_SMPS_PARAM,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
+        0, "set_smps_param" },
+
 };
 
 

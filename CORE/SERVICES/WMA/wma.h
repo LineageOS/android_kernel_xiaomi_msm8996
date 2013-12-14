@@ -1343,4 +1343,9 @@ void ieee80211_mark_dfs(struct ieee80211com *ic,
 int  wma_dfs_indicate_radar(struct ieee80211com *ic,
                                struct ieee80211_channel *ichan);
 u_int16_t   dfs_usenol(struct ieee80211com *ic);
+
+#define WMA_SMPS_MASK_LOWER_16BITS 0xFF
+#define WMA_SMPS_MASK_UPPER_3BITS 0x7
+#define WMA_SMPS_PARAM_VALUE_S 29
+
 #endif
