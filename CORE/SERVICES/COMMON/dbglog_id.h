@@ -250,7 +250,8 @@ extern "C" {
 #define VDEV_MGR_VDEV_PAUSE_DELAY_UPDATE            16
 #define VDEV_MGR_VDEV_PAUSE_FAIL                    17
 #define VDEV_MGR_GEN_PERIODIC_NOA                   18
-#define VDEV_MGR_DEFINITION_END                     19
+#define VDEV_MGR_OFF_CHAN_GO_CH_REQ_SETUP           19
+#define VDEV_MGR_DEFINITION_END                     20
 
 /* WHAL debug identifier definitions */
 #define WHAL_DBGID_DEFINITION_START                 0
@@ -539,7 +540,24 @@ extern "C" {
 #define COEX_MWS_ERROR                              236
 #define COEX_MWS_ANT_DIVERSITY                      237
 
-#define COEX_DEBUG_ID_END                           238
+#define COEX_P2P_GO                                 238
+#define COEX_P2P_CLIENT                             239
+#define COEX_SCC_1                                  240
+#define COEX_SCC_2                                  241
+#define COEX_MCC_1                                  242
+#define COEX_MCC_2                                  243
+#define COEX_TRF_SHAPE_NOA                          244
+#define COEX_NOA_ONESHOT                            245
+#define COEX_NOA_PERIODIC                           246
+#define COEX_LE_1                                   247
+#define COEX_LE_2                                   248
+#define COEX_ANT_1                                  249
+#define COEX_ANT_2                                  250
+#define COEX_ENTER_NOA                              251
+#define COEX_EXIT_NOA                               252
+#define COEX_BT_SCAN_PROTECT                        253
+
+#define COEX_DEBUG_ID_END                           254
 
 #define SCAN_START_COMMAND_FAILED                   0
 #define SCAN_STOP_COMMAND_FAILED                    1
@@ -739,7 +757,8 @@ extern "C" {
 #define P2P_GO_GET_NOA_INFO                                 35
 #define P2P_GO_ADD_ONE_SHOT_NOA                             36
 #define P2P_GO_GET_NOA_IE                                   37
-#define P2P_DBGID_DEFINITION_END                            38
+#define P2P_GO_BCN_TX_COMP                                  38
+#define P2P_DBGID_DEFINITION_END                            39
 
 
 //CSA modules DBGIDs
@@ -772,7 +791,9 @@ extern "C" {
 #define WLAN_CHATTER_MC_FILTER_DEL  10
 #define WLAN_CHATTER_MC_FILTER_ALLOW  11
 #define WLAN_CHATTER_MC_FILTER_DROP  12
-#define WLAN_CHATTER_DBGID_DEFINITION_END 13
+#define WLAN_CHATTER_COALESCING_FILTER_ADD      13
+#define WLAN_CHATTER_COALESCING_FILTER_DEL      14
+#define WLAN_CHATTER_DBGID_DEFINITION_END       15
 
 #define WOW_DBGID_DEFINITION_START 0
 #define WOW_ENABLE_CMDID 1
@@ -925,7 +946,7 @@ extern "C" {
 #define WLAN_HB_DBGID_TCP_TX                            14
 #define WLAN_HB_DBGID_DEFINITION_END                    15
 
-/* Thermal Manager DBGIDs */
+/* Thermal Manager DBGIDs*/
 #define THERMAL_MGR_NEW_THRESH        0
 #define THERMAL_MGR_THRESH_CROSSED    1
 
