@@ -62,12 +62,6 @@ static inline void WMA_disableCapablityFeature(tANI_U8 feature_index) {
 	return;
 }
 
-static inline VOS_STATUS WMA_GetWcnssSoftwareVersion(v_PVOID_t pvosGCtx,
-		tANI_U8 *pVersion,
-		tANI_U32 versionBufferSize){
-	return VOS_STATUS_SUCCESS;
-}
-
 static inline VOS_STATUS WMA_HALDumpCmdReq(tpAniSirGlobal   pMac, tANI_U32  cmd,
 		tANI_U32   arg1, tANI_U32   arg2, tANI_U32   arg3,
 		tANI_U32   arg4, tANI_U8   *pBuffer)	{

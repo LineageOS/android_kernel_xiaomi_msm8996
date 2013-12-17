@@ -15411,3 +15411,15 @@ static eHalStatus wma_set_smps_params(tp_wma_handle wma, tANI_U8 vdev_id, int va
 
         return ret;
 }
+
+VOS_STATUS WMA_GetWcnssSoftwareVersion(v_PVOID_t pvosGCtx,
+                tANI_U8 *pVersion,
+                tANI_U32 versionBufferSize)
+{
+
+        tp_wma_handle wma_handle;
+        wma_handle = vos_get_context(VOS_MODULE_ID_WDA, pvosGCtx);
+
+        snprintf(pVersion, versionBufferSize, "%x", (unsigned int)wma_handle->target_fw_version);
+        return VOS_STATUS_SUCCESS;
+}
