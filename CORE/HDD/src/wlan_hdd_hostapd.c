@@ -1196,6 +1196,22 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 #endif
+         case QCASAP_SET_TXRX_FWSTATS:
+             {
+                  hddLog(LOG1, "WE_SET_TXRX_FWSTATS val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                                (int)WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID,
+                                                set_value, VDEV_CMD);
+                   break;
+             }
+         case QCASAP_TXRX_FWSTATS_RESET:
+             {
+                  hddLog(LOG1, "WE_TXRX_FWSTATS_RESET val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                                (int)WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
+                                                set_value, VDEV_CMD);
+                  break;
+             }
          case QCSAP_PARAM_SETRTSCTS:
             {
                 ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
@@ -3173,6 +3189,14 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "crash_inject" },
 #endif
+    {   QCASAP_SET_TXRX_FWSTATS,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "txrx_fw_stats" },
+    {   QCASAP_TXRX_FWSTATS_RESET,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "txrx_fw_st_rst" },
     {   QCSAP_PARAM_SETRTSCTS,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
@@ -3180,7 +3204,6 @@ static const struct iw_priv_args hostapd_private_args[] = {
     {   QCSAP_PARAM_GETRTSCTS, 0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_rtscts" },
-
 #endif /* QCA_WIFI_2_0 */
 
   { QCSAP_IOCTL_GETPARAM,
