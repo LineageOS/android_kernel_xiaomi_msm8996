@@ -343,6 +343,7 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"GO_LINK_MONITOR_TIMEOUT",
     (unsigned char *)"RMC_ACTION_PERIOD_FREQUENCY",
     (unsigned char *)"CURRENT_RSSI",
+    (unsigned char *)"RTT3_ENABLE",
 };
 
 

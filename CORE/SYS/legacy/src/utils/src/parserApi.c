@@ -1002,12 +1002,30 @@ PopulateDot11fVHTExtBssLoad(tpAniSirGlobal      pMac,
 }
 
 tSirRetStatus
-PopulateDot11fExtCap(tpAniSirGlobal      pMac,
-                           tDot11fIEExtCap  *pDot11f)
+PopulateDot11fExtCap(tpAniSirGlobal   pMac,
+                     tANI_BOOLEAN     isVHTEnabled,
+                     tDot11fIEExtCap  *pDot11f)
 {
+    tANI_U32   val=0;
     pDot11f->present = 1;
-    pDot11f->operModeNotification = 1;
-    
+#ifdef WLAN_FEATURE_11AC
+   if (isVHTEnabled == eANI_BOOLEAN_TRUE)
+   {
+      pDot11f->operModeNotification = 1;
+   }
+#endif
+
+    if (wlan_cfgGetInt(pMac, WNI_CFG_RTT3_ENABLE, &val) != eSIR_SUCCESS)
+    {
+       PELOGE(limLog(pMac, LOGE, FL("could not retrieve RTT3 Variable from DAT File \n"));)
+       return eSIR_FAILURE;
+    }
+
+    if (val)   // If set to true then set RTTv3
+    {
+       pDot11f->timingMeas = 1;
+    }
+
     return eSIR_SUCCESS;
 }
 
