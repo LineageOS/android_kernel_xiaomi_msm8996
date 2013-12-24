@@ -649,11 +649,29 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
    VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
              "vos prestart");
 
-   VOS_ASSERT(gpVosContext == pVosContext);
+   if (gpVosContext != pVosContext)
+   {
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Context mismatch", __func__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_INVAL;
+   }
 
-   VOS_ASSERT( NULL != pVosContext->pMACContext);
+   if (pVosContext->pMACContext == NULL)
+   {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+            "%s: MAC NULL context", __func__);
+       VOS_ASSERT(0);
+       return VOS_STATUS_E_INVAL;
+   }
 
-   VOS_ASSERT( NULL != pVosContext->pWDAContext);
+   if (pVosContext->pWDAContext == NULL)
+   {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+          "%s: WDA NULL context", __func__);
+       VOS_ASSERT(0);
+       return VOS_STATUS_E_INVAL;
+   }
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
    scn = vos_get_context(VOS_MODULE_ID_HIF, gpVosContext);

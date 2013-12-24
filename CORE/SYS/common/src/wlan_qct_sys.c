@@ -317,7 +317,13 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
    v_VOID_t *hHal;
 
-   VOS_ASSERT( pMsg );
+   if (NULL == pMsg)
+   {
+      VOS_ASSERT(0);
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+            "%s: NULL pointer to vos_msg_t", __func__);
+      return VOS_STATUS_E_INVAL;
+   }
 
    // All 'new' SYS messages are identified by a cookie in the reserved
    // field of the message as well as the message type.  This prevents
@@ -436,8 +442,13 @@ VOS_STATUS sysTxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 {
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
 
-   VOS_ASSERT( pMsg );
-
+   if (NULL == pMsg)
+   {
+      VOS_ASSERT(0);
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+            "%s: NULL pointer to vos_msg_t", __func__);
+      return VOS_STATUS_E_INVAL;
+   }
    // All 'new' SYS messages are identified by a cookie in the reserved
    // field of the message as well as the message type.  This prevents
    // the possibility of overlap in the message types defined for new
@@ -502,7 +513,13 @@ VOS_STATUS sysRxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 {
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
 
-   VOS_ASSERT( pMsg );
+   if (NULL == pMsg)
+   {
+      VOS_ASSERT(0);
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+            "%s: NULL pointer to vos_msg_t", __func__);
+      return VOS_STATUS_E_INVAL;
+   }
 
    // All 'new' SYS messages are identified by a cookie in the reserved
    // field of the message as well as the message type.  This prevents
