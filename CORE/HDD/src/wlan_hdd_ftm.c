@@ -80,6 +80,7 @@
 #include "ol_fw.h"
 #include "testmode.h"
 #include "wlan_hdd_cfg80211.h"
+#include "if_pci.h"
 #endif
 
 #define RXMODE_DISABLE_ALL 0
@@ -750,13 +751,14 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
   if (gpVosContext->htc_ctx)
   {
       HTCStop(gpVosContext->htc_ctx);
       HTCDestroy(gpVosContext->htc_ctx);
       gpVosContext->htc_ctx = NULL;
   }
+  hif_disable_isr(gpVosContext->pHIFContext);
 #endif
 
   vos_mq_deinit(&((pVosContextType)vosContext)->freeVosMq);
