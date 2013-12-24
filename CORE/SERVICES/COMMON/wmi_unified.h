@@ -3205,6 +3205,17 @@ typedef struct {
              * Number of TX frames before the entering the Active state
              */
             WMI_STA_PS_PARAM_QPOWER_MAX_TX_BEFORE_WAKE = 7,
+
+            /**
+             * QPower SPEC PSPOLL interval
+             */
+            WMI_STA_PS_PARAM_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL = 8,
+
+            /**
+             * Max SPEC PSPOLL to be sent when the PSPOLL response has
+             * no-data bit set
+             */
+            WMI_STA_PS_PARAM_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL = 9,
         };
 
         typedef struct {
