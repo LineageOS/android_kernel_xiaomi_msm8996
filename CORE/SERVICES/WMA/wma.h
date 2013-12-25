@@ -383,7 +383,8 @@ struct wma_txrx_node {
 	v_BOOL_t vdev_up;
 	u_int64_t tsfadjust;
 	void     *addBssStaContext;
-   tANI_U8 aid;
+	tANI_U8 aid;
+	u_int32_t uapsd_cached_val;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)

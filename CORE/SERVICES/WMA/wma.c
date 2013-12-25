@@ -7526,6 +7526,9 @@ static void wma_delete_sta_req_sta_mode(tp_wma_handle wma,
 					tpDeleteStaParams params)
 {
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
+	struct wma_txrx_node *iface;
+	iface = &wma->interfaces[params->smesessionId];
+	iface->uapsd_cached_val = 0;
 
 #ifdef FEATURE_WLAN_TDLS
 	if (STA_ENTRY_TDLS_PEER == params->staType)
@@ -8576,15 +8579,26 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 		}
 	} else if (eSIR_ADDON_ENABLE_UAPSD == ps_req->psSetting) {
 		u_int32_t uapsd_val = 0;
+		struct wma_txrx_node *iface = &wma->interfaces[vdev_id];
 		uapsd_val = wma_get_uapsd_mask(&ps_req->uapsdParams);
 
-		WMA_LOGD("Enable Uapsd vdevId %d Mask %d", vdev_id, uapsd_val);
-		ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
-					WMI_STA_PS_PARAM_UAPSD, uapsd_val);
-		if (ret) {
-			WMA_LOGE("Enable Uapsd Failed vdevId %d", vdev_id);
-			ps_req->status = VOS_STATUS_E_FAILURE;
-			goto resp;
+		if(uapsd_val != iface->uapsd_cached_val) {
+			WMA_LOGD("Enable Uapsd vdevId %d Mask %d",
+				vdev_id, uapsd_val);
+			ret = wmi_unified_set_sta_ps_param(wma->wmi_handle,
+						vdev_id, WMI_STA_PS_PARAM_UAPSD,
+						uapsd_val);
+			if (ret) {
+				WMA_LOGE("Enable Uapsd Failed vdevId %d",
+					vdev_id);
+				ps_req->status = VOS_STATUS_E_FAILURE;
+				goto resp;
+			}
+			/* Cache the Uapsd Mask */
+			iface->uapsd_cached_val = uapsd_val;
+		} else {
+			WMA_LOGD("Already Uapsd Enabled vdevId %d Mask %d",
+				vdev_id, uapsd_val);
 		}
 
 		WMA_LOGD("Enable Forced Sleep vdevId %d", vdev_id);
