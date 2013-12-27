@@ -139,6 +139,26 @@
 #define WMA_SCAN_MAX_OFFCHANNEL_NUM_ACTIVE     10
 #define WMA_SCAN_MAX_OFFCHANNEL_NUM_PASSIVE    4
 
+/* Roaming default values
+ * All time and period values are in milliseconds.
+ * All rssi values are in dB except for WMA_NOISE_FLOOR_DBM_DEFAULT.
+ */
+
+#define WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME    (3)
+#define WMA_NOISE_FLOOR_DBM_DEFAULT          (-96)
+#define WMA_ROAM_RSSI_DIFF_DEFAULT           (5)
+#define WMA_ROAM_DWELL_TIME_ACTIVE_DEFAULT   (100)
+#define WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT  (110)
+#define WMA_ROAM_MIN_REST_TIME_DEFAULT       (50)
+#define WMA_ROAM_MAX_REST_TIME_DEFAULT       (500)
+#define WMA_ROAM_LOW_RSSI_TRIGGER_DEFAULT    (20)
+#define WMA_ROAM_LOW_RSSI_TRIGGER_VERYLOW    (10)
+#define WMA_ROAM_RSSI_THRESH_DIFF_DEFAULT    (30)
+#define WMA_ROAM_RSSI_CHANGE_RESCAN_DEFAULT  (5)
+#define WMA_ROAM_BEACON_WEIGHT_DEFAULT       (14)
+#define WMA_ROAM_OPP_SCAN_PERIOD_DEFAULT     (120000)
+#define WMA_ROAM_OPP_SCAN_AGING_PERIOD_DEFAULT (WMA_ROAM_OPP_SCAN_PERIOD_DEFAULT * 5)
+
 #define WMA_INVALID_KEY_IDX	0xff
 #define WMA_DFS_RADAR_FOUND   1
 typedef struct {
@@ -465,6 +485,7 @@ typedef struct {
 	v_BOOL_t ptrn_match_enable_all_vdev;
 	void* pGetRssiReq;
         u_int32_t roam_offload_vdev_id;
+        v_BOOL_t  roam_offload_enabled;
 
 	/* Here ol_ini_info is used to store ini
 	 * status of arp offload, ns offload

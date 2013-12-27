@@ -2502,6 +2502,30 @@ static VOS_STATUS wma_set_enable_disable_mcc_adaptive_scheduler(tANI_U32 mcc_ada
 	return VOS_STATUS_SUCCESS;
 }
 
+static v_BOOL_t wma_set_enable_disable_roam_scan_offload(tp_wma_handle wma_handle,
+                        bool cfg_roam_offload_enabled)
+{
+        if (wma_handle->roam_offload_enabled && !cfg_roam_offload_enabled) {
+                /* User changed it from enable to disable */
+                if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
+                                                    WMI_VDEV_PARAM_ROAM_FW_OFFLOAD, 0)) {
+                        /* could not disable roam offload in firmware. Disable it for host. */
+                        WMA_LOGE("Failed to set WMI_VDEV_PARAM_ROAM_FW_OFFLOAD = 0");
+                }
+            wma_handle->roam_offload_enabled = FALSE;
+        } else if (!wma_handle->roam_offload_enabled && cfg_roam_offload_enabled) {
+                /* User changed it from disable to enable */
+                if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
+                                                  WMI_VDEV_PARAM_ROAM_FW_OFFLOAD, 1)) {
+                        /* could not enable roam offload in firmware. Disable it for host. */
+                        WMA_LOGE("Failed to set WMI_VDEV_PARAM_ROAM_FW_OFFLOAD = 1");
+                } else {
+                        wma_handle->roam_offload_enabled = TRUE;
+                }
+        }
+
+        return (wma_handle->roam_offload_enabled);
+}
 /* function   : wma_vdev_attach
  * Descriptin :
  * Args       :
@@ -2653,21 +2677,13 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	} else {
 		WMA_LOGE("Failed to get value for WNI_CFG_FRAGMENTATION_THRESHOLD, leaving unchanged");
 	}
-	if (self_sta_req->type == WMI_VDEV_TYPE_STA &&
-        mac->roam.configParam.isFastRoamIniFeatureEnabled) {
-        /* Enable roaming offload
-		 * return value is not significant because some firmware versions may have
-		 * roam offload always enabled. It will stay enabled even if this command fails.
-		 */
-        ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, self_sta_req->sessionId,
-						  WMI_VDEV_PARAM_ROAM_FW_OFFLOAD, 1);
-        if (ret) {
-            /* could not enable roam offload in firmware. Disable it for host. */
-            WMA_LOGE("Failed to set WMI_VDEV_PARAM_ROAM_FW_OFFLOAD");
-        } else {
+        /* Initialize roaming offload state */
+        if (self_sta_req->type == WMI_VDEV_TYPE_STA) {
             wma_handle->roam_offload_vdev_id = (A_UINT32) self_sta_req->sessionId;
+            /* First initialize the value to FALSE and then use cfg value to set/clear it */
+            wma_handle->roam_offload_enabled = FALSE;
+            wma_set_enable_disable_roam_scan_offload(wma_handle, mac->roam.configParam.isRoamOffloadScanEnabled);
         }
-    }
 
 	if (wlan_cfgGetInt(mac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED,
 	        &cfg_val) == eSIR_SUCCESS) {
@@ -3023,7 +3039,7 @@ static int wmi_unified_update_stats_event_handler(void* handle,
 				u_int8_t *data, u_int32_t datalen)
 {
 	wmi_stats_event_fixed_param *ev;
-	A_UINT8 *temp;
+	A_UINT8 *temp = NULL;
 	A_UINT8 i;
 	WMI_UPDATE_STATS_EVENTID_param_tlvs *param_buf;
 	tp_wma_handle wma = (tp_wma_handle) handle;
@@ -3718,7 +3734,7 @@ v_VOID_t wma_roam_scan_fill_ap_profile(tp_wma_handle wma_handle, tpAniSirGlobal 
         ap_profile_p->rsn_ucastcipherset = WMI_CIPHER_NONE;
         ap_profile_p->rsn_mcastcipherset = WMI_CIPHER_NONE;
         ap_profile_p->rsn_mcastmgmtcipherset = WMI_CIPHER_NONE;
-        ap_profile_p->rssi_threshold = 5;
+        ap_profile_p->rssi_threshold = WMA_ROAM_RSSI_DIFF_DEFAULT;
     } else {
         ap_profile_p->ssid.ssid_len = roam_req->ConnectedNetwork.ssId.length;
         vos_mem_copy(ap_profile_p->ssid.ssid, roam_req->ConnectedNetwork.ssId.ssId,
@@ -3731,7 +3747,7 @@ v_VOID_t wma_roam_scan_fill_ap_profile(tp_wma_handle wma_handle, tpAniSirGlobal 
         ap_profile_p->rsn_mcastcipherset =
                 eCsrEncryptionType_to_rsn_cipherset(roam_req->ConnectedNetwork.mcencryption);
         ap_profile_p->rsn_mcastmgmtcipherset = ap_profile_p->rsn_mcastcipherset;
-        ap_profile_p->rssi_threshold = 5;
+        ap_profile_p->rssi_threshold = roam_req->RoamRssiDiff;
     }
 }
 
@@ -3744,32 +3760,60 @@ v_VOID_t wma_roam_scan_fill_ap_profile(tp_wma_handle wma_handle, tpAniSirGlobal 
 v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle, tpAniSirGlobal pMac,
         tSirRoamOffloadScanReq *roam_req, wmi_start_scan_cmd_fixed_param *scan_params)
 {
-	vos_mem_zero(scan_params, sizeof(wmi_start_scan_cmd_fixed_param));
-	if (roam_req != NULL) {
-		/* Parameters updated after association is complete */
-		scan_params->dwell_time_active = roam_req->NeighborScanChannelMinTime;
-		scan_params->dwell_time_passive = roam_req->NeighborScanChannelMaxTime;
-		scan_params->min_rest_time = 50;
-		scan_params->max_rest_time = roam_req->NeighborScanTimerPeriod - scan_params->dwell_time_passive;
-		scan_params->repeat_probe_time = roam_req->NeighborScanChannelMaxTime/3;
-		scan_params->probe_spacing_time = 0;
-		scan_params->probe_delay = 0;
-		scan_params->max_scan_time = 50000; /* 50 seconds for full scan cycle */
-		scan_params->idle_time = 200;
-		scan_params->burst_duration = roam_req->NeighborScanChannelMaxTime;
-	} else {
-		/* roam_req = NULL during initial or pre-assoc invocation */
-        scan_params->dwell_time_active = 100;
-        scan_params->dwell_time_passive = 110;
-        scan_params->min_rest_time = 50;
-        scan_params->max_rest_time = 500;
-        scan_params->repeat_probe_time = 50;
-        scan_params->probe_spacing_time = 0;
-        scan_params->probe_delay = 0;
-        scan_params->max_scan_time = 50000;
-        scan_params->idle_time = 200;
-        scan_params->burst_duration = 110;
-    }
+        tANI_U16 max_scan_time, min_scan_time, burst_duration;
+        tANI_U16 nprobes = 1;
+        vos_mem_zero(scan_params, sizeof(wmi_start_scan_cmd_fixed_param));
+        if (roam_req != NULL) {
+                /* Parameters updated after association is complete */
+            WMA_LOGI("%s: Input parameters: NeighborScanChannelMinTime = %d, NeighborScanChannelMaxTime = %d\n",
+                        __func__, roam_req->NeighborScanChannelMinTime, roam_req->NeighborScanChannelMaxTime);
+            WMA_LOGI("%s: Input parameters: NeighborScanTimerPeriod = %d, HomeAwayTime = %d, nProbes = %d\n",
+                        __func__, roam_req->NeighborScanTimerPeriod, roam_req->HomeAwayTime, roam_req->nProbes);
+            /* NeighborScanChannelMinTime = SETROAMSCANCHANNELMINTIME and gNeighborScanChannelMinTime */
+                if (roam_req->HomeAwayTime > (2 * WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME)) {
+                    burst_duration = roam_req->HomeAwayTime - 2 * WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME;
+                    min_scan_time = min(roam_req->NeighborScanChannelMinTime, burst_duration);
+                    max_scan_time = min(roam_req->NeighborScanChannelMaxTime, burst_duration);
+                } else {
+                        min_scan_time = roam_req->NeighborScanChannelMinTime;
+                        burst_duration = max_scan_time = roam_req->NeighborScanChannelMaxTime;
+                }
+                nprobes = roam_req->nProbes;
+                scan_params->dwell_time_active = min_scan_time;
+
+                /* NeighborScanChannelMaxTime = SETSCANCHANNELTIME and gNeighborScanChannelMaxTime */
+                /* HomeAwayTime = SETSCANHOMEAWAYTIME and gRoamScanHomeAwayTime */
+                /* max_scan_time is for 1 channel, burst_duration is for total for all in a burst */
+                scan_params->dwell_time_passive = max_scan_time;
+
+                /* NeighborScanTimerPeriod = SETSCANHOMETIME and gNeighborScanTimerPeriod */
+                scan_params->min_rest_time = roam_req->NeighborScanTimerPeriod;
+                scan_params->max_rest_time = roam_req->NeighborScanTimerPeriod;
+                scan_params->repeat_probe_time = (nprobes > 0) ? scan_params->dwell_time_active / nprobes : 0;
+                scan_params->probe_spacing_time = 0;
+                scan_params->probe_delay = 0;
+                scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION; /* 30 seconds for full scan cycle */
+                scan_params->idle_time = scan_params->min_rest_time;
+                scan_params->burst_duration = burst_duration;
+        } else {
+                /* roam_req = NULL during initial or pre-assoc invocation */
+                scan_params->dwell_time_active = WMA_ROAM_DWELL_TIME_ACTIVE_DEFAULT;
+                scan_params->dwell_time_passive = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
+                scan_params->min_rest_time = WMA_ROAM_MIN_REST_TIME_DEFAULT;
+                scan_params->max_rest_time = WMA_ROAM_MAX_REST_TIME_DEFAULT;
+                scan_params->repeat_probe_time = 0;
+                scan_params->probe_spacing_time = 0;
+                scan_params->probe_delay = 0;
+                scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
+                scan_params->idle_time = scan_params->min_rest_time;
+                scan_params->burst_duration = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
+        }
+        WMA_LOGI("%s: Rome roam scan parameters: dwell_time_active = %d, dwell_time_passive = %d\n",
+                  __func__, scan_params->dwell_time_active, scan_params->dwell_time_passive);
+        WMA_LOGI("%s: min_rest_time = %d, max_rest_time = %d, repeat_probe_time = %d\n",
+                  __func__, scan_params->min_rest_time, scan_params->max_rest_time, scan_params->repeat_probe_time);
+        WMA_LOGI("%s: max_scan_time = %d, idle_time = %d, burst_duration = %d\n",
+                  __func__, scan_params->max_scan_time, scan_params->idle_time, scan_params->burst_duration);
 }
 /* function   : wma_roam_scan_offload_ap_profile
  * Descriptin : Send WMI_ROAM_AP_PROFILE TLV to firmware
@@ -3845,22 +3889,20 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle)
     wmi_start_scan_cmd_fixed_param scan_params;
     wmi_ap_profile ap_profile;
 
-    if (!pMac) {
+    if (!wma_set_enable_disable_roam_scan_offload(wma_handle, pMac->roam.configParam.isRoamOffloadScanEnabled)) {
+        /* Fast roaming is disabled */
         return VOS_STATUS_SUCCESS;
     }
-	if (!pMac->roam.configParam.isFastRoamIniFeatureEnabled) {
-		/* Fast roaming is disabled */
-		return VOS_STATUS_SUCCESS;
-	}
     /* first program the parameters to conservative values so that roaming scan won't be
      * triggered before association completes
      */
     /* rssi_thresh = 10 is low enough */
-    vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle, 10, 30);
+    vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle, WMA_ROAM_LOW_RSSI_TRIGGER_VERYLOW,
+                                                WMA_ROAM_RSSI_THRESH_DIFF_DEFAULT);
     vos_status = wma_roam_scan_offload_scan_period(wma_handle,
-                                                   100000, 500000);
+                                                WMA_ROAM_OPP_SCAN_PERIOD_DEFAULT, WMA_ROAM_OPP_SCAN_AGING_PERIOD_DEFAULT);
     vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
-                                                   15, 14);
+                                                WMA_ROAM_RSSI_CHANGE_RESCAN_DEFAULT, WMA_ROAM_BEACON_WEIGHT_DEFAULT);
     wma_roam_scan_fill_ap_profile(wma_handle, pMac, NULL, &ap_profile);
 
     vos_status = wma_roam_scan_offload_ap_profile(wma_handle, &ap_profile);
@@ -3883,15 +3925,16 @@ VOS_STATUS wma_roam_scan_offload_end_connect(tp_wma_handle wma_handle)
                 wma_handle->vos_context);
     wmi_start_scan_cmd_fixed_param scan_params;
 
-	if (!pMac->roam.configParam.isFastRoamIniFeatureEnabled) {
-		/* Fast roaming is disabled */
-		return VOS_STATUS_SUCCESS;
-	}
+    /* If roam scan is running, stop it */
+    if (wma_handle->roam_offload_enabled) {
 
-    wma_roam_scan_fill_scan_params(wma_handle, pMac, NULL, &scan_params);
-    vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
-            WMI_ROAM_SCAN_MODE_NONE);
-    return vos_status;
+        wma_roam_scan_fill_scan_params(wma_handle, pMac, NULL, &scan_params);
+        vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
+                                WMI_ROAM_SCAN_MODE_NONE);
+    }
+    /* If fast roaming got disabled by user while connected, turn it off */
+    wma_set_enable_disable_roam_scan_offload(wma_handle, pMac->roam.configParam.isRoamOffloadScanEnabled);
+    return VOS_STATUS_SUCCESS;
 }
 
 /* function   : wma_process_roam_scan_req
@@ -3907,53 +3950,55 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
     wmi_ap_profile ap_profile;
     tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
                 wma_handle->vos_context);
-	A_INT32      noise_floor = WMI_DEFAULT_NOISE_FLOOR_DBM;
 
     WMA_LOGI("%s: command 0x%x\n", __func__, roam_req->Command);
-	if (!pMac->roam.configParam.isFastRoamIniFeatureEnabled) {
-		/* Fast roaming is disabled */
-		return VOS_STATUS_SUCCESS;
-	}
+    if (!wma_handle->roam_offload_enabled) {
+        /* roam scan offload is not enabled in firmware.
+         * Cannot initialize it in the middle of connection.
+         */
+        return VOS_STATUS_E_PERM;
+    }
     switch (roam_req->Command) {
         case ROAM_SCAN_OFFLOAD_START:
             /*
              * Scan/Roam threshold parameters are translated from fields of tSirRoamOffloadScanReq
              * to WMITLV values sent to Rome firmware.
-			 * some of these parameters are configurable in qcom_cfg.ini file.
+             * some of these parameters are configurable in qcom_cfg.ini file.
              */
 
-			/* First parameter is positive rssi value to trigger rssi based scan.
-			 * Opportunistic scan is started at 30 dB higher that trigger rssi.
+            /* First parameter is positive rssi value to trigger rssi based scan.
+             * Opportunistic scan is started at 30 dB higher that trigger rssi.
              */
-			vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
-					                             (roam_req->LookupThreshold - noise_floor),
-					                             30);
-			if (vos_status != VOS_STATUS_SUCCESS) {
+            vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
+                                                                     (roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT),
+                                                                     WMA_ROAM_RSSI_THRESH_DIFF_DEFAULT);
+            if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
-			/* Opportunistic scan runs on a timer, value set by NeighborRoamScanRefreshPeriod.
-			 * Age out the entries after 3 such cycles.
-			 */
-			vos_status = wma_roam_scan_offload_scan_period(wma_handle,
-											      roam_req->NeighborRoamScanRefreshPeriod,
-											      roam_req->NeighborRoamScanRefreshPeriod * 3);
-			if (vos_status != VOS_STATUS_SUCCESS) {
+            /* Opportunistic scan runs on a timer, value set by NeighborRoamScanRefreshPeriod.
+             * Age out the entries after 3 such cycles.
+             */
+            vos_status = wma_roam_scan_offload_scan_period(wma_handle,
+                                      roam_req->NeighborRoamScanRefreshPeriod,
+                                      roam_req->NeighborRoamScanRefreshPeriod * 3);
+            if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
-			/* Start new rssi triggered scan only if it changes by RoamRssiDiff value.
-			 * Beacon weight of 14 means average rssi is taken over 14 previous samples +
-			 * 2 times the current beacon's rssi.
-			 */
-			vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
-												  roam_req->RoamRssiDiff, 14);
-			if (vos_status != VOS_STATUS_SUCCESS) {
+            /* Start new rssi triggered scan only if it changes by RoamRssiDiff value.
+             * Beacon weight of 14 means average rssi is taken over 14 previous samples +
+             * 2 times the current beacon's rssi.
+             */
+            vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
+                                      WMA_ROAM_RSSI_CHANGE_RESCAN_DEFAULT,
+                                      WMA_ROAM_BEACON_WEIGHT_DEFAULT);
+            if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
             wma_roam_scan_fill_ap_profile(wma_handle, pMac, roam_req, &ap_profile);
 
-			vos_status = wma_roam_scan_offload_ap_profile(wma_handle,
-					                          &ap_profile);
-			if (vos_status != VOS_STATUS_SUCCESS) {
+            vos_status = wma_roam_scan_offload_ap_profile(wma_handle,
+                                      &ap_profile);
+            if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
             vos_status = wma_roam_scan_offload_chan_list(wma_handle,
@@ -3987,20 +4032,21 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
-			vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
-					                             (roam_req->LookupThreshold - noise_floor),
-					                             30);
-			if (vos_status != VOS_STATUS_SUCCESS) {
+            vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
+                                (roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT),
+                                WMA_ROAM_RSSI_THRESH_DIFF_DEFAULT);
+            if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
-			vos_status = wma_roam_scan_offload_scan_period(wma_handle,
-											      roam_req->NeighborRoamScanRefreshPeriod,
-											      roam_req->NeighborRoamScanRefreshPeriod * 3);
-			if (vos_status != VOS_STATUS_SUCCESS) {
+            vos_status = wma_roam_scan_offload_scan_period(wma_handle,
+                                roam_req->NeighborRoamScanRefreshPeriod,
+                                roam_req->NeighborRoamScanRefreshPeriod * 3);
+            if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
-			vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
-												  roam_req->RoamRssiDiff, 14);
+            vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
+                                WMA_ROAM_RSSI_CHANGE_RESCAN_DEFAULT,
+                                WMA_ROAM_BEACON_WEIGHT_DEFAULT);
             break;
 
         default:
