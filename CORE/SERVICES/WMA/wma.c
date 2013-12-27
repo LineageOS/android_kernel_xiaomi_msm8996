@@ -15998,3 +15998,43 @@ VOS_STATUS WMA_GetWcnssSoftwareVersion(v_PVOID_t pvosGCtx,
         snprintf(pVersion, versionBufferSize, "%x", (unsigned int)wma_handle->target_fw_version);
         return VOS_STATUS_SUCCESS;
 }
+
+void ol_rx_err(ol_pdev_handle pdev, u_int8_t vdev_id,
+	       u_int8_t *peer_mac_addr, int tid, u_int32_t tsf32,
+	       enum ol_rx_err_type err_type, adf_nbuf_t rx_frame,
+	       u_int64_t *pn, u_int8_t key_id)
+{
+	void *g_vos_ctx = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, g_vos_ctx);
+	tpSirSmeMicFailureInd mic_err_ind;
+	struct ether_header *eth_hdr;
+
+	if (err_type != OL_RX_ERR_TKIP_MIC)
+		return;
+
+	if (adf_nbuf_len(rx_frame) < sizeof(*eth_hdr))
+		return;
+	eth_hdr = (struct ether_header *) adf_nbuf_data(rx_frame);
+	mic_err_ind = adf_os_mem_alloc(NULL, sizeof(*mic_err_ind));
+	if (!mic_err_ind) {
+		WMA_LOGE("%s: Failed to allocate memory for MIC indication message", __func__);
+		return;
+	}
+	adf_os_mem_set((void *) mic_err_ind, 0, sizeof(*mic_err_ind));
+
+	mic_err_ind->messageType = eWNI_SME_MIC_FAILURE_IND;
+	mic_err_ind->length = sizeof(*mic_err_ind);
+	adf_os_mem_copy(mic_err_ind->bssId,
+		     (v_MACADDR_t *) wma->interfaces[vdev_id].bssid,
+		     sizeof(tSirMacAddr));
+	adf_os_mem_copy(mic_err_ind->info.taMacAddr,
+		     (v_MACADDR_t *) peer_mac_addr, sizeof(tSirMacAddr));
+	adf_os_mem_copy(mic_err_ind->info.srcMacAddr,
+		     (v_MACADDR_t *) eth_hdr->ether_shost, sizeof(tSirMacAddr));
+	adf_os_mem_copy(mic_err_ind->info.dstMacAddr,
+		     (v_MACADDR_t *) eth_hdr->ether_dhost, sizeof(tSirMacAddr));
+        mic_err_ind->info.keyId = key_id;
+        mic_err_ind->info.multicast = IEEE80211_IS_MULTICAST(eth_hdr->ether_dhost);
+	adf_os_mem_copy(mic_err_ind->info.TSC, pn, SIR_CIPHER_SEQ_CTR_SIZE);
+	wma_send_msg(wma, SIR_HAL_MIC_FAILURE_IND, (void *) mic_err_ind, 0);
+}

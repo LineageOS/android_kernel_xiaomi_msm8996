@@ -1414,6 +1414,10 @@ a_bool_t (*htt_rx_mpdu_is_encrypted)(
     htt_pdev_handle pdev,
     void *mpdu_desc);
 
+a_bool_t (*htt_rx_msdu_desc_key_id)(
+    htt_pdev_handle pdev,
+    void *mpdu_desc, u_int8_t *key_id);
+
 void *
 htt_rx_mpdu_desc_list_next_ll(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
 {
@@ -1483,6 +1487,29 @@ a_bool_t htt_rx_mpdu_is_encrypted_hl(htt_pdev_handle pdev, void *mpdu_desc)
         adf_os_assert(0);
 		return -1;
     }
+}
+
+a_bool_t
+htt_rx_msdu_desc_key_id_ll(htt_pdev_handle pdev, void *mpdu_desc,
+                           u_int8_t *key_id)
+{
+    struct htt_host_rx_desc_base *rx_desc = (struct htt_host_rx_desc_base *)
+                                             mpdu_desc;
+
+    if (!htt_rx_msdu_first_msdu_flag_ll(pdev, mpdu_desc))
+        return A_FALSE;
+
+    *key_id = ((*(((u_int32_t *) &rx_desc->msdu_end) + 1)) &
+               (RX_MSDU_END_1_KEY_ID_OCT_MASK >> RX_MSDU_END_1_KEY_ID_OCT_LSB));
+
+    return A_TRUE;
+}
+
+a_bool_t
+htt_rx_msdu_desc_key_id_hl(htt_pdev_handle htt_pdev, void *mpdu_desc, u_int8_t *key_id)
+{
+   /* TODO: Implement it for HL */
+   return A_FALSE;
 }
 
 void
@@ -1671,6 +1698,7 @@ htt_rx_attach(struct htt_pdev_t *pdev)
         htt_rx_msdu_is_frag = htt_rx_msdu_is_frag_ll;
         htt_rx_msdu_desc_retrieve = htt_rx_msdu_desc_retrieve_ll;
         htt_rx_mpdu_is_encrypted = htt_rx_mpdu_is_encrypted_ll;
+        htt_rx_msdu_desc_key_id = htt_rx_msdu_desc_key_id_ll;
     } else {
         pdev->rx_ring.size = HTT_RX_RING_SIZE_MIN;
         HTT_ASSERT2(IS_PWR2(pdev->rx_ring.size));
@@ -1690,6 +1718,7 @@ htt_rx_attach(struct htt_pdev_t *pdev)
         htt_rx_msdu_is_frag = htt_rx_msdu_is_frag_hl;
         htt_rx_msdu_desc_retrieve = htt_rx_msdu_desc_retrieve_hl;
         htt_rx_mpdu_is_encrypted = htt_rx_mpdu_is_encrypted_hl;
+        htt_rx_msdu_desc_key_id = htt_rx_msdu_desc_key_id_hl;
 
         /*
          * HL case, the rx descriptor can be different sizes for
