@@ -1157,6 +1157,14 @@ static iw_softap_setparam(struct net_device *dev,
             }
 
 #ifdef QCA_WIFI_2_0
+         case QCSAP_PARAM_SET_TXRX_FW_STATS:
+             {
+                  hddLog(LOG1, "QCSAP_PARAM_SET_TXRX_FW_STATS val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID,
+                                               set_value, VDEV_CMD);
+                  break;
+             }
          /* Firmware debug log */
          case QCSAP_DBGLOG_LOG_LEVEL:
              {
@@ -3230,6 +3238,9 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "hideSSID" },
    { QCSAP_PARAM_SET_MC_RATE,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMcRate" },
+   { QCSAP_PARAM_SET_TXRX_FW_STATS,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "txrx_fw_stats" },
+
 
 #ifdef QCA_WIFI_2_0
  /* Sub-cmds DBGLOG specific commands */
