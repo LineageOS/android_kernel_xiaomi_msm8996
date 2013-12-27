@@ -5421,7 +5421,9 @@ typedef struct {
     A_UINT32    tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_gtk_rekey_fail_event_fixed_param  */
     /** Reserved for future use */
     A_UINT32    reserved0;
+    A_UINT32 vdev_id;
 } wmi_gtk_rekey_fail_event_fixed_param;
+
 enum wmm_ac_downgrade_policy {
     WMM_AC_DOWNGRADE_DEPRIO,
     WMM_AC_DOWNGRADE_DROP,
