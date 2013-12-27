@@ -124,6 +124,12 @@ typedef enum
 
 } hdd_wmm_user_mode_t;
 
+// UAPSD Mask bits
+// (Bit0:VO; Bit1:VI; Bit2:BK; Bit3:BE all other bits are ignored)
+#define HDD_AC_VO 0x1
+#define HDD_AC_VI 0x2
+#define HDD_AC_BK 0x4
+#define HDD_AC_BE 0x8
 
 /*! @brief WMM Qos instance control block
 */
@@ -173,6 +179,7 @@ typedef struct
    sme_QosWmmTspecInfo          wmmAcTspecInfo;
 
    // current U-APSD parameters
+   v_BOOL_t                     wmmAcIsUapsdEnabled;
    v_U32_t                      wmmAcUapsdServiceInterval;
    v_U32_t                      wmmAcUapsdSuspensionInterval;
    sme_QosWmmDirType            wmmAcUapsdDirection;
@@ -388,5 +395,14 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
   ===========================================================================*/
 hdd_wlan_wmm_status_e hdd_wmm_checkts( hdd_adapter_t* pAdapter,
                                        v_U32_t handle );
+/**============================================================================
+  @brief hdd_wmm_adapter_clear() - Function which will clear the WMM status
+  of all ACs
+  @param pAdapter  : [in]  pointer to adapter context
+
+  @return          : VOS_STATUS_SUCCESS if succssful
+                   : other values if failure
+  ===========================================================================*/
+VOS_STATUS hdd_wmm_adapter_clear( hdd_adapter_t *pAdapter );
 
 #endif /* #ifndef _WLAN_HDD_WMM_H */

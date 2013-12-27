@@ -26,7 +26,6 @@
  */
 
 /*
- *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limGlobal.h contains the definitions exported by
  * LIM module.
@@ -86,6 +85,8 @@
 
 #define GET_TIM_WAIT_COUNT(LIntrvl)        ((LIntrvl * LIM_TIM_WAIT_COUNT_FACTOR) > LIM_MIN_TIM_WAIT_COUNT ? \
                                                                     (LIntrvl * LIM_TIM_WAIT_COUNT_FACTOR) : LIM_MIN_TIM_WAIT_COUNT)
+#define IS_5G_BAND(__rfBand)     ((__rfBand & 0x3) == 0x2)
+#define IS_24G_BAND(__rfBand)    ((__rfBand & 0x3) == 0x1)
 
 // enums exported by LIM are as follows
 
@@ -100,7 +101,7 @@ typedef enum eLimSystemRole
     eLIM_BT_AMP_AP_ROLE,
     eLIM_P2P_DEVICE_ROLE,
     eLIM_P2P_DEVICE_GO,
-    eLIM_P2P_DEVICE_CLINET
+    eLIM_P2P_DEVICE_CLIENT
 } tLimSystemRole;
 
 /**
@@ -296,9 +297,9 @@ typedef struct sLimMlmScanReq
     tANI_U16           uIEFieldLen;
     tANI_U16           uIEFieldOffset;
 
+    tANI_U8        sessionId;
     //channelList MUST be the last field of this structure
     tSirChannelList    channelList;
-    tANI_U8        sessionId;
     /*-----------------------------
       tLimMlmScanReq....
       -----------------------------
@@ -327,7 +328,7 @@ struct tLimScanResultNode
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
 
-#ifndef OEM_DATA_REQ_SIZE 
+#ifndef OEM_DATA_REQ_SIZE
 #ifdef QCA_WIFI_2_0
 #define OEM_DATA_REQ_SIZE 276
 #else

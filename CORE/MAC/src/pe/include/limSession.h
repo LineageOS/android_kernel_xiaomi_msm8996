@@ -36,6 +36,7 @@
   \brief prototype for lim Session related APIs
 
   \author Sunit Bhatia
+
    Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
    Qualcomm Technologies Confidential and Proprietary.
 
@@ -346,7 +347,6 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_BOOLEAN LimHBFailureStatus;
     tANI_U32           gLimPhyMode;
     tANI_U8            amsduSupportedInBA;
-
     tANI_U8          txLdpcIniFeatureEnabled;
     /**
      * Following is the place holder for free peer index pool.
@@ -362,6 +362,13 @@ typedef struct sPESession           // Added to Support BT-AMP
 #endif
     tANI_BOOLEAN fWaitForProbeRsp;
     tANI_BOOLEAN fIgnoreCapsChange;
+    tANI_BOOLEAN fDeauthReceived;
+#ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM
+    tANI_S8 rssi;
+#endif
+    tANI_U8 isAmsduSupportInAMPDU;
+    tANI_U8 isCoalesingInIBSSAllowed;
+
     tSirHTConfig htConfig;
 
     /*
@@ -406,8 +413,10 @@ typedef struct sPESession           // Added to Support BT-AMP
     /* Power Save Off load Parameters */
     tPowersaveoffloadInfo pmmOffloadInfo;
 
-    tANI_U8 isCoalesingInIBSSAllowed;
+    /* SMPS mode */
+    tANI_U8  smpsMode;
 
+    tANI_U8  chainMask;
 }tPESession, *tpPESession;
 
 #define LIM_MAX_ACTIVE_SESSIONS 4

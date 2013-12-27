@@ -377,7 +377,7 @@ WLAN_BAPReadRSSI
     {
         /* Get the RSSI value for this station (physical link) */
         vosStatus = WLANTL_GetRssi(btampContext->pvosGCtx, btampContext->ucSTAId,
-                        &pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_RSSI.rssi);
+                        &pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_RSSI.rssi,NULL);
 
         if (VOS_STATUS_SUCCESS == vosStatus)
         {

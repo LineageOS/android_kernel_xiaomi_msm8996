@@ -230,7 +230,9 @@ enum eWniMsgTypes
     eWNI_SME_ACTION_FRAME_SEND_CNF,
     eWNI_SME_ABORT_REMAIN_ON_CHAN_IND,
     eWNI_SME_UPDATE_NOA,
+    eWNI_SME_CLEAR_DFS_CHANNEL_LIST,
     eWNI_SME_PRE_CHANNEL_SWITCH_FULL_POWER,
+    eWNI_SME_GET_SNR_REQ,
     //General Power Save Messages
     eWNI_PMC_MSG_TYPES_BEGIN,
     eWNI_PMC_PWR_SAVE_CFG,
@@ -306,6 +308,7 @@ enum eWniMsgTypes
     eWNI_SME_TX_PER_HIT_IND,
 
     eWNI_SME_CHANGE_COUNTRY_CODE,
+    eWNI_SME_GENERIC_CHANGE_COUNTRY_CODE,
     eWNI_SME_PRE_SWITCH_CHL_IND,
     eWNI_SME_POST_SWITCH_CHL_IND,
 
@@ -329,6 +332,8 @@ enum eWniMsgTypes
     eWNI_SME_TDLS_DEL_STA_IND,
     eWNI_SME_TDLS_DEL_ALL_PEER_IND,
     eWNI_SME_MGMT_FRM_TX_COMPLETION_IND,
+    eWNI_SME_TDLS_LINK_ESTABLISH_REQ,
+    eWNI_SME_TDLS_LINK_ESTABLISH_RSP,
 #endif
     //NOTE: If you are planning to add more mesages, please make sure that 
     //SIR_LIM_ITC_MSG_TYPES_BEGIN is moved appropriately. It is set as
@@ -357,7 +362,24 @@ enum eWniMsgTypes
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
     eWNI_PMC_GTK_OFFLOAD_GETINFO_RSP,
 #endif // WLAN_FEATURE_GTK_OFFLOAD
-    eWNI_SME_CANDIDATE_FOUND_IND, //ROAM candidate indication from FW
+    eWNI_SME_CANDIDATE_FOUND_IND, /*ROAM candidate indication from FW*/
+    eWNI_SME_HANDOFF_REQ,/*upper layer requested handoff to driver in STA mode*/
+    eWNI_SME_ROAM_SCAN_OFFLOAD_RSP,/*Fwd the LFR scan offload rsp from FW to SME*/
+#ifdef FEATURE_WLAN_LPHB
+    eWNI_SME_LPHB_IND,
+#endif /* FEATURE_WLAN_LPHB */
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+    eWNI_SME_ENABLE_RMC_REQ,
+    eWNI_SME_DISABLE_RMC_REQ,
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+    eWNI_SME_IBSS_PEER_INFO_RSP,
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+    eWNI_SME_GET_TSM_STATS_REQ,
+    eWNI_SME_GET_TSM_STATS_RSP,
+    eWNI_SME_TSM_IE_IND,
+
     eWNI_SME_READY_TO_SUSPEND_IND,
     eWNI_SME_MSG_TYPES_END
 };
@@ -398,6 +420,7 @@ enum eWniMsgTypes
 
 /*---------------------------------------------------------------------*/
 /* CFG to HDD message paramter indices                                 */
+/*                                                                     */
 /*   The followings are word indices starting from the message body    */
 /*                                                                     */
 /*   WNI_CFG_xxxx_xxxx_xxxx:         index of parameter                */

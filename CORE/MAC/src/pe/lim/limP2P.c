@@ -66,6 +66,11 @@
 #define   ADDR2_OFFSET           10
 #define   ACTION_OFFSET          24
 
+/* A DFS channel can be ACTIVE for max 9000 msec, from the last
+   received Beacon/Prpbe Resp. */
+#define   MAX_TIME_TO_BE_ACTIVE_CHANNEL 9000
+
+
 
 void limRemainOnChnlSuspendLinkHdlr(tpAniSirGlobal pMac, eHalStatus status,
                                        tANI_U32 *data);
@@ -113,33 +118,30 @@ static eHalStatus limSendHalReqRemainOnChanOffload(tpAniSirGlobal pMac,
 {
     tSirScanOffloadReq *pScanOffloadReq;
     tSirMsgQ msg;
-    eHalStatus status;
     tSirRetStatus rc = eSIR_SUCCESS;
-    tANI_U8 bssid[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    tANI_U8 bssid[SIR_MAC_ADDR_LENGTH] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-    status = palAllocateMemory(pMac->hHdd, (void **) &pScanOffloadReq,
-            sizeof(tSirScanOffloadReq));
-    if (eHAL_STATUS_SUCCESS != status)
+    pScanOffloadReq = vos_mem_malloc(sizeof(tSirScanOffloadReq));
+    if (NULL == pScanOffloadReq)
     {
         limLog(pMac, LOGE,
-                FL("palAllocateMemory failed for pScanOffloadReq"));
+                FL("Memory allocation failed for pScanOffloadReq"));
         return eHAL_STATUS_FAILURE;
     }
 
-    palZeroMemory( pMac->hHdd, (tANI_U8 *) pScanOffloadReq,
-            sizeof(tSirScanOffloadReq));
+    vos_mem_zero(pScanOffloadReq, sizeof(tSirScanOffloadReq));
 
     msg.type = WDA_START_SCAN_OFFLOAD_REQ;
     msg.bodyptr = pScanOffloadReq;
     msg.bodyval = 0;
 
-    palCopyMemory(pMac->hHdd, (tANI_U8 *) pScanOffloadReq->selfMacAddr,
-            (tANI_U8 *) pRemOnChnReq->selfMacAddr,
-            sizeof(tSirMacAddr));
+    vos_mem_copy((tANI_U8 *) pScanOffloadReq->selfMacAddr,
+                 (tANI_U8 *) pRemOnChnReq->selfMacAddr,
+                 sizeof(tSirMacAddr));
 
-    palCopyMemory(pMac->hHdd, (tANI_U8 *) pScanOffloadReq->bssId,
-            (tANI_U8 *) bssid,
-            sizeof(tSirMacAddr));
+    vos_mem_copy((tANI_U8 *) pScanOffloadReq->bssId,
+                 (tANI_U8 *) bssid,
+                 sizeof(tSirMacAddr));
     pScanOffloadReq->scanType = eSIR_PASSIVE_SCAN;
     pScanOffloadReq->p2pScanType = P2P_SCAN_TYPE_LISTEN;
     pScanOffloadReq->minChannelTime = pRemOnChnReq->duration;
@@ -158,7 +160,7 @@ static eHalStatus limSendHalReqRemainOnChanOffload(tpAniSirGlobal pMac,
     {
         limLog(pMac, LOGE, FL("wdaPostCtrlMsg() return failure"),
                 pMac);
-        palFreeMemory(pMac->hHdd, (void *)pScanOffloadReq);
+        vos_mem_free(pScanOffloadReq);
         return eHAL_STATUS_FAILURE;
     }
     return eHAL_STATUS_SUCCESS;
@@ -200,7 +202,7 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
             /* Post the meessage to Sme */
             limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RSP, status,
                     MsgBuff->sessionId, 0);
-            palFreeMemory( pMac->hHdd, pMac->lim.gpLimRemainOnChanReq );
+            vos_mem_free(pMac->lim.gpLimRemainOnChanReq);
             pMac->lim.gpLimRemainOnChanReq = NULL;
         }
         return FALSE;
@@ -251,9 +253,10 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                 }
 #endif
 
-                if ((limSetLinkState(pMac, eSIR_LINK_LISTEN_STATE,
-                    nullBssid, pMac->lim.gSelfMacAddr, 
-                    limSetLinkStateP2PCallback, NULL)) != eSIR_SUCCESS)
+                if ((limSetLinkState(pMac, MsgBuff->isProbeRequestAllowed?
+                                     eSIR_LINK_LISTEN_STATE:eSIR_LINK_SEND_ACTION_STATE,
+                                     nullBssid, pMac->lim.gSelfMacAddr,
+                                     limSetLinkStateP2PCallback, NULL)) != eSIR_SUCCESS)
                 {
                     limLog( pMac, LOGE, "Unable to change link state");
                     goto error;
@@ -402,7 +405,7 @@ void limRemainOnChnlSetLinkStat(tpAniSirGlobal pMac, eHalStatus status,
 
     if (status != eHAL_STATUS_SUCCESS)
     {
-        limLog( pMac, LOGE, "%s: Change channel not successful");
+        limLog( pMac, LOGE, FL("Change channel not successful"));
         goto error1;
     }
 
@@ -435,7 +438,8 @@ void limRemainOnChnlSetLinkStat(tpAniSirGlobal pMac, eHalStatus status,
         goto error;
     }
 
-    if ((limSetLinkState(pMac, eSIR_LINK_LISTEN_STATE,nullBssid,
+    if ((limSetLinkState(pMac, MsgRemainonChannel->isProbeRequestAllowed?
+                         eSIR_LINK_LISTEN_STATE:eSIR_LINK_SEND_ACTION_STATE,nullBssid,
                          pMac->lim.gSelfMacAddr, limSetLinkStateP2PCallback, 
                          NULL)) != eSIR_SUCCESS)
     {
@@ -468,6 +472,56 @@ void limProcessInsertSingleShotNOATimeout(tpAniSirGlobal pMac)
     limProcessRegdDefdSmeReqAfterNOAStart(pMac);
 
     return;
+}
+
+/*-----------------------------------------------------------------
+ * lim Insert Timer callback function to check active DFS channels
+ * and convert them to passive channels if there was no
+ * beacon/proberesp for MAX_TIME_TO_BE_ACTIVE_CHANNEL time
+ *------------------------------------------------------------------*/
+void limConvertActiveChannelToPassiveChannel(tpAniSirGlobal pMac )
+{
+    tANI_U32 currentTime;
+    tANI_U32 lastTime = 0;
+    tANI_U32 timeDiff;
+    tANI_U8 i;
+    currentTime = vos_timer_get_system_time();
+    for (i = 1; i < SIR_MAX_24G_5G_CHANNEL_RANGE ; i++)
+    {
+        if ((pMac->lim.dfschannelList.timeStamp[i]) != 0)
+        {
+            lastTime = pMac->lim.dfschannelList.timeStamp[i];
+            if (currentTime >= lastTime)
+            {
+                timeDiff = (currentTime - lastTime);
+            }
+            else
+            {
+                timeDiff = (0xFFFFFFFF - lastTime) + currentTime;
+            }
+
+            if (timeDiff >= MAX_TIME_TO_BE_ACTIVE_CHANNEL)
+            {
+                limCovertChannelScanType( pMac, i,FALSE);
+                pMac->lim.dfschannelList.timeStamp[i] = 0;
+            }
+        }
+    }
+    /* lastTime is zero if there is no DFS active channels in the list.
+     * If this is non zero then we have active DFS channels so restart the timer.
+    */
+    if (lastTime != 0)
+    {
+        if (tx_timer_activate(
+                         &pMac->lim.limTimers.gLimActiveToPassiveChannelTimer)
+                          != TX_SUCCESS)
+        {
+            limLog(pMac, LOGE, FL("Could not activate Active to Passive Channel  timer"));
+        }
+    }
+
+    return;
+
 }
 
 /*------------------------------------------------------------------
@@ -609,7 +663,7 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data)
     limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RSP, status, 
                   MsgRemainonChannel->sessionId, 0);
 
-    palFreeMemory( pMac->hHdd, pMac->lim.gpLimRemainOnChanReq );
+    vos_mem_free(pMac->lim.gpLimRemainOnChanReq);
     pMac->lim.gpLimRemainOnChanReq = NULL;
 
     pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
@@ -642,14 +696,14 @@ void limSendSmeMgmtFrameInd(
 
     length = sizeof(tSirSmeMgmtFrameInd) + frameLen;
 
-    if( eHAL_STATUS_SUCCESS !=
-         palAllocateMemory( pMac->hHdd, (void **)&pSirSmeMgmtFrame, length ))
+    pSirSmeMgmtFrame = vos_mem_malloc(length);
+    if (NULL == pSirSmeMgmtFrame)
     {
         limLog(pMac, LOGP,
-               FL("palAllocateMemory failed for eWNI_SME_LISTEN_RSP"));
+               FL("AllocateMemory failed for eWNI_SME_LISTEN_RSP"));
         return;
     }
-    palZeroMemory(pMac->hHdd, (void*)pSirSmeMgmtFrame, length);
+    vos_mem_set((void*)pSirSmeMgmtFrame, length, 0);
 
     pSirSmeMgmtFrame->mesgType = eWNI_SME_MGMT_FRM_IND;
     pSirSmeMgmtFrame->mesgLen = length;
@@ -713,6 +767,11 @@ void limSendSmeMgmtFrameInd(
                 limLog( pMac, LOGE, FL("Unable to active the gLimRemainOnChannelTimer"));
             } 
     }
+    else
+    {
+       if(frameType == SIR_MAC_MGMT_ACTION)
+            limLog( pMac, LOGE, FL("Rx: NO REMAIN ON CHANNEL and recd action frame "));
+    }
 
 send_frame:
     pSirSmeMgmtFrame->rxChan = rxChannel;
@@ -753,8 +812,8 @@ void limSetHtCaps(tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 *pIeSt
     PopulateDot11fHTCaps(pMac, psessionEntry, &dot11HtCap);
     pIe = limGetIEPtr(pMac,pIeStartPtr, nBytes,
                                        DOT11F_EID_HTCAPS,ONE_BYTE);
-   limLog( pMac, LOG2, FL("pIe 0x%x dot11HtCap.supportedMCSSet[0]=0x%x"),
-        (tANI_U32)pIe,dot11HtCap.supportedMCSSet[0]);
+    limLog( pMac, LOG2, FL("pIe %p dot11HtCap.supportedMCSSet[0]=0x%x"),
+            pIe, dot11HtCap.supportedMCSSet[0]);
     if(pIe)
     {
         tHtCaps *pHtcap = (tHtCaps *)&pIe[2]; //convert from unpacked to packed structure
@@ -774,9 +833,9 @@ void limSetHtCaps(tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 *pIeSt
         pHtcap->lsigTXOPProtection = dot11HtCap.lsigTXOPProtection;
         pHtcap->maxRxAMPDUFactor = dot11HtCap.maxRxAMPDUFactor;
         pHtcap->mpduDensity = dot11HtCap.mpduDensity;
-        palCopyMemory( pMac->hHdd, (void *)pHtcap->supportedMCSSet,
-                       (void *)(dot11HtCap.supportedMCSSet),
-                        sizeof(pHtcap->supportedMCSSet));
+        vos_mem_copy((void *)pHtcap->supportedMCSSet,
+                     (void *)(dot11HtCap.supportedMCSSet),
+                      sizeof(pHtcap->supportedMCSSet));
         pHtcap->pco = dot11HtCap.pco;
         pHtcap->transitionTime = dot11HtCap.transitionTime;
         pHtcap->mcsFeedback = dot11HtCap.mcsFeedback;
@@ -821,7 +880,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     tANI_U8             txFlag = 0;
     tpSirMacFrameCtl    pFc = (tpSirMacFrameCtl ) pMbMsg->data;
     tANI_U8             noaLen = 0;
-    tANI_U8             noaStream[SIR_MAX_NOA_ATTR_LEN + SIR_P2P_IE_HEADER_LEN];
+    tANI_U8             noaStream[SIR_MAX_NOA_ATTR_LEN + (2*SIR_P2P_IE_HEADER_LEN)];
     tANI_U8             origLen = 0;
     tANI_U8             sessionId = 0;
     v_U8_t              *pP2PIe = NULL;
@@ -926,8 +985,8 @@ send_action_frame:
                 tpSirMacP2PActionFrameHdr pActionHdr =
                     (tpSirMacP2PActionFrameHdr)((v_U8_t *)pMbMsg->data +
                                                         ACTION_OFFSET);
-                if ( palEqualMemory( pMac->hHdd, pActionHdr->Oui,
-                     SIR_MAC_P2P_OUI, SIR_MAC_P2P_OUI_SIZE ) &&
+                if (vos_mem_compare( pActionHdr->Oui,
+                    SIR_MAC_P2P_OUI, SIR_MAC_P2P_OUI_SIZE ) &&
                     (SIR_MAC_ACTION_P2P_SUBTYPE_PRESENCE_RSP ==
                     pActionHdr->OuiSubType))
                 { //In case of Presence RSP response
@@ -981,7 +1040,7 @@ send_action_frame:
                 }
                 nBytes += noaLen;
                 limLog( pMac, LOGE,
-                        FL("noaLen=%d origLen=%d pP2PIe=0x%x"
+                        FL("noaLen=%d origLen=%d pP2PIe=%p"
                         " nBytes=%d nBytesToCopy=%d "),
                                    noaLen,origLen,pP2PIe,nBytes,
                    ((pP2PIe + origLen + 2) - (v_U8_t *)pMbMsg->data));
@@ -1056,22 +1115,22 @@ send_frame1:
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set(pFrame, nBytes, 0);
 
     if ((noaLen > 0) && (noaLen<(SIR_MAX_NOA_ATTR_LEN + SIR_P2P_IE_HEADER_LEN)))
     {
         // Add 2 bytes for length and Arribute field
         v_U32_t nBytesToCopy = ((pP2PIe + origLen + 2 ) -
                                 (v_U8_t *)pMbMsg->data);
-        palCopyMemory( pMac->hHdd, pFrame, pMbMsg->data, nBytesToCopy);
-        palCopyMemory( pMac->hHdd, (pFrame + nBytesToCopy), noaStream, noaLen);
-        palCopyMemory( pMac->hHdd, (pFrame + nBytesToCopy + noaLen),
-            pMbMsg->data + nBytesToCopy, nBytes - nBytesToCopy - noaLen);
+        vos_mem_copy(pFrame, pMbMsg->data, nBytesToCopy);
+        vos_mem_copy((pFrame + nBytesToCopy), noaStream, noaLen);
+        vos_mem_copy((pFrame + nBytesToCopy + noaLen),
+        pMbMsg->data + nBytesToCopy, nBytes - nBytesToCopy - noaLen);
 
     }
     else
     {
-        palCopyMemory(pMac->hHdd, pFrame, pMbMsg->data, nBytes);
+        vos_mem_copy(pFrame, pMbMsg->data, nBytes);
     }
 
     /* Use BD rate 2 for all P2P related frames. As these frames need to go
@@ -1113,7 +1172,7 @@ send_frame1:
         else
         {
              pMac->lim.mgmtFrameSessionId = pMbMsg->sessionId;
-             limLog( pMac, LOG2, FL("lim.actionFrameSessionId = %lu" ),
+             limLog( pMac, LOG2, FL("lim.actionFrameSessionId = %u" ),
                      pMac->lim.mgmtFrameSessionId);
 
         }
@@ -1150,15 +1209,15 @@ tSirRetStatus __limProcessSmeNoAUpdate(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     pNoA = (tpP2pPsConfig) pMsgBuf;
 
-    if( eHAL_STATUS_SUCCESS != palAllocateMemory(
-                  pMac->hHdd, (void **) &pMsgNoA, sizeof( tP2pPsConfig )))
+    pMsgNoA = vos_mem_malloc(sizeof( tP2pPsConfig ));
+    if (NULL == pMsgNoA)
     {
         limLog( pMac, LOGE,
                      FL( "Unable to allocate memory during NoA Update" ));
         return eSIR_MEM_ALLOC_FAILED;
     }
 
-    palZeroMemory( pMac->hHdd, (tANI_U8 *)pMsgNoA, sizeof(tP2pPsConfig));
+    vos_mem_set((tANI_U8 *)pMsgNoA, sizeof(tP2pPsConfig), 0);
     pMsgNoA->opp_ps = pNoA->opp_ps;
     pMsgNoA->ctWindow = pNoA->ctWindow;
     pMsgNoA->duration = pNoA->duration;

@@ -26,6 +26,11 @@
  */
 
 /*
+ * Copyright (C) 2007-2009 Qualcomm Technologies, Inc.
+ * All rights reserved. Proprietary and Confidential.
+ */
+
+/*
  * DO NOT EDIT - This file is generated automatically
  */
 
@@ -263,6 +268,7 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"MAX_BA_SESSIONS",
     (unsigned char *)"BA_AUTO_SETUP",
     (unsigned char *)"ADDBA_REQ_DECLINE",
+    (unsigned char *)"DEL_ALL_RX_BA_SESSIONS_2_4_G_BTC",
     (unsigned char *)"BG_SCAN_CHANNEL_LIST",
     (unsigned char *)"MAX_MEDIUM_TIME",
     (unsigned char *)"MAX_MPDUS_IN_AMPDU",
@@ -332,6 +338,16 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"ENABLE_MCC_ADAPTIVE_SCHED",
     (unsigned char *)"DISABLE_LDPC_WITH_TXBF_AP",
     (unsigned char *)"AP_LINK_MONITOR_TIMEOUT",
+    (unsigned char *)"TDLS_QOS_WMM_UAPSD_MASK",
+    (unsigned char *)"TDLS_BUF_STA_ENABLED",
+    (unsigned char *)"TDLS_PUAPSD_INACT_TIME",
+    (unsigned char *)"TDLS_RX_FRAME_THRESHOLD",
+    (unsigned char *)"ENABLE_ADAPT_RX_DRAIN",
+    (unsigned char *)"FLEX_CONNECT_POWER_FACTOR",
+    (unsigned char *)"ANTENNA_DIVESITY",
+    (unsigned char *)"GO_LINK_MONITOR_TIMEOUT",
+    (unsigned char *)"RMC_ACTION_PERIOD_FREQUENCY",
+    (unsigned char *)"CURRENT_RSSI",
 };
 
 

@@ -26,7 +26,6 @@
  */
 
 /*
- *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * Author:      Dinesh Upadhyay
  * Date:        10/24/06
@@ -97,12 +96,26 @@ limUpdateAdmitPolicy(
 
 tSirRetStatus limAdmitControlInit(tpAniSirGlobal pMac);
 #ifdef FEATURE_WLAN_CCX
-tSirRetStatus limSendHalMsgAddTs(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U8 tspecIdx, tSirMacTspecIE tspecIE, tANI_U8 sessionId, tANI_U16 tsm_interval);
+tSirRetStatus limSendHalMsgAddTs(tpAniSirGlobal pMac,
+                                 tANI_U16 staIdx,
+                                 tANI_U8 tspecIdx,
+                                 tSirMacTspecIE tspecIE,
+                                 tANI_U8 sessionId,
+                                 tANI_U16 tsm_interval);
 #else
-tSirRetStatus limSendHalMsgAddTs(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U8 tspecIdx, tSirMacTspecIE tspecIE, tANI_U8 sessionId);
+tSirRetStatus limSendHalMsgAddTs(tpAniSirGlobal pMac,
+                                 tANI_U16 staIdx,
+                                 tANI_U8 tspecIdx,
+                                 tSirMacTspecIE tspecIE,
+                                 tANI_U8 sessionId);
 #endif
 
-tSirRetStatus limSendHalMsgDelTs(tpAniSirGlobal pMac,  tANI_U16 staIdx,  tANI_U8 tspecIdx,  tSirDeltsReqInfo delts, tANI_U8 sessionId);
+tSirRetStatus limSendHalMsgDelTs(tpAniSirGlobal pMac,
+                                 tANI_U16 staIdx,
+                                 tANI_U8 tspecIdx,
+                                 tSirDeltsReqInfo delts,
+                                 tANI_U8 sessionId,
+                                 tANI_U8 *bssId);
 void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
 
 #endif

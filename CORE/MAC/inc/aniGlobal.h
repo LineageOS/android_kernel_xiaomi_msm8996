@@ -84,11 +84,13 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #include "smeRrmInternal.h"
 #include "rrmGlobal.h"
 #endif
-#if defined FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
 #include "ccxApi.h"
 #include "ccxGlobal.h"
 #endif
 #include "p2p_Api.h"
+
+#include "limRMC.h"
 
 #if defined WLAN_FEATURE_VOWIFI_11R
 #include <limFTDefs.h>
@@ -136,6 +138,19 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #endif //WLAN_FEATURE_CONCURRENT_P2P
 
 #define SPACE_ASCII_VALUE  32
+
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+#define WLAN_IP_V4_ADDR_SIZE                             4
+/* Multicast IP address in IPv4 ranges from 224.0.0.0 through 239.255.255.255
+  (Previous class D) are reserved as multicast IP addresses */
+#define WLAN_IP_V4_MCAST_ADDR_START                      224
+#define WLAN_IP_V4_MCAST_ADDR_END                        239
+#endif
+
+#ifdef FEATURE_WLAN_BATCH_SCAN
+#define EQUALS_TO_ASCII_VALUE (61)
+#endif
+
 
 // -------------------------------------------------------------------
 // Change channel generic scheme
@@ -240,6 +255,11 @@ typedef struct sLimTimers
     TX_TIMER           gLimDeauthAckTimer;
     // This timer is started when single shot NOA insert msg is sent to FW for scan in P2P GO mode
     TX_TIMER           gLimP2pSingleShotNoaInsertTimer;
+    /* This timer is used to convert active channel to
+     * passive channel when there is no beacon
+     * for a period of time on a particular DFS channel
+     */
+    TX_TIMER           gLimActiveToPassiveChannelTimer;
 //********************TIMER SECTION ENDS**************************************************
 // ALL THE FIELDS BELOW THIS CAN BE ZEROED OUT in limInitialize
 //****************************************************************************************
@@ -646,6 +666,10 @@ typedef struct sAniSirLim
     tLimAdmitPolicyInfo admitPolicyInfo;
     vos_lock_t lkPeGlobalLock;
     tANI_U8 disableLDPCWithTxbfAP;
+#ifdef FEATURE_WLAN_TDLS
+    tANI_U8 gLimTDLSBufStaEnabled;
+    tANI_U8 gLimTDLSUapsdMask;
+#endif
 
 
 
@@ -896,6 +920,9 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
 #endif
     tLimDisassocDeauthCnfReq limDisassocDeauthCnfReq;
     tANI_U8 deferredMsgCnt;
+    tSirDFSChannelList    dfschannelList;
+    tANI_U8 deauthMsgCnt;
+    tANI_U8 gLimIbssStaLimit;
 } tAniSirLim, *tpAniSirLim;
 
 typedef struct sLimMgmtFrameRegistration
@@ -956,17 +983,10 @@ typedef struct sMacOpenParameters
     tANI_U16 maxBssId;
     tANI_U32 frameTransRequired;
     tANI_U8 powersaveOffloadEnabled;
-    tANI_U8 wowEnable;
     tDriverType  driverType;
     tANI_U8 maxWoWFilters;
+    tANI_U8 wowEnable;
 } tMacOpenParameters;
-
-typedef enum
-{
-    HAL_STOP_TYPE_SYS_RESET,
-    HAL_STOP_TYPE_SYS_DEEP_SLEEP,
-    HAL_STOP_TYPE_RF_KILL   
-}tHalStopType;
 
 typedef struct sHalMacStartParameters
 {
@@ -1045,7 +1065,10 @@ typedef struct sAniSirGlobal
     v_BOOL_t isTdlsPowerSaveProhibited;
 #endif
     tANI_U8 fScanOffload;
-    /*  Based on ini variable or Fw Capability */
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+    tLimRmcContext  rmcContext;
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+    tANI_U8 isCoalesingInIBSSAllowed;
     tANI_U8 psOffloadEnabled;
 
     /* Power Save offload Info */
@@ -1059,8 +1082,7 @@ typedef struct sAniSirGlobal
 
     csrReadyToSuspendCallback readyToSuspendCallback;
     void *readyToSuspendContext;
-
-    tANI_U8 isCoalesingInIBSSAllowed;
+    tANI_U8 lteCoexAntShare;
 
 } tAniSirGlobal;
 

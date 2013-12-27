@@ -17,6 +17,10 @@
 * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 * PERFORMANCE OF THIS SOFTWARE.
 
+* This file was originally distributed by Qualcomm Atheros, Inc.
+* under proprietary terms before Copyright ownership was assigned
+* to the Linux Foundation.
+
 *
 * Woodside Networks, Inc proprietary. All rights reserved.
 * This is the data definition file for the CFG module.
@@ -769,10 +773,10 @@ SCH
 WNI_CFG_FIXED_RATE  I   4   0
 V    RW    NP
 HAL
-0    31     0
+0    44     0
 V    RW    NP
 HAL
-0    31     0
+0    44     0
 
 #ENUM AUTO 	                                0
 
@@ -812,6 +816,19 @@ HAL
 #ENUM 0_5MBPS_SLR_20MHZ_SIMO                30
 
 #ENUM 68_25MBPS_QC_PROP_20MHZ_SIMO          31
+#ENUM 54MBPS_MCS3_40MHZ_SIMO                32
+#ENUM 81MBPS_MCS4_40MHZ_SIMO                33
+#ENUM 108MBPS_MCS5_40MHZ_SIMO               34
+#ENUM 121_5MBPS_MCS6_40MHZ_SIMO             35
+#ENUM 135MBPS_MCS7_40MHZ_SIMO               36
+#ENUM 15MBPS_MCS0_40MHZ_SIMO_SGI            37
+#ENUM 30MBPS_MCS1_40MHZ_SIMO_SGI            38
+#ENUM 45MBPS_MCS2_40MHZ_SIMO_SGI            39
+#ENUM 60MBPS_MCS3_40MHZ_SIMO_SGI            40
+#ENUM 90MBPS_MCS4_40MHZ_SIMO_SGI            41
+#ENUM 120MBPS_MCS5_40MHZ_SIMO_SGI           42
+#ENUM 135MBPS_MCS6_40MHZ_SIMO_SGI           43
+#ENUM 150MBPS_MCS7_40MHZ_SIMO_SGI           44
 
 * *********************************************************
 *
@@ -2968,10 +2985,10 @@ LIM
 WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE  I    4    19
 V    RW    NP    
 LIM
-1    780   780
+0    780   780
 V    RW    NP    
 LIM
-1    780   780
+0    780   780
 
 *
 * Tx Highest supported data rate.
@@ -2979,10 +2996,10 @@ LIM
 WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE  I    4    19
 V    RW    NP    
 LIM
-1    780    780
+0    780    780
 V    RW    NP    
 LIM
-1    780    780
+0    780    780
 
 *
 * VHT Operation Information
@@ -3438,6 +3455,19 @@ LIM
 V    RW    NP  RESTART
 LIM
 0    0xff    0
+
+*
+* Delete all Rx BA sessions in 2.4 GHz
+* when BTC requests to disable agg.
+*
+WNI_CFG_DEL_ALL_RX_BA_SESSIONS_2_4_G_BTC I    4    7
+V    RW    NP
+LIM
+0    1    0
+V    RW    NP
+LIM
+0    1    0
+
 
 *
 * Valid Channel List
@@ -4465,3 +4495,125 @@ HAL
 V    RW    NP
 HAL
 1    255    3
+
+*
+*TDLS Station's UAPSD MASK Configuration
+*
+*
+*
+WNI_CFG_TDLS_QOS_WMM_UAPSD_MASK  I   4   7
+V    RW    NP
+LIM
+0    15    0
+V    RW    NP
+LIM
+0    15   0
+*
+*TDLS Stations Buffer STA Capability
+*
+*
+*
+WNI_CFG_TDLS_BUF_STA_ENABLED  I   4   7
+V    RW    NP
+LIM
+0    1    0
+V    RW    NP
+LIM
+0    1    0
+*TDLS Stations PUAPSD Inactivity Timer
+*
+*
+*
+WNI_CFG_TDLS_PUAPSD_INACT_TIME  I   4   7
+V    RW    NP
+LIM
+0    10    0
+V    RW    NP
+LIM
+0    10    0
+*TDLS Stations PUAPSD RX Frame Threshold
+*
+*
+*
+WNI_CFG_TDLS_RX_FRAME_THRESHOLD  I   4   7
+V    RW    NP
+LIM
+10   20    10
+V    RW    NP
+LIM
+10   20    10
+*
+*MCC ENABLE/DISABLE ADAPTIVE RX Drain feature
+*
+*
+*
+WNI_CFG_ENABLE_ADAPT_RX_DRAIN I   4   7
+V    RW    NP
+HAL
+0    1    1
+NV    RW    NP
+HAL
+0    1    1
+
+*
+* FlexConnect Power Factor
+* Default is set to 0 (disable)
+*
+*
+WNI_CFG_FLEX_CONNECT_POWER_FACTOR  I   4   0
+V    RW    NP
+NONE
+0    9     0
+V    RW    NP
+NONE
+0    9     0
+
+*
+* Antenna Diversity
+*
+* 0 = disabled
+* 1 = Ant 1
+* 2 = Ant 2
+* 3 = Adaptive
+*
+WNI_CFG_ANTENNA_DIVESITY    I    4    7
+V    RW    NP
+HAL
+0    3    0
+V    RW    NP
+HAL
+0    3    0
+
+* GO Link Monitor Timeout (TU)
+*
+WNI_CFG_GO_LINK_MONITOR_TIMEOUT    I    4    7
+V    RW    NP
+HAL
+3   50    10
+V    RW    NP
+HAL
+3   50    10
+*
+*
+
+* RMC action period frequency (milli seconds)
+*
+WNI_CFG_RMC_ACTION_PERIOD_FREQUENCY    I    4    7
+V    RW    NP
+HAL
+10   0xFFFFFFFF    300
+V    RW    NP
+HAL
+10   0xFFFFFFFF    300
+*
+*
+
+* Current RSSI value (of connected AP)
+*
+WNI_CFG_CURRENT_RSSI I    4    7
+V    RW    NP
+NONE
+0   127    0
+V    RW    NP
+NONE
+0   127    0

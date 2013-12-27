@@ -118,7 +118,7 @@
 #else
 #define WOWL_PTRN_MAX_SIZE          128
 #define WOWL_PTRN_MASK_MAX_SIZE      16
-#define WOWL_MAX_PTRNS_ALLOWED        8
+#define WOWL_MAX_PTRNS_ALLOWED       16
 #endif
 
 /*----------------------------------------------------------------------------
@@ -145,6 +145,35 @@ v_BOOL_t hdd_add_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn);
               : TRUE otherwise
   ===========================================================================*/
 v_BOOL_t hdd_del_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn);
+
+/**============================================================================
+  @brief hdd_add_wowl_ptrn_debugfs() - Function which will add a WoW pattern
+  sent from debugfs interface
+
+  @param pAdapter       : [in] pointer to the adapter
+         pattern_idx    : [in] index of the pattern to be added
+         pattern_offset : [in] offset of the pattern in the frame payload
+         pattern_buf    : [in] pointer to the pattern hex string to be added
+         pattern_mask   : [in] pointer to the pattern mask hex string
+
+  @return               : FALSE if any errors encountered
+                        : TRUE otherwise
+  ===========================================================================*/
+v_BOOL_t hdd_add_wowl_ptrn_debugfs(hdd_adapter_t *pAdapter, v_U8_t pattern_idx,
+                                   v_U8_t pattern_offset, char *pattern_buf,
+                                   char *pattern_mask);
+
+/**============================================================================
+  @brief hdd_del_wowl_ptrn_debugfs() - Function which will remove a WoW pattern
+  sent from debugfs interface
+
+  @param pAdapter    : [in] pointer to the adapter
+         pattern_idx : [in] index of the pattern to be removed
+
+  @return            : FALSE if any errors encountered
+                     : TRUE otherwise
+  ===========================================================================*/
+v_BOOL_t hdd_del_wowl_ptrn_debugfs(hdd_adapter_t *pAdapter, v_U8_t pattern_idx);
 
 /**============================================================================
   @brief hdd_enter_wowl() - Function which will enable WoWL. Atleast one

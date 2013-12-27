@@ -28,9 +28,9 @@
 #if !defined( HDD_CONNECTION_H__ ) 
 #define HDD_CONNECTION_H__
 #include <wlan_hdd_mib.h>
-#define HDD_MAX_NUM_IBSS_STA ( 9 )
+#define HDD_MAX_NUM_IBSS_STA ( 32 )
 #ifdef FEATURE_WLAN_TDLS
-#define HDD_MAX_NUM_TDLS_STA ( HDD_MAX_NUM_IBSS_STA - 1 ) // up to 3 as 1 is assigned to AP
+#define HDD_MAX_NUM_TDLS_STA ( 8 )
 #define TDLS_STA_INDEX_VALID(staId) \
                           (((staId) >= 4) && ((staId) < 0xFF))
 #endif
@@ -38,7 +38,20 @@
 #define TKIP_COUNTER_MEASURE_STOPED  0 
 /* Timeout (in ms) for Link to Up before Registering Station */
 #define ASSOC_LINKUP_TIMEOUT 60
+
+/* In pronto case, IBSS owns the first peer for bss peer.
+   In Rome case, IBSS uses the 2nd peer as bss peer */
+#ifdef CONFIG_QCA_WIFI_ISOC
+#define IBSS_BROADCAST_STAID 0
+#else
 #define IBSS_BROADCAST_STAID 1
+#endif
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+/* Timeout in ms for peer info request commpletion */
+#define IBSS_PEER_INFO_REQ_TIMOEUT 1000
+#endif
+
 typedef enum 
 {
    /** Not associated in Infra or participating in an IBSS / Ad-hoc network.*/
