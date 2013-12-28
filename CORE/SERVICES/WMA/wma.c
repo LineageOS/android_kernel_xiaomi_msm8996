@@ -9405,6 +9405,9 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 
 	WMA_LOGD("WOW enabled successfully in fw");
 
+	HTCCancelDeferredTargetSleep(vos_get_context(VOS_MODULE_ID_HIF,
+				wma->vos_context));
+
 	wma->wow.wow_enable_cmd_sent = TRUE;
 	return VOS_STATUS_SUCCESS;
 }
@@ -14165,8 +14168,15 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 		return -1;
 	}
 	vos_event_reset(&wma_handle->target_suspend);
-	return vos_wait_single_event(&wma_handle->target_suspend,
-				     WMA_TGT_SUSPEND_COMPLETE_TIMEOUT);
+	if (vos_wait_single_event(&wma_handle->target_suspend,
+				  WMA_TGT_SUSPEND_COMPLETE_TIMEOUT)
+				  != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to suspend target");
+		return -1;
+	}
+	HTCCancelDeferredTargetSleep(vos_get_context(VOS_MODULE_ID_HIF,
+				wma_handle->vos_context));
+	return 0;
 }
 
 void wma_target_suspend_complete(void *context)

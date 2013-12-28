@@ -781,3 +781,11 @@ void HTCSetTargetToSleep(void *context)
 #endif
 #endif
 }
+
+void HTCCancelDeferredTargetSleep(void *context)
+{
+#if CONFIG_ATH_PCIE_MAX_PERF == 0
+    struct ol_softc *sc = (struct ol_softc *)context;
+    HIFCancelDeferredTargetSleep(sc->hif_hdl);
+#endif
+}
