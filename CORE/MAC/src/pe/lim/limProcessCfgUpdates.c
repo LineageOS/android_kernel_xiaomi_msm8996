@@ -596,7 +596,12 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
             limLog( pMac, LOGE, FL( "Unable to get WNI_CFG_ASSOC_STA_LIMIT" ));
             break;
         }
+#ifdef QCA_WIFI_2_0
+        /* This +1 is done becuse of peerIdx assign logic in limAssignPeerIdx */
+        pMac->lim.gLimAssocStaLimit = (tANI_U16)val1 + 1;
+#else
         pMac->lim.gLimAssocStaLimit = (tANI_U16)val1;
+#endif
         break;
 
     case WNI_CFG_DEL_ALL_RX_BA_SESSIONS_2_4_G_BTC:
@@ -781,7 +786,12 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
         }
         val = WNI_CFG_ASSOC_STA_LIMIT_STADEF;
     }
+#ifdef QCA_WIFI_2_0
+    /* This +1 is done becuse of peerIdx assign logic in limAssignPeerIdx */
+    pMac->lim.gLimAssocStaLimit =(tANI_U16) val + 1;
+#else
     pMac->lim.gLimAssocStaLimit = (tANI_U16)val;
+#endif
 
 #if defined WLAN_FEATURE_VOWIFI
     rrmUpdateConfig( pMac, psessionEntry ); 

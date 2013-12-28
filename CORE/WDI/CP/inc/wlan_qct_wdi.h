@@ -10176,7 +10176,7 @@ wpt_uint8 WDI_getHostWlanFeatCaps(wpt_uint8 feat_enum_value);
 #ifdef QCA_WIFI_2_0
 static inline wpt_uint8 WDI_getFwWlanFeatCaps(wpt_uint8 feat_enum_value)
 {
-        return 0;
+        return 1;
 }
 #else
 wpt_uint8 WDI_getFwWlanFeatCaps(wpt_uint8 feat_enum_value);

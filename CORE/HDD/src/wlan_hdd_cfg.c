@@ -4604,7 +4604,12 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
      }
      else
      {
+#ifndef QCA_WIFI_2_0
             val = WNI_CFG_ASSOC_STA_LIMIT_STADEF;
+#else
+            val = pConfig->maxNumberOfPeers;
+#endif
+
      }
      if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ASSOC_STA_LIMIT, val,
          NULL, eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)

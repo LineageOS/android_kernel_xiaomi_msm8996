@@ -1826,6 +1826,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	adf_os_device_t adf_dev;
 	v_VOID_t *wmi_handle;
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	struct ol_softc *scn;
 
 	WMA_LOGD("%s: Enter", __func__);
 
@@ -1887,7 +1888,13 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 #endif
 
         /*TODO: Recheck below parameters */
-	mac_params->maxStation = WMA_MAX_SUPPORTED_STAS;
+	/*
+	 * Increase maxStation by 1 here so that correct hashtable and
+	 * gpLimPeerIdxpool memory is allocated in peCreateSession
+	 */
+	scn = vos_get_context(VOS_MODULE_ID_HIF, vos_context);
+	mac_params->maxStation = ol_get_number_of_peers_supported(scn) + 1;
+
         mac_params->maxBssId = WMA_MAX_SUPPORTED_BSS;
 	mac_params->frameTransRequired = 0;
 
