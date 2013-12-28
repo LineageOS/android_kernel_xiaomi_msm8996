@@ -1743,7 +1743,6 @@ int ol_txrx_debug(ol_txrx_vdev_handle vdev, int debug_specs)
 }
 #endif
 
-#if defined(TEMP_AGGR_CFG)
 int ol_txrx_aggr_cfg(ol_txrx_vdev_handle vdev,
                      int max_subfrms_ampdu,
                      int max_subfrms_amsdu)
@@ -1752,7 +1751,6 @@ int ol_txrx_aggr_cfg(ol_txrx_vdev_handle vdev,
                                 max_subfrms_ampdu,
                                 max_subfrms_amsdu);
 }
-#endif
 
 #if defined(TXRX_DEBUG_LEVEL) && TXRX_DEBUG_LEVEL > 5
 void

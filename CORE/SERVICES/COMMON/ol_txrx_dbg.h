@@ -103,13 +103,9 @@ int ol_txrx_fw_stats_get(
     struct ol_txrx_stats_req *req);
 
 
-#if defined(TEMP_AGGR_CFG)
 int ol_txrx_aggr_cfg(ol_txrx_vdev_handle vdev, 
                      int max_subfrms_ampdu, 
                      int max_subfrms_amsdu);
-#else
-#define ol_txrx_aggr_cfg(vdev, max_subfrms_ampdu, max_subfrms_amsdu) 0
-#endif
 
 enum {
     TXRX_DBG_MASK_OBJS             = 0x01,

@@ -5826,26 +5826,35 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		}
 		break;
 	case GEN_CMD:
+	{
+		ol_txrx_vdev_handle vdev = NULL;
+		struct wma_txrx_node *intr = wma->interfaces;
+
+		vdev = wma_find_vdev_by_id(wma, privcmd->param_vdev_id);
+		if (!vdev) {
+			WMA_LOGE("%s:Invalid vdev handle", __func__);
+			return;
+                }
+
 		WMA_LOGD("gen pid %d pval %d", privcmd->param_id,
 				privcmd->param_value);
+
 		switch (privcmd->param_id) {
 		case GEN_VDEV_PARAM_AMPDU:
-			ret = ol_txrx_aggr_cfg(
-					wma_handle->interfaces[privcmd->param_vdev_id].handle,
-					privcmd->param_value, 0);
+			ret = ol_txrx_aggr_cfg(vdev, privcmd->param_value, 0);
 			if (ret)
 				WMA_LOGE("ol_txrx_aggr_cfg set ampdu"
-						" failed ret %d", ret);
-			intr[vid].config.ampdu = privcmd->param_value;
+					" failed ret %d", ret);
+			else
+				intr[privcmd->param_vdev_id].config.ampdu = privcmd->param_value;
 			break;
 		case GEN_VDEV_PARAM_AMSDU:
-			ret = ol_txrx_aggr_cfg(
-					wma_handle->interfaces[privcmd->param_vdev_id].handle,
-					0, privcmd->param_value);
+			ret = ol_txrx_aggr_cfg(vdev, 0, privcmd->param_value);
 			if (ret)
 				WMA_LOGE("ol_txrx_aggr_cfg set amsdu"
-						" failed ret %d", ret);
-			intr[vid].config.amsdu = privcmd->param_value;
+					" failed ret %d", ret);
+			else
+				intr[privcmd->param_vdev_id].config.amsdu = privcmd->param_value;
 			break;
 		case GEN_PARAM_DUMP_AGC_START:
 			HTCDump(wma->htc_handle, AGC_DUMP, true);
@@ -5870,6 +5879,7 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		}
 		break;
+        }
 	case DBG_CMD:
 		WMA_LOGD("dbg pid %d pval %d", privcmd->param_id,
 				privcmd->param_value);
