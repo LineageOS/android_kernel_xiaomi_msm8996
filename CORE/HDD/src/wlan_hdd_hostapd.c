@@ -1196,6 +1196,23 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 #endif
+         case QCSAP_PARAM_SETRTSCTS:
+            {
+                ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                (int)WMI_VDEV_PARAM_ENABLE_RTSCTS,
+                                set_value, VDEV_CMD);
+                if (!ret) {
+                    if (ccmCfgSetInt(hHal, WNI_CFG_RTS_THRESHOLD, (tANI_U32)value,
+                        ccmCfgSetCallback, eANI_BOOLEAN_TRUE) !=
+                        eHAL_STATUS_SUCCESS) {
+
+                        hddLog(LOGE, "FAILED TO SET RTSCTS at SAP");
+                        ret = -EIO;
+                        break;
+                    }
+                }
+                break;
+            }
 #endif /* QCA_WIFI_2_0 */
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
@@ -1265,7 +1282,16 @@ static iw_softap_getparam(struct net_device *dev,
             *value = (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apAutoChannelSelection;
              break;
         }
-
+    case QCSAP_PARAM_GETRTSCTS:
+        {
+            hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pHostapdAdapter);
+            void *wmapvosContext = wmahddCtxt->pvosContext;
+            *value = wma_cli_get_command(wmapvosContext,
+                                             (int)pHostapdAdapter->sessionId,
+                                             (int)WMI_VDEV_PARAM_ENABLE_RTSCTS,
+                                             VDEV_CMD);
+            break;
+        }
     default:
         hddLog(LOGE, FL("Invalid getparam command %d"), sub_cmd);
         ret = -EINVAL;
@@ -3147,6 +3173,14 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "crash_inject" },
 #endif
+    {   QCSAP_PARAM_SETRTSCTS,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "enablertscts" },
+    {   QCSAP_PARAM_GETRTSCTS, 0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_rtscts" },
+
 #endif /* QCA_WIFI_2_0 */
 
   { QCSAP_IOCTL_GETPARAM,

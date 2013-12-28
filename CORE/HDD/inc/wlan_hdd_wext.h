@@ -205,7 +205,9 @@ typedef enum
 #define HDD_WPS_ELEM_DEVICE_NAME            0x1011
 #define HDD_WPS_ELEM_REGISTRA_CONF_METHODS  0x1053
 
-
+#define HDD_RTSCTS_EN_MASK                  0xF
+#define HDD_RTSCTS_ENABLE                   1
+#define HDD_CTS_ENABLE                      2
 
 #define WPS_OUI_TYPE   "\x00\x50\xf2\x04"
 #define WPS_OUI_TYPE_SIZE  4

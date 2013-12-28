@@ -4619,10 +4619,12 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
         {
            u_int32_t value;
 
-           hddLog(LOG1, "WMI_VDEV_PARAM_ENABLE_RTSCTS val %d", set_value);
-           if (set_value == 1)
+           hddLog(LOG1, "WMI_VDEV_PARAM_ENABLE_RTSCTS val 0x%x", set_value);
+
+           if ((set_value & HDD_RTSCTS_EN_MASK) == HDD_RTSCTS_ENABLE)
                value = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->RTSThreshold;
-           else if (set_value == 0)
+           else if (((set_value & HDD_RTSCTS_EN_MASK) == 0) ||
+               ((set_value & HDD_RTSCTS_EN_MASK) == HDD_CTS_ENABLE))
                value = WNI_CFG_RTS_THRESHOLD_STAMAX;
            else
                return -EIO;

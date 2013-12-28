@@ -260,6 +260,8 @@ typedef struct
 #ifdef DEBUG
 #define QCSAP_FW_CRASH_INJECT              39
 #endif
+#define QCSAP_PARAM_SETRTSCTS              42
+#define QCSAP_PARAM_GETRTSCTS              43
 #endif /* QCA_WIFI_2_0 */
 
 enum { 
