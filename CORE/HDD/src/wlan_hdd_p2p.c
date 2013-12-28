@@ -350,6 +350,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     pRemainChanCtx->chan_type = channel_type;
 #endif
     pRemainChanCtx->duration = duration;
+    pRemainChanCtx->p2pRemOnChanTimeStamp = vos_timer_get_system_time();
     pRemainChanCtx->dev = dev;
     *cookie = (uintptr_t) pRemainChanCtx;
     pRemainChanCtx->cookie = *cookie;
@@ -738,6 +739,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     if( offchan && wait)
     {
         int status;
+        tANI_U32 current_time = vos_timer_get_system_time();
 
         // In case of P2P Client mode if we are already
         // on the same channel then send the frame directly
@@ -754,11 +756,24 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             cfgState->remain_on_chan_ctx &&
             cfgState->current_freq == chan->center_freq ) {
 
-            hddLog(LOG1,"action frame: Extending the RoC\n");
-            status = wlan_hdd_check_remain_on_channel(pAdapter);
-            if ( !status )
-                pAdapter->internalCancelRemainOnChReq = VOS_TRUE;
+            // In case of P2P Client mode if we are already
+            // on the same channel then send the frame directly only if
+            // there is enough remain on channel time left.
+            // If remain on channel time is about to expire in next 50ms
+            // then dont send frame without a fresh remain on channel as this may
+            // cause a race condition with lim remain_on_channel_timer which might
+            // expire by the time the action frame reaches lim layer.
+
+            if ((current_time - cfgState->remain_on_chan_ctx->p2pRemOnChanTimeStamp) >
+                         (cfgState->remain_on_chan_ctx->duration  - 50 ))
+            {
+                hddLog(LOG1,"action frame: Extending the RoC\n");
+                status = wlan_hdd_check_remain_on_channel(pAdapter);
+                if ( !status )
+                    pAdapter->internalCancelRemainOnChReq = VOS_TRUE;
+            }
         }
+
         if((cfgState->remain_on_chan_ctx != NULL) &&
            (cfgState->current_freq == chan->center_freq)
           )
