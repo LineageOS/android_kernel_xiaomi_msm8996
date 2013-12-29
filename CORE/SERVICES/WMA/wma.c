@@ -8632,7 +8632,7 @@ wmi_unified_set_sta_uapsd_auto_trig_cmd(
 {
 	wmi_sta_uapsd_auto_trig_cmd_fixed_param *cmd;
 	int32_t ret;
-	u_int32_t param_len = (num_ac - 1) *
+	u_int32_t param_len = num_ac *
 				sizeof(wmi_sta_uapsd_auto_trig_param);
 	u_int32_t cmd_len = sizeof(*cmd) + param_len + WMI_TLV_HDR_SIZE;
 	u_int32_t i;
