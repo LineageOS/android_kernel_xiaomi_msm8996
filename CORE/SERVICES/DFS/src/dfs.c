@@ -60,10 +60,6 @@
 #ifndef ATH_SUPPORT_DFS
 #define ATH_SUPPORT_DFS 1
 #include "sys/queue.h"
-#ifdef __NetBSD__
-#include <net/if_media.h>
-#endif
-
 
 //#include "if_athioctl.h"
 //#include "if_athvar.h"
@@ -975,83 +971,6 @@ u_int16_t   dfs_isdfsregdomain(struct ieee80211com *ic)
     struct ath_dfs *dfs = (struct ath_dfs *)ic->ic_dfs;
     return dfs ? dfs->dfsdomain : 0;
 }
-
-#ifndef __NetBSD__
-#ifdef __linux__
-#ifndef ATH_WLAN_COMBINE
-/*
- * Linux Module glue.
- */
-
-//static char *dev_info = "ath_dfs";
-
-MODULE_AUTHOR("Atheros Communications, Inc.");
-MODULE_DESCRIPTION("DFS Support for Atheros 802.11 wireless LAN cards.");
-MODULE_SUPPORTED_DEVICE("Atheros WLAN cards");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("Proprietary");
-#endif
-/*
-static int __init
-init_ath_dfs(void)
-{
-   printk (KERN_INFO "%s: Version 2.0.0\n"
-      "Copyright (c) 2005-2006 Atheros Communications, Inc. "
-      "All Rights Reserved\n",dev_info);
-   return 0;
-}
-module_init(init_ath_dfs);
-
-static void __exit
-exit_ath_dfs(void)
-{
-   printk (KERN_INFO "%s: driver unloaded\n", dev_info);
-}
-module_exit(exit_ath_dfs);
-
-*/
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,5,52))
-MODULE_PARM(domainoverride, "i");
-MODULE_PARM(usenol, "i");
-MODULE_PARM_DESC(domainoverride, "Override dfs domain");
-MODULE_PARM_DESC(usenol, "Override the use of channel NOL");
-#else
-#include <linux/moduleparam.h>
-module_param(domainoverride, int, 0600);
-module_param(usenol, int, 0600);
-#endif
-#ifndef EXPORT_SYMTAB
-#define EXPORT_SYMTAB
-#endif
-
-EXPORT_SYMBOL(dfs_getchanstate);
-EXPORT_SYMBOL(dfs_attach);
-EXPORT_SYMBOL(dfs_detach);
-/* Commenting out since all the ar functions are obsolete and
- * the function definition has been removed as part of dfs_ar.c
- * EXPORT_SYMBOL(ath_ar_enable);
- */
-EXPORT_SYMBOL(dfs_radar_enable);
-/* Commenting out since all the ar functions are obsolete and
- * the function definition has been removed as part of dfs_ar.c
- * EXPORT_SYMBOL(ath_ar_disable);
- */
-EXPORT_SYMBOL(dfs_process_phyerr);
-/* Commenting out since all the ar functions are obsolete and
-*  the function definition has been removed as part of dfs_ar.c
-*  EXPORT_SYMBOL(dfs_process_ar_event);
-*/
-EXPORT_SYMBOL(dfs_control);
-EXPORT_SYMBOL(dfs_get_thresholds);
-EXPORT_SYMBOL(dfs_init_radar_filters);
-EXPORT_SYMBOL(dfs_clear_stats);
-EXPORT_SYMBOL(dfs_usenol);
-EXPORT_SYMBOL(dfs_isdfsregdomain);
-
-
-#endif /* #ifndef ATH_WLAN_COMBINE */
-#endif /* __linux__ */
-#endif /* __netbsd__ */
 
 #endif /* ATH_UPPORT_DFS */
 
