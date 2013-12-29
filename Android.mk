@@ -48,7 +48,7 @@ else
 endif
 
 
-# Build wlan.ko as either qca_cld_wlan.ko
+# Build wlan.ko as either prima_wlan.ko or pronto_wlan.ko or qca_cld_wlan.ko
 ###########################################################
 
 # This is set once per LOCAL_PATH, not per (kernel) module
@@ -63,9 +63,9 @@ KBUILD_OPTIONS += $(WLAN_SELECT)
 KBUILD_OPTIONS += $(WLAN_ISOC_SELECT)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE              := proprietary_$(WLAN_CHIPSET)_wlan.ko
+LOCAL_MODULE              := $(WLAN_CHIPSET)_wlan.ko
 LOCAL_MODULE_KBUILD_NAME  := wlan.ko
-LOCAL_MODULE_TAGS         := optional
+LOCAL_MODULE_TAGS         := debug
 LOCAL_MODULE_DEBUG_ENABLE := true
 LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/$(WLAN_CHIPSET)
 include $(DLKM_DIR)/AndroidKernelModule.mk
