@@ -359,7 +359,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             }
             else
             {
-               vosStatus = sme_Stop( hHal, TRUE );
+               vosStatus = sme_Stop( hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
                VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
                vosStatus = macStop( hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP );
@@ -376,12 +376,9 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          // function that is in the message.
          case SYS_MSG_ID_MC_THR_PROBE:
          {
-            /* Handling for this message is not needed now so adding 
-             *debug print and VOS_ASSERT*/
-            VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       " Received SYS_MSG_ID_MC_THR_PROBE message msgType= %d [0x%08lx]",
-                       pMsg->type, pMsg->type );
-            VOS_ASSERT(0);
+            VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+                       " Received SYS_MSG_ID_MC_THR_PROBE message msgType = %d [0x%08lx]",
+                       pMsg->type, pMsg->type);
             break;
          }
 
@@ -713,7 +710,7 @@ SysProcessMmhMsg
     /* free the mem and return */
     if(pMsg->bodyptr)
     {
-      palFreeMemory( pMac->hHdd, pMsg->bodyptr);
+      vos_mem_free( pMsg->bodyptr);
     }
   }
 
@@ -762,4 +759,17 @@ void wlan_sys_ftm(void *pMsgPtr)
 }
 
 
+
+void wlan_sys_probe(void)
+{
+    vos_msg_t  vosMessage;
+
+    vosMessage.reserved = FTM_SYS_MSG_COOKIE;
+    vosMessage.type     = SYS_MSG_ID_MC_THR_PROBE;
+    vosMessage.bodyptr  = NULL;
+
+    vos_mq_post_message(VOS_MQ_ID_SYS, &vosMessage);
+
+    return;
+}
 

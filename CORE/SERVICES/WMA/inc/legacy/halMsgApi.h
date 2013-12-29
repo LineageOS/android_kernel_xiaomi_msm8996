@@ -25,8 +25,6 @@
  * to the Linux Foundation.
  */
 
-/*
- * */
 #ifndef _HALMSGAPI_H_
 #define _HALMSGAPI_H_
 
@@ -285,7 +283,12 @@ typedef struct
     tANI_U8    vhtTxChannelWidthSet;
     tANI_U8    vhtTxBFCapable;
     tANI_U8    vhtTxMUBformeeCapable;
+    tANI_U8    enableVhtpAid;
+    tANI_U8    enableVhtGid;
 #endif
+    tANI_U8    enableAmpduPs;
+    tANI_U8    enableHtSmps;
+    tANI_U8    htSmpsconfig;
 
     tANI_U8    htLdpcCapable;
     tANI_U8    vhtLdpcCapable;

@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 #if !defined( __SME_FTAPI_H )
 #define __SME_FTAPI_H
 
@@ -72,7 +73,7 @@ typedef struct sFTSMEContext
     v_BOOL_t          setFTPTKState;
 
     // Time to trigger reassoc once pre-auth is successful
-    tPalTimerHandle   preAuthReassocIntvlTimer;
+    vos_timer_t       preAuthReassocIntvlTimer;
     tCsrRoamSetKey    *pCsrFTKeyInfo;
 
 } tftSMEContext, *tpftSMEContext;

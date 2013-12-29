@@ -416,14 +416,14 @@ typedef struct sp2pContext
    tANI_U32 ActionFrameLen;
    tANI_U32 ActionFrameSendTimeout;
    eListenDiscoverableState listenDiscoverableState;
-   tPalTimerHandle listenTimerHandler;
-   tPalTimerHandle WPSRegistrarCheckTimerHandler;
+   vos_timer_t listenTimerHandler;
+   vos_timer_t WPSRegistrarCheckTimerHandler;
    tANI_U32 WPSRegistrarSet;
    tANI_U8 bWaitForWPSReady;
    tANI_U8 bInGroupFormation;
-   tPalTimerHandle discoverTimer;
-   tPalTimerHandle retryActionFrameTimer;
-   tPalTimerHandle actionFrameTimer;
+   vos_timer_t discoverTimer;
+   vos_timer_t retryActionFrameTimer;
+   vos_timer_t actionFrameTimer;
    tPalTimerHandle nextActionFrameTimer;
    tANI_U8 peerMacAddress[P2P_MAC_ADDRESS_LEN];
    tANI_U8 selfMacAddress[P2P_MAC_ADDRESS_LEN];
@@ -475,11 +475,11 @@ typedef struct sp2pContext
 #endif
 } tp2pContext, *tPp2pContext;
 
-
 eHalStatus sme_RemainOnChannel( tHalHandle hHal, tANI_U8 sessionId,
                                 tANI_U8 channel, tANI_U32 duration,
-                                remainOnChanCallback callback, 
-                                void *pContext );
+                                remainOnChanCallback callback,
+                                void *pContext,
+                                tANI_U8 isP2PProbeReqAllowed);
 eHalStatus sme_ReportProbeReq( tHalHandle hHal, tANI_U8 flag );
 eHalStatus sme_updateP2pIe( tHalHandle hHal, void *p2pIe, 
                             tANI_U32 p2pIeLength );
@@ -495,11 +495,14 @@ eHalStatus sme_p2pSetPs( tHalHandle hHal, tP2pPsConfig * data );
 eHalStatus p2pRemainOnChannel( tHalHandle hHal, tANI_U8 sessionId,
                                tANI_U8 channel, tANI_U32 duration,
                                remainOnChanCallback callback, void *pContext,
+                               tANI_U8 isP2PProbeReqAllowed,
                                eP2PRemainOnChnReason reason);
 #else
 eHalStatus p2pRemainOnChannel( tHalHandle hHal, tANI_U8 sessionId,
                                tANI_U8 channel, tANI_U32 duration,
-                               remainOnChanCallback callback, void *pContext);
+                               remainOnChanCallback callback,
+                               void *pContext,
+                               tANI_U8 isP2PProbeReqAllowed);
 #endif
 eHalStatus p2pSendAction( tHalHandle hHal, tANI_U8 sessionId,
                           const tANI_U8 *pBuf, tANI_U32 len,

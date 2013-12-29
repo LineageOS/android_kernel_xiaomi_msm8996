@@ -38,6 +38,7 @@
 #include <osapi_linux.h>
 #include "vos_api.h"
 #include "wma_api.h"
+#include "adf_os_atomic.h"
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #include "wlan_hdd_power.h"
 #endif

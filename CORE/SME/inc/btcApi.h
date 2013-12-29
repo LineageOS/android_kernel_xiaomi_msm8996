@@ -41,6 +41,7 @@
 
 #include "vos_types.h"
 #include "vos_timer.h"
+#include "vos_nvitem.h"
 
 #define BT_INVALID_CONN_HANDLE (0xFFFF)  /**< Invalid connection handle */
 
@@ -131,6 +132,12 @@
 #define BTC_SCO_BLOCK_PERC_DEF             (1)  // 1 percent
 #define BTC_DHCP_ON_A2DP_DEF               (1)  // ON
 #define BTC_DHCP_ON_SCO_DEF                (0)  // OFF
+
+/*
+ * Number of victim tables and mws coex configurations
+ */
+#define MWS_COEX_MAX_VICTIM_TABLE             10
+#define MWS_COEX_MAX_CONFIG                   6
 
 /** Enumeration of all the different kinds of BT events
 */
@@ -277,6 +284,14 @@ typedef struct sSmeBtcConfig
    v_U32_t      btcMaxScoBlockPerc;
    v_U32_t      btcDhcpProtOnA2dp;
    v_U32_t      btcDhcpProtOnSco;
+
+   v_U32_t      mwsCoexVictimWANFreq[MWS_COEX_MAX_VICTIM_TABLE];
+   v_U32_t      mwsCoexVictimWLANFreq[MWS_COEX_MAX_VICTIM_TABLE];
+   v_U32_t      mwsCoexVictimConfig[MWS_COEX_MAX_VICTIM_TABLE];
+   v_U32_t      mwsCoexVictimConfig2[MWS_COEX_MAX_VICTIM_TABLE];
+   v_U32_t      mwsCoexModemBackoff;
+   v_U32_t      mwsCoexConfig[MWS_COEX_MAX_CONFIG];
+   v_U32_t      SARPowerBackoff;
 } tSmeBtcConfig, *tpSmeBtcConfig;
 
 
@@ -355,6 +370,7 @@ typedef struct sSmeBtcInfo
    v_U16_t       btcScoHandles[BT_MAX_SCO_SUPPORT];  /* Handles for SCO, if any*/
    v_BOOL_t      fA2DPUp;        /*remember whether A2DP is in session*/
    v_BOOL_t      btcScanCompromise;
+   v_U8_t        btcBssfordisableaggr[VOS_MAC_ADDRESS_LEN];
 } tSmeBtcInfo, *tpSmeBtcInfo;
 
 

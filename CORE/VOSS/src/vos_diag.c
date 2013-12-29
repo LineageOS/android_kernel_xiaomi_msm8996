@@ -127,7 +127,7 @@ void vos_log_submit(v_VOID_t *plog_hdr_ptr)
 
     tAniHdr *wmsg = NULL;
     v_U8_t *pBuf;
-    hdd_context_t *pHddCtx;
+    struct hdd_context_s *pHddCtx;
     v_CONTEXT_t pVosContext= NULL;
     v_U16_t data_len;
     v_U16_t total_len;
@@ -138,6 +138,14 @@ void vos_log_submit(v_VOID_t *plog_hdr_ptr)
 
      /*Get the Hdd Context */
     pHddCtx = ((VosContextType*)(pVosContext))->pHDDContext;
+
+#ifdef WLAN_KD_READY_NOTIFIER
+    /* NL is not ready yet, WLAN KO started first */
+    if ((pHddCtx->kd_nl_init) && (!pHddCtx->ptt_pid))
+    {
+        nl_srv_nl_ready_indication();
+    }
+#endif /* WLAN_KD_READY_NOTIFIER */
 
    /* Send the log data to the ptt app only if it is registered with the wlan driver*/
     if(pHddCtx->ptt_pid)
@@ -173,8 +181,9 @@ void vos_log_submit(v_VOID_t *plog_hdr_ptr)
         if(pHddCtx->ptt_pid)
         {
             if( ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, pHddCtx->ptt_pid) < 0) {
-        
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Ptt Socket error sending message to the app!!\n"));
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                          ("Ptt Socket error sending message to the app!!\n"));
+                vos_mem_free((v_VOID_t *)wmsg);
                 return;
             }
        
@@ -202,7 +211,7 @@ void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPaylo
 
     tAniHdr *wmsg = NULL;
     v_U8_t *pBuf;
-    hdd_context_t *pHddCtx;
+    struct hdd_context_s *pHddCtx;
     v_CONTEXT_t pVosContext= NULL;
     event_report_t *pEvent_report;
     v_U16_t total_len;
@@ -213,6 +222,13 @@ void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPaylo
      /*Get the Hdd Context */
     pHddCtx = ((VosContextType*)(pVosContext))->pHDDContext;
 
+#ifdef WLAN_KD_READY_NOTIFIER
+    /* NL is not ready yet, WLAN KO started first */
+    if ((pHddCtx->kd_nl_init) && (!pHddCtx->ptt_pid))
+    {
+        nl_srv_nl_ready_indication();
+    }
+#endif /* WLAN_KD_READY_NOTIFIER */
     
     /* Send the log data to the ptt app only if it is registered with the wlan driver*/
     if(pHddCtx->ptt_pid)
@@ -242,8 +258,9 @@ void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPaylo
         memcpy(pBuf, pPayload,length);
       
         if( ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, pHddCtx->ptt_pid) < 0) {
-    
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Ptt Socket error sending message to the app!!\n"));
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                       ("Ptt Socket error sending message to the app!!\n"));
+            vos_mem_free((v_VOID_t*)wmsg);
             return;
         }
     

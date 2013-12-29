@@ -35,6 +35,8 @@
 #include "adf_nbuf.h"
 #endif
 
+#ifndef FEATURE_WLAN_PAL_MEM_DISABLE
+
 #ifdef MEMORY_DEBUG
 eHalStatus palAllocateMemory_debug( tHddHandle hHdd, void **ppMemory, tANI_U32 numBytes, char* fileName, tANI_U32 lineNum )
 {
@@ -94,6 +96,7 @@ tANI_BOOLEAN palEqualMemory( tHddHandle hHdd, void *pMemory1, void *pMemory2, tA
 {
    return( vos_mem_compare( pMemory1, pMemory2, numBytes ) );
 }   
+#endif
 
 #ifndef QCA_WIFI_2_0
 eHalStatus palPktAlloc(tHddHandle hHdd, eFrameType frmType, tANI_U16 size, void **data, void **ppPacket)
@@ -339,7 +342,7 @@ eHalStatus palSendMBMessage(tHddHandle hHdd, void *pBuf)
       }
    }
 
-   palFreeMemory( hHdd, pBuf );
+   vos_mem_free( pBuf );
 
    return( halStatus );
 }

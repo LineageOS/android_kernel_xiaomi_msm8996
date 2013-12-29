@@ -341,6 +341,11 @@ tANI_U8 WLANHAL_RxBD_GetFrameTypeSubType(v_PVOID_t _pvBDHeader, tANI_U16 usFrmCt
 #ifdef FEATURE_WLAN_TDLS
 #define HAL_TDLS_PEER_STA_MASK              0x80 //bit 7 set for TDLS peer station 
 #endif
+
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+#define HAL_RELIABLE_MCAST_REQUESTED_MASK   0x100
+#define HAL_USE_BD_RATE_MASK 0x1000
+#endif
 /*==========================================================================
 
   FUNCTION    WLANHAL_FillTxBd

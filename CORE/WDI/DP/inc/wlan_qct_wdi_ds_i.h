@@ -46,6 +46,7 @@
 #include "wlan_qct_pal_type.h"
 #include "wlan_qct_pal_status.h"
 #include "wlan_qct_pal_packet.h"
+#include "wlan_qct_pal_trace.h"
 #include "wlan_qct_wdi_ds.h"
 #include "wlan_qct_dxe.h"
 

@@ -33,7 +33,6 @@
  * \brief C defines customizing our framesc-generated code
  *
  *
- *
  * Copyright (C) 2006 Airgo Networks, Incorporated
  *
  * 'framesc' generates code written in terms of a number of macros
@@ -46,11 +45,11 @@
 
 // This controls how the "dot11f" code copies memory
 #define DOT11F_MEMCPY(ctx, dst, src, len) \
-    palCopyMemory( ( ctx )->hHdd, ( tANI_U8* )( dst ), ( tANI_U8* )( src ), ( len ) )
+    vos_mem_copy( ( tANI_U8* )( dst ), ( tANI_U8* )( src ), ( len ) )
 
 // This controls how the "dot11f" code compares memory
 #define DOT11F_MEMCMP(ctx, lhs, rhs, len) \
-    ( ! palEqualMemory( ( ctx )->hHdd, ( tANI_U8* )( lhs ), ( tANI_U8* )( rhs ), ( len ) ) )
+    ( ! vos_mem_compare( ( tANI_U8* )( lhs ), ( tANI_U8* )( rhs ), ( len ) ) )
 
 #   if defined ( DBG ) && ( DBG != 0 )
 

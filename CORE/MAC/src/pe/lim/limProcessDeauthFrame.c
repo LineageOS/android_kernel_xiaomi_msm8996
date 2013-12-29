@@ -26,7 +26,6 @@
  */
 
 /*
- *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessDeauthFrame.cc contains the code
  * for processing Deauthentication Frame.
@@ -92,8 +91,19 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
 
     if ((eLIM_STA_ROLE == psessionEntry->limSystemRole) && (eLIM_SME_WT_DEAUTH_STATE == psessionEntry->limSmeState))
     {
-       MTRACE(macTrace(pMac, TRACE_CODE_INFO_LOG, 0, eLOG_PROC_DEAUTH_FRAME_SCENARIO));
-       return;
+        /*Every 15th deauth frame will be logged in kmsg*/
+        if(!(pMac->lim.deauthMsgCnt & 0xF))
+        {
+            PELOGE(limLog(pMac, LOGE,
+             FL("received Deauth frame in DEAUTH_WT_STATE"
+                "(already processing previously received DEAUTH frame).."
+                "Dropping this.. Deauth Failed %d \n "),++pMac->lim.deauthMsgCnt);)
+        }
+        else
+        {
+            pMac->lim.deauthMsgCnt++;
+        }
+        return;
     }
 
     if (limIsGroupAddr(pHdr->sa))
@@ -143,7 +153,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
       
     if (limCheckDisassocDeauthAckPending(pMac, (tANI_U8*)pHdr->sa))
     {
-        PELOGW(limLog(pMac, LOGE, 
+        PELOGW(limLog(pMac, LOGW,
                     FL("Ignore the Deauth received, while waiting for ack of disassoc/deauth"));)
         limCleanUpDisassocDeauthReq(pMac,(tANI_U8*)pHdr->sa, 1);
         return;
@@ -197,11 +207,11 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     else
     {
         // Received Deauth frame in either IBSS
-        // or un-known role. Log error and ignore it
-        limLog(pMac, LOGE,
+        // or un-known role. Log and ignore it
+        limLog(pMac, LOG1,
            FL("received Deauth frame with reasonCode %d in role %d from "),
            reasonCode, psessionEntry->limSystemRole);
-          limPrintMacAddr(pMac, pHdr->sa, LOGE);
+          limPrintMacAddr(pMac, pHdr->sa, LOG1);
 
         return;
     }
@@ -259,7 +269,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
             PELOGE(limLog(pMac, LOGE, FL("received DeAuth from an AP other than we're trying to join. Ignore. "));)
             if (limSearchPreAuthList(pMac, pHdr->sa))
             {
-                PELOGE(limLog(pMac, LOGE, FL("Preauth entry exist. Deleting... "));)
+                PELOG1(limLog(pMac, LOG1, FL("Preauth entry exist. Deleting... "));)
                 limDeletePreAuthNode(pMac, pHdr->sa);
             }
             return;
@@ -295,10 +305,9 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
 
                     case eLIM_MLM_AUTHENTICATED_STATE:
                         /// Issue Deauth Indication to SME.
-                        palCopyMemory( pMac->hHdd,
-                               (tANI_U8 *) &mlmDeauthInd.peerMacAddr,
-                               pHdr->sa,
-                               sizeof(tSirMacAddr));
+                        vos_mem_copy((tANI_U8 *) &mlmDeauthInd.peerMacAddr,
+                                     pHdr->sa,
+                                     sizeof(tSirMacAddr));
                         mlmDeauthInd.reasonCode = reasonCode;
 
                         psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
@@ -321,7 +330,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
 
                        if (psessionEntry->pLimMlmJoinReq)
                         {
-                            palFreeMemory( pMac->hHdd, psessionEntry->pLimMlmJoinReq);
+                            vos_mem_free(psessionEntry->pLimMlmJoinReq);
                             psessionEntry->pLimMlmJoinReq = NULL;
                         }
 
@@ -346,6 +355,14 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
                             (tANI_U32 *) &mlmAssocCnf);
                         
                         return;
+
+                    case eLIM_MLM_WT_ADD_STA_RSP_STATE:
+                         psessionEntry->fDeauthReceived = true;
+                         PELOGW(limLog(pMac, LOGW,
+                            FL("Received Deauth frame with Reason Code %d from Peer"),
+                                  reasonCode);
+                         limPrintMacAddr(pMac, pHdr->sa, LOGW);)
+                         return ;
 
                     case eLIM_MLM_IDLE_STATE:
                     case eLIM_MLM_LINK_ESTABLISHED_STATE:
@@ -435,7 +452,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     pStaDs->mlmStaContext.cleanupTrigger = eLIM_PEER_ENTITY_DEAUTH;
 
     /// Issue Deauth Indication to SME.
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) &mlmDeauthInd.peerMacAddr,
+    vos_mem_copy((tANI_U8 *) &mlmDeauthInd.peerMacAddr,
                   pStaDs->staAddr,
                   sizeof(tSirMacAddr));
     mlmDeauthInd.reasonCode    = (tANI_U8) pStaDs->mlmStaContext.disassocReason;
@@ -458,7 +475,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
             limDeletePreAuthNode(pMac, pHdr->sa);
 
         if (psessionEntry->limAssocResponseData) {
-            palFreeMemory(pMac->hHdd, psessionEntry->limAssocResponseData);
+            vos_mem_free(psessionEntry->limAssocResponseData);
             psessionEntry->limAssocResponseData = NULL;                            
         }
 
@@ -473,7 +490,12 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
                eSIR_MAC_UNSPEC_FAILURE_STATUS, psessionEntry);
         return;
     }
-
+    /* reset the deauthMsgCnt here since we are able to Process
+     * the deauth frame and sending up the indication as well */
+    if(pMac->lim.deauthMsgCnt != 0)
+    {
+        pMac->lim.deauthMsgCnt = 0;
+    }
     /// Deauthentication from peer MAC entity
     limPostSmeMessage(pMac, LIM_MLM_DEAUTH_IND, (tANI_U32 *) &mlmDeauthInd);
 

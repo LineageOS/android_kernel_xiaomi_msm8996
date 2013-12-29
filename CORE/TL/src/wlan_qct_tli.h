@@ -57,6 +57,7 @@ DESCRIPTION
 
 when        who    what, where, why
 --------    ---    ----------------------------------------------------------
+08/19/13    rajekuma Added reliable multicast support in TL
 02/19/10    bad     Fixed 802.11 to 802.3 ft issues with WAPI
 01/14/10    rnair   Fixed the byte order for the WAI packet type.
 01/08/10    lti     Added TL Data Caching
@@ -97,7 +98,6 @@ when        who    what, where, why
 
 
 #define STATIC  static
-
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -178,6 +178,11 @@ when        who    what, where, why
 #define WLANTL_FRAME_TYPE_MCAST 0x01
 #define WLANTL_FRAME_TYPE_UCAST 0x00
 
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+/*Size of TL's active list of reliable multicast hash table.
+  Always keep this value 2 ^ n for efficient hashing*/
+#define WLANTL_RMCAST_HASH_TABLE_SIZE (32)
+#endif
 
 /*-------------------------------------------------------------------------
   BT-AMP related definition - !!! should probably be moved to BT-AMP header
@@ -235,6 +240,8 @@ when        who    what, where, why
 /*get RSSI1 from a RX BD*/
 #define WLANTL_GETRSSI1(pBD)    (WDA_GETRSSI1(pBD) - WLAN_TL_RSSI_CORRECTION)
 
+#define WLANTL_GETSNR(pBD)      WDA_GET_RX_SNR(pBD)
+
 /* Check whether Rx frame is LS or EAPOL packet (other than data) */
 #define WLANTL_BAP_IS_NON_DATA_PKT_TYPE(usType) \
   ((WLANTL_BT_AMP_TYPE_AR == usType) || (WLANTL_BT_AMP_TYPE_SEC == usType) || \
@@ -263,6 +270,9 @@ typedef enum
 
   /* Serialzie Finish UL Authentication request */
   WLANTL_FINISH_ULA   = 5,
+
+  /* Serialized Snapshot request indication */
+  WLANTL_TX_SNAPSHOT = 6,
 
   WLANTL_TX_MAX
 }WLANTL_TxSignalsType;
@@ -301,7 +311,8 @@ typedef enum
 ---------------------------------------------------------------------------*/
 typedef VOS_STATUS (*WLANTL_STAFuncType)( v_PVOID_t     pAdapter,
                                           v_U8_t        ucSTAId,
-                                          vos_pkt_t**   pvosDataBuff);
+                                          vos_pkt_t**   pvosDataBuff,
+                                          v_BOOL_t      bForwardIAPPwithLLC);
 
 /*---------------------------------------------------------------------------
   STA FSM Entry type
@@ -314,32 +325,38 @@ typedef struct
 /* Receive in connected state - only EAPOL or WAI*/
 VOS_STATUS WLANTL_STARxConn( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* Transmit in connected state - only EAPOL or WAI*/
 VOS_STATUS WLANTL_STATxConn( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* Receive in authenticated state - all data allowed*/
 VOS_STATUS WLANTL_STARxAuth( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* Transmit in authenticated state - all data allowed*/
 VOS_STATUS WLANTL_STATxAuth( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* Receive in disconnected state - no data allowed*/
 VOS_STATUS WLANTL_STARxDisc( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* Transmit in disconnected state - no data allowed*/
 VOS_STATUS WLANTL_STATxDisc( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* TL State Machine */
 STATIC const WLANTL_STAFsmEntryType tlSTAFsm[WLANTL_STA_MAX_STATE] =
@@ -438,6 +455,8 @@ typedef struct
   WLANTL_TIMER_EXPIER_UDATA_T timerUdata;
 
   WLANTL_REORDER_BUFFER_T     *reorderBuffer;
+
+  v_U16_t            LastSN;
 }WLANTL_BAReorderType;
 
 
@@ -449,6 +468,23 @@ typedef struct
   /* flag set when a UAPSD session with triggers generated in fw is being set*/
   v_U8_t              ucSet;
 }WLANTL_UAPSDInfoType;
+
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+/*---------------------------------------------------------------------------
+  Reliable Multicast Session information
+---------------------------------------------------------------------------*/
+struct tTL_ReliableMcastList
+{
+  /* Reliable multicast session in TL */
+  struct tTL_ReliableMcastList *next;
+  v_MACADDR_t           reliableMcastAddr;
+  v_U16_t               mcSeqCtl;
+  v_U32_t               rxMCDupcnt;
+};
+
+typedef struct tTL_ReliableMcastList WLANTL_RMCAST_SESSION;
+
+#endif
 
 /*---------------------------------------------------------------------------
   STA Client type
@@ -499,6 +535,18 @@ typedef struct
 
   /* Value of the averaged RSSI for this station */
   v_U32_t                       uLinkQualityAvg;
+
+  /* Sum of SNR for snrIdx number of consecutive frames */
+  v_U32_t                       snrSum;
+
+  /* Number of consecutive frames over which snrSum is calculated */
+  v_S7_t                        snrIdx;
+
+  /* Average SNR of previous 20 frames */
+  v_S7_t                        prevSnrAvg;
+
+  /* Average SNR returned by fw */
+  v_S7_t                        snrAvgBmps;
 
   /* Tx packet count per station per TID */
   v_U32_t                       auTxCount[WLAN_MAX_TID];
@@ -622,6 +670,15 @@ typedef struct
     1 then we have to encrypt the data irrespective of TL
     state (CONNECTED/AUTHENTICATED) */
   v_U8_t ptkInstalled;
+
+  v_U32_t       linkCapacity;
+
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+  /*Active reliable multicast sessions list in TL*/
+  WLANTL_RMCAST_SESSION *mcastSession[WLANTL_RMCAST_HASH_TABLE_SIZE];
+  /*Reliable multicast lock*/
+  vos_lock_t mcLock;
+#endif
 }WLANTL_STAClientType;
 
 /*---------------------------------------------------------------------------
@@ -815,6 +872,17 @@ typedef struct
   v_BOOL_t                  isBMPS;
   /* Whether WDA_DS_TX_START_XMIT msg is pending or not */
   v_BOOL_t   isTxTranmitMsgPending;
+
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+  /*Active reliable multicast sessions list in TL*/
+  WLANTL_RMCAST_SESSION *reliableMcastSession[WLANTL_RMCAST_HASH_TABLE_SIZE];
+  /*Reliable multicast lock*/
+  vos_lock_t rmcLock;
+  v_U8_t multicastDuplicateDetectionEnabled;
+  v_U8_t rmcDataPathEnabled;
+  v_U32_t mcastDupCnt;
+#endif
+
 }WLANTL_CbType;
 
 /*==========================================================================
@@ -1269,7 +1337,7 @@ WLANTL_Translate8023To80211Header
   VOS_STATUS*     pvosStatus,
   WLANTL_CbType*  pTLCb,
   v_U8_t          *pucStaId,
-  v_U8_t          ucUP,
+  WLANTL_MetaInfoType* pTlMetaInfo,
   v_U8_t          *ucWDSEnabled,
   v_U8_t          *extraHeadSpace
 );
@@ -1310,7 +1378,8 @@ WLANTL_Translate80211To8023Header
   v_U16_t         usActualHLen,
   v_U8_t          ucHeaderLen,
   WLANTL_CbType*  pTLCb,
-  v_U8_t          ucSTAId
+  v_U8_t          ucSTAId,
+  v_BOOL_t        bForwardIAPPwithLLC
 );
 
 /*==========================================================================
@@ -1602,6 +1671,23 @@ VOS_STATUS WLANTL_ReadRSSI
    v_U8_t           STAid
 );
 
+/*==========================================================================
+
+   FUNCTION
+
+   DESCRIPTION   Read SNR value out of a RX BD
+
+   PARAMETERS: Caller must validate all parameters
+
+   RETURN VALUE
+
+============================================================================*/
+VOS_STATUS WLANTL_ReadSNR
+(
+   v_PVOID_t        pAdapter,
+   v_PVOID_t        pBDHeader,
+   v_U8_t           STAid
+);
 
 
 void WLANTL_PowerStateChangedCB
@@ -1645,5 +1731,219 @@ WLANTL_FwdPktToHDD
   vos_pkt_t*     pvosDataBuff,
   v_U8_t          ucSTAId
 );
+
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+
+/*==========================================================================
+   FUNCTION WLANTL_RmcInit
+
+   DESCRIPTION This function initilizes RMC module in TL
+
+   PARAMETERS
+   pADapter : pointer to VOS global context
+
+   RETURN VALUE
+   VOS_STATUS_SUCCESS : for success
+   VOS_STATUS_FAILURE : for failure
+   VOS_STATUS_E_INVAL : for invalid input parameter
+
+============================================================================*/
+VOS_STATUS WLANTL_RmcInit
+(
+     v_PVOID_t   pAdapter
+);
+
+/*==========================================================================
+   FUNCTION WLANTL_RmcDeInit
+
+   DESCRIPTION This function de-initilizes RMC module in TL
+
+   PARAMETERS
+   pADapter : pointer to VOS global context
+
+   RETURN VALUE
+   VOS_STATUS_SUCCESS : for success
+   VOS_STATUS_FAILURE : for failure
+   VOS_STATUS_E_INVAL : for invalid input parameter
+
+============================================================================*/
+VOS_STATUS WLANTL_RmcDeInit
+(
+    v_PVOID_t   pAdapter
+);
+
+
+/*==========================================================================
+   FUNCTION WLANTL_RmcHashRmcastSession
+
+   DESCRIPTION This function hashes input RMCAST MAC address
+
+   PARAMETERS
+   pMcastAddr : pointer to input RMCAST MAC address
+
+   RETURN VALUE
+   tANI_U8 : A hash value between 0 to WLANTL_MAX_RMCAST_SESSIONS - 1
+============================================================================*/
+tANI_U8 WLANTL_RmcHashRmcastSession ( v_MACADDR_t   *pMcastAddr );
+
+
+/*===========================================================================
+   FUNCTION WLANTL_RmcLookUpRmcastSession
+
+   DESCRIPTION This function tries to find out RMCAST address in TL's active
+    list of reliable multicast sessions
+
+   PARAMETERS
+   pTLCb      : pointer to TL Cb
+   pMcastAddr : pointer to input RMCAST MAC address
+
+   RETURN VALUE
+   WLANTL_RMCAST_SESSION * :
+     NULL if input RMCAST MAC address does exist in active RMCAST sessions list
+     Pointer to RMCAST session found in active RMCAST sessions list
+=============================================================================*/
+WLANTL_RMCAST_SESSION *WLANTL_RmcLookUpRmcastSession
+(
+    WLANTL_RMCAST_SESSION *reliableMcastSession[],
+    v_MACADDR_t     *pMcastAddr
+);
+
+/*===========================================================================
+   FUNCTION WLANTL_RmcAddRmcastSession
+
+   DESCRIPTION This function adds requested RMCAST address in TL's active
+    list of reliable multicast sessions
+
+   PARAMETERS
+   pTLCb      : pointer to TL Cb
+   pMcastAddr : pointer to input RMCAST MAC address
+
+   RETURN VALUE
+   WLANTL_RMCAST_SESSION * :
+     NULL if input RMCAST MAC address already exists in active RMCAST sessions
+     list else pointer to RMCAST session which is added in active RMCAST
+     sessions list
+=============================================================================*/
+WLANTL_RMCAST_SESSION *WLANTL_RmcAddRmcastSession
+(
+    WLANTL_RMCAST_SESSION *reliableMcastSession[],
+    v_MACADDR_t   *pMcastAddr
+);
+
+/*===========================================================================
+   FUNCTION WLANTL_RmcDeleteRmcastSession
+
+   DESCRIPTION This function deleted requested RMCAST address from TL's active
+    list of reliable multicast sessions
+
+   PARAMETERS
+   pTLCb      : pointer to TL Cb
+   pMcastAddr : pointer to input RMCAST MAC address
+
+   RETURN VALUE
+   WLANTL_RMCAST_SESSION * :
+     0   if input RMCAST session does not exist in active RMCAST
+         sessions list
+     1   if input RMCAST session is successfully deleted from TL's active list
+         of reliable multicast sessions
+=============================================================================*/
+tANI_U8
+WLANTL_RmcDeleteRmcastSession
+(
+    WLANTL_RMCAST_SESSION *reliableMcastSession[],
+    v_MACADDR_t   *pMcastAddr
+);
+
+/*=============================================================================
+  FUNCTION    WLANTL_ProcessRmcCommand
+
+  DESCRIPTION
+    This function adds/deletes input RMCAST session to/from TL's active hash
+    table of RMCAST sessions
+
+  DEPENDENCIES
+    Reliable multicast receive leader must be selected by FW before
+    UMAC calling this API
+
+  PARAMETERS
+
+   IN
+
+   pTLCb      : Pointer to TL context
+   pMcastAddr : Pointer to MAC ADDR of RMCAST session which needs to to added
+                or deleted
+   command    : If command is 1 then add requested RMCAST session in active
+                session hash table else delete it from active session hash
+                table
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAILURE:   When add or delete command failed
+
+    VOS_STATUS_SUCCESS:     Everything is good :)
+
+  SIDE EFFECTS
+==============================================================================*/
+VOS_STATUS
+WLANTL_ProcessRmcCommand
+(
+    WLANTL_CbType*  pTLCb,
+    v_MACADDR_t    *pMcastAddr,
+    tANI_U32        command
+);
+
+/*=============================================================================
+  FUNCTION    WLANTL_IsDuplicateMcastFrm
+
+  DESCRIPTION
+    This function checks for duplicast multicast frames and drops them.
+
+  DEPENDENCIES
+
+  PARAMETERS
+
+   IN
+
+   pClientSTA  : Pointer to WLANTL_STAClientType
+   aucBDHeader : Pointer to BD header
+
+  RETURN VALUE
+
+    VOS_FALSE:  This frame is not a duplicate
+
+    VOS_TRUE:   This frame is a duplicate
+
+==============================================================================*/
+v_U8_t
+WLANTL_IsDuplicateMcastFrm
+(
+    WLANTL_STAClientType *pClientSTA,
+    vos_pkt_t* vosDataBuff
+);
+
+/*=============================================================================
+  FUNCTION    WLANTL_McastDeleteAllEntries
+
+  DESCRIPTION
+    This function removes all multicast entries used for duplicate detection
+
+  DEPENDENCIES
+
+  PARAMETERS
+
+   IN
+
+   pClientSTA  : Pointer to WLANTL_STAClientType
+
+  RETURN VALUE
+
+    None
+
+==============================================================================*/
+void
+WLANTL_McastDeleteAllEntries(WLANTL_STAClientType * pClientSTA);
+
+#endif /*End of WLAN_FEATURE_RELIABLE_MCAST*/
 
 #endif /* #ifndef WLAN_QCT_TLI_H */

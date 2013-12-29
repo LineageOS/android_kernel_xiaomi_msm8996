@@ -463,7 +463,8 @@ typedef struct
 #ifdef WPT_BIG_BYTE_ENDIAN
         /** reserved8 from a hardware perspective.
         Used by SW to propogate frame type/subtype information */
-        wpt_uint32 frameTypeSubtype:8;
+        wpt_uint32 frameTypeSubtype:6;
+        wpt_uint32 rfBand:2;
     
         /** Filled RPE gives the current sequence number in bitmap */
         wpt_uint32 currentPktSeqNo:12;
@@ -474,7 +475,8 @@ typedef struct
 #else
         wpt_uint32 expectedPktSeqNo:12;
         wpt_uint32 currentPktSeqNo:12;
-        wpt_uint32 frameTypeSubtype:8;
+        wpt_uint32 rfBand:2;
+        wpt_uint32 frameTypeSubtype:6;
 #endif
     
         /* 0x48 */

@@ -107,6 +107,9 @@
 /* Approximate amount of time to wait for WDA to stop WDI */
 #define VOS_WDA_STOP_TIMEOUT WDA_STOP_TIMEOUT 
 
+/* Approximate amount of time to wait for WDA to issue a DUMP req */
+#define VOS_WDA_RESP_TIMEOUT WDA_STOP_TIMEOUT
+
 /*---------------------------------------------------------------------------
  * Data definitions
  * ------------------------------------------------------------------------*/
@@ -344,9 +347,9 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
    /* Initialize BMI and Download firmware */
    if (bmi_download_firmware(scn)) {
-	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-		  "%s: BMI failed to download target", __func__);
-	goto err_bmi_close;
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                  "%s: BMI failed to download target", __func__);
+        goto err_bmi_close;
    }
    htcInfo.pContext = gpVosContext->pHIFContext;
    htcInfo.TargetFailure = ol_target_failure;
@@ -357,8 +360,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    /* Create HTC */
    gpVosContext->htc_ctx = HTCCreate(htcInfo.pContext, &htcInfo, adf_ctx);
    if (!gpVosContext->htc_ctx) {
-	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-		  "%s: Failed to Create HTC", __func__);
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                  "%s: Failed to Create HTC", __func__);
 #ifndef QCA_WIFI_ISOC
            goto err_bmi_close;
 #endif
@@ -367,9 +370,9 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
 #ifndef QCA_WIFI_ISOC
    if (bmi_done(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext))) {
-	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-		  "%s: Failed to complete BMI phase", __func__);
-	goto err_htc_close;
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                  "%s: Failed to complete BMI phase", __func__);
+        goto err_htc_close;
    }
 #endif
 #endif /* #ifdef QCA_WIFI_2_0 */
@@ -388,10 +391,11 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    macOpenParms.driverType         = eDRIVER_TYPE_PRODUCTION;
    macOpenParms.powersaveOffloadEnabled =
       pHddCtx->cfg_ini->enablePowersaveOffload;
-   macOpenParms.wowEnable = pHddCtx->cfg_ini->wowEnable;
+   macOpenParms.wowEnable          = pHddCtx->cfg_ini->wowEnable;
    macOpenParms.maxWoWFilters      = pHddCtx->cfg_ini->maxWoWFilters;
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
-#ifndef QCA_WIFI_ISOC
+#if defined (QCA_WIFI_2_0) && \
+   !defined (QCA_WIFI_ISOC)
                        hdd_update_tgt_cfg,
 #else
                        NULL,
@@ -447,7 +451,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
       goto err_packet_close;
    }
 
-
+#ifndef CONFIG_ENABLE_LINUX_REG
    /* initialize the NV module */
    vStatus = vos_nv_open();
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
@@ -457,6 +461,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
                 "%s: Failed to initialize the NV module", __func__);
      goto err_sys_close;
    }
+#endif
 
    /* If we arrive here, both threads dispacthing messages correctly */
    
@@ -477,10 +482,6 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
      VOS_ASSERT(0);
      goto err_nv_close;
    }
-/* call crda before sme_Open which will read NV and store the default country code */
-   wlan_hdd_get_crda_regd_entry(
-      ((hdd_context_t*)(gpVosContext->pHDDContext))->wiphy,
-      ((hdd_context_t*)(gpVosContext->pHDDContext))->cfg_ini);
 
    /* Now proceed to open the SME */
    vStatus = sme_Open(gpVosContext->pMACContext);
@@ -522,9 +523,13 @@ err_mac_close:
    macClose(gpVosContext->pMACContext);
 
 err_nv_close:
+
+#ifndef CONFIG_ENABLE_LINUX_REG
    vos_nv_close();
-   
-err_sys_close:   
+
+err_sys_close:
+#endif
+
    sysClose(gpVosContext);
 
 err_packet_close:
@@ -551,7 +556,7 @@ err_bmi_close:
 #endif /* #ifndef QCA_WIFI_ISOC */
 #endif /* #ifdef QCA_WIFI_2_0 */
 
-err_sched_close:   
+err_sched_close:
    vos_sched_close(gpVosContext);
 
 
@@ -651,6 +656,10 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
            "%s: WDA_preStart reporting other error", __func__);
       }
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+           "%s: Test MC thread by posting a probe message to SYS", __func__);
+      wlan_sys_probe();
+
       macStop(gpVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
       ccmStop(gpVosContext->pMACContext);
       VOS_ASSERT( 0 );
@@ -790,6 +799,10 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
      }
      VOS_ASSERT(0);
      vos_event_reset( &(gpVosContext->wdaCompleteEvent) );
+     if (vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL))
+     {
+         VOS_BUG(0);
+     }
      WDA_setNeedShutdown(vosContext);
      return VOS_STATUS_E_FAILURE;
   }
@@ -856,7 +869,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
 
 err_sme_stop:
-  sme_Stop(pVosContext->pMACContext, TRUE);
+  sme_Stop(pVosContext->pMACContext, HAL_STOP_TYPE_SYS_RESET);
     
 err_mac_stop:
   macStop( pVosContext->pMACContext, HAL_STOP_TYPE_SYS_RESET );
@@ -934,6 +947,9 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
           VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
            "%s: WDA_stop reporting other error", __func__ );
        }
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+           "%s: Test MC thread by posting a probe message to SYS", __func__);
+       wlan_sys_probe();
        WDA_setNeedShutdown(vosContext);
     }
   }
@@ -1006,6 +1022,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
 
   ((pVosContextType)vosContext)->pMACContext = NULL;
 
+#ifndef CONFIG_ENABLE_LINUX_REG
   vosStatus = vos_nv_close();
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
@@ -1013,7 +1030,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
          "%s: Failed to close NV", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
-
+#endif
 
   vosStatus = sysClose( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -1164,6 +1181,7 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
 
     case VOS_MODULE_ID_SME:
     case VOS_MODULE_ID_PE:
+    case VOS_MODULE_ID_PMC:
     {
       /* 
       ** In all these cases, we just return the MAC Context
@@ -1191,15 +1209,15 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
 #ifndef QCA_WIFI_ISOC
     case VOS_MODULE_ID_HIF:
     {
-	pModContext = gpVosContext->pHIFContext;
-	break;
+        pModContext = gpVosContext->pHIFContext;
+        break;
     }
 #endif
 
     case VOS_MODULE_ID_HTC:
     {
-	pModContext = gpVosContext->htc_ctx;
-	break;
+        pModContext = gpVosContext->htc_ctx;
+        break;
     }
 
     case VOS_MODULE_ID_ADF:
@@ -1210,16 +1228,16 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
 
     case VOS_MODULE_ID_TXRX:
     {
-	pModContext = gpVosContext->pdev_txrx_ctx;
-	break;
+        pModContext = gpVosContext->pdev_txrx_ctx;
+        break;
     }
 
     case VOS_MODULE_ID_CFG:
     {
-	pModContext = gpVosContext->cfg_ctx;
+       pModContext = gpVosContext->cfg_ctx;
         break;
     }
-#endif	/* #ifdef QCA_WIFI_2_0 */
+#endif /* #ifdef QCA_WIFI_2_0 */
 
     default:
     {
@@ -1320,6 +1338,31 @@ void vos_set_load_unload_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
    gpVosContext->isLoadUnloadInProgress = value;
 }
 
+v_U8_t vos_is_reinit_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
+{
+  if (gpVosContext == NULL)
+  {
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        "%s: global voss context is NULL", __func__);
+    return 1;
+  }
+
+   return gpVosContext->isReInitInProgress;
+}
+
+void vos_set_reinit_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
+{
+  if (gpVosContext == NULL)
+  {
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        "%s: global voss context is NULL", __func__);
+    return;
+  }
+
+   gpVosContext->isReInitInProgress = value;
+}
+
+
 /**---------------------------------------------------------------------------
   
   \brief vos_alloc_context() - allocate a context within the VOSS global Context
@@ -1404,6 +1447,7 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
     }
     case VOS_MODULE_ID_SME:
     case VOS_MODULE_ID_PE:
+    case VOS_MODULE_ID_PMC:
     case VOS_MODULE_ID_HDD:
     case VOS_MODULE_ID_HDD_SOFTAP:
     default:
@@ -1529,6 +1573,7 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
     case VOS_MODULE_ID_HDD:
     case VOS_MODULE_ID_SME:
     case VOS_MODULE_ID_PE:
+    case VOS_MODULE_ID_PMC:
     case VOS_MODULE_ID_HDD_SOFTAP:
     default:
     {     
@@ -2340,6 +2385,53 @@ VOS_STATUS vos_wlanRestart(void)
    /* Reload the driver */
    vstatus = wlan_hdd_restart_driver(pHddCtx);
    return vstatus;
+}
+
+
+/**
+  @brief vos_fwDumpReq()
+
+  This function is called to issue dump commands to Firmware
+
+  @param
+       cmd - Command No. to execute
+       arg1 - argument 1 to cmd
+       arg2 - argument 2 to cmd
+       arg3 - argument 3 to cmd
+       arg4 - argument 4 to cmd
+  @return
+       NONE
+*/
+v_VOID_t vos_fwDumpReq(tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2,
+                        tANI_U32 arg3, tANI_U32 arg4)
+{
+   VOS_STATUS vStatus          = VOS_STATUS_SUCCESS;
+
+   /* Reset wda wait event */
+   vos_event_reset(&gpVosContext->wdaCompleteEvent);
+
+   WDA_HALDumpCmdReq(NULL, cmd, arg1, arg2, arg3, arg4, NULL);
+
+   /* Need to update time out of complete */
+   vStatus = vos_wait_single_event(&gpVosContext->wdaCompleteEvent,
+                                   VOS_WDA_RESP_TIMEOUT );
+
+   if (vStatus != VOS_STATUS_SUCCESS)
+   {
+      if (vStatus == VOS_STATUS_E_TIMEOUT)
+      {
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+          "%s: Timeout occurred before WDA HAL DUMP complete\n", __func__);
+      }
+      else
+      {
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+           "%s: reporting other error", __func__);
+      }
+   }
+
+   return;
+
 }
 
 VOS_STATUS vos_get_vdev_types(tVOS_CON_MODE mode, tANI_U32 *type,

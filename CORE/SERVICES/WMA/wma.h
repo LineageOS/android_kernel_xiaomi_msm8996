@@ -421,6 +421,7 @@ typedef struct {
 	struct wma_tx_ack_work_ctx *ack_work_ctx;
 	u_int8_t powersave_mode;
 	v_BOOL_t ptrn_match_enable_all_vdev;
+	void* pGetRssiReq;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1044,6 +1045,9 @@ typedef struct wma_trigger_uapsd_params
 VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 			tp_wma_trigger_uapsd_params trigger_uapsd_params);
 
+/* added to get average snr for both data and beacon */
+VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq);
+
 #ifdef FEATURE_WLAN_SCAN_PNO
 
 #define WMA_NLO_FREQ_THRESH          1000         /* in MHz */
@@ -1162,6 +1166,11 @@ enum powersave_mode {
 	PS_LEGACY_DEEPSLEEP = 3,
 	PS_QPOWER_DEEPSLEEP = 4
 };
-#define WMA_DEFAULT_QPOWER_MAX_PSPOLL_BEFORE_WAKE 1
+#define WMA_DEFAULT_MAX_PSPOLL_BEFORE_WAKE 1
 #define WMA_DEFAULT_QPOWER_TX_WAKE_THRESHOLD 2
+
+#define WMA_VHT_PPS_PAID_MATCH 1
+#define WMA_VHT_PPS_GID_MATCH 2
+#define WMA_VHT_PPS_DELIM_CRC_FAIL 3
+
 #endif

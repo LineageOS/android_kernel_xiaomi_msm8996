@@ -113,7 +113,8 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			int param_id, int vpdev);
 eHalStatus wma_set_htconfig(tANI_U8 vdev_id, tANI_U16 ht_capab, int value);
 eHalStatus WMA_SetCountryCode(v_VOID_t *client_ctx, tANI_U8 *countrycode);
-eHalStatus WMA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
+eHalStatus WMA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
+		tAniBool sendRegHint);
 
 #ifndef QCA_WIFI_ISOC
 int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr);

@@ -73,8 +73,10 @@ typedef enum
   VOS_BINARY_ID_COUNTRY_INFO,
 
   /// Binary ID for Handoff Configuration data
-  VOS_BINARY_ID_HO_CONFIG
+  VOS_BINARY_ID_HO_CONFIG,
 
+  /// Binary ID for Dictionary Configuration data
+  VOS_BINARY_ID_DICT_CONFIG
   
 } VOS_BINARY_ID;
 

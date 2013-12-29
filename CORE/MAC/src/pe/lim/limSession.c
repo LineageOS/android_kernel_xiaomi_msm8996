@@ -25,8 +25,6 @@
  * to the Linux Foundation.
  */
 
-/*
- * */
 /**=========================================================================
   
   \file  limSession.c
@@ -49,7 +47,7 @@
 #include "limDebug.h"
 #include "limSession.h"
 #include "limUtils.h"
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
 #include "ccxApi.h"
 #endif
 
@@ -80,13 +78,13 @@ void peInitBeaconParams(tpAniSirGlobal pMac, tpPESession psessionEntry)
     psessionEntry->beaconParams.gHTObssMode = 0;
 
     // Number of legacy STAs associated 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11bParams, sizeof(tLimProtStaParams)); 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11aParams, sizeof(tLimProtStaParams)); 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11gParams, sizeof(tLimProtStaParams)); 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimNonGfParams, sizeof(tLimProtStaParams)); 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimHt20Params, sizeof(tLimProtStaParams)); 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimLsigTxopParams, sizeof(tLimProtStaParams)); 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimOlbcParams, sizeof(tLimProtStaParams));
+    vos_mem_set((void*)&psessionEntry->gLim11bParams, sizeof(tLimProtStaParams), 0);
+    vos_mem_set((void*)&psessionEntry->gLim11aParams, sizeof(tLimProtStaParams), 0);
+    vos_mem_set((void*)&psessionEntry->gLim11gParams, sizeof(tLimProtStaParams), 0);
+    vos_mem_set((void*)&psessionEntry->gLimNonGfParams, sizeof(tLimProtStaParams), 0);
+    vos_mem_set((void*)&psessionEntry->gLimHt20Params, sizeof(tLimProtStaParams), 0);
+    vos_mem_set((void*)&psessionEntry->gLimLsigTxopParams, sizeof(tLimProtStaParams), 0);
+    vos_mem_set((void*)&psessionEntry->gLimOlbcParams, sizeof(tLimProtStaParams), 0);
 }
 
 /*--------------------------------------------------------------------------
@@ -105,7 +103,7 @@ void peInitBeaconParams(tpAniSirGlobal pMac, tpPESession psessionEntry)
   \sa
   
   --------------------------------------------------------------------------*/
-tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessionId, tANI_U16 numSta)
+tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid, tANI_U8* sessionId, tANI_U16 numSta)
 {
     tANI_U8 i;
     for(i =0; i < pMac->lim.maxBssId; i++)
@@ -113,21 +111,23 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
         /* Find first free room in session table */
         if(pMac->lim.gpSession[i].valid == FALSE)
         {
-            palZeroMemory(pMac, (void*)&pMac->lim.gpSession[i], sizeof(tPESession));
+            vos_mem_set((void*)&pMac->lim.gpSession[i], sizeof(tPESession), 0);
 
             //Allocate space for Station Table for this session.
-            if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
-                     (void **) &pMac->lim.gpSession[i].dph.dphHashTable.pHashTable, sizeof(tpDphHashNode)*numSta))
+            pMac->lim.gpSession[i].dph.dphHashTable.pHashTable = vos_mem_malloc(
+                                                  sizeof(tpDphHashNode)*numSta);
+            if ( NULL == pMac->lim.gpSession[i].dph.dphHashTable.pHashTable )
             {
                 limLog(pMac, LOGE, FL("memory allocate failed!"));
                 return NULL;
             }
 
-            if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
-                  (void **) &pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray, sizeof(tDphHashNode)*numSta))
+            pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray = vos_mem_malloc(
+                                                       sizeof(tDphHashNode)*numSta);
+            if ( NULL == pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray )
             {
                 limLog(pMac, LOGE, FL("memory allocate failed!"));
-                palFreeMemory(pMac->hHdd,pMac->lim.gpSession[i].dph.dphHashTable.pHashTable);
+                vos_mem_free(pMac->lim.gpSession[i].dph.dphHashTable.pHashTable);
                 return NULL;
             }
             pMac->lim.gpSession[i].dph.dphHashTable.size = numSta;
@@ -135,17 +135,17 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
             dphHashTableClassInit(pMac, 
                            &pMac->lim.gpSession[i].dph.dphHashTable);
 
-            if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
-                    (void **) &pMac->lim.gpSession[i].gpLimPeerIdxpool, 
-                    sizeof(*pMac->lim.gpSession[i].gpLimPeerIdxpool) * (numSta+1)))
+            pMac->lim.gpSession[i].gpLimPeerIdxpool = vos_mem_malloc(sizeof(
+                                *pMac->lim.gpSession[i].gpLimPeerIdxpool) * (numSta+1));
+            if ( NULL == pMac->lim.gpSession[i].gpLimPeerIdxpool )
             {
                 PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!"));)
-                palFreeMemory(pMac->hHdd,pMac->lim.gpSession[i].dph.dphHashTable.pHashTable);
-                palFreeMemory(pMac->hHdd,pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray);
+                vos_mem_free(pMac->lim.gpSession[i].dph.dphHashTable.pHashTable);
+                vos_mem_free(pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray);
                 return NULL;
             }
-            palZeroMemory(pMac->hHdd, pMac->lim.gpSession[i].gpLimPeerIdxpool,
-                  sizeof(*pMac->lim.gpSession[i].gpLimPeerIdxpool) * (numSta+1));
+            vos_mem_set(pMac->lim.gpSession[i].gpLimPeerIdxpool,
+                  sizeof(*pMac->lim.gpSession[i].gpLimPeerIdxpool) * (numSta+1), 0);
             pMac->lim.gpSession[i].freePeerIdxHead = 0;
             pMac->lim.gpSession[i].freePeerIdxTail = 0;
             pMac->lim.gpSession[i].gLimNumOfCurrentSTAs = 0;
@@ -181,8 +181,8 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
             pMac->lim.gpSession[i].htRecommendedTxWidthSet = 0;
             pMac->lim.gpSession[i].htSecondaryChannelOffset = 0;
 #ifdef FEATURE_WLAN_TDLS
-            palZeroMemory(pMac->hHdd, pMac->lim.gpSession[i].peerAIDBitmap,
-                  sizeof(pMac->lim.gpSession[i].peerAIDBitmap));
+            vos_mem_set(pMac->lim.gpSession[i].peerAIDBitmap,
+                  sizeof(pMac->lim.gpSession[i].peerAIDBitmap), 0);
 #endif
             pMac->lim.gpSession[i].fWaitForProbeRsp = 0;
             pMac->lim.gpSession[i].fIgnoreCapsChange = 0;
@@ -278,7 +278,7 @@ tpPESession peFindSessionByBssIdx(tpAniSirGlobal pMac,  tANI_U8 bssIdx)
   
   \sa
   --------------------------------------------------------------------------*/
- tpPESession peFindSessionBySessionId(tpAniSirGlobal pMac , tANI_U8 sessionId)
+ tpPESession peFindSessionBySessionId(tpAniSirGlobal pMac, tANI_U8 sessionId)
 {
     if(sessionId >=  pMac->lim.maxBssId)
     {
@@ -366,68 +366,68 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
         }
     }
     
-    if(psessionEntry->pLimStartBssReq != NULL)
+    if (psessionEntry->pLimStartBssReq != NULL)
     {
-        palFreeMemory( pMac->hHdd, psessionEntry->pLimStartBssReq );
+        vos_mem_free( psessionEntry->pLimStartBssReq );
         psessionEntry->pLimStartBssReq = NULL;
     }
 
-    if(psessionEntry->pLimJoinReq != NULL)
+    if (psessionEntry->pLimJoinReq != NULL)
     {
-        palFreeMemory( pMac->hHdd, psessionEntry->pLimJoinReq );
+        vos_mem_free( psessionEntry->pLimJoinReq );
         psessionEntry->pLimJoinReq = NULL;
     }
 
-    if(psessionEntry->pLimReAssocReq != NULL)
+    if (psessionEntry->pLimReAssocReq != NULL)
     {
-        palFreeMemory( pMac->hHdd, psessionEntry->pLimReAssocReq );
+        vos_mem_free( psessionEntry->pLimReAssocReq );
         psessionEntry->pLimReAssocReq = NULL;
     }
 
-    if(psessionEntry->pLimMlmJoinReq != NULL)
+    if (psessionEntry->pLimMlmJoinReq != NULL)
     {
-        palFreeMemory( pMac->hHdd, psessionEntry->pLimMlmJoinReq );
+        vos_mem_free( psessionEntry->pLimMlmJoinReq );
         psessionEntry->pLimMlmJoinReq = NULL;
     }
 
-    if(psessionEntry->dph.dphHashTable.pHashTable != NULL)
+    if (psessionEntry->dph.dphHashTable.pHashTable != NULL)
     {
-        palFreeMemory(pMac->hHdd, psessionEntry->dph.dphHashTable.pHashTable);
+        vos_mem_free(psessionEntry->dph.dphHashTable.pHashTable);
         psessionEntry->dph.dphHashTable.pHashTable = NULL;
     }
 
-    if(psessionEntry->dph.dphHashTable.pDphNodeArray != NULL)
+    if (psessionEntry->dph.dphHashTable.pDphNodeArray != NULL)
     {
-        palFreeMemory(pMac->hHdd, psessionEntry->dph.dphHashTable.pDphNodeArray);
+        vos_mem_free(psessionEntry->dph.dphHashTable.pDphNodeArray);
         psessionEntry->dph.dphHashTable.pDphNodeArray = NULL;
     }
 
-    if(psessionEntry->gpLimPeerIdxpool != NULL)
+    if (psessionEntry->gpLimPeerIdxpool != NULL)
     {
-        palFreeMemory(pMac->hHdd, psessionEntry->gpLimPeerIdxpool);
+        vos_mem_free(psessionEntry->gpLimPeerIdxpool);
         psessionEntry->gpLimPeerIdxpool = NULL;
     }
 
-    if(psessionEntry->beacon != NULL)
+    if (psessionEntry->beacon != NULL)
     {
-        palFreeMemory( pMac->hHdd, psessionEntry->beacon);
+        vos_mem_free( psessionEntry->beacon);
         psessionEntry->beacon = NULL;
     }
 
-    if(psessionEntry->assocReq != NULL)
+    if (psessionEntry->assocReq != NULL)
     {
-        palFreeMemory( pMac->hHdd, psessionEntry->assocReq);
+        vos_mem_free( psessionEntry->assocReq);
         psessionEntry->assocReq = NULL;
     }
 
-    if(psessionEntry->assocRsp != NULL)
+    if (psessionEntry->assocRsp != NULL)
     {
-        palFreeMemory( pMac->hHdd, psessionEntry->assocRsp);
+        vos_mem_free( psessionEntry->assocRsp);
         psessionEntry->assocRsp = NULL;
     }
 
 
-    if(psessionEntry->parsedAssocReq != NULL)
+    if (psessionEntry->parsedAssocReq != NULL)
     {
         // Cleanup the individual allocation first
         for (i=0; i < psessionEntry->dph.dphHashTable.size; i++)
@@ -436,40 +436,40 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
             {
                 if( ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrame )
                 {
-                   palFreeMemory(pMac->hHdd, 
-                      ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrame);
+                   vos_mem_free(((tpSirAssocReq)
+                                (psessionEntry->parsedAssocReq[i]))->assocReqFrame);
                    ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrame = NULL;
                    ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrameLength = 0;
                 }
-                palFreeMemory(pMac->hHdd, (void *)psessionEntry->parsedAssocReq[i]);
+                vos_mem_free(psessionEntry->parsedAssocReq[i]);
                 psessionEntry->parsedAssocReq[i] = NULL;
             }
         }
         // Cleanup the whole block
-        palFreeMemory(pMac->hHdd, (void *)psessionEntry->parsedAssocReq);
+        vos_mem_free(psessionEntry->parsedAssocReq);
         psessionEntry->parsedAssocReq = NULL;
     }
     if (NULL != psessionEntry->limAssocResponseData)
     {
-        palFreeMemory( pMac->hHdd, psessionEntry->limAssocResponseData);
+        vos_mem_free( psessionEntry->limAssocResponseData);
         psessionEntry->limAssocResponseData = NULL;
     }
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
     if (NULL != psessionEntry->pLimMlmReassocRetryReq)
     {
-        palFreeMemory( pMac->hHdd, psessionEntry->pLimMlmReassocRetryReq);
+        vos_mem_free( psessionEntry->pLimMlmReassocRetryReq);
         psessionEntry->pLimMlmReassocRetryReq = NULL;
     }
 #endif
 
     if (NULL != psessionEntry->pLimMlmReassocReq)
     {
-        palFreeMemory( pMac->hHdd, psessionEntry->pLimMlmReassocReq);
+        vos_mem_free( psessionEntry->pLimMlmReassocReq);
         psessionEntry->pLimMlmReassocReq = NULL;
     }
 
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
     limCleanupCcxCtxt(pMac, psessionEntry); 
 #endif
 

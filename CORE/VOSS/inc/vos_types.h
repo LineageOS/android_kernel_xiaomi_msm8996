@@ -1,3 +1,5 @@
+#if !defined( __VOS_TYPES_H )
+#define __VOS_TYPES_H
 /*
  * Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
@@ -25,8 +27,6 @@
  * to the Linux Foundation.
  */
 
-#if !defined( __VOS_TYPES_H )
-#define __VOS_TYPES_H
 
 /**=========================================================================
   \file  vos_Types.h
@@ -118,13 +118,14 @@ typedef enum
    VOS_MODULE_ID_VOSS       = 10,
    VOS_MODULE_ID_SAP        = 11,
    VOS_MODULE_ID_HDD_SOFTAP = 12,
+   VOS_MODULE_ID_PMC        = 13,
 
 #ifdef QCA_WIFI_2_0
-   VOS_MODULE_ID_HIF       = 13,
-   VOS_MODULE_ID_HTC       = 14,
-   VOS_MODULE_ID_TXRX	   = 15,
-   VOS_MODULE_ID_ADF	   = 16,
-   VOS_MODULE_ID_CFG	   = 17,
+   VOS_MODULE_ID_HIF        = 14,
+   VOS_MODULE_ID_HTC        = 15,
+   VOS_MODULE_ID_TXRX       = 16,
+   VOS_MODULE_ID_ADF        = 17,
+   VOS_MODULE_ID_CFG        = 18,
 #endif
 
    // not a real module ID.  This is used to identify the maxiumum
@@ -149,7 +150,6 @@ typedef enum
     VOS_IBSS_MODE,
     VOS_P2P_DEVICE_MODE,
     VOS_MAX_NO_OF_MODE
-
 } tVOS_CON_MODE;
 
 //This is a bit pattern to be set for each mode
@@ -217,7 +217,7 @@ typedef struct
 /// v_MACADDR_t macAddress = VOS_MAC_ADDR_ZERO_INITIALIZER;
 #define VOS_MAC_ADDR_ZERO_INITIALIZER { { 0, 0, 0, 0, 0, 0 } }
 
-
+#define VOS_IPV4_ADDR_SIZE ( 4 )
 
 /*----------------------------------------------------------------------------
   

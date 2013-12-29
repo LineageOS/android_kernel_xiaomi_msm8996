@@ -217,7 +217,7 @@ static inline wpt_status wpalReadRegister
    wpt_uint32                          *data
 )
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalReadRegister
@@ -243,7 +243,7 @@ static inline wpt_status wpalWriteRegister
    wpt_uint32                           data
 )
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalWriteRegister
@@ -272,7 +272,7 @@ static inline wpt_status wpalReadDeviceMemory
    wpt_uint32                            len
 )
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalReadDeviceMemory
@@ -302,7 +302,7 @@ static inline wpt_status wpalWriteDeviceMemory
    wpt_uint32                            len
 )
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalWriteDeviceMemory

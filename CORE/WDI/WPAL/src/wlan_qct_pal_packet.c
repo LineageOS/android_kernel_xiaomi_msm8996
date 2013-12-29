@@ -25,8 +25,6 @@
  * to the Linux Foundation.
  */
 
-
-
 /**=========================================================================
   
   \file  wlan_qct_pal_packet.c
@@ -69,6 +67,12 @@ typedef struct
 
 /* Storage for DXE CB function pointer */
 static wpalPacketLowPacketCB wpalPacketAvailableCB;
+
+/* Temp storage for transport channel DIAG/LOG information
+ * Each channel will update information with different context
+ * Before send stored date to DIAG,
+ * temporary it should be stored */
+static wpt_log_data_stall_type wpalTrasportStallInfo;
 
 /*
    wpalPacketInit is no-op for VOSS-support wpt_packet
@@ -123,6 +127,9 @@ VOS_STATUS wpalPacketRXLowResourceCB(vos_pkt_t *pPacket, v_VOID_t *userData)
    }
 
    wpalPacketAvailableCB( (wpt_packet *)pPacket, userData );
+
+   wpalPacketAvailableCB = NULL;
+
    return VOS_STATUS_SUCCESS;
 }
 
@@ -144,8 +151,6 @@ wpt_packet * wpalPacketAlloc(wpt_packet_type pktType, wpt_uint32 nPktSize,
    v_U16_t      allocLen;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-   /* Initialize DXE CB function pointer storage */
-   wpalPacketAvailableCB = NULL;
    switch (pktType)
    {
    case eWLAN_PAL_PKT_TYPE_TX_802_11_MGMT:
@@ -185,7 +190,7 @@ wpt_packet * wpalPacketAlloc(wpt_packet_type pktType, wpt_uint32 nPktSize,
 
    default:
       WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
-                  " try to allocate unsupported packet type (%d)\n", pktType);
+                  " try to allocate unsupported packet type (%d)", pktType);
       break;
    }
 
@@ -255,7 +260,7 @@ wpt_uint32 wpalPacketGetLength(wpt_packet *pPkt)
    }
    else
    {
-      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s  failed\n",
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s  failed",
          __func__);
    }
 
@@ -291,7 +296,7 @@ wpt_status wpalPacketRawTrimHead(wpt_packet *pPkt, wpt_uint32 size)
 
    if( !VOS_IS_STATUS_SUCCESS(vos_pkt_trim_head(WPAL_TO_VOS_PKT(pPkt), (v_SIZE_t)size)) )
    {
-      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s  Invalid trim(%d)\n",
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s  Invalid trim(%d)",
          __func__, size);
       status = eWLAN_PAL_STATUS_E_INVAL;
    }
@@ -323,7 +328,7 @@ wpt_status wpalPacketRawTrimTail(wpt_packet *pPkt, wpt_uint32 size)
                (eWLAN_PAL_PKT_TYPE_RX_RAW == WPAL_PACKET_GET_TYPE(pPkt)) );
    if( !VOS_IS_STATUS_SUCCESS(vos_pkt_trim_tail(WPAL_TO_VOS_PKT(pPkt), (v_SIZE_t)size)) )
    {
-      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s  Invalid trim(%d)\n",
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s  Invalid trim(%d)",
          __func__, size);
       status = eWLAN_PAL_STATUS_E_INVAL;
    }
@@ -390,7 +395,7 @@ wpt_status wpalPacketSetRxLength(wpt_packet *pPkt, wpt_uint32 len)
    if( (eWLAN_PAL_PKT_TYPE_RX_RAW != WPAL_PACKET_GET_TYPE(pPkt)))
    {
      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
-                "%s  Invalid packet type(%d)\n",  __func__, 
+                "%s  Invalid packet type(%d)",  __func__,
                 WPAL_PACKET_GET_TYPE(pPkt));
      return eWLAN_PAL_STATUS_E_INVAL;
    }
@@ -483,7 +488,7 @@ wpt_status wpalIteratorInit(wpt_iterator *pIter, wpt_packet *pPacket)
    if (unlikely((NULL == pPacket)||(NULL==pIter)))
    {
       WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "%s : NULL input pointers %x %x", __func__, pPacket, pIter);
+                "%s : NULL input pointers %p %p", __func__, pPacket, pIter);
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -551,7 +556,7 @@ wpt_status wpalIteratorNext(wpt_iterator *pIter, wpt_packet *pPacket, void **ppA
       ( NULL == ppAddr ) || ( NULL == pLen )))
    {
      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
-                "%s  Invalid input parameters \n",  __func__ );
+                "%s  Invalid input parameters",  __func__ );
      return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -783,7 +788,7 @@ wpt_status wpalIsPacketLocked( wpt_packet *pPacket)
    /* Validate the parameter pointers */
    if (NULL == pPacket)
    {
-      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_WARN,
                 "%s : NULL input pointer", __func__);
       return eWLAN_PAL_STATUS_E_INVAL;
    }
@@ -794,3 +799,97 @@ wpt_status wpalIsPacketLocked( wpt_packet *pPacket)
                     eWLAN_PAL_STATUS_SUCCESS;
 }/*wpalIsPacketLocked*/
 
+/*---------------------------------------------------------------------------
+   wpalGetNumRxRawPacket   Query available RX RAW total buffer count
+   param:
+       numRxResource  pointer of queried value
+
+   return:
+       eWLAN_PAL_STATUS_SUCCESS
+---------------------------------------------------------------------------*/
+wpt_status wpalGetNumRxRawPacket(wpt_uint32 *numRxResource)
+{
+   *numRxResource = (wpt_uint32)vos_pkt_get_num_of_rx_raw_pkts();
+
+   return eWLAN_PAL_STATUS_SUCCESS;
+}
+
+/*---------------------------------------------------------------------------
+    wpalPacketStallUpdateInfo – Update each channel information when stall
+       detected, also power state and free resource count
+
+    Param:
+       powerState  ? WLAN system power state when stall detected
+       numFreeBd   ? Number of free resource count in HW
+       channelInfo ? Each channel specific information when stall happen
+       channelNum  ? Channel number update information
+
+    Return:
+       NONE
+
+---------------------------------------------------------------------------*/
+void wpalPacketStallUpdateInfo
+(
+   v_U32_t                         *powerState,
+   v_U32_t                         *numFreeBd,
+   wpt_log_data_stall_channel_type *channelInfo,
+   v_U8_t                           channelNum
+)
+{
+   /* Update power state when stall detected */
+   if(NULL != powerState)
+   {
+      wpalTrasportStallInfo.PowerState = *powerState;
+   }
+
+   /* Update HW free resource count */
+   if(NULL != numFreeBd)
+   {
+      wpalTrasportStallInfo.numFreeBd  = *numFreeBd;
+   }
+
+   /* Update channel information */
+   if(NULL != channelInfo)
+   {
+      wpalMemoryCopy(&wpalTrasportStallInfo.dxeChannelInfo[channelNum],
+                     channelInfo,
+                     sizeof(wpt_log_data_stall_channel_type));
+   }
+
+   return;
+}
+
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
+/*---------------------------------------------------------------------------
+    wpalPacketStallDumpLog – Trigger to send log packet to DIAG
+       Updated transport system information will be sent to DIAG
+
+    Param:
+        NONE
+
+    Return:
+        NONE
+
+---------------------------------------------------------------------------*/
+void wpalPacketStallDumpLog
+(
+   void
+)
+{
+   vos_log_data_stall_type  *log_ptr = NULL;
+
+   WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_log_data_stall_type, LOG_TRSP_DATA_STALL_C);
+   if(log_ptr)
+   {
+      log_ptr->PowerState = wpalTrasportStallInfo.PowerState;
+      log_ptr->numFreeBd  = wpalTrasportStallInfo.numFreeBd;
+      wpalMemoryCopy(&log_ptr->dxeChannelInfo[0],
+                     &wpalTrasportStallInfo.dxeChannelInfo[0],
+                     WPT_NUM_TRPT_CHANNEL * sizeof(vos_log_data_stall_channel_type));
+      pr_info("Stall log dump");
+      WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
+   }
+
+   return;
+}
+#endif /* FEATURE_WLAN_DIAG_SUPPORT */

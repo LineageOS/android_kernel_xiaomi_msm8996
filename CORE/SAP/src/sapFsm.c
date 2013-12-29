@@ -327,11 +327,10 @@ sapGotoStarting
     eHalStatus halStatus;
     tANI_U32 type, subType;
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-
 
     /*- - - - - - - - TODO:once configs from hdd available - - - - - - - - -*/
     char key_material[32]={ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1,};
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     sapContext->key_type = 0x05;
     sapContext->key_length = 32;
     vos_mem_copy(sapContext->key_material, key_material, sizeof(key_material));  /* Need a key size define */

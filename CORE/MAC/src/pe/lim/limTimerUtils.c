@@ -58,6 +58,11 @@
 
 //default beacon interval value used in HB timer interval calculation
 #define LIM_HB_TIMER_BEACON_INTERVAL             100
+
+/* This timer is a periodic timer which expires at every 1 sec to
+   convert  ACTIVE DFS channel to DFS channels */
+#define ACTIVE_TO_PASSIVE_CONVERISON_TIMEOUT     1000
+
 /**
  * limCreateTimers()
  *
@@ -593,10 +598,10 @@ limCreateTimers(tpAniSirGlobal pMac)
                FL("could not retrieve mac preauth value"));
     }
     pMac->lim.gLimPreAuthTimerTable.numEntry = cfgValue;
-    if (palAllocateMemory(pMac->hHdd, (void **) &pMac->lim.gLimPreAuthTimerTable.pTable,
-          cfgValue*sizeof(tLimPreAuthNode)) != eHAL_STATUS_SUCCESS)
+    pMac->lim.gLimPreAuthTimerTable.pTable = vos_mem_malloc(cfgValue*sizeof(tLimPreAuthNode));
+    if(pMac->lim.gLimPreAuthTimerTable.pTable == NULL)
     {
-        limLog(pMac, LOGP, FL("palAllocateMemory failed!"));
+        limLog(pMac, LOGP, FL("AllocateMemory failed!"));
         goto err_timer;
     }
 
@@ -657,7 +662,7 @@ limCreateTimers(tpAniSirGlobal pMac)
     }
 #endif
 
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
     cfgValue = 5000;
     cfgValue = SYS_MS_TO_TICKS(cfgValue);
 
@@ -672,7 +677,7 @@ limCreateTimers(tpAniSirGlobal pMac)
         limLog(pMac, LOGP, FL("could not create Join failure timer"));
         goto err_timer;
     }
-#endif
+#endif /* FEATURE_WLAN_CCX && !FEATURE_WLAN_CCX_UPLOAD */
 
     cfgValue = 1000;
     cfgValue = SYS_MS_TO_TICKS(cfgValue);
@@ -725,15 +730,27 @@ limCreateTimers(tpAniSirGlobal pMac)
         goto err_timer;
     }
 
+    cfgValue = ACTIVE_TO_PASSIVE_CONVERISON_TIMEOUT;
+    cfgValue = SYS_MS_TO_TICKS(cfgValue);
+    if (tx_timer_create(&pMac->lim.limTimers.gLimActiveToPassiveChannelTimer,
+                                  "ACTIVE TO PASSIVE CHANNEL", limTimerHandler,
+                 SIR_LIM_CONVERT_ACTIVE_CHANNEL_TO_PASSIVE, cfgValue, 0,
+                 TX_NO_ACTIVATE) != TX_SUCCESS)
+    {
+        limLog(pMac, LOGW,FL("could not create timer for passive channel to active channel"));
+        goto err_timer;
+    }
+
+
     return TX_SUCCESS;
 
     err_timer:
         tx_timer_delete(&pMac->lim.limTimers.gLimDeauthAckTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimDisassocAckTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimRemainOnChannelTimer);
-    #ifdef FEATURE_WLAN_CCX
+    #if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
         tx_timer_delete(&pMac->lim.limTimers.gLimCcxTsmTimer);
-    #endif
+    #endif /* FEATURE_WLAN_CCX && !FEATURE_WLAN_CCX_UPLOAD */
         tx_timer_delete(&pMac->lim.limTimers.gLimFTPreAuthRspTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
         while(((tANI_S32)--i) >= 0)
@@ -758,9 +775,10 @@ limCreateTimers(tpAniSirGlobal pMac)
         tx_timer_delete(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimMinChannelTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimP2pSingleShotNoaInsertTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimActiveToPassiveChannelTimer);
 
         if(NULL != pMac->lim.gLimPreAuthTimerTable.pTable)
-            palFreeMemory(pMac->hHdd, pMac->lim.gLimPreAuthTimerTable.pTable);
+            vos_mem_free(pMac->lim.gLimPreAuthTimerTable.pTable);
 
         return TX_TIMER_ERROR;
 
@@ -934,7 +952,7 @@ limAssocFailureTimerHandler(void *pMacGlobal, tANI_U32 param)
             limLog(pMac, LOGW, FL("Reassoc request retry MAX(%d) reached"), LIM_MAX_REASSOC_RETRY_LIMIT);
             if(NULL != pMac->lim.pSessionEntry->pLimMlmReassocRetryReq)
             {
-                palFreeMemory( pMac->hHdd, pMac->lim.pSessionEntry->pLimMlmReassocRetryReq);
+                vos_mem_free( pMac->lim.pSessionEntry->pLimMlmReassocRetryReq);
                 pMac->lim.pSessionEntry->pLimMlmReassocRetryReq = NULL;
             }
         }
@@ -1389,7 +1407,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
             }
             else
             {
-                limLog(pMac, LOGW, FL("HeartBeat timer value is changed = %lu"), val);
+                limLog(pMac, LOGW, FL("HeartBeat timer value is changed = %u"), val);
             }
             break;
 
@@ -1431,7 +1449,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
             }
             else
             {
-                limLog(pMac, LOGW, FL("Probe after HB timer value is changed = %lu"), val);
+                limLog(pMac, LOGW, FL("Probe after HB timer value is changed = %u"), val);
             }
 
             break;
@@ -1640,7 +1658,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
             }
             break;
 #endif
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
          case eLIM_TSM_TIMER:
              if (tx_timer_deactivate(&pMac->lim.limTimers.gLimCcxTsmTimer)
                                                                 != TX_SUCCESS)
@@ -1648,7 +1666,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                  limLog(pMac, LOGE, FL("Unable to deactivate TSM timer"));
              }
              break;
-#endif
+#endif /* FEATURE_WLAN_CCX && !FEATURE_WLAN_CCX_UPLOAD */
         case eLIM_REMAIN_CHN_TIMER:
             if (tx_timer_deactivate(&pMac->lim.limTimers.gLimRemainOnChannelTimer) != TX_SUCCESS)
             {
@@ -1672,6 +1690,32 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 return;
             }
             break;
+
+    case eLIM_CONVERT_ACTIVE_CHANNEL_TO_PASSIVE:
+            if (tx_timer_deactivate(&pMac->lim.limTimers.gLimActiveToPassiveChannelTimer) != TX_SUCCESS)
+            {
+                /**
+                ** Could not deactivate Active to passive channel timer.
+                ** Log error.
+                **/
+                limLog(pMac, LOGP, FL("Unable to Deactivate "
+                                      "Active to passive channel timer"));
+                return;
+            }
+            val = ACTIVE_TO_PASSIVE_CONVERISON_TIMEOUT;
+            val = SYS_MS_TO_TICKS(val);
+            if (tx_timer_change(&pMac->lim.limTimers.gLimActiveToPassiveChannelTimer,
+                                                val, 0) != TX_SUCCESS)
+            {
+                /**
+                * Could not change timer to check scan type for passive channel.
+                * timer. Log error.
+                */
+                limLog(pMac, LOGP, FL("Unable to change timer"));
+                return;
+            }
+            break;
+
     case eLIM_DISASSOC_ACK_TIMER:
             if (tx_timer_deactivate(&pMac->lim.limTimers.gLimDisassocAckTimer) != TX_SUCCESS)
             {
@@ -1764,37 +1808,48 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
 void
 limHeartBeatDeactivateAndChangeTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
-    tANI_U32    val, val1;
+   tANI_U32    val, val1;
 
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, psessionEntry->peSessionId, eLIM_HEART_BEAT_TIMER));
+   MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, psessionEntry->peSessionId, eLIM_HEART_BEAT_TIMER));
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
-    if(IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE)
-       return;
+   if(IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE)
+      return;
 #endif
 
-    if (tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer) != TX_SUCCESS)
-        limLog(pMac, LOGP, FL("Fail to deactivate HeartBeatTimer "));
+   if (tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer) != TX_SUCCESS)
+      limLog(pMac, LOGP, FL("Fail to deactivate HeartBeatTimer "));
 
-    /* HB Timer sessionisation: In case of 2 or more sessions, the HB interval keeps
-       changing. to avoid this problem, HeartBeat interval is made constant, by
-       fixing beacon interval to 100ms immaterial of the beacon interval of the session */
+   /* HB Timer sessionisation: In case of 2 or more sessions, the HB interval keeps
+      changing. to avoid this problem, HeartBeat interval is made constant, by
+      fixing beacon interval to 100ms immaterial of the beacon interval of the session */
 
-    //val = psessionEntry->beaconParams.beaconInterval;
-    val = LIM_HB_TIMER_BEACON_INTERVAL;
+   //val = psessionEntry->beaconParams.beaconInterval;
+   val = LIM_HB_TIMER_BEACON_INTERVAL;
 
-    if (wlan_cfgGetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, &val1) != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("Fail to get WNI_CFG_HEART_BEAT_THRESHOLD "));
+   if (wlan_cfgGetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, &val1) != eSIR_SUCCESS)
+      limLog(pMac, LOGP, FL("Fail to get WNI_CFG_HEART_BEAT_THRESHOLD "));
 
-    PELOGW(limLog(pMac,LOGW,
-                 FL("HB Timer Int.=100ms * %d, Beacon Int.=%dms,Session Id=%d "),
-                 val1, psessionEntry->beaconParams.beaconInterval,
-                 psessionEntry->peSessionId);)
+   PELOGW(limLog(pMac,LOGW,
+            FL("HB Timer Int.=100ms * %d, Beacon Int.=%dms,Session Id=%d "),
+            val1, psessionEntry->beaconParams.beaconInterval,
+            psessionEntry->peSessionId);)
 
-    // Change timer to reactivate it in future
-    val = SYS_MS_TO_TICKS(val * val1);
+   /* The HB timer timeout value of 4 seconds (40 beacon intervals) is not
+    * enough to judge the peer device inactivity when 32 peers are connected.
+    * Hence increasing the HB timer timeout to
+    * HBtimeout = (TBTT * num_beacons * num_peers)
+    */
+   if (eSIR_IBSS_MODE == psessionEntry->bssType &&
+         pMac->lim.gLimNumIbssPeers > 0)
+   {
+      val1 = val1 * pMac->lim.gLimNumIbssPeers;
+   }
 
-    if (tx_timer_change(&pMac->lim.limTimers.gLimHeartBeatTimer, val, 0) != TX_SUCCESS)
-        limLog(pMac, LOGP, FL("Fail to change HeartBeatTimer"));
+   // Change timer to reactivate it in future
+   val = SYS_MS_TO_TICKS(val * val1);
+
+   if (tx_timer_change(&pMac->lim.limTimers.gLimHeartBeatTimer, val, 0) != TX_SUCCESS)
+      limLog(pMac, LOGP, FL("Fail to change HeartBeatTimer"));
 
 } /****** end limHeartBeatDeactivateAndChangeTimer() ******/
 
@@ -1825,13 +1880,38 @@ limReactivateHeartBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_HEART_BEAT_TIMER));
 
     //only start the hearbeat-timer if the timeout value is non-zero
-    if(pMac->lim.limTimers.gLimHeartBeatTimer.initScheduleTimeInMsecs > 0) {
-        if (tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer)!= TX_SUCCESS)
-        {
-            limLog(pMac, LOGP,FL("could not activate Heartbeat timer"));
-        }
-        limLog(pMac, LOGW, FL("Reactivated heartbeat link monitoring"));
-        limResetHBPktCount(psessionEntry);
+    if(pMac->lim.limTimers.gLimHeartBeatTimer.initScheduleTimeInMsecs > 0)
+    {
+       /*
+        * There is increasing need to limit the apps wakeup due to WLAN
+        * activity. During HB monitoring, the beacons from peer are sent to
+        * the host causing the host to wakeup. Hence, offloading the HB
+        * monitoring to LMAC
+        */
+       if (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE &&
+             IS_IBSS_HEARTBEAT_OFFLOAD_FEATURE_ENABLE)
+       {
+          if (tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer)!= TX_SUCCESS)
+          {
+             limLog(pMac, LOGP,FL("IBSS HeartBeat Offloaded, Could not deactivate Heartbeat timer"));
+          }
+          else
+          {
+             limLog(pMac, LOGE, FL("IBSS HeartBeat Offloaded, Deactivated heartbeat link monitoring"));
+          }
+       }
+       else
+       {
+          if (tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer)!= TX_SUCCESS)
+          {
+             limLog(pMac, LOGP,FL("could not activate Heartbeat timer"));
+          }
+          else
+          {
+             limLog(pMac, LOGW, FL("Reactivated heartbeat link monitoring"));
+          }
+       }
+       limResetHBPktCount(psessionEntry);
     }
 
 } /****** end limReactivateHeartBeatTimer() ******/
@@ -1851,17 +1931,18 @@ limReactivateHeartBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
  * @note   staId for eLIM_AUTH_RSP_TIMER is auth Node Index.
  *
  * @param  pMac    - Pointer to Global MAC structure
+ * @param  psessionEntry - Session Entry
  *
  * @return TX_SUCCESS - timer is activated
  *         errors - fail to start the timer
  */
-v_UINT_t limActivateHearBeatTimer(tpAniSirGlobal pMac)
+v_UINT_t limActivateHearBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
     v_UINT_t status = TX_TIMER_ERROR;
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
     if(IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE)
-       return (status);
+       return (TX_SUCCESS);
 #endif
 
     if(TX_AIRGO_TMR_SIGNATURE == pMac->lim.limTimers.gLimHeartBeatTimer.tmrSignature)
@@ -1869,12 +1950,39 @@ v_UINT_t limActivateHearBeatTimer(tpAniSirGlobal pMac)
         //consider 0 interval a ok case
         if( pMac->lim.limTimers.gLimHeartBeatTimer.initScheduleTimeInMsecs )
         {
-            status = tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer);
-            if( TX_SUCCESS != status )
-            {
-                PELOGE(limLog(pMac, LOGE,
-                   FL("could not activate Heartbeat timer status(%d)"), status);)
-            }
+           if (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE &&
+               IS_IBSS_HEARTBEAT_OFFLOAD_FEATURE_ENABLE)
+           {
+              /* HB offload in IBSS mode */
+              status = tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer);
+              if (TX_SUCCESS != status)
+              {
+                 PELOGE(limLog(pMac, LOGE,
+                 FL("IBSS HB Offload, Could not deactivate HB timer status(%d)"),
+                 status);)
+              }
+              else
+              {
+                 PELOGE(limLog(pMac, LOGE,
+                 FL("%s] IBSS HB Offloaded, Heartbeat timer deactivated"),
+                 __func__);)
+              }
+
+           }
+           else
+           {
+              status = tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer);
+              if ( TX_SUCCESS != status )
+              {
+                 PELOGE(limLog(pMac, LOGE,
+                 FL("could not activate Heartbeat timer status(%d)"), status);)
+              }
+              else
+              {
+                 PELOGE(limLog(pMac, LOGW,
+                 FL("%s] Activated Heartbeat timer status(%d)"), __func__, status);)
+              }
+           }
         }
         else
         {

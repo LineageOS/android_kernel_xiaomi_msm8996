@@ -368,7 +368,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_vdev_mcc_set_tbtt_mode_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_roam_chan_list_fixed_param,
     WMITLV_TAG_STRUC_wmi_vdev_mcc_bcn_intvl_change_event_fixed_param,
-    WMITLV_TAG_STRUC_wmi_resmgr_adaptive_ocs_disable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_resmgr_adaptive_ocs_enable_disable_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_resmgr_set_chan_time_quota_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_resmgr_set_chan_latency_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_ba_req_ssn_cmd_fixed_param,
@@ -525,7 +525,7 @@ typedef enum {
     OP(WMI_TDLS_PEER_UPDATE_CMDID) \
     OP(WMI_FWTEST_VDEV_MCC_SET_TBTT_MODE_CMDID) \
     OP(WMI_ROAM_CHAN_LIST)  \
-    OP(WMI_RESMGR_ADAPTIVE_OCS_DISABLE_CMDID)\
+    OP(WMI_RESMGR_ADAPTIVE_OCS_ENABLE_DISABLE_CMDID)\
     OP(WMI_RESMGR_SET_CHAN_TIME_QUOTA_CMDID)    \
     OP(WMI_RESMGR_SET_CHAN_LATENCY_CMDID) \
     OP(WMI_BA_REQ_SSN_CMDID) \
@@ -1329,12 +1329,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_TDLS_SET_STATE_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_TDLS_PEER_UPDATE_CMDID);
 
-/* Resmgr Disable Adaptive OCS CMD */
-#define WMITLV_TABLE_WMI_RESMGR_ADAPTIVE_OCS_DISABLE_CMDID(id,op,buf,len) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_resmgr_adaptive_ocs_disable_cmd_fixed_param, \
-            wmi_resmgr_adaptive_ocs_disable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+/* Resmgr Enable/Disable Adaptive OCS CMD */
+#define WMITLV_TABLE_WMI_RESMGR_ADAPTIVE_OCS_ENABLE_DISABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_resmgr_adaptive_ocs_enable_disable_cmd_fixed_param, \
+            wmi_resmgr_adaptive_ocs_enable_disable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
-WMITLV_CREATE_PARAM_STRUC(WMI_RESMGR_ADAPTIVE_OCS_DISABLE_CMDID);
+WMITLV_CREATE_PARAM_STRUC(WMI_RESMGR_ADAPTIVE_OCS_ENABLE_DISABLE_CMDID);
 
 /* Resmgr Set Channel Time Quota CMD */
 #define WMITLV_TABLE_WMI_RESMGR_SET_CHAN_TIME_QUOTA_CMDID(id,op,buf,len) \

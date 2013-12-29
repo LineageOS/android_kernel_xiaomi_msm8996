@@ -486,7 +486,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		ol_target_coredump(ramdump_scn, ramdump_base, TOTAL_DUMP_SIZE);
 
 		printk("%s: RAM dump collecting completed!\n", __func__);
-		msleep(1000);
+		msleep(500);
 	} else {
 		printk("No RAM dump will be collected since ramdump_scn is NULL!\n");
 	}
@@ -931,7 +931,7 @@ void ol_target_coredump(void *inst, void* memoryBlock, u_int32_t blockLength)
 
 	/*
 	* SECTION = REGISTER
-	* START   = 0x4000
+	* START   = Vary in target type
 	* LENGTH  = 0x6c000
 	*
 	* SECTION = DRAM

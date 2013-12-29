@@ -522,7 +522,7 @@ typedef enum {
     /** Adaptive OCS is enabled by default in the FW. This command is used to
      * disable FW based adaptive OCS.
      */
-    WMI_RESMGR_ADAPTIVE_OCS_DISABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_RESMGR),
+    WMI_RESMGR_ADAPTIVE_OCS_ENABLE_DISABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_RESMGR),
     /** set the requested channel time quota for the home channels */
     WMI_RESMGR_SET_CHAN_TIME_QUOTA_CMDID,
     /** set the requested latency for the home channels */
@@ -3164,6 +3164,11 @@ typedef struct {
      * Enable QPower
      */
     WMI_STA_PS_ENABLE_QPOWER = 6,
+
+            /**
+             * Number of TX frames before the entering the Active state
+             */
+            WMI_STA_PS_PARAM_QPOWER_MAX_TX_BEFORE_WAKE = 7,
         };
 
         typedef struct {
@@ -5604,12 +5609,16 @@ typedef struct {
     A_UINT32 new_bcn_intvl;
 } wmi_vdev_mcc_bcn_intvl_change_event_fixed_param;
 
-/* WMI_RESMGR_ADAPTIVE_OCS_DISABLE_CMDID */
+/* WMI_RESMGR_ADAPTIVE_OCS_ENABLE_DISABLE_CMDID */
 typedef struct {
-    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_resmgr_adaptive_ocs_disable_cmd_fixed_param */
+    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_resmgr_adaptive_ocs_enable_disable_cmd_fixed_param */
     A_UINT32 tlv_header;
     A_UINT32 reserved0;
-} wmi_resmgr_adaptive_ocs_disable_cmd_fixed_param;
+    /** 1: enable fw based adaptive ocs,
+     *  0: disable fw based adaptive ocs
+     */
+    A_UINT32 enable;
+} wmi_resmgr_adaptive_ocs_enable_disable_cmd_fixed_param;
 
 /* WMI_RESMGR_SET_CHAN_TIME_QUOTA_CMDID */
 typedef struct {

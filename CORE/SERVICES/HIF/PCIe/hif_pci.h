@@ -93,6 +93,9 @@ struct HIF_CE_state {
     adf_os_spinlock_t keep_awake_lock;
     unsigned int keep_awake_count;
     A_BOOL verified_awake;
+    A_BOOL fake_sleep;
+    adf_os_timer_t sleep_timer;
+    unsigned long sleep_ticks;
 
     //struct task_struct *pci_dev_inserted_thread;
     //struct completion pci_dev_inserted_thread_done;

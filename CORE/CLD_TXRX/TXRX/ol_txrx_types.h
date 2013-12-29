@@ -709,7 +709,6 @@ struct ol_txrx_vdev_t {
 
 };
 
-
 struct ol_rx_reorder_array_elem_t {
 	adf_nbuf_t head;
 	adf_nbuf_t tail;

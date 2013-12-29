@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*============================================================================
 Copyright (c) 2007 Qualcomm Technologies, Inc.
 All Rights Reserved.
@@ -89,6 +88,10 @@ logDump.c
 #include "wlan_qct_wda.h"
 
 #define HAL_LOG_DUMP_CMD_START 0
+
+/* Dump command id for Host modules starts from 300 onwards,
+ * hence do not extend the HAL commands beyond 300.
+ */
 #define HAL_LOG_DUMP_CMD_END 299
 
 static int debug;
