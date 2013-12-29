@@ -461,7 +461,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     hdd_context_t *pHddCtx;
     hdd_scaninfo_t *pScanInfo  = NULL;
     struct iw_michaelmicfailure msg;
-    v_U8_t txQueueId;
 
     dev = (struct net_device *)usrDataForCallback;
     pHostapdAdapter = netdev_priv(dev);
@@ -562,9 +561,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             if (VOS_TRUE == pHddCtx->dfs_radar_found)
             {
                pHddCtx->dfs_radar_found = VOS_FALSE;
-               for (txQueueId = 0; txQueueId < NUM_TX_QUEUES; txQueueId++)
+               if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)
                {
-                  netif_stop_subqueue(dev, txQueueId);
+                  netif_tx_start_all_queues(dev);
                }
             }
 

@@ -485,7 +485,6 @@ dump_phyerr_contents(const char *d, int len)
       }
       n += snprintf(buf + n, bufsize - n, "%02x ", d[i] & 0xff);
       if (i % 16 == 15) {
-         printk("%s: %s\n", __func__, buf);
          n = 0;
          buf[0] = '\0';
       }
@@ -511,8 +510,7 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
 
 
        dfs->dfs_phyerr_count++;
-       printk("%s[%d]:  dfs_phyerr_count = %d  DUMPING PHYERR CONTENT\n",__func__,__LINE__, dfs->dfs_phyerr_count);
-       dump_phyerr_contents(buf, datalen);
+       //dump_phyerr_contents(buf, datalen);
    /*
     * XXX The combined_rssi_ok support has been removed.
     * This was only clear for Owl.
@@ -532,10 +530,9 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
     * start queueing data for new channel. (EV74162)
     */
    if (dfs->dfs_debug_mask & ATH_DEBUG_DFS_PHYERR_PKT)
-      dump_phyerr_contents(buf, datalen);
+      //dump_phyerr_contents(buf, datalen);
 
    if (IEEE80211_IS_CHAN_RADAR(chan)) {
-           printk("%s[%d]: Radar already found in the channel \n",__func__,__LINE__);
          DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,
           "%s: Radar already found in the channel, "
           " do not queue radar data\n",
@@ -544,7 +541,6 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
    }
 
    if (dfs == NULL) {
-      printk("%s[%d]: dfs is NULL \n",__func__,__LINE__);
                 DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: sc_dfs is NULL\n",__func__);
       return;
    }
@@ -579,10 +575,8 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
     * + otherwise, Owl (and legacy.)
     */
    if (dfs->dfs_caps.ath_chip_is_bb_tlv) {
-                //printk("%s[%d]:************* ath_chip_is_bb_tlv =%d **************** \n",__func__,__LINE__,dfs->dfs_caps.ath_chip_is_bb_tlv);
       if (dfs_process_phyerr_bb_tlv(dfs, buf, datalen, r_rssi,
           r_ext_rssi, r_rs_tstamp, r_fulltsf, &e) == 0) {
-                        printk("%s[%d]:dfs_process_phyerr_bb_tlv FAILED  rejecting the pulse\n",__func__,__LINE__);
                         dfs->dfs_phyerr_reject_count++;
          return;
                     } else {
@@ -591,22 +585,18 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
 
                         if (dfs->dfs_phyerr_freq_max < e.freq)
                             dfs->dfs_phyerr_freq_max = e. freq;
-                        printk("%s[%d]:dfs_process_phyerr_bb_tlv SUCESS dfs->dfs_phyerr_freq_min = %d   dfs->dfs_phyerr_freq_max=%d  FREQ=%d  TS=%d DUR=%d  RSSI=%d IS_CHIRP=%d\n",__func__,__LINE__,dfs->dfs_phyerr_freq_min,dfs->dfs_phyerr_freq_max, e.freq,e.rs_tstamp,e.dur,e.rssi,e.is_hw_chirp);
                     }
    } else if (dfs->dfs_caps.ath_dfs_use_enhancement) {
-                printk("%s[%d]:************* dfs->dfs_caps.ath_dfs_use_enhancement=%d MERLIN **************** \n",__func__,__LINE__,dfs->dfs_caps.ath_dfs_use_enhancement);
       if (dfs_process_phyerr_merlin(dfs, buf, datalen, r_rssi,
           r_ext_rssi, r_rs_tstamp, r_fulltsf, &e) == 0){
                   return;
                 }
    } else if (dfs->dfs_caps.ath_dfs_ext_chan_ok) {
-                printk("%s[%d]:************* dfs->dfs_caps.ath_dfs_ext_chan_ok=%d SOWL **************** \n",__func__,__LINE__,dfs->dfs_caps.ath_dfs_ext_chan_ok);
       if (dfs_process_phyerr_sowl(dfs, buf, datalen, r_rssi,
           r_ext_rssi, r_rs_tstamp, r_fulltsf, &e) == 0){
                         return;
                 }
    } else {
-                printk("%s[%d]:************* CALLING OWL:dfs_process_phyerr_owl **************** \n",__func__,__LINE__);
       if (dfs_process_phyerr_owl(dfs, buf, datalen, r_rssi,
           r_ext_rssi, r_rs_tstamp, r_fulltsf, &e) == 0){
          return;
@@ -624,7 +614,6 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
     */
    if ((! dfs->dfs_caps.ath_chip_is_bb_tlv) &&
        dfs->dfs_caps.ath_dfs_ext_chan_ok) {
-                printk("%s[%d]: ----- I AM HERE in ! dfs->dfs_caps.ath_chip_is_bb_tlv block\n",__func__,__LINE__);
       /*
        * HW has a known issue with chirping pulses injected at or
        * around DC in 40MHz mode. Such pulses are reported with

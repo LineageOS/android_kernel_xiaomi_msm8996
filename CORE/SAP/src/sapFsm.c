@@ -1812,7 +1812,7 @@ void sapDfsCacTimerCallback(void *data)
          * CAC Complete, post eSAP_DFS_CHANNEL_CAC_END to sapFsm
          */
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                  "%s[%d]: Sending eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START for target_channel = %d",
+                  "%s[%d]: Sending eSAP_DFS_CHANNEL_CAC_END for target_channel = %d",
                   __func__,__LINE__, sapContext->SapDfsInfo.target_channel);
         sapEvent.event = eSAP_DFS_CHANNEL_CAC_END;
         sapEvent.params = 0;

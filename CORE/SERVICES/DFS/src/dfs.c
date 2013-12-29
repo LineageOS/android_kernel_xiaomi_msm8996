@@ -169,7 +169,7 @@ static OS_TIMER_FUNC(dfs_task)
          * is never cleared.  This needs to be fixed. See EV 105776.
          */
         if (dfs->dfs_rinfo.rn_use_nol == 1)  {
-            //ic->ic_dfs_notify_radar(ic, ic->ic_curchan);
+            ic->ic_dfs_notify_radar(ic, ic->ic_curchan);
         } else if (dfs->dfs_rinfo.rn_use_nol == 0) {
             /*
              * For the test mode, don't do a CSA here; but setup the
@@ -609,14 +609,13 @@ int dfs_radar_enable(struct ieee80211com *ic,
             ath_hal_setcapability(ah, HAL_CAP_DIVERSITY,
                         HAL_CAP_STRONG_DIV, 1, NULL);
 #endif
-                       ic->ic_dfs_enable(ic, &is_fastclk, &pe);
+            ic->ic_dfs_enable(ic, &is_fastclk, &pe);
             DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "Enabled radar detection on channel %d\n",
                chan->ic_freq);
-
-                                dfs->dur_multiplier =  is_fastclk ? DFS_FAST_CLOCK_MULTIPLIER : DFS_NO_FAST_CLOCK_MULTIPLIER;
-                     DFS_DPRINTK(dfs, ATH_DEBUG_DFS3,
-         "%s: duration multiplier is %d\n", __func__, dfs->dur_multiplier);
-
+            dfs->dur_multiplier =
+                is_fastclk ? DFS_FAST_CLOCK_MULTIPLIER : DFS_NO_FAST_CLOCK_MULTIPLIER;
+            DFS_DPRINTK(dfs, ATH_DEBUG_DFS3,
+                "%s: duration multiplier is %d\n", __func__, dfs->dur_multiplier);
          } else
             DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: No more radar states left\n",
                __func__);

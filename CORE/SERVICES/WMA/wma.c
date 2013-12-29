@@ -175,6 +175,7 @@ wma_process_ftm_command(tp_wma_handle wma_handle,
 
 /*DFS Attach*/
 struct ieee80211com* wma_dfs_attach(struct ieee80211com *ic);
+static void wma_set_regdomain(a_uint32_t regdmn);
 
 /*Configure DFS with radar tables and regulatory domain*/
 void wma_dfs_configure(struct ieee80211com *ic);
@@ -194,7 +195,7 @@ wmi_unified_vdev_up_send(wmi_unified_t wmi,
 
 
 /* Configure the regulatory domain for DFS radar filter initialization*/
-int wma_set_dfs_regdomain(tp_wma_handle wma,u_int32_t regdmn);
+void wma_set_dfs_regdomain(tp_wma_handle wma);
 
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
@@ -1751,8 +1752,6 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
         {
             if (ev->hdr.buf_len > 0)
             {
-                WMA_LOGA("%s:Posting the Phyerror to DFS for processing",
-                                                                 __func__);
                 /* Calling in to the DFS module to process the phyerr */
                 dfs_process_phyerr(ic, &ev->bufp[0], ev->hdr.buf_len,
                             WMI_UNIFIED_RSSI_COMB_GET(&ev->hdr) & 0xff,
@@ -1879,11 +1878,12 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		WMA_LOGP("failed to init cfg handle");
 		goto err_wmi_attach;
 	}
-	/*Allocate dfs_ic and initialize DFS */
+
+	/* Allocate dfs_ic and initialize DFS */
 	wma_handle->dfs_ic = wma_dfs_attach(wma_handle->dfs_ic);
-   if(wma_handle->dfs_ic == NULL) {
-      WMA_LOGP("Memory allocation failed for dfs_ic");
-   }
+	if(wma_handle->dfs_ic == NULL) {
+		WMA_LOGP("Memory allocation failed for dfs_ic");
+	}
 
 	vos_wake_lock_init(&wma_handle->wow_wake_lock,  "wow_wakelock");
 
@@ -4624,7 +4624,6 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
     * If the Channel is DFS,
     * set the WMI_CHAN_FLAG_DFS flag
     */
-#if 0
    if (req->is_dfs) {
       /* provide the current channel to DFS*/
       wma->dfs_ic->ic_curchan =
@@ -4632,7 +4631,6 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 		WMI_SET_CHANNEL_FLAG(chan, WMI_CHAN_FLAG_DFS);
 		cmd->disable_hw_ack = VOS_TRUE;
 	}
-#endif
 
    cmd->beacon_interval = req->beacon_intval;
 	cmd->dtim_period = req->dtim_period;
@@ -13720,12 +13718,15 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	}
 }
 
-static void wma_set_regdomain(struct regulatory *regdmn)
+static void wma_set_regdomain(a_uint32_t regdmn)
 {
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 	u_int32_t modeSelect = 0xFFFFFFFF;
-   wma->dfs_ic->current_dfs_regdomain = wma_set_dfs_regdomain(wma, regdmn->reg_domain);
+
+	/* Set DFS regulatory domain */
+	wma_set_dfs_regdomain(wma);
+
 	switch (wma->phy_capability) {
 	case WMI_11G_CAPABILITY:
 	case WMI_11NG_CAPABILITY:
@@ -13747,7 +13748,6 @@ static void wma_set_regdomain(struct regulatory *regdmn)
 		break;
 	}
 
-	regdmn_get_ctl_info(regdmn, wma->reg_cap.wireless_modes, modeSelect);
 	return;
 }
 
@@ -13829,6 +13829,8 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 #endif
 
 	vos_event_set(&wma_handle->wma_ready_event);
+
+	wma_set_dfs_regdomain(wma_handle);
 
 	WMA_LOGD("Exit");
 }
@@ -15148,7 +15150,7 @@ wma_dfs_configure(struct ieee80211com *ic)
     }
 
     dfsdomain = ic->current_dfs_regdomain;
-    WMA_LOGI("%s: DFS REG DOMAIN = %d\n",__func__,dfsdomain);
+
     /* Fetch current radar patterns from the lmac */
     OS_MEMZERO(&rinfo, sizeof(rinfo));
 
@@ -15278,20 +15280,20 @@ wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
 /*
  * Configure the regulatory domain for DFS radar filter initialization
  */
-int
-wma_set_dfs_regdomain(tp_wma_handle wma, u_int32_t regdmn)
+void
+wma_set_dfs_regdomain(tp_wma_handle wma)
 {
     u_int8_t ctl;
+    u_int32_t regdmn = wma->reg_cap.eeprom_rd;
+
     if (regdmn < 0)
     {
         WMA_LOGE("%s:DFS-Invalid regdomain\n",__func__);
-        return -1;
     }
     ctl = regdmn_get_ctl_for_regdmn(regdmn);
     if (!ctl)
     {
         WMA_LOGI("%s:DFS-Invalid CTL\n",__func__);
-        return -1;
     }
     if (ctl == FCC)
     {
@@ -15308,7 +15310,8 @@ wma_set_dfs_regdomain(tp_wma_handle wma, u_int32_t regdmn)
         WMA_LOGI("%s:DFS- CTL = MKK\n",__func__);
         wma->dfs_ic->current_dfs_regdomain = DFS_MKK4_DOMAIN;
     }
-    return wma->dfs_ic->current_dfs_regdomain;
+    WMA_LOGI("%s: ****** Current Reg Domain: %d *******\n", __func__,
+			wma->dfs_ic->current_dfs_regdomain);
 }
 
 /*

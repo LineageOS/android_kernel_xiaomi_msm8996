@@ -4734,7 +4734,6 @@ void hdd_dfs_indicate_radar(void *context, void *param)
                             *pNext = NULL;
     hdd_adapter_t *pAdapter;
     VOS_STATUS status;
-    v_U8_t txQueueId;
 
     if (pHddCtx == NULL)
     {
@@ -4744,6 +4743,7 @@ void hdd_dfs_indicate_radar(void *context, void *param)
     {
         return;
     }
+
     if (VOS_TRUE == hdd_radar_event->dfs_radar_status)
     {
         pHddCtx->dfs_radar_found = VOS_TRUE;
@@ -4754,10 +4754,7 @@ void hdd_dfs_indicate_radar(void *context, void *param)
             pAdapter = pAdapterNode->pAdapter;
             if (WLAN_HDD_SOFTAP == pAdapter->device_mode)
             {
-                for (txQueueId = 0; txQueueId < NUM_TX_QUEUES; txQueueId++)
-                {
-                   netif_stop_subqueue(pAdapter->dev, txQueueId);
-                }
+                netif_tx_stop_all_queues(pAdapter->dev);
                 return;
             }
             else

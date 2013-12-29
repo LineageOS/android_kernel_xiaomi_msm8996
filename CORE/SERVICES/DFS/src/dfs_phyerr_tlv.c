@@ -293,12 +293,6 @@ tlv_parse_frame(struct ath_dfs *dfs, struct rx_radar_status *rs,
        * can be used.
        */
       OS_MEMCPY(&tlv_hdr, buf + i, sizeof(tlv_hdr));
-                printk("%s[%d]: HDR: TLV SIG=0x%x, TAG=0x%x, LEN=%d bytes\n",
-                    __func__,__LINE__,
-                    MS(tlv_hdr[TLV_REG], TLV_SIG),
-                    MS(tlv_hdr[TLV_REG], TLV_TAG),
-                    MS(tlv_hdr[TLV_REG], TLV_LEN));
-
 
       DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
           "%s: HDR: TLV SIG=0x%x, TAG=0x%x, LEN=%d bytes\n",
@@ -669,6 +663,5 @@ dfs_process_phyerr_bb_tlv(struct ath_dfs *dfs, void *buf, u_int16_t datalen,
        (int) e->freq_hi / 1000,
        (int) abs(e->freq_hi) % 1000);
 
-        printk("%s[%d]: SUCESS RET VALUE =1 \n",__func__,__LINE__);
    return (1);
 }
