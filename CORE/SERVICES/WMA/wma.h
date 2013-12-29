@@ -513,6 +513,8 @@ typedef struct {
 #ifdef FEATURE_WLAN_SCAN_PNO
 	vos_wake_lock_t pno_wake_lock;
 #endif
+	vos_wake_lock_t wow_wake_lock;
+
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

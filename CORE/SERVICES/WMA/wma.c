@@ -1885,6 +1885,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
       WMA_LOGP("Memory allocation failed for dfs_ic");
    }
 
+	vos_wake_lock_init(&wma_handle->wow_wake_lock,  "wow_wakelock");
+
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 	if (vos_get_conparam() == VOS_FTM_MODE)
 		wma_utf_attach(wma_handle);
@@ -6439,7 +6441,7 @@ static int wmi_unified_vdev_up_send(wmi_unified_t wmi,
 	wmi_buf_t buf;
 	int32_t len = sizeof(*cmd);
 
-	printk("%s: VDEV_UP\n", __func__);
+	WMA_LOGD("%s: VDEV_UP\n", __func__);
 	WMA_LOGD("%s: vdev_id %d aid %d bssid %pM\n", __func__,
 		 vdev_id, aid, bssid);
 	buf = wmi_buf_alloc(wmi, len);
@@ -9182,6 +9184,15 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 	case WOW_REASON_WLAN_HB:
 		return "WLAN_HB";
 #endif /* FEATURE_WLAN_LPHB */
+
+	case WOW_REASON_CSA_EVENT:
+		return "CSA_EVENT";
+	case WOW_REASON_PROBE_REQ_WPS_IE_RECV:
+		return "PROBE_REQ_RECV";
+	case WOW_REASON_AUTH_REQ_RECV:
+		return "AUTH_REQ_RECV";
+	case WOW_REASON_ASSOC_REQ_RECV:
+		return "ASSOC_REQ_RECV";
 	}
 	return "unknown";
 }
@@ -9267,6 +9278,20 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	WMA_LOGD("WOW wakeup host event received (reason: %s) for vdev %d",
 		 wma_wow_wake_reason_str(wake_info->wake_reason),
 		 wake_info->vdev_id);
+
+	if (wake_info->wake_reason == WOW_REASON_AUTH_REQ_RECV) {
+		WMA_LOGD("Holding 50 sec wake_lock");
+		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 50000);
+	} else if (wake_info->wake_reason == WOW_REASON_ASSOC_REQ_RECV) {
+		WMA_LOGD("Holding 30 sec wake_lock");
+		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 30000);
+	} else if (wake_info->wake_reason == WOW_REASON_DEAUTH_RECVD) {
+		WMA_LOGD("Holding 30 sec wake_lock");
+		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 30000);
+	} else if (wake_info->wake_reason == WOW_REASON_DISASSOC_RECVD) {
+		 WMA_LOGD("Holding 30 sec wake_lock");
+		 vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 30000);
+	}
 
 	if(wake_info->wake_reason == WOW_REASON_AP_ASSOC_LOST)
 		wma_beacon_miss_handler(wma, wake_info->vdev_id);
@@ -9607,96 +9632,19 @@ static VOS_STATUS wma_wow_usr(tp_wma_handle wma, u_int8_t vdev_id,
 static VOS_STATUS wma_wow_ap(tp_wma_handle wma, u_int8_t vdev_id,
 			     u_int8_t *enable_ptrn_match)
 {
-	u_int8_t unicast_ptrn[] = { 0x00, 0x00, 0x00,
-		  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		  0x00, 0x08 };
-	u_int8_t unicst_mask[] = { 0x01, 0x00, 0x00,
-		  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		  0x00, 0x7f };
-	u_int8_t unicst_offset = 0;
 	u_int8_t arp_ptrn[] = { 0x08, 0x06 };
 	u_int8_t arp_mask[] = { 0xff, 0xff };
 	u_int8_t arp_offset = 20;
-	u_int8_t discvr_ptrn[] = { 0xe0, 0x00, 0x00, 0xf8 };
-	u_int8_t discvr_mask[] = { 0xf0, 0x00, 0x00, 0xf8 };
-	u_int8_t discvr_offset = 38;
-	u_int8_t dhcp_pattern[] = { 0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x43 /* port 67 */ };
-	u_int8_t dhcp_mask[] = { 0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0xff, 0xff /* port 67 */ };
-	u_int8_t dhcp_offset = 0, free_slot;
-	VOS_STATUS ret = VOS_STATUS_SUCCESS;
+	VOS_STATUS ret;
 
-	if (!wma->interfaces[vdev_id].vdev_up ||
-	    !WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
-				WMI_SERVICE_BEACON_OFFLOAD)) {
-		return ret;
-	}
-
-	free_slot = wma->wow.total_free_ptrn_id -
-		    wma->wow.used_free_ptrn_id + 1;
-
-	if (free_slot < WMA_AP_WOW_DEFAULT_PTRN_MAX) {
-		WMA_LOGD("Free slots are not enough, avail:%d, need: %d",
-		  free_slot, WMA_AP_WOW_DEFAULT_PTRN_MAX);
-		WMA_LOGD("Ignoring default AP mode wow pattern for vdev : %d",
-			  vdev_id);
-		return ret;
-	}
-
-	WMA_LOGD("Configuring default AP mode wow pattern for vdev %d",
-		  vdev_id);
-
-	/* Setup unicast IP, EAPOL-like and ARP pkt pattern */
+	/* Setup all ARP pkt pattern. This is dummy pattern hence the lenght
+	is zero */
 	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
 			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
-			unicast_ptrn, sizeof(unicast_ptrn),
-			unicst_offset, unicst_mask, sizeof(unicst_mask));
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to add WOW unicast IP pattern");
-		return ret;
-	}
-
-	/* Setup all ARP pkt pattern */
-	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
-			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
-			arp_ptrn, sizeof(arp_ptrn), arp_offset,
-			arp_mask, sizeof(arp_mask));
+			arp_ptrn, 0, arp_offset,
+			arp_mask, 0);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to add WOW ARP pattern");
-		return ret;
-	}
-
-	/*
-	 * Setup multicast pattern for mDNS 224.0.0.251,
-	 * SSDP 239.255.255.250 and LLMNR  224.0.0.252
-	 */
-	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
-			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
-			discvr_ptrn, sizeof(discvr_ptrn), discvr_offset,
-			discvr_mask, sizeof(discvr_mask));
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to add WOW mDNS/SSDP/LLMNR pattern");
-		return ret;
-	}
-
-	/* Setup all DHCP broadcast pkt pattern */
-	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
-			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
-			dhcp_pattern, sizeof(dhcp_pattern), dhcp_offset,
-			dhcp_mask, sizeof(dhcp_mask));
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to add WOW DHCP broadcast pattern");
 		return ret;
 	}
 
@@ -9842,6 +9790,7 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
 	u_int8_t ptrn_id, vdev_id;
 	u_int8_t enable_ptrn_match = 0;
+	v_BOOL_t ap_vdev_available = FALSE;
 
 	WMA_LOGD("Clearing already configured wow patterns in fw");
 
@@ -9865,6 +9814,9 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 		    (!wma_is_vdev_in_ap_mode(wma, vdev_id) &&
 					  !iface->conn_state))
 			continue;
+
+		if (wma_is_vdev_in_ap_mode(wma, vdev_id))
+			ap_vdev_available = TRUE;
 
 		if (wma_is_wow_prtn_cached(wma, vdev_id)) {
 			/* Configure wow patterns provided by the user */
@@ -9943,6 +9895,37 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 			 wma->wow.gtk_err_enable ? "enabled" : "disabled");
 	}
 #endif
+	/* Configure probe req based wakeup */
+	ret = wma_add_wow_wakeup_event(wma, WOW_PROBE_REQ_WPS_IE_EVENT,
+					ap_vdev_available);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to configure probe req based wakeup");
+	 } else {
+		WMA_LOGD("Probe req based wakeup is %s in fw",
+			ap_vdev_available ? "enabled" : "disabled");
+	}
+
+	/* Configure auth req based wakeup */
+	ret = wma_add_wow_wakeup_event(wma, WOW_AUTH_REQ_EVENT,
+					ap_vdev_available);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to configure auth req based wakeup");
+	} else {
+		WMA_LOGD("Auth req based wakeup is %s in fw",
+			ap_vdev_available ? "enabled" : "disabled");
+	}
+
+	/* Configure assoc req based wakeup */
+	ret = wma_add_wow_wakeup_event(wma, WOW_ASSOC_REQ_EVENT,
+					ap_vdev_available);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to configure assoc req based wakeup");
+	} else {
+		WMA_LOGD("Assoc req based wakeup is %s in fw",
+			ap_vdev_available ? "enabled" : "disabled");
+	}
+
+
 	/* WOW is enabled in pcie suspend callback */
 	wma->wow.wow_enable = TRUE;
 	wma->wow.wow_enable_cmd_sent = FALSE;
@@ -10247,6 +10230,7 @@ static VOS_STATUS wma_resume_req(tp_wma_handle wma, tpSirWlanResumeParam info)
 
 	ret = wma_send_host_wakeup_ind_to_fw(wma);
 	vos_mem_free(info);
+	vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 2000);
 
 	return ret;
 }
@@ -13169,6 +13153,8 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	if(vos_status != VOS_STATUS_SUCCESS)
 		WMA_LOGP("dbglog_deinit failed");
 
+
+	vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	/* close the vos events */
 	vos_event_destroy(&wma_handle->wma_ready_event);
 	vos_event_destroy(&wma_handle->target_suspend);
