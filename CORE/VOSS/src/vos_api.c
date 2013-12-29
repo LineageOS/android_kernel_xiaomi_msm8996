@@ -426,6 +426,11 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
 #if defined (QCA_WIFI_2_0) && \
    !defined (QCA_WIFI_ISOC)
+   /* This macOpenParams.maxStation has value incremented by 1 for PeerIdx logic.
+    * So here we are decrementing by 1 to assign in the ini.With this change
+    * there is no ned to define gSoftApMaxPeers ini for Rome >= 1.3
+    */
+   pHddCtx->cfg_ini->maxNumberOfPeers = macOpenParms.maxStation - 1;
    if (HTCWaitTarget(vos_get_context(VOS_MODULE_ID_HTC, gpVosContext))) {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: Failed to complete BMI phase", __func__);

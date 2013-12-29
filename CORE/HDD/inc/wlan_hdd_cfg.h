@@ -2113,7 +2113,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_SAP_MAX_NO_PEERS                       "gSoftApMaxPeers"
 #define CFG_SAP_MAX_NO_PEERS_MIN                   (1)
 #define CFG_SAP_MAX_NO_PEERS_MAX                   (32)
-#define CFG_SAP_MAX_NO_PEERS_DEFAULT               (14)
+#define CFG_SAP_MAX_NO_PEERS_DEFAULT               (32)
 
 /*---------------------------------------------------------------------------
   Type declarations
