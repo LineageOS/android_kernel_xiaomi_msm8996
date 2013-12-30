@@ -4499,11 +4499,17 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            dhcpPhase = command + 11;
            if ('1' == *dhcpPhase)
            {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+                         FL("BTCOEXMODE %d"), *dhcpPhase);
+               pHddCtx->btCoexModeSet = TRUE;
                sme_DHCPStartInd(pHddCtx->hHal, pAdapter->device_mode,
                                 pAdapter->macAddressCurrent.bytes, pAdapter->sessionId);
            }
            else if ('2' == *dhcpPhase)
            {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+                         FL("BTCOEXMODE %d"), *dhcpPhase);
+               pHddCtx->btCoexModeSet = FALSE;
                sme_DHCPStopInd(pHddCtx->hHal, pAdapter->device_mode,
                                pAdapter->macAddressCurrent.bytes, pAdapter->sessionId);
            }
