@@ -915,7 +915,7 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 #define WMI_VHT_CAP_SU_BFORMER            0x00000800
 #define WMI_VHT_CAP_SU_BFORMEE            0x00001000
 #define WMI_VHT_CAP_MU_BFORMER            0x00080000
-#define WMI_VHT_CAP MU_BFORMEE            0x00100000
+#define WMI_VHT_CAP_MU_BFORMEE            0x00100000
 
 /* These macros should be used when we wish to advertise STBC support for
  * only 1SS or 2SS or 3SS. */
