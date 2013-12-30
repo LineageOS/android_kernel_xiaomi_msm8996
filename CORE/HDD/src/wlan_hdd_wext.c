@@ -203,8 +203,12 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define  WE_PPS_GID_NSTS_ZERO           52
 #define  WE_PPS_RSSI_CHECK              53
 #define WE_ENABLE_STRICT_FCC_REG        54
-
 #define WE_SET_HTSMPS                   55
+/* Private ioctl for QPower */
+#define WE_SET_QPOWER_MAX_PSPOLL_COUNT            56
+#define WE_SET_QPOWER_MAX_TX_BEFORE_WAKE          57
+#define WE_SET_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL   58
+#define WE_SET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL 59
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -248,6 +252,11 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_PPS_DELIM_CRC_FAIL       38
 #define WE_GET_PPS_GID_NSTS_ZERO        39
 #define WE_GET_PPS_RSSI_CHECK           40
+/* Private ioctl for QPower */
+#define WE_GET_QPOWER_MAX_PSPOLL_COUNT            41
+#define WE_GET_QPOWER_MAX_TX_BEFORE_WAKE          42
+#define WE_GET_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL   43
+#define WE_GET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL 44
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -5073,6 +5082,46 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
         }
 
 
+        case WE_SET_QPOWER_MAX_PSPOLL_COUNT:
+        {
+               hddLog(LOG1, "WE_SET_QPOWER_MAX_PSPOLL_COUNT val %d",
+                      set_value);
+	       ret = process_wma_set_command((int)pAdapter->sessionId,
+                                 (int)WMI_STA_PS_PARAM_QPOWER_PSPOLL_COUNT,
+                                 set_value, QPOWER_CMD);
+               break;
+        }
+
+        case WE_SET_QPOWER_MAX_TX_BEFORE_WAKE:
+        {
+           hddLog(LOG1, "WE_SET_QPOWER_MAX_TX_BEFORE_WAKE val %d",
+                  set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                         (int)WMI_STA_PS_PARAM_QPOWER_MAX_TX_BEFORE_WAKE,
+                         set_value, QPOWER_CMD);
+           break;
+        }
+
+        case WE_SET_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL:
+        {
+           hddLog(LOG1, "WE_SET_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL val %d",
+                  set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                        (int)WMI_STA_PS_PARAM_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL,
+                        set_value, QPOWER_CMD);
+           break;
+        }
+
+        case WE_SET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL:
+        {
+           hddLog(LOG1, "WE_SET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL val %d",
+                  set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                      (int)WMI_STA_PS_PARAM_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL,
+                      set_value, QPOWER_CMD);
+           break;
+        }
+
 #endif
         default:
         {
@@ -5568,6 +5617,47 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
                                          PPS_CMD);
             break;
 	}
+
+        case WE_GET_QPOWER_MAX_PSPOLL_COUNT:
+        {
+               hddLog(LOG1, "WE_GET_QPOWER_MAX_PSPOLL_COUNT");
+               *value = wma_cli_get_command(wmapvosContext,
+                                      (int)pAdapter->sessionId,
+                                      (int)WMI_STA_PS_PARAM_QPOWER_PSPOLL_COUNT,
+                                      QPOWER_CMD);
+               break;
+        }
+
+        case WE_GET_QPOWER_MAX_TX_BEFORE_WAKE:
+        {
+           hddLog(LOG1, "WE_GET_QPOWER_MAX_TX_BEFORE_WAKE");
+           *value = wma_cli_get_command(wmapvosContext,
+                              (int)pAdapter->sessionId,
+                              (int)WMI_STA_PS_PARAM_QPOWER_MAX_TX_BEFORE_WAKE,
+                              QPOWER_CMD);
+           break;
+        }
+
+        case WE_GET_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL:
+        {
+           hddLog(LOG1, "WE_GET_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL");
+           *value = wma_cli_get_command(wmapvosContext,
+                      (int)pAdapter->sessionId,
+                      (int)WMI_STA_PS_PARAM_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL,
+                      QPOWER_CMD);
+           break;
+        }
+
+        case WE_GET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL:
+        {
+           hddLog(LOG1, "WE_GET_QPOWER_MAX_PSPOLL_COUNT");
+           *value = wma_cli_get_command(wmapvosContext,
+                      (int)pAdapter->sessionId,
+                      (int)WMI_STA_PS_PARAM_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL,
+                      QPOWER_CMD);
+           break;
+        }
+
 #endif
 
         default:
@@ -8998,6 +9088,24 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_HTSMPS,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "htsmps" },
+
+
+    {   WE_SET_QPOWER_MAX_PSPOLL_COUNT,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "set_qpspollcnt" },
+
+    {   WE_SET_QPOWER_MAX_TX_BEFORE_WAKE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "set_qtxwake" },
+
+    {   WE_SET_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "set_qwakeintv" },
+
+    {   WE_SET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "set_qnodatapoll" },
+
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
@@ -9209,6 +9317,27 @@ static const struct iw_priv_args we_private_args[] = {
 	0,
 	IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
 	"get_rssi_chk"},
+
+    {   WE_GET_QPOWER_MAX_PSPOLL_COUNT,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_qpspollcnt"},
+
+    {   WE_GET_QPOWER_MAX_TX_BEFORE_WAKE,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_qtxwake"},
+
+    {   WE_GET_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_qwakeintv"},
+
+    {   WE_GET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_qnodatapoll"},
+
 #endif
 
     /* handlers for main ioctl */

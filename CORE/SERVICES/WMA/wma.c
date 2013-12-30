@@ -5318,6 +5318,41 @@ static int wmi_crash_inject(wmi_unified_t wmi_handle)
 	return ret;
 }
 
+static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
+		u_int32_t vdev_id, u_int32_t param, u_int32_t value)
+{
+	wmi_sta_powersave_param_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(*cmd);
+
+	WMA_LOGD("Set Sta Ps param vdevId %d Param %d val %d",
+		      vdev_id, param, value);
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("Set Sta Ps param Mem Alloc Failed");
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_sta_powersave_param_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_sta_powersave_param_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+			       wmi_sta_powersave_param_cmd_fixed_param));
+	cmd->vdev_id = vdev_id;
+	cmd->param = param;
+	cmd->value = value;
+
+	if (wmi_unified_cmd_send(wmi_handle, buf, len,
+			WMI_STA_POWERSAVE_PARAM_CMDID)) {
+		WMA_LOGE("Set Sta Ps param Failed vdevId %d Param %d val %d",
+			vdev_id, param, value);
+		adf_nbuf_free(buf);
+		return -EIO;
+	}
+	return 0;
+}
+
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					wda_cli_set_cmd_t *privcmd)
 {
@@ -5325,6 +5360,7 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 	struct wma_txrx_node *intr = wma->interfaces;
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
+	struct qpower_params *qparams = &intr[vid].config.qpower_params;
 
 	WMA_LOGD("wmihandle %p", wma->wmi_handle);
 
@@ -5521,6 +5557,82 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		}
 		break;
+
+	case QPOWER_CMD:
+		WMA_LOGD("QPOWER CLI CMD pid %d pval %d", privcmd->param_id,
+			privcmd->param_value);
+		switch (privcmd->param_id) {
+		case WMI_STA_PS_PARAM_QPOWER_PSPOLL_COUNT:
+			WMA_LOGD("QPOWER CLI CMD:Ps Poll Cnt val %d",
+				privcmd->param_value);
+			/* Set the QPower Ps Poll Count */
+			ret = wmi_unified_set_sta_ps_param(wma->wmi_handle,
+					vid,
+					WMI_STA_PS_PARAM_QPOWER_PSPOLL_COUNT,
+					privcmd->param_value);
+			if (ret) {
+			WMA_LOGE("Set Q-PsPollCnt Failed vdevId %d val %d",
+				vid, privcmd->param_value);
+			} else {
+				qparams->max_ps_poll_cnt =
+					privcmd->param_value;
+			}
+			break;
+		case WMI_STA_PS_PARAM_QPOWER_MAX_TX_BEFORE_WAKE:
+			WMA_LOGD("QPOWER CLI CMD:Max Tx Before wake val %d",
+					privcmd->param_value);
+			/* Set the QPower Max Tx Before Wake */
+			ret = wmi_unified_set_sta_ps_param(wma->wmi_handle,
+				vid,
+				WMI_STA_PS_PARAM_QPOWER_MAX_TX_BEFORE_WAKE,
+				privcmd->param_value);
+			if (ret) {
+			WMA_LOGE("Set Q-MaxTxBefWake Failed vId %d val %d",
+				vid, privcmd->param_value);
+			} else {
+				qparams->max_tx_before_wake =
+						privcmd->param_value;
+			}
+			break;
+		case WMI_STA_PS_PARAM_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL:
+			WMA_LOGD("QPOWER CLI CMD:Ps Poll Wake Inv val %d",
+					privcmd->param_value);
+			/* Set the QPower Spec Ps Poll Wake Inv */
+			ret = wmi_unified_set_sta_ps_param(wma->wmi_handle,
+								vid,
+			WMI_STA_PS_PARAM_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL,
+			privcmd->param_value);
+			if (ret) {
+			WMA_LOGE("Set Q-PsPoll WakeIntv Failed vId %d val %d",
+				vid, privcmd->param_value);
+			} else {
+				qparams->spec_ps_poll_wake_interval =
+							privcmd->param_value;
+			}
+			break;
+		case WMI_STA_PS_PARAM_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL:
+			WMA_LOGD("QPOWER CLI CMD:Spec NoData Ps Poll val %d",
+					privcmd->param_value);
+			/* Set the QPower Spec NoData PsPoll */
+			ret = wmi_unified_set_sta_ps_param(wma->wmi_handle,
+								vid,
+			WMI_STA_PS_PARAM_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL,
+						privcmd->param_value);
+			if (ret) {
+			WMA_LOGE("Set Q-SpecNoDataPsPoll Failed vId %d val %d",
+				vid, privcmd->param_value);
+			} else {
+				qparams->max_spec_nodata_ps_poll =
+						privcmd->param_value;
+			}
+			break;
+
+		default:
+			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
+			break;
+		}
+		break;
+
 	default:
 		WMA_LOGE("Invalid vpdev command id");
 	}
@@ -5763,43 +5875,32 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 					" yet implemented 0x%x", param_id);
 			return -EINVAL;
 		}
+	} else if (QPOWER_CMD == vpdev) {
+		switch (param_id) {
+		case WMI_STA_PS_PARAM_QPOWER_PSPOLL_COUNT:
+		ret = intr[vdev_id].config.qpower_params.max_ps_poll_cnt;
+		break;
+
+		case WMI_STA_PS_PARAM_QPOWER_MAX_TX_BEFORE_WAKE:
+		ret = intr[vdev_id].config.qpower_params.max_tx_before_wake;
+		break;
+
+		case WMI_STA_PS_PARAM_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL:
+		ret =
+		intr[vdev_id].config.qpower_params.spec_ps_poll_wake_interval;
+		break;
+
+		case WMI_STA_PS_PARAM_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL:
+		ret = intr[vdev_id].config.qpower_params.max_spec_nodata_ps_poll;
+		break;
+
+		default:
+		WMA_LOGE("Invalid generic vdev command/Not"
+			" yet implemented 0x%x", param_id);
+		return -EINVAL;
+		}
 	}
 	return ret;
-}
-
-static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
-		u_int32_t vdev_id, u_int32_t param, u_int32_t value)
-{
-	wmi_sta_powersave_param_cmd_fixed_param *cmd;
-	wmi_buf_t buf;
-	int32_t len = sizeof(*cmd);
-
-	WMA_LOGD("Set Sta Ps param vdevId %d Param %d val %d",
-		      vdev_id, param, value);
-
-	buf = wmi_buf_alloc(wmi_handle, len);
-	if (!buf) {
-		WMA_LOGP("Set Sta Ps param Mem Alloc Failed");
-		return -ENOMEM;
-	}
-
-	cmd = (wmi_sta_powersave_param_cmd_fixed_param *) wmi_buf_data(buf);
-	WMITLV_SET_HDR(&cmd->tlv_header,
-		       WMITLV_TAG_STRUC_wmi_sta_powersave_param_cmd_fixed_param,
-		       WMITLV_GET_STRUCT_TLVLEN(
-			       wmi_sta_powersave_param_cmd_fixed_param));
-	cmd->vdev_id = vdev_id;
-	cmd->param = param;
-	cmd->value = value;
-
-	if (wmi_unified_cmd_send(wmi_handle, buf, len,
-			WMI_STA_POWERSAVE_PARAM_CMDID)) {
-		WMA_LOGE("Set Sta Ps param Failed vdevId %d Param %d val %d",
-			vdev_id, param, value);
-		adf_nbuf_free(buf);
-		return -EIO;
-	}
-	return 0;
 }
 
 static void

@@ -287,6 +287,13 @@ struct pps {
 	v_BOOL_t rssi_chk;
 };
 
+struct qpower_params {
+	u_int32_t max_ps_poll_cnt;
+	u_int32_t max_tx_before_wake;
+	u_int32_t spec_ps_poll_wake_interval;
+	u_int32_t max_spec_nodata_ps_poll;
+};
+
 typedef struct {
 	u_int32_t ani_enable;
 	u_int32_t ani_poll_len;
@@ -313,6 +320,7 @@ typedef struct {
 	u_int32_t ampdu;
 	u_int32_t amsdu;
         struct pps pps_params;
+	struct qpower_params qpower_params;
 } vdev_cli_config_t;
 
 #define WMA_WOW_PTRN_MASK_VALID     0xFF
