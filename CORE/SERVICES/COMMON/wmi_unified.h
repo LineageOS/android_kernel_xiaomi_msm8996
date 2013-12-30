@@ -331,7 +331,10 @@ typedef enum {
     WMI_PDEV_DFS_ENABLE_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_DFS),
     /** disable DFS (radar detection)*/
     WMI_PDEV_DFS_DISABLE_CMDID,
-
+    /** enable DFS phyerr/parse filter offload */
+    WMI_DFS_PHYERR_FILTER_ENA_CMDID,
+    /** enable DFS phyerr/parse filter offload */
+    WMI_DFS_PHYERR_FILTER_DIS_CMDID,
 
     /* Roaming specific  commands */
     /** set roam scan mode */
@@ -572,10 +575,6 @@ typedef enum {
     /** Plumb routing table for multihop forwarding offload */
     WMI_MHF_OFFLOAD_PLUMB_ROUTING_TBL_CMDID,
 
-    /** enable DFS phyerr/parse filter offload */
-    WMI_DFS_PHYERR_FILTER_ENA_CMDID,
-    /** enable DFS phyerr/parse filter offload */
-    WMI_DFS_PHYERR_FILTER_DIS_CMDID,
     /*location scan commands*/
     /*start batch scan*/
     WMI_BATCH_SCAN_ENABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_LOCATION_SCAN),
@@ -610,6 +609,9 @@ typedef enum {
 
     /** traffic pause event */
     WMI_TX_PAUSE_EVENTID,
+
+    /** DFS radar event  */
+    WMI_DFS_RADAR_EVENTID,
 
     /* VDEV specific events */
     /** VDEV started event in response to VDEV_START request */
@@ -756,9 +758,6 @@ typedef enum {
 
     /* TDLS Event */
     WMI_TDLS_PEER_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_TDLS),
-
-    /** DFS radar event  */
-    WMI_DFS_RADAR_EVENTID,
 
     /*location scan event*/
     /*report the firmware's capability of batch scan*/
