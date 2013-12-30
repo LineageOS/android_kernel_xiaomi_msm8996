@@ -417,8 +417,11 @@ limProcessMlmStartCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         // on which we are operating is non-DFS until the channel
         // availability check is done. The PE will receive an explicit
         // request from upper layers to start the beacon transmission
-        if (eLIM_AP_ROLE == psessionEntry->limSystemRole &&
-            vos_nv_getChannelEnabledState(channelId) != NV_CHANNEL_DFS)
+
+
+        if ( (eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole) ||
+             ((eLIM_AP_ROLE == psessionEntry->limSystemRole) &&
+             (vos_nv_getChannelEnabledState(channelId) != NV_CHANNEL_DFS)) )
         {
             //Configure beacon and send beacons to HAL
             limSendBeaconInd(pMac, psessionEntry);
