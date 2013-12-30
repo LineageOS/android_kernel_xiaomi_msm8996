@@ -712,6 +712,10 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     }
 #endif/*FEATURE_WLAN_SCAN_PNO*/
 
+#if defined(QCA_WIFI_2_0) && defined (QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+    if (vos_get_conparam() != VOS_FTM_MODE) {
+#endif
+
 #ifdef CONFIG_ENABLE_LINUX_REG
     /* even with WIPHY_FLAG_CUSTOM_REGULATORY,
        driver can still register regulatory callback and
@@ -722,6 +726,10 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->reg_notifier = wlan_hdd_linux_reg_notifier;
 #else
     wiphy->reg_notifier = wlan_hdd_crda_reg_notifier;
+#endif
+
+#if defined(QCA_WIFI_2_0) && defined (QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+    }
 #endif
 
     wiphy->max_scan_ssids = MAX_SCAN_SSID;
