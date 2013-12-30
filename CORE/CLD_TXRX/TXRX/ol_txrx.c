@@ -1085,6 +1085,17 @@ ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
 	struct ol_txrx_peer_t *peer;
 
 	peer =  ol_txrx_peer_find_hash_find(pdev, peer_mac, 0, 1);
+
+        if (NULL == peer)
+        {
+           TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: peer is null for peer_mac"
+             " 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", __FUNCTION__,
+             peer_mac[0], peer_mac[1], peer_mac[2], peer_mac[3],
+             peer_mac[4], peer_mac[5]);
+             return;
+        }
+
+
 	/* TODO: Should we send WMI command of the connection state? */
     /* avoid multiple auth state change. */
     if (peer->state == state) {

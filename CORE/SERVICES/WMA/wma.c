@@ -6174,7 +6174,7 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 
         /* create new vdev for ibss */
         vos_copy_macaddr((v_MACADDR_t *)&(add_sta_self_param.selfMacAddr),
-                         (v_MACADDR_t *)&(add_bss->bssId));
+                         (v_MACADDR_t *)&(add_bss->selfMacAddr));
         add_sta_self_param.sessionId = vdev_id;
         add_sta_self_param.type      = WMI_VDEV_TYPE_IBSS;
         add_sta_self_param.subType   = 0;
@@ -6191,17 +6191,17 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	WMA_LOGE("%s: new vdev created for IBSS\n", __func__);
 
         /* create self peer */
-	status = wma_create_peer(wma, pdev, vdev, add_bss->bssId,
+	status = wma_create_peer(wma, pdev, vdev, add_bss->selfMacAddr,
 	                         WMI_PEER_TYPE_DEFAULT, vdev_id);
 	if (status != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("%s: Failed to create peer\n", __func__);
 		goto send_fail_resp;
 	}
 
-	peer = ol_txrx_find_peer_by_addr(pdev, add_bss->bssId, &peer_id);
+	peer = ol_txrx_find_peer_by_addr(pdev, add_bss->selfMacAddr, &peer_id);
 	if (!peer) {
 		WMA_LOGE("%s Failed to find peer %pM\n", __func__,
-			 add_bss->bssId);
+			 add_bss->selfMacAddr);
 		goto send_fail_resp;
 	}
 
@@ -7171,11 +7171,18 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 		vos_mem_copy(key_params.peer_mac,
 			wma_handle->interfaces[key_info->smesessionId].bssid,
 			ETH_ALEN);
+	}
+        else if (wlan_op_mode_ibss == txrx_vdev->opmode) {
+		/* vdev mac address will be passed for IBSS mode
+                ** Self Mac address is supposed to be in  wma_handle->hwaddr
+               */
+		vos_mem_copy(key_params.peer_mac, wma_handle->hwaddr,
+			     ETH_ALEN);
 	} else {
-		/* vdev mac address will be passed for AP/IBSS mode */
+               /* vdev mac address will be passed for all other modes */
 		vos_mem_copy(key_params.peer_mac, txrx_vdev->mac_addr.raw,
 			     ETH_ALEN);
-	}
+        }
 
 	if (key_info->numKeys == 0 &&
 	    (key_info->encType == eSIR_ED_WEP40 ||
@@ -8093,7 +8100,10 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 	VOS_STATUS status;
 #endif
         u_int8_t *p2p_ie;
-	vdev = wma_find_vdev_by_addr(wma, bcn_info->bssId, &vdev_id);
+        tpAniBeaconStruct beacon;
+
+        beacon = (tpAniBeaconStruct)(bcn_info->beacon);
+        vdev = wma_find_vdev_by_addr(wma, beacon->macHdr.sa, &vdev_id);
 	if (!vdev) {
 		WMA_LOGE("%s : failed to get vdev handle\n", __func__);
 		return;
