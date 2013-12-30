@@ -11036,7 +11036,7 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 
 		/* Fill data only for NS offload in the first ARP tuple for LA */
 		if (!bArpOnly  &&
-			(pHostOffloadParams->enableOrDisable == SIR_OFFLOAD_ENABLE && i==0)) {
+		   ((pHostOffloadParams->enableOrDisable & SIR_OFFLOAD_ENABLE) && i==0)) {
 			ns_tuple->flags |= WMI_NSOFF_FLAGS_VALID;
 
 			/*Copy the target/solicitation/remote ip addr */
@@ -11074,7 +11074,7 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 				WMITLV_GET_STRUCT_TLVLEN(WMI_ARP_OFFLOAD_TUPLE));
 
 		/* Fill data for ARP and NS in the first tupple for LA */
-		if ((wma->mArpInfo.enableOrDisable == SIR_OFFLOAD_ENABLE) && (i==0)) {
+		if ((wma->mArpInfo.enableOrDisable & SIR_OFFLOAD_ENABLE) && (i==0)) {
 			/*Copy the target ip addr and flags*/
 			arp_tuple->flags = WMI_ARPOFF_FLAGS_VALID;
 			A_MEMCPY(&arp_tuple->target_ipaddr,wma->mArpInfo.params.hostIpv4Addr,
