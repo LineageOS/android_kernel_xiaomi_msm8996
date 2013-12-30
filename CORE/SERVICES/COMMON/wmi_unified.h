@@ -958,6 +958,13 @@ typedef struct _wmi_abi_version {
 * maximum number of memroy requests allowed from FW.
 */
 #define WMI_MAX_MEM_REQS 16
+
+/* !!NOTE!!:
+ * This HW_BD_INFO_SIZE cannot be changed without breaking compatibility.
+ * Please don't change it.
+ */
+#define HW_BD_INFO_SIZE       5
+
 /**
  * The following struct holds optional payload for
  * wmi_service_ready_event_fixed_param,e.g., 11ac pass some of the
@@ -994,12 +1001,61 @@ typedef struct {
      * setup.
      */
     A_UINT32 max_num_scan_channels;
+
+    /* Hardware board specific ID. Values defined in enum WMI_HWBOARD_ID.
+     * Default 0 means tha hw_bd_info[] is invalid(legacy board).
+     */
+    A_UINT32 hw_bd_id;
+    A_UINT32 hw_bd_info[HW_BD_INFO_SIZE]; /* Board specific information. Invalid if hw_hd_id is zero. */
+
     /* The TLVs for hal_reg_capabilities, wmi_service_bitmap and mem_reqs[] will follow this TLV.
          *     HAL_REG_CAPABILITIES   hal_reg_capabilities;
          *     A_UINT32 wmi_service_bitmap[WMI_SERVICE_BM_SIZE];
          *     wlan_host_mem_req mem_reqs[];
          */
 } wmi_service_ready_event_fixed_param;
+
+typedef enum {
+    WMI_HWBD_NONE       = 0,            /* No hw board information is given */
+    WMI_HWBD_QCA6174    = 1,            /* Rome(AR6320) */
+    WMI_HWBD_QCA2582    = 2,            /* Killer 1525*/
+} WMI_HWBD_ID;
+
+#define ATH_BD_DATA_REV_MASK            0x000000FF
+#define ATH_BD_DATA_REV_SHIFT           0
+
+#define ATH_BD_DATA_PROJ_ID_MASK        0x0000FF00
+#define ATH_BD_DATA_PROJ_ID_SHIFT       8
+
+#define ATH_BD_DATA_CUST_ID_MASK        0x00FF0000
+#define ATH_BD_DATA_CUST_ID_SHIFT       16
+
+#define ATH_BD_DATA_REF_DESIGN_ID_MASK  0xFF000000
+#define ATH_BD_DATA_REF_DESIGN_ID_SHIFT 24
+
+#define SET_BD_DATA_REV(bd_data_ver, value)     \
+    ((bd_data_ver) &= ~ATH_BD_DATA_REV_MASK, (bd_data_ver) |= ((value) << ATH_BD_DATA_REV_SHIFT))
+
+#define GET_BD_DATA_REV(bd_data_ver)            \
+    (((bd_data_ver) & ATH_BD_DATA_REV_MASK) >> ATH_BD_DATA_REV_SHIFT)
+
+#define SET_BD_DATA_PROJ_ID(bd_data_ver, value) \
+    ((bd_data_ver) &= ~ATH_BD_DATA_PROJ_ID_MASK, (bd_data_ver) |= ((value) << ATH_BD_DATA_PROJ_ID_SHIFT))
+
+#define GET_BD_DATA_PROJ_ID(bd_data_ver)        \
+    (((bd_data_ver) & ATH_BD_DATA_PROJ_ID_MASK) >> ATH_BD_DATA_PROJ_ID_SHIFT)
+
+#define SET_BD_DATA_CUST_ID(bd_data_ver, value) \
+    ((bd_data_ver) &= ~ATH_BD_DATA_CUST_ID_MASK, (bd_data_ver) |= ((value) << ATH_BD_DATA_CUST_ID_SHIFT))
+
+#define GET_BD_DATA_CUST_ID(bd_data_ver)        \
+    (((bd_data_ver) & ATH_BD_DATA_CUST_ID_MASK) >> ATH_BD_DATA_CUST_ID_SHIFT)
+
+#define SET_BD_DATA_REF_DESIGN_ID(bd_data_ver, value)   \
+    ((bd_data_ver) &= ~ATH_BD_DATA_REF_DESIGN_ID_MASK, (bd_data_ver) |= ((value) << ATH_BD_DATA_REF_DESIGN_ID_SHIFT))
+
+#define GET_BD_DATA_REF_DESIGN_ID(bd_data_ver)          \
+    (((bd_data_ver) & ATH_BD_DATA_REF_DESIGN_ID_MASK) >> ATH_BD_DATA_REF_DESIGN_ID_SHIFT)
 
 #ifdef ROME_LTE_COEX_FREQ_AVOID
 typedef struct {
