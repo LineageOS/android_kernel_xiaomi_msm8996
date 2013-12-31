@@ -9782,7 +9782,8 @@ static bool wma_is_wow_prtn_cached(tp_wma_handle wma, u_int8_t vdev_id)
  * Pushes wow patterns from local cache to FW and configures
  * wakeup trigger events.
  */
-static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
+static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
+					    v_BOOL_t pno_in_progress)
 {
 	struct wma_txrx_node *iface;
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
@@ -9923,6 +9924,15 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 			ap_vdev_available ? "enabled" : "disabled");
 	}
 
+	/* Configure pno based wakeup */
+	ret = wma_add_wow_wakeup_event(wma, WOW_NLO_DETECTED_EVENT,
+					pno_in_progress);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to configure pno based wakeup");
+	} else {
+		WMA_LOGD("PNO based wakeup is %s in fw",
+			pno_in_progress ? "enabled" : "disabled");
+	}
 
 	/* WOW is enabled in pcie suspend callback */
 	wma->wow.wow_enable = TRUE;
@@ -10144,7 +10154,7 @@ enable_wow:
 	 * At this point, suspend indication is received on
 	 * last vdev. It's the time to enable wow in fw.
 	 */
-	ret = wma_feed_wow_config_to_fw(wma);
+	ret = wma_feed_wow_config_to_fw(wma, pno_in_progress);
 	if (ret != VOS_STATUS_SUCCESS) {
 		vos_mem_free(info);
 		return ret;
