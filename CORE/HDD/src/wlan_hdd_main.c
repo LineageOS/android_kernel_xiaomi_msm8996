@@ -8767,6 +8767,19 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_vosclose;
    }
 
+   if (0 == enable_dfs_chan_scan || 1 == enable_dfs_chan_scan)
+   {
+      pHddCtx->cfg_ini->enableDFSChnlScan = enable_dfs_chan_scan;
+      hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_dfs_chan_scan set to %d",
+             __func__, enable_dfs_chan_scan);
+   }
+   if (0 == enable_11d || 1 == enable_11d)
+   {
+      pHddCtx->cfg_ini->Is11dSupportEnabled = enable_11d;
+      hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_11d set to %d",
+             __func__, enable_11d);
+   }
+
    /* Note that the vos_preStart() sequence triggers the cfg download.
       The cfg download must occur before we update the SME config
       since the SME config operation must access the cfg database */
@@ -8789,19 +8802,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /* In the integrated architecture we update the configuration from
       the INI file and from NV before vOSS has been started so that
       the final contents are available to send down to the cCPU   */
-
-   if (0 == enable_dfs_chan_scan || 1 == enable_dfs_chan_scan)
-   {
-      pHddCtx->cfg_ini->enableDFSChnlScan = enable_dfs_chan_scan;
-      hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_dfs_chan_scan set to %d",
-             __func__, enable_dfs_chan_scan);
-   }
-   if (0 == enable_11d || 1 == enable_11d)
-   {
-      pHddCtx->cfg_ini->Is11dSupportEnabled = enable_11d;
-      hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_11d set to %d",
-             __func__, enable_11d);
-   }
 
    // Apply the cfg.ini to cfg.dat
    if (FALSE == hdd_update_config_dat(pHddCtx))
@@ -9020,24 +9020,32 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (country_code)
    {
       eHalStatus ret;
+
+      INIT_COMPLETION(pAdapter->change_country_code);
       hdd_checkandupdate_dfssetting(pAdapter, country_code);
 #ifndef CONFIG_ENABLE_LINUX_REG
       hdd_checkandupdate_phymode(pAdapter, country_code);
 #endif
-      ret = sme_ChangeCountryCode(pHddCtx->hHal, NULL,
-                                  country_code,
-                                  pAdapter, pHddCtx->pvosContext,
-                                  eSIR_TRUE, eSIR_TRUE);
+      ret = sme_ChangeCountryCode(pHddCtx->hHal,
+            (void *)(tSmeChangeCountryCallback)
+            wlan_hdd_change_country_code_callback,
+            country_code, pAdapter, pHddCtx->pvosContext, eSIR_TRUE, eSIR_TRUE);
       if (eHAL_STATUS_SUCCESS == ret)
       {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                   "%s: SME Change Country code from module param fail ret=%d",
-                   __func__, ret);
+          ret = wait_for_completion_interruptible_timeout(
+                &pAdapter->change_country_code,
+                msecs_to_jiffies(WLAN_WAIT_TIME_COUNTRY));
+          if (0 >= ret)
+          {
+              hddLog(VOS_TRACE_LEVEL_ERROR,
+                     "%s: SME while setting country code timed out", __func__);
+          }
       }
       else
       {
-         hddLog(VOS_TRACE_LEVEL_INFO, "%s: module country code set to %c%c",
-                __func__, country_code[0], country_code[1]);
+          hddLog(VOS_TRACE_LEVEL_ERROR,
+                 "%s: SME Change Country code from module param fail ret=%d", __func__, ret);
+          ret = -EINVAL;
       }
    }
 
