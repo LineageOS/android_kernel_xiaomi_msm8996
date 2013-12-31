@@ -2189,13 +2189,18 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 	          AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("ath: HIF_PCIDeviceProbed get chip id val (%d)\n", rv));
 		  goto done;
 	     }
-	     if (CHIP_ID_VERSION_GET(chip_id) == 0xD && (CHIP_ID_REVISION_GET(chip_id) == 0x0 || CHIP_ID_REVISION_GET(chip_id) == 0x1)) {
-		  /* for ROME 1.0, 3 banks are switched to IRAM */
-		  AR_DEBUG_PRINTF(ATH_DEBUG_WARN, ("chip ver=0x%x, chip rev=0x%x\n", CHIP_ID_VERSION_GET(chip_id), CHIP_ID_REVISION_GET(chip_id)));
-		  banks_switched = 3;
-	     }
-	     ealloc_value |= ((banks_switched << HI_EARLY_ALLOC_IRAM_BANKS_SHIFT) & HI_EARLY_ALLOC_IRAM_BANKS_MASK);
-	}
+	     if (CHIP_ID_VERSION_GET(chip_id) == 0xD) {
+                 if ((CHIP_ID_REVISION_GET(chip_id) == 0x0) || (CHIP_ID_REVISION_GET(chip_id) == 0x1)) {
+                     /* for ROME 1.0/1.1, 3 banks are switched to IRAM */
+                     banks_switched = 3;
+                 }
+                 else if ((CHIP_ID_REVISION_GET(chip_id) == 0x2) || (CHIP_ID_REVISION_GET(chip_id) == 0x4)) {
+                     /* for ROME 1.3, 2 banks are switched to IRAM */
+                     banks_switched = 2;
+                 }
+             }
+             ealloc_value |= ((banks_switched << HI_EARLY_ALLOC_IRAM_BANKS_SHIFT) & HI_EARLY_ALLOC_IRAM_BANKS_MASK);
+        }
         rv = HIFDiagWriteAccess(sc->hif_device, ealloc_targ_addr, ealloc_value);
         if (rv != A_OK) {
             AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("ath: HIF_PCIDeviceProbed set early alloc val (%d)\n", rv));
