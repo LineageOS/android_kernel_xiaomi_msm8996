@@ -354,7 +354,14 @@ struct wma_wow {
 	v_BOOL_t bmiss_enable;
 	v_BOOL_t gtk_err_enable;
 };
-
+#ifdef WLAN_FEATURE_11W
+#define CMAC_IPN_LEN 6
+typedef struct {
+	u_int16_t key_length;
+	u_int8_t  key[CSR_AES_KEY_LEN];
+	u_int8_t  ipn[CMAC_IPN_LEN];
+} wma_igtk_key_t;
+#endif
 struct wma_txrx_node {
 	u_int8_t addr[ETH_ALEN];
 	u_int8_t bssid[ETH_ALEN];
@@ -384,6 +391,11 @@ struct wma_txrx_node {
 	u_int64_t tsfadjust;
 	void     *addBssStaContext;
 	tANI_U8 aid;
+	/* Robust Management Frame (RMF) enabled/disabled */
+	tANI_U8 rmfEnabled;
+#ifdef WLAN_FEATURE_11W
+	wma_igtk_key_t key;
+#endif /* WLAN_FEATURE_11W */
 	u_int32_t uapsd_cached_val;
 };
 

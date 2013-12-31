@@ -43,6 +43,7 @@
 #endif
 #include "adf_nbuf.h"
 #include "wma_api.h"
+#include "vos_utils.h"
 
 #define ENTER() VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, "Enter:%s", __func__)
 
@@ -389,13 +390,18 @@ next_nbuf:
 #define TLSHIM_TGT_NOISE_FLOOR_DBM (-96)
 
 static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
-				       u_int32_t data_len, bool saved_beacon)
+				       u_int32_t data_len, bool saved_beacon, u_int32_t vdev_id)
 {
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
 	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
 							   vos_ctx);
 	WMI_MGMT_RX_EVENTID_param_tlvs *param_tlvs = NULL;
 	wmi_mgmt_rx_hdr *hdr = NULL;
+#ifdef WLAN_FEATURE_11W
+        struct wma_txrx_node *iface = NULL;
+	tp_wma_handle wma;
+	u_int8_t *efrm, *orig_hdr;
+#endif /* WLAN_FEATURE_11W */
 
 	vos_pkt_t *rx_pkt;
 	adf_nbuf_t wbuf;
@@ -515,20 +521,82 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 			tl_shim->last_beacon_len = data_len;
 	    }
 	}
+
+#ifdef WLAN_FEATURE_11W
+	wma = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+	if (wma)
+	        iface = &wma->interfaces[vdev_id];
+	if (iface && iface->rmfEnabled && mgt_type == IEEE80211_FC0_TYPE_MGT &&
+		(mgt_subtype == IEEE80211_FC0_SUBTYPE_DISASSOC ||
+		 mgt_subtype == IEEE80211_FC0_SUBTYPE_DEAUTH ||
+		 mgt_subtype == IEEE80211_FC0_SUBTYPE_ACTION))
+	{
+		if ((wh)->i_fc[1] & IEEE80211_FC1_WEP)
+		{
+			orig_hdr = (u_int8_t*) adf_nbuf_data(wbuf);
+
+			/* Strip privacy headers (and trailer)
+			   for a received frame */
+			vos_mem_move(orig_hdr + IEEE80211_CCMP_HEADERLEN,
+					wh, sizeof(*wh));
+			adf_nbuf_pull_head(wbuf, IEEE80211_CCMP_HEADERLEN);
+			adf_nbuf_trim_tail(wbuf, IEEE80211_CCMP_MICLEN);
+
+			rx_pkt->pkt_meta.mpdu_hdr_ptr = adf_nbuf_data(wbuf);
+			rx_pkt->pkt_meta.mpdu_data_ptr =
+				rx_pkt->pkt_meta.mpdu_hdr_ptr +
+				rx_pkt->pkt_meta.mpdu_hdr_len;
+			rx_pkt->pkt_buf = wbuf;
+		}
+		else
+		{
+			if (IEEE80211_IS_BROADCAST(wh->i_addr1) ||
+				 IEEE80211_IS_MULTICAST(wh->i_addr1))
+			{
+				efrm = adf_nbuf_data(wbuf) + adf_nbuf_len(wbuf);
+				if (vos_is_mmie_valid(iface->key.key,
+					 iface->key.ipn,
+					 (u_int8_t *)wh, efrm))
+				{
+					TLSHIM_LOGD("Protected BC/MC frame MMIE"
+						" validation successful");
+
+					/* Remove MMIE */
+					adf_nbuf_trim_tail(wbuf,
+						vos_get_mmie_size());
+				}
+				else
+				{
+					TLSHIM_LOGE("BC/MC MIC error or MMIE"
+					" not present, dropping the frame");
+					vos_pkt_return_packet(rx_pkt);
+					return 0;
+				}
+			}
+			else
+			{
+				TLSHIM_LOGD("Rx unprotected unicast mgmt frame");
+				rx_pkt->pkt_meta.dpuFeedback =
+					 DPU_FEEDBACK_UNPROTECTED_ERROR;
+			}
+
+		}
+	}
+#endif /* WLAN_FEATURE_11W */
 	return tl_shim->mgmt_rx(vos_ctx, rx_pkt);
 }
 
 static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 				       u_int32_t data_len)
 {
-	return (tlshim_mgmt_rx_process(context, data, data_len, FALSE));
+	return (tlshim_mgmt_rx_process(context, data, data_len, FALSE, 0));
 }
 #endif
 /*
  * tlshim_mgmt_roam_event_ind() is called from WMA layer when
  * BETTER_AP_FOUND event is received from roam engine.
  */
-int tlshim_mgmt_roam_event_ind(void *context)
+int tlshim_mgmt_roam_event_ind(void *context, u_int32_t vdev_id)
 {
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
 	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
@@ -536,7 +604,7 @@ int tlshim_mgmt_roam_event_ind(void *context)
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
 	if (tl_shim->last_beacon_data && tl_shim->last_beacon_len)
 	{
-		ret = tlshim_mgmt_rx_process(context, tl_shim->last_beacon_data, tl_shim->last_beacon_len, TRUE);
+		ret = tlshim_mgmt_rx_process(context, tl_shim->last_beacon_data, tl_shim->last_beacon_len, TRUE, vdev_id);
 	}
 	return ret;
 }

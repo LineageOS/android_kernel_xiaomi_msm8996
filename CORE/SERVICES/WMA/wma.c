@@ -5046,6 +5046,10 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 
 	cmd->peer_vht_caps = params->vht_caps;
 #endif
+
+	if (params->rmfEnabled)
+		cmd->peer_flags |= WMI_PEER_PMF;
+
 	rx_stbc = (params->ht_caps & IEEE80211_HTCAP_C_RXSTBC) >>
 			IEEE80211_HTCAP_C_RXSTBC_S;
 	if (rx_stbc) {
@@ -6293,6 +6297,8 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
                 }
                 adf_os_mem_copy(iface->addBssStaContext, &add_bss->staContext,
                                                 sizeof(tAddStaParams));
+		// Save parameters later needed by WDA_ADD_STA_REQ
+		iface->rmfEnabled = add_bss->rmfEnabled;
 		iface->beaconInterval = add_bss->beaconInterval;
 		iface->dtimPeriod = add_bss->dtimPeriod;
 		iface->llbCoexist = add_bss->llbCoexist;
@@ -7015,7 +7021,9 @@ static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
 	wmi_buf_t buf;
 	u_int8_t *buf_ptr;
 	u_int8_t *key_data;
-
+#ifdef WLAN_FEATURE_11W
+	struct wma_txrx_node *iface = NULL;
+#endif /* WLAN_FEATURE_11W */
 	if ((key_params->key_type == eSIR_ED_NONE &&
 	    key_params->key_len) || (key_params->key_type != eSIR_ED_NONE &&
 	    !key_params->key_len)) {
@@ -7085,6 +7093,11 @@ static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
 	case eSIR_ED_CCMP:
 		cmd->key_cipher = WMI_CIPHER_AES_CCM;
 		break;
+#ifdef WLAN_FEATURE_11W
+	case eSIR_ED_AES_128_CMAC:
+		cmd->key_cipher = WMI_CIPHER_AES_CMAC;
+		break;
+#endif /* WLAN_FEATURE_11W */
 	default:
 		/* TODO: MFP ? */
 		WMA_LOGE("%s:Invalid encryption type:%d", __func__, key_params->key_type);
@@ -7123,6 +7136,19 @@ static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
 		     key_params->key_len);
 #endif
 	cmd->key_len = key_params->key_len;
+
+#ifdef WLAN_FEATURE_11W
+	if (key_params->key_type == eSIR_ED_AES_128_CMAC)
+	{
+		iface = &wma_handle->interfaces[key_params->vdev_id];
+		if (iface) {
+			iface->key.key_length = key_params->key_len;
+			vos_mem_copy (iface->key.key,
+					(const void *) key_params->key_data,
+					iface->key.key_length);
+		}
+	}
+#endif /* WLAN_FEATURE_11W */
 
 	WMA_LOGD("Key setup : vdev_id %d key_idx %d key_type %d key_len %d"
 		 " unicast %d peer_mac %pM def_key_idx %d", key_params->vdev_id,
@@ -14007,6 +14033,14 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	tpSirMacFrameCtl pFc = (tpSirMacFrameCtl)(adf_nbuf_data(tx_frame));
 	u_int8_t use_6mbps = 0;
 	u_int8_t downld_comp_required = 0;
+#ifdef WLAN_FEATURE_11W
+	tANI_U8         *pFrame = NULL;
+	void            *pPacket = NULL;
+	u_int16_t	newFrmLen = 0;
+	struct wma_txrx_node *iface = &wma_handle->interfaces[vdev_id];
+	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
+			wma_handle->vos_context);
+#endif /* WLAN_FEATURE_11W */
 
 	/* Get the vdev handle from vdev id */
 	txrx_vdev = wma_handle->interfaces[vdev_id].handle;
@@ -14021,6 +14055,12 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		return VOS_STATUS_E_FAILURE;
 	}
 
+#ifdef WLAN_FEATURE_11W
+	if(!pMac) {
+		WMA_LOGE("pMac Handle is NULL");
+		return VOS_STATUS_E_FAILURE;
+	}
+#endif /* WLAN_FEATURE_11W */
 	/*
 	 * Currently only support to
 	 * send 80211 Mgmt and 80211 Data are added.
@@ -14030,6 +14070,43 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		WMA_LOGE("No Support to send other frames except 802.11 Mgmt/Data");
 		return VOS_STATUS_E_FAILURE;
 	}
+#ifdef WLAN_FEATURE_11W
+	if ((iface && iface->rmfEnabled && pFc->wep) &&
+		(frmType == HAL_TXRX_FRM_802_11_MGMT) &&
+		(pFc->subType == SIR_MAC_MGMT_DISASSOC ||
+			pFc->subType == SIR_MAC_MGMT_DEAUTH ||
+			pFc->subType == SIR_MAC_MGMT_ACTION)) {
+		struct ieee80211_frame *wh =
+			(struct ieee80211_frame *)adf_nbuf_data(tx_frame);
+		/* Allocate extra bytes for privacy header and trailer */
+		newFrmLen = frmLen + IEEE80211_CCMP_HEADERLEN + IEEE80211_CCMP_MICLEN;
+		vos_status = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+				( tANI_U16 )newFrmLen, ( void** ) &pFrame,
+				( void** ) &pPacket );
+
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			WMA_LOGP("Failed to allocate %d bytes for RMF"
+				" status code (%x)", newFrmLen, vos_status);
+			/* Free the original packet memory */
+			palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+	                    ( void* ) pData, ( void* ) tx_frame );
+			goto error;
+		}
+
+		/* Initialize the frame with 0's and only fill
+		   MAC header and data, Keep the CCMP header and
+		   trailer as 0's, firmware shall fill this */
+		vos_mem_set(  pFrame, newFrmLen , 0 );
+		vos_mem_copy( pFrame, wh, sizeof(*wh));
+		vos_mem_copy( pFrame + sizeof(*wh) + IEEE80211_CCMP_HEADERLEN,
+				pData + sizeof(*wh), frmLen - sizeof(*wh));
+
+		palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+			( void* ) pData, ( void* ) tx_frame );
+		tx_frame = pPacket;
+		frmLen = newFrmLen;
+	}
+#endif /* WLAN_FEATURE_11W */
 
 	if ((frmType == HAL_TXRX_FRM_802_11_MGMT) &&
 	    (pFc->subType == SIR_MAC_MGMT_PROBE_RSP)) {

@@ -62,6 +62,7 @@ typedef struct
    u_int8_t  offloadScanLearn:1;
    u_int8_t  roamCandidateInd:1;
    u_int8_t  scan:1;
+   u_int8_t  dpuFeedback;
 }t_packetmeta, *tp_packetmeta;
 
 /* implementation specific vos packet type */
