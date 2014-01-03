@@ -3358,6 +3358,18 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
                 pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[k].enabled =
                     NV_CHANNEL_DFS;
 
+                /* This is a temporary change for getting the SAP functional on DFS channels
+                 * If the driver is using linux regulatory domain, the hostapd + cfg8211
+                 * reserve the right to allow whether the BSS can be started or not depending
+                 * on the current country, whether the radar is present on the channel and/or
+                 * also the DFS state of the current channel. This is done if the driver supplies
+                 * PASSIVE and DFS flags for DFS channels
+                 * Currently we will not advertise these capabilities until the fix is cleanly
+                 * done the hostapd and cfg80211
+                 */
+                wiphy->bands[i]->channels[j].flags &= ~(IEEE80211_CHAN_RADAR);
+                wiphy->bands[i]->channels[j].flags &= ~(IEEE80211_CHAN_PASSIVE_SCAN);
+
                 /* max_power is in mBm = 100 * dBm */
                 pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[k].pwrLimit =
                     (tANI_S8) ((wiphy->bands[i]->channels[j].max_power)/100);
