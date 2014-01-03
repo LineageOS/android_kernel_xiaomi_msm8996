@@ -945,6 +945,25 @@ extern "C" {
 #define WLAN_PHYERR_DFS_DBDID_SEARCH_FFT          4
 #define WLAN_PHTERR_DFS_DBDID_FILTER_STATUS       5
 
+/* RMC DBGIDs */
+#define RMC_DBGID_DEFINITION_START             0
+#define RMC_SM_INIT_ERR                        1
+#define RMC_VDEV_ALLOC_ERR                     2
+#define RMC_CREATE_INSTANCE                    3
+#define RMC_DELETE_INSTANCE                    4
+#define RMC_NEW_PRI_LEADER                     5
+#define RMC_NEW_SEC_LEADER                     6
+#define RMC_NO_LDR_CHANGE                      7
+#define RMC_LDR_INFORM_SENT                    8
+#define RMC_PEER_ADD                           9
+#define RMC_PEER_DELETE                        10
+#define RMC_PEER_UNKNOWN                       11
+#define RMC_PRI_LDR_RSSI_UPDATE                12
+#define RMC_SEC_LDR_RSSI_UPDATE                13
+#define RMC_SET_MODE                           14
+#define RMC_SET_ACTION_PERIOD                  15
+#define RMC_DBGID_DEFINITION_END               16
+
 #ifdef __cplusplus
 }
 #endif
