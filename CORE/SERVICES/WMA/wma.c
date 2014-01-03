@@ -10115,17 +10115,17 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 
 		if (!iface->handle ||
 		    !iface->ptrn_match_enable ||
-		    (!wma_is_vdev_in_ap_mode(wma, vdev_id) &&
+		    (!(wma_is_vdev_in_ap_mode(wma, vdev_id)|| wma_is_vdev_in_ibss_mode(wma, vdev_id)) &&
 					  !iface->conn_state))
 			continue;
 
-		if (wma_is_vdev_in_ap_mode(wma, vdev_id))
+		if (wma_is_vdev_in_ap_mode(wma, vdev_id) || wma_is_vdev_in_ibss_mode(wma, vdev_id))
 			ap_vdev_available = TRUE;
 
 		if (wma_is_wow_prtn_cached(wma, vdev_id)) {
 			/* Configure wow patterns provided by the user */
 			ret = wma_wow_usr(wma, vdev_id, &enable_ptrn_match);
-		} else if (wma_is_vdev_in_ap_mode(wma, vdev_id)) {
+		} else if (wma_is_vdev_in_ap_mode(wma, vdev_id) ||wma_is_vdev_in_ibss_mode(wma, vdev_id)) {
 			/* Configure AP mode default wow patterns */
 			ret = wma_wow_ap(wma, vdev_id, &enable_ptrn_match);
 		} else {
@@ -10426,7 +10426,7 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	 *  3) Is PNO in progress in any one of vdev ?
 	 */
 	for (i = 0; i < wma->max_bssid; i++) {
-		if (wma_is_vdev_in_ap_mode(wma, i) &&
+		if ( (wma_is_vdev_in_ap_mode(wma, i) || wma_is_vdev_in_ibss_mode(wma, i)) &&
 		    wma->interfaces[i].vdev_up &&
 		    WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
                                    WMI_SERVICE_BEACON_OFFLOAD)) {
