@@ -278,6 +278,8 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_AP_WPS_IE     4  //This is called in station mode to set probe rsp ie.
 #define WE_SET_CONFIG        5
 
+#define WLAN_PRIV_SET_CHAR_GET_NONE_BUFF_MAX   512
+
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_THREE_INT_GET_NONE   (SIOCIWFIRSTPRIV + 4)
 #define WE_SET_WLAN_DBG      1
@@ -5179,9 +5181,7 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
 #ifdef WLAN_FEATURE_VOWIFI
     hdd_config_t  *pConfig = pHddCtx->cfg_ini;
 #endif /* WLAN_FEATURE_VOWIFI */
-
-    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Received length %d", __func__, wrqu->data.length);
-    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Received data %s", __func__, extra);
+    char usr_buf[WLAN_PRIV_SET_CHAR_GET_NONE_BUFF_MAX];
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
     {
@@ -5190,15 +5190,32 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
         return -EBUSY;
     }
 
+    if (wrqu->data.length > WLAN_PRIV_SET_CHAR_GET_NONE_BUFF_MAX)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                                  "%s: Length of user data is too big", __func__);
+        return -E2BIG;
+    }
+
+    if (copy_from_user(&usr_buf, wrqu->data.pointer, wrqu->data.length))
+    {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                                  "%s: Copy from user failed", __func__);
+         return -EFAULT;
+    }
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Received length %d", __func__, wrqu->data.length);
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Received data %s", __func__, usr_buf);
+
     switch(sub_cmd)
     {
        case WE_WOWL_ADD_PTRN:
           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "ADD_PTRN\n");
-          hdd_add_wowl_ptrn(pAdapter, extra);
+          hdd_add_wowl_ptrn(pAdapter, usr_buf);
           break;
        case WE_WOWL_DEL_PTRN:
           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "DEL_PTRN\n");
-          hdd_del_wowl_ptrn(pAdapter, extra);
+          hdd_del_wowl_ptrn(pAdapter, usr_buf);
           break;
 #if defined WLAN_FEATURE_VOWIFI
        case WE_NEIGHBOR_REPORT_REQUEST:
@@ -5213,7 +5230,7 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
                 if( !neighborReq.no_ssid )
                 {
                    neighborReq.ssid.length = (wrqu->data.length - 1) > 32 ? 32 : (wrqu->data.length - 1) ;
-                   vos_mem_copy( neighborReq.ssid.ssId, extra, neighborReq.ssid.length );
+                   vos_mem_copy( neighborReq.ssid.ssId, usr_buf, neighborReq.ssid.length );
                 }
 
                 callbackInfo.neighborRspCallback = NULL;
@@ -5231,10 +5248,10 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
 #endif
        case WE_SET_AP_WPS_IE:
           hddLog( LOGE, "Received WE_SET_AP_WPS_IE" );
-          sme_updateP2pIe( WLAN_HDD_GET_HAL_CTX(pAdapter), extra, wrqu->data.length );
+          sme_updateP2pIe( WLAN_HDD_GET_HAL_CTX(pAdapter), &usr_buf, wrqu->data.length );
           break;
        case WE_SET_CONFIG:
-          vstatus = hdd_execute_config_command(pHddCtx, extra);
+          vstatus = hdd_execute_config_command(pHddCtx, usr_buf);
           if (VOS_STATUS_SUCCESS != vstatus)
           {
              ret = -EINVAL;
