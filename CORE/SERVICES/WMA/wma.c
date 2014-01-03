@@ -5144,6 +5144,74 @@ VOS_STATUS wma_process_lphb_conf_req(tp_wma_handle wma_handle,
 }
 #endif
 
+VOS_STATUS wma_process_dhcp_ind(tp_wma_handle wma_handle,
+				tAniDHCPInd *ta_dhcp_ind)
+{
+	uint8_t vdev_id;
+	int status = 0;
+	wmi_buf_t buf = NULL;
+	u_int8_t *buf_ptr;
+	wmi_peer_set_param_cmd_fixed_param *peer_set_param_fp;
+	int len = sizeof(wmi_peer_set_param_cmd_fixed_param);
+
+	if (!ta_dhcp_ind)
+	{
+		WMA_LOGE("%s : DHCP indication is NULL", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (!wma_find_vdev_by_addr(wma_handle, ta_dhcp_ind->macAddr,
+		&vdev_id))
+	{
+		WMA_LOGE("%s: Failed to find vdev id for DHCP indication",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGI("%s: WMA --> WMI_PEER_SET_PARAM triggered by DHCP, "
+		"msgType=%s,"
+		"device_mode=%d, macAddr=" MAC_ADDRESS_STR,
+		__func__,
+		ta_dhcp_ind->msgType==WDA_DHCP_START_IND?
+			"WDA_DHCP_START_IND":"WDA_DHCP_STOP_IND",
+		ta_dhcp_ind->device_mode,
+		MAC_ADDR_ARRAY(ta_dhcp_ind->macAddr));
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	peer_set_param_fp = (wmi_peer_set_param_cmd_fixed_param *) buf_ptr;
+	WMITLV_SET_HDR(&peer_set_param_fp->tlv_header,
+			WMITLV_TAG_STRUC_wmi_peer_set_param_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+			wmi_peer_set_param_cmd_fixed_param));
+
+	/* fill in values */
+	peer_set_param_fp->vdev_id = vdev_id;
+	peer_set_param_fp->param_id = WMI_PEER_CRIT_PROTO_HINT_ENABLED;
+	if (WDA_DHCP_START_IND == ta_dhcp_ind->msgType)
+		peer_set_param_fp->param_value = 1;
+	else
+		peer_set_param_fp->param_value = 0;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(ta_dhcp_ind->macAddr,
+		&peer_set_param_fp->peer_macaddr);
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+		len, WMI_PEER_SET_PARAM_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("%s: wmi_unified_cmd_send WMI_PEER_SET_PARAM_CMD"
+			" returned Error %d",
+			__func__, status);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
 static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
                                       u8 vht_capable)
 {
@@ -14132,6 +14200,13 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_process_lphb_conf_req(wma_handle, (tSirLPHBReq *)msg->bodyptr);
 			break;
 #endif
+
+		case WDA_DHCP_START_IND:
+		case WDA_DHCP_STOP_IND:
+			wma_process_dhcp_ind(wma_handle,
+				(tAniDHCPInd *)msg->bodyptr);
+			break;
+
 	    case WDA_INIT_THERMAL_INFO_CMD:
 			wma_process_init_thermal_info(wma_handle, (t_thermal_mgmt *)msg->bodyptr);
 			break;
