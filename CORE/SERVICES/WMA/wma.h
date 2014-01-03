@@ -306,6 +306,8 @@ typedef struct {
 	u_int32_t txpow2g;
 	u_int32_t txpow5g;
 	u_int32_t pwrgating;
+	u_int32_t burst_enable;
+	u_int32_t burst_dur;
 } pdev_cli_config_t;
 
 typedef struct {
@@ -1296,6 +1298,7 @@ typedef enum {
 
 #define WMA_DEFAULT_QPOWER_MAX_PSPOLL_BEFORE_WAKE 1
 #define WMA_DEFAULT_QPOWER_TX_WAKE_THRESHOLD 2
+#define WMA_DEFAULT_SIFS_BURST_DURATION      8160
 
 #define WMA_VHT_PPS_PAID_MATCH 1
 #define WMA_VHT_PPS_GID_MATCH 2

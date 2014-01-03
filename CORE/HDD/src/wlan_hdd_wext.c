@@ -210,6 +210,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL   58
 #define WE_SET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL 59
 
+#define WE_SET_BURST_ENABLE             60
+#define WE_SET_BURST_DUR                61
+
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
 #define WE_GET_11D_STATE     1
@@ -257,6 +260,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_QPOWER_MAX_TX_BEFORE_WAKE          42
 #define WE_GET_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL   43
 #define WE_GET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL 44
+
+#define WE_GET_BURST_ENABLE             45
+#define WE_GET_BURST_DUR                46
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -4837,6 +4843,31 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             break;
          }
 
+         case WE_SET_BURST_ENABLE:
+         {
+            hddLog(LOG1, "SET Burst enable val %d", set_value);
+            if ((set_value == 0) || (set_value == 1)) {
+                ret = process_wma_set_command((int)pAdapter->sessionId,
+                                          (int)WMI_PDEV_PARAM_BURST_ENABLE,
+                                          set_value, PDEV_CMD);
+            }
+            else
+                ret = -EINVAL;
+            break;
+         }
+         case WE_SET_BURST_DUR:
+         {
+            hddLog(LOG1, "SET Burst duration val %d", set_value);
+            if ((set_value > 0) && (set_value <= 8192)) {
+                ret = process_wma_set_command((int)pAdapter->sessionId,
+                                          (int)WMI_PDEV_PARAM_BURST_DUR,
+                                          set_value, PDEV_CMD);
+            }
+            else
+                ret = -EINVAL;
+            break;
+         }
+
          case WE_SET_TX_CHAINMASK:
          {
             hddLog(LOG1, "WMI_PDEV_PARAM_TX_CHAIN_MASK val %d", set_value);
@@ -5461,6 +5492,25 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
                                          (int)pAdapter->sessionId,
                                          (int)GEN_VDEV_PARAM_AMSDU,
                                          GEN_CMD);
+            break;
+        }
+
+        case WE_GET_BURST_ENABLE:
+        {
+            hddLog(LOG1, "GET Burst enable value");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_BURST_ENABLE,
+                                         PDEV_CMD);
+            break;
+        }
+        case WE_GET_BURST_DUR:
+        {
+            hddLog(LOG1, "GET Burst Duration value");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_BURST_DUR,
+                                         PDEV_CMD);
             break;
         }
 
@@ -8983,6 +9033,16 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "amsdu" },
 
+    {   WE_SET_BURST_ENABLE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "burst_enable" },
+
+    {   WE_SET_BURST_DUR,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "burst_dur" },
+
     {   WE_SET_TXPOW_2G,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
@@ -9256,6 +9316,16 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_amsdu" },
+
+    {   WE_GET_BURST_ENABLE,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_burst_en" },
+
+    {   WE_GET_BURST_DUR,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_burst_dur" },
 
     {   WE_GET_TXPOW_2G,
         0,

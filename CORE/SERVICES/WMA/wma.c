@@ -5828,6 +5828,17 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_PDEV_PARAM_RX_CHAIN_MASK:
 			wma->pdevconfig.rxchainmask = privcmd->param_value;
 			break;
+		case WMI_PDEV_PARAM_BURST_ENABLE:
+			wma->pdevconfig.burst_enable = privcmd->param_value;
+			if ((wma->pdevconfig.burst_enable == 1) &&
+				(wma->pdevconfig.burst_dur == 0))
+				wma->pdevconfig.burst_dur = WMA_DEFAULT_SIFS_BURST_DURATION;
+			else if (wma->pdevconfig.burst_enable == 0)
+				wma->pdevconfig.burst_dur = 0;
+			break;
+		case WMI_PDEV_PARAM_BURST_DUR:
+			wma->pdevconfig.burst_dur = privcmd->param_value;
+			break;
 		case WMI_PDEV_PARAM_POWER_GATING_SLEEP:
 			wma->pdevconfig.pwrgating = privcmd->param_value;
 			break;
@@ -5957,6 +5968,12 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			break;
                 case WMI_PDEV_PARAM_POWER_GATING_SLEEP:
 			ret = wma->pdevconfig.pwrgating;
+			break;
+                case WMI_PDEV_PARAM_BURST_ENABLE:
+			ret = wma->pdevconfig.burst_enable;
+			break;
+                case WMI_PDEV_PARAM_BURST_DUR:
+			ret = wma->pdevconfig.burst_dur;
 			break;
 		default:
 			WMA_LOGE("Invalid cli_get pdev command/Not"
