@@ -531,7 +531,8 @@ enum wlan_hdd_tm_attr
     WLAN_HDD_TM_ATTR_INVALID = 0,
     WLAN_HDD_TM_ATTR_CMD     = 1,
     WLAN_HDD_TM_ATTR_DATA    = 2,
-    WLAN_HDD_TM_ATTR_TYPE    = 3,
+    WLAN_HDD_TM_ATTR_STREAM_ID = 3,
+    WLAN_HDD_TM_ATTR_TYPE    = 4,
     /* keep last */
     WLAN_HDD_TM_ATTR_AFTER_LAST,
     WLAN_HDD_TM_ATTR_MAX       = WLAN_HDD_TM_ATTR_AFTER_LAST - 1,
