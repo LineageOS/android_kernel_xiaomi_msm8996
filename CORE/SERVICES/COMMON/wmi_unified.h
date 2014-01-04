@@ -5753,7 +5753,6 @@ typedef struct {
 typedef struct {
     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_resmgr_adaptive_ocs_enable_disable_cmd_fixed_param */
     A_UINT32 tlv_header;
-    A_UINT32 reserved0;
     /** 1: enable fw based adaptive ocs,
      *  0: disable fw based adaptive ocs
      */
