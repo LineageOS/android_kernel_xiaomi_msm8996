@@ -194,7 +194,7 @@ enum ieee80211_scanmode {
 #define IEEE80211_CHAN_PASSIVE          0x00000200 /* Only passive scan allowed */
 #define IEEE80211_CHAN_DYN              0x00000400 /* Dynamic CCK-OFDM channel */
 #define IEEE80211_CHAN_GFSK             0x00000800 /* GFSK channel (FHSS PHY) */
-#define IEEE80211_CHAN_RADAR            0x00001000 /* Radar found on channel */
+#define IEEE80211_CHAN_RADAR_DFS        0x00001000 /* Radar found on channel */
 #define IEEE80211_CHAN_STURBO           0x00002000 /* 11a static turbo channel only */
 #define IEEE80211_CHAN_HALF             0x00004000 /* Half rate channel */
 #define IEEE80211_CHAN_QUARTER          0x00008000 /* Quarter rate channel */
@@ -411,11 +411,11 @@ enum ieee80211_scanmode {
     (((_c)->ic_flags & IEEE80211_CHAN_11AC_VHT80) == IEEE80211_CHAN_11AC_VHT80)
 
 #define IEEE80211_IS_CHAN_RADAR(_c)    \
-    (((_c)->ic_flags & IEEE80211_CHAN_RADAR) == IEEE80211_CHAN_RADAR)
+    (((_c)->ic_flags & IEEE80211_CHAN_RADAR_DFS) == IEEE80211_CHAN_RADAR_DFS)
 #define IEEE80211_CHAN_SET_RADAR(_c)    \
-    ((_c)->ic_flags |= IEEE80211_CHAN_RADAR)
+    ((_c)->ic_flags |= IEEE80211_CHAN_RADAR_DFS)
 #define IEEE80211_CHAN_CLR_RADAR(_c)    \
-    ((_c)->ic_flags &= ~IEEE80211_CHAN_RADAR)
+    ((_c)->ic_flags &= ~IEEE80211_CHAN_RADAR_DFS)
 #define IEEE80211_CHAN_SET_DISALLOW_ADHOC(_c)   \
     ((_c)->ic_flagext |= IEEE80211_CHAN_DISALLOW_ADHOC)
 #define IEEE80211_CHAN_SET_DISALLOW_HOSTAP(_c)   \
