@@ -496,6 +496,25 @@ enum {
     MCC_TOO_CLOSE_MARGIN_CFG_PARAM,
 };
 
+static const struct qwlan_hw qwlan_hw_list[] = {
+    {
+        .id = AR6320_REV1_VERSION,
+        .name = "AR6320_REV1",
+    },
+    {
+        .id = AR6320_REV1_1_VERSION,
+        .name = "AR6320_REV1_1",
+    },
+    {
+        .id = AR6320_REV1_3_VERSION,
+        .name = "AR6320_REV1_3",
+    },
+    {
+        .id = AR6320_REV2_1_VERSION,
+        .name = "AR6320_REV2_1",
+    }
+};
+
 int hdd_validate_mcc_config(hdd_adapter_t *pAdapter, v_UINT_t staId,
                                 v_UINT_t arg1, v_UINT_t arg2, v_UINT_t arg3);
 
@@ -571,13 +590,43 @@ static void *mem_alloc_copy_from_user_helper(const void *wrqu_data, size_t len)
 void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
                           char *extra)
 {
-    VOS_STATUS status;
     tSirVersionString wcnss_SW_version;
+    const char *pSWversion;
+    const char *pHWversion;
+#ifndef QCA_WIFI_2_0
+    VOS_STATUS status;
     tSirVersionString wcnss_HW_version;
-    char *pSWversion;
-    char *pHWversion;
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+#endif
 
+#ifdef QCA_WIFI_2_0
+    hdd_context_t *pHddContext;
+    int i = 0;
+
+    pHddContext = WLAN_HDD_GET_CTX(pAdapter);
+    if (!pHddContext) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+            "%s:Invalid context, HDD context is null", __func__);
+        goto error;
+    }
+
+    snprintf(wcnss_SW_version, sizeof(tSirVersionString), "20%x.%x.%x",
+        (pHddContext->target_fw_version&0xff0000)>>16,
+        (pHddContext->target_fw_version&0xff00)>>8,
+        (pHddContext->target_fw_version&0xff)>>0);
+
+    pSWversion = wcnss_SW_version;
+
+    for (i = 0; i < ARRAY_SIZE(qwlan_hw_list); i++) {
+        if (pHddContext->target_hw_version == qwlan_hw_list[i].id) {
+            pHWversion = qwlan_hw_list[i].name;
+            break;
+        }
+    }
+
+    if (i == ARRAY_SIZE(qwlan_hw_list))
+        pHWversion = "Unknown";
+#else
     status = sme_GetWcnssSoftwareVersion(hHal, wcnss_SW_version,
                                          sizeof(wcnss_SW_version));
     if (VOS_IS_STATUS_SUCCESS(status))
@@ -599,13 +648,21 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
     {
         pHWversion = "Unknown";
     }
+#endif
 
-    wrqu->data.length = scnprintf(extra, WE_MAX_STR_LEN,
-                                 "Host SW:%s, FW:%s, HW:%s",
-                                 QWLAN_VERSIONSTR,
-                                 pSWversion,
-                                 pHWversion);
-
+    if (wrqu) {
+        wrqu->data.length = scnprintf(extra, WE_MAX_STR_LEN,
+                                     "Host SW:%s, FW:%s, HW:%s",
+                                     QWLAN_VERSIONSTR,
+                                     pSWversion,
+                                     pHWversion);
+    } else {
+        pr_info("Host SW:%s, FW:%s, HW:%s\n",
+                QWLAN_VERSIONSTR,
+                pSWversion,
+                pHWversion);
+    }
+error:
     return;
 }
 

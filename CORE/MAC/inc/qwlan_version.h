@@ -46,4 +46,18 @@ BRIEF DESCRIPTION:
 
 #define QWLAN_VERSIONSTR               "1.0.0.24"
 
+#ifdef QCA_WIFI_2_0
+
+#define AR6320_REV1_VERSION             0x5000000
+#define AR6320_REV1_1_VERSION           0x5000001
+#define AR6320_REV1_3_VERSION           0x5000003
+#define AR6320_REV2_1_VERSION           0x5010000
+
+struct qwlan_hw {
+    unsigned long id;
+    const char *name;
+};
+
+#endif
+
 #endif /* QWLAN_VERSION_H */

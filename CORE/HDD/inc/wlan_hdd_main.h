@@ -1261,9 +1261,15 @@ struct hdd_context_s
 
     struct completion ready_to_suspend;
 #ifdef QCA_WIFI_2_0
+    /* defining the solution type */
     v_U32_t target_type;
+
+    /* defining the firmware version */
     v_U32_t target_fw_version;
     v_U32_t dfs_radar_found;
+
+    /* defining the chip/rom version */
+    v_U32_t target_hw_version;
 #endif
     struct regulatory reg;
 #ifdef FEATURE_WLAN_CH_AVOID

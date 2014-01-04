@@ -9311,8 +9311,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
    }
 
-   /*Start VOSS which starts up the SME/MAC/HAL modules and everything else
-     Note: Firmware image will be read and downloaded inside vos_start API */
+   /*Start VOSS which starts up the SME/MAC/HAL modules and everything else */
    status = vos_start( pHddCtx->pvosContext );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
@@ -9328,9 +9327,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    sme_AddChAvoidCallback(pHddCtx->hHal,
                           hdd_ch_avoid_cb);
 #endif /* FEATURE_WLAN_CH_AVOID */
-
-   /* Exchange capability info between Host and FW and also get versioning info from FW */
-   hdd_exchange_version_and_caps(pHddCtx);
 
    status = hdd_post_voss_start_config( pHddCtx );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
@@ -9443,6 +9439,19 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: hdd_open_adapter failed", __func__);
       goto err_close_adapter;
    }
+
+#ifdef QCA_WIFI_2_0
+
+   /* target hw version would only be retrieved after firmware donwload */
+   pHddCtx->target_hw_version =
+       ((struct ol_softc *)hif_sc)->target_version;
+
+   /* Get the wlan hw/fw version */
+   hdd_wlan_get_version(pAdapter, NULL, NULL);
+#else
+   /* Exchange capability info between Host and FW and also get versioning info from FW */
+   hdd_exchange_version_and_caps(pHddCtx);
+#endif
 
    if (country_code)
    {

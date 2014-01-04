@@ -1661,6 +1661,7 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
    adf_os_device_t adf_ctx;
+   hdd_adapter_t *pAdapter;
 #endif
 
 #ifdef QCA_WIFI_ISOC
@@ -1828,9 +1829,21 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
       goto err_vosclose;
    }
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+   pAdapter = WLAN_HDD_GET_PRIV_PTR((struct net_device *)pHddCtx->parent_dev);
 
+   if ((NULL == pAdapter))
+   {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+               "invalid adapter ");
+       goto err_vosclose;
+   }
+   /* Get the wlan hw/fw version */
+   hdd_wlan_get_version(pAdapter, NULL, NULL);
+#else
    /* Exchange capability info between Host and FW and also get versioning info from FW */
    hdd_exchange_version_and_caps(pHddCtx);
+#endif
 
    vosStatus = hdd_post_voss_start_config( pHddCtx );
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
