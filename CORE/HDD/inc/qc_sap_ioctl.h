@@ -248,6 +248,13 @@ typedef struct
 #define QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED (SIOCIWFIRSTPRIV + 31)
 
 #ifdef QCA_WIFI_2_0
+
+#define RC_2_RATE_IDX(_rc)              ((_rc) & 0x7)
+#define HT_RC_2_STREAMS(_rc)            ((((_rc) & 0x78) >> 3) + 1)
+
+#define RC_2_RATE_IDX_11AC(_rc)         ((_rc) & 0xf)
+#define HT_RC_2_STREAMS_11AC(_rc)       ((((_rc) & 0x30) >> 4) + 1)
+
 /* Private ioctl for firmware debug log */
 #define QCSAP_DBGLOG_LOG_LEVEL             31
 #define QCSAP_DBGLOG_VAP_ENABLE            32
@@ -264,6 +271,8 @@ typedef struct
 #define QCASAP_TXRX_FWSTATS_RESET          41
 #define QCSAP_PARAM_SETRTSCTS              42
 #define QCSAP_PARAM_GETRTSCTS              43
+#define QCASAP_SET_11N_RATE                45
+#define QCASAP_SET_VHT_RATE                46
 #endif /* QCA_WIFI_2_0 */
 
 enum { 

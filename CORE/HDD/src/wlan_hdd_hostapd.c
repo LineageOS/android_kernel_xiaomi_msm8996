@@ -1229,6 +1229,52 @@ static iw_softap_setparam(struct net_device *dev,
                 }
                 break;
             }
+        case QCASAP_SET_11N_RATE:
+            {
+                u_int8_t preamble, nss, rix;
+                hddLog(LOG1, "WMI_VDEV_PARAM_FIXED_RATE val %d", set_value);
+
+                rix = RC_2_RATE_IDX(set_value);
+                if (set_value & 0x80) {
+                    preamble = WMI_RATE_PREAMBLE_HT;
+                    nss = HT_RC_2_STREAMS(set_value) -1;
+                } else {
+                    nss = 0;
+                    rix = RC_2_RATE_IDX(set_value);
+                    if (set_value & 0x10) {
+                        preamble = WMI_RATE_PREAMBLE_CCK;
+                        rix |= 0x4; /* Enable Short preamble always for CCK */
+                    } else
+                        preamble = WMI_RATE_PREAMBLE_OFDM;
+                }
+
+                hddLog(LOG1, "WMI_VDEV_PARAM_FIXED_RATE val %d rix %d preamble %x\
+                       nss %d", set_value, rix, preamble, nss);
+
+                set_value = (preamble << 6) | (nss << 4) | rix;
+                ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                              (int)WMI_VDEV_PARAM_FIXED_RATE,
+                                              set_value, VDEV_CMD);
+                break;
+            }
+
+        case QCASAP_SET_VHT_RATE:
+            {
+                u_int8_t preamble, nss, rix;
+
+                rix = RC_2_RATE_IDX_11AC(set_value);
+                preamble = WMI_RATE_PREAMBLE_VHT;
+                nss = HT_RC_2_STREAMS_11AC(set_value) -1;
+
+                hddLog(LOG1, "WMI_VDEV_PARAM_FIXED_RATE val %d rix %d preamble %x\
+                       nss %d", set_value, rix, preamble, nss);
+
+                set_value = (preamble << 6) | (nss << 4) | rix;
+                ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                              (int)WMI_VDEV_PARAM_FIXED_RATE,
+                                              set_value, VDEV_CMD);
+                break;
+            }
 #endif /* QCA_WIFI_2_0 */
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
@@ -3204,6 +3250,16 @@ static const struct iw_priv_args hostapd_private_args[] = {
     {   QCSAP_PARAM_GETRTSCTS, 0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_rtscts" },
+    {   QCASAP_SET_11N_RATE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "set11NRates" },
+
+    {   QCASAP_SET_VHT_RATE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "set11ACRates" },
+
 #endif /* QCA_WIFI_2_0 */
 
   { QCSAP_IOCTL_GETPARAM,
