@@ -827,6 +827,31 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 	return 0;
 }
 
+static int wmi_unified_vdev_down_send(wmi_unified_t wmi, u_int8_t vdev_id)
+{
+	wmi_vdev_down_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wmi, len);
+	if (!buf) {
+		WMA_LOGP("%s : wmi_buf_alloc failed\n", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_vdev_down_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_vdev_down_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_down_cmd_fixed_param));
+	cmd->vdev_id = vdev_id;
+	if (wmi_unified_cmd_send(wmi, buf, len, WMI_VDEV_DOWN_CMDID)) {
+		WMA_LOGP("Failed to send vdev down\n");
+		adf_nbuf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("%s: vdev_id %d\n", __func__, vdev_id);
+	return 0;
+}
+
 static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 				      u32 len)
 {
@@ -869,6 +894,7 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 			WMA_LOGD("%s Failed to find peer %pM\n",
 					__func__, params->bssid);
 		wma_remove_peer(wma, params->bssid, resp_event->vdev_id, peer);
+		wmi_unified_vdev_down_send(wma->wmi_handle, resp_event->vdev_id);
 #ifndef QCA_WIFI_ISOC
 		bcn = wma->interfaces[resp_event->vdev_id].beacon;
 
@@ -4899,6 +4925,7 @@ void wma_vdev_resp_timer(void *data)
 			(tpDeleteBssParams)tgt_req->user_data;
 		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
 		wma_remove_peer(wma, params->bssid, tgt_req->vdev_id, peer);
+		wmi_unified_vdev_down_send(wma->wmi_handle, tgt_req->vdev_id);
 #ifdef QCA_IBSS_SUPPORT
 		if (wma_is_vdev_in_ibss_mode(wma, params->sessionId)) {
 			del_sta_param.sessionId   = params->sessionId;
@@ -7754,31 +7781,6 @@ out:
 	wma_send_msg(wma_handle, WDA_SET_STAKEY_RSP, (void *) key_info, 0);
 }
 
-static int wmi_unified_vdev_down_send(wmi_unified_t wmi, u_int8_t vdev_id)
-{
-	wmi_vdev_down_cmd_fixed_param *cmd;
-	wmi_buf_t buf;
-	int32_t len = sizeof(*cmd);
-
-	buf = wmi_buf_alloc(wmi, len);
-	if (!buf) {
-		WMA_LOGP("%s : wmi_buf_alloc failed\n", __func__);
-		return -ENOMEM;
-	}
-	cmd = (wmi_vdev_down_cmd_fixed_param *) wmi_buf_data(buf);
-	WMITLV_SET_HDR(&cmd->tlv_header,
-		       WMITLV_TAG_STRUC_wmi_vdev_down_cmd_fixed_param,
-		       WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_down_cmd_fixed_param));
-	cmd->vdev_id = vdev_id;
-	if (wmi_unified_cmd_send(wmi, buf, len, WMI_VDEV_DOWN_CMDID)) {
-		WMA_LOGP("Failed to send vdev down\n");
-		adf_nbuf_free(buf);
-		return -EIO;
-	}
-	WMA_LOGD("%s: vdev_id %d\n", __func__, vdev_id);
-	return 0;
-}
-
 static void wma_delete_sta_req_ap_mode(tp_wma_handle wma,
 					tpDeleteStaParams del_sta)
 {
@@ -7880,11 +7882,6 @@ static void wma_delete_sta_req_sta_mode(tp_wma_handle wma,
 	}
 #endif
 	wma_roam_scan_offload_end_connect(wma);
-	if (wmi_unified_vdev_down_send(wma->wmi_handle, params->smesessionId) < 0) {
-		WMA_LOGP("%s: failed to bring down vdev %d\n",
-			 __func__, params->smesessionId);
-		status = VOS_STATUS_E_FAILURE;
-	}
 	params->status = status;
 	WMA_LOGD("%s: vdev_id %d status %d\n", __func__, params->smesessionId, status);
 	wma_send_msg(wma, WDA_DELETE_STA_RSP, (void *)params, 0);
