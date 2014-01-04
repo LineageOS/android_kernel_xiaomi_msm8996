@@ -14609,13 +14609,12 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 	else {
 		cmd->suspend_opt = WMI_PDEV_SUSPEND;
 	}
-
+	vos_event_reset(&wma_handle->target_suspend);
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmibuf, len,
 				    WMI_PDEV_SUSPEND_CMDID)) {
 		adf_nbuf_free(wmibuf);
 		return -1;
 	}
-	vos_event_reset(&wma_handle->target_suspend);
 	if (vos_wait_single_event(&wma_handle->target_suspend,
 				  WMA_TGT_SUSPEND_COMPLETE_TIMEOUT)
 				  != VOS_STATUS_SUCCESS) {
