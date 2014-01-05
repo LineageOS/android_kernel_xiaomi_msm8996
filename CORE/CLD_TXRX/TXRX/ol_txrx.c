@@ -771,6 +771,13 @@ ol_txrx_vdev_attach(
     TAILQ_INIT(&vdev->peer_list);
     vdev->last_real_peer = NULL;
 
+    #ifndef CONFIG_QCA_WIFI_ISOC
+    #ifdef  QCA_IBSS_SUPPORT
+    vdev->ibss_peer_num = 0;
+    vdev->ibss_peer_heart_beat_timer = 0;
+    #endif
+    #endif
+
     #if defined(CONFIG_HL_SUPPORT)
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
         u_int8_t i;

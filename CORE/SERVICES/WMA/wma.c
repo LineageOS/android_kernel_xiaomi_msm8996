@@ -67,6 +67,10 @@
 #include "wlan_tgt_def_config.h"
 #endif
 
+#if defined(QCA_IBSS_SUPPORT)
+#include "wlan_hdd_assoc.h"
+#endif
+
 #include "adf_nbuf.h"
 #include "adf_os_types.h"
 #include "ol_txrx_api.h"
@@ -6873,6 +6877,95 @@ static int wmi_unified_csa_offload_enable(tp_wma_handle wma,
 	return 0;
 }
 
+#ifndef CONFIG_QCA_WIFI_ISOC
+#ifdef  QCA_IBSS_SUPPORT
+
+static u_int16_t wma_calc_ibss_heart_beat_timer(int16_t peer_num)
+{
+        /* heart beat timer value look-up table */
+        /* entry index : (the number of currently connected peers) - 1
+           entry value : the heart time threshold value in seconds for
+                         detecting ibss peer departure */
+        static const u_int16_t heart_beat_timer[HDD_MAX_NUM_IBSS_STA] = {
+                4,   8,   12,  16,  20,  24,  28,  32,
+                36,  40,  44,  48,  52,  56,  60,  64,
+                68,  72,  76,  80,  84,  88,  92,  96,
+                100, 104, 108, 112, 116, 120, 124, 128};
+
+        if (peer_num < 1 || peer_num > HDD_MAX_NUM_IBSS_STA)
+                return 0;
+
+        return heart_beat_timer[peer_num - 1];
+
+}
+
+static void wma_adjust_ibss_heart_beat_timer(tp_wma_handle wma,
+                                             u_int8_t      vdev_id,
+                                             int8_t        peer_num_delta)
+{
+        ol_txrx_vdev_handle vdev;
+        int16_t             new_peer_num;
+        u_int16_t           new_timer_value_sec;
+        u_int32_t           new_timer_value_ms;
+
+        if (peer_num_delta != 1 && peer_num_delta != -1) {
+                WMA_LOGE("Invalid peer_num_delta value %d", peer_num_delta);
+                return;
+        }
+
+        vdev = wma_find_vdev_by_id(wma, vdev_id);
+        if (!vdev) {
+                WMA_LOGE("vdev not found : vdev_id %d", vdev_id);
+                return;
+        }
+
+        new_peer_num = vdev->ibss_peer_num + peer_num_delta;
+        if (new_peer_num > HDD_MAX_NUM_IBSS_STA || new_peer_num < 0) {
+                WMA_LOGE("new peer num %d out of valid boundary", new_peer_num);
+                return;
+        }
+
+        /* adjust peer numbers */
+        vdev->ibss_peer_num = new_peer_num;
+
+        /* reset timer value if all peers departed */
+        if (new_peer_num == 0) {
+                vdev->ibss_peer_heart_beat_timer = 0;
+                return;
+        }
+
+        /* calculate new timer value */
+        new_timer_value_sec = wma_calc_ibss_heart_beat_timer(new_peer_num);
+        if (new_timer_value_sec == 0) {
+                WMA_LOGE("timer value %d is invalid for peer number %d",
+                        new_timer_value_sec, new_peer_num);
+                return;
+        }
+        if (new_timer_value_sec == vdev->ibss_peer_heart_beat_timer) {
+                WMA_LOGD("timer value %d stays same, no need to notify target",
+                                new_timer_value_sec);
+                return;
+        }
+
+        /* send new timer value to target */
+        vdev->ibss_peer_heart_beat_timer = new_timer_value_sec;
+
+        new_timer_value_ms = ((u_int32_t)new_timer_value_sec) * 1000;
+
+        if (wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+                                            WMI_VDEV_PARAM_IBSS_MAX_BCN_LOST_MS,
+                                            new_timer_value_ms)) {
+                WMA_LOGE("Failed to set IBSS link monitoring timer value");
+                return;
+        }
+
+        WMA_LOGD("Set IBSS link monitor timer: peer_num = %d timer_value = %d",
+                new_peer_num, new_timer_value_ms);
+}
+
+#endif /* QCA_IBSS_SUPPORT */
+#endif /* CONFIG_QCA_WIFI_ISOC */
+
 #ifdef FEATURE_WLAN_TDLS
 static void wma_add_tdls_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 {
@@ -7121,6 +7214,15 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 		wma_add_sta_req_ap_mode(wma, add_sta);
 		break;
 	}
+
+#ifndef CONFIG_QCA_WIFI_ISOC
+#ifdef QCA_IBSS_SUPPORT
+        /* adjust heart beat thresold timer value for detecting ibss peer departure */
+        if (oper_mode == BSS_OPERATIONAL_MODE_IBSS)
+                wma_adjust_ibss_heart_beat_timer(wma, add_sta->smesessionId, 1);
+#endif
+#endif
+
 }
 
 /*
@@ -7747,6 +7849,15 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 		wma_delete_sta_req_ap_mode(wma, del_sta);
 		break;
 	}
+
+#ifndef CONFIG_QCA_WIFI_ISOC
+#ifdef QCA_IBSS_SUPPORT
+        /* adjust heart beat thresold timer value for detecting ibss peer departure */
+        if (oper_mode == BSS_OPERATIONAL_MODE_IBSS)
+                wma_adjust_ibss_heart_beat_timer(wma, del_sta->smesessionId, -1);
+#endif
+#endif
+
 }
 
 static int32_t wmi_unified_vdev_stop_send(wmi_unified_t wmi, u_int8_t vdev_id)

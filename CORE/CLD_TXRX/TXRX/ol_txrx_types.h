@@ -692,6 +692,14 @@ struct ol_txrx_vdev_t {
 
 	enum wlan_op_mode opmode;
 
+#ifndef CONFIG_QCA_WIFI_ISOC
+#ifdef  QCA_IBSS_SUPPORT
+        /* ibss mode related */
+        int16_t ibss_peer_num;              /* the number of active peers */
+        int16_t ibss_peer_heart_beat_timer; /* for detecting peer departure */
+#endif
+#endif
+
 #if defined(CONFIG_HL_SUPPORT)
 	struct ol_tx_frms_queue_t txqs[OL_TX_VDEV_NUM_QUEUES];
 #endif
