@@ -302,6 +302,16 @@ struct qpower_params {
 };
 
 typedef struct {
+	u_int32_t gtxRTMask[2]; /* for HT and VHT rate masks */
+	u_int32_t gtxUsrcfg; /* host request for GTX mask */
+	u_int32_t gtxPERThreshold; /* default: 10% */
+	u_int32_t gtxPERMargin; /* default: 2% */
+	u_int32_t gtxTPCstep; /* default: 1 */
+	u_int32_t gtxTPCMin; /* default: 5 */
+	u_int32_t gtxBWMask; /* 20/40/80/160 Mhz */
+}gtx_config_t;
+
+typedef struct {
 	u_int32_t ani_enable;
 	u_int32_t ani_poll_len;
 	u_int32_t ani_listen_len;
@@ -330,6 +340,7 @@ typedef struct {
 	u_int32_t amsdu;
         struct pps pps_params;
 	struct qpower_params qpower_params;
+	gtx_config_t gtx_info;
 } vdev_cli_config_t;
 
 #define WMA_WOW_PTRN_MASK_VALID     0xFF
@@ -1313,6 +1324,17 @@ typedef enum {
 	WMI_VDEV_PPS_RSSI_CHECK = 8,
 	WMI_VDEV_VHT_SET_GID_MGMT = 9
 } packet_power_save;
+
+typedef enum {
+    WMI_VDEV_PARAM_GTX_HT_MCS,
+    WMI_VDEV_PARAM_GTX_VHT_MCS,
+    WMI_VDEV_PARAM_GTX_USR_CFG,
+    WMI_VDEV_PARAM_GTX_THRE,
+    WMI_VDEV_PARAM_GTX_MARGIN,
+    WMI_VDEV_PARAM_GTX_STEP,
+    WMI_VDEV_PARAM_GTX_MINTPC,
+    WMI_VDEV_PARAM_GTX_BW_MASK,
+}green_tx_param;
 
 #define WMA_DEFAULT_QPOWER_MAX_PSPOLL_BEFORE_WAKE 1
 #define WMA_DEFAULT_QPOWER_TX_WAKE_THRESHOLD 2

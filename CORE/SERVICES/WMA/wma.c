@@ -4846,6 +4846,15 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	intr[cmd->vdev_id].chanmode = chanmode; /* save channel mode */
 	intr[cmd->vdev_id].ht_capable = req->ht_capable;
 	intr[cmd->vdev_id].vht_capable = req->vht_capable;
+	intr[cmd->vdev_id].config.gtx_info.gtxRTMask[0] = CFG_TGT_DEFAULT_GTX_HT_MASK;
+	intr[cmd->vdev_id].config.gtx_info.gtxRTMask[1] = CFG_TGT_DEFAULT_GTX_VHT_MASK;
+	intr[cmd->vdev_id].config.gtx_info.gtxUsrcfg = CFG_TGT_DEFAULT_GTX_USR_CFG;
+	intr[cmd->vdev_id].config.gtx_info.gtxPERThreshold = CFG_TGT_DEFAULT_GTX_PER_THRESHOLD;
+	intr[cmd->vdev_id].config.gtx_info.gtxPERMargin = CFG_TGT_DEFAULT_GTX_PER_MARGIN;
+	intr[cmd->vdev_id].config.gtx_info.gtxTPCstep = CFG_TGT_DEFAULT_GTX_TPC_STEP;
+	intr[cmd->vdev_id].config.gtx_info.gtxTPCMin = CFG_TGT_DEFAULT_GTX_TPC_MIN;
+	intr[cmd->vdev_id].config.gtx_info.gtxBWMask = CFG_TGT_DEFAULT_GTX_BW_MASK;
+
 	WMI_SET_CHANNEL_MODE(chan, chanmode);
 	chan->band_center_freq1 = chan->mhz;
 
@@ -5778,6 +5787,41 @@ static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
 	return 0;
 }
 
+static int
+wmi_unified_vdev_set_gtx_cfg_send(wmi_unified_t wmi_handle, u_int32_t if_id,
+				gtx_config_t *gtx_info)
+{
+	wmi_vdev_set_gtx_params_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int len = sizeof(wmi_vdev_set_gtx_params_cmd_fixed_param);
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed\n", __FUNCTION__);
+		return -1;
+	}
+	cmd = (wmi_vdev_set_gtx_params_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_vdev_set_gtx_params_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_set_gtx_params_cmd_fixed_param));
+	cmd->vdev_id = if_id;
+
+	cmd->gtxRTMask[0] = gtx_info->gtxRTMask[0];
+	cmd->gtxRTMask[1] = gtx_info->gtxRTMask[1];
+	cmd->userGtxMask = gtx_info->gtxUsrcfg;
+	cmd->gtxPERThreshold = gtx_info->gtxPERThreshold;
+	cmd->gtxPERMargin = gtx_info->gtxPERMargin;
+	cmd->gtxTPCstep = gtx_info->gtxTPCstep;
+	cmd->gtxTPCMin = gtx_info->gtxTPCMin;
+	cmd->gtxBWMask = gtx_info->gtxBWMask;
+
+	WMA_LOGD("Setting vdev%d GTX values:htmcs 0x%x, vhtmcs 0x%x, usermask 0x%x, \
+		gtxPERThreshold %d, gtxPERMargin %d, gtxTPCstep %d, gtxTPCMin %d, \
+                gtxBWMask 0x%x.\n", if_id, cmd->gtxRTMask[0], cmd->gtxRTMask[1],
+		cmd->userGtxMask, cmd->gtxPERThreshold, cmd->gtxPERMargin,
+		cmd->gtxTPCstep, cmd->gtxTPCMin, cmd->gtxBWMask);
+	return wmi_unified_cmd_send(wmi_handle, buf, len, WMI_VDEV_SET_GTX_PARAMS_CMDID);
+}
+
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					wda_cli_set_cmd_t *privcmd)
 {
@@ -6067,6 +6111,73 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		}
 		break;
+	case GTX_CMD:
+		WMA_LOGD("vdev id %d pid %d pval %d", privcmd->param_vdev_id,
+				privcmd->param_id, privcmd->param_value);
+		switch (privcmd->param_id) {
+		case WMI_VDEV_PARAM_GTX_HT_MCS:
+			intr[vid].config.gtx_info.gtxRTMask[0] = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+		case WMI_VDEV_PARAM_GTX_VHT_MCS:
+			intr[vid].config.gtx_info.gtxRTMask[1] = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_USR_CFG:
+			intr[vid].config.gtx_info.gtxUsrcfg = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_THRE:
+			intr[vid].config.gtx_info.gtxPERThreshold = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_MARGIN:
+			intr[vid].config.gtx_info.gtxPERMargin = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_STEP:
+			intr[vid].config.gtx_info.gtxTPCstep = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_MINTPC:
+			intr[vid].config.gtx_info.gtxTPCMin = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_BW_MASK:
+			intr[vid].config.gtx_info.gtxBWMask = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			if (ret) {
+				WMA_LOGE("wmi_unified_vdev_set_param_send"
+						" failed ret %d", ret);
+				return;
+			}
+			break;
+		default:
+			break;
+		}
+		break;
 
 	default:
 		WMA_LOGE("Invalid vpdev command id");
@@ -6207,6 +6318,32 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 		case WMI_VDEV_PARAM_NSS:
 			ret = intr[vdev_id].config.nss;
 			break;
+#ifdef QCA_SUPPORT_GTX
+		case WMI_VDEV_PARAM_GTX_HT_MCS:
+			ret = intr[vdev_id].config.gtx_info.gtxRTMask[0];
+			break;
+		case WMI_VDEV_PARAM_GTX_VHT_MCS:
+			ret = intr[vdev_id].config.gtx_info.gtxRTMask[1];
+			break;
+		case WMI_VDEV_PARAM_GTX_USR_CFG:
+			ret = intr[vdev_id].config.gtx_info.gtxUsrcfg;
+			break;
+		case WMI_VDEV_PARAM_GTX_THRE:
+			ret = intr[vdev_id].config.gtx_info.gtxPERThreshold;
+			break;
+		case WMI_VDEV_PARAM_GTX_MARGIN:
+			ret = intr[vdev_id].config.gtx_info.gtxPERMargin;
+			break;
+		case WMI_VDEV_PARAM_GTX_STEP:
+			ret = intr[vdev_id].config.gtx_info.gtxTPCstep;
+			break;
+		case WMI_VDEV_PARAM_GTX_MINTPC:
+			ret = intr[vdev_id].config.gtx_info.gtxTPCMin;
+			break;
+		case WMI_VDEV_PARAM_GTX_BW_MASK:
+			ret = intr[vdev_id].config.gtx_info.gtxBWMask;
+			break;
+#endif
 		case WMI_VDEV_PARAM_LDPC:
 			ret = intr[vdev_id].config.ldpc;
 			break;
@@ -6351,6 +6488,37 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			" yet implemented 0x%x", param_id);
 		return -EINVAL;
 		}
+	} else if (GTX_CMD == vpdev) {
+		switch (param_id) {
+		case WMI_VDEV_PARAM_GTX_HT_MCS:
+			ret = intr[vdev_id].config.gtx_info.gtxRTMask[0];
+			break;
+		case WMI_VDEV_PARAM_GTX_VHT_MCS:
+			ret = intr[vdev_id].config.gtx_info.gtxRTMask[1];
+			break;
+		case WMI_VDEV_PARAM_GTX_USR_CFG:
+			ret = intr[vdev_id].config.gtx_info.gtxUsrcfg;
+			break;
+		case WMI_VDEV_PARAM_GTX_THRE:
+			ret = intr[vdev_id].config.gtx_info.gtxPERThreshold;
+			break;
+		case WMI_VDEV_PARAM_GTX_MARGIN:
+			ret = intr[vdev_id].config.gtx_info.gtxPERMargin;
+			break;
+		case WMI_VDEV_PARAM_GTX_STEP:
+			ret = intr[vdev_id].config.gtx_info.gtxTPCstep;
+			break;
+		case WMI_VDEV_PARAM_GTX_MINTPC:
+			ret = intr[vdev_id].config.gtx_info.gtxTPCMin;
+			break;
+		case WMI_VDEV_PARAM_GTX_BW_MASK:
+			ret = intr[vdev_id].config.gtx_info.gtxBWMask;
+			break;
+		default:
+			WMA_LOGE("Invalid generic vdev command/Not"
+					" yet implemented 0x%x", param_id);
+			return -EINVAL;
+		}
 	}
 	return ret;
 }
@@ -6457,6 +6625,7 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id,
 {
 	int ret;
 	uint32_t slot_time;
+	struct wma_txrx_node *intr = wma->interfaces;
 
 	/* Beacon Interval setting */
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
@@ -6465,6 +6634,11 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id,
 
 	if (ret)
 		WMA_LOGE("failed to set WMI_VDEV_PARAM_BEACON_INTERVAL\n");
+
+	ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle, vdev_id,
+						&intr[vdev_id].config.gtx_info);
+	if (ret)
+		WMA_LOGE("failed to set WMI_VDEV_PARAM_DTIM_PERIOD\n");
 
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
 					      WMI_VDEV_PARAM_DTIM_PERIOD,

@@ -212,6 +212,15 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 
 #define WE_SET_BURST_ENABLE             60
 #define WE_SET_BURST_DUR                61
+/* GTX Commands */
+#define WE_SET_GTX_HT_MCS               62
+#define WE_SET_GTX_VHT_MCS              63
+#define WE_SET_GTX_USRCFG               64
+#define WE_SET_GTX_THRE                 65
+#define WE_SET_GTX_MARGIN               66
+#define WE_SET_GTX_STEP                 67
+#define WE_SET_GTX_MINTPC               68
+#define WE_SET_GTX_BWMASK               69
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -260,9 +269,18 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_QPOWER_MAX_TX_BEFORE_WAKE          42
 #define WE_GET_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL   43
 #define WE_GET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL 44
-
 #define WE_GET_BURST_ENABLE             45
 #define WE_GET_BURST_DUR                46
+/* GTX Commands */
+#define WE_GET_GTX_HT_MCS               47
+#define WE_GET_GTX_VHT_MCS              48
+#define WE_GET_GTX_USRCFG               49
+#define WE_GET_GTX_THRE                 50
+#define WE_GET_GTX_MARGIN               51
+#define WE_GET_GTX_STEP                 52
+#define WE_GET_GTX_MINTPC               53
+#define WE_GET_GTX_BWMASK               54
+
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -4579,6 +4597,78 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            break;
         }
 
+        case WE_SET_GTX_HT_MCS:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_GTX_HT_MCS %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_GTX_HT_MCS,
+                                         set_value, GTX_CMD);
+           break;
+        }
+
+        case WE_SET_GTX_VHT_MCS:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_GTX_VHT_MCS %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_GTX_VHT_MCS,
+                                         set_value, GTX_CMD);
+           break;
+        }
+
+       case WE_SET_GTX_USRCFG:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_GTX_USR_CFG %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_GTX_USR_CFG,
+                                         set_value, GTX_CMD);
+           break;
+        }
+
+        case WE_SET_GTX_THRE:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_GTX_THRE %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_GTX_THRE,
+                                         set_value, GTX_CMD);
+           break;
+        }
+
+        case WE_SET_GTX_MARGIN:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_GTX_MARGIN %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_GTX_MARGIN,
+                                         set_value, GTX_CMD);
+           break;
+        }
+
+        case WE_SET_GTX_STEP:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_GTX_STEP %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_GTX_STEP,
+                                         set_value, GTX_CMD);
+           break;
+        }
+
+        case WE_SET_GTX_MINTPC:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_GTX_MINTPC %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_GTX_MINTPC,
+                                         set_value, GTX_CMD);
+           break;
+        }
+
+        case WE_SET_GTX_BWMASK:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_GTX_BWMASK %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_GTX_BW_MASK,
+                                         set_value, GTX_CMD);
+           break;
+        }
+
         case WE_SET_LDPC:
         {
            tANI_U32 value;
@@ -5415,6 +5505,86 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
                                         (int)pAdapter->sessionId,
                                         (int)WMI_VDEV_PARAM_NSS,
                                         VDEV_CMD);
+           break;
+        }
+
+        case WE_GET_GTX_HT_MCS:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_HT_MCS");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_GTX_HT_MCS,
+                                        GTX_CMD);
+           break;
+        }
+
+        case WE_GET_GTX_VHT_MCS:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_VHT_MCS");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_GTX_VHT_MCS,
+                                        GTX_CMD);
+           break;
+        }
+
+        case WE_GET_GTX_USRCFG:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_USR_CFG");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_GTX_USR_CFG,
+                                        GTX_CMD);
+           break;
+        }
+
+        case WE_GET_GTX_THRE:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_THRE");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_GTX_THRE,
+                                        GTX_CMD);
+           break;
+        }
+
+        case WE_GET_GTX_MARGIN:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_MARGIN");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_GTX_MARGIN,
+                                        GTX_CMD);
+           break;
+        }
+
+        case WE_GET_GTX_STEP:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_STEP");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_GTX_STEP,
+                                        GTX_CMD);
+           break;
+        }
+
+        case WE_GET_GTX_MINTPC:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_MINTPC");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_GTX_MINTPC,
+                                        GTX_CMD);
+           break;
+        }
+
+        case WE_GET_GTX_BWMASK:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_BW_MASK");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_GTX_BW_MASK,
+                                        GTX_CMD);
            break;
         }
 
@@ -9110,8 +9280,48 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "cwmenable" },
 
-    {  WE_SET_TX_CHAINMASK,
+    {  WE_SET_GTX_HT_MCS,
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "gtxHTMcs" },
+
+    {  WE_SET_GTX_VHT_MCS,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "gtxVHTMcs" },
+
+    {  WE_SET_GTX_USRCFG,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "gtxUsrCfg" },
+
+    {  WE_SET_GTX_THRE,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "gtxThre" },
+
+    {  WE_SET_GTX_MARGIN,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "gtxMargin" },
+
+    {  WE_SET_GTX_STEP,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "gtxStep" },
+
+    {  WE_SET_GTX_MINTPC,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "gtxMinTpc" },
+
+    {  WE_SET_GTX_BWMASK,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "gtxBWMask" },
+
+    {  WE_SET_TX_CHAINMASK,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "txchainmask" },
 
@@ -9398,6 +9608,46 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_cwmenable" },
+
+    {  WE_GET_GTX_HT_MCS,
+       0,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_gtxHTMcs" },
+
+    {  WE_GET_GTX_VHT_MCS,
+       0,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_gtxVHTMcs" },
+
+    {  WE_GET_GTX_USRCFG,
+        0,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_gtxUsrCfg" },
+
+    {  WE_GET_GTX_THRE,
+        0,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_gtxThre" },
+
+    {  WE_GET_GTX_MARGIN,
+        0,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_gtxMargin" },
+
+    {  WE_GET_GTX_STEP,
+        0,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_gtxStep" },
+
+    {  WE_GET_GTX_MINTPC,
+        0,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_gtxMinTpc" },
+
+    {  WE_GET_GTX_BWMASK,
+        0,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_gtxBWMask" },
 
     {   WE_GET_TX_CHAINMASK,
         0,
