@@ -214,7 +214,6 @@
 #endif
 
 #define HDD_MAC_ADDR_LEN    6
-#define HDD_ROAM_SCAN_CHANNEL_SWITCH_TIME 3
 #define HDD_SESSION_ID_ANY  50 //This should be same as CSR_SESSION_ID_ANY
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
