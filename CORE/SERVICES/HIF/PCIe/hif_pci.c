@@ -2184,7 +2184,7 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 	{
 	     A_UINT8 banks_switched = 1;
 	     A_UINT32 chip_id;
-	     rv = HIFDiagReadAccess(sc->hif_device, CHIP_ID_ADDRESS, &chip_id);
+	     rv = HIFDiagReadAccess(sc->hif_device, CHIP_ID_ADDRESS | RTC_SOC_BASE_ADDRESS, &chip_id);
 	     if (rv != A_OK) {
 	          AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("ath: HIF_PCIDeviceProbed get chip id val (%d)\n", rv));
 		  goto done;
