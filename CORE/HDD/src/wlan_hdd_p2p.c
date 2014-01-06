@@ -768,8 +768,13 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             // cause a race condition with lim remain_on_channel_timer which might
             // expire by the time the action frame reaches lim layer.
 
-            if ((current_time - cfgState->remain_on_chan_ctx->p2pRemOnChanTimeStamp) >
-                         (cfgState->remain_on_chan_ctx->duration  - 50 ))
+            // Check remaining time of RoC only in case of GO NEG CNF.
+
+            actionFrmType = buf[WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET];
+
+            if ((actionFrmType != WLAN_HDD_GO_NEG_CNF) ||
+                ((current_time - cfgState->remain_on_chan_ctx->p2pRemOnChanTimeStamp) >
+                      (cfgState->remain_on_chan_ctx->duration  - 50 )))
             {
                 hddLog(LOG1,"action frame: Extending the RoC\n");
                 status = wlan_hdd_check_remain_on_channel(pAdapter);
