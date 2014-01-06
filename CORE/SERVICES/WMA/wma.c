@@ -10233,6 +10233,16 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	}
 
 	/*
+	* Configure csa ie wakeup event.
+	*/
+	ret = wma_add_wow_wakeup_event(wma, WOW_CSA_IE_EVENT, TRUE);
+
+	if (ret != VOS_STATUS_SUCCESS)
+		return ret;
+
+	WMA_LOGD("CSA IE match is enabled in fw");
+
+	/*
 	 * Configure pattern match wakeup event. FW does pattern match
 	 * only if pattern match event is enabled.
 	 */
