@@ -1100,11 +1100,13 @@ extern eHalStatus sme_QueryPowerState (
     \brief  Checks if the device is able to enter a particular power save mode
             This does not imply that the device is in a particular PS mode
     \param  hHal - The handle returned by macOpen.
+    \param sessionId - sme sessionid
     \param psMode - the power saving mode
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
-extern tANI_BOOLEAN sme_IsPowerSaveEnabled(
+extern tANI_BOOLEAN sme_IsPowerSaveEnabled (
    tHalHandle hHal,
+   tANI_U32 sessionId,
    tPmcPowerSavingMode psMode);
 
 /* ---------------------------------------------------------------------------

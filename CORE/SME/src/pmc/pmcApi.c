@@ -4260,3 +4260,48 @@ eHalStatus pmcOffloadSetTdlsProhibitBmpsStatus(tHalHandle hHal,
 	return eHAL_STATUS_SUCCESS;
 }
 #endif
+
+/******************************************************************************
+*
+* Name:  pmcOffloadIsPowerSaveEnabled
+*
+* Description:
+*    Checks if the device is able to enter one of the power save modes.
+*    "Able to enter" means the power save mode is enabled for the device
+*    and the host is using the correct power source for entry into the
+*    power save mode.  This routine does not indicate whether the device
+*    is actually in the power save mode at a particular point in time.
+*
+* Parameters:
+*    hHal - HAL handle for device
+*    psMode - the power saving mode
+*
+* Returns:
+*    TRUE if device is able to enter the power save mode, FALSE otherwise
+*
+******************************************************************************/
+tANI_BOOLEAN pmcOffloadIsPowerSaveEnabled (tHalHandle hHal, tANI_U32 sessionId,
+                                           tPmcPowerSavingMode psMode)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tpPsOffloadPerSessionInfo pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
+
+    pmcLog(pMac, LOG2, FL("Entering pmcIsPowerSaveEnabled, power save mode %d"),
+                          psMode);
+
+    /* Check ability to enter based on the specified power saving mode. */
+    switch (psMode)
+    {
+    case ePMC_BEACON_MODE_POWER_SAVE:
+        return pMac->pmcOffloadInfo.staPsEnabled;
+
+    case ePMC_UAPSD_MODE_POWER_SAVE:
+        return pmc->UapsdEnabled;
+
+    default:
+        pmcLog(pMac, LOGE, FL("Invalid power save mode %d"), psMode);
+        PMC_ABORT;
+        return FALSE;
+    }
+}
+

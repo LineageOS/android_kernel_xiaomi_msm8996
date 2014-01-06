@@ -4180,10 +4180,13 @@ eHalStatus sme_QueryPowerState (
     \brief  Checks if the device is able to enter a particular power save mode
             This does not imply that the device is in a particular PS mode
     \param  hHal - The handle returned by macOpen.
+    \param  sessionId - sme session id
     \param psMode - the power saving mode
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-tANI_BOOLEAN sme_IsPowerSaveEnabled (tHalHandle hHal, tPmcPowerSavingMode psMode)
+tANI_BOOLEAN sme_IsPowerSaveEnabled (tHalHandle hHal,
+                                     tANI_U32 sessionId,
+                                     tPmcPowerSavingMode psMode)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -4194,7 +4197,10 @@ tANI_BOOLEAN sme_IsPowerSaveEnabled (tHalHandle hHal, tPmcPowerSavingMode psMode
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       result = pmcIsPowerSaveEnabled(hHal, psMode);
+       if(!pMac->psOffloadEnabled)
+          result = pmcIsPowerSaveEnabled(hHal, psMode);
+       else
+          result = pmcOffloadIsPowerSaveEnabled(hHal, sessionId, psMode);
        sme_ReleaseGlobalLock( &pMac->sme );
        return result;
    }
