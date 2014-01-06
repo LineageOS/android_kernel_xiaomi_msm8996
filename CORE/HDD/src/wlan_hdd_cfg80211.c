@@ -1897,7 +1897,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     {
         pConfig->ieee80211d = 0;
     }
-    pConfig->authType = eSAP_AUTO_SWITCH;
 
     capab_info = pMgmt_frame->u.beacon.capab_info;
 
@@ -2570,6 +2569,19 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         params->chandef.chan, cfg80211_get_chandef_type(&(params->chandef)));
 #endif
 #endif
+        /* set authentication type */
+        switch ( params->auth_type )
+        {
+        case  NL80211_AUTHTYPE_OPEN_SYSTEM:
+            pAdapter->sessionCtx.ap.sapConfig.authType = eSAP_OPEN_SYSTEM;
+            break;
+        case NL80211_AUTHTYPE_SHARED_KEY:
+            pAdapter->sessionCtx.ap.sapConfig.authType = eSAP_SHARED_KEY;
+            break;
+        default:
+            pAdapter->sessionCtx.ap.sapConfig.authType = eSAP_AUTO_SWITCH;
+        }
+
         status = wlan_hdd_cfg80211_start_bss(pAdapter, &params->beacon, params->ssid,
                                              params->ssid_len, params->hidden_ssid);
     }
