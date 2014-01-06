@@ -2829,30 +2829,6 @@ static VOS_STATUS wma_set_enable_disable_mcc_adaptive_scheduler(tANI_U32 mcc_ada
 	return VOS_STATUS_SUCCESS;
 }
 
-static v_BOOL_t wma_set_enable_disable_roam_scan_offload(tp_wma_handle wma_handle,
-                        bool cfg_roam_offload_enabled)
-{
-        if (wma_handle->roam_offload_enabled && !cfg_roam_offload_enabled) {
-                /* User changed it from enable to disable */
-                if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
-                                                    WMI_VDEV_PARAM_ROAM_FW_OFFLOAD, 0)) {
-                        /* could not disable roam offload in firmware. Disable it for host. */
-                        WMA_LOGE("Failed to set WMI_VDEV_PARAM_ROAM_FW_OFFLOAD = 0");
-                }
-            wma_handle->roam_offload_enabled = FALSE;
-        } else if (!wma_handle->roam_offload_enabled && cfg_roam_offload_enabled) {
-                /* User changed it from disable to enable */
-                if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
-                                                  WMI_VDEV_PARAM_ROAM_FW_OFFLOAD, 1)) {
-                        /* could not enable roam offload in firmware. Disable it for host. */
-                        WMA_LOGE("Failed to set WMI_VDEV_PARAM_ROAM_FW_OFFLOAD = 1");
-                } else {
-                        wma_handle->roam_offload_enabled = TRUE;
-                }
-        }
-
-        return (wma_handle->roam_offload_enabled);
-}
 /* function   : wma_vdev_attach
  * Descriptin :
  * Args       :
@@ -3007,9 +2983,9 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
         /* Initialize roaming offload state */
         if (self_sta_req->type == WMI_VDEV_TYPE_STA) {
             wma_handle->roam_offload_vdev_id = (A_UINT32) self_sta_req->sessionId;
-            /* First initialize the value to FALSE and then use cfg value to set/clear it */
-            wma_handle->roam_offload_enabled = FALSE;
-            wma_set_enable_disable_roam_scan_offload(wma_handle, mac->roam.configParam.isRoamOffloadScanEnabled);
+            wma_handle->roam_offload_enabled = TRUE;
+            wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
+                                            WMI_VDEV_PARAM_ROAM_FW_OFFLOAD, 1);
         }
 
 	if (wlan_cfgGetInt(mac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED,
@@ -4133,10 +4109,6 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle)
     wmi_start_scan_cmd_fixed_param scan_params;
     wmi_ap_profile ap_profile;
 
-    if (!wma_set_enable_disable_roam_scan_offload(wma_handle, pMac->roam.configParam.isRoamOffloadScanEnabled)) {
-        /* Fast roaming is disabled */
-        return VOS_STATUS_SUCCESS;
-    }
     /* first program the parameters to conservative values so that roaming scan won't be
      * triggered before association completes
      */
@@ -4176,8 +4148,6 @@ VOS_STATUS wma_roam_scan_offload_end_connect(tp_wma_handle wma_handle)
         vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
                                 WMI_ROAM_SCAN_MODE_NONE);
     }
-    /* If fast roaming got disabled by user while connected, turn it off */
-    wma_set_enable_disable_roam_scan_offload(wma_handle, pMac->roam.configParam.isRoamOffloadScanEnabled);
     return VOS_STATUS_SUCCESS;
 }
 
@@ -4287,6 +4257,10 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
                                                     WMI_ROAM_SCAN_MODE_NONE);
             if (vos_status != VOS_STATUS_SUCCESS) {
+                break;
+            }
+
+            if (roam_req->RoamScanOffloadEnabled == FALSE) {
                 break;
             }
 
