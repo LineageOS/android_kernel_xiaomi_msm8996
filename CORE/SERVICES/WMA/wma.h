@@ -364,6 +364,10 @@ typedef struct {
 	u_int8_t  ipn[CMAC_IPN_LEN];
 } wma_igtk_key_t;
 #endif
+
+#define WMA_BSS_STATUS_STARTED 0x1
+#define WMA_BSS_STATUS_STOPPED 0x2
+
 struct wma_txrx_node {
 	u_int8_t addr[ETH_ALEN];
 	u_int8_t bssid[ETH_ALEN];
@@ -402,6 +406,7 @@ struct wma_txrx_node {
 	tAniGetPEStatsRsp       *stats_rsp;
 	tANI_U8                 fw_stats_set;
 	void *del_staself_req;
+	tANI_U8 bss_status;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)

@@ -158,10 +158,10 @@ static void wma_send_beacon_tmpl(WMA_HANDLE handle,
 static void wma_data_tx_ack_comp_hdlr(void *wma_context,
                                       adf_nbuf_t netbuf,
                                       int32_t status);
+#endif
 static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
                                             tpDelStaSelfParams pdel_sta_self_req_param,
                                             u_int8_t generateRsp);
-#endif
 static struct wma_target_req *
 wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 		  u_int32_t msg_type, u_int8_t type, void *params);
@@ -865,6 +865,7 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 #ifdef QCA_IBSS_SUPPORT
         tDelStaSelfParams del_sta_param;
 #endif
+	struct wma_txrx_node *iface;
 
 	param_buf = (WMI_VDEV_STOPPED_EVENTID_param_tlvs *) cmd_param_info;
 	if (!param_buf) {
@@ -895,6 +896,11 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 					__func__, params->bssid);
 		wma_remove_peer(wma, params->bssid, resp_event->vdev_id, peer);
 		wmi_unified_vdev_down_send(wma->wmi_handle, resp_event->vdev_id);
+		iface = &wma->interfaces[resp_event->vdev_id];
+		if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
+			WMA_LOGD("%s: P2P BSS is stopped", __func__);
+			iface->bss_status = WMA_BSS_STATUS_STOPPED;
+		}
 #ifndef QCA_WIFI_ISOC
 		bcn = wma->interfaces[resp_event->vdev_id].beacon;
 
@@ -922,6 +928,10 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 
 		params->status = VOS_STATUS_SUCCESS;
 		wma_send_msg(wma, WDA_DELETE_BSS_RSP, (void *)params, 0);
+		if (iface->del_staself_req) {
+			WMA_LOGD("%s: scheduling defered deletion", __func__);
+			wma_vdev_detach(wma, iface->del_staself_req, 1);
+		}
 	}
 	vos_timer_destroy(&req_msg->event_timeout);
 	vos_mem_free(req_msg);
@@ -2554,6 +2564,12 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		wma_remove_peer(wma_handle,
 				pdel_sta_self_req_param->selfMacAddr,
 				vdev_id, peer);
+	}
+	if ((iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) &&
+	    (iface->bss_status == WMA_BSS_STATUS_STARTED)) {
+		WMA_LOGD("P2P BSS is not yet stopped. Defering vdev deletion");
+		iface->del_staself_req = pdel_sta_self_req_param;
+		return status;
 	}
 
 	/* remove the interface from ath_dev */
@@ -4923,9 +4939,14 @@ void wma_vdev_resp_timer(void *data)
 	} else if (tgt_req->msg_type == WDA_DELETE_BSS_REQ) {
 		tpDeleteBssParams params =
 			(tpDeleteBssParams)tgt_req->user_data;
+		struct wma_txrx_node *iface = &wma->interfaces[tgt_req->vdev_id];
 		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
 		wma_remove_peer(wma, params->bssid, tgt_req->vdev_id, peer);
 		wmi_unified_vdev_down_send(wma->wmi_handle, tgt_req->vdev_id);
+		if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
+			WMA_LOGD("%s: P2P BSS is stopped", __func__);
+			iface->bss_status = WMA_BSS_STATUS_STOPPED;
+		}
 #ifdef QCA_IBSS_SUPPORT
 		if (wma_is_vdev_in_ibss_mode(wma, params->sessionId)) {
 			del_sta_param.sessionId   = params->sessionId;
@@ -4937,6 +4958,10 @@ void wma_vdev_resp_timer(void *data)
 		params->status = VOS_STATUS_E_TIMEOUT;
 		WMA_LOGA("%s: WDA_DELETE_BSS_REQ timedout", __func__);
 		wma_send_msg(wma, WDA_DELETE_BSS_RSP, (void *)params, 0);
+		if (iface->del_staself_req) {
+			WMA_LOGD("%s: scheduling defered deletion", __func__);
+			wma_vdev_detach(wma, iface->del_staself_req, 1);
+		}
 	} else if (tgt_req->msg_type == WDA_DEL_STA_SELF_REQ) {
 		struct wma_txrx_node *iface =
 			(struct wma_txrx_node *)tgt_req->user_data;
@@ -7247,6 +7272,10 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		status = VOS_STATUS_E_FAILURE;
 	}
 
+	if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
+		WMA_LOGD("%s: P2P BSS is started", __func__);
+		iface->bss_status = WMA_BSS_STATUS_STARTED;
+	}
         /* Sta is now associated, configure various params */
 
         /* SM power save, configure the h/w as configured
