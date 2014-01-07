@@ -1647,6 +1647,56 @@ typedef enum
 #define CFG_THERMAL_MIGRATION_ENABLE_MAX       ( 1 )
 #define CFG_THERMAL_MIGRATION_ENABLE_DEFAULT   ( 0 )
 
+
+#ifndef QCA_WIFI_ISOC
+
+#define CFG_THROTTLE_PERIOD_NAME               "gThrottlePeriod"
+#define CFG_THROTTLE_PERIOD_MIN                ( 10 )
+#define CFG_THROTTLE_PERIOD_MAX                ( 10000 )
+#define CFG_THROTTLE_PERIOD_DEFAULT            ( 4000 )
+
+#define CFG_THERMAL_TEMP_MIN_LEVEL0_NAME      "gThermalTempMinLevel0"
+#define CFG_THERMAL_TEMP_MIN_LEVEL0_MIN       ( 0 )
+#define CFG_THERMAL_TEMP_MIN_LEVEL0_MAX       ( 1000 )
+#define CFG_THERMAL_TEMP_MIN_LEVEL0_DEFAULT   ( 0 )
+
+#define CFG_THERMAL_TEMP_MAX_LEVEL0_NAME      "gThermalTempMaxLevel0"
+#define CFG_THERMAL_TEMP_MAX_LEVEL0_MIN       ( 0 )
+#define CFG_THERMAL_TEMP_MAX_LEVEL0_MAX       ( 1000 )
+#define CFG_THERMAL_TEMP_MAX_LEVEL0_DEFAULT   ( 90 )
+
+#define CFG_THERMAL_TEMP_MIN_LEVEL1_NAME      "gThermalTempMinLevel1"
+#define CFG_THERMAL_TEMP_MIN_LEVEL1_MIN       ( 0 )
+#define CFG_THERMAL_TEMP_MIN_LEVEL1_MAX       ( 1000 )
+#define CFG_THERMAL_TEMP_MIN_LEVEL1_DEFAULT   ( 70 )
+
+#define CFG_THERMAL_TEMP_MAX_LEVEL1_NAME      "gThermalTempMaxLevel1"
+#define CFG_THERMAL_TEMP_MAX_LEVEL1_MIN       ( 0 )
+#define CFG_THERMAL_TEMP_MAX_LEVEL1_MAX       ( 1000 )
+#define CFG_THERMAL_TEMP_MAX_LEVEL1_DEFAULT   ( 110 )
+
+#define CFG_THERMAL_TEMP_MIN_LEVEL2_NAME      "gThermalTempMinLevel2"
+#define CFG_THERMAL_TEMP_MIN_LEVEL2_MIN       ( 0 )
+#define CFG_THERMAL_TEMP_MIN_LEVEL2_MAX       ( 1000 )
+#define CFG_THERMAL_TEMP_MIN_LEVEL2_DEFAULT   ( 90 )
+
+#define CFG_THERMAL_TEMP_MAX_LEVEL2_NAME      "gThermalTempMaxLevel2"
+#define CFG_THERMAL_TEMP_MAX_LEVEL2_MIN       ( 0 )
+#define CFG_THERMAL_TEMP_MAX_LEVEL2_MAX       ( 1000 )
+#define CFG_THERMAL_TEMP_MAX_LEVEL2_DEFAULT   ( 125 )
+
+#define CFG_THERMAL_TEMP_MIN_LEVEL3_NAME      "gThermalTempMinLevel3"
+#define CFG_THERMAL_TEMP_MIN_LEVEL3_MIN       ( 0 )
+#define CFG_THERMAL_TEMP_MIN_LEVEL3_MAX       ( 1000 )
+#define CFG_THERMAL_TEMP_MIN_LEVEL3_DEFAULT   ( 110 )
+
+#define CFG_THERMAL_TEMP_MAX_LEVEL3_NAME      "gThermalTempMaxLevel3"
+#define CFG_THERMAL_TEMP_MAX_LEVEL3_MIN       ( 0 )
+#define CFG_THERMAL_TEMP_MAX_LEVEL3_MAX       ( 1000 )
+#define CFG_THERMAL_TEMP_MAX_LEVEL3_DEFAULT   ( 0 )
+
+#endif /*#ifndef QCA_WIFI_ISOC*/
+
 /*
  * Enable/Disable Modulated DTIM feature
  * Default: Disable
@@ -2447,6 +2497,9 @@ typedef struct
    v_U8_t                      allowMCCGODiffBI;
    v_BOOL_t                    isP2pDeviceAddrAdministrated;
    v_U8_t                      thermalMitigationEnable;
+#ifndef QCA_WIFI_ISOC
+   v_U32_t                     throttlePeriod;
+#endif
 #ifdef WLAN_FEATURE_11AC
    v_U8_t                      vhtChannelWidth;
    v_U8_t                      vhtRxMCS;
@@ -2562,6 +2615,16 @@ typedef struct
    v_U8_t                      wowEnable;
    v_U8_t                      maxNumberOfPeers;
    v_U8_t                      disableDFSChSwitch;
+#ifndef QCA_WIFI_ISOC
+   v_U16_t                     thermalTempMinLevel0;
+   v_U16_t                     thermalTempMaxLevel0;
+   v_U16_t                     thermalTempMinLevel1;
+   v_U16_t                     thermalTempMaxLevel1;
+   v_U16_t                     thermalTempMinLevel2;
+   v_U16_t                     thermalTempMaxLevel2;
+   v_U16_t                     thermalTempMinLevel3;
+   v_U16_t                     thermalTempMaxLevel3;
+#endif
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation

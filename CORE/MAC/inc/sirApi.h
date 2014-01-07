@@ -4797,4 +4797,27 @@ typedef struct sSirSmeCSAIeTxCompleteRsp
     tANI_U8  chanSwIeTxStatus;
 }tSirSmeCSAIeTxCompleteRsp, *tpSirSmeCSAIeTxCompleteRsp;
 
+/* Thermal Mitigation*/
+
+typedef struct{
+    u_int16_t minTempThreshold;
+    u_int16_t maxTempThreshold;
+} t_thermal_level_info, *tp_thermal_level_info;
+
+typedef enum
+{
+    WLAN_WMA_THERMAL_LEVEL_0,
+    WLAN_WMA_THERMAL_LEVEL_1,
+    WLAN_WMA_THERMAL_LEVEL_2,
+    WLAN_WMA_THERMAL_LEVEL_3,
+    WLAN_WMA_MAX_THERMAL_LEVELS
+} t_thermal_level;
+
+typedef struct{
+    /* Array of thermal levels */
+    t_thermal_level_info thermalLevels[WLAN_WMA_MAX_THERMAL_LEVELS];
+    u_int8_t thermalCurrLevel;
+    u_int8_t thermalMgmtEnabled;
+    u_int32_t throttlePeriod;
+} t_thermal_mgmt, *tp_thermal_mgmt;
 #endif /* __SIR_API_H */

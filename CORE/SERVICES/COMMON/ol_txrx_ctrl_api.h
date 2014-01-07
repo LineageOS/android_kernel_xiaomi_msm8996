@@ -939,4 +939,41 @@ ol_tx_delay_hist(ol_txrx_pdev_handle pdev, u_int16_t *bin_values,
 }
 #endif
 
+#if defined(QCA_SUPPORT_TX_THROTTLE_LL)
+/**
+ * @brief Set the thermal mitgation throttling level.
+ * @details
+ *  This function applies only to LL systems. This function is used set the
+ *  tx throttle level used for thermal mitigation
+ *
+ * @param pdev - the physics device being throttled
+ */
+void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev, int level);
+#else
+static inline void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev,
+    int level)
+{
+    /* no-op */
+}
+#endif /* QCA_SUPPORT_TX_THROTTLE_LL */
+
+#if defined(QCA_SUPPORT_TX_THROTTLE_LL)
+/**
+ * @brief Configure the thermal mitgation throttling period.
+ * @details
+ *  This function applies only to LL systems. This function is used set the
+ *  period over which data will be throttled
+ *
+ * @param pdev - the physics device being throttled
+ */
+void ol_tx_throttle_init_period(struct ol_txrx_pdev_t *pdev, int period);
+#else
+static inline void ol_tx_throttle_init_period(struct ol_txrx_pdev_t *pdev,
+    int period)
+{
+    /* no-op */
+}
+#endif /* QCA_SUPPORT_TX_THROTTLE_LL */
+
+
 #endif /* _OL_TXRX_CTRL_API__H_ */

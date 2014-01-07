@@ -533,6 +533,7 @@ typedef struct {
 	u_int8_t powersave_mode;
 	v_BOOL_t ptrn_match_enable_all_vdev;
 	void* pGetRssiReq;
+	t_thermal_mgmt thermal_mgmt_info;
         u_int32_t roam_offload_vdev_id;
         v_BOOL_t  roam_offload_enabled;
         t_wma_roam_preauth_chan_state_t roam_preauth_scan_state;
@@ -1146,6 +1147,12 @@ struct wma_set_key_params {
 	bool unicast;
 	u_int8_t key_data[SIR_MAC_MAX_KEY_LENGTH];
 };
+
+typedef struct {
+	u_int16_t minTemp;
+	u_int16_t maxTemp;
+	u_int8_t thermalEnable;
+} t_thermal_cmd_params, *tp_thermal_cmd_params;
 
 /* Powersave Related */
 /* Default InActivity Time is 200 ms */

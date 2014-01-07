@@ -177,6 +177,21 @@ typedef struct _smeTdlsPeerStateParams
 #endif /* FEATURE_WLAN_TDLS */
 #endif /* QCA_WIFI_2_0 */
 
+/* Thermal Mitigation*/
+
+typedef struct {
+    u_int16_t smeMinTempThreshold;
+    u_int16_t smeMaxTempThreshold;
+} tSmeThermalLevelInfo;
+
+#define SME_MAX_THERMAL_LEVELS (4)
+
+typedef struct {
+    /* Array of thermal levels */
+    tSmeThermalLevelInfo smeThermalLevels[SME_MAX_THERMAL_LEVELS];
+    u_int8_t smeThermalMgmtEnabled;
+    u_int32_t smeThrottlePeriod;
+} tSmeThermalParams;
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
   ------------------------------------------------------------------------*/
@@ -3301,4 +3316,22 @@ eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal,
 eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tANI_U8 sessionId,
                   tANI_U8 targetChannel, tANI_U8 csaIeReqd);
 
+#ifndef QCA_WIFI_ISOC
+/* ---------------------------------------------------------------------------
+    \fn sme_InitThermalInfo
+    \brief  SME API to initialize the thermal mitigation parameters
+    \param  hHal
+    \param  thermalParam : thermal mitigation parameters
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_InitThermalInfo( tHalHandle hHal, tSmeThermalParams thermalParam );
+/* ---------------------------------------------------------------------------
+    \fn sme_InitThermalInfo
+    \brief  SME API to set the thermal mitigation level
+    \param  hHal
+    \param  level : thermal mitigation level
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level );
+#endif
 #endif //#if !defined( __SME_API_H )

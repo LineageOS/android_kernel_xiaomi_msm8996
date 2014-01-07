@@ -8486,6 +8486,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #ifdef QCA_WIFI_2_0
    adf_os_device_t adf_ctx;
 #endif
+#ifndef QCA_WIFI_ISOC
+   tSmeThermalParams thermalParam;
+#endif
 
    ENTER();
    /*
@@ -9232,6 +9235,35 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 	goto err_nl_srv;
 #endif
 
+#ifndef QCA_WIFI_ISOC
+   /* Thermal Mitigation */
+   thermalParam.smeThermalMgmtEnabled =
+       pHddCtx->cfg_ini->thermalMitigationEnable;
+   thermalParam.smeThrottlePeriod = pHddCtx->cfg_ini->throttlePeriod;
+
+   thermalParam.smeThermalLevels[0].smeMinTempThreshold =
+       pHddCtx->cfg_ini->thermalTempMinLevel0;
+   thermalParam.smeThermalLevels[0].smeMaxTempThreshold =
+       pHddCtx->cfg_ini->thermalTempMaxLevel0;
+   thermalParam.smeThermalLevels[1].smeMinTempThreshold =
+       pHddCtx->cfg_ini->thermalTempMinLevel1;
+   thermalParam.smeThermalLevels[1].smeMaxTempThreshold =
+       pHddCtx->cfg_ini->thermalTempMaxLevel1;
+   thermalParam.smeThermalLevels[2].smeMinTempThreshold =
+       pHddCtx->cfg_ini->thermalTempMinLevel2;
+   thermalParam.smeThermalLevels[2].smeMaxTempThreshold =
+       pHddCtx->cfg_ini->thermalTempMaxLevel2;
+   thermalParam.smeThermalLevels[3].smeMinTempThreshold =
+       pHddCtx->cfg_ini->thermalTempMinLevel3;
+   thermalParam.smeThermalLevels[3].smeMaxTempThreshold =
+       pHddCtx->cfg_ini->thermalTempMaxLevel3;
+
+   if (eHAL_STATUS_SUCCESS != sme_InitThermalInfo(pHddCtx->hHal,thermalParam))
+   {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: Error while initializing thermal information", __func__);
+   }
+#endif /*#ifndef QCA_WIFI_ISOC*/
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
    complete(&wlan_start_comp);
 #endif

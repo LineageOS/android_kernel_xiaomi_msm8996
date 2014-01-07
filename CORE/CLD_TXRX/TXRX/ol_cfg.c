@@ -73,6 +73,7 @@ ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev)
 	cfg_ctx->max_nbuf_frags = 1;
 	cfg_ctx->vow_config = vow_config;
 	cfg_ctx->target_tx_credit = CFG_TGT_NUM_MSDU_DESC;
+	cfg_ctx->throttle_period_ms = 40;
 	return (ol_pdev_handle) cfg_ctx;
 }
 
@@ -164,4 +165,10 @@ int ol_cfg_rx_host_defrag_timeout_duplicate_check(ol_pdev_handle pdev)
 {
 	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
 	return cfg->defrag_timeout_check;
+}
+
+int ol_cfg_throttle_period_ms(ol_pdev_handle pdev)
+{
+	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
+	return cfg->throttle_period_ms;
 }

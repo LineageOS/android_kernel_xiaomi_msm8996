@@ -604,6 +604,12 @@ ol_txrx_pdev_attach(
     }
 #endif /* QCA_COMPUTE_TX_DELAY */
 
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
+    /* Thermal Mitigation */
+    if (!pdev->cfg.is_high_latency) {
+        ol_tx_throttle_init(pdev);
+    }
+#endif
     return pdev; /* success */
 
 fail8:
@@ -665,6 +671,15 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
         ol_tx_sched_detach(pdev);
     }
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
+    /* Thermal Mitigation */
+    if (!pdev->cfg.is_high_latency) {
+        adf_os_timer_cancel(&pdev->tx_throttle_ll.phase_timer);
+        adf_os_timer_free(&pdev->tx_throttle_ll.phase_timer);
+        adf_os_timer_cancel(&pdev->tx_throttle_ll.tx_timer);
+        adf_os_timer_free(&pdev->tx_throttle_ll.tx_timer);
+    }
+#endif
     if (force) {
         /*
          * The assertion above confirms that all vdevs within this pdev
@@ -715,6 +730,12 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     adf_os_spinlock_destroy(&pdev->peer_ref_mutex);
     adf_os_spinlock_destroy(&pdev->last_real_peer_mutex);
     adf_os_spinlock_destroy(&pdev->rx.mutex);
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
+    /* Thermal Mitigation */
+    if (!pdev->cfg.is_high_latency) {
+        adf_os_spinlock_destroy(&pdev->tx_throttle_ll.mutex);
+    }
+#endif
     OL_TXRX_PEER_STATS_MUTEX_DESTROY(pdev);
 
     OL_RX_REORDER_TRACE_DETACH(pdev);

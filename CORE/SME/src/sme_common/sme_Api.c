@@ -11066,3 +11066,115 @@ eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tANI_U8 sessionId,
     return (status);
 }
 
+#ifndef QCA_WIFI_ISOC
+/* ---------------------------------------------------------------------------
+    \fn sme_InitThermalInfo
+    \brief  SME API to initialize the thermal mitigation parameters
+    \param  hHal
+    \param  thermalParam : thermal mitigation parameters
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_InitThermalInfo( tHalHandle hHal,
+                                tSmeThermalParams thermalParam )
+{
+    t_thermal_mgmt * pWdaParam;
+    vos_msg_t msg;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    pWdaParam = (t_thermal_mgmt *)vos_mem_malloc(sizeof(t_thermal_mgmt));
+    if (NULL == pWdaParam)
+    {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 "%s: could not allocate tThermalMgmt", __func__);
+       return eHAL_STATUS_E_MALLOC_FAILED;
+    }
+
+    vos_mem_zero((void*)pWdaParam, sizeof(t_thermal_mgmt));
+
+    pWdaParam->thermalMgmtEnabled = thermalParam.smeThermalMgmtEnabled;
+    pWdaParam->throttlePeriod = thermalParam.smeThrottlePeriod;
+    pWdaParam->thermalLevels[0].minTempThreshold =
+        thermalParam.smeThermalLevels[0].smeMinTempThreshold;
+    pWdaParam->thermalLevels[0].maxTempThreshold =
+        thermalParam.smeThermalLevels[0].smeMaxTempThreshold;
+    pWdaParam->thermalLevels[1].minTempThreshold =
+        thermalParam.smeThermalLevels[1].smeMinTempThreshold;
+    pWdaParam->thermalLevels[1].maxTempThreshold =
+        thermalParam.smeThermalLevels[1].smeMaxTempThreshold;
+    pWdaParam->thermalLevels[2].minTempThreshold =
+        thermalParam.smeThermalLevels[2].smeMinTempThreshold;
+    pWdaParam->thermalLevels[2].maxTempThreshold =
+        thermalParam.smeThermalLevels[2].smeMaxTempThreshold;
+    pWdaParam->thermalLevels[3].minTempThreshold =
+         thermalParam.smeThermalLevels[3].smeMinTempThreshold;
+    pWdaParam->thermalLevels[3].maxTempThreshold =
+         thermalParam.smeThermalLevels[3].smeMaxTempThreshold;
+
+    if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme))
+    {
+        msg.type     = WDA_INIT_THERMAL_INFO_CMD;
+        msg.bodyptr  = pWdaParam;
+
+        if (!VOS_IS_STATUS_SUCCESS(
+           vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+        {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Not able to post WDA_SET_THERMAL_INFO_CMD to WDA!",
+                       __func__);
+            vos_mem_free(pWdaParam);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+        return eHAL_STATUS_SUCCESS;
+    }
+    vos_mem_free(pWdaParam);
+    return eHAL_STATUS_FAILURE;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_InitThermalInfo
+    \brief  SME API to set the thermal mitigation level
+    \param  hHal
+    \param  level : thermal mitigation level
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level )
+{
+    vos_msg_t msg;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    u_int8_t *pLevel = vos_mem_malloc(sizeof(*pLevel));
+
+    pLevel = vos_mem_malloc(sizeof(*pLevel));
+    if (NULL == pLevel)
+    {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 "%s: could not allocate pLevel", __func__);
+       return eHAL_STATUS_E_MALLOC_FAILED;
+    }
+
+    *pLevel = level;
+
+    if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme))
+    {
+        msg.type = WDA_SET_THERMAL_LEVEL;
+        msg.reserved = 0;
+        msg.bodyptr = pLevel;
+
+        if (!VOS_IS_STATUS_SUCCESS(
+           vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+        {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Not able to post WDA_SET_THERMAL_LEVEL to WDA!",
+                       __func__);
+            vos_mem_free(pLevel);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+        return eHAL_STATUS_SUCCESS;
+    }
+    vos_mem_free(pLevel);
+    return eHAL_STATUS_FAILURE;
+}
+#endif /* #ifndef QCA_WIFI_ISOC */

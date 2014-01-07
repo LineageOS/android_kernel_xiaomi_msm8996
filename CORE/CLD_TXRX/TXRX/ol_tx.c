@@ -110,7 +110,7 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
     return NULL; /* all MSDUs were accepted */
 }
 
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
 
 #define OL_TX_VDEV_PAUSE_QUEUE_SEND_MARGIN 20
 #define OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS 5
@@ -172,7 +172,10 @@ ol_tx_vdev_ll_pause_queue_send_base(struct ol_txrx_vdev_t *vdev)
 }
 
 static adf_nbuf_t
-ol_tx_vdev_pause_queue_append(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu_list)
+ol_tx_vdev_pause_queue_append(
+   struct ol_txrx_vdev_t *vdev,
+   adf_nbuf_t msdu_list,
+   u_int8_t start_timer)
 {
     adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
     while (msdu_list &&
@@ -196,9 +199,11 @@ ol_tx_vdev_pause_queue_append(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu_list)
     }
     adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
 
-    adf_os_timer_cancel(&vdev->ll_pause.timer);
-    adf_os_timer_start(
-            &vdev->ll_pause.timer, OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
+    if (start_timer) {
+        adf_os_timer_cancel(&vdev->ll_pause.timer);
+        adf_os_timer_start(
+                &vdev->ll_pause.timer, OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
+    }
 
     return msdu_list;
 }
@@ -211,25 +216,109 @@ adf_nbuf_t
 ol_tx_ll_queue(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
 {
     if (vdev->ll_pause.is_paused == A_TRUE) {
-        msdu_list = ol_tx_vdev_pause_queue_append(vdev, msdu_list);
+        msdu_list = ol_tx_vdev_pause_queue_append(vdev, msdu_list, 1);
     } else {
-        if (vdev->ll_pause.txq.depth > 0) {
-            /* not paused, but there is a backlog of frms from a prior pause */
-            msdu_list = ol_tx_vdev_pause_queue_append(vdev, msdu_list);
-            /* send as many frames as possible from the vdevs backlog */
-            ol_tx_vdev_ll_pause_queue_send_base(vdev);
+        if (vdev->ll_pause.txq.depth > 0 ||
+            vdev->pdev->tx_throttle_ll.current_throttle_level !=
+            THROTTLE_LEVEL_0) {
+            /* not paused, but there is a backlog of frms from a prior pause or
+               throttle off phase */
+            msdu_list = ol_tx_vdev_pause_queue_append(vdev, msdu_list, 0);
+            /* if throttle is disabled or phase is "on" send the frame */
+            if (vdev->pdev->tx_throttle_ll.current_throttle_level ==
+                THROTTLE_LEVEL_0 ||
+                vdev->pdev->tx_throttle_ll.current_throttle_phase ==
+                THROTTLE_PHASE_ON) {
+                /* send as many frames as possible from the vdevs backlog */
+                ol_tx_vdev_ll_pause_queue_send_base(vdev);
+            }
         } else {
-            /* not paused, and no backlog - send the new frames */
+            /* not paused, no throttle and no backlog - send the new frames */
             msdu_list = ol_tx_ll(vdev, msdu_list);
         }
     }
     return msdu_list;
 }
+
+/*
+ * Run through the transmit queues for all the vdevs and send the pending frames
+ */
+void
+ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
+{
+    int max_to_send; /* tracks how many frames have been sent*/
+    adf_nbuf_t tx_msdu;
+    struct ol_txrx_vdev_t *vdev;
+    u_int8_t more;
+
+    if (NULL == pdev) {
+        return;
+    }
+
+    if (pdev->tx_throttle_ll.current_throttle_phase == THROTTLE_PHASE_OFF) {
+        return;
+    }
+
+    /* ensure that we send no more than tx_threshold frames at once */
+    max_to_send = pdev->tx_throttle_ll.tx_threshold;
+
+    /* round robin through the vdev queues for the given pdev */
+
+    /* Potential improvement: download several frames from the same vdev at a
+       time, since it is more likely that those frames could be aggregated
+       together, remember which vdev was serviced last, so the next call to
+       this function can resume the round-robin traversing where the current
+       invocation left off*/
+    do {
+        more = 0;
+        TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
+
+            if (vdev->ll_pause.txq.depth) {
+                if ( vdev->ll_pause.is_paused == A_TRUE ) {
+                    continue;
+                }
+                max_to_send--;
+                vdev->ll_pause.txq.depth--;
+                tx_msdu = vdev->ll_pause.txq.head;
+                vdev->ll_pause.txq.head = adf_nbuf_next(tx_msdu);
+                if (NULL == vdev->ll_pause.txq.head) {
+                    vdev->ll_pause.txq.tail = NULL;
+                }
+                adf_nbuf_set_next(tx_msdu, NULL);
+                tx_msdu = ol_tx_ll(vdev, tx_msdu);
+                /*
+                 * It is unexpected that ol_tx_ll would reject the frame,
+                 * since we checked that there's room for it, though there's
+                 * an infinitesimal possibility that between the time we checked
+                 * the room available and now, a concurrent batch of tx frames
+                 * used up all the room.
+                 * For simplicity, just drop the frame.
+                 */
+                if (tx_msdu) {
+                    adf_nbuf_tx_free(tx_msdu, 1 /* error */);
+                }
+            }
+            /*check if there are more msdus to transmit*/
+            if (vdev->ll_pause.txq.depth) {
+                more = 1;
+            }
+        }
+    } while(more && max_to_send);
+
+    TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
+        if (vdev->ll_pause.txq.depth) {
+            adf_os_timer_cancel(&pdev->tx_throttle_ll.tx_timer);
+            adf_os_timer_start(&pdev->tx_throttle_ll.tx_timer,
+                               OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
+            break;
+        }
+    }
+}
 #endif
 
 void ol_tx_vdev_ll_pause_queue_send(void *context)
 {
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
     struct ol_txrx_vdev_t *vdev = (struct ol_txrx_vdev_t *) context;
     ol_tx_vdev_ll_pause_queue_send_base(vdev);
 #endif
@@ -428,7 +517,8 @@ ol_tx_hl_base(
         }
 
         if(tx_msdu_info.peer) {
-			/*If the state is not associated then drop all the data packets recieved for that peer*/
+            /*If the state is not associated then drop all the data packets
+              received for that peer*/
 		    if(tx_msdu_info.peer->state == ol_txrx_peer_state_disc) {
                  adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt);
                  ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1);

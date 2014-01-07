@@ -43,7 +43,7 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list);
 adf_nbuf_t
 ol_tx_ll_queue(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list);
 
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
 #define OL_TX_LL ol_tx_ll_queue
 #else
 #define OL_TX_LL ol_tx_ll
@@ -72,4 +72,6 @@ ol_tx_reinject(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu, u_int16_t peer_id);
 void
 ol_txrx_mgmt_tx_complete(void *ctxt, adf_nbuf_t netbuf, int err);
 
+void
+ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev);
 #endif /* _OL_TX__H_ */

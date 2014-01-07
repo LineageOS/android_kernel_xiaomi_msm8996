@@ -100,8 +100,6 @@ ol_tx_queue_addba_check(
 #define container_of(ptr, type, member) ((type *)( \
                 (char *)(ptr) - (char *)(&((type *)0)->member) ) )
 #endif
-
-
 /*--- function definitions --------------------------------------------------*/
 
 static inline void
@@ -520,6 +518,148 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev)
 }
 
 #endif // defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
+
+/*--- LL tx throttle queue code --------------------------------------------*/
+#if defined(QCA_SUPPORT_TX_THROTTLE_LL)
+u_int8_t ol_tx_pdev_is_target_empty(void)
+{
+    /* TM TODO */
+    return 1;
+}
+
+void ol_tx_pdev_throttle_phase_timer(void *context)
+{
+    struct ol_txrx_pdev_t *pdev = (struct ol_txrx_pdev_t *)context;
+    int ms = 0;
+    throttle_level cur_level;
+    throttle_phase cur_phase;
+
+    /* update the phase */
+    pdev->tx_throttle_ll.current_throttle_phase++;
+
+    if (pdev->tx_throttle_ll.current_throttle_phase == THROTTLE_PHASE_MAX) {
+        pdev->tx_throttle_ll.current_throttle_phase = THROTTLE_PHASE_OFF;
+    }
+
+    if (pdev->tx_throttle_ll.current_throttle_phase == THROTTLE_PHASE_OFF) {
+        if (ol_tx_pdev_is_target_empty(/*pdev*/)) {
+            TXRX_PRINT(TXRX_PRINT_LEVEL_WARN, "throttle phase --> OFF\n");
+            cur_level = pdev->tx_throttle_ll.current_throttle_level;
+            cur_phase = pdev->tx_throttle_ll.current_throttle_phase;
+            ms = pdev->tx_throttle_ll.throttle_time_ms[cur_level][cur_phase];
+            if (pdev->tx_throttle_ll.current_throttle_level !=
+                THROTTLE_LEVEL_0) {
+                TXRX_PRINT(TXRX_PRINT_LEVEL_WARN, "start timer %d ms\n", ms);
+                adf_os_timer_start(&pdev->tx_throttle_ll.phase_timer, ms);
+            }
+        }
+    }
+    else /* THROTTLE_PHASE_ON */
+    {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_WARN, "throttle phase --> ON\n");
+        ol_tx_pdev_ll_pause_queue_send_all(pdev);
+        cur_level = pdev->tx_throttle_ll.current_throttle_level;
+        cur_phase = pdev->tx_throttle_ll.current_throttle_phase;
+        ms = pdev->tx_throttle_ll.throttle_time_ms[cur_level][cur_phase];
+        if (pdev->tx_throttle_ll.current_throttle_level != THROTTLE_LEVEL_0) {
+            TXRX_PRINT(TXRX_PRINT_LEVEL_WARN, "start timer %d ms\n", ms);
+            adf_os_timer_start(&pdev->tx_throttle_ll.phase_timer, ms);
+        }
+    }
+}
+
+void ol_tx_pdev_throttle_tx_timer(void *context)
+{
+    struct ol_txrx_pdev_t *pdev = (struct ol_txrx_pdev_t *)context;
+    ol_tx_pdev_ll_pause_queue_send_all(pdev);
+}
+
+void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev, int level)
+{
+    int ms = 0;
+
+    if (level >= THROTTLE_LEVEL_MAX) {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_WARN,
+                    "%s invalid throttle level set %d, ignoring\n",
+                    __func__, level);
+        return;
+    }
+
+    TXRX_PRINT(TXRX_PRINT_LEVEL_ERR, "Setting throttle level %d\n", level);
+
+    /* Set the current throttle level */
+    pdev->tx_throttle_ll.current_throttle_level = (throttle_level)level;
+
+    /* Reset the phase */
+    pdev->tx_throttle_ll.current_throttle_phase = THROTTLE_PHASE_OFF;
+
+    /* Start with the new time */
+    ms = pdev->tx_throttle_ll.throttle_time_ms[level][THROTTLE_PHASE_OFF];
+
+    adf_os_timer_cancel(&pdev->tx_throttle_ll.phase_timer);
+
+    if (level != THROTTLE_LEVEL_0) {
+        adf_os_timer_start(&pdev->tx_throttle_ll.phase_timer, ms);
+    }
+}
+#endif // defined(QCA_SUPPORT_TX_THROTTLE_LL)
+#if defined (QCA_SUPPORT_TXRX_VDEV_LL_TXQ)
+/* This table stores the duty cycle for each level.
+   Example "on" time for level 2 with duty period 100ms is:
+   "on" time = duty_period_ms >> throttle_duty_cycle_table[2]
+   "on" time = 100 ms >> 2 = 25ms */
+static u_int8_t g_throttle_duty_cycle_table[THROTTLE_LEVEL_MAX] =
+{ 0, 1, 2, 4 };
+
+void ol_tx_throttle_init_period(struct ol_txrx_pdev_t *pdev, int period)
+{
+    int i;
+
+    /* Set the current throttle level */
+    pdev->tx_throttle_ll.throttle_period_ms = period;
+
+    TXRX_PRINT(TXRX_PRINT_LEVEL_WARN, "level  OFF  ON\n");
+    for (i = 0; i < THROTTLE_LEVEL_MAX; i++) {
+        pdev->tx_throttle_ll.throttle_time_ms[i][THROTTLE_PHASE_ON] =
+                pdev->tx_throttle_ll.throttle_period_ms >>
+            g_throttle_duty_cycle_table[i];
+        pdev->tx_throttle_ll.throttle_time_ms[i][THROTTLE_PHASE_OFF] =
+            pdev->tx_throttle_ll.throttle_period_ms -
+            pdev->tx_throttle_ll.throttle_time_ms[i][THROTTLE_PHASE_ON];
+        TXRX_PRINT(TXRX_PRINT_LEVEL_WARN, "%d      %d    %d\n", i,
+                   pdev->tx_throttle_ll.throttle_time_ms[i][THROTTLE_PHASE_OFF],
+                   pdev->tx_throttle_ll.throttle_time_ms[i][THROTTLE_PHASE_ON]);
+    }
+}
+
+void ol_tx_throttle_init(struct ol_txrx_pdev_t *pdev)
+{
+    u_int32_t throttle_period;
+
+    pdev->tx_throttle_ll.current_throttle_level = THROTTLE_LEVEL_0;
+    pdev->tx_throttle_ll.current_throttle_phase = THROTTLE_PHASE_OFF;
+    adf_os_spinlock_init(&pdev->tx_throttle_ll.mutex);
+
+    throttle_period = ol_cfg_throttle_period_ms(pdev->ctrl_pdev);
+
+    ol_tx_throttle_init_period(pdev, throttle_period);
+
+    adf_os_timer_init(
+            pdev->osdev,
+            &pdev->tx_throttle_ll.phase_timer,
+            ol_tx_pdev_throttle_phase_timer,
+            pdev);
+
+    adf_os_timer_init(
+            pdev->osdev,
+            &pdev->tx_throttle_ll.tx_timer,
+            ol_tx_pdev_throttle_tx_timer,
+            pdev);
+
+    pdev->tx_throttle_ll.tx_threshold = THROTTLE_TX_THRESHOLD;
+}
+#endif /* QCA_SUPPORT_TXRX_VDEV_LL_TXQ */
+/*--- End of LL tx throttle queue code ---------------------------------------*/
 
 #if defined(CONFIG_HL_SUPPORT)
 
