@@ -792,8 +792,8 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		return -EINVAL;
 	}
 
-	WMA_LOGD("%s:\nPEER:[%pM]\n BSSID:[%pM]\nINTERFACE:%d\npeer_ID:%d\n",
-		__func__, macaddr, wma->interfaces[vdev_id].addr, vdev_id,
+	WMA_LOGA("PEER:[%pM]\n BSSID:[%pM]\nINTERFACE:%d\npeer_ID:%d\n",
+		macaddr, wma->interfaces[vdev_id].addr, vdev_id,
 		peer_id);
 
 	if (kickout_event->reason == WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT) {
@@ -9709,9 +9709,11 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		 vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 30000);
 	}
 
-	if(wake_info->wake_reason == WOW_REASON_AP_ASSOC_LOST)
+	if(wake_info->wake_reason == WOW_REASON_AP_ASSOC_LOST) {
+		WMA_LOGA("Beacon miss indication on vdev %x",
+				wake_info->vdev_id);
 		wma_beacon_miss_handler(wma, wake_info->vdev_id);
-
+	}
 #ifdef FEATURE_WLAN_SCAN_PNO
 	if (wake_info->wake_reason == WOW_REASON_NLOD) {
 		node = &wma->interfaces[wake_info->vdev_id];
@@ -12942,7 +12944,7 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 
 	switch(wmi_event->reason) {
 	case WMI_ROAM_REASON_BMISS:
-		WMA_LOGD("%s:Beacon Miss for vdevid %x",__func__,
+		WMA_LOGA("Beacon Miss for vdevid %x",
 			wmi_event->vdev_id);
 		wma_beacon_miss_handler(wma_handle, wmi_event->vdev_id);
 		break;
