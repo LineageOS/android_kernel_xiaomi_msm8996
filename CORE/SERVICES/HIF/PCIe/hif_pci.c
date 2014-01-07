@@ -2192,11 +2192,12 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 		  goto done;
 	     }
 	     if (CHIP_ID_VERSION_GET(chip_id) == 0xD) {
-                 if ((CHIP_ID_REVISION_GET(chip_id) == 0x0) || (CHIP_ID_REVISION_GET(chip_id) == 0x1)) {
-                     /* for ROME 1.0/1.1, 3 banks are switched to IRAM */
+                 if ((CHIP_ID_REVISION_GET(chip_id) == 0x0) || (CHIP_ID_REVISION_GET(chip_id) == 0x1)
+                     || (CHIP_ID_REVISION_GET(chip_id) == 0x4)) {
+                     /* for ROME 1.0/1.1 and 2.1, 3 banks are switched to IRAM */
                      banks_switched = 3;
                  }
-                 else if ((CHIP_ID_REVISION_GET(chip_id) == 0x2) || (CHIP_ID_REVISION_GET(chip_id) == 0x4)) {
+                 else if (CHIP_ID_REVISION_GET(chip_id) == 0x2) {
                      /* for ROME 1.3, 2 banks are switched to IRAM */
                      banks_switched = 2;
                  }
