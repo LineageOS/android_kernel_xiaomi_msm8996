@@ -857,7 +857,7 @@ limIsSmeScanReqValid(tpAniSirGlobal pMac, tpSirSmeScanReq pScanReq)
     {
         if (pScanReq->ssId[i].length > SIR_MAC_MAX_SSID_LENGTH)
         {
-           limLog(pMac, LOGE,
+            limLog(pMac, LOGE,
                   FL("Requested SSID length > SIR_MAC_MAX_SSID_LENGTH"));
             valid = false;
             goto end;
@@ -868,6 +868,26 @@ limIsSmeScanReqValid(tpAniSirGlobal pMac, tpSirSmeScanReq pScanReq)
        limLog(pMac, LOGE, FL("Invalid BSS Type"));
        valid = false;
     }
+
+    if (limIsGroupAddr(pScanReq->bssId) && !limIsAddrBC(pScanReq->bssId))
+    {
+        limLog(pMac, LOGE, FL("Invalid BSS Type"));
+
+        valid = false;
+        limLog(pMac, LOGE, FL("BSSID is group addr and is not Broadcast Addr"));
+    }
+    if (!(pScanReq->scanType == eSIR_PASSIVE_SCAN || pScanReq->scanType == eSIR_ACTIVE_SCAN))
+    {
+        valid = false;
+        limLog(pMac, LOGE, FL("Invalid Scan Type"));
+    }
+
+    if (pScanReq->channelList.numChannels > SIR_MAX_NUM_CHANNELS)
+    {
+       valid = false;
+       limLog(pMac, LOGE, FL("Number of Channels > SIR_MAX_NUM_CHANNELS"));
+    }
+
     if (limIsGroupAddr(pScanReq->bssId) && !limIsAddrBC(pScanReq->bssId))
     {
         valid = false;
@@ -880,22 +900,26 @@ limIsSmeScanReqValid(tpAniSirGlobal pMac, tpSirSmeScanReq pScanReq)
     }
     if (pScanReq->channelList.numChannels > SIR_MAX_NUM_CHANNELS)
     {
-       valid = false;
-       limLog(pMac, LOGE, FL("Number of Channels > SIR_MAX_NUM_CHANNELS"));
+        valid = false;
+        limLog(pMac, LOGE, FL("Number of Channels > SIR_MAX_NUM_CHANNELS"));
     }
+
+
 
     /*
     ** check min/max channelTime range
     **/
     if (valid)
     {
-       if ((pScanReq->scanType == eSIR_ACTIVE_SCAN) &&
-          (pScanReq->maxChannelTime < pScanReq->minChannelTime))
-       {
-           limLog(pMac, LOGE, FL("Max Channel Time < Min Channel Time"));
-           valid = false;
+        if ((pScanReq->scanType == eSIR_ACTIVE_SCAN) &&
+            (pScanReq->maxChannelTime < pScanReq->minChannelTime))
+        {
+            limLog(pMac, LOGE, FL("Max Channel Time < Min Channel Time"));
+            valid = false;
+            goto end;
         }
-     }
+    }
+
 end:
     return valid;
 } /*** end limIsSmeScanReqValid() ***/

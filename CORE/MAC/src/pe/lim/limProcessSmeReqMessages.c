@@ -180,6 +180,7 @@ __limFreshScanReqd(tpAniSirGlobal pMac, tANI_U8 returnFreshResults)
 
         }
     }
+
    limLog(pMac, LOG1, FL("FreshScanReqd: %d "), validState);
 
    if( (validState) && (returnFreshResults & SIR_BG_SCAN_RETURN_FRESH_RESULTS))
@@ -1163,7 +1164,9 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
     pMac->lim.fOffloadScanPending = 1;
     if (pScanReq->p2pSearch)
         pMac->lim.fOffloadScanP2PSearch = 1;
+
     limLog(pMac, LOG1, FL("Processed Offload Scan Request Successfully"));
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -1254,7 +1257,9 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
        !pMac->lim.gScanInPowersave &&
        !limIsSystemInActiveState(pMac)))
     {
-       limLog(pMac, LOGE, FL("SCAN is disabled or SCAN in power save is disabled and system is in power save."));
+        limLog(pMac, LOGE, FL("SCAN is disabled or SCAN in power save"
+                           " is disabled and system is in power save."));
+
         limSendSmeScanRsp(pMac, offsetof(tSirSmeScanRsp,bssDescription[0]), eSIR_SME_INVALID_PARAMETERS, pScanReq->sessionId, pScanReq->transactionId);
         return;
     }
@@ -1356,6 +1361,7 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
               limLog(pMac, LOG1,
                     FL("Scan all channels as Number of channels is 0"));
+
               // Scan all channels
               len = sizeof(tLimMlmScanReq) +
                   (sizeof( pScanReq->channelList.channelNumber ) * (WNI_CFG_VALID_CHANNEL_LIST_LEN - 1)) +
@@ -1510,6 +1516,8 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
             if (pMac->fScanOffload)
                  limFlushp2pScanResults(pMac);
+
+            limLog(pMac, LOG1, FL("Cached scan results are returned "));
 
             if (pScanReq->returnFreshResults & SIR_BG_SCAN_PURGE_RESUTLS)
             {
@@ -5583,8 +5591,9 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
                 }
 
                 limLog(pMac, LOGE,
-                       FL("Error: Scan Disabled.Return with error status for SME Message %s(%d)"),
-                       limMsgStr(pMsg->type), pMsg->type);
+                      FL("Error: Scan Disabled."
+                      " Return with error status for SME Message %s(%d)"),
+                      limMsgStr(pMsg->type), pMsg->type);
 
                 return bufConsumed;
             }
