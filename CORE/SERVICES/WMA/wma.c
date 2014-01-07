@@ -2504,8 +2504,9 @@ void wma_vdev_detach_callback(void *ctx)
 	wma = vos_get_context(VOS_MODULE_ID_WDA,
 			      vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
 
-	if (!wma || !iface) {
-		WMA_LOGP("%s: wma %p iface %p", __func__, wma, iface);
+	if (!wma || !iface->del_staself_req) {
+		WMA_LOGP("%s: wma %p iface %p", __func__, wma,
+			 iface->del_staself_req);
 		return;
 	}
 	param = (tpDelStaSelfParams) iface->del_staself_req;
