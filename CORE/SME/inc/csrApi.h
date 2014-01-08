@@ -1141,7 +1141,7 @@ typedef struct tagCsrConfigParam
 
     tANI_U8 isCoalesingInIBSSAllowed;
 
-
+    eCsrBand  scanBandPreference;
 }tCsrConfigParam;
 
 //Tush

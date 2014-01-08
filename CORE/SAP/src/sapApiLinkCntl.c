@@ -136,25 +136,15 @@ WLANSAP_ScanCallback
     tScanResultHandle pResult = NULL;
     eHalStatus scanGetResultStatus = eHAL_STATUS_FAILURE;
     ptSapContext psapContext = (ptSapContext)pContext;
-    void *pTempHddCtx;
     tWLAN_SAPEvent sapEvent; /* State machine event */
     v_U8_t operChannel = 0;
     VOS_STATUS sapstatus;
 #ifdef SOFTAP_CHANNEL_RANGE
     v_U32_t operatingBand;
+    v_U32_t event;
 #endif
 
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
-    pTempHddCtx = vos_get_context( VOS_MODULE_ID_HDD,
-                                     psapContext->pvosGCtx);
-    if (NULL == pTempHddCtx)
-    {
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
-                   "HDD context is NULL");
-        return eHAL_STATUS_FAILURE;
-    }
-
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, before switch on scanStatus = %d", __func__, scanStatus);
 
     switch (scanStatus) 
@@ -176,38 +166,62 @@ WLANSAP_ScanCallback
             operChannel = sapSelectChannel(halHandle, psapContext, pResult);
 
             sme_ScanResultPurge(halHandle, pResult);
+            event = eSAP_MAC_SCAN_COMPLETE;
             break;
 
         default:
+            event = eSAP_CHANNEL_SELECTION_FAILED;
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR scanStatus = %s (%d)", __func__, "eCSR_SCAN_ABORT/FAILURE", scanStatus);
     }
     
     if (operChannel == SAP_CHANNEL_NOT_SELECTED)
 #ifdef SOFTAP_CHANNEL_RANGE
     {
-       if(psapContext->channelList != NULL)
-       {
-          psapContext->channel = psapContext->channelList[0];
-       }
-       else 
-       {
-         /* if the channel list is empty then there is no valid channel in 
-                the selected sub-band so select default channel in the 
-                BAND(2.4GHz/5GHZ) */
-          ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
-          if(RF_SUBBAND_2_4_GHZ == operatingBand )
-              psapContext->channel = SAP_DEFAULT_CHANNEL;
-          else
-              psapContext->channel = SAP_DEFAULT_5GHZ_CHANNEL;
-         
-       }
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+             "%s: No suitable channel selected",
+             __func__);
+
+        if ( eCSR_BAND_ALL ==  psapContext->scanBandPreference ||
+                     psapContext->allBandScanned == eSAP_TRUE)
+        {
+             if(psapContext->channelList != NULL)
+             {
+                 psapContext->channel = psapContext->channelList[0];
+             }
+             else
+             {
+                 /* if the channel list is empty then there is no valid channel in
+                    the selected sub-band so select default channel in the
+                    BAND(2.4GHz/5GHZ) */
+                 ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
+                 if(RF_SUBBAND_2_4_GHZ == operatingBand )
+                     psapContext->channel = SAP_DEFAULT_CHANNEL;
+                 else
+                     psapContext->channel = SAP_DEFAULT_5GHZ_CHANNEL;
+             }
+        }
+        else
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+             "%s: Has scan band preference",
+             __func__);
+            if (eCSR_BAND_24 == psapContext->currentPreferredBand)
+                psapContext->currentPreferredBand = eCSR_BAND_5G;
+            else
+                psapContext->currentPreferredBand = eCSR_BAND_24;
+
+            psapContext->allBandScanned = eSAP_TRUE;
+            //go back to DISCONNECT state, scan next band
+            psapContext->sapsMachine = eSAP_DISCONNECTED;
+            event = eSAP_CHANNEL_SELECTION_FAILED;
+         }
     }
 #else
-       psapContext->channel = SAP_DEFAULT_CHANNEL;
+        psapContext->channel = SAP_DEFAULT_CHANNEL;
 #endif
     else
     {
-      psapContext->channel = operChannel;
+        psapContext->channel = operChannel;
     }
 
     sme_SelectCBMode(halHandle,
@@ -226,7 +240,7 @@ WLANSAP_ScanCallback
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Channel selected = %d", __func__, psapContext->channel);
 
     /* Fill in the event structure */
-    sapEvent.event = eSAP_MAC_SCAN_COMPLETE;
+    sapEvent.event = event;
     sapEvent.params = 0;        // pCsrRoamInfo;
     sapEvent.u1 = scanStatus;   // roamstatus
     sapEvent.u2 = 0;            // roamResult

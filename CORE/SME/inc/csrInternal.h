@@ -778,6 +778,7 @@ typedef struct tagCsrScanStruct
 #endif
     tCsrChannel occupiedChannels;   //This includes all channels on which candidate APs are found
     tANI_S8     inScanResultBestAPRssi;
+    eCsrBand  scanBandPreference;  //This defines the band perference for scan
 }tCsrScanStruct;
 
 #ifdef FEATURE_WLAN_TDLS_INTERNAL

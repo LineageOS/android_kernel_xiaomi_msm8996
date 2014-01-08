@@ -5053,6 +5053,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #ifdef QCA_WIFI_2_0
    /* Update the p2p listen offload setting */
    smeConfig.fP2pListenOffload =  pHddCtx->cfg_ini->fP2pListenOffload;
+   smeConfig.csrConfig.scanBandPreference = eCSR_BAND_ALL;
 #endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO

@@ -221,6 +221,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_MCC_CONFIG_QUOTA             71
 /* Private IOCTL for debug connection issues */
 #define WE_SET_DEBUG_LOG                72
+#define  WE_SET_SCAN_BAND_PREFERENCE    73
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -280,7 +281,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_GTX_STEP                 52
 #define WE_GET_GTX_MINTPC               53
 #define WE_GET_GTX_BWMASK               54
-
+#define WE_GET_SCAN_BAND_PREFERENCE     55
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -5429,6 +5430,31 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                       set_value, QPOWER_CMD);
            break;
         }
+        case WE_SET_SCAN_BAND_PREFERENCE:
+        {
+           if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION) {
+               ret = -EINVAL;
+               break;
+           }
+           hddLog(LOG1, "WE_SET_BAND_PREFERRENCE val %d ", set_value);
+
+           if (eCSR_BAND_ALL == set_value ||
+                  eCSR_BAND_24 == set_value || eCSR_BAND_5G == set_value) {
+               sme_GetConfigParam(hHal, &smeConfig);
+               smeConfig.csrConfig.scanBandPreference = set_value;
+
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                         "set band scan preference = %d\n",
+                         smeConfig.csrConfig.scanBandPreference);
+
+               sme_UpdateConfig(hHal, &smeConfig);
+           }
+           else {
+               ret = -EINVAL;
+           }
+           break;
+
+        }
 
         case WE_MCC_CONFIG_LATENCY:
         {
@@ -5707,6 +5733,7 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
     hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pAdapter);
     void *wmapvosContext = wmahddCtxt->pvosContext;
 #endif
+    tSmeConfigParams smeConfig;
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
     {
@@ -5719,7 +5746,6 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
     {
         case WE_GET_11D_STATE:
         {
-           tSmeConfigParams smeConfig;
            sme_GetConfigParam(hHal,&smeConfig);
 
            *value = smeConfig.csrConfig.Is11dSupportEnabled;
@@ -6236,6 +6262,15 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
            break;
         }
 
+        case WE_GET_SCAN_BAND_PREFERENCE:
+        {
+            sme_GetConfigParam(hHal, &smeConfig);
+            *value = smeConfig.csrConfig.scanBandPreference;
+
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                      "scanBandPreference = %d\n", *value);
+            break;
+        }
 #endif
 
         default:
@@ -9817,6 +9852,9 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "setDbgLvl" },
 
+    {   WE_SET_SCAN_BAND_PREFERENCE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "set_scan_pref" },
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
@@ -10099,6 +10137,10 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_qnodatapoll"},
 
+    {   WE_GET_SCAN_BAND_PREFERENCE,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_scan_pref"},
 #endif
 
     /* handlers for main ioctl */
