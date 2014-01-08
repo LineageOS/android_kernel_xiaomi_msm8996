@@ -4014,12 +4014,14 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle, tpAniSirGlobal
             /* NeighborScanChannelMinTime = SETROAMSCANCHANNELMINTIME and gNeighborScanChannelMinTime */
                 if (roam_req->HomeAwayTime > (2 * WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME)) {
                     burst_duration = roam_req->HomeAwayTime - 2 * WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME;
-                    min_scan_time = min(roam_req->NeighborScanChannelMinTime, burst_duration);
                     max_scan_time = min(roam_req->NeighborScanChannelMaxTime, burst_duration);
                 } else {
-                        min_scan_time = roam_req->NeighborScanChannelMinTime;
-                        burst_duration = max_scan_time = roam_req->NeighborScanChannelMaxTime;
+                    burst_duration = max_scan_time = roam_req->NeighborScanChannelMaxTime;
                 }
+                /* ROME cld firmware have single value and not min, max
+                 * therefore setting both values to same thing.
+                 */
+                min_scan_time = max_scan_time;
                 nprobes = roam_req->nProbes;
                 scan_params->dwell_time_active = min_scan_time;
 
