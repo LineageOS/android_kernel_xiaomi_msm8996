@@ -4258,6 +4258,22 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 
         case ROAM_SCAN_OFFLOAD_STOP:
             wma_roam_scan_offload_end_connect(wma_handle);
+            if (roam_req->StartScanReason == REASON_OS_REQUESTED_ROAMING_NOW) {
+                vos_msg_t vosMsg;
+                vosMsg.type = eWNI_SME_ROAM_SCAN_OFFLOAD_RSP;
+                vosMsg.bodyptr = NULL;
+                vosMsg.bodyval = roam_req->StartScanReason;
+                /*
+                 * Since REASSOC request is processed in Roam_Scan_Offload_Rsp
+                 * post a dummy rsp msg back to SME with proper reason code.
+                 */
+                if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MQ_ID_SME,
+                    (vos_msg_t*)&vosMsg))
+                {
+                    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                               "Failed to post the rsp to UMAC" , __func__);
+                }
+            }
             break;
 
         case ROAM_SCAN_OFFLOAD_RESTART:
