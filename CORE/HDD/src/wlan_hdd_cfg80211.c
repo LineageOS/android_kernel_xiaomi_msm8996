@@ -5503,6 +5503,21 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             hdd_connSetConnectionState(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter),
                                                  eConnectionState_Connecting);
 
+        /* After 8-way handshake supplicant should give the scan command
+         * in that it update the additional IEs, But because of scan
+         * enhancements, the supplicant is not issuing the scan command now.
+         * So the unicast frames which are sent from the host are not having
+         * the additional IEs. If it is P2P CLIENT and there is no additional
+         * IE present in roamProfile, then use the addtional IE form scan_info
+         */
+
+        if ((pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) &&
+                (!pRoamProfile->pAddIEScan))
+        {
+            pRoamProfile->pAddIEScan = &pAdapter->scan_info.scanAddIE.addIEdata[0];
+            pRoamProfile->nAddIEScanLength = pAdapter->scan_info.scanAddIE.length;
+        }
+
         status = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
                             pAdapter->sessionId, pRoamProfile, &roamId);
 
