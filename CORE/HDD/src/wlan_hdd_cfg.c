@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -4464,7 +4464,7 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
                temp = (temp & 0xFFF3) | (pConfig->vhtTxMCS2x2 << 2);
 
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "vhtRxMCS2x2 - %x temp - %lu enable2x2 %d\n",
+                    "vhtRxMCS2x2 - %x temp - %u enable2x2 %d\n",
                     pConfig->vhtRxMCS2x2, temp, pConfig->enable2x2);
 
            if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_TX_MCS_MAP,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1707,7 +1707,7 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    adf_ctx = vos_mem_malloc(sizeof(adf_os_device_t));
 
    if (!adf_ctx) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx");
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx", __func__);
       goto err_re_init;
    }
    vos_mem_zero(adf_ctx, sizeof(adf_os_device_t));
