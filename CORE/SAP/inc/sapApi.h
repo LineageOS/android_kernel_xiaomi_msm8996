@@ -441,7 +441,7 @@ typedef struct sap_Config {
     v_U32_t         ap_table_expiration_time;
     v_U32_t         ht_op_mode_fixed;
     tVOS_CON_MODE   persona; /*Tells us which persona it is GO or AP for now*/
-
+    v_U8_t          disableDFSChSwitch;
 } tsap_Config_t;
 
 typedef enum {

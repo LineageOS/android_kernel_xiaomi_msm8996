@@ -1221,6 +1221,7 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     profile->BSSType = eCSR_BSS_TYPE_INFRA_AP;
     profile->SSIDs.numOfSSIDs = 1;
     profile->csrPersona = pconfig_params->persona;
+    profile->disableDFSChSwitch = pconfig_params->disableDFSChSwitch;
 
     vos_mem_zero(profile->SSIDs.SSIDList[0].SSID.ssId,
                  sizeof(profile->SSIDs.SSIDList[0].SSID.ssId));
@@ -1736,6 +1737,11 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
      */
     if (eSAP_STARTED == sapContext->sapsMachine)
         sapContext->SapDfsInfo.csaIERequired = VOS_TRUE;
+
+    if (sapContext->csrRoamProfile.disableDFSChSwitch)
+    {
+       return sapContext->channel;
+    }
 
     sapGet5GHzChannelList(sapContext);
     total_num_channels = sapContext->SapAllChnlList.numChannel;

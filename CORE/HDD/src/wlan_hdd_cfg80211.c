@@ -1827,10 +1827,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
     struct qc_mac_acl_entry *acl_entry = NULL;
     v_SINT_t i;
+    hdd_config_t *iniConfig;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
 
     ENTER();
 
+    iniConfig = pHddCtx->cfg_ini;
     pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
 
     pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
@@ -1840,6 +1842,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pMgmt_frame = (struct ieee80211_mgmt*)pBeacon->head;
 
     pConfig->beacon_int =  pMgmt_frame->u.beacon.beacon_int;
+
+    pConfig->disableDFSChSwitch = iniConfig->disableDFSChSwitch;
 
     //channel is already set in the set_channel Call back
     //pConfig->channel = pCommitConfig->channel;

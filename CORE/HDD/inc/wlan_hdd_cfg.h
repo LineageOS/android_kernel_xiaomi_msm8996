@@ -1411,6 +1411,11 @@ typedef enum
 #define CFG_HT_SMPS_CAP_FEATURE_MAX             ( 3 )
 #define CFG_HT_SMPS_CAP_FEATURE_DEFAULT         ( 3 )
 
+#define CFG_DISABLE_DFS_CH_SWITCH                 "gDisableDFSChSwitch"
+#define CFG_DISABLE_DFS_CH_SWITCH_MIN             ( 0 )
+#define CFG_DISABLE_DFS_CH_SWITCH_MAX             ( 1 )
+#define CFG_DISABLE_DFS_CH_SWITCH_DEFAULT         ( 0 )
+
 #define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
 #define CFG_REPORT_MAX_LINK_SPEED_MIN              ( eHDD_LINK_SPEED_REPORT_ACTUAL )
 #define CFG_REPORT_MAX_LINK_SPEED_MAX              ( eHDD_LINK_SPEED_REPORT_MAX_SCALED )
@@ -2556,6 +2561,7 @@ typedef struct
    v_U8_t                      maxWoWFilters;
    v_U8_t                      wowEnable;
    v_U8_t                      maxNumberOfPeers;
+   v_U8_t                      disableDFSChSwitch;
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation

@@ -902,6 +902,8 @@ typedef struct tagCsrRoamProfile
 #endif
     tVOS_CON_MODE csrPersona;
 
+    tANI_U8 disableDFSChSwitch;
+
 }tCsrRoamProfile;
 
 
