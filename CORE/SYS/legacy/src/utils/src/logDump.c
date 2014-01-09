@@ -29,7 +29,6 @@ logDump.c
 */
 
 /*
- * Woodside Networks, Inc proprietary. All rights reserved.
  * This file contains the utility functions to dump various
  * MAC states and to enable/disable certain features during
  * debugging.

@@ -32,7 +32,6 @@
 
     Define internal data structure for MAC.
 
-    Copyright (C) 2006 Airgo Networks, Incorporated
    ========================================================================== */
 #ifndef CSRINTERNAL_H__
 #define CSRINTERNAL_H__

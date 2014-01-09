@@ -32,8 +32,6 @@
 
     Implementation supporting routines for CSR.
 
-
-    Copyright (C) 2006 Airgo Networks, Incorporated
    ========================================================================== */
 
 

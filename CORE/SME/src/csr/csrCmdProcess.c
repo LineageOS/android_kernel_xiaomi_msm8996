@@ -30,8 +30,6 @@
 
     Implementation for processing various commands.
 
-    Copyright (C) 2006 Airgo Networks, Incorporated
-
    ========================================================================== */
 
 

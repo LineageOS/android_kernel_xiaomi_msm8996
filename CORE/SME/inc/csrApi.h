@@ -30,7 +30,6 @@
 
     Exports and types for the Common Scan and Roaming Module interfaces.
 
-    Copyright (C) 2006 Airgo Networks, Incorporated
    ========================================================================== */
 #ifndef CSRAPI_H__
 #define CSRAPI_H__

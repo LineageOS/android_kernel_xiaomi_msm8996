@@ -32,7 +32,6 @@
 
     Implementation for the Common Scan interfaces.
 
-    Copyright (C) 2006 Airgo Networks, Incorporated
    ========================================================================== */
 
 #include "aniGlobal.h"
