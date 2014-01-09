@@ -204,7 +204,8 @@ extern "C" {
 #define RESMGR_DYN_SCH_HOME_CH_QUOTA                57
 #define RESMGR_OCS_REG_RECAL_QUOTA_NOTIF            58
 #define RESMGR_OCS_DEREG_RECAL_QUOTA_NOTIF          59
-#define RESMGR_DEFINITION_END                       60
+#define RESMGR_DYN_SCH_CH_STATS_END                 60
+#define RESMGR_DEFINITION_END                       61
 
 /* RESMGR CHNMGR debug ids */
 #define RESMGR_CHMGR_DEFINITION_START               0
@@ -689,7 +690,10 @@ extern "C" {
 #define OFFLOADMGR_NO_REG_DATA_HANDLERS                3
 #define OFFLOADMGR_NO_REG_EVENT_HANDLERS               4
 #define OFFLOADMGR_REG_OFFLOAD_FAILED                  5
-#define OFFLOADMGR_DBGID_DEFINITION_END                6
+#define OFFLOADMGR_DEREG_OFFLOAD_FAILED                6
+#define OFFLOADMGR_ENTER_FAILED                        7
+#define OFFLOADMGR_EXIT_FAILED                         8
+#define OFFLOADMGR_DBGID_DEFINITION_END                9
 
 /*Resource Debug IDs*/
 #define RESOURCE_DBGID_DEFINITION_START             0
