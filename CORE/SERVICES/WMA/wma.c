@@ -3210,21 +3210,21 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	cmd->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
 	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES;
 
-	for (i = 0; i < wma_handle->max_bssid; i++) {
-		if (wma_is_vdev_in_ap_mode(wma_handle, i))
-			break;
-	}
-	if (i != wma_handle->max_bssid)
-		cmd->burst_duration = scan_req->maxChannelTime *
-			WMA_SCAN_AP_PRESENT_MAX_OFFCHANNEL_NUM;
+	if (scan_req->scanType == eSIR_PASSIVE_SCAN)
+		cmd->burst_duration = 0;
 	else {
-		if (scan_req->scanType == eSIR_PASSIVE_SCAN)
-			cmd->burst_duration = scan_req->maxChannelTime *
-				WMA_SCAN_MAX_OFFCHANNEL_NUM_PASSIVE;
-		else
-			cmd->burst_duration = scan_req->maxChannelTime *
-				WMA_SCAN_MAX_OFFCHANNEL_NUM_ACTIVE;
+		if (scan_req->channelList.numChannels <
+		    WMA_BURST_SCAN_MAX_NUM_OFFCHANNELS) {
+			cmd->burst_duration =
+				scan_req->channelList.numChannels *
+				scan_req->maxChannelTime;
+		} else {
+			cmd->burst_duration =
+				WMA_BURST_SCAN_MAX_NUM_OFFCHANNELS *
+				scan_req->maxChannelTime;
+		}
 	}
+
 	if (!scan_req->p2pScanType) {
 		WMA_LOGD("Normal Scan request");
 		cmd->scan_ctrl_flags |= WMI_SCAN_ADD_CCK_RATES;

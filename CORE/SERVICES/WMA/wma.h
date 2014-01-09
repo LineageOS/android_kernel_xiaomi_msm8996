@@ -135,9 +135,7 @@
 #define WMA_HW_DEF_SCAN_MAX_DURATION	  30000 /* 30 secs */
 
 /* Max offchannel duration */
-#define WMA_SCAN_AP_PRESENT_MAX_OFFCHANNEL_NUM 5
-#define WMA_SCAN_MAX_OFFCHANNEL_NUM_ACTIVE     10
-#define WMA_SCAN_MAX_OFFCHANNEL_NUM_PASSIVE    4
+#define WMA_BURST_SCAN_MAX_NUM_OFFCHANNELS 5
 
 /* Roaming default values
  * All time and period values are in milliseconds.
