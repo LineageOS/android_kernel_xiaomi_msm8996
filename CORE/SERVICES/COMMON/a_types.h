@@ -24,6 +24,14 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+//depot/sw/qca_main/perf_pwr_offload/drivers/host/include/a_types.h#7 - integrate change 1327637 (ktext)
+//==============================================================================
+// This file contains the definitions of the basic atheros data types.
+// It is used to map the data types in atheros files to a platform specific
+// type.
+//
+// Author(s): ="Atheros"
+//==============================================================================
 
 #ifndef _A_TYPES_H_
 #define _A_TYPES_H_

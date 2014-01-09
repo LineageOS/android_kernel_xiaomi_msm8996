@@ -24,15 +24,19 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( HDD_CONNECTION_H__ ) 
 #define HDD_CONNECTION_H__
 #include <wlan_hdd_mib.h>
 #define HDD_MAX_NUM_IBSS_STA ( 32 )
 #ifdef FEATURE_WLAN_TDLS
 #define HDD_MAX_NUM_TDLS_STA ( 8 )
+#ifdef QCA_WIFI_2_0
+#define TDLS_STA_INDEX_VALID(staId) \
+                          (((staId) >= 1) && ((staId) < 0xFF))
+#else
 #define TDLS_STA_INDEX_VALID(staId) \
                           (((staId) >= 4) && ((staId) < 0xFF))
+#endif
 #endif
 #define TKIP_COUNTER_MEASURE_STARTED 1
 #define TKIP_COUNTER_MEASURE_STOPED  0 
@@ -45,11 +49,6 @@
 #define IBSS_BROADCAST_STAID 0
 #else
 #define IBSS_BROADCAST_STAID 1
-#endif
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/* Timeout in ms for peer info request commpletion */
-#define IBSS_PEER_INFO_REQ_TIMOEUT 1000
 #endif
 
 typedef enum 

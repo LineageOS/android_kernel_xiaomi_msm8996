@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __VOS_API_H )
 #define __VOS_API_H
 
@@ -35,10 +34,6 @@
   \brief virtual Operating System Services (vOSS) API
                
    Header file that inludes all the vOSS API definitions.
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
  /*=========================================================================== 

@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessCfgUpdates.cc contains the utility functions
  * to handle various CFG parameter update events
  * Author:        Chandra Modumudi

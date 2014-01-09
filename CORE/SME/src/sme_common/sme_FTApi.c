@@ -24,16 +24,10 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
-
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /**=========================================================================
 
   \brief Definitions for SME FT APIs
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 

@@ -24,14 +24,12 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
     \file csrLinkList.c
   
     Implementation for the Common link list interfaces.
   
-    Copyright (C) 2006 Airgo Networks, Incorporated 
    ========================================================================== */
 
 #include "palApi.h"

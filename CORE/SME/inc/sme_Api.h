@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __SME_API_H )
 #define __SME_API_H
 
@@ -34,10 +33,6 @@
   \file  smeApi.h
   
   \brief prototype for SME APIs
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -56,9 +51,6 @@
 #include "btcApi.h"
 #include "vos_nvitem.h"
 #include "p2p_Api.h"
-#ifdef FEATURE_CESIUM_PROPRIETARY
-#include "smeInternal.h"
-#endif
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
 #include "oemDataApi.h"
@@ -145,7 +137,7 @@ typedef enum
 } tSmeFastRoamTrigger;
 
 #ifdef QCA_WIFI_2_0
-typedef struct _smeChannelInfo
+typedef PACKED_PRE struct PACKED_POST
 {
     /* channel id */
     tANI_U8 chan_id;
@@ -168,7 +160,22 @@ typedef struct _smeChannelInfo
     /* contains antennamax */
     tANI_U32 reg_info_2;
 } tSmeChannelInfo;
-#endif
+#ifdef FEATURE_WLAN_TDLS
+typedef enum
+{
+    eSME_TDLS_PEER_STATE_PEERING,
+    eSME_TDLS_PEER_STATE_CONNECTED,
+    eSME_TDLS_PEER_STATE_TEARDOWN
+} eSmeTdlsPeerState;
+
+typedef struct _smeTdlsPeerStateParams
+{
+    tANI_U32 vdevId;
+    tSirMacAddr peerMacAddr;
+    tANI_U32 peerState;
+} tSmeTdlsPeerStateParams;
+#endif /* FEATURE_WLAN_TDLS */
+#endif /* QCA_WIFI_2_0 */
 
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
@@ -1604,30 +1611,6 @@ eHalStatus sme_GenericChangeCountryCode( tHalHandle hHal,
 eHalStatus sme_DHCPStartInd( tHalHandle hHal,
                              tANI_U8 device_mode,
                              tANI_U8 *macAddr );
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/* ---------------------------------------------------------------------------
-
-    \fn sme_TXFailMonitorStartStopInd
-
-    \brief Indicate FW about TX Fail Monitor Indication`
-
-    \param hHal - The handle returned by macOpen.
-
-    \param tx_fail_count number of failures after which the firmware sends
-                         an indication to host
-
-    \param txFailIndCallback function to be called after receiving TX Fail
-                             indication
-    \return eHalStatus  SUCCESS.
-
-                         FAILURE or RESOURCES  The API finished and failed.
-
-  -------------------------------------------------------------------------------*/
-eHalStatus sme_TXFailMonitorStartStopInd(tHalHandle hHal,
-                                         tANI_U8 tx_fail_count,
-                                         void * txFailIndCallback);
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 /* ---------------------------------------------------------------------------
 
@@ -3067,7 +3050,7 @@ v_U8_t sme_GetTdlsDiscoveryResult(tHalHandle hHal,
                                  tSmeTdlsDisResult *disResult, v_U8_t listType);
 VOS_STATUS sme_StartTdlsLinkSetupReq(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac);
 VOS_STATUS sme_StartTdlsLinkTeardownReq(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac);
-#endif /* FEATURE_WLAN_TDLS */
+#endif /* FEATURE_WLAN_TDLS_INTERNAL */
 eHalStatus sme_UpdateDfsSetting(tHalHandle hHal, tANI_U8 fUpdateEnableDFSChnlScan);
 
 /*
@@ -3179,28 +3162,6 @@ eHalStatus sme_DelPeriodicTxPtrn(tHalHandle hHal, tSirDelPeriodicTxPtrn
 void sme_enable_disable_split_scan (tHalHandle hHal, tANI_U8 nNumStaChan,
                                     tANI_U8 nNumP2PChan);
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-/* ---------------------------------------------------------------------------
-    \fn sme_EnableReliableMcast
-    \brief  Used to enable Reliable Multicast using Leader Based Protocol
-    setting will not persist over reboots
-    \param  hHal
-    \param  sessionId
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
-eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U32 sessionId);
-
-/* ---------------------------------------------------------------------------
-    \fn sme_DisableReliableMcast
-    \brief  Used to disable Reliable Multicast using Leader Based Protocol
-    setting will not persist over reboots
-    \param  hHal
-    \param  sessionId
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
-eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U32 sessionId);
-#endif //#if defined WLAN_FEATURE_RELIABLE_MCAST
-
 /* ---------------------------------------------------------------------------
     \fn sme_SendRateUpdateInd
     \brief  API to Update rate
@@ -3209,31 +3170,6 @@ eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U32 sessionId);
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus sme_SendRateUpdateInd(tHalHandle hHal, tSirRateUpdateInd *rateUpdateParams);
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/* ---------------------------------------------------------------------------
-    \fn sme_GetIBSSPeerInfo
-    \brief  Used to disable Reliable Multicast using Leader Based Protocol
-    setting will not persist over reboots
-    \param  hHal
-    \param  ibssPeerInfoReq  multicast Group IP address
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
-eHalStatus sme_RequestIBSSPeerInfo(tHalHandle hHal, void *pUserData,
-                                            pIbssPeerInfoCb peerInfoCbk,
-                                            tANI_BOOLEAN allPeerInfoReqd,
-                                            tANI_U8 staIdx);
-
-/* ---------------------------------------------------------------------------
-    \fn sme_IBSSRouteTableUpdate
-    \API to update IBSS Route table in FW.
-    \param hHal - The handle returned by macOpen
-    \param pIbssTable - ptr to IBSS table struct
-    \- return Success or Failiure
-    -------------------------------------------------------------------------*/
-eHalStatus sme_IBSSRouteTableUpdateInd(tHalHandle hHal,
-                                       tAniIbssRouteTable *pIbssTable);
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 /*
  * sme API to trigger fast BSS roam to a given BSSID independent of RSSI
@@ -3329,5 +3265,27 @@ eHalStatus sme_MoveCsrToScanStateForPno (tHalHandle hHal, tANI_U8 sessionId);
 #ifdef QCA_WIFI_2_0
 eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
                               tSmeChannelInfo *chanInfo);
-#endif
+#ifdef FEATURE_WLAN_TDLS
+eHalStatus sme_UpdateFwTdlsState(tHalHandle hHal, void *psmeTdlsParams);
+eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
+                                   tSmeTdlsPeerStateParams *pPeerStateParams);
+#endif /* FEATURE_WLAN_TDLS */
+#endif /* QCA_WIFI_2_0 */
+
+#ifdef FEATURE_WLAN_CH_AVOID
+/* ---------------------------------------------------------------------------
+    \fn sme_AddChAvoidCallback
+    \brief  Used to plug in callback function
+        Which notify channel may not be used with SAP or P2PGO mode.
+        Notification come from FW.
+    \param  hHal
+    \param  pCallbackfn : callback function pointer should be plugged in
+    \- return eHalStatus
+-------------------------------------------------------------------------*/
+eHalStatus sme_AddChAvoidCallback
+(
+   tHalHandle hHal,
+   void (*pCallbackfn)(void *hdd_context, void *indi_param)
+);
+#endif /* FEATURE_WLAN_CH_AVOID */
 #endif //#if !defined( __SME_API_H )

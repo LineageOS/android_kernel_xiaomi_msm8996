@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WLANSAP_INTERNAL_H
 #define WLAN_QCT_WLANSAP_INTERNAL_H
 
@@ -38,9 +37,6 @@ DESCRIPTION
   This file contains the internal API exposed by the wlan SAP PAL layer 
   module.
 
-
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -754,6 +750,27 @@ RETURN VALUE If SUCCESS or FAILURE
 SIDE EFFECTS
 ============================================================================*/
 eCsrPhyMode sapConvertSapPhyModeToCsrPhyMode( eSapPhyMode sapPhyMode );
+
+#ifdef FEATURE_WLAN_CH_AVOID
+/*==========================================================================
+	FUNCTION    sapUpdateUnsafeChannelList
+
+	DESCRIPTION
+	Function sapUpdateUnsafeChannelList updates the SAP context of unsafe channels.
+
+	DEPENDENCIES
+	NA.
+
+	PARAMETERS
+
+	IN
+	NULL
+
+	RETURN VALUE
+	NULL
+============================================================================*/
+void sapUpdateUnsafeChannelList(void);
+#endif /* FEATURE_WLAN_CH_AVOID */
 
 #ifdef __cplusplus
 }

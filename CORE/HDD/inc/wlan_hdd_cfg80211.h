@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( HDD_CFG80211_H__ )
 #define HDD_CFG80211_H__
 
@@ -35,10 +34,6 @@
   
   \brief cfg80211 functions declarations
     
-               Copyright 2008 (c) Qualcomm Technologies, Inc.
-               All Rights Reserved.
-               Qualcomm Technologies Confidential and Proprietary.
-  
   ==========================================================================*/
   
 /* $HEADER$ */

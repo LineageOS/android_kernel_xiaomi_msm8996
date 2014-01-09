@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_PACK_ALIGN_H )
 #define __WLAN_QCT_PACK_ALIGN_H
 
@@ -36,10 +35,6 @@
                
    Definitions for platform independent means of packing and aligning
    data structures
-  
-   Copyright 2009 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

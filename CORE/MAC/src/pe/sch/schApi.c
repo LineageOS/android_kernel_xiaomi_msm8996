@@ -24,9 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ *
  * This file schApi.cc contains functions related to the API exposed
  * by scheduler module
  *
@@ -299,7 +298,14 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
   // limGetBssid( pMac, beaconParams->bssId);
   vos_mem_copy(beaconParams->bssId, psessionEntry->bssId, sizeof(psessionEntry->bssId));
 
-  beaconParams->timIeOffset = pMac->sch.schObject.gSchBeaconOffsetBegin;
+  if (eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole)
+  {
+      beaconParams->timIeOffset = 0;
+  }
+  else
+  {
+      beaconParams->timIeOffset = pMac->sch.schObject.gSchBeaconOffsetBegin;
+  }
   /* p2pIeOffset should be atleast greater than timIeOffset */
   if ((pMac->sch.schObject.p2pIeOffset != 0) &&
           (pMac->sch.schObject.p2pIeOffset <
@@ -485,7 +491,7 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
     else if ( DOT11F_WARNED( nStatus ) )
     {
         schLog( pMac, LOGE, FL("There were warnings while packing a P"
-                               "robe Response (0x%08x).") );
+                               "robe Response (0x%08x)."), nStatus );
     }
 
     if (addnIEPresent)

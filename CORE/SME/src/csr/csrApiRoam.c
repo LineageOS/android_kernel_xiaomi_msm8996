@@ -32,9 +32,6 @@
   
     Implementation for the Common Roaming interfaces.
   
-    Copyright (C) 2008 Qualcomm Technologies, Inc.
-  
- 
    ========================================================================== */
 /*===========================================================================
                       EDIT HISTORY FOR FILE
@@ -281,9 +278,6 @@ static void csrRoamDeInitGlobals(tpAniSirGlobal pMac)
 eHalStatus csrOpen(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    static uNvTables nvTables;
-    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-    v_REGDOMAIN_t regId;
     tANI_U32 i;
     
     do
@@ -305,40 +299,6 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
            break;
         if(!HAL_STATUS_SUCCESS(csrLLOpen(pMac->hHdd, &pMac->roam.roamCmdPendingList)))
            break;
-        vosStatus = vos_nv_readDefaultCountryTable( &nvTables );
-        if ( VOS_IS_STATUS_SUCCESS(vosStatus) )
-        {
-           vos_mem_copy(pMac->scan.countryCodeDefault, nvTables.defaultCountryTable.countryCode,
-                        WNI_CFG_COUNTRY_CODE_LEN);
-           status = eHAL_STATUS_SUCCESS;
-        }
-        else
-        {
-            smsLog( pMac, LOGE, FL("  fail to get NV_FIELD_IMAGE") );
-            //hardcoded for now
-            pMac->scan.countryCodeDefault[0] = 'U';
-            pMac->scan.countryCodeDefault[1] = 'S';
-            pMac->scan.countryCodeDefault[2] = 'I';
-            //status = eHAL_STATUS_SUCCESS;
-        }
-        smsLog( pMac, LOG1, FL(" country Code from nvRam %.2s"), pMac->scan.countryCodeDefault );
-
-        if (!('0' == pMac->scan.countryCodeDefault[0] &&
-            '0' == pMac->scan.countryCodeDefault[1]))
-        {
-            csrGetRegulatoryDomainForCountry(pMac, pMac->scan.countryCodeDefault,
-                                             &regId, COUNTRY_NV);
-        }
-        else
-        {
-            regId = REGDOMAIN_WORLD;
-        }
-        WDA_SetRegDomain(pMac, regId, eSIR_TRUE);
-        pMac->scan.domainIdDefault = regId;
-        pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
-        vos_mem_copy(pMac->scan.countryCodeCurrent, pMac->scan.countryCodeDefault,
-                     WNI_CFG_COUNTRY_CODE_LEN);
-        status = csrInitGetChannels( pMac );
     }while(0);
     
     return (status);
@@ -349,6 +309,7 @@ eHalStatus csr_init_chan_list(tpAniSirGlobal mac)
     eHalStatus status;
     static uNvTables nv_tbl;
     v_REGDOMAIN_t reg_id;
+    v_CountryInfoSource_t source = COUNTRY_INIT;
 
     if (vos_nv_readDefaultCountryTable(&nv_tbl) == VOS_STATUS_SUCCESS) {
        vos_mem_copy(mac->scan.countryCodeDefault,
@@ -363,9 +324,15 @@ eHalStatus csr_init_chan_list(tpAniSirGlobal mac)
     }
     smsLog(mac, LOG1, FL("country Code from nvRam %.2s"),
            mac->scan.countryCodeDefault);
+
+    if ('0' == mac->scan.countryCodeDefault[0] &&
+          '0' == mac->scan.countryCodeDefault[1]) {
+       source = COUNTRY_QUERY;
+    }
+
     status = csrGetRegulatoryDomainForCountry(mac,
                                               mac->scan.countryCodeDefault,
-                                              &reg_id, COUNTRY_IE);
+                                              &reg_id, source);
     if (status != eHAL_STATUS_SUCCESS)
        return status;
 
@@ -17170,71 +17137,6 @@ eHalStatus csrHandoffRequest(tpAniSirGlobal pMac,
    return status;
 }
 #endif /* WLAN_FEATURE_ROAM_SCAN_OFFLOAD */
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-eHalStatus csrEnableRMC(tpAniSirGlobal pMac, tANI_U32 sessionId)
-{
-   tSirSetRMCReq *pMsg = NULL;
-   eHalStatus status = eHAL_STATUS_SUCCESS;
-   tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
-
-   if (!pSession)
-   {
-       smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
-       return eHAL_STATUS_FAILURE;
-   }
-
-   pMsg = vos_mem_malloc(sizeof(tSirSetRMCReq));
-   if (NULL == pMsg)
-   {
-       vos_mem_set((void *)pMsg, sizeof(tSirSetRMCReq), 0);
-       pMsg->msgType = eWNI_SME_ENABLE_RMC_REQ;
-       pMsg->msgLen  = sizeof(tSirSetRMCReq);
-       vos_mem_copy((v_U8_t *)pMsg->mcastTransmitter,
-                    &pSession->selfMacAddr, sizeof(tSirMacAddr));
-
-       status = palSendMBMessage(pMac->hHdd, pMsg);
-       if (!HAL_STATUS_SUCCESS(status))
-       {
-           smsLog(pMac, LOGE, FL(" csr enable RMC Post MSG Fail %d "), status);
-           //pMsg is freed by palSendMBMessage
-       }
-   }
-   return status;
-}
-
-eHalStatus csrDisableRMC(tpAniSirGlobal pMac, tANI_U32 sessionId)
-{
-   tSirSetRMCReq *pMsg = NULL;
-   eHalStatus status = eHAL_STATUS_SUCCESS;
-   tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
-
-   if (!pSession)
-   {
-       smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
-       return eHAL_STATUS_FAILURE;
-   }
-
-   pMsg = vos_mem_malloc(sizeof(tSirSetRMCReq));
-   if (NULL == pMsg)
-   {
-       vos_mem_set((void *)pMsg, sizeof(tSirSetRMCReq), 0);
-       pMsg->msgType = eWNI_SME_DISABLE_RMC_REQ;
-       pMsg->msgLen  = sizeof(tSirSetRMCReq);
-       vos_mem_copy((v_U8_t *)pMsg->mcastTransmitter,
-                    &pSession->selfMacAddr, sizeof(tSirMacAddr));
-
-       status = palSendMBMessage(pMac->hHdd, pMsg);
-       if (!HAL_STATUS_SUCCESS(status))
-       {
-           smsLog(pMac, LOGE, FL(" csr disable RMC Post MSG Fail %d "), status);
-           //pMsg is freed by palSendMBMessage
-       }
-   }
-   return status;
-}
-
-#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
 
 #if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
 /* ---------------------------------------------------------------------------

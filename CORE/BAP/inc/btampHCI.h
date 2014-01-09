@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef BTAMPHCI_H
 #define BTAMPHCI_H
 

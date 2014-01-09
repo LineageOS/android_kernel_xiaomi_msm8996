@@ -25,7 +25,6 @@
  * to the Linux Foundation.
  */
 
-
 #ifndef __WMMAPSD_H__
 #define __WMMAPSD_H__
 

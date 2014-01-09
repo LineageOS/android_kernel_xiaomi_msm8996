@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
   
   @file  wlan_qct_pal_device.c
@@ -34,9 +33,6 @@
   This file implements the device specific HW access interface
   required by the WLAN Platform Abstraction Layer (WPAL)
 
-  Copyright (c) 2011 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ========================================================================*/
 
 /*===========================================================================

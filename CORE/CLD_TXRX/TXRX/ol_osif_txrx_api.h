@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file ol_osif_txrx_api.h
  * @brief Define the OS specific API functions called by txrx SW.

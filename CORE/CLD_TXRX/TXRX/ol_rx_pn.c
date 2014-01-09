@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #include <adf_nbuf.h>         /* adf_nbuf_t */
 
 #include <ol_htt_rx_api.h>    /* htt_rx_pn_t, etc. */

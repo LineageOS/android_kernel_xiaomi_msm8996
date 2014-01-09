@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limAssocUtils.cc contains the utility functions
  * LIM uses while processing (Re) Association messages.
  * Author:        Chandra Modumudi
@@ -2322,6 +2320,9 @@ limAddSta(
                  (tANI_U8 *) *pStaAddr, sizeof(tSirMacAddr));
     vos_mem_copy((tANI_U8 *) pAddStaParams->bssId,
                   psessionEntry->bssId, sizeof(tSirMacAddr));
+    vos_mem_copy(&pAddStaParams->capab_info,
+                 &pStaDs->mlmStaContext.capabilityInfo,
+                 sizeof(pAddStaParams->capab_info));
 
     limFillSupportedRatesInfo(pMac, pStaDs, &pStaDs->supportedRates,psessionEntry);
 
@@ -2460,6 +2461,47 @@ limAddSta(
            p2pIe = limGetP2pIEPtr(pMac, pAssocReq->addIE.addIEdata, pAssocReq->addIE.length);
        }
        pAddStaParams->p2pCapableSta = (p2pIe != NULL);
+       if (pAddStaParams->htCapable) {
+           vos_mem_copy(&pAddStaParams->ht_caps, ((tANI_U8 *) &pAssocReq->HTCaps) + 1,
+                        sizeof(pAddStaParams->ht_caps));
+       }
+       if (pAddStaParams->vhtCapable) {
+           pAddStaParams->vht_caps =
+            ((pAssocReq->VHTCaps.maxMPDULen << SIR_MAC_VHT_CAP_MAX_MPDU_LEN) |
+             (pAssocReq->VHTCaps.supportedChannelWidthSet <<
+                                      SIR_MAC_VHT_CAP_SUPP_CH_WIDTH_SET) |
+             (pAssocReq->VHTCaps.ldpcCodingCap <<
+                                      SIR_MAC_VHT_CAP_LDPC_CODING_CAP) |
+             (pAssocReq->VHTCaps.shortGI80MHz <<
+                                      SIR_MAC_VHT_CAP_SHORTGI_80MHZ) |
+             (pAssocReq->VHTCaps.shortGI160and80plus80MHz <<
+                                      SIR_MAC_VHT_CAP_SHORTGI_160_80_80MHZ) |
+             (pAssocReq->VHTCaps.txSTBC << SIR_MAC_VHT_CAP_TXSTBC) |
+             (pAssocReq->VHTCaps.rxSTBC << SIR_MAC_VHT_CAP_RXSTBC) |
+             (pAssocReq->VHTCaps.suBeamFormerCap <<
+                                      SIR_MAC_VHT_CAP_SU_BEAMFORMER_CAP) |
+             (pAssocReq->VHTCaps.suBeamformeeCap <<
+                                      SIR_MAC_VHT_CAP_SU_BEAMFORMEE_CAP) |
+             (pAssocReq->VHTCaps.csnofBeamformerAntSup <<
+                                  SIR_MAC_VHT_CAP_CSN_BEAMORMER_ANT_SUP) |
+             (pAssocReq->VHTCaps.numSoundingDim <<
+                                       SIR_MAC_VHT_CAP_NUM_SOUNDING_DIM) |
+             (pAssocReq->VHTCaps.muBeamformerCap <<
+                                     SIR_MAC_VHT_CAP_NUM_BEAM_FORMER_CAP)|
+             (pAssocReq->VHTCaps.muBeamformeeCap <<
+                                    SIR_MAC_VHT_CAP_NUM_BEAM_FORMEE_CAP) |
+             (pAssocReq->VHTCaps.vhtTXOPPS << SIR_MAC_VHT_CAP_TXOPPS) |
+             (pAssocReq->VHTCaps.htcVHTCap << SIR_MAC_VHT_CAP_HTC_CAP) |
+             (pAssocReq->VHTCaps.maxAMPDULenExp <<
+                                SIR_MAC_VHT_CAP_MAX_AMDU_LEN_EXPO) |
+             (pAssocReq->VHTCaps.vhtLinkAdaptCap <<
+                                   SIR_MAC_VHT_CAP_LINK_ADAPT_CAP) |
+             (pAssocReq->VHTCaps.rxAntPattern <<
+                               SIR_MAC_VHT_CAP_RX_ANTENNA_PATTERN) |
+             (pAssocReq->VHTCaps.txAntPattern <<
+                               SIR_MAC_VHT_CAP_TX_ANTENNA_PATTERN) |
+             (pAssocReq->VHTCaps.reserved1 << SIR_MAC_VHT_CAP_RESERVED2));
+       }
     }
 
     //Disable BA. It will be set as part of ADDBA negotiation.
@@ -2632,6 +2674,11 @@ limDelSta(
     /* Update PE session ID*/
     pDelStaParams->sessionId = psessionEntry->peSessionId;
     pDelStaParams->smesessionId = psessionEntry->smeSessionId;
+
+    pDelStaParams->staType = pStaDs->staType;
+    vos_mem_copy((tANI_U8 *)pDelStaParams->staMac,
+                 (tANI_U8 *)pStaDs->staAddr, sizeof(tSirMacAddr));
+
     pDelStaParams->status  = eHAL_STATUS_SUCCESS;
     msgQ.type = WDA_DELETE_STA_REQ;
     msgQ.reserved = 0;
@@ -3528,9 +3575,43 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
                                                                   pAddBssParams->currentExtChannel,
                                                                   psessionEntry->apCenterChan,
                                                                   psessionEntry);
-        vos_mem_copy(&pAddBssParams->staContext.vht_caps,
-                     (tANI_U8 *)&pAssocRsp->VHTCaps + sizeof(tANI_U8),
-                     sizeof(pAddBssParams->staContext.vht_caps));
+
+        pAddBssParams->staContext.vht_caps =
+            ((pAssocRsp->VHTCaps.maxMPDULen << SIR_MAC_VHT_CAP_MAX_MPDU_LEN) |
+             (pAssocRsp->VHTCaps.supportedChannelWidthSet <<
+                                      SIR_MAC_VHT_CAP_SUPP_CH_WIDTH_SET) |
+             (pAssocRsp->VHTCaps.ldpcCodingCap <<
+                                      SIR_MAC_VHT_CAP_LDPC_CODING_CAP) |
+             (pAssocRsp->VHTCaps.shortGI80MHz <<
+                                      SIR_MAC_VHT_CAP_SHORTGI_80MHZ) |
+             (pAssocRsp->VHTCaps.shortGI160and80plus80MHz <<
+                                      SIR_MAC_VHT_CAP_SHORTGI_160_80_80MHZ) |
+             (pAssocRsp->VHTCaps.txSTBC << SIR_MAC_VHT_CAP_TXSTBC) |
+             (pAssocRsp->VHTCaps.rxSTBC << SIR_MAC_VHT_CAP_RXSTBC) |
+             (pAssocRsp->VHTCaps.suBeamFormerCap <<
+                                      SIR_MAC_VHT_CAP_SU_BEAMFORMER_CAP) |
+             (pAssocRsp->VHTCaps.suBeamformeeCap <<
+                                      SIR_MAC_VHT_CAP_SU_BEAMFORMEE_CAP) |
+             (pAssocRsp->VHTCaps.csnofBeamformerAntSup <<
+                                  SIR_MAC_VHT_CAP_CSN_BEAMORMER_ANT_SUP) |
+             (pAssocRsp->VHTCaps.numSoundingDim <<
+                                       SIR_MAC_VHT_CAP_NUM_SOUNDING_DIM) |
+             (pAssocRsp->VHTCaps.muBeamformerCap <<
+                                     SIR_MAC_VHT_CAP_NUM_BEAM_FORMER_CAP)|
+             (pAssocRsp->VHTCaps.muBeamformeeCap <<
+                                    SIR_MAC_VHT_CAP_NUM_BEAM_FORMEE_CAP) |
+             (pAssocRsp->VHTCaps.vhtTXOPPS << SIR_MAC_VHT_CAP_TXOPPS) |
+             (pAssocRsp->VHTCaps.htcVHTCap << SIR_MAC_VHT_CAP_HTC_CAP) |
+             (pAssocRsp->VHTCaps.maxAMPDULenExp <<
+                                SIR_MAC_VHT_CAP_MAX_AMDU_LEN_EXPO) |
+             (pAssocRsp->VHTCaps.vhtLinkAdaptCap <<
+                                   SIR_MAC_VHT_CAP_LINK_ADAPT_CAP) |
+             (pAssocRsp->VHTCaps.rxAntPattern <<
+                               SIR_MAC_VHT_CAP_RX_ANTENNA_PATTERN) |
+             (pAssocRsp->VHTCaps.txAntPattern <<
+                               SIR_MAC_VHT_CAP_TX_ANTENNA_PATTERN) |
+             (pAssocRsp->VHTCaps.reserved1 << SIR_MAC_VHT_CAP_RESERVED2));
+
         pAddBssParams->staContext.maxAmpduSize =
                                   SIR_MAC_GET_VHT_MAX_AMPDU_EXPO(
                                            pAddBssParams->staContext.vht_caps);

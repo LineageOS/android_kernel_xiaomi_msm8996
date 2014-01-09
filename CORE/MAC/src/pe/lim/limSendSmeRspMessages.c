@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limSendSmeRspMessages.cc contains the functions
  * for sending SME response/notification messages to applications
  * above MAC software.
@@ -1664,7 +1662,33 @@ limSendSmeMgmtTXCompletion(tpAniSirGlobal pMac,
     limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
     return;
 }/*** end limSendSmeTDLSDeleteAllPeerInd() ***/
-#endif
+
+#ifdef QCA_WIFI_2_0
+void limSendSmeTdlsEventNotify(tpAniSirGlobal pMac, tANI_U16 msgType,
+                               void *events)
+{
+    tSirMsgQ mmhMsg;
+
+    switch (msgType)
+    {
+        case SIR_HAL_TDLS_SHOULD_DISCOVER:
+            mmhMsg.type = eWNI_SME_TDLS_SHOULD_DISCOVER;
+            break;
+        case SIR_HAL_TDLS_SHOULD_TEARDOWN:
+            mmhMsg.type = eWNI_SME_TDLS_SHOULD_TEARDOWN;
+            break;
+        case SIR_HAL_TDLS_PEER_DISCONNECTED:
+            mmhMsg.type = eWNI_SME_TDLS_PEER_DISCONNECTED;
+            break;
+    }
+
+    mmhMsg.bodyptr = events;
+    mmhMsg.bodyval = 0;
+    limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
+    return;
+}
+#endif /* QCA_WIFI_2_0 */
+#endif /* FEATURE_WLAN_TDLS */
 
 
 /**

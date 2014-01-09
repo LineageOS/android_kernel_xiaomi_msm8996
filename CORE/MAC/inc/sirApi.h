@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sirApi.h contains definitions exported by
  * Sirius software.
  * Author:        Chandra Modumudi
@@ -162,7 +160,7 @@ enum eSirHostMsgTypes
 enum {
     SIR_BOOT_MODULE_ID = 1,
     SIR_HAL_MODULE_ID  = 0x10,
-    SIR_CFG_MODULE_ID,
+    SIR_CFG_MODULE_ID = 0x12,
     SIR_LIM_MODULE_ID,
     SIR_ARQ_MODULE_ID,
     SIR_SCH_MODULE_ID,
@@ -913,14 +911,14 @@ typedef struct sSirSmeScanChanReq
 
 #ifndef OEM_DATA_REQ_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_REQ_SIZE 276
+#define OEM_DATA_REQ_SIZE 280
 #else
 #define OEM_DATA_REQ_SIZE 134
 #endif
 #endif
 #ifndef OEM_DATA_RSP_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_RSP_SIZE 1720
+#define OEM_DATA_RSP_SIZE 1724
 #else
 #define OEM_DATA_RSP_SIZE 1968
 #endif
@@ -2273,16 +2271,6 @@ typedef struct sAniDHCPStopInd
     tSirMacAddr             macAddr;
 
 } tAniDHCPInd, *tpAniDHCPInd;
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-typedef struct sAniTXFailMonitorInd
-{
-    tANI_U16                msgType; // message type is same as the request type
-    tANI_U16                msgLen;  // length of the entire request
-    tANI_U8                 tx_fail_count;
-    void                    *txFailIndCallback;
-} tAniTXFailMonitorInd, *tpAniTXFailMonitorInd;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 typedef struct sAniSummaryStatsInfo
 {
@@ -3664,23 +3652,6 @@ typedef struct sSirWlanSetRxpFilters
     tANI_U8 setMcstBcstFilter;
 }tSirWlanSetRxpFilters,*tpSirWlanSetRxpFilters;
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-
-#define ANI_MAX_IBSS_ROUTE_TABLE_ENTRY   100
-
-typedef struct sAniDestIpNextHopMacPair
-{
-    tANI_U8 destIpv4Addr[VOS_IPV4_ADDR_SIZE];
-    tANI_U8 nextHopMacAddr[VOS_MAC_ADDR_SIZE];
-}tAniDestIpNextHopMacPair;
-
-typedef struct sAniIbssRouteTable
-{
-    tANI_U16 numEntries;
-    tAniDestIpNextHopMacPair destIpNextHopPair[1];
-}tAniIbssRouteTable;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 #ifdef FEATURE_WLAN_SCAN_PNO
 //
 // PNO Messages
@@ -4222,6 +4193,16 @@ typedef struct sSirMgmtTxCompletionInd
    tANI_U8                sessionId;     // Session ID
    tANI_U32               txCompleteStatus;
 } tSirMgmtTxCompletionInd, *tpSirMgmtTxCompletionInd;
+
+#ifdef QCA_WIFI_2_0
+typedef struct sSirTdlsEventNotify
+{
+   tANI_U8         sessionId;
+   tSirMacAddr     peerMac;
+   tANI_U16        messageType;
+   tANI_U32        peer_reason;
+} tSirTdlsEventNotify;
+#endif
 #endif /* FEATURE_WLAN_TDLS */
 
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
@@ -4620,105 +4601,6 @@ typedef struct sSirDelPeriodicTxPtrn
     tANI_U32 ucPatternIdBitmap;
 } tSirDelPeriodicTxPtrn, *tpSirDelPeriodicTxPtrn;
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-
-#define SIR_RMC_NUM_MAX_LEADERS  8  /* HAL_NUM_MAX_LEADERS */
-typedef struct sSirSetRMCReq
-{
-    tANI_U16       msgType;
-    tANI_U16       msgLen;
-    tSirMacAddr    mcastTransmitter;
-} tSirSetRMCReq, *tpSirSetRMCReq;
-
-typedef struct sSirRMCInfo
-{
-    tANI_U32      dialogToken;
-    tANI_U8       action;
-    tSirMacAddr   mcastLeader;
-} tSirRMCInfo, *tpSirRMCInfo;
-
-typedef struct sSirRmcLeaderSelectInd
-{
-    tANI_U16      status;
-    tSirMacAddr   mcastTransmitter;
-    tSirMacAddr   mcastGroup;
-    tSirMacAddr   leader[SIR_RMC_NUM_MAX_LEADERS];
-} tSirRmcLeaderSelectInd, *tpSirRmcLeaderSelectInd;
-
-typedef struct sSirRmcBecomeLeaderInd
-{
-    tANI_U16      status;
-    tSirMacAddr   mcastTransmitter;
-    tSirMacAddr   mcastGroup;
-} tSirRmcBecomeLeaderInd, *tpSirRmcBecomeLeaderInd;
-
-typedef struct sSirRmcLeaderReq
-{
-    // Common for all types are requests
-    tANI_U16      msgType; // message type is same as the request type
-    tANI_U16      msgLen;  // length of the entire request
-    tANI_U8       cmd;     // tLeaderReqCmdType
-    tSirMacAddr   mcastTransmitter;
-    tSirMacAddr   mcastGroup;
-    tSirMacAddr   blacklist[SIR_RMC_NUM_MAX_LEADERS];
-} tSirRmcLeaderReq, *tpSirRmcLeaderReq;
-
-typedef struct sSirRmcUpdateInd
-{
-    // Common for all types are requests
-    tANI_U16      msgType;    // message type is same as the request type
-    tANI_U16      msgLen;     // length of the entire request
-    tANI_U8       indication; // tLbpUpdateIndType
-    tANI_U8       role;       // tLbpRoleType
-    tSirMacAddr   mcastTransmitter;
-    tSirMacAddr   mcastGroup;
-    tSirMacAddr   mcastLeader;
-    tSirMacAddr   leader[SIR_RMC_NUM_MAX_LEADERS];
-} tSirRmcUpdateInd, *tpSirRmcUpdateInd;
-
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/*---------------------------------------------------------------------------
-* tSirIbssGetPeerInfoReqParams
-*--------------------------------------------------------------------------*/
-typedef struct
-{
-    tANI_BOOLEAN    allPeerInfoReqd; // If set, all IBSS peers stats are reported
-    tANI_U8         staIdx;          // If allPeerInfoReqd is not set, only stats
-                                     // of peer with staIdx is reported
-}tSirIbssGetPeerInfoReqParams, *tpSirIbssGetPeerInfoReqParams;
-
-/*---------------------------------------------------------------------------
-* tSirIbssGetPeerInfoParams
-*--------------------------------------------------------------------------*/
-typedef struct
-{
-   tANI_U8  staIdx;      //StaIdx
-   tANI_U32 txRate;       //Tx Rate
-   tANI_U32 mcsIndex;    //MCS Index
-   tANI_U32 txRateFlags; //TxRate Flags
-   tANI_S8  rssi;        //RSSI
-}tSirIbssPeerInfoParams;
-
-typedef struct
-{
-   tANI_U32   status;
-   tANI_U8    numPeers;
-   tSirIbssPeerInfoParams  peerInfoParams[32];
-}tSirPeerInfoRspParams, *tpSirIbssPeerInfoRspParams;
-
-/*---------------------------------------------------------------------------
-* tSirIbssGetPeerInfoRspParams
-*--------------------------------------------------------------------------*/
-typedef struct
-{
-   tANI_U16   mesgType;
-   tANI_U16   mesgLen;
-   tSirPeerInfoRspParams ibssPeerInfoRspParams;
-} tSirIbssGetPeerInfoRspParams, *tpSirIbssGetPeerInfoRspParams;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 #ifdef FEATURE_WLAN_BATCH_SCAN
 // Set batch scan resposne from FW
 typedef struct
@@ -4730,6 +4612,7 @@ typedef struct
 // Set batch scan request to FW
 typedef struct
 {
+    tANI_U32 sessionId;
     tANI_U32 scanFrequency;        /* how frequent to do scan - default 30Sec*/
     tANI_U32 numberOfScansToBatch; /* number of scans to batch */
     tANI_U32 bestNetwork;          /* best networks in terms of rssi */
@@ -4836,5 +4719,21 @@ typedef struct sSirRateUpdateInd
     tTxrateinfoflags mcastDataRate5GHzTxFlag;
 
 } tSirRateUpdateInd, *tpSirRateUpdateInd;
+
+#ifdef FEATURE_WLAN_CH_AVOID
+#define SIR_CH_AVOID_MAX_RANGE   4
+
+typedef struct sSirChAvoidFreqType
+{
+	tANI_U32 start_freq;
+	tANI_U32 end_freq;
+} tSirChAvoidFreqType;
+
+typedef struct sSirChAvoidIndType
+{
+	tANI_U32	avoid_range_count;
+	tSirChAvoidFreqType	avoid_freq_range[SIR_CH_AVOID_MAX_RANGE];
+} tSirChAvoidIndType;
+#endif /* FEATURE_WLAN_CH_AVOID */
 
 #endif /* __SIR_API_H */

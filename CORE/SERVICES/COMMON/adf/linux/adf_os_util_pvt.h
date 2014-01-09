@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 #ifndef _ADF_CMN_OS_UTIL_PVT_H
 #define _ADF_CMN_OS_UTIL_PVT_H
 

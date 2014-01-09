@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------ *
     ------------------------------------------------------------------------ *
 
@@ -288,9 +287,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_11W_INFO      9
 #endif
 #define WE_GET_STATES        10
-#ifdef FEATURE_CESIUM_PROPRIETARY
-#define WE_GET_IBSS_STA_INFO 11
-#endif
 #ifdef QCA_WIFI_2_0
 #define WE_GET_PHYMODE       12
 #endif
@@ -306,9 +302,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_DISPLAY_DXE_SNAP_SHOT   7
 #define WE_SET_REASSOC_TRIGGER     8
 #define WE_DISPLAY_DATAPATH_SNAP_SHOT    9
-#ifdef FEATURE_CESIUM_PROPRIETARY
-#define WE_IBSS_GET_PEER_INFO_ALL 10
-#endif
 #ifdef QCA_WIFI_2_0
 #define WE_DUMP_AGC_START          11
 #define WE_DUMP_AGC                12
@@ -332,12 +325,13 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #ifdef FEATURE_WLAN_TDLS
 #define WE_TDLS_CONFIG_PARAMS   5
 #endif
-#ifdef FEATURE_CESIUM_PROPRIETARY
-#define WE_IBSS_GET_PEER_INFO   6
-#endif
 #ifdef FEATURE_WLAN_TDLS
 #undef  MAX_VAR_ARGS
+#ifdef QCA_WIFI_2_0
+#define MAX_VAR_ARGS         11
+#else
 #define MAX_VAR_ARGS         10
+#endif
 #else
 #define MAX_VAR_ARGS         7
 #endif
@@ -528,161 +522,6 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
     return;
 }
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-void hdd_get_ibss_peer_info_cb(v_VOID_t *pUserData, v_VOID_t *pPeerInfoRsp)
-{
-   hdd_adapter_t *pAdapter = (hdd_adapter_t *)pUserData;
-   hdd_ibss_peer_info_t *pPeerInfo = (hdd_ibss_peer_info_t *)pPeerInfoRsp;
-   hdd_station_ctx_t *pStaCtx =  WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-   v_U8_t   i;
-
-   if (NULL != pPeerInfo && eHAL_STATUS_SUCCESS == pPeerInfo->status)
-   {
-      pStaCtx->ibss_peer_info.status = pPeerInfo->status;
-      pStaCtx->ibss_peer_info.numIBSSPeers = pPeerInfo->numIBSSPeers;
-      for (i = 0; i < pPeerInfo->numIBSSPeers; i++)
-      {
-         memcpy(&pStaCtx->ibss_peer_info.ibssPeerList[i],
-                &pPeerInfo->ibssPeerList[i], sizeof(hdd_ibss_peer_info_params_t));
-      }
-   }
-   else
-   {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                    "%s] PEER_INFO_CMD_STATUS is not SUCCESS\n", __func__);
-   }
-
-   complete(&pAdapter->ibss_peer_info_comp);
-}
-
-v_MACADDR_t* hdd_wlan_get_ibss_mac_addr_from_staid(hdd_adapter_t *pAdapter, v_U8_t staIdx)
-{
-   v_U8_t idx;
-   hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-
-   for ( idx = 0; idx < HDD_MAX_NUM_IBSS_STA; idx++ )
-   {
-      if ( 0 != pHddStaCtx->conn_info.staId[ idx ] &&
-           staIdx == pHddStaCtx->conn_info.staId[ idx ])
-      {
-         return (&pHddStaCtx->conn_info.peerMacAddress[ idx ]);
-      }
-   }
-   return NULL;
-}
-
-eHalStatus hdd_wlan_get_ibss_peer_info(hdd_adapter_t *pAdapter, v_U8_t staIdx)
-{
-    eHalStatus status = eHAL_STATUS_FAILURE;
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-    hdd_station_ctx_t *pStaCtx =  WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-    hdd_ibss_peer_info_t *pPeerInfo = &pStaCtx->ibss_peer_info;
-
-    status = sme_RequestIBSSPeerInfo(hHal, pAdapter, hdd_get_ibss_peer_info_cb,
-                                     VOS_FALSE, staIdx);
-
-    INIT_COMPLETION(pAdapter->ibss_peer_info_comp);
-
-    if (eHAL_STATUS_SUCCESS == status)
-    {
-       status = wait_for_completion_interruptible_timeout
-                (&pAdapter->ibss_peer_info_comp,
-                msecs_to_jiffies(IBSS_PEER_INFO_REQ_TIMOEUT));
-       if(!status)
-       {
-          hddLog(VOS_TRACE_LEVEL_WARN, "%s: Warning: IBSS_PEER_INFO_TIMEOUT",
-                  __func__);
-          return status;
-       }
-
-       /** Print the peer info */
-       pr_info("pPeerInfo->numIBSSPeers = %d ", pPeerInfo->numIBSSPeers);
-       pr_info("============================================================");
-       {
-          v_MACADDR_t *macAddr = hdd_wlan_get_ibss_mac_addr_from_staid(pAdapter,
-                                 staIdx);
-          v_U32_t  txRateMbps = ((pPeerInfo->ibssPeerList[0].txRate)*500*1000)/1000000;
-
-          if (NULL != macAddr)
-          {
-             pr_info("PEER ADDR :" MAC_ADDRESS_STR " TxRate: %d Mbps  RSSI: %d",
-                     MAC_ADDR_ARRAY(macAddr->bytes),
-                      (int)txRateMbps, (int)pPeerInfo->ibssPeerList[0].rssi);
-          }
-          else
-          {
-             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                       " ERROR: PEER MAC ADDRESS NOT FOUND ");
-          }
-       }
-    }
-    else
-    {
-       hddLog(VOS_TRACE_LEVEL_WARN,
-              "%s: Warning: sme_RequestIBSSPeerInfo Request failed", __func__);
-    }
-
-    return status;
-}
-
-eHalStatus hdd_wlan_get_ibss_peer_info_all(hdd_adapter_t *pAdapter)
-{
-    eHalStatus status = eHAL_STATUS_FAILURE;
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-    hdd_station_ctx_t *pStaCtx =  WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-    hdd_ibss_peer_info_t *pPeerInfo = &pStaCtx->ibss_peer_info;
-    int i;
-
-    status = sme_RequestIBSSPeerInfo(hHal, pAdapter, hdd_get_ibss_peer_info_cb,
-                                     VOS_TRUE, 0xFF);
-    INIT_COMPLETION(pAdapter->ibss_peer_info_comp);
-
-    if (eHAL_STATUS_SUCCESS == status)
-    {
-       status = wait_for_completion_interruptible_timeout
-                (&pAdapter->ibss_peer_info_comp,
-                 msecs_to_jiffies(IBSS_PEER_INFO_REQ_TIMOEUT));
-       if(!status)
-       {
-          hddLog(VOS_TRACE_LEVEL_WARN, "%s: Warning: IBSS_PEER_INFO_TIMEOUT",
-                 __func__);
-          return status;
-       }
-
-       /** Print the peer info */
-       pr_info("pPeerInfo->numIBSSPeers = %d ", (int)pPeerInfo->numIBSSPeers);
-       pr_info("============================================================");
-       for (i = 0; i < pPeerInfo->numIBSSPeers; i++)
-       {
-          v_U8_t staIdx = pPeerInfo->ibssPeerList[i].staIdx;
-          v_MACADDR_t *macAddr = hdd_wlan_get_ibss_mac_addr_from_staid(pAdapter,
-                                                                       staIdx);
-          v_U32_t  txRateMbps = ((pPeerInfo->ibssPeerList[0].txRate)*500*1000)/1000000;
-
-          pr_info("STAIDX:%d ", (int)pPeerInfo->ibssPeerList[i].staIdx);
-          if (NULL != macAddr)
-          {
-             pr_info(" PEER ADDR :" MAC_ADDRESS_STR " TxRate: %d Mbps RSSI: %d",
-                     MAC_ADDR_ARRAY(macAddr->bytes),
-                     (int)txRateMbps, (int)pPeerInfo->ibssPeerList[i].rssi);
-          }
-          else
-          {
-             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                       " ERROR: PEER MAC ADDRESS NOT FOUND ");
-          }
-       }
-    }
-    else
-    {
-       hddLog(VOS_TRACE_LEVEL_WARN,
-              "%s: Warning: sme_RequestIBSSPeerInfo Request failed", __func__);
-    }
-
-    return status;
-}
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 int hdd_wlan_get_rts_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
 {
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
@@ -704,7 +543,7 @@ int hdd_wlan_get_rts_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
     wrqu->rts.value = threshold;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                                 ("Rts-Threshold=%ld!!\n"), wrqu->rts.value);
+                                 ("Rts-Threshold=%d!!\n"), wrqu->rts.value);
 
     EXIT();
 
@@ -732,7 +571,7 @@ int hdd_wlan_get_frag_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
     wrqu->frag.value = threshold;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                               ("Frag-Threshold=%ld!!\n"), wrqu->frag.value);
+                               ("Frag-Threshold=%d!!\n"), wrqu->frag.value);
 
     EXIT();
 
@@ -2308,7 +2147,7 @@ static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
                   WNI_CFG_DOT11_MODE, &active_phy_mode) == eHAL_STATUS_SUCCESS)
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                "active_phy_mode = %ld", active_phy_mode);
+                "active_phy_mode = %d", active_phy_mode);
 
       if (active_phy_mode == WNI_CFG_DOT11_MODE_11A || active_phy_mode == WNI_CFG_DOT11_MODE_11G)
       {
@@ -3894,7 +3733,7 @@ static int iw_set_retry(struct net_device *dev, struct iw_request_info *info,
    if(wrqu->retry.value < WNI_CFG_LONG_RETRY_LIMIT_STAMIN ||
        wrqu->retry.value > WNI_CFG_LONG_RETRY_LIMIT_STAMAX) {
 
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Invalid Retry-Limit=%ld!!\n"),wrqu->retry.value);
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Invalid Retry-Limit=%d!!\n"),wrqu->retry.value);
 
       return -EINVAL;
    }
@@ -3921,7 +3760,7 @@ static int iw_set_retry(struct net_device *dev, struct iw_request_info *info,
        return -EOPNOTSUPP;
    }
 
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("Set Retry-Limit=%ld!!\n"),wrqu->retry.value);
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("Set Retry-Limit=%d!!\n"),wrqu->retry.value);
 
    EXIT();
 
@@ -3971,7 +3810,7 @@ static int iw_get_retry(struct net_device *dev, struct iw_request_info *info,
       return -EOPNOTSUPP;
    }
 
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("Retry-Limit=%ld!!\n"),retry);
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("Retry-Limit=%d!!\n"),retry);
 
    EXIT();
 
@@ -4300,7 +4139,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                 smeConfig.csrConfig.Is11dSupportEnabled = (v_BOOL_t)set_value;
 
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                        ("11D state=%ld!!\n"),
+                        ("11D state=%d!!\n"),
                         smeConfig.csrConfig.Is11dSupportEnabled);
 
                 sme_UpdateConfig(hHal, &smeConfig);
@@ -4928,7 +4767,8 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                rix = RC_2_RATE_IDX(set_value);
                if (set_value & 0x10) {
                    preamble = WMI_RATE_PREAMBLE_CCK;
-                   rix |= 0x4; /* Enable Short preamble always for CCK */
+                   if(rix != 0x3)
+                       rix |= 0x4; /* Enable Short preamble always for CCK except 1mbps*/
                } else
                    preamble = WMI_RATE_PREAMBLE_OFDM;
            }
@@ -5340,7 +5180,7 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
 
            *value = smeConfig.csrConfig.Is11dSupportEnabled;
 
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("11D state=%ld!!\n"),*value);
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("11D state=%d!!\n"),*value);
 
            break;
         }
@@ -5352,7 +5192,7 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
         case WE_PMC_STATE:
         {
              *value = pmcGetPmcState(hHal);
-             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("PMC state=%ld!!\n"),*value);
+             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("PMC state=%d!!\n"),*value);
              break;
         }
         case WE_GET_WLAN_DBG:
@@ -6055,37 +5895,6 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
            break;
        }
 #endif
-#ifdef FEATURE_CESIUM_PROPRIETARY
-        case WE_GET_IBSS_STA_INFO:
-        {
-            hdd_station_ctx_t *pHddStaCtx =
-                WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-            int idx = 0;
-            int length = 0, buf = 0;
-
-            for (idx = 0; idx < HDD_MAX_NUM_IBSS_STA; idx++)
-            {
-               if (0 != pHddStaCtx->conn_info.staId[ idx ])
-               {
-                   buf = snprintf
-                             (
-                             (extra + length), WE_MAX_STR_LEN - length,
-                             "\n%d .%02x:%02x:%02x:%02x:%02x:%02x\n",
-                             pHddStaCtx->conn_info.staId[ idx ],
-                             pHddStaCtx->conn_info.peerMacAddress[idx].bytes[0],
-                             pHddStaCtx->conn_info.peerMacAddress[idx].bytes[1],
-                             pHddStaCtx->conn_info.peerMacAddress[idx].bytes[2],
-                             pHddStaCtx->conn_info.peerMacAddress[idx].bytes[3],
-                             pHddStaCtx->conn_info.peerMacAddress[idx].bytes[4],
-                             pHddStaCtx->conn_info.peerMacAddress[idx].bytes[5]
-                             );
-                   length += buf;
-               }
-            }
-            wrqu->data.length = strlen(extra)+1;
-            break;
-        }
-#endif
 #ifdef QCA_WIFI_2_0
         case WE_GET_PHYMODE:
         {
@@ -6218,13 +6027,6 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
                  wlan_hdd_get_intf_addr( WLAN_HDD_GET_CTX(pAdapter) ),TRUE);
           break;
         }
-#ifdef FEATURE_CESIUM_PROPRIETARY
-        case WE_IBSS_GET_PEER_INFO_ALL:
-        {
-            hdd_wlan_get_ibss_peer_info_all(pAdapter);
-            break;
-        }
-#endif
         case WE_STOP_AP:
         {
            /*FIX ME: Need to be revisited if multiple SAPs to be supported */
@@ -6488,7 +6290,7 @@ void hdd_wmm_tx_snapshot(hdd_adapter_t *pAdapter)
     for ( i=0; i< NUM_TX_QUEUES; i++)
     {
         spin_lock_bh(&pAdapter->wmm_tx_queue[i].lock);
-        hddLog(LOGE, "HDD WMM TxQueue Info For AC: %d Count: %d PrevAdress:0x%x, NextAddress:0x%x",
+        hddLog(LOGE, "HDD WMM TxQueue Info For AC: %d Count: %d PrevAdress:%p, NextAddress:%p",
                i, pAdapter->wmm_tx_queue[i].count,
                pAdapter->wmm_tx_queue[i].anchor.prev, pAdapter->wmm_tx_queue[i].anchor.next);
         spin_unlock_bh(&pAdapter->wmm_tx_queue[i].lock);
@@ -6502,7 +6304,7 @@ void hdd_wmm_tx_snapshot(hdd_adapter_t *pAdapter)
              for ( j=0; j< NUM_TX_QUEUES; j++)
              {
                 spin_lock_bh(&pAdapter->aStaInfo[i].wmm_tx_queue[j].lock);
-                hddLog(LOGE, "HDD TxQueue Info For AC: %d Count: %d PrevAdress:0x%x, NextAddress:0x%x",
+                hddLog(LOGE, "HDD TxQueue Info For AC: %d Count: %d PrevAdress:%p, NextAddress:%p",
                        j, pAdapter->aStaInfo[i].wmm_tx_queue[j].count,
                        pAdapter->aStaInfo[i].wmm_tx_queue[j].anchor.prev,
                        pAdapter->aStaInfo[i].wmm_tx_queue[j].anchor.next);
@@ -6576,14 +6378,6 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
 
             }
             break;
-#ifdef FEATURE_CESIUM_PROPRIETARY
-        case WE_IBSS_GET_PEER_INFO:
-             {
-                pr_info ( "Station ID = %d\n",apps_args[0]);
-                hdd_wlan_get_ibss_peer_info(pAdapter, apps_args[0]);
-             }
-              break;
-#endif
 
         case WE_P2P_NOA_CMD:
             {
@@ -6646,6 +6440,9 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
                 tdlsParams.rssi_hysteresis         = apps_args[7];
                 tdlsParams.rssi_trigger_threshold  = apps_args[8];
                 tdlsParams.rssi_teardown_threshold = apps_args[9];
+#ifdef QCA_WIFI_2_0
+                tdlsParams.rssi_delta              = apps_args[10];
+#endif
 
                 wlan_hdd_tdls_set_params(dev, &tdlsParams);
             }
@@ -6967,13 +6764,13 @@ static int iw_qcom_set_wapi_assoc_info(struct net_device *dev, struct iw_request
     hddLog(LOG1, "%s: INPUT DATA:\nElement ID:0x%02x Length:0x%02x Version:0x%04x\n",__func__,pWapiAssocInfo->elementID,pWapiAssocInfo->length,pWapiAssocInfo->version);
     hddLog(LOG1,"%s: akm Suite Cnt:0x%04x",__func__,pWapiAssocInfo->akmSuiteCount);
     for(i =0 ; i < 16 ; i++)
-        hddLog(LOG1,"akm suite[%02d]:0x%08lx",i,pWapiAssocInfo->akmSuite[i]);
+        hddLog(LOG1,"akm suite[%02d]:0x%08x",i,pWapiAssocInfo->akmSuite[i]);
 
     hddLog(LOG1,"%s: Unicast Suite Cnt:0x%04x",__func__,pWapiAssocInfo->unicastSuiteCount);
     for(i =0 ; i < 16 ; i++)
-        hddLog(LOG1, "Unicast suite[%02d]:0x%08lx",i,pWapiAssocInfo->unicastSuite[i]);
+        hddLog(LOG1, "Unicast suite[%02d]:0x%08x",i,pWapiAssocInfo->unicastSuite[i]);
 
-    hddLog(LOG1,"%s: Multicast suite:0x%08lx Wapi capa:0x%04x",__func__,pWapiAssocInfo->multicastSuite,pWapiAssocInfo->wapiCability);
+    hddLog(LOG1,"%s: Multicast suite:0x%08x Wapi capa:0x%04x",__func__,pWapiAssocInfo->multicastSuite,pWapiAssocInfo->wapiCability);
     hddLog(LOG1, "%s: BKID Cnt:0x%04x\n",__func__,pWapiAssocInfo->bkidCount);
     for(i = 0 ; i < 16 ; i++) {
         hddLog(LOG1, "BKID List[%02d].bkid:0x",i);
@@ -7126,8 +6923,8 @@ static int iw_qcom_set_wapi_bkid(struct net_device *dev, struct iw_request_info 
     hddLog(LOG1, "%s: Received length %d", __func__, wrqu->data.length);
     hddLog(LOG1, "%s: Received data %s", __func__, (char*)extra);
 
-    hddLog(LOG1,"%s: INPUT DATA:\n BKID Length:0x%08lx\n", __func__,pBkid->length);
-    hddLog(LOG1,"%s: BKID Cnt:0x%04lx",pBkid->BKIDCount);
+    hddLog(LOG1,"%s: INPUT DATA:\n BKID Length:0x%08x", __func__,pBkid->length);
+    hddLog(LOG1,"%s: BKID Cnt:0x%04x", __func__, pBkid->BKIDCount);
 
     hddLog(LOG1,"BKID KEY LIST[0]:0x");
 
@@ -7379,6 +7176,13 @@ static int iw_set_host_offload(struct net_device *dev, struct iw_request_info *i
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                                   "%s:LOGP in Progress. Ignore!!!", __func__);
        return -EBUSY;
+    }
+
+    if (!hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
+    {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                                  "%s:LOGP dev is not in CONNECTED state, ignore!!!", __func__);
+       return -EINVAL;
     }
 
     /* Debug display of request components. */
@@ -8236,7 +8040,7 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
     }
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-              "PNO len %d ssid 0x%08lx%08lx%08lx%08lx%08lx%08lx%08lx%08lx"
+              "PNO len %d ssid 0x%08x%08x%08x%08x%08x%08x%08x%08x"
               "auth %d encry %d channel count %d offset %d",
               pnoRequest.aNetworks[i].ssId.length,
               *((v_U32_t *) &pnoRequest.aNetworks[i].ssId.ssId[0]),
@@ -9458,13 +9262,6 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         "getPMFInfo" },
 #endif
-#ifdef FEATURE_CESIUM_PROPRIETARY
-    {
-        WE_GET_IBSS_STA_INFO,
-        0,
-        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
-        "getIbssSTAs" },
-#endif
 #ifdef QCA_WIFI_2_0
     {   WE_GET_PHYMODE,
         0,
@@ -9487,13 +9284,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "initAP" },
-#ifdef FEATURE_CESIUM_PROPRIETARY
-    {
-        WE_IBSS_GET_PEER_INFO_ALL,
-        0,
-        0,
-       "ibssPeerInfoAll" },
-#endif
     {   WE_STOP_AP,
         0,
         0,
@@ -9566,12 +9356,6 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
         0,
         "dump" },
-#ifdef FEATURE_CESIUM_PROPRIETARY
-    {   WE_IBSS_GET_PEER_INFO,
-        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
-        0,
-        "ibssPeerInfo" },
-#endif
     /* handlers for sub ioctl */
    {
        WE_MCC_CONFIG_CREDENTIAL,

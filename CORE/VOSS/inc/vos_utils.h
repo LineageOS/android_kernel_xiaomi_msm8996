@@ -24,7 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ * */
 #if !defined( __VOS_UTILS_H )
 #define __VOS_UTILS_H
  
@@ -35,10 +36,6 @@
   \brief virtual Operating System Services (vOSS) utility APIs
                
    Various utility functions
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

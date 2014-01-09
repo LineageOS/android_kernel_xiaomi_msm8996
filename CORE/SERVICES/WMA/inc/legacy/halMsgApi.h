@@ -24,7 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ * */
 #ifndef _HALMSGAPI_H_
 #define _HALMSGAPI_H_
 
@@ -684,14 +685,14 @@ typedef struct {
 
 #ifndef OEM_DATA_REQ_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_REQ_SIZE 276
+#define OEM_DATA_REQ_SIZE 280
 #else
 #define OEM_DATA_REQ_SIZE 134
 #endif
 #endif
 #ifndef OEM_DATA_RSP_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_RSP_SIZE 1720
+#define OEM_DATA_RSP_SIZE 1724
 #else
 #define OEM_DATA_RSP_SIZE 1968
 #endif

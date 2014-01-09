@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( HDD_CONFIG_H__ )
 #define HDD_CONFIG_H__
 
@@ -33,10 +32,6 @@
   \file  hdd_Config.h
 
   \brief Android WLAN Adapter Configuration functions
-
-               Copyright 2008 (c) Qualcomm Technologies, Inc.
-               All Rights Reserved.
-               Qualcomm Technologies Confidential and Proprietary.
 
   ==========================================================================*/
 
@@ -1761,6 +1756,13 @@ typedef enum
 #define CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MAX        ( 0 )
 #define CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_DEFAULT    ( -75 )
 
+#ifdef QCA_WIFI_2_0
+#define CFG_TDLS_RSSI_DELTA                         "gTDLSRSSIDelta"
+#define CFG_TDLS_RSSI_DELTA_MIN                     ( -30 )
+#define CFG_TDLS_RSSI_DELTA_MAX                     ( 0 )
+#define CFG_TDLS_RSSI_DELTA_DEFAULT                 ( -20 )
+#endif
+
 #define CFG_TDLS_QOS_WMM_UAPSD_MASK_NAME            "gTDLSUapsdMask" // ACs to setup U-APSD for TDLS Sta
 #define CFG_TDLS_QOS_WMM_UAPSD_MASK_MIN             (0)
 #define CFG_TDLS_QOS_WMM_UAPSD_MASK_MAX             (15)
@@ -1769,7 +1771,12 @@ typedef enum
 #define CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE          "gEnableTDLSBufferSta"
 #define CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE_MIN      (0)
 #define CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE_MAX      (1)
+/* Buffer STA is not enabled in CLD 2.0 yet */
+#ifdef QCA_WIFI_2_0
+#define CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE_DEFAULT  (0)
+#else
 #define CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE_DEFAULT  (1)
+#endif
 
 #define CFG_TDLS_PUAPSD_INACTIVITY_TIME             "gTDLSPuapsdInactivityTime"
 #define CFG_TDLS_PUAPSD_INACTIVITY_TIME_MIN         (0)
@@ -2060,6 +2067,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_COALESING_IN_IBSS_MIN                 (0)
 #define CFG_COALESING_IN_IBSS_MAX                 (1)
 #define CFG_COALESING_IN_IBSS_DEFAULT             (0) //disabled
+
+#define CFG_SAP_MAX_NO_PEERS                       "gSoftApMaxPeers"
+#define CFG_SAP_MAX_NO_PEERS_MIN                   (1)
+#define CFG_SAP_MAX_NO_PEERS_MAX                   (32)
+#define CFG_SAP_MAX_NO_PEERS_DEFAULT               (14)
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -2426,6 +2438,9 @@ typedef struct
    v_U32_t                     fTDLSRSSIHysteresis;
    v_S31_t                     fTDLSRSSITriggerThreshold;
    v_S31_t                     fTDLSRSSITeardownThreshold;
+#ifdef QCA_WIFI_2_0
+   v_S31_t                     fTDLSRSSIDelta;
+#endif
    v_U32_t                     fTDLSUapsdMask;    // what ACs to setup U-APSD for TDLS
    v_U32_t                     fEnableTDLSBufferSta;
    v_U32_t                     fTDLSPuapsdInactivityTimer;
@@ -2491,6 +2506,7 @@ typedef struct
 #endif
    v_U8_t                      maxWoWFilters;
    v_U8_t                      wowEnable;
+   v_U8_t                      maxNumberOfPeers;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

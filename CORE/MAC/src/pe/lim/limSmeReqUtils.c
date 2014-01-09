@@ -24,9 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ *
  * This file limSmeReqUtils.cc contains the utility functions
  * for processing SME request messages.
  * Author:        Chandra Modumudi

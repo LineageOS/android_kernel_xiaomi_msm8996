@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( WLAN_HDD_HOSTAPD_H )
 #define WLAN_HDD_HOSTAPD_H
 
@@ -33,9 +32,6 @@
   \file  WLAN_HDD_HOSTAPD_H.h
 
   \brief Linux HDD HOSTAPD include file
-         Copyright 2008-2013 (c) Qualcomm Technologies, Inc.
-         All Rights Reserved.
-         Qualcomm Technologies Confidential and Proprietary.
 
   ==========================================================================*/
 

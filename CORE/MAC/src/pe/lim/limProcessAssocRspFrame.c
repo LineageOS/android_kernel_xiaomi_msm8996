@@ -24,9 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ *
  * This file limProcessAssocRspFrame.cc contains the code
  * for processing Re/Association Response Frame.
  * Author:        Chandra Modumudi

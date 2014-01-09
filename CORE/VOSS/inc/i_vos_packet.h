@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __I_VOS_PACKET_H )
 #define __I_VOS_PACKET_H
 
@@ -35,10 +34,6 @@
   \brief       virtual Operating System Servies (vOSS)
 
    Network Protocol packet/buffer internal include file
-
-   Copyright 2009 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 

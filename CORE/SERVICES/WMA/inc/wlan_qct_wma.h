@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WMA_H
 #define WLAN_QCT_WMA_H
 
@@ -43,8 +42,6 @@ DESCRIPTION
   was to keep the UMAC identical across Prima and Volans. This layer provides the glue
   between SME, PE , TL and HAL.
 
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

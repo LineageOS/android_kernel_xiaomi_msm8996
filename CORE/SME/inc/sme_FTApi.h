@@ -24,8 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
-
 #if !defined( __SME_FTAPI_H )
 #define __SME_FTAPI_H
 
@@ -35,10 +33,6 @@
 /**=========================================================================
   
   \brief macros and prototype for SME APIs
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 typedef enum eFTIEState

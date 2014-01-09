@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessMlmMessages.cc contains the code
  * for processing MLM request messages.
  * Author:        Chandra Modumudi

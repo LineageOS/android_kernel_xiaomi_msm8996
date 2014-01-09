@@ -25,6 +25,8 @@
  * to the Linux Foundation.
  */
 
+
+
 #ifndef _ATH_LINUX_OSDEP_ADF_H
 #define _ATH_LINUX_OSDEP_ADF_H
 

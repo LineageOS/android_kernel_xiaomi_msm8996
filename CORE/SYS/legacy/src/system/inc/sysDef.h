@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sysDef.h contains the common definitions used to bring up
  * Sirius system.
  * Author:      V. K. Kandarpa

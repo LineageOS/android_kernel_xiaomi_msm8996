@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef __COPY_ENGINE_API_H__
 #define __COPY_ENGINE_API_H__
 

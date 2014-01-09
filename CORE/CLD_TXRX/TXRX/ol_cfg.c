@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #include <ol_cfg.h>
 #include <ol_if_athvar.h>
 

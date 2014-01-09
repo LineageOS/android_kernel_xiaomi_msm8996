@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
                         L I M _ P 2 P . C
 
@@ -33,9 +32,6 @@
   This software unit holds the implementation of the WLAN Protocol Engine for
   P2P.
 
-  Copyright (c) 2011 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

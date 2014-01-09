@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #include "palTypes.h"
 #include "wniApi.h"     /* WNI_CFG_SET_REQ */
 #include "sirParams.h"  /* tSirMbMsg */

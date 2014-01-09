@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 //==============================================================================
 // Double-link list definitions (adapted from Atheros SDIO stack)
 //

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
 
 
@@ -39,10 +38,6 @@
 
   Are listed for each API below.
 
-
-  Copyright (c) 2010-2011 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================
@@ -429,10 +424,6 @@ WDA_DS_BuildTxPacketInfo
   WDI_DS_TxMetaInfoType* pTxMetaInfo = NULL;
   v_SIZE_t               usMacAddrSize;
   wpt_FrameCtrl          *pFrameControl;
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-  WLANTL_CbType*         pTLCb;
-  WLANTL_RMCAST_SESSION* pRMcastSession;
-#endif
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -445,20 +436,6 @@ WDA_DS_BuildTxPacketInfo
                "WDA:Invalid parameter sent on WDA_DS_BuildTxPacketInfo" );
     return VOS_STATUS_E_FAULT;
   }
-
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-/*----------------------------------------------------------------
-    Extract TL control block
-   --------------------------------------------------------------*/
-  pTLCb = VOS_GET_TL_CB(pvosGCtx);
-  if ( NULL == pTLCb )
-  {
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL %s: pTLCb is NULL", __func__));
-
-    return VOS_STATUS_E_FAILURE;
-  }
-#endif
 
   /*------------------------------------------------------------------------
     Extract TX Meta Info pointer from PAL packet
@@ -534,47 +511,6 @@ WDA_DS_BuildTxPacketInfo
 
   // ADDR2
   vos_copy_macaddr( (v_MACADDR_t*)pTxMetaInfo->addr2MACAddress, pAddr2 );
-
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-  /*Check if relibale multicast data path is enabled*/
-  if (pTLCb->rmcDataPathEnabled)
-  {
-    /*look up for mcast transmitter MAC address in TL's active rmcast list*/
-    if (((WDA_TLI_DATA_FRAME_TYPE >> 4) == pTxMetaInfo->frmType) &&
-        (vos_is_macaddr_group(pvDestMacAddr)))
-    {
-        pRMcastSession =
-           WLANTL_RmcLookUpRmcastSession(pTLCb->reliableMcastSession,
-           (v_MACADDR_t*)pTxMetaInfo->addr2MACAddress);
-
-        if (pRMcastSession)
-        {
-            if (0xFF == pvDestMacAddr->bytes[0])
-            {
-               pTxMetaInfo->txFlags |= (HAL_USE_BD_RATE_MASK);
-            }
-            else
-            {
-                /*Route RMCAST data frames from QID which has ACK_POLICY=TRUE*/
-                pTxMetaInfo->txFlags |= (HAL_RELIABLE_MCAST_REQUESTED_MASK);
-
-                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
-                    "RMCAST active for " MAC_ADDRESS_STR " RMCAST session",
-                    MAC_ADDR_ARRAY(pRMcastSession->reliableMcastAddr.bytes));
-            }
-        }
-        else
-        {
-            /*Multicast transmitter address does not exist in TL's active
-              RMCAST sessions list. Route this mutlicast data frame from
-              QID which has ACK_POLICY = FALSE*/
-            VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
-               "RMCAST disabled for " MAC_ADDRESS_STR " RMCAST session",
-               MAC_ADDR_ARRAY(pTxMetaInfo->addr2MACAddress));
-        }
-    }
-  }
-#endif /*End of WLAN_FEATURE_RELIABLE_MCAST*/
 
   /* Dump TX meta infro for debugging */
   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,

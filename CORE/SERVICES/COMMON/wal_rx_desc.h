@@ -24,7 +24,9 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/* 
+ * $ATH_LICENSE_TARGET_C$
+ */
 
 #ifndef _WAL_RX_DESC__H_
 #define _WAL_RX_DESC__H_

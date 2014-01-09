@@ -24,6 +24,13 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+//------------------------------------------------------------------------------
+// Copyright (c) 2012-2013 Atheros Corporation.  All rights reserved.
+// $ATH_LICENSE_HOSTSDK0_C$
+//------------------------------------------------------------------------------
+//==============================================================================
+// Author(s): ="Atheros"
+//==============================================================================
 
 /**
  * @file htt_common.h

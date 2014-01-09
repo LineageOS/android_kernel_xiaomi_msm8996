@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_DAL_STA_H
 #define WLAN_QCT_DAL_STA_H
 
@@ -39,9 +38,6 @@ DESCRIPTION
   This file contains the internal API exposed by the STA Management entity to
   be used by the DAL Control Path Core . 
   
-      
-  Copyright (c) 2010 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 

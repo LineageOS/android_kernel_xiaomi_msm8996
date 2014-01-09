@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  * IMPORTANT NOTE: For all change to WMI Interface, the ABI version number _must_ be updated.
  */
@@ -36,7 +35,7 @@
 #define __WMI_VER_MINOR_    0
 /** WMI revision number has to be incremented when there is a
  *  change that may or may not break compatibility. */
-#define __WMI_REVISION_ 24
+#define __WMI_REVISION_ 30
 
 /** The Version Namespace should not be normally changed. Only
  *  host and firmware of the same WMI namespace will work

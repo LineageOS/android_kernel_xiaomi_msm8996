@@ -24,16 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /******************************************************************************
 *
 * Name:  pmc.h
 *
 * Description: Power Management Control (PMC) internal definitions.
-*
-* Copyright 2008 (c) Qualcomm Technologies, Inc.  
-  All Rights Reserved.
-* Qualcomm Technologies Confidential and Proprietary.
 *
 ******************************************************************************/
 
@@ -348,6 +343,7 @@ typedef struct sPsOffloadPerSessionInfo
 #ifdef FEATURE_WLAN_TDLS
     v_BOOL_t isTdlsPowerSaveProhibited;
 #endif
+    tANI_BOOLEAN UapsdEnabled;
 }tPsOffloadPerSessionInfo,*tpPsOffloadPerSessionInfo;
 
 typedef struct sPmcOffloadInfo

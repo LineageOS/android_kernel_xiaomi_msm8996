@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /******************************************************************************
 
 *
@@ -34,12 +33,6 @@
 *
 
 * Description: Power Management Control (PMC) API definitions.
-
-* Copyright 2008 (c) Qualcomm Technologies, Inc.  
-
-* All Rights Reserved.
-
-* Qualcomm Technologies Confidential and Proprietary.
 
 *
 

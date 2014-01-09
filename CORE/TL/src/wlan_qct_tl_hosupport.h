@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_TL_HOSUPPORT_H
 #define WLAN_QCT_TL_HOSUPPORT_H
 
@@ -36,8 +35,6 @@
                    
 DESCRIPTION
         
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 

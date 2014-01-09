@@ -25,10 +25,6 @@
  * to the Linux Foundation.
  */
 /*============================================================================
-Copyright (c) 2007 Qualcomm Technologies, Inc.
-All Rights Reserved.
-Qualcomm Technologies Confidential and Proprietary
-
 logDump.c
 */
 

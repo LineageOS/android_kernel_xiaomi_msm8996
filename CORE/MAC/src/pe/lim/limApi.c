@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limApi.cc contains the functions that are
  * exported by LIM to other modules.
  *
@@ -738,10 +736,6 @@ limInitialize(tpAniSirGlobal pMac)
     limFTOpen(pMac);
 #endif
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-    limRmcInit(pMac);
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
     vos_list_init(&pMac->lim.gLimMgmtFrameRegistratinQueue);
 
 #if 0
@@ -837,10 +831,6 @@ limCleanup(tpAniSirGlobal pMac)
 
     limCleanupMlm(pMac);
     limCleanupLmm(pMac);
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-    limRmcCleanup(pMac);
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
 
     // free up preAuth table
     if (pMac->lim.gLimPreAuthTimerTable.pTable != NULL)

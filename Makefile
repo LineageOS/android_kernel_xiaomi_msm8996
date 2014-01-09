@@ -41,7 +41,7 @@
 	endif
 
 	#Flag to enable new Linux Regulatory implementation
-	CONFIG_ENABLE_LINUX_REG := n
+	CONFIG_ENABLE_LINUX_REG := y
 
 #endif
 
@@ -75,7 +75,7 @@ CONFIG_ADF_SUPPORT := 1
 CONFIG_ATH_PERF_PWR_OFFLOAD := 1
 
 #Disable packet log
-CONFIG_REMOVE_PKT_LOG := 1
+CONFIG_REMOVE_PKT_LOG := 0
 
 #Enable 11AC TX
 CONFIG_ATH_11AC_TXCOMPACT := 1
@@ -696,7 +696,7 @@ WDI_OBJS +=	$(WDI_CP_OBJS) \
 endif
 
 
-WCNSS_INC :=	-I$(WLAN_ROOT)/wcnss/inc
+RIVA_INC :=	-I$(WLAN_ROOT)/riva/inc
 
 LINUX_INC :=	-Iinclude/linux
 
@@ -705,7 +705,7 @@ INCS :=		$(BAP_INC) \
 		$(HDD_INC) \
 		$(LINUX_INC) \
 		$(MAC_INC) \
-		$(WCNSS_INC) \
+		$(RIVA_INC) \
 		$(SAP_INC) \
 		$(SME_INC) \
 		$(SVC_INC) \
@@ -819,7 +819,6 @@ CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DWLAN_FEATURE_ROAM_SCAN_OFFLOAD \
                 -DWLAN_FEATURE_SCAN_OFFLOAD \
 		-DWLAN_FEATURE_GTK_OFFLOAD \
-                -DFEATURE_CESIUM_PROPRIETARY \
 		-DWLAN_WAKEUP_EVENTS \
 	        -DWLAN_KD_READY_NOTIFIER \
 		-DWLAN_FEATURE_RELIABLE_MCAST \

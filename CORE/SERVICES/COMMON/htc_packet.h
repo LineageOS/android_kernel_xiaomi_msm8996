@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef HTC_PACKET_H_
 #define HTC_PACKET_H_
 

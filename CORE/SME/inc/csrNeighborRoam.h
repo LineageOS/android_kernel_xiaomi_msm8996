@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
 
@@ -34,8 +33,6 @@
     Exports and types for the neighbor roaming algorithm which is sepcifically 
     designed for Android.
   
-   Copyright (C) 2006 Airgo Networks, Incorporated
-   
 ========================================================================== */
 #ifndef CSR_NEIGHBOR_ROAM_H
 #define CSR_NEIGHBOR_ROAM_H

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _QC_SAP_IOCTL_H_
 #define _QC_SAP_IOCTL_H_
 

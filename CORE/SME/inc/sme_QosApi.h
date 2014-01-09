@@ -25,7 +25,6 @@
  * to the Linux Foundation.
  */
 
-
 #if !defined( __SME_QOSAPI_H )
 #define __SME_QOSAPI_H
 
@@ -35,10 +34,6 @@
   \file  sme_QosApi.h
   
   \brief prototype for SME QoS APIs
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

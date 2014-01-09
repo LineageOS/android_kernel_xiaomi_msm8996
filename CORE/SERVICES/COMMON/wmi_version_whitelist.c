@@ -25,6 +25,8 @@
  * to the Linux Foundation.
  */
 
+
+
 /*
  * Every Product Line or chipset or team can have its own Whitelist table.
  * The following is a list of versions that the present software can support

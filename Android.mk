@@ -5,18 +5,18 @@ WLAN_CHIPSET :=
 
 # Build/Package options for 8084 target
 ifeq ($(call is-board-platform,apq8084),true)
-	WLAN_CHIPSET     := qca_cld
-	WLAN_SELECT      := CONFIG_QCA_CLD_WLAN=m
-	WLAN_ISOC_SELECT := CONFIG_QCA_WIFI_ISOC=0
-	WLAN_ISOC_SELECT += CONFIG_QCA_WIFI_2_0=1
+WLAN_CHIPSET := qca_cld
+WLAN_SELECT := CONFIG_QCA_CLD_WLAN=m
+WLAN_ISOC_SELECT := CONFIG_QCA_WIFI_ISOC=0
+WLAN_ISOC_SELECT += CONFIG_QCA_WIFI_2_0=1
 endif
 
 # Build/Package options for 8974, 8226, 8610 targets
 ifeq ($(call is-board-platform-in-list,msm8974 msm8226 msm8610),true)
-	WLAN_CHIPSET     := qca_cld
-	WLAN_SELECT      := CONFIG_QCA_CLD_WLAN=m
-	WLAN_ISOC_SELECT := CONFIG_QCA_WIFI_ISOC=1
-	WLAN_ISOC_SELECT += CONFIG_QCA_WIFI_2_0=0
+WLAN_CHIPSET := qca_cld
+WLAN_SELECT := CONFIG_QCA_CLD_WLAN=m
+WLAN_ISOC_SELECT := CONFIG_QCA_WIFI_ISOC=1
+WLAN_ISOC_SELECT += CONFIG_QCA_WIFI_2_0=0
 endif
 
 # Build/Package only in case of supported target
@@ -48,11 +48,10 @@ else
 endif
 
 
-# Build wlan.ko as either prima_wlan.ko or pronto_wlan.ko or qca_cld_wlan.ko
+# Build wlan.ko as proprietary_qca_cld_wlan.ko
 ###########################################################
-
 # This is set once per LOCAL_PATH, not per (kernel) module
-KBUILD_OPTIONS := WLAN_ROOT=../$(WLAN_BLD_DIR)/qcacld-2.0
+KBUILD_OPTIONS := WLAN_ROOT=../$(WLAN_BLD_DIR)/qcacld-new
 # We are actually building wlan.ko here, as per the
 # requirement we are specifying <chipset>_wlan.ko as LOCAL_MODULE.
 # This means we need to rename the module to <chipset>_wlan.ko
@@ -63,7 +62,7 @@ KBUILD_OPTIONS += $(WLAN_SELECT)
 KBUILD_OPTIONS += $(WLAN_ISOC_SELECT)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE              := $(WLAN_CHIPSET)_wlan.ko
+LOCAL_MODULE              := proprietary_$(WLAN_CHIPSET)_wlan.ko
 LOCAL_MODULE_KBUILD_NAME  := wlan.ko
 LOCAL_MODULE_TAGS         := debug
 LOCAL_MODULE_DEBUG_ENABLE := true

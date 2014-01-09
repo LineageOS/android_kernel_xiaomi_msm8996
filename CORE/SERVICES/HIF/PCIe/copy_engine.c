@@ -24,6 +24,10 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+/*
+ * $ATH_LICENSE_TARGET_C$
+ */
+
 
 #include <osdep.h>
 #include "a_types.h"

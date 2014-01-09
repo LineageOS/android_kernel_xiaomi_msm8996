@@ -24,8 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
-
 #if !defined( __VOS_SCHED_H )
 #define __VOS_SCHED_H
 
@@ -42,11 +40,6 @@
    insights about how the scheduler implements the execution model supported
    by vOSS.
     
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
-  
   ========================================================================*/
 
 /*=========================================================================== 

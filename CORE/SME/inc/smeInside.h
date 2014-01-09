@@ -24,8 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
-
 #if !defined( __SMEINSIDE_H )
 #define __SMEINSIDE_H
 
@@ -35,10 +33,6 @@
   \file  smeInside.h
   
   \brief prototype for SME structures and APIs used insside SME
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

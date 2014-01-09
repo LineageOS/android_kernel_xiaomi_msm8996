@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved
  * aniGlobal.h: MAC Modules Adapter Definitions.
  * Author:      V. K. Kandarpa
  * Date:    10/25/2002
@@ -90,8 +88,6 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #endif
 #include "p2p_Api.h"
 
-#include "limRMC.h"
-
 #if defined WLAN_FEATURE_VOWIFI_11R
 #include <limFTDefs.h>
 #endif
@@ -138,14 +134,6 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #endif //WLAN_FEATURE_CONCURRENT_P2P
 
 #define SPACE_ASCII_VALUE  32
-
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-#define WLAN_IP_V4_ADDR_SIZE                             4
-/* Multicast IP address in IPv4 ranges from 224.0.0.0 through 239.255.255.255
-  (Previous class D) are reserved as multicast IP addresses */
-#define WLAN_IP_V4_MCAST_ADDR_START                      224
-#define WLAN_IP_V4_MCAST_ADDR_END                        239
-#endif
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
 #define EQUALS_TO_ASCII_VALUE (61)
@@ -986,6 +974,13 @@ typedef struct sMacOpenParameters
     tDriverType  driverType;
     tANI_U8 maxWoWFilters;
     tANI_U8 wowEnable;
+/* Here olIniInfo is used to store ini
+ * status of arp offload, ns offload
+ * and others. Currently 1st bit is used
+ * for arp off load and 2nd bit for ns
+ * offload currently, rest bits are unused
+ */
+    tANI_U8 olIniInfo;
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters
@@ -1065,9 +1060,6 @@ typedef struct sAniSirGlobal
     v_BOOL_t isTdlsPowerSaveProhibited;
 #endif
     tANI_U8 fScanOffload;
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-    tLimRmcContext  rmcContext;
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
     tANI_U8 isCoalesingInIBSSAllowed;
     tANI_U8 psOffloadEnabled;
 
@@ -1083,6 +1075,7 @@ typedef struct sAniSirGlobal
     csrReadyToSuspendCallback readyToSuspendCallback;
     void *readyToSuspendContext;
     tANI_U8 lteCoexAntShare;
+    tANI_U8 beacon_offload;
 
 } tAniSirGlobal;
 

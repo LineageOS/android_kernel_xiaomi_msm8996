@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef HTC_DEBUG_H_
 #define HTC_DEBUG_H_
 

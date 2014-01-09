@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined __WLAN_NV_PARSER_H
 #define __WLAN_NV_PARSER_H
 

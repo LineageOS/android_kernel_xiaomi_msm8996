@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
 
                       s a p C h S e l e c t . C
@@ -37,10 +36,6 @@
 
   Are listed for each API below.
 
-
-  Copyright (c) 2010 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================
@@ -71,6 +66,9 @@
 #ifdef ANI_OS_TYPE_QNX
 #include "stdio.h"
 #endif
+#ifdef FEATURE_WLAN_CH_AVOID
+#include "wlan_hdd_main.h"
+#endif /* FEATURE_WLAN_CH_AVOID */
 
 /*--------------------------------------------------------------------------
   Function definitions
@@ -85,6 +83,130 @@
 ( \
    ((extRssi < rssi)?eANI_BOOLEAN_TRUE:eANI_BOOLEAN_FALSE) \
 )
+
+#ifdef FEATURE_WLAN_CH_AVOID
+/* Store channel safty information */
+typedef struct
+{
+   v_U16_t   channelNumber;
+   v_BOOL_t  isSafe;
+} sapSafeChannelType;
+
+sapSafeChannelType safeChannels[NUM_20MHZ_RF_CHANNELS] =
+{
+  /*CH  , SAFE, default safe */
+    {1  , VOS_TRUE},      //RF_CHAN_1,
+    {2  , VOS_TRUE},      //RF_CHAN_2,
+    {3  , VOS_TRUE},      //RF_CHAN_3,
+    {4  , VOS_TRUE},      //RF_CHAN_4,
+    {5  , VOS_TRUE},      //RF_CHAN_5,
+    {6  , VOS_TRUE},      //RF_CHAN_6,
+    {7  , VOS_TRUE},      //RF_CHAN_7,
+    {8  , VOS_TRUE},      //RF_CHAN_8,
+    {9  , VOS_TRUE},      //RF_CHAN_9,
+    {10 , VOS_TRUE},      //RF_CHAN_10,
+    {11 , VOS_TRUE},      //RF_CHAN_11,
+    {12 , VOS_TRUE},      //RF_CHAN_12,
+    {13 , VOS_TRUE},      //RF_CHAN_13,
+    {14 , VOS_TRUE},      //RF_CHAN_14,
+    {240, VOS_TRUE},      //RF_CHAN_240,
+    {244, VOS_TRUE},      //RF_CHAN_244,
+    {248, VOS_TRUE},      //RF_CHAN_248,
+    {252, VOS_TRUE},      //RF_CHAN_252,
+    {208, VOS_TRUE},      //RF_CHAN_208,
+    {212, VOS_TRUE},      //RF_CHAN_212,
+    {216, VOS_TRUE},      //RF_CHAN_216,
+    {36 , VOS_TRUE},      //RF_CHAN_36,
+    {40 , VOS_TRUE},      //RF_CHAN_40,
+    {44 , VOS_TRUE},      //RF_CHAN_44,
+    {48 , VOS_TRUE},      //RF_CHAN_48,
+    {52 , VOS_TRUE},      //RF_CHAN_52,
+    {56 , VOS_TRUE},      //RF_CHAN_56,
+    {60 , VOS_TRUE},      //RF_CHAN_60,
+    {64 , VOS_TRUE},      //RF_CHAN_64,
+    {100, VOS_TRUE},      //RF_CHAN_100,
+    {104, VOS_TRUE},      //RF_CHAN_104,
+    {108, VOS_TRUE},      //RF_CHAN_108,
+    {112, VOS_TRUE},      //RF_CHAN_112,
+    {116, VOS_TRUE},      //RF_CHAN_116,
+    {120, VOS_TRUE},      //RF_CHAN_120,
+    {124, VOS_TRUE},      //RF_CHAN_124,
+    {128, VOS_TRUE},      //RF_CHAN_128,
+    {132, VOS_TRUE},      //RF_CHAN_132,
+    {136, VOS_TRUE},      //RF_CHAN_136,
+    {140, VOS_TRUE},      //RF_CHAN_140,
+    {149, VOS_TRUE},      //RF_CHAN_149,
+    {153, VOS_TRUE},      //RF_CHAN_153,
+    {157, VOS_TRUE},      //RF_CHAN_157,
+    {161, VOS_TRUE},      //RF_CHAN_161,
+    {165, VOS_TRUE},      //RF_CHAN_165,
+};
+
+/*==========================================================================
+  FUNCTION    sapUpdateUnsafeChannelList
+
+  DESCRIPTION
+    Function  Undate unsafe channel list table
+
+  DEPENDENCIES
+    NA.
+
+  IN
+    NULL
+
+  RETURN VALUE
+    NULL
+============================================================================*/
+void sapUpdateUnsafeChannelList()
+{
+   v_U16_t   i, j;
+
+   v_PVOID_t pvosGCtx = vos_get_global_context(VOS_MODULE_ID_SAP, NULL);
+   struct hdd_context_s *hdd_ctxt;
+
+   if (NULL == pvosGCtx)
+   {
+       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
+                  "VOSS Global Context is NULL");
+       return ;
+   }
+
+   hdd_ctxt = (struct hdd_context_s *) vos_get_context(VOS_MODULE_ID_HDD, pvosGCtx);
+
+   if (NULL == hdd_ctxt)
+   {
+       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
+                  "HDD Context is NULL");
+       return ;
+   }
+
+   /* Flush, default set all channel safe */
+   for (i = 0; i < NUM_20MHZ_RF_CHANNELS; i++)
+   {
+      safeChannels[i].isSafe = VOS_TRUE;
+   }
+
+   /* Try to find unsafe channel */
+   for (i = 0; i < hdd_ctxt->unsafe_channel_count; i++)
+   {
+      for (j = 0; j < NUM_20MHZ_RF_CHANNELS; j++)
+      {
+         if(safeChannels[j].channelNumber == hdd_ctxt->unsafe_channel_list[i])
+         {
+            /* Found unsafe channel, update it */
+            safeChannels[j].isSafe = VOS_FALSE;
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                      "%s : CH %d is not safe",
+                      __func__, hdd_ctxt->unsafe_channel_list[i]);
+            break;
+         }
+      }
+   }
+
+   return;
+}
+
+#endif /* FEATURE_WLAN_CH_AVOID */
 
 /*==========================================================================
   FUNCTION    sapCleanupChannelList
@@ -390,8 +512,16 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
     v_U8_t *pChans = NULL;
     v_U16_t channelnum = 0;
     tpAniSirGlobal pMac = PMAC_STRUCT(halHandle);
+#ifdef FEATURE_WLAN_CH_AVOID
+    v_U16_t i;
+    v_BOOL_t chSafe = VOS_TRUE;
+#endif /* FEATURE_WLAN_CH_AVOID */
 
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s", __func__);
+
+#ifdef FEATURE_WLAN_CH_AVOID
+    sapUpdateUnsafeChannelList();
+#endif /* FEATURE_WLAN_CH_AVOID */
 
     // Channels for that 2.4GHz band
     //Considered only for 2.4GHz need to change in future to support 5GHz support
@@ -414,14 +544,35 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
 
     // Fill the channel number in the spectrum in the operating freq band
     for (channelnum = 0; channelnum < pSpectInfoParams->numSpectChans; channelnum++, pChans++) {
+#ifdef FEATURE_WLAN_CH_AVOID
+        chSafe = VOS_TRUE;
+        for(i = 0; i < NUM_20MHZ_RF_CHANNELS; i++) {
+            if((safeChannels[i].channelNumber == *pChans) &&
+                (VOS_FALSE == safeChannels[i].isSafe))
+            {
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Ch %d is not safe",
+                          __func__, *pChans);
+                chSafe = VOS_FALSE;
+                break;
+            }
+        }
+#endif /* FEATURE_WLAN_CH_AVOID */
 
         if(*pChans == 14 ) //OFDM rates are not supported on channel 14
             continue;
-        pSpectCh->chNum = *pChans;
-        pSpectCh->valid = eSAP_TRUE;
-        pSpectCh->rssiAgr = SOFTAP_MIN_RSSI;// Initialise for all channels
-        pSpectCh->channelWidth = SOFTAP_HT20_CHANNELWIDTH; // Initialise 20MHz for all the Channels 
-        pSpectCh++;
+
+#ifdef FEATURE_WLAN_CH_AVOID
+        if (VOS_TRUE == chSafe)
+        {
+#endif /* FEATURE_WLAN_CH_AVOID */
+            pSpectCh->chNum = *pChans;
+            pSpectCh->valid = eSAP_TRUE;
+            pSpectCh->rssiAgr = SOFTAP_MIN_RSSI;// Initialise for all channels
+            pSpectCh->channelWidth = SOFTAP_HT20_CHANNELWIDTH; // Initialise 20MHz for all the Channels
+            pSpectCh++;
+#ifdef FEATURE_WLAN_CH_AVOID
+	}
+#endif /* FEATURE_WLAN_CH_AVOID */
     }
     return eSAP_TRUE;
 }

@@ -24,6 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+/*
+ * */
 
 /*============================================================================
   FILE:         vos_utils.c
@@ -44,9 +46,6 @@
 
   DEPENDENCIES:
 
-                Copyright (c) 2007 Qualcomm Technologies, Inc.
-                All Rights Reserved.
-                Qualcomm Technologies Confidential and Proprietary
 ============================================================================*/
 
 /*============================================================================

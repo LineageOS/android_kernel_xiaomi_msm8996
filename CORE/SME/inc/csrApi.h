@@ -24,8 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
-
 /** ------------------------------------------------------------------------- *
     ------------------------------------------------------------------------- *
     \file csrApi.h
@@ -463,10 +461,6 @@ typedef enum
     eCSR_ROAM_UNPROT_MGMT_FRAME_IND,
 #endif
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-    eCSR_ROAM_IBSS_PEER_INFO_COMPLETE,
-#endif
-
 #if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
     eCSR_ROAM_TSM_IE_IND,
     eCSR_ROAM_CCKM_PREAUTH_NOTIFY,
@@ -560,11 +554,11 @@ typedef enum
     eCSR_ROAM_RESULT_TEARDOWN_TDLS_PEER_IND,
     eCSR_ROAM_RESULT_DELETE_ALL_TDLS_PEER_IND,
     eCSR_ROAM_RESULT_LINK_ESTABLISH_REQ_RSP,
+#ifdef QCA_WIFI_2_0
+    eCSR_ROAM_RESULT_TDLS_SHOULD_DISCOVER,
+    eCSR_ROAM_RESULT_TDLS_SHOULD_TEARDOWN,
+    eCSR_ROAM_RESULT_TDLS_SHOULD_PEER_DISCONNECTED,
 #endif
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-    eCSR_ROAM_RESULT_IBSS_PEER_INFO_SUCCESS,
-    eCSR_ROAM_RESULT_IBSS_PEER_INFO_FAILED,
 #endif
 }eCsrRoamResult;
 

@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 #include <adf_os_lock.h>
 
 void adf_os_spin_lock_bh_outline(adf_os_spinlock_t *lock)

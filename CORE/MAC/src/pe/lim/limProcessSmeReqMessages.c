@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessSmeReqMessages.cc contains the code
  * for processing SME request messages.
  * Author:        Chandra Modumudi
@@ -56,7 +54,6 @@
 #include "limSendMessages.h"
 #include "limApi.h"
 #include "wmmApsd.h"
-#include "limRMC.h"
 
 #include "sapApi.h"
 
@@ -680,6 +677,9 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  break;
             case eSIR_IBSS_MODE:
                  psessionEntry->limSystemRole = eLIM_STA_IN_IBSS_ROLE;
+                 psessionEntry->shortSlotTimeSupported =
+                     limGetShortSlotFromPhyMode(pMac, psessionEntry,
+                                                psessionEntry->gLimPhyMode);
                  break;
 
             case eSIR_BTAMP_AP_MODE:
@@ -5014,9 +5014,11 @@ tANI_U32 limCalculateNOADuration(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U32
             break;
         }
 
+#ifdef FEATURE_OEM_DATA_SUPPORT
         case eWNI_SME_OEM_DATA_REQ:
             noaDuration = OEM_DATA_NOA_DURATION*CONV_MS_TO_US; // use 60 msec as default
             break;
+#endif
 
         case eWNI_SME_REMAIN_ON_CHANNEL_REQ:
         {
@@ -5051,9 +5053,11 @@ void limProcessRegdDefdSmeReqAfterNOAStart(tpAniSirGlobal pMac)
             case eWNI_SME_SCAN_REQ:
                 __limProcessSmeScanReq(pMac, pMac->lim.gpDefdSmeMsgForNOA);
                 break;
+#ifdef FEATURE_OEM_DATA_SUPPORT
             case eWNI_SME_OEM_DATA_REQ:
                 __limProcessSmeOemDataReq(pMac, pMac->lim.gpDefdSmeMsgForNOA);
                 break;
+#endif
             case eWNI_SME_REMAIN_ON_CHANNEL_REQ:
                 bufConsumed = limProcessRemainOnChnlReq(pMac, pMac->lim.gpDefdSmeMsgForNOA);
                 /* limProcessRemainOnChnlReq doesnt want us to free the buffer since
@@ -5484,7 +5488,9 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             /*
              * Do not add BREAK here
              */
+#ifdef FEATURE_OEM_DATA_SUPPORT
         case eWNI_SME_OEM_DATA_REQ:
+#endif
         case eWNI_SME_JOIN_REQ:
             /* If we have an existing P2P GO session we need to insert NOA before actually process this SME Req */
             if ((limIsNOAInsertReqd(pMac) == TRUE) && IS_FEATURE_SUPPORTED_BY_FW(P2P_GO_NOA_DECOUPLE_INIT_SCAN))
@@ -5731,16 +5737,6 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         case eWNI_SME_SET_TX_POWER_REQ:
             limSendSetTxPowerReq(pMac,  pMsgBuf);
             break ;
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-        case eWNI_SME_ENABLE_RMC_REQ:
-            limProcessRMCMessages(pMac, eLIM_RMC_ENABLE_REQ, pMsgBuf);
-            break ;
-
-        case eWNI_SME_DISABLE_RMC_REQ:
-            limProcessRMCMessages(pMac, eLIM_RMC_DISABLE_REQ, pMsgBuf);
-            break ;
-#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
 
         default:
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);

@@ -24,16 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
 
   \file  smeApi.c
 
   \brief Definitions for SME APIs
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 
@@ -2003,30 +1998,6 @@ eHalStatus sme_SetCcxBeaconRequest(tHalHandle hHal, const tANI_U8 sessionId,
 
 #endif /* FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-eHalStatus sme_IbssPeerInfoResponseHandleer( tHalHandle hHal,
-                                      tpSirIbssGetPeerInfoRspParams pIbssPeerInfoParams)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-   if (NULL == pMac)
-   {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
-           "%s: pMac is null", __func__);
-       return eHAL_STATUS_FAILURE;
-   }
-   if (pMac->sme.peerInfoParams.peerInfoCbk == NULL)
-   {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-           "%s: HDD callback is null", __func__);
-       return eHAL_STATUS_FAILURE;
-   }
-   pMac->sme.peerInfoParams.peerInfoCbk(pMac->sme.peerInfoParams.pUserData,
-                                        &pIbssPeerInfoParams->ibssPeerInfoRspParams);
-   return eHAL_STATUS_SUCCESS;
-}
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 /*--------------------------------------------------------------------------
 
   \brief sme_ProcessMsg() - The main message processor for SME.
@@ -2330,6 +2301,11 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
           case eWNI_SME_TDLS_DEL_ALL_PEER_IND:
           case eWNI_SME_MGMT_FRM_TX_COMPLETION_IND:
           case eWNI_SME_TDLS_LINK_ESTABLISH_RSP:
+#ifdef QCA_WIFI_2_0
+          case eWNI_SME_TDLS_SHOULD_DISCOVER:
+          case eWNI_SME_TDLS_SHOULD_TEARDOWN:
+          case eWNI_SME_TDLS_PEER_DISCONNECTED:
+#endif
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
           case eWNI_SME_TDLS_DISCOVERY_START_RSP:
           case eWNI_SME_TDLS_DISCOVERY_START_IND:
@@ -2416,23 +2392,6 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 break;
 #endif /* FEATURE_WLAN_LPHB */
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-          case eWNI_SME_IBSS_PEER_INFO_RSP:
-              if (pMsg->bodyptr)
-              {
-                  sme_IbssPeerInfoResponseHandleer(pMac, pMsg->bodyptr);
-                  vos_mem_free(pMsg->bodyptr);
-              }
-              else
-              {
-                  smsLog(pMac, LOGE,
-                         "Empty rsp message for (eWNI_SME_IBSS_PEER_INFO_RSP),"
-                         " nothing to process");
-              }
-              break ;
-
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
            case eWNI_SME_READY_TO_SUSPEND_IND:
                 if (pMsg->bodyptr)
                 {
@@ -2444,6 +2403,19 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                     smsLog(pMac, LOGE, "Empty rsp message for (eWNI_SME_READY_TO_SUSPEND_IND), nothing to process");
                 }
                 break ;
+
+#ifdef FEATURE_WLAN_CH_AVOID
+           /* channel avoid message arrived, send IND to client */
+           case eWNI_SME_CH_AVOID_IND:
+                if (pMac->sme.pChAvoidNotificationCb)
+                {
+                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                             "%s: CH avoid notification", __func__);
+                   pMac->sme.pChAvoidNotificationCb(pMac->pAdapter, pMsg->bodyptr);
+                }
+                vos_mem_free(pMsg->bodyptr);
+                break;
+#endif /* FEATURE_WLAN_CH_AVOID */
 
           default:
 
@@ -5388,64 +5360,6 @@ eHalStatus sme_DHCPStopInd( tHalHandle hHal,
     return (status);
 }
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/*---------------------------------------------------------------------------
-
-    \fn sme_TXFailMonitorStopInd
-
-    \brief API to signal the FW to start monitoring TX failures
-
-    \return eHalStatus  SUCCESS.
-
-                         FAILURE or RESOURCES  The API finished and failed.
- --------------------------------------------------------------------------*/
-eHalStatus sme_TXFailMonitorStartStopInd(tHalHandle hHal, tANI_U8 tx_fail_count,
-                                         void * txFailIndCallback)
-{
-    eHalStatus            status;
-    VOS_STATUS            vosStatus;
-    tpAniSirGlobal        pMac = PMAC_STRUCT(hHal);
-    vos_msg_t             vosMessage;
-    tAniTXFailMonitorInd  *pMsg;
-
-    status = sme_AcquireGlobalLock(&pMac->sme);
-    if ( eHAL_STATUS_SUCCESS == status)
-    {
-        pMsg = (tAniTXFailMonitorInd*)
-                   vos_mem_malloc(sizeof(tAniTXFailMonitorInd));
-        if (NULL == pMsg)
-        {
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Failed to allocate memory", __func__);
-            sme_ReleaseGlobalLock( &pMac->sme );
-            return eHAL_STATUS_FAILURE;
-        }
-
-        pMsg->msgType = WDA_TX_FAIL_MONITOR_IND;
-        pMsg->msgLen = (tANI_U16)sizeof(tAniTXFailMonitorInd);
-
-        //tx_fail_count = 0 should disable the Monitoring in FW
-        pMsg->tx_fail_count = tx_fail_count;
-        pMsg->txFailIndCallback = txFailIndCallback;
-
-        vosMessage.type = WDA_TX_FAIL_MONITOR_IND;
-        vosMessage.bodyptr = pMsg;
-        vosMessage.reserved = 0;
-
-        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage );
-        if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
-        {
-           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                         "%s: Post TX Fail monitor Start MSG fail", __func__);
-           vos_mem_free(pMsg);
-           status = eHAL_STATUS_FAILURE;
-        }
-        sme_ReleaseGlobalLock( &pMac->sme );
-    }
-    return (status);
-}
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 /* ---------------------------------------------------------------------------
     \fn sme_BtcSignalBtEvent
     \brief  API to signal Bluetooth (BT) event to the WLAN driver. Based on the
@@ -7521,14 +7435,6 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
        pMac->roam.configParam.Is11dSupportEnabled = pMac->roam.configParam.Is11dSupportEnabledOriginal;
        smsLog(pMac, LOGE, "Set Country Code Fail %d", status);
        return status;
-   }
-
-   status = WDA_SetCountryCode(pMac, pMsg->countryCode);
-   if ( status != eHAL_STATUS_SUCCESS )
-   {
-      smsLog(pMac, LOGE, FL("Fail to set countryCode: %c%c"), pMsg->countryCode[0],
-             pMsg->countryCode[1]);
-      return status;
    }
 
    /* overwrite the defualt country code */
@@ -9906,7 +9812,124 @@ void sme_SetTdlsPowerSaveProhibited(tHalHandle hHal, tANI_U32 sessionId, v_BOOL_
     }
     return;
 }
-#endif
+
+#ifdef QCA_WIFI_2_0
+/* ---------------------------------------------------------------------------
+  \fn    sme_UpdateFwTdlsState
+
+  \brief
+    SME will send message to WMA to set TDLS state in f/w
+
+  \param
+
+    hHal - The handle returned by macOpen
+
+    psmeTdlsParams - TDLS state info to update in f/w
+
+  \return eHalStatus
+--------------------------------------------------------------------------- */
+eHalStatus sme_UpdateFwTdlsState(tHalHandle hHal, void  *psmeTdlsParams)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    vos_msg_t vosMessage;
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
+    {
+        /* serialize the req through MC thread */
+        vosMessage.bodyptr = psmeTdlsParams;
+        vosMessage.type    = WDA_UPDATE_FW_TDLS_STATE;
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+           status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return(status);
+}
+
+/* ---------------------------------------------------------------------------
+  \fn    sme_UpdateTdlsPeerState
+
+  \brief
+    SME will send message to WMA to set TDLS Peer state in f/w
+
+  \param
+
+    hHal - The handle returned by macOpen
+
+    peerStateParams - TDLS Peer state info to update in f/w
+
+  \return eHalStatus
+--------------------------------------------------------------------------- */
+eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
+                                   tSmeTdlsPeerStateParams *peerStateParams)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tTdlsPeerStateParams *pTdlsPeerStateParams = NULL;
+    vos_msg_t vosMessage;
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
+    {
+        pTdlsPeerStateParams = vos_mem_malloc(sizeof(tTdlsPeerStateParams));
+        if (NULL == pTdlsPeerStateParams)
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                      "%s: failed to allocate mem for tdls peer state param",
+                      __func__);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+
+        vos_mem_copy(&pTdlsPeerStateParams->peerMacAddr,
+                     &peerStateParams->peerMacAddr,
+                     sizeof(tSirMacAddr));
+        pTdlsPeerStateParams->vdevId = peerStateParams->vdevId;
+        pTdlsPeerStateParams->peerState = peerStateParams->peerState;
+
+        switch (peerStateParams->peerState)
+        {
+           case eSME_TDLS_PEER_STATE_PEERING:
+              pTdlsPeerStateParams->peerState = WDA_TDLS_PEER_STATE_PEERING;
+              break;
+
+           case eSME_TDLS_PEER_STATE_CONNECTED:
+              pTdlsPeerStateParams->peerState = WDA_TDLS_PEER_STATE_CONNECTED;
+              break;
+
+           case eSME_TDLS_PEER_STATE_TEARDOWN:
+              pTdlsPeerStateParams->peerState = WDA_TDLS_PEER_STATE_TEARDOWN;
+              break;
+
+           default:
+              VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                        "%s: invalid peer state param (%d)",
+                        __func__, peerStateParams->peerState);
+              vos_mem_free(pTdlsPeerStateParams);
+              sme_ReleaseGlobalLock(&pMac->sme);
+              return eHAL_STATUS_FAILURE;
+       }
+
+        vosMessage.type = WDA_UPDATE_TDLS_PEER_STATE;
+        vosMessage.reserved = 0;
+        vosMessage.bodyptr = pTdlsPeerStateParams;
+
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+           vos_mem_free(pTdlsPeerStateParams);
+           status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return(status);
+}
+#endif /* QCA_WIFI_2_0 */
+#endif /* FEATURE_WLAN_TDLS */
 /* ---------------------------------------------------------------------------
     \fn sme_IsPmcBmps
     \API to Check if PMC state is BMPS.
@@ -10368,151 +10391,6 @@ eHalStatus sme_DelPeriodicTxPtrn(tHalHandle hHal, tSirDelPeriodicTxPtrn
     return status;
 }
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-/* ---------------------------------------------------------------------------
-    \fn sme_EnableReliableMcast
-    \brief  Used to enable Reliable Multicast using Leader Based Protocol
-    setting will not persist over reboots
-    \param  hHal
-    \param  sessionId
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
-eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U32 sessionId)
-{
-    eHalStatus status = eHAL_STATUS_FAILURE;
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-    smsLog(pMac, LOG1, FL("enable RMC"));
-    status = sme_AcquireGlobalLock(&pMac->sme);
-    if (HAL_STATUS_SUCCESS(status))
-    {
-        status = csrEnableRMC(pMac, sessionId);
-        sme_ReleaseGlobalLock(&pMac->sme);
-    }
-    return status;
-}
-
-/* ---------------------------------------------------------------------------
-    \fn sme_DisableReliableMcast
-    \brief  Used to disable Reliable Multicast using Leader Based Protocol
-    setting will not persist over reboots
-    \param  hHal
-    \param  sessionId
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
-eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U32 sessionId)
-{
-   eHalStatus status = eHAL_STATUS_FAILURE;
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-   smsLog(pMac, LOG1, FL("disable RMC"));
-   status = sme_AcquireGlobalLock(&pMac->sme);
-   if (HAL_STATUS_SUCCESS(status))
-   {
-      status = csrDisableRMC(pMac, sessionId);
-      sme_ReleaseGlobalLock(&pMac->sme);
-   }
-   return status;
-}
-#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/* ---------------------------------------------------------------------------
-    \fn sme_GetIBSSPeerInfo
-    \brief  Used to disable Reliable Multicast using Leader Based Protocol
-    setting will not persist over reboots
-    \param  hHal
-    \param  ibssPeerInfoReq  multicast Group IP address
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
-eHalStatus sme_RequestIBSSPeerInfo(tHalHandle hHal, void *pUserData,
-                                            pIbssPeerInfoCb peerInfoCbk,
-                                            tANI_BOOLEAN allPeerInfoReqd,
-                                            tANI_U8 staIdx)
-{
-   eHalStatus status = eHAL_STATUS_FAILURE;
-   VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-   vos_msg_t vosMessage;
-   tSirIbssGetPeerInfoReqParams *pIbssInfoReqParams;
-
-   status = sme_AcquireGlobalLock(&pMac->sme);
-   if ( eHAL_STATUS_SUCCESS == status)
-   {
-       pMac->sme.peerInfoParams.peerInfoCbk = peerInfoCbk;
-       pMac->sme.peerInfoParams.pUserData = pUserData;
-
-       pIbssInfoReqParams = (tSirIbssGetPeerInfoReqParams *)
-                        vos_mem_malloc(sizeof(tSirIbssGetPeerInfoReqParams));
-       if (NULL == pIbssInfoReqParams)
-       {
-           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Not able to allocate memory for dhcp start", __func__);
-           sme_ReleaseGlobalLock( &pMac->sme );
-           return eHAL_STATUS_FAILURE;
-       }
-       pIbssInfoReqParams->allPeerInfoReqd = allPeerInfoReqd;
-       pIbssInfoReqParams->staIdx = staIdx;
-
-       vosMessage.type = WDA_GET_IBSS_PEER_INFO_REQ;
-       vosMessage.bodyptr = pIbssInfoReqParams;
-       vosMessage.reserved = 0;
-
-       vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
-       if ( VOS_STATUS_SUCCESS != vosStatus )
-       {
-          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                        "%s: Post WDA_GET_IBSS_PEER_INFO_REQ MSG failed", __func__);
-          vos_mem_free(pIbssInfoReqParams);
-          vosStatus = eHAL_STATUS_FAILURE;
-       }
-       sme_ReleaseGlobalLock( &pMac->sme );
-   }
-
-   return (vosStatus);
-}
-
-/* ---------------------------------------------------------------------------
-    \fn sme_IBSSRouteTableUpdateInd
-    \API to update IBSS Route table in FW.
-    \param hHal - The handle returned by macOpen
-    \param pIbssTable - ptr to IBSS table struct
-    \- returns Success or Failiure
-    -------------------------------------------------------------------------*/
-eHalStatus sme_IBSSRouteTableUpdateInd(tHalHandle hHal,
-                                       tAniIbssRouteTable *pIbssTable)
-{
-    eHalStatus status = eHAL_STATUS_SUCCESS;
-    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    vos_msg_t vosMessage;
-
-    if (!pIbssTable)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  "%s: IBSS route table ptr null", __func__);
-        return eHAL_STATUS_FAILURE;
-    }
-
-    status = sme_AcquireGlobalLock(&pMac->sme);
-    if (eHAL_STATUS_SUCCESS == status)
-    {
-        vosMessage.bodyptr = pIbssTable;
-        vosMessage.type = WDA_IBSS_ROUTE_TABLE_UPDATE_IND;
-        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
-        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-        {
-           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                     "%s: failed to post message to WDA", __func__);
-           status = eHAL_STATUS_FAILURE;
-        }
-        sme_ReleaseGlobalLock(&pMac->sme);
-    }
-
-    return(status);
-}
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 void smeGetCommandQStatus( tHalHandle hHal )
 {
     tSmeCmd *pTempCmd = NULL;
@@ -10915,3 +10793,40 @@ eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
     return status;
 }
 #endif /* QCA_WIFI_2_0 */
+
+#ifdef FEATURE_WLAN_CH_AVOID
+/* ---------------------------------------------------------------------------
+    \fn sme_AddChAvoidCallback
+    \brief  Used to plug in callback function
+            Which notify channel may not be used with SAP or P2PGO mode.
+            Notification come from FW.
+    \param  hHal
+    \param  pCallbackfn : callback function pointer should be plugged in
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_AddChAvoidCallback
+(
+   tHalHandle hHal,
+   void (*pCallbackfn)(void *pAdapter, void *indParam)
+)
+{
+    eHalStatus          status    = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal      pMac      = PMAC_STRUCT(hHal);
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+              "%s: Plug in CH AVOID CB", __func__);
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status)
+    {
+        if (NULL != pCallbackfn)
+        {
+           pMac->sme.pChAvoidNotificationCb = pCallbackfn;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+
+    return(status);
+}
+#endif /* FEATURE_WLAN_CH_AVOID */
+

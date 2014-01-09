@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  * Notifications and licenses are retained for attribution purposes only.
  */
@@ -1077,4 +1076,7 @@ enum CountryCode {
     CTRY_CANADA2              = 5001,    /* Canada for AP only */
     CTRY_BELGIUM2             = 5002     /* Belgium/Cisco implementation */
 };
+int32_t regdmn_get_country_alpha2(struct regulatory *reg);
+void regdmn_set_regval(struct regulatory *reg);
+int32_t regdmn_find_ctry_by_name(u_int8_t *alpha2);
 #endif /* REGULATORY_H */

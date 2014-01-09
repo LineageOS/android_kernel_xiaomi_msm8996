@@ -24,10 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- *
- * Airgo Networks, Inc proprietary. All rights reserved.
  *
  * Author:      Sandesh Goel
  * Date:        02/25/02

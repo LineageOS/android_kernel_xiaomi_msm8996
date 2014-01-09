@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( WLAN_HDD_MAIN_H )
 #define WLAN_HDD_MAIN_H
 /**===========================================================================
@@ -32,9 +31,6 @@
   \file  WLAN_HDD_MAIN_H.h
   
   \brief Linux HDD Adapter Type
-         Copyright 2008 (c) Qualcomm Technologies, Inc.
-         All Rights Reserved.
-         Qualcomm Technologies Confidential and Proprietary.
   
   ==========================================================================*/
   
@@ -568,32 +564,6 @@ typedef enum{
     HDD_SSR_DISABLED,
 }e_hdd_ssr_required;
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/*---------------------------------------------------------------------------
-  hdd_ibss_peer_info_params_t
----------------------------------------------------------------------------*/
-typedef struct
-{
-    v_U8_t  staIdx;       //StaIdx
-    v_U32_t txRate;       //Current Tx Rate
-    v_U32_t mcsIndex;     //MCS Index
-    v_U32_t txRateFlags;  //TxRate Flags
-    v_S7_t  rssi;         //RSSI
-}hdd_ibss_peer_info_params_t;
-
-typedef struct
-{
-    /** Request status */
-    v_U32_t                       status;
-
-    /** Number of peers */
-    v_U8_t                        numIBSSPeers;
-
-    /** Peer Info parameters */
-    hdd_ibss_peer_info_params_t  ibssPeerList[HDD_MAX_NUM_IBSS_STA];
-}hdd_ibss_peer_info_t;
-#endif
-
 struct hdd_station_ctx
 {
   /** Handle to the Wireless Extension State */
@@ -621,10 +591,6 @@ struct hdd_station_ctx
 
    /*Save the wep/wpa-none keys*/
    tCsrRoamSetKey ibss_enc_key;
-#ifdef FEATURE_CESIUM_PROPRIETARY
-   hdd_ibss_peer_info_t ibss_peer_info;
-#endif
-
    v_BOOL_t hdd_ReassocScenario;
 };
 
@@ -754,6 +720,11 @@ typedef struct hdd_scaninfo_s
    vos_event_t scan_finished_event;
 
    hdd_scan_pending_option_e scan_pending_option;
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+   /* The PNO scan pending  */
+   v_BOOL_t mPnoScanPending;
+#endif
 
 }hdd_scaninfo_t;
 
@@ -890,10 +861,6 @@ struct hdd_adapter_s
    struct completion tdls_link_establish_req_comp;
    eHalStatus tdlsAddStaStatus;
 #endif
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-   struct completion ibss_peer_info_comp;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
    /* Track whether the linkup handling is needed  */
    v_BOOL_t isLinkUpSvcNeeded;
@@ -1251,6 +1218,11 @@ struct hdd_context_s
     v_U32_t target_type;
     v_U32_t target_fw_version;
 #endif
+    struct regulatory reg;
+#ifdef FEATURE_WLAN_CH_AVOID
+    v_U16_t unsafe_channel_count;
+    v_U16_t unsafe_channel_list[NUM_20MHZ_RF_CHANNELS];
+#endif /* FEATURE_WLAN_CH_AVOID */
 };
 
 
@@ -1336,10 +1308,6 @@ VOS_STATUS hdd_issta_p2p_clientconnected(hdd_context_t *pHddCtx);
 #ifdef WLAN_FEATURE_PACKET_FILTERING
 int wlan_hdd_setIPv6Filter(hdd_context_t *pHddCtx, tANI_U8 filterType, tANI_U8 sessionId);
 #endif
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-v_MACADDR_t* hdd_wlan_get_ibss_mac_addr_from_staid(hdd_adapter_t *pAdapter, v_U8_t staIdx);
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 #ifdef CONFIG_ENABLE_LINUX_REG
 void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);

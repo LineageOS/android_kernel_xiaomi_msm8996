@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessActionFrame.cc contains the code
  * for processing Action Frame.
  * Author:      Michael Lui
@@ -57,7 +55,6 @@
 #include "rrmApi.h"
 #endif
 #include "limSessionUtils.h"
-#include "limRMC.h"
 
 #if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
 #include "ccxApi.h"
@@ -2309,8 +2306,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         }
         break;
 #endif
-#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR) \
-    || defined (WLAN_FEATURE_RELIABLE_MCAST)
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
         case SIR_MAC_ACTION_VENDOR_SPECIFIC_CATEGORY:
             {
               tpSirMacVendorSpecificFrameHdr pVendorSpecific = (tpSirMacVendorSpecificFrameHdr) pActionHdr;
@@ -2336,57 +2332,6 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                     (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
                     WDA_GET_RX_CH( pRxPacketInfo ), psessionEntry, 0);
               }
-#if defined (WLAN_FEATURE_RELIABLE_MCAST)
-              else if ((eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole) &&
-                  ((VOS_TRUE == vos_mem_compare(SIR_MAC_RMC_MCAST_ADDRESS,
-                    &pHdr->da[0], sizeof(tSirMacAddr))) ||
-                   (VOS_TRUE == vos_mem_compare(psessionEntry->selfMacAddr,
-                     &pHdr->da[0], sizeof(tSirMacAddr)))) &&
-                   vos_mem_compare(pVendorSpecific->Oui, SIR_MAC_RMC_OUI, 3))
-              {
-                  tANI_U8 MagicCode[] =
-                         { 0x4f, 0x58, 0x59, 0x47, 0x45, 0x4e }; /* "OXYGEN" */
-                  tpSirMacOxygenNetworkFrameHdr pOxygenHdr =
-                             (tpSirMacOxygenNetworkFrameHdr) pActionHdr;
-
-                  if (vos_mem_compare(pOxygenHdr->MagicCode,
-                      MagicCode, sizeof(MagicCode)) &&
-                      pOxygenHdr->version == SIR_MAC_RMC_VER )
-                  {
-                      switch (pOxygenHdr->actionID)
-                      {
-                          default:
-                              PELOGE(limLog(pMac, LOGE,
-                                 FL("Action RMC actionID %d not handled"),
-                                     pOxygenHdr->actionID);)
-                              break;
-                          case SIR_MAC_RMC_LEADER_INFORM_SELECTED:
-                              PELOG1(limLog(pMac, LOG1,
-                                 FL("Action RMC LEADER_INFORM_SELECTED."));)
-                              limProcessRMCMessages(pMac,
-                                 eLIM_RMC_OTA_LEADER_INFORM_SELECTED,
-                                 (tANI_U32 *)pRxPacketInfo);
-                              break;
-                          case SIR_MAC_RMC_LEADER_INFORM_CANCELLED:
-                              PELOG1(limLog(pMac, LOG1,
-                                 FL("Action RMC LEADER_INFORM_CANCELLED."));)
-                              limProcessRMCMessages(pMac,
-                                 eLIM_RMC_OTA_LEADER_INFORM_CANCELLED,
-                                 (tANI_U32 *)pRxPacketInfo);
-                              break;
-                      }
-                  }
-                  else
-                  {
-                      limLog( pMac, LOGE,
-                         FL("Dropping the vendor specific action frame in IBSS "
-                             "mode because of Oxygen Magic mismatch "
-                             MAC_ADDRESS_STR " or Version mismatch = %d"),
-                             MAC_ADDR_ARRAY(pOxygenHdr->MagicCode),
-                             pOxygenHdr->version );
-                  }
-              }
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
               else
               {
                  limLog( pMac, LOGE, FL("Dropping the vendor specific action frame because of( "
@@ -2400,7 +2345,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
            }
            break;
 #endif /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_CCX ||
-          FEATURE_WLAN_LFR || WLAN_FEATURE_RELIABLE_MCAST */
+          FEATURE_WLAN_LFR */
     case SIR_MAC_ACTION_PUBLIC_USAGE:
         switch(pActionHdr->actionID) {
         case SIR_MAC_ACTION_VENDOR_SPECIFIC:

@@ -24,9 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ *
  * This file limApi.h contains the definitions exported by
  * LIM module.
  * Author:        Chandra Modumudi

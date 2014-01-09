@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
 
   \file        vos_packet.c
@@ -32,10 +31,6 @@
   \brief       virtual Operating System Services (vOSS) network Packet APIs
 
    Network Protocol packet/buffer support interfaces
-
-   Copyright 2009 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 

@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 #ifndef ADF_OS_ATOMIC_PVT_H
 #define ADF_OS_ATOMIC_PVT_H
 

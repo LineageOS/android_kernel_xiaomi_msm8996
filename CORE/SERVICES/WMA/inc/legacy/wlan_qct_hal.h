@@ -25,12 +25,6 @@
  * to the Linux Foundation.
  */
 
-/*
- * Qualcomm Technologies, Inc. proprietary. All rights reserved.
- *
- * Date            Modified by    Modification Information
- * --------------------------------------------------------------------
- */
 #ifndef WLAN_QCT_HAL_H
 #define WLAN_QCT_HAL_H
 #include "vos_status.h"

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __VOS_NVITEM_H )
 #define __VOS_NVITEM_H
 
@@ -33,10 +32,6 @@
   \file  vos_nvitem.h
 
   \brief virtual Operating System Services (vOSS): Non-Volatile storage API
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 
@@ -172,7 +167,7 @@ v_REGDOMAIN_t;
 
 typedef enum
 {
-   COUNTRY_NV,
+   COUNTRY_INIT,
    COUNTRY_IE,
    COUNTRY_USER,
    COUNTRY_CELL_BASE,
@@ -709,4 +704,5 @@ eNVChannelEnabledType vos_nv_getChannelEnabledState
 );
 
 VOS_STATUS vos_init_wiphy_from_nv_bin(void);
+VOS_STATUS vos_init_wiphy_from_eeprom(void);
 #endif // __VOS_NVITEM_H

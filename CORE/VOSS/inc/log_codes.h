@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef LOG_CODES_H
 #define LOG_CODES_H
 
@@ -35,7 +34,6 @@
 General Description
   This file contains log code definitions and is shared with the tools.
 
-Copyright (c) 1991-2010 by Qualcomm Technologies, Inc.  All Rights Reserved.
 ===========================================================================*/
 
 /* DO NOT MODIFY THIS FILE WITHOUT PRIOR APPROVAL

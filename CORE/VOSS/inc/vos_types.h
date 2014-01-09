@@ -1,5 +1,3 @@
-#if !defined( __VOS_TYPES_H )
-#define __VOS_TYPES_H
 /*
  * Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
@@ -26,8 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
-
+#if !defined( __VOS_TYPES_H )
+#define __VOS_TYPES_H
 /**=========================================================================
   \file  vos_Types.h
 
@@ -35,9 +33,6 @@
 
    Basic type definitions
 
-   Copyright 2008 (c) Qualcomm Technologies, Inc.
-   All Rights Reserved.
-   Qualcomm Technologies Confidential and Proprietary.
   ========================================================================*/
 
 /* $Header$ */

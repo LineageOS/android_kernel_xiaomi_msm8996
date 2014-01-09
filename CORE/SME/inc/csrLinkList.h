@@ -24,15 +24,12 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
     \file csrLinkList.h
   
     Exports and types for the Common link list interfaces.
   
-   Copyright (C) 2006 Airgo Networks, Incorporated
- 
    ========================================================================== */
 #ifndef CSR_LINK_LIST_H__
 #define CSR_LINK_LIST_H__

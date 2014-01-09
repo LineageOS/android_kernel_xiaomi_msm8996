@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WDI_DP_H
 #define WLAN_QCT_WDI_DP_H
 
@@ -39,9 +38,6 @@ DESCRIPTION
   This file contains the internal API exposed by the DAL Control Path Core 
   module to be used by the DAL Data Path Core. 
   
-      
-  Copyright (c) 2010 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -117,11 +113,6 @@ when        who    what, where, why
 
 #ifdef FEATURE_WLAN_TDLS
 #define HAL_TDLS_PEER_STA_MASK              0x80 //bit 7 set for TDLS peer station
-#endif
-
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-#define WDI_RELIABLE_MCAST_REQUESTED_MASK 0x100
-#define WDI_USE_BD_RATE_MASK 0x1000
 #endif
 
 /*Macro for getting the size of the TX BD*/

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined _WLAN_NV_TEMPLATE_API_H
 #define  _WLAN_NV_TEMPLATE_API_H
 

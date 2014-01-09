@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WDI_H
 #define WLAN_QCT_WDI_H
 
@@ -38,10 +37,6 @@ DESCRIPTION
   This file contains the external API exposed by the wlan transport layer 
   module.
   
-      
-  Copyright (c) 2010-2011 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -519,22 +514,6 @@ typedef struct
   wpt_uint8       macAddr[WDI_MAC_ADDR_LEN];
 }WDI_DHCPInd;
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-typedef struct
-{
-   /*Request status callback offered by UMAC - it is called if the current
-    req has returned PENDING as status; it delivers the status of sending
-    the message over the BUS */
-  WDI_ReqStatusCb   wdiReqStatusCB;
-
-  /*The user data passed in by UMAC, it will be sent back when the above
-    function pointer will be called */
-  void*             pUserData;
-
-  wpt_uint8         tx_fail_count;
-}WDI_TXFailMonitorInd;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 /*---------------------------------------------------------------------------
 
   WDI_MacSSid
@@ -730,14 +709,6 @@ typedef struct
 
 #endif
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-typedef struct
-{
-  wpt_uint8 seqNo;
-  wpt_uint8 macAddr[WDI_MAC_ADDR_LEN];
-} WDI_TXFailIndType;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 /*---------------------------------------------------------------------------
  WDI_IbssPeerInactivityIndType
 -----------------------------------------------------------------------------*/
@@ -747,150 +718,6 @@ typedef struct
    wpt_uint8   staIdx;
    wpt_macAddr staMacAddr;
 }WDI_IbssPeerInactivityIndType;
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-/*---------------------------------------------------------------------------
- WDI_LbpLeaderReqParams
------------------------------------------------------------------------------*/
-typedef struct
-{
-    wpt_uint8       cmd;  /* command- suggest or become leader */
-
-    /* MAC address of MCAST Transmitter (source) */
-    wpt_macAddr mcastTransmitter;
-
-    /* MAC Address of Multicast Group (01-00-5E-xx-xx-xx) */
-    wpt_macAddr mcastGroup;
-
-    /* List of candidates for cmd = WLAN_HAL_SUGGEST_LEADER*/
-    wpt_macAddr blacklist[16]; /* HAL_NUM_MAX_LEADERS */
-
-    /*
-     * Request status callback offered by UMAC - it is called if the current
-     * req has returned PENDING as status; it delivers the status of sending
-     * the message over the BUS
-     */
-    WDI_ReqStatusCb    wdiReqStatusCB;
-
-} WDI_LbpLeaderReqParams;
-
-/*---------------------------------------------------------------------------
- WDI_LbpUpdateIndParams
------------------------------------------------------------------------------*/
-typedef struct
-{
-    wpt_uint8       indication;  /* tLbpUpdateIndType */
-
-    wpt_uint8       role;  /* leader or transmitter */
-
-    /* MAC address of MCAST Transmitter (source) */
-    wpt_macAddr mcastTransmitter;
-
-    /* MAC Address of Multicast Group (01-00-5E-xx-xx-xx) */
-    wpt_macAddr mcastGroup;
-
-    /* MAC address of MCAST Leader (destination) */
-    wpt_macAddr mcastLeader;
-
-    /* List of candidates for cmd = WLAN_HAL_SUGGEST_LEADER*/
-    wpt_macAddr leader[16]; /* HAL_NUM_MAX_LEADERS */
-
-    /*
-     * Request status callback offered by UMAC - it is called if the current
-     * req has returned PENDING as status; it delivers the status of sending
-     * the message over the BUS
-     */
-    WDI_ReqStatusCb   wdiReqStatusCB;
-
-    /*
-     * The user data passed in by UMAC, it will be sent back when the above
-     * function pointer will be called
-     */
-    void   *pUserData;
-
-} WDI_LbpUpdateIndParams;
-
-typedef enum
-{
-  eWDI_SUGGEST_LEADER_CMD = 0,
-  eWDI_BECOME_LEADER_CMD  = 1,
-} eWDI_LeaderRspCmdType;
-
-/*---------------------------------------------------------------------------
- WDI_LbpRspParamsType
------------------------------------------------------------------------------*/
-typedef struct
-{
-    wpt_uint8       status;  /* success or failure */
-
-    /*  Command Type */
-    eWDI_LeaderRspCmdType cmd;  /* suggest or become leader */
-
-    /* MAC address of MCAST Transmitter (source) */
-    wpt_macAddr mcastTransmitter;
-
-    /* MAC Address of Multicast Group (01-00-5E-xx-xx-xx) */
-    wpt_macAddr mcastGroup;
-
-    /* List of candidates for cmd = WLAN_HAL_SUGGEST_LEADER*/
-    wpt_macAddr leader[16]; /* HAL_NUM_MAX_LEADERS */
-} WDI_LbpRspParamsType;
-
-/*---------------------------------------------------------------------------
- WDI_LbpPickNewLeader
------------------------------------------------------------------------------*/
-typedef struct
-{
-    wpt_uint8       indication;  /* pick_new */
-
-    wpt_uint8       role;  /* leader or transmitter */
-
-    /* MAC address of MCAST Transmitter (source) */
-    wpt_macAddr mcastTransmitter;
-
-    /* MAC Address of Multicast Group (01-00-5E-xx-xx-xx) */
-    wpt_macAddr mcastGroup;
-
-    /* MAC Address of Multicast Leader */
-    wpt_macAddr mcastLeader;
-
-    /* List of candidates for cmd = WLAN_HAL_LEADER_PICK_NEW*/
-    wpt_macAddr leader[16]; /* HAL_NUM_MAX_LEADERS */
-} WDI_LbpPickNewLeader;
-
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/*---------------------------------------------------------------------------
-  WDI_IBSSRouteTableInd
----------------------------------------------------------------------------*/
-
-typedef struct
-{
-   wpt_uint8 destIpv4Addr[WDI_IPV4_ADDR_LEN];
-   wpt_uint8 nextHopMacAddr[WDI_MAC_ADDR_LEN];
-} WDI_DestIpNextHopMacPair;
-
-typedef struct
-{
-  /*
-   * Request status callback offered by UMAC - it is called if the current
-   * req has returned PENDING as status; it delivers the status of sending
-   * the message over the BUS
-   */
-  WDI_ReqStatusCb wdiReqStatusCB;
-
-  /*
-   * The user data passed in by UMAC, it will be sent back when the above
-   * function pointer will be called
-   */
-  void *pUserData;
-
-  wpt_uint16 numEntries;
-
-  WDI_DestIpNextHopMacPair destIpMacPair[1];
-} WDI_IBSSRouteTable;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 /*---------------------------------------------------------------------------
  WDI_TxRateFlags
@@ -1026,18 +853,10 @@ typedef struct
     /* Periodic TX Pattern FW Indication */
     WDI_PeriodicTxPtrnFwIndType  wdiPeriodicTxPtrnFwInd;
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-    WDI_LbpPickNewLeader        wdiLbpPickNewLeaderInd;
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
 #ifdef FEATURE_WLAN_BATCH_SCAN
     /*batch scan result indication from FW*/
     void *pBatchScanResult;
 #endif
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-    WDI_TXFailIndType            wdiTXFailInd;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
   }  wdiIndicationData;
 }WDI_LowLevelIndType;
@@ -4424,7 +4243,7 @@ typedef struct
 
 #ifndef OEM_DATA_REQ_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_REQ_SIZE 276
+#define OEM_DATA_REQ_SIZE 280
 #else
 #define OEM_DATA_REQ_SIZE 134
 #endif
@@ -4432,7 +4251,7 @@ typedef struct
 
 #ifndef OEM_DATA_RSP_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_RSP_SIZE 1720
+#define OEM_DATA_RSP_SIZE 1724
 #else
 #define OEM_DATA_RSP_SIZE 1968
 #endif
@@ -5583,58 +5402,6 @@ typedef struct
     function pointer will be called */
   void*             pUserData;
 } WDI_DelPeriodicTxPtrnParamsType;
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/*---------------------------------------------------------------------------
-  WDI_IbssPeerInfoParams
----------------------------------------------------------------------------*/
-typedef struct
-{
-    wpt_uint8  wdiStaIdx;       //StaIdx
-    wpt_uint32 wdiTxRate;       //Tx Rate
-    wpt_uint32 wdiMcsIndex;     //MCS Index
-    wpt_uint32 wdiTxRateFlags;  //TxRate Flags
-    wpt_int8   wdiRssi;         //RSSI
-}WDI_IbssPeerInfoParams;
-
-/*---------------------------------------------------------------------------
-  WDI_IbssPeerInfoRspParams
----------------------------------------------------------------------------*/
-typedef struct
-{
-    wpt_uint32        wdiStatus;                  // Return status
-    wpt_uint8         wdiNumPeers;                // Number of peers
-    WDI_IbssPeerInfoParams *wdiPeerInfoParams; // Peer Info parameters
-}WDI_IbssPeerInfoRspParams;
-
-/*---------------------------------------------------------------------------
-  WDI_GetIbssPeerInfoRspType
----------------------------------------------------------------------------*/
-typedef struct
-{
-    WDI_IbssPeerInfoRspParams  wdiPeerInfoRspParams;
-
-    /*Request status callback offered by UMAC - it is called if the current
-      req has returned PENDING as status; it delivers the status of sending
-      the message over the BUS */
-    WDI_ReqStatusCb   wdiReqStatusCB;
-
-    /*The user data passed in by UMAC, it will be sent back when the above
-      function pointer will be called */
-    void*             pUserData;
-}WDI_GetIbssPeerInfoRspType;
-
-/*---------------------------------------------------------------------------
-  WDI_IbssPeerInfoReqType
----------------------------------------------------------------------------*/
-typedef struct
-{
-    wpt_boolean wdiAllPeerInfoReqd; // Request info for all peers
-    wpt_uint8   wdiStaIdx;          // STA Index
-    wpt_uint8   wdiBssIdx;          // BSS Index
-}WDI_IbssPeerInfoReqType;
-
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 
 /*----------------------------------------------------------------------------
@@ -7461,17 +7228,6 @@ typedef void  (*WDI_UpdateVHTOpModeCb)(WDI_Status   wdiStatus,
 typedef void  (*WDI_LphbCfgCb)(WDI_Status   wdiStatus,
                                 void*        pUserData);
 #endif /* FEATURE_WLAN_LPHB */
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-typedef void  (*WDI_LbpLeaderRspCb)(WDI_LbpRspParamsType *wdiLbpResponse,
-                                    void*        pUserData);
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-typedef void  (*WDI_IbssPeerInfoReqCb)(WDI_IbssPeerInfoRspParams *pInfoRspParams,
-                                            void*        pUserData);
-
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
 /*---------------------------------------------------------------------------
@@ -10256,49 +10012,6 @@ WDI_dhcpStopInd
   WDI_DHCPInd *wdiDHCPInd
 );
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-/**
- @brief WDI_lbpLeaderReq will be called when the upper MAC
-        requests the device to enable LBP reliable multicast.
-
-        In state BUSY this request will be queued. Request won't
-        be allowed in any other state.
-
-
- @param wdiLbpLeaderReq:
-
- @see WDI_Start
- @return Result of the function call
-*/
-WDI_Status
-WDI_LbpLeaderReq
-(
-  WDI_LbpLeaderReqParams  *wdiLbpLeaderReqParams,
-  WDI_LbpLeaderRspCb lbpLeaderRspCb,
-  void *usrData
-);
-
-/**
- @brief WDI_lbpUpdateInd will be called when the upper MAC
-        requests the device to enable LBP reliable multicast.
-
-        In state BUSY this request will be queued. Request won't
-        be allowed in any other state.
-
-
- @param wdiLbpUpdateInd:
-
-
- @see WDI_Start
- @return Result of the function call
-*/
-WDI_Status
-WDI_LbpUpdateInd
-(
-  WDI_LbpUpdateIndParams  *wdiLbpUpdateIndParams
-);
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
 /**
  @brief WDI_RateUpdateInd will be called when the upper MAC
         requests the device to update rates.
@@ -10318,26 +10031,6 @@ WDI_RateUpdateInd
 (
   WDI_RateUpdateIndParams  *wdiRateUpdateIndParams
 );
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/**
- @brief WDI_TXFailMonitorStartStopInd
-       Forward TX monitor start/stop event
-
- @param
-
-     WDI_TXFailMonitorInd
-
- @see
- @return Result of the function call
-*/
-
-WDI_Status
-WDI_TXFailMonitorStartStopInd
-(
-  WDI_TXFailMonitorInd *wdiTXFailMonitorInd
-);
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 /**
@@ -10624,45 +10317,6 @@ WDI_TriggerBatchScanResultInd(WDI_TriggerBatchScanResultIndType *pWdiReq);
 
 
 #endif /*FEATURE_WLAN_BATCH_SCAN*/
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/**
- @brief Process LBP Update Indication and post it to HAL
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-
-WDI_Status
-WDI_IbssPeerInfoReq
-(
-   WDI_IbssPeerInfoReqType*   wdiPeerInfoReqParams,
-   WDI_IbssPeerInfoReqCb      wdiIbssPeerInfoReqCb,
-  void*                         pUserData
-);
-
-
-/**
- @brief WDI_IBSSRouteTableUpdateInd
-       Forward the IBSS Route Table Update Indication
-
- @param
-
- pwdiIBSSRouteTableInd: IBSS Route table
-
- @see
- @return Success or Failure
-*/
-
-WDI_Status
-WDI_IBSSRouteTableUpdateInd
-(
-  WDI_IBSSRouteTable *pwdiIBSSRouteTable
-);
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 #ifdef __cplusplus
  }

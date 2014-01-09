@@ -24,7 +24,9 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ *
+ */
 /******************************************************************************
  * wlan_btc_svc.c
  *

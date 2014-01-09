@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _WLAN_OPTS_H_
 #define _WLAN_OPTS_H_
 

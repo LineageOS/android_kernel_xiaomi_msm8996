@@ -24,9 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ *
  * This file utilsParser.cc contains the code for parsing
  * 802.11 messages.
  * Author:        Pierre Vandwalle

@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sirMacProtDef.h contains the MAC/PHY protocol
  * definitions used across various projects.
  * Author:        Chandra Modumudi
@@ -2425,18 +2423,6 @@ typedef __ani_attr_pre_packed struct sSirMacVendorSpecificFrameHdr
 } __ani_attr_packed tSirMacVendorSpecificFrameHdr, *tpSirMacVendorSpecificFrameHdr;
 #endif
 
-#if  defined (WLAN_FEATURE_RELIABLE_MCAST)
-typedef __ani_attr_pre_packed struct sSirMacOxygenNetworkFrameHdr
-{
-    tANI_U8    category;
-    tANI_U8    Oui[3];
-    tANI_U8    MagicCode[6];
-    tANI_U8    version;
-    tANI_U8    actionID;
-    tANI_U32   dialogToken;
-} __ani_attr_packed tSirMacOxygenNetworkFrameHdr, *tpSirMacOxygenNetworkFrameHdr;
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
 typedef __ani_attr_pre_packed struct sSirMacVendorSpecificPublicActionFrameHdr
 {
     tANI_U8    category;
@@ -2856,27 +2842,25 @@ typedef __ani_attr_pre_packed struct sSirPhy11aHdr
 
 #define SIR_MAC_MIN_IE_LEN 2 // Minimum IE length for IE validation
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-
-// Reliable Multicast action codes
-#define SIR_MAC_RMC_ENABLE_REQ                  0
-#define SIR_MAC_RMC_DISABLE_REQ                 1
-#define SIR_MAC_RMC_LEADER_INFORM_SELECTED      2
-#define SIR_MAC_RMC_LEADER_INFORM_CANCELLED     3
-
-// Reliable multicast protocol version
-#define SIR_MAC_RMC_VER 0x01
-
-// Organization Identifier
-#define SIR_MAC_RMC_OUI             "\x00\x16\x32"
-#define SIR_MAC_RMC_OUI_SIZE        3
-
-// Magic code for Oxygen network
-#define SIR_MAC_OXYGEN_MAGIC_CODE       "OXYGEN"
-#define SIR_MAC_OXYGEN_MAGIC_CODE_SIZE  6
-
-#define SIR_MAC_RMC_MCAST_ADDRESS  "\x01\x00\x5E\x00\x02\x0A"
-
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+#define SIR_MAC_VHT_CAP_MAX_MPDU_LEN              0
+#define SIR_MAC_VHT_CAP_SUPP_CH_WIDTH_SET         2
+#define SIR_MAC_VHT_CAP_LDPC_CODING_CAP           4
+#define SIR_MAC_VHT_CAP_SHORTGI_80MHZ             5
+#define SIR_MAC_VHT_CAP_SHORTGI_160_80_80MHZ      6
+#define SIR_MAC_VHT_CAP_TXSTBC                    7
+#define SIR_MAC_VHT_CAP_RXSTBC                    8
+#define SIR_MAC_VHT_CAP_SU_BEAMFORMER_CAP         11
+#define SIR_MAC_VHT_CAP_SU_BEAMFORMEE_CAP         12
+#define SIR_MAC_VHT_CAP_CSN_BEAMORMER_ANT_SUP     13
+#define SIR_MAC_VHT_CAP_NUM_SOUNDING_DIM          16
+#define SIR_MAC_VHT_CAP_NUM_BEAM_FORMER_CAP       19
+#define SIR_MAC_VHT_CAP_NUM_BEAM_FORMEE_CAP       20
+#define SIR_MAC_VHT_CAP_TXOPPS                    21
+#define SIR_MAC_VHT_CAP_HTC_CAP                   22
+#define SIR_MAC_VHT_CAP_MAX_AMDU_LEN_EXPO         23
+#define SIR_MAC_VHT_CAP_LINK_ADAPT_CAP            26
+#define SIR_MAC_VHT_CAP_RX_ANTENNA_PATTERN        28
+#define SIR_MAC_VHT_CAP_TX_ANTENNA_PATTERN        29
+#define SIR_MAC_VHT_CAP_RESERVED2                 30
 
 #endif /* __MAC_PROT_DEFS_H */

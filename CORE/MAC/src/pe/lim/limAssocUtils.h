@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  * This file limAssocUtils.h contains the utility definitions
  * LIM uses while processing Re/Association messages.

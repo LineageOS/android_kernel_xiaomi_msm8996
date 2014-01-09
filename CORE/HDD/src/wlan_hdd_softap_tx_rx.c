@@ -24,17 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
-
 /**===========================================================================
   
   \file  wlan_hdd_softap_tx_rx.c
   
   \brief Linux HDD Tx/RX APIs
-         Copyright 2008 (c) Qualcomm Technologies, Inc.
-         All Rights Reserved.
-         Qualcomm Technologies Confidential and Proprietary.
-  
   ==========================================================================*/
 
 /*--------------------------------------------------------------------------- 
@@ -1501,13 +1495,12 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
                hdd_softap_sta_2_sta_xmit(pSkbCopy, pSkbCopy->dev,
                           pHddApCtx->uBCStaId, (pRxMetaInfo->ucUP));
              }
+             else
+             {
+               VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                          "%s: skb allocation fails", __func__);
+             }
          }
-         else
-         {
-             VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                      "%s: skb allocation fails", __func__);
-         }
- 
 
       } //(WLAN_RX_BCMC_STA_ID == staId)
 
@@ -1653,6 +1646,10 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
 {
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
     hdd_context_t *pHddCtx;
+#ifdef QCA_WIFI_2_0
+    v_U8_t i;
+#endif
+
     if (NULL == pAdapter)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
@@ -1675,7 +1672,7 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
     {
         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, 
                     "WLANTL_ClearSTAClient() failed to for staID %d.  "
-                    "Status= %d [0x%08lX]",
+                    "Status= %d [0x%08X]",
                     staId, vosStatus, vosStatus );
     }
 
@@ -1683,6 +1680,15 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
     if (pAdapter->aStaInfo[staId].isUsed) {
         spin_lock_bh( &pAdapter->staInfo_lock );
         vos_mem_zero(&pAdapter->aStaInfo[staId], sizeof(hdd_station_info_t));
+
+        /* re-init spin lock, since netdev can still open adapter until
+         * driver gets unloaded
+         */
+        for (i = 0; i < NUM_TX_QUEUES; i ++)
+        {
+            hdd_list_init(&pAdapter->aStaInfo[staId].wmm_tx_queue[i],
+                          HDD_TX_QUEUE_MAX_LEN);
+        }
         spin_unlock_bh( &pAdapter->staInfo_lock );
    }
 #else
@@ -1691,7 +1697,7 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
     {
         VOS_TRACE ( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
                     "hdd_softap_deinit_tx_rx_sta() failed for staID %d. "
-                    "Status = %d [0x%08lX]",
+                    "Status = %d [0x%08X]",
                     staId, vosStatus, vosStatus );
         return( vosStatus );
     }
@@ -1801,7 +1807,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, 
-                 "SOFTAP WLANTL_RegisterSTAClient() failed to register.  Status= %d [0x%08lX]",
+                 "SOFTAP WLANTL_RegisterSTAClient() failed to register.  Status= %d [0x%08X]",
                  vosStatus, vosStatus );
       return vosStatus;      
    }

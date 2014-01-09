@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_OS_TYPE_H )
 #define __WLAN_QCT_OS_TYPE_H
 
@@ -35,10 +34,6 @@
   \brief define basi types PAL exports. wpt = (Wlan Pal Type)
                
    Definitions for platform dependent. This is for Linux/Android
-  
-   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef TXRX_TL_SHIM_H
 #define TXRX_TL_SHIM_H
 

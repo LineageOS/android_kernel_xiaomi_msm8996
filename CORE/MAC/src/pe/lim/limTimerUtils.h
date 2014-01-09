@@ -24,9 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ *
  * This file limTimerUtils.h contains the utility definitions
  * LIM uses for timer handling.
  * Author:        Chandra Modumudi

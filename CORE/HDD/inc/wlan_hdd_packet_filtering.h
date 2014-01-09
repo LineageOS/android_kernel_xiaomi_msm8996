@@ -24,15 +24,12 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /******************************************************************************
 *
 * Name:  wlan_hdd_packet_filtering.h
 *
 * Description: Packet Filter Definitions.
 *
-* Copyright (c) 2011 Qualcomm Technologies, Inc. All Rights Reserved.
-* Qualcomm Technologies Proprietary and Confidential.
 *
 ******************************************************************************/
 

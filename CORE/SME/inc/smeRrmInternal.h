@@ -24,7 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ * */
 #if !defined( __SMERRMINTERNAL_H )
 #define __SMERRMINTERNAL_H
 
@@ -34,10 +35,6 @@
   \file  smeRrmInternal.h
   
   \brief prototype for SME RRM APIs
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

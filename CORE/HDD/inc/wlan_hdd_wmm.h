@@ -24,7 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ * */
 #ifndef _WLAN_HDD_WMM_H
 #define _WLAN_HDD_WMM_H
 /*============================================================================
@@ -48,10 +49,6 @@
 
   The remaining functions are utility functions for information hiding.
 
-
-               Copyright (c) 2008-9 Qualcomm Technologies, Inc.
-               All Rights Reserved.
-               Qualcomm Technologies Confidential and Proprietary
 ============================================================================*/
 /* $Header$ */
 

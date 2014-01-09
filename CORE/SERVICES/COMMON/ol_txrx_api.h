@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file ol_txrx_api.h
  * @brief Definitions used in multiple external interfaces to the txrx SW.

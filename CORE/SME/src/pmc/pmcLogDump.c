@@ -24,16 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /******************************************************************************
 *
 * Name:  pmcLogDump.c
 *
 * Description: Implements the dump commands specific to PMC module
-*
-* Copyright 2008 (c) Qualcomm Technologies, Inc.
-* All Rights Reserved.
-* Qualcomm Technologies Confidential and Proprietary.
 *
 ******************************************************************************/
 

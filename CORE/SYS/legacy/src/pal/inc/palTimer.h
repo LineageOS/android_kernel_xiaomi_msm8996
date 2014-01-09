@@ -35,7 +35,6 @@
   
     $Id$ 
   
-    Copyright (C) 2006 Airgo Networks, Incorporated
     ... description...
   
    ========================================================================== */

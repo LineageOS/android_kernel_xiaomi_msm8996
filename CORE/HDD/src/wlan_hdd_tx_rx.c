@@ -24,16 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**===========================================================================
   
   \file  wlan_hdd_tx_rx.c
   
   \brief Linux HDD Tx/RX APIs
-         Copyright 2008 (c) Qualcomm Technologies, Inc.
-         All Rights Reserved.
-         Qualcomm Technologies Confidential and Proprietary.
-  
   ==========================================================================*/
   
 /*--------------------------------------------------------------------------- 
@@ -1983,6 +1978,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
    }
 
 #ifdef FEATURE_WLAN_TDLS
+#ifndef QCA_WIFI_2_0
     if ((eTDLS_SUPPORT_ENABLED == pHddCtx->tdls_mode) &&
          0 != pHddCtx->connected_peer_count)
     {
@@ -2011,6 +2007,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
                        "rx packet sa is bssid, not adding to peer list");
         }
     }
+#endif /* QCA_WIFI_2_0 */
 #endif
 
    skb->dev = pAdapter->dev;

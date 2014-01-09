@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
 
@@ -33,12 +32,6 @@
   
     Implementation for the TDLS interface to PE.
 
-    Copyright (c) 2010 Qualcomm Technologies, Inc.
-    All Rights Reserved.
-    Qualcomm Technologies Proprietary and Confidential.
-    
-  
- 
    ========================================================================== */
 
 #ifdef FEATURE_WLAN_TDLS
@@ -1273,6 +1266,56 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
                                eCSR_ROAM_RESULT_DELETE_TDLS_PEER);
             break ;
 
+        }
+#endif
+#ifdef QCA_WIFI_2_0
+        case eWNI_SME_TDLS_SHOULD_DISCOVER:
+        {
+            tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
+            tCsrRoamInfo roamInfo = {0};
+            vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
+                         sizeof(tSirMacAddr));
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                      "%s: eWNI_SME_TDLS_SHOULD_DISCOVER for peer mac: "
+                      MAC_ADDRESS_STR " peer_reason: %d",
+                      __func__, MAC_ADDR_ARRAY(tevent->peerMac),
+                      tevent->peer_reason);
+            csrRoamCallCallback(pMac, tevent->sessionId, &roamInfo, 0,
+                                eCSR_ROAM_TDLS_STATUS_UPDATE,
+                                eCSR_ROAM_RESULT_TDLS_SHOULD_DISCOVER);
+            break;
+        }
+        case eWNI_SME_TDLS_SHOULD_TEARDOWN:
+        {
+            tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
+            tCsrRoamInfo roamInfo = {0};
+            vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
+                         sizeof(tSirMacAddr));
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                      "%s: eWNI_SME_TDLS_SHOULD_TEARDOWN for peer mac: "
+                      MAC_ADDRESS_STR " peer_reason: %d",
+                      __func__, MAC_ADDR_ARRAY(tevent->peerMac),
+                      tevent->peer_reason);
+            csrRoamCallCallback(pMac, tevent->sessionId, &roamInfo, 0,
+                                eCSR_ROAM_TDLS_STATUS_UPDATE,
+                                eCSR_ROAM_RESULT_TDLS_SHOULD_TEARDOWN);
+            break;
+        }
+        case eWNI_SME_TDLS_PEER_DISCONNECTED:
+        {
+            tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
+            tCsrRoamInfo roamInfo = {0};
+            vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
+                         sizeof(tSirMacAddr));
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                      "%s: eWNI_SME_TDLS_PEER_DISCONNECTED for peer mac: "
+                      MAC_ADDRESS_STR " peer_reason: %d",
+                      __func__, MAC_ADDR_ARRAY(tevent->peerMac),
+                      tevent->peer_reason);
+            csrRoamCallCallback(pMac, tevent->sessionId, &roamInfo, 0,
+                                eCSR_ROAM_TDLS_STATUS_UPDATE,
+                                eCSR_ROAM_RESULT_TDLS_SHOULD_PEER_DISCONNECTED);
+            break;
         }
 #endif
         default:

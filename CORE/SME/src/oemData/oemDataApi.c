@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifdef FEATURE_OEM_DATA_SUPPORT
 /** ------------------------------------------------------------------------- *
     ------------------------------------------------------------------------- *
@@ -33,9 +32,6 @@
     \file oemDataApi.c
 
     Implementation for the OEM DATA REQ/RSP interfaces.
-
-    Copyright (C) 2010 Qualcomm Technologies, Inc.
-
 
    ========================================================================== */
 #include "aniGlobal.h"

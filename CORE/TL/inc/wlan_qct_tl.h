@@ -24,6 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+/*
+ * */
 
 #ifndef WLAN_QCT_WLANTL_H
 #define WLAN_QCT_WLANTL_H
@@ -38,9 +40,6 @@ DESCRIPTION
   This file contains the external API exposed by the wlan transport layer
   module.
 
-
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -2951,151 +2950,5 @@ WLANTL_TLDebugMessage
 
 }
 #endif /* QCA_WIFI_2_0 */
-
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-/*=============================================================================
-  FUNCTION    WLANTL_EnableReliableMcast
-
-  DESCRIPTION
-    This function enables data path of reliable multicast transmitter in TL
-
-  DEPENDENCIES
-    Reliable multicast receive leader must be selected by FW before
-    UMAC calling this API
-
-  PARAMETERS
-
-   IN
-
-   pvosGCtx   : Pointer to VOS global context
-   pMcastAddr : Pointer to MAC ADDR of reliable multicast transmitter
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_E_FAULT:   Sanity  check on input failed
-
-    VOS_STATUS_SUCCESS:   Everything is good :)
-
-   Other return values are possible coming from the called functions.
-   Please check API for additional info.
-
-  SIDE EFFECTS
-
-==============================================================================*/
-#ifndef QCA_WIFI_2_0
-VOS_STATUS
-WLANTL_EnableReliableMcast
-(
-    v_PVOID_t     pvosGCtx,
-    v_MACADDR_t   *pMcastAddr
-);
-#else
-static inline VOS_STATUS
-WLANTL_EnableReliableMcast
-(
-    v_PVOID_t     pvosGCtx,
-    v_MACADDR_t   *pMcastAddr
-)
-{
-     return VOS_STATUS_SUCCESS;
-}
-#endif /* QCA_WIFI_2_0 */
-
-/*=============================================================================
-  FUNCTION    WLANTL_DisableReliableMcast
-
-  DESCRIPTION
-    This function disables data path of reliable multicast transmitter in TL
-
-  DEPENDENCIES
-    HDD should have recived IOCTL to disable reliable RMC
-
-  PARAMETERS
-
-   IN
-
-   pvosGCtx   : Pointer to VOS global context
-   pMcastAddr : Pointer to MAC ADDR of reliable multicast transmitter
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_E_FAULT:   Sanity  check on input failed
-
-    VOS_STATUS_SUCCESS:   Everything is good :)
-
-   Other return values are possible coming from the called functions.
-   Please check API for additional info.
-
-  SIDE EFFECTS
-
-==============================================================================*/
-#ifndef QCA_WIFI_2_0
-VOS_STATUS
-WLANTL_DisableReliableMcast
-(
-    v_PVOID_t     pvosGCtx,
-    v_MACADDR_t   *pMcastAddr
-);
-#else
-static inline VOS_STATUS
-WLANTL_DisableReliableMcast
-(
-    v_PVOID_t     pvosGCtx,
-    v_MACADDR_t   *pMcastAddr
-)
-{
-     return VOS_STATUS_SUCCESS;
-}
-#endif /* QCA_WIFI_2_0 */
-/*=============================================================================
-  FUNCTION    WLANTL_SetMcastDuplicateDetection
-
-  DESCRIPTION
-    This function sets multicate duplicate detection operation.
-    If enable is 1, the detection is enabled, else it is disabled.
-
-  DEPENDENCIES
-
-  PARAMETERS
-
-   IN
-
-   pvosGCtx   : Pointer to VOS global context
-   enable : Boolean to enable or disable
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_E_FAULT:   Sanity check on input failed
-
-    VOS_STATUS_SUCCESS:   Everything is good :)
-
-   Other return values are possible coming from the called functions.
-   Please check API for additional info.
-
-  SIDE EFFECTS
-
-==============================================================================*/
-#ifndef QCA_WIFI_2_0
-VOS_STATUS
-WLANTL_SetMcastDuplicateDetection
-(
-    v_PVOID_t     pvosGCtx,
-    v_U8_t        enable
-);
-#else
-static inline VOS_STATUS
-WLANTL_SetMcastDuplicateDetection
-(
-    v_PVOID_t     pvosGCtx,
-    v_U8_t        enable
-)
-{
-     return VOS_STATUS_SUCCESS;
-}
-#endif /* QCA_WIFI_2_0 */
-#endif /*End of WLAN_FEATURE_RELIABLE_MCAST*/
 
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

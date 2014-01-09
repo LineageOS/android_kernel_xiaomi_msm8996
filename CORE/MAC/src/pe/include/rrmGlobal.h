@@ -24,6 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+/*
+ * */
 
 #if !defined( __RRMGLOBAL_H )
 #define __RRMGLOBAL_H
@@ -33,10 +35,6 @@
   \file  rrmGlobal.h
 
   \brief Definitions for SME APIs
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 

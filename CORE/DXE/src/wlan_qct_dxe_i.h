@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_DXE_I_H
 #define WLAN_QCT_DXE_I_H
 
@@ -35,9 +34,6 @@
   @brief 
                
    This file contains the external API exposed by the wlan data transfer abstraction layer module.
-   Copyright (c) 2011 Qualcomm Technologies, Inc.
-   All Rights Reserved.
-   Qualcomm Technologies Confidential and Proprietary
 ========================================================================*/
 
 /*===========================================================================

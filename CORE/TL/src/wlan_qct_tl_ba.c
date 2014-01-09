@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
 
                        W L A N _ Q C T _ T L _ B A. C
@@ -42,10 +41,6 @@
 
   Are listed for each API below. 
   
-  
-  Copyright (c) 2008 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================
@@ -241,7 +236,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
 
                /*A replay packet found*/
                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLANTL_ReorderingAgingTimerExpierCB: total dropped replay packets on STA ID %X is [0x%lX]\n",
+                "WLANTL_ReorderingAgingTimerExpierCB: total dropped replay packets on STA ID %X is [0x%X]\n",
                 ucSTAID, pClientSTA->ulTotalReplayPacketsDetected);
 
                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
@@ -1028,7 +1023,7 @@ WLANTL_AMSDUProcess
   numAMSDUFrames++;
   if(0 == (numAMSDUFrames % 5000))
   {
-    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"%lu AMSDU frames arrived", numAMSDUFrames));
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"%u AMSDU frames arrived", numAMSDUFrames));
   }
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_AMSDUProcess */

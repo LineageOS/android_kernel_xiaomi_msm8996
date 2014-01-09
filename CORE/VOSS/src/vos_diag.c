@@ -25,17 +25,12 @@
  * to the Linux Foundation.
  */
 
-
 /*============================================================================
   FILE:         vos_diag.c
 
   OVERVIEW:     This source file contains definitions for vOS diag APIs
 
   DEPENDENCIES: 
- 
-                Copyright (c) 2007 Qualcomm Technologies, Inc.
-                All Rights Reserved.
-                Qualcomm Technologies Confidential and Proprietary
 ============================================================================*/
 
 #include "vos_types.h"

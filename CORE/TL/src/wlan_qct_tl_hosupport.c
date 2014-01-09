@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
 
                        W L A N _ Q C T _ T L _ HOSUPPORT. C
@@ -35,10 +34,6 @@
 
   Are listed for each API below. 
   
-  
-  Copyright (c) 2008 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================
@@ -240,7 +235,7 @@ void WLANTLPrintPktsRcvdPerRateIdx(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t fl
         /* printing int the below format
          * " rateIndex = pktCount "*/
         TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                         "%d = %ld", ii+1,
+                         "%d = %d", ii+1,
                          tlCtxt->atlSTAClients[staId]->trafficStatistics.pktCounterRateIdx[ii]));
     }
 
@@ -295,7 +290,7 @@ void WLANTLPrintPktsRcvdPerRssi(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t flush
         /* prints are in the below format
          * " fromRSSI - toRSSI = pktCount " */
         TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                         " %d - %d = %ld",
+                         " %d - %d = %d",
                          ii, ii+(MAX_RSSI_INTERVAL - 1), count));
     }
     return;
@@ -612,7 +607,7 @@ VOS_STATUS WLANTL_StatHandleRXFrame
      tlCtxt->atlSTAClients[STAid]->trafficStatistics.pktCounterRssi[(v_U16_t)((WDA_GET_RX_RSSI_DB(pBDHeader)) * (-1))]++;
 #endif
    TLLOG1(VOS_TRACE (VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_MED,
-                  "****Received rate Index = %ld type=%d subtype=%d****\n",
+                  "****Received rate Index = %d type=%d subtype=%d****\n",
                   statistics->rxRate,WDA_GET_RX_TYPE(pBDHeader),WDA_GET_RX_SUBTYPE(pBDHeader)));
 
    statistics->rxBcnt += (packetSize - WLANHAL_RX_BD_HEADER_SIZE);

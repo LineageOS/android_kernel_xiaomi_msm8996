@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __BAPRSN_TXRX_H )
 #define __BAPRSN_TXRX_H
 
@@ -36,11 +35,6 @@
   
   Description...
     
-  
-               Copyright 2008 (c) Qualcomm Technologies, Inc.
-               All Rights Reserved.
-               Qualcomm Technologies Confidential and Proprietary.
-  
   ==============================================================================*/
 
 #include "vos_types.h"

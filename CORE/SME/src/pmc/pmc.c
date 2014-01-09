@@ -24,17 +24,12 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /******************************************************************************
 *
 * Name:  pmc.c
 *
 * Description:
       Power Management Control (PMC) processing routines.
-*
-* Copyright 2008 (c) Qualcomm Technologies, Inc. All Rights Reserved.
-*     Qualcomm Technologies Confidential and Proprietary.
-*
 *
 ******************************************************************************/
 
@@ -2792,6 +2787,9 @@ eHalStatus pmcOffloadOpenPerSession(tHalHandle hHal, tANI_U32 sessionId)
             FL("Cannot initialize device state update ind callback list"));
         return eHAL_STATUS_FAILURE;
     }
+
+    pmc->UapsdEnabled = TRUE;
+
     return eHAL_STATUS_SUCCESS;
 }
 

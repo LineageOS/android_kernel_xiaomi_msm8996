@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*=== includes ===*/
 /* header files for OS primitives */
 #include <osdep.h>         /* u_int32_t, etc. */

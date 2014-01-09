@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file ol_tx_sched.h
  * @brief API definitions for the tx scheduler module within the data SW.

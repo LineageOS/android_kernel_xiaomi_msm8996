@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessAssocReqFrame.cc contains the code
  * for processing Re/Association Request Frame.
  * Author:        Chandra Modumudi
@@ -1077,6 +1075,7 @@ sendIndToSme:
             pStaDs->vhtSupportedChannelWidthSet = (tANI_U8)((pStaDs->htSupportedChannelWidthSet == eHT_CHANNEL_WIDTH_20MHZ) ? 
                                                              WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ : 
                                                              psessionEntry->vhtTxChannelWidthSet );
+            pStaDs->htMaxRxAMpduFactor = pAssocReq->VHTCaps.maxAMPDULenExp;
         }
 
         // Lesser among the AP and STA bandwidth of operation.

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef QWLAN_VERSION_H
 #define QWLAN_VERSION_H
 /*===========================================================================
@@ -36,18 +35,14 @@ BRIEF DESCRIPTION:
    WLAN Host Version file.
    Build number automaticly updated by build scripts.
 
-
-                Copyright (c) 2008-2011 Qualcomm Technologies, Inc.
-                All Right Reserved.
-                Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 #define QWLAN_VERSION_MAJOR            4
 #define QWLAN_VERSION_MINOR            0
 #define QWLAN_VERSION_PATCH            0
 #define QWLAN_VERSION_EXTRA            ""
-#define QWLAN_VERSION_BUILD            62
+#define QWLAN_VERSION_BUILD            68
 
-#define QWLAN_VERSIONSTR               "4.0.0.62B"
+#define QWLAN_VERSIONSTR               "4.0.0.68"
 
 #endif /* QWLAN_VERSION_H */

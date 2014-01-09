@@ -24,16 +24,13 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ * */
 /**=========================================================================
   
   \file  sme_Rrm.c
   
   \brief implementation for SME RRM APIs
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -314,6 +311,7 @@ static eHalStatus sme_CcxSendBeaconReqScanResults(tpAniSirGlobal pMac,
                                                   tANI_U8        bss_count)
 {
    eHalStatus              status         = eHAL_STATUS_FAILURE;
+   tSirRetStatus           fillIeStatus;
    tpSirBssDescription     pBssDesc       = NULL;
    tANI_U32                ie_len         = 0;
    tANI_U32                outIeLen       = 0;
@@ -377,8 +375,15 @@ static eHalStatus sme_CcxSendBeaconReqScanResults(tpAniSirGlobal pMac,
                vos_mem_copy(pBcnReport->bcnRepBssInfo[msgCounter].bcnReportFields.Bssid,
                                       pBssDesc->bssId, sizeof(tSirMacAddr));
 
-               sirFillBeaconMandatoryIEforCcxBcnReport(pMac, (tANI_U8 *)pBssDesc->ieFields, ie_len,
-                                           &(pBcnReport->bcnRepBssInfo[msgCounter].pBuf), &outIeLen);
+               fillIeStatus = sirFillBeaconMandatoryIEforCcxBcnReport(pMac,
+                              (tANI_U8 *)pBssDesc->ieFields,
+                              ie_len,
+                              &(pBcnReport->bcnRepBssInfo[msgCounter].pBuf),
+                              &outIeLen);
+               if (eSIR_FAILURE == fillIeStatus)
+               {
+                       continue;
+               }
                pBcnReport->bcnRepBssInfo[msgCounter].ieLen = outIeLen;
 
                smsLog( pMac, LOG1,"Bssid(%02X:%02X:%02X:%02X:%02X:%02X) Channel=%d Rssi=%d",

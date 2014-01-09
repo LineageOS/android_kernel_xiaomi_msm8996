@@ -24,15 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /******************************************************************************
 *
 * Name:  p2p_Api.h
 *
 * Description: P2P FSM defines.
-*
-* Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-* Qualcomm Technologies Confidential and Proprietary.
 *
 ******************************************************************************/
 

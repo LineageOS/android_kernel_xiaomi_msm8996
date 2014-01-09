@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file dmux_dxe.c
  * @brief Provide functions to demux receive frames.

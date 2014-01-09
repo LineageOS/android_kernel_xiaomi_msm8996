@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __I_VOS_TYPES_H )
 #define __I_VOS_TYPES_H
 #include <linux/list.h>
@@ -44,10 +43,6 @@
   \brief virtual Operating System Servies (vOSS) Types
                
    Linux specific basic type definitions 
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

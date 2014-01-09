@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifdef FEATURE_OEM_DATA_SUPPORT
 
 /*================================================================================ 
@@ -34,8 +33,6 @@
   
     $Id: wlan_hdd_oemdata.c,v 1.34 2010/04/15 01:49:23 -- VINAY
   
-    Copyright (C) Qualcomm Technologies, Inc.
-    
 ================================================================================*/
 
 #include <linux/version.h>
@@ -274,6 +271,8 @@ int iw_get_oem_data_cap(
     hdd_context_t *pHddContext;
     hdd_config_t *pConfig;
 
+    ENTER();
+
     if (!pAdapter)
     {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -337,6 +336,7 @@ int iw_get_oem_data_cap(
                     sizeof(struct iw_oem_data_cap));
     } while(0);
 
+    EXIT();
     return status;
 }
 
@@ -521,7 +521,7 @@ void send_oem_data_rsp_msg(int length, tANI_U8 *oemDataRsp)
       return;
    }
 
-   skb = alloc_skb(NLMSG_SPACE(sizeof(struct nlmsghdr) + OEM_DATA_RSP_SIZE),
+   skb = alloc_skb(NLMSG_SPACE(sizeof(tAniMsgHdr) + OEM_DATA_RSP_SIZE),
                    GFP_KERNEL);
    if (skb == NULL)
    {
@@ -585,13 +585,17 @@ int oem_process_data_req_msg(int oemDataLen, char *oemData)
 
    if (!oemData)
    {
-      hddLog(LOGE, "in %s oemData is NULL\n", __func__);
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: oemData is null", __func__);
       return eHAL_STATUS_FAILURE;
    }
 
    vos_mem_zero(&oemDataReqConfig, sizeof(tOemDataReqConfig));
 
    vos_mem_copy((&oemDataReqConfig)->oemDataReq, oemData, oemDataLen);
+
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+             "%s: calling sme_OemDataReq", __func__);
 
    status = sme_OemDataReq(pHddCtx->hHal,
                            pAdapter->sessionId,
@@ -635,7 +639,7 @@ int oem_process_channel_info_req_msg(int numOfChannels, char *chanList)
       return -1;
    }
 
-   skb = alloc_skb(NLMSG_SPACE(sizeof(struct nlmsghdr) + sizeof(tANI_U8) +
+   skb = alloc_skb(NLMSG_SPACE(sizeof(tAniMsgHdr) + sizeof(tANI_U8) +
                    numOfChannels * sizeof(tSmeChannelInfo)), GFP_KERNEL);
    if (skb == NULL)
    {
@@ -800,8 +804,8 @@ int oem_msg_callback(struct sk_buff *skb)
              (0 == strncmp(sign_str, OEM_APP_SIGNATURE_STR,
                            OEM_APP_SIGNATURE_LEN)))
          {
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                      "%s: Received App Req Req from App process pid(%d)",
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                      "%s: Valid App Req Req from oem app process pid(%d)",
                       __func__, nlh->nlmsg_pid);
 
             pHddCtx->oem_app_registered = TRUE;

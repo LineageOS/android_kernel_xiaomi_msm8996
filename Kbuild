@@ -40,8 +40,11 @@ ifeq ($(KERNEL_BUILD), 0)
 	CONFIG_WLAN_FEATURE_11W := y
 	endif
 
+	#Flag to enable LTE CoEx feature
+	CONFIG_QCOM_LTE_COEX := y
+
 	#Flag to enable new Linux Regulatory implementation
-	CONFIG_ENABLE_LINUX_REG := n
+	CONFIG_ENABLE_LINUX_REG := y
 
 endif
 
@@ -71,7 +74,7 @@ CONFIG_ADF_SUPPORT := 1
 CONFIG_ATH_PERF_PWR_OFFLOAD := 1
 
 #Disable packet log
-CONFIG_REMOVE_PKT_LOG := 1
+CONFIG_REMOVE_PKT_LOG := 0
 
 #Enable 11AC TX
 CONFIG_ATH_11AC_TXCOMPACT := 1
@@ -116,13 +119,13 @@ CONFIG_LITTLE_ENDIAN := 1
 CONFIG_TX_CREDIT_RECLAIM_SUPPORT := 0
 
 #Enable FTM support
-CONFIG_QCA_WIFI_FTM := 0
+CONFIG_QCA_WIFI_FTM := 1
 
 #Enable Checksum Offload
 CONFIG_CHECKSUM_OFFLOAD := 1
 
 #Enable GTK offload
-CONFIG_GTK_OFFLOAD := 0
+CONFIG_GTK_OFFLOAD := 1
 endif
 
 ifeq ($(CONFIG_CFG80211),y)
@@ -297,7 +300,6 @@ MAC_LIM_OBJS := $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o \
 		$(MAC_SRC_DIR)/pe/lim/limProcessProbeRspFrame.o \
 		$(MAC_SRC_DIR)/pe/lim/limProcessSmeReqMessages.o \
 		$(MAC_SRC_DIR)/pe/lim/limPropExtsUtils.o \
-		$(MAC_SRC_DIR)/pe/lim/limRMC.o \
 		$(MAC_SRC_DIR)/pe/lim/limRoamingAlgo.o \
 		$(MAC_SRC_DIR)/pe/lim/limScanResultUtils.o \
 		$(MAC_SRC_DIR)/pe/lim/limSecurityUtils.o \
@@ -695,7 +697,7 @@ WDI_OBJS +=	$(WDI_CP_OBJS) \
 endif
 
 
-WCNSS_INC :=	-I$(WLAN_ROOT)/wcnss/inc
+RIVA_INC :=	-I$(WLAN_ROOT)/riva/inc
 
 LINUX_INC :=	-Iinclude/linux
 
@@ -704,7 +706,7 @@ INCS :=		$(BAP_INC) \
 		$(HDD_INC) \
 		$(LINUX_INC) \
 		$(MAC_INC) \
-		$(WCNSS_INC) \
+		$(RIVA_INC) \
 		$(SAP_INC) \
 		$(SME_INC) \
 		$(SVC_INC) \
@@ -818,10 +820,8 @@ CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DWLAN_SOFTAP_VSTA_FEATURE \
 		-DWLAN_FEATURE_ROAM_SCAN_OFFLOAD \
 		-DWLAN_FEATURE_GTK_OFFLOAD \
-                -DFEATURE_CESIUM_PROPRIETARY \
 		-DWLAN_WAKEUP_EVENTS \
 	        -DWLAN_KD_READY_NOTIFIER \
-		-DWLAN_FEATURE_RELIABLE_MCAST \
 		-DWLAN_NL80211_TESTMODE \
 		-DFEATURE_WLAN_BATCH_SCAN \
 		-DFEATURE_WLAN_LPHB \
@@ -920,6 +920,10 @@ ifeq ($(CONFIG_WLAN_FEATURE_11W),y)
 CDEFINES += -DWLAN_FEATURE_11W
 endif
 
+ifeq ($(CONFIG_QCOM_LTE_COEX),y)
+CDEFINES += -DFEATURE_WLAN_CH_AVOID
+endif
+
 ifeq ($(PANIC_ON_BUG),1)
 CDEFINES += -DPANIC_ON_BUG
 endif
@@ -937,7 +941,7 @@ CDEFINES += -DWLAN_OPEN_SOURCE
 endif
 
 ifeq ($(CONFIG_ENABLE_LINUX_REG), y)
-ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
+ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 CDEFINES += -DCONFIG_ENABLE_LINUX_REG
 endif
 endif

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file ol_ctrl_api.h
  * @brief Definitions used in multiple external interfaces to the control SW.

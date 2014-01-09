@@ -24,16 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**========================================================================
   
   \file  wlan_hdd_hostapd.c
   \brief WLAN Host Device Driver implementation
                
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
-  
   ========================================================================*/
 /**========================================================================= 
                        EDIT HISTORY FOR FILE 
@@ -484,7 +479,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     switch(sapEvent)
     {
         case eSAP_START_BSS_EVENT :
-            hddLog(LOG1, FL("BSS configured status = %s, channel = %lu, bc sta Id = %d\n"),
+            hddLog(LOG1, FL("BSS configured status = %s, channel = %u, bc sta Id = %d\n"),
                             pSapEvent->sapevt.sapStartBssCompleteEvent.status ? "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS",
                             pSapEvent->sapevt.sapStartBssCompleteEvent.operatingChannel,
                               pSapEvent->sapevt.sapStartBssCompleteEvent.staId);
@@ -3392,7 +3387,7 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     if (!VOS_IS_STATUS_SUCCESS(status))
     {
        hddLog(VOS_TRACE_LEVEL_ERROR,
-             "hdd_wmm_adapter_init() failed with status code %08d [x%08lx]",
+             "hdd_wmm_adapter_init() failed with status code %08d [x%08x]",
                              status, status );
        goto error_wmm_init;
     }

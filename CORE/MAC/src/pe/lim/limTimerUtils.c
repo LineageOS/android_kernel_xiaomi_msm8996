@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limTimerUtils.cc contains the utility functions
  * LIM uses for handling various timers.
  * Author:        Chandra Modumudi

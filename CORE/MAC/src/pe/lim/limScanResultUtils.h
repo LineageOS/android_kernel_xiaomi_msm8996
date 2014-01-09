@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limScanResultUtils.h contains the utility definitions
  * LIM uses for maintaining and accessing scan results on STA.
  * Author:        Chandra Modumudi

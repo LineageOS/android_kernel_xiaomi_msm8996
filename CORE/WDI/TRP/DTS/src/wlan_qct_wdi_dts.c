@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
  *     
  *       \file  wlan_qct_wdi_dts.c
@@ -36,8 +35,6 @@
  *  This file contains the external API implemntation exposed by the 
  *   wlan device abstarction layer module.
  *
- *   Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
- *   Qualcomm Technologies Confidential and Proprietary
  */
 
 

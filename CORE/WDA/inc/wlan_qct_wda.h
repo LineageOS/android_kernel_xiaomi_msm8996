@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WDA_H
 #define WLAN_QCT_WDA_H
 
@@ -43,8 +42,6 @@ DESCRIPTION
   was to keep the UMAC identical across Prima and Volans. This layer provides the glue
   between SME, PE , TL and HAL.
 
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -135,6 +132,17 @@ typedef enum
   eWDA_AUTH_TYPE_UNKNOWN = eCSR_AUTH_TYPE_FAILED,
 }WDA_AuthType;
 
+#ifdef QCA_WIFI_2_0
+#ifdef FEATURE_WLAN_TDLS
+typedef enum
+{
+  WDA_TDLS_PEER_STATE_PEERING,
+  WDA_TDLS_PEER_STATE_CONNECTED,
+  WDA_TDLS_PEER_STATE_TEARDOWN,
+} WDA_TdlsPeerState;
+#endif /* FEATURE_WLAN_TDLS */
+#endif /* QCA_WIFI_2_0 */
+
 /*--------------------------------------------------------------------------
   Utilities
  --------------------------------------------------------------------------*/
@@ -158,7 +166,7 @@ typedef enum
 #define IS_ROAM_SCAN_OFFLOAD_FEATURE_ENABLE 0
 #endif
 
-#define IS_IBSS_HEARTBEAT_OFFLOAD_FEATURE_ENABLE 0
+#define IS_IBSS_HEARTBEAT_OFFLOAD_FEATURE_ENABLE 1
 
 #ifdef FEATURE_WLAN_TDLS
 #define IS_ADVANCE_TDLS_ENABLE 0
@@ -342,10 +350,6 @@ typedef void (*pWDATxRxCompFunc)( v_PVOID_t pContext, void *pData,
 //parameter 2 - txComplete status : 1- success, 0 - failure.
 typedef eHalStatus (*pWDAAckFnTxComp)(tpAniSirGlobal, tANI_U32);
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-typedef void (*WDA_txFailIndCallback)(tANI_U8 *, tANI_U8);
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 /* generic callback for updating parameters from target to UMAC */
 typedef void (*wda_tgt_cfg_cb) (void *context, void *param);
 
@@ -447,9 +451,6 @@ typedef struct
    /* Event to wait for WDA stop on FTM mode */
    vos_event_t          ftmStopDoneEvent;
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-   WDA_txFailIndCallback txFailIndCallback;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 } tWDA_CbContext ; 
 
 typedef struct
@@ -1229,10 +1230,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_DHCP_START_IND              SIR_HAL_DHCP_START_IND
 #define WDA_DHCP_STOP_IND               SIR_HAL_DHCP_STOP_IND
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-#define WDA_TX_FAIL_MONITOR_IND         SIR_HAL_TX_FAIL_MONITOR_IND
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 #define WDA_GTK_OFFLOAD_REQ             SIR_HAL_GTK_OFFLOAD_REQ
@@ -1282,27 +1279,21 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #define WDA_RATE_UPDATE_IND         SIR_HAL_RATE_UPDATE_IND
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-#define WDA_RMC_BECOME_LEADER       SIR_HAL_RMC_BECOME_LEADER
-#define WDA_RMC_LEADER_SELECT_RESP  SIR_HAL_RMC_LEADER_SELECT_RESP
-#define WDA_RMC_LEADER_REQ          SIR_HAL_RMC_LEADER_REQ
-#define WDA_RMC_UPDATE_IND          SIR_HAL_RMC_UPDATE_IND
-#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/* IBSS peer info related message */
-#define WDA_GET_IBSS_PEER_INFO_REQ  SIR_HAL_IBSS_PEER_INFO_REQ
-#define WDA_GET_IBSS_PEER_INFO_RSP  SIR_HAL_IBSS_PEER_INFO_RSP
-
-/* IBSS Route table update indication */
-#define WDA_IBSS_ROUTE_TABLE_UPDATE_IND  SIR_HAL_IBSS_ROUTE_TABLE_UPDATE_IND
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 #ifdef FEATURE_WLAN_BATCH_SCAN
 #define WDA_SET_BATCH_SCAN_REQ            SIR_HAL_SET_BATCH_SCAN_REQ
 #define WDA_SET_BATCH_SCAN_RSP            SIR_HAL_SET_BATCH_SCAN_RSP
 #define WDA_STOP_BATCH_SCAN_IND           SIR_HAL_STOP_BATCH_SCAN_IND
 #define WDA_TRIGGER_BATCH_SCAN_RESULT_IND SIR_HAL_TRIGGER_BATCH_SCAN_RESULT_IND
+#endif
+
+#ifdef QCA_WIFI_2_0
+#ifdef FEATURE_WLAN_TDLS
+#define WDA_UPDATE_FW_TDLS_STATE      SIR_HAL_UPDATE_FW_TDLS_STATE
+#define WDA_UPDATE_TDLS_PEER_STATE    SIR_HAL_UPDATE_TDLS_PEER_STATE
+#define WDA_TDLS_SHOULD_DISCOVER      SIR_HAL_TDLS_SHOULD_DISCOVER
+#define WDA_TDLS_SHOULD_TEARDOWN      SIR_HAL_TDLS_SHOULD_TEARDOWN
+#define WDA_TDLS_PEER_DISCONNECTED    SIR_HAL_TDLS_PEER_DISCONNECTED
+#endif
 #endif
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
@@ -1344,7 +1335,6 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 #ifdef QCA_WIFI_2_0
 
 #define WDA_SetRegDomain WMA_SetRegDomain
-#define WDA_SetCountryCode WMA_SetCountryCode
 #define WDA_SetHTConfig wma_set_htconfig
 #define WDA_UpdateRssiBmps WMA_UpdateRssiBmps
 
@@ -1370,11 +1360,6 @@ static inline void WDA_UpdateLinkCapacity(v_PVOID_t pvosGCtx, v_U8_t staId,
 
 eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
 		tAniBool sendRegHint);
-
-static inline eHalStatus WDA_SetCountryCode(v_VOID_t *client_ctx, tANI_U8 *countrycode)
-{
-   return eHAL_STATUS_SUCCESS;
-}
 
 static inline int WDA_SetHTConfig(tANI_U8 sessionId, tANI_U16 htCapab,
                                   int value)

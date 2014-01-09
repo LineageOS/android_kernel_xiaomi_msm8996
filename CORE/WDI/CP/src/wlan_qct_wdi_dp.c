@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
 
                        W L A N _ Q C T _ W D I _ D P. C
@@ -44,10 +43,6 @@
 
   Are listed for each API below.
 
-
-  Copyright (c) 2010 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================
@@ -538,12 +533,6 @@ WDI_FillTxBd
         }
 #endif
 
-#ifdef FEATURE_WLAN_RELIABLE_MCAST
-        if(ucTxFlag & WDI_USE_BD_RATE_MASK)
-        {
-            pBd->bdRate = WDI_BDRATE_BCDATA_FRAME;
-        }
-#endif
         pBd->rmf    = WDI_RMF_DISABLED;     
 
         /* sanity: Might already be set by caller, but enforce it here again */
@@ -868,13 +857,6 @@ WDI_FillTxBd
    
             WDI_STATableGetStaType(pWDICtx, ucStaId, &ucSTAType);
             if(!ucUnicastDst)
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-              /*Check for reliable MCAST enabled bit if set then
-                queue frames in QID 1 else 0*/
-              if ( ucTxFlag & WDI_RELIABLE_MCAST_REQUESTED_MASK )
-                pBd->queueId = BTQM_QID1;
-              else
-#endif
                 pBd->queueId = BTQM_QID0;
 #ifndef HAL_SELF_STA_PER_BSS
             else if( ucUnicastDst && (ucStaId == pWDICtx->ucSelfStaId))

@@ -24,15 +24,10 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /**=========================================================================
   
   \brief implementation for PE 11r VoWiFi FT Protocol 
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -557,6 +552,8 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
         else 
             pAddBssParams->staContext.wmmEnabled = 0;
 
+        pAddBssParams->staContext.wpa_rsn = pBeaconStruct->rsnPresent;
+        pAddBssParams->staContext.wpa_rsn |= (pBeaconStruct->wpaPresent << 1);
         //Update the rates
 #ifdef WLAN_FEATURE_11AC
         limPopulatePeerRateSet(pMac, &pAddBssParams->staContext.supportedRates,

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_HDD_FTM_H
 #define WLAN_HDD_FTM_H
 #include "vos_status.h"

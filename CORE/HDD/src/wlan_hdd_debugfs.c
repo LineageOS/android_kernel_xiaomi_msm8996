@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifdef WLAN_OPEN_SOURCE
 #include <wlan_hdd_includes.h>
 #include <wlan_hdd_wowl.h>

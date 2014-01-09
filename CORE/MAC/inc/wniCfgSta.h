@@ -24,12 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
-/*
- * Copyright (C) 2007-2009 Qualcomm Technologies, Inc.
- * All rights reserved. Proprietary and Confidential.
- */
-
 /*
  * DO NOT EDIT - This file is generated automatically
  */

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
     \file ccmApi.h
@@ -33,9 +32,6 @@
   
     $Id$ 
   
-  
-    Copyright (C) 2006 Airgo Networks, Incorporated
-
     This file contains all the interfaces for thge Platform Abstration Layer
     functions.  It is intended to be included in all modules that are using 
     the PAL interfaces.

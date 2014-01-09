@@ -24,6 +24,21 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+/*
+ * Copyright (c) 2013, Qualcomm Atheros, Inc.
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
 
 /* Host Debug log implementation */
 
@@ -1342,7 +1357,7 @@ dbglog_print_raw_data(A_UINT32 *buffer, A_UINT32 length)
 
 #ifdef WLAN_OPEN_SOURCE
 static int
-dbglog_debugfs_raw_data(wmi_unified_t wmi_handle, const u_int8_t *buf, A_UINT32 length)
+dbglog_debugfs_raw_data(wmi_unified_t wmi_handle, const u_int8_t *buf, A_UINT32 length, A_UINT32 dropped)
 {
     struct fwdebug *fwlog = (struct fwdebug *)&wmi_handle->dbglog;
     struct dbglog_slot *slot;
@@ -1361,6 +1376,7 @@ dbglog_debugfs_raw_data(wmi_unified_t wmi_handle, const u_int8_t *buf, A_UINT32 
     slot = (struct dbglog_slot *) skb_put(skb, slot_len);
     slot->timestamp = cpu_to_le32(jiffies);
     slot->length = cpu_to_le32(length);
+    slot->dropped = cpu_to_le32(dropped);
     memcpy(slot->payload, buf, length);
 
     /* Need to pad each record to fixed length ATH6KL_FWLOG_PAYLOAD_SIZE */
@@ -1386,7 +1402,7 @@ dbglog_debugfs_raw_data(wmi_unified_t wmi_handle, const u_int8_t *buf, A_UINT32 
 #endif /* WLAN_OPEN_SOURCE */
 
 int
-dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer, A_UINT32 len)
+dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer, A_UINT32 len, A_UINT32 dropped)
 {
     struct sk_buff *skb_out;
     struct nlmsghdr *nlh;
@@ -1410,6 +1426,7 @@ dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer, A_
     slot = (struct dbglog_slot *) nlmsg_data(nlh);
     slot->timestamp = cpu_to_le32(jiffies);
     slot->length = cpu_to_le32(len);
+    slot->dropped = cpu_to_le32(dropped);
     memcpy(slot->payload, buffer, len);
     NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
 
@@ -1471,7 +1488,7 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
         if(appstarted){
             return dbglog_process_netlink_data((wmi_unified_t)wma->wmi_handle,
 			                                      (A_UINT8 *)buffer,
-					                      len);
+					                      len, dropped);
         } else {
             return 0;
         }
@@ -1481,7 +1498,7 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
 #ifdef WLAN_OPEN_SOURCE
     if (dbglog_process_type == DBGLOG_PROCESS_POOL_RAW) {
         return dbglog_debugfs_raw_data((wmi_unified_t)wma->wmi_handle,
-                                                     (A_UINT8 *)buffer, len);
+                                                     (A_UINT8 *)buffer, len, dropped);
     }
 #endif /* WLAN_OPEN_SOURCE */
 

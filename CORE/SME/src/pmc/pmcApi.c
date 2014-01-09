@@ -24,16 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /******************************************************************************
 *
 * Name:  pmcApi.c
 *
 * Description: Routines that make up the Power Management Control (PMC) API.
-*
-* Copyright 2008 (c) Qualcomm Technologies, Inc.  
-* All Rights Reserved.
-* Qualcomm Technologies Confidential and Proprietary.
 *
 ******************************************************************************/
 
@@ -2172,14 +2167,14 @@ eHalStatus pmcWowlAddBcastPattern (
        log_ptr->pattern_mask_size = pattern->ucPatternMaskSize;
 
        vos_mem_copy(log_ptr->pattern, pattern->ucPattern,
-                    SIR_WOWL_BCAST_PATTERN_MAX_SIZE);
-       /* 1 bit in the pattern mask denotes 1 byte of pattern hence pattern mask size is 1/8 */
+                   pattern->ucPatternSize);
+       /* 1 bit in the pattern mask denotes 1 byte of pattern. */
        vos_mem_copy(log_ptr->pattern_mask, pattern->ucPatternMask,
-                    SIR_WOWL_BCAST_PATTERN_MAX_SIZE >> 3);
+                     pattern->ucPatternMaskSize);
     }
 
+    //The same macro frees the memory.
     WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
-    WLAN_VOS_DIAG_LOG_FREE(log_ptr);
 #endif
 
 
@@ -3389,6 +3384,7 @@ eHalStatus pmcSetBatchScanReq(tHalHandle hHal, tSirSetBatchScanReq *pRequest,
     pMac->pmc.setBatchScanReqCallback = callbackRoutine;
     pMac->pmc.setBatchScanReqCallbackContext = callbackContext;
 
+    pRequestBuf->sessionId = sessionId;
     pRequestBuf->scanFrequency = pRequest->scanFrequency;
     pRequestBuf->numberOfScansToBatch = pRequest->numberOfScansToBatch;
     pRequestBuf->bestNetwork = pRequest->bestNetwork;

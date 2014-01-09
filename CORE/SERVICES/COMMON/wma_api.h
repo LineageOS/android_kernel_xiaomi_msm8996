@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**========================================================================
 
   \file     wma.c
@@ -81,6 +80,7 @@ typedef enum {
 #define PDEV_CMD 2
 #define GEN_CMD  3
 #define DBG_CMD  4
+#define PPS_CMD  5
 
 #ifdef QCA_WIFI_ISOC
 VOS_STATUS wma_nv_download_start(v_VOID_t *vos_context);
@@ -112,7 +112,6 @@ tANI_U8 wma_map_channel(tANI_U8 mapChannel);
 int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			int param_id, int vpdev);
 eHalStatus wma_set_htconfig(tANI_U8 vdev_id, tANI_U16 ht_capab, int value);
-eHalStatus WMA_SetCountryCode(v_VOID_t *client_ctx, tANI_U8 *countrycode);
 eHalStatus WMA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
 		tAniBool sendRegHint);
 
@@ -120,7 +119,8 @@ eHalStatus WMA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
 int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr);
 void wma_target_suspend_complete(void *context);
 int wma_resume_target(WMA_HANDLE handle);
-int wma_is_wow_enabled(WMA_HANDLE handle);
+int wma_is_wow_mode_selected(WMA_HANDLE handle);
+int wma_enable_wow_in_fw(WMA_HANDLE handle);
 #endif
 int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,
 			u_int32_t param_value, u_int32_t vdev_id);

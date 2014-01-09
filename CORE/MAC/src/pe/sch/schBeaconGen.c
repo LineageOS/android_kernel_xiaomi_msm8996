@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file schBeaconGen.cc contains beacon generation related
  * functions
  *
@@ -127,7 +125,7 @@ tSirRetStatus schAppendAddnIE(tpAniSirGlobal pMac, tpPESession psessionEntry,
                           == eSIR_SUCCESS)
             {
                 tANI_U8* pP2pIe = limGetP2pIEPtr(pMac, &addIE[0], len);
-                if(pP2pIe != NULL)
+                if ((pP2pIe != NULL) && !pMac->beacon_offload)
                 {
                     tANI_U8 noaLen = 0;
                     tANI_U8 noaStream[SIR_MAX_NOA_ATTR_LEN + SIR_P2P_IE_HEADER_LEN];

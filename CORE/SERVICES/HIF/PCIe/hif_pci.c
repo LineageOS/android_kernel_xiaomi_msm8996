@@ -24,8 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
-
 /*
  * Implementation of the Host-side Host InterFace (HIF) API
  * for a Host/Target interconnect using Copy Engines over PCIe.
@@ -54,6 +52,8 @@
 #define ATH_MODULE_NAME hif
 #include <a_debug.h>
 #include "hif_pci.h"
+#include "vos_lock.h"
+
 /* use credit flow control over HTC */
 unsigned int htc_credit_flow = 1;
 int hif_pci_war1 = 0;
@@ -1523,6 +1523,7 @@ HIFStop(HIF_DEVICE *hif_device)
 
     adf_os_timer_cancel(&hif_state->sleep_timer);
     adf_os_timer_free(&hif_state->sleep_timer);
+    vos_wake_lock_destroy(&hif_state->hif_wake_lock);
 
     hif_state->started = FALSE;
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
@@ -1959,6 +1960,7 @@ HIF_sleep_entry(void *arg)
 			A_PCI_WRITE32(pci_addr + PCIE_LOCAL_BASE_ADDRESS +
 				PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
 			hif_state->fake_sleep = FALSE;
+			vos_wake_lock_release(&hif_state->hif_wake_lock);
 		} else {
 			adf_os_timer_start(&hif_state->sleep_timer,
 				HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);
@@ -2008,6 +2010,7 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
     hif_state->sleep_ticks = 0;
     adf_os_timer_init(NULL, &hif_state->sleep_timer,
                       HIF_sleep_entry, (void *)hif_state);
+    vos_wake_lock_init(&hif_state->hif_wake_lock, "hif_wake_lock");
 
     hif_state->fw_indicator_address = FW_INDICATOR_ADDRESS;
     hif_state->targid = A_TARGET_ID(sc->hif_device);
@@ -2292,6 +2295,7 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
             adf_os_timer_cancel(&hif_state->sleep_timer);
             adf_os_timer_start(&hif_state->sleep_timer,
                 HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);
+            vos_wake_lock_acquire(&hif_state->hif_wake_lock);
         }
         adf_os_spin_unlock(&hif_state->keep_awake_lock);
     } else {

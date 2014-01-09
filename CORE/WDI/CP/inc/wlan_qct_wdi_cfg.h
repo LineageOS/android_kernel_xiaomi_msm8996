@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WDI_CFG_H
 #define WLAN_QCT_WDI_CFG_H
 
@@ -41,9 +40,6 @@ DESCRIPTION
   !! The values in here should be an identical match of the HAL defines
   by the same name !! 
   
-      
-  Copyright (c) 2010 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 

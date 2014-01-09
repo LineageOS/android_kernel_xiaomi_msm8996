@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __SMEINTERNAL_H )
 #define __SMEINTERNAL_H
 
@@ -34,10 +33,6 @@
   \file  smeInternal.h
   
   \brief prototype for SME internal structures and APIs used for SME and MAC
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -120,20 +115,6 @@ typedef enum eSmeState
 #define SME_IS_START(pMac)  (SME_STATE_STOP != (pMac)->sme.state)
 #define SME_IS_READY(pMac)  (SME_STATE_READY == (pMac)->sme.state)
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-
-/* HDD Callback function */
-typedef void(*pIbssPeerInfoCb)(void *pUserData, void *infoParam);
-
-/* Peer info */
-typedef struct tagSmePeerInfoHddCbkInfo
-{
-   void *pUserData;
-   pIbssPeerInfoCb peerInfoCbk;
-}tSmePeerInfoHddCbkInfo;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
-
 typedef struct tagSmeStruct
 {
     eSmeState state;
@@ -153,12 +134,12 @@ typedef struct tagSmeStruct
     tDblLinkList smeScanCmdPendingList;
     //active scan command list
     tDblLinkList smeScanCmdActiveList;
-#ifdef FEATURE_CESIUM_PROPRIETARY
-    tSmePeerInfoHddCbkInfo peerInfoParams;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
     vos_event_wlan_status_payload_type eventPayload;
 #endif
+#ifdef FEATURE_WLAN_CH_AVOID
+    void (*pChAvoidNotificationCb) (void *hdd_context, void *indi_param);
+#endif /* FEATURE_WLAN_CH_AVOID */
 } tSmeStruct, *tpSmeStruct;
 
 

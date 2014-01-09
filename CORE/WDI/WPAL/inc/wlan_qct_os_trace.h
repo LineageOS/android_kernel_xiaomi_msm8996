@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_OS_TRACE_H )
 #define __WLAN_QCT_OS_TRACE_H
 

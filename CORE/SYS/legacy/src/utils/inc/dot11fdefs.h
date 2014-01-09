@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef DOT11FDEFS_H_82A7B72E_C36C_465D_82A7_139EA5322582
 #define DOT11FDEFS_H_82A7B72E_C36C_465D_82A7_139EA5322582
 /**
@@ -33,7 +32,6 @@
  * \brief C defines customizing our framesc-generated code
  *
  *
- * Copyright (C) 2006 Airgo Networks, Incorporated
  *
  * 'framesc' generates code written in terms of a number of macros
  * intended for customization.

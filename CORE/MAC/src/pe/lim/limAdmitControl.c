@@ -24,10 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file contains TSPEC and STA admit control related functions
  * NOTE: applies only to AP builds
  *

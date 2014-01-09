@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
 * @file hif_dxe_config.c
 * @brief Provide functions for DXE HIF module DMA Channel configuration 

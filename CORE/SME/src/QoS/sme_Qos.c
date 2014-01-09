@@ -24,16 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
   
   \file  sme_Qos.c
   
   \brief implementation for SME QoS APIs
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 /* $Header$ */
@@ -2945,7 +2940,8 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
       {
          // ACM is enabled for this AC so we must send an AddTS
          if(pTspec_Info->ts_info.psb && 
-            (!pMac->pmc.uapsdEnabled ))
+            !(pMac->psOffloadEnabled && pMac->pmcOffloadInfo.pmc[sessionId].UapsdEnabled)
+             && (!pMac->pmc.uapsdEnabled ))
          {
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
                       "%s: %d: Request is looking for APSD but PMC doesn't "
@@ -3070,7 +3066,8 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
          // application is looking for APSD
          // but it is not enabled on this AC
          // so we need to reassociate
-         if(pMac->pmc.uapsdEnabled)
+         if(pMac->pmc.uapsdEnabled || (pMac->psOffloadEnabled
+            && pMac->pmcOffloadInfo.pmc[sessionId].UapsdEnabled))
          {
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
                       "%s: %d: On session %d reassoc needed "

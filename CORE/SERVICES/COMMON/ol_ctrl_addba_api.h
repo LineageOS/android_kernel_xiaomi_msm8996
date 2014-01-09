@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _OL_CTRL_ADDBA_API_H_
 #define _OL_CTRL_ADDBA_API_H_
 #ifdef QCA_WIFI_ISOC

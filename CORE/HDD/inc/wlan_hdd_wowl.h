@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _WLAN_HDD_WOWL_H
 #define _WLAN_HDD_WOWL_H
 
@@ -95,10 +94,6 @@
   WoWL works on top of BMPS. So when WoWL is requested, SME will attempt to put
   the device in BMPS mode (if not already in BMPS). If attempt to BMPS fails, 
   request for WoWL will be rejected.
-
-  Copyright (c) 2009 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 
 ============================================================================*/
 /* $Header$ */

@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limIbssPeerMgmt.cc contains the utility functions
  * LIM uses to maintain peers in IBSS.
  * Author:        Chandra Modumudi
@@ -47,7 +45,6 @@
 #include "limSendMessages.h"
 #include "limSession.h"
 #include "limIbssPeerMgmt.h"
-#include "limRMC.h"
 
 
 /**
@@ -822,10 +819,6 @@ void
 limIbssDelete(
     tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-    limRmcIbssDelete(pMac);
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
     limIbssDeleteAllPeers(pMac,psessionEntry);
 
     ibss_coalesce_free(pMac);
@@ -1195,10 +1188,6 @@ limIbssAddStaRsp(
                            eWNI_SME_IBSS_NEW_PEER_IND,
                            psessionEntry->smeSessionId);
 
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-    limRmcTriggerLeaderSelection(pMac, psessionEntry->selfMacAddr);
-#endif
-
     vos_mem_free(pAddStaParams);
 
     return eSIR_SUCCESS;
@@ -1398,10 +1387,6 @@ __limIbssSearchAndDeletePeer(tpAniSirGlobal    pMac,
             staIndex = pStaDs->staIndex;
             ucUcastSig = pStaDs->ucUcastSig;
             ucBcastSig = pStaDs->ucBcastSig;
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-            limRmcTransmitterDelete(pMac, pStaDs->staAddr);
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
 
             (void) limDelSta(pMac, pStaDs, false /*asynchronous*/, psessionEntry);
             limDeleteDphHashEntry(pMac, pStaDs->staAddr, peerIdx, psessionEntry);
@@ -1689,10 +1674,6 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
                     staIndex = pStaDs->staIndex;
                     ucUcastSig = pStaDs->ucUcastSig;
                     ucBcastSig = pStaDs->ucBcastSig;
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-                    limRmcTransmitterDelete(pMac, pStaDs->staAddr);
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
 
                     (void) limDelSta(pMac, pStaDs, false /*asynchronous*/,psessionEntry);
                     limDeleteDphHashEntry(pMac, pStaDs->staAddr, peerIdx,psessionEntry);

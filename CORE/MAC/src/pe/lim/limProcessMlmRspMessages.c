@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessMlmRspMessages.cc contains the code
  * for processing response messages from MLM state machine.
  * Author:        Chandra Modumudi

@@ -24,9 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ *
  * This file limProcessAuthFrame.cc contains the code
  * for processing received Authentication Frame.
  * Author:        Chandra Modumudi

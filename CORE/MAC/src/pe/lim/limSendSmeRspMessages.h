@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limSendSmeRspMessages.h contains the definitions for
  * sending SME response/notification messages to applications above
  * MAC software.
@@ -119,6 +117,10 @@ void limSendSmeTdlsTeardownRsp(tpAniSirGlobal pMac, tSirResultCodes statusCode, 
 void limSendSmeTdlsLinkEstablishReqRsp(tpAniSirGlobal pMac,
                                        tANI_U8 sessionId, tSirMacAddr peerMac, tDphHashNode   *pStaDs,
                                        tANI_U8 status);
+#ifdef QCA_WIFI_2_0
+void limSendSmeTdlsEventNotify(tpAniSirGlobal pMac, tANI_U16 msgType,
+                               void *events);
+#endif
 #endif
 
 #endif /* __LIM_SEND_SME_RSP_H */

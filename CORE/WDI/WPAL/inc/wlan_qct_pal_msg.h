@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_PAL_MSG_H )
 #define __WLAN_QCT_PAL_MSG_H
 
@@ -36,10 +35,6 @@
    wpt = (Wlan Pal Type) wpal = (Wlan PAL)
                
    Definitions for platform dependent. Only work with legacy UMAC.
-  
-   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

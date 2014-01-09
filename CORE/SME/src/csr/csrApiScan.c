@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- *
     ------------------------------------------------------------------------- *
 
@@ -5626,7 +5625,7 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
 
         for(i = 0; i < pMsg->channelList.numChannels; i++)
         {
-            smsLog(pMac, LOG3, FL("channelNumber[%d]= %d"), i, pMsg->channelList.channelNumber[i]);
+            smsLog(pMac, LOG1, FL("channelNumber[%d]= %d"), i, pMsg->channelList.channelNumber[i]);
         }
 
         if(HAL_STATUS_SUCCESS(status))

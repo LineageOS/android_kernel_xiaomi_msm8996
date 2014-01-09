@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 /**=========================================================================
   
   \file  wlan_qct_pal_packet.c
@@ -32,10 +33,6 @@
   \brief Implementation for PAL packet. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
                
    Definitions for platform with VOSS packet support and LA.
-  
-   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

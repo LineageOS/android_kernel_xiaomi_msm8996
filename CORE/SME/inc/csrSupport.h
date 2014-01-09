@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- *
     ------------------------------------------------------------------------- *
 
@@ -32,8 +31,6 @@
     \file csrSupport.h
 
     Exports and types for the Common Scan and Roaming supporting interfaces.
-
-   Copyright (C) 2006 Airgo Networks, Incorporated
 
    ========================================================================== */
 #ifndef CSR_SUPPORT_H__

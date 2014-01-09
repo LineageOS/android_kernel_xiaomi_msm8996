@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
  *
  *  @file:     wlan_defs.h
@@ -32,9 +31,6 @@
  *  @brief:       This file defines the common typedefs
  *
  *  @author:   Gagan Jain
- *
- *             Copyright (C) 2010, Qualcomm Technologies, Inc. 
- *             All rights reserved.
  *
  *=========================================================================*/
 

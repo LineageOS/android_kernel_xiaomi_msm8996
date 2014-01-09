@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 /**=========================================================================
   
   \file  wlan_qct_pal_sync.c
@@ -32,10 +33,6 @@
   \brief Implementation trace/logging APIs PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
                
    Definitions for platform Windows and with legacy UMAC.
-  
-   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

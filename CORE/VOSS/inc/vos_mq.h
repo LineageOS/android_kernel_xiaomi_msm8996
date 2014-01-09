@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __VOS_MQ_H )
 #define __VOS_MQ_H
 
@@ -35,10 +34,6 @@
   \brief virtual Operating System Services (vOSS) message queue APIs
 
    Message Queue Definitions and API
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 

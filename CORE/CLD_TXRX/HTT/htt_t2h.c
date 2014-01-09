@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file htt_t2h.c
  * @brief Provide functions to process target->host HTT messages.

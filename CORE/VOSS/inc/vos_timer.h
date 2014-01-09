@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __VOS_TIMER_H )
 #define __VOS_TIMER_H
 
@@ -35,10 +34,6 @@
   \brief virtual Operating System Servies (vOS)
                
    Definitions for vOSS Timer services
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

@@ -24,7 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ * */
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
 
@@ -33,9 +34,6 @@
   
     Implementation for the simple roaming algorithm for 802.11r Fast transitions and Legacy roaming for Android platform.
   
-    Copyright (C) 2010 Qualcomm Technologies, Inc.
-  
- 
    ========================================================================== */
 
 /*===========================================================================

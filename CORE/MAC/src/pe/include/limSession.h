@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __LIM_SESSION_H )
 #define __LIM_SESSION_H
 
@@ -36,9 +35,6 @@
   \brief prototype for lim Session related APIs
 
   \author Sunit Bhatia
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 

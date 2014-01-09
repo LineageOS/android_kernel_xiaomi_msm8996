@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- *
     ------------------------------------------------------------------------- *
 
@@ -1423,10 +1422,5 @@ eHalStatus csrHandoffRequest(tpAniSirGlobal pMac, tCsrHandoffRequest *pHandoffIn
 #endif
 tANI_BOOLEAN csrRoamIsStaMode(tpAniSirGlobal pMac, tANI_U32 sessionId);
 #endif
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-eHalStatus csrEnableRMC(tpAniSirGlobal pMac, tANI_U32 sessionId);
-eHalStatus csrDisableRMC(tpAniSirGlobal pMac, tANI_U32 sessionId);
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
 
 #endif

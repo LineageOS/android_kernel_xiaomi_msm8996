@@ -24,9 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ *
  * limSendMessages.h: Provides functions to send messages or Indications to HAL.
  * Author:    Sunit Bhatia
  * Date:       09/21/2006

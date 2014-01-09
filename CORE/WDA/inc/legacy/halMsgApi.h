@@ -24,7 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ * */
 #ifndef _HALMSGAPI_H_
 #define _HALMSGAPI_H_
 
@@ -341,6 +342,8 @@ typedef struct
     // PE session id now added to all HAL<->PE transacations
     // HAL sends it back unmodified.
     tANI_U8 smesessionId;
+    tANI_U8 staType;
+    tSirMacAddr staMac;
 } tDeleteStaParams, * tpDeleteStaParams;
 
 /*
@@ -709,14 +712,14 @@ typedef struct {
 
 #ifndef OEM_DATA_REQ_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_REQ_SIZE 276
+#define OEM_DATA_REQ_SIZE 280
 #else
 #define OEM_DATA_REQ_SIZE 134
 #endif
 #endif
 #ifndef OEM_DATA_RSP_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_RSP_SIZE 1720
+#define OEM_DATA_RSP_SIZE 1724
 #else
 #define OEM_DATA_RSP_SIZE 1968
 #endif
@@ -1376,6 +1379,17 @@ typedef struct sAddStaSelfParams
    tANI_U8         sessionId;
    tANI_U32 status;
 }tAddStaSelfParams, *tpAddStaSelfParams;
+
+#ifdef FEATURE_WLAN_TDLS
+#ifdef QCA_WIFI_2_0
+typedef struct sTdlsPeerStateParams
+{
+   tANI_U32 vdevId;
+   tSirMacAddr peerMacAddr;
+   tANI_U32 peerState;
+}tTdlsPeerStateParams;
+#endif /* QCA_WIFI_2_0 */
+#endif /* FEATURE_WLAN_TDLS */
 
 typedef struct sAbortScanParams
 {

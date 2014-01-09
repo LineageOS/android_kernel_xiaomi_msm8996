@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file parserApi.h contains the definitions used
  * for parsing received 802.11 frames
  * Author:        Chandra Modumudi
@@ -286,6 +284,7 @@ typedef struct sSirCcxBcnReportMandatoryIe
     tANI_U8               cfPresent;
     tANI_U8               ibssParamPresent;
     tANI_U8               timPresent;
+    tANI_U8               rrmPresent;
 } tSirCcxBcnReportMandatoryIe, *tpSirCcxBcnReportMandatoryIe;
 #endif /* FEATURE_WLAN_CCX_UPLOAD */
 

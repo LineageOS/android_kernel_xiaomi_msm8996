@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WDI_I_H
 #define WLAN_QCT_WDI_I_H
 
@@ -39,9 +38,6 @@ DESCRIPTION
   This file contains the internal API exposed by the DAL Control Path Core 
   module to be used by the DAL Data Path Core. 
   
-      
-  Copyright (c) 2010 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -438,20 +434,14 @@ typedef enum
 
   /* WLAN FW LPHB config request */
   WDI_LPHB_CFG_REQ                              = 85,
-  /* Send LBP Leader Request */
-  WDI_LBP_LEADER_REQ                            = 86,
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-  WDI_HAL_IBSS_PEER_INFO_REQ                    = 87,
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
   /* WLAN FW set batch scan request */
-  WDI_SET_BATCH_SCAN_REQ                        = 88,
+  WDI_SET_BATCH_SCAN_REQ                        = 86,
 #endif
 
   /*WLAN DAL Set Max Tx Power Per band Request*/
-  WDI_SET_MAX_TX_POWER_PER_BAND_REQ             = 89,
+  WDI_SET_MAX_TX_POWER_PER_BAND_REQ             = 87,
 
   WDI_MAX_REQ,
 
@@ -476,9 +466,6 @@ typedef enum
   /* Send a delete periodic Tx pattern indicationto HAL */
   WDI_DEL_PERIODIC_TX_PATTERN_IND,
 
-  /* Send LBP Update Indication */
-  WDI_LBP_UPDATE_IND,
-
   /* Send Rate Update Indication */
   WDI_RATE_UPDATE_IND,
 
@@ -487,14 +474,6 @@ typedef enum
   WDI_STOP_BATCH_SCAN_IND,
   /*Send stop batch scan indication to FW*/
   WDI_TRIGGER_BATCH_SCAN_RESULT_IND,
-#endif
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-  /* IBSS Route Table Update Indication */
-  WDI_IBSS_ROUTE_TABLE_UPDATE_IND,
-
-  /* TX Monitor start/stop indication */
-  WDI_TX_FAIL_MONITOR_IND,
 #endif
 
   /*Keep adding the indications to the max request
@@ -758,18 +737,11 @@ typedef enum
   /* WLAN FW LPHB Config response */
   WDI_LPHB_CFG_RESP                             = 84,
 
-  /* Reliable Multicast Leader Response from FW to Host */
-  WDI_LBP_LEADER_RESP                           = 85,
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-  WDI_HAL_IBSS_PEER_INFO_RSP                    = 86,
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 #ifdef FEATURE_WLAN_BATCH_SCAN
-  WDI_SET_BATCH_SCAN_RESP                        = 87,
+  WDI_SET_BATCH_SCAN_RESP                        = 85,
 #endif
 
-  WDI_SET_MAX_TX_POWER_PER_BAND_RSP             = 88,
+  WDI_SET_MAX_TX_POWER_PER_BAND_RSP             = 86,
 
   /*-------------------------------------------------------------------------
     Indications
@@ -830,15 +802,8 @@ typedef enum
   /* Periodic Tx Pattern Indication from FW to Host */
   WDI_HAL_PERIODIC_TX_PTRN_FW_IND     = WDI_HAL_IND_MIN + 16,
 
-  /* Reliable Multicast Update Indication from FW to Host */
-  WDI_LBP_UPDATE_IND_TO_HOST           = WDI_HAL_IND_MIN + 17,
-
 #ifdef FEATURE_WLAN_BATCH_SCAN
-  WDI_BATCHSCAN_RESULT_IND           =  WDI_HAL_IND_MIN + 18,
-#endif
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-  WDI_HAL_TX_FAIL_IND                  = WDI_HAL_IND_MIN + 19,
+  WDI_BATCHSCAN_RESULT_IND           =  WDI_HAL_IND_MIN + 17,
 #endif
 
   WDI_MAX_RESP
@@ -3024,24 +2989,6 @@ WDI_ProcessDelPeriodicTxPtrnInd
 
 #endif
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/**
- @brief Process TX Fail monitor indication
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessTXFailMonitor
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 /*========================================================================
           Main DAL Control Path Response Processing API 
 ========================================================================*/
@@ -4393,24 +4340,6 @@ WDI_ProcessTdlsInd
   WDI_EventInfoType*     pEventData
 );
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/**
-*@brief Process Tx Fail Indication
-
- @param  pWDICtx:         pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessTXFailInd
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 /**
 *@brief Process Noa Start Indication function (called when
         an indication of this kind is being received over the
@@ -5611,162 +5540,6 @@ WDI_ProcessRateUpdateInd
     WDI_ControlBlockType*  pWDICtx,
     WDI_EventInfoType*     pEventData
 );
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-/**
- @brief Process LBP Leader Request and post it to HAL
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-*/
-WDI_Status
-WDI_ProcessLBPLeaderReq
-(
-    WDI_ControlBlockType*  pWDICtx,
-    WDI_EventInfoType*     pEventData
-);
-
-/**
-*@brief Process Leader Selection response where the firmware
-        provides a list of candidates that can be used as leaders
-        a.k.a. a receiver that can ACK multicast frames
-
- @param  pWDICtx:         pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessLBPLeaderResp
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-
-/**
- @brief Process LBP Update Indication and post it to HAL
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessLBPUpdateInd
-(
-    WDI_ControlBlockType*  pWDICtx,
-    WDI_EventInfoType*     pEventData
-);
-
-/**
- @brief WDI_LbpUpdateInd will be called when the upper MAC
-        requests the device to enable LBP reliable multicast.
-
-        In state BUSY this request will be queued. Request won't
-        be allowed in any other state.
-
-
- @param wdiLbpUpdateIndParams:
-
-
- @see WDI_Start
- @return Result of the function call
-*/
-WDI_Status
-WDI_LbpUpdateInd
-(
-    WDI_LbpUpdateIndParams  *wdiLbpUpdateIndParams
-);
-
-/**
-*@brief Process Leader Selection response where the firmware
-        provides a list of candidates that can be used as leaders
-        a.k.a. a receiver that can ACK multicast frames
-
- @param  pWDICtx:         pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessLBPLeaderResp
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-
-/**
-*@brief Process Update Indication where the firmware
-        provides a list of candidates that can be used as leaders
-        a.k.a. a receiver that can ACK multicast frames
-
- @param  pWDICtx:         pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessLBPUpdateIndToHost
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-
-/**
- @brief Process LBP Update Indication and post it to HAL
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessIbssPeerInfoReq
-(
-    WDI_ControlBlockType*  pWDICtx,
-    WDI_EventInfoType*     pEventData
-);
-
-/**
- @brief Process LBP Update Indication and post it to HAL
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessIbssPeerInfoRsp
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-
-/**
- @brief Sends IBSS Route Table Update Indication to f/w
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessIBSSRouteTableUpdateInd
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
 /**

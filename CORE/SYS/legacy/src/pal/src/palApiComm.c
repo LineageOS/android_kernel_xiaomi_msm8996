@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #include <palApi.h>
 #include <sirTypes.h>   // needed for tSirRetStatus
 #include <vos_api.h>

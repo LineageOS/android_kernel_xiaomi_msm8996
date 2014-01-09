@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * logApi.cc - Handles log messages for all the modules.
  * Author:        Kevin Nguyen
  * Date:          02/27/02

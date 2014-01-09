@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _WLAN_HDD_DEBUGFS_H
 #define _WLAN_HDD_DEBUGFS_H
 

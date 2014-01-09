@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limLinkMonitoringAlgo.cc contains the code for
  * Link monitoring algorithm on AP and heart beat failure
  * handling on STA.

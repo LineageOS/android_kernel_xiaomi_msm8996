@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _WLAN_PS_WOW_DIAG_H_
 #define _WLAN_PS_WOW_DIAG_H_
 

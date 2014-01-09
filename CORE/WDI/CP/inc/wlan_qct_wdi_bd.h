@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WDI_BD_H
 #define WLAN_QCT_WDI_BD_H
 
@@ -39,9 +38,6 @@ DESCRIPTION
   This file contains the internal BD definition exposed by the DAL Control       
   Path Core module to be used by the DAL Data Path Core. 
   
-      
-  Copyright (c) 2010 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( WLAN_HDD_TX_RX_H )
 #define WLAN_HDD_TX_RX_H
 
@@ -33,9 +32,6 @@
   \file  wlan_hdd_tx_rx.h
 
   \brief Linux HDD Tx/RX APIs
-         Copyright 2008 (c) Qualcomm Technologies, Inc.
-         All Rights Reserved.
-         Qualcomm Technologies Confidential and Proprietary.
 
   ==========================================================================*/
 

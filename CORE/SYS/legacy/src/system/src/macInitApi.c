@@ -24,9 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ *
  * macInitApi.c - This file has all the mac level init functions
  *                   for all the defined threads at system level.
  * Author:    Dinesh Upadhyay

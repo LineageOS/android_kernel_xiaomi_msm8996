@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file wniApi.h contains message definitions exported by
  * Sirius software modules.
  * NOTE: See projects/sirius/include/sirApi.h for structure
@@ -96,7 +94,7 @@
 
 
 /// Start of Sirius/Host message types
-#define WNI_HOST_MSG_START             0x1400
+#define WNI_HOST_MSG_START             0x1500
 
 enum eWniMsgTypes
 {
@@ -334,6 +332,11 @@ enum eWniMsgTypes
     eWNI_SME_MGMT_FRM_TX_COMPLETION_IND,
     eWNI_SME_TDLS_LINK_ESTABLISH_REQ,
     eWNI_SME_TDLS_LINK_ESTABLISH_RSP,
+#ifdef QCA_WIFI_2_0
+    eWNI_SME_TDLS_SHOULD_DISCOVER,
+    eWNI_SME_TDLS_SHOULD_TEARDOWN,
+    eWNI_SME_TDLS_PEER_DISCONNECTED,
+#endif
 #endif
     //NOTE: If you are planning to add more mesages, please make sure that 
     //SIR_LIM_ITC_MSG_TYPES_BEGIN is moved appropriately. It is set as
@@ -368,23 +371,19 @@ enum eWniMsgTypes
 #ifdef FEATURE_WLAN_LPHB
     eWNI_SME_LPHB_IND,
 #endif /* FEATURE_WLAN_LPHB */
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-    eWNI_SME_ENABLE_RMC_REQ,
-    eWNI_SME_DISABLE_RMC_REQ,
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-    eWNI_SME_IBSS_PEER_INFO_RSP,
-#endif /* FEATURE_CESIUM_PROPRIETARY */
     eWNI_SME_GET_TSM_STATS_REQ,
     eWNI_SME_GET_TSM_STATS_RSP,
     eWNI_SME_TSM_IE_IND,
 
     eWNI_SME_READY_TO_SUSPEND_IND,
+#ifdef FEATURE_WLAN_CH_AVOID
+    eWNI_SME_CH_AVOID_IND,
+#endif /* FEATURE_WLAN_CH_AVOID */
     eWNI_SME_MSG_TYPES_END
 };
 
-#define WNI_CFG_MSG_TYPES_BEGIN        0x1100
+#define WNI_CFG_MSG_TYPES_BEGIN        0x1200
 
 /*---------------------------------------------------------------------*/
 /* CFG Module Definitions                                              */

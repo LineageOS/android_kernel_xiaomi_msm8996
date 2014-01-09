@@ -24,17 +24,12 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
 
   \file  vos_api.c
 
   \brief Stub file for all virtual Operating System Services (vOSS) APIs
 
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
-  
   ========================================================================*/
  /*=========================================================================== 
 
@@ -344,6 +339,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    scn = vos_get_context(VOS_MODULE_ID_HIF, gpVosContext);
    scn->enableuartprint = pHddCtx->cfg_ini->enablefwprint;
    scn->enablefwlog     = pHddCtx->cfg_ini->enablefwlog;
+   scn->max_no_of_peers = pHddCtx->cfg_ini->maxNumberOfPeers;
 
    /* Initialize BMI and Download firmware */
    if (bmi_download_firmware(scn)) {
@@ -393,6 +389,18 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
       pHddCtx->cfg_ini->enablePowersaveOffload;
    macOpenParms.wowEnable          = pHddCtx->cfg_ini->wowEnable;
    macOpenParms.maxWoWFilters      = pHddCtx->cfg_ini->maxWoWFilters;
+  /* Here olIniInfo is used to store ini status of arp offload
+   * ns offload and others. Currently 1st bit is used for arp
+   * off load and 2nd bit for ns offload currently, rest bits are unused
+   */
+#if defined (QCA_WIFI_2_0) && \
+   !defined (QCA_WIFI_ISOC)
+  if ( pHddCtx->cfg_ini->fhostArpOffload)
+       macOpenParms.olIniInfo      = macOpenParms.olIniInfo | 0x1;
+  if ( pHddCtx->cfg_ini->fhostNSOffload)
+       macOpenParms.olIniInfo      = macOpenParms.olIniInfo | 0x2;
+#endif
+
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
 #if defined (QCA_WIFI_2_0) && \
    !defined (QCA_WIFI_ISOC)

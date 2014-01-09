@@ -24,9 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ *
  * This file aniSystemDefs.h contains definitions used by
  * various ANI entities
  * Author:    Chandra Modumudi

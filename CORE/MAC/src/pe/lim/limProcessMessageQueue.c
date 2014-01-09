@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file lim ProcessMessageQueue.cc contains the code
  * for processing LIM message Queue.
  * Author:        Chandra Modumudi
@@ -72,8 +70,6 @@
 #ifdef WMM_APSD
 #include "wmmApsd.h"
 #endif
-
-#include "limRMC.h"
 
 #include "vos_types.h"
 #include "vos_packet.h"
@@ -1380,17 +1376,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
         }
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-        case eWNI_SME_ENABLE_RMC_REQ:
-        case eWNI_SME_DISABLE_RMC_REQ:
-            /*
-             * These messages are from HDD
-             * No need to response to hdd
-             */
-            limProcessSmeReqMessages(pMac,limMsg);
-            break;
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
         case SIR_HAL_P2P_NOA_START_IND:
         {
             tpPESession psessionEntry = &pMac->lim.gpSession[0];
@@ -1783,6 +1768,19 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
 #endif
 
+#ifdef FEATURE_WLAN_TDLS
+#ifdef QCA_WIFI_2_0
+        case SIR_HAL_TDLS_SHOULD_DISCOVER:
+        case SIR_HAL_TDLS_SHOULD_TEARDOWN:
+        case SIR_HAL_TDLS_PEER_DISCONNECTED:
+            VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+                      ("%s received tdls event: 0x%x"),
+                      __func__, limMsg->type);
+            limSendSmeTdlsEventNotify(pMac, limMsg->type,
+                                      (void *)limMsg->bodyptr);
+            break;
+#endif
+#endif
 
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
         /*
@@ -2067,28 +2065,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
        limMsg->bodyptr = NULL;
        break;
     }
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-    case WDA_RMC_BECOME_LEADER:
-        limProcessRMCMessages(pMac, eLIM_RMC_BECOME_LEADER_RESP,
-                          (void *)limMsg->bodyptr);
-        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
-        limMsg->bodyptr = NULL;
-        break ;
-
-    case WDA_RMC_LEADER_SELECT_RESP:
-        limProcessRMCMessages(pMac, eLIM_RMC_LEADER_SELECT_RESP,
-                          (void *)limMsg->bodyptr);
-        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
-        limMsg->bodyptr = NULL;
-        break ;
-
-    case WDA_RMC_UPDATE_IND:
-        limProcessRMCMessages(pMac, eLIM_RMC_LEADER_PICK_NEW,
-                          (void *)limMsg->bodyptr);
-        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
-        limMsg->bodyptr = NULL;
-        break ;
-#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
 
     default:
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);

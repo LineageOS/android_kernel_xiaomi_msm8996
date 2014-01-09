@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  * NB: Inappropriate references to "HTC" are used in this (and other)
  * HIF implementations.  HTC is typically the calling layer, but it
@@ -40,6 +39,7 @@
  */
 
 #include <adf_os_atomic.h> /* adf_os_atomic_read */
+#include "vos_lock.h"
 struct HIF_CE_completion_state {
     struct HIF_CE_completion_state *next;
     int send_or_recv;
@@ -95,6 +95,7 @@ struct HIF_CE_state {
     A_BOOL verified_awake;
     A_BOOL fake_sleep;
     adf_os_timer_t sleep_timer;
+    vos_wake_lock_t hif_wake_lock;
     unsigned long sleep_ticks;
 
     //struct task_struct *pci_dev_inserted_thread;

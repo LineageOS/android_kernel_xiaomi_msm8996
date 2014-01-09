@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #include "vos_sched.h"
 #include "wlan_qct_tl.h"
 #include "wdi_in.h"

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file htt_tx.c
  * @brief Implement transmit aspects of HTT.

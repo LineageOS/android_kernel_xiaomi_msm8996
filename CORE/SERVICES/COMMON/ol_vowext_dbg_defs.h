@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _VOW_DEFINES__H_
 #define _VOW_DEFINES__H_
 

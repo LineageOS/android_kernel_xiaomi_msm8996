@@ -25,13 +25,6 @@
  * to the Linux Foundation.
  */
 
-
-/*
- * Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
- * Qualcomm Technologies Confidential and Proprietary 
- */
-
-
 #include "sme_Api.h"
 #include "smsDebug.h"
 #include "csrInsideApi.h"

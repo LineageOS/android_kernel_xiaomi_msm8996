@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*=== header file includes ===*/
 /* generic utilities */
 #include <adf_nbuf.h>          /* adf_nbuf_t, etc. */

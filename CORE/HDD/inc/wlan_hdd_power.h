@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef __WLAN_HDD_POWER_H
 #define __WLAN_HDD_POWER_H
 
@@ -33,9 +32,6 @@
   \file  wlan_hdd_power.h
 
   \brief Linux HDD Power
-         Copyright 2008 (c) Qualcomm Technologies, Inc.
-         All Rights Reserved.
-         Qualcomm Technologies Confidential and Proprietary.
 
   ==========================================================================*/
 

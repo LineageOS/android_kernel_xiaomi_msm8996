@@ -24,17 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
-
 /**========================================================================
 
   \file  wlan_hdd_p2p.c
 
   \brief WLAN Host Device Driver implementation for P2P commands interface
-
-  Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-  Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 
@@ -108,8 +102,7 @@ static void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
 #ifdef QCA_WIFI_2_0
 static bool hdd_p2p_is_action_type_rsp( tActionFrmType actionFrmType )
 {
-        if ( actionFrmType <= MAX_P2P_ACTION_FRAME_TYPE &&
-            actionFrmType != WLAN_HDD_GO_NEG_REQ &&
+        if ( actionFrmType != WLAN_HDD_GO_NEG_REQ &&
             actionFrmType != WLAN_HDD_INVITATION_REQ &&
             actionFrmType != WLAN_HDD_DEV_DIS_REQ &&
             actionFrmType != WLAN_HDD_PROV_DIS_REQ )
@@ -737,12 +730,19 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
         //and requesting for new one.
         //The below logic will be extended for request type action frames if
         //needed in future.
-        if ( hdd_p2p_is_action_type_rsp(actionFrmType) &&
-            cfgState->remain_on_chan_ctx &&
-            cfgState->current_freq == chan->center_freq ) {
-            status = wlan_hdd_check_remain_on_channel(pAdapter);
-            if ( !status )
-                pAdapter->internalCancelRemainOnChReq = VOS_TRUE;
+        if ( (type == SIR_MAC_MGMT_FRAME) &&
+            (subType == SIR_MAC_MGMT_ACTION) &&
+            (buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET] ==
+                                              WLAN_HDD_PUBLIC_ACTION_FRAME) ) {
+            actionFrmType = buf[WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET];
+            if ( actionFrmType < MAX_P2P_ACTION_FRAME_TYPE &&
+                hdd_p2p_is_action_type_rsp(actionFrmType) &&
+                cfgState->remain_on_chan_ctx &&
+                cfgState->current_freq == chan->center_freq ) {
+                status = wlan_hdd_check_remain_on_channel(pAdapter);
+                if ( !status )
+                    pAdapter->internalCancelRemainOnChReq = VOS_TRUE;
+            }
         }
 #endif
         if((cfgState->remain_on_chan_ctx != NULL) &&
@@ -753,7 +753,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             extendedWait = (tANI_U16)wait;
             goto send_frame;
         }
-        remain_on_channel:
+
         INIT_COMPLETION(pAdapter->offchannel_tx_event);
 
         status = wlan_hdd_request_remain_on_channel(wiphy, dev,
@@ -822,15 +822,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 #endif
             *cookie = (uintptr_t) cfgState->buf;
             cfgState->action_cookie = *cookie;
-            /*There is race between expiration of remain on channel
-              in driver and also sending an action frame in wlan_hdd_action.
-              As the remain on chan context is NULL here , which means
-              LIM remain on channel timer expired and
-              wlan_hdd_remain_on_channel_callback has cleared
-              cfgState->remain_on_chan_ctx to NULL so let's
-              do a fresh remain on channel.
-            */
-            goto remain_on_channel;
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
         }
 #endif

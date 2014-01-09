@@ -24,15 +24,10 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**========================================================================
 
   \file  wlan_hdd_assoc.c
   \brief WLAN Host Device Driver implementation
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 /**=========================================================================
@@ -755,7 +750,7 @@ static VOS_STATUS hdd_roamDeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId 
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: WLANTL_ClearSTAClient() failed to for staID %d.  "
-                   "Status= %d [0x%08lX]",
+                   "Status= %d [0x%08X]",
                    __func__, staId, vosStatus, vosStatus );
     }
     return( vosStatus );
@@ -1048,7 +1043,7 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-                 "WLANTL_RegisterSTAClient() failed to register.  Status= %d [0x%08lX]",
+                 "WLANTL_RegisterSTAClient() failed to register.  Status= %d [0x%08X]",
                  vosStatus, vosStatus );
       return vosStatus;
    }
@@ -1436,7 +1431,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         else
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-                    "Cannot register STA with TL.  Failed with vosStatus = %d [%08lX]",
+                    "Cannot register STA with TL.  Failed with vosStatus = %d [%08X]",
                     vosStatus, vosStatus );
         }
 #ifdef WLAN_FEATURE_11W
@@ -1976,7 +1971,7 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
          if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
          {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-               "Cannot register STA with TL for IBSS.  Failed with vosStatus = %d [%08lX]",
+               "Cannot register STA with TL for IBSS.  Failed with vosStatus = %d [%08X]",
                vosStatus, vosStatus );
          }
          pHddStaCtx->ibss_sta_generation++;
@@ -2157,8 +2152,8 @@ VOS_STATUS hdd_roamRegisterTDLSSTA( hdd_adapter_t *pAdapter,
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                     "%s: WLANTL_RegisterSTAClient() failed to register.  \
-                            Status= %d [0x%08lX]", __func__, vosStatus, vosStatus );
+                   "%s: WLANTL_RegisterSTAClient() failed to register.  "
+                   "Status= %d [0x%08X]", __func__, vosStatus, vosStatus );
          return vosStatus;
     }
 
@@ -2180,7 +2175,7 @@ static VOS_STATUS hdd_roamDeregisterTDLSSTA( hdd_adapter_t *pAdapter, tANI_U8 st
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                    "%s: WLANTL_ClearSTAClient() failed to for staID %d.  "
-                   "Status= %d [0x%08lX]",
+                   "Status= %d [0x%08X]",
                    __func__, staId, vosStatus, vosStatus );
     }
     return( vosStatus );
@@ -2200,6 +2195,9 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                                                   eCsrRoamResult roamResult)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+#ifdef QCA_WIFI_2_0
+    tdlsCtx_t *pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
+#endif
     eHalStatus status = eHAL_STATUS_FAILURE ;
     tANI_U8 staIdx;
 
@@ -2212,6 +2210,11 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
       roamResult == eCSR_ROAM_RESULT_DELETE_ALL_TDLS_PEER_IND? "DEL_ALL_TDLS_PEER_IND" :
       roamResult == eCSR_ROAM_RESULT_UPDATE_TDLS_PEER? "UPDATE_TDLS_PEER" :
       roamResult == eCSR_ROAM_RESULT_LINK_ESTABLISH_REQ_RSP? "LINK_ESTABLISH_REQ_RSP" :
+#ifdef QCA_WIFI_2_0
+      roamResult == eCSR_ROAM_RESULT_TDLS_SHOULD_DISCOVER? "TDLS_SHOULD_DISCOVER" :
+      roamResult == eCSR_ROAM_RESULT_TDLS_SHOULD_TEARDOWN? "TDLS_SHOULD_TEARDOWN" :
+      roamResult == eCSR_ROAM_RESULT_TDLS_SHOULD_PEER_DISCONNECTED? "TDLS_SHOULD_PEER_DISCONNECTED" :
+#endif
       "UNKNOWN",
        pRoamInfo->staId,
        pRoamInfo->peerMac[0],
@@ -2270,11 +2273,13 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                     /* store the ucast signature , if required for further reference. */
 
                     wlan_hdd_tdls_set_signature( pAdapter, pRoamInfo->peerMac, pRoamInfo->ucastSig );
+#ifndef QCA_WIFI_2_0
                     /* start TDLS client registration with TL */
                     status = hdd_roamRegisterTDLSSTA( pAdapter,
                                                       pRoamInfo->peerMac,
                                                       pRoamInfo->staId,
                                                       pRoamInfo->ucastSig);
+#endif /* QCA_WIFI_2_0 */
                 }
                 else
                 {
@@ -2390,6 +2395,104 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
             wlan_hdd_tdls_check_bmps(pAdapter);
             break ;
         }
+#ifdef QCA_WIFI_2_0
+        case eCSR_ROAM_RESULT_TDLS_SHOULD_DISCOVER:
+        {
+#ifdef CONFIG_TDLS_IMPLICIT
+            hddTdlsPeer_t *curr_peer;
+
+            curr_peer = wlan_hdd_tdls_get_peer(pAdapter, pRoamInfo->peerMac);
+            if (!curr_peer)
+            {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                          "%s: curr_peer null", __func__);
+                status = eHAL_STATUS_FAILURE;
+            }
+            else
+            {
+                if (eTDLS_LINK_CONNECTED == curr_peer->link_status)
+                {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                              "%s: TDLS link status is connected, ignore SHOULD_DISCOVER", __func__);
+                }
+                else
+                {
+                    wlan_hdd_tdls_pre_setup_init_work(pHddTdlsCtx, curr_peer);
+                }
+                status = eHAL_STATUS_SUCCESS;
+            }
+#else
+            status = eHAL_STATUS_SUCCESS;
+#endif
+            break ;
+        }
+
+        case eCSR_ROAM_RESULT_TDLS_SHOULD_TEARDOWN:
+        {
+#ifdef CONFIG_TDLS_IMPLICIT
+            hddTdlsPeer_t *curr_peer;
+
+            curr_peer = wlan_hdd_tdls_find_peer(pAdapter, pRoamInfo->peerMac, TRUE);
+            if (!curr_peer)
+            {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                          "%s: curr_peer null", __func__);
+                status = eHAL_STATUS_FAILURE;
+            }
+            else
+            {
+                if (eTDLS_LINK_CONNECTED == curr_peer->link_status)
+                {
+                    wlan_hdd_tdls_indicate_teardown(pHddTdlsCtx->pAdapter,
+                                        curr_peer,
+                                        eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON);
+                }
+                else
+                {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                              "%s: TDLS link is not connected, ignore SHOULD_TEARDOWN", __func__);
+                }
+                status = eHAL_STATUS_SUCCESS;
+            }
+#else
+            status = eHAL_STATUS_SUCCESS;
+#endif
+            break ;
+        }
+
+        case eCSR_ROAM_RESULT_TDLS_SHOULD_PEER_DISCONNECTED:
+        {
+#ifdef CONFIG_TDLS_IMPLICIT
+            hddTdlsPeer_t *curr_peer;
+
+            curr_peer = wlan_hdd_tdls_find_peer(pAdapter, pRoamInfo->peerMac, TRUE);
+            if (!curr_peer)
+            {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                          "%s: curr_peer null", __func__);
+                status = eHAL_STATUS_FAILURE;
+            }
+            else
+            {
+                if (eTDLS_LINK_CONNECTED == curr_peer->link_status)
+                {
+                    wlan_hdd_tdls_indicate_teardown(pHddTdlsCtx->pAdapter,
+                                        curr_peer,
+                                        eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON);
+                }
+                else
+                {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                              "%s: TDLS link is not connected, ignore PEER_DISCONNECTED", __func__);
+                }
+                status = eHAL_STATUS_SUCCESS;
+            }
+#else
+            status = eHAL_STATUS_SUCCESS;
+#endif
+            break ;
+        }
+#endif /* QCA_WIFI_2_0 */
         default:
         {
             break ;
@@ -2411,7 +2514,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
     hdd_context_t *pHddCtx = NULL;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-            "CSR Callback: status= %d result= %d roamID=%ld",
+            "CSR Callback: status= %d result= %d roamID=%d",
                     roamStatus, roamResult, roamId );
 
     /*Sanity check*/
@@ -3000,7 +3103,7 @@ static tANI_S32 hdd_ProcessGENIE(hdd_adapter_t *pAdapter,
         if (updatePMKCache)
         {
             // Calling csrRoamSetPMKIDCache to configure the PMKIDs into the cache
-            hddLog(LOG1, FL("%s: Calling csrRoamSetPMKIDCache with cache entry %ld."),
+            hddLog(LOG1, FL("%s: Calling csrRoamSetPMKIDCache with cache entry %d."),
                                                                             __func__, i );
             // Finally set the PMKSA ID Cache in CSR
             result = sme_RoamSetPMKIDCache(halHandle,pAdapter->sessionId,
@@ -3990,7 +4093,7 @@ void hdd_indicateCckmPreAuth(hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo)
     pos += WNI_CFG_BSSID_LEN;
     freeBytes -= WNI_CFG_BSSID_LEN;
 
-    nBytes = snprintf(pos, freeBytes, " %lu:%lu",
+    nBytes = snprintf(pos, freeBytes, " %u:%u",
              pRoamInfo->timestamp[0], pRoamInfo->timestamp[1]);
     freeBytes -= nBytes;
 
