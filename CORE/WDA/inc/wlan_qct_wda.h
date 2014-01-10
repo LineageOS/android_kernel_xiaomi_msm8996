@@ -658,7 +658,8 @@ tANI_U8 WDA_MapChannel(tANI_U8);
 
 #define WDA_GET_RX_FT_DONE(pRxMeta) 0
 
-#define WDA_GET_RX_DPU_FEEDBACK(pRxMeta) 0
+#define WDA_GET_RX_DPU_FEEDBACK(pRxMeta) \
+	(((t_packetmeta *)pRxMeta)->dpuFeedback)
 
 #define WDA_GET_RX_BEACON_SENT(pRxMeta) 0
 
