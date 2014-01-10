@@ -2807,7 +2807,7 @@ eHalStatus pmcOffloadStartPerSession(tHalHandle hHal, tANI_U32 sessionId)
 #ifdef FEATURE_WLAN_TDLS
     pmc->isTdlsPowerSaveProhibited = FALSE;
 #endif
-
+    pmc->configDefStaPsEnabled = FALSE;
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -2826,6 +2826,7 @@ eHalStatus pmcOffloadStopPerSession(tHalHandle hHal, tANI_U32 sessionId)
 #ifdef FEATURE_WLAN_TDLS
     pmc->isTdlsPowerSaveProhibited = FALSE;
 #endif
+    pmc->configDefStaPsEnabled = FALSE;
 
     pmcOffloadStopAutoStaPsTimer(pMac, sessionId);
     pmcOffloadDoFullPowerCallbacks(pMac, sessionId, eHAL_STATUS_FAILURE);
@@ -3019,7 +3020,8 @@ eHalStatus pmcOffloadEnableStaPsCheck(tpAniSirGlobal pMac,
 }
 
 eHalStatus pmcOffloadStartAutoStaPsTimer (tpAniSirGlobal pMac,
-                                                tANI_U32 sessionId)
+                                          tANI_U32 sessionId,
+                                          tANI_U32 timerValue)
 {
     VOS_STATUS vosStatus;
     tpPsOffloadPerSessionInfo pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
@@ -3027,7 +3029,7 @@ eHalStatus pmcOffloadStartAutoStaPsTimer (tpAniSirGlobal pMac,
     smsLog(pMac, LOG2, FL("Entering pmcOffloadStartAutoStaPsTimer"));
 
     vosStatus = vos_timer_start(&pmc->autoPsEnableTimer,
-                           pmc->autoPsEntryTimerPeriod);
+                                timerValue);
     if(!VOS_IS_STATUS_SUCCESS(vosStatus))
     {
         if(VOS_STATUS_E_ALREADY == vosStatus)
@@ -3395,10 +3397,11 @@ eHalStatus pmcOffloadExitPowersaveState(tpAniSirGlobal pMac, tANI_U32 sessionId)
      /* Call Full Power Req Cbs */
      pmcOffloadDoFullPowerCallbacks(pMac, sessionId, eHAL_STATUS_SUCCESS);
 
-     if(pmc->configStaPsEnabled)
-         pmcOffloadStartAutoStaPsTimer(pMac, sessionId);
+     if (pmc->configStaPsEnabled || pmc->configDefStaPsEnabled)
+        pmcOffloadStartAutoStaPsTimer(pMac, sessionId,
+                                      pmc->autoPsEntryTimerPeriod);
      else
-         smsLog(pMac, LOGE, FL("Master Sta Ps Disabled"));
+        smsLog(pMac, LOGE, FL("Master Sta Ps Disabled"));
      return eHAL_STATUS_SUCCESS;
 }
 

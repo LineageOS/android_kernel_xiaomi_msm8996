@@ -630,5 +630,11 @@ eHalStatus pmcOffloadSetTdlsProhibitBmpsStatus(tHalHandle hHal,
 
 tANI_BOOLEAN pmcOffloadIsPowerSaveEnabled (tHalHandle hHal, tANI_U32 sessionId,
                                            tPmcPowerSavingMode psMode);
+
+eHalStatus PmcOffloadEnableDeferredStaModePowerSave(tHalHandle hHal,
+                                            tANI_U32 sessionId);
+
+eHalStatus PmcOffloadDisableDeferredStaModePowerSave(tHalHandle hHal,
+                                             tANI_U32 sessionId);
 #endif
 
