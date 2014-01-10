@@ -35,9 +35,6 @@
 
     $Id$
 
-    Copyright (C) 2006 Airgo Networks, Incorporated
-
-
    ========================================================================== */
 
 #ifndef PTTFRAMEGEN_H

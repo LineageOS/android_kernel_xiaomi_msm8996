@@ -33,9 +33,6 @@
  *
  *  @author:   Kumar Anand
  *
- *             Copyright (C) 2010, Qualcomm Technologies, Inc. 
- *             All rights reserved.
- *
  *=========================================================================*/
 
 #ifndef _WLAN_HAL_MSG_H_
@@ -2343,7 +2340,7 @@ typedef PACKED_PRE struct PACKED_POST
 
 #ifndef OEM_DATA_REQ_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_REQ_SIZE 276
+#define OEM_DATA_REQ_SIZE 280
 #else
 #define OEM_DATA_REQ_SIZE 134
 #endif
@@ -2351,7 +2348,7 @@ typedef PACKED_PRE struct PACKED_POST
 
 #ifndef OEM_DATA_RSP_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_RSP_SIZE 1720
+#define OEM_DATA_RSP_SIZE 1724
 #else
 #define OEM_DATA_RSP_SIZE 1968
 #endif

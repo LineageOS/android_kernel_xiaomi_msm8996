@@ -31,7 +31,6 @@
  *
  *  @brief:        This file contains the hardware related definitions.
  *
- *  Copyright (C)  2008, Qualcomm Technologies, Inc. All rights reserved.
  */
 
 #ifndef __WLAN_QCT_DEV_DEFS_H

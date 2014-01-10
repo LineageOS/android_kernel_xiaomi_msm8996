@@ -37,9 +37,6 @@
 
     $Id$
 
-    Copyright (C) 2006 Airgo Networks, Incorporated
-
-
    ========================================================================== */
 
 #if !defined( __WLAN_NV_H )

@@ -33,9 +33,6 @@
  *
  *  @author:   Kumar Anand
  *
- *             Copyright (C) 2010, Qualcomm Technologies, Inc. 
- *             All rights reserved.
- *
  *=========================================================================*/
 
 #ifndef __WLAN_HAL_CFG_H__

@@ -696,7 +696,7 @@ WDI_OBJS +=	$(WDI_CP_OBJS) \
 endif
 
 
-RIVA_INC :=	-I$(WLAN_ROOT)/riva/inc
+WCNSS_INC :=	-I$(WLAN_ROOT)/wcnss/inc
 
 LINUX_INC :=	-Iinclude/linux
 
@@ -705,7 +705,7 @@ INCS :=		$(BAP_INC) \
 		$(HDD_INC) \
 		$(LINUX_INC) \
 		$(MAC_INC) \
-		$(RIVA_INC) \
+		$(WCNSS_INC) \
 		$(SAP_INC) \
 		$(SME_INC) \
 		$(SVC_INC) \

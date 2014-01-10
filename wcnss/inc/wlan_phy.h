@@ -32,8 +32,6 @@
 
 Contains definitions of all PHY related structures that aree needed by FTM/PTT
 
-Copyright (c) 2007 Qualcomm Technologies, Inc. All Rights Reserved.
-Qualcomm Technologies Proprietary and Confidential
 ============================================================================*/
 #include <wlan_nv.h>
 

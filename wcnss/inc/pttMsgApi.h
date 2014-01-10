@@ -27,12 +27,6 @@
 
 /**
  *
-   Airgo Networks, Inc proprietary.
-   All Rights Reserved, Copyright 2005
-   This program is the confidential and proprietary product of Airgo Networks Inc.
-   Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
-
-
    pttMsgApi.h: Contains messages to PTT Module for physical layer testing
    Author:  Mark Nelson
    Date:    6/21/05

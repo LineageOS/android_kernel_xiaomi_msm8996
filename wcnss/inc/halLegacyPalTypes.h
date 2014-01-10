@@ -36,9 +36,6 @@
  *
  *  @author:   Kumar Anand
  *
- *             Copyright (C) 2010, Qualcomm Technologies, Inc.
- *             All rights reserved.
- *
  *=========================================================================*/
 
 #include "qwlanfw_defs.h"

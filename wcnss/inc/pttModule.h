@@ -27,12 +27,6 @@
 
 /**
  *
-   Airgo Networks, Inc proprietary.
-   All Rights Reserved, Copyright 2005
-   This program is the confidential and proprietary product of Airgo Networks Inc.
-   Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
-
-
    pttModule.h: global variable structure for pttModule
    Author:  Mark Nelson
    Date: 6/27/05
