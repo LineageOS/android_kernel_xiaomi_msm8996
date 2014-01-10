@@ -164,7 +164,8 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
                                             u_int8_t generateRsp);
 static struct wma_target_req *
 wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
-		  u_int32_t msg_type, u_int8_t type, void *params);
+		  u_int32_t msg_type, u_int8_t type, void *params,
+		  u_int32_t timeout);
 
 static tANI_U32 gFwWlanFeatCaps;
 
@@ -2594,7 +2595,7 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 
 	iface->del_staself_req = pdel_sta_self_req_param;
 	msg = wma_fill_vdev_req(wma_handle, vdev_id, WDA_DEL_STA_SELF_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_DEL, iface);
+				WMA_TARGET_REQ_TYPE_VDEV_DEL, iface, 2000);
 	if (!msg) {
 		WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d\n",
 			 __func__, vdev_id);
@@ -4982,7 +4983,7 @@ void wma_vdev_resp_timer(void *data)
 
 static struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 						u_int32_t msg_type, u_int8_t type,
-						void *params)
+						void *params, u_int32_t timeout)
 {
 	struct wma_target_req *req;
 
@@ -5000,7 +5001,7 @@ static struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev
 	req->user_data = params;
 	vos_timer_init(&req->event_timeout, VOS_TIMER_TYPE_SW,
 		       wma_vdev_resp_timer, req);
-	vos_timer_start(&req->event_timeout, 2000);
+	vos_timer_start(&req->event_timeout, timeout);
 	adf_os_spin_lock_bh(&wma->vdev_respq_lock);
 	list_add_tail(&req->node, &wma->vdev_resp_queue);
 	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
@@ -5035,7 +5036,7 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 		goto send_resp;
 	}
 	msg = wma_fill_vdev_req(wma, req.vdev_id, WDA_CHNL_SWITCH_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_START, params);
+				WMA_TARGET_REQ_TYPE_VDEV_START, params, 1000);
 	if (!msg) {
 		WMA_LOGP("Failed to fill channel switch request for vdev %d\n",
 			 req.vdev_id);
@@ -6353,7 +6354,7 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		goto send_fail_resp;
 	}
 	msg = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_START, add_bss);
+				WMA_TARGET_REQ_TYPE_VDEV_START, add_bss, 1000);
 	if (!msg) {
 		WMA_LOGP("%s Failed to allocate vdev request vdev_id %d\n",
 			 __func__, vdev_id);
@@ -6483,7 +6484,7 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
         add_bss->operMode = BSS_OPERATIONAL_MODE_IBSS;
 
 	msg = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_START, add_bss);
+				WMA_TARGET_REQ_TYPE_VDEV_START, add_bss, 1000);
 	if (!msg) {
 		WMA_LOGP("%s Failed to allocate vdev request vdev_id %d\n",
 			 __func__, vdev_id);
@@ -6582,7 +6583,8 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 				goto send_fail_resp;
 			}
 			msg = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
-						WMA_TARGET_REQ_TYPE_VDEV_START, add_bss);
+						WMA_TARGET_REQ_TYPE_VDEV_START,
+						add_bss, 1000);
 			if (!msg) {
 				WMA_LOGP("%s Failed to allocate vdev request vdev_id %d\n",
 					 __func__, vdev_id);
@@ -8016,7 +8018,7 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
         }
 
 	msg = wma_fill_vdev_req(wma, params->smesessionId, WDA_DELETE_BSS_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_STOP, params);
+				WMA_TARGET_REQ_TYPE_VDEV_STOP, params, 1000);
 	if (!msg) {
 		WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d\n",
 			 __func__, params->smesessionId);
