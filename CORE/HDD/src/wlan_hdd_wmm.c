@@ -758,7 +758,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
          // the packets will flow.  Note that the MAC will "do the right thing"
          pAc->wmmAcAccessPending = VOS_FALSE;
          pAc->wmmAcAccessFailed = VOS_TRUE;
-         pAc->wmmAcAccessAllowed = VOS_TRUE;
+         pAc->wmmAcAccessAllowed = VOS_FALSE;
 
          // this was triggered by implicit QoS so we know packets are pending
          status = WLANTL_STAPktPending( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
@@ -2061,8 +2061,8 @@ VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
                 "%s: Implicit QoS for TL AC %d previously failed",
                 __func__, acType);
 
-      pAdapter->hddWmmStatus.wmmAcStatus[acType].wmmAcAccessAllowed = VOS_TRUE;
-      *pGranted = VOS_TRUE;
+      pAdapter->hddWmmStatus.wmmAcStatus[acType].wmmAcAccessAllowed = VOS_FALSE;
+      *pGranted = VOS_FALSE;
       return VOS_STATUS_SUCCESS;
    }
 
