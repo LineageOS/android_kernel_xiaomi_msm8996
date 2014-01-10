@@ -920,6 +920,15 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     }
 #endif
 
+    if (pHddCtx->cfg_ini->enablePowersaveOffload &&
+       ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+        (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)))
+    {
+       sme_PsOffloadDisableDeferredPowerSave(
+                   WLAN_HDD_GET_HAL_CTX(pAdapter),
+                   pAdapter->sessionId);
+    }
+
     //Unblock anyone waiting for disconnect to complete
     complete(&pAdapter->disconnect_comp_var);
     return( status );
@@ -1884,6 +1893,15 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
                                                WLANTL_STA_AUTHENTICATED );
 
             pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
+
+            if (pHddCtx->cfg_ini->enablePowersaveOffload &&
+                ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+                 (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)))
+            {
+               sme_PsOffloadEnableDeferredPowerSave(
+                                  WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                  pAdapter->sessionId);
+            }
          }
          else
          {
