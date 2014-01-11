@@ -8996,7 +8996,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 {
    VOS_STATUS status;
    hdd_adapter_t *pAdapter = NULL;
+#ifdef WLAN_OPEN_P2P_INTERFACE
    hdd_adapter_t *pP2pAdapter = NULL;
+#endif
    hdd_context_t *pHddCtx = NULL;
    v_CONTEXT_t pVosContext= NULL;
 #ifdef WLAN_BTAMP_FEATURE
@@ -9498,6 +9500,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
      pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
          wlan_hdd_get_intf_addr(pHddCtx), FALSE );
+
+#ifdef WLAN_OPEN_P2P_INTERFACE
+     /* Open P2P device interface */
      if (pAdapter != NULL)
      {
          if ( pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated )
@@ -9538,6 +9543,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
              goto err_close_adapter;
          }
      }
+#endif
    }
 
    if( pAdapter == NULL )
