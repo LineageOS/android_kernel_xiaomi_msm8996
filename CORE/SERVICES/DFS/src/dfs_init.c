@@ -78,21 +78,21 @@ void dfs_reset_alldelaylines(struct ath_dfs *dfs)
         int i,j;
 
         if (dfs == NULL) {
-                printk("%s[%d]: sc_dfs is NULL\n",__func__,__LINE__);
-                //DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: sc_dfs is NULL\n", __func__);
-                return;
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                                "%s[%d]: sc_dfs is NULL", __func__, __LINE__);
+            return;
         }
         pl = dfs->pulses;
 
         if (pl == NULL) {
-              printk("%s[%d]:  pl==NULL, dfs=%p\n",__func__,__LINE__,dfs);
-              //DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: pl==NULL, dfs=%p\n",__func__,dfs);
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                            "%s[%d]:  pl==NULL, dfs=%p", __func__, __LINE__, dfs);
             return;
         }
 
         if (dfs->dfs_b5radars == NULL) {
-            printk("%s[%d]: pl==NULL, b5radars=%p\n",__func__,__LINE__,dfs->dfs_b5radars);
-            //DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: pl==NULL, b5radars=%p\n",__func__,dfs->dfs_b5radars);
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+            "%s[%d]: pl==NULL, b5radars=%p", __func__, __LINE__, dfs->dfs_b5radars);
             return;
         }
 
@@ -100,24 +100,24 @@ void dfs_reset_alldelaylines(struct ath_dfs *dfs)
         pl->pl_firstelem = pl->pl_numelems = 0;
         pl->pl_lastelem = DFS_MAX_PULSE_BUFFER_MASK;
 
-        for (i=0; i<DFS_MAX_RADAR_TYPES; i++) {
-      if (dfs->dfs_radarf[i] != NULL) {
-                    ft = dfs->dfs_radarf[i];
-                    for (j=0; j<ft->ft_numfilters; j++) {
-                            rf = &(ft->ft_filters[j]);
-                            dl = &(rf->rf_dl);
-                            if(dl != NULL) {
-                                    OS_MEMZERO(dl, sizeof(struct dfs_delayline));
-                                    dl->dl_lastelem = (0xFFFFFFFF) & DFS_MAX_DL_MASK;
-                            }
+        for (i = 0; i < DFS_MAX_RADAR_TYPES; i++) {
+            if (dfs->dfs_radarf[i] != NULL) {
+                ft = dfs->dfs_radarf[i];
+                for (j = 0; j < ft->ft_numfilters; j++) {
+                    rf = &(ft->ft_filters[j]);
+                    dl = &(rf->rf_dl);
+                    if (dl != NULL) {
+                        OS_MEMZERO(dl, sizeof(struct dfs_delayline));
+                        dl->dl_lastelem = (0xFFFFFFFF) & DFS_MAX_DL_MASK;
                     }
+                }
             }
         }
-        for (i=0; i<dfs->dfs_rinfo.rn_numbin5radars; i++) {
-                OS_MEMZERO(&(dfs->dfs_b5radars[i].br_elems[0]), sizeof(struct dfs_bin5elem)*DFS_MAX_B5_SIZE);
-                dfs->dfs_b5radars[i].br_firstelem = 0;
-                dfs->dfs_b5radars[i].br_numelems = 0;
-                dfs->dfs_b5radars[i].br_lastelem = (0xFFFFFFFF)&DFS_MAX_B5_MASK;
+        for (i = 0; i < dfs->dfs_rinfo.rn_numbin5radars; i++) {
+            OS_MEMZERO(&(dfs->dfs_b5radars[i].br_elems[0]), sizeof(struct dfs_bin5elem)*DFS_MAX_B5_SIZE);
+            dfs->dfs_b5radars[i].br_firstelem = 0;
+            dfs->dfs_b5radars[i].br_numelems = 0;
+            dfs->dfs_b5radars[i].br_lastelem = (0xFFFFFFFF)&DFS_MAX_B5_MASK;
         }
 }
 /*
@@ -145,7 +145,7 @@ dfs_reset_radarq(struct ath_dfs *dfs)
 {
    struct dfs_event *event;
    if (dfs == NULL) {
-      DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: sc_dfs is NULL\n", __func__);
+      DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: sc_dfs is NULL", __func__);
       return;
    }
    ATH_DFSQ_LOCK(dfs);
@@ -180,20 +180,10 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
     u_int32_t max_pulsedur=0;
 
     if (dfs == NULL) {
-        printk("%s[%d]: dfs is NULL\n",__func__,__LINE__);
-        //DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "dfs is NULL %s",__func__);
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                        "%s[%d]: dfs is NULL", __func__, __LINE__);
         return 1;
     }
-    printk("%s[%d]:dfsdomain=%d, numradars=%d, numb5radars=%d\n",__func__,
-        __LINE__, radar_info->dfsdomain,radar_info->numradars,radar_info->numb5radars);
-/*
- *    DFS_DPRINTK(dfs, ATH_DEBUG_DFS,
- *      "%s: dfsdomain=%d, numradars=%d, numb5radars=%d\n",
- *           __func__,
- *           radar_info->dfsdomain,
- *           radar_info->numradars,
- *           radar_info->numb5radars);
- */
     /* clear up the dfs domain flag first */
 #ifndef ATH_DFS_RADAR_DETECTION_ONLY
     dfs->ath_dfs_isdfsregdomain = 0;
@@ -204,14 +194,18 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
      * the rest of the radar configuration as suspect.
      */
     if (radar_info == NULL || radar_info->dfsdomain == 0) {
-        printk("%s[%d]: Unknown dfs domain %d \n",__func__,__LINE__,dfs->dfsdomain);
-        /*DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: Unknown dfs domain %d\n",
-            __func__, dfs->dfsdomain);*/
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                        "%s[%d]: Unknown dfs domain %d ",
+                        __func__, __LINE__, dfs->dfsdomain);
         /* Disable radar detection since we don't have a radar domain */
         dfs->dfs_proc_phyerr &= ~DFS_RADAR_EN;
         return 0;
     }
 
+    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                    "%s[%d]:dfsdomain=%d, numradars=%d, numb5radars=%d",
+                    __func__, __LINE__, radar_info->dfsdomain,
+                    radar_info->numradars, radar_info->numb5radars);
     dfs->dfsdomain = radar_info->dfsdomain;
     dfs_radars = radar_info->dfs_radars;
     numradars = radar_info->numradars;
@@ -227,9 +221,9 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
 
     dfs->dfs_rinfo.rn_numradars = 0;
     /* Clear filter type table */
-    for (n=0; n<256; n++) {
+    for (n = 0; n < 256; n++) {
         for (i=0;i<DFS_MAX_RADAR_OVERLAP; i++)
-        (dfs->dfs_radartable[n])[i] = -1;
+            (dfs->dfs_radartable[n])[i] = -1;
     }
     /* Now, initialize the radar filters */
     for (p=0; p<numradars; p++) {
@@ -246,7 +240,7 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
     if (ft == NULL) {
         /* No filter of the appropriate dur was found */
         if ((dfs->dfs_rinfo.rn_numradars+1) >DFS_MAX_RADAR_TYPES) {
-         DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: Too many filter types\n",
+         DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: Too many filter types",
          __func__);
          goto bad4;
         }
@@ -278,7 +272,7 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
                   (int8_t) (dfs->dfs_rinfo.rn_numradars);
                } else {
                    DFS_DPRINTK(dfs, ATH_DEBUG_DFS,
-                  "%s: Too many overlapping radar filters\n",
+                  "%s: Too many overlapping radar filters",
                   __func__);
                    goto bad4;
                }
@@ -312,17 +306,12 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
     rf->rf_threshold = dfs_radars[p].rp_threshold;
     rf->rf_filterlen = rf->rf_maxpri * rf->rf_numpulses;
 
-    printk("%s[%d]: minprf = %d maxprf = %d pulsevar = %d thresh=%d\n",
+    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]: minprf = %d maxprf = %d pulsevar = %d thresh=%d",
             __func__,__LINE__,dfs_radars[p].rp_pulsefreq, dfs_radars[p].rp_max_pulsefreq,
             dfs_radars[p].rp_pulsevar, rf->rf_threshold);
-    printk("%s[%d]:minpri = %d maxpri = %d filterlen = %d filterID = %d\n",__func__,__LINE__,
+    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]:minpri = %d maxpri = %d filterlen = %d filterID = %d",__func__,__LINE__,
             rf->rf_minpri, rf->rf_maxpri, rf->rf_filterlen, rf->rf_pulseid);
 
-    /*DFS_DPRINTK(dfs, ATH_DEBUG_DFS2, "minprf = %d maxprf = %d pulsevar = %d thresh=%d\n",
-    dfs_radars[p].rp_pulsefreq, dfs_radars[p].rp_max_pulsefreq, dfs_radars[p].rp_pulsevar, rf->rf_threshold);
-    DFS_DPRINTK(dfs, ATH_DEBUG_DFS2,
-    "minpri = %d maxpri = %d filterlen = %d filterID = %d\n",
-    rf->rf_minpri, rf->rf_maxpri, rf->rf_filterlen, rf->rf_pulseid);*/
     }
 
 #ifdef DFS_DEBUG
@@ -336,7 +325,7 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
       numb5radars * sizeof(struct dfs_bin5radars), GFP_KERNEL);
     if (dfs->dfs_b5radars == NULL) {
         DFS_DPRINTK(dfs, ATH_DEBUG_DFS,
-        "%s: cannot allocate memory for bin5 radars\n",
+        "%s: cannot allocate memory for bin5 radars",
         __func__);
         goto bad4;
     }
@@ -357,10 +346,12 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
     dfs->dfs_rinfo.rn_maxpulsedur = dfs_round((int32_t)((max_pulsedur*100/80)*100));
     /* relax the max pulse duration a little bit due to inaccuracy caused by chirping. */
     dfs->dfs_rinfo.rn_maxpulsedur = dfs->dfs_rinfo.rn_maxpulsedur +20;
-    printk("%s[%d]: DFS min filter rssiThresh = %d \n",__func__,__LINE__,min_rssithresh);
-    printk("%s[%d]:DFS max pulse dur = %d ticks\n ",__func__,__LINE__,dfs->dfs_rinfo.rn_maxpulsedur);
-    //DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "DFS min filter rssiThresh = %d\n",min_rssithresh);
-    //DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "DFS max pulse dur = %d ticks\n", dfs->dfs_rinfo.rn_maxpulsedur);
+    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                    "%s[%d]: DFS min filter rssiThresh = %d",
+                    __func__, __LINE__, min_rssithresh);
+    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                    "%s[%d]:DFS max pulse dur = %d ticks",
+                    __func__ ,__LINE__, dfs->dfs_rinfo.rn_maxpulsedur);
     return 0;
 
  bad4:

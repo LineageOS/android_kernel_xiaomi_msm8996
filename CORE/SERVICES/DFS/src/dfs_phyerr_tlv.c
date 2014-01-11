@@ -140,21 +140,21 @@ radar_summary_print(struct ath_dfs *dfs, struct rx_radar_status *rsu)
 {
 
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-       "    pulsedur=%d\n", rsu->pulse_duration);
+       "    pulsedur=%d", rsu->pulse_duration);
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-       "    rssi=%d\n", rsu->rssi);
+       "    rssi=%d", rsu->rssi);
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-       "    ischirp=%d\n", rsu->is_chirp);
+       "    ischirp=%d", rsu->is_chirp);
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-       "    sidx=%d\n", rsu->sidx);
+       "    sidx=%d", rsu->sidx);
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-       "    raw tsf=%d\n", rsu->raw_tsf);
+       "    raw tsf=%d", rsu->raw_tsf);
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-       "    tsf_offset=%d\n", rsu->tsf_offset);
+       "    tsf_offset=%d", rsu->tsf_offset);
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-       "    cooked tsf=%d\n", rsu->raw_tsf - rsu->tsf_offset);
+       "    cooked tsf=%d", rsu->raw_tsf - rsu->tsf_offset);
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-       "    frequency offset=%d.%d MHz (oversampling=%d)\n",
+       "    frequency offset=%d.%d MHz (oversampling=%d)",
        (int) (rsu->freq_offset / 1000),
        (int) abs(rsu->freq_offset % 1000),
        PERE_IS_OVERSAMPLING(dfs));
@@ -175,7 +175,7 @@ radar_summary_parse(struct ath_dfs *dfs, const char *buf, size_t len,
    if (len < sizeof(rs)) {
       DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR |
           ATH_DEBUG_DFS_PHYERR_SUM,
-          "%s: len (%d) < expected (%d)!\n",
+          "%s: len (%d) < expected (%d)!",
           __func__,
           len,
           sizeof(rs));
@@ -189,8 +189,8 @@ radar_summary_parse(struct ath_dfs *dfs, const char *buf, size_t len,
     */
    OS_MEMCPY(rs, buf, sizeof(rs));
 
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: two 32 bit values are: %08x %08x\n", __func__, rs[0], rs[1]);
-// DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR, "%s (p=%p):\n", __func__, buf);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: two 32 bit values are: %08x %08x", __func__, rs[0], rs[1]);
+// DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR, "%s (p=%p):", __func__, buf);
 
    /* Populate the fields from the summary report */
    rsu->tsf_offset =
@@ -223,7 +223,7 @@ radar_fft_search_report_parse(struct ath_dfs *dfs, const char *buf, size_t len,
    if (len < sizeof(rs)) {
       DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR |
           ATH_DEBUG_DFS_PHYERR_SUM,
-          "%s: len (%d) < expected (%d)!\n",
+          "%s: len (%d) < expected (%d)!",
           __func__,
           len,
           sizeof(rs));
@@ -245,15 +245,15 @@ radar_fft_search_report_parse(struct ath_dfs *dfs, const char *buf, size_t len,
         rsfr->peak_mag        = MS(rs[SEARCH_FFT_REPORT_REG_2], SEARCH_FFT_REPORT_PEAK_MAG);
         rsfr->num_str_bins_ib = MS(rs[SEARCH_FFT_REPORT_REG_2], SEARCH_FFT_REPORT_NUM_STR_BINS_IB);
 
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: two 32 bit values are: %08x %08x\n", __func__, rs[0], rs[1]);
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->total_gain_db = %d\n", __func__, rsfr->total_gain_db);
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->base_pwr_db = %d\n", __func__, rsfr->base_pwr_db);
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->fft_chn_idx = %d\n", __func__, rsfr->fft_chn_idx);
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->peak_sidx = %d\n", __func__, rsfr->peak_sidx);
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->relpwr_db = %d\n", __func__, rsfr->relpwr_db);
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->avgpwr_db = %d\n", __func__, rsfr->avgpwr_db);
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->peak_mag = %d\n", __func__, rsfr->peak_mag);
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->num_str_bins_ib = %d\n", __func__, rsfr->num_str_bins_ib);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: two 32 bit values are: %08x %08x", __func__, rs[0], rs[1]);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->total_gain_db = %d", __func__, rsfr->total_gain_db);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->base_pwr_db = %d", __func__, rsfr->base_pwr_db);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->fft_chn_idx = %d", __func__, rsfr->fft_chn_idx);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->peak_sidx = %d", __func__, rsfr->peak_sidx);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->relpwr_db = %d", __func__, rsfr->relpwr_db);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->avgpwr_db = %d", __func__, rsfr->avgpwr_db);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->peak_mag = %d", __func__, rsfr->peak_mag);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,"%s: rsfr->num_str_bins_ib = %d", __func__, rsfr->num_str_bins_ib);
 }
 
 /*
@@ -276,13 +276,13 @@ tlv_parse_frame(struct ath_dfs *dfs, struct rx_radar_status *rs,
         bool false_detect = false;
 
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-       "%s: total length = %d bytes\n", __func__, len);
+       "%s: total length = %d bytes", __func__, len);
    while ((i < len ) && (false_detect == false)) {
       /* Ensure we at least have four bytes */
       if ((len - i) < sizeof(tlv_hdr)) {
          DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR |
              ATH_DEBUG_DFS_PHYERR_SUM,
-             "%s: ran out of bytes, len=%d, i=%d\n",
+             "%s: ran out of bytes, len=%d, i=%d",
              __func__, len, i);
          return (0);
       }
@@ -295,7 +295,7 @@ tlv_parse_frame(struct ath_dfs *dfs, struct rx_radar_status *rs,
       OS_MEMCPY(&tlv_hdr, buf + i, sizeof(tlv_hdr));
 
       DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-          "%s: HDR: TLV SIG=0x%x, TAG=0x%x, LEN=%d bytes\n",
+          "%s: HDR: TLV SIG=0x%x, TAG=0x%x, LEN=%d bytes",
           __func__,
          MS(tlv_hdr[TLV_REG], TLV_SIG),
           MS(tlv_hdr[TLV_REG], TLV_TAG),
@@ -310,7 +310,7 @@ tlv_parse_frame(struct ath_dfs *dfs, struct rx_radar_status *rs,
       if (MS(tlv_hdr[TLV_REG], TLV_LEN) + i >= len) {
          DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
              "%s: TLV oversize: TLV LEN=%d, available=%d, "
-             "i=%d\n",
+             "i=%d",
              __func__,
              MS(tlv_hdr[TLV_REG], TLV_LEN),
              len,
@@ -350,13 +350,13 @@ tlv_parse_frame(struct ath_dfs *dfs, struct rx_radar_status *rs,
                                     (rssi ==  dfs->ath_dfs_false_rssi_thres) &&
                                     (rsfr->peak_mag <  (2 * dfs->ath_dfs_peak_mag))) {
                                     false_detect = true;
-                               DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR, "%s: setting false_detect to TRUE\n", __func__);
+                               DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR, "%s: setting false_detect to TRUE", __func__);
                                 }
 
                                 break;
          default:
             DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-                "%s: unknown entry, SIG=0x%02x\n",
+                "%s: unknown entry, SIG=0x%02x",
                 __func__,
                 MS(tlv_hdr[TLV_REG], TLV_SIG));
       }
@@ -365,7 +365,7 @@ tlv_parse_frame(struct ath_dfs *dfs, struct rx_radar_status *rs,
       i += MS(tlv_hdr[TLV_REG], TLV_LEN);
                 first_tlv = false;
    }
-   DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR, "%s: done\n\n", __func__);
+   DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR, "%s: done", __func__);
 
    return (false_detect? 0 : 1);
 }
@@ -384,7 +384,7 @@ tlv_calc_freq_info(struct ath_dfs *dfs, struct rx_radar_status *rs)
     * For now, just handle up to VHT80 correctly.
     */
    if (dfs->ic == NULL || dfs->ic->ic_curchan == NULL) {
-      DFS_PRINTK("%s: dfs->ic=%p, that or curchan is null?\n",
+      DFS_PRINTK("%s: dfs->ic=%p, that or curchan is null?",
           __func__, dfs->ic);
       return (0);
    /*
@@ -524,7 +524,7 @@ tlv_calc_event_freq_chirp(struct ath_dfs *dfs, struct rx_radar_status *rs,
 
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR | ATH_DEBUG_DFS_PHYERR_SUM,
        "%s: delta_peak=%d, pulse_duration=%d, bin_resolution=%d.%dKHz, "
-           "radar_fft_long_period=%d, total_bw=%d.%ldKHz\n",
+           "radar_fft_long_period=%d, total_bw=%d.%ldKHz",
        __func__,
        delta_peak,
        pulse_duration,
@@ -610,7 +610,7 @@ dfs_process_phyerr_bb_tlv(struct ath_dfs *dfs, void *buf, u_int16_t datalen,
     * Try parsing the TLV set.
     */
    if (! tlv_parse_frame(dfs, &rs, &rsfr, buf, datalen, rssi)){
-                printk("%s[%d]: !tlv_parse_frame FAILED \n",__func__,__LINE__);
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "%s[%d]: !tlv_parse_frame FAILED ",__func__,__LINE__);
       return (0);
         }
    /* For debugging, print what we have parsed */
@@ -644,7 +644,7 @@ dfs_process_phyerr_bb_tlv(struct ath_dfs *dfs, void *buf, u_int16_t datalen,
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR_SUM,
        "%s: fbin=%d, freq=%d.%d MHz, raw tsf=%u, offset=%d, "
        "cooked tsf=%u, rssi=%d, dur=%d, is_chirp=%d, fulltsf=%llu, "
-       "freq=%d.%d MHz, freq_lo=%d.%dMHz, freq_hi=%d.%d MHz\n",
+       "freq=%d.%d MHz, freq_lo=%d.%dMHz, freq_hi=%d.%d MHz",
        __func__,
        rs.sidx,
        (int) (rs.freq_offset / 1000),

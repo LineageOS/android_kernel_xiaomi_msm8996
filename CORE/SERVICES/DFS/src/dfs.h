@@ -88,6 +88,7 @@
 #include "dfs_ioctl_private.h"
 #include "dfs_interface.h"
 #include "_ieee80211_common.h"
+#include "vos_api.h"
 
 #define ATH_SUPPORT_DFS   1
 #define CHANNEL_TURBO     0x00010
@@ -96,7 +97,7 @@
     if (((dfs) == NULL) ||                               \
       ((dfs) != NULL &&                                  \
        ((_m) & (dfs)->dfs_debug_mask))) {                \
-        printk(_fmt, __VA_ARGS__);                       \
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG, _fmt, __VA_ARGS__);\
     }                                                    \
 } while (0)
 
