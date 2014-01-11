@@ -54,7 +54,7 @@ Include Files
 
 #define HDD_IPA_RX_INACTIVITY_MSEC_DELAY 2000
 
-const uint8_t ipa_set_hdr[] = {
+const uint8_t ipa_set_tx_hdr[] = {
 /*IPA-WLAN HDR */
 	0x00, 0x00,  /* Reserved */
 #define HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET 2
@@ -78,14 +78,32 @@ const uint8_t ipa_set_hdr[] = {
 
 	0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00,
 	/* LLC SNAP header 8 bytes */
-#define HDD_IPA_WLAN_HDR_IP_VER_OFFSET 24
+#define HDD_IPA_WLAN_TX_HDR_IP_VER_OFFSET 24
+	0x08, 0x00
+	/* type value(2 bytes) ,filled by wlan  */
+	/* 0x0800 - IPV4, 0x86dd - IPV6 */
+};
+
+// For Rx pipe, use Ethernet-II Header format
+const uint8_t ipa_set_rx_hdr[] = {
+	0x00, 0x00,  /* Reserved */
+	0x00, 0x00,
+	/* dev_id and sta_id filled by wlan*/
+
+	/* 802.3 header - 14 bytes*/
+	0x00, 0x03, 0x7f, 0xaa, 0xbb, 0xcc,
+	/* Des_MAC filled by IPA */
+	0x00, 0x03, 0x7f, 0xdd, 0xee, 0xff,
+	/* Src. MAC filled by IPA */
+#define HDD_IPA_WLAN_RX_HDR_IP_VER_OFFSET 16
 	0x08, 0x00
 	/* type value(2 bytes) ,filled by wlan  */
 	/* 0x0800 - IPV4, 0x86dd - IPV6 */
 };
 
 
-#define HDD_IPA_WLAN_HDR_LEN sizeof(ipa_set_hdr)
+#define HDD_IPA_WLAN_TX_HDR_LEN sizeof(ipa_set_tx_hdr)
+#define HDD_IPA_WLAN_RX_HDR_LEN sizeof(ipa_set_rx_hdr)
 #define HDD_IPA_WLAN_HDR_ONLY_LEN 4
 #define HDD_IPA_MAX_TX_PIPE_MAP	8
 #define HDD_IPA_WLAN_HDR_PARTIAL 1
@@ -489,7 +507,7 @@ static void hdd_ipa_send_pkt_to_ipa(struct ipa_tx_data_desc *send_desc_head,
 
 static int hdd_ipa_is_ip_pkt(void *data, uint8_t ip_ver)
 {
-	struct ethhdr *eth = data;
+	struct ethhdr *eth = (struct ethhdr *)data;
 	struct llc_snap_hdr {
 		uint8_t dsap;
 		uint8_t ssap;
@@ -512,10 +530,13 @@ static int hdd_ipa_is_ip_pkt(void *data, uint8_t ip_ver)
 		eth_type = be16_to_cpu(ls_hdr->eth_type);
 	}
 
-	if (eth_type == 0x0800 && ip_ver == HDD_IPA_IPV4)
+	if ((eth_type == ETH_P_IP) && (ip_ver == HDD_IPA_IPV4))
 		ret = 1;
-	else if (eth_type == 0x86dd && ip_ver == HDD_IPA_IPV6)
+	else if ((eth_type == ETH_P_IPV6) && (ip_ver == HDD_IPA_IPV6))
 		ret = 1;
+
+	if (ret != 1)
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "NOT IP Packet!!! (eth_type=0x%x, ip_ver=%d)", eth_type, ip_ver);
 
 	return ret;
 }
@@ -578,11 +599,25 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 		INIT_LIST_HEAD(&send_desc_head->link);
 		buf = rxt->rx_buf_list;
 		while (buf) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "RX data:\n \
+			%02x %02x %02x %02x %02x %02x %02x %02x\n \
+			%02x %02x %02x %02x %02x %02x %02x %02x\n \
+			%02x %02x %02x %02x %02x %02x %02x %02x\n",
+				buf->data[0], buf->data[1], buf->data[2], buf->data[3],
+				buf->data[4], buf->data[5], buf->data[6], buf->data[7],
+				buf->data[8], buf->data[9], buf->data[10], buf->data[11],
+				buf->data[12], buf->data[13], buf->data[14], buf->data[15],
+				buf->data[16], buf->data[17], buf->data[18], buf->data[19],
+				buf->data[20], buf->data[21], buf->data[22], buf->data[23]);
+
 			next_buf = adf_nbuf_queue_next(buf);
+
+			/* we want to send Rx packets to IPA only when it is IPV4 or IPV6i(if IPV6
+			is enabled). All other packets will be sent to network stack directly. */
 			if (hdd_ipa_can_pre_filter(hdd_ipa) &&
-				(!hdd_ipa_is_ip_pkt(buf->data, HDD_IPA_IPV4) ||
-				(!hdd_ipa_is_ipv6_enabled(hdd_ipa) &&
-				hdd_ipa_is_ip_pkt(buf->data, HDD_IPA_IPV6)))) {
+				(!hdd_ipa_is_ip_pkt(buf->data, HDD_IPA_IPV4) &&
+				(!hdd_ipa_is_ipv6_enabled(hdd_ipa) ||
+				 !hdd_ipa_is_ip_pkt(buf->data, HDD_IPA_IPV6)))) {
 				hdd_ipa->stats.prefilter++;
 				hdd_ipa_send_skb_to_network(buf, adap_dev);
 				buf = next_buf;
@@ -603,15 +638,6 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 						HDD_IPA_WLAN_HDR_DEV_TYPE_STA;
 			}
 
-			/* TODO Chk if needed
-				if (hdd_ipa_is_ip_pkt(buf->data, HDD_IPA_IPV6) {
-				buf->data[HDD_IPA_WLAN_HDR_IP_VER_OFFSET]
-									= 0x86;
-				buf->data[HDD_IPA_WLAN_HDR_IP_VER_OFFSET + 1]
-									= 0xdd;
-			}
-			skb_pull(buf, HDD_IPA_WLAN_HDR_LEN);
-			skb_push(buf, HDD_IPA_WLAN_HDR_ONLY_LEN);*/
 			send_desc = hdd_ipa_get_desc_from_freeq();
 			if (send_desc) {
 				send_desc->priv = buf;
@@ -779,7 +805,7 @@ void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt, unsigned long data)
 	struct ipa_tx_data_desc *done_desc_head;
 	adf_nbuf_t skb;
 	uint8_t sta_id, dev_id;
-	hdd_adapter_t *adap_dev;
+	hdd_adapter_t *adap_dev=NULL;
 
 	client = *((uint8_t *)priv);
 	if (client != hdd_ipa_pipe_client[HDD_IPA_RX_PIPE]) {
@@ -795,7 +821,12 @@ void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt, unsigned long data)
 		skb = (adf_nbuf_t) data;
 		sta_id = skb->data[HDD_IPA_WLAN_HDR_STA_ID_OFFSET];
 		dev_id = skb->data[HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET];
-		adap_dev = hdd_ipa->hdd_ctx->sta_to_adapter[sta_id];
+		if (sta_id < ARRAY_SIZE(hdd_ipa->hdd_ctx->sta_to_adapter)) {
+			adap_dev = hdd_ipa->hdd_ctx->sta_to_adapter[sta_id];
+		} else {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"w2i cb: wrong sta_id: %d", sta_id);
+		}
 		skb_pull(skb, HDD_IPA_WLAN_HDR_ONLY_LEN);
 		hdd_ipa->stats.rx_ipa_excep++;
 		hdd_ipa_send_skb_to_network(skb, adap_dev);
@@ -870,7 +901,7 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 		ipa->priv = &hdd_ipa_pipe_client[i];
 		ipa->notify = hdd_ipa_i2w_cb;
 
-		ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_HDR_LEN;
+		ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_TX_HDR_LEN;
 		ipa->ipa_ep_cfg.mode.mode = IPA_BASIC;
 
 		ret = ipa_setup_sys_pipe(ipa, &(hdd_ipa->sys_pipe[i].conn_hdl));
@@ -889,7 +920,7 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 	ipa->notify = hdd_ipa_w2i_cb;
 
 	ipa->ipa_ep_cfg.nat.nat_en = IPA_BYPASS_NAT;
-	ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_HDR_LEN;
+	ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_RX_HDR_LEN;
 	ipa->ipa_ep_cfg.hdr.hdr_ofst_metadata_valid = 1;
 	ipa->ipa_ep_cfg.mode.mode = IPA_BASIC;
 
@@ -1076,7 +1107,7 @@ static int hdd_ipa_add_header_info(uint8_t sta_id, uint8_t *mac_addr)
 	ipahdr->commit = 0;
 	ipahdr->num_hdrs = 1;
 	/* Set the Source MAC */
-	memcpy(ipahdr->hdr[0].hdr, ipa_set_hdr, HDD_IPA_WLAN_HDR_LEN);
+	memcpy(ipahdr->hdr[0].hdr, ipa_set_tx_hdr, HDD_IPA_WLAN_TX_HDR_LEN);
 	memcpy(&ipahdr->hdr[0].hdr[HDD_IPA_WLAN_HDR_SRC_MAC_OFFSET], mac_addr,
 								ETH_ALEN);
 
@@ -1095,7 +1126,7 @@ static int hdd_ipa_add_header_info(uint8_t sta_id, uint8_t *mac_addr)
 
 	snprintf(ipahdr->hdr[0].name, IPA_RESOURCE_NAME_MAX, "%s%s",
 		ifname, HDD_IPA_IPV4_NAME_EXT);
-	ipahdr->hdr[0].hdr_len = HDD_IPA_WLAN_HDR_LEN;
+	ipahdr->hdr[0].hdr_len = HDD_IPA_WLAN_TX_HDR_LEN;
 	ipahdr->hdr[0].is_partial = HDD_IPA_WLAN_HDR_PARTIAL;
 	ipahdr->hdr[0].hdr_hdl = 0;
 
@@ -1113,8 +1144,8 @@ static int hdd_ipa_add_header_info(uint8_t sta_id, uint8_t *mac_addr)
 		snprintf(ipahdr->hdr[0].name, IPA_RESOURCE_NAME_MAX, "%s%s",
 			ifname, HDD_IPA_IPV6_NAME_EXT);
 		/* Set the type to IPV6 in the header*/
-		ipahdr->hdr[0].hdr[HDD_IPA_WLAN_HDR_IP_VER_OFFSET] = 0x86;
-		ipahdr->hdr[0].hdr[HDD_IPA_WLAN_HDR_IP_VER_OFFSET + 1] = 0xdd;
+		ipahdr->hdr[0].hdr[HDD_IPA_WLAN_TX_HDR_IP_VER_OFFSET] = 0x86;
+		ipahdr->hdr[0].hdr[HDD_IPA_WLAN_TX_HDR_IP_VER_OFFSET + 1] = 0xdd;
 
 		ret = ipa_add_hdr(ipahdr);
 		if (ret) {
