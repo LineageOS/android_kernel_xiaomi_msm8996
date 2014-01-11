@@ -344,6 +344,10 @@ wlan_tasklet(unsigned long data)
     struct hif_pci_softc *sc = (struct hif_pci_softc *) data;
     volatile int tmp;
 
+    if (sc->hif_init_done == FALSE) {
+       goto irq_handled;
+    }
+
     (irqreturn_t)HIF_fw_interrupt_handler(sc->irq_event, sc);
     CE_per_engine_service_any(sc->irq_event, sc);
     adf_os_atomic_set(&sc->tasklet_from_intr, 0);
@@ -356,6 +360,7 @@ wlan_tasklet(unsigned long data)
         tasklet_schedule(&sc->intr_tq);
         return;
     }
+irq_handled:
     if (LEGACY_INTERRUPTS(sc)) {
         /* Enable Legacy PCI line interrupts */
         A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 
@@ -1104,6 +1109,30 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
     }
 #endif
 
+    if(num_msi_desired == 0) {
+        printk("\n Using PCI Legacy Interrupt\n");
+
+        /* Make sure to wake the Target before enabling Legacy Interrupt */
+        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
+                      PCIE_SOC_WAKE_V_MASK);
+        while (!hif_pci_targ_is_awake(sc, sc->mem)) {
+                ;
+        }
+        /* Use Legacy PCI Interrupts */
+        /*
+         * A potential race occurs here: The CORE_BASE write depends on
+         * target correctly decoding AXI address but host won't know
+         * when target writes BAR to CORE_CTRL. This write might get lost
+         * if target has NOT written BAR. For now, fix the race by repeating
+         * the write in below synchronization checking.
+         */
+        A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS |
+                      PCIE_INTR_ENABLE_ADDRESS),
+                      PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
+        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
+                      PCIE_SOC_WAKE_RESET);
+    }
+
     sc->num_msi_intrs = num_msi_desired;
     sc->ce_count = CE_COUNT;
 
@@ -1141,30 +1170,14 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
 
     *hif_hdl = sc->hif_device;
 
-    if(num_msi_desired == 0) {
-        printk("\n Using PCI Legacy Interrupt\n");
-
-        /* Make sure to wake the Target before enabling Legacy Interrupt */
-        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
-                      PCIE_SOC_WAKE_V_MASK);
-        while (!hif_pci_targ_is_awake(sc, sc->mem)) {
-                ;
-        }
-        /* Use Legacy PCI Interrupts */
-        /*
-         * A potential race occurs here: The CORE_BASE write depends on
-         * target correctly decoding AXI address but host won't know
-         * when target writes BAR to CORE_CTRL. This write might get lost
-         * if target has NOT written BAR. For now, fix the race by repeating
-         * the write in below synchronization checking.
-         */
-        A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS |
-                      PCIE_INTR_ENABLE_ADDRESS),
-                      PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
-        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
-                      PCIE_SOC_WAKE_RESET);
-    }
-
+    /*
+     * Flag to avoid potential unallocated memory access from MSI
+     * interrupt handler which could get scheduled as soon as MSI
+     * is enabled, i.e to take care of the race due to the order
+     * in where MSI is enabled before the memory, that will be
+     * in interrupt handlers, is allocated.
+     */
+    sc->hif_init_done = TRUE;
     return 0;
 
 err_stalled:

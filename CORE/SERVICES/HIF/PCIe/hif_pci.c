@@ -1492,6 +1492,8 @@ HIFStop(HIF_DEVICE *hif_device)
     if (!hif_state->started) {
         return; /* already stopped or stopping */
     }
+
+    sc->hif_init_done = FALSE;
     /* sync shutdown */
     hif_completion_thread_shutdown(hif_state);
     hif_completion_thread(hif_state);
