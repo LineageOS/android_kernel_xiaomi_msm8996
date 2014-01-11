@@ -13209,7 +13209,8 @@ wma_batch_scan_result_event_handler
                pHddApMetaInfo->ssid[0] = '\0';
             }
             pHddApMetaInfo->ch = network_info->ch;
-            pHddApMetaInfo->rssi = network_info->rssi;
+            pHddApMetaInfo->rssi = ((network_info->rssi + 100) -
+                                       WMI_DEFAULT_NOISE_FLOOR_DBM);
             pHddApMetaInfo->timestamp = network_info->timestamp;
 
             WMA_LOGD("ch %d rssi %d timestamp %d",pHddApMetaInfo->ch,
