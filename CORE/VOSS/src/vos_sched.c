@@ -24,14 +24,10 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
   @file vos_sched.c
   @brief VOS Scheduler Implementation
 
-  Copyright (c) 2011 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 /*===========================================================================
                        EDIT HISTORY FOR FILE
@@ -1160,7 +1156,7 @@ static int VosRXThread ( void * Arg )
         /* Rx Thread Suspended */
         complete(&pHddCtx->rx_sus_event_var);
 
-        init_completion(&pSchedContext->ResumeRxEvent);
+        INIT_COMPLETION(pSchedContext->ResumeRxEvent);
         spin_unlock(&pSchedContext->RxThreadLock);
 
         /* Wait for Resume Indication */
@@ -1825,6 +1821,7 @@ VOS_STATUS vos_watchdog_wlan_shutdown(void)
 
     /* Set the flags so that all future CMD53 and Wext commands get blocked right away */
     vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+    vos_set_reinit_in_progress(VOS_MODULE_ID_VOSS, FALSE);
     pHddCtx->isLogpInProgress = TRUE;
 
     /* Release the lock here */

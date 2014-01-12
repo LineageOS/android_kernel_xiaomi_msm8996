@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=============================================================================
 
   vos_list.c
@@ -32,11 +31,6 @@
   \brief
 
   Description...
-
-
-               Copyright 2008 (c) Qualcomm Technologies, Inc.
-               All Rights Reserved.
-               Qualcomm Technologies Confidential and Proprietary.
 
   ==============================================================================**/
 /* $HEADER$ */

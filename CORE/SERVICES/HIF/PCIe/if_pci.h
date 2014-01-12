@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 #ifndef __ATH_PCI_H__
 #define __ATH_PCI_H__
 
@@ -131,4 +132,20 @@ extern void pktlogmod_exit(void *context);
  * MSI allocation fails
  */
 #define LEGACY_INTERRUPTS(sc) ((sc)->num_msi_intrs == 0)
+
+/*
+ * There may be some pending tx frames during platform suspend.
+ * Suspend operation should be delayed until those tx frames are
+ * transfered from the host to target. This macro specifies how
+ * long suspend thread has to sleep before checking pending tx
+ * frame count.
+ */
+#define OL_ATH_TX_DRAIN_WAIT_DELAY     50 /* ms */
+
+/*
+ * Wait time (in unit of OL_ATH_TX_DRAIN_WAIT_DELAY) for pending
+ * tx frame completion before suspend. Refer: hif_pci_suspend()
+ */
+#define OL_ATH_TX_DRAIN_WAIT_CNT       10
+
 #endif /* __ATH_PCI_H__ */

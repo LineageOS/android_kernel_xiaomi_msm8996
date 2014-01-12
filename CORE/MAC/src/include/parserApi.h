@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file parserApi.h contains the definitions used
  * for parsing received 802.11 frames
  * Author:        Chandra Modumudi
@@ -48,6 +46,11 @@
 #define COUNTRY_INFO_MAX_CHANNEL ( 84 )
 #define MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE (COUNTRY_STRING_LENGTH * COUNTRY_INFO_MAX_CHANNEL)
 #define HIGHEST_24GHZ_CHANNEL_NUM  ( 14 )
+
+#define IS_24G_CH(__chNum) ((__chNum > 0) && (__chNum < 15))
+#define IS_5G_CH(__chNum) ((__chNum >= 36) && (__chNum <= 165))
+#define IS_2X2_CHAIN(__chain) ((__chain & 0x3) == 0x3)
+#define DISABLE_NSS2_MCS 0xC
 
 typedef struct sSirCountryInformation
 {
@@ -261,6 +264,30 @@ typedef struct sSirAssocRsp
 #endif
 } tSirAssocRsp, *tpSirAssocRsp;
 
+#if defined(FEATURE_WLAN_CCX_UPLOAD)
+// Structure to hold CCX Beacon report mandatory IEs
+typedef struct sSirCcxBcnReportMandatoryIe
+{
+    tSirMacSSid           ssId;
+    tSirMacRateSet        supportedRates;
+    tSirMacFHParamSet     fhParamSet;
+    tSirMacDsParamSetIE   dsParamSet;
+    tSirMacCfParamSet     cfParamSet;
+    tSirMacIBSSParams     ibssParamSet;
+    tSirMacTim            tim;
+    tSirMacRRMEnabledCap  rmEnabledCapabilities;
+
+    tANI_U8               ssidPresent;
+    tANI_U8               suppRatesPresent;
+    tANI_U8               fhParamPresent;
+    tANI_U8               dsParamsPresent;
+    tANI_U8               cfPresent;
+    tANI_U8               ibssParamPresent;
+    tANI_U8               timPresent;
+    tANI_U8               rrmPresent;
+} tSirCcxBcnReportMandatoryIe, *tpSirCcxBcnReportMandatoryIe;
+#endif /* FEATURE_WLAN_CCX_UPLOAD */
+
 tANI_U8
 sirIsPropCapabilityEnabled(struct sAniSirGlobal *pMac, tANI_U32 bitnum);
 
@@ -355,6 +382,15 @@ sirParseBeaconIE(struct sAniSirGlobal *pMac,
                  tpSirProbeRespBeacon   pBeaconStruct,
                  tANI_U8                    *pPayload,
                  tANI_U32                    payloadLength);
+
+#if defined(FEATURE_WLAN_CCX_UPLOAD)
+tSirRetStatus
+sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal    pMac,
+                                        tANI_U8          *pPayload,
+                                        const tANI_U32    payloadLength,
+                                        tANI_U8         **outIeBuf,
+                                        tANI_U32         *pOutIeLen);
+#endif /* FEATURE_WLAN_CCX_UPLOAD */
 
 tSirRetStatus
 sirConvertBeaconFrame2Struct(struct sAniSirGlobal *pMac,
@@ -691,7 +727,16 @@ void PopulateDot11fWMM(tpAniSirGlobal      pMac,
 
 void PopulateDot11fWMMCaps(tDot11fIEWMMCaps *pCaps);
 
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX)
+// Fill the CCX version IE
+void PopulateDot11fCCXVersion(tDot11fIECCXVersion *pCCXVersion);
+// Fill the Radio Management Capability
+void PopulateDot11fCCXRadMgmtCap(tDot11fIECCXRadMgmtCap *pCCXRadMgmtCap);
+// Fill the CCKM IE
+tSirRetStatus PopulateDot11fCCXCckmOpaque( tpAniSirGlobal pMac,
+                                           tpSirCCKMie    pCCKMie,
+                                           tDot11fIECCXCckmOpaque *pDot11f );
+
 void PopulateDot11TSRSIE(tpAniSirGlobal  pMac,
                                tSirMacCCXTSRSIE     *pOld,
                                tDot11fIECCXTrafStrmRateSet  *pDot11f,

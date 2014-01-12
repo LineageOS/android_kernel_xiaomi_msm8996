@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef __WLAN_QCT_DTS_H
 #define __WLAN_QCT_DTS_H
 
@@ -40,9 +39,6 @@
  * DESCRIPTION
  * This file contains the API exposed by the 
  * wlan device abstarction layer module for abstracting DXE/SDIO.
- *
- * Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
- * Qualcomm Technologies Confidential and Proprietary
  *
  * Example usage for DXE.
  * ----------------------
@@ -261,4 +257,11 @@ wpt_status WDTS_Close(void *pContext);
  */
 wpt_uint32 WDTS_GetFreeTxDataResNumber(void *pContext);
 
+/* API to fill Rate Info based on the mac efficiency passed to it
+ * macEff si used to caclulate mac throughput based on each rate index/PHY rate.
+ * This is eventually used by MAS to calculate RX stats periodically sent to FW
+ * The start and end Rate Index are the other arguments to this API - the new mac
+ * efficiency passed to this API (Arg1)  is only applied between startRateIndex (arg2) and endRateIndex (arg3).
+ */
+void WDTS_FillRateInfo(wpt_uint8 macEff, wpt_int16 startRateIndex, wpt_int16 endRateIndex);
 #endif

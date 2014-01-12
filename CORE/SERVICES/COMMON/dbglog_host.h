@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 #ifndef _DBGLOG_HOST_H_
 #define _DBGLOG_HOST_H_
 
@@ -50,7 +51,7 @@ typedef enum {
 
 #define ATH6KL_FWLOG_PAYLOAD_SIZE              1500
 
-#define HDRLEN 8
+#define HDRLEN 12
 #define RECLEN (HDRLEN + ATH6KL_FWLOG_PAYLOAD_SIZE)
 
 #define DBGLOG_PRINT_PREFIX "FWLOG: "
@@ -58,6 +59,7 @@ typedef enum {
 struct dbglog_slot {
     unsigned int timestamp;
     unsigned int length;
+    unsigned int dropped;
 
     /* max ATH6KL_FWLOG_PAYLOAD_SIZE bytes */
     u_int8_t payload[0];

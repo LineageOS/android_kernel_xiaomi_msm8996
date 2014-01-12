@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_PAL_STATUS_H )
 #define __WLAN_QCT_PAL_STATUS_H
 
@@ -35,10 +34,6 @@
   \brief define status PAL exports. wpt = (Wlan Pal Type)
                
    Definitions for platform independent. 
-  
-   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

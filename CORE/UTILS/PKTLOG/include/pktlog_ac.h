@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _PKTLOG_AC_H_
 #define _PKTLOG_AC_H_
 #ifndef REMOVE_PKT_LOG

@@ -24,13 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  * Compiler abstraction layer
- *
- *
- *
- * Copyright (C) 2005-2006 Airgo Networks, Inc
  * This file tries to abstract the differences among compilers.
  * Supported compilers are :
  *

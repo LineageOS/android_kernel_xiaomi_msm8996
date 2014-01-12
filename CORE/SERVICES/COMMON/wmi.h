@@ -24,7 +24,13 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+//------------------------------------------------------------------------------
+// Copyright (c) 2004-2010, 2013 Atheros Corporation.  All rights reserved.
+// $ATH_LICENSE_HOSTSDK0_C$
+//------------------------------------------------------------------------------
+//==============================================================================
+// Author(s): ="Atheros"
+//==============================================================================
 
 /*
  * This file contains the definitions of the WMI protocol specified in the

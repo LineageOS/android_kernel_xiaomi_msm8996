@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
   
   \file  limDebug.c
@@ -32,10 +31,6 @@
   \brief implementation for log Debug related APIs
 
   \author Sunit Bhatia
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

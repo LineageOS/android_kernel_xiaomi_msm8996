@@ -24,11 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Woodside Networks, Inc proprietary. All rights reserved.
- * $File: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/ssm/auth8021x/ani8021xSuppRsnFsm.c $
- *
  * Contains definitions for the RSN EAPOL-Key FSM on the
  * supplicant side. This is based on 802.11i.
  *

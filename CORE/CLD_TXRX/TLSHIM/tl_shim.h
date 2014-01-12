@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef TXRX_TL_SHIM_H
 #define TXRX_TL_SHIM_H
 
@@ -70,6 +69,7 @@ struct deferred_iapp_work iapp_work;
 	v_BOOL_t ip_checksum_offload;
 	u_int8_t   *last_beacon_data;
 	u_int32_t   last_beacon_len;
+	u_int32_t delay_interval;
 };
 
 /*

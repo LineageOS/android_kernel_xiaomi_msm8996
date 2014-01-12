@@ -24,14 +24,12 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
 
   \file  limSessionUtils.c
   \brief implementation for lim Session Utility  APIs
   \author Sunit Bhatia
   
-  Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
   ========================================================================*/
 
 

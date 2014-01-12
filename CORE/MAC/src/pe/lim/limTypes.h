@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limTypes.h contains the definitions used by all
  * all LIM modules.
  * Author:        Chandra Modumudi
@@ -122,13 +120,13 @@
 #define LIM_MIN_MEM_ASSOC       4
 
 /// Verifies whether given mac addr matches the CURRENT Bssid
-#define IS_CURRENT_BSSID(pMac, addr,psessionEntry)  (palEqualMemory(pMac->hHdd, addr, \
-                                                                                                psessionEntry->bssId, \
-                                                                                                sizeof(psessionEntry->bssId)))
+#define IS_CURRENT_BSSID(pMac, addr,psessionEntry)  (vos_mem_compare( addr, \
+                                                                      psessionEntry->bssId, \
+                                                                      sizeof(psessionEntry->bssId)))
 /// Verifies whether given addr matches the REASSOC Bssid
-#define IS_REASSOC_BSSID(pMac, addr,psessionEntry)  (palEqualMemory(pMac->hHdd, addr, \
-                                                                                                psessionEntry->limReAssocbssId, \
-                                                                                                sizeof(psessionEntry->limReAssocbssId)))
+#define IS_REASSOC_BSSID(pMac, addr,psessionEntry)  (vos_mem_compare( addr, \
+                                                                      psessionEntry->limReAssocbssId, \
+                                                                      sizeof(psessionEntry->limReAssocbssId)))
 
 #define REQ_TYPE_REGISTRAR                   (0x2)
 #define REQ_TYPE_WLAN_MANAGER_REGISTRAR      (0x3)
@@ -705,7 +703,7 @@ tSirRetStatus limSendLinkReportActionFrame(tpAniSirGlobal, tpSirMacLinkReport, t
 tSirRetStatus limSendRadioMeasureReportActionFrame(tpAniSirGlobal, tANI_U8, tANI_U8, tpSirMacRadioMeasureReport, tSirMacAddr, tpPESession);
 #endif
 
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
 void limProcessIappFrame(tpAniSirGlobal, tANI_U8 *,tpPESession);
 #endif
 
@@ -726,6 +724,8 @@ void limInitTdlsData(tpAniSirGlobal, tpPESession);
 tSirRetStatus limProcessSmeTdlsMgmtSendReq(tpAniSirGlobal pMac, 
                                                            tANI_U32 *pMsgBuf);
 tSirRetStatus limProcessSmeTdlsAddStaReq(tpAniSirGlobal pMac, 
+                                                           tANI_U32 *pMsgBuf);
+tSirRetStatus limProcesSmeTdlsLinkEstablishReq(tpAniSirGlobal pMac,
                                                            tANI_U32 *pMsgBuf);
 tSirRetStatus limProcessSmeTdlsDelStaReq(tpAniSirGlobal pMac, 
                                                            tANI_U32 *pMsgBuf);
@@ -824,6 +824,8 @@ void limSendHalEndScanReq( tpAniSirGlobal, tANI_U8, tLimLimHalScanState);
 void limSendHalFinishScanReq( tpAniSirGlobal, tLimLimHalScanState);
 
 void limContinuePostChannelScan(tpAniSirGlobal pMac);
+void limCovertChannelScanType(tpAniSirGlobal pMac,tANI_U8 channelNum, tANI_BOOLEAN passiveToActive);
+void limSetDFSChannelList(tpAniSirGlobal pMac,tANI_U8 channelNum, tSirDFSChannelList *dfsChannelList);
 void limContinueChannelLearn( tpAniSirGlobal );
 //WLAN_SUSPEND_LINK Related
 tANI_U8 limIsLinkSuspended(tpAniSirGlobal pMac);
@@ -859,6 +861,7 @@ void limProcessLearnIntervalTimeout(tpAniSirGlobal pMac);
 tSirRetStatus limSendSaQueryResponseFrame( tpAniSirGlobal pMac, 
                    tANI_U8 *transId, tSirMacAddr peer,tpPESession psessionEntry);
 #endif
+
 // Inline functions
 
 /**
@@ -1054,6 +1057,7 @@ void limSendSmeMgmtFrameInd(
                     tANI_S8 rxRssi);
 void limProcessRemainOnChnTimeout(tpAniSirGlobal pMac);
 void limProcessInsertSingleShotNOATimeout(tpAniSirGlobal pMac);
+void limConvertActiveChannelToPassiveChannel(tpAniSirGlobal pMac);
 void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 void limAbortRemainOnChan(tpAniSirGlobal pMac, tANI_U8 sessionId);
 tSirRetStatus __limProcessSmeNoAUpdate(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf);
@@ -1090,5 +1094,8 @@ typedef struct sSetLinkCbackParams
 #endif
 
 void limProcessRxScanEvent(tpAniSirGlobal mac, void *buf);
+
+int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg);
+void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
 #endif /* __LIM_TYPES_H */
 

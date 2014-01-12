@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _HTT_TYPES__H_
 #define _HTT_TYPES__H_
 

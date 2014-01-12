@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WLANSAP_H
 #define WLAN_QCT_WLANSAP_H
 
@@ -38,9 +37,6 @@ DESCRIPTION
   This file contains the external API exposed by the wlan SAP PAL layer 
   module.
   
-      
-  Copyright (c) 2010 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -97,8 +93,7 @@ when           who                what, where, why
   ------------------------------------------------------------------------*/
 
 #define       MAX_SSID_LEN                 32
-#define       MAX_MAC_ADDRESS_ACCEPTED     16
-#define       MAX_MAC_ADDRESS_DENIED       MAX_MAC_ADDRESS_ACCEPTED
+#define       MAX_ACL_MAC_ADDRESS          16
 #define       AUTO_CHANNEL_SELECT          0
 #define       MAX_ASSOC_IND_IE_LEN         255
 
@@ -318,6 +313,11 @@ typedef struct sap_AssocMacAddr_s {
     v_MACADDR_t staMac;     /*MAC address of Station that is associated*/
     v_U8_t      assocId;        /*Association ID for the station that is associated*/
     v_U8_t      staId;            /*Station Id that is allocated to the station*/
+    v_U8_t      ShortGI40Mhz;
+    v_U8_t      ShortGI20Mhz;
+    v_U8_t      Support40Mhz;
+    v_U32_t     requestedMCRate;
+    tSirSupportedRates supportedRates;
 } tSap_AssocMacAddr, *tpSap_AssocMacAddr;
 
 /*struct corresponding to SAP_ASSOC_STA_CALLBACK_EVENT */
@@ -405,11 +405,11 @@ typedef struct sap_Config {
     tSap_SSIDInfo_t SSIDinfo;
     eSapPhyMode     SapHw_mode; /* Wireless Mode */
     eSapMacAddrACL  SapMacaddr_acl;
-    v_MACADDR_t     accept_mac[MAX_MAC_ADDRESS_ACCEPTED]; /* MAC filtering */
+    v_MACADDR_t     accept_mac[MAX_ACL_MAC_ADDRESS]; /* MAC filtering */
     v_BOOL_t        ieee80211d;      /*Specify if 11D is enabled or disabled*/
     v_BOOL_t        protEnabled;     /*Specify if protection is enabled or disabled*/
     v_BOOL_t        obssProtEnabled; /*Specify if OBSS protection is enabled or disabled*/
-    v_MACADDR_t     deny_mac[MAX_MAC_ADDRESS_DENIED]; /* MAC filtering */
+    v_MACADDR_t     deny_mac[MAX_ACL_MAC_ADDRESS]; /* MAC filtering */
     v_MACADDR_t     self_macaddr; //self macaddress or BSSID
    
     v_U8_t          channel;         /* Operation channel */
@@ -923,6 +923,7 @@ WLANSAP_SetMacACL
     v_PVOID_t  pvosGCtx,
     tsap_Config_t *pConfig
 );
+
 /*==========================================================================
   FUNCTION    WLANSAP_Stop
 

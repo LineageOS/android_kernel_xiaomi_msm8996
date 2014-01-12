@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 //==================================================================
 //
 //  File:         polFile.h
@@ -33,8 +32,6 @@
 //
 //  Author:       Larry Cawley
 // 
-//  Copyright 2002, Woodside Networks, Inc.  All rights reserved.
-//
 //  Change History:
 //  04/09/2002 - LAC - Initial version.
 //

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WLANBAP_API_TIMER_H
 #define WLAN_QCT_WLANBAP_API_TIMER_H
 
@@ -38,9 +37,6 @@ DESCRIPTION
   This file contains the timer APIs used by the wlan BT-AMP PAL layer 
   module.
   
-      
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 

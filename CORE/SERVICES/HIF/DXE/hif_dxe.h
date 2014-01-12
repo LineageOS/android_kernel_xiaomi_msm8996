@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file hif_dxe.h
  * @brief Provide functions for DXE HIF module for RIVA FW.

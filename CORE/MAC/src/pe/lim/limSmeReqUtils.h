@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limSmeReqUtils.h contains the utility definitions
  * LIM uses while processing SME request messsages.
  * Author:        Chandra Modumudi

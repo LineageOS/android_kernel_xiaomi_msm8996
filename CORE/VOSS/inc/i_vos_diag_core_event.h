@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __I_VOS_DIAG_CORE_EVENT_H )
 #define __I_VOS_DIAG_CORE_EVENT_H
 
@@ -33,10 +32,6 @@
   \file  i_vos_diag_core_event.h
   
   \brief Android specific definitions for vOSS DIAG events
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

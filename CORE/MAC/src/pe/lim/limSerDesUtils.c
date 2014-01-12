@@ -24,10 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
- 
 /*
- * Airgo Networks, Inc proprietary. All rights reserved. 
  * 
  * This file limSerDesUtils.cc contains the serializer/deserializer
  * utility functions LIM uses while communicating with upper layer
@@ -120,7 +117,7 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
     *lenUsed = len + sizeof(tANI_U16);
 
     // Extract bssId
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->bssId,
+    vos_mem_copy( (tANI_U8 *) pBssDescription->bssId,
                   pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
@@ -128,7 +125,7 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
         return eSIR_FAILURE;
 
     // Extract timer
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) (&pBssDescription->scanSysTimeMsec),
+    vos_mem_copy( (tANI_U8 *) (&pBssDescription->scanSysTimeMsec),
                   pBuf, sizeof(v_TIME_t));
     pBuf += sizeof(v_TIME_t);
     len  -= sizeof(v_TIME_t);
@@ -136,7 +133,7 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
         return eSIR_FAILURE;
 
     // Extract timeStamp
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->timeStamp,
+    vos_mem_copy( (tANI_U8 *) pBssDescription->timeStamp,
                   pBuf, sizeof(tSirMacTimeStamp));
     pBuf += sizeof(tSirMacTimeStamp);
     len  -= sizeof(tSirMacTimeStamp);
@@ -266,7 +263,7 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
          * if WscIeLen is not set properly, memory overwrite happen
          * Ended up with memory corruption and crash
          * Copy with Fixed size */
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->WscIeProbeRsp,
+        vos_mem_copy( (tANI_U8 *) pBssDescription->WscIeProbeRsp,
                        pBuf,
                        WSCIE_PROBE_RSP_LEN);
 
@@ -285,7 +282,7 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
 
     if (len > 0)
     {
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->ieFields,
+        vos_mem_copy( (tANI_U8 *) pBssDescription->ieFields,
                        pBuf,
                        len);
     }
@@ -331,7 +328,7 @@ limCopyBssDescription(tpAniSirGlobal pMac, tANI_U8 *pBuf, tSirBssDescription *pB
     pBuf       += sizeof(tANI_U16);
     len        += sizeof(tANI_U16);
 
-    palCopyMemory( pMac->hHdd, pBuf,
+    vos_mem_copy(  pBuf,
                   (tANI_U8 *) pBssDescription->bssId,
                   sizeof(tSirMacAddr));
     pBuf       += sizeof(tSirMacAddr);
@@ -342,7 +339,7 @@ limCopyBssDescription(tpAniSirGlobal pMac, tANI_U8 *pBuf, tSirBssDescription *pB
        pBssDescription->channelId, pBssDescription->aniIndicator);
     limPrintMacAddr(pMac, pBssDescription->bssId, LOG3);)
 
-    palCopyMemory( pMac->hHdd, pBuf,
+    vos_mem_copy( pBuf,
                   (tANI_U8 *) (&pBssDescription->scanSysTimeMsec),
                   sizeof(v_TIME_t));
     pBuf       += sizeof(v_TIME_t);
@@ -380,7 +377,7 @@ limCopyBssDescription(tpAniSirGlobal pMac, tANI_U8 *pBuf, tSirBssDescription *pB
     *pBuf++ = pBssDescription->channelId;
     len++;
 
-    palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *) &(pBssDescription->ieFields),
+    vos_mem_copy( pBuf, (tANI_U8 *) &(pBssDescription->ieFields),
                   limGetIElenFromBssDescription(pBssDescription));
 
     return (len + sizeof(tANI_U16));
@@ -424,7 +421,7 @@ limGetKeysInfo(tpAniSirGlobal pMac, tpSirKeys pKeyInfo, tANI_U8 *pBuf)
     len  += sizeof(tAniKeyDirection);
     pBuf += sizeof(tAniKeyDirection);
 
-    palCopyMemory( pMac->hHdd, pKeyInfo->keyRsc, pBuf, WLAN_MAX_KEY_RSC_LEN);
+    vos_mem_copy( pKeyInfo->keyRsc, pBuf, WLAN_MAX_KEY_RSC_LEN);
     pBuf += WLAN_MAX_KEY_RSC_LEN;
     len  += WLAN_MAX_KEY_RSC_LEN;
 
@@ -434,7 +431,7 @@ limGetKeysInfo(tpAniSirGlobal pMac, tpSirKeys pKeyInfo, tANI_U8 *pBuf)
     pKeyInfo->keyLength    = limGetU16(pBuf);
     pBuf += sizeof(tANI_U16);
     len  += sizeof(tANI_U16);
-    palCopyMemory( pMac->hHdd, pKeyInfo->key, pBuf, pKeyInfo->keyLength);
+    vos_mem_copy( pKeyInfo->key, pBuf, pKeyInfo->keyLength);
     pBuf += pKeyInfo->keyLength;
     len  += pKeyInfo->keyLength;
 
@@ -515,14 +512,14 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
         return eSIR_FAILURE;
 
     // Extract bssId
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pStartBssReq->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( (tANI_U8 *) pStartBssReq->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
     // Extract selfMacAddr
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pStartBssReq->selfMacAddr, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( (tANI_U8 *) pStartBssReq->selfMacAddr, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -566,7 +563,7 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
         return eSIR_FAILURE;
     }
 
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pStartBssReq->ssId.ssId,
+    vos_mem_copy( (tANI_U8 *) pStartBssReq->ssId.ssId,
                   pBuf,
                   pStartBssReq->ssId.length);
     pBuf += pStartBssReq->ssId.length;
@@ -654,7 +651,6 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
-
     // Extract bssPersona
     pStartBssReq->bssPersona = *pBuf++;
     len--;
@@ -682,7 +678,7 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
         return eSIR_FAILURE;
     }
 
-    palCopyMemory( pMac->hHdd, pStartBssReq->rsnIE.rsnIEdata,
+    vos_mem_copy( pStartBssReq->rsnIE.rsnIEdata,
                   pBuf, pStartBssReq->rsnIE.length);
 
     len  -= (sizeof(tANI_U16) + pStartBssReq->rsnIE.length);
@@ -713,7 +709,7 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     if (len < pStartBssReq->operationalRateSet.numRates)
         return eSIR_FAILURE;
 
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pStartBssReq->operationalRateSet.rate,
+    vos_mem_copy( (tANI_U8 *) pStartBssReq->operationalRateSet.rate,
                   pBuf,
                   pStartBssReq->operationalRateSet.numRates);
     pBuf += pStartBssReq->operationalRateSet.numRates;
@@ -725,7 +721,7 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     if ((pStartBssReq->nwType == eSIR_11G_NW_TYPE) ||
         (pStartBssReq->nwType == eSIR_11N_NW_TYPE ))
     {
-        palCopyMemory( pMac->hHdd, pStartBssReq->extendedRateSet.rate,
+        vos_mem_copy( pStartBssReq->extendedRateSet.rate,
                        pBuf, pStartBssReq->extendedRateSet.numRates);
         pBuf += pStartBssReq->extendedRateSet.numRates;
         len  -= pStartBssReq->extendedRateSet.numRates;
@@ -737,8 +733,8 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
        pStartBssReq->extendedRateSet.numRates = 0;
     }
 
-    palCopyMemory(pMac->hHdd, &(pStartBssReq->htConfig), pBuf,
-                  sizeof(tSirHTConfig));
+    vos_mem_copy(&(pStartBssReq->htConfig), pBuf,
+                 sizeof(tSirHTConfig));
     len -= sizeof(tSirHTConfig);
     pBuf += sizeof(tSirHTConfig);
     if (len)
@@ -817,7 +813,7 @@ limStopBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStopBssReq pStopBssReq, tANI_U8
     len -= sizeof(tSirResultCodes);
 
     // Extract bssId
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pStopBssReq->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( (tANI_U8 *) pStopBssReq->bssId, pBuf, sizeof(tSirMacAddr));
     len  -= sizeof(tSirMacAddr);
   
     if (len)
@@ -910,14 +906,14 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     // Extract ssId
     pJoinReq->ssId.length = *pBuf++;
     len--;
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->ssId.ssId, pBuf, pJoinReq->ssId.length);
+    vos_mem_copy( (tANI_U8 *) pJoinReq->ssId.ssId, pBuf, pJoinReq->ssId.length);
     pBuf += pJoinReq->ssId.length;
     len -= pJoinReq->ssId.length;
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
     // Extract selfMacAddr
-    palCopyMemory( pMac->hHdd, pJoinReq->selfMacAddr, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( pJoinReq->selfMacAddr, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -960,7 +956,8 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     len--;
     if (pJoinReq->operationalRateSet.numRates)
     {
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->operationalRateSet.rate, pBuf, pJoinReq->operationalRateSet.numRates);
+        vos_mem_copy( (tANI_U8 *) pJoinReq->operationalRateSet.rate, pBuf,
+                       pJoinReq->operationalRateSet.numRates);
         pBuf += pJoinReq->operationalRateSet.numRates;
         len -= pJoinReq->operationalRateSet.numRates;
         if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -972,7 +969,7 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     len--;
     if (pJoinReq->extendedRateSet.numRates)
     {
-        palCopyMemory( pMac->hHdd, pJoinReq->extendedRateSet.rate, pBuf, pJoinReq->extendedRateSet.numRates);
+        vos_mem_copy( pJoinReq->extendedRateSet.rate, pBuf, pJoinReq->extendedRateSet.numRates);
         pBuf += pJoinReq->extendedRateSet.numRates;
         len  -= pJoinReq->extendedRateSet.numRates;
         if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -995,7 +992,7 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
                    pJoinReq->rsnIE.length);
             return eSIR_FAILURE;
         }
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->rsnIE.rsnIEdata,
+        vos_mem_copy( (tANI_U8 *) pJoinReq->rsnIE.rsnIEdata,
                       pBuf, pJoinReq->rsnIE.length);
         pBuf += pJoinReq->rsnIE.length;
         len  -= pJoinReq->rsnIE.length; // skip RSN IE
@@ -1019,7 +1016,7 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
                    pJoinReq->cckmIE.length, 2 + *(pBuf + 1));
             return eSIR_FAILURE;
         }
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->cckmIE.cckmIEdata,
+        vos_mem_copy((tANI_U8 *) pJoinReq->cckmIE.cckmIEdata,
                       pBuf, pJoinReq->cckmIE.length);
         pBuf += pJoinReq->cckmIE.length;
         len  -= pJoinReq->cckmIE.length; // skip CCKM IE
@@ -1044,7 +1041,7 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
             return eSIR_FAILURE;
         }
         // Check for P2P IE length (that includes length of type & length)
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->addIEScan.addIEdata,
+        vos_mem_copy( (tANI_U8 *) pJoinReq->addIEScan.addIEdata,
                       pBuf, pJoinReq->addIEScan.length);
         pBuf += pJoinReq->addIEScan.length;
         len  -= pJoinReq->addIEScan.length; // skip add IE
@@ -1068,7 +1065,7 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
             return eSIR_FAILURE;
         }
         // Check for P2P IE length (that includes length of type & length)
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->addIEAssoc.addIEdata,
+        vos_mem_copy( (tANI_U8 *) pJoinReq->addIEAssoc.addIEdata,
                       pBuf, pJoinReq->addIEAssoc.length);
         pBuf += pJoinReq->addIEAssoc.length;
         len  -= pJoinReq->addIEAssoc.length; // skip add IE
@@ -1106,6 +1103,13 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
 #endif
 
 #ifdef FEATURE_WLAN_CCX
+    //CCX version IE
+    pJoinReq->isCCXFeatureIniEnabled = (tAniBool)limGetU32(pBuf);
+    pBuf += sizeof(tAniBool);
+    len -= sizeof(tAniBool);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+       return eSIR_FAILURE;
+
     //isCCXconnection;
     pJoinReq->isCCXconnection = (tAniBool)limGetU32(pBuf);
     pBuf += sizeof(tAniBool);
@@ -1116,7 +1120,8 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     // TSPEC information
     pJoinReq->ccxTspecInfo.numTspecs = *pBuf++;
     len -= sizeof(tANI_U8);
-    palCopyMemory(pMac->hHdd, (void*)&pJoinReq->ccxTspecInfo.tspec[0], pBuf, (sizeof(tTspecInfo)* pJoinReq->ccxTspecInfo.numTspecs));
+    vos_mem_copy((void*)&pJoinReq->ccxTspecInfo.tspec[0], pBuf,
+                 (sizeof(tTspecInfo)* pJoinReq->ccxTspecInfo.numTspecs));
     pBuf += sizeof(tTspecInfo)*SIR_CCX_MAX_TSPEC_IES;
     len  -= sizeof(tTspecInfo)*SIR_CCX_MAX_TSPEC_IES;
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -1148,7 +1153,7 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
         return eSIR_FAILURE;
 
     //HT Config
-    palCopyMemory(pMac->hHdd, &(pJoinReq->htConfig), pBuf, sizeof(tSirHTConfig));
+    vos_mem_copy(&(pJoinReq->htConfig), pBuf, sizeof(tSirHTConfig));
     len -= sizeof(tSirHTConfig);
     pBuf += sizeof(tSirHTConfig);
 
@@ -1200,6 +1205,11 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
+    pJoinReq->isAmsduSupportInAMPDU= *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+
     // Extract Titan CB Neighbor BSS info
     pJoinReq->cbNeighbors.cbBssFoundPri = *pBuf;
     pBuf++;
@@ -1221,7 +1231,7 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
 
     pJoinReq->supportedChannels.numChnl = *pBuf++;
     len--;
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->supportedChannels.channelList,
+    vos_mem_copy( (tANI_U8 *) pJoinReq->supportedChannels.channelList,
                       pBuf, pJoinReq->supportedChannels.numChnl);
     pBuf += pJoinReq->supportedChannels.numChnl;
     len-= pJoinReq->supportedChannels.numChnl;
@@ -1288,7 +1298,7 @@ limAssocIndSerDes(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd, tANI_U8 *pBuf
     pBuf   += sizeof(tANI_U8);
 
      // Fill in peerMacAddr
-    palCopyMemory( pMac->hHdd, pBuf, pAssocInd->peerMacAddr, sizeof(tSirMacAddr));
+    vos_mem_copy( pBuf, pAssocInd->peerMacAddr, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     mLen += sizeof(tSirMacAddr);
 
@@ -1298,7 +1308,7 @@ limAssocIndSerDes(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd, tANI_U8 *pBuf
     mLen += sizeof(tANI_U16);
 
    // Fill in bssId
-    palCopyMemory( pMac->hHdd, pBuf, psessionEntry->bssId, sizeof(tSirMacAddr));
+    vos_mem_copy( pBuf, psessionEntry->bssId, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     mLen += sizeof(tSirMacAddr);
 
@@ -1313,7 +1323,7 @@ limAssocIndSerDes(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd, tANI_U8 *pBuf
     mLen += sizeof(tANI_U32);
 
     // Fill in ssId
-    palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *) &(pAssocInd->ssId), pAssocInd->ssId.length + 1);
+    vos_mem_copy( pBuf, (tANI_U8 *) &(pAssocInd->ssId), pAssocInd->ssId.length + 1);
     pBuf += (1 + pAssocInd->ssId.length);
     mLen += (1 + pAssocInd->ssId.length);
 
@@ -1321,7 +1331,7 @@ limAssocIndSerDes(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd, tANI_U8 *pBuf
     limCopyU16(pBuf, pAssocInd->rsnIE.length);
     pBuf += sizeof(tANI_U16);
     mLen += sizeof(tANI_U16);
-    palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *) &(pAssocInd->rsnIE.rsnIEdata),
+    vos_mem_copy( pBuf, (tANI_U8 *) &(pAssocInd->rsnIE.rsnIEdata),
                   pAssocInd->rsnIE.length);
     pBuf += pAssocInd->rsnIE.length;
     mLen += pAssocInd->rsnIE.length;
@@ -1343,7 +1353,7 @@ limAssocIndSerDes(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd, tANI_U8 *pBuf
         pBuf++;
         mLen++;
 
-      palCopyMemory( pMac->hHdd, pBuf,
+        vos_mem_copy( pBuf,
                      (tANI_U8 *) &(pAssocInd->supportedChannels.channelList),
                      pAssocInd->supportedChannels.numChnl);
 
@@ -1419,18 +1429,18 @@ limAssocCnfSerDes(tpAniSirGlobal pMac, tpSirSmeAssocCnf pAssocCnf, tANI_U8 *pBuf
     pBuf += sizeof(tSirResultCodes);
 
     // bssId
-    palCopyMemory( pMac->hHdd, pAssocCnf->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( pAssocCnf->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
 
     // peerMacAddr
-    palCopyMemory( pMac->hHdd, pAssocCnf->peerMacAddr, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( pAssocCnf->peerMacAddr, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
 
 
     pAssocCnf->aid = limGetU16(pBuf);
     pBuf += sizeof(tANI_U16);
     // alternateBssId
-    palCopyMemory( pMac->hHdd, pAssocCnf->alternateBssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( pAssocCnf->alternateBssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
 
     // alternateChannelId
@@ -1489,10 +1499,10 @@ limDisassocCnfSerDes(tpAniSirGlobal pMac, tpSirSmeDisassocCnf pDisassocCnf, tANI
     pDisassocCnf->statusCode = (tSirResultCodes) limGetU32(pBuf);
     pBuf += sizeof(tSirResultCodes);
 
-    palCopyMemory( pMac->hHdd, pDisassocCnf->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( pDisassocCnf->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
 
-    palCopyMemory( pMac->hHdd, pDisassocCnf->peerMacAddr, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( pDisassocCnf->peerMacAddr, pBuf, sizeof(tSirMacAddr));
 
 
     return eSIR_SUCCESS;
@@ -1532,12 +1542,12 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
     mLen += sizeof(tANI_U8);
 
     // Fill in peerMacAddr
-    palCopyMemory( pMac->hHdd, pBuf, pReassocInd->peerMacAddr, sizeof(tSirMacAddr));
+    vos_mem_copy( pBuf, pReassocInd->peerMacAddr, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     mLen += sizeof(tSirMacAddr);
 
     // Fill in oldMacAddr
-    palCopyMemory( pMac->hHdd, pBuf, pReassocInd->currentApAddr, sizeof(tSirMacAddr));
+    vos_mem_copy( pBuf, pReassocInd->currentApAddr, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     mLen += sizeof(tSirMacAddr);
 
@@ -1547,7 +1557,7 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
     mLen += sizeof(tANI_U16);
  
     // Fill in bssId
-    palCopyMemory( pMac->hHdd, pBuf, psessionEntry->bssId, sizeof(tSirMacAddr));
+    vos_mem_copy( pBuf, psessionEntry->bssId, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     mLen += sizeof(tSirMacAddr);
 
@@ -1562,7 +1572,7 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
     mLen += sizeof(tAniAuthType);
 
     // Fill in ssId
-    palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *) &(pReassocInd->ssId),
+    vos_mem_copy( pBuf, (tANI_U8 *) &(pReassocInd->ssId),
                   pReassocInd->ssId.length + 1);
     pBuf += 1 + pReassocInd->ssId.length;
     mLen += pReassocInd->ssId.length + 1;
@@ -1571,7 +1581,7 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
     limCopyU16(pBuf, pReassocInd->rsnIE.length);
     pBuf += sizeof(tANI_U16);
     mLen += sizeof(tANI_U16);
-    palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *) &(pReassocInd->rsnIE.rsnIEdata),
+    vos_mem_copy( pBuf, (tANI_U8 *) &(pReassocInd->rsnIE.rsnIEdata),
                   pReassocInd->rsnIE.length);
     pBuf += pReassocInd->rsnIE.length;
     mLen += pReassocInd->rsnIE.length;
@@ -1580,7 +1590,7 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
     limCopyU16(pBuf, pReassocInd->addIE.length);
     pBuf += sizeof(tANI_U16);
     mLen += sizeof(tANI_U16);
-    palCopyMemory( pMac->hHdd, pBuf, (tANI_U8*) &(pReassocInd->addIE.addIEdata),
+    vos_mem_copy( pBuf, (tANI_U8*) &(pReassocInd->addIE.addIEdata),
                    pReassocInd->addIE.length);
     pBuf += pReassocInd->addIE.length;
     mLen += pReassocInd->addIE.length;
@@ -1602,7 +1612,7 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
         pBuf++;
         mLen++;
 
-        palCopyMemory( pMac->hHdd, pBuf,
+        vos_mem_copy( pBuf,
                        (tANI_U8 *) &(pReassocInd->supportedChannels.channelList),
                        pReassocInd->supportedChannels.numChnl);
 
@@ -1660,11 +1670,11 @@ limAuthIndSerDes(tpAniSirGlobal pMac, tpLimMlmAuthInd pAuthInd, tANI_U8 *pBuf)
     mLen += sizeof(tANI_U8);
 
     // BTAMP TODO:  Fill in bssId
-    palZeroMemory(pMac->hHdd, pBuf, sizeof(tSirMacAddr));
+    vos_mem_set(pBuf, sizeof(tSirMacAddr), 0);
     pBuf += sizeof(tSirMacAddr);
     mLen += sizeof(tSirMacAddr);
 
-    palCopyMemory( pMac->hHdd, pBuf, pAuthInd->peerMacAddr, sizeof(tSirMacAddr));
+    vos_mem_copy( pBuf, pAuthInd->peerMacAddr, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     mLen += sizeof(tSirMacAddr);
 
@@ -1748,13 +1758,13 @@ limSetContextReqSerDes(tpAniSirGlobal pMac, tpSirSmeSetContextReq pSetContextReq
     len  -= sizeof(tANI_U16);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pSetContextReq->peerMacAddr,
+    vos_mem_copy( (tANI_U8 *) pSetContextReq->peerMacAddr,
                    pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
-    palCopyMemory( pMac->hHdd, pSetContextReq->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( pSetContextReq->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -1869,7 +1879,7 @@ limRemoveKeyReqSerDes(tpAniSirGlobal pMac, tpSirSmeRemoveKeyReq pRemoveKeyReq, t
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pRemoveKeyReq->peerMacAddr,
+    vos_mem_copy( (tANI_U8 *) pRemoveKeyReq->peerMacAddr,
                   pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
@@ -1903,7 +1913,7 @@ limRemoveKeyReqSerDes(tpAniSirGlobal pMac, tpSirSmeRemoveKeyReq pRemoveKeyReq, t
         return eSIR_FAILURE;
 
     // Extract bssId
-    palCopyMemory( pMac->hHdd, pRemoveKeyReq->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( pRemoveKeyReq->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -1994,14 +2004,14 @@ limDisassocReqSerDes(tpAniSirGlobal pMac, tSirSmeDisassocReq *pDisassocReq, tANI
         return eSIR_FAILURE;
 
     // Extract bssId
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pDisassocReq->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( (tANI_U8 *) pDisassocReq->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
     // Extract peerMacAddr
-    palCopyMemory( pMac->hHdd, pDisassocReq->peerMacAddr, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( pDisassocReq->peerMacAddr, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -2090,14 +2100,14 @@ limDeauthReqSerDes(tpAniSirGlobal pMac, tSirSmeDeauthReq *pDeauthReq, tANI_U8 *p
         return eSIR_FAILURE;
 
     // Extract bssId
-    palCopyMemory( pMac->hHdd, pDeauthReq->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( pDeauthReq->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
     // Extract peerMacAddr
-    palCopyMemory( pMac->hHdd, pDeauthReq->peerMacAddr, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( pDeauthReq->peerMacAddr, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -2298,7 +2308,7 @@ limIsSmeGetAssocSTAsReqValid(tpAniSirGlobal pMac, tpSirSmeGetAssocSTAsReq pGetAs
         return eSIR_FAILURE;
 
     // Extract bssId
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pGetAssocSTAsReq->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( (tANI_U8 *) pGetAssocSTAsReq->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -2403,7 +2413,7 @@ limTkipCntrMeasReqSerDes(tpAniSirGlobal pMac, tpSirSmeTkipCntrMeasReq  pTkipCntr
         return eSIR_FAILURE;
 
     // Extract bssId
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pTkipCntrMeasReq->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( (tANI_U8 *) pTkipCntrMeasReq->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -2479,12 +2489,12 @@ limIsSmeGetWPSPBCSessionsReqValid(tpAniSirGlobal pMac, tSirSmeGetWPSPBCSessionsR
         return eSIR_FAILURE;
 
     // Extract bssId
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pGetWPSPBCSessionsReq->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( (tANI_U8 *) pGetWPSPBCSessionsReq->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
  
     // Extract MAC address of Station to be removed
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pGetWPSPBCSessionsReq->pRemoveMac, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( (tANI_U8 *) pGetWPSPBCSessionsReq->pRemoveMac, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
     
@@ -2591,7 +2601,7 @@ limUpdateAPWPSIEsReqSerDes(tpAniSirGlobal pMac, tpSirUpdateAPWPSIEsReq pUpdateAP
         return eSIR_FAILURE;
 
     // Extract bssId
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pUpdateAPWPSIEsReq->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( (tANI_U8 *) pUpdateAPWPSIEsReq->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -2604,7 +2614,7 @@ limUpdateAPWPSIEsReqSerDes(tpAniSirGlobal pMac, tpSirUpdateAPWPSIEsReq pUpdateAP
         return eSIR_FAILURE;
 
     // Extract APWPSIEs
-    palCopyMemory( pMac->hHdd, (tSirAPWPSIEs *) &pUpdateAPWPSIEsReq->APWPSIEs, pBuf, sizeof(tSirAPWPSIEs));
+    vos_mem_copy( (tSirAPWPSIEs *) &pUpdateAPWPSIEsReq->APWPSIEs, pBuf, sizeof(tSirAPWPSIEs));
     pBuf += sizeof(tSirAPWPSIEs);
     len  -= sizeof(tSirAPWPSIEs);
 
@@ -2675,7 +2685,7 @@ limUpdateAPWPARSNIEsReqSerDes(tpAniSirGlobal pMac, tpSirUpdateAPWPARSNIEsReq pUp
         return eSIR_FAILURE;
 
     // Extract bssId
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pUpdateAPWPARSNIEsReq->bssId, pBuf, sizeof(tSirMacAddr));
+    vos_mem_copy( (tANI_U8 *) pUpdateAPWPARSNIEsReq->bssId, pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
@@ -2688,7 +2698,7 @@ limUpdateAPWPARSNIEsReqSerDes(tpAniSirGlobal pMac, tpSirUpdateAPWPARSNIEsReq pUp
         return eSIR_FAILURE;
 
     // Extract APWPARSNIEs
-    palCopyMemory( pMac->hHdd, (tSirRSNie *) &pUpdateAPWPARSNIEsReq->APWPARSNIEs, pBuf, sizeof(tSirRSNie));
+    vos_mem_copy( (tSirRSNie *) &pUpdateAPWPARSNIEsReq->APWPARSNIEs, pBuf, sizeof(tSirRSNie));
     pBuf += sizeof(tSirRSNie);
     len  -= sizeof(tSirRSNie);
 

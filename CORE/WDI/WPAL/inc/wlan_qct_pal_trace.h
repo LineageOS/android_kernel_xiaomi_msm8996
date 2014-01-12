@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_PAL_TRACE_H )
 #define __WLAN_QCT_PAL_TRACE_H
 
@@ -35,10 +34,6 @@
   \brief define general APIs PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
                
    Definitions for platform independent
-  
-   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -134,5 +129,5 @@ wpt_boolean wpalTraceCheckLevel( wpt_moduleid module, wpt_tracelevel level );
   --------------------------------------------------------------------------*/
 void wpalTraceDisplay(void);
 
-
+#define WPAL_BUG VOS_BUG
 #endif // __WLAN_QCT_PAL_TRACE_H

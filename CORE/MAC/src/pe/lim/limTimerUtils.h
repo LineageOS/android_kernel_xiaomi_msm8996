@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limTimerUtils.h contains the utility definitions
  * LIM uses for timer handling.
  * Author:        Chandra Modumudi
@@ -83,6 +81,7 @@ enum
     eLIM_DEAUTH_ACK_TIMER,
     eLIM_PERIODIC_JOIN_PROBE_REQ_TIMER,
     eLIM_INSERT_SINGLESHOT_NOA_TIMER,
+    eLIM_CONVERT_ACTIVE_CHANNEL_TO_PASSIVE
 };
 
 #define LIM_DISASSOC_DEAUTH_ACK_TIMEOUT         500
@@ -127,11 +126,12 @@ void limCBScanDurationTimerHandler(void *, tANI_U32);
  * @note   staId for eLIM_AUTH_RSP_TIMER is auth Node Index.
  *
  * @param  pMac    - Pointer to Global MAC structure
+ * @param  psessionEntry - Pointer to PE session entry
  *
  * @return TX_SUCCESS - timer is activated
  *         errors - fail to start the timer
  */
-v_UINT_t limActivateHearBeatTimer(tpAniSirGlobal pMac);
+v_UINT_t limActivateHearBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry);
 
 #if 0
 void limWPSOverlapTimerHandler(void *pMacGlobal, tANI_U32 param);

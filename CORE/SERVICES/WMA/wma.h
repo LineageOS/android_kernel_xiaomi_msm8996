@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**========================================================================
 
   \file     wma.h
@@ -160,6 +159,43 @@ typedef enum {
 	WMA_STATE_CLOSE
 }t_wma_state;
 
+#ifdef FEATURE_WLAN_TDLS
+typedef enum {
+	WMA_TDLS_SUPPORT_NOT_ENABLED = 0,
+	WMA_TDLS_SUPPORT_DISABLED, /* suppress implicit trigger and not respond to the peer */
+	WMA_TDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY, /* suppress implicit trigger, but respond to the peer */
+	WMA_TDLS_SUPPORT_ENABLED, /* implicit trigger */
+}t_wma_tdls_mode;
+
+/** TDLS EVENTS */
+enum wma_tdls_peer_notification {
+	/** tdls discovery recommended for peer (always based
+	 * on tx bytes per second > tx_discover threshold
+	 * NB: notification will be re-sent after
+	 *     discovery_request_interval_ms */
+	WMA_TDLS_SHOULD_DISCOVER,
+	/** tdls link tear down recommended for peer
+	 * due to tx bytes per second below tx_teardown_threshold
+	 * NB: this notification sent once */
+	WMA_TDLS_SHOULD_TEARDOWN,
+	/** tx peer TDLS link tear down complete */
+	WMA_TDLS_PEER_DISCONNECTED,
+};
+
+enum wma_tdls_peer_reason {
+	/** tdls teardown recommended due to low transmits */
+	WMA_TDLS_TEARDOWN_REASON_TX,
+	/** tdls tear down recommended due to packet rates < AP rates */
+	WMA_TDLS_TEARDOWN_REASON_RATE,
+	/** tdls link tear down recommended due to poor RSSI */
+	WMA_TDLS_TEARDOWN_REASON_RSSI,
+	/** tdls link tear down recommended due to offchannel scan */
+	WMA_TDLS_TEARDOWN_REASON_SCAN,
+	/** tdls peer disconnected due to peer deletion */
+	WMA_TDLS_DISCONNECTED_REASON_PEER_DELETE,
+};
+#endif /* FEATURE_WLAN_TDLS */
+
 /*
  * memory chunck allocated by Host to be managed by FW
  * used only for low latency interfaces like pcie
@@ -262,7 +298,7 @@ typedef struct {
 #define WMA_NUM_BITS_IN_BYTE           8
 
 #define WMA_AP_WOW_DEFAULT_PTRN_MAX    4
-#define WMA_STA_WOW_DEFAULT_PTRN_MAX   2
+#define WMA_STA_WOW_DEFAULT_PTRN_MAX   4
 
 struct wma_wow_ptrn_cache {
 	u_int8_t vdev_id;
@@ -283,6 +319,7 @@ struct wma_wow {
 
 	v_BOOL_t magic_ptrn_enable;
 	v_BOOL_t wow_enable;
+	v_BOOL_t wow_enable_cmd_sent;
 	v_BOOL_t deauth_enable;
 	v_BOOL_t disassoc_enable;
 	v_BOOL_t bmiss_enable;
@@ -316,6 +353,7 @@ struct wma_txrx_node {
 	tANI_U8                 ht_capable;
 	v_BOOL_t vdev_up;
 	u_int64_t tsfadjust;
+	void     *addBssStaContext;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -421,6 +459,18 @@ typedef struct {
 	struct wma_tx_ack_work_ctx *ack_work_ctx;
 	u_int8_t powersave_mode;
 	v_BOOL_t ptrn_match_enable_all_vdev;
+	void* pGetRssiReq;
+        u_int32_t roam_offload_vdev_id;
+
+	/* Here ol_ini_info is used to store ini
+	 * status of arp offload, ns offload
+	 * and others. Currently 1st bit is used
+	 * for arp off load and 2nd bit for ns
+	 * offload currently, rest bits are unused
+	 */
+	u_int8_t ol_ini_info;
+        u_int8_t ibss_started;
+        tSetBssKeyParams ibsskey_info;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -905,6 +955,7 @@ extern v_BOOL_t sys_validateStaConfig(void *pImage, unsigned long cbFile,
 extern void vos_WDAComplete_cback(v_PVOID_t pVosContext);
 extern void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
 		u_int16_t regdmn5G, int8_t ctl2G, int8_t ctl5G);
+void wma_get_modeselect(tp_wma_handle wma, u_int32_t *modeSelect);
 
 #ifdef QCA_WIFI_ISOC
 VOS_STATUS wma_cfg_download_isoc(v_VOID_t *vos_context,
@@ -938,12 +989,6 @@ enum frame_index {
 VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
 		ol_txrx_vdev_handle tx_rx_vdev_handle, u_int8_t *mac,
 		u_int32_t vdev_type, bool add_del);
-#ifndef QCA_WIFI_ISOC
-int regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2);
-void regdmn_get_ctl_info(u_int32_t reg_dmn, u_int32_t modesAvail,
-		u_int32_t modeSelect);
-int32_t regdmn_get_regdmn_for_country(u_int8_t *alpha2);
-#endif
 
 #define WMA_FW_PHY_STATS	0x1
 #define WMA_FW_RX_REORDER_STATS 0x2
@@ -1043,6 +1088,9 @@ typedef struct wma_trigger_uapsd_params
 
 VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 			tp_wma_trigger_uapsd_params trigger_uapsd_params);
+
+/* added to get average snr for both data and beacon */
+VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq);
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 
@@ -1162,6 +1210,54 @@ enum powersave_mode {
 	PS_LEGACY_DEEPSLEEP = 3,
 	PS_QPOWER_DEEPSLEEP = 4
 };
+
+#define WMA_DEFAULT_MAX_PSPOLL_BEFORE_WAKE 1
+
+typedef enum {
+	/* set packet power save */
+	WMI_VDEV_PPS_PAID_MATCH = 0,
+	WMI_VDEV_PPS_GID_MATCH = 1,
+	WMI_VDEV_PPS_EARLY_TIM_CLEAR = 2,
+	WMI_VDEV_PPS_EARLY_DTIM_CLEAR = 3,
+	WMI_VDEV_PPS_EOF_PAD_DELIM = 4,
+	WMI_VDEV_PPS_MACADDR_MISMATCH = 5,
+	WMI_VDEV_PPS_DELIM_CRC_FAIL = 6,
+	WMI_VDEV_PPS_GID_NSTS_ZERO = 7,
+	WMI_VDEV_PPS_RSSI_CHECK = 8,
+	WMI_VDEV_VHT_SET_GID_MGMT = 9
+} packet_power_save;
+
 #define WMA_DEFAULT_QPOWER_MAX_PSPOLL_BEFORE_WAKE 1
 #define WMA_DEFAULT_QPOWER_TX_WAKE_THRESHOLD 2
+
+#define WMA_VHT_PPS_PAID_MATCH 1
+#define WMA_VHT_PPS_GID_MATCH 2
+#define WMA_VHT_PPS_DELIM_CRC_FAIL 3
+
+#ifdef FEATURE_WLAN_TDLS
+typedef struct wma_tdls_params
+{
+	tANI_U32    vdev_id;
+	tANI_U32    tdls_state;
+	tANI_U32    notification_interval_ms;
+	tANI_U32    tx_discovery_threshold;
+	tANI_U32    tx_teardown_threshold;
+	tANI_S32    rssi_teardown_threshold;
+	tANI_S32    rssi_delta;
+	tANI_U32    tdls_options;
+} t_wma_tdls_params;
+
+typedef struct {
+	/** unique id identifying the VDEV */
+	A_UINT32        vdev_id;
+	/** peer MAC address */
+	wmi_mac_addr    peer_macaddr;
+	/** TDLS peer status (wma_tdls_peer_notification)*/
+	A_UINT32        peer_status;
+	/** TDLS peer reason (wma_tdls_peer_reason) */
+	A_UINT32        peer_reason;
+} wma_tdls_peer_event;
+
+#endif /* FEATURE_WLAN_TDLS */
+
 #endif

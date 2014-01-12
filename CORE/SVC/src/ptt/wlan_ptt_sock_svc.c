@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /******************************************************************************
  * wlan_ptt_sock_svc.c
  *
@@ -134,6 +133,11 @@ static void ptt_sock_proc_reg_req(tAniHdr *wmsg, int radio)
    //send reg response message to the application
    rspmsg.ret = ANI_NL_MSG_OK;
    rspmsg.regReq.type = reg_req->type;
+#ifdef WLAN_KD_READY_NOTIFIER
+   /* NL client try to registration
+    * to make sure connection, broadcast READY notification */
+   nl_srv_nl_ready_indication();
+#endif /* WLAN_KD_READY_NOTIFIER */
    /*Save the pid*/    
    pAdapterHandle->ptt_pid = reg_req->pid;   
    rspmsg.regReq.pid= reg_req->pid;
@@ -300,6 +304,9 @@ int ptt_sock_activate_svc(void *pAdapter)
    pAdapterHandle = (struct hdd_context_s*)pAdapter;
    nl_srv_register(ANI_NL_MSG_PUMAC, ptt_sock_rx_nlink_msg);
    nl_srv_register(ANI_NL_MSG_PTT, ptt_sock_rx_nlink_msg);
+#ifdef WLAN_KD_READY_NOTIFIER
+   nl_srv_nl_ready_indication();
+#endif /* WLAN_KD_READY_NOTIFIER */
    return 0;
 }
 #endif //PTT_SOCK_SVC_ENABLE

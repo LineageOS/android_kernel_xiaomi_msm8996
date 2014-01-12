@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file ol_tx_desc.h
  * @brief API definitions for the tx descriptor module within the data SW.

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_HDD_DP_UTILS_H )
 #define __WLAN_HDD_DP_UTILS_H
 
@@ -34,10 +33,6 @@
   \brief      Utility functions for data path module
 
   Description...
-               Copyright 2008 (c) Qualcomm Technologies, Inc.
-               All Rights Reserved.
-               Qualcomm Technologies Confidential and Proprietary.
-
   ==============================================================================**/
 /* $HEADER$ */
 

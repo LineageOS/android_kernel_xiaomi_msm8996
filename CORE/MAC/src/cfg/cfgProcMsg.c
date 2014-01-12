@@ -24,10 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file contains CFG functions for processing host messages.
  *
  * Author:      Kevin Nguyen
@@ -96,7 +93,10 @@ cfgProcessMbMsg(tpAniSirGlobal pMac, tSirMbMsg *pMsg)
     index = CFG_GET_FUNC_INDX(pMsg->type);
 
     if (index >= (sizeof(gCfgFunc) / sizeof(gCfgFunc[0])))
+    {
+        vos_mem_free(pMsg);
         return;
+    }
     len    = pMsg->msgLen - WNI_CFG_MB_HDR_LEN;
     pParam = ((tANI_U32*)pMsg) + 1;
 
@@ -104,7 +104,7 @@ cfgProcessMbMsg(tpAniSirGlobal pMac, tSirMbMsg *pMsg)
     gCfgFunc[index](pMac, len, pParam);
 
     // Free up buffer
-    palFreeMemory( pMac->hHdd, (void*)pMsg);
+    vos_mem_free(pMsg);
 
 } /*** end cfgProcessMbMsg() ***/
 

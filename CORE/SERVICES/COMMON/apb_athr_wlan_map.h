@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _APB_ATHR_WLAN_MAP_H_
 #define _APB_ATHR_WLAN_MAP_H_
 

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifdef FEATURE_OEM_DATA_SUPPORT
 
 /** ------------------------------------------------------------------------- * 
@@ -34,8 +33,6 @@
     \file oemDataInternal.h
   
     Exports and types for the Common OEM DATA REQ/RSP Module interfaces.
-  
-    Copyright (C) 2010 Qualcomm Technologies, Inc.
   
    ========================================================================== */
 

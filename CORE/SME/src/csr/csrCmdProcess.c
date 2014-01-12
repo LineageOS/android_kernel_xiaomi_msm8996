@@ -24,14 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- *
     ------------------------------------------------------------------------- *
     \file csrCmdProcess.c
 
     Implementation for processing various commands.
-
-    Copyright (C) 2006 Airgo Networks, Incorporated
 
    ========================================================================== */
 
@@ -171,3 +168,5 @@ void csrFullPowerOffloadCallback(void *pv, tANI_U32 sessionId, eHalStatus status
     }
 
 }
+
+

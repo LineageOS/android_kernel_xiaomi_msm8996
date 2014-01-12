@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
 
 *  \file  macTrace.h
@@ -32,10 +31,6 @@
 *  \brief definition for trace related APIs
 
    \author Sunit Bhatia   
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 
@@ -109,7 +104,18 @@ tANI_U8* macTraceGetInfoLogString( tANI_U16 infoLog );
 eHalStatus pe_AcquireGlobalLock( tAniSirLim *psPe);
 eHalStatus pe_ReleaseGlobalLock( tAniSirLim *psPe);
 
+tANI_U8* macTraceGetHDDWlanConnState(tANI_U16 connState);
 
+#ifdef WLAN_FEATURE_P2P_DEBUG
+tANI_U8* macTraceGetP2PConnState(tANI_U16 connState);
+#endif
+
+tANI_U8* macTraceGetNeighbourRoamState(tANI_U16 neighbourRoamState);
+tANI_U8* macTraceGetcsrRoamState(tANI_U16 csrRoamState);
+tANI_U8* macTraceGetcsrRoamSubState(tANI_U16 csrRoamSubState);
+tANI_U8* macTraceGetLimSmeState(tANI_U16 limState);
+tANI_U8* macTraceGetLimMlmState(tANI_U16 mlmState);
+tANI_U8* macTraceGetTLState(tANI_U16 tlState);
 
 #endif
 

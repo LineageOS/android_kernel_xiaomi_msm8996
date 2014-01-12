@@ -24,17 +24,12 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
   \file wlan_nlink_common.h
   
   Exports and types for the Netlink Service interface. This header file contains
   message types and definitions that is shared between the user space service
   (e.g. BTC service) and WLAN kernel module.
-
-  Copyright (c) 2009 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 
 ===========================================================================*/
 

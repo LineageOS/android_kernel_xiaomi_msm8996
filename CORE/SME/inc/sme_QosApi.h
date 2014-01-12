@@ -25,7 +25,6 @@
  * to the Linux Foundation.
  */
 
-
 #if !defined( __SME_QOSAPI_H )
 #define __SME_QOSAPI_H
 
@@ -35,10 +34,6 @@
   \file  sme_QosApi.h
   
   \brief prototype for SME QoS APIs
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -53,6 +48,14 @@
 #include "vos_types.h"
 #include "aniGlobal.h"
 #include "sirApi.h"
+
+/*--------------------------------------------------------------------------
+  Pre-processor Definitions
+  ------------------------------------------------------------------------*/
+#define SME_QOS_UAPSD_VO      0x01
+#define SME_QOS_UAPSD_VI      0x02
+#define SME_QOS_UAPSD_BE      0x08
+#define SME_QOS_UAPSD_BK      0x04
 
 /*-------------------------------------------------------------------------- 
   Type declarations

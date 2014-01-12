@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __SAP_CH_SELECT_H )
 #define __SAP_CH_SELECT_H
 
@@ -42,10 +41,6 @@
 
   Are listed for each API below. 
   
-  
-  Copyright (c) 2010 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

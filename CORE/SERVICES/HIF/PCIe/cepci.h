@@ -24,7 +24,14 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+//------------------------------------------------------------------------------
+// <copyright file="cepci.h" company="Qualcomm">
+//    Copyright (c) 2012 Qualcomm Atheros Inc.  All rights reserved.
+// $ATH_LICENSE_HOSTSDK0_C$
+//------------------------------------------------------------------------------
+//==============================================================================
+// Author(s): ="Qualcomm Atheros Inc."
+//==============================================================================
 
 #ifndef __CEPCI_H__
 #define __CEPCI_H__

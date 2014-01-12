@@ -24,7 +24,10 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ *
+ * $ATH_LICENSE_HOSTSDK0_C$
+ */
 
 #include <sys/types.h>
 #include <sys/file.h>

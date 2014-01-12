@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __SMEINTERNAL_H )
 #define __SMEINTERNAL_H
 
@@ -34,10 +33,6 @@
   \file  smeInternal.h
   
   \brief prototype for SME internal structures and APIs used for SME and MAC
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -51,6 +46,7 @@
 #include "vos_trace.h"
 #include "vos_memory.h"
 #include "vos_types.h"
+#include "vos_diag_core_event.h"
 #include "csrLinkList.h"
 
 /*-------------------------------------------------------------------------- 
@@ -77,6 +73,7 @@ typedef enum eSmeCommandType
     eSmeCommandTdlsSendMgmt, 
     eSmeCommandTdlsAddPeer, 
     eSmeCommandTdlsDelPeer, 
+    eSmeCommandTdlsLinkEstablish,
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
     eSmeCommandTdlsDiscovery,
     eSmeCommandTdlsLinkSetup,
@@ -115,20 +112,8 @@ typedef enum eSmeState
     SME_STATE_READY,
 } eSmeState;
 
-#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
-/* enumeration for Korea country revision index,
-   index to the list of valid channels */
-typedef enum eSmeKRRevision
-{
-    SME_KR_3         = 3,
-    SME_KR_24        = 24,
-    SME_KR_25        = 25,
-} eSmeKRRevision;
-#endif
-
 #define SME_IS_START(pMac)  (SME_STATE_STOP != (pMac)->sme.state)
 #define SME_IS_READY(pMac)  (SME_STATE_READY == (pMac)->sme.state)
-
 
 typedef struct tagSmeStruct
 {
@@ -141,8 +126,20 @@ typedef struct tagSmeStruct
     tDblLinkList smeCmdFreeList;   //preallocated roam cmd list
     void (*pTxPerHitCallback) (void *pCallbackContext); /* callback for Tx PER hit to HDD */ 
     void *pTxPerHitCbContext;
+    tVOS_CON_MODE currDeviceMode;
+#ifdef FEATURE_WLAN_LPHB
+    void (*pLphbIndCb) (void *pAdapter, void *indParam);
+#endif /* FEATURE_WLAN_LPHB */
+    //pending scan command list
     tDblLinkList smeScanCmdPendingList;
+    //active scan command list
     tDblLinkList smeScanCmdActiveList;
+#ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
+    vos_event_wlan_status_payload_type eventPayload;
+#endif
+#ifdef FEATURE_WLAN_CH_AVOID
+    void (*pChAvoidNotificationCb) (void *hdd_context, void *indi_param);
+#endif /* FEATURE_WLAN_CH_AVOID */
 } tSmeStruct, *tpSmeStruct;
 
 

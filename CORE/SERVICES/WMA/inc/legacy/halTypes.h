@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- *
     ------------------------------------------------------------------------- *
 
@@ -35,9 +34,6 @@
             module headers before inclusion into halCommonApi.h.
 
     $Id$
-
-    Copyright (C) 2006 Airgo Networks, Incorporated
-
 
    ========================================================================== */
 

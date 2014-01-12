@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 #include <osdep.h>
 #include <linux/pci.h>
 #include <linux/slab.h>
@@ -38,6 +39,7 @@
 #include <osapi_linux.h>
 #include "vos_api.h"
 #include "wma_api.h"
+#include "adf_os_atomic.h"
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #include "wlan_hdd_power.h"
 #endif
@@ -562,6 +564,7 @@ again:
     ol_sc->enableuartprint = 0;
     ol_sc->enablefwlog = 0;
     ol_sc->enablesinglebinary = FALSE;
+    ol_sc->max_no_of_peers = 1;
 
     adf_os_atomic_init(&sc->tasklet_from_intr);
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
@@ -841,6 +844,7 @@ again:
     ol_sc->enableuartprint = 0;
     ol_sc->enablefwlog = 0;
     ol_sc->enablesinglebinary = FALSE;
+    ol_sc->max_no_of_peers = 1;
 
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
 
@@ -999,6 +1003,7 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
                 num_msi_desired = 0;
             } else {
                 /* Can't get enough MSI interrupts -- try for just 1 */
+                printk("\n %s : Can't allocate requested number of MSI, just use 1\n", __func__);
                 num_msi_desired = 1;
             }
         }
@@ -1060,28 +1065,6 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
     }
 #endif
 
-
-    if(num_msi_desired == 0) {
-        printk("\n Using PCI Legacy Interrupt\n");
-        
-        /* Make sure to wake the Target before enabling Legacy Interrupt */
-        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
-        while (!hif_pci_targ_is_awake(sc, sc->mem)) {
-                ;
-        }
-        /* Use Legacy PCI Interrupts */
-        /* 
-         * A potential race occurs here: The CORE_BASE write depends on
-         * target correctly decoding AXI address but host won't know
-         * when target writes BAR to CORE_CTRL. This write might get lost
-         * if target has NOT written BAR. For now, fix the race by repeating
-         * the write in below synchronization checking.
-         */
-        A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 
-                      PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL); 
-        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
-    }
-
     sc->num_msi_intrs = num_msi_desired;
     sc->ce_count = CE_COUNT;
 
@@ -1118,7 +1101,32 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
     }
 
     *hif_hdl = sc->hif_device;
-     return 0;
+
+    if(num_msi_desired == 0) {
+        printk("\n Using PCI Legacy Interrupt\n");
+
+        /* Make sure to wake the Target before enabling Legacy Interrupt */
+        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
+                      PCIE_SOC_WAKE_V_MASK);
+        while (!hif_pci_targ_is_awake(sc, sc->mem)) {
+                ;
+        }
+        /* Use Legacy PCI Interrupts */
+        /*
+         * A potential race occurs here: The CORE_BASE write depends on
+         * target correctly decoding AXI address but host won't know
+         * when target writes BAR to CORE_CTRL. This write might get lost
+         * if target has NOT written BAR. For now, fix the race by repeating
+         * the write in below synchronization checking.
+         */
+        A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS |
+                      PCIE_INTR_ENABLE_ADDRESS),
+                      PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
+        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
+                      PCIE_SOC_WAKE_RESET);
+    }
+
+    return 0;
 
 err_stalled:
     /* Read Target CPU Intr Cause for debug */
@@ -1253,7 +1261,8 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 {
     struct hif_pci_softc *sc = pci_get_drvdata(pdev);
     void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
-
+    ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos);
+    u32 tx_drain_wait_cnt = 0;
     u32 val;
 
 #ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
@@ -1275,10 +1284,21 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
 #endif
 
+    /* Wait for pending tx completion */
+    while (ol_txrx_get_tx_pending(txrx_pdev)) {
+	    msleep(OL_ATH_TX_DRAIN_WAIT_DELAY);
+	    if (++tx_drain_wait_cnt > OL_ATH_TX_DRAIN_WAIT_CNT) {
+		    printk("%s: tx frames are pending\n", __func__);
+		    return (-1);
+	    }
+    }
+
     /* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
-    if (!wma_is_wow_enabled(vos_get_context(VOS_MODULE_ID_WDA, vos)) &&
-        (state.event == PM_EVENT_FREEZE || state.event == PM_EVENT_SUSPEND)) {
-           if (wma_suspend_target(vos_get_context(VOS_MODULE_ID_WDA, vos), 0))
+    if (wma_is_wow_mode_selected(vos_get_context(VOS_MODULE_ID_WDA, vos))) {
+          if(wma_enable_wow_in_fw(vos_get_context(VOS_MODULE_ID_WDA, vos)))
+                return (-1);
+    } else if (state.event == PM_EVENT_FREEZE || state.event == PM_EVENT_SUSPEND) {
+          if (wma_suspend_target(vos_get_context(VOS_MODULE_ID_WDA, vos), 0))
                 return (-1);
     }
 
@@ -1338,7 +1358,7 @@ hif_pci_resume(struct pci_dev *pdev)
 #endif
 
     /* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
-    if (!wma_is_wow_enabled(vos_get_context(VOS_MODULE_ID_WDA, vos_context)) &&
+    if (!wma_is_wow_mode_selected(vos_get_context(VOS_MODULE_ID_WDA, vos_context)) &&
         (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
 	    return wma_resume_target(vos_get_context(VOS_MODULE_ID_WDA, vos_context));
     }

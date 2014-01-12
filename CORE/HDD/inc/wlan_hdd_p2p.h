@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef __P2P_H
 #define __P2P_H
 /**===========================================================================
@@ -32,9 +31,6 @@
 \file         wlan_hdd_p2p.h
 
 \brief       Linux HDD P2P include file
-               Copyright 2008 (c) Qualcomm Technologies, Inc.
-               All Rights Reserved.
-               Qualcomm Technologies Confidential and Proprietary.
 
 ==========================================================================*/
 #define ACTION_FRAME_TX_TIMEOUT 2000
@@ -190,6 +186,5 @@ int wlan_hdd_del_virtual_intf( struct wiphy *wiphy, struct wireless_dev *wdev );
 #else
 int wlan_hdd_del_virtual_intf( struct wiphy *wiphy, struct net_device *dev );
 #endif
-
 
 #endif // __P2P_H

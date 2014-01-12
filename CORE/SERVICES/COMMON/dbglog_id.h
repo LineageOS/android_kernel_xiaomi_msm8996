@@ -24,7 +24,19 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ * Copyright (c) 2004-2010, 2013 Qualcomm Atheros, Inc..
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+//------------------------------------------------------------------------------
+// <copyright file="dbglog_id.h" company="Atheros">
+//    Copyright (c) 2004-2010 Atheros Corporation.  All rights reserved.
+// $ATH_LICENSE_HOSTSDK0_C$
+//------------------------------------------------------------------------------
+//==============================================================================
+// Author(s): ="Atheros"
+//==============================================================================
 
 #ifndef _DBGLOG_ID_H_
 #define _DBGLOG_ID_H_
@@ -137,6 +149,8 @@ extern "C" {
 #define PS_STA_SET_PARAM                            6
 #define PS_STA_SPECPOLL_TIMER_STARTED               7
 #define PS_STA_SPECPOLL_TIMER_STOPPED               8
+#define PS_STA_AVG_CHANNEL_CONGESTION               9
+#define PS_STA_DEFINITION_END                       10
 
 /** RESMGR dbg ids */
 /* TODO: 1. Segregate IDs as per sub-module. (Give 100 per sub-module?)
@@ -277,7 +291,12 @@ extern "C" {
 #define WHAL_ERROR_INTERRUPT_BB_PANIC              35
 #define WHAL_ERROR_PAPRD_MAXGAIN_ABOVE_WINDOW      36
 #define WHAL_ERROR_QCU_HW_PAUSE_MISMATCH           37
-#define WHAL_DBGID_DEFINITION_END                  38
+#define WHAL_ERROR_POWER_RFLP_CONFIG               38
+#define WHAL_ERROR_POWER_RFLP_SYNTHBYPASS_CONFIG   39
+#define WHAL_ERROR_POWER_RFLP_BIAS2X_CONFIG        40
+#define WHAL_ERROR_POWER_RFLP_PLLBYPASS_CONFIG     41
+#define WHAL_ERROR_POWER_RFLP_OFF1CHAN_CONFIG      42
+#define WHAL_DBGID_DEFINITION_END                  43
 
 #define COEX_DEBUGID_START              0
 #define BTCOEX_DBG_MCI_1                            1
@@ -905,6 +924,10 @@ extern "C" {
 #define WLAN_HB_DBGID_UDP_TX                            13
 #define WLAN_HB_DBGID_TCP_TX                            14
 #define WLAN_HB_DBGID_DEFINITION_END                    15
+
+/* Thermal Manager DBGIDs */
+#define THERMAL_MGR_NEW_THRESH        0
+#define THERMAL_MGR_THRESH_CROSSED    1
 
 #ifdef __cplusplus
 }

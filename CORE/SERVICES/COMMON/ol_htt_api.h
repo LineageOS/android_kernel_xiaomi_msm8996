@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file ol_htt_api.h
  * @brief Specify the general HTT API functions called by the host data SW.

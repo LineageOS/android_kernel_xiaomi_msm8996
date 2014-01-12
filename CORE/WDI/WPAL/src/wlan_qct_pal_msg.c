@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
   
   \file  wlan_qct_pal_msg.c
@@ -32,10 +31,6 @@
   \brief Implementation message APIs PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
                
    Definitions for platform with legacy UMAC support.
-  
-   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -75,7 +70,7 @@ wpt_status wpalPostCtrlMsg(void *pPalContext, wpt_msg *pMsg)
    }
    else
    {
-      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s fail to post msg %d\n",
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s fail to post msg %d",
                   __func__, pMsg->type);
    }
 
@@ -113,7 +108,7 @@ wpt_status wpalPostTxMsg(void *pPalContext, wpt_msg *pMsg)
    }
    else
    {
-      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s fail to post msg %d\n",
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s fail to post msg %d",
                   __func__, pMsg->type);
    }
 
@@ -150,7 +145,7 @@ wpt_status wpalPostRxMsg(void *pPalContext, wpt_msg *pMsg)
    }
    else
    {
-      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s fail to post msg %d\n",
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s fail to post msg %d",
                   __func__, pMsg->type);
    }
 

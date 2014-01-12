@@ -24,10 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Woodside Networks, Inc proprietary. All rights reserved.
- * File: $File: //depot/software/projects/feature_branches/nova_phase1/ap/apps/include/aniAsfPacket.h $
  * Contains declarations for packet manipulation routines that make it
  * easy to create and parse multi-layered network frames. This module
  * minimizes buffer copies while adding or removing headers, and

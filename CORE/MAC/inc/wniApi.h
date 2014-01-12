@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file wniApi.h contains message definitions exported by
  * Sirius software modules.
  * NOTE: See projects/sirius/include/sirApi.h for structure
@@ -96,7 +94,7 @@
 
 
 /// Start of Sirius/Host message types
-#define WNI_HOST_MSG_START             0x1400
+#define WNI_HOST_MSG_START             0x1500
 
 enum eWniMsgTypes
 {
@@ -230,7 +228,9 @@ enum eWniMsgTypes
     eWNI_SME_ACTION_FRAME_SEND_CNF,
     eWNI_SME_ABORT_REMAIN_ON_CHAN_IND,
     eWNI_SME_UPDATE_NOA,
+    eWNI_SME_CLEAR_DFS_CHANNEL_LIST,
     eWNI_SME_PRE_CHANNEL_SWITCH_FULL_POWER,
+    eWNI_SME_GET_SNR_REQ,
     //General Power Save Messages
     eWNI_PMC_MSG_TYPES_BEGIN,
     eWNI_PMC_PWR_SAVE_CFG,
@@ -306,6 +306,7 @@ enum eWniMsgTypes
     eWNI_SME_TX_PER_HIT_IND,
 
     eWNI_SME_CHANGE_COUNTRY_CODE,
+    eWNI_SME_GENERIC_CHANGE_COUNTRY_CODE,
     eWNI_SME_PRE_SWITCH_CHL_IND,
     eWNI_SME_POST_SWITCH_CHL_IND,
 
@@ -329,6 +330,13 @@ enum eWniMsgTypes
     eWNI_SME_TDLS_DEL_STA_IND,
     eWNI_SME_TDLS_DEL_ALL_PEER_IND,
     eWNI_SME_MGMT_FRM_TX_COMPLETION_IND,
+    eWNI_SME_TDLS_LINK_ESTABLISH_REQ,
+    eWNI_SME_TDLS_LINK_ESTABLISH_RSP,
+#ifdef QCA_WIFI_2_0
+    eWNI_SME_TDLS_SHOULD_DISCOVER,
+    eWNI_SME_TDLS_SHOULD_TEARDOWN,
+    eWNI_SME_TDLS_PEER_DISCONNECTED,
+#endif
 #endif
     //NOTE: If you are planning to add more mesages, please make sure that 
     //SIR_LIM_ITC_MSG_TYPES_BEGIN is moved appropriately. It is set as
@@ -357,12 +365,25 @@ enum eWniMsgTypes
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
     eWNI_PMC_GTK_OFFLOAD_GETINFO_RSP,
 #endif // WLAN_FEATURE_GTK_OFFLOAD
-    eWNI_SME_CANDIDATE_FOUND_IND, //ROAM candidate indication from FW
+    eWNI_SME_CANDIDATE_FOUND_IND, /*ROAM candidate indication from FW*/
+    eWNI_SME_HANDOFF_REQ,/*upper layer requested handoff to driver in STA mode*/
+    eWNI_SME_ROAM_SCAN_OFFLOAD_RSP,/*Fwd the LFR scan offload rsp from FW to SME*/
+#ifdef FEATURE_WLAN_LPHB
+    eWNI_SME_LPHB_IND,
+#endif /* FEATURE_WLAN_LPHB */
+
+    eWNI_SME_GET_TSM_STATS_REQ,
+    eWNI_SME_GET_TSM_STATS_RSP,
+    eWNI_SME_TSM_IE_IND,
+
     eWNI_SME_READY_TO_SUSPEND_IND,
+#ifdef FEATURE_WLAN_CH_AVOID
+    eWNI_SME_CH_AVOID_IND,
+#endif /* FEATURE_WLAN_CH_AVOID */
     eWNI_SME_MSG_TYPES_END
 };
 
-#define WNI_CFG_MSG_TYPES_BEGIN        0x1100
+#define WNI_CFG_MSG_TYPES_BEGIN        0x1200
 
 /*---------------------------------------------------------------------*/
 /* CFG Module Definitions                                              */
@@ -398,6 +419,7 @@ enum eWniMsgTypes
 
 /*---------------------------------------------------------------------*/
 /* CFG to HDD message paramter indices                                 */
+/*                                                                     */
 /*   The followings are word indices starting from the message body    */
 /*                                                                     */
 /*   WNI_CFG_xxxx_xxxx_xxxx:         index of parameter                */

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
   
   @file  wlan_qct_pal_device.c
@@ -34,9 +33,6 @@
   This file implements the device specific HW access interface
   required by the WLAN Platform Abstraction Layer (WPAL)
 
-  Copyright (c) 2011 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ========================================================================*/
 
 /*===========================================================================
@@ -448,7 +444,11 @@ wpt_status wpalWriteRegister
    wpt_uint32   data
 )
 {
-   if (NULL == gpEnv) {
+   /* if SSR is in progress, and WCNSS is not out of reset (re-init
+    * not invoked), then do not access WCNSS registers */
+   if (NULL == gpEnv ||
+        (vos_is_logp_in_progress(VOS_MODULE_ID_WDI, NULL) &&
+            !vos_is_reinit_in_progress(VOS_MODULE_ID_WDI, NULL))) {
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: invoked before subsystem initialized",
                  __func__);
@@ -460,7 +460,8 @@ wpt_status wpalWriteRegister
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: Register address 0x%0x out of range 0x%0x - 0x%0x",
                  __func__, address,
-                 gpEnv->wcnss_memory->start, gpEnv->wcnss_memory->end);
+                 (u32) gpEnv->wcnss_memory->start,
+                 (u32) gpEnv->wcnss_memory->end);
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -492,7 +493,11 @@ wpt_status wpalReadRegister
    wpt_uint32  *data
 )
 {
-   if (NULL == gpEnv) {
+   /* if SSR is in progress, and WCNSS is not out of reset (re-init
+    * not invoked), then do not access WCNSS registers */
+   if (NULL == gpEnv ||
+        (vos_is_logp_in_progress(VOS_MODULE_ID_WDI, NULL) &&
+            !vos_is_reinit_in_progress(VOS_MODULE_ID_WDI, NULL))) {
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: invoked before subsystem initialized",
                  __func__);
@@ -504,7 +509,8 @@ wpt_status wpalReadRegister
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: Register address 0x%0x out of range 0x%0x - 0x%0x",
                  __func__, address,
-                 gpEnv->wcnss_memory->start, gpEnv->wcnss_memory->end);
+                 (u32) gpEnv->wcnss_memory->start,
+                 (u32) gpEnv->wcnss_memory->end);
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -539,7 +545,11 @@ wpt_status wpalWriteDeviceMemory
   wpt_uint32 len
 )
 {
-   if (NULL == gpEnv) {
+   /* if SSR is in progress, and WCNSS is not out of reset (re-init
+    * not invoked), then do not access WCNSS registers */
+   if (NULL == gpEnv ||
+        (vos_is_logp_in_progress(VOS_MODULE_ID_WDI, NULL) &&
+            !vos_is_reinit_in_progress(VOS_MODULE_ID_WDI, NULL))) {
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: invoked before subsystem initialized",
                  __func__);
@@ -551,7 +561,8 @@ wpt_status wpalWriteDeviceMemory
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: Memory address 0x%0x len %d out of range 0x%0x - 0x%0x",
                  __func__, address, len,
-                 gpEnv->wcnss_memory->start, gpEnv->wcnss_memory->end);
+                 (u32) gpEnv->wcnss_memory->start,
+                 (u32) gpEnv->wcnss_memory->end);
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -579,7 +590,11 @@ wpt_status wpalReadDeviceMemory
   wpt_uint32 len
 )
 {
-   if (NULL == gpEnv) {
+   /* if SSR is in progress, and WCNSS is not out of reset (re-init
+    * not invoked), then do not access WCNSS registers */
+   if (NULL == gpEnv ||
+        (vos_is_logp_in_progress(VOS_MODULE_ID_WDI, NULL) &&
+            !vos_is_reinit_in_progress(VOS_MODULE_ID_WDI, NULL))) {
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: invoked before subsystem initialized",
                  __func__);
@@ -591,7 +606,8 @@ wpt_status wpalReadDeviceMemory
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: Memory address 0x%0x len %d out of range 0x%0x - 0x%0x",
                  __func__, address, len,
-                 gpEnv->wcnss_memory->start, gpEnv->wcnss_memory->end);
+                 (u32) gpEnv->wcnss_memory->start,
+                 (u32) gpEnv->wcnss_memory->end);
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 

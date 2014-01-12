@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file ol_tx_queue.h
  * @brief API definitions for the tx frame queue module within the data SW.

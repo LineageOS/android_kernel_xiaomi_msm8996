@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 /*
  * Host WMI unified implementation
  */

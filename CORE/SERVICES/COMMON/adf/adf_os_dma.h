@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 /**
  * @ingroup adf_os_public
  * @file adf_os_dma.h

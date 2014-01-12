@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _ANIDBGTEST_H_
 #define _ANIDBGTEST_H_
 

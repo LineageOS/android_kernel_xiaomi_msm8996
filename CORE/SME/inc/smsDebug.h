@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
 
@@ -33,8 +32,6 @@
   
     Define debug log interface for SMS.
   
-   Copyright (C) 2006 Airgo Networks, Incorporated
- 
    ========================================================================== */
    
 #ifndef SMS_DEBUG_H__
@@ -47,5 +44,6 @@
 #include "sirDebug.h"
 
 void smsLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...); 
+void pmcLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...);
 
 #endif // __HAL_DEBUG_H__

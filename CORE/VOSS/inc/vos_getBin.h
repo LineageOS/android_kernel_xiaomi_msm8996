@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __VOS_GETBIN_H )
 #define __VOS_GETBIN_H
 
@@ -38,10 +37,6 @@
 
    These APIs allow components to retrieve binary contents (firmware, 
    configuration data, etc.) from a storage medium on the platform.
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 
@@ -73,8 +68,10 @@ typedef enum
   VOS_BINARY_ID_COUNTRY_INFO,
 
   /// Binary ID for Handoff Configuration data
-  VOS_BINARY_ID_HO_CONFIG
+  VOS_BINARY_ID_HO_CONFIG,
 
+  /// Binary ID for Dictionary Configuration data
+  VOS_BINARY_ID_DICT_CONFIG
   
 } VOS_BINARY_ID;
 

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
 
                        W L A N _ Q C T _ C T S . C
@@ -41,10 +40,6 @@
 
   Are listed for each API below.
 
-
-  Copyright (c) 2010-2011 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================
@@ -569,7 +564,7 @@ WCTS_NotifyCallback
       return;
 
    case SMD_EVENT_REOPEN_READY:
-      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: received SMD_EVENT_REOPEN_READY from SMD", __func__);
 
       /* unlike other events which occur when our kernel threads are
@@ -645,7 +640,7 @@ WCTS_OpenTransport
     * the SMD port was never closed during SSR*/
    if (gwctsHandle) {
        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-               "WCTS_OpenTransport port is already open\n");
+               "WCTS_OpenTransport port is already open");
 
        pWCTSCb = gwctsHandle;
        if (WCTS_CB_MAGIC != pWCTSCb->wctsMagic) {

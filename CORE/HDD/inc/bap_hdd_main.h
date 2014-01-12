@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( BAP_HDD_MAIN_H )
 #define BAP_HDD_MAIN_H
 
@@ -33,9 +32,6 @@
   \file  BAP_HDD_MAIN_H.h
   
   \brief Linux HDD Adapter Type
-         Copyright 2008 (c) Qualcomm Technologies, Inc.
-         All Rights Reserved.
-         Qualcomm Technologies Confidential and Proprietary.
   
   ==========================================================================*/
   

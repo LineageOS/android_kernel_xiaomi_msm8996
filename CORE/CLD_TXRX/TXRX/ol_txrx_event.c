@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #include "ol_txrx_types.h"
 
 #ifdef WDI_EVENT_ENABLE

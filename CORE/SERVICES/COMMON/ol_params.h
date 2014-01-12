@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 /*
  * Defintions for the Atheros Wireless LAN controller driver.
  */

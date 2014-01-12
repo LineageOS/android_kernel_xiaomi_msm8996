@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_PAL_TIMER_H )
 #define __WLAN_QCT_PAL_TIMER_H
 
@@ -35,10 +34,6 @@
   \brief define synchronization objects PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
                
    Definitions for platform independent.
-  
-   Copyright 2010-2011 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -125,6 +120,13 @@ wpt_uint32 wpalGetSystemTime(void);
 ---------------------------------------------------------------------------*/
 wpt_status wpalSleep(wpt_uint32 timeout);
 
-
+/*---------------------------------------------------------------------------
+    wpalBusyWait - Thread busy wait with specified usec
+    Param:
+        usecDelay - amount of time to wait. In unit of micro-seconds.
+    Return:
+        NONE
+---------------------------------------------------------------------------*/
+void wpalBusyWait(wpt_uint32 usecDelay);
 
 #endif // __WLAN_QCT_PAL_TIMER_H

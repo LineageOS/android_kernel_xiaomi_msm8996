@@ -37,9 +37,6 @@
 
     $Id$
 
-    Copyright (C) 2006 Airgo Networks, Incorporated
-
-
    ========================================================================== */
 
 #if !defined( __WLAN_NV_H )
@@ -119,6 +116,14 @@ typedef enum
 #define WLAN_NV_VERSION     NV_VERSION_11N_11AC_FW_CONFIG
 #endif //WCN_PRONTO
 
+typedef PACKED_PRE struct PACKED_POST
+{
+    uint8   macAddr1[NV_FIELD_MAC_ADDR_SIZE];   /* Default, not change name for compatibility */
+    uint8   macAddr2[NV_FIELD_MAC_ADDR_SIZE];
+    uint8   macAddr3[NV_FIELD_MAC_ADDR_SIZE];
+    uint8   macAddr4[NV_FIELD_MAC_ADDR_SIZE];
+} sMacAddr;
+
 typedef PACKED_PRE union PACKED_POST
 {
     //common NV fields
@@ -127,10 +132,7 @@ typedef PACKED_PRE union PACKED_POST
     uint8   wlanNvRevId;
     uint8   numOfTxChains;
     uint8   numOfRxChains;
-    uint8   macAddr[NV_FIELD_MAC_ADDR_SIZE];   /* Default, not change name for compatibility */
-    uint8   macAddr2[NV_FIELD_MAC_ADDR_SIZE];
-    uint8   macAddr3[NV_FIELD_MAC_ADDR_SIZE];
-    uint8   macAddr4[NV_FIELD_MAC_ADDR_SIZE];
+    sMacAddr macAddr;
     uint8   mfgSN[NV_FIELD_MFG_SN_SIZE];
     uint8   couplerType;
     uint8   nvVersion;
@@ -171,7 +173,8 @@ typedef enum
 {
     PHY_TX_CHAIN_0 = 0,
 
-    PHY_MAX_TX_CHAINS = 1,
+    NUM_PHY_MAX_TX_CHAINS = 1,
+    PHY_MAX_TX_CHAINS = NUM_PHY_MAX_TX_CHAINS,
     PHY_ALL_TX_CHAINS,
 
     //possible tx chain combinations
@@ -316,7 +319,6 @@ typedef enum
 
     MIN_2_4GHZ_CHANNEL = RF_CHAN_1,
     MAX_2_4GHZ_CHANNEL = RF_CHAN_14,
-    NUM_2_4GHZ_CHANNELS = (MAX_2_4GHZ_CHANNEL - MIN_2_4GHZ_CHANNEL + 1),
 
     MIN_5GHZ_CHANNEL = RF_CHAN_240,
     MAX_5GHZ_CHANNEL = RF_CHAN_165,
@@ -342,6 +344,26 @@ typedef enum
     INVALID_RF_CHANNEL = 0xBAD,
     RF_CHANNEL_INVALID_MAX_FIELD = 0x7FFFFFFF  /* define as 4 bytes data */
 }eRfChannels;
+
+typedef enum
+{
+    RF_CHAN_1_1 = RF_CHAN_1,
+    RF_CHAN_2_1 = RF_CHAN_2,
+    RF_CHAN_3_1 = RF_CHAN_3,
+    RF_CHAN_4_1 = RF_CHAN_4,
+    RF_CHAN_5_1 = RF_CHAN_5,
+    RF_CHAN_6_1 = RF_CHAN_6,
+    RF_CHAN_7_1 = RF_CHAN_7,
+    RF_CHAN_8_1 = RF_CHAN_8,
+    RF_CHAN_9_1 = RF_CHAN_9,
+    RF_CHAN_10_1 = RF_CHAN_10,
+    RF_CHAN_11_1 = RF_CHAN_11,
+    RF_CHAN_12_1 = RF_CHAN_12,
+    RF_CHAN_13_1 = RF_CHAN_13,
+    RF_CHAN_14_1 = RF_CHAN_14,
+// The above params are used for scripts.
+    NUM_2_4GHZ_CHANNELS,
+}eRfChannels_2_4GHz;
 
 enum
 {
@@ -455,7 +477,7 @@ typedef PACKED_PRE struct PACKED_POST
                                        //MSB set if extraPrecision.hi8_adjustedPwrDet is used
 }tTpcCaldPowerPoint;
 
-typedef tTpcCaldPowerPoint tTpcCaldPowerTable[PHY_MAX_TX_CHAINS][MAX_TPC_CAL_POINTS];
+typedef tTpcCaldPowerPoint tTpcCaldPowerTable[NUM_PHY_MAX_TX_CHAINS][MAX_TPC_CAL_POINTS];
 
 typedef PACKED_PRE struct PACKED_POST
 {
@@ -467,7 +489,7 @@ typedef PACKED_PRE struct PACKED_POST
 #define TPC_MEM_POWER_LUT_DEPTH 256
 #endif
 
-typedef tTpcLutValue tTpcPowerTable[PHY_MAX_TX_CHAINS][TPC_MEM_POWER_LUT_DEPTH];
+typedef tTpcLutValue tTpcPowerTable[NUM_PHY_MAX_TX_CHAINS][TPC_MEM_POWER_LUT_DEPTH];
 
 typedef PACKED_PRE struct PACKED_POST
 {
@@ -638,7 +660,7 @@ typedef enum
 }eHalPhyRates;
 
 #define NUM_RATE_POWER_GROUPS           NUM_HAL_PHY_RATES  //total number of rate power groups including the CB_RATE_POWER_OFFSET
-typedef uAbsPwrPrecision tRateGroupPwr[NUM_RATE_POWER_GROUPS];
+typedef uAbsPwrPrecision tRateGroupPwr[NUM_HAL_PHY_RATES];
 
 //From halNvTables.h
 #define NV_FIELD_COUNTRY_CODE_SIZE  3
@@ -648,17 +670,40 @@ typedef PACKED_PRE struct PACKED_POST
     uint8 countryCode[NV_FIELD_COUNTRY_CODE_SIZE];    // string identifier
 }sDefaultCountry;
 
+
+#define GF_PA_BIAS_SELECT_MASK         0X7 //(3 bits)
+#define TSMC_PA_BIAS_SELECT_MASK       0x7 //(3 bits)
+
+#define GF_PA_BIAS_SELECT_1            0X0
+#define GF_PA_BIAS_SELECT_2            0X1
+
+#define TSMC_PA_BIAS_SELECT_1          0X0
+#define TSMC_PA_BIAS_SELECT_2          0X1
+#define TSMC_PA_BIAS_SELECT_3          0x2
+
+
+#define EXT_PA_CTRL_POLARITY_DEFAULT   0X0
+#define EXT_PA_CTRL_POLARITY_VALID     0X80
+
+#define EXT_PA_CTRL0_POLARITY_MASK     0X3
+#define EXT_PA_CTRL0_POLARITY_OFFSET   0X0
+#define EXT_PA_CTRL1_POLARITY_MASK     0XC
+#define EXT_PA_CTRL1_POLARITY_OFFSET   0X2
+
+#define EXT_PA_CTRL_POLARITY_ZERO      0X1
+#define EXT_PA_CTRL_POLARITY_ONE       0X2
+
 typedef PACKED_PRE struct PACKED_POST
 {
     uint8 skuID; 
     uint8 tpcMode2G;
     uint8 tpcMode5G;
-    uint8 reserved1;
+    uint8 configItem1;
 
     uint8 xPA2G;
     uint8 xPA5G;
-    uint8 paPolarityTx;
-    uint8 paPolarityRx;
+    uint8 extPaCtrl0Polarity;
+    uint8 extPaCtrl1Polarity;
 
     uint8 xLNA2G;
     uint8 xLNA5G;
@@ -675,9 +720,9 @@ typedef PACKED_PRE struct PACKED_POST
     uint8 pdadcSelect5GMid;
     uint8 pdadcSelect5GHigh;
 
-    uint32 reserved2;
-    uint32 resreved3;
-    uint32 resreved4;
+    uint32 configItem2;
+    uint32 configItem3;
+    uint32 configItem4;
 }sFwConfig;
 
 

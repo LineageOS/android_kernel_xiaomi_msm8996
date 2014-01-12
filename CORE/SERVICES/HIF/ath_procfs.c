@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if defined(CONFIG_ATH_PROCFS_DIAG_SUPPORT)
 #include <linux/module.h>	/* Specifically, a module */
 #include <linux/kernel.h>	/* We're doing kernel work */

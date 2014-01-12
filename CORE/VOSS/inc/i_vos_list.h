@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __I_VOS_LIST_H )
 #define __I_VOS_LIST_H
 
@@ -33,10 +32,6 @@
   \file  i_vos_list.h
   
   \brief Linux-specific definitions for vOSS lists 
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __VOS_LOCK_H )
 #define __VOS_LOCK_H
 
@@ -35,10 +34,6 @@
   \brief virtual Operating System Servies (vOS) Locks
                
    Definitions for vOSS Locks
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -251,5 +246,60 @@ VOS_STATUS vos_spin_lock_release(vos_spin_lock_t *pLock);
   ------------------------------------------------------------------------*/
 VOS_STATUS vos_spin_lock_destroy(vos_spin_lock_t *pLock);
 
+/*--------------------------------------------------------------------------
+
+  \brief vos_wake_lock_init() - initializes a vOSS wake lock
+
+  \param pLock - the wake lock to initialize
+              name - wakelock name
+
+  \return VOS_STATUS_SUCCESS - wake lock was successfully initialized and
+          is ready to be used.
+  --------------------------------------------------------------------------*/
+VOS_STATUS vos_wake_lock_init(vos_wake_lock_t *pLock, const char *name);
+
+/*--------------------------------------------------------------------------
+
+  \brief vos_wake_lock_acquire() - acquires a wake lock
+
+  \param pLock - the wake lock to acquire
+
+  \return VOS_STATUS_SUCCESS - the wake lock was successfully acquired
+
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_wake_lock_acquire(vos_wake_lock_t *pLock);
+
+/*--------------------------------------------------------------------------
+
+  \brief vos_wake_lock_timeout_acquire() - acquires a wake lock with a timeout
+
+  \param pLock - the wake lock to acquire
+
+  \return VOS_STATUS_SUCCESS - the wake lock was successfully acquired
+
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_wake_lock_timeout_acquire(vos_wake_lock_t *pLock, v_U32_t msec);
+
+/*--------------------------------------------------------------------------
+
+  \brief vos_wake_lock_release() - releases a wake lock
+
+  \param pLock - the wake lock to release
+
+  \return VOS_STATUS_SUCCESS - the lock was successfully released
+
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_wake_lock_release(vos_wake_lock_t *pLock);
+
+/*--------------------------------------------------------------------------
+
+  \brief vos_wake_lock_destroy() - destroys a wake lock
+
+  \param pLock - the wake lock to destroy
+
+  \return VOS_STATUS_SUCCESS - the lock was successfully destroyed
+
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_wake_lock_destroy(vos_wake_lock_t *pLock);
 
 #endif // __VOSS_LOCK_H

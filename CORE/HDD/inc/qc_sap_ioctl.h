@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _QC_SAP_IOCTL_H_
 #define _QC_SAP_IOCTL_H_
 
@@ -242,11 +241,20 @@ typedef struct
 #define QCSAP_IOCTL_SET_TX_POWER        (SIOCIWFIRSTPRIV+20) 
 #define QCSAP_IOCTL_GET_STA_INFO        (SIOCIWFIRSTPRIV+21)
 #define QCSAP_IOCTL_SET_MAX_TX_POWER    (SIOCIWFIRSTPRIV+22)
+#define QCSAP_IOCTL_DATAPATH_SNAP_SHOT  (SIOCIWFIRSTPRIV+23)
+#define QCSAP_IOCTL_SET_TRAFFIC_MONITOR (SIOCIWFIRSTPRIV+24)
 
 #define MAX_VAR_ARGS         7
 #define QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED (SIOCIWFIRSTPRIV + 31)
 
 #ifdef QCA_WIFI_2_0
+
+#define RC_2_RATE_IDX(_rc)              ((_rc) & 0x7)
+#define HT_RC_2_STREAMS(_rc)            ((((_rc) & 0x78) >> 3) + 1)
+
+#define RC_2_RATE_IDX_11AC(_rc)         ((_rc) & 0xf)
+#define HT_RC_2_STREAMS_11AC(_rc)       ((((_rc) & 0x30) >> 4) + 1)
+
 /* Private ioctl for firmware debug log */
 #define QCSAP_DBGLOG_LOG_LEVEL             31
 #define QCSAP_DBGLOG_VAP_ENABLE            32
@@ -259,6 +267,12 @@ typedef struct
 #ifdef DEBUG
 #define QCSAP_FW_CRASH_INJECT              39
 #endif
+#define QCASAP_SET_TXRX_FWSTATS            40
+#define QCASAP_TXRX_FWSTATS_RESET          41
+#define QCSAP_PARAM_SETRTSCTS              42
+#define QCSAP_PARAM_GETRTSCTS              43
+#define QCASAP_SET_11N_RATE                45
+#define QCASAP_SET_VHT_RATE                46
 #endif /* QCA_WIFI_2_0 */
 
 enum { 

@@ -25,7 +25,6 @@
  * to the Linux Foundation.
  */
 
-
 #include "ol_if_athvar.h"
 #include "htc_internal.h"
 #include <adf_nbuf.h>     /* adf_nbuf_t */

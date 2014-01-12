@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_TLI_BA_H
 #define WLAN_QCT_TLI_BA_H
 
@@ -39,8 +38,6 @@ DESCRIPTION
   layer module for BA session support, AMSDU de-aggregation and 
   MSDU reordering.
         
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 

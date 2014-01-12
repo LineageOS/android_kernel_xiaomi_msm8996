@@ -24,7 +24,16 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+//------------------------------------------------------------------------------
+// <copyright file="athstartpack.h" company="Atheros">
+//    Copyright (c) 2004-2010 Atheros Corporation.  All rights reserved.
+// $ATH_LICENSE_HOSTSDK0_C$
+//------------------------------------------------------------------------------
+//==============================================================================
+// start compiler-specific structure packing
+//
+// Author(s): ="Atheros"
+//==============================================================================
 #ifndef _ATHSTARTPACK_H
 #define _ATHSTARTPACK_H
 

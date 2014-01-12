@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limPropExtsUtils.cc contains the utility functions
  * to populate, parse proprietary extensions required to
  * support ANI feature set.
@@ -85,14 +83,15 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
 #if !defined WLAN_FEATURE_VOWIFI
     tANI_U32            localPowerConstraints = 0;
 #endif
-    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, 
-                                                (void **)&pBeaconStruct, sizeof(tSirProbeRespBeacon)))
+
+    pBeaconStruct = vos_mem_malloc(sizeof(tSirProbeRespBeacon));
+    if ( NULL == pBeaconStruct )
     {
-        limLog(pMac, LOGE, FL("Unable to PAL allocate memory in limExtractApCapability") );
+        limLog(pMac, LOGE, FL("Unable to allocate memory in limExtractApCapability") );
         return;
     }
 
-    palZeroMemory( pMac->hHdd, (tANI_U8 *) pBeaconStruct, sizeof(tSirProbeRespBeacon));
+    vos_mem_set( (tANI_U8 *) pBeaconStruct, sizeof(tSirProbeRespBeacon), 0);
     *qosCap = 0;
     *propCap = 0;
     *uapsd = 0;
@@ -166,7 +165,7 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
         }
 #endif
     }
-    palFreeMemory(pMac->hHdd, pBeaconStruct);
+    vos_mem_free(pBeaconStruct);
     return;
 } /****** end limExtractApCapability() ******/
 

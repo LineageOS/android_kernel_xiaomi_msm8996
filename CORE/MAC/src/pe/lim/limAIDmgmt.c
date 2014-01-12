@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limAIDmgmt.cc contains the functions related to
  * AID pool management like initialization, assignment etc.
  * Author:        Chandra Modumudi

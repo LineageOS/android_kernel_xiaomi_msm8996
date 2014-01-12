@@ -24,16 +24,12 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
   @file VossWrapper.c
 
   @brief This source file contains the various function definitions for the 
   RTOS abstraction layer, implemented for VOSS
 
-  Copyright (c) 2008 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*=========================================================================== 

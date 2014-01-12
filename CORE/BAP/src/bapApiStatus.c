@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
 
                       b a p A p i S t a t u s . C
@@ -41,10 +40,6 @@
 
   Are listed for each API below. 
   
-  
-  Copyright (c) 2008 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================
@@ -377,7 +372,7 @@ WLAN_BAPReadRSSI
     {
         /* Get the RSSI value for this station (physical link) */
         vosStatus = WLANTL_GetRssi(btampContext->pvosGCtx, btampContext->ucSTAId,
-                        &pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_RSSI.rssi);
+                        &pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_RSSI.rssi,NULL);
 
         if (VOS_STATUS_SUCCESS == vosStatus)
         {

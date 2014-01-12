@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved
  * sysEntryFunc.cc - This file has all the system level entry functions
  *                   for all the defined threads at system level.
  * Author:    V. K. Kandarpa
@@ -82,7 +80,7 @@ tSirRetStatus
 sysInitGlobals(tpAniSirGlobal pMac)
 {
 
-    palZeroMemory(pMac->hHdd, (tANI_U8 *) &pMac->sys, sizeof(pMac->sys));
+    vos_mem_set((tANI_U8 *) &pMac->sys, sizeof(pMac->sys), 0);
 
     pMac->sys.gSysEnableScanMode        = 1;
     pMac->sys.gSysEnableLinkMonitorMode = 0;

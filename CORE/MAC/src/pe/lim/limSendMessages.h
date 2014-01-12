@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * limSendMessages.h: Provides functions to send messages or Indications to HAL.
  * Author:    Sunit Bhatia
  * Date:       09/21/2006
@@ -95,6 +93,7 @@ void limSetActiveEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *plocalE
 #define HT_BYTE2_FILTER_MASK    0xEB
 #define HT_BYTE5_FILTER_MASK    0xFD
 #define DS_PARAM_CHANNEL_MASK   0x0
+#define VHTOP_CHWIDTH_MASK      0xFC
 
 tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac, tpPESession psessionEntry);
 

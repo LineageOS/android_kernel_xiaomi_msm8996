@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
 
                        EDIT HISTORY FOR FILE
@@ -74,6 +73,25 @@ static void cbNotifySetImmediateRoamRssiDiff(hdd_context_t *pHddCtx, unsigned lo
 
 static void cbNotifySetRoamRssiDiff(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
+    if (pHddCtx->cfg_ini->nSelect5GHzMargin)
+    {
+        /*
+           LFR2.0 firmware posts roam candidates whose RSSI is above the
+           look down threshold and RoamRssiDiff better than current AP Rssi.
+           if gSelect5GHzMargin is non-zero; then the expectation is firmware
+           should post all the roam candidates whose RSSI is above lookdown
+           threshold and don't ignore the APs in RoamRssiDiff zone.
+
+           For ex: RoamRssiDiff=5, Lookdown threshold=-78 and
+           gSelect5GHzMargin=30 then firmware selects APs
+           with Rssi -73 or better as roam candidates.
+           if the 5G AP Rssi is -75 it will be ignored.
+           if 2.4G AP Rssi is -45 and 5G AP with -75 is available,
+           STA should connect to 5G AP, hence RoamRssiDiff is set to 0.
+        */
+        pHddCtx->cfg_ini->RoamRssiDiff = 0;
+    }
+
     sme_UpdateRoamRssiDiff((tHalHandle)(pHddCtx->hHal),
                                     pHddCtx->cfg_ini->RoamRssiDiff);
 }
@@ -93,6 +111,32 @@ static void cbNotifySetWESMode(hdd_context_t *pHddCtx, unsigned long NotifyId)
     // at the point this routine is called, the value in the cfg_ini table has already been updated
     sme_UpdateWESMode((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->isWESModeEnabled);
 }
+
+static void cbNotifySetRoamScanNProbes(hdd_context_t *pHddCtx, unsigned long NotifyId)
+{
+    sme_UpdateRoamScanNProbes((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nProbes);
+}
+
+static void cbNotifySetRoamScanHomeAwayTime(hdd_context_t *pHddCtx, unsigned long NotifyId)
+{
+    tANI_U16 scanChannelMaxTime = 0;
+
+    /* Home Away Time should be atleast equal to (MaxDwell time + (2*RFS)),
+     * where RFS is the RF Switching time. It is twice RFS to consider the
+     * time to go off channel and return to the home channel. */
+
+     scanChannelMaxTime = sme_getNeighborScanMaxChanTime((tHalHandle)(pHddCtx->hHal));
+     if (pHddCtx->cfg_ini->nRoamScanHomeAwayTime < (scanChannelMaxTime + (2 * HDD_ROAM_SCAN_CHANNEL_SWITCH_TIME)))
+     {
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+                "%s: Invalid config, Home away time(%d) is less than (twice RF switching time + channel max time)(%d)"
+                " Hence enforcing home away time to disable (0)",
+                __func__, pHddCtx->cfg_ini->nRoamScanHomeAwayTime, (scanChannelMaxTime + (2 * HDD_ROAM_SCAN_CHANNEL_SWITCH_TIME)));
+         pHddCtx->cfg_ini->nRoamScanHomeAwayTime = 0;
+     }
+
+     sme_UpdateRoamScanHomeAwayTime((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nRoamScanHomeAwayTime, eANI_BOOLEAN_TRUE);
+}
 #endif
 
 #ifdef FEATURE_WLAN_OKC
@@ -107,6 +151,12 @@ static void NotifyIsFastRoamIniFeatureEnabled(hdd_context_t *pHddCtx, unsigned l
 {
     // at the point this routine is called, the value in the cfg_ini table has already been updated
     sme_UpdateIsFastRoamIniFeatureEnabled((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->isFastRoamIniFeatureEnabled );
+}
+
+static void NotifyIsMAWCIniFeatureEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
+{
+    /* at the point this routine is called, the value in the cfg_ini table has already been updated */
+    sme_UpdateIsMAWCIniFeatureEnabled((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->MAWCEnabled );
 }
 #endif
 
@@ -157,7 +207,22 @@ static void cbNotifySetNeighborScanMinChanTime(hdd_context_t *pHddCtx, unsigned 
 
 static void cbNotifySetNeighborScanMaxChanTime(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    // at the point this routine is called, the value in the cfg_ini table has already been updated
+    tANI_U16 homeAwayTime = 0;
+
+    /* Home Away Time should be atleast equal to (MaxDwell time + (2*RFS)),
+    *  where RFS is the RF Switching time. It is twice RFS to consider the
+    *  time to go off channel and return to the home channel. */
+    homeAwayTime = sme_getRoamScanHomeAwayTime((tHalHandle)(pHddCtx->hHal));
+    if (homeAwayTime < (pHddCtx->cfg_ini->nNeighborScanMaxChanTime + (2 * HDD_ROAM_SCAN_CHANNEL_SWITCH_TIME)))
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+               "%s: Invalid config, Home away time(%d) is less than (twice RF switching time + channel max time)(%d)"
+               " Hence enforcing home away time to disable (0)",
+               __func__, homeAwayTime, (pHddCtx->cfg_ini->nNeighborScanMaxChanTime + (2 * HDD_ROAM_SCAN_CHANNEL_SWITCH_TIME)));
+        homeAwayTime = 0;
+        pHddCtx->cfg_ini->nRoamScanHomeAwayTime = homeAwayTime;
+        sme_UpdateRoamScanHomeAwayTime((tHalHandle)(pHddCtx->hHal), homeAwayTime, eANI_BOOLEAN_FALSE);
+    }
     sme_setNeighborScanMaxChanTime((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nNeighborScanMaxChanTime);
 }
 #endif
@@ -171,7 +236,18 @@ static void cbNotifySetEnableSSR(hdd_context_t *pHddCtx, unsigned long NotifyId)
 static void cbNotifyUpdateRoamScanOffloadEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
     sme_UpdateRoamScanOffloadEnabled((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->isRoamOffloadScanEnabled);
+    if (0 == pHddCtx->cfg_ini->isRoamOffloadScanEnabled)
+    {
+        pHddCtx->cfg_ini->bFastRoamInConIniFeatureEnabled = 0;
+        sme_UpdateEnableFastRoamInConcurrency((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->bFastRoamInConIniFeatureEnabled );
+    }
 }
+
+static void cbNotifySetEnableFastRoamInConcurrency(hdd_context_t *pHddCtx, unsigned long NotifyId)
+{
+    sme_UpdateEnableFastRoamInConcurrency((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->bFastRoamInConIniFeatureEnabled );
+}
+
 #endif
 
 REG_TABLE_ENTRY g_registry_table[] =
@@ -524,13 +600,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_RSSI_CATEGORY_GAP_MIN,
                  CFG_RSSI_CATEGORY_GAP_MAX ),
 
-   REG_VARIABLE( CFG_STAT_TIMER_INTERVAL_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, nStatTimerInterval,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_STAT_TIMER_INTERVAL_DEFAULT,
-                 CFG_STAT_TIMER_INTERVAL_MIN,
-                 CFG_STAT_TIMER_INTERVAL_MAX ),
-
    REG_VARIABLE( CFG_SHORT_PREAMBLE_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fIsShortPreamble,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -569,11 +638,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                         hdd_config_t, intfMacAddr[3],
                         VAR_FLAGS_OPTIONAL,
                         (void *)CFG_INTF3_MAC_ADDR_DEFAULT ),
-
-   REG_VARIABLE_STRING( CFG_CRDA_DEFAULT_COUNTRY_CODE, WLAN_PARAM_String,
-                        hdd_config_t, crdaDefaultCountryCode,
-                        VAR_FLAGS_OPTIONAL,
-                        (void *)CFG_CRDA_DEFAULT_COUNTRY_CODE_DEFAULT ),
 
    REG_VARIABLE( CFG_AP_QOS_UAPSD_MODE_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, apUapsdEnabled,
@@ -685,6 +749,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_AP_LINK_MONITOR_PERIOD_MIN,
                  CFG_AP_LINK_MONITOR_PERIOD_MAX),
 
+   REG_VARIABLE( CFG_GO_LINK_MONITOR_PERIOD_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, goLinkMonitorPeriod,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_GO_LINK_MONITOR_PERIOD_DEFAULT,
+                 CFG_GO_LINK_MONITOR_PERIOD_MIN,
+                 CFG_GO_LINK_MONITOR_PERIOD_MAX),
+
    REG_VARIABLE(CFG_DISABLE_PACKET_FILTER , WLAN_PARAM_Integer,
                  hdd_config_t, disablePacketFilter,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -698,14 +769,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_BEACON_INTERVAL_DEFAULT,
                  CFG_BEACON_INTERVAL_MIN,
                  CFG_BEACON_INTERVAL_MAX ),
-
-   REG_VARIABLE( CFG_ENABLE_HANDOFF_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, fIsHandoffEnabled,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_ENABLE_HANDOFF_DEFAULT,
-                 CFG_ENABLE_HANDOFF_MIN,
-                 CFG_ENABLE_HANDOFF_MAX ),
-
 
    REG_VARIABLE( CFG_ENABLE_IDLE_SCAN_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, nEnableIdleScan,
@@ -798,6 +861,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_RETRY_LIMIT_TWO_MIN,
                  CFG_RETRY_LIMIT_TWO_MAX ),
 
+   REG_VARIABLE( CFG_DISABLE_AGG_WITH_BTC_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, disableAggWithBtc,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DISABLE_AGG_WITH_BTC_DEFAULT,
+                 CFG_DISABLE_AGG_WITH_BTC_MIN,
+                 CFG_DISABLE_AGG_WITH_BTC_MAX ),
+
 #ifdef WLAN_AP_STA_CONCURRENCY
    REG_VARIABLE( CFG_PASSIVE_MAX_CHANNEL_TIME_CONC_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, nPassiveMaxChnTimeConc,
@@ -834,12 +904,19 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_REST_TIME_CONC_MIN,
                  CFG_REST_TIME_CONC_MAX ),
 
-   REG_VARIABLE( CFG_NUM_CHAN_COMBINED_CONC_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, nNumChanCombinedConc,
+   REG_VARIABLE( CFG_NUM_STA_CHAN_COMBINED_CONC_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, nNumStaChanCombinedConc,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_NUM_CHAN_COMBINED_CONC_DEFAULT,
-                 CFG_NUM_CHAN_COMBINED_CONC_MIN,
-                 CFG_NUM_CHAN_COMBINED_CONC_MAX ),
+                 CFG_NUM_STA_CHAN_COMBINED_CONC_DEFAULT,
+                 CFG_NUM_STA_CHAN_COMBINED_CONC_MIN,
+                 CFG_NUM_STA_CHAN_COMBINED_CONC_MAX ),
+
+   REG_VARIABLE( CFG_NUM_P2P_CHAN_COMBINED_CONC_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, nNumP2PChanCombinedConc,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_NUM_P2P_CHAN_COMBINED_CONC_DEFAULT,
+                 CFG_NUM_P2P_CHAN_COMBINED_CONC_MIN,
+                 CFG_NUM_P2P_CHAN_COMBINED_CONC_MAX ),
 #endif
 
    REG_VARIABLE( CFG_MAX_PS_POLL_NAME, WLAN_PARAM_Integer,
@@ -948,13 +1025,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_QOS_WMM_UAPSD_MASK_MIN,
                  CFG_QOS_WMM_UAPSD_MASK_MAX ),
 
-   REG_VARIABLE( CFG_QOS_WMM_MAX_SP_LEN_NAME , WLAN_PARAM_Integer,
-                 hdd_config_t, MaxSpLength,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_QOS_WMM_MAX_SP_LEN_DEFAULT,
-                 CFG_QOS_WMM_MAX_SP_LEN_MIN,
-                 CFG_QOS_WMM_MAX_SP_LEN_MAX ),
-
    REG_VARIABLE( CFG_QOS_WMM_INFRA_UAPSD_VO_SRV_INTV_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, InfraUapsdVoSrvIntv,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -1036,6 +1106,16 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_LFR_FEATURE_ENABLED_MIN,
                  CFG_LFR_FEATURE_ENABLED_MAX,
                  NotifyIsFastRoamIniFeatureEnabled, 0 ),
+
+   /* flag to turn ON/OFF Motion assistance for Legacy Fast Roaming */
+   REG_DYNAMIC_VARIABLE( CFG_LFR_MAWC_FEATURE_ENABLED_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, MAWCEnabled,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_LFR_MAWC_FEATURE_ENABLED_DEFAULT,
+                 CFG_LFR_MAWC_FEATURE_ENABLED_MIN,
+                 CFG_LFR_MAWC_FEATURE_ENABLED_MAX,
+                 NotifyIsMAWCIniFeatureEnabled, 0 ),
+
 #endif // FEATURE_WLAN_LFR
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
@@ -1286,13 +1366,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_QOS_IMPLICIT_SETUP_ENABLED_MIN,
                  CFG_QOS_IMPLICIT_SETUP_ENABLED_MAX ),
 
-   REG_VARIABLE( CFG_19P2_MHZ_PMIC_CLK_ENABLED_NAME , WLAN_PARAM_Integer,
-                 hdd_config_t, b19p2MhzPmicClkEnabled,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_19P2_MHZ_PMIC_CLK_ENABLED_DEFAULT,
-                 CFG_19P2_MHZ_PMIC_CLK_ENABLED_MIN,
-                 CFG_19P2_MHZ_PMIC_CLK_ENABLED_MAX ),
-
    REG_VARIABLE( CFG_BTC_EXECUTION_MODE_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, btcExecutionMode,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -1405,6 +1478,342 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_BTC_DHCP_PROT_ON_SCO_MIN,
                  CFG_BTC_DHCP_PROT_ON_SCO_MAX ),
 
+   REG_VARIABLE( CFG_MWS_COEX_V1_WAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWANFreq[0],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V1_WLAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWLANFreq[0],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V1_CONFIG_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig[0],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V1_CONFIG2_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig2[0],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V2_WAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWANFreq[1],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V2_WLAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWLANFreq[1],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V2_CONFIG_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig[1],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V2_CONFIG2_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig2[1],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V3_WAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWANFreq[2],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V3_WLAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWLANFreq[2],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V3_CONFIG_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig[2],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V3_CONFIG2_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig2[2],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V4_WAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWANFreq[3],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V4_WLAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWLANFreq[3],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V4_CONFIG_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig[3],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V4_CONFIG2_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig2[3],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V5_WAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWANFreq[4],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V5_WLAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWLANFreq[4],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V5_CONFIG_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig[4],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V5_CONFIG2_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig2[4],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V6_WAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWANFreq[5],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V6_WLAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWLANFreq[5],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V6_CONFIG_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig[5],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V6_CONFIG2_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig2[5],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V7_WAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWANFreq[6],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V7_WLAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWLANFreq[6],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V7_CONFIG_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig[6],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V7_CONFIG2_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig2[6],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V8_WAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWANFreq[7],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V8_WLAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWLANFreq[7],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V8_CONFIG_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig[7],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V8_CONFIG2_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig2[7],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V9_WAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWANFreq[8],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V9_WLAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWLANFreq[8],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V9_CONFIG_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig[8],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V9_CONFIG2_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig2[8],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V10_WAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWANFreq[9],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V10_WLAN_FREQ_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimWLANFreq[9],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MIN,
+                 CFG_MWS_COEX_VX_WLAN_FREQ_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V10_CONFIG_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig[9],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_V10_CONFIG2_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexVictimConfig2[9],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_DEFAULT,
+                 CFG_MWS_COEX_VX_CONFIG_MIN,
+                 CFG_MWS_COEX_VX_CONFIG_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_MODEM_BACKOFF_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexModemBackoff,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_MODEM_BACKOFF_DEFAULT,
+                 CFG_MWS_COEX_MODEM_BACKOFF_MIN,
+                 CFG_MWS_COEX_MODEM_BACKOFF_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_CONFIG1_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexConfig[0],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_MIN,
+                 CFG_MWS_COEX_CONFIGX_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_CONFIG2_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexConfig[1],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_MIN,
+                 CFG_MWS_COEX_CONFIGX_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_CONFIG3_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexConfig[2],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_MIN,
+                 CFG_MWS_COEX_CONFIGX_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_CONFIG4_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexConfig[3],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_MIN,
+                 CFG_MWS_COEX_CONFIGX_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_CONFIG5_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexConfig[4],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_MIN,
+                 CFG_MWS_COEX_CONFIGX_MAX ),
+
+   REG_VARIABLE( CFG_MWS_COEX_CONFIG6_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, mwsCoexConfig[5],
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_DEFAULT,
+                 CFG_MWS_COEX_CONFIGX_MIN,
+                 CFG_MWS_COEX_CONFIGX_MAX ),
+
+   REG_VARIABLE( CFG_SAR_POWER_BACKOFF_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, SARPowerBackoff,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SAR_POWER_BACKOFF_DEFAULT,
+                 CFG_SAR_POWER_BACKOFF_MIN,
+                 CFG_SAR_POWER_BACKOFF_MAX ),
+
    REG_VARIABLE( CFG_AP_LISTEN_MODE_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, nEnableListenMode,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -1450,13 +1859,6 @@ REG_TABLE_ENTRY g_registry_table[] =
 #endif
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
-   REG_VARIABLE( CFG_FT_ENABLE_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, fFTEnable,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_FT_ENABLE_DEFAULT,
-                 CFG_FT_ENABLE_MIN,
-                 CFG_FT_ENABLE_MAX ),
-
    REG_VARIABLE( CFG_FT_RESOURCE_REQ_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fFTResourceReqSupported,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -1697,6 +2099,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_VOS_TRACE_ENABLE_MIN,
                 CFG_VOS_TRACE_ENABLE_MAX ),
 
+   REG_VARIABLE( CFG_VOS_TRACE_ENABLE_PMC_NAME,  WLAN_PARAM_Integer,
+                 hdd_config_t, vosTraceEnablePMC,
+                 VAR_FLAGS_OPTIONAL,
+                 CFG_VOS_TRACE_ENABLE_DEFAULT,
+                 CFG_VOS_TRACE_ENABLE_MIN,
+                 CFG_VOS_TRACE_ENABLE_MAX ),
+
    REG_VARIABLE( CFG_VOS_TRACE_ENABLE_WDA_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, vosTraceEnableWDA,
                 VAR_FLAGS_OPTIONAL,
@@ -1762,42 +2171,42 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_WDI_TRACE_ENABLE_MIN,
                 CFG_WDI_TRACE_ENABLE_MAX ),
 
-  REG_VARIABLE( CFG_TELE_BCN_TRANS_LI_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TELE_BCN_TRANS_LI_NAME, WLAN_PARAM_Integer,
                hdd_config_t, nTeleBcnTransListenInterval,
                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                CFG_TELE_BCN_TRANS_LI_DEFAULT,
                CFG_TELE_BCN_TRANS_LI_MIN,
                CFG_TELE_BCN_TRANS_LI_MAX ),
 
-  REG_VARIABLE( CFG_TELE_BCN_TRANS_LI_NUM_IDLE_BCNS_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TELE_BCN_TRANS_LI_NUM_IDLE_BCNS_NAME, WLAN_PARAM_Integer,
                hdd_config_t, nTeleBcnTransLiNumIdleBeacons,
                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                CFG_TELE_BCN_TRANS_LI_NUM_IDLE_BCNS_DEFAULT,
                CFG_TELE_BCN_TRANS_LI_NUM_IDLE_BCNS_MIN,
                CFG_TELE_BCN_TRANS_LI_NUM_IDLE_BCNS_MAX ),
 
-  REG_VARIABLE( CFG_TELE_BCN_MAX_LI_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TELE_BCN_MAX_LI_NAME, WLAN_PARAM_Integer,
                hdd_config_t, nTeleBcnMaxListenInterval,
                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                CFG_TELE_BCN_MAX_LI_DEFAULT,
                CFG_TELE_BCN_MAX_LI_MIN,
                CFG_TELE_BCN_MAX_LI_MAX ),
 
-  REG_VARIABLE( CFG_TELE_BCN_MAX_LI_NUM_IDLE_BCNS_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TELE_BCN_MAX_LI_NUM_IDLE_BCNS_NAME, WLAN_PARAM_Integer,
                hdd_config_t, nTeleBcnMaxLiNumIdleBeacons,
                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                CFG_TELE_BCN_MAX_LI_NUM_IDLE_BCNS_DEFAULT,
                CFG_TELE_BCN_MAX_LI_NUM_IDLE_BCNS_MIN,
                CFG_TELE_BCN_MAX_LI_NUM_IDLE_BCNS_MAX ),
 
-  REG_VARIABLE( CFG_BCN_EARLY_TERM_WAKE_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_BCN_EARLY_TERM_WAKE_NAME, WLAN_PARAM_Integer,
                hdd_config_t, bcnEarlyTermWakeInterval,
                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                CFG_BCN_EARLY_TERM_WAKE_DEFAULT,
                CFG_BCN_EARLY_TERM_WAKE_MIN,
                CFG_BCN_EARLY_TERM_WAKE_MAX ),
 
- REG_VARIABLE( CFG_AP_DATA_AVAIL_POLL_PERIOD_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_AP_DATA_AVAIL_POLL_PERIOD_NAME, WLAN_PARAM_Integer,
               hdd_config_t, apDataAvailPollPeriodInMs,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_AP_DATA_AVAIL_POLL_PERIOD_DEFAULT,
@@ -1811,42 +2220,42 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ENABLE_CLOSE_LOOP_MIN,
                 CFG_ENABLE_CLOSE_LOOP_MAX ),
 
- REG_VARIABLE( CFG_ENABLE_BYPASS_11D_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_BYPASS_11D_NAME, WLAN_PARAM_Integer,
               hdd_config_t, enableBypass11d,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_ENABLE_BYPASS_11D_DEFAULT,
               CFG_ENABLE_BYPASS_11D_MIN,
               CFG_ENABLE_BYPASS_11D_MAX ),
 
- REG_VARIABLE( CFG_ENABLE_DFS_CHNL_SCAN_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_DFS_CHNL_SCAN_NAME, WLAN_PARAM_Integer,
               hdd_config_t, enableDFSChnlScan,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_ENABLE_DFS_CHNL_SCAN_DEFAULT,
               CFG_ENABLE_DFS_CHNL_SCAN_MIN,
               CFG_ENABLE_DFS_CHNL_SCAN_MAX ),
 
- REG_VARIABLE( CFG_ENABLE_DYNAMIC_DTIM_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_DYNAMIC_DTIM_NAME, WLAN_PARAM_Integer,
               hdd_config_t, enableDynamicDTIM,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_ENABLE_DYNAMIC_DTIM_DEFAULT,
               CFG_ENABLE_DYNAMIC_DTIM_MIN,
               CFG_ENABLE_DYNAMIC_DTIM_MAX ),
 
- REG_VARIABLE( CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_NAME, WLAN_PARAM_Integer,
               hdd_config_t, enableAutomaticTxPowerControl,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_DEFAULT,
               CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MIN,
               CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MAX ),
 
- REG_VARIABLE( CFG_SHORT_GI_40MHZ_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_SHORT_GI_40MHZ_NAME, WLAN_PARAM_Integer,
               hdd_config_t, ShortGI40MhzEnable,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_SHORT_GI_40MHZ_DEFAULT,
               CFG_SHORT_GI_40MHZ_MIN,
               CFG_SHORT_GI_40MHZ_MAX ),
 
- REG_DYNAMIC_VARIABLE( CFG_REPORT_MAX_LINK_SPEED, WLAN_PARAM_Integer,
+   REG_DYNAMIC_VARIABLE( CFG_REPORT_MAX_LINK_SPEED, WLAN_PARAM_Integer,
                        hdd_config_t, reportMaxLinkSpeed,
                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                        CFG_REPORT_MAX_LINK_SPEED_DEFAULT,
@@ -1854,7 +2263,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                        CFG_REPORT_MAX_LINK_SPEED_MAX,
                        NULL, 0 ),
 
- REG_DYNAMIC_VARIABLE( CFG_LINK_SPEED_RSSI_HIGH, WLAN_PARAM_SignedInteger,
+   REG_DYNAMIC_VARIABLE( CFG_LINK_SPEED_RSSI_HIGH, WLAN_PARAM_SignedInteger,
                        hdd_config_t, linkSpeedRssiHigh,
                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                        CFG_LINK_SPEED_RSSI_HIGH_DEFAULT,
@@ -1862,7 +2271,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                        CFG_LINK_SPEED_RSSI_HIGH_MAX,
                        NULL, 0 ),
 
- REG_DYNAMIC_VARIABLE( CFG_LINK_SPEED_RSSI_MID, WLAN_PARAM_SignedInteger,
+   REG_DYNAMIC_VARIABLE( CFG_LINK_SPEED_RSSI_MID, WLAN_PARAM_SignedInteger,
                        hdd_config_t, linkSpeedRssiMid,
                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                        CFG_LINK_SPEED_RSSI_MID_DEFAULT,
@@ -1870,7 +2279,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                        CFG_LINK_SPEED_RSSI_MID_MAX,
                        NULL, 0 ),
 
- REG_DYNAMIC_VARIABLE( CFG_LINK_SPEED_RSSI_LOW, WLAN_PARAM_SignedInteger,
+   REG_DYNAMIC_VARIABLE( CFG_LINK_SPEED_RSSI_LOW, WLAN_PARAM_SignedInteger,
                        hdd_config_t, linkSpeedRssiLow,
                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                        CFG_LINK_SPEED_RSSI_LOW_DEFAULT,
@@ -1879,7 +2288,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                        NULL, 0 ),
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
- REG_DYNAMIC_VARIABLE( CFG_ROAM_PREFER_5GHZ, WLAN_PARAM_Integer,
+   REG_DYNAMIC_VARIABLE( CFG_ROAM_PREFER_5GHZ, WLAN_PARAM_Integer,
                        hdd_config_t, nRoamPrefer5GHz,
                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                        CFG_ROAM_PREFER_5GHZ_DEFAULT,
@@ -1887,7 +2296,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                        CFG_ROAM_PREFER_5GHZ_MAX,
                        cbNotifySetRoamPrefer5GHz, 0 ),
 
- REG_DYNAMIC_VARIABLE( CFG_ROAM_INTRA_BAND, WLAN_PARAM_Integer,
+   REG_DYNAMIC_VARIABLE( CFG_ROAM_INTRA_BAND, WLAN_PARAM_Integer,
                        hdd_config_t, nRoamIntraBand,
                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                        CFG_ROAM_INTRA_BAND_DEFAULT,
@@ -1895,52 +2304,60 @@ REG_TABLE_ENTRY g_registry_table[] =
                        CFG_ROAM_INTRA_BAND_MAX,
                        cbNotifySetRoamIntraBand, 0 ),
 
+ REG_DYNAMIC_VARIABLE( CFG_ROAM_SCAN_N_PROBES, WLAN_PARAM_Integer,
+                       hdd_config_t, nProbes,
+                       VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                       CFG_ROAM_SCAN_N_PROBES_DEFAULT,
+                       CFG_ROAM_SCAN_N_PROBES_MIN,
+                       CFG_ROAM_SCAN_N_PROBES_MAX,
+                       cbNotifySetRoamScanNProbes, 0 ),
+
+ REG_DYNAMIC_VARIABLE( CFG_ROAM_SCAN_HOME_AWAY_TIME, WLAN_PARAM_Integer,
+                       hdd_config_t, nRoamScanHomeAwayTime,
+                       VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                       CFG_ROAM_SCAN_HOME_AWAY_TIME_DEFAULT,
+                       CFG_ROAM_SCAN_HOME_AWAY_TIME_MIN,
+                       CFG_ROAM_SCAN_HOME_AWAY_TIME_MAX,
+                       cbNotifySetRoamScanHomeAwayTime, 0 ),
+
 #endif
 
- REG_VARIABLE( CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_NAME, WLAN_PARAM_Integer,
               hdd_config_t, isP2pDeviceAddrAdministrated,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_DEFAULT,
               CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MIN,
               CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MAX ),
 
-REG_VARIABLE( CFG_ENABLE_MCC_ENABLED_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_MCC_ENABLED_NAME, WLAN_PARAM_Integer,
              hdd_config_t, enableMCC,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
              CFG_ENABLE_MCC_ENABLED_DEFAULT,
              CFG_ENABLE_MCC_ENABLED_MIN,
              CFG_ENABLE_MCC_ENABLED_MAX ),
 
-REG_VARIABLE( CFG_ALLOW_MCC_GO_DIFF_BI_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ALLOW_MCC_GO_DIFF_BI_NAME, WLAN_PARAM_Integer,
              hdd_config_t, allowMCCGODiffBI,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
              CFG_ALLOW_MCC_GO_DIFF_BI_DEFAULT,
              CFG_ALLOW_MCC_GO_DIFF_BI_MIN,
              CFG_ALLOW_MCC_GO_DIFF_BI_MAX ),
 
-REG_VARIABLE( CFG_THERMAL_MIGRATION_ENABLE_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_THERMAL_MIGRATION_ENABLE_NAME, WLAN_PARAM_Integer,
               hdd_config_t, thermalMitigationEnable,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_THERMAL_MIGRATION_ENABLE_DEFAULT,
               CFG_THERMAL_MIGRATION_ENABLE_MIN,
               CFG_THERMAL_MIGRATION_ENABLE_MAX ),
-#ifdef WLAN_FEATURE_PACKET_FILTERING
- REG_VARIABLE( CFG_MC_ADDR_LIST_FILTER_NAME, WLAN_PARAM_Integer,
-              hdd_config_t, isMcAddrListFilter,
-              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-              CFG_MC_ADDR_LIST_FILTER_DEFAULT,
-              CFG_MC_ADDR_LIST_FILTER_MIN,
-              CFG_MC_ADDR_LIST_FILTER_MAX ),
-#endif
 
-REG_VARIABLE( CFG_ENABLE_MODULATED_DTIM_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_MODULATED_DTIM_NAME, WLAN_PARAM_Integer,
               hdd_config_t, enableModulatedDTIM,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_ENABLE_MODULATED_DTIM_DEFAULT,
               CFG_ENABLE_MODULATED_DTIM_MIN,
               CFG_ENABLE_MODULATED_DTIM_MAX ),
 
- REG_VARIABLE( CFG_MC_ADDR_LIST_ENABLE_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_MC_ADDR_LIST_ENABLE_NAME, WLAN_PARAM_Integer,
               hdd_config_t, fEnableMCAddrList,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_MC_ADDR_LIST_ENABLE_DEFAULT,
@@ -1948,21 +2365,21 @@ REG_VARIABLE( CFG_ENABLE_MODULATED_DTIM_NAME, WLAN_PARAM_Integer,
               CFG_MC_ADDR_LIST_ENABLE_MAX ),
 
 #ifdef WLAN_FEATURE_11AC
-REG_VARIABLE( CFG_VHT_CHANNEL_WIDTH, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_VHT_CHANNEL_WIDTH, WLAN_PARAM_Integer,
               hdd_config_t, vhtChannelWidth,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
               CFG_VHT_CHANNEL_WIDTH_DEFAULT,
               CFG_VHT_CHANNEL_WIDTH_MIN,
               CFG_VHT_CHANNEL_WIDTH_MAX),
 
-REG_VARIABLE( CFG_VHT_ENABLE_RX_MCS_8_9, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_VHT_ENABLE_RX_MCS_8_9, WLAN_PARAM_Integer,
               hdd_config_t, vhtRxMCS,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
               CFG_VHT_ENABLE_RX_MCS_8_9_DEFAULT,
               CFG_VHT_ENABLE_RX_MCS_8_9_MIN,
               CFG_VHT_ENABLE_RX_MCS_8_9_MAX),
 
-REG_VARIABLE( CFG_VHT_ENABLE_TX_MCS_8_9, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_VHT_ENABLE_TX_MCS_8_9, WLAN_PARAM_Integer,
               hdd_config_t, vhtTxMCS,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
               CFG_VHT_ENABLE_TX_MCS_8_9_DEFAULT,
@@ -1990,12 +2407,6 @@ REG_VARIABLE( CFG_VHT_ENABLE_2x2_CAP_FEATURE, WLAN_PARAM_Integer,
              CFG_VHT_ENABLE_2x2_CAP_FEATURE_MIN,
              CFG_VHT_ENABLE_2x2_CAP_FEATURE_MAX ),
 
-REG_VARIABLE( CFG_ENABLE_VHT_FOR_24GHZ_NAME, WLAN_PARAM_Integer,
-             hdd_config_t, enableVhtFor24GHzBand,
-             VAR_FLAGS_OPTIONAL,
-             CFG_ENABLE_VHT_FOR_24GHZ_DEFAULT,
-             CFG_ENABLE_VHT_FOR_24GHZ_MIN,
-             CFG_ENABLE_VHT_FOR_24GHZ_MAX),
 REG_VARIABLE( CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE, WLAN_PARAM_Integer,
              hdd_config_t, enableMuBformee,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -2039,41 +2450,41 @@ REG_VARIABLE( CFG_HT_SMPS_CAP_FEATURE, WLAN_PARAM_Integer,
              CFG_HT_SMPS_CAP_FEATURE_MIN,
              CFG_HT_SMPS_CAP_FEATURE_MAX ),
 
-REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
               hdd_config_t, enableFirstScan2GOnly,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_ENABLE_FIRST_SCAN_2G_ONLY_DEFAULT,
               CFG_ENABLE_FIRST_SCAN_2G_ONLY_MIN,
               CFG_ENABLE_FIRST_SCAN_2G_ONLY_MAX ),
 
-REG_VARIABLE( CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_NAME, WLAN_PARAM_Integer,
               hdd_config_t, skipDfsChnlInP2pSearch,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_DEFAULT,
               CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_MIN,
               CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_MAX ),
 
-REG_VARIABLE( CFG_IGNORE_DYNAMIC_DTIM_IN_P2P_MODE_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_IGNORE_DYNAMIC_DTIM_IN_P2P_MODE_NAME, WLAN_PARAM_Integer,
               hdd_config_t, ignoreDynamicDtimInP2pMode,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_IGNORE_DYNAMIC_DTIM_IN_P2P_MODE_DEFAULT,
               CFG_IGNORE_DYNAMIC_DTIM_IN_P2P_MODE_MIN,
               CFG_IGNORE_DYNAMIC_DTIM_IN_P2P_MODE_MAX ),
 
-REG_VARIABLE( CFG_NUM_BUFF_ADVERT_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_NUM_BUFF_ADVERT_NAME, WLAN_PARAM_Integer,
               hdd_config_t,numBuffAdvert ,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
               CFG_NUM_BUFF_ADVERT_DEFAULT,
               CFG_NUM_BUFF_ADVERT_MIN,
               CFG_NUM_BUFF_ADVERT_MAX ),
 
-REG_VARIABLE( CFG_MCC_CONFIG_PARAM_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_MCC_CONFIG_PARAM_NAME, WLAN_PARAM_Integer,
              hdd_config_t, configMccParam,
              VAR_FLAGS_OPTIONAL,
              CFG_MCC_CONFIG_PARAM_DEFAULT,
              CFG_MCC_CONFIG_PARAM_MIN,
              CFG_MCC_CONFIG_PARAM_MAX ),
-REG_VARIABLE( CFG_ENABLE_RX_STBC, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_RX_STBC, WLAN_PARAM_Integer,
               hdd_config_t, enableRxSTBC,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_ENABLE_RX_STBC_DEFAULT,
@@ -2094,93 +2505,130 @@ REG_VARIABLE( CFG_ENABLE_RX_LDPC, WLAN_PARAM_Integer,
               CFG_ENABLE_RX_LDPC_MAX ),
 
 #ifdef FEATURE_WLAN_TDLS
-REG_VARIABLE( CFG_TDLS_SUPPORT_ENABLE, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TDLS_SUPPORT_ENABLE, WLAN_PARAM_Integer,
               hdd_config_t, fEnableTDLSSupport,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TDLS_SUPPORT_ENABLE_DEFAULT,
               CFG_TDLS_SUPPORT_ENABLE_MIN,
               CFG_TDLS_SUPPORT_ENABLE_MAX ),
 
-REG_VARIABLE( CFG_TDLS_IMPLICIT_TRIGGER, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TDLS_IMPLICIT_TRIGGER, WLAN_PARAM_Integer,
               hdd_config_t, fEnableTDLSImplicitTrigger,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TDLS_IMPLICIT_TRIGGER_DEFAULT,
               CFG_TDLS_IMPLICIT_TRIGGER_MIN,
               CFG_TDLS_IMPLICIT_TRIGGER_MAX ),
 
-REG_VARIABLE( CFG_TDLS_TX_STATS_PERIOD, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TDLS_TX_STATS_PERIOD, WLAN_PARAM_Integer,
               hdd_config_t, fTDLSTxStatsPeriod,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TDLS_TX_STATS_PERIOD_DEFAULT,
               CFG_TDLS_TX_STATS_PERIOD_MIN,
               CFG_TDLS_TX_STATS_PERIOD_MAX ),
 
-REG_VARIABLE( CFG_TDLS_TX_PACKET_THRESHOLD, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TDLS_TX_PACKET_THRESHOLD, WLAN_PARAM_Integer,
               hdd_config_t, fTDLSTxPacketThreshold,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TDLS_TX_PACKET_THRESHOLD_DEFAULT,
               CFG_TDLS_TX_PACKET_THRESHOLD_MIN,
               CFG_TDLS_TX_PACKET_THRESHOLD_MAX ),
 
-REG_VARIABLE( CFG_TDLS_DISCOVERY_PERIOD, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TDLS_DISCOVERY_PERIOD, WLAN_PARAM_Integer,
               hdd_config_t, fTDLSDiscoveryPeriod,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TDLS_DISCOVERY_PERIOD_DEFAULT,
               CFG_TDLS_DISCOVERY_PERIOD_MIN,
               CFG_TDLS_DISCOVERY_PERIOD_MAX ),
 
-REG_VARIABLE( CFG_TDLS_MAX_DISCOVERY_ATTEMPT, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TDLS_MAX_DISCOVERY_ATTEMPT, WLAN_PARAM_Integer,
               hdd_config_t, fTDLSMaxDiscoveryAttempt,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TDLS_MAX_DISCOVERY_ATTEMPT_DEFAULT,
               CFG_TDLS_MAX_DISCOVERY_ATTEMPT_MIN,
               CFG_TDLS_MAX_DISCOVERY_ATTEMPT_MAX ),
 
-REG_VARIABLE( CFG_TDLS_IDLE_TIMEOUT, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TDLS_IDLE_TIMEOUT, WLAN_PARAM_Integer,
               hdd_config_t, fTDLSIdleTimeout,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TDLS_IDLE_TIMEOUT_DEFAULT,
               CFG_TDLS_IDLE_TIMEOUT_MIN,
               CFG_TDLS_IDLE_TIMEOUT_MAX ),
 
-REG_VARIABLE( CFG_TDLS_IDLE_PACKET_THRESHOLD, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TDLS_IDLE_PACKET_THRESHOLD, WLAN_PARAM_Integer,
               hdd_config_t, fTDLSIdlePacketThreshold,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TDLS_IDLE_PACKET_THRESHOLD_DEFAULT,
               CFG_TDLS_IDLE_PACKET_THRESHOLD_MIN,
               CFG_TDLS_IDLE_PACKET_THRESHOLD_MAX ),
 
-REG_VARIABLE( CFG_TDLS_RSSI_HYSTERESIS, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TDLS_RSSI_HYSTERESIS, WLAN_PARAM_Integer,
               hdd_config_t, fTDLSRSSIHysteresis,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TDLS_RSSI_HYSTERESIS_DEFAULT,
               CFG_TDLS_RSSI_HYSTERESIS_MIN,
               CFG_TDLS_RSSI_HYSTERESIS_MAX ),
 
-REG_VARIABLE( CFG_TDLS_RSSI_TRIGGER_THRESHOLD, WLAN_PARAM_SignedInteger,
+   REG_VARIABLE( CFG_TDLS_RSSI_TRIGGER_THRESHOLD, WLAN_PARAM_SignedInteger,
               hdd_config_t, fTDLSRSSITriggerThreshold,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TDLS_RSSI_TRIGGER_THRESHOLD_DEFAULT,
               CFG_TDLS_RSSI_TRIGGER_THRESHOLD_MIN,
               CFG_TDLS_RSSI_TRIGGER_THRESHOLD_MAX ),
 
-REG_VARIABLE( CFG_TDLS_RSSI_TEARDOWN_THRESHOLD, WLAN_PARAM_SignedInteger,
+   REG_VARIABLE( CFG_TDLS_RSSI_TEARDOWN_THRESHOLD, WLAN_PARAM_SignedInteger,
               hdd_config_t, fTDLSRSSITeardownThreshold,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_DEFAULT,
               CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MIN,
               CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MAX ),
+
+#ifdef QCA_WIFI_2_0
+   REG_VARIABLE( CFG_TDLS_RSSI_DELTA, WLAN_PARAM_SignedInteger,
+              hdd_config_t, fTDLSRSSIDelta,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_TDLS_RSSI_DELTA_DEFAULT,
+              CFG_TDLS_RSSI_DELTA_MIN,
+              CFG_TDLS_RSSI_DELTA_MAX ),
+#endif
+
+REG_VARIABLE( CFG_TDLS_QOS_WMM_UAPSD_MASK_NAME , WLAN_PARAM_HexInteger,
+                 hdd_config_t, fTDLSUapsdMask,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_TDLS_QOS_WMM_UAPSD_MASK_DEFAULT,
+                 CFG_TDLS_QOS_WMM_UAPSD_MASK_MIN,
+                 CFG_TDLS_QOS_WMM_UAPSD_MASK_MAX ),
+
+REG_VARIABLE( CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE, WLAN_PARAM_Integer,
+              hdd_config_t, fEnableTDLSBufferSta,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE_DEFAULT,
+              CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE_MIN,
+              CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE_MAX ),
+
+REG_VARIABLE( CFG_TDLS_PUAPSD_INACTIVITY_TIME, WLAN_PARAM_Integer,
+              hdd_config_t, fTDLSPuapsdInactivityTimer,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_TDLS_PUAPSD_INACTIVITY_TIME_DEFAULT,
+              CFG_TDLS_PUAPSD_INACTIVITY_TIME_MIN,
+              CFG_TDLS_PUAPSD_INACTIVITY_TIME_MAX ),
+
+REG_VARIABLE( CFG_TDLS_PUAPSD_RX_FRAME_THRESHOLD, WLAN_PARAM_Integer,
+              hdd_config_t, fTDLSRxFrameThreshold,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_TDLS_PUAPSD_RX_FRAME_THRESHOLD_DEFAULT,
+              CFG_TDLS_PUAPSD_RX_FRAME_THRESHOLD_MIN,
+              CFG_TDLS_PUAPSD_RX_FRAME_THRESHOLD_MAX ),
 #endif
 
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
-REG_VARIABLE( CFG_VSTA_SUPPORT_ENABLE, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_VSTA_SUPPORT_ENABLE, WLAN_PARAM_Integer,
               hdd_config_t, fEnableVSTASupport,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_VSTA_SUPPORT_ENABLE_DEFAULT,
               CFG_VSTA_SUPPORT_ENABLE_MIN,
               CFG_VSTA_SUPPORT_ENABLE_MAX ),
 #endif
-REG_VARIABLE( CFG_ENABLE_LPWR_IMG_TRANSITION_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_LPWR_IMG_TRANSITION_NAME, WLAN_PARAM_Integer,
              hdd_config_t, enableLpwrImgTransition,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
              CFG_ENABLE_LPWR_IMG_TRANSITION_DEFAULT,
@@ -2188,14 +2636,14 @@ REG_VARIABLE( CFG_ENABLE_LPWR_IMG_TRANSITION_NAME, WLAN_PARAM_Integer,
              CFG_ENABLE_LPWR_IMG_TRANSITION_MAX ),
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
-REG_VARIABLE( CFG_ACTIVEMODE_OFFLOAD_ENABLE, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ACTIVEMODE_OFFLOAD_ENABLE, WLAN_PARAM_Integer,
               hdd_config_t, fEnableActiveModeOffload,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_ACTIVEMODE_OFFLOAD_ENABLE_DEFAULT,
               CFG_ACTIVEMODE_OFFLOAD_ENABLE_MIN,
               CFG_ACTIVEMODE_OFFLOAD_ENABLE_MAX ),
 #endif
-REG_VARIABLE( CFG_ENABLE_LPWR_IMG_TRANSITION_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_LPWR_IMG_TRANSITION_NAME, WLAN_PARAM_Integer,
              hdd_config_t, enableLpwrImgTransition,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
              CFG_ENABLE_LPWR_IMG_TRANSITION_DEFAULT,
@@ -2203,42 +2651,42 @@ REG_VARIABLE( CFG_ENABLE_LPWR_IMG_TRANSITION_NAME, WLAN_PARAM_Integer,
              CFG_ENABLE_LPWR_IMG_TRANSITION_MAX ),
 
 
-REG_VARIABLE( CFG_SCAN_AGING_PARAM_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_SCAN_AGING_PARAM_NAME, WLAN_PARAM_Integer,
              hdd_config_t, scanAgingTimeout,
              VAR_FLAGS_OPTIONAL,
              CFG_SCAN_AGING_PARAM_DEFAULT,
              CFG_SCAN_AGING_PARAM_MIN,
              CFG_SCAN_AGING_PARAM_MAX ),
 
-REG_VARIABLE( CFG_TX_LDPC_ENABLE_FEATURE, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_TX_LDPC_ENABLE_FEATURE, WLAN_PARAM_Integer,
               hdd_config_t, enableTxLdpc,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_TX_LDPC_ENABLE_FEATURE_DEFAULT,
               CFG_TX_LDPC_ENABLE_FEATURE_MIN,
               CFG_TX_LDPC_ENABLE_FEATURE_MAX ),
 
-REG_VARIABLE( CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_NAME, WLAN_PARAM_Integer,
              hdd_config_t, enableMCCAdaptiveScheduler,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
              CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_DEFAULT,
              CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_MIN,
              CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_MAX ),
 
-REG_VARIABLE( CFG_ANDRIOD_POWER_SAVE_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_ANDRIOD_POWER_SAVE_NAME, WLAN_PARAM_Integer,
               hdd_config_t, isAndroidPsEn,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_ANDRIOD_POWER_SAVE_DEFAULT,
               CFG_ANDRIOD_POWER_SAVE_MIN,
               CFG_ANDRIOD_POWER_SAVE_MAX),
 
-REG_VARIABLE( CFG_IBSS_ADHOC_CHANNEL_5GHZ_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_IBSS_ADHOC_CHANNEL_5GHZ_NAME, WLAN_PARAM_Integer,
               hdd_config_t, AdHocChannel5G,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_IBSS_ADHOC_CHANNEL_5GHZ_DEFAULT,
               CFG_IBSS_ADHOC_CHANNEL_5GHZ_MIN,
               CFG_IBSS_ADHOC_CHANNEL_5GHZ_MAX),
 
-REG_VARIABLE( CFG_IBSS_ADHOC_CHANNEL_24GHZ_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_IBSS_ADHOC_CHANNEL_24GHZ_NAME, WLAN_PARAM_Integer,
               hdd_config_t, AdHocChannel24G,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
               CFG_IBSS_ADHOC_CHANNEL_24GHZ_DEFAULT,
@@ -2247,14 +2695,14 @@ REG_VARIABLE( CFG_IBSS_ADHOC_CHANNEL_24GHZ_NAME, WLAN_PARAM_Integer,
 
 
 #ifdef WLAN_FEATURE_11AC
-REG_VARIABLE( CFG_VHT_SU_BEAMFORMEE_CAP_FEATURE, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_VHT_SU_BEAMFORMEE_CAP_FEATURE, WLAN_PARAM_Integer,
              hdd_config_t, enableTxBF,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
              CFG_VHT_SU_BEAMFORMEE_CAP_FEATURE_DEFAULT,
              CFG_VHT_SU_BEAMFORMEE_CAP_FEATURE_MIN,
              CFG_VHT_SU_BEAMFORMEE_CAP_FEATURE_MAX ),
 
-REG_VARIABLE( CFG_VHT_CSN_BEAMFORMEE_ANT_SUPPORTED, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_VHT_CSN_BEAMFORMEE_ANT_SUPPORTED, WLAN_PARAM_Integer,
              hdd_config_t, txBFCsnValue,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
              CFG_VHT_CSN_BEAMFORMEE_ANT_SUPPORTED_DEFAULT,
@@ -2263,14 +2711,15 @@ REG_VARIABLE( CFG_VHT_CSN_BEAMFORMEE_ANT_SUPPORTED, WLAN_PARAM_Integer,
 
 #endif
 
-REG_VARIABLE( CFG_SAP_ALLOW_ALL_CHANNEL_PARAM_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_SAP_ALLOW_ALL_CHANNEL_PARAM_NAME, WLAN_PARAM_Integer,
              hdd_config_t, sapAllowAllChannel,
              VAR_FLAGS_OPTIONAL,
              CFG_SAP_ALLOW_ALL_CHANNEL_PARAM_DEFAULT,
              CFG_SAP_ALLOW_ALL_CHANNEL_PARAM_MIN,
              CFG_SAP_ALLOW_ALL_CHANNEL_PARAM_MAX ),
+
 #ifdef WLAN_FEATURE_11AC
-REG_VARIABLE( CFG_DISABLE_LDPC_WITH_TXBF_AP, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_DISABLE_LDPC_WITH_TXBF_AP, WLAN_PARAM_Integer,
              hdd_config_t, disableLDPCWithTxbfAP,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
              CFG_DISABLE_LDPC_WITH_TXBF_AP_DEFAULT,
@@ -2278,7 +2727,7 @@ REG_VARIABLE( CFG_DISABLE_LDPC_WITH_TXBF_AP, WLAN_PARAM_Integer,
              CFG_DISABLE_LDPC_WITH_TXBF_AP_MAX ),
 #endif
 
-REG_VARIABLE_STRING( CFG_LIST_OF_NON_DFS_COUNTRY_CODE, WLAN_PARAM_String,
+   REG_VARIABLE_STRING( CFG_LIST_OF_NON_DFS_COUNTRY_CODE, WLAN_PARAM_String,
              hdd_config_t, listOfNonDfsCountryCode,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
              (void *)CFG_LIST_OF_NON_DFS_COUNTRY_CODE_DEFAULT),
@@ -2291,17 +2740,142 @@ REG_VARIABLE_STRING( CFG_LIST_OF_NON_DFS_COUNTRY_CODE, WLAN_PARAM_String,
                 CFG_ENABLE_SSR_MAX,
                 cbNotifySetEnableSSR, 0 ),
 
-REG_VARIABLE_STRING( CFG_LIST_OF_NON_11AC_COUNTRY_CODE, WLAN_PARAM_String,
+   REG_VARIABLE_STRING( CFG_LIST_OF_NON_11AC_COUNTRY_CODE, WLAN_PARAM_String,
              hdd_config_t, listOfNon11acCountryCode,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
              (void *)CFG_LIST_OF_NON_11AC_COUNTRY_CODE_DEFAULT),
 
-REG_VARIABLE( CFG_SCAN_OFFLOAD_NAME, WLAN_PARAM_Integer,
-             hdd_config_t, fScanOffload,
+   REG_VARIABLE(CFG_MAX_MEDIUM_TIME, WLAN_PARAM_Integer,
+             hdd_config_t, cfgMaxMediumTime,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-             CFG_SCAN_OFFLOAD_DEFAULT,
-             CFG_SCAN_OFFLOAD_DISABLE,
-             CFG_SCAN_OFFLOAD_ENABLE ),
+             CFG_MAX_MEDIUM_TIME_STADEFAULT,
+             CFG_MAX_MEDIUM_TIME_STAMIN,
+             CFG_MAX_MEDIUM_TIME_STAMAX ),
+
+   REG_VARIABLE( CFG_ENABLE_TRAFFIC_MONITOR, WLAN_PARAM_Integer,
+                hdd_config_t, enableTrafficMonitor,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_TRAFFIC_MONITOR_DEFAULT,
+                CFG_ENABLE_TRAFFIC_MONITOR_MIN,
+                CFG_ENABLE_TRAFFIC_MONITOR_MAX),
+
+   REG_VARIABLE( CFG_TRAFFIC_IDLE_TIMEOUT, WLAN_PARAM_Integer,
+                hdd_config_t, trafficIdleTimeout,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TRAFFIC_IDLE_TIMEOUT_DEFAULT,
+                CFG_TRAFFIC_IDLE_TIMEOUT_MIN,
+                CFG_TRAFFIC_IDLE_TIMEOUT_MAX),
+
+#ifdef WLAN_FEATURE_11AC
+   REG_VARIABLE( CFG_ENABLE_VHT_FOR_24GHZ_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, enableVhtFor24GHzBand,
+             VAR_FLAGS_OPTIONAL,
+             CFG_ENABLE_VHT_FOR_24GHZ_DEFAULT,
+             CFG_ENABLE_VHT_FOR_24GHZ_MIN,
+             CFG_ENABLE_VHT_FOR_24GHZ_MAX),
+#endif
+
+   REG_VARIABLE( CFG_SCAN_OFFLOAD_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, fScanOffload,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_SCAN_OFFLOAD_DEFAULT,
+                CFG_SCAN_OFFLOAD_DISABLE,
+                CFG_SCAN_OFFLOAD_ENABLE ),
+
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+   REG_DYNAMIC_VARIABLE( CFG_ENABLE_FAST_ROAM_IN_CONCURRENCY, WLAN_PARAM_Integer,
+                        hdd_config_t, bFastRoamInConIniFeatureEnabled,
+                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                        CFG_ENABLE_FAST_ROAM_IN_CONCURRENCY_DEFAULT,
+                        CFG_ENABLE_FAST_ROAM_IN_CONCURRENCY_MIN,
+                        CFG_ENABLE_FAST_ROAM_IN_CONCURRENCY_MAX,
+                        cbNotifySetEnableFastRoamInConcurrency, 0 ),
+#endif
+
+   REG_VARIABLE( CFG_ENABLE_ADAPT_RX_DRAIN_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, fEnableAdaptRxDrain,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK ,
+                 CFG_ENABLE_ADAPT_RX_DRAIN_DEFAULT,
+                 CFG_ENABLE_ADAPT_RX_DRAIN_MIN,
+                 CFG_ENABLE_ADAPT_RX_DRAIN_MAX),
+
+   REG_VARIABLE( CFG_DYNAMIC_SPLIT_SCAN_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, dynSplitscan,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DYNAMIC_SPLIT_SCAN_DEFAULT,
+                 CFG_DYNAMIC_SPLIT_SCAN_MIN,
+                 CFG_DYNAMIC_SPLIT_SCAN_MAX ),
+
+   REG_VARIABLE( CFG_SPLIT_SCAN_TRAFFIC_MONITOR_THRSHLD_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, txRxThresholdForSplitScan,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SPLIT_SCAN_TRAFFIC_MONITOR_THRSHLD_DEFAULT,
+                 CFG_SPLIT_SCAN_TRAFFIC_MONITOR_THRSHLD_MIN,
+                 CFG_SPLIT_SCAN_TRAFFIC_MONITOR_THRSHLD_MAX ),
+
+   REG_VARIABLE( CFG_SPLIT_SCAN_TRAFFIC_MONITOR_TIMER_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, trafficMntrTmrForSplitScan,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SPLIT_SCAN_TRAFFIC_MONITOR_TIMER_DEFAULT,
+                 CFG_SPLIT_SCAN_TRAFFIC_MONITOR_TIMER_MIN,
+                 CFG_SPLIT_SCAN_TRAFFIC_MONITOR_TIMER_MAX ),
+
+   REG_VARIABLE( CFG_FLEX_CONNECT_POWER_FACTOR_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, flexConnectPowerFactor,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_MINMAX,
+                 CFG_FLEX_CONNECT_POWER_FACTOR_DEFAULT,
+                 CFG_FLEX_CONNECT_POWER_FACTOR_MIN,
+                 CFG_FLEX_CONNECT_POWER_FACTOR_MAX ),
+
+   REG_VARIABLE( CFG_ENABLE_HEART_BEAT_OFFLOAD, WLAN_PARAM_Integer,
+                 hdd_config_t, enableIbssHeartBeatOffload,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_HEART_BEAT_OFFLOAD_DEFAULT,
+                 CFG_ENABLE_HEART_BEAT_OFFLOAD_MIN,
+                 CFG_ENABLE_HEART_BEAT_OFFLOAD_MAX),
+
+   REG_VARIABLE( CFG_ANTENNA_DIVERSITY_PARAM_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, antennaDiversity,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ANTENNA_DIVERSITY_PARAM_DEFAULT,
+                 CFG_ANTENNA_DIVERSITY_PARAM_MIN,
+                 CFG_ANTENNA_DIVERSITY_PARAM_MAX),
+
+   REG_VARIABLE( CFG_ENABLE_SNR_MONITORING_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, fEnableSNRMonitoring,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK ,
+                 CFG_ENABLE_SNR_MONITORING_DEFAULT,
+                 CFG_ENABLE_SNR_MONITORING_MIN,
+                 CFG_ENABLE_SNR_MONITORING_MAX),
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+   REG_VARIABLE( CFG_PNO_SCAN_SUPPORT, WLAN_PARAM_Integer,
+                 hdd_config_t, configPNOScanSupport,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_PNO_SCAN_SUPPORT_DEFAULT,
+                 CFG_PNO_SCAN_SUPPORT_DISABLE,
+                 CFG_PNO_SCAN_SUPPORT_ENABLE),
+
+   REG_VARIABLE( CFG_PNO_SCAN_TIMER_REPEAT_VALUE, WLAN_PARAM_Integer,
+                 hdd_config_t, configPNOScanTimerRepeatValue,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_PNO_SCAN_TIMER_REPEAT_VALUE_DEFAULT,
+                 CFG_PNO_SCAN_TIMER_REPEAT_VALUE_MIN,
+                 CFG_PNO_SCAN_TIMER_REPEAT_VALUE_MAX),
+#endif
+   REG_VARIABLE( CFG_AMSDU_SUPPORT_IN_AMPDU_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, isAmsduSupportInAMPDU,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_AMSDU_SUPPORT_IN_AMPDU_DEFAULT,
+                 CFG_AMSDU_SUPPORT_IN_AMPDU_MIN,
+                 CFG_AMSDU_SUPPORT_IN_AMPDU_MAX ),
+
+   REG_VARIABLE( CFG_STRICT_5GHZ_PREF_BY_MARGIN , WLAN_PARAM_Integer,
+                 hdd_config_t, nSelect5GHzMargin,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_STRICT_5GHZ_PREF_BY_MARGIN_DEFAULT,
+                 CFG_STRICT_5GHZ_PREF_BY_MARGIN_MIN,
+                 CFG_STRICT_5GHZ_PREF_BY_MARGIN_MAX ),
 
 REG_VARIABLE( CFG_ENABLE_TCP_CHKSUM_OFFLOAD, WLAN_PARAM_Integer,
              hdd_config_t, enableTCPChkSumOffld,
@@ -2338,6 +2912,42 @@ REG_VARIABLE( CFG_ENABLE_FW_LOG_NAME, WLAN_PARAM_Integer,
              CFG_ENABLE_FW_LOG_DISABLE,
              CFG_ENABLE_FW_LOG_ENABLE),
 
+#ifdef IPA_OFFLOAD
+REG_VARIABLE( CFG_IPA_OFFLOAD_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, IpaEnable,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_IPA_OFFLOAD_DEFAULT,
+             CFG_IPA_OFFLOAD_DISABLE,
+             CFG_IPA_OFFLOAD_ENABLE ),
+
+REG_VARIABLE( CFG_IPA_IPV6_OFFLOAD_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, IpaIPv6Enable,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_IPA_IPV6_OFFLOAD_DEFAULT,
+             CFG_IPA_IPV6_OFFLOAD_DISABLE,
+             CFG_IPA_IPV6_OFFLOAD_ENABLE ),
+
+REG_VARIABLE( CFG_IPA_DESC_SIZE_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, IpaDescSize,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_IPA_DESC_SIZE_DEFAULT,
+             CFG_IPA_DESC_SIZE_MIN,
+             CFG_IPA_DESC_SIZE_MAX ),
+
+REG_VARIABLE( CFG_IPA_PRE_FILTER_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, IpaPreFilterEnable,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_IPA_PRE_FILTER_DEFAULT,
+             CFG_IPA_PRE_FILTER_DISABLE,
+             CFG_IPA_PRE_FILTER_ENABLE ),
+
+REG_VARIABLE( CFG_IPA_RM_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, IpaRMEnable,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_IPA_RM_DEFAULT,
+             CFG_IPA_RM_DISABLE,
+             CFG_IPA_RM_ENABLE ),
+#endif
 REG_VARIABLE( CFG_P2P_LISTEN_OFFLOAD_NAME, WLAN_PARAM_Integer,
              hdd_config_t, fP2pListenOffload,
              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -2375,12 +2985,19 @@ REG_VARIABLE( CFG_WOW_STATUS_NAME, WLAN_PARAM_Integer,
                CFG_WOW_ENABLE_MIN,
                CFG_WOW_ENABLE_MAX),
 
-REG_VARIABLE( CFG_COALESING_IN_IBSS_NAME , WLAN_PARAM_Integer,
-              hdd_config_t, isCoalesingInIBSSAllowed,
-              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-              CFG_COALESING_IN_IBSS_DEFAULT,
-              CFG_COALESING_IN_IBSS_MIN,
-              CFG_COALESING_IN_IBSS_MAX ),
+   REG_VARIABLE( CFG_COALESING_IN_IBSS_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, isCoalesingInIBSSAllowed,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_COALESING_IN_IBSS_DEFAULT,
+                 CFG_COALESING_IN_IBSS_MIN,
+                 CFG_COALESING_IN_IBSS_MAX ),
+
+REG_VARIABLE( CFG_SAP_MAX_NO_PEERS, WLAN_PARAM_Integer,
+               hdd_config_t, maxNumberOfPeers,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_SAP_MAX_NO_PEERS_DEFAULT,
+               CFG_SAP_MAX_NO_PEERS_MIN,
+               CFG_SAP_MAX_NO_PEERS_MAX),
 };
 
 /*
@@ -2509,7 +3126,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_context_t* pHddCtx)
       goto config_exit;
    }
 
-   hddLog(LOG1, "%s: qcom_cfg.ini Size %d\n",__func__, fw->size);
+   hddLog(LOG1, "%s: qcom_cfg.ini Size %zu", __func__, fw->size);
 
    buffer = (char*)vos_mem_malloc(fw->size);
 
@@ -2579,12 +3196,12 @@ config_exit:
 static void print_hdd_cfg(hdd_context_t *pHddCtx)
 {
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "*********Config values in HDD Adapter*******");
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [RTSThreshold] Value = %lu",pHddCtx->cfg_ini->RTSThreshold) ;
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [RTSThreshold] Value = %u",pHddCtx->cfg_ini->RTSThreshold) ;
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [OperatingChannel] Value = [%u]",pHddCtx->cfg_ini->OperatingChannel);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [PowerUsageControl] Value = [%s]",pHddCtx->cfg_ini->PowerUsageControl);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fIsImpsEnabled] Value = [%u]",pHddCtx->cfg_ini->fIsImpsEnabled);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [AutoBmpsTimerEnabled] Value = [%u]",pHddCtx->cfg_ini->fIsAutoBmpsTimerEnabled);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nAutoBmpsTimerValue] Value = [%lu]",pHddCtx->cfg_ini->nAutoBmpsTimerValue);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nAutoBmpsTimerValue] Value = [%u]",pHddCtx->cfg_ini->nAutoBmpsTimerValue);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nVccRssiTrigger] Value = [%u]",pHddCtx->cfg_ini->nVccRssiTrigger);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssBssid] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
       pHddCtx->cfg_ini->IbssBssid.bytes[0],pHddCtx->cfg_ini->IbssBssid.bytes[1],
@@ -2642,87 +3259,87 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApOBSSProt] value = [%u]\n",pHddCtx->cfg_ini->apOBSSProtEnabled);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApAutoChannelSelection] value = [%u]\n",pHddCtx->cfg_ini->apAutoChannelSelection);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%lu]",pHddCtx->cfg_ini->nChannelBondingMode24GHz);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%lu]",pHddCtx->cfg_ini->nChannelBondingMode5GHz);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [dot11Mode] Value = [%lu]",pHddCtx->cfg_ini->dot11Mode);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%u]",pHddCtx->cfg_ini->nChannelBondingMode24GHz);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%u]",pHddCtx->cfg_ini->nChannelBondingMode5GHz);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [dot11Mode] Value = [%u]",pHddCtx->cfg_ini->dot11Mode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WmmMode] Value = [%u] ",pHddCtx->cfg_ini->WmmMode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [UapsdMask] Value = [0x%x] ",pHddCtx->cfg_ini->UapsdMask);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [PktClassificationBasis] Value = [%u] ",pHddCtx->cfg_ini->PktClassificationBasis);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ImplicitQosIsEnabled] Value = [%u]",(int)pHddCtx->cfg_ini->bImplicitQosEnabled);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSrvIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdVoSrvIntv);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSuspIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdVoSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSrvIntv] Value = [%u] ",pHddCtx->cfg_ini->InfraUapsdVoSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSuspIntv] Value = [%u] ",pHddCtx->cfg_ini->InfraUapsdVoSuspIntv);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdViSrvIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdViSrvIntv);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdViSuspIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdViSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdViSrvIntv] Value = [%u] ",pHddCtx->cfg_ini->InfraUapsdViSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdViSuspIntv] Value = [%u] ",pHddCtx->cfg_ini->InfraUapsdViSuspIntv);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBeSrvIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdBeSrvIntv);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBeSuspIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdBeSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBeSrvIntv] Value = [%u] ",pHddCtx->cfg_ini->InfraUapsdBeSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBeSuspIntv] Value = [%u] ",pHddCtx->cfg_ini->InfraUapsdBeSuspIntv);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSrvIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdBkSrvIntv);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSuspIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdBkSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSrvIntv] Value = [%u] ",pHddCtx->cfg_ini->InfraUapsdBkSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSuspIntv] Value = [%u] ",pHddCtx->cfg_ini->InfraUapsdBkSuspIntv);
 #ifdef FEATURE_WLAN_CCX
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraInactivityInterval] Value = [%lu] ",pHddCtx->cfg_ini->InfraInactivityInterval);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [CcxEnabled] Value = [%lu] ",pHddCtx->cfg_ini->isCcxIniFeatureEnabled);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [FastTransitionEnabled] Value = [%lu] ",pHddCtx->cfg_ini->isFastTransitionEnabled);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gTxPowerCap] Value = [%lu] dBm ",pHddCtx->cfg_ini->nTxPowerCap);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraInactivityInterval] Value = [%u] ",pHddCtx->cfg_ini->InfraInactivityInterval);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [CcxEnabled] Value = [%u] ",pHddCtx->cfg_ini->isCcxIniFeatureEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [FastTransitionEnabled] Value = [%u] ",pHddCtx->cfg_ini->isFastTransitionEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gTxPowerCap] Value = [%u] dBm ",pHddCtx->cfg_ini->nTxPowerCap);
 #endif
 #ifdef FEATURE_WLAN_LFR
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [FastRoamEnabled] Value = [%lu] ",pHddCtx->cfg_ini->isFastRoamIniFeatureEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [FastRoamEnabled] Value = [%u] ",pHddCtx->cfg_ini->isFastRoamIniFeatureEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [MAWCEnabled] Value = [%u] ",pHddCtx->cfg_ini->MAWCEnabled);
 #endif
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [RoamRssiDiff] Value = [%lu] ",pHddCtx->cfg_ini->RoamRssiDiff);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ImmediateRoamRssiDiff] Value = [%lu] ",pHddCtx->cfg_ini->nImmediateRoamRssiDiff);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [isWESModeEnabled] Value = [%lu] ",pHddCtx->cfg_ini->isWESModeEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [RoamRssiDiff] Value = [%u] ",pHddCtx->cfg_ini->RoamRssiDiff);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ImmediateRoamRssiDiff] Value = [%u] ",pHddCtx->cfg_ini->nImmediateRoamRssiDiff);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [isWESModeEnabled] Value = [%u] ",pHddCtx->cfg_ini->isWESModeEnabled);
 #endif
 #ifdef FEATURE_WLAN_OKC
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [OkcEnabled] Value = [%lu] ",pHddCtx->cfg_ini->isOkcIniFeatureEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [OkcEnabled] Value = [%u] ",pHddCtx->cfg_ini->isOkcIniFeatureEnabled);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcVo] Value = [%u] ",pHddCtx->cfg_ini->InfraDirAcVo);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcVo] Value = [0x%x] ",pHddCtx->cfg_ini->InfraNomMsduSizeAcVo);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVo] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMeanDataRateAcVo);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcVo] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMinPhyRateAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVo] Value = [0x%x] ",pHddCtx->cfg_ini->InfraMeanDataRateAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcVo] Value = [0x%x] ",pHddCtx->cfg_ini->InfraMinPhyRateAcVo);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcVo] Value = [0x%x] ",pHddCtx->cfg_ini->InfraSbaAcVo);
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcVi] Value = [%u] ",pHddCtx->cfg_ini->InfraDirAcVi);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcVi] Value = [0x%x] ",pHddCtx->cfg_ini->InfraNomMsduSizeAcVi);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVi] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMeanDataRateAcVi);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcVi] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMinPhyRateAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVi] Value = [0x%x] ",pHddCtx->cfg_ini->InfraMeanDataRateAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcVi] Value = [0x%x] ",pHddCtx->cfg_ini->InfraMinPhyRateAcVi);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcVi] Value = [0x%x] ",pHddCtx->cfg_ini->InfraSbaAcVi);
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcBe] Value = [%u] ",pHddCtx->cfg_ini->InfraDirAcBe);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcBe] Value = [0x%x] ",pHddCtx->cfg_ini->InfraNomMsduSizeAcBe);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcBe] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMeanDataRateAcBe);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcBe] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMinPhyRateAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcBe] Value = [0x%x] ",pHddCtx->cfg_ini->InfraMeanDataRateAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcBe] Value = [0x%x] ",pHddCtx->cfg_ini->InfraMinPhyRateAcBe);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcBe] Value = [0x%x] ",pHddCtx->cfg_ini->InfraSbaAcBe);
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcBk] Value = [%u] ",pHddCtx->cfg_ini->InfraDirAcBk);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcBk] Value = [0x%x] ",pHddCtx->cfg_ini->InfraNomMsduSizeAcBk);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcBk] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMeanDataRateAcBk);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcBk] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMinPhyRateAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcBk] Value = [0x%x] ",pHddCtx->cfg_ini->InfraMeanDataRateAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcBk] Value = [0x%x] ",pHddCtx->cfg_ini->InfraMinPhyRateAcBk);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcBk] Value = [0x%x] ",pHddCtx->cfg_ini->InfraSbaAcBk);
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqBkWeight] Value = [%u] ",pHddCtx->cfg_ini->WfqBkWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqBeWeight] Value = [%u] ",pHddCtx->cfg_ini->WfqBeWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqViWeight] Value = [%u] ",pHddCtx->cfg_ini->WfqViWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqVoWeight] Value = [%u] ",pHddCtx->cfg_ini->WfqVoWeight);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%lu] ",pHddCtx->cfg_ini->DelayedTriggerFrmInt);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%u] ",pHddCtx->cfg_ini->DelayedTriggerFrmInt);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [mcastBcastFilterSetting] Value = [%u] ",pHddCtx->cfg_ini->mcastBcastFilterSetting);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fhostArpOffload] Value = [%u] ",pHddCtx->cfg_ini->fhostArpOffload);
 #ifdef WLAN_FEATURE_VOWIFI_11R
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTEnable] Value = [%lu] ",pHddCtx->cfg_ini->fFTEnable);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTResourceReqSupported] Value = [%lu] ",pHddCtx->cfg_ini->fFTResourceReqSupported);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTResourceReqSupported] Value = [%u] ",pHddCtx->cfg_ini->fFTResourceReqSupported);
 #endif
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborReassocRssiThreshold] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborReassocRssiThreshold);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborLookupRssiThreshold] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborLookupRssiThreshold);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanMinChanTime] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborScanMinChanTime);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanMaxChanTime] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborScanMaxChanTime);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nMaxNeighborRetries] Value = [%lu] ",pHddCtx->cfg_ini->nMaxNeighborReqTries);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanPeriod] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborScanPeriod);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanResultsRefreshPeriod] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborResultsRefreshPeriod);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nEmptyScanRefreshPeriod] Value = [%lu] ",pHddCtx->cfg_ini->nEmptyScanRefreshPeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborReassocRssiThreshold] Value = [%u] ",pHddCtx->cfg_ini->nNeighborReassocRssiThreshold);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborLookupRssiThreshold] Value = [%u] ",pHddCtx->cfg_ini->nNeighborLookupRssiThreshold);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanMinChanTime] Value = [%u] ",pHddCtx->cfg_ini->nNeighborScanMinChanTime);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanMaxChanTime] Value = [%u] ",pHddCtx->cfg_ini->nNeighborScanMaxChanTime);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nMaxNeighborRetries] Value = [%u] ",pHddCtx->cfg_ini->nMaxNeighborReqTries);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanPeriod] Value = [%u] ",pHddCtx->cfg_ini->nNeighborScanPeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanResultsRefreshPeriod] Value = [%u] ",pHddCtx->cfg_ini->nNeighborResultsRefreshPeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nEmptyScanRefreshPeriod] Value = [%u] ",pHddCtx->cfg_ini->nEmptyScanRefreshPeriod);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [burstSizeDefinition] Value = [0x%x] ",pHddCtx->cfg_ini->burstSizeDefinition);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [tsInfoAckPolicy] Value = [0x%x] ",pHddCtx->cfg_ini->tsInfoAckPolicy);
@@ -2753,7 +3370,6 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [thermalMitigationEnable] Value = [%u] ",pHddCtx->cfg_ini->thermalMitigationEnable);
 #ifdef WLAN_FEATURE_11AC
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gVhtChannelWidth] value = [%u]\n",pHddCtx->cfg_ini->vhtChannelWidth);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableVhtFor24GHzBand] Value = [%u] ",pHddCtx->cfg_ini->enableVhtFor24GHzBand);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [enableFirstScan2GOnly] Value = [%u] ",pHddCtx->cfg_ini->enableFirstScan2GOnly);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [skipDfsChnlInP2pSearch] Value = [%u] ",pHddCtx->cfg_ini->skipDfsChnlInP2pSearch);
@@ -2761,8 +3377,28 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [enableRxSTBC] Value = [%u] ",pHddCtx->cfg_ini->enableRxSTBC);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableLpwrImgTransition] Value = [%u] ",pHddCtx->cfg_ini->enableLpwrImgTransition);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableSSR] Value = [%u] ",pHddCtx->cfg_ini->enableSSR);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gCoalesingInIBSS] Value = [%lu] " ,pHddCtx->cfg_ini->isCoalesingInIBSSAllowed);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableVhtFor24GHzBand] Value = [%u] ",pHddCtx->cfg_ini->enableVhtFor24GHzBand);
 
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableTrafficMonitor] Value = [%u] ", pHddCtx->cfg_ini->enableTrafficMonitor);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gTrafficIdleTimeout] Value = [%u] ", pHddCtx->cfg_ini->trafficIdleTimeout);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gFlexConnectPowerFactor] Value = [%u] ", pHddCtx->cfg_ini->flexConnectPowerFactor);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableIbssHeartBeatOffload] Value = [%u] ", pHddCtx->cfg_ini->enableIbssHeartBeatOffload);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAntennaDiversity] Value = [%u] ", pHddCtx->cfg_ini->antennaDiversity);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gGoLinkMonitorPeriod] Value = [%u]",pHddCtx->cfg_ini->goLinkMonitorPeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApLinkMonitorPeriod] Value = [%u]",pHddCtx->cfg_ini->apLinkMonitorPeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gGoKeepAlivePeriod] Value = [%u]",pHddCtx->cfg_ini->goKeepAlivePeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApKeepAlivePeriod]Value = [%u]",pHddCtx->cfg_ini->apKeepAlivePeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAmsduSupportInAMPDU] Value = [%u] ",pHddCtx->cfg_ini->isAmsduSupportInAMPDU);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nSelect5GHzMargin] Value = [%u] ",pHddCtx->cfg_ini->nSelect5GHzMargin);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gCoalesingInIBSS] Value = [%u] ",pHddCtx->cfg_ini->isCoalesingInIBSSAllowed);
+
+#ifdef IPA_OFFLOAD
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAEnable] Value = [%u] ",pHddCtx->cfg_ini->IpaEnable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAIPv6Enable] Value = [%u] ",pHddCtx->cfg_ini->IpaIPv6Enable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPARMEnable] Value = [%u] ",pHddCtx->cfg_ini->IpaRMEnable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAPreFilterEnable] Value = [%u] ",pHddCtx->cfg_ini->IpaPreFilterEnable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPADescSize] Value = [%u] ",pHddCtx->cfg_ini->IpaDescSize);
+#endif
 }
 
 
@@ -2830,7 +3466,7 @@ VOS_STATUS hdd_cfg_get_config(hdd_context_t *pHddCtx, char *pBuf, int buflen)
       {
          snprintf(valueStr, CFG_VALUE_MAX_LEN, "(unhandled)");
       }
-      curlen = snprintf(configStr, CFG_ENTRY_MAX_LEN,
+      curlen = scnprintf(configStr, CFG_ENTRY_MAX_LEN,
                         "%s=[%s]%s\n",
                         pRegEntry->RegName,
                         valueStr,
@@ -2920,7 +3556,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
    // sanity test
    if (MAX_CFG_INI_ITEMS < cRegTableEntries)
    {
-      hddLog(LOGE, "%s: MAX_CFG_INI_ITEMS too small, must be at least %d",
+      hddLog(LOGE, "%s: MAX_CFG_INI_ITEMS too small, must be at least %ld",
              __func__, cRegTableEntries);
    }
 
@@ -2946,7 +3582,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
          // If successfully read from the registry, use the value read.
          // If not, use the default value.
          if ( match_status == VOS_STATUS_SUCCESS && (WLAN_PARAM_Integer == pRegEntry->RegType)) {
-            rv = kstrtoul(value_str, 10, &value);
+            rv = kstrtou32(value_str, 10, &value);
             if (rv < 0) {
                 hddLog(LOGE, "%s: Reg Parameter %s invalid. Enforcing default",
                        __func__, pRegEntry->RegName);
@@ -2954,7 +3590,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             }
          }
          else if ( match_status == VOS_STATUS_SUCCESS && (WLAN_PARAM_HexInteger == pRegEntry->RegType)) {
-            rv = kstrtoul(value_str, 16, &value);
+            rv = kstrtou32(value_str, 16, &value);
             if (rv < 0) {
                 hddLog(LOGE, "%s: Reg paramter %s invalid. Enforcing default",
                        __func__, pRegEntry->RegName);
@@ -2970,14 +3606,14 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
          {
             if ( value > pRegEntry->VarMax )
             {
-               hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Maximum",
+               hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%u > %lu]. Enforcing Maximum",
                       __func__, pRegEntry->RegName, value, pRegEntry->VarMax );
                value = pRegEntry->VarMax;
             }
 
             if ( value < pRegEntry->VarMin )
             {
-               hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Minimum",
+               hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum [%u < %lu]. Enforcing Minimum",
                       __func__, pRegEntry->RegName, value, pRegEntry->VarMin);
                value = pRegEntry->VarMin;
             }
@@ -2987,14 +3623,14 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
          {
             if ( value > pRegEntry->VarMax )
             {
-               hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Default= %lu",
+               hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%u > %lu]. Enforcing Default= %lu",
                   __func__, pRegEntry->RegName, value, pRegEntry->VarMax, pRegEntry->VarDefault  );
                value = pRegEntry->VarDefault;
             }
 
             if ( value < pRegEntry->VarMin )
             {
-               hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Default= %lu",
+               hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum [%u < %lu]. Enforcing Default= %lu",
                   __func__, pRegEntry->RegName, value, pRegEntry->VarMin, pRegEntry->VarDefault  );
                value = pRegEntry->VarDefault;
             }
@@ -3009,7 +3645,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
          // If not, use the default value.
          if (VOS_STATUS_SUCCESS == match_status)
          {
-            rv = kstrtol(value_str, 10, &svalue);
+            rv = kstrtos32(value_str, 10, &svalue);
             if (rv < 0) {
                 hddLog(VOS_TRACE_LEVEL_WARN, "%s: Reg Parameter %s invalid. Enforcing Default",
                        __func__, pRegEntry->RegName);
@@ -3027,7 +3663,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             if ( svalue > (v_S31_t)pRegEntry->VarMax )
             {
                hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum "
-                      "[%ld > %ld]. Enforcing Maximum", __func__,
+                      "[%d > %d]. Enforcing Maximum", __func__,
                       pRegEntry->RegName, svalue, (int)pRegEntry->VarMax );
                svalue = (v_S31_t)pRegEntry->VarMax;
             }
@@ -3035,7 +3671,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             if ( svalue < (v_S31_t)pRegEntry->VarMin )
             {
                hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum "
-                      "[%ld < %ld]. Enforcing Minimum",  __func__,
+                      "[%d < %d]. Enforcing Minimum",  __func__,
                       pRegEntry->RegName, svalue, (int)pRegEntry->VarMin);
                svalue = (v_S31_t)pRegEntry->VarMin;
             }
@@ -3046,7 +3682,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             if ( svalue > (v_S31_t)pRegEntry->VarMax )
             {
                hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum "
-                      "[%ld > %ld]. Enforcing Default= %ld",
+                      "[%d > %d]. Enforcing Default= %d",
                       __func__, pRegEntry->RegName, svalue,
                       (int)pRegEntry->VarMax,
                       (int)pRegEntry->VarDefault  );
@@ -3056,7 +3692,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             if ( svalue < (v_S31_t)pRegEntry->VarMin )
             {
                hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum "
-                      "[%ld < %ld]. Enforcing Default= %ld",
+                      "[%d < %d]. Enforcing Default= %d",
                       __func__, pRegEntry->RegName, svalue,
                       (int)pRegEntry->VarMin,
                       (int)pRegEntry->VarDefault);
@@ -3138,6 +3774,10 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
       }
    }
 
+   // Keep qcacld-2.0 specific ini params disabled for non-qcacld-2.0
+#ifndef QCA_WIFI_2_0
+   pHddCtx->cfg_ini->enablePowersaveOffload = 0;
+#endif
    print_hdd_cfg(pHddCtx);
 
   return( ret_status );
@@ -3178,6 +3818,7 @@ static void hdd_set_btc_config(hdd_context_t *pHddCtx)
 {
    hdd_config_t *pConfig = pHddCtx->cfg_ini;
    tSmeBtcConfig btcParams;
+   int i;
 
    sme_BtcGetConfig(pHddCtx->hHal, &btcParams);
 
@@ -3198,6 +3839,20 @@ static void hdd_set_btc_config(hdd_context_t *pHddCtx)
    btcParams.btcMaxScoBlockPerc = pConfig->btcMaxScoBlockPerc;
    btcParams.btcDhcpProtOnA2dp = pConfig->btcDhcpProtOnA2dp;
    btcParams.btcDhcpProtOnSco = pConfig->btcDhcpProtOnSco;
+
+   for (i = 0; i < 10; i++)
+   {
+      btcParams.mwsCoexVictimWANFreq[i] = pConfig->mwsCoexVictimWANFreq[i];
+      btcParams.mwsCoexVictimWLANFreq[i] = pConfig->mwsCoexVictimWLANFreq[i];
+      btcParams.mwsCoexVictimConfig[i] = pConfig->mwsCoexVictimConfig[i];
+      btcParams.mwsCoexVictimConfig2[i] = pConfig->mwsCoexVictimConfig2[i];
+   }
+   for (i = 0; i < 6; i++)
+   {
+      btcParams.mwsCoexConfig[i] = pConfig->mwsCoexConfig[i];
+   }
+   btcParams.mwsCoexModemBackoff = pConfig->mwsCoexModemBackoff;
+   btcParams.SARPowerBackoff = pConfig->SARPowerBackoff;
 
    sme_BtcSetConfig(pHddCtx->hHal, &btcParams);
 }
@@ -3562,18 +4217,6 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
       hddLog(LOGE, "Failure: Could not pass on WNI_CFG_PS_BCN_FILTER configuration info to CCM\n");
    }
 
-#ifdef FEATURE_WLAN_LFR
-   if (pConfig->isFastRoamIniFeatureEnabled)
-   {
-       pConfig->fEnableFwRssiMonitoring = TRUE;
-   }
-#endif
-#ifdef FEATURE_WLAN_CCX
-   if (pConfig->isCcxIniFeatureEnabled)
-   {
-       pConfig->fEnableFwRssiMonitoring = TRUE;
-   }
-#endif
    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_PS_ENABLE_RSSI_MONITOR, pConfig->fEnableFwRssiMonitoring,
                     NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
@@ -3629,6 +4272,14 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
         fStatus = FALSE;
         hddLog(LOGE, "Could not pass on WNI_CFG_AP_LINK_MONITOR_TIMEOUT to CCM\n");
      }
+
+    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_GO_LINK_MONITOR_TIMEOUT, pConfig->goLinkMonitorPeriod,
+        NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+     {
+        fStatus = FALSE;
+        hddLog(LOGE, "Could not pass on WNI_CFG_GO_LINK_MONITOR_TIMEOUT to CCM\n");
+     }
+
 
 #if defined WLAN_FEATURE_VOWIFI
     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RRM_ENABLED, pConfig->fRrmEnable,
@@ -4004,6 +4655,70 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
       hddLog(LOGE, "Could not pass on WNI_CFG_DYNAMIC_THRESHOLD_TWO to CCM");
    }
 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MAX_MEDIUM_TIME, pConfig->cfgMaxMediumTime,
+      NULL, eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_MAX_MEDIUM_TIME to CCM");
+   }
+
+#ifdef FEATURE_WLAN_TDLS
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_TDLS_QOS_WMM_UAPSD_MASK,
+                    pConfig->fTDLSUapsdMask, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_TDLS_QOS_WMM_UAPSD_MASK to CCM");
+   }
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_TDLS_BUF_STA_ENABLED,
+                    pConfig->fEnableTDLSBufferSta, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_TDLS_BUF_STA_ENABLED to CCM");
+   }
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_TDLS_PUAPSD_INACT_TIME,
+                    pConfig->fTDLSPuapsdInactivityTimer, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_TDLS_PUAPSD_INACT_TIME to CCM");
+   }
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_TDLS_RX_FRAME_THRESHOLD,
+                    pConfig->fTDLSRxFrameThreshold, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_TDLS_RX_FRAME_THRESHOLD to CCM");
+   }
+#endif
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ENABLE_ADAPT_RX_DRAIN,
+                    pConfig->fEnableAdaptRxDrain, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_ADAPT_RX_DRAIN to CCM");
+   }
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_FLEX_CONNECT_POWER_FACTOR,
+                    pConfig->flexConnectPowerFactor, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Failure: Could not pass on "
+             "WNI_CFG_FLEX_CONNECT_POWER_FACTOR to CCM");
+   }
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ANTENNA_DIVESITY,
+                    pConfig->antennaDiversity, NULL,
+                    eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_ANTENNA_DIVESITY to CCM");
+   }
+
    return fStatus;
 }
 
@@ -4028,6 +4743,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    hdd_config_t *pConfig = pHddCtx->cfg_ini;
 
+
    vos_mem_zero( &smeConfig, sizeof( smeConfig ) );
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -4035,8 +4751,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
               pConfig->WmmMode, pConfig->b80211eIsEnabled, pConfig->dot11Mode);
 
    // Config params obtained from the registry
-   if (is_crda_regulatory_entry_valid() == VOS_TRUE)
-       sme_setRegInfo(pHddCtx->hHal, pConfig->crdaDefaultCountryCode);
+   /* To Do */
+   // set regulatory information here
+
    smeConfig.csrConfig.RTSThreshold             = pConfig->RTSThreshold;
    smeConfig.csrConfig.FragmentationThreshold   = pConfig->FragmentationThreshold;
    smeConfig.csrConfig.shortSlotTime            = pConfig->ShortSlotTimeEnabled;
@@ -4069,13 +4786,16 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.nPassiveMinChnTime       = pConfig->nPassiveMinChnTime;
    smeConfig.csrConfig.nActiveMaxChnTimeBtc     = pConfig->nActiveMaxChnTimeBtc;
    smeConfig.csrConfig.nActiveMinChnTimeBtc     = pConfig->nActiveMinChnTimeBtc;
+   smeConfig.csrConfig.disableAggWithBtc        = pConfig->disableAggWithBtc;
 #ifdef WLAN_AP_STA_CONCURRENCY
    smeConfig.csrConfig.nActiveMaxChnTimeConc    = pConfig->nActiveMaxChnTimeConc;
    smeConfig.csrConfig.nActiveMinChnTimeConc    = pConfig->nActiveMinChnTimeConc;
    smeConfig.csrConfig.nPassiveMaxChnTimeConc   = pConfig->nPassiveMaxChnTimeConc;
    smeConfig.csrConfig.nPassiveMinChnTimeConc   = pConfig->nPassiveMinChnTimeConc;
    smeConfig.csrConfig.nRestTimeConc            = pConfig->nRestTimeConc;
-   smeConfig.csrConfig.nNumChanCombinedConc     = pConfig->nNumChanCombinedConc;
+   smeConfig.csrConfig.nNumStaChanCombinedConc  = pConfig->nNumStaChanCombinedConc;
+   smeConfig.csrConfig.nNumP2PChanCombinedConc  = pConfig->nNumP2PChanCombinedConc;
+
 #endif
    smeConfig.csrConfig.Is11eSupportEnabled      = pConfig->b80211eIsEnabled;
    smeConfig.csrConfig.WMMSupportMode           = pConfig->WmmMode;
@@ -4119,6 +4839,18 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
    smeConfig.csrConfig.nRoamPrefer5GHz           = pConfig->nRoamPrefer5GHz;
    smeConfig.csrConfig.nRoamIntraBand            = pConfig->nRoamIntraBand;
+   smeConfig.csrConfig.nProbes                   = pConfig->nProbes;
+
+   if (pConfig->nRoamScanHomeAwayTime < (pConfig->nNeighborScanMaxChanTime + (2 * HDD_ROAM_SCAN_CHANNEL_SWITCH_TIME)))
+   {
+       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+              "%s: Invalid config, Home away time(%d) is less than twice RF switching time + channel max time(%d)"
+              " Hence enforcing home away time to disable (0)",
+              __func__, pConfig->nRoamScanHomeAwayTime,
+              (pConfig->nNeighborScanMaxChanTime + (2 * HDD_ROAM_SCAN_CHANNEL_SWITCH_TIME)));
+       pConfig->nRoamScanHomeAwayTime = 0;
+   }
+   smeConfig.csrConfig.nRoamScanHomeAwayTime     = pConfig->nRoamScanHomeAwayTime;
 #endif
    smeConfig.csrConfig.fFirstScanOnly2GChnl      = pConfig->enableFirstScan2GOnly;
 
@@ -4158,10 +4890,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #endif
 #ifdef FEATURE_WLAN_LFR
    smeConfig.csrConfig.isFastRoamIniFeatureEnabled = pConfig->isFastRoamIniFeatureEnabled;
-   if( pConfig->isFastRoamIniFeatureEnabled )
-   {
-       pConfig->isFastTransitionEnabled = TRUE;
-   }
+   smeConfig.csrConfig.MAWCEnabled = pConfig->MAWCEnabled;
 #endif
 #ifdef FEATURE_WLAN_CCX
    smeConfig.csrConfig.isCcxIniFeatureEnabled = pConfig->isCcxIniFeatureEnabled;
@@ -4172,12 +4901,23 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #endif
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
    smeConfig.csrConfig.isFastTransitionEnabled = pConfig->isFastTransitionEnabled;
+   if (pConfig->nSelect5GHzMargin)
+   {
+       pConfig->RoamRssiDiff = 0;
+   }
    smeConfig.csrConfig.RoamRssiDiff = pConfig->RoamRssiDiff;
    smeConfig.csrConfig.nImmediateRoamRssiDiff = pConfig->nImmediateRoamRssiDiff;
    smeConfig.csrConfig.isWESModeEnabled = pConfig->isWESModeEnabled;
 #endif
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
    smeConfig.csrConfig.isRoamOffloadScanEnabled = pConfig->isRoamOffloadScanEnabled;
+   smeConfig.csrConfig.bFastRoamInConIniFeatureEnabled = pConfig->bFastRoamInConIniFeatureEnabled;
+
+   if (0 == smeConfig.csrConfig.isRoamOffloadScanEnabled)
+   {
+       /* Disable roaming in concurrency if roam scan offload is disabled */
+       smeConfig.csrConfig.bFastRoamInConIniFeatureEnabled = 0;
+   }
 #endif
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
    smeConfig.csrConfig.neighborRoamConfig.nNeighborReassocRssiThreshold = pConfig->nNeighborReassocRssiThreshold;
@@ -4206,9 +4946,11 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    smeConfig.csrConfig.enableTxLdpc = pConfig->enableTxLdpc;
 
-   smeConfig.csrConfig.isCoalesingInIBSSAllowed =
-                   pHddCtx->cfg_ini->isCoalesingInIBSSAllowed;
+   smeConfig.csrConfig.isAmsduSupportInAMPDU = pConfig->isAmsduSupportInAMPDU;
+   smeConfig.csrConfig.nSelect5GHzMargin = pConfig->nSelect5GHzMargin;
 
+   smeConfig.csrConfig.isCoalesingInIBSSAllowed =
+                       pHddCtx->cfg_ini->isCoalesingInIBSSAllowed;
 
 
    /* update SSR config */
@@ -4216,8 +4958,10 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    /* Update the Directed scan offload setting */
    smeConfig.fScanOffload =  pHddCtx->cfg_ini->fScanOffload;
 
+#ifdef QCA_WIFI_2_0
    /* Update the p2p listen offload setting */
    smeConfig.fP2pListenOffload =  pHddCtx->cfg_ini->fP2pListenOffload;
+#endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
    /* Update PNO offoad status */
@@ -4357,20 +5101,20 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
    switch (pRegEntry->RegType)
    {
    case WLAN_PARAM_Integer:
-      rv = kstrtoul(value_str, 10, &value);
+      rv = kstrtou32(value_str, 10, &value);
       if (rv < 0)
           goto done;
       if (value < pRegEntry->VarMin)
       {
          // out of range
-         hddLog(LOGE, "%s: invalid command, value %u < min value %u",
+         hddLog(LOGE, "%s: invalid command, value %u < min value %lu",
                 __func__, value, pRegEntry->VarMin);
          goto done;
       }
       if (value > pRegEntry->VarMax)
       {
          // out of range
-         hddLog(LOGE, "%s: invalid command, value %u > max value %u",
+         hddLog(LOGE, "%s: invalid command, value %u > max value %lu",
                 __func__, value, pRegEntry->VarMax);
          goto done;
       }
@@ -4378,20 +5122,20 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
       break;
 
    case WLAN_PARAM_HexInteger:
-      rv = kstrtoul(value_str, 16, &value);
+      rv = kstrtou32(value_str, 16, &value);
       if (rv < 0)
          goto done;
       if (value < pRegEntry->VarMin)
       {
          // out of range
-         hddLog(LOGE, "%s: invalid command, value %x < min value %x",
+         hddLog(LOGE, "%s: invalid command, value %x < min value %lx",
                 __func__, value, pRegEntry->VarMin);
          goto done;
       }
       if (value > pRegEntry->VarMax)
       {
          // out of range
-         hddLog(LOGE, "%s: invalid command, value %x > max value %x",
+         hddLog(LOGE, "%s: invalid command, value %x > max value %lx",
                 __func__, value, pRegEntry->VarMax);
          goto done;
       }
@@ -4399,7 +5143,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
       break;
 
    case WLAN_PARAM_SignedInteger:
-      rv = kstrtol(value_str, 10, &svalue);
+      rv = kstrtos32(value_str, 10, &svalue);
       if (rv < 0)
          goto done;
       if (svalue < (v_S31_t)pRegEntry->VarMin)
@@ -4426,7 +5170,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
          // too big
          hddLog(LOGE,
                 "%s: invalid command, string [%s] length "
-                "%u exceeds maximum length %u",
+                "%zu exceeds maximum length %u",
                 __func__, value_str,
                 len_value_str, (pRegEntry->VarSize - 1));
          goto done;
@@ -4442,7 +5186,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
          // out of range
          hddLog(LOGE,
                 "%s: invalid command, MAC address [%s] length "
-                "%u is not expected length %u",
+                "%zu is not expected length %u",
                 __func__, value_str,
                 len_value_str, (VOS_MAC_ADDR_SIZE * 2));
          goto done;

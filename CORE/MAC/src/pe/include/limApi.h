@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limApi.h contains the definitions exported by
  * LIM module.
  * Author:        Chandra Modumudi
@@ -185,7 +183,6 @@ tSirRetStatus limUpdateGlobalChannelBonding(tpAniSirGlobal pMac, tHalBitVal cbBi
 #endif /* 0 */
 
 void limHandleLowRssiInd(tpAniSirGlobal pMac);
-void limHandleBmpsStatusInd(tpAniSirGlobal pMac);
 void limHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 void limPsOffloadHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 void

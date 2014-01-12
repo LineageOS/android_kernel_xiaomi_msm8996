@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file hif_dxe_pvt.h
  * @brief Defines Software Structures used by DXE 

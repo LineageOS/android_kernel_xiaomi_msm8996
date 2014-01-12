@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
 
     \file palTimer.c
@@ -32,9 +31,6 @@
     \brief Implemenation of the Platform Abstracion Layer timer functions
 
     $Id$
-
-
-    Copyright (C) 2006 Airgo Networks, Incorporated
 
     This file contains function implementations for the Platform
     Abstration Layer.
@@ -46,6 +42,7 @@
 #include <vos_timer.h>
 #include <vos_memory.h>
 
+#ifndef FEATURE_WLAN_PAL_TIMER_DISABLE
 typedef struct sPalTimer
 {   
     palTimerCallback timerCallback;
@@ -57,8 +54,6 @@ typedef struct sPalTimer
     vos_timer_t vosTimer;
     
 } tPalTimer, *tpPalTimer;
-
-
 
 v_VOID_t internalTimerCallback( v_PVOID_t userData )
 {
@@ -239,7 +234,7 @@ eHalStatus palTimerStop(tHddHandle hHdd, tPalTimerHandle hPalTimer)
    return( status );
 }   
 
-
+#endif
 
 
 

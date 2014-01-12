@@ -13,7 +13,7 @@ ifeq ($(KERNEL_BUILD),1)
 	WLAN_ROOT := drivers/staging/prima
 endif
 
-ifeq ($(KERNEL_BUILD),0)
+ifeq ($(KERNEL_BUILD), 0)
 	# These are configurable via Kconfig for kernel-based builds
 	# Need to explicitly configure for Android-based builds
 
@@ -33,16 +33,24 @@ ifeq ($(KERNEL_BUILD),0)
 	CONFIG_QCOM_TDLS := y
 
 	#Flag to enable Fast Transition (11r) feature
-	ifeq ($(CONFIG_PRONTO_WLAN), m)
 	CONFIG_QCOM_VOWIFI_11R := y
-	endif
 
 	#Flag to enable Protected Managment Frames (11w) feature
-	ifneq ($(CONFIG_PRONTO_WLAN),)
+	ifneq ($(CONFIG_QCA_CLD_WLAN),)
 	CONFIG_WLAN_FEATURE_11W := y
 	endif
 
+	#Flag to enable LTE CoEx feature
+	CONFIG_QCOM_LTE_COEX := y
+
+	#Flag to enable new Linux Regulatory implementation
+	CONFIG_ENABLE_LINUX_REG := y
+
 endif
+
+# To enable CCX upload, dependent config
+# CONFIG_QCOM_CCX must be enabled.
+CONFIG_QCOM_CCX_UPLOAD := n
 
 # Feature flags which are not (currently) configurable via Kconfig
 
@@ -53,19 +61,12 @@ BUILD_DEBUG_VERSION := 1
 BUILD_DIAG_VERSION := 1
 
 #Do we panic on bug?  default is to warn
-PANIC_ON_BUG := 0
+PANIC_ON_BUG := 1
 
 #Re-enable wifi on WDI timeout
 RE_ENABLE_WIFI_ON_WDI_TIMEOUT := 0
 
-#Enable to compile converged driver (CLD)
-#Disable to compile cld (default)
-CONFIG_QCA_WIFI_2_0 := 1
-
-#Enable to compile for integrated SOC (common for prima and CLD)
-#Disable to compile for discrete
-CONFIG_QCA_WIFI_ISOC := 0
-
+ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 #Enable OS specific ADF abstraction
 CONFIG_ADF_SUPPORT := 1
 
@@ -74,6 +75,9 @@ CONFIG_ATH_PERF_PWR_OFFLOAD := 1
 
 #Disable packet log
 CONFIG_REMOVE_PKT_LOG := 0
+
+#Enable 11AC TX
+CONFIG_ATH_11AC_TXCOMPACT := 1
 
 #Enable OS specific IRQ abstraction
 CONFIG_ATH_SUPPORT_SHARED_IRQ := 1
@@ -114,25 +118,6 @@ CONFIG_LITTLE_ENDIAN := 1
 #Enable TX reclaim support
 CONFIG_TX_CREDIT_RECLAIM_SUPPORT := 0
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
-ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
-# Disable 11AC TX
-CONFIG_ATH_11AC_TXCOMPACT := 0
-# Enable encap/decap on host
-CONFIG_SUPPORT_SW_TXRX_ENCAP := 1
-# Enable high latency support
-CONFIG_SUPPORT_HIGH_LATENCY := 1
-else
-# DISCRETE
-# Enable 11AC TX
-CONFIG_ATH_11AC_TXCOMPACT := 1
-# Disable encap/decap on host
-CONFIG_SUPPORT_SW_TXRX_ENCAP := 0
-# Disable high latency support
-CONFIG_SUPPORT_HIGH_LATENCY := 0
-endif
-endif
-
 #Enable FTM support
 CONFIG_QCA_WIFI_FTM := 1
 
@@ -141,6 +126,7 @@ CONFIG_CHECKSUM_OFFLOAD := 1
 
 #Enable GTK offload
 CONFIG_GTK_OFFLOAD := 1
+endif
 
 ifeq ($(CONFIG_CFG80211),y)
 HAVE_CFG80211 := 1
@@ -152,6 +138,7 @@ HAVE_CFG80211 := 0
 endif
 endif
 
+ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 ############ COMMON ############
 COMMON_DIR :=	CORE/SERVICES/COMMON
 COMMON_INC :=	-I$(WLAN_ROOT)/$(COMMON_DIR)
@@ -166,6 +153,7 @@ ADF_OBJS :=     $(ADF_DIR)/adf_nbuf.o \
                 $(ADF_DIR)/adf_os_lock.o \
                 $(ADF_DIR)/adf_os_mem.o \
                 $(ADF_DIR)/linux/adf_os_lock_pvt.o
+endif
 
 ############ BAP ############
 BAP_DIR :=	CORE/BAP
@@ -197,12 +185,12 @@ BAP_OBJS := 	$(BAP_SRC_DIR)/bapApiData.o \
 		$(BAP_SRC_DIR)/btampHCI.o
 
 ############ DXE ############
-DXE_DIR :=      CORE/DXE
-DXE_INC_DIR :=  $(DXE_DIR)/inc
-DXE_SRC_DIR :=  $(DXE_DIR)/src
+DXE_DIR :=	CORE/DXE
+DXE_INC_DIR :=	$(DXE_DIR)/inc
+DXE_SRC_DIR :=	$(DXE_DIR)/src
 
-DXE_INC :=      -I$(WLAN_ROOT)/$(DXE_INC_DIR) \
-                -I$(WLAN_ROOT)/$(DXE_SRC_DIR)
+DXE_INC := 	-I$(WLAN_ROOT)/$(DXE_INC_DIR) \
+		-I$(WLAN_ROOT)/$(DXE_SRC_DIR)
 
 HIF_DXE_DIR :=  CORE/SERVICES/HIF/DXE
 HIF_DXE_INC :=  -I$(WLAN_ROOT)/$(HIF_DXE_DIR)
@@ -242,14 +230,15 @@ HDD_INC := 	-I$(WLAN_ROOT)/$(HDD_INC_DIR) \
 HDD_OBJS := 	$(HDD_SRC_DIR)/bap_hdd_main.o \
 		$(HDD_SRC_DIR)/wlan_hdd_assoc.o \
 		$(HDD_SRC_DIR)/wlan_hdd_cfg.o \
+		$(HDD_SRC_DIR)/wlan_hdd_debugfs.o \
 		$(HDD_SRC_DIR)/wlan_hdd_dev_pwr.o \
 		$(HDD_SRC_DIR)/wlan_hdd_dp_utils.o \
 		$(HDD_SRC_DIR)/wlan_hdd_early_suspend.o \
 		$(HDD_SRC_DIR)/wlan_hdd_ftm.o \
 		$(HDD_SRC_DIR)/wlan_hdd_hostapd.o \
-		$(HDD_SRC_DIR)/wlan_hdd_oemdata.o \
 		$(HDD_SRC_DIR)/wlan_hdd_main.o \
 		$(HDD_SRC_DIR)/wlan_hdd_mib.o \
+		$(HDD_SRC_DIR)/wlan_hdd_oemdata.o \
 		$(HDD_SRC_DIR)/wlan_hdd_scan.o \
 		$(HDD_SRC_DIR)/wlan_hdd_softap_tx_rx.o \
 		$(HDD_SRC_DIR)/wlan_hdd_tx_rx.o \
@@ -327,7 +316,9 @@ MAC_LIM_OBJS := $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o \
 		$(MAC_SRC_DIR)/pe/lim/limUtils.o
 
 ifeq ($(CONFIG_QCOM_CCX),y)
+ifneq ($(CONFIG_QCOM_CCX_UPLOAD),y)
 MAC_LIM_OBJS += $(MAC_SRC_DIR)/pe/lim/limProcessCcxFrame.o
+endif
 endif
 
 ifeq ($(CONFIG_QCOM_TDLS),y)
@@ -386,7 +377,9 @@ SME_CSR_OBJS := $(SME_SRC_DIR)/csr/csrApiRoam.o \
 		$(SME_SRC_DIR)/csr/csrUtil.o
 
 ifeq ($(CONFIG_QCOM_CCX),y)
+ifneq ($(CONFIG_QCOM_CCX_UPLOAD),y)
 SME_CSR_OBJS += $(SME_SRC_DIR)/csr/csrCcx.o
+endif
 endif
 
 ifeq ($(CONFIG_QCOM_TDLS),y)
@@ -400,7 +393,8 @@ SME_PMC_OBJS := $(SME_SRC_DIR)/pmc/pmcApi.o \
 SME_QOS_OBJS := $(SME_SRC_DIR)/QoS/sme_Qos.o
 
 SME_CMN_OBJS := $(SME_SRC_DIR)/sme_common/sme_Api.o \
-		$(SME_SRC_DIR)/sme_common/sme_FTApi.o
+		$(SME_SRC_DIR)/sme_common/sme_FTApi.o \
+		$(SME_SRC_DIR)/sme_common/sme_Trace.o
 
 SME_BTC_OBJS := $(SME_SRC_DIR)/btc/btcApi.o
 
@@ -466,10 +460,6 @@ SYS_OBJS :=	$(SYS_COMMON_SRC_DIR)/wlan_qct_sys.o \
 		$(SYS_LEGACY_SRC_DIR)/utils/src/utilsApi.o \
 		$(SYS_LEGACY_SRC_DIR)/utils/src/utilsParser.o
 
-ifeq ($(CONFIG_QCOM_CCX),y)
-SYS_OBJS += $(SYS_LEGACY_SRC_DIR)/utils/src/limCcxparserApi.o
-endif
-
 ############ TL ############
 TL_DIR :=	CORE/TL
 TL_INC_DIR :=	$(TL_DIR)/inc
@@ -505,12 +495,16 @@ VOSS_OBJS :=    $(VOSS_SRC_DIR)/vos_api.o \
 		$(VOSS_SRC_DIR)/vos_timer.o \
 		$(VOSS_SRC_DIR)/vos_trace.o \
 		$(VOSS_SRC_DIR)/vos_types.o \
-		$(VOSS_SRC_DIR)/vos_utils.o
+                $(VOSS_SRC_DIR)/vos_utils.o \
+                $(VOSS_SRC_DIR)/wlan_nv_parser.o \
+                $(VOSS_SRC_DIR)/wlan_nv_stream_read.o \
+                $(VOSS_SRC_DIR)/wlan_nv_template_builtin.o
 
 ifeq ($(BUILD_DIAG_VERSION),1)
 VOSS_OBJS += $(VOSS_SRC_DIR)/vos_diag.o
 endif
 
+ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 ########### BMI ###########
 BMI_DIR := CORE/SERVICES/BMI
 
@@ -627,6 +621,7 @@ WMA_OBJS +=     $(WMA_DIR)/wma_isoc.o
 else
 WMA_OBJS +=     $(WMA_DIR)/regdomain.o
 endif
+endif
 
 ############ WDA ############
 WDA_DIR :=	CORE/WDA
@@ -707,6 +702,7 @@ WCNSS_INC :=	-I$(WLAN_ROOT)/wcnss/inc
 LINUX_INC :=	-Iinclude/linux
 
 INCS :=		$(BAP_INC) \
+		$(DXE_INC) \
 		$(HDD_INC) \
 		$(LINUX_INC) \
 		$(MAC_INC) \
@@ -730,6 +726,7 @@ INCS +=		$(WMA_INC) \
 		$(ADF_INC) \
 		$(TLSHIM_INC) \
 		$(TXRX_INC) \
+		$(PKTLOG_INC) \
 		$(HTT_INC) \
 		$(HTC_INC)
 
@@ -822,7 +819,15 @@ CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DWLAN_FEATURE_HOLD_RX_WAKELOCK \
 		-DWLAN_SOFTAP_VSTA_FEATURE \
 		-DWLAN_FEATURE_ROAM_SCAN_OFFLOAD \
-		-DQCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+		-DWLAN_FEATURE_GTK_OFFLOAD \
+		-DWLAN_WAKEUP_EVENTS \
+	        -DWLAN_KD_READY_NOTIFIER \
+		-DWLAN_NL80211_TESTMODE \
+		-DFEATURE_WLAN_BATCH_SCAN \
+		-DFEATURE_WLAN_LPHB \
+		-DFEATURE_WLAN_PAL_TIMER_DISABLE \
+		-DFEATURE_WLAN_PAL_MEM_DISABLE \
+                -DQCA_SUPPORT_TXRX_VDEV_PAUSE_LL
 
 ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
 CDEFINES +=	-DWLANTL_DEBUG
@@ -831,7 +836,7 @@ CDEFINES +=	-DOSIF_NEED_RX_PEER_ID \
 		-DQCA_SUPPORT_TXRX_LOCAL_PEER_ID
 endif
 
-ifneq ($(CONFIG_PRONTO_WLAN),)
+ifneq ($(CONFIG_QCA_CLD_WLAN),)
 CDEFINES += -DWCN_PRONTO
 CDEFINES += -DWCN_PRONTO_V1
 endif
@@ -840,13 +845,10 @@ ifeq ($(BUILD_DEBUG_VERSION),1)
 CDEFINES +=	-DWLAN_DEBUG \
 		-DTRACE_RECORD \
 		-DLIM_TRACE_RECORD \
+		-DSME_TRACE_RECORD \
 		-DPE_DEBUG_LOGW \
 		-DPE_DEBUG_LOGE \
 		-DDEBUG
-endif
-
-ifeq ($(CONFIG_SUPPORT_HIGH_LATENCY),1)
-CDEFINES += -DCONFIG_HL_SUPPORT
 endif
 
 ifeq ($(CONFIG_SLUB_DEBUG_ON),y)
@@ -867,12 +869,17 @@ ifeq ($(CONFIG_QCOM_CCX),y)
 CDEFINES += -DFEATURE_WLAN_CCX
 CDEFINES += -DQCA_COMPUTE_TX_DELAY
 CDEFINES += -DQCA_COMPUTE_TX_DELAY_PER_TID
+ifeq ($(CONFIG_QCOM_CCX_UPLOAD),y)
+CDEFINES += -DFEATURE_WLAN_CCX_UPLOAD
+endif
 endif
 
 #normally, TDLS negative behavior is not needed
 ifeq ($(CONFIG_QCOM_TDLS),y)
 CDEFINES += -DFEATURE_WLAN_TDLS
+ifeq ($(BUILD_DEBUG_VERSION),1)
 CDEFINES += -DWLAN_FEATURE_TDLS_DEBUG
+endif
 CDEFINES += -DCONFIG_TDLS_IMPLICIT
 #CDEFINES += -DFEATURE_WLAN_TDLS_NEGATIVE
 #Code under FEATURE_WLAN_TDLS_INTERNAL is ported from volans, This code
@@ -913,24 +920,8 @@ ifeq ($(CONFIG_WLAN_FEATURE_11W),y)
 CDEFINES += -DWLAN_FEATURE_11W
 endif
 
-ifneq (, $(filter msm8960, $(BOARD_PLATFORM)))
-EXTRA_CFLAGS += -march=armv7-a
-CDEFINES += -DMSM_PLATFORM_8960
-endif
-
-ifneq (, $(filter msm8660, $(BOARD_PLATFORM)))
-EXTRA_CFLAGS += -march=armv7-a
-CDEFINES += -DMSM_PLATFORM_8660
-endif
-
-ifneq (, $(filter msm7630_surf msm7630_fusion, $(BOARD_PLATFORM)))
-EXTRA_CFLAGS += -march=armv7-a
-CDEFINES += -DMSM_PLATFORM_7x30
-endif
-
-ifneq (, $(filter msm7627_surf, $(BOARD_PLATFORM)))
-EXTRA_CFLAGS += -march=armv6
-CDEFINES += -DMSM_PLATFORM_7x27
+ifeq ($(CONFIG_QCOM_LTE_COEX),y)
+CDEFINES += -DFEATURE_WLAN_CH_AVOID
 endif
 
 ifeq ($(PANIC_ON_BUG),1)
@@ -949,6 +940,12 @@ ifeq ($(findstring opensource, $(WLAN_ROOT)), opensource)
 CDEFINES += -DWLAN_OPEN_SOURCE
 endif
 
+ifeq ($(CONFIG_ENABLE_LINUX_REG), y)
+ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
+CDEFINES += -DCONFIG_ENABLE_LINUX_REG
+endif
+endif
+
 ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 CDEFINES += -DQCA_WIFI_2_0
 endif
@@ -959,18 +956,8 @@ CDEFINES += -DANI_BUS_TYPE_PLATFORM=1
 endif
 
 ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
-ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
-CDEFINES += -DQCA_ISOC_PRONTO
-endif
-endif
-
 ifeq ($(CONFIG_QCA_IBSS_SUPPORT), 1)
 CDEFINES += -DQCA_IBSS_SUPPORT
-endif
-
-#Enable Encap/Decap on host
-ifeq ($(CONFIG_SUPPORT_SW_TXRX_ENCAP), 1)
-CDEFINES += -DQCA_SUPPORT_SW_TXRX_ENCAP
 endif
 
 #Enable the OS specific ADF abstraction
@@ -1067,6 +1054,7 @@ endif
 ifeq ($(CONFIG_GTK_OFFLOAD), 1)
 CDEFINES += -DWLAN_FEATURE_GTK_OFFLOAD
 CDEFINES += -DIGTK_OFFLOAD
+endif
 endif
 
 # Fix build for GCC 4.7

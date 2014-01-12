@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /******************************************************************************
  * wlan_nlink_srv.h
  *
@@ -49,10 +48,17 @@
 typedef int (* nl_srv_msg_callback)(struct sk_buff * skb);
 
 int nl_srv_init(void);
+#ifdef WLAN_KD_READY_NOTIFIER
+void nl_srv_exit(int dst_pid);
+#else
 void nl_srv_exit(void);
+#endif /* WLAN_KD_READY_NOTIFIER */
 int nl_srv_register(tWlanNlModTypes msg_type, nl_srv_msg_callback msg_handler);
 int nl_srv_unregister(tWlanNlModTypes msg_type, nl_srv_msg_callback msg_handler);
 int nl_srv_ucast(struct sk_buff * skb, int dst_pid);
 int nl_srv_bcast(struct sk_buff * skb);
-
+#ifdef WLAN_KD_READY_NOTIFIER
+void nl_srv_nl_ready_indication(void);
+void nl_srv_nl_close_indication(int pid);
+#endif /* WLAN_KD_READY_NOTIFIER */
 #endif

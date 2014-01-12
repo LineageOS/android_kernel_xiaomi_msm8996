@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limSecurityUtils.h contains the utility definitions
  * related to WEP encryption/decryption etc.
  * Author:        Chandra Modumudi

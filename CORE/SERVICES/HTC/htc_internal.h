@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _HTC_INTERNAL_H_
 #define _HTC_INTERNAL_H_
 

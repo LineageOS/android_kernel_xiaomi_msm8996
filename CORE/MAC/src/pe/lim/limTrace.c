@@ -24,17 +24,12 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
-  \file  limTrace.c
+\file  limTrace.c
 
   \brief implementation for trace related APIs
 
   \author Sunit Bhatia
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 
@@ -92,6 +87,7 @@ static tANI_U8* __limTraceGetTimerString( tANI_U16 timerId )
         CASE_RETURN_STRING(eLIM_DEAUTH_ACK_TIMER);
         CASE_RETURN_STRING(eLIM_PERIODIC_JOIN_PROBE_REQ_TIMER);
         CASE_RETURN_STRING(eLIM_INSERT_SINGLESHOT_NOA_TIMER);
+        CASE_RETURN_STRING(eLIM_CONVERT_ACTIVE_CHANNEL_TO_PASSIVE);
         default:
             return( "UNKNOWN" );
             break;

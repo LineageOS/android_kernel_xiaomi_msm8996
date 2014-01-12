@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #include <adf_nbuf.h>          /* adf_nbuf_t, etc. */
 #include <adf_os_io.h>         /* adf_os_cpu_to_le64 */
 #include <adf_os_types.h>      /* a_bool_t */

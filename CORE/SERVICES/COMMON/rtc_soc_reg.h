@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _RTC_SOC_REG_REG_H_
 #define _RTC_SOC_REG_REG_H_
 

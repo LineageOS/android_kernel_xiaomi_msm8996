@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *  The file is used to define structures that are shared between
  *  kernel space and user space pktlog application.

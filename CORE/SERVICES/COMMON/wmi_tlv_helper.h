@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _WMI_TLV_HELPER_H_
 #define _WMI_TLV_HELPER_H_
 

@@ -24,7 +24,9 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ * 
+ */
 
 #ifndef _IEEE80211_DEFINES_H_
 #define _IEEE80211_DEFINES_H_

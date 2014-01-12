@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef EVENT_DEFS_H
 #define EVENT_DEFS_H
 

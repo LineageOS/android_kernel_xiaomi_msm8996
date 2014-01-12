@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( PALTYPES_H__ )
 #define PALTYPES_H__
 
@@ -39,8 +38,6 @@
     and bus types).  All common code should adhere to these common types.
   
     $Id$ 
-  
-    Copyright (C) 2006 Airgo Networks, Incorporated
   
     ... description...
   

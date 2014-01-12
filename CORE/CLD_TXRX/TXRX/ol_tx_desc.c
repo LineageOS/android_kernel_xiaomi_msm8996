@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #include <adf_net_types.h> /* ADF_NBUF_EXEMPT_NO_EXEMPTION, etc. */
 #include <adf_nbuf.h>      /* adf_nbuf_t, etc. */
 #include <adf_os_util.h>   /* adf_os_assert */

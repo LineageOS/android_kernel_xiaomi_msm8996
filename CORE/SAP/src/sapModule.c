@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
 
                       s a p M o d u l e . C
@@ -39,9 +38,6 @@
 
   Are listed for each API below.
 
-  Copyright (c) 2010 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================
@@ -625,7 +621,7 @@ WLANSAP_StartBss
             //present or not doesn't maater as we have to follow whatever
             //STA session does)
             if ((0 == sme_GetConcurrentOperationChannel(hHal)) &&
-                 pConfig->ieee80211d)
+                pConfig->ieee80211d)
             {
                 /* Setting the region/country  information */
                 sme_setRegInfo(hHal, pConfig->countryCode);
@@ -661,7 +657,6 @@ WLANSAP_StartBss
     return vosStatus;
 }// WLANSAP_StartBss
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
 /*==========================================================================
   FUNCTION    WLANSAP_SetMacACL
 
@@ -700,42 +695,44 @@ WLANSAP_SetMacACL
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                  "WLANSAP_SetMacACL");
 
-    if (VOS_STA_SAP_MODE != vos_get_conparam ())
+    if (VOS_STA_SAP_MODE == vos_get_conparam ())
+    {
+        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        if ( NULL == pSapCtx )
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+            return VOS_STATUS_E_FAULT;
+        }
+
+        // Copy MAC filtering settings to sap context
+        pSapCtx->eSapMacAddrAclMode = pConfig->SapMacaddr_acl;
+
+        if (eSAP_DENY_UNLESS_ACCEPTED == pSapCtx->eSapMacAddrAclMode)
+        {
+            vos_mem_copy(pSapCtx->acceptMacList, pConfig->accept_mac,
+                                                 sizeof(pConfig->accept_mac));
+            pSapCtx->nAcceptMac = pConfig->num_accept_mac;
+            sapSortMacList(pSapCtx->acceptMacList, pSapCtx->nAcceptMac);
+        }
+        else if (eSAP_ACCEPT_UNLESS_DENIED == pSapCtx->eSapMacAddrAclMode)
+        {
+            vos_mem_copy(pSapCtx->denyMacList, pConfig->deny_mac,
+                                               sizeof(pConfig->deny_mac));
+            pSapCtx->nDenyMac = pConfig->num_deny_mac;
+            sapSortMacList(pSapCtx->denyMacList, pSapCtx->nDenyMac);
+        }
+    }
+    else
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                    "%s : SoftAp role has not been enabled", __func__);
+                       "%s : SoftAp role has not been enabled", __func__);
         return VOS_STATUS_E_FAULT;
-    }
-
-    pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
-    if ( NULL == pSapCtx )
-    {
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "%s: Invalid SAP pointer from pvosGCtx", __func__);
-        return VOS_STATUS_E_FAULT;
-    }
-
-    // Copy MAC filtering settings to sap context
-    pSapCtx->eSapMacAddrAclMode = pConfig->SapMacaddr_acl;
-
-    if (eSAP_DENY_UNLESS_ACCEPTED == pSapCtx->eSapMacAddrAclMode)
-    {
-        vos_mem_copy(pSapCtx->acceptMacList, pConfig->accept_mac,
-                                sizeof(pConfig->accept_mac));
-        pSapCtx->nAcceptMac = pConfig->num_accept_mac;
-        sapSortMacList(pSapCtx->acceptMacList, pSapCtx->nAcceptMac);
-    }
-    else if (eSAP_ACCEPT_UNLESS_DENIED == pSapCtx->eSapMacAddrAclMode)
-    {
-        vos_mem_copy(pSapCtx->denyMacList, pConfig->deny_mac,
-                                sizeof(pConfig->deny_mac));
-        pSapCtx->nDenyMac = pConfig->num_deny_mac;
-        sapSortMacList(pSapCtx->denyMacList, pSapCtx->nDenyMac);
     }
 
     return vosStatus;
 }//WLANSAP_SetMacACL
-#endif
+
 /*==========================================================================
   FUNCTION    WLANSAP_StopBss
 
@@ -1073,7 +1070,7 @@ WLANSAP_ModifyACL
             {
                 //error check
                 // if list is already at max, return failure
-                if (pSapCtx->nAcceptMac == MAX_MAC_ADDRESS_ACCEPTED)
+                if (pSapCtx->nAcceptMac == MAX_ACL_MAC_ADDRESS)
                 {
                     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                             "White list is already maxed out. Cannot accept %02x:%02x:%02x:%02x:%02x:%02x",
@@ -1136,7 +1133,7 @@ WLANSAP_ModifyACL
             {
                 //error check
                 // if list is already at max, return failure
-                if (pSapCtx->nDenyMac == MAX_MAC_ADDRESS_ACCEPTED)
+                if (pSapCtx->nDenyMac == MAX_ACL_MAC_ADDRESS)
                 {
                     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                             "Black list is already maxed out. Cannot accept %02x:%02x:%02x:%02x:%02x:%02x",
@@ -2162,7 +2159,7 @@ VOS_STATUS WLANSAP_RemainOnChannel( v_PVOID_t pvosGCtx,
         }
 
         halStatus = sme_RemainOnChannel( hHal, pSapCtx->sessionId,
-                          channel, duration, callback, pContext );
+                          channel, duration, callback, pContext, TRUE );
 
         if( eHAL_STATUS_SUCCESS == halStatus )
         {

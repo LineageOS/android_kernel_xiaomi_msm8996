@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  * */
 #ifndef _HALMSGAPI_H_
@@ -285,7 +284,12 @@ typedef struct
     tANI_U8    vhtTxChannelWidthSet;
     tANI_U8    vhtTxBFCapable;
     tANI_U8    vhtTxMUBformeeCapable;
+    tANI_U8    enableVhtpAid;
+    tANI_U8    enableVhtGid;
 #endif
+    tANI_U8    enableAmpduPs;
+    tANI_U8    enableHtSmps;
+    tANI_U8    htSmpsconfig;
 
     tANI_U8    htLdpcCapable;
     tANI_U8    vhtLdpcCapable;
@@ -681,14 +685,14 @@ typedef struct {
 
 #ifndef OEM_DATA_REQ_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_REQ_SIZE 276
+#define OEM_DATA_REQ_SIZE 280
 #else
 #define OEM_DATA_REQ_SIZE 134
 #endif
 #endif
 #ifndef OEM_DATA_RSP_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_RSP_SIZE 1720
+#define OEM_DATA_RSP_SIZE 1724
 #else
 #define OEM_DATA_RSP_SIZE 1968
 #endif

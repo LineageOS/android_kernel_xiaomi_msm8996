@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
  *     
  *       \file  wlan_qct_wdi_ds.c
@@ -36,8 +35,6 @@
  *  This file contains the external API implemntation exposed by the 
  *   wlan device abstarction layer module.
  *
- *   Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
- *   Qualcomm Technologies Confidential and Proprietary
  */
 
 
@@ -129,7 +126,8 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   wpt_uint8      ucUP;
   wpt_uint8      ucTypeSubtype;
   wpt_uint8      alignment;
-  wpt_uint8      ucTxFlag;
+  wpt_uint32     ucTxFlag;
+  wpt_uint8      ucProtMgmtFrame;
   wpt_uint8*     pSTAMACAddress;
   wpt_uint8*     pAddr2MACAddress;
   WDI_DS_TxMetaInfoType     *pTxMetadata;
@@ -158,6 +156,7 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   ucTypeSubtype = pTxMetadata->typeSubtype;
   ucUP = pTxMetadata->fUP;
   ucTxFlag = pTxMetadata->txFlags;
+  ucProtMgmtFrame = pTxMetadata->fProtMgmtFrame;
   pSTAMACAddress = &(pTxMetadata->fSTAMACAddress[0]);
   pAddr2MACAddress = &(pTxMetadata->addr2MACAddress[0]);
 
@@ -204,7 +203,7 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   WDI_DS_PrepareBDHeader(pFrame, ucSwFrameTXXlation, alignment);
 
   wdiStatus = WDI_FillTxBd(pContext, ucTypeSubtype, pSTAMACAddress, pAddr2MACAddress,
-    &ucUP, 1, pvBDHeader, ucTxFlag /* No ACK */, 0, &staId);
+    &ucUP, 1, pvBDHeader, ucTxFlag /* No ACK */, ucProtMgmtFrame, 0, &staId);
 
   if(WDI_STATUS_SUCCESS != wdiStatus)
   {

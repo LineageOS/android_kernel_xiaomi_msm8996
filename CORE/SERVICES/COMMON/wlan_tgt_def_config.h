@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef __WLAN_TGT_DEF_CONFIG_H__
 #define __WLAN_TGT_DEF_CONFIG_H__
 
@@ -66,7 +65,7 @@
 /*
  * total number of peers per device.
  */
-#define CFG_TGT_NUM_PEERS               8
+#define CFG_TGT_NUM_PEERS               14
 
 /*
  * In offload mode target supports features like WOW, chatter and other
@@ -105,7 +104,7 @@
 /*
  * total number of data TX and RX TIDs 
  */
-#define CFG_TGT_NUM_TIDS                (2 * CFG_TGT_NUM_PEERS)
+#define CFG_TGT_NUM_TIDS       (2 * (CFG_TGT_NUM_PEERS + CFG_TGT_NUM_VDEV + 2))
 /*
  * set this to 0x7 (Peregrine = 3 chains).
  * need to be set dynamically based on the HW capability.
@@ -130,16 +129,16 @@
 #define CFG_TGT_DEFAULT_SCAN_MAX_REQS   0x4
 
 /* maximum number of VDEV that could use BMISS offload */
-#define CFG_TGT_DEFAULT_BMISS_OFFLOAD_MAX_VDEV   0x3
+#define CFG_TGT_DEFAULT_BMISS_OFFLOAD_MAX_VDEV   0x2
 
 /* maximum number of VDEV offload Roaming to support */
-#define CFG_TGT_DEFAULT_ROAM_OFFLOAD_MAX_VDEV   0x3
+#define CFG_TGT_DEFAULT_ROAM_OFFLOAD_MAX_VDEV   0x2
 
 /* maximum number of AP profiles pushed to offload Roaming */
 #define CFG_TGT_DEFAULT_ROAM_OFFLOAD_MAX_PROFILES   0x8
 
 /* maximum number of VDEV offload GTK to support */
-#define CFG_TGT_DEFAULT_GTK_OFFLOAD_MAX_VDEV   0x3
+#define CFG_TGT_DEFAULT_GTK_OFFLOAD_MAX_VDEV   0x2
 
 /* default: mcast->ucast disabled if ATH_SUPPORT_MCAST2UCAST not defined */
 #ifndef ATH_SUPPORT_MCAST2UCAST
@@ -167,7 +166,7 @@
 #define CFG_TGT_DEFAULT_TX_DBG_LOG_SIZE 1024 /* bytes */
 
 /* target based fragment timeout and MPDU duplicate detection */
-#define CFG_TGT_DEFAULT_RX_SKIP_DEFRAG_TIMEOUT_DUP_DETECTION_CHECK 0
+#define CFG_TGT_DEFAULT_RX_SKIP_DEFRAG_TIMEOUT_DUP_DETECTION_CHECK 1
 
 /*  Default VoW configuration
  */
@@ -187,5 +186,15 @@
  * Maximum number of VDEV that beacon tx offload will support
  */
 #define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 2
+
+/*
+ * number of vdevs that can support tdls
+ */
+#define CFG_TGT_NUM_TDLS_VDEVS    1
+
+/*
+ * number of peers that each Tdls vdev can track
+ */
+#define CFG_TGT_NUM_TDLS_CONN_TABLE_ENTRIES    32
 
 #endif  /*__WLAN_TGT_DEF_CONFIG_H__ */

@@ -24,9 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
-
-
 /**=========================================================================
   
   \file  wlan_qct_pal_timer.c
@@ -35,16 +32,14 @@
                
    Definitions for platform Windows.
   
-   Copyright 2010-2011 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
-  
   ========================================================================*/
 
 #include "wlan_qct_pal_timer.h"
 #include "wlan_qct_pal_trace.h"
 #include "wlan_qct_os_status.h"
 #include "vos_threads.h"
+
+#include <linux/delay.h>
 
 /*---------------------------------------------------------------------------
  \brief wpalTimerCback - VOS timer callback function
@@ -61,8 +56,9 @@ static void wpalTimerCback( void * userData )
    }
    else
    {
-      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_WARN, " %s pTimer(%d) callback after deleted \n",
-         __func__, (wpt_uint32)pTimer );
+      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  " %s pTimer(%p) callback after deleted",
+                  __func__, pTimer );
    }
 }/*wpalTimerCback*/
 
@@ -80,8 +76,9 @@ wpt_status wpalTimerInit(wpt_timer * pTimer, wpal_timer_callback callback, void 
    /* Sanity Checks */
    if( pTimer == NULL || callback == NULL )
    {
-      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, " %s Wrong param pTimer(%d) callback(%d)\n",
-         __func__, (wpt_uint32)pTimer, (wpt_uint32)callback );
+      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  " %s Wrong param pTimer(%p) callback(%p)",
+                  __func__, pTimer, callback );
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -111,8 +108,9 @@ wpt_status wpalTimerDelete(wpt_timer *pTimer)
    /* Sanity Checks */
    if( pTimer == NULL )
    {
-      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, " %s Wrong param pTimer(%d)\n",
-         __func__, (wpt_uint32)pTimer );
+      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  " %s Wrong param pTimer(%p)",
+                  __func__, pTimer );
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -142,8 +140,9 @@ wpt_status wpalTimerStart(wpt_timer * pTimer, wpt_uint32 timeout)
    /* Sanity Checks */
    if( pTimer == NULL )
    {
-      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, " %s Wrong param pTimer(%d)\n",
-         __func__, (wpt_uint32)pTimer );
+      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  " %s Wrong param pTimer(%p)",
+                  __func__, pTimer );
       return eWLAN_PAL_STATUS_E_INVAL;
    }
    return ( WPAL_VOS_TO_WPAL_STATUS( vos_timer_start( &pTimer->timer.timerObj,
@@ -165,8 +164,9 @@ wpt_status wpalTimerStop(wpt_timer * pTimer)
    /* Sanity Checks */
    if( pTimer == NULL )
    {
-      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, " %s Wrong param pTimer(%d)\n",
-         __func__, (wpt_uint32)pTimer );
+      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  " %s Wrong param pTimer(%p)",
+                  __func__, pTimer );
       return eWLAN_PAL_STATUS_E_INVAL;
    }
    return (WPAL_VOS_TO_WPAL_STATUS( vos_timer_stop( &pTimer->timer.timerObj )));
@@ -185,8 +185,9 @@ WPAL_TIMER_STATE wpalTimerGetCurStatus(wpt_timer * pTimer)
    /* Sanity Checks */
    if( pTimer == NULL )
    {
-      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, " %s Wrong param pTimer(%d)\n",
-         __func__, (wpt_uint32)pTimer );
+      WPAL_TRACE( eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  " %s Wrong param pTimer(%p)",
+                  __func__, pTimer );
       return eWLAN_PAL_STATUS_E_INVAL;
    }
    return vos_timer_getCurrentState( &pTimer->timer.timerObj );
@@ -214,4 +215,17 @@ wpt_status wpalSleep(wpt_uint32 timeout)
 {
    vos_sleep( timeout );
    return eWLAN_PAL_STATUS_SUCCESS;
+}
+
+/*---------------------------------------------------------------------------
+    wpalBusyWait - Thread busy wait with specified usec
+    Param:
+        usecDelay - amount of time to wait. In unit of micro-seconds.
+    Return:
+        NONE
+---------------------------------------------------------------------------*/
+void wpalBusyWait(wpt_uint32 usecDelay)
+{
+   vos_busy_wait(usecDelay);
+   return;
 }
