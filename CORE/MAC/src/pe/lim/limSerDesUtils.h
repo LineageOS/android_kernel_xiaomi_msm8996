@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limSerDesUtils.h contains the utility definitions
  * LIM uses while processing messages from upper layer software
  * modules

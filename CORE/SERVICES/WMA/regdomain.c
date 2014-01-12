@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  * Notifications and licenses are retained for attribution purposes only.
  */
@@ -66,9 +65,9 @@
  */
 
 #include <adf_os_types.h>
+#include "wma.h"
 #include "regdomain.h"
 #include "regdomain_common.h"
-#include "wma.h"
 
 #define N(a) (sizeof(a)/sizeof(a[0]))
 
@@ -95,7 +94,7 @@ static u_int16_t get_eeprom_rd(u_int16_t rd)
  * Return whether or not the regulatory domain/country in EEPROM
  * is acceptable.
  */
-static bool regmn_is_eeprom_valid(u_int16_t rd)
+static bool regdmn_is_eeprom_valid(u_int16_t rd)
 {
 	int32_t i;
 
@@ -128,6 +127,18 @@ static const COUNTRY_CODE_TO_ENUM_RD *find_country(u_int16_t country_code)
 			return &ol_regdmn_Rdt.allCountries[i];
 	}
 	return NULL;        /* Not found */
+}
+
+int32_t regdmn_find_ctry_by_name(u_int8_t *alpha2)
+{
+	int32_t i;
+
+	for (i = 0; i < ol_regdmn_Rdt.allCountriesCt; i++) {
+		if (ol_regdmn_Rdt.allCountries[i].isoName[0] == alpha2[0] &&
+			 ol_regdmn_Rdt.allCountries[i].isoName[1] == alpha2[1])
+			return ol_regdmn_Rdt.allCountries[i].countryCode;
+	}
+	return CTRY_DEFAULT;        /* Not found */
 }
 
 static u_int16_t regdmn_get_default_country(u_int16_t rd)
@@ -191,19 +202,34 @@ static const COUNTRY_CODE_TO_ENUM_RD *get_country_from_rd(u_int16_t regdmn)
 }
 
 /*
+ * Some users have reported their EEPROM programmed with
+ * 0x8000 set, this is not a supported regulatory domain
+ * but since we have more than one user with it we need
+ * a solution for them. We default to 0x64
+ */
+static void regd_sanitize(struct regulatory *reg)
+{
+	if (reg->reg_domain != COUNTRY_ERD_FLAG)
+		return;
+	reg->reg_domain = 0x64;
+}
+
+/*
  * Returns country string for the given regulatory domain.
  */
-int32_t regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2)
+int32_t regdmn_get_country_alpha2(struct regulatory *reg)
 {
 	u_int16_t country_code;
-	u_int16_t regdmn;
+	u_int16_t regdmn, rd;
 	const COUNTRY_CODE_TO_ENUM_RD *country = NULL;
-	const REG_DMN_PAIR_MAPPING *regpair = NULL;
+
+	regd_sanitize(reg);
+	rd = reg->reg_domain;
+
+	if (!regdmn_is_eeprom_valid(rd))
+		return -EINVAL;
 
 	regdmn = get_eeprom_rd(rd);
-
-	if (!regmn_is_eeprom_valid(rd))
-		return -EINVAL;
 
 	country_code = regdmn_get_default_country(regdmn);
 	if (country_code == CTRY_DEFAULT && regdmn == CTRY_DEFAULT) {
@@ -221,22 +247,23 @@ int32_t regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2)
 		regdmn = country->regDmnEnum;
 	}
 
-	regpair = get_regdmn_pair(regdmn);
-	if (!regpair) {
+	reg->regpair = get_regdmn_pair(regdmn);
+	if (!reg->regpair) {
 		/* TODO: Bring it under debug level */
 		adf_os_print(KERN_ERR "No regpair is found, can not proceeed\n");
 		return -EINVAL;
 	}
+	reg->country_code = country_code;
 
 	if (!country)
 		country = get_country_from_rd(regdmn);
 
 	if (country) {
-		alpha2[0] = country->isoName[0];
-		alpha2[1] = country->isoName[1];
+		reg->alpha2[0] = country->isoName[0];
+		reg->alpha2[1] = country->isoName[1];
 	} else {
-		alpha2[0] = '0';
-		alpha2[1] = '0';
+		reg->alpha2[0] = '0';
+		reg->alpha2[1] = '0';
 	}
 
 	return 0;
@@ -345,32 +372,18 @@ u_int32_t regdmn_getwmodesnreg(u_int32_t modesAvail,
 	return modesAvail;
 }
 
-void regdmn_get_ctl_info(u_int32_t regdmn, u_int32_t modesAvail, u_int32_t modeSelect)
+static void regdmn_get_ctl_info(struct regulatory *reg, u_int32_t modesAvail,
+     u_int32_t modeSelect)
 {
-	const REG_DMN_PAIR_MAPPING *regpair = NULL;
 	const REG_DOMAIN *regdomain2G = NULL;
 	const REG_DOMAIN *regdomain5G = NULL;
 	int8_t ctl_2g, ctl_5g, ctl;
 	const REG_DOMAIN *rd = NULL;
 	const struct cmode *cm;
-	u_int16_t country_code;
 	const COUNTRY_CODE_TO_ENUM_RD *country;
+	const REG_DMN_PAIR_MAPPING *regpair;
 
-	country_code = regdmn_get_default_country(regdmn);
-	if (country_code == CTRY_DEFAULT && regdmn == CTRY_DEFAULT)
-		country_code = CTRY_UNITED_STATES;
-
-	country = find_country(country_code);
-	if (country != NULL)
-		regdmn = country->regDmnEnum;
-
-	/* get regulatory domain pair */
-	regpair = get_regdmn_pair(regdmn);
-	if (!regpair) {
-		adf_os_print(KERN_ERR "Failed to get regdmn pair");
-		return;
-	}
-
+	regpair = reg->regpair;
 	regdomain2G = get_regdmn(regpair->regDmn2GHz);
 	if (!regdomain2G) {
 		adf_os_print(KERN_ERR "Failed to get regdmn 2G");
@@ -388,6 +401,7 @@ void regdmn_get_ctl_info(u_int32_t regdmn, u_int32_t modesAvail, u_int32_t modeS
 	ctl_5g = regdomain5G->conformance_test_limit;
 
 	/* find second nible of CTL */
+	country = find_country(reg->country_code);
 	if (country != NULL)
 		modesAvail = regdmn_getwmodesnreg(modesAvail, country, regdomain5G);
 
@@ -449,6 +463,18 @@ void regdmn_get_ctl_info(u_int32_t regdmn, u_int32_t modesAvail, u_int32_t modeS
 		if (rd == regdomain5G)
 			ctl_5g = ctl;
 	}
-	wma_send_regdomain_info(regdmn, regpair->regDmn2GHz,
+	wma_send_regdomain_info(reg->reg_domain, regpair->regDmn2GHz,
 			regpair->regDmn5GHz, ctl_2g, ctl_5g);
+}
+
+void regdmn_set_regval(struct regulatory *reg)
+{
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+	u_int32_t modeSelect = 0xFFFFFFFF;
+
+	wma_get_modeselect(wma, &modeSelect);
+
+	regdmn_get_ctl_info(reg, wma->reg_cap.wireless_modes, modeSelect);
+	return;
 }

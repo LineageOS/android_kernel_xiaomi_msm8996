@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file htt_h2t.c
  * @brief Provide functions to send host->target HTT messages.

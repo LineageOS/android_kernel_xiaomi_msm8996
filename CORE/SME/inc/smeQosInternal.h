@@ -25,7 +25,6 @@
  * to the Linux Foundation.
  */
 
-
 #if !defined( __SMEQOSINTERNAL_H )
 #define __SMEQOSINTERNAL_H
 
@@ -35,10 +34,6 @@
   \file  smeQosInternal.h
   
   \brief prototype for SME QoS APIs
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

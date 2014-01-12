@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file ol_txrx_peer_find.h
  * @brief Define the API for the rx peer lookup datapath module.

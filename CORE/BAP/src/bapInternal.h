@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WLANBAP_INTERNAL_H
 #define WLAN_QCT_WLANBAP_INTERNAL_H
 
@@ -38,9 +37,6 @@ DESCRIPTION
   This file contains the internal API exposed by the wlan BT-AMP PAL layer 
   module.
   
-      
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -206,7 +202,8 @@ typedef struct sBtampHCI_Supported_Cmds {
 
 typedef struct sBtampHCI_AMP_Info {
 //    v_U8_t       present;
-    v_U8_t       HC_AMP_Status; v_U32_t      HC_Total_BW; /* combined uplink and downlink */
+    v_U8_t       HC_AMP_Status; /* */
+    v_U32_t      HC_Total_BW; /* combined uplink and downlink */
     v_U32_t      HC_Max_Guaranteed_BW; /* upper bound */
     v_U32_t      HC_Min_Latency; /* AMP HCI latency + DIFS + CWMin */
     v_U32_t      HC_Max_PDU_Size; /* Equal to Max80211PALPDUSize */

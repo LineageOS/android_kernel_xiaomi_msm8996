@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _EFUSE_REG_REG_H_
 #define _EFUSE_REG_REG_H_
 

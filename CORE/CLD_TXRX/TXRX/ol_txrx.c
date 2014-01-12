@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*=== includes ===*/
 /* header files for OS primitives */
 #include <osdep.h>         /* u_int32_t, etc. */
@@ -826,7 +825,7 @@ void ol_txrx_osif_vdev_register(ol_txrx_vdev_handle vdev,
 		txrx_ops->tx.std = vdev->tx = ol_tx_hl;
 		txrx_ops->tx.non_std = ol_tx_non_std_hl;
 	} else {
-        txrx_ops->tx.std = vdev->tx = OL_TX_LL;
+		txrx_ops->tx.std = vdev->tx = OL_TX_LL;
 		txrx_ops->tx.non_std = ol_tx_non_std_ll;
 	}
 }

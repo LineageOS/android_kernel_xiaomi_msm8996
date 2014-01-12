@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef __WLAN_HDD_KEEP_ALIVE_H__
 #define __WLAN_HDD_KEEP_ALIVE_H__
 
@@ -33,9 +32,6 @@
   \file  wlan_hdd_keep_alive.h
 
   \brief Android WLAN HDD Keep-Alive API
-
-  Copyright 2011 (c) Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Proprietary and Confidential.
 
   ==========================================================================*/
 

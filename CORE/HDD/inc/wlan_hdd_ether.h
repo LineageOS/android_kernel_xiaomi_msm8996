@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _WLAN_HDD_ETHER_H
 #define _WLAN_HDD_ETHER_H
 /*============================================================================
@@ -32,9 +31,6 @@
 
   This module describes Ethernet packet formats for processing by HDD.
 
-               Copyright (c) 2009 Qualcomm Technologies, Inc.
-               All Rights Reserved.
-               Qualcomm Technologies Confidential and Proprietary
 ============================================================================*/
 /* $Header$ */
 

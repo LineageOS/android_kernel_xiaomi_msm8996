@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _TESTMODE_H_
 #define _TESTMODE_H_
 

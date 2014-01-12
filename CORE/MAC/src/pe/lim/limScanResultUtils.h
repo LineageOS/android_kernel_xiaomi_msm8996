@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limScanResultUtils.h contains the utility definitions
  * LIM uses for maintaining and accessing scan results on STA.
  * Author:        Chandra Modumudi
@@ -62,13 +60,13 @@ void    limReInitLfrScanResults(tpAniSirGlobal);
 tANI_U32 limDeactivateMinChannelTimerDuringScan(tpAniSirGlobal);
 void    limCheckAndAddBssDescription(tpAniSirGlobal, tpSirProbeRespBeacon, tANI_U8 *, tANI_BOOLEAN, tANI_U8);
 #if defined WLAN_FEATURE_VOWIFI
-void    limCollectBssDescription(tpAniSirGlobal,
+eHalStatus    limCollectBssDescription(tpAniSirGlobal,
                                  tSirBssDescription *,
                                  tpSirProbeRespBeacon,
                                  tANI_U8 *,
                                  tANI_U8);
 #else
-void    limCollectBssDescription(tpAniSirGlobal,
+eHalStatus    limCollectBssDescription(tpAniSirGlobal,
                                  tSirBssDescription *,
                                  tpSirProbeRespBeacon,
                                  tANI_U8 *);

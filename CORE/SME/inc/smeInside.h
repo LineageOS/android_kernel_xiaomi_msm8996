@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __SMEINSIDE_H )
 #define __SMEINSIDE_H
 
@@ -34,10 +33,6 @@
   \file  smeInside.h
   
   \brief prototype for SME structures and APIs used insside SME
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -64,7 +59,7 @@
 #if defined WLAN_FEATURE_VOWIFI
 #include "sme_RrmApi.h"
 #endif
-
+ePhyChanBondState csrConvertCBIniValueToPhyCBState(v_U32_t cbIniValue);
 
 /*-------------------------------------------------------------------------- 
   Type declarations
@@ -100,6 +95,7 @@ typedef struct sRemainChlCmd
     tANI_U8 chn;
     tANI_U8 phyMode;
     tANI_U32 duration;
+    tANI_U8 isP2PProbeReqAllowed;
     void* callback;
     void* callbackCtx;
 }tRemainChlCmd;
@@ -119,6 +115,15 @@ typedef struct TdlsSendMgmtInfo
   tANI_U8 *buf;
   tANI_U8 len;
 } tTdlsSendMgmtCmdInfo;
+
+typedef struct TdlsLinkEstablishInfo
+{
+  tSirMacAddr peerMac;
+  tANI_U8 uapsdQueues;
+  tANI_U8 maxSp;
+  tANI_U8 isBufSta;
+  tANI_U8 isResponder;
+} tTdlsLinkEstablishCmdInfo;
 
 typedef struct TdlsAddStaInfo
 {
@@ -172,6 +177,7 @@ typedef struct s_tdls_cmd
     //tEnterPeerUAPSDInfo enterUapsdInfo ;
     //tExitPeerUAPSDinfo  exitUapsdInfo ;
 #endif
+    tTdlsLinkEstablishCmdInfo tdlsLinkEstablishCmdInfo;
     tTdlsSendMgmtCmdInfo tdlsSendMgmtCmdInfo;
     tTdlsAddStaCmdInfo   tdlsAddStaCmdInfo;
     tTdlsDelStaCmdInfo   tdlsDelStaCmdInfo;
@@ -287,10 +293,15 @@ eHalStatus pmcSetPowerParams(tHalHandle hHal,   tSirSetPowerParamsReq*  pwParams
 tANI_BOOLEAN csrRoamGetConcurrencyConnectStatusForBmps(tpAniSirGlobal pMac);
 #ifdef FEATURE_WLAN_TDLS
 eHalStatus csrTdlsSendMgmtReq(tHalHandle hHal, tANI_U8 sessionId, tCsrTdlsSendMgmt *tdlsSendMgmt);
+VOS_STATUS csrTdlsSendLinkEstablishParams(tHalHandle hHal,
+                                          tANI_U8 sessionId,
+                                          tSirMacAddr peerMac,
+                                          tCsrTdlsLinkEstablishParams *tdlsLinkEstablishParams);
 eHalStatus csrTdlsAddPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac);
 eHalStatus csrTdlsChangePeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac, tCsrStaParams *pstaParams);
 eHalStatus csrTdlsDelPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac);
 eHalStatus csrTdlsProcessCmd(tpAniSirGlobal pMac,tSmeCmd *pCommand );
+eHalStatus csrTdlsProcessLinkEstablish( tpAniSirGlobal pMac, tSmeCmd *cmd );
 eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,v_U16_t msg_type,
                                                            void *pMsgBuf);
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
@@ -304,19 +315,33 @@ eHalStatus csrTdlsTeardownReq(tHalHandle hHal, tANI_U8 sessionId,
 #endif /* FEATURE_WLAN_TDLS */
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
-eHalStatus csrFlushBgScanRoamChannelList(tpAniSirGlobal pMac);
+eHalStatus csrFlushCfgBgScanRoamChannelList(tpAniSirGlobal pMac);
 eHalStatus csrCreateBgScanRoamChannelList(tpAniSirGlobal pMac,
                                             const tANI_U8 *pChannelList,
                                             const tANI_U8 numChannels);
 eHalStatus csrUpdateBgScanConfigIniChannelList(tpAniSirGlobal pMac, eCsrBand eBand);
-eHalStatus csrInitCountryValidChannelList(tpAniSirGlobal pMac, tANI_U8 revision);
-void csr_SetRevision(tpAniSirGlobal pMac, tANI_U8 revision);
 #endif
+
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+eHalStatus csrCreateRoamScanChannelList(tpAniSirGlobal pMac,
+                                                tANI_U8 *pChannelList,
+                                                tANI_U8 numChannels,
+                                                const eCsrBand eBand);
+#endif
+
 ePhyChanBondState csrConvertCBIniValueToPhyCBState(v_U32_t cbIniValue);
 
 eHalStatus csrPsOffloadIsFullPowerNeeded(tpAniSirGlobal pMac,
                                          tSmeCmd *pCommand,
                                          tRequestFullPowerReason *pReason,
                                          tANI_BOOLEAN *pfNeedPower);
+
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+eHalStatus csrCreateRoamScanChannelList(tpAniSirGlobal pMac,
+                                                tANI_U8 *pChannelList,
+                                                tANI_U8 numChannels,
+                                                const eCsrBand eBand);
+#endif
+void activeListCmdTimeoutHandle(void *userData);
 
 #endif //#if !defined( __SMEINSIDE_H )

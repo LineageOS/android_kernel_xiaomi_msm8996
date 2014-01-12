@@ -25,7 +25,6 @@
  * to the Linux Foundation.
  */
 
-
 /**=========================================================================
   
   \file  vos_Types.c
@@ -33,10 +32,6 @@
   \brief virtual Operating System Servies (vOS)
                
    Basic type definitions 
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

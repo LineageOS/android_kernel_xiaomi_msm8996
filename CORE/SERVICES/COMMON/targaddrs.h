@@ -24,7 +24,14 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+//------------------------------------------------------------------------------
+// <copyright file="targaddrs.h" company="Atheros">
+//    Copyright (c) 2010 Atheros Corporation.  All rights reserved.
+// $ATH_LICENSE_HOSTSDK0_C$
+//------------------------------------------------------------------------------
+//==============================================================================
+// Author(s): ="Atheros"
+//==============================================================================
 
 #ifndef __TARGADDRS_H__
 #define __TARGADDRS_H__

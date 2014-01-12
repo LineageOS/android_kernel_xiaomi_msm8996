@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 //==================================================================
 //
 //  File:         hdd_Version.h
@@ -33,8 +32,6 @@
 //
 //  Author:       Larry Cawley
 // 
-//  Copyright 2007, Qualcomm Technologies, Inc.  All rights reserved.
-//
 //===================================================================
 #if !defined( __hddVersion_h__ )
 #define __hddVersion_h__

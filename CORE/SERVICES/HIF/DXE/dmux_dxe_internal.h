@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _DMUX_DXE_INTERNAL__H_
 #define _DMUX_DXE_INTERNAL__H_
 

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_OS_LIST_H )
 #define __WLAN_QCT_OS_LIST_H
 
@@ -35,10 +34,6 @@
   \brief define linked list PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
                
    Definitions for platform dependent. It is with VOSS support.
-  
-   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
 
                       b t a m p F s m . C
@@ -43,10 +42,6 @@
 
   Are listed for each API below.
 
-
-  Copyright (c) 2008 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

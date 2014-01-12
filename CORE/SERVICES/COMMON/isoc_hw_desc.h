@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
 * @file isoc_hw_desc.h
 * @brief Define the Tx BD and Rx BD structs

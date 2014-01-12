@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _OL_TXRX__H_
 #define _OL_TXRX__H_
 

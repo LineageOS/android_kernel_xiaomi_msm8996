@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( WLAN_QCT_SYS_H__ )
 #define WLAN_QCT_SYS_H__
 
@@ -33,10 +32,6 @@
   \file  wlan_qct_sys.h
 
   \brief System module API
-
-               Copyright 2008 (c) Qualcomm Technologies, Inc.
-               All Rights Reserved.
-               Qualcomm Technologies Confidential and Proprietary.
 
   ==========================================================================*/
 
@@ -423,6 +418,7 @@ v_VOID_t sysTxFreeMsg( v_CONTEXT_t pVContext, vos_msg_t* pMsg );
   --------------------------------------------------------------------------*/
 
 void wlan_sys_ftm(void *pMsgPtr);
+void wlan_sys_probe(void);
 
 
 #endif  // WLAN_QCT_SYS_H__

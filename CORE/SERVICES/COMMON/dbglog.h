@@ -24,7 +24,14 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+//------------------------------------------------------------------------------
+// <copyright file="dbglog.h" company="Atheros">
+//    Copyright (c) 2004-2010 Atheros Corporation.  All rights reserved.
+// $ATH_LICENSE_HOSTSDK0_C$
+//------------------------------------------------------------------------------
+//==============================================================================
+// Author(s): ="Atheros"
+//==============================================================================
 
 #ifndef _DBGLOG_H_
 #define _DBGLOG_H_

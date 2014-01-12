@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=========================================================================
   
   \file  wlan_qct_pal_api.c
@@ -33,10 +32,6 @@
    wpt = (Wlan Pal Type) wpal = (Wlan PAL)
                
    Definitions for platform Windows.
-  
-   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -220,7 +215,7 @@ void *wpalDmaMemoryAllocate(wpt_uint32 size, void **ppPhysicalAddr)
    if ( NULL == pv ) 
    {
      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
-                 "%s Unable to allocate DMA buffer\n", __func__);
+                 "%s Unable to allocate DMA buffer", __func__);
      return NULL;
    }
 
@@ -411,5 +406,25 @@ void wpalWcnssResetIntr(void)
 #ifdef HAVE_WCNSS_RESET_INTR
    wcnss_reset_intr();
 #endif
+   return;
+}
+
+
+/*---------------------------------------------------------------------------
+    wpalFwDumpReq -  Trigger the dump commands to Firmware
+
+    Param:
+       cmd - Command No. to execute
+       arg1 - argument 1 to cmd
+       arg2 - argument 2 to cmd
+       arg3 - argument 3 to cmd
+       arg4 - argument 4 to cmd
+    Return:
+       NONE
+---------------------------------------------------------------------------*/
+void wpalFwDumpReq(wpt_uint32 cmd, wpt_uint32 arg1, wpt_uint32 arg2,
+                    wpt_uint32 arg3, wpt_uint32 arg4)
+{
+   vos_fwDumpReq(cmd, arg1, arg2, arg3, arg4);
    return;
 }

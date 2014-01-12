@@ -25,7 +25,6 @@
  * to the Linux Foundation.
  */
 
-
 #if !defined( __SMERRMAPI_H )
 #define __SMERRMAPI_H
 
@@ -35,10 +34,6 @@
   \file  sme_RrmApi.h
   
   \brief prototype for SME RRM APIs
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -69,6 +64,7 @@ VOS_STATUS sme_RrmNeighborReportRequest(tpAniSirGlobal pMac, tANI_U8 sessionId, 
 
 tRrmNeighborReportDesc* smeRrmGetFirstBssEntryFromNeighborCache( tpAniSirGlobal pMac);
 tRrmNeighborReportDesc* smeRrmGetNextBssEntryFromNeighborCache( tpAniSirGlobal pMac, tpRrmNeighborReportDesc pBssEntry);
+void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf);
 
 
 #endif

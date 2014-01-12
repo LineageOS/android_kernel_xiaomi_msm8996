@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /* standard header files */
 #include <adf_nbuf.h>         /* adf_nbuf_map */
 #include <adf_os_mem.h>       /* adf_os_mem_cmp */

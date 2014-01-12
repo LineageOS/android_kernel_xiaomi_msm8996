@@ -24,11 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*============================================================================
-Copyright (c) 2007 Qualcomm Technologies, Inc.
-All Rights Reserved.
-Qualcomm Technologies Confidential and Proprietary
 csrLogDump.c
 Implements the dump commands specific to the csr module. 
 ============================================================================*/
@@ -46,11 +42,11 @@ dump_csr( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI
     static tCsrRoamProfile x;
     static tSirMacSSid ssid;   //To be allocated for array of SSIDs
     static tANI_U8 sessionId; // Defined for fixed session ID
-    palZeroMemory(pMac->hHdd, (void*)&x, sizeof(x)); 
+    vos_mem_set((void*)&x, sizeof(x), 0);
     x.SSIDs.numOfSSIDs=1 ;
     x.SSIDs.SSIDList[0].SSID = ssid ;
     ssid.length=6 ;
-    palCopyMemory(pMac->hHdd, ssid.ssId, "AniNet", 6);
+    vos_mem_copy(ssid.ssId, "AniNet", 6);
     if(HAL_STATUS_SUCCESS(sme_AcquireGlobalLock( &pMac->sme )))
     {
         (void)csrRoamConnect(pMac, sessionId, &x, NULL, NULL);

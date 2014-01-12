@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #include <hif.h> /* A_TARGET_WRITE */
 
 /* Copy Engine operational state */

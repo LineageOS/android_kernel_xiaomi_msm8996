@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  * This file limAssocUtils.h contains the utility definitions
  * LIM uses while processing Re/Association messages.
@@ -51,7 +50,7 @@ tANI_U8         limCompareCapabilities(tpAniSirGlobal,
                                        tSirAssocReq *,
                                        tSirMacCapabilityInfo *,tpPESession);
 tANI_U8         limCheckRxBasicRates(tpAniSirGlobal, tSirMacRateSet,tpPESession);
-tANI_U8         limCheckRxRSNIeMatch(tpAniSirGlobal, tDot11fIERSN, tpPESession, tANI_U8);
+tANI_U8         limCheckRxRSNIeMatch(tpAniSirGlobal, tDot11fIERSN, tpPESession, tANI_U8, tANI_BOOLEAN *);
 tANI_U8         limCheckRxWPAIeMatch(tpAniSirGlobal, tDot11fIEWPA, tpPESession, tANI_U8);
 tANI_U8         limCheckMCSSet(tpAniSirGlobal pMac, tANI_U8* supportedMCSSet);
 void            limPostDummyToTmRing(tpAniSirGlobal, tpDphHashNode);
@@ -62,6 +61,21 @@ tSirRetStatus   limCleanupRxPath(tpAniSirGlobal, tpDphHashNode,tpPESession);
 void            limRejectAssociation(tpAniSirGlobal , tSirMacAddr, tANI_U8,
                                      tANI_U8 , tAniAuthType,
                                      tANI_U16, tANI_U8, tSirResultCodes, tpPESession);
+
+#ifdef WLAN_FEATURE_11AC
+tSirRetStatus limPopulatePeerRateSet(tpAniSirGlobal pMac,
+                                         tpSirSupportedRates pRates,
+                                         tANI_U8* pSupportedMCSSet,
+                                         tANI_U8 basicOnly,
+                                         tpPESession psessionEntry,
+                                         tDot11fIEVHTCaps *pVHTCaps);
+#else
+tSirRetStatus limPopulatePeerRateSet(tpAniSirGlobal pMac,
+                                                                tpSirSupportedRates pRates,
+                                                                tANI_U8* pSupportedMCSSet,
+                                                                tANI_U8 basicOnly,
+                                                                tpPESession psessionEntry);
+#endif
 
 #ifdef WLAN_FEATURE_11AC
 tSirRetStatus limPopulateOwnRateSet(tpAniSirGlobal pMac,
@@ -174,6 +188,10 @@ void limSendSmeUnprotectedMgmtFrameInd(tpAniSirGlobal pMac, tANI_U8 frameType,
                                        tANI_U8  *frame, tANI_U32 frameLen, tANI_U16 sessionId, tpPESession psessionEntry);
 #endif
 
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+void limSendSmeTsmIEInd( tpAniSirGlobal pMac, tpPESession psessionEntry,
+                            tANI_U8 tid, tANI_U8 state, tANI_U16 measInterval);
+#endif /* FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
 
 #endif /* __LIM_ASSOC_UTILS_H */
 

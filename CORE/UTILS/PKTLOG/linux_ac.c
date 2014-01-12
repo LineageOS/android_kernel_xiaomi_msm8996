@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef REMOVE_PKT_LOG
 #ifndef EXPORT_SYMTAB
 #define EXPORT_SYMTAB

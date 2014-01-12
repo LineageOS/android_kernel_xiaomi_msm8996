@@ -25,7 +25,6 @@
  * to the Linux Foundation.
  */
 
-
 #if !defined( WLAN_HDD_SOFTAP_TX_RX_H )
 #define WLAN_HDD_SOFTAP_TX_RX_H
 
@@ -34,9 +33,6 @@
   \file  wlan_hdd_softap_tx_rx.h
   
   \brief Linux HDD SOFTAP Tx/RX APIs
-         Copyright 2008 (c) Qualcomm Technologies, Inc.
-         All Rights Reserved.
-         Qualcomm Technologies Confidential and Proprietary.
   
   ==========================================================================*/
   
@@ -323,5 +319,39 @@ extern VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADD
                   : VOS_STATUS_SUCCESS otherwise
   =========================================================================== */
 extern VOS_STATUS hdd_softap_GetStaId( hdd_adapter_t *pAdapter, v_MACADDR_t *pMacAddress, v_U8_t *staId);
+
+/**============================================================================
+  @brief hdd_softap_GetConnectedStaId - Helper function to get station Id of the connected device
+
+  @param pAdapter : [in] pointer to adapter context
+  @param staId    : [out] station id
+  @return         : VOS_STATUS_E_FAILURE if any errors encountered
+                  : VOS_STATUS_SUCCESS otherwise
+  =========================================================================== */
+extern VOS_STATUS hdd_softap_GetConnectedStaId( hdd_adapter_t *pAdapter, v_U8_t *staId);
+
+/**==========================================================================
+
+  \brief hdd_start_trafficMonitor() -
+   This function dynamically enable traffic monitor functonality
+   the command iwpriv wlanX setTrafficMon <value>.
+
+  @param pAdapter : [in] pointer to adapter context
+  @return         : VOS_STATUS_E_FAILURE if any errors encountered
+
+  ========================================================================== */
+VOS_STATUS hdd_start_trafficMonitor( hdd_adapter_t *pAdapter );
+
+/**==========================================================================
+
+  \brief hdd_stop_trafficMonitor() -
+   This function dynamically disable traffic monitor functonality
+   the command iwpriv wlanX setTrafficMon <value>.
+
+  @param pAdapter : [in] pointer to adapter context
+  @return         : VOS_STATUS_E_FAILURE if any errors encountered
+
+  ========================================================================== */
+VOS_STATUS hdd_stop_trafficMonitor( hdd_adapter_t *pAdapter );
 
 #endif    // end #if !defined( WLAN_HDD_SOFTAP_TX_RX_H )

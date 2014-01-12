@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef LOG_CODES_H
 #define LOG_CODES_H
 
@@ -35,7 +34,6 @@
 General Description
   This file contains log code definitions and is shared with the tools.
 
-Copyright (c) 1991-2010 by Qualcomm Technologies, Inc.  All Rights Reserved.
 ===========================================================================*/
 
 /* DO NOT MODIFY THIS FILE WITHOUT PRIOR APPROVAL
@@ -2008,8 +2006,10 @@ when       who     what, where, why
 
 #define LOG_GNSS_PDSM_PPM_SESSION_END_C                             ((0x4E9) + LOG_1X_BASE_C)
 
+#define LOG_TRSP_DATA_STALL_C                                       ((0x801) + LOG_1X_BASE_C)
+
 /* The last defined DMSS log code */
-#define LOG_1X_LAST_C                                   ((0x4E9) + LOG_1X_BASE_C)
+#define LOG_1X_LAST_C                                   ((0x801) + LOG_1X_BASE_C)
 
 
 /* This is only here for old (pre equipment ID update) logging code */

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __VOS_SCHED_H )
 #define __VOS_SCHED_H
 
@@ -41,11 +40,6 @@
    insights about how the scheduler implements the execution model supported
    by vOSS.
     
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
-  
   ========================================================================*/
 
 /*=========================================================================== 
@@ -321,7 +315,7 @@ typedef struct _VosContextType
 
    /* SAP Context */
    v_VOID_t           *pSAPContext;
-
+   
    vos_event_t         ProbeEvent;
 
    volatile v_U8_t     isLogpInProgress;
@@ -333,10 +327,10 @@ typedef struct _VosContextType
 
 #ifdef QCA_WIFI_2_0
 #ifndef QCA_WIFI_ISOC
-   v_VOID_t		*pHIFContext;
+   v_VOID_t        *pHIFContext;
 #endif
 
-   v_VOID_t		*htc_ctx;
+   v_VOID_t        *htc_ctx;
 
    /*
     * adf_ctx will be used by adf
@@ -345,16 +339,19 @@ typedef struct _VosContextType
     */
    adf_os_device_t adf_ctx;
 
-   v_VOID_t		*pdev_txrx_ctx;
+   v_VOID_t        *pdev_txrx_ctx;
 
    /* Configuration handle used to get system configuration */
-   v_VOID_t	*cfg_ctx;
+   v_VOID_t    *cfg_ctx;
 #else
    /* VOS Packet Context */
-   vos_pkt_context_t	vosPacket;
+   vos_pkt_context_t    vosPacket;
 #endif	/* QCA_WIFI_2_0 */
 
    volatile v_U8_t    isLoadUnloadInProgress;
+
+   /* SSR re-init in progress */
+   volatile v_U8_t     isReInitInProgress;
 
 } VosContextType, *pVosContextType;
 

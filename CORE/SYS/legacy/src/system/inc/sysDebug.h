@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sysGlobal.h contains the logDump utility for system module.
  * Author:      V. K. Kandarpa
  * Date:        01/24/2002

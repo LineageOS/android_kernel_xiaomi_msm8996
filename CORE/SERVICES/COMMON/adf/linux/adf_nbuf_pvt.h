@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 /*
  * Linux implemenation of skbuf
  */
@@ -47,6 +48,7 @@
  */
 typedef struct sk_buff *        __adf_nbuf_t;
 
+typedef void (*__adf_nbuf_callback_fn) (struct sk_buff *skb);
 #define OSDEP_EAPOL_TID 6  /* send it on VO queue */
 
 /* CVG_NBUF_MAX_OS_FRAGS -
@@ -100,7 +102,22 @@ struct cvg_nbuf_cb {
              */
             wordstream_flags : CVG_NBUF_MAX_EXTRA_FRAGS+1;
     } extra_frags;
+    uint32_t owner_id;
+    __adf_nbuf_callback_fn adf_nbuf_callback_fn;
+#ifdef IPA_OFFLOAD
+    unsigned long priv_data;
+#endif
 };
+#define NBUF_OWNER_ID(skb) \
+    (((struct cvg_nbuf_cb *)((skb)->cb))->owner_id)
+#ifdef IPA_OFFLOAD
+#define NBUF_OWNER_PRIV_DATA(skb) \
+    (((struct cvg_nbuf_cb *)((skb)->cb))->priv_data)
+#endif
+#define NBUF_CALLBACK_FN(skb) \
+    (((struct cvg_nbuf_cb *)((skb)->cb))->adf_nbuf_callback_fn)
+#define NBUF_CALLBACK_FN_EXEC(skb) \
+    (((struct cvg_nbuf_cb *)((skb)->cb))->adf_nbuf_callback_fn)(skb)
 #define NBUF_MAPPED_PADDR_LO(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->mapped_paddr_lo[0])
 #define NBUF_NUM_EXTRA_FRAGS(skb) \

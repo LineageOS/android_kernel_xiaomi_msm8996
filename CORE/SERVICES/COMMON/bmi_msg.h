@@ -24,7 +24,13 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+//------------------------------------------------------------------------------
+// Copyright (c) 2004-2012 Atheros Corporation.  All rights reserved.
+// $ATH_LICENSE_HOSTSDK0_C$
+//------------------------------------------------------------------------------
+//==============================================================================
+// Author(s): ="Atheros"
+//==============================================================================
 
 #ifndef __BMI_MSG_H__
 #define __BMI_MSG_H__

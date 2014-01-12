@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  * Implementation of the Host-side Host InterFace (HIF) API
  * for a Host/Target interconnect using Copy Engines over PCIe.
@@ -53,6 +52,8 @@
 #define ATH_MODULE_NAME hif
 #include <a_debug.h>
 #include "hif_pci.h"
+#include "vos_lock.h"
+
 /* use credit flow control over HTC */
 unsigned int htc_credit_flow = 1;
 int hif_pci_war1 = 0;
@@ -1520,6 +1521,10 @@ HIFStop(HIF_DEVICE *hif_device)
         }
     }
 
+    adf_os_timer_cancel(&hif_state->sleep_timer);
+    adf_os_timer_free(&hif_state->sleep_timer);
+    vos_wake_lock_destroy(&hif_state->hif_wake_lock);
+
     hif_state->started = FALSE;
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
 }
@@ -1937,6 +1942,35 @@ HIF_wake_target_cpu(struct hif_pci_softc *sc)
         ASSERT(rv == A_OK);
 }
 
+#define HIF_MIN_SLEEP_INACTIVITY_TIME_MS     10
+#define HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS 20
+static void
+HIF_sleep_entry(void *arg)
+{
+	struct HIF_CE_state *hif_state = (struct HIF_CE_state *)arg;
+	A_target_id_t pci_addr = TARGID_TO_PCI_ADDR(hif_state->targid);
+	struct hif_pci_softc *sc = hif_state->sc;
+	u_int32_t idle_ms;
+
+	adf_os_spin_lock(&hif_state->keep_awake_lock);
+	if (hif_state->verified_awake == FALSE) {
+		idle_ms = adf_os_ticks_to_msecs(adf_os_ticks()
+					- hif_state->sleep_ticks);
+		if (idle_ms >= HIF_MIN_SLEEP_INACTIVITY_TIME_MS) {
+			A_PCI_WRITE32(pci_addr + PCIE_LOCAL_BASE_ADDRESS +
+				PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
+			hif_state->fake_sleep = FALSE;
+			vos_wake_lock_release(&hif_state->hif_wake_lock);
+		} else {
+			adf_os_timer_start(&hif_state->sleep_timer,
+				HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);
+		}
+	} else {
+		adf_os_timer_start(&hif_state->sleep_timer,
+			HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);
+	}
+	adf_os_spin_unlock(&hif_state->keep_awake_lock);
+}
 
 /*
  * Called from PCI layer whenever a new PCI device is probed.
@@ -1971,6 +2005,12 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
     adf_os_atomic_inc(&hif_state->hif_thread_idle);
 
     hif_state->keep_awake_count = 0;
+
+    hif_state->fake_sleep = FALSE;
+    hif_state->sleep_ticks = 0;
+    adf_os_timer_init(NULL, &hif_state->sleep_timer,
+                      HIF_sleep_entry, (void *)hif_state);
+    vos_wake_lock_init(&hif_state->hif_wake_lock, "hif_wake_lock");
 
     hif_state->fw_indicator_address = FW_INDICATOR_ADDRESS;
     hif_state->targid = A_TARGET_ID(sc->hif_device);
@@ -2245,14 +2285,30 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
         if (hif_state->keep_awake_count == 0) {
             /* Allow sleep */
             hif_state->verified_awake = FALSE;
-            A_PCI_WRITE32(pci_addr + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
+            hif_state->sleep_ticks = adf_os_ticks();
+        }
+        if (hif_state->fake_sleep == FALSE) {
+            /* Set the Fake Sleep */
+            hif_state->fake_sleep = TRUE;
+
+            /* Start the Sleep Timer */
+            adf_os_timer_cancel(&hif_state->sleep_timer);
+            adf_os_timer_start(&hif_state->sleep_timer,
+                HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);
+            vos_wake_lock_acquire(&hif_state->hif_wake_lock);
         }
         adf_os_spin_unlock(&hif_state->keep_awake_lock);
     } else {
         adf_os_spin_lock(&hif_state->keep_awake_lock);
-        if (hif_state->keep_awake_count == 0) {
-            /* Force AWAKE */
-            A_PCI_WRITE32(pci_addr + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
+
+        if (hif_state->fake_sleep) {
+            hif_state->verified_awake = TRUE;
+        } else {
+            if (hif_state->keep_awake_count == 0) {
+                /* Force AWAKE */
+                A_PCI_WRITE32(pci_addr + PCIE_LOCAL_BASE_ADDRESS +
+                              PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
+            }
         }
         hif_state->keep_awake_count++;
         adf_os_spin_unlock(&hif_state->keep_awake_lock);

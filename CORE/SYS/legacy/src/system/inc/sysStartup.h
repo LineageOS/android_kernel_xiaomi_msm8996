@@ -25,10 +25,8 @@
  * to the Linux Foundation.
  */
 
-
 /*
  *
- * Woodside Networks, Inc proprietary. All rights reserved
  * sysStartup.h: System startup header file.
  * Author:  V. K. Kandarpa
  * Date:    01/29/2002

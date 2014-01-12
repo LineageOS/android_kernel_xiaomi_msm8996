@@ -24,15 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if defined WLAN_FEATURE_VOWIFI_11R
 /**=========================================================================
   
    Macros and Function prototypes FT and 802.11R purposes 
 
-   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   Qualcomm Technologies Confidential and Proprietary.
-  
   ========================================================================*/
 
 #ifndef __LIMFT_H__
@@ -68,7 +64,6 @@ void        limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
                 tpPESession psessionEntry);
 void        limProcessFTPreauthRspTimeout(tpAniSirGlobal pMac);
 
-int         limisFastTransitionRequired(tpAniSirGlobal pMac, int SessionId);
 tANI_BOOLEAN   limProcessFTUpdateKey(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf );
 tSirRetStatus  limProcessFTAggrQosReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf );
 void        limProcessFTAggrQoSRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg);

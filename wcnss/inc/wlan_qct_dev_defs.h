@@ -31,7 +31,6 @@
  *
  *  @brief:        This file contains the hardware related definitions.
  *
- *  Copyright (C)  2008, Qualcomm Technologies, Inc. All rights reserved.
  */
 
 #ifndef __WLAN_QCT_DEV_DEFS_H
@@ -66,7 +65,7 @@
 
 // For Pronto
 #define HAL_NUM_STA_WITHOUT_VSTA_PRONTO_V1 9
-#define HAL_NUM_STA_WITHOUT_VSTA_PRONTO_V2 (HAL_NUM_STA_WITHOUT_VSTA
+#define HAL_NUM_STA_WITHOUT_VSTA_PRONTO_V2 (HAL_NUM_STA_WITHOUT_VSTA)
 
 #define IS_VSTA_VALID_IDX(__x) \
                           ((__x) != QWLANFW_VSTA_INVALID_IDX)
@@ -140,7 +139,6 @@
  *    1 for reserving an infra peer STA index (hard) for the other interface.
  *    1 for P2P device role.
  */
-
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
 #define HAL_NUM_ASSOC_STA           32
 #define HAL_NUM_STA                 41
@@ -184,6 +182,10 @@
 #define HAL_NUM_UMA_DESC_ENTRIES    HAL_NUM_HW_STA
 
 #endif /* WCN_PRONTO */
+
+#ifdef FEATURE_WLAN_TDLS
+#define CXM_TDLS_MAX_NUM_STA            32
+#endif
 
 #define HAL_INVALID_BSSIDX          HAL_NUM_BSSID
 

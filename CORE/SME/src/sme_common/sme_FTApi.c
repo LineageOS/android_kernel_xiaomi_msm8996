@@ -24,15 +24,10 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /**=========================================================================
 
   \brief Definitions for SME FT APIs
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 
@@ -58,7 +53,7 @@ void sme_FTOpen(tHalHandle hHal)
     pMac->ft.ftSmeContext.reassoc_ft_ies_length = 0;       
     pMac->ft.ftSmeContext.setFTPreAuthState = FALSE;
     pMac->ft.ftSmeContext.setFTPTKState = FALSE;
-    status = palTimerAlloc(pMac->hHdd, &pMac->ft.ftSmeContext.preAuthReassocIntvlTimer, 
+    status = vos_timer_init(&pMac->ft.ftSmeContext.preAuthReassocIntvlTimer,VOS_TIMER_TYPE_SW,
                             sme_PreauthReassocIntvlTimerCallback, (void *)pMac);
 
     if (eHAL_STATUS_SUCCESS != status)
@@ -108,14 +103,14 @@ void sme_FTClose(tHalHandle hHal)
     if (pMac->ft.ftSmeContext.psavedFTPreAuthRsp != NULL)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        smsLog( pMac, LOGE, FL("%s: Freeing %p and setting to NULL"),
+        smsLog( pMac, LOGE, FL("Freeing %p and setting to NULL"),
             pMac->ft.ftSmeContext.psavedFTPreAuthRsp);
 #endif
         vos_mem_free(pMac->ft.ftSmeContext.psavedFTPreAuthRsp);
         pMac->ft.ftSmeContext.psavedFTPreAuthRsp = NULL;                        
     }
 
-    palTimerFree(pMac->hHdd, pMac->ft.ftSmeContext.preAuthReassocIntvlTimer);
+    vos_timer_destroy(&pMac->ft.ftSmeContext.preAuthReassocIntvlTimer);
 }
 
 void sme_SetFTPreAuthState(tHalHandle hHal, v_BOOL_t state)
@@ -171,7 +166,7 @@ void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, const tANI_U8 *ft_ies,
 
             // Save the FT IEs
             pMac->ft.ftSmeContext.auth_ft_ies = vos_mem_malloc(ft_ies_length);
-            if(pMac->ft.ftSmeContext.auth_ft_ies == NULL)
+            if ( NULL == pMac->ft.ftSmeContext.auth_ft_ies )
             {
                smsLog( pMac, LOGE, FL("Memory allocation failed for "
                                       "auth_ft_ies"));
@@ -179,9 +174,8 @@ void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, const tANI_U8 *ft_ies,
                return;
             }
             pMac->ft.ftSmeContext.auth_ft_ies_length = ft_ies_length;
-            vos_mem_copy((tANI_U8 *)pMac->ft.ftSmeContext.auth_ft_ies, ft_ies,
-                ft_ies_length);
-                
+            vos_mem_copy((tANI_U8 *)pMac->ft.ftSmeContext.auth_ft_ies,
+                          ft_ies,ft_ies_length);
             pMac->ft.ftSmeContext.FTState = eFT_AUTH_REQ_READY;
 
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
@@ -225,7 +219,7 @@ void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, const tANI_U8 *ft_ies,
 
             // Save the FT IEs
             pMac->ft.ftSmeContext.reassoc_ft_ies = vos_mem_malloc(ft_ies_length);
-            if(pMac->ft.ftSmeContext.reassoc_ft_ies == NULL)
+            if ( NULL == pMac->ft.ftSmeContext.reassoc_ft_ies )
             {
                smsLog( pMac, LOGE, FL("Memory allocation failed for "
                                       "reassoc_ft_ies"));
@@ -234,7 +228,7 @@ void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, const tANI_U8 *ft_ies,
             }
             pMac->ft.ftSmeContext.reassoc_ft_ies_length = ft_ies_length;
             vos_mem_copy((tANI_U8 *)pMac->ft.ftSmeContext.reassoc_ft_ies, ft_ies,
-                ft_ies_length);
+                          ft_ies_length);
                 
             pMac->ft.ftSmeContext.FTState = eFT_SET_KEY_WAIT;
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
@@ -274,13 +268,13 @@ eHalStatus sme_FTSendUpdateKeyInd(tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo)
        sizeof( pMsg->keyMaterial.length ) + sizeof( pMsg->keyMaterial.edType ) + 
        sizeof( pMsg->keyMaterial.numKeys ) + sizeof( pMsg->keyMaterial.key );
                      
-    status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, msgLen);
-    if ( !HAL_STATUS_SUCCESS(status) )
+    pMsg = vos_mem_malloc(msgLen);
+    if ( NULL == pMsg )
     {
        return eHAL_STATUS_FAILURE;
     }
 
-    palZeroMemory(pMac->hHdd, pMsg, msgLen);
+    vos_mem_set(pMsg, msgLen, 0);
     pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_FT_UPDATE_KEY);
     pMsg->length = pal_cpu_to_be16(msgLen);
 
@@ -304,17 +298,14 @@ eHalStatus sme_FTSendUpdateKeyInd(tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo)
     keymaterial->key[ 0 ].unicast = (tANI_U8)eANI_BOOLEAN_TRUE;
     keymaterial->key[ 0 ].keyDirection = pFTKeyInfo->keyDirection;
 
-    palCopyMemory( pMac->hHdd, &keymaterial->key[ 0 ].keyRsc,
-                   pFTKeyInfo->keyRsc, CSR_MAX_RSC_LEN );
-
+    vos_mem_copy(&keymaterial->key[ 0 ].keyRsc, pFTKeyInfo->keyRsc, CSR_MAX_RSC_LEN);
     keymaterial->key[ 0 ].paeRole = pFTKeyInfo->paeRole;
 
     keymaterial->key[ 0 ].keyLength = pFTKeyInfo->keyLength;
 
     if ( pFTKeyInfo->keyLength && pFTKeyInfo->Key )
     {
-        palCopyMemory( pMac->hHdd, &keymaterial->key[ 0 ].key,
-                       pFTKeyInfo->Key, pFTKeyInfo->keyLength );
+        vos_mem_copy(&keymaterial->key[ 0 ].key, pFTKeyInfo->Key, pFTKeyInfo->keyLength);
         if(pFTKeyInfo->keyLength == 16)
         {
           smsLog(pMac, LOG1, "SME Set Update Ind keyIdx (%d) encType(%d) key = "
@@ -383,8 +374,29 @@ eHalStatus sme_FTUpdateKey( tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo )
     switch(pMac->ft.ftSmeContext.FTState)
     {
     case eFT_SET_KEY_WAIT:
-
+#ifdef QCA_WIFI_ISOC
+    if (sme_GetFTPreAuthState (hHal) == TRUE)
+      {
+          status = sme_FTSendUpdateKeyInd(pMac, pFTKeyInfo);
+          if (status != 0 )
+          {
+              smsLog( pMac, LOGE, "%s: Key set failure %d", __func__,
+                      status);
+              pMac->ft.ftSmeContext.setFTPTKState = FALSE;
+              status = eHAL_STATUS_FT_PREAUTH_KEY_FAILED;
+          }
+          else
+          {
+              pMac->ft.ftSmeContext.setFTPTKState = TRUE;
+              status = eHAL_STATUS_FT_PREAUTH_KEY_SUCCESS;
+              smsLog( pMac, LOG1, "%s: Key set success", __func__);
+          }
+          sme_SetFTPreAuthState(hHal, FALSE);
+      }
+#else
       status = eHAL_STATUS_FT_PREAUTH_KEY_FAILED;
+#endif /* QCA_WIFI_ISOC */
+
       pMac->ft.ftSmeContext.FTState = eFT_START_READY;
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
       smsLog( pMac, LOG1, "%s: state changed to %d status %d", __func__,

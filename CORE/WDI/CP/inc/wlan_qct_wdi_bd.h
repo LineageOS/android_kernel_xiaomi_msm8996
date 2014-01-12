@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_WDI_BD_H
 #define WLAN_QCT_WDI_BD_H
 
@@ -39,9 +38,6 @@ DESCRIPTION
   This file contains the internal BD definition exposed by the DAL Control       
   Path Core module to be used by the DAL Data Path Core. 
   
-      
-  Copyright (c) 2010 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -463,7 +459,8 @@ typedef struct
 #ifdef WPT_BIG_BYTE_ENDIAN
         /** reserved8 from a hardware perspective.
         Used by SW to propogate frame type/subtype information */
-        wpt_uint32 frameTypeSubtype:8;
+        wpt_uint32 frameTypeSubtype:6;
+        wpt_uint32 rfBand:2;
     
         /** Filled RPE gives the current sequence number in bitmap */
         wpt_uint32 currentPktSeqNo:12;
@@ -474,7 +471,8 @@ typedef struct
 #else
         wpt_uint32 expectedPktSeqNo:12;
         wpt_uint32 currentPktSeqNo:12;
-        wpt_uint32 frameTypeSubtype:8;
+        wpt_uint32 rfBand:2;
+        wpt_uint32 frameTypeSubtype:6;
 #endif
     
         /* 0x48 */

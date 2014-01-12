@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file htt_fw_stats.c
  * @brief Provide functions to process FW status retrieved from FW.

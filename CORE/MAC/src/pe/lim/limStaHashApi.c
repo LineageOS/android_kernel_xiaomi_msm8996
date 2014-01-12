@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * limStaHashApi.c: Provides access functions to get/set values of station hash entry fields.
  * Author:    Sunit Bhatia
  * Date:       09/19/2006

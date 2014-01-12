@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __VOS_PKT_H )
 #define __VOS_PKT_H
 
@@ -35,10 +34,6 @@
   \brief       virtual Operating System Services (vOSS) network Packet APIs
                
    Network Protocol packet/buffer support interfaces 
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -1212,5 +1207,22 @@ VOS_STATUS vos_pkt_get_available_buffer_pool
    VOS_PKT_TYPE  pktType,
    v_SIZE_t     *vosFreeBuffer
 );
+
+/**
+  @brief vos_pkt_get_num_of_rx_raw_pkts() - Get the number of RX packets
+                                       that should be allocated.
+
+  This function is called by VOS packet module to know how many RX raw
+  packets it should allocate/reserve. This value can be configured thru
+  Kernel device tree to save memory usage.
+
+  @param
+       NONE
+  @return
+       v_SIZE_t the number of packets to allocate
+
+*/
+v_SIZE_t vos_pkt_get_num_of_rx_raw_pkts(void);
+
 #endif
 #endif  // !defined( __VOS_PKT_H )

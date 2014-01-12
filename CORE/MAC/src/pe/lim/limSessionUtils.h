@@ -25,7 +25,6 @@
  * to the Linux Foundation.
  */
 
-
 #if!defined( __LIM_SESSION_UTILS_H )
 #define __LIM_SESSION_UTILS_H
 
@@ -36,10 +35,6 @@
   \brief prototype for lim Session Utility related APIs
 
   \author Sunit Bhatia
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

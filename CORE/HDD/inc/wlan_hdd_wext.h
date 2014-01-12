@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef __WEXT_IW_H__
 #define __WEXT_IW_H__
 
@@ -42,22 +41,23 @@
 #define HDD_WLAN_WMM_PARAM_HANDLE                       0
 #define HDD_WLAN_WMM_PARAM_TID                          1
 #define HDD_WLAN_WMM_PARAM_DIRECTION                    2
-#define HDD_WLAN_WMM_PARAM_USER_PRIORITY                3
-#define HDD_WLAN_WMM_PARAM_NOMINAL_MSDU_SIZE            4
-#define HDD_WLAN_WMM_PARAM_MAXIMUM_MSDU_SIZE            5
-#define HDD_WLAN_WMM_PARAM_MINIMUM_DATA_RATE            6
-#define HDD_WLAN_WMM_PARAM_MEAN_DATA_RATE               7
-#define HDD_WLAN_WMM_PARAM_PEAK_DATA_RATE               8
-#define HDD_WLAN_WMM_PARAM_MAX_BURST_SIZE               9
-#define HDD_WLAN_WMM_PARAM_MINIMUM_PHY_RATE            10
-#define HDD_WLAN_WMM_PARAM_SURPLUS_BANDWIDTH_ALLOWANCE 11
-#define HDD_WLAN_WMM_PARAM_SERVICE_INTERVAL            12
-#define HDD_WLAN_WMM_PARAM_SUSPENSION_INTERVAL         13
-#define HDD_WLAN_WMM_PARAM_BURST_SIZE_DEFN             14
-#define HDD_WLAN_WMM_PARAM_ACK_POLICY                  15
-#define HDD_WLAN_WMM_PARAM_INACTIVITY_INTERVAL         16
-#define HDD_WLAN_WMM_PARAM_MAX_SERVICE_INTERVAL        17
-#define HDD_WLAN_WMM_PARAM_COUNT                       18
+#define HDD_WLAN_WMM_PARAM_APSD                         3
+#define HDD_WLAN_WMM_PARAM_USER_PRIORITY                4
+#define HDD_WLAN_WMM_PARAM_NOMINAL_MSDU_SIZE            5
+#define HDD_WLAN_WMM_PARAM_MAXIMUM_MSDU_SIZE            6
+#define HDD_WLAN_WMM_PARAM_MINIMUM_DATA_RATE            7
+#define HDD_WLAN_WMM_PARAM_MEAN_DATA_RATE               8
+#define HDD_WLAN_WMM_PARAM_PEAK_DATA_RATE               9
+#define HDD_WLAN_WMM_PARAM_MAX_BURST_SIZE              10
+#define HDD_WLAN_WMM_PARAM_MINIMUM_PHY_RATE            11
+#define HDD_WLAN_WMM_PARAM_SURPLUS_BANDWIDTH_ALLOWANCE 12
+#define HDD_WLAN_WMM_PARAM_SERVICE_INTERVAL            13
+#define HDD_WLAN_WMM_PARAM_SUSPENSION_INTERVAL         14
+#define HDD_WLAN_WMM_PARAM_BURST_SIZE_DEFN             15
+#define HDD_WLAN_WMM_PARAM_ACK_POLICY                  16
+#define HDD_WLAN_WMM_PARAM_INACTIVITY_INTERVAL         17
+#define HDD_WLAN_WMM_PARAM_MAX_SERVICE_INTERVAL        18
+#define HDD_WLAN_WMM_PARAM_COUNT                       19
 
 #define MHZ 6
 
@@ -205,7 +205,9 @@ typedef enum
 #define HDD_WPS_ELEM_DEVICE_NAME            0x1011
 #define HDD_WPS_ELEM_REGISTRA_CONF_METHODS  0x1053
 
-
+#define HDD_RTSCTS_EN_MASK                  0xF
+#define HDD_RTSCTS_ENABLE                   1
+#define HDD_CTS_ENABLE                      2
 
 #define WPS_OUI_TYPE   "\x00\x50\xf2\x04"
 #define WPS_OUI_TYPE_SIZE  4
@@ -398,6 +400,11 @@ VOS_STATUS wlan_hdd_get_classAstats(hdd_adapter_t *pAdapter);
 VOS_STATUS wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter);
 
 VOS_STATUS wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value);
+
+VOS_STATUS wlan_hdd_get_snr(hdd_adapter_t *pAdapter, v_S7_t *snr);
+
+void hdd_wmm_tx_snapshot(hdd_adapter_t *pAdapter);
+
 #ifdef FEATURE_WLAN_TDLS
 VOS_STATUS iw_set_tdls_params(struct net_device *dev, struct iw_request_info *info, union iwreq_data *wrqu, char *extra, int nOffset);
 #endif
@@ -408,6 +415,7 @@ VOS_STATUS wlan_hdd_get_roam_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value);
 #ifdef WLAN_FEATURE_PACKET_FILTERING
 void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set);
 #endif
+void* wlan_hdd_change_country_code_callback(void *pAdapter);
 
 VOS_STATUS  wlan_hdd_set_powersave(hdd_adapter_t *pAdapter, int mode);
 

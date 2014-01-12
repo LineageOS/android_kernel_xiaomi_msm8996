@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_MSG_MAP_H
 #define WLAN_QCT_MSG_MAP_H
 
@@ -37,9 +36,6 @@
 DESCRIPTION
   This file contains the external API exposed by the wlan adaptation layer 
   
-      
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 

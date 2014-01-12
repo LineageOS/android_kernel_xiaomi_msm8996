@@ -19,6 +19,11 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
+ */
 #ifndef WMA_STUB
 #define WMA_STUB
 

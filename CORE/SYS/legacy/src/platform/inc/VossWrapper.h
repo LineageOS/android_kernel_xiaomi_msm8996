@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef __VOSS_WRAPPER_H
 #define __VOSS_WRAPPER_H
 
@@ -38,9 +37,6 @@ extern "C" {
   @brief This header file contains the various structure definitions and
   function prototypes for the RTOS abstraction layer, implemented for VOSS
 
-  Copyright (c) 2008 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

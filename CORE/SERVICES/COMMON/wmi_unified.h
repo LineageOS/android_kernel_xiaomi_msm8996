@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @addtogroup WMIAPI
  *@{
@@ -166,8 +165,10 @@ typedef enum {
     WMI_GRP_RESMGR,
     WMI_GRP_STA_SMPS,
     WMI_GRP_WLAN_HB,
+    WMI_GRP_RMC,
+    WMI_GRP_MHF_OFL,
     WMI_GRP_LOCATION_SCAN,
-    WMI_GRP_OEM
+    WMI_GRP_OEM,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -279,6 +280,8 @@ typedef enum {
     WMI_PEER_REMOVE_WDS_ENTRY_CMDID,
     /** set up mcast group infor for multicast to unicast conversion */
     WMI_PEER_MCAST_GROUP_CMDID,
+    /** request peer info from FW. FW shall respond with PEER_INFO_EVENTID */
+    WMI_PEER_INFO_REQ_CMDID,
 
     /* beacon/management specific commands */
 
@@ -435,6 +438,12 @@ typedef enum {
     /** ARP OFFLOAD REQUEST*/
     WMI_SET_ARP_NS_OFFLOAD_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_ARP_NS_OFL),
 
+    /** Proactive ARP Response Add Pattern Command*/
+    WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMDID,
+
+    /** Proactive ARP Response Del Pattern Command*/
+    WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMDID,
+
     /** NS offload confid*/
     WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_NLO_OFL),
 
@@ -499,6 +508,8 @@ typedef enum {
     WMI_FORCE_FW_HANG_CMDID,
     /* Set Mcast/Bdcast filter */
     WMI_SET_MCASTBCAST_FILTER_CMDID,
+    /** set thermal management params **/
+    WMI_THERMAL_MGMT_CMDID,
 
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
@@ -522,7 +533,7 @@ typedef enum {
     /** Adaptive OCS is enabled by default in the FW. This command is used to
      * disable FW based adaptive OCS.
      */
-    WMI_RESMGR_ADAPTIVE_OCS_DISABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_RESMGR),
+    WMI_RESMGR_ADAPTIVE_OCS_ENABLE_DISABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_RESMGR),
     /** set the requested channel time quota for the home channels */
     WMI_RESMGR_SET_CHAN_TIME_QUOTA_CMDID,
     /** set the requested latency for the home channels */
@@ -545,6 +556,22 @@ typedef enum {
     WMI_HB_SET_UDP_PARAMS_CMDID,
     /* set udp pkt filter for wlan HB */
     WMI_HB_SET_UDP_PKT_FILTER_CMDID,
+
+    /** Wlan RMC commands*/
+    /** enable/disable RMC */
+    WMI_RMC_SET_MODE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_RMC),
+    /** configure action frame period */
+    WMI_RMC_SET_ACTION_PERIOD_CMDID,
+    /** For debug/future enhancement purposes only,
+     *  configures/finetunes RMC algorithms */
+    WMI_RMC_CONFIG_CMDID,
+
+    /** WLAN multihop forwarding (MHF) offload commands */
+    /** enable/disable multihop forwarding offload */
+    WMI_MHF_OFFLOAD_SET_MODE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_MHF_OFL),
+    /** Plumb routing table for multihop forwarding offload */
+    WMI_MHF_OFFLOAD_PLUMB_ROUTING_TBL_CMDID,
+
     /** enable DFS phyerr/parse filter offload */
     WMI_DFS_PHYERR_FILTER_ENA_CMDID,
     /** enable DFS phyerr/parse filter offload */
@@ -602,6 +629,12 @@ typedef enum {
     /* peer  specific events */
     /** FW reauet to kick out the station for reasons like inactivity,lack of response ..etc */
     WMI_PEER_STA_KICKOUT_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_PEER),
+
+    /** Peer Info Event with data_rate, rssi, tx_fail_cnt etc */
+    WMI_PEER_INFO_EVENTID,
+
+    /** Event indicating that TX fail count reaching threshold */
+    WMI_PEER_TX_FAIL_CNT_THR_EVENTID,
 
     /* beacon/mgmt specific events */
     /** RX management frame. the entire frame is carried along with the event.  */
@@ -704,6 +737,8 @@ typedef enum {
     WMI_WLAN_FREQ_AVOID_EVENTID,
     /* Indicate the keepalive parameters */
     WMI_VDEV_GET_KEEPALIVE_EVENTID,
+    /* Thermal Management event */
+    WMI_THERMAL_MGMT_EVENTID,
 
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
@@ -742,14 +777,6 @@ typedef enum {
 #define WMI_OEM_MEASUREMENT_REQ    0x03
 #define WMI_OEM_MEASUREMENT_RSP    0x04
 #define WMI_OEM_ERROR_REPORT_RSP   0x05
-
-#define WMI_OEM_DATA_REQ_CMDID             WMI_RTT_MEASREQ_CMDID
-#define WMI_OEM_DATA_RSP_EVENTID           WMI_RTT_MEASUREMENT_REPORT_EVENTID
-#define WMI_OEM_DATA_ERROR_REPORT_EVENTID  WMI_RTT_ERROR_REPORT_EVENTID
-#define WMI_OEM_DATA_RSP_EVENTID_param_tlvs   \
-    WMI_RTT_MEASUREMENT_REPORT_EVENTID_param_tlvs
-#define WMI_OEM_DATA_ERROR_REPORT_EVENTID_param_tlvs    \
-    WMI_RTT_ERROR_REPORT_EVENTID_param_tlvs
 
 #define WMI_CHAN_LIST_TAG 0x1
 #define WMI_SSID_LIST_TAG 0x2
@@ -1228,6 +1255,16 @@ typedef struct {
      A_UINT32 beacon_tx_offload_max_vdev;
      A_UINT32 num_multicast_filter_entries;
      A_UINT32 num_wow_filters; /*host can configure the number of wow filters*/
+
+    /**
+     * @brief num_keep_alive_pattern - Num of keep alive patterns configured
+     * from host.
+     */
+    A_UINT32 num_keep_alive_pattern;
+    /**
+     * @brief keep_alive_pattern_size - keep alive pattern size.
+     */
+    A_UINT32 keep_alive_pattern_size;
 } wmi_resource_config;
 
 
@@ -2031,6 +2068,8 @@ typedef enum {
     WMI_PDEV_PARAM_BURST_ENABLE,
     /** HW rfkill config */
     WMI_PDEV_PARAM_HW_RFKILL_CONFIG,
+    /** Enable radio low power features */
+    WMI_PDEV_PARAM_LOW_POWER_RF_ENABLE,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -2834,17 +2873,14 @@ typedef enum {
     /** Roaming offload */
     WMI_VDEV_PARAM_ROAM_FW_OFFLOAD,
 
-    /* set packet power save */
-    WMI_VDEV_PPS_PAID_MATCH,
-    WMI_VDEV_PPS_GID_MATCH,
-    WMI_VDEV_PPS_EARLY_TIM_CLEAR,
-    WMI_VDEV_PPS_EARLY_DTIM_CLEAR,
-    WMI_VDEV_PPS_EOF_PAD_DELIM,
-    WMI_VDEV_PPS_MACADDR_MISMATCH,
-    WMI_VDEV_PPS_DELIM_CRC_FAIL,
-    WMI_VDEV_PPS_GID_NSTS_ZERO,
-    WMI_VDEV_PPS_RSSI_CHECK,
-    WMI_VDEV_VHT_SET_GID_MGMT,
+    /** Enable Leader request RX functionality for RMC */
+    WMI_VDEV_PARAM_ENABLE_RMC,
+
+    /* IBSS does not have deauth/disassoc, vdev has to detect peer gone event
+     * by himself. If the beacon lost time exceed this threshold, the peer is
+     * thought to be gone. */
+    WMI_VDEV_PARAM_IBSS_MAX_BCN_LOST_MS,
+
 } WMI_VDEV_PARAM;
 
 enum wmi_pkt_type {
@@ -3164,6 +3200,11 @@ typedef struct {
      * Enable QPower
      */
     WMI_STA_PS_ENABLE_QPOWER = 6,
+
+            /**
+             * Number of TX frames before the entering the Active state
+             */
+            WMI_STA_PS_PARAM_QPOWER_MAX_TX_BEFORE_WAKE = 7,
         };
 
         typedef struct {
@@ -3674,7 +3715,9 @@ typedef struct {
  * For STA VDEV this peer corresponds to the AP's BSS peer.
  * For AP VDEV this peer corresponds to the remote peer STA.
  */
-#define WMI_PEER_CRIT_PROTO_HINT_ENABLED     0x9
+#define WMI_PEER_CRIT_PROTO_HINT_ENABLED                0x9
+/* set Tx failure count threshold for the peer*/
+#define WMI_PEER_TX_FAIL_CNT_THR                        0xA
 
 /** mimo ps values for the parameter WMI_PEER_MIMO_PS_STATE  */
 #define WMI_PEER_MIMO_PS_NONE                          0x0
@@ -4075,7 +4118,9 @@ enum {
     WMI_AUTH_AUTO_PSK,
     WMI_AUTH_WPA_PSK,
     WMI_AUTH_RSNA_PSK,
-    WMI_AUTH_WAPI_PSK
+    WMI_AUTH_WAPI_PSK,
+    WMI_AUTH_FT_RSNA, /* 11r FT */
+    WMI_AUTH_FT_RSNA_PSK,
 };
 
 typedef struct {
@@ -4404,10 +4449,19 @@ typedef struct {
     A_UINT32 time0;      //lower 32 bits of time stamp
 } A_TIME64;
 
+typedef enum wmi_peer_sta_kickout_reason {
+    WMI_PEER_STA_KICKOUT_REASON_UNSPECIFIED = 0,        /* default value to preserve legacy behavior */
+    WMI_PEER_STA_KICKOUT_REASON_XRETRY = 1,
+    WMI_PEER_STA_KICKOUT_REASON_INACTIVITY = 2,
+    WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT = 3,
+} PEER_KICKOUT_REASON;
+
 typedef struct {
     A_UINT32    tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_peer_sta_kickout_event_fixed_param  */
     /** peer mac address */
     wmi_mac_addr peer_macaddr;
+    /** Reason code, defined as above */
+    A_UINT32 reason;
 } wmi_peer_sta_kickout_event_fixed_param;
 
 #define WMI_WLAN_PROFILE_MAX_HIST     3
@@ -4493,6 +4547,9 @@ typedef enum event_type_e {
     WOW_DISASSOC_RECVD_EVENT,
     WOW_PATTERN_MATCH_EVENT,
     WOW_CSA_IE_EVENT,
+    WOW_PROBE_REQ_WPS_IE_EVENT,
+    WOW_AUTH_REQ_EVENT,
+    WOW_ASSOC_REQ_EVENT,
 }WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -4511,6 +4568,9 @@ typedef enum wake_reason_e {
     WOW_REASON_P2P_DISC,
     WOW_REASON_WLAN_HB,
     WOW_REASON_CSA_EVENT,
+    WOW_REASON_PROBE_REQ_WPS_IE_RECV,
+    WOW_REASON_AUTH_REQ_RECV,
+    WOW_REASON_ASSOC_REQ_RECV,
     WOW_REASON_DEBUG_TEST = 0xFF,
 }WOW_WAKE_REASON_TYPE;
 
@@ -4701,6 +4761,23 @@ typedef struct {
          *     WMI_ARP_OFFLOAD_TUPLE   arp_tuples[WMI_MAX_ARP_OFFLOADS];
          */
 } WMI_SET_ARP_NS_OFFLOAD_CMD_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+    A_UINT32 pattern_id;
+    A_UINT32 timeout;
+    A_UINT32 length;
+    /* Following this would be the pattern
+       A_UINT8 pattern[] of length specifed by length
+       field in the structure. */
+} WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+    A_UINT32 pattern_id;
+} WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param;
 
 typedef struct {
     A_UINT32 tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_peer_tid_addba_cmd_fixed_param */
@@ -5442,18 +5519,18 @@ typedef struct {
     A_UINT32 state;
     /** Duration (in ms) over which to calculate tx threshold and rate values */
     A_UINT32 notification_interval_ms;
-    /** bytes per second value OVER which notify/suggest TDLS Discovery:
-     *  if current tx bps counter / notification interval >= threshold
+    /** number of packets OVER which notify/suggest TDLS Discovery:
+     *  if current tx pps counter / notification interval >= threshold
      *  then a notification will be sent to host to advise TDLS Discovery */
     A_UINT32 tx_discovery_threshold;
-    /** bytes per second value UNDER which notify/suggest TDLS Teardown:
-     *  if current tx bps counter / notification interval < threshold
+    /** number of packets UNDER which notify/suggest TDLS Teardown:
+     *  if current tx pps counter / notification interval < threshold
      *  then a notification will be sent to host to advise TDLS Tear down */
     A_UINT32 tx_teardown_threshold;
-    /** Absolute RSSI value over which notify/suggest TDLS Teardown */
-    A_UINT32 rssi_teardown_threshold;
-    /** RSSI delta vs AP RSSI value over which to trigger a teardown */
-    A_UINT32 rssi_delta;
+    /** Absolute RSSI value under which notify/suggest TDLS Teardown */
+    A_INT32 rssi_teardown_threshold;
+    /** Peer RSSI < (AP RSSI + delta) will trigger a teardown */
+    A_INT32 rssi_delta;
     /** TDLS Option Control
      * Off-Channel, Buffer STA, (later)Sleep STA support */
     A_UINT32 tdls_options;
@@ -5604,12 +5681,16 @@ typedef struct {
     A_UINT32 new_bcn_intvl;
 } wmi_vdev_mcc_bcn_intvl_change_event_fixed_param;
 
-/* WMI_RESMGR_ADAPTIVE_OCS_DISABLE_CMDID */
+/* WMI_RESMGR_ADAPTIVE_OCS_ENABLE_DISABLE_CMDID */
 typedef struct {
-    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_resmgr_adaptive_ocs_disable_cmd_fixed_param */
+    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_resmgr_adaptive_ocs_enable_disable_cmd_fixed_param */
     A_UINT32 tlv_header;
     A_UINT32 reserved0;
-} wmi_resmgr_adaptive_ocs_disable_cmd_fixed_param;
+    /** 1: enable fw based adaptive ocs,
+     *  0: disable fw based adaptive ocs
+     */
+    A_UINT32 enable;
+} wmi_resmgr_adaptive_ocs_enable_disable_cmd_fixed_param;
 
 /* WMI_RESMGR_SET_CHAN_TIME_QUOTA_CMDID */
 typedef struct {
@@ -5904,6 +5985,168 @@ typedef struct {
     A_UINT32 radio_state;
 } wmi_rfkill_mode_param;
 
+/** WMI_PEER_INFO_REQ_CMDID
+ *   Request FW to provide peer info */
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_peer_info_req_cmd_fixed_param   */
+    A_UINT32 tlv_header;
+    /** In order to get the peer info for a single peer, host shall
+     *  issue the peer_mac_address of that peer. For getting the
+     *  info all peers, the host shall issue 0xFFFFFFFF as the mac
+     *  address. The firmware will return the peer info for all the
+     *  peers on the specified vdev_id */
+    wmi_mac_addr peer_mac_address;
+    /** vdev id */
+    A_UINT32 vdev_id;
+} wmi_peer_info_req_cmd_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_peer_info */
+    A_UINT32 tlv_header;
+    /** mac addr of the peer */
+    wmi_mac_addr peer_mac_address;
+    /** data_rate of the peer */
+    A_UINT32 data_rate;
+    /** rssi of the peer */
+    A_UINT32 rssi;
+    /** tx fail count */
+    A_UINT32 tx_fail_cnt;
+} wmi_peer_info;
+
+/** FW response with the peer info */
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_peer_info_event_fixed_param   */
+    A_UINT32 tlv_header;
+    /** number of peers in peer_info */
+    A_UINT32 num_peers;
+    /* This TLV is followed by another TLV of array of structs
+     * wmi_peer_info peer_info[];
+     */
+} wmi_peer_info_event_fixed_param;
+
+/** FW response when tx failure count has reached threshold
+ *  for a peer */
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_peer_tx_fail_cnt_thr_event_fixed_param */
+    A_UINT32 tlv_header;
+    /** vdev id*/
+    A_UINT32 vdev_id;
+    /** mac address */
+    wmi_mac_addr peer_mac_address;
+    /** tx failure count */
+    A_UINT32 tx_fail_cnt;
+} wmi_peer_tx_fail_cnt_thr_event_fixed_param;
+
+enum wmi_rmc_mode {
+    /** Disable RMC */
+    WMI_RMC_MODE_DISABLED = 0,
+    /** Enable RMC */
+    WMI_RMC_MODE_ENABLED = 1,
+};
+
+/** Enable reliable multicast transmitter functionality. Upon
+ *  receiving this, the FW shall mutlicast frames with
+ *  reliablity. This is a vendor
+ *  proprietary feature. */
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_rmc_set_mode_cmd_fixed_param   */
+    A_UINT32 tlv_header;
+    /** vdev id*/
+    A_UINT32 vdev_id;
+    /** enable_rmc contains values from enum wmi_rmc_mode;
+     *  Default value: 0 (disabled) */
+    A_UINT32 enable_rmc;
+} wmi_rmc_set_mode_cmd_fixed_param;
+
+/** Configure transmission periodicity of action frames in a
+ *  reliable multicast network for the multicast transmitter */
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_rmc_set_action_period_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /** vdev id */
+    A_UINT32 vdev_id;
+    /** time period in milliseconds. Default: 300 ms.
+     An action frame indicating the current leader is transmitted by the
+     RMC transmitter once every 'periodity_msec' */
+    A_UINT32 periodicity_msec;
+} wmi_rmc_set_action_period_cmd_fixed_param;
+
+/** Optimise Leader selection process in RMC functionality. For
+ *  Enhancement/Debug purposes only */
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_rmc_config_cmd_fixed_param   */
+    A_UINT32 tlv_header;
+    /** vdev id */
+    A_UINT32 vdev_id;
+    /** flags ::
+     *  0x0001 - Enable beacon averaging
+     *  0x0002 - Force leader selection
+     *  0x0004 - Enable Timer based leader switch
+     *  0x0008 - Use qos/NULL based for multicast reliability */
+    A_UINT32 flags;
+    /**  control leader change timeperiod (in seconds) */
+    A_UINT32 peridocity_leader_switch;
+    /** control activity timeout value for data rx (in seconds) */
+    A_UINT32 data_activity_timeout;
+    /** mac address of leader */
+    wmi_mac_addr forced_leader_mac_addr;
+} wmi_rmc_config_cmd_fixed_param;
+
+/** Multi-hop forwarding is generally implemented in
+ *  the kernel. To decrease system power consumption, the
+ *  driver can enable offloading this to the chipset. In
+ *  order for the offload, the firmware needs the routing table.
+ *  The host shall plumb the routing table into FW. The firmware
+ *  shall perform an IP address lookup and forward the packet to
+ *  the next hop using next hop's mac address. This is a vendor
+ *  proprietary feature. */
+enum wmi_mhf_ofl_mode {
+    /** Disable multihop forwarding offload */
+    WMI_MHF_OFL_MODE_DISABLED = 0,
+    /** Enable multihop forwarding offload */
+    WMI_MHF_OFL_MODE_ENABLED = 1,
+};
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_mhf_offload_set_mode_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /** vdev id*/
+    A_UINT32 vdev_id;
+    /** enable_mhf_ofl contains values from enum
+     *  wmi_mhf_ofl_mode; Default value: 0 (disabled) */
+    A_UINT32 enable_mhf_ofl;
+} wmi_mhf_offload_set_mode_cmd_fixed_param;
+
+enum wmi_mhf_ofl_table_action {
+    /** Add entry to multihop forwarding offload table */
+    WMI_MHF_OFL_TBL_ADD_ENTRY = 0,
+    /** Delete entry from multihop forwarding offload table */
+    WMI_MHF_OFL_TBL_DEL_ENTRY = 1,
+};
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_mhf_offload_plumb_routing_table_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /** action corresponds to values from enum
+     *  wmi_mhf_ofl_table_action */
+    A_UINT32 action;
+    /** Destination node's IP address */
+    WMI_IPV4_ADDR dest_ipv4_addr;
+    /** Next hop node's IP address */
+    WMI_IPV4_ADDR next_hop_ipv4_addr;
+    /** Next hop node's MAC address */
+    wmi_mac_addr next_hop_mac_addr;
+} wmi_mhf_offload_plumb_routing_table_cmd;
+
 typedef struct {
     /** tlv tag and len, tag equals
      * WMITLV_TAG_STRUC_wmi_dfs_radar_event */
@@ -5952,6 +6195,23 @@ typedef struct {
     A_UINT8 reserved;
 
 } wmi_dfs_radar_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_thermal_mgmt_cmd_fixed_param  */
+
+    /*Thermal thresholds*/
+    A_UINT32 lower_thresh_degreeC; /* in degree C*/
+    A_UINT32 upper_thresh_degreeC; /* in degree C*/
+
+    /*Enable/Disable Thermal Monitoring for Mitigation*/
+    A_UINT32 enable;
+} wmi_thermal_mgmt_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_thermal_mgmt_event_fixed_param  */
+
+    A_UINT32 temperature_degreeC;/* temperature in degree C*/
+} wmi_thermal_mgmt_event_fixed_param;
 
 #ifdef __cplusplus
 }

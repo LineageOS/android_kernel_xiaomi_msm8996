@@ -24,15 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /******************************************************************************
 *
 * Name:  btcApi.c
 *
 * Description: Routines that make up the BTC API.
-*
-* Copyright 2008 (c) Qualcomm Technologies, Inc. All Rights Reserved.
-* Qualcomm Technologies Confidential and Proprietary.
 *
 ******************************************************************************/
 #include "wlan_qct_wda.h"
@@ -71,6 +67,8 @@ VOS_STATUS btcOpen (tHalHandle hHal)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
    VOS_STATUS vosStatus;
+   int i;
+
    /* Initialize BTC configuartion. */
    pMac->btc.btcConfig.btcExecutionMode = BTC_SMART_COEXISTENCE;
    pMac->btc.btcConfig.btcConsBtSlotsToBlockDuringDhcp = 0;
@@ -97,6 +95,22 @@ VOS_STATUS btcOpen (tHalHandle hHal)
    pMac->btc.btcEventState = 0;
    pMac->btc.btcHBActive = VOS_TRUE;
    pMac->btc.btcScanCompromise = VOS_FALSE;
+
+   for (i = 0; i < MWS_COEX_MAX_VICTIM_TABLE; i++)
+   {
+      pMac->btc.btcConfig.mwsCoexVictimWANFreq[i] = 0;
+      pMac->btc.btcConfig.mwsCoexVictimWLANFreq[i] = 0;
+      pMac->btc.btcConfig.mwsCoexVictimConfig[i] = 0;
+      pMac->btc.btcConfig.mwsCoexVictimConfig2[i] = 0;
+   }
+
+   for (i = 0; i < MWS_COEX_MAX_CONFIG; i++)
+   {
+      pMac->btc.btcConfig.mwsCoexConfig[i] = 0;
+   }
+
+   pMac->btc.btcConfig.mwsCoexModemBackoff = 0;
+   pMac->btc.btcConfig.SARPowerBackoff = 0;
 
    vosStatus = vos_timer_init( &pMac->btc.restoreHBTimer,
                       VOS_TIMER_TYPE_SW,
@@ -1797,15 +1811,15 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
            if( !fMoreSCO && !pMac->btc.fA2DPUp )
            {
                //All SCO is disconnected
-               pMac->btc.btcUapsdOk = VOS_TRUE;
                smsLog( pMac, LOGE, "BT event (DISCONNECTION) happens, UAPSD-allowed flag (%d) change to TRUE",
-                        pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+                        pMac->btc.btcUapsdOk );
+               pMac->btc.btcUapsdOk = VOS_TRUE;
            }
        }
        break;
    case BT_EVENT_DEVICE_SWITCHED_OFF:
        smsLog( pMac, LOGE, "BT event (DEVICE_OFF) happens, UAPSD-allowed flag (%d) change to TRUE",
-                        pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+                        pMac->btc.btcUapsdOk );
        //Clean up SCO
        for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
        {
@@ -1977,6 +1991,38 @@ eHalStatus btcHandleCoexInd(tHalHandle hHal, void* pMsg)
          pMac->btc.btcScanCompromise = VOS_FALSE;
          smsLog(pMac, LOGW, "Coex indication in %s(), type - SIR_COEX_IND_TYPE_SCAN_NOT_COMPROMISED",
              __func__);
+     }
+     else if (pSmeCoexInd->coexIndType == SIR_COEX_IND_TYPE_DISABLE_AGGREGATION_IN_2p4)
+     {
+         if (pMac->roam.configParam.disableAggWithBtc)
+         {
+             ccmCfgSetInt(pMac, WNI_CFG_DEL_ALL_RX_BA_SESSIONS_2_4_G_BTC, 1,
+                             NULL, eANI_BOOLEAN_FALSE);
+             pMac->btc.btcBssfordisableaggr[0] = pSmeCoexInd->coexIndData[0] & 0xFF;
+             pMac->btc.btcBssfordisableaggr[1] = pSmeCoexInd->coexIndData[0] >> 8;
+             pMac->btc.btcBssfordisableaggr[2] = pSmeCoexInd->coexIndData[1] & 0xFF;
+             pMac->btc.btcBssfordisableaggr[3] = pSmeCoexInd->coexIndData[1]  >> 8;
+             pMac->btc.btcBssfordisableaggr[4] = pSmeCoexInd->coexIndData[2] & 0xFF;
+             pMac->btc.btcBssfordisableaggr[5] = pSmeCoexInd->coexIndData[2] >> 8;
+             smsLog(pMac, LOGW,
+             "Coex indication in %s(), \
+              type - SIR_COEX_IND_TYPE_DISABLE_AGGREGATION_IN_2p4 \
+              for BSSID %02x:%02x:%02x:%02x:%02x:%02x",__func__,
+              pMac->btc.btcBssfordisableaggr[0],pMac->btc.btcBssfordisableaggr[1],
+              pMac->btc.btcBssfordisableaggr[2],pMac->btc.btcBssfordisableaggr[3],
+              pMac->btc.btcBssfordisableaggr[4],pMac->btc.btcBssfordisableaggr[5]);
+         }
+     }
+     else if (pSmeCoexInd->coexIndType == SIR_COEX_IND_TYPE_ENABLE_AGGREGATION_IN_2p4)
+     {
+         if (pMac->roam.configParam.disableAggWithBtc)
+         {
+             ccmCfgSetInt(pMac, WNI_CFG_DEL_ALL_RX_BA_SESSIONS_2_4_G_BTC, 0,
+                             NULL, eANI_BOOLEAN_FALSE);
+             smsLog(pMac, LOGW,
+             "Coex indication in %s(), type - SIR_COEX_IND_TYPE_ENABLE_AGGREGATION_IN_2p4",
+                 __func__);
+         }
      }
      // unknown indication type
      else

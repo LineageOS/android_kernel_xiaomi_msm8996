@@ -24,10 +24,10 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_OS_TRACE_H )
 #define __WLAN_QCT_OS_TRACE_H
 
+#include <vos_trace.h>
 
 #ifdef WLAN_DEBUG
 
@@ -82,9 +82,6 @@ void wpalTrace( wpt_moduleid module, wpt_tracelevel level, char *strFormat, ... 
 void wpalDump( wpt_moduleid module, wpt_tracelevel level,
                wpt_uint8 *memory, wpt_uint32 length);
 
-#define WPAL_TRACE wpalTrace
-#define WPAL_DUMP wpalDump
-
 #define WPAL_ASSERT( _condition )   do {                                \
         if ( ! ( _condition ) )                                         \
         {                                                               \
@@ -94,10 +91,18 @@ void wpalDump( wpt_moduleid module, wpt_tracelevel level,
     } while (0)
 #else //WLAN_DEBUG
 
-#define WPAL_TRACE
-#define WPAL_DUMP
-#define WPAL_ASSERT
+static inline void wpalTrace( wpt_moduleid module, wpt_tracelevel level,
+                              char *strFormat, ... ){};
+static inline void wpalDump( wpt_moduleid module, wpt_tracelevel level,
+                             wpt_uint8 *memory, wpt_uint32 length) {};
+static inline void wpalTraceSetLevel( wpt_moduleid module,
+                         wpt_tracelevel level, wpt_boolean on ) {};
+static inline void wpalTraceDisplay(void) {};
+#define WPAL_ASSERT(x) do {} while (0);
 
 #endif //WLAN_DEBUG
+
+#define WPAL_TRACE wpalTrace
+#define WPAL_DUMP wpalDump
 
 #endif // __WLAN_QCT_OS_TRACE_H

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /* OS abstraction libraries */
 #include <adf_nbuf.h>         /* adf_nbuf_t, etc. */
 #include <adf_os_atomic.h>    /* adf_os_atomic_read, etc. */

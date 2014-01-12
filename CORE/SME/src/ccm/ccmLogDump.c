@@ -24,15 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*============================================================================
 ccmLogDump.c
 
 Implements the dump commands specific to the ccm module. 
 
-Copyright (c) 2007 Qualcomm Technologies, Inc.
-All Rights Reserved.
-Qualcomm Technologies Confidential and Proprietary
  ============================================================================*/
 
 

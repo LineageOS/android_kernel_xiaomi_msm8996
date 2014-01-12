@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef BIN_SIGN_H_
 #define BIN_SIGN_H_
 

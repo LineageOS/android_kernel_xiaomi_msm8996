@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file utilsParser.h contains the utility function protos
  * used internally by the parser
  * Author:        Chandra Modumudi
@@ -47,6 +45,7 @@
 
 void          ConvertSSID           (tpAniSirGlobal, tSirMacSSid*,               tDot11fIESSID*);
 void          ConvertSuppRates      (tpAniSirGlobal, tSirMacRateSet*,            tDot11fIESuppRates*);
+void          ConvertFHParams       (tpAniSirGlobal, tSirMacFHParamSet*,         tDot11fIEFHParamSet*);
 void          ConvertExtSuppRates   (tpAniSirGlobal, tSirMacRateSet*,            tDot11fIEExtSuppRates*);
 void          ConvertQOSCaps        (tpAniSirGlobal, tSirMacQosCapabilityIE*,    tDot11fIEQOSCapsAp*);
 void          ConvertQOSCapsStation (tpAniSirGlobal, tSirMacQosCapabilityStaIE*, tDot11fIEQOSCapsStation*);

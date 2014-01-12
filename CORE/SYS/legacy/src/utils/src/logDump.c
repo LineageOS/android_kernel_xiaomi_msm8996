@@ -24,17 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*============================================================================
-Copyright (c) 2007 Qualcomm Technologies, Inc.
-All Rights Reserved.
-Qualcomm Technologies Confidential and Proprietary
-
 logDump.c
 */
 
 /*
- * Woodside Networks, Inc proprietary. All rights reserved.
  * This file contains the utility functions to dump various
  * MAC states and to enable/disable certain features during
  * debugging.
@@ -89,6 +83,10 @@ logDump.c
 #include "wlan_qct_wda.h"
 
 #define HAL_LOG_DUMP_CMD_START 0
+
+/* Dump command id for Host modules starts from 300 onwards,
+ * hence do not extend the HAL commands beyond 300.
+ */
 #define HAL_LOG_DUMP_CMD_END 299
 
 static int debug;

@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sirMacPropExts.h contains the MAC protocol
  * extensions to support ANI feature set.
  * Author:        Chandra Modumudi

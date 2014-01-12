@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 /**
  * @defgroup adf_nbuf_public network buffer API
  */ 
@@ -43,6 +44,9 @@
 #include <adf_net_types.h>
 #include <adf_nbuf_pvt.h>
 
+#ifdef IPA_OFFLOAD
+#define IPA_NBUF_OWNER_ID 0xaa55aa55
+#endif
 /**
  * @brief Platform indepedent packet abstraction
  */

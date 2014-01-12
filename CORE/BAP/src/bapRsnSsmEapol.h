@@ -24,10 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Woodside Networks, Inc proprietary. All rights reserved.
- * File:        $Header: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/include/aniSsmEapol.h#1 $ 
  * Contains declarations of various utilities for EAPoL frame
  * parsing and creation.
  * range.

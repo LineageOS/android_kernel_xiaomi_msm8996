@@ -25,11 +25,6 @@
  * to the Linux Foundation.
  */
 
-/*
- * Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
- * Qualcomm Technologies Confidential and Proprietary
- */
-
 /* This file is generated from btampFsm - do not edit manually*/
 /* Generated on: Thu Oct 16 15:40:39 PDT 2008 / version 1.2 Beta 1 */
 

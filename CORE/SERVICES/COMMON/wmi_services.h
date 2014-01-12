@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * This file defines WMI services bitmap and the set of WMI services .
  * defines macrso to set/clear/get different service bits from the bitmap.
@@ -92,6 +91,9 @@ typedef  enum  {
     WMI_SERVICE_BATCH_SCAN,        /*Service to support batch scan*/
     WMI_SERVICE_QPOWER, /* QPower service */
     WMI_SERVICE_PLMREQ,
+    WMI_SERVICE_THERMAL_MGMT,
+    WMI_SERVICE_RMC,                  /* reliable multicast support */
+    WMI_SERVICE_MHF_OFFLOAD,     /* multi-hop forwarding offload */
     WMI_MAX_SERVICE=64                /* max service */
 } WMI_SERVICE;
 

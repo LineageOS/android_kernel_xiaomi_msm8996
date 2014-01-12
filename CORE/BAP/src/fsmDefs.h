@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 // Project/System dependant defines and typedefs
 
 #ifndef __FSMDEFS_H__

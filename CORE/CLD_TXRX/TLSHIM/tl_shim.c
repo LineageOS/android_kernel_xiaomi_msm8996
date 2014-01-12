@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #include "vos_sched.h"
 #include "wlan_qct_tl.h"
 #include "wdi_in.h"
@@ -332,7 +331,7 @@ static void tlshim_mgmt_rx_dxe_handler(void *context, adf_nbuf_t buflist)
 		 * that has to be delivered to UMAC
 		 */
 		rx_packet =
-			(vos_pkt_t *)vos_mem_malloc(sizeof(vos_pkt_t));
+			(vos_pkt_t *)adf_os_mem_alloc(NULL, sizeof(vos_pkt_t));
 
 		if(rx_packet == NULL) {
 			TLSHIM_LOGE("Rx Packet Mem Alloc Failed");
@@ -630,7 +629,10 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 
 		/* Flush the cached frames to HDD before passing new rx frame */
 		tl_shim_flush_rx_frames(vos_ctx, tl_shim, staid, 0);
-
+#ifdef IPA_OFFLOAD
+		ret = sta_info->data_rx(vos_ctx, rx_buf_list, staid);
+		if (ret == VOS_STATUS_E_INVAL) {
+#endif
 		buf = rx_buf_list;
 		while (buf) {
 			next_buf = adf_nbuf_queue_next(buf);
@@ -657,6 +659,9 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
                 adf_nbuf_free(buf);
             buf = next_buf;
 		}
+#ifdef IPA_OFFLOAD
+	}
+#endif
 	} else /* This should not happen if sta_info->registered is true */
 		goto drop_rx_buf;
 
@@ -759,7 +764,6 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 
 	/* Zero out skb's context buffer for the driver to use */
 	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
-
 	adf_nbuf_map_single(adf_ctx, skb, ADF_OS_DMA_TO_DEVICE);
 
 	if ((tl_shim->ip_checksum_offload) && (skb->protocol == htons(ETH_P_IP))
@@ -777,6 +781,32 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 
 	return NULL;
 }
+
+#ifdef IPA_OFFLOAD
+adf_nbuf_t WLANTL_SendIPA_DataFrame(void *vos_ctx, void *vdev,
+                                    adf_nbuf_t skb)
+{
+    struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
+                                                           vos_ctx);
+	adf_nbuf_t ret;
+
+	ENTER();
+
+	if ((tl_shim->ip_checksum_offload) && (skb->protocol == htons(ETH_P_IP))
+		 && (skb->ip_summed == CHECKSUM_PARTIAL))
+		skb->ip_summed = CHECKSUM_COMPLETE;
+
+	/* Terminate the (single-element) list of tx frames */
+	skb->next = NULL;
+	ret = tl_shim->tx((struct ol_txrx_vdev_t *)vdev, skb);
+	if (ret) {
+		TLSHIM_LOGW("Failed to tx");
+		return ret;
+	}
+
+	return NULL;
+}
+#endif
 
 VOS_STATUS WLANTL_ResumeDataTx(void *vos_ctx, u_int8_t *sta_id)
 {
@@ -912,22 +942,17 @@ VOS_STATUS WLANTL_EnableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
 {
 	tp_wma_handle wma_handle;
 	t_wma_trigger_uapsd_params uapsd_params;
+	struct txrx_tl_shim_ctx *tl_shim;
 
 	ENTER();
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
 
 	uapsd_params.wmm_ac = ac;
 	uapsd_params.user_priority = pri;
 	uapsd_params.service_interval = srvc_int;
-
-	/*
-	 * Since Delayed Interval is not available
-	 * use suspend interval for delayed interval
-	 * for now.
-	 * TODO: Need to pass Delayed Interval as well
-	 */
-	uapsd_params.delay_interval = sus_int;
+	uapsd_params.delay_interval = tl_shim->delay_interval;
 	uapsd_params.suspend_interval = sus_int;
 
 	if(VOS_STATUS_SUCCESS !=
@@ -1024,10 +1049,23 @@ VOS_STATUS WLANTL_RegisterMgmtFrmClient(void *vos_ctx,
 /*
  * Return the data rssi for the given peer.
  */
-VOS_STATUS WLANTL_GetRssi(void *vos_ctx, u_int8_t sta_id, v_S7_t *rssi)
+VOS_STATUS WLANTL_GetRssi(void *vos_ctx, u_int8_t sta_id, v_S7_t *rssi, void *pGetRssiReq)
 {
-	/* TBD */
-	return VOS_STATUS_SUCCESS;
+	tp_wma_handle wma_handle;
+
+	ENTER();
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+
+	if(VOS_STATUS_SUCCESS !=
+		wma_send_snr_request(wma_handle, pGetRssiReq))
+	{
+		TLSHIM_LOGE("Failed to Trigger wma stats request");
+		return VOS_STATUS_E_FAILURE;
+	}
+	/* dont send success, otherwise call back
+	 * will released with out values */
+	return VOS_STATUS_E_BUSY;
 }
 
 /*
@@ -1267,6 +1305,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 	 */
 
 	tl_shim->ip_checksum_offload = tl_cfg->ip_checksum_offload;
+	tl_shim->delay_interval = tl_cfg->uDelayedTriggerFrmInt;
 	return status;
 }
 

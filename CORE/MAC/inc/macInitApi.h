@@ -24,10 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
  *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * macInitApi.c - Header file for mac level init functions
  * Author:    Dinesh Upadhyay
  * Date:      04/23/2007

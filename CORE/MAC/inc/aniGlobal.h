@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved
  * aniGlobal.h: MAC Modules Adapter Definitions.
  * Author:      V. K. Kandarpa
  * Date:    10/25/2002
@@ -84,7 +82,7 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #include "smeRrmInternal.h"
 #include "rrmGlobal.h"
 #endif
-#if defined FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
 #include "ccxApi.h"
 #include "ccxGlobal.h"
 #endif
@@ -136,6 +134,11 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #endif //WLAN_FEATURE_CONCURRENT_P2P
 
 #define SPACE_ASCII_VALUE  32
+
+#ifdef FEATURE_WLAN_BATCH_SCAN
+#define EQUALS_TO_ASCII_VALUE (61)
+#endif
+
 
 // -------------------------------------------------------------------
 // Change channel generic scheme
@@ -240,6 +243,11 @@ typedef struct sLimTimers
     TX_TIMER           gLimDeauthAckTimer;
     // This timer is started when single shot NOA insert msg is sent to FW for scan in P2P GO mode
     TX_TIMER           gLimP2pSingleShotNoaInsertTimer;
+    /* This timer is used to convert active channel to
+     * passive channel when there is no beacon
+     * for a period of time on a particular DFS channel
+     */
+    TX_TIMER           gLimActiveToPassiveChannelTimer;
 //********************TIMER SECTION ENDS**************************************************
 // ALL THE FIELDS BELOW THIS CAN BE ZEROED OUT in limInitialize
 //****************************************************************************************
@@ -646,6 +654,10 @@ typedef struct sAniSirLim
     tLimAdmitPolicyInfo admitPolicyInfo;
     vos_lock_t lkPeGlobalLock;
     tANI_U8 disableLDPCWithTxbfAP;
+#ifdef FEATURE_WLAN_TDLS
+    tANI_U8 gLimTDLSBufStaEnabled;
+    tANI_U8 gLimTDLSUapsdMask;
+#endif
 
 
 
@@ -896,6 +908,9 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
 #endif
     tLimDisassocDeauthCnfReq limDisassocDeauthCnfReq;
     tANI_U8 deferredMsgCnt;
+    tSirDFSChannelList    dfschannelList;
+    tANI_U8 deauthMsgCnt;
+    tANI_U8 gLimIbssStaLimit;
 } tAniSirLim, *tpAniSirLim;
 
 typedef struct sLimMgmtFrameRegistration
@@ -956,17 +971,17 @@ typedef struct sMacOpenParameters
     tANI_U16 maxBssId;
     tANI_U32 frameTransRequired;
     tANI_U8 powersaveOffloadEnabled;
-    tANI_U8 wowEnable;
     tDriverType  driverType;
     tANI_U8 maxWoWFilters;
+    tANI_U8 wowEnable;
+/* Here olIniInfo is used to store ini
+ * status of arp offload, ns offload
+ * and others. Currently 1st bit is used
+ * for arp off load and 2nd bit for ns
+ * offload currently, rest bits are unused
+ */
+    tANI_U8 olIniInfo;
 } tMacOpenParameters;
-
-typedef enum
-{
-    HAL_STOP_TYPE_SYS_RESET,
-    HAL_STOP_TYPE_SYS_DEEP_SLEEP,
-    HAL_STOP_TYPE_RF_KILL   
-}tHalStopType;
 
 typedef struct sHalMacStartParameters
 {
@@ -1045,7 +1060,7 @@ typedef struct sAniSirGlobal
     v_BOOL_t isTdlsPowerSaveProhibited;
 #endif
     tANI_U8 fScanOffload;
-    /*  Based on ini variable or Fw Capability */
+    tANI_U8 isCoalesingInIBSSAllowed;
     tANI_U8 psOffloadEnabled;
 
     /* Power Save offload Info */
@@ -1059,8 +1074,8 @@ typedef struct sAniSirGlobal
 
     csrReadyToSuspendCallback readyToSuspendCallback;
     void *readyToSuspendContext;
-
-    tANI_U8 isCoalesingInIBSSAllowed;
+    tANI_U8 lteCoexAntShare;
+    tANI_U8 beacon_offload;
 
 } tAniSirGlobal;
 

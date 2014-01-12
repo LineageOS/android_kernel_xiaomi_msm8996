@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- *
     ------------------------------------------------------------------------- *
 
@@ -35,9 +34,6 @@
             module headers before inclusion into halCommonApi.h.
 
     $Id$
-
-    Copyright (C) 2006 Airgo Networks, Incorporated
-
 
    ========================================================================== */
 
@@ -225,6 +221,12 @@ typedef enum
 
 } eHalStatus;
 
+typedef enum
+{
+    HAL_STOP_TYPE_SYS_RESET,
+    HAL_STOP_TYPE_SYS_DEEP_SLEEP,
+    HAL_STOP_TYPE_RF_KILL,
+}tHalStopType;
 
 // macro to check for SUCCESS value of the halStatus
 #define HAL_STATUS_SUCCESS( variable ) ( eHAL_STATUS_SUCCESS == ( variable ) )

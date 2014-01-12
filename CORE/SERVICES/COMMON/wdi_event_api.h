@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef _WDI_EVENT_API_H_
 #define _WDI_EVENT_API_H_
 

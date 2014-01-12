@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*============================================================================
   FILE:         vos_lock.c
 
@@ -35,9 +34,6 @@
 
   DEPENDENCIES: 
  
-                Copyright (c) 2007 Qualcomm Technologies, Inc.
-                All Rights Reserved.
-                Qualcomm Technologies Confidential and Proprietary
 ============================================================================*/
 
 /*============================================================================
@@ -475,5 +471,91 @@ VOS_STATUS vos_spin_lock_release(vos_spin_lock_t *pLock)
 VOS_STATUS vos_spin_lock_destroy(vos_spin_lock_t *pLock)
 {
 
+   return VOS_STATUS_SUCCESS;
+}
+
+/*--------------------------------------------------------------------------
+
+  \brief vos_wake_lock_init() - initializes a vOSS wake lock
+
+  \param pLock - the wake lock to initialize
+              name - wakelock name
+
+  \return VOS_STATUS_SUCCESS - wake lock was successfully initialized and
+          is ready to be used.
+  --------------------------------------------------------------------------*/
+VOS_STATUS vos_wake_lock_init(vos_wake_lock_t *pLock, const char *name)
+{
+#ifdef WLAN_OPEN_SOURCE
+   wake_lock_init(pLock, WAKE_LOCK_SUSPEND, name);
+#endif
+   return VOS_STATUS_SUCCESS;
+}
+
+/*--------------------------------------------------------------------------
+
+  \brief vos_wake_lock_acquire() - acquires a wake lock
+
+  \param pLock - the wake lock to acquire
+
+  \return VOS_STATUS_SUCCESS - the wake lock was successfully acquired
+
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_wake_lock_acquire(vos_wake_lock_t *pLock)
+{
+#ifdef WLAN_OPEN_SOURCE
+   wake_lock(pLock);
+#endif
+   return VOS_STATUS_SUCCESS;
+}
+
+/*--------------------------------------------------------------------------
+
+  \brief vos_wake_lock_timeout_acquire() - acquires a wake lock with a timeout
+
+  \param pLock - the wake lock to acquire
+
+  \return VOS_STATUS_SUCCESS - the wake lock was successfully acquired
+
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_wake_lock_timeout_acquire(vos_wake_lock_t *pLock, v_U32_t msec)
+{
+#ifdef WLAN_OPEN_SOURCE
+   wake_lock_timeout(pLock, msecs_to_jiffies(msec));
+#endif
+   return VOS_STATUS_SUCCESS;
+}
+
+/*--------------------------------------------------------------------------
+
+  \brief vos_wake_lock_release() - releases a wake lock
+
+  \param pLock - the wake lock to release
+
+  \return VOS_STATUS_SUCCESS - the lock was successfully released
+
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_wake_lock_release(vos_wake_lock_t *pLock)
+{
+#ifdef WLAN_OPEN_SOURCE
+   wake_unlock(pLock);
+#endif
+   return VOS_STATUS_SUCCESS;
+}
+
+/*--------------------------------------------------------------------------
+
+  \brief vos_wake_lock_destroy() - destroys a wake lock
+
+  \param pLock - the wake lock to destroy
+
+  \return VOS_STATUS_SUCCESS - the lock was successfully destroyed
+
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_wake_lock_destroy(vos_wake_lock_t *pLock)
+{
+#ifdef WLAN_OPEN_SOURCE
+   wake_lock_destroy(pLock);
+#endif
    return VOS_STATUS_SUCCESS;
 }

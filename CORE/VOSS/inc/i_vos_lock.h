@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __I_VOS_LOCK_H )
 #define __I_VOS_LOCK_H
 
@@ -33,10 +32,6 @@
   \file  i_vos_lock.h
   
   \brief Linux-specific definitions for vOSS Locks
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -49,6 +44,9 @@
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/sched.h>
+#ifdef WLAN_OPEN_SOURCE
+#include <linux/wakelock.h>
+#endif
 
 /*-------------------------------------------------------------------------- 
   Preprocessor definitions and constants
@@ -70,6 +68,12 @@ typedef struct vos_lock_s
 } vos_lock_t;
 
 typedef spinlock_t vos_spin_lock_t;
+
+#ifdef WLAN_OPEN_SOURCE
+typedef struct wake_lock vos_wake_lock_t;
+#else
+typedef int vos_wake_lock_t;
+#endif
 
 /*------------------------------------------------------------------------- 
   Function declarations and documenation

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifdef FEATURE_OEM_DATA_SUPPORT
 
 /** ------------------------------------------------------------------------- * 
@@ -35,9 +34,6 @@
   
     Exports and types for the Common OEM DATA REQ/RSP Module interfaces.
   
-    Copyright (C) 2010 Qualcomm Technologies, Inc.
-  
- 
    ========================================================================== */
 
 #ifndef __OEM_DATA_API_H__
@@ -48,7 +44,7 @@
 
 #ifndef OEM_DATA_REQ_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_REQ_SIZE 276
+#define OEM_DATA_REQ_SIZE 280
 #else
 #define OEM_DATA_REQ_SIZE 134
 #endif
@@ -56,7 +52,7 @@
 
 #ifndef OEM_DATA_RSP_SIZE
 #ifdef QCA_WIFI_2_0
-#define OEM_DATA_RSP_SIZE 1720
+#define OEM_DATA_RSP_SIZE 1724
 #else
 #define OEM_DATA_RSP_SIZE 1968
 #endif

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_QCT_PAL_DEVICE_H
 #define WLAN_QCT_PAL_DEVICE_H
 /* ====================================================================================================================
@@ -33,8 +32,6 @@
 
    @brief
     This file contains the external API exposed by WLAN PAL Device specific functionalities
-    Copyright (c) 2011 Qualcomm Technologies, Inc. All Rights Reserved
-    Qualcomm Technologies Confidential and Properietary
 
  * ==================================================================================================================*/
 
@@ -217,7 +214,7 @@ static inline wpt_status wpalReadRegister
    wpt_uint32                          *data
 )
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalReadRegister
@@ -243,7 +240,7 @@ static inline wpt_status wpalWriteRegister
    wpt_uint32                           data
 )
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalWriteRegister
@@ -272,7 +269,7 @@ static inline wpt_status wpalReadDeviceMemory
    wpt_uint32                            len
 )
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalReadDeviceMemory
@@ -302,7 +299,7 @@ static inline wpt_status wpalWriteDeviceMemory
    wpt_uint32                            len
 )
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalWriteDeviceMemory

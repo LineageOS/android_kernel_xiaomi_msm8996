@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #include <adf_nbuf.h>         /* adf_nbuf_t, etc. */
 #include <htt.h>              /* HTT_TX_EXT_TID_MGMT */
 #include <ol_htt_tx_api.h>    /* htt_tx_desc_tid */

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file ol_ctrl_txrx_api.h
  * @brief Define the host control API functions called by the host data SW.

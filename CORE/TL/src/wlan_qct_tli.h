@@ -24,7 +24,8 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ * */
 #ifndef WLAN_QCT_TLI_H
 #define WLAN_QCT_TLI_H
 
@@ -38,8 +39,6 @@ DESCRIPTION
   This file contains the internal declarations used within wlan transport
   layer module.
 
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -57,6 +56,7 @@ DESCRIPTION
 
 when        who    what, where, why
 --------    ---    ----------------------------------------------------------
+08/19/13    rajekuma Added reliable multicast support in TL
 02/19/10    bad     Fixed 802.11 to 802.3 ft issues with WAPI
 01/14/10    rnair   Fixed the byte order for the WAI packet type.
 01/08/10    lti     Added TL Data Caching
@@ -97,7 +97,6 @@ when        who    what, where, why
 
 
 #define STATIC  static
-
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -178,7 +177,6 @@ when        who    what, where, why
 #define WLANTL_FRAME_TYPE_MCAST 0x01
 #define WLANTL_FRAME_TYPE_UCAST 0x00
 
-
 /*-------------------------------------------------------------------------
   BT-AMP related definition - !!! should probably be moved to BT-AMP header
 ---------------------------------------------------------------------------*/
@@ -235,6 +233,8 @@ when        who    what, where, why
 /*get RSSI1 from a RX BD*/
 #define WLANTL_GETRSSI1(pBD)    (WDA_GETRSSI1(pBD) - WLAN_TL_RSSI_CORRECTION)
 
+#define WLANTL_GETSNR(pBD)      WDA_GET_RX_SNR(pBD)
+
 /* Check whether Rx frame is LS or EAPOL packet (other than data) */
 #define WLANTL_BAP_IS_NON_DATA_PKT_TYPE(usType) \
   ((WLANTL_BT_AMP_TYPE_AR == usType) || (WLANTL_BT_AMP_TYPE_SEC == usType) || \
@@ -263,6 +263,9 @@ typedef enum
 
   /* Serialzie Finish UL Authentication request */
   WLANTL_FINISH_ULA   = 5,
+
+  /* Serialized Snapshot request indication */
+  WLANTL_TX_SNAPSHOT = 6,
 
   WLANTL_TX_MAX
 }WLANTL_TxSignalsType;
@@ -301,7 +304,8 @@ typedef enum
 ---------------------------------------------------------------------------*/
 typedef VOS_STATUS (*WLANTL_STAFuncType)( v_PVOID_t     pAdapter,
                                           v_U8_t        ucSTAId,
-                                          vos_pkt_t**   pvosDataBuff);
+                                          vos_pkt_t**   pvosDataBuff,
+                                          v_BOOL_t      bForwardIAPPwithLLC);
 
 /*---------------------------------------------------------------------------
   STA FSM Entry type
@@ -314,32 +318,38 @@ typedef struct
 /* Receive in connected state - only EAPOL or WAI*/
 VOS_STATUS WLANTL_STARxConn( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* Transmit in connected state - only EAPOL or WAI*/
 VOS_STATUS WLANTL_STATxConn( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* Receive in authenticated state - all data allowed*/
 VOS_STATUS WLANTL_STARxAuth( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* Transmit in authenticated state - all data allowed*/
 VOS_STATUS WLANTL_STATxAuth( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* Receive in disconnected state - no data allowed*/
 VOS_STATUS WLANTL_STARxDisc( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* Transmit in disconnected state - no data allowed*/
 VOS_STATUS WLANTL_STATxDisc( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
-                             vos_pkt_t**   pvosDataBuff );
+                             vos_pkt_t**   pvosDataBuff,
+                             v_BOOL_t      bForwardIAPPwithLLC);
 
 /* TL State Machine */
 STATIC const WLANTL_STAFsmEntryType tlSTAFsm[WLANTL_STA_MAX_STATE] =
@@ -438,6 +448,8 @@ typedef struct
   WLANTL_TIMER_EXPIER_UDATA_T timerUdata;
 
   WLANTL_REORDER_BUFFER_T     *reorderBuffer;
+
+  v_U16_t            LastSN;
 }WLANTL_BAReorderType;
 
 
@@ -499,6 +511,18 @@ typedef struct
 
   /* Value of the averaged RSSI for this station */
   v_U32_t                       uLinkQualityAvg;
+
+  /* Sum of SNR for snrIdx number of consecutive frames */
+  v_U32_t                       snrSum;
+
+  /* Number of consecutive frames over which snrSum is calculated */
+  v_S7_t                        snrIdx;
+
+  /* Average SNR of previous 20 frames */
+  v_S7_t                        prevSnrAvg;
+
+  /* Average SNR returned by fw */
+  v_S7_t                        snrAvgBmps;
 
   /* Tx packet count per station per TID */
   v_U32_t                       auTxCount[WLAN_MAX_TID];
@@ -622,6 +646,9 @@ typedef struct
     1 then we have to encrypt the data irrespective of TL
     state (CONNECTED/AUTHENTICATED) */
   v_U8_t ptkInstalled;
+
+  v_U32_t       linkCapacity;
+
 }WLANTL_STAClientType;
 
 /*---------------------------------------------------------------------------
@@ -815,6 +842,7 @@ typedef struct
   v_BOOL_t                  isBMPS;
   /* Whether WDA_DS_TX_START_XMIT msg is pending or not */
   v_BOOL_t   isTxTranmitMsgPending;
+
 }WLANTL_CbType;
 
 /*==========================================================================
@@ -1269,7 +1297,7 @@ WLANTL_Translate8023To80211Header
   VOS_STATUS*     pvosStatus,
   WLANTL_CbType*  pTLCb,
   v_U8_t          *pucStaId,
-  v_U8_t          ucUP,
+  WLANTL_MetaInfoType* pTlMetaInfo,
   v_U8_t          *ucWDSEnabled,
   v_U8_t          *extraHeadSpace
 );
@@ -1310,7 +1338,8 @@ WLANTL_Translate80211To8023Header
   v_U16_t         usActualHLen,
   v_U8_t          ucHeaderLen,
   WLANTL_CbType*  pTLCb,
-  v_U8_t          ucSTAId
+  v_U8_t          ucSTAId,
+  v_BOOL_t        bForwardIAPPwithLLC
 );
 
 /*==========================================================================
@@ -1602,6 +1631,23 @@ VOS_STATUS WLANTL_ReadRSSI
    v_U8_t           STAid
 );
 
+/*==========================================================================
+
+   FUNCTION
+
+   DESCRIPTION   Read SNR value out of a RX BD
+
+   PARAMETERS: Caller must validate all parameters
+
+   RETURN VALUE
+
+============================================================================*/
+VOS_STATUS WLANTL_ReadSNR
+(
+   v_PVOID_t        pAdapter,
+   v_PVOID_t        pBDHeader,
+   v_U8_t           STAid
+);
 
 
 void WLANTL_PowerStateChangedCB

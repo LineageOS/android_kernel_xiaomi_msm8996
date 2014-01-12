@@ -24,11 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Woodside Networks, Inc proprietary. All rights reserved.
- * File: $File: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/include/aniErrors.h $
- *
  * Contains definitions of error codes that are globally visible
  * across WNI applications. There are two kinds of error codes:
  * generic error codes and module specific error codes. Module specific

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**
  * @file hif_dxe_desc_pvt.h
  * @brief Defines DXE HW Descriptor Structure Format 

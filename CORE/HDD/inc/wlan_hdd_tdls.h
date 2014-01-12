@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef __HDD_TDSL_H
 #define __HDD_TDSL_H
 /**===========================================================================
@@ -33,6 +32,9 @@
 
 \brief       Linux HDD TDLS include file
 
+Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+All Rights Reserved.
+Qualcomm Atheros Confidential and Proprietary.
 ==========================================================================*/
 
 #define MAX_NUM_TDLS_PEER           3
@@ -76,6 +78,9 @@ typedef struct
     tANI_U32    rssi_hysteresis;
     tANI_S32    rssi_trigger_threshold;
     tANI_S32    rssi_teardown_threshold;
+#ifdef QCA_WIFI_2_0
+    tANI_S32    rssi_delta;
+#endif
 } tdls_config_params_t;
 
 typedef struct
@@ -138,7 +143,9 @@ typedef struct {
 #ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
     vos_timer_t     peerDiscoverTimer;
 #endif
+#ifndef QCA_WIFI_2_0
     vos_timer_t     peerUpdateTimer;
+#endif
     vos_timer_t     peerDiscoveryTimeoutTimer;
     tdls_config_params_t threshold_config;
     tANI_S32        discovery_peer_cnt;
@@ -163,7 +170,12 @@ typedef struct _hddTdlsPeer_t {
     tANI_U16    discovery_attempt;
     tANI_U16    tx_pkt;
     tANI_U16    rx_pkt;
+    tANI_U8     uapsdQueues;
+    tANI_U8     maxSp;
+    tANI_U8     isBufSta;
+#ifndef QCA_WIFI_2_0
     vos_timer_t     peerIdleTimer;
+#endif
     vos_timer_t     initiatorWaitTimeoutTimer;
 } hddTdlsPeer_t;
 
@@ -175,6 +187,19 @@ typedef struct {
     /* TDLS peer mac Address */
     v_MACADDR_t peerMac;
 } tdlsConnInfo_t;
+
+#ifdef QCA_WIFI_2_0
+typedef struct {
+    tANI_U32 vdev_id;
+    tANI_U32 tdls_state;
+    tANI_U32 notification_interval_ms;
+    tANI_U32 tx_discovery_threshold;
+    tANI_U32 tx_teardown_threshold;
+    tANI_S32 rssi_teardown_threshold;
+    tANI_S32 rssi_delta;
+    tANI_U32 tdls_options;
+} tdlsInfo_t;
+#endif
 
 int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter);
 
@@ -188,10 +213,12 @@ int wlan_hdd_tdls_increment_pkt_count(hdd_adapter_t *pAdapter, u8 *mac, u8 tx);
 
 int wlan_hdd_tdls_set_sta_id(hdd_adapter_t *pAdapter, u8 *mac, u8 staId);
 
-hddTdlsPeer_t *wlan_hdd_tdls_find_peer(hdd_adapter_t *pAdapter, u8 *mac);
+hddTdlsPeer_t *wlan_hdd_tdls_find_peer(hdd_adapter_t *pAdapter, u8 *mac, tANI_BOOLEAN mutexLock);
 
 hddTdlsPeer_t *wlan_hdd_tdls_find_all_peer(hdd_context_t *pHddCtx, u8 *mac);
 
+int wlan_hdd_tdls_get_link_establish_params(hdd_adapter_t *pAdapter, u8 *mac,
+                                            tCsrTdlsLinkEstablishParams* tdlsLinkEstablishParams);
 hddTdlsPeer_t *wlan_hdd_tdls_get_peer(hdd_adapter_t *pAdapter, u8 *mac);
 
 int wlan_hdd_tdls_set_cap(hdd_adapter_t *pAdapter, u8* mac, tTDLSCapType cap);
@@ -201,6 +228,12 @@ void wlan_hdd_tdls_set_peer_link_status(hddTdlsPeer_t *curr_peer, tTDLSLinkStatu
 void wlan_hdd_tdls_set_link_status(hdd_adapter_t *pAdapter, u8* mac, tTDLSLinkStatus status);
 
 int wlan_hdd_tdls_recv_discovery_resp(hdd_adapter_t *pAdapter, u8 *mac);
+
+int wlan_hdd_tdls_set_peer_caps(hdd_adapter_t *pAdapter,
+                                u8 *mac,
+                                tANI_U8 uapsdQueues,
+                                tANI_U8 maxSp,
+                                tANI_BOOLEAN isBufSta);
 
 int wlan_hdd_tdls_set_rssi(hdd_adapter_t *pAdapter, u8 *mac, tANI_S8 rxRssi);
 
@@ -232,7 +265,7 @@ void wlan_hdd_tdls_check_bmps(hdd_adapter_t *pAdapter);
 
 u8 wlan_hdd_tdls_is_peer_progress(hdd_adapter_t *pAdapter, u8 *mac);
 
-hddTdlsPeer_t *wlan_hdd_tdls_is_progress(hdd_context_t *pHddCtx, u8* mac, u8 skip_self, tANI_BOOLEAN mutexLock);
+hddTdlsPeer_t *wlan_hdd_tdls_is_progress(hdd_context_t *pHddCtx, u8* mac, u8 skip_self);
 
 void wlan_hdd_tdls_set_mode(hdd_context_t *pHddCtx,
                             eTDLSSupportMode tdls_mode,
@@ -267,5 +300,11 @@ void wlan_hdd_tdls_indicate_teardown(hdd_adapter_t *pAdapter,
                                            hddTdlsPeer_t *curr_peer,
                                            tANI_U16 reason);
 
+#ifdef QCA_WIFI_2_0
+#ifdef CONFIG_TDLS_IMPLICIT
+void wlan_hdd_tdls_pre_setup_init_work(tdlsCtx_t *pHddTdlsCtx,
+                                       hddTdlsPeer_t *curr_candidate);
+#endif
+#endif
 
 #endif // __HDD_TDSL_H

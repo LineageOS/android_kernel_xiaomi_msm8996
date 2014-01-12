@@ -25,7 +25,9 @@
  * to the Linux Foundation.
  */
 
-
+/*
+ * $ATH_LICENSE_TARGET_C$
+ */
 
 #ifndef _WLAN_MODULE_IDS_H_
 #define _WLAN_MODULE_IDS_H_
@@ -75,6 +77,7 @@ typedef enum {
   WLAN_MODULE_HB,
   WLAN_MODULE_TXBF,
   WLAN_MODULE_BATCH_SCAN,
+  WLAN_MODULE_THERMAL_MGR,
   WLAN_MODULE_ID_MAX,
   WLAN_MODULE_ID_INVALID = WLAN_MODULE_ID_MAX,
 } WLAN_MODULE_ID;

@@ -24,16 +24,11 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**========================================================================
 
   \file  bap_hdd_main.c
 
   \brief 802.11 BT-AMP PAL Host Device Driver implementation
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 

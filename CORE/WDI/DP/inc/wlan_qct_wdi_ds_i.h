@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_WDI_DS_I_H )
 #define __WLAN_QCT_WDI_DS_I_H
 
@@ -39,13 +38,12 @@
  *   This file contains the external API exposed by the
  *   wlan device abstarction layer module.
  *
- *   Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
- *   Qualcomm Technologies Confidential and Proprietary
  */
 
 #include "wlan_qct_pal_type.h"
 #include "wlan_qct_pal_status.h"
 #include "wlan_qct_pal_packet.h"
+#include "wlan_qct_pal_trace.h"
 #include "wlan_qct_wdi_ds.h"
 #include "wlan_qct_dxe.h"
 

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( HDD_INCLUDES_H__ )
 #define HDD_INCLUDES_H__
 
@@ -33,10 +32,6 @@
   \file  wlan_hdd_includes.h
   
   \brief Internal includes for the Linux HDD 
-  
-               Copyright 2008 (c) Qualcomm Technologies, Inc.
-               All Rights Reserved.
-               Qualcomm Technologies Confidential and Proprietary.
   
   ==========================================================================*/
   

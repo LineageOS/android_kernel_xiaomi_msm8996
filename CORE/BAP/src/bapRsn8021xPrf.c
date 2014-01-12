@@ -24,11 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Woodside Networks, Inc proprietary. All rights reserved.
- * $File: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/ssm/auth8021x/ani8021xPrf.c $
- *
  * Contains definitions for routines to calculate the 802.11i PRF
  * functions.
  *

@@ -35,9 +35,6 @@
  *
  *  @author:   Kumar Anand
  *
- *             Copyright (C) 2010, Qualcomm Technologies, Inc. 
- *             All rights reserved.
- *
  *=========================================================================*/
 #ifndef __ANI_COMPILER_ABSTRACT_H
 #define __ANI_COMPILER_ABSTRACT_H

@@ -24,7 +24,14 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+//------------------------------------------------------------------------------
+// <copyright file="htc_services.h" company="Atheros">
+//    Copyright (c) 2007 Atheros Corporation.  All rights reserved.
+// $ATH_LICENSE_HOSTSDK0_C$
+//------------------------------------------------------------------------------
+//==============================================================================
+// Author(s): ="Atheros"
+//==============================================================================
 
 #ifndef __HTC_SERVICES_H__
 #define __HTC_SERVICES_H__

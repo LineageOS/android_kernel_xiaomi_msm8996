@@ -24,9 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * logApi.cc - Handles log messages for all the modules.
  * Author:        Kevin Nguyen
  * Date:          02/27/02
@@ -137,7 +135,7 @@ void logDbg(tpAniSirGlobal pMac, tANI_U8 modId, tANI_U32 debugLevel, const char 
 #endif
 }
 
-static inline VOS_TRACE_LEVEL getVosDebugLevel(tANI_U32 debugLevel)
+ VOS_TRACE_LEVEL getVosDebugLevel(tANI_U32 debugLevel)
 {
     switch(debugLevel)
     {
@@ -167,10 +165,11 @@ static inline VOS_MODULE_ID getVosModuleId(tANI_U8 modId)
         case SIR_HAL_MODULE_ID:
         case SIR_PHY_MODULE_ID:
             return VOS_MODULE_ID_WDA;
+       case SIR_PMM_MODULE_ID:
+             return VOS_MODULE_ID_PMC;
 
         case SIR_LIM_MODULE_ID:
         case SIR_SCH_MODULE_ID:
-        case SIR_PMM_MODULE_ID:
         case SIR_CFG_MODULE_ID:
         case SIR_MNT_MODULE_ID:
         case SIR_DPH_MODULE_ID:

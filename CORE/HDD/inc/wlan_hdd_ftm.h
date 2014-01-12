@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef WLAN_HDD_FTM_H
 #define WLAN_HDD_FTM_H
 #include "vos_status.h"
@@ -60,6 +59,9 @@
 #define WE_CLEAR_RX_PKT_CNT   8
 #define WE_RX                 9
 #define WE_ENABLE_CHAIN      10
+#define WE_SET_PWR_CNTL_MODE 11
+#define WE_ENABLE_DPD        12
+#define WE_SET_CB            13
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_FTM_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -93,7 +95,7 @@
 
 #define WE_FTM_MAX_STR_LEN 1024
 
-#define MAX_NV_TABLE_SIZE  30000
+#define MAX_NV_TABLE_SIZE  40000
 
 typedef enum {
     WLAN_FTM_CMD_START = 1,

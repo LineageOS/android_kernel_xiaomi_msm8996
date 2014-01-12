@@ -25,7 +25,6 @@
  * to the Linux Foundation.
  */
 
-
 /* This file is generated from btampFsm.cdd - do not edit manually*/
 /* Generated on: Thu Oct 16 15:40:39 PDT 2008 */
 

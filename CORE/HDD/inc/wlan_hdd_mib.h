@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( WLAN_HDD_MIB_h__ )
 #define WLAN_HDD_MIB_h__ 
 

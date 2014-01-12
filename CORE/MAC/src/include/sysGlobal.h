@@ -24,7 +24,9 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
+/*
+ *
+ */
 #ifndef __SYS_GLOBAL_H__
 #define __SYS_GLOBAL_H__
 

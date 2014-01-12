@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_DRIVER_H )
 #define __WLAN_QCT_DRIVER_H
 
@@ -34,10 +33,6 @@
   
   \brief Header file for Wireless LAN Host Device Driver Kernel Module
                
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
-  
   ========================================================================*/
 
 /**======================================================================== 

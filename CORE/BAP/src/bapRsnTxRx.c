@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /**=============================================================================
   
   vos_list.c
@@ -33,11 +32,6 @@
   
   Description...
     
-  
-               Copyright 2008 (c) Qualcomm Technologies, Inc.
-               All Rights Reserved.
-               Qualcomm Technologies Confidential and Proprietary.
-  
   ============================================================================== */
 /* $HEADER$ */
 #include "bapRsnTxRx.h"
@@ -209,7 +203,7 @@ static VOS_STATUS bapRsnTxFrame( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket )
 VOS_STATUS bapRsnSendEapolFrame( v_PVOID_t pvosGCtx, tAniPacket *pAniPkt )
 {
     VOS_STATUS status;
-    vos_pkt_t *pPacket;
+    vos_pkt_t *pPacket = NULL;
     v_U8_t *pData, *pSrc;
     int pktLen = aniAsfPacketGetBytes( pAniPkt, &pSrc );
 
@@ -218,7 +212,7 @@ VOS_STATUS bapRsnSendEapolFrame( v_PVOID_t pvosGCtx, tAniPacket *pAniPkt )
         return VOS_STATUS_E_EMPTY;
     }
     status = bapRsnAcquirePacket( &pPacket, &pData, pktLen );
-    if( VOS_IS_STATUS_SUCCESS( status ) )
+    if( VOS_IS_STATUS_SUCCESS( status ) && ( NULL != pPacket ))
     {
         vos_mem_copy( pData, pSrc, pktLen );
         //Send the packet, need to check whether we have an outstanding packet first.

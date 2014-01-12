@@ -24,15 +24,12 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
     \file csrLinkList.h
   
     Exports and types for the Common link list interfaces.
   
-   Copyright (C) 2006 Airgo Networks, Incorporated
- 
    ========================================================================== */
 #ifndef CSR_LINK_LIST_H__
 #define CSR_LINK_LIST_H__
@@ -63,6 +60,10 @@ typedef struct tagDblLinkList
   tANI_U32  Count;
   tHddHandle hHdd;
   tListFlag Flag;
+
+  /*command debugging */
+  tANI_U32  cmdTimeoutDuration;  /* command timeout duration */
+  vos_timer_t *cmdTimeoutTimer;  /*command timeout Timer */
 }tDblLinkList;
 
 //To get the address of an object of (type) base on the (address) of one of its (field)

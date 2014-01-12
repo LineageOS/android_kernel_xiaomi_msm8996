@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 //==================================================================
 //
 //  File:         utilsApi.cc
@@ -32,8 +31,6 @@
 //  Description:  Implemention of a few utility routines. 
 //
 //  Author:       Neelay Das
-//
-//  Copyright 2003, Woodside Networks, Inc. All rights reserved.
 //
 //  Change gHistory:
 //  12/15/2003 - NDA - Initial version.

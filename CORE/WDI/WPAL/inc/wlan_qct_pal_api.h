@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #if !defined( __WLAN_QCT_PAL_API_H )
 #define __WLAN_QCT_PAL_API_H
 
@@ -35,10 +34,6 @@
   \brief define general APIs PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
                
    Definitions for platform independent
-  
-   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -232,7 +227,7 @@ void wpalDmaMemoryFree(void *pv);
 #ifdef QCA_WIFI_2_0
 static inline wpt_status wpalDbgReadRegister(wpt_uint32 regAddr, wpt_uint32 *pregValue)
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalDbgReadRegister(wpt_uint32 regAddr, wpt_uint32 *pregValue);
@@ -248,9 +243,9 @@ wpt_status wpalDbgReadRegister(wpt_uint32 regAddr, wpt_uint32 *pregValue);
 ---------------------------------------------------------------------------*/
 #ifdef QCA_WIFI_2_0
 static inline wpt_status wpalDbgWriteRegister(wpt_uint32 regAddr,
-					      wpt_uint32 regValue)
+                                              wpt_uint32 regValue)
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalDbgWriteRegister(wpt_uint32 regAddr, wpt_uint32 regValue);
@@ -267,9 +262,9 @@ wpt_status wpalDbgWriteRegister(wpt_uint32 regAddr, wpt_uint32 regValue);
 ---------------------------------------------------------------------------*/
 #ifdef QCA_WIFI_2_0
 static inline wpt_status wpalDbgReadMemory(wpt_uint32 memAddr, wpt_uint8 *buf,
-					   wpt_uint32 len)
+                                           wpt_uint32 len)
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalDbgReadMemory(wpt_uint32 memAddr, wpt_uint8 *buf, wpt_uint32 len);
@@ -286,9 +281,9 @@ wpt_status wpalDbgReadMemory(wpt_uint32 memAddr, wpt_uint8 *buf, wpt_uint32 len)
 ---------------------------------------------------------------------------*/
 #ifdef QCA_WIFI_2_0
 static inline wpt_status wpalDbgWriteMemory(wpt_uint32 memAddr, wpt_uint8 *buf,
-					    wpt_uint32 len)
+                                            wpt_uint32 len)
 {
-	return eWLAN_PAL_STATUS_SUCCESS;
+        return eWLAN_PAL_STATUS_SUCCESS;
 }
 #else
 wpt_status wpalDbgWriteMemory(wpt_uint32 memAddr, wpt_uint8 *buf, wpt_uint32 len);
@@ -351,5 +346,20 @@ void wpalWlanReload(void);
        NONE
 ---------------------------------------------------------------------------*/
 void wpalWcnssResetIntr(void);
+
+/*---------------------------------------------------------------------------
+    wpalFwDumpReq -  Trigger the dump commands to Firmware
+
+    Param:
+       cmd - Command No. to execute
+       arg1 - argument 1 to cmd
+       arg2 - argument 2 to cmd
+       arg3 - argument 3 to cmd
+       arg4 - argument 4 to cmd
+    Return:
+       NONE
+---------------------------------------------------------------------------*/
+void wpalFwDumpReq(wpt_uint32 cmd, wpt_uint32 arg1, wpt_uint32 arg2,
+                    wpt_uint32 arg3, wpt_uint32 arg4);
 
 #endif // __WLAN_QCT_PAL_API_H

@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*===========================================================================
 
                W L A N   S Y S T E M   M O D U L E
@@ -34,9 +33,6 @@ DESCRIPTION
   This file contains the system module that implements the 'exectution model'
   in the Gen6 host software.
 
-
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================
@@ -339,7 +335,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             /* Handling for this message is not needed now so adding 
              *debug print and VOS_ASSERT*/
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       " Received SYS_MSG_ID_MC_START message msgType= %d [0x%08lx]",
+                       " Received SYS_MSG_ID_MC_START message msgType= %d [0x%08x]",
                        pMsg->type, pMsg->type );
             VOS_ASSERT(0);
             break;
@@ -359,7 +355,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             }
             else
             {
-               vosStatus = sme_Stop( hHal, TRUE );
+               vosStatus = sme_Stop( hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
                VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
                vosStatus = macStop( hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP );
@@ -376,12 +372,9 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          // function that is in the message.
          case SYS_MSG_ID_MC_THR_PROBE:
          {
-            /* Handling for this message is not needed now so adding 
-             *debug print and VOS_ASSERT*/
-            VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       " Received SYS_MSG_ID_MC_THR_PROBE message msgType= %d [0x%08lx]",
-                       pMsg->type, pMsg->type );
-            VOS_ASSERT(0);
+            VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+                       " Received SYS_MSG_ID_MC_THR_PROBE message msgType = %d [0x%08x]",
+                       pMsg->type, pMsg->type);
             break;
          }
 
@@ -408,7 +401,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          default:
          {
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       "Unknown message type in sysMcProcessMsg() msgType= %d [0x%08lx]",
+                       "Unknown message type in sysMcProcessMsg() msgType= %d [0x%08x]",
                        pMsg->type, pMsg->type );
             break;
         }
@@ -428,7 +421,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
                        "Received SYS message cookie with unidentified "
-                       "MC message type= %d [0x%08lX]", pMsg->type, pMsg->type );
+                       "MC message type= %d [0x%08X]", pMsg->type, pMsg->type );
 
             vosStatus = VOS_STATUS_E_BADMSG;
             if (pMsg->bodyptr) 
@@ -467,7 +460,7 @@ VOS_STATUS sysTxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
            /* Handling for this message is not needed now so adding 
             * debug print and VOS_ASSERT*/
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       " Received SYS_MSG_ID_TX_THR_PROBE message msgType= %d [0x%08lx]",
+                       " Received SYS_MSG_ID_TX_THR_PROBE message msgType= %d [0x%08x]",
                        pMsg->type, pMsg->type );
             VOS_ASSERT(0);
 
@@ -493,7 +486,7 @@ VOS_STATUS sysTxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          default:
          {
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       "Unknown message type in sysTxProcessMsg() msgType= %d [0x%08lx]",
+                       "Unknown message type in sysTxProcessMsg() msgType= %d [0x%08x]",
                        pMsg->type, pMsg->type );
             break;
         }
@@ -506,7 +499,7 @@ VOS_STATUS sysTxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 
       VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
                  "Received SYS message cookie with unidentified TX message "
-                 " type= %d [0x%08lX]", pMsg->type, pMsg->type );
+                 " type= %d [0x%08X]", pMsg->type, pMsg->type );
 
       vosStatus = VOS_STATUS_E_BADMSG;
    }   // end else
@@ -550,7 +543,7 @@ VOS_STATUS sysRxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          default:
          {
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       "Unknown message type in sysRxProcessMsg() msgType= %d [0x%08lx]",
+                       "Unknown message type in sysRxProcessMsg() msgType= %d [0x%08x]",
                        pMsg->type, pMsg->type );
             break;
         }
@@ -563,7 +556,7 @@ VOS_STATUS sysRxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 
       VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
                  "Received SYS message cookie with unidentified RX message "
-                 " type= %d [0x%08lX]", pMsg->type, pMsg->type );
+                 " type= %d [0x%08X]", pMsg->type, pMsg->type );
 
       vosStatus = VOS_STATUS_E_BADMSG;
    }   // end else
@@ -713,7 +706,7 @@ SysProcessMmhMsg
     /* free the mem and return */
     if(pMsg->bodyptr)
     {
-      palFreeMemory( pMac->hHdd, pMsg->bodyptr);
+      vos_mem_free( pMsg->bodyptr);
     }
   }
 
@@ -762,4 +755,17 @@ void wlan_sys_ftm(void *pMsgPtr)
 }
 
 
+
+void wlan_sys_probe(void)
+{
+    vos_msg_t  vosMessage;
+
+    vosMessage.reserved = FTM_SYS_MSG_COOKIE;
+    vosMessage.type     = SYS_MSG_ID_MC_THR_PROBE;
+    vosMessage.bodyptr  = NULL;
+
+    vos_mq_post_message(VOS_MQ_ID_SYS, &vosMessage);
+
+    return;
+}
 

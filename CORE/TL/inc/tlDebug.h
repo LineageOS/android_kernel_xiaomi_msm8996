@@ -24,7 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 #ifndef __TL_DEBUG_H__
 #define __TL_DEBUG_H__
 #if  !defined (ANI_OS_TYPE_ANDROID)

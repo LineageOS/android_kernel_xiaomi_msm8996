@@ -24,10 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-
 /*
- * Woodside Networks, Inc proprietary. All rights reserved.
- * $File: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/ssm/auth8021x/ani8021xFsm.h $
  * Contains the declarations for the Auth Agent's FSM's to work.
  *
  * Author:      Mayank D. Upadhyay
