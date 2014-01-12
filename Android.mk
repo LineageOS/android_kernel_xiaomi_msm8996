@@ -11,14 +11,6 @@ WLAN_ISOC_SELECT := CONFIG_QCA_WIFI_ISOC=0
 WLAN_ISOC_SELECT += CONFIG_QCA_WIFI_2_0=1
 endif
 
-# Build/Package options for 8974, 8226, 8610 targets
-ifeq ($(call is-board-platform-in-list,msm8974 msm8226 msm8610),true)
-WLAN_CHIPSET := qca_cld
-WLAN_SELECT := CONFIG_QCA_CLD_WLAN=m
-WLAN_ISOC_SELECT := CONFIG_QCA_WIFI_ISOC=1
-WLAN_ISOC_SELECT += CONFIG_QCA_WIFI_2_0=0
-endif
-
 # Build/Package only in case of supported target
 ifneq ($(WLAN_CHIPSET),)
 
