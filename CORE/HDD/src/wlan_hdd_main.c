@@ -9456,7 +9456,7 @@ static int hdd_driver_init( void)
        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
                __func__);
        vos_preClose( &pVosContext );
-       ret_status = -1;
+       ret_status = -ENODEV;
        break;
    }
    else
