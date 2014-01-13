@@ -535,13 +535,12 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		params->chainMask = resp_event->chain_mask;
 		params->smpsMode = host_map_smps_mode(resp_event->smps_mode);
 		params->status = resp_event->status;
-      if (resp_event->resp_type == WMI_VDEV_RESTART_RESP_EVENT &&
-			(iface->type == WMI_VDEV_TYPE_AP)) {
-         wmi_unified_vdev_up_send(wma->wmi_handle,
-                                  resp_event->vdev_id,
-                                  iface->aid,
-                                  iface->bssid);
-		}
+      /*
+       * Marking the VDEV UP STATUS to FALSE
+       * since, VDEV RESTART will do a VDEV DOWN
+       * in the firmware.
+       */
+      iface->vdev_up = FALSE;
 		wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
 	} else if (req_msg->msg_type == WDA_ADD_BSS_REQ) {
 		tpAddBssParams bssParams = (tpAddBssParams) req_msg->user_data;
