@@ -45,6 +45,7 @@ void limIbssDelete(tpAniSirGlobal,tpPESession psessionEntry);
 tSirRetStatus limIbssCoalesce(tpAniSirGlobal, tpSirMacMgmtHdr, tpSchBeaconStruct, tANI_U8*,tANI_U32, tANI_U16,tpPESession);
 tSirRetStatus limIbssStaAdd(tpAniSirGlobal, void *,tpPESession);
 tSirRetStatus limIbssAddStaRsp( tpAniSirGlobal, void *,tpPESession);
+tLimIbssPeerNode* limIbssPeerFind(tpAniSirGlobal pMac, tSirMacAddr macAddr);
 void limIbssDelBssRsp( tpAniSirGlobal, void *,tpPESession);
 void limIbssDelBssRspWhenCoalescing(tpAniSirGlobal,  void *,tpPESession);
 void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void * msg, tpPESession pSessionEntry);
