@@ -2936,6 +2936,9 @@ typedef enum {
      * thought to be gone. */
     WMI_VDEV_PARAM_IBSS_MAX_BCN_LOST_MS,
 
+    /** max rate in kpbs, transmit rate can't go beyond it */
+    WMI_VDEV_PARAM_MAX_RATE,
+
 } WMI_VDEV_PARAM;
 
 enum wmi_pkt_type {
