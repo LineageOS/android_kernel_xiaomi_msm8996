@@ -1880,6 +1880,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         }
         else
         {
+            pConfig->countryCode[0] = pHddCtx->reg.alpha2[0];
+            pConfig->countryCode[1] = pHddCtx->reg.alpha2[1];
             pConfig->ieee80211d = 0;
         }
         /*

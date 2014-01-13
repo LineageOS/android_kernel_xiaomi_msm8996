@@ -1849,6 +1849,8 @@ void sapDfsCacTimerCallback(void *data)
 int sapStartDfsCacTimer(ptSapContext sapContext)
 {
     VOS_STATUS status;
+    v_U32_t cacTimeOut;
+    v_REGDOMAIN_t regDomain;
     if (sapContext == NULL)
     {
         return 0;
@@ -1861,12 +1863,20 @@ int sapStartDfsCacTimer(ptSapContext sapContext)
          */
         return 2;
     }
+    cacTimeOut = DEFAULT_CAC_TIMEOUT;
+    vos_nv_getRegDomainFromCountryCode(&regDomain,
+                    sapContext->csrRoamProfile.countryCode, COUNTRY_QUERY);
+    if ((regDomain == REGDOMAIN_ETSI) &&
+       (IS_ETSI_WEATHER_CH(sapContext->SapDfsInfo.target_channel)))
+    {
+        cacTimeOut = ETSI_WEATHER_CH_CAC_TIMEOUT;
+    }
     vos_timer_init(&sapContext->SapDfsInfo.sap_dfs_cac_timer,
                    VOS_TIMER_TYPE_SW,
                    sapDfsCacTimerCallback, (v_PVOID_t)sapContext);
 
     /*Start the CAC timer for 60 Seconds*/
-    status = vos_timer_start(&sapContext->SapDfsInfo.sap_dfs_cac_timer, 60000);
+    status = vos_timer_start(&sapContext->SapDfsInfo.sap_dfs_cac_timer, cacTimeOut);
     if (status == VOS_STATUS_SUCCESS)
     {
         sapContext->SapDfsInfo.is_dfs_cac_timer_running = VOS_TRUE;

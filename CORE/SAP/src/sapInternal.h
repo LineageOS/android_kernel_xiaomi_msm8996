@@ -99,6 +99,10 @@ when           who        what, where, why
 //MAC Address length
 #define ANI_EAPOL_KEY_RSN_NONCE_SIZE      32
 
+#define IS_ETSI_WEATHER_CH(_ch) ((_ch >= 120) && (_ch <= 130))
+#define DEFAULT_CAC_TIMEOUT (60 * 1000) //msecs - 1 min
+#define ETSI_WEATHER_CH_CAC_TIMEOUT (10 * 60 * 1000) //msecs - 10 min
+
 extern sRegulatoryChannel *regChannels;
 extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
 
