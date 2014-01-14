@@ -221,6 +221,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_GTX_STEP                 67
 #define WE_SET_GTX_MINTPC               68
 #define WE_SET_GTX_BWMASK               69
+/* Private ioctl to configure MCC home channels time quota and latency */
+#define WE_MCC_CONFIG_LATENCY           70
+#define WE_MCC_CONFIG_QUOTA             71
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -5298,6 +5301,156 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            break;
         }
 
+        case WE_MCC_CONFIG_LATENCY:
+        {
+            tVOS_CONCURRENCY_MODE concurrent_state = 0;
+            v_U8_t first_adapter_operating_channel = 0;
+            int ret = 0; /* success */
+
+            hddLog(LOG1, "iwpriv cmd to set MCC latency with val %dms",
+                    set_value);
+            /**
+             * Check if concurrency mode is active.
+             * Need to modify this code to support MCC modes other than STA/P2P
+             */
+            concurrent_state = hdd_get_concurrency_mode();
+            if ((concurrent_state == (VOS_STA | VOS_P2P_CLIENT)) ||
+                (concurrent_state == (VOS_STA | VOS_P2P_GO)))
+            {
+                hddLog(LOG1, "STA & P2P are both enabled");
+                /**
+                 * The channel number and latency are formatted in
+                 * a bit vector then passed on to WMA layer.
+                 +**********************************************+
+                 |bits 31-16 |      bits 15-8    |  bits 7-0    |
+                 |  Unused   | latency - Chan. 1 |  channel no. |
+                 +**********************************************+
+                 */
+                /* Get the operating channel of the designated vdev */
+                first_adapter_operating_channel =
+                            hdd_get_operating_channel
+                            (
+                                pAdapter->pHddCtx,
+                                pAdapter->device_mode
+                            );
+                /* Move the time latency for the adapter to bits 15-8 */
+                set_value = set_value << 8;
+                /* Store the channel number at bits 7-0 of the bit vector */
+                set_value = set_value | first_adapter_operating_channel;
+                /* Send command to WMA */
+                ret = process_wma_set_command((int)pAdapter->sessionId,
+                        (int)WMA_VDEV_MCC_SET_TIME_LATENCY,
+                        set_value, VDEV_CMD);
+            }
+            else
+            {
+                hddLog(LOG1, "#s: MCC is not active. Exit w/o setting latency",
+                __func__);
+            }
+            break;
+        }
+
+        case WE_MCC_CONFIG_QUOTA:
+        {
+            v_U8_t first_adapter_operating_channel = 0;
+            v_U8_t second_adapter_opertaing_channel = 0;
+            hdd_adapter_t *staAdapter = NULL;
+            int ret = 0; /* success */
+
+            tVOS_CONCURRENCY_MODE concurrent_state = hdd_get_concurrency_mode();
+            hddLog(LOG1, "iwpriv cmd to set MCC quota with val %dms",
+                set_value);
+            /**
+              * Check if concurrency mode is active.
+              * Need to modify this code to support MCC modes other than STA/P2P
+              */
+            if ((concurrent_state == (VOS_STA | VOS_P2P_CLIENT)) ||
+                (concurrent_state == (VOS_STA | VOS_P2P_GO)))
+            {
+                hddLog(LOG1, "STA & P2P are both enabled");
+                /**
+                 * The channel numbers for both adapters and the time
+                 * quota for the 1st adapter, i.e., one specified in cmd
+                 * are formatted as a bit vector then passed on to WMA
+                 +************************************************************+
+                 |bit 31-24  | bit 23-16  |   bits 15-8   |   bits 7-0        |
+                 |  Unused   | Quota for  | chan. # for   |   chan. # for     |
+                 |           | 1st chan.  | 1st chan.     |   2nd chan.       |
+                 +************************************************************+
+                 */
+                /* Get the operating channel of the specified vdev */
+                first_adapter_operating_channel =
+                            hdd_get_operating_channel
+                            (
+                                pAdapter->pHddCtx,
+                                pAdapter->device_mode
+                            );
+                hddLog(LOG1, "1st channel No.:%d and quota:%dms",
+                        first_adapter_operating_channel, set_value);
+                /* Move the time quota for first channel to bits 15-8 */
+                set_value = set_value << 8;
+                /** Store the channel number of 1st channel at bits 7-0
+                 * of the bit vector
+                 */
+                set_value = set_value | first_adapter_operating_channel;
+                /* Find out the 2nd MCC adapter and its operating channel */
+                if (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
+                {
+                    /* iwpriv cmd was issued on wlan0; get p2p0 vdev channel */
+                    if ((concurrent_state & VOS_P2P_CLIENT) != 0)
+                    {
+                        /* The 2nd MCC vdev is P2P client */
+                        staAdapter = hdd_get_adapter(pAdapter->pHddCtx,
+                                        WLAN_HDD_P2P_CLIENT);
+                    } else
+                    {
+                        /* The 2nd MCC vdev is P2P GO */
+                        staAdapter = hdd_get_adapter(pAdapter->pHddCtx,
+                                        WLAN_HDD_P2P_GO);
+                    }
+                }
+                else
+                {
+                    /* iwpriv cmd was issued on p2p0; get wlan0 vdev channel */
+                    staAdapter = hdd_get_adapter(pAdapter->pHddCtx,
+                                     WLAN_HDD_INFRA_STATION);
+                }
+                if (staAdapter != NULL)
+                {
+                    second_adapter_opertaing_channel =
+                            hdd_get_operating_channel
+                            (
+                            staAdapter->pHddCtx,
+                            staAdapter->device_mode
+                            );
+                    hddLog(LOG1, "2nd vdev channel No. is:%d",
+                            second_adapter_opertaing_channel);
+                    /** Now move the time quota and channel number of the
+                     * 1st adapter to bits 23-16 and bits 15-8 of the bit
+                     * vector, respectively.
+                     */
+                    set_value = set_value << 8;
+                    /* Store the channel number for 2nd MCC vdev at bits
+                     * 7-0 of set_value
+                     */
+                    set_value = set_value | second_adapter_opertaing_channel;
+                    ret = process_wma_set_command((int)pAdapter->sessionId,
+                            (int)WMA_VDEV_MCC_SET_TIME_QUOTA,
+                            set_value, VDEV_CMD);
+                }
+                else
+                {
+                    hddLog(LOGE, "NULL adapter handle. Exit");
+                }
+            }
+            else
+            {
+                hddLog(LOG1, "#s: MCC is not active. Exit w/o setting latency",
+                        __func__);
+            }
+            break;
+        }
+
 #endif
         default:
         {
@@ -9490,6 +9643,15 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "set_qnodatapoll" },
+
+    /* handlers for MCC time quota and latency sub ioctls */
+    {   WE_MCC_CONFIG_LATENCY,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "setMccLatency" },
+
+    {   WE_MCC_CONFIG_QUOTA,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "setMccQuota" },
 
 #endif
 

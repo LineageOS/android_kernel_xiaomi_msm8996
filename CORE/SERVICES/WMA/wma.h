@@ -1179,6 +1179,9 @@ typedef struct {
 enum wma_cfg_cmd_id {
        WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID = WMI_CMDID_MAX,
        WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
+       /* Set time latency and time quota for MCC home channels */
+       WMA_VDEV_MCC_SET_TIME_LATENCY,
+       WMA_VDEV_MCC_SET_TIME_QUOTA,
        /* Add any new command before this */
        WMA_CMD_ID_MAX
 };

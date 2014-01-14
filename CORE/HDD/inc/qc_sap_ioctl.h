@@ -285,6 +285,8 @@ enum {
     QCSAP_PARAM_AUTO_CHANNEL = 9,
     QCSAP_PARAM_SET_MC_RATE = 10,
     QCSAP_PARAM_SET_TXRX_FW_STATS=11,
+    QCSAP_PARAM_SET_MCC_CHANNEL_LATENCY = 12,
+    QCSAP_PARAM_SET_MCC_CHANNEL_QUOTA = 13,
 };
 
 int iw_softap_get_channel_list(struct net_device *dev, 

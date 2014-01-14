@@ -81,6 +81,7 @@
 #include "wlan_qct_wda.h"
 #include "wlan_qct_wda_msg.h"
 #include "limApi.h"
+#include "limSessionUtils.h"
 
 #include "wdi_out.h"
 #include "wdi_in.h"
@@ -148,6 +149,10 @@
 #define ETSI      0x30
 
 #define WMI_DEFAULT_NOISE_FLOOR_DBM (-96)
+
+#define WMI_MCC_MIN_CHANNEL_QUOTA             20
+#define WMI_MCC_MAX_CHANNEL_QUOTA             80
+#define WMI_MCC_MIN_NON_ZERO_CHANNEL_LATENCY  30
 
 static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
@@ -2884,6 +2889,268 @@ static VOS_STATUS wma_set_enable_disable_mcc_adaptive_scheduler(tANI_U32 mcc_ada
 	return VOS_STATUS_SUCCESS;
 }
 
+/**
+  * Currently used to set time latency for an MCC vdev/adapter using operating
+  * channel of it and channel number. The info is provided run time using
+  * iwpriv command: iwpriv <wlan0 | p2p0> setMccLatency <latency in ms>.
+  */
+static VOS_STATUS wma_set_mcc_channel_time_latency
+					(
+					tp_wma_handle wma,
+					tANI_U32 mcc_channel,
+					tANI_U32 mcc_channel_time_latency
+					)
+{
+	int ret = -1;
+	wmi_buf_t buf = 0;
+	wmi_resmgr_set_chan_latency_cmd_fixed_param *cmdTL = NULL;
+	u_int16_t len = 0;
+	u_int8_t *buf_ptr = NULL;
+	tANI_U32 cfg_val = 0;
+	wmi_resmgr_chan_latency chan_latency;
+	struct sAniSirGlobal *pMac = NULL;
+	/* Note: we only support MCC time latency for a single channel */
+	u_int32_t num_channels = 1;
+	u_int32_t channel1 = mcc_channel;
+	u_int32_t chan1_freq = vos_chan_to_freq( channel1 );
+	u_int32_t latency_chan1 = mcc_channel_time_latency;
+
+	if (!wma) {
+		WMA_LOGE("%s:NULL wma ptr. Exiting.\n", __func__);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+	pMac =
+		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+						      wma->vos_context);
+	if (!pMac) {
+		WMA_LOGE("%s:NULL pMac ptr. Exiting.\n", __func__);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	/* First step is to confirm if MCC is active */
+	if (!limIsInMCC(pMac)) {
+		WMA_LOGE("%s: MCC is not active. Exiting.\n", __func__);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+	/* Confirm MCC adaptive scheduler feature is disabled */
+	if (wlan_cfgGetInt(pMac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED,
+	        &cfg_val) == eSIR_SUCCESS) {
+		if (cfg_val == WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED_STAMAX) {
+			WMA_LOGD("%s: Can't set channel latency while MCC "
+				"ADAPTIVE SCHED is enabled. Exit\n", __func__);
+			return VOS_STATUS_SUCCESS;
+		}
+	} else {
+		WMA_LOGE("%s: Failed to get value for MCC_ADAPTIVE_SCHED, "
+				"Exit w/o setting latency.\n", __func__);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+	/* If 0ms latency is provided, then FW will set to a default.
+	 * Otherwise, latency must be at least 30ms.
+	 */
+	if ((latency_chan1 > 0) &&
+		(latency_chan1 < WMI_MCC_MIN_NON_ZERO_CHANNEL_LATENCY)) {
+		WMA_LOGE("%s: Invalid time latency for Channel #1 = %dms. "
+			"Minimum is 30ms (or 0 to use default value by "
+			"firmware)\n", __func__, latency_chan1);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	/*   Set WMI CMD for channel time latency here */
+	len = sizeof(wmi_resmgr_set_chan_latency_cmd_fixed_param) +
+		WMI_TLV_HDR_SIZE + /*Place holder for chan_time_latency array*/
+		num_channels * sizeof(wmi_resmgr_chan_latency);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmdTL = (wmi_resmgr_set_chan_latency_cmd_fixed_param *)
+						wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmdTL->tlv_header,
+		WMITLV_TAG_STRUC_wmi_resmgr_set_chan_latency_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_resmgr_set_chan_latency_cmd_fixed_param));
+	cmdTL->num_chans = num_channels;
+	/* Update channel time latency information for home channel(s) */
+	buf_ptr += sizeof(*cmdTL);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE,
+		       num_channels * sizeof(wmi_resmgr_chan_latency));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	chan_latency.chan_mhz = chan1_freq;
+	chan_latency.latency = latency_chan1;
+	vos_mem_copy(buf_ptr, &chan_latency, sizeof(chan_latency));
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				WMI_RESMGR_SET_CHAN_LATENCY_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send MCC Channel Time Latency command",
+			__func__);
+		adf_nbuf_free(buf);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+  * Currently used to set time quota for 2 MCC vdevs/adapters using (operating
+  * channel, quota) for each mode . The info is provided run time using
+  * iwpriv command: iwpriv <wlan0 | p2p0> setMccQuota <quota in ms>.
+  * Note: the quota provided in command is for the same mode in cmd. HDD
+  * checks if MCC mode is active, gets the second mode and its operating chan.
+  * Quota for the 2nd role is calculated as 100 - quota of first mode.
+  */
+static VOS_STATUS wma_set_mcc_channel_time_quota
+					(
+					tp_wma_handle wma,
+					tANI_U32 adapter_1_chan_number,
+					tANI_U32 adapter_1_quota,
+					tANI_U32 adapter_2_chan_number
+					)
+{
+	int ret = -1;
+	wmi_buf_t buf = 0;
+	u_int16_t len = 0;
+	u_int8_t *buf_ptr = NULL;
+	tANI_U32 cfg_val = 0;
+	struct sAniSirGlobal *pMac = NULL;
+	wmi_resmgr_set_chan_time_quota_cmd_fixed_param *cmdTQ = NULL;
+	wmi_resmgr_chan_time_quota chan_quota;
+	u_int32_t channel1 = adapter_1_chan_number;
+	u_int32_t channel2 = adapter_2_chan_number;
+	u_int32_t quota_chan1 = adapter_1_quota;
+	/* Knowing quota of 1st chan., derive quota for 2nd chan. */
+	u_int32_t quota_chan2 = 100 - quota_chan1;
+	/* Note: setting time quota for MCC requires info for 2 channels */
+	u_int32_t num_channels = 2;
+	u_int32_t chan1_freq = vos_chan_to_freq(adapter_1_chan_number);
+	u_int32_t chan2_freq = vos_chan_to_freq(adapter_2_chan_number);
+
+	WMA_LOGD("%s: Channel1:%d, freq1:%dMHz, Quota1:%dms, "
+		"Channel2:%d, freq2:%dMHz, Quota2:%dms\n", __func__,
+		channel1, chan1_freq, quota_chan1, channel2, chan2_freq,
+		quota_chan2);
+
+	if (!wma) {
+		WMA_LOGE("%s:NULL wma ptr. Exiting.\n", __func__);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+	pMac =
+		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+							  wma->vos_context);
+	if (!pMac) {
+		WMA_LOGE("%s:NULL pMac ptr. Exiting.\n", __func__);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	/* First step is to confirm if MCC is active */
+	if (!limIsInMCC(pMac)) {
+		WMA_LOGD("%s: MCC is not active. Exiting.\n", __func__);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	/* Confirm MCC adaptive scheduler feature is disabled */
+	if (wlan_cfgGetInt(pMac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED,
+			&cfg_val) == eSIR_SUCCESS) {
+		if (cfg_val == WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED_STAMAX) {
+			WMA_LOGD("%s: Can't set channel quota while "
+					"MCC_ADAPTIVE_SCHED is enabled. Exit\n",
+					__func__);
+			return VOS_STATUS_SUCCESS;
+		}
+	} else {
+		WMA_LOGE("%s: Failed to retrieve "
+			"WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED. Exit\n",
+			__func__);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	/**
+	 * Perform sanity check on time quota values provided.
+	 */
+	if (quota_chan1 < WMI_MCC_MIN_CHANNEL_QUOTA ||
+		quota_chan1 > WMI_MCC_MAX_CHANNEL_QUOTA) {
+		WMA_LOGE("%s: Invalid time quota for Channel #1=%dms. Minimum "
+			"is 20ms & maximum is 80ms\n", __func__, quota_chan1);
+		return VOS_STATUS_E_INVAL;
+	}
+	/* Set WMI CMD for channel time quota here */
+	len = sizeof(wmi_resmgr_set_chan_time_quota_cmd_fixed_param) +
+	WMI_TLV_HDR_SIZE + /* Place holder for chan_time_quota array */
+		num_channels * sizeof(wmi_resmgr_chan_time_quota);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmdTQ = (wmi_resmgr_set_chan_time_quota_cmd_fixed_param *)
+							wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmdTQ->tlv_header,
+		WMITLV_TAG_STRUC_wmi_resmgr_set_chan_time_quota_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_resmgr_set_chan_time_quota_cmd_fixed_param));
+	cmdTQ->num_chans = num_channels;
+
+	/* Update channel time quota information for home channel(s) */
+	buf_ptr += sizeof(*cmdTQ);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE,
+		   num_channels * sizeof(wmi_resmgr_chan_time_quota));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	chan_quota.chan_mhz = chan1_freq;
+	chan_quota.channel_time_quota = quota_chan1;
+	vos_mem_copy(buf_ptr, &chan_quota, sizeof(chan_quota));
+	/* Construct channel and quota record for the 2nd MCC mode. */
+	buf_ptr += sizeof(chan_quota);
+	chan_quota.chan_mhz = chan2_freq;
+	chan_quota.channel_time_quota = quota_chan2;
+	vos_mem_copy(buf_ptr, &chan_quota, sizeof(chan_quota));
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				WMI_RESMGR_SET_CHAN_TIME_QUOTA_CMDID);
+	if (ret) {
+		WMA_LOGE("Failed to send MCC Channel Time Quota command");
+		adf_nbuf_free(buf);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+static v_BOOL_t wma_set_enable_disable_roam_scan_offload(tp_wma_handle wma_handle,
+                        bool cfg_roam_offload_enabled)
+{
+        if (wma_handle->roam_offload_enabled && !cfg_roam_offload_enabled) {
+                /* User changed it from enable to disable */
+                if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
+                                                    WMI_VDEV_PARAM_ROAM_FW_OFFLOAD, 0)) {
+                        /* could not disable roam offload in firmware. Disable it for host. */
+                        WMA_LOGE("Failed to set WMI_VDEV_PARAM_ROAM_FW_OFFLOAD = 0");
+                }
+            wma_handle->roam_offload_enabled = FALSE;
+        } else if (!wma_handle->roam_offload_enabled && cfg_roam_offload_enabled) {
+                /* User changed it from disable to enable */
+                if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
+                                                  WMI_VDEV_PARAM_ROAM_FW_OFFLOAD, 1)) {
+                        /* could not enable roam offload in firmware. Disable it for host. */
+                        WMA_LOGE("Failed to set WMI_VDEV_PARAM_ROAM_FW_OFFLOAD = 1");
+                } else {
+                        wma_handle->roam_offload_enabled = TRUE;
+                }
+        }
+
+        return (wma_handle->roam_offload_enabled);
+}
 /* function   : wma_vdev_attach
  * Descriptin :
  * Args       :
@@ -5802,6 +6069,49 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
                   wma_set_smps_params(wma_handle, privcmd->param_vdev_id,
                                  privcmd->param_value);
                 break;
+	case WMA_VDEV_MCC_SET_TIME_LATENCY:
+	{
+		/* Extract first MCC adapter/vdev channel number and latency */
+		tANI_U8 mcc_channel         = privcmd->param_value & 0x000000FF;
+		tANI_U8 mcc_channel_latency =
+				(privcmd->param_value & 0x0000FF00) >> 8;
+		int ret = -1;
+		WMA_LOGD("%s: Parsed input: Channel #1:%d, latency:%dms\n",
+			__func__, mcc_channel, mcc_channel_latency);
+		ret = wma_set_mcc_channel_time_latency
+						(
+						wma_handle,
+						mcc_channel,
+						mcc_channel_latency
+						);
+	}
+		break;
+	case WMA_VDEV_MCC_SET_TIME_QUOTA:
+	{
+		/** Extract the MCC 2 adapters/vdevs channel numbers and time
+		  *  quota value for the first adapter only (which is specified
+		  *  in iwpriv command.
+		  */
+		tANI_U8 adapter_2_chan_number =
+					privcmd->param_value & 0x000000FF;
+		tANI_U8 adapter_1_chan_number =
+				(privcmd->param_value & 0x0000FF00) >> 8;
+		tANI_U8 adapter_1_quota =
+				(privcmd->param_value & 0x00FF0000) >> 16;
+		int ret = -1;
+
+		WMA_LOGD("%s: Parsed input: Channel #1:%d, Channel #2:%d,"
+			"quota 1:%dms\n", __func__, adapter_1_chan_number,
+			adapter_2_chan_number, adapter_1_quota);
+		ret = wma_set_mcc_channel_time_quota
+						(
+						wma_handle,
+						adapter_1_chan_number,
+						adapter_1_quota,
+						adapter_2_chan_number
+						);
+	}
+		break;
 	default:
 		WMA_LOGE("Invalid wma config command id:%d",
 			 privcmd->param_id);
