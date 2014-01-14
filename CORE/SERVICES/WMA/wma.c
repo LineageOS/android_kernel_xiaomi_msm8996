@@ -13665,7 +13665,8 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		wma_free_wow_ptrn(wma_handle, ptrn_id);
 
 #ifdef FEATURE_WLAN_SCAN_PNO
-	vos_wake_lock_destroy(&wma_handle->pno_wake_lock);
+	if (vos_get_conparam() != VOS_FTM_MODE)
+		vos_wake_lock_destroy(&wma_handle->pno_wake_lock);
 #endif
 	/* unregister Firmware debug log */
 	vos_status = dbglog_deinit(wma_handle->wmi_handle);
@@ -13696,7 +13697,8 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 	/* Detach UTF and unregister the handler */
-	wma_utf_detach(wma_handle);
+	if (vos_get_conparam() == VOS_FTM_MODE)
+		wma_utf_detach(wma_handle);
 #endif
 
 	/* dettach the wmi serice */
