@@ -175,7 +175,6 @@ static VOS_STATUS  hdd_get_tsm_stats(hdd_adapter_t *pAdapter,
 static VOS_STATUS hdd_parse_ccx_beacon_req(tANI_U8 *pValue,
                                      tCsrCcxBeaconReq *pCcxBcnReq);
 #endif /* FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
-
 /*
  * Maximum buffer size used for returning the data back to user space
  */
@@ -1731,6 +1730,273 @@ static int hdd_parse_setrmcrate_command(tANI_U8 *pValue,
     return 0;
 }
 
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+/**---------------------------------------------------------------------------
+
+  \brief hdd_parse_plm_cmd() - HDD Parse Plm command
+
+  This function parses the plm command passed in the format
+  CCXPLMREQ<space><enable><space><dialog_token><space>
+  <meas_token><space><num_of_bursts><space><burst_int><space>
+  <measu duration><space><burst_len><space><desired_tx_pwr>
+  <space><multcast_addr><space><number_of_channels>
+  <space><channel_numbers>
+
+  \param  - pValue Pointer to input data
+  \param  - pPlmRequest Pointer to output struct tpSirPlmReq
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+eHalStatus hdd_parse_plm_cmd(tANI_U8 *pValue, tSirPlmReq *pPlmRequest)
+{
+     tANI_U8 *cmdPtr = NULL;
+     int count, content = 0, ret = 0;
+     char buf[32];
+
+     /* moving to argument list */
+     cmdPtr = strnchr(pValue, strlen(pValue), SPACE_ASCII_VALUE);
+     if (NULL == cmdPtr)
+        return eHAL_STATUS_FAILURE;
+
+     /*no space after the command*/
+     if (SPACE_ASCII_VALUE != *cmdPtr)
+        return eHAL_STATUS_FAILURE;
+
+     /*removing empty spaces*/
+     while ((SPACE_ASCII_VALUE == *cmdPtr) && ('\0' != *cmdPtr))
+        cmdPtr++;
+
+     /* START/STOP PLM req */
+     ret = sscanf(cmdPtr, "%31s ", buf);
+     if (1 != ret) return eHAL_STATUS_FAILURE;
+
+     ret = kstrtos32(buf, 10, &content);
+     if ( ret < 0) return eHAL_STATUS_FAILURE;
+
+     pPlmRequest->enable = content;
+     cmdPtr = strpbrk(cmdPtr, " ");
+
+     if (NULL == cmdPtr)
+        return eHAL_STATUS_FAILURE;
+
+     /*removing empty spaces*/
+     while ((SPACE_ASCII_VALUE == *cmdPtr) && ('\0' != *cmdPtr))
+        cmdPtr++;
+
+     /* Dialog token of radio meas req containing meas reqIE */
+     ret = sscanf(cmdPtr, "%31s ", buf);
+     if (1 != ret) return eHAL_STATUS_FAILURE;
+
+     ret = kstrtos32(buf, 10, &content);
+     if ( ret < 0) return eHAL_STATUS_FAILURE;
+
+     pPlmRequest->diag_token = content;
+     hddLog(VOS_TRACE_LEVEL_DEBUG, "diag token %d", pPlmRequest->diag_token);
+     cmdPtr = strpbrk(cmdPtr, " ");
+
+     if (NULL == cmdPtr)
+        return eHAL_STATUS_FAILURE;
+
+     /*removing empty spaces*/
+     while ((SPACE_ASCII_VALUE == *cmdPtr) && ('\0' != *cmdPtr))
+         cmdPtr++;
+
+     /* measurement token of meas req IE */
+     ret = sscanf(cmdPtr, "%31s ", buf);
+     if (1 != ret) return eHAL_STATUS_FAILURE;
+
+     ret = kstrtos32(buf, 10, &content);
+     if ( ret < 0) return eHAL_STATUS_FAILURE;
+
+     pPlmRequest->meas_token = content;
+     hddLog(VOS_TRACE_LEVEL_DEBUG, "meas token %d", pPlmRequest->meas_token);
+
+     hddLog(VOS_TRACE_LEVEL_ERROR,
+            "PLM req %s", pPlmRequest->enable ? "START" : "STOP");
+     if (pPlmRequest->enable) {
+
+        cmdPtr = strpbrk(cmdPtr, " ");
+
+        if (NULL == cmdPtr)
+           return eHAL_STATUS_FAILURE;
+
+        /*removing empty spaces*/
+        while ((SPACE_ASCII_VALUE == *cmdPtr) && ('\0' != *cmdPtr))
+             cmdPtr++;
+
+        /* total number of bursts after which STA stops sending */
+        ret = sscanf(cmdPtr, "%31s ", buf);
+        if (1 != ret) return eHAL_STATUS_FAILURE;
+
+        ret = kstrtos32(buf, 10, &content);
+        if ( ret < 0) return eHAL_STATUS_FAILURE;
+
+        if (content < 0)
+           return eHAL_STATUS_FAILURE;
+
+        pPlmRequest->numBursts= content;
+        hddLog(VOS_TRACE_LEVEL_DEBUG, "num burst %d", pPlmRequest->numBursts);
+        cmdPtr = strpbrk(cmdPtr, " ");
+
+        if (NULL == cmdPtr)
+           return eHAL_STATUS_FAILURE;
+
+        /* removing empty spaces */
+        while ((SPACE_ASCII_VALUE == *cmdPtr) && ('\0' != *cmdPtr))
+            cmdPtr++;
+
+        /* burst interval in seconds */
+        ret = sscanf(cmdPtr, "%31s ", buf);
+        if (1 != ret) return eHAL_STATUS_FAILURE;
+
+        ret = kstrtos32(buf, 10, &content);
+        if ( ret < 0) return eHAL_STATUS_FAILURE;
+
+        if (content <= 0)
+           return eHAL_STATUS_FAILURE;
+
+        pPlmRequest->burstInt = content;
+        hddLog(VOS_TRACE_LEVEL_DEBUG, "burst Int %d", pPlmRequest->burstInt);
+        cmdPtr = strpbrk(cmdPtr, " ");
+
+        if (NULL == cmdPtr)
+           return eHAL_STATUS_FAILURE;
+
+        /*removing empty spaces*/
+        while ((SPACE_ASCII_VALUE == *cmdPtr) && ('\0' != *cmdPtr))
+             cmdPtr++;
+
+        /* Meas dur in TU's,STA goes off-ch and transmit PLM bursts */
+        ret = sscanf(cmdPtr, "%31s ", buf);
+        if (1 != ret) return eHAL_STATUS_FAILURE;
+
+        ret = kstrtos32(buf, 10, &content);
+        if ( ret < 0) return eHAL_STATUS_FAILURE;
+
+        if (content <= 0)
+           return eHAL_STATUS_FAILURE;
+
+        pPlmRequest->measDuration = content;
+        hddLog(VOS_TRACE_LEVEL_DEBUG, "measDur %d", pPlmRequest->measDuration);
+        cmdPtr = strpbrk(cmdPtr, " ");
+
+        if (NULL == cmdPtr)
+           return eHAL_STATUS_FAILURE;
+
+        /*removing empty spaces*/
+        while ((SPACE_ASCII_VALUE == *cmdPtr) && ('\0' != *cmdPtr))
+            cmdPtr++;
+
+        /* burst length of PLM bursts */
+        ret = sscanf(cmdPtr, "%31s ", buf);
+        if (1 != ret) return eHAL_STATUS_FAILURE;
+
+        ret = kstrtos32(buf, 10, &content);
+        if ( ret < 0) return eHAL_STATUS_FAILURE;
+
+        if (content <= 0)
+           return eHAL_STATUS_FAILURE;
+
+        pPlmRequest->burstLen = content;
+        hddLog(VOS_TRACE_LEVEL_DEBUG, "burstLen %d", pPlmRequest->burstLen);
+        cmdPtr = strpbrk(cmdPtr, " ");
+
+        if (NULL == cmdPtr)
+           return eHAL_STATUS_FAILURE;
+
+        /*removing empty spaces*/
+        while ((SPACE_ASCII_VALUE == *cmdPtr) && ('\0' != *cmdPtr))
+             cmdPtr++;
+
+        /* desired tx power for transmission of PLM bursts */
+        ret = sscanf(cmdPtr, "%31s ", buf);
+        if (1 != ret) return eHAL_STATUS_FAILURE;
+
+        ret = kstrtos32(buf, 10, &content);
+        if ( ret < 0) return eHAL_STATUS_FAILURE;
+
+        if (content <= 0)
+           return eHAL_STATUS_FAILURE;
+
+        pPlmRequest->desiredTxPwr = content;
+        hddLog(VOS_TRACE_LEVEL_DEBUG,
+               "desiredTxPwr %d", pPlmRequest->desiredTxPwr);
+
+        for (count = 0; count < WNI_CFG_BSSID_LEN; count++)
+        {
+            cmdPtr = strpbrk(cmdPtr, " ");
+
+            if (NULL == cmdPtr)
+               return eHAL_STATUS_FAILURE;
+
+            /*removing empty spaces*/
+            while ((SPACE_ASCII_VALUE == *cmdPtr) && ('\0' != *cmdPtr))
+                cmdPtr++;
+
+            ret = sscanf(cmdPtr, "%31s ", buf);
+            if (1 != ret) return eHAL_STATUS_FAILURE;
+
+            ret = kstrtos32(buf, 16, &content);
+            if ( ret < 0) return eHAL_STATUS_FAILURE;
+
+            pPlmRequest->macAddr[count] = content;
+        }
+
+        hddLog(VOS_TRACE_LEVEL_DEBUG, "MC addr "MAC_ADDRESS_STR,
+                          MAC_ADDR_ARRAY(pPlmRequest->macAddr));
+
+        if (NULL == cmdPtr)
+           return eHAL_STATUS_FAILURE;
+
+        /*removing empty spaces*/
+        while ((SPACE_ASCII_VALUE == *cmdPtr) && ('\0' != *cmdPtr))
+            cmdPtr++;
+
+        /* number of channels */
+        ret = sscanf(cmdPtr, "%31s ", buf);
+        if (1 != ret) return eHAL_STATUS_FAILURE;
+
+        ret = kstrtos32(buf, 10, &content);
+        if ( ret < 0) return eHAL_STATUS_FAILURE;
+
+        if (content <= 0)
+           return eHAL_STATUS_FAILURE;
+
+        pPlmRequest->plmNumCh = content;
+        hddLog(VOS_TRACE_LEVEL_DEBUG, "numch %d", pPlmRequest->plmNumCh);
+
+        /* Channel numbers */
+        for (count = 0; count < pPlmRequest->plmNumCh; count++)
+        {
+             cmdPtr = strpbrk(cmdPtr, " ");
+
+             if (NULL == cmdPtr)
+                return eHAL_STATUS_FAILURE;
+
+             /*removing empty spaces*/
+             while ((SPACE_ASCII_VALUE == *cmdPtr) && ('\0' != *cmdPtr))
+                cmdPtr++;
+
+             ret = sscanf(cmdPtr, "%31s ", buf);
+             if (1 != ret) return eHAL_STATUS_FAILURE;
+
+             ret = kstrtos32(buf, 10, &content);
+             if ( ret < 0) return eHAL_STATUS_FAILURE;
+
+             if (content <= 0)
+                return eHAL_STATUS_FAILURE;
+
+             pPlmRequest->plmChList[count]= content;
+             hddLog(VOS_TRACE_LEVEL_DEBUG, " ch- %d",
+                    pPlmRequest->plmChList[count]);
+         }
+     } /* If PLM START */
+
+     return eHAL_STATUS_SUCCESS;
+}
+#endif
+
 int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
@@ -3070,6 +3336,38 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
            smeIssueFastRoamNeighborAPEvent(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                            &targetApBssid[0],
                                            (tSmeFastRoamTrigger)(trigger));
+       }
+#endif
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+       else if (strncmp(command, "CCXPLMREQ", 9) == 0)
+       {
+           tANI_U8 *value = command;
+           eHalStatus status = eHAL_STATUS_SUCCESS;
+           tpSirPlmReq pPlmRequest = NULL;
+
+           pPlmRequest = vos_mem_malloc(sizeof(tSirPlmReq));
+           if (NULL == pPlmRequest){
+               ret = -EINVAL;
+               goto exit;
+           }
+
+           status = hdd_parse_plm_cmd(value, pPlmRequest);
+           if (eHAL_STATUS_SUCCESS != status){
+               vos_mem_free(pPlmRequest);
+               pPlmRequest = NULL;
+               ret = -EINVAL;
+               goto exit;
+           }
+           pPlmRequest->sessionId = pAdapter->sessionId;
+
+           status = sme_SetPlmRequest((tHalHandle)(pHddCtx->hHal), pPlmRequest);
+           if (eHAL_STATUS_SUCCESS != status)
+           {
+               vos_mem_free(pPlmRequest);
+               pPlmRequest = NULL;
+               ret = -EINVAL;
+               goto exit;
+           }
        }
 #endif
 #ifdef FEATURE_WLAN_CCX
@@ -4745,6 +5043,7 @@ void hdd_dfs_indicate_radar(void *context, void *param)
     }
 }
 #endif  /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
+
 
 /**---------------------------------------------------------------------------
 

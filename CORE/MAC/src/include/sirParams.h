@@ -640,6 +640,11 @@ typedef struct sSirMbMsgP2p
 
 #define SIR_HAL_INIT_THERMAL_INFO_CMD       (SIR_HAL_ITC_MSG_TYPES_BEGIN + 248)
 #define SIR_HAL_SET_THERMAL_LEVEL           (SIR_HAL_ITC_MSG_TYPES_BEGIN + 249)
+
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+#define SIR_HAL_SET_PLM_REQ                (SIR_HAL_ITC_MSG_TYPES_BEGIN + 250)
+#endif
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

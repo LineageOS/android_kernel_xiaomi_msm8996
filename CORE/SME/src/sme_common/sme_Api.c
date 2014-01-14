@@ -109,6 +109,10 @@ eHalStatus sme_HandlePostChannelSwitchInd(tHalHandle hHal);
 tANI_BOOLEAN csrIsScanAllowed(tpAniSirGlobal pMac);
 #endif
 
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+tANI_BOOLEAN csrIsSupportedChannel(tpAniSirGlobal pMac, tANI_U8 channelId);
+#endif
+
 #ifdef WLAN_FEATURE_11W
 eHalStatus sme_UnprotectedMgmtFrmInd( tHalHandle hHal,
                                       tpSirSmeUnprotMgmtFrameInd pSmeMgmtFrm );
@@ -1418,6 +1422,92 @@ eHalStatus sme_setRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode)
    }
     return status;
 }
+
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+eHalStatus sme_SetPlmRequest(tHalHandle hHal, tpSirPlmReq pPlmReq)
+{
+    eHalStatus status;
+    tANI_BOOLEAN ret = eANI_BOOLEAN_FALSE;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tANI_U8 ch_list[WNI_CFG_VALID_CHANNEL_LIST] = {0};
+    tANI_U8 count, valid_count = 0;
+    vos_msg_t msg;
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
+    {
+        tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, pPlmReq->sessionId );
+
+        if(!pSession)
+        {
+            smsLog(pMac, LOGE, FL("session %d not found"), pPlmReq->sessionId);
+            sme_ReleaseGlobalLock( &pMac->sme );
+            return eHAL_STATUS_FAILURE;
+        }
+
+        if( !pSession->sessionActive )
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                        "%s Invalid Sessionid", __func__);
+            sme_ReleaseGlobalLock( &pMac->sme );
+            return eHAL_STATUS_FAILURE;
+        }
+
+        if (pPlmReq->enable) {
+
+           /* validating channel numbers */
+           for (count = 0; count < pPlmReq->plmNumCh; count++) {
+
+              ret = csrIsSupportedChannel(pMac, pPlmReq->plmChList[count]);
+              if (ret && pPlmReq->plmChList[count] > 14)
+              {
+                  if (NV_CHANNEL_DFS ==
+                       vos_nv_getChannelEnabledState(pPlmReq->plmChList[count]))
+                  /* DFS channel is provided, no PLM bursts can be
+                  * transmitted. TODO shall we ignore these channels
+                  * and continue PLM bursts on other channels ??
+                  * OR return error ?? For now, ignoring these channels
+                  */
+                  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                            "%s DFS channel %d ignored for PLM", __func__,
+                            pPlmReq->plmChList[count]);
+                  continue;
+              }
+              else if (!ret)
+              {
+                   /* Not supported channel
+                    * TODO : shall we return error ? OR ignore this channel ?
+                    * for now ignoring the channel
+                   */
+                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                             "%s Unsupported channel %d ignored for PLM",
+                             __func__, pPlmReq->plmChList[count]);
+                   continue;
+              }
+              ch_list[valid_count] = pPlmReq->plmChList[count];
+              valid_count++;
+           } /* End of for () */
+
+           /* Copying back the valid channel list to plm struct */
+           vos_mem_copy(pPlmReq->plmChList, ch_list, valid_count);
+        } /* PLM START */
+
+        msg.type     = WDA_SET_PLM_REQ;
+        msg.reserved = 0;
+        msg.bodyptr  = pPlmReq;
+
+        if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able \
+                      to post WDA_SET_PLM_REQ message to WDA", __func__);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return (status);
+}
+#endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 /*--------------------------------------------------------------------------

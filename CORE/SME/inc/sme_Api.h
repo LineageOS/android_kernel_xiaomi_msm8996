@@ -395,6 +395,27 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
 eHalStatus sme_UpdateChannelConfig(tHalHandle hHal);
 
 #endif // FEATURE_WLAN_SCAN_PNLO
+
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+/*--------------------------------------------------------------------------
+
+  \brief sme_SetPlmRequest() - send PLM request to firmware
+
+  It is used to initiate PLM request
+
+  This is a synchronuous call
+
+  \param hHal - The handle returned by macOpen.
+
+  \return eHAL_STATUS_SUCCESS - SME could successfully sent PLM command
+
+          Other status means SME is failed to send plm command
+
+  --------------------------------------------------------------------------*/
+eHalStatus sme_SetPlmRequest(tHalHandle hHal, tpSirPlmReq pPlm);
+
+#endif
+
 /*--------------------------------------------------------------------------
   
   \brief sme_set11dinfo() - Set the 11d information about valid channels

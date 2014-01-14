@@ -9810,6 +9810,170 @@ static void wma_config_pno(tp_wma_handle wma, tpSirPNOScanReq pno)
 	vos_mem_free(pno);
 }
 
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+static VOS_STATUS wma_plm_start(tp_wma_handle wma, const tpSirPlmReq plm)
+{
+	wmi_vdev_plmreq_start_cmd_fixed_param *cmd;
+	u_int32_t *channel_list;
+	int32_t len;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	u_int8_t count;
+	int ret;
+
+        if (NULL == plm || NULL == wma) {
+		WMA_LOGE("%s: input pointer is NULL ", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	WMA_LOGD("PLM Start");
+
+	len = sizeof(*cmd) +
+		WMI_TLV_HDR_SIZE; /* TLV place holder for channel_list */
+	len += sizeof(u_int32_t) * plm->plmNumCh;
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	cmd = (wmi_vdev_plmreq_start_cmd_fixed_param *) wmi_buf_data(buf);
+
+	buf_ptr = (u_int8_t *) cmd;
+
+        WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_vdev_plmreq_start_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+                       wmi_vdev_plmreq_start_cmd_fixed_param));
+
+	cmd->vdev_id = plm->sessionId;
+
+	cmd->meas_token = plm->meas_token;
+	cmd->number_bursts = plm->numBursts;
+        cmd->burst_interval = WMA_SEC_TO_MSEC(plm->burstInt);
+	cmd->off_duration = plm->measDuration;
+	cmd->burst_cycle = plm->burstLen;
+	cmd->tx_power = plm->desiredTxPwr;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(plm->macAddr, &cmd->dest_mac);
+	cmd->num_chans = plm->plmNumCh;
+
+	buf_ptr += sizeof(wmi_vdev_plmreq_start_cmd_fixed_param);
+
+	WMA_LOGD("vdev : %d measu token : %d", cmd->vdev_id, cmd->meas_token);
+	WMA_LOGD("number_bursts: %d", cmd->number_bursts);
+	WMA_LOGD("burst_interval: %d", cmd->burst_interval);
+	WMA_LOGD("off_duration: %d", cmd->off_duration);
+	WMA_LOGD("burst_cycle: %d", cmd->burst_cycle);
+	WMA_LOGD("tx_power: %d", cmd->tx_power);
+	WMA_LOGD("Number of channels : %d", cmd->num_chans);
+
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
+			(cmd->num_chans * sizeof(u_int32_t)));
+
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	channel_list = (u_int32_t *) buf_ptr;
+	for (count = 0; count < cmd->num_chans; count++) {
+		channel_list[count] = plm->plmChList[count];
+		if (channel_list[count] < WMA_NLO_FREQ_THRESH)
+			channel_list[count] =
+				vos_chan_to_freq(channel_list[count]);
+		WMA_LOGD("Ch[%d]: %d MHz", count, channel_list[count]);
+	}
+	buf_ptr += cmd->num_chans * sizeof(u_int32_t);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+					WMI_VDEV_PLMREQ_START_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send plm start wmi cmd", __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	wma->interfaces[plm->sessionId].plm_in_progress = TRUE;
+
+	WMA_LOGD("Plm start request sent successfully for vdev %d",
+		plm->sessionId);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+static VOS_STATUS wma_plm_stop(tp_wma_handle wma, const tpSirPlmReq plm)
+{
+	wmi_vdev_plmreq_stop_cmd_fixed_param *cmd;
+	int32_t len;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	int ret;
+
+	if (NULL == plm || NULL == wma) {
+		WMA_LOGE("%s: input pointer is NULL ", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (FALSE == wma->interfaces[plm->sessionId].plm_in_progress) {
+		WMA_LOGE("No active plm req found, skip plm stop req" );
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGD("PLM Stop");
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_vdev_plmreq_stop_cmd_fixed_param *) wmi_buf_data(buf);
+
+	buf_ptr = (u_int8_t *) cmd;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_vdev_plmreq_stop_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+			wmi_vdev_plmreq_stop_cmd_fixed_param));
+
+	cmd->vdev_id = plm->sessionId;
+
+	cmd->meas_token = plm->meas_token;
+	WMA_LOGD("vdev %d meas token %d", cmd->vdev_id, cmd->meas_token);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				WMI_VDEV_PLMREQ_STOP_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send plm stop wmi cmd", __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	wma->interfaces[plm->sessionId].plm_in_progress = FALSE;
+
+	WMA_LOGD("Plm stop request sent successfully for vdev %d",
+		plm->sessionId);
+
+	return VOS_STATUS_SUCCESS;
+}
+static void wma_config_plm(tp_wma_handle wma, tpSirPlmReq plm)
+{
+	VOS_STATUS ret = 0;
+
+	if (NULL == plm || NULL == wma)
+		return;
+
+	if (plm->enable)
+		ret = wma_plm_start(wma, plm);
+	else
+		ret = wma_plm_stop(wma, plm);
+
+	if (ret)
+		WMA_LOGE("%s: PLM %s failed %d", __func__,
+			 plm->enable ? "start" : "stop", ret);
+
+	/* SME expects WMA to free tpSirPlmReq memory after
+	 * processing PLM request. */
+	vos_mem_free(plm);
+	plm = NULL;
+}
+#endif
+
 /*
  * After pushing cached scan results (that are stored in LIM) to SME,
  * PE will post WDA_SME_SCAN_CACHE_UPDATED message indication to
@@ -12990,7 +13154,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_scan_cache_updated_ind(wma_handle);
 			break;
 #endif
-
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+		case WDA_SET_PLM_REQ:
+			wma_config_plm(wma_handle,
+					(tpSirPlmReq)msg->bodyptr);
+                        break;
+#endif
 		case WDA_GET_STATISTICS_REQ:
 			wma_get_stats_req(wma_handle,
 					(tAniGetPEStatsReq *) msg->bodyptr);

@@ -2656,6 +2656,27 @@ typedef struct sSirDeltsRsp
     tSirDeltsReqInfo        rsp;
 } tSirDeltsRsp, *tpSirDeltsRsp;
 
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+typedef struct sSirPlmReq
+{
+    tANI_U16                diag_token; // Dialog token
+    tANI_U16                meas_token; // measurement token
+    tANI_U16                numBursts; // total number of bursts
+    tANI_U16                burstInt; // burst interval in seconds
+    tANI_U16                measDuration; // in TU's,STA goes off-ch
+    /* no of times the STA should cycle through PLM ch list */
+    tANI_U8                 burstLen;
+    tPowerdBm               desiredTxPwr; // desired tx power
+    tSirMacAddr             macAddr; // MC dest addr
+    /* no of channels */
+    tANI_U8                 plmNumCh;
+    /* channel numbers */
+    tANI_U8                 plmChList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+    tANI_U8                 sessionId;
+    eAniBoolean             enable;
+} tSirPlmReq, *tpSirPlmReq;
+#endif
+
 #if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
 
 #define SIR_QOS_NUM_TSPEC_MAX 2
