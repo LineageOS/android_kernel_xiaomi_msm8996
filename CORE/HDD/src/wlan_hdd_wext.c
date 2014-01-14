@@ -325,6 +325,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_STATES        10
 #ifdef QCA_WIFI_2_0
 #define WE_GET_PHYMODE       12
+#ifdef FEATURE_OEM_DATA_SUPPORT
+#define WE_GET_OEM_DATA_CAP  13
+#endif
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -426,12 +429,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctl to trigger reassociation */
 
 #define WLAN_SET_POWER_PARAMS        (SIOCIWFIRSTPRIV + 29)
-#ifdef FEATURE_OEM_DATA_SUPPORT
-#ifdef QCA_WIFI_2_0
-/* Private ioctl to get capability information for OEM Data Request/Response */
-#define WLAN_PRIV_GET_OEM_DATA_CAP   (SIOCIWFIRSTPRIV + 30)
-#endif
-#endif
+
 #define WLAN_GET_LINK_SPEED          (SIOCIWFIRSTPRIV + 31)
 
 /* Private ioctls and their sub-ioctls */
@@ -6647,6 +6645,13 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
            wrqu->data.length = strlen(extra)+1;
            break;
         }
+
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        case WE_GET_OEM_DATA_CAP:
+        {
+            return iw_get_oem_data_cap(dev, info, wrqu, extra);
+        }
+#endif /* FEATURE_OEM_DATA_SUPPORT */
 #endif
         default:
         {
@@ -9295,11 +9300,6 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_SET_MCBC_FILTER           - SIOCIWFIRSTPRIV]   = iw_set_dynamic_mcbc_filter,
    [WLAN_PRIV_CLEAR_MCBC_FILTER         - SIOCIWFIRSTPRIV]   = iw_clear_dynamic_mcbc_filter,
    [WLAN_SET_POWER_PARAMS               - SIOCIWFIRSTPRIV]   = iw_set_power_params_priv,
-#ifdef FEATURE_OEM_DATA_SUPPORT
-#ifdef QCA_WIFI_2_0
-   [WLAN_PRIV_GET_OEM_DATA_CAP - SIOCIWFIRSTPRIV] = iw_get_oem_data_cap,
-#endif
-#endif
    [WLAN_GET_LINK_SPEED                 - SIOCIWFIRSTPRIV]   = iw_get_linkspeed,
    [WLAN_PRIV_SET_TWO_INT_GET_NONE      - SIOCIWFIRSTPRIV]   = iw_set_two_ints_getnone,
 };
@@ -10078,6 +10078,12 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         "getphymode" },
+#ifdef FEATURE_OEM_DATA_SUPPORT
+    {   WE_GET_OEM_DATA_CAP,
+        0,
+        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        "getOemDataCap" },
+#endif /* FEATURE_OEM_DATA_SUPPORT */
 #endif
 
     /* handlers for main ioctl */
@@ -10315,15 +10321,6 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         0,
         "setpowerparams" },
-#ifdef FEATURE_OEM_DATA_SUPPORT
-#ifdef QCA_WIFI_2_0
-    {
-        WLAN_PRIV_GET_OEM_DATA_CAP,
-        0,
-        IW_PRIV_TYPE_BYTE | sizeof(struct iw_oem_data_cap),
-        "getOemDataCap" },
-#endif
-#endif
     {
         WLAN_GET_LINK_SPEED,
         IW_PRIV_TYPE_CHAR | 18,

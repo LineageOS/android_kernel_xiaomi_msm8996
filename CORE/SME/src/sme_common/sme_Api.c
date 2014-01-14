@@ -10939,25 +10939,6 @@ eHalStatus sme_SendRateUpdateInd(tHalHandle hHal, tSirRateUpdateInd *rateUpdateP
     return status;
 }
 
-eHalStatus sme_getValidChannelList(tHalHandle hHal, tANI_U8 *numChannels,
-                                   tANI_U8 **chanList)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    eHalStatus status;
-
-    status = sme_AcquireGlobalLock(&pMac->sme);
-    if (HAL_STATUS_SUCCESS(status))
-    {
-        *numChannels =
-            pMac->roam.neighborRoamInfo.cfgParams.channelInfo.numOfChannels;
-        vos_mem_copy(*chanList,
-            &pMac->roam.neighborRoamInfo.cfgParams.channelInfo.ChannelList,
-            *numChannels);
-        sme_ReleaseGlobalLock(&pMac->sme);
-    }
-    return status;
-}
-
 #ifdef QCA_WIFI_2_0
 eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
                               tSmeChannelInfo *chanInfo)

@@ -3289,8 +3289,6 @@ ePhyChanBondState sme_GetCBPhyStateFromCBIniValue(tANI_U32 cb_ini_value);
 int sme_UpdateHTConfig(tHalHandle hHal, tANI_U8 sessionId, tANI_U16 htCapab,
                          int value);
 tANI_S16 sme_GetHTConfig(tHalHandle hHal, tANI_U8 session_id, tANI_U16 ht_capab);
-eHalStatus sme_getValidChannelList(tHalHandle hHal, tANI_U8 *numChannels,
-                                   tANI_U8 **chanList);
 #ifdef FEATURE_WLAN_SCAN_PNO
 eHalStatus sme_MoveCsrToScanStateForPno (tHalHandle hHal, tANI_U8 sessionId);
 #endif

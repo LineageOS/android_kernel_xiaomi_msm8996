@@ -251,7 +251,7 @@ static int oem_msg_callback(struct sk_buff *skb);
   and Response.
 
   \param - dev  - Pointer to the net device
-         - info - Pointer to the iw_oem_data_cap
+         - info - Pointer to the t_iw_oem_data_cap
          - wrqu - Pointer to the iwreq data
          - extra - Pointer to the data
 
@@ -265,11 +265,14 @@ int iw_get_oem_data_cap(
         char *extra)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    struct iw_oem_data_cap oemDataCap;
-    struct iw_oem_data_cap *pHddOemDataCap;
+    t_iw_oem_data_cap oemDataCap;
+    t_iw_oem_data_cap *pHddOemDataCap;
     hdd_adapter_t *pAdapter = (netdev_priv(dev));
     hdd_context_t *pHddContext;
     hdd_config_t *pConfig;
+    tANI_U32 numChannels;
+    tANI_U8 chanList[OEM_CAP_MAX_NUM_CHANNELS];
+    tANI_U32 i;
 
     ENTER();
 
@@ -305,6 +308,7 @@ int iw_get_oem_data_cap(
 
     do
     {
+       vos_mem_zero(&oemDataCap, sizeof(oemDataCap));
        strlcpy(oemDataCap.oem_target_signature, OEM_TARGET_SIGNATURE,
                OEM_TARGET_SIGNATURE_LEN);
        oemDataCap.oem_target_type = pHddContext->target_type;
@@ -321,19 +325,37 @@ int iw_get_oem_data_cap(
                sme_getNeighborScanMaxChanTime(pHddContext->hHal);
        oemDataCap.supported_bands = pConfig->nBandCapability;
 
-       status = sme_getValidChannelList(pHddContext->hHal,
-                                        &oemDataCap.num_channels,
-                                        &oemDataCap.channel_list);
-       if (eHAL_STATUS_SUCCESS == status)
+       /* request for max num of channels */
+       numChannels = WNI_CFG_VALID_CHANNEL_LIST_LEN;
+       status = sme_GetCfgValidChannels(pHddContext->hHal,
+                                        &chanList[0],
+                                        &numChannels);
+       if (eHAL_STATUS_SUCCESS != status)
        {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s:failed to get valid channel list", __func__);
          return -ENOENT;
        }
+       else
+       {
+         /* make sure num channels is not more than chan list array */
+         if (numChannels > OEM_CAP_MAX_NUM_CHANNELS)
+         {
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "%s:Num of channels(%d) more than length(%d) of chanlist",
+                     __func__, numChannels, OEM_CAP_MAX_NUM_CHANNELS);
+           return -ENOMEM;
+         }
 
-       pHddOemDataCap = (struct iw_oem_data_cap *)(extra);
-       vos_mem_copy(pHddOemDataCap, &oemDataCap,
-                    sizeof(struct iw_oem_data_cap));
+         oemDataCap.num_channels = numChannels;
+         for (i = 0; i < numChannels; i++)
+         {
+           oemDataCap.channel_list[i] = chanList[i];
+         }
+       }
+
+       pHddOemDataCap = (t_iw_oem_data_cap *)(extra);
+       vos_mem_copy(pHddOemDataCap, &oemDataCap, sizeof(*pHddOemDataCap));
     } while(0);
 
     EXIT();

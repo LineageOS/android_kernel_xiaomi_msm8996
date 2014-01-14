@@ -1758,7 +1758,7 @@ static int wma_oem_measurement_report_event_callback(void *handle,
 	WMA_LOGI("%s: Sending WDA_START_OEM_DATA_RSP, data len (%d)",
 	         __func__, datalen);
 
-	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)data, 0);
+	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)pStartOemDataRsp, 0);
 	return 0;
 }
 
@@ -1810,7 +1810,7 @@ static int wma_oem_error_report_event_callback(void *handle,
 	WMA_LOGI("%s: Sending WDA_START_OEM_DATA_RSP, data len (%d)",
 	         __func__, datalen);
 
-	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)data, 0);
+	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)pStartOemDataRsp, 0);
 	return 0;
 }
 #endif /* FEATURE_OEM_DATA_SUPPORT */
@@ -11990,12 +11990,14 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 	wmi_buf_t buf;
 	u_int8_t *cmd;
 	int ret = 0;
+	u_int32_t *msg_subtype;
+	tStartOemDataRsp *pStartOemDataRsp;
 
 	WMA_LOGD("%s: Send OEM Data Request to target", __func__);
 
 	if (!startOemDataReq) {
 		WMA_LOGE("%s: startOemDataReq is null", __func__);
-		return;
+		goto out;
 	}
 
 	if (!wma_handle || !wma_handle->wmi_handle) {
@@ -12007,7 +12009,7 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 		                   (OEM_DATA_REQ_SIZE + WMI_TLV_HDR_SIZE));
 	if (!buf) {
 		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
-		return;
+		goto out;
 	}
 
 	cmd = (u_int8_t *)wmi_buf_data(buf);
@@ -12028,8 +12030,30 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 	if (ret != EOK) {
 		WMA_LOGE("%s:wmi cmd send failed", __func__);
 		adf_nbuf_free(buf);
-		return;
 	}
+
+out:
+	/* Now send data resp back to PE/SME with message sub-type of
+	 * WMI_OEM_INTERNAL_RSP. This is required so that PE/SME clears
+	 * up pending active command. Later when desired oem response(s)
+	 * comes as wmi event from target then those shall be passed
+	 * to oem application
+	 */
+	pStartOemDataRsp = vos_mem_malloc(sizeof(*pStartOemDataRsp));
+	if (!pStartOemDataRsp)
+	{
+	 WMA_LOGE("%s:failed to allocate memory for OEM Data Resp to PE",
+	          __func__);
+	 return;
+	}
+	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
+	msg_subtype = (u_int32_t *)(&pStartOemDataRsp->oemDataRsp[0]);
+	*msg_subtype = WMI_OEM_INTERNAL_RSP;
+
+	WMA_LOGI("%s: Sending WDA_START_OEM_DATA_RSP to clear up PE/SME pending cmd",
+	         __func__);
+
+	wma_send_msg(wma_handle, WDA_START_OEM_DATA_RSP, (void *)pStartOemDataRsp, 0);
 
 	return;
 }

@@ -61,6 +61,8 @@
 #define OEM_TARGET_SIGNATURE_LEN   8
 #define OEM_TARGET_SIGNATURE       "QUALCOMM"
 
+#define OEM_CAP_MAX_NUM_CHANNELS   128
+
 typedef enum
 {
   /* Error null context */
@@ -87,7 +89,7 @@ int oem_activate_service(void *pAdapter);
 int iw_get_oem_data_cap(struct net_device *dev, struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra);
 
-typedef struct sDriverVersion
+typedef PACKED_PRE struct PACKED_POST
 {
   tANI_U8 major;
   tANI_U8 minor;
@@ -95,7 +97,7 @@ typedef struct sDriverVersion
   tANI_U8 build;
 } tDriverVersion;
 
-struct iw_oem_data_cap
+typedef PACKED_PRE struct PACKED_POST
 {
     /* Signature of chipset vendor, e.g. QUALCOMM */
     tANI_U8 oem_target_signature[OEM_TARGET_SIGNATURE_LEN];
@@ -106,10 +108,10 @@ struct iw_oem_data_cap
     tANI_U16 allowed_dwell_time_max;  /* Channel dwell time - allowed max */
     tANI_U16 curr_dwell_time_min;     /* Channel dwell time - current min */
     tANI_U16 curr_dwell_time_max;     /* Channel dwell time - current max */
-    tANI_U8 supported_bands;          /* 2.4G or 5G Hz */
-    tANI_U8 num_channels;             /* Num of channels IDs to follow */
-    tANI_U8 *channel_list;            /* List of channel IDs */
-};
+    tANI_U16 supported_bands;          /* 2.4G or 5G Hz */
+    tANI_U16 num_channels;             /* Num of channels IDs to follow */
+    tANI_U8 channel_list[OEM_CAP_MAX_NUM_CHANNELS];  /* List of channel IDs */
+} t_iw_oem_data_cap;
 #endif /* QCA_WIFI_2_0 */
 
 struct iw_oem_data_req
