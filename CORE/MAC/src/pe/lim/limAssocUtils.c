@@ -660,6 +660,7 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESession psessionE
     limLog( pMac, LOG1, FL("**Initiate cleanup"));
 
     limAbortBackgroundScan( pMac );
+    psessionEntry->isCiscoVendorAP = FALSE;
 
     if (pMac->lim.gLimAddtsSent)
     {
