@@ -62,6 +62,14 @@ LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/$(WLAN_CHIPSET)
 include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
+# Create Symbolic link for built <WLAN_CHIPSET>_wlan.ko driver from
+# standard module location.
+# TO-DO: This step needs to be moved to a post-build make target instead
+# TO-DO: as this may run multiple times
+$(shell mkdir -pv $(TARGET_OUT)/lib/modules; \
+    ln -svf /system/lib/modules/$(WLAN_CHIPSET)/$(WLAN_CHIPSET)_wlan.ko \
+           $(TARGET_OUT)/lib/modules/wlan.ko)
+
 endif # DLKM check
 
 endif # supported target check
