@@ -13294,6 +13294,7 @@ wma_batch_scan_result_event_handler
     tSirBatchScanResultIndParam *pHddResult;
     tSirBatchScanNetworkInfo *pHddApMetaInfo;
     tp_wma_handle wma = (tp_wma_handle) handle;
+    u_int32_t nextScanListOffset, nextApMetaInfoOffset;
     u_int8_t bssid[IEEE80211_ADDR_LEN], ssid[32], *ssid_temp;
     u_int32_t temp, count1, count2, scan_num, netinfo_num, total_size;
     WMI_BATCH_SCAN_RESULT_EVENTID_param_tlvs *param_tlvs;
@@ -13360,18 +13361,25 @@ wma_batch_scan_result_event_handler
     pHddResult->timestamp = fix_param->timestamp;
     pHddResult->numScanLists = fix_param->numScanLists;
     pHddResult->isLastResult = fix_param->isLastResult;
-    pHddScanList = (tSirBatchScanList *)pHddResult->scanResults;
     scan_list = param_tlvs->scan_list;
     network_info = param_tlvs->network_list;
+    nextScanListOffset = 0;
+    nextApMetaInfoOffset = 0;
     for(count1 = 0; count1 < scan_num; count1++)
     {
+        pHddScanList = (tSirBatchScanList *)(pHddResult->scanResults +
+                                              nextScanListOffset);
         pHddScanList->scanId = scan_list->scanId;
         pHddScanList->numNetworksInScanList = scan_list->numNetworksInScanList;
-        pHddApMetaInfo =
-         (tSirBatchScanNetworkInfo *)(pHddScanList->scanList);
 
         for (count2 = 0; count2 < scan_list->numNetworksInScanList; count2++)
         {
+            int8_t raw_rssi;
+
+            pHddApMetaInfo =
+              (tSirBatchScanNetworkInfo *)(pHddScanList->scanList +
+                                                nextApMetaInfoOffset);
+
             WMI_MAC_ADDR_TO_CHAR_ARRAY(&network_info->bssid, &bssid[0]);
             vos_mem_copy(pHddApMetaInfo->bssid, bssid, IEEE80211_ADDR_LEN);
             if (network_info->ssid.ssid_len <= 32)
@@ -13393,18 +13401,20 @@ wma_batch_scan_result_event_handler
                pHddApMetaInfo->ssid[0] = '\0';
             }
             pHddApMetaInfo->ch = network_info->ch;
-            pHddApMetaInfo->rssi = ((network_info->rssi + 100) -
-                                       WMI_DEFAULT_NOISE_FLOOR_DBM);
+            raw_rssi = ((int32_t)network_info->rssi + WMA_TGT_NOISE_FLOOR_DBM);
+            if (raw_rssi < 0)
+                raw_rssi = raw_rssi * (-1);
+            pHddApMetaInfo->rssi = raw_rssi;
             pHddApMetaInfo->timestamp = network_info->timestamp;
 
             WMA_LOGD("ch %d rssi %d timestamp %d",pHddApMetaInfo->ch,
             pHddApMetaInfo->rssi, pHddApMetaInfo->timestamp);
 
-            pHddApMetaInfo++;
+            nextApMetaInfoOffset += sizeof(tSirBatchScanNetworkInfo);
             network_info++;
         }
 
-        pHddScanList = (tSirBatchScanList*)pHddApMetaInfo;
+        nextScanListOffset += (sizeof(tSirBatchScanList) - (sizeof(tANI_U8)));
         scan_list++;
     }
 
