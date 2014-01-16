@@ -7120,7 +7120,85 @@ static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
     EXIT();
     return 0;
 }
+#ifdef QCA_WIFI_2_0
+static tANI_U8 wlan_hdd_get_mcs_idx(tANI_U16 maxRate, tANI_U8 rate_flags,
+                                    tANI_U8 nss)
+{
+    tANI_U8  rateFlag = 0, curIdx;
+    tANI_U16 curRate;
+    struct index_vht_data_rate_type *supported_vht_mcs_rate;
+    struct index_data_rate_type *supported_mcs_rate;
 
+    hddLog(VOS_TRACE_LEVEL_DEBUG, "%s rate:%d rate_flgs:%d", __func__, maxRate,
+                                  rate_flags);
+    supported_vht_mcs_rate = (struct index_vht_data_rate_type *)
+                              ((nss == 1)? &supported_vht_mcs_rate_nss1 :
+                                           &supported_vht_mcs_rate_nss2);
+    supported_mcs_rate = (struct index_data_rate_type *)
+                          ((nss == 1)? &supported_mcs_rate_nss1 :
+                                       &supported_mcs_rate_nss2);
+
+    if (rate_flags & (eHAL_TX_RATE_VHT20|eHAL_TX_RATE_VHT40|eHAL_TX_RATE_VHT80))
+    {
+        if (rate_flags & eHAL_TX_RATE_SGI)
+        {
+            rateFlag |= 0x1;
+        }
+
+        if (rate_flags & eHAL_TX_RATE_VHT20)
+        {
+            for (curIdx = 0; curIdx < MAX_VHT_MCS_IDX; curIdx++)
+            {
+                 curRate =
+                  supported_vht_mcs_rate[curIdx].supported_VHT20_rate[rateFlag];
+                 if (curRate > maxRate)
+                     break;
+            }
+        }
+        else if (rate_flags & eHAL_TX_RATE_VHT40)
+        {
+            for (curIdx = 0; curIdx < MAX_VHT_MCS_IDX; curIdx++)
+            {
+                 curRate =
+                  supported_vht_mcs_rate[curIdx].supported_VHT40_rate[rateFlag];
+                 if (curRate > maxRate)
+                     break;
+            }
+        }
+        else if (rate_flags & eHAL_TX_RATE_VHT80)
+        {
+            for (curIdx = 0; curIdx < MAX_VHT_MCS_IDX; curIdx++)
+            {
+                 curRate =
+                  supported_vht_mcs_rate[curIdx].supported_VHT80_rate[rateFlag];
+                 if (curRate > maxRate)
+                     break;
+            }
+        }
+    }
+    else
+    {
+        if (rate_flags & eHAL_TX_RATE_HT40)
+        {
+            rateFlag |= 0x1;
+        }
+
+        if (rate_flags & eHAL_TX_RATE_SGI)
+        {
+            rateFlag |= 0x2;
+        }
+
+        for (curIdx = 0; curIdx < MAX_HT_MCS_IDX; curIdx++)
+        {
+             curRate = supported_mcs_rate[curIdx].supported_rate[rateFlag];
+             if (curRate > maxRate)
+                 break;
+        }
+    }
+
+    return (curIdx? (curIdx - 1) : curIdx);
+}
+#endif
 static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
                                    u8* mac, struct station_info *sinfo)
 {
@@ -7183,7 +7261,18 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
 
     //convert to the UI units of 100kbps
     myRate = pAdapter->hdd_stats.ClassA_stat.tx_rate * 5;
-
+#ifdef QCA_WIFI_2_0
+    if (!(rate_flags & eHAL_TX_RATE_LEGACY) && myRate)
+    {
+        nss = pAdapter->hdd_stats.ClassA_stat.rx_frag_cnt;
+        pAdapter->hdd_stats.ClassA_stat.mcs_index =
+                                  wlan_hdd_get_mcs_idx(myRate, rate_flags, nss);
+        hddLog(VOS_TRACE_LEVEL_DEBUG, "computed mcs idx %d from rate:%d",
+                                     pAdapter->hdd_stats.ClassA_stat.mcs_index,
+                                     myRate);
+        myRate = 0;
+    }
+#endif
 #ifdef LINKSPEED_DEBUG_ENABLED
     pr_info("RSSI %d, RLMS %u, rate %d, rssi high %d, rssi mid %d, rssi low %d, rate_flags 0x%x, MCS %d\n",
             sinfo->signal,
