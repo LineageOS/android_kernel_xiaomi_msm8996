@@ -4173,7 +4173,7 @@ void hdd_indicateCckmPreAuth(hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo)
 
     /* Timestamp0 is lower 32 bits and Timestamp1 is upper 32 bits */
     hddLog(VOS_TRACE_LEVEL_INFO,
-           "CCXPREAUTHNOTIFY=%02x:%02x:%02x:%02x:%02x:%02x %lu:%lu",
+           "CCXPREAUTHNOTIFY=%02x:%02x:%02x:%02x:%02x:%02x %u:%u",
            pRoamInfo->bssid[0],
            pRoamInfo->bssid[1],
            pRoamInfo->bssid[2],
@@ -4321,8 +4321,8 @@ void hdd_indicateCcxBcnReportInd(const hdd_adapter_t *pAdapter,
             for (i = 0; i < sendBss; i++)
             {
                 hddLog(VOS_TRACE_LEVEL_INFO, "ChanNum(%d) Spare(%d) MeasDuration(%d)"
-                       " PhyType(%d) RecvSigPower(%d) ParentTSF(%lu)"
-                       " TargetTSF[0](%lu) TargetTSF[1](%lu) BeaconInterval(%u)"
+                       " PhyType(%d) RecvSigPower(%d) ParentTSF(%u)"
+                       " TargetTSF[0](%u) TargetTSF[1](%u) BeaconInterval(%u)"
                        " CapabilityInfo(%d) BSSID(%02X:%02X:%02X:%02X:%02X:%02X)",
                         pRoamInfo->pCcxBcnReportRsp->bcnRepBssInfo[i+lastSent].bcnReportFields.ChanNum,
                         pRoamInfo->pCcxBcnReportRsp->bcnRepBssInfo[i+lastSent].bcnReportFields.Spare,
