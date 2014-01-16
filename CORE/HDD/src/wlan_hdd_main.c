@@ -10786,7 +10786,7 @@ void hdd_allow_suspend(void)
     vos_wake_lock_release(&wlan_wake_lock);
 }
 
-void hdd_allow_suspend_timeout(v_U32_t timeout)
+void hdd_prevent_suspend_timeout(v_U32_t timeout)
 {
     vos_wake_lock_timeout_acquire(&wlan_wake_lock, timeout);
 }

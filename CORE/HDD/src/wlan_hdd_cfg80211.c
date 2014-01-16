@@ -8209,7 +8209,7 @@ allow_suspend:
      * immediatly after the driver gets connect request(i.e after scan)
      * from supplicant, this result in app's is suspending and not able
      * to process the connect request to AP */
-    hdd_allow_suspend_timeout(1000);
+    hdd_prevent_suspend_timeout(1000);
 
 #ifdef FEATURE_WLAN_TDLS
     wlan_hdd_tdls_scan_done_callback(pAdapter);
@@ -13638,10 +13638,17 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
         pAdapter = pAdapterNode->pAdapter;
         if ((NULL != pAdapter) &&
             (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)) {
-            if (0 != wlan_hdd_cfg80211_update_bss(pHddCtx->wiphy, pAdapter))
+            if (0 != wlan_hdd_cfg80211_update_bss(pHddCtx->wiphy, pAdapter)) {
                 hddLog(LOGW, FL("NO SCAN result"));
-            else
+            } else {
+                /* Acquire wakelock to handle the case where APP's tries to
+                 * suspend immediately after updating the scan results. Whis
+                 * results in app's is in suspended state and not able to
+                 * process the connect request to AP
+                 */
+                hdd_prevent_suspend_timeout(2000);
                 cfg80211_sched_scan_results(pHddCtx->wiphy);
+            }
 
             hddLog(LOG1, FL("cfg80211 scan result database updated"));
 
