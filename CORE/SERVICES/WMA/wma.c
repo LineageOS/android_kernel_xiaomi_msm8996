@@ -1102,9 +1102,13 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 				classa_stats->tx_rate =
 					peer_stats->peer_tx_rate/500;
 			}
-			/* currently tx rate flags are not provided by
-			 * the fw*/
-			classa_stats->tx_rate_flags = eHAL_TX_RATE_LEGACY;
+
+			WMA_LOGD("peer tx rate flags:%d nss:%d",
+					node->rate_flags, node->nss);
+			classa_stats->tx_rate_flags = node->rate_flags;
+			/*rx_frag_cnt parameter is currently not used.
+			 *lets use the same parameter to hold the nss value*/
+			classa_stats->rx_frag_cnt = node->nss;
 		}
 
 		if (node->fw_stats_set & FW_STATS_SET) {
@@ -5692,6 +5696,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
         wmi_vht_rate_set *mcs;
 	u_int32_t num_peer_legacy_rates;
 	u_int32_t num_peer_ht_rates;
+	struct wma_txrx_node *intr = &wma->interfaces[params->smesessionId];
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -5944,6 +5949,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
                                     == VHT2x2MCSMASK) ? 1 : 2;
 	}
 
+	intr->nss = cmd->peer_nss;
 	cmd->peer_phymode = wma_peer_phymode(nw_type, params->htCapable,
                                              params->txChannelWidthSet,
                                              params->vhtCapable,
@@ -7323,6 +7329,36 @@ send_fail_resp:
 }
 #endif
 
+static void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
+							tpAddBssParams add_bss)
+{
+	iface->rate_flags = 0;
+	if (add_bss->htCapable) {
+		if (add_bss->txChannelWidthSet)
+			iface->rate_flags |= eHAL_TX_RATE_HT40;
+		else
+			iface->rate_flags |= eHAL_TX_RATE_HT20;
+	}
+
+#ifdef WLAN_FEATURE_11AC
+	if (add_bss->vhtCapable) {
+		if (add_bss->vhtTxChannelWidthSet)
+			iface->rate_flags |= eHAL_TX_RATE_VHT80;
+		else if (add_bss->txChannelWidthSet)
+			iface->rate_flags |= eHAL_TX_RATE_VHT40;
+		else
+			iface->rate_flags |= eHAL_TX_RATE_VHT20;
+	}
+#endif
+
+	if (add_bss->staContext.fShortGI20Mhz ||
+		add_bss->staContext.fShortGI40Mhz)
+		iface->rate_flags |= eHAL_TX_RATE_SGI;
+
+	if (!add_bss->htCapable && !add_bss->vhtCapable)
+		iface->rate_flags = eHAL_TX_RATE_LEGACY;
+}
+
 static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 {
 	ol_txrx_pdev_handle pdev;
@@ -7343,6 +7379,8 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 
 	vdev_id = add_bss->staContext.smesessionId;
 	iface = &wma->interfaces[vdev_id];
+
+	wma_set_bss_rate_flags(iface, add_bss);
 	if (add_bss->operMode) {
                 // Save parameters later needed by WDA_ADD_STA_REQ
                 if (iface->addBssStaContext) {
