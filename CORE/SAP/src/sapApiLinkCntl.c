@@ -673,6 +673,10 @@ WLANSAP_RoamCallback
             break;
 
         case eCSR_ROAM_RESULT_DFS_RADAR_FOUND_IND:
+            if (sapContext->csrRoamProfile.disableDFSChSwitch)
+            {
+                break;
+            }
             if (eSAP_DFS_CAC_WAIT == sapContext->sapsMachine)
             {
                 if (VOS_TRUE == sapContext->SapDfsInfo.sap_radar_found_status)
