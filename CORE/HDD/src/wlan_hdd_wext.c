@@ -8550,6 +8550,8 @@ int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr)
                 "%s: Current band value = %u, new setting %u ",
                  __func__, currBand, band);
 
+        hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId);
+
         if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
         {
              hdd_station_ctx_t *pHddStaCtx = &(pAdapter)->sessionCtx.station;
@@ -8590,7 +8592,6 @@ int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr)
              }
         }
 
-        hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId);
         sme_ScanFlushResult(hHal, pAdapter->sessionId);
         if (eHAL_STATUS_SUCCESS != sme_SetFreqBand(hHal, (eCsrBand)band))
         {

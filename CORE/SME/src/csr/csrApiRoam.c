@@ -440,6 +440,23 @@ eHalStatus csrClose(tpAniSirGlobal pMac)
     return (status);
 } 
 
+static tChannelPwrLimit csrFindChannelPwr(tChannelListWithPower * pdefaultPowerTable,
+                                 tANI_U8 ChannelNum)
+{
+    tANI_U8 i;
+    // TODO: if defaultPowerTable is guaranteed to be in ascending
+    // order of channel numbers, we can employ binary search
+    for (i = 0; i < WNI_CFG_VALID_CHANNEL_LIST_LEN; i++)
+    {
+       if (pdefaultPowerTable[i].chanId == ChannelNum)
+           return pdefaultPowerTable[i].pwr;
+    }
+    // could not find the channel list in default list
+    // this should not have occured
+    VOS_ASSERT(0);
+    return 0;
+}
+
 eHalStatus csrUpdateChannelList(tCsrScanStruct *pScan)
 {
     tSirUpdateChanList *pChanList;
@@ -463,8 +480,11 @@ eHalStatus csrUpdateChannelList(tCsrScanStruct *pScan)
     pChanList->numChan = numChan;
     for (i = 0; i < pChanList->numChan; i++)
     {
-        pChanList->chanParam[i].chanId = pScan->defaultPowerTable[i].chanId;
-        pChanList->chanParam[i].pwr = pScan->defaultPowerTable[i].pwr;
+        pChanList->chanParam[i].chanId =
+                             pScan->base20MHzChannels.channelList[i];
+        pChanList->chanParam[i].pwr =
+                             csrFindChannelPwr(pScan->defaultPowerTable,
+                             pChanList->chanParam[i].chanId);
         /*Set DFS flag for DFS channel*/
         if (vos_nv_getChannelEnabledState(pChanList->chanParam[i].chanId) ==
             NV_CHANNEL_DFS)
