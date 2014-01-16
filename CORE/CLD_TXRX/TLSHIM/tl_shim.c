@@ -409,6 +409,12 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	struct ieee80211_frame *wh;
 	u_int8_t mgt_type, mgt_subtype;
 
+	if (tl_shim == NULL)
+	{
+		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
+		return 0;
+	}
+
 	param_tlvs = (WMI_MGMT_RX_EVENTID_param_tlvs *) data;
 	if (!param_tlvs) {
 		TLSHIM_LOGE("Get NULL point message from FW");
@@ -603,6 +609,13 @@ int tlshim_mgmt_roam_event_ind(void *context, u_int32_t vdev_id)
 	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
 							   vos_ctx);
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
+
+	if (tl_shim == NULL)
+	{
+		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
+		return ret;
+	}
+
 	if (tl_shim->last_beacon_data && tl_shim->last_beacon_len)
 	{
 		ret = tlshim_mgmt_rx_process(context, tl_shim->last_beacon_data, tl_shim->last_beacon_len, TRUE, vdev_id);
@@ -785,6 +798,13 @@ void WLANTL_RegisterVdev(void *vos_ctx, void *vdev)
 	struct ol_txrx_vdev_t *vdev_handle = (struct ol_txrx_vdev_t  *) vdev;
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+
+	if (tl_shim == NULL)
+	{
+		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
+		return;
+	}
+
 	txrx_ops.rx.std = tlshim_data_rx_handler;
 	wdi_in_osif_vdev_register(vdev_handle, tl_shim, &txrx_ops);
 	/* TODO: Keep vdev specific tx callback, if needed */
@@ -805,6 +825,17 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 	struct ol_txrx_peer_t *peer;
 
 	ENTER();
+	if (tl_shim == NULL)
+	{
+		TLSHIM_LOGE("tl_shim is NULL");
+		return skb;
+	}
+
+	if (adf_ctx == NULL)
+	{
+		TLSHIM_LOGE("adf_ct is NULL");
+		return skb;
+	}
 
 	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_TL, NULL)) {
 		TLSHIM_LOGP("%s: Driver load/unload in progress", __func__);
@@ -1002,7 +1033,18 @@ VOS_STATUS WLANTL_EnableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
 	ENTER();
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+	if (wma_handle == NULL)
+	{
+		TLSHIM_LOGE("wma_handle is NULL");
+		return VOS_STATUS_E_FAILURE;
+	}
+
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	if (tl_shim == NULL)
+	{
+		TLSHIM_LOGE("tl_shim is NULL");
+		return VOS_STATUS_E_FAILURE;
+	}
 
 	uapsd_params.wmm_ac = ac;
 	uapsd_params.user_priority = pri;
@@ -1036,6 +1078,7 @@ VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 #else
 	tp_wma_handle wma_handle;
 #endif
+	ENTER();
 
 #ifdef QCA_WIFI_FTM
 	if (vos_get_conparam() == VOS_FTM_MODE)
@@ -1044,10 +1087,21 @@ VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL,
 				  vos_ctx);
+	if (tl_shim == NULL)
+	{
+		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
 
 #ifdef QCA_WIFI_ISOC
 	txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
 				    vos_ctx);
+	if (txrx_pdev == NULL)
+	{
+		TLSHIM_LOGE("%s: Failed to get TXRX context", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
 	htt_dxe_pdev = txrx_pdev->htt_pdev;
 
 	if (dmux_dxe_register_callback_rx_mgmt(htt_dxe_pdev->dmux_dxe_pdev,
@@ -1057,6 +1111,11 @@ VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 	}
 #else
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+	if (wma_handle == NULL)
+	{
+		TLSHIM_LOGE("%s: Failed to get WMA context", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
 
 	if (wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
 						 WMI_MGMT_RX_EVENTID) != 0) {
@@ -1075,10 +1134,19 @@ VOS_STATUS WLANTL_RegisterMgmtFrmClient(void *vos_ctx,
 							   vos_ctx);
 
 #ifdef QCA_WIFI_ISOC
-	 ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+	ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
 							 vos_ctx);
-	 struct htt_dxe_pdev_t *htt_dxe_pdev = txrx_pdev->htt_pdev;
+	struct htt_dxe_pdev_t *htt_dxe_pdev = txrx_pdev->htt_pdev;
+#else
+	tp_wma_handle wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+#endif
+	if (tl_shim == NULL)
+	{
+		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
 
+#ifdef QCA_WIFI_ISOC
 	if (dmux_dxe_register_callback_rx_mgmt(htt_dxe_pdev->dmux_dxe_pdev,
 					       tlshim_mgmt_rx_dxe_handler,
 					       tl_shim) != 0) {
@@ -1086,8 +1154,11 @@ VOS_STATUS WLANTL_RegisterMgmtFrmClient(void *vos_ctx,
 		return VOS_STATUS_E_FAILURE;
 	}
 #else
-	tp_wma_handle wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
-
+	if (wma_handle == NULL)
+	{
+		TLSHIM_LOGE("%s: Failed to get WMA context", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
 	if (wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					       WMI_MGMT_RX_EVENTID,
 					       tlshim_mgmt_rx_wmi_handler)
@@ -1111,6 +1182,11 @@ VOS_STATUS WLANTL_GetRssi(void *vos_ctx, u_int8_t sta_id, v_S7_t *rssi, void *pG
 	ENTER();
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+	if (wma_handle == NULL)
+	{
+		TLSHIM_LOGE("wma_handle is NULL");
+		return VOS_STATUS_E_FAILURE;
+	}
 
 	if(VOS_STATUS_SUCCESS !=
 		wma_send_snr_request(wma_handle, pGetRssiReq))
@@ -1208,6 +1284,11 @@ VOS_STATUS WLANTL_ClearSTAClient(void *vos_ctx, u_int8_t sta_id)
 	}
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	if (tl_shim == NULL)
+	{
+		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
 	tl_shim->sta_info[sta_id].registered = 0;
 
 	/* Purge the cached rx frame queue */
@@ -1249,6 +1330,11 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 		return VOS_STATUS_E_FAULT;
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	if (tl_shim == NULL)
+	{
+		TLSHIM_LOGE("tl_shim is NULL");
+		return VOS_STATUS_E_FAULT;
+	}
 	tl_shim->sta_info[sta_desc->ucSTAId].data_rx = rxcb;
 	tl_shim->sta_info[sta_desc->ucSTAId].registered = true;
 	param.qos_capable =  sta_desc->ucQosEnabled;
@@ -1298,6 +1384,11 @@ VOS_STATUS WLANTL_Close(void *vos_ctx)
 
 	ENTER();
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	if (tl_shim == NULL)
+	{
+		TLSHIM_LOGE("tl_shim is NULL");
+		return VOS_STATUS_E_FAILURE;
+	}
 
 #ifdef FEATURE_WLAN_CCX
 	vos_flush_work(&tl_shim->iapp_work.deferred_work);

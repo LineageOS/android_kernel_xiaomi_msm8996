@@ -788,7 +788,7 @@ ol_txrx_vdev_attach(
     vdev->num_filters = 0;
 
     adf_os_mem_copy(
-        &vdev->mac_addr.raw[0], vdev_mac_addr, sizeof(vdev->mac_addr));
+        &vdev->mac_addr.raw[0], vdev_mac_addr, OL_TXRX_MAC_ADDR_LEN);
 
     TAILQ_INIT(&vdev->peer_list);
     vdev->last_real_peer = NULL;
@@ -995,7 +995,7 @@ ol_txrx_peer_attach(
     /* store provided params */
     peer->vdev = vdev;
     adf_os_mem_copy(
-        &peer->mac_addr.raw[0], peer_mac_addr, sizeof(peer->mac_addr));
+        &peer->mac_addr.raw[0], peer_mac_addr, OL_TXRX_MAC_ADDR_LEN);
 
     #if defined(CONFIG_HL_SUPPORT)
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
@@ -1182,6 +1182,12 @@ ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 	struct ol_txrx_peer_t *peer;
 
 	peer =  ol_txrx_peer_find_hash_find(vdev->pdev, peer_mac, 0, 1);
+	if (NULL == peer)
+	{
+		TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: peer is null", __FUNCTION__);
+		return;
+	}
+
 	switch (select) {
 	case ol_txrx_peer_update_qos_capable:
 		{
