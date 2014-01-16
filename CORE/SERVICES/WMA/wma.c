@@ -9149,13 +9149,17 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	if(wake_info->wake_reason == WOW_REASON_AP_ASSOC_LOST)
 		wma_beacon_miss_handler(wma, wake_info->vdev_id);
 
+#ifdef FEATURE_WLAN_SCAN_PNO
 	if (wake_info->wake_reason == WOW_REASON_NLOD) {
 		node = &wma->interfaces[wake_info->vdev_id];
 		if (node) {
 			WMA_LOGD("NLO match happened");
 			node->nlo_match_evt_received = TRUE;
 		}
+		vos_wake_lock_timeout_acquire(&wma->pno_wake_lock,
+					      WMA_PNO_WAKE_LOCK_TIMEOUT);
 	}
+#endif
 
 	if (wake_info->wake_reason == WOW_REASON_CSA_EVENT) {
 		WMI_CSA_HANDLING_EVENTID_param_tlvs param;
@@ -12923,6 +12927,10 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		goto end;
 	}
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+	vos_wake_lock_init(&wma_handle->pno_wake_lock, "wlan_pno_wl");
+#endif
+
 end:
 	WMA_LOGD("%s: Exit", __func__);
 	return vos_status;
@@ -13031,6 +13039,9 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		ptrn_id++)
 		wma_free_wow_ptrn(wma_handle, ptrn_id);
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+	vos_wake_lock_destroy(&wma_handle->pno_wake_lock);
+#endif
 	/* unregister Firmware debug log */
 	vos_status = dbglog_deinit(wma_handle->wmi_handle);
 	if(vos_status != VOS_STATUS_SUCCESS)

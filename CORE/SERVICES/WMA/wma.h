@@ -499,6 +499,12 @@ typedef struct {
 
    /*DFS umac interface information*/
    struct ieee80211com *dfs_ic;
+#ifdef FEATURE_CESIUM_PROPRIETARY
+        txFailIndCallback hddTxFailCb;
+#endif
+#ifdef FEATURE_WLAN_SCAN_PNO
+	vos_wake_lock_t pno_wake_lock;
+#endif
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1136,6 +1142,8 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq);
 
 /* Default rssi threshold defined in CFG80211 */
 #define WMA_RSSI_THOLD_DEFAULT   -300
+
+#define WMA_PNO_WAKE_LOCK_TIMEOUT  (30 * 1000) /* in msec */
 
 #endif
 
