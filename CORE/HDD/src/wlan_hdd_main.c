@@ -6558,24 +6558,30 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 
 void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_U8 rtnl_held )
 {
-   struct net_device *pWlanDev = pAdapter->dev;
+   struct net_device *pWlanDev = NULL;
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
-      tHddBatchScanRsp *pNode;
-      tHddBatchScanRsp *pPrev;
-      if (pAdapter)
+   tHddBatchScanRsp *pNode;
+   tHddBatchScanRsp *pPrev;
+   if (pAdapter)
+   {
+      pNode = pAdapter->pBatchScanRsp;
+      while (pNode)
       {
-         pNode = pAdapter->pBatchScanRsp;
-         while (pNode)
-         {
-            pPrev = pNode;
-            pNode = pNode->pNext;
-            vos_mem_free((v_VOID_t * )pPrev);
-         }
-         pAdapter->pBatchScanRsp = NULL;
+         pPrev = pNode;
+         pNode = pNode->pNext;
+         vos_mem_free((v_VOID_t * )pPrev);
       }
+      pAdapter->pBatchScanRsp = NULL;
+   }
 #endif
-
+   if (pAdapter)
+      pWlanDev = pAdapter->dev;
+   else {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: HDD context is Null", __func__);
+      return;
+   }
    if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) {
       if( rtnl_held )
       {
@@ -8063,7 +8069,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    v_CONTEXT_t pVosContext = pHddCtx->pvosContext;
    VOS_STATUS vosStatus;
    struct wiphy *wiphy = pHddCtx->wiphy;
-   hdd_adapter_t* pAdapter;
+   hdd_adapter_t* pAdapter = NULL;
    struct fullPowerContext powerContext;
    long lrc;
 #if defined (QCA_WIFI_2_0) && \
@@ -8572,6 +8578,9 @@ void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx)
    tSirVersionString versionString;
    tANI_U8 fwFeatCapsMsgSupported = 0;
    VOS_STATUS vstatus;
+
+   memset(&versionCompiled, 0, sizeof(versionCompiled));
+   memset(&versionReported, 0, sizeof(versionReported));
 
    /* retrieve and display WCNSS version information */
    do {

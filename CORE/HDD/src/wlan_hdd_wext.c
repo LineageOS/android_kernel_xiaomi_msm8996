@@ -4815,7 +4815,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 
         case WE_SET_CHWIDTH:
         {
-           bool chwidth;
+           bool chwidth = false;
            hdd_context_t *phddctx = WLAN_HDD_GET_CTX(pAdapter);
            /*updating channel bonding only on 5Ghz*/
            hddLog(LOG1, "WMI_VDEV_PARAM_CHWIDTH val %d", set_value);
@@ -6162,7 +6162,17 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int sub_cmd = wrqu->data.flags;
 #ifdef WLAN_FEATURE_11W
-    hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+    hdd_wext_state_t *pWextState;
+#endif
+
+    if (pAdapter == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                                        "%s: pAdapter is NULL!", __func__);
+        return -EINVAL;
+    }
+#ifdef WLAN_FEATURE_11W
+    pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
 #endif
 
     if (NULL == WLAN_HDD_GET_CTX(pAdapter))
@@ -6296,9 +6306,9 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             int count = 0, check = 1;
 
             tANI_U16 tlState;
-            tHalHandle hHal;
-            tpAniSirGlobal pMac;
-            hdd_station_ctx_t *pHddStaCtx;
+            tHalHandle hHal = NULL;
+            tpAniSirGlobal pMac = NULL;
+            hdd_station_ctx_t *pHddStaCtx = NULL;
 
             hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
             hdd_adapter_t *useAdapter = NULL;
@@ -6342,7 +6352,19 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                 }
 
                 hHal = WLAN_HDD_GET_HAL_CTX( useAdapter );
+                if (!hHal) {
+                    buf = scnprintf(extra + len,  WE_MAX_STR_LEN - len,
+                            "\n pMac is NULL");
+                    len += buf;
+                    break;
+                }
                 pMac = PMAC_STRUCT( hHal );
+                if (!pMac) {
+                    buf = scnprintf(extra + len,  WE_MAX_STR_LEN - len,
+                            "\n pMac is NULL");
+                    len += buf;
+                    break;
+                }
                 pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR( useAdapter );
                 if( !pHddStaCtx )
                 {
@@ -6376,36 +6398,38 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                 adapter_num++;
             }
 
-            /* Printing Lim State starting with global lim states */
-            buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
-                    "\n \n LIM STATES:-"
-                    "\n Global Sme State - %s "\
-                    "\n Global mlm State - %s "\
-                    "\n",
-                    macTraceGetLimSmeState(pMac->lim.gLimSmeState),
-                    macTraceGetLimMlmState(pMac->lim.gLimMlmState)
-                    );
-            len += buf;
+            if (pMac) {
+                /* Printing Lim State starting with global lim states */
+                buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
+                        "\n \n LIM STATES:-"
+                        "\n Global Sme State - %s "\
+                        "\n Global mlm State - %s "\
+                        "\n",
+                        macTraceGetLimSmeState(pMac->lim.gLimSmeState),
+                        macTraceGetLimMlmState(pMac->lim.gLimMlmState)
+                        );
+                len += buf;
 
-            /*printing the PE Sme and Mlm states for valid lim sessions*/
-            while ( check < 3 && count < 255)
-            {
-                if ( pMac->lim.gpSession[count].valid )
+                /*printing the PE Sme and Mlm states for valid lim sessions*/
+                while ( check < 3 && count < 255)
                 {
-                    buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
-                    "\n Lim Valid Session %d:-"
-                    "\n PE Sme State - %s "
-                    "\n PE Mlm State - %s "
-                    "\n",
-                    check,
-                    macTraceGetLimSmeState(pMac->lim.gpSession[count].limSmeState),
-                    macTraceGetLimMlmState(pMac->lim.gpSession[count].limMlmState)
-                    );
+                    if ( pMac->lim.gpSession[count].valid )
+                    {
+                        buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
+                            "\n Lim Valid Session %d:-"
+                            "\n PE Sme State - %s "
+                            "\n PE Mlm State - %s "
+                            "\n",
+                            check,
+                            macTraceGetLimSmeState(pMac->lim.gpSession[count].limSmeState),
+                            macTraceGetLimMlmState(pMac->lim.gpSession[count].limMlmState)
+                            );
 
-                    len += buf;
-                    check++;
+                        len += buf;
+                        check++;
+                    }
+                    count++;
                 }
-                count++;
             }
 
             wrqu->data.length = strlen(extra)+1;
@@ -6476,6 +6500,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
 
             tChannelListInfo channel_list;
 
+            memset(&channel_list, 0, sizeof(channel_list));
             status = iw_softap_get_channel_list(dev, info, wrqu, (char *)&channel_list);
             if ( !VOS_IS_STATUS_SUCCESS( status ) ) 
             {
@@ -6483,7 +6508,6 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                 return -EINVAL;
             }
             buf = extra;
-
             /**
              * Maximum channels = WNI_CFG_VALID_CHANNEL_LIST_LEN. Maximum buffer
              * needed = 5 * number of channels. Check ifsufficient
@@ -8198,9 +8222,9 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
                                  pAdapter->mc_addr_list.mc_cnt;
                 for (i = 0; i < pAdapter->mc_addr_list.mc_cnt; i++)
                 {
-                    memcpy(&(pMulticastAddrs->multicastAddr[i][0]),
-                            &(pAdapter->mc_addr_list.addr[i][0]),
-                            sizeof(pAdapter->mc_addr_list.addr[i]));
+                    memcpy(pMulticastAddrs->multicastAddr[i],
+                           pAdapter->mc_addr_list.addr[i],
+                           sizeof(pAdapter->mc_addr_list.addr[i]));
                     hddLog(VOS_TRACE_LEVEL_INFO,
                             "%s: %s multicast filter: addr ="
                             MAC_ADDRESS_STR,
@@ -8677,7 +8701,6 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
 
     /*Advance to rssi Threshold*/
     ptr += nOffset;
-
     if (1 != sscanf(ptr,"%d %n",
                     &(pnoRequest.aNetworks[i].rssiThreshold),
                     &nOffset))
@@ -8686,7 +8709,6 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
                   "PNO rssi threshold input is not valid %s",ptr);
         return VOS_STATUS_E_FAILURE;
     }
-
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "PNO rssi %d offset %d",
             pnoRequest.aNetworks[i].rssiThreshold,
