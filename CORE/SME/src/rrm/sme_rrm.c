@@ -425,7 +425,7 @@ static eHalStatus sme_CcxSendBeaconReqScanResults(tpAniSirGlobal pMac,
        pBcnReport->flag = (measurementDone << 1)|((pCurResult)?true:false);
 
        smsLog(pMac, LOG1, "SME Sending BcnRep to HDD numBss(%d)"
-               " msgCounter(%d) bssCounter(%d)",
+               " msgCounter(%d) bssCounter(%d) flag(%d)",
                 pBcnReport->numBss, msgCounter, bssCounter, pBcnReport->flag);
 
        roamInfo.pCcxBcnReportRsp = pBcnReport;
