@@ -505,7 +505,7 @@ typedef struct _ieee80211_scan_info {
     int                                scanned_channels;            /* number of scanned channels */
     int                                default_channel_list_length; /* number of channels in the default channel list */
     int                                channel_list_length;         /* number of channels in the channel list used for the current scan */
-    int                                in_progress            : 1,  /* if the scan is in progress */
+    u_int8_t                           in_progress            : 1,  /* if the scan is in progress */
                                        cancelled              : 1,  /* if the scan is cancelled */
                                        preempted              : 1,  /* if the scan is preempted */
                                        restricted             : 1;  /* if the scan is restricted */
