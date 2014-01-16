@@ -154,6 +154,11 @@
 #define WMI_MCC_MAX_CHANNEL_QUOTA             80
 #define WMI_MCC_MIN_NON_ZERO_CHANNEL_LATENCY  30
 
+/* The maximum number of patterns that can be transmitted by the firmware
+ *  and maximum patterns size.
+ */
+#define WMA_MAXNUM_PERIODIC_TX_PTRNS 6
+
 static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
 
@@ -186,7 +191,6 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 
 static eHalStatus wma_set_smps_params(tp_wma_handle wma_handle,
                                  tANI_U8 vdev_id, int value);
-
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 void wma_utf_attach(tp_wma_handle wma_handle);
 void wma_utf_detach(tp_wma_handle wma_handle);
@@ -2239,6 +2243,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	mac_params->frameTransRequired = 0;
 
 	wma_handle->wlan_resource_config.num_wow_filters = mac_params->maxWoWFilters;
+	wma_handle->wlan_resource_config.num_keep_alive_pattern = WMA_MAXNUM_PERIODIC_TX_PTRNS;
 	wma_handle->ol_ini_info = mac_params->olIniInfo;
 	wma_handle->max_station = mac_params->maxStation;
 	wma_handle->max_bssid = mac_params->maxBssId;
@@ -13818,9 +13823,6 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 		{
 			WMA_LOGE("Could not send thermal mgmt command to the firmware!");
 		}
-	}
-	return VOS_STATUS_SUCCESS;
-}
 
 /* function   : wma_process_set_thermal_level
  * Descriptin : This function set the new thermal throttle level in the
@@ -13883,7 +13885,132 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 	return VOS_STATUS_SUCCESS;
 }
 
-/* function   : wma_mc_process_msg
+/*
+ * FUNCTION: wma_ProcessAddPeriodicTxPtrnInd
+ * WMI command sent to firmware to add patterns
+ * for the corresponding vdev id
+ */
+VOS_STATUS wma_ProcessAddPeriodicTxPtrnInd(WMA_HANDLE handle,
+			tSirAddPeriodicTxPtrn *pAddPeriodicTxPtrnParams)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param* cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t   len;
+	uint8_t vdev_id;
+	u_int8_t *buf_ptr;
+	u_int32_t ptrn_len, ptrn_len_aligned;
+	int j;
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue fw add pattern cmd",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	ptrn_len = pAddPeriodicTxPtrnParams->ucPtrnSize;
+	ptrn_len_aligned = roundup(ptrn_len, sizeof(uint32_t));
+	len  = sizeof(WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param) +
+			WMI_TLV_HDR_SIZE + ptrn_len_aligned;
+
+	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	if (!wma_find_vdev_by_addr(wma_handle,
+		pAddPeriodicTxPtrnParams->macAddress, &vdev_id)) {
+		WMA_LOGE("%s: Failed to find vdev id for %pM",__func__,
+		pAddPeriodicTxPtrnParams->macAddress);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_INVAL;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_buf);
+
+	cmd = (WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param *)buf_ptr;
+		WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param));
+
+	/* Pass the pattern id to delete for the corresponding vdev id */
+	cmd->vdev_id = vdev_id;
+	cmd->pattern_id = pAddPeriodicTxPtrnParams->ucPtrnId;
+	cmd->timeout = pAddPeriodicTxPtrnParams->usPtrnIntervalMs;
+	cmd->length = pAddPeriodicTxPtrnParams->ucPtrnSize;
+
+	/* Pattern info */
+	buf_ptr += sizeof(WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, ptrn_len_aligned);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	vos_mem_copy(buf_ptr, pAddPeriodicTxPtrnParams->ucPattern,
+			ptrn_len);
+	for (j = 0; j < pAddPeriodicTxPtrnParams->ucPtrnSize; j++) {
+		WMA_LOGD("%s: Add Ptrn: %02x", __func__, buf_ptr[j] & 0xff);
+	}
+	WMA_LOGD("%s: Add ptrn id: %d vdev_id: %d",
+			__func__, cmd->pattern_id, cmd->vdev_id);
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
+		WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMDID)) {
+		WMA_LOGE("%s: failed to add pattern set state command", __func__);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+/*
+ * FUNCTION: wma_ProcessDelPeriodicTxPtrnInd
+ * WMI command sent to firmware to del patterns
+ * for the corresponding vdev id
+ */
+VOS_STATUS wma_ProcessDelPeriodicTxPtrnInd(WMA_HANDLE handle,
+			tSirDelPeriodicTxPtrn *pDelPeriodicTxPtrnParams)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param* cmd;
+	wmi_buf_t wmi_buf;
+	uint8_t vdev_id;
+	u_int32_t len = sizeof(WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param);
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue Del Pattern cmd",
+			 __func__);
+	return VOS_STATUS_E_INVAL;
+	}
+	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	if (!wma_find_vdev_by_addr(wma_handle,
+		pDelPeriodicTxPtrnParams->macAddress, &vdev_id)) {
+		WMA_LOGE("%s: Failed to find vdev id for %pM",__func__,
+		pDelPeriodicTxPtrnParams->macAddress);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_INVAL;
+	}
+	cmd = (WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param *)wmi_buf_data(wmi_buf);
+		WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param));
+
+	/* Pass the pattern id to delete for the corresponding vdev id */
+	cmd->vdev_id = vdev_id;
+	cmd->pattern_id = pDelPeriodicTxPtrnParams->ucPtrnId;
+	WMA_LOGD("%s: Del ptrn id: %d vdev_id: %d",
+			__func__, cmd->pattern_id, cmd->vdev_id);
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
+		WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMDID)) {
+		WMA_LOGE("%s: failed to send del pattern command", __func__);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+/*
+ * function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
  * Returns    :
@@ -14193,7 +14320,6 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			  (tTdlsPeerStateParams *)msg->bodyptr);
 			break;
 #endif /* FEATURE_WLAN_TDLS */
-
 #ifdef FEATURE_WLAN_BATCH_SCAN
 		case WDA_SET_BATCH_SCAN_REQ:
                         wma_batch_scan_enable(wma_handle,
@@ -14213,6 +14339,16 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
                         vos_mem_free(msg->bodyptr);
                         break;
 #endif
+		case WDA_ADD_PERIODIC_TX_PTRN_IND:
+			wma_ProcessAddPeriodicTxPtrnInd(wma_handle,
+				(tSirAddPeriodicTxPtrn *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_DEL_PERIODIC_TX_PTRN_IND:
+			wma_ProcessDelPeriodicTxPtrnInd(wma_handle,
+				 (tSirDelPeriodicTxPtrn *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 
 #ifdef FEATURE_WLAN_LPHB
 		case WDA_LPHB_CONF_REQ:
@@ -15561,7 +15697,10 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	cfg->en_11ac = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 					      WMI_SERVICE_11AC);
         if (cfg->en_11ac)
-           gFwWlanFeatCaps |= DOT11AC;
+		gFwWlanFeatCaps |= DOT11AC;
+
+	/* Proactive ARP response */
+	gFwWlanFeatCaps |= WLAN_PERIODIC_TX_PTRN;
 
 	/* ARP offload */
 	cfg->arp_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,

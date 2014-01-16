@@ -4611,22 +4611,21 @@ typedef struct sSirLPHBInd
 
 typedef struct sSirAddPeriodicTxPtrn
 {
-    /* MAC Address for the adapter */
-    tSirMacAddr macAddress;
-
-    tANI_U8  ucPtrnId;           // Pattern ID
-    tANI_U16 ucPtrnSize;         // Pattern size
-    tANI_U32 usPtrnIntervalMs;   // In msec
-    tANI_U8  ucPattern[PERIODIC_TX_PTRN_MAX_SIZE]; // Pattern buffer
+   /* MAC Address for the adapter */
+   tSirMacAddr macAddress;
+   tANI_U8  ucPtrnId;           // Pattern ID
+   tANI_U16 ucPtrnSize;         // Pattern size
+   tANI_U32 usPtrnIntervalMs;   // In msec
+   tANI_U8  ucPattern[PERIODIC_TX_PTRN_MAX_SIZE]; // Pattern buffer
 } tSirAddPeriodicTxPtrn, *tpSirAddPeriodicTxPtrn;
 
 typedef struct sSirDelPeriodicTxPtrn
 {
-    /* MAC Address for the adapter */
-    tSirMacAddr macAddress;
-
-    /* Bitmap of pattern IDs that need to be deleted */
-    tANI_U32 ucPatternIdBitmap;
+   /* MAC Address for the adapter */
+   tSirMacAddr macAddress;
+   /* Bitmap of pattern IDs that need to be deleted */
+   tANI_U32 ucPatternIdBitmap;
+   tANI_U8  ucPtrnId;           // Pattern ID
 } tSirDelPeriodicTxPtrn, *tpSirDelPeriodicTxPtrn;
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
