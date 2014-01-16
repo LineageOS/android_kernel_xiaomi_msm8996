@@ -10339,6 +10339,7 @@ void csrRoamWaitForKeyTimeOutHandler(void *pv)
     tCsrTimerInfo *pInfo = (tCsrTimerInfo *)pv;
     tpAniSirGlobal pMac = pInfo->pMac;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, pInfo->sessionId );
+    eHalStatus status = eHAL_STATUS_FAILURE;
 
     smsLog(pMac, LOGW, "WaitForKey timer expired in state=%d sub-state=%d",
             pMac->roam.neighborRoamInfo.neighborRoamState,
@@ -10376,6 +10377,21 @@ void csrRoamWaitForKeyTimeOutHandler(void *pv)
             {
                 csrRoamLinkUp(pMac, pSession->connectedProfile.bssid);
                 smeProcessPendingQueue(pMac);
+                if ((pSession->connectedProfile.AuthType ==
+                                           eCSR_AUTH_TYPE_SHARED_KEY) &&
+                    ((pSession->connectedProfile.EncryptionType ==
+                                           eCSR_ENCRYPT_TYPE_WEP40) ||
+                      (pSession->connectedProfile.EncryptionType ==
+                                           eCSR_ENCRYPT_TYPE_WEP104)))
+                {
+                    status = sme_AcquireGlobalLock(&pMac->sme);
+                    if (HAL_STATUS_SUCCESS(status ))
+                    {
+                        csrRoamDisconnect(pMac, pInfo->sessionId,
+                                      eCSR_DISCONNECT_REASON_UNSPECIFIED);
+                        sme_ReleaseGlobalLock(&pMac->sme);
+                    }
+                }
             }
             else
             {
