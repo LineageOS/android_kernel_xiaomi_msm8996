@@ -86,6 +86,14 @@ limInitPeerIdxpool(tpAniSirGlobal pMac,tpPESession pSessionEntry)
     }
     else
 #endif
+#ifdef QCA_IBSS_SUPPORT
+    if (pSessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
+    {
+        pSessionEntry->freePeerIdxHead=LIM_START_PEER_IDX;
+        maxAssocSta = pMac->lim.gLimIbssStaLimit;
+    }
+    else
+#endif
     {
         pSessionEntry->freePeerIdxHead=LIM_START_PEER_IDX;
     }
