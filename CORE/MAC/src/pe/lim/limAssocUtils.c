@@ -2463,11 +2463,11 @@ limAddSta(
            p2pIe = limGetP2pIEPtr(pMac, pAssocReq->addIE.addIEdata, pAssocReq->addIE.length);
        }
        pAddStaParams->p2pCapableSta = (p2pIe != NULL);
-       if (pAddStaParams->htCapable) {
+       if ( pAssocReq && pAddStaParams->htCapable ) {
            vos_mem_copy(&pAddStaParams->ht_caps, ((tANI_U8 *) &pAssocReq->HTCaps) + 1,
                         sizeof(pAddStaParams->ht_caps));
        }
-       if (pAddStaParams->vhtCapable) {
+       if ( pAssocReq && pAddStaParams->vhtCapable) {
            pAddStaParams->vht_caps =
             ((pAssocReq->VHTCaps.maxMPDULen << SIR_MAC_VHT_CAP_MAX_MPDU_LEN) |
              (pAssocReq->VHTCaps.supportedChannelWidthSet <<

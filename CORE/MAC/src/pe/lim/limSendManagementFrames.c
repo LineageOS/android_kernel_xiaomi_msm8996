@@ -4486,8 +4486,12 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     
     tANI_U8 smeSessionId = 0;
 
-    if (psessionEntry != NULL )
-        smeSessionId = psessionEntry->smeSessionId;
+    if (psessionEntry == NULL )
+    {
+        PELOGE(limLog(pMac, LOGE, FL("Session entry is NULL!!!"));)
+        return eSIR_FAILURE;
+    }
+    smeSessionId = psessionEntry->smeSessionId;
 
     vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
@@ -4623,8 +4627,12 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
     
     tANI_U8 smeSessionId = 0;
 
-    if (psessionEntry != NULL )
-        smeSessionId = psessionEntry->smeSessionId;
+    if (psessionEntry == NULL )
+    {
+        PELOGE(limLog(pMac, LOGE, FL("Session entry is NULL!!!"));)
+        return eSIR_FAILURE;
+    }
+    smeSessionId = psessionEntry->smeSessionId;
 
     vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
@@ -4759,8 +4767,12 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     
    tANI_U8            smeSessionId = 0;
 
-    if (psessionEntry != NULL )
-      smeSessionId = psessionEntry->smeSessionId;
+    if (psessionEntry == NULL )
+    {
+        PELOGE(limLog(pMac, LOGE, FL("Session entry is NULL!!!"));)
+        return eSIR_FAILURE;
+    }
+    smeSessionId = psessionEntry->smeSessionId;
 
     vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
                 
