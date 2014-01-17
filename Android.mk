@@ -66,8 +66,8 @@ include $(DLKM_DIR)/AndroidKernelModule.mk
 # standard module location.
 # TO-DO: This step needs to be moved to a post-build make target instead
 # TO-DO: as this may run multiple times
-$(shell mkdir -pv $(TARGET_OUT)/lib/modules; \
-    ln -svf /system/lib/modules/$(WLAN_CHIPSET)/$(WLAN_CHIPSET)_wlan.ko \
+$(shell mkdir -p $(TARGET_OUT)/lib/modules; \
+    ln -sf /system/lib/modules/$(WLAN_CHIPSET)/$(WLAN_CHIPSET)_wlan.ko \
            $(TARGET_OUT)/lib/modules/wlan.ko)
 
 endif # DLKM check
