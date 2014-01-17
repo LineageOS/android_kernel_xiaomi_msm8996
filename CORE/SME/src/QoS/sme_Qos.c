@@ -5788,7 +5788,7 @@ eHalStatus sme_QosAggregateParams(
      requires inactivity interval to be > suspension interval: this could
      be tricky!
    -------------------------------------------------------------------------*/
-   TspecInfo.suspension_interval = 0;
+   TspecInfo.suspension_interval = pInput_Tspec_Info->suspension_interval;
    /*-------------------------------------------------------------------------
      Remaining parameters do not come from app as they are very WLAN
      air interface specific
