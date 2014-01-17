@@ -12301,17 +12301,19 @@ static void wma_data_tx_ack_work_handler(struct work_struct *ack_work)
 {
 	struct wma_tx_ack_work_ctx *work = container_of(ack_work,
 		struct wma_tx_ack_work_ctx, ack_cmp_work);
+	tp_wma_handle wma_handle = work->wma_handle;
 	pWDAAckFnTxComp ack_cb =
-		work->wma_handle->umac_data_ota_ack_cb;
+		wma_handle->umac_data_ota_ack_cb;
 
 	WMA_LOGD("Data Tx Ack Cb Status %d",
 			work->status);
 
 	/* Call the Ack Cb registered by UMAC */
-	ack_cb((tpAniSirGlobal)(work->wma_handle->mac_context),
+	ack_cb((tpAniSirGlobal)(wma_handle->mac_context),
 				work->status ? 0 : 1);
-	work->wma_handle->umac_data_ota_ack_cb = NULL;
+	wma_handle->umac_data_ota_ack_cb = NULL;
 	adf_os_mem_free(work);
+	wma_handle->ack_work_ctx = NULL;
 }
 
 /**
