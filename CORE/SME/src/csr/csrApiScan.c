@@ -720,6 +720,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
     {
         smsLog( pMac, LOGE, FL(" pScanRequest is NULL"));
         VOS_ASSERT(0);
+        return status;
     }
 
     /* During group formation, the P2P client scans for GO with the specific SSID.
@@ -729,7 +730,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
      */
     if(pScanRequest->p2pSearch)
     {
-        if(pScanRequest->SSIDs.numOfSSIDs)
+        if ((pScanRequest->SSIDs.numOfSSIDs) && (NULL != pScanRequest->SSIDs.SSIDList))
         {
             //If the scan request is for specific SSId the length of SSID will be
             //greater than 7 as SSID for p2p search contains "DIRECT-")
