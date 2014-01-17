@@ -146,7 +146,8 @@ static void cleanup(void) {
 
     if (fwlog_res == NULL) {
         perror("Failed to open reorder fwlog file");
-        goto out;
+        fclose(log_out);
+        return;
     }
 
     reorder(log_out, fwlog_res);
@@ -238,6 +239,11 @@ int main(int argc, char *argv[])
     dest_addr.nl_groups = 0; /* unicast */
 
     nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(RECLEN));
+    if (nlh == NULL) {
+        fprintf(stderr, "Cannot allocate memory \n");
+        close(sock_fd);
+        return -1;
+    }
     memset(nlh, 0, NLMSG_SPACE(RECLEN));
     nlh->nlmsg_len = NLMSG_SPACE(RECLEN);
     nlh->nlmsg_pid = getpid();

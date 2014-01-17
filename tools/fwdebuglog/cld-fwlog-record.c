@@ -115,7 +115,8 @@ static void cleanup(void) {
 
     if (fwlog_res == NULL) {
         perror("Failed to open reorder fwlog file");
-        goto out;
+        fclose(log_out);
+        return;
     }
 
     reorder(log_out, fwlog_res);
