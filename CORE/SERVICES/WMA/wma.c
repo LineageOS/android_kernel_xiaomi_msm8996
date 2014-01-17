@@ -162,6 +162,9 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
                                             tpDelStaSelfParams pdel_sta_self_req_param,
                                             u_int8_t generateRsp);
 #endif
+static struct wma_target_req *
+wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
+		  u_int32_t msg_type, u_int8_t type, void *params);
 
 static tANI_U32 gFwWlanFeatCaps;
 
@@ -412,7 +415,7 @@ static struct wma_target_req *wma_find_vdev_req(tp_wma_handle wma,
 	}
 	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
 	if (!found) {
-		WMA_LOGD("%s: target request not found for vdev_id %d type %d\n",
+		WMA_LOGP("%s: target request not found for vdev_id %d type %d\n",
 			 __func__, vdev_id, type);
 		return NULL;
 	}
@@ -2454,6 +2457,41 @@ static int wma_unified_vdev_delete_send(wmi_unified_t wmi_handle, u_int8_t if_id
 	return ret;
 }
 
+void wma_vdev_detach_callback(void *ctx)
+{
+	tp_wma_handle wma;
+	struct wma_txrx_node *iface = (struct wma_txrx_node *)ctx;
+	tpDelStaSelfParams param;
+	struct wma_target_req *req_msg;
+
+	wma = vos_get_context(VOS_MODULE_ID_WDA,
+			      vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+
+	if (!wma || !iface) {
+		WMA_LOGP("%s: wma %p iface %p", __func__, wma, iface);
+		return;
+	}
+	param = (tpDelStaSelfParams) iface->del_staself_req;
+	WMA_LOGD("%s: sending WDA_DEL_STA_SELF_RSP for vdev %d",
+		 __func__, param->sessionId);
+
+	req_msg = wma_find_vdev_req(wma, param->sessionId,
+				    WMA_TARGET_REQ_TYPE_VDEV_DEL);
+	if (req_msg) {
+		WMA_LOGD("%s: Found vdev request for vdev id %d\n",
+			 __func__, param->sessionId);
+		vos_timer_stop(&req_msg->event_timeout);
+		vos_timer_destroy(&req_msg->event_timeout);
+		adf_os_mem_free(req_msg);
+	}
+	if(iface->addBssStaContext)
+                adf_os_mem_free(iface->addBssStaContext);
+	vos_mem_zero(iface, sizeof(*iface));
+	param->status = VOS_STATUS_SUCCESS;
+
+	wma_send_msg(wma, WDA_DEL_STA_SELF_RSP, (void *)param, 0);
+}
+
 /* function   : wma_vdev_detach
  * Descriptin :
  * Args       :
@@ -2464,15 +2502,15 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
                                 u_int8_t generateRsp)
 {
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
-	void *txrx_hdl;
 	ol_txrx_peer_handle peer;
 	ol_txrx_pdev_handle pdev;
 	u_int8_t peer_id;
 	u_int8_t vdev_id = pdel_sta_self_req_param->sessionId;
+	struct wma_txrx_node *iface = &wma_handle->interfaces[vdev_id];
+	struct wma_target_req *msg;
 
-	if ((wma_handle->interfaces[vdev_id].type == WMI_VDEV_TYPE_AP) &&
-			((wma_handle->interfaces[vdev_id].sub_type ==
-			  WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE))) {
+	if ((iface->type == WMI_VDEV_TYPE_AP) &&
+	    (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE)) {
 
 		WMA_LOGA("P2P Device: removing self peer %pM",
 				pdel_sta_self_req_param->selfMacAddr);
@@ -2489,34 +2527,47 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		}
 		wma_remove_peer(wma_handle,
 				pdel_sta_self_req_param->selfMacAddr,
-				pdel_sta_self_req_param->sessionId,
-				peer);
+				vdev_id, peer);
 	}
 
 	/* remove the interface from ath_dev */
-	if (wma_unified_vdev_delete_send(wma_handle->wmi_handle,
-			pdel_sta_self_req_param->sessionId)) {
+	if (wma_unified_vdev_delete_send(wma_handle->wmi_handle, vdev_id)) {
 		WMA_LOGP("Unable to remove an interface for ath_dev.\n");
 		status = VOS_STATUS_E_FAILURE;
+		goto out;
 	}
 
-	txrx_hdl = wma_handle->interfaces[pdel_sta_self_req_param->sessionId].handle;
-	if(!txrx_hdl)
+	if(!iface->handle) {
 		status = VOS_STATUS_E_FAILURE;
-	else
-		ol_txrx_vdev_detach(txrx_hdl, NULL, NULL);
-        if(wma_handle->interfaces[pdel_sta_self_req_param->sessionId].addBssStaContext) {
-                adf_os_mem_free(wma_handle->interfaces[pdel_sta_self_req_param->sessionId].addBssStaContext);
-        }
-	vos_mem_zero(&wma_handle->interfaces[pdel_sta_self_req_param->sessionId],
-		     sizeof(wma_handle->interfaces[pdel_sta_self_req_param->sessionId]));
+		WMA_LOGP("handle of vdev_id %d is NULL", vdev_id);
+		goto out;
+	}
 
-	WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", pdel_sta_self_req_param->sessionId,
-			txrx_hdl);
+	WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", vdev_id, iface->handle);
+	if (!generateRsp) {
+		WMA_LOGD("Call txrx detach w/o callback for vdev %d", vdev_id);
+		ol_txrx_vdev_detach(iface->handle, NULL, NULL);
+		goto out;
+	}
 
-#ifdef QCA_IBSS_SUPPORT
+	iface->del_staself_req = pdel_sta_self_req_param;
+	msg = wma_fill_vdev_req(wma_handle, vdev_id, WDA_DEL_STA_SELF_REQ,
+				WMA_TARGET_REQ_TYPE_VDEV_DEL, iface);
+	if (!msg) {
+		WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d\n",
+			 __func__, vdev_id);
+		status = VOS_STATUS_E_NOMEM;
+		goto out;
+	}
+	WMA_LOGD("Call txrx detach with callback for vdev %d", vdev_id);
+	ol_txrx_vdev_detach(iface->handle, wma_vdev_detach_callback, iface);
+	return status;
+out:
+        if(iface->addBssStaContext)
+                adf_os_mem_free(iface->addBssStaContext);
+	vos_mem_zero(iface, sizeof(*iface));
+	pdel_sta_self_req_param->status = status;
 	if (generateRsp)
-#endif
 		wma_send_msg(wma_handle, WDA_DEL_STA_SELF_RSP, (void *)pdel_sta_self_req_param, 0);
 
 	return status;
@@ -4835,12 +4886,13 @@ void wma_vdev_resp_timer(void *data)
 	wma = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
-	WMA_LOGD("%s: request %d is timed out\n", __func__, tgt_req->msg_type);
+	WMA_LOGA("%s: request %d is timed out", __func__, tgt_req->msg_type);
 	wma_find_vdev_req(wma, tgt_req->vdev_id, tgt_req->type);
 	if (tgt_req->msg_type == WDA_CHNL_SWITCH_REQ) {
 		tpSwitchChannelParams params =
 			(tpSwitchChannelParams)tgt_req->user_data;
 		params->status = VOS_STATUS_E_TIMEOUT;
+		WMA_LOGA("%s: WDA_SWITCH_CHANNEL_REQ timedout", __func__);
 		wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
 	} else if (tgt_req->msg_type == WDA_DELETE_BSS_REQ) {
 		tpDeleteBssParams params =
@@ -4856,7 +4908,21 @@ void wma_vdev_resp_timer(void *data)
                 }
 #endif
 		params->status = VOS_STATUS_E_TIMEOUT;
+		WMA_LOGA("%s: WDA_DELETE_BSS_REQ timedout", __func__);
 		wma_send_msg(wma, WDA_DELETE_BSS_RSP, (void *)params, 0);
+	} else if (tgt_req->msg_type == WDA_DEL_STA_SELF_REQ) {
+		struct wma_txrx_node *iface =
+			(struct wma_txrx_node *)tgt_req->user_data;
+		tpDelStaSelfParams params =
+			(tpDelStaSelfParams)iface->del_staself_req;
+
+		params->status = VOS_STATUS_E_TIMEOUT;
+		WMA_LOGA("%s: WDA_DEL_STA_SELF_REQ timedout", __func__);
+		wma_send_msg(wma, WDA_DEL_STA_SELF_RSP,
+			     (void *)iface->del_staself_req, 0);
+		if(iface->addBssStaContext)
+			adf_os_mem_free(iface->addBssStaContext);
+		vos_mem_zero(iface, sizeof(*iface));
 	}
 	vos_timer_destroy(&tgt_req->event_timeout);
 	vos_mem_free(tgt_req);
@@ -4882,7 +4948,7 @@ static struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev
 	req->user_data = params;
 	vos_timer_init(&req->event_timeout, VOS_TIMER_TYPE_SW,
 		       wma_vdev_resp_timer, req);
-	vos_timer_start(&req->event_timeout, 1000);
+	vos_timer_start(&req->event_timeout, 2000);
 	adf_os_spin_lock_bh(&wma->vdev_respq_lock);
 	list_add_tail(&req->node, &wma->vdev_resp_queue);
 	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);

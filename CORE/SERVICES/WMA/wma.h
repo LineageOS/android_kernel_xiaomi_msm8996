@@ -401,6 +401,7 @@ struct wma_txrx_node {
 	u_int32_t uapsd_cached_val;
 	tAniGetPEStatsRsp       *stats_rsp;
 	tANI_U8                 fw_stats_set;
+	void *del_staself_req;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -1079,6 +1080,7 @@ struct wma_tx_ack_work_ctx {
 
 #define WMA_TARGET_REQ_TYPE_VDEV_START 0x1
 #define WMA_TARGET_REQ_TYPE_VDEV_STOP  0x2
+#define WMA_TARGET_REQ_TYPE_VDEV_DEL   0x3
 
 struct wma_target_req {
 	vos_timer_t event_timeout;
