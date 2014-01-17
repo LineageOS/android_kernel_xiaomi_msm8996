@@ -28,9 +28,6 @@
   vos_getBin.c
   \brief
   Description...
-   Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-   All Rights Reserved.
-   Qualcomm Atheros Confidential and Proprietary.
   ==============================================================================*/
 /* $HEADER$ */
 /**-----------------------------------------------------------------------------

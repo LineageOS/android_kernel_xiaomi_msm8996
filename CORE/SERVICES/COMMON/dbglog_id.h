@@ -24,19 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-/*
- * Copyright (c) 2004-2010, 2013 Qualcomm Atheros, Inc..
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
-//------------------------------------------------------------------------------
-// <copyright file="dbglog_id.h" company="Atheros">
-//    Copyright (c) 2004-2010 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
-//==============================================================================
-// Author(s): ="Atheros"
-//==============================================================================
 
 #ifndef _DBGLOG_ID_H_
 #define _DBGLOG_ID_H_

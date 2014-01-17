@@ -24,16 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-/*
- * Copyright (c) 2013 Qualcomm Atheros, Inc..
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
- //------------------------------------------------------------------------------
-// <copyright file="a_osapi.h" company="Atheros">
-//    Copyright (c) 2004-2010 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
+
 //==============================================================================
 // This file contains the definitions of the basic atheros data types.
 // It is used to map the data types in atheros files to a platform specific
