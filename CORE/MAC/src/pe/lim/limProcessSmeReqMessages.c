@@ -5744,15 +5744,6 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             limSendSetTxPowerReq(pMac,  pMsgBuf);
             break ;
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-        case eWNI_SME_ENABLE_RMC_REQ:
-            limProcessRMCMessages(pMac, eLIM_RMC_ENABLE_REQ, pMsgBuf);
-            break ;
-
-        case eWNI_SME_DISABLE_RMC_REQ:
-            limProcessRMCMessages(pMac, eLIM_RMC_DISABLE_REQ, pMsgBuf);
-            break ;
-#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
 
         case eWNI_SME_CHANNEL_CHANGE_REQ:
             limProcessSmeChannelChangeRequest(pMac, pMsgBuf);

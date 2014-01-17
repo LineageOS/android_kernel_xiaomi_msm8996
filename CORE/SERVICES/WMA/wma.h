@@ -507,9 +507,6 @@ typedef struct {
 
    /*DFS umac interface information*/
    struct ieee80211com *dfs_ic;
-#ifdef FEATURE_CESIUM_PROPRIETARY
-        txFailIndCallback hddTxFailCb;
-#endif
 #ifdef FEATURE_WLAN_SCAN_PNO
 	vos_wake_lock_t pno_wake_lock;
 #endif
