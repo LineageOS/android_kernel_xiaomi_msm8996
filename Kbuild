@@ -50,8 +50,7 @@ endif
 
 # To enable CCX upload, dependent config
 # CONFIG_QCOM_CCX must be enabled.
-CONFIG_QCOM_CCX := y
-CONFIG_QCOM_CCX_UPLOAD := y
+CONFIG_QCOM_CCX_UPLOAD := n
 
 # Feature flags which are not (currently) configurable via Kconfig
 
