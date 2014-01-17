@@ -9883,10 +9883,9 @@ static int __init hdd_module_init ( void)
   --------------------------------------------------------------------------*/
 static void hdd_driver_exit(void)
 {
-#ifdef QCA_WIFI_ISOC
    hdd_context_t *pHddCtx = NULL;
    int retry = 0;
-#else
+#ifndef QCA_WIFI_ISOC
    adf_os_device_t adf_ctx;
 #endif
    v_CONTEXT_t pVosContext = NULL;
@@ -9902,7 +9901,6 @@ static void hdd_driver_exit(void)
       goto done;
    }
 
-#ifdef QCA_WIFI_ISOC
    //Get the HDD context.
    pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
 
@@ -9912,7 +9910,7 @@ static void hdd_driver_exit(void)
    }
    else
    {
-      while(isWDresetInProgress()) {
+      while(pHddCtx->isLogpInProgress) {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
               "%s:SSR in Progress; block rmmod for 1 second!!!", __func__);
          msleep(1000);
@@ -9924,13 +9922,13 @@ static void hdd_driver_exit(void)
          }
       }
 
-
       pHddCtx->isLoadUnloadInProgress = TRUE;
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
-
-      //Do all the cleanup before deregistering the driver
-      hdd_wlan_exit(pHddCtx);
    }
+
+#ifdef QCA_WIFI_ISOC
+   //Do all the cleanup before deregistering the driver
+   hdd_wlan_exit(pHddCtx);
 #else
    hif_unregister_driver();
 

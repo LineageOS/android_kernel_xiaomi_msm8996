@@ -470,8 +470,18 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    WLANTL_ACEnumType ac  = WLANTL_AC_BE;
    hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
    hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
+   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    v_MACADDR_t *pDestMacAddress;
    v_U8_t STAId;
+
+   /* Prevent this funtion to be called during SSR since TL context may
+      not be reinitialized at this time which will lead crash. */
+   if (pHddCtx->isLogpInProgress)
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: LOGP in Progress. Ignore!!!", __func__);
+      goto drop_pkt;
+   }
 
    pDestMacAddress = (v_MACADDR_t*)skb->data;
 
