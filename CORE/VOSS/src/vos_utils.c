@@ -70,7 +70,9 @@
 #include <crypto/hash.h>
 #include <crypto/aes.h>
 #include <wcnss_api.h>
+#ifdef CONFIG_CNSS
 #include <linux/qcomwlan_secif.h>
+#endif
 
 #include "ieee80211_common.h"
 /*----------------------------------------------------------------------------
