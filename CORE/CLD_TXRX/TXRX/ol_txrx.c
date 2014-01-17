@@ -343,11 +343,21 @@ ol_txrx_pdev_attach(
         }
         pdev->tx_desc.array[i].tx_desc.htt_tx_desc = htt_tx_desc;
 	pdev->tx_desc.array[i].tx_desc.htt_tx_desc_paddr = paddr_lo;
+#ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
+        pdev->tx_desc.array[i].tx_desc.pkt_type = 0xff;
+#ifdef QCA_COMPUTE_TX_DELAY
+        pdev->tx_desc.array[i].tx_desc.entry_timestamp_ticks = 0xffffffff;
+#endif
+#endif
     }
 
     /* link SW tx descs into a freelist */
     pdev->tx_desc.num_free = desc_pool_size;
     pdev->tx_desc.freelist = &pdev->tx_desc.array[0];
+    TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
+               "%s first tx_desc:0x%p Last tx desc:0x%p\n", __func__,
+               (u_int32_t *) pdev->tx_desc.freelist,
+               (u_int32_t *) (pdev->tx_desc.freelist + desc_pool_size));
     for (i = 0; i < desc_pool_size-1; i++) {
         pdev->tx_desc.array[i].next = &pdev->tx_desc.array[i+1];
     }

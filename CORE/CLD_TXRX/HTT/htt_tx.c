@@ -51,6 +51,10 @@
 
 /*--- setup / tear-down functions -------------------------------------------*/
 
+#ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
+u_int32_t *g_dbg_htt_desc_end_addr, *g_dbg_htt_desc_start_addr;
+#endif
+
 int
 htt_tx_attach(struct htt_pdev_t *pdev, int desc_pool_elems)
 {
@@ -98,6 +102,16 @@ htt_tx_attach(struct htt_pdev_t *pdev, int desc_pool_elems)
     if (!pdev->tx_descs.pool_vaddr) {
         return 1; /* failure */
     }
+
+    adf_os_print("%s:htt_desc_start:0x%p htt_desc_end:0x%p\n", __func__,
+                 pdev->tx_descs.pool_vaddr,
+                 (u_int32_t *) (pdev->tx_descs.pool_vaddr + pool_size));
+
+#ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
+    g_dbg_htt_desc_end_addr = (u_int32_t *)
+                         (pdev->tx_descs.pool_vaddr + pool_size);
+    g_dbg_htt_desc_start_addr = (u_int32_t *) pdev->tx_descs.pool_vaddr;
+#endif
 
     /* link tx descriptors into a freelist */
     pdev->tx_descs.freelist = (u_int32_t *) pdev->tx_descs.pool_vaddr;
