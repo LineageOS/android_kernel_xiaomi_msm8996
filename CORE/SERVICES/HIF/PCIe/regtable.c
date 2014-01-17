@@ -31,6 +31,7 @@
 #include "regtable.h"
 #include "ar9888def.h"
 #include "ar6320def.h"
+#include "ar6320v2def.h"
 
 void target_register_tbl_attach(struct hif_pci_softc *sc, u32 target_type)
 {
@@ -40,6 +41,9 @@ void target_register_tbl_attach(struct hif_pci_softc *sc, u32 target_type)
         break;
     case TARGET_TYPE_AR6320:
         sc->targetdef = &ar6320_targetdef;
+        break;
+    case TARGET_TYPE_AR6320V2:
+        sc->targetdef = &ar6320v2_targetdef;
         break;
     default:
         break;
@@ -54,6 +58,9 @@ void hif_register_tbl_attach(struct hif_pci_softc *sc, u32 hif_type)
         break;
     case HIF_TYPE_AR6320:
         sc->hostdef = &ar6320_hostdef;
+        break;
+    case HIF_TYPE_AR6320V2:
+        sc->hostdef = &ar6320v2_hostdef;
         break;
     default:
         break;

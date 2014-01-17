@@ -26,7 +26,7 @@
  */
 
 #ifndef _AR6320DEF_H_
-#define AR6320__AR6320DEF_H_
+#define  _AR6320DEF_H_
 
 /* Base Addresses */
 #define AR6320_RTC_SOC_BASE_ADDRESS                     0x00000000

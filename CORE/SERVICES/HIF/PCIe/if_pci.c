@@ -3,7 +3,6 @@
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
- *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -60,6 +59,9 @@
 
 #define AR9888_DEVICE_ID (0x003c)
 #define AR6320_DEVICE_ID (0x003e)
+#define AR6320_FW_1_1  (0x11)
+#define AR6320_FW_1_3  (0x13)
+#define AR6320_FW_2_0  (0x20)
 
 #define MAX_NUM_OF_RECEIVES 1000 /* Maximum number of Rx buf to process before break out */
 
@@ -375,6 +377,7 @@ hif_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
     struct ol_softc *ol_sc;
     int probe_again = 0;
     u_int16_t device_id;
+    u_int16_t revision_id;
 
     u_int32_t lcr_val;
 
@@ -480,19 +483,37 @@ again:
 
     sc->cacheline_sz = dma_get_cache_alignment();
 
+    pci_read_config_word(pdev, 0x08, &revision_id);
+
     switch (id->device) {
     case AR9888_DEVICE_ID:
-	    hif_type = HIF_TYPE_AR9888;
-	    target_type = TARGET_TYPE_AR9888;
-	    break;
+        hif_type = HIF_TYPE_AR9888;
+        target_type = TARGET_TYPE_AR9888;
+        break;
+
     case AR6320_DEVICE_ID:
-	    hif_type = HIF_TYPE_AR6320;
-	    target_type = TARGET_TYPE_AR6320;
-	    break;
+        switch(revision_id) {
+        case AR6320_FW_1_1:
+        case AR6320_FW_1_3:
+            hif_type = HIF_TYPE_AR6320;
+            target_type = TARGET_TYPE_AR6320;
+            break;
+
+        case AR6320_FW_2_0:
+            hif_type = HIF_TYPE_AR6320V2;
+            target_type = TARGET_TYPE_AR6320V2;
+            break;
+
+        default:
+            printk(KERN_ERR "unsupported revision id\n");
+
+        }
+        break;
+
     default:
-	    printk(KERN_ERR "unsupported device id\n");
-	    ret = -ENODEV;
-	    goto err_tgtstate;
+        printk(KERN_ERR "unsupported device id\n");
+        ret = -ENODEV;
+        goto err_tgtstate;
     }
     /*
      * Attach Target register table.  This is needed early on --
@@ -653,6 +674,7 @@ int hif_pci_reinit(struct pci_dev *pdev, const struct pci_device_id *id)
     u_int32_t hif_type;
     u_int32_t target_type;
     u_int32_t lcr_val;
+    u_int16_t revision_id;
 
 again:
     ret = 0;
@@ -753,16 +775,33 @@ again:
     adf_os_spinlock_init(&sc->target_lock);
 
     sc->cacheline_sz = dma_get_cache_alignment();
+    pci_read_config_word(pdev, 0x08, &revision_id);
 
     switch (id->device) {
     case AR9888_DEVICE_ID:
         hif_type = HIF_TYPE_AR9888;
         target_type = TARGET_TYPE_AR9888;
         break;
+
     case AR6320_DEVICE_ID:
-        hif_type = HIF_TYPE_AR6320;
-        target_type = TARGET_TYPE_AR6320;
+        switch(revision_id) {
+        case AR6320_FW_1_1:
+        case AR6320_FW_1_3:
+            hif_type = HIF_TYPE_AR6320;
+            target_type = TARGET_TYPE_AR6320;
+            break;
+
+        case AR6320_FW_2_0:
+            hif_type = HIF_TYPE_AR6320V2;
+            target_type = TARGET_TYPE_AR6320V2;
+            break;
+
+        default:
+            printk(KERN_ERR "unsupported revision id\n");
+
+        }
         break;
+
     default:
         printk(KERN_ERR "%s: Unsupported device ID!\n", __func__);
         ret = -ENODEV;

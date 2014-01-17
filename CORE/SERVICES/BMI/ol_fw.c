@@ -481,6 +481,7 @@ u_int32_t host_interest_item_address(u_int32_t target_type, u_int32_t item_offse
 	case TARGET_TYPE_AR9888:
 		return (AR9888_HOST_INTEREST_ADDRESS + item_offset);
 	case TARGET_TYPE_AR6320:
+	case TARGET_TYPE_AR6320V2:
 		return (AR6320_HOST_INTEREST_ADDRESS + item_offset);
 	}
 }
