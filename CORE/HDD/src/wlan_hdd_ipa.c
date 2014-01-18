@@ -47,68 +47,65 @@ Include Files
 #include <linux/skbuff.h>
 #include <linux/list.h>
 #include <linux/debugfs.h>
-#include <wlan_hdd_softap_tx_rx.h>
-
-#include "vos_sched.h"
-#include "wlan_qct_tl.h"
-#include "ol_txrx_peer_find.h"
-#include "tl_shim.h"
 
 #define HDD_IPA_DESC_BUFFER_RATIO 4
 #define HDD_IPA_IPV4_NAME_EXT "_ipv4"
 #define HDD_IPA_IPV6_NAME_EXT "_ipv6"
 
 #define HDD_IPA_RX_INACTIVITY_MSEC_DELAY 2000
-#define HDD_IPA_WLAN_HDR_ONLY_LEN 4
+
+const uint8_t ipa_set_tx_hdr[] = {
+/*IPA-WLAN HDR */
+	0x00, 0x00,  /* Reserved */
+#define HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET 2
+#define HDD_IPA_WLAN_HDR_DEV_TYPE_MASK	0x80
+#define HDD_IPA_WLAN_HDR_DEV_TYPE_AP	0x80
+#define HDD_IPA_WLAN_HDR_DEV_TYPE_STA	0x00
+#define HDD_IPA_WLAN_HDR_DEV_ID_MASK	0x7F
 #define HDD_IPA_WLAN_HDR_STA_ID_OFFSET	3
-#define HDD_IPA_WLAN_HDR_DES_MAC_OFFSET 0
+	0x00, 0x00,
+	/* dev_id and sta_id filled by wlan*/
 
-struct llc_snap_hdr {
-	uint8_t dsap;
-	uint8_t ssap;
-	uint8_t resv[4];
-	__be16 eth_type;
-} __packed;
+	/* 802.3 header - 14 bytes*/
+#define HDD_IPA_WLAN_HDR_DES_MAC_OFFSET 4
+	0x00, 0x03, 0x7f, 0xaa, 0xbb, 0xcc,
+	/* Des_MAC filled by IPA */
+#define HDD_IPA_WLAN_HDR_SRC_MAC_OFFSET	10
+	0x00, 0x03, 0x7f, 0xdd, 0xee, 0xff,
+	/* Src. MAC filled by IPA */
+	0x00, 0x00,
+	/* length can be zero */
 
-struct ipa_tx_hdr {
-	struct ethhdr eth;
-	struct llc_snap_hdr llc_snap;
-} __packed;
-
-/* For Tx pipes, use 802.3 Header format */
-struct ipa_tx_hdr ipa_set_tx_hdr = {
-	{
-	{0x00, 0x03, 0x7f, 0xaa, 0xbb, 0xcc},	/* Des_MAC filled by IPA */
-	{0x00, 0x03, 0x7f, 0xdd, 0xee, 0xff},	/* Src. MAC filled by IPA */
-	0x00									/* length can be zero */
-	},
-	{
+	0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00,
 	/* LLC SNAP header 8 bytes */
-	0xaa, 0xaa,
-	{0x03, 0x00, 0x00, 0x00},
-	0x0008							/* type value(2 bytes) ,filled by wlan  */
-									/* 0x0800 - IPV4, 0x86dd - IPV6 */
-	}
+#define HDD_IPA_WLAN_TX_HDR_IP_VER_OFFSET 24
+	0x08, 0x00
+	/* type value(2 bytes) ,filled by wlan  */
+	/* 0x0800 - IPV4, 0x86dd - IPV6 */
 };
 
-struct ipa_rx_hdr {
-	uint8_t hdr[HDD_IPA_WLAN_HDR_ONLY_LEN];
-	struct ethhdr eth;
-} __packed;
+// For Rx pipe, use Ethernet-II Header format
+const uint8_t ipa_set_rx_hdr[] = {
+	0x00, 0x00,  /* Reserved */
+	0x00, 0x00,
+	/* dev_id and sta_id filled by wlan*/
 
-/* For Rx pipe, use Ethernet-II Header format */
-struct ipa_rx_hdr ipa_set_rx_hdr = {
-	{0x00, 0x00, 0x00, 0x00},				/* 4 bytes header  */
-	{
-	{0x00, 0x03, 0x7f, 0xaa, 0xbb, 0xcc},	/* Des_MAC filled by IPA */
-	{0x00, 0x03, 0x7f, 0xdd, 0xee, 0xff},	/* Src. MAC filled by IPA */
-	0x0008							/* type value(2 bytes) ,filled by wlan  */
-									/* 0x0800 - IPV4, 0x86dd - IPV6 */
-	}
+	/* 802.3 header - 14 bytes*/
+	0x00, 0x03, 0x7f, 0xaa, 0xbb, 0xcc,
+	/* Des_MAC filled by IPA */
+	0x00, 0x03, 0x7f, 0xdd, 0xee, 0xff,
+	/* Src. MAC filled by IPA */
+#define HDD_IPA_WLAN_RX_HDR_IP_VER_OFFSET 16
+	0x08, 0x00
+	/* type value(2 bytes) ,filled by wlan  */
+	/* 0x0800 - IPV4, 0x86dd - IPV6 */
 };
+
 
 #define HDD_IPA_WLAN_TX_HDR_LEN sizeof(ipa_set_tx_hdr)
 #define HDD_IPA_WLAN_RX_HDR_LEN sizeof(ipa_set_rx_hdr)
+#define HDD_IPA_WLAN_HDR_ONLY_LEN 4
+#define HDD_IPA_MAX_TX_PIPE_MAP	8
 #define HDD_IPA_WLAN_HDR_PARTIAL 1
 
 #define HDD_IPA_LOG(LVL, fmt, args...)	VOS_TRACE(VOS_MODULE_ID_HDD, LVL, \
@@ -122,9 +119,10 @@ enum hdd_ipa_rm_state {
 };
 
 enum hdd_ipa_pipe_index {
-	HDD_IPA_TX_WLAN0_PIPE,
-	HDD_IPA_TX_WLAN1_PIPE,
-	HDD_IPA_TX_WLAN2_PIPE,
+	HDD_IPA_TX_VI_PIPE,
+	HDD_IPA_TX_VO_PIPE,
+	HDD_IPA_TX_BE_PIPE,
+	HDD_IPA_TX_BK_PIPE,
 	HDD_IPA_RX_PIPE,
 	HDD_IPA_MAX_PIPE
 };
@@ -134,22 +132,38 @@ enum hdd_ipa_ip_ver {
 	HDD_IPA_IPV6 = 2
 };
 
-#define HDD_IPA_WLAN_MAX_STA_ID 255
-
-uint8_t wlan_sta_id_2_hdd_pipe_id[HDD_IPA_WLAN_MAX_STA_ID] = {0xFF};
-
-uint8_t hdd_pipe_id_2_ipa_client_id[HDD_IPA_MAX_PIPE] = {
+uint8_t hdd_ipa_pipe_client[HDD_IPA_MAX_PIPE] = {
 	IPA_CLIENT_WLAN1_CONS,
 	IPA_CLIENT_WLAN2_CONS,
 	IPA_CLIENT_WLAN3_CONS,
+	IPA_CLIENT_WLAN4_CONS,
 	IPA_CLIENT_WLAN1_PROD
 };
 
-uint8_t ipa_client_id_2_hdd_pipe_id[IPA_CLIENT_MAX] = {
-	[IPA_CLIENT_WLAN1_CONS] = HDD_IPA_TX_WLAN0_PIPE,
-	[IPA_CLIENT_WLAN2_CONS] = HDD_IPA_TX_WLAN1_PIPE,
-	[IPA_CLIENT_WLAN3_CONS] = HDD_IPA_TX_WLAN2_PIPE,
-	[IPA_CLIENT_WLAN1_PROD] = HDD_IPA_RX_PIPE
+uint8_t hdd_ipa_pipe_client_AC[] = {
+	HDD_LINUX_AC_VI,
+	HDD_LINUX_AC_VO,
+	HDD_LINUX_AC_BE,
+	HDD_LINUX_AC_BK
+};
+
+static struct hdd_ipa_tx_pipe_map{
+	uint8_t tos_value;
+	enum ipa_client_type client;
+	uint8_t ac;
+} hdd_ipa_tx_pipe_map_info[HDD_IPA_MAX_TX_PIPE_MAP] = {
+	/* BK */
+	{1, IPA_CLIENT_WLAN1_CONS, HDD_LINUX_AC_BK},
+	{2, IPA_CLIENT_WLAN1_CONS, HDD_LINUX_AC_BK},
+	/* BE */
+	{0, IPA_CLIENT_WLAN2_CONS, HDD_LINUX_AC_BE},
+	{3, IPA_CLIENT_WLAN2_CONS, HDD_LINUX_AC_BE},
+	/* VI */
+	{4, IPA_CLIENT_WLAN3_CONS, HDD_LINUX_AC_VI},
+	{5, IPA_CLIENT_WLAN3_CONS, HDD_LINUX_AC_VI},
+	/* VO */
+	{6, IPA_CLIENT_WLAN4_CONS, HDD_LINUX_AC_VO},
+	{7, IPA_CLIENT_WLAN4_CONS, HDD_LINUX_AC_VO},
 };
 
 struct hdd_ipa_sys_pipe {
@@ -171,8 +185,6 @@ struct hdd_ipa_priv {
 	struct list_head free_desc_head;
 	struct list_head pend_desc_head;
 
-	struct ol_txrx_vdev_t *pipe_to_vdev[HDD_IPA_MAX_PIPE];
-
 	hdd_context_t *hdd_ctx;
 
 	struct dentry *debugfs_dir;
@@ -189,6 +201,7 @@ struct hdd_ipa_priv {
 
 		uint64_t rx_ipa_hw_maxed_out;
 
+		uint64_t tx_ipa_recv;
 		uint64_t freeq_empty;
 		uint64_t freeq_cnt;
 
@@ -211,11 +224,7 @@ struct hdd_ipa_priv {
 		uint64_t rx_ipa_dh_reclaim;
 		uint64_t rx_ipa_dh_not_used;
 #endif
-		uint64_t ipa_lb_cnt;
-		uint64_t tx_ipa_recv;
-		uint64_t tx_comp_cnt;
-		uint64_t tx_dp_err_cnt;
-	} stats;
+	}stats;
 };
 
 enum hdd_ipa_evt {
@@ -247,13 +256,13 @@ static inline void *hdd_ipa_kzalloc(uint32_t size)
 	return data;
 }
 
-static inline struct ipa_tx_data_desc *hdd_ipa_get_desc_from_freeq(void)
+static inline struct ipa_tx_data_desc * hdd_ipa_get_desc_from_freeq(void)
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 	struct ipa_tx_data_desc *desc = NULL;
 
 	spin_lock_bh(&ghdd_ipa->q_lock);
-	if (!list_empty(&ghdd_ipa->free_desc_head)) {
+	if(!list_empty(&ghdd_ipa->free_desc_head)) {
 		desc = list_first_entry(&ghdd_ipa->free_desc_head, struct ipa_tx_data_desc, link);
 		list_del(&desc->link);
 		hdd_ipa->stats.freeq_cnt--;
@@ -408,9 +417,7 @@ void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adap_dev)
 {
 		if (!adap_dev || (adap_dev &&
 				adap_dev->magic != WLAN_HDD_ADAPTER_MAGIC)) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Invalid adapter: adap=0x%x",
-					adap_dev);
-
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Invalid sta_id");
 			adf_nbuf_free(skb);
 			return;
 		}
@@ -431,10 +438,8 @@ static void hdd_ipa_send_pkt_to_ipa(struct ipa_tx_data_desc *send_desc_head,
 							int send_desc_cnt)
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
-	struct ipa_tx_data_desc *send_desc, *desc, *tmp;
+	struct ipa_tx_data_desc *send_desc;
 	uint32_t cur_send_cnt = 0;
-	adf_nbuf_t buf;
-
 #ifndef HDD_IPA_USE_IPA_RM_TIMER
 		if (hdd_ipa->rm_timer_on) {
 			del_timer(&hdd_ipa->rm_timer);
@@ -475,42 +480,12 @@ static void hdd_ipa_send_pkt_to_ipa(struct ipa_tx_data_desc *send_desc_head,
 				cur_send_cnt = send_desc_cnt;
 			}
 			hdd_ipa->stats.rx_ipa_sent_desc_cnt += cur_send_cnt;
-
-#ifdef HDD_IPA_EXTRA_DP_COUNTERS
-			hdd_ipa->stats.rx_ipa_dh_sent++; /* for desc head */
-#endif
 			spin_unlock_bh(&hdd_ipa->q_lock);
-			if (ipa_tx_dp_mul(hdd_pipe_id_2_ipa_client_id[HDD_IPA_RX_PIPE],
-							send_desc_head) != 0) {
-				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "ipa_tx_dp_mul failed!!! (cur_send_cnt=%d)", cur_send_cnt);
-				hdd_ipa->stats.tx_dp_err_cnt++;
-				spin_lock_bh(&hdd_ipa->q_lock);
-
-				list_for_each_entry_safe(desc, tmp,
-								&send_desc_head->link, link) {
-					list_del(&desc->link);
-					buf = desc->priv;
-					adf_nbuf_free(buf);
-					desc->priv = NULL;
-					desc->pyld_buffer = NULL;
-					desc->pyld_len = 0;
-					list_add_tail(&desc->link, &hdd_ipa->free_desc_head);
-					hdd_ipa->stats.freeq_cnt++;
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
-					hdd_ipa->stats.freeq_reclaim++;
+			hdd_ipa->stats.rx_ipa_dh_sent++; //for desc head
 #endif
-					hdd_ipa->pending_desc_cnt--;
-				}
-
-				/* return anchor node */
-				list_add_tail(&send_desc_head->link, &hdd_ipa->free_desc_head);
-				hdd_ipa->stats.freeq_cnt++;
-#ifdef HDD_IPA_EXTRA_DP_COUNTERS
-				hdd_ipa->stats.rx_ipa_dh_reclaim++;
-				hdd_ipa->stats.freeq_reclaim++;
-#endif
-				spin_unlock_bh(&hdd_ipa->q_lock);
-			}
+			ipa_tx_dp_mul(hdd_ipa_pipe_client[HDD_IPA_RX_PIPE],
+							send_desc_head);
 		} else {
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
 			hdd_ipa->stats.rx_ipa_hw_max_qued += send_desc_cnt;
@@ -533,6 +508,12 @@ static void hdd_ipa_send_pkt_to_ipa(struct ipa_tx_data_desc *send_desc_head,
 static int hdd_ipa_is_ip_pkt(void *data, uint8_t ip_ver)
 {
 	struct ethhdr *eth = (struct ethhdr *)data;
+	struct llc_snap_hdr {
+		uint8_t dsap;
+		uint8_t ssap;
+		uint8_t resv[4];
+		__be16 eth_type;
+	} __packed;
 	struct llc_snap_hdr *ls_hdr;
 	uint16_t eth_type;
 	int ret = 0;
@@ -542,14 +523,16 @@ static int hdd_ipa_is_ip_pkt(void *data, uint8_t ip_ver)
 		/* Non Ethernet II framing format */
 		ls_hdr = (struct llc_snap_hdr *)((uint8_t *)data +
 						sizeof(struct ethhdr));
-
-		if (((ls_hdr->dsap == 0xAA) && (ls_hdr->ssap == 0xAA)) ||
-			((ls_hdr->dsap == 0xAB) && (ls_hdr->ssap == 0xAB)))
-			eth_type = be16_to_cpu(ls_hdr->eth_type);
+		/* TODO Is this needed
+		if ((ls_hdr->dsap == 0xAA && ls_hdr->ssap == 0xAA) ||
+			(ls_hdr->dsap == 0xAB && ls_hdr->ssap == 0xAB))
+		*/
+		eth_type = be16_to_cpu(ls_hdr->eth_type);
 	}
 
-	if (((eth_type == ETH_P_IP) && (ip_ver == HDD_IPA_IPV4)) ||
-		((eth_type == ETH_P_IPV6) && (ip_ver == HDD_IPA_IPV6)))
+	if ((eth_type == ETH_P_IP) && (ip_ver == HDD_IPA_IPV4))
+		ret = 1;
+	else if ((eth_type == ETH_P_IPV6) && (ip_ver == HDD_IPA_IPV6))
 		ret = 1;
 
 	if (ret != 1)
@@ -567,7 +550,7 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 					*done_desc_head, *done_desc, *tmp;
 	hdd_adapter_t *adap_dev = NULL;
 	adf_nbuf_t buf, next_buf;
-	uint8_t cur_cnt = 0;
+	uint8_t dev_id, cur_cnt = 0, iftype;
 
 	switch (evt) {
 	case HDD_IPA_RXT_EVT:
@@ -588,6 +571,8 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 			}
 			return;
 		}
+		dev_id = adap_dev->dev->ifindex;
+		iftype = adap_dev->wdev.iftype;
 		/* send_desc_head is a anchor node */
 		send_desc_head = hdd_ipa_get_desc_from_freeq();
 		if (!send_desc_head) {
@@ -640,8 +625,19 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 			}
 
 			skb_push(buf, HDD_IPA_WLAN_HDR_ONLY_LEN);
-			/* vos_mem_zero(((struct ipa_rx_hdr *)(buf->data))->hdr, HDD_IPA_WLAN_HDR_ONLY_LEN); */
-			((struct ipa_rx_hdr *)(buf->data))->hdr[HDD_IPA_WLAN_HDR_STA_ID_OFFSET] = rxt->sta_id;
+			memset(buf->data, 0, HDD_IPA_WLAN_HDR_ONLY_LEN);
+			buf->data[HDD_IPA_WLAN_HDR_STA_ID_OFFSET] = rxt->sta_id;
+			buf->data[HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET] |=
+					dev_id & HDD_IPA_WLAN_HDR_DEV_ID_MASK;
+			if (iftype == NL80211_IFTYPE_AP ||
+					iftype == NL80211_IFTYPE_P2P_GO) {
+				buf->data[HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET] |=
+						HDD_IPA_WLAN_HDR_DEV_TYPE_AP;
+			} else {
+				buf->data[HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET] |=
+						HDD_IPA_WLAN_HDR_DEV_TYPE_STA;
+			}
+
 			send_desc = hdd_ipa_get_desc_from_freeq();
 			if (send_desc) {
 				send_desc->priv = buf;
@@ -701,7 +697,7 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 						HDD_IPA_RM_GRANT_PENDING);
 				hdd_ipa_rm_request(hdd_ipa);
 			}
-			/* hdd_ipa_rm_request can immediately grant so check again. */
+			//hdd_ipa_rm_request can immediately grant so check again.
 			if (atomic_read(&hdd_ipa->rm_state)
 						== HDD_IPA_RM_GRANT_PENDING) {
 				spin_lock_bh(&hdd_ipa->q_lock);
@@ -710,11 +706,6 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 				/* return anchor node */
 				list_add_tail(&send_desc_head->link,
 						&hdd_ipa->free_desc_head);
-				hdd_ipa->stats.freeq_cnt++;
-#ifdef HDD_IPA_EXTRA_DP_COUNTERS
-				hdd_ipa->stats.rx_ipa_dh_reclaim++;
-				hdd_ipa->stats.freeq_reclaim++;
-#endif
 				spin_unlock_bh(&hdd_ipa->q_lock);
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
 				hdd_ipa->stats.rx_ipa_rm_qued += cur_cnt;
@@ -800,7 +791,6 @@ VOS_STATUS hdd_ipa_process_rxt(v_VOID_t *vosContext, adf_nbuf_t rx_buf_list,
 
 	rxt.sta_id = sta_id;
 	rxt.rx_buf_list = rx_buf_list;
-
 	hdd_ipa_process_evt(HDD_IPA_RXT_EVT, &rxt);
 
 	return VOS_STATUS_SUCCESS;
@@ -814,174 +804,88 @@ void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt, unsigned long data)
 	uint8_t client;
 	struct ipa_tx_data_desc *done_desc_head;
 	adf_nbuf_t skb;
-	uint8_t sta_id;
+	uint8_t sta_id, dev_id;
 	hdd_adapter_t *adap_dev=NULL;
 
 	client = *((uint8_t *)priv);
-	if (client != hdd_pipe_id_2_ipa_client_id[HDD_IPA_RX_PIPE]) {
+	if (client != hdd_ipa_pipe_client[HDD_IPA_RX_PIPE]) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 				"w2i cb wrong pipe: %d %x %x",
 				client, priv,
-				&hdd_pipe_id_2_ipa_client_id[HDD_IPA_RX_PIPE]);
+				&hdd_ipa_pipe_client[HDD_IPA_RX_PIPE]);
 		return;
 	}
 
 	switch (evt) {
 	case IPA_RECEIVE:
 		skb = (adf_nbuf_t) data;
-		sta_id = ((struct ipa_rx_hdr *)(skb->data))->hdr[HDD_IPA_WLAN_HDR_STA_ID_OFFSET];
-
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "w2i -- skb:0x%p: %02x %02x %02x %02x %02x %02x %02x %02x", skb,
-				skb->data[0], skb->data[1], skb->data[2], skb->data[3],
-				skb->data[4], skb->data[5], skb->data[6], skb->data[7]);
-
-		skb_pull(skb, HDD_IPA_WLAN_HDR_ONLY_LEN);
-
+		sta_id = skb->data[HDD_IPA_WLAN_HDR_STA_ID_OFFSET];
+		dev_id = skb->data[HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET];
 		if (sta_id < ARRAY_SIZE(hdd_ipa->hdd_ctx->sta_to_adapter)) {
 			adap_dev = hdd_ipa->hdd_ctx->sta_to_adapter[sta_id];
 		} else {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-					"w2i cb: wrong sta_id: %d", sta_id);
+				"w2i cb: wrong sta_id: %d", sta_id);
 		}
-
+		skb_pull(skb, HDD_IPA_WLAN_HDR_ONLY_LEN);
 		hdd_ipa->stats.rx_ipa_excep++;
 		hdd_ipa_send_skb_to_network(skb, adap_dev);
 		break;
 	case IPA_WRITE_DONE:
 		done_desc_head = (struct ipa_tx_data_desc *)data;
 		hdd_ipa_w2i_write_done_handler(done_desc_head);
-		break;
-	default:
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-				"w2i cb wrong event: 0x%x", evt);
-		return;
+	break;
 	}
 }
 
 void hdd_ipa_nbuf_cb(adf_nbuf_t skb)
 {
-	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
-
-	/* TX COMP counter at frame free location. */
-	hdd_ipa->stats.tx_comp_cnt++;
-
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "0x%p", NBUF_OWNER_PRIV_DATA(skb));
-	ipa_free_skb((struct ipa_rx_data *) NBUF_OWNER_PRIV_DATA(skb));
+	ipa_free_skb(skb);
 }
 
-#ifdef WLAN_TX_MUL
+void hdd_ipa_tx_process(adf_nbuf_t skb, uint8_t ac)
+{
+	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
+	uint8_t sta_id;
+	hdd_adapter_t *adap_dev;
+
+	skb->queue_mapping = ac;
+	sta_id = skb->data[HDD_IPA_WLAN_HDR_STA_ID_OFFSET];
+	adap_dev = hdd_ipa->hdd_ctx->sta_to_adapter[sta_id];
+	if (!adap_dev
+		|| (adap_dev && adap_dev->magic != WLAN_HDD_ADAPTER_MAGIC)) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Invalid sta_id %d", sta_id);
+		ipa_free_skb(skb);
+		return;
+	}
+	skb->dev = adap_dev->dev;
+	NBUF_OWNER_ID(skb) = IPA_NBUF_OWNER_ID;
+	NBUF_CALLBACK_FN(skb) = hdd_ipa_nbuf_cb;
+	skb_pull(skb, HDD_IPA_WLAN_HDR_ONLY_LEN);
+	(adap_dev->dev->netdev_ops->ndo_start_xmit)(skb, adap_dev->dev);
+}
+
 void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt, unsigned long data)
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
-	struct ipa_rx_data_mul *ipa_tx_desc;
 	adf_nbuf_t skb;
-	uint8_t client, pipe_id;
+	uint8_t client;
+	uint8_t i, ac = HDD_LINUX_AC_BE;
 
 	if (evt == IPA_RECEIVE) {
 		client = *((uint8_t *)priv);
-		struct list_head *head = (struct list_head *)data;
-
-		pipe_id = ipa_client_id_2_hdd_pipe_id[client];
-
-		if (hdd_ipa->pipe_to_vdev[pipe_id] == NULL) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL, "TLSHIM tx fail (vdev=NULL)");
-			/* TODO: need to free ipa_desc and skb here */
-			return;
-		}
-
-		list_for_each_entry(ipa_tx_desc, head, link) {
-			if (ipa_tx_desc->dd == NULL)
+		skb = (adf_nbuf_t) data;
+		for (i = 0; i < HDD_IPA_MAX_TX_PIPE_MAP; i++) {
+			if (client == hdd_ipa_tx_pipe_map_info[i].client) {
+				ac = hdd_ipa_tx_pipe_map_info[i].ac;
 				break;
-
-			/* TX frame Counter at HDD CB function called by IPA loopback, to push lower layer.*/
-			hdd_ipa->stats.tx_ipa_recv++;
-
-			skb = ipa_tx_desc->dd->skb;
-
-			/* skb->dev = ipa_client_id_2_hdd_pipe_id[client]; */
-			adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
-			NBUF_OWNER_ID(skb) = IPA_NBUF_OWNER_ID;
-			NBUF_CALLBACK_FN(skb) = hdd_ipa_nbuf_cb;
-			NBUF_MAPPED_PADDR_LO(skb) = ipa_tx_desc->dd->dma_addr;
-
-			NBUF_OWNER_PRIV_DATA(skb) = (unsigned long)ipa_tx_desc->dd;
-
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "skb:0x%p: %02x %02x %02x %02x %02x %02x %02x %02x", skb,
-					skb->data[0], skb->data[1], skb->data[2], skb->data[3],
-					skb->data[4], skb->data[5], skb->data[6], skb->data[7]);
-
-			skb = WLANTL_SendIPA_DataFrame(hdd_ipa->hdd_ctx->pvosContext, hdd_ipa->pipe_to_vdev[pipe_id],
-								ipa_tx_desc->dd->skb);
-			if (skb) {
-				HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL, "TLSHIM tx fail");
-				ipa_free_skb(ipa_tx_desc->dd);
-				continue;
 			}
 		}
-		ipa_free_desc(data);
-
-	} else {
-		/* HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "i2w cb wrong evt: %d", evt);
-		    HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Testing hack code data path"); */
-		skb = (adf_nbuf_t) data;
-		dev_kfree_skb_any(skb);
-	}
-}
-
-#else
-
-void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt, unsigned long data)
-{
-	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
-	struct ipa_rx_data *ipa_tx_desc;
-	adf_nbuf_t skb;
-	uint8_t client, pipe_id;
-
-	if (evt == IPA_RECEIVE) {
-		/* TX frame Counter at HDD CB function called by IPA loopback, to push lower layer */
 		hdd_ipa->stats.tx_ipa_recv++;
-
-		client = *((uint8_t *)priv);
-		ipa_tx_desc = (struct ipa_rx_data *)data;
-		skb = ipa_tx_desc->skb;
-
-		adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
-		NBUF_OWNER_ID(skb) = IPA_NBUF_OWNER_ID;
-		NBUF_CALLBACK_FN(skb) = hdd_ipa_nbuf_cb;
-		NBUF_MAPPED_PADDR_LO(skb) = ipa_tx_desc->dma_addr;
-
-		NBUF_OWNER_PRIV_DATA(skb) = data;
-
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "0x%p", NBUF_OWNER_PRIV_DATA(skb));
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "skb:0x%p: %02x %02x %02x %02x %02x %02x %02x %02x", skb,
-					skb->data[0], skb->data[1], skb->data[2], skb->data[3],
-					skb->data[4], skb->data[5], skb->data[6], skb->data[7]);
-
-		pipe_id = ipa_client_id_2_hdd_pipe_id[client];
-
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "client=%d, pipe_to_vdev[%d]=0x%x", client, pipe_id, hdd_ipa->pipe_to_vdev[pipe_id]);
-
-		if (hdd_ipa->pipe_to_vdev[pipe_id] == NULL) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL, "TLSHIM tx fail (pipe_to_vdev[%d]=NULL)", pipe_id);
-			ipa_free_skb(ipa_tx_desc);
-			return;
-		}
-
-		skb = WLANTL_SendIPA_DataFrame(hdd_ipa->hdd_ctx->pvosContext, hdd_ipa->pipe_to_vdev[pipe_id],
-							ipa_tx_desc->skb);
-		if (skb) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL, "TLSHIM tx fail");
-			ipa_free_skb(ipa_tx_desc);
-			return;
-		}
-	} else {
-		/* HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "i2w cb wrong evt: %d", evt);
-		    HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Testing hack code data path"); */
-		skb = (adf_nbuf_t) data;
-		dev_kfree_skb_any(skb);
-	}
+		hdd_ipa_tx_process(skb, ac);
+	} else
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "i2w cb wrong evt: %d", evt);
 }
-#endif
 
 static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 {
@@ -992,9 +896,9 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 	for (i = 0; i < HDD_IPA_RX_PIPE; i++) {
 		ipa = &hdd_ipa->sys_pipe[i].ipa_sys_params;
 
-		ipa->client = hdd_pipe_id_2_ipa_client_id[i];
+		ipa->client = hdd_ipa_pipe_client[i];
 		ipa->desc_fifo_sz = hdd_ipa->hdd_ctx->cfg_ini->IpaDescSize;
-		ipa->priv = &hdd_pipe_id_2_ipa_client_id[i];
+		ipa->priv = &hdd_ipa_pipe_client[i];
 		ipa->notify = hdd_ipa_i2w_cb;
 
 		ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_TX_HDR_LEN;
@@ -1010,9 +914,9 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 
 	ipa = &hdd_ipa->sys_pipe[HDD_IPA_RX_PIPE].ipa_sys_params;
 
-	ipa->client = hdd_pipe_id_2_ipa_client_id[HDD_IPA_RX_PIPE];
-	ipa->desc_fifo_sz = hdd_ipa->hdd_ctx->cfg_ini->IpaDescSize + sizeof(struct sps_iovec);	/* To make sure total # of desc is 1 less than the desc FIFO size */
-	ipa->priv = &hdd_pipe_id_2_ipa_client_id[HDD_IPA_RX_PIPE];
+	ipa->client = hdd_ipa_pipe_client[HDD_IPA_RX_PIPE];
+	ipa->desc_fifo_sz = hdd_ipa->hdd_ctx->cfg_ini->IpaDescSize;
+	ipa->priv = &hdd_ipa_pipe_client[HDD_IPA_RX_PIPE];
 	ipa->notify = hdd_ipa_w2i_cb;
 
 	ipa->ipa_ep_cfg.nat.nat_en = IPA_BYPASS_NAT;
@@ -1048,8 +952,10 @@ void hdd_ipa_teardown_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 	}
 }
 
-int hdd_ipa_register_interface(struct hdd_ipa_priv *hdd_ipa, uint8_t sta_id, const char *ifname)
+int hdd_ipa_register_interface(struct hdd_ipa_priv *hdd_ipa, uint8_t iftype,
+					uint8_t sta_id, const char *ifname)
 {
+#define HDD_IPA_TOS_MASK	0xE0
 	struct ipa_tx_intf tx_intf;
 	struct ipa_rx_intf rx_intf;
 	struct ipa_ioc_tx_intf_prop *tx_prop = NULL;
@@ -1058,21 +964,23 @@ int hdd_ipa_register_interface(struct hdd_ipa_priv *hdd_ipa, uint8_t sta_id, con
 	char ipv4_hdr_name[IPA_RESOURCE_NAME_MAX];
 	char ipv6_hdr_name[IPA_RESOURCE_NAME_MAX];
 
-	int ip_max = HDD_IPA_IPV4;
+	int i, j, ip_max = HDD_IPA_IPV4;
 	int ret = 0;
 
 	if (hdd_ipa_is_ipv6_enabled(hdd_ipa))
 		ip_max = HDD_IPA_IPV6;
 
 	/* Allocate TX properties for TOS categories, 1 each for IPv4 & IPv6 */
-	tx_prop = hdd_ipa_kzalloc(sizeof(struct ipa_ioc_tx_intf_prop) * ip_max);
+	tx_prop = hdd_ipa_kzalloc(sizeof(struct ipa_ioc_tx_intf_prop) *
+					HDD_IPA_MAX_TX_PIPE_MAP * ip_max);
 	if (!tx_prop) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "ENOMEM");
 		goto register_interface_fail;
 	}
 
 	/* Allocate RX properties, 1 each for IPv4 & IPv6 */
-	rx_prop = hdd_ipa_kzalloc(sizeof(struct ipa_ioc_rx_intf_prop) * ip_max);
+	rx_prop = hdd_ipa_kzalloc(sizeof(struct ipa_ioc_rx_intf_prop)
+								 * ip_max);
 	if (!rx_prop) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "ENOMEM");
 		goto register_interface_fail;
@@ -1082,28 +990,72 @@ int hdd_ipa_register_interface(struct hdd_ipa_priv *hdd_ipa, uint8_t sta_id, con
 
 	snprintf(ipv4_hdr_name, IPA_RESOURCE_NAME_MAX, "%s%s",
 		ifname, HDD_IPA_IPV4_NAME_EXT);
-	snprintf(ipv6_hdr_name, IPA_RESOURCE_NAME_MAX, "%s%s",
-		ifname, HDD_IPA_IPV6_NAME_EXT);
-
 	rx_prop[IPA_IP_v4].ip = IPA_IP_v4;
-	rx_prop[IPA_IP_v4].src_pipe = IPA_CLIENT_WLAN1_PROD;
-	rx_intf.num_props++;
 	if (hdd_ipa_is_ipv6_enabled(hdd_ipa)) {
+		snprintf(ipv6_hdr_name, IPA_RESOURCE_NAME_MAX, "%s%s",
+			ifname, HDD_IPA_IPV6_NAME_EXT);
 		rx_prop[IPA_IP_v6].ip = IPA_IP_v6;
-		rx_prop[IPA_IP_v6].src_pipe = IPA_CLIENT_WLAN1_PROD;
-		rx_intf.num_props++;
+	}
+	/*
+	TOS value: 1, 2 - > Maps to BK pipe [WLAN1_CONS]
+	TOS value: 0, 3 - > Maps to BE pipe [WLAN2_CONS]
+	TOS value: 4, 5 - > Maps to VI pipe [WLAN3_CONS]
+	TOS Value: 6, 7 - > Maps to VO pipe [WLAN4_CONS]
+	*/
+
+	/*
+	IP-TOS - 8bits
+	: DSCP(6-bits) ECN(2-bits)
+	: DSCP - P2 P1 P0 X X X
+	where (P2 P1 P0) form 802.1D
+	So shifting tos_value by 5 bits before passing to IPA. Also IPA
+	required mask to be set for 3 MSB bits.
+	*/
+
+	for (i = 0; i < HDD_IPA_MAX_TX_PIPE_MAP; i++) {
+		tx_prop[i].ip = IPA_IP_v4;
+		tx_prop[i].attrib.attrib_mask = IPA_FLT_TOS_MASKED;
+		tx_prop[i].attrib.tos_value =
+				hdd_ipa_tx_pipe_map_info[i].tos_value << 5;
+		tx_prop[i].attrib.tos_mask = HDD_IPA_TOS_MASK;
+		tx_prop[i].dst_pipe = hdd_ipa_tx_pipe_map_info[i].client;
+		strlcpy(tx_prop[i].hdr_name, ipv4_hdr_name,
+							IPA_RESOURCE_NAME_MAX);
+		tx_intf.num_props++;
+		if (hdd_ipa_is_ipv6_enabled(hdd_ipa)) {
+			j = i + HDD_IPA_MAX_TX_PIPE_MAP;
+
+			tx_prop[j].ip = IPA_IP_v6;
+			tx_prop[j].attrib.attrib_mask = IPA_FLT_TOS_MASKED;
+			tx_prop[j].attrib.tos_value =
+				hdd_ipa_tx_pipe_map_info[i].tos_value << 5;
+			tx_prop[j].attrib.tos_mask = HDD_IPA_TOS_MASK;
+			tx_prop[j].dst_pipe =
+					hdd_ipa_tx_pipe_map_info[i].client;
+			strlcpy(tx_prop[j].hdr_name, ipv6_hdr_name,
+							IPA_RESOURCE_NAME_MAX);
+			tx_intf.num_props++;
+		}
 	}
 
-	tx_prop[IPA_IP_v4].ip = IPA_IP_v4;
-	tx_prop[IPA_IP_v4].dst_pipe = hdd_pipe_id_2_ipa_client_id[wlan_sta_id_2_hdd_pipe_id[sta_id]];
-	strlcpy(tx_prop[IPA_IP_v4].hdr_name, ipv4_hdr_name, IPA_RESOURCE_NAME_MAX);
-	tx_intf.num_props++;
-	if (hdd_ipa_is_ipv6_enabled(hdd_ipa)) {
-		tx_prop[IPA_IP_v6].ip = IPA_IP_v6;
-		tx_prop[IPA_IP_v6].dst_pipe = hdd_pipe_id_2_ipa_client_id[wlan_sta_id_2_hdd_pipe_id[sta_id]];
-		strlcpy(tx_prop[IPA_IP_v6].hdr_name, ipv6_hdr_name,
-						IPA_RESOURCE_NAME_MAX);
-		tx_intf.num_props++;
+	for (i = 0; i < ip_max; i++) {
+		rx_prop[i].attrib.attrib_mask = IPA_FLT_META_DATA;
+		if (iftype == NL80211_IFTYPE_AP ||
+					iftype == NL80211_IFTYPE_P2P_GO) {
+			rx_prop[i].attrib.meta_data =
+				HDD_IPA_WLAN_HDR_DEV_TYPE_AP
+				<< ((HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET-1) * 8);
+		} else {
+			rx_prop[i].attrib.meta_data =
+				HDD_IPA_WLAN_HDR_DEV_TYPE_STA
+				<< ((HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET-1) * 8);
+		}
+		rx_prop[i].attrib.meta_data_mask =
+				HDD_IPA_WLAN_HDR_DEV_TYPE_MASK
+				<< ((HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET-1) * 8);
+		rx_prop[i].src_pipe = IPA_CLIENT_WLAN1_PROD;
+
+		rx_intf.num_props++;
 	}
 
 	tx_intf.prop = tx_prop;
@@ -1118,15 +1070,14 @@ register_interface_fail:
 	return ret;
 }
 
-static int hdd_ipa_add_header_info(enum ipa_wlan_event type, uint8_t sta_id, uint8_t *mac_addr)
+static int hdd_ipa_add_header_info(uint8_t sta_id, uint8_t *mac_addr)
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
+	uint8_t dev_id, wlan_iftype;
 	char *ifname;
 	struct ipa_ioc_add_hdr *ipahdr = NULL;
-	int i, ret = -EINVAL;
+	int ret = -EINVAL;
 	hdd_adapter_t *adap_dev;
-	struct ol_txrx_pdev_t *pdev;
-	struct ol_txrx_vdev_t *vdev;
 
 	adap_dev = hdd_ipa->hdd_ctx->sta_to_adapter[sta_id];
 	if (!adap_dev) {
@@ -1134,40 +1085,12 @@ static int hdd_ipa_add_header_info(enum ipa_wlan_event type, uint8_t sta_id, uin
 		goto add_header_info_ctx_fail;
 	}
 
+	dev_id = adap_dev->dev->ifindex;
+	wlan_iftype = adap_dev->wdev.iftype;
 	ifname = adap_dev->dev->name;
 
-	for (i = 0; i < HDD_IPA_MAX_PIPE; i++)
-		hdd_ipa->pipe_to_vdev[i] = NULL;
-
-	if (wlan_sta_id_2_hdd_pipe_id[sta_id] == 0xFF) {
-		switch (type) {
-		case WLAN_AP_CONNECT:
-			wlan_sta_id_2_hdd_pipe_id[sta_id] = HDD_IPA_TX_WLAN0_PIPE;	/* TODO: need to expand to AP+AP */
-			break;
-		case WLAN_STA_CONNECT:
-			/* Register pipe_to_vdev for STA mode */
-			pdev = ((pVosContextType)(WLAN_HDD_GET_CTX(adap_dev)->pvosContext))->pdev_txrx_ctx;
-			/* find the "vdev" this STA interface belongs to */
-			TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
-		        if (adf_os_mem_cmp(mac_addr, vdev->mac_addr.raw, IEEE80211_ADDR_LEN) == 0) {
-					hdd_ipa->pipe_to_vdev[HDD_IPA_TX_WLAN2_PIPE] = vdev;
-					break;
-				}
-			}
-
-			wlan_sta_id_2_hdd_pipe_id[sta_id] = HDD_IPA_TX_WLAN2_PIPE;	/* STA Mode */
-			break;
-		default:
-			break;
-		}
-	}
-
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, " wlan_sta_id_2_hdd_pipe_id[%d]: %d",
-		sta_id,	wlan_sta_id_2_hdd_pipe_id[sta_id]);
-
-
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "ifindex: %d Add Partial hdr: %s, %p\n",
-						sta_id, ifname, mac_addr);
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "Mode: %d Add Partial hdr: %s, %p\n",
+						wlan_iftype, ifname, mac_addr);
 	if (ifname == NULL) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "ifname NULL");
 		goto add_header_info_ctx_fail;
@@ -1184,18 +1107,28 @@ static int hdd_ipa_add_header_info(enum ipa_wlan_event type, uint8_t sta_id, uin
 	ipahdr->commit = 0;
 	ipahdr->num_hdrs = 1;
 	/* Set the Source MAC */
-	memcpy(ipahdr->hdr[0].hdr, (uint8_t *)&ipa_set_tx_hdr, HDD_IPA_WLAN_TX_HDR_LEN);
-	memcpy((uint8_t *)(((struct ipa_tx_hdr *)(ipahdr->hdr[0].hdr))->eth.h_source), mac_addr,
+	memcpy(ipahdr->hdr[0].hdr, ipa_set_tx_hdr, HDD_IPA_WLAN_TX_HDR_LEN);
+	memcpy(&ipahdr->hdr[0].hdr[HDD_IPA_WLAN_HDR_SRC_MAC_OFFSET], mac_addr,
 								ETH_ALEN);
+
+	/* Check the interface is AP OR STA mode, and set the station ID */
+	ipahdr->hdr[0].hdr[HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET] |=
+					dev_id & HDD_IPA_WLAN_HDR_DEV_ID_MASK;
+	ipahdr->hdr[0].hdr[HDD_IPA_WLAN_HDR_STA_ID_OFFSET] = sta_id;
+	if (wlan_iftype == NL80211_IFTYPE_AP ||
+		wlan_iftype == NL80211_IFTYPE_P2P_GO) {
+		ipahdr->hdr[0].hdr[HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET] |=
+						HDD_IPA_WLAN_HDR_DEV_TYPE_AP;
+	} else {
+		ipahdr->hdr[0].hdr[HDD_IPA_WLAN_HDR_DEV_INFO_OFFSET] |=
+						HDD_IPA_WLAN_HDR_DEV_TYPE_STA;
+	}
 
 	snprintf(ipahdr->hdr[0].name, IPA_RESOURCE_NAME_MAX, "%s%s",
 		ifname, HDD_IPA_IPV4_NAME_EXT);
 	ipahdr->hdr[0].hdr_len = HDD_IPA_WLAN_TX_HDR_LEN;
 	ipahdr->hdr[0].is_partial = HDD_IPA_WLAN_HDR_PARTIAL;
 	ipahdr->hdr[0].hdr_hdl = 0;
-
-	/* Set the type to IPV4 in the header*/
-	((struct ipa_tx_hdr *)(ipahdr->hdr[0].hdr))->llc_snap.eth_type = cpu_to_be16(ETH_P_IP);
 
 	ret = ipa_add_hdr(ipahdr);
 
@@ -1211,7 +1144,8 @@ static int hdd_ipa_add_header_info(enum ipa_wlan_event type, uint8_t sta_id, uin
 		snprintf(ipahdr->hdr[0].name, IPA_RESOURCE_NAME_MAX, "%s%s",
 			ifname, HDD_IPA_IPV6_NAME_EXT);
 		/* Set the type to IPV6 in the header*/
-		((struct ipa_tx_hdr *)(ipahdr->hdr[0].hdr))->llc_snap.eth_type = cpu_to_be16(ETH_P_IPV6);
+		ipahdr->hdr[0].hdr[HDD_IPA_WLAN_TX_HDR_IP_VER_OFFSET] = 0x86;
+		ipahdr->hdr[0].hdr[HDD_IPA_WLAN_TX_HDR_IP_VER_OFFSET + 1] = 0xdd;
 
 		ret = ipa_add_hdr(ipahdr);
 		if (ret) {
@@ -1224,7 +1158,7 @@ static int hdd_ipa_add_header_info(enum ipa_wlan_event type, uint8_t sta_id, uin
 				ipahdr->hdr[0].name, ipahdr->hdr[0].hdr_hdl);
 	}
 	/* Configure the TX and RX pipes filter rules */
-	ret = hdd_ipa_register_interface(hdd_ipa, sta_id, ifname);
+	ret = hdd_ipa_register_interface(hdd_ipa, wlan_iftype, sta_id, ifname);
 
 add_header_info_fail:
 	adf_os_mem_free(ipahdr);
@@ -1272,8 +1206,6 @@ void hdd_ipa_clean_hdr(hdd_adapter_t *adap_dev, uint8_t sta_id)
 	int ret;
 	char name_ipa[IPA_RESOURCE_NAME_MAX];
 
-	wlan_sta_id_2_hdd_pipe_id[sta_id] = 0xFF;
-
 	/* Remove the headers */
 	snprintf(name_ipa, IPA_RESOURCE_NAME_MAX, "%s%s",
 		adap_dev->dev->name, HDD_IPA_IPV4_NAME_EXT);
@@ -1301,7 +1233,6 @@ static void hdd_ipa_msg_free_fn(void *buff, uint32_t len, uint32_t type)
 int hdd_ipa_wlan_evt(void *Adapter, uint8_t sta_id,
 			enum ipa_wlan_event type, uint8_t *mac_addr)
 {
-	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 	hdd_adapter_t *adap_dev = Adapter;
 	struct ipa_msg_meta meta;
 	struct ipa_wlan_msg *msg;
@@ -1320,7 +1251,7 @@ int hdd_ipa_wlan_evt(void *Adapter, uint8_t sta_id,
 	__stringify(WLAN_STA_DISCONNECT),
 	__stringify(WLAN_CLIENT_CONNECT_EX),
 	};
-	struct ol_txrx_peer_t *peer;
+
 
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: %s evt, MAC: %pM sta_id: %d",
 			adap_dev->dev->name, hdd_ipa_event_name[type],
@@ -1334,42 +1265,33 @@ int hdd_ipa_wlan_evt(void *Adapter, uint8_t sta_id,
 	switch (type) {
 	case WLAN_STA_CONNECT:
 	case WLAN_AP_CONNECT:
-		hdd_ipa_add_header_info(type, sta_id, mac_addr);
+		hdd_ipa_add_header_info(sta_id, mac_addr);
 		break;
 
 	case WLAN_STA_DISCONNECT:
-		hdd_ipa->pipe_to_vdev[HDD_IPA_TX_WLAN2_PIPE] = NULL;
 	case WLAN_AP_DISCONNECT:
 		hdd_ipa_clean_hdr(adap_dev, sta_id);
 		break;
 
 	case WLAN_CLIENT_CONNECT_EX:
-		/* Register pipe map to txrx_vdev into hdd_ipa */
-		peer = ol_txrx_peer_find_by_local_id(((pVosContextType)(WLAN_HDD_GET_CTX(adap_dev))->pvosContext)->pdev_txrx_ctx, sta_id);
-		if (!peer) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Invalid peer");
-			return -EINVAL;
-		}
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%d %d", adap_dev->dev->ifindex, sta_id);
-		if (hdd_ipa->pipe_to_vdev[HDD_IPA_TX_WLAN0_PIPE] == NULL) {
-			hdd_ipa->pipe_to_vdev[HDD_IPA_TX_WLAN0_PIPE] = peer->vdev;	/* TODO: need to expand to AP+AP */
-		}
-
 		meta.msg_type = type;
 		meta.msg_len = (sizeof(struct ipa_wlan_msg_ex) +
-				sizeof(struct ipa_wlan_hdr_attrib_val));
+				sizeof(struct ipa_wlan_hdr_attrib_val) * 2);
 		msg_ex = hdd_ipa_kzalloc (meta.msg_len);
 		if (msg_ex == NULL) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "ENOMEM");
 			return -ENOMEM;
 		}
 		strlcpy(msg_ex->name, adap_dev->dev->name, IPA_RESOURCE_NAME_MAX);
-		msg_ex->num_of_attribs = 1;
+		msg_ex->num_of_attribs = 2;
 		msg_ex->attribs[0].attrib_type = WLAN_HDR_ATTRIB_MAC_ADDR;
 		msg_ex->attribs[0].offset = HDD_IPA_WLAN_HDR_DES_MAC_OFFSET;
 		memcpy(msg_ex->attribs[0].u.mac_addr, mac_addr,
 							IPA_MAC_ADDR_SIZE);
 
+		msg_ex->attribs[1].attrib_type = WLAN_HDR_ATTRIB_STA_ID;
+		msg_ex->attribs[1].offset = HDD_IPA_WLAN_HDR_STA_ID_OFFSET;
+		msg_ex->attribs[1].u.sta_id = sta_id;
 		ret = ipa_send_msg(&meta, msg_ex, hdd_ipa_msg_free_fn);
 
 		if (ret) {
@@ -1380,9 +1302,6 @@ int hdd_ipa_wlan_evt(void *Adapter, uint8_t sta_id,
 		}
 		return 0;
 	case WLAN_CLIENT_DISCONNECT:
-		/* TODO: need to expand to AP+AP */
-		/* This will remove the vdev for rest of the connected clients */
-		//hdd_ipa->pipe_to_vdev[HDD_IPA_TX_WLAN0_PIPE] = NULL;
 		break;
 
 	default:
@@ -1418,7 +1337,7 @@ static int hdd_ipa_rx_pipe_desc_alloc(void)
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 	uint32_t i, max_desc_cnt;
-	int ret = 0;
+	int ret =0;
 	struct ipa_tx_data_desc *tmp_desc;
 
 	hdd_ipa->hw_desc_cnt = IPA_NUM_OF_FIFO_DESC(
@@ -1541,6 +1460,11 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 	 "RXT 5 skb:", hdd_ipa->stats.rxt_5);
 	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n\n",
 	"RXT > 5 skb:", hdd_ipa->stats.rxt_6);
+#endif
+	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n\n",
+	"IPA TX Recieve:", hdd_ipa->stats.tx_ipa_recv);
+
+#ifdef HDD_IPA_EXTRA_DP_COUNTERS
 	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n",
 	"Free Queue use:", hdd_ipa->stats.freeq_use);
 	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n",
@@ -1550,14 +1474,7 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 	"Free Queue Empty:", hdd_ipa->stats.freeq_empty);
 	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n\n",
 	"Free Queue cnt:", hdd_ipa->stats.freeq_cnt);
-	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n\n",
-	"IPA LB Count:", hdd_ipa->stats.ipa_lb_cnt);
-	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n\n",
-	"IPA TX Recieve:", hdd_ipa->stats.tx_ipa_recv);
-	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n\n",
-	"TX COMP Count:", hdd_ipa->stats.tx_comp_cnt);
-	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n\n",
-	"TX DP Err Count:", hdd_ipa->stats.tx_dp_err_cnt);
+
 
 	if (len > buf_len)
 		len = buf_len;
@@ -1568,10 +1485,10 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 }
 
 static const struct file_operations fops_ipa_stats = {
-		.read = hdd_ipa_debugfs_read_ipa_stats,
-		.open = simple_open,
-		.owner = THIS_MODULE,
-		.llseek = default_llseek,
+        .read = hdd_ipa_debugfs_read_ipa_stats,
+        .open = simple_open,
+        .owner = THIS_MODULE,
+        .llseek = default_llseek,
 };
 
 
@@ -1580,7 +1497,7 @@ int hdd_ipa_debugfs_init(struct hdd_ipa_priv *hdd_ipa)
 #ifdef WLAN_OPEN_SOURCE
 	hdd_ipa->debugfs_dir = debugfs_create_dir("cld",
 					hdd_ipa->hdd_ctx->wiphy->debugfsdir);
-	if (!hdd_ipa->debugfs_dir)
+	if(!hdd_ipa->debugfs_dir)
 		return -ENOMEM;
 
 	debugfs_create_file("ipa-stats", S_IRUSR, hdd_ipa->debugfs_dir,
@@ -1600,12 +1517,9 @@ int hdd_ipa_debugfs_init(struct hdd_ipa_priv *hdd_ipa)
 VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 {
 	struct hdd_ipa_priv *hdd_ipa = NULL;
-	int ret, i;
+	int ret;
 	if (!hdd_ipa_is_enabled(hdd_ctx))
 		return 0;
-
-	for (i = 0; i < HDD_IPA_WLAN_MAX_STA_ID; i++)
-		wlan_sta_id_2_hdd_pipe_id[i] = 0xFF;
 
 	hdd_ipa = hdd_ipa_kzalloc(sizeof(struct hdd_ipa_priv));
 	if (!hdd_ipa) {
@@ -1671,68 +1585,6 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 	return VOS_STATUS_SUCCESS;
 }
 
-#if 0
-/**
-* hdd_ipa_start_xmit() - This is a hack code for IPA loopback test
-*/
-int hdd_ipa_start_xmit(struct sk_buff *skb, struct net_device *dev)
-{
-		hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
-		hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
-		uint8_t sta_id;
-				struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
-
-		v_MACADDR_t *pDestMacAddress = (v_MACADDR_t *)skb->data;
-
-		if (vos_is_macaddr_broadcast(pDestMacAddress) ||
-				vos_is_macaddr_group(pDestMacAddress)) {
-				/* The BC/MC station ID is assigned during BSS starting phase.
-					SAP will return the station ID used for BC/MC traffic. */
-				sta_id = pHddApCtx->uBCStaId;
-				hdd_softap_hard_start_xmit(skb, dev);
-				return NETDEV_TX_OK;
-		} else {
-				sta_id = *(uint8_t *)(((uint8_t *)(skb->data)) - 1);
-				if (sta_id == HDD_WLAN_INVALID_STA_ID) {
-						HDD_IPA_LOG(VOS_TRACE_LEVEL_WARN,
-						"Failed to find right station");
-						goto drop_pkt;
-				} else if (FALSE == pAdapter->aStaInfo[sta_id].isUsed) {
-						HDD_IPA_LOG(VOS_TRACE_LEVEL_WARN,
-						"STA %d is unregistered", sta_id);
-						goto drop_pkt;
-				}
-
-				if ((WLANTL_STA_CONNECTED !=
-								pAdapter->aStaInfo[sta_id].tlSTAState) &&
-						(WLANTL_STA_AUTHENTICATED !=
-								pAdapter->aStaInfo[sta_id].tlSTAState)) {
-						HDD_IPA_LOG(VOS_TRACE_LEVEL_WARN,
-						"Station not connected yet");
-						goto drop_pkt;
-				} else if (WLANTL_STA_CONNECTED ==
-						pAdapter->aStaInfo[sta_id].tlSTAState) {
-						if (ntohs(skb->protocol) !=
-												HDD_ETHERTYPE_802_1_X) {
-								HDD_IPA_LOG(VOS_TRACE_LEVEL_WARN,
-								"NON-EAPOL packet in no-Auth state");
-								goto drop_pkt;
-						}
-				}
-		}
-		if (hdd_ipa_is_ip_pkt(skb->data, HDD_IPA_IPV4)) {
-			/* TX frame Counter at HDD entry from kernel network stack, before give frame to IPA Loopback */
-			hdd_ipa->stats.ipa_lb_cnt++;
-			ipa_tx_dp(IPA_CLIENT_WLAN1_CONS, skb, NULL);
-		} else {
-			hdd_softap_hard_start_xmit(skb, dev);
-		}
-
-		return NETDEV_TX_OK;
-drop_pkt:
-		kfree_skb(skb);
-		return NETDEV_TX_OK;
-}
 #endif
 
-#endif
+
