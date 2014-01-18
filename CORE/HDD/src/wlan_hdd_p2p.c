@@ -1329,7 +1329,7 @@ int wlan_hdd_add_virtual_intf( struct wiphy *wiphy, char *name,
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: hdd_open_adapter failed",__func__);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
-        return NULL;
+        return ERR_PTR(-ENOSPC);
 #else
         return -EINVAL;
 #endif

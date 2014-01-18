@@ -13979,6 +13979,8 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 		hdd_tgt_cfg.band_cap = eCSR_BAND_ALL;
 	}
 
+        hdd_tgt_cfg.max_intf_count = wma_handle->wlan_resource_config.num_vdevs;
+
 	adf_os_mem_copy(hdd_tgt_cfg.hw_macaddr.bytes, wma_handle->hwaddr,
 			ATH_MAC_LEN);
 

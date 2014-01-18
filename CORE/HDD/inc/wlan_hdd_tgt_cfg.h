@@ -91,6 +91,7 @@ struct hdd_tgt_cfg {
 #ifdef WLAN_FEATURE_11AC
         struct hdd_tgt_vht_cap vht_cap;
 #endif
+        v_U8_t max_intf_count;
 };
 
 struct hdd_dfs_radar_ind {

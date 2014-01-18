@@ -1236,6 +1236,10 @@ struct hdd_context_s
     v_U16_t unsafe_channel_count;
     v_U16_t unsafe_channel_list[NUM_20MHZ_RF_CHANNELS];
 #endif /* FEATURE_WLAN_CH_AVOID */
+
+    v_U8_t max_intf_count;
+    v_U8_t current_intf_count;
+
 };
 
 
