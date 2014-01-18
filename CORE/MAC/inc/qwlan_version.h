@@ -41,8 +41,8 @@ BRIEF DESCRIPTION:
 #define QWLAN_VERSION_MINOR            0
 #define QWLAN_VERSION_PATCH            0
 #define QWLAN_VERSION_EXTRA            ""
-#define QWLAN_VERSION_BUILD            71
+#define QWLAN_VERSION_BUILD            72
 
-#define QWLAN_VERSIONSTR               "4.0.0.71"
+#define QWLAN_VERSIONSTR               "4.0.0.72"
 
 #endif /* QWLAN_VERSION_H */
