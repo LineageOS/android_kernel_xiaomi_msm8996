@@ -3456,7 +3456,7 @@ void pmcOffloadExitBmpsIndHandler(tpAniSirGlobal pMac, tSirSmeRsp *pMsg)
    else
    {
         smsLog(pMac, LOG1,
-                FL("Exit BMPS indication on session %lu, reason %d"),
+                FL("Exit BMPS indication on session %u, reason %d"),
                 pExitBmpsInd->smeSessionId, pExitBmpsInd->exitBmpsReason);
         pmcOffloadQueueRequestFullPower(pMac, pExitBmpsInd->smeSessionId,
                                 pExitBmpsInd->exitBmpsReason);
