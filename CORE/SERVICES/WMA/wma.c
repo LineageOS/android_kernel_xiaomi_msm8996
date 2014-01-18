@@ -10921,6 +10921,8 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 			WMA_LOGD("NLO match happened");
 			node->nlo_match_evt_received = TRUE;
 		}
+
+		WMA_LOGD("Holding %d sec wake_lock", WMA_PNO_WAKE_LOCK_TIMEOUT);
 		vos_wake_lock_timeout_acquire(&wma->pno_wake_lock,
 					      WMA_PNO_WAKE_LOCK_TIMEOUT);
 	}
@@ -11291,8 +11293,7 @@ static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
 	u_int8_t arp_offset = 12;
 	u_int8_t ns_ptrn[] = {0x86, 0xDD};
 
-	free_slot = wma->wow.total_free_ptrn_id -
-			wma->wow.used_free_ptrn_id + 1;
+	free_slot = wma->wow.total_free_ptrn_id - wma->wow.used_free_ptrn_id ;
 
 	if (free_slot < WMA_STA_WOW_DEFAULT_PTRN_MAX) {
 		WMA_LOGD("Free slots are not enough, avail:%d, need: %d",
@@ -11370,21 +11371,22 @@ static void wma_update_free_wow_ptrn_id(tp_wma_handle wma)
 	u_int8_t ptrn_id;
 
 	vos_mem_zero(wma->wow.free_ptrn_id, sizeof(wma->wow.free_ptrn_id));
-	wma->wow.total_free_ptrn_id = -1;
+	wma->wow.total_free_ptrn_id = 0;
 	wma->wow.used_free_ptrn_id = 0;
 
 	for (ptrn_id = 0; ptrn_id < wma->wlan_resource_config.num_wow_filters;
 								  ptrn_id++) {
 		cache = wma->wow.cache[ptrn_id];
 		if (!cache) {
-			wma->wow.free_ptrn_id[++wma->wow.total_free_ptrn_id] =
+			wma->wow.free_ptrn_id[wma->wow.total_free_ptrn_id] =
 						ptrn_id;
-			continue;
+			wma->wow.total_free_ptrn_id += 1;
+
 		}
 	}
 
 	WMA_LOGD("Total free wow pattern id for default patterns: %d",
-		 wma->wow.total_free_ptrn_id + 1);
+		 wma->wow.total_free_ptrn_id );
 }
 
 /* Returns true if the user configured any wow pattern for given vdev id */
