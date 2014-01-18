@@ -64,6 +64,9 @@ ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev)
         pdev->tx_desc.freelist = pdev->tx_desc.freelist->next;
     }
     adf_os_spin_unlock_bh(&pdev->tx_mutex);
+    if (!tx_desc) {
+        return NULL;
+    }
 
     OL_TX_TIMESTAMP_SET(tx_desc);
 
