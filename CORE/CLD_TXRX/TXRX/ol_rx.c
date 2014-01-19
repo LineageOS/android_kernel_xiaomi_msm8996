@@ -914,7 +914,7 @@ ol_rx_peer_init(struct ol_txrx_pdev_t *pdev, struct ol_txrx_peer_t *peer)
         ol_rx_reorder_init(&peer->tids_rx_reorder[tid], tid);
 
         /* invalid sequence number */
-        peer->tids_last_seq[tid] = 0xffff;
+        peer->tids_last_seq[tid] = IEEE80211_SEQ_MAX;
     }
     /*
      * Set security defaults: no PN check, no security.
