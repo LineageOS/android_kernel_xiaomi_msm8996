@@ -1427,4 +1427,15 @@ u_int16_t   dfs_usenol(struct ieee80211com *ic);
 #define WMA_SMPS_MASK_UPPER_3BITS 0x7
 #define WMA_SMPS_PARAM_VALUE_S 29
 
+/* U-APSD Access Categories */
+enum uapsd_ac {
+	UAPSD_VO,
+	UAPSD_VI,
+	UAPSD_BK,
+	UAPSD_BE
+};
+
+VOS_STATUS wma_disable_uapsd_per_ac(tp_wma_handle wma_handle,
+					u_int32_t vdev_id,
+					enum uapsd_ac ac);
 #endif

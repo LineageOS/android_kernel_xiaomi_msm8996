@@ -9790,6 +9790,14 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 
 	if (eSIR_ADDON_NOTHING == ps_req->psSetting) {
 		WMA_LOGD("Enable Sta Mode Ps vdevId %d", vdev_id);
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+						WMI_STA_PS_PARAM_UAPSD, 0);
+		if (ret) {
+			WMA_LOGE("Set Uapsd param 0 Failed vdevId %d", vdev_id);
+			ps_req->status = VOS_STATUS_E_FAILURE;
+			goto resp;
+		}
+
 		if(is_qpower_enabled)
 			ret = wma_set_qpower_force_sleep(wma, vdev_id, false);
 		else
@@ -10092,6 +10100,51 @@ VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 			ret, vdev_id);
 		return VOS_STATUS_E_FAILURE;
 	}
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS wma_disable_uapsd_per_ac(tp_wma_handle wma_handle,
+					u_int32_t vdev_id,
+					enum uapsd_ac ac)
+{
+	int32_t ret;
+	struct wma_txrx_node *iface = &wma_handle->interfaces[vdev_id];
+	WMA_LOGD("Disable Uapsd per ac vdevId %d ac %d", vdev_id, ac);
+
+	switch (ac) {
+		case UAPSD_VO:
+			iface->uapsd_cached_val &=
+					~(WMI_STA_PS_UAPSD_AC3_DELIVERY_EN |
+					WMI_STA_PS_UAPSD_AC3_TRIGGER_EN);
+			break;
+		case UAPSD_VI:
+			iface->uapsd_cached_val &=
+					~(WMI_STA_PS_UAPSD_AC2_DELIVERY_EN |
+					WMI_STA_PS_UAPSD_AC2_TRIGGER_EN);
+			break;
+		case UAPSD_BK:
+			iface->uapsd_cached_val &=
+					~(WMI_STA_PS_UAPSD_AC1_DELIVERY_EN |
+					WMI_STA_PS_UAPSD_AC1_TRIGGER_EN);
+			break;
+		case UAPSD_BE:
+			iface->uapsd_cached_val &=
+					~(WMI_STA_PS_UAPSD_AC0_DELIVERY_EN |
+					WMI_STA_PS_UAPSD_AC0_TRIGGER_EN);
+			break;
+		default:
+			WMA_LOGE("Invalid AC vdevId %d ac %d", vdev_id, ac);
+			return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
+			WMI_STA_PS_PARAM_UAPSD, iface->uapsd_cached_val);
+	if (ret) {
+		WMA_LOGE("Disable Uapsd per ac Failed vdevId %d ac %d", vdev_id, ac);
+		return VOS_STATUS_E_FAILURE;
+	}
+	WMA_LOGD("Disable Uapsd per ac vdevId %d val %d", vdev_id,
+		iface->uapsd_cached_val);
 	return VOS_STATUS_SUCCESS;
 }
 

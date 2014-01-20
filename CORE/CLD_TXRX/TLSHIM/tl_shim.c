@@ -1058,7 +1058,38 @@ VOS_STATUS WLANTL_EnableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
 VOS_STATUS WLANTL_DisableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
 				    WLANTL_ACEnumType ac, v_U32_t sessionId)
 {
-	/* TBD */
+	tp_wma_handle wma_handle;
+	enum uapsd_ac access_category;
+	ENTER();
+
+	switch (ac) {
+		case WLANTL_AC_BK:
+			access_category = UAPSD_BK;
+			break;
+		case WLANTL_AC_BE:
+			access_category = UAPSD_BE;
+			break;
+		case WLANTL_AC_VI:
+			access_category = UAPSD_VI;
+			break;
+		case WLANTL_AC_VO:
+			access_category = UAPSD_VO;
+			break;
+		default:
+			return VOS_STATUS_E_FAILURE;
+	}
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+	if (!wma_handle) {
+		TLSHIM_LOGE("wma handle is NULL");
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (VOS_STATUS_SUCCESS !=
+	wma_disable_uapsd_per_ac(wma_handle, sessionId, access_category)) {
+		TLSHIM_LOGE("Failed to disable uapsd for ac %d for sessionId %d",
+					ac, sessionId);
+		return VOS_STATUS_E_FAILURE;
+	}
 	return VOS_STATUS_SUCCESS;
 }
 

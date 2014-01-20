@@ -3171,10 +3171,11 @@ eHalStatus pmcOffloadQueueStopUapsdRequest(tpAniSirGlobal pMac,
                 return eHAL_STATUS_FAILURE;
             }
         default:
-            smsLog(pMac, LOGE,
+            pmc->uapsdSessionRequired = FALSE;
+            smsLog(pMac, LOG2,
                 "PMC: trying to enter Req Stop UAPSD State from state %d",
                 pmc->pmcState);
-            return eHAL_STATUS_FAILURE;
+            return eHAL_STATUS_SUCCESS;
     }
     return eHAL_STATUS_SUCCESS;
 }
@@ -3368,6 +3369,9 @@ eHalStatus pmcOffloadEnterPowersaveState(tpAniSirGlobal pMac, tANI_U32 sessionId
      else
      {
          pmc->uapsdStatus = PMC_UAPSD_DISABLED;
+         if (pmc->pmcState == UAPSD)
+            pmc->uapsdSessionRequired = FALSE;
+
          pmc->pmcState = BMPS;
      }
 
