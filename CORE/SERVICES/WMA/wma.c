@@ -14133,9 +14133,10 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 
 	scan_event->event = wmi_event->event;
 
-	WMA_LOGI("WMA <-- wmi_scan_event : event %lu, scan_id %lu, freq %lu",
+	WMA_LOGI("WMA <-- wmi_scan_event : event %lu, scan_id %lu, "
+			"freq %lu, reason %lu",
 			wmi_event->event, wmi_event->scan_id,
-			wmi_event->channel_freq);
+			wmi_event->channel_freq, wmi_event->reason);
 
 	scan_event->scanId = wmi_event->scan_id;
 	scan_event->chanFreq = wmi_event->channel_freq;
