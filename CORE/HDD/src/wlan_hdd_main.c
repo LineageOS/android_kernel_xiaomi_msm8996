@@ -8554,8 +8554,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    adf_ctx = vos_mem_malloc(sizeof(*adf_ctx));
 
    if (!adf_ctx) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx", __func__);
-      goto err_free_hdd_context;
+           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx");
+           goto err_free_hdd_context;
    }
    vos_mem_zero(adf_ctx, sizeof(*adf_ctx));
 #ifdef QCA_WIFI_ISOC
