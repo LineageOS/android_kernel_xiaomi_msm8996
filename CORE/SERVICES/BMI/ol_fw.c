@@ -377,10 +377,15 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		return -1;
 	}
 
+        if (!fw_entry || !fw_entry->data) {
+               printk("Invalid fw_entries\n");
+               return A_ERROR;
+        }
+
 	fw_entry_size = fw_entry->size;
 	tempEeprom = NULL;
 
-	if (file == ATH_BOARD_DATA_FILE && fw_entry->data)
+	if (file == ATH_BOARD_DATA_FILE)
 	{
 		u_int32_t board_ext_address;
 		int32_t board_ext_data_size;
@@ -396,6 +401,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 
 		switch (scn->target_type) {
 		default:
+			board_data_size = 0;
 			board_ext_data_size = 0;
 			break;
 		case TARGET_TYPE_AR6004:
@@ -424,11 +430,8 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 			status = BMIWriteMemory(scn->hif_hdl, board_ext_address,
 					(u_int8_t *)(tempEeprom + board_data_size), board_ext_data_size, scn);
 
-			if (status != EOK) {
-				printk("%s: BMI operation failed: %d\n", __func__, __LINE__);
-				release_firmware(fw_entry);
-				return -1;
-			}
+			if (status != EOK)
+				goto end;
 
 			/* Record the fact that extended board Data IS initialized */
 			param = (board_ext_data_size << 16) | 1;
@@ -450,14 +453,15 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		}
 	}
 
+end:
 	if (tempEeprom) {
 		OS_FREE(tempEeprom);
 	}
 
 	if (status != EOK) {
-		printk("BMI operation failed: %d\n", __LINE__);
+		printk("%s, BMI operation failed: %d\n", __func__, __LINE__);
 		release_firmware(fw_entry);
-		return -1;
+		return A_ERROR;
 	}
 
 	release_firmware(fw_entry);
