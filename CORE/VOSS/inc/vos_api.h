@@ -328,4 +328,28 @@ v_VOID_t vos_fwDumpReq(tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2,
 v_VOID_t vos_flush_work(v_VOID_t *work);
 v_VOID_t vos_flush_delayed_work(v_VOID_t *dwork);
 
-#endif // if !defined __VOS_NVITEM_H
+/**
+  @brief vos_request_pm_qos()
+
+  This function will vote for QoS latency
+
+  @param
+       qos_val - QoS latency in us
+  @return
+       NONE
+*/
+v_VOID_t vos_request_pm_qos(v_U32_t qos_val);
+
+/**
+  @brief vos_remove_pm_qos()
+
+  This function will remove QoS latency
+  that requested by vos_request_pm_qos()
+
+  @param
+       NONE
+  @return
+       NONE
+*/
+v_VOID_t vos_remove_pm_qos(v_VOID_t);
+#endif // if !defined __VOS_API_H

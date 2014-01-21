@@ -566,6 +566,8 @@ typedef struct {
 	vos_wake_lock_t pno_wake_lock;
 #endif
 	vos_wake_lock_t wow_wake_lock;
+	vos_wake_lock_t pm_qos_lock;
+	u_int32_t ap_client_cnt;
 
 	vos_timer_t wma_scan_comp_timer;
 	scan_timer_info wma_scan_timer_info;

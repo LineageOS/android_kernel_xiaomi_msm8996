@@ -162,6 +162,9 @@
  */
 #define WMA_MAXNUM_PERIODIC_TX_PTRNS 6
 
+/* default latency in us */
+#define WMA_PM_QOS_DEFAULT_LATENCY 20000
+
 static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
 
@@ -2232,6 +2235,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		WMA_LOGP("Memory allocation failed for dfs_ic");
 	}
 
+	vos_wake_lock_init(&wma_handle->pm_qos_lock, "pm_qos_wakelock");
+
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 	if (vos_get_conparam() == VOS_FTM_MODE)
 		wma_utf_attach(wma_handle);
@@ -2636,6 +2641,15 @@ void wma_vdev_detach_callback(void *ctx)
 	wma_send_msg(wma, WDA_DEL_STA_SELF_RSP, (void *)param, 0);
 }
 
+static void wma_reset_pm_qos(tp_wma_handle wma)
+{
+	if (wma->ap_client_cnt) {
+		wma->ap_client_cnt = 0;
+		vos_wake_lock_release(&wma->pm_qos_lock);
+		vos_remove_pm_qos();
+	}
+}
+
 /* function   : wma_vdev_detach
  * Descriptin :
  * Args       :
@@ -2652,6 +2666,9 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 	u_int8_t vdev_id = pdel_sta_self_req_param->sessionId;
 	struct wma_txrx_node *iface = &wma_handle->interfaces[vdev_id];
 	struct wma_target_req *msg;
+
+	if (wma_is_vdev_in_ap_mode(wma_handle, vdev_id))
+		wma_reset_pm_qos(wma_handle);
 
 	if ((iface->type == WMI_VDEV_TYPE_AP) &&
 	    (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE)) {
@@ -8401,6 +8418,24 @@ out:
 	wma_send_msg(wma, WDA_ADD_STA_RSP, (void *)params, 0);
 }
 
+static void wma_request_pm_qos(tp_wma_handle wma)
+{
+	wma->ap_client_cnt++;
+	if (1 == wma->ap_client_cnt) {
+		vos_wake_lock_acquire(&wma->pm_qos_lock);
+		vos_request_pm_qos(WMA_PM_QOS_DEFAULT_LATENCY);
+	}
+}
+
+static void wma_remove_pm_qos(tp_wma_handle wma)
+{
+	wma->ap_client_cnt--;
+	if (0 == wma->ap_client_cnt) {
+		vos_wake_lock_release(&wma->pm_qos_lock);
+		vos_remove_pm_qos();
+	}
+}
+
 static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 {
 	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
@@ -8410,8 +8445,10 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
                  add_sta->bssId[0], add_sta->bssId[1], add_sta->bssId[2],
                  add_sta->bssId[3], add_sta->bssId[4], add_sta->bssId[5]);
 
-	if (wma_is_vdev_in_ap_mode(wma, add_sta->smesessionId))
+	if (wma_is_vdev_in_ap_mode(wma, add_sta->smesessionId)) {
+		wma_request_pm_qos(wma);
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
+	}
 #ifdef QCA_IBSS_SUPPORT
         else if (wma_is_vdev_in_ibss_mode(wma, add_sta->smesessionId))
 		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
@@ -9025,8 +9062,10 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 {
 	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
 
-	if (wma_is_vdev_in_ap_mode(wma, del_sta->smesessionId))
+	if (wma_is_vdev_in_ap_mode(wma, del_sta->smesessionId)) {
+		wma_remove_pm_qos(wma);
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
+	}
 #ifdef QCA_IBSS_SUPPORT
 	if (wma_is_vdev_in_ibss_mode(wma, del_sta->smesessionId)) {
 		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
@@ -15603,6 +15642,8 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 		goto end;
 	}
 
+	wma_reset_pm_qos(wma_handle);
+
 end:
 	WMA_LOGD("%s: Exit", __func__);
 	return vos_status;
@@ -15668,6 +15709,8 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	vos_status = dbglog_deinit(wma_handle->wmi_handle);
 	if(vos_status != VOS_STATUS_SUCCESS)
 		WMA_LOGP("dbglog_deinit failed");
+
+	vos_wake_lock_destroy(&wma_handle->pm_qos_lock);
 
 	/* close the vos events */
 	vos_event_destroy(&wma_handle->wma_ready_event);
