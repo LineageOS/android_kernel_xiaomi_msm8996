@@ -543,12 +543,14 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		params->chainMask = resp_event->chain_mask;
 		params->smpsMode = host_map_smps_mode(resp_event->smps_mode);
 		params->status = resp_event->status;
+
       /*
        * Marking the VDEV UP STATUS to FALSE
        * since, VDEV RESTART will do a VDEV DOWN
        * in the firmware.
        */
-      iface->vdev_up = FALSE;
+
+		iface->vdev_up = FALSE;
 		wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
 	} else if (req_msg->msg_type == WDA_ADD_BSS_REQ) {
 		tpAddBssParams bssParams = (tpAddBssParams) req_msg->user_data;
@@ -923,7 +925,13 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 			WMA_LOGD("%s Failed to find peer %pM\n",
 					__func__, params->bssid);
 		wma_remove_peer(wma, params->bssid, resp_event->vdev_id, peer);
-		wmi_unified_vdev_down_send(wma->wmi_handle, resp_event->vdev_id);
+
+		if (wmi_unified_vdev_down_send(wma->wmi_handle, resp_event->vdev_id) < 0) {
+			WMA_LOGE("Failed to send vdev down cmd: vdev %d",
+				resp_event->vdev_id);
+		} else {
+			wma->interfaces[resp_event->vdev_id].vdev_up = FALSE;
+		}
 		iface = &wma->interfaces[resp_event->vdev_id];
 		if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
 			WMA_LOGD("%s: P2P BSS is stopped", __func__);
@@ -5385,7 +5393,12 @@ void wma_vdev_resp_timer(void *data)
 		struct wma_txrx_node *iface = &wma->interfaces[tgt_req->vdev_id];
 		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
 		wma_remove_peer(wma, params->bssid, tgt_req->vdev_id, peer);
-		wmi_unified_vdev_down_send(wma->wmi_handle, tgt_req->vdev_id);
+		if (wmi_unified_vdev_down_send(wma->wmi_handle, tgt_req->vdev_id) < 0) {
+			WMA_LOGE("Failed to send vdev down cmd: vdev %d",
+				tgt_req->vdev_id);
+		} else {
+			wma->interfaces[tgt_req->vdev_id].vdev_up = FALSE;
+		}
 		if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
 			WMA_LOGD("%s: P2P BSS is stopped", __func__);
 			iface->bss_status = WMA_BSS_STATUS_STOPPED;
@@ -8210,6 +8223,9 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		WMA_LOGP("Failed to send vdev up cmd: vdev %d bssid %pM\n",
 			 params->smesessionId, params->bssId);
 		status = VOS_STATUS_E_FAILURE;
+	}
+	else {
+		wma->interfaces[params->smesessionId].vdev_up = TRUE;
 	}
 
 	if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
@@ -12760,6 +12776,13 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 		return VOS_STATUS_E_INVAL;
 	}
 
+	if (!wma->interfaces[vdev_id].vdev_up) {
+
+		WMA_LOGE("vdev %d is not up skipping arp/ns offload", vdev_id);
+		vos_mem_free(pHostOffloadParams);
+		return VOS_STATUS_E_FAILURE;
+	}
+
 	len = sizeof(WMI_SET_ARP_NS_OFFLOAD_CMD_fixed_param) +
 		WMI_TLV_HDR_SIZE + // TLV place holder size for array of NS tuples
 		WMI_MAX_NS_OFFLOADS*sizeof(WMI_NS_OFFLOAD_TUPLE) +
@@ -12846,6 +12869,7 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 		}
 		buf_ptr += sizeof(WMI_ARP_OFFLOAD_TUPLE);
 	}
+
 	res = wmi_unified_cmd_send(wma->wmi_handle, buf, len, WMI_SET_ARP_NS_OFFLOAD_CMDID);
 	if(res) {
 		WMA_LOGE("Failed to enable ARP NDP/NSffload");
