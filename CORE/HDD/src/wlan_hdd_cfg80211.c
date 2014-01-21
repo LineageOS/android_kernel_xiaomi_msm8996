@@ -657,7 +657,7 @@ int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
 
     vendor_event = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
                        sizeof(tHddAvoidFreqList),
-                       QCOM_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY_INDEX,
+                       QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY_INDEX,
                        GFP_KERNEL);
     if (!vendor_event)
     {
@@ -681,11 +681,60 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
 {
 #ifdef FEATURE_WLAN_CH_AVOID
     {
-        .vendor_id = QCOM_NL80211_VENDOR_ID,
-        .subcmd = QCOM_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY
     },
 #endif /* FEATURE_WLAN_CH_AVOID */
 };
+
+int is_driver_dfs_capable(struct wiphy *wiphy, struct wireless_dev *wdev,
+                          void *data, int data_len)
+{
+    u32 dfs_capability;
+    struct sk_buff *temp_skbuff;
+    int ret_val;
+
+    dfs_capability = !!(wiphy->flags & WIPHY_FLAG_DFS_OFFLOAD);
+
+    temp_skbuff = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(u32) +
+                                                      NLMSG_HDRLEN);
+
+    if (temp_skbuff != NULL)
+    {
+
+        ret_val = nla_put_u32(temp_skbuff, QCA_WLAN_VENDOR_ATTR_DFS,
+                              dfs_capability);
+        if (ret_val)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: QCA_WLAN_VENDOR_ATTR_DFS put fail", __func__);
+            kfree_skb(temp_skbuff);
+
+            return ret_val;
+        }
+
+        return cfg80211_vendor_cmd_reply(temp_skbuff);
+    }
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+              "%s: dfs capability: buffer alloc fail", __func__);
+    return -1;
+
+}
+
+
+const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
+{
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_DFS_CAPABILITY,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV |
+                 WIPHY_VENDOR_CMD_NEED_RUNNING,
+        .doit = is_driver_dfs_capable
+    }
+};
+
 
 /*
  * FUNCTION: wlan_hdd_cfg80211_wiphy_alloc
@@ -956,9 +1005,13 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->max_remain_on_channel_duration = 1000;
 #endif
 
-    wiphy->n_vendor_commands = 0;
+    wiphy->n_vendor_commands = ARRAY_SIZE(hdd_wiphy_vendor_commands);
+    wiphy->vendor_commands = hdd_wiphy_vendor_commands;
+
     wiphy->vendor_events = wlan_hdd_cfg80211_vendor_events;
     wiphy->n_vendor_events = ARRAY_SIZE(wlan_hdd_cfg80211_vendor_events);
+
+    wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
 
     EXIT();
     return 0;
