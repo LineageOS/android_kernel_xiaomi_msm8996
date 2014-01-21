@@ -1225,7 +1225,11 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
    // Tx queues) but let's consistently handle all cases here
    pAc->wmmAcAccessAllowed = hdd_wmm_is_access_allowed(pAdapter, pAc);
 
-   if(pAc->wmmAcAccessFailed)
+   //hdd_wmm_is_access_allowed returns true for explicit case. This is
+   //not always true. If Access to particular AC fails and if
+   //admission is required for that particular AC, then access is not
+   //allowed to that AC.
+   if (pAc->wmmAcAccessFailed && pAc->wmmAcAccessRequired)
       pAc->wmmAcAccessAllowed = VOS_FALSE;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
