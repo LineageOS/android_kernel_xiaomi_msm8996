@@ -14161,9 +14161,8 @@ static VOS_STATUS wma_tx_detach(tp_wma_handle wma_handle)
  */
 static void wma_roam_better_ap_handler(tp_wma_handle wma, u_int32_t vdev_id)
 {
-extern	int tlshim_mgmt_roam_event_ind(void *context);
 	VOS_STATUS ret;
-	ret = tlshim_mgmt_roam_event_ind(wma->vos_context);
+	ret = tlshim_mgmt_roam_event_ind(wma->vos_context, vdev_id);
 }
 
 /* function   : wma_roam_event_callback

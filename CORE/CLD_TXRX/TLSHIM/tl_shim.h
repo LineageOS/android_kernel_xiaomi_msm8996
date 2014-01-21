@@ -79,4 +79,10 @@ struct deferred_iapp_work iapp_work;
 void WLANTL_RegisterVdev(void *vos_ctx, void *vdev);
 VOS_STATUS tl_shim_get_vdevid(struct ol_txrx_peer_t *peer, u_int8_t *vdev_id);
 
+/*
+ * tlshim_mgmt_roam_event_ind() is called from WMA layer when
+ * BETTER_AP_FOUND event is received from roam engine.
+ */
+int tlshim_mgmt_roam_event_ind(void *context, u_int32_t vdev_id);
+
 #endif
