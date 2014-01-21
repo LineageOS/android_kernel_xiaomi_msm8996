@@ -9182,6 +9182,111 @@ eHalStatus sme_UpdateConfigFwRssiMonitoring(tHalHandle hHal,
 }
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
+/* ---------------------------------------------------------------------------
+    \fn     sme_SetRoamOpportunisticScanThresholdDiff
+    \brief  Update Opportunistic Scan threshold diff
+            This function is called through dynamic setConfig callback function
+            to configure  nOpportunisticThresholdDiff
+    \param  hHal - HAL handle for device
+    \param  nOpportunisticThresholdDiff - Opportunistic Scan threshold diff
+    \return eHAL_STATUS_SUCCESS - SME update nOpportunisticThresholdDiff config
+            successfully.
+            else SME is failed to update nOpportunisticThresholdDiff.
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetRoamOpportunisticScanThresholdDiff(tHalHandle hHal,
+                            const v_U8_t nOpportunisticThresholdDiff)
+{
+    tpAniSirGlobal pMac    = PMAC_STRUCT( hHal );
+    eHalStatus     status  = eHAL_STATUS_SUCCESS;
+
+    status = sme_AcquireGlobalLock( &pMac->sme );
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+        status = csrNeighborRoamSetOpportunisticScanThresholdDiff(pMac,
+                                         nOpportunisticThresholdDiff);
+        if (HAL_STATUS_SUCCESS(status))
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                "LFR runtime successfully set "
+                "opportunistic threshold diff to %d"
+                " - old value is %d - roam state is %d",
+                nOpportunisticThresholdDiff,
+                pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff,
+                pMac->roam.neighborRoamInfo.neighborRoamState);
+            pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff = nOpportunisticThresholdDiff;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    return status;
+}
+
+/*--------------------------------------------------------------------------
+  \fn    sme_GetRoamOpportunisticScanThresholdDiff()
+  \brief gets Opportunistic Scan threshold diff
+         This is a synchronous call
+  \param hHal - The handle returned by macOpen
+  \return v_U8_t - nOpportunisticThresholdDiff
+  \sa
+  --------------------------------------------------------------------------*/
+v_U8_t sme_GetRoamOpportunisticScanThresholdDiff(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    return pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn     sme_SetRoamRescanRssiDiff
+    \brief  Update roam rescan rssi diff
+            This function is called through dynamic setConfig callback function
+            to configure  nRoamRescanRssiDiff
+    \param  hHal - HAL handle for device
+    \param  nRoamRescanRssiDiff - roam rescan rssi diff
+    \return eHAL_STATUS_SUCCESS - SME update nRoamRescanRssiDiff config
+            successfully.
+            else SME is failed to update nRoamRescanRssiDiff.
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetRoamRescanRssiDiff(tHalHandle hHal,
+                                     const v_U8_t nRoamRescanRssiDiff)
+{
+    tpAniSirGlobal pMac    = PMAC_STRUCT( hHal );
+    eHalStatus     status  = eHAL_STATUS_SUCCESS;
+
+    status = sme_AcquireGlobalLock( &pMac->sme );
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+        status = csrNeighborRoamSetRoamRescanRssiDiff(pMac,
+        nRoamRescanRssiDiff);
+        if (HAL_STATUS_SUCCESS(status))
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                "LFR runtime successfully set "
+                "opportunistic threshold diff to %d"
+                " - old value is %d - roam state is %d",
+                nRoamRescanRssiDiff,
+                pMac->roam.configParam.neighborRoamConfig.nRoamRescanRssiDiff,
+                pMac->roam.neighborRoamInfo.neighborRoamState);
+            pMac->roam.configParam.neighborRoamConfig.nRoamRescanRssiDiff =
+                nRoamRescanRssiDiff;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return status;
+}
+
+/*--------------------------------------------------------------------------
+  \fn    sme_GetRoamRescanRssiDiff
+  \brief gets roam rescan rssi diff
+         This is a synchronous call
+  \param hHal - The handle returned by macOpen
+  \return v_S7_t - nRoamRescanRssiDiff
+  \sa
+  --------------------------------------------------------------------------*/
+v_U8_t sme_GetRoamRescanRssiDiff(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    return pMac->roam.configParam.neighborRoamConfig.nRoamRescanRssiDiff;
+}
+
 /*--------------------------------------------------------------------------
   \brief sme_setNeighborLookupRssiThreshold() - update neighbor lookup rssi threshold
   This is a synchronous call

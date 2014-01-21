@@ -1079,6 +1079,8 @@ static void initConfigParam(tpAniSirGlobal pMac)
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
     pMac->roam.configParam.neighborRoamConfig.nMaxNeighborRetries = 3;
     pMac->roam.configParam.neighborRoamConfig.nNeighborLookupRssiThreshold = 120;
+    pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff = 30;
+    pMac->roam.configParam.neighborRoamConfig.nRoamRescanRssiDiff = 5;
     pMac->roam.configParam.neighborRoamConfig.nNeighborReassocRssiThreshold = 125;
     pMac->roam.configParam.neighborRoamConfig.nNeighborScanMinChanTime = 20;
     pMac->roam.configParam.neighborRoamConfig.nNeighborScanMaxChanTime = 40;
@@ -1754,6 +1756,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         smsLog( pMac, LOG1, "nNeighborScanTimerPerioid = %d", pMac->roam.configParam.neighborRoamConfig.nNeighborScanTimerPeriod);
         smsLog( pMac, LOG1, "nNeighborReassocRssiThreshold = %d", pMac->roam.configParam.neighborRoamConfig.nNeighborReassocRssiThreshold);
         smsLog( pMac, LOG1, "nNeighborLookupRssiThreshold = %d", pMac->roam.configParam.neighborRoamConfig.nNeighborLookupRssiThreshold);
+        smsLog( pMac, LOG1, "nOpportunisticThresholdDiff = %d", pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff);
+        smsLog( pMac, LOG1, "nRoamRescanRssiDiff = %d", pMac->roam.configParam.neighborRoamConfig.nRoamRescanRssiDiff);
         smsLog( pMac, LOG1, "nNeighborScanMinChanTime = %d", pMac->roam.configParam.neighborRoamConfig.nNeighborScanMinChanTime);
         smsLog( pMac, LOG1, "nNeighborScanMaxChanTime = %d", pMac->roam.configParam.neighborRoamConfig.nNeighborScanMaxChanTime);
         smsLog( pMac, LOG1, "nMaxNeighborRetries = %d", pMac->roam.configParam.neighborRoamConfig.nMaxNeighborRetries);
@@ -15838,6 +15842,10 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 command, tANI_U8 reas
             pMac->roam.roamSession[sessionId].connectedProfile.mcEncryptionType;
     pRequestBuf->LookupThreshold =
             (v_S7_t)pNeighborRoamInfo->cfgParams.neighborLookupThreshold * (-1);
+    pRequestBuf->OpportunisticScanThresholdDiff =
+            pNeighborRoamInfo->cfgParams.nOpportunisticThresholdDiff;
+    pRequestBuf->RoamRescanRssiDiff =
+            pNeighborRoamInfo->cfgParams.nRoamRescanRssiDiff;
     pRequestBuf->RoamRssiDiff =
             pMac->roam.configParam.RoamRssiDiff;
     pRequestBuf->Command = command;

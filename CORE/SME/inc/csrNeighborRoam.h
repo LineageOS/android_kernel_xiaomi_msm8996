@@ -69,6 +69,8 @@ typedef struct sCsrNeighborRoamCfgParams
     tANI_U32        maxChannelScanTime;
     tANI_U16        neighborResultsRefreshPeriod;
     tANI_U16        emptyScanRefreshPeriod;
+    tANI_U8         nOpportunisticThresholdDiff;
+    tANI_U8         nRoamRescanRssiDiff;
 } tCsrNeighborRoamCfgParams, *tpCsrNeighborRoamCfgParams;
 
 #define CSR_NEIGHBOR_ROAM_INVALID_CHANNEL_INDEX    255
@@ -169,6 +171,8 @@ typedef struct sCsrNeighborRoamControlInfo
     tCsrTimerInfo               neighborScanTimerInfo;
     tCsrNeighborRoamChannelInfo roamChannelInfo;
     tANI_U8                     currentNeighborLookupThreshold;
+    tANI_U8                     currentOpportunisticThresholdDiff;
+    tANI_U8                     currentRoamRescanRssiDiff;
     tANI_BOOLEAN                scanRspPending;
     tANI_TIMESTAMP              scanRequestTimeStamp;
     tDblLinkList                roamableAPList;    // List of current FT candidates
@@ -226,6 +230,12 @@ tANI_BOOLEAN csrNeighborRoamStatePreauthDone(tpAniSirGlobal pMac);
 tANI_BOOLEAN csrNeighborRoamScanRspPending(tHalHandle hHal);
 tANI_BOOLEAN csrNeighborMiddleOfRoaming(tHalHandle hHal);
 VOS_STATUS csrNeighborRoamSetLookupRssiThreshold(tpAniSirGlobal pMac, v_U8_t neighborLookupRssiThreshold);
+VOS_STATUS
+csrNeighborRoamSetOpportunisticScanThresholdDiff(tpAniSirGlobal pMac,
+                                        v_U8_t nOpportunisticThresholdDiff);
+VOS_STATUS
+csrNeighborRoamSetRoamRescanRssiDiff(tpAniSirGlobal pMac,
+                                     v_U8_t nRoamRescanRssiDiff);
 VOS_STATUS csrNeighborRoamUpdateFastRoamingEnabled(tpAniSirGlobal pMac, const v_BOOL_t fastRoamEnabled);
 VOS_STATUS csrNeighborRoamUpdateCcxModeEnabled(tpAniSirGlobal pMac, const v_BOOL_t ccxMode);
 VOS_STATUS csrNeighborRoamChannelsFilterByCurrentBand(
@@ -268,6 +278,8 @@ VOS_STATUS csrNeighborRoamMergeChannelLists(tpAniSirGlobal pMac,
 #define REASON_OS_REQUESTED_ROAMING_NOW             15
 #define REASON_SCAN_CH_TIME_CHANGED                 16
 #define REASON_SCAN_HOME_TIME_CHANGED               17
+#define REASON_OPPORTUNISTIC_THRESH_DIFF_CHANGED    18
+#define REASON_ROAM_RESCAN_RSSI_DIFF_CHANGED        19
 eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 command, tANI_U8 reason);
 eHalStatus csrNeighborRoamCandidateFoundIndHdlr(tpAniSirGlobal pMac, void* pMsg);
 eHalStatus csrNeighborRoamHandoffReqHdlr(tpAniSirGlobal pMac, void* pMsg);

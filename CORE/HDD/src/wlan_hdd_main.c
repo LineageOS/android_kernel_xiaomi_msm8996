@@ -3218,6 +3218,89 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                goto exit;
            }
        }
+       else if (strncmp(command, "SETOPPORTUNISTICRSSIDIFF", 24) == 0)
+       {
+           tANI_U8 *value = command;
+           tANI_U8 nOpportunisticThresholdDiff = CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_DEFAULT;
+
+           /* Move pointer to ahead of SETOPPORTUNISTICRSSIDIFF<delimiter> */
+           value = value + 25;
+           /* Convert the value from ascii to integer */
+           ret = kstrtou8(value, 10, &nOpportunisticThresholdDiff);
+           if (ret < 0)
+           {
+               /* If the input value is greater than max value of datatype, then also
+                  kstrtou8 fails */
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: kstrtou8 failed.", __func__);
+               ret = -EINVAL;
+               goto exit;
+           }
+
+           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                      "%s: Received Command to Set Opportunistic Threshold diff = %d",
+                      __func__,
+                      nOpportunisticThresholdDiff);
+
+           sme_SetRoamOpportunisticScanThresholdDiff((tHalHandle)(pHddCtx->hHal),
+                                                        nOpportunisticThresholdDiff);
+       }
+       else if (strncmp(priv_data.buf, "GETOPPORTUNISTICRSSIDIFF", 24) == 0)
+       {
+           tANI_S8 val = sme_GetRoamOpportunisticScanThresholdDiff((tHalHandle)(pHddCtx->hHal));
+           char extra[32];
+           tANI_U8 len = 0;
+
+           len = scnprintf(extra, sizeof(extra), "%s %d", command, val);
+           if (copy_to_user(priv_data.buf, &extra, len + 1))
+           {
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: failed to copy data to user buffer", __func__);
+               ret = -EFAULT;
+               goto exit;
+           }
+       }
+       else if (strncmp(command, "SETROAMRESCANRSSIDIFF", 21) == 0)
+       {
+           tANI_U8 *value = command;
+           tANI_U8 nRoamRescanRssiDiff = CFG_ROAM_RESCAN_RSSI_DIFF_DEFAULT;
+
+           /* Move pointer to ahead of SETROAMRESCANRSSIDIFF<delimiter> */
+           value = value + 22;
+           /* Convert the value from ascii to integer */
+           ret = kstrtou8(value, 10, &nRoamRescanRssiDiff);
+           if (ret < 0)
+           {
+               /* If the input value is greater than max value of datatype, then also
+                  kstrtou8 fails */
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: kstrtou8 failed.", __func__);
+               ret = -EINVAL;
+               goto exit;
+           }
+
+           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                      "%s: Received Command to Set Roam Rescan RSSI Diff = %d",
+                      __func__,
+                      nRoamRescanRssiDiff);
+           sme_SetRoamRescanRssiDiff((tHalHandle)(pHddCtx->hHal),
+                                     nRoamRescanRssiDiff);
+       }
+       else if (strncmp(priv_data.buf, "GETROAMRESCANRSSIDIFF", 21) == 0)
+       {
+           tANI_U8 val = sme_GetRoamRescanRssiDiff((tHalHandle)(pHddCtx->hHal));
+           char extra[32];
+           tANI_U8 len = 0;
+
+           len = scnprintf(extra, sizeof(extra), "%s %d", command, val);
+           if (copy_to_user(priv_data.buf, &extra, len + 1))
+           {
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: failed to copy data to user buffer", __func__);
+               ret = -EFAULT;
+               goto exit;
+           }
+       }
 #endif /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_CCX || FEATURE_WLAN_LFR */
 #ifdef FEATURE_WLAN_LFR
        else if (strncmp(command, "SETFASTROAM", 11) == 0)

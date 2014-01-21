@@ -3802,6 +3802,8 @@ typedef struct sSirRoamOffloadScanReq
   eAniBoolean RoamScanOffloadEnabled;
   eAniBoolean MAWCEnabled;
   tANI_S8     LookupThreshold;
+  tANI_U8     OpportunisticScanThresholdDiff;
+  tANI_U8     RoamRescanRssiDiff;
   tANI_U8     RoamRssiDiff;
   tANI_U8     ChannelCacheType;
   tANI_U8     Command;

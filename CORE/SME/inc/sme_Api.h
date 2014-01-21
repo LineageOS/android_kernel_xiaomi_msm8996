@@ -2719,6 +2719,57 @@ eHalStatus sme_UpdateConfigFwRssiMonitoring(tHalHandle hHal,
         v_BOOL_t fEnableFwRssiMonitoring);
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
+/* ---------------------------------------------------------------------------
+    \fn     sme_SetRoamRescanRssiDiff
+    \brief  Update Roam Rescan RSSI diff
+            This function is called through dynamic setConfig callback function
+            to configure nRoamRescanRssiDiff
+    \param  hHal - HAL handle for device
+    \param  nRoamRescanRssiDiff - Roam Rescan Rssi Diff
+    \return eHAL_STATUS_SUCCESS - SME update nRoamRescanRssiDiff config
+            successfully.
+            else SME is failed to update nRoamRescanRssiDiff
+    -------------------------------------------------------------------------*/
+
+eHalStatus sme_SetRoamRescanRssiDiff(tHalHandle hHal,
+                                     const v_U8_t nRoamRescanRssiDiff);
+
+/*--------------------------------------------------------------------------
+  \fn    sme_GetRoamRescanRssiDiff
+  \brief gets Roam Rescan RSSI diff
+         This is a synchronous call
+  \param hHal - The handle returned by macOpen
+  \return v_U8_t - nRoamRescanRssiDiff
+  \sa
+  --------------------------------------------------------------------------*/
+v_U8_t sme_GetRoamRescanRssiDiff(tHalHandle hHal);
+
+
+/* ---------------------------------------------------------------------------
+    \fn     sme_SetRoamOpportunisticScanThresholdDiff
+    \brief  Update Opportunistic Scan threshold diff
+            This function is called through dynamic setConfig callback function
+            to configure  nOpportunisticThresholdDiff
+    \param  hHal - HAL handle for device
+    \param  nOpportunisticThresholdDiff - Opportunistic Scan threshold diff
+    \return eHAL_STATUS_SUCCESS - SME update nOpportunisticThresholdDiff config
+            successfully.
+            else SME is failed to update nOpportunisticThresholdDiff.
+    -------------------------------------------------------------------------*/
+
+eHalStatus sme_SetRoamOpportunisticScanThresholdDiff(tHalHandle hHal,
+                            const v_U8_t nOpportunisticThresholdDiff);
+
+/*--------------------------------------------------------------------------
+  \fn    sme_GetRoamOpportunisticScanThresholdDiff()
+  \brief gets Opportunistic Scan threshold diff
+         This is a synchronous call
+  \param hHal - The handle returned by macOpen
+  \return v_U8_t - nOpportunisticThresholdDiff
+  \sa
+  --------------------------------------------------------------------------*/
+v_U8_t sme_GetRoamOpportunisticScanThresholdDiff(tHalHandle hHal);
+
 /*--------------------------------------------------------------------------
   \brief sme_setNeighborLookupRssiThreshold() - update neighbor lookup rssi threshold
   This is a synchronuous call

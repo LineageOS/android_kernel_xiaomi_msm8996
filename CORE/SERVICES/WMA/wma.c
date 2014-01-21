@@ -4463,11 +4463,12 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle)
      */
     /* rssi_thresh = 10 is low enough */
     vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle, WMA_ROAM_LOW_RSSI_TRIGGER_VERYLOW,
-                                                WMA_ROAM_RSSI_THRESH_DIFF_DEFAULT);
+                                                   pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff);
     vos_status = wma_roam_scan_offload_scan_period(wma_handle,
                                                 WMA_ROAM_OPP_SCAN_PERIOD_DEFAULT, WMA_ROAM_OPP_SCAN_AGING_PERIOD_DEFAULT);
     vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
-                                                WMA_ROAM_RSSI_CHANGE_RESCAN_DEFAULT, WMA_ROAM_BEACON_WEIGHT_DEFAULT);
+                                                   pMac->roam.configParam.neighborRoamConfig.nRoamRescanRssiDiff,
+                                                   WMA_ROAM_BEACON_WEIGHT_DEFAULT);
     wma_roam_scan_fill_ap_profile(wma_handle, pMac, NULL, &ap_profile);
 
     vos_status = wma_roam_scan_offload_ap_profile(wma_handle, &ap_profile);
@@ -4532,9 +4533,10 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             /* First parameter is positive rssi value to trigger rssi based scan.
              * Opportunistic scan is started at 30 dB higher that trigger rssi.
              */
+
             vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
-                                                                     (roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT),
-                                                                     WMA_ROAM_RSSI_THRESH_DIFF_DEFAULT);
+                                                           (roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT),
+                                                           roam_req->OpportunisticScanThresholdDiff);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
@@ -4552,7 +4554,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
              * 2 times the current beacon's rssi.
              */
             vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
-                                      WMA_ROAM_RSSI_CHANGE_RESCAN_DEFAULT,
+                                      roam_req->RoamRescanRssiDiff,
                                       WMA_ROAM_BEACON_WEIGHT_DEFAULT);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
@@ -4625,7 +4627,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 
             vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
                                 (roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT),
-                                WMA_ROAM_RSSI_THRESH_DIFF_DEFAULT);
+                                 roam_req->OpportunisticScanThresholdDiff);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
@@ -4638,7 +4640,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             }
 
             vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
-                                WMA_ROAM_RSSI_CHANGE_RESCAN_DEFAULT,
+                                roam_req->RoamRescanRssiDiff,
                                 WMA_ROAM_BEACON_WEIGHT_DEFAULT);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
