@@ -1961,7 +1961,7 @@ void sapDfsCacTimerCallback(void *data)
          */
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG,
                   "%s[%d]: Sending eSAP_DFS_CHANNEL_CAC_END for target_channel = %d",
-                  __func__,__LINE__, sapContext->SapDfsInfo.target_channel);
+                  __func__,__LINE__, sapContext->channel);
         sapEvent.event = eSAP_DFS_CHANNEL_CAC_END;
         sapEvent.params = 0;
         sapEvent.u1 = 0;
@@ -2009,13 +2009,13 @@ int sapStartDfsCacTimer(ptSapContext sapContext)
     vos_nv_getRegDomainFromCountryCode(&regDomain,
                     sapContext->csrRoamProfile.countryCode, COUNTRY_QUERY);
     if ((regDomain == REGDOMAIN_ETSI) &&
-       (IS_ETSI_WEATHER_CH(sapContext->SapDfsInfo.target_channel)))
+       (IS_ETSI_WEATHER_CH(sapContext->channel)))
     {
         cacTimeOut = ETSI_WEATHER_CH_CAC_TIMEOUT;
     }
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG,
                   "%s[%d]: SAP_DFS_CHANNEL_CAC_START on CH - %d, CAC TIMEOUT - %d sec",
-                  __func__, __LINE__, sapContext->SapDfsInfo.target_channel, cacTimeOut/1000);
+                  __func__, __LINE__, sapContext->channel, cacTimeOut/1000);
 
     vos_timer_init(&sapContext->SapDfsInfo.sap_dfs_cac_timer,
                    VOS_TIMER_TYPE_SW,
