@@ -677,6 +677,14 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 	tgt_cfg.num_peers = no_of_peers_supported + CFG_TGT_NUM_VDEV + 2;
 	tgt_cfg.num_tids = (2 * (no_of_peers_supported + CFG_TGT_NUM_VDEV + 2));
 
+        /* Set the num of Keys per peer to 3 and 4 for Rome 1.1 and
+         * Rome 1.3 respectively
+         */
+        if (scn->target_version == AR6320_REV1_1_VERSION)
+            tgt_cfg.num_peer_keys = CFG_TGT_NUM_PEER_KEYS;
+        else
+            tgt_cfg.num_peer_keys = CFG_TGT_NUM_PEER_KEYS + 1;
+
 	WMITLV_SET_HDR(&tgt_cfg.tlv_header,WMITLV_TAG_STRUC_wmi_resource_config,
 		       WMITLV_GET_STRUCT_TLVLEN(wmi_resource_config));
 	/* reduce the peer/vdev if CFG_TGT_NUM_MSDU_DESC exceeds 1000 */
