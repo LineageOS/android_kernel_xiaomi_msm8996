@@ -1182,7 +1182,7 @@ ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 	struct ol_txrx_peer_t *peer;
 
 	peer =  ol_txrx_peer_find_hash_find(vdev->pdev, peer_mac, 0, 1);
-	if (NULL == peer)
+	if (!peer)
 	{
 		TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: peer is null", __FUNCTION__);
 		return;
@@ -1269,7 +1269,7 @@ ol_txrx_peer_uapsdmask_get(struct ol_txrx_pdev_t *txrx_pdev, u_int16_t peer_id)
 
     struct ol_txrx_peer_t *peer;
     peer = ol_txrx_peer_find_by_id(txrx_pdev, peer_id);
-    if (peer != NULL) {
+    if (!peer) {
         return peer->uapsd_mask;
     }
 

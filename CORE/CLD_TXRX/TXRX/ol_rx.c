@@ -614,7 +614,7 @@ ol_rx_offload_deliver_ind_handler(
             &tid, &fw_desc, &head_buf, &tail_buf);
 
         peer = ol_txrx_peer_find_by_id(pdev, peer_id);
-        if ((peer != NULL) && (peer->vdev != NULL)) {
+        if (peer && peer->vdev) {
             vdev = peer->vdev;
 	    OL_RX_OSIF_DELIVER(vdev, peer, head_buf);
         } else {

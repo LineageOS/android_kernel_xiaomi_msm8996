@@ -335,7 +335,7 @@ static void tlshim_mgmt_rx_dxe_handler(void *context, adf_nbuf_t buflist)
 		rx_packet =
 			(vos_pkt_t *)adf_os_mem_alloc(NULL, sizeof(vos_pkt_t));
 
-		if(rx_packet == NULL) {
+		if(!rx_packet) {
 			TLSHIM_LOGE("Rx Packet Mem Alloc Failed");
 			adf_nbuf_free(cur);
 			goto next_nbuf;
@@ -409,8 +409,7 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	struct ieee80211_frame *wh;
 	u_int8_t mgt_type, mgt_subtype;
 
-	if (tl_shim == NULL)
-	{
+	if (!tl_shim) {
 		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
 		return 0;
 	}
@@ -422,7 +421,7 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	}
 
 	hdr = param_tlvs->hdr;
-	if (hdr == NULL) {
+	if (!hdr) {
 		TLSHIM_LOGE("Rx event is NULL");
 		return 0;
 	}
@@ -610,8 +609,7 @@ int tlshim_mgmt_roam_event_ind(void *context, u_int32_t vdev_id)
 							   vos_ctx);
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
 
-	if (tl_shim == NULL)
-	{
+	if (!tl_shim) {
 		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
 		return ret;
 	}
@@ -799,8 +797,7 @@ void WLANTL_RegisterVdev(void *vos_ctx, void *vdev)
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
 
-	if (tl_shim == NULL)
-	{
+	if (!tl_shim) {
 		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
 		return;
 	}
@@ -825,14 +822,12 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 	struct ol_txrx_peer_t *peer;
 
 	ENTER();
-	if (tl_shim == NULL)
-	{
+	if (!tl_shim) {
 		TLSHIM_LOGE("tl_shim is NULL");
 		return skb;
 	}
 
-	if (adf_ctx == NULL)
-	{
+	if (!adf_ctx) {
 		TLSHIM_LOGE("adf_ct is NULL");
 		return skb;
 	}
@@ -1033,15 +1028,13 @@ VOS_STATUS WLANTL_EnableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
 	ENTER();
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
-	if (wma_handle == NULL)
-	{
+	if (!wma_handle) {
 		TLSHIM_LOGE("wma_handle is NULL");
 		return VOS_STATUS_E_FAILURE;
 	}
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-	if (tl_shim == NULL)
-	{
+	if (!tl_shim) {
 		TLSHIM_LOGE("tl_shim is NULL");
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -1087,8 +1080,7 @@ VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL,
 				  vos_ctx);
-	if (tl_shim == NULL)
-	{
+	if (!tl_shim) {
 		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -1096,8 +1088,7 @@ VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 #ifdef QCA_WIFI_ISOC
 	txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
 				    vos_ctx);
-	if (txrx_pdev == NULL)
-	{
+	if (!txrx_pdev) {
 		TLSHIM_LOGE("%s: Failed to get TXRX context", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -1111,8 +1102,7 @@ VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 	}
 #else
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
-	if (wma_handle == NULL)
-	{
+	if (!wma_handle) {
 		TLSHIM_LOGE("%s: Failed to get WMA context", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -1140,8 +1130,7 @@ VOS_STATUS WLANTL_RegisterMgmtFrmClient(void *vos_ctx,
 #else
 	tp_wma_handle wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 #endif
-	if (tl_shim == NULL)
-	{
+	if (!tl_shim) {
 		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -1154,8 +1143,7 @@ VOS_STATUS WLANTL_RegisterMgmtFrmClient(void *vos_ctx,
 		return VOS_STATUS_E_FAILURE;
 	}
 #else
-	if (wma_handle == NULL)
-	{
+	if (!wma_handle) {
 		TLSHIM_LOGE("%s: Failed to get WMA context", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -1182,8 +1170,7 @@ VOS_STATUS WLANTL_GetRssi(void *vos_ctx, u_int8_t sta_id, v_S7_t *rssi, void *pG
 	ENTER();
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
-	if (wma_handle == NULL)
-	{
+	if (!wma_handle) {
 		TLSHIM_LOGE("wma_handle is NULL");
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -1284,8 +1271,7 @@ VOS_STATUS WLANTL_ClearSTAClient(void *vos_ctx, u_int8_t sta_id)
 	}
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-	if (tl_shim == NULL)
-	{
+	if (!tl_shim) {
 		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -1330,8 +1316,7 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 		return VOS_STATUS_E_FAULT;
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-	if (tl_shim == NULL)
-	{
+	if (!tl_shim) {
 		TLSHIM_LOGE("tl_shim is NULL");
 		return VOS_STATUS_E_FAULT;
 	}
@@ -1384,8 +1369,7 @@ VOS_STATUS WLANTL_Close(void *vos_ctx)
 
 	ENTER();
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-	if (tl_shim == NULL)
-	{
+	if (!tl_shim) {
 		TLSHIM_LOGE("tl_shim is NULL");
 		return VOS_STATUS_E_FAILURE;
 	}

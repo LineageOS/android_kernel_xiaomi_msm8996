@@ -208,7 +208,7 @@ wdi_event_detach(struct ol_txrx_pdev_t *txrx_pdev)
     }
     for (i = 0; i < WDI_NUM_EVENTS; i++) {
         wdi_sub = txrx_pdev->wdi_event_list[i];
-        if (wdi_sub != NULL) {
+        if (wdi_sub) {
             /* Delete all the subscribers */
             wdi_event_del_subs(wdi_sub, i);
         }
