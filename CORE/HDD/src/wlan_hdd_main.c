@@ -5021,6 +5021,11 @@ void hdd_dfs_indicate_radar(void *context, void *param)
         return;
     }
 
+    if (pHddCtx->cfg_ini->disableDFSChSwitch)
+    {
+        return;
+    }
+
     if (VOS_TRUE == hdd_radar_event->dfs_radar_status)
     {
         pHddCtx->dfs_radar_found = VOS_TRUE;
