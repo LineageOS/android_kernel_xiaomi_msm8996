@@ -1400,7 +1400,6 @@ hdd_format_batch_scan_rsp
        pTemp += temp_len;
        temp_total_len += temp_len;
 
-       pAdapter->prev_batch_id = 0;
    }
 
    if (temp_total_len < rem_len)
@@ -1472,7 +1471,14 @@ tANI_U32 hdd_populate_user_batch_scan_rsp
          pPrev = pHead;
          pHead = pHead->pNext;
          pAdapter->pBatchScanRsp  = pHead;
-         pAdapter->prev_batch_id = pPrev->ApInfo.batchId;
+         if (TRUE == pPrev->ApInfo.isLastAp)
+         {
+             pAdapter->prev_batch_id = 0;
+         }
+         else
+         {
+             pAdapter->prev_batch_id = pPrev->ApInfo.batchId;
+         }
          vos_mem_free(pPrev);
    }
 
@@ -6566,20 +6572,10 @@ void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_
    struct net_device *pWlanDev = NULL;
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
-   tHddBatchScanRsp *pNode;
-   tHddBatchScanRsp *pPrev;
-   if (pAdapter)
-   {
-      pNode = pAdapter->pBatchScanRsp;
-      while (pNode)
-      {
-         pPrev = pNode;
-         pNode = pNode->pNext;
-         vos_mem_free((v_VOID_t * )pPrev);
-      }
-      pAdapter->pBatchScanRsp = NULL;
-   }
+      tHddBatchScanRsp *pNode;
+      tHddBatchScanRsp *pPrev;
 #endif
+
    if (pAdapter)
       pWlanDev = pAdapter->dev;
    else {
@@ -6587,6 +6583,18 @@ void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_
                  "%s: HDD context is Null", __func__);
       return;
    }
+
+#ifdef FEATURE_WLAN_BATCH_SCAN
+      pNode = pAdapter->pBatchScanRsp;
+      while (pNode)
+      {
+          pPrev = pNode;
+          pNode = pNode->pNext;
+          vos_mem_free((v_VOID_t * )pPrev);
+      }
+      pAdapter->pBatchScanRsp = NULL;
+#endif
+
    if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) {
       if( rtnl_held )
       {
