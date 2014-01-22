@@ -142,7 +142,7 @@
  * All rssi values are in dB except for WMA_NOISE_FLOOR_DBM_DEFAULT.
  */
 
-#define WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME    (3)
+#define WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME    (2)
 #define WMA_NOISE_FLOOR_DBM_DEFAULT          (-96)
 #define WMA_ROAM_RSSI_DIFF_DEFAULT           (5)
 #define WMA_ROAM_DWELL_TIME_ACTIVE_DEFAULT   (100)

@@ -4332,66 +4332,109 @@ v_VOID_t wma_roam_scan_fill_ap_profile(tp_wma_handle wma_handle, tpAniSirGlobal 
  *            : It will be non-NULL if called after assoc.
  * Returns    :
  */
-v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle, tpAniSirGlobal pMac,
-        tSirRoamOffloadScanReq *roam_req, wmi_start_scan_cmd_fixed_param *scan_params)
+v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
+                                   tpAniSirGlobal pMac,
+                                   tSirRoamOffloadScanReq *roam_req,
+                                   wmi_start_scan_cmd_fixed_param *scan_params)
 {
-        tANI_U16 max_scan_time, min_scan_time, burst_duration;
-        tANI_U16 nprobes = 1;
-        vos_mem_zero(scan_params, sizeof(wmi_start_scan_cmd_fixed_param));
-        if (roam_req != NULL) {
-                /* Parameters updated after association is complete */
-            WMA_LOGI("%s: Input parameters: NeighborScanChannelMinTime = %d, NeighborScanChannelMaxTime = %d\n",
-                        __func__, roam_req->NeighborScanChannelMinTime, roam_req->NeighborScanChannelMaxTime);
-            WMA_LOGI("%s: Input parameters: NeighborScanTimerPeriod = %d, HomeAwayTime = %d, nProbes = %d\n",
-                        __func__, roam_req->NeighborScanTimerPeriod, roam_req->HomeAwayTime, roam_req->nProbes);
-            /* NeighborScanChannelMinTime = SETROAMSCANCHANNELMINTIME and gNeighborScanChannelMinTime */
-                if (roam_req->HomeAwayTime > (2 * WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME)) {
-                    burst_duration = roam_req->HomeAwayTime - 2 * WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME;
-                    max_scan_time = min(roam_req->NeighborScanChannelMaxTime, burst_duration);
-                } else {
-                    burst_duration = max_scan_time = roam_req->NeighborScanChannelMaxTime;
-                }
-                /* ROME cld firmware have single value and not min, max
-                 * therefore setting both values to same thing.
-                 */
-                min_scan_time = max_scan_time;
-                nprobes = roam_req->nProbes;
-                scan_params->dwell_time_active = min_scan_time;
+    tANI_U8 channels_per_burst = 0;
+    vos_mem_zero(scan_params, sizeof(wmi_start_scan_cmd_fixed_param));
+    if (roam_req != NULL) {
+        /* Parameters updated after association is complete */
+        WMA_LOGI("%s: Input parameters: NeighborScanChannelMinTime"
+                 " = %d, NeighborScanChannelMaxTime = %d",
+                 __func__,
+                 roam_req->NeighborScanChannelMinTime,
+                 roam_req->NeighborScanChannelMaxTime);
+        WMA_LOGI("%s: Input parameters: NeighborScanTimerPeriod ="
+                 " %d, HomeAwayTime = %d, nProbes = %d",
+                 __func__,
+                 roam_req->NeighborScanTimerPeriod,
+                 roam_req->HomeAwayTime,
+                 roam_req->nProbes);
 
-                /* NeighborScanChannelMaxTime = SETSCANCHANNELTIME and gNeighborScanChannelMaxTime */
-                /* HomeAwayTime = SETSCANHOMEAWAYTIME and gRoamScanHomeAwayTime */
-                /* max_scan_time is for 1 channel, burst_duration is for total for all in a burst */
-                scan_params->dwell_time_passive = max_scan_time;
+        /*
+         * roam_req->NeighborScanChannelMaxTime = SCAN_CHANNEL_TIME
+         * roam_req->HomeAwayTime               = SCAN_HOME_AWAY_TIME
+         * roam_req->NeighborScanTimerPeriod    = SCAN_HOME_TIME
+         *
+         * scan_params->dwell_time_active  = time station stays on channel
+         *                                   and sends probes;
+         * scan_params->dwell_time_passive = time station stays on channel
+         *                                   and listens probes;
+         * scan_params->burst_duration     = time station goes off channel
+         *                                   to scan;
+         */
 
-                /* NeighborScanTimerPeriod = SETSCANHOMETIME and gNeighborScanTimerPeriod */
-                scan_params->min_rest_time = roam_req->NeighborScanTimerPeriod;
-                scan_params->max_rest_time = roam_req->NeighborScanTimerPeriod;
-                scan_params->repeat_probe_time = (nprobes > 0) ? scan_params->dwell_time_active / nprobes : 0;
-                scan_params->probe_spacing_time = 0;
-                scan_params->probe_delay = 0;
-                scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION; /* 30 seconds for full scan cycle */
-                scan_params->idle_time = scan_params->min_rest_time;
-                scan_params->burst_duration = burst_duration;
+        /*
+         * Here is the formula,
+         * T(HomeAway) = N * T(dwell) + (N+1) * T(cs)
+         * where N is number of channels scanned in single burst
+         */
+        if (roam_req->HomeAwayTime < 2*WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME) {
+            // clearly we can't follow home away time
+            scan_params->dwell_time_active  = roam_req->NeighborScanChannelMaxTime;
+            scan_params->burst_duration     = scan_params->dwell_time_active;
         } else {
-                /* roam_req = NULL during initial or pre-assoc invocation */
-                scan_params->dwell_time_active = WMA_ROAM_DWELL_TIME_ACTIVE_DEFAULT;
-                scan_params->dwell_time_passive = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
-                scan_params->min_rest_time = WMA_ROAM_MIN_REST_TIME_DEFAULT;
-                scan_params->max_rest_time = WMA_ROAM_MAX_REST_TIME_DEFAULT;
-                scan_params->repeat_probe_time = 0;
-                scan_params->probe_spacing_time = 0;
-                scan_params->probe_delay = 0;
-                scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
-                scan_params->idle_time = scan_params->min_rest_time;
-                scan_params->burst_duration = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
+            channels_per_burst =
+              (roam_req->HomeAwayTime - WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME)
+              / ( scan_params->dwell_time_active + WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME);
+
+            if (channels_per_burst < 1) {
+                // dwell time and home away time conflicts
+                // we will override dwell time
+                scan_params->dwell_time_active =
+                  roam_req->HomeAwayTime - 2*WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME;
+                scan_params->burst_duration = scan_params->dwell_time_active;
+            } else {
+                scan_params->dwell_time_active =
+                  roam_req->NeighborScanChannelMaxTime;
+                scan_params->burst_duration =
+                  channels_per_burst * scan_params->dwell_time_active;
+            }
         }
-        WMA_LOGI("%s: Rome roam scan parameters: dwell_time_active = %d, dwell_time_passive = %d\n",
-                  __func__, scan_params->dwell_time_active, scan_params->dwell_time_passive);
-        WMA_LOGI("%s: min_rest_time = %d, max_rest_time = %d, repeat_probe_time = %d\n",
-                  __func__, scan_params->min_rest_time, scan_params->max_rest_time, scan_params->repeat_probe_time);
-        WMA_LOGI("%s: max_scan_time = %d, idle_time = %d, burst_duration = %d\n",
-                  __func__, scan_params->max_scan_time, scan_params->idle_time, scan_params->burst_duration);
+
+        scan_params->dwell_time_passive = scan_params->dwell_time_active;
+        scan_params->min_rest_time = roam_req->NeighborScanTimerPeriod;
+        scan_params->max_rest_time = roam_req->NeighborScanTimerPeriod;
+        scan_params->repeat_probe_time = (roam_req->nProbes > 0) ?
+              VOS_MAX(scan_params->dwell_time_active / roam_req->nProbes, 1) : 0;
+        scan_params->probe_spacing_time = 0;
+        scan_params->probe_delay = 0;
+        scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION; /* 30 seconds for full scan cycle */
+        scan_params->idle_time = scan_params->min_rest_time;
+    } else {
+        /* roam_req = NULL during initial or pre-assoc invocation */
+        scan_params->dwell_time_active = WMA_ROAM_DWELL_TIME_ACTIVE_DEFAULT;
+        scan_params->dwell_time_passive = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
+        scan_params->min_rest_time = WMA_ROAM_MIN_REST_TIME_DEFAULT;
+        scan_params->max_rest_time = WMA_ROAM_MAX_REST_TIME_DEFAULT;
+        scan_params->repeat_probe_time = 0;
+        scan_params->probe_spacing_time = 0;
+        scan_params->probe_delay = 0;
+        scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
+        scan_params->idle_time = scan_params->min_rest_time;
+        scan_params->burst_duration = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
+    }
+    WMA_LOGI("%s: Rome roam scan parameters:"
+             " dwell_time_active = %d, dwell_time_passive = %d",
+             __func__,
+             scan_params->dwell_time_active,
+             scan_params->dwell_time_passive);
+    WMA_LOGI("%s: min_rest_time = %d, max_rest_time = %d,"
+             " repeat_probe_time = %d",
+             __func__,
+             scan_params->min_rest_time,
+             scan_params->max_rest_time,
+             scan_params->repeat_probe_time);
+    WMA_LOGI("%s: max_scan_time = %d, idle_time = %d,"
+             " burst_duration = %d",
+             __func__,
+             scan_params->max_scan_time,
+             scan_params->idle_time,
+             scan_params->burst_duration);
 }
+
 /* function   : wma_roam_scan_offload_ap_profile
  * Descriptin : Send WMI_ROAM_AP_PROFILE TLV to firmware
  * Args       : AP profile parameters are passed in as the structure used in TLV
