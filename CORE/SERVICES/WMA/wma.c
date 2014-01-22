@@ -3506,7 +3506,10 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	cmd->notify_scan_events = WMI_SCAN_EVENT_STARTED |
 				WMI_SCAN_EVENT_START_FAILED |
 				WMI_SCAN_EVENT_FOREIGN_CHANNEL |
-				WMI_SCAN_EVENT_COMPLETED;
+				WMI_SCAN_EVENT_COMPLETED |
+				WMI_SCAN_EVENT_DEQUEUED |
+				WMI_SCAN_EVENT_PREEMPTED |
+				WMI_SCAN_EVENT_RESTARTED;
 
 	cmd->dwell_time_active = scan_req->maxChannelTime;
 	cmd->dwell_time_passive = scan_req->maxChannelTime;
@@ -13912,11 +13915,27 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 	else
 		scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
 
-	if (wmi_event->event == WMI_SCAN_EVENT_COMPLETED) {
+	switch (wmi_event->event) {
+	case WMI_SCAN_EVENT_COMPLETED:
 		if (wmi_event->scan_id == scan_id)
 			wma_reset_scan_info(wma_handle, vdev_id);
 		else
 			WMA_LOGE("Scan id not matched for SCAN COMPLETE event");
+		break;
+	case WMI_SCAN_EVENT_DEQUEUED:
+		scan_event->event = WMI_SCAN_EVENT_COMPLETED;
+		scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
+		break;
+	case WMI_SCAN_EVENT_PREEMPTED:
+	{
+		tAbortScanParams abortScan;
+		abortScan.SessionId = vdev_id;
+		wma_stop_scan(wma_handle, &abortScan);
+		break;
+	}
+	case WMI_SCAN_EVENT_RESTARTED:
+		WMA_LOGP("Unexpected Scan Event %lu", wmi_event->event);
+		break;
 	}
 	wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
 	return 0;
