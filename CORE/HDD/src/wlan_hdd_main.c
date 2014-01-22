@@ -1168,6 +1168,7 @@ static void hdd_batch_scan_result_ind_callback
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
             "%s: pBatchScanRsp is %p pReq %p", __func__, pBatchScanRsp, pReq);
             isLastAp = TRUE;
+         pAdapter->numScanList = 0;
          goto done;
     }
 
