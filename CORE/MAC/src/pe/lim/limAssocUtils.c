@@ -2600,6 +2600,18 @@ limAddSta(
              (vht_caps.reserved1 << SIR_MAC_VHT_CAP_RESERVED2));
     }
 
+#ifdef FEATURE_WLAN_TDLS
+    if (STA_ENTRY_TDLS_PEER == pStaDs->staType)
+    {
+        pAddStaParams->ht_caps = pStaDs->ht_caps;
+        pAddStaParams->vht_caps = pStaDs->vht_caps;
+
+        VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+                  "%s: Sta type is TDLS_PEER, ht_caps: 0x%x, vht_caps: 0x%x",
+                  __func__, pAddStaParams->ht_caps, pAddStaParams->vht_caps);
+    }
+#endif
+
     //Disable BA. It will be set as part of ADDBA negotiation.
     for( i = 0; i < STACFG_MAX_TC; i++ )
     {

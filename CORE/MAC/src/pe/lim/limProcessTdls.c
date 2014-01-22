@@ -2771,6 +2771,7 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
                                                  htCaps->supportedMCSSet);
         pStaDs->baPolicyFlag = 0xFF;
         pMac->lim.gLimTdlsLinkMode = TDLS_LINK_MODE_N ;
+        pStaDs->ht_caps = pTdlsAddStaReq->htCap.capInfo;
     }
     else
     {
@@ -2800,6 +2801,7 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
         pStaDs->vhtBeamFormerCapable= pVhtCaps->suBeamFormerCap;
         // TODO , is it necessary , Sunil???
         pMac->lim.gLimTdlsLinkMode = TDLS_LINK_MODE_AC;
+        pStaDs->vht_caps = pTdlsAddStaReq->vhtCap.vhtCapInfo;
     }
     else
     {
