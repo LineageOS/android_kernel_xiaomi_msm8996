@@ -16921,13 +16921,16 @@ static eHalStatus wma_set_mimops(tp_wma_handle wma, tANI_U8 vdev_id, int value)
         switch(value)
         {
             case 0:
-                   cmd->forced_mode = WMI_SMPS_FORCED_MODE_STATIC;
+                   cmd->forced_mode = WMI_SMPS_FORCED_MODE_NONE;
                    break;
             case 1:
-                   cmd->forced_mode = WMI_SMPS_FORCED_MODE_DYNAMIC;
+                   cmd->forced_mode = WMI_SMPS_FORCED_MODE_DISABLED;
+                   break;
+            case 2:
+                   cmd->forced_mode = WMI_SMPS_FORCED_MODE_STATIC;
                    break;
             case 3:
-                   cmd->forced_mode = WMI_SMPS_FORCED_MODE_DISABLED;
+                   cmd->forced_mode = WMI_SMPS_FORCED_MODE_DYNAMIC;
                    break;
             default:
                    WMA_LOGE("%s:INVALID Mimo PS CONFIG", __func__);
