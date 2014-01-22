@@ -683,13 +683,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 if (!VOS_IS_STATUS_SUCCESS(vos_status))
                    hddLog(LOGE, FL("Failed to start AP inactivity timer\n"));
             }
-#ifdef WLAN_OPEN_SOURCE
-            if (wake_lock_active(&pHddCtx->sap_wake_lock))
-            {
-               wake_unlock(&pHddCtx->sap_wake_lock);
-            }
-            wake_lock_timeout(&pHddCtx->sap_wake_lock, msecs_to_jiffies(HDD_SAP_WAKE_LOCK_DURATION));
-#endif
+            vos_wake_lock_timeout_acquire(&pHddCtx->sap_wake_lock,
+                    msecs_to_jiffies(HDD_SAP_WAKE_LOCK_DURATION));
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
             {
                 struct station_info staInfo;

@@ -1153,10 +1153,8 @@ struct hdd_context_s
    /* Thermal mitigation information */
    hdd_thermal_mitigation_info_t tmInfo;
 
-#ifdef WLAN_OPEN_SOURCE
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
-   struct wake_lock rx_wake_lock;
-#endif
+   vos_wake_lock_t rx_wake_lock;
 #endif
 
    /*
@@ -1174,9 +1172,7 @@ struct hdd_context_s
         is invoked*/
    v_BOOL_t is_dynamic_channel_range_set;
 
-#ifdef WLAN_OPEN_SOURCE
-   struct wake_lock sap_wake_lock;
-#endif
+   vos_wake_lock_t sap_wake_lock;
 
 #ifdef FEATURE_WLAN_TDLS
     eTDLSSupportMode tdls_mode;

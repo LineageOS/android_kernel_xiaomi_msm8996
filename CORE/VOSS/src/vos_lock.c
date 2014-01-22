@@ -48,6 +48,9 @@
 #include "vos_lock.h"
 #include "vos_memory.h"
 #include "vos_trace.h"
+#ifdef CONFIG_CNSS
+#include <net/cnss.h>
+#endif
 
 
 /*----------------------------------------------------------------------------
@@ -486,10 +489,12 @@ VOS_STATUS vos_spin_lock_destroy(vos_spin_lock_t *pLock)
   --------------------------------------------------------------------------*/
 VOS_STATUS vos_wake_lock_init(vos_wake_lock_t *pLock, const char *name)
 {
-#ifdef WLAN_OPEN_SOURCE
-   wake_lock_init(pLock, WAKE_LOCK_SUSPEND, name);
+#if defined CONFIG_CNSS
+    cnss_pm_wake_lock_init(pLock, name);
+#elif defined WLAN_OPEN_SOURCE
+    wake_lock_init(pLock, WAKE_LOCK_SUSPEND, name);
 #endif
-   return VOS_STATUS_SUCCESS;
+    return VOS_STATUS_SUCCESS;
 }
 
 /*--------------------------------------------------------------------------
@@ -503,10 +508,12 @@ VOS_STATUS vos_wake_lock_init(vos_wake_lock_t *pLock, const char *name)
   ------------------------------------------------------------------------*/
 VOS_STATUS vos_wake_lock_acquire(vos_wake_lock_t *pLock)
 {
-#ifdef WLAN_OPEN_SOURCE
-   wake_lock(pLock);
+#if defined CONFIG_CNSS
+    cnss_pm_wake_lock(pLock);
+#elif defined WLAN_OPEN_SOURCE
+    wake_lock(pLock);
 #endif
-   return VOS_STATUS_SUCCESS;
+    return VOS_STATUS_SUCCESS;
 }
 
 /*--------------------------------------------------------------------------
@@ -520,10 +527,12 @@ VOS_STATUS vos_wake_lock_acquire(vos_wake_lock_t *pLock)
   ------------------------------------------------------------------------*/
 VOS_STATUS vos_wake_lock_timeout_acquire(vos_wake_lock_t *pLock, v_U32_t msec)
 {
-#ifdef WLAN_OPEN_SOURCE
-   wake_lock_timeout(pLock, msecs_to_jiffies(msec));
+#if defined CONFIG_CNSS
+    cnss_pm_wake_lock_timeout(pLock, msec);
+#elif defined WLAN_OPEN_SOURCE
+    wake_lock_timeout(pLock, msecs_to_jiffies(msec));
 #endif
-   return VOS_STATUS_SUCCESS;
+    return VOS_STATUS_SUCCESS;
 }
 
 /*--------------------------------------------------------------------------
@@ -537,10 +546,12 @@ VOS_STATUS vos_wake_lock_timeout_acquire(vos_wake_lock_t *pLock, v_U32_t msec)
   ------------------------------------------------------------------------*/
 VOS_STATUS vos_wake_lock_release(vos_wake_lock_t *pLock)
 {
-#ifdef WLAN_OPEN_SOURCE
-   wake_unlock(pLock);
+#if defined CONFIG_CNSS
+    cnss_pm_wake_lock_release(pLock);
+#elif defined WLAN_OPEN_SOURCE
+    wake_unlock(pLock);
 #endif
-   return VOS_STATUS_SUCCESS;
+    return VOS_STATUS_SUCCESS;
 }
 
 /*--------------------------------------------------------------------------
@@ -554,8 +565,10 @@ VOS_STATUS vos_wake_lock_release(vos_wake_lock_t *pLock)
   ------------------------------------------------------------------------*/
 VOS_STATUS vos_wake_lock_destroy(vos_wake_lock_t *pLock)
 {
-#ifdef WLAN_OPEN_SOURCE
-   wake_lock_destroy(pLock);
+#if defined CONFIG_CNSS
+    cnss_pm_wake_lock_destroy(pLock);
+#elif defined WLAN_OPEN_SOURCE
+    wake_lock_destroy(pLock);
 #endif
-   return VOS_STATUS_SUCCESS;
+    return VOS_STATUS_SUCCESS;
 }
