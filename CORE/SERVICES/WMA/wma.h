@@ -1087,6 +1087,7 @@ void regdmn_get_ctl_info(struct regulatory *reg, u_int32_t modesAvail,
 
 /*get the ctl from regdomain*/
 u_int8_t regdmn_get_ctl_for_regdmn(u_int32_t reg_dmn);
+u_int16_t get_regdmn_5g(u_int32_t reg_dmn);
 #endif
 
 #define WMA_FW_PHY_STATS	0x1

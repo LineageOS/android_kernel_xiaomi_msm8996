@@ -17258,34 +17258,38 @@ wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
 void
 wma_set_dfs_regdomain(tp_wma_handle wma)
 {
-    u_int8_t ctl;
-    u_int32_t regdmn = wma->reg_cap.eeprom_rd;
+	u_int8_t ctl;
+	u_int32_t regdmn = wma->reg_cap.eeprom_rd;
+	u_int32_t regdmn5G;
 
-    if (regdmn < 0)
-    {
-        WMA_LOGE("%s:DFS-Invalid regdomain\n",__func__);
-    }
-    ctl = regdmn_get_ctl_for_regdmn(regdmn);
-    if (!ctl)
-    {
-        WMA_LOGI("%s:DFS-Invalid CTL\n",__func__);
-    }
-    if (ctl == FCC)
-    {
-        WMA_LOGI("%s:DFS- CTL = FCC\n",__func__);
-        wma->dfs_ic->current_dfs_regdomain = DFS_FCC_DOMAIN;
-    }
-    else if (ctl == ETSI)
-    {
-        WMA_LOGI("%s:DFS- CTL = ETSI\n",__func__);
-        wma->dfs_ic->current_dfs_regdomain = DFS_ETSI_DOMAIN;
-    }
-    else if (ctl == MKK)
-    {
-        WMA_LOGI("%s:DFS- CTL = MKK\n",__func__);
-        wma->dfs_ic->current_dfs_regdomain = DFS_MKK4_DOMAIN;
-    }
-    WMA_LOGI("%s: ****** Current Reg Domain: %d *******\n", __func__,
+	if (regdmn < 0)
+	{
+		WMA_LOGE("%s:DFS-Invalid regdomain\n",__func__);
+	}
+
+	regdmn5G = get_regdmn_5g(regdmn);
+	ctl = regdmn_get_ctl_for_regdmn(regdmn5G);
+
+	if (!ctl)
+	{
+		WMA_LOGI("%s:DFS-Invalid CTL\n",__func__);
+	}
+	if (ctl == FCC)
+	{
+		WMA_LOGI("%s:DFS- CTL = FCC\n",__func__);
+		wma->dfs_ic->current_dfs_regdomain = DFS_FCC_DOMAIN;
+	}
+	else if (ctl == ETSI)
+	{
+		WMA_LOGI("%s:DFS- CTL = ETSI\n",__func__);
+		wma->dfs_ic->current_dfs_regdomain = DFS_ETSI_DOMAIN;
+	}
+	else if (ctl == MKK)
+	{
+		WMA_LOGI("%s:DFS- CTL = MKK\n",__func__);
+		wma->dfs_ic->current_dfs_regdomain = DFS_MKK4_DOMAIN;
+	}
+	WMA_LOGI("%s: ****** Current Reg Domain: %d *******\n", __func__,
 			wma->dfs_ic->current_dfs_regdomain);
 }
 

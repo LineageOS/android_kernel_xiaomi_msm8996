@@ -505,3 +505,21 @@ u_int8_t regdmn_get_ctl_for_regdmn(u_int32_t reg_dmn)
    return -1;
 }
 
+/*
+ * Get the 5G reg domain value for reg doamin
+ */
+u_int16_t get_regdmn_5g(u_int32_t reg_dmn)
+{
+	u_int16_t i;
+
+	for (i = 0; i < ol_regdmn_Rdt.regDomainPairsCt; i++)
+	{
+		if (ol_regdmn_Rdt.regDomainPairs[i].regDmnEnum == reg_dmn)
+		{
+			return ol_regdmn_Rdt.regDomainPairs[i].regDmn5GHz;
+		}
+	}
+	adf_os_print("%s: invalid regulatory domain/country code 0x%x\n",
+		     __func__, reg_dmn);
+	return 0;
+}
