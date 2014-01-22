@@ -2204,6 +2204,12 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_DEBUG_CONNECT_ISSUE_MAX         (0xFF)
 #define CFG_ENABLE_DEBUG_CONNECT_ISSUE_DEFAULT     (0)
 
+/* This will be used only for debugging purpose, will be removed after sometime */
+#define CFG_ENABLE_RX_THREAD                       "gEnableRxThread"
+#define CFG_ENABLE_RX_THREAD_MIN                   (0)
+#define CFG_ENABLE_RX_THREAD_MAX                   (1)
+#define CFG_ENABLE_RX_THREAD_DEFAULT               (1)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -2662,6 +2668,7 @@ typedef struct
    v_U16_t                     thermalTempMaxLevel3;
 #endif
    v_U32_t                     gEnableDebugLog;
+   v_U8_t                      enableRxThread;
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation
