@@ -14592,7 +14592,7 @@ wma_batch_scan_result_event_handler
     tSirBatchScanNetworkInfo *pHddApMetaInfo;
     tp_wma_handle wma = (tp_wma_handle) handle;
     u_int32_t nextScanListOffset, nextApMetaInfoOffset;
-    u_int8_t bssid[IEEE80211_ADDR_LEN], ssid[32], *ssid_temp;
+    u_int8_t bssid[IEEE80211_ADDR_LEN], ssid[33], *ssid_temp;
     u_int32_t temp, count1, count2, scan_num, netinfo_num, total_size;
     WMI_BATCH_SCAN_RESULT_EVENTID_param_tlvs *param_tlvs;
     wmi_batch_scan_result_event_fixed_param *fix_param;
@@ -14686,7 +14686,7 @@ wma_batch_scan_result_event_handler
 
             WMI_MAC_ADDR_TO_CHAR_ARRAY(&network_info->bssid, &bssid[0]);
             vos_mem_copy(pHddApMetaInfo->bssid, bssid, IEEE80211_ADDR_LEN);
-            if (network_info->ssid.ssid_len < 32)
+            if (network_info->ssid.ssid_len <= 32)
             {
                ssid_temp = (u_int8_t *)network_info->ssid.ssid;
                for(temp = 0; temp < network_info->ssid.ssid_len; temp++)
@@ -14695,7 +14695,8 @@ wma_batch_scan_result_event_handler
                   ssid_temp++;
                }
                ssid[temp] = '\0';
-               vos_mem_copy(pHddApMetaInfo->ssid, ssid, 32);
+               vos_mem_copy(pHddApMetaInfo->ssid, ssid,
+                                (network_info->ssid.ssid_len + 1));
                WMA_LOGD("ssid %s",pHddApMetaInfo->ssid);
             }
             else
