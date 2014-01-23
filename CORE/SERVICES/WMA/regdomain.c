@@ -473,6 +473,11 @@ void regdmn_set_regval(struct regulatory *reg)
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 	u_int32_t modeSelect = 0xFFFFFFFF;
 
+	if (!wma) {
+		WMA_LOGE("%s: Unable to get WMA handle", __func__);
+		return;
+	}
+
 	wma_get_modeselect(wma, &modeSelect);
 
 	regdmn_get_ctl_info(reg, wma->reg_cap.wireless_modes, modeSelect);
