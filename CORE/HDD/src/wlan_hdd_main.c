@@ -1944,6 +1944,8 @@ eHalStatus hdd_parse_plm_cmd(tANI_U8 *pValue, tSirPlmReq *pPlmRequest)
         hddLog(VOS_TRACE_LEVEL_DEBUG, "MC addr "MAC_ADDRESS_STR,
                           MAC_ADDR_ARRAY(pPlmRequest->macAddr));
 
+        cmdPtr = strpbrk(cmdPtr, " ");
+
         if (NULL == cmdPtr)
            return eHAL_STATUS_FAILURE;
 
