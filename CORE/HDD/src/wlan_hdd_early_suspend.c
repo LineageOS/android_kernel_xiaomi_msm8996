@@ -635,9 +635,16 @@ void hdd_ipv6_notifier_work_queue(struct work_struct *work)
         return;
     }
 
+    if ( VOS_FALSE == pHddCtx->sus_res_mcastbcast_filter_valid)
+    {
+        pHddCtx->sus_res_mcastbcast_filter =
+            pHddCtx->configuredMcastBcastFilter;
+        pHddCtx->sus_res_mcastbcast_filter_valid = VOS_TRUE;
+    }
+
     if ((eConnectionState_Associated ==
                 (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState)
-         && (VOS_TRUE == pHddCtx->sus_res_mcastbcast_filter_valid))
+        && (pHddCtx->hdd_wlan_suspended))
     {
         // This invocation being part of the IPv6 registration callback,
         // we are passing second parameter as 2 to avoid registration
@@ -881,9 +888,16 @@ void hdd_ipv4_notifier_work_queue(struct work_struct *work)
         return;
     }
 
+    if ( VOS_FALSE == pHddCtx->sus_res_mcastbcast_filter_valid)
+    {
+        pHddCtx->sus_res_mcastbcast_filter =
+            pHddCtx->configuredMcastBcastFilter;
+        pHddCtx->sus_res_mcastbcast_filter_valid = VOS_TRUE;
+    }
+
     if ((eConnectionState_Associated ==
                 (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState)
-        && (VOS_TRUE == pHddCtx->sus_res_mcastbcast_filter_valid))
+        && (pHddCtx->hdd_wlan_suspended))
     {
         // This invocation being part of the IPv4 registration callback,
         // we are passing second parameter as 2 to avoid registration
