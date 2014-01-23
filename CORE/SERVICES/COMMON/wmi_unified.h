@@ -2939,6 +2939,8 @@ typedef enum {
     /** max rate in kpbs, transmit rate can't go beyond it */
     WMI_VDEV_PARAM_MAX_RATE,
 
+    /* enable/disable drift sample. 0: disable; 1: clk_drift; 2: ap_drift; 3 both clk and ap drift*/
+    WMI_VDEV_PARAM_EARLY_RX_DRIFT_SAMPLE,
 } WMI_VDEV_PARAM;
 
 enum wmi_pkt_type {
