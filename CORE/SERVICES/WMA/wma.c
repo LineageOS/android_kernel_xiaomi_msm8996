@@ -7369,6 +7369,9 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	VOS_STATUS status;
 	struct wma_txrx_node *iface;
 	tPowerdBm maxTxPower = 0;
+#ifdef WLAN_FEATURE_11W
+	int ret = 0;
+#endif /* WLAN_FEATURE_11W */
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -7470,6 +7473,22 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 
 		wmi_unified_send_peer_assoc(wma, add_bss->nwType,
 					    &add_bss->staContext);
+#ifdef WLAN_FEATURE_11W
+		if (add_bss->rmfEnabled) {
+			/* when 802.11w PMF is enabled for hw encr/decr
+			   use hw MFP Qos bits 0x10 */
+			ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+					WMI_PDEV_PARAM_PMF_QOS, TRUE);
+			if(ret) {
+				WMA_LOGE("%s: Failed to set QOS MFP/PMF (%d)",
+				__func__, ret);
+			} else {
+				WMA_LOGI("%s: QOS MFP/PMF set to %d",
+				 __func__, TRUE);
+			}
+		}
+#endif /* WLAN_FEATURE_11W */
+
 		if (add_bss->staContext.encryptType == eSIR_ED_NONE) {
 			WMA_LOGD("%s: send peer authorize wmi cmd for %pM\n",
 				 __func__, add_bss->bssId);
@@ -8027,6 +8046,9 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 	ol_txrx_peer_handle peer;
 	struct wma_txrx_node *iface;
 	tPowerdBm maxTxPower;
+#ifdef WLAN_FEATURE_11W
+        int ret = 0;
+#endif
 
 #ifdef FEATURE_WLAN_TDLS
 	if (STA_ENTRY_TDLS_PEER == params->staType)
@@ -8080,6 +8102,21 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		wmi_unified_send_txbf(wma, params);
                 wmi_unified_send_peer_assoc(wma, params->nwType,
                                 (tAddStaParams *)iface->addBssStaContext);
+#ifdef WLAN_FEATURE_11W
+		if (params->rmfEnabled) {
+			/* when 802.11w PMF is enabled for hw encr/decr
+			   use hw MFP Qos bits 0x10 */
+			ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+					WMI_PDEV_PARAM_PMF_QOS, TRUE);
+			if(ret) {
+				WMA_LOGE("%s: Failed to set QOS MFP/PMF (%d)",
+				__func__, ret);
+			} else {
+				WMA_LOGI("%s: QOS MFP/PMF set to %d",
+				 __func__, TRUE);
+			}
+		}
+#endif /* WLAN_FEATURE_11W */
 	}
 #if defined WLAN_FEATURE_VOWIFI
 	maxTxPower = params->maxTxPower;

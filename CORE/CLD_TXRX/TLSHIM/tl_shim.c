@@ -549,6 +549,10 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 			adf_nbuf_trim_tail(wbuf, IEEE80211_CCMP_MICLEN);
 
 			rx_pkt->pkt_meta.mpdu_hdr_ptr = adf_nbuf_data(wbuf);
+			rx_pkt->pkt_meta.mpdu_len = adf_nbuf_len(wbuf);
+			rx_pkt->pkt_meta.mpdu_data_len =
+				rx_pkt->pkt_meta.mpdu_len -
+				rx_pkt->pkt_meta.mpdu_hdr_len;
 			rx_pkt->pkt_meta.mpdu_data_ptr =
 				rx_pkt->pkt_meta.mpdu_hdr_ptr +
 				rx_pkt->pkt_meta.mpdu_hdr_len;
