@@ -2737,6 +2737,14 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                          "%s: Timeout occurred while waiting for abortscan" ,
                          __func__);
+
+            if (pHddCtx->isLogpInProgress)
+            {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                          "%s: LOGP in Progress. Ignore!!!", __func__);
+                return -EAGAIN;
+            }
+
             VOS_ASSERT(pScanInfo->mScanPending);
         }
     }
@@ -3343,6 +3351,13 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                                    "%s: SME Timed out while setting country code ",
                                                  __func__);
+
+                            if (pHddCtx->isLogpInProgress)
+                            {
+                                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                                          "%s: LOGP in Progress. Ignore!!!", __func__);
+                                return -EAGAIN;
+                            }
                         }
                     }
                     else
@@ -9237,6 +9252,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "%s: sme_SendTdlsMgmtFrame failed!", __func__);
         pAdapter->mgmtTxCompletionStatus = FALSE;
+
         wlan_hdd_tdls_check_bmps(pAdapter);
         goto error;
     }
@@ -9250,6 +9266,14 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
                   "%s: Mgmt Tx Completion failed status %ld TxCompletion %u",
                   __func__, rc, pAdapter->mgmtTxCompletionStatus);
         pAdapter->mgmtTxCompletionStatus = FALSE;
+
+        if (pHddCtx->isLogpInProgress)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: LOGP in Progress. Ignore!!!", __func__);
+            return -EAGAIN;
+        }
+
         wlan_hdd_tdls_check_bmps(pAdapter);
         goto error;
     }
