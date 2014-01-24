@@ -249,8 +249,12 @@ aagPrf(v_U32_t cryptHandle,
 
     for (i = 0; i < numLoops; i++) 
     {
-        VOS_ASSERT((resultOffset - result + VOS_DIGEST_SHA1_SIZE)
-               <= AAG_PRF_MAX_OUTPUT_SIZE);
+        if ((resultOffset - result + VOS_DIGEST_SHA1_SIZE) > AAG_PRF_MAX_OUTPUT_SIZE)
+        {
+            VOS_ASSERT(0);
+            return ANI_ERROR;
+        }
+
         hmacText[loopCtrPos] = i;
         if( VOS_IS_STATUS_SUCCESS( vos_sha1_hmac_str(cryptHandle, hmacText, loopCtrPos + 1, key, keyLen, resultOffset) ) )
         {
