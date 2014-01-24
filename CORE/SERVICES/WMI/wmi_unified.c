@@ -522,6 +522,7 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 
 	pkt = adf_os_mem_alloc(NULL, sizeof(*pkt));
 	if (!pkt) {
+		adf_os_atomic_dec(&wmi_handle->pending_cmds);
 		pr_err("%s, Failed to alloc htc packet %x, no memory\n",
 		       __func__, cmd_id);
 		return -ENOMEM;
@@ -540,6 +541,12 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 	WMA_LOGD("Send WMI command:%s command_id:%d\n",
 			get_wmi_cmd_string(cmd_id), cmd_id);
 	status = HTCSendPkt(wmi_handle->htc_handle, pkt);
+
+	if (A_OK != status) {
+		adf_os_atomic_dec(&wmi_handle->pending_cmds);
+		pr_err("%s %d, HTCSendPkt failed\n", __func__, __LINE__);
+	}
+
 
 	return ((status == A_OK) ? EOK : -1);
 }

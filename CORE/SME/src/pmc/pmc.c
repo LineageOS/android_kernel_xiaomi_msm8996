@@ -3575,10 +3575,9 @@ void pmcOffloadProcessResponse(tpAniSirGlobal pMac, tSirSmeRsp *pMsg)
                 }
                 else
                 {
-                    /*
-                     * TODO Whether pmc->fullPowerReqPend needs to be cleared
-                     * If not cleared it will retry again
-                     */
+                    pmc = &pMac->pmcOffloadInfo.pmc[pCommand->sessionId];
+                    pmc->fullPowerReqPend = FALSE;
+
                     /* Indicate Full Power Req Failure */
                     pmcOffloadDoFullPowerCallbacks(pMac, pCommand->sessionId,
                                                    eHAL_STATUS_FAILURE);
