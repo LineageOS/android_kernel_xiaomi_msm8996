@@ -2175,6 +2175,7 @@ typedef enum {
     PAUSE_TYPE_P2P_CLIENT_NOA = 0x4, /** only vdev_map is valid, actually only one vdev id is set at one time */
     PAUSE_TYPE_P2P_GO_PS =      0x5, /** only vdev_map is valid, actually only one vdev id is set at one time */
     PAUSE_TYPE_STA_ADD_BA =     0x6, /** only peer_id and tid_map are valid, actually only one tid is set at one time */
+    PAUSE_TYPE_AP_PS =          0x7, /** for pausing AP vdev when all the connected clients are in PS. only vdev_map is valid */
 } wmi_tx_pause_type;
 
 typedef enum {
