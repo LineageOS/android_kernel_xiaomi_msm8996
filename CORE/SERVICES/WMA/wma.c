@@ -3221,10 +3221,10 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 						self_sta_req->selfMacAddr,
 						self_sta_req->sessionId,
 						txrx_vdev_type);
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
 	WMA_LOGD("LL TX Pause Mutex init");
 	adf_os_spinlock_init(&txrx_vdev_handle->ll_pause.mutex);
-#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
+#endif /* QCA_SUPPORT_TXRX_VDEV_LL_TXQ */
 
 	WMA_LOGA("vdev_id %hu, txrx_vdev_handle = %p", self_sta_req->sessionId,
 			txrx_vdev_handle);
@@ -13637,12 +13637,16 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 	t_thermal_cmd_params thermal_params;
 	ol_txrx_pdev_handle curr_pdev;
 
-        if (NULL == wma || NULL == pThermalParams) {
-                WMA_LOGE("%s: TM Invalid input", __func__);
-                return VOS_STATUS_E_FAILURE;
-        }
+	if (NULL == wma || NULL == pThermalParams) {
+		WMA_LOGE("TM Invalid input");
+		return VOS_STATUS_E_FAILURE;
+	}
 
 	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	if (NULL == curr_pdev) {
+		WMA_LOGE("TM Invalid pdev");
+		return VOS_STATUS_E_FAILURE;
+	}
 
 	WMA_LOGD("TM enable %d period %d", pThermalParams->thermalMgmtEnabled,
 			 pThermalParams->throttlePeriod);
@@ -13719,8 +13723,19 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 {
 	t_thermal_cmd_params thermal_params;
 	u_int8_t thermal_level = (*pThermalLevel);
-	ol_txrx_pdev_handle curr_pdev =
-		vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	ol_txrx_pdev_handle curr_pdev;
+
+	if (NULL == wma || NULL == pThermalLevel) {
+		WMA_LOGE("TM Invalid input");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+    curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	if (NULL == curr_pdev) {
+		WMA_LOGE("TM Invalid pdev");
+		return VOS_STATUS_E_FAILURE;
+	}
 
 	WMA_LOGD("TM set level %d", thermal_level);
 
@@ -14624,17 +14639,23 @@ static int wma_thermal_mgmt_evt_handler(void *handle, u_int8_t *event,
 	t_thermal_cmd_params thermal_params;
 	WMI_THERMAL_MGMT_EVENTID_param_tlvs *param_buf =
 		(WMI_THERMAL_MGMT_EVENTID_param_tlvs *) event;
-	ol_txrx_pdev_handle curr_pdev =
-		vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	ol_txrx_pdev_handle curr_pdev;
+
+	if (NULL == event || NULL == handle) {
+		WMA_LOGE("Invalid thermal mitigation event buffer");
+		return -EINVAL;
+	}
+
+	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	if (NULL == curr_pdev) {
+		WMA_LOGE("Invalid pdev");
+		return -EINVAL;
+	}
 
 	/* Check if thermal mitigation is enabled */
 	if (!wma->thermal_mgmt_info.thermalMgmtEnabled){
 		WMA_LOGE("Thermal mgmt is not enabled, ignoring event");
-		return -EINVAL;
-	}
-
-	if (!param_buf) {
-		WMA_LOGE("Invalid thermal mitigation event buffer");
 		return -EINVAL;
 	}
 

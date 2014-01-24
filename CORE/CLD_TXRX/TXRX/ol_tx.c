@@ -248,7 +248,7 @@ ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
 {
     int max_to_send; /* tracks how many frames have been sent*/
     adf_nbuf_t tx_msdu;
-    struct ol_txrx_vdev_t *vdev;
+    struct ol_txrx_vdev_t *vdev = NULL;
     u_int8_t more;
 
     if (NULL == pdev) {
@@ -273,14 +273,24 @@ ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
         more = 0;
         TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
 
+            adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
             if (vdev->ll_pause.txq.depth) {
                 if ( vdev->ll_pause.is_paused == A_TRUE ) {
+                    adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
                     continue;
                 }
+
+                tx_msdu = vdev->ll_pause.txq.head;
+                if (NULL == tx_msdu) {
+                    adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
+                    continue;
+                }
+
                 max_to_send--;
                 vdev->ll_pause.txq.depth--;
-                tx_msdu = vdev->ll_pause.txq.head;
+
                 vdev->ll_pause.txq.head = adf_nbuf_next(tx_msdu);
+
                 if (NULL == vdev->ll_pause.txq.head) {
                     vdev->ll_pause.txq.tail = NULL;
                 }
@@ -302,16 +312,21 @@ ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
             if (vdev->ll_pause.txq.depth) {
                 more = 1;
             }
+            adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
         }
     } while(more && max_to_send);
 
+    vdev = NULL;
     TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
+        adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
         if (vdev->ll_pause.txq.depth) {
             adf_os_timer_cancel(&pdev->tx_throttle_ll.tx_timer);
             adf_os_timer_start(&pdev->tx_throttle_ll.tx_timer,
                                OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
-            break;
+            adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
+            return;
         }
+        adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
     }
 }
 #endif
