@@ -13596,13 +13596,11 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 	}
 #endif
 
-#ifdef WLAN_OPEN_SOURCE
 	if (wma_handle->ack_work_ctx) {
-		cancel_work_sync(&wma_handle->ack_work_ctx->ack_cmp_work);
+		vos_flush_work(&wma_handle->ack_work_ctx->ack_cmp_work);
 		adf_os_mem_free(wma_handle->ack_work_ctx);
 		wma_handle->ack_work_ctx = NULL;
 	}
-#endif
 
 #ifdef QCA_WIFI_ISOC
 	wma_hal_stop_isoc(wma_handle);

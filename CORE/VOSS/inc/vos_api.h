@@ -324,4 +324,8 @@ VOS_STATUS vos_wlanRestart(void);
 */
 v_VOID_t vos_fwDumpReq(tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2,
                         tANI_U32 arg3, tANI_U32 arg4);
+
+v_VOID_t vos_flush_work(v_VOID_t *work);
+v_VOID_t vos_flush_delayed_work(v_VOID_t *dwork);
+
 #endif // if !defined __VOS_NVITEM_H
