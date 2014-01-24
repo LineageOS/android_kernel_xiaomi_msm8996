@@ -5836,6 +5836,10 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
     tpPESession             psessionEntry;
     tANI_U8                 sessionId;  //PE sessionID
     tPowerdBm               maxTxPwr;
+#ifdef WLAN_FEATURE_11AC
+    tANI_U32 centerChan;
+    tANI_U32 chanWidth;
+#endif
     if( pMsg == NULL )
     {
         limLog(pMac, LOGE,FL("pMsg is NULL"));
@@ -5863,14 +5867,6 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                                               &&
                                      maxTxPwr != WDA_MAX_TXPOWER_INVALID)
     {
-        /*
-         * Issue a set channel request with
-         * with channel bonding mode as
-         * PHY_SINGLE_CHANNEL_CENTERED
-         * TODO:Handle the channel bonding mode
-         * 40Mhz and 80Mhz Channel width for SAP
-         * channel change.
-         */
 
         /* Store the New Channel Params in psessionEntry */
         if (psessionEntry->currentOperChannel !=
@@ -5880,25 +5876,73 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                                  psessionEntry->currentOperChannel,
                                  pChannelChangeReq->targetChannel);
 
-            limSetChannel(pMac, pChannelChangeReq->targetChannel,
-                          PHY_SINGLE_CHANNEL_CENTERED,
-                          maxTxPwr,
-                          psessionEntry->peSessionId);
 
+#ifdef WLAN_FEATURE_11AC
+            if(psessionEntry->vhtCapability)
+            {
+
+                if (wlan_cfgGetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
+                          &chanWidth) != eSIR_SUCCESS)
+                {
+                    limLog(pMac, LOGP,
+                      FL("Unable to retrieve Channel Width from CFG"));
+                }
+
+                if(chanWidth == eHT_CHANNEL_WIDTH_20MHZ || chanWidth == eHT_CHANNEL_WIDTH_40MHZ)
+                {
+                    if (cfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH, WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
+                                                                     != eSIR_SUCCESS)
+                    {
+                        limLog(pMac, LOGP, FL("could not set  WNI_CFG_CHANNEL_BONDING_MODE at CFG"));
+                    }
+                }
+                if (chanWidth == eHT_CHANNEL_WIDTH_80MHZ)
+                {
+                    if (cfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH, WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ)
+                                                                     != eSIR_SUCCESS)
+                    {
+                        limLog(pMac, LOGP, FL("could not set  WNI_CFG_CHANNEL_BONDING_MODE at CFG"));
+                    }
+
+                    centerChan = limGetCenterChannel(pMac, pChannelChangeReq->targetChannel,
+                                    pChannelChangeReq->cbMode,WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ);
+                    if(centerChan != eSIR_CFG_INVALID_ID)
+                    {
+                        limLog(pMac, LOGW, FL("***Center Channel for 80MHZ channel width = %d"),centerChan);
+                        psessionEntry->apCenterChan = centerChan;
+                        if (cfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_CENTER_FREQ_SEGMENT1, centerChan)
+                                                                     != eSIR_SUCCESS)
+                        {
+                            limLog(pMac, LOGP, FL("could not set  WNI_CFG_CHANNEL_BONDING_MODE at CFG"));
+                        }
+                    }
+                }
+
+                /* All the translation is done by now for gVhtChannelWidth from .ini file to
+                 * the actual values as defined in spec. So, grabing the spec value which is
+                 * updated in .dat file by the above logic */
+                if (wlan_cfgGetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
+                                   &chanWidth) != eSIR_SUCCESS)
+                {
+                    limLog(pMac, LOGP,
+                      FL("Unable to retrieve Channel Width from CFG"));
+                }
+                psessionEntry->vhtTxChannelWidthSet = chanWidth;
+                psessionEntry->apChanWidth = chanWidth;
+            }
+            psessionEntry->htSecondaryChannelOffset = limGetHTCBState(pChannelChangeReq->cbMode);
+            psessionEntry->htSupportedChannelWidthSet = (pChannelChangeReq->cbMode ? 1 : 0);
+
+            psessionEntry->htRecommendedTxWidthSet =
+                                  psessionEntry->htSupportedChannelWidthSet;
             psessionEntry->currentOperChannel =
                                   pChannelChangeReq->targetChannel;
 
-            /*
-             *TODO:As of now the supported Channel width
-             * is only 20Mhz. AP Channel Bonding Mode for
-             * 40 Mhz and 80Mhz is pending implementation.
-             */
-            psessionEntry->htSecondaryChannelOffset =
-                                  PHY_SINGLE_CHANNEL_CENTERED;
-            psessionEntry->htSupportedChannelWidthSet =
-                                  WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
-            psessionEntry->htRecommendedTxWidthSet =
-                                  psessionEntry->htSupportedChannelWidthSet;
+            limSetChannel(pMac, pChannelChangeReq->targetChannel,
+                          pChannelChangeReq->cbMode,
+                          maxTxPwr,
+                          psessionEntry->peSessionId);
+#endif
         }
 
     }
