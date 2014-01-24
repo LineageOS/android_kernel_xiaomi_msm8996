@@ -181,7 +181,9 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    }
 
    // are we in the appropriate power save modes?
-   if (!sme_IsPowerSaveEnabled(WLAN_HDD_GET_HAL_CTX(pAdapter), ePMC_BEACON_MODE_POWER_SAVE))
+   if (!sme_IsPowerSaveEnabled(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                               pAdapter->sessionId,
+                               ePMC_BEACON_MODE_POWER_SAVE))
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
                 "%s: BMPS is not enabled",
@@ -189,7 +191,9 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
       return;
    }
 
-   if (!sme_IsPowerSaveEnabled(WLAN_HDD_GET_HAL_CTX(pAdapter), ePMC_UAPSD_MODE_POWER_SAVE))
+   if (!sme_IsPowerSaveEnabled(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                               pAdapter->sessionId,
+                               ePMC_UAPSD_MODE_POWER_SAVE))
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
                 "%s: U-APSD is not enabled",

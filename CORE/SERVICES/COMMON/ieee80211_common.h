@@ -1862,6 +1862,9 @@ enum {
 #define IEEE80211_WEP_EXTIVLEN      4   /* extended IV length */
 #define IEEE80211_WEP_MICLEN        8   /* trailing MIC */
 
+#define IEEE80211_CCMP_HEADERLEN    8
+#define IEEE80211_CCMP_MICLEN       8
+
 #define IEEE80211_CRC_LEN           4
 
 #define IEEE80211_8021Q_HEADER_LEN  4

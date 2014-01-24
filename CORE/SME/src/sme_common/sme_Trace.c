@@ -31,12 +31,6 @@
 
   \author Kiran Kumar Reddy CH L V
 
-  Copyright (c) 2013 Qualcomm Atheros, Inc.
-
-  All Rights Reserved.
-
-  Qualcomm Atheros Confidential and Proprietary.
-
   ========================================================================*/
 #include "aniGlobal.h" //for tpAniSirGlobal
 #include "smsDebug.h"

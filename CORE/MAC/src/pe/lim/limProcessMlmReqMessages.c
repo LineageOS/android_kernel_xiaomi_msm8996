@@ -1718,7 +1718,8 @@ limMlmAddBss (
 
     pAddBssParams->halPersona=psessionEntry->pePersona; //pass on the session persona to hal
 
-    pAddBssParams->bSpectrumMgtEnabled = psessionEntry->spectrumMgtEnabled;
+    pAddBssParams->bSpectrumMgtEnabled = psessionEntry->spectrumMgtEnabled ||
+                        limIsconnectedOnDFSChannel(pMlmStartReq->channelNumber);
 
 #if defined WLAN_FEATURE_VOWIFI_11R
     pAddBssParams->extSetStaKeyParamValid = 0;

@@ -24,21 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-/*
- * Copyright (c) 2013 Qualcomm Atheros, Inc.
- *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+
 #ifndef _OL_FW_H_
 #define _OL_FW_H_
 
@@ -64,17 +50,17 @@
 #define PEER_DEFAULT_STATS_UPDATE_PERIOD    500
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-#define REGISTER_LOCATION       0x4000
-#define REGISTER_SIZE           0x6c000
+#define REGISTER_LOCATION       0x00000000
+#define REGISTER_SIZE           0x00000800
 
-#define DRAM_LOCATION           0x400000
-#define DRAM_SIZE               0x50000
+#define DRAM_LOCATION           0x00400000
+#define DRAM_SIZE               0x00070000
 
-#define IRAM_LOCATION           0x980000
-#define IRAM_SIZE               0x38000
+#define IRAM_LOCATION           0x00980000
+#define IRAM_SIZE               0x00038000
 
 #define TOTAL_DUMP_SIZE         REGISTER_SIZE + DRAM_SIZE + IRAM_SIZE
-#define PCIE_READ_LIMIT         0x5000
+#define PCIE_READ_LIMIT         0x00005000
 
 void ol_target_coredump(void *instance, void* memoryBlock,
                         u_int32_t blockLength);

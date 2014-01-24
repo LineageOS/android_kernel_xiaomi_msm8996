@@ -24,21 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-/*
- * Copyright (c) 2013 Qualcomm Atheros, Inc.
- *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+
 #include <linux/firmware.h>
 #include "ol_if_athvar.h"
 #include "ol_fw.h"
@@ -495,6 +481,7 @@ u_int32_t host_interest_item_address(u_int32_t target_type, u_int32_t item_offse
 	case TARGET_TYPE_AR9888:
 		return (AR9888_HOST_INTEREST_ADDRESS + item_offset);
 	case TARGET_TYPE_AR6320:
+	case TARGET_TYPE_AR6320V2:
 		return (AR6320_HOST_INTEREST_ADDRESS + item_offset);
 	}
 }
@@ -507,6 +494,21 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	void __iomem *ramdump_base;
 	unsigned long address;
 	unsigned long size;
+	u_int32_t host_interest_address;
+
+	if (!ramdump_scn) {
+		printk("No RAM dump will be collected since ramdump_scn is NULL!\n");
+		goto out;
+	}
+
+	if (HIFDiagReadMem(ramdump_scn->hif_hdl,
+		host_interest_item_address(ramdump_scn->target_type,
+		offsetof(struct host_interest_s, hi_failure_state)),
+		(A_UCHAR*) &host_interest_address, sizeof(u_int32_t)) != A_OK) {
+		printk("HifDiagReadiMem FW Dump Area Pointer failed!\n");
+		goto out;
+	}
+	printk("Host interest item address: 0x%08X\n", host_interest_address);
 
 	/* Get RAM dump memory address and size */
 	if (cnss_get_ramdump_mem(&address, &size)) {
@@ -521,16 +523,11 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		goto out;
 	}
 
-	if (ramdump_scn) {
-		ol_target_coredump(ramdump_scn, ramdump_base, TOTAL_DUMP_SIZE);
+	ol_target_coredump(ramdump_scn, ramdump_base, TOTAL_DUMP_SIZE);
+        iounmap(ramdump_base);
 
-		printk("%s: RAM dump collecting completed!\n", __func__);
-		msleep(500);
-	} else {
-		printk("No RAM dump will be collected since ramdump_scn is NULL!\n");
-	}
-
-	iounmap(ramdump_base);
+	printk("%s: RAM dump collecting completed!\n", __func__);
+	msleep(500);
 
 out:
 	/* Notify SSR framework the target has crashed. */
@@ -552,7 +549,6 @@ void ol_target_failure(void *instance, A_STATUS status)
 	A_UINT32 reg_dump_values[REGISTER_DUMP_LEN_MAX];
 	A_UINT32 reg_dump_cnt = 0;
 	A_UINT32 i;
-#endif
 	A_UINT32 dbglog_hdr_address;
 	struct dbglog_hdr_s dbglog_hdr;
 	struct dbglog_buf_s dbglog_buf;
@@ -561,6 +557,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 	A_UINT8 *dbglog_data;
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+#endif
 
 	if (OL_TRGET_STATUS_RESET == scn->target_status) {
 		printk("Target is already asserted, ignore!\n");
@@ -597,7 +594,6 @@ void ol_target_failure(void *instance, A_STATUS status)
 	for (i = 0; i < reg_dump_cnt; i++) {
 		printk("[%02d]   :  0x%08X\n", i, reg_dump_values[i]);
 	}
-#endif
 
 	if (HIFDiagReadMem(scn->hif_hdl,
 	            host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_dbglog_hdr)),
@@ -656,6 +652,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 	    adf_os_mem_free(dbglog_data);
 	}
+#endif
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 	/* Collect the RAM dump through a workqueue */
@@ -972,49 +969,29 @@ void ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 	struct ol_softc *scn = (struct ol_softc *)inst;
 	char *bufferLoc = memoryBlock;
 	int result = 0;
-	u_int32_t reg_dump_area = 0;
 	u_int32_t amountRead = 0;
 	u_int32_t sectionCount = 0;
 	u_int32_t pos = 0;
 	u_int32_t readLen = 0;
 
 	/*
-	* SECTION = REGISTER
-	* START   = Vary in target type
-	* LENGTH  = 0x6c000
-	*
 	* SECTION = DRAM
-	* START   = 0x400000
-	* LENGTH  = 0x50000
+	* START   = 0x00400000
+	* LENGTH  = 0x00070000
 	*
 	* SECTION = IRAM
-	* START   = 0x980000
-	* LENGTH  = 0x38000
-	*
+	* START   = 0x00980000
+	* LENGTH  = 0x00038000
 	*/
 
-	if (HIFDiagReadMem(scn->hif_hdl,
-		host_interest_item_address(scn->target_type,
-		offsetof(struct host_interest_s, hi_failure_state)),
-		(A_UCHAR*) &reg_dump_area, sizeof(u_int32_t)) != A_OK) {
-		printk("HifDiagReadiMem FW Dump Area Pointer failed!\n");
-		return;
-	}
-	printk("Host interest item address: 0x%08X\n", reg_dump_area);
-
-	while ((sectionCount < 3) && (amountRead < blockLength)) {
+	while ((sectionCount < 2) && (amountRead < blockLength)) {
 		switch (sectionCount) {
 		case 0:
-			/* REGISTER SECTION */
-			pos = reg_dump_area;
-			readLen = REGISTER_SIZE;
-			break;
-		case 1:
 			/* DRAM SECTION */
 			pos = DRAM_LOCATION;
 			readLen = DRAM_SIZE;
 			break;
-		case 2:
+		case 1:
 			/* IRAM SECTION */
 			pos = IRAM_LOCATION;
 			readLen = IRAM_SIZE;
@@ -1044,18 +1021,20 @@ u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)
 	u_int8_t max_no_of_peers = 0;
 
 	switch (scn->target_version) {
-		case AR6320_REV1_3_VERSION:
-			if(scn->max_no_of_peers > MAX_SUPPORTED_PEERS_REV1_3)
-				max_no_of_peers = MAX_SUPPORTED_PEERS_REV1_3;
-			else
-				max_no_of_peers = scn->max_no_of_peers;
-			break;
-		default:
+		case AR6320_REV1_1_VERSION:
 			if(scn->max_no_of_peers > MAX_SUPPORTED_PEERS_REV1_1)
 				max_no_of_peers = MAX_SUPPORTED_PEERS_REV1_1;
 			else
 				max_no_of_peers = scn->max_no_of_peers;
 			break;
+
+		default:
+			if(scn->max_no_of_peers > MAX_SUPPORTED_PEERS_REV1_3)
+				max_no_of_peers = MAX_SUPPORTED_PEERS_REV1_3;
+			else
+				max_no_of_peers = scn->max_no_of_peers;
+			break;
+
 	}
 	return max_no_of_peers;
 }

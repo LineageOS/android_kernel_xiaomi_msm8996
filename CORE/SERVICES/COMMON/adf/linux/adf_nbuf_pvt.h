@@ -104,16 +104,9 @@ struct cvg_nbuf_cb {
     } extra_frags;
     uint32_t owner_id;
     __adf_nbuf_callback_fn adf_nbuf_callback_fn;
-#ifdef IPA_OFFLOAD
-    unsigned long priv_data;
-#endif
 };
 #define NBUF_OWNER_ID(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->owner_id)
-#ifdef IPA_OFFLOAD
-#define NBUF_OWNER_PRIV_DATA(skb) \
-    (((struct cvg_nbuf_cb *)((skb)->cb))->priv_data)
-#endif
 #define NBUF_CALLBACK_FN(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->adf_nbuf_callback_fn)
 #define NBUF_CALLBACK_FN_EXEC(skb) \

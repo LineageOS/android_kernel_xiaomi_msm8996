@@ -2203,7 +2203,7 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                 /* re-assign preference value based on modified rssi bucket */
                 pBssDesc->preferValue = csrGetBssPreferValue(pMac, (int)pBssDesc->Result.BssDescriptor.rssi);
 
-                smsLog(pMac, LOG2, FL("BSSID(%02X:%02X:%02X:%02X:%02X:%02X) Rssi(%d) Chnl(%d) PrefVal(%lu) SSID=%.*s"),
+                smsLog(pMac, LOG2, FL("BSSID(%02X:%02X:%02X:%02X:%02X:%02X) Rssi(%d) Chnl(%d) PrefVal(%u) SSID=%.*s"),
                  pBssDesc->Result.BssDescriptor.bssId[0],
                  pBssDesc->Result.BssDescriptor.bssId[1],
                  pBssDesc->Result.BssDescriptor.bssId[2],

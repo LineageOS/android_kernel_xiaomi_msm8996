@@ -56,8 +56,8 @@ static size_t capture(FILE *out_log, FILE *in_log)
     size_t res;
 
     while ((res = fread(buf, RECLEN, 1, in_log)) == 1)  {
-        printf("Read record timestamp=%u length=%u\n",
-               get_le32(buf), get_le32(&buf[4]));
+        printf("Read record timestamp=%u length=%u no. fw dropped=%u\n",
+               get_le32(buf), get_le32(&buf[4]), get_le32(&buf[8]));
         fseek(out_log, record * RECLEN, SEEK_SET);
         if (fwrite(buf, RECLEN, res, out_log) != res)
                 perror("fwrite");

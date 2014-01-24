@@ -2102,6 +2102,7 @@ typedef struct sAniGetPEStatsReq
     tANI_U16                msgLen;  // length of the entire request
     tANI_U32                staId;  // Per STA stats request must contain valid
     tANI_U32                statsMask;  // categories of stats requested. look at ePEStatsMask
+    tANI_U8                 sessionId;
 } tAniGetPEStatsReq, *tpAniGetPEStatsReq;
 
 /*
@@ -4735,5 +4736,64 @@ typedef struct sSirChAvoidIndType
 	tSirChAvoidFreqType	avoid_freq_range[SIR_CH_AVOID_MAX_RANGE];
 } tSirChAvoidIndType;
 #endif /* FEATURE_WLAN_CH_AVOID */
+
+typedef struct sSirSmeDfsEventInd
+{
+    tANI_U32     sessionId;
+    tANI_U8      ieee_chan_number;
+    tANI_U32     chan_freq;
+    tANI_U32     dfs_radar_status;
+    int          use_nol;
+}tSirSmeDfsEventInd, *tpSirSmeDfsEventInd;
+
+typedef struct sSirChanChangeRequest
+{
+    tANI_U16     messageType;
+    tANI_U16     messageLen;
+    tANI_U8      sessionId;
+    tANI_U8      targetChannel;
+}tSirChanChangeRequest, *tpSirChanChangeRequest;
+
+typedef struct sSirChanChangeResponse
+{
+    tANI_U8                  sessionId;
+    tANI_U8                  newChannelNumber;
+    tANI_U8                  channelChangeStatus;
+    ePhyChanBondState        secondaryChannelOffset;
+}tSirChanChangeResponse, *tpSirChanChangeResponse;
+
+typedef struct sSirStartBeaconIndication
+{
+    tANI_U16     messageType;
+    tANI_U16     messageLen;
+    tANI_U8      sessionId;
+    tANI_U8      beaconStartStatus;
+}tSirStartBeaconIndication, *tpSirStartBeaconIndication;
+
+/* Message format for requesting channel switch announcement to lower layers */
+typedef struct sSirDfsCsaIeRequest
+{
+    tANI_U16 msgType;
+    tANI_U16 msgLen;
+    tANI_U8  sessionId;
+    tANI_U8  targetChannel;
+    tANI_U8  csaIeRequired;
+}tSirDfsCsaIeRequest, *tpSirDfsCsaIeRequest;
+
+/* Indication from lower layer indicating the completion of first beacon send
+ * after the beacon template update
+ */
+typedef struct sSirFirstBeaconTxCompleteInd
+{
+   tANI_U16 messageType; // eWNI_SME_MISSED_BEACON_IND
+   tANI_U16 length;
+   tANI_U8  bssIdx;
+}tSirFirstBeaconTxCompleteInd, *tpSirFirstBeaconTxCompleteInd;
+
+typedef struct sSirSmeCSAIeTxCompleteRsp
+{
+    tANI_U8  sessionId;
+    tANI_U8  chanSwIeTxStatus;
+}tSirSmeCSAIeTxCompleteRsp, *tpSirSmeCSAIeTxCompleteRsp;
 
 #endif /* __SIR_API_H */

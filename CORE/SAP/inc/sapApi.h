@@ -192,6 +192,7 @@ typedef enum {
     eSAP_MAC_TRIG_STOP_BSS_EVENT,
     eSAP_UNKNOWN_STA_JOIN, /* Event send when a STA in neither white list or black list tries to associate in softap mode */
     eSAP_MAX_ASSOC_EXCEEDED, /* Event send when a new STA is rejected association since softAP max assoc limit has reached */
+    eSAP_CHANNEL_CHANGE_EVENT,
 } eSapHddEvent;
 
 typedef enum {
@@ -363,9 +364,11 @@ typedef struct sap_MaxAssocExceededEvent_s {
     v_MACADDR_t    macaddr;  
 } tSap_MaxAssocExceededEvent;
 
-
-/* 
-   This struct will be filled in and passed to tpWLAN_SAPEventCB that is provided during WLANSAP_StartBss call   
+typedef struct sap_OperatingChannelChangeEvent_s {
+   tANI_U8 operatingChannel;
+} tSap_OperatingChannelChangeEvent;
+/*
+   This struct will be filled in and passed to tpWLAN_SAPEventCB that is provided during WLANSAP_StartBss call
    The event id corresponding to structure  in the union is defined in comment next to the structure
 */
 
@@ -387,6 +390,7 @@ typedef struct sap_Event_s {
         tSap_SendActionCnf                        sapActionCnf;  /* eSAP_SEND_ACTION_CNF */ 
         tSap_UnknownSTAJoinEvent                  sapUnknownSTAJoin; /* eSAP_UNKNOWN_STA_JOIN */
         tSap_MaxAssocExceededEvent                sapMaxAssocExceeded; /* eSAP_MAX_ASSOC_EXCEEDED */
+        tSap_OperatingChannelChangeEvent          sapChannelChange; /* eSAP_CHANNEL_CHANGE_EVENT */
     } sapevt;
 } tSap_Event, *tpSap_Event;
 
@@ -437,7 +441,7 @@ typedef struct sap_Config {
     v_U32_t         ap_table_expiration_time;
     v_U32_t         ht_op_mode_fixed;
     tVOS_CON_MODE   persona; /*Tells us which persona it is GO or AP for now*/
-
+    v_U8_t          disableDFSChSwitch;
 } tsap_Config_t;
 
 typedef enum {
@@ -565,6 +569,7 @@ typedef struct sap_SoftapStats_s {
 
 int sapSetPreferredChannel(tANI_U8* ptr);
 void sapCleanupChannelList(void);
+void sapCleanupAllChannelList(void);
 
 /*==========================================================================
   FUNCTION    WLANSAP_Set_WpsIe
@@ -1535,6 +1540,89 @@ VOS_STATUS WLANSAP_RegisterMgmtFrame( v_PVOID_t pvosGCtx, tANI_U16 frameType,
 ============================================================================*/
 VOS_STATUS WLANSAP_DeRegisterMgmtFrame( v_PVOID_t pvosGCtx, tANI_U16 frameType, 
                                       tANI_U8* matchData, tANI_U16 matchLen );
+
+/*==========================================================================
+
+ FUNCTION    WLANSAP_ChannelChangeRequest
+ DESCRIPTION
+  This API is used to send an Indication to SME/PE to change the
+  current operating channel to a different target channel.
+
+  The Channel change will be issued by SAP under the following
+  scenarios.
+  1. A radar indication is received  during SAP CAC WAIT STATE and
+     channel change is required.
+  2. A radar indication is received during SAP STARTED STATE and
+     channel change is required.
+
+ DEPENDENCIES
+  NA.
+
+PARAMETERS
+
+IN
+  pvosGCtx: Pointer to vos global context structure
+  TargetChannel: New target channel for channel change.
+
+RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+VOS_STATUS_SUCCESS:  Success
+
+SIDE EFFECTS
+============================================================================*/
+VOS_STATUS WLANSAP_ChannelChangeRequest(v_PVOID_t pvosGCtx, tANI_U8 tArgetChannel);
+
+/*==========================================================================
+
+ FUNCTION    WLANSAP_StartBeaconReq
+ DESCRIPTION
+  This API is used to send an Indication to SME/PE to start
+  beaconing on the current operating channel.
+
+  Brief:When SAP is started on DFS channel and when ADD BSS RESP is received
+  LIM temporarily holds off Beaconing for SAP to do CAC WAIT. When
+  CAC WAIT is done SAP resumes the Beacon Tx by sending a start beacon
+  request to LIM.
+
+ DEPENDENCIES
+  NA.
+
+PARAMETERS
+
+IN
+  pvosGCtx: Pointer to vos global context structure
+
+RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+VOS_STATUS_SUCCESS:  Success
+
+SIDE EFFECTS
+============================================================================*/
+VOS_STATUS WLANSAP_StartBeaconReq(v_PVOID_t pSapCtx);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_DfsSendCSAIeRequest
+
+  DESCRIPTION
+   This API is used to send channel switch announcement request to PE
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  sapContext: Pointer to vos global context structure
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx);
 
 
 #ifdef __cplusplus

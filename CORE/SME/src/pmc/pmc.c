@@ -3317,7 +3317,6 @@ eHalStatus pmcOffloadEnterPowersaveState(tpAniSirGlobal pMac, tANI_U32 sessionId
      {
          pmc->pmcState = UAPSD;
          pmc->uapsdStatus = PMC_UAPSD_ENABLED;
-         pmc->uapsdSessionRequired = FALSE;
          /* Call registered uapsd cbs */
          pmcOffloadDoStartUapsdCallbacks(pMac, sessionId, eHAL_STATUS_SUCCESS);
      }
@@ -3346,7 +3345,7 @@ eHalStatus pmcOffloadEnterPowersaveState(tpAniSirGlobal pMac, tANI_U32 sessionId
                                            eHAL_STATUS_FAILURE);
         }
     }
-    else if(pmc->uapsdSessionRequired)
+    else if((UAPSD != pmc->pmcState) && pmc->uapsdSessionRequired)
     {
         if(eHAL_STATUS_FAILURE ==
            pmcOffloadQueueStartUapsdRequest(pMac, sessionId))
@@ -3387,7 +3386,6 @@ eHalStatus pmcOffloadExitPowersaveState(tpAniSirGlobal pMac, tANI_U32 sessionId)
 
      if(PMC_UAPSD_DISABLE_PENDING == pmc->uapsdStatus)
      {
-        pmc->uapsdSessionRequired = FALSE;
         pmc->uapsdStatus = PMC_UAPSD_DISABLED;
      }
 
@@ -3458,7 +3456,7 @@ void pmcOffloadExitBmpsIndHandler(tpAniSirGlobal pMac, tSirSmeRsp *pMsg)
    else
    {
         smsLog(pMac, LOG1,
-                FL("Exit BMPS indication on session %lu, reason %d"),
+                FL("Exit BMPS indication on session %u, reason %d"),
                 pExitBmpsInd->smeSessionId, pExitBmpsInd->exitBmpsReason);
         pmcOffloadQueueRequestFullPower(pMac, pExitBmpsInd->smeSessionId,
                                 pExitBmpsInd->exitBmpsReason);

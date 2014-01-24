@@ -52,7 +52,6 @@
 #define ATH_MODULE_NAME hif
 #include <a_debug.h>
 #include "hif_pci.h"
-#include "vos_lock.h"
 
 /* use credit flow control over HTC */
 unsigned int htc_credit_flow = 1;
@@ -1493,6 +1492,8 @@ HIFStop(HIF_DEVICE *hif_device)
     if (!hif_state->started) {
         return; /* already stopped or stopping */
     }
+
+    sc->hif_init_done = FALSE;
     /* sync shutdown */
     hif_completion_thread_shutdown(hif_state);
     hif_completion_thread(hif_state);
@@ -1523,7 +1524,6 @@ HIFStop(HIF_DEVICE *hif_device)
 
     adf_os_timer_cancel(&hif_state->sleep_timer);
     adf_os_timer_free(&hif_state->sleep_timer);
-    vos_wake_lock_destroy(&hif_state->hif_wake_lock);
 
     hif_state->started = FALSE;
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
@@ -1960,7 +1960,6 @@ HIF_sleep_entry(void *arg)
 			A_PCI_WRITE32(pci_addr + PCIE_LOCAL_BASE_ADDRESS +
 				PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
 			hif_state->fake_sleep = FALSE;
-			vos_wake_lock_release(&hif_state->hif_wake_lock);
 		} else {
 			adf_os_timer_start(&hif_state->sleep_timer,
 				HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);
@@ -1968,6 +1967,29 @@ HIF_sleep_entry(void *arg)
 	} else {
 		adf_os_timer_start(&hif_state->sleep_timer,
 			HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);
+	}
+	adf_os_spin_unlock(&hif_state->keep_awake_lock);
+}
+
+void
+HIFCancelDeferredTargetSleep(HIF_DEVICE *hif_device)
+{
+	struct HIF_CE_state *hif_state = (struct HIF_CE_state *)hif_device;
+	A_target_id_t pci_addr = TARGID_TO_PCI_ADDR(hif_state->targid);
+	struct hif_pci_softc *sc = hif_state->sc;
+
+	adf_os_spin_lock(&hif_state->keep_awake_lock);
+	/*
+	 * If the deferred sleep timer is running cancel it
+	 * and put the soc into sleep.
+	 */
+	if (hif_state->fake_sleep == TRUE) {
+		adf_os_timer_cancel(&hif_state->sleep_timer);
+		if (hif_state->verified_awake == FALSE) {
+			A_PCI_WRITE32(pci_addr + PCIE_LOCAL_BASE_ADDRESS +
+				PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
+		}
+		hif_state->fake_sleep = FALSE;
 	}
 	adf_os_spin_unlock(&hif_state->keep_awake_lock);
 }
@@ -2010,7 +2032,6 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
     hif_state->sleep_ticks = 0;
     adf_os_timer_init(NULL, &hif_state->sleep_timer,
                       HIF_sleep_entry, (void *)hif_state);
-    vos_wake_lock_init(&hif_state->hif_wake_lock, "hif_wake_lock");
 
     hif_state->fw_indicator_address = FW_INDICATOR_ADDRESS;
     hif_state->targid = A_TARGET_ID(sc->hif_device);
@@ -2165,18 +2186,24 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 	{
 	     A_UINT8 banks_switched = 1;
 	     A_UINT32 chip_id;
-	     rv = HIFDiagReadAccess(sc->hif_device, CHIP_ID_ADDRESS, &chip_id);
+	     rv = HIFDiagReadAccess(sc->hif_device, CHIP_ID_ADDRESS | RTC_SOC_BASE_ADDRESS, &chip_id);
 	     if (rv != A_OK) {
 	          AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("ath: HIF_PCIDeviceProbed get chip id val (%d)\n", rv));
 		  goto done;
 	     }
-	     if (CHIP_ID_VERSION_GET(chip_id) == 0xD && (CHIP_ID_REVISION_GET(chip_id) == 0x0 || CHIP_ID_REVISION_GET(chip_id) == 0x1)) {
-		  /* for ROME 1.0, 3 banks are switched to IRAM */
-		  AR_DEBUG_PRINTF(ATH_DEBUG_WARN, ("chip ver=0x%x, chip rev=0x%x\n", CHIP_ID_VERSION_GET(chip_id), CHIP_ID_REVISION_GET(chip_id)));
-		  banks_switched = 3;
-	     }
-	     ealloc_value |= ((banks_switched << HI_EARLY_ALLOC_IRAM_BANKS_SHIFT) & HI_EARLY_ALLOC_IRAM_BANKS_MASK);
-	}
+	     if (CHIP_ID_VERSION_GET(chip_id) == 0xD) {
+                 if ((CHIP_ID_REVISION_GET(chip_id) == 0x0) || (CHIP_ID_REVISION_GET(chip_id) == 0x1)
+                     || (CHIP_ID_REVISION_GET(chip_id) == 0x4)) {
+                     /* for ROME 1.0/1.1 and 2.1, 3 banks are switched to IRAM */
+                     banks_switched = 3;
+                 }
+                 else if (CHIP_ID_REVISION_GET(chip_id) == 0x2) {
+                     /* for ROME 1.3, 2 banks are switched to IRAM */
+                     banks_switched = 2;
+                 }
+             }
+             ealloc_value |= ((banks_switched << HI_EARLY_ALLOC_IRAM_BANKS_SHIFT) & HI_EARLY_ALLOC_IRAM_BANKS_MASK);
+        }
         rv = HIFDiagWriteAccess(sc->hif_device, ealloc_targ_addr, ealloc_value);
         if (rv != A_OK) {
             AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("ath: HIF_PCIDeviceProbed set early alloc val (%d)\n", rv));
@@ -2295,7 +2322,6 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
             adf_os_timer_cancel(&hif_state->sleep_timer);
             adf_os_timer_start(&hif_state->sleep_timer,
                 HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);
-            vos_wake_lock_acquire(&hif_state->hif_wake_lock);
         }
         adf_os_spin_unlock(&hif_state->keep_awake_lock);
     } else {

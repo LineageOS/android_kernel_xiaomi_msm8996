@@ -331,7 +331,10 @@ typedef enum {
     WMI_PDEV_DFS_ENABLE_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_DFS),
     /** disable DFS (radar detection)*/
     WMI_PDEV_DFS_DISABLE_CMDID,
-
+    /** enable DFS phyerr/parse filter offload */
+    WMI_DFS_PHYERR_FILTER_ENA_CMDID,
+    /** enable DFS phyerr/parse filter offload */
+    WMI_DFS_PHYERR_FILTER_DIS_CMDID,
 
     /* Roaming specific  commands */
     /** set roam scan mode */
@@ -572,10 +575,6 @@ typedef enum {
     /** Plumb routing table for multihop forwarding offload */
     WMI_MHF_OFFLOAD_PLUMB_ROUTING_TBL_CMDID,
 
-    /** enable DFS phyerr/parse filter offload */
-    WMI_DFS_PHYERR_FILTER_ENA_CMDID,
-    /** enable DFS phyerr/parse filter offload */
-    WMI_DFS_PHYERR_FILTER_DIS_CMDID,
     /*location scan commands*/
     /*start batch scan*/
     WMI_BATCH_SCAN_ENABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_LOCATION_SCAN),
@@ -610,6 +609,9 @@ typedef enum {
 
     /** traffic pause event */
     WMI_TX_PAUSE_EVENTID,
+
+    /** DFS radar event  */
+    WMI_DFS_RADAR_EVENTID,
 
     /* VDEV specific events */
     /** VDEV started event in response to VDEV_START request */
@@ -756,9 +758,6 @@ typedef enum {
 
     /* TDLS Event */
     WMI_TDLS_PEER_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_TDLS),
-
-    /** DFS radar event  */
-    WMI_DFS_RADAR_EVENTID,
 
     /*location scan event*/
     /*report the firmware's capability of batch scan*/
@@ -916,7 +915,7 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 #define WMI_VHT_CAP_SU_BFORMER            0x00000800
 #define WMI_VHT_CAP_SU_BFORMEE            0x00001000
 #define WMI_VHT_CAP_MU_BFORMER            0x00080000
-#define WMI_VHT_CAP MU_BFORMEE            0x00100000
+#define WMI_VHT_CAP_MU_BFORMEE            0x00100000
 
 /* These macros should be used when we wish to advertise STBC support for
  * only 1SS or 2SS or 3SS. */
@@ -959,6 +958,13 @@ typedef struct _wmi_abi_version {
 * maximum number of memroy requests allowed from FW.
 */
 #define WMI_MAX_MEM_REQS 16
+
+/* !!NOTE!!:
+ * This HW_BD_INFO_SIZE cannot be changed without breaking compatibility.
+ * Please don't change it.
+ */
+#define HW_BD_INFO_SIZE       5
+
 /**
  * The following struct holds optional payload for
  * wmi_service_ready_event_fixed_param,e.g., 11ac pass some of the
@@ -995,12 +1001,61 @@ typedef struct {
      * setup.
      */
     A_UINT32 max_num_scan_channels;
+
+    /* Hardware board specific ID. Values defined in enum WMI_HWBOARD_ID.
+     * Default 0 means tha hw_bd_info[] is invalid(legacy board).
+     */
+    A_UINT32 hw_bd_id;
+    A_UINT32 hw_bd_info[HW_BD_INFO_SIZE]; /* Board specific information. Invalid if hw_hd_id is zero. */
+
     /* The TLVs for hal_reg_capabilities, wmi_service_bitmap and mem_reqs[] will follow this TLV.
          *     HAL_REG_CAPABILITIES   hal_reg_capabilities;
          *     A_UINT32 wmi_service_bitmap[WMI_SERVICE_BM_SIZE];
          *     wlan_host_mem_req mem_reqs[];
          */
 } wmi_service_ready_event_fixed_param;
+
+typedef enum {
+    WMI_HWBD_NONE       = 0,            /* No hw board information is given */
+    WMI_HWBD_QCA6174    = 1,            /* Rome(AR6320) */
+    WMI_HWBD_QCA2582    = 2,            /* Killer 1525*/
+} WMI_HWBD_ID;
+
+#define ATH_BD_DATA_REV_MASK            0x000000FF
+#define ATH_BD_DATA_REV_SHIFT           0
+
+#define ATH_BD_DATA_PROJ_ID_MASK        0x0000FF00
+#define ATH_BD_DATA_PROJ_ID_SHIFT       8
+
+#define ATH_BD_DATA_CUST_ID_MASK        0x00FF0000
+#define ATH_BD_DATA_CUST_ID_SHIFT       16
+
+#define ATH_BD_DATA_REF_DESIGN_ID_MASK  0xFF000000
+#define ATH_BD_DATA_REF_DESIGN_ID_SHIFT 24
+
+#define SET_BD_DATA_REV(bd_data_ver, value)     \
+    ((bd_data_ver) &= ~ATH_BD_DATA_REV_MASK, (bd_data_ver) |= ((value) << ATH_BD_DATA_REV_SHIFT))
+
+#define GET_BD_DATA_REV(bd_data_ver)            \
+    (((bd_data_ver) & ATH_BD_DATA_REV_MASK) >> ATH_BD_DATA_REV_SHIFT)
+
+#define SET_BD_DATA_PROJ_ID(bd_data_ver, value) \
+    ((bd_data_ver) &= ~ATH_BD_DATA_PROJ_ID_MASK, (bd_data_ver) |= ((value) << ATH_BD_DATA_PROJ_ID_SHIFT))
+
+#define GET_BD_DATA_PROJ_ID(bd_data_ver)        \
+    (((bd_data_ver) & ATH_BD_DATA_PROJ_ID_MASK) >> ATH_BD_DATA_PROJ_ID_SHIFT)
+
+#define SET_BD_DATA_CUST_ID(bd_data_ver, value) \
+    ((bd_data_ver) &= ~ATH_BD_DATA_CUST_ID_MASK, (bd_data_ver) |= ((value) << ATH_BD_DATA_CUST_ID_SHIFT))
+
+#define GET_BD_DATA_CUST_ID(bd_data_ver)        \
+    (((bd_data_ver) & ATH_BD_DATA_CUST_ID_MASK) >> ATH_BD_DATA_CUST_ID_SHIFT)
+
+#define SET_BD_DATA_REF_DESIGN_ID(bd_data_ver, value)   \
+    ((bd_data_ver) &= ~ATH_BD_DATA_REF_DESIGN_ID_MASK, (bd_data_ver) |= ((value) << ATH_BD_DATA_REF_DESIGN_ID_SHIFT))
+
+#define GET_BD_DATA_REF_DESIGN_ID(bd_data_ver)          \
+    (((bd_data_ver) & ATH_BD_DATA_REF_DESIGN_ID_MASK) >> ATH_BD_DATA_REF_DESIGN_ID_SHIFT)
 
 #ifdef ROME_LTE_COEX_FREQ_AVOID
 typedef struct {
@@ -3205,6 +3260,17 @@ typedef struct {
              * Number of TX frames before the entering the Active state
              */
             WMI_STA_PS_PARAM_QPOWER_MAX_TX_BEFORE_WAKE = 7,
+
+            /**
+             * QPower SPEC PSPOLL interval
+             */
+            WMI_STA_PS_PARAM_QPOWER_SPEC_PSPOLL_WAKE_INTERVAL = 8,
+
+            /**
+             * Max SPEC PSPOLL to be sent when the PSPOLL response has
+             * no-data bit set
+             */
+            WMI_STA_PS_PARAM_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL = 9,
         };
 
         typedef struct {
@@ -3782,6 +3848,7 @@ typedef struct {
 #define WMI_PEER_PMF            0x08000000  /* Robust Management Frame Protection enabled */
 /** CAUTION TODO: Place holder for WLAN_PEER_F_PS_PRESEND_REQUIRED = 0x10000000. Need to be clean up */
 #define WMI_PEER_IS_P2P_CAPABLE 0x20000000  /* P2P capable peer */
+#define WMI_PEER_SAFEMODE_EN    0x80000000  /* Fips Mode Enabled */
 
 /**
  * Peer rate capabilities.
@@ -5410,7 +5477,9 @@ typedef struct {
     A_UINT32    tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_gtk_rekey_fail_event_fixed_param  */
     /** Reserved for future use */
     A_UINT32    reserved0;
+    A_UINT32 vdev_id;
 } wmi_gtk_rekey_fail_event_fixed_param;
+
 enum wmm_ac_downgrade_policy {
     WMM_AC_DOWNGRADE_DEPRIO,
     WMM_AC_DOWNGRADE_DROP,
@@ -5685,7 +5754,6 @@ typedef struct {
 typedef struct {
     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_resmgr_adaptive_ocs_enable_disable_cmd_fixed_param */
     A_UINT32 tlv_header;
-    A_UINT32 reserved0;
     /** 1: enable fw based adaptive ocs,
      *  0: disable fw based adaptive ocs
      */

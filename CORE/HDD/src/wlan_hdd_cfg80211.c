@@ -531,7 +531,8 @@ enum wlan_hdd_tm_attr
     WLAN_HDD_TM_ATTR_INVALID = 0,
     WLAN_HDD_TM_ATTR_CMD     = 1,
     WLAN_HDD_TM_ATTR_DATA    = 2,
-    WLAN_HDD_TM_ATTR_TYPE    = 3,
+    WLAN_HDD_TM_ATTR_STREAM_ID = 3,
+    WLAN_HDD_TM_ATTR_TYPE    = 4,
     /* keep last */
     WLAN_HDD_TM_ATTR_AFTER_LAST,
     WLAN_HDD_TM_ATTR_MAX       = WLAN_HDD_TM_ATTR_AFTER_LAST - 1,
@@ -712,6 +713,10 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     }
 #endif/*FEATURE_WLAN_SCAN_PNO*/
 
+#if defined(QCA_WIFI_2_0) && defined (QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+    if (vos_get_conparam() != VOS_FTM_MODE) {
+#endif
+
 #ifdef CONFIG_ENABLE_LINUX_REG
     /* even with WIPHY_FLAG_CUSTOM_REGULATORY,
        driver can still register regulatory callback and
@@ -722,6 +727,10 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->reg_notifier = wlan_hdd_linux_reg_notifier;
 #else
     wiphy->reg_notifier = wlan_hdd_crda_reg_notifier;
+#endif
+
+#if defined(QCA_WIFI_2_0) && defined (QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+    }
 #endif
 
     wiphy->max_scan_ssids = MAX_SCAN_SSID;
@@ -1818,10 +1827,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
     struct qc_mac_acl_entry *acl_entry = NULL;
     v_SINT_t i;
+    hdd_config_t *iniConfig;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
 
     ENTER();
 
+    iniConfig = pHddCtx->cfg_ini;
     pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
 
     pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
@@ -1831,6 +1842,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pMgmt_frame = (struct ieee80211_mgmt*)pBeacon->head;
 
     pConfig->beacon_int =  pMgmt_frame->u.beacon.beacon_int;
+
+    pConfig->disableDFSChSwitch = iniConfig->disableDFSChSwitch;
 
     //channel is already set in the set_channel Call back
     //pConfig->channel = pCommitConfig->channel;
@@ -5489,6 +5502,21 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)
             hdd_connSetConnectionState(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter),
                                                  eConnectionState_Connecting);
+
+        /* After 8-way handshake supplicant should give the scan command
+         * in that it update the additional IEs, But because of scan
+         * enhancements, the supplicant is not issuing the scan command now.
+         * So the unicast frames which are sent from the host are not having
+         * the additional IEs. If it is P2P CLIENT and there is no additional
+         * IE present in roamProfile, then use the addtional IE form scan_info
+         */
+
+        if ((pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) &&
+                (!pRoamProfile->pAddIEScan))
+        {
+            pRoamProfile->pAddIEScan = &pAdapter->scan_info.scanAddIE.addIEdata[0];
+            pRoamProfile->nAddIEScanLength = pAdapter->scan_info.scanAddIE.length;
+        }
 
         status = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
                             pAdapter->sessionId, pRoamProfile, &roamId);

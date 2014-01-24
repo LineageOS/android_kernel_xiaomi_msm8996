@@ -255,6 +255,12 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
 #endif
     vos_mem_copy(  pChnlParams->bssId, pSessionEntry->bssId, sizeof(tSirMacAddr) );
     pChnlParams->peSessionId = peSessionId;
+
+    /*Set DFS flag for DFS channel*/
+    if (vos_nv_getChannelEnabledState(chnlNumber) == NV_CHANNEL_DFS)
+       pChnlParams->isDfsChannel= VOS_TRUE;
+    else
+       pChnlParams->isDfsChannel = VOS_FALSE;
     
     //we need to defer the message until we get the response back from WDA.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);

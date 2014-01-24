@@ -24,13 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-//------------------------------------------------------------------------------
-// Copyright (c) 2004-2012 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
-//==============================================================================
-// Author(s): ="Atheros"
-//==============================================================================
 
 #ifndef __BMI_MSG_H__
 #define __BMI_MSG_H__
@@ -256,6 +249,7 @@ PREPACK struct bmi_target_info {
 #define TARGET_TYPE_AR9888    7
 #define TARGET_TYPE_AR6320    8
 #define TARGET_TYPE_AR900B    9
+#define TARGET_TYPE_AR6320V2  10
 /* For attach Peregrine 2.0 board target_reg_tbl only */
 #define TARGET_TYPE_AR9888V2  10
 

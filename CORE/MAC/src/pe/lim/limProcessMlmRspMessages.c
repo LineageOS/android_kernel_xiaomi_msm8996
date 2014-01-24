@@ -345,6 +345,7 @@ limProcessMlmStartCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tLimMlmStartCnf     *pLimMlmStartCnf;
     tANI_U8             smesessionId;
     tANI_U16            smetransactionId;
+    tANI_U8             channelId;
 
     if(pMsgBuf == NULL)
     {
@@ -410,8 +411,21 @@ limProcessMlmStartCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                           smesessionId,smetransactionId);
     if (((tLimMlmStartCnf *) pMsgBuf)->resultCode == eSIR_SME_SUCCESS)
     {
-        //Configure beacon and send beacons to HAL
-        limSendBeaconInd(pMac, psessionEntry);
+        channelId = psessionEntry->pLimStartBssReq->channelId;
+
+        // We should start beacon transmission only if the channel
+        // on which we are operating is non-DFS until the channel
+        // availability check is done. The PE will receive an explicit
+        // request from upper layers to start the beacon transmission
+
+
+        if ( (eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole) ||
+             ((eLIM_AP_ROLE == psessionEntry->limSystemRole) &&
+             (vos_nv_getChannelEnabledState(channelId) != NV_CHANNEL_DFS)) )
+        {
+            //Configure beacon and send beacons to HAL
+            limSendBeaconInd(pMac, psessionEntry);
+        }
     }
 }
 
@@ -3703,6 +3717,7 @@ void limProcessSwitchChannelRsp(tpAniSirGlobal pMac,  void *body)
     pChnlParams = (tpSwitchChannelParams) body;
     status = pChnlParams->status;
     peSessionId = pChnlParams->peSessionId;
+
     if((psessionEntry = peFindSessionBySessionId(pMac, peSessionId))== NULL)
     {
         vos_mem_free(body);
@@ -3714,7 +3729,6 @@ void limProcessSwitchChannelRsp(tpAniSirGlobal pMac,  void *body)
     //Store this value to use in TPC report IE.
     rrmCacheMgmtTxPower( pMac, pChnlParams->txMgmtPower, psessionEntry );
 #endif
-    vos_mem_free(body);
     channelChangeReasonCode = psessionEntry->channelChangeReasonCode;
     // initialize it back to invalid id
     psessionEntry->chainMask = pChnlParams->chainMask;
@@ -3742,9 +3756,23 @@ void limProcessSwitchChannelRsp(tpAniSirGlobal pMac,  void *body)
                 pMac->lim.gpchangeChannelCallback(pMac, status, pMac->lim.gpchangeChannelData, psessionEntry);
             }
             break;
+       case LIM_SWITCH_CHANNEL_SAP_DFS:
+            {
+               /* Note: This event code specific to SAP mode
+                * When SAP session issues channel change as performing
+                * DFS, we will come here. Other sessions, for e.g. P2P
+                * will have to define their own event code and channel
+                * switch handler. This is required since the SME may
+                * require completely different information for P2P unlike
+                * SAP.
+                */
+               limSendSmeAPChannelSwitchResp(pMac, psessionEntry, pChnlParams);
+            }
+            break;
         default:
             break;
     }
+    vos_mem_free(body);
 }
 /**
  * limProcessStartScanRsp()

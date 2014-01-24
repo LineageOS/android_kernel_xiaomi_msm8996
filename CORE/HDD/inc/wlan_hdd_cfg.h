@@ -50,7 +50,7 @@
 #endif
 
 //Number of items that can be configured
-#define MAX_CFG_INI_ITEMS   320
+#define MAX_CFG_INI_ITEMS   512
 
 // Defines for all of the things we read from the configuration (registry).
 
@@ -1411,6 +1411,11 @@ typedef enum
 #define CFG_HT_SMPS_CAP_FEATURE_MAX             ( 3 )
 #define CFG_HT_SMPS_CAP_FEATURE_DEFAULT         ( 3 )
 
+#define CFG_DISABLE_DFS_CH_SWITCH                 "gDisableDFSChSwitch"
+#define CFG_DISABLE_DFS_CH_SWITCH_MIN             ( 0 )
+#define CFG_DISABLE_DFS_CH_SWITCH_MAX             ( 1 )
+#define CFG_DISABLE_DFS_CH_SWITCH_DEFAULT         ( 0 )
+
 #define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
 #define CFG_REPORT_MAX_LINK_SPEED_MIN              ( eHDD_LINK_SPEED_REPORT_ACTUAL )
 #define CFG_REPORT_MAX_LINK_SPEED_MAX              ( eHDD_LINK_SPEED_REPORT_MAX_SCALED )
@@ -2113,7 +2118,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_SAP_MAX_NO_PEERS                       "gSoftApMaxPeers"
 #define CFG_SAP_MAX_NO_PEERS_MIN                   (1)
 #define CFG_SAP_MAX_NO_PEERS_MAX                   (32)
-#define CFG_SAP_MAX_NO_PEERS_DEFAULT               (14)
+#define CFG_SAP_MAX_NO_PEERS_DEFAULT               (32)
 
 /*---------------------------------------------------------------------------
   Type declarations
@@ -2556,6 +2561,7 @@ typedef struct
    v_U8_t                      maxWoWFilters;
    v_U8_t                      wowEnable;
    v_U8_t                      maxNumberOfPeers;
+   v_U8_t                      disableDFSChSwitch;
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation
@@ -2670,6 +2676,7 @@ static __inline unsigned long utilMin( unsigned long a, unsigned long b )
 #if defined (QCA_WIFI_2_0) && \
    !defined (QCA_WIFI_ISOC)
 void hdd_update_tgt_cfg(void *context, void *param);
+void hdd_dfs_indicate_radar(void *context, void *param);
 #endif /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
 
 #endif

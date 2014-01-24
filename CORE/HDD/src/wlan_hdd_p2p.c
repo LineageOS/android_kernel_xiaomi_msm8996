@@ -99,18 +99,42 @@ static void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
                                                tANI_U32 nFrameLength, 
                                                tANI_U8* pbFrames,
                                                tANI_U8 frameType );
-#ifdef QCA_WIFI_2_0
-static bool hdd_p2p_is_action_type_rsp( tActionFrmType actionFrmType )
+
+static bool hdd_p2p_is_action_type_rsp( const u8 *buf )
 {
-        if ( actionFrmType != WLAN_HDD_GO_NEG_REQ &&
-            actionFrmType != WLAN_HDD_INVITATION_REQ &&
-            actionFrmType != WLAN_HDD_DEV_DIS_REQ &&
-            actionFrmType != WLAN_HDD_PROV_DIS_REQ )
-            return TRUE;
-        else
-            return FALSE;
+    tActionFrmType actionFrmType;
+    const u8 *ouiPtr;
+
+    if ( buf[WLAN_HDD_PUBLIC_ACTION_FRAME_CATEGORY_OFFSET] !=
+               WLAN_HDD_PUBLIC_ACTION_FRAME ) {
+        return VOS_FALSE;
+    }
+
+    if ( buf[WLAN_HDD_PUBLIC_ACTION_FRAME_ACTION_OFFSET] !=
+               WLAN_HDD_VENDOR_SPECIFIC_ACTION ) {
+        return VOS_FALSE;
+    }
+
+    ouiPtr = &buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OUI_OFFSET];
+
+    if ( WPA_GET_BE24(ouiPtr) != WLAN_HDD_WFA_OUI ) {
+        return VOS_FALSE;
+    }
+
+    if ( buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OUI_TYPE_OFFSET] !=
+               WLAN_HDD_WFA_P2P_OUI_TYPE ) {
+        return VOS_FALSE;
+    }
+
+    actionFrmType = buf[WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET];
+    if ( actionFrmType != WLAN_HDD_INVITATION_REQ &&
+        actionFrmType != WLAN_HDD_GO_NEG_REQ &&
+        actionFrmType != WLAN_HDD_DEV_DIS_REQ &&
+        actionFrmType != WLAN_HDD_PROV_DIS_REQ )
+        return VOS_TRUE;
+    else
+        return VOS_FALSE;
 }
-#endif
 
 eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
                                                 eHalStatus status )
@@ -129,12 +153,9 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
     hddLog( LOG1, "Received remain on channel rsp");
 
     cfgState->remain_on_chan_ctx = NULL;
-#ifdef QCA_WIFI_2_0
+
     if( REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request &&
         !pAdapter->internalCancelRemainOnChReq )
-#else
-    if( REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request )
-#endif
     {
         if( cfgState->buf )
         {
@@ -155,9 +176,7 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
 #endif
                               GFP_KERNEL);
     }
-#ifdef QCA_WIFI_2_0
     pAdapter->internalCancelRemainOnChReq = VOS_FALSE;
-#endif
 
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
          ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
@@ -431,6 +450,11 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
 
     if( pRemainChanCtx != NULL )
     {
+        // Removing READY_EVENT_PROPOGATE_TIME from current time which gives
+        // more accurate Remain on Channel start time.
+        pRemainChanCtx->p2pRemOnChanTimeStamp =
+                      vos_timer_get_system_time() - READY_EVENT_PROPOGATE_TIME;
+
         if( REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request )
         {
             cfg80211_ready_on_channel(
@@ -719,32 +743,46 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     if( offchan && wait)
     {
         int status;
+        tANI_U32 current_time = vos_timer_get_system_time();
 
         // In case of P2P Client mode if we are already
         // on the same channel then send the frame directly
 
-#ifdef QCA_WIFI_2_0
         //For remain on channel we issue a passive scan to firmware
         //but currently there is no provision for dynamically extending
         //the dwell time therefore cancelling the ongoing remain on channel
         //and requesting for new one.
         //The below logic will be extended for request type action frames if
         //needed in future.
-        if ( (type == SIR_MAC_MGMT_FRAME) &&
+        if ((type == SIR_MAC_MGMT_FRAME) &&
             (subType == SIR_MAC_MGMT_ACTION) &&
-            (buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET] ==
-                                              WLAN_HDD_PUBLIC_ACTION_FRAME) ) {
+            hdd_p2p_is_action_type_rsp(&buf[WLAN_HDD_PUBLIC_ACTION_FRAME_BODY_OFFSET]) &&
+            cfgState->remain_on_chan_ctx &&
+            cfgState->current_freq == chan->center_freq ) {
+
+            // In case of P2P Client mode if we are already
+            // on the same channel then send the frame directly only if
+            // there is enough remain on channel time left.
+            // If remain on channel time is about to expire in next 50ms
+            // then dont send frame without a fresh remain on channel as this may
+            // cause a race condition with lim remain_on_channel_timer which might
+            // expire by the time the action frame reaches lim layer.
+
+            // Check remaining time of RoC only in case of GO NEG CNF.
+
             actionFrmType = buf[WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET];
-            if ( actionFrmType < MAX_P2P_ACTION_FRAME_TYPE &&
-                hdd_p2p_is_action_type_rsp(actionFrmType) &&
-                cfgState->remain_on_chan_ctx &&
-                cfgState->current_freq == chan->center_freq ) {
+
+            if ((actionFrmType != WLAN_HDD_GO_NEG_CNF) ||
+                ((current_time - cfgState->remain_on_chan_ctx->p2pRemOnChanTimeStamp) >
+                      (cfgState->remain_on_chan_ctx->duration  - 50 )))
+            {
+                hddLog(LOG1,"action frame: Extending the RoC\n");
                 status = wlan_hdd_check_remain_on_channel(pAdapter);
                 if ( !status )
                     pAdapter->internalCancelRemainOnChReq = VOS_TRUE;
             }
         }
-#endif
+
         if((cfgState->remain_on_chan_ctx != NULL) &&
            (cfgState->current_freq == chan->center_freq)
           )
@@ -1291,7 +1329,7 @@ int wlan_hdd_add_virtual_intf( struct wiphy *wiphy, char *name,
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: hdd_open_adapter failed",__func__);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
-        return NULL;
+        return ERR_PTR(-ENOSPC);
 #else
         return -EINVAL;
 #endif
