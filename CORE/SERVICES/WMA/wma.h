@@ -453,6 +453,11 @@ struct utf_event_info {
 #endif
 
 typedef struct {
+	u_int8_t vdev_id;
+	u_int32_t scan_id;
+}scan_timer_info;
+
+typedef struct {
 	void *wmi_handle;
 	void *htc_handle;
 	void *vos_context;
@@ -561,6 +566,9 @@ typedef struct {
 	vos_wake_lock_t pno_wake_lock;
 #endif
 	vos_wake_lock_t wow_wake_lock;
+
+	vos_timer_t wma_scan_comp_timer;
+	scan_timer_info wma_scan_timer_info;
 
 }t_wma_handle, *tp_wma_handle;
 

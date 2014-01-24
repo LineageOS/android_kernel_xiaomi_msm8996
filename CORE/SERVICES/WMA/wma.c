@@ -3788,7 +3788,21 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
         if (msg_type == WDA_CHNL_SWITCH_REQ) {
             wma_handle->roam_preauth_scan_id = cmd->scan_id;
         }
+
 	WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
+
+	/* Start the timer for scan completion */
+	vos_status = vos_timer_start(&wma_handle->wma_scan_comp_timer,
+					WMA_HW_DEF_SCAN_MAX_DURATION);
+	if (vos_status != VOS_STATUS_SUCCESS ) {
+		WMA_LOGE("Failed to start the scan completion timer");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto error;
+	}
+	/* Update the scan parameters for handler */
+	wma_handle->wma_scan_timer_info.vdev_id = cmd->vdev_id;
+	wma_handle->wma_scan_timer_info.scan_id = cmd->scan_id;
+
 	return VOS_STATUS_SUCCESS;
 error:
 	wma_reset_scan_info(wma_handle, cmd->vdev_id);
@@ -14397,6 +14411,7 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 	tSirScanOffloadEvent *scan_event;
 	u_int8_t vdev_id;
 	v_U32_t scan_id;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
         param_buf = (WMI_SCAN_EVENTID_param_tlvs *) data;
         wmi_event = param_buf->fixed_param;
@@ -14455,6 +14470,17 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 		WMA_LOGP("Unexpected Scan Event %lu", wmi_event->event);
 		break;
 	}
+
+        /* Stop the scan completion timeout if the event is WMI_SCAN_EVENT_COMPLETED */
+        if (scan_event->event == (tSirScanEventType)WMI_SCAN_EVENT_COMPLETED) {
+		WMA_LOGI("Received WMI_SCAN_EVENT_COMPLETED, Stoping the scan timer");
+                vos_status = vos_timer_stop(&wma_handle->wma_scan_comp_timer);
+                if (vos_status != VOS_STATUS_SUCCESS) {
+                        WMA_LOGE("Failed to stop the scan completion timeout");
+                        return -EPERM;
+                }
+        }
+
 	wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
 	return 0;
 }
@@ -15261,6 +15287,50 @@ static int wma_channel_avoid_evt_handler(void *handle, u_int8_t *event,
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+/* function   :  wma_scan_completion_timeout
+ * Descriptin :
+ * Args       :
+ * Returns    :
+ */
+void wma_scan_completion_timeout(void *data)
+{
+        tp_wma_handle wma_handle;
+        tSirScanOffloadEvent *scan_event;
+        u_int8_t vdev_id;
+
+        WMA_LOGE("%s: Timeout occured for scan command", __func__);
+
+        wma_handle = (tp_wma_handle) data;
+
+        scan_event = (tSirScanOffloadEvent *) vos_mem_malloc
+                                (sizeof(tSirScanOffloadEvent));
+        if (!scan_event) {
+                WMA_LOGE("%s: Memory allocation failed for tSirScanOffloadEvent", __func__);
+                return;
+        }
+
+        vdev_id = wma_handle->wma_scan_timer_info.vdev_id;
+
+        if (wma_handle->wma_scan_timer_info.scan_id !=
+                wma_handle->interfaces[vdev_id].scan_info.scan_id) {
+                vos_mem_free(scan_event);
+                WMA_LOGE("%s: Scan ID mismatch", __func__);
+                return;
+        }
+
+        scan_event->event = WMI_SCAN_EVENT_COMPLETED;
+        scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
+        scan_event->scanId = wma_handle->wma_scan_timer_info.scan_id;
+        scan_event->p2pScanType = wma_handle->interfaces[vdev_id].scan_info.p2p_scan_type;
+        scan_event->sessionId = vdev_id;
+
+        /* Reset scan info in interfaces table */
+        wma_reset_scan_info(wma_handle, vdev_id);
+
+        wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
+        return;
+}
+
 /* function   : wma_start
  * Descriptin :
  * Args       :
@@ -15435,6 +15505,17 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		WMA_LOGP("Failed to register tx management");
 		goto end;
 	}
+
+	/* Initialize scan completion timeout */
+	vos_status = vos_timer_init(&wma_handle->wma_scan_comp_timer,
+					VOS_TIMER_TYPE_SW,
+					wma_scan_completion_timeout,
+					wma_handle);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to initialize scan completion timeout");
+		goto end;
+	}
+
 end:
 	WMA_LOGD("%s: Exit", __func__);
 	return vos_status;
@@ -15478,6 +15559,12 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 		adf_os_mem_free(wma_handle->ack_work_ctx);
 		wma_handle->ack_work_ctx = NULL;
 	}
+
+        /* Destroy the timer for scan completion */
+        vos_status = vos_timer_destroy(&wma_handle->wma_scan_comp_timer);
+        if (vos_status != VOS_STATUS_SUCCESS) {
+                WMA_LOGE("Failed to destroy the scan completion timer");
+        }
 
 #ifdef QCA_WIFI_ISOC
 	wma_hal_stop_isoc(wma_handle);
