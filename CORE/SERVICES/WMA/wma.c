@@ -3154,11 +3154,10 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 
 	/* Allocate the memory */
 	*buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
-	if (!*buf) {
-		WMA_LOGP("failed to allocate memory for start scan cmd");
-		vos_status = VOS_STATUS_E_FAILURE;
-		goto error;
-	}
+        if (!*buf) {
+                WMA_LOGP("failed to allocate memory for start scan cmd");
+                return VOS_STATUS_E_FAILURE;
+        }
 
 	buf_ptr = (u_int8_t *) wmi_buf_data(*buf);
 	cmd = (wmi_start_scan_cmd_fixed_param *) buf_ptr;
@@ -3282,10 +3281,11 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	buf_ptr += WMI_TLV_HDR_SIZE + ie_len_with_pad;
 
 	*buf_len = len;
-	vos_status = VOS_STATUS_SUCCESS;
+	return VOS_STATUS_SUCCESS;
 error:
-	vos_mem_free(scan_req);
-	return vos_status;
+        vos_mem_free(*buf);
+        *buf = NULL;
+        return vos_status;
 }
 
 /* function   : wma_get_buf_stop_scan_cmd
@@ -3324,7 +3324,6 @@ VOS_STATUS wma_get_buf_stop_scan_cmd(tp_wma_handle wma_handle,
 	*buf_len = len;
 	vos_status = VOS_STATUS_SUCCESS;
 error:
-	vos_mem_free(abort_scan_req);
 	return vos_status;
 
 }
@@ -3384,7 +3383,7 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq)
  * Returns    :
  */
 VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
-			tSirScanOffloadReq *scan_req)
+                        tSirScanOffloadReq *scan_req, v_U16_t msg_type)
 {
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	wmi_buf_t buf;
@@ -3425,23 +3424,28 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 		goto error;
 	}
 
-	WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
+        if (msg_type == WDA_CHNL_SWITCH_REQ) {
+            wma_handle->roam_preauth_scan_id = cmd->scan_id;
+        }
+	// WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
 	return VOS_STATUS_SUCCESS;
 error:
 	wma_reset_scan_info(wma_handle, cmd->vdev_id);
 	if (buf)
 		adf_nbuf_free(buf);
 error1:
-	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc
-		(sizeof(tSirScanOffloadEvent));
-	if (!scan_event) {
-		WMA_LOGP("Failed to allocate memory for scan rsp");
-		return VOS_STATUS_E_NOMEM;
-	}
-	scan_event->event = WMI_SCAN_EVENT_COMPLETED;
-	scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
-	wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
-
+        /* Send completion event for only for start scan request */
+        if (msg_type == WDA_START_SCAN_OFFLOAD_REQ) {
+                scan_event =
+                    (tSirScanOffloadEvent *) vos_mem_malloc(sizeof(tSirScanOffloadEvent));
+                if (!scan_event) {
+                        WMA_LOGP("Failed to allocate memory for scan rsp");
+                        return VOS_STATUS_E_NOMEM;
+                }
+                scan_event->event = WMI_SCAN_EVENT_COMPLETED;
+                scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
+                wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
+        }
 	return vos_status;
 }
 
@@ -3660,8 +3664,8 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
                    wmi_roam_scan_rssi_threshold_fixed_param));
     /* fill in threshold values */
     rssi_threshold_fp->vdev_id = wma_handle->roam_offload_vdev_id;
-    rssi_threshold_fp->roam_scan_rssi_thresh = rssi_thresh;
-    rssi_threshold_fp->roam_rssi_thresh_diff = rssi_thresh_diff;
+    rssi_threshold_fp->roam_scan_rssi_thresh = rssi_thresh & 0x000000ff;
+    rssi_threshold_fp->roam_rssi_thresh_diff = rssi_thresh_diff & 0x000000ff;
 
     status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
             len, WMI_ROAM_SCAN_RSSI_THRESHOLD);
@@ -5041,19 +5045,161 @@ static void wma_remove_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 	vos_mem_free(req_msg);
 }
 
+/* function   : wma_roam_preauth_chan_set
+ * Description: Send a single channel passive scan request
+ *              to handle set_channel operation for preauth
+ * Args:
+ * Returns    :
+ */
+VOS_STATUS wma_roam_preauth_chan_set(tp_wma_handle wma_handle,
+                          tpSwitchChannelParams params, u_int8_t vdev_id)
+{
+        VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+        tSirScanOffloadReq scan_req;
+        u_int8_t bssid[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+        WMA_LOGI("%s: channel %d", __func__, params->channelNumber);
+
+        /* Prepare a dummy scan request and get the
+         * wmi_start_scan_cmd_fixed_param structure filled properly
+         */
+        vos_mem_zero(&scan_req, sizeof(scan_req));
+        vos_copy_macaddr((v_MACADDR_t *) &scan_req.bssId, (v_MACADDR_t *)bssid);
+        vos_copy_macaddr((v_MACADDR_t *)&scan_req.selfMacAddr, (v_MACADDR_t *)&params->selfStaMacAddr);
+        scan_req.channelList.numChannels = 1;
+        scan_req.channelList.channelNumber[0] = params->channelNumber;
+        scan_req.numSsid = 0;
+        scan_req.minChannelTime = WMA_ROAM_PREAUTH_SCAN_TIME;
+        scan_req.maxChannelTime = WMA_ROAM_PREAUTH_SCAN_TIME;
+        scan_req.scanType = eSIR_PASSIVE_SCAN;
+        scan_req.p2pScanType = P2P_SCAN_TYPE_LISTEN;
+        scan_req.sessionId = vdev_id;
+        wma_handle->roam_preauth_chan_context = params;
+        wma_handle->roam_preauth_chanfreq = vos_chan_to_freq(params->channelNumber);
+
+        vos_status = wma_start_scan(wma_handle, &scan_req, WDA_CHNL_SWITCH_REQ);
+
+        wma_handle->roam_preauth_scan_state = (vos_status == VOS_STATUS_SUCCESS) ?
+                        WMA_ROAM_PREAUTH_CHAN_REQUESTED : WMA_ROAM_PREAUTH_CHAN_NONE;
+        return vos_status;
+}
+
+VOS_STATUS wma_roam_preauth_chan_cancel(tp_wma_handle wma_handle,
+                tpSwitchChannelParams params, u_int8_t vdev_id)
+{
+        tAbortScanParams abort_scan_req;
+        VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+
+        WMA_LOGI("%s: channel %d", __func__, params->channelNumber);
+
+        abort_scan_req.SessionId = vdev_id;
+        wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_CANCEL_REQUESTED;
+        wma_handle->roam_preauth_chan_context = params;
+        vos_status = wma_stop_scan(wma_handle, &abort_scan_req);
+        return vos_status;
+}
+
+static void wma_roam_preauth_scan_event_handler(tp_wma_handle wma_handle,
+                u_int8_t vdev_id, wmi_scan_event_fixed_param *wmi_event)
+{
+        VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+        tSwitchChannelParams *params;
+
+        WMA_LOGI("%s: event 0x%x, reason 0x%x",
+                    __func__, wmi_event->event, wmi_event->reason);
+        switch(wma_handle->roam_preauth_scan_state) {
+        case WMA_ROAM_PREAUTH_CHAN_REQUESTED:
+                if (wmi_event->event & WMI_SCAN_EVENT_FOREIGN_CHANNEL) {
+                        /* complete set_chan request */
+                        wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_ON_CHAN;
+                        vos_status = VOS_STATUS_SUCCESS;
+                } else if (wmi_event->event &
+                               (WMI_SCAN_EVENT_START_FAILED|WMI_SCAN_EVENT_COMPLETED)){
+                        /* Failed to get preauth channel or finished (unlikely) */
+                        wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
+                        vos_status = VOS_STATUS_E_FAILURE;
+                } else
+                        return;
+                break;
+        case WMA_ROAM_PREAUTH_CHAN_CANCEL_REQUESTED:
+                /* Completed or cancelled, complete set_chan cancel request */
+                wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
+                break;
+
+        case WMA_ROAM_PREAUTH_ON_CHAN:
+                if (wmi_event->event &
+                                (WMI_SCAN_EVENT_COMPLETED | WMI_SCAN_EVENT_BSS_CHANNEL))
+                        wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_COMPLETED;
+                        /* There is no WDA request to complete. Next set channel request will
+                         * look at this state and complete it.
+                         */
+                break;
+        default:
+                WMA_LOGE("%s: unhandled event 0x%x, reason 0x%x",
+                           __func__, wmi_event->event, wmi_event->reason);
+                return;
+        }
+
+        if((params = (tpSwitchChannelParams) wma_handle->roam_preauth_chan_context)) {
+                WMA_LOGI("%s: sending WDA_SWITCH_CHANNEL_RSP, status = 0x%x",
+                          __func__, vos_status);
+                params->chainMask = wma_handle->pdevconfig.txchainmask;
+                params->smpsMode = SMPS_MODE_DISABLED;
+                params->status = vos_status;
+                wma_send_msg(wma_handle, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
+                wma_handle->roam_preauth_chan_context = NULL;
+        }
+
+}
+
+/*
+ * wma_set_channel
+ * If this request is called when station is connected, it should use
+ */
 static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 {
 	struct wma_vdev_start_req req;
 	struct wma_target_req *msg;
-	VOS_STATUS status;
+        VOS_STATUS status = VOS_STATUS_SUCCESS;
+        u_int8_t vdev_id, peer_id;
+        ol_txrx_peer_handle peer;
+        ol_txrx_pdev_handle pdev;
+        struct wma_txrx_node *intr = wma->interfaces;
 
-	vos_mem_zero(&req, sizeof(req));
-	if (!wma_find_vdev_by_addr(wma, params->selfStaMacAddr, &req.vdev_id)) {
-		WMA_LOGP("%s: Failed to find vdev id for %pM\n",
-			 __func__, params->selfStaMacAddr);
-		status = VOS_STATUS_E_FAILURE;
-		goto send_resp;
-	}
+        if (!wma_find_vdev_by_addr(wma, params->selfStaMacAddr, &vdev_id)) {
+                WMA_LOGP("%s: Failed to find vdev id for %pM",
+                         __func__, params->selfStaMacAddr);
+                status = VOS_STATUS_E_FAILURE;
+                goto send_resp;
+        }
+        pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+        peer = ol_txrx_find_peer_by_addr(pdev, intr[vdev_id].bssid, &peer_id);
+
+        if (peer && (peer->state == ol_txrx_peer_state_conn ||
+                     peer->state == ol_txrx_peer_state_auth)) {
+                /* Trying to change channel while connected should not invoke VDEV_START.
+                 * Instead, use start scan command in passive mode to park station
+                 * on that channel
+                 */
+                WMA_LOGI("%s: calling set_scan, state 0x%x", __func__, wma->roam_preauth_scan_state);
+                if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_NONE) {
+                    status = wma_roam_preauth_chan_set(wma, params, vdev_id);
+                    /* response will be asynchronous */
+                    return;
+                } else if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_REQUESTED ||
+                               wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_ON_CHAN) {
+                    status = wma_roam_preauth_chan_cancel(wma, params, vdev_id);
+                    /* response will be asynchronous */
+                    return;
+                } else if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_COMPLETED) {
+                        /* Already back on home channel. Complete the request */
+                        wma->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
+                        status = VOS_STATUS_SUCCESS;
+                }
+                goto send_resp;
+        }
+        vos_mem_zero(&req, sizeof(req));
+        req.vdev_id = vdev_id;
 	msg = wma_fill_vdev_req(wma, req.vdev_id, WDA_CHNL_SWITCH_REQ,
 				WMA_TARGET_REQ_TYPE_VDEV_START, params, 1000);
 	if (!msg) {
@@ -5090,6 +5236,8 @@ send_resp:
 #endif
 		 status);
 	params->status = status;
+        WMA_LOGI("%s: sending WDA_SWITCH_CHANNEL_RSP, status = 0x%x",
+                        __func__, status);
 	wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
 }
 
@@ -12426,7 +12574,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
                             (tDelStaSelfParams *)msg->bodyptr, 1);
 			break;
 		case WDA_START_SCAN_OFFLOAD_REQ:
-			wma_start_scan(wma_handle, msg->bodyptr);
+			wma_start_scan(wma_handle, msg->bodyptr, msg->type);
 			break;
 		case WDA_STOP_SCAN_OFFLOAD_REQ:
 			wma_stop_scan(wma_handle, msg->bodyptr);
@@ -12711,6 +12859,16 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 	u_int8_t vdev_id;
 	v_U32_t scan_id;
 
+        param_buf = (WMI_SCAN_EVENTID_param_tlvs *) data;
+        wmi_event = param_buf->fixed_param;
+        vdev_id = wmi_event->vdev_id;
+        scan_id = wma_handle->interfaces[vdev_id].scan_info.scan_id;
+
+        if (wma_handle->roam_preauth_scan_id == wmi_event->scan_id) {
+                /* This is the scan requested by roam preauth set_channel operation */
+                wma_roam_preauth_scan_event_handler(wma_handle, vdev_id, wmi_event);
+                return 0;
+        }
 	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc
                                 (sizeof(tSirScanOffloadEvent));
 	if (!scan_event) {
@@ -12718,10 +12876,6 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 		return -ENOMEM;
 	}
 
-	param_buf = (WMI_SCAN_EVENTID_param_tlvs *) data;
-	wmi_event = param_buf->fixed_param;
-	vdev_id = wmi_event->vdev_id;
-	scan_id = wma_handle->interfaces[vdev_id].scan_info.scan_id;
 	scan_event->event = wmi_event->event;
 
 	WMA_LOGI("WMA <-- wmi_scan_event : event %lu, scan_id %lu, freq %lu",
@@ -14508,6 +14662,7 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	tpSirMacFrameCtl pFc = (tpSirMacFrameCtl)(adf_nbuf_data(tx_frame));
 	u_int8_t use_6mbps = 0;
 	u_int8_t downld_comp_required = 0;
+	u_int16_t chanfreq;
 #ifdef WLAN_FEATURE_11W
 	tANI_U8         *pFrame = NULL;
 	void            *pPacket = NULL;
@@ -14713,8 +14868,14 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	if(tx_flag & HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME)
 		use_6mbps = 1;
 
+        if (wma_handle->roam_preauth_scan_state == WMA_ROAM_PREAUTH_ON_CHAN) {
+                chanfreq = wma_handle->roam_preauth_chanfreq;
+                WMA_LOGI("%s: Preauth frame on channel %d", __func__, chanfreq);
+        } else {
+                chanfreq = 0;
+        }
 	/* Hand over the Tx Mgmt frame to TxRx */
-	status = wdi_in_mgmt_send(txrx_vdev, tx_frame, tx_frm_index, use_6mbps);
+	status = wdi_in_mgmt_send(txrx_vdev, tx_frame, tx_frm_index, use_6mbps, chanfreq);
 
 	/*
 	 * Failed to send Tx Mgmt Frame
