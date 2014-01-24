@@ -5749,7 +5749,11 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
             roamInfo.pbFrames = pSession->connectedInfo.pbFrames;
             roamInfo.staId = pSession->connectedInfo.staId;
             roamInfo.u.pConnectedProfile = &pSession->connectedProfile;
-            VOS_ASSERT( roamInfo.staId != 0 );
+            if (0 == roamInfo.staId)
+            {
+               VOS_ASSERT( 0 );
+               return eANI_BOOLEAN_FALSE;
+            }
             pSession->bRefAssocStartCnt--;
             csrRoamCallCallback(pMac, sessionId, &roamInfo, pCommand->u.roamCmd.roamId, 
                                         eCSR_ROAM_ASSOCIATION_COMPLETION, eCSR_ROAM_RESULT_ASSOCIATED);
@@ -7587,8 +7591,12 @@ static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 res
                     csrRoamComplete(pMac, eCsrJoinFailure, NULL);
                     return;
                 } 
-                // If we are roaming TO an Infrastructure BSS...
-                VOS_ASSERT(pScanResult != NULL); 
+                if ( NULL == pScanResult)
+                {
+                   // If we are roaming TO an Infrastructure BSS...
+                   VOS_ASSERT(pScanResult != NULL);
+                   return;
+                }
                 if ( csrIsInfraBssDesc( pBssDesc ) )
                 {
                     tDot11fBeaconIEs *pIesLocal = (tDot11fBeaconIEs *)pScanResult->Result.pvIes;
@@ -10136,7 +10144,12 @@ void csrCallRoamingCompletionCallback(tpAniSirGlobal pMac, tCsrRoamSession *pSes
       if(pSession->bRefAssocStartCnt)
       {
          pSession->bRefAssocStartCnt--;
-         VOS_ASSERT( pSession->bRefAssocStartCnt == 0);
+
+         if (0 != pSession->bRefAssocStartCnt)
+         {
+             VOS_ASSERT( pSession->bRefAssocStartCnt == 0);
+             return;
+         }
          //Need to call association_completion because there is an assoc_start pending.
          csrRoamCallCallback(pMac, pSession->sessionId, NULL, roamId, 
                                                eCSR_ROAM_ASSOCIATION_COMPLETION, 
@@ -10417,7 +10430,11 @@ void csrRoamCompletion(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamInfo *pR
     if(pCommand)
     {
         roamId = pCommand->u.roamCmd.roamId;
-        VOS_ASSERT( sessionId == pCommand->sessionId );
+        if (sessionId != pCommand->sessionId)
+        {
+           VOS_ASSERT( sessionId == pCommand->sessionId );
+           return;
+        }
     }
     if(eCSR_ROAM_ROAMING_COMPLETION == roamStatus)
     {
@@ -10426,7 +10443,11 @@ void csrRoamCompletion(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamInfo *pR
     }
     else
     {
-        VOS_ASSERT(pSession->bRefAssocStartCnt == 0);
+        if (pSession->bRefAssocStartCnt != 0)
+        {
+           VOS_ASSERT(pSession->bRefAssocStartCnt == 0);
+           return;
+        }
         smsLog(pMac, LOGW, FL("  indicates association completion. roamResult = %d"), roamResult);
         csrRoamCallCallback(pMac, sessionId, pRoamInfo, roamId, roamStatus, roamResult);
     }
@@ -12289,7 +12310,12 @@ static eHalStatus csrRoamStartWds( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsr
         //Otherwise we need to add code to handle the
         //situation just like IBSS. Though for WDS station, we need to send disassoc to PE first then 
         //send stop_bss to PE, before we can continue.
-        VOS_ASSERT( !csrIsConnStateWds( pMac, sessionId ) );
+
+        if (csrIsConnStateWds( pMac, sessionId ))
+        {
+           VOS_ASSERT(0);
+           return eHAL_STATUS_FAILURE;
+        }
         vos_mem_set(&bssConfig, sizeof(tBssConfigParam), 0);
         /* Assume HDD provide bssid in profile */
         vos_mem_copy(&pSession->bssParams.bssid, pProfile->BSSIDs.bssid[0],
@@ -13233,8 +13259,12 @@ csrSendMBGetWPSPBCSessions( tpAniSirGlobal pMac, tANI_U32 sessionId,
         vos_mem_set(pMsg, sizeof( tSirSmeGetWPSPBCSessionsReq ), 0);
         pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_GET_WPSPBC_SESSION_REQ);
         pBuf = (tANI_U8 *)&pMsg->pUsrContext;
-        VOS_ASSERT(pBuf);
 
+        if( NULL == pBuf)
+        {
+           VOS_ASSERT(pBuf);
+           return eHAL_STATUS_FAILURE;
+        }
         wTmpBuf = pBuf;
         // pUsrContext
         dwTmp = pal_cpu_to_be32((tANI_U32)pUsrContext);
@@ -14975,7 +15005,11 @@ void csrRoamVccTrigger(tpAniSirGlobal pMac)
    -------------------------------------------------------------------------*/
    ul_mac_loss_trigger_threshold = 
       pMac->roam.configParam.vccUlMacLossThreshold;
-   VOS_ASSERT( ul_mac_loss_trigger_threshold != 0 );
+   if (0 == ul_mac_loss_trigger_threshold)
+   {
+      VOS_ASSERT( ul_mac_loss_trigger_threshold != 0 );
+      return;
+   }
    smsLog(pMac, LOGW, "csrRoamVccTrigger: UL_MAC_LOSS_THRESHOLD is %d",
           ul_mac_loss_trigger_threshold );
    if(ul_mac_loss_trigger_threshold < ul_mac_loss)
@@ -16802,7 +16836,12 @@ eHalStatus csrRoamUpdateAPWPSIE( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirAP
         pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_UPDATE_APWPSIE_REQ);
 
         pBuf = (tANI_U8 *)&pMsg->transactionId;
-        VOS_ASSERT(pBuf);
+
+        if (NULL == pBuf)
+        {
+           VOS_ASSERT(pBuf);
+           return eHAL_STATUS_FAILURE;
+        }
 
         wTmpBuf = pBuf;
         // transactionId
@@ -16842,11 +16881,16 @@ eHalStatus csrRoamUpdateWPARSNIEs( tpAniSirGlobal pMac, tANI_U32 sessionId, tSir
         pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_SET_APWPARSNIEs_REQ);
         pBuf = (tANI_U8 *)&pMsg->transactionId;
         wTmpBuf = pBuf;
+
+        if (NULL == pBuf)
+        {
+           VOS_ASSERT(pBuf);
+           return eHAL_STATUS_FAILURE;
+        }
         // transactionId
         *pBuf = 0;
         *( pBuf + 1 ) = 0;
         pBuf += sizeof(tANI_U16);
-        VOS_ASSERT(pBuf);
 
         // bssId
         vos_mem_copy((tSirMacAddr *)pBuf, &pSession->selfMacAddr,

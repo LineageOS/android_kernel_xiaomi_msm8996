@@ -974,8 +974,12 @@ static eHalStatus csrNeighborRoamIssuePreauthReq(tpAniSirGlobal pMac)
     tCsrRoamInfo *roamInfo;
 #endif
     
-    /* This must not be true here */
-    VOS_ASSERT(pNeighborRoamInfo->FTRoamInfo.preauthRspPending == eANI_BOOLEAN_FALSE);
+    if (eANI_BOOLEAN_FALSE != pNeighborRoamInfo->FTRoamInfo.preauthRspPending)
+    {
+       /* This must not be true here */
+       VOS_ASSERT(pNeighborRoamInfo->FTRoamInfo.preauthRspPending == eANI_BOOLEAN_FALSE);
+       return eHAL_STATUS_FAILURE;
+    }
 
     /* Issue Preauth request to PE here */
     /* Need to issue the preauth request with the BSSID that is there in the head of the roamable AP list */
@@ -2207,7 +2211,12 @@ static eHalStatus csrNeighborRoamScanRequestCallback(tHalHandle halHandle, void 
         /* Now we have completed scanning the channel list. We have get the result by applying appropriate filter
            sort the results based on neighborScore and RSSI and select the best candidate out of the list */
         NEIGHBOR_ROAM_DEBUG(pMac, LOGW, FL("Channel list scan completed. Current chan index = %d"), currentChanIndex);
-        VOS_ASSERT(pNeighborRoamInfo->roamChannelInfo.currentChanIndex == 0);
+
+        if (pNeighborRoamInfo->roamChannelInfo.currentChanIndex != 0)
+        {
+           VOS_ASSERT(pNeighborRoamInfo->roamChannelInfo.currentChanIndex == 0);
+           return eHAL_STATUS_FAILURE;
+        }
 
         hstatus = csrNeighborRoamProcessScanComplete(pMac);
 
@@ -2640,7 +2649,11 @@ void csrNeighborRoamNeighborScanTimerCallback(void *pv)
        return;
     }
 
-    VOS_ASSERT(sessionId == pNeighborRoamInfo->csrSessionId);
+    if (sessionId != pNeighborRoamInfo->csrSessionId)
+    {
+       VOS_ASSERT(sessionId == pNeighborRoamInfo->csrSessionId);
+       return;
+    }
 
     switch (pNeighborRoamInfo->neighborRoamState)
     {
@@ -3528,7 +3541,6 @@ VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac)
                             numOfChannels * sizeof(tANI_U8));
                 }
 
-                VOS_ASSERT(currChannelListInfo->ChannelList == NULL);
                 currChannelListInfo->ChannelList = vos_mem_malloc(numOfChannels * sizeof(tANI_U8));
 
                 if (NULL == currChannelListInfo->ChannelList)
@@ -3842,7 +3854,11 @@ VOS_STATUS csrNeighborRoamNeighborLookupUPCallback (v_PVOID_t pAdapter, v_U8_t r
        return VOS_STATUS_SUCCESS;
     }
 
-    VOS_ASSERT(WLANTL_HO_THRESHOLD_UP == rssiNotification);
+    if (WLANTL_HO_THRESHOLD_UP != rssiNotification)
+    {
+       VOS_ASSERT(WLANTL_HO_THRESHOLD_UP == rssiNotification);
+       return VOS_STATUS_E_FAILURE;
+    }
     vosStatus = csrNeighborRoamNeighborLookupUpEvent(pMac);
     return vosStatus;
 }
@@ -3882,7 +3898,11 @@ VOS_STATUS csrNeighborRoamNeighborLookupDOWNCallback (v_PVOID_t pAdapter, v_U8_t
        return VOS_STATUS_SUCCESS;
     }
 
-    VOS_ASSERT(WLANTL_HO_THRESHOLD_DOWN == rssiNotification);
+    if (WLANTL_HO_THRESHOLD_DOWN != rssiNotification)
+    {
+       VOS_ASSERT(WLANTL_HO_THRESHOLD_DOWN == rssiNotification);
+       return VOS_STATUS_E_FAILURE;
+    }
     vosStatus = csrNeighborRoamNeighborLookupDownEvent(pMac);
 
     return vosStatus;
@@ -4666,8 +4686,11 @@ void csrNeighborRoamGetHandoffAPInfo(tpAniSirGlobal pMac, tpCsrNeighborRoamBSSIn
     tpCsrNeighborRoamControlInfo    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
     tpCsrNeighborRoamBSSInfo        pBssNode;
     
-    VOS_ASSERT(NULL != pHandoffNode); 
-        
+   if (NULL == pHandoffNode)
+   {
+      VOS_ASSERT(NULL != pHandoffNode);
+      return;
+   }
 #ifdef WLAN_FEATURE_VOWIFI_11R
     if (pNeighborRoamInfo->is11rAssoc)
     {

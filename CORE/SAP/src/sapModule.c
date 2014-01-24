@@ -145,7 +145,11 @@ WLANSAP_Open
 
     ptSapContext  pSapCtx = NULL;
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-    VOS_ASSERT(pvosGCtx);
+    if (NULL == pvosGCtx)
+    {
+       VOS_ASSERT(pvosGCtx);
+       return VOS_STATUS_E_FAULT;
+    }
     /*------------------------------------------------------------------------
     Allocate (and sanity check?!) SAP control block
     ------------------------------------------------------------------------*/

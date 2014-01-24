@@ -3366,12 +3366,11 @@ eHalStatus sme_QosCreateTspecRICIE(tpAniSirGlobal pMac, sme_QosWmmTspecInfo *pTs
     tDot11fIERICDataDesc    ricIE;
     tANI_U32                nStatus;
 
-    VOS_ASSERT(NULL != pRICBuffer);
-    VOS_ASSERT(NULL != pRICLength);
-    VOS_ASSERT(NULL != pRICIdentifier);
-
     if (pRICBuffer == NULL || pRICIdentifier == NULL || pRICLength == NULL)
+    {
+        VOS_ASSERT(0);
         return eHAL_STATUS_FAILURE;
+    }
 
     vos_mem_zero(&ricIE, sizeof(tDot11fIERICDataDesc));
 
@@ -4418,10 +4417,14 @@ eHalStatus sme_QosProcessReassocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, voi
                "%s: %d: no need for state transition, should "
                "already be in handoff state",
                __func__, __LINE__);
-       VOS_ASSERT(pSession->ac_info[0].curr_state == SME_QOS_HANDOFF);
-       VOS_ASSERT(pSession->ac_info[1].curr_state == SME_QOS_HANDOFF);
-       VOS_ASSERT(pSession->ac_info[2].curr_state == SME_QOS_HANDOFF);
-       VOS_ASSERT(pSession->ac_info[3].curr_state == SME_QOS_HANDOFF);
+       if ((pSession->ac_info[0].curr_state != SME_QOS_HANDOFF) ||
+           (pSession->ac_info[1].curr_state != SME_QOS_HANDOFF) ||
+           (pSession->ac_info[2].curr_state != SME_QOS_HANDOFF) ||
+           (pSession->ac_info[3].curr_state != SME_QOS_HANDOFF))
+       {
+           VOS_ASSERT(0);
+           return eHAL_STATUS_FAILURE;
+       }
        sme_QosProcessFTReassocReqEv(pMac, sessionId, pEvent_info);
        return eHAL_STATUS_SUCCESS;
    }
@@ -4433,10 +4436,15 @@ eHalStatus sme_QosProcessReassocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, voi
                 "%s: %d: no need for state transition, should "
                 "already be in handoff state",
                 __func__, __LINE__);
-      VOS_ASSERT(pSession->ac_info[0].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[1].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[2].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[3].curr_state == SME_QOS_HANDOFF);
+
+      if ((pSession->ac_info[0].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[1].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[2].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[3].curr_state != SME_QOS_HANDOFF))
+      {
+          VOS_ASSERT(0);
+          return eHAL_STATUS_FAILURE;
+      }
 
       //buffer the existing flows to be renewed after handoff is done
       sme_QosBufferExistingFlows(pMac, sessionId);
@@ -4452,10 +4460,15 @@ eHalStatus sme_QosProcessReassocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, voi
                 "%s: %d: no need for state transition, should "
                 "already be in handoff state",
                 __func__, __LINE__);
-      VOS_ASSERT(pSession->ac_info[0].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[1].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[2].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[3].curr_state == SME_QOS_HANDOFF);
+
+      if ((pSession->ac_info[0].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[1].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[2].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[3].curr_state != SME_QOS_HANDOFF))
+      {
+          VOS_ASSERT(0);
+          return eHAL_STATUS_FAILURE;
+      }
 
       sme_QosProcessFTReassocReqEv(pMac, sessionId, pEvent_info);
       return eHAL_STATUS_SUCCESS;
@@ -4990,10 +5003,15 @@ eHalStatus sme_QosProcessDisconnectEv(tpAniSirGlobal pMac, v_U8_t sessionId, voi
                 "%s: %d: no need for state transition, should "
                 "already be in handoff state",
                 __func__, __LINE__);
-      VOS_ASSERT(pSession->ac_info[0].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[1].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[2].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[3].curr_state == SME_QOS_HANDOFF);
+      if ((pSession->ac_info[0].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[1].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[2].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[3].curr_state != SME_QOS_HANDOFF))
+      {
+          VOS_ASSERT(0);
+          return eHAL_STATUS_SUCCESS;
+      }
+
       return eHAL_STATUS_SUCCESS;
    }
    sme_QosInitACs(pMac, sessionId);
@@ -5057,10 +5075,15 @@ eHalStatus sme_QosProcessJoinReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, void *
                 "%s: %d: no need for state transition, should "
                 "already be in handoff state",
                 __func__, __LINE__);
-      VOS_ASSERT(pSession->ac_info[0].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[1].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[2].curr_state == SME_QOS_HANDOFF);
-      VOS_ASSERT(pSession->ac_info[3].curr_state == SME_QOS_HANDOFF);
+      if ((pSession->ac_info[0].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[1].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[2].curr_state != SME_QOS_HANDOFF) ||
+          (pSession->ac_info[3].curr_state != SME_QOS_HANDOFF))
+      {
+          // just print
+          VOS_ASSERT(0);
+      }
+
       //buffer the existing flows to be renewed after handoff is done
       sme_QosBufferExistingFlows(pMac, sessionId);
       //clean up the control block partially for handoff

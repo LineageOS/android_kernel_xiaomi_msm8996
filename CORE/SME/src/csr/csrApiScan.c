@@ -238,7 +238,11 @@ int csrCheckValidateLists(void * dest, const void *src, v_SIZE_t num, int idx)
                 if((tANI_U32)(pElem->next) > 0x00010000)
                 {
                     pElem = pElem->next;
-                    VOS_ASSERT(count > 0);
+                    if (count <=0)
+                    {
+                       VOS_ASSERT(count > 0);
+                       return 0;
+                    }
                     count--;
                 }
                 else
@@ -263,6 +267,7 @@ int csrCheckValidateLists(void * dest, const void *src, v_SIZE_t num, int idx)
                 (unsigned int)dest, (unsigned int)src, (int)num);
             VOS_ASSERT(0);
             ii = 0;
+            return ii;
         }
     }
     else
@@ -3247,7 +3252,11 @@ static tCsrScanResult *csrScanSaveBssDescription( tpAniSirGlobal pMac, tSirBssDe
         pCsrBssDescription->AgingCount = (tANI_S32)pMac->roam.configParam.agingCount;
         vos_mem_copy(&pCsrBssDescription->Result.BssDescriptor, pBSSDescription, cbBSSDesc);
 #if defined(VOSS_ENSBALED)
-        VOS_ASSERT( pCsrBssDescription->Result.pvIes == NULL );
+        if ( NULL != pCsrBssDescription->Result.pvIes)
+        {
+           VOS_ASSERT( pCsrBssDescription->Result.pvIes == NULL );
+           return NULL;
+        }
 #endif
         csrScanAddResult(pMac, pCsrBssDescription, pIes);
     }
@@ -4106,7 +4115,11 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                 }
                 else 
                 {
-                    VOS_ASSERT( pMac->scan.domainIdCurrent == pMac->scan.domainIdDefault );
+                    if (pMac->scan.domainIdCurrent != pMac->scan.domainIdDefault)
+                    {
+                       VOS_ASSERT( pMac->scan.domainIdCurrent == pMac->scan.domainIdDefault );
+                       return eANI_BOOLEAN_FALSE;
+                    }
                     if( HAL_STATUS_SUCCESS(csrGetRegulatoryDomainForCountry( 
                                 pMac, pIesLocal->Country.country, &domainId,
                                 COUNTRY_QUERY)) &&
