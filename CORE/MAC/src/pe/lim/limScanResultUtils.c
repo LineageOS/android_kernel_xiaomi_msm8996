@@ -145,7 +145,12 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     tANI_U8             rfBand = 0;
 
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-    VOS_ASSERT(WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo) >= SIR_MAC_B_PR_SSID_OFFSET);
+
+    if (SIR_MAC_B_PR_SSID_OFFSET > WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo))
+    {
+       VOS_ASSERT(WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo) >= SIR_MAC_B_PR_SSID_OFFSET);
+       return eHAL_STATUS_FAILURE;
+    }
     ieLen    = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo) - SIR_MAC_B_PR_SSID_OFFSET;
     rxChannel = WDA_GET_RX_CH(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);

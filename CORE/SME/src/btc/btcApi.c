@@ -930,7 +930,11 @@ static VOS_STATUS btcDeferAclComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent 
                                     BT_INVALID_CONN_HANDLE );
         if(pAclEventHist)
         {
-            VOS_ASSERT(pAclEventHist->bNextEventIdx >0);
+            if (pAclEventHist->bNextEventIdx <= 0)
+            {
+                VOS_ASSERT(pAclEventHist->bNextEventIdx >0);
+                return VOS_STATUS_E_EMPTY;
+            }
             //Found one
             if(BT_CONN_STATUS_SUCCESS != pEvent->uEventParam.btAclConnection.status)
             {
@@ -1098,7 +1102,11 @@ static VOS_STATUS btcDeferSyncComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent
                                     BT_INVALID_CONN_HANDLE );
         if(pSyncEventHist)
         {
-            VOS_ASSERT(pSyncEventHist->bNextEventIdx >0);
+            if (pSyncEventHist->bNextEventIdx <= 0)
+            {
+               VOS_ASSERT(pSyncEventHist->bNextEventIdx >0);
+               return VOS_STATUS_E_EMPTY;
+            }
             //Found one
             if(BT_CONN_STATUS_SUCCESS != pEvent->uEventParam.btSyncConnection.status)
             {
