@@ -551,7 +551,8 @@ wdi_in_mgmt_send(
     ol_txrx_vdev_handle vdev,
     adf_nbuf_t tx_mgmt_frm,
     u_int8_t type,
-    u_int8_t use_6mbps);
+    u_int8_t use_6mbps,
+    u_int16_t chanfreq);
 
 /**
  * @brief Setup the monitor mode vap (vdev) for this pdev

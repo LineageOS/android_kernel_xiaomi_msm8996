@@ -156,6 +156,7 @@
 #define WMA_ROAM_BEACON_WEIGHT_DEFAULT       (14)
 #define WMA_ROAM_OPP_SCAN_PERIOD_DEFAULT     (120000)
 #define WMA_ROAM_OPP_SCAN_AGING_PERIOD_DEFAULT (WMA_ROAM_OPP_SCAN_PERIOD_DEFAULT * 5)
+#define WMA_ROAM_PREAUTH_SCAN_TIME           (50)
 
 #define WMA_INVALID_KEY_IDX	0xff
 #define WMA_DFS_RADAR_FOUND   1
@@ -215,6 +216,14 @@ enum wma_tdls_peer_reason {
 };
 #endif /* FEATURE_WLAN_TDLS */
 
+typedef enum {
+        /* Roaming preauth channel state */
+        WMA_ROAM_PREAUTH_CHAN_NONE,
+        WMA_ROAM_PREAUTH_CHAN_REQUESTED,
+        WMA_ROAM_PREAUTH_ON_CHAN,
+        WMA_ROAM_PREAUTH_CHAN_CANCEL_REQUESTED,
+        WMA_ROAM_PREAUTH_CHAN_COMPLETED
+} t_wma_roam_preauth_chan_state_t;
 /*
  * memory chunck allocated by Host to be managed by FW
  * used only for low latency interfaces like pcie
@@ -515,6 +524,10 @@ typedef struct {
 	void* pGetRssiReq;
         u_int32_t roam_offload_vdev_id;
         v_BOOL_t  roam_offload_enabled;
+        t_wma_roam_preauth_chan_state_t roam_preauth_scan_state;
+        u_int32_t roam_preauth_scan_id;
+        u_int16_t roam_preauth_chanfreq;
+        void *roam_preauth_chan_context;
 
 	/* Here ol_ini_info is used to store ini
 	 * status of arp offload, ns offload

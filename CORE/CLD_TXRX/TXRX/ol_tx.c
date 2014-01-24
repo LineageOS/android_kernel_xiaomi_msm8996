@@ -654,7 +654,8 @@ ol_txrx_mgmt_send(
     ol_txrx_vdev_handle vdev,
     adf_nbuf_t tx_mgmt_frm,
     u_int8_t type,
-    u_int8_t use_6mbps)
+    u_int8_t use_6mbps,
+    u_int16_t chanfreq)
 {
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     struct ol_tx_desc_t *tx_desc;
@@ -767,6 +768,7 @@ ol_txrx_mgmt_send(
             tx_mgmt_frm,
             &tx_msdu_info.htt);
         htt_tx_desc_display(tx_desc->htt_tx_desc);
+        htt_tx_desc_set_chanfreq((u_int32_t *)(tx_desc->htt_tx_desc), chanfreq);
 
 	ol_tx_enqueue(vdev->pdev, txq, tx_desc, &tx_msdu_info);
 	if (tx_msdu_info.peer) {
