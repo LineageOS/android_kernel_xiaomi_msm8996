@@ -1364,6 +1364,19 @@ static iw_softap_setparam(struct net_device *dev,
                                               set_value, VDEV_CMD);
                 break;
             }
+
+         case QCASAP_SET_SHORT_GI:
+             {
+                  hddLog(LOG1, "QCASAP_SET_SHORT_GI val %d", set_value);
+
+                  ret = sme_UpdateHTConfig(hHal, pHostapdAdapter->sessionId,
+                                           WNI_CFG_HT_CAP_INFO_SHORT_GI_20MHZ, /* same as 40MHZ */
+                                           set_value);
+                  if (ret)
+                      hddLog(LOGE, "Failed to set ShortGI value ret(%d)", ret);
+                  break;
+             }
+
          case QCSAP_PARAM_SET_MCC_CHANNEL_LATENCY:
              {
                   tVOS_CONCURRENCY_MODE concurrent_state = 0;
@@ -1606,6 +1619,7 @@ static iw_softap_getparam(struct net_device *dev,
             *value = (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apAutoChannelSelection;
              break;
         }
+
     case QCSAP_PARAM_GETRTSCTS:
         {
             hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pHostapdAdapter);
@@ -1616,6 +1630,15 @@ static iw_softap_getparam(struct net_device *dev,
                                              VDEV_CMD);
             break;
         }
+
+    case QCASAP_GET_SHORT_GI:
+        {
+            *value = (int)sme_GetHTConfig(hHal,
+                                          pHostapdAdapter->sessionId,
+                                          WNI_CFG_HT_CAP_INFO_SHORT_GI_20MHZ);
+            break;
+        }
+
     default:
         hddLog(LOGE, FL("Invalid getparam command %d"), sub_cmd);
         ret = -EINVAL;
@@ -3530,6 +3553,15 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "set11ACRates" },
+
+    {   QCASAP_SET_SHORT_GI,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "enable_short_gi" },
+
+    {   QCASAP_GET_SHORT_GI, 0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_short_gi" },
 
 #endif /* QCA_WIFI_2_0 */
 
