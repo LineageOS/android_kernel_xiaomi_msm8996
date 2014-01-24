@@ -4192,10 +4192,10 @@ eHalStatus csrNeighborRoamIndicateDisconnect(tpAniSirGlobal pMac, tANI_U8 sessio
         smsLog(pMac, LOGE, FL("pSession is NULL "));
         return eHAL_STATUS_FAILURE;
     }
-    smsLog(pMac, LOG1, FL("Disconnect indication on session %d in state %d from BSSID : "
-                          MAC_ADDRESS_STR), sessionId, pNeighborRoamInfo->neighborRoamState,
-                          MAC_ADDR_ARRAY(pSession->connectedProfile.bssid));
-
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                   FL("Disconnect indication on session %d in state %d from BSSID : "
+                   MAC_ADDRESS_STR), sessionId, pNeighborRoamInfo->neighborRoamState,
+                   MAC_ADDR_ARRAY(pSession->connectedProfile.bssid));
 #ifdef FEATURE_WLAN_LFR
     /*Free the current previous profile and move the current profile to prev profile.*/
     csrRoamFreeConnectProfile(pMac, pPrevProfile);

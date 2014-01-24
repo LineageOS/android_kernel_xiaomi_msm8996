@@ -6259,7 +6259,7 @@ static eHalStatus sme_QosBufferExistingFlows(tpAniSirGlobal pMac,
    pEntry = csrLLPeekHead( &sme_QosCb.flow_list, VOS_FALSE );
    if(!pEntry)
    {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
                 "%s: %d: Flow List empty, nothing to buffer",
                 __func__, __LINE__);
       return eHAL_STATUS_FAILURE;
