@@ -94,7 +94,8 @@ typedef  enum  {
     WMI_SERVICE_THERMAL_MGMT,
     WMI_SERVICE_RMC,                  /* reliable multicast support */
     WMI_SERVICE_MHF_OFFLOAD,     /* multi-hop forwarding offload */
-    WMI_MAX_SERVICE=64                /* max service */
+    WMI_SERVICE_COEX_SAR,            /* target support SAR tx limit from WMI_PDEV_PARAM_TXPOWER_LIMITxG */
+    WMI_MAX_SERVICE=65                /* max service */
 } WMI_SERVICE;
 
 #define WMI_SERVICE_BM_SIZE   ((WMI_MAX_SERVICE + sizeof(A_UINT32)- 1)/sizeof(A_UINT32))

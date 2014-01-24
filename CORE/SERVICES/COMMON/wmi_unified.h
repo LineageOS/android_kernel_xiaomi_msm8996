@@ -6287,6 +6287,30 @@ typedef struct {
     A_UINT32 temperature_degreeC;/* temperature in degree C*/
 } wmi_thermal_mgmt_event_fixed_param;
 
+enum {
+    WMI_PDEV_PARAM_TXPOWER_REASON_NONE = 0,
+    WMI_PDEV_PARAM_TXPOWER_REASON_SAR,
+    WMI_PDEV_PARAM_TXPOWER_REASON_MAX
+};
+
+#define PDEV_PARAM_TXPOWER_VALUE_MASK  0x000000FF
+#define PDEV_PARAM_TXPOWER_VALUE_SHIFT 0
+
+#define PDEV_PARAM_TXPOWER_REASON_MASK  0x0000FF00
+#define PDEV_PARAM_TXPOWER_REASON_SHIFT 8
+
+#define SET_PDEV_PARAM_TXPOWER_VALUE(txpower_param, value)     \
+    ((txpower_param) &= ~PDEV_PARAM_TXPOWER_VALUE_MASK, (txpower_param) |= ((value) << PDEV_PARAM_TXPOWER_VALUE_SHIFT))
+
+#define SET_PDEV_PARAM_TXPOWER_REASON(txpower_param, value)     \
+    ((txpower_param) &= ~PDEV_PARAM_TXPOWER_REASON_MASK, (txpower_param) |= ((value) << PDEV_PARAM_TXPOWER_REASON_SHIFT))
+
+#define GET_PDEV_PARAM_TXPOWER_VALUE(txpower_param)     \
+    (((txpower_param) & PDEV_PARAM_TXPOWER_VALUE_MASK) >> PDEV_PARAM_TXPOWER_VALUE_SHIFT)
+
+#define GET_PDEV_PARAM_TXPOWER_REASON(txpower_param)     \
+    (((txpower_param) & PDEV_PARAM_TXPOWER_REASON_MASK) >> PDEV_PARAM_TXPOWER_REASON_SHIFT)
+
 #ifdef __cplusplus
 }
 #endif
