@@ -17280,7 +17280,7 @@ VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp)
  */
 eHalStatus
 csrRoamChannelChangeReq( tpAniSirGlobal pMac, tANI_U32 sessionId,
-                                    tANI_U8 targetChannel)
+                          tANI_U8 targetChannel, tANI_U8 cbMode)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirChanChangeRequest *pMsg;
@@ -17301,10 +17301,27 @@ csrRoamChannelChangeReq( tpAniSirGlobal pMac, tANI_U32 sessionId,
 
     vos_mem_set((void *)pMsg, sizeof( tSirChanChangeRequest ), 0);
 
+#ifdef WLAN_FEATURE_11AC
+    // cbMode = 1 in cfg.ini is mapped to PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3
+    // in function csrConvertCBIniValueToPhyCBState()
+    // So, max value for cbMode in 40MHz mode is 3 (MAC\src\include\sirParams.h)
+    if(cbMode > PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
+    {
+        if(!WDA_getFwWlanFeatCaps(DOT11AC)) {
+            cbMode = csrGetHTCBStateFromVHTCBState(cbMode);
+        }
+        else
+        {
+            ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,  pMac->roam.configParam.nVhtChannelWidth, NULL, eANI_BOOLEAN_FALSE);
+        }
+    }
+#endif
+
     pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_CHANNEL_CHANGE_REQ);
     pMsg->messageLen = sizeof(tSirChanChangeRequest);
     pMsg->sessionId = pSession->sessionId;
     pMsg->targetChannel = targetChannel;
+    pMsg->cbMode = cbMode;
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
 

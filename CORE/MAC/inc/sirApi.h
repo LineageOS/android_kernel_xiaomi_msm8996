@@ -4752,6 +4752,7 @@ typedef struct sSirChanChangeRequest
     tANI_U16     messageLen;
     tANI_U8      sessionId;
     tANI_U8      targetChannel;
+    tANI_U8      cbMode;
 }tSirChanChangeRequest, *tpSirChanChangeRequest;
 
 typedef struct sSirChanChangeResponse

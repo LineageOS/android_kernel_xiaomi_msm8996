@@ -10916,14 +10916,17 @@ eHalStatus sme_AddChAvoidCallback
    \return eHalStatus
 ---------------------------------------------------------------------------*/
 eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal,
-                tANI_U8 sessionId, tANI_U8 targetChannel )
+                tANI_U8 sessionId, tANI_U8 targetChannel, eCsrPhyMode phyMode)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrRoamChannelChangeReq( pMac, sessionId, targetChannel);
+        sme_SelectCBMode(hHal, phyMode, targetChannel);
+
+        status = csrRoamChannelChangeReq( pMac, sessionId, targetChannel,
+                       pMac->roam.configParam.channelBondingMode5GHz);
 
         sme_ReleaseGlobalLock( &pMac->sme );
     }
