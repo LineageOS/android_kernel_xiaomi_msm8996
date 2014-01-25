@@ -1000,7 +1000,7 @@ typedef struct
 
     tANI_U16 smpsMode;
 
-
+    tANI_U8  isDfsChannel;
 }tSwitchChannelParams, *tpSwitchChannelParams;
 
 typedef struct CSAOffloadParams {

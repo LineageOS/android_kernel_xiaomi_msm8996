@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #ifndef QWLAN_VERSION_H
 #define QWLAN_VERSION_H
 /*===========================================================================
@@ -40,9 +41,9 @@ BRIEF DESCRIPTION:
 #define QWLAN_VERSION_MAJOR            4
 #define QWLAN_VERSION_MINOR            0
 #define QWLAN_VERSION_PATCH            0
-#define QWLAN_VERSION_EXTRA            "D"
-#define QWLAN_VERSION_BUILD            68
+#define QWLAN_VERSION_EXTRA            ""
+#define QWLAN_VERSION_BUILD            72
 
-#define QWLAN_VERSIONSTR               "4.0.0.68D"
+#define QWLAN_VERSIONSTR               "4.0.0.72"
 
 #endif /* QWLAN_VERSION_H */

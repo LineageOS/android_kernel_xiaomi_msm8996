@@ -685,4 +685,5 @@ struct s_htc_msg{
 
 void *htc_get_targetdef(HTC_HANDLE htc_handle);
 void HTCSetTargetToSleep(void *context);
+void HTCCancelDeferredTargetSleep(void *context);
 #endif /* _HTC_API_H_ */

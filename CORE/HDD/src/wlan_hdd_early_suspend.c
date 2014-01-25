@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1707,7 +1707,7 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    adf_ctx = vos_mem_malloc(sizeof(adf_os_device_t));
 
    if (!adf_ctx) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx");
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx", __func__);
       goto err_re_init;
    }
    vos_mem_zero(adf_ctx, sizeof(adf_os_device_t));
@@ -1719,6 +1719,25 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
 
    /* The driver should always be initialized in STA mode after SSR */
    hdd_set_conparam(0);
+
+#ifdef CONFIG_ENABLE_LINUX_REG
+   vosStatus = vos_nv_open();
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      /* NV module cannot be initialized */
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_nv_open failed", __func__);
+      goto err_re_init;
+   }
+#ifdef QCA_WIFI_ISOC
+   vosStatus = vos_init_wiphy_from_nv_bin();
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      /* NV module cannot be initialized */
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_init_wiphy failed", __func__);
+      goto err_re_init;
+   }
+#endif
+#endif
 
    /* Re-open VOSS, it is a re-open b'se control transport was never closed. */
    vosStatus = vos_open(&pVosContext, 0);
@@ -1763,6 +1782,24 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_preStart failed",__func__);
       goto err_vosclose;
    }
+
+#ifdef CONFIG_ENABLE_LINUX_REG
+#ifndef QCA_WIFI_ISOC
+   /* initialize the NV module. This is required so that
+      we can initialize the channel information in wiphy
+      from the NV.bin data. The channel information in
+      wiphy needs to be initialized before wiphy registration */
+
+   vosStatus = vos_init_wiphy_from_eeprom();
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      /* NV module cannot be initialized */
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: vos_init_wiphy_from_eeprom failed", __func__);
+      goto err_vosclose;
+   }
+#endif
+#endif
 
    vosStatus = hdd_set_sme_chan_list(pHddCtx);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {

@@ -248,6 +248,7 @@ typedef struct sLimTimers
      * for a period of time on a particular DFS channel
      */
     TX_TIMER           gLimActiveToPassiveChannelTimer;
+
 //********************TIMER SECTION ENDS**************************************************
 // ALL THE FIELDS BELOW THIS CAN BE ZEROED OUT in limInitialize
 //****************************************************************************************
@@ -911,6 +912,10 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
     tSirDFSChannelList    dfschannelList;
     tANI_U8 deauthMsgCnt;
     tANI_U8 gLimIbssStaLimit;
+
+    /* Number of channel switch IEs sent so far */
+    tANI_U8 gLimDfsChanSwTxCount;
+    tANI_U8 gLimDfsTargetChanNum;
 } tAniSirLim, *tpAniSirLim;
 
 typedef struct sLimMgmtFrameRegistration

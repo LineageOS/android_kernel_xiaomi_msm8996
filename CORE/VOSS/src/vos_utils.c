@@ -66,12 +66,20 @@
 #include <linux/crypto.h>
 #include <linux/scatterlist.h>
 #include <linux/completion.h>
+#include <linux/ieee80211.h>
 #include <crypto/hash.h>
+#include <crypto/aes.h>
 #include <wcnss_api.h>
+#include <linux/qcomwlan_secif.h>
 
+#include "ieee80211_common.h"
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
+#define AAD_LEN 20
+#define IV_SIZE_AES_128 16
+#define CMAC_IPN_LEN 6
+
 
 /*----------------------------------------------------------------------------
  * Type Declarations
@@ -113,7 +121,7 @@ VOS_STATUS vos_crypto_init( v_U32_t *phCryptProv )
     VOS_STATUS uResult = VOS_STATUS_E_FAILURE;
 
     // This implementation doesn't require a crypto context
-    *phCryptProv  = (v_U32_t)NULL;
+    *phCryptProv  = 0;
     uResult = VOS_STATUS_SUCCESS;
     return ( uResult );
 }
@@ -178,6 +186,129 @@ VOS_STATUS vos_rand_get_bytes( v_U32_t cryptHandle, v_U8_t *pbBuf, v_U32_t numBy
 }
 
 
+#ifdef WLAN_FEATURE_11W
+v_U8_t vos_get_mmie_size()
+{
+    return sizeof(struct ieee80211_mmie);
+}
+
+v_BOOL_t vos_is_mmie_valid(v_U8_t *igtk, v_U8_t *ipn,
+                           v_U8_t* frm, v_U8_t* efrm)
+{
+    struct ieee80211_mmie  *mmie;
+    struct ieee80211_frame *wh;
+    v_U8_t *rx_ipn, aad[AAD_LEN], mic[CMAC_TLEN], *input;
+    v_U16_t nBytes = 0;
+    int ret = 0;
+    struct crypto_cipher *tfm;
+
+    /* Check if frame is invalid length */
+    if ((efrm < frm) || ((efrm - frm) < sizeof(*wh))) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "Invalid frame length");
+        return VOS_FALSE;
+    }
+
+    mmie = (struct ieee80211_mmie *)(efrm - sizeof(*mmie));
+
+    /* Check Element ID */
+    if ((mmie->element_id != IEEE80211_ELEMID_MMIE) ||
+        (mmie->length != (sizeof(*mmie)-2))) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "IE is not Mgmt MIC IE or Invalid length");
+        /* IE is not Mgmt MIC IE or invalid length */
+        return VOS_FALSE;
+    }
+
+    /* Validate IPN */
+    rx_ipn = mmie->sequence_number;
+    if (OS_MEMCMP(rx_ipn, ipn, CMAC_IPN_LEN) <= 0)
+    {
+        /* Replay error */
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+            " mmie ipn %02X %02X %02X %02X %02X %02X"
+            " drvr ipn %02X %02X %02X %02X %02X %02X",
+            rx_ipn[0], rx_ipn[1], rx_ipn[2], rx_ipn[3], rx_ipn[4], rx_ipn[5],
+            ipn[0], ipn[1], ipn[2], ipn[3], ipn[4], ipn[5]);
+        return VOS_FALSE;
+    }
+
+    tfm = wcnss_wlan_crypto_alloc_cipher( "aes", 0, CRYPTO_ALG_ASYNC);
+    if (IS_ERR(tfm)) {
+        ret = PTR_ERR(tfm);
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,
+             "crypto_alloc_cipher failed (%d)", ret);
+        goto err_tfm;
+    }
+
+    ret = crypto_cipher_setkey(tfm, igtk, AES_KEYSIZE_128);
+    if (ret) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,
+             "crypto_cipher_setkey failed (%d)", ret);
+        goto err_tfm;
+    }
+
+    /* Construct AAD */
+    wh = (struct ieee80211_frame *)frm;
+
+    /* Generate BIP AAD: FC(masked) || A1 || A2 || A3 */
+
+    /* FC type/subtype */
+    aad[0] = wh->i_fc[0];
+    /* Mask FC Retry, PwrMgt, MoreData flags to zero */
+    aad[1] = wh->i_fc[1] & ~(IEEE80211_FC1_RETRY | IEEE80211_FC1_PWR_MGT |
+                             IEEE80211_FC1_MORE_DATA);
+    /* A1 || A2 || A3 */
+    vos_mem_copy(aad + 2, wh->i_addr_all, 3 * IEEE80211_ADDR_LEN);
+
+    /* MIC = AES-128-CMAC(IGTK, AAD || Management Frame Body || MMIE, 64) */
+    nBytes = AAD_LEN + (efrm - (v_U8_t*)(wh+1));
+    input = (v_U8_t *)vos_mem_malloc(nBytes);
+    if (NULL == input)
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+             "Memory allocation failed");
+        ret = VOS_STATUS_E_NOMEM;
+        goto err_tfm;
+    }
+
+    /* Copy the AAD, MMIE with 8 bit MIC zeroed out */
+    vos_mem_zero(input, nBytes);
+    vos_mem_copy(input, aad, AAD_LEN);
+    vos_mem_copy(input+AAD_LEN, (v_U8_t*)(wh+1), nBytes - AAD_LEN - CMAC_TLEN);
+
+    wcnss_wlan_cmac_calc_mic(tfm, input, nBytes, mic);
+    vos_mem_free(input);
+
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+            "CMAC(T)= %02X %02X %02X %02X %02X %02X %02X %02X",
+            mic[0], mic[1], mic[2], mic[3],
+            mic[4], mic[5], mic[6], mic[7]);
+
+    if (OS_MEMCMP(mic, mmie->mic, CMAC_TLEN) != 0) {
+        /* MMIE MIC mismatch */
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "BC/MC MGMT frame MMIE MIC check Failed"
+                " rmic %02X %02X %02X %02X %02X %02X %02X %02X"
+                " cmic %02X %02X %02X %02X %02X %02X %02X %02X",
+                mmie->mic[0], mmie->mic[1], mmie->mic[2], mmie->mic[3],
+                mmie->mic[4], mmie->mic[5], mmie->mic[6], mmie->mic[7],
+                mic[0], mic[1], mic[2], mic[3],
+                mic[4], mic[5], mic[6], mic[7]);
+        return VOS_FALSE;
+    }
+
+    /* Update IPN */
+    vos_mem_copy(ipn, rx_ipn, CMAC_IPN_LEN);
+
+err_tfm:
+    if (tfm)
+        wcnss_wlan_crypto_free_cipher(tfm);
+
+    return !ret?VOS_TRUE:VOS_FALSE;
+}
+
+#endif /* WLAN_FEATURE_11W */
 /**
  * vos_sha1_hmac_str
  *
@@ -532,16 +663,11 @@ static void ecb_aes_complete(struct crypto_async_request *req, int err)
     ( *** return value not considered yet )
   --------------------------------------------------------------------------*/
 
-#define IV_SIZE_AES_128 16
-#define KEY_SIZE_AES_128 16
-#define AES_BLOCK_SIZE 16
-
 VOS_STATUS vos_encrypt_AES(v_U32_t cryptHandle, /* Handle */
                            v_U8_t *pPlainText, /* pointer to data stream */
                            v_U8_t *pCiphertext,
                            v_U8_t *pKey) /* pointer to authentication key */
 {
-//    VOS_STATUS uResult = VOS_STATUS_E_FAILURE;
     struct ecb_aes_result result;
     struct ablkcipher_request *req;
     struct crypto_ablkcipher *tfm;
@@ -572,7 +698,7 @@ VOS_STATUS vos_encrypt_AES(v_U32_t cryptHandle, /* Handle */
 
     crypto_ablkcipher_clear_flags(tfm, ~0);
 
-    ret = crypto_ablkcipher_setkey(tfm, pKey, KEY_SIZE_AES_128);
+    ret = crypto_ablkcipher_setkey(tfm, pKey, AES_KEYSIZE_128);
     if (ret) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_cipher_setkey failed");
         goto err_setkey;
@@ -668,7 +794,7 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
 
     crypto_ablkcipher_clear_flags(tfm, ~0);
 
-    ret = crypto_ablkcipher_setkey(tfm, pKey, KEY_SIZE_AES_128);
+    ret = crypto_ablkcipher_setkey(tfm, pKey, AES_KEYSIZE_128);
     if (ret) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_cipher_setkey failed");
         goto err_setkey;

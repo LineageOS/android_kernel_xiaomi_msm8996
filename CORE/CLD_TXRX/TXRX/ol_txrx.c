@@ -771,6 +771,13 @@ ol_txrx_vdev_attach(
     TAILQ_INIT(&vdev->peer_list);
     vdev->last_real_peer = NULL;
 
+    #ifndef CONFIG_QCA_WIFI_ISOC
+    #ifdef  QCA_IBSS_SUPPORT
+    vdev->ibss_peer_num = 0;
+    vdev->ibss_peer_heart_beat_timer = 0;
+    #endif
+    #endif
+
     #if defined(CONFIG_HL_SUPPORT)
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
         u_int8_t i;
@@ -1085,6 +1092,17 @@ ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
 	struct ol_txrx_peer_t *peer;
 
 	peer =  ol_txrx_peer_find_hash_find(pdev, peer_mac, 0, 1);
+
+        if (NULL == peer)
+        {
+           TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: peer is null for peer_mac"
+             " 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", __FUNCTION__,
+             peer_mac[0], peer_mac[1], peer_mac[2], peer_mac[3],
+             peer_mac[4], peer_mac[5]);
+             return;
+        }
+
+
 	/* TODO: Should we send WMI command of the connection state? */
     /* avoid multiple auth state change. */
     if (peer->state == state) {

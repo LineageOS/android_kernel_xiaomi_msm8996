@@ -100,6 +100,12 @@ static void __limProcessSmeDisassocCnf(tpAniSirGlobal, tANI_U32 *);
 static void __limProcessSmeDeauthReq(tpAniSirGlobal, tANI_U32 *);
 static void __limProcessSmeSetContextReq(tpAniSirGlobal, tANI_U32 *);
 static tANI_BOOLEAN __limProcessSmeStopBssReq(tpAniSirGlobal, tpSirMsgQ pMsg);
+static void limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac,
+                                                      tANI_U32 *pMsg);
+static void limProcessSmeStartBeaconReq(tpAniSirGlobal pMac,
+                                                 tANI_U32 *pMsg);
+static void limProcessSmeDfsCacIndication(tpAniSirGlobal pMac, tANI_U32 *pMsg);
+static void limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg);
 
 void __limProcessSmeAssocCnfNew(tpAniSirGlobal, tANI_U32, tANI_U32 *);
 
@@ -5738,6 +5744,19 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             limSendSetTxPowerReq(pMac,  pMsgBuf);
             break ;
 
+
+        case eWNI_SME_CHANNEL_CHANGE_REQ:
+            limProcessSmeChannelChangeRequest(pMac, pMsgBuf);
+            break;
+
+        case eWNI_SME_START_BEACON_REQ:
+            limProcessSmeStartBeaconReq(pMac, pMsgBuf);
+            break;
+
+        case eWNI_SME_DFS_BEACON_CHAN_SW_IE_REQ:
+            limProcessSmeDfsCsaIeRequest(pMac, pMsgBuf);
+            break;
+
         default:
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
             pMsg->bodyptr = NULL;
@@ -5746,3 +5765,212 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
     return bufConsumed;
 } /*** end limProcessSmeReqMessages() ***/
+
+/**
+ * limProcessSmeStartBeaconReq()
+ *
+ *FUNCTION:
+ * This function is called by limProcessMessageQueue(). This
+ * function processes SME request messages from HDD or upper layer
+ * application.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param  pMac      Pointer to Global MAC structure
+ * @param  msgType   Indicates the SME message type
+ * @param  *pMsgBuf  A pointer to the SME message buffer
+ * @return Boolean - TRUE - if pMsgBuf is consumed and can be freed.
+ *                   FALSE - if pMsgBuf is not to be freed.
+ */
+static void
+limProcessSmeStartBeaconReq(tpAniSirGlobal pMac, tANI_U32 * pMsg)
+{
+    tpSirStartBeaconIndication pBeaconStartInd;
+    tpPESession                psessionEntry;
+    tANI_U8                    sessionId;  //PE sessionID
+
+    if( pMsg == NULL )
+    {
+        limLog(pMac, LOGE,FL("Buffer is Pointing to NULL"));
+        return;
+    }
+
+    pBeaconStartInd = (tpSirStartBeaconIndication)pMsg;
+    sessionId = pBeaconStartInd->sessionId;
+
+    if((psessionEntry = peFindSessionBySessionId(pMac, sessionId)) == NULL)
+    {
+        limLog(pMac, LOGW, "Session does not exist for given sessionId %d",
+                          pBeaconStartInd->sessionId);
+        return;
+    }
+
+    if (pBeaconStartInd->beaconStartStatus == VOS_TRUE)
+    {
+        /*
+         * Currently this Indication comes from SAP
+         * to start Beacon Tx on a DFS channel
+         * since beaconing has to be done on DFS
+         * channel only after CAC WAIT is completed.
+         * On a DFS Channel LIM does not start beacon
+         * Tx right after the WDA_ADD_BSS_RSP.
+         */
+        limApplyConfiguration(pMac,psessionEntry);
+        limSendBeaconInd(pMac, psessionEntry);
+    }
+    else
+    {
+        limLog(pMac, LOGE,FL("Invalid Beacon Start Indication"));
+        return;
+    }
+}
+
+static void
+limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
+{
+    tpSirChanChangeRequest pChannelChangeReq;
+    tpPESession             psessionEntry;
+    tANI_U8                 sessionId;  //PE sessionID
+    tPowerdBm               maxTxPwr;
+    if( pMsg == NULL )
+    {
+        limLog(pMac, LOGE,FL("pMsg is NULL"));
+        return;
+    }
+    pChannelChangeReq = (tpSirChanChangeRequest)pMsg;
+    sessionId = pChannelChangeReq->sessionId;
+
+    if((psessionEntry = peFindSessionBySessionId(pMac, sessionId)) == NULL)
+    {
+        limLog(pMac, LOGW, "Session does not exist for given sessionId %d",
+               pChannelChangeReq->sessionId);
+        return;
+    }
+
+    if (eLIM_AP_ROLE == psessionEntry->limSystemRole)
+       psessionEntry->channelChangeReasonCode = LIM_SWITCH_CHANNEL_SAP_DFS;
+    else
+       psessionEntry->channelChangeReasonCode = LIM_SWITCH_CHANNEL_OPERATION;
+
+    maxTxPwr = cfgGetRegulatoryMaxTransmitPower( pMac,
+                            pChannelChangeReq->targetChannel );
+
+    if (pChannelChangeReq->messageType == eWNI_SME_CHANNEL_CHANGE_REQ
+                                              &&
+                                     maxTxPwr != WDA_MAX_TXPOWER_INVALID)
+    {
+        /*
+         * Issue a set channel request with
+         * with channel bonding mode as
+         * PHY_SINGLE_CHANNEL_CENTERED
+         * TODO:Handle the channel bonding mode
+         * 40Mhz and 80Mhz Channel width for SAP
+         * channel change.
+         */
+
+        /* Store the New Channel Params in psessionEntry */
+        if (psessionEntry->currentOperChannel !=
+                              pChannelChangeReq->targetChannel)
+        {
+            limLog(pMac, LOGW,FL("switch old chnl %d --> new chnl %d "),
+                                 psessionEntry->currentOperChannel,
+                                 pChannelChangeReq->targetChannel);
+
+            limSetChannel(pMac, pChannelChangeReq->targetChannel,
+                          PHY_SINGLE_CHANNEL_CENTERED,
+                          maxTxPwr,
+                          psessionEntry->peSessionId);
+
+            psessionEntry->currentOperChannel =
+                                  pChannelChangeReq->targetChannel;
+
+            /*
+             *TODO:As of now the supported Channel width
+             * is only 20Mhz. AP Channel Bonding Mode for
+             * 40 Mhz and 80Mhz is pending implementation.
+             */
+            psessionEntry->htSecondaryChannelOffset =
+                                  PHY_SINGLE_CHANNEL_CENTERED;
+            psessionEntry->htSupportedChannelWidthSet =
+                                  WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+            psessionEntry->htRecommendedTxWidthSet =
+                                  psessionEntry->htSupportedChannelWidthSet;
+        }
+
+    }
+    else
+    {
+        limLog(pMac, LOGE,FL("Invalid Request/maxTxPwr"));
+    }
+}
+
+/**
+ * limProcessSmeDfsCsaIeRequest()
+ *
+ *FUNCTION:
+ * This function is called by limProcessMessageQueue(). This
+ * function processes SME request messages from HDD or upper layer
+ * application.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param  pMac      Pointer to Global MAC structure
+ * @param  *pMsgBuf  A pointer to the SME message buffer
+ */
+static void
+limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
+{
+
+    tpSirDfsCsaIeRequest  pDfsCsaIeRequest = (tSirDfsCsaIeRequest *)pMsg;
+    //tANI_U8               sessionId = pDfsCsaIeRequest->sessionId;
+    tpPESession           psessionEntry;
+    int i;
+
+    if ( pMsg == NULL )
+    {
+        limLog(pMac, LOGE,FL("Buffer is Pointing to NULL"));
+        return;
+    }
+
+    for (i=0; i<pMac->lim.maxBssId; i++)
+    {
+       psessionEntry = peFindSessionBySessionId(pMac, i);
+       if (psessionEntry && psessionEntry->valid &&
+           eLIM_AP_ROLE == psessionEntry->limSystemRole)
+       {
+          break;
+       }
+    }
+
+    /* target channel */
+    psessionEntry->gLimChannelSwitch.primaryChannel =
+                                    pDfsCsaIeRequest->targetChannel;
+
+    /* Channel switch announcement needs to be included in beacon */
+    psessionEntry->dfsIncludeChanSwIe = VOS_TRUE;
+    psessionEntry->gLimChannelSwitch.switchCount = LIM_MAX_CSA_IE_UPDATES;
+
+    /* Send CSA IE request from here */
+    if (schSetFixedBeaconFields(pMac, psessionEntry) != eSIR_SUCCESS)
+    {
+       PELOGE(limLog(pMac, LOGE, FL("Unable to set CSA IE in beacon"));)
+       return;
+    }
+
+    /* First beacon update request is sent here, the remaining updates are
+     * done when the FW responds back after sending the first beacon after
+     * the template update
+     */
+    limSendBeaconInd(pMac, psessionEntry);
+    psessionEntry->gLimChannelSwitch.switchCount--;
+
+    return;
+}

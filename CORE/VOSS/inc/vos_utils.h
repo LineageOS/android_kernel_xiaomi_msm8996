@@ -168,4 +168,9 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
 
 v_U32_t vos_chan_to_freq(v_U8_t chan);
 v_U8_t vos_freq_to_chan(v_U32_t freq);
+#ifdef WLAN_FEATURE_11W
+v_BOOL_t vos_is_mmie_valid(v_U8_t *key, v_U8_t *ipn,
+				v_U8_t* frm, v_U8_t* efrm);
+v_U8_t vos_get_mmie_size(void);
+#endif /* WLAN_FEATURE_11W */
 #endif // #if !defined __VOSS_UTILS_H

@@ -80,6 +80,7 @@
 #include "ol_fw.h"
 #include "testmode.h"
 #include "wlan_hdd_cfg80211.h"
+#include "if_pci.h"
 #endif
 
 #define RXMODE_DISABLE_ALL 0
@@ -562,8 +563,14 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
 
    macOpenParms.powersaveOffloadEnabled =
       pHddCtx->cfg_ini->enablePowersaveOffload;
+#ifndef QCA_WIFI_ISOC
+   vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext,
+                      NULL, NULL,
+                      &macOpenParms);
+#else
    vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext,
                       NULL, &macOpenParms);
+#endif
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       /* Critical Error ...  Cannot proceed further */
@@ -622,6 +629,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
      goto err_nv_close;
    }
 
+#ifndef QCA_WIFI_FTM
    /* Now proceed to open the SME */
    vStatus = sme_Open(gpVosContext->pMACContext);
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
@@ -641,8 +649,13 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
                 "%s: VOSS successfully Opened", __func__);
       return VOS_STATUS_SUCCESS;
    }
+#else
+   return VOS_STATUS_SUCCESS;
+#endif
 
+#ifndef QCA_WIFI_FTM
 err_mac_close:
+#endif
    macClose(gpVosContext->pMACContext);
 
 err_nv_close:
@@ -701,6 +714,7 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
   VOS_STATUS vosStatus;
   pVosContextType gpVosContext = (pVosContextType)vosContext;
 
+#ifndef QCA_WIFI_FTM
   vosStatus = sme_Close(((pVosContextType)vosContext)->pMACContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
@@ -708,6 +722,7 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
          "%s: Failed to close BAL",__func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
+#endif
 
   vosStatus = macClose( ((pVosContextType)vosContext)->pMACContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -744,13 +759,14 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
   if (gpVosContext->htc_ctx)
   {
       HTCStop(gpVosContext->htc_ctx);
       HTCDestroy(gpVosContext->htc_ctx);
       gpVosContext->htc_ctx = NULL;
   }
+  hif_disable_isr(gpVosContext->pHIFContext);
 #endif
 
   vos_mq_deinit(&((pVosContextType)vosContext)->freeVosMq);

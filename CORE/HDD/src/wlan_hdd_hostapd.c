@@ -555,6 +555,18 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                     pHddApCtx->wepKey[i].keyLength = 0;
                 }
            }
+
+            // We should restart OS transmit queues if we came here after
+            // radar detection and channel change
+            if (VOS_TRUE == pHddCtx->dfs_radar_found)
+            {
+               pHddCtx->dfs_radar_found = VOS_FALSE;
+               if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)
+               {
+                  netif_tx_start_all_queues(dev);
+               }
+            }
+
             //Fill the params for sending IWEVCUSTOM Event with SOFTAP.enabled
             startBssEvent = "SOFTAP.enabled";
             memset(&we_custom_start_event, '\0', sizeof(we_custom_start_event));
@@ -859,6 +871,11 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             hdd_stop_p2p_link(pHostapdAdapter, usrDataForCallback);
             return VOS_STATUS_SUCCESS;
 
+        case eSAP_CHANNEL_CHANGE_EVENT:
+            hddLog(LOG1, FL("Received eSAP_CHANNEL_CHANGE_EVENT event\n"));
+            /* TODO Need to indicate operating channel change to hostapd */
+            return VOS_STATUS_SUCCESS;
+
         default:
             hddLog(LOG1,"SAP message is not handled\n");
             goto stopbss;
@@ -1140,6 +1157,14 @@ static iw_softap_setparam(struct net_device *dev,
             }
 
 #ifdef QCA_WIFI_2_0
+         case QCSAP_PARAM_SET_TXRX_FW_STATS:
+             {
+                  hddLog(LOG1, "QCSAP_PARAM_SET_TXRX_FW_STATS val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID,
+                                               set_value, VDEV_CMD);
+                  break;
+             }
          /* Firmware debug log */
          case QCSAP_DBGLOG_LOG_LEVEL:
              {
@@ -3005,7 +3030,8 @@ static VOS_STATUS  wlan_hdd_get_classAstats_for_station(hdd_adapter_t *pAdapter,
                                   0, // not periodic
                                   FALSE, //non-cached results
                                   staid,
-                                  &context);
+                                  &context,
+                                  pAdapter->sessionId );
    if (eHAL_STATUS_SUCCESS != hstatus)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -3213,6 +3239,9 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "hideSSID" },
    { QCSAP_PARAM_SET_MC_RATE,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMcRate" },
+   { QCSAP_PARAM_SET_TXRX_FW_STATS,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "txrx_fw_stats" },
+
 
 #ifdef QCA_WIFI_2_0
  /* Sub-cmds DBGLOG specific commands */

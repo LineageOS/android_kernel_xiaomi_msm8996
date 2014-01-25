@@ -367,6 +367,25 @@ SAP_OBJS :=	$(SAP_SRC_DIR)/sapApiLinkCntl.o \
 		$(SAP_SRC_DIR)/sapFsm.o \
 		$(SAP_SRC_DIR)/sapModule.o
 
+############ DFS ############
+DFS_DIR :=	CORE/SERVICES/DFS
+DFS_INC_DIR :=	$(DFS_DIR)/inc
+DFS_SRC_DIR :=	$(DFS_DIR)/src
+DFS_INC :=	-I$(WLAN_ROOT)/$(DFS_INC_DIR) \
+		-I$(WLAN_ROOT)/$(DFS_SRC_DIR)
+
+DFS_OBJS :=	$(DFS_SRC_DIR)/dfs_bindetects.o \
+		$(DFS_SRC_DIR)/dfs.o \
+		$(DFS_SRC_DIR)/dfs_debug.o\
+		$(DFS_SRC_DIR)/dfs_fcc_bin5.o\
+		$(DFS_SRC_DIR)/dfs_init.o\
+		$(DFS_SRC_DIR)/dfs_misc.o\
+		$(DFS_SRC_DIR)/dfs_nol.o\
+		$(DFS_SRC_DIR)/dfs_phyerr_tlv.o\
+		$(DFS_SRC_DIR)/dfs_process_phyerr.o\
+		$(DFS_SRC_DIR)/dfs_process_radarevent.o\
+		$(DFS_SRC_DIR)/dfs_staggered.o
+
 ############ SME ############
 SME_DIR :=	CORE/SME
 SME_INC_DIR :=	$(SME_DIR)/inc
@@ -626,8 +645,8 @@ WMA_DIR :=      CORE/SERVICES/WMA
 
 WMA_INC :=      -I$(WLAN_ROOT)/$(WMA_DIR)
 
-WMA_OBJS :=     $(WMA_DIR)/wma.o
-
+WMA_OBJS :=     $(WMA_DIR)/wma.o \
+		$(WMA_DIR)/wma_dfs_interface.o
 ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
 WMA_OBJS +=     $(WMA_DIR)/wma_isoc.o
 else
@@ -726,7 +745,8 @@ INCS :=		$(BAP_INC) \
 		$(TL_INC) \
 		$(VOSS_INC) \
 		$(WDA_INC) \
-		$(WDI_INC)
+		$(WDI_INC) \
+		$(DFS_INC)
 
 ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
 INCS +=		$(DXE_INC)
@@ -765,7 +785,8 @@ OBJS :=		$(BAP_OBJS) \
 		$(SYS_OBJS) \
 		$(VOSS_OBJS) \
 		$(WDA_OBJS) \
-		$(WDI_OBJS)
+		$(WDI_OBJS)\
+		$(DFS_OBJS)
 
 ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
 OBJS +=		$(DXE_OBJS) \

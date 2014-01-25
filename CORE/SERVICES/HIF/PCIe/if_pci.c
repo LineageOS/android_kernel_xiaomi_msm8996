@@ -3,7 +3,6 @@
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
- *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -60,6 +59,9 @@
 
 #define AR9888_DEVICE_ID (0x003c)
 #define AR6320_DEVICE_ID (0x003e)
+#define AR6320_FW_1_1  (0x11)
+#define AR6320_FW_1_3  (0x13)
+#define AR6320_FW_2_0  (0x20)
 
 #define MAX_NUM_OF_RECEIVES 1000 /* Maximum number of Rx buf to process before break out */
 
@@ -342,6 +344,10 @@ wlan_tasklet(unsigned long data)
     struct hif_pci_softc *sc = (struct hif_pci_softc *) data;
     volatile int tmp;
 
+    if (sc->hif_init_done == FALSE) {
+       goto irq_handled;
+    }
+
     (irqreturn_t)HIF_fw_interrupt_handler(sc->irq_event, sc);
     CE_per_engine_service_any(sc->irq_event, sc);
     adf_os_atomic_set(&sc->tasklet_from_intr, 0);
@@ -354,6 +360,7 @@ wlan_tasklet(unsigned long data)
         tasklet_schedule(&sc->intr_tq);
         return;
     }
+irq_handled:
     if (LEGACY_INTERRUPTS(sc)) {
         /* Enable Legacy PCI line interrupts */
         A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 
@@ -375,6 +382,7 @@ hif_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
     struct ol_softc *ol_sc;
     int probe_again = 0;
     u_int16_t device_id;
+    u_int16_t revision_id;
 
     u_int32_t lcr_val;
 
@@ -459,6 +467,10 @@ again:
         ret = -EIO;
         goto err_iomap;
     }
+
+    /* Disable asynchronous suspend */
+    device_disable_async_suspend(&pdev->dev);
+
     sc = A_MALLOC(sizeof(*sc));
     if (!sc) {
         ret = -ENOMEM;
@@ -480,19 +492,37 @@ again:
 
     sc->cacheline_sz = dma_get_cache_alignment();
 
+    pci_read_config_word(pdev, 0x08, &revision_id);
+
     switch (id->device) {
     case AR9888_DEVICE_ID:
-	    hif_type = HIF_TYPE_AR9888;
-	    target_type = TARGET_TYPE_AR9888;
-	    break;
+        hif_type = HIF_TYPE_AR9888;
+        target_type = TARGET_TYPE_AR9888;
+        break;
+
     case AR6320_DEVICE_ID:
-	    hif_type = HIF_TYPE_AR6320;
-	    target_type = TARGET_TYPE_AR6320;
-	    break;
+        switch(revision_id) {
+        case AR6320_FW_1_1:
+        case AR6320_FW_1_3:
+            hif_type = HIF_TYPE_AR6320;
+            target_type = TARGET_TYPE_AR6320;
+            break;
+
+        case AR6320_FW_2_0:
+            hif_type = HIF_TYPE_AR6320V2;
+            target_type = TARGET_TYPE_AR6320V2;
+            break;
+
+        default:
+            printk(KERN_ERR "unsupported revision id\n");
+
+        }
+        break;
+
     default:
-	    printk(KERN_ERR "unsupported device id\n");
-	    ret = -ENODEV;
-	    goto err_tgtstate;
+        printk(KERN_ERR "unsupported device id\n");
+        ret = -ENODEV;
+        goto err_tgtstate;
     }
     /*
      * Attach Target register table.  This is needed early on --
@@ -653,6 +683,7 @@ int hif_pci_reinit(struct pci_dev *pdev, const struct pci_device_id *id)
     u_int32_t hif_type;
     u_int32_t target_type;
     u_int32_t lcr_val;
+    u_int16_t revision_id;
 
 again:
     ret = 0;
@@ -753,16 +784,33 @@ again:
     adf_os_spinlock_init(&sc->target_lock);
 
     sc->cacheline_sz = dma_get_cache_alignment();
+    pci_read_config_word(pdev, 0x08, &revision_id);
 
     switch (id->device) {
     case AR9888_DEVICE_ID:
         hif_type = HIF_TYPE_AR9888;
         target_type = TARGET_TYPE_AR9888;
         break;
+
     case AR6320_DEVICE_ID:
-        hif_type = HIF_TYPE_AR6320;
-        target_type = TARGET_TYPE_AR6320;
+        switch(revision_id) {
+        case AR6320_FW_1_1:
+        case AR6320_FW_1_3:
+            hif_type = HIF_TYPE_AR6320;
+            target_type = TARGET_TYPE_AR6320;
+            break;
+
+        case AR6320_FW_2_0:
+            hif_type = HIF_TYPE_AR6320V2;
+            target_type = TARGET_TYPE_AR6320V2;
+            break;
+
+        default:
+            printk(KERN_ERR "unsupported revision id\n");
+
+        }
         break;
+
     default:
         printk(KERN_ERR "%s: Unsupported device ID!\n", __func__);
         ret = -ENODEV;
@@ -1065,6 +1113,30 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
     }
 #endif
 
+    if(num_msi_desired == 0) {
+        printk("\n Using PCI Legacy Interrupt\n");
+
+        /* Make sure to wake the Target before enabling Legacy Interrupt */
+        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
+                      PCIE_SOC_WAKE_V_MASK);
+        while (!hif_pci_targ_is_awake(sc, sc->mem)) {
+                ;
+        }
+        /* Use Legacy PCI Interrupts */
+        /*
+         * A potential race occurs here: The CORE_BASE write depends on
+         * target correctly decoding AXI address but host won't know
+         * when target writes BAR to CORE_CTRL. This write might get lost
+         * if target has NOT written BAR. For now, fix the race by repeating
+         * the write in below synchronization checking.
+         */
+        A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS |
+                      PCIE_INTR_ENABLE_ADDRESS),
+                      PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
+        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
+                      PCIE_SOC_WAKE_RESET);
+    }
+
     sc->num_msi_intrs = num_msi_desired;
     sc->ce_count = CE_COUNT;
 
@@ -1102,30 +1174,14 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
 
     *hif_hdl = sc->hif_device;
 
-    if(num_msi_desired == 0) {
-        printk("\n Using PCI Legacy Interrupt\n");
-
-        /* Make sure to wake the Target before enabling Legacy Interrupt */
-        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
-                      PCIE_SOC_WAKE_V_MASK);
-        while (!hif_pci_targ_is_awake(sc, sc->mem)) {
-                ;
-        }
-        /* Use Legacy PCI Interrupts */
-        /*
-         * A potential race occurs here: The CORE_BASE write depends on
-         * target correctly decoding AXI address but host won't know
-         * when target writes BAR to CORE_CTRL. This write might get lost
-         * if target has NOT written BAR. For now, fix the race by repeating
-         * the write in below synchronization checking.
-         */
-        A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS |
-                      PCIE_INTR_ENABLE_ADDRESS),
-                      PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
-        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS,
-                      PCIE_SOC_WAKE_RESET);
-    }
-
+    /*
+     * Flag to avoid potential unallocated memory access from MSI
+     * interrupt handler which could get scheduled as soon as MSI
+     * is enabled, i.e to take care of the race due to the order
+     * in where MSI is enabled before the memory, that will be
+     * in interrupt handlers, is allocated.
+     */
+    sc->hif_init_done = TRUE;
     return 0;
 
 err_stalled:

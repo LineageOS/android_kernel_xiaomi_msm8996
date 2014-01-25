@@ -114,6 +114,14 @@ eHalStatus sme_UnprotectedMgmtFrmInd( tHalHandle hHal,
                                       tpSirSmeUnprotMgmtFrameInd pSmeMgmtFrm );
 #endif
 
+/* Message processor for events from DFS */
+eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac,
+                           v_U16_t msg_type,void *pMsgBuf);
+
+/* Channel Change Response Indication Handler */
+eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
+                           v_U16_t msg_type,void *pMsgBuf);
+
 //Internal SME APIs
 eHalStatus sme_AcquireGlobalLock( tSmeStruct *psSme)
 {
@@ -1898,6 +1906,65 @@ eHalStatus sme_UnprotectedMgmtFrmInd( tHalHandle hHal,
 }
 #endif
 
+/*------------------------------------------------------------------
+ *
+ * Handle the DFS Radar Event and indicate it to the SAP
+ *
+ *------------------------------------------------------------------*/
+eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac, v_U16_t msgType, void *pMsgBuf)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tCsrRoamInfo roamInfo = {0};
+    tSirSmeDfsEventInd *dfs_event;
+    tANI_U32 sessionId = 0;
+    eRoamCmdStatus roamStatus;
+    eCsrRoamResult roamResult;
+
+    switch (msgType)
+    {
+      case eWNI_SME_DFS_RADAR_FOUND:
+      {
+         /* Radar found !! */
+         dfs_event = (tSirSmeDfsEventInd *)pMsgBuf;
+         if (NULL == dfs_event)
+         {
+            smsLog(pMac, LOGE,
+                   "%s: pMsg is NULL for eWNI_SME_DFS_RADAR_FOUND message",
+                   __func__);
+            return eHAL_STATUS_FAILURE;
+         }
+         sessionId = dfs_event->sessionId;
+         roamInfo.dfs_event.sessionId = sessionId;
+         roamInfo.dfs_event.ieee_chan_number = dfs_event->ieee_chan_number;
+         roamInfo.dfs_event.chan_freq = dfs_event->chan_freq;
+         roamInfo.dfs_event.dfs_radar_status = dfs_event->dfs_radar_status;
+         roamInfo.dfs_event.use_nol = dfs_event->use_nol;
+
+         roamStatus = eCSR_ROAM_DFS_RADAR_IND;
+         roamResult = eCSR_ROAM_RESULT_DFS_RADAR_FOUND_IND;
+         break;
+      }
+      case eWNI_SME_DFS_CSAIE_TX_COMPLETE_IND:
+      {
+         roamStatus = eCSR_ROAM_DFS_CHAN_SW_NOTIFY;
+         roamResult = eCSR_ROAM_RESULT_DFS_CHANSW_UPDATE_SUCCESS;
+         break;
+      }
+      default:
+      {
+         smsLog(pMac, LOG1, "%s: Invalid DFS message = 0x%x", __func__,
+                msgType);
+         status = eHAL_STATUS_FAILURE;
+         return status;
+      }
+    }
+
+    /* Indicate Radar Event to SAP */
+    csrRoamCallCallback(pMac, sessionId, &roamInfo, 0,
+                        roamStatus, roamResult);
+    return status;
+}
+
 #if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
 /*------------------------------------------------------------------
  *
@@ -2417,6 +2484,28 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 break;
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+           case eWNI_SME_DFS_RADAR_FOUND:
+           case eWNI_SME_DFS_CSAIE_TX_COMPLETE_IND:
+                {
+                    status = dfsMsgProcessor(pMac, pMsg->type, pMsg->bodyptr);
+                    vos_mem_free( pMsg->bodyptr );
+                }
+                break;
+
+           case eWNI_SME_CHANNEL_CHANGE_RSP:
+                if (pMsg->bodyptr)
+                {
+                    status = sme_ProcessChannelChangeResp(pMac,
+                                           pMsg->type, pMsg->bodyptr);
+                    vos_mem_free( pMsg->bodyptr );
+                }
+                else
+                {
+                    smsLog( pMac, LOGE,
+                            "Empty rsp message for (eWNI_SME_CHANNEL_CHANGE_RSP),"
+                            "nothing to process");
+                }
+                break ;
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -4091,10 +4180,13 @@ eHalStatus sme_QueryPowerState (
     \brief  Checks if the device is able to enter a particular power save mode
             This does not imply that the device is in a particular PS mode
     \param  hHal - The handle returned by macOpen.
+    \param  sessionId - sme session id
     \param psMode - the power saving mode
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-tANI_BOOLEAN sme_IsPowerSaveEnabled (tHalHandle hHal, tPmcPowerSavingMode psMode)
+tANI_BOOLEAN sme_IsPowerSaveEnabled (tHalHandle hHal,
+                                     tANI_U32 sessionId,
+                                     tPmcPowerSavingMode psMode)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -4105,7 +4197,10 @@ tANI_BOOLEAN sme_IsPowerSaveEnabled (tHalHandle hHal, tPmcPowerSavingMode psMode
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       result = pmcIsPowerSaveEnabled(hHal, psMode);
+       if(!pMac->psOffloadEnabled)
+          result = pmcIsPowerSaveEnabled(hHal, psMode);
+       else
+          result = pmcOffloadIsPowerSaveEnabled(hHal, sessionId, psMode);
        sme_ReleaseGlobalLock( &pMac->sme );
        return result;
    }
@@ -4786,13 +4881,15 @@ eHalStatus sme_GetTsmStats(tHalHandle hHal,
     \param cache - If requester is happy with cached stats
     \param staId - The station ID for which the stats is requested for
     \param pContext - user context to be passed back along with the callback
+    \param sessionId - sme session interface
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus sme_GetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId,
                              tANI_U32 statsMask,
                              tCsrStatsCallback callback,
                              tANI_U32 periodicity, tANI_BOOLEAN cache,
-                             tANI_U8 staId, void *pContext)
+                             tANI_U8 staId, void *pContext,
+                             tANI_U8 sessionId)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -4801,7 +4898,8 @@ eHalStatus sme_GetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId
    if ( HAL_STATUS_SUCCESS( status ) )
    {
       status = csrGetStatistics( pMac, requesterId , statsMask, callback,
-                                 periodicity, cache, staId, pContext);
+                                 periodicity, cache, staId, pContext,
+                                 sessionId );
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -9404,26 +9502,20 @@ eHalStatus sme_ChangeRoamScanChannelList(tHalHandle hHal, tANI_U8 *pChannelList,
         }
         csrFlushCfgBgScanRoamChannelList(pMac);
         csrCreateBgScanRoamChannelList(pMac, pChannelList, numChannels);
-        status = csrUpdateBgScanConfigIniChannelList(pMac, csrGetCurrentBand(hHal));
-
-        if ( HAL_STATUS_SUCCESS( status ))
+        sme_SetRoamScanControl(hHal, 1);
+        if (NULL != pNeighborRoamInfo->cfgParams.channelInfo.ChannelList)
         {
-            sme_SetRoamScanControl(hHal, 1);
-            if (NULL != pNeighborRoamInfo->cfgParams.channelInfo.ChannelList)
+            j = 0;
+            for (i = 0; i < pNeighborRoamInfo->cfgParams.channelInfo.numOfChannels; i++)
             {
-                j = 0;
-                for (i = 0; i < pNeighborRoamInfo->cfgParams.channelInfo.numOfChannels; i++)
-                {
-                    j += snprintf(newChannelList + j, sizeof(newChannelList) - j," %d",
-                    pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i]);
-                }
+                j += snprintf(newChannelList + j, sizeof(newChannelList) - j," %d",
+                pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i]);
             }
-
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-                        "LFR runtime successfully set roam scan channels to %s - old value is %s - roam state is %d",
-                        newChannelList, oldChannelList,
-                        pMac->roam.neighborRoamInfo.neighborRoamState);
         }
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                  "LFR runtime successfully set roam scan channels to %s - old value is %s - roam state is %d",
+                  newChannelList, oldChannelList,
+                  pMac->roam.neighborRoamInfo.neighborRoamState);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
@@ -9504,21 +9596,6 @@ eHalStatus sme_SetCcxRoamScanChannelList(tHalHandle hHal,
     return status ;
 }
 #endif
-
-/*--------------------------------------------------------------------------
-  \brief csrUpdateBgScanConfigIniChannelList() - Update bgscan roam cache
-  This is a synchronous call
-  \param hHal - The handle returned by macOpen.
-  \return eHAL_STATUS_SUCCESS - SME update config successful.
-          Other status means SME is failed to update
-  \sa
-  --------------------------------------------------------------------------*/
-eHalStatus sme_UpdateBgScanConfigIniChannelList(tHalHandle hHal,
-                                               eCsrBand eBand)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    return csrUpdateBgScanConfigIniChannelList(pMac, eBand);
-}
 
 /*--------------------------------------------------------------------------
   \brief sme_getRoamScanChannelList() - get roam scan channel list
@@ -10829,4 +10906,130 @@ eHalStatus sme_AddChAvoidCallback
     return(status);
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
+
+/* -------------------------------------------------------------------------
+   \fn sme_RoamChannelChangeReq
+   \brief API to Indicate Channel change to new target channel
+   \param hHal - The handle returned by macOpen
+   \param sessionId - session ID
+   \param targetChannel - New Channel to move the SAP to.
+   \return eHalStatus
+---------------------------------------------------------------------------*/
+eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal,
+                tANI_U8 sessionId, tANI_U8 targetChannel )
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    status = sme_AcquireGlobalLock( &pMac->sme );
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+        status = csrRoamChannelChangeReq( pMac, sessionId, targetChannel);
+
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    return (status);
+}
+
+/* -------------------------------------------------------------------------
+   \fn sme_ProcessChannelChangeResp
+   \brief API to Indicate Channel change response message to SAP.
+   \return eHalStatus
+---------------------------------------------------------------------------*/
+eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
+                                     v_U16_t msg_type, void *pMsgBuf)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tCsrRoamInfo pRoamInfo = {0};
+    eCsrRoamResult roamResult;
+    tpSwitchChannelParams pChnlParams = (tpSwitchChannelParams) pMsgBuf;
+    tANI_U32 SessionId = pChnlParams->peSessionId;
+
+    pRoamInfo.channelChangeRespEvent =
+    (tSirChanChangeResponse *)vos_mem_malloc(
+                                sizeof(tSirChanChangeResponse));
+    if (NULL == pRoamInfo.channelChangeRespEvent)
+    {
+        status = eHAL_STATUS_FAILURE;
+        smsLog(pMac, LOGE, "Channel Change Event Allocation Failed: %d\n",
+              status);
+        return status;
+    }
+    if (msg_type == eWNI_SME_CHANNEL_CHANGE_RSP)
+    {
+        pRoamInfo.channelChangeRespEvent->sessionId = SessionId;
+        pRoamInfo.channelChangeRespEvent->newChannelNumber =
+                                           pChnlParams->channelNumber;
+        pRoamInfo.channelChangeRespEvent->secondaryChannelOffset =
+                                  pChnlParams->secondaryChannelOffset;
+
+        if (pChnlParams->status == eHAL_STATUS_SUCCESS)
+        {
+            pRoamInfo.channelChangeRespEvent->channelChangeStatus = 1;
+            roamResult = eCSR_ROAM_RESULT_CHANNEL_CHANGE_SUCCESS;
+        }
+        else
+        {
+            pRoamInfo.channelChangeRespEvent->channelChangeStatus = 0;
+            roamResult = eCSR_ROAM_RESULT_CHANNEL_CHANGE_FAILURE;
+        }
+
+        csrRoamCallCallback(pMac, SessionId, &pRoamInfo, 0,
+                                  eCSR_ROAM_SET_CHANNEL_RSP, roamResult);
+
+    }
+    else
+    {
+        status = eHAL_STATUS_FAILURE;
+        smsLog(pMac, LOGE, "Invalid Channel Change Resp Message: %d\n",
+              status);
+    }
+    return status;
+}
+
+/* -------------------------------------------------------------------------
+   \fn sme_RoamStartBeaconReq
+   \brief API to Indicate LIM to start Beacon Tx
+   \after SAP CAC Wait is completed.
+   \param hHal - The handle returned by macOpen
+   \param sessionId - session ID
+   \param dfsCacWaitStatus - CAC WAIT status flag
+   \return eHalStatus
+---------------------------------------------------------------------------*/
+eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal, tANI_U8 sessionId,
+                                              tANI_U8 dfsCacWaitStatus)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    status = sme_AcquireGlobalLock( &pMac->sme );
+
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+        status = csrRoamStartBeaconReq( pMac, sessionId, dfsCacWaitStatus);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    return (status);
+}
+
+/* -------------------------------------------------------------------------
+   \fn sme_RoamCsaIeRequest
+   \brief API to request CSA IE transmission from PE
+   \param hHal - The handle returned by macOpen
+   \param sessionId - session ID
+   \param pDfsCsaReq - CSA IE request
+   \return eHalStatus
+---------------------------------------------------------------------------*/
+eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tANI_U8 sessionId,
+                                    tANI_U8 targetChannel, tANI_U8 csaIeReqd)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    status = sme_AcquireGlobalLock( &pMac->sme );
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+        status = csrRoamSendChanSwIERequest(pMac, sessionId,
+                                            targetChannel, csaIeReqd);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    return (status);
+}
 

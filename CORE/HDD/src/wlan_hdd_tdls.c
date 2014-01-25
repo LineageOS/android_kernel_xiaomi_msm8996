@@ -30,10 +30,6 @@
 
   \brief WLAN Host Device Driver implementation for TDLS
 
-  Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-  All Rights Reserved.
-  Qualcomm Atheros Confidential and Proprietary.
-
   ========================================================================*/
 
 #include <wlan_hdd_includes.h>

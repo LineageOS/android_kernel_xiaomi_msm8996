@@ -93,6 +93,48 @@
 static VOS_STATUS sapGetChannelList(ptSapContext sapContext, v_U8_t **channelList,
                                  v_U8_t  *numberOfChannels);
 #endif
+
+/*==========================================================================
+  FUNCTION    sapGet5GHzChannelList
+
+  DESCRIPTION
+    Function for initializing list of  2.4/5 Ghz [NON-DFS/DFS] available
+    channels in the current regulatory domain.
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    sapContext: SAP Context
+
+  RETURN VALUE
+    NA
+
+  SIDE EFFECTS
+============================================================================*/
+static VOS_STATUS sapGet5GHzChannelList(ptSapContext sapContext);
+
+/*==========================================================================
+  FUNCTION    sapStartDfsCacTimer
+
+  DESCRIPTION
+    Function to start the DFS CAC timer when SAP is started on DFS Channel
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    sapContext: SAP Context
+  RETURN VALUE
+    DFS Timer start status
+  SIDE EFFECTS
+============================================================================*/
+
+int sapStartDfsCacTimer(ptSapContext sapContext);
+
 /*----------------------------------------------------------------------------
  * Externalized Function Definitions
 * -------------------------------------------------------------------------*/
@@ -727,6 +769,14 @@ sapSignalHDDevent
                     (v_PVOID_t)pCsrRoamInfo->peerMac, sizeof(v_MACADDR_t));
             break;
 
+        case eSAP_CHANNEL_CHANGE_EVENT:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "In %s, SAP event callback event = %s",
+                    __func__, "eSAP_CHANNEL_CHANGE_EVENT");
+            sapApAppEvent.sapHddEventCode = eSAP_CHANNEL_CHANGE_EVENT;
+            sapApAppEvent.sapevt.sapChannelChange.operatingChannel =
+               sapContext->SapDfsInfo.target_channel;
+
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, SAP Unknown callback event = %d",
                        __func__,sapHddevent);
@@ -829,6 +879,18 @@ sapFsm
                 VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
                            __func__, "eSAP_DISCONNECTED", "eSAP_CH_SELECT");
             }
+            if (msg == eSAP_DFS_CHANNEL_CAC_START)
+            {
+               /* No need of state check here, caller is expected to perform
+                * the checks before sending the event
+                */
+               sapContext->sapsMachine = eSAP_DFS_CAC_WAIT;
+
+               VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+               "ENTERTRED eSAP_DISCONNECTED-->eSAP_DFS_CAC_WAIT\n");
+
+               sapStartDfsCacTimer(sapContext);
+            }
             else
             {
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, in state %s, event msg %d",
@@ -881,6 +943,90 @@ sapFsm
             }
             break;
 
+        case eSAP_DFS_CAC_WAIT:
+            if (msg == eSAP_DFS_CHANNEL_CAC_START)
+            {
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
+                            __func__, "eSAP_CH_SELECT", "eSAP_DFS_CAC_WAIT");
+                sapStartDfsCacTimer(sapContext);
+            }
+            else if (msg == eSAP_DFS_CHANNEL_CAC_RADAR_FOUND)
+            {
+               /* Radar found while performing channel availability
+                * check, need to switch the channel again
+                */
+               eCsrPhyMode phyMode =
+                  sapConvertSapPhyModeToCsrPhyMode(sapContext->csrRoamProfile.phyMode);
+               tHalHandle hHal =
+                  (tHalHandle)vos_get_context(VOS_MODULE_ID_SME, sapContext->pvosGCtx);
+
+               /* SAP to be moved to DISCONNECTING state */
+               sapContext->sapsMachine = eSAP_DISCONNECTING;
+
+               VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                  "ENTERTRED CAC WAIT STATE-->eSAP_DISCONNECTING\n");
+
+               if (sapContext->SapDfsInfo.target_channel)
+               {
+                  sme_SelectCBMode(hHal, phyMode,
+                                   sapContext->SapDfsInfo.target_channel);
+               }
+
+               /*
+                * eSAP_DFS_CHANNEL_CAC_RADAR_FOUND:
+                * A Radar is found on current DFS Channel
+                * while in CAC WAIT period So, do a channel switch
+                * to randomly selected  target channel.
+                * Send the Channel change message to SME/PE.
+                * sap_radar_found_status is set to 1
+                */
+
+               WLANSAP_ChannelChangeRequest((v_PVOID_t)sapContext,
+                              sapContext->SapDfsInfo.target_channel);
+            }
+            else if (msg == eSAP_DFS_CHANNEL_CAC_END)
+            {
+               /*
+                * eSAP_DFS_CHANNEL_CAC_END:
+                * CAC Period elapsed and there was no radar
+                * found so, SAP can continue beaconing.
+                * sap_radar_found_status is set to 0
+                */
+               sapContext->SapDfsInfo.sap_radar_found_status = VOS_FALSE;
+
+               /* Start beaconing on the new channel */
+               WLANSAP_StartBeaconReq((v_PVOID_t)sapContext);
+
+               /* Transition from eSAP_STARTING to eSAP_STARTED
+                * (both without substates)
+                */
+               VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                         "In %s, from state channel = %d %s => %s",
+                         __func__,sapContext->channel, "eSAP_STARTING",
+                         "eSAP_STARTED");
+
+               sapContext->sapsMachine = eSAP_STARTED;
+
+               /*Action code for transition */
+               vosStatus = sapSignalHDDevent(sapContext, roamInfo,
+                                             eSAP_START_BSS_EVENT,
+                                             (v_PVOID_t)eSAP_STATUS_SUCCESS);
+
+               /* Transition from eSAP_STARTING to eSAP_STARTED
+                * (both without substates)
+                */
+               VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                         "In %s, from state %s => %s",
+                         __func__, "eSAP_DFS_CAC_WAIT", "eSAP_STARTED");
+            }
+            else
+            {
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                          "In %s, in state %s, invalid event msg %d",
+                          __func__, "eSAP_DFS_CAC_WAIT", msg);
+            }
+            break;
+
         case eSAP_STARTING:
             if (msg == eSAP_MAC_START_BSS_SUCCESS )
             {
@@ -889,12 +1035,30 @@ sapFsm
                             __func__,sapContext->channel, "eSAP_STARTING", "eSAP_STARTED");
 
                  sapContext->sapsMachine = eSAP_STARTED;
+
                  /*Action code for transition */
                  vosStatus = sapSignalHDDevent( sapContext, roamInfo, eSAP_START_BSS_EVENT, (v_PVOID_t)eSAP_STATUS_SUCCESS);
 
                  /* Transition from eSAP_STARTING to eSAP_STARTED (both without substates) */
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
                             __func__, "eSAP_STARTING", "eSAP_STARTED");
+
+                 /* The upper layers have been informed that AP is up and
+                  * running, however, the AP is still not beaconing, until
+                  * CAC is done if the operating channel is DFS
+                  */
+                 if (vos_nv_getChannelEnabledState(sapContext->channel) == NV_CHANNEL_DFS)
+                 {
+                     /* Move the device in CAC_WAIT_STATE */
+                     sapContext->sapsMachine = eSAP_DFS_CAC_WAIT;
+
+                     /* TODO: Need to stop the OS transmit queues, so that no traffic
+                      * can flow down the stack
+                      */
+
+                     /* Start CAC wait timer */
+                     sapStartDfsCacTimer(sapContext);
+                 }
              }
              else if (msg == eSAP_MAC_START_FAILS)
              {
@@ -938,6 +1102,23 @@ sapFsm
                      }
                  }
              }
+             else if (msg == eSAP_OPERATING_CHANNEL_CHANGED)
+             {
+                 /* The operating channel has changed, update hostapd */
+                 sapContext->channel =
+                     (tANI_U8)sapContext->SapDfsInfo.target_channel;
+
+                 sapContext->sapsMachine = eSAP_STARTED;
+
+                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                           "In %s, from state %s => %s",
+                           __func__, "eSAP_STARTING", "eSAP_STARTED");
+
+                 /* Indicate change in the state to upper layers */
+                 vosStatus = sapSignalHDDevent(sapContext, roamInfo,
+                                               eSAP_START_BSS_EVENT,
+                                               (v_PVOID_t)eSAP_STATUS_SUCCESS);
+             }
              else
              {
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -955,6 +1136,17 @@ sapFsm
                            __func__, "eSAP_STARTED", "eSAP_DISCONNECTING");
                 sapContext->sapsMachine = eSAP_DISCONNECTING;
                 vosStatus = sapGotoDisconnecting(sapContext);
+            }
+            else if (eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START == msg)
+            {
+                /* Radar is seen on the current operating channel
+                 * send CSA IE for all associated stations
+                 */
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "In %s, Send CSA IE Request", __func__);
+
+                /* Request for CSA IE transmission */
+                WLANSAP_DfsSendCSAIeRequest(sapContext);
             }
             else
             {
@@ -997,6 +1189,19 @@ sapFsm
                     }
                 }
             }
+            else if (msg == eWNI_SME_CHANNEL_CHANGE_REQ)
+            {
+               /* Most likely, radar has been detected and SAP wants to
+                * change the channel
+                */
+                vosStatus =
+                        WLANSAP_ChannelChangeRequest((v_PVOID_t)sapContext,
+                        sapContext->SapDfsInfo.target_channel);
+
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                          "In %s, Sending DFS eWNI_SME_CHANNEL_CHANGE_REQ",
+                          __func__);
+            }
             else
             {
                 VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -1016,6 +1221,7 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     profile->BSSType = eCSR_BSS_TYPE_INFRA_AP;
     profile->SSIDs.numOfSSIDs = 1;
     profile->csrPersona = pconfig_params->persona;
+    profile->disableDFSChSwitch = pconfig_params->disableDFSChSwitch;
 
     vos_mem_zero(profile->SSIDs.SSIDList[0].SSID.ssId,
                  sizeof(profile->SSIDs.SSIDList[0].SSID.ssId));
@@ -1449,3 +1655,225 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
     return VOS_STATUS_SUCCESS;
 }
 #endif
+
+/*
+ * Function for initializing list of  2.4/5 Ghz [NON-DFS/DFS]
+ * available channels in the current regulatory domain.
+ */
+static VOS_STATUS sapGet5GHzChannelList(ptSapContext sapContext)
+{
+    v_U8_t count = 0;
+    int i;
+    if (NULL == sapContext)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+              "Invalid sapContext pointer on sapGetChannelList");
+        return VOS_STATUS_E_FAULT;
+    }
+
+    sapContext->SapAllChnlList.channelList =
+                (v_U8_t *)vos_mem_malloc(WNI_CFG_VALID_CHANNEL_LIST_LEN);
+    if (NULL == sapContext->SapAllChnlList.channelList)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   " Memory Allocation failed sapGetChannelList");
+                 return VOS_STATUS_E_FAULT;
+    }
+
+    for( i = RF_CHAN_36; i <= RF_CHAN_165; i++ )
+    {
+        if( regChannels[i].enabled == NV_CHANNEL_ENABLE ||
+            regChannels[i].enabled == NV_CHANNEL_DFS )
+        {
+            sapContext->SapAllChnlList.channelList[count] =
+                                          rfChannels[i].channelNum;
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                      "%s[%d] CHANNEL = %d",__func__, __LINE__,
+                      sapContext->SapAllChnlList.channelList[count]);
+            count++;
+        }
+    }
+
+    sapContext->SapAllChnlList.numChannel = count;
+    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+              "%s[%d] NUMBER OF CHANNELS count = %d"
+              "sapContext->SapAllChnlList.numChannel = %d",
+              __func__,__LINE__,count,sapContext->SapAllChnlList.numChannel);
+    return VOS_STATUS_SUCCESS;
+}
+
+/*
+ * This function randomly selects the channel to switch after the detection
+ * of radar
+ * param sapContext - sap context
+ * dfs_event - Dfs information from DFS
+ * return - channel to which AP wishes to switch
+ */
+v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
+{
+    v_U8_t available_chan_idx[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+    int available_chan_count, numGChannels = 0, numAChannels = 0;
+    v_U8_t total_num_channels = 0;
+    v_U8_t target_channel = 0;
+    int i;
+
+    if (NULL == sapContext || NULL == dfs_event)
+    {
+        /* Invalid sap context of dfs event passed */
+        return 0;
+    }
+
+    if (!dfs_event->dfs_radar_status)
+    {
+        /*dfs status does not indicate a radar on the channel-- False Alarm*/
+        return 0;
+    }
+
+    /* set the Radar Found flag in SapDfsInfo */
+    sapContext->SapDfsInfo.sap_radar_found_status = VOS_TRUE;
+
+    /* We need to generate Channel Switch IE if the radar is found in the
+     * operating state
+     */
+    if (eSAP_STARTED == sapContext->sapsMachine)
+        sapContext->SapDfsInfo.csaIERequired = VOS_TRUE;
+
+    if (sapContext->csrRoamProfile.disableDFSChSwitch)
+    {
+       return sapContext->channel;
+    }
+
+    sapGet5GHzChannelList(sapContext);
+    total_num_channels = sapContext->SapAllChnlList.numChannel;
+
+    /*
+     * Find how many G channels are present in the channel list
+     */
+    for(i = 0; i < RF_CHAN_14; i++ )
+    {
+        if( regChannels[i].enabled )
+        {
+            numGChannels++;
+        }
+    }
+    numAChannels = (total_num_channels - numGChannels);
+
+    /*
+     * (1) skip static turbo channel as it will require STA to be in
+     * static turbo to work.
+     * (2) skip channel which's marked with radar detction
+     * (3) WAR: we allow user to config not to use any DFS channel
+     * (4) When we pick a channel, skip excluded 11D channels
+     * (5) Create the available channel list with the above rules
+     */
+
+    for(i = 0, available_chan_count = 0; i<= total_num_channels; i++)
+    {
+        if (sapContext->SapAllChnlList.channelList[i] ==
+                                       dfs_event->ieee_chan_number)
+        {
+            continue;//skip the channel on which radar is found
+        }
+        available_chan_idx[available_chan_count++] =
+                           sapContext->SapAllChnlList.channelList[i];
+    }
+
+    if(available_chan_count)
+    {
+        v_U32_t random_byte = 0;
+
+        /* logic to generate a random index */
+        get_random_bytes(&random_byte,1);
+        i = (random_byte + jiffies) % available_chan_count;
+
+        /*
+         * Pick the channel from the random index
+         * in available_chan_idx list
+         */
+        target_channel = (available_chan_idx[i]);
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                  "%s[%d]: Target channel Index = %d target_channel = %d",
+                  __func__,__LINE__, i, target_channel);
+        return target_channel;
+    }
+
+    return 0;
+}
+
+/*
+ * CAC timer callback function.
+ * Post eSAP_DFS_CHANNEL_CAC_END event to sapFsm().
+ */
+void sapDfsCacTimerCallback(void *data)
+{
+    ptSapContext sapContext = (ptSapContext)data;
+    tWLAN_SAPEvent sapEvent;
+
+    /* Check to ensure that SAP is in DFS WAIT state*/
+    if (sapContext->sapsMachine == eSAP_DFS_CAC_WAIT)
+    {
+        vos_timer_destroy(&sapContext->SapDfsInfo.sap_dfs_cac_timer);
+        sapContext->SapDfsInfo.is_dfs_cac_timer_running = 0;
+        /*
+         * CAC Complete, post eSAP_DFS_CHANNEL_CAC_END to sapFsm
+         */
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  "%s[%d]: Sending eSAP_DFS_CHANNEL_CAC_END for target_channel = %d",
+                  __func__,__LINE__, sapContext->SapDfsInfo.target_channel);
+        sapEvent.event = eSAP_DFS_CHANNEL_CAC_END;
+        sapEvent.params = 0;
+        sapEvent.u1 = 0;
+        sapEvent.u2 = 0;
+    }
+    else if (sapContext->sapsMachine == eSAP_DFS_CAC_WAIT)
+    {
+        vos_timer_destroy(&sapContext->SapDfsInfo.sap_dfs_cac_timer);
+        sapContext->SapDfsInfo.is_dfs_cac_timer_running = 0;
+
+        /*
+         * CAC Complete, post eSAP_DFS_CHANNEL_CAC_END to sapFsm
+         */
+        sapEvent.event = eSAP_DFS_CHANNEL_CAC_END;
+        sapEvent.params = 0;
+        sapEvent.u1 = 0;
+        sapEvent.u2 = 0;
+    }
+
+    sapFsm(sapContext, &sapEvent);
+}
+
+/*
+ * Function to start the DFS CAC Timer
+ * when SAP is started on a DFS channel
+ */
+int sapStartDfsCacTimer(ptSapContext sapContext)
+{
+    VOS_STATUS status;
+    if (sapContext == NULL)
+    {
+        return 0;
+    }
+    if (sapContext->SapDfsInfo.ignore_cac)
+    {
+        /*
+         * If User has set to ignore the CAC
+         * so, continue without CAC Timer.
+         */
+        return 2;
+    }
+    vos_timer_init(&sapContext->SapDfsInfo.sap_dfs_cac_timer,
+                   VOS_TIMER_TYPE_SW,
+                   sapDfsCacTimerCallback, (v_PVOID_t)sapContext);
+
+    /*Start the CAC timer for 60 Seconds*/
+    status = vos_timer_start(&sapContext->SapDfsInfo.sap_dfs_cac_timer, 60000);
+    if (status == VOS_STATUS_SUCCESS)
+    {
+        sapContext->SapDfsInfo.is_dfs_cac_timer_running = VOS_TRUE;
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
