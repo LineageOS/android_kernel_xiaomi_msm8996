@@ -1581,6 +1581,7 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
         if( pPeerVHTCaps != NULL)
         {
             tANI_U16 mcsMapMask = MCSMAPMASK1x1;
+            tANI_U16 mcsMapMask2x2 = 0;
             pRates->vhtTxHighestDataRate = SIR_MIN(pRates->vhtTxHighestDataRate, pPeerVHTCaps->txSupDataRate);
             pRates->vhtRxHighestDataRate = SIR_MIN(pRates->vhtRxHighestDataRate, pPeerVHTCaps->rxHighSupDataRate);
 
@@ -1592,16 +1593,19 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
                           (IS_24G_CH(psessionEntry->currentOperChannel)))
                     {
                         if(IS_2X2_CHAIN(psessionEntry->chainMask))
-                                mcsMapMask = MCSMAPMASK2x2;
+                            mcsMapMask2x2 = MCSMAPMASK2x2;
+                        else
+                            PELOGE(limLog(pMac, LOGE, FL("2x2 not enabled %d"),
+                                       psessionEntry->chainMask);)
                     }
                     else
                     {
-                        mcsMapMask = MCSMAPMASK2x2;
+                        mcsMapMask2x2 = MCSMAPMASK2x2;
                     }
                }
                else
                {
-                    mcsMapMask = MCSMAPMASK2x2;
+                    mcsMapMask2x2 = MCSMAPMASK2x2;
                }
             }
 
@@ -1613,6 +1617,32 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
                 pRates->vhtTxMCSMap &= ~(mcsMapMask);
                 pRates->vhtTxMCSMap |= (pPeerVHTCaps->txMCSMap & mcsMapMask);
             }
+
+            if (mcsMapMask2x2) {
+
+                tANI_U16 peerMcsMap, selfMcsMap;
+
+                peerMcsMap = pPeerVHTCaps->rxMCSMap & mcsMapMask2x2;
+                selfMcsMap = pRates->vhtRxMCSMap & mcsMapMask2x2;
+
+                if ((selfMcsMap != mcsMapMask2x2) &&
+                        ((peerMcsMap == mcsMapMask2x2) ||
+                            (peerMcsMap < selfMcsMap))) {
+                    pRates->vhtRxMCSMap &= ~mcsMapMask2x2;
+                    pRates->vhtRxMCSMap |= peerMcsMap;
+                }
+
+                peerMcsMap = (pPeerVHTCaps->txMCSMap & mcsMapMask2x2);
+                selfMcsMap = (pRates->vhtTxMCSMap & mcsMapMask2x2);
+
+                if ((selfMcsMap != mcsMapMask2x2) &&
+                        ((peerMcsMap == mcsMapMask2x2) ||
+                            (peerMcsMap < selfMcsMap))) {
+                    pRates->vhtTxMCSMap &= ~mcsMapMask2x2;
+                    pRates->vhtTxMCSMap |= peerMcsMap;
+                }
+            }
+
             limLog( pMac, LOG1, FL("enable2x2 - %d vhtRxMCSMap - %x vhtTxMCSMap - %x\n"), pMac->roam.configParam.enable2x2, pRates->vhtRxMCSMap, pRates->vhtTxMCSMap);
 
         }

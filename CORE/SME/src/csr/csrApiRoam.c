@@ -1891,6 +1891,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->txBFCsnValue = pMac->roam.configParam.txBFCsnValue;
         pParam->enableMuBformee = pMac->roam.configParam.txMuBformee;
         pParam->enableVhtFor24GHz = pMac->roam.configParam.enableVhtFor24GHz;
+        pParam->enable2x2 = pMac->roam.configParam.enable2x2;
 #endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
         vos_mem_copy(&pMac->roam.configParam.csr11rConfig,
