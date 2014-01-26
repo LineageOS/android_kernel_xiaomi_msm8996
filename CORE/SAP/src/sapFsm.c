@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /*===========================================================================
 
                       s a p F s m . C
@@ -169,6 +170,91 @@ static inline void sapEventInit(ptWLAN_SAPEvent sapEvent)
    sapEvent->params = 0;
    sapEvent->u1 = 0;
    sapEvent->u2 = 0;
+}
+
+/*
+ * This Function Checks if a given channel is AVAILABLE or USABLE
+ * for DFS operation.
+ */
+static v_BOOL_t
+sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber)
+{
+    int i;
+    unsigned long timeElapsedSinceLastRadar,timeWhenRadarFound,currentTime = 0;
+
+    for (i =0 ; i< sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels; i++)
+    {
+        if(sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                                 .dfs_channel_number == channelNumber)
+        {
+            if ( (sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                        .radar_status_flag == eSAP_DFS_CHANNEL_USABLE)
+                                           ||
+                 (sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                        .radar_status_flag == eSAP_DFS_CHANNEL_AVAILABLE) )
+            {
+                /*
+                 * Allow SAP operation on this channel
+                 * either the DFS channel has not been used
+                 * for SAP operation or it is available for
+                 * SAP operation since it is past Non-Occupancy-Period
+                 * so, return FALSE.
+                 */
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                          "%s[%d]: Channel = %d"
+                           "Not in NOL LIST, CHANNEL AVAILABLE",
+                           __func__, __LINE__, sapContext->SapDfsInfo
+                                                 .sapDfsChannelNolList[i]
+                                                 .dfs_channel_number);
+                return VOS_FALSE;
+            }
+            else if (sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                        .radar_status_flag == eSAP_DFS_CHANNEL_UNAVAILABLE)
+            {
+                /*
+                 * If a DFS Channel is UNAVAILABLE then
+                 * check to see if it is past Non-occupancy-period
+                 * of 30 minutes. If it is past 30 mins then
+                 * mark the channel as AVAILABLE and return FALSE
+                 * as the channel is not anymore in NON-Occupancy-Period.
+                 */
+                timeWhenRadarFound = sapContext->SapDfsInfo
+                                     .sapDfsChannelNolList[i]
+                                     .radar_found_timestamp;
+                currentTime = vos_timer_get_system_time();
+                timeElapsedSinceLastRadar = currentTime - timeWhenRadarFound;
+                if (timeElapsedSinceLastRadar >=  SAP_DFS_NON_OCCUPANCY_PERIOD)
+                {
+                    sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                           .radar_status_flag = eSAP_DFS_CHANNEL_AVAILABLE;
+
+                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                              "%s[%d]:Channel=%d"
+                               "Not in NOL LIST,CHANNEL AVAILABLE",
+                               __func__, __LINE__, sapContext->SapDfsInfo
+                                                   .sapDfsChannelNolList[i]
+                                                   .dfs_channel_number);
+                    return VOS_FALSE;
+                }
+                else
+                {
+                    /*
+                     * Channel is not still available for SAP operation
+                     * so return TRUE; As the Channel is still
+                     * in Non-occupancy-Period.
+                     */
+                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                              "%s[%d]:Channel=%d"
+                              "still in NOL LIST,CHANNEL UNAVAILABLE",
+                               __func__, __LINE__, sapContext->SapDfsInfo
+                                                  .sapDfsChannelNolList[i]
+                                                  .dfs_channel_number);
+                    return VOS_TRUE;
+                }
+            }
+        }
+    }
+    return VOS_FALSE;
 }
 
 /*==========================================================================
@@ -557,7 +643,11 @@ sapSignalHDDevent
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
     /* Format the Start BSS Complete event to return... */
-    VOS_ASSERT(sapContext->pfnSapEventCallback);
+    if (NULL == sapContext->pfnSapEventCallback)
+    {
+        VOS_ASSERT(0);
+        return VOS_STATUS_E_FAILURE;
+    }
 
     switch (sapHddevent)
     {
@@ -888,7 +978,6 @@ sapFsm
 
                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
                "ENTERTRED eSAP_DISCONNECTED-->eSAP_DFS_CAC_WAIT\n");
-
                sapStartDfsCacTimer(sapContext);
             }
             else
@@ -1716,6 +1805,7 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
     v_U8_t total_num_channels = 0;
     v_U8_t target_channel = 0;
     int i;
+    v_BOOL_t isChannelNol = VOS_FALSE;
 
     if (NULL == sapContext || NULL == dfs_event)
     {
@@ -1759,6 +1849,30 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
     numAChannels = (total_num_channels - numGChannels);
 
     /*
+     * Mark the current channel on which Radar is found
+     * in the  NOL list as eSAP_DFS_CHANNEL_UNAVAILABLE.
+     */
+
+    for (i = 0; i<= sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels; i++)
+    {
+        if (sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                         .dfs_channel_number ==
+                                               dfs_event->ieee_chan_number)
+        {
+            // Capture the Radar Found timestamp on the Current Channel in ms.
+            sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                         .radar_found_timestamp = vos_timer_get_system_time();
+            // Mark the Channel to be UNAVAILABLE for next 30 mins.
+            sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                         .radar_status_flag = eSAP_DFS_CHANNEL_UNAVAILABLE;
+
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                      "%s[%d]: Channel = %d Added to NOL LIST",
+                       __func__, __LINE__, dfs_event->ieee_chan_number);
+        }
+    }
+
+    /*
      * (1) skip static turbo channel as it will require STA to be in
      * static turbo to work.
      * (2) skip channel which's marked with radar detction
@@ -1767,12 +1881,40 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
      * (5) Create the available channel list with the above rules
      */
 
-    for(i = 0, available_chan_count = 0; i<= total_num_channels; i++)
+    for (i = 0, available_chan_count = 0; i< total_num_channels; i++)
     {
         if (sapContext->SapAllChnlList.channelList[i] ==
                                        dfs_event->ieee_chan_number)
         {
             continue;//skip the channel on which radar is found
+        }
+
+        /*
+         * Now Check if the channel is DFS and if
+         * the channel is not in NOL list and add
+         * it available_chan_idx otherwise skip this
+         * channel index.
+         */
+
+        if (vos_nv_getChannelEnabledState(sapContext->SapAllChnlList
+                                           .channelList[i]) ==
+                                                            NV_CHANNEL_DFS)
+        {
+            isChannelNol = sapDfsIsChannelInNolList(sapContext,
+                                 sapContext->SapAllChnlList.channelList[i]);
+            if (VOS_TRUE == isChannelNol)
+            {
+                /*
+                 * Skip this channel since it is still in
+                 * DFS Non-Occupancy-Period which is 30 mins.
+                 */
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                          "%s[%d]: Channel = %d Present in NOL LIST",
+                           __func__, __LINE__,
+                           sapContext->SapAllChnlList.channelList[i]);
+
+                continue;
+            }
         }
         available_chan_idx[available_chan_count++] =
                            sapContext->SapAllChnlList.channelList[i];
@@ -1849,6 +1991,8 @@ void sapDfsCacTimerCallback(void *data)
 int sapStartDfsCacTimer(ptSapContext sapContext)
 {
     VOS_STATUS status;
+    v_U32_t cacTimeOut;
+    v_REGDOMAIN_t regDomain;
     if (sapContext == NULL)
     {
         return 0;
@@ -1861,12 +2005,20 @@ int sapStartDfsCacTimer(ptSapContext sapContext)
          */
         return 2;
     }
+    cacTimeOut = DEFAULT_CAC_TIMEOUT;
+    vos_nv_getRegDomainFromCountryCode(&regDomain,
+                    sapContext->csrRoamProfile.countryCode, COUNTRY_QUERY);
+    if ((regDomain == REGDOMAIN_ETSI) &&
+       (IS_ETSI_WEATHER_CH(sapContext->SapDfsInfo.target_channel)))
+    {
+        cacTimeOut = ETSI_WEATHER_CH_CAC_TIMEOUT;
+    }
     vos_timer_init(&sapContext->SapDfsInfo.sap_dfs_cac_timer,
                    VOS_TIMER_TYPE_SW,
                    sapDfsCacTimerCallback, (v_PVOID_t)sapContext);
 
     /*Start the CAC timer for 60 Seconds*/
-    status = vos_timer_start(&sapContext->SapDfsInfo.sap_dfs_cac_timer, 60000);
+    status = vos_timer_start(&sapContext->SapDfsInfo.sap_dfs_cac_timer, cacTimeOut);
     if (status == VOS_STATUS_SUCCESS)
     {
         sapContext->SapDfsInfo.is_dfs_cac_timer_running = VOS_TRUE;
@@ -1877,3 +2029,48 @@ int sapStartDfsCacTimer(ptSapContext sapContext)
         return 0;
     }
 }
+
+/*
+ * This function initializes the NOL list
+ * parameters required to track the radar
+ * found DFS channels in the current Reg. Domain .
+ */
+VOS_STATUS sapInitDfsChannelNolList(ptSapContext sapContext)
+{
+    v_U8_t count = 0;
+    int i;
+    if (NULL == sapContext)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+              "Invalid sapContext pointer on sapInitDfsChannelNolList");
+        return VOS_STATUS_E_FAULT;
+    }
+    for ( i = RF_CHAN_36; i <= RF_CHAN_165; i++ )
+    {
+        if ( regChannels[i].enabled == NV_CHANNEL_DFS )
+        {
+            sapContext->SapDfsInfo.sapDfsChannelNolList[count]
+               .dfs_channel_number = rfChannels[i].channelNum;
+
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                      "%s[%d] CHANNEL = %d", __func__, __LINE__,
+                       sapContext->SapDfsInfo
+                       .sapDfsChannelNolList[count].dfs_channel_number);
+
+            sapContext->SapDfsInfo.sapDfsChannelNolList[count]
+               .radar_status_flag = eSAP_DFS_CHANNEL_USABLE;
+            sapContext->SapDfsInfo.sapDfsChannelNolList[count]
+               .radar_found_timestamp = 0;
+            count++;
+        }
+    }
+    sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels = count;
+
+    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+              "%s[%d] NUMBER OF DFS CHANNELS = %d",
+              __func__, __LINE__,
+              sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels);
+
+    return VOS_STATUS_SUCCESS;
+}
+

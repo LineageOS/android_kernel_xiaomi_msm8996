@@ -1099,7 +1099,12 @@ int bapRsnFormPktFromVosPkt( tAniPacket **ppPacket, vos_pkt_t *pVosPacket )
         if( !ANI_IS_STATUS_SUCCESS( retVal ) ) break;
         //Get the rest of the data in
         uPktLen -= BAP_RSN_ETHERNET_3_HEADER_LEN;
-        VOS_ASSERT( uPktLen > 0 );
+        if (uPktLen <= 0){
+           VOS_ASSERT(0);
+           retVal = ANI_ERROR;
+           break;
+        }
+
         retVal = aniAsfPacketAppendBuffer( pAniPacket, pFrame + BAP_RSN_ETHERNET_3_HEADER_LEN, 
                             uPktLen );
         if( !ANI_IS_STATUS_SUCCESS( retVal ) ) 

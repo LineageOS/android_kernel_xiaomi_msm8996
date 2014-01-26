@@ -533,6 +533,25 @@ htt_rx_msdu_actions(
     int *forward,
     int *inspect);
 
+/**
+ * @brief Get the key id sent in IV of the frame
+ * @details
+ *  Provide the key index octet which is taken from IV.
+ *  This is valid only for the first MSDU.
+ *
+ * @param pdev - the HTT instance the rx data was received on
+ * @param msdu_desc - the abstract descriptor for the MSDU in question
+ * @key_id - Key id octet
+ * @return indication of whether key id access is successful
+ *   A_TRUE - Success
+ *   A_FALSE - if this is not first msdu
+ */
+extern a_bool_t
+(*htt_rx_msdu_desc_key_id)(
+    htt_pdev_handle pdev,
+    void *mpdu_desc,
+    u_int8_t *key_id);
+
 /*====================== rx MSDU + descriptor delivery ======================*/
 
 /**

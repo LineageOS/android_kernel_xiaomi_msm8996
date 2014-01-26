@@ -124,6 +124,8 @@ typedef struct targetdef_s {
     u_int32_t d_RX_MPDU_START_2_PN_47_32_MASK;
     u_int32_t d_RX_MSDU_END_1_EXT_WAPI_PN_63_48_MASK;
     u_int32_t d_RX_MSDU_END_1_EXT_WAPI_PN_63_48_LSB;
+    u_int32_t d_RX_MSDU_END_1_KEY_ID_OCT_MASK;
+    u_int32_t d_RX_MSDU_END_1_KEY_ID_OCT_LSB;
     u_int32_t d_RX_MSDU_END_4_LAST_MSDU_MASK;
     u_int32_t d_RX_MSDU_END_4_LAST_MSDU_LSB;
     u_int32_t d_RX_ATTENTION_0_MCAST_BCAST_MASK;
@@ -318,6 +320,8 @@ typedef struct targetdef_s {
 #define RX_MPDU_START_0_SEQ_NUM_LSB              (pdev->targetdef->d_RX_MPDU_START_0_SEQ_NUM_LSB)
 #define RX_MPDU_START_2_PN_47_32_LSB             (pdev->targetdef->d_RX_MPDU_START_2_PN_47_32_LSB)
 #define RX_MPDU_START_2_PN_47_32_MASK            (pdev->targetdef->d_RX_MPDU_START_2_PN_47_32_MASK)
+#define RX_MSDU_END_1_KEY_ID_OCT_MASK            (pdev->targetdef->d_RX_MSDU_END_1_KEY_ID_OCT_MASK)
+#define RX_MSDU_END_1_KEY_ID_OCT_LSB             (pdev->targetdef->d_RX_MSDU_END_1_KEY_ID_OCT_LSB)
 #define RX_MSDU_END_1_EXT_WAPI_PN_63_48_MASK     (pdev->targetdef->d_RX_MSDU_END_1_EXT_WAPI_PN_63_48_MASK)
 #define RX_MSDU_END_1_EXT_WAPI_PN_63_48_LSB      (pdev->targetdef->d_RX_MSDU_END_1_EXT_WAPI_PN_63_48_LSB)
 #define RX_MSDU_END_4_LAST_MSDU_MASK             (pdev->targetdef->d_RX_MSDU_END_4_LAST_MSDU_MASK)

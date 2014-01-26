@@ -652,7 +652,7 @@ ol_rx_pn_ind_handler(
                     pdev->ctrl_pdev,
                     vdev->vdev_id, peer->mac_addr.raw, tid,
                     htt_rx_mpdu_desc_tsf32(htt_pdev, rx_desc),
-                    OL_RX_ERR_PN, mpdu_head);
+                    OL_RX_ERR_PN, mpdu_head, NULL, 0);
                 /* free all MSDUs within this MPDU */
                 do {
                     next_msdu = adf_nbuf_next(msdu);
