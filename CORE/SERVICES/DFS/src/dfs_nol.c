@@ -108,22 +108,18 @@ void
 dfs_print_nol(struct ath_dfs *dfs)
 {
     struct dfs_nolelem *nol;
-    int i = 0;
     uint32_t diff_ms, remaining_sec;
 
     if (dfs == NULL) {
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL, "%s: sc_dfs is NULL\n", __func__);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL, "%s: sc_dfs is NULL", __func__);
         return;
     }
     nol = dfs->dfs_nol;
-    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL, "%s: NOL\n", __func__);
+    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL, "%s: NOL", __func__);
     while (nol != NULL) {
         diff_ms = adf_os_ticks_to_msecs(adf_os_ticks() - nol->nol_start_ticks);
         diff_ms = (nol->nol_timeout_ms - diff_ms);
         remaining_sec = diff_ms / 1000; /* convert to seconds */
-        printk("nol:%d channel=%d MHz width=%d MHz time left=%u seconds nol starttick=%llu \n",
-            i++, nol->nol_freq, nol->nol_chwidth, remaining_sec,
-            (unsigned long long)nol->nol_start_ticks);
         nol = nol->nol_next;
     }
 }
@@ -138,7 +134,7 @@ dfs_get_nol(struct ath_dfs *dfs, struct dfsreq_nolelem *dfs_nol,
     *nchan = 0;
 
     if (dfs == NULL) {
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL, "%s: sc_dfs is NULL\n", __func__);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL, "%s: sc_dfs is NULL", __func__);
         return;
     }
 
@@ -163,7 +159,7 @@ dfs_set_nol(struct ath_dfs *dfs, struct dfsreq_nolelem *dfs_nol, int nchan)
     int i;
 
     if (dfs == NULL) {
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL, "%s: sc_dfs is NULL\n", __func__);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL, "%s: sc_dfs is NULL", __func__);
         return;
     }
 
@@ -195,7 +191,7 @@ dfs_nol_addchan(struct ath_dfs *dfs, struct ieee80211_channel *chan,
     int ch_width = 20;
 
     if (dfs == NULL) {
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL, "%s: sc_dfs is NULL\n", __func__);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL, "%s: sc_dfs is NULL", __func__);
         return;
     }
     nol = dfs->dfs_nol;
@@ -207,7 +203,7 @@ dfs_nol_addchan(struct ath_dfs *dfs, struct ieee80211_channel *chan,
                 nol->nol_start_ticks = adf_os_ticks();
                 nol->nol_timeout_ms = dfs_nol_timeout*TIME_IN_MS;
                 DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL,
-                    "%s: Update OS Ticks for NOL %d MHz / %d MHz\n",
+                    "%s: Update OS Ticks for NOL %d MHz / %d MHz",
                     __func__, nol->nol_freq, nol->nol_chwidth);
                 OS_CANCEL_TIMER(&nol->nol_timer);
                 OS_SET_TIMER(&nol->nol_timer, dfs_nol_timeout*TIME_IN_MS);
@@ -250,7 +246,7 @@ dfs_nol_addchan(struct ath_dfs *dfs, struct ieee80211_channel *chan,
     dfs->dfs_nol_count++;
 
     DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL,
-      "%s: new NOL channel %d MHz / %d MHz\n",
+      "%s: new NOL channel %d MHz / %d MHz",
       __func__,
       elem->nol_freq,
       elem->nol_chwidth);
@@ -258,7 +254,7 @@ dfs_nol_addchan(struct ath_dfs *dfs, struct ieee80211_channel *chan,
 
 bad:
     DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL | ATH_DEBUG_DFS,
-                "%s: failed to allocate memory for nol entry\n", __func__);
+                "%s: failed to allocate memory for nol entry", __func__);
 
 #undef TIME_IN_MS
 #undef TIME_IN_US
@@ -273,12 +269,12 @@ dfs_nol_delete(struct ath_dfs *dfs, u_int16_t delfreq, u_int16_t delchwidth)
     struct dfs_nolelem *nol,**prev_next;
 
     if (dfs == NULL) {
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: sc_dfs is NULL\n", __func__);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: sc_dfs is NULL", __func__);
         return;
     }
 
     DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL,
-      "%s: remove channel=%d/%d MHz from NOL\n",
+      "%s: remove channel=%d/%d MHz from NOL",
       __func__,
       delfreq, delchwidth);
     prev_next = &(dfs->dfs_nol);
@@ -287,7 +283,7 @@ dfs_nol_delete(struct ath_dfs *dfs, u_int16_t delfreq, u_int16_t delchwidth)
         if (nol->nol_freq == delfreq && nol->nol_chwidth == delchwidth) {
             *prev_next = nol->nol_next;
             DFS_DPRINTK(dfs, ATH_DEBUG_DFS_NOL,
-              "%s removing channel %d/%dMHz from NOL tstamp=%d\n",
+              "%s removing channel %d/%dMHz from NOL tstamp=%d",
                 __func__, nol->nol_freq, nol->nol_chwidth,
                 (adf_os_ticks_to_msecs(adf_os_ticks()) / 1000));
             OS_CANCEL_TIMER(&nol->nol_timer);
@@ -300,7 +296,7 @@ dfs_nol_delete(struct ath_dfs *dfs, u_int16_t delfreq, u_int16_t delchwidth)
 
             /* Be paranoid! */
             if (dfs->dfs_nol_count < 0) {
-                DFS_PRINTK("%s: dfs_nol_count < 0; eek!\n", __func__);
+                DFS_PRINTK("%s: dfs_nol_count < 0; eek!", __func__);
                 dfs->dfs_nol_count = 0;
             }
 
@@ -341,7 +337,7 @@ dfs_nol_update(struct ath_dfs *dfs)
          * update _DOES_ happen - hopefully the failure was just
          * temporary.
          */
-        DFS_PRINTK("%s: failed to allocate NOL update memory!\n",
+        DFS_PRINTK("%s: failed to allocate NOL update memory!",
             __func__);
         return;
     }
@@ -362,7 +358,7 @@ dfs_nol_update(struct ath_dfs *dfs)
 
     /* Be suitably paranoid for now */
     if (nlen != dfs->dfs_nol_count)
-        DFS_PRINTK("%s: nlen (%d) != dfs->dfs_nol_count (%d)!\n",
+        DFS_PRINTK("%s: nlen (%d) != dfs->dfs_nol_count (%d)!",
             __func__, nlen, dfs->dfs_nol_count);
 
     /*

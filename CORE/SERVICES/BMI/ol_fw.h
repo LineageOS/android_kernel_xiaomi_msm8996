@@ -59,7 +59,10 @@
 #define IRAM_LOCATION           0x00980000
 #define IRAM_SIZE               0x00038000
 
-#define TOTAL_DUMP_SIZE         REGISTER_SIZE + DRAM_SIZE + IRAM_SIZE
+#define AXI_LOCATION            0x000a0000
+#define AXI_SIZE                0x00018000
+
+#define TOTAL_DUMP_SIZE         0x00200000
 #define PCIE_READ_LIMIT         0x00005000
 
 void ol_target_coredump(void *instance, void* memoryBlock,

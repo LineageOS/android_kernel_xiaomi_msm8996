@@ -197,4 +197,37 @@
  */
 #define CFG_TGT_NUM_TDLS_CONN_TABLE_ENTRIES    32
 
+/*
+ * ht enable highest MCS by default
+ */
+#define CFG_TGT_DEFAULT_GTX_HT_MASK		0x8080
+/*
+ * vht enable highest MCS by default
+ */
+#define CFG_TGT_DEFAULT_GTX_VHT_MASK		0x80200
+/*
+ * resv for furture use, bit 30 is used for fix tpc, bit0-3 for Power save balance
+ */
+#define CFG_TGT_DEFAULT_GTX_USR_CFG		0xa
+/*
+ * threshold to enable GTX
+ */
+#define CFG_TGT_DEFAULT_GTX_PER_THRESHOLD	3
+/*
+ * margin to move back when per > margin + threshold
+ */
+#define CFG_TGT_DEFAULT_GTX_PER_MARGIN		2
+/*
+ * step for every move
+ */
+#define CFG_TGT_DEFAULT_GTX_TPC_STEP		1
+/*
+ * lowest TPC
+ */
+#define CFG_TGT_DEFAULT_GTX_TPC_MIN		0
+/*
+ * enable all BW 20/40/80/160
+ */
+#define CFG_TGT_DEFAULT_GTX_BW_MASK		0xf
+
 #endif  /*__WLAN_TGT_DEF_CONFIG_H__ */

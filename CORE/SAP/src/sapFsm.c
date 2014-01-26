@@ -976,7 +976,7 @@ sapFsm
                 */
                sapContext->sapsMachine = eSAP_DFS_CAC_WAIT;
 
-               VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+               VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG,
                "ENTERTRED eSAP_DISCONNECTED-->eSAP_DFS_CAC_WAIT\n");
                sapStartDfsCacTimer(sapContext);
             }
@@ -1819,6 +1819,11 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
         return 0;
     }
 
+    if (sapContext->csrRoamProfile.disableDFSChSwitch)
+    {
+       return sapContext->channel;
+    }
+
     /* set the Radar Found flag in SapDfsInfo */
     sapContext->SapDfsInfo.sap_radar_found_status = VOS_TRUE;
 
@@ -1827,11 +1832,6 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
      */
     if (eSAP_STARTED == sapContext->sapsMachine)
         sapContext->SapDfsInfo.csaIERequired = VOS_TRUE;
-
-    if (sapContext->csrRoamProfile.disableDFSChSwitch)
-    {
-       return sapContext->channel;
-    }
 
     sapGet5GHzChannelList(sapContext);
     total_num_channels = sapContext->SapAllChnlList.numChannel;
@@ -1959,7 +1959,7 @@ void sapDfsCacTimerCallback(void *data)
         /*
          * CAC Complete, post eSAP_DFS_CHANNEL_CAC_END to sapFsm
          */
-        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG,
                   "%s[%d]: Sending eSAP_DFS_CHANNEL_CAC_END for target_channel = %d",
                   __func__,__LINE__, sapContext->SapDfsInfo.target_channel);
         sapEvent.event = eSAP_DFS_CHANNEL_CAC_END;
@@ -2013,11 +2013,15 @@ int sapStartDfsCacTimer(ptSapContext sapContext)
     {
         cacTimeOut = ETSI_WEATHER_CH_CAC_TIMEOUT;
     }
+    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG,
+                  "%s[%d]: SAP_DFS_CHANNEL_CAC_START on CH - %d, CAC TIMEOUT - %d sec",
+                  __func__, __LINE__, sapContext->SapDfsInfo.target_channel, cacTimeOut/1000);
+
     vos_timer_init(&sapContext->SapDfsInfo.sap_dfs_cac_timer,
                    VOS_TIMER_TYPE_SW,
                    sapDfsCacTimerCallback, (v_PVOID_t)sapContext);
 
-    /*Start the CAC timer for 60 Seconds*/
+    /*Start the CAC timer*/
     status = vos_timer_start(&sapContext->SapDfsInfo.sap_dfs_cac_timer, cacTimeOut);
     if (status == VOS_STATUS_SUCCESS)
     {

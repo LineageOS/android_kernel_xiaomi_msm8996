@@ -185,12 +185,10 @@ A_STATUS
 htt_h2t_sync_msg(htt_pdev_handle htt_pdev, u_int8_t sync_cnt);
 
 
-#if defined(TEMP_AGGR_CFG)
 int
 htt_h2t_aggr_cfg_msg(htt_pdev_handle htt_pdev,
                      int max_subfrms_ampdu, 
                      int max_subfrms_amsdu);
-#endif
 
 /**
  * @brief Get the FW status

@@ -551,7 +551,8 @@ wdi_in_mgmt_send(
     ol_txrx_vdev_handle vdev,
     adf_nbuf_t tx_mgmt_frm,
     u_int8_t type,
-    u_int8_t use_6mbps);
+    u_int8_t use_6mbps,
+    u_int16_t chanfreq);
 
 /**
  * @brief Setup the monitor mode vap (vdev) for this pdev
@@ -1061,13 +1062,9 @@ int wdi_in_fw_stats_get(
     ol_txrx_vdev_handle vdev,
     struct ol_txrx_stats_req *req);
 
-#if defined(TEMP_AGGR_CFG)
 int wdi_in_aggr_cfg(ol_txrx_vdev_handle vdev, 
                      int max_subfrms_ampdu, 
                      int max_subfrms_amsdu);
-#else
-#define wdi_in_aggr_cfg(vdev, max_subfrms_ampdu, max_subfrms_amsdu) 0
-#endif
 
 enum {
     TXRX_DBG_MASK_OBJS             = 0x01,

@@ -298,6 +298,26 @@ struct ol_tx_delay_data {
 
 #endif /* QCA_COMPUTE_TX_DELAY */
 
+/* Thermal Mitigation */
+
+typedef enum _throttle_level {
+	THROTTLE_LEVEL_0,
+	THROTTLE_LEVEL_1,
+	THROTTLE_LEVEL_2,
+	THROTTLE_LEVEL_3,
+	/* Invalid */
+	THROTTLE_LEVEL_MAX,
+} throttle_level ;
+
+typedef enum _throttle_phase {
+	THROTTLE_PHASE_OFF,
+	THROTTLE_PHASE_ON,
+	/* Invalid */
+	THROTTLE_PHASE_MAX,
+} throttle_phase ;
+
+#define THROTTLE_TX_THRESHOLD (100)
+
 /*
  * As depicted in the diagram below, the pdev contains an array of
  * NUM_EXT_TID ol_tx_active_queues_in_tid_t elements.
@@ -637,6 +657,25 @@ struct ol_txrx_pdev_t {
 	u_int16_t packet_loss_count[QCA_TX_DELAY_NUM_CATEGORIES];
 
 #endif /* QCA_COMPUTE_TX_DELAY */
+
+	struct {
+		adf_os_spinlock_t mutex;
+		/* timer used to monitor the throttle "on" phase and "off" phase */
+		adf_os_timer_t phase_timer;
+		/* timer used to send tx frames */
+		adf_os_timer_t tx_timer;
+		/*This is the time in ms of the throttling window, it will include an
+		  "on" phase and an "off" phase */
+		u_int32_t throttle_period_ms;
+		/* Current throttle level set by the client ex. level 0, level 1, etc*/
+		throttle_level current_throttle_level;
+		/* Index that points to the phase within the throttle period */
+		throttle_phase current_throttle_phase;
+		/* Maximum number of frames to send to the target at one time */
+		u_int32_t tx_threshold;
+		/* stores time in ms of on and off phase for each throttle level*/
+		int throttle_time_ms[THROTTLE_LEVEL_MAX][THROTTLE_PHASE_MAX];
+	} tx_throttle_ll;
 };
 
 struct ol_txrx_vdev_t {

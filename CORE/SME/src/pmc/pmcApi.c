@@ -3509,6 +3509,7 @@ eHalStatus pmcOffloadCleanup(tHalHandle hHal, tANI_U32 sessionId)
 
     pmc->uapsdSessionRequired = FALSE;
     pmc->configStaPsEnabled = FALSE;
+    pmc->configDefStaPsEnabled = FALSE;
     pmcOffloadStopAutoStaPsTimer(pMac, sessionId);
     pmcOffloadDoStartUapsdCallbacks(pMac, sessionId, eHAL_STATUS_FAILURE);
     return eHAL_STATUS_SUCCESS;
@@ -3839,6 +3840,9 @@ eHalStatus PmcOffloadDisableStaModePowerSave(tHalHandle hHal,
          */
         smsLog(pMac, LOGE,
                FL("sta mode power save already disabled"));
+        /* Stop the Auto Sta Ps Timer if running */
+        pmcOffloadStopAutoStaPsTimer(pMac, sessionId);
+        pmc->configDefStaPsEnabled = FALSE;
     }
     return status;
 }
@@ -4303,5 +4307,42 @@ tANI_BOOLEAN pmcOffloadIsPowerSaveEnabled (tHalHandle hHal, tANI_U32 sessionId,
         PMC_ABORT;
         return FALSE;
     }
+}
+
+eHalStatus PmcOffloadEnableDeferredStaModePowerSave(tHalHandle hHal,
+                                                    tANI_U32 sessionId)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tpPsOffloadPerSessionInfo pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
+    eHalStatus status = eHAL_STATUS_FAILURE;
+
+    if (!pMac->pmcOffloadInfo.staPsEnabled)
+    {
+        smsLog(pMac, LOGE,
+               FL("STA Mode PowerSave is not enabled in ini"));
+        return status;
+    }
+
+    status = pmcOffloadStartAutoStaPsTimer(pMac, sessionId,
+                AUTO_DEFERRED_PS_ENTRY_TIMER_DEFAULT_VALUE);
+    if (eHAL_STATUS_SUCCESS == status)
+    {
+       smsLog(pMac, LOG2,
+          FL("Enabled Deferred ps for session %d"), sessionId);
+       pmc->configDefStaPsEnabled = TRUE;
+    }
+    return status;
+}
+
+eHalStatus PmcOffloadDisableDeferredStaModePowerSave(tHalHandle hHal,
+                                                     tANI_U32 sessionId)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tpPsOffloadPerSessionInfo pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
+
+    /* Stop the Auto Sta Ps Timer if running */
+    pmcOffloadStopAutoStaPsTimer(pMac, sessionId);
+    pmc->configDefStaPsEnabled = FALSE;
+    return eHAL_STATUS_SUCCESS;
 }
 

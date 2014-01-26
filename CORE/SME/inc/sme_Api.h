@@ -177,6 +177,21 @@ typedef struct _smeTdlsPeerStateParams
 #endif /* FEATURE_WLAN_TDLS */
 #endif /* QCA_WIFI_2_0 */
 
+/* Thermal Mitigation*/
+
+typedef struct {
+    u_int16_t smeMinTempThreshold;
+    u_int16_t smeMaxTempThreshold;
+} tSmeThermalLevelInfo;
+
+#define SME_MAX_THERMAL_LEVELS (4)
+
+typedef struct {
+    /* Array of thermal levels */
+    tSmeThermalLevelInfo smeThermalLevels[SME_MAX_THERMAL_LEVELS];
+    u_int8_t smeThermalMgmtEnabled;
+    u_int32_t smeThrottlePeriod;
+} tSmeThermalParams;
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
   ------------------------------------------------------------------------*/
@@ -380,6 +395,27 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
 eHalStatus sme_UpdateChannelConfig(tHalHandle hHal);
 
 #endif // FEATURE_WLAN_SCAN_PNLO
+
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+/*--------------------------------------------------------------------------
+
+  \brief sme_SetPlmRequest() - send PLM request to firmware
+
+  It is used to initiate PLM request
+
+  This is a synchronuous call
+
+  \param hHal - The handle returned by macOpen.
+
+  \return eHAL_STATUS_SUCCESS - SME could successfully sent PLM command
+
+          Other status means SME is failed to send plm command
+
+  --------------------------------------------------------------------------*/
+eHalStatus sme_SetPlmRequest(tHalHandle hHal, tpSirPlmReq pPlm);
+
+#endif
+
 /*--------------------------------------------------------------------------
   
   \brief sme_set11dinfo() - Set the 11d information about valid channels
@@ -3241,6 +3277,11 @@ eHalStatus sme_ConfigEnablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMod
 eHalStatus sme_ConfigDisablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode);
 eHalStatus sme_PsOffloadEnablePowerSave (tHalHandle hHal, tANI_U32 sessionId);
 eHalStatus sme_PsOffloadDisablePowerSave (tHalHandle hHal, tANI_U32 sessionId);
+eHalStatus sme_PsOffloadEnableDeferredPowerSave (tHalHandle hHal,
+                                                 tANI_U32 sessionId);
+eHalStatus sme_PsOffloadDisableDeferredPowerSave (tHalHandle hHal,
+                                                  tANI_U32 sessionId);
+
 
 /*SME API to convert convert the ini value to the ENUM used in csr and MAC*/
 ePhyChanBondState sme_GetCBPhyStateFromCBIniValue(tANI_U32 cb_ini_value);
@@ -3280,8 +3321,8 @@ eHalStatus sme_AddChAvoidCallback
 );
 #endif /* FEATURE_WLAN_CH_AVOID */
 
-eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal,
-                   tANI_U8 sessionId, tANI_U8 targetChannel);
+eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal, tANI_U8 sessionId,
+                                tANI_U8 targetChannel, eCsrPhyMode phyMode);
 
 eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal,
                    tANI_U8 sessionId, tANI_U8 dfsCacWaitStatus);
@@ -3296,4 +3337,22 @@ eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal,
 eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tANI_U8 sessionId,
                   tANI_U8 targetChannel, tANI_U8 csaIeReqd);
 
+#ifndef QCA_WIFI_ISOC
+/* ---------------------------------------------------------------------------
+    \fn sme_InitThermalInfo
+    \brief  SME API to initialize the thermal mitigation parameters
+    \param  hHal
+    \param  thermalParam : thermal mitigation parameters
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_InitThermalInfo( tHalHandle hHal, tSmeThermalParams thermalParam );
+/* ---------------------------------------------------------------------------
+    \fn sme_InitThermalInfo
+    \brief  SME API to set the thermal mitigation level
+    \param  hHal
+    \param  level : thermal mitigation level
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level );
+#endif
 #endif //#if !defined( __SME_API_H )

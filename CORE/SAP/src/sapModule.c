@@ -145,7 +145,11 @@ WLANSAP_Open
 
     ptSapContext  pSapCtx = NULL;
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-    VOS_ASSERT(pvosGCtx);
+    if (NULL == pvosGCtx)
+    {
+       VOS_ASSERT(pvosGCtx);
+       return VOS_STATUS_E_FAULT;
+    }
     /*------------------------------------------------------------------------
     Allocate (and sanity check?!) SAP control block
     ------------------------------------------------------------------------*/
@@ -2414,8 +2418,8 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, tANI_U8 tArgetChannel)
         return VOS_STATUS_E_FAULT;
     }
 
-    halStatus = sme_RoamChannelChangeReq( hHal,
-                           sapContext->sessionId, tArgetChannel);
+    halStatus = sme_RoamChannelChangeReq( hHal, sapContext->sessionId, tArgetChannel,
+                sapConvertSapPhyModeToCsrPhyMode(sapContext->csrRoamProfile.phyMode));
 
     if (halStatus == eHAL_STATUS_SUCCESS)
     {

@@ -64,6 +64,7 @@ struct txrx_pdev_cfg_t {
 	u32 max_peer_id;
 	u32 max_vdev;
 	u32 max_nbuf_frags;
+	u32 throttle_period_ms;
 	enum wlan_frm_fmt frame_type;
 };
 
@@ -312,6 +313,22 @@ int ol_cfg_tx_download_size(ol_pdev_handle pdev);
  *          timing out stale fragments. 
  */
 int ol_cfg_rx_host_defrag_timeout_duplicate_check(ol_pdev_handle pdev);
+
+/**
+ * brief Query for the period in ms used for throttling for
+ * thermal mitigation
+ * @details
+ *   In LL systems, transmit data throttling is used for thermal
+ *   mitigation where data is paused and resumed during the
+ *   throttle period i.e. the throttle period consists of an
+ *   "on" phase when transmit is allowed and an "off" phase when
+ *   transmit is suspended. This function returns the total
+ *   period used for throttling.
+ *
+ * @param pdev - handle to the physical device
+ * @return the total throttle period in ms
+ */
+int ol_cfg_throttle_period_ms(ol_pdev_handle pdev);
 
 typedef enum {
    wlan_frm_tran_cap_raw = 0x01,

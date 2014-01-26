@@ -524,10 +524,10 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	}
 
 	ol_target_coredump(ramdump_scn, ramdump_base, TOTAL_DUMP_SIZE);
-        iounmap(ramdump_base);
+	iounmap(ramdump_base);
 
 	printk("%s: RAM dump collecting completed!\n", __func__);
-	msleep(500);
+	msleep(250);
 
 out:
 	/* Notify SSR framework the target has crashed. */
@@ -939,6 +939,8 @@ int ol_diag_read(struct ol_softc *scn, u_int8_t *buffer,
 					if (remainder < PCIE_READ_LIMIT)
 						readSize = remainder;
 				}
+
+				msleep(5);
 			}
 		} else {
 			result = HIFDiagReadMem(scn->hif_hdl, pos,
@@ -982,9 +984,13 @@ void ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 	* SECTION = IRAM
 	* START   = 0x00980000
 	* LENGTH  = 0x00038000
+	*
+	* SECTION = AXI
+	* START   = 0x000a0000
+	* LENGTH  = 0x00018000
 	*/
 
-	while ((sectionCount < 2) && (amountRead < blockLength)) {
+	while ((sectionCount < 3) && (amountRead < blockLength)) {
 		switch (sectionCount) {
 		case 0:
 			/* DRAM SECTION */
@@ -995,6 +1001,11 @@ void ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 			/* IRAM SECTION */
 			pos = IRAM_LOCATION;
 			readLen = IRAM_SIZE;
+			break;
+		case 2:
+			/* AXI SECTION */
+			pos = AXI_LOCATION;
+			readLen = AXI_SIZE;
 			break;
 		}
 

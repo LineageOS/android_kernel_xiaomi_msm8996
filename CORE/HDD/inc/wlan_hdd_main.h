@@ -213,6 +213,8 @@
 #define HDD_PNO_SCAN_TIMERS_SET_MULTIPLE 6
 #endif
 
+#define MAX_USER_COMMAND_SIZE 4096
+
 #define HDD_MAC_ADDR_LEN    6
 #define HDD_SESSION_ID_ANY  50 //This should be same as CSR_SESSION_ID_ANY
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];

@@ -276,7 +276,7 @@ wmitlv_check_tlv_params(
                         {
                             in_tlv_len = WMITLV_GET_TLVLEN(WMITLV_GET_HDR(tlv_buf_ptr));
                             if ((in_tlv_len + WMI_TLV_HDR_SIZE)!=attr_struct_ptr.tag_struct_size){
-                                wmi_tlv_print_error("%s: ERROR: TLV has wrong length for Cmd=0x%x. Tag_order=%d  Tag=%d, Given_Len:%d Expected_Len=%d.\n",
+                                wmi_tlv_print_error("%s: ERROR: TLV has wrong length for Cmd=0x%x. Tag_order=%d  Tag=%d, Given_Len:%zu Expected_Len=%d.\n",
                                __func__, wmi_cmd_event_id, tlv_index, curr_tlv_tag, (in_tlv_len + WMI_TLV_HDR_SIZE), attr_struct_ptr.tag_struct_size);
                                 goto Error_wmitlv_check_tlv_params;
                             }
@@ -304,7 +304,7 @@ wmitlv_check_tlv_params(
 
             if ((curr_tlv_len + WMI_TLV_HDR_SIZE) != attr_struct_ptr.tag_struct_size)
             {
-                wmi_tlv_print_error("%s: ERROR: TLV has wrong length for Cmd=0x%x. Given=%d, Expected=%d.\n",
+                wmi_tlv_print_error("%s: ERROR: TLV has wrong length for Cmd=0x%x. Given=%zu, Expected=%d.\n",
                        __func__, wmi_cmd_event_id,(curr_tlv_len + WMI_TLV_HDR_SIZE), attr_struct_ptr.tag_struct_size);
                 goto Error_wmitlv_check_tlv_params;
             }
@@ -313,7 +313,7 @@ wmitlv_check_tlv_params(
         /* Check TLV length is aligned to 4 bytes or not */
         if ((curr_tlv_len%sizeof(A_UINT32))!=0)
         {
-            wmi_tlv_print_error("%s: ERROR: TLV length %d for Cmd=0x%x is not aligned to %d bytes\n",
+            wmi_tlv_print_error("%s: ERROR: TLV length %d for Cmd=0x%x is not aligned to %zu bytes\n",
                    __func__, curr_tlv_len, wmi_cmd_event_id, sizeof(A_UINT32));
             goto Error_wmitlv_check_tlv_params;
         }

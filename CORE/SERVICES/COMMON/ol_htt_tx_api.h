@@ -654,12 +654,29 @@ htt_tx_desc_set_peer_id(
 static inline
 void htt_tx_desc_set_peer_id(u_int32_t *htt_tx_desc, u_int16_t peer_id)
 {
-    u_int32_t *peer_id_field_ptr;
+    u_int16_t *peer_id_field_ptr;
 
-    peer_id_field_ptr = (u_int32_t *)
+    peer_id_field_ptr = (u_int16_t *)
         (htt_tx_desc + HTT_TX_DESC_PEERID_DESC_PADDR_OFFSET_DWORD);
 
     *peer_id_field_ptr = peer_id;
+}
+#endif /* QCA_WIFI_ISOC */
+#ifdef QCA_WIFI_ISOC
+void
+htt_tx_desc_set_chanfreq(
+              u_int32_t *htt_tx_desc,
+              u_int16_t chanfreq);
+#else
+static inline
+void htt_tx_desc_set_chanfreq(u_int32_t *htt_tx_desc, u_int16_t chanfreq)
+{
+    u_int16_t *chanfreq_field_ptr;
+
+    chanfreq_field_ptr = (u_int16_t *)
+        (htt_tx_desc + HTT_TX_DESC_PEERID_DESC_PADDR_OFFSET_DWORD + sizeof(u_int16_t));
+
+    *chanfreq_field_ptr = chanfreq;
 }
 #endif /* QCA_WIFI_ISOC */
 

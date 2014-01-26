@@ -2284,6 +2284,8 @@ limAddSta(
     tSirMacAddr     staMac, *pStaAddr;
     tANI_U8 i;
     tpSirAssocReq   pAssocReq;
+    tLimIbssPeerNode *pPeerNode; /* for IBSS mode */
+    tDot11fIEVHTCaps vht_caps;   /* for IBSS mode */
     tANI_U8  *p2pIe = NULL;
     #if 0
     retCode = wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, staMac, &cfg);
@@ -2502,6 +2504,70 @@ limAddSta(
                                SIR_MAC_VHT_CAP_TX_ANTENNA_PATTERN) |
              (pAssocReq->VHTCaps.reserved1 << SIR_MAC_VHT_CAP_RESERVED2));
        }
+    }
+    else if (limGetSystemRole(psessionEntry) == eLIM_STA_IN_IBSS_ROLE) {
+
+       /* in IBSS mode, use peer node as the source of ht_caps and vht_caps */
+       pPeerNode = limIbssPeerFind(pMac, *pStaAddr);
+       if (!pPeerNode) {
+             limLog( pMac, LOGP, FL("Can't find IBSS peer node for ADD_STA"));
+             return eSIR_HAL_STA_DOES_NOT_EXIST;
+       }
+
+       pAddStaParams->ht_caps =
+             ( pPeerNode->htSupportedChannelWidthSet <<
+                               SIR_MAC_HT_CAP_CHWIDTH40_S ) |
+             ( pPeerNode->htGreenfield               <<
+                               SIR_MAC_HT_CAP_GREENFIELD_S ) |
+             ( pPeerNode->htShortGI20Mhz             <<
+                               SIR_MAC_HT_CAP_SHORTGI20MHZ_S ) |
+             ( pPeerNode->htShortGI40Mhz             <<
+                               SIR_MAC_HT_CAP_SHORTGI40MHZ_S ) |
+             ( SIR_MAC_TXSTBC                        <<
+                               SIR_MAC_HT_CAP_TXSTBC_S ) |
+             ( SIR_MAC_RXSTBC                        <<
+                               SIR_MAC_HT_CAP_RXSTBC_S ) |
+             ( pPeerNode->htMaxAmsduLength           <<
+                               SIR_MAC_HT_CAP_MAXAMSDUSIZE_S ) |
+             ( pPeerNode->htDsssCckRate40MHzSupport  <<
+                               SIR_MAC_HT_CAP_DSSSCCK40_S );
+
+       vht_caps = pPeerNode->VHTCaps;
+       pAddStaParams->vht_caps =
+            ((vht_caps.maxMPDULen << SIR_MAC_VHT_CAP_MAX_MPDU_LEN) |
+             (vht_caps.supportedChannelWidthSet <<
+                               SIR_MAC_VHT_CAP_SUPP_CH_WIDTH_SET) |
+             (vht_caps.ldpcCodingCap <<
+                               SIR_MAC_VHT_CAP_LDPC_CODING_CAP) |
+             (vht_caps.shortGI80MHz <<
+                               SIR_MAC_VHT_CAP_SHORTGI_80MHZ) |
+             (vht_caps.shortGI160and80plus80MHz <<
+                               SIR_MAC_VHT_CAP_SHORTGI_160_80_80MHZ) |
+             (vht_caps.txSTBC << SIR_MAC_VHT_CAP_TXSTBC) |
+             (vht_caps.rxSTBC << SIR_MAC_VHT_CAP_RXSTBC) |
+             (vht_caps.suBeamFormerCap <<
+                               SIR_MAC_VHT_CAP_SU_BEAMFORMER_CAP) |
+             (vht_caps.suBeamformeeCap <<
+                               SIR_MAC_VHT_CAP_SU_BEAMFORMEE_CAP) |
+             (vht_caps.csnofBeamformerAntSup <<
+                               SIR_MAC_VHT_CAP_CSN_BEAMORMER_ANT_SUP) |
+             (vht_caps.numSoundingDim <<
+                               SIR_MAC_VHT_CAP_NUM_SOUNDING_DIM) |
+             (vht_caps.muBeamformerCap <<
+                               SIR_MAC_VHT_CAP_NUM_BEAM_FORMER_CAP)|
+             (vht_caps.muBeamformeeCap <<
+                               SIR_MAC_VHT_CAP_NUM_BEAM_FORMEE_CAP) |
+             (vht_caps.vhtTXOPPS << SIR_MAC_VHT_CAP_TXOPPS) |
+             (vht_caps.htcVHTCap << SIR_MAC_VHT_CAP_HTC_CAP) |
+             (vht_caps.maxAMPDULenExp <<
+                               SIR_MAC_VHT_CAP_MAX_AMDU_LEN_EXPO) |
+             (vht_caps.vhtLinkAdaptCap <<
+                               SIR_MAC_VHT_CAP_LINK_ADAPT_CAP) |
+             (vht_caps.rxAntPattern <<
+                               SIR_MAC_VHT_CAP_RX_ANTENNA_PATTERN) |
+             (vht_caps.txAntPattern <<
+                               SIR_MAC_VHT_CAP_TX_ANTENNA_PATTERN) |
+             (vht_caps.reserved1 << SIR_MAC_VHT_CAP_RESERVED2));
     }
 
     //Disable BA. It will be set as part of ADDBA negotiation.
