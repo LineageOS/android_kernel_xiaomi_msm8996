@@ -68,6 +68,9 @@
 #include "wlan_hdd_main.h"
 #include <linux/vmalloc.h>
 #include "wlan_hdd_cfg80211.h"
+#ifdef CONFIG_CNSS
+#include <net/cnss.h>
+#endif
 
 #include "sapApi.h"
 
@@ -2482,4 +2485,22 @@ VOS_STATUS vos_get_vdev_types(tVOS_CON_MODE mode, tANI_U32 *type,
     }
 #endif
     return status;
+}
+
+v_VOID_t vos_flush_work(v_VOID_t *work)
+{
+#if defined (CONFIG_CNSS)
+   cnss_flush_work(work);
+#elif defined (WLAN_OPEN_SOURCE)
+   cancel_work_sync(work);
+#endif
+}
+
+v_VOID_t vos_flush_delayed_work(v_VOID_t *dwork)
+{
+#if defined (CONFIG_CNSS)
+   cnss_flush_delayed_work(dwork);
+#elif defined (WLAN_OPEN_SOURCE)
+   cancel_delayed_work_sync(dwork);
+#endif
 }

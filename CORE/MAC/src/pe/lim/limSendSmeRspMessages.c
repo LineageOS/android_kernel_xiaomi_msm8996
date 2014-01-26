@@ -3029,6 +3029,7 @@ limSendSmeAPChannelSwitchResp(tpAniSirGlobal pMac,
 {
     tSirMsgQ mmhMsg;
     tpSwitchChannelParams pSmeSwithChnlParams;
+    tANI_U8 channelId;
 
     pSmeSwithChnlParams = (tSwitchChannelParams *)
                   vos_mem_malloc(sizeof(tSwitchChannelParams));
@@ -3045,11 +3046,35 @@ limSendSmeAPChannelSwitchResp(tpAniSirGlobal pMac,
     vos_mem_copy(pSmeSwithChnlParams, pChnlParams,
                 sizeof(tSwitchChannelParams));
 
+    channelId = pSmeSwithChnlParams->channelNumber;
+
     mmhMsg.type = eWNI_SME_CHANNEL_CHANGE_RSP;
     mmhMsg.bodyptr = (void *)pSmeSwithChnlParams;
     mmhMsg.bodyval = 0;
     limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
 
+    /*
+     * We should start beacon transmission only if the new
+     * channel after channel change is Non-DFS. For a DFS
+     * channel, PE will receive an explicit request from
+     * upper layers to start the beacon transmission .
+     */
+
+    if (NV_CHANNEL_DFS != vos_nv_getChannelEnabledState(channelId))
+    {
+        if (channelId ==  psessionEntry->currentOperChannel)
+        {
+            limApplyConfiguration(pMac,psessionEntry);
+            limSendBeaconInd(pMac, psessionEntry);
+        }
+        else
+        {
+            PELOG1(limLog(pMac, LOG1,
+                   FL("Failed to Transmit Beacons on channel = %d"
+                      "after AP channel change response"),
+                       psessionEntry->bcnLen);)
+        }
+    }
     return;
 }
 

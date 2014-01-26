@@ -1017,7 +1017,11 @@ int derivePtk(tAuthRsnFsm *fsm, tAniEapolKeyAvailEventData *data)
     v_U32_t prfLen;
     tAniEapolRsnKeyDesc *rxDesc;
 
-    VOS_ASSERT(fsm->staCtx->pmk);
+    if (NULL == fsm->staCtx->pmk)
+    {
+       VOS_ASSERT(0);
+       return ANI_E_NULL_VALUE;
+    }
 
     switch (fsm->staCtx->pwCipherType) 
     {

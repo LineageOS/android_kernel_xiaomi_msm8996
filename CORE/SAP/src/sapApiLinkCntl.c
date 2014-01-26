@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /*===========================================================================
 
                       s a p A p i L i n k C n t l . C
@@ -586,6 +587,20 @@ WLANSAP_RoamCallback
             sapEvent.params = pCsrRoamInfo;
             sapEvent.u1 = roamStatus;
             sapEvent.u2 = roamResult;
+
+            /*
+             * If the Channel on which BSS started is a DFS channel
+             * then initialize the NOL list in the sapDfsInfo to
+             * a manitain a list of radar found DFS channels and
+             * to make sure that SAP does not use these channels
+             * for the next 30 mins.
+             */
+            if (vos_nv_getChannelEnabledState(sapContext->channel) ==
+                                                            NV_CHANNEL_DFS)
+            {
+                sapInitDfsChannelNolList(sapContext);
+            }
+
             vosStatus = sapFsm(sapContext, &sapEvent);
             if(!VOS_IS_STATUS_SUCCESS(vosStatus))
             {

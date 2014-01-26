@@ -114,6 +114,8 @@ void ol_rx_err_statistics(ol_pdev_handle pdev,
  *      one of the fragments that when reassembled, constitute the rx frame
  * @param err_type - what kind of error occurred
  * @param rx_frame - the rx frame that had an error
+ * @pn - Packet sequence number
+ * @key_id - Key index octet received in IV of the frame
  */
 void
 ol_rx_err(
@@ -123,7 +125,9 @@ ol_rx_err(
     int tid,
     u_int32_t tsf32,
     enum ol_rx_err_type err_type,
-    adf_nbuf_t rx_frame);
+    adf_nbuf_t rx_frame,
+    u_int64_t *pn,
+    u_int8_t key_id);
 
 
 enum ol_rx_notify_type {
@@ -186,7 +190,6 @@ ol_rx_notify(
  */
 void
 ol_tx_paused_peer_data(ol_peer_handle peer, int has_tx_data);
-
 
 #ifdef QCA_WIFI_ISOC
 

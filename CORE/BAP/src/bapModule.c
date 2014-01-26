@@ -1223,8 +1223,13 @@ WLANBAP_ReadMacConfig
 
   ccmCfgGetStr( pMac, WNI_CFG_STA_ID, pBtStaOwnMacAddr, &len );
 
-  VOS_ASSERT( WNI_CFG_BSSID_LEN == len );
-  
+  if (WNI_CFG_BSSID_LEN != len)
+  {
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "len is improper %s", __func__);
+      return;
+  }
+
   /* Form the SSID from Mac address */
   VOS_SNPRINTF( pBtStaOwnSsid, WLAN_BAP_SSID_MAX_LEN,
             "AMP-%02x-%02x-%02x-%02x-%02x-%02x",

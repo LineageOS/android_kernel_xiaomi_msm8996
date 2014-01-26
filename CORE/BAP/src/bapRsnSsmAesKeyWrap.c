@@ -273,8 +273,6 @@ aes(v_U32_t cryptHandle, tANI_U8 *keyBytes, tANI_U32 keyLen,
     tANI_U8 in[AES_BLOCK_SIZE];
     tANI_U8 *out;
 
-    VOS_ASSERT (AES_BLOCK_SIZE == ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE*2);
-
     // Concatenate A and R[i]
     vos_mem_copy(in, a, ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE);
     vos_mem_copy(in + ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE, 
@@ -316,8 +314,6 @@ aes_1(v_U32_t cryptHandle, tANI_U8 *keyBytes, tANI_U32 keyLen,
 
     tANI_U8 in[AES_BLOCK_SIZE];
     tANI_U8 *out;
-
-    VOS_ASSERT (AES_BLOCK_SIZE == ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE*2);
 
     // Concatenate A and R[i]
     vos_mem_copy(in, at, ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE);
