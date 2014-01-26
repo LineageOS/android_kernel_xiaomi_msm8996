@@ -548,6 +548,8 @@ struct tLimIbssPeerNode
     //
     tANI_U8 htSupportedChannelWidthSet;
 
+    tANI_U8 htLdpcCapable;
+
     tANI_U8 beaconHBCount;
     tANI_U8 heartbeatFailure;
 

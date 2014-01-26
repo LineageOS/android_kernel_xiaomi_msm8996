@@ -1540,6 +1540,7 @@ static eHalStatus p2pListenStateDiscoverableCallback(tHalHandle halHandle, void 
       if (!VOS_IS_STATUS_SUCCESS(status))
       {
          VOS_ASSERT(status);
+         return status;
       }
    }
    else

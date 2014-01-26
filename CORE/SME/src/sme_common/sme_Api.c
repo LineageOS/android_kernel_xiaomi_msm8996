@@ -109,6 +109,10 @@ eHalStatus sme_HandlePostChannelSwitchInd(tHalHandle hHal);
 tANI_BOOLEAN csrIsScanAllowed(tpAniSirGlobal pMac);
 #endif
 
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+tANI_BOOLEAN csrIsSupportedChannel(tpAniSirGlobal pMac, tANI_U8 channelId);
+#endif
+
 #ifdef WLAN_FEATURE_11W
 eHalStatus sme_UnprotectedMgmtFrmInd( tHalHandle hHal,
                                       tpSirSmeUnprotMgmtFrameInd pSmeMgmtFrm );
@@ -1418,6 +1422,92 @@ eHalStatus sme_setRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode)
    }
     return status;
 }
+
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+eHalStatus sme_SetPlmRequest(tHalHandle hHal, tpSirPlmReq pPlmReq)
+{
+    eHalStatus status;
+    tANI_BOOLEAN ret = eANI_BOOLEAN_FALSE;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tANI_U8 ch_list[WNI_CFG_VALID_CHANNEL_LIST] = {0};
+    tANI_U8 count, valid_count = 0;
+    vos_msg_t msg;
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
+    {
+        tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, pPlmReq->sessionId );
+
+        if(!pSession)
+        {
+            smsLog(pMac, LOGE, FL("session %d not found"), pPlmReq->sessionId);
+            sme_ReleaseGlobalLock( &pMac->sme );
+            return eHAL_STATUS_FAILURE;
+        }
+
+        if( !pSession->sessionActive )
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                        "%s Invalid Sessionid", __func__);
+            sme_ReleaseGlobalLock( &pMac->sme );
+            return eHAL_STATUS_FAILURE;
+        }
+
+        if (pPlmReq->enable) {
+
+           /* validating channel numbers */
+           for (count = 0; count < pPlmReq->plmNumCh; count++) {
+
+              ret = csrIsSupportedChannel(pMac, pPlmReq->plmChList[count]);
+              if (ret && pPlmReq->plmChList[count] > 14)
+              {
+                  if (NV_CHANNEL_DFS ==
+                       vos_nv_getChannelEnabledState(pPlmReq->plmChList[count]))
+                  /* DFS channel is provided, no PLM bursts can be
+                  * transmitted. TODO shall we ignore these channels
+                  * and continue PLM bursts on other channels ??
+                  * OR return error ?? For now, ignoring these channels
+                  */
+                  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                            "%s DFS channel %d ignored for PLM", __func__,
+                            pPlmReq->plmChList[count]);
+                  continue;
+              }
+              else if (!ret)
+              {
+                   /* Not supported channel
+                    * TODO : shall we return error ? OR ignore this channel ?
+                    * for now ignoring the channel
+                   */
+                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                             "%s Unsupported channel %d ignored for PLM",
+                             __func__, pPlmReq->plmChList[count]);
+                   continue;
+              }
+              ch_list[valid_count] = pPlmReq->plmChList[count];
+              valid_count++;
+           } /* End of for () */
+
+           /* Copying back the valid channel list to plm struct */
+           vos_mem_copy(pPlmReq->plmChList, ch_list, valid_count);
+        } /* PLM START */
+
+        msg.type     = WDA_SET_PLM_REQ;
+        msg.reserved = 0;
+        msg.bodyptr  = pPlmReq;
+
+        if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able \
+                      to post WDA_SET_PLM_REQ message to WDA", __func__);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return (status);
+}
+#endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 /*--------------------------------------------------------------------------
@@ -10683,6 +10773,36 @@ eHalStatus sme_PsOffloadDisablePowerSave (tHalHandle hHal, tANI_U32 sessionId)
    return (status);
 }
 
+eHalStatus sme_PsOffloadEnableDeferredPowerSave (tHalHandle hHal,
+                                                 tANI_U32 sessionId)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+   status = sme_AcquireGlobalLock(&pMac->sme);
+   if (HAL_STATUS_SUCCESS( status ))
+   {
+       status =  PmcOffloadEnableDeferredStaModePowerSave(hHal, sessionId);
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+   return (status);
+}
+
+eHalStatus sme_PsOffloadDisableDeferredPowerSave (tHalHandle hHal,
+                                                  tANI_U32 sessionId)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+   status = sme_AcquireGlobalLock(&pMac->sme);
+   if (HAL_STATUS_SUCCESS( status ))
+   {
+       status =  PmcOffloadDisableDeferredStaModePowerSave(hHal, sessionId);
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+   return (status);
+}
+
 tANI_S16 sme_GetHTConfig(tHalHandle hHal, tANI_U8 session_id, tANI_U16 ht_capab)
 {
    tpAniSirGlobal    pMac = PMAC_STRUCT(hHal);
@@ -10916,14 +11036,17 @@ eHalStatus sme_AddChAvoidCallback
    \return eHalStatus
 ---------------------------------------------------------------------------*/
 eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal,
-                tANI_U8 sessionId, tANI_U8 targetChannel )
+                tANI_U8 sessionId, tANI_U8 targetChannel, eCsrPhyMode phyMode)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrRoamChannelChangeReq( pMac, sessionId, targetChannel);
+        sme_SelectCBMode(hHal, phyMode, targetChannel);
+
+        status = csrRoamChannelChangeReq( pMac, sessionId, targetChannel,
+                       pMac->roam.configParam.channelBondingMode5GHz);
 
         sme_ReleaseGlobalLock( &pMac->sme );
     }
@@ -11033,3 +11156,115 @@ eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tANI_U8 sessionId,
     return (status);
 }
 
+#ifndef QCA_WIFI_ISOC
+/* ---------------------------------------------------------------------------
+    \fn sme_InitThermalInfo
+    \brief  SME API to initialize the thermal mitigation parameters
+    \param  hHal
+    \param  thermalParam : thermal mitigation parameters
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_InitThermalInfo( tHalHandle hHal,
+                                tSmeThermalParams thermalParam )
+{
+    t_thermal_mgmt * pWdaParam;
+    vos_msg_t msg;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    pWdaParam = (t_thermal_mgmt *)vos_mem_malloc(sizeof(t_thermal_mgmt));
+    if (NULL == pWdaParam)
+    {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 "%s: could not allocate tThermalMgmt", __func__);
+       return eHAL_STATUS_E_MALLOC_FAILED;
+    }
+
+    vos_mem_zero((void*)pWdaParam, sizeof(t_thermal_mgmt));
+
+    pWdaParam->thermalMgmtEnabled = thermalParam.smeThermalMgmtEnabled;
+    pWdaParam->throttlePeriod = thermalParam.smeThrottlePeriod;
+    pWdaParam->thermalLevels[0].minTempThreshold =
+        thermalParam.smeThermalLevels[0].smeMinTempThreshold;
+    pWdaParam->thermalLevels[0].maxTempThreshold =
+        thermalParam.smeThermalLevels[0].smeMaxTempThreshold;
+    pWdaParam->thermalLevels[1].minTempThreshold =
+        thermalParam.smeThermalLevels[1].smeMinTempThreshold;
+    pWdaParam->thermalLevels[1].maxTempThreshold =
+        thermalParam.smeThermalLevels[1].smeMaxTempThreshold;
+    pWdaParam->thermalLevels[2].minTempThreshold =
+        thermalParam.smeThermalLevels[2].smeMinTempThreshold;
+    pWdaParam->thermalLevels[2].maxTempThreshold =
+        thermalParam.smeThermalLevels[2].smeMaxTempThreshold;
+    pWdaParam->thermalLevels[3].minTempThreshold =
+         thermalParam.smeThermalLevels[3].smeMinTempThreshold;
+    pWdaParam->thermalLevels[3].maxTempThreshold =
+         thermalParam.smeThermalLevels[3].smeMaxTempThreshold;
+
+    if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme))
+    {
+        msg.type     = WDA_INIT_THERMAL_INFO_CMD;
+        msg.bodyptr  = pWdaParam;
+
+        if (!VOS_IS_STATUS_SUCCESS(
+           vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+        {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Not able to post WDA_SET_THERMAL_INFO_CMD to WDA!",
+                       __func__);
+            vos_mem_free(pWdaParam);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+        return eHAL_STATUS_SUCCESS;
+    }
+    vos_mem_free(pWdaParam);
+    return eHAL_STATUS_FAILURE;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_InitThermalInfo
+    \brief  SME API to set the thermal mitigation level
+    \param  hHal
+    \param  level : thermal mitigation level
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level )
+{
+    vos_msg_t msg;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    u_int8_t *pLevel = vos_mem_malloc(sizeof(*pLevel));
+
+    pLevel = vos_mem_malloc(sizeof(*pLevel));
+    if (NULL == pLevel)
+    {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 "%s: could not allocate pLevel", __func__);
+       return eHAL_STATUS_E_MALLOC_FAILED;
+    }
+
+    *pLevel = level;
+
+    if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme))
+    {
+        msg.type = WDA_SET_THERMAL_LEVEL;
+        msg.reserved = 0;
+        msg.bodyptr = pLevel;
+
+        if (!VOS_IS_STATUS_SUCCESS(
+           vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+        {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Not able to post WDA_SET_THERMAL_LEVEL to WDA!",
+                       __func__);
+            vos_mem_free(pLevel);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+        return eHAL_STATUS_SUCCESS;
+    }
+    vos_mem_free(pLevel);
+    return eHAL_STATUS_FAILURE;
+}
+#endif /* #ifndef QCA_WIFI_ISOC */

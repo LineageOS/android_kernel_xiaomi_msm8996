@@ -2656,6 +2656,27 @@ typedef struct sSirDeltsRsp
     tSirDeltsReqInfo        rsp;
 } tSirDeltsRsp, *tpSirDeltsRsp;
 
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+typedef struct sSirPlmReq
+{
+    tANI_U16                diag_token; // Dialog token
+    tANI_U16                meas_token; // measurement token
+    tANI_U16                numBursts; // total number of bursts
+    tANI_U16                burstInt; // burst interval in seconds
+    tANI_U16                measDuration; // in TU's,STA goes off-ch
+    /* no of times the STA should cycle through PLM ch list */
+    tANI_U8                 burstLen;
+    tPowerdBm               desiredTxPwr; // desired tx power
+    tSirMacAddr             macAddr; // MC dest addr
+    /* no of channels */
+    tANI_U8                 plmNumCh;
+    /* channel numbers */
+    tANI_U8                 plmChList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+    tANI_U8                 sessionId;
+    eAniBoolean             enable;
+} tSirPlmReq, *tpSirPlmReq;
+#endif
+
 #if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
 
 #define SIR_QOS_NUM_TSPEC_MAX 2
@@ -4752,6 +4773,7 @@ typedef struct sSirChanChangeRequest
     tANI_U16     messageLen;
     tANI_U8      sessionId;
     tANI_U8      targetChannel;
+    tANI_U8      cbMode;
 }tSirChanChangeRequest, *tpSirChanChangeRequest;
 
 typedef struct sSirChanChangeResponse
@@ -4796,4 +4818,27 @@ typedef struct sSirSmeCSAIeTxCompleteRsp
     tANI_U8  chanSwIeTxStatus;
 }tSirSmeCSAIeTxCompleteRsp, *tpSirSmeCSAIeTxCompleteRsp;
 
+/* Thermal Mitigation*/
+
+typedef struct{
+    u_int16_t minTempThreshold;
+    u_int16_t maxTempThreshold;
+} t_thermal_level_info, *tp_thermal_level_info;
+
+typedef enum
+{
+    WLAN_WMA_THERMAL_LEVEL_0,
+    WLAN_WMA_THERMAL_LEVEL_1,
+    WLAN_WMA_THERMAL_LEVEL_2,
+    WLAN_WMA_THERMAL_LEVEL_3,
+    WLAN_WMA_MAX_THERMAL_LEVELS
+} t_thermal_level;
+
+typedef struct{
+    /* Array of thermal levels */
+    t_thermal_level_info thermalLevels[WLAN_WMA_MAX_THERMAL_LEVELS];
+    u_int8_t thermalCurrLevel;
+    u_int8_t thermalMgmtEnabled;
+    u_int32_t throttlePeriod;
+} t_thermal_mgmt, *tp_thermal_mgmt;
 #endif /* __SIR_API_H */

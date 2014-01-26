@@ -275,10 +275,18 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
         if ( pMac->pmc.rfSuppliesVotedOff )
         {
             status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
-            VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+                return eHAL_STATUS_FAILURE;
+            }
 
             status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
-            VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+                return eHAL_STATUS_FAILURE;
+            }
 
             pMac->pmc.rfSuppliesVotedOff = FALSE;
         }
@@ -484,10 +492,18 @@ eHalStatus pmcEnterImpsState (tHalHandle hHal)
     //Vote off RF supplies. Note RF supllies are not voted off if there is a
     //pending request for full power already
     status = vos_chipVoteOffRFSupply(&callType, NULL, NULL);
-    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+    if (VOS_STATUS_SUCCESS != status )
+    {
+       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+       return eHAL_STATUS_FAILURE;
+    }
 
     status = vos_chipVoteOffXOBuffer(&callType, NULL, NULL);
-    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+    if (VOS_STATUS_SUCCESS != status)
+    {
+       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+       return eHAL_STATUS_FAILURE;
+    }
 
     pMac->pmc.rfSuppliesVotedOff= TRUE;
 
@@ -1493,10 +1509,20 @@ eHalStatus pmcEnterStandbyState (tHalHandle hHal)
    //Note that RF supplies are not voted off if there is already a pending request
    //for full power
    status = vos_chipVoteOffRFSupply(&callType, NULL, NULL);
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
+   if (VOS_STATUS_SUCCESS != status)
+   {
+      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+      return eHAL_STATUS_FAILURE;
+   }
 
    status = vos_chipVoteOffXOBuffer(&callType, NULL, NULL);
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
+   if (VOS_STATUS_SUCCESS != status)
+   {
+      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+      return eHAL_STATUS_FAILURE;
+   }
 
    pMac->pmc.rfSuppliesVotedOff= TRUE;
 
@@ -1842,7 +1868,12 @@ static void pmcProcessDeferredMsg( tpAniSirGlobal pMac )
         switch (pDeferredMsg->messageType)
         {
         case eWNI_PMC_WOWL_ADD_BCAST_PTRN:
-            VOS_ASSERT( pDeferredMsg->size == sizeof(tSirWowlAddBcastPtrn) );
+            if (pDeferredMsg->size != sizeof(tSirWowlAddBcastPtrn))
+            {
+               VOS_ASSERT( pDeferredMsg->size == sizeof(tSirWowlAddBcastPtrn) );
+               return;
+            }
+
             if (pmcSendMessage(pMac, eWNI_PMC_WOWL_ADD_BCAST_PTRN,
                     &pDeferredMsg->u.wowlAddPattern, sizeof(tSirWowlAddBcastPtrn))
                     != eHAL_STATUS_SUCCESS)
@@ -1852,7 +1883,11 @@ static void pmcProcessDeferredMsg( tpAniSirGlobal pMac )
             break;
 
         case eWNI_PMC_WOWL_DEL_BCAST_PTRN:
-            VOS_ASSERT( pDeferredMsg->size == sizeof(tSirWowlDelBcastPtrn) );
+            if (pDeferredMsg->size != sizeof(tSirWowlDelBcastPtrn))
+            {
+               VOS_ASSERT( pDeferredMsg->size == sizeof(tSirWowlDelBcastPtrn) );
+               return;
+            }
             if (pmcSendMessage(pMac, eWNI_PMC_WOWL_DEL_BCAST_PTRN,
                     &pDeferredMsg->u.wowlDelPattern, sizeof(tSirWowlDelBcastPtrn))
                     != eHAL_STATUS_SUCCESS)
@@ -1862,7 +1897,11 @@ static void pmcProcessDeferredMsg( tpAniSirGlobal pMac )
             break;
 
         case eWNI_PMC_PWR_SAVE_CFG:
-            VOS_ASSERT( pDeferredMsg->size == sizeof(tSirPowerSaveCfg) );
+            if (pDeferredMsg->size != sizeof(tSirPowerSaveCfg))
+            {
+               VOS_ASSERT( pDeferredMsg->size == sizeof(tSirPowerSaveCfg) );
+               return;
+            }
             if (pmcSendMessage(pMac, eWNI_PMC_PWR_SAVE_CFG,
                     &pDeferredMsg->u.powerSaveConfig, sizeof(tSirPowerSaveCfg))
                 != eHAL_STATUS_SUCCESS)
@@ -2020,7 +2059,11 @@ eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, tANI_U32 sessionId,
     eHalStatus status = eHAL_STATUS_RESOURCES;
     tSmeCmd *pCommand = NULL;
 
-    VOS_ASSERT( ppCmd );
+    if (NULL == ppCmd)
+    {
+       VOS_ASSERT( ppCmd );
+       return eHAL_STATUS_FAILURE;
+    }
     do
     {
         pCommand = smeGetCommandBuffer( pMac );
@@ -2807,7 +2850,7 @@ eHalStatus pmcOffloadStartPerSession(tHalHandle hHal, tANI_U32 sessionId)
 #ifdef FEATURE_WLAN_TDLS
     pmc->isTdlsPowerSaveProhibited = FALSE;
 #endif
-
+    pmc->configDefStaPsEnabled = FALSE;
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -2826,6 +2869,7 @@ eHalStatus pmcOffloadStopPerSession(tHalHandle hHal, tANI_U32 sessionId)
 #ifdef FEATURE_WLAN_TDLS
     pmc->isTdlsPowerSaveProhibited = FALSE;
 #endif
+    pmc->configDefStaPsEnabled = FALSE;
 
     pmcOffloadStopAutoStaPsTimer(pMac, sessionId);
     pmcOffloadDoFullPowerCallbacks(pMac, sessionId, eHAL_STATUS_FAILURE);
@@ -3019,7 +3063,8 @@ eHalStatus pmcOffloadEnableStaPsCheck(tpAniSirGlobal pMac,
 }
 
 eHalStatus pmcOffloadStartAutoStaPsTimer (tpAniSirGlobal pMac,
-                                                tANI_U32 sessionId)
+                                          tANI_U32 sessionId,
+                                          tANI_U32 timerValue)
 {
     VOS_STATUS vosStatus;
     tpPsOffloadPerSessionInfo pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
@@ -3027,7 +3072,7 @@ eHalStatus pmcOffloadStartAutoStaPsTimer (tpAniSirGlobal pMac,
     smsLog(pMac, LOG2, FL("Entering pmcOffloadStartAutoStaPsTimer"));
 
     vosStatus = vos_timer_start(&pmc->autoPsEnableTimer,
-                           pmc->autoPsEntryTimerPeriod);
+                                timerValue);
     if(!VOS_IS_STATUS_SUCCESS(vosStatus))
     {
         if(VOS_STATUS_E_ALREADY == vosStatus)
@@ -3395,10 +3440,11 @@ eHalStatus pmcOffloadExitPowersaveState(tpAniSirGlobal pMac, tANI_U32 sessionId)
      /* Call Full Power Req Cbs */
      pmcOffloadDoFullPowerCallbacks(pMac, sessionId, eHAL_STATUS_SUCCESS);
 
-     if(pmc->configStaPsEnabled)
-         pmcOffloadStartAutoStaPsTimer(pMac, sessionId);
+     if (pmc->configStaPsEnabled || pmc->configDefStaPsEnabled)
+        pmcOffloadStartAutoStaPsTimer(pMac, sessionId,
+                                      pmc->autoPsEntryTimerPeriod);
      else
-         smsLog(pMac, LOGE, FL("Master Sta Ps Disabled"));
+        smsLog(pMac, LOGE, FL("Master Sta Ps Disabled"));
      return eHAL_STATUS_SUCCESS;
 }
 

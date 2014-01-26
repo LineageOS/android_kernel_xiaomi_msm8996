@@ -167,5 +167,14 @@ ol_tx_queue_decs_reinit(
 #define ol_tx_queue_decs_reinit(peer, peer_id) /* no-op */
 #endif /* CONFIG_HL_SUPPORT */
 
+#if defined(QCA_SUPPORT_TXRX_VDEV_LL_TXQ)
+/**
+ * @brief - initialize the throttle context
+ * @param pdev - the physical device object, which stores the txqs
+ */
+void ol_tx_throttle_init(struct ol_txrx_pdev_t *pdev);
+#else
+#define ol_tx_throttle_init(pdev) /*no op*/
+#endif
 #endif /* _OL_TX_QUEUE__H_ */
 

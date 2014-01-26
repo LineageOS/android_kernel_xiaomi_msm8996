@@ -214,6 +214,9 @@ wmi_unified_vdev_up_send(wmi_unified_t wmi,
 /* Configure the regulatory domain for DFS radar filter initialization*/
 void wma_set_dfs_regdomain(tp_wma_handle wma);
 
+static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
+				    t_thermal_cmd_params thermal_info);
+
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
 {
@@ -3154,11 +3157,10 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 
 	/* Allocate the memory */
 	*buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
-	if (!*buf) {
-		WMA_LOGP("failed to allocate memory for start scan cmd");
-		vos_status = VOS_STATUS_E_FAILURE;
-		goto error;
-	}
+        if (!*buf) {
+                WMA_LOGP("failed to allocate memory for start scan cmd");
+                return VOS_STATUS_E_FAILURE;
+        }
 
 	buf_ptr = (u_int8_t *) wmi_buf_data(*buf);
 	cmd = (wmi_start_scan_cmd_fixed_param *) buf_ptr;
@@ -3282,10 +3284,11 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	buf_ptr += WMI_TLV_HDR_SIZE + ie_len_with_pad;
 
 	*buf_len = len;
-	vos_status = VOS_STATUS_SUCCESS;
+	return VOS_STATUS_SUCCESS;
 error:
-	vos_mem_free(scan_req);
-	return vos_status;
+        vos_mem_free(*buf);
+        *buf = NULL;
+        return vos_status;
 }
 
 /* function   : wma_get_buf_stop_scan_cmd
@@ -3324,7 +3327,6 @@ VOS_STATUS wma_get_buf_stop_scan_cmd(tp_wma_handle wma_handle,
 	*buf_len = len;
 	vos_status = VOS_STATUS_SUCCESS;
 error:
-	vos_mem_free(abort_scan_req);
 	return vos_status;
 
 }
@@ -3384,7 +3386,7 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq)
  * Returns    :
  */
 VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
-			tSirScanOffloadReq *scan_req)
+                        tSirScanOffloadReq *scan_req, v_U16_t msg_type)
 {
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	wmi_buf_t buf;
@@ -3425,23 +3427,28 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 		goto error;
 	}
 
-	WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
+        if (msg_type == WDA_CHNL_SWITCH_REQ) {
+            wma_handle->roam_preauth_scan_id = cmd->scan_id;
+        }
+	// WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
 	return VOS_STATUS_SUCCESS;
 error:
 	wma_reset_scan_info(wma_handle, cmd->vdev_id);
 	if (buf)
 		adf_nbuf_free(buf);
 error1:
-	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc
-		(sizeof(tSirScanOffloadEvent));
-	if (!scan_event) {
-		WMA_LOGP("Failed to allocate memory for scan rsp");
-		return VOS_STATUS_E_NOMEM;
-	}
-	scan_event->event = WMI_SCAN_EVENT_COMPLETED;
-	scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
-	wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
-
+        /* Send completion event for only for start scan request */
+        if (msg_type == WDA_START_SCAN_OFFLOAD_REQ) {
+                scan_event =
+                    (tSirScanOffloadEvent *) vos_mem_malloc(sizeof(tSirScanOffloadEvent));
+                if (!scan_event) {
+                        WMA_LOGP("Failed to allocate memory for scan rsp");
+                        return VOS_STATUS_E_NOMEM;
+                }
+                scan_event->event = WMI_SCAN_EVENT_COMPLETED;
+                scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
+                wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
+        }
 	return vos_status;
 }
 
@@ -3660,8 +3667,8 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
                    wmi_roam_scan_rssi_threshold_fixed_param));
     /* fill in threshold values */
     rssi_threshold_fp->vdev_id = wma_handle->roam_offload_vdev_id;
-    rssi_threshold_fp->roam_scan_rssi_thresh = rssi_thresh;
-    rssi_threshold_fp->roam_rssi_thresh_diff = rssi_thresh_diff;
+    rssi_threshold_fp->roam_scan_rssi_thresh = rssi_thresh & 0x000000ff;
+    rssi_threshold_fp->roam_rssi_thresh_diff = rssi_thresh_diff & 0x000000ff;
 
     status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
             len, WMI_ROAM_SCAN_RSSI_THRESHOLD);
@@ -4842,6 +4849,15 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	intr[cmd->vdev_id].chanmode = chanmode; /* save channel mode */
 	intr[cmd->vdev_id].ht_capable = req->ht_capable;
 	intr[cmd->vdev_id].vht_capable = req->vht_capable;
+	intr[cmd->vdev_id].config.gtx_info.gtxRTMask[0] = CFG_TGT_DEFAULT_GTX_HT_MASK;
+	intr[cmd->vdev_id].config.gtx_info.gtxRTMask[1] = CFG_TGT_DEFAULT_GTX_VHT_MASK;
+	intr[cmd->vdev_id].config.gtx_info.gtxUsrcfg = CFG_TGT_DEFAULT_GTX_USR_CFG;
+	intr[cmd->vdev_id].config.gtx_info.gtxPERThreshold = CFG_TGT_DEFAULT_GTX_PER_THRESHOLD;
+	intr[cmd->vdev_id].config.gtx_info.gtxPERMargin = CFG_TGT_DEFAULT_GTX_PER_MARGIN;
+	intr[cmd->vdev_id].config.gtx_info.gtxTPCstep = CFG_TGT_DEFAULT_GTX_TPC_STEP;
+	intr[cmd->vdev_id].config.gtx_info.gtxTPCMin = CFG_TGT_DEFAULT_GTX_TPC_MIN;
+	intr[cmd->vdev_id].config.gtx_info.gtxBWMask = CFG_TGT_DEFAULT_GTX_BW_MASK;
+
 	WMI_SET_CHANNEL_MODE(chan, chanmode);
 	chan->band_center_freq1 = chan->mhz;
 
@@ -5041,19 +5057,161 @@ static void wma_remove_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 	vos_mem_free(req_msg);
 }
 
+/* function   : wma_roam_preauth_chan_set
+ * Description: Send a single channel passive scan request
+ *              to handle set_channel operation for preauth
+ * Args:
+ * Returns    :
+ */
+VOS_STATUS wma_roam_preauth_chan_set(tp_wma_handle wma_handle,
+                          tpSwitchChannelParams params, u_int8_t vdev_id)
+{
+        VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+        tSirScanOffloadReq scan_req;
+        u_int8_t bssid[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+        WMA_LOGI("%s: channel %d", __func__, params->channelNumber);
+
+        /* Prepare a dummy scan request and get the
+         * wmi_start_scan_cmd_fixed_param structure filled properly
+         */
+        vos_mem_zero(&scan_req, sizeof(scan_req));
+        vos_copy_macaddr((v_MACADDR_t *) &scan_req.bssId, (v_MACADDR_t *)bssid);
+        vos_copy_macaddr((v_MACADDR_t *)&scan_req.selfMacAddr, (v_MACADDR_t *)&params->selfStaMacAddr);
+        scan_req.channelList.numChannels = 1;
+        scan_req.channelList.channelNumber[0] = params->channelNumber;
+        scan_req.numSsid = 0;
+        scan_req.minChannelTime = WMA_ROAM_PREAUTH_SCAN_TIME;
+        scan_req.maxChannelTime = WMA_ROAM_PREAUTH_SCAN_TIME;
+        scan_req.scanType = eSIR_PASSIVE_SCAN;
+        scan_req.p2pScanType = P2P_SCAN_TYPE_LISTEN;
+        scan_req.sessionId = vdev_id;
+        wma_handle->roam_preauth_chan_context = params;
+        wma_handle->roam_preauth_chanfreq = vos_chan_to_freq(params->channelNumber);
+
+        vos_status = wma_start_scan(wma_handle, &scan_req, WDA_CHNL_SWITCH_REQ);
+
+        wma_handle->roam_preauth_scan_state = (vos_status == VOS_STATUS_SUCCESS) ?
+                        WMA_ROAM_PREAUTH_CHAN_REQUESTED : WMA_ROAM_PREAUTH_CHAN_NONE;
+        return vos_status;
+}
+
+VOS_STATUS wma_roam_preauth_chan_cancel(tp_wma_handle wma_handle,
+                tpSwitchChannelParams params, u_int8_t vdev_id)
+{
+        tAbortScanParams abort_scan_req;
+        VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+
+        WMA_LOGI("%s: channel %d", __func__, params->channelNumber);
+
+        abort_scan_req.SessionId = vdev_id;
+        wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_CANCEL_REQUESTED;
+        wma_handle->roam_preauth_chan_context = params;
+        vos_status = wma_stop_scan(wma_handle, &abort_scan_req);
+        return vos_status;
+}
+
+static void wma_roam_preauth_scan_event_handler(tp_wma_handle wma_handle,
+                u_int8_t vdev_id, wmi_scan_event_fixed_param *wmi_event)
+{
+        VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+        tSwitchChannelParams *params;
+
+        WMA_LOGI("%s: event 0x%x, reason 0x%x",
+                    __func__, wmi_event->event, wmi_event->reason);
+        switch(wma_handle->roam_preauth_scan_state) {
+        case WMA_ROAM_PREAUTH_CHAN_REQUESTED:
+                if (wmi_event->event & WMI_SCAN_EVENT_FOREIGN_CHANNEL) {
+                        /* complete set_chan request */
+                        wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_ON_CHAN;
+                        vos_status = VOS_STATUS_SUCCESS;
+                } else if (wmi_event->event &
+                               (WMI_SCAN_EVENT_START_FAILED|WMI_SCAN_EVENT_COMPLETED)){
+                        /* Failed to get preauth channel or finished (unlikely) */
+                        wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
+                        vos_status = VOS_STATUS_E_FAILURE;
+                } else
+                        return;
+                break;
+        case WMA_ROAM_PREAUTH_CHAN_CANCEL_REQUESTED:
+                /* Completed or cancelled, complete set_chan cancel request */
+                wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
+                break;
+
+        case WMA_ROAM_PREAUTH_ON_CHAN:
+                if (wmi_event->event &
+                                (WMI_SCAN_EVENT_COMPLETED | WMI_SCAN_EVENT_BSS_CHANNEL))
+                        wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_COMPLETED;
+                        /* There is no WDA request to complete. Next set channel request will
+                         * look at this state and complete it.
+                         */
+                break;
+        default:
+                WMA_LOGE("%s: unhandled event 0x%x, reason 0x%x",
+                           __func__, wmi_event->event, wmi_event->reason);
+                return;
+        }
+
+        if((params = (tpSwitchChannelParams) wma_handle->roam_preauth_chan_context)) {
+                WMA_LOGI("%s: sending WDA_SWITCH_CHANNEL_RSP, status = 0x%x",
+                          __func__, vos_status);
+                params->chainMask = wma_handle->pdevconfig.txchainmask;
+                params->smpsMode = SMPS_MODE_DISABLED;
+                params->status = vos_status;
+                wma_send_msg(wma_handle, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
+                wma_handle->roam_preauth_chan_context = NULL;
+        }
+
+}
+
+/*
+ * wma_set_channel
+ * If this request is called when station is connected, it should use
+ */
 static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 {
 	struct wma_vdev_start_req req;
 	struct wma_target_req *msg;
-	VOS_STATUS status;
+        VOS_STATUS status = VOS_STATUS_SUCCESS;
+        u_int8_t vdev_id, peer_id;
+        ol_txrx_peer_handle peer;
+        ol_txrx_pdev_handle pdev;
+        struct wma_txrx_node *intr = wma->interfaces;
 
-	vos_mem_zero(&req, sizeof(req));
-	if (!wma_find_vdev_by_addr(wma, params->selfStaMacAddr, &req.vdev_id)) {
-		WMA_LOGP("%s: Failed to find vdev id for %pM\n",
-			 __func__, params->selfStaMacAddr);
-		status = VOS_STATUS_E_FAILURE;
-		goto send_resp;
-	}
+        if (!wma_find_vdev_by_addr(wma, params->selfStaMacAddr, &vdev_id)) {
+                WMA_LOGP("%s: Failed to find vdev id for %pM",
+                         __func__, params->selfStaMacAddr);
+                status = VOS_STATUS_E_FAILURE;
+                goto send_resp;
+        }
+        pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+        peer = ol_txrx_find_peer_by_addr(pdev, intr[vdev_id].bssid, &peer_id);
+
+        if (peer && (peer->state == ol_txrx_peer_state_conn ||
+                     peer->state == ol_txrx_peer_state_auth)) {
+                /* Trying to change channel while connected should not invoke VDEV_START.
+                 * Instead, use start scan command in passive mode to park station
+                 * on that channel
+                 */
+                WMA_LOGI("%s: calling set_scan, state 0x%x", __func__, wma->roam_preauth_scan_state);
+                if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_NONE) {
+                    status = wma_roam_preauth_chan_set(wma, params, vdev_id);
+                    /* response will be asynchronous */
+                    return;
+                } else if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_REQUESTED ||
+                               wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_ON_CHAN) {
+                    status = wma_roam_preauth_chan_cancel(wma, params, vdev_id);
+                    /* response will be asynchronous */
+                    return;
+                } else if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_COMPLETED) {
+                        /* Already back on home channel. Complete the request */
+                        wma->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
+                        status = VOS_STATUS_SUCCESS;
+                }
+                goto send_resp;
+        }
+        vos_mem_zero(&req, sizeof(req));
+        req.vdev_id = vdev_id;
 	msg = wma_fill_vdev_req(wma, req.vdev_id, WDA_CHNL_SWITCH_REQ,
 				WMA_TARGET_REQ_TYPE_VDEV_START, params, 1000);
 	if (!msg) {
@@ -5090,6 +5248,8 @@ send_resp:
 #endif
 		 status);
 	params->status = status;
+        WMA_LOGI("%s: sending WDA_SWITCH_CHANNEL_RSP, status = 0x%x",
+                        __func__, status);
 	wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
 }
 
@@ -5630,6 +5790,41 @@ static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
 	return 0;
 }
 
+static int
+wmi_unified_vdev_set_gtx_cfg_send(wmi_unified_t wmi_handle, u_int32_t if_id,
+				gtx_config_t *gtx_info)
+{
+	wmi_vdev_set_gtx_params_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int len = sizeof(wmi_vdev_set_gtx_params_cmd_fixed_param);
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed\n", __FUNCTION__);
+		return -1;
+	}
+	cmd = (wmi_vdev_set_gtx_params_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_vdev_set_gtx_params_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_set_gtx_params_cmd_fixed_param));
+	cmd->vdev_id = if_id;
+
+	cmd->gtxRTMask[0] = gtx_info->gtxRTMask[0];
+	cmd->gtxRTMask[1] = gtx_info->gtxRTMask[1];
+	cmd->userGtxMask = gtx_info->gtxUsrcfg;
+	cmd->gtxPERThreshold = gtx_info->gtxPERThreshold;
+	cmd->gtxPERMargin = gtx_info->gtxPERMargin;
+	cmd->gtxTPCstep = gtx_info->gtxTPCstep;
+	cmd->gtxTPCMin = gtx_info->gtxTPCMin;
+	cmd->gtxBWMask = gtx_info->gtxBWMask;
+
+	WMA_LOGD("Setting vdev%d GTX values:htmcs 0x%x, vhtmcs 0x%x, usermask 0x%x, \
+		gtxPERThreshold %d, gtxPERMargin %d, gtxTPCstep %d, gtxTPCMin %d, \
+                gtxBWMask 0x%x.\n", if_id, cmd->gtxRTMask[0], cmd->gtxRTMask[1],
+		cmd->userGtxMask, cmd->gtxPERThreshold, cmd->gtxPERMargin,
+		cmd->gtxTPCstep, cmd->gtxTPCMin, cmd->gtxBWMask);
+	return wmi_unified_cmd_send(wmi_handle, buf, len, WMI_VDEV_SET_GTX_PARAMS_CMDID);
+}
+
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					wda_cli_set_cmd_t *privcmd)
 {
@@ -5678,26 +5873,35 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		}
 		break;
 	case GEN_CMD:
+	{
+		ol_txrx_vdev_handle vdev = NULL;
+		struct wma_txrx_node *intr = wma->interfaces;
+
+		vdev = wma_find_vdev_by_id(wma, privcmd->param_vdev_id);
+		if (!vdev) {
+			WMA_LOGE("%s:Invalid vdev handle", __func__);
+			return;
+                }
+
 		WMA_LOGD("gen pid %d pval %d", privcmd->param_id,
 				privcmd->param_value);
+
 		switch (privcmd->param_id) {
 		case GEN_VDEV_PARAM_AMPDU:
-			ret = ol_txrx_aggr_cfg(
-					wma_handle->interfaces[privcmd->param_vdev_id].handle,
-					privcmd->param_value, 0);
+			ret = ol_txrx_aggr_cfg(vdev, privcmd->param_value, 0);
 			if (ret)
 				WMA_LOGE("ol_txrx_aggr_cfg set ampdu"
-						" failed ret %d", ret);
-			intr[vid].config.ampdu = privcmd->param_value;
+					" failed ret %d", ret);
+			else
+				intr[privcmd->param_vdev_id].config.ampdu = privcmd->param_value;
 			break;
 		case GEN_VDEV_PARAM_AMSDU:
-			ret = ol_txrx_aggr_cfg(
-					wma_handle->interfaces[privcmd->param_vdev_id].handle,
-					0, privcmd->param_value);
+			ret = ol_txrx_aggr_cfg(vdev, 0, privcmd->param_value);
 			if (ret)
 				WMA_LOGE("ol_txrx_aggr_cfg set amsdu"
-						" failed ret %d", ret);
-			intr[vid].config.amsdu = privcmd->param_value;
+					" failed ret %d", ret);
+			else
+				intr[privcmd->param_vdev_id].config.amsdu = privcmd->param_value;
 			break;
 		case GEN_PARAM_DUMP_AGC_START:
 			HTCDump(wma->htc_handle, AGC_DUMP, true);
@@ -5722,6 +5926,7 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		}
 		break;
+        }
 	case DBG_CMD:
 		WMA_LOGD("dbg pid %d pval %d", privcmd->param_id,
 				privcmd->param_value);
@@ -5909,6 +6114,73 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		}
 		break;
+	case GTX_CMD:
+		WMA_LOGD("vdev id %d pid %d pval %d", privcmd->param_vdev_id,
+				privcmd->param_id, privcmd->param_value);
+		switch (privcmd->param_id) {
+		case WMI_VDEV_PARAM_GTX_HT_MCS:
+			intr[vid].config.gtx_info.gtxRTMask[0] = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+		case WMI_VDEV_PARAM_GTX_VHT_MCS:
+			intr[vid].config.gtx_info.gtxRTMask[1] = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_USR_CFG:
+			intr[vid].config.gtx_info.gtxUsrcfg = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_THRE:
+			intr[vid].config.gtx_info.gtxPERThreshold = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_MARGIN:
+			intr[vid].config.gtx_info.gtxPERMargin = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_STEP:
+			intr[vid].config.gtx_info.gtxTPCstep = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_MINTPC:
+			intr[vid].config.gtx_info.gtxTPCMin = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			break;
+
+		case WMI_VDEV_PARAM_GTX_BW_MASK:
+			intr[vid].config.gtx_info.gtxBWMask = privcmd->param_value;
+			ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle,
+							privcmd->param_vdev_id,
+							&intr[vid].config.gtx_info);
+			if (ret) {
+				WMA_LOGE("wmi_unified_vdev_set_param_send"
+						" failed ret %d", ret);
+				return;
+			}
+			break;
+		default:
+			break;
+		}
+		break;
 
 	default:
 		WMA_LOGE("Invalid vpdev command id");
@@ -6049,6 +6321,32 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 		case WMI_VDEV_PARAM_NSS:
 			ret = intr[vdev_id].config.nss;
 			break;
+#ifdef QCA_SUPPORT_GTX
+		case WMI_VDEV_PARAM_GTX_HT_MCS:
+			ret = intr[vdev_id].config.gtx_info.gtxRTMask[0];
+			break;
+		case WMI_VDEV_PARAM_GTX_VHT_MCS:
+			ret = intr[vdev_id].config.gtx_info.gtxRTMask[1];
+			break;
+		case WMI_VDEV_PARAM_GTX_USR_CFG:
+			ret = intr[vdev_id].config.gtx_info.gtxUsrcfg;
+			break;
+		case WMI_VDEV_PARAM_GTX_THRE:
+			ret = intr[vdev_id].config.gtx_info.gtxPERThreshold;
+			break;
+		case WMI_VDEV_PARAM_GTX_MARGIN:
+			ret = intr[vdev_id].config.gtx_info.gtxPERMargin;
+			break;
+		case WMI_VDEV_PARAM_GTX_STEP:
+			ret = intr[vdev_id].config.gtx_info.gtxTPCstep;
+			break;
+		case WMI_VDEV_PARAM_GTX_MINTPC:
+			ret = intr[vdev_id].config.gtx_info.gtxTPCMin;
+			break;
+		case WMI_VDEV_PARAM_GTX_BW_MASK:
+			ret = intr[vdev_id].config.gtx_info.gtxBWMask;
+			break;
+#endif
 		case WMI_VDEV_PARAM_LDPC:
 			ret = intr[vdev_id].config.ldpc;
 			break;
@@ -6193,6 +6491,37 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			" yet implemented 0x%x", param_id);
 		return -EINVAL;
 		}
+	} else if (GTX_CMD == vpdev) {
+		switch (param_id) {
+		case WMI_VDEV_PARAM_GTX_HT_MCS:
+			ret = intr[vdev_id].config.gtx_info.gtxRTMask[0];
+			break;
+		case WMI_VDEV_PARAM_GTX_VHT_MCS:
+			ret = intr[vdev_id].config.gtx_info.gtxRTMask[1];
+			break;
+		case WMI_VDEV_PARAM_GTX_USR_CFG:
+			ret = intr[vdev_id].config.gtx_info.gtxUsrcfg;
+			break;
+		case WMI_VDEV_PARAM_GTX_THRE:
+			ret = intr[vdev_id].config.gtx_info.gtxPERThreshold;
+			break;
+		case WMI_VDEV_PARAM_GTX_MARGIN:
+			ret = intr[vdev_id].config.gtx_info.gtxPERMargin;
+			break;
+		case WMI_VDEV_PARAM_GTX_STEP:
+			ret = intr[vdev_id].config.gtx_info.gtxTPCstep;
+			break;
+		case WMI_VDEV_PARAM_GTX_MINTPC:
+			ret = intr[vdev_id].config.gtx_info.gtxTPCMin;
+			break;
+		case WMI_VDEV_PARAM_GTX_BW_MASK:
+			ret = intr[vdev_id].config.gtx_info.gtxBWMask;
+			break;
+		default:
+			WMA_LOGE("Invalid generic vdev command/Not"
+					" yet implemented 0x%x", param_id);
+			return -EINVAL;
+		}
 	}
 	return ret;
 }
@@ -6299,6 +6628,7 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id,
 {
 	int ret;
 	uint32_t slot_time;
+	struct wma_txrx_node *intr = wma->interfaces;
 
 	/* Beacon Interval setting */
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
@@ -6307,6 +6637,11 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id,
 
 	if (ret)
 		WMA_LOGE("failed to set WMI_VDEV_PARAM_BEACON_INTERVAL\n");
+
+	ret = wmi_unified_vdev_set_gtx_cfg_send(wma->wmi_handle, vdev_id,
+						&intr[vdev_id].config.gtx_info);
+	if (ret)
+		WMA_LOGE("failed to set WMI_VDEV_PARAM_DTIM_PERIOD\n");
 
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
 					      WMI_VDEV_PARAM_DTIM_PERIOD,
@@ -9475,6 +9810,170 @@ static void wma_config_pno(tp_wma_handle wma, tpSirPNOScanReq pno)
 	vos_mem_free(pno);
 }
 
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+static VOS_STATUS wma_plm_start(tp_wma_handle wma, const tpSirPlmReq plm)
+{
+	wmi_vdev_plmreq_start_cmd_fixed_param *cmd;
+	u_int32_t *channel_list;
+	int32_t len;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	u_int8_t count;
+	int ret;
+
+        if (NULL == plm || NULL == wma) {
+		WMA_LOGE("%s: input pointer is NULL ", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	WMA_LOGD("PLM Start");
+
+	len = sizeof(*cmd) +
+		WMI_TLV_HDR_SIZE; /* TLV place holder for channel_list */
+	len += sizeof(u_int32_t) * plm->plmNumCh;
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	cmd = (wmi_vdev_plmreq_start_cmd_fixed_param *) wmi_buf_data(buf);
+
+	buf_ptr = (u_int8_t *) cmd;
+
+        WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_vdev_plmreq_start_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+                       wmi_vdev_plmreq_start_cmd_fixed_param));
+
+	cmd->vdev_id = plm->sessionId;
+
+	cmd->meas_token = plm->meas_token;
+	cmd->number_bursts = plm->numBursts;
+        cmd->burst_interval = WMA_SEC_TO_MSEC(plm->burstInt);
+	cmd->off_duration = plm->measDuration;
+	cmd->burst_cycle = plm->burstLen;
+	cmd->tx_power = plm->desiredTxPwr;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(plm->macAddr, &cmd->dest_mac);
+	cmd->num_chans = plm->plmNumCh;
+
+	buf_ptr += sizeof(wmi_vdev_plmreq_start_cmd_fixed_param);
+
+	WMA_LOGD("vdev : %d measu token : %d", cmd->vdev_id, cmd->meas_token);
+	WMA_LOGD("number_bursts: %d", cmd->number_bursts);
+	WMA_LOGD("burst_interval: %d", cmd->burst_interval);
+	WMA_LOGD("off_duration: %d", cmd->off_duration);
+	WMA_LOGD("burst_cycle: %d", cmd->burst_cycle);
+	WMA_LOGD("tx_power: %d", cmd->tx_power);
+	WMA_LOGD("Number of channels : %d", cmd->num_chans);
+
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
+			(cmd->num_chans * sizeof(u_int32_t)));
+
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	channel_list = (u_int32_t *) buf_ptr;
+	for (count = 0; count < cmd->num_chans; count++) {
+		channel_list[count] = plm->plmChList[count];
+		if (channel_list[count] < WMA_NLO_FREQ_THRESH)
+			channel_list[count] =
+				vos_chan_to_freq(channel_list[count]);
+		WMA_LOGD("Ch[%d]: %d MHz", count, channel_list[count]);
+	}
+	buf_ptr += cmd->num_chans * sizeof(u_int32_t);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+					WMI_VDEV_PLMREQ_START_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send plm start wmi cmd", __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	wma->interfaces[plm->sessionId].plm_in_progress = TRUE;
+
+	WMA_LOGD("Plm start request sent successfully for vdev %d",
+		plm->sessionId);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+static VOS_STATUS wma_plm_stop(tp_wma_handle wma, const tpSirPlmReq plm)
+{
+	wmi_vdev_plmreq_stop_cmd_fixed_param *cmd;
+	int32_t len;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	int ret;
+
+	if (NULL == plm || NULL == wma) {
+		WMA_LOGE("%s: input pointer is NULL ", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (FALSE == wma->interfaces[plm->sessionId].plm_in_progress) {
+		WMA_LOGE("No active plm req found, skip plm stop req" );
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGD("PLM Stop");
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_vdev_plmreq_stop_cmd_fixed_param *) wmi_buf_data(buf);
+
+	buf_ptr = (u_int8_t *) cmd;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_vdev_plmreq_stop_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+			wmi_vdev_plmreq_stop_cmd_fixed_param));
+
+	cmd->vdev_id = plm->sessionId;
+
+	cmd->meas_token = plm->meas_token;
+	WMA_LOGD("vdev %d meas token %d", cmd->vdev_id, cmd->meas_token);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				WMI_VDEV_PLMREQ_STOP_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send plm stop wmi cmd", __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	wma->interfaces[plm->sessionId].plm_in_progress = FALSE;
+
+	WMA_LOGD("Plm stop request sent successfully for vdev %d",
+		plm->sessionId);
+
+	return VOS_STATUS_SUCCESS;
+}
+static void wma_config_plm(tp_wma_handle wma, tpSirPlmReq plm)
+{
+	VOS_STATUS ret = 0;
+
+	if (NULL == plm || NULL == wma)
+		return;
+
+	if (plm->enable)
+		ret = wma_plm_start(wma, plm);
+	else
+		ret = wma_plm_stop(wma, plm);
+
+	if (ret)
+		WMA_LOGE("%s: PLM %s failed %d", __func__,
+			 plm->enable ? "start" : "stop", ret);
+
+	/* SME expects WMA to free tpSirPlmReq memory after
+	 * processing PLM request. */
+	vos_mem_free(plm);
+	plm = NULL;
+}
+#endif
+
 /*
  * After pushing cached scan results (that are stored in LIM) to SME,
  * PE will post WDA_SME_SCAN_CACHE_UPDATED message indication to
@@ -12357,6 +12856,136 @@ VOS_STATUS wma_batch_scan_trigger_result
 }
 #endif
 
+/* function   : wma_process_init_thermal_info
+ * Descriptin : This function initializes the thermal management table in WMA,
+                sends down the initial temperature thresholds to the firmware and
+                configures the throttle period in the tx rx module
+ * Args       :
+                wma            : Pointer to WMA handle
+ *              pThermalParams : Pointer to thermal mitigation parameters
+ * Returns    :
+ *              VOS_STATUS_SUCCESS for success otherwise failure
+ */
+VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
+					t_thermal_mgmt *pThermalParams)
+{
+	t_thermal_cmd_params thermal_params;
+	ol_txrx_pdev_handle curr_pdev =
+		vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	if (NULL == wma || NULL == pThermalParams) {
+		WMA_LOGE("TM Invalid input");
+		return VOS_STATUS_E_FAILURE;
+	}
+	WMA_LOGD("TM enable %d period %d", pThermalParams->thermalMgmtEnabled,
+			 pThermalParams->throttlePeriod);
+
+	wma->thermal_mgmt_info.thermalMgmtEnabled =
+		pThermalParams->thermalMgmtEnabled;
+	wma->thermal_mgmt_info.thermalLevels[0].minTempThreshold =
+		pThermalParams->thermalLevels[0].minTempThreshold;
+	wma->thermal_mgmt_info.thermalLevels[0].maxTempThreshold =
+		pThermalParams->thermalLevels[0].maxTempThreshold;
+	wma->thermal_mgmt_info.thermalLevels[1].minTempThreshold =
+		pThermalParams->thermalLevels[1].minTempThreshold;
+	wma->thermal_mgmt_info.thermalLevels[1].maxTempThreshold =
+		pThermalParams->thermalLevels[1].maxTempThreshold;
+	wma->thermal_mgmt_info.thermalLevels[2].minTempThreshold =
+		pThermalParams->thermalLevels[2].minTempThreshold;
+	wma->thermal_mgmt_info.thermalLevels[2].maxTempThreshold =
+		pThermalParams->thermalLevels[2].maxTempThreshold;
+	wma->thermal_mgmt_info.thermalLevels[3].minTempThreshold =
+		pThermalParams->thermalLevels[3].minTempThreshold;
+	wma->thermal_mgmt_info.thermalLevels[3].maxTempThreshold =
+		pThermalParams->thermalLevels[3].maxTempThreshold;
+
+	WMA_LOGD("TM level min max:\n"
+			 "0 %d   %d\n"
+			 "1 %d   %d\n"
+			 "2 %d   %d\n"
+			 "3 %d   %d",
+			 wma->thermal_mgmt_info.thermalLevels[0].minTempThreshold,
+			 wma->thermal_mgmt_info.thermalLevels[0].maxTempThreshold,
+			 wma->thermal_mgmt_info.thermalLevels[1].minTempThreshold,
+			 wma->thermal_mgmt_info.thermalLevels[1].maxTempThreshold,
+			 wma->thermal_mgmt_info.thermalLevels[2].minTempThreshold,
+			 wma->thermal_mgmt_info.thermalLevels[2].maxTempThreshold,
+			 wma->thermal_mgmt_info.thermalLevels[3].minTempThreshold,
+			 wma->thermal_mgmt_info.thermalLevels[3].maxTempThreshold);
+
+	if (wma->thermal_mgmt_info.thermalMgmtEnabled)
+	{
+		ol_tx_throttle_init_period(curr_pdev, pThermalParams->throttlePeriod);
+
+		/* Get the temperature thresholds to set in firmware */
+		thermal_params.minTemp = wma->thermal_mgmt_info.
+			thermalLevels[WLAN_WMA_THERMAL_LEVEL_0].minTempThreshold;
+		thermal_params.maxTemp = wma->thermal_mgmt_info.
+			thermalLevels[WLAN_WMA_THERMAL_LEVEL_0].maxTempThreshold;
+		thermal_params.thermalEnable =
+			wma->thermal_mgmt_info.thermalMgmtEnabled;
+
+		WMA_LOGE("TM sending the following to firmware: min %d max %d enable %d",
+			thermal_params.minTemp, thermal_params.maxTemp,
+				 thermal_params.thermalEnable);
+
+		if(VOS_STATUS_SUCCESS != wma_set_thermal_mgmt(wma, thermal_params))
+		{
+			WMA_LOGE("Could not send thermal mgmt command to the firmware!");
+		}
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+/* function   : wma_process_set_thermal_level
+ * Descriptin : This function set the new thermal throttle level in the
+                txrx module and sends down the corresponding temperature
+                thresholds to the firmware
+ * Args       :
+                wma            : Pointer to WMA handle
+ *              pThermalLevel  : Pointer to thermal level
+ * Returns    :
+ *              VOS_STATUS_SUCCESS for success otherwise failure
+ */
+VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
+					u_int8_t *pThermalLevel)
+{
+	t_thermal_cmd_params thermal_params;
+	u_int8_t thermal_level = (*pThermalLevel);
+	ol_txrx_pdev_handle curr_pdev =
+		vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	WMA_LOGD("TM set level %d", thermal_level);
+
+	/* Check if thermal mitigation is enabled */
+	if (!wma->thermal_mgmt_info.thermalMgmtEnabled) {
+		WMA_LOGE("Thermal mgmt is not enabled, ignoring set level command");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (thermal_level >= WLAN_WMA_MAX_THERMAL_LEVELS) {
+		WMA_LOGE("Invalid thermal level set %d", thermal_level);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ol_tx_throttle_set_level(curr_pdev, thermal_level);
+
+	/*set the thermal level in the firmware*/
+	/* Get the temperature thresholds to set in firmware */
+	thermal_params.minTemp =
+		 wma->thermal_mgmt_info.thermalLevels[thermal_level].minTempThreshold;
+	thermal_params.maxTemp =
+		 wma->thermal_mgmt_info.thermalLevels[thermal_level].maxTempThreshold;
+	thermal_params.thermalEnable =
+		 wma->thermal_mgmt_info.thermalMgmtEnabled;
+
+	if (VOS_STATUS_SUCCESS != wma_set_thermal_mgmt(wma, thermal_params)) {
+		WMA_LOGE("Could not send thermal mgmt command to the firmware!");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
 
 /* function   : wma_mc_process_msg
  * Descriptin :
@@ -12426,7 +13055,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
                             (tDelStaSelfParams *)msg->bodyptr, 1);
 			break;
 		case WDA_START_SCAN_OFFLOAD_REQ:
-			wma_start_scan(wma_handle, msg->bodyptr);
+			wma_start_scan(wma_handle, msg->bodyptr, msg->type);
 			break;
 		case WDA_STOP_SCAN_OFFLOAD_REQ:
 			wma_stop_scan(wma_handle, msg->bodyptr);
@@ -12525,7 +13154,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_scan_cache_updated_ind(wma_handle);
 			break;
 #endif
-
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+		case WDA_SET_PLM_REQ:
+			wma_config_plm(wma_handle,
+					(tpSirPlmReq)msg->bodyptr);
+                        break;
+#endif
 		case WDA_GET_STATISTICS_REQ:
 			wma_get_stats_req(wma_handle,
 					(tAniGetPEStatsReq *) msg->bodyptr);
@@ -12689,6 +13323,14 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_process_lphb_conf_req(wma_handle, (tSirLPHBReq *)msg->bodyptr);
 			break;
 #endif
+	    case WDA_INIT_THERMAL_INFO_CMD:
+			wma_process_init_thermal_info(wma_handle, (t_thermal_mgmt *)msg->bodyptr);
+			break;
+
+	    case WDA_SET_THERMAL_LEVEL:
+		    wma_process_set_thermal_level(wma_handle, (u_int8_t *) msg->bodyptr);
+			break;
+
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -12711,6 +13353,16 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 	u_int8_t vdev_id;
 	v_U32_t scan_id;
 
+        param_buf = (WMI_SCAN_EVENTID_param_tlvs *) data;
+        wmi_event = param_buf->fixed_param;
+        vdev_id = wmi_event->vdev_id;
+        scan_id = wma_handle->interfaces[vdev_id].scan_info.scan_id;
+
+        if (wma_handle->roam_preauth_scan_id == wmi_event->scan_id) {
+                /* This is the scan requested by roam preauth set_channel operation */
+                wma_roam_preauth_scan_event_handler(wma_handle, vdev_id, wmi_event);
+                return 0;
+        }
 	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc
                                 (sizeof(tSirScanOffloadEvent));
 	if (!scan_event) {
@@ -12718,10 +13370,6 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 		return -ENOMEM;
 	}
 
-	param_buf = (WMI_SCAN_EVENTID_param_tlvs *) data;
-	wmi_event = param_buf->fixed_param;
-	vdev_id = wmi_event->vdev_id;
-	scan_id = wma_handle->interfaces[vdev_id].scan_info.scan_id;
 	scan_event->event = wmi_event->event;
 
 	WMA_LOGI("WMA <-- wmi_scan_event : event %lu, scan_id %lu, freq %lu",
@@ -13105,6 +13753,138 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 }
 #endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
 
+/* function   : wma_set_thermal_mgmt
+ * Descriptin : This function sends the thermal management command to the firmware
+ * Args       :
+                wma_handle     : Pointer to WMA handle
+ *              thermal_info   : Thermal command information
+ * Returns    :
+ *              VOS_STATUS_SUCCESS for success otherwise failure
+ */
+static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
+					t_thermal_cmd_params thermal_info)
+{
+	wmi_thermal_mgmt_cmd_fixed_param *cmd = NULL;
+	wmi_buf_t buf = NULL;
+	int status = 0;
+	u_int32_t len = 0;
+
+	len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send set key cmd");
+		return eHAL_STATUS_FAILURE;
+	}
+
+	cmd = (wmi_thermal_mgmt_cmd_fixed_param *) wmi_buf_data (buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+				   WMITLV_TAG_STRUC_wmi_thermal_mgmt_cmd_fixed_param,
+				   WMITLV_GET_STRUCT_TLVLEN(wmi_thermal_mgmt_cmd_fixed_param));
+
+	cmd->lower_thresh_degreeC = thermal_info.minTemp;
+	cmd->upper_thresh_degreeC = thermal_info.maxTemp;
+	cmd->enable = thermal_info.thermalEnable;
+
+	WMA_LOGE("TM Sending thermal mgmt cmd: low temp %d, upper temp %d, enabled %d",
+			 cmd->lower_thresh_degreeC, cmd->upper_thresh_degreeC, cmd->enable);
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				  WMI_THERMAL_MGMT_CMDID);
+	if (status) {
+		adf_nbuf_free(buf);
+		WMA_LOGE("%s:Failed to send thermal mgmt command", __func__);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
+/* function   : wma_thermal_mgmt_get_level
+ * Descriptin : This function returns the thermal(throttle) level given the temperature
+ * Args       :
+                handle     : Pointer to WMA handle
+ *              temp       : temperature
+ * Returns    :
+ *              thermal (throttle) level
+ */
+u_int8_t wma_thermal_mgmt_get_level(void *handle, u_int32_t temp)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	int i;
+	t_thermal_level_info thermal_info;
+
+	for (i = 0; i < (WLAN_WMA_MAX_THERMAL_LEVELS - 1); i++) {
+		thermal_info = wma->thermal_mgmt_info.thermalLevels[i];
+		if (temp < thermal_info.maxTempThreshold) {
+			return i;
+		}
+	}
+	return (WLAN_WMA_MAX_THERMAL_LEVELS - 1);
+}
+
+/* function   : wma_thermal_mgmt_evt_handler
+ * Descriptin : This function handles the thermal mgmt event from the firmware
+ * Args       :
+                wma_handle     : Pointer to WMA handle
+ *              event          : Thermal event information
+ *              len            :
+ * Returns    :
+ *              0 for success otherwise failure
+ */
+static int wma_thermal_mgmt_evt_handler(void *handle, u_int8_t *event,
+					u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	wmi_thermal_mgmt_event_fixed_param *tm_event;
+	u_int8_t thermal_level;
+	t_thermal_cmd_params thermal_params;
+	WMI_THERMAL_MGMT_EVENTID_param_tlvs *param_buf =
+		(WMI_THERMAL_MGMT_EVENTID_param_tlvs *) event;
+	ol_txrx_pdev_handle curr_pdev =
+		vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	/* Check if thermal mitigation is enabled */
+	if (!wma->thermal_mgmt_info.thermalMgmtEnabled){
+		WMA_LOGE("Thermal mgmt is not enabled, ignoring event");
+		return -EINVAL;
+	}
+
+	if (!param_buf) {
+		WMA_LOGE("Invalid thermal mitigation event buffer");
+		return -EINVAL;
+	}
+
+	tm_event = param_buf->fixed_param;
+	WMA_LOGD("Thermal mgmt event received with temperature %d",
+		 tm_event->temperature_degreeC);
+
+	/* Get the thermal mitigation level for the reported temperature*/
+	thermal_level = wma_thermal_mgmt_get_level(handle, tm_event->temperature_degreeC);
+	WMA_LOGD("Thermal mgmt level  %d", thermal_level);
+
+	wma->thermal_mgmt_info.thermalCurrLevel = thermal_level;
+
+	/* Inform txrx */
+	ol_tx_throttle_set_level(curr_pdev, thermal_level);
+
+	/* Get the temperature thresholds to set in firmware */
+	thermal_params.minTemp =
+		 wma->thermal_mgmt_info.thermalLevels[thermal_level].minTempThreshold;
+	thermal_params.maxTemp =
+		 wma->thermal_mgmt_info.thermalLevels[thermal_level].maxTempThreshold;
+	thermal_params.thermalEnable =
+		 wma->thermal_mgmt_info.thermalMgmtEnabled;
+
+	if (VOS_STATUS_SUCCESS != wma_set_thermal_mgmt(wma, thermal_params)) {
+		WMA_LOGE("Could not send thermal mgmt command to the firmware!");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 #ifdef FEATURE_WLAN_BATCH_SCAN
 
 /* function   : wma_batch_scan_result_event_handler
@@ -13130,6 +13910,7 @@ wma_batch_scan_result_event_handler
     tSirBatchScanResultIndParam *pHddResult;
     tSirBatchScanNetworkInfo *pHddApMetaInfo;
     tp_wma_handle wma = (tp_wma_handle) handle;
+    u_int32_t nextScanListOffset, nextApMetaInfoOffset;
     u_int8_t bssid[IEEE80211_ADDR_LEN], ssid[32], *ssid_temp;
     u_int32_t temp, count1, count2, scan_num, netinfo_num, total_size;
     WMI_BATCH_SCAN_RESULT_EVENTID_param_tlvs *param_tlvs;
@@ -13196,18 +13977,25 @@ wma_batch_scan_result_event_handler
     pHddResult->timestamp = fix_param->timestamp;
     pHddResult->numScanLists = fix_param->numScanLists;
     pHddResult->isLastResult = fix_param->isLastResult;
-    pHddScanList = (tSirBatchScanList *)pHddResult->scanResults;
     scan_list = param_tlvs->scan_list;
     network_info = param_tlvs->network_list;
+    nextScanListOffset = 0;
+    nextApMetaInfoOffset = 0;
     for(count1 = 0; count1 < scan_num; count1++)
     {
+        pHddScanList = (tSirBatchScanList *)(pHddResult->scanResults +
+                                              nextScanListOffset);
         pHddScanList->scanId = scan_list->scanId;
         pHddScanList->numNetworksInScanList = scan_list->numNetworksInScanList;
-        pHddApMetaInfo =
-         (tSirBatchScanNetworkInfo *)(pHddScanList->scanList);
 
         for (count2 = 0; count2 < scan_list->numNetworksInScanList; count2++)
         {
+            int8_t raw_rssi;
+
+            pHddApMetaInfo =
+              (tSirBatchScanNetworkInfo *)(pHddScanList->scanList +
+                                                nextApMetaInfoOffset);
+
             WMI_MAC_ADDR_TO_CHAR_ARRAY(&network_info->bssid, &bssid[0]);
             vos_mem_copy(pHddApMetaInfo->bssid, bssid, IEEE80211_ADDR_LEN);
             if (network_info->ssid.ssid_len <= 32)
@@ -13229,18 +14017,20 @@ wma_batch_scan_result_event_handler
                pHddApMetaInfo->ssid[0] = '\0';
             }
             pHddApMetaInfo->ch = network_info->ch;
-            pHddApMetaInfo->rssi = ((network_info->rssi + 100) -
-                                       WMI_DEFAULT_NOISE_FLOOR_DBM);
+            raw_rssi = ((int32_t)network_info->rssi + WMA_TGT_NOISE_FLOOR_DBM);
+            if (raw_rssi < 0)
+                raw_rssi = raw_rssi * (-1);
+            pHddApMetaInfo->rssi = raw_rssi;
             pHddApMetaInfo->timestamp = network_info->timestamp;
 
             WMA_LOGD("ch %d rssi %d timestamp %d",pHddApMetaInfo->ch,
             pHddApMetaInfo->rssi, pHddApMetaInfo->timestamp);
 
-            pHddApMetaInfo++;
+            nextApMetaInfoOffset += sizeof(tSirBatchScanNetworkInfo);
             network_info++;
         }
 
-        pHddScanList = (tSirBatchScanList*)pHddApMetaInfo;
+        nextScanListOffset += (sizeof(tSirBatchScanList) - (sizeof(tANI_U8)));
         scan_list++;
     }
 
@@ -13536,6 +14326,16 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 	}
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+	status = wmi_unified_register_event_handler(
+	   wma_handle->wmi_handle,
+	   WMI_THERMAL_MGMT_EVENTID,
+	   wma_thermal_mgmt_evt_handler);
+	if (status) {
+		WMA_LOGE("Failed to register thermal mitigation event cb");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+
 	vos_status = VOS_STATUS_SUCCESS;
 
 #ifdef QCA_WIFI_FTM
@@ -13665,7 +14465,8 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		wma_free_wow_ptrn(wma_handle, ptrn_id);
 
 #ifdef FEATURE_WLAN_SCAN_PNO
-	vos_wake_lock_destroy(&wma_handle->pno_wake_lock);
+	if (vos_get_conparam() != VOS_FTM_MODE)
+		vos_wake_lock_destroy(&wma_handle->pno_wake_lock);
 #endif
 	/* unregister Firmware debug log */
 	vos_status = dbglog_deinit(wma_handle->wmi_handle);
@@ -13696,7 +14497,8 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 	/* Detach UTF and unregister the handler */
-	wma_utf_detach(wma_handle);
+	if (vos_get_conparam() == VOS_FTM_MODE)
+		wma_utf_detach(wma_handle);
 #endif
 
 	/* dettach the wmi serice */
@@ -14506,6 +15308,7 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	tpSirMacFrameCtl pFc = (tpSirMacFrameCtl)(adf_nbuf_data(tx_frame));
 	u_int8_t use_6mbps = 0;
 	u_int8_t downld_comp_required = 0;
+	u_int16_t chanfreq;
 #ifdef WLAN_FEATURE_11W
 	tANI_U8         *pFrame = NULL;
 	void            *pPacket = NULL;
@@ -14711,8 +15514,14 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	if(tx_flag & HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME)
 		use_6mbps = 1;
 
+        if (wma_handle->roam_preauth_scan_state == WMA_ROAM_PREAUTH_ON_CHAN) {
+                chanfreq = wma_handle->roam_preauth_chanfreq;
+                WMA_LOGI("%s: Preauth frame on channel %d", __func__, chanfreq);
+        } else {
+                chanfreq = 0;
+        }
 	/* Hand over the Tx Mgmt frame to TxRx */
-	status = wdi_in_mgmt_send(txrx_vdev, tx_frame, tx_frm_index, use_6mbps);
+	status = wdi_in_mgmt_send(txrx_vdev, tx_frame, tx_frm_index, use_6mbps, chanfreq);
 
 	/*
 	 * Failed to send Tx Mgmt Frame

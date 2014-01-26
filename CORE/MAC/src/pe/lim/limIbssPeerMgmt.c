@@ -197,6 +197,7 @@ ibss_peer_collect(
         pPeer->htShortGI40Mhz = (tANI_U8)pBeacon->HTCaps.shortGI40MHz;
         pPeer->htMaxRxAMpduFactor = pBeacon->HTCaps.maxRxAMPDUFactor;
         pPeer->htSecondaryChannelOffset = pBeacon->HTInfo.secondaryChannelOffset;
+        pPeer->htLdpcCapable = (tANI_U8)pBeacon->HTCaps.advCodingCap;
     }
 
     /* Collect peer VHT capabilities based on the received beacon from the peer */
@@ -265,6 +266,7 @@ ibss_sta_caps_update(
             // In the future, may need to check for "delayedBA"
             // For now, it is IMMEDIATE BA only on ALL TID's
             pStaDs->baPolicyFlag = 0xFF;
+            pStaDs->htLdpcCapable = pPeerNode->htLdpcCapable;
         }
     }
 #ifdef WLAN_FEATURE_11AC
@@ -278,6 +280,7 @@ ibss_sta_caps_update(
            // If in 11AC mode and if session requires 11AC mode, consider peer's
            // max AMPDU length factor
            pStaDs->htMaxRxAMpduFactor = pPeerNode->VHTCaps.maxAMPDULenExp;
+           pStaDs->vhtLdpcCapable = (tANI_U8)pPeerNode->VHTCaps.ldpcCodingCap;
         }
     }
 #endif
@@ -1044,6 +1047,29 @@ limIbssDecideProtection(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpUpdateBeaco
     return;
 }
 
+/**
+ * limIbssPeerFind()
+ *
+ *FUNCTION:
+ * This function is called while adding a context at
+ * DPH & Polaris for a peer in IBSS.
+ * If peer is found in the list, capabilities from the
+ * returned BSS description are used at DPH node & Polaris.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param  macAddr - MAC address of the peer
+ *
+ * @return Pointer to peer node if found, else NULL
+ */
+tLimIbssPeerNode* limIbssPeerFind(tpAniSirGlobal pMac, tSirMacAddr macAddr)
+{
+    return ibss_peer_find(pMac, macAddr);
+}
 
 /**
  * limIbssStaAdd()

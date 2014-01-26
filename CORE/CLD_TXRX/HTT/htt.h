@@ -113,9 +113,7 @@ enum htt_h2t_msg_type {
     HTT_H2T_MSG_TYPE_RX_RING_CFG = 0x2,
     HTT_H2T_MSG_TYPE_STATS_REQ   = 0x3,
     HTT_H2T_MSG_TYPE_SYNC        = 0x4,
-#if defined(TEMP_AGGR_CFG)
     HTT_H2T_MSG_TYPE_AGGR_CFG    = 0x5,
-#endif
     HTT_H2T_MSG_TYPE_FRAG_DESC_BANK_CFG = 0x6,
     DEPRECATED_HTT_H2T_MSG_TYPE_MGMT_TX = 0x7, /* no longer used */
 
@@ -1157,7 +1155,6 @@ PREPACK struct htt_mgmt_tx_compl_ind {
     } while (0)
 
 
-#if defined(TEMP_AGGR_CFG)
 /**
  * @brief HTT aggregation configuration
  */
@@ -1185,7 +1182,6 @@ PREPACK struct htt_mgmt_tx_compl_ind {
         HTT_CHECK_SET_VAL(HTT_AGGR_CFG_MAX_NUM_AMSDU_SUBFRM, _val);  \
         ((_var) |= ((_val) << HTT_AGGR_CFG_MAX_NUM_AMSDU_SUBFRM_S)); \
     } while (0)
-#endif
 
 
 /*=== target -> host messages ===============================================*/

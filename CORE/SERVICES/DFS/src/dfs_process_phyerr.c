@@ -494,7 +494,7 @@ dump_phyerr_contents(const char *d, int len)
     * Print the final line if we didn't print it above.
     */
    if (n != 0)
-      printk("%s: %s\n", __func__, buf);
+      VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s: %s\n", __func__, buf);
 }
 
 void
@@ -508,8 +508,13 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
    struct dfs_phy_err e;
    int empty;
 
+   if (dfs == NULL) {
+      VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                      "%s: sc_dfs is NULL\n", __func__);
+      return;
+   }
 
-       dfs->dfs_phyerr_count++;
+   dfs->dfs_phyerr_count++;
        //dump_phyerr_contents(buf, datalen);
    /*
     * XXX The combined_rssi_ok support has been removed.
@@ -540,10 +545,6 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
       return;
    }
 
-   if (dfs == NULL) {
-                DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: sc_dfs is NULL\n",__func__);
-      return;
-   }
    dfs->ath_dfs_stats.total_phy_errors++;
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS2,
        "%s[%d] phyerr %d len %d\n",

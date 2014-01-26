@@ -143,14 +143,13 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
     int i;
 
    if (dfs == NULL) {
-                printk("%s[%d]: --------- dfs is NULL ------- \n",__func__,__LINE__);
-      DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: sc_sfs is NULL\n",
-         __func__);
+      VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                      "%s[%d]: dfs is NULL", __func__, __LINE__);
       return 0;
    }
     pl = dfs->pulses;
    if ( !(IEEE80211_IS_CHAN_DFS(dfs->ic->ic_curchan))) {
-           DFS_DPRINTK(dfs, ATH_DEBUG_DFS2, "%s: radar event on non-DFS chan\n",
+           DFS_DPRINTK(dfs, ATH_DEBUG_DFS2, "%s: radar event on non-DFS chan",
                         __func__);
                 dfs_reset_radarq(dfs);
                 dfs_reset_alldelaylines(dfs);
@@ -162,7 +161,7 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
                     /* bangradar will always simulate radar found on the primary channel */
            rs = &dfs->dfs_radar[dfs->dfs_curchan_radindex];
            dfs->dfs_bangradar = 0; /* reset */
-                DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: bangradar\n", __func__);
+                DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: bangradar", __func__);
            retval = 1;
                      goto dfsfound;
     }
@@ -191,7 +190,7 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
                 if ((dfs->dfs_phyerr_freq_max - dfs->dfs_phyerr_freq_min) < DFS_MAX_FREQ_SPREAD) {
                     dfs->dfs_pri_multiplier = DFS_LARGE_PRI_MULTIPLIER;
                 }
-                DFS_DPRINTK(dfs, ATH_DEBUG_DFS1, "%s: w53_counter=%d, freq_max=%d, freq_min=%d, pri_multiplier=%d\n",
+                DFS_DPRINTK(dfs, ATH_DEBUG_DFS1, "%s: w53_counter=%d, freq_max=%d, freq_min=%d, pri_multiplier=%d",
                             __func__,
                             dfs->dfs_phyerr_w53_counter,
                             dfs->dfs_phyerr_freq_max,
@@ -203,7 +202,7 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
                 return 0;
             }
         }
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS1, "%s: pri_multiplier=%d\n", __func__, dfs->dfs_pri_multiplier);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS1, "%s: pri_multiplier=%d", __func__, dfs->dfs_pri_multiplier);
 
    ATH_DFSQ_LOCK(dfs);
    empty = STAILQ_EMPTY(&(dfs->dfs_radarq));
@@ -218,7 +217,7 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
 
       if (event == NULL) {
          empty = 1;
-         printk("%s[%d]: event is NULL \n",__func__,__LINE__);
+         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "%s[%d]: event is NULL ",__func__,__LINE__);
                         break;
       }
                 events_processed++;
@@ -267,7 +266,7 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
                          */
                         if (re.re_dur == 0 && re.re_ts == dfs->dfs_rinfo.rn_last_unique_ts) {
                                 debug_dup[debug_dup_cnt++] = '1';
-                                DFS_DPRINTK(dfs, ATH_DEBUG_DFS1, "\n %s deltaT is 0 \n", __func__);
+                                DFS_DPRINTK(dfs, ATH_DEBUG_DFS1, " %s deltaT is 0 ", __func__);
                         } else {
                                 dfs->dfs_rinfo.rn_last_unique_ts = re.re_ts;
                                 debug_dup[debug_dup_cnt++] = '0';
@@ -360,7 +359,7 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
                 pl->pl_elems[index].p_rssi = re.re_rssi;
                 diff_ts = (u_int32_t)this_ts - test_ts;
                 test_ts = (u_int32_t)this_ts;
-                DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,"ts%u %u %u diff %u pl->pl_lastelem.p_time=%llu\n",(u_int32_t)this_ts, re.re_dur, re.re_rssi, diff_ts, (unsigned long long)pl->pl_elems[index].p_time);
+                DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,"ts%u %u %u diff %u pl->pl_lastelem.p_time=%llu",(u_int32_t)this_ts, re.re_dur, re.re_rssi, diff_ts, (unsigned long long)pl->pl_elems[index].p_time);
                 if (dfs->dfs_event_log_on) {
                         i = dfs->dfs_event_log_count % DFS_EVENT_LOG_SIZE;
                         dfs->radar_log[i].ts      = this_ts;
@@ -369,7 +368,7 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
                         dfs->radar_log[i].dur     = re.re_dur;
                         dfs->dfs_event_log_count++;
                 }
-                printk("%s[%d]:xxxxx ts =%u re.re_dur=%u re.re_rssi =%u diff =%u pl->pl_lastelem.p_time=%llu xxxxx\n",__func__,__LINE__,(u_int32_t)this_ts, re.re_dur, re.re_rssi, diff_ts, (unsigned long long)pl->pl_elems[index].p_time);
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]:xxxxx ts =%u re.re_dur=%u re.re_rssi =%u diff =%u pl->pl_lastelem.p_time=%llu xxxxx",__func__,__LINE__,(u_int32_t)this_ts, re.re_dur, re.re_rssi, diff_ts, (unsigned long long)pl->pl_elems[index].p_time);
 
 
 
@@ -404,34 +403,34 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
                }
             } else{
                DFS_DPRINTK(dfs, ATH_DEBUG_DFS_BIN5_PULSE,
-                   "%s not a BIN5 pulse (dur=%d)\n",
+                   "%s not a BIN5 pulse (dur=%d)",
                    __func__, re.re_dur);
                                  }
          }
       }
 
       if (found) {
-         DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: Found bin5 radar\n", __func__);
+         DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: Found bin5 radar", __func__);
          retval |= found;
          goto dfsfound;
       }
 
       tabledepth = 0;
       rf = NULL;
-      DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,"  *** chan freq (%d): ts %llu dur %u rssi %u\n",
+      DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,"  *** chan freq (%d): ts %llu dur %u rssi %u",
          rs->rs_chan.ic_freq, (unsigned long long)this_ts, re.re_dur, re.re_rssi);
 
       while ((tabledepth < DFS_MAX_RADAR_OVERLAP) &&
              ((dfs->dfs_radartable[re.re_dur])[tabledepth] != -1) &&
              (!retval)) {
          ft = dfs->dfs_radarf[((dfs->dfs_radartable[re.re_dur])[tabledepth])];
-         DFS_DPRINTK(dfs, ATH_DEBUG_DFS2,"  ** RD (%d): ts %x dur %u rssi %u\n",
+         DFS_DPRINTK(dfs, ATH_DEBUG_DFS2,"  ** RD (%d): ts %x dur %u rssi %u",
                    rs->rs_chan.ic_freq,
                    re.re_ts, re.re_dur, re.re_rssi);
 
          if (re.re_rssi < ft->ft_rssithresh && re.re_dur > 4) {
-               DFS_DPRINTK(dfs, ATH_DEBUG_DFS2,"%s : Rejecting on rssi rssi=%u thresh=%u\n", __func__, re.re_rssi, ft->ft_rssithresh);
-                           printk("%s[%d]: Rejecting on rssi rssi=%u thresh=%u\n",__func__,__LINE__,re.re_rssi, ft->ft_rssithresh);
+               DFS_DPRINTK(dfs, ATH_DEBUG_DFS2,"%s : Rejecting on rssi rssi=%u thresh=%u", __func__, re.re_rssi, ft->ft_rssithresh);
+                           VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]: Rejecting on rssi rssi=%u thresh=%u",__func__,__LINE__,re.re_rssi, ft->ft_rssithresh);
                      tabledepth++;
             ATH_DFSQ_LOCK(dfs);
             empty = STAILQ_EMPTY(&(dfs->dfs_radarq));
@@ -439,12 +438,12 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
             continue;
          }
          deltaT = this_ts - ft->ft_last_ts;
-         DFS_DPRINTK(dfs, ATH_DEBUG_DFS2,"deltaT = %lld (ts: 0x%llx) (last ts: 0x%llx)\n",(unsigned long long)deltaT, (unsigned long long)this_ts, (unsigned long long)ft->ft_last_ts);
+         DFS_DPRINTK(dfs, ATH_DEBUG_DFS2,"deltaT = %lld (ts: 0x%llx) (last ts: 0x%llx)",(unsigned long long)deltaT, (unsigned long long)this_ts, (unsigned long long)ft->ft_last_ts);
          if ((deltaT < ft->ft_minpri) && (deltaT !=0)){
                                 /* This check is for the whole filter type. Individual filters
                                  will check this again. This is first line of filtering.*/
-            DFS_DPRINTK(dfs, ATH_DEBUG_DFS2, "%s: Rejecting on pri pri=%lld minpri=%u\n", __func__, (unsigned long long)deltaT, ft->ft_minpri);
-                                printk("%s[%d]:Rejecting on pri pri=%lld minpri=%u\n",__func__,__LINE__,(unsigned long long)deltaT,ft->ft_minpri);
+            DFS_DPRINTK(dfs, ATH_DEBUG_DFS2, "%s: Rejecting on pri pri=%lld minpri=%u", __func__, (unsigned long long)deltaT, ft->ft_minpri);
+                                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]:Rejecting on pri pri=%lld minpri=%u",__func__,__LINE__,(unsigned long long)deltaT,ft->ft_minpri);
                                 tabledepth++;
             continue;
          }
@@ -459,18 +458,18 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
                                         if ((deltaT < rf->rf_minpri) && (deltaT != 0)) {
                                                 /* Second line of PRI filtering. */
                                                 DFS_DPRINTK(dfs, ATH_DEBUG_DFS2,
-                                                "filterID %d : Rejecting on individual filter min PRI deltaT=%lld rf->rf_minpri=%u\n",
+                                                "filterID %d : Rejecting on individual filter min PRI deltaT=%lld rf->rf_minpri=%u",
                                                 rf->rf_pulseid, (unsigned long long)deltaT, rf->rf_minpri);
-                                                printk("%s[%d]:filterID= %d::Rejecting on individual filter min PRI deltaT=%lld rf->rf_minpri=%u\n",__func__,__LINE__,rf->rf_pulseid, (unsigned long long)deltaT, rf->rf_minpri);
+                                                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]:filterID= %d::Rejecting on individual filter min PRI deltaT=%lld rf->rf_minpri=%u",__func__,__LINE__,rf->rf_pulseid, (unsigned long long)deltaT, rf->rf_minpri);
                                                 continue;
                                         }
 
                                         if (rf->rf_ignore_pri_window > 0) {
                                            if (deltaT < rf->rf_minpri) {
                                                 DFS_DPRINTK(dfs, ATH_DEBUG_DFS2,
-                                                "filterID %d : Rejecting on individual filter max PRI deltaT=%lld rf->rf_minpri=%u\n",
+                                                "filterID %d : Rejecting on individual filter max PRI deltaT=%lld rf->rf_minpri=%u",
                                                 rf->rf_pulseid, (unsigned long long)deltaT, rf->rf_minpri);
-                            printk("%s[%d]:filterID= %d :: Rejecting on individual filter max PRI deltaT=%lld rf->rf_minpri=%u\n",__func__,__LINE__,rf->rf_pulseid, (unsigned long long)deltaT, rf->rf_minpri);
+                            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]:filterID= %d :: Rejecting on individual filter max PRI deltaT=%lld rf->rf_minpri=%u",__func__,__LINE__,rf->rf_pulseid, (unsigned long long)deltaT, rf->rf_minpri);
                                                 /* But update the last time stamp */
                                                 rf->rf_dl.dl_last_ts = this_ts;
                                                 continue;
@@ -487,9 +486,9 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
 
                                         if ( (deltaT > (dfs->dfs_pri_multiplier * rf->rf_maxpri) ) || (deltaT < rf->rf_minpri) ) {
                                                 DFS_DPRINTK(dfs, ATH_DEBUG_DFS2,
-                                                "filterID %d : Rejecting on individual filter max PRI deltaT=%lld rf->rf_minpri=%u\n",
+                                                "filterID %d : Rejecting on individual filter max PRI deltaT=%lld rf->rf_minpri=%u",
                                                 rf->rf_pulseid, (unsigned long long)deltaT, rf->rf_minpri);
-printk("%s[%d]:filterID= %d :: Rejecting on individual filter max PRI deltaT=%lld rf->rf_minpri=%u\n",__func__,__LINE__,rf->rf_pulseid, (unsigned long long)deltaT, rf->rf_minpri);
+VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]:filterID= %d :: Rejecting on individual filter max PRI deltaT=%lld rf->rf_minpri=%u",__func__,__LINE__,rf->rf_pulseid, (unsigned long long)deltaT, rf->rf_minpri);
                                                 /* But update the last time stamp */
                                                 rf->rf_dl.dl_last_ts = this_ts;
                                                 continue;
@@ -517,7 +516,7 @@ printk("%s[%d]:filterID= %d :: Rejecting on individual filter max PRI deltaT=%ll
          retval |= found;
          if (found) {
             DFS_DPRINTK(dfs, ATH_DEBUG_DFS3,
-               "Found on channel minDur = %d, filterId = %d\n",ft->ft_mindur,
+               "Found on channel minDur = %d, filterId = %d",ft->ft_mindur,
                rf != NULL ? rf->rf_pulseid : -1);
                         }
          tabledepth++;
@@ -531,9 +530,9 @@ dfsfound:
       /* Collect stats */
       dfs->ath_dfs_stats.num_radar_detects++;
       thischan = &rs->rs_chan;
-   printk("%s[%d]: ##########################  Radar found on channel %d (%d MHz)  ########################## \n",__func__,__LINE__,thischan->ic_ieee,
+   VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "%s[%d]: ### RADAR FOUND ON CHANNEL %d (%d MHz) ###",__func__,__LINE__,thischan->ic_ieee,
 thischan->ic_freq);
-      DFS_PRINTK("Radar found on channel %d (%d MHz)\n",
+      DFS_PRINTK("Radar found on channel %d (%d MHz)",
           thischan->ic_ieee,
           thischan->ic_freq);
 
@@ -563,18 +562,18 @@ thischan->ic_freq);
       ath_hal_setrxfilter(ah, rfilt);
 #endif
          DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,
-             "Primary channel freq = %u flags=0x%x\n",
+             "Primary channel freq = %u flags=0x%x",
              chan->ic_freq, chan->ic_flagext);
          if ((dfs->ic->ic_curchan->ic_freq!= thischan->ic_freq)) {
          DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,
-             "Ext channel freq = %u flags=0x%x\n",
+             "Ext channel freq = %u flags=0x%x",
              thischan->ic_freq, thischan->ic_flagext);
       }
                 dfs->dfs_phyerr_freq_min     = 0x7fffffff;
                 dfs->dfs_phyerr_freq_max     = 0;
                 dfs->dfs_phyerr_w53_counter  = 0;
    }
-        //printk("IN FUNC %s[%d]: retval = %d \n",__func__,__LINE__,retval);
+        //VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "IN FUNC %s[%d]: retval = %d ",__func__,__LINE__,retval);
    return retval;
 //#endif
 //        return 1;

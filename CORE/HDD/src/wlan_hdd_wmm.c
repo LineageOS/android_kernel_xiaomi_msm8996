@@ -758,7 +758,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
          // the packets will flow.  Note that the MAC will "do the right thing"
          pAc->wmmAcAccessPending = VOS_FALSE;
          pAc->wmmAcAccessFailed = VOS_TRUE;
-         pAc->wmmAcAccessAllowed = VOS_TRUE;
+         pAc->wmmAcAccessAllowed = VOS_FALSE;
 
          // this was triggered by implicit QoS so we know packets are pending
          status = WLANTL_STAPktPending( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
@@ -780,6 +780,10 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
 
          // this was triggered by an application
          pQosContext->lastStatus = HDD_WLAN_WMM_STATUS_SETUP_FAILED;
+
+         pAc->wmmAcAccessAllowed = VOS_FALSE;
+         pAc->wmmAcAccessFailed = VOS_TRUE;
+
          hdd_wmm_notify_app(pQosContext);
       }
 
@@ -1220,6 +1224,9 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
    // prior to invoking TL (so that we will properly service the
    // Tx queues) but let's consistently handle all cases here
    pAc->wmmAcAccessAllowed = hdd_wmm_is_access_allowed(pAdapter, pAc);
+
+   if(pAc->wmmAcAccessFailed)
+      pAc->wmmAcAccessAllowed = VOS_FALSE;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
              "%s: complete, access for TL AC %d is%sallowed",
@@ -2026,8 +2033,8 @@ VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
       VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
                 "%s: QoS not configured on both ends ", __func__);
 
-      pAdapter->hddWmmStatus.wmmAcStatus[acType].wmmAcAccessAllowed = VOS_TRUE;
-      *pGranted = VOS_TRUE;
+      *pGranted = pAdapter->hddWmmStatus.wmmAcStatus[acType].wmmAcAccessAllowed;
+
       return VOS_STATUS_SUCCESS;
    }
 
@@ -2054,8 +2061,8 @@ VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
                 "%s: Implicit QoS for TL AC %d previously failed",
                 __func__, acType);
 
-      pAdapter->hddWmmStatus.wmmAcStatus[acType].wmmAcAccessAllowed = VOS_TRUE;
-      *pGranted = VOS_TRUE;
+      pAdapter->hddWmmStatus.wmmAcStatus[acType].wmmAcAccessAllowed = VOS_FALSE;
+      *pGranted = VOS_FALSE;
       return VOS_STATUS_SUCCESS;
    }
 

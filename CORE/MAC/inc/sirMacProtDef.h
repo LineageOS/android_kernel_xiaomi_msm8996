@@ -2863,4 +2863,23 @@ typedef __ani_attr_pre_packed struct sSirPhy11aHdr
 #define SIR_MAC_VHT_CAP_TX_ANTENNA_PATTERN        29
 #define SIR_MAC_VHT_CAP_RESERVED2                 30
 
+#define SIR_MAC_HT_CAP_ADVCODING_S                 0
+#define SIR_MAC_HT_CAP_CHWIDTH40_S                 1
+#define SIR_MAC_HT_CAP_SMPOWERSAVE_DYNAMIC_S       2
+#define SIR_MAC_HT_CAP_SM_RESERVED_S               3
+#define SIR_MAC_HT_CAP_GREENFIELD_S                4
+#define SIR_MAC_HT_CAP_SHORTGI20MHZ_S              5
+#define SIR_MAC_HT_CAP_SHORTGI40MHZ_S              6
+#define SIR_MAC_HT_CAP_TXSTBC_S                    7
+#define SIR_MAC_HT_CAP_RXSTBC_S                    8
+#define SIR_MAC_HT_CAP_DELAYEDBLKACK_S            10
+#define SIR_MAC_HT_CAP_MAXAMSDUSIZE_S             11
+#define SIR_MAC_HT_CAP_DSSSCCK40_S                12
+#define SIR_MAC_HT_CAP_PSMP_S                     13
+#define SIR_MAC_HT_CAP_INTOLERANT40_S             14
+#define SIR_MAC_HT_CAP_LSIGTXOPPROT_S             15
+
+#define SIR_MAC_TXSTBC                             1
+#define SIR_MAC_RXSTBC                             1
+
 #endif /* __MAC_PROT_DEFS_H */

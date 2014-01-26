@@ -357,7 +357,7 @@ __adf_nbuf_get_vlan_info(adf_net_handle_t hdl, struct sk_buff *skb,
 a_uint8_t
 __adf_nbuf_get_tid(struct sk_buff *skb)
 {
-    return ADF_NBUF_TX_EXT_TID_INVALID;
+    return skb->priority;
 }
 
 a_uint8_t
