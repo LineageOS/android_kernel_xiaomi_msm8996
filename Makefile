@@ -41,7 +41,9 @@ KERN_DIR ?= /lib/modules/$(shell uname -r)/build
 
 	#Flag to enable Protected Managment Frames (11w) feature
 	ifneq ($(CONFIG_PRONTO_WLAN),)
-	CONFIG_WLAN_FEATURE_11W := y
+                ifeq ($(CONFIG_CNSS),y)
+			CONFIG_WLAN_FEATURE_11W := y
+                endif
 	endif
 
 	#Flag to enable new Linux Regulatory implementation

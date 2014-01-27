@@ -5412,7 +5412,7 @@ eHalStatus sme_GenericChangeCountryCode( tHalHandle hHal,
 
         pMsg->msgType = pal_cpu_to_be16((tANI_U16)eWNI_SME_GENERIC_CHANGE_COUNTRY_CODE);
         pMsg->msgLen = (tANI_U16)sizeof(tAniGenericChangeCountryCodeReq);
-        vos_mem_copy(pMsg->countryCode, pCountry, 3);
+        vos_mem_copy(pMsg->countryCode, pCountry, 2);
         pMsg->domain_index = reg_domain;
 
         msg.type = eWNI_SME_GENERIC_CHANGE_COUNTRY_CODE;
@@ -9576,7 +9576,7 @@ eHalStatus sme_ChangeRoamScanChannelList(tHalHandle hHal, tANI_U8 *pChannelList,
     eHalStatus          status    = eHAL_STATUS_SUCCESS;
     tpCsrNeighborRoamControlInfo    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
     tANI_U8 oldChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN*2] = {0};
-    tANI_U8 newChannelList[128] = {0};
+    tANI_U8 newChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN*2] = {0};
     tANI_U8 i = 0, j = 0;
 
     status = sme_AcquireGlobalLock( &pMac->sme );
@@ -10566,7 +10566,8 @@ void smeGetCommandQStatus( tHalHandle hHal )
 
     if (NULL == pMac)
     {
-        smsLog( pMac, LOGE, "smeGetCommandQStatus: pMac is NULL" );
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "%s: pMac is NULL", __func__);
         return;
     }
 
@@ -10705,6 +10706,12 @@ VOS_STATUS sme_SetIdlePowersaveConfig(v_PVOID_t vosContext, tANI_U32 value)
 {
     v_PVOID_t wdaContext = vos_get_context(VOS_MODULE_ID_WDA, vosContext);
 
+    if (NULL == wdaContext)
+    {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+              "%s: wdaContext is NULL", __func__);
+       return VOS_STATUS_E_FAILURE;
+    }
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
               " Idle Ps Set Value %d", value);
 
@@ -10808,6 +10815,12 @@ tANI_S16 sme_GetHTConfig(tHalHandle hHal, tANI_U8 session_id, tANI_U16 ht_capab)
    tpAniSirGlobal    pMac = PMAC_STRUCT(hHal);
    tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, session_id);
 
+   if (NULL == pSession)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "%s: pSession is NULL", __func__);
+       return -EIO;
+   }
    switch (ht_capab) {
    case WNI_CFG_HT_CAP_INFO_ADVANCE_CODING:
         return pSession->htConfig.ht_rx_ldpc;
@@ -10830,6 +10843,13 @@ int sme_UpdateHTConfig(tHalHandle hHal, tANI_U8 sessionId, tANI_U16 htCapab,
 {
    tpAniSirGlobal    pMac = PMAC_STRUCT(hHal);
    tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
+
+   if (NULL == pSession)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "%s: pSession is NULL", __func__);
+       return -EIO;
+   }
 
    if (eHAL_STATUS_SUCCESS != WDA_SetHTConfig(sessionId, htCapab, value)) {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,

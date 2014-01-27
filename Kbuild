@@ -37,7 +37,9 @@ ifeq ($(KERNEL_BUILD), 0)
 
 	#Flag to enable Protected Managment Frames (11w) feature
 	ifneq ($(CONFIG_QCA_CLD_WLAN),)
-	CONFIG_WLAN_FEATURE_11W := y
+		ifeq ($(CONFIG_CNSS),y)
+		CONFIG_WLAN_FEATURE_11W := y
+		endif
 	endif
 
 	#Flag to enable LTE CoEx feature

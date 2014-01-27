@@ -435,6 +435,10 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
 #if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
    adf_os_device_t adf_ctx;
    HTC_INIT_INFO  htcInfo;
+#ifndef QCA_WIFI_ISOC
+   v_PVOID_t pHifContext = NULL;
+   v_PVOID_t pHtcContext = NULL;
+#endif
 #endif
    hdd_context_t *pHddCtx;
 
@@ -503,7 +507,15 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
 #if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
 #ifndef QCA_WIFI_ISOC
    /* Initialize BMI and Download firmware */
-   if (bmi_download_firmware(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext))) {
+   pHifContext = vos_get_context(VOS_MODULE_ID_HIF, gpVosContext);
+   if (!pHifContext)
+   {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                 "%s: failed to get HIF context", __func__);
+       goto err_sched_close;
+   }
+
+   if (bmi_download_firmware(pHifContext)) {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                  "%s: BMI failed to download target", __func__);
        goto err_bmi_close;
@@ -526,7 +538,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    }
 
 #ifndef QCA_WIFI_ISOC
-   if (bmi_done(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext))) {
+   if (bmi_done(pHifContext)) {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                  "%s: Failed to complete BMI phase", __func__);
        goto err_htc_close;
@@ -582,7 +594,14 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
 
 #if defined (QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) \
    && !defined (QCA_WIFI_ISOC)
-   if (HTCWaitTarget(vos_get_context(VOS_MODULE_ID_HTC, gpVosContext))) {
+   pHtcContext = vos_get_context(VOS_MODULE_ID_HTC, gpVosContext);
+   if (!pHtcContext)
+   {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                 "%s: failed to get HTC context", __func__);
+       goto err_wda_close;
+   }
+   if (HTCWaitTarget(pHtcContext)) {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: Failed to complete BMI phase", __func__);
            goto err_wda_close;
@@ -676,7 +695,7 @@ err_htc_close:
 
 #ifndef QCA_WIFI_ISOC
 err_bmi_close:
-   BMICleanup(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext));
+   BMICleanup(pHifContext);
 #endif /* #ifndef QCA_WIFI_ISOC */
 #endif /* #QCA_WIFI_2_0 && QCA_WIFI_FTM */
 

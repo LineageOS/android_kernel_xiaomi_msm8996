@@ -138,7 +138,7 @@ struct ieee80211_dfs_state
     struct ieee80211_channel       *newchan;  /* chan selected next */
     /* overridden cac timeout */
     int                            cac_timeout_override;
-    int8_t                         enable:1,
+    u_int8_t                       enable:1,
                                    cac_timer_running:1,
                                    ignore_dfs:1,
                                    ignore_cac:1;

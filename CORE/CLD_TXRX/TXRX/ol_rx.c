@@ -407,7 +407,7 @@ ol_rx_indication_handler(
      */
     htt_rx_msdu_buff_replenish(htt_pdev);
 
-    if ((A_TRUE == rx_ind_release) && peer) {
+    if ((A_TRUE == rx_ind_release) && peer && vdev) {
         ol_rx_reorder_release(vdev, peer, tid, seq_num_start, seq_num_end);
     }
     OL_RX_REORDER_TIMEOUT_UPDATE(peer, tid);
@@ -614,10 +614,8 @@ ol_rx_offload_deliver_ind_handler(
             &tid, &fw_desc, &head_buf, &tail_buf);
 
         peer = ol_txrx_peer_find_by_id(pdev, peer_id);
-        if (peer) {
+        if (peer && peer->vdev) {
             vdev = peer->vdev;
-        }
-        if (vdev) {
 	    OL_RX_OSIF_DELIVER(vdev, peer, head_buf);
         } else {
             buf = head_buf;
@@ -916,7 +914,7 @@ ol_rx_peer_init(struct ol_txrx_pdev_t *pdev, struct ol_txrx_peer_t *peer)
         ol_rx_reorder_init(&peer->tids_rx_reorder[tid], tid);
 
         /* invalid sequence number */
-        peer->tids_last_seq[tid] = 0xffff;
+        peer->tids_last_seq[tid] = IEEE80211_SEQ_MAX;
     }
     /*
      * Set security defaults: no PN check, no security.

@@ -106,7 +106,7 @@ VOS_STATUS
 WLANBAP_AcquireLSPacket( ptBtampContext pBtampCtx, vos_pkt_t **ppPacket, v_U16_t size, tANI_BOOLEAN isLsReq )
 {
     VOS_STATUS vosStatus;
-    vos_pkt_t *pPacket;
+    vos_pkt_t *pPacket = NULL;
     WLANBAP_8023HeaderType   w8023Header;
     v_U8_t                   aucLLCHeader[WLANBAP_LLC_HEADER_LEN];
     v_U16_t                  headerLength;  /* The 802.3 frame length*/

@@ -523,7 +523,10 @@ hif_completion_thread_startup(struct HIF_CE_state *hif_state)
             /* Allocate structures to track pending send/recv completions */
             compl_state = (struct HIF_CE_completion_state *)
                     A_MALLOC(completions_needed * sizeof(struct HIF_CE_completion_state));
-            ASSERT(compl_state != NULL); /* TBDXXX */
+            if (!compl_state) {
+                AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("ath ERROR: compl_state has no mem\n"));
+                return;
+            }
             pipe_info->completion_space = compl_state;
 
             adf_os_spinlock_init(&pipe_info->completion_freeq_lock);

@@ -4615,3 +4615,13 @@ NONE
 V    RW    NP
 NONE
 0   127    0
+
+* RTT3 Bit Value
+*
+WNI_CFG_RTT3_ENABLE    I    1    1
+V    RW    NP
+NONE
+0    1    1
+V    RW    NP
+NONE
+0    1    1

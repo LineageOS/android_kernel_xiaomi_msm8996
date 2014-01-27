@@ -428,6 +428,8 @@ struct wma_txrx_node {
 	tANI_U8                 fw_stats_set;
 	void *del_staself_req;
 	tANI_U8 bss_status;
+	tANI_U8 rate_flags;
+	tANI_U8 nss;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -1087,6 +1089,7 @@ void regdmn_get_ctl_info(struct regulatory *reg, u_int32_t modesAvail,
 
 /*get the ctl from regdomain*/
 u_int8_t regdmn_get_ctl_for_regdmn(u_int32_t reg_dmn);
+u_int16_t get_regdmn_5g(u_int32_t reg_dmn);
 #endif
 
 #define WMA_FW_PHY_STATS	0x1
@@ -1179,6 +1182,9 @@ typedef struct {
 enum wma_cfg_cmd_id {
        WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID = WMI_CMDID_MAX,
        WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
+       /* Set time latency and time quota for MCC home channels */
+       WMA_VDEV_MCC_SET_TIME_LATENCY,
+       WMA_VDEV_MCC_SET_TIME_QUOTA,
        /* Add any new command before this */
        WMA_CMD_ID_MAX
 };
@@ -1423,4 +1429,15 @@ u_int16_t   dfs_usenol(struct ieee80211com *ic);
 #define WMA_SMPS_MASK_UPPER_3BITS 0x7
 #define WMA_SMPS_PARAM_VALUE_S 29
 
+/* U-APSD Access Categories */
+enum uapsd_ac {
+	UAPSD_VO,
+	UAPSD_VI,
+	UAPSD_BK,
+	UAPSD_BE
+};
+
+VOS_STATUS wma_disable_uapsd_per_ac(tp_wma_handle wma_handle,
+					u_int32_t vdev_id,
+					enum uapsd_ac ac);
 #endif
