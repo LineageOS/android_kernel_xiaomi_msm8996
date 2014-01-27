@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ *  Copyright (c) 2013-2014 Qualcomm Atheros, Inc.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -41,7 +41,11 @@
  #include <net/sch_generic.h>
  #include <net/inet_ecn.h>
  #include <linux/netdevice.h>
+#if defined(HIF_USB)
+#include <linux/usb.h>
+#else
  #include <linux/pci.h>
+#endif
  #include <linux/stddef.h>
  #include <linux/err.h>
  #include <asm/checksum.h>

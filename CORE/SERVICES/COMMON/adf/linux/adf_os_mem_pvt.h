@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 Qualcomm Atheros, Inc.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -34,7 +34,11 @@
 #include <linux/slab.h>
 #include <linux/hardirq.h>
 #include <linux/vmalloc.h>
+#if defined(HIF_USB)
+#include <linux/usb.h>
+#else
 #include <linux/pci.h> /* pci_alloc_consistent */
+#endif
 #else
 /*
  * Provide dummy defs for kernel data types, functions, and enums
