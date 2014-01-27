@@ -2141,7 +2141,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	HTC_HANDLE htc_handle;
 	adf_os_device_t adf_dev;
 	v_VOID_t *wmi_handle;
-	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	VOS_STATUS vos_status;
 	struct ol_softc *scn;
 
 	WMA_LOGD("%s: Enter", __func__);
@@ -2161,10 +2161,17 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("Memory allocation failed for wma_handle");
-		return VOS_STATUS_E_NOMEM;
+		return vos_status;
 	}
 
 	vos_mem_zero(wma_handle, sizeof (t_wma_handle));
+
+	if (vos_get_conparam() != VOS_FTM_MODE) {
+#ifdef FEATURE_WLAN_SCAN_PNO
+		vos_wake_lock_init(&wma_handle->pno_wake_lock, "wlan_pno_wl");
+#endif
+		vos_wake_lock_init(&wma_handle->wow_wake_lock, "wlan_wow_wl");
+	}
 
 	/* attach the wmi */
 	wmi_handle = wmi_unified_attach(wma_handle);
@@ -2190,6 +2197,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		ol_pdev_cfg_attach(((pVosContextType) vos_context)->adf_ctx);
 	if (!(((pVosContextType) vos_context)->cfg_ctx)) {
 		WMA_LOGP("failed to init cfg handle");
+		vos_status = VOS_STATUS_E_NOMEM;
 		goto err_wmi_attach;
 	}
 
@@ -2198,8 +2206,6 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	if(wma_handle->dfs_ic == NULL) {
 		WMA_LOGP("Memory allocation failed for dfs_ic");
 	}
-
-	vos_wake_lock_init(&wma_handle->wow_wake_lock,  "wow_wakelock");
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 	if (vos_get_conparam() == VOS_FTM_MODE)
@@ -2215,6 +2221,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
 	if (NULL == scn) {
 		WMA_LOGE("%s: Failed to get scn",__func__);
+		vos_status = VOS_STATUS_E_NOMEM;
 		goto err_wmi_attach;
 	}
 
@@ -2233,6 +2240,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 						wma_handle->max_bssid);
 	if (!wma_handle->interfaces) {
 		WMA_LOGP("failed to allocate interface table");
+		vos_status = VOS_STATUS_E_NOMEM;
 		goto err_wmi_attach;
 	}
 	vos_mem_zero(wma_handle->interfaces, sizeof(struct wma_txrx_node) *
@@ -2366,9 +2374,16 @@ err_event_init:
 	wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
 					     WMI_DEBUG_PRINT_EVENTID);
 err_wmi_attach:
+
+	if (vos_get_conparam() != VOS_FTM_MODE) {
+#ifdef FEATURE_WLAN_SCAN_PNO
+		vos_wake_lock_destroy(&wma_handle->pno_wake_lock);
+#endif
+		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
+	}
+
 	vos_mem_free(wma_handle->interfaces);
-	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WDA,
-			 wma_handle);
+	vos_free_context(vos_context, VOS_MODULE_ID_WDA, wma_handle);
 
 	WMA_LOGD("%s: Exit", __func__);
 
@@ -15144,11 +15159,6 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		WMA_LOGP("Failed to register tx management");
 		goto end;
 	}
-
-#ifdef FEATURE_WLAN_SCAN_PNO
-	vos_wake_lock_init(&wma_handle->pno_wake_lock, "wlan_pno_wl");
-#endif
-
 end:
 	WMA_LOGD("%s: Exit", __func__);
 	return vos_status;
@@ -15261,17 +15271,18 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		ptrn_id++)
 		wma_free_wow_ptrn(wma_handle, ptrn_id);
 
+	if (vos_get_conparam() != VOS_FTM_MODE) {
 #ifdef FEATURE_WLAN_SCAN_PNO
-	if (vos_get_conparam() != VOS_FTM_MODE)
 		vos_wake_lock_destroy(&wma_handle->pno_wake_lock);
 #endif
+		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
+	}
+
 	/* unregister Firmware debug log */
 	vos_status = dbglog_deinit(wma_handle->wmi_handle);
 	if(vos_status != VOS_STATUS_SUCCESS)
 		WMA_LOGP("dbglog_deinit failed");
 
-
-	vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	/* close the vos events */
 	vos_event_destroy(&wma_handle->wma_ready_event);
 	vos_event_destroy(&wma_handle->target_suspend);

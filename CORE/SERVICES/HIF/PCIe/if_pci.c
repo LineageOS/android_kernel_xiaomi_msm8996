@@ -604,7 +604,8 @@ again:
 
     if (ret) {
         hif_nointrs(sc);
-	goto err_config;
+        HIFShutDownDevice(ol_sc->hif_hdl);
+        goto err_config;
     }
 
     /* Re-enable ASPM after firmware/OTP download is complete */

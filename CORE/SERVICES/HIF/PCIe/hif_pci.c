@@ -1492,14 +1492,17 @@ HIFStop(HIF_DEVICE *hif_device)
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n",__FUNCTION__));
 
-    if (!hif_state->started) {
+    if (!hif_state->started && !sc->hif_init_done) {
         return; /* already stopped or stopping */
     }
 
     sc->hif_init_done = FALSE;
-    /* sync shutdown */
-    hif_completion_thread_shutdown(hif_state);
-    hif_completion_thread(hif_state);
+
+    if (hif_state->started) {
+       /* sync shutdown */
+       hif_completion_thread_shutdown(hif_state);
+       hif_completion_thread(hif_state);
+    }
 
     /*
      * At this point, asynchronous threads are stopped,
@@ -2248,6 +2251,9 @@ done:
                 pipe_info->buf_sz = 0;
             }
         }
+
+        adf_os_timer_cancel(&hif_state->sleep_timer);
+        adf_os_timer_free(&hif_state->sleep_timer);
 
         A_FREE(hif_state);
     }
