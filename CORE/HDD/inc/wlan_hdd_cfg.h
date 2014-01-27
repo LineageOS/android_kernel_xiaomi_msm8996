@@ -1235,7 +1235,7 @@ typedef enum
 #define CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_NAME            "gOpportunisticThresholdDiff"
 #define CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_MIN             (0)
 #define CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_MAX             (127)
-#define CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_DEFAULT         (30)
+#define CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_DEFAULT         (0)
 
 #define CFG_NEIGHBOR_SCAN_CHAN_LIST_NAME                      "gNeighborScanChannelList"
 #define CFG_NEIGHBOR_SCAN_CHAN_LIST_DEFAULT                   ""

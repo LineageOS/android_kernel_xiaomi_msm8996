@@ -4148,7 +4148,7 @@ error:
  * Returns    :
  */
 VOS_STATUS wma_roam_scan_offload_chan_list(tp_wma_handle wma_handle,
-            u_int8_t chan_count, u_int8_t *chan_list)
+            u_int8_t chan_count, u_int8_t *chan_list, u_int8_t list_type)
 {
     VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
     wmi_buf_t buf = NULL;
@@ -4180,7 +4180,13 @@ VOS_STATUS wma_roam_scan_offload_chan_list(tp_wma_handle wma_handle,
                WMITLV_GET_STRUCT_TLVLEN(wmi_roam_chan_list_fixed_param));
     chan_list_fp->vdev_id = wma_handle->roam_offload_vdev_id;
     chan_list_fp->num_chan = chan_count;
-    chan_list_fp->chan_list_type = WMI_ROAM_SCAN_CHAN_LIST_TYPE_STATIC;
+    if (chan_count > 0 && list_type == CHANNEL_LIST_STATIC) {
+        /* NCHO or other app is in control */
+        chan_list_fp->chan_list_type = WMI_ROAM_SCAN_CHAN_LIST_TYPE_STATIC;
+    } else {
+        /* umac supplied occupied channel list in LFR */
+        chan_list_fp->chan_list_type = WMI_ROAM_SCAN_CHAN_LIST_TYPE_DYNAMIC;
+    }
 
     buf_ptr += sizeof(wmi_roam_chan_list_fixed_param);
     WMITLV_SET_HDR(buf_ptr,    WMITLV_TAG_ARRAY_UINT32,
@@ -4565,6 +4571,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
     wmi_ap_profile ap_profile;
     tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
                 wma_handle->vos_context);
+    u_int32_t mode = 0;
 
     WMA_LOGI("%s: command 0x%x\n", __func__, roam_req->Command);
     if (!wma_handle->roam_offload_enabled) {
@@ -4591,14 +4598,19 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
-            /* Opportunistic scan runs on a timer, value set by NeighborRoamScanRefreshPeriod.
+            /* Opportunistic scan runs on a timer, value set by EmptyRefreshScanPeriod.
              * Age out the entries after 3 such cycles.
              */
-            vos_status = wma_roam_scan_offload_scan_period(wma_handle,
-                                      roam_req->NeighborRoamScanRefreshPeriod,
-                                      roam_req->NeighborRoamScanRefreshPeriod * 3);
-            if (vos_status != VOS_STATUS_SUCCESS) {
-                break;
+            if (roam_req->EmptyRefreshScanPeriod > 0) {
+                vos_status = wma_roam_scan_offload_scan_period(wma_handle,
+                                          roam_req->EmptyRefreshScanPeriod,
+                                          roam_req->EmptyRefreshScanPeriod * 3);
+                if (vos_status != VOS_STATUS_SUCCESS) {
+                    break;
+                }
+                mode = WMI_ROAM_SCAN_MODE_PERIODIC | WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
+            } else {
+                mode = WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
             }
             /* Start new rssi triggered scan only if it changes by RoamRssiDiff value.
              * Beacon weight of 14 means average rssi is taken over 14 previous samples +
@@ -4619,15 +4631,15 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             }
             vos_status = wma_roam_scan_offload_chan_list(wma_handle,
                                 roam_req->ConnectedNetwork.ChannelCount,
-                                &roam_req->ConnectedNetwork.ChannelCache[0]);
+                                &roam_req->ConnectedNetwork.ChannelCache[0],
+                                roam_req->ChannelCacheType);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
 
 
             wma_roam_scan_fill_scan_params(wma_handle, pMac, roam_req, &scan_params);
-            vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
-                    (WMI_ROAM_SCAN_MODE_PERIODIC | WMI_ROAM_SCAN_MODE_RSSI_CHANGE));
+            vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params, mode);
             break;
 
         case ROAM_SCAN_OFFLOAD_STOP:
@@ -4671,7 +4683,8 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
              */
             vos_status = wma_roam_scan_offload_chan_list(wma_handle,
                                 roam_req->ConnectedNetwork.ChannelCount,
-                                &roam_req->ConnectedNetwork.ChannelCache[0]);
+                                &roam_req->ConnectedNetwork.ChannelCache[0],
+                                roam_req->ChannelCacheType);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
@@ -4683,11 +4696,16 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 break;
             }
 
-            vos_status = wma_roam_scan_offload_scan_period(wma_handle,
-                                roam_req->NeighborRoamScanRefreshPeriod,
-                                roam_req->NeighborRoamScanRefreshPeriod * 3);
-            if (vos_status != VOS_STATUS_SUCCESS) {
-                break;
+            if (roam_req->EmptyRefreshScanPeriod > 0) {
+                vos_status = wma_roam_scan_offload_scan_period(wma_handle,
+                                          roam_req->EmptyRefreshScanPeriod,
+                                          roam_req->EmptyRefreshScanPeriod * 3);
+                if (vos_status != VOS_STATUS_SUCCESS) {
+                    break;
+                }
+                mode = WMI_ROAM_SCAN_MODE_PERIODIC | WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
+            } else {
+                mode = WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
             }
 
             vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
@@ -4705,9 +4723,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             }
 
             wma_roam_scan_fill_scan_params(wma_handle, pMac, roam_req, &scan_params);
-            vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
-                                              (WMI_ROAM_SCAN_MODE_PERIODIC
-                                              | WMI_ROAM_SCAN_MODE_RSSI_CHANGE));
+            vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params, mode);
 
             break;
 
