@@ -224,6 +224,8 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctl to configure MCC home channels time quota and latency */
 #define WE_MCC_CONFIG_LATENCY           70
 #define WE_MCC_CONFIG_QUOTA             71
+/* Private IOCTL for debug connection issues */
+#define WE_SET_DEBUG_LOG                72
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -5498,6 +5500,13 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             }
             break;
         }
+       case WE_SET_DEBUG_LOG:
+       {
+           hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+           pHddCtx->cfg_ini->gEnableDebugLog = set_value;
+           sme_UpdateConnectDebug(pHddCtx->hHal, set_value);
+           break;
+       }
 
 #endif
         default:
@@ -9724,6 +9733,10 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_MCC_CONFIG_QUOTA,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "setMccQuota" },
+
+    {   WE_SET_DEBUG_LOG,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "setDbgLvl" },
 
 #endif
 
