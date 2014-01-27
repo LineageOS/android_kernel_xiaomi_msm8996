@@ -280,8 +280,7 @@ ol_tx_classify(
     dest_addr = ol_tx_dest_addr_find(pdev, tx_nbuf);
     if (IEEE80211_IS_MULTICAST(dest_addr)) {
         txq = &vdev->txqs[OL_TX_VDEV_MCAST_BCAST];
-        tx_msdu_info->htt.info.ext_tid =
-            OL_TX_NUM_TIDS + OL_TX_VDEV_MCAST_BCAST;
+        tx_msdu_info->htt.info.ext_tid = HTT_TX_EXT_TID_NON_QOS_MCAST_BCAST;
         if (vdev->opmode == wlan_op_mode_sta) {
             /*
              * The STA sends a frame with a broadcast dest addr (DA) as a
@@ -472,8 +471,6 @@ ol_tx_classify_mgmt(
          * STA: probe requests can be either broadcast or unicast
          */
         txq = &vdev->txqs[OL_TX_VDEV_DEFAULT_MGMT];
-        tx_msdu_info->htt.info.ext_tid =
-            OL_TX_NUM_TIDS + OL_TX_VDEV_DEFAULT_MGMT;
         tx_msdu_info->htt.info.peer_id = HTT_INVALID_PEER_ID;
         tx_msdu_info->peer = NULL;
         tx_msdu_info->htt.info.is_unicast = 0;
@@ -503,8 +500,6 @@ ol_tx_classify_mgmt(
         tx_msdu_info->peer = peer;
         if (!peer) {
             txq = &vdev->txqs[OL_TX_VDEV_DEFAULT_MGMT];
-            tx_msdu_info->htt.info.ext_tid =
-                OL_TX_NUM_TIDS + OL_TX_VDEV_DEFAULT_MGMT;
             tx_msdu_info->htt.info.peer_id = HTT_INVALID_PEER_ID;
         } else {
             txq = &peer->txqs[HTT_TX_EXT_TID_MGMT];
