@@ -112,12 +112,16 @@ A_STATUS HTCConnectService(HTC_HANDLE               HTCHandle,
             if (pConnectReq->ConnectionFlags & HTC_CONNECT_FLAGS_DISABLE_CREDIT_FLOW_CTRL) {
                 disableCreditFlowCtrl = TRUE;
             }
-
+#if defined(HIF_USB)
+            if (!htc_credit_flow) {
+                disableCreditFlowCtrl = TRUE;
+            }
+#else
             /* Only enable credit for WMI service */
             if (!htc_credit_flow && pConnectReq->ServiceID != WMI_CONTROL_SVC) {
                 disableCreditFlowCtrl = TRUE;
             }
-
+#endif
                 /* check caller if it wants to transfer meta data */
             if ((pConnectReq->pMetaData != NULL) &&
                 (pConnectReq->MetaDataLength <= HTC_SERVICE_META_DATA_MAX_LENGTH)) {
