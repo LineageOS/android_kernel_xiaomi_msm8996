@@ -3767,7 +3767,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
         if (msg_type == WDA_CHNL_SWITCH_REQ) {
             wma_handle->roam_preauth_scan_id = cmd->scan_id;
         }
-	// WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
+	WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
 	return VOS_STATUS_SUCCESS;
 error:
 	wma_reset_scan_info(wma_handle, cmd->vdev_id);
