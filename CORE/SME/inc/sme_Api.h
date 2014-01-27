@@ -126,6 +126,7 @@ typedef struct _smeConfigParams
     tANI_U8  isAmsduSupportInAMPDU;
     tANI_BOOLEAN  fP2pListenOffload;
     tANI_BOOLEAN  pnoOffload;
+    tANI_U8       fEnableDebugLog;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum
@@ -3404,4 +3405,5 @@ eHalStatus sme_InitThermalInfo( tHalHandle hHal, tSmeThermalParams thermalParam 
     -------------------------------------------------------------------------*/
 eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level );
 #endif
+eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value);
 #endif //#if !defined( __SME_API_H )

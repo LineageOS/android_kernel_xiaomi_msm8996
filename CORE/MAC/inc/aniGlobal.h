@@ -1083,7 +1083,7 @@ typedef struct sAniSirGlobal
     void *readyToSuspendContext;
     tANI_U8 lteCoexAntShare;
     tANI_U8 beacon_offload;
-
+    tANI_U32 fEnableDebugLog;
 } tAniSirGlobal;
 
 typedef enum
