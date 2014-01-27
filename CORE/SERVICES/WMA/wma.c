@@ -17337,7 +17337,7 @@ static void wma_dfs_detach(struct ieee80211com *dfs_ic)
 VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 {
 	tp_wma_handle wma_handle;
-#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC)
 	u_int32_t idx;
 #endif
 	u_int8_t ptrn_id;
@@ -17384,7 +17384,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 #ifdef QCA_WIFI_ISOC
 	vos_event_destroy(&wma_handle->cfg_nv_tx_complete);
 #endif
-#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC)
 	for(idx = 0; idx < wma_handle->num_mem_chunks; ++idx) {
 		adf_os_mem_free_consistent(
 				wma_handle->adf_dev,
@@ -17430,7 +17430,7 @@ static v_VOID_t wma_update_fw_config(tp_wma_handle wma_handle,
 	wma_handle->max_frag_entry = tgt_cap->wlan_resource_config.max_frag_entries;
 }
 
-#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC)
 /**
  * allocate a chunk of memory at the index indicated and
  * if allocation fail allocate smallest size possiblr and
@@ -17726,13 +17726,13 @@ static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
 	wmi_resource_config *resource_cfg;
 	wlan_host_memory_chunk *host_mem_chunks;
 	u_int32_t mem_chunk_len = 0;
-#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC)
 	u_int16_t idx;
 	u_int32_t num_units;
 #endif
 
 	*len = sizeof(*cmd) + sizeof(wmi_resource_config) + WMI_TLV_HDR_SIZE;
-#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC)
 	mem_chunk_len = (sizeof(wlan_host_memory_chunk) * MAX_MEM_CHUNKS);
 #endif
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, *len + mem_chunk_len);
@@ -17765,7 +17765,7 @@ static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
 	}
 
 	cmd->num_host_mem_chunks = 0;
-#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC)
 	for(idx = 0; idx < ev->num_mem_reqs; ++idx) {
 		num_units = ev_mem_reqs[idx].num_units;
 		if  (ev_mem_reqs[idx].num_unit_info & NUM_UNITS_IS_NUM_PEERS) {
