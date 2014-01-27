@@ -98,8 +98,10 @@ static ssize_t ath_procfs_diag_write(struct file *file, const char __user *buf,
 		pr_debug("%s: vos_mem_alloc failed\n", __func__);
 		return -EINVAL;
 	}
-	if(copy_from_user(write_buffer, buf, count))
+	if(copy_from_user(write_buffer, buf, count)) {
+        vos_mem_free(write_buffer);
 		return -EFAULT;
+    }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
 	scn = (struct hif_pci_softc *)PDE_DATA(file_inode(file));

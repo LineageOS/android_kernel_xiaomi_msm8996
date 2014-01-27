@@ -5975,7 +5975,7 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 
     tpSirDfsCsaIeRequest  pDfsCsaIeRequest = (tSirDfsCsaIeRequest *)pMsg;
     //tANI_U8               sessionId = pDfsCsaIeRequest->sessionId;
-    tpPESession           psessionEntry;
+    tpPESession           psessionEntry = NULL;
     int i;
 
     if ( pMsg == NULL )
@@ -5993,28 +5993,29 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
           break;
        }
     }
-
-    /* target channel */
-    psessionEntry->gLimChannelSwitch.primaryChannel =
+    if ( psessionEntry )
+    {
+        /* target channel */
+        psessionEntry->gLimChannelSwitch.primaryChannel =
                                     pDfsCsaIeRequest->targetChannel;
 
-    /* Channel switch announcement needs to be included in beacon */
-    psessionEntry->dfsIncludeChanSwIe = VOS_TRUE;
-    psessionEntry->gLimChannelSwitch.switchCount = LIM_MAX_CSA_IE_UPDATES;
+        /* Channel switch announcement needs to be included in beacon */
+        psessionEntry->dfsIncludeChanSwIe = VOS_TRUE;
+        psessionEntry->gLimChannelSwitch.switchCount = LIM_MAX_CSA_IE_UPDATES;
 
-    /* Send CSA IE request from here */
-    if (schSetFixedBeaconFields(pMac, psessionEntry) != eSIR_SUCCESS)
-    {
-       PELOGE(limLog(pMac, LOGE, FL("Unable to set CSA IE in beacon"));)
-       return;
+        /* Send CSA IE request from here */
+        if (schSetFixedBeaconFields(pMac, psessionEntry) != eSIR_SUCCESS)
+        {
+            PELOGE(limLog(pMac, LOGE, FL("Unable to set CSA IE in beacon"));)
+            return;
+        }
+
+        /* First beacon update request is sent here, the remaining updates are
+         * done when the FW responds back after sending the first beacon after
+         * the template update
+         */
+        limSendBeaconInd(pMac, psessionEntry);
+        psessionEntry->gLimChannelSwitch.switchCount--;
     }
-
-    /* First beacon update request is sent here, the remaining updates are
-     * done when the FW responds back after sending the first beacon after
-     * the template update
-     */
-    limSendBeaconInd(pMac, psessionEntry);
-    psessionEntry->gLimChannelSwitch.switchCount--;
-
     return;
 }

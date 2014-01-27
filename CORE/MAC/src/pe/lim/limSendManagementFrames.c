@@ -516,6 +516,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                                            + SIR_P2P_IE_HEADER_LEN];
     tANI_U8              noaIe[SIR_MAX_NOA_ATTR_LEN + SIR_P2P_IE_HEADER_LEN];
     tANI_U8              smeSessionId = 0;
+    tANI_BOOLEAN         isVHTEnabled = eANI_BOOLEAN_FALSE;
 
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)         // We don't answer requests
     {
@@ -627,9 +628,11 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         PopulateDot11fVHTOperation( pMac, &pFrm->VHTOperation );
         // we do not support multi users yet
         //PopulateDot11fVHTExtBssLoad( pMac, &frm.VHTExtBssLoad );
-        PopulateDot11fExtCap( pMac, &pFrm->ExtCap);
+       isVHTEnabled = eANI_BOOLEAN_TRUE;
     }
 #endif
+
+    PopulateDot11fExtCap(pMac, isVHTEnabled, &pFrm->ExtCap);
 
     if ( psessionEntry->pLimStartBssReq ) 
     {
@@ -1210,6 +1213,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     tANI_U8              addIE[WNI_CFG_ASSOC_RSP_ADDNIE_DATA_LEN];
     tpSirAssocReq        pAssocReq = NULL;
     tANI_U8              smeSessionId = 0;
+    tANI_BOOLEAN         isVHTEnabled = eANI_BOOLEAN_FALSE;
 
     if(NULL == psessionEntry)
     {
@@ -1317,9 +1321,11 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
             limLog( pMac, LOGW, FL("Populate VHT IEs in Assoc Response"));
             PopulateDot11fVHTCaps( pMac, psessionEntry, &frm.VHTCaps );
             PopulateDot11fVHTOperation( pMac, &frm.VHTOperation);
-            PopulateDot11fExtCap( pMac, &frm.ExtCap);
+            isVHTEnabled = eANI_BOOLEAN_TRUE;
         }
 #endif
+
+    PopulateDot11fExtCap(pMac, isVHTEnabled, &frm.ExtCap);
 
     } // End if on non-NULL 'pSta'.
 
@@ -1978,6 +1984,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 #endif
     tANI_U8             txFlag = 0;
     tANI_U8             smeSessionId = 0;
+    tANI_BOOLEAN        isVHTEnabled = eANI_BOOLEAN_FALSE;
 
     if(NULL == psessionEntry)
     {
@@ -2163,10 +2170,11 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     {
         limLog( pMac, LOG1, FL("Populate VHT IEs in Assoc Request"));
         PopulateDot11fVHTCaps( pMac, psessionEntry, &pFrm->VHTCaps );
-        PopulateDot11fExtCap( pMac, &pFrm->ExtCap);
+        isVHTEnabled = eANI_BOOLEAN_TRUE;
     }
 #endif
 
+    PopulateDot11fExtCap( pMac, isVHTEnabled, &pFrm->ExtCap);
 
 #if defined WLAN_FEATURE_VOWIFI_11R
     if (psessionEntry->pLimJoinReq->is11Rconnection)
@@ -2865,6 +2873,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     tANI_U8               PowerCapsPopulated = FALSE;
 #endif
     tANI_U8               smeSessionId = 0;
+    tANI_BOOLEAN          isVHTEnabled = eANI_BOOLEAN_FALSE;
 
     if(NULL == psessionEntry)
     {
@@ -3021,9 +3030,11 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     {
         limLog( pMac, LOGW, FL("Populate VHT IEs in Re-Assoc Request"));
         PopulateDot11fVHTCaps( pMac, psessionEntry, &frm.VHTCaps );
-        PopulateDot11fExtCap( pMac, &frm.ExtCap);
+        isVHTEnabled = eANI_BOOLEAN_TRUE;
     }
 #endif
+
+    PopulateDot11fExtCap(pMac, isVHTEnabled, &frm.ExtCap);
 
     nStatus = dot11fGetPackedReAssocRequestSize( pMac, &frm, &nPayload );
     if ( DOT11F_FAILED( nStatus ) )
@@ -3390,8 +3401,8 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
                 if (pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies_length) 
                 {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-                    PELOGE(limLog(pMac, LOGE, FL("Auth1 Frame FTIE is: "));
-                        sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOGE,
+                    PELOG2(limLog(pMac, LOG2, FL("Auth1 Frame FTIE is: "));
+                        sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG2,
                             (tANI_U8 *)pBody,
                             (pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies_length));)
 #endif
@@ -4486,8 +4497,12 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     
     tANI_U8 smeSessionId = 0;
 
-    if (psessionEntry != NULL )
-        smeSessionId = psessionEntry->smeSessionId;
+    if (psessionEntry == NULL )
+    {
+        PELOGE(limLog(pMac, LOGE, FL("Session entry is NULL!!!"));)
+        return eSIR_FAILURE;
+    }
+    smeSessionId = psessionEntry->smeSessionId;
 
     vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
@@ -4623,8 +4638,12 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
     
     tANI_U8 smeSessionId = 0;
 
-    if (psessionEntry != NULL )
-        smeSessionId = psessionEntry->smeSessionId;
+    if (psessionEntry == NULL )
+    {
+        PELOGE(limLog(pMac, LOGE, FL("Session entry is NULL!!!"));)
+        return eSIR_FAILURE;
+    }
+    smeSessionId = psessionEntry->smeSessionId;
 
     vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
@@ -4759,8 +4778,12 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     
    tANI_U8            smeSessionId = 0;
 
-    if (psessionEntry != NULL )
-      smeSessionId = psessionEntry->smeSessionId;
+    if (psessionEntry == NULL )
+    {
+        PELOGE(limLog(pMac, LOGE, FL("Session entry is NULL!!!"));)
+        return eSIR_FAILURE;
+    }
+    smeSessionId = psessionEntry->smeSessionId;
 
     vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
                 

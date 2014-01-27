@@ -2252,7 +2252,9 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 #ifdef QCA_WIFI_2_0
+#ifdef CONFIG_TDLS_IMPLICIT
     tdlsCtx_t *pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
+#endif
 #endif
     eHalStatus status = eHAL_STATUS_FAILURE ;
     tANI_U8 staIdx;
@@ -2280,6 +2282,19 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
        pRoamInfo->peerMac[4],
        pRoamInfo->peerMac[5]) ;
 #endif
+
+#ifdef QCA_WIFI_2_0
+#ifdef CONFIG_TDLS_IMPLICIT
+    if (!pHddTdlsCtx)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: TDLS ctx is null, ignore roamResult (%d)",
+                  __func__, roamResult);
+        return status;
+    }
+#endif
+#endif
+
     switch( roamResult )
     {
         case eCSR_ROAM_RESULT_ADD_TDLS_PEER:

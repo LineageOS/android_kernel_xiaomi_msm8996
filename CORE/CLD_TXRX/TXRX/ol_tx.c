@@ -112,7 +112,7 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
 
 #ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
 
-#define OL_TX_VDEV_PAUSE_QUEUE_SEND_MARGIN 20
+#define OL_TX_VDEV_PAUSE_QUEUE_SEND_MARGIN 400
 #define OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS 5
 static void
 ol_tx_vdev_ll_pause_queue_send_base(struct ol_txrx_vdev_t *vdev)

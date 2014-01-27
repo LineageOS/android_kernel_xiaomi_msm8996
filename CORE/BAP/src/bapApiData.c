@@ -303,7 +303,7 @@ WLANBAP_XlateTxDataPkt
     ptBtampContext           pBtampCtx = (ptBtampContext) btampHandle; 
     tpBtampLogLinkCtx        pLogLinkContext;
     WLANBAP_8023HeaderType   w8023Header;
-    WLANBAP_HCIACLHeaderType hciACLHeader;
+    WLANBAP_HCIACLHeaderType hciACLHeader = { 0 };
     v_U8_t                   aucLLCHeader[WLANBAP_LLC_HEADER_LEN];
     VOS_STATUS               vosStatus;
     v_U8_t                   ucSTAId;  /* The StaId (used by TL, PE, and HAL) */

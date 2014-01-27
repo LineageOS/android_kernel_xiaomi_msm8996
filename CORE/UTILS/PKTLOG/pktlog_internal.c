@@ -62,16 +62,21 @@ pktlog_getbuf_intsafe(struct ath_pktlog_arg *plarg)
 	struct ath_pktlog_hdr *log_hdr;
 	int32_t cur_wr_offset;
 	char *log_ptr;
-	struct ath_pktlog_info *pl_info = plarg->pl_info;
-	u_int16_t log_type = plarg->log_type;
-	size_t log_size = plarg->log_size;
-	uint32_t flags = plarg->flags;
+	struct ath_pktlog_info *pl_info;
+	u_int16_t log_type;
+	size_t log_size;
+	uint32_t flags;
 
 	if (!plarg) {
 		printk("Invalid parg in %s\n", __func__);
 		return;
 	}
+	pl_info = plarg->pl_info;
 	log_buf = pl_info->buf;
+	log_type = plarg->log_type;
+	log_size = plarg->log_size;
+	flags = plarg->flags;
+
 	if (!log_buf) {
 		printk("Invalid log_buf in %s\n", __func__);
 		return;

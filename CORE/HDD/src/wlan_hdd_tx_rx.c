@@ -1148,7 +1148,7 @@ v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket )
                           &pBuffer, HDD_ETHERTYPE_802_1_X_SIZE );
     if (VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
-       if ( vos_be16_to_cpu( *(unsigned short*)pBuffer ) == HDD_ETHERTYPE_802_1_X )
+       if (pBuffer && vos_be16_to_cpu( *(unsigned short*)pBuffer) == HDD_ETHERTYPE_802_1_X )
        {
           fEAPOL = VOS_TRUE;
        }
@@ -1179,7 +1179,7 @@ v_BOOL_t hdd_IsWAIPacket( vos_pkt_t *pVosPacket )
 
     if (VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
-       if ( vos_be16_to_cpu( *(unsigned short*)pBuffer ) == HDD_ETHERTYPE_WAI)
+       if (pBuffer && vos_be16_to_cpu( *((unsigned short*)pBuffer)) == HDD_ETHERTYPE_WAI)
        {
           fIsWAI = VOS_TRUE;
        }
@@ -1786,10 +1786,9 @@ VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
       ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
       ++pAdapter->stats.rx_packets;
       pAdapter->stats.rx_bytes += skb->len;
-#ifdef WLAN_OPEN_SOURCE
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
-      wake_lock_timeout(&pHddCtx->rx_wake_lock, msecs_to_jiffies(HDD_WAKE_LOCK_DURATION));
-#endif
+      vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
+              msecs_to_jiffies(HDD_WAKE_LOCK_DURATION));
 #endif
       rxstat = netif_rx_ni(skb);
       if (NET_RX_SUCCESS == rxstat)
@@ -2025,10 +2024,9 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
    ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
    ++pAdapter->stats.rx_packets;
    pAdapter->stats.rx_bytes += skb->len;
-#ifdef WLAN_OPEN_SOURCE
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
-   wake_lock_timeout(&pHddCtx->rx_wake_lock, msecs_to_jiffies(HDD_WAKE_LOCK_DURATION));
-#endif
+   vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
+           msecs_to_jiffies(HDD_WAKE_LOCK_DURATION));
 #endif
    rxstat = netif_rx_ni(skb);
    if (NET_RX_SUCCESS == rxstat)

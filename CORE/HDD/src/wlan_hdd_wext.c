@@ -221,6 +221,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_GTX_STEP                 67
 #define WE_SET_GTX_MINTPC               68
 #define WE_SET_GTX_BWMASK               69
+/* Private ioctl to configure MCC home channels time quota and latency */
+#define WE_MCC_CONFIG_LATENCY           70
+#define WE_MCC_CONFIG_QUOTA             71
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -4812,7 +4815,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 
         case WE_SET_CHWIDTH:
         {
-           bool chwidth;
+           bool chwidth = false;
            hdd_context_t *phddctx = WLAN_HDD_GET_CTX(pAdapter);
            /*updating channel bonding only on 5Ghz*/
            hddLog(LOG1, "WMI_VDEV_PARAM_CHWIDTH val %d", set_value);
@@ -5296,6 +5299,156 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                       (int)WMI_STA_PS_PARAM_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL,
                       set_value, QPOWER_CMD);
            break;
+        }
+
+        case WE_MCC_CONFIG_LATENCY:
+        {
+            tVOS_CONCURRENCY_MODE concurrent_state = 0;
+            v_U8_t first_adapter_operating_channel = 0;
+            int ret = 0; /* success */
+
+            hddLog(LOG1, "iwpriv cmd to set MCC latency with val %dms",
+                    set_value);
+            /**
+             * Check if concurrency mode is active.
+             * Need to modify this code to support MCC modes other than STA/P2P
+             */
+            concurrent_state = hdd_get_concurrency_mode();
+            if ((concurrent_state == (VOS_STA | VOS_P2P_CLIENT)) ||
+                (concurrent_state == (VOS_STA | VOS_P2P_GO)))
+            {
+                hddLog(LOG1, "STA & P2P are both enabled");
+                /**
+                 * The channel number and latency are formatted in
+                 * a bit vector then passed on to WMA layer.
+                 +**********************************************+
+                 |bits 31-16 |      bits 15-8    |  bits 7-0    |
+                 |  Unused   | latency - Chan. 1 |  channel no. |
+                 +**********************************************+
+                 */
+                /* Get the operating channel of the designated vdev */
+                first_adapter_operating_channel =
+                            hdd_get_operating_channel
+                            (
+                                pAdapter->pHddCtx,
+                                pAdapter->device_mode
+                            );
+                /* Move the time latency for the adapter to bits 15-8 */
+                set_value = set_value << 8;
+                /* Store the channel number at bits 7-0 of the bit vector */
+                set_value = set_value | first_adapter_operating_channel;
+                /* Send command to WMA */
+                ret = process_wma_set_command((int)pAdapter->sessionId,
+                        (int)WMA_VDEV_MCC_SET_TIME_LATENCY,
+                        set_value, VDEV_CMD);
+            }
+            else
+            {
+                hddLog(LOG1, "#s: MCC is not active. Exit w/o setting latency",
+                __func__);
+            }
+            break;
+        }
+
+        case WE_MCC_CONFIG_QUOTA:
+        {
+            v_U8_t first_adapter_operating_channel = 0;
+            v_U8_t second_adapter_opertaing_channel = 0;
+            hdd_adapter_t *staAdapter = NULL;
+            int ret = 0; /* success */
+
+            tVOS_CONCURRENCY_MODE concurrent_state = hdd_get_concurrency_mode();
+            hddLog(LOG1, "iwpriv cmd to set MCC quota with val %dms",
+                set_value);
+            /**
+              * Check if concurrency mode is active.
+              * Need to modify this code to support MCC modes other than STA/P2P
+              */
+            if ((concurrent_state == (VOS_STA | VOS_P2P_CLIENT)) ||
+                (concurrent_state == (VOS_STA | VOS_P2P_GO)))
+            {
+                hddLog(LOG1, "STA & P2P are both enabled");
+                /**
+                 * The channel numbers for both adapters and the time
+                 * quota for the 1st adapter, i.e., one specified in cmd
+                 * are formatted as a bit vector then passed on to WMA
+                 +************************************************************+
+                 |bit 31-24  | bit 23-16  |   bits 15-8   |   bits 7-0        |
+                 |  Unused   | Quota for  | chan. # for   |   chan. # for     |
+                 |           | 1st chan.  | 1st chan.     |   2nd chan.       |
+                 +************************************************************+
+                 */
+                /* Get the operating channel of the specified vdev */
+                first_adapter_operating_channel =
+                            hdd_get_operating_channel
+                            (
+                                pAdapter->pHddCtx,
+                                pAdapter->device_mode
+                            );
+                hddLog(LOG1, "1st channel No.:%d and quota:%dms",
+                        first_adapter_operating_channel, set_value);
+                /* Move the time quota for first channel to bits 15-8 */
+                set_value = set_value << 8;
+                /** Store the channel number of 1st channel at bits 7-0
+                 * of the bit vector
+                 */
+                set_value = set_value | first_adapter_operating_channel;
+                /* Find out the 2nd MCC adapter and its operating channel */
+                if (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
+                {
+                    /* iwpriv cmd was issued on wlan0; get p2p0 vdev channel */
+                    if ((concurrent_state & VOS_P2P_CLIENT) != 0)
+                    {
+                        /* The 2nd MCC vdev is P2P client */
+                        staAdapter = hdd_get_adapter(pAdapter->pHddCtx,
+                                        WLAN_HDD_P2P_CLIENT);
+                    } else
+                    {
+                        /* The 2nd MCC vdev is P2P GO */
+                        staAdapter = hdd_get_adapter(pAdapter->pHddCtx,
+                                        WLAN_HDD_P2P_GO);
+                    }
+                }
+                else
+                {
+                    /* iwpriv cmd was issued on p2p0; get wlan0 vdev channel */
+                    staAdapter = hdd_get_adapter(pAdapter->pHddCtx,
+                                     WLAN_HDD_INFRA_STATION);
+                }
+                if (staAdapter != NULL)
+                {
+                    second_adapter_opertaing_channel =
+                            hdd_get_operating_channel
+                            (
+                            staAdapter->pHddCtx,
+                            staAdapter->device_mode
+                            );
+                    hddLog(LOG1, "2nd vdev channel No. is:%d",
+                            second_adapter_opertaing_channel);
+                    /** Now move the time quota and channel number of the
+                     * 1st adapter to bits 23-16 and bits 15-8 of the bit
+                     * vector, respectively.
+                     */
+                    set_value = set_value << 8;
+                    /* Store the channel number for 2nd MCC vdev at bits
+                     * 7-0 of set_value
+                     */
+                    set_value = set_value | second_adapter_opertaing_channel;
+                    ret = process_wma_set_command((int)pAdapter->sessionId,
+                            (int)WMA_VDEV_MCC_SET_TIME_QUOTA,
+                            set_value, VDEV_CMD);
+                }
+                else
+                {
+                    hddLog(LOGE, "NULL adapter handle. Exit");
+                }
+            }
+            else
+            {
+                hddLog(LOG1, "#s: MCC is not active. Exit w/o setting latency",
+                        __func__);
+            }
+            break;
         }
 
 #endif
@@ -6009,7 +6162,17 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int sub_cmd = wrqu->data.flags;
 #ifdef WLAN_FEATURE_11W
-    hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+    hdd_wext_state_t *pWextState;
+#endif
+
+    if (pAdapter == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                                        "%s: pAdapter is NULL!", __func__);
+        return -EINVAL;
+    }
+#ifdef WLAN_FEATURE_11W
+    pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
 #endif
 
     if (NULL == WLAN_HDD_GET_CTX(pAdapter))
@@ -6143,9 +6306,9 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             int count = 0, check = 1;
 
             tANI_U16 tlState;
-            tHalHandle hHal;
-            tpAniSirGlobal pMac;
-            hdd_station_ctx_t *pHddStaCtx;
+            tHalHandle hHal = NULL;
+            tpAniSirGlobal pMac = NULL;
+            hdd_station_ctx_t *pHddStaCtx = NULL;
 
             hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
             hdd_adapter_t *useAdapter = NULL;
@@ -6189,7 +6352,19 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                 }
 
                 hHal = WLAN_HDD_GET_HAL_CTX( useAdapter );
+                if (!hHal) {
+                    buf = scnprintf(extra + len,  WE_MAX_STR_LEN - len,
+                            "\n pMac is NULL");
+                    len += buf;
+                    break;
+                }
                 pMac = PMAC_STRUCT( hHal );
+                if (!pMac) {
+                    buf = scnprintf(extra + len,  WE_MAX_STR_LEN - len,
+                            "\n pMac is NULL");
+                    len += buf;
+                    break;
+                }
                 pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR( useAdapter );
                 if( !pHddStaCtx )
                 {
@@ -6223,36 +6398,38 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                 adapter_num++;
             }
 
-            /* Printing Lim State starting with global lim states */
-            buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
-                    "\n \n LIM STATES:-"
-                    "\n Global Sme State - %s "\
-                    "\n Global mlm State - %s "\
-                    "\n",
-                    macTraceGetLimSmeState(pMac->lim.gLimSmeState),
-                    macTraceGetLimMlmState(pMac->lim.gLimMlmState)
-                    );
-            len += buf;
+            if (pMac) {
+                /* Printing Lim State starting with global lim states */
+                buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
+                        "\n \n LIM STATES:-"
+                        "\n Global Sme State - %s "\
+                        "\n Global mlm State - %s "\
+                        "\n",
+                        macTraceGetLimSmeState(pMac->lim.gLimSmeState),
+                        macTraceGetLimMlmState(pMac->lim.gLimMlmState)
+                        );
+                len += buf;
 
-            /*printing the PE Sme and Mlm states for valid lim sessions*/
-            while ( check < 3 && count < 255)
-            {
-                if ( pMac->lim.gpSession[count].valid )
+                /*printing the PE Sme and Mlm states for valid lim sessions*/
+                while ( check < 3 && count < 255)
                 {
-                    buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
-                    "\n Lim Valid Session %d:-"
-                    "\n PE Sme State - %s "
-                    "\n PE Mlm State - %s "
-                    "\n",
-                    check,
-                    macTraceGetLimSmeState(pMac->lim.gpSession[count].limSmeState),
-                    macTraceGetLimMlmState(pMac->lim.gpSession[count].limMlmState)
-                    );
+                    if ( pMac->lim.gpSession[count].valid )
+                    {
+                        buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
+                            "\n Lim Valid Session %d:-"
+                            "\n PE Sme State - %s "
+                            "\n PE Mlm State - %s "
+                            "\n",
+                            check,
+                            macTraceGetLimSmeState(pMac->lim.gpSession[count].limSmeState),
+                            macTraceGetLimMlmState(pMac->lim.gpSession[count].limMlmState)
+                            );
 
-                    len += buf;
-                    check++;
+                        len += buf;
+                        check++;
+                    }
+                    count++;
                 }
-                count++;
             }
 
             wrqu->data.length = strlen(extra)+1;
@@ -6323,6 +6500,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
 
             tChannelListInfo channel_list;
 
+            memset(&channel_list, 0, sizeof(channel_list));
             status = iw_softap_get_channel_list(dev, info, wrqu, (char *)&channel_list);
             if ( !VOS_IS_STATUS_SUCCESS( status ) ) 
             {
@@ -6330,7 +6508,6 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                 return -EINVAL;
             }
             buf = extra;
-
             /**
              * Maximum channels = WNI_CFG_VALID_CHANNEL_LIST_LEN. Maximum buffer
              * needed = 5 * number of channels. Check ifsufficient
@@ -8045,9 +8222,9 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
                                  pAdapter->mc_addr_list.mc_cnt;
                 for (i = 0; i < pAdapter->mc_addr_list.mc_cnt; i++)
                 {
-                    memcpy(&(pMulticastAddrs->multicastAddr[i][0]),
-                            &(pAdapter->mc_addr_list.addr[i][0]),
-                            sizeof(pAdapter->mc_addr_list.addr[i]));
+                    memcpy(pMulticastAddrs->multicastAddr[i],
+                           pAdapter->mc_addr_list.addr[i],
+                           sizeof(pAdapter->mc_addr_list.addr[i]));
                     hddLog(VOS_TRACE_LEVEL_INFO,
                             "%s: %s multicast filter: addr ="
                             MAC_ADDRESS_STR,
@@ -8524,7 +8701,6 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
 
     /*Advance to rssi Threshold*/
     ptr += nOffset;
-
     if (1 != sscanf(ptr,"%d %n",
                     &(pnoRequest.aNetworks[i].rssiThreshold),
                     &nOffset))
@@ -8533,7 +8709,6 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
                   "PNO rssi threshold input is not valid %s",ptr);
         return VOS_STATUS_E_FAILURE;
     }
-
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "PNO rssi %d offset %d",
             pnoRequest.aNetworks[i].rssiThreshold,
@@ -9490,6 +9665,15 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_QPOWER_SPEC_MAX_SPEC_NODATA_PSPOLL,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "set_qnodatapoll" },
+
+    /* handlers for MCC time quota and latency sub ioctls */
+    {   WE_MCC_CONFIG_LATENCY,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "setMccLatency" },
+
+    {   WE_MCC_CONFIG_QUOTA,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "setMccQuota" },
 
 #endif
 

@@ -1211,7 +1211,6 @@ htt_rx_restitch_mpdu_from_msdus(
     adf_os_mem_copy(dest, hdr_desc, wifi_hdr_len);
     hdr_desc += wifi_hdr_len;
 
-
     /* NOTE - This padding is present only in the RAW header status - not
      * when the MSDU data payload is in RAW format. 
      */

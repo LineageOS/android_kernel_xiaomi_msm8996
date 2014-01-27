@@ -77,6 +77,7 @@
 #endif
 #include "cfgApi.h"
 #include "wniCfgAp.h"
+#include "wlan_hdd_misc.h"
 
 #ifdef QCA_WIFI_2_0
 #include "wma.h"
@@ -229,7 +230,7 @@ int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
     }
 
     if (priv_data.total_len <= 0 ||
-        priv_data.total_len == INT_MAX)
+        priv_data.total_len > HOSTAPD_IOCTL_COMMAND_STRLEN_MAX)
     {
         /* below we allocate one more byte for command buffer.
          * To avoid addition overflow total_len should be
@@ -682,13 +683,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 if (!VOS_IS_STATUS_SUCCESS(vos_status))
                    hddLog(LOGE, FL("Failed to start AP inactivity timer\n"));
             }
-#ifdef WLAN_OPEN_SOURCE
-            if (wake_lock_active(&pHddCtx->sap_wake_lock))
-            {
-               wake_unlock(&pHddCtx->sap_wake_lock);
-            }
-            wake_lock_timeout(&pHddCtx->sap_wake_lock, msecs_to_jiffies(HDD_SAP_WAKE_LOCK_DURATION));
-#endif
+            vos_wake_lock_timeout_acquire(&pHddCtx->sap_wake_lock,
+                    msecs_to_jiffies(HDD_SAP_WAKE_LOCK_DURATION));
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
             {
                 struct station_info staInfo;
@@ -1041,13 +1037,37 @@ static iw_softap_setparam(struct net_device *dev,
                           union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+    tHalHandle hHal;
     int *value = (int *)extra;
     int sub_cmd = value[0];
     int set_value = value[1];
     eHalStatus status;
     int ret = 0; /* success */
-    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
+    v_CONTEXT_t pVosContext;
+
+    if (!pHostapdAdapter || !pHostapdAdapter->pHddCtx)
+    {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: either hostapd Adapter is null or HDD ctx is null",
+                 __func__);
+       return -1;
+    }
+
+    hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+    if (!hHal)
+    {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Hal ctx is null", __func__);
+       return -1;
+    }
+
+    pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
+    if (!pVosContext)
+    {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Vos ctx is null", __func__);
+       return -1;
+    }
 
     switch(sub_cmd)
     {
@@ -1325,6 +1345,179 @@ static iw_softap_setparam(struct net_device *dev,
                                               set_value, VDEV_CMD);
                 break;
             }
+         case QCSAP_PARAM_SET_MCC_CHANNEL_LATENCY:
+             {
+                  tVOS_CONCURRENCY_MODE concurrent_state = 0;
+                  v_U8_t first_adapter_operating_channel = 0;
+                  int ret = 0; /* success */
+                  hddLog(LOG1, "%s: iwpriv cmd to set MCC latency with val: "
+                          "%dms", __func__, set_value);
+                  concurrent_state = hdd_get_concurrency_mode();
+                  /**
+                   * Check if concurrency mode is active.
+                   * Need to modify this code to support MCC modes other than
+                   * STA/P2P GO
+                   */
+                  if (concurrent_state == (VOS_STA | VOS_P2P_GO))
+                  {
+                      hddLog(LOG1, "%s: STA & P2P are both enabled", __func__);
+                      /**
+                       * The channel number and latency are formatted in
+                       * a bit vector then passed on to WMA layer.
+                       +**********************************************+
+                       | bits 31-16 | bits 15-8         |  bits 7-0   |
+                       | Unused     | latency - Chan. 1 |  channel no.|
+                       +**********************************************+
+                       */
+
+                      /* Get the operating channel of the designated vdev */
+                      first_adapter_operating_channel =
+                                    hdd_get_operating_channel
+                                    (
+                                    pHostapdAdapter->pHddCtx,
+                                    pHostapdAdapter->device_mode
+                                    );
+                      /* Move the time latency for the adapter to bits 15-8 */
+                      set_value = set_value << 8;
+                      /* Store the channel number at bits 7-0 of the bit vector
+                       * as per the bit format above.
+                       */
+                      set_value = set_value | first_adapter_operating_channel;
+                      /* Send command to WMA */
+                      ret = process_wma_set_command
+                                        (
+                                        (int)pHostapdAdapter->sessionId,
+                                        (int)WMA_VDEV_MCC_SET_TIME_LATENCY,
+                                        set_value, VDEV_CMD
+                                        );
+                  }
+                  else
+                  {
+                      hddLog(LOG1, "%s: MCC is not active. Exit w/o setting"
+                              " latency", __func__);
+                  }
+                  break;
+             }
+
+         case QCSAP_PARAM_SET_MCC_CHANNEL_QUOTA:
+             {
+                 v_U8_t first_adapter_operating_channel = 0;
+                 v_U8_t second_adapter_opertaing_channel = 0;
+                 tVOS_CONCURRENCY_MODE concurrent_state = 0;
+                 hdd_adapter_t *staAdapter = NULL;
+                 int ret = 0; /* success */
+
+                 hddLog(LOG1, "%s: iwpriv cmd to set MCC quota value %dms",
+                         __func__, set_value);
+                 /**
+                  * Check if concurrency mode is active.
+                  * Need to modify this code to support MCC modes other than
+                  * STA/P2P GO
+                  */
+                 concurrent_state = hdd_get_concurrency_mode();
+                 if (concurrent_state == (VOS_STA | VOS_P2P_GO))
+                 {
+                     hddLog(LOG1, "%s: STA & P2P are both enabled", __func__);
+                     /**
+                      * The channel numbers for both adapters and the time
+                      * quota for the 1st adapter, i.e., one specified in cmd
+                      * are formatted as a bit vector then passed on to WMA
+                      +************************************************+
+                      |bit 31-24 |bit 23-16  |  bits 15-8  |bits 7-0   |
+                      |  Unused  |  Quota for| chan. # for |chan. # for|
+                      |          |  1st chan.| 1st chan.   |2nd chan.  |
+                      +************************************************+
+                      */
+
+                     /* Get the operating channel of the specified vdev */
+                     first_adapter_operating_channel =
+                                         hdd_get_operating_channel
+                                         (
+                                         pHostapdAdapter->pHddCtx,
+                                         pHostapdAdapter->device_mode
+                                         );
+                     hddLog(LOG1, "%s: 1st channel No.:%d and quota:%dms",
+                             __func__, first_adapter_operating_channel,
+                             set_value);
+                     /* Move the time quota for first adapter to bits 15-8 */
+                     set_value = set_value << 8;
+                     /** Store the operating channel number of 1st adapter at
+                      * the lower 8-bits of bit vector.
+                      */
+                     set_value = set_value | first_adapter_operating_channel;
+                     if (pHostapdAdapter->device_mode ==
+                                                      WLAN_HDD_INFRA_STATION)
+                     {
+                         /* iwpriv cmd issued on wlan0; get p2p0 vdev chan. */
+                         if ((concurrent_state & VOS_P2P_CLIENT) != 0)
+                         {
+                             /* The 2nd MCC vdev is P2P client */
+                             staAdapter = hdd_get_adapter
+                                                   (
+                                                   pHostapdAdapter->pHddCtx,
+                                                   WLAN_HDD_P2P_CLIENT
+                                                   );
+                         } else
+                         {
+                             /* The 2nd MCC vdev is P2P GO */
+                             staAdapter = hdd_get_adapter
+                                                    (
+                                                    pHostapdAdapter->pHddCtx,
+                                                    WLAN_HDD_P2P_GO
+                                                    );
+                         }
+                     }
+                     else
+                     {
+                         /* iwpriv cmd issued on p2p0; get channel for wlan0 */
+                         staAdapter = hdd_get_adapter
+                                                  (
+                                                  pHostapdAdapter->pHddCtx,
+                                                  WLAN_HDD_INFRA_STATION
+                                                  );
+                     }
+                     if (staAdapter != NULL)
+                     {
+                         second_adapter_opertaing_channel =
+                                 hdd_get_operating_channel
+                                 (
+                                 staAdapter->pHddCtx,
+                                 staAdapter->device_mode
+                                 );
+                         hddLog(LOG1, "%s: 2nd vdev channel No. is:%d",
+                                 __func__, second_adapter_opertaing_channel);
+                         /* Move the time quota and operating channel number
+                          * for the first adapter to bits 23-16 & bits 15-8
+                          *  of set_value vector, respectively.
+                          */
+                         set_value = set_value << 8;
+                         /* Store the channel number for 2nd MCC vdev at bits
+                          * 7-0 of set_value vector as per the bit format above.
+                          */
+                         set_value = set_value |
+                                             second_adapter_opertaing_channel;
+                         ret = process_wma_set_command
+                                              (
+                                              (int)pHostapdAdapter->sessionId,
+                                              (int)WMA_VDEV_MCC_SET_TIME_QUOTA,
+                                              set_value,
+                                              VDEV_CMD
+                                              );
+                     }
+                     else
+                     {
+                         hddLog(LOGE, "%s: NULL adapter handle. Exit",
+                                 __func__);
+                     }
+                 }
+                 else
+                 {
+                     hddLog(LOG1, "%s: MCC is not active. "
+                             "Exit w/o setting latency", __func__);
+                 }
+                 break;
+             }
+
 #endif /* QCA_WIFI_2_0 */
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
@@ -1733,6 +1926,7 @@ static iw_softap_ap_stats(struct net_device *dev,
     int len = wrqu->data.length;
     pstatbuf = wrqu->data.pointer;
 
+    memset(&statBuffer, 0, sizeof(statBuffer));
     WLANSAP_GetStatistics((WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext,
                            &statBuffer, (v_BOOL_t)wrqu->data.flags);
 
@@ -3241,6 +3435,10 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMcRate" },
    { QCSAP_PARAM_SET_TXRX_FW_STATS,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "txrx_fw_stats" },
+   { QCSAP_PARAM_SET_MCC_CHANNEL_LATENCY,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMccLatency" },
+   { QCSAP_PARAM_SET_MCC_CHANNEL_QUOTA,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMccQuota" },
 
 
 #ifdef QCA_WIFI_2_0

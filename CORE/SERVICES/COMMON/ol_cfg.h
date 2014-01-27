@@ -408,15 +408,19 @@ static inline int
 ol_tx_cfg_max_tx_queue_depth_ll(ol_pdev_handle pdev)
 {
     /*
-     * Store up to 700 frames for a paused vdev.
+     * Store up to 1500 frames for a paused vdev.
      * For example, if the vdev is sending 300 Mbps of traffic, and the
      * PHY is capable of 600 Mbps, then it will take 56 ms for the PHY to
      * drain both the 700 frames that are queued initially, plus the next
      * 700 frames that come in while the PHY is catching up.
      * So in this example scenario, the PHY will remain fully utilized
      * in a MCC system that has a channel-switching period of 56 ms or less.
+     * 700 frames calculation was correct when FW drain packet without
+     * any overhead. Actual situation drain overhead will slowdown drain
+     * speed. And channel period is less than 56 msec
+     * Worst scenario, 1500 frames should be stored in host.
      */
-    return 700;
+    return 1500;
 }
 
 #endif /* _OL_CFG__H_ */

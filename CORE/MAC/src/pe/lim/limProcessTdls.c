@@ -487,8 +487,12 @@ tSirRetStatus limSendTdlsDisReqFrame(tpAniSirGlobal pMac, tSirMacAddr peer_mac,
 #endif
     tANI_U8             smeSessionId = 0;
 
-    if (NULL != psessionEntry)
-       smeSessionId = psessionEntry->smeSessionId;
+    if (NULL == psessionEntry)
+    {
+        limLog( pMac, LOGE, FL("psessionEntry is NULL" ));
+        return eSIR_FAILURE;
+    }
+    smeSessionId = psessionEntry->smeSessionId;
     /* 
      * The scheme here is to fill out a 'tDot11fProbeRequest' structure
      * and then hand it off to 'dot11fPackProbeRequest' (for
@@ -1000,8 +1004,12 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
 //  uint32 tdlsChannelBondingMode;
     tANI_U8             smeSessionId = 0;
 
-    if (NULL != psessionEntry)
-       smeSessionId = psessionEntry->smeSessionId;
+    if (NULL == psessionEntry)
+    {
+        limLog( pMac, LOGE, FL("psessionEntry is NULL" ));
+        return eSIR_FAILURE;
+    }
+    smeSessionId = psessionEntry->smeSessionId;
 
     /* 
      * The scheme here is to fill out a 'tDot11fProbeRequest' structure
@@ -1490,8 +1498,12 @@ tSirRetStatus limSendTdlsTeardownFrame(tpAniSirGlobal pMac,
 #endif
     tANI_U8             smeSessionId = 0;
 
-    if (NULL != psessionEntry)
-       smeSessionId = psessionEntry->smeSessionId;
+    if (NULL == psessionEntry)
+    {
+        limLog( pMac, LOGE, FL("psessionEntry is NULL" ));
+        return eSIR_FAILURE;
+    }
+    smeSessionId = psessionEntry->smeSessionId;
     /*
      * The scheme here is to fill out a 'tDot11fProbeRequest' structure
      * and then hand it off to 'dot11fPackProbeRequest' (for
@@ -1694,7 +1706,11 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
 //  uint32 tdlsChannelBondingMode;
     tANI_U8             smeSessionId = 0;
 
-    if (NULL != psessionEntry)
+    if (NULL == psessionEntry)
+    {
+        limLog( pMac, LOGE, FL("psessionEntry is NULL" ));
+        return eSIR_FAILURE;
+    }
        smeSessionId = psessionEntry->smeSessionId;
 
     /* 
@@ -2496,6 +2512,7 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
     tANI_U32 phyMode;
     tANI_U8 mcsSet[SIZE_OF_SUPPORTED_MCS_SET];
     isArate=0;
+    tempRateSet2.numRates = 0;
 
     // limGetPhyMode(pMac, &phyMode);
     limGetPhyMode(pMac, &phyMode, NULL);
@@ -2522,8 +2539,6 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
                                                   &val) != eSIR_SUCCESS)
         tempRateSet2.numRates = val;
     }
-    else
-        tempRateSet2.numRates = 0;
 
     if ((tempRateSet.numRates + tempRateSet2.numRates) > 12)
     {

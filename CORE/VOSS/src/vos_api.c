@@ -258,6 +258,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    HTC_INIT_INFO  htcInfo;
 #ifndef QCA_WIFI_ISOC
    struct ol_softc *scn;
+   v_VOID_t *HTCHandle;
 #endif
 #endif
    hdd_context_t *pHddCtx;
@@ -334,12 +335,17 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Hdd Context is Null", __func__);
      VOS_ASSERT(0);
-     goto err_nv_close;
+     goto err_sched_close;
    }
 
 #ifdef QCA_WIFI_2_0
 #ifndef QCA_WIFI_ISOC
    scn = vos_get_context(VOS_MODULE_ID_HIF, gpVosContext);
+   if (!scn) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: scn is null!", __func__);
+      goto err_sched_close;
+   }
    scn->enableuartprint = pHddCtx->cfg_ini->enablefwprint;
    scn->enablefwlog     = pHddCtx->cfg_ini->enablefwlog;
    scn->max_no_of_peers = pHddCtx->cfg_ini->maxNumberOfPeers;
@@ -368,7 +374,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    }
 
 #ifndef QCA_WIFI_ISOC
-   if (bmi_done(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext))) {
+   if (bmi_done(scn)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                   "%s: Failed to complete BMI phase", __func__);
         goto err_htc_close;
@@ -434,7 +440,13 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
     * there is no ned to define gSoftApMaxPeers ini for Rome >= 1.3
     */
    pHddCtx->cfg_ini->maxNumberOfPeers = macOpenParms.maxStation - 1;
-   if (HTCWaitTarget(vos_get_context(VOS_MODULE_ID_HTC, gpVosContext))) {
+   HTCHandle = vos_get_context(VOS_MODULE_ID_HTC, gpVosContext);
+   if (!HTCHandle) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: HTCHandle is null!", __func__);
+      goto err_wda_close;
+   }
+   if (HTCWaitTarget(HTCHandle)) {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: Failed to complete BMI phase", __func__);
            goto err_wda_close;
@@ -569,7 +581,7 @@ err_htc_close:
 
 #ifndef QCA_WIFI_ISOC
 err_bmi_close:
-      BMICleanup(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext));
+      BMICleanup(scn);
 #endif /* #ifndef QCA_WIFI_ISOC */
 #endif /* #ifdef QCA_WIFI_2_0 */
 
@@ -620,7 +632,9 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
 {
    VOS_STATUS vStatus          = VOS_STATUS_SUCCESS;
    pVosContextType pVosContext = (pVosContextType)vosContext;
-   
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+   v_VOID_t *scn;
+#endif
    VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
              "vos prestart");
 
@@ -629,6 +643,15 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
    VOS_ASSERT( NULL != pVosContext->pMACContext);
 
    VOS_ASSERT( NULL != pVosContext->pWDAContext);
+
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+   scn = vos_get_context(VOS_MODULE_ID_HIF, gpVosContext);
+   if (!scn) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: scn is null!", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+#endif
 
    /* call macPreStart */
    vStatus = macPreStart(gpVosContext->pMACContext);
@@ -700,7 +723,7 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
    {
       VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_FATAL,
                "Failed to get ready event from target firmware");
-      HTCSetTargetToSleep(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext));
+      HTCSetTargetToSleep(scn);
       macStop(gpVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
       ccmStop(gpVosContext->pMACContext);
       HTCStop(gpVosContext->htc_ctx);
@@ -708,7 +731,7 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
       return VOS_STATUS_E_FAILURE;
    }
 
-   HTCSetTargetToSleep(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext));
+   HTCSetTargetToSleep(scn);
 #endif
 #endif /* QCA_WIFI_2_0 */
 

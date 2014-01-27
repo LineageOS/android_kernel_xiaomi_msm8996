@@ -88,7 +88,7 @@
 #define DHCP_DESTINATION_PORT 0x4300
 
 static sme_QosWmmUpType hddWmmDscpToUpMap[WLAN_HDD_MAX_DSCP+1];
-
+#define HDD_WMM_UP_TO_AC_MAP_SIZE 8
 const v_U8_t hddWmmUpToAcMap[] = {
    WLANTL_AC_BE,
    WLANTL_AC_BK,
@@ -1225,7 +1225,11 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
    // Tx queues) but let's consistently handle all cases here
    pAc->wmmAcAccessAllowed = hdd_wmm_is_access_allowed(pAdapter, pAc);
 
-   if(pAc->wmmAcAccessFailed)
+   //hdd_wmm_is_access_allowed returns true for explicit case. This is
+   //not always true. If Access to particular AC fails and if
+   //admission is required for that particular AC, then access is not
+   //allowed to that AC.
+   if (pAc->wmmAcAccessFailed && pAc->wmmAcAccessRequired)
       pAc->wmmAcAccessAllowed = VOS_FALSE;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
@@ -2489,7 +2493,15 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
    // we assume the tspec has already been validated by the caller
 
    pQosContext->handle = handle;
-   pQosContext->acType = hddWmmUpToAcMap[pTspec->ts_info.up];
+   if (pTspec->ts_info.up < HDD_WMM_UP_TO_AC_MAP_SIZE)
+      pQosContext->acType = hddWmmUpToAcMap[pTspec->ts_info.up];
+   else {
+      VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_ERROR,
+                "%s: ts_info.up (%d) larger than max value (%d), use default acType (%d)",
+                __func__, pTspec->ts_info.up,
+                HDD_WMM_UP_TO_AC_MAP_SIZE - 1, hddWmmUpToAcMap[0]);
+      pQosContext->acType = hddWmmUpToAcMap[0];
+   }
    pQosContext->pAdapter = pAdapter;
    pQosContext->qosFlowId = 0;
    pQosContext->magic = HDD_WMM_CTX_MAGIC;

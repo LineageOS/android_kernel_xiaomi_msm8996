@@ -189,6 +189,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     tANI_U16 extraIeOffset = 0;
     tANI_U16 p2pIeOffset = 0;
     tSirRetStatus status = eSIR_SUCCESS;
+    tANI_BOOLEAN  isVHTEnabled = eANI_BOOLEAN_FALSE;
 
     pBcn1 = vos_mem_malloc(sizeof(tDot11fBeacon1));
     if ( NULL == pBcn1 )
@@ -367,13 +368,15 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
         schLog( pMac, LOGW, FL("Populate VHT IEs in Beacon"));
         PopulateDot11fVHTCaps( pMac, psessionEntry, &pBcn2->VHTCaps );
         PopulateDot11fVHTOperation( pMac, &pBcn2->VHTOperation);
+        isVHTEnabled = eANI_BOOLEAN_TRUE;
         // we do not support multi users yet
         //PopulateDot11fVHTExtBssLoad( pMac, &bcn2.VHTExtBssLoad);
-        PopulateDot11fExtCap( pMac, &pBcn2->ExtCap);
         if(psessionEntry->gLimOperatingMode.present)
             PopulateDot11fOperatingMode( pMac, &pBcn2->OperatingMode, psessionEntry );
     }
 #endif
+
+    PopulateDot11fExtCap(pMac, isVHTEnabled, &pBcn2->ExtCap);
 
     PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
                                 &pBcn2->ExtSuppRates, psessionEntry );

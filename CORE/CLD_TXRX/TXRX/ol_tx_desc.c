@@ -64,6 +64,9 @@ ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev)
         pdev->tx_desc.freelist = pdev->tx_desc.freelist->next;
     }
     adf_os_spin_unlock_bh(&pdev->tx_mutex);
+    if (!tx_desc) {
+        return NULL;
+    }
 
     OL_TX_TIMESTAMP_SET(tx_desc);
 
@@ -152,6 +155,8 @@ ol_tx_desc_ll(
      * during the call to htt_tx_desc_init above.
      */
     num_frags = adf_nbuf_get_num_frags(netbuf);
+    /* num_frags are expected to be 2 max */
+    num_frags = (num_frags > CVG_NBUF_MAX_EXTRA_FRAGS) ? CVG_NBUF_MAX_EXTRA_FRAGS : num_frags;
     htt_tx_desc_num_frags(pdev->htt_pdev, tx_desc->htt_tx_desc, num_frags-1);
     for (i = 1; i < num_frags; i++) {
         adf_os_size_t frag_len;

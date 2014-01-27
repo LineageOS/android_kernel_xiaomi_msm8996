@@ -515,7 +515,8 @@ again:
 
         default:
             printk(KERN_ERR "unsupported revision id\n");
-
+            ret = -ENODEV;
+            goto err_tgtstate;
         }
         break;
 
@@ -551,7 +552,7 @@ again:
          */
         A_PCI_WRITE32(mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
         while (!hif_pci_targ_is_awake(sc, mem)) {
-		 ;
+            ;
         }
 
 #if PCIE_BAR0_READY_CHECKING
@@ -807,7 +808,8 @@ again:
 
         default:
             printk(KERN_ERR "unsupported revision id\n");
-
+            ret = -ENODEV;
+            goto err_tgtstate;
         }
         break;
 
@@ -1320,6 +1322,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos);
     u32 tx_drain_wait_cnt = 0;
     u32 val;
+    v_VOID_t * temp_module;
 
 #ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
     hdd_suspend_wlan(NULL, NULL);
@@ -1340,21 +1343,30 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
 #endif
 
+    if (!txrx_pdev) {
+        printk("%s: txrx_pdev is NULL\n", __func__);
+        return (-1);
+    }
     /* Wait for pending tx completion */
     while (ol_txrx_get_tx_pending(txrx_pdev)) {
-	    msleep(OL_ATH_TX_DRAIN_WAIT_DELAY);
-	    if (++tx_drain_wait_cnt > OL_ATH_TX_DRAIN_WAIT_CNT) {
-		    printk("%s: tx frames are pending\n", __func__);
-		    return (-1);
-	    }
+        msleep(OL_ATH_TX_DRAIN_WAIT_DELAY);
+        if (++tx_drain_wait_cnt > OL_ATH_TX_DRAIN_WAIT_CNT) {
+            printk("%s: tx frames are pending\n", __func__);
+            return (-1);
+        }
     }
 
     /* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
-    if (wma_is_wow_mode_selected(vos_get_context(VOS_MODULE_ID_WDA, vos))) {
-          if(wma_enable_wow_in_fw(vos_get_context(VOS_MODULE_ID_WDA, vos)))
+    temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos);
+    if (!temp_module) {
+        printk("%s: WDA module is NULL\n", __func__);
+        return (-1);
+    }
+    if (wma_is_wow_mode_selected(temp_module)) {
+          if(wma_enable_wow_in_fw(temp_module))
                 return (-1);
     } else if (state.event == PM_EVENT_FREEZE || state.event == PM_EVENT_SUSPEND) {
-          if (wma_suspend_target(vos_get_context(VOS_MODULE_ID_WDA, vos), 0))
+          if (wma_suspend_target(temp_module, 0))
                 return (-1);
     }
 
@@ -1378,6 +1390,7 @@ hif_pci_resume(struct pci_dev *pdev)
     void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
     u32 val;
     int err;
+    v_VOID_t * temp_module;
 
     err = pci_enable_device(pdev);
     if (err)
@@ -1414,9 +1427,14 @@ hif_pci_resume(struct pci_dev *pdev)
 #endif
 
     /* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
-    if (!wma_is_wow_mode_selected(vos_get_context(VOS_MODULE_ID_WDA, vos_context)) &&
+    temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+    if (!temp_module) {
+        printk("%s: WDA module is NULL\n", __func__);
+        return (-1);
+    }
+    if (!wma_is_wow_mode_selected(temp_module) &&
         (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
-	    return wma_resume_target(vos_get_context(VOS_MODULE_ID_WDA, vos_context));
+        return wma_resume_target(temp_module);
     }
 
 #ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
@@ -1436,27 +1454,27 @@ adf_os_size_t initBufferCount(adf_os_size_t maxSize)
 
 #ifdef CONFIG_CNSS
 struct cnss_wlan_driver cnss_wlan_drv_id = {
-	.name       = "hif_pci",
-	.id_table   = hif_pci_id_table,
-	.probe      = hif_pci_probe,
-	.remove     = hif_pci_remove,
-	.reinit     = hif_pci_reinit,
-	.shutdown   = hif_pci_shutdown,
+    .name       = "hif_pci",
+    .id_table   = hif_pci_id_table,
+    .probe      = hif_pci_probe,
+    .remove     = hif_pci_remove,
+    .reinit     = hif_pci_reinit,
+    .shutdown   = hif_pci_shutdown,
 #ifdef ATH_BUS_PM
-	.suspend    = hif_pci_suspend,
-	.resume     = hif_pci_resume,
+    .suspend    = hif_pci_suspend,
+    .resume     = hif_pci_resume,
 #endif
 };
 #else
 MODULE_DEVICE_TABLE(pci, hif_pci_id_table);
 struct pci_driver hif_pci_drv_id = {
-	.name       = "hif_pci",
-	.id_table   = hif_pci_id_table,
-	.probe      = hif_pci_probe,
-	.remove     = hif_pci_remove,
+    .name       = "hif_pci",
+    .id_table   = hif_pci_id_table,
+    .probe      = hif_pci_probe,
+    .remove     = hif_pci_remove,
 #ifdef ATH_BUS_PM
-	.suspend    = hif_pci_suspend,
-	.resume     = hif_pci_resume,
+    .suspend    = hif_pci_suspend,
+    .resume     = hif_pci_resume,
 #endif
 };
 #endif
@@ -1464,9 +1482,9 @@ struct pci_driver hif_pci_drv_id = {
 int hif_register_driver(void)
 {
 #ifdef CONFIG_CNSS
-	return cnss_wlan_register_driver(&cnss_wlan_drv_id);
+    return cnss_wlan_register_driver(&cnss_wlan_drv_id);
 #else
-	return pci_register_driver(&hif_pci_drv_id);
+    return pci_register_driver(&hif_pci_drv_id);
 #endif
 }
 

@@ -44,6 +44,7 @@
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/sched.h>
+#include <linux/device.h>
 #ifdef WLAN_OPEN_SOURCE
 #include <linux/wakelock.h>
 #endif
@@ -69,7 +70,9 @@ typedef struct vos_lock_s
 
 typedef spinlock_t vos_spin_lock_t;
 
-#ifdef WLAN_OPEN_SOURCE
+#if defined CONFIG_CNSS
+typedef struct wakeup_source vos_wake_lock_t;
+#elif defined WLAN_OPEN_SOURCE
 typedef struct wake_lock vos_wake_lock_t;
 #else
 typedef int vos_wake_lock_t;

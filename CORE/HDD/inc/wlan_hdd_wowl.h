@@ -108,7 +108,7 @@
  * -------------------------------------------------------------------------*/
 #ifdef QCA_WIFI_2_0
 #define WOWL_PTRN_MAX_SIZE          148
-#define WOWL_PTRN_MASK_MAX_SIZE      19
+#define WOWL_PTRN_MASK_MAX_SIZE      16
 #define WOWL_MAX_PTRNS_ALLOWED       22
 #else
 #define WOWL_PTRN_MAX_SIZE          128

@@ -1232,6 +1232,8 @@ CE_init(struct hif_pci_softc *sc,
     unsigned int nentries;
     adf_os_dma_addr_t base_addr;
     struct ol_softc *scn = sc->ol_sc;
+    bool malloc_CE_state = false;
+    bool malloc_src_ring = false;
 
     A_ASSERT(CE_id < sc->ce_count);
     ctrl_addr = CE_BASE_ADDRESS(CE_id);
@@ -1242,7 +1244,11 @@ CE_init(struct hif_pci_softc *sc,
     if (!CE_state) {
         adf_os_spin_unlock(&sc->target_lock);
         CE_state = (struct CE_state *)A_MALLOC(sizeof(*CE_state));
-		A_ASSERT(CE_state); /* TBDXXX */
+        if (!CE_state) {
+            dev_err(&sc->pdev->dev, "ath ERROR: CE_state has no mem\n");
+            return NULL;
+        } else
+            malloc_CE_state = true;
         A_MEMZERO(CE_state, sizeof(*CE_state));
         adf_os_spin_lock(&sc->target_lock);
         if (!sc->CE_id_to_state[CE_id]) { /* re-check under lock */
@@ -1260,6 +1266,7 @@ CE_init(struct hif_pci_softc *sc,
              * CE_state (and free the one we allocated).
              */
             A_FREE(CE_state);
+            malloc_CE_state = false;
             CE_state = sc->CE_id_to_state[CE_id];
         }
     }
@@ -1293,7 +1300,24 @@ CE_init(struct hif_pci_softc *sc,
             CE_nbytes = sizeof(struct CE_ring_state)
                       + (nentries * sizeof(void *)); /* per-send context */
             ptr = A_MALLOC(CE_nbytes);
-            A_ASSERT(ptr); /* TBDXXX */
+            if (!ptr) {
+                /* cannot allocate src ring. If teh CE_state is allocated
+                 * locally free CE_State and return error. */
+                dev_err(&sc->pdev->dev, "ath ERROR: src ring has no mem\n");
+                if (malloc_CE_state) {
+                    /* allocated CE_state locally */
+                    adf_os_spin_lock(&sc->target_lock);
+                    sc->CE_id_to_state[CE_id]= NULL;
+                    adf_os_spin_unlock(&sc->target_lock);
+                    A_FREE(CE_state);
+                    malloc_CE_state = false;
+                }
+                return NULL;
+            } else {
+                /* we can allocate src ring.
+                 * Mark that the src ring is allocated locally */
+                malloc_src_ring = true;
+            }
             A_MEMZERO(ptr, CE_nbytes);
 
             src_ring = CE_state->src_ring = (struct CE_ring_state *)ptr;
@@ -1366,7 +1390,25 @@ CE_init(struct hif_pci_softc *sc,
             CE_nbytes = sizeof(struct CE_ring_state)
                       + (nentries * sizeof(void *)); /* per-recv context */
             ptr = A_MALLOC(CE_nbytes);
-            A_ASSERT(ptr); /* TBDXXX */
+            if (!ptr) {
+                /* cannot allocate dst ring. If the CE_state or src ring is allocated
+                 * locally free CE_State and src ring and return error. */
+                dev_err(&sc->pdev->dev, "ath ERROR: dest ring has no mem\n");
+                if (malloc_src_ring) {
+                    A_FREE(CE_state->src_ring);
+                    CE_state->src_ring= NULL;
+                    malloc_src_ring = false;
+                }
+                if (malloc_CE_state) {
+                    /* allocated CE_state locally */
+                    adf_os_spin_lock(&sc->target_lock);
+                    sc->CE_id_to_state[CE_id]= NULL;
+                    adf_os_spin_unlock(&sc->target_lock);
+                    A_FREE(CE_state);
+                    malloc_CE_state = false;
+                }
+                return NULL;
+            }
             A_MEMZERO(ptr, CE_nbytes);
 
             dest_ring = CE_state->dest_ring = (struct CE_ring_state *)ptr;

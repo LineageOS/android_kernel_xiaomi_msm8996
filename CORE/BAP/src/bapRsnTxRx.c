@@ -26,7 +26,7 @@
  */
 /**=============================================================================
   
-  vos_list.c
+  bapRsnTxRx.c
   
   \brief
   
@@ -73,7 +73,7 @@ void bapRsnClearTxRxCallbacks(void)
 static VOS_STATUS bapRsnAcquirePacket( vos_pkt_t **ppPacket, v_U8_t **ppData, v_U16_t size )
 {
     VOS_STATUS status;
-    vos_pkt_t *pPacket;
+    vos_pkt_t *pPacket = NULL;
 
     status = vos_pkt_get_packet( &pPacket, VOS_PKT_TYPE_TX_802_11_MGMT, size, 1, 
                                     VOS_TRUE, NULL, NULL );
@@ -204,7 +204,7 @@ VOS_STATUS bapRsnSendEapolFrame( v_PVOID_t pvosGCtx, tAniPacket *pAniPkt )
 {
     VOS_STATUS status;
     vos_pkt_t *pPacket = NULL;
-    v_U8_t *pData, *pSrc;
+    v_U8_t *pData = NULL, *pSrc = NULL;
     int pktLen = aniAsfPacketGetBytes( pAniPkt, &pSrc );
 
     if( pktLen <= 0 )
