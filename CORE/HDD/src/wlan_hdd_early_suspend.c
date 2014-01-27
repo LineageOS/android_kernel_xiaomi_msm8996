@@ -96,7 +96,11 @@
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #include <wlan_qct_wda.h>
-#include <if_pci.h>
+#if defined(HIF_PCI)
+#include "if_pci.h"
+#elif defined(HIF_USB)
+#include "if_usb.h"
+#endif
 #endif
 #define HDD_SSR_BRING_UP_TIME 180000
 

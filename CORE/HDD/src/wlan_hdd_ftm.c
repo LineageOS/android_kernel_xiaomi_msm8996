@@ -81,7 +81,11 @@
 #include "ol_fw.h"
 #include "testmode.h"
 #include "wlan_hdd_cfg80211.h"
+#if defined(HIF_PCI)
 #include "if_pci.h"
+#elif defined(HIF_USB)
+#include "if_usb.h"
+#endif
 #endif
 
 #define RXMODE_DISABLE_ALL 0

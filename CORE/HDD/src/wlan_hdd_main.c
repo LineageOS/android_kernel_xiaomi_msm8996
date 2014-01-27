@@ -123,7 +123,11 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #include <wlan_hdd_ipa.h>
 #endif
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#if defined(HIF_PCI)
 #include "if_pci.h"
+#elif defined(HIF_USB)
+#include "if_usb.h"
+#endif
 #endif
 
 #ifdef MODULE
@@ -12569,7 +12573,9 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);
 
+//#ifdef HIF_USB
 MODULE_LICENSE("Dual BSD/GPL");
+//#endif
 MODULE_AUTHOR("Qualcomm Atheros, Inc.");
 MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");
 
