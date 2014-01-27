@@ -9,6 +9,9 @@ KBUILD_OPTIONS += MODNAME=wlan
 LICENSE_FILE ?= $(PWD)/$(WLAN_ROOT)/CORE/HDD/src/wlan_hdd_main.c
 WLAN_OPEN_SOURCE = $(shell if grep -q "MODULE_LICENSE(\"Dual BSD/GPL\")" \
 		$(LICENSE_FILE); then echo 1; else echo 0; fi)
+ifeq ($(CONFIG_ROME_IF),usb)
+	WLAN_OPEN_SOURCE = 0
+endif
 
 #By default build for CLD
 WLAN_SELECT := CONFIG_QCA_CLD_WLAN=m

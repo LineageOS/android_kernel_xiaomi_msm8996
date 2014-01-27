@@ -6,6 +6,11 @@ else
 	KERNEL_BUILD := 0
 endif
 
+ifndef CONFIG_ROME_IF
+	#use pci as default interface
+	CONFIG_ROME_IF = pci
+endif
+
 ifeq ($(KERNEL_BUILD),1)
 	# These are provided in external module based builds
 	# Need to explicitly define for Kernel-based builds
@@ -28,8 +33,12 @@ ifeq ($(KERNEL_BUILD), 0)
 	CONFIG_PRIMA_WLAN_OKC := y
 
 	# JB kernel has CPU enablement patches, so enable
-	CONFIG_PRIMA_WLAN_11AC_HIGH_TP := y
-
+	ifeq ($(CONFIG_ROME_IF),pci)
+		CONFIG_PRIMA_WLAN_11AC_HIGH_TP := y
+	endif
+	ifeq ($(CONFIG_ROME_IF),usb)
+		CONFIG_PRIMA_WLAN_11AC_HIGH_TP := n
+	endif
 	#Flag to enable TDLS feature
 	CONFIG_QCOM_TDLS := y
 
@@ -80,7 +89,12 @@ CONFIG_ATH_PERF_PWR_OFFLOAD := 1
 CONFIG_REMOVE_PKT_LOG := 0
 
 #Enable 11AC TX
-CONFIG_ATH_11AC_TXCOMPACT := 1
+ifeq ($(CONFIG_ROME_IF),pci)
+	CONFIG_ATH_11AC_TXCOMPACT := 1
+endif
+ifeq ($(CONFIG_ROME_IF),usb)
+	CONFIG_ATH_11AC_TXCOMPACT := 0
+endif
 
 #Enable OS specific IRQ abstraction
 CONFIG_ATH_SUPPORT_SHARED_IRQ := 1
@@ -89,10 +103,21 @@ CONFIG_ATH_SUPPORT_SHARED_IRQ := 1
 CONFIG_HIF_MESSAGE_BASED := 1
 
 #Enable PCI specific APIS (dma, etc)
-CONFIG_HIF_PCI := 1
+ifeq ($(CONFIG_ROME_IF),pci)
+	CONFIG_HIF_PCI := 1
+endif
+#Enable USB specific APIS
+ifeq ($(CONFIG_ROME_IF),usb)
+	CONFIG_HIF_USB := 1
+endif
 
 #Enable pci read/write config functions
-CONFIG_ATH_PCI := 1
+ifeq ($(CONFIG_ROME_IF),pci)
+	CONFIG_ATH_PCI := 1
+endif
+ifeq ($(CONFIG_ROME_IF),usb)
+#CONFIG_ATH_PCI := 1
+endif
 
 #Enable IBSS support on CLD
 CONFIG_QCA_IBSS_SUPPORT := 1
@@ -637,6 +662,7 @@ endif
 
 ########### HIF ###########
 HIF_DIR := CORE/SERVICES/HIF
+ifeq ($(CONFIG_HIF_PCI), 1)
 HIF_PCIE_DIR := $(HIF_DIR)/PCIe
 
 HIF_INC := -I$(WLAN_ROOT)/$(HIF_PCIE_DIR)
@@ -650,6 +676,20 @@ HIF_PCIE_OBJS := $(HIF_PCIE_DIR)/copy_engine.o \
                  $(HIF_PCIE_DIR)/mp_dev.o
 
 HIF_OBJS += $(HIF_PCIE_OBJS)
+endif
+ifeq ($(CONFIG_HIF_USB), 1)
+HIF_USB_DIR := $(HIF_DIR)/USB
+
+HIF_INC := -I$(WLAN_ROOT)/$(HIF_USB_DIR)
+
+HIF_OBJS := $(HIF_DIR)/ath_procfs.o
+
+HIF_USB_OBJS := $(HIF_USB_DIR)/usbdrv.o \
+                 $(HIF_USB_DIR)/hif_usb.o \
+                 $(HIF_USB_DIR)/if_usb.o
+
+HIF_OBJS += $(HIF_USB_OBJS)
+endif
 
 ############ WMA ############
 WMA_DIR :=      CORE/SERVICES/WMA
@@ -973,6 +1013,12 @@ CDEFINES += -DCONFIG_ATH_PROCFS_DIAG_SUPPORT
 endif
 endif
 
+ifeq ($(CONFIG_HIF_USB), 1)
+CDEFINES += -DCONFIG_ATH_PROCFS_DIAG_SUPPORT
+CDEFINES += -DQCA_SUPPORT_OL_RX_REORDER_TIMEOUT
+CDEFINES += -DCONFIG_ATH_PCIE_MAX_PERF=0 -DCONFIG_ATH_PCIE_AWAKE_WHILE_DRIVER_LOAD=0 -DCONFIG_DISABLE_CDC_MAX_PERF_WAR=0
+endif
+
 # enable the MAC Address auto-generation feature
 CDEFINES += -DWLAN_AUTOGEN_MACADDR_FEATURE
 
@@ -1051,12 +1097,18 @@ ifeq ($(CONFIG_HIF_PCI), 1)
 CDEFINES += -DHIF_PCI
 endif
 
+#Enable USB specific APIS
+ifeq ($(CONFIG_HIF_USB), 1)
+CDEFINES += -DHIF_USB
+CDEFINES += -DCONFIG_HL_SUPPORT
+endif
+
 #Enable pci read/write config functions
 ifeq ($(CONFIG_ATH_PCI), 1)
 CDEFINES += -DATH_PCI
 endif
 
-#Enable power management suspend/resume functionality to PCI
+#Enable power management suspend/resume functionality
 ifeq ($(CONFIG_ATH_BUS_PM), 1)
 CDEFINES += -DATH_BUS_PM
 endif

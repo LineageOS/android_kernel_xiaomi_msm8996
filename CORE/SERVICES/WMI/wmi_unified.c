@@ -44,7 +44,11 @@
 #include "wma_api.h"
 #include "wma.h"
 #include "macTrace.h"
+#if defined(HIF_PCI)
 #include "if_pci.h"
+#elif defined(HIF_USB)
+#include "if_usb.h"
+#endif
 
 #define WMI_MIN_HEAD_ROOM 64
 
