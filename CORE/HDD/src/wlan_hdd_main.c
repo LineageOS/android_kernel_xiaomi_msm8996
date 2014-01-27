@@ -10034,6 +10034,32 @@ exit:
 #endif
 
 /**---------------------------------------------------------------------------
+  \brief hdd_11d_scan_done - callback to be executed when 11d scan is
+                             completed to flush out the scan results
+
+  11d scan is done during driver load and is a passive scan on all
+  channels supported by the device, 11d scans may find some APs on
+  frequencies which are forbidden to be used in the regulatory domain
+  the device is operating in. If these APs are notified to the supplicant
+  it may try to connect to these APs, thus flush out all the scan results
+  which are present in SME after 11d scan is done.
+
+  \return -  eHalStatus
+
+  --------------------------------------------------------------------------*/
+static eHalStatus hdd_11d_scan_done(tHalHandle halHandle, void *pContext,
+                         tANI_U32 scanId, eCsrScanStatus status)
+{
+    ENTER();
+
+    sme_ScanFlushResult(halHandle, 0);
+
+    EXIT();
+
+    return eHAL_STATUS_SUCCESS;
+}
+
+/**---------------------------------------------------------------------------
 
   \brief hdd_wlan_startup() - HDD init function
 
@@ -10690,6 +10716,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /*SME must send channel update configuration to RIVA*/
    sme_UpdateChannelConfig(pHddCtx->hHal);
 #endif
+   sme_Register11dScanDoneCallback(pHddCtx->hHal, hdd_11d_scan_done);
 
    /* Register with platform driver as client for Suspend/Resume */
    status = hddRegisterPmOps(pHddCtx);
