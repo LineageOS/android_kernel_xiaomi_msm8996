@@ -1,8 +1,7 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -119,6 +118,8 @@ void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc);
 extern int pktlogmod_init(void *context);
 extern void pktlogmod_exit(void *context);
 #endif
+
+void hif_pci_check_soc_status(struct hif_pci_softc *sc);
 
 /*
  * A firmware interrupt to the Host is indicated by the

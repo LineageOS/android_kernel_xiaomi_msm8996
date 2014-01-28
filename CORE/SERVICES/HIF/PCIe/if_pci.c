@@ -64,6 +64,7 @@
 #define AR6320_FW_2_0  (0x20)
 
 #define MAX_NUM_OF_RECEIVES 1000 /* Maximum number of Rx buf to process before break out */
+#define PCIE_WAKE_TIMEOUT 1000 /* Maximum ms timeout for host to wake up target */
 
 unsigned int msienable = 0;
 module_param(msienable, int, 0644);
@@ -311,6 +312,55 @@ hif_pci_device_warm_reset(struct hif_pci_softc *sc)
     A_MDELAY(100);
     printk("Target Warm reset complete\n");
 
+}
+
+void
+hif_pci_check_soc_status(struct hif_pci_softc *sc)
+{
+    u_int16_t device_id;
+    u_int32_t val;
+    u_int16_t timeout_count = 0;
+
+    /* Check device ID from PCIe configuration space for link status */
+    pci_read_config_word(sc->pdev, PCI_DEVICE_ID, &device_id);
+    if(device_id != sc->devid) {
+        printk(KERN_ERR "PCIe link is down!\n");
+        return;
+    }
+
+    /* Check PCIe local register for bar/memory access */
+    val = A_PCI_READ32(sc->mem + PCIE_LOCAL_BASE_ADDRESS +
+                       RTC_STATE_ADDRESS);
+    printk("RTC_STATE_ADDRESS is %08x\n", val);
+
+    /* Try to wake up taget if it sleeps */
+    A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS +
+                  PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
+    printk("PCIE_SOC_WAKE_ADDRESS is %08x\n",
+           A_PCI_READ32(sc->mem + PCIE_LOCAL_BASE_ADDRESS +
+                        PCIE_SOC_WAKE_ADDRESS));
+
+    /* Check if taget can be woken up */
+    while(!hif_pci_targ_is_awake(sc, sc->mem)) {
+        if(timeout_count >= PCIE_WAKE_TIMEOUT) {
+            printk(KERN_ERR "Target cannot be woken up! "
+                "RTC_STATE_ADDRESS is %08x, PCIE_SOC_WAKE_ADDRESS is %08x\n",
+                A_PCI_READ32(sc->mem + PCIE_LOCAL_BASE_ADDRESS +
+                RTC_STATE_ADDRESS), A_PCI_READ32(sc->mem +
+                PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS));
+            return;
+        }
+
+        A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS +
+                      PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
+
+        A_MDELAY(100);
+        timeout_count += 100;
+    }
+
+    /* Check BAR + 0x10c register for SoC internal bus issues */
+    val = A_PCI_READ32(sc->mem + 0x10c);
+    printk("BAR + 0x10c is %08x\n", val);
 }
 
 /*

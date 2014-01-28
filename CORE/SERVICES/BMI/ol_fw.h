@@ -62,6 +62,9 @@
 #define AXI_LOCATION            0x000a0000
 #define AXI_SIZE                0x00018000
 
+#define CE7_LOCATION            0x00036000
+#define CE_USEFUL_SIZE          0x00000058
+
 #define TOTAL_DUMP_SIZE         0x00200000
 #define PCIE_READ_LIMIT         0x00005000
 
