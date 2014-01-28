@@ -197,13 +197,13 @@ ol_tx_vdev_pause_queue_append(
     if (vdev->ll_pause.txq.tail) {
         adf_nbuf_set_next(vdev->ll_pause.txq.tail, NULL);
     }
-    adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
 
     if (start_timer) {
         adf_os_timer_cancel(&vdev->ll_pause.timer);
         adf_os_timer_start(
                 &vdev->ll_pause.timer, OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
     }
+    adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
 
     return msdu_list;
 }
