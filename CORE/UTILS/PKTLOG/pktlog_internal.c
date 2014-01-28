@@ -71,10 +71,11 @@ pktlog_getbuf_intsafe(struct ath_pktlog_arg *plarg)
 		printk("Invalid parg in %s\n", __func__);
 		return;
 	}
+
 	pl_info = plarg->pl_info;
-	log_buf = pl_info->buf;
 	log_type = plarg->log_type;
 	log_size = plarg->log_size;
+	log_buf = pl_info->buf;
 	flags = plarg->flags;
 
 	if (!log_buf) {
@@ -328,6 +329,8 @@ process_tx_info(struct ol_txrx_pdev_t *txrx_pdev,
 		u_int8_t vdev_id;
 		adf_nbuf_t netbuf;
 		u_int32_t len;
+
+		adf_os_mem_set(&pl_msdu_info, 0, sizeof(pl_msdu_info));
 
 		pl_msdu_info.num_msdu = *msdu_id_info;
 		pl_msdu_info.priv_size = sizeof(uint32_t) *

@@ -100,15 +100,17 @@ void dfs_reset_alldelaylines(struct ath_dfs *dfs)
         pl->pl_firstelem = pl->pl_numelems = 0;
         pl->pl_lastelem = DFS_MAX_PULSE_BUFFER_MASK;
 
-        for (i = 0; i < DFS_MAX_RADAR_TYPES; i++) {
+        for (i=0; i<DFS_MAX_RADAR_TYPES; i++) {
             if (dfs->dfs_radarf[i] != NULL) {
                 ft = dfs->dfs_radarf[i];
-                for (j = 0; j < ft->ft_numfilters; j++) {
-                    rf = &(ft->ft_filters[j]);
-                    dl = &(rf->rf_dl);
-                    if (dl != NULL) {
-                        OS_MEMZERO(dl, sizeof(struct dfs_delayline));
-                        dl->dl_lastelem = (0xFFFFFFFF) & DFS_MAX_DL_MASK;
+                if (NULL != ft) {
+                    for (j = 0; j < ft->ft_numfilters; j++) {
+                        rf = &(ft->ft_filters[j]);
+                        dl = &(rf->rf_dl);
+                        if (dl != NULL) {
+                            OS_MEMZERO(dl, sizeof(struct dfs_delayline));
+                            dl->dl_lastelem = (0xFFFFFFFF) & DFS_MAX_DL_MASK;
+                        }
                     }
                 }
             }

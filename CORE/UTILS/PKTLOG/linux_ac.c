@@ -105,7 +105,7 @@ void ol_pl_set_name(ol_softc_handle scn, net_device_handle dev)
 void pktlog_disable_adapter_logging(struct ol_softc *scn)
 {
 	struct ol_pktlog_dev_t *pl_dev = get_pl_handle(scn);
-	pl_dev->pl_info->log_state = 0;
+	if (pl_dev) pl_dev->pl_info->log_state = 0;
 }
 
 int pktlog_alloc_buf(struct ol_softc *scn)
@@ -204,7 +204,21 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_enable, ctl, write, filp, buffer, lenp,
 	struct ol_pktlog_dev_t *pl_dev;
 
 	scn = (ol_ath_generic_softc_handle) ctl->extra1;
+
+	if (!scn) {
+		printk("%s: Invalid scn context\n", __func__);
+		ASSERT(0);
+		return -EINVAL;
+	}
+
 	pl_dev = get_pl_handle((struct ol_softc *)scn);
+
+	if (!pl_dev) {
+		printk("%s: Invalid pktlog context\n", __func__);
+		ASSERT(0);
+		return -ENODEV;
+	}
+
 	ctl->data = &enable;
 	ctl->maxlen = sizeof(enable);
 
@@ -212,7 +226,7 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_enable, ctl, write, filp, buffer, lenp,
 		ret = ATH_SYSCTL_PROC_DOINTVEC(ctl, write, filp, buffer,
 					       lenp, ppos);
 		if (ret == 0)
-			return pl_dev->pl_funcs->pktlog_enable(
+			ret = pl_dev->pl_funcs->pktlog_enable(
 						(struct ol_softc *)scn,
 						enable);
 		else
@@ -225,6 +239,10 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_enable, ctl, write, filp, buffer, lenp,
 			printk(PKTLOG_TAG "%s:proc_dointvec failed\n",
 			       __func__);
 	}
+
+	ctl->data = NULL;
+	ctl->maxlen = 0;
+
 	return ret;
 }
 
@@ -243,7 +261,21 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_size, ctl, write, filp, buffer, lenp,
 	struct ol_pktlog_dev_t *pl_dev;
 
 	scn = (ol_ath_generic_softc_handle) ctl->extra1;
+
+	if (!scn) {
+		printk("%s: Invalid scn context\n", __func__);
+		ASSERT(0);
+		return -EINVAL;
+	}
+
 	pl_dev = get_pl_handle((struct ol_softc *)scn);
+
+	if (!pl_dev) {
+		printk("%s: Invalid pktlog handle\n", __func__);
+		ASSERT(0);
+		return -ENODEV;
+	}
+
 	ctl->data = &size;
 	ctl->maxlen = sizeof(size);
 
@@ -251,7 +283,7 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_size, ctl, write, filp, buffer, lenp,
 		ret = ATH_SYSCTL_PROC_DOINTVEC(ctl, write, filp, buffer,
 					       lenp, ppos);
 		if (ret == 0)
-			return pl_dev->pl_funcs->pktlog_setsize(
+			ret = pl_dev->pl_funcs->pktlog_setsize(
 						(struct ol_softc *)scn,
 						size);
 	} else {
@@ -259,6 +291,10 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_size, ctl, write, filp, buffer, lenp,
 		ret = ATH_SYSCTL_PROC_DOINTVEC(ctl, write, filp, buffer,
 					       lenp, ppos);
 	}
+
+	ctl->data = NULL;
+	ctl->maxlen = 0;
+
 	return ret;
 }
 
@@ -474,6 +510,12 @@ static void pktlog_sysctl_unregister(struct ol_pktlog_dev_t *pl_dev)
 {
 	struct ath_pktlog_info_lnx *pl_info_lnx;
 
+	if (!pl_dev) {
+		printk("%s: Invalid pktlog context\n", __func__);
+		ASSERT(0);
+		return;
+	}
+
 	pl_info_lnx = (pl_dev) ? PL_INFO_LNX(pl_dev->pl_info) :
 				 PL_INFO_LNX(g_pktlog_info);
 
@@ -487,8 +529,15 @@ static void pktlog_detach(struct ol_softc *scn)
 {
 	struct ol_pktlog_dev_t *pl_dev = (struct ol_pktlog_dev_t *)
 					 get_pl_handle(scn);
-	struct ath_pktlog_info *pl_info = pl_dev->pl_info;
+	struct ath_pktlog_info *pl_info;
 
+	if (!pl_dev) {
+		printk("%s: Invalid pktlog context\n", __func__);
+		ASSERT(0);
+		return;
+	}
+
+	pl_info = pl_dev->pl_info;
 	remove_proc_entry(WLANDEV_BASENAME, g_pktlog_pde);
 	pktlog_sysctl_unregister(pl_dev);
 	pktlog_cleanup(pl_info);
