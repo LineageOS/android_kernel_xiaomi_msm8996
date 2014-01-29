@@ -10036,7 +10036,8 @@ static void hdd_driver_exit(void)
    }
    else
    {
-      while(pHddCtx->isLogpInProgress) {
+      while(pHddCtx->isLogpInProgress ||
+            vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
               "%s:SSR in Progress; block rmmod for 1 second!!!", __func__);
          msleep(1000);

@@ -571,6 +571,10 @@ void ol_target_failure(void *instance, A_STATUS status)
 	printk("XXX TARGET ASSERTED XXX\n");
 	scn->target_status = OL_TRGET_STATUS_RESET;
 
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+#endif
+
 #ifndef CONFIG_CNSS
 	if (HIFDiagReadMem(scn->hif_hdl,
 				host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_failure_state)),

@@ -1492,7 +1492,6 @@ VOS_STATUS hdd_wlan_shutdown(void)
    }
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
     pHddCtx->isLogpInProgress = TRUE;
 #endif
 
