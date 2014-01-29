@@ -46,8 +46,6 @@
 #include "vos_api.h"
 #include "wlan_qct_wda.h"
 
-static int g_pktlog_mode = PKTLOG_MODE_SYSTEM;
-
 void pktlog_init(struct ol_softc *scn);
 int pktlog_enable(struct ol_softc *scn, int32_t log_state);
 int pktlog_setsize(struct ol_softc *scn, int32_t log_state);
@@ -327,34 +325,49 @@ pktlog_init(struct ol_softc *scn)
 int
 pktlog_enable(struct ol_softc *scn, int32_t log_state)
 {
-	struct ol_pktlog_dev_t *pl_dev = scn->pdev_txrx_handle->pl_dev;
-	struct ath_pktlog_info *pl_info = pl_dev->pl_info;
-	struct ol_txrx_pdev_t *txrx_pdev = scn->pdev_txrx_handle;
+	struct ol_pktlog_dev_t *pl_dev;
+	struct ath_pktlog_info *pl_info;
+	struct ol_txrx_pdev_t *txrx_pdev;
 	int error;
 
+	if (!scn) {
+		printk("%s: Invalid scn context\n", __func__);
+		ASSERT(0);
+		return -1;
+	}
+
+	txrx_pdev = scn->pdev_txrx_handle;
+	if (!txrx_pdev) {
+		printk("%s: Invalid txrx_pdev context\n", __func__);
+		ASSERT(0);
+		return -1;
+	}
+
+	pl_dev = scn->pdev_txrx_handle->pl_dev;
+	if (!pl_dev) {
+		printk("%s: Invalid pktlog context\n", __func__);
+		ASSERT(0);
+		return -1;
+	}
+
+	pl_info = pl_dev->pl_info;
 	pl_dev->sc_osdev = scn->sc_osdev;
 
 	if (!pl_info)
 		return 0;
 
 	if (log_state != 0 && !pl_dev->tgt_pktlog_enabled) {
-		if (!scn) {
-			if (g_pktlog_mode == PKTLOG_MODE_ADAPTER) {
-				pktlog_disable_adapter_logging(scn);
-				g_pktlog_mode = PKTLOG_MODE_SYSTEM;
-			}
-		} else {
-			if (g_pktlog_mode == PKTLOG_MODE_SYSTEM)
-				g_pktlog_mode = PKTLOG_MODE_ADAPTER;
-		}
-
 		if (pl_info->buf == NULL) {
 			error = pktlog_alloc_buf(scn);
 
 			if (error != 0)
 				return error;
 
-			ASSERT(pl_info->buf);
+			if (!pl_info->buf) {
+				printk("%s: pktlog buf alloc failed\n", __func__);
+				ASSERT(0);
+				return -1;
+			}
 
 			pl_info->buf->bufhdr.version = CUR_PKTLOG_VER;
 			pl_info->buf->bufhdr.magic_num = PKTLOG_MAGIC_NUM;

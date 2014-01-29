@@ -1720,14 +1720,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    /* The driver should always be initialized in STA mode after SSR */
    hdd_set_conparam(0);
 
-#ifdef CONFIG_ENABLE_LINUX_REG
-   vosStatus = vos_nv_open();
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-      /* NV module cannot be initialized */
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_nv_open failed", __func__);
-      goto err_re_init;
-   }
 #ifdef QCA_WIFI_ISOC
    vosStatus = vos_init_wiphy_from_nv_bin();
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -1736,7 +1728,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_init_wiphy failed", __func__);
       goto err_re_init;
    }
-#endif
 #endif
 
    /* Re-open VOSS, it is a re-open b'se control transport was never closed. */

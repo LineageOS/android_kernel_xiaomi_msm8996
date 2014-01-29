@@ -5539,6 +5539,12 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
                 goto send_resp;
         }
         pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	if (NULL == pdev) {
+		WMA_LOGE("%s: Failed to get pdev", __func__);
+		status = VOS_STATUS_E_FAILURE;
+		goto send_resp;
+	}
+
         peer = ol_txrx_find_peer_by_addr(pdev, intr[vdev_id].bssid, &peer_id);
 
         if (peer && (peer->state == ol_txrx_peer_state_conn ||
@@ -13528,13 +13534,15 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 					t_thermal_mgmt *pThermalParams)
 {
 	t_thermal_cmd_params thermal_params;
-	ol_txrx_pdev_handle curr_pdev =
-		vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	ol_txrx_pdev_handle curr_pdev;
 
-	if (NULL == wma || NULL == pThermalParams) {
-		WMA_LOGE("TM Invalid input");
-		return VOS_STATUS_E_FAILURE;
-	}
+        if (NULL == wma || NULL == pThermalParams) {
+                WMA_LOGE("%s: TM Invalid input", __func__);
+                return VOS_STATUS_E_FAILURE;
+        }
+
+	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
 	WMA_LOGD("TM enable %d period %d", pThermalParams->thermalMgmtEnabled,
 			 pThermalParams->throttlePeriod);
 
@@ -17447,7 +17455,6 @@ wma_dfs_indicate_radar(struct ieee80211com *ic,
     }
 
     hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD,wma->vos_context);
-
     if (wma->dfs_ic != ic)
     {
         WMA_LOGE("%s:DFS- Invalid WMA handle\n",__func__);

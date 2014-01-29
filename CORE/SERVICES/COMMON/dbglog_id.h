@@ -565,6 +565,9 @@ extern "C" {
 #define BEACON_EVENT_EARLY_RX_SLEEP_SLOP            2
 #define BEACON_EVENT_EARLY_RX_CONT_BMISS_TIMEOUT    3
 #define BEACON_EVENT_EARLY_RX_PAUSE_SKIP_BCN_NUM    4
+#define BEACON_EVENT_EARLY_RX_CLK_DRIFT             5
+#define BEACON_EVENT_EARLY_RX_AP_DRIFT              6
+#define BEACON_EVENT_EARLY_RX_BCN_TYPE              7
 
 #define RATECTRL_DBGID_DEFINITION_START             0
 #define RATECTRL_DBGID_ASSOC                        1

@@ -2175,6 +2175,7 @@ typedef enum {
     PAUSE_TYPE_P2P_CLIENT_NOA = 0x4, /** only vdev_map is valid, actually only one vdev id is set at one time */
     PAUSE_TYPE_P2P_GO_PS =      0x5, /** only vdev_map is valid, actually only one vdev id is set at one time */
     PAUSE_TYPE_STA_ADD_BA =     0x6, /** only peer_id and tid_map are valid, actually only one tid is set at one time */
+    PAUSE_TYPE_AP_PS =          0x7, /** for pausing AP vdev when all the connected clients are in PS. only vdev_map is valid */
 } wmi_tx_pause_type;
 
 typedef enum {
@@ -2939,6 +2940,8 @@ typedef enum {
     /** max rate in kpbs, transmit rate can't go beyond it */
     WMI_VDEV_PARAM_MAX_RATE,
 
+    /* enable/disable drift sample. 0: disable; 1: clk_drift; 2: ap_drift; 3 both clk and ap drift*/
+    WMI_VDEV_PARAM_EARLY_RX_DRIFT_SAMPLE,
 } WMI_VDEV_PARAM;
 
 enum wmi_pkt_type {
@@ -6283,6 +6286,30 @@ typedef struct {
 
     A_UINT32 temperature_degreeC;/* temperature in degree C*/
 } wmi_thermal_mgmt_event_fixed_param;
+
+enum {
+    WMI_PDEV_PARAM_TXPOWER_REASON_NONE = 0,
+    WMI_PDEV_PARAM_TXPOWER_REASON_SAR,
+    WMI_PDEV_PARAM_TXPOWER_REASON_MAX
+};
+
+#define PDEV_PARAM_TXPOWER_VALUE_MASK  0x000000FF
+#define PDEV_PARAM_TXPOWER_VALUE_SHIFT 0
+
+#define PDEV_PARAM_TXPOWER_REASON_MASK  0x0000FF00
+#define PDEV_PARAM_TXPOWER_REASON_SHIFT 8
+
+#define SET_PDEV_PARAM_TXPOWER_VALUE(txpower_param, value)     \
+    ((txpower_param) &= ~PDEV_PARAM_TXPOWER_VALUE_MASK, (txpower_param) |= ((value) << PDEV_PARAM_TXPOWER_VALUE_SHIFT))
+
+#define SET_PDEV_PARAM_TXPOWER_REASON(txpower_param, value)     \
+    ((txpower_param) &= ~PDEV_PARAM_TXPOWER_REASON_MASK, (txpower_param) |= ((value) << PDEV_PARAM_TXPOWER_REASON_SHIFT))
+
+#define GET_PDEV_PARAM_TXPOWER_VALUE(txpower_param)     \
+    (((txpower_param) & PDEV_PARAM_TXPOWER_VALUE_MASK) >> PDEV_PARAM_TXPOWER_VALUE_SHIFT)
+
+#define GET_PDEV_PARAM_TXPOWER_REASON(txpower_param)     \
+    (((txpower_param) & PDEV_PARAM_TXPOWER_REASON_MASK) >> PDEV_PARAM_TXPOWER_REASON_SHIFT)
 
 #ifdef __cplusplus
 }
