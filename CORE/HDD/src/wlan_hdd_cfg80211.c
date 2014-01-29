@@ -270,6 +270,15 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
     .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
     .ht_cap.mcs.rx_highest = cpu_to_le16( 72 ),
     .ht_cap.mcs.tx_params  = IEEE80211_HT_MCS_TX_DEFINED,
+#ifdef QCA_WIFI_2_0
+    .vht_cap.cap = IEEE80211_VHT_CAP_MAX_MPDU_LENGTH_11454
+                            | IEEE80211_VHT_CAP_SHORT_GI_80
+                            | IEEE80211_VHT_CAP_TXSTBC
+                            | (IEEE80211_VHT_CAP_RXSTBC_MASK &
+                              ( IEEE80211_VHT_CAP_RXSTBC_1
+                              | IEEE80211_VHT_CAP_RXSTBC_2))
+                            | IEEE80211_VHT_CAP_RXLDPC,
+#endif
 };
 
 static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
