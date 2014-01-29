@@ -13763,7 +13763,7 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 
 	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 	if (NULL == curr_pdev) {
-		WMA_LOGE("TM Invalid pdev");
+		WMA_LOGE("%s: Failed to get pdev", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -13823,6 +13823,10 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 		{
 			WMA_LOGE("Could not send thermal mgmt command to the firmware!");
 		}
+	}
+        return VOS_STATUS_SUCCESS;
+}
+
 
 /* function   : wma_process_set_thermal_level
  * Descriptin : This function set the new thermal throttle level in the
@@ -13838,18 +13842,20 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 					u_int8_t *pThermalLevel)
 {
 	t_thermal_cmd_params thermal_params;
-	u_int8_t thermal_level = (*pThermalLevel);
+	u_int8_t thermal_level;
 	ol_txrx_pdev_handle curr_pdev;
 
-	if (NULL == wma || NULL == pThermalLevel) {
-		WMA_LOGE("TM Invalid input");
-		return VOS_STATUS_E_FAILURE;
-	}
 
-    curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+        if (NULL == wma || NULL == pThermalLevel) {
+                WMA_LOGE("TM Invalid input");
+                return VOS_STATUS_E_FAILURE;
+        }
 
+	thermal_level = (*pThermalLevel);
+
+	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 	if (NULL == curr_pdev) {
-		WMA_LOGE("TM Invalid pdev");
+		WMA_LOGE("%s: Failed to get pdev", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -14891,23 +14897,30 @@ u_int8_t wma_thermal_mgmt_get_level(void *handle, u_int32_t temp)
 static int wma_thermal_mgmt_evt_handler(void *handle, u_int8_t *event,
 					u_int32_t len)
 {
-	tp_wma_handle wma = (tp_wma_handle) handle;
+	tp_wma_handle wma;
 	wmi_thermal_mgmt_event_fixed_param *tm_event;
 	u_int8_t thermal_level;
 	t_thermal_cmd_params thermal_params;
-	WMI_THERMAL_MGMT_EVENTID_param_tlvs *param_buf =
-		(WMI_THERMAL_MGMT_EVENTID_param_tlvs *) event;
+	WMI_THERMAL_MGMT_EVENTID_param_tlvs *param_buf;
 	ol_txrx_pdev_handle curr_pdev;
 
 	if (NULL == event || NULL == handle) {
-		WMA_LOGE("Invalid thermal mitigation event buffer");
+                WMA_LOGE("Invalid thermal mitigation event buffer");
+                return -EINVAL;
+        }
+
+	wma = (tp_wma_handle) handle;
+
+	if (NULL == wma) {
+		WMA_LOGE("%s: Failed to get wma handle", __func__);
 		return -EINVAL;
 	}
 
-	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	param_buf = (WMI_THERMAL_MGMT_EVENTID_param_tlvs *) event;
 
+	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 	if (NULL == curr_pdev) {
-		WMA_LOGE("Invalid pdev");
+		WMA_LOGE("%s: Failed to get pdev", __func__);
 		return -EINVAL;
 	}
 
