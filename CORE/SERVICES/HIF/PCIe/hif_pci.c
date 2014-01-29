@@ -667,8 +667,15 @@ hif_completion_thread(struct HIF_CE_state *hif_state)
 				the debug module declaration in this source file
 				*/
 				AR_DEBUG_PRINTF(HIF_PCI_DEBUG,("HIF_PCI_CE_recv_data netbuf=%p  nbytes=%d\n", netbuf, nbytes));
-                adf_nbuf_set_pktlen(netbuf, nbytes);
-                msg_callbacks->rxCompletionHandler(msg_callbacks->Context, netbuf, pipe_info->pipe_num);
+                if (nbytes <= pipe_info->buf_sz) {
+                    adf_nbuf_set_pktlen(netbuf, nbytes);
+                    msg_callbacks->rxCompletionHandler(msg_callbacks->Context,
+                                                       netbuf, pipe_info->pipe_num);
+                } else {
+                    AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Invalid Rx message netbuf:%p nbytes:%d\n",
+                                                    netbuf, nbytes));
+                    adf_nbuf_free(netbuf);
+                }
             }
 
             /* Recycle completion state back to the pipe it came from. */
