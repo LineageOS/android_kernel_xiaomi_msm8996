@@ -16496,12 +16496,18 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	tANI_U8         *pFrame = NULL;
 	void            *pPacket = NULL;
 	u_int16_t	newFrmLen = 0;
-	struct wma_txrx_node *iface = &wma_handle->interfaces[vdev_id];
+	struct wma_txrx_node *iface;
+	tpAniSirGlobal pMac;
 #endif /* WLAN_FEATURE_11W */
-	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
-			wma_handle->vos_context);
 
-
+        if (NULL == wma_handle)
+        {
+            WMA_LOGE("wma_handle is NULL");
+            return VOS_STATUS_E_FAILURE;
+        }
+        iface = &wma_handle->interfaces[vdev_id];
+        pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
+                wma_handle->vos_context);
 	/* Get the vdev handle from vdev id */
 	txrx_vdev = wma_handle->interfaces[vdev_id].handle;
 
