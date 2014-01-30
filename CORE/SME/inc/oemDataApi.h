@@ -58,6 +58,11 @@
 #endif
 #endif
 
+#ifdef QCA_WIFI_2_0
+/* message subtype for internal purpose */
+#define OEM_MESSAGE_SUBTYPE_INTERNAL   0xdeadbeef
+#endif
+
 /*************************************************************************************************************
   OEM DATA REQ/RSP - DATA STRUCTURES
 *************************************************************************************************************/

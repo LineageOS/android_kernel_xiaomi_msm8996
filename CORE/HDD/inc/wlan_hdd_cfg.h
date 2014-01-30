@@ -1215,6 +1215,28 @@ typedef enum
 #define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_MAX       (120)
 #define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_DEFAULT   (78)
 
+/*
+ * This parameter is the drop in RSSI value that will trigger a precautionary
+ * scan by firmware.
+ * MAX value is choose so that this type of scan can be disabled by user.
+ */
+#define CFG_ROAM_RESCAN_RSSI_DIFF_NAME                  "gRoamRescanRssiDiff"
+#define CFG_ROAM_RESCAN_RSSI_DIFF_MIN                   (0)
+#define CFG_ROAM_RESCAN_RSSI_DIFF_MAX                   (100)
+#define CFG_ROAM_RESCAN_RSSI_DIFF_DEFAULT               (5)
+
+/*
+ * This parameter is the RSSI diff above neighbor lookup threshold, when
+ * opportunistic scan should be triggered.
+ * MAX value is choose so that this type of scan can be always enabled by user.
+ * MIN value will cause opportunistic scan to be triggered in neighbor lookup
+ * RSSI range.
+ */
+#define CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_NAME            "gOpportunisticThresholdDiff"
+#define CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_MIN             (0)
+#define CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_MAX             (127)
+#define CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_DEFAULT         (30)
+
 #define CFG_NEIGHBOR_SCAN_CHAN_LIST_NAME                      "gNeighborScanChannelList"
 #define CFG_NEIGHBOR_SCAN_CHAN_LIST_DEFAULT                   ""
 
@@ -2303,6 +2325,8 @@ typedef struct
    v_U16_t       nNeighborScanPeriod;
    v_U8_t        nNeighborReassocRssiThreshold;
    v_U8_t        nNeighborLookupRssiThreshold;
+   v_U8_t        nOpportunisticThresholdDiff;
+   v_U8_t        nRoamRescanRssiDiff;
    v_U8_t        neighborScanChanList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
    v_U16_t       nNeighborScanMinChanTime;
    v_U16_t       nNeighborScanMaxChanTime;

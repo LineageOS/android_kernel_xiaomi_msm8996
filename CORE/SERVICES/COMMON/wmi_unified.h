@@ -777,6 +777,11 @@ typedef enum {
 #define WMI_OEM_MEASUREMENT_RSP    0x04
 #define WMI_OEM_ERROR_REPORT_RSP   0x05
 
+/* below message subtype is internal to CLD. Target should
+ * never use internal response type
+ */
+#define WMI_OEM_INTERNAL_RSP       0xdeadbeef
+
 #define WMI_CHAN_LIST_TAG 0x1
 #define WMI_SSID_LIST_TAG 0x2
 #define WMI_BSSID_LIST_TAG 0x3

@@ -412,6 +412,15 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
         goto error;
     }//end if PhyMode == 11N_only
 
+    if((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
+       (psessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11AC_ONLY) &&
+       (!pAssocReq->VHTCaps.present))
+    {
+        limSendAssocRspMgmtFrame( pMac, eSIR_MAC_CAPABILITIES_NOT_SUPPORTED_STATUS,
+                                  1, pHdr->sa, subType, 0, psessionEntry );
+        limLog(pMac, LOGE, FL("SOFTAP was in 11AC only mode, reject"));
+        goto error;
+    }//end if PhyMode == 11AC_only
 
     /* Spectrum Management (11h) specific checks */
     if (localCapabilities.spectrumMgt)

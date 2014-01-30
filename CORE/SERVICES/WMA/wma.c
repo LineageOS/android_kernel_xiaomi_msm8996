@@ -543,12 +543,14 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		params->chainMask = resp_event->chain_mask;
 		params->smpsMode = host_map_smps_mode(resp_event->smps_mode);
 		params->status = resp_event->status;
+
       /*
        * Marking the VDEV UP STATUS to FALSE
        * since, VDEV RESTART will do a VDEV DOWN
        * in the firmware.
        */
-      iface->vdev_up = FALSE;
+
+		iface->vdev_up = FALSE;
 		wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
 	} else if (req_msg->msg_type == WDA_ADD_BSS_REQ) {
 		tpAddBssParams bssParams = (tpAddBssParams) req_msg->user_data;
@@ -676,6 +678,14 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 	no_of_peers_supported = ol_get_number_of_peers_supported(scn);
 	tgt_cfg.num_peers = no_of_peers_supported + CFG_TGT_NUM_VDEV + 2;
 	tgt_cfg.num_tids = (2 * (no_of_peers_supported + CFG_TGT_NUM_VDEV + 2));
+
+        /* Set the num of Keys per peer to 3 and 4 for Rome 1.1 and
+         * Rome 1.3 respectively
+         */
+        if (scn->target_version == AR6320_REV1_1_VERSION)
+            tgt_cfg.num_peer_keys = CFG_TGT_NUM_PEER_KEYS;
+        else
+            tgt_cfg.num_peer_keys = CFG_TGT_NUM_PEER_KEYS + 1;
 
 	WMITLV_SET_HDR(&tgt_cfg.tlv_header,WMITLV_TAG_STRUC_wmi_resource_config,
 		       WMITLV_GET_STRUCT_TLVLEN(wmi_resource_config));
@@ -915,7 +925,13 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 			WMA_LOGD("%s Failed to find peer %pM\n",
 					__func__, params->bssid);
 		wma_remove_peer(wma, params->bssid, resp_event->vdev_id, peer);
-		wmi_unified_vdev_down_send(wma->wmi_handle, resp_event->vdev_id);
+
+		if (wmi_unified_vdev_down_send(wma->wmi_handle, resp_event->vdev_id) < 0) {
+			WMA_LOGE("Failed to send vdev down cmd: vdev %d",
+				resp_event->vdev_id);
+		} else {
+			wma->interfaces[resp_event->vdev_id].vdev_up = FALSE;
+		}
 		iface = &wma->interfaces[resp_event->vdev_id];
 		if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
 			WMA_LOGD("%s: P2P BSS is stopped", __func__);
@@ -1758,7 +1774,7 @@ static int wma_oem_measurement_report_event_callback(void *handle,
 	WMA_LOGI("%s: Sending WDA_START_OEM_DATA_RSP, data len (%d)",
 	         __func__, datalen);
 
-	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)data, 0);
+	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)pStartOemDataRsp, 0);
 	return 0;
 }
 
@@ -1810,7 +1826,7 @@ static int wma_oem_error_report_event_callback(void *handle,
 	WMA_LOGI("%s: Sending WDA_START_OEM_DATA_RSP, data len (%d)",
 	         __func__, datalen);
 
-	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)data, 0);
+	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)pStartOemDataRsp, 0);
 	return 0;
 }
 #endif /* FEATURE_OEM_DATA_SUPPORT */
@@ -3205,10 +3221,10 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 						self_sta_req->selfMacAddr,
 						self_sta_req->sessionId,
 						txrx_vdev_type);
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
 	WMA_LOGD("LL TX Pause Mutex init");
 	adf_os_spinlock_init(&txrx_vdev_handle->ll_pause.mutex);
-#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
+#endif /* QCA_SUPPORT_TXRX_VDEV_LL_TXQ */
 
 	WMA_LOGA("vdev_id %hu, txrx_vdev_handle = %p", self_sta_req->sessionId,
 			txrx_vdev_handle);
@@ -3767,7 +3783,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
         if (msg_type == WDA_CHNL_SWITCH_REQ) {
             wma_handle->roam_preauth_scan_id = cmd->scan_id;
         }
-	// WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
+	WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
 	return VOS_STATUS_SUCCESS;
 error:
 	wma_reset_scan_info(wma_handle, cmd->vdev_id);
@@ -4324,66 +4340,109 @@ v_VOID_t wma_roam_scan_fill_ap_profile(tp_wma_handle wma_handle, tpAniSirGlobal 
  *            : It will be non-NULL if called after assoc.
  * Returns    :
  */
-v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle, tpAniSirGlobal pMac,
-        tSirRoamOffloadScanReq *roam_req, wmi_start_scan_cmd_fixed_param *scan_params)
+v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
+                                   tpAniSirGlobal pMac,
+                                   tSirRoamOffloadScanReq *roam_req,
+                                   wmi_start_scan_cmd_fixed_param *scan_params)
 {
-        tANI_U16 max_scan_time, min_scan_time, burst_duration;
-        tANI_U16 nprobes = 1;
-        vos_mem_zero(scan_params, sizeof(wmi_start_scan_cmd_fixed_param));
-        if (roam_req != NULL) {
-                /* Parameters updated after association is complete */
-            WMA_LOGI("%s: Input parameters: NeighborScanChannelMinTime = %d, NeighborScanChannelMaxTime = %d\n",
-                        __func__, roam_req->NeighborScanChannelMinTime, roam_req->NeighborScanChannelMaxTime);
-            WMA_LOGI("%s: Input parameters: NeighborScanTimerPeriod = %d, HomeAwayTime = %d, nProbes = %d\n",
-                        __func__, roam_req->NeighborScanTimerPeriod, roam_req->HomeAwayTime, roam_req->nProbes);
-            /* NeighborScanChannelMinTime = SETROAMSCANCHANNELMINTIME and gNeighborScanChannelMinTime */
-                if (roam_req->HomeAwayTime > (2 * WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME)) {
-                    burst_duration = roam_req->HomeAwayTime - 2 * WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME;
-                    max_scan_time = min(roam_req->NeighborScanChannelMaxTime, burst_duration);
-                } else {
-                    burst_duration = max_scan_time = roam_req->NeighborScanChannelMaxTime;
-                }
-                /* ROME cld firmware have single value and not min, max
-                 * therefore setting both values to same thing.
-                 */
-                min_scan_time = max_scan_time;
-                nprobes = roam_req->nProbes;
-                scan_params->dwell_time_active = min_scan_time;
+    tANI_U8 channels_per_burst = 0;
+    vos_mem_zero(scan_params, sizeof(wmi_start_scan_cmd_fixed_param));
+    if (roam_req != NULL) {
+        /* Parameters updated after association is complete */
+        WMA_LOGI("%s: Input parameters: NeighborScanChannelMinTime"
+                 " = %d, NeighborScanChannelMaxTime = %d",
+                 __func__,
+                 roam_req->NeighborScanChannelMinTime,
+                 roam_req->NeighborScanChannelMaxTime);
+        WMA_LOGI("%s: Input parameters: NeighborScanTimerPeriod ="
+                 " %d, HomeAwayTime = %d, nProbes = %d",
+                 __func__,
+                 roam_req->NeighborScanTimerPeriod,
+                 roam_req->HomeAwayTime,
+                 roam_req->nProbes);
 
-                /* NeighborScanChannelMaxTime = SETSCANCHANNELTIME and gNeighborScanChannelMaxTime */
-                /* HomeAwayTime = SETSCANHOMEAWAYTIME and gRoamScanHomeAwayTime */
-                /* max_scan_time is for 1 channel, burst_duration is for total for all in a burst */
-                scan_params->dwell_time_passive = max_scan_time;
+        /*
+         * roam_req->NeighborScanChannelMaxTime = SCAN_CHANNEL_TIME
+         * roam_req->HomeAwayTime               = SCAN_HOME_AWAY_TIME
+         * roam_req->NeighborScanTimerPeriod    = SCAN_HOME_TIME
+         *
+         * scan_params->dwell_time_active  = time station stays on channel
+         *                                   and sends probes;
+         * scan_params->dwell_time_passive = time station stays on channel
+         *                                   and listens probes;
+         * scan_params->burst_duration     = time station goes off channel
+         *                                   to scan;
+         */
 
-                /* NeighborScanTimerPeriod = SETSCANHOMETIME and gNeighborScanTimerPeriod */
-                scan_params->min_rest_time = roam_req->NeighborScanTimerPeriod;
-                scan_params->max_rest_time = roam_req->NeighborScanTimerPeriod;
-                scan_params->repeat_probe_time = (nprobes > 0) ? scan_params->dwell_time_active / nprobes : 0;
-                scan_params->probe_spacing_time = 0;
-                scan_params->probe_delay = 0;
-                scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION; /* 30 seconds for full scan cycle */
-                scan_params->idle_time = scan_params->min_rest_time;
-                scan_params->burst_duration = burst_duration;
+        /*
+         * Here is the formula,
+         * T(HomeAway) = N * T(dwell) + (N+1) * T(cs)
+         * where N is number of channels scanned in single burst
+         */
+        if (roam_req->HomeAwayTime < 2*WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME) {
+            // clearly we can't follow home away time
+            scan_params->dwell_time_active  = roam_req->NeighborScanChannelMaxTime;
+            scan_params->burst_duration     = scan_params->dwell_time_active;
         } else {
-                /* roam_req = NULL during initial or pre-assoc invocation */
-                scan_params->dwell_time_active = WMA_ROAM_DWELL_TIME_ACTIVE_DEFAULT;
-                scan_params->dwell_time_passive = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
-                scan_params->min_rest_time = WMA_ROAM_MIN_REST_TIME_DEFAULT;
-                scan_params->max_rest_time = WMA_ROAM_MAX_REST_TIME_DEFAULT;
-                scan_params->repeat_probe_time = 0;
-                scan_params->probe_spacing_time = 0;
-                scan_params->probe_delay = 0;
-                scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
-                scan_params->idle_time = scan_params->min_rest_time;
-                scan_params->burst_duration = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
+            channels_per_burst =
+              (roam_req->HomeAwayTime - WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME)
+              / ( scan_params->dwell_time_active + WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME);
+
+            if (channels_per_burst < 1) {
+                // dwell time and home away time conflicts
+                // we will override dwell time
+                scan_params->dwell_time_active =
+                  roam_req->HomeAwayTime - 2*WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME;
+                scan_params->burst_duration = scan_params->dwell_time_active;
+            } else {
+                scan_params->dwell_time_active =
+                  roam_req->NeighborScanChannelMaxTime;
+                scan_params->burst_duration =
+                  channels_per_burst * scan_params->dwell_time_active;
+            }
         }
-        WMA_LOGI("%s: Rome roam scan parameters: dwell_time_active = %d, dwell_time_passive = %d\n",
-                  __func__, scan_params->dwell_time_active, scan_params->dwell_time_passive);
-        WMA_LOGI("%s: min_rest_time = %d, max_rest_time = %d, repeat_probe_time = %d\n",
-                  __func__, scan_params->min_rest_time, scan_params->max_rest_time, scan_params->repeat_probe_time);
-        WMA_LOGI("%s: max_scan_time = %d, idle_time = %d, burst_duration = %d\n",
-                  __func__, scan_params->max_scan_time, scan_params->idle_time, scan_params->burst_duration);
+
+        scan_params->dwell_time_passive = scan_params->dwell_time_active;
+        scan_params->min_rest_time = roam_req->NeighborScanTimerPeriod;
+        scan_params->max_rest_time = roam_req->NeighborScanTimerPeriod;
+        scan_params->repeat_probe_time = (roam_req->nProbes > 0) ?
+              VOS_MAX(scan_params->dwell_time_active / roam_req->nProbes, 1) : 0;
+        scan_params->probe_spacing_time = 0;
+        scan_params->probe_delay = 0;
+        scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION; /* 30 seconds for full scan cycle */
+        scan_params->idle_time = scan_params->min_rest_time;
+    } else {
+        /* roam_req = NULL during initial or pre-assoc invocation */
+        scan_params->dwell_time_active = WMA_ROAM_DWELL_TIME_ACTIVE_DEFAULT;
+        scan_params->dwell_time_passive = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
+        scan_params->min_rest_time = WMA_ROAM_MIN_REST_TIME_DEFAULT;
+        scan_params->max_rest_time = WMA_ROAM_MAX_REST_TIME_DEFAULT;
+        scan_params->repeat_probe_time = 0;
+        scan_params->probe_spacing_time = 0;
+        scan_params->probe_delay = 0;
+        scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
+        scan_params->idle_time = scan_params->min_rest_time;
+        scan_params->burst_duration = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
+    }
+    WMA_LOGI("%s: Rome roam scan parameters:"
+             " dwell_time_active = %d, dwell_time_passive = %d",
+             __func__,
+             scan_params->dwell_time_active,
+             scan_params->dwell_time_passive);
+    WMA_LOGI("%s: min_rest_time = %d, max_rest_time = %d,"
+             " repeat_probe_time = %d",
+             __func__,
+             scan_params->min_rest_time,
+             scan_params->max_rest_time,
+             scan_params->repeat_probe_time);
+    WMA_LOGI("%s: max_scan_time = %d, idle_time = %d,"
+             " burst_duration = %d",
+             __func__,
+             scan_params->max_scan_time,
+             scan_params->idle_time,
+             scan_params->burst_duration);
 }
+
 /* function   : wma_roam_scan_offload_ap_profile
  * Descriptin : Send WMI_ROAM_AP_PROFILE TLV to firmware
  * Args       : AP profile parameters are passed in as the structure used in TLV
@@ -4463,11 +4522,12 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle)
      */
     /* rssi_thresh = 10 is low enough */
     vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle, WMA_ROAM_LOW_RSSI_TRIGGER_VERYLOW,
-                                                WMA_ROAM_RSSI_THRESH_DIFF_DEFAULT);
+                                                   pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff);
     vos_status = wma_roam_scan_offload_scan_period(wma_handle,
                                                 WMA_ROAM_OPP_SCAN_PERIOD_DEFAULT, WMA_ROAM_OPP_SCAN_AGING_PERIOD_DEFAULT);
     vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
-                                                WMA_ROAM_RSSI_CHANGE_RESCAN_DEFAULT, WMA_ROAM_BEACON_WEIGHT_DEFAULT);
+                                                   pMac->roam.configParam.neighborRoamConfig.nRoamRescanRssiDiff,
+                                                   WMA_ROAM_BEACON_WEIGHT_DEFAULT);
     wma_roam_scan_fill_ap_profile(wma_handle, pMac, NULL, &ap_profile);
 
     vos_status = wma_roam_scan_offload_ap_profile(wma_handle, &ap_profile);
@@ -4532,9 +4592,10 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             /* First parameter is positive rssi value to trigger rssi based scan.
              * Opportunistic scan is started at 30 dB higher that trigger rssi.
              */
+
             vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
-                                                                     (roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT),
-                                                                     WMA_ROAM_RSSI_THRESH_DIFF_DEFAULT);
+                                                           (roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT),
+                                                           roam_req->OpportunisticScanThresholdDiff);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
@@ -4552,7 +4613,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
              * 2 times the current beacon's rssi.
              */
             vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
-                                      WMA_ROAM_RSSI_CHANGE_RESCAN_DEFAULT,
+                                      roam_req->RoamRescanRssiDiff,
                                       WMA_ROAM_BEACON_WEIGHT_DEFAULT);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
@@ -4625,7 +4686,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 
             vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
                                 (roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT),
-                                WMA_ROAM_RSSI_THRESH_DIFF_DEFAULT);
+                                 roam_req->OpportunisticScanThresholdDiff);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
@@ -4638,7 +4699,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             }
 
             vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
-                                WMA_ROAM_RSSI_CHANGE_RESCAN_DEFAULT,
+                                roam_req->RoamRescanRssiDiff,
                                 WMA_ROAM_BEACON_WEIGHT_DEFAULT);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
@@ -5332,7 +5393,12 @@ void wma_vdev_resp_timer(void *data)
 		struct wma_txrx_node *iface = &wma->interfaces[tgt_req->vdev_id];
 		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
 		wma_remove_peer(wma, params->bssid, tgt_req->vdev_id, peer);
-		wmi_unified_vdev_down_send(wma->wmi_handle, tgt_req->vdev_id);
+		if (wmi_unified_vdev_down_send(wma->wmi_handle, tgt_req->vdev_id) < 0) {
+			WMA_LOGE("Failed to send vdev down cmd: vdev %d",
+				tgt_req->vdev_id);
+		} else {
+			wma->interfaces[tgt_req->vdev_id].vdev_up = FALSE;
+		}
 		if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
 			WMA_LOGD("%s: P2P BSS is stopped", __func__);
 			iface->bss_status = WMA_BSS_STATUS_STOPPED;
@@ -7862,10 +7928,10 @@ static u_int16_t wma_calc_ibss_heart_beat_timer(int16_t peer_num)
            entry value : the heart time threshold value in seconds for
                          detecting ibss peer departure */
         static const u_int16_t heart_beat_timer[HDD_MAX_NUM_IBSS_STA] = {
-                4,   8,   12,  16,  20,  24,  28,  32,
-                36,  40,  44,  48,  52,  56,  60,  64,
-                68,  72,  76,  80,  84,  88,  92,  96,
-                100, 104, 108, 112, 116, 120, 124, 128};
+                4, 4, 4, 4, 4, 4, 4, 4,
+                4, 4, 4, 4, 4, 4, 4, 4,
+                4, 4, 4, 4, 4, 4, 4, 4,
+                4, 4, 4, 4, 4, 4, 4, 4};
 
         if (peer_num < 1 || peer_num > HDD_MAX_NUM_IBSS_STA)
                 return 0;
@@ -8157,6 +8223,9 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		WMA_LOGP("Failed to send vdev up cmd: vdev %d bssid %pM\n",
 			 params->smesessionId, params->bssId);
 		status = VOS_STATUS_E_FAILURE;
+	}
+	else {
+		wma->interfaces[params->smesessionId].vdev_up = TRUE;
 	}
 
 	if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
@@ -11990,12 +12059,14 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 	wmi_buf_t buf;
 	u_int8_t *cmd;
 	int ret = 0;
+	u_int32_t *msg_subtype;
+	tStartOemDataRsp *pStartOemDataRsp;
 
 	WMA_LOGD("%s: Send OEM Data Request to target", __func__);
 
 	if (!startOemDataReq) {
 		WMA_LOGE("%s: startOemDataReq is null", __func__);
-		return;
+		goto out;
 	}
 
 	if (!wma_handle || !wma_handle->wmi_handle) {
@@ -12007,7 +12078,7 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 		                   (OEM_DATA_REQ_SIZE + WMI_TLV_HDR_SIZE));
 	if (!buf) {
 		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
-		return;
+		goto out;
 	}
 
 	cmd = (u_int8_t *)wmi_buf_data(buf);
@@ -12028,8 +12099,30 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 	if (ret != EOK) {
 		WMA_LOGE("%s:wmi cmd send failed", __func__);
 		adf_nbuf_free(buf);
-		return;
 	}
+
+out:
+	/* Now send data resp back to PE/SME with message sub-type of
+	 * WMI_OEM_INTERNAL_RSP. This is required so that PE/SME clears
+	 * up pending active command. Later when desired oem response(s)
+	 * comes as wmi event from target then those shall be passed
+	 * to oem application
+	 */
+	pStartOemDataRsp = vos_mem_malloc(sizeof(*pStartOemDataRsp));
+	if (!pStartOemDataRsp)
+	{
+	 WMA_LOGE("%s:failed to allocate memory for OEM Data Resp to PE",
+	          __func__);
+	 return;
+	}
+	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
+	msg_subtype = (u_int32_t *)(&pStartOemDataRsp->oemDataRsp[0]);
+	*msg_subtype = WMI_OEM_INTERNAL_RSP;
+
+	WMA_LOGI("%s: Sending WDA_START_OEM_DATA_RSP to clear up PE/SME pending cmd",
+	         __func__);
+
+	wma_send_msg(wma_handle, WDA_START_OEM_DATA_RSP, (void *)pStartOemDataRsp, 0);
 
 	return;
 }
@@ -12683,6 +12776,13 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 		return VOS_STATUS_E_INVAL;
 	}
 
+	if (!wma->interfaces[vdev_id].vdev_up) {
+
+		WMA_LOGE("vdev %d is not up skipping arp/ns offload", vdev_id);
+		vos_mem_free(pHostOffloadParams);
+		return VOS_STATUS_E_FAILURE;
+	}
+
 	len = sizeof(WMI_SET_ARP_NS_OFFLOAD_CMD_fixed_param) +
 		WMI_TLV_HDR_SIZE + // TLV place holder size for array of NS tuples
 		WMI_MAX_NS_OFFLOADS*sizeof(WMI_NS_OFFLOAD_TUPLE) +
@@ -12769,6 +12869,7 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 		}
 		buf_ptr += sizeof(WMI_ARP_OFFLOAD_TUPLE);
 	}
+
 	res = wmi_unified_cmd_send(wma->wmi_handle, buf, len, WMI_SET_ARP_NS_OFFLOAD_CMDID);
 	if(res) {
 		WMA_LOGE("Failed to enable ARP NDP/NSffload");
@@ -13536,12 +13637,16 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 	t_thermal_cmd_params thermal_params;
 	ol_txrx_pdev_handle curr_pdev;
 
-        if (NULL == wma || NULL == pThermalParams) {
-                WMA_LOGE("%s: TM Invalid input", __func__);
-                return VOS_STATUS_E_FAILURE;
-        }
+	if (NULL == wma || NULL == pThermalParams) {
+		WMA_LOGE("TM Invalid input");
+		return VOS_STATUS_E_FAILURE;
+	}
 
 	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	if (NULL == curr_pdev) {
+		WMA_LOGE("TM Invalid pdev");
+		return VOS_STATUS_E_FAILURE;
+	}
 
 	WMA_LOGD("TM enable %d period %d", pThermalParams->thermalMgmtEnabled,
 			 pThermalParams->throttlePeriod);
@@ -13618,8 +13723,19 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 {
 	t_thermal_cmd_params thermal_params;
 	u_int8_t thermal_level = (*pThermalLevel);
-	ol_txrx_pdev_handle curr_pdev =
-		vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	ol_txrx_pdev_handle curr_pdev;
+
+	if (NULL == wma || NULL == pThermalLevel) {
+		WMA_LOGE("TM Invalid input");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+    curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	if (NULL == curr_pdev) {
+		WMA_LOGE("TM Invalid pdev");
+		return VOS_STATUS_E_FAILURE;
+	}
 
 	WMA_LOGD("TM set level %d", thermal_level);
 
@@ -14523,17 +14639,23 @@ static int wma_thermal_mgmt_evt_handler(void *handle, u_int8_t *event,
 	t_thermal_cmd_params thermal_params;
 	WMI_THERMAL_MGMT_EVENTID_param_tlvs *param_buf =
 		(WMI_THERMAL_MGMT_EVENTID_param_tlvs *) event;
-	ol_txrx_pdev_handle curr_pdev =
-		vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	ol_txrx_pdev_handle curr_pdev;
+
+	if (NULL == event || NULL == handle) {
+		WMA_LOGE("Invalid thermal mitigation event buffer");
+		return -EINVAL;
+	}
+
+	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	if (NULL == curr_pdev) {
+		WMA_LOGE("Invalid pdev");
+		return -EINVAL;
+	}
 
 	/* Check if thermal mitigation is enabled */
 	if (!wma->thermal_mgmt_info.thermalMgmtEnabled){
 		WMA_LOGE("Thermal mgmt is not enabled, ignoring event");
-		return -EINVAL;
-	}
-
-	if (!param_buf) {
-		WMA_LOGE("Invalid thermal mitigation event buffer");
 		return -EINVAL;
 	}
 
@@ -14592,7 +14714,7 @@ wma_batch_scan_result_event_handler
     tSirBatchScanNetworkInfo *pHddApMetaInfo;
     tp_wma_handle wma = (tp_wma_handle) handle;
     u_int32_t nextScanListOffset, nextApMetaInfoOffset;
-    u_int8_t bssid[IEEE80211_ADDR_LEN], ssid[32], *ssid_temp;
+    u_int8_t bssid[IEEE80211_ADDR_LEN], ssid[33], *ssid_temp;
     u_int32_t temp, count1, count2, scan_num, netinfo_num, total_size;
     WMI_BATCH_SCAN_RESULT_EVENTID_param_tlvs *param_tlvs;
     wmi_batch_scan_result_event_fixed_param *fix_param;
@@ -14686,7 +14808,7 @@ wma_batch_scan_result_event_handler
 
             WMI_MAC_ADDR_TO_CHAR_ARRAY(&network_info->bssid, &bssid[0]);
             vos_mem_copy(pHddApMetaInfo->bssid, bssid, IEEE80211_ADDR_LEN);
-            if (network_info->ssid.ssid_len < 32)
+            if (network_info->ssid.ssid_len <= 32)
             {
                ssid_temp = (u_int8_t *)network_info->ssid.ssid;
                for(temp = 0; temp < network_info->ssid.ssid_len; temp++)
@@ -14695,7 +14817,8 @@ wma_batch_scan_result_event_handler
                   ssid_temp++;
                }
                ssid[temp] = '\0';
-               vos_mem_copy(pHddApMetaInfo->ssid, ssid, 32);
+               vos_mem_copy(pHddApMetaInfo->ssid, ssid,
+                                (network_info->ssid.ssid_len + 1));
                WMA_LOGD("ssid %s",pHddApMetaInfo->ssid);
             }
             else

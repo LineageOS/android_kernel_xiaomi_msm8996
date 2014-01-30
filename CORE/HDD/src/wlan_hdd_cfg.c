@@ -159,6 +159,28 @@ static void cbNotifySetFwRssiMonitoring(hdd_context_t *pHddCtx, unsigned long No
 }
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
+static void cbNotifySetOpportunisticScanThresholdDiff(hdd_context_t *pHddCtx,
+                                                      unsigned long NotifyId)
+{
+    /*
+     * at the point this routine is called, the value in the cfg_ini table
+     * has already been updated
+     */
+    sme_SetRoamOpportunisticScanThresholdDiff((tHalHandle)(pHddCtx->hHal),
+                          pHddCtx->cfg_ini->nOpportunisticThresholdDiff );
+}
+
+static void cbNotifySetRoamRescanRssiDiff(hdd_context_t *pHddCtx,
+                                          unsigned long NotifyId)
+{
+    /*
+     * at the point this routine is called, the value in the cfg_ini table
+     * has already been updated
+     */
+    sme_SetRoamRescanRssiDiff((tHalHandle)(pHddCtx->hHal),
+                              pHddCtx->cfg_ini->nRoamRescanRssiDiff);
+}
+
 static void cbNotifySetNeighborLookupRssiThreshold(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
     // at the point this routine is called, the value in the cfg_ini table has already been updated
@@ -1859,6 +1881,22 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_MAX,
                  cbNotifySetNeighborLookupRssiThreshold, 0 ),
 
+   REG_DYNAMIC_VARIABLE( CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, nOpportunisticThresholdDiff,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_DEFAULT,
+                 CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_MIN,
+                 CFG_OPPORTUNISTIC_SCAN_THRESHOLD_DIFF_MAX,
+                 cbNotifySetOpportunisticScanThresholdDiff, 0 ),
+
+   REG_DYNAMIC_VARIABLE( CFG_ROAM_RESCAN_RSSI_DIFF_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, nRoamRescanRssiDiff,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ROAM_RESCAN_RSSI_DIFF_DEFAULT,
+                 CFG_ROAM_RESCAN_RSSI_DIFF_MIN,
+                 CFG_ROAM_RESCAN_RSSI_DIFF_MAX,
+                 cbNotifySetRoamRescanRssiDiff, 0 ),
+
    REG_VARIABLE_STRING( CFG_NEIGHBOR_SCAN_CHAN_LIST_NAME, WLAN_PARAM_String,
                         hdd_config_t, neighborScanChanList,
                         VAR_FLAGS_OPTIONAL,
@@ -3376,6 +3414,12 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborReassocRssiThreshold] Value = [%u] ",pHddCtx->cfg_ini->nNeighborReassocRssiThreshold);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborLookupRssiThreshold] Value = [%u] ",pHddCtx->cfg_ini->nNeighborLookupRssiThreshold);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [nOpportunisticThresholdDiff] Value = [%u] ",
+            pHddCtx->cfg_ini->nOpportunisticThresholdDiff);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [nRoamRescanRssiDiff] Value = [%u] ",
+            pHddCtx->cfg_ini->nRoamRescanRssiDiff);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanMinChanTime] Value = [%u] ",pHddCtx->cfg_ini->nNeighborScanMinChanTime);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanMaxChanTime] Value = [%u] ",pHddCtx->cfg_ini->nNeighborScanMaxChanTime);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nMaxNeighborRetries] Value = [%u] ",pHddCtx->cfg_ini->nMaxNeighborReqTries);
@@ -4960,6 +5004,10 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
    smeConfig.csrConfig.neighborRoamConfig.nNeighborReassocRssiThreshold = pConfig->nNeighborReassocRssiThreshold;
    smeConfig.csrConfig.neighborRoamConfig.nNeighborLookupRssiThreshold = pConfig->nNeighborLookupRssiThreshold;
+   smeConfig.csrConfig.neighborRoamConfig.nOpportunisticThresholdDiff =
+       pConfig->nOpportunisticThresholdDiff;
+   smeConfig.csrConfig.neighborRoamConfig.nRoamRescanRssiDiff =
+       pConfig->nRoamRescanRssiDiff;
    smeConfig.csrConfig.neighborRoamConfig.nNeighborScanMaxChanTime = pConfig->nNeighborScanMaxChanTime;
    smeConfig.csrConfig.neighborRoamConfig.nNeighborScanMinChanTime = pConfig->nNeighborScanMinChanTime;
    smeConfig.csrConfig.neighborRoamConfig.nNeighborScanTimerPeriod = pConfig->nNeighborScanPeriod;

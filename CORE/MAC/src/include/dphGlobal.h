@@ -605,6 +605,11 @@ typedef struct sDphHashNode
     tANI_U8 htLdpcCapable;
     tANI_U8 vhtLdpcCapable;
 
+#ifdef FEATURE_WLAN_TDLS
+    tANI_U16 ht_caps;
+    tANI_U32 vht_caps;
+#endif
+
     /* When a station with already an existing dph entry tries to 
 
      * associate again, the old dph entry will be zeroed out except 

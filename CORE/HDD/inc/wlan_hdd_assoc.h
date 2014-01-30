@@ -123,6 +123,13 @@ typedef struct hdd_station_ctx hdd_station_ctx_t;
 typedef struct hdd_ap_ctx_s  hdd_ap_ctx_t;
 typedef struct hdd_mon_ctx_s  hdd_mon_ctx_t;
 
+#ifdef QCA_WIFI_2_0
+typedef enum
+{
+   ePeerConnected = 1,
+   ePeerDisconnected
+}ePeerStatus;
+#endif /* QCA_WIFI_2_0 */
 
 extern v_BOOL_t hdd_connIsConnected( hdd_station_ctx_t *pHddStaCtx );
 extern eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, v_U32_t roamId, 
@@ -139,4 +146,12 @@ int hdd_set_csr_auth_type( hdd_adapter_t *pAdapter, eCsrAuthType RSNAuthType );
 VOS_STATUS hdd_roamRegisterTDLSSTA( hdd_adapter_t *pAdapter,
                                     tANI_U8 *peerMac, tANI_U16 staId, tANI_U8 ucastSig);
 void hdd_PerformRoamSetKeyComplete(hdd_adapter_t *pAdapter);
+
+#ifdef QCA_WIFI_2_0
+void hdd_SendPeerStatusIndToOemApp(v_MACADDR_t *peerMac,
+                                   tANI_U8 peerStatus,
+                                   tANI_U8 peerTimingMeasCap,
+                                   tANI_U8 sessionId,
+                                   tANI_U8 chanId);
+#endif /* QCA_WIFI_2_0 */
 #endif

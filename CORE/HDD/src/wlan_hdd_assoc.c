@@ -602,6 +602,9 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
     int we_event;
     char *msg;
     int type = -1;
+#ifdef QCA_WIFI_2_0
+    v_MACADDR_t peerMacAddr;
+#endif
 
 #if defined (WLAN_FEATURE_VOWIFI_11R)
     // Added to find the auth type on the fly at run time
@@ -662,6 +665,18 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
             hdd_SendFTAssocResponse(dev, pAdapter, pCsrRoamInfo);
         }
 #endif
+#ifdef QCA_WIFI_2_0
+        if (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
+        {
+            vos_mem_copy(peerMacAddr.bytes, pHddStaCtx->conn_info.bssId,
+                         sizeof(pHddStaCtx->conn_info.bssId));
+
+            /* send peer status indication to oem app */
+            hdd_SendPeerStatusIndToOemApp(&peerMacAddr, ePeerConnected,
+                                   0, pAdapter->sessionId,
+                                   pHddStaCtx->conn_info.operationChannel);
+        }
+#endif
     }
     else if (eConnectionState_IbssConnected == pHddStaCtx->conn_info.connState) // IBss Associated
     {
@@ -680,6 +695,18 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         pr_info("wlan: disconnected\n");
         type = WLAN_STA_DISASSOC_DONE_IND;
         memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
+#ifdef QCA_WIFI_2_0
+        if (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
+        {
+            vos_mem_copy(peerMacAddr.bytes, pHddStaCtx->conn_info.bssId,
+                         sizeof(pHddStaCtx->conn_info.bssId));
+
+            /* send peer status indication to oem app */
+            hdd_SendPeerStatusIndToOemApp(&peerMacAddr, ePeerDisconnected,
+                                     0, pAdapter->sessionId,
+                                     pHddStaCtx->conn_info.operationChannel);
+        }
+#endif
     }
     hdd_dump_concurrency_info(pHddCtx);
 

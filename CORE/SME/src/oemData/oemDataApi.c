@@ -110,8 +110,10 @@ eHalStatus oemData_OemDataReqClose(tHalHandle hHal)
   -------------------------------------------------------------------------------*/
 void oemData_ReleaseOemDataReqCommand(tpAniSirGlobal pMac, tSmeCmd *pOemDataCmd, eOemDataReqStatus oemDataReqStatus)
 {
+#ifndef QCA_WIFI_2_0
     //Do the callback
     pOemDataCmd->u.oemDataCmd.callback(pMac, pOemDataCmd->u.oemDataCmd.pContext, pOemDataCmd->u.oemDataCmd.oemDataReqID, oemDataReqStatus);
+#endif
 
     //First take this command out of the active list
     if(csrLLRemoveEntry(&pMac->sme.smeCmdActiveList, &pOemDataCmd->Link, LL_ACCESS_LOCK))
@@ -291,6 +293,10 @@ eHalStatus sme_HandleOemDataRsp(tHalHandle hHal, tANI_U8* pMsg)
     tListElem                          *pEntry = NULL;
     tSmeCmd                            *pCommand = NULL;
     tSirOemDataRsp*                    pOemDataRsp = NULL;
+#ifdef QCA_WIFI_2_0
+    tANI_U32                           *msgSubType;
+#endif
+
     pMac = PMAC_STRUCT(hHal);
 
     smsLog(pMac, LOG1, "%s: OEM_DATA Entering", __func__);
@@ -383,8 +389,20 @@ eHalStatus sme_HandleOemDataRsp(tHalHandle hHal, tANI_U8* pMsg)
 
         pOemDataRsp = (tSirOemDataRsp *)pMsg;
 
-        smsLog(pMac, LOG1, "calling send_oem_data_rsp_msg");
-        send_oem_data_rsp_msg(sizeof(tOemDataRsp), &pOemDataRsp->oemDataRsp[0]);
+        /* check if message is to be forwarded to oem application or not */
+        msgSubType = (tANI_U32 *) (&pOemDataRsp->oemDataRsp[0]);
+        if (*msgSubType != OEM_MESSAGE_SUBTYPE_INTERNAL)
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                      "%s: calling send_oem_data_rsp_msg, msgSubType(0x%x)",
+                      __func__, *msgSubType);
+            send_oem_data_rsp_msg(sizeof(tOemDataRsp),
+                                  &pOemDataRsp->oemDataRsp[0]);
+        }
+        else
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                      "%s: received internal oem data resp, msgSubType (0x%x)",
+                      __func__, *msgSubType);
 #endif /* QCA_WIFI_2_0 */
     } while(0);
 

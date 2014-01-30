@@ -251,7 +251,7 @@ static int oem_msg_callback(struct sk_buff *skb);
   and Response.
 
   \param - dev  - Pointer to the net device
-         - info - Pointer to the iw_oem_data_cap
+         - info - Pointer to the t_iw_oem_data_cap
          - wrqu - Pointer to the iwreq data
          - extra - Pointer to the data
 
@@ -265,11 +265,14 @@ int iw_get_oem_data_cap(
         char *extra)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    struct iw_oem_data_cap oemDataCap;
-    struct iw_oem_data_cap *pHddOemDataCap;
+    t_iw_oem_data_cap oemDataCap;
+    t_iw_oem_data_cap *pHddOemDataCap;
     hdd_adapter_t *pAdapter = (netdev_priv(dev));
     hdd_context_t *pHddContext;
     hdd_config_t *pConfig;
+    tANI_U32 numChannels;
+    tANI_U8 chanList[OEM_CAP_MAX_NUM_CHANNELS];
+    tANI_U32 i;
 
     ENTER();
 
@@ -305,6 +308,7 @@ int iw_get_oem_data_cap(
 
     do
     {
+       vos_mem_zero(&oemDataCap, sizeof(oemDataCap));
        strlcpy(oemDataCap.oem_target_signature, OEM_TARGET_SIGNATURE,
                OEM_TARGET_SIGNATURE_LEN);
        oemDataCap.oem_target_type = pHddContext->target_type;
@@ -321,19 +325,37 @@ int iw_get_oem_data_cap(
                sme_getNeighborScanMaxChanTime(pHddContext->hHal);
        oemDataCap.supported_bands = pConfig->nBandCapability;
 
-       status = sme_getValidChannelList(pHddContext->hHal,
-                                        &oemDataCap.num_channels,
-                                        &oemDataCap.channel_list);
-       if (eHAL_STATUS_SUCCESS == status)
+       /* request for max num of channels */
+       numChannels = WNI_CFG_VALID_CHANNEL_LIST_LEN;
+       status = sme_GetCfgValidChannels(pHddContext->hHal,
+                                        &chanList[0],
+                                        &numChannels);
+       if (eHAL_STATUS_SUCCESS != status)
        {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s:failed to get valid channel list", __func__);
          return -ENOENT;
        }
+       else
+       {
+         /* make sure num channels is not more than chan list array */
+         if (numChannels > OEM_CAP_MAX_NUM_CHANNELS)
+         {
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "%s:Num of channels(%d) more than length(%d) of chanlist",
+                     __func__, numChannels, OEM_CAP_MAX_NUM_CHANNELS);
+           return -ENOMEM;
+         }
 
-       pHddOemDataCap = (struct iw_oem_data_cap *)(extra);
-       vos_mem_copy(pHddOemDataCap, &oemDataCap,
-                    sizeof(struct iw_oem_data_cap));
+         oemDataCap.num_channels = numChannels;
+         for (i = 0; i < numChannels; i++)
+         {
+           oemDataCap.channel_list[i] = chanList[i];
+         }
+       }
+
+       pHddOemDataCap = (t_iw_oem_data_cap *)(extra);
+       vos_mem_copy(pHddOemDataCap, &oemDataCap, sizeof(*pHddOemDataCap));
     } while(0);
 
     EXIT();
@@ -624,8 +646,9 @@ int oem_process_channel_info_req_msg(int numOfChannels, char *chanList)
    struct sk_buff *skb;
    struct nlmsghdr *nlh;
    tAniMsgHdr *aniHdr;
-   tSmeChannelInfo *pChanInfo;
-   tSmeChannelInfo chanInfo;
+   tHddChannelInfo *pHddChanInfo;
+   tHddChannelInfo hddChanInfo;
+   tSmeChannelInfo smeChanInfo;
    tANI_U8 chanId;
    eHalStatus status = eHAL_STATUS_FAILURE;
    int i;
@@ -640,7 +663,7 @@ int oem_process_channel_info_req_msg(int numOfChannels, char *chanList)
    }
 
    skb = alloc_skb(NLMSG_SPACE(sizeof(tAniMsgHdr) + sizeof(tANI_U8) +
-                   numOfChannels * sizeof(tSmeChannelInfo)), GFP_KERNEL);
+                   numOfChannels * sizeof(tHddChannelInfo)), GFP_KERNEL);
    if (skb == NULL)
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -656,7 +679,7 @@ int oem_process_channel_info_req_msg(int numOfChannels, char *chanList)
    aniHdr = NLMSG_DATA(nlh);
    aniHdr->type = ANI_MSG_CHANNEL_INFO_RSP;
 
-   aniHdr->length = sizeof(tANI_U8) + numOfChannels * sizeof(tSmeChannelInfo);
+   aniHdr->length = sizeof(tANI_U8) + numOfChannels * sizeof(tHddChannelInfo);
    nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr) + aniHdr->length));
 
    /* First byte of message body will have num of channels */
@@ -669,12 +692,24 @@ int oem_process_channel_info_req_msg(int numOfChannels, char *chanList)
     */
    for (i = 0 ; i < numOfChannels; i++)
    {
-      pChanInfo = (tSmeChannelInfo *) ((char *) buf +
-                                        i * sizeof(tSmeChannelInfo));
+      pHddChanInfo = (tHddChannelInfo *) ((char *) buf +
+                                        i * sizeof(tHddChannelInfo));
 
       chanId = chanList[i];
-      status = sme_getChannelInfo(pHddCtx->hHal, chanId, &chanInfo);
-      if (eHAL_STATUS_SUCCESS != status)
+      status = sme_getChannelInfo(pHddCtx->hHal, chanId, &smeChanInfo);
+      if (eHAL_STATUS_SUCCESS == status)
+      {
+         /* copy into hdd chan info struct */
+         hddChanInfo.chan_id = smeChanInfo.chan_id;
+         hddChanInfo.reserved0 = 0;
+         hddChanInfo.mhz = smeChanInfo.mhz;
+         hddChanInfo.band_center_freq1 = smeChanInfo.band_center_freq1;
+         hddChanInfo.band_center_freq2 = smeChanInfo.band_center_freq2;
+         hddChanInfo.info = smeChanInfo.info;
+         hddChanInfo.reg_info_1 = smeChanInfo.reg_info_1;
+         hddChanInfo.reg_info_2 = smeChanInfo.reg_info_2;
+      }
+      else
       {
          /* channel info is not returned, fill in zeros in channel
           * info struct
@@ -682,15 +717,16 @@ int oem_process_channel_info_req_msg(int numOfChannels, char *chanList)
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                    "%s: sme_getChannelInfo failed for chan (%d), return info 0",
                    __func__, chanId);
-         chanInfo.chan_id = chanId;
-         chanInfo.mhz = 0;
-         chanInfo.band_center_freq1 = 0;
-         chanInfo.band_center_freq2 = 0;
-         chanInfo.info = 0;
-         chanInfo.reg_info_1 = 0;
-         chanInfo.reg_info_2 = 0;
+         hddChanInfo.chan_id = chanId;
+         hddChanInfo.reserved0 = 0;
+         hddChanInfo.mhz = 0;
+         hddChanInfo.band_center_freq1 = 0;
+         hddChanInfo.band_center_freq2 = 0;
+         hddChanInfo.info = 0;
+         hddChanInfo.reg_info_1 = 0;
+         hddChanInfo.reg_info_2 = 0;
       }
-      vos_mem_copy(pChanInfo, &chanInfo, sizeof(tSmeChannelInfo));
+      vos_mem_copy(pHddChanInfo, &hddChanInfo, sizeof(tHddChannelInfo));
    }
 
    skb_put(skb, NLMSG_SPACE((sizeof(tAniMsgHdr) + aniHdr->length)));
@@ -702,6 +738,112 @@ int oem_process_channel_info_req_msg(int numOfChannels, char *chanList)
    (void)nl_srv_ucast(skb, pHddCtx->oem_pid);
 
    return 0;
+}
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_SendPeerStatusIndToOemApp()
+
+  This function sends peer status indication to registered oem application
+
+  \param -
+     - peerMac : MAC address of peer
+     - peerStatus : ePeerConnected or ePeerDisconnected
+     - peerTimingMeasCap : 0: RTT/RTT2, 1: RTT3. Default is 0
+     - sessionId : SME session id, i.e. vdev_id
+     - chanId: operating channel id
+
+  \return - None
+
+  --------------------------------------------------------------------------*/
+void hdd_SendPeerStatusIndToOemApp(v_MACADDR_t *peerMac,
+                                     tANI_U8 peerStatus,
+                                     tANI_U8 peerTimingMeasCap,
+                                     tANI_U8 sessionId,
+                                     tANI_U8 chanId)
+{
+   struct sk_buff *skb;
+   struct nlmsghdr *nlh;
+   tAniMsgHdr *aniHdr;
+   tSmeChannelInfo smeChanInfo;
+   tPeerStatusInfo *pPeerInfo;
+   eHalStatus status = eHAL_STATUS_FAILURE;
+
+   if (!pHddCtx || !pHddCtx->hHal)
+   {
+     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+               "%s: Either HDD Ctx is null or Hal Ctx is null", __func__);
+     return;
+   }
+
+   /* check if oem app has registered and pid is valid */
+   if ((!pHddCtx->oem_app_registered) || (pHddCtx->oem_pid == 0))
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: OEM app is not registered(%d) or pid is invalid(%d)",
+                __func__, pHddCtx->oem_app_registered, pHddCtx->oem_pid);
+      return;
+   }
+
+   status = sme_getChannelInfo(pHddCtx->hHal, chanId, &smeChanInfo);
+   if (eHAL_STATUS_SUCCESS != status)
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: sme_getChannelInfo failed for chan (%d)",
+                __func__, chanId);
+      return;
+   }
+
+   skb = alloc_skb(NLMSG_SPACE(sizeof(tAniMsgHdr) + sizeof(tPeerStatusInfo)),
+                   GFP_KERNEL);
+   if (skb == NULL)
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: alloc_skb failed", __func__);
+      return;
+   }
+
+   nlh = (struct nlmsghdr *)skb->data;
+   nlh->nlmsg_pid = 0;  /* from kernel */
+   nlh->nlmsg_flags = 0;
+   nlh->nlmsg_seq = 0;
+   nlh->nlmsg_type = WLAN_NL_MSG_OEM;
+   aniHdr = NLMSG_DATA(nlh);
+   aniHdr->type = ANI_MSG_PEER_STATUS_IND;
+
+   aniHdr->length = sizeof(tPeerStatusInfo);
+   nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr) + aniHdr->length));
+
+   pPeerInfo = (tPeerStatusInfo *) ((char *)aniHdr + sizeof(tAniMsgHdr));
+
+   vos_mem_copy(pPeerInfo->peer_mac_addr, peerMac->bytes,
+                sizeof(peerMac->bytes));
+   pPeerInfo->peer_status = peerStatus;
+   pPeerInfo->vdev_id = sessionId;
+   pPeerInfo->peer_capability = peerTimingMeasCap;
+   pPeerInfo->reserved0 = 0;
+
+   pPeerInfo->peer_chan_info.chan_id = smeChanInfo.chan_id;
+   pPeerInfo->peer_chan_info.reserved0 = 0;
+   pPeerInfo->peer_chan_info.mhz = smeChanInfo.mhz;
+   pPeerInfo->peer_chan_info.band_center_freq1 = smeChanInfo.band_center_freq1;
+   pPeerInfo->peer_chan_info.band_center_freq2 = smeChanInfo.band_center_freq2;
+   pPeerInfo->peer_chan_info.info = smeChanInfo.info;
+   pPeerInfo->peer_chan_info.reg_info_1 = smeChanInfo.reg_info_1;
+   pPeerInfo->peer_chan_info.reg_info_2 = smeChanInfo.reg_info_2;
+
+   skb_put(skb, NLMSG_SPACE((sizeof(tAniMsgHdr) + aniHdr->length)));
+
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+             "%s: sending peer "MAC_ADDRESS_STR
+             " status(%d), peerTimingMeasCap(%d), vdevId(%d), chanId(%d)"
+             " to oem app pid(%d)",
+             __func__, MAC_ADDR_ARRAY(peerMac->bytes), peerStatus,
+             peerTimingMeasCap, sessionId, chanId, pHddCtx->oem_pid);
+
+   (void)nl_srv_ucast(skb, pHddCtx->oem_pid);
+
+   return;
 }
 
 /**---------------------------------------------------------------------------
