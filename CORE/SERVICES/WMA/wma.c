@@ -2615,7 +2615,7 @@ void wma_vdev_detach_callback(void *ctx)
 			 __func__, param->sessionId);
 		vos_timer_stop(&req_msg->event_timeout);
 		vos_timer_destroy(&req_msg->event_timeout);
-		adf_os_mem_free(req_msg);
+		vos_mem_free(req_msg);
 	}
 	if(iface->addBssStaContext)
                 adf_os_mem_free(iface->addBssStaContext);
