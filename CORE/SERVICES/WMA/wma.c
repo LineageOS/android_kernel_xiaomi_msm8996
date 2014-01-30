@@ -16497,9 +16497,10 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	void            *pPacket = NULL;
 	u_int16_t	newFrmLen = 0;
 	struct wma_txrx_node *iface = &wma_handle->interfaces[vdev_id];
+#endif /* WLAN_FEATURE_11W */
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 			wma_handle->vos_context);
-#endif /* WLAN_FEATURE_11W */
+
 
 	/* Get the vdev handle from vdev id */
 	txrx_vdev = wma_handle->interfaces[vdev_id].handle;
@@ -16514,12 +16515,10 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-#ifdef WLAN_FEATURE_11W
 	if(!pMac) {
 		WMA_LOGE("pMac Handle is NULL");
 		return VOS_STATUS_E_FAILURE;
 	}
-#endif /* WLAN_FEATURE_11W */
 	/*
 	 * Currently only support to
 	 * send 80211 Mgmt and 80211 Data are added.
@@ -16708,6 +16707,14 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
                 WMA_LOGI("%s: Preauth frame on channel %d", __func__, chanfreq);
         } else {
                 chanfreq = 0;
+        }
+        if (pMac->fEnableDebugLog & 0x1) {
+          if ((pFc->type == SIR_MAC_MGMT_FRAME) &&
+              (pFc->subType != SIR_MAC_MGMT_PROBE_REQ) &&
+              (pFc->subType != SIR_MAC_MGMT_PROBE_RSP)) {
+              WMA_LOGE("TX MGMT - Type %hu, SubType %hu",
+              pFc->type, pFc->subType);
+          }
         }
 	/* Hand over the Tx Mgmt frame to TxRx */
 	status = wdi_in_mgmt_send(txrx_vdev, tx_frame, tx_frm_index, use_6mbps, chanfreq);
