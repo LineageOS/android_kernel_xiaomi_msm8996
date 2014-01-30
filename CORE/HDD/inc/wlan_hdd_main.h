@@ -1026,6 +1026,9 @@ struct hdd_adapter_s
 #ifdef QCA_WIFI_2_0
    v_BOOL_t internalCancelRemainOnChReq;
 #endif
+#ifdef IPA_OFFLOAD
+    void *ipa_context;
+#endif
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)

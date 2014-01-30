@@ -813,8 +813,8 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
 
 #ifdef IPA_OFFLOAD
     if (hdd_ipa_is_enabled(pHddCtx))
-	    hdd_ipa_wlan_evt(pAdapter, pHddStaCtx->conn_info.staId[0],
-                                 WLAN_STA_DISCONNECT, pAdapter->dev->dev_addr);
+        hdd_ipa_wlan_evt(pAdapter, pHddStaCtx->conn_info.staId[0],
+                WLAN_STA_DISCONNECT, pHddStaCtx->conn_info.bssId);
 #endif
 
     if(pHddStaCtx->conn_info.connState != eConnectionState_Disconnecting)
@@ -1299,9 +1299,9 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         pHddCtx->sta_to_adapter[pRoamInfo->staId] = pAdapter;
 
 #ifdef IPA_OFFLOAD
-    if (hdd_ipa_is_enabled(pHddCtx))
-        hdd_ipa_wlan_evt(pAdapter, pRoamInfo->staId, WLAN_STA_CONNECT,
-                                                       pAdapter->dev->dev_addr);
+        if (hdd_ipa_is_enabled(pHddCtx))
+            hdd_ipa_wlan_evt(pAdapter, pRoamInfo->staId, WLAN_STA_CONNECT,
+                    pRoamInfo->bssid);
 #endif
 
 #ifdef FEATURE_WLAN_TDLS

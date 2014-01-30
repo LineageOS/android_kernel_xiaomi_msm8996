@@ -511,8 +511,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             }
 #ifdef IPA_OFFLOAD
             if (hdd_ipa_is_enabled(pHddCtx))
-               hdd_ipa_wlan_evt(pHostapdAdapter, WLAN_RX_SAP_SELF_STA_ID,
-                  WLAN_AP_CONNECT, pHostapdAdapter->dev->dev_addr);
+                hdd_ipa_wlan_evt(pHostapdAdapter, pHddApCtx->uBCStaId,
+                        WLAN_AP_CONNECT, pHostapdAdapter->dev->dev_addr);
 #endif
 
             if (0 != (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nAPAutoShutOff)
@@ -596,8 +596,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             pHddApCtx->operatingChannel = 0; //Invalidate the channel info.
 #ifdef IPA_OFFLOAD
             if (hdd_ipa_is_enabled(pHddCtx))
-               hdd_ipa_wlan_evt(pHostapdAdapter, WLAN_RX_SAP_SELF_STA_ID,
-                            WLAN_AP_DISCONNECT, pHostapdAdapter->dev->dev_addr);
+                hdd_ipa_wlan_evt(pHostapdAdapter, pHddApCtx->uBCStaId,
+                        WLAN_AP_DISCONNECT, pHostapdAdapter->dev->dev_addr);
 #endif
             goto stopbss;
         case eSAP_STA_SET_KEY_EVENT:

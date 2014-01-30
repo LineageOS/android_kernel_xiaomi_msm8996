@@ -388,10 +388,15 @@ void vos_trace_hex_dump( VOS_MODULE_ID module, VOS_TRACE_LEVEL level,
 {
     char *buf = (char *)data;
     int i;
+
+    if (!(gVosTraceInfo[module].moduleTraceLevel &
+                VOS_TRACE_LEVEL_TO_MODULE_BITMASK(level)))
+        return;
+
     for (i=0; (i+7)<buf_len; i+=8)
     {
         vos_trace_msg( module, level,
-                 "%02x %02x %02x %02x %02x %02x %02x %02x \n",
+                 "%02x %02x %02x %02x %02x %02x %02x %02x",
                  buf[i],
                  buf[i+1],
                  buf[i+2],
