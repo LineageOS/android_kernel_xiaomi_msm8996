@@ -159,7 +159,9 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     /**
      * Drop all the beacons and probe response without P2P IE during P2P search
      */
-    if (NULL != pMac->lim.gpLimMlmScanReq && pMac->lim.gpLimMlmScanReq->p2pSearch)
+    if ((NULL != pMac->lim.gpLimMlmScanReq && pMac->lim.gpLimMlmScanReq->p2pSearch) ||
+            (pMac->fScanOffload && pMac->lim.fOffloadScanPending &&
+             pMac->lim.fOffloadScanP2PSearch))
     {
         if (NULL == limGetP2pIEPtr(pMac, (pBody + SIR_MAC_B_PR_SSID_OFFSET), ieLen))
         {

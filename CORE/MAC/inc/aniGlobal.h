@@ -916,6 +916,8 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
     /* Number of channel switch IEs sent so far */
     tANI_U8 gLimDfsChanSwTxCount;
     tANI_U8 gLimDfsTargetChanNum;
+    tANI_U8 fOffloadScanPending; /*Flag to track offload scan */
+    tANI_U8 fOffloadScanP2PSearch; /*Flag to track the p2p search */
 } tAniSirLim, *tpAniSirLim;
 
 typedef struct sLimMgmtFrameRegistration

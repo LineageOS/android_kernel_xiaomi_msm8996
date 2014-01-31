@@ -1073,6 +1073,9 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
     tANI_U16 i, len;
     tSirRetStatus rc = eSIR_SUCCESS;
 
+    pMac->lim.fOffloadScanPending = 0;
+    pMac->lim.fOffloadScanP2PSearch = 0;
+
     /* The tSirScanOffloadReq will reserve the space for first channel,
        so allocate the memory for (numChannels - 1) and uIEFieldLen */
     len = sizeof(tSirScanOffloadReq) + (pScanReq->channelList.numChannels - 1) +
@@ -1149,6 +1152,10 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
         vos_mem_free(pScanOffloadReq);
         return eHAL_STATUS_FAILURE;
     }
+
+    pMac->lim.fOffloadScanPending = 1;
+    if (pScanReq->p2pSearch)
+        pMac->lim.fOffloadScanP2PSearch = 1;
 
     return eHAL_STATUS_SUCCESS;
 }

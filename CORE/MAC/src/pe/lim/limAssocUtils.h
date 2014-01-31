@@ -116,7 +116,7 @@ tSirRetStatus   limPopulateMatchingRateSet(tpAniSirGlobal,
 
 #ifdef WLAN_FEATURE_11AC
 #define MCSMAPMASK1x1 0x3
-#define MCSMAPMASK2x2 0xF
+#define MCSMAPMASK2x2 0xC
 #endif
 
 tSirRetStatus   limAddSta(tpAniSirGlobal, tpDphHashNode, tANI_U8, tpPESession);

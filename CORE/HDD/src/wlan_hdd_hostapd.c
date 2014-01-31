@@ -715,7 +715,16 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             {
                 hdd_abort_mac_scan(pHddCtx, pHostapdAdapter->sessionId);
             }
-
+#ifdef QCA_WIFI_2_0
+            if (pHostapdAdapter->device_mode == WLAN_HDD_P2P_GO)
+            {
+                /* send peer status indication to oem app */
+                hdd_SendPeerStatusIndToOemApp(
+                  &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,
+                  ePeerConnected, 0,
+                  pHostapdAdapter->sessionId, pHddApCtx->operatingChannel);
+            }
+#endif
             break;
         case eSAP_STA_DISASSOC_EVENT:
             memcpy(wrqu.addr.sa_data, &pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac,
@@ -772,6 +781,16 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 #endif
             //Update the beacon Interval if it is P2P GO
             hdd_change_mcc_go_beacon_interval(pHostapdAdapter);
+#ifdef QCA_WIFI_2_0
+            if (pHostapdAdapter->device_mode == WLAN_HDD_P2P_GO)
+            {
+                /* send peer status indication to oem app */
+                hdd_SendPeerStatusIndToOemApp(
+                  &pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac,
+                  ePeerDisconnected, 0,
+                  pHostapdAdapter->sessionId, pHddApCtx->operatingChannel);
+            }
+#endif
             break;
         case eSAP_WPS_PBC_PROBE_REQ_EVENT:
         {
