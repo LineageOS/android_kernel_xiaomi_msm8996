@@ -751,6 +751,7 @@ a_status_t      __adf_nbuf_get_vlan_info(adf_net_handle_t hdl,
                                          struct sk_buff *skb, 
                                          adf_net_vlanhdr_t *vlan);
 a_uint8_t __adf_nbuf_get_tid(struct sk_buff *skb);
+void __adf_nbuf_set_tid(struct sk_buff *skb, a_uint8_t tid);
 a_uint8_t __adf_nbuf_get_exemption_type(struct sk_buff *skb);
 /*
  * adf_nbuf_pool_init() implementation - do nothing in Linux
