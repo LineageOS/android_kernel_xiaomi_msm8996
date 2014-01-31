@@ -1830,7 +1830,10 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       goto err_vosclose;
    }
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-   pAdapter = WLAN_HDD_GET_PRIV_PTR((struct net_device *)pHddCtx->parent_dev);
+
+   /* Get the Adapter context based on hardware address */
+   pAdapter = hdd_get_adapter_by_macaddr(pHddCtx,
+           pHddCtx->cfg_ini->intfMacAddr[0].bytes);
 
    if ((NULL == pAdapter))
    {
