@@ -927,6 +927,7 @@ ol_txrx_vdev_detach(
     }
     #endif /* defined(CONFIG_HL_SUPPORT) */
 
+    adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
     adf_os_timer_cancel(&vdev->ll_pause.timer);
     adf_os_timer_free(&vdev->ll_pause.timer);
     while (vdev->ll_pause.txq.head) {
@@ -934,6 +935,8 @@ ol_txrx_vdev_detach(
         adf_nbuf_tx_free(vdev->ll_pause.txq.head, 1 /* error */);
         vdev->ll_pause.txq.head = next;
     }
+    adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
+    adf_os_spinlock_destroy(&vdev->ll_pause.mutex);
 
     /* remove the vdev from its parent pdev's list */
     TAILQ_REMOVE(&pdev->vdev_list, vdev, vdev_list_elem);

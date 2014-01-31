@@ -270,8 +270,8 @@ ol_txrx_tx_release(
 /**
  * @brief Suspend all tx data for the specified virtual device.
  * @details
- *  This function applies only to HL systems - in LL systems, tx flow control
- *  is handled entirely within the target FW.
+ *  This function applies primarily to HL systems, but also applies to
+ *  LL systems that use per-vdev tx queues for MCC or thermal throttling.
  *  As an example, this function could be used when a single-channel physical
  *  device supports multiple channels by jumping back and forth between the
  *  channels in a time-shared manner.  As the device is switched from channel
@@ -288,10 +288,29 @@ ol_txrx_vdev_pause(ol_txrx_vdev_handle data_vdev);
 #endif /* CONFIG_HL_SUPPORT */
 
 /**
+ * @brief Drop all tx data for the specified virtual device.
+ * @details
+ *  This function applies primarily to HL systems, but also applies to
+ *  LL systems that use per-vdev tx queues for MCC or thermal throttling.
+ *  This function would typically be used by the ctrl SW after it parks
+ *  a STA vdev and then resumes it, but to a new AP.  In this case, though
+ *  the same vdev can be used, any old tx frames queued inside it would be
+ *  stale, and would need to be discarded.
+ *
+ * @param data_vdev - the virtual device being flushed
+ */
+#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
+void
+ol_txrx_vdev_flush(ol_txrx_vdev_handle data_vdev);
+#else
+#define ol_txrx_vdev_flush(data_vdev) /* no-op */
+#endif /* CONFIG_HL_SUPPORT */
+
+/**
  * @brief Resume tx for the specified virtual device.
  * @details
- *  This function applies only to HL systems - in LL systems, tx flow control
- *  is handled entirely within the target FW.
+ *  This function applies primarily to HL systems, but also applies to
+ *  LL systems that use per-vdev tx queues for MCC or thermal throttling.
  *
  * @param data_vdev - the virtual device being unpaused
  */
