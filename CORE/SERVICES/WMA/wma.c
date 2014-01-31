@@ -1084,7 +1084,7 @@ static void wma_update_vdev_stats(tp_wma_handle wma,
 					 pGetRssiReq->pDevContext);
 		}
 
-		vos_mem_free(pGetRssiReq);
+		adf_os_mem_free(pGetRssiReq);
 		wma->pGetRssiReq = NULL;
 	}
 }
