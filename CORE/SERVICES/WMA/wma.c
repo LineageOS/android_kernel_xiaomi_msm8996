@@ -948,6 +948,8 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 			WMA_LOGD("%s: P2P BSS is stopped", __func__);
 			iface->bss_status = WMA_BSS_STATUS_STOPPED;
 		}
+		ol_txrx_vdev_flush(iface->handle);
+		wdi_in_vdev_unpause(iface->handle);
 #ifndef QCA_WIFI_ISOC
 		bcn = wma->interfaces[resp_event->vdev_id].beacon;
 
@@ -5506,6 +5508,8 @@ void wma_vdev_resp_timer(void *data)
 			WMA_LOGD("%s: P2P BSS is stopped", __func__);
 			iface->bss_status = WMA_BSS_STATUS_STOPPED;
 		}
+		ol_txrx_vdev_flush(iface->handle);
+		wdi_in_vdev_unpause(iface->handle);
 #ifdef QCA_IBSS_SUPPORT
 		if (wma_is_vdev_in_ibss_mode(wma, params->sessionId)) {
 			del_sta_param.sessionId   = params->sessionId;
