@@ -148,6 +148,9 @@
 #define MKK       0x40
 #define ETSI      0x30
 
+/* Maximum Buffer length allowed for DFS phyerrors */
+#define DFS_MAX_BUF_LENGHT 4096
+
 #define WMI_DEFAULT_NOISE_FLOOR_DBM (-96)
 
 #define WMI_MCC_MIN_CHANNEL_QUOTA             20
@@ -2006,6 +2009,14 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
     {
         WMA_LOGE("%s:  Expected minimum size %d, received %d",
                   __func__, sizeof(*pe_hdr), datalen);
+        return 0;
+    }
+    if (pe_hdr->buf_len > DFS_MAX_BUF_LENGHT)
+    {
+        WMA_LOGE("%s: Received Invalid Phyerror event buffer length = %d"
+                 "Maximum allowed buf length = %d",
+                  __func__, pe_hdr->buf_len, DFS_MAX_BUF_LENGHT);
+
         return 0;
     }
 
