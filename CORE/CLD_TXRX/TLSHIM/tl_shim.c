@@ -862,19 +862,7 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 	}
 
 	/* Zero out skb's context buffer for the driver to use */
-#ifdef IPA_OFFLOAD
-	if ((NBUF_OWNER_ID(skb) == IPA_NBUF_OWNER_ID)
-					&& NBUF_CALLBACK_FN(skb)) {
-		uint32_t skb_owner_id = NBUF_OWNER_ID(skb);
-		__adf_nbuf_callback_fn skb_cb_fn =  NBUF_CALLBACK_FN(skb);
-		adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
-		NBUF_OWNER_ID(skb) = skb_owner_id;
-		NBUF_CALLBACK_FN(skb) = skb_cb_fn;
-	} else
-		adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
-#else
 	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
-#endif
 	adf_nbuf_map_single(adf_ctx, skb, ADF_OS_DMA_TO_DEVICE);
 
 	if ((tl_shim->ip_checksum_offload) && (skb->protocol == htons(ETH_P_IP))
@@ -892,6 +880,32 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 
 	return NULL;
 }
+
+#ifdef IPA_OFFLOAD
+adf_nbuf_t WLANTL_SendIPA_DataFrame(void *vos_ctx, void *vdev,
+                                    adf_nbuf_t skb)
+{
+    struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
+                                                           vos_ctx);
+	adf_nbuf_t ret;
+
+	ENTER();
+
+	if ((tl_shim->ip_checksum_offload) && (skb->protocol == htons(ETH_P_IP))
+		 && (skb->ip_summed == CHECKSUM_PARTIAL))
+		skb->ip_summed = CHECKSUM_COMPLETE;
+
+	/* Terminate the (single-element) list of tx frames */
+	skb->next = NULL;
+	ret = tl_shim->tx((struct ol_txrx_vdev_t *)vdev, skb);
+	if (ret) {
+		TLSHIM_LOGW("Failed to tx");
+		return ret;
+	}
+
+	return NULL;
+}
+#endif
 
 VOS_STATUS WLANTL_ResumeDataTx(void *vos_ctx, u_int8_t *sta_id)
 {
