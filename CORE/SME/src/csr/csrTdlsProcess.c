@@ -1018,6 +1018,7 @@ static eHalStatus tdlsSaveTdlsPeerInfo(tpAniSirGlobal pMac,
 eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
                                 void *pMsgBuf)
 {
+    tCsrRoamInfo roamInfo = {0} ;
     switch(msgType)
     {
         case eWNI_SME_TDLS_SEND_MGMT_RSP:
@@ -1030,7 +1031,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         {
             tSirTdlsAddStaRsp *addStaRsp = (tSirTdlsAddStaRsp *) pMsgBuf ;
             eCsrRoamResult roamResult ;
-            tCsrRoamInfo roamInfo = {0} ;
             vos_mem_copy( &roamInfo.peerMac, addStaRsp->peerMac,
                                          sizeof(tSirMacAddr)) ;
             roamInfo.staId = addStaRsp->staId ;
@@ -1056,7 +1056,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_DEL_STA_RSP:
         {
             tSirTdlsDelStaRsp *delStaRsp = (tSirTdlsDelStaRsp *) pMsgBuf ;
-            tCsrRoamInfo roamInfo = {0} ;
 
             vos_mem_copy( &roamInfo.peerMac, delStaRsp->peerMac,
                                          sizeof(tSirMacAddr)) ;
@@ -1076,7 +1075,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_DEL_STA_IND:
         {
             tpSirTdlsDelStaInd pSirTdlsDelStaInd = (tpSirTdlsDelStaInd) pMsgBuf ;
-            tCsrRoamInfo roamInfo = {0} ;
             vos_mem_copy( &roamInfo.peerMac, pSirTdlsDelStaInd->peerMac,
                                          sizeof(tSirMacAddr)) ;
             roamInfo.staId = pSirTdlsDelStaInd->staId ;
@@ -1091,7 +1089,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_DEL_ALL_PEER_IND:
         {
             tpSirTdlsDelAllPeerInd pSirTdlsDelAllPeerInd = (tpSirTdlsDelAllPeerInd) pMsgBuf ;
-            tCsrRoamInfo roamInfo = {0} ;
 
             /* Sending the TEARDOWN indication to HDD. */
             csrRoamCallCallback(pMac, pSirTdlsDelAllPeerInd->sessionId, &roamInfo, 0,
@@ -1102,7 +1099,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_MGMT_FRM_TX_COMPLETION_IND:
         {
             tpSirMgmtTxCompletionInd pSirTdlsDelAllPeerInd = (tpSirMgmtTxCompletionInd) pMsgBuf ;
-            tCsrRoamInfo roamInfo = {0} ;
             roamInfo.reasonCode = pSirTdlsDelAllPeerInd->txCompleteStatus;
 
             csrRoamCallCallback(pMac, pSirTdlsDelAllPeerInd->sessionId, &roamInfo,
@@ -1112,7 +1108,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_LINK_ESTABLISH_RSP:
         {
             tSirTdlsLinkEstablishReqRsp *linkEstablishReqRsp = (tSirTdlsLinkEstablishReqRsp *) pMsgBuf ;
-            tCsrRoamInfo roamInfo = {0} ;
 #if 0
             vos_mem_copy(&roamInfo.peerMac, delStaRsp->peerMac,
                                          sizeof(tSirMacAddr)) ;
@@ -1257,7 +1252,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_ADD_TDLS_PEER_IND:
         {
             tSirTdlsPeerInd *peerInd = (tSirTdlsPeerInd *) pMsgBuf ;
-            tCsrRoamInfo roamInfo = {0} ;
             vos_mem_copy( &roamInfo.peerMac, peerInd->peerMac,
                                          sizeof(tSirMacAddr)) ;
             roamInfo.staId = peerInd->staId ;
@@ -1276,7 +1270,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_DELETE_TDLS_PEER_IND:
         {
             tSirTdlsPeerInd *peerInd = (tSirTdlsPeerInd *) pMsgBuf ;
-            tCsrRoamInfo roamInfo = {0} ;
             vos_mem_copy( &roamInfo.peerMac, peerInd->peerMac,
                                          sizeof(tSirMacAddr)) ;
             roamInfo.staId = peerInd->staId ;
@@ -1295,7 +1288,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_SHOULD_DISCOVER:
         {
             tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
-            tCsrRoamInfo roamInfo = {0};
             vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
                          sizeof(tSirMacAddr));
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
@@ -1311,7 +1303,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_SHOULD_TEARDOWN:
         {
             tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
-            tCsrRoamInfo roamInfo = {0};
             vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
                          sizeof(tSirMacAddr));
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
@@ -1327,7 +1318,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_PEER_DISCONNECTED:
         {
             tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
-            tCsrRoamInfo roamInfo = {0};
             vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
                          sizeof(tSirMacAddr));
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,

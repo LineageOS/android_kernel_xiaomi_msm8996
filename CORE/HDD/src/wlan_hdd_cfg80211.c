@@ -7144,7 +7144,7 @@ static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
 static tANI_U8 wlan_hdd_get_mcs_idx(tANI_U16 maxRate, tANI_U8 rate_flags,
                                     tANI_U8 nss)
 {
-    tANI_U8  rateFlag = 0, curIdx;
+    tANI_U8  rateFlag = 0, curIdx = 0;
     tANI_U16 curRate;
     struct index_vht_data_rate_type *supported_vht_mcs_rate;
     struct index_data_rate_type *supported_mcs_rate;
@@ -7216,7 +7216,7 @@ static tANI_U8 wlan_hdd_get_mcs_idx(tANI_U16 maxRate, tANI_U8 rate_flags,
         }
     }
 
-    return (curIdx? (curIdx - 1) : curIdx);
+    return (curIdx ? (curIdx - 1) : curIdx);
 }
 #endif
 static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
@@ -8087,8 +8087,7 @@ static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device 
     tHalHandle halHandle;
     hdd_context_t *pHddCtx;
     tANI_U8 *pBSSId;
-    int status;
-    int result;
+    int status = -1;
 
     hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: flushing PMKSA ",__func__);
 
@@ -8127,9 +8126,9 @@ static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device 
           pBSSId =(tANI_U8 *)(PMKIDCache[j].BSSID);
 
           /*delete the PMKID in CSR*/
-          result = sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pBSSId);
+          status = sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pBSSId);
 
-          if (0!= result)
+          if (0 != status)
           {
              hddLog(VOS_TRACE_LEVEL_ERROR ,"%s cannot flush PMKIDCache %d.",
                     __func__,j);
@@ -8140,7 +8139,7 @@ static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device 
       }
 
     PMKIDCacheIndex = 0;
-    return result;
+    return status;
 }
 #endif
 
