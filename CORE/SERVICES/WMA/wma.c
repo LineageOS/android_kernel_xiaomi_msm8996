@@ -14166,13 +14166,16 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_START_SCAN_OFFLOAD_REQ:
 			wma_start_scan(wma_handle, msg->bodyptr, msg->type);
+                        vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_STOP_SCAN_OFFLOAD_REQ:
 			wma_stop_scan(wma_handle, msg->bodyptr);
+                        vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_UPDATE_CHAN_LIST_REQ:
 			wma_update_channel_list(wma_handle,
 					(tSirUpdateChanList *)msg->bodyptr);
+                        vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_SET_LINK_STATE:
 			wma_set_linkstate(wma_handle,
@@ -14208,6 +14211,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_process_update_edca_param_req(
 						wma_handle,
 						(tEdcaParams *)msg->bodyptr);
+                        vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_SEND_BEACON_REQ:
 			wma_send_beacon(wma_handle,
@@ -14306,6 +14310,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_UPDATE_BEACON_IND:
 			wma_process_update_beacon_params(wma_handle,
 					(tUpdateBeaconParams *)msg->bodyptr);
+                        vos_mem_free(msg->bodyptr);
 			break;
 
 		case WDA_ADD_TS_REQ:
@@ -14451,6 +14456,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 
 	    case WDA_INIT_THERMAL_INFO_CMD:
 			wma_process_init_thermal_info(wma_handle, (t_thermal_mgmt *)msg->bodyptr);
+                        vos_mem_free(msg->bodyptr);
 			break;
 
 	    case WDA_SET_THERMAL_LEVEL:
