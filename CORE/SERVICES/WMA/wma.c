@@ -103,8 +103,7 @@
 #include "csrApi.h"
 #include "ol_fw.h"
 
-#include "wma_dfs_interface.h"
-#include "dfs_interface.h"
+#include "dfs.h"
 #include "radar_filters.h"
 /* ################### defines ################### */
 #define WMA_2_4_GHZ_MAX_FREQ  3000
@@ -1994,6 +1993,8 @@ static int wma_tdls_event_handler(void *handle, u_int8_t *event, u_int32_t len)
 /*
  * WMI Handler for WMI_PHYERR_EVENTID event from firmware.
  * This handler is currently handling only DFS phy errors.
+ * This handler will be invoked only when the DFS phyerror
+ * filtering offload is disabled.
  * Return- 1:Success, 0:Failure
  */
 static int wma_unified_phyerr_rx_event_handler(void * handle,
@@ -2133,6 +2134,296 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
     {
         return (1);
     }
+}
+
+/*
+ * WMI handler for WMI_DFS_RADAR_EVENTID
+ * This handler is registered for handling
+ * filtered DFS Phyerror. This handler is
+ * will be invoked only when DFS Phyerr
+ * filtering offload is enabled.
+ * Return- 1:Success, 0:Failure
+ */
+static int wma_unified_dfs_radar_rx_event_handler(void *handle,
+	u_int8_t *data, u_int32_t datalen)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	struct ieee80211com *ic;
+	struct ath_dfs *dfs;
+	struct dfs_event *event;
+	struct ieee80211_channel *chan;
+	int empty;
+	int do_check_chirp = 0;
+	int is_hw_chirp = 0;
+	int is_sw_chirp = 0;
+	int is_pri = 0;
+
+	WMI_DFS_RADAR_EVENTID_param_tlvs *param_tlvs;
+	wmi_dfs_radar_event_fixed_param *radar_event;
+
+	ic = wma->dfs_ic;
+	if (NULL == ic) {
+		WMA_LOGE("%s: dfs_ic is  NULL ", __func__);
+		return 0;
+	}
+
+	dfs = (struct ath_dfs *)ic->ic_dfs;
+	chan = ic->ic_curchan;
+	param_tlvs = (WMI_DFS_RADAR_EVENTID_param_tlvs *) data;
+
+	if (NULL == dfs) {
+		WMA_LOGE("%s: dfs is  NULL ", __func__);
+		return 0;
+	}
+	/*
+	 * This parameter holds the number
+	 * of phyerror interrupts to the host
+	 * after the phyerrors have passed through
+	 * false detect filters in the firmware.
+	 */
+	dfs->dfs_phyerr_count++;
+
+	if (!param_tlvs) {
+		WMA_LOGE("%s: Received NULL data from FW", __func__);
+		return 0;
+	}
+
+	radar_event = param_tlvs->fixed_param;
+
+	if (NV_CHANNEL_DFS != vos_nv_getChannelEnabledState(chan->ic_ieee)) {
+		WMA_LOGE("%s: Invalid DFS Phyerror event. Channel=%d is Non-DFS",
+			 __func__, chan->ic_ieee);
+		return 0;
+	}
+	dfs->ath_dfs_stats.total_phy_errors++;
+
+	if (dfs->dfs_caps.ath_chip_is_bb_tlv) {
+		do_check_chirp = 1;
+		is_pri = 1;
+		is_hw_chirp = radar_event->pulse_is_chirp;
+
+		if ((u_int32_t)dfs->dfs_phyerr_freq_min >
+			radar_event->pulse_center_freq) {
+			dfs->dfs_phyerr_freq_min =
+					(int)radar_event->pulse_center_freq;
+		}
+
+		if (dfs->dfs_phyerr_freq_max <
+			(int)radar_event->pulse_center_freq) {
+			dfs->dfs_phyerr_freq_max =
+					(int)radar_event->pulse_center_freq;
+		}
+	}
+
+	/*
+	 * Now, add the parsed, checked and filtered
+	 * radar phyerror event radar pulse event list.
+	 * This event will then be processed by
+	 * dfs_radar_processevent() to see if the pattern
+	 * of pulses in radar pulse list match any radar
+	 * singnature in the current regulatory domain.
+	 */
+
+	ATH_DFSEVENTQ_LOCK(dfs);
+	empty = STAILQ_EMPTY(&(dfs->dfs_eventq));
+	ATH_DFSEVENTQ_UNLOCK(dfs);
+	if (empty) {
+		return 0;
+	}
+	/*
+	 * Add the event to the list, if there's space.
+	 */
+	ATH_DFSEVENTQ_LOCK(dfs);
+	event = STAILQ_FIRST(&(dfs->dfs_eventq));
+	if (event == NULL) {
+		ATH_DFSEVENTQ_UNLOCK(dfs);
+		WMA_LOGE("%s: No more space left for queuing DFS Phyerror events",
+					__func__);
+		return 0;
+	}
+	STAILQ_REMOVE_HEAD(&(dfs->dfs_eventq), re_list);
+	ATH_DFSEVENTQ_UNLOCK(dfs);
+	dfs->dfs_phyerr_queued_count++;
+	dfs->dfs_phyerr_w53_counter++;
+	event->re_dur = (u_int8_t)radar_event->pulse_duration;
+	event->re_rssi = radar_event->rssi;
+	event->re_ts = radar_event->pulse_detect_ts & DFS_TSMASK;
+	event->re_full_ts = (((uint64_t)radar_event->upload_fullts_high) << 32)
+			| radar_event->upload_fullts_low;
+
+	/*
+	 * Handle chirp flags.
+	 */
+	if (do_check_chirp) {
+		event->re_flags |= DFS_EVENT_CHECKCHIRP;
+		if (is_hw_chirp) {
+			event->re_flags |= DFS_EVENT_HW_CHIRP;
+		}
+		if (is_sw_chirp) {
+			event->re_flags |= DFS_EVENT_SW_CHIRP;
+		}
+	}
+	/*
+	 * Correctly set which channel is being reported on
+	 */
+	if (is_pri) {
+		event->re_chanindex = (u_int8_t)dfs->dfs_curchan_radindex;
+	} else {
+		if (dfs->dfs_extchan_radindex == -1) {
+			WMA_LOGI("%s phyerr on ext channel", __func__);
+		}
+		event->re_chanindex = (u_int8_t)dfs->dfs_extchan_radindex;
+		WMA_LOGI("%s:New extension channel event is added to queue",
+					__func__);
+	}
+
+	ATH_DFSQ_LOCK(dfs);
+
+	STAILQ_INSERT_TAIL(&(dfs->dfs_radarq), event, re_list);
+
+	empty = STAILQ_EMPTY(&dfs->dfs_radarq);
+
+	ATH_DFSQ_UNLOCK(dfs);
+
+	if (!empty && !dfs->ath_radar_tasksched) {
+		dfs->ath_radar_tasksched = 1;
+		OS_SET_TIMER(&dfs->ath_dfs_task_timer, 0);
+	}
+
+	return 1;
+
+}
+
+/*
+ * Register appropriate dfs phyerror event handler
+ * based on phyerror filtering offload is enabled
+ * or disabled.
+ */
+static void
+wma_register_dfs_event_handler(tp_wma_handle wma_handle)
+{
+	if (NULL == wma_handle) {
+		WMA_LOGE("%s:wma_handle is NULL", __func__);
+		return;
+	}
+
+	if (VOS_FALSE == wma_handle->dfs_phyerr_filter_offload) {
+		/*
+		 * Register the wma_unified_phyerr_rx_event_handler
+		 * for filtering offload disabled case to handle
+		 * the DFS phyerrors.
+		 */
+		WMA_LOGD("%s:Phyerror Filtering offload is Disabled in ini",
+					__func__);
+		wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_PHYERR_EVENTID, wma_unified_phyerr_rx_event_handler);
+		WMA_LOGD("%s: WMI_PHYERR_EVENTID event handler registered",
+					__func__);
+	} else {
+		WMA_LOGD("%s:Phyerror Filtering offload is Enabled in ini",
+					__func__);
+		wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_DFS_RADAR_EVENTID,
+				wma_unified_dfs_radar_rx_event_handler);
+		WMA_LOGD("%s:WMI_DFS_RADAR_EVENTID event handler registered",
+					__func__);
+	}
+
+	return;
+}
+
+/*
+ * Send WMI_DFS_PHYERR_FILTER_ENA_CMDID or
+ * WMI_DFS_PHYERR_FILTER_DIS_CMDID command
+ * to firmware based on phyerr filtering
+ * offload status.
+ */
+static int
+wma_unified_dfs_phyerr_filter_offload_enable(tp_wma_handle wma_handle)
+{
+	wmi_dfs_phyerr_filter_ena_cmd_fixed_param* enable_phyerr_offload_cmd;
+	wmi_dfs_phyerr_filter_dis_cmd_fixed_param* disable_phyerr_offload_cmd;
+	wmi_buf_t buf;
+	u_int16_t len;
+	int ret;
+
+	if (NULL == wma_handle) {
+		WMA_LOGE("%s:wma_handle is NULL", __func__);
+		return 0;
+	}
+
+	if (VOS_FALSE == wma_handle->dfs_phyerr_filter_offload) {
+		WMA_LOGD("%s:Phyerror Filtering offload is Disabled in ini",
+					__func__);
+		len = sizeof(*disable_phyerr_offload_cmd);
+		buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+		if (!buf) {
+			WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+			return 0;
+		}
+		disable_phyerr_offload_cmd =
+			(wmi_dfs_phyerr_filter_dis_cmd_fixed_param *)
+			wmi_buf_data(buf);
+
+		WMITLV_SET_HDR(&disable_phyerr_offload_cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_dis_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_dfs_phyerr_filter_dis_cmd_fixed_param));
+
+		/*
+		 * Send WMI_DFS_PHYERR_FILTER_DIS_CMDID
+		 * to the firmware to disable the phyerror
+		 * filtering offload.
+		 */
+		ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+			WMI_DFS_PHYERR_FILTER_DIS_CMDID);
+		if (ret < 0) {
+			WMA_LOGE("%s: Failed to send WMI_DFS_PHYERR_FILTER_DIS_CMDID ret=%d",
+						__func__, ret);
+			wmi_buf_free(buf);
+			return 0;
+		}
+		WMA_LOGD("%s: WMI_DFS_PHYERR_FILTER_DIS_CMDID Send Success",
+					__func__);
+	} else {
+		WMA_LOGD("%s:Phyerror Filtering offload is Enabled in ini",
+					__func__);
+
+		len = sizeof(*enable_phyerr_offload_cmd);
+		buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+		if (!buf) {
+			WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+			return 0;
+		}
+
+		enable_phyerr_offload_cmd =
+			(wmi_dfs_phyerr_filter_ena_cmd_fixed_param *)
+			wmi_buf_data(buf);
+
+		WMITLV_SET_HDR(&enable_phyerr_offload_cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_dfs_phyerr_filter_ena_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_dfs_phyerr_filter_ena_cmd_fixed_param));
+
+		/*
+		 * Send a WMI_DFS_PHYERR_FILTER_ENA_CMDID
+		 * to the firmware to enable the phyerror
+		 * filtering offload.
+		 */
+		ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+					WMI_DFS_PHYERR_FILTER_ENA_CMDID);
+
+		if (ret < 0) {
+			WMA_LOGE("%s: Failed to send WMI_DFS_PHYERR_FILTER_ENA_CMDID ret=%d",
+						__func__, ret);
+			wmi_buf_free(buf);
+			return 0;
+		}
+		WMA_LOGD("%s: WMI_DFS_PHYERR_FILTER_ENA_CMDID Send Success",
+					__func__);
+	}
+
+	return 1;
 }
 
 /*
@@ -2302,6 +2593,13 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_handle->max_bssid = mac_params->maxBssId;
 	wma_handle->frame_xln_reqd = mac_params->frameTransRequired;
 	wma_handle->driver_type = mac_params->driverType;
+
+	/*
+	 * Indicates if DFS Phyerr filtering offload
+	 * is Enabled/Disabed from ini
+	 */
+	wma_handle->dfs_phyerr_filter_offload =
+						mac_params->dfsPhyerrFilterOffload;
 	wma_handle->interfaces = vos_mem_malloc(sizeof(struct wma_txrx_node) *
 						wma_handle->max_bssid);
 	if (!wma_handle->interfaces) {
@@ -2391,10 +2689,12 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 				    WMI_OEM_ERROR_REPORT_EVENTID,
 				    wma_oem_error_report_event_callback);
 #endif
-   /*register phyerr event handler for handling DFS errors */
-   wmi_unified_register_event_handler(wma_handle->wmi_handle,
-                  WMI_PHYERR_EVENTID,
-                  wma_unified_phyerr_rx_event_handler);
+	/*
+	 * Register appropriate DFS phyerr event handler for
+	 * Phyerror events. Handlers differ for phyerr filtering
+	 * offload enable and disable cases.
+	 */
+	wma_register_dfs_event_handler(wma_handle);
 
    /* Register beacon tx complete event id. The event is required
     * for sending channel switch announcement frames
@@ -5488,6 +5788,19 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
                wma_dfs_configure_channel(wma->dfs_ic,chan,chanmode,req);
 		WMI_SET_CHANNEL_FLAG(chan, WMI_CHAN_FLAG_DFS);
 		cmd->disable_hw_ack = VOS_TRUE;
+
+		/*
+		 * Enable/Disable Phyerr filtering offload
+		 * depending on dfs_phyerr_filter_offload
+		 * flag status as set in ini for SAP mode.
+		 * Currently, only AP supports DFS master
+		 * mode operation on DFS channels, P2P-GO
+		 * does not support operation on DFS Channels.
+		 */
+		if (intr[cmd->vdev_id].type == WMI_VDEV_TYPE_AP &&
+			 intr[cmd->vdev_id].sub_type == 0) {
+			wma_unified_dfs_phyerr_filter_offload_enable(wma);
+		}
 	}
 
    cmd->beacon_interval = req->beacon_intval;

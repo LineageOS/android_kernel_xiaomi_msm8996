@@ -409,6 +409,13 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
        macOpenParms.olIniInfo      = macOpenParms.olIniInfo | 0x1;
   if ( pHddCtx->cfg_ini->fhostNSOffload)
        macOpenParms.olIniInfo      = macOpenParms.olIniInfo | 0x2;
+  /*
+   * Copy the DFS Phyerr Filtering Offload status.
+   * This parameter reflects the value of the
+   * dfsPhyerrFilterOffload flag  as set in the ini.
+   */
+  macOpenParms.dfsPhyerrFilterOffload =
+                        pHddCtx->cfg_ini->fDfsPhyerrFilterOffload;
 #endif
 
    macOpenParms.apDisableIntraBssFwd = pHddCtx->cfg_ini->apDisableIntraBssFwd;
