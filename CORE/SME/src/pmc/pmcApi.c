@@ -2182,12 +2182,6 @@ eHalStatus pmcWowlAddBcastPattern (
 #endif
 
 
-    if(pattern->ucPatternId >= SIR_WOWL_BCAST_MAX_NUM_PATTERNS )
-    {
-        pmcLog(pMac, LOGE, FL("Pattern Id must range from 0 to %d"), SIR_WOWL_BCAST_MAX_NUM_PATTERNS-1);
-        return eHAL_STATUS_FAILURE;
-    }
-
     /* No need to care PMC state transition when ps offload is enabled. */
     if(pMac->psOffloadEnabled)
         goto skip_pmc_state_transition;
@@ -2262,12 +2256,6 @@ eHalStatus pmcWowlDelBcastPattern (
         return eHAL_STATUS_FAILURE;
     }
 
-    if(pattern->ucPatternId >= SIR_WOWL_BCAST_MAX_NUM_PATTERNS )
-    {
-        pmcLog(pMac, LOGE, FL("Pattern Id must range from 0 to %d"),
-            SIR_WOWL_BCAST_MAX_NUM_PATTERNS-1);
-        return eHAL_STATUS_FAILURE;
-    }
 
     /* No need to care PMC state transition when ps offload is enabled. */
     if(pMac->psOffloadEnabled)

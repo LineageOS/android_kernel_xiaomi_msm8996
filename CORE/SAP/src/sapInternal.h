@@ -263,6 +263,9 @@ typedef struct sSapContext {
     //Information Required for SAP DFS Master mode
     tSapDfsInfo         SapDfsInfo;
 
+    tANI_BOOLEAN       allBandScanned;
+    eCsrBand           currentPreferredBand;
+    eCsrBand           scanBandPreference;
 } *ptSapContext;
 
 

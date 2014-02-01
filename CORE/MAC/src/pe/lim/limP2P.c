@@ -147,15 +147,15 @@ static eHalStatus limSendHalReqRemainOnChanOffload(tpAniSirGlobal pMac,
     pScanOffloadReq->channelList.channelNumber[0] = pRemOnChnReq->chnNum;
 
     limLog(pMac, LOG1,
-            FL("Req-rem-on-channel: duration %lu, session %hu, chan %hu"),
+            FL("Req-rem-on-channel: duration %u, session %hu, chan %hu"),
             pRemOnChnReq->duration, pRemOnChnReq->sessionId,
             pRemOnChnReq->chnNum);
 
     rc = wdaPostCtrlMsg(pMac, &msg);
     if (rc != eSIR_SUCCESS)
     {
-        limLog(pMac, LOGE, FL("wdaPostCtrlMsg() return failure"),
-                pMac);
+        limLog(pMac, LOGE, FL("wdaPostCtrlMsg() return failure %u"),
+                rc);
         vos_mem_free(pScanOffloadReq);
         return eHAL_STATUS_FAILURE;
     }

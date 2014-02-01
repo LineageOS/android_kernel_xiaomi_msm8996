@@ -482,6 +482,12 @@ ol_tx_completion_handler(
                 pdev, tx_desc, tx_descs, netbuf,
                 lcl_freelist, tx_desc_last, status);
         }
+#ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
+        tx_desc->pkt_type = 0xff;
+#ifdef QCA_COMPUTE_TX_DELAY
+        tx_desc->entry_timestamp_ticks = 0xffffffff;
+#endif
+#endif
     }
 
     /* One shot protected access to pdev freelist, when setup */

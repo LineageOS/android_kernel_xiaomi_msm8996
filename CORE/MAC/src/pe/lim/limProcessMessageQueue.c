@@ -538,7 +538,16 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
     VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR, pHdr,
                        WDA_GET_RX_MPDU_HEADER_LEN(pRxPacketInfo));
 #endif
-
+    if (pMac->fEnableDebugLog & 0x1) {
+        if ((fc.type == SIR_MAC_MGMT_FRAME) &&
+                (fc.subType != SIR_MAC_MGMT_PROBE_REQ) &&
+                (fc.subType != SIR_MAC_MGMT_PROBE_RSP) &&
+                (fc.subType != SIR_MAC_MGMT_BEACON))
+        {
+            limLog(pMac, LOGE, FL("RX MGMT - Type %hu, SubType %hu"),
+                    fc.type, fc.subType);
+        }
+    }
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
     if ( WDA_GET_ROAMCANDIDATEIND(pRxPacketInfo))
     {

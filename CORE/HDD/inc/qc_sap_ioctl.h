@@ -271,8 +271,10 @@ typedef struct
 #define QCASAP_TXRX_FWSTATS_RESET          41
 #define QCSAP_PARAM_SETRTSCTS              42
 #define QCSAP_PARAM_GETRTSCTS              43
-#define QCASAP_SET_11N_RATE                45
-#define QCASAP_SET_VHT_RATE                46
+#define QCASAP_SET_11N_RATE                44
+#define QCASAP_SET_VHT_RATE                45
+#define QCASAP_SET_SHORT_GI                46
+#define QCASAP_GET_SHORT_GI                47
 #endif /* QCA_WIFI_2_0 */
 
 enum { 

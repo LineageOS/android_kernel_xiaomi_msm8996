@@ -1629,6 +1629,8 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    /* update p2p offload status */
    pMac->pnoOffload = pSmeConfigParams->pnoOffload;
 
+   pMac->fEnableDebugLog = pSmeConfigParams->fEnableDebugLog;
+
    return status;
 }
 
@@ -11374,3 +11376,11 @@ eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level )
     return eHAL_STATUS_FAILURE;
 }
 #endif /* #ifndef QCA_WIFI_ISOC */
+
+eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    pMac->fEnableDebugLog = set_value;
+    return (status);
+}

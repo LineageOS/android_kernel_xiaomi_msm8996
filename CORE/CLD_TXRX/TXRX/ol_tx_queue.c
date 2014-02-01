@@ -102,53 +102,62 @@ ol_tx_queue_addba_check(
 #endif
 /*--- function definitions --------------------------------------------------*/
 
+/*
+ * Try to flush pending frames in the tx queues
+ * no matter it's queued in the TX scheduler or not.
+ */
 static inline void
-ol_tx_queue_flush(struct ol_txrx_pdev_t *pdev)
+ol_tx_queue_vdev_flush(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
 {
-    /* try to flush pending frames in the tx queues
-     * no matter it's queued in the TX scheduler or not.
-     */
 #define PEER_ARRAY_COUNT        10
     struct ol_tx_frms_queue_t *txq;
-    struct ol_txrx_vdev_t *vdev;
     struct ol_txrx_peer_t *peer, *peers[PEER_ARRAY_COUNT];
     int i, j, peer_count;
-    TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
-        /* flush VDEV TX queues */
-        for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
-            txq = &vdev->txqs[i];
-            ol_tx_queue_free(pdev, txq, (i + OL_TX_NUM_TIDS));
-        }
-        /* flush PEER TX queues */
-        do {
-            peer_count = 0;
-            /* select candidate peers */
-            adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
-            TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
-                for (i = 0; i < OL_TX_NUM_TIDS; i++) {
-                    txq = &peer->txqs[i];
-                    if (txq->frms) {
-                        adf_os_atomic_inc(&peer->ref_cnt);
-                        peers[peer_count++] = peer;
-                        break;
-                    }
-                }
-                if (peer_count >= PEER_ARRAY_COUNT) {
+
+    /* flush VDEV TX queues */
+    for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
+        txq = &vdev->txqs[i];
+        ol_tx_queue_free(pdev, txq, (i + OL_TX_NUM_TIDS));
+    }
+    /* flush PEER TX queues */
+    do {
+        peer_count = 0;
+        /* select candidate peers */
+        adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
+        TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+            for (i = 0; i < OL_TX_NUM_TIDS; i++) {
+                txq = &peer->txqs[i];
+                if (txq->frms) {
+                    adf_os_atomic_inc(&peer->ref_cnt);
+                    peers[peer_count++] = peer;
                     break;
                 }
             }
-            adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
-            /* flush TX queues of candidate peers */
-            for (i = 0; i < peer_count; i++) {
-                for (j = 0; j < OL_TX_NUM_TIDS; j++) {
-                    txq = &peers[i]->txqs[j];
-                    if (txq->frms) {
-                        ol_tx_queue_free(pdev, txq, j);
-                    }
-                }
-                ol_txrx_peer_unref_delete(peers[i]);
+            if (peer_count >= PEER_ARRAY_COUNT) {
+                break;
             }
-        } while (peer_count >= PEER_ARRAY_COUNT);
+        }
+        adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
+        /* flush TX queues of candidate peers */
+        for (i = 0; i < peer_count; i++) {
+            for (j = 0; j < OL_TX_NUM_TIDS; j++) {
+                txq = &peers[i]->txqs[j];
+                if (txq->frms) {
+                    ol_tx_queue_free(pdev, txq, j);
+                }
+            }
+            ol_txrx_peer_unref_delete(peers[i]);
+        }
+    } while (peer_count >= PEER_ARRAY_COUNT);
+}
+
+static inline void
+ol_tx_queue_flush(struct ol_txrx_pdev_t *pdev)
+{
+    struct ol_txrx_vdev_t *vdev;
+
+    TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
+        ol_tx_queue_vdev_flush(pdev, vdev);
     }
 }
 
@@ -515,6 +524,27 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev)
         ol_tx_vdev_ll_pause_queue_send(vdev);
     }
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
+}
+
+void
+ol_txrx_vdev_flush(ol_txrx_vdev_handle vdev)
+{
+    if (vdev->pdev->cfg.is_high_latency) {
+        #if defined(CONFIG_HL_SUPPORT)
+        ol_tx_queue_vdev_flush(vdev->pdev, vdev);
+        #endif
+    } else {
+        adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
+        adf_os_timer_cancel(&vdev->ll_pause.timer);
+        while (vdev->ll_pause.txq.head) {
+            adf_nbuf_t next = adf_nbuf_next(vdev->ll_pause.txq.head);
+            adf_nbuf_tx_free(vdev->ll_pause.txq.head, 1 /* error */);
+            vdev->ll_pause.txq.head = next;
+        }
+        vdev->ll_pause.txq.tail = NULL;
+        vdev->ll_pause.txq.depth = 0;
+        adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
+    }
 }
 
 #endif // defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
