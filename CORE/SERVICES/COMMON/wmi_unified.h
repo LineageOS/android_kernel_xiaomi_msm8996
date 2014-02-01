@@ -742,6 +742,9 @@ typedef enum {
     /* Thermal Management event */
     WMI_THERMAL_MGMT_EVENTID,
 
+    /* Container for QXDM/DIAG events */
+    WMI_DIAG_DATA_CONTAINER_EVENTID,
+
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
     /** upload H_CV info WMI event
@@ -6300,6 +6303,12 @@ typedef struct {
 
     A_UINT32 temperature_degreeC;/* temperature in degree C*/
 } wmi_thermal_mgmt_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;
+    A_UINT32 num_data;
+    /* followed by WMITLV_TAG_ARRAY_BYTE */
+} wmi_diag_data_container_event_fixed_param;
 
 enum {
     WMI_PDEV_PARAM_TXPOWER_REASON_NONE = 0,
