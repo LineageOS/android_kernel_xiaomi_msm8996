@@ -3131,9 +3131,13 @@ typedef __ani_attr_pre_packed struct sSirBoardCapabilities
 
 /// WOW related structures
 // SME -> PE <-> HAL
+#ifdef QCA_WIFI_2_0
+#define SIR_WOWL_BCAST_PATTERN_MAX_SIZE 146
+#define SIR_WOWL_BCAST_MAX_NUM_PATTERNS 19
+#else
 #define SIR_WOWL_BCAST_PATTERN_MAX_SIZE 128
 #define SIR_WOWL_BCAST_MAX_NUM_PATTERNS 16
-
+#endif
 // SME -> PE -> HAL - This is to add WOWL BCAST wake-up pattern. 
 // SME/HDD maintains the list of the BCAST wake-up patterns.
 // This is a pass through message for PE
@@ -4607,22 +4611,21 @@ typedef struct sSirLPHBInd
 
 typedef struct sSirAddPeriodicTxPtrn
 {
-    /* MAC Address for the adapter */
-    tSirMacAddr macAddress;
-
-    tANI_U8  ucPtrnId;           // Pattern ID
-    tANI_U16 ucPtrnSize;         // Pattern size
-    tANI_U32 usPtrnIntervalMs;   // In msec
-    tANI_U8  ucPattern[PERIODIC_TX_PTRN_MAX_SIZE]; // Pattern buffer
+   /* MAC Address for the adapter */
+   tSirMacAddr macAddress;
+   tANI_U8  ucPtrnId;           // Pattern ID
+   tANI_U16 ucPtrnSize;         // Pattern size
+   tANI_U32 usPtrnIntervalMs;   // In msec
+   tANI_U8  ucPattern[PERIODIC_TX_PTRN_MAX_SIZE]; // Pattern buffer
 } tSirAddPeriodicTxPtrn, *tpSirAddPeriodicTxPtrn;
 
 typedef struct sSirDelPeriodicTxPtrn
 {
-    /* MAC Address for the adapter */
-    tSirMacAddr macAddress;
-
-    /* Bitmap of pattern IDs that need to be deleted */
-    tANI_U32 ucPatternIdBitmap;
+   /* MAC Address for the adapter */
+   tSirMacAddr macAddress;
+   /* Bitmap of pattern IDs that need to be deleted */
+   tANI_U32 ucPatternIdBitmap;
+   tANI_U8  ucPtrnId;           // Pattern ID
 } tSirDelPeriodicTxPtrn, *tpSirDelPeriodicTxPtrn;
 
 #ifdef FEATURE_WLAN_BATCH_SCAN

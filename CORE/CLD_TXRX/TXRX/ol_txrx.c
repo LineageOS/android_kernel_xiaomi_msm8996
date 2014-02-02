@@ -343,11 +343,21 @@ ol_txrx_pdev_attach(
         }
         pdev->tx_desc.array[i].tx_desc.htt_tx_desc = htt_tx_desc;
 	pdev->tx_desc.array[i].tx_desc.htt_tx_desc_paddr = paddr_lo;
+#ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
+        pdev->tx_desc.array[i].tx_desc.pkt_type = 0xff;
+#ifdef QCA_COMPUTE_TX_DELAY
+        pdev->tx_desc.array[i].tx_desc.entry_timestamp_ticks = 0xffffffff;
+#endif
+#endif
     }
 
     /* link SW tx descs into a freelist */
     pdev->tx_desc.num_free = desc_pool_size;
     pdev->tx_desc.freelist = &pdev->tx_desc.array[0];
+    TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
+               "%s first tx_desc:0x%p Last tx desc:0x%p\n", __func__,
+               (u_int32_t *) pdev->tx_desc.freelist,
+               (u_int32_t *) (pdev->tx_desc.freelist + desc_pool_size));
     for (i = 0; i < desc_pool_size-1; i++) {
         pdev->tx_desc.array[i].next = &pdev->tx_desc.array[i+1];
     }
@@ -917,6 +927,7 @@ ol_txrx_vdev_detach(
     }
     #endif /* defined(CONFIG_HL_SUPPORT) */
 
+    adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
     adf_os_timer_cancel(&vdev->ll_pause.timer);
     adf_os_timer_free(&vdev->ll_pause.timer);
     while (vdev->ll_pause.txq.head) {
@@ -924,6 +935,8 @@ ol_txrx_vdev_detach(
         adf_nbuf_tx_free(vdev->ll_pause.txq.head, 1 /* error */);
         vdev->ll_pause.txq.head = next;
     }
+    adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
+    adf_os_spinlock_destroy(&vdev->ll_pause.mutex);
 
     /* remove the vdev from its parent pdev's list */
     TAILQ_REMOVE(&pdev->vdev_list, vdev, vdev_list_elem);

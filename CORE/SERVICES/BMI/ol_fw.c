@@ -34,6 +34,7 @@
 #include "vos_api.h"
 #include "wma_api.h"
 #include "wma.h"
+#include "if_pci.h"
 
 #define ATH_MODULE_NAME bmi
 #include "a_debug.h"
@@ -490,6 +491,29 @@ u_int32_t host_interest_item_address(u_int32_t target_type, u_int32_t item_offse
 	}
 }
 
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+void dump_CE_register(struct ol_softc *scn)
+{
+	A_UINT32 CE_reg_address = CE7_LOCATION;
+	A_UINT32 CE_reg_values[CE_USEFUL_SIZE>>2];
+	A_UINT32 CE_reg_word_size = CE_USEFUL_SIZE>>2;
+	A_UINT16 i;
+
+	if (HIFDiagReadMem(scn->hif_hdl, CE_reg_address,
+		(A_UCHAR*)&CE_reg_values[0],
+		CE_reg_word_size * sizeof(A_UINT32)) != A_OK)
+	{
+		printk(KERN_ERR "Dumping CE register failed!\n");
+		return;
+	}
+
+	printk("CE7 Register Dump:\n");
+	for (i = 0; i < CE_reg_word_size; i++) {
+		printk("[%02d] : 0x%08X\n", i, CE_reg_values[i]);
+	}
+}
+#endif
+
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 static struct ol_softc *ramdump_scn;
 
@@ -505,11 +529,16 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		goto out;
 	}
 
+	hif_pci_check_soc_status(ramdump_scn->hif_sc);
+	dump_CE_register(ramdump_scn);
+
 	if (HIFDiagReadMem(ramdump_scn->hif_hdl,
 		host_interest_item_address(ramdump_scn->target_type,
 		offsetof(struct host_interest_s, hi_failure_state)),
 		(A_UCHAR*) &host_interest_address, sizeof(u_int32_t)) != A_OK) {
-		printk("HifDiagReadiMem FW Dump Area Pointer failed!\n");
+		printk(KERN_ERR "HifDiagReadiMem FW Dump Area Pointer failed!\n");
+		dump_CE_register(ramdump_scn);
+
 		goto out;
 	}
 	printk("Host interest item address: 0x%08X\n", host_interest_address);
@@ -570,6 +599,10 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 	printk("XXX TARGET ASSERTED XXX\n");
 	scn->target_status = OL_TRGET_STATUS_RESET;
+
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+#endif
 
 #ifndef CONFIG_CNSS
 	if (HIFDiagReadMem(scn->hif_hdl,
@@ -994,7 +1027,7 @@ void ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 	* LENGTH  = 0x00018000
 	*/
 
-	while ((sectionCount < 3) && (amountRead < blockLength)) {
+	while ((sectionCount < 2) && (amountRead < blockLength)) {
 		switch (sectionCount) {
 		case 0:
 			/* DRAM SECTION */
@@ -1020,9 +1053,12 @@ void ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 				bufferLoc += result;
 				sectionCount++;
 			} else {
+				printk(KERN_ERR "Could not read dump section!\n");
+				dump_CE_register(scn);
 				break; /* Could not read the section */
 			}
 		} else {
+			printk(KERN_ERR "Insufficient room in dump buffer!\n");
 			break; /* Insufficient room in buffer */
 		}
 	}

@@ -153,6 +153,12 @@ static int wlan_hdd_inited;
 #endif
 
 /*
+ * spinlock for synchronizing asynchronous request/response
+ * (full description of use in wlan_hdd_main.h)
+ */
+DEFINE_SPINLOCK(hdd_context_lock);
+
+/*
  * The rate at which the driver sends RESTART event to supplicant
  * once the function 'vos_wlanRestart()' is called
  *
@@ -4417,6 +4423,7 @@ static void hdd_GetTsmStatsCB( tAniTrafStrmMetrics tsmMetrics,
 {
    struct statsContext *pStatsContext = NULL;
    hdd_adapter_t       *pAdapter = NULL;
+
    if (NULL == pContext)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -4424,23 +4431,31 @@ static void hdd_GetTsmStatsCB( tAniTrafStrmMetrics tsmMetrics,
              __func__, pContext);
       return;
    }
-   /* there is a race condition that exists between this callback function
-      and the caller since the caller could time out either before or
-      while this code is executing.  we'll assume the timeout hasn't
-      occurred, but we'll verify that right before we save our work */
+
+   /* there is a race condition that exists between this callback
+      function and the caller since the caller could time out either
+      before or while this code is executing.  we use a spinlock to
+      serialize these actions */
+   spin_lock(&hdd_context_lock);
+
    pStatsContext = pContext;
    pAdapter      = pStatsContext->pAdapter;
    if ((NULL == pAdapter) || (STATS_CONTEXT_MAGIC != pStatsContext->magic))
    {
       /* the caller presumably timed out so there is nothing we can do */
+      spin_unlock(&hdd_context_lock);
       hddLog(VOS_TRACE_LEVEL_WARN,
              "%s: Invalid context, pAdapter [%p] magic [%08x]",
               __func__, pAdapter, pStatsContext->magic);
       return;
    }
-   /* the race is on.  caller could have timed out immediately after
-      we verified the magic, but if so, caller will wait a short time
-      for us to copy over the tsm stats */
+
+   /* context is valid so caller is still waiting */
+
+   /* paranoia: invalidate the magic */
+   pStatsContext->magic = 0;
+
+   /* copy over the tsm stats */
    pAdapter->tsmStats.UplinkPktQueueDly = tsmMetrics.UplinkPktQueueDly;
    vos_mem_copy(pAdapter->tsmStats.UplinkPktQueueDlyHist,
                  tsmMetrics.UplinkPktQueueDlyHist,
@@ -4451,8 +4466,12 @@ static void hdd_GetTsmStatsCB( tAniTrafStrmMetrics tsmMetrics,
    pAdapter->tsmStats.UplinkPktCount = tsmMetrics.UplinkPktCount;
    pAdapter->tsmStats.RoamingCount = tsmMetrics.RoamingCount;
    pAdapter->tsmStats.RoamingDly = tsmMetrics.RoamingDly;
-   /* and notify the caller */
+
+   /* notify the caller */
    complete(&pStatsContext->completion);
+
+   /* serialization is complete */
+   spin_unlock(&hdd_context_lock);
 }
 
 static VOS_STATUS  hdd_get_tsm_stats(hdd_adapter_t *pAdapter,
@@ -4461,20 +4480,25 @@ static VOS_STATUS  hdd_get_tsm_stats(hdd_adapter_t *pAdapter,
 {
    hdd_station_ctx_t *pHddStaCtx = NULL;
    eHalStatus         hstatus;
+   VOS_STATUS         vstatus = VOS_STATUS_SUCCESS;
    long               lrc;
    struct statsContext context;
    hdd_context_t     *pHddCtx = NULL;
+
    if (NULL == pAdapter)
    {
        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL", __func__);
        return VOS_STATUS_E_FAULT;
    }
+
    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
    /* we are connected prepare our callback context */
    init_completion(&context.completion);
    context.pAdapter = pAdapter;
    context.magic = STATS_CONTEXT_MAGIC;
+
    /* query tsm stats */
    hstatus = sme_GetTsmStats(pHddCtx->hHal, hdd_GetTsmStatsCB,
                          pHddStaCtx->conn_info.staId[ 0 ],
@@ -4485,43 +4509,51 @@ static VOS_STATUS  hdd_get_tsm_stats(hdd_adapter_t *pAdapter,
       hddLog(VOS_TRACE_LEVEL_ERROR,
              "%s: Unable to retrieve statistics",
              __func__);
-      return hstatus;
+      vstatus = VOS_STATUS_E_FAULT;
    }
    else
    {
       /* request was sent -- wait for the response */
       lrc = wait_for_completion_interruptible_timeout(&context.completion,
                                     msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
-      /* either we have a response or we timed out
-         either way, first invalidate our magic */
-      context.magic = 0;
       if (lrc <= 0)
       {
          hddLog(VOS_TRACE_LEVEL_ERROR,
                 "%s: SME %s while retrieving statistics",
                 __func__, (0 == lrc) ? "timeout" : "interrupt");
-         /* there is a race condition such that the callback
-            function could be executing at the same time we are. of
-            primary concern is if the callback function had already
-            verified the "magic" but hasn't yet set the completion
-            variable.  Since the completion variable is on our
-            stack, we'll delay just a bit to make sure the data is
-            still valid if that is the case */
-         msleep(50);
-         return (VOS_STATUS_E_TIMEOUT);
+         vstatus = VOS_STATUS_E_TIMEOUT;
       }
    }
-   pTsmMetrics->UplinkPktQueueDly = pAdapter->tsmStats.UplinkPktQueueDly;
-   vos_mem_copy(pTsmMetrics->UplinkPktQueueDlyHist,
-                 pAdapter->tsmStats.UplinkPktQueueDlyHist,
-                 sizeof(pAdapter->tsmStats.UplinkPktQueueDlyHist)/
-                 sizeof(pAdapter->tsmStats.UplinkPktQueueDlyHist[0]));
-   pTsmMetrics->UplinkPktTxDly = pAdapter->tsmStats.UplinkPktTxDly;
-   pTsmMetrics->UplinkPktLoss = pAdapter->tsmStats.UplinkPktLoss;
-   pTsmMetrics->UplinkPktCount = pAdapter->tsmStats.UplinkPktCount;
-   pTsmMetrics->RoamingCount = pAdapter->tsmStats.RoamingCount;
-   pTsmMetrics->RoamingDly = pAdapter->tsmStats.RoamingDly;
-   return VOS_STATUS_SUCCESS;
+
+   /* either we never sent a request, we sent a request and received a
+      response or we sent a request and timed out.  if we never sent a
+      request or if we sent a request and got a response, we want to
+      clear the magic out of paranoia.  if we timed out there is a
+      race condition such that the callback function could be
+      executing at the same time we are. of primary concern is if the
+      callback function had already verified the "magic" but had not
+      yet set the completion variable when a timeout occurred. we
+      serialize these activities by invalidating the magic while
+      holding a shared spinlock which will cause us to block if the
+      callback is currently executing */
+   spin_lock(&hdd_context_lock);
+   context.magic = 0;
+   spin_unlock(&hdd_context_lock);
+
+   if (VOS_STATUS_SUCCESS == vstatus)
+   {
+      pTsmMetrics->UplinkPktQueueDly = pAdapter->tsmStats.UplinkPktQueueDly;
+      vos_mem_copy(pTsmMetrics->UplinkPktQueueDlyHist,
+                   pAdapter->tsmStats.UplinkPktQueueDlyHist,
+                   sizeof(pAdapter->tsmStats.UplinkPktQueueDlyHist)/
+                   sizeof(pAdapter->tsmStats.UplinkPktQueueDlyHist[0]));
+      pTsmMetrics->UplinkPktTxDly = pAdapter->tsmStats.UplinkPktTxDly;
+      pTsmMetrics->UplinkPktLoss = pAdapter->tsmStats.UplinkPktLoss;
+      pTsmMetrics->UplinkPktCount = pAdapter->tsmStats.UplinkPktCount;
+      pTsmMetrics->RoamingCount = pAdapter->tsmStats.RoamingCount;
+      pTsmMetrics->RoamingDly = pAdapter->tsmStats.RoamingDly;
+   }
+   return vstatus;
 }
 #endif /*FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
 
@@ -8094,13 +8126,6 @@ void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter)
         vos_mem_free(scanReq.ChannelInfo.ChannelList);
 }
 
-struct fullPowerContext
-{
-   struct completion completion;
-   unsigned int magic;
-};
-#define POWER_CONTEXT_MAGIC  0x504F5752   //POWR
-
 /**---------------------------------------------------------------------------
 
   \brief hdd_full_power_callback() - HDD full power callback function
@@ -8116,7 +8141,7 @@ struct fullPowerContext
   --------------------------------------------------------------------------*/
 static void hdd_full_power_callback(void *callbackContext, eHalStatus status)
 {
-   struct fullPowerContext *pContext = callbackContext;
+   struct statsContext *pContext = callbackContext;
 
    hddLog(VOS_TRACE_LEVEL_INFO,
           "%s: context = %p, status = %d", __func__, pContext, status);
@@ -8129,24 +8154,32 @@ static void hdd_full_power_callback(void *callbackContext, eHalStatus status)
       return;
    }
 
-   /* there is a race condition that exists between this callback function
-      and the caller since the caller could time out either before or
-      while this code is executing.  we'll assume the timeout hasn't
-      occurred, but we'll verify that right before we save our work */
+   /* there is a race condition that exists between this callback
+      function and the caller since the caller could time out either
+      before or while this code is executing.  we use a spinlock to
+      serialize these actions */
+   spin_lock(&hdd_context_lock);
 
    if (POWER_CONTEXT_MAGIC != pContext->magic)
    {
       /* the caller presumably timed out so there is nothing we can do */
+      spin_unlock(&hdd_context_lock);
       hddLog(VOS_TRACE_LEVEL_WARN,
              "%s: Invalid context, magic [%08x]",
               __func__, pContext->magic);
       return;
    }
 
-   /* the race is on.  caller could have timed out immediately after
-      we verified the magic, but if so, caller will wait a short time
-      for us to notify the caller, so the context will stay valid */
+   /* context is valid so caller is still waiting */
+
+   /* paranoia: invalidate the magic */
+   pContext->magic = 0;
+
+   /* notify the caller */
    complete(&pContext->completion);
+
+   /* serialization is complete */
+   spin_unlock(&hdd_context_lock);
 }
 
 /**---------------------------------------------------------------------------
@@ -8166,8 +8199,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    v_CONTEXT_t pVosContext = pHddCtx->pvosContext;
    VOS_STATUS vosStatus;
    struct wiphy *wiphy = pHddCtx->wiphy;
-   hdd_adapter_t* pAdapter = NULL;
-   struct fullPowerContext powerContext;
+   hdd_adapter_t* pAdapter;
+   struct statsContext powerContext;
    long lrc;
 #if defined (QCA_WIFI_2_0) && \
     defined (QCA_WIFI_ISOC)
@@ -8303,24 +8336,11 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
             lrc = wait_for_completion_interruptible_timeout(
                                         &powerContext.completion,
                                         msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
-            /* either we have a response or we timed out
-                         either way, first invalidate our magic */
-            powerContext.magic = 0;
             if (lrc <= 0)
             {
                hddLog(VOS_TRACE_LEVEL_ERROR,
                       "%s: %s while requesting full power",
                       __func__, (0 == lrc) ? "timeout" : "interrupt");
-               /*
-                * there is a race condition such that the callback
-                * function could be executing at the same time we are. of
-                * primary concern is if the callback function had already
-                * verified the "magic" but hasn't yet set the completion
-                * variable.  Since the completion variable is on our
-                * stack, we'll delay just a bit to make sure the data is
-                * still valid if that is the case
-                */
-               msleep(50);
             }
          }
          else
@@ -8328,10 +8348,23 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
             hddLog(VOS_TRACE_LEVEL_ERROR,
                    "%s: Request for Full Power failed, status %d",
                    __func__, halStatus);
-            VOS_ASSERT(0);
             /* continue -- need to clean up as much as possible */
          }
       }
+      /* either we never sent a request, we sent a request and received a
+         response or we sent a request and timed out.  if we never sent a
+         request or if we sent a request and got a response, we want to
+         clear the magic out of paranoia.  if we timed out there is a
+         race condition such that the callback function could be
+         executing at the same time we are. of primary concern is if the
+         callback function had already verified the "magic" but had not
+         yet set the completion variable when a timeout occurred. we
+         serialize these activities by invalidating the magic while
+         holding a shared spinlock which will cause us to block if the
+         callback is currently executing */
+      spin_lock(&hdd_context_lock);
+      powerContext.magic = 0;
+      spin_unlock(&hdd_context_lock);
    }
    else
    {
@@ -9278,8 +9311,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
    }
 
-   /*Start VOSS which starts up the SME/MAC/HAL modules and everything else
-     Note: Firmware image will be read and downloaded inside vos_start API */
+   /*Start VOSS which starts up the SME/MAC/HAL modules and everything else */
    status = vos_start( pHddCtx->pvosContext );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
@@ -9295,9 +9327,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    sme_AddChAvoidCallback(pHddCtx->hHal,
                           hdd_ch_avoid_cb);
 #endif /* FEATURE_WLAN_CH_AVOID */
-
-   /* Exchange capability info between Host and FW and also get versioning info from FW */
-   hdd_exchange_version_and_caps(pHddCtx);
 
    status = hdd_post_voss_start_config( pHddCtx );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
@@ -9410,6 +9439,19 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: hdd_open_adapter failed", __func__);
       goto err_close_adapter;
    }
+
+#ifdef QCA_WIFI_2_0
+
+   /* target hw version would only be retrieved after firmware donwload */
+   pHddCtx->target_hw_version =
+       ((struct ol_softc *)hif_sc)->target_version;
+
+   /* Get the wlan hw/fw version */
+   hdd_wlan_get_version(pAdapter, NULL, NULL);
+#else
+   /* Exchange capability info between Host and FW and also get versioning info from FW */
+   hdd_exchange_version_and_caps(pHddCtx);
+#endif
 
    if (country_code)
    {
@@ -9868,6 +9910,7 @@ static int hdd_driver_init( void)
    {
        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
                __func__);
+       hif_unregister_driver();
        vos_preClose( &pVosContext );
        ret_status = -ENODEV;
        break;
@@ -10002,7 +10045,8 @@ static void hdd_driver_exit(void)
    }
    else
    {
-      while(pHddCtx->isLogpInProgress) {
+      while(pHddCtx->isLogpInProgress ||
+            vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
               "%s:SSR in Progress; block rmmod for 1 second!!!", __func__);
          msleep(1000);
