@@ -5549,6 +5549,12 @@ void wma_vdev_resp_timer(void *data)
 		if(iface->addBssStaContext)
 			adf_os_mem_free(iface->addBssStaContext);
 		vos_mem_zero(iface, sizeof(*iface));
+	} else if (tgt_req->msg_type == WDA_ADD_BSS_REQ) {
+		tpAddBssParams params = (tpAddBssParams)tgt_req->user_data;
+
+		params->status = VOS_STATUS_E_TIMEOUT;
+		WMA_LOGA("%s: WDA_ADD_BSS_REQ timedout", __func__);
+		wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
 	}
 	vos_timer_destroy(&tgt_req->event_timeout);
 	vos_mem_free(tgt_req);
