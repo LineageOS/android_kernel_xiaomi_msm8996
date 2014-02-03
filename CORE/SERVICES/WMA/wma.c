@@ -16903,7 +16903,7 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 	if (vos_wait_single_event(&wma_handle->target_suspend,
 				  WMA_TGT_SUSPEND_COMPLETE_TIMEOUT)
 				  != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to suspend target");
+		WMA_LOGE("Failed to get ACK from firmware for pdev suspend");
 		return -1;
 	}
 
