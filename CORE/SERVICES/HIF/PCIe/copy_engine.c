@@ -842,6 +842,17 @@ CE_per_engine_servicereap(struct hif_pci_softc *sc, unsigned int CE_id)
 }
 
 #endif /*ATH_11AC_TXCOMPACT*/
+
+/*
+ * Number of times to check for any pending tx/rx completion on
+ * a copy engine, this count should be big enough. Once we hit
+ * this threashold we'll not check for any Tx/Rx comlpetion in same
+ * interrupt handling. Note that this threashold is only used for
+ * Rx interrupt processing, this can be used tor Tx as well if we
+ * suspect any infinite loop in checking for pending Tx completion.
+ */
+#define CE_TXRX_COMP_CHECK_THRESHOLD 20
+
 /*
  * Guts of interrupt handler for per-engine interrupts on a particular CE.
  *
@@ -861,6 +872,7 @@ CE_per_engine_service(struct hif_pci_softc *sc, unsigned int CE_id)
     unsigned int id;
     unsigned int flags;
     u_int32_t CE_int_status;
+    unsigned int more_comp_cnt = 0;
 
     A_TARGET_ACCESS_BEGIN(targid);
 
@@ -966,7 +978,15 @@ more_watermarks:
      * we find no more events to process.
      */
     if (CE_state->recv_cb && CE_recv_entries_done_nolock(sc, CE_state)) {
-        goto more_completions;
+        if (more_comp_cnt++ < CE_TXRX_COMP_CHECK_THRESHOLD) {
+            goto more_completions;
+        } else {
+            adf_os_print("%s:Potential infinite loop detected during Rx processing"
+                         "nentries_mask:0x%x sw read_idx:0x%x hw read_idx:0x%x\n",
+                        __func__, CE_state->dest_ring->nentries_mask,
+                        CE_state->dest_ring->sw_index,
+                        CE_DEST_RING_READ_IDX_GET(targid, CE_state->ctrl_addr));
+        }
     }
 
     if (CE_state->send_cb && CE_send_entries_done_nolock(sc, CE_state)) {
