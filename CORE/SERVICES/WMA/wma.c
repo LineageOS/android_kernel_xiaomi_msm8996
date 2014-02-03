@@ -505,6 +505,11 @@ static void wma_vdev_start_rsp(tp_wma_handle wma,
 	}
 	bcn->seq_no = MIN_SW_SEQ;
 	adf_os_spinlock_init(&bcn->lock);
+	adf_os_atomic_set(&wma->interfaces[resp_event->vdev_id].bss_status,
+			  WMA_BSS_STATUS_STARTED);
+	WMA_LOGD("%s: AP mode (type %d subtype %d) BSS is started", __func__,
+		 wma->interfaces[resp_event->vdev_id].type,
+		 wma->interfaces[resp_event->vdev_id].sub_type);
 
 	WMA_LOGD("%s: Allocated beacon struct %p, template memory %p\n",
 		__func__, bcn, bcn->buf);
@@ -950,12 +955,11 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 			wma->interfaces[resp_event->vdev_id].vdev_up = FALSE;
 		}
 		iface = &wma->interfaces[resp_event->vdev_id];
-		if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
-			WMA_LOGD("%s: P2P BSS is stopped", __func__);
-			iface->bss_status = WMA_BSS_STATUS_STOPPED;
-		}
 		ol_txrx_vdev_flush(iface->handle);
 		wdi_in_vdev_unpause(iface->handle);
+		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
+		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
+			 __func__, iface->type, iface->sub_type);
 #ifndef QCA_WIFI_ISOC
 		bcn = wma->interfaces[resp_event->vdev_id].beacon;
 
@@ -2695,9 +2699,8 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 				pdel_sta_self_req_param->selfMacAddr,
 				vdev_id, peer);
 	}
-	if ((iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) &&
-	    (iface->bss_status == WMA_BSS_STATUS_STARTED)) {
-		WMA_LOGD("P2P BSS is not yet stopped. Defering vdev deletion");
+	if (adf_os_atomic_read(&iface->bss_status) == WMA_BSS_STATUS_STARTED) {
+		WMA_LOGA("BSS is not yet stopped. Defering vdev deletion");
 		iface->del_staself_req = pdel_sta_self_req_param;
 		return status;
 	}
@@ -3319,6 +3322,8 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 		self_sta_req->type;
 	wma_handle->interfaces[self_sta_req->sessionId].sub_type =
 		self_sta_req->subType;
+	adf_os_atomic_init(&wma_handle->interfaces
+			   [self_sta_req->sessionId].bss_status);
 
 	if ((self_sta_req->type == WMI_VDEV_TYPE_AP) &&
 			(self_sta_req->subType ==
@@ -5534,12 +5539,11 @@ void wma_vdev_resp_timer(void *data)
 		} else {
 			wma->interfaces[tgt_req->vdev_id].vdev_up = FALSE;
 		}
-		if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
-			WMA_LOGD("%s: P2P BSS is stopped", __func__);
-			iface->bss_status = WMA_BSS_STATUS_STOPPED;
-		}
 		ol_txrx_vdev_flush(iface->handle);
 		wdi_in_vdev_unpause(iface->handle);
+		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
+		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
+			 __func__, iface->type, iface->sub_type);
 #ifdef QCA_IBSS_SUPPORT
 		if (wma_is_vdev_in_ibss_mode(wma, params->sessionId)) {
 			del_sta_param.sessionId   = params->sessionId;
@@ -8382,10 +8386,9 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		wma->interfaces[params->smesessionId].vdev_up = TRUE;
 	}
 
-	if (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) {
-		WMA_LOGD("%s: P2P BSS is started", __func__);
-		iface->bss_status = WMA_BSS_STATUS_STARTED;
-	}
+	adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STARTED);
+	WMA_LOGD("%s: STA mode (type %d subtype %d) BSS is started",
+		 __func__, iface->type, iface->sub_type);
         /* Sta is now associated, configure various params */
 
         /* SM power save, configure the h/w as configured

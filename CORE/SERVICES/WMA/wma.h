@@ -425,7 +425,7 @@ struct wma_txrx_node {
 	tAniGetPEStatsRsp       *stats_rsp;
 	tANI_U8                 fw_stats_set;
 	void *del_staself_req;
-	tANI_U8 bss_status;
+	adf_os_atomic_t bss_status;
 	tANI_U8 rate_flags;
 	tANI_U8 nss;
 	v_BOOL_t is_channel_switch;
