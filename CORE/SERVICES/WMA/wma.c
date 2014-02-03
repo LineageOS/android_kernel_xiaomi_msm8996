@@ -435,7 +435,7 @@ static struct wma_target_req *wma_find_vdev_req(tp_wma_handle wma,
 			 __func__, vdev_id, type);
 		return NULL;
 	}
-	WMA_LOGD("%s: target request found for vdev id: %d type %d msg %d\n",
+	WMA_LOGD("%s: target request found for vdev id: %d type %d msg %d",
 		 __func__, vdev_id, type, req_msg->msg_type);
 	return req_msg;
 }
@@ -466,7 +466,7 @@ static void wma_vdev_start_rsp(tp_wma_handle wma,
 #endif
 
 #ifdef QCA_IBSS_SUPPORT
-	WMA_LOGD("%s: vdev start response received for %s mode\n", __func__,
+	WMA_LOGD("%s: vdev start response received for %s mode", __func__,
 		add_bss->operMode == BSS_OPERATIONAL_MODE_IBSS ? "IBSS" : "non-IBSS");
 #endif
 
@@ -512,7 +512,7 @@ static void wma_vdev_start_rsp(tp_wma_handle wma,
 	add_bss->chainMask = resp_event->chain_mask;
 	add_bss->smpsMode = host_map_smps_mode(resp_event->smps_mode);
 send_fail_resp:
-	WMA_LOGD("%s: Sending add bss rsp to umac(vdev %d status %d)\n",
+	WMA_LOGD("%s: Sending add bss rsp to umac(vdev %d status %d)",
 		 __func__, resp_event->vdev_id, add_bss->status);
 	wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)add_bss, 0);
 }
@@ -742,7 +742,7 @@ static int32_t wmi_unified_peer_delete_send(wmi_unified_t wmi,
 		adf_nbuf_free(buf);
 		return -EIO;
 	}
-	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d", __func__, peer_addr, vdev_id);
 	return 0;
 }
 
@@ -775,7 +775,7 @@ static int32_t wmi_unified_peer_flush_tids_send(wmi_unified_t wmi,
 		adf_nbuf_free(buf);
 		return -EIO;
 	}
-	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d", __func__, peer_addr, vdev_id);
 	return 0;
 }
 
@@ -789,7 +789,7 @@ static void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 		ol_txrx_peer_detach(peer);
 
 	wma->peer_count--;
-	WMA_LOGD("%s: bssid %pM vdevid %d peer_count %d\n", __func__,
+	WMA_LOGD("%s: bssid %pM vdevid %d peer_count %d", __func__,
 		 bssid, vdev_id, wma->peer_count);
 	/* Flush all TIDs except MGMT TID for this peer in Target */
 	peer_tid_bitmap &= ~(0x1 << WMI_MGMT_TID);
@@ -888,7 +888,7 @@ static int wmi_unified_vdev_down_send(wmi_unified_t wmi, u_int8_t vdev_id)
 		adf_nbuf_free(buf);
 		return -EIO;
 	}
-	WMA_LOGD("%s: vdev_id %d\n", __func__, vdev_id);
+	WMA_LOGI("%s: vdev_id %d", __func__, vdev_id);
 	return 0;
 }
 
@@ -2755,7 +2755,7 @@ static int wmi_unified_peer_create_send(wmi_unified_t wmi,
 		adf_nbuf_free(buf);
 		return -EIO;
 	}
-	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d", __func__, peer_addr, vdev_id);
 	return 0;
 }
 
@@ -2765,7 +2765,7 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 {
 	ol_txrx_peer_handle peer;
 
-	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d", __func__, peer_addr, vdev_id);
 	if (++wma->peer_count > wma->wlan_resource_config.num_peers) {
 		WMA_LOGP("%s, the peer count exceeds the limit %d\n",
 			 __func__, wma->peer_count - 1);
@@ -5575,7 +5575,7 @@ static struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev
 		return NULL;
 	}
 
-	WMA_LOGD("%s: vdev_id %d msg %d\n", __func__, vdev_id, msg_type);
+	WMA_LOGD("%s: vdev_id %d msg %d", __func__, vdev_id, msg_type);
 	req->vdev_id = vdev_id;
 	req->msg_type = msg_type;
 	req->type = type;
@@ -9017,7 +9017,7 @@ static void wma_delete_sta_req_sta_mode(tp_wma_handle wma,
 #endif
 	wma_roam_scan_offload_end_connect(wma);
 	params->status = status;
-	WMA_LOGD("%s: vdev_id %d status %d\n", __func__, params->smesessionId, status);
+	WMA_LOGD("%s: vdev_id %d status %d", __func__, params->smesessionId, status);
 	wma_send_msg(wma, WDA_DELETE_STA_RSP, (void *)params, 0);
 }
 
@@ -9141,7 +9141,7 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 		status = VOS_STATUS_E_FAILURE;
 		goto detach_peer;
 	}
-	WMA_LOGD("%s: bssid %pM vdev_id %d\n",
+	WMA_LOGD("%s: bssid %pM vdev_id %d",
 		__func__, params->bssid, params->smesessionId);
 	return;
 detach_peer:
@@ -9158,7 +9158,7 @@ static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 	ol_txrx_peer_handle peer;
 	u_int8_t vdev_id, peer_id;
 
-	WMA_LOGD("%s: state %d selfmac %pM\n", __func__,
+	WMA_LOGD("%s: state %d selfmac %pM", __func__,
 		 params->state, params->selfMacAddr);
 	if ((params->state != eSIR_LINK_PREASSOC_STATE) &&
 	    (params->state != eSIR_LINK_DOWN_STATE)) {
@@ -14832,13 +14832,13 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 		}
 		else
 		{
-			WMA_LOGD("Found vdev %d\n", vdev_id);
+			WMA_LOGI("Found vdev %d", vdev_id);
 			break;
 		}
 	}
 
-	WMA_LOGD("vdev_id %d, vdev_map 0x%x, tid_map 0x%x,"
-			" pause_type 0x%x, action 0x%x, peer_id 0x%x\n",
+	WMA_LOGI("vdev_id %d, vdev_map 0x%x, tid_map 0x%x,"
+			" pause_type 0x%x, action 0x%x, peer_id 0x%x",
 			vdev_id, wmi_event->vdev_map, wmi_event->tid_map,
 			wmi_event->pause_type, wmi_event->action, wmi_event->peer_id);
 
