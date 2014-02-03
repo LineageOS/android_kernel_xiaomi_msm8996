@@ -5556,8 +5556,8 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             }
             else
             {
-                hddLog(LOG1, "#s: MCC is not active. Exit w/o setting latency",
-                __func__);
+                hddLog(LOG1, "%s: MCC is not active. Exit w/o setting latency",
+                       __func__);
             }
             break;
         }
@@ -5657,7 +5657,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             }
             else
             {
-                hddLog(LOG1, "#s: MCC is not active. Exit w/o setting latency",
+                hddLog(LOG1, "%s: MCC is not active. Exit w/o setting latency",
                         __func__);
             }
             break;
