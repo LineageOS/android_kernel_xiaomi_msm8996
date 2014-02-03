@@ -657,6 +657,36 @@ static void tl_shim_flush_rx_frames(void *vos_ctx,
 	clear_bit(TLSHIM_FLUSH_CACHE_IN_PROGRESS, &sta_info->flags);
 }
 
+static VOS_STATUS tlshim_data_rx_cb(struct txrx_tl_shim_ctx *tl_shim,
+				    adf_nbuf_t buf, u_int16_t staid)
+{
+	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, tl_shim);
+	struct tlshim_sta_info *sta_info;
+	VOS_STATUS ret;
+
+	if (!vos_ctx)
+		return VOS_STATUS_E_FAILURE;
+	sta_info = &tl_shim->sta_info[staid];
+	if (unlikely(!sta_info->registered)) {
+		adf_nbuf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	adf_os_spin_lock_bh(&tl_shim->bufq_lock);
+	sta_info->suspend_flush = 1;
+	adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+
+	/* Flush the cached frames to HDD before passing new rx frame */
+	tl_shim_flush_rx_frames(vos_ctx, tl_shim, staid, 0);
+	ret = sta_info->data_rx(vos_ctx, buf, staid);
+	if (ret != VOS_STATUS_SUCCESS) {
+		TLSHIM_LOGW("Frame Rx to HDD failed");
+		adf_nbuf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * Rx callback from txrx module for data reception.
  */
@@ -664,7 +694,10 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 				   adf_nbuf_t rx_buf_list)
 {
 	struct txrx_tl_shim_ctx *tl_shim;
+#if defined(IPA_OFFLOAD) || \
+    (defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD))
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, context);
+#endif
 	struct tlshim_sta_info *sta_info;
 	adf_nbuf_t buf, next_buf;
 
@@ -706,6 +739,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 		 * there is no cached frames have any significant impact on
 		 * performance.
 		 */
+#ifdef IPA_OFFLOAD
 		VOS_STATUS ret;
 		adf_os_spin_lock_bh(&tl_shim->bufq_lock);
 		sta_info->suspend_flush = 1;
@@ -713,7 +747,6 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 
 		/* Flush the cached frames to HDD before passing new rx frame */
 		tl_shim_flush_rx_frames(vos_ctx, tl_shim, staid, 0);
-#ifdef IPA_OFFLOAD
 		ret = sta_info->data_rx(vos_ctx, rx_buf_list, staid);
 		if (ret == VOS_STATUS_E_INVAL) {
 #endif
@@ -722,26 +755,59 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 			next_buf = adf_nbuf_queue_next(buf);
 
 #if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
-        /*
-         * in case following returns true, a defered task was created
-         * inside function, which does following:
-         * 1) create vos packet
-         * 2) send to PE/LIM
-         * 3) free the involved sk_buff
-         */
-        if(tlshim_check_n_process_iapp_frame(vos_ctx, buf, staid)) {
-            buf = next_buf;
-            continue;
-        }
+			/*
+			 * in case following returns true, a defered task was created
+			 * inside function, which does following:
+			 * 1) create vos packet
+			 * 2) send to PE/LIM
+			 * 3) free the involved sk_buff
+			 */
+			if(tlshim_check_n_process_iapp_frame(vos_ctx,
+							buf, staid)) {
+				buf = next_buf;
+				continue;
+			}
+
+			/*
+			 * above returned false, the packet was not IAPP.
+			 * process normally
+			 */
 #endif
-            /*
-             * above returned false, the packet was not IAPP.
-             * process normally
-             */
-            ret = sta_info->data_rx(vos_ctx, buf, staid);
-            if (ret != VOS_STATUS_SUCCESS)
-                adf_nbuf_free(buf);
-            buf = next_buf;
+#ifdef QCA_CONFIG_SMP
+			/*
+			 * If the kernel is SMP, schedule rx thread to
+			 * better use multicores.
+			 */
+			if (!tl_shim->enable_rxthread) {
+				tlshim_data_rx_cb(tl_shim, buf, staid);
+			} else {
+				pVosSchedContext sched_ctx =
+						get_vos_sched_ctxt();
+				struct VosTlshimPkt *pkt;
+
+				if (unlikely(!sched_ctx)) {
+					adf_nbuf_free(buf);
+					buf = next_buf;
+					continue;
+				}
+				pkt = vos_alloc_tlshim_pkt(sched_ctx);
+				if (!pkt) {
+					TLSHIM_LOGW("No available Rx message buffer");
+					adf_nbuf_free(buf);
+					buf = next_buf;
+					continue;
+				}
+				pkt->callback = (vos_tlshim_cb)
+						tlshim_data_rx_cb;
+				pkt->context = (void *) tl_shim;
+				pkt->Rxpkt = (void *) buf;
+				pkt->staId = staid;
+				vos_indicate_rxpkt(sched_ctx, pkt);
+			}
+#else /* QCA_CONFIG_SMP */
+			tlshim_data_rx_cb(tl_shim, buf, staid);
+#endif /* QCA_CONFIG_SMP */
+			buf = next_buf;
 		}
 #ifdef IPA_OFFLOAD
 	}
@@ -1326,6 +1392,15 @@ VOS_STATUS WLANTL_ClearSTAClient(void *vos_ctx, u_int8_t sta_id)
 	}
 	tl_shim->sta_info[sta_id].registered = 0;
 
+#ifdef QCA_CONFIG_SMP
+	{
+		pVosSchedContext sched_ctx = get_vos_sched_ctxt();
+		/* Drop pending Rx frames in VOSS */
+		if (sched_ctx)
+			vos_drop_rxpkt_by_staid(sched_ctx, sta_id);
+	}
+#endif
+
 	/* Purge the cached rx frame queue */
 	tl_shim_flush_rx_frames(vos_ctx, tl_shim, sta_id, 1);
 	adf_os_spin_lock_bh(&tl_shim->bufq_lock);
@@ -1483,6 +1558,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 
 	tl_shim->ip_checksum_offload = tl_cfg->ip_checksum_offload;
 	tl_shim->delay_interval = tl_cfg->uDelayedTriggerFrmInt;
+	tl_shim->enable_rxthread = tl_cfg->enable_rxthread;
 	return status;
 }
 

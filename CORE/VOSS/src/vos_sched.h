@@ -103,6 +103,15 @@
 */
 #define VOS_CORE_MAX_MESSAGES           (VPKT_NUM_RX_RAW_PACKETS + 32)
 
+#ifdef QCA_CONFIG_SMP
+/*
+** Maximum number of vos messages to be allocated for
+** Tlshim Rx thread.
+*/
+#define VOSS_MAX_TLSHIM_PKT 4000
+
+typedef void (*vos_tlshim_cb) (void *context, void *rxpkt, u_int16_t staid);
+#endif
 
 /*
 ** vOSS Message queue definition.
@@ -117,6 +126,28 @@ typedef struct _VosMqType
 
 } VosMqType, *pVosMqType;
 
+#ifdef QCA_CONFIG_SMP
+/*
+** VOSS message wrapper for data rx from Tlshim.
+*/
+typedef struct VosTlshimPkt
+{
+   struct list_head list;
+
+   /* Tlshim context */
+   void *context;
+
+   /* Rx skb */
+   void *Rxpkt;
+
+   /* Station id to which this packet is destined */
+   u_int16_t staId;
+
+   /* Call back to further send this packet to tlshim layer */
+   vos_tlshim_cb callback;
+
+} *pVosTlshimPkt;
+#endif
 
 /*
 ** vOSS Scheduler context
@@ -225,6 +256,45 @@ typedef struct _VosSchedContext
    spinlock_t TxThreadLock;
    spinlock_t RxThreadLock;
 
+#ifdef QCA_CONFIG_SMP
+   /* Tlshim Rx thread handle */
+   struct task_struct *TlshimRxThread;
+
+   /* Handle of Event for Rx thread to signal startup */
+   struct completion TlshimRxStartEvent;
+
+   /* Completion object to suspend tlshim rx thread */
+   struct completion SuspndTlshimRxEvent;
+
+   /* Completion objext to resume tlshim rx thread */
+   struct completion ResumeTlshimRxEvent;
+
+   /* Completion object for Tlshim Rxthread shutdown */
+   struct completion TlshimRxShutdown;
+
+   /* Waitq for tlshim Rx thread */
+   wait_queue_head_t tlshimRxWaitQueue;
+
+   unsigned long tlshimRxEvtFlg;
+
+   /* Rx buffer queue */
+   struct list_head tlshimRxQueue;
+
+   /* Spinlock to synchronize between tasklet and thread */
+   spinlock_t TlshimRxQLock;
+
+   /* Rx queue length */
+   unsigned int TlshimRxQlen;
+
+   /* Lock to synchronize free buffer queue access */
+   spinlock_t VosTlshimPktFreeQLock;
+
+   /* Free message queue for Tlshim Rx processing */
+   struct list_head VosTlshimPktFreeQ;
+
+   /* cpu hotplug notifier */
+   struct notifier_block cpuHotPlugNotifier;
+#endif
 } VosSchedContext, *pVosSchedContext;
 
 /*
@@ -361,6 +431,68 @@ typedef struct _VosContextType
   Function declarations and documenation
 ---------------------------------------------------------------------------*/
  
+#ifdef QCA_CONFIG_SMP
+/*---------------------------------------------------------------------------
+  \brief vos_drop_rxpkt_by_staid() - API to drop pending Rx packets for a sta
+  The \a vos_drop_rxpkt_by_staid() drops queued packets for a station, to drop
+  all the pending packets the caller has to send WLAN_MAX_STA_COUNT as staId.
+  \param  pSchedContext - pointer to the global vOSS Sched Context
+  \param staId - Station Id
+
+  \return Nothing
+  \sa vos_drop_rxpkt_by_staid()
+  -------------------------------------------------------------------------*/
+void vos_drop_rxpkt_by_staid(pVosSchedContext pSchedContext, u_int16_t staId);
+
+/*---------------------------------------------------------------------------
+  \brief vos_indicate_rxpkt() - API to Indicate rx data packet
+  The \a vos_indicate_rxpkt() enqueues the rx packet onto tlshimRxQueue
+  and notifies VosTlshimRxThread().
+  \param  Arg - pointer to the global vOSS Sched Context
+  \param pkt - Vos data message buffer
+
+  \return Nothing
+  \sa vos_indicate_rxpkt()
+  -------------------------------------------------------------------------*/
+void vos_indicate_rxpkt(pVosSchedContext pSchedContext,
+                        struct VosTlshimPkt *pkt);
+
+/*---------------------------------------------------------------------------
+  \brief vos_alloc_tlshim_pkt() - API to return next available vos message
+  The \a vos_alloc_tlshim_pkt() returns next available vos message buffer
+  used for Rx Data processing.
+  \param pSchedContext - pointer to the global vOSS Sched Context
+
+  \return pointer to vos message buffer
+  \sa vos_alloc_tlshim_pkt()
+  -------------------------------------------------------------------------*/
+struct VosTlshimPkt *vos_alloc_tlshim_pkt(pVosSchedContext pSchedContext);
+
+/*---------------------------------------------------------------------------
+  \brief vos_free_tlshim_pkt() - API to release vos message to the freeq
+  The \a vos_free_tlshim_pkt() returns the vos message used for Rx data
+  to the free queue.
+  \param  pSchedContext - pointer to the global vOSS Sched Context
+  \param  pkt - Vos message buffer to be returned to free queue.
+
+  \return Nothing
+  \sa vos_free_tlshim_pkt()
+  -------------------------------------------------------------------------*/
+void vos_free_tlshim_pkt(pVosSchedContext pSchedContext,
+                         struct VosTlshimPkt *pkt);
+/*---------------------------------------------------------------------------
+  \brief vos_free_tlshim_pkt_freeq() - Free voss buffer free queue
+  The \a vos_free_tlshim_pkt_freeq() does mem free of the buffers
+  available in free vos buffer queue which is used for Data rx processing
+  from Tlshim.
+  \param pSchedContext - pointer to the global vOSS Sched Context
+
+  \return Nothing
+  \sa vos_free_tlshim_pkt_freeq()
+  -------------------------------------------------------------------------*/
+void vos_free_tlshim_pkt_freeq(pVosSchedContext pSchedContext);
+#endif
+
 int vos_sched_is_tx_thread(int threadID);
 int vos_sched_is_rx_thread(int threadID);
 /*---------------------------------------------------------------------------

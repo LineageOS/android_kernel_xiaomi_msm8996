@@ -1100,6 +1100,11 @@ ifeq ($(CONFIG_GTK_OFFLOAD), 1)
 CDEFINES += -DWLAN_FEATURE_GTK_OFFLOAD
 CDEFINES += -DIGTK_OFFLOAD
 endif
+
+#Mark it as SMP Kernel
+ifeq ($(CONFIG_SMP),y)
+CDEFINES += -DQCA_CONFIG_SMP
+endif
 endif
 
 # Fix build for GCC 4.7

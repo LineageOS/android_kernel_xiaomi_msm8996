@@ -41,6 +41,33 @@ extern "C" {
 
 #define CLD_NETLINK_USER 17
 
+#define LOGFILE_FLAG           0x01
+#define CONSOLE_FLAG           0x02
+#define QXDM_FLAG              0x04
+#define SILENT_FLAG            0x08
+
+#define ATH6KL_FWLOG_PAYLOAD_SIZE              1500
+
+#define HDRLEN 16
+#define RECLEN (HDRLEN + ATH6KL_FWLOG_PAYLOAD_SIZE)
+
+#define DBGLOG_PRINT_PREFIX "FWLOG: "
+
+/* Handy Macros to read data length and type from FW */
+#define WLAN_DIAG_0_TYPE_S          0
+#define WLAN_DIAG_0_TYPE            0x000000ff
+#define WLAN_DIAG_0_TYPE_GET(x)     WMI_F_MS(x, WLAN_DIAG_0_TYPE)
+#define WLAN_DIAG_0_TYPE_SET(x, y)  WMI_F_RMW(x, y, WLAN_DIAG_0_TYPE)
+/* bits 8-15 reserved */
+
+/* length includes the size of wlan_diag_data */
+#define WLAN_DIAG_0_LEN_S           16
+#define WLAN_DIAG_0_LEN             0xffff0000
+#define WLAN_DIAG_0_LEN_GET(x)      WMI_F_MS(x, WLAN_DIAG_0_LEN)
+#define WLAN_DIAG_0_LEN_SET(x, y)   WMI_F_RMW(x, y, WLAN_DIAG_0_LEN)
+
+#define CNSS_DIAG_SLEEP_INTERVAL    5 /* In secs */
+
 typedef enum {
     DBGLOG_PROCESS_DEFAULT = 0,
     DBGLOG_PROCESS_PRINT_RAW, /* print them in debug view */
@@ -49,21 +76,33 @@ typedef enum {
     DBGLOG_PROCESS_MAX,
 } dbglog_process_t;
 
-#define ATH6KL_FWLOG_PAYLOAD_SIZE              1500
+enum cnss_diag_type {
+    DIAG_TYPE_FW_EVENT,
+    DIAG_TYPE_FW_LOG,
+    DIAG_TYPE_FW_DEBUG_MSG
+};
 
-#define HDRLEN 12
-#define RECLEN (HDRLEN + ATH6KL_FWLOG_PAYLOAD_SIZE)
 
-#define DBGLOG_PRINT_PREFIX "FWLOG: "
+
+/* log/event are always 32-bit aligned. Padding is inserted after
+ * optional payload to satisify this requirement */
+struct wlan_diag_data {
+    unsigned int word0; /* type, length */
+    unsigned int target_time;
+    unsigned int code;  /* Diag log or event Code */
+    u_int8_t payload[0];
+};
+
 
 struct dbglog_slot {
+    unsigned int diag_type;
     unsigned int timestamp;
     unsigned int length;
     unsigned int dropped;
-
     /* max ATH6KL_FWLOG_PAYLOAD_SIZE bytes */
     u_int8_t payload[0];
 };
+
 
 #define ATH6KL_FWLOG_MAX_ENTRIES                20
 

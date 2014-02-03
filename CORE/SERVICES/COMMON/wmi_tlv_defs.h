@@ -417,6 +417,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_mhf_offload_plumb_routing_table_cmd_fixed_param,
     WMITLV_TAG_STRUC_WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param,
     WMITLV_TAG_STRUC_WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param,
+    WMITLV_TAG_STRUC_wmi_diag_data_container_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -627,7 +628,8 @@ typedef enum {
     OP(WMI_DFS_RADAR_EVENTID) \
     OP(WMI_BATCH_SCAN_ENABLED_EVENTID) \
     OP(WMI_BATCH_SCAN_RESULT_EVENTID) \
-    OP(WMI_THERMAL_MGMT_EVENTID)
+    OP(WMI_THERMAL_MGMT_EVENTID) \
+    OP(WMI_DIAG_DATA_CONTAINER_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1808,6 +1810,12 @@ WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_dfs_radar_event_fixed_param, wmi
 #define WMITLV_TABLE_WMI_THERMAL_MGMT_EVENTID(id,op,buf,len) \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_thermal_mgmt_event_fixed_param, wmi_thermal_mgmt_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
     WMITLV_CREATE_PARAM_STRUC(WMI_THERMAL_MGMT_EVENTID);
+
+
+#define WMITLV_TABLE_WMI_DIAG_DATA_CONTAINER_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_diag_data_container_event_fixed_param, wmi_diag_data_container_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)   \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_DIAG_DATA_CONTAINER_EVENTID);
 
 #ifdef __cplusplus
 }

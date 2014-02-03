@@ -24,8 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-/*
- * */
 
 #ifndef WLAN_QCT_WLANTL_H
 #define WLAN_QCT_WLANTL_H
@@ -306,6 +304,9 @@ typedef struct
 
   /* Ip checksum offload */
   v_BOOL_t   ip_checksum_offload;
+
+  /* Rx processing in thread from TL shim */
+  v_BOOL_t enable_rxthread;
 }WLANTL_ConfigInfoType;
 
 /*---------------------------------------------------------------------------

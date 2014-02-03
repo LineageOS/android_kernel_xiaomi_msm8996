@@ -40,7 +40,11 @@
 #include <asm/types.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-
+#include <sys/capability.h>
+#include <linux/prctl.h>
+#include <pwd.h>
+#include <private/android_filesystem_config.h>
+#include <hardware_legacy/wifi.h>
 #include <sys/socket.h>
 #include <linux/netlink.h>
 
@@ -49,11 +53,35 @@
 #include "dbglog.h"
 #include "dbglog_host.h"
 
+#include "event.h"
+#include "msg.h"
+#include "log.h"
 
-#define LOGFILE_FLAG           0x01
-#define CONSOLE_FLAG           0x02
-#define QXDM_FLAG              0x04
-#define SILENT_FLAG            0x08
+#include "diag_lsm.h"
+#include "diagpkt.h"
+#include "diagcmd.h"
+#include "diag.h"
+
+#include "aniNlMsg.h"
+#include "aniAsfHdr.h"
+#include "aniAsfMem.h"
+
+
+/* CAPs needed
+ * CAP_NET_RAW   : Use RAW and packet socket
+ * CAP_NET_ADMIN : NL broadcast receive
+ */
+const tANI_U32 capabilities = (1 << CAP_NET_RAW) | (1 << CAP_NET_ADMIN);
+
+/* Groups needed
+ * AID_INET      : Open INET socket
+ * AID_NET_ADMIN : Handle NL socket
+ * AID_QCOM_DIAG : Access DIAG debugfs
+ * AID_WIFI      : WIFI Operation
+ */
+const gid_t groups[] = {AID_INET, AID_NET_ADMIN, AID_QCOM_DIAG, AID_WIFI};
+
+
 
 const char options[] =
 "Options:\n\
@@ -77,7 +105,7 @@ int max_records;
 int record;
 const char *progname;
 char dbglogoutfile[PATH_MAX];
-int optionflag;
+int optionflag = 0;
 
 int rec_limit = 100000000; /* Million records is a good default */
 
@@ -139,8 +167,65 @@ static size_t reorder(FILE *log_in, FILE *log_out)
     return 0;
 }
 
+/*
+ * Lower the privileges for security reason
+ * the service will run only in system or diag mode
+ *
+ */
+int
+cnssdiagservice_cap_handle(void)
+{
+    int i;
+    int err;
+
+    struct __user_cap_header_struct cap_header_data;
+    cap_user_header_t cap_header = &cap_header_data;
+    struct __user_cap_data_struct cap_data_data;
+    cap_user_data_t cap_data = &cap_data_data;
+
+    cap_header->pid = 0;
+    cap_header->version = _LINUX_CAPABILITY_VERSION;
+    memset(cap_data, 0, sizeof(cap_data_data));
+
+    if (prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0) != 0)
+    {
+        printf("%d PR_SET_KEEPCAPS error:%s", __LINE__, strerror(errno));
+        exit(1);
+    }
+
+    if (setgroups(sizeof(groups)/sizeof(groups[0]), groups) != 0)
+    {
+        printf("setgroups error %s", strerror(errno));
+        return -1;
+    }
+
+    if (setgid(AID_SYSTEM))
+    {
+        printf("SET GID error %s", strerror(errno));
+        return -1;
+    }
+
+    if (setuid(AID_SYSTEM))
+    {
+        printf("SET UID %s", strerror(errno));
+        return -1;
+    }
+
+    /* Assign correct CAP */
+    cap_data->effective = capabilities;
+    cap_data->permitted = capabilities;
+    /* Set the capabilities */
+    if (capset(cap_header, cap_data) < 0)
+    {
+        printf("%d failed capset error:%s", __LINE__, strerror(errno));
+        return -1;
+    }
+    return 0;
+}
+
 static void cleanup(void) {
-    close(sock_fd);
+    if (sock_fd)
+        close(sock_fd);
 
     fwlog_res = fopen(fwlog_res_file, "w");
 
@@ -169,11 +254,19 @@ static void stop(int signum)
 int main(int argc, char *argv[])
 {
     int res =0;
-    unsigned char *buf;
-    int c;
+    unsigned char *eventbuf;
+    unsigned char *dbgbuf;
+    int c, rc = 0;
     char *mesg="Hello";
+    struct dbglog_slot *slot;
 
     progname = argv[0];
+    tANI_U16 diag_type = 0;
+    tANI_U16 length = 0;
+    tANI_U32 event_id = 0;
+    tANI_U32 target_time = 0;
+    unsigned int dropped = 0;
+    unsigned int timestamp = 0;
 
     int option_index = 0;
     static struct option long_options[] = {
@@ -201,7 +294,6 @@ int main(int argc, char *argv[])
                 break;
 
             case 'q':
-                printf("Do it for QXDM \n");
                 optionflag |= QXDM_FLAG;
                 break;
 
@@ -219,12 +311,36 @@ int main(int argc, char *argv[])
 
     if (!(optionflag & (LOGFILE_FLAG | CONSOLE_FLAG | QXDM_FLAG | SILENT_FLAG))) {
         usage();
-	return -1;
+        return -1;
     }
 
+    if (optionflag == QXDM_FLAG) {
+        /* Intialize the fd required for diag APIs */
+        if (TRUE != Diag_LSM_Init(NULL))
+        {
+             perror("Failed on Diag_LSM_Init\n");
+             return -1;
+        }
+
+        if(cnssdiagservice_cap_handle())
+        {
+            printf("Cap bouncing failed EXIT!!!");
+            exit(1);
+        }
+    }
+
+    do
+    {
+        /* 5 sec sleep waiting for driver to load */
+        sleep(CNSS_DIAG_SLEEP_INTERVAL);
+        rc = is_wifi_driver_loaded();
+    } while(rc == 0);
+
     sock_fd = socket(PF_NETLINK, SOCK_RAW, CLD_NETLINK_USER);
-    if (sock_fd < 0)
+    if (sock_fd < 0) {
+        fprintf(stderr, "Socket creation failed sock_fd 0x%x \n", sock_fd);
         return -1;
+    }
 
     memset(&src_addr, 0, sizeof(src_addr));
     src_addr.nl_family = AF_NETLINK;
@@ -232,7 +348,6 @@ int main(int argc, char *argv[])
 
     bind(sock_fd, (struct sockaddr *)&src_addr, sizeof(src_addr));
 
-    memset(&dest_addr, 0, sizeof(dest_addr));
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.nl_family = AF_NETLINK;
     dest_addr.nl_pid = 0; /* For Linux Kernel */
@@ -258,6 +373,7 @@ int main(int argc, char *argv[])
     msg.msg_iov = &iov;
     msg.msg_iovlen = 1;
 
+    /* Pass the pid info and register the service */
     sendmsg(sock_fd, &msg, 0);
 
     signal(SIGINT, stop);
@@ -269,6 +385,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Too small maximum length (has to be >= %d)\n",
                     RECLEN);
             close(sock_fd);
+            free(nlh);
             return -1;
         }
         max_records = rec_limit / RECLEN;
@@ -278,6 +395,7 @@ int main(int argc, char *argv[])
         if (log_out == NULL) {
             perror("Failed to create output file");
             close(sock_fd);
+            free(nlh);
             return -1;
         }
 
@@ -285,17 +403,27 @@ int main(int argc, char *argv[])
 
         /* Read message from kernel */
         while ((res = recvmsg(sock_fd, &msg, 0)) > 0)  {
-            buf = (unsigned char *)NLMSG_DATA(nlh);
+            if (res >= sizeof(struct dbglog_slot)) {
+                dbgbuf = (unsigned char *)NLMSG_DATA(nlh);
+            } else {
+                fprintf(stderr, "Incorrect msg Length 0x%x \n", res);
+                continue;
+            }
+            slot = (struct dbglog_slot *)dbgbuf;
+            timestamp = get_le32((unsigned char *)&slot->length);
+            length = get_le32((unsigned char *)&slot->length);
+            dropped = get_le32((unsigned char *)&slot->dropped);
             if (!((optionflag & SILENT_FLAG) == SILENT_FLAG)) {
+                /* don't like this have to fix it */
                 printf("Read record timestamp=%u length=%u fw dropped=%u\n",
-                       get_le32(&buf[0]), get_le32(&buf[4]), get_le32(&buf[8]));
+                       timestamp, length, dropped);
             }
             fseek(log_out, record * RECLEN, SEEK_SET);
-            if ((res = fwrite(buf, RECLEN, 1, log_out)) != 1){
-                    perror("fwrite");
-		    break;
-	    }
-             record++;
+            if ((res = fwrite(dbgbuf, RECLEN, 1, log_out)) != 1){
+                perror("fwrite");
+                break;
+            }
+            record++;
             if (record == max_records)
                     record = 0;
         }
@@ -309,11 +437,67 @@ int main(int argc, char *argv[])
         parser_init();
 
         while ((res = recvmsg(sock_fd, &msg, 0)) > 0)  {
-            buf = (unsigned char *)NLMSG_DATA(nlh);
-            dbglog_parse_debug_logs(&buf[12], get_le32(&buf[4]), get_le32(&buf[8]));
+            if (res >= sizeof(struct dbglog_slot)) {
+                dbgbuf = (unsigned char *)NLMSG_DATA(nlh);
+            } else {
+                fprintf(stderr, "Incorrect msg Length 0x%x \n", res);
+                continue;
+            }
+            slot = (struct dbglog_slot *)dbgbuf;
+            length = get_le32((unsigned char *)&slot->length);
+            dropped = get_le32((unsigned char *)&slot->dropped);
+            dbglog_parse_debug_logs(slot->payload, length, dropped);
         }
         close(sock_fd);
+        free(nlh);
     }
 
+    if (optionflag & QXDM_FLAG) {
+
+        parser_init();
+
+        while ((res = recvmsg(sock_fd, &msg, 0)) > 0)  {
+
+            if (res >= sizeof(struct dbglog_slot)) {
+                eventbuf = (unsigned char *)NLMSG_DATA(nlh);
+            } else {
+                fprintf(stderr, "Incorrect msg Length 0x%x \n", res);
+                return -1;
+            }
+
+            dbgbuf = eventbuf;
+
+            diag_type = *(tANI_U16*)eventbuf;
+            eventbuf += sizeof(tANI_U16);
+
+            length = *(tANI_U16*)eventbuf;
+            eventbuf += sizeof(tANI_U16);
+
+            if (diag_type == DIAG_TYPE_FW_EVENT) {
+                target_time = *(tANI_U32*)eventbuf;
+                eventbuf += sizeof(tANI_U32);
+
+                event_id = *(tANI_U32*)eventbuf;
+                eventbuf += sizeof(tANI_U32);
+
+                if (length)
+                    event_report_payload(event_id, length, eventbuf);
+                else
+                    event_report(event_id);
+            } else if (diag_type == DIAG_TYPE_FW_LOG) {
+                /* Do nothing for now */
+            } else {
+                slot =(struct dbglog_slot *)dbgbuf;
+                length = get_le32((unsigned char *)&slot->length);
+                dropped = get_le32((unsigned char *)&slot->dropped);
+                dbglog_parse_debug_logs(slot->payload, length, dropped);
+            }
+        }
+
+        /* Release the handle to Diag*/
+        Diag_LSM_DeInit();
+        close(sock_fd);
+        free(nlh);
+    }
     return 0;
 }

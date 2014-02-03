@@ -39,6 +39,7 @@
 
 #include <linux/pm.h>
 #include <linux/wait.h>
+#include <linux/cpu.h>
 #include <wlan_hdd_includes.h>
 #include <wlan_qct_driver.h>
 #ifdef WLAN_OPEN_SOURCE
@@ -1548,21 +1549,29 @@ VOS_STATUS hdd_wlan_shutdown(void)
    set_bit(MC_SHUTDOWN_EVENT_MASK, &vosSchedContext->mcEventFlag);
    set_bit(MC_POST_EVENT_MASK, &vosSchedContext->mcEventFlag);
    wake_up_interruptible(&vosSchedContext->mcWaitQueue);
-   wait_for_completion_interruptible(&vosSchedContext->McShutdown);
+   wait_for_completion(&vosSchedContext->McShutdown);
 #ifdef QCA_WIFI_ISOC
    /* Wait for TX to exit */
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down TX thread",__func__);
    set_bit(TX_SHUTDOWN_EVENT_MASK, &vosSchedContext->txEventFlag);
    set_bit(TX_POST_EVENT_MASK, &vosSchedContext->txEventFlag);
    wake_up_interruptible(&vosSchedContext->txWaitQueue);
-   wait_for_completion_interruptible(&vosSchedContext->TxShutdown);
+   wait_for_completion(&vosSchedContext->TxShutdown);
 
    /* Wait for RX to exit */
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down RX thread",__func__);
    set_bit(RX_SHUTDOWN_EVENT_MASK, &vosSchedContext->rxEventFlag);
    set_bit(RX_POST_EVENT_MASK, &vosSchedContext->rxEventFlag);
    wake_up_interruptible(&vosSchedContext->rxWaitQueue);
-   wait_for_completion_interruptible(&vosSchedContext->RxShutdown);
+   wait_for_completion(&vosSchedContext->RxShutdown);
+#endif
+
+#ifdef QCA_CONFIG_SMP
+   set_bit(RX_SHUTDOWN_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
+   set_bit(RX_POST_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
+   wake_up_interruptible(&vosSchedContext->tlshimRxWaitQueue);
+   wait_for_completion_interruptible(&vosSchedContext->TlshimRxShutdown);
+   vos_drop_rxpkt_by_staid(vosSchedContext, WLAN_MAX_STA_COUNT);
 #endif
 
 #ifdef WLAN_BTAMP_FEATURE
@@ -1621,6 +1630,11 @@ VOS_STATUS hdd_wlan_shutdown(void)
 
    /* Deinit all the TX and MC queues */
    vos_sched_deinit_mqs(vosSchedContext);
+#ifdef QCA_CONFIG_SMP
+   vosSchedContext->TlshimRxThread = NULL;
+   vos_free_tlshim_pkt_freeq(vosSchedContext);
+   unregister_hotcpu_notifier(&vosSchedContext->cpuHotPlugNotifier);
+#endif
    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Doing VOS Shutdown",__func__);
 
    /* shutdown VOSS */

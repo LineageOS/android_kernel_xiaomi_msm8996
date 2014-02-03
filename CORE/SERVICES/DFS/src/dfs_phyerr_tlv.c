@@ -610,9 +610,10 @@ dfs_process_phyerr_bb_tlv(struct ath_dfs *dfs, void *buf, u_int16_t datalen,
     * Try parsing the TLV set.
     */
    if (! tlv_parse_frame(dfs, &rs, &rsfr, buf, datalen, rssi)){
-                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "%s[%d]: !tlv_parse_frame FAILED ",__func__,__LINE__);
+      VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "%s[%d]:DFS tlv parse frame FAILED",
+      __func__,__LINE__);
       return (0);
-        }
+   }
    /* For debugging, print what we have parsed */
    radar_summary_print(dfs, &rs);
 

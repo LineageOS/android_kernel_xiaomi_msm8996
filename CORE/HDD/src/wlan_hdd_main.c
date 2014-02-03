@@ -10685,6 +10685,8 @@ void hdd_ch_avoid_cb
    v_U16_t             end_channel;
    v_CONTEXT_t         vos_context;
    static int          restart_sap_in_progress = 0;
+   tHddAvoidFreqList   hdd_avoid_freq_list;
+   tANI_U32            i;
 
    /* Basic sanity */
    if (!hdd_context || !indi_param)
@@ -10702,6 +10704,19 @@ void hdd_ch_avoid_cb
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
              "%s : band count %d",
              __func__, ch_avoid_indi->avoid_range_count);
+
+   /* generate vendor specific event */
+   vos_mem_zero((void *)&hdd_avoid_freq_list, sizeof(tHddAvoidFreqList));
+   for (i = 0; i < ch_avoid_indi->avoid_range_count; i++)
+   {
+      hdd_avoid_freq_list.avoidFreqRange[i].startFreq =
+            ch_avoid_indi->avoid_freq_range[i].start_freq;
+      hdd_avoid_freq_list.avoidFreqRange[i].endFreq =
+            ch_avoid_indi->avoid_freq_range[i].end_freq;
+   }
+   hdd_avoid_freq_list.avoidFreqRangeCount = ch_avoid_indi->avoid_range_count;
+
+   wlan_hdd_send_avoid_freq_event(hdd_ctxt, &hdd_avoid_freq_list);
 
    if (0 == ch_avoid_indi->avoid_range_count) {
        hdd_ctxt->unsafe_channel_count = 0;
