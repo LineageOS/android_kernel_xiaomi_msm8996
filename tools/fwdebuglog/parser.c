@@ -40,6 +40,10 @@
 #include "dbglog.h"
 #include "dbglog_id.h"
 #include "dbglog_host.h"
+#include "msg.h"
+#include "msgcfg.h"
+#include "diag_lsm.h"
+#include "log.h"
 
 #include "a_debug.h"
 #include "ol_defines.h"
@@ -54,7 +58,10 @@
 #define printf(...) __android_log_print(ANDROID_LOG_INFO, FWDEBUG_LOG_NAME, __VA_ARGS__);
 #endif
 
+#define qxdm_log(buf) MSG_SPRINTF_1(MSG_SSID_WLAN, MSG_LEGACY_HIGH, "%s", buf);
+
 unsigned char buf[RECLEN];
+extern int optionflag;
 
 #define MAX_DBG_MSGS 256
 
@@ -1092,26 +1099,36 @@ A_BOOL
 dbglog_default_print_handler(A_UINT32 mod_id, A_UINT16 vap_id, A_UINT32 dbg_id,
                              A_UINT32 timestamp, A_UINT16 numargs, A_UINT32 *args)
 {
-    int i;
+    int i, j;
+    char tempbuf[RECLEN];
 
     if (vap_id < DBGLOG_MAX_VDEVID) {
-        printf(DBGLOG_PRINT_PREFIX "[%u] vap-%u %s ( ", timestamp, vap_id, dbglog_get_msg(mod_id, dbg_id));
+        j = snprintf(tempbuf, sizeof(tempbuf), DBGLOG_PRINT_PREFIX
+                     "[%u] vap-%u %s ( ", timestamp, vap_id,
+                     dbglog_get_msg(mod_id, dbg_id));
     } else {
-        printf(DBGLOG_PRINT_PREFIX "[%u] %s ( ", timestamp, dbglog_get_msg(mod_id, dbg_id));
+        j = snprintf(tempbuf, sizeof(tempbuf), DBGLOG_PRINT_PREFIX
+                     "[%u] %s ( ", timestamp,
+                     dbglog_get_msg(mod_id, dbg_id));
     }
 
     for (i = 0; i < numargs; i++) {
 #if USE_NUMERIC
-        printf("%u", args[i]);
+        j += snprintf(tempbuf+j, sizeof(tempbuf)-j, "%u", args[i]);
 #else
-        printf("%#x", args[i]);
+        j += snprintf(tempbuf+j, sizeof(tempbuf)-j, "%#x,", args[i]);
 #endif
         if ((i + 1) < numargs) {
-            printf(", ");
+            j += snprintf(tempbuf+j, sizeof(tempbuf)-j, ",");
         }
     }
-    printf(" )\n");
+    snprintf(tempbuf+j, sizeof(tempbuf)-j, ")\n");
 
+    if (optionflag & QXDM_FLAG) {
+        qxdm_log(tempbuf);
+    } else {
+        printf("%s", tempbuf);
+    }
     return TRUE;
 }
 

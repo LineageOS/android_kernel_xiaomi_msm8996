@@ -148,6 +148,9 @@
 #define MKK       0x40
 #define ETSI      0x30
 
+/* Maximum Buffer length allowed for DFS phyerrors */
+#define DFS_MAX_BUF_LENGHT 4096
+
 #define WMI_DEFAULT_NOISE_FLOOR_DBM (-96)
 
 #define WMI_MCC_MIN_CHANNEL_QUOTA             20
@@ -1084,7 +1087,7 @@ static void wma_update_vdev_stats(tp_wma_handle wma,
 					 pGetRssiReq->pDevContext);
 		}
 
-		vos_mem_free(pGetRssiReq);
+		adf_os_mem_free(pGetRssiReq);
 		wma->pGetRssiReq = NULL;
 	}
 }
@@ -2008,6 +2011,14 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
                   __func__, sizeof(*pe_hdr), datalen);
         return 0;
     }
+    if (pe_hdr->buf_len > DFS_MAX_BUF_LENGHT)
+    {
+        WMA_LOGE("%s: Received Invalid Phyerror event buffer length = %d"
+                 "Maximum allowed buf length = %d",
+                  __func__, pe_hdr->buf_len, DFS_MAX_BUF_LENGHT);
+
+        return 0;
+    }
 
 	 /*
      * Reconstruct the 64 bit event TSF.  This isn't from the MAC, it's
@@ -2615,7 +2626,7 @@ void wma_vdev_detach_callback(void *ctx)
 			 __func__, param->sessionId);
 		vos_timer_stop(&req_msg->event_timeout);
 		vos_timer_destroy(&req_msg->event_timeout);
-		adf_os_mem_free(req_msg);
+		vos_mem_free(req_msg);
 	}
 	if(iface->addBssStaContext)
                 adf_os_mem_free(iface->addBssStaContext);
@@ -16496,11 +16507,18 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	tANI_U8         *pFrame = NULL;
 	void            *pPacket = NULL;
 	u_int16_t	newFrmLen = 0;
-	struct wma_txrx_node *iface = &wma_handle->interfaces[vdev_id];
-	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
-			wma_handle->vos_context);
+	struct wma_txrx_node *iface;
+	tpAniSirGlobal pMac;
 #endif /* WLAN_FEATURE_11W */
 
+        if (NULL == wma_handle)
+        {
+            WMA_LOGE("wma_handle is NULL");
+            return VOS_STATUS_E_FAILURE;
+        }
+        iface = &wma_handle->interfaces[vdev_id];
+        pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
+                wma_handle->vos_context);
 	/* Get the vdev handle from vdev id */
 	txrx_vdev = wma_handle->interfaces[vdev_id].handle;
 
@@ -16514,12 +16532,10 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-#ifdef WLAN_FEATURE_11W
 	if(!pMac) {
 		WMA_LOGE("pMac Handle is NULL");
 		return VOS_STATUS_E_FAILURE;
 	}
-#endif /* WLAN_FEATURE_11W */
 	/*
 	 * Currently only support to
 	 * send 80211 Mgmt and 80211 Data are added.
@@ -16708,6 +16724,14 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
                 WMA_LOGI("%s: Preauth frame on channel %d", __func__, chanfreq);
         } else {
                 chanfreq = 0;
+        }
+        if (pMac->fEnableDebugLog & 0x1) {
+          if ((pFc->type == SIR_MAC_MGMT_FRAME) &&
+              (pFc->subType != SIR_MAC_MGMT_PROBE_REQ) &&
+              (pFc->subType != SIR_MAC_MGMT_PROBE_RSP)) {
+              WMA_LOGE("TX MGMT - Type %hu, SubType %hu",
+              pFc->type, pFc->subType);
+          }
         }
 	/* Hand over the Tx Mgmt frame to TxRx */
 	status = wdi_in_mgmt_send(txrx_vdev, tx_frame, tx_frm_index, use_6mbps, chanfreq);

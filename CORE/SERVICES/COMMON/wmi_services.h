@@ -95,6 +95,7 @@ typedef  enum  {
     WMI_SERVICE_RMC,                  /* reliable multicast support */
     WMI_SERVICE_MHF_OFFLOAD,     /* multi-hop forwarding offload */
     WMI_SERVICE_COEX_SAR,            /* target support SAR tx limit from WMI_PDEV_PARAM_TXPOWER_LIMITxG */
+    WMI_SERVICE_BCN_TXRATE_OVERRIDE,  /* Will support the bcn/prb rsp rate override */
     WMI_MAX_SERVICE=64                /* max service */
 } WMI_SERVICE;
 

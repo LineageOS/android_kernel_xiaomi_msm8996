@@ -360,6 +360,12 @@ __adf_nbuf_get_tid(struct sk_buff *skb)
     return skb->priority;
 }
 
+void
+__adf_nbuf_set_tid(struct sk_buff *skb, a_uint8_t tid)
+{
+        skb->priority = tid;
+}
+
 a_uint8_t
 __adf_nbuf_get_exemption_type(struct sk_buff *skb)
 {
@@ -388,5 +394,6 @@ EXPORT_SYMBOL(__adf_nbuf_set_rx_cksum);
 EXPORT_SYMBOL(__adf_nbuf_get_tx_cksum);
 EXPORT_SYMBOL(__adf_nbuf_get_vlan_info);
 EXPORT_SYMBOL(__adf_nbuf_get_tid);
+EXPORT_SYMBOL(__adf_nbuf_set_tid);
 EXPORT_SYMBOL(__adf_nbuf_get_exemption_type);
 EXPORT_SYMBOL(__adf_nbuf_dmamap_set_cb);

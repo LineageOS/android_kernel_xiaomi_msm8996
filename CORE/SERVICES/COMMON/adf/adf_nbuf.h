@@ -993,6 +993,19 @@ adf_nbuf_get_tid(adf_nbuf_t buf)
 }
 
 /**
+ * @brief This function sets the TID value in nbuf
+ *
+ * @param[in] buf   buffer
+ *
+ * @param[in] tid  TID value
+ */
+static inline void
+adf_nbuf_set_tid(adf_nbuf_t buf, a_uint8_t tid)
+{
+    __adf_nbuf_set_tid(buf, tid);
+}
+
+/**
  * @brief This function extracts the exemption type from nbuf 
  * 
  * @param[in] buf   buffer

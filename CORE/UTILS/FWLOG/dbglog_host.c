@@ -1377,6 +1377,7 @@ dbglog_debugfs_raw_data(wmi_unified_t wmi_handle, const u_int8_t *buf, A_UINT32 
         return -ENOMEM;
 
     slot = (struct dbglog_slot *) skb_put(skb, slot_len);
+    slot->diag_type = (A_UINT32)DIAG_TYPE_FW_DEBUG_MSG;
     slot->timestamp = cpu_to_le32(jiffies);
     slot->length = cpu_to_le32(length);
     slot->dropped = cpu_to_le32(dropped);
@@ -1404,8 +1405,45 @@ dbglog_debugfs_raw_data(wmi_unified_t wmi_handle, const u_int8_t *buf, A_UINT32 
 }
 #endif /* WLAN_OPEN_SOURCE */
 
+/*
+ * Package the data from the fw diag WMI event handler.
+ * Pass this data to cnss-diag service
+ */
 int
-dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer, A_UINT32 len, A_UINT32 dropped)
+send_fw_diag_nl_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
+                           A_UINT32 len, A_UINT32 event_type)
+{
+    struct sk_buff *skb_out;
+    struct nlmsghdr *nlh;
+    int res = 0;
+
+    if (WARN_ON(len > ATH6KL_FWLOG_PAYLOAD_SIZE))
+        return -ENODEV;
+
+
+    skb_out = nlmsg_new(len, 0);
+    if (!skb_out)
+    {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Failed to allocate new skb\n"));
+        return -1;
+    }
+    nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, len, 0);
+    memcpy(nlmsg_data(nlh), buffer, len);
+    NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+
+    res = nlmsg_unicast(nl_sk, skb_out, g_pid);
+    if (res < 0)
+    {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("nlmsg_unicast failed 0x%x \n", res));
+        return res;
+    }
+    return res;
+}
+
+
+int
+dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
+                           A_UINT32 len, A_UINT32 dropped)
 {
     struct sk_buff *skb_out;
     struct nlmsghdr *nlh;
@@ -1427,17 +1465,88 @@ dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer, A_
 
     nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, slot_len, 0);
     slot = (struct dbglog_slot *) nlmsg_data(nlh);
+    slot->diag_type = (A_UINT32)DIAG_TYPE_FW_DEBUG_MSG;
     slot->timestamp = cpu_to_le32(jiffies);
     slot->length = cpu_to_le32(len);
     slot->dropped = cpu_to_le32(dropped);
     memcpy(slot->payload, buffer, len);
     NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
 
-    nlmsg_unicast(nl_sk,
-		        skb_out,
-			g_pid);
+    res = nlmsg_unicast(nl_sk, skb_out, g_pid);
+    if (res < 0)
+    {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("nlmsg_unicast failed 0x%x \n", res));
+        return res;
+    }
     return res;
 }
+
+/*
+ * WMI diag data event handler, this function invoked as a CB
+ * when there DIAG_DATA to be forwarded from the FW.
+ */
+
+int
+fw_diag_data_event_handler(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
+{
+
+    tp_wma_handle wma = (tp_wma_handle)scn;
+    struct wlan_diag_data *diag_data;
+    WMI_DIAG_DATA_CONTAINER_EVENTID_param_tlvs *param_buf;
+    wmi_diag_data_container_event_fixed_param *fixed_param;
+    u_int8_t *datap;
+    u_int32_t num_data=0; /* Total events */
+    u_int32_t diag_data_len=0; /* each fw diag payload */
+    u_int32_t diag_type=0;
+    u_int32_t i=0;
+    u_int32_t nl_data_len=0; /* diag hdr + payload */
+
+    param_buf = (WMI_DIAG_DATA_CONTAINER_EVENTID_param_tlvs *) data;
+    if (!param_buf) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Got NULL point message from FW\n"));
+        return -1;
+    }
+
+    if (!wma) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("NULL Pointer assigned\n"));
+        return -1;
+    }
+
+    fixed_param = param_buf->fixed_param;
+    num_data = param_buf->num_bufp;
+
+    datap = (u_int8_t *)param_buf->bufp;
+
+    /* If cnss-diag service started triggered during the init of services */
+    if (appstarted) {
+        for (i = 0; i < num_data; i++) {
+            diag_data = (struct wlan_diag_data *)datap;
+            diag_type = WLAN_DIAG_0_TYPE_GET(diag_data->word0);
+            diag_data_len = WLAN_DIAG_0_LEN_GET(diag_data->word0);
+
+           /* Length of diag struct and len of payload */
+            nl_data_len = sizeof(struct wlan_diag_data) + diag_data_len;
+#if 0
+            print_hex_dump_bytes("payload: ", DUMP_PREFIX_ADDRESS,
+                                 diag_data->payload, diag_data_len);
+#endif
+            switch (diag_type) {
+                case DIAG_TYPE_FW_EVENT:
+                return send_fw_diag_nl_data((wmi_unified_t)wma->wmi_handle,
+                                           datap, nl_data_len, diag_type);
+                break;
+                case DIAG_TYPE_FW_LOG:
+                return send_fw_diag_nl_data((wmi_unified_t)wma->wmi_handle,
+                                            datap, nl_data_len, diag_type);
+                break;
+            }
+            /* Move to the next event and send to cnss-diag */
+            datap += nl_data_len;
+        }
+    }
+    return 0;
+}
+
 
 int
 dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
@@ -1456,11 +1565,15 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
     u_int8_t *datap;
     u_int32_t len;
 
+    if (!wma) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("NULL Pointer assigned\n"));
+        return -1;
+    }
     /*when fw asser occurs,host can't use TLV format.*/
     if (wma->is_fw_assert) {
-	datap = data;
-	len = datalen;
-	wma->is_fw_assert = 0;
+        datap = data;
+        len = datalen;
+        wma->is_fw_assert = 0;
     } else {
         param_buf = (WMI_DEBUG_MESG_EVENTID_param_tlvs *) data;
         if (!param_buf) {
@@ -3016,8 +3129,16 @@ dbglog_init(wmi_unified_t wmi_handle)
     dbglog_reg_modprint(WLAN_MODULE_P2P, dbglog_p2p_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_PCIELP, dbglog_pcielp_print_handler);
 
+    /* Register handler for F3 or debug messages */
     res = wmi_unified_register_event_handler(wmi_handle, WMI_DEBUG_MESG_EVENTID,
                        dbglog_parse_debug_logs);
+    if(res != 0)
+        return res;
+
+    /* Register handler for FW diag events */
+    res = wmi_unified_register_event_handler(wmi_handle,
+                     WMI_DIAG_DATA_CONTAINER_EVENTID,
+                     fw_diag_data_event_handler);
     if(res != 0)
         return res;
 
