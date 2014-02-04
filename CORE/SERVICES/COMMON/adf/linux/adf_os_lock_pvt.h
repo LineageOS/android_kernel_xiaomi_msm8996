@@ -41,6 +41,7 @@
 typedef struct __adf_os_linux_spinlock {
 	spinlock_t spinlock;
 	unsigned int flags;
+	unsigned long _flags;
 } adf_os_linux_spinlock_t;
 
 /* define for flag */
@@ -116,6 +117,28 @@ static inline void
 __adf_os_spin_unlock(__adf_os_spinlock_t *lock)
 {
     spin_unlock(&lock->spinlock);
+}
+
+/**
+ * @brief Acquire a Spinlock (SMP) & disable Preemption (Preemptive)
+ *        Disable IRQs
+ * @param lock      (Lock object)
+ */
+static inline void
+__adf_os_spin_lock_irqsave(__adf_os_spinlock_t *lock)
+{
+    spin_lock_irqsave(&lock->spinlock, lock->_flags);
+}
+
+/**
+ * @brief Unlock the spinlock and enables the Preemption
+ *        Enable IRQ
+ * @param lock      (Lock object)
+ */
+static inline void
+__adf_os_spin_unlock_irqrestore(__adf_os_spinlock_t *lock)
+{
+    spin_unlock_irqrestore(&lock->spinlock, lock->_flags);
 }
 
 /** 

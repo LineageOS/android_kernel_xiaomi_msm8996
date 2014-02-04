@@ -3319,6 +3319,15 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 #endif
     }
 
+    if (pHddCtx->isLoadUnloadInProgress) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                      "%s: Unloading/Loading in Progress, Ignore!!!", __func__);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+            return;
+#else
+            return 0;
+#endif
+    }
 
     /* first check if this callback is in response to the driver callback */
 

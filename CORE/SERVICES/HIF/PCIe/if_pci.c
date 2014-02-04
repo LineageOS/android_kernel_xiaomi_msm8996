@@ -31,6 +31,8 @@
 #include <linux/interrupt.h>
 #include <linux/if_arp.h>
 #include "if_pci.h"
+#include "hif_msg_based.h"
+#include "hif_pci.h"
 #include "copy_engine_api.h"
 #include "bmi_msg.h" /* TARGET_TYPE_ */
 #include "regtable.h"
@@ -97,9 +99,13 @@ static irqreturn_t
 hif_pci_interrupt_handler(int irq, void *arg)
 {
     struct hif_pci_softc *sc = (struct hif_pci_softc *) arg;
+    struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
+    A_target_id_t targid = hif_state->targid;
     volatile int tmp;
 
     if (LEGACY_INTERRUPTS(sc)) {
+        A_TARGET_ACCESS_BEGIN(targid);
+
         /* Clear Legacy PCI line interrupts */
         /* IMPORTANT: INTR_CLR regiser has to be set after INTR_ENABLE is set to 0, */
         /*            otherwise interrupt can not be really cleared */
@@ -107,6 +113,13 @@ hif_pci_interrupt_handler(int irq, void *arg)
         A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_CLR_ADDRESS), PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
         /* IMPORTANT: this extra read transaction is required to flush the posted write buffer */
         tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
+
+        if (tmp == 0xdeadbeef) {
+            printk(KERN_ERR "BUG(%s): SoC returns 0xdeadbeef!!\n", __func__);
+            VOS_BUG(0);
+        }
+
+        A_TARGET_ACCESS_END(targid);
     }
     /* TBDXXX: Add support for WMAC */
 
@@ -392,6 +405,8 @@ static void
 wlan_tasklet(unsigned long data)
 {
     struct hif_pci_softc *sc = (struct hif_pci_softc *) data;
+    struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
+    A_target_id_t targid = hif_state->targid;
     volatile int tmp;
 
     if (sc->hif_init_done == FALSE) {
@@ -412,11 +427,15 @@ wlan_tasklet(unsigned long data)
     }
 irq_handled:
     if (LEGACY_INTERRUPTS(sc)) {
+        A_TARGET_ACCESS_BEGIN(targid);
+
         /* Enable Legacy PCI line interrupts */
         A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 
 		    PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL); 
         /* IMPORTANT: this extra read transaction is required to flush the posted write buffer */
         tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
+
+        A_TARGET_ACCESS_END(targid);
     }
 }
 
@@ -1371,6 +1390,8 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     struct hif_pci_softc *sc = pci_get_drvdata(pdev);
     void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
     ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos);
+    struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
+    A_target_id_t targid = hif_state->targid;
     u32 tx_drain_wait_cnt = 0;
     u32 val;
     v_VOID_t * temp_module;
@@ -1381,18 +1402,9 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     msleep(3*1000); /* 3 sec */
 #endif
 
-#if CONFIG_ATH_PCIE_MAX_PERF
-    /* Max performance path so no need to wake/poll target */
+    A_TARGET_ACCESS_BEGIN(targid);
     A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
-#else
-    /* Make sure to wake Target before accessing Target memory */
-    A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
-    while (!hif_pci_targ_is_awake(sc, sc->mem)) {
-        ;
-    }
-    A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
-    A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
-#endif
+    A_TARGET_ACCESS_END(targid);
 
     if (!txrx_pdev) {
         printk("%s: txrx_pdev is NULL\n", __func__);
@@ -1439,6 +1451,8 @@ hif_pci_resume(struct pci_dev *pdev)
 {
     struct hif_pci_softc *sc = pci_get_drvdata(pdev);
     void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+    struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
+    A_target_id_t targid = hif_state->targid;
     u32 val;
     int err;
     v_VOID_t * temp_module;
@@ -1464,18 +1478,9 @@ hif_pci_resume(struct pci_dev *pdev)
             pci_write_config_dword(pdev, 0x40, val & 0xffff00ff);
     }
 
-#if CONFIG_ATH_PCIE_MAX_PERF
-    /* Max performance patch so no need to wake/poll target */
+    A_TARGET_ACCESS_BEGIN(targid);
     val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
-#else
-    /* Make sure to wake Target before accessing Target memory */
-    A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
-    while (!hif_pci_targ_is_awake(sc, sc->mem)) {
-        ;
-    }
-    val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
-    A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
-#endif
+    A_TARGET_ACCESS_END(targid);
 
     /* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
     temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos_context);

@@ -2520,3 +2520,38 @@ v_VOID_t vos_flush_delayed_work(v_VOID_t *dwork)
    cancel_delayed_work_sync(dwork);
 #endif
 }
+
+/**
+ @brief vos_request_pm_qos()
+
+ This function will vote for QoS latency
+
+ @param
+   qos_val - QoS latency in us
+ @return
+   NONE
+*/
+v_VOID_t vos_request_pm_qos(v_U32_t qos_val)
+{
+#if defined (CONFIG_CNSS)
+    cnss_request_pm_qos(qos_val);
+#endif
+}
+
+/**
+ @brief vos_remove_pm_qos()
+
+ This function will remove QoS latency
+ that requested by vos_request_pm_qos().
+
+ @param
+   NONE
+@return
+   NONE
+*/
+v_VOID_t vos_remove_pm_qos(v_VOID_t)
+{
+#if defined (CONFIG_CNSS)
+    cnss_remove_pm_qos();
+#endif
+}
