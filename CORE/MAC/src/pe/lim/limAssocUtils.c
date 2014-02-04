@@ -3246,7 +3246,7 @@ limDeleteDphHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16 staId,t
     pStaDs = dphLookupHashEntry(pMac, staAddr, &aid, &psessionEntry->dph.dphHashTable);
     if (pStaDs != NULL)
     {
-         PELOGW(limLog(pMac, LOGW, FL("Deleting DPH Hash entry for STAID: %X\n "), staId);)
+         PELOGW(limLog(pMac, LOGW, FL("Deleting DPH Hash entry for STAID: %X"), staId);)
         // update the station count and perform associated actions
         // do this before deleting the dph hash entry
         limUtilCountStaDel(pMac, pStaDs, psessionEntry);

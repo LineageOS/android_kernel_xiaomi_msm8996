@@ -1467,7 +1467,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 tpPESession psessionEntry = &pMac->lim.gpSession[0];  
                 tANI_U8  i;
                 
-                limLog(pMac, LOGW, FL("Received message Noa_ATTR %x"), limMsg->type);
+                limLog(pMac, LOG1, FL("Received message Noa_ATTR %x"), limMsg->type);
                 for(i=0; i < pMac->lim.maxBssId; i++)
                 {
                     psessionEntry = &pMac->lim.gpSession[i];

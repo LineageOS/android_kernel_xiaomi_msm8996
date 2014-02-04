@@ -623,7 +623,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 #ifdef WLAN_FEATURE_11AC
     if(psessionEntry->vhtCapability)
     {
-        limLog( pMac, LOGW, FL("Populate VHT IE in Probe Response"));
+        limLog( pMac, LOG1, FL("Populate VHT IE in Probe Response"));
         PopulateDot11fVHTCaps( pMac, psessionEntry, &pFrm->VHTCaps );
         PopulateDot11fVHTOperation( pMac, &pFrm->VHTOperation );
         // we do not support multi users yet

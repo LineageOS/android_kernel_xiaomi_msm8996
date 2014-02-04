@@ -114,6 +114,9 @@ adf_os_spinlock_destroy(adf_os_spinlock_t *lock)
 
 #define adf_os_spin_lock( _lock) __adf_os_spin_lock(_lock)
 #define adf_os_spin_unlock( _lock ) __adf_os_spin_unlock(_lock)
+#define adf_os_spin_lock_irqsave( _lock) __adf_os_spin_lock_irqsave(_lock)
+#define adf_os_spin_unlock_irqrestore( _lock ) \
+	__adf_os_spin_unlock_irqrestore(_lock)
 
 /**
  * @brief locks the spinlock mutex in soft irq context
