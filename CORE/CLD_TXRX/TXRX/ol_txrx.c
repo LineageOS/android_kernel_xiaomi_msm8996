@@ -932,6 +932,9 @@ ol_txrx_vdev_detach(
     adf_os_timer_free(&vdev->ll_pause.timer);
     while (vdev->ll_pause.txq.head) {
         adf_nbuf_t next = adf_nbuf_next(vdev->ll_pause.txq.head);
+        adf_nbuf_set_next(vdev->ll_pause.txq.head, NULL);
+        adf_nbuf_unmap(pdev->osdev, vdev->ll_pause.txq.head,
+                       ADF_OS_DMA_TO_DEVICE);
         adf_nbuf_tx_free(vdev->ll_pause.txq.head, 1 /* error */);
         vdev->ll_pause.txq.head = next;
     }
