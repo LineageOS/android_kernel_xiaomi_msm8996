@@ -5154,6 +5154,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.pnoOffload = pHddCtx->cfg_ini->PnoOffload;
 #endif
 
+   /* Update maximum interfaces information */
+   smeConfig.max_intf_count = pHddCtx->max_intf_count;
+
    smeConfig.fEnableDebugLog = pHddCtx->cfg_ini->gEnableDebugLog;
    halStatus = sme_UpdateConfig( pHddCtx->hHal, &smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

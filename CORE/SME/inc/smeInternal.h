@@ -143,6 +143,8 @@ typedef struct tagSmeStruct
 #ifdef FEATURE_WLAN_CH_AVOID
     void (*pChAvoidNotificationCb) (void *hdd_context, void *indi_param);
 #endif /* FEATURE_WLAN_CH_AVOID */
+    /* Maximum interfaces allowed by the host */
+    tANI_U8 max_intf_count;
 } tSmeStruct, *tpSmeStruct;
 
 

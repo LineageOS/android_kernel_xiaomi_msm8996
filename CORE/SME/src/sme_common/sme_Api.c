@@ -1633,6 +1633,9 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
 
    pMac->fEnableDebugLog = pSmeConfigParams->fEnableDebugLog;
 
+   /* update interface configuration */
+   pMac->sme.max_intf_count = pSmeConfigParams->max_intf_count;
+
    return status;
 }
 
@@ -3946,6 +3949,7 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
 #endif
       pParam->fScanOffload = pMac->fScanOffload;
       pParam->fP2pListenOffload = pMac->fP2pListenOffload;
+      pParam->max_intf_count = pMac->sme.max_intf_count;
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 

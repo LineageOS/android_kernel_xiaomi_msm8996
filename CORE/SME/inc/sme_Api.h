@@ -130,6 +130,7 @@ typedef struct _smeConfigParams
     tANI_BOOLEAN  fP2pListenOffload;
     tANI_BOOLEAN  pnoOffload;
     tANI_U8       fEnableDebugLog;
+    tANI_U8       max_intf_count;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum
