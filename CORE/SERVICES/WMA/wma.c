@@ -3747,7 +3747,6 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq)
 		pRssiBkUp = adf_os_mem_alloc(NULL, sizeof(tAniGetRssiReq));
 		if(!pRssiBkUp) {
 			WMA_LOGE("Failed to allocate memory for tAniGetRssiReq");
-			vos_mem_free(pRssiBkUp);
 			wma_handle->pGetRssiReq = NULL;
 			return VOS_STATUS_E_FAILURE;
 		}
@@ -3761,6 +3760,8 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq)
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!buf) {
 		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		adf_os_mem_free(pRssiBkUp);
+		wma_handle->pGetRssiReq = NULL;
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -3771,7 +3772,7 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq)
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,WMI_REQUEST_STATS_CMDID)) {
 		WMA_LOGE("Failed to send host stats request to fw");
 		wmi_buf_free(buf);
-		vos_mem_free(pRssiBkUp);
+		adf_os_mem_free(pRssiBkUp);
 		wma_handle->pGetRssiReq = NULL;
 		return VOS_STATUS_E_FAILURE;
 	}
