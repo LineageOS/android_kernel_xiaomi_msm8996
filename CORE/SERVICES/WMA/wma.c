@@ -12366,7 +12366,7 @@ VOS_STATUS wma_process_tsm_stats_req(tp_wma_handle wma_handler,
     tpAniGetTsmStatsReq pStats = (tpAniGetTsmStatsReq)pTsmStatsMsg;
     tpAniGetTsmStatsRsp pTsmRspParams = NULL;
 #else
-    tTSMStats pStats = (tTSMStats)pTsmStatsMsg;
+    tpTSMStats pStats = (tpTSMStats)pTsmStatsMsg;
 #endif
     int tid = pStats->tid;
     /*
@@ -12405,7 +12405,7 @@ VOS_STATUS wma_process_tsm_stats_req(tp_wma_handle wma_handler,
     pTsmRspParams->tsmStatsReq = pStats;
     pTsmMetric = &pTsmRspParams->tsmMetrics;
 #else
-    pTsmMetric = &pStats->tsmMetrics;
+    pTsmMetric = (tpAniTrafStrmMetrics)&pStats->tsmMetrics;
 #endif
     /* populate pTsmMetric */
     pTsmMetric->UplinkPktQueueDly = queue_delay_microsec;

@@ -24,8 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-/*
- * */
+
 #if !defined( __SMERRMINTERNAL_H )
 #define __SMERRMINTERNAL_H
 
@@ -103,6 +102,7 @@ typedef struct sRrmSMEContext
 #if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
    tCsrCcxBeaconReq  ccxBcnReqInfo;
 #endif /* FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
+   tRrmMsgReqSource msgSource;
 }tRrmSMEContext, *tpRrmSMEContext; 
 
 typedef struct sRrmNeighborReq
