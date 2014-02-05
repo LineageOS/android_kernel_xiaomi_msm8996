@@ -430,6 +430,7 @@ struct wma_txrx_node {
 	tANI_U8 rate_flags;
 	tANI_U8 nss;
 	v_BOOL_t is_channel_switch;
+	u_int16_t pause_bitmap;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
