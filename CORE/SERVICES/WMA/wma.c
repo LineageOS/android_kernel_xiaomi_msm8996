@@ -3296,10 +3296,7 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 						self_sta_req->selfMacAddr,
 						self_sta_req->sessionId,
 						txrx_vdev_type);
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
-	WMA_LOGD("LL TX Pause Mutex init");
-	adf_os_spinlock_init(&txrx_vdev_handle->ll_pause.mutex);
-#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
+	wma_handle->interfaces[self_sta_req->sessionId].pause_bitmap = 0;
 
 	WMA_LOGA("vdev_id %hu, txrx_vdev_handle = %p", self_sta_req->sessionId,
 			txrx_vdev_handle);
@@ -15342,12 +15339,12 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	WMI_TX_PAUSE_EVENTID_param_tlvs *param_buf;
 	wmi_tx_pause_event_fixed_param  *wmi_event;
-	ol_txrx_vdev_handle txrx_vdev;
 	u_int8_t vdev_id;
 	A_UINT32 vdev_map;
 
 	param_buf = (WMI_TX_PAUSE_EVENTID_param_tlvs *) event;
-	if (!param_buf) {
+	if (!param_buf)
+	{
 		WMA_LOGE("Invalid roam event buffer");
 		return -EINVAL;
 	}
@@ -15361,35 +15358,47 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 	{
 		if (!(vdev_map & 0x1))
 		{
-			vdev_map >>= 1;
+			/* No Vdev */
 		}
 		else
 		{
-			WMA_LOGI("Found vdev %d", vdev_id);
-			break;
-		}
-	}
+			if (!wma->interfaces[vdev_id].handle)
+			{
+				WMA_LOGE("%s: invalid vdev ID %d", __func__, vdev_id);
+				/* Test Next VDEV */
+				vdev_map >>= 1;
+				continue;
+			}
 
-	WMA_LOGI("vdev_id %d, vdev_map 0x%x, tid_map 0x%x,"
-			" pause_type 0x%x, action 0x%x, peer_id 0x%x",
-			vdev_id, wmi_event->vdev_map, wmi_event->tid_map,
-			wmi_event->pause_type, wmi_event->action, wmi_event->peer_id);
+			/* PAUSE action, add bitmap */
+			if (ACTION_PAUSE == wmi_event->action)
+			{
+				wma->interfaces[vdev_id].pause_bitmap |= (1 << wmi_event->pause_type);
+				wdi_in_vdev_pause(wma->interfaces[vdev_id].handle);
+			}
+			/* UNPAUSE action, clean bitmap */
+			else if (ACTION_UNPAUSE == wmi_event->action)
+			{
+				wma->interfaces[vdev_id].pause_bitmap &= ~(1 << wmi_event->pause_type);
 
+				if (!wma->interfaces[vdev_id].pause_bitmap)
+				{
+					/* PAUSE BIT MAP is cleared
+					 * UNPAUSE VDEV */
+					wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
+				}
+			}
+			else
+			{
+				WMA_LOGE("Not Valid Action Type %d", wmi_event->action);
+			}
 
-	txrx_vdev = wma->interfaces[vdev_id].handle;
-	if (txrx_vdev)
-	{
-		if ((PAUSE_TYPE_CHOP == wmi_event->pause_type) &&
-			(!wmi_event->action))
-		{
-			wdi_in_vdev_pause(txrx_vdev);
+			WMA_LOGD("vdev_id %d, pause_map 0x%x, pause type %d, action %d",
+				vdev_id, wma->interfaces[vdev_id].pause_bitmap,
+				wmi_event->pause_type, wmi_event->action);
 		}
-		if ((PAUSE_TYPE_CHOP == wmi_event->pause_type) &&
-			(wmi_event->action))
-		{
-			wdi_in_vdev_unpause(txrx_vdev);
-		}
-		/* TODO, other types of pause should be added */
+		/* Test Next VDEV */
+		vdev_map >>= 1;
 	}
 
 	return 0;
