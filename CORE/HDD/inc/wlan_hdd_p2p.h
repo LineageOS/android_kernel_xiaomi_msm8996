@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #ifndef __P2P_H
 #define __P2P_H
 /**===========================================================================
@@ -38,6 +39,7 @@
 #define WAIT_REM_CHAN_READY     1000
 #define WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX 3000
 #define READY_EVENT_PROPOGATE_TIME 2
+#define ESTIMATED_ROC_DUR_REQD_FOR_ACTION_TX 50
 
 #define ACTION_FRAME_DEFAULT_WAIT 200
 
