@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 //depot/sw/qca_main/perf_pwr_offload/drivers/host/include/a_types.h#7 - integrate change 1327637 (ktext)
 //==============================================================================
 // This file contains the definitions of the basic atheros data types.

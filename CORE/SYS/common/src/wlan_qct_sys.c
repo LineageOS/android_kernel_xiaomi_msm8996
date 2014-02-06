@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /*===========================================================================
 
                W L A N   S Y S T E M   M O D U L E
@@ -32,7 +33,6 @@
 DESCRIPTION
   This file contains the system module that implements the 'exectution model'
   in the Gen6 host software.
-
 ===========================================================================*/
 
 /*===========================================================================

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /*
  *
  * Author:      Sandesh Goel
@@ -31,7 +32,7 @@
  * History:-
  * Date            Modified by    Modification Information
  * --------------------------------------------------------------------
- * 
+ *
  */
 
 #ifndef __PMM_DEBUG_H__
@@ -43,8 +44,12 @@
 #define UL_HI( field ) ( *( ( (ULONG *)(&(field)) ) + 1 ) )
 #define UL_LO( field ) ( *( ( (ULONG *)(&(field)) ) + 0 ) )
 
+#if !defined(__printf)
+#define __printf(a,b)
+#endif
 
-void pmmLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...) ;
+void __printf(3,4) pmmLog(tpAniSirGlobal pMac, tANI_U32 loglevel,
+                          const char *pString, ...) ;
 
 #endif
 

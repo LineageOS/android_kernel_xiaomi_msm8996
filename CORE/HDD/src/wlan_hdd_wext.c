@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -20,10 +20,13 @@
  */
 
 /*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
+ * Copyright (c) 2011-2014 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ *
  */
+
+
 /** ------------------------------------------------------------------------ *
     ------------------------------------------------------------------------ *
 
@@ -33,9 +36,7 @@
     \brief Airgo Linux Wireless Extensions Common Control Plane Types and
     interfaces.
 
-    $Id: wlan_hdd_wext.c,v 1.34 2007/04/14 01:49:23 jimz Exp jimz $
-
-    This file defines all of the types that are utilized by the CCP module
+    $Id: wlan_hdd_wext.c,v 1.34 2007/04/14 01:49:23 jimz Exp jimz $This file defines all of the types that are utilized by the CCP module
     of the "Portable" HDD.   This file also includes the underlying Linux
     Wireless Extensions Data types referred to by CCP.
 
@@ -5556,8 +5557,8 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             }
             else
             {
-                hddLog(LOG1, "#s: MCC is not active. Exit w/o setting latency",
-                __func__);
+                hddLog(LOG1, "%s: MCC is not active. Exit w/o setting latency",
+                       __func__);
             }
             break;
         }
@@ -5657,7 +5658,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             }
             else
             {
-                hddLog(LOG1, "#s: MCC is not active. Exit w/o setting latency",
+                hddLog(LOG1, "%s: MCC is not active. Exit w/o setting latency",
                         __func__);
             }
             break;

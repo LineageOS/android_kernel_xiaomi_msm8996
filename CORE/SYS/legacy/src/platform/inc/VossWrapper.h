@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #ifndef __VOSS_WRAPPER_H
 #define __VOSS_WRAPPER_H
 
@@ -36,7 +37,6 @@ extern "C" {
 
   @brief This header file contains the various structure definitions and
   function prototypes for the RTOS abstraction layer, implemented for VOSS
-
 ===========================================================================*/
 
 /*===========================================================================

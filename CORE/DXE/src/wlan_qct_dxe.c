@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /**=========================================================================
   
   @file  wlan_qct_dxe.c
@@ -3460,7 +3461,7 @@ static wpt_status dxeTXCompFrame
       return eWLAN_PAL_STATUS_SUCCESS;
    }
 
-   /*  */
+
    while(1)
    {
 //      HDXE_ASSERT(WLAN_PAL_IS_STATUS_SUCCESS(WLAN_RivaValidateDesc(currentDesc)));

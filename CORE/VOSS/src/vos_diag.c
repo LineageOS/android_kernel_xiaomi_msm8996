@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -25,12 +25,13 @@
  * to the Linux Foundation.
  */
 
+
 /*============================================================================
   FILE:         vos_diag.c
 
   OVERVIEW:     This source file contains definitions for vOS diag APIs
 
-  DEPENDENCIES: 
+  DEPENDENCIES:
 ============================================================================*/
 
 #include "vos_types.h"

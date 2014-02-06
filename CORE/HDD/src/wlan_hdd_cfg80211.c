@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -20,10 +20,13 @@
  */
 
 /*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ *
  */
+
+
 /**========================================================================
 
   \file  wlan_hdd_cfg80211.c
@@ -4862,6 +4865,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
     struct cfg80211_scan_request *req = NULL;
+    bool aborted = false;
     int ret = 0;
 
     ENTER();
@@ -4956,7 +4960,12 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
      * cfg80211_scan_done informing NL80211 about completion
      * of scanning
      */
-    cfg80211_scan_done(req, false);
+    if (status == eCSR_SCAN_ABORT || status == eCSR_SCAN_FAILURE)
+    {
+         aborted = true;
+    }
+    cfg80211_scan_done(req, aborted);
+
     complete(&pScanInfo->abortscan_event_var);
 
 allow_suspend:
@@ -6544,10 +6553,22 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
                __func__, (int)status );
         return -EINVAL;
     }
-    wait_for_completion_interruptible_timeout(
+    status = wait_for_completion_interruptible_timeout(
                 &pAdapter->disconnect_comp_var,
                 msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-    return status;
+    if (!status)
+    {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+              "%s: Failed to disconnect, timed out", __func__);
+       return -ETIMEDOUT;
+    } else if (status == -ERESTARTSYS)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: Failed to disconnect, wait interrupted", __func__);
+        return status;
+    }
+
+    return 0;
 }
 
 

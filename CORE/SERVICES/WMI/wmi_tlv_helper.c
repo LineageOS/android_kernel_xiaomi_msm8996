@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /* wmi_tlv_platform.c file will be different for different components like Pronto firmware, Pronto windows host driver,
      Pronto LA host driver because their memory management functions are different */
 #include "wmi_tlv_platform.c"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /**
 * @file hif_dxe.c
 * @brief Provide functions for DXE HIF module for RIVA FW.
@@ -208,7 +209,7 @@ A_STATUS dxe_tx_pull_frames(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBType *ch
         return A_OK;
     }
 
-    /*  */
+
     while (1)
     {
         //      HDXE_ASSERT(WLAN_PAL_IS_STATUS_SUCCESS(WLAN_RivaValidateDesc(currentDesc)));

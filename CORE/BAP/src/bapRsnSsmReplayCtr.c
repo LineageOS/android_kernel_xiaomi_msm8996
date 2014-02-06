@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -23,6 +23,11 @@
  * This file was originally distributed by Qualcomm Atheros, Inc.
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
+ */
+
+/*
+ * File: $Header: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/ssm/lib/aniSsmReplayCtr.c#2 $
+ *
  */
 /*
  * Contains definitions of various utilities for EAPoL frame

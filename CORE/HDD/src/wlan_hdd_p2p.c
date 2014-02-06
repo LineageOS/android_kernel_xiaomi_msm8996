@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /**========================================================================
 
   \file  wlan_hdd_p2p.c
@@ -107,23 +108,23 @@ static bool hdd_p2p_is_action_type_rsp( const u8 *buf )
 
     if ( buf[WLAN_HDD_PUBLIC_ACTION_FRAME_CATEGORY_OFFSET] !=
                WLAN_HDD_PUBLIC_ACTION_FRAME ) {
-        return VOS_FALSE;
+        return FALSE;
     }
 
     if ( buf[WLAN_HDD_PUBLIC_ACTION_FRAME_ACTION_OFFSET] !=
                WLAN_HDD_VENDOR_SPECIFIC_ACTION ) {
-        return VOS_FALSE;
+        return FALSE;
     }
 
     ouiPtr = &buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OUI_OFFSET];
 
     if ( WPA_GET_BE24(ouiPtr) != WLAN_HDD_WFA_OUI ) {
-        return VOS_FALSE;
+        return FALSE;
     }
 
     if ( buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OUI_TYPE_OFFSET] !=
                WLAN_HDD_WFA_P2P_OUI_TYPE ) {
-        return VOS_FALSE;
+        return FALSE;
     }
 
     actionFrmType = buf[WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET];
@@ -131,9 +132,9 @@ static bool hdd_p2p_is_action_type_rsp( const u8 *buf )
         actionFrmType != WLAN_HDD_GO_NEG_REQ &&
         actionFrmType != WLAN_HDD_DEV_DIS_REQ &&
         actionFrmType != WLAN_HDD_PROV_DIS_REQ )
-        return VOS_TRUE;
+        return TRUE;
     else
-        return VOS_FALSE;
+        return FALSE;
 }
 
 eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
@@ -763,10 +764,10 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             // In case of P2P Client mode if we are already
             // on the same channel then send the frame directly only if
             // there is enough remain on channel time left.
-            // If remain on channel time is about to expire in next 50ms
-            // then dont send frame without a fresh remain on channel as this may
-            // cause a race condition with lim remain_on_channel_timer which might
-            // expire by the time the action frame reaches lim layer.
+            // If remain on channel time is about to expire in next 50ms then
+            // dont send frame without a fresh remain on channel as this may
+            // cause a race condition with lim remain_on_channel_timer which
+            // might expire by the time the action frame reaches lim layer.
 
             // Check remaining time of RoC only in case of GO NEG CNF.
 
@@ -774,7 +775,8 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 
             if ((actionFrmType != WLAN_HDD_GO_NEG_CNF) ||
                 ((current_time - cfgState->remain_on_chan_ctx->p2pRemOnChanTimeStamp) >
-                      (cfgState->remain_on_chan_ctx->duration  - 50 )))
+                      (cfgState->remain_on_chan_ctx->duration
+                                     - ESTIMATED_ROC_DUR_REQD_FOR_ACTION_TX )))
             {
                 hddLog(LOG1,"action frame: Extending the RoC\n");
                 status = wlan_hdd_check_remain_on_channel(pAdapter);

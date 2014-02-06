@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -530,7 +530,7 @@ __adf_nbuf_peek_header(struct sk_buff *skb, uint8_t   **addr,
 
 /* /\* */
 /*  * adf_nbuf_queue_add() - add a skbuf to the end of the skbuf queue */
-/*  * */
+
 /*  * We use the non-locked version because */
 /*  * there's no need to use the irq safe version of spinlock. */
 /*  * However, the caller has to do synchronization by itself. */

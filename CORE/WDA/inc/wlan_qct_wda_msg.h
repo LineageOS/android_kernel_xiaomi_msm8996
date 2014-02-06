@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #ifndef WLAN_QCT_MSG_MAP_H
 #define WLAN_QCT_MSG_MAP_H
 
@@ -34,8 +35,7 @@
                 
                    
 DESCRIPTION
-  This file contains the external API exposed by the wlan adaptation layer 
-  
+  This file contains the external API exposed by the wlan adaptation layer
 ===========================================================================*/
 
 

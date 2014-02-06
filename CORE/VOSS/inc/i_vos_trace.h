@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -27,6 +27,10 @@
 
 #if !defined( __I_VOS_TRACE_H )
 #define __I_VOS_TRACE_H
+
+#if !defined(__printf)
+#define __printf(a,b)
+#endif
 
 /**=========================================================================
   
@@ -65,7 +69,8 @@
    \return  nothing
     
   --------------------------------------------------------------------------*/
-void vos_trace_msg( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, char *strFormat, ... );
+void __printf(3,4) vos_trace_msg( VOS_MODULE_ID module, VOS_TRACE_LEVEL level,
+                                  char *strFormat, ... );
 
 void vos_trace_hex_dump( VOS_MODULE_ID module, VOS_TRACE_LEVEL level,
                                 void *data, int buf_len );
@@ -93,7 +98,8 @@ void vos_trace_setValue( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, v_U8_t on 
 #endif
 
 
-void vos_snprintf(char *strBuffer, unsigned  int size, char *strFormat, ...);
+void __printf(3,4) vos_snprintf(char *strBuffer, unsigned  int size,
+                                char *strFormat, ...);
 #define VOS_SNPRINTF vos_snprintf
 
 #ifdef VOS_ENABLE_TRACING

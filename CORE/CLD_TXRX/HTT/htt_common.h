@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,13 +24,6 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-//------------------------------------------------------------------------------
-// Copyright (c) 2012-2013 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
-//==============================================================================
-// Author(s): ="Atheros"
-//==============================================================================
 
 /**
  * @file htt_common.h

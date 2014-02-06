@@ -1,7 +1,8 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) . The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -23,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 
 
 #include <osdep.h>
@@ -104,7 +106,9 @@ hif_pci_interrupt_handler(int irq, void *arg)
     volatile int tmp;
 
     if (LEGACY_INTERRUPTS(sc)) {
-        A_TARGET_ACCESS_BEGIN(targid);
+
+        if (sc->hif_init_done == TRUE)
+           A_TARGET_ACCESS_BEGIN(targid);
 
         /* Clear Legacy PCI line interrupts */
         /* IMPORTANT: INTR_CLR regiser has to be set after INTR_ENABLE is set to 0, */
@@ -118,8 +122,8 @@ hif_pci_interrupt_handler(int irq, void *arg)
             printk(KERN_ERR "BUG(%s): SoC returns 0xdeadbeef!!\n", __func__);
             VOS_BUG(0);
         }
-
-        A_TARGET_ACCESS_END(targid);
+        if (sc->hif_init_done == TRUE)
+          A_TARGET_ACCESS_END(targid);
     }
     /* TBDXXX: Add support for WMAC */
 
@@ -427,7 +431,9 @@ wlan_tasklet(unsigned long data)
     }
 irq_handled:
     if (LEGACY_INTERRUPTS(sc)) {
-        A_TARGET_ACCESS_BEGIN(targid);
+
+        if (sc->hif_init_done == TRUE)
+            A_TARGET_ACCESS_BEGIN(targid);
 
         /* Enable Legacy PCI line interrupts */
         A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 
@@ -435,7 +441,8 @@ irq_handled:
         /* IMPORTANT: this extra read transaction is required to flush the posted write buffer */
         tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
 
-        A_TARGET_ACCESS_END(targid);
+        if (sc->hif_init_done == TRUE)
+           A_TARGET_ACCESS_END(targid);
     }
 }
 

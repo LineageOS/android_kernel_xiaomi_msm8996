@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #if !defined( __I_VOS_LIST_H )
 #define __I_VOS_LIST_H
 
@@ -31,7 +32,7 @@
   
   \file  i_vos_list.h
   
-  \brief Linux-specific definitions for vOSS lists 
+  \brief Linux-specific definitions for vOSS lists
   
   ========================================================================*/
 

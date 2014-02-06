@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /** ------------------------------------------------------------------------- *
     ------------------------------------------------------------------------- *
 
@@ -33,9 +34,7 @@
     \brief This header captures types that must be shared in common with individual
             module headers before inclusion into halCommonApi.h.
 
-    $Id$
-
-   ========================================================================== */
+    $Id$========================================================================== */
 
 #ifndef HALTYPES_H
 #define HALTYPES_H
