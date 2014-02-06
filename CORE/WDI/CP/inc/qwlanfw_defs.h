@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /*===========================================================================
  *
  *  @file:     wlan_defs.h
@@ -31,6 +32,7 @@
  *  @brief:       This file defines the common typedefs
  *
  *  @author:   Gagan Jain
+ *
  *
  *=========================================================================*/
 

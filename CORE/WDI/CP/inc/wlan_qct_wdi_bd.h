@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #ifndef WLAN_QCT_WDI_BD_H
 #define WLAN_QCT_WDI_BD_H
 
@@ -36,8 +37,7 @@
                    
 DESCRIPTION
   This file contains the internal BD definition exposed by the DAL Control       
-  Path Core module to be used by the DAL Data Path Core. 
-  
+  Path Core module to be used by the DAL Data Path Core.
 ===========================================================================*/
 
 

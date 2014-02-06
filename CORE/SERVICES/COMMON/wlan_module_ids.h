@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -25,9 +25,6 @@
  * to the Linux Foundation.
  */
 
-/*
- * $ATH_LICENSE_TARGET_C$
- */
 
 #ifndef _WLAN_MODULE_IDS_H_
 #define _WLAN_MODULE_IDS_H_

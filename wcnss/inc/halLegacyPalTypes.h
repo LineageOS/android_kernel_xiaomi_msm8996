@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -35,6 +35,7 @@
  *  @brief:    Exports and types for the Platform Abstraction Layer typedefs.
  *
  *  @author:   Kumar Anand
+ *
  *
  *=========================================================================*/
 

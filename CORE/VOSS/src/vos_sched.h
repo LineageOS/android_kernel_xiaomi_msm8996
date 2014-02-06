@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,22 +24,23 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #if !defined( __VOS_SCHED_H )
 #define __VOS_SCHED_H
 
 /**=========================================================================
-  
+
   \file  vos_sched.h
-  
+
   \brief virtual Operating System Servies (vOSS)
-               
-   Definitions for some of the internal data type that is internally used 
+
+   Definitions for some of the internal data type that is internally used
    by the vOSS scheduler on Windows Mobile.
-   
+
    This file defines a vOSS message queue on Win Mobile and give some
    insights about how the scheduler implements the execution model supported
    by vOSS.
-    
+
   ========================================================================*/
 
 /*=========================================================================== 

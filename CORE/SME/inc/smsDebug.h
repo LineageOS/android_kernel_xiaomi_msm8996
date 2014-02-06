@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011,2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,13 +24,15 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
-/** ------------------------------------------------------------------------- * 
-    ------------------------------------------------------------------------- *  
-    \file smsDebug.h
+
+/** ------------------------------------------------------------------------- *
+    ------------------------------------------------------------------------- *
+
+
+    \file cssDebug.h
 
     Define debug log interface for SMS.
-
-   ========================================================================== */
+========================================================================== */
 
 #ifndef SMS_DEBUG_H__
 #define SMS_DEBUG_H__
@@ -49,3 +51,4 @@ void __printf(3,4)
 pmcLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString, ...);
 
 #endif // __SMS_DEBUG_H__
+

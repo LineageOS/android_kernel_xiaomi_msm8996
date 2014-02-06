@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /**=========================================================================
   
   @file  wlan_qct_pal_device.c
@@ -32,7 +33,6 @@
                
   This file implements the device specific HW access interface
   required by the WLAN Platform Abstraction Layer (WPAL)
-
 ========================================================================*/
 
 /*===========================================================================

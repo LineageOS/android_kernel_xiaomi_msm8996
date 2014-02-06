@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #include <adf_os_atomic.h>    /* adf_os_atomic_inc, etc. */
 #include <adf_os_lock.h>      /* adf_os_spinlock */
 #include <adf_os_time.h>      /* adf_os_ticks, etc. */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,15 +24,14 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
     \file ccmApi.h
   
     \brief Exports and types for the Common Config Module (CCM)
   
-    $Id$ 
-  
-    This file contains all the interfaces for thge Platform Abstration Layer
+    $Id$This file contains all the interfaces for thge Platform Abstration Layer
     functions.  It is intended to be included in all modules that are using 
     the PAL interfaces.
   
