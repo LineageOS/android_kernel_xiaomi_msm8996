@@ -36,15 +36,14 @@ ifeq ($(KERNEL_BUILD), 0)
 	#Flag to enable Fast Transition (11r) feature
 	CONFIG_QCOM_VOWIFI_11R := y
 
-	#Flag to enable Protected Managment Frames (11w) feature
-	ifneq ($(CONFIG_QCA_CLD_WLAN),)
-		ifeq ($(CONFIG_CNSS),y)
-		CONFIG_WLAN_FEATURE_11W := y
-		endif
-	endif
-
-	#Flag to enable LTE CoEx feature
-	CONFIG_QCOM_LTE_COEX := y
+        ifneq ($(CONFIG_QCA_CLD_WLAN),)
+                ifeq ($(CONFIG_CNSS),y)
+        #Flag to enable Protected Managment Frames (11w) feature
+                CONFIG_WLAN_FEATURE_11W := y
+        #Flag to enable LTE CoEx feature
+                CONFIG_QCOM_LTE_COEX := y
+                endif
+        endif
 
 	#Flag to enable new Linux Regulatory implementation
 	CONFIG_ENABLE_LINUX_REG := y
