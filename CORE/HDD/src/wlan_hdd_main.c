@@ -10824,9 +10824,9 @@ void hdd_ch_avoid_cb
                break;
 
           start_channel = hdd_freq_to_chn(
-                          ch_avoid_indi->avoid_freq_range[range_loop].start_freq + 10);
+                          ch_avoid_indi->avoid_freq_range[range_loop].start_freq);
           end_channel   = hdd_freq_to_chn(
-                          ch_avoid_indi->avoid_freq_range[range_loop].end_freq - 10);
+                          ch_avoid_indi->avoid_freq_range[range_loop].end_freq);
           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                     "%s : start %d : %d, end %d : %d",
                     __func__,
