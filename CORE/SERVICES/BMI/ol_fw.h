@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -68,7 +68,7 @@
 #define TOTAL_DUMP_SIZE         0x00200000
 #define PCIE_READ_LIMIT         0x00005000
 
-void ol_target_coredump(void *instance, void* memoryBlock,
+int ol_target_coredump(void *instance, void* memoryBlock,
                         u_int32_t blockLength);
 int ol_diag_read(struct ol_softc *scn, u_int8_t* buffer,
                  u_int32_t pos, size_t count);
