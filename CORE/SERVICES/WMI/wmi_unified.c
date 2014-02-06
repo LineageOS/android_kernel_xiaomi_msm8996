@@ -478,6 +478,8 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		CASE_RETURN_STRING(WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID);
 		/* OEM related cmd */
 		CASE_RETURN_STRING(WMI_OEM_REQ_CMDID);
+		/* NAN request cmd */
+		CASE_RETURN_STRING(WMI_NAN_CMDID);
 	}
 	return "Invalid WMI cmd";
 }
