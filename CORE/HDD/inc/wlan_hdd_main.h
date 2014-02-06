@@ -641,6 +641,9 @@ struct hdd_station_ctx
    /*Increment whenever ibss New peer joins and departs the network */
    int ibss_sta_generation;
 
+   /* Indication of wep/wpa-none keys installation */
+   v_BOOL_t ibss_enc_key_installed;
+
    /*Save the wep/wpa-none keys*/
    tCsrRoamSetKey ibss_enc_key;
    v_BOOL_t hdd_ReassocScenario;

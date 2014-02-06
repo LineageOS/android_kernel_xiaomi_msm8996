@@ -3781,6 +3781,13 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
     }
     if ((WLAN_HDD_IBSS == pAdapter->device_mode) && !pairwise)
     {
+        /* if a key is already installed, block all subsequent ones */
+        if (pAdapter->sessionCtx.station.ibss_enc_key_installed) {
+            hddLog(VOS_TRACE_LEVEL_INFO_MED,
+                   "%s: IBSS key installed already", __func__);
+            return 0;
+        }
+
         setKey.keyDirection = eSIR_TX_RX;
         /*Set the group key*/
         status = sme_RoamSetKey( WLAN_HDD_GET_HAL_CTX(pAdapter),
@@ -3796,6 +3803,10 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
           the PTK after peer joins the IBSS network*/
         vos_mem_copy(&pAdapter->sessionCtx.station.ibss_enc_key,
                                     &setKey, sizeof(tCsrRoamSetKey));
+
+#if defined (QCA_WIFI_2_0) && !defined (QCA_WIFI_ISOC)
+        pAdapter->sessionCtx.station.ibss_enc_key_installed = 1;
+#endif
         return status;
     }
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) ||
@@ -6704,6 +6715,7 @@ static int wlan_hdd_cfg80211_set_privacy_ibss(
 
     pWextState->wpaVersion = IW_AUTH_WPA_VERSION_DISABLED;
     vos_mem_zero(&pHddStaCtx->ibss_enc_key, sizeof(tCsrRoamSetKey));
+    pHddStaCtx->ibss_enc_key_installed = 0;
 
     if (params->ie_len && ( NULL != params->ie) )
     {

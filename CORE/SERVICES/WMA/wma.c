@@ -8700,11 +8700,11 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
         ** So cache the BSS key in the wma_handle and re-use it when the STA key is been setup for a peer
         */
         if (wlan_op_mode_ibss == txrx_vdev->opmode) {
-          WMA_LOGD("Caching IBSS Key");
-          vos_mem_copy(&wma_handle->ibsskey_info, key_info, sizeof(tSetBssKeyParams));
           key_info->status = eHAL_STATUS_SUCCESS;
           if (wma_handle->ibss_started > 0)
              goto out;
+          WMA_LOGD("Caching IBSS Key");
+          vos_mem_copy(&wma_handle->ibsskey_info, key_info, sizeof(tSetBssKeyParams));
         }
 
 	adf_os_mem_set(&key_params, 0, sizeof(key_params));

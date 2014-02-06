@@ -7701,6 +7701,8 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
               memcpy(apBssid, pAdapter->macAddressCurrent.bytes, sizeof(apBssid));
           }
           break;
+      case WLAN_HDD_IBSS:
+          return; /* skip printing station message below */
       default:
           break;
       }
