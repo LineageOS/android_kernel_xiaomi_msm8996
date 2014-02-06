@@ -595,6 +595,7 @@ dfs_process_phyerr_bb_tlv(struct ath_dfs *dfs, void *buf, u_int16_t datalen,
 {
    struct rx_radar_status rs;
         struct rx_search_fft_report rsfr;
+   static int invalid_phyerr_count = 0;
 
    OS_MEMZERO(&rs, sizeof(rs));
 
@@ -605,14 +606,25 @@ dfs_process_phyerr_bb_tlv(struct ath_dfs *dfs, void *buf, u_int16_t datalen,
     */
    rs.rssi = rssi;
    rs.raw_tsf = rs_tstamp;
-
    /*
     * Try parsing the TLV set.
     */
    if (! tlv_parse_frame(dfs, &rs, &rsfr, buf, datalen, rssi)){
-      VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "%s[%d]:DFS tlv parse frame FAILED",
-      __func__,__LINE__);
-      return (0);
+       invalid_phyerr_count++;
+       /*
+        * Print only at every 2 power times
+        * to avoid flushing of the kernel
+        * logs, since the frequency of
+        * invalid phyerrors is very high
+        * in noisy environments.
+        */
+       if ( !(invalid_phyerr_count & 0xFF) )
+       {
+           VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG,
+                     "%s[%d]:DFS-tlv parse failed invalid phyerror count = %d",
+                     __func__,__LINE__, invalid_phyerr_count);
+       }
+       return (0);
    }
    /* For debugging, print what we have parsed */
    radar_summary_print(dfs, &rs);
