@@ -386,8 +386,6 @@ static void hdd_ipa_destory_rm_resource(struct hdd_ipa_priv *hdd_ipa)
 	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
 		return;
 
-	ipa_rm_delete_dependency(IPA_RM_RESOURCE_WLAN_PROD,
-						IPA_RM_RESOURCE_A2_CONS);
 #ifdef HDD_IPA_USE_IPA_RM_TIMER
 	ipa_rm_inactivity_timer_destroy(IPA_RM_RESOURCE_WLAN_PROD);
 #endif
