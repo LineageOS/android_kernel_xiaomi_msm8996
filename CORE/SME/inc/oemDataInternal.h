@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #ifdef FEATURE_OEM_DATA_SUPPORT
 
 /** ------------------------------------------------------------------------- * 
@@ -32,9 +33,7 @@
   
     \file oemDataInternal.h
   
-    Exports and types for the Common OEM DATA REQ/RSP Module interfaces.
-  
-   ========================================================================== */
+    Exports and types for the Common OEM DATA REQ/RSP Module interfaces.========================================================================== */
 
 
 #ifndef __OEM_DATA_INTERNAL_H__

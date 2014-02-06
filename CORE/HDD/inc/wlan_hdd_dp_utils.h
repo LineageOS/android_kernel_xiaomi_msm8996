@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #if !defined( __WLAN_HDD_DP_UTILS_H )
 #define __WLAN_HDD_DP_UTILS_H
 
@@ -33,6 +34,7 @@
   \brief      Utility functions for data path module
 
   Description...
+
   ==============================================================================**/
 /* $HEADER$ */
 

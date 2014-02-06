@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /*============================================================================
   FILE:         vos_lock.c
 
@@ -32,8 +33,7 @@
                 initializing , acquiring, releasing and destroying a lock.
                 the lock are implemented using critical sections
 
-  DEPENDENCIES: 
- 
+  DEPENDENCIES:
 ============================================================================*/
 
 /*============================================================================

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #if !defined( __WLAN_QCT_OS_SYNC_H )
 #define __WLAN_QCT_OS_SYNC_H
 
@@ -33,7 +34,7 @@
   
   \brief define synchronization objects PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
                
-   Definitions for platform dependent(LA). 
+   Definitions for platform dependent(LA).
   
   ========================================================================*/
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /* OS abstraction libraries */
 #include <adf_nbuf.h>         /* adf_nbuf_t, etc. */
 #include <adf_os_atomic.h>    /* adf_os_atomic_read, etc. */
@@ -159,6 +160,7 @@ ol_tx_vdev_ll_pause_queue_send_base(struct ol_txrx_vdev_t *vdev)
          * For simplicity, just drop the frame.
          */
         if (tx_msdu) {
+            adf_nbuf_unmap(vdev->pdev->osdev, tx_msdu, ADF_OS_DMA_TO_DEVICE);
             adf_nbuf_tx_free(tx_msdu, 1 /* error */);
         }
     }
@@ -305,6 +307,7 @@ ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
                  * For simplicity, just drop the frame.
                  */
                 if (tx_msdu) {
+                    adf_nbuf_unmap(pdev->osdev, tx_msdu, ADF_OS_DMA_TO_DEVICE);
                     adf_nbuf_tx_free(tx_msdu, 1 /* error */);
                 }
             }

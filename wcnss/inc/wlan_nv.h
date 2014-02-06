@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -35,9 +35,7 @@
            Anything that needs to be publicly available should
            be in this file
 
-    $Id$
-
-   ========================================================================== */
+    $Id$========================================================================== */
 
 #if !defined( __WLAN_NV_H )
 #define __WLAN_NV_H

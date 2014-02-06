@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /*===========================================================================
 
                        W L A N _ Q C T _ W D I _ S T A . C
@@ -39,7 +40,6 @@
   DEPENDENCIES:
 
   Are listed for each API below.
-
 ===========================================================================*/
 
 /*===========================================================================

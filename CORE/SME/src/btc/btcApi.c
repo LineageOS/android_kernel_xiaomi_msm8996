@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,11 +24,14 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /******************************************************************************
 *
 * Name:  btcApi.c
 *
 * Description: Routines that make up the BTC API.
+*
+
 *
 ******************************************************************************/
 #include "wlan_qct_wda.h"

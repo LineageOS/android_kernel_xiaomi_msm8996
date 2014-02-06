@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #ifndef WLAN_QCT_WDI_CFG_H
 #define WLAN_QCT_WDI_CFG_H
 
@@ -38,8 +39,7 @@ DESCRIPTION
   setting up the config parameters in DAL.
  
   !! The values in here should be an identical match of the HAL defines
-  by the same name !! 
-  
+  by the same name !!
 ===========================================================================*/
 
 

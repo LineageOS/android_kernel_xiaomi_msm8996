@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -20,10 +20,13 @@
  */
 
 /*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ *
  */
+
+
 /*========================================================================
 
   \file  wlan_hdd_main.c
@@ -4112,7 +4115,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                       "UplinkPktQueueDlyHist[1](%d)\n"
                       "UplinkPktQueueDlyHist[2](%d)\n"
                       "UplinkPktQueueDlyHist[3](%d)\n"
-                      "UplinkPktTxDly(%lu)\n"
+                      "UplinkPktTxDly(%u)\n"
                       "UplinkPktLoss(%d)\n"
                       "UplinkPktCount(%d)\n"
                       "RoamingCount(%d)\n"
@@ -4406,7 +4409,7 @@ static VOS_STATUS hdd_parse_ccx_beacon_req(tANI_U8 *pValue,
     for (j = 0; j < pCcxBcnReq->numBcnReqIe; j++)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                   "Index(%d) Measurement Token(%lu)Channel(%lu) Scan Mode(%lu) Measurement Duration(%lu)\n",
+                   "Index(%d) Measurement Token(%u) Channel(%u) Scan Mode(%u) Measurement Duration(%u)",
                    j,
                    pCcxBcnReq->bcnReq[j].measurementToken,
                    pCcxBcnReq->bcnReq[j].channel,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,7 +24,9 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /*
+ * File:        $Header: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/include/aniSsmEapol.h#1 $
  * Contains declarations of various utilities for EAPoL frame
  * parsing and creation.
  * range.

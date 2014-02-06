@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /**=========================================================================
 
   \file  vos_api.c
@@ -31,7 +32,7 @@
   \brief Stub file for all virtual Operating System Services (vOSS) APIs
 
   ========================================================================*/
- /*=========================================================================== 
+ /*===========================================================================
 
                        EDIT HISTORY FOR FILE 
    

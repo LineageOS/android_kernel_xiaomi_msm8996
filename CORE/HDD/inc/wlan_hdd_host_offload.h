@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 #ifndef __WLAN_HDD_HOST_OFFLOAD_H__
 #define __WLAN_HDD_HOST_OFFLOAD_H__
 
@@ -33,7 +34,7 @@
 
   \brief Android WLAN HDD Host Offload API
 
-  ==========================================================================*/
+==========================================================================*/
 
 /* Offload types. */
 #define WLAN_IPV4_ARP_REPLY_OFFLOAD           0

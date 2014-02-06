@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,16 +24,18 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /**===========================================================================
-  
+
   \file  wlan_hdd_tx_rx.c
-  
+
   \brief Linux HDD Tx/RX APIs
+
   ==========================================================================*/
-  
-/*--------------------------------------------------------------------------- 
+
+/*---------------------------------------------------------------------------
   Include files
-  -------------------------------------------------------------------------*/ 
+  -------------------------------------------------------------------------*/
 #include <wlan_hdd_tx_rx.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #include <wlan_hdd_dp_utils.h>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,13 +24,12 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
     \file csrLinkList.h
   
-    Exports and types for the Common link list interfaces.
-  
-   ========================================================================== */
+    Exports and types for the Common link list interfaces.========================================================================== */
 #ifndef CSR_LINK_LIST_H__
 #define CSR_LINK_LIST_H__
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
 /*
  *
  * This file schDebug.h contains some debug macros.
@@ -42,26 +43,11 @@
 #include "utilsApi.h"
 #include "sirDebug.h"
 
-
-
-void schLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...) ;
-
-// -------------------------------------------------------------
-/**
- *
- */
-
-#ifdef SCH_DEBUG_STATS
-inline void schClass::schTrace(tSchTrace event, tANI_U32 arg)
-{
-    if (gSchFreezeDump) return;
-    if ((tANI_U32)event >= traceLevel) return;
-
-    traceBuf[curTrace].event = event;
-    traceBuf[curTrace].arg = arg;
-    traceBuf[curTrace].timestamp = halGetTsfLow(pMac);
-    curTrace = (curTrace+1)%SCH_TRACE_BUF_SIZE;
-}
+#if !defined(__printf)
+#define __printf(a,b)
 #endif
+
+void __printf(3,4) schLog(tpAniSirGlobal pMac, tANI_U32 loglevel,
+                          const char *pString, ...);
 
 #endif

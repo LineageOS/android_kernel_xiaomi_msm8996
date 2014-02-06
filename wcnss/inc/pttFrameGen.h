@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -33,9 +33,7 @@
 
     \brief Definitions for PTT frame generation
 
-    $Id$
-
-   ========================================================================== */
+    $Id$========================================================================== */
 
 #ifndef PTTFRAMEGEN_H
 #define PTTFRAMEGEN_H

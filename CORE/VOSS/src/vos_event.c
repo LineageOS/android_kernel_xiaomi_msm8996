@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -25,6 +25,7 @@
  * to the Linux Foundation.
  */
 
+
 /*============================================================================
   FILE:         vos_event.c
 
@@ -34,7 +35,6 @@
                 waiting on an occurance of an event among multiple events.
 
   DEPENDENCIES:
-
 ============================================================================*/
 
 /*============================================================================
