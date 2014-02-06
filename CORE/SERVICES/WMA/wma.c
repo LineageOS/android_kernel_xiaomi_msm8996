@@ -12688,11 +12688,18 @@ static int wma_process_receive_filter_clear_filter_req(tp_wma_handle wma_handle,
 
 static void wma_data_tx_ack_work_handler(struct work_struct *ack_work)
 {
-	struct wma_tx_ack_work_ctx *work = container_of(ack_work,
-		struct wma_tx_ack_work_ctx, ack_cmp_work);
-	tp_wma_handle wma_handle = work->wma_handle;
-	pWDAAckFnTxComp ack_cb =
-		wma_handle->umac_data_ota_ack_cb;
+	struct wma_tx_ack_work_ctx *work;
+	tp_wma_handle wma_handle;
+	pWDAAckFnTxComp ack_cb;
+
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_WDA, NULL)) {
+		WMA_LOGE("%s: Driver load/unload in progress", __func__);
+		return;
+	}
+
+	work = container_of(ack_work, struct wma_tx_ack_work_ctx, ack_cmp_work);
+	wma_handle = work->wma_handle;
+	ack_cb = wma_handle->umac_data_ota_ack_cb;
 
 	WMA_LOGD("Data Tx Ack Cb Status %d",
 			work->status);
@@ -14575,19 +14582,28 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 
 static void wma_mgmt_tx_ack_work_handler(struct work_struct *ack_work)
 {
-	struct wma_tx_ack_work_ctx *work = container_of(ack_work,
-		struct wma_tx_ack_work_ctx, ack_cmp_work);
-	pWDAAckFnTxComp ack_cb =
-		work->wma_handle->umac_ota_ack_cb[work->sub_type];
+	struct wma_tx_ack_work_ctx *work;
+	tp_wma_handle wma_handle;
+	pWDAAckFnTxComp ack_cb;
+
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_WDA, NULL)) {
+		WMA_LOGE("%s: Driver load/unload in progress", __func__);
+		return;
+	}
+
+	work = container_of(ack_work, struct wma_tx_ack_work_ctx, ack_cmp_work);
+        wma_handle = work->wma_handle;
+	ack_cb = wma_handle->umac_ota_ack_cb[work->sub_type];
 
 	WMA_LOGD("Tx Ack Cb SubType %d Status %d",
 			work->sub_type, work->status);
 
 	/* Call the Ack Cb registered by UMAC */
-	ack_cb((tpAniSirGlobal)(work->wma_handle->mac_context),
+	ack_cb((tpAniSirGlobal)(wma_handle->mac_context),
                                 work->status ? 0 : 1);
 
 	adf_os_mem_free(work);
+	wma_handle->ack_work_ctx = NULL;
 }
 
 /**
