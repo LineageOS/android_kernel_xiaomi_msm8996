@@ -2332,6 +2332,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	INIT_LIST_HEAD(&wma_handle->vdev_resp_queue);
 	adf_os_spinlock_init(&wma_handle->vdev_respq_lock);
 
+        adf_os_spinlock_init(&wma_handle->vdev_detach_lock);
+
 	/* Register vdev start response event handler */
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_VDEV_START_RESP_EVENTID,
@@ -2716,38 +2718,48 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		return status;
 	}
 
-	/* remove the interface from ath_dev */
-	if (wma_unified_vdev_delete_send(wma_handle->wmi_handle, vdev_id)) {
-		WMA_LOGP("Unable to remove an interface for ath_dev.\n");
-		status = VOS_STATUS_E_FAILURE;
-		goto out;
-	}
 
-	if(!iface->handle) {
-		status = VOS_STATUS_E_FAILURE;
-		WMA_LOGP("handle of vdev_id %d is NULL", vdev_id);
-		goto out;
-	}
+        adf_os_spin_lock_bh(&wma_handle->vdev_detach_lock);
+        if(!iface->handle) {
+                status = VOS_STATUS_E_FAILURE;
+                WMA_LOGE("handle of vdev_id %d is NULL vdev is already freed",
+                    vdev_id);
+                adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+                goto out;
+        }
 
-	WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", vdev_id, iface->handle);
-	if (!generateRsp) {
-		WMA_LOGD("Call txrx detach w/o callback for vdev %d", vdev_id);
-		ol_txrx_vdev_detach(iface->handle, NULL, NULL);
-		goto out;
-	}
+        /* remove the interface from ath_dev */
+        if (wma_unified_vdev_delete_send(wma_handle->wmi_handle, vdev_id)) {
+                WMA_LOGE("Unable to remove an interface for ath_dev.\n");
+                status = VOS_STATUS_E_FAILURE;
+                adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+                goto out;
+        }
 
-	iface->del_staself_req = pdel_sta_self_req_param;
-	msg = wma_fill_vdev_req(wma_handle, vdev_id, WDA_DEL_STA_SELF_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_DEL, iface, 2000);
-	if (!msg) {
-		WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d\n",
-			 __func__, vdev_id);
-		status = VOS_STATUS_E_NOMEM;
-		goto out;
-	}
-	WMA_LOGD("Call txrx detach with callback for vdev %d", vdev_id);
-	ol_txrx_vdev_detach(iface->handle, wma_vdev_detach_callback, iface);
-	return status;
+
+        WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", vdev_id, iface->handle);
+        if (!generateRsp) {
+                WMA_LOGE("Call txrx detach w/o callback for vdev %d", vdev_id);
+                ol_txrx_vdev_detach(iface->handle, NULL, NULL);
+                adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+                goto out;
+        }
+
+        iface->del_staself_req = pdel_sta_self_req_param;
+        msg = wma_fill_vdev_req(wma_handle, vdev_id, WDA_DEL_STA_SELF_REQ,
+                                WMA_TARGET_REQ_TYPE_VDEV_DEL, iface, 2000);
+        if (!msg) {
+                WMA_LOGE("%s: Failed to fill vdev request for vdev_id %d\n",
+                         __func__, vdev_id);
+                status = VOS_STATUS_E_NOMEM;
+                adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+                goto out;
+        }
+        WMA_LOGE("Call txrx detach with callback for vdev %d", vdev_id);
+        ol_txrx_vdev_detach(iface->handle, NULL, NULL);
+        wma_vdev_detach_callback(iface);
+        adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+        return status;
 out:
         if(iface->addBssStaContext)
                 adf_os_mem_free(iface->addBssStaContext);
