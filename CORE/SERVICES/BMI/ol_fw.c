@@ -35,6 +35,7 @@
 #include "wma_api.h"
 #include "wma.h"
 #include "if_pci.h"
+#include "regtable.h"
 
 #define ATH_MODULE_NAME bmi
 #include "a_debug.h"
@@ -494,23 +495,33 @@ u_int32_t host_interest_item_address(u_int32_t target_type, u_int32_t item_offse
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 int dump_CE_register(struct ol_softc *scn)
 {
-	A_UINT32 CE_reg_address = CE7_LOCATION;
-	A_UINT32 CE_reg_values[CE_USEFUL_SIZE>>2];
+	struct hif_pci_softc *sc = scn->hif_sc;
+	A_UINT32 CE_reg_address = CE0_BASE_ADDRESS;
+	A_UINT32 CE_reg_values[8][CE_USEFUL_SIZE>>2];
 	A_UINT32 CE_reg_word_size = CE_USEFUL_SIZE>>2;
-	A_UINT16 i;
+	A_UINT16 i, j;
 
-	if (HIFDiagReadMem(scn->hif_hdl, CE_reg_address,
-		(A_UCHAR*)&CE_reg_values[0],
-		CE_reg_word_size * sizeof(A_UINT32)) != A_OK)
-	{
-		printk(KERN_ERR "Dumping CE register failed!\n");
-		return -EACCES;
+	for(i = 0; i < 8; i++, CE_reg_address += CE_OFFSET) {
+		if (HIFDiagReadMem(scn->hif_hdl, CE_reg_address,
+			(A_UCHAR*)&CE_reg_values[i][0],
+			CE_reg_word_size * sizeof(A_UINT32)) != A_OK)
+		{
+			printk(KERN_ERR "Dumping CE register failed!\n");
+			return -EACCES;
+		}
 	}
 
-	printk("CE7 Register Dump:\n");
-	for (i = 0; i < CE_reg_word_size; i++) {
-		printk("[%02d] : 0x%08X\n", i, CE_reg_values[i]);
+	for (i = 0; i < 8; i++) {
+		printk("CE%d Registers:\n", i);
+		for (j = 0; j < CE_reg_word_size; j++) {
+			printk("0x%08x ", CE_reg_values[i][j]);
+			if (!((j+1)%5) || (CE_reg_word_size - 1) == j)
+				printk("\n");
+		}
+
+		msleep(1);
 	}
+
 	return EOK;
 }
 #endif
@@ -531,6 +542,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		goto out_fail;
 	}
 
+#ifdef DEBUG
 	ret = hif_pci_check_soc_status(ramdump_scn->hif_sc);
 	if (ret)
 		goto out_fail;
@@ -539,16 +551,20 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	if (ret)
 		goto out_fail;
 
+	dump_CE_debug_register(ramdump_scn->hif_sc);
+#endif
+
 	if (HIFDiagReadMem(ramdump_scn->hif_hdl,
 		host_interest_item_address(ramdump_scn->target_type,
 		offsetof(struct host_interest_s, hi_failure_state)),
 		(A_UCHAR*) &host_interest_address, sizeof(u_int32_t)) != A_OK) {
 		printk(KERN_ERR "HifDiagReadiMem FW Dump Area Pointer failed!\n");
 		dump_CE_register(ramdump_scn);
+		dump_CE_debug_register(ramdump_scn->hif_sc);
 
 		goto out_fail;
 	}
-	printk("Host interest item address: 0x%08X\n", host_interest_address);
+	printk("Host interest item address: 0x%08x\n", host_interest_address);
 
 	/* Get RAM dump memory address and size */
 	if (cnss_get_ramdump_mem(&address, &size)) {
@@ -585,6 +601,12 @@ out_fail:
 }
 
 static DECLARE_WORK(ramdump_work, ramdump_work_handler);
+
+void schedule_ramdump_work(struct ol_softc *scn)
+{
+	ramdump_scn = scn;
+	schedule_work(&ramdump_work);
+}
 #endif
 
 #define REGISTER_DUMP_LEN_MAX   60
@@ -697,8 +719,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 	/* Collect the RAM dump through a workqueue */
-	ramdump_scn = scn;
-	schedule_work(&ramdump_work);
+	schedule_ramdump_work(scn);
 #endif
 
 	return;
@@ -1060,6 +1081,7 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 			} else {
 				printk(KERN_ERR "Could not read dump section!\n");
 				dump_CE_register(scn);
+				dump_CE_debug_register(scn->hif_sc);
 				ret = -EACCES;
 				break; /* Could not read the section */
 			}
