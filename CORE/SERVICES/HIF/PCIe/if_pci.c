@@ -102,13 +102,12 @@ hif_pci_interrupt_handler(int irq, void *arg)
 {
     struct hif_pci_softc *sc = (struct hif_pci_softc *) arg;
     struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
-    A_target_id_t targid = hif_state->targid;
     volatile int tmp;
 
     if (LEGACY_INTERRUPTS(sc)) {
 
         if (sc->hif_init_done == TRUE)
-           A_TARGET_ACCESS_BEGIN(targid);
+           A_TARGET_ACCESS_BEGIN(hif_state->targid);
 
         /* Clear Legacy PCI line interrupts */
         /* IMPORTANT: INTR_CLR regiser has to be set after INTR_ENABLE is set to 0, */
@@ -123,7 +122,7 @@ hif_pci_interrupt_handler(int irq, void *arg)
             VOS_BUG(0);
         }
         if (sc->hif_init_done == TRUE)
-          A_TARGET_ACCESS_END(targid);
+          A_TARGET_ACCESS_END(hif_state->targid);
     }
     /* TBDXXX: Add support for WMAC */
 
@@ -411,7 +410,6 @@ wlan_tasklet(unsigned long data)
 {
     struct hif_pci_softc *sc = (struct hif_pci_softc *) data;
     struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
-    A_target_id_t targid = hif_state->targid;
     volatile int tmp;
 
     if (sc->hif_init_done == FALSE) {
@@ -434,7 +432,7 @@ irq_handled:
     if (LEGACY_INTERRUPTS(sc)) {
 
         if (sc->hif_init_done == TRUE)
-            A_TARGET_ACCESS_BEGIN(targid);
+            A_TARGET_ACCESS_BEGIN(hif_state->targid);
 
         /* Enable Legacy PCI line interrupts */
         A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 
@@ -443,7 +441,7 @@ irq_handled:
         tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
 
         if (sc->hif_init_done == TRUE)
-           A_TARGET_ACCESS_END(targid);
+           A_TARGET_ACCESS_END(hif_state->targid);
     }
 }
 
