@@ -42,7 +42,7 @@
   Include files
   -------------------------------------------------------------------------*/
 #ifdef IPA_OFFLOAD
-#include <mach/ipa.h>
+#include <linux/ipa.h>
 
 VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx);
 VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx);
