@@ -641,6 +641,9 @@ struct hdd_station_ctx
    /*Increment whenever ibss New peer joins and departs the network */
    int ibss_sta_generation;
 
+   /* Indication of wep/wpa-none keys installation */
+   v_BOOL_t ibss_enc_key_installed;
+
    /*Save the wep/wpa-none keys*/
    tCsrRoamSetKey ibss_enc_key;
    v_BOOL_t hdd_ReassocScenario;
@@ -1023,6 +1026,9 @@ struct hdd_adapter_s
 #ifdef QCA_WIFI_2_0
    v_BOOL_t internalCancelRemainOnChReq;
 #endif
+#ifdef IPA_OFFLOAD
+    void *ipa_context;
+#endif
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
@@ -1376,4 +1382,45 @@ void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);
 #endif
 
 int hdd_wmmps_helper(hdd_adapter_t *pAdapter, tANI_U8 *ptr);
+
+#ifdef FEATURE_WLAN_BATCH_SCAN
+/**---------------------------------------------------------------------------
+
+  \brief hdd_handle_batch_scan_ioctl () - This function handles WLS_BATCHING
+     IOCTLs from user space. Following BATCH SCAN DEV IOCTs are handled:
+     WLS_BATCHING VERSION
+     WLS_BATCHING SET
+     WLS_BATCHING GET
+     WLS_BATCHING STOP
+
+  \param  - pAdapter Pointer to HDD adapter
+  \param  - pPrivdata Pointer to priv_data
+  \param  - command Pointer to command
+
+  \return - 0 for success -EFAULT for failure
+
+  --------------------------------------------------------------------------*/
+
+int hdd_handle_batch_scan_ioctl
+(
+    hdd_adapter_t *pAdapter,
+    hdd_priv_data_t *pPrivdata,
+    tANI_U8 *command
+);
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_deinit_batch_scan () - This function cleans up batch scan data
+   structures
+
+  \param  - pAdapter Pointer to HDD adapter
+
+  \return - None
+
+  --------------------------------------------------------------------------*/
+
+void hdd_deinit_batch_scan(hdd_adapter_t *pAdapter);
+
+#endif /*End of FEATURE_WLAN_BATCH_SCAN*/
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

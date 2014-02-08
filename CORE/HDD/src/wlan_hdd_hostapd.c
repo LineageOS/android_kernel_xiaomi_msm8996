@@ -271,6 +271,12 @@ int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
         {
             hdd_setP2pOpps(dev, command);
         }
+#ifdef FEATURE_WLAN_BATCH_SCAN
+        else if( strncmp(command, "WLS_BATCHING", 12) == 0 )
+        {
+           ret = hdd_handle_batch_scan_ioctl(pAdapter, &priv_data, command);
+        }
+#endif
 
         /*
            command should be a string having format
@@ -283,6 +289,7 @@ int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 
             ret = sapSetPreferredChannel(command);
         }
+
     }
 exit:
    if (command)
@@ -504,8 +511,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             }
 #ifdef IPA_OFFLOAD
             if (hdd_ipa_is_enabled(pHddCtx))
-               hdd_ipa_wlan_evt(pHostapdAdapter, WLAN_RX_SAP_SELF_STA_ID,
-                  WLAN_AP_CONNECT, pHostapdAdapter->dev->dev_addr);
+                hdd_ipa_wlan_evt(pHostapdAdapter, pHddApCtx->uBCStaId,
+                        WLAN_AP_CONNECT, pHostapdAdapter->dev->dev_addr);
 #endif
 
             if (0 != (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nAPAutoShutOff)
@@ -589,8 +596,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             pHddApCtx->operatingChannel = 0; //Invalidate the channel info.
 #ifdef IPA_OFFLOAD
             if (hdd_ipa_is_enabled(pHddCtx))
-               hdd_ipa_wlan_evt(pHostapdAdapter, WLAN_RX_SAP_SELF_STA_ID,
-                            WLAN_AP_DISCONNECT, pHostapdAdapter->dev->dev_addr);
+                hdd_ipa_wlan_evt(pHostapdAdapter, pHddApCtx->uBCStaId,
+                        WLAN_AP_DISCONNECT, pHostapdAdapter->dev->dev_addr);
 #endif
             goto stopbss;
         case eSAP_STA_SET_KEY_EVENT:

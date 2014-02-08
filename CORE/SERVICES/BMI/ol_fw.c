@@ -492,7 +492,7 @@ u_int32_t host_interest_item_address(u_int32_t target_type, u_int32_t item_offse
 }
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-void dump_CE_register(struct ol_softc *scn)
+int dump_CE_register(struct ol_softc *scn)
 {
 	A_UINT32 CE_reg_address = CE7_LOCATION;
 	A_UINT32 CE_reg_values[CE_USEFUL_SIZE>>2];
@@ -504,13 +504,14 @@ void dump_CE_register(struct ol_softc *scn)
 		CE_reg_word_size * sizeof(A_UINT32)) != A_OK)
 	{
 		printk(KERN_ERR "Dumping CE register failed!\n");
-		return;
+		return -EACCES;
 	}
 
 	printk("CE7 Register Dump:\n");
 	for (i = 0; i < CE_reg_word_size; i++) {
 		printk("[%02d] : 0x%08X\n", i, CE_reg_values[i]);
 	}
+	return EOK;
 }
 #endif
 
@@ -522,15 +523,21 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	void __iomem *ramdump_base;
 	unsigned long address;
 	unsigned long size;
+	int ret;
 	u_int32_t host_interest_address;
 
 	if (!ramdump_scn) {
 		printk("No RAM dump will be collected since ramdump_scn is NULL!\n");
-		goto out;
+		goto out_fail;
 	}
 
-	hif_pci_check_soc_status(ramdump_scn->hif_sc);
-	dump_CE_register(ramdump_scn);
+	ret = hif_pci_check_soc_status(ramdump_scn->hif_sc);
+	if (ret)
+		goto out_fail;
+
+	ret = dump_CE_register(ramdump_scn);
+	if (ret)
+		goto out_fail;
 
 	if (HIFDiagReadMem(ramdump_scn->hif_hdl,
 		host_interest_item_address(ramdump_scn->target_type,
@@ -539,7 +546,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		printk(KERN_ERR "HifDiagReadiMem FW Dump Area Pointer failed!\n");
 		dump_CE_register(ramdump_scn);
 
-		goto out;
+		goto out_fail;
 	}
 	printk("Host interest item address: 0x%08X\n", host_interest_address);
 
@@ -547,24 +554,29 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	if (cnss_get_ramdump_mem(&address, &size)) {
 		printk("No RAM dump will be collected since failed to get "
 			"memory address or size!\n");
-		goto out;
+		goto out_fail;
 	}
 
 	ramdump_base = ioremap(address, size);
 	if (!ramdump_base) {
 		printk("No RAM dump will be collected since ramdump_base is NULL!\n");
-		goto out;
+		goto out_fail;
 	}
 
-	ol_target_coredump(ramdump_scn, ramdump_base, TOTAL_DUMP_SIZE);
+	ret = ol_target_coredump(ramdump_scn, ramdump_base, TOTAL_DUMP_SIZE);
 	iounmap(ramdump_base);
+	if (ret)
+		goto out_fail;
 
 	printk("%s: RAM dump collecting completed!\n", __func__);
 	msleep(250);
-
-out:
 	/* Notify SSR framework the target has crashed. */
 	cnss_device_crashed();
+	return;
+
+out_fail:
+	/* silent SSR on dump failure */
+	cnss_device_self_recovery();
 	return;
 }
 
@@ -1003,11 +1015,12 @@ int ol_diag_read(struct ol_softc *scn, u_int8_t *buffer,
  *
  *   \return:  None
  * --------------------------------------------------------------------------*/
-void ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
+int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 {
 	struct ol_softc *scn = (struct ol_softc *)inst;
 	char *bufferLoc = memoryBlock;
 	int result = 0;
+	int ret = 0;
 	u_int32_t amountRead = 0;
 	u_int32_t sectionCount = 0;
 	u_int32_t pos = 0;
@@ -1055,6 +1068,7 @@ void ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 			} else {
 				printk(KERN_ERR "Could not read dump section!\n");
 				dump_CE_register(scn);
+				ret = -EACCES;
 				break; /* Could not read the section */
 			}
 		} else {
@@ -1062,6 +1076,7 @@ void ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 			break; /* Insufficient room in buffer */
 		}
 	}
+	return ret;
 }
 #endif
 

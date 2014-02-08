@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -38,6 +38,7 @@
 #define WLAN_DICT_FILE             "wlan/qca_cld/WCNSS_qcom_wlan_dictionary.dat"
 #define WLAN_COUNTRY_INFO_FILE     "wlan/qca_cld/WCNSS_wlan_country_info.dat"
 #define WLAN_HO_CFG_FILE           "wlan/qca_cld/WCNSS_wlan_ho_config"
+#define WLAN_MAC_FILE              "wlan/qca_cld/wlan_mac.bin"
 #else
 #define WLAN_INI_FILE              "wlan/prima/WCNSS_qcom_cfg.ini"
 #define WLAN_CFG_FILE              "wlan/prima/WCNSS_cfg.dat"

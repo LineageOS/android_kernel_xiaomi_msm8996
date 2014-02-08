@@ -8700,11 +8700,11 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
         ** So cache the BSS key in the wma_handle and re-use it when the STA key is been setup for a peer
         */
         if (wlan_op_mode_ibss == txrx_vdev->opmode) {
-          WMA_LOGD("Caching IBSS Key");
-          vos_mem_copy(&wma_handle->ibsskey_info, key_info, sizeof(tSetBssKeyParams));
           key_info->status = eHAL_STATUS_SUCCESS;
           if (wma_handle->ibss_started > 0)
              goto out;
+          WMA_LOGD("Caching IBSS Key");
+          vos_mem_copy(&wma_handle->ibsskey_info, key_info, sizeof(tSetBssKeyParams));
         }
 
 	adf_os_mem_set(&key_params, 0, sizeof(key_params));
@@ -15114,13 +15114,13 @@ wma_batch_scan_result_event_handler
     tSirBatchScanResultIndParam *pHddResult;
     tSirBatchScanNetworkInfo *pHddApMetaInfo;
     tp_wma_handle wma = (tp_wma_handle) handle;
-    u_int32_t nextScanListOffset, nextApMetaInfoOffset;
-    u_int8_t bssid[IEEE80211_ADDR_LEN], ssid[33], *ssid_temp;
-    u_int32_t temp, count1, count2, scan_num, netinfo_num, total_size;
-    WMI_BATCH_SCAN_RESULT_EVENTID_param_tlvs *param_tlvs;
-    wmi_batch_scan_result_event_fixed_param *fix_param;
     wmi_batch_scan_result_scan_list *scan_list;
     wmi_batch_scan_result_network_info *network_info;
+    wmi_batch_scan_result_event_fixed_param *fix_param;
+    WMI_BATCH_SCAN_RESULT_EVENTID_param_tlvs *param_tlvs;
+    u_int8_t bssid[IEEE80211_ADDR_LEN], ssid[33], *ssid_temp;
+    u_int32_t temp, count1, count2, scan_num, netinfo_num, total_size;
+    u_int32_t nextScanListOffset, nextApMetaInfoOffset, numNetworkInScanList;
     tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
                                               wma->vos_context);
 
@@ -15192,12 +15192,18 @@ wma_batch_scan_result_event_handler
     network_info = param_tlvs->network_list;
     nextScanListOffset = 0;
     nextApMetaInfoOffset = 0;
+    numNetworkInScanList = 0;
+
     for(count1 = 0; count1 < scan_num; count1++)
     {
-        pHddScanList = (tSirBatchScanList *)(pHddResult->scanResults +
+        pHddScanList = (tSirBatchScanList *)((tANI_U8 *)pHddResult->scanResults +
                                               nextScanListOffset);
         pHddScanList->scanId = scan_list->scanId;
         pHddScanList->numNetworksInScanList = scan_list->numNetworksInScanList;
+        numNetworkInScanList = pHddScanList->numNetworksInScanList;
+
+        /*Initialize next AP meta info offset for next scan list*/
+        nextApMetaInfoOffset = 0;
 
         for (count2 = 0; count2 < scan_list->numNetworksInScanList; count2++)
         {
@@ -15242,7 +15248,9 @@ wma_batch_scan_result_event_handler
             network_info++;
         }
 
-        nextScanListOffset += (sizeof(tSirBatchScanList) - (sizeof(tANI_U8)));
+        nextScanListOffset +=  ((sizeof(tSirBatchScanList) - sizeof(tANI_U8))
+                                + (sizeof(tSirBatchScanNetworkInfo)
+                                * numNetworkInScanList));
         scan_list++;
     }
 

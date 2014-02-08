@@ -331,8 +331,8 @@ hif_pci_device_warm_reset(struct hif_pci_softc *sc)
 
 }
 
-void
-hif_pci_check_soc_status(struct hif_pci_softc *sc)
+
+int hif_pci_check_soc_status(struct hif_pci_softc *sc)
 {
     u_int16_t device_id;
     u_int32_t val;
@@ -342,7 +342,7 @@ hif_pci_check_soc_status(struct hif_pci_softc *sc)
     pci_read_config_word(sc->pdev, PCI_DEVICE_ID, &device_id);
     if(device_id != sc->devid) {
         printk(KERN_ERR "PCIe link is down!\n");
-        return;
+        return -EACCES;
     }
 
     /* Check PCIe local register for bar/memory access */
@@ -365,7 +365,7 @@ hif_pci_check_soc_status(struct hif_pci_softc *sc)
                 A_PCI_READ32(sc->mem + PCIE_LOCAL_BASE_ADDRESS +
                 RTC_STATE_ADDRESS), A_PCI_READ32(sc->mem +
                 PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS));
-            return;
+            return -EACCES;
         }
 
         A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS +
@@ -378,6 +378,7 @@ hif_pci_check_soc_status(struct hif_pci_softc *sc)
     /* Check BAR + 0x10c register for SoC internal bus issues */
     val = A_PCI_READ32(sc->mem + 0x10c);
     printk("BAR + 0x10c is %08x\n", val);
+    return EOK;
 }
 
 /*

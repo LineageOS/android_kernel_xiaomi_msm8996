@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -44,12 +44,12 @@
 #ifdef IPA_OFFLOAD
 #include <mach/ipa.h>
 
-VOS_STATUS hdd_ipa_init(hdd_context_t *pHddCtx);
-VOS_STATUS hdd_ipa_cleanup(hdd_context_t *pHddCtx);
-int hdd_ipa_wlan_evt(void *pAdapter, uint8_t sta_id,
-				enum ipa_wlan_event type, uint8_t *mac_addr);
+VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx);
+VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx);
+int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
+		enum ipa_wlan_event type, uint8_t *mac_addr);
 VOS_STATUS hdd_ipa_process_rxt(v_VOID_t *vosContext, adf_nbuf_t rxBuf,
-							 v_U8_t staId);
+		v_U8_t sta_id);
 bool hdd_ipa_is_enabled(hdd_context_t *pHddCtx);
 #endif
 
