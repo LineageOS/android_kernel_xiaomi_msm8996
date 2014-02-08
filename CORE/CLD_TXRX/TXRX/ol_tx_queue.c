@@ -521,8 +521,11 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev)
         adf_os_spin_unlock(&pdev->tx_queue_spinlock);
 #endif /* defined(CONFIG_HL_SUPPORT) */
     } else {
-        vdev->ll_pause.is_paused = A_FALSE;
-        ol_tx_vdev_ll_pause_queue_send(vdev);
+        if (vdev->ll_pause.is_paused)
+        {
+            vdev->ll_pause.is_paused = A_FALSE;
+            ol_tx_vdev_ll_pause_queue_send(vdev);
+        }
     }
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }

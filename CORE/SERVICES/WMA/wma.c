@@ -2332,6 +2332,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	INIT_LIST_HEAD(&wma_handle->vdev_resp_queue);
 	adf_os_spinlock_init(&wma_handle->vdev_respq_lock);
 
+        adf_os_spinlock_init(&wma_handle->vdev_detach_lock);
+
 	/* Register vdev start response event handler */
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_VDEV_START_RESP_EVENTID,
@@ -2716,38 +2718,48 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		return status;
 	}
 
-	/* remove the interface from ath_dev */
-	if (wma_unified_vdev_delete_send(wma_handle->wmi_handle, vdev_id)) {
-		WMA_LOGP("Unable to remove an interface for ath_dev.\n");
-		status = VOS_STATUS_E_FAILURE;
-		goto out;
-	}
 
-	if(!iface->handle) {
-		status = VOS_STATUS_E_FAILURE;
-		WMA_LOGP("handle of vdev_id %d is NULL", vdev_id);
-		goto out;
-	}
+        adf_os_spin_lock_bh(&wma_handle->vdev_detach_lock);
+        if(!iface->handle) {
+                status = VOS_STATUS_E_FAILURE;
+                WMA_LOGE("handle of vdev_id %d is NULL vdev is already freed",
+                    vdev_id);
+                adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+                goto out;
+        }
 
-	WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", vdev_id, iface->handle);
-	if (!generateRsp) {
-		WMA_LOGD("Call txrx detach w/o callback for vdev %d", vdev_id);
-		ol_txrx_vdev_detach(iface->handle, NULL, NULL);
-		goto out;
-	}
+        /* remove the interface from ath_dev */
+        if (wma_unified_vdev_delete_send(wma_handle->wmi_handle, vdev_id)) {
+                WMA_LOGE("Unable to remove an interface for ath_dev.\n");
+                status = VOS_STATUS_E_FAILURE;
+                adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+                goto out;
+        }
 
-	iface->del_staself_req = pdel_sta_self_req_param;
-	msg = wma_fill_vdev_req(wma_handle, vdev_id, WDA_DEL_STA_SELF_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_DEL, iface, 2000);
-	if (!msg) {
-		WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d\n",
-			 __func__, vdev_id);
-		status = VOS_STATUS_E_NOMEM;
-		goto out;
-	}
-	WMA_LOGD("Call txrx detach with callback for vdev %d", vdev_id);
-	ol_txrx_vdev_detach(iface->handle, wma_vdev_detach_callback, iface);
-	return status;
+
+        WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", vdev_id, iface->handle);
+        if (!generateRsp) {
+                WMA_LOGE("Call txrx detach w/o callback for vdev %d", vdev_id);
+                ol_txrx_vdev_detach(iface->handle, NULL, NULL);
+                adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+                goto out;
+        }
+
+        iface->del_staself_req = pdel_sta_self_req_param;
+        msg = wma_fill_vdev_req(wma_handle, vdev_id, WDA_DEL_STA_SELF_REQ,
+                                WMA_TARGET_REQ_TYPE_VDEV_DEL, iface, 2000);
+        if (!msg) {
+                WMA_LOGE("%s: Failed to fill vdev request for vdev_id %d\n",
+                         __func__, vdev_id);
+                status = VOS_STATUS_E_NOMEM;
+                adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+                goto out;
+        }
+        WMA_LOGE("Call txrx detach with callback for vdev %d", vdev_id);
+        ol_txrx_vdev_detach(iface->handle, NULL, NULL);
+        wma_vdev_detach_callback(iface);
+        adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+        return status;
 out:
         if(iface->addBssStaContext)
                 adf_os_mem_free(iface->addBssStaContext);
@@ -3269,10 +3281,7 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 						self_sta_req->selfMacAddr,
 						self_sta_req->sessionId,
 						txrx_vdev_type);
-#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
-	WMA_LOGD("LL TX Pause Mutex init");
-	adf_os_spinlock_init(&txrx_vdev_handle->ll_pause.mutex);
-#endif /* QCA_SUPPORT_TXRX_VDEV_LL_TXQ */
+	wma_handle->interfaces[self_sta_req->sessionId].pause_bitmap = 0;
 
 	WMA_LOGA("vdev_id %hu, txrx_vdev_handle = %p", self_sta_req->sessionId,
 			txrx_vdev_handle);
@@ -14890,12 +14899,12 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	WMI_TX_PAUSE_EVENTID_param_tlvs *param_buf;
 	wmi_tx_pause_event_fixed_param  *wmi_event;
-	ol_txrx_vdev_handle txrx_vdev;
 	u_int8_t vdev_id;
 	A_UINT32 vdev_map;
 
 	param_buf = (WMI_TX_PAUSE_EVENTID_param_tlvs *) event;
-	if (!param_buf) {
+	if (!param_buf)
+	{
 		WMA_LOGE("Invalid roam event buffer");
 		return -EINVAL;
 	}
@@ -14909,35 +14918,47 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 	{
 		if (!(vdev_map & 0x1))
 		{
-			vdev_map >>= 1;
+			/* No Vdev */
 		}
 		else
 		{
-			WMA_LOGI("Found vdev %d", vdev_id);
-			break;
-		}
-	}
+			if (!wma->interfaces[vdev_id].handle)
+			{
+				WMA_LOGE("%s: invalid vdev ID %d", __func__, vdev_id);
+				/* Test Next VDEV */
+				vdev_map >>= 1;
+				continue;
+			}
 
-	WMA_LOGI("vdev_id %d, vdev_map 0x%x, tid_map 0x%x,"
-			" pause_type 0x%x, action 0x%x, peer_id 0x%x",
-			vdev_id, wmi_event->vdev_map, wmi_event->tid_map,
-			wmi_event->pause_type, wmi_event->action, wmi_event->peer_id);
+			/* PAUSE action, add bitmap */
+			if (ACTION_PAUSE == wmi_event->action)
+			{
+				wma->interfaces[vdev_id].pause_bitmap |= (1 << wmi_event->pause_type);
+				wdi_in_vdev_pause(wma->interfaces[vdev_id].handle);
+			}
+			/* UNPAUSE action, clean bitmap */
+			else if (ACTION_UNPAUSE == wmi_event->action)
+			{
+				wma->interfaces[vdev_id].pause_bitmap &= ~(1 << wmi_event->pause_type);
 
+				if (!wma->interfaces[vdev_id].pause_bitmap)
+				{
+					/* PAUSE BIT MAP is cleared
+					 * UNPAUSE VDEV */
+					wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
+				}
+			}
+			else
+			{
+				WMA_LOGE("Not Valid Action Type %d", wmi_event->action);
+			}
 
-	txrx_vdev = wma->interfaces[vdev_id].handle;
-	if (txrx_vdev)
-	{
-		if ((PAUSE_TYPE_CHOP == wmi_event->pause_type) &&
-			(!wmi_event->action))
-		{
-			wdi_in_vdev_pause(txrx_vdev);
+			WMA_LOGD("vdev_id %d, pause_map 0x%x, pause type %d, action %d",
+				vdev_id, wma->interfaces[vdev_id].pause_bitmap,
+				wmi_event->pause_type, wmi_event->action);
 		}
-		if ((PAUSE_TYPE_CHOP == wmi_event->pause_type) &&
-			(wmi_event->action))
-		{
-			wdi_in_vdev_unpause(txrx_vdev);
-		}
-		/* TODO, other types of pause should be added */
+		/* Test Next VDEV */
+		vdev_map >>= 1;
 	}
 
 	return 0;
@@ -15361,7 +15382,8 @@ static int wma_channel_avoid_evt_handler(void *handle, u_int8_t *event,
 
 	WMA_LOGD("Channel avoid event received with %d ranges", num_freq_ranges);
 	for (freq_range_idx = 0; freq_range_idx < num_freq_ranges; freq_range_idx++) {
-			afr_desc = (wmi_avoid_freq_range_desc *) (param_buf->avd_freq_range + freq_range_idx * sizeof(wmi_avoid_freq_range_desc));
+			afr_desc = (wmi_avoid_freq_range_desc *) (param_buf->avd_freq_range
+				+ freq_range_idx * sizeof(wmi_avoid_freq_range_desc));
 			WMA_LOGD("range %d: tlv id = %u, start freq = %u,  end freq = %u",
 					freq_range_idx,
 					afr_desc->tlv_header,
@@ -15378,9 +15400,12 @@ static int wma_channel_avoid_evt_handler(void *handle, u_int8_t *event,
 
 	sca_indication->avoid_range_count = num_freq_ranges;
 	for (freq_range_idx = 0; freq_range_idx < num_freq_ranges; freq_range_idx++) {
-		afr_desc = (wmi_avoid_freq_range_desc *) (param_buf->avd_freq_range + freq_range_idx * sizeof(wmi_avoid_freq_range_desc));
-		sca_indication->avoid_freq_range[freq_range_idx].start_freq = afr_desc->start_freq;
-		sca_indication->avoid_freq_range[freq_range_idx].end_freq = afr_desc->end_freq;
+		afr_desc = (wmi_avoid_freq_range_desc *) (param_buf->avd_freq_range
+			+ freq_range_idx * sizeof(wmi_avoid_freq_range_desc));
+		sca_indication->avoid_freq_range[freq_range_idx].start_freq =
+			afr_desc->start_freq + 10;
+		sca_indication->avoid_freq_range[freq_range_idx].end_freq = afr_desc->end_freq
+			- 10;
 	}
 
 	sme_msg.type = eWNI_SME_CH_AVOID_IND;
