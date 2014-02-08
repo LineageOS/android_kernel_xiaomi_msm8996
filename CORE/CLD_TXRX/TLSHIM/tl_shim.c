@@ -915,7 +915,7 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 	}
 
 	if (!tl_shim->sta_info[sta_id].registered) {
-		TLSHIM_LOGE("Staion is not yet registered for data service");
+		TLSHIM_LOGW("Staion is not yet registered for data service");
 		return skb;
 	}
 

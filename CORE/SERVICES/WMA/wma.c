@@ -551,7 +551,7 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		return -EINVAL;
 	}
 	vos_timer_stop(&req_msg->event_timeout);
-   iface = &wma->interfaces[resp_event->vdev_id];
+        iface = &wma->interfaces[resp_event->vdev_id];
 	if (req_msg->msg_type == WDA_CHNL_SWITCH_REQ) {
 		tpSwitchChannelParams params =
 			(tpSwitchChannelParams) req_msg->user_data;
@@ -578,6 +578,7 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
 	} else if (req_msg->msg_type == WDA_ADD_BSS_REQ) {
 		tpAddBssParams bssParams = (tpAddBssParams) req_msg->user_data;
+                vos_mem_copy(iface->bssid, bssParams->bssId, ETH_ALEN);
 		wma_vdev_start_rsp(wma, bssParams, resp_event);
 	}
 	vos_timer_destroy(&req_msg->event_timeout);
@@ -1348,15 +1349,14 @@ static void wma_update_noa(struct beacon_info *beacon,
 static void wma_update_probe_resp_noa(tp_wma_handle wma_handle,
 					struct p2p_sub_element_noa *noa_ie)
 {
-	tSirP2PNoaAttr *noa_attr = (tSirP2PNoaAttr *) adf_os_mem_alloc(
-						NULL, sizeof(tSirP2PNoaAttr));
+	tSirP2PNoaAttr *noa_attr = (tSirP2PNoaAttr *) vos_mem_malloc(sizeof(tSirP2PNoaAttr));
 	WMA_LOGD("Received update NoA event");
 	if (!noa_attr) {
 		WMA_LOGE("Failed to allocate memory for tSirP2PNoaAttr");
 		return;
 	}
 
-	adf_os_mem_set(noa_attr, 0, sizeof(tSirP2PNoaAttr));
+	vos_mem_zero(noa_attr, sizeof(tSirP2PNoaAttr));
 
 	noa_attr->index = noa_ie->index;
 	noa_attr->oppPsFlag = noa_ie->oppPS;
@@ -12688,11 +12688,18 @@ static int wma_process_receive_filter_clear_filter_req(tp_wma_handle wma_handle,
 
 static void wma_data_tx_ack_work_handler(struct work_struct *ack_work)
 {
-	struct wma_tx_ack_work_ctx *work = container_of(ack_work,
-		struct wma_tx_ack_work_ctx, ack_cmp_work);
-	tp_wma_handle wma_handle = work->wma_handle;
-	pWDAAckFnTxComp ack_cb =
-		wma_handle->umac_data_ota_ack_cb;
+	struct wma_tx_ack_work_ctx *work;
+	tp_wma_handle wma_handle;
+	pWDAAckFnTxComp ack_cb;
+
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_WDA, NULL)) {
+		WMA_LOGE("%s: Driver load/unload in progress", __func__);
+		return;
+	}
+
+	work = container_of(ack_work, struct wma_tx_ack_work_ctx, ack_cmp_work);
+	wma_handle = work->wma_handle;
+	ack_cb = wma_handle->umac_data_ota_ack_cb;
 
 	WMA_LOGD("Data Tx Ack Cb Status %d",
 			work->status);
@@ -14575,19 +14582,28 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 
 static void wma_mgmt_tx_ack_work_handler(struct work_struct *ack_work)
 {
-	struct wma_tx_ack_work_ctx *work = container_of(ack_work,
-		struct wma_tx_ack_work_ctx, ack_cmp_work);
-	pWDAAckFnTxComp ack_cb =
-		work->wma_handle->umac_ota_ack_cb[work->sub_type];
+	struct wma_tx_ack_work_ctx *work;
+	tp_wma_handle wma_handle;
+	pWDAAckFnTxComp ack_cb;
+
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_WDA, NULL)) {
+		WMA_LOGE("%s: Driver load/unload in progress", __func__);
+		return;
+	}
+
+	work = container_of(ack_work, struct wma_tx_ack_work_ctx, ack_cmp_work);
+        wma_handle = work->wma_handle;
+	ack_cb = wma_handle->umac_ota_ack_cb[work->sub_type];
 
 	WMA_LOGD("Tx Ack Cb SubType %d Status %d",
 			work->sub_type, work->status);
 
 	/* Call the Ack Cb registered by UMAC */
-	ack_cb((tpAniSirGlobal)(work->wma_handle->mac_context),
+	ack_cb((tpAniSirGlobal)(wma_handle->mac_context),
                                 work->status ? 0 : 1);
 
 	adf_os_mem_free(work);
+	wma_handle->ack_work_ctx = NULL;
 }
 
 /**

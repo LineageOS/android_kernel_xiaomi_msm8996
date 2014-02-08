@@ -3611,7 +3611,8 @@ static void limProcessSwitchChannelJoinReq(tpAniSirGlobal pMac, tpPESession pses
         goto error;
     }
 
-    if ( (NULL == psessionEntry ) || (NULL == psessionEntry->pLimMlmJoinReq) )
+    if ( (NULL == psessionEntry ) || (NULL == psessionEntry->pLimMlmJoinReq) ||
+         (NULL == psessionEntry->pLimJoinReq) )
     {
         PELOGE(limLog(pMac, LOGE, FL("invalid pointer!!"));)
         goto error;
@@ -3674,8 +3675,16 @@ static void limProcessSwitchChannelJoinReq(tpAniSirGlobal pMac, tpPESession pses
 error:  
     if(NULL != psessionEntry)
     {
-        vos_mem_free(psessionEntry->pLimMlmJoinReq);
-        psessionEntry->pLimMlmJoinReq = NULL;
+        if (psessionEntry->pLimMlmJoinReq)
+        {
+            vos_mem_free(psessionEntry->pLimMlmJoinReq);
+            psessionEntry->pLimMlmJoinReq = NULL;
+        }
+        if (psessionEntry->pLimJoinReq)
+        {
+            vos_mem_free(psessionEntry->pLimJoinReq);
+            psessionEntry->pLimJoinReq = NULL;
+        }
         mlmJoinCnf.sessionId = psessionEntry->peSessionId;
     }
     else
