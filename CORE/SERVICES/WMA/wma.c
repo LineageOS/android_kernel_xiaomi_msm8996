@@ -12869,6 +12869,47 @@ static VOS_STATUS wma_resume_req(tp_wma_handle wma, tpSirWlanResumeParam info)
 }
 
 /*
+	 Disable wow in PCIe resume context.
+*/
+
+int wma_disable_wow_in_fw(WMA_HANDLE handle)
+{
+	tp_wma_handle wma = handle;
+	struct wma_txrx_node *iface;
+	int8_t vdev_id;
+	VOS_STATUS ret;
+
+	if(!wma->wow.wow_enable || !wma->wow.wow_enable_cmd_sent) {
+		return VOS_STATUS_SUCCESS;
+	}
+
+	WMA_LOGD("WoW Resume in PCIe Context\n");
+	wma->wow.wow_enable = FALSE;
+	wma->wow.wow_enable_cmd_sent = FALSE;
+
+	for (vdev_id = 0; vdev_id < wma->max_bssid; vdev_id++) {
+		if (!wma->interfaces[vdev_id].handle)
+			continue;
+
+	#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+	/* When host resume, by default, unpause all active vdev */
+		if (wma->interfaces[vdev_id].pause_bitmap) {
+			wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
+			wma->interfaces[vdev_id].pause_bitmap = 0;
+		}
+	#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
+
+		iface = &wma->interfaces[vdev_id];
+		iface->conn_state = FALSE;
+	}
+
+	ret = wma_send_host_wakeup_ind_to_fw(wma);
+	vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 2000);
+
+	return ret;
+}
+
+/*
  * Returns true if wow parameters (patterns, wakeup events, etc)
  * are configured in fw and waiting for wow to be enabled in fw.
  * Other cases, returns false.
