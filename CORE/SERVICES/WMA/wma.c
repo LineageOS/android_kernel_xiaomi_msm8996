@@ -4489,9 +4489,9 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
          * T(HomeAway) = N * T(dwell) + (N+1) * T(cs)
          * where N is number of channels scanned in single burst
          */
+        scan_params->dwell_time_active  = roam_req->NeighborScanChannelMaxTime;
         if (roam_req->HomeAwayTime < 2*WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME) {
             // clearly we can't follow home away time
-            scan_params->dwell_time_active  = roam_req->NeighborScanChannelMaxTime;
             scan_params->burst_duration     = scan_params->dwell_time_active;
         } else {
             channels_per_burst =
@@ -4505,8 +4505,6 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
                   roam_req->HomeAwayTime - 2*WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME;
                 scan_params->burst_duration = scan_params->dwell_time_active;
             } else {
-                scan_params->dwell_time_active =
-                  roam_req->NeighborScanChannelMaxTime;
                 scan_params->burst_duration =
                   channels_per_burst * scan_params->dwell_time_active;
             }
