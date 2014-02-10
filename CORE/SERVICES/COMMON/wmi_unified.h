@@ -170,6 +170,7 @@ typedef enum {
     WMI_GRP_MHF_OFL,
     WMI_GRP_LOCATION_SCAN,
     WMI_GRP_OEM,
+    WMI_GRP_NAN,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -585,6 +586,9 @@ typedef enum {
     WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID,
     /* OEM related cmd */
     WMI_OEM_REQ_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_OEM),
+
+    /** Nan Request */
+    WMI_NAN_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_NAN),
 } WMI_CMD_ID;
 
 typedef enum {
@@ -772,6 +776,9 @@ typedef enum {
     WMI_OEM_CAPABILITY_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_OEM),
     WMI_OEM_MEASUREMENT_REPORT_EVENTID,
     WMI_OEM_ERROR_REPORT_EVENTID,
+
+    /* NAN Event */
+    WMI_NAN_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_NAN),
 } WMI_EVT_ID;
 
 /* defines for OEM message sub-types */
@@ -6304,6 +6311,26 @@ typedef struct {
 
     A_UINT32 temperature_degreeC;/* temperature in degree C*/
 } wmi_thermal_mgmt_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_nan_cmd_param */
+    A_UINT32 data_len; /** length in byte of data[]. */
+    /* This structure is used to send REQ binary blobs
+     * from application/service to firmware where Host drv is pass through .
+     * Following this structure is the TLV:
+     *     A_UINT8 data[];    // length in byte given by field data_len.
+     */
+} wmi_nan_cmd_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_nan_event_hdr */
+    A_UINT32 data_len; /** length in byte of data[]. */
+    /* This structure is used to send REQ binary blobs
+     * from firmware to application/service where Host drv is pass through .
+     * Following this structure is the TLV:
+     *     A_UINT8 data[];    // length in byte given by field data_len.
+     */
+} wmi_nan_event_hdr;
 
 typedef struct {
     A_UINT32 tlv_header;

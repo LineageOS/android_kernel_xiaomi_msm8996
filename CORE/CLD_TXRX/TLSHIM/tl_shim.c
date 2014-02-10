@@ -1575,3 +1575,53 @@ VOS_STATUS tl_shim_get_vdevid(struct ol_txrx_peer_t *peer, u_int8_t *vdev_id)
 	*vdev_id = peer->vdev->vdev_id;
 	return VOS_STATUS_SUCCESS;
 }
+
+/*
+ * Function to get vdev(tl_context) given the MAC address.
+ */
+void *tl_shim_get_vdev_by_addr(void *vos_context, uint8_t *mac_addr)
+{
+	struct ol_txrx_peer_t *peer = NULL;
+	ol_txrx_pdev_handle pdev = NULL;
+	uint8_t peer_id;
+
+	if (vos_context == NULL || mac_addr == NULL) {
+		TLSHIM_LOGE("Invalid argument %p, %p", vos_context, mac_addr);
+		return NULL;
+	}
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_context);
+	peer = ol_txrx_find_peer_by_addr(pdev, mac_addr, &peer_id);
+
+	if (!peer) {
+		TLSHIM_LOGE("PEER [%pM] not found", mac_addr);
+		return NULL;
+	}
+
+	return peer->vdev;
+}
+
+/*
+ * Function to get vdev(tl_context) given the TL station ID.
+ */
+void *tl_shim_get_vdev_by_sta_id(void *vos_context, uint8_t sta_id)
+{
+	struct ol_txrx_peer_t *peer = NULL;
+	ol_txrx_pdev_handle pdev = NULL;
+
+	if (sta_id >= WLAN_MAX_STA_COUNT) {
+		TLSHIM_LOGE("Invalid sta id passed");
+		return NULL;
+	}
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_context);
+
+	peer = ol_txrx_peer_find_by_local_id(pdev, sta_id);
+
+	if (!peer) {
+		TLSHIM_LOGE("PEER [%d] not found", sta_id);
+		return NULL;
+	}
+
+	return peer->vdev;
+}

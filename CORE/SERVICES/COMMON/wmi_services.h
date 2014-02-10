@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -97,6 +97,7 @@ typedef  enum  {
     WMI_SERVICE_MHF_OFFLOAD,     /* multi-hop forwarding offload */
     WMI_SERVICE_COEX_SAR,            /* target support SAR tx limit from WMI_PDEV_PARAM_TXPOWER_LIMITxG */
     WMI_SERVICE_BCN_TXRATE_OVERRIDE,  /* Will support the bcn/prb rsp rate override */
+    WMI_SERVICE_NAN, /* Neighbor Awareness Network */
     WMI_MAX_SERVICE=64                /* max service */
 } WMI_SERVICE;
 
