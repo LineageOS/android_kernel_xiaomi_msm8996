@@ -3296,48 +3296,25 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [AutoBmpsTimerEnabled] Value = [%u]",pHddCtx->cfg_ini->fIsAutoBmpsTimerEnabled);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nAutoBmpsTimerValue] Value = [%u]",pHddCtx->cfg_ini->nAutoBmpsTimerValue);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nVccRssiTrigger] Value = [%u]",pHddCtx->cfg_ini->nVccRssiTrigger);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssBssid] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
-      pHddCtx->cfg_ini->IbssBssid.bytes[0],pHddCtx->cfg_ini->IbssBssid.bytes[1],
-      pHddCtx->cfg_ini->IbssBssid.bytes[2],pHddCtx->cfg_ini->IbssBssid.bytes[3],
-      pHddCtx->cfg_ini->IbssBssid.bytes[4],pHddCtx->cfg_ini->IbssBssid.bytes[5]);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [gIbssBssid] Value =["MAC_ADDRESS_STR"]",
+            MAC_ADDR_ARRAY(pHddCtx->cfg_ini->IbssBssid.bytes));
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-          "Name = [Intf0MacAddress] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
-                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[0],
-                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[1],
-                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[2],
-                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[3],
-                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[4],
-                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[5]);
-
+            "Name = [Intf0MacAddress] Value =["MAC_ADDRESS_STR"]",
+            MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[0].bytes));
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-          "Name = [Intf1MacAddress] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
-                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[0],
-                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[1],
-                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[2],
-                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[3],
-                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[4],
-                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[5]);
+            "Name = [Intf1MacAddress] Value =["MAC_ADDRESS_STR"]",
+            MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[1].bytes));
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-          "Name = [Intf2MacAddress] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
-                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[0],
-                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[1],
-                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[2],
-                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[3],
-                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[4],
-                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[5]);
+            "Name = [Intf2MacAddress] Value =["MAC_ADDRESS_STR"]",
+            MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[2].bytes));
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-          "Name = [Intf3MacAddress] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
-                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[0],
-                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[1],
-                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[2],
-                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[3],
-                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[4],
-                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[5]);
-
+            "Name = [Intf3MacAddress] Value =["MAC_ADDRESS_STR"]",
+            MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[3].bytes));
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApEnableUapsd] value = [%u]\n",pHddCtx->cfg_ini->apUapsdEnabled);
 
@@ -4354,9 +4331,8 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
       if ( VOS_FALSE == vos_is_macaddr_group( &pConfig->IbssBssid ))
       {
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                    "MAC Addr (IBSS BSSID) read from Registry is: %02x-%02x-%02x-%02x-%02x-%02x",
-                    pConfig->IbssBssid.bytes[0], pConfig->IbssBssid.bytes[1], pConfig->IbssBssid.bytes[2],
-                    pConfig->IbssBssid.bytes[3], pConfig->IbssBssid.bytes[4], pConfig->IbssBssid.bytes[5]);
+                    "MAC Addr (IBSS BSSID) read from Registry is: " MAC_ADDRESS_STR,
+                    MAC_ADDR_ARRAY(pConfig->IbssBssid.bytes));
          if (ccmCfgSetStr(pHddCtx->hHal, WNI_CFG_BSSID, pConfig->IbssBssid.bytes,
             sizeof(v_BYTE_t) * VOS_MAC_ADDR_SIZE, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
          {
