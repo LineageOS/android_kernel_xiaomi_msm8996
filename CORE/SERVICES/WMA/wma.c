@@ -14235,6 +14235,112 @@ VOS_STATUS wma_ProcessDelPeriodicTxPtrnInd(WMA_HANDLE handle,
 	return VOS_STATUS_SUCCESS;
 }
 
+static void wma_set_p2pgo_noa_Req(tp_wma_handle wma,
+						tP2pPsParams *noa)
+{
+	wmi_p2p_set_noa_cmd_fixed_param *cmd;
+	wmi_p2p_noa_descriptor *noa_discriptor;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	u_int16_t len;
+	int32_t status;
+	u_int32_t duration;
+
+	WMA_LOGD("%s: Enter", __func__);
+	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE + sizeof(*noa_discriptor);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("Failed to allocate memory");
+		goto end;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmd = (wmi_p2p_set_noa_cmd_fixed_param *) buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_p2p_set_noa_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_p2p_set_noa_cmd_fixed_param));
+	duration = (noa->count == 1)? noa->single_noa_duration : noa->duration;
+	cmd->vdev_id = noa->sessionId;
+	cmd->enable = (duration)? true : false;
+	cmd->num_noa = 1;
+
+	WMITLV_SET_HDR((buf_ptr + sizeof(wmi_p2p_set_noa_cmd_fixed_param)),
+				WMITLV_TAG_ARRAY_STRUC,
+				sizeof(wmi_p2p_noa_descriptor));
+	noa_discriptor = (wmi_p2p_noa_descriptor *) (buf_ptr +
+				sizeof(wmi_p2p_set_noa_cmd_fixed_param) +
+				WMI_TLV_HDR_SIZE);
+	WMITLV_SET_HDR(&noa_discriptor->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_p2p_noa_descriptor,
+		       WMITLV_GET_STRUCT_TLVLEN(wmi_p2p_noa_descriptor));
+	noa_discriptor->type_count = noa->count;
+	noa_discriptor->duration = duration;
+	noa_discriptor->interval = noa->interval;
+	noa_discriptor->start_time = 0;
+
+	WMA_LOGI("SET P2P GO NOA:vdev_id:%d count:%d duration:%d interval:%d",
+			cmd->vdev_id, noa->count, noa_discriptor->duration,
+			noa->interval);
+	status = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+			WMI_FWTEST_P2P_SET_NOA_PARAM_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("Failed to send WMI_FWTEST_P2P_SET_NOA_PARAM_CMDID");
+		wmi_buf_free(buf);
+	}
+
+end:
+	WMA_LOGD("%s: Exit", __func__);
+}
+
+static void wma_set_p2pgo_oppps_req(tp_wma_handle wma,
+						tP2pPsParams *oppps)
+{
+	wmi_p2p_set_oppps_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t status;
+
+	WMA_LOGD("%s: Enter", __func__);
+	buf = wmi_buf_alloc(wma->wmi_handle, sizeof(*cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate memory");
+		goto end;
+	}
+
+	cmd = (wmi_p2p_set_oppps_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_p2p_set_oppps_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_p2p_set_oppps_cmd_fixed_param));
+	cmd->vdev_id = oppps->sessionId;
+	if (oppps->ctWindow)
+		WMI_UNIFIED_OPPPS_ATTR_ENABLED_SET(cmd);
+
+	WMI_UNIFIED_OPPPS_ATTR_CTWIN_SET(cmd, oppps->ctWindow);
+	WMA_LOGI("SET P2P GO OPPPS:vdev_id:%d ctwindow:%d",
+			cmd->vdev_id, oppps->ctWindow);
+	status = wmi_unified_cmd_send(wma->wmi_handle, buf, sizeof(*cmd),
+			WMI_P2P_SET_OPPPS_PARAM_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("Failed to send WMI_P2P_SET_OPPPS_PARAM_CMDID");
+		wmi_buf_free(buf);
+	}
+
+end:
+	WMA_LOGD("%s: Exit", __func__);
+}
+
+static void wma_process_set_p2pgo_noa_Req(tp_wma_handle wma,
+						tP2pPsParams *ps_params)
+{
+	WMA_LOGD("%s: Enter", __func__);
+	if (ps_params->count == 0 && ps_params->interval == 0) {
+		wma_set_p2pgo_oppps_req(wma, ps_params);
+	} else {
+		wma_set_p2pgo_noa_Req(wma, ps_params);
+	}
+
+	WMA_LOGD("%s: Exit", __func__);
+}
+
 /*
  * function   : wma_mc_process_msg
  * Descriptin :
@@ -14604,6 +14710,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 
 	    case WDA_SET_THERMAL_LEVEL:
 		    wma_process_set_thermal_level(wma_handle, (u_int8_t *) msg->bodyptr);
+			break;
+
+		case WDA_SET_P2P_GO_NOA_REQ:
+			wma_process_set_p2pgo_noa_Req(wma_handle,
+						(tP2pPsParams *)msg->bodyptr);
+                        vos_mem_free(msg->bodyptr);
 			break;
 
 		default:

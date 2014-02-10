@@ -1413,6 +1413,7 @@ typedef struct sP2pPsParams
    tANI_U32  interval;
    tANI_U32  single_noa_duration;
    tANI_U8   psSelection;
+   tANI_U8   sessionId;
 }tP2pPsParams, *tpP2pPsParams;
 
 typedef struct sTdlsLinkEstablishParams
