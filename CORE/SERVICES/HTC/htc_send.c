@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -57,6 +57,20 @@ static unsigned ep_debug_mask = (1 << ENDPOINT_0) | (1 << ENDPOINT_1) | (1 << EN
 #ifndef ENABLE_BUNDLE_TX
 #define ENABLE_BUNDLE_TX 0
 #endif
+
+
+void HTCGetHostCredits(HTC_HANDLE HTCHandle,int *credits)
+{
+    HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
+
+    if (!target) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Target Pointer is NULL!"));
+        AR_DEBUG_ASSERT(FALSE);
+        *credits = 0;
+    }
+
+    *credits = target->TotalHostCredits;
+}
 
 static INLINE void RestoreTxPacket(HTC_TARGET *target, HTC_PACKET *pPacket)
 {
@@ -1516,6 +1530,8 @@ void HTCProcessCreditRpt(HTC_TARGET *target, HTC_CREDIT_REPORT *pRpt, int NumEnt
 #endif
         totalCredits += rpt_credits;
     }
+
+    target->TotalHostCredits = totalCredits;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_SEND, ("  Report indicated %d credits to distribute \n", totalCredits));
 

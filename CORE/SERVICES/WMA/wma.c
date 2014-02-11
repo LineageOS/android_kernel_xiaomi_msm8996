@@ -166,6 +166,9 @@
 /* default latency in us */
 #define WMA_PM_QOS_DEFAULT_LATENCY 20000
 
+#define WMI_MAX_HOST_CREDITS 2
+#define WMI_WOW_REQUIRED_CREDITS 1
+
 static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
 
@@ -11493,12 +11496,17 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	cmd->enable = TRUE;
 
 	vos_event_reset(&wma->target_suspend);
+
+	if (wmi_get_host_credits(wma->wmi_handle) < WMI_WOW_REQUIRED_CREDITS) {
+		WMA_LOGE("Cannot Post WMI_WOW_ENABLE_CMDID !. No Credits\n");
+		goto error;
+	}
+
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				   WMI_WOW_ENABLE_CMDID);
 	if (ret) {
 		WMA_LOGE("Failed to enable wow in fw");
-		wmi_buf_free(buf);
-		return VOS_STATUS_E_FAILURE;
+		goto error;
 	}
 
 	if (vos_wait_single_event(&wma->target_suspend,
@@ -11507,6 +11515,15 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 		WMA_LOGE("Failed to receive WoW Enable Ack from FW");
 		return VOS_STATUS_E_FAILURE;
 	}
+
+	if ((wmi_get_host_credits(wma->wmi_handle) != WMI_MAX_HOST_CREDITS) ||
+					wmi_get_pending_cmds(wma->wmi_handle))
+	{
+		WMA_LOGE("Host Doesn't have enough credits!. FW didn't give enough credits");
+		VOS_BUG(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+
 
 	WMA_LOGD("WOW enabled successfully in fw");
 
@@ -11521,6 +11538,10 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 
 	wma->wow.wow_enable_cmd_sent = TRUE;
 	return VOS_STATUS_SUCCESS;
+
+error:
+	wmi_buf_free(buf);
+	return VOS_STATUS_E_FAILURE;
 }
 
 /* Sends user configured WOW patterns to the firmware. */
@@ -12143,6 +12164,14 @@ enable_wow:
 		return ret;
 	}
 	vos_mem_free(info);
+
+	ret = wmi_is_suspend_ready(wma->wmi_handle);
+	if (ret) {
+		WMA_LOGE("WMI Commands are pending in the queue for long time"
+					"FW is not responding with credits");
+		VOS_BUG(0);
+		return VOS_STATUS_E_FAILURE;
+	}
 
 send_ready_to_suspend:
 	wma_send_ready_to_suspend_ind(wma);

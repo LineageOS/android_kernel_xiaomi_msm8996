@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -683,7 +683,7 @@ struct s_htc_msg{
 	void *pContext;
 };
 #endif
-
+void HTCGetHostCredits(HTC_HANDLE HTCHandle, int *credit);
 void *htc_get_targetdef(HTC_HANDLE htc_handle);
 void HTCSetTargetToSleep(void *context);
 void HTCCancelDeferredTargetSleep(void *context);
