@@ -2648,7 +2648,7 @@ void wma_vdev_detach_callback(void *ctx)
 			 __func__, param->sessionId);
 		vos_timer_stop(&req_msg->event_timeout);
 		vos_timer_destroy(&req_msg->event_timeout);
-		vos_mem_free(req_msg);
+		adf_os_mem_free(req_msg);
 	}
 	if(iface->addBssStaContext)
                 adf_os_mem_free(iface->addBssStaContext);
@@ -2721,11 +2721,10 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 
         adf_os_spin_lock_bh(&wma_handle->vdev_detach_lock);
         if(!iface->handle) {
-                status = VOS_STATUS_E_FAILURE;
                 WMA_LOGE("handle of vdev_id %d is NULL vdev is already freed",
                     vdev_id);
                 adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
-                goto out;
+		return status;
         }
 
         /* remove the interface from ath_dev */
@@ -5612,7 +5611,7 @@ static struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev
 {
 	struct wma_target_req *req;
 
-	req = vos_mem_malloc(sizeof(*req));
+	req = adf_os_mem_alloc(NULL, sizeof(*req));
 	if (!req) {
 		WMA_LOGP("Failed to allocate memory for msg %d vdev %d\n",
 			 msg_type, vdev_id);
