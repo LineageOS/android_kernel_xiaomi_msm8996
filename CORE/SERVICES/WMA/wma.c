@@ -8127,10 +8127,10 @@ static u_int16_t wma_calc_ibss_heart_beat_timer(int16_t peer_num)
            entry value : the heart time threshold value in seconds for
                          detecting ibss peer departure */
         static const u_int16_t heart_beat_timer[HDD_MAX_NUM_IBSS_STA] = {
-                4, 4, 4, 4, 4, 4, 4, 4,
-                4, 4, 4, 4, 4, 4, 4, 4,
-                4, 4, 4, 4, 4, 4, 4, 4,
-                4, 4, 4, 4, 4, 4, 4, 4};
+                 4,  4,  4,  4,  4,  4,  4,  4,
+                 8,  8,  8,  8,  8,  8,  8,  8,
+                12, 12, 12, 12, 12, 12, 12, 12,
+                16, 16, 16, 16, 16, 16, 16, 16};
 
         if (peer_num < 1 || peer_num > HDD_MAX_NUM_IBSS_STA)
                 return 0;
