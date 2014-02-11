@@ -3809,18 +3809,27 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 		goto error1;
 	}
 
+	/* Start the timer for scan completion */
+	vos_status = vos_timer_start(&wma_handle->wma_scan_comp_timer,
+					WMA_HW_DEF_SCAN_MAX_DURATION);
+	if (vos_status != VOS_STATUS_SUCCESS ) {
+		WMA_LOGE("Failed to start the scan completion timer");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto error1;
+	}
+
 	/* Fill individual elements of wmi_start_scan_req and
 	 * TLV for channel list, bssid, ssid etc ... */
 	vos_status = wma_get_buf_start_scan_cmd(wma_handle, scan_req,
 			&buf, &len);
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to get buffer for start scan cmd");
-		goto error1;
+		goto error0;
 	}
 
 	if (NULL == buf) {
 		WMA_LOGE("Failed to get buffer for saving current scan info");
-		goto error1;
+		goto error0;
 	}
 
 	/* Save current scan info */
@@ -3846,14 +3855,6 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 
 	WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
 
-	/* Start the timer for scan completion */
-	vos_status = vos_timer_start(&wma_handle->wma_scan_comp_timer,
-					WMA_HW_DEF_SCAN_MAX_DURATION);
-	if (vos_status != VOS_STATUS_SUCCESS ) {
-		WMA_LOGE("Failed to start the scan completion timer");
-		vos_status = VOS_STATUS_E_FAILURE;
-		goto error;
-	}
 	/* Update the scan parameters for handler */
 	wma_handle->wma_scan_timer_info.vdev_id = cmd->vdev_id;
 	wma_handle->wma_scan_timer_info.scan_id = cmd->scan_id;
@@ -3863,6 +3864,12 @@ error:
 	wma_reset_scan_info(wma_handle, cmd->vdev_id);
 	if (buf)
 		adf_nbuf_free(buf);
+error0:
+	/* Stop the timer for scan completion */
+	if (vos_timer_stop(&wma_handle->wma_scan_comp_timer)
+		!= VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to stop the scan completion timer");
+	}
 error1:
         /* Send completion event for only for start scan request */
         if (msg_type == WDA_START_SCAN_OFFLOAD_REQ) {
