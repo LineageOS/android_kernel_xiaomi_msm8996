@@ -190,7 +190,7 @@ static int ol_transfer_single_bin_file(struct ol_softc *scn,
 			if (binary_len < sizeof(SIGN_HEADER_T))
 			{
 				AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
-					("%s: sign header size is error: bin id: %d, bin len: %d, sign header size: %d \n",
+					("%s: sign header size is error: bin id: %d, bin len: %d, sign header size: %zu \n",
 					__func__, one_bin_header->binary_id,
 					one_bin_header->binary_len,
 					sizeof(SIGN_HEADER_T)));
@@ -599,10 +599,8 @@ void ol_target_failure(void *instance, A_STATUS status)
 	A_UINT32 reg_dump_cnt = 0;
 	A_UINT32 i;
 	A_UINT32 dbglog_hdr_address;
-	struct dbglog_hdr_s dbglog_hdr;
-	struct dbglog_buf_s dbglog_buf;
-	struct dbglog_hdr_host dbglog_hdr_temp;
-	struct dbglog_buf_host dbglog_buf_temp;
+	struct dbglog_hdr_host dbglog_hdr;
+	struct dbglog_buf_host dbglog_buf;
 	A_UINT8 *dbglog_data;
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
@@ -659,31 +657,21 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 	if (HIFDiagReadMem(scn->hif_hdl,
 	            dbglog_hdr_address,
-	            (A_UCHAR *)&dbglog_hdr_temp,
-	            sizeof(dbglog_hdr_temp))!= A_OK)
+	            (A_UCHAR *)&dbglog_hdr,
+	            sizeof(dbglog_hdr))!= A_OK)
 	{
 	    printk("HifDiagReadiMem FW dbglog_hdr failed\n");
 	    return;
 	}
 
-	dbglog_hdr.dbuf = (struct dbglog_buf_s *)dbglog_hdr_temp.dbuf;
-	dbglog_hdr.dropped = dbglog_hdr_temp.dropped;
-
 	if (HIFDiagReadMem(scn->hif_hdl,
 	            (A_UINT32)dbglog_hdr.dbuf,
-	            (A_UCHAR *)&dbglog_buf_temp,
-	            sizeof(dbglog_buf_temp))!= A_OK)
+	            (A_UCHAR *)&dbglog_buf,
+	            sizeof(dbglog_buf))!= A_OK)
 	{
 	    printk("HifDiagReadiMem FW dbglog_buf failed\n");
 	    return;
 	}
-
-	dbglog_buf.next = (struct dbglog_buf_s *)dbglog_buf_temp.next;
-	dbglog_buf.buffer = (A_UINT8 *)dbglog_buf_temp.buffer;
-	dbglog_buf.bufsize = dbglog_buf_temp.bufsize;
-	dbglog_buf.length = dbglog_buf_temp.length;
-	dbglog_buf.count = dbglog_buf_temp.count;
-	dbglog_buf.free = dbglog_buf_temp.free;
 
 	dbglog_data = adf_os_mem_alloc(scn->adf_dev,  dbglog_buf.length + 4);
 	if (dbglog_data) {
@@ -694,7 +682,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 	    {
 	        printk("HifDiagReadiMem FW dbglog_data failed\n");
 	    } else {
-	        printk("dbglog_hdr.dbuf=%p dbglog_data=%p dbglog_buf.buffer=%p dbglog_buf.length=%u\n",
+	        printk("dbglog_hdr.dbuf=%u dbglog_data=%p dbglog_buf.buffer=%u dbglog_buf.length=%u\n",
 	                dbglog_hdr.dbuf, dbglog_data, dbglog_buf.buffer, dbglog_buf.length);
 
 
