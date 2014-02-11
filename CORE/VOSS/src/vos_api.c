@@ -1116,6 +1116,15 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   }
 #endif
 
+  vosStatus = wma_wmi_service_close( vosContext );
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close wma_wmi_service", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+
 #ifndef QCA_WIFI_2_0
   /* Let DXE return packets in WDA_close and then free them here */
   vosStatus = vos_packet_close( vosContext );

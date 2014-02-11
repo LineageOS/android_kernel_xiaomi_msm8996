@@ -15736,6 +15736,41 @@ static void wma_cleanup_vdev_resp(tp_wma_handle wma)
 	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
 }
 
+VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
+{
+	tp_wma_handle wma_handle;
+
+	WMA_LOGD("%s: Enter", __func__);
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+
+	/* validate the wma_handle */
+	if (NULL == wma_handle) {
+		WMA_LOGE("%s: Invalid wma handle", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	/* validate the wmi handle */
+	if (NULL == wma_handle->wmi_handle) {
+		WMA_LOGE("%s: Invalid wmi handle", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	/* dettach the wmi serice */
+	WMA_LOGD("calling wmi_unified_detach");
+	wmi_unified_detach(wma_handle->wmi_handle);
+	wma_handle->wmi_handle = NULL;
+
+	vos_mem_free(wma_handle->interfaces);
+	/* free the wma_handle */
+	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WDA, wma_handle);
+
+	adf_os_mem_free(((pVosContextType) vos_ctx)->cfg_ctx);
+	WMA_LOGD("%s: Exit", __func__);
+	return VOS_STATUS_SUCCESS;
+}
+
+
 /* function   : wma_close
  * Descriptin :
  * Args       :
@@ -15810,18 +15845,6 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	if (vos_get_conparam() == VOS_FTM_MODE)
 		wma_utf_detach(wma_handle);
 #endif
-
-	/* dettach the wmi serice */
-	if (wma_handle->wmi_handle) {
-		WMA_LOGD("calling wmi_unified_detach");
-		wmi_unified_detach(wma_handle->wmi_handle);
-		wma_handle->wmi_handle = NULL;
-	}
-	vos_mem_free(wma_handle->interfaces);
-	/* free the wma_handle */
-	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WDA, wma_handle);
-
-	adf_os_mem_free(((pVosContextType) vos_ctx)->cfg_ctx);
 
 	WMA_LOGD("%s: Exit", __func__);
 	return VOS_STATUS_SUCCESS;
