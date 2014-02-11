@@ -9407,6 +9407,8 @@ static int wmi_unified_bcn_tmpl_send(tp_wma_handle wma,
 	int ret;
 	u_int8_t *p2p_ie;
 	u_int16_t p2p_ie_len = 0;
+	u_int64_t adjusted_tsf_le;
+	struct ieee80211_frame *wh;
 
 
 	WMA_LOGD("Send beacon template for vdev %d", vdev_id);
@@ -9432,6 +9434,15 @@ static int wmi_unified_bcn_tmpl_send(tp_wma_handle wma,
 
 	frm = bcn_info->beacon + bytes_to_strip;
 	tmpl_len_aligned = roundup(tmpl_len, sizeof(A_UINT32));
+	/*
+	 * Make the TSF offset negative so beacons in the same
+	 * staggered batch have the same TSF.
+	 */
+	adjusted_tsf_le = cpu_to_le64(0ULL -
+				      wma->interfaces[vdev_id].tsfadjust);
+	/* Update the timstamp in the beacon buffer with adjusted TSF */
+	wh = (struct ieee80211_frame *)frm;
+	A_MEMCPY(&wh[1], &adjusted_tsf_le, sizeof(adjusted_tsf_le));
 
 	wmi_buf_len = sizeof(wmi_bcn_tmpl_cmd_fixed_param) +
 	          sizeof(wmi_bcn_prb_info) + WMI_TLV_HDR_SIZE +
@@ -9556,11 +9567,8 @@ static int wma_tbttoffset_update_event_handler(void *handle, u_int8_t *event,
 	WMI_TBTTOFFSET_UPDATE_EVENTID_param_tlvs *param_buf;
 	wmi_tbtt_offset_event_fixed_param *tbtt_offset_event;
 	struct wma_txrx_node *intf = wma->interfaces;
-	struct ieee80211_frame *wh;
 	struct beacon_info *bcn;
 	tSendbeaconParams bcn_info;
-	u_int8_t *bcn_payload;
-	u_int64_t adjusted_tsf_le;
 	u_int32_t *adjusted_tsf;
 	u_int32_t if_id = 0, vdev_map;
 
@@ -9584,19 +9592,10 @@ static int wma_tbttoffset_update_event_handler(void *handle, u_int8_t *event,
 		}
 		/* Save the adjusted TSF */
 		intf[if_id].tsfadjust = adjusted_tsf[if_id];
-		/*
-		 * Make the TSF offset negative so beacons in the same
-		 * staggered batch have the same TSF.
-		 */
-		adjusted_tsf_le = cpu_to_le64(0ULL - intf[if_id].tsfadjust);
 
-		/* Update the timstamp in the beacon buffer with adjusted TSF */
 		adf_os_spin_lock_bh(&bcn->lock);
-		bcn_payload = adf_nbuf_data(bcn->buf);
-		wh = (struct ieee80211_frame *) bcn_payload;
-		A_MEMCPY(&wh[1], &adjusted_tsf_le, sizeof(adjusted_tsf_le));
 		vos_mem_zero(&bcn_info, sizeof(bcn_info));
-		bcn_info.beacon = bcn_payload;
+		bcn_info.beacon = adf_nbuf_data(bcn->buf);
 		bcn_info.p2pIeOffset = bcn->p2p_ie_offset;
 		bcn_info.beaconLength = bcn->len;
 		bcn_info.timIeOffset = bcn->tim_ie_offset;
