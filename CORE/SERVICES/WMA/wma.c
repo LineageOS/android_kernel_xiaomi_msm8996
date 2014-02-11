@@ -534,8 +534,9 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	struct wma_target_req *req_msg;
 	WMI_VDEV_START_RESP_EVENTID_param_tlvs *param_buf;
 	wmi_vdev_start_response_event_fixed_param *resp_event;
-   struct wma_txrx_node *iface;
+	struct wma_txrx_node *iface;
 
+	WMA_LOGD("%s: Enter", __func__);
 	param_buf = (WMI_VDEV_START_RESP_EVENTID_param_tlvs *) cmd_param_info;
 	if (!param_buf) {
 		WMA_LOGE("Invalid start response event buffer");
@@ -920,6 +921,7 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 #endif
 	struct wma_txrx_node *iface;
 
+	WMA_LOGD("%s: Enter", __func__);
 	param_buf = (WMI_VDEV_STOPPED_EVENTID_param_tlvs *) cmd_param_info;
 	if (!param_buf) {
 		WMA_LOGE("Invalid event buffer");
@@ -1597,6 +1599,8 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 	tpCSAOffloadParams csa_offload_event;
 
 	param_buf = (WMI_CSA_HANDLING_EVENTID_param_tlvs *) event;
+
+	WMA_LOGD("%s: Enter", __func__);
 	if (!param_buf) {
 		WMA_LOGE("Invalid csa event buffer");
 		return -EINVAL;
@@ -1621,6 +1625,7 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 	csa_offload_event->channel = csa_ie->newchannel;
 	csa_offload_event->switchmode = csa_ie->switchmode;
 
+	WMA_LOGD("CSA: New Channel = %d", csa_offload_event->channel);
 	wma->interfaces[vdev_id].is_channel_switch = VOS_TRUE;
 	wma_send_msg(wma, WDA_CSA_OFFLOAD_EVENT, (void *)csa_offload_event, 0);
 	return 0;
@@ -5400,6 +5405,7 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	u_int8_t *buf_ptr;
 	struct wma_txrx_node *intr = wma->interfaces;
 
+	WMA_LOGD("%s: Enter isRestart=%d vdev=%d", __func__, isRestart,req->vdev_id);
 	len = sizeof(*cmd) + sizeof(wmi_channel) +
 	       WMI_TLV_HDR_SIZE;
 	buf = wmi_buf_alloc(wma->wmi_handle, len);
@@ -5779,6 +5785,7 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
         ol_txrx_pdev_handle pdev;
         struct wma_txrx_node *intr = wma->interfaces;
 
+	WMA_LOGD("%s: Enter", __func__);
         if (!wma_find_vdev_by_addr(wma, params->selfStaMacAddr, &vdev_id)) {
                 WMA_LOGP("%s: Failed to find vdev id for %pM",
                          __func__, params->selfStaMacAddr);
@@ -14873,9 +14880,12 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 	node = &wma->interfaces[nlo_event->vdev_id];
 
 	/* Handle scan completion event only after NLO match event. */
-	if (!node || !node->nlo_match_evt_received)
-		goto skip_pno_cmp_ind;
+	if (!node || !node->nlo_match_evt_received) {
 
+		WMA_LOGD("NLO match not recieved skipping PNO complete ind for vdev %d",
+		nlo_event->vdev_id);
+		goto skip_pno_cmp_ind;
+	}
 	/* FW need explict stop to really stop PNO operation */
 	status = wma_pno_stop(wma, nlo_event->vdev_id);
 	if (status)
