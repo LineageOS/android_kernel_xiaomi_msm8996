@@ -209,7 +209,8 @@ wma_process_ftm_command(tp_wma_handle wma_handle,
 /*DFS Attach*/
 struct ieee80211com* wma_dfs_attach(struct ieee80211com *ic);
 static void wma_set_regdomain(a_uint32_t regdmn);
-
+static void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
+							tpAddBssParams add_bss);
 /*Configure DFS with radar tables and regulatory domain*/
 void wma_dfs_configure(struct ieee80211com *ic);
 
@@ -7392,7 +7393,7 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		WMA_LOGE("%s: Failed to get vdev handle\n", __func__);
 		goto send_fail_resp;
 	}
-
+	wma_set_bss_rate_flags(&wma->interfaces[vdev_id], add_bss);
 	status = wma_create_peer(wma, pdev, vdev, add_bss->bssId,
 	                         WMI_PEER_TYPE_DEFAULT, vdev_id);
 	if (status != VOS_STATUS_SUCCESS) {
@@ -7480,7 +7481,7 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		WMA_LOGE("%s: Failed to get pdev", __func__);
 		goto send_fail_resp;
 	}
-
+	wma_set_bss_rate_flags(&wma->interfaces[vdev_id], add_bss);
 	vdev = wma_find_vdev_by_id(wma, vdev_id);
         if (vdev) {
 	        WMA_LOGD("%s: vdev found for vdev id %d. deleting the vdev\n",
@@ -13645,6 +13646,7 @@ VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
 	tANI_S32 mbpsx10_rate = -1;
 	tANI_U32 paramId;
 	tANI_U8 rate = 0;
+	u_int32_t short_gi;
 	struct wma_txrx_node *intr = wma->interfaces;
 
 	/* Get the vdev id */
@@ -13660,7 +13662,7 @@ VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
 		vos_mem_free(pRateUpdateParams);
 		return VOS_STATUS_E_INVAL;
 	}
-
+	short_gi = (intr[vdev_id].rate_flags & eHAL_TX_RATE_SGI) ? TRUE : FALSE;
 	/* first check if reliable TX mcast rate is used. If not check the bcast.
 	 * Then is mcast. Mcast rate is saved in mcastDataRate24GHz */
 	if (pRateUpdateParams->reliableMcastDataRateTxFlag > 0) {
@@ -13673,10 +13675,9 @@ VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
 		mbpsx10_rate = pRateUpdateParams->mcastDataRate24GHz;
 		paramId = WMI_VDEV_PARAM_MCAST_DATA_RATE;
 	}
-	ret = wma_encode_mc_rate(intr[vdev_id].config.shortgi,
-				intr[vdev_id].config.chwidth,
-				intr[vdev_id].chanmode, intr[vdev_id].mhz,
-				mbpsx10_rate, pRateUpdateParams->nss, &rate);
+	ret = wma_encode_mc_rate(short_gi, intr[vdev_id].config.chwidth,
+			intr[vdev_id].chanmode, intr[vdev_id].mhz,
+			mbpsx10_rate, pRateUpdateParams->nss, &rate);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("%s: Error, Invalid input rate value", __func__);
 		vos_mem_free(pRateUpdateParams);
