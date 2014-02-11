@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -41,8 +41,10 @@
 #define ONE_BIN_FORMAT_VER    (ONE_BIN_FORMAT_MAJOR << 16 | ONE_BIN_FORMAT_MINOR)
 
 /* CHIP ID */
-#define AR6320_1_0_CHIP_ID      0x50000000
-#define AR6320_1_1_CHIP_ID      0x50000001
+#define AR6320_1_0_CHIP_ID      0x5000000
+#define AR6320_1_1_CHIP_ID      0x5000001
+#define AR6320_1_3_CHIP_ID      0x5000003
+#define AR6320_2_0_CHIP_ID      0x5010000
 
 /* WLAN BINARY_ID */
 #define WLAN_SETUP_BIN_ID     0x01
@@ -59,8 +61,9 @@
 #define UTF_GROUP_ID          0x40000000
 
 /* ACTION */
-#define ACTION_DOWNLOAD       0x1 /* download only */
-#define ACTION_DOWNLOAD_EXEC  0x3 /* download binary and send BMI to execute */
+#define ACTION_PARSE_SIG      0x80000000   /* parse signature		  */
+#define ACTION_DOWNLOAD       0x1	   /* download only		  */
+#define ACTION_DOWNLOAD_EXEC  0x3	   /* download binary and execute */
 
 /* Binary Meta Header */
 typedef struct {

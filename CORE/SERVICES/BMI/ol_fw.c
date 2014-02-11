@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -173,18 +173,10 @@ static int ol_transfer_single_bin_file(struct ol_softc *scn,
 		binary_len = one_bin_header->binary_len;
 		next_tag_offset = one_bin_header->next_tag_off;
 
-		switch (one_bin_header->chip_id)
-		{
-		default:
-			fw_sign = FALSE;
-			break;
-		case AR6320_1_0_CHIP_ID:
-			fw_sign = FALSE;
-			break;
-		case AR6320_1_1_CHIP_ID:
+		if (one_bin_header->action & ACTION_PARSE_SIG)
 			fw_sign = TRUE;
-			break;
-		}
+		else
+			fw_sign = FALSE;
 
 		if (fw_sign)
 		{
@@ -198,8 +190,8 @@ static int ol_transfer_single_bin_file(struct ol_softc *scn,
 				status = A_ERROR;
 				goto exit;
 			}
-			sign_header = (SIGN_HEADER_T *)(u_int8_t *)fw_entry_data
-					+ binary_offset;
+			sign_header = (SIGN_HEADER_T *)((u_int8_t *)fw_entry_data
+					+ binary_offset);
 
 			status = BMISignStreamStart(scn->hif_hdl, address,
 						    (u_int8_t *)fw_entry_data
@@ -251,7 +243,8 @@ static int ol_transfer_single_bin_file(struct ol_softc *scn,
 			}
 		}
 
-		if (one_bin_header->action == ACTION_DOWNLOAD_EXEC)
+		if ((one_bin_header->action & ACTION_DOWNLOAD_EXEC)	\
+						== ACTION_DOWNLOAD_EXEC)
 		{
 			param = 0;
 			BMIExecute(scn->hif_hdl, address, &param, scn);
