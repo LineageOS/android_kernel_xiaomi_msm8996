@@ -576,7 +576,11 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 
 out_fail:
 	/* silent SSR on dump failure */
+#ifdef CNSS_SELF_RECOVERY
 	cnss_device_self_recovery();
+#else
+	cnss_device_crashed();
+#endif
 	return;
 }
 

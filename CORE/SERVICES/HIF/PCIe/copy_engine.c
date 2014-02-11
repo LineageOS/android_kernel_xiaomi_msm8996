@@ -90,7 +90,9 @@ CE_completed_send_next_nolock(struct CE_state *CE_state,
                               void **per_transfer_contextp,
                               CE_addr_t *bufferp,
                               unsigned int *nbytesp,
-                              unsigned int *transfer_idp);
+                              unsigned int *transfer_idp,
+                              unsigned int *sw_idx,
+                              unsigned int *hw_idx);
 
 void WAR_CE_SRC_RING_WRITE_IDX_SET(struct hif_pci_softc *sc,
                                    void __iomem *targid,
@@ -648,7 +650,9 @@ CE_completed_send_next_nolock(struct CE_state *CE_state,
                               void **per_transfer_contextp,
                               CE_addr_t *bufferp,
                               unsigned int *nbytesp,
-                              unsigned int *transfer_idp)
+                              unsigned int *transfer_idp,
+                              unsigned int *sw_idx,
+                              unsigned int *hw_idx)
 {
     int status = A_ERROR;
     struct CE_ring_state *src_ring = CE_state->src_ring;
@@ -673,6 +677,12 @@ CE_completed_send_next_nolock(struct CE_state *CE_state,
         A_TARGET_ACCESS_END(targid);
     }
     read_index = src_ring->hw_index;
+
+    if (sw_idx)
+        *sw_idx = sw_index;
+
+    if (hw_idx)
+        *hw_idx = read_index;
 
     if ((read_index != sw_index) && (read_index != 0xffffffff)) {
         struct CE_src_desc *shadow_base = (struct CE_src_desc *)src_ring->shadow_base;
@@ -772,7 +782,9 @@ CE_completed_send_next(struct CE_handle *copyeng,
                        void **per_transfer_contextp,
                        CE_addr_t *bufferp,
                        unsigned int *nbytesp,
-                       unsigned int *transfer_idp)
+                       unsigned int *transfer_idp,
+                       unsigned int *sw_idx,
+                       unsigned int *hw_idx)
 {
     struct CE_state *CE_state = (struct CE_state *)copyeng;
     struct hif_pci_softc *sc = CE_state->sc;
@@ -781,7 +793,8 @@ CE_completed_send_next(struct CE_handle *copyeng,
 
     adf_os_spin_lock(&sc->target_lock);
     status = CE_completed_send_next_nolock(CE_state, per_CE_contextp, per_transfer_contextp,
-                                               bufferp, nbytesp, transfer_idp);
+                                               bufferp, nbytesp, transfer_idp,
+                                               sw_idx, hw_idx);
     adf_os_spin_unlock(&sc->target_lock);
 
     return status;
@@ -807,6 +820,7 @@ CE_per_engine_servicereap(struct hif_pci_softc *sc, unsigned int CE_id)
     CE_addr_t buf;
     unsigned int nbytes;
     unsigned int id;
+    unsigned int sw_idx, hw_idx;
 
     A_TARGET_ACCESS_BEGIN(targid);
 
@@ -817,11 +831,12 @@ CE_per_engine_servicereap(struct hif_pci_softc *sc, unsigned int CE_id)
        {
             /* Pop completed send buffers and call the registered send callback for each */
             while (CE_completed_send_next_nolock(CE_state, &CE_context, &transfer_context,
-                        &buf, &nbytes, &id) == A_OK)
+                        &buf, &nbytes, &id, &sw_idx, &hw_idx) == A_OK)
             {
                 if(CE_id != CE_HTT_H2T_MSG){
                     adf_os_spin_unlock(&sc->target_lock);
-                    CE_state->send_cb((struct CE_handle *)CE_state, CE_context, transfer_context, buf, nbytes, id);
+                    CE_state->send_cb((struct CE_handle *)CE_state, CE_context, transfer_context, buf, nbytes, id,
+                                      sw_idx, hw_idx);
                     adf_os_spin_lock(&sc->target_lock);
                 }else{
                      struct HIF_CE_pipe_info *pipe_info = (struct HIF_CE_pipe_info *)CE_context;
@@ -870,6 +885,7 @@ CE_per_engine_service(struct hif_pci_softc *sc, unsigned int CE_id)
     unsigned int flags;
     u_int32_t CE_int_status;
     unsigned int more_comp_cnt = 0;
+    unsigned int sw_idx, hw_idx;
 
     A_TARGET_ACCESS_BEGIN(targid);
 
@@ -918,11 +934,12 @@ more_completions:
 
 #ifdef ATH_11AC_TXCOMPACT
         while (CE_completed_send_next_nolock(CE_state, &CE_context, &transfer_context,
-                    &buf, &nbytes, &id) == A_OK){
+                    &buf, &nbytes, &id, &sw_idx, &hw_idx) == A_OK){
 
             if(CE_id != CE_HTT_H2T_MSG){
                 adf_os_spin_unlock(&sc->target_lock);
-                CE_state->send_cb((struct CE_handle *)CE_state, CE_context, transfer_context, buf, nbytes, id);
+                CE_state->send_cb((struct CE_handle *)CE_state, CE_context, transfer_context, buf, nbytes, id,
+                                  sw_idx, hw_idx);
                 adf_os_spin_lock(&sc->target_lock);
             }else{
                 struct HIF_CE_pipe_info *pipe_info = (struct HIF_CE_pipe_info *)CE_context;
@@ -934,9 +951,10 @@ more_completions:
         }
 #else  /*ATH_11AC_TXCOMPACT*/ 
         while (CE_completed_send_next_nolock(CE_state, &CE_context, &transfer_context,
-                    &buf, &nbytes, &id) == A_OK){
+                    &buf, &nbytes, &id, &sw_idx, &hw_idx) == A_OK){
             adf_os_spin_unlock(&sc->target_lock);
-            CE_state->send_cb((struct CE_handle *)CE_state, CE_context, transfer_context, buf, nbytes, id);
+            CE_state->send_cb((struct CE_handle *)CE_state, CE_context, transfer_context, buf, nbytes, id,
+                              sw_idx, hw_idx);
             adf_os_spin_lock(&sc->target_lock);
         }
 #endif /*ATH_11AC_TXCOMPACT*/

@@ -74,7 +74,9 @@ typedef void (* CE_send_cb)(struct CE_handle *copyeng,
                             void *per_transfer_send_context,
                             CE_addr_t buffer,
                             unsigned int nbytes,
-                            unsigned int transfer_id);
+                            unsigned int transfer_id,
+                            unsigned int sw_index,
+                            unsigned int hw_index);
 
 /*
  * "Buffer Received" callback type for Buffer Received Notification.
@@ -318,7 +320,9 @@ int CE_completed_send_next(struct CE_handle *copyeng,
                                 void **per_transfer_contextp,
                                 CE_addr_t *bufferp,
                                 unsigned int *nbytesp,
-                                unsigned int *transfer_idp);
+                                unsigned int *transfer_idp,
+                                unsigned int *sw_idx,
+                                unsigned int *hw_idx);
 
 
 /*==================CE Engine Initialization==================================*/

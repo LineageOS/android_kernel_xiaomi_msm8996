@@ -313,7 +313,7 @@ A_STATUS HTCRxCompletionHandler(
             netbuf = NULL;
             break;
 #else
-            AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("HTC Rx: insufficient length, got:%d expected =%u\n",
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("HTC Rx: insufficient length, got:%d expected =%zu\n",
                 netlen, payloadLen + HTC_HDR_LENGTH));
             DebugDumpBytes((A_UINT8 *)HtcHdr,sizeof(HTC_FRAME_HDR),"BAD RX packet length");
             status = A_ERROR;

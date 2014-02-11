@@ -318,12 +318,14 @@ HIFGetFreeQueueNumber(HIF_DEVICE *hif_device, a_uint8_t pipe)
 /* Called by lower (CE) layer when a send to Target completes. */
 void
 HIF_PCI_CE_send_done(struct CE_handle *copyeng, void *ce_context, void *transfer_context,
-    CE_addr_t CE_data, unsigned int nbytes, unsigned int transfer_id)
+    CE_addr_t CE_data, unsigned int nbytes, unsigned int transfer_id,
+    unsigned int sw_index, unsigned int hw_index)
 {
     struct HIF_CE_pipe_info *pipe_info = (struct HIF_CE_pipe_info *)ce_context;
     struct HIF_CE_state *hif_state = pipe_info->HIF_CE_state;
     struct HIF_CE_completion_state *compl_state;
     struct HIF_CE_completion_state *compl_queue_head, *compl_queue_tail; /* local queue */
+    unsigned int sw_idx = sw_index, hw_idx = hw_index;
 
     compl_queue_head = compl_queue_tail = NULL;
     do {
@@ -341,7 +343,16 @@ HIF_PCI_CE_send_done(struct CE_handle *copyeng, void *ce_context, void *transfer
 
         adf_os_spin_lock(&pipe_info->completion_freeq_lock);
         compl_state = pipe_info->completion_freeq_head;
-        ASSERT(compl_state != NULL);
+        if (!compl_state) {
+            adf_os_spin_unlock(&pipe_info->completion_freeq_lock);
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+                            ("Out of free buf in hif send completion list, potential hw_index corruption"
+                             "pipe_num:%d num_send_allowed:%d pipe_info:0x%p sw_index:%d hw_index:%d nbytes:%d\n",
+                            pipe_info->pipe_num, pipe_info->num_sends_allowed,
+                            pipe_info, sw_idx, hw_idx, nbytes));
+            ASSERT(0);
+            break;
+        }
         pipe_info->completion_freeq_head = compl_state->next;
         adf_os_spin_unlock(&pipe_info->completion_freeq_lock);
 
@@ -363,7 +374,8 @@ HIF_PCI_CE_send_done(struct CE_handle *copyeng, void *ce_context, void *transfer
         }
         compl_queue_tail = compl_state;
     } while (CE_completed_send_next(copyeng, &ce_context, &transfer_context,
-                                         &CE_data, &nbytes, &transfer_id) == EOK);
+                                         &CE_data, &nbytes, &transfer_id,
+                                         &sw_idx, &hw_idx) == EOK);
 
     if (compl_queue_head == NULL) {
         /*
@@ -508,6 +520,8 @@ hif_completion_thread_startup(struct HIF_CE_state *hif_state)
         attr = host_CE_config[pipe_num];
         completions_needed = 0;
         if (attr.src_nentries) { /* pipe used to send to target */
+            AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("pipe_num:%d pipe_info:0x%p\n",
+                            pipe_num, pipe_info));
             CE_send_cb_register(pipe_info->ce_hdl, HIF_PCI_CE_send_done, pipe_info, attr.flags & CE_ATTR_DISABLE_INTR);
             completions_needed += attr.src_nentries;
             pipe_info->num_sends_allowed = attr.src_nentries-1;
@@ -973,7 +987,9 @@ HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbyt
         }
     
         i=0;
-        while (CE_completed_send_next(ce_diag, NULL, NULL, &buf, &completed_nbytes, &id) != A_OK) {
+        while (CE_completed_send_next(ce_diag, NULL, NULL, &buf,
+                                      &completed_nbytes, &id,
+                                      NULL, NULL) != A_OK) {
             A_MDELAY(1);
             if (i++ > DIAG_ACCESS_CE_TIMEOUT_MS) {
                 status = A_EBUSY;
@@ -1141,7 +1157,9 @@ HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nby
         }
     
         i=0;
-        while (CE_completed_send_next(ce_diag, NULL, NULL, &buf, &completed_nbytes, &id) != A_OK) {
+        while (CE_completed_send_next(ce_diag, NULL, NULL, &buf,
+                                      &completed_nbytes, &id,
+                                      NULL, NULL) != A_OK) {
             A_MDELAY(1);
             if (i++ > DIAG_ACCESS_CE_TIMEOUT_MS) {
                 status = A_EBUSY;
@@ -1599,7 +1617,8 @@ struct BMI_transaction {
  */
 static void
 HIF_BMI_send_done(struct CE_handle *copyeng, void *ce_context, void *transfer_context,
-    CE_addr_t data, unsigned int nbytes, unsigned int transfer_id)
+    CE_addr_t data, unsigned int nbytes, unsigned int transfer_id,
+    unsigned int sw_index, unsigned int hw_index)
 {
     struct BMI_transaction *transaction = (struct BMI_transaction *)transfer_context;
     struct hif_pci_softc *sc = transaction->hif_state->sc;
