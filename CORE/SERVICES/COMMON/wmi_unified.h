@@ -618,6 +618,9 @@ typedef enum {
     /** DFS radar event  */
     WMI_DFS_RADAR_EVENTID,
 
+    /** track L1SS entry and residency event */
+    WMI_PDEV_L1SS_TRACK_EVENTID,
+
     /* VDEV specific events */
     /** VDEV started event in response to VDEV_START request */
     WMI_VDEV_START_RESP_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_VDEV),
@@ -2141,6 +2144,8 @@ typedef enum {
     WMI_PDEV_PARAM_HW_RFKILL_CONFIG,
     /** Enable radio low power features */
     WMI_PDEV_PARAM_LOW_POWER_RF_ENABLE,
+    /** L1SS entry and residency time track */
+    WMI_PDEV_PARAM_L1SS_TRACK,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -2241,6 +2246,16 @@ typedef struct {
          */
 } wmi_pdev_tpc_config_event_fixed_param;
 
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_l1ss_track_event_fixed_param  */
+    A_UINT32 periodCnt;
+    A_UINT32 L1Cnt;
+    A_UINT32 L11Cnt;
+    A_UINT32 L12Cnt;
+    A_UINT32 L1Entry;
+    A_UINT32 L11Entry;
+    A_UINT32 L12Entry;
+} wmi_pdev_l1ss_track_event_fixed_param;
 
 typedef struct {
     A_UINT32 len;
