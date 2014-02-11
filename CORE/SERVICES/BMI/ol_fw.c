@@ -529,17 +529,55 @@ int dump_CE_register(struct ol_softc *scn)
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 static struct ol_softc *ramdump_scn;
 
-static void ramdump_work_handler(struct work_struct *ramdump)
+int ol_copy_ramdump(struct ol_softc *scn)
 {
 	void __iomem *ramdump_base;
 	unsigned long address;
 	unsigned long size;
+	int ret;
+
+	/* Get RAM dump memory address and size */
+	if (cnss_get_ramdump_mem(&address, &size)) {
+		printk("No RAM dump will be collected since failed to get "
+			"memory address or size!\n");
+		ret = -EACCES;
+	}
+
+	ramdump_base = ioremap(address, size);
+	if (!ramdump_base) {
+		printk("No RAM dump will be collected since ramdump_base is NULL!\n");
+		ret = -EACCES;
+	}
+
+	ret = ol_target_coredump(scn, ramdump_base, TOTAL_DUMP_SIZE);
+	iounmap(ramdump_base);
+
+	return ret;
+}
+
+static void ramdump_work_handler(struct work_struct *ramdump)
+{
 	int ret;
 	u_int32_t host_interest_address;
 
 	if (!ramdump_scn) {
 		printk("No RAM dump will be collected since ramdump_scn is NULL!\n");
 		goto out_fail;
+	}
+
+	if (ramdump_scn->crash_shutdown) {
+		if (hif_pci_check_soc_status(ramdump_scn->hif_sc))
+			goto out;
+
+		if (ol_copy_ramdump(ramdump_scn))
+			goto out;
+
+		printk("%s: RAM dump collecting completed!\n", __func__);
+
+out:
+		ramdump_scn->crash_shutdown = false;
+		complete(&ramdump_scn->ramdump_event);
+		return;
 	}
 
 #ifdef DEBUG
@@ -566,32 +604,18 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	}
 	printk("Host interest item address: 0x%08x\n", host_interest_address);
 
-	/* Get RAM dump memory address and size */
-	if (cnss_get_ramdump_mem(&address, &size)) {
-		printk("No RAM dump will be collected since failed to get "
-			"memory address or size!\n");
-		goto out_fail;
-	}
-
-	ramdump_base = ioremap(address, size);
-	if (!ramdump_base) {
-		printk("No RAM dump will be collected since ramdump_base is NULL!\n");
-		goto out_fail;
-	}
-
-	ret = ol_target_coredump(ramdump_scn, ramdump_base, TOTAL_DUMP_SIZE);
-	iounmap(ramdump_base);
-	if (ret)
+	if (ol_copy_ramdump(ramdump_scn))
 		goto out_fail;
 
 	printk("%s: RAM dump collecting completed!\n", __func__);
 	msleep(250);
+
 	/* Notify SSR framework the target has crashed. */
 	cnss_device_crashed();
 	return;
 
 out_fail:
-	/* silent SSR on dump failure */
+	/* Silent SSR on dump failure */
 #ifdef CNSS_SELF_RECOVERY
 	cnss_device_self_recovery();
 #else
@@ -602,7 +626,7 @@ out_fail:
 
 static DECLARE_WORK(ramdump_work, ramdump_work_handler);
 
-void schedule_ramdump_work(struct ol_softc *scn)
+void ol_schedule_ramdump_work(struct ol_softc *scn)
 {
 	ramdump_scn = scn;
 	schedule_work(&ramdump_work);
@@ -633,7 +657,10 @@ void ol_target_failure(void *instance, A_STATUS status)
 		return;
 	}
 
-	printk("XXX TARGET ASSERTED XXX\n");
+	if (scn->crash_shutdown)
+		printk("XXX TARGET ASSERTED because of Kernel Panic XXX\n");
+	else
+		printk("XXX TARGET ASSERTED XXX\n");
 	scn->target_status = OL_TRGET_STATUS_RESET;
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
@@ -719,7 +746,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 	/* Collect the RAM dump through a workqueue */
-	schedule_ramdump_work(scn);
+	ol_schedule_ramdump_work(scn);
 #endif
 
 	return;

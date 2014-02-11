@@ -70,6 +70,7 @@
 
 #define MAX_NUM_OF_RECEIVES 1000 /* Maximum number of Rx buf to process before break out */
 #define PCIE_WAKE_TIMEOUT 1000 /* Maximum ms timeout for host to wake up target */
+#define RAMDUMP_EVENT_TIMEOUT 2500
 
 unsigned int msienable = 0;
 module_param(msienable, int, 0644);
@@ -780,6 +781,7 @@ again:
 
     adf_os_atomic_init(&sc->tasklet_from_intr);
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
+    init_completion(&ol_sc->ramdump_event);
 
     ret = hdd_wlan_startup(&pdev->dev, ol_sc);
 
@@ -1078,7 +1080,9 @@ again:
     ol_sc->enablesinglebinary = FALSE;
     ol_sc->max_no_of_peers = 1;
 
+    adf_os_atomic_init(&sc->tasklet_from_intr);
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
+    init_completion(&ol_sc->ramdump_event);
 
     if (VOS_STATUS_SUCCESS == hdd_wlan_re_init(ol_sc)) {
         ret = 0;
@@ -1487,6 +1491,38 @@ void hif_pci_shutdown(struct pci_dev *pdev)
 
     printk("%s: WLAN host driver shutting down completed!\n", __func__);
 }
+
+void hif_pci_crash_shutdown(struct pci_dev *pdev)
+{
+    struct hif_pci_softc *sc;
+    struct ol_softc *scn;
+    int status;
+
+    sc = pci_get_drvdata(pdev);
+    if (!sc)
+        return;
+
+    scn = sc->ol_sc;
+    if (!scn)
+        return;
+
+    if (OL_TRGET_STATUS_RESET == scn->target_status) {
+        printk("%s: Target is already asserted, ignore!\n", __func__);
+        return;
+    }
+
+    scn->crash_shutdown = true;
+    process_wma_set_command(0,(int)GEN_PARAM_CRASH_INJECT,
+                            0, GEN_CMD);
+
+    status = wait_for_completion_interruptible_timeout(
+             &scn->ramdump_event,
+             msecs_to_jiffies(RAMDUMP_EVENT_TIMEOUT));
+    if (!status) {
+        printk("%s: RAM dump collecting timeout!\n", __func__);
+        return;
+    }
+}
 #endif
 
 #define OL_ATH_PCI_PM_CONTROL 0x44
@@ -1609,6 +1645,7 @@ struct cnss_wlan_driver cnss_wlan_drv_id = {
     .remove     = hif_pci_remove,
     .reinit     = hif_pci_reinit,
     .shutdown   = hif_pci_shutdown,
+    .crash_shutdown = hif_pci_crash_shutdown,
 #ifdef ATH_BUS_PM
     .suspend    = hif_pci_suspend,
     .resume     = hif_pci_resume,
