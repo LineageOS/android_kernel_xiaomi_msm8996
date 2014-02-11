@@ -2373,7 +2373,6 @@ eHalStatus sme_p2pGetResultFilter(tHalHandle hHal, tANI_U8 HDDSessionId,
                               tCsrScanResultFilter *pFilter);
 
 #endif //#if defined WLAN_FEATURE_P2P_INTERNAL
-   
 /* ---------------------------------------------------------------------------
     \fn sme_SetMaxTxPower
     \brief  Used to set the Maximum Transmit Power dynamically. Note: this
@@ -2398,19 +2397,18 @@ eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid,
 eHalStatus sme_SetMaxTxPowerPerBand(eCsrBand band, v_S7_t db);
 
 /* ---------------------------------------------------------------------------
-
     \fn sme_SetTxPower
-
-    \brief Set Transmit Power dynamically. Note: this setting will
-    not persist over reboots.
-
+    \brief Set Transmit Power dynamically.
     \param  hHal
     \param sessionId  Target Session ID
-    \param mW  power to set in mW
+    \param pBSSId BSSId
+    \param dev_mode device mode
+    \param power  power to set in dBm
     \- return eHalStatus
-
-  -------------------------------------------------------------------------------*/
-eHalStatus sme_SetTxPower(tHalHandle hHal, v_U8_t sessionId, v_U8_t mW);
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetTxPower(tHalHandle hHal, v_U8_t sessionId,
+                          tSirMacAddr pBSSId,
+                          tVOS_CON_MODE dev_mode, int power);
 
 /* ---------------------------------------------------------------------------
 

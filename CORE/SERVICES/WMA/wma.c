@@ -9322,28 +9322,117 @@ static void wma_update_edca_params_for_ac(tSirMacEdcaParamRecord *edca_param,
 /*
  * Set TX power limit through vdev param
  */
-static void wma_set_max_tx_power(WMA_HANDLE handle,
-						    tMaxTxPowerParams *tx_pwr_params)
+static void wma_set_tx_power(WMA_HANDLE handle,
+	tMaxTxPowerParams *tx_pwr_params)
 {
 	tp_wma_handle wma_handle = (tp_wma_handle)handle;
 	u_int8_t vdev_id;
 	int ret = -1;
+	void *pdev;
 
-	if (wma_find_vdev_by_addr(wma_handle,
-				tx_pwr_params->selfStaMacAddr,
-				&vdev_id) != NULL) {
-		WMA_LOGD("Set TX power limit [WMI_VDEV_PARAM_TX_PWRLIMIT] to %d",
-				tx_pwr_params->power);
+	if (tx_pwr_params->dev_mode == VOS_STA_SAP_MODE ||
+		tx_pwr_params->dev_mode == VOS_P2P_GO_MODE) {
+		pdev = wma_find_vdev_by_addr(wma_handle,
+					tx_pwr_params->bssId, &vdev_id);
+	} else {
+		pdev = wma_find_vdev_by_bssid(wma_handle,
+					tx_pwr_params->bssId, &vdev_id);
+	}
+	if (!pdev) {
+		WMA_LOGE("vdev handle is invalid for %pM", tx_pwr_params->bssId);
+		vos_mem_free(tx_pwr_params);
+		return;
+	}
+	if (tx_pwr_params->power == 0) {
+		/* set to default. Since the app does not care the tx power
+		 * we keep the previous setting */
+		wma_handle->interfaces[vdev_id].tx_power = 0;
+		ret = 0;
+		goto end;
+	}
+	if (wma_handle->interfaces[vdev_id].max_tx_power != 0) {
+		/* make sure tx_power less than max_tx_power */
+		if (tx_pwr_params->power >
+				wma_handle->interfaces[vdev_id].max_tx_power) {
+			tx_pwr_params->power =
+				wma_handle->interfaces[vdev_id].max_tx_power;
+		}
+	}
+	if (wma_handle->interfaces[vdev_id].tx_power != tx_pwr_params->power) {
+
+		/* tx_power changed, Push the tx_power to FW */
+		WMA_LOGW("%s: Set TX power limit [WMI_VDEV_PARAM_TX_PWRLIMIT] to %d",
+			__func__, tx_pwr_params->power);
+		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_TX_PWRLIMIT, tx_pwr_params->power);
+		if (ret == 0)
+			wma_handle->interfaces[vdev_id].tx_power = tx_pwr_params->power;
+	} else {
+		/* no tx_power change */
+		ret = 0;
+	}
+end:
+	vos_mem_free(tx_pwr_params);
+	if (ret)
+		WMA_LOGE("Failed to set vdev param WMI_VDEV_PARAM_TX_PWRLIMIT");
+}
+
+/*
+ * Set TX power limit through vdev param
+ */
+static void wma_set_max_tx_power(WMA_HANDLE handle,
+	tMaxTxPowerParams *tx_pwr_params)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)handle;
+	u_int8_t vdev_id;
+	int ret = -1;
+	void *pdev;
+	tPowerdBm  prev_max_power;
+
+	pdev = wma_find_vdev_by_addr(wma_handle, tx_pwr_params->bssId, &vdev_id);
+	if (pdev == NULL) {
+		/* not in SAP array. Try the station/p2p array */
+		pdev = wma_find_vdev_by_bssid(wma_handle,
+					tx_pwr_params->bssId, &vdev_id);
+	}
+	if (!pdev) {
+		WMA_LOGE("vdev handle is invalid for %pM", tx_pwr_params->bssId);
+		vos_mem_free(tx_pwr_params);
+		return;
+	}
+
+	if (wma_handle->interfaces[vdev_id].max_tx_power == tx_pwr_params->power) {
+		ret = 0;
+		goto end;
+	}
+	prev_max_power = wma_handle->interfaces[vdev_id].max_tx_power;
+	wma_handle->interfaces[vdev_id].max_tx_power = tx_pwr_params->power;
+	if (wma_handle->interfaces[vdev_id].max_tx_power == 0) {
+		ret = 0;
+		goto end;
+	}
+	if (wma_handle->interfaces[vdev_id].tx_power == 0) {
+		ret = 0;
+		goto end;
+	} else if (wma_handle->interfaces[vdev_id].max_tx_power <
+			wma_handle->interfaces[vdev_id].tx_power) {
+		WMA_LOGW("Set MAX TX power limit [WMI_VDEV_PARAM_TX_PWRLIMIT] to %d",
+			wma_handle->interfaces[vdev_id].max_tx_power);
 		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
 				WMI_VDEV_PARAM_TX_PWRLIMIT,
-				tx_pwr_params->power);
-		if (ret)
-			WMA_LOGE("Failed to set vdev param WMI_VDEV_PARAM_TX_PWRLIMIT");
+				wma_handle->interfaces[vdev_id].max_tx_power);
+		if (ret == 0)
+			wma_handle->interfaces[vdev_id].tx_power =
+				wma_handle->interfaces[vdev_id].max_tx_power;
+		else
+			wma_handle->interfaces[vdev_id].max_tx_power = prev_max_power;
+	} else {
+		ret = 0;
 	}
-	else
-		WMA_LOGE("Failed to find vdev to set WMI_VDEV_PARAM_TX_PWRLIMIT");
-
-	wma_send_msg(wma_handle, WDA_SET_MAX_TX_POWER_RSP, tx_pwr_params, 0);
+end:
+	vos_mem_free(tx_pwr_params);
+	if (ret)
+		WMA_LOGE("%s: Failed to set vdev param WMI_VDEV_PARAM_TX_PWRLIMIT", __func__);
 }
 
 /*
@@ -14299,6 +14388,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_EXIT_UAPSD_REQ:
 			wma_disable_uapsd_mode(wma_handle,
 					(tpDisableUapsdParams)msg->bodyptr);
+			break;
+		case WDA_SET_TX_POWER_REQ:
+			wma_set_tx_power(wma_handle,
+					(tpMaxTxPowerParams)msg->bodyptr);
 			break;
 		case WDA_SET_MAX_TX_POWER_REQ:
 			wma_set_max_tx_power(wma_handle,

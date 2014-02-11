@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1362,6 +1362,7 @@ typedef struct sMaxTxPowerParams
     //In response,
     //power == tx power used for management frames.
     tPowerdBm  power;
+    tVOS_CON_MODE dev_mode;
 }tMaxTxPowerParams, *tpMaxTxPowerParams;
 
 typedef struct sMaxTxPowerPerBandParams

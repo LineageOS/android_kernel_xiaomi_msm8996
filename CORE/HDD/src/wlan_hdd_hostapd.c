@@ -1782,6 +1782,7 @@ static iw_softap_set_tx_power(struct net_device *dev,
     int *value = (int *)extra;
     int set_value;
     ptSapContext  pSapCtx = NULL;
+    tSirMacAddr bssid;
 
     if (NULL == value)
         return -ENOMEM;
@@ -1794,8 +1795,11 @@ static iw_softap_set_tx_power(struct net_device *dev,
         return VOS_STATUS_E_FAULT;
     }
 
+    vos_mem_copy(bssid, pHostapdAdapter->macAddressCurrent.bytes,
+           VOS_MAC_ADDR_SIZE);
     set_value = value[0];
-    if (eHAL_STATUS_SUCCESS != sme_SetTxPower(hHal, pSapCtx->sessionId, set_value))
+    if (eHAL_STATUS_SUCCESS != sme_SetTxPower(hHal, pSapCtx->sessionId, bssid,
+                                    pHostapdAdapter->device_mode, set_value))
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Setting tx power failed",
                 __func__);
