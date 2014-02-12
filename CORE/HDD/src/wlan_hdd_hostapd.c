@@ -476,6 +476,13 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     struct iw_michaelmicfailure msg;
 
     dev = (struct net_device *)usrDataForCallback;
+    if (!dev)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: usrDataForCallback is null", __func__);
+        return eHAL_STATUS_FAILURE;
+    }
+
     pHostapdAdapter = netdev_priv(dev);
 
     if ((NULL == pHostapdAdapter) ||
@@ -488,6 +495,14 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
     pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
     pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
+
+    if (!pSapEvent)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: pSapEvent is null", __func__);
+        return eHAL_STATUS_FAILURE;
+    }
+
     sapEvent = pSapEvent->sapHddEventCode;
     memset(&wrqu, '\0', sizeof(wrqu));
     pHddCtx = (hdd_context_t*)(pHostapdAdapter->pHddCtx);
@@ -733,7 +748,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 /* send peer status indication to oem app */
                 hdd_SendPeerStatusIndToOemApp(
                   &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,
-                  ePeerConnected, 0,
+                  ePeerConnected,
+                  pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.timingMeasCap,
                   pHostapdAdapter->sessionId, pHddApCtx->operatingChannel);
             }
 #endif

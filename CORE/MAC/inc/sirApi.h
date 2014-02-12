@@ -1132,6 +1132,9 @@ typedef struct sSirSmeJoinRsp
     /*Broadcast DPU signature*/
     tANI_U8            bcastSig;
 
+    /*Timing measurement capability*/
+    tANI_U8            timingMeasCap;
+
     tANI_U8         frames[ 1 ];
 } tSirSmeJoinRsp, *tpSirSmeJoinRsp;
 
@@ -1186,6 +1189,9 @@ typedef struct sSirSmeAssocInd
     tANI_U8*             beaconPtr;
     tANI_U32             assocReqLength;
     tANI_U8*             assocReqPtr;
+
+    /* Timing measurement capability */
+    tANI_U8              timingMeasCap;
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 
 

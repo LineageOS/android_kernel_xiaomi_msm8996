@@ -720,6 +720,7 @@ sapSignalHDDevent
 
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled = pCsrRoamInfo->wmmEnabledSta;
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.status = (eSapStatus )context;
+            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.timingMeasCap = pCsrRoamInfo->timingMeasCap;
             //TODO: Need to fill sapAuthType
             //sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.SapAuthType = pCsrRoamInfo->pProfile->negotiatedAuthType;
             break;

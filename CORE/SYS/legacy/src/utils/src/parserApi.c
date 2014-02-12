@@ -2371,6 +2371,12 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
         limLogOperatingMode( pMac, &pAssocReq->operMode);
     }
 #endif
+    if (ar->ExtCap.present)
+    {
+        vos_mem_copy(&pAssocReq->ExtCap, &ar->ExtCap, sizeof(tDot11fIEExtCap));
+        limLog(pMac, LOG1, FL("ExtCap is present, timingMeas: %d"),
+               ar->ExtCap.timingMeas);
+    }
     vos_mem_free(ar);
     return eSIR_SUCCESS;
 
@@ -2541,6 +2547,13 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
         limLogVHTOperation(pMac, &pAssocRsp->VHTOperation);
     }
 #endif
+
+    if (ar.ExtCap.present)
+    {
+        vos_mem_copy(&pAssocRsp->ExtCap, &ar.ExtCap, sizeof(tDot11fIEExtCap));
+        limLog(pMac, LOG1, FL("ExtCap is present, timingMeas: %d"),
+               ar.ExtCap.timingMeas);
+    }
 
     return eSIR_SUCCESS;
 
@@ -2721,6 +2734,14 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
         limLogOperatingMode( pMac, &pAssocReq->operMode);
     }
 #endif
+
+    if (ar.ExtCap.present)
+    {
+        vos_mem_copy(&pAssocReq->ExtCap, &ar.ExtCap, sizeof(tDot11fIEExtCap));
+        limLog(pMac, LOG1, FL("ExtCap is present, timingMeas: %d"),
+               ar.ExtCap.timingMeas);
+    }
+
     return eSIR_SUCCESS;
 
 } // End sirConvertReassocReqFrame2Struct.

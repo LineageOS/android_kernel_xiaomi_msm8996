@@ -620,6 +620,14 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 
     if(eConnectionState_Associated == pHddStaCtx->conn_info.connState)/* Associated */
     {
+        if (!pCsrRoamInfo)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: STA in associated state but pCsrRoamInfo is null",
+                      __func__);
+            return;
+        }
+
         memcpy(wrqu.ap_addr.sa_data, pCsrRoamInfo->pBssDesc->bssId, sizeof(pCsrRoamInfo->pBssDesc->bssId));
         type = WLAN_STA_ASSOC_DONE_IND;
 
@@ -669,7 +677,8 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 
             /* send peer status indication to oem app */
             hdd_SendPeerStatusIndToOemApp(&peerMacAddr, ePeerConnected,
-                                   0, pAdapter->sessionId,
+                                   pCsrRoamInfo->timingMeasCap,
+                                   pAdapter->sessionId,
                                    pHddStaCtx->conn_info.operationChannel);
         }
 #endif

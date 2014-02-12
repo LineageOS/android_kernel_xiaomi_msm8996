@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -610,6 +610,8 @@ typedef struct sDphHashNode
     tANI_U16 ht_caps;
     tANI_U32 vht_caps;
 #endif
+
+    tANI_U8 timingMeasCap;
 
     /* When a station with already an existing dph entry tries to 
 

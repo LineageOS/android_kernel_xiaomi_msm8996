@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1205,7 +1205,8 @@ limProcessMlmAssocInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
     pSirSmeAssocInd->staId = pStaDs->staIndex;
-   pSirSmeAssocInd->reassocReq = pStaDs->mlmStaContext.subType;
+    pSirSmeAssocInd->reassocReq = pStaDs->mlmStaContext.subType;
+    pSirSmeAssocInd->timingMeasCap = pStaDs->timingMeasCap;
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT
     limDiagEventReport(pMac, WLAN_PE_DIAG_ASSOC_IND_EVENT, psessionEntry, 0, 0);
