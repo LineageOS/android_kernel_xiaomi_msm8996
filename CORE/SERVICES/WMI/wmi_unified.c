@@ -890,8 +890,8 @@ int wmi_is_suspend_ready(wmi_unified_t wmi_handle)
 		wmi_pending_cmds = wmi_get_pending_cmds(wmi_handle);
 
 		if (i > WMI_EMPTY_HTC_QUEUE_MAX_RETRY) {
-			pr_err("Host has Pending cmds to send. Fail to suspend:%d ;"
-				"available_host_credits:%d\n", wmi_pending_cmds,
+			pr_err("Host has Pending cmds to send:%d.Fail to suspend."
+				"Available_host_credits:%d\n", wmi_pending_cmds,
 						wmi_get_host_credits(wmi_handle));
 			VOS_ASSERT(0);
 			return -1;
