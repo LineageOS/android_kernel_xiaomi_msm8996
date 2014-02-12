@@ -61,7 +61,7 @@ static ssize_t ath_procfs_diag_read(struct file *file, char __user *buf,
 #else
 	scn = (struct hif_pci_softc *)(PDE(file->f_path.dentry->d_inode)->data);
 #endif
-	pr_debug("rd buff 0x%p cnt %d offset 0x%x buf 0x%p\n",
+	pr_debug("rd buff 0x%p cnt %zu offset 0x%x buf 0x%p\n",
 			read_buffer,count,
 			(int)*pos, buf);
 
