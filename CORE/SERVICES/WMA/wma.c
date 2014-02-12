@@ -11855,17 +11855,18 @@ static VOS_STATUS wma_wow_add_pattern(tp_wma_handle wma,
 	}
 
 	/* Cache wow pattern info until platform goes to suspend. */
-	vos_mem_copy(cache->ptrn, ptrn->ucPattern, sizeof(*cache->ptrn));
+
 	cache->vdev_id = ptrn->sessionId;
 	cache->ptrn_len = ptrn->ucPatternSize;
 	cache->ptrn_offset = ptrn->ucPatternByteOffset;
-	vos_mem_copy(cache->mask, ptrn->ucPatternMask, sizeof(*cache->mask));
 	cache->mask_len = ptrn->ucPatternMaskSize;
+
+	vos_mem_copy(cache->ptrn, ptrn->ucPattern, cache->ptrn_len);
+	vos_mem_copy(cache->mask, ptrn->ucPatternMask, cache->mask_len);
 	wma->wow.no_of_ptrn_cached++;
 
 	WMA_LOGD("wow pattern stored in cache (slot_id: %d, vdev id: %d)",
 		 ptrn->ucPatternId, cache->vdev_id);
-
 	return VOS_STATUS_SUCCESS;
 }
 
