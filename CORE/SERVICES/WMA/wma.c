@@ -2648,7 +2648,7 @@ void wma_vdev_detach_callback(void *ctx)
 			 __func__, param->sessionId);
 		vos_timer_stop(&req_msg->event_timeout);
 		vos_timer_destroy(&req_msg->event_timeout);
-		vos_mem_free(req_msg);
+		adf_os_mem_free(req_msg);
 	}
 	if(iface->addBssStaContext)
                 adf_os_mem_free(iface->addBssStaContext);
@@ -2721,11 +2721,10 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 
         adf_os_spin_lock_bh(&wma_handle->vdev_detach_lock);
         if(!iface->handle) {
-                status = VOS_STATUS_E_FAILURE;
                 WMA_LOGE("handle of vdev_id %d is NULL vdev is already freed",
                     vdev_id);
                 adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
-                goto out;
+		return status;
         }
 
         /* remove the interface from ath_dev */
@@ -3281,7 +3280,10 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 						self_sta_req->selfMacAddr,
 						self_sta_req->sessionId,
 						txrx_vdev_type);
-	wma_handle->interfaces[self_sta_req->sessionId].pause_bitmap = 0;
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+	WMA_LOGD("LL TX Pause Mutex init");
+	adf_os_spinlock_init(&txrx_vdev_handle->ll_pause.mutex);
+#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
 
 	WMA_LOGA("vdev_id %hu, txrx_vdev_handle = %p", self_sta_req->sessionId,
 			txrx_vdev_handle);
@@ -3810,18 +3812,27 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 		goto error1;
 	}
 
+	/* Start the timer for scan completion */
+	vos_status = vos_timer_start(&wma_handle->wma_scan_comp_timer,
+					WMA_HW_DEF_SCAN_MAX_DURATION);
+	if (vos_status != VOS_STATUS_SUCCESS ) {
+		WMA_LOGE("Failed to start the scan completion timer");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto error1;
+	}
+
 	/* Fill individual elements of wmi_start_scan_req and
 	 * TLV for channel list, bssid, ssid etc ... */
 	vos_status = wma_get_buf_start_scan_cmd(wma_handle, scan_req,
 			&buf, &len);
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to get buffer for start scan cmd");
-		goto error1;
+		goto error0;
 	}
 
 	if (NULL == buf) {
 		WMA_LOGE("Failed to get buffer for saving current scan info");
-		goto error1;
+		goto error0;
 	}
 
 	/* Save current scan info */
@@ -3847,14 +3858,6 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 
 	WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
 
-	/* Start the timer for scan completion */
-	vos_status = vos_timer_start(&wma_handle->wma_scan_comp_timer,
-					WMA_HW_DEF_SCAN_MAX_DURATION);
-	if (vos_status != VOS_STATUS_SUCCESS ) {
-		WMA_LOGE("Failed to start the scan completion timer");
-		vos_status = VOS_STATUS_E_FAILURE;
-		goto error;
-	}
 	/* Update the scan parameters for handler */
 	wma_handle->wma_scan_timer_info.vdev_id = cmd->vdev_id;
 	wma_handle->wma_scan_timer_info.scan_id = cmd->scan_id;
@@ -3864,6 +3867,12 @@ error:
 	wma_reset_scan_info(wma_handle, cmd->vdev_id);
 	if (buf)
 		adf_nbuf_free(buf);
+error0:
+	/* Stop the timer for scan completion */
+	if (vos_timer_stop(&wma_handle->wma_scan_comp_timer)
+		!= VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to stop the scan completion timer");
+	}
 error1:
         /* Send completion event for only for start scan request */
         if (msg_type == WDA_START_SCAN_OFFLOAD_REQ) {
@@ -5612,7 +5621,7 @@ static struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev
 {
 	struct wma_target_req *req;
 
-	req = vos_mem_malloc(sizeof(*req));
+	req = adf_os_mem_alloc(NULL, sizeof(*req));
 	if (!req) {
 		WMA_LOGP("Failed to allocate memory for msg %d vdev %d\n",
 			 msg_type, vdev_id);
@@ -9408,6 +9417,8 @@ static int wmi_unified_bcn_tmpl_send(tp_wma_handle wma,
 	int ret;
 	u_int8_t *p2p_ie;
 	u_int16_t p2p_ie_len = 0;
+	u_int64_t adjusted_tsf_le;
+	struct ieee80211_frame *wh;
 
 
 	WMA_LOGD("Send beacon template for vdev %d", vdev_id);
@@ -9433,6 +9444,15 @@ static int wmi_unified_bcn_tmpl_send(tp_wma_handle wma,
 
 	frm = bcn_info->beacon + bytes_to_strip;
 	tmpl_len_aligned = roundup(tmpl_len, sizeof(A_UINT32));
+	/*
+	 * Make the TSF offset negative so beacons in the same
+	 * staggered batch have the same TSF.
+	 */
+	adjusted_tsf_le = cpu_to_le64(0ULL -
+				      wma->interfaces[vdev_id].tsfadjust);
+	/* Update the timstamp in the beacon buffer with adjusted TSF */
+	wh = (struct ieee80211_frame *)frm;
+	A_MEMCPY(&wh[1], &adjusted_tsf_le, sizeof(adjusted_tsf_le));
 
 	wmi_buf_len = sizeof(wmi_bcn_tmpl_cmd_fixed_param) +
 	          sizeof(wmi_bcn_prb_info) + WMI_TLV_HDR_SIZE +
@@ -9557,11 +9577,8 @@ static int wma_tbttoffset_update_event_handler(void *handle, u_int8_t *event,
 	WMI_TBTTOFFSET_UPDATE_EVENTID_param_tlvs *param_buf;
 	wmi_tbtt_offset_event_fixed_param *tbtt_offset_event;
 	struct wma_txrx_node *intf = wma->interfaces;
-	struct ieee80211_frame *wh;
 	struct beacon_info *bcn;
 	tSendbeaconParams bcn_info;
-	u_int8_t *bcn_payload;
-	u_int64_t adjusted_tsf_le;
 	u_int32_t *adjusted_tsf;
 	u_int32_t if_id = 0, vdev_map;
 
@@ -9585,19 +9602,10 @@ static int wma_tbttoffset_update_event_handler(void *handle, u_int8_t *event,
 		}
 		/* Save the adjusted TSF */
 		intf[if_id].tsfadjust = adjusted_tsf[if_id];
-		/*
-		 * Make the TSF offset negative so beacons in the same
-		 * staggered batch have the same TSF.
-		 */
-		adjusted_tsf_le = cpu_to_le64(0ULL - intf[if_id].tsfadjust);
 
-		/* Update the timstamp in the beacon buffer with adjusted TSF */
 		adf_os_spin_lock_bh(&bcn->lock);
-		bcn_payload = adf_nbuf_data(bcn->buf);
-		wh = (struct ieee80211_frame *) bcn_payload;
-		A_MEMCPY(&wh[1], &adjusted_tsf_le, sizeof(adjusted_tsf_le));
 		vos_mem_zero(&bcn_info, sizeof(bcn_info));
-		bcn_info.beacon = bcn_payload;
+		bcn_info.beacon = adf_nbuf_data(bcn->buf);
 		bcn_info.p2pIeOffset = bcn->p2p_ie_offset;
 		bcn_info.beaconLength = bcn->len;
 		bcn_info.timIeOffset = bcn->tim_ie_offset;
@@ -14899,12 +14907,12 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	WMI_TX_PAUSE_EVENTID_param_tlvs *param_buf;
 	wmi_tx_pause_event_fixed_param  *wmi_event;
+	ol_txrx_vdev_handle txrx_vdev;
 	u_int8_t vdev_id;
 	A_UINT32 vdev_map;
 
 	param_buf = (WMI_TX_PAUSE_EVENTID_param_tlvs *) event;
-	if (!param_buf)
-	{
+	if (!param_buf) {
 		WMA_LOGE("Invalid roam event buffer");
 		return -EINVAL;
 	}
@@ -14918,47 +14926,35 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 	{
 		if (!(vdev_map & 0x1))
 		{
-			/* No Vdev */
+			vdev_map >>= 1;
 		}
 		else
 		{
-			if (!wma->interfaces[vdev_id].handle)
-			{
-				WMA_LOGE("%s: invalid vdev ID %d", __func__, vdev_id);
-				/* Test Next VDEV */
-				vdev_map >>= 1;
-				continue;
-			}
-
-			/* PAUSE action, add bitmap */
-			if (ACTION_PAUSE == wmi_event->action)
-			{
-				wma->interfaces[vdev_id].pause_bitmap |= (1 << wmi_event->pause_type);
-				wdi_in_vdev_pause(wma->interfaces[vdev_id].handle);
-			}
-			/* UNPAUSE action, clean bitmap */
-			else if (ACTION_UNPAUSE == wmi_event->action)
-			{
-				wma->interfaces[vdev_id].pause_bitmap &= ~(1 << wmi_event->pause_type);
-
-				if (!wma->interfaces[vdev_id].pause_bitmap)
-				{
-					/* PAUSE BIT MAP is cleared
-					 * UNPAUSE VDEV */
-					wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
-				}
-			}
-			else
-			{
-				WMA_LOGE("Not Valid Action Type %d", wmi_event->action);
-			}
-
-			WMA_LOGD("vdev_id %d, pause_map 0x%x, pause type %d, action %d",
-				vdev_id, wma->interfaces[vdev_id].pause_bitmap,
-				wmi_event->pause_type, wmi_event->action);
+			WMA_LOGD("Found vdev %d\n", vdev_id);
+			break;
 		}
-		/* Test Next VDEV */
-		vdev_map >>= 1;
+	}
+
+	WMA_LOGD("vdev_id %d, vdev_map 0x%x, tid_map 0x%x,"
+			" pause_type 0x%x, action 0x%x, peer_id 0x%x\n",
+			vdev_id, wmi_event->vdev_map, wmi_event->tid_map,
+			wmi_event->pause_type, wmi_event->action, wmi_event->peer_id);
+
+
+	txrx_vdev = wma->interfaces[vdev_id].handle;
+	if (txrx_vdev)
+	{
+		if ((PAUSE_TYPE_CHOP == wmi_event->pause_type) &&
+			(!wmi_event->action))
+		{
+			wdi_in_vdev_pause(txrx_vdev);
+		}
+		if ((PAUSE_TYPE_CHOP == wmi_event->pause_type) &&
+			(wmi_event->action))
+		{
+			wdi_in_vdev_unpause(txrx_vdev);
+		}
+		/* TODO, other types of pause should be added */
 	}
 
 	return 0;
@@ -15738,6 +15734,41 @@ static void wma_cleanup_vdev_resp(tp_wma_handle wma)
 	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
 }
 
+VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
+{
+	tp_wma_handle wma_handle;
+
+	WMA_LOGD("%s: Enter", __func__);
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+
+	/* validate the wma_handle */
+	if (NULL == wma_handle) {
+		WMA_LOGE("%s: Invalid wma handle", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	/* validate the wmi handle */
+	if (NULL == wma_handle->wmi_handle) {
+		WMA_LOGE("%s: Invalid wmi handle", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	/* dettach the wmi serice */
+	WMA_LOGD("calling wmi_unified_detach");
+	wmi_unified_detach(wma_handle->wmi_handle);
+	wma_handle->wmi_handle = NULL;
+
+	vos_mem_free(wma_handle->interfaces);
+	/* free the wma_handle */
+	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WDA, wma_handle);
+
+	adf_os_mem_free(((pVosContextType) vos_ctx)->cfg_ctx);
+	WMA_LOGD("%s: Exit", __func__);
+	return VOS_STATUS_SUCCESS;
+}
+
+
 /* function   : wma_close
  * Descriptin :
  * Args       :
@@ -15812,18 +15843,6 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	if (vos_get_conparam() == VOS_FTM_MODE)
 		wma_utf_detach(wma_handle);
 #endif
-
-	/* dettach the wmi serice */
-	if (wma_handle->wmi_handle) {
-		WMA_LOGD("calling wmi_unified_detach");
-		wmi_unified_detach(wma_handle->wmi_handle);
-		wma_handle->wmi_handle = NULL;
-	}
-	vos_mem_free(wma_handle->interfaces);
-	/* free the wma_handle */
-	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WDA, wma_handle);
-
-	adf_os_mem_free(((pVosContextType) vos_ctx)->cfg_ctx);
 
 	WMA_LOGD("%s: Exit", __func__);
 	return VOS_STATUS_SUCCESS;

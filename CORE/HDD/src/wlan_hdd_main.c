@@ -6248,7 +6248,7 @@ tANI_U8* wlan_hdd_get_intf_addr(hdd_context_t* pHddCtx)
    int i;
    for ( i = 0; i < VOS_MAX_CONCURRENCY_PERSONA; i++)
    {
-      if( 0 == (pHddCtx->cfg_ini->intfAddrMask >> i))
+      if( 0 == ((pHddCtx->cfg_ini->intfAddrMask) & (1 << i)))
          break;
    }
 
@@ -7006,6 +7006,15 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                  "%s: Unable to add virtual intf: currentVdevCnt=%d,hostConfiguredVdevCnt=%d",
                  __func__,pHddCtx->current_intf_count, pHddCtx->max_intf_count);
         return NULL;
+   }
+
+   if(macAddr == NULL)
+   {
+         /* Not received valid macAddr */
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s:Unable to add virtual intf: Not able to get"
+                             "valid mac address",__func__);
+         return NULL;
    }
 
    /*
@@ -8987,7 +8996,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 {
    VOS_STATUS status;
    hdd_adapter_t *pAdapter = NULL;
+#ifdef WLAN_OPEN_P2P_INTERFACE
    hdd_adapter_t *pP2pAdapter = NULL;
+#endif
    hdd_context_t *pHddCtx = NULL;
    v_CONTEXT_t pVosContext= NULL;
 #ifdef WLAN_BTAMP_FEATURE
@@ -9489,6 +9500,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
      pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
          wlan_hdd_get_intf_addr(pHddCtx), FALSE );
+
+#ifdef WLAN_OPEN_P2P_INTERFACE
+     /* Open P2P device interface */
      if (pAdapter != NULL)
      {
          if ( pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated )
@@ -9529,6 +9543,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
              goto err_close_adapter;
          }
      }
+#endif
    }
 
    if( pAdapter == NULL )

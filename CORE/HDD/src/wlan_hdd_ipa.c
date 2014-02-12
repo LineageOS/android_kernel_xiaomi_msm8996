@@ -977,7 +977,7 @@ setup_sys_pipe_fail:
 
 	while (--i >= 0) {
 		ipa_teardown_sys_pipe(hdd_ipa->sys_pipe[i].conn_hdl);
-		vos_mem_zero(&hdd_ipa->sys_pipe[i],
+		adf_os_mem_zero(&hdd_ipa->sys_pipe[i],
 				sizeof(struct hdd_ipa_sys_pipe ));
 	}
 
@@ -1020,22 +1020,23 @@ static int hdd_ipa_register_interface(struct hdd_ipa_priv *hdd_ipa,
 		num_prop++;
 
 	/* Allocate TX properties for TOS categories, 1 each for IPv4 & IPv6 */
-	tx_prop = vos_mem_malloc(sizeof(struct ipa_ioc_tx_intf_prop) *
-			num_prop);
+	tx_prop = adf_os_mem_alloc(NULL,
+			sizeof(struct ipa_ioc_tx_intf_prop) * num_prop);
 	if (!tx_prop) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "tx_prop allocation failed");
 		goto register_interface_fail;
 	}
 
 	/* Allocate RX properties, 1 each for IPv4 & IPv6 */
-	rx_prop = vos_mem_malloc(sizeof(struct ipa_ioc_rx_intf_prop) *
-			num_prop);
+	rx_prop = adf_os_mem_alloc(NULL,
+			sizeof(struct ipa_ioc_rx_intf_prop) * num_prop);
 	if (!rx_prop) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "rx_prop allocation failed");
 		goto register_interface_fail;
 	}
-	vos_mem_zero(&tx_intf, sizeof(tx_intf));
-	vos_mem_zero(&rx_intf, sizeof(rx_intf));
+
+	adf_os_mem_zero(&tx_intf, sizeof(tx_intf));
+	adf_os_mem_zero(&rx_intf, sizeof(rx_intf));
 
 	snprintf(ipv4_hdr_name, IPA_RESOURCE_NAME_MAX, "%s%s",
 		ifname, HDD_IPA_IPV4_NAME_EXT);
@@ -1089,8 +1090,8 @@ static int hdd_ipa_register_interface(struct hdd_ipa_priv *hdd_ipa,
 	ret = ipa_register_intf(ifname, &tx_intf, &rx_intf);
 
 register_interface_fail:
-	vos_mem_free(tx_prop);
-	vos_mem_free(rx_prop);
+	adf_os_mem_free(tx_prop);
+	adf_os_mem_free(rx_prop);
 	return ret;
 }
 
@@ -1100,7 +1101,7 @@ static void hdd_remove_ipa_header(char *name)
 	int ret = 0, len;
 	struct ipa_ioc_del_hdr *ipa_hdr;
 
-	vos_mem_zero(&hdrlookup, sizeof(hdrlookup));
+	adf_os_mem_zero(&hdrlookup, sizeof(hdrlookup));
 	strlcpy(hdrlookup.name, name, sizeof(hdrlookup.name));
 	ret = ipa_get_hdr(&hdrlookup);
 	if (ret) {
@@ -1112,7 +1113,7 @@ static void hdd_remove_ipa_header(char *name)
 
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "hdl: 0x%x", hdrlookup.hdl);
 	len = sizeof(struct ipa_ioc_del_hdr) + sizeof(struct ipa_hdr_del)*1;
-	ipa_hdr = (struct ipa_ioc_del_hdr *) vos_mem_malloc(len);
+	ipa_hdr = (struct ipa_ioc_del_hdr *) adf_os_mem_alloc(NULL, len);
 	if (ipa_hdr == NULL) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "ipa_hdr allocation failed");
 		return;
@@ -1126,7 +1127,7 @@ static void hdd_remove_ipa_header(char *name)
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Delete header failed: %d",
 				ret);
 
-	vos_mem_free(ipa_hdr);
+	adf_os_mem_free(ipa_hdr);
 }
 
 
@@ -1146,7 +1147,7 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 			ifname, mac_addr);
 
 	/* dynamically allocate the memory to add the hdrs */
-	ipa_hdr = vos_mem_malloc(sizeof(struct ipa_ioc_add_hdr)
+	ipa_hdr = adf_os_mem_alloc(NULL, sizeof(struct ipa_ioc_add_hdr)
 			+ sizeof(struct ipa_hdr_add));
 	if (!ipa_hdr) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
@@ -1204,7 +1205,7 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 				ipa_hdr->hdr[0].name, ipa_hdr->hdr[0].hdr_hdl);
 	}
 
-	vos_mem_free(ipa_hdr);
+	adf_os_mem_free(ipa_hdr);
 
 	return ret;
 
@@ -1214,7 +1215,7 @@ clean_ipv4_hdr:
 	hdd_remove_ipa_header(ipa_hdr->hdr[0].name);
 end:
 	if(ipa_hdr)
-		vos_mem_free(ipa_hdr);
+		adf_os_mem_free(ipa_hdr);
 
 	return ret;
 }
@@ -1319,7 +1320,7 @@ static void hdd_ipa_msg_free_fn(void *buff, uint32_t len, uint32_t type)
 {
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "msg type:%d, len:%d", type, len);
 	ghdd_ipa->stats.free_msg++;
-	vos_mem_free(buff);
+	adf_os_mem_free(buff);
 }
 
 int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
@@ -1377,7 +1378,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		meta.msg_type = type;
 		meta.msg_len = (sizeof(struct ipa_wlan_msg_ex) +
 				sizeof(struct ipa_wlan_hdr_attrib_val));
-		msg_ex = vos_mem_malloc (meta.msg_len);
+		msg_ex = adf_os_mem_alloc (NULL, meta.msg_len);
 
 		if (msg_ex == NULL) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
@@ -1397,7 +1398,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		if (ret) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d : %d",
 					msg_ex->name, meta.msg_type,  ret);
-			vos_mem_free(msg_ex);
+			adf_os_mem_free(msg_ex);
 			return ret;
 		}
 		hdd_ipa->stats.send_msg++;
@@ -1411,7 +1412,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 	}
 
 	meta.msg_len = sizeof(struct ipa_wlan_msg);
-	msg = vos_mem_malloc(meta.msg_len);
+	msg = adf_os_mem_alloc(NULL, meta.msg_len);
 	if (msg == NULL) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "msg allocation failed");
 		return -ENOMEM;
@@ -1429,7 +1430,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 	if (ret) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d fail:%d",
 					msg->name, meta.msg_type,  ret);
-		vos_mem_free(msg);
+		adf_os_mem_free(msg);
 		return ret;
 	}
 
@@ -1452,7 +1453,7 @@ static void hdd_ipa_rx_pipe_desc_free(void)
 	list_for_each_entry_safe(desc, tmp, &hdd_ipa->free_desc_head, link) {
 		list_del(&desc->link);
 		spin_unlock_bh(&hdd_ipa->q_lock);
-		vos_mem_free(desc);
+		adf_os_mem_free(desc);
 		spin_lock_bh(&hdd_ipa->q_lock);
 		i++;
 	}
@@ -1481,8 +1482,8 @@ static int hdd_ipa_rx_pipe_desc_alloc(void)
 	INIT_LIST_HEAD(&hdd_ipa->pend_desc_head);
 	hdd_ipa->stats.freeq_cnt = max_desc_cnt;
 	for (i = 0; i < max_desc_cnt; i++) {
-		tmp_desc = vos_mem_malloc(sizeof(struct
-							ipa_tx_data_desc));
+		tmp_desc = adf_os_mem_alloc(NULL,
+				sizeof(struct ipa_tx_data_desc));
 		if (!tmp_desc) {
 			ret = -ENOMEM;
 
@@ -1651,11 +1652,12 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 	if (!hdd_ipa_is_enabled(hdd_ctx))
 		return VOS_STATUS_SUCCESS;
 
-	hdd_ipa = vos_mem_malloc(sizeof(struct hdd_ipa_priv));
+	hdd_ipa = adf_os_mem_alloc(NULL, sizeof(struct hdd_ipa_priv));
 	if (!hdd_ipa) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL, "hdd_ipa allocation failed");
 		goto fail_setup_rm;
 	}
+
 	hdd_ctx->hdd_ipa = hdd_ipa;
 	ghdd_ipa = hdd_ipa;
 	hdd_ipa->hdd_ctx = hdd_ctx;
@@ -1700,7 +1702,7 @@ fail_create_sys_pipe:
 	hdd_ipa_destory_rm_resource(hdd_ipa);
 fail_setup_rm:
 	if (hdd_ipa)
-		vos_mem_free(hdd_ipa);
+		adf_os_mem_free(hdd_ipa);
 
 	return VOS_STATUS_E_FAILURE;
 }
@@ -1725,7 +1727,7 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 	hdd_ipa_teardown_sys_pipe(hdd_ipa);
 	hdd_ipa_destory_rm_resource(hdd_ipa);
 
-	vos_mem_free(hdd_ipa);
+	adf_os_mem_free(hdd_ipa);
 	hdd_ctx->hdd_ipa = NULL;
 
 	return VOS_STATUS_SUCCESS;
