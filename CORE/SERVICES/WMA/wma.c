@@ -848,9 +848,10 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 
 	if (kickout_event->reason == WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT) {
 		p_inactivity = (tpSirIbssPeerInactivityInd)
-			vos_mem_malloc(sizeof(tSirIbssPeerInactivityInd));
+			adf_os_mem_alloc(NULL,
+					 sizeof(tSirIbssPeerInactivityInd));
 		if (!p_inactivity) {
-			WMA_LOGE("VOS MEM Alloc Failed for tSirIbssPeerInactivity");
+			WMA_LOGE("Memory Alloc Failed for tSirIbssPeerInactivity");
 			return -EINVAL;
 		}
 
@@ -860,9 +861,10 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 	}
 	else {
 		del_sta_ctx =
-			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
+			(tpDeleteStaContext)adf_os_mem_alloc(NULL,
+					sizeof(tDeleteStaContext));
 		if (!del_sta_ctx) {
-			WMA_LOGE("VOS MEM Alloc Failed for tDeleteStaContext");
+			WMA_LOGE("Memory Alloc Failed for tDeleteStaContext");
 			return -EINVAL;
 		}
 
@@ -1743,7 +1745,7 @@ static int wma_oem_capability_event_callback(void *handle,
 		return -EINVAL;
 	}
 
-	pStartOemDataRsp = vos_mem_malloc(sizeof(tStartOemDataRsp));
+	pStartOemDataRsp = adf_os_mem_alloc(NULL, sizeof(tStartOemDataRsp));
 	if (!pStartOemDataRsp) {
 		WMA_LOGE("%s: Failed to alloc pStartOemDataRsp", __func__);
 		return -ENOMEM;
@@ -1795,7 +1797,7 @@ static int wma_oem_measurement_report_event_callback(void *handle,
 		return -EINVAL;
 	}
 
-	pStartOemDataRsp = vos_mem_malloc(sizeof(tStartOemDataRsp));
+	pStartOemDataRsp = adf_os_mem_alloc(NULL, sizeof(tStartOemDataRsp));
 	if (!pStartOemDataRsp) {
 		WMA_LOGE("%s: Failed to alloc pStartOemDataRsp", __func__);
 		return -ENOMEM;
@@ -1847,7 +1849,7 @@ static int wma_oem_error_report_event_callback(void *handle,
 		return -EINVAL;
 	}
 
-	pStartOemDataRsp = vos_mem_malloc(sizeof(tStartOemDataRsp));
+	pStartOemDataRsp = adf_os_mem_alloc(NULL, sizeof(tStartOemDataRsp));
 	if (!pStartOemDataRsp) {
 		WMA_LOGE("%s: Failed to alloc pStartOemDataRsp", __func__);
 		return -ENOMEM;
@@ -1953,7 +1955,7 @@ static int wma_tdls_event_handler(void *handle, u_int8_t *event, u_int32_t len)
 	}
 
 	tdls_event = (tSirTdlsEventNotify *)
-	              vos_mem_malloc(sizeof(tSirTdlsEventNotify));
+	              adf_os_mem_alloc(NULL, sizeof(tSirTdlsEventNotify));
 	if (!tdls_event) {
 	 WMA_LOGE("%s: failed to allocate memory for tdls_event", __func__);
 	 return -1;
@@ -2156,7 +2158,7 @@ static int wma_unified_bcntx_status_event_handler(void *handle, u_int8_t *cmd_pa
    }
 
    beacon_tx_complete_ind = (tSirFirstBeaconTxCompleteInd *)
-               vos_mem_malloc(sizeof(tSirFirstBeaconTxCompleteInd));
+               adf_os_mem_alloc(NULL, sizeof(tSirFirstBeaconTxCompleteInd));
    if (!beacon_tx_complete_ind) {
 	   WMA_LOGE("%s: Failed to alloc beacon_tx_complete_ind", __func__);
 	   return -ENOMEM;
