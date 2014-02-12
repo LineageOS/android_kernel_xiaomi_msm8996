@@ -1103,6 +1103,11 @@ CDEFINES += -DQCA_CONFIG_SMP
 endif
 endif
 
+#Open P2P device interface only for non-MDM9630 platform
+ifneq ($(CONFIG_ARCH_MDM9630), y)
+CDEFINES += -DWLAN_OPEN_P2P_INTERFACE
+endif
+
 # Fix build for GCC 4.7
 EXTRA_CFLAGS += -Wno-maybe-uninitialized -Wno-unused-function
 
