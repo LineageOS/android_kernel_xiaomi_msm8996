@@ -635,6 +635,18 @@ typedef struct hostdef_s {
 #define HOST_INT_STATUS_MBOX_DATA_GET(x)        (((x) & HOST_INT_STATUS_MBOX_DATA_MASK) >> HOST_INT_STATUS_MBOX_DATA_LSB)
 #endif
 
+#define INVALID_REG_LOC_DUMMY_DATA 0xAA
+
+typedef struct TGT_REG_SECTION {
+	u_int32_t start_addr;
+	u_int32_t end_addr;
+} tgt_reg_section;
+
+typedef struct TGT_REG_TABLE {
+	tgt_reg_section *section;
+	u_int32_t section_size;
+} tgt_reg_table;
+
 void target_register_tbl_attach(struct hif_pci_softc *sc, u32 target_type);
 void hif_register_tbl_attach(struct hif_pci_softc *sc, u32 hif_type);
 #endif
