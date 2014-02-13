@@ -260,7 +260,7 @@ vos_sched_open
   if (vos_alloc_tlshim_pkt_freeq(pSchedContext) !=  VOS_STATUS_SUCCESS)
        return VOS_STATUS_E_FAILURE;
   register_hotcpu_notifier(&vos_cpu_hotplug_notifier);
-  pSchedContext->cpuHotPlugNotifier = vos_cpu_hotplug_notifier;
+  pSchedContext->cpuHotPlugNotifier = &vos_cpu_hotplug_notifier;
 #endif
 
 
