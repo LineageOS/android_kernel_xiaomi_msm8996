@@ -11018,11 +11018,21 @@ eHalStatus sme_MoveCsrToScanStateForPno (tHalHandle hHal, tANI_U8 sessionId)
     \param  rateUpdateParams - Pointer to rate update params
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_SendRateUpdateInd(tHalHandle hHal, tSirRateUpdateInd *rateUpdateParams)
+eHalStatus sme_SendRateUpdateInd(tHalHandle hHal,
+                                 tSirRateUpdateInd *rateUpdateParams)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     eHalStatus status;
     vos_msg_t msg;
+
+#ifdef QCA_WIFI_ISOC
+    /* For discrete solution, i.e., Rome the bit 28, 29 and 30 are used to
+     * optionally carry NSS info: 100 for 1x1, 101 for 2x2, 111 for 3x3.
+     * For Pronto we need to zero out bits 28 - 30 */
+    rateUpdateParams->mcastDataRate24GHz &= ~0x70000000;
+    rateUpdateParams->reliableMcastDataRate &= ~0x70000000;
+    rateUpdateParams->mcastDataRate5GHz &= ~0x70000000;
+#endif
 
     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
     {

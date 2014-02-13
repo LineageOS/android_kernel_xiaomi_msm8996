@@ -27,6 +27,7 @@
 
 
 #include "htc_internal.h"
+#include "vos_api.h"
 #include <adf_nbuf.h> /* adf_nbuf_t */
 
 #ifdef DEBUG
@@ -286,6 +287,7 @@ A_STATUS HTCRxCompletionHandler(
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("HTC Rx: invalid EndpointID=%d\n",htc_ep_id));
             DebugDumpBytes((A_UINT8 *)HtcHdr,sizeof(HTC_FRAME_HDR),"BAD HTC Header");
             status = A_ERROR;
+            VOS_BUG(0);
             break;
         }
 

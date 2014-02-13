@@ -122,6 +122,7 @@ extern void pktlogmod_exit(void *context);
 #endif
 
 int hif_pci_check_soc_status(struct hif_pci_softc *sc);
+void dump_CE_debug_register(struct hif_pci_softc *sc);
 
 /*
  * A firmware interrupt to the Host is indicated by the
