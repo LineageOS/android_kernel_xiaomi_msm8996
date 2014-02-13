@@ -14124,6 +14124,59 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 	return VOS_STATUS_SUCCESS;
 }
 
+/* function     :   wma_ProcessTxPowerLimits
+ * Description  :   This function sends the power limits for 2g/5g to firmware
+ * Args         :
+		    handle     : Pointer to WMA handle
+ *                  ptxlim     : Pointer to  power limit values
+ * Returns      :   VOS_STATUS based on values sent to firmware
+ *
+ */
+VOS_STATUS wma_ProcessTxPowerLimits(WMA_HANDLE handle,
+			tSirTxPowerLimit *ptxlim)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	int32_t ret = 0;
+	u_int32_t txpower_params2g = 0;
+	u_int32_t txpower_params5g = 0;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue tx power limit",
+			 __func__);
+		return VOS_STATUS_E_INVAL;
+        }
+	/* Set value and reason code for 2g and 5g power limit */
+
+	SET_PDEV_PARAM_TXPOWER_REASON(txpower_params2g,
+			WMI_PDEV_PARAM_TXPOWER_REASON_SAR);
+	SET_PDEV_PARAM_TXPOWER_VALUE(txpower_params2g,
+			ptxlim->txPower2g);
+
+	SET_PDEV_PARAM_TXPOWER_REASON(txpower_params5g,
+			WMI_PDEV_PARAM_TXPOWER_REASON_SAR);
+	SET_PDEV_PARAM_TXPOWER_VALUE(txpower_params5g,
+			ptxlim->txPower5g);
+
+	WMA_LOGD("%s: txpower2g: %x txpower5g: %x",
+			__func__, txpower_params2g, txpower_params5g);
+
+	ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+			WMI_PDEV_PARAM_TXPOWER_LIMIT2G, txpower_params2g);
+	if (ret) {
+		WMA_LOGE("%s: Failed to set txpower 2g (%d)",
+			__func__, ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+	ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+			WMI_PDEV_PARAM_TXPOWER_LIMIT5G, txpower_params5g);
+	if (ret) {
+		WMA_LOGE("%s: Failed to set txpower 5g (%d)",
+				 __func__, ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * FUNCTION: wma_ProcessAddPeriodicTxPtrnInd
  * WMI command sent to firmware to add patterns
@@ -14703,7 +14756,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 				 (tSirDelPeriodicTxPtrn *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
-
+		case WDA_TX_POWER_LIMIT:
+			wma_ProcessTxPowerLimits(wma_handle,
+				(tSirTxPowerLimit *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 #ifdef FEATURE_WLAN_LPHB
 		case WDA_LPHB_CONF_REQ:
 			wma_process_lphb_conf_req(wma_handle, (tSirLPHBReq *)msg->bodyptr);

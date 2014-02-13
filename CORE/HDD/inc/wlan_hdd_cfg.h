@@ -2211,6 +2211,18 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_RX_THREAD_MAX                   (1)
 #define CFG_ENABLE_RX_THREAD_DEFAULT               (1)
 
+/* SAR Thermal limit values for 2g and 5g */
+
+#define CFG_SET_TXPOWER_LIMIT2G_NAME               "TxPower2g"
+#define CFG_SET_TXPOWER_LIMIT2G_MIN                ( 0 )
+#define CFG_SET_TXPOWER_LIMIT2G_MAX                ( 30 )
+#define CFG_SET_TXPOWER_LIMIT2G_DEFAULT            ( 15 )
+
+#define CFG_SET_TXPOWER_LIMIT5G_NAME               "TxPower5g"
+#define CFG_SET_TXPOWER_LIMIT5G_MIN                ( 0 )
+#define CFG_SET_TXPOWER_LIMIT5G_MAX                ( 30 )
+#define CFG_SET_TXPOWER_LIMIT5G_DEFAULT            ( 15 )
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -2667,6 +2679,8 @@ typedef struct
    v_U16_t                     thermalTempMaxLevel2;
    v_U16_t                     thermalTempMinLevel3;
    v_U16_t                     thermalTempMaxLevel3;
+   v_U32_t                     TxPower2g;
+   v_U32_t                     TxPower5g;
 #endif
    v_U32_t                     gEnableDebugLog;
    v_U8_t                      enableRxThread;

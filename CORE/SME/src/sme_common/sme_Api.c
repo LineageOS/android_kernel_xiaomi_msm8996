@@ -11442,6 +11442,39 @@ eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level )
     vos_mem_free(pLevel);
     return eHAL_STATUS_FAILURE;
 }
+/* ---------------------------------------------------------------------------
+   \fn sme_TxpowerLimit
+   \brief SME API to set txpower limits
+   \param hHal
+   \param psmetx : power limits for 2g/5g
+   \- return eHalStatus
+ -------------------------------------------------------------------------*/
+eHalStatus sme_TxpowerLimit(tHalHandle hHal, tSirTxPowerLimit *psmetx)
+{
+     eHalStatus status = eHAL_STATUS_SUCCESS;
+     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+     vos_msg_t vosMessage;
+     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
+     {
+          vosMessage.type = WDA_TX_POWER_LIMIT;
+          vosMessage.reserved = 0;
+          vosMessage.bodyptr = psmetx;
+
+          vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+          if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+          {
+             VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                        "%s: not able to post WDA_TX_POWER_LIMIT",
+                        __func__);
+             status = eHAL_STATUS_FAILURE;
+             vos_mem_free(psmetx);
+          }
+          sme_ReleaseGlobalLock(&pMac->sme);
+     }
+     return(status);
+}
 #endif /* #ifndef QCA_WIFI_ISOC */
 
 eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value)

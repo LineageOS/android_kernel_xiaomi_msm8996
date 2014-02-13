@@ -9015,6 +9015,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
 #ifndef QCA_WIFI_ISOC
    tSmeThermalParams thermalParam;
+   tSirTxPowerLimit *hddtxlimit;
 #endif
 
    ENTER();
@@ -9805,6 +9806,24 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
        hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: Error while initializing thermal information", __func__);
+   }
+
+   /* SAR power limit */
+   hddtxlimit = vos_mem_malloc(sizeof(tSirTxPowerLimit));
+   if (!hddtxlimit)
+   {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Memory allocation for TxPowerLimit "
+                 "failed!", __func__);
+       goto err_nl_srv;
+   }
+   hddtxlimit->txPower2g = pHddCtx->cfg_ini->TxPower2g;
+   hddtxlimit->txPower5g = pHddCtx->cfg_ini->TxPower5g;
+
+   if (eHAL_STATUS_SUCCESS != sme_TxpowerLimit(pHddCtx->hHal,hddtxlimit))
+   {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: Error setting txlimit in sme", __func__);
    }
 #endif /*#ifndef QCA_WIFI_ISOC*/
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)

@@ -3406,6 +3406,14 @@ eHalStatus sme_InitThermalInfo( tHalHandle hHal, tSmeThermalParams thermalParam 
     \- return eHalStatus
     -------------------------------------------------------------------------*/
 eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level );
+/* ---------------------------------------------------------------------------
+   \fn sme_TxpowerLimit
+   \brief SME API to set txpower limits
+   \param hHal
+   \param psmetx : power limits for 2g/5g
+   \- return eHalStatus
+  -------------------------------------------------------------------------*/
+eHalStatus sme_TxpowerLimit( tHalHandle hHal, tSirTxPowerLimit *psmetx);
 #endif
 eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value);
 #endif //#if !defined( __SME_API_H )

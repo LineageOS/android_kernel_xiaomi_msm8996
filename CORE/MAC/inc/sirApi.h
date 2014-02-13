@@ -4849,4 +4849,12 @@ typedef struct{
     u_int8_t thermalMgmtEnabled;
     u_int32_t throttlePeriod;
 } t_thermal_mgmt, *tp_thermal_mgmt;
+
+typedef struct sSirTxPowerLimit
+{
+    /* Thermal limits for 2g and 5g */
+    u_int32_t txPower2g;
+    u_int32_t txPower5g;
+} tSirTxPowerLimit;
+
 #endif /* __SIR_API_H */
