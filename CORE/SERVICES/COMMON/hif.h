@@ -59,9 +59,6 @@ typedef void __iomem *A_target_id_t;
 /* For attaching Peregrine 2.0 board host_reg_tbl only */
 #define HIF_TYPE_AR9888V2 8
 
-extern int hdd_wlan_startup(struct device *dev, void *hif_sc);
-extern void __hdd_wlan_exit(void);
-
 /*
  * direction - Direction of transfer (HIF_READ/HIF_WRITE).
  */

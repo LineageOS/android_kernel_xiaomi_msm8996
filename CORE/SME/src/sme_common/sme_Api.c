@@ -10861,6 +10861,26 @@ void activeListCmdTimeoutHandle(void *userData)
     smeGetCommandQStatus((tHalHandle) userData);
 }
 
+VOS_STATUS sme_notify_modem_power_state(v_PVOID_t vosContext, tANI_U32 value)
+{
+   v_PVOID_t wdaContext = vos_get_context(VOS_MODULE_ID_WDA, vosContext);
+
+   if (NULL == wdaContext)
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: wdaContext is NULL", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   if (VOS_STATUS_SUCCESS != WDA_notify_modem_power_state(wdaContext, value))
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "Failed to notify modem power state %d", value);
+      return VOS_STATUS_E_FAILURE;
+   }
+   return VOS_STATUS_SUCCESS;
+}
+
 /*
  * SME API to enable/disable idle mode powersave
  * This should be called only if powersave offload

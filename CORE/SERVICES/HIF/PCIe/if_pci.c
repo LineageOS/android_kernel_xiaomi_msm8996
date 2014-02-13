@@ -47,6 +47,7 @@
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #include "wlan_hdd_power.h"
 #endif
+#include "wlan_hdd_main.h"
 #ifdef CONFIG_CNSS
 #include <net/cnss.h>
 #endif
@@ -1166,6 +1167,14 @@ err_region:
 }
 #endif
 
+void hif_pci_notify_handler(struct pci_dev *pdev, int state)
+{
+   int ret = 0;
+   ret = hdd_wlan_notify_modem_power_state(state);
+   if (ret < 0)
+      printk(KERN_ERR "%s: Fail to send notify\n", __func__);
+}
+
 void
 hif_nointrs(struct hif_pci_softc *sc)
 {
@@ -1657,6 +1666,7 @@ struct cnss_wlan_driver cnss_wlan_drv_id = {
     .reinit     = hif_pci_reinit,
     .shutdown   = hif_pci_shutdown,
     .crash_shutdown = hif_pci_crash_shutdown,
+    .modem_status   = hif_pci_notify_handler,
 #ifdef ATH_BUS_PM
     .suspend    = hif_pci_suspend,
     .resume     = hif_pci_resume,

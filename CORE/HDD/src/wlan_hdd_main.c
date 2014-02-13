@@ -8646,6 +8646,33 @@ void __hdd_wlan_exit(void)
 }
 #endif  /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
 
+/**--------------------------------------------------------------------------
+
+  \brief notify FW with modem power status
+
+  -------------------------------------------------------------------------*/
+int hdd_wlan_notify_modem_power_state(int state)
+{
+   VOS_STATUS vosStatus;
+   v_CONTEXT_t pVosContext = NULL;
+   hdd_context_t *pHddCtx = NULL;
+
+   pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+   if (!pVosContext)
+      return -1;
+   pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+   if (!pHddCtx)
+      return -1;
+
+   vosStatus = sme_notify_modem_power_state(pHddCtx->pvosContext, state);
+   if (VOS_STATUS_SUCCESS != vosStatus) {
+      hddLog(LOGE, "Fail to send notification with modem power state %d\n",
+             state);
+      return -1;
+   }
+   return 0;
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_update_config_from_nv() - Function to update the contents of

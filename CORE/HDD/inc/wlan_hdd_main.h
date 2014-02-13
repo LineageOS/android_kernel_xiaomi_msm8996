@@ -1386,6 +1386,10 @@ void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);
 
 int hdd_wmmps_helper(hdd_adapter_t *pAdapter, tANI_U8 *ptr);
 
+int hdd_wlan_startup(struct device *dev, void *hif_sc);
+void __hdd_wlan_exit(void);
+int hdd_wlan_notify_modem_power_state(int state);
+
 #ifdef FEATURE_WLAN_BATCH_SCAN
 /**---------------------------------------------------------------------------
 

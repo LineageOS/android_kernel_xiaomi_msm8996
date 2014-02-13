@@ -6626,6 +6626,34 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 }
 
 static int
+wmi_unified_modem_power_state(wmi_unified_t wmi_handle, u_int32_t param_value)
+{
+	int ret;
+	wmi_modem_power_state_cmd_param *cmd;
+	wmi_buf_t buf;
+	u_int16_t len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_modem_power_state_cmd_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_modem_power_state_cmd_param,
+		       WMITLV_GET_STRUCT_TLVLEN(wmi_modem_power_state_cmd_param));
+	cmd->modem_power_state = param_value;
+	WMA_LOGD("%s: Setting cmd->modem_power_state = %u", __func__, param_value);
+	ret = wmi_unified_cmd_send(wmi_handle, buf, len,
+				   WMI_MODEM_POWER_STATE_CMDID);
+	if (ret != EOK) {
+		WMA_LOGE("Failed to send notify cmd ret = %d", ret);
+		wmi_buf_free(buf);
+	}
+	return ret;
+}
+
+static int
 wmi_unified_pdev_set_param(wmi_unified_t wmi_handle, WMI_PDEV_PARAM param_id,
 				u_int32_t param_value)
 {
@@ -18221,6 +18249,23 @@ wma_process_ftm_command(tp_wma_handle wma_handle,
 	return VOS_STATUS_SUCCESS;
 }
 #endif
+
+VOS_STATUS WDA_notify_modem_power_state(void *wda_handle, tANI_U32 value)
+{
+	int32_t ret;
+	tp_wma_handle wma = (tp_wma_handle)wda_handle;
+
+	WMA_LOGD("%s: WMA Notify Modem Power State %d", __func__, value);
+
+	ret = wmi_unified_modem_power_state(wma->wmi_handle, value);
+	if (ret) {
+		WMA_LOGE("%s: Fail to notify Modem Power State %d", __func__, value);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGD("Successfully notify Modem Power State %d", value);
+	return VOS_STATUS_SUCCESS;
+}
 
 /* Function to enable/disble Low Power Support(Pdev Specific) */
 VOS_STATUS WDA_SetIdlePsConfig(void *wda_handle, tANI_U32 idle_ps)

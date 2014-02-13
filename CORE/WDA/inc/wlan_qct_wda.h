@@ -1373,6 +1373,7 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 #define WDA_UpdateRssiBmps WMA_UpdateRssiBmps
 
 VOS_STATUS WDA_SetIdlePsConfig(void *wda_handle, tANI_U32 idle_ps);
+VOS_STATUS WDA_notify_modem_power_state(void *wda_handle, tANI_U32 value);
 static inline void WDA_UpdateSnrBmps(v_PVOID_t pvosGCtx, v_U8_t staId,
             v_S7_t snr)
 {
@@ -1402,6 +1403,11 @@ static inline int WDA_SetHTConfig(tANI_U8 sessionId, tANI_U16 htCapab,
 }
 
 static inline VOS_STATUS WDA_SetIdlePsConfig(void *wda_handle, tANI_U32 idle_ps)
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+static inline VOS_STATUS WDA_notify_modem_power_state(void *wda_handle, tANI_U32 value)
 {
    return VOS_STATUS_SUCCESS;
 }
