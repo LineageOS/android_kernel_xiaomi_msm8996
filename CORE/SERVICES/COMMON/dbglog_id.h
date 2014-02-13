@@ -664,7 +664,8 @@ extern "C" {
 #define WAL_DBGID_BRSSI_CONFIG                      56
 #define WAL_DBGID_CURRENT_BRSSI_AVE                 57
 #define WAL_DBGID_BCN_TX_COMP                       58
-#define WAL_DBGID_DEFINITION_END                    59
+#define WAL_DBGID_RX_REENTRY                        59
+#define WAL_DBGID_DEFINITION_END                    60
 
 #define ANI_DBGID_POLL                               0
 #define ANI_DBGID_CONTROL                            1
@@ -941,8 +942,10 @@ extern "C" {
 #define WLAN_HB_DBGID_DEFINITION_END                    15
 
 /* Thermal Manager DBGIDs*/
-#define THERMAL_MGR_NEW_THRESH        0
-#define THERMAL_MGR_THRESH_CROSSED    1
+#define THERMAL_MGR_DBGID_DEFINITION_START   0
+#define THERMAL_MGR_NEW_THRESH               1
+#define THERMAL_MGR_THRESH_CROSSED           2
+#define THERMAL_MGR_DBGID_DEFINITION_END     3
 
 /* WLAN PHYERR DFS(parse/filter) DBGIDs */
 #define WLAN_PHYERR_DFS_DBGID_DEFINITION_START    0
