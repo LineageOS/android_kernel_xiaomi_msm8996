@@ -99,7 +99,7 @@ typedef  enum  {
     WMI_SERVICE_BCN_TXRATE_OVERRIDE,  /* Will support the bcn/prb rsp rate override */
     WMI_SERVICE_NAN, /* Neighbor Awareness Network */
     WMI_SERVICE_L1SS_STAT,    /* L1SS statistics counter report */
-    WMI_MAX_SERVICE=64                /* max service */
+    WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;
 
 #define WMI_SERVICE_BM_SIZE   ((WMI_MAX_SERVICE + sizeof(A_UINT32)- 1)/sizeof(A_UINT32))
