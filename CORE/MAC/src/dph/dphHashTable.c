@@ -67,12 +67,20 @@ void dphHashTableClassInit(tpAniSirGlobal pMac, dphHashTableClass* pDphHashTable
 {
   tANI_U16 i;
 
-  for (i=0; i<pDphHashTable->size; i++)
+#if defined(FEATURE_WLAN_TDLS) && defined(QCA_WIFI_2_0)
+  for (i=0; i <= pDphHashTable->size; i++)
+#else
+  for (i=0; i < pDphHashTable->size; i++)
+#endif
     {
       pDphHashTable->pHashTable[i] = 0;
     }
 
-  for (i=0; i<pDphHashTable->size; i++)
+#if defined(FEATURE_WLAN_TDLS) && defined(QCA_WIFI_2_0)
+  for (i=0; i <= pDphHashTable->size; i++)
+#else
+  for (i=0; i < pDphHashTable->size; i++)
+#endif
     {
       pDphHashTable->pDphNodeArray[i].valid = 0;
       pDphHashTable->pDphNodeArray[i].added = 0;
@@ -165,7 +173,11 @@ tpDphHashNode dphLookupHashEntry(tpAniSirGlobal pMac, tANI_U8 staAddr[], tANI_U1
 
 tpDphHashNode dphGetHashEntry(tpAniSirGlobal pMac, tANI_U16 peerIdx, dphHashTableClass* pDphHashTable)
 {
+#if defined(FEATURE_WLAN_TDLS) && defined(QCA_WIFI_2_0)
+    if (peerIdx <= pDphHashTable->size)
+#else
     if (peerIdx < pDphHashTable->size)
+#endif
     {
         if (pDphHashTable->pDphNodeArray[peerIdx].added)
           return &pDphHashTable->pDphNodeArray[peerIdx];
@@ -207,7 +219,11 @@ tpDphHashNode dphLookupAssocId(tpAniSirGlobal pMac,  tANI_U16 staIdx, tANI_U16* 
 {
     tANI_U8 i;
 
-    for(i=0; i<pDphHashTable->size; i++)
+#if defined(FEATURE_WLAN_TDLS) && defined(QCA_WIFI_2_0)
+    for (i=0; i <= pDphHashTable->size; i++)
+#else
+    for (i=0; i < pDphHashTable->size; i++)
+#endif
         {
             if( (pDphHashTable->pDphNodeArray[i].added) &&
                 (pDphHashTable->pDphNodeArray[i].staIndex == staIdx))
@@ -217,7 +233,11 @@ tpDphHashNode dphLookupAssocId(tpAniSirGlobal pMac,  tANI_U16 staIdx, tANI_U16* 
                 }
 
         }
-    if(i==pDphHashTable->size)
+#if defined(FEATURE_WLAN_TDLS) && defined(QCA_WIFI_2_0)
+    if (i == pDphHashTable->size+1)
+#else
+    if (i == pDphHashTable->size)
+#endif
         return NULL;
     return &pDphHashTable->pDphNodeArray[i];
 
@@ -246,7 +266,11 @@ tpDphHashNode dphInitStaState(tpAniSirGlobal pMac, tSirMacAddr staAddr,
     tpDphHashNode pStaDs;
     tANI_U16 staIdx = HAL_STA_INVALID_IDX;
 
+#if defined(FEATURE_WLAN_TDLS) && defined(QCA_WIFI_2_0)
+    if (assocId > pDphHashTable->size)
+#else
     if (assocId >= pDphHashTable->size)
+#endif
     {
         PELOGE(limLog(pMac, LOGE, FL("Invalid Assoc Id %d"), assocId);)
         return NULL;
@@ -316,7 +340,17 @@ tpDphHashNode dphAddHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16
            assocId, index);
     dphPrintMacAddr(pMac, staAddr, LOG1);)
 
+    /* In station role, DPH_STA_HASH_INDEX_PEER (index 1) is reserved for peer
+     * station index corresponding to AP.Avoid choosing that index and get
+     * index starting from (DPH_STA_HASH_INDEX_PEER + 1) (index 2) for TDLS
+     * stations; as a result the peer index or associd can be equal to
+     * pDphHashTable->size so for TDLS+CLD modifying the condition
+     */
+#if defined(FEATURE_WLAN_TDLS) && defined(QCA_WIFI_2_0)
+    if (assocId > pDphHashTable->size)
+#else
     if (assocId >= pDphHashTable->size)
+#endif
     {
         PELOGE(limLog(pMac, LOGE, FL("invalid STA id %d"), assocId);)
         return NULL;
@@ -393,7 +427,11 @@ tSirRetStatus dphDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_
                   assocId, index);
   dphPrintMacAddr(pMac, staAddr, LOG1);)
 
+#if defined(FEATURE_WLAN_TDLS) && defined(QCA_WIFI_2_0)
+  if (assocId > pDphHashTable->size)
+#else
   if (assocId >= pDphHashTable->size)
+#endif
   {
       PELOGE(limLog(pMac, LOGE, FL("invalid STA id %d"), assocId);)
       return eSIR_FAILURE;
