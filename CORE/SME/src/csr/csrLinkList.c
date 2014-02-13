@@ -29,7 +29,8 @@
     ------------------------------------------------------------------------- *  
     \file csrLinkList.c
   
-    Implementation for the Common link list interfaces.========================================================================== */
+    Implementation for the Common link list interfaces.
+========================================================================== */
 
 #include "palApi.h"
 #include "csrLinkList.h"

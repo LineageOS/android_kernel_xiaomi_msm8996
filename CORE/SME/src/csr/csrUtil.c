@@ -31,7 +31,8 @@
 
     \file csrUtil.c
 
-    Implementation supporting routines for CSR.========================================================================== */
+    Implementation supporting routines for CSR.
+========================================================================== */
 
 
 #include "aniGlobal.h"

@@ -31,7 +31,8 @@
   
     \file csrTdlsProcess.c
   
-    Implementation for the TDLS interface to PE.========================================================================== */
+    Implementation for the TDLS interface to PE.
+========================================================================== */
 
 #ifdef FEATURE_WLAN_TDLS
 

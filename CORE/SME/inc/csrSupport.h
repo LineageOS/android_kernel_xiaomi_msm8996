@@ -31,7 +31,8 @@
 
     \file csrSupport.h
 
-    Exports and types for the Common Scan and Roaming supporting interfaces.========================================================================== */
+    Exports and types for the Common Scan and Roaming supporting interfaces.
+========================================================================== */
 #ifndef CSR_SUPPORT_H__
 #define CSR_SUPPORT_H__
 

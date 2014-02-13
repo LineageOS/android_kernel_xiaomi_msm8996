@@ -33,7 +33,8 @@
   
     \file oemDataInternal.h
   
-    Exports and types for the Common OEM DATA REQ/RSP Module interfaces.========================================================================== */
+    Exports and types for the Common OEM DATA REQ/RSP Module interfaces.
+========================================================================== */
 
 
 #ifndef __OEM_DATA_INTERNAL_H__

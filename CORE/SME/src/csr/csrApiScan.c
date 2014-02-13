@@ -31,7 +31,8 @@
 
     \file csrApiScan.c
 
-    Implementation for the Common Scan interfaces.========================================================================== */
+    Implementation for the Common Scan interfaces.
+========================================================================== */
 
 #include "aniGlobal.h"
 
