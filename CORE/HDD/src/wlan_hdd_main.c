@@ -492,7 +492,8 @@ int wlan_hdd_validate_context(hdd_context_t *pHddCtx)
         return -EAGAIN;
     }
 
-    if (pHddCtx->isLoadUnloadInProgress)
+    if ((pHddCtx->isLoadInProgress) ||
+        (pHddCtx->isUnloadInProgress))
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: Unloading/Loading in Progress. Ignore!!!", __func__);
@@ -8631,7 +8632,8 @@ void __hdd_wlan_exit(void)
                 msleep(1000);
         }
 
-        pHddCtx->isLoadUnloadInProgress = TRUE;
+        pHddCtx->isUnloadInProgress = TRUE;
+
         vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 
         //Do all the cleanup before deregistering the driver
@@ -9034,7 +9036,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    pHddCtx->wiphy = wiphy;
    hdd_prevent_suspend();
-   pHddCtx->isLoadUnloadInProgress = TRUE;
+   pHddCtx->isLoadInProgress = TRUE;
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 
@@ -9735,7 +9737,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    mutex_init(&pHddCtx->sap_lock);
 
-   pHddCtx->isLoadUnloadInProgress = FALSE;
+   pHddCtx->isLoadInProgress = FALSE;
 
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
    /* Initialize the wake lcok */
@@ -10170,7 +10172,7 @@ static void hdd_driver_exit(void)
          }
       }
 
-      pHddCtx->isLoadUnloadInProgress = TRUE;
+      pHddCtx->isUnloadInProgress = TRUE;
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
    }
 

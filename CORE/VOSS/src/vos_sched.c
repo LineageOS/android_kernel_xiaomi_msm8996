@@ -2238,7 +2238,8 @@ VOS_STATUS vos_watchdog_wlan_shutdown(void)
     /* Release the lock here */
     spin_unlock(&gpVosWatchdogContext->wdLock);
 
-    if (pHddCtx->isLoadUnloadInProgress)
+    if ((pHddCtx->isLoadInProgress) ||
+        (pHddCtx->isUnloadInProgress))
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: Load/unload in Progress. Ignoring signaling Watchdog",
