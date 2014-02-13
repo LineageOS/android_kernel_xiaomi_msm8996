@@ -278,6 +278,8 @@ typedef struct
 #define QCASAP_GET_SHORT_GI                47
 #define QCSAP_SET_11N_RATE                 48
 #define QCSAP_SET_VHT_RATE                 49
+#define QCSAP_SET_AMPDU                    50
+#define QCSAP_SET_AMSDU                    51
 #endif /* QCA_WIFI_2_0 */
 
 enum { 

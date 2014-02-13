@@ -1657,6 +1657,24 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 
+         case QCSAP_SET_AMPDU:
+             {
+                  hddLog(LOG1, "QCSAP_SET_AMPDU val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)GEN_VDEV_PARAM_AMPDU,
+                                               set_value, GEN_CMD);
+                  break;
+             }
+
+         case QCSAP_SET_AMSDU:
+             {
+                  hddLog(LOG1, "QCSAP_SET_AMSDU val %d", set_value);
+                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                               (int)GEN_VDEV_PARAM_AMSDU,
+                                               set_value, GEN_CMD);
+                  break;
+             }
+
 #endif /* QCA_WIFI_2_0 */
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
@@ -3686,6 +3704,16 @@ static const struct iw_priv_args hostapd_private_args[] = {
     {   QCASAP_GET_SHORT_GI, 0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_short_gi" },
+
+    {   QCSAP_SET_AMPDU,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "ampdu" },
+
+    {   QCSAP_SET_AMSDU,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "amsdu" },
 
 #endif /* QCA_WIFI_2_0 */
 
