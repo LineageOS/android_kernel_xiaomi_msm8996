@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3462,6 +3462,9 @@ tpPESession        psessionEntry;
       // Fall thru' & 'Plumb' keys below
       break;
     case eLIM_STA_IN_IBSS_ROLE:
+      // update the IBSS PE session encrption type based on the key type
+      psessionEntry->encryptType = pMlmSetKeysReq->edType;
+      break;
     default: // others
       // Fall thru...
       break;

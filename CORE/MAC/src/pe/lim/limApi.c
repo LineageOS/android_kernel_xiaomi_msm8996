@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -20,7 +20,7 @@
  */
 
 /*
- * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2011-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  *
@@ -1651,6 +1651,52 @@ limUpdateOverlapStaParam(tpAniSirGlobal pMac, tSirMacAddr bssId, tpLimProtStaPar
 
 
 /**
+ * limIbssEncTypeMatched
+ *
+ *FUNCTION:
+ * This function compares the encryption type of the peer with self
+ * while operating in IBSS mode and detects mismatch.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param  pBeacon  - Parsed Beacon Frame structure
+ * @param  pSession - Pointer to the PE session
+ *
+ * @return eSIR_TRUE if encryption type is matched; eSIR_FALSE otherwise
+ */
+static tAniBool limIbssEncTypeMatched(tpSchBeaconStruct  pBeacon,
+                                      tpPESession        pSession)
+{
+    if (!pBeacon || !pSession)
+        return eSIR_FALSE;
+
+    /* Open case */
+    if (pBeacon->capabilityInfo.privacy == 0
+            && pSession->encryptType == eSIR_ED_NONE)
+        return eSIR_TRUE;
+
+    /* WEP case */
+    if (pBeacon->capabilityInfo.privacy == 1 && pBeacon->wpaPresent == 0
+            && pBeacon->rsnPresent == 0
+            && (pSession->encryptType == eSIR_ED_WEP40
+                    || pSession->encryptType == eSIR_ED_WEP104))
+        return eSIR_TRUE;
+
+    /* WPA-None case */
+    if (pBeacon->capabilityInfo.privacy == 1 && pBeacon->wpaPresent == 1
+            && pBeacon->rsnPresent == 0
+            && pSession->encryptType == eSIR_ED_CCMP)
+        return eSIR_TRUE;
+
+    return eSIR_FALSE;
+}
+
+
+/**
  * limHandleIBSScoalescing()
  *
  *FUNCTION:
@@ -1680,11 +1726,27 @@ limHandleIBSScoalescing(
     tSirRetStatus   retCode;
 
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+
+    /* Ignore the beacon when any of the conditions below is met:
+       1. The beacon claims no IBSS network
+       2. SSID in the beacon does not match SSID of self station
+       3. Operational channel in the beacon does not match self station
+       4. Encyption type in the beacon does not match with self station
+    */
     if ( (!pBeacon->capabilityInfo.ibss) ||
          (limCmpSSid(pMac, &pBeacon->ssId,psessionEntry) != true) ||
          (psessionEntry->currentOperChannel != pBeacon->channelNumber) )
-        /* Received SSID does not match => Ignore received Beacon frame. */
         retCode =  eSIR_LIM_IGNORE_BEACON;
+    else if (limIbssEncTypeMatched(pBeacon, psessionEntry) != eSIR_TRUE)
+    {
+        PELOG3(limLog(pMac, LOG3,
+            FL("peer privacy %d peer wpa %d peer rsn %d self encType %d"),
+            pBeacon->capabilityInfo.privacy,
+            pBeacon->wpaPresent,
+            pBeacon->rsnPresent,
+            psessionEntry->encryptType);)
+        retCode =  eSIR_LIM_IGNORE_BEACON;
+    }
     else
     {
         tANI_U32 ieLen;
@@ -1698,7 +1760,6 @@ limHandleIBSScoalescing(
     }
     return retCode;
 } /*** end limHandleIBSScoalescing() ***/
-
 
 
 /**

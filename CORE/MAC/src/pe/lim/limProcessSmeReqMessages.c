@@ -689,6 +689,10 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  psessionEntry->shortSlotTimeSupported =
                      limGetShortSlotFromPhyMode(pMac, psessionEntry,
                                                 psessionEntry->gLimPhyMode);
+
+                 // initialize to "OPEN". will be updated upon key installation
+                 psessionEntry->encryptType = eSIR_ED_NONE;
+
                  break;
 
             case eSIR_BTAMP_AP_MODE:
