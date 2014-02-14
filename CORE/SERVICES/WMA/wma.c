@@ -114,7 +114,6 @@
 #define WMA_DEFAULT_SCAN_REQUESTER_ID        1
 /* default value */
 #define DEFAULT_INFRA_STA_KEEP_ALIVE_PERIOD  20
-#define DEFAULT_MAX_IDLETIME 20
 /* pdev vdev and peer stats*/
 #define FW_PDEV_STATS_SET 0x1
 #define FW_VDEV_STATS_SET 0x2
@@ -124,21 +123,13 @@
  * similar to the mentioned the TLSHIM
  */
 #define WMA_TGT_NOISE_FLOOR_DBM (-96)
-/*There is no standard way of caluclating minimum inactive
- *timer and max unresposive timer from max inactive timer
- *the below expression are taken from qca_main code
- */
 
-/*REFEFERENCE_TIME refers to the time that we need to wait for ack
- *after sending an keepalive frame.
+/*
+ * Make sure that link monitor and keep alive
+ * default values should be in sync with CFG.
  */
-#define REFERENCE_TIME  5
-/*The minimum amount of time AP begins to consider STA inactive*/
-#define MIN_IDLE_INACTIVE_TIME_SECS(val)   ((val - REFERENCE_TIME)/2)
-/* Once a STA exceeds the maximum unresponsive time, the AP will send a
- * WMI_STA_KICKOUT event to the host so the STA can be deleted.
- */
-#define MAX_UNRESPONSIVE_TIME_SECS(val)   (val + REFERENCE_TIME)
+#define WMA_LINK_MONITOR_DEFAULT_TIME_SECS 10
+#define WMA_KEEP_ALIVE_DEFAULT_TIME_SECS   5
 
 #define AGC_DUMP  1
 #define CHAN_DUMP 2
@@ -2901,32 +2892,40 @@ static void wma_set_sta_keep_alive(tp_wma_handle wma, u_int8_t vdev_id,
 	return;
 }
 
-static inline tANI_U32 wma_get_maxidle_time(struct sAniSirGlobal *mac,
-						tANI_U32 sub_type)
+static inline void wma_get_link_probe_timeout(struct sAniSirGlobal *mac,
+					      tANI_U32 sub_type,
+					      tANI_U32 *max_inactive_time,
+					      tANI_U32 *max_unresponsive_time)
 {
-	tANI_U16 cfg_id;
-	tANI_U32 max_idletime;
+	tANI_U32 keep_alive;
+	tANI_U16 lm_id, ka_id;
 
 	switch (sub_type) {
 	case WMI_UNIFIED_VDEV_SUBTYPE_P2P_GO:
-		cfg_id = WNI_CFG_GO_KEEP_ALIVE_TIMEOUT;
+		lm_id = WNI_CFG_GO_LINK_MONITOR_TIMEOUT;
+		ka_id = WNI_CFG_GO_KEEP_ALIVE_TIMEOUT;
 		break;
 	default:
 		/*For softAp the subtype value will be zero*/
-		cfg_id = WNI_CFG_AP_KEEP_ALIVE_TIMEOUT;
+		lm_id = WNI_CFG_AP_LINK_MONITOR_TIMEOUT;
+		ka_id = WNI_CFG_AP_KEEP_ALIVE_TIMEOUT;
 	}
 
-	if(wlan_cfgGetInt(mac, cfg_id, &max_idletime) != eSIR_SUCCESS) {
-		WMA_LOGE("Failed to get value for cfg id:%d", cfg_id);
-		max_idletime = DEFAULT_MAX_IDLETIME;
+	if(wlan_cfgGetInt(mac, lm_id, max_inactive_time) != eSIR_SUCCESS) {
+		WMA_LOGE("Failed to read link monitor for subtype %d", sub_type);
+		*max_inactive_time = WMA_LINK_MONITOR_DEFAULT_TIME_SECS;
 	}
 
-	return max_idletime;
+	if(wlan_cfgGetInt(mac, ka_id, &keep_alive) != eSIR_SUCCESS) {
+		WMA_LOGE("Failed to read keep alive for subtype %d", sub_type);
+		keep_alive = WMA_KEEP_ALIVE_DEFAULT_TIME_SECS;
+	}
+	*max_unresponsive_time = *max_inactive_time + keep_alive;
 }
 
 static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id)
 {
-	tANI_U32 cfg_data_val, min_inactive_time, max_unresponsive_time;
+	tANI_U32 min_inactive_time, max_inactive_time, max_unresponsive_time;
 	struct sAniSirGlobal *mac =
 		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
 						      wma->vos_context);
@@ -2936,25 +2935,21 @@ static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id)
 		return;
 	}
 
-	cfg_data_val = wma_get_maxidle_time(mac,
-					    wma->interfaces[vdev_id].sub_type);
-	if (!cfg_data_val) /*0 -> Disabled*/
-	    return;
+	wma_get_link_probe_timeout(mac, wma->interfaces[vdev_id].sub_type,
+				   &max_inactive_time, &max_unresponsive_time);
 
-	min_inactive_time = MIN_IDLE_INACTIVE_TIME_SECS(cfg_data_val);
-	max_unresponsive_time =
-			     MAX_UNRESPONSIVE_TIME_SECS(cfg_data_val);
+	min_inactive_time = max_inactive_time / 2;
 
 	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
 					    vdev_id,
 	       WMI_VDEV_PARAM_AP_KEEPALIVE_MIN_IDLE_INACTIVE_TIME_SECS,
-		       (min_inactive_time < 0)? 0 : min_inactive_time))
+					    min_inactive_time))
 		WMA_LOGE("Failed to Set AP MIN IDLE INACTIVE TIME");
 
 	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
 					    vdev_id,
 	       WMI_VDEV_PARAM_AP_KEEPALIVE_MAX_IDLE_INACTIVE_TIME_SECS,
-					    cfg_data_val))
+					    max_inactive_time))
 		WMA_LOGE("Failed to Set AP MAX IDLE INACTIVE TIME");
 
 	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
@@ -2963,10 +2958,9 @@ static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id)
 					    max_unresponsive_time))
 		WMA_LOGE("Failed to Set MAX UNRESPONSIVE TIME");
 
-	WMA_LOGD("%s:vdev_id:%d min_inactive_time:%d max_inactive_time:%d"
-		 " max_unresponsive_time:%d", __func__, vdev_id,
-		 (min_inactive_time > 0)? min_inactive_time : 0, cfg_data_val,
-		 max_unresponsive_time);
+	WMA_LOGD("%s:vdev_id:%d min_inactive_time: %u max_inactive_time: %u"
+		 " max_unresponsive_time: %u", __func__, vdev_id,
+		 min_inactive_time, max_inactive_time, max_unresponsive_time);
 }
 
 static VOS_STATUS wma_set_enable_disable_mcc_adaptive_scheduler(tANI_U32 mcc_adaptive_scheduler)
