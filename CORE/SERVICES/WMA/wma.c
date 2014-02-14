@@ -177,6 +177,9 @@ static struct wma_target_req *
 wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 		  u_int32_t msg_type, u_int8_t type, void *params,
 		  u_int32_t timeout);
+static int32_t wmi_unified_vdev_stop_send(wmi_unified_t wmi, u_int8_t vdev_id);
+static void wma_remove_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
+				u_int8_t type);
 
 static tANI_U32 gFwWlanFeatCaps;
 
@@ -5550,6 +5553,7 @@ void wma_vdev_resp_timer(void *data)
 	ol_txrx_peer_handle peer;
 	ol_txrx_pdev_handle pdev;
 	u_int8_t peer_id;
+	struct wma_target_req *msg;
 #ifdef QCA_IBSS_SUPPORT
         tDelStaSelfParams del_sta_param;
 #endif
@@ -5626,6 +5630,33 @@ void wma_vdev_resp_timer(void *data)
 
 		params->status = VOS_STATUS_E_TIMEOUT;
 		WMA_LOGA("%s: WDA_ADD_BSS_REQ timedout", __func__);
+                peer = ol_txrx_find_peer_by_addr(pdev, params->bssId,
+                                         &peer_id);
+                if (!peer) {
+                        WMA_LOGP("%s: Failed to find peer %pM", __func__,
+                                 params->bssId);
+                }
+                msg = wma_fill_vdev_req(wma, params->sessionId, WDA_DELETE_BSS_REQ,
+                                WMA_TARGET_REQ_TYPE_VDEV_STOP, params, 1000);
+                if (!msg) {
+                        WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
+                                 __func__, params->sessionId);
+                        goto error0;
+                }
+                if (wmi_unified_vdev_stop_send(wma->wmi_handle, params->sessionId)) {
+                        WMA_LOGP("%s: %d Failed to send vdev stop",
+				__func__, __LINE__);
+                        wma_remove_vdev_req(wma, params->sessionId,
+                                            WMA_TARGET_REQ_TYPE_VDEV_STOP);
+                        goto error0;
+                }
+                WMA_LOGI("%s: bssid %pM vdev_id %d",
+                        __func__, params->bssId, params->sessionId);
+
+error0:
+		if (peer)
+			wma_remove_peer(wma, params->bssId,
+					params->sessionId, peer);
 		wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
 	}
 	vos_timer_destroy(&tgt_req->event_timeout);
@@ -7693,7 +7724,7 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 			}
 			msg = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
 						WMA_TARGET_REQ_TYPE_VDEV_START,
-						add_bss, 1000);
+						add_bss, 2000);
 			if (!msg) {
 				WMA_LOGP("%s Failed to allocate vdev request vdev_id %d",
 					 __func__, vdev_id);
