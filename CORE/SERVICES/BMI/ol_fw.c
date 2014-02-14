@@ -534,17 +534,20 @@ int ol_copy_ramdump(struct ol_softc *scn)
 		printk("No RAM dump will be collected since failed to get "
 			"memory address or size!\n");
 		ret = -EACCES;
+		goto out;
 	}
 
 	ramdump_base = ioremap(address, size);
 	if (!ramdump_base) {
 		printk("No RAM dump will be collected since ramdump_base is NULL!\n");
 		ret = -EACCES;
+		goto out;
 	}
 
 	ret = ol_target_coredump(scn, ramdump_base, TOTAL_DUMP_SIZE);
 	iounmap(ramdump_base);
 
+out:
 	return ret;
 }
 
