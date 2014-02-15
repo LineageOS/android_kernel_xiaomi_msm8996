@@ -117,8 +117,13 @@ static int vos_cpu_hotplug_notify(struct notifier_block *block,
    pVosSchedContext pSchedContext = get_vos_sched_ctxt();
    int i;
 
-   if (!pSchedContext)
+   if ((NULL == pSchedContext) || (NULL == pSchedContext->TlshimRxThread))
        return NOTIFY_OK;
+
+   if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL))
+   {
+       return NOTIFY_OK;
+   }
 
    switch (state) {
    case CPU_ONLINE:
