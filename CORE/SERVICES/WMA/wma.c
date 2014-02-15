@@ -13852,6 +13852,14 @@ VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
 		vos_mem_free(pRateUpdateParams);
 		return ret;
 	}
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+			WMI_VDEV_PARAM_SGI, short_gi);
+	if (ret) {
+		WMA_LOGE("%s: Failed to Set WMI_VDEV_PARAM_SGI (%d), ret = %d",
+			__func__, short_gi, ret);
+	        vos_mem_free(pRateUpdateParams);
+		return VOS_STATUS_E_FAILURE;
+	}
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
 			vdev_id, paramId, rate);
 	vos_mem_free(pRateUpdateParams);
