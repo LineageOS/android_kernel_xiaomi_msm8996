@@ -1239,59 +1239,6 @@ dbglog_default_print_handler(A_UINT32 mod_id, A_UINT16 vap_id, A_UINT32 dbg_id,
     return TRUE;
 }
 
-#define DBGLOG_PARSE_ARGS_STRING_LENGTH    (DBGLOG_NUM_ARGS_MAX * 11 + 10)
-static int
-dbglog_print_raw_data(A_UINT32 *buffer, A_UINT32 length)
-{
-    A_UINT32 timestamp;
-    A_UINT32 debugid;
-    A_UINT32 moduleid;
-    A_UINT16 numargs, curArgs;
-    A_UINT32 count = 0, totalWriteLen, writeLen;
-    char parseArgsString[DBGLOG_PARSE_ARGS_STRING_LENGTH];
-    char *dbgidString;
-
-    buffer = (A_UINT32 *)buf;
-
-    while (count < length) {
-
-        debugid = DBGLOG_GET_DBGID(buffer[count + 1]);
-        moduleid = DBGLOG_GET_MODULEID(buffer[count + 1]);
-        numargs = DBGLOG_GET_NUMARGS(buffer[count + 1]);
-        timestamp = DBGLOG_GET_TIME_STAMP(buffer[count]);
-
-        if (moduleid < WLAN_MODULE_ID_MAX && debugid < MAX_DBG_MSGS && numargs <= DBGLOG_NUM_ARGS_MAX) {
-
-            memset(parseArgsString, 0, sizeof(parseArgsString));
-            totalWriteLen = 0;
-
-            for (curArgs = 0; curArgs < numargs; curArgs++){
-                writeLen = snprintf(parseArgsString + totalWriteLen, sizeof(parseArgsString), "%x ", buffer[count + 2 + curArgs]);
-                totalWriteLen += writeLen;
-            }
-
-            dbgidString = DBG_MSG_ARR[moduleid][debugid];
-            if (dbgidString != NULL) {
-                printf("fw:%s(%x %x):%s\n",
-                       dbgidString,
-                       timestamp, buffer[count+1],
-                       parseArgsString);
-            } else {
-                /* host need sync with FW id */
-                printf("fw:%s:m:%x,id:%x(%x %x):%s\n",
-                       "UNKNOWN", moduleid, debugid,
-                       timestamp, buffer[count+1],
-                       parseArgsString);
-            }
-        }
-
-        count += numargs + 2; /* 32 bit Time stamp + 32 bit Dbg header*/
-    }
-
-    return 0;
-
-}
-
 int
 dbglog_parse_debug_logs(u_int8_t *datap, u_int16_t len, u_int16_t dropped)
 {
