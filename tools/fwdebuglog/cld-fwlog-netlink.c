@@ -252,7 +252,7 @@ static void stop(int signum)
 
 int main(int argc, char *argv[])
 {
-    int res =0;
+    unsigned int res =0;
     unsigned char *eventbuf;
     unsigned char *dbgbuf;
     int c, rc = 0;
@@ -409,7 +409,7 @@ int main(int argc, char *argv[])
                 continue;
             }
             slot = (struct dbglog_slot *)dbgbuf;
-            timestamp = get_le32((unsigned char *)&slot->length);
+            timestamp = get_le32((unsigned char *)&slot->timestamp);
             length = get_le32((unsigned char *)&slot->length);
             dropped = get_le32((unsigned char *)&slot->dropped);
             if (!((optionflag & SILENT_FLAG) == SILENT_FLAG)) {
@@ -418,7 +418,9 @@ int main(int argc, char *argv[])
                        timestamp, length, dropped);
             }
             fseek(log_out, record * RECLEN, SEEK_SET);
-            if ((res = fwrite(dbgbuf, RECLEN, 1, log_out)) != 1){
+            /* Diag type is not required so +4 */
+            if ((res = fwrite((dbgbuf+sizeof(slot->diag_type)), RECLEN,
+                              1, log_out)) != 1){
                 perror("fwrite");
                 break;
             }
