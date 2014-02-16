@@ -2044,7 +2044,7 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
     }
 
 	 /*
-     * Reconstruct the 64 bit event TSF.  This isn't from the MAC, it's
+     * Reconstruct the 64 bit event TSF. This isn't from the MAC, it's
      * at the time the event was sent to us, the TSF value will be
      * in the future.
      */
@@ -2079,7 +2079,7 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
          * Sanity check the buffer length of the event against
          * what we currently have.
          * Since buf_len is 32 bits, we check if it overflows
-         * a large 32 bit value.  It's not 0x7fffffff because
+         * a large 32 bit value. It's not 0x7fffffff because
          * we increase n by (buf_len + sizeof(hdr)), which would
          * in itself cause n to overflow.
          * If "int" is 64 bits then this becomes a moot point.
@@ -2264,6 +2264,10 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		vos_status = VOS_STATUS_E_NOMEM;
 		goto err_wmi_attach;
 	}
+
+	/* adjust the cfg_ctx default value based on setting */
+	wdi_in_set_cfg_rx_fwd_disabled((ol_pdev_handle)((pVosContextType)vos_context)->cfg_ctx,
+		(u_int8_t)mac_params->apDisableIntraBssFwd);
 
 	/* Allocate dfs_ic and initialize DFS */
 	wma_handle->dfs_ic = wma_dfs_attach(wma_handle->dfs_ic);
