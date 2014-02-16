@@ -4031,6 +4031,7 @@ VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
 			WMI_SET_CHANNEL_MODE(chan_info, MODE_11A);
 		}
 
+
 		WMI_SET_CHANNEL_MAX_POWER(chan_info,
 					  chan_list->chanParam[i].pwr);
 
@@ -16492,7 +16493,8 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 	void *hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD,
 					wma_handle->vos_context);
 
-   hdd_tgt_cfg.reg_domain = wma_handle->reg_cap.eeprom_rd;
+	hdd_tgt_cfg.reg_domain = wma_handle->reg_cap.eeprom_rd;
+	hdd_tgt_cfg.eeprom_rd_ext = wma_handle->reg_cap.eeprom_rd_ext;
 
 	switch (wma_handle->phy_capability) {
 	case WMI_11G_CAPABILITY:

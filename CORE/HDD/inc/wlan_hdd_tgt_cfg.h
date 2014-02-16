@@ -77,6 +77,7 @@ struct hdd_tgt_vht_cap {
 
 struct regulatory {
 	u_int32_t reg_domain;
+	u_int32_t eeprom_rd_ext;
 	u_int16_t country_code;
 	u_int8_t alpha2[3];
 	const void *regpair;
@@ -86,6 +87,7 @@ struct hdd_tgt_cfg {
         u_int32_t target_fw_version;
         u_int8_t band_cap;
         u_int32_t reg_domain;
+        u_int32_t eeprom_rd_ext;
         v_MACADDR_t hw_macaddr;
         struct hdd_tgt_services services;
         struct hdd_tgt_ht_cap ht_cap;
