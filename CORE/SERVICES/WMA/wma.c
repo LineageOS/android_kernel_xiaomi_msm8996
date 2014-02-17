@@ -2160,14 +2160,29 @@ static int wma_unified_bcntx_status_event_handler(void *handle, u_int8_t *cmd_pa
       return -EINVAL;
    }
 
+   resp_event = param_buf->fixed_param;
+
+   /* Check for valid handle to ensure session is not deleted in any race */
+   if (!wma->interfaces[resp_event->vdev_id].handle) {
+      WMA_LOGE("%s: The session does not exist", __func__);
+      return -EINVAL;
+   }
+
+   /* Beacon Tx Indication supports only AP mode. Ignore in other modes */
+   if ((wma->interfaces[resp_event->vdev_id].type != WMI_VDEV_TYPE_AP) ||
+       (wma->interfaces[resp_event->vdev_id].sub_type != 0)) {
+      WMA_LOGI("%s: Beacon Tx Indication does not support type %d and sub_type %d",
+                    __func__, wma->interfaces[resp_event->vdev_id].type,
+                     wma->interfaces[resp_event->vdev_id].sub_type);
+      return 0;
+   }
+
    beacon_tx_complete_ind = (tSirFirstBeaconTxCompleteInd *)
                adf_os_mem_alloc(NULL, sizeof(tSirFirstBeaconTxCompleteInd));
    if (!beacon_tx_complete_ind) {
 	   WMA_LOGE("%s: Failed to alloc beacon_tx_complete_ind", __func__);
 	   return -ENOMEM;
    }
-
-   resp_event = param_buf->fixed_param;
 
    beacon_tx_complete_ind->messageType = WDA_DFS_BEACON_TX_SUCCESS_IND;
    beacon_tx_complete_ind->length = sizeof(tSirFirstBeaconTxCompleteInd);
