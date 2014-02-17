@@ -581,7 +581,7 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		wma_vdev_start_rsp(wma, bssParams, resp_event);
 	}
 	vos_timer_destroy(&req_msg->event_timeout);
-	vos_mem_free(req_msg);
+	adf_os_mem_free(req_msg);
 
 	return 0;
 }
