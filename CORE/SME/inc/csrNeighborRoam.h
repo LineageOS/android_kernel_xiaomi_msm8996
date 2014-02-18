@@ -32,7 +32,8 @@
     \file csrNeighborRoam.h
   
     Exports and types for the neighbor roaming algorithm which is sepcifically 
-    designed for Android.========================================================================== */
+    designed for Android.
+========================================================================== */
 #ifndef CSR_NEIGHBOR_ROAM_H
 #define CSR_NEIGHBOR_ROAM_H
 

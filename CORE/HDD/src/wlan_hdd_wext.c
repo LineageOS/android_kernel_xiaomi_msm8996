@@ -223,6 +223,10 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private IOCTL for debug connection issues */
 #define WE_SET_DEBUG_LOG                72
 #define  WE_SET_SCAN_BAND_PREFERENCE    73
+#ifdef WE_SET_TX_POWER
+#undef WE_SET_TX_POWER
+#endif
+#define WE_SET_TX_POWER                 74
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -4383,6 +4387,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hdd_wext_state_t  *pWextState =  WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     tSmeConfigParams smeConfig;
     int *value = (int *)extra;
@@ -4647,6 +4652,21 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            }
            break;
         }
+        case WE_SET_TX_POWER:
+        {
+           tSirMacAddr bssid;
+
+           vos_mem_copy(bssid, pHddStaCtx->conn_info.bssId, VOS_MAC_ADDR_SIZE);
+           if ( sme_SetTxPower(hHal, pAdapter->sessionId, bssid,
+                              pAdapter->device_mode, set_value) !=
+                              eHAL_STATUS_SUCCESS )
+           {
+              hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Setting tx power failed",
+                     __func__);
+              return -EIO;
+           }
+           break;
+        }
         case WE_SET_MAX_TX_POWER:
         {
            tSirMacAddr bssid;
@@ -4654,9 +4674,9 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 
            hddLog(VOS_TRACE_LEVEL_INFO, "%s: Setting maximum tx power %d dBm",
                   __func__, set_value);
-           vos_mem_copy(bssid, pAdapter->macAddressCurrent.bytes,
+           vos_mem_copy(bssid, pHddStaCtx->conn_info.bssId,
                  VOS_MAC_ADDR_SIZE);
-           vos_mem_copy(selfMac, pAdapter->macAddressCurrent.bytes,
+           vos_mem_copy(selfMac, pHddStaCtx->conn_info.bssId,
                  VOS_MAC_ADDR_SIZE);
 
            if( sme_SetMaxTxPower(hHal, bssid, selfMac, set_value) !=
@@ -6378,7 +6398,7 @@ int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_info *in
 
         default:
         {
-            hddLog(LOGE, "Invalid IOCTL command %d",  sub_cmd);
+            hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd );
             break;
         }
     }
@@ -6886,7 +6906,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
 #endif
         default:
         {
-            hddLog(LOGE, "Invalid IOCTL command %d",  sub_cmd);
+            hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd );
             break;
         }
     }
@@ -7271,7 +7291,8 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
 #endif
         default:
             {
-                hddLog(LOGE, "Invalid IOCTL command %d",  sub_cmd );
+                hddLog(LOGE, "%s: Invalid IOCTL command %d",
+                       __func__, sub_cmd );
             }
             break;
     }
@@ -9417,7 +9438,7 @@ int iw_set_two_ints_getnone(struct net_device *dev, struct iw_request_info *info
 
         default:
         {
-            hddLog(LOGE, "Invalid IOCTL command %d",  sub_cmd);
+            hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd );
             break;
         }
     }
@@ -9584,6 +9605,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "setMaxTxPower" },
+
+    {   WE_SET_TX_POWER,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setTxPower" },
 
     {   WE_SET_MAX_TX_POWER_2_4,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,

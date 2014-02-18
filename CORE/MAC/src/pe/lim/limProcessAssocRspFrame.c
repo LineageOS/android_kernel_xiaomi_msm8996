@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -841,6 +841,18 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     limDiagEventReport(pMac, WLAN_PE_DIAG_CONNECTED, psessionEntry, 0, 0);
 #endif
 
+    if (pAssocRsp->ExtCap.present)
+    {
+        pStaDs->timingMeasCap = pAssocRsp->ExtCap.timingMeas;
+        PELOG1(limLog(pMac, LOG1,
+               FL("ExtCap present, timingMeas: %d"),
+               pAssocRsp->ExtCap.timingMeas);)
+    }
+    else
+    {
+        pStaDs->timingMeasCap = 0;
+        PELOG1(limLog(pMac, LOG1, FL("ExtCap not present"));)
+    }
 
      //Update the BSS Entry, this entry was added during preassoc.
     if( eSIR_SUCCESS == limStaSendAddBss( pMac, pAssocRsp,  pBeaconStruct,

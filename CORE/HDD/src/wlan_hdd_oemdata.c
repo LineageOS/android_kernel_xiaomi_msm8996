@@ -780,7 +780,7 @@ void hdd_SendPeerStatusIndToOemApp(v_MACADDR_t *peerMac,
    /* check if oem app has registered and pid is valid */
    if ((!pHddCtx->oem_app_registered) || (pHddCtx->oem_pid == 0))
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                 "%s: OEM app is not registered(%d) or pid is invalid(%d)",
                 __func__, pHddCtx->oem_app_registered, pHddCtx->oem_pid);
       return;

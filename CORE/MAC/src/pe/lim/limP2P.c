@@ -1221,6 +1221,7 @@ tSirRetStatus __limProcessSmeNoAUpdate(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     pMsgNoA->count = pNoA->count;
     pMsgNoA->single_noa_duration = pNoA->single_noa_duration;
     pMsgNoA->psSelection = pNoA->psSelection;
+    pMsgNoA->sessionId = pNoA->sessionid;
 
     msg.type = WDA_SET_P2P_GO_NOA_REQ;
     msg.reserved = 0;

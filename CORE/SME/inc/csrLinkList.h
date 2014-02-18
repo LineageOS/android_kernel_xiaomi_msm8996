@@ -29,7 +29,8 @@
     ------------------------------------------------------------------------- *  
     \file csrLinkList.h
   
-    Exports and types for the Common link list interfaces.========================================================================== */
+    Exports and types for the Common link list interfaces.
+========================================================================== */
 #ifndef CSR_LINK_LIST_H__
 #define CSR_LINK_LIST_H__
 

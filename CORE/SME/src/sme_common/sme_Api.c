@@ -56,7 +56,6 @@
   Include Files
   ------------------------------------------------------------------------*/
 
-
 #include "smsDebug.h"
 #include "sme_Api.h"
 #include "csrInsideApi.h"
@@ -1633,6 +1632,9 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    pMac->pnoOffload = pSmeConfigParams->pnoOffload;
 
    pMac->fEnableDebugLog = pSmeConfigParams->fEnableDebugLog;
+
+   /* update interface configuration */
+   pMac->sme.max_intf_count = pSmeConfigParams->max_intf_count;
 
    return status;
 }
@@ -3947,6 +3949,7 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
 #endif
       pParam->fScanOffload = pMac->fScanOffload;
       pParam->fP2pListenOffload = pMac->fP2pListenOffload;
+      pParam->max_intf_count = pMac->sme.max_intf_count;
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -8406,20 +8409,66 @@ eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid,
     return eHAL_STATUS_SUCCESS;
 }
 
-/* ---------------------------------------------------------------------------
+/* ----------------------------------------------------------------------------
+   \fn sme_SetTxPower
+   \brief Set Transmit Power dynamically.
+   \param  hHal
+   \param sessionId  Target Session ID
+   \pBSSId BSSID
+   \dev_mode dev_mode such as station, P2PGO, SAP
+   \param dBm  power to set
+   \- return eHalStatus
+  ---------------------------------------------------------------------------*/
+#if defined (QCA_WIFI_2_0) && !defined (QCA_WIFI_ISOC)
+eHalStatus sme_SetTxPower(tHalHandle hHal, v_U8_t sessionId,
+                          tSirMacAddr pBSSId,
+                          tVOS_CON_MODE dev_mode, int dBm)
+{
+   vos_msg_t msg;
+   tpMaxTxPowerParams pTxParams = NULL;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   v_S7_t power = (v_S7_t)dBm;
 
-    \fn sme_SetTxPower
+   MTRACE(macTraceNew(pMac, VOS_MODULE_ID_SME,
+                     TRACE_CODE_SME_RX_HDD_SET_TXPOW, sessionId, 0));
 
-    \brief Set Transmit Power dynamically. Note: this setting will
-    not persist over reboots.
+   /* make sure there is no overflow */
+   if ((int)power != dBm) {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: error, invalid power = %d", __func__, dBm);
+      return eHAL_STATUS_FAILURE;
+   }
 
-    \param  hHal
-    \param sessionId  Target Session ID
-    \param mW  power to set in mW
-    \- return eHalStatus
+   pTxParams = vos_mem_malloc(sizeof(tMaxTxPowerParams));
+   if (NULL == pTxParams)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+              "%s: Not able to allocate memory for pTxParams", __func__);
+       return eHAL_STATUS_FAILURE;
+   }
 
-  -------------------------------------------------------------------------------*/
-eHalStatus sme_SetTxPower(tHalHandle hHal, v_U8_t sessionId, v_U8_t mW)
+   vos_mem_copy(pTxParams->bssId, pBSSId, SIR_MAC_ADDR_LENGTH);
+   pTxParams->power = power; /* unit is dBm */
+   pTxParams->dev_mode = dev_mode;
+   msg.type = WDA_SET_TX_POWER_REQ;
+   msg.reserved = 0;
+   msg.bodyptr = pTxParams;
+
+   if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: failed to post WDA_SET_TX_POWER_REQ to WDA",
+                __func__);
+      vos_mem_free(pTxParams);
+      return eHAL_STATUS_FAILURE;
+   }
+
+   return eHAL_STATUS_SUCCESS;
+}
+#else
+eHalStatus sme_SetTxPower(tHalHandle hHal, v_U8_t sessionId,
+                          tSirMacAddr pBSSId,
+                          tVOS_CON_MODE dev_mode, int mW)
 {
 
    eHalStatus status = eHAL_STATUS_FAILURE;
@@ -8428,14 +8477,22 @@ eHalStatus sme_SetTxPower(tHalHandle hHal, v_U8_t sessionId, v_U8_t mW)
    MTRACE(macTraceNew(pMac, VOS_MODULE_ID_SME,
                  TRACE_CODE_SME_RX_HDD_SET_TXPOW, NO_SESSION, 0));
    smsLog(pMac, LOG1, FL("set tx power %dmW"), mW);
+
+   if (mW < 0 || mW > 0xff) {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: error, invalid mW = %d", __func__, mW);
+     return eHAL_STATUS_FAILURE;
+   }
+
    status = sme_AcquireGlobalLock(&pMac->sme);
    if (HAL_STATUS_SUCCESS(status))
    {
-      status = csrSetTxPower(pMac, sessionId, mW);
+      status = csrSetTxPower(pMac, sessionId, (v_U8_t)mW);
       sme_ReleaseGlobalLock(&pMac->sme);
    }
    return status;
 }
+#endif
 
 /* ---------------------------------------------------------------------------
 
@@ -11384,6 +11441,39 @@ eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level )
     }
     vos_mem_free(pLevel);
     return eHAL_STATUS_FAILURE;
+}
+/* ---------------------------------------------------------------------------
+   \fn sme_TxpowerLimit
+   \brief SME API to set txpower limits
+   \param hHal
+   \param psmetx : power limits for 2g/5g
+   \- return eHalStatus
+ -------------------------------------------------------------------------*/
+eHalStatus sme_TxpowerLimit(tHalHandle hHal, tSirTxPowerLimit *psmetx)
+{
+     eHalStatus status = eHAL_STATUS_SUCCESS;
+     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+     vos_msg_t vosMessage;
+     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
+     {
+          vosMessage.type = WDA_TX_POWER_LIMIT;
+          vosMessage.reserved = 0;
+          vosMessage.bodyptr = psmetx;
+
+          vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+          if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+          {
+             VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                        "%s: not able to post WDA_TX_POWER_LIMIT",
+                        __func__);
+             status = eHAL_STATUS_FAILURE;
+             vos_mem_free(psmetx);
+          }
+          sme_ReleaseGlobalLock(&pMac->sme);
+     }
+     return(status);
 }
 #endif /* #ifndef QCA_WIFI_ISOC */
 

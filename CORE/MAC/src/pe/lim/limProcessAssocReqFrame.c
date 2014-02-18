@@ -1228,6 +1228,19 @@ if (limPopulateMatchingRateSet(pMac,
     pStaDs->rmfEnabled = (pmfConnection) ? 1 : 0;
 #endif
 
+    if (pAssocReq->ExtCap.present)
+    {
+        pStaDs->timingMeasCap = pAssocReq->ExtCap.timingMeas;
+        PELOG1(limLog(pMac, LOG1,
+               FL("ExtCap present, timingMeas: %d"),
+               pAssocReq->ExtCap.timingMeas);)
+    }
+    else
+    {
+        pStaDs->timingMeasCap = 0;
+        PELOG1(limLog(pMac, LOG1, FL("ExtCap not present"));)
+    }
+
     // BTAMP: Storing the parsed assoc request in the psessionEntry array
     psessionEntry->parsedAssocReq[pStaDs->assocId] = pAssocReq;
 

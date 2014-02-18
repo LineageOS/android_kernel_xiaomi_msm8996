@@ -620,6 +620,14 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 
     if(eConnectionState_Associated == pHddStaCtx->conn_info.connState)/* Associated */
     {
+        if (!pCsrRoamInfo)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: STA in associated state but pCsrRoamInfo is null",
+                      __func__);
+            return;
+        }
+
         memcpy(wrqu.ap_addr.sa_data, pCsrRoamInfo->pBssDesc->bssId, sizeof(pCsrRoamInfo->pBssDesc->bssId));
         type = WLAN_STA_ASSOC_DONE_IND;
 
@@ -669,7 +677,8 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 
             /* send peer status indication to oem app */
             hdd_SendPeerStatusIndToOemApp(&peerMacAddr, ePeerConnected,
-                                   0, pAdapter->sessionId,
+                                   pCsrRoamInfo->timingMeasCap,
+                                   pAdapter->sessionId,
                                    pHddStaCtx->conn_info.operationChannel);
         }
 #endif
@@ -704,7 +713,8 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
     msg = NULL;
     /*During the WLAN uninitialization,supplicant is stopped before the
       driver so not sending the status of the connection to supplicant*/
-    if(pHddCtx->isLoadUnloadInProgress != TRUE)
+    if ((pHddCtx->isLoadInProgress != TRUE) &&
+        (pHddCtx->isUnloadInProgress != TRUE))
     {
         wireless_send_event(dev, we_event, &wrqu, msg);
 #ifdef FEATURE_WLAN_CCX
@@ -827,7 +837,8 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     {
         /*During the WLAN uninitialization,supplicant is stopped before the
             driver so not sending the status of the connection to supplicant*/
-        if(pHddCtx->isLoadUnloadInProgress != TRUE)
+        if ((pHddCtx->isLoadInProgress != TRUE) &&
+            (pHddCtx->isUnloadInProgress != TRUE))
         {
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
                     "%s: sent disconnected event to nl80211",
@@ -2712,9 +2723,12 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                 if (pHddCtx->hdd_mcastbcast_filter_set == TRUE)
                 {
                     hdd_conf_mcastbcast_filter(pHddCtx, FALSE);
-                    pHddCtx->configuredMcastBcastFilter =
-                        pHddCtx->sus_res_mcastbcast_filter;
-                    pHddCtx->sus_res_mcastbcast_filter_valid = VOS_FALSE;
+
+                    if (VOS_TRUE == pHddCtx->sus_res_mcastbcast_filter_valid) {
+                        pHddCtx->configuredMcastBcastFilter =
+                            pHddCtx->sus_res_mcastbcast_filter;
+                        pHddCtx->sus_res_mcastbcast_filter_valid = VOS_FALSE;
+                    }
 
                     hddLog(VOS_TRACE_LEVEL_INFO,
                            "offload: disassociation happening, restoring configuredMcastBcastFilter");

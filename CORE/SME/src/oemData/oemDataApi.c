@@ -32,7 +32,8 @@
 
     \file oemDataApi.c
 
-    Implementation for the OEM DATA REQ/RSP interfaces.========================================================================== */
+    Implementation for the OEM DATA REQ/RSP interfaces.
+========================================================================== */
 #include "aniGlobal.h"
 #include "oemDataApi.h"
 #include "palApi.h"

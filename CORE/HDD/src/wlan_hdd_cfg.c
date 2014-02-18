@@ -3078,6 +3078,20 @@ REG_VARIABLE( CFG_SAP_MAX_NO_PEERS, WLAN_PARAM_Integer,
               CFG_THERMAL_TEMP_MAX_LEVEL3_DEFAULT,
               CFG_THERMAL_TEMP_MAX_LEVEL3_MIN,
               CFG_THERMAL_TEMP_MAX_LEVEL3_MAX ),
+
+  REG_VARIABLE( CFG_SET_TXPOWER_LIMIT2G_NAME , WLAN_PARAM_Integer,
+              hdd_config_t, TxPower2g,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_SET_TXPOWER_LIMIT2G_DEFAULT,
+              CFG_SET_TXPOWER_LIMIT2G_MIN,
+              CFG_SET_TXPOWER_LIMIT2G_MAX ),
+
+  REG_VARIABLE( CFG_SET_TXPOWER_LIMIT5G_NAME , WLAN_PARAM_Integer,
+             hdd_config_t, TxPower5g,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_SET_TXPOWER_LIMIT5G_DEFAULT,
+             CFG_SET_TXPOWER_LIMIT5G_MIN,
+             CFG_SET_TXPOWER_LIMIT5G_MAX ),
 #endif /*#ifndef QCA_WIFI_ISOC*/
    REG_VARIABLE( CFG_ENABLE_DEBUG_CONNECT_ISSUE, WLAN_PARAM_Integer,
               hdd_config_t, gEnableDebugLog,
@@ -5153,6 +5167,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    /* Update PNO offoad status */
    smeConfig.pnoOffload = pHddCtx->cfg_ini->PnoOffload;
 #endif
+
+   /* Update maximum interfaces information */
+   smeConfig.max_intf_count = pHddCtx->max_intf_count;
 
    smeConfig.fEnableDebugLog = pHddCtx->cfg_ini->gEnableDebugLog;
    halStatus = sme_UpdateConfig( pHddCtx->hHal, &smeConfig);
