@@ -53,7 +53,7 @@
  */
 #define MSI_ASSIGN_FW         0 /* 1 MSI for firmware (errors, etc.) */
 #define MSI_ASSIGN_CE_INITIAL 1 /* 7 MSIs for Copy Engines */
-#define MSI_ASSIGN_CE_MAX     7 
+#define MSI_ASSIGN_CE_MAX     7
 
 
 
@@ -81,7 +81,7 @@ struct pcie_state_s {
                                     in various SoC registers */
 
     A_UINT32 power_mgmt_method;  /* PCIE_PWR_METHOD_* */
-    A_UINT32 config_flags;       /* PCIE_CONFIG_FLAG_* */ 
+    A_UINT32 config_flags;       /* PCIE_CONFIG_FLAG_* */
 };
 
 /*
@@ -104,6 +104,6 @@ struct CE_pipe_config {
     A_UINT32 nbytes_max;
     A_UINT32 flags;
     A_UINT32 reserved;
-}; 
+};
 
 #endif /* __CEPCI_H__ */

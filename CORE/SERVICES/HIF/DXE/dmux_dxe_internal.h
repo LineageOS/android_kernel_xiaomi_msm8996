@@ -37,7 +37,7 @@
 
 struct dmux_dxe_pdev_t {
     adf_os_atomic_t  ref_count;  /* module reference count */
-    hif_dxe_handle   h_hif_dxe;  
+    hif_dxe_handle   h_hif_dxe;
     dmux_dxe_data_cb rx_data_cb;
     dmux_dxe_mgmt_cb rx_mgmt_cb;
     dmux_dxe_ctrl_cb rx_ctrl_cb;

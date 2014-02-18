@@ -27,14 +27,14 @@
 
 /**
 * @file hif_dxe_config.c
-* @brief Provide functions for DXE HIF module DMA Channel configuration 
+* @brief Provide functions for DXE HIF module DMA Channel configuration
 * @details
-*  This file Implements the HIF DXE DMA Channel Configuration Values like : 
+*  This file Implements the HIF DXE DMA Channel Configuration Values like :
 *  -  DMA Channel Base Addresses
 *  -  DMA Channel Interrupt Maskshif
 *  -  Provide DMA Channel to DMA Channel Configuration mapping
 *  -  Per Channel Config Values like : NumDesc , NumBuffers , Priority , DMA xfr direction etc
-*  - 
+*  -
 *  -
 */
 #include "adf_os_types.h"
@@ -100,11 +100,11 @@ WLANDXE_ChannelConfigType chanTXLowPriConfig =
     0,
 
     /* Reference WQ, TX23 */
-#ifdef HIF_DXE_TEST	
+#ifdef HIF_DXE_TEST
     11,
 #else
     23,
-#endif    
+#endif
 
     /* USB Only, End point info */
     0,
@@ -260,7 +260,7 @@ WLANDXE_ChannelMappingType channelList[HIFDXE_CHANNEL_MAX] =
     {HIFDXE_CHANNEL_RX_HIGH_PRI, WLANDXE_DMA_CHANNEL_3, &chanRXHighPriConfig},
 };
 
-WLANDXE_TxCompIntConfigType txCompInt = 
+WLANDXE_TxCompIntConfigType txCompInt =
 {
     /* TX Complete Interrupt enable method */
     WLANDXE_TX_COMP_INT_PER_K_FRAMES,
@@ -304,7 +304,7 @@ A_STATUS dxe_chan_def_config(S_HIFDXE_CONTEXT * pdxectx,WLANDXE_ChannelCBType   
     if ((NULL == pdxectx) || (NULL == channelEntry))
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("dxe_chan_def_config : Invalid DXE Context / DMA Channel Entry \n"));
-        return A_EINVAL;   
+        return A_EINVAL;
     }
 
     for(idx = 0; idx < HIFDXE_CHANNEL_MAX; idx++)
@@ -353,7 +353,7 @@ A_STATUS dxe_chan_def_config(S_HIFDXE_CONTEXT * pdxectx,WLANDXE_ChannelCBType   
     /* Enable INT External Descriptor */
     channelEntry->extraConfig.chan_mask |= WLANDXE_CH_CTRL_INE_ED_MASK;
     /* Set Channel This is not channel, event counter, somthing wrong */
-    channelEntry->extraConfig.chan_mask |= 
+    channelEntry->extraConfig.chan_mask |=
         mappedChannel->DMAChannel << WLANDXE_CH_CTRL_CTR_SEL_OFFSET;
     /* Transfer Type */
     channelEntry->extraConfig.chan_mask |= mappedChannel->channelConfig->xfrType;
@@ -384,7 +384,7 @@ A_STATUS dxe_chan_def_config(S_HIFDXE_CONTEXT * pdxectx,WLANDXE_ChannelCBType   
     /* Host System Using Little Endian */
     channelEntry->extraConfig.chan_mask |= WLANDXE_CH_CTRL_ENDIAN_MASK;
     /* BMU Threshold select */
-    channelEntry->extraConfig.chan_mask |= 
+    channelEntry->extraConfig.chan_mask |=
         channelEntry->channelConfig.bmuThdSel << WLANDXE_CH_CTRL_BTHLD_SEL_OFFSET;
     /* EOP for control register ??? */
     channelEntry->extraConfig.chan_mask |= WLANDXE_CH_CTRL_EOP_MASK;
@@ -496,10 +496,10 @@ A_STATUS dxe_chan_def_config(S_HIFDXE_CONTEXT * pdxectx,WLANDXE_ChannelCBType   
 
 
     /* size mask???? */
-    channelEntry->extraConfig.chk_size_mask = 
+    channelEntry->extraConfig.chk_size_mask =
         mappedChannel->channelConfig->chk_size << 10;
 
-    channelEntry->extraConfig.refWQ_swapped = 
+    channelEntry->extraConfig.refWQ_swapped =
         WLANDXE_U32_SWAP_ENDIAN(channelEntry->channelConfig.refWQ);
 
     /* Set Channel specific Interrupt mask */
@@ -510,9 +510,8 @@ A_STATUS dxe_chan_def_config(S_HIFDXE_CONTEXT * pdxectx,WLANDXE_ChannelCBType   
     channelEntry->assignedDMAChannel = mappedChannel->DMAChannel;
     adf_os_atomic_set(&channelEntry->numFreeDesc, 0);
     adf_os_atomic_set(&channelEntry->numRsvdDesc, 0);
-    adf_os_atomic_set(&channelEntry->numFragmentCurrentChain, 0);    
+    adf_os_atomic_set(&channelEntry->numFragmentCurrentChain, 0);
     channelEntry->numTotalFrame           = 0;
     channelEntry->hitLowResource          = FALSE;
     return status;
 }
-

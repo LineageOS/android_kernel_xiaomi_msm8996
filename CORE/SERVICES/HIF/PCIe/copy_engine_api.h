@@ -233,14 +233,14 @@ void CE_watermark_cb_register(struct CE_handle *copyeng,
 /*
  * Set low/high watermarks for the send/source side of a copy engine.
  *
- * Typically, the destination side CPU manages watermarks for 
+ * Typically, the destination side CPU manages watermarks for
  * the receive side and the source side CPU manages watermarks
  * for the send side.
  *
  * A low watermark of 0 is never hit (so the watermark function
  * will never be called for a Low Watermark condition).
  *
- * A high watermark equal to nentries is never hit (so the 
+ * A high watermark equal to nentries is never hit (so the
  * watermark function will never be called for a High Watermark
  * condition).
  */

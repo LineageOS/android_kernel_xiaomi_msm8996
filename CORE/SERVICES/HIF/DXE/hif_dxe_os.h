@@ -35,7 +35,7 @@
  *  1. OS Initialization required for DXE Module
  *  2. Read/Write DXE registers in OS Specific Manner
  *  3. Allocate/Free DMA Memory for DXE Descriptors
- *  4. Communicate with SMSM Driver 
+ *  4. Communicate with SMSM Driver
  *  5. Other
  */
 #ifndef _HIF_DXE_OS_H_
@@ -82,54 +82,54 @@ A_STATUS ol_ath_dxe_initialize(void* Adapter);
 /**
  * @ HIF OS Init Dxe
  *
- * @param[in/out] osdev  OS Specific Context 
+ * @param[in/out] osdev  OS Specific Context
  *
- * @retval    hif_dxe_oshandle Returns OS Specific Allocation Handle     
+ * @retval    hif_dxe_oshandle Returns OS Specific Allocation Handle
  */
-hif_dxe_oshandle hif_dxe_os_init(adf_os_device_t osdev, 
+hif_dxe_oshandle hif_dxe_os_init(adf_os_device_t osdev,
                                    S_HIF_DXE_OS_PARAMS *params);
 
 
 /**
  * @ HIF OS DeInit Dxe
  *
- * @param[in]hif_dxe_osdev  OS Specific Context 
+ * @param[in]hif_dxe_osdev  OS Specific Context
  *
- * @retval   void     
+ * @retval   void
  */
 void hif_dxe_os_deinit(hif_dxe_oshandle hif_dxe_osdev);
 
 /**
  * @ HIF OS Enable / Disable TXRX Interrupt
  *
- * @param[in]hif_dxe_osdev - OS Specific Context 
- * @param[in]eIntType    
- * @param[in]bEnable    
+ * @param[in]hif_dxe_osdev - OS Specific Context
+ * @param[in]eIntType
+ * @param[in]bEnable
  *
- * @retval   A_STATUS     
+ * @retval   A_STATUS
  */
-A_STATUS hif_dxe_os_program_int(hif_dxe_oshandle hif_dxe_osdev , 
+A_STATUS hif_dxe_os_program_int(hif_dxe_oshandle hif_dxe_osdev ,
                            E_DXE_INTTYPE eIntType , E_DXE_INT_ACTION eAction);
 
 
 /**
  * @ HIF OS Notify SMSM
  *
- * @param[in]hif_dxe_osdev - OS Specific Context 
- * @param[in]clrSt    
- * @param[in]setSt    
+ * @param[in]hif_dxe_osdev - OS Specific Context
+ * @param[in]clrSt
+ * @param[in]setSt
  *
- * @retval   A_STATUS     
+ * @retval   A_STATUS
  */
-A_STATUS hif_dxe_os_notifysmsm(hif_dxe_oshandle hif_dxe_osdev, 
+A_STATUS hif_dxe_os_notifysmsm(hif_dxe_oshandle hif_dxe_osdev,
                                     u_int32_t clrSt, u_int32_t setSt);
 
 /**
  * @brief HIF Os Read register
- * 
+ *
  * @param[in] OS Context
  * @param[in] Addr
- * 
+ *
  * @return Read Value
  */
 u_int32_t
@@ -138,22 +138,22 @@ hif_dxe_os_readreg(hif_dxe_oshandle hif_dxe_osdev, u_int32_t addr);
 
 /**
  * @brief HIF Os Write register
- * 
+ *
  * @param[in] OS Context
  * @param[in] Addr
  * @param[in] val
- * 
+ *
  * @return void
  */
 void
-hif_dxe_os_writereg(hif_dxe_oshandle hif_dxe_osdev, u_int32_t addr, 
+hif_dxe_os_writereg(hif_dxe_oshandle hif_dxe_osdev, u_int32_t addr,
                        u_int32_t val);
 
 /**
  * @brief HIF Mem Barrier
- * 
+ *
  * @param[in] void
- * 
+ *
  * @return void
  */
 void hif_dxe_os_mem_barrier(void);

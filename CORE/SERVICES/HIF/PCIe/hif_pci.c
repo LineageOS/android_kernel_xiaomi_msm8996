@@ -208,7 +208,7 @@ HIFDetachHTC(HIF_DEVICE *hif_device)
 
 /* Send the first nbytes bytes of the buffer */
 A_STATUS
-HIFSend_head(HIF_DEVICE *hif_device, 
+HIFSend_head(HIF_DEVICE *hif_device,
              a_uint8_t pipe, unsigned int transfer_id, unsigned int nbytes, adf_nbuf_t nbuf)
 {
     struct HIF_CE_state *hif_state = (struct HIF_CE_state *)hif_device;
@@ -217,7 +217,7 @@ HIFSend_head(HIF_DEVICE *hif_device,
     int bytes = nbytes, nfrags = 0;
     struct CE_sendlist sendlist;
     int status;
-    
+
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n",__FUNCTION__));
     A_ASSERT(nbytes <= adf_nbuf_len(nbuf));
@@ -238,7 +238,7 @@ HIFSend_head(HIF_DEVICE *hif_device,
         frag_paddr = adf_nbuf_get_frag_paddr_lo(nbuf, nfrags);
         frag_bytes = adf_nbuf_get_frag_len(nbuf, nfrags);
         CE_sendlist_buf_add(
-            &sendlist, frag_paddr, 
+            &sendlist, frag_paddr,
             frag_bytes > bytes ? bytes : frag_bytes,
             adf_nbuf_get_frag_is_wordstream(nbuf, nfrags) ?
                 0 : CE_SEND_FLAG_SWAP_DISABLE);
@@ -293,11 +293,11 @@ HIFSendCompleteCheck(HIF_DEVICE *hif_device, a_uint8_t pipe, int force)
             return;
         }
     }
-#ifdef  ATH_11AC_TXCOMPACT    
+#ifdef  ATH_11AC_TXCOMPACT
     CE_per_engine_servicereap(hif_state->sc, pipe);
 #else
-    CE_per_engine_service(hif_state->sc, pipe);    
-#endif    
+    CE_per_engine_service(hif_state->sc, pipe);
+#endif
 }
 
 a_uint16_t
@@ -330,7 +330,7 @@ HIF_PCI_CE_send_done(struct CE_handle *copyeng, void *ce_context, void *transfer
     compl_queue_head = compl_queue_tail = NULL;
     do {
         /*
-         * For the send completion of an item in sendlist, just increment 
+         * For the send completion of an item in sendlist, just increment
          * num_sends_allowed. The upper layer callback will be triggered
          * when last fragment is done with send.
          */
@@ -383,7 +383,7 @@ HIF_PCI_CE_send_done(struct CE_handle *copyeng, void *ce_context, void *transfer
          * don't invoke completion processing until the entire sendlist
          * has been sent.
          */
-        return; 
+        return;
     }
 
     adf_os_spin_lock(&hif_state->completion_pendingq_lock);
@@ -443,14 +443,14 @@ HIF_PCI_CE_recv_data(struct CE_handle *copyeng, void *ce_context, void *transfer
         compl_queue_tail = compl_state;
 
         adf_nbuf_unmap_single(scn->adf_dev, (adf_nbuf_t)transfer_context, ADF_OS_DMA_FROM_DEVICE);
-        
+
         /*
-         * EV #112693 - [Peregrine][ES1][WB342][Win8x86][Performance] BSoD_0x133 occurred in VHT80 UDP_DL      
+         * EV #112693 - [Peregrine][ES1][WB342][Win8x86][Performance] BSoD_0x133 occurred in VHT80 UDP_DL
          * Break out DPC by force if number of loops in HIF_PCI_CE_recv_data reaches MAX_NUM_OF_RECEIVES to avoid spending too long time in DPC for each interrupt handling.
          * Schedule another DPC to avoid data loss if we had taken force-break action before
          * Apply to Windows OS only currently, Linux/MAC os can expand to their platform if necessary
          */
-        
+
         /* Set up force_break flag if num of receices reaches MAX_NUM_OF_RECEIVES */
         sc->receive_count++;
         if (adf_os_unlikely(hif_max_num_receives_reached(sc->receive_count)))
@@ -679,7 +679,7 @@ hif_completion_thread(struct HIF_CE_state *hif_state)
                 netbuf = (adf_nbuf_t)compl_state->transfer_context;
                 nbytes = compl_state->nbytes;
 				/*
-				To see the following debug output, enable the HIF_PCI_DEBUG flag in 
+				To see the following debug output, enable the HIF_PCI_DEBUG flag in
 				the debug module declaration in this source file
 				*/
 				AR_DEBUG_PRINTF(HIF_PCI_DEBUG,("HIF_PCI_CE_recv_data netbuf=%p  nbytes=%d\n", netbuf, nbytes));
@@ -704,7 +704,7 @@ hif_completion_thread(struct HIF_CE_state *hif_state)
                 pipe_info->completion_freeq_head = compl_state;
             }
             pipe_info->completion_freeq_tail = compl_state;
-            pipe_info->num_sends_allowed += send_done; 
+            pipe_info->num_sends_allowed += send_done;
             adf_os_spin_unlock(&pipe_info->completion_freeq_lock);
         }
 
@@ -910,14 +910,14 @@ HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbyt
 
     /* This code cannot handle reads to non-memory space. Redirect to the
      * register read fn but preserve the multi word read capability of this fn
-     */ 
+     */
     if (address <  DRAM_BASE_ADDRESS) {
 
         if ((address & 0x3) || ((uintptr_t)data & 0x3)) {
             return (-EIO);
         }
 
-        while ((nbytes >= 4) && 
+        while ((nbytes >= 4) &&
                 (A_OK == (status = HIFDiagReadAccess(hif_device, address,
                                                      (A_UINT32*)data)))) {
 
@@ -926,7 +926,7 @@ HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbyt
             data   += sizeof(A_UINT32);
 
         }
-    
+
         return status;
     }
 
@@ -964,7 +964,7 @@ HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbyt
                 goto done;
             }
         }
-    
+
         { /* Request CE to send from Target(!) address to Host buffer */
             /*
              * The address supplied by the caller is in the
@@ -979,13 +979,13 @@ HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbyt
             A_TARGET_ACCESS_BEGIN(targid);
             address = TARG_CPU_SPACE_TO_CE_SPACE(sc->mem, address);
             A_TARGET_ACCESS_END(targid);
-    
+
             status = CE_send(ce_diag, NULL, (CE_addr_t)address, nbytes, 0, 0);
             if (status != EOK) {
                 goto done;
             }
         }
-    
+
         i=0;
         while (CE_completed_send_next(ce_diag, NULL, NULL, &buf,
                                       &completed_nbytes, &id,
@@ -1004,7 +1004,7 @@ HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbyt
             status = A_ERROR;
             goto done;
         }
-    
+
         i=0;
         while (CE_completed_recv_next(ce_diag, NULL, NULL, &buf, &completed_nbytes, &id, &flags) != A_OK) {
             A_MDELAY(1);
@@ -1021,7 +1021,7 @@ HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbyt
             status = A_ERROR;
             goto done;
         }
-    
+
         remaining_bytes -= nbytes;
         address += nbytes;
         CE_data += nbytes;
@@ -1144,7 +1144,7 @@ HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nby
                 goto done;
             }
         }
-    
+
         {
             /*
              * Request CE to send caller-supplied data that
@@ -1155,7 +1155,7 @@ HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nby
                 goto done;
             }
         }
-    
+
         i=0;
         while (CE_completed_send_next(ce_diag, NULL, NULL, &buf,
                                       &completed_nbytes, &id,
@@ -1166,17 +1166,17 @@ HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nby
                 goto done;
             }
         }
-    
+
         if (nbytes != completed_nbytes) {
             status = A_ERROR;
             goto done;
         }
-    
+
         if (buf != CE_data) {
             status = A_ERROR;
             goto done;
         }
-    
+
         i=0;
         while (CE_completed_recv_next(ce_diag, NULL, NULL, &buf, &completed_nbytes, &id, &flags) != A_OK) {
             A_MDELAY(1);
@@ -1185,17 +1185,17 @@ HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nby
                 goto done;
             }
         }
-    
+
         if (nbytes != completed_nbytes) {
             status = A_ERROR;
             goto done;
         }
-    
+
         if (buf != address) {
             status = A_ERROR;
             goto done;
         }
-    
+
         remaining_bytes -= nbytes;
         address += nbytes;
         CE_data += nbytes;
@@ -1394,7 +1394,7 @@ HIFGrowBuffers(hif_handle_t hif_hdl)
     struct HIF_CE_pipe_info *pipe_info;
     struct CE_attr *attr;
     int pipe_num;
-    
+
     for (pipe_num = 0; pipe_num < sc->ce_count; pipe_num++) {
         pipe_info = &hif_state->pipe_info[pipe_num];
         attr = &host_CE_config[pipe_num];
@@ -1473,7 +1473,7 @@ hif_send_buffer_cleanup_on_pipe(struct HIF_CE_pipe_info *pipe_info)
     {
         if (netbuf != CE_SENDLIST_ITEM_CTXT)
         {
-            /* Indicate the completion to higer layer to free the buffer */  
+            /* Indicate the completion to higer layer to free the buffer */
             hif_state->msg_callbacks_current.txCompletionHandler(
                 hif_state->msg_callbacks_current.Context, netbuf, id);
         }
@@ -1583,7 +1583,7 @@ HIFShutDownDevice(HIF_DEVICE *hif_device)
 
         HIFStop(hif_device);
         A_FREE(hif_state);
-    }   
+    }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC,("-%s\n",__FUNCTION__));
 }
@@ -1624,8 +1624,8 @@ HIF_BMI_send_done(struct CE_handle *copyeng, void *ce_context, void *transfer_co
     struct hif_pci_softc *sc = transaction->hif_state->sc;
 
 #ifdef BMI_RSP_POLLING
-    /* 
-     * Fix EV118783, Release a semaphore after sending 
+    /*
+     * Fix EV118783, Release a semaphore after sending
      * no matter whether a response is been expecting now.
      */
     adf_os_mutex_release(sc->ol_sc->adf_dev, &transaction->bmi_transaction_sem);
@@ -1683,7 +1683,7 @@ HIFExchangeBMIMsg(HIF_DEVICE *hif_device,
     int status = EOK;
     struct HIF_CE_pipe_info *recv_pipe_info = &(hif_state->pipe_info[BMI_CE_NUM_TO_HOST]);
     struct CE_handle *ce_recv = recv_pipe_info->ce_hdl;
-    
+
 #ifdef BMI_RSP_POLLING
     CE_addr_t buf;
     unsigned int completed_nbytes, id, flags;
@@ -1750,7 +1750,7 @@ HIFExchangeBMIMsg(HIF_DEVICE *hif_device,
 
     if (bmi_response) {
 #ifdef BMI_RSP_POLLING
-        /* Fix EV118783, do not wait a semaphore for the BMI response 
+        /* Fix EV118783, do not wait a semaphore for the BMI response
          * since the relative interruption may be lost.
          * poll the BMI response instead.
          */
@@ -2320,7 +2320,7 @@ extern void HIFdebug(void);
  *   (or perhaps spin/delay for a short while, then convert to sleep/interrupt)
  *   Careful, though, these functions may be used by interrupt handlers ("atomic")
  *  -Don't use host_reg_table for this code; instead use values directly
- *  -Use a separate timer to track activity and allow Target to sleep only 
+ *  -Use a separate timer to track activity and allow Target to sleep only
  *   if it hasn't done anything for a while; may even want to delay some
  *   processing for a short while in order to "batch" (e.g.) transmit
  *   requests with completion processing into "windows of up time".  Costs
