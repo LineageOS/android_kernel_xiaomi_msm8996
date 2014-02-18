@@ -1051,6 +1051,26 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "THERMAL_MGR_THRESH_CROSSED",
         "THERMAL_MGR_DBGID_DEFINITION END",
     },
+    {   /* WLAN_MODULE_PHYERR_DFS */
+        ""
+    },
+    {
+        /* WLAN_MODULE_RMC */
+        "RMC_DBGID_DEFINITION_START",
+        "RMC_CREATE_INSTANCE",
+        "RMC_DELETE_INSTANCE",
+        "RMC_LDR_SEL",
+        "RMC_NO_LDR",
+        "RMC_LDR_NOT_SEL",
+        "RMC_LDR_INF_SENT",
+        "RMC_PEER_ADD",
+        "RMC_PEER_DELETE",
+        "RMC_PEER_UNKNOWN",
+        "RMC_SET_MODE",
+        "RMC_SET_ACTION_PERIOD",
+        "RMC_ACRION_FRAME_RX",
+        "RMC_DBGID_DEFINITION_END",
+    },
 };
 
 int dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id,
