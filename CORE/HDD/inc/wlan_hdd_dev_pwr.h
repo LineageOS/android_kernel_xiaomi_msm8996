@@ -36,7 +36,7 @@
 /*----------------------------------------------------------------------------
 
    @brief Registration function.
-        Register suspend, resume callback functions with platform driver. 
+        Register suspend, resume callback functions with platform driver.
 
    @param hdd_context_t pHddCtx
         Global hdd context

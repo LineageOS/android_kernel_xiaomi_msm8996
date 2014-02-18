@@ -119,7 +119,7 @@ void hdd_suspend_standby_cbk (void *callbackContext, eHalStatus status)
 {
    hdd_context_t *pHddCtx = (hdd_context_t*)callbackContext;
    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Standby status = %d", __func__, status);
-   g_standby_status = status; 
+   g_standby_status = status;
 
    if(eHAL_STATUS_SUCCESS == status)
    {
@@ -153,7 +153,7 @@ void hdd_suspend_full_pwr_callback(void *callbackContext, eHalStatus status)
 }
 
 eHalStatus hdd_exit_standby(hdd_context_t *pHddCtx)
-{  
+{
     eHalStatus status = VOS_STATUS_SUCCESS;
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: WLAN being resumed from standby",__func__);
@@ -166,7 +166,7 @@ eHalStatus hdd_exit_standby(hdd_context_t *pHddCtx)
    if(status == eHAL_STATUS_PMC_PENDING)
    {
       //Block on a completion variable. Can't wait forever though
-      wait_for_completion_interruptible_timeout(&pHddCtx->full_pwr_comp_var, 
+      wait_for_completion_interruptible_timeout(&pHddCtx->full_pwr_comp_var,
          msecs_to_jiffies(WLAN_WAIT_TIME_FULL_PWR));
       status = g_full_pwr_status;
       if(g_full_pwr_status != eHAL_STATUS_SUCCESS)
@@ -207,20 +207,20 @@ VOS_STATUS hdd_enter_standby(hdd_context_t *pHddCtx)
    //Note we do not disable queues unnecessarily. Queues should already be disabled
    //if STA is disconnected or the queue will be disabled as and when disconnect
    //happens because of standby procedure.
-   
+
    //Ensure that device is in full power first. There is scope for optimization
    //here especially in scenarios where PMC is already in IMPS or REQUEST_IMPS.
    //Core s/w needs to be optimized to handle this. Until then we request full
    //power before issuing request for standby.
    INIT_COMPLETION(pHddCtx->full_pwr_comp_var);
    g_full_pwr_status = eHAL_STATUS_FAILURE;
-   halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_suspend_full_pwr_callback, 
+   halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_suspend_full_pwr_callback,
        pHddCtx, eSME_FULL_PWR_NEEDED_BY_HDD);
 
    if(halStatus == eHAL_STATUS_PMC_PENDING)
    {
       //Block on a completion variable. Can't wait forever though
-      wait_for_completion_interruptible_timeout(&pHddCtx->full_pwr_comp_var, 
+      wait_for_completion_interruptible_timeout(&pHddCtx->full_pwr_comp_var,
          msecs_to_jiffies(WLAN_WAIT_TIME_FULL_PWR));
       if(g_full_pwr_status != eHAL_STATUS_SUCCESS)
       {
@@ -253,10 +253,10 @@ VOS_STATUS hdd_enter_standby(hdd_context_t *pHddCtx)
    g_standby_status = eHAL_STATUS_FAILURE;
    halStatus = sme_RequestStandby(pHddCtx->hHal, hdd_suspend_standby_cbk, pHddCtx);
 
-   if (halStatus == eHAL_STATUS_PMC_PENDING) 
+   if (halStatus == eHAL_STATUS_PMC_PENDING)
    {
       //Wait till WLAN device enters standby mode
-      wait_for_completion_timeout(&pHddCtx->standby_comp_var, 
+      wait_for_completion_timeout(&pHddCtx->standby_comp_var,
          msecs_to_jiffies(WLAN_WAIT_TIME_STANDBY));
       if (g_standby_status != eHAL_STATUS_SUCCESS && g_standby_status != eHAL_STATUS_PMC_NOT_NOW)
       {
@@ -308,13 +308,13 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
    //Ensure that device is in full power as we will touch H/W during vos_Stop
    INIT_COMPLETION(pHddCtx->full_pwr_comp_var);
    g_full_pwr_status = eHAL_STATUS_FAILURE;
-   halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_suspend_full_pwr_callback, 
+   halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_suspend_full_pwr_callback,
        pHddCtx, eSME_FULL_PWR_NEEDED_BY_HDD);
 
    if(halStatus == eHAL_STATUS_PMC_PENDING)
    {
       //Block on a completion variable. Can't wait forever though
-      wait_for_completion_interruptible_timeout(&pHddCtx->full_pwr_comp_var, 
+      wait_for_completion_interruptible_timeout(&pHddCtx->full_pwr_comp_var,
          msecs_to_jiffies(WLAN_WAIT_TIME_FULL_PWR));
       if(g_full_pwr_status != eHAL_STATUS_SUCCESS){
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: sme_RequestFullPower failed",__func__);
@@ -336,7 +336,7 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
    if(halStatus == eHAL_STATUS_SUCCESS)
    {
       //Block on a completion variable. Can't wait forever though.
-      wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var, 
+      wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
          msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
    }
 
@@ -390,7 +390,7 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
       goto err_deep_sleep;
    }
 
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
       "%s: calling vos_start",__func__);
    vosStatus = vos_start( pHddCtx->pvosContext );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
@@ -401,7 +401,7 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
       goto err_deep_sleep;
    }
 
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
       "%s: calling hdd_post_voss_start_config",__func__);
    vosStatus = hdd_post_voss_start_config( pHddCtx );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
@@ -1188,7 +1188,7 @@ void hdd_unregister_mcast_bcast_filter(hdd_context_t *pHddCtx)
       return;
    }
 
-   if (WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER == 
+   if (WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER ==
                                             pHddCtx->cfg_ini->nEnableSuspend)
    {
       if(!pHddCtx->cfg_ini->enablePowersaveOffload)
@@ -1304,7 +1304,7 @@ void hdd_resume_wlan(void)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
       return;
    }
-   
+
    if (pHddCtx->isLogpInProgress) {
       hddLog(VOS_TRACE_LEVEL_INFO,
              "%s: Ignore resume wlan, LOGP in progress!", __func__);
@@ -1328,8 +1328,8 @@ void hdd_resume_wlan(void)
        }
 
 
-#ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP   
-       if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_DEEP_SLEEP) 
+#ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP
+       if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_DEEP_SLEEP)
        {
           hddLog(VOS_TRACE_LEVEL_INFO, "%s: WLAN being resumed from deep sleep",__func__);
           hdd_exit_deep_sleep(pAdapter);
@@ -1339,7 +1339,7 @@ void hdd_resume_wlan(void)
       if(pHddCtx->hdd_ignore_dtim_enabled == TRUE)
       {
          /*Switch back to DTIM 1*/
-         tSirSetPowerParamsReq powerRequest = { 0 }; 
+         tSirSetPowerParamsReq powerRequest = { 0 };
 
          powerRequest.uIgnoreDTIM = pHddCtx->hdd_actual_ignore_DTIM_value;
          powerRequest.uListenInterval = pHddCtx->hdd_actual_LI_value;
@@ -1352,10 +1352,10 @@ void hdd_resume_wlan(void)
          /* Update ignoreDTIM and ListedInterval in CFG with default values */
          ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, powerRequest.uIgnoreDTIM,
                           NULL, eANI_BOOLEAN_FALSE);
-         ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_LISTEN_INTERVAL, powerRequest.uListenInterval, 
+         ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_LISTEN_INTERVAL, powerRequest.uListenInterval,
                           NULL, eANI_BOOLEAN_FALSE);
 
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                         "Switch to DTIM%d \n",powerRequest.uListenInterval);
          sme_SetPowerParams( WLAN_HDD_GET_HAL_CTX(pAdapter), &powerRequest, FALSE);
 
@@ -1382,25 +1382,25 @@ void hdd_resume_wlan(void)
       pAdapterNode = pNext;
    }
 
-#ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP   
-   if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_STANDBY) 
+#ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP
+   if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_STANDBY)
    {
        hdd_exit_standby(pHddCtx);
-   }    
+   }
 #endif
 
    return;
 }
 
-VOS_STATUS hdd_wlan_reset_initialization(void) 
+VOS_STATUS hdd_wlan_reset_initialization(void)
 {
    v_CONTEXT_t pVosContext = NULL;
 
-   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN being reset",__func__);  
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN being reset",__func__);
 
    //Get the global VOSS context.
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
-   if(!pVosContext) 
+   if(!pVosContext)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
       return VOS_STATUS_E_FAILURE;

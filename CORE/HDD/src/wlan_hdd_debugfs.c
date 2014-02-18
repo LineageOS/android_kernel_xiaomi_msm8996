@@ -471,4 +471,3 @@ void hdd_debugfs_exit(hdd_context_t *pHddCtx)
     debugfs_remove_recursive(pHddCtx->debugfs_phy);
 }
 #endif /* #ifdef WLAN_OPEN_SOURCE */
-

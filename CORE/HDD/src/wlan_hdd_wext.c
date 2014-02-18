@@ -532,7 +532,7 @@ int hdd_validate_mcc_config(hdd_adapter_t *pAdapter, v_UINT_t staId,
                                 v_UINT_t arg1, v_UINT_t arg2, v_UINT_t arg3);
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
-int wlan_hdd_set_filter(hdd_context_t *pHddCtx, tpPacketFilterCfg pRequest, 
+int wlan_hdd_set_filter(hdd_context_t *pHddCtx, tpPacketFilterCfg pRequest,
                            v_U8_t sessionId);
 #endif
 
@@ -6819,7 +6819,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
 
             memset(&channel_list, 0, sizeof(channel_list));
             status = iw_softap_get_channel_list(dev, info, wrqu, (char *)&channel_list);
-            if ( !VOS_IS_STATUS_SUCCESS( status ) ) 
+            if ( !VOS_IS_STATUS_SUCCESS( status ) )
             {
                 hddLog(VOS_TRACE_LEVEL_ERROR, "%s GetChannelList Failed!!!\n",__func__);
                 return -EINVAL;
@@ -8029,7 +8029,7 @@ static int iw_set_dynamic_mcbc_filter(struct net_device *dev,
     return 0;
 }
 
-static int iw_clear_dynamic_mcbc_filter(struct net_device *dev, 
+static int iw_clear_dynamic_mcbc_filter(struct net_device *dev,
         struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
 {
@@ -8205,7 +8205,7 @@ static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_inf
 
        hddLog(VOS_TRACE_LEVEL_ERROR, "set Keep: TP before SME %d\n", keepaliveRequest.timePeriod);
 
-    if (eHAL_STATUS_SUCCESS != sme_SetKeepAlive(WLAN_HDD_GET_HAL_CTX(pAdapter), 
+    if (eHAL_STATUS_SUCCESS != sme_SetKeepAlive(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                         pAdapter->sessionId, &keepaliveRequest))
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to execute Keep Alive\n",
@@ -8217,7 +8217,7 @@ static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_inf
 }
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
-int wlan_hdd_set_filter(hdd_context_t *pHddCtx, tpPacketFilterCfg pRequest, 
+int wlan_hdd_set_filter(hdd_context_t *pHddCtx, tpPacketFilterCfg pRequest,
                             tANI_U8 sessionId)
 {
     tSirRcvPktFilterCfgType    packetFilterSetReq = {0};
@@ -8734,9 +8734,9 @@ static int iw_get_statistics(struct net_device *dev,
               (char*) &(pStats->rx_error_cnt),
               tlen);
 
-    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_BYTE_CNT, 
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_BYTE_CNT,
               (tANI_U8) sizeof (dStats->tx_uc_byte_cnt[0]),
-              (char*) &(dStats->tx_uc_byte_cnt[0]), 
+              (char*) &(dStats->tx_uc_byte_cnt[0]),
               tlen);
 
     FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_BYTE_CNT,
@@ -8755,29 +8755,29 @@ static int iw_get_statistics(struct net_device *dev,
               (char*) &(aStats->tx_rate),
               tlen);
 
-    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_UC_BYTE_CNT, 
-              (tANI_U8) sizeof (dStats->rx_uc_byte_cnt[0]), 
-              (char*) &(dStats->rx_uc_byte_cnt[0]), 
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_UC_BYTE_CNT,
+              (tANI_U8) sizeof (dStats->rx_uc_byte_cnt[0]),
+              (char*) &(dStats->rx_uc_byte_cnt[0]),
               tlen);
-    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_MC_BYTE_CNT, 
-              (tANI_U8) sizeof (dStats->rx_mc_byte_cnt), 
-              (char*) &(dStats->rx_mc_byte_cnt), 
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_MC_BYTE_CNT,
+              (tANI_U8) sizeof (dStats->rx_mc_byte_cnt),
+              (char*) &(dStats->rx_mc_byte_cnt),
               tlen);
-    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_BC_BYTE_CNT, 
-              (tANI_U8) sizeof (dStats->rx_bc_byte_cnt), 
-              (char*) &(dStats->rx_bc_byte_cnt), 
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_BC_BYTE_CNT,
+              (tANI_U8) sizeof (dStats->rx_bc_byte_cnt),
+              (char*) &(dStats->rx_bc_byte_cnt),
               tlen);
-    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_UC_BYTE_CNT, 
-              (tANI_U8) sizeof (dStats->tx_uc_byte_cnt[0]), 
-              (char*) &(dStats->tx_uc_byte_cnt[0]), 
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_UC_BYTE_CNT,
+              (tANI_U8) sizeof (dStats->tx_uc_byte_cnt[0]),
+              (char*) &(dStats->tx_uc_byte_cnt[0]),
               tlen);
-    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_MC_BYTE_CNT, 
-              (tANI_U8) sizeof (dStats->tx_mc_byte_cnt), 
-              (char*) &(dStats->tx_mc_byte_cnt), 
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_MC_BYTE_CNT,
+              (tANI_U8) sizeof (dStats->tx_mc_byte_cnt),
+              (char*) &(dStats->tx_mc_byte_cnt),
               tlen);
-    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_BC_BYTE_CNT, 
-              (tANI_U8) sizeof (dStats->tx_bc_byte_cnt), 
-              (char*) &(dStats->tx_bc_byte_cnt), 
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_BC_BYTE_CNT,
+              (tANI_U8) sizeof (dStats->tx_bc_byte_cnt),
+              (char*) &(dStats->tx_bc_byte_cnt),
               tlen);
 
     wrqu->data.length = tlen;
@@ -9453,12 +9453,12 @@ VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *i
     }
 
     uTotalSize -= nOffset;
-    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
-              "Power request parameter %d Total size", 
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+              "Power request parameter %d Total size",
               uTotalSize);
     ptr += nOffset;
     /* This is added for dynamic Tele LI enable (0xF1) /disable (0xF0)*/
-    if(!(uTotalSize - nOffset) && 
+    if(!(uTotalSize - nOffset) &&
        (powerRequest.uListenInterval != SIR_NOCHANGE_POWER_VALUE))
     {
         uTotalSize = 0;
@@ -9712,7 +9712,7 @@ static const struct iw_priv_args we_private_args[] = {
 
     {   WE_SET_TM_LEVEL,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        0, 
+        0,
         "setTmLevel" },
 
 #ifdef QCA_WIFI_2_0
@@ -10995,5 +10995,3 @@ int hdd_UnregisterWext(struct net_device *dev)
    dev->wireless_handlers = NULL;
    return 0;
 }
-
-

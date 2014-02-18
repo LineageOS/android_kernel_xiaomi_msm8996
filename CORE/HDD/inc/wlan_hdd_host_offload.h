@@ -60,4 +60,3 @@ typedef struct
 } tHostOffloadRequest, *tpHostOffloadRequest;
 
 #endif // __WLAN_HDD_HOST_OFFLOAD_H__
-
