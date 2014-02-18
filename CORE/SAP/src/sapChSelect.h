@@ -31,14 +31,14 @@
 /*===========================================================================
 
                       s a p C h S e l e c t . h
-                                               
+
   OVERVIEW:
-  
+
   This software unit holds the implementation of the WLAN SAP modules
   functions for channel selection.
 
-  DEPENDENCIES:   
-  
+  DEPENDENCIES:
+
 
   Are listed for each API below.
 ===========================================================================*/
@@ -111,7 +111,7 @@ typedef enum
 } tSapChannel;
 
 /**
-* Structure holding information of each channel in the spectrum, 
+* Structure holding information of each channel in the spectrum,
 * it contains the channel number, the computed weight
 */
 
@@ -130,7 +130,7 @@ typedef struct {
 } tSapSpectChInfo;//tDfsSpectChInfo;
 
 /**
-* Structure holding all the information required to make a 
+* Structure holding all the information required to make a
 * decision for the best operating channel based on dfs formula
 */
 
@@ -148,4 +148,3 @@ typedef struct sSapChSelParams {
 } tSapChSelParams;
 
 #endif // if !defined __SAP_CH_SELECT_H
-

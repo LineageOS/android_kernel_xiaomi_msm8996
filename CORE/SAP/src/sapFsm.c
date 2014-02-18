@@ -2143,4 +2143,3 @@ VOS_STATUS sapInitDfsChannelNolList(ptSapContext sapContext)
 
     return VOS_STATUS_SUCCESS;
 }
-
