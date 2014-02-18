@@ -350,7 +350,7 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
             HTC_WRITE32(pHtcHdr, SM(payloadLen, HTC_FRAME_HDR_PAYLOADLEN) |
                     SM(pPacket->PktInfo.AsTx.SendFlags, HTC_FRAME_HDR_FLAGS) |
                     SM(pPacket->Endpoint, HTC_FRAME_HDR_ENDPOINTID));
-            HTC_WRITE32(((A_UINT32 *)pHtcHdr) + 1, 
+            HTC_WRITE32(((A_UINT32 *)pHtcHdr) + 1,
                     SM(pPacket->PktInfo.AsTx.SeqNo, HTC_FRAME_HDR_CONTROLBYTES1));
 
             /*
@@ -407,12 +407,12 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
     }
 
     if (adf_os_unlikely(A_FAILED(status))) {
-#if defined(HIF_USB)                
+#if defined(HIF_USB)
         if (pEndpoint->Id >= ENDPOINT_2 && pEndpoint->Id <= ENDPOINT_5)
             target->avail_tx_credits += pPacket->PktInfo.AsTx.CreditsUsed;
         else
             pEndpoint->TxCredits += pPacket->PktInfo.AsTx.CreditsUsed;
-#endif        
+#endif
         while (!HTC_QUEUE_EMPTY(pPktQueue)) {
             if (status != A_NO_RESOURCE) {
                 AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("HTCIssuePackets, failed pkt:0x%p status:%d \n",pPacket,status));
@@ -478,7 +478,7 @@ void GetHTCSendPacketsCreditBased(HTC_TARGET        *target,
             /* endpoint 0 is special, it always has a credit and does not require credit based
              * flow control */
             creditsRequired = 0;
-#if defined(HIF_USB)            
+#if defined(HIF_USB)
         } else if (pEndpoint->Id >= ENDPOINT_2 && pEndpoint->Id <= ENDPOINT_5) {
             if (target->avail_tx_credits < creditsRequired)
                 break;
@@ -1024,7 +1024,7 @@ A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, adf_nbuf_t       netbuf, int Epid,
     HTC_WRITE32(((A_UINT32 *)pHtcHdr) + 1, SM(pEndpoint->SeqNo, HTC_FRAME_HDR_CONTROLBYTES1));
 
     pEndpoint->SeqNo++;
-   
+
     status = HIFSend_head(target->hif_dev,
             pEndpoint->UL_PipeID,
             pEndpoint->Id,
@@ -1504,7 +1504,7 @@ void HTCProcessCreditRpt(HTC_TARGET *target, HTC_CREDIT_REPORT *pRpt, int NumEnt
             LOCK_HTC_TX(target);
         } else {
             pEndpoint->TxCredits += rpt_credits;
-                    
+
             if (pEndpoint->TxCredits && HTC_PACKET_QUEUE_DEPTH(&pEndpoint->TxQueue)) {
                 UNLOCK_HTC_TX(target);
                 HTCTrySend(target,pEndpoint,NULL);
@@ -1544,7 +1544,6 @@ void HTCProcessCreditRpt(HTC_TARGET *target, HTC_CREDIT_REPORT *pRpt, int NumEnt
 struct ol_ath_htc_stats *ieee80211_ioctl_get_htc_stats(HTC_HANDLE HTCHandle)
 {
     HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
-    
+
     return(&(target->htc_pkt_stats));
 }
-

@@ -71,7 +71,7 @@ static tp_htc_handle g_htc_handle;
  ********** Function Definition*************
  *******************************************/
 
-/* function:     htc_smd_open_callback 
+/* function:     htc_smd_open_callback
  * Descriptin:
  * Args:         msg
  * Retruns:      nothing
@@ -109,14 +109,14 @@ static void htc_smd_open_callback(t_htc_msg *msg)
 }
 
 
-/* function:   htc_get_end_point 
+/* function:   htc_get_end_point
  * Descriptin: extracts pointer to endpoint from wmi cmd id
  * Args:       htc_handle, wmi cmd id
  * Retruns:    point to endpoint
  */
 HTC_ENDPOINT* htc_get_end_point(t_htc_handle *htc_handle, HTC_SERVICE_ID id)
 {
-	/* currently we don't get HTT message from SMD driver. 
+	/* currently we don't get HTT message from SMD driver.
 	   HTT message will be routed by DXE */
 	if (id >= WMI_EVT_GRP_START_ID(WMI_GRP_START)) {
 		return &htc_handle->end_point[HTC_ENDPOINT_WMI];
@@ -125,8 +125,8 @@ HTC_ENDPOINT* htc_get_end_point(t_htc_handle *htc_handle, HTC_SERVICE_ID id)
 	}
 }
 
-/* function:   htc_smd_call_endpoint 
- * Descriptin: 
+/* function:   htc_smd_call_endpoint
+ * Descriptin:
  * Args:       htc_handle, rx_buf
  * Retruns:    nothing
  */
@@ -142,7 +142,7 @@ void htc_smd_call_endpoint(tp_htc_handle htc_handle, adf_nbuf_t rx_buf)
 	endpoint = htc_get_end_point(htc_handle, cmd_id);
 
 	HTC_LOGD("WMI command id = %hu, endpoint = %p,"
-			"endpoint->Id = %d", cmd_id, 
+			"endpoint->Id = %d", cmd_id,
 			endpoint, endpoint->Id);
 
 	if (endpoint && endpoint->EpCallBacks.EpRecv) {
@@ -164,8 +164,8 @@ void htc_smd_call_endpoint(tp_htc_handle htc_handle, adf_nbuf_t rx_buf)
 	HTC_LOGD("Exit");
 }
 
-/* function:    htc_smd_read_callback 
- * Descriptin:  
+/* function:    htc_smd_read_callback
+ * Descriptin:
  * Args:        htc_handle
  * Retruns:     nothing
  */
@@ -308,7 +308,7 @@ static void htc_smd_write_callback(tp_htc_handle htc_handle)
 }
 
 /* function:    htc_smd_data_callback
- * Descriptin:  
+ * Descriptin:
  * Args:        pMsg
  * Retruns:     nothing
  */
@@ -326,10 +326,10 @@ static void htc_smd_data_callback(t_htc_msg *pMsg)
 	htc_smd_write_callback(htc_handle);
 
 	HTC_LOGD("Exit");
-} 
+}
 
-/* function:     htc_post_ctrl_msg 
- * Descriptin:   
+/* function:     htc_post_ctrl_msg
+ * Descriptin:
  * Args:         htc_handle, pMsg
  * Retruns:      failure or success
  */
@@ -363,8 +363,8 @@ int htc_post_ctrl_msg(void *htc_handle, t_htc_msg *pMsg)
 	return 0;
 }
 
-/* function:    htc_smd_notify_callback 
- * Descriptin:  
+/* function:    htc_smd_notify_callback
+ * Descriptin:
  * Args:        data, event
  * Retruns:     nothing
  */
@@ -469,7 +469,7 @@ HTC_HANDLE HTCCreate(void *hHIF, HTC_INIT_INFO *pInfo, adf_os_device_t osdev)
 		if (HTC_CB_MAGIC != htc_handle->htc_magic) {
 			HTC_LOGP("\n Invalid magic");
 			return NULL;
-		}   
+		}
 		htc_handle->htc_smd_state = HTC_SMD_STATE_OPEN;
 
 		/*TODO: if caller of this function registers notify callback
@@ -502,7 +502,7 @@ HTC_HANDLE HTCCreate(void *hHIF, HTC_INIT_INFO *pInfo, adf_os_device_t osdev)
 
 	/* initialize the remaining fields */
 	htc_handle->osdev = osdev;
-	htc_handle->htc_magic = HTC_CB_MAGIC;  
+	htc_handle->htc_magic = HTC_CB_MAGIC;
 	htc_handle->htc_smd_state = HTC_SMD_STATE_OPEN_PENDING;
 	htc_handle->smd_channel = NULL;
 
@@ -520,7 +520,7 @@ HTC_HANDLE HTCCreate(void *hHIF, HTC_INIT_INFO *pInfo, adf_os_device_t osdev)
 	INIT_COMPLETION(htc_handle->htc_smd_event);
 	/* Open the SMD channel */
 	status = smd_named_open_on_edge(HTC_SMD_CTRL_PORT, SMD_APPS_WCNSS,
-			&htc_handle->smd_channel, htc_handle, 
+			&htc_handle->smd_channel, htc_handle,
 			htc_smd_notify_callback);
 	if (0 != status) {
 		HTC_LOGE("Failed to open SMD Channel");
@@ -528,7 +528,7 @@ HTC_HANDLE HTCCreate(void *hHIF, HTC_INIT_INFO *pInfo, adf_os_device_t osdev)
 	}
 	/* Wait for the event */
 	status = wait_for_completion_interruptible_timeout(
-			&htc_handle->htc_smd_event, 
+			&htc_handle->htc_smd_event,
 			msecs_to_jiffies(HTC_SMD_OPEN_TIMEOUT));
 
 	if (!status) {
@@ -557,8 +557,8 @@ fail:
 	return NULL;
 }
 
-/* function:    htc_connect_service 
- * Descriptin:  
+/* function:    htc_connect_service
+ * Descriptin:
  * Args:       htc_handle, pConnectReq, pConnectResp
  * Retruns:    success or failure
  */
@@ -600,8 +600,8 @@ A_STATUS HTCConnectService(HTC_HANDLE               HTCHandle,
 	return 0;
 }
 
-/* function:     htc_start 
- * Descriptin:   
+/* function:     htc_start
+ * Descriptin:
  * Args:         htc_handle
  * Retruns:      success or failure
  */
@@ -619,7 +619,7 @@ A_STATUS HTCStart(HTC_HANDLE HTCHandle)
 	}
 }
 
-/* function:    htc_stop 
+/* function:    htc_stop
  * Descriptin:
  * Args:        htc_handle
  * Retruns:     nothing
@@ -630,8 +630,8 @@ void HTCStop(HTC_HANDLE HTCHandle)
 	return;
 }
 
-/* function:     htc_destroy 
- * Descriptin:   Closes the SMD session. 
+/* function:     htc_destroy
+ * Descriptin:   Closes the SMD session.
  * Args:         HTC context
  * Retruns:      success or failure
  */
@@ -673,7 +673,7 @@ void  HTCDestroy(HTC_HANDLE HTCHandle)
 	} else {
 		/* close command was sent -- wait for the callback to complete */
 		status = wait_for_completion_interruptible_timeout(
-				&htc_handle->htc_smd_event, 
+				&htc_handle->htc_smd_event,
 				msecs_to_jiffies(HTC_SMD_OPEN_TIMEOUT));
 		if (!status) {
 			HTC_LOGE("failed to receive SMD_EVENT_REOPEN_READY %d", smd_status);
@@ -709,7 +709,7 @@ void  HTCDestroy(HTC_HANDLE HTCHandle)
 }
 
 /* function:    htc_send_packet
- * Descriptin:  
+ * Descriptin:
  * Args:        handle, htc_pakcet
  * Retruns:     success or failure
  */

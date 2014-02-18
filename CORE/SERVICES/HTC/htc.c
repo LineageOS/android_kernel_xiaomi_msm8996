@@ -318,7 +318,7 @@ A_STATUS HTCSetupTargetBufferAssignments(HTC_TARGET *target)
      * for PCIE allocate all credists/HTC buffers to WMI.
      * no buffers are used/required for data. data always
      * remains on host.
-     */ 
+     */
     hif_usbaudioclass = 0; /* to keep compiler happy */
     /* for PCIE allocate all credits to wmi for now */
     status = A_OK;
@@ -486,7 +486,7 @@ A_STATUS HTCWaitTarget(HTC_HANDLE HTCHandle)
             break;
         }
 
-        target->TotalTransmitCredits = HTC_GET_FIELD(rdy_msg, HTC_READY_MSG, CREDITCOUNT); 
+        target->TotalTransmitCredits = HTC_GET_FIELD(rdy_msg, HTC_READY_MSG, CREDITCOUNT);
         target->TargetCreditSize = (int)HTC_GET_FIELD(rdy_msg, HTC_READY_MSG, CREDITSIZE);
 
         AR_DEBUG_PRINTF(ATH_DEBUG_INIT, ("Target Ready! : transmit resources : %d size:%d\n",
@@ -668,11 +668,11 @@ void HTCStop(HTC_HANDLE HTCHandle)
     }
 
     /* Note: HTCFlushEndpointTX for all endpoints should be called before
-     * HIFStop - otherwise HTCTxCompletionHandler called from 
+     * HIFStop - otherwise HTCTxCompletionHandler called from
      * hif_send_buffer_cleanup_on_pipe for residual tx frames in HIF layer,
      * might queue the packet again to HIF Layer - which could cause tx
      * buffer leak
-     */ 
+     */
 
     HIFStop(target->hif_dev);
 
