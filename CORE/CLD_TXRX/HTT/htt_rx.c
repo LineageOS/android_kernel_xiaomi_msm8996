@@ -114,7 +114,7 @@ htt_rx_msdu_first_msdu_flag_hl(htt_pdev_handle pdev, void *msdu_desc)
 static a_bool_t
 htt_rx_msdu_first_msdu_flag_ll(htt_pdev_handle pdev, void *msdu_desc)
 {
-    struct htt_host_rx_desc_base *rx_desc = 
+    struct htt_host_rx_desc_base *rx_desc =
         (struct htt_host_rx_desc_base *) msdu_desc;
     return (a_bool_t)
         (((*(((u_int32_t *) &rx_desc->msdu_end) + 4)) &
@@ -220,7 +220,7 @@ htt_rx_ring_fill_n(struct htt_pdev_t *pdev, int num)
              * As long as enough buffers are left in the ring for
              * another A-MPDU rx, no special recovery is needed.
              */
-            adf_os_timer_start(&pdev->rx_ring.refill_retry_timer, 
+            adf_os_timer_start(&pdev->rx_ring.refill_retry_timer,
                                HTT_RX_RING_REFILL_RETRY_TIME_MS);
             goto fail;
         }
@@ -273,7 +273,7 @@ htt_rx_detach(struct htt_pdev_t *pdev)
         return;
     }
 
-    while (sw_rd_idx != *(pdev->rx_ring.alloc_idx.vaddr)) { 
+    while (sw_rd_idx != *(pdev->rx_ring.alloc_idx.vaddr)) {
         adf_nbuf_unmap(
             pdev->osdev, pdev->rx_ring.buf.netbufs_ring[sw_rd_idx],
             ADF_OS_DMA_FROM_DEVICE);
@@ -317,7 +317,7 @@ htt_rx_detach(struct htt_pdev_t *pdev)
 u_int16_t
 htt_rx_mpdu_desc_seq_num_ll(htt_pdev_handle pdev, void *mpdu_desc)
 {
-    struct htt_host_rx_desc_base *rx_desc = 
+    struct htt_host_rx_desc_base *rx_desc =
         (struct htt_host_rx_desc_base *) mpdu_desc;
 
     return
@@ -456,7 +456,7 @@ htt_rx_mpdu_wifi_hdr_retrieve(htt_pdev_handle pdev, void *mpdu_desc)
 a_bool_t
 htt_rx_msdu_desc_completes_mpdu_ll(htt_pdev_handle pdev, void *msdu_desc)
 {
-    struct htt_host_rx_desc_base *rx_desc = 
+    struct htt_host_rx_desc_base *rx_desc =
         (struct htt_host_rx_desc_base *) msdu_desc;
     return (a_bool_t)
         (((*(((u_int32_t *) &rx_desc->msdu_end) + 4)) &
@@ -478,7 +478,7 @@ htt_rx_msdu_desc_completes_mpdu_hl(htt_pdev_handle pdev, void *msdu_desc)
 int
 htt_rx_msdu_has_wlan_mcast_flag_ll(htt_pdev_handle pdev, void *msdu_desc)
 {
-    struct htt_host_rx_desc_base *rx_desc = 
+    struct htt_host_rx_desc_base *rx_desc =
         (struct htt_host_rx_desc_base *) msdu_desc;
     /* HW rx desc: the mcast_bcast flag is only valid if first_msdu is set */
     return
@@ -498,7 +498,7 @@ htt_rx_msdu_has_wlan_mcast_flag_hl(htt_pdev_handle pdev, void *msdu_desc)
 a_bool_t
 htt_rx_msdu_is_wlan_mcast_ll(htt_pdev_handle pdev, void *msdu_desc)
 {
-    struct htt_host_rx_desc_base *rx_desc = 
+    struct htt_host_rx_desc_base *rx_desc =
         (struct htt_host_rx_desc_base *) msdu_desc;
     return
         ((*((u_int32_t *) &rx_desc->attention)) &
@@ -509,7 +509,7 @@ htt_rx_msdu_is_wlan_mcast_ll(htt_pdev_handle pdev, void *msdu_desc)
 a_bool_t
 htt_rx_msdu_is_wlan_mcast_hl(htt_pdev_handle pdev, void *msdu_desc)
 {
-    struct hl_htt_rx_desc_base *rx_desc = 
+    struct hl_htt_rx_desc_base *rx_desc =
         (struct hl_htt_rx_desc_base *) msdu_desc;
     return
         HTT_WORD_GET(*(u_int32_t*)rx_desc, HTT_HL_RX_DESC_MCAST_BCAST);
@@ -519,7 +519,7 @@ htt_rx_msdu_is_wlan_mcast_hl(htt_pdev_handle pdev, void *msdu_desc)
 int
 htt_rx_msdu_is_frag_ll(htt_pdev_handle pdev, void *msdu_desc)
 {
-    struct htt_host_rx_desc_base *rx_desc = 
+    struct htt_host_rx_desc_base *rx_desc =
         (struct htt_host_rx_desc_base *) msdu_desc;
     return
         ((*((u_int32_t *) &rx_desc->attention)) &
@@ -530,7 +530,7 @@ htt_rx_msdu_is_frag_ll(htt_pdev_handle pdev, void *msdu_desc)
 int
 htt_rx_msdu_is_frag_hl(htt_pdev_handle pdev, void *msdu_desc)
 {
-    struct hl_htt_rx_desc_base *rx_desc = 
+    struct hl_htt_rx_desc_base *rx_desc =
         (struct hl_htt_rx_desc_base *) msdu_desc;
 
     return
@@ -614,7 +614,7 @@ htt_rx_netbuf_pop(
 
 /* FIX ME: this function applies only to LL rx descs. An equivalent for HL rx descs is needed. */
 #ifdef CHECKSUM_OFFLOAD
-static inline 
+static inline
 void
 htt_set_checksum_result_ll(htt_pdev_handle pdev, adf_nbuf_t msdu,
                            struct htt_host_rx_desc_base *rx_desc)
@@ -626,10 +626,10 @@ htt_set_checksum_result_ll(htt_pdev_handle pdev, adf_nbuf_t msdu,
 
     /*
      * HW supports TCP & UDP checksum offload for ipv4 and ipv6
-     */ 
+     */
     static const adf_nbuf_l4_rx_cksum_type_t
         cksum_table[][MAX_PROTO_VAL][MAX_IP_VER] =
-    { 
+    {
         {
             /* non-fragmented IP packet */
             /* non TCP/UDP packet */
@@ -657,8 +657,8 @@ htt_set_checksum_result_ll(htt_pdev_handle pdev, adf_nbuf_t msdu,
     } ;
 
     if (cksum.l4_type != (adf_nbuf_l4_rx_cksum_type_t)ADF_NBUF_RX_CKSUM_NONE) {
-        cksum.l4_result = ((*(u_int32_t *) &rx_desc->attention) & 
-                RX_ATTENTION_0_TCP_UDP_CHKSUM_FAIL_MASK) ? 
+        cksum.l4_result = ((*(u_int32_t *) &rx_desc->attention) &
+                RX_ATTENTION_0_TCP_UDP_CHKSUM_FAIL_MASK) ?
                     ADF_NBUF_RX_CKSUM_NONE :
                     ADF_NBUF_RX_CKSUM_TCP_UDP_UNNECESSARY;
     }
@@ -667,7 +667,7 @@ htt_set_checksum_result_ll(htt_pdev_handle pdev, adf_nbuf_t msdu,
 #undef MAX_PROTO_VAL
 }
 
-static inline 
+static inline
 void
 htt_set_checksum_result_hl(adf_nbuf_t msdu,
                            struct htt_host_rx_desc_base *rx_desc)
@@ -701,7 +701,7 @@ htt_set_checksum_result_hl(adf_nbuf_t msdu,
             break;
     }
     if (cksum.l4_type != (adf_nbuf_l4_rx_cksum_type_t)ADF_NBUF_RX_CKSUM_NONE) {
-        cksum.l4_result = flag & HTT_RX_IND_HL_FLAG_C4_FAILED ? 
+        cksum.l4_result = flag & HTT_RX_IND_HL_FLAG_C4_FAILED ?
                     ADF_NBUF_RX_CKSUM_NONE : ADF_NBUF_RX_CKSUM_TCP_UDP_UNNECESSARY;
     }
     adf_nbuf_set_rx_cksum(msdu, &cksum );
@@ -735,7 +735,7 @@ htt_rx_amsdu_pop_ll(
         int last_msdu, msdu_len_invalid, msdu_chained;
         int byte_offset;
 
-        /* 
+        /*
          * Set the netbuf length to be the entire buffer length initially,
          * so the unmap will unmap the entire buffer.
          */
@@ -784,7 +784,7 @@ htt_rx_amsdu_pop_ll(
          */
         if (pdev->rx_ind_msdu_byte_idx < num_msdu_bytes) {
             byte_offset = HTT_ENDIAN_BYTE_IDX_SWAP(
-                HTT_RX_IND_FW_RX_DESC_BYTE_OFFSET + 
+                HTT_RX_IND_FW_RX_DESC_BYTE_OFFSET +
                 pdev->rx_ind_msdu_byte_idx);
             *((u_int8_t *) &rx_desc->fw_desc.u.val) = rx_ind_data[byte_offset];
             /*
@@ -821,9 +821,9 @@ htt_rx_amsdu_pop_ll(
          */
         htt_set_checksum_result_ll(pdev, msdu, rx_desc);
 
-        msdu_len_invalid = (*(u_int32_t *) &rx_desc->attention) & 
+        msdu_len_invalid = (*(u_int32_t *) &rx_desc->attention) &
             RX_ATTENTION_0_MPDU_LENGTH_ERR_MASK;
-        msdu_chained = (((*(u_int32_t *) &rx_desc->frag_info) & 
+        msdu_chained = (((*(u_int32_t *) &rx_desc->frag_info) &
                          RX_FRAG_INFO_0_RING2_MORE_COUNT_MASK) >>
                         RX_FRAG_INFO_0_RING2_MORE_COUNT_LSB);
         msdu_len =
@@ -857,7 +857,7 @@ htt_rx_amsdu_pop_ll(
                  * inconsistent HW lengths cuasing length overflows and
                  * underflows
                  */
-                if (((unsigned)msdu_len) > 
+                if (((unsigned)msdu_len) >
                     ((unsigned)(HTT_RX_BUF_SIZE - RX_STD_DESC_SIZE))) {
                     msdu_len = (HTT_RX_BUF_SIZE - RX_STD_DESC_SIZE);
                 }
@@ -911,7 +911,7 @@ htt_rx_amsdu_pop_hl(
             HTT_RX_IND_HL_RX_DESC_LEN_OFFSET)];
 
     /* point to the rx desc */
-    adf_nbuf_pull_head(rx_ind_msg, 
+    adf_nbuf_pull_head(rx_ind_msg,
             sizeof(struct hl_htt_rx_ind_base));
     *head_msdu = *tail_msdu = rx_ind_msg;
 
@@ -977,7 +977,7 @@ htt_rx_offload_msdu_pop_hl(
 /* Util fake function that has same prototype as adf_nbuf_clone that just
  * retures the same nbuf
  */
-adf_nbuf_t 
+adf_nbuf_t
 htt_rx_adf_noclone_buf(adf_nbuf_t buf)
 {
     return buf;
@@ -1002,7 +1002,7 @@ htt_rx_parse_ppdu_start_status(
     struct rx_ppdu_start *ppdu_start = &rx_desc->ppdu_start;
 
     /* RSSI */
-    rs->rs_rssi = ppdu_start->rssi_comb; 
+    rs->rs_rssi = ppdu_start->rssi_comb;
 
     /* PHY rate */
     /* rs_ratephy coding
@@ -1011,11 +1011,11 @@ htt_rx_parse_ppdu_start_status(
         1 -> CCK
         2 -> HT
         3 -> VHT
-      OFDM / CCK 
-      [b7  - b4 ] => LSIG rate          
+      OFDM / CCK
+      [b7  - b4 ] => LSIG rate
       [b23 - b8 ] => service field (b'12 static/dynamic, b'14..b'13 BW for VHT)
-      [b31 - b24 ] => Reserved          
-      HT / VHT 
+      [b31 - b24 ] => Reserved
+      HT / VHT
       [b15 - b4 ] => SIG A_2 12 LSBs
       [b31 - b16] => SIG A_1 16 LSBs
 
@@ -1024,12 +1024,12 @@ htt_rx_parse_ppdu_start_status(
         rs->rs_ratephy = ppdu_start->l_sig_rate_select;
         rs->rs_ratephy |= ppdu_start->l_sig_rate << 4;
         rs->rs_ratephy |= ppdu_start->service << 8;
-    }  else { 
-        rs->rs_ratephy = 
+    }  else {
+        rs->rs_ratephy =
             (ppdu_start->preamble_type & 0x4) ? 3 : 2;
-        rs->rs_ratephy |= 
+        rs->rs_ratephy |=
             (ppdu_start->ht_sig_vht_sig_a_2 & 0xFFF) << 4;
-        rs->rs_ratephy |= 
+        rs->rs_ratephy |=
             (ppdu_start->ht_sig_vht_sig_a_1 & 0xFFFF) << 16;
     }
 
@@ -1038,7 +1038,7 @@ htt_rx_parse_ppdu_start_status(
 
 
 /* This function is used by montior mode code to restitch an MSDU list
- * corresponding to an MPDU back into an MPDU by linking up the skbs. 
+ * corresponding to an MPDU back into an MPDU by linking up the skbs.
  */
 adf_nbuf_t
 htt_rx_restitch_mpdu_from_msdus(
@@ -1058,11 +1058,11 @@ htt_rx_restitch_mpdu_from_msdus(
     unsigned char *dest;
     struct ieee80211_frame *wh;
     struct ieee80211_qoscntl*qos;
-    
+
     /* If this packet does not go up the normal stack path we dont need to
      * waste cycles cloning the packets
      */
-    clone_nbuf_fn = 
+    clone_nbuf_fn =
         clone_not_reqd ? htt_rx_adf_noclone_buf : adf_nbuf_clone;
 
     /* The nbuf has been pulled just beyond the status and points to the
@@ -1079,16 +1079,16 @@ htt_rx_restitch_mpdu_from_msdus(
          * last MPDU
          */
         rx_status->rs_tstamp.tsf = ~0;
-    } 
+    }
 
-    decap_format = 
+    decap_format =
         GET_FIELD(&rx_desc->msdu_start, RX_MSDU_START_2_DECAP_FORMAT);
 
     head_frag_list_cloned = NULL;
 
     /* Easy case - The MSDU status indicates that this is a non-decapped
      * packet in RAW mode.
-     * return 
+     * return
      */
     if (decap_format == HW_RX_DECAP_FORMAT_RAW) {
         /* Note that this path might suffer from headroom unavailabilty -
@@ -1106,20 +1106,20 @@ htt_rx_restitch_mpdu_from_msdus(
         if (!msdu_len) {
             goto mpdu_stitch_fail;
         }
-        msdu_orig = adf_nbuf_next(head_msdu); 
+        msdu_orig = adf_nbuf_next(head_msdu);
 
         while (msdu_orig) {
 
             /* TODO: intra AMSDU padding - do we need it ??? */
             msdu = clone_nbuf_fn(msdu_orig);
-            if (!msdu) { 
+            if (!msdu) {
                 goto mpdu_stitch_fail;
             }
 
             if (is_first_frag) {
                 is_first_frag = 0;
                 head_frag_list_cloned  = msdu;
-            } 
+            }
 
             msdu_len = adf_nbuf_len(msdu);
             /* Drop the zero-length msdu */
@@ -1134,7 +1134,7 @@ htt_rx_restitch_mpdu_from_msdus(
 
             /* Move to the next */
             prev_buf = msdu;
-            msdu_orig = adf_nbuf_next(msdu_orig); 
+            msdu_orig = adf_nbuf_next(msdu_orig);
         }
 
         /* The last msdu length need be larger than HTT_FCS_LEN */
@@ -1143,7 +1143,7 @@ htt_rx_restitch_mpdu_from_msdus(
         }
 
         adf_nbuf_trim_tail(prev_buf, HTT_FCS_LEN);
-        
+
         /* If there were more fragments to this RAW frame */
         if (head_frag_list_cloned) {
             adf_nbuf_append_ext_list(mpdu_buf, head_frag_list_cloned,
@@ -1155,7 +1155,7 @@ htt_rx_restitch_mpdu_from_msdus(
 
     /* Decap mode:
      * Calculate the amount of header in decapped packet to knock off based
-     * on the decap type and the corresponding number of raw bytes to copy 
+     * on the decap type and the corresponding number of raw bytes to copy
      * status header
      */
 
@@ -1172,17 +1172,17 @@ htt_rx_restitch_mpdu_from_msdus(
 
     is_amsdu = 0;
     if (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_QOS) {
-        qos = (struct ieee80211_qoscntl*) 
-                (hdr_desc + wifi_hdr_len); 
+        qos = (struct ieee80211_qoscntl*)
+                (hdr_desc + wifi_hdr_len);
         wifi_hdr_len += 2;
 
         is_amsdu = (qos->i_qos[0] & IEEE80211_QOS_AMSDU);
     }
-    
+
     /* TODO: Any security headers associated with MPDU */
     sec_hdr_len = 0;
 
-    /* MSDU related stuff LLC - AMSDU subframe header etc */ 
+    /* MSDU related stuff LLC - AMSDU subframe header etc */
     msdu_llc_len = is_amsdu ? (14 + 8) : 8;
 
     mpdu_buf_len = wifi_hdr_len + sec_hdr_len + msdu_llc_len;
@@ -1195,7 +1195,7 @@ htt_rx_restitch_mpdu_from_msdus(
      * accomodating any radio-tap /prism like PHY header
      */
 #define HTT_MAX_MONITOR_HEADER (512)
-    mpdu_buf = adf_nbuf_alloc(pdev->osdev, 
+    mpdu_buf = adf_nbuf_alloc(pdev->osdev,
         HTT_MAX_MONITOR_HEADER + mpdu_buf_len,
         HTT_MAX_MONITOR_HEADER, 4, FALSE);
 
@@ -1204,7 +1204,7 @@ htt_rx_restitch_mpdu_from_msdus(
     }
 
     /* Copy the MPDU related header and enc headers into the first buffer
-     * - Note that there can be a 2 byte pad between heaader and enc header 
+     * - Note that there can be a 2 byte pad between heaader and enc header
      */
 
     prev_buf = mpdu_buf;
@@ -1213,7 +1213,7 @@ htt_rx_restitch_mpdu_from_msdus(
     hdr_desc += wifi_hdr_len;
 
     /* NOTE - This padding is present only in the RAW header status - not
-     * when the MSDU data payload is in RAW format. 
+     * when the MSDU data payload is in RAW format.
      */
     /* Skip the "IV pad" */
     if (wifi_hdr_len & 0x3) {
@@ -1239,7 +1239,7 @@ htt_rx_restitch_mpdu_from_msdus(
         /* TODO: intra AMSDU padding - do we need it ??? */
 
         msdu = clone_nbuf_fn(msdu_orig);
-        if (!msdu) { 
+        if (!msdu) {
             goto mpdu_stitch_fail;
         }
 
@@ -1261,7 +1261,7 @@ htt_rx_restitch_mpdu_from_msdus(
         dest = adf_nbuf_put_tail(prev_buf, msdu_llc_len + amsdu_pad);
         dest += amsdu_pad;
         adf_os_mem_copy(dest, hdr_desc, msdu_llc_len);
-        
+
 
         /* Push the MSDU buffer beyond the decap header */
         adf_nbuf_pull_head(msdu, decap_hdr_pull_bytes);
@@ -1273,15 +1273,15 @@ htt_rx_restitch_mpdu_from_msdus(
         amsdu_pad = amsdu_pad ? ( 4 - amsdu_pad) : 0;
 
         /* TODO FIXME How do we handle MSDUs that have fraglist - Should
-         * probably iterate all the frags cloning them along the way and 
-         * and also updating the prev_buf pointer 
+         * probably iterate all the frags cloning them along the way and
+         * and also updating the prev_buf pointer
          */
 
         /* Move to the next */
         prev_buf = msdu;
-        msdu_orig = adf_nbuf_next(msdu_orig); 
+        msdu_orig = adf_nbuf_next(msdu_orig);
 
-    } 
+    }
 
 #if 0
     /* Add in the trailer section - encryption trailer + FCS */
@@ -1307,7 +1307,7 @@ mpdu_stitch_done:
             msdu = adf_nbuf_next(msdu);
             adf_nbuf_set_next(msdu_orig, NULL);
         }
-    } 
+    }
 
     return (mpdu_buf);
 
@@ -1319,14 +1319,14 @@ mpdu_stitch_fail:
         if (mpdu_buf) {
             adf_nbuf_free(mpdu_buf);
         }
-        
+
         /* Free the partial list */
         while (head_frag_list_cloned) {
             msdu = head_frag_list_cloned;
             head_frag_list_cloned = adf_nbuf_next_ext(head_frag_list_cloned);
             adf_nbuf_free(msdu);
         }
-    }  else {    
+    }  else {
         /* Free the alloced head buffer */
         if (decap_format != HW_RX_DECAP_FORMAT_RAW) {
             if (mpdu_buf) {
@@ -1342,7 +1342,7 @@ mpdu_stitch_fail:
             adf_nbuf_free(msdu_orig);
         }
     }
-    
+
     return NULL;
 }
 
@@ -1430,7 +1430,7 @@ htt_rx_mpdu_desc_list_next_ll(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
 void *
 htt_rx_mpdu_desc_list_next_hl(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
 {
-    /* 
+    /*
      * for HL, the returned value is not mpdu_desc,
      * it's translated hl_rx_desc just after the hl_ind_msg
      */
@@ -1478,7 +1478,7 @@ a_bool_t htt_rx_mpdu_is_encrypted_hl(htt_pdev_handle pdev, void *mpdu_desc)
         /* Fix Me: only for little endian */
         struct hl_htt_rx_desc_base *rx_desc =
             (struct hl_htt_rx_desc_base *) mpdu_desc;
-        
+
         return HTT_WORD_GET(*(u_int32_t*)rx_desc, HTT_HL_RX_DESC_MPDU_ENC);
     }else {
         /* not first msdu, no encrypt info for hl */
@@ -1563,7 +1563,7 @@ void htt_rx_get_vowext_stats(adf_nbuf_t msdu, struct vow_extstats *vowstats)
 
     ppdu = ((u_int32_t *)&rx_desc->ppdu_start);
     preamble_type = (ppdu[5] & 0xff000000) >> 24;
-    switch(preamble_type)  
+    switch(preamble_type)
     {
         /* HT */
         case 8: /* HT w/o TxBF */
@@ -1581,7 +1581,7 @@ void htt_rx_get_vowext_stats(adf_nbuf_t msdu, struct vow_extstats *vowstats)
                 rs_flags |= HAL_RX_GI;
             }
             break;
-            /* VHT */   
+            /* VHT */
         case 0x0c: /* VHT w/o TxBF */
         case 0x0d: /* VHT w/ TxBF */
             mcs = (u_int8_t)((ppdu[7] >> 4) & 0xf);
@@ -1608,8 +1608,8 @@ void htt_rx_get_vowext_stats(adf_nbuf_t msdu, struct vow_extstats *vowstats)
     vowstats->rx_rssi_comb = (ppdu[4] & 0x000000ff); /* rssi comb */
 
     ppdu = ((u_int32_t *)&rx_desc->ppdu_end);
-    /* Time stamp */   
-    vowstats->rx_macTs = ppdu[16];                    
+    /* Time stamp */
+    vowstats->rx_macTs = ppdu[16];
 
     ppdu = ((u_int32_t *)&rx_desc->attention);
     /* more data */
@@ -1623,7 +1623,7 @@ void htt_rx_get_vowext_stats(adf_nbuf_t msdu, struct vow_extstats *vowstats)
 
 #endif
 /* move the function to the end of file
- * to omit ll/hl pre-declaration 
+ * to omit ll/hl pre-declaration
  */
 int
 htt_rx_attach(struct htt_pdev_t *pdev)
@@ -1680,7 +1680,7 @@ htt_rx_attach(struct htt_pdev_t *pdev)
         adf_os_atomic_inc(&pdev->rx_ring.refill_ref_cnt);
 
         /* Initialize the Rx refill retry timer */
-        adf_os_timer_init(pdev->osdev, &pdev->rx_ring.refill_retry_timer, 
+        adf_os_timer_init(pdev->osdev, &pdev->rx_ring.refill_retry_timer,
                           htt_rx_ring_refill_retry, (void *)pdev);
 
         pdev->rx_ring.fill_cnt = 0;
@@ -1722,7 +1722,7 @@ htt_rx_attach(struct htt_pdev_t *pdev)
 
         /*
          * HL case, the rx descriptor can be different sizes for
-         * different sub-types of RX_IND messages, e.g. for the 
+         * different sub-types of RX_IND messages, e.g. for the
          * initial vs. interior vs. final MSDUs within a PPDU.
          * The size of each RX_IND message's rx desc is read from
          * a field within the RX_IND message itself.

@@ -66,7 +66,7 @@ htt_tx_attach(struct htt_pdev_t *pdev, int desc_pool_elems)
     if (pdev->cfg.is_high_latency) {
         pdev->tx_descs.size = sizeof(struct htt_host_tx_desc_t);
     } else {
-        pdev->tx_descs.size = 
+        pdev->tx_descs.size =
             /*
              * Start with the size of the base struct
              * that actually gets downloaded.
@@ -252,7 +252,7 @@ htt_tx_desc_flag_batch_more(htt_pdev_handle pdev, void *desc)
 #if ATH_11AC_TXCOMPACT
 
 /* Scheduling the Queued packets in HTT which could not be sent out because of No CE desc*/
-void 
+void
 htt_tx_sched(htt_pdev_handle pdev)
 {
     adf_nbuf_t msdu;
@@ -489,7 +489,7 @@ htt_tx_desc_display(void *tx_desc)
 {
     struct htt_tx_msdu_desc_t *htt_tx_desc;
 
-    htt_tx_desc = (struct htt_tx_msdu_desc_t *) tx_desc;    
+    htt_tx_desc = (struct htt_tx_msdu_desc_t *) tx_desc;
 
     /* only works for little-endian */
     adf_os_print("HTT tx desc (@ %p):\n", htt_tx_desc);

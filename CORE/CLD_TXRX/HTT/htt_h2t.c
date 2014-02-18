@@ -248,21 +248,21 @@ htt_h2t_rx_ring_cfg_msg_ll(struct htt_pdev_t *pdev)
     HTT_RX_RING_CFG_ENABLED_FRAG_INFO_SET(*msg_word,  1); /* always present? */
     HTT_RX_RING_CFG_ENABLED_UCAST_SET(*msg_word, 1);
     HTT_RX_RING_CFG_ENABLED_MCAST_SET(*msg_word, 1);
-    /* Must change to dynamic enable at run time 
+    /* Must change to dynamic enable at run time
      * rather than at compile time
      */
     HTT_RX_RING_CFG_ENABLED_CTRL_SET(*msg_word, enable_ctrl_data);
     HTT_RX_RING_CFG_ENABLED_MGMT_SET(*msg_word, enable_mgmt_data);
     HTT_RX_RING_CFG_ENABLED_NULL_SET(*msg_word, enable_null_data);
     HTT_RX_RING_CFG_ENABLED_PHY_SET(*msg_word, enable_phy_data);
-    HTT_RX_RING_CFG_IDX_INIT_VAL_SET(*msg_word, 
-            *pdev->rx_ring.alloc_idx.vaddr); 
+    HTT_RX_RING_CFG_IDX_INIT_VAL_SET(*msg_word,
+            *pdev->rx_ring.alloc_idx.vaddr);
 
     msg_word++;
     *msg_word = 0;
-    HTT_RX_RING_CFG_OFFSET_802_11_HDR_SET(*msg_word, 
+    HTT_RX_RING_CFG_OFFSET_802_11_HDR_SET(*msg_word,
             RX_STD_DESC_HDR_STATUS_OFFSET_DWORD);
-    HTT_RX_RING_CFG_OFFSET_MSDU_PAYLD_SET(*msg_word, 
+    HTT_RX_RING_CFG_OFFSET_MSDU_PAYLD_SET(*msg_word,
             HTT_RX_STD_DESC_RESERVATION_DWORD);
 
     msg_word++;
@@ -270,27 +270,27 @@ htt_h2t_rx_ring_cfg_msg_ll(struct htt_pdev_t *pdev)
     HTT_RX_RING_CFG_OFFSET_PPDU_START_SET(*msg_word,
             RX_STD_DESC_PPDU_START_OFFSET_DWORD);
     HTT_RX_RING_CFG_OFFSET_PPDU_END_SET(*msg_word,
-            RX_STD_DESC_PPDU_END_OFFSET_DWORD); 
+            RX_STD_DESC_PPDU_END_OFFSET_DWORD);
 
     msg_word++;
     *msg_word = 0;
-    HTT_RX_RING_CFG_OFFSET_MPDU_START_SET(*msg_word, 
+    HTT_RX_RING_CFG_OFFSET_MPDU_START_SET(*msg_word,
             RX_STD_DESC_MPDU_START_OFFSET_DWORD);
-    HTT_RX_RING_CFG_OFFSET_MPDU_END_SET(*msg_word, 
-            RX_STD_DESC_MPDU_END_OFFSET_DWORD); 
+    HTT_RX_RING_CFG_OFFSET_MPDU_END_SET(*msg_word,
+            RX_STD_DESC_MPDU_END_OFFSET_DWORD);
 
     msg_word++;
     *msg_word = 0;
-    HTT_RX_RING_CFG_OFFSET_MSDU_START_SET(*msg_word, 
+    HTT_RX_RING_CFG_OFFSET_MSDU_START_SET(*msg_word,
             RX_STD_DESC_MSDU_START_OFFSET_DWORD);
-    HTT_RX_RING_CFG_OFFSET_MSDU_END_SET(*msg_word, 
+    HTT_RX_RING_CFG_OFFSET_MSDU_END_SET(*msg_word,
             RX_STD_DESC_MSDU_END_OFFSET_DWORD);
 
     msg_word++;
     *msg_word = 0;
-    HTT_RX_RING_CFG_OFFSET_RX_ATTN_SET(*msg_word, 
+    HTT_RX_RING_CFG_OFFSET_RX_ATTN_SET(*msg_word,
             RX_STD_DESC_ATTN_OFFSET_DWORD);
-    HTT_RX_RING_CFG_OFFSET_FRAG_INFO_SET(*msg_word, 
+    HTT_RX_RING_CFG_OFFSET_FRAG_INFO_SET(*msg_word,
             RX_STD_DESC_FRAG_INFO_OFFSET_DWORD);
 
     SET_HTC_PACKET_INFO_TX(
@@ -381,7 +381,7 @@ htt_h2t_rx_ring_cfg_msg_hl(struct htt_pdev_t *pdev)
     HTT_RX_RING_CFG_ENABLED_FRAG_INFO_SET(*msg_word,  0); /* always present? */
     HTT_RX_RING_CFG_ENABLED_UCAST_SET(*msg_word, 1);
     HTT_RX_RING_CFG_ENABLED_MCAST_SET(*msg_word, 1);
-    /* Must change to dynamic enable at run time 
+    /* Must change to dynamic enable at run time
      * rather than at compile time
      */
     HTT_RX_RING_CFG_ENABLED_CTRL_SET(*msg_word, 0);
@@ -391,9 +391,9 @@ htt_h2t_rx_ring_cfg_msg_hl(struct htt_pdev_t *pdev)
 
     msg_word++;
     *msg_word = 0;
-    HTT_RX_RING_CFG_OFFSET_802_11_HDR_SET(*msg_word, 
+    HTT_RX_RING_CFG_OFFSET_802_11_HDR_SET(*msg_word,
             0);
-    HTT_RX_RING_CFG_OFFSET_MSDU_PAYLD_SET(*msg_word, 
+    HTT_RX_RING_CFG_OFFSET_MSDU_PAYLD_SET(*msg_word,
             0);
 
     msg_word++;
@@ -401,27 +401,27 @@ htt_h2t_rx_ring_cfg_msg_hl(struct htt_pdev_t *pdev)
     HTT_RX_RING_CFG_OFFSET_PPDU_START_SET(*msg_word,
             0);
     HTT_RX_RING_CFG_OFFSET_PPDU_END_SET(*msg_word,
-            0); 
-
-    msg_word++;
-    *msg_word = 0;
-    HTT_RX_RING_CFG_OFFSET_MPDU_START_SET(*msg_word, 
-            0);
-    HTT_RX_RING_CFG_OFFSET_MPDU_END_SET(*msg_word, 
-            0); 
-
-    msg_word++;
-    *msg_word = 0;
-    HTT_RX_RING_CFG_OFFSET_MSDU_START_SET(*msg_word, 
-            0);
-    HTT_RX_RING_CFG_OFFSET_MSDU_END_SET(*msg_word, 
             0);
 
     msg_word++;
     *msg_word = 0;
-    HTT_RX_RING_CFG_OFFSET_RX_ATTN_SET(*msg_word, 
+    HTT_RX_RING_CFG_OFFSET_MPDU_START_SET(*msg_word,
             0);
-    HTT_RX_RING_CFG_OFFSET_FRAG_INFO_SET(*msg_word, 
+    HTT_RX_RING_CFG_OFFSET_MPDU_END_SET(*msg_word,
+            0);
+
+    msg_word++;
+    *msg_word = 0;
+    HTT_RX_RING_CFG_OFFSET_MSDU_START_SET(*msg_word,
+            0);
+    HTT_RX_RING_CFG_OFFSET_MSDU_END_SET(*msg_word,
+            0);
+
+    msg_word++;
+    *msg_word = 0;
+    HTT_RX_RING_CFG_OFFSET_RX_ATTN_SET(*msg_word,
+            0);
+    HTT_RX_RING_CFG_OFFSET_FRAG_INFO_SET(*msg_word,
             0);
 
     SET_HTC_PACKET_INFO_TX(
@@ -441,7 +441,7 @@ htt_h2t_rx_ring_cfg_msg_hl(struct htt_pdev_t *pdev)
 
 int
 htt_h2t_dbg_stats_get(
-    struct htt_pdev_t *pdev, 
+    struct htt_pdev_t *pdev,
     u_int32_t stats_type_upload_mask,
     u_int32_t stats_type_reset_mask,
     u_int8_t cfg_stat_type,
@@ -578,7 +578,7 @@ htt_h2t_sync_msg(struct htt_pdev_t *pdev, u_int8_t sync_cnt)
 
 int
 htt_h2t_aggr_cfg_msg(struct htt_pdev_t *pdev,
-                     int max_subfrms_ampdu, 
+                     int max_subfrms_ampdu,
                      int max_subfrms_amsdu)
 {
     struct htt_htc_pkt *pkt;
@@ -616,11 +616,11 @@ htt_h2t_aggr_cfg_msg(struct htt_pdev_t *pdev,
     HTT_H2T_MSG_TYPE_SET(*msg_word, HTT_H2T_MSG_TYPE_AGGR_CFG);
 
     if (max_subfrms_ampdu && (max_subfrms_ampdu <= 64)) {
-        HTT_AGGR_CFG_MAX_NUM_AMPDU_SUBFRM_SET(*msg_word, max_subfrms_ampdu); 
+        HTT_AGGR_CFG_MAX_NUM_AMPDU_SUBFRM_SET(*msg_word, max_subfrms_ampdu);
     }
 
     if (max_subfrms_amsdu && (max_subfrms_amsdu < 32)) {
-        HTT_AGGR_CFG_MAX_NUM_AMSDU_SUBFRM_SET(*msg_word, max_subfrms_amsdu); 
+        HTT_AGGR_CFG_MAX_NUM_AMSDU_SUBFRM_SET(*msg_word, max_subfrms_amsdu);
     }
 
     SET_HTC_PACKET_INFO_TX(
