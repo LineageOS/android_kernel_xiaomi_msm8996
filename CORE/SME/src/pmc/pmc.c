@@ -2599,7 +2599,7 @@ eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac )
       return eHAL_STATUS_PMC_NOT_NOW;
    }
 
-    //Remove this code once SLM_Sessionization is supported 
+    //Remove this code once SLM_Sessionization is supported
     //BMPS_WORKAROUND_NOT_NEEDED
     if(!IS_FEATURE_SUPPORTED_BY_FW(SLM_SESSIONIZATION))
     {

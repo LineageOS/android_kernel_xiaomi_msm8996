@@ -30,11 +30,11 @@
 
 
 /**=========================================================================
-  
+
   \file  smeRrmInternal.h
-  
+
   \brief prototype for SME RRM APIs
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -49,7 +49,7 @@
 #include "palTimer.h"
 #include "rrmGlobal.h"
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
 typedef struct sRrmConfigParam
@@ -103,7 +103,7 @@ typedef struct sRrmSMEContext
    tCsrCcxBeaconReq  ccxBcnReqInfo;
 #endif /* FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
    tRrmMsgReqSource msgSource;
-}tRrmSMEContext, *tpRrmSMEContext; 
+}tRrmSMEContext, *tpRrmSMEContext;
 
 typedef struct sRrmNeighborReq
 {

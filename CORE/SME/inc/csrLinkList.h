@@ -25,10 +25,10 @@
  * to the Linux Foundation.
  */
 
-/** ------------------------------------------------------------------------- * 
-    ------------------------------------------------------------------------- *  
+/** ------------------------------------------------------------------------- *
+    ------------------------------------------------------------------------- *
     \file csrLinkList.h
-  
+
     Exports and types for the Common link list interfaces.
 ========================================================================== */
 #ifndef CSR_LINK_LIST_H__
@@ -70,8 +70,8 @@ typedef struct tagDblLinkList
 #define GET_BASE_ADDR(address, type, field) ((type *)( \
                                                   (tANI_U8 *)(address) - \
                                                   (tANI_U8 *)(&((type *)0)->field)))
-                                     
-//To get the offset of (field) inside structure (type)                                                  
+
+//To get the offset of (field) inside structure (type)
 #define GET_FIELD_OFFSET(type, field)  ((tANI_U32_OR_PTR)(&(((type *)0)->field)))
 
 #define GET_ROUND_UP( _Field, _Boundary ) (((_Field) + ((_Boundary) - 1))  & ~((_Boundary) - 1))
@@ -81,7 +81,7 @@ typedef struct tagDblLinkList
 #define CSR_MAX(a, b)  ((a) > (b) ? (a) : (b))
 #define CSR_MIN(a, b)  ((a) < (b) ? (a) : (b))
 
-                                                  
+
 #define csrIsListEmpty(pHead) ((pHead)->next == (pHead))
 
 tANI_U32 csrLLCount( tDblLinkList *pList );
@@ -116,4 +116,3 @@ tANI_BOOLEAN csrLLFindEntry( tDblLinkList *pList, tListElem *pEntryToFind );
 
 
 #endif
-

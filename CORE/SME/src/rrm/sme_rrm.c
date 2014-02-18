@@ -27,11 +27,11 @@
 
 
 /**=========================================================================
-  
+
   \file  sme_Rrm.c
-  
+
   \brief implementation for SME RRM APIs
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -76,46 +76,46 @@
 #define RRM_ROAM_SCORE_NEIGHBOR_IAPP_LIST                       30
 #endif
 /**---------------------------------------------------------------------------
-  
-  \brief rrmLLPurgeNeighborCache() - 
-    This function purges all the entries in the neighbor cache and frees up all the internal nodes   
+
+  \brief rrmLLPurgeNeighborCache() -
+    This function purges all the entries in the neighbor cache and frees up all the internal nodes
 
   \param  - pMac  - Pointer to the Hal Handle.
           - pList - Pointer the List that should be purged.
   \return - void
-  
+
   --------------------------------------------------------------------------*/
 static void rrmLLPurgeNeighborCache(tpAniSirGlobal pMac, tDblLinkList *pList)
 {
     tListElem *pEntry;
     tRrmNeighborReportDesc *pNeighborReportDesc;
-    
+
     csrLLLock(pList);
-    
+
     while((pEntry = csrLLRemoveHead(pList, LL_ACCESS_NOLOCK)) != NULL)
     {
         pNeighborReportDesc = GET_BASE_ADDR( pEntry, tRrmNeighborReportDesc, List );
         vos_mem_free(pNeighborReportDesc->pNeighborBssDescription);
         vos_mem_free(pNeighborReportDesc);
     }
-    
-    csrLLUnlock(pList);   
-     
+
+    csrLLUnlock(pList);
+
     return;
 }
 
 /**---------------------------------------------------------------------------
-  
-  \brief rrmIndicateNeighborReportResult() - 
-        This function calls the callback register by the caller while requesting for 
+
+  \brief rrmIndicateNeighborReportResult() -
+        This function calls the callback register by the caller while requesting for
         neighbor report. This function gets invoked if a neighbor report is received from an AP
         or neighbor response wait timer expires.
 
   \param  - pMac - Pointer to the Hal Handle.
-          - vosStatus - VOS_STATUS_SUCCESS/VOS_STATUS_FAILURE based on whether a valid report is 
+          - vosStatus - VOS_STATUS_SUCCESS/VOS_STATUS_FAILURE based on whether a valid report is
             received or neighbor timer expired
   \return - void
-  
+
   --------------------------------------------------------------------------*/
 void rrmIndicateNeighborReportResult(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
 {
@@ -133,12 +133,12 @@ void rrmIndicateNeighborReportResult(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
     }
     callback = pMac->rrm.rrmSmeContext.neighborReqControlInfo.neighborRspCallbackInfo.neighborRspCallback;
     callbackContext = pMac->rrm.rrmSmeContext.neighborReqControlInfo.neighborRspCallbackInfo.neighborRspCallbackContext;
-    
-    /* Reset the callback and the callback context before calling the callback. It is very likely that there may be a registration in 
+
+    /* Reset the callback and the callback context before calling the callback. It is very likely that there may be a registration in
             callback itself. */
     pMac->rrm.rrmSmeContext.neighborReqControlInfo.neighborRspCallbackInfo.neighborRspCallback = NULL;
     pMac->rrm.rrmSmeContext.neighborReqControlInfo.neighborRspCallbackInfo.neighborRspCallbackContext = NULL;
-    
+
     /* Call the callback with the status received from caller */
     if (callback)
         callback(callbackContext, vosStatus);
@@ -158,16 +158,16 @@ void rrmIndicateNeighborReportResult(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
 }
 
 /**---------------------------------------------------------------------------
-  
-  \brief sme_RrmBeaconReportXmitInd() - 
+
+  \brief sme_RrmBeaconReportXmitInd() -
 
    Create and send the beacon report Xmit ind message to PE.
 
   \param  - pMac - Pointer to the Hal Handle.
               - pResult - scan result.
-              - measurementDone - flag to indicate that the measurement is done.        
+              - measurementDone - flag to indicate that the measurement is done.
   \return - 0 for success, non zero for failure
-  
+
   --------------------------------------------------------------------------*/
 static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac,
                                                   tCsrScanResultInfo **pResultArr,
@@ -196,7 +196,7 @@ static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac,
    if (pResultArr)
        pCurResult=pResultArr[bssCounter];
 
-   do 
+   do
    {
        length = sizeof(tSirBeaconReportXmitInd);
        pBeaconRep = vos_mem_malloc ( length );
@@ -217,7 +217,7 @@ static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac,
        vos_mem_copy( pBeaconRep->bssId, pSmeRrmContext->sessionBssId, sizeof(tSirMacAddr) );
 
        msgCounter=0;
-       while (pCurResult) 
+       while (pCurResult)
        {
            pBssDesc = &pCurResult->BssDescriptor;
            if(pBssDesc != NULL)
@@ -252,7 +252,7 @@ static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac,
            }
        }
 
-       bssCounter+=msgCounter; 
+       bssCounter+=msgCounter;
        if (!pResultArr || (pCurResult == NULL) || (bssCounter >= bss_count))
        {
            pCurResult = NULL;
@@ -439,8 +439,8 @@ static eHalStatus sme_CcxSendBeaconReqScanResults(tpAniSirGlobal pMac,
 #endif /* FEATURE_WLAN_CCX_UPLOAD */
 
 /**---------------------------------------------------------------------------
-  
-  \brief sme_RrmSendScanRequest() - 
+
+  \brief sme_RrmSendScanRequest() -
 
    This function is called to get the scan result from CSR and send the beacon report
    xmit ind message to PE.
@@ -448,9 +448,9 @@ static eHalStatus sme_CcxSendBeaconReqScanResults(tpAniSirGlobal pMac,
   \param  - pMac - Pointer to the Hal Handle.
               - num_chan - number of channels.
               - channel list - list of channels to fetch the result from.
-              - measurementDone - flag to indicate that the measurement is done.        
+              - measurementDone - flag to indicate that the measurement is done.
   \return - 0 for success, non zero for failure
-  
+
   --------------------------------------------------------------------------*/
 static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
                                          tANI_U8 num_chan,
@@ -499,9 +499,9 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
    }
 
    filter.ChannelInfo.numOfChannels = num_chan;
-   filter.ChannelInfo.ChannelList = chanList; 
+   filter.ChannelInfo.ChannelList = chanList;
 
-   filter.fMeasurement = TRUE; 
+   filter.fMeasurement = TRUE;
 
    csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid*)pSmeRrmContext->sessionBssId, &sessionId );
    status = sme_ScanGetResult(pMac, (tANI_U8)sessionId, &filter, &pResult);
@@ -519,7 +519,7 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
    {
       // no scan results
       //
-      // Spec. doesnt say anything about such condition. 
+      // Spec. doesnt say anything about such condition.
       // Since section 7.4.6.2 (IEEE802.11k-2008) says-rrm report frame should contain
       // one or more report IEs. It probably means dont send any respose if no matching
       // BSS found. Moreover, there is no flag or field in measurement report IE(7.3.2.22)
@@ -596,13 +596,13 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
                                                 measurementDone,
                                                 counter);
    }
-   sme_ScanResultPurge(pMac, pResult); 
+   sme_ScanResultPurge(pMac, pResult);
 
    return status;
 }
 /**---------------------------------------------------------------------------
-  
-  \brief sme_RrmScanRequestCallback() - 
+
+  \brief sme_RrmScanRequestCallback() -
 
    The sme module calls this callback function once it finish the scan request
    and this function send the beacon report xmit to PE and starts a timer of
@@ -611,9 +611,9 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
   \param  - halHandle - Pointer to the Hal Handle.
               - pContext - Pointer to the data context.
               - scanId - Scan ID.
-              - status - CSR Status.        
+              - status - CSR Status.
   \return - 0 for success, non zero for failure
-  
+
   --------------------------------------------------------------------------*/
 
 static eHalStatus sme_RrmScanRequestCallback(tHalHandle halHandle, void *pContext,
@@ -623,7 +623,7 @@ static eHalStatus sme_RrmScanRequestCallback(tHalHandle halHandle, void *pContex
    tANI_U16 interval;
    tpAniSirGlobal pMac = (tpAniSirGlobal) halHandle;
    tpRrmSMEContext pSmeRrmContext = &pMac->rrm.rrmSmeContext;
-   tANI_U32 time_tick; 
+   tANI_U32 time_tick;
 
 
 
@@ -638,7 +638,7 @@ static eHalStatus sme_RrmScanRequestCallback(tHalHandle halHandle, void *pContex
       sme_RrmSendScanResult( pMac, 1, &pSmeRrmContext->channelList.ChannelList[pSmeRrmContext->currentIndex], false );
 
       pSmeRrmContext->currentIndex++; //Advance the current index.
-      //start the timer to issue next request. 
+      //start the timer to issue next request.
       //From timer tick get a random number within 10ms and max randmization interval.
       time_tick = vos_timer_get_system_ticks();
       interval = time_tick % (pSmeRrmContext->randnIntvl - 10 + 1) + 10;
@@ -663,15 +663,15 @@ static eHalStatus sme_RrmScanRequestCallback(tHalHandle halHandle, void *pContex
 }
 
 /*--------------------------------------------------------------------------
-  \brief sme_RrmIssueScanReq() - This is called to send a scan request as part 
+  \brief sme_RrmIssueScanReq() - This is called to send a scan request as part
          of beacon report request .
-  
+
   \param  pMac  - pMac global pointer
-  
+
   \return eHAL_STATUS_SUCCESS - Validation is successful.
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
 eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
 {
@@ -792,17 +792,17 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
 }
 
 /*--------------------------------------------------------------------------
-  \brief sme_RrmProcessBeaconReportReqInd() - This is called to process the Beacon 
+  \brief sme_RrmProcessBeaconReportReqInd() - This is called to process the Beacon
          report request from peer AP forwarded through PE .
-  
-  \param pMsgBuf - a pointer to a buffer that maps to various structures base 
+
+  \param pMsgBuf - a pointer to a buffer that maps to various structures base
                    on the message type.
                    The beginning of the buffer can always map to tSirSmeRsp.
-  
+
   \return eHAL_STATUS_SUCCESS - Validation is successful.
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
 void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
 {
@@ -813,10 +813,10 @@ void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
 #if defined WLAN_VOWIFI_DEBUG
    smsLog( pMac, LOGE, "Received Beacon report request ind Channel = %d", pBeaconReq->channelInfo.channelNum );
 #endif
-   //section 11.10.8.1 (IEEE Std 802.11k-2008) 
+   //section 11.10.8.1 (IEEE Std 802.11k-2008)
    //channel 0 and 255 has special meaning.
-   if( (pBeaconReq->channelInfo.channelNum == 0)  || 
-       ((pBeaconReq->channelInfo.channelNum == 255) && (pBeaconReq->channelList.numChannels == 0) ) ) 
+   if( (pBeaconReq->channelInfo.channelNum == 0)  ||
+       ((pBeaconReq->channelInfo.channelNum == 255) && (pBeaconReq->channelList.numChannels == 0) ) )
    {
       //Add all the channel in the regulatory domain.
       wlan_cfgGetStrLen( pMac, WNI_CFG_VALID_CHANNEL_LIST, &len );
@@ -836,7 +836,7 @@ void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
 #endif
    }
    else
-   { 
+   {
       len = 0;
       pSmeRrmContext->channelList.numOfChannels = 0;
 
@@ -891,7 +891,7 @@ void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
    vos_mem_copy( pSmeRrmContext->bssId, pBeaconReq->macaddrBssid, sizeof(tSirMacAddr) );
 
    //Copy ssid
-   vos_mem_copy( &pSmeRrmContext->ssId, &pBeaconReq->ssId, sizeof(tAniSSID) ); 
+   vos_mem_copy( &pSmeRrmContext->ssId, &pBeaconReq->ssId, sizeof(tAniSSID) );
 
    pSmeRrmContext->token = pBeaconReq->uDialogToken;
    pSmeRrmContext->regClass = pBeaconReq->channelInfo.regulatoryClass;
@@ -907,18 +907,18 @@ void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
 }
 
 /*--------------------------------------------------------------------------
-  \brief sme_RrmNeighborReportRequest() - This is API can be used to trigger a 
+  \brief sme_RrmNeighborReportRequest() - This is API can be used to trigger a
          Neighbor report from the peer.
-  
-  \param sessionId - session identifier on which the request should be made.       
+
+  \param sessionId - session identifier on which the request should be made.
   \param pNeighborReq - a pointer to a neighbor report request.
-  
+
   \return eHAL_STATUS_SUCCESS - Validation is successful.
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
-VOS_STATUS sme_RrmNeighborReportRequest(tpAniSirGlobal pMac, tANI_U8 sessionId, 
+VOS_STATUS sme_RrmNeighborReportRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
                                     tpRrmNeighborReq pNeighborReq, tpRrmNeighborRspCallbackInfo callbackInfo)
 {
    eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -929,7 +929,7 @@ VOS_STATUS sme_RrmNeighborReportRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
    smsLog( pMac, LOGE, FL("Request to send Neighbor report request received "));
 #endif
    if( !CSR_IS_SESSION_VALID( pMac, sessionId ) )
-   {  
+   {
       smsLog( pMac, LOGE, FL("Invalid session %d"), sessionId );
       return VOS_STATUS_E_INVAL;
    }
@@ -941,7 +941,7 @@ VOS_STATUS sme_RrmNeighborReportRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
        smsLog( pMac, LOGE, FL("Neighbor request already pending.. Not allowed"));
        return VOS_STATUS_E_AGAIN;
    }
-   
+
    pMsg = vos_mem_malloc ( sizeof(tSirNeighborReportReqInd) );
    if ( NULL == pMsg )
    {
@@ -949,7 +949,7 @@ VOS_STATUS sme_RrmNeighborReportRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
       return VOS_STATUS_E_NOMEM;
    }
 
-   
+
    vos_mem_zero( pMsg, sizeof(tSirNeighborReportReqInd) );
 #if defined WLAN_VOWIFI_DEBUG
    smsLog( pMac, LOGE, FL(" Allocated memory for Neighbor request") );
@@ -972,34 +972,34 @@ VOS_STATUS sme_RrmNeighborReportRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
       return VOS_STATUS_E_FAILURE;
 
    /* Neighbor report request message sent successfully to PE. Now register the callbacks */
-   pMac->rrm.rrmSmeContext.neighborReqControlInfo.neighborRspCallbackInfo.neighborRspCallback = 
+   pMac->rrm.rrmSmeContext.neighborReqControlInfo.neighborRspCallbackInfo.neighborRspCallback =
                                                             callbackInfo->neighborRspCallback;
-   pMac->rrm.rrmSmeContext.neighborReqControlInfo.neighborRspCallbackInfo.neighborRspCallbackContext = 
+   pMac->rrm.rrmSmeContext.neighborReqControlInfo.neighborRspCallbackInfo.neighborRspCallbackContext =
                                                             callbackInfo->neighborRspCallbackContext;
    pMac->rrm.rrmSmeContext.neighborReqControlInfo.isNeighborRspPending = eANI_BOOLEAN_TRUE;
 
    /* Start neighbor response wait timer now */
    vos_timer_start(&pMac->rrm.rrmSmeContext.neighborReqControlInfo.neighborRspWaitTimer, callbackInfo->timeout);
-   
+
    return VOS_STATUS_SUCCESS;
 }
 
 /*--------------------------------------------------------------------------
-  \brief rrmCalculateNeighborAPRoamScore() - This API is called while handling 
-                individual neighbor reports from the APs neighbor AP report to 
-                calculate the cumulative roam score before storing it in neighbor 
+  \brief rrmCalculateNeighborAPRoamScore() - This API is called while handling
+                individual neighbor reports from the APs neighbor AP report to
+                calculate the cumulative roam score before storing it in neighbor
                 cache.
-  
-  \param pNeighborReportDesc - Neighbor BSS Descriptor node for which roam score 
+
+  \param pNeighborReportDesc - Neighbor BSS Descriptor node for which roam score
                                 should be calculated
-  
+
   \return void.
 --------------------------------------------------------------------------*/
 static void rrmCalculateNeighborAPRoamScore(tpAniSirGlobal pMac, tpRrmNeighborReportDesc pNeighborReportDesc)
 {
     tpSirNeighborBssDescripton  pNeighborBssDesc;
     tANI_U32    roamScore = 0;
-    
+
     if (NULL == pNeighborReportDesc)
     {
         VOS_ASSERT(0);
@@ -1058,13 +1058,13 @@ static void rrmCalculateNeighborAPRoamScore(tpAniSirGlobal pMac, tpRrmNeighborRe
 }
 
 /*--------------------------------------------------------------------------
-  \brief rrmStoreNeighborRptByRoamScore() - This API is called to store a given 
-                        Neighbor BSS descriptor to the neighbor cache. This function 
-                        stores the neighbor BSS descriptors in such a way that descriptors 
+  \brief rrmStoreNeighborRptByRoamScore() - This API is called to store a given
+                        Neighbor BSS descriptor to the neighbor cache. This function
+                        stores the neighbor BSS descriptors in such a way that descriptors
                         are sorted by roamScore in descending order
 
   \param pNeighborReportDesc - Neighbor BSS Descriptor node to be stored in cache
-  
+
   \return void.
 --------------------------------------------------------------------------*/
 void rrmStoreNeighborRptByRoamScore(tpAniSirGlobal pMac, tpRrmNeighborReportDesc pNeighborReportDesc)
@@ -1102,7 +1102,7 @@ void rrmStoreNeighborRptByRoamScore(tpAniSirGlobal pMac, tpRrmNeighborReportDesc
             if (pTempNeighborReportDesc->roamScore < pNeighborReportDesc->roamScore)
                 break;
             pEntry = csrLLNext(&pSmeRrmContext->neighborReportCache, pEntry, LL_ACCESS_LOCK);
-        } 
+        }
 
         if (pEntry)
             /* This BSS roamscore is better than something in the list. Insert this before that one */
@@ -1115,17 +1115,17 @@ void rrmStoreNeighborRptByRoamScore(tpAniSirGlobal pMac, tpRrmNeighborReportDesc
 }
 
 /*--------------------------------------------------------------------------
-  \brief sme_RrmProcessNeighborReport() - This is called to process the Neighbor 
+  \brief sme_RrmProcessNeighborReport() - This is called to process the Neighbor
          report received from PE.
-  
-  \param pMsgBuf - a pointer to a buffer that maps to various structures base 
+
+  \param pMsgBuf - a pointer to a buffer that maps to various structures base
                    on the message type.
                    The beginning of the buffer can always map to tSirSmeRsp.
-  
+
   \return eHAL_STATUS_SUCCESS - Validation is successful.
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
 eHalStatus sme_RrmProcessNeighborReport(tpAniSirGlobal pMac, void *pMsgBuf)
 {
@@ -1139,7 +1139,7 @@ eHalStatus sme_RrmProcessNeighborReport(tpAniSirGlobal pMac, void *pMsgBuf)
    // Clear the cache for CCX.
    if (csrNeighborRoamIsCCXAssoc(pMac))
    {
-       rrmLLPurgeNeighborCache(pMac, 
+       rrmLLPurgeNeighborCache(pMac,
            &pMac->rrm.rrmSmeContext.neighborReportCache);
    }
 #endif
@@ -1152,7 +1152,7 @@ eHalStatus sme_RrmProcessNeighborReport(tpAniSirGlobal pMac, void *pMsgBuf)
            smsLog( pMac, LOGE, "Failed to allocate memory for RRM Neighbor report desc");
            status = eHAL_STATUS_FAILED_ALLOC;
            goto end;
-            
+
        }
 
        vos_mem_zero(pNeighborReportDesc, sizeof(tRrmNeighborReportDesc));
@@ -1165,7 +1165,7 @@ eHalStatus sme_RrmProcessNeighborReport(tpAniSirGlobal pMac, void *pMsgBuf)
            goto end;
        }
        vos_mem_zero(pNeighborReportDesc->pNeighborBssDescription, sizeof(tSirNeighborBssDescription));
-       vos_mem_copy(pNeighborReportDesc->pNeighborBssDescription, &pNeighborRpt->sNeighborBssDescription[i], 
+       vos_mem_copy(pNeighborReportDesc->pNeighborBssDescription, &pNeighborRpt->sNeighborBssDescription[i],
                                                 sizeof(tSirNeighborBssDescription));
 
 #if defined WLAN_VOWIFI_DEBUG
@@ -1190,35 +1190,35 @@ eHalStatus sme_RrmProcessNeighborReport(tpAniSirGlobal pMac, void *pMsgBuf)
            vos_mem_free(pNeighborReportDesc);
        }
    }
-end:  
-   
+end:
+
    if (!csrLLCount(&pMac->rrm.rrmSmeContext.neighborReportCache))
       vosStatus = VOS_STATUS_E_FAILURE;
- 
+
    /* Received a report from AP. Indicate SUCCESS to the caller if there are some valid reports */
    rrmIndicateNeighborReportResult(pMac, vosStatus);
 
    return status;
 }
 /*--------------------------------------------------------------------------
-  \brief sme_RrmMsgProcessor() - sme_ProcessMsg() calls this function for the 
+  \brief sme_RrmMsgProcessor() - sme_ProcessMsg() calls this function for the
   messages that are handled by SME RRM module.
-  
+
   \param pMac - Pointer to the global MAC parameter structure.
   \param msg_type - the type of msg passed by PE as defined in wniApi.h
-  \param pMsgBuf - a pointer to a buffer that maps to various structures base 
+  \param pMsgBuf - a pointer to a buffer that maps to various structures base
                    on the message type.
                    The beginning of the buffer can always map to tSirSmeRsp.
-  
+
   \return eHAL_STATUS_SUCCESS - Validation is successful.
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
-eHalStatus sme_RrmMsgProcessor( tpAniSirGlobal pMac,  v_U16_t msg_type, 
+eHalStatus sme_RrmMsgProcessor( tpAniSirGlobal pMac,  v_U16_t msg_type,
                                 void *pMsgBuf)
 {
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
          FL(" Msg = %d for RRM measurement") , msg_type );
 
    //switch on the msg type & make the state transition accordingly
@@ -1234,7 +1234,7 @@ eHalStatus sme_RrmMsgProcessor( tpAniSirGlobal pMac,  v_U16_t msg_type,
 
       default:
          //err msg
-         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                FL("sme_RrmMsgProcessor:unknown msg type = %d"), msg_type);
 
          break;
@@ -1266,22 +1266,22 @@ void rrmIterMeasTimerHandle( v_PVOID_t userData )
    smsLog( pMac, LOGE, "Randomization timer expired...send on next channel ");
 #endif
     //Issue a scan req for next channel.
-    sme_RrmIssueScanReq( pMac ); 
+    sme_RrmIssueScanReq( pMac );
 }
 
 /* ---------------------------------------------------------------------------
-    
+
     \fn rrmNeighborRspTimeoutHandler
-    
-    \brief  Timer handler to handle the timeout condition when a neighbor request is sent 
+
+    \brief  Timer handler to handle the timeout condition when a neighbor request is sent
                     and no neighbor response is received from the AP
-    
+
     \param  pMac - The handle returned by macOpen.
-    
+
     \return VOID
-    
+
 ---------------------------------------------------------------------------*/
-    
+
 void rrmNeighborRspTimeoutHandler
 ( v_PVOID_t userData )
 {
@@ -1297,7 +1297,7 @@ void rrmNeighborRspTimeoutHandler
 
     \fn rrmOpen
 
-    \brief  
+    \brief
 
     \param  pMac - The handle returned by macOpen.
 
@@ -1366,7 +1366,7 @@ VOS_STATUS rrmOpen (tpAniSirGlobal pMac)
 
     \fn rrmClose
 
-    \brief  
+    \brief
 
     \param  pMac - The handle returned by macOpen.
 
@@ -1462,21 +1462,21 @@ VOS_STATUS rrmReady (tpAniSirGlobal pMac)
   ---------------------------------------------------------------------------*/
 VOS_STATUS rrmChangeDefaultConfigParam(tpAniSirGlobal pMac, tpRrmConfigParam pRrmConfig)
 {
-   vos_mem_copy( &pMac->rrm.rrmSmeContext.rrmConfig, pRrmConfig, sizeof( tRrmConfigParam ) ); 
+   vos_mem_copy( &pMac->rrm.rrmSmeContext.rrmConfig, pRrmConfig, sizeof( tRrmConfigParam ) );
 
    return VOS_STATUS_SUCCESS;
 }
 
 /* ---------------------------------------------------------------------------
-    
+
     \fn smeRrmGetFirstBssEntryFromNeighborCache()
-    
+
     \brief  This function returns the first entry from the neighbor cache to the caller
 
     \param  pMac - The handle returned by macOpen.
-    
+
     \return VOID
-    
+
 ---------------------------------------------------------------------------*/
 tRrmNeighborReportDesc* smeRrmGetFirstBssEntryFromNeighborCache( tpAniSirGlobal pMac)
 {
@@ -1500,18 +1500,18 @@ tRrmNeighborReportDesc* smeRrmGetFirstBssEntryFromNeighborCache( tpAniSirGlobal 
 }
 
 /* ---------------------------------------------------------------------------
-    
+
     \fn smeRrmGetNextBssEntryFromNeighborCache()
-    
-    \brief  This function returns the entry next to the given entry from the 
+
+    \brief  This function returns the entry next to the given entry from the
                 neighbor cache to the caller
 
     \param  pMac - The handle returned by macOpen.
-    
+
     \return VOID
-    
+
 ---------------------------------------------------------------------------*/
-tRrmNeighborReportDesc* smeRrmGetNextBssEntryFromNeighborCache( tpAniSirGlobal pMac, 
+tRrmNeighborReportDesc* smeRrmGetNextBssEntryFromNeighborCache( tpAniSirGlobal pMac,
                                                         tpRrmNeighborReportDesc pBssEntry)
 {
    tListElem *pEntry;
@@ -1537,7 +1537,7 @@ void csrCcxSendAdjacentApRepMsg(tpAniSirGlobal pMac, tCsrRoamSession *pSession)
    tpSirAdjacentApRepInd pAdjRep;
    tANI_U16 length;
    tANI_U32 roamTS2;
-   
+
    smsLog( pMac, LOG1, "Adjacent AP Report Msg to PE");
 
    length = sizeof(tSirAdjacentApRepInd );
