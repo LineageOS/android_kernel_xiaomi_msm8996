@@ -104,8 +104,8 @@ int ol_txrx_fw_stats_get(
     struct ol_txrx_stats_req *req);
 
 
-int ol_txrx_aggr_cfg(ol_txrx_vdev_handle vdev, 
-                     int max_subfrms_ampdu, 
+int ol_txrx_aggr_cfg(ol_txrx_vdev_handle vdev,
+                     int max_subfrms_ampdu,
                      int max_subfrms_amsdu);
 
 enum {

@@ -47,7 +47,7 @@
 
 #define __adf_os_reg_read32(_dev, _addr)    \
   readl((volatile void __iomem *)((_dev)->res.vaddr + (_addr)))
-  
+
 #define __adf_os_reg_read64(_dev, _addr)    \
   readq((volatile void __iomem *)((_dev)->res.vaddr + (_addr)))
 

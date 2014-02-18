@@ -66,7 +66,7 @@ struct ieee80211_plcp_hdr {
     u_int16_t   i_crc;
 } __packed;
 
-#define IEEE80211_PLCP_SFD      0xF3A0 
+#define IEEE80211_PLCP_SFD      0xF3A0
 #define IEEE80211_PLCP_SERVICE  0x00
 
 /*
@@ -295,7 +295,7 @@ struct ieee80211_ctlframe_addr2 {
 #define IEEE80211_FC0_SUBTYPE_NO_DATA_MASK  0x40
 #define IEEE80211_CONTAIN_DATA(_subtype) \
     (! ((_subtype) & IEEE80211_FC0_SUBTYPE_NO_DATA_MASK))
-    
+
 #define IEEE8023_MAX_LEN 0x600 /* 1536 - larger is Ethernet II */
 #define RFC1042_SNAP_ORGCODE_0 0x00
 #define RFC1042_SNAP_ORGCODE_1 0x00
@@ -319,7 +319,7 @@ struct ieee80211_ctlframe_addr2 {
 #define IEEE80211_HTSIG_LEN 6
 #define IEEE80211_SB_LEN    2
 
-/* 
+/*
  * Information element header format
  */
 struct ieee80211_ie_header {
@@ -327,7 +327,7 @@ struct ieee80211_ie_header {
     u_int8_t    length;         /* IE Length */
 } __packed;
 
-/* 
+/*
  * Country information element.
  */
 #define IEEE80211_COUNTRY_MAX_TRIPLETS (83)
@@ -494,8 +494,8 @@ struct ieee80211_wme_param {
                                                  WME_CAPINFO_UAPSD_BE)
 #define WME_CAPINFO_UAPSD_NONE                  0
 
-#define WME_UAPSD_AC_MAX_VAL 		1
-#define WME_UAPSD_AC_INVAL		 	WME_UAPSD_AC_MAX_VAL+1
+#define WME_UAPSD_AC_MAX_VAL		1
+#define WME_UAPSD_AC_INVAL			WME_UAPSD_AC_MAX_VAL+1
 
 /*
  * Atheros Advanced Capability information element.
@@ -570,18 +570,18 @@ struct ieee80211_ie_sfa {
 #define IEEE80211_ATHEC_OWLWDSWAR        0x0001
 #define IEEE80211_ATHEC_WEPTKIPAGGR	     0x0002
 #define IEEE80211_ATHEC_EXTRADELIMWAR    0x0004
-/* 
- * Management Frames 
+/*
+ * Management Frames
  */
 
 /*
  * *** Platform-specific code?? ***
- * In Vista one must use bit fields of type (unsigned short = u_int16_t) to 
+ * In Vista one must use bit fields of type (unsigned short = u_int16_t) to
  * ensure data structure is of the correct size. ANSI C used to specify only
  * "int" bit fields, which led to a larger structure size in Windows (32 bits).
- * 
+ *
  * We must make sure the following construction is valid in all OS's.
- */ 
+ */
 union ieee80211_capability {
     struct {
         u_int16_t    ess                 : 1;
@@ -609,7 +609,7 @@ struct ieee80211_beacon_frame {
     u_int8_t                      timestamp[8];    /* the value of sender's TSFTIMER */
     u_int16_t                     beacon_interval; /* the number of time units between target beacon transmission times */
     union ieee80211_capability    capability;
-/* Value of capability for every bit    
+/* Value of capability for every bit
 #define IEEE80211_CAPINFO_ESS               0x0001
 #define IEEE80211_CAPINFO_IBSS              0x0002
 #define IEEE80211_CAPINFO_CF_POLLABLE       0x0004
@@ -629,8 +629,8 @@ bits 14-15 are reserved
     struct ieee80211_ie_header    info_elements;
 } __packed;
 
-/* 
- * Management Action Frames 
+/*
+ * Management Action Frames
  */
 
 /* generic frame format */
@@ -680,7 +680,7 @@ struct ieee80211_action_measrep_header {
 /* HT - recommended transmission channel width */
 struct ieee80211_action_ht_txchwidth {
     struct ieee80211_action     at_header;
-    u_int8_t                    at_chwidth; 
+    u_int8_t                    at_chwidth;
 } __packed;
 
 #define IEEE80211_A_HT_TXCHWIDTH_20         0
@@ -814,7 +814,7 @@ struct ieee80211_delba_parameterset {
 struct ieee80211_action_ba_addbarequest {
     struct ieee80211_action             rq_header;
     u_int8_t                            rq_dialogtoken;
-    struct ieee80211_ba_parameterset    rq_baparamset; 
+    struct ieee80211_ba_parameterset    rq_baparamset;
     u_int16_t                           rq_batimeout;   /* in TUs */
     struct ieee80211_ba_seqctrl         rq_basequencectrl;
 } __packed;
@@ -824,7 +824,7 @@ struct ieee80211_action_ba_addbaresponse {
     struct ieee80211_action             rs_header;
     u_int8_t                            rs_dialogtoken;
     u_int16_t                           rs_statuscode;
-    struct ieee80211_ba_parameterset    rs_baparamset; 
+    struct ieee80211_ba_parameterset    rs_baparamset;
     u_int16_t                           rs_batimeout;   /* in TUs */
 } __packed;
 
@@ -1093,7 +1093,7 @@ struct vendor_ie_htcap {
 
 /* HT capability flags */
 #define IEEE80211_HTCAP_C_ADVCODING             0x0001
-#define IEEE80211_HTCAP_C_CHWIDTH40             0x0002  
+#define IEEE80211_HTCAP_C_CHWIDTH40             0x0002
 #define IEEE80211_HTCAP_C_SMPOWERSAVE_STATIC    0x0000 /* Capable of SM Power Save (Static) */
 #define IEEE80211_HTCAP_C_SMPOWERSAVE_DYNAMIC   0x0004 /* Capable of SM Power Save (Dynamic) */
 #define IEEE80211_HTCAP_C_SM_RESERVED           0x0008 /* Reserved */
@@ -1107,10 +1107,10 @@ struct vendor_ie_htcap {
 #define IEEE80211_HTCAP_C_RXSTBC_S                   8
 #define IEEE80211_HTCAP_C_DELAYEDBLKACK         0x0400
 #define IEEE80211_HTCAP_C_MAXAMSDUSIZE          0x0800  /* 1 = 8K, 0 = 3839B */
-#define IEEE80211_HTCAP_C_DSSSCCK40             0x1000  
-#define IEEE80211_HTCAP_C_PSMP                  0x2000  
-#define IEEE80211_HTCAP_C_INTOLERANT40          0x4000  
-#define IEEE80211_HTCAP_C_LSIGTXOPPROT          0x8000  
+#define IEEE80211_HTCAP_C_DSSSCCK40             0x1000
+#define IEEE80211_HTCAP_C_PSMP                  0x2000
+#define IEEE80211_HTCAP_C_INTOLERANT40          0x4000
+#define IEEE80211_HTCAP_C_LSIGTXOPPROT          0x8000
 
 #define IEEE80211_HTCAP_C_SM_MASK               0x000c /* Spatial Multiplexing (SM) capabitlity bitmask */
 
@@ -1137,10 +1137,10 @@ enum {
 
 /* HT extended capability flags */
 #define IEEE80211_HTCAP_EXTC_PCO                0x0001
-#define IEEE80211_HTCAP_EXTC_TRANS_TIME_RSVD    0x0000  
+#define IEEE80211_HTCAP_EXTC_TRANS_TIME_RSVD    0x0000
 #define IEEE80211_HTCAP_EXTC_TRANS_TIME_400     0x0002 /* 20-40 switch time */
 #define IEEE80211_HTCAP_EXTC_TRANS_TIME_1500    0x0004 /* in us             */
-#define IEEE80211_HTCAP_EXTC_TRANS_TIME_5000    0x0006 
+#define IEEE80211_HTCAP_EXTC_TRANS_TIME_5000    0x0006
 #define IEEE80211_HTCAP_EXTC_RSVD_1             0x00f8
 #define IEEE80211_HTCAP_EXTC_MCS_FEEDBACK_NONE  0x0000
 #define IEEE80211_HTCAP_EXTC_MCS_FEEDBACK_RSVD  0x0100
@@ -1161,15 +1161,15 @@ struct ieee80211_ie_htinfo_cmn {
                 hi_extchoff           : 2;    /* B0-1 extension channel offset */
 
 
-/* 
+/*
 
  * The following 2 consecutive bytes are defined in word in 80211n spec.
 
  * Some processors store MSB byte into lower memory address which causes wrong
 
- * wrong byte sequence in beacon. Thus we break into byte definition which should 
+ * wrong byte sequence in beacon. Thus we break into byte definition which should
 
- * avoid the problem for all processors 
+ * avoid the problem for all processors
 
  */
 
@@ -1242,23 +1242,23 @@ struct vendor_ie_htinfo {
 
 /* extension channel offset (2 bit signed number) */
 enum {
-    IEEE80211_HTINFO_EXTOFFSET_NA    = 0,   /* 0  no extension channel is present */            
-    IEEE80211_HTINFO_EXTOFFSET_ABOVE = 1,   /* +1 extension channel above control channel */ 
-    IEEE80211_HTINFO_EXTOFFSET_UNDEF = 2,   /* -2 undefined */ 
+    IEEE80211_HTINFO_EXTOFFSET_NA    = 0,   /* 0  no extension channel is present */
+    IEEE80211_HTINFO_EXTOFFSET_ABOVE = 1,   /* +1 extension channel above control channel */
+    IEEE80211_HTINFO_EXTOFFSET_UNDEF = 2,   /* -2 undefined */
     IEEE80211_HTINFO_EXTOFFSET_BELOW = 3    /* -1 extension channel below control channel*/
 };
 
 /* recommended transmission width set */
 enum {
-    IEEE80211_HTINFO_TXWIDTH_20,        
-    IEEE80211_HTINFO_TXWIDTH_2040       
+    IEEE80211_HTINFO_TXWIDTH_20,
+    IEEE80211_HTINFO_TXWIDTH_2040
 };
 
 /* operating flags */
 #define IEEE80211_HTINFO_OPMODE_PURE                0x00 /* no protection */
-#define IEEE80211_HTINFO_OPMODE_MIXED_PROT_OPT      0x01 /* prot optional (legacy device maybe present) */          
-#define IEEE80211_HTINFO_OPMODE_MIXED_PROT_40       0x02 /* prot required (20 MHz) */   
-#define IEEE80211_HTINFO_OPMODE_MIXED_PROT_ALL      0x03 /* prot required (legacy devices present) */       
+#define IEEE80211_HTINFO_OPMODE_MIXED_PROT_OPT      0x01 /* prot optional (legacy device maybe present) */
+#define IEEE80211_HTINFO_OPMODE_MIXED_PROT_40       0x02 /* prot required (20 MHz) */
+#define IEEE80211_HTINFO_OPMODE_MIXED_PROT_ALL      0x03 /* prot required (legacy devices present) */
 #define IEEE80211_HTINFO_OPMODE_NON_GF_PRESENT      0x04 /* non-greenfield devices present */
 
 #define IEEE80211_HTINFO_OPMODE_MASK                0x03 /* For protection 0x00-0x03 */
@@ -1352,7 +1352,7 @@ enum {
     IEEE80211_ELEMID_FMS_DESCRIPTOR   = 86,   /* 802.11v FMS descriptor IE */
     IEEE80211_ELEMID_FMS_REQUEST      = 87,   /* 802.11v FMS request IE */
     IEEE80211_ELEMID_FMS_RESPONSE     = 88,   /* 802.11v FMS response IE */
-    IEEE80211_ELEMID_BSSMAX_IDLE_PERIOD = 90, /* BSS MAX IDLE PERIOD */ 
+    IEEE80211_ELEMID_BSSMAX_IDLE_PERIOD = 90, /* BSS MAX IDLE PERIOD */
     IEEE80211_ELEMID_TFS_REQUEST      = 91,
     IEEE80211_ELEMID_TFS_RESPONSE     = 92,
     IEEE80211_ELEMID_TIM_BCAST_REQUEST  = 94,
@@ -1498,7 +1498,7 @@ struct ieee80211_ie_ssid {
     u_int8_t    ssid[32];
 } __packed;
 
-/* 
+/*
  * Supported rates
  */
 #define IEEE80211_MAX_SUPPORTED_RATES      8
@@ -1509,7 +1509,7 @@ struct ieee80211_ie_rates {
     u_int8_t    rate[IEEE80211_MAX_SUPPORTED_RATES];     /* IE Length */
 } __packed;
 
-/* 
+/*
  * Extended rates
  */
 #define IEEE80211_MAX_EXTENDED_RATES     256
@@ -1877,7 +1877,7 @@ enum {
 #define IEEE80211_MTU_MAX       2290
 #define IEEE80211_MTU_MIN       32
 
-/* Rather than using this default value, customer platforms can provide a custom value for this constant. 
+/* Rather than using this default value, customer platforms can provide a custom value for this constant.
   Coustomer platform will use the different define value by themself */
 #ifndef IEEE80211_MAX_MPDU_LEN
 #define IEEE80211_MAX_MPDU_LEN      (3840 + IEEE80211_CRC_LEN + \
@@ -1917,7 +1917,7 @@ A length of 3839 bytes is chosen here to support unaggregated data frames, any s
 
 #define IEEE80211_AID(b)    ((b) &~ 0xc000)
 
-/* 
+/*
  * RTS frame length parameters.  The default is specified in
  * the 802.11 spec.  The max may be wrong for jumbo frames.
  */
@@ -1931,7 +1931,7 @@ A length of 3839 bytes is chosen here to support unaggregated data frames, any s
 #define IEEE80211_FRAGMT_THRESHOLD_MIN        540      /* min frag threshold */
 #define IEEE80211_FRAGMT_THRESHOLD_MAX       2346      /* max frag threshold */
 
-/* 
+/*
  * Regulatory extention identifier for country IE.
  */
 #define IEEE80211_REG_EXT_ID        201
@@ -1991,14 +1991,14 @@ struct ieee80211_ie_ext_cap {
 #define IEEE80211_EXTCAPIE_TDLS_WIDE_BAND   0x20000080 /* bit-61 TDLS Wide Bandwidth support */
 #define IEEE80211_EXTCAPIE_OP_MODE_NOTIFY   0x40000000 /* bit-62 Operating Mode notification */
 
-/* 
+/*
  * These caps are populated when we recieve beacon/probe response
  * This is used to maintain local TDLS cap bit masks
  */
 
 #define IEEE80211_TDLS_PROHIBIT     0x00000001 /* bit-1 TDLS Prohibit Support */
 
-/* 
+/*
  * 20/40 BSS coexistence ie
  */
 struct ieee80211_ie_bss_coex {
@@ -2034,9 +2034,9 @@ struct ieee80211_ie_intolerant_report {
         u_int8_t reg_class;
         u_int8_t chan_list[1];          /* variable-length channel list */
 } __packed;
- 
+
 /*
- * 20/40 coext management action frame 
+ * 20/40 coext management action frame
  */
 struct ieee80211_action_bss_coex_frame {
         struct ieee80211_action                ac_header;
@@ -2143,7 +2143,7 @@ struct ieee80211_ie_vhtop {
         u_int8_t    vht_op_chwidth;              /* BSS Operational Channel width */
         u_int8_t    vht_op_ch_freq_seg1;         /* Channel Center frequency */
         u_int8_t    vht_op_ch_freq_seg2;         /* Channel Center frequency applicable
-                                                  * for 80+80MHz mode of operation */ 
+                                                  * for 80+80MHz mode of operation */
         u_int16_t   vhtop_basic_mcs_set;         /* Basic MCS set */
 } __packed;
 
@@ -2166,7 +2166,7 @@ struct ieee80211_ie_sec_chan_offset {
 #define IEEE80211_VHT_TXPWR_IS_SUB_ELEMENT          1  /* It checks whether its  sub element */
 #define IEEE80211_VHT_TXPWR_MAX_POWER_COUNT         4 /* Max TX power elements valid */
 #define IEEE80211_VHT_TXPWR_NUM_POWER_SUPPORTED     3 /* Max TX power elements supported */
-#define IEEE80211_VHT_TXPWR_LCL_MAX_PWR_UNITS_SHFT  3 /* B3-B5 Local Max transmit power units */ 
+#define IEEE80211_VHT_TXPWR_LCL_MAX_PWR_UNITS_SHFT  3 /* B3-B5 Local Max transmit power units */
 
 struct ieee80211_ie_vht_txpwr_env {
         u_int8_t    elem_id;
@@ -2190,7 +2190,7 @@ struct ieee80211_ie_wide_bw_switch {
         u_int8_t    elem_len;
         u_int8_t    new_ch_width;       /* New channel width */
         u_int8_t    new_ch_freq_seg1;   /* Channel Center frequency 1 */
-        u_int8_t    new_ch_freq_seg2;   /* Channel Center frequency 2 */ 
+        u_int8_t    new_ch_freq_seg2;   /* Channel Center frequency 2 */
 } __packed;
 
 #define IEEE80211_RSSI_RX       0x00000001
@@ -2213,4 +2213,3 @@ struct ieee80211_ie_wide_bw_switch {
 #define IEEE80211_P2P_WILDCARD_SSID_LEN     (sizeof(IEEE80211_P2P_WILDCARD_SSID) - 1)
 
 #endif /* _COMMON_IEEE80211_H_ */
-

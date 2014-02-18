@@ -34,7 +34,7 @@
 #include "ol_txrx_stats.h"
 #include "wlan_defs.h" /* for wlan statst definitions */
 /*
-** Enumeration of PDEV Configuration parameter 
+** Enumeration of PDEV Configuration parameter
 */
 
 typedef enum _ol_ath_param_t {
@@ -85,7 +85,7 @@ typedef enum _ol_ath_param_t {
 } ol_ath_param_t;
 
 /*
-** Enumeration of PDEV Configuration parameter 
+** Enumeration of PDEV Configuration parameter
 */
 
 typedef enum _ol_hal_param_t {
@@ -94,7 +94,7 @@ typedef enum _ol_hal_param_t {
 
 
 /*
-** structure to hold all stats information 
+** structure to hold all stats information
 ** for offload device interface
 */
 struct ol_stats {

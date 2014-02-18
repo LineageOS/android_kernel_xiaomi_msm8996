@@ -76,4 +76,3 @@ extern int __adf_net_pseudo_attach(const char *mod_name); \
 extern int __adf_net_pseudo_detach(const char *mod_name);
 
 #endif
-

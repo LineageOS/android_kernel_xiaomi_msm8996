@@ -87,7 +87,7 @@
  */
 #define CFG_TGT_NUM_PEER_KEYS           2
 /*
- * total number of TX/RX data TIDs 
+ * total number of TX/RX data TIDs
  */
 #define CFG_TGT_NUM_TIDS                (2 * (CFG_TGT_NUM_PEERS + CFG_TGT_NUM_VDEV))
 /*

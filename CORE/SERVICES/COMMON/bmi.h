@@ -44,7 +44,7 @@ extern "C" {
 #include "osapi_linux.h"
 #include "bmi_msg.h"
 #include "ol_if_athvar.h"
-    
+
 A_STATUS bmi_download_firmware(struct ol_softc *scn);
 
 void

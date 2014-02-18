@@ -61,7 +61,7 @@
  * probably always be appropriate; it is probably not necessary to
  * determine this value dynamically.
  */
-#define CFG_TGT_AST_SKID_LIMIT          16 
+#define CFG_TGT_AST_SKID_LIMIT          16
 
 /*
  * total number of peers per device.
@@ -103,7 +103,7 @@
  */
 #define CFG_TGT_NUM_PEER_KEYS           3
 /*
- * total number of data TX and RX TIDs 
+ * total number of data TX and RX TIDs
  */
 #define CFG_TGT_NUM_TIDS       (2 * (CFG_TGT_NUM_PEERS + CFG_TGT_NUM_VDEV + 2))
 /*

@@ -38,8 +38,8 @@
 #endif
 #include <adf_os_types.h>
 
-/* 
- * timer data type 
+/*
+ * timer data type
  */
 typedef struct timer_list       __adf_os_timer_t;
 
@@ -49,7 +49,7 @@ typedef struct timer_list       __adf_os_timer_t;
 
 typedef void (*adf_dummy_timer_func_t)(unsigned long arg);
 
-/* 
+/*
  * Initialize a timer
  */
 static inline a_status_t
@@ -65,8 +65,8 @@ __adf_os_timer_init(adf_os_handle_t      hdl,
     return A_STATUS_OK;
 }
 
-/* 
- * start a timer 
+/*
+ * start a timer
  */
 static inline a_status_t
 __adf_os_timer_start(struct timer_list *timer, a_uint32_t delay)
@@ -77,8 +77,8 @@ __adf_os_timer_start(struct timer_list *timer, a_uint32_t delay)
     return A_STATUS_OK;
 }
 
-/* 
- * modify a timer 
+/*
+ * modify a timer
  */
 static inline a_status_t
 __adf_os_timer_mod(struct timer_list *timer, a_uint32_t delay)

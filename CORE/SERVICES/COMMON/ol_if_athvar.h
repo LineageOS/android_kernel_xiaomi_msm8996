@@ -69,7 +69,7 @@ typedef enum _ATH_BIN_FILE {
 } ATH_BIN_FILE;
 
 typedef enum _ol_target_status  {
-     OL_TRGET_STATUS_CONNECTED = 0,    /* target connected */ 
+     OL_TRGET_STATUS_CONNECTED = 0,    /* target connected */
      OL_TRGET_STATUS_RESET,        /* target got reset */
      OL_TRGET_STATUS_EJECT,        /* target got ejected */
      OL_TRGET_STATUS_SUSPEND   /*target got suspend*/
@@ -100,37 +100,37 @@ struct ol_ath_stats {
 
 struct ol_softc {
     /*
-     * handle for code that uses the osdep.h version of OS 
+     * handle for code that uses the osdep.h version of OS
      * abstraction primitives
      */
     osdev_t         sc_osdev;
 
-    /* 
-     * handle for code that uses adf version of OS 
-     * abstraction primitives 
+    /*
+     * handle for code that uses adf version of OS
+     * abstraction primitives
      */
     adf_os_device_t   adf_dev;
-    
+
     struct ol_version      version;
 
     /* Packet statistics */
     struct ol_ath_stats     pkt_stats;
-    
+
     u_int32_t target_type;  /* A_TARGET_TYPE_* */
     u_int32_t target_version;
     u_int8_t  crm_version_string[64];  /* store pHalStartRsp->startRspParams.wcnssCrmVersionString */
     u_int8_t  wlan_version_string[64]; /* store pHalStartRsp->startRspParams.wcnssWlanVersionString */
-    ol_target_status  target_status; /* target status */ 
+    ol_target_status  target_status; /* target status */
     bool             is_sim;   /* is this a simulator */
-    u_int8_t *cal_in_flash; /* calibration data is stored in flash */             
+    u_int8_t *cal_in_flash; /* calibration data is stored in flash */
     void *cal_mem; /* virtual address for the calibration data on the flash */
 
     WLAN_INIT_STATUS    wlan_init_status; /* status of target init */
 
     /* BMI info */
     void            *bmi_ol_priv; /* OS-dependent private info for BMI */
-    bool            bmiDone;    
-    bool            bmiUADone;    
+    bool            bmiDone;
+    bool            bmiUADone;
     u_int8_t        *pBMICmdBuf;
     dma_addr_t      BMICmd_pa;
     OS_DMA_MEM_CONTEXT(bmicmd_dmacontext)
@@ -165,7 +165,7 @@ struct ol_softc {
         u_int32_t           length;
         adf_os_size_t       offset;
         u_int8_t            currentSeq;
-        u_int8_t            expectedSeq; 
+        u_int8_t            expectedSeq;
     } utf_event_info;
 
     struct ol_wow_info      *scn_wowInfo;
@@ -176,7 +176,7 @@ struct ol_softc {
     bool                    enableuartprint;    /* enable uart/serial prints from target */
     bool                    enablefwlog;        /* enable fwlog */
     bool                    enablesinglebinary; /* Use single binary for FW */
-    HAL_REG_CAPABILITIES hal_reg_capabilities;    
+    HAL_REG_CAPABILITIES hal_reg_capabilities;
     struct ol_regdmn *ol_regdmn_handle;
     u_int8_t                bcn_mode;
     u_int8_t                arp_override;
@@ -188,7 +188,7 @@ struct ol_softc {
     int16_t               chan_nf;            /* noise_floor */
     u_int32_t               min_tx_power;
     u_int32_t               max_tx_power;
-    u_int32_t               txpowlimit2G;              
+    u_int32_t               txpowlimit2G;
     u_int32_t               txpowlimit5G;
     u_int32_t               txpower_scale;
     u_int32_t               chan_tx_pwr;
@@ -324,7 +324,7 @@ wmi_unified_node_set_param(wmi_unified_t wmi_handle, u_int8_t *peer_addr,u_int32
         u_int32_t param_val,u_int32_t vdev_id);
 
 
-#ifdef BIG_ENDIAN_HOST 
+#ifdef BIG_ENDIAN_HOST
      /* This API is used in copying in elements to WMI message,
         since WMI message uses multilpes of 4 bytes, This API
         converts length into multiples of 4 bytes, and performs copy
@@ -337,13 +337,13 @@ wmi_unified_node_set_param(wmi_unified_t wmi_handle, u_int8_t *peer_addr,u_int32
       for(j=0; j < roundup(len, sizeof(u_int32_t))/4; j++) { \
           *(dest+j) = adf_os_le32_to_cpu(*(src+j)); \
       } \
-   } while(0) 
+   } while(0)
 
-#else 
+#else
 
 #define OL_IF_MSG_COPY_CHAR_ARRAY(destp, srcp, len)  do { \
     OS_MEMCPY(destp, srcp, len); \
-   } while(0) 
+   } while(0)
 
 #endif
 

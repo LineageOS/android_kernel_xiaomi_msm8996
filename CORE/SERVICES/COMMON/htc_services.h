@@ -41,7 +41,7 @@
 
 typedef enum {
     RSVD_SERVICE_GROUP  = 0,
-    WMI_SERVICE_GROUP   = 1, 
+    WMI_SERVICE_GROUP   = 1,
     NMI_SERVICE_GROUP   = 2,
     HTT_SERVICE_GROUP   = 3,
     CFG_NV_SERVICE_GROUP = 4,

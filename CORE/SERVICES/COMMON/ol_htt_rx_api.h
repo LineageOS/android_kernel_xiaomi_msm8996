@@ -72,7 +72,7 @@
  * @param rx_ind_msg - the netbuf containing the rx indication message
  * @return
  *      1 - the message's rx flush command is valid and should be processed
- *          before processing new rx MPDUs, 
+ *          before processing new rx MPDUs,
  *      -OR-
  *      0 - the message's rx flush command is invalid and should be ignored
  */
@@ -334,7 +334,7 @@ htt_rx_mpdu_desc_tsf32(
  */
 char *
 htt_rx_mpdu_wifi_hdr_retrieve(
-    htt_pdev_handle pdev, 
+    htt_pdev_handle pdev,
     void *mpdu_desc);
 
 /**
@@ -590,7 +590,7 @@ extern a_bool_t
  * 0 - no buffer chaining
  * 1 - buffers are chained
  */
-extern int 
+extern int
 (*htt_rx_amsdu_pop)(
     htt_pdev_handle pdev,
     adf_nbuf_t rx_ind_msg,
@@ -736,16 +736,16 @@ htt_rx_msdu_buff_replenish(htt_pdev_handle pdev);
  *  a separate wbuf for delivery to the network stack. For delivery to the
  *  monitor mode interface they need to be restitched into an MPDU. This
  *  function does this. Also updates the RX status if the MPDU starts
- *  a new PPDU 
+ *  a new PPDU
  *
  * @param pdev - the HTT instance the rx data was received on
  * @param head_msdu - network buffer handle, which points to the first MSDU
  *      in the list. This is a NULL terminated list
  * @param rx_staus - pointer to the status associated with this MPDU.
- *      Updated only if there is a new PPDU and new status associated with it 
+ *      Updated only if there is a new PPDU and new status associated with it
  * @param clone_not_reqd - If set the MPDU linking destroys the passed in
- *      list, else operates on a cloned nbuf 
- * @return network buffer handle to the MPDU  
+ *      list, else operates on a cloned nbuf
+ * @return network buffer handle to the MPDU
  */
 adf_nbuf_t
 htt_rx_restitch_mpdu_from_msdus(
@@ -782,7 +782,7 @@ htt_rx_msdu_rx_desc_size_hl(
 
 /**
  * @brief populates vowext stats by processing RX desc.
- * @param msdu - network buffer handle 
+ * @param msdu - network buffer handle
  * @param vowstats - handle to vow ext stats.
  */
 void htt_rx_get_vowext_stats(adf_nbuf_t msdu,struct vow_extstats *vowstats);

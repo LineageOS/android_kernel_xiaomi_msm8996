@@ -43,20 +43,20 @@
 
 /**
  * XXX:error handling
- * 
+ *
  * @brief allocate a DMA buffer mapped to local bus Direction
  *        doesnt matter, since this API is called at init time.
  *
  * @param size
  * @param coherentSMP_CACHE_BYTES
  * @param dmap
- * 
+ *
  * @return void*
  */
 static inline void *
-__adf_os_dmamem_alloc(adf_os_device_t     osdev, 
-                      size_t       size, 
-                      a_bool_t            coherent, 
+__adf_os_dmamem_alloc(adf_os_device_t     osdev,
+                      size_t       size,
+                      a_bool_t            coherent,
                       __adf_os_dma_map_t   *dmap)
 {
     void               *vaddr;
@@ -70,7 +70,7 @@ __adf_os_dmamem_alloc(adf_os_device_t     osdev,
    lmap->coherent = coherent;
 
    if(coherent)
-       vaddr = dma_alloc_coherent(osdev->dev, size, &lmap->seg[0].daddr, 
+       vaddr = dma_alloc_coherent(osdev->dev, size, &lmap->seg[0].daddr,
                                   GFP_ATOMIC);
    else
        vaddr = dma_alloc_noncoherent(osdev->dev, size, &lmap->seg[0].daddr,
@@ -82,18 +82,18 @@ __adf_os_dmamem_alloc(adf_os_device_t     osdev,
    lmap->mapped = 1;
 
    (*dmap) = lmap;
-   
+
    return vaddr;
 }
 
-/* 
- * Free a previously mapped DMA buffer 
+/*
+ * Free a previously mapped DMA buffer
  * Direction doesnt matter, since this API is called at closing time.
  */
 static inline void
 __adf_os_dmamem_free(adf_os_device_t    osdev, __adf_os_size_t size,
                      a_bool_t coherent, void *vaddr, __adf_os_dma_map_t dmap)
-{ 
+{
     adf_os_assert(dmap->mapped);
 
     if(coherent)
@@ -107,8 +107,8 @@ __adf_os_dmamem_free(adf_os_device_t    osdev, __adf_os_size_t size,
 
 #define __adf_os_dmamem_map2addr(_dmap)    ((_dmap)->seg[0].daddr)
 
-static inline void 
-__adf_os_dmamem_cache_sync(__adf_os_device_t osdev, __adf_os_dma_map_t dmap, 
+static inline void
+__adf_os_dmamem_cache_sync(__adf_os_device_t osdev, __adf_os_dma_map_t dmap,
                            adf_os_cache_sync_t sync)
 {
     if(!dmap->coherent){

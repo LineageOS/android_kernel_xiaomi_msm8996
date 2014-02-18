@@ -45,7 +45,7 @@
 #define __adf_os_likely(_expr)     likely(_expr)
 
 /**
- * @brief memory barriers. 
+ * @brief memory barriers.
  */
 #define __adf_os_wmb()                wmb()
 #define __adf_os_rmb()                rmb()
@@ -83,10 +83,10 @@
 
 /**
  * @brief replace with the name of the function
- */ 
+ */
 #define __adf_os_function   __FUNCTION__
 
-static inline a_status_t 
+static inline a_status_t
 __adf_os_get_rand(adf_os_handle_t  hdl, uint8_t *ptr, uint32_t  len)
 {
     get_random_bytes(ptr, len);
@@ -96,8 +96,8 @@ __adf_os_get_rand(adf_os_handle_t  hdl, uint8_t *ptr, uint32_t  len)
 
 /**
  * @brief return square root
- */ 
-static __adf_os_inline a_uint32_t __adf_os_int_sqrt(a_uint32_t x)  
+ */
+static __adf_os_inline a_uint32_t __adf_os_int_sqrt(a_uint32_t x)
 {
 	return int_sqrt(x);
 }

@@ -66,7 +66,7 @@ typedef enum {
 
 
 /**
- * @brief Indicates what features are supported by the interface. 
+ * @brief Indicates what features are supported by the interface.
  */
 #define ADF_NET_LINK_SUPP_10baseT_Half      (1 << 0)
 #define ADF_NET_LINK_SUPP_10baseT_Full      (1 << 1)
@@ -87,7 +87,7 @@ typedef enum {
                                            ADF_NET_LINK_SUPP_1000baseT_Full)
 
 /**
- * @brief Indicates what features are advertised by the interface. 
+ * @brief Indicates what features are advertised by the interface.
  */
 #define ADF_NET_LINK_ADV_10baseT_Half     (1 << 0)
 #define ADF_NET_LINK_ADV_10baseT_Full     (1 << 1)
@@ -240,10 +240,10 @@ typedef struct {
 	a_uint32_t	grec_src[1];
 } adf_net_igmpv3_grec_t;
 
-/** 
+/**
  * @brief IGMP version 3 specific datatypes
  */
-typedef struct { 
+typedef struct {
 	a_uint8_t               igmpv3_type;
 	a_uint8_t               igmpv3_resv1;
 	a_uint16_t              igmpv3_csum;
@@ -274,7 +274,7 @@ typedef struct adf_net_vlanhdr{
 typedef struct adf_net_vid{
 #if defined (ADF_LITTLE_ENDIAN_MACHINE)
     a_uint16_t      val:12;
-    a_uint8_t       res:4;  
+    a_uint8_t       res:4;
 #elif defined (ADF_BIG_ENDIAN_MACHINE)
     a_uint8_t      res:4;
     a_uint16_t      val:12;
@@ -398,7 +398,7 @@ typedef union {
 }adf_net_cmd_data_t;
 
 /**
- * @brief For polled devices, adf_drv responds with one of the following status in 
+ * @brief For polled devices, adf_drv responds with one of the following status in
  * its poll function.
  */
 typedef enum {
@@ -475,7 +475,7 @@ typedef enum adf_net_wireless_events{
     ADF_IEEE80211_SCAN = __ADF_IEEE80211_SCAN,
     ADF_IEEE80211_REPLAY = __ADF_IEEE80211_REPLAY,
     ADF_IEEE80211_MICHAEL = __ADF_IEEE80211_MICHAEL,
-    ADF_IEEE80211_REJOIN = __ADF_IEEE80211_REJOIN, 
+    ADF_IEEE80211_REJOIN = __ADF_IEEE80211_REJOIN,
     ADF_CUSTOM_PUSH_BUTTON = __ADF_CUSTOM_PUSH_BUTTON
 }adf_net_wireless_event_t;
 
@@ -562,7 +562,7 @@ typedef struct {
 					reserved:29;
 #else
 #error  "Please fix"
-#endif	
+#endif
 		} u_nd_advt;
 
 		struct {
@@ -598,12 +598,12 @@ typedef struct {
 #define adf_csum_ipv6(s, d, l, p, sum)			\
 	csum_ipv6_magic((struct in6_addr *)s,		\
 			(struct in6_addr *)d, l, p, sum)
-/** 
- * @brief 
- * 
+/**
+ * @brief
+ *
  * @param addr1
  * @param addr2
- * 
+ *
  * @return Compare two ethernet addresses, returns A_TRUE if equal
  *
  */

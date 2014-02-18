@@ -100,9 +100,9 @@ enum {
 #define PHFLAGS_PROTO_SFT       12
 #define PHFLAGS_MACVERSION_MASK 0x0fff0000
 #define PHFLAGS_MACVERSION_SFT  16
-/* 
- * XXX: This need not be part of packetlog header flags - Should be 
- * moved to plinfo 
+/*
+ * XXX: This need not be part of packetlog header flags - Should be
+ * moved to plinfo
  */
 
 #define PHFLAGS_INTERRUPT_CONTEXT 0x80000000
@@ -159,7 +159,7 @@ enum {
 #define PKTLOG_TYPE_TEXT     6*/
 
 #define PKTLOG_MAX_TXCTL_WORDS 57 /* +2 words for bitmap */
-#define PKTLOG_MAX_TXSTATUS_WORDS 32 
+#define PKTLOG_MAX_TXSTATUS_WORDS 32
 #define PKTLOG_MAX_PROTO_WORDS  16
 #define PKTLOG_MAX_RXDESC_WORDS 62
 
@@ -185,9 +185,9 @@ typedef struct {
      *  Reduces computation in the driver code
      */
     A_UINT16 id[MAX_PKT_INFO_MSDU_ID];
-}__ATTRIB_PACK msdu_id_info_t; 
+}__ATTRIB_PACK msdu_id_info_t;
 #define MSDU_ID_INFO_NUM_MSDU_OFFSET 0 /* char offset */
-#define MSDU_ID_INFO_BOUND_BM_OFFSET 4 
+#define MSDU_ID_INFO_BOUND_BM_OFFSET 4
 #define MSDU_ID_INFO_ID_OFFSET  \
     ((MAX_PKT_INFO_MSDU_ID >> 3) + 4)
 
@@ -221,12 +221,12 @@ struct ath_pktlog_msdu_info {
             A_UINT32 num_msdu;
             A_UINT8 bound_bmap[MAX_PKT_INFO_MSDU_ID>>3];
         } msdu_id_info;
-        /* 
+        /*
          * array of num_msdu
          * Static implementation will consume unwanted memory
          * Need to split the pktlog_get_buf to get the buffer pointer only
          */
-        uint16_t msdu_len[MAX_PKT_INFO_MSDU_ID]; 
+        uint16_t msdu_len[MAX_PKT_INFO_MSDU_ID];
     } priv;
     size_t priv_size;
 
@@ -310,8 +310,8 @@ struct ath_pktlog_rcupdate {
     u_int8_t aggrLimit;/* rate control and aggregation variables ( part of ATH_SUPPORT_VOWEXT ) */
     u_int8_t lastRate; /* rate control and aggregation variables ( part of ATH_SUPPORT_VOWEXT ) */
     int32_t misc[0];         /* Can be used for HT specific or other misc info */
-    /* TBD: Add any new parameters required */ 
-} __ATTRIB_PACK; 
+    /* TBD: Add any new parameters required */
+} __ATTRIB_PACK;
 
 #ifdef WIN32
 #pragma pack(pop, pktlog_fmt)

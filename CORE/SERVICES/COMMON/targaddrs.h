@@ -356,7 +356,7 @@ PREPACK64 struct host_interest_s {
 #define HI_OPTION_DISABLE_CDC_MAX_PERF_WAR  0x20
 #define CDC_MAX_PERF_WAR_ENABLED()    \
         (!(HOST_INTEREST->hi_option_flag2 & HI_OPTION_DISABLE_CDC_MAX_PERF_WAR))
-            
+
 /* hi_reset_flag */
 #define HI_RESET_FLAG_PRESERVE_APP_START         0x01  /* preserve App Start address */
 #define HI_RESET_FLAG_PRESERVE_HOST_INTEREST     0x02  /* preserve host interest */
@@ -493,15 +493,15 @@ PREPACK64 struct host_interest_s {
  * [0:3]      number of bank assigned to be IRAM
  * [4:15]     reserved
  * [16:31]    magic number
- * 
+ *
  * Note:
  * 1. target firmware would check magic number and if it's a match, firmware
  *    would consider the bits[0:15] are valid and base on that to calculate
  *    the end of DRAM. Early allocation would be located at that area and
  *    may be reclaimed when necesary
  * 2. if no magic number is found, early allocation would happen at "_end"
- *    symbol of ROM which is located before the app-data and might NOT be 
- *    re-claimable. If this is adopted, link script should keep this in 
+ *    symbol of ROM which is located before the app-data and might NOT be
+ *    re-claimable. If this is adopted, link script should keep this in
  *    mind to avoid data corruption.
  */
 #define HI_EARLY_ALLOC_MAGIC                   0x6d8a

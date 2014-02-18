@@ -36,7 +36,7 @@
 #define ATH_DEBUG 1 /* default: include debug code */
 #endif
 
-#if ATH_DEBUG  
+#if ATH_DEBUG
 #define DEBUG_VAR_DECL_INIT(_var,_type,_value) _type (_var)=_value
 #else
 #define DEBUG_VAR_DECL_INIT(_var,_type,_value)

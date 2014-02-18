@@ -214,9 +214,9 @@ __adf_nbuf_t    __adf_nbuf_alloc(__adf_os_device_t osdev, size_t size, int reser
 void            __adf_nbuf_free (struct sk_buff *skb);
 void            __adf_nbuf_ref (struct sk_buff *skb);
 int             __adf_nbuf_shared (struct sk_buff *skb);
-a_status_t      __adf_nbuf_dmamap_create(__adf_os_device_t osdev, 
+a_status_t      __adf_nbuf_dmamap_create(__adf_os_device_t osdev,
                                          __adf_os_dma_map_t *dmap);
-void            __adf_nbuf_dmamap_destroy(__adf_os_device_t osdev, 
+void            __adf_nbuf_dmamap_destroy(__adf_os_device_t osdev,
                                           __adf_os_dma_map_t dmap);
 a_status_t      __adf_nbuf_map(__adf_os_device_t osdev,
                     struct sk_buff *skb, adf_os_dma_dir_t dir);
@@ -251,14 +251,14 @@ __adf_os_to_status(signed int error)
  * @brief This keeps the skb shell intact expands the headroom
  *        in the data region. In case of failure the skb is
  *        released.
- * 
+ *
  * @param skb
  * @param headroom
- * 
+ *
  * @return skb or NULL
  */
 static inline struct sk_buff *
-__adf_nbuf_realloc_headroom(struct sk_buff *skb, uint32_t headroom) 
+__adf_nbuf_realloc_headroom(struct sk_buff *skb, uint32_t headroom)
 {
     if(pskb_expand_head(skb, headroom, 0, GFP_ATOMIC)){
         dev_kfree_skb_any(skb);
@@ -270,10 +270,10 @@ __adf_nbuf_realloc_headroom(struct sk_buff *skb, uint32_t headroom)
  * @brief This keeps the skb shell intact exapnds the tailroom
  *        in data region. In case of failure it releases the
  *        skb.
- * 
+ *
  * @param skb
  * @param tailroom
- * 
+ *
  * @return skb or NULL
  */
 static inline struct sk_buff *
@@ -290,9 +290,9 @@ __adf_nbuf_realloc_tailroom(struct sk_buff *skb, uint32_t tailroom)
 /**
  * @brief return the amount of valid data in the skb, If there
  *        are frags then it returns total length.
- * 
+ *
  * @param skb
- * 
+ *
  * @return size_t
  */
 static inline size_t
@@ -302,7 +302,7 @@ __adf_nbuf_len(struct sk_buff *skb)
 
     i = NBUF_NUM_EXTRA_FRAGS(skb);
     while (i-- > 0) {
-        extra_frag_len += NBUF_EXTRA_FRAG_LEN(skb, i); 
+        extra_frag_len += NBUF_EXTRA_FRAG_LEN(skb, i);
     }
     return (extra_frag_len + skb->len);
 }
@@ -334,7 +334,7 @@ __adf_nbuf_cat(struct sk_buff *dst, struct sk_buff *src)
         if (error) {
             return __adf_os_to_status(error);
         }
-    }  
+    }
     memcpy(skb_tail_pointer(dst), src->data, src->len);
 
     skb_put(dst, src->len);
@@ -414,7 +414,7 @@ __adf_nbuf_put_tail(struct sk_buff *skb, size_t size)
            dev_kfree_skb_any(skb);
            return NULL;
        }
-   }     
+   }
    return skb_put(skb, size);
 }
 
@@ -513,7 +513,7 @@ __adf_nbuf_get_priv(struct sk_buff *skb)
  * @brief This will return the header's addr & m_len
  */
 static inline void
-__adf_nbuf_peek_header(struct sk_buff *skb, uint8_t   **addr, 
+__adf_nbuf_peek_header(struct sk_buff *skb, uint8_t   **addr,
                        uint32_t    *len)
 {
     *addr = skb->data;
@@ -603,7 +603,7 @@ __adf_nbuf_peek_header(struct sk_buff *skb, uint8_t   **addr,
 
 /**
  * @brief initiallize the queue head
- * 
+ *
  * @param qhead
  */
 static inline a_status_t
@@ -618,12 +618,12 @@ __adf_nbuf_queue_init(__adf_nbuf_queue_t *qhead)
  * @brief add an skb in the tail of the queue. This is a
  *        lockless version, driver must acquire locks if it
  *        needs to synchronize
- * 
+ *
  * @param qhead
  * @param skb
  */
 static inline void
-__adf_nbuf_queue_add(__adf_nbuf_queue_t *qhead, 
+__adf_nbuf_queue_add(__adf_nbuf_queue_t *qhead,
                      struct sk_buff *skb)
 {
     skb->next = NULL;/*Nullify the next ptr*/
@@ -632,7 +632,7 @@ __adf_nbuf_queue_add(__adf_nbuf_queue_t *qhead,
         qhead->head = skb;
     else
         qhead->tail->next = skb;
-    
+
     qhead->tail = skb;
     qhead->qlen++;
 }
@@ -661,9 +661,9 @@ __adf_nbuf_queue_insert_head(__adf_nbuf_queue_t *qhead,
 /**
  * @brief remove a skb from the head of the queue, this is a
  *        lockless version. Driver should take care of the locks
- * 
+ *
  * @param qhead
- * 
+ *
  * @return skb or NULL
  */
 static inline struct sk_buff *
@@ -686,9 +686,9 @@ __adf_nbuf_queue_remove(__adf_nbuf_queue_t * qhead)
 }
 /**
  * @brief return the queue length
- * 
+ *
  * @param qhead
- * 
+ *
  * @return uint32_t
  */
 static inline uint32_t
@@ -698,12 +698,12 @@ __adf_nbuf_queue_len(__adf_nbuf_queue_t * qhead)
 }
 /**
  * @brief returns the first skb in the queue
- * 
+ *
  * @param qhead
- * 
+ *
  * @return (NULL if the Q is empty)
  */
-static inline struct sk_buff *   
+static inline struct sk_buff *
 __adf_nbuf_queue_first(__adf_nbuf_queue_t *qhead)
 {
     return qhead->head;
@@ -711,21 +711,21 @@ __adf_nbuf_queue_first(__adf_nbuf_queue_t *qhead)
 /**
  * @brief return the next skb from packet chain, remember the
  *        skb is still in the queue
- * 
+ *
  * @param buf (packet)
- * 
+ *
  * @return (NULL if no packets are there)
  */
-static inline struct sk_buff *   
+static inline struct sk_buff *
 __adf_nbuf_queue_next(struct sk_buff *skb)
 {
     return skb->next;
 }
 /**
  * @brief check if the queue is empty or not
- * 
+ *
  * @param qhead
- * 
+ *
  * @return a_bool_t
  */
 static inline a_bool_t
@@ -745,10 +745,10 @@ __adf_nbuf_is_queue_empty(__adf_nbuf_queue_t *qhead)
  * prototypes. Implemented in adf_nbuf_pvt.c
  */
 adf_nbuf_tx_cksum_t __adf_nbuf_get_tx_cksum(struct sk_buff *skb);
-a_status_t      __adf_nbuf_set_rx_cksum(struct sk_buff *skb, 
+a_status_t      __adf_nbuf_set_rx_cksum(struct sk_buff *skb,
                                         adf_nbuf_rx_cksum_t *cksum);
-a_status_t      __adf_nbuf_get_vlan_info(adf_net_handle_t hdl, 
-                                         struct sk_buff *skb, 
+a_status_t      __adf_nbuf_get_vlan_info(adf_net_handle_t hdl,
+                                         struct sk_buff *skb,
                                          adf_net_vlanhdr_t *vlan);
 a_uint8_t __adf_nbuf_get_tid(struct sk_buff *skb);
 void __adf_nbuf_set_tid(struct sk_buff *skb, a_uint8_t tid);
@@ -771,11 +771,11 @@ __adf_nbuf_pool_init(adf_net_handle_t anet)
 /**
  * @brief Expand both tailroom & headroom. In case of failure
  *        release the skb.
- * 
+ *
  * @param skb
  * @param headroom
  * @param tailroom
- * 
+ *
  * @return skb or NULL
  */
 static inline struct sk_buff *
@@ -796,25 +796,25 @@ __adf_nbuf_expand(struct sk_buff *skb, uint32_t headroom, uint32_t tailroom)
  * @param dst_nbuf (address of the cloned nbuf)
  *
  * @return status
- * 
+ *
  * @note if GFP_ATOMIC is overkill then we can check whether its
  *       called from interrupt context and then do it or else in
  *       normal case use GFP_KERNEL
  * @example     use "in_irq() || irqs_disabled()"
- * 
- * 
+ *
+ *
  */
 static inline struct sk_buff *
 __adf_nbuf_clone(struct sk_buff *skb)
-{   
+{
     return skb_clone(skb, GFP_ATOMIC);
 }
 /**
  * @brief returns a private copy of the skb, the skb returned is
  *        completely modifiable
- * 
+ *
  * @param skb
- * 
+ *
  * @return skb or NULL
  */
 static inline struct sk_buff *
@@ -827,7 +827,7 @@ __adf_nbuf_copy(struct sk_buff *skb)
 
 /***********************XXX: misc api's************************/
 static inline a_bool_t
-__adf_nbuf_tx_cksum_info(struct sk_buff *skb, uint8_t **hdr_off, 
+__adf_nbuf_tx_cksum_info(struct sk_buff *skb, uint8_t **hdr_off,
                          uint8_t **where)
 {
 //     if (skb->ip_summed == CHECKSUM_NONE)
@@ -861,7 +861,7 @@ __adf_nbuf_get_tso_info(struct sk_buff *skb, adf_nbuf_tso_t *tso)
     }
 
     tso->mss      = skb_shinfo(skb)->tso_size;
-*/  
+*/
 //     tso->hdr_off  = (uint8_t)(skb->h.raw - skb->data);
 //
 //     if (skb->protocol == ntohs(ETH_P_IP))
@@ -874,9 +874,9 @@ __adf_nbuf_get_tso_info(struct sk_buff *skb, adf_nbuf_tso_t *tso)
 
 /**
  * @brief return the pointer the skb's buffer
- * 
+ *
  * @param skb
- * 
+ *
  * @return uint8_t *
  */
 static inline uint8_t *
@@ -887,9 +887,9 @@ __adf_nbuf_head(struct sk_buff *skb)
 
 /**
  * @brief return the pointer to data header in the skb
- * 
+ *
  * @param skb
- * 
+ *
  * @return uint8_t *
  */
 static inline uint8_t *
@@ -900,9 +900,9 @@ __adf_nbuf_data(struct sk_buff *skb)
 
 /**
  * @brief return the priority value of the skb
- * 
+ *
  * @param skb
- * 
+ *
  * @return uint32_t
  */
 static inline uint32_t
@@ -913,9 +913,9 @@ __adf_nbuf_get_priority(struct sk_buff *skb)
 
 /**
  * @brief sets the priority value of the skb
- * 
+ *
  * @param skb, priority
- * 
+ *
  * @return void
  */
 static inline void
@@ -926,9 +926,9 @@ __adf_nbuf_set_priority(struct sk_buff *skb, uint32_t p)
 
 /**
  * @brief sets the next skb pointer of the current skb
- * 
+ *
  * @param skb and next_skb
- * 
+ *
  * @return void
  */
 static inline void
@@ -939,9 +939,9 @@ __adf_nbuf_set_next(struct sk_buff *skb, struct sk_buff *skb_next)
 
 /**
  * @brief return the next skb pointer of the current skb
- * 
+ *
  * @param skb - the current skb
- * 
+ *
  * @return the next skb pointed to by the current skb
  */
 static inline struct sk_buff *
@@ -953,9 +953,9 @@ __adf_nbuf_next(struct sk_buff *skb)
 /**
  * @brief sets the next skb pointer of the current skb. This fn is used to
  * link up extensions to the head skb. Does not handle linking to the head
- * 
+ *
  * @param skb and next_skb
- * 
+ *
  * @return void
  */
 static inline void
@@ -966,9 +966,9 @@ __adf_nbuf_set_next_ext(struct sk_buff *skb, struct sk_buff *skb_next)
 
 /**
  * @brief return the next skb pointer of the current skb
- * 
+ *
  * @param skb - the current skb
- * 
+ *
  * @return the next skb pointed to by the current skb
  */
 static inline struct sk_buff *
@@ -988,13 +988,13 @@ __adf_nbuf_next_ext(struct sk_buff *skb)
  */
 static inline void
 __adf_nbuf_append_ext_list(
-        struct sk_buff *skb_head, 
-        struct sk_buff * ext_list, 
+        struct sk_buff *skb_head,
+        struct sk_buff * ext_list,
         size_t ext_len)
 {
         skb_shinfo(skb_head)->frag_list = ext_list;
         skb_head->data_len = ext_len;
-        skb_head->len += skb_head->data_len;      
+        skb_head->len += skb_head->data_len;
 }
 
 static inline void
@@ -1009,9 +1009,9 @@ __adf_nbuf_tx_free(struct sk_buff *bufs, int tx_err)
 
 /**
  * @brief return the checksum value of the skb
- * 
+ *
  * @param skb
- * 
+ *
  * @return uint32_t
  */
 static inline uint32_t
@@ -1022,9 +1022,9 @@ __adf_nbuf_get_age(struct sk_buff *skb)
 
 /**
  * @brief sets the checksum value of the skb
- * 
+ *
  * @param skb, value
- * 
+ *
  * @return void
  */
 static inline void
@@ -1035,9 +1035,9 @@ __adf_nbuf_set_age(struct sk_buff *skb, uint32_t v)
 
 /**
  * @brief adjusts the checksum/age value of the skb
- * 
+ *
  * @param skb, adj
- * 
+ *
  * @return void
  */
 static inline void
@@ -1048,9 +1048,9 @@ __adf_nbuf_adj_age(struct sk_buff *skb, uint32_t adj)
 
 /**
  * @brief return the length of the copy bits for skb
- * 
+ *
  * @param skb, offset, len, to
- * 
+ *
  * @return int32_t
  */
 static inline int32_t
@@ -1061,9 +1061,9 @@ __adf_nbuf_copy_bits(struct sk_buff *skb, int32_t offset, int32_t len, void *to)
 
 /**
  * @brief sets the length of the skb and adjust the tail
- * 
+ *
  * @param skb, length
- * 
+ *
  * @return void
  */
 static inline void
@@ -1075,22 +1075,22 @@ __adf_nbuf_set_pktlen(struct sk_buff *skb, uint32_t len)
     else {
         if (skb_tailroom(skb) < len - skb->len) {
             if(unlikely(pskb_expand_head(
-                            skb, 0, len - skb->len -skb_tailroom(skb), GFP_ATOMIC))) 
+                            skb, 0, len - skb->len -skb_tailroom(skb), GFP_ATOMIC)))
             {
                 dev_kfree_skb_any(skb);
                 //KASSERT(0, ("No enough tailroom for skb, failed to alloc"));
                 adf_os_assert(0);
             }
-        }     
+        }
         skb_put(skb, (len - skb->len));
     }
 }
 
 /**
  * @brief sets the protocol value of the skb
- * 
+ *
  * @param skb, protocol
- * 
+ *
  * @return void
  */
 static inline void
@@ -1113,10 +1113,10 @@ __adf_nbuf_is_nonlinear(struct sk_buff *skb)
 }
 
 /**
- * @brief zeros out cb 
- * 
+ * @brief zeros out cb
+ *
  * @param nbuf
- * 
+ *
  * @return void
  */
 static inline void
@@ -1127,12 +1127,12 @@ __adf_nbuf_reset_ctxt(__adf_nbuf_t nbuf)
 
 /**
  * @brief This function peeks data into the buffer at given offset
- * 
+ *
  * @param[in] buf   buffer
  * @param[out] data  peeked output buffer
  * @param[in] off   offset
  * @param[in] len   length of buffer requested beyond offset
- * 
+ *
  * @return status of operation
  */
 static inline a_status_t

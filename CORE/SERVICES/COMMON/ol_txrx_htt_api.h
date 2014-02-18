@@ -544,7 +544,7 @@ ol_rx_pn_ind_handler(
  * @param stats_info_list - stats confirmation message contents, containing
  *      a list of the stats requested from the target
  */
-void 
+void
 ol_txrx_fw_stats_handler(
     ol_txrx_pdev_handle pdev,
     u_int64_t cookie,
@@ -552,8 +552,8 @@ ol_txrx_fw_stats_handler(
 
 /**
  * @brief Process a tx inspect message sent by the target.
- * @details: 
- *  TODO: update 
+ * @details:
+ *  TODO: update
  *  This tx inspect message indicates via the descriptor ID
  *  which tx frames are to be inspected by host. The host
  *  re-injects the packet back to the host for a number of

@@ -185,7 +185,7 @@ struct peer_ratectrl_params_t {
 /**
 * @brief Parameter type to be input to wdi_in_peer_update
 * @details
-*  This struct is union,to be used to specify various informations to update 
+*  This struct is union,to be used to specify various informations to update
 *   txrx peer object.
 */
 typedef union  {
@@ -212,8 +212,8 @@ typedef enum {
  * @brief Update the data peer object as some informaiton changed in node.
  * @details
  *  Only a single prarameter can be changed for each call to this func.
- *  For the host-based implementation of rate-control (select  == 
- *  ol_txrx_peer_update_rate_ctrl), it updates the peer/node-related parameters 
+ *  For the host-based implementation of rate-control (select  ==
+ *  ol_txrx_peer_update_rate_ctrl), it updates the peer/node-related parameters
  *  within rate-control context of the peer at association.
  *
  * @param peer - pointer to the node's object
@@ -354,7 +354,7 @@ wdi_in_vdev_unpause(ol_txrx_vdev_handle data_vdev);
  *  suspend all WLAN traffic, e.g. to allow another device such as bluetooth
  *  to temporarily have exclusive access to shared RF chain resources.
  *  This function suspends tx traffic within the specified physical device.
- * 
+ *
  * @param data_pdev - the physical device being paused
  */
 #if defined(CONFIG_HL_SUPPORT)
@@ -541,8 +541,8 @@ wdi_in_mgmt_tx_cb_set(
  * @param vdev - virtual device transmitting the frame
  * @param tx_mgmt_frm - management frame to transmit
  * @param type - the type of managment frame (determines what callback to use)
- * @param use_6mbps - specify whether management frame to transmit should use 6 Mbps 
- *                    rather than 1 Mbps min rate(for 5GHz band or P2P) 
+ * @param use_6mbps - specify whether management frame to transmit should use 6 Mbps
+ *                    rather than 1 Mbps min rate(for 5GHz band or P2P)
  * @return
  *      0 -> the frame is accepted for transmission, -OR-
  *      1 -> the frame was not accepted
@@ -566,7 +566,7 @@ wdi_in_mgmt_send(
  *  object that only receives monitor mode packets OR a point to a a vdev
  *  object that also receives non-monitor traffic. In the second case the
  *  OS stack is responsible for delivering the two streams using approprate
- *  OS APIs 
+ *  OS APIs
  *
  * @param pdev - the data physical device object
  * @param vdev - the data virtual device object to deliver monitor mode
@@ -581,10 +581,10 @@ wdi_in_set_monitor_mode_vap(
     ol_txrx_vdev_handle vdev);
 
 /**
- * @brief Setup the current operating channel of the device 
+ * @brief Setup the current operating channel of the device
  * @details
  *  Mainly used when populating monitor mode status that requires the
- *  current operating channel 
+ *  current operating channel
  *
  * @param pdev - the data physical device object
  * @param chan_mhz - the channel frequency (mhz)
@@ -624,8 +624,8 @@ wdi_in_discard_tx_pending(
 /**
  * @brief set the safemode of the device
  * @details
- *  This flag is used to bypass the encrypt and decrypt processes when send and 
- *  receive packets. It works like open AUTH mode, HW will treate all packets 
+ *  This flag is used to bypass the encrypt and decrypt processes when send and
+ *  receive packets. It works like open AUTH mode, HW will treate all packets
  *  as non-encrypt frames because no key installed. For rx fragmented frames,
  *  it bypasses all the rx defragmentaion.
  *
@@ -633,7 +633,7 @@ wdi_in_discard_tx_pending(
  * @param val - the safemode state
  * @return - void
  */
-void 
+void
 wdi_in_set_safemode(
     ol_txrx_vdev_handle vdev,
     u_int32_t val);
@@ -651,7 +651,7 @@ wdi_in_set_safemode(
  */
 void
 wdi_in_set_privacy_filters(
-    ol_txrx_vdev_handle vdev, 
+    ol_txrx_vdev_handle vdev,
 	void *filter,
     u_int32_t num);
 
@@ -660,7 +660,7 @@ wdi_in_set_privacy_filters(
  * @details
  *  Rx related. When set this flag, all the unencrypted frames
  *  received over a secure connection will be discarded
- * 
+ *
  * @param vdev - the data virtual device object
  * @param val - flag
  * @return - void
@@ -901,7 +901,7 @@ adf_nbuf_t wdi_in_osif_tso_segment(
     int max_seg_payload_bytes,
     adf_nbuf_t jumbo_tcp_frame);
 
-#define WDI_EVENT_BASE 0x100 	 /* Event starting number */
+#define WDI_EVENT_BASE 0x100	 /* Event starting number */
 
 enum WDI_EVENT {
     WDI_EVENT_TX_STATUS = WDI_EVENT_BASE,
@@ -979,7 +979,7 @@ typedef struct wdi_event_pdev_t *wdi_event_pdev_handle;
  */
 A_STATUS wdi_in_event_sub(
     struct ol_txrx_pdev_t *txrx_pdev,
-    wdi_event_subscribe *event_cb_sub, 
+    wdi_event_subscribe *event_cb_sub,
     enum WDI_EVENT event);
 
 /**
@@ -997,7 +997,7 @@ A_STATUS wdi_in_event_sub(
  */
 A_STATUS wdi_in_event_unsub(
     struct ol_txrx_pdev_t *txrx_pdev,
-    wdi_event_subscribe *event_cb_sub, 
+    wdi_event_subscribe *event_cb_sub,
     enum WDI_EVENT event);
 
 #include <adf_os_lock.h>   /* adf_os_mutex_t */
@@ -1063,8 +1063,8 @@ int wdi_in_fw_stats_get(
     ol_txrx_vdev_handle vdev,
     struct ol_txrx_stats_req *req);
 
-int wdi_in_aggr_cfg(ol_txrx_vdev_handle vdev, 
-                     int max_subfrms_ampdu, 
+int wdi_in_aggr_cfg(ol_txrx_vdev_handle vdev,
+                     int max_subfrms_ampdu,
                      int max_subfrms_amsdu);
 
 enum {
