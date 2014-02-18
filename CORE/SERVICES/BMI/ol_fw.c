@@ -287,7 +287,7 @@ exit:
 }
 
 static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
-                    	 u_int32_t address, bool compressed)
+			 u_int32_t address, bool compressed)
 {
 	int status = EOK;
 	const char *filename = NULL;
@@ -821,7 +821,7 @@ ol_configure_target(struct ol_softc *scn)
 
 	/* If host is running on a BE CPU, set the host interest area */
 	{
-#ifdef BIG_ENDIAN_HOST 
+#ifdef BIG_ENDIAN_HOST
 		param = 1;
 #else
 		param = 0;
@@ -1141,4 +1141,3 @@ u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)
 	}
 	return max_no_of_peers;
 }
-
