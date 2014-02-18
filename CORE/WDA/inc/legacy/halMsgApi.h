@@ -1195,6 +1195,8 @@ typedef struct sSet_MIMOPS
     eHalStatus status;
     tANI_U8     fsendRsp;
 
+    tSirMacAddr peerMac;
+    tANI_U8     sessionId;
 } tSetMIMOPS, * tpSetMIMOPS;
 
 

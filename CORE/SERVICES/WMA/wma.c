@@ -14474,6 +14474,35 @@ static void wma_process_set_p2pgo_noa_Req(tp_wma_handle wma,
 	WMA_LOGD("%s: Exit", __func__);
 }
 
+/* function   : wma_process_set_mimops_req
+ * Descriptin : Set the received MiMo PS state to firmware.
+ * Args       :
+                wma_handle  : Pointer to WMA handle
+ *              tSetMIMOPS  : Pointer to MiMo PS struct
+ * Returns    :
+ */
+static void wma_process_set_mimops_req(tp_wma_handle wma_handle,
+					tSetMIMOPS *mimops)
+{
+	/* Translate to what firmware understands */
+	if ( mimops->htMIMOPSState == eSIR_HT_MIMO_PS_DYNAMIC)
+		mimops->htMIMOPSState = WMI_PEER_MIMO_PS_DYNAMIC;
+	else if ( mimops->htMIMOPSState == eSIR_HT_MIMO_PS_STATIC)
+		mimops->htMIMOPSState = WMI_PEER_MIMO_PS_STATIC;
+	else if ( mimops->htMIMOPSState == eSIR_HT_MIMO_PS_NO_LIMIT)
+		mimops->htMIMOPSState = WMI_PEER_MIMO_PS_NONE;
+
+	WMA_LOGD("%s: htMIMOPSState = %d, sessionId = %d \
+		peerMac <%02x:%02x:%02x:%02x:%02x:%02x>", __func__,
+		mimops->htMIMOPSState, mimops->sessionId, mimops->peerMac[0],
+		mimops->peerMac[1], mimops->peerMac[2], mimops->peerMac[3],
+		mimops->peerMac[4], mimops->peerMac[5]);
+
+	wma_set_peer_param(wma_handle, mimops->peerMac,
+			WMI_PEER_MIMO_PS_STATE, mimops->htMIMOPSState,
+			mimops->sessionId);
+}
+
 /*
  * function   : wma_mc_process_msg
  * Descriptin :
@@ -14853,6 +14882,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_process_set_p2pgo_noa_Req(wma_handle,
 						(tP2pPsParams *)msg->bodyptr);
                         vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_MIMOPS_REQ:
+			wma_process_set_mimops_req(wma_handle, (tSetMIMOPS *) msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 
 		default:
