@@ -54,7 +54,7 @@ tSirRetStatus limTspecAdd(
     tSirMacTspecIE   *pTspec,
     tANI_U32               interval,
     tpLimTspecInfo   *ppInfo);
-    
+
 
 // admit control interface
 extern tSirRetStatus

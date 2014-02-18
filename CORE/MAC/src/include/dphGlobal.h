@@ -362,13 +362,13 @@ typedef struct sDphHashNode
 
     tANI_U8   burstEnableForce:1; // allow bursting regardless of qosMode
 
-    tANI_U8   staAuthenticated:1;    
+    tANI_U8   staAuthenticated:1;
 
     /// Whether the peer is ANI or not
 
     tANI_U8  aniPeer:1;
 
-    tANI_U8   titanPeer:1;                // flag to indicate if its a titan peer    
+    tANI_U8   titanPeer:1;                // flag to indicate if its a titan peer
 
     tANI_U8  fAniCount:1;
 
@@ -427,7 +427,7 @@ typedef struct sDphHashNode
 
    //Taurus capabilities
 
-   tANI_U16 baPolicyFlag;                 //BA Policy for each TID. 
+   tANI_U16 baPolicyFlag;                 //BA Policy for each TID.
 
 
     /*
@@ -540,7 +540,7 @@ typedef struct sDphHashNode
 
     tANI_U8    staAddr[6];
 
-    /*The DPU signatures will be sent eventually to TL to help it determine the 
+    /*The DPU signatures will be sent eventually to TL to help it determine the
 
       association to which a packet belongs to*/
 
@@ -613,11 +613,11 @@ typedef struct sDphHashNode
 
     tANI_U8 timingMeasCap;
 
-    /* When a station with already an existing dph entry tries to 
+    /* When a station with already an existing dph entry tries to
 
-     * associate again, the old dph entry will be zeroed out except 
+     * associate again, the old dph entry will be zeroed out except
 
-     * for the next pointer. The next pointer must be defined at the  
+     * for the next pointer. The next pointer must be defined at the
 
      * end of the structure.
 
@@ -658,7 +658,3 @@ typedef struct sAniSirDph
 
 
 #endif
-
-
-
-

@@ -95,9 +95,9 @@ typedef struct sSirNeighborReportReqInd
    tSirMacAddr  bssId;  //For the session.
    tANI_U16     noSSID; //TRUE - dont include SSID in the request.
                         //FALSE  include the SSID. It may be null (wildcard)
-   tSirMacSSid  ucSSID;  
+   tSirMacSSid  ucSSID;
 } tSirNeighborReportReqInd, * tpSirNeighborReportReqInd;
-                                   
+
 
 typedef struct sSirNeighborBssDescription
 {
@@ -112,13 +112,13 @@ typedef struct sSirNeighborBssDescription
                 tANI_U32      fSameSecurityMode:1;
                 tANI_U32      fSameAuthenticator:1;
                 tANI_U32      fCapSpectrumMeasurement:1; //see IEEE 802.11k Table 7-95d
-                tANI_U32      fCapQos:1; 
-                tANI_U32      fCapApsd:1; 
-                tANI_U32      fCapRadioMeasurement:1; 
-                tANI_U32      fCapDelayedBlockAck:1; 
+                tANI_U32      fCapQos:1;
+                tANI_U32      fCapApsd:1;
+                tANI_U32      fCapRadioMeasurement:1;
+                tANI_U32      fCapDelayedBlockAck:1;
                 tANI_U32      fCapImmediateBlockAck:1;
                 tANI_U32      fMobilityDomain:1;
-                tANI_U32      reserved:21; 
+                tANI_U32      reserved:21;
          } rrmInfo;
          struct _ccxInfo {
                 tANI_U32      channelBand:8;
@@ -134,7 +134,7 @@ typedef struct sSirNeighborBssDescription
                 tANI_U32      reserved: 16;
          } ccxInfo;
    } bssidInfo;
- 
+
    //Optional sub IEs....ignoring for now.
 }tSirNeighborBssDescription, *tpSirNeighborBssDescripton;
 

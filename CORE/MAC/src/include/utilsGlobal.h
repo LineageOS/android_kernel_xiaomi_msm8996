@@ -32,7 +32,7 @@
  * History:-
  * Date            Modified by    Modification Information
  * --------------------------------------------------------------------
- * 
+ *
  */
 
 #ifndef __UTILS_GLOBAL_H__

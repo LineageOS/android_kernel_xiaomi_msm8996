@@ -123,4 +123,3 @@ tANI_U8* macTraceGetTLState(tANI_U16 tlState);
 #endif
 
 #endif
-

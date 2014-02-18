@@ -5203,7 +5203,7 @@ typedef struct sDot11fIESuppRates {
                       ((_x) == 48) || \
                       ((_x) == 72) || \
                       ((_x) == 96) || \
-                      ((_x) == 108))  
+                      ((_x) == 108))
 
 #ifdef __cplusplus
 extern "C" {
@@ -5664,7 +5664,7 @@ tANI_U32 dot11fGetPackedIEWMMParams(tpAniSirGlobal, tDot11fIEWMMParams*, tANI_U3
 typedef struct sDot11fIEWPA {
     tANI_U8      present;
     tANI_U16     version /* Must be 1! */;
-    tANI_U8      multicast_cipher_present;   //field added to fix the bug in dot11fPackIEWPA 
+    tANI_U8      multicast_cipher_present;   //field added to fix the bug in dot11fPackIEWPA
     tANI_U8      multicast_cipher[4];
     tANI_U16     unicast_cipher_count;
     tANI_U8      unicast_ciphers[4][4];

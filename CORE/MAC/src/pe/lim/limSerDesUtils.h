@@ -61,7 +61,7 @@ void            limStatSerDes(tpAniSirGlobal, tpAniStaStatStruct, tANI_U8 *);
 void            limGetSessionInfo(tpAniSirGlobal pMac, tANI_U8 *, tANI_U8 *, tANI_U16 *);
 
 
-void            limPackBkgndScanFailNotify(tpAniSirGlobal, tSirSmeStatusChangeCode, 
+void            limPackBkgndScanFailNotify(tpAniSirGlobal, tSirSmeStatusChangeCode,
                                            tpSirBackgroundScanInfo, tSirSmeWmStatusChangeNtf *, tANI_U8);
 
 
@@ -85,7 +85,7 @@ static inline void limCopyU16(tANI_U8 *ptr, tANI_U16 u16Val)
 #error "Unknown combination of OS Type and endianess"
 #endif
 }
-        
+
 static inline tANI_U16 limGetU16(tANI_U8 *ptr)
 {
 #if ((defined(ANI_OS_TYPE_QNX) && defined(ANI_LITTLE_BYTE_ENDIAN)) ||   \
@@ -124,4 +124,3 @@ static inline tANI_U32 limGetU32(tANI_U8 *ptr)
 }
 
 #endif /* __LIM_SERDES_UTILS_H */
-

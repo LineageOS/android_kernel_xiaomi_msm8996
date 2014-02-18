@@ -34,9 +34,9 @@
  * History:-
  * Date            Modified by    Modification Information
  * --------------------------------------------------------------------
- * 
+ *
  */
- 
+
 #ifndef __SCH_SYS_PARAMS_H__
 #define __SCH_SYS_PARAMS_H__
 
@@ -71,7 +71,7 @@
 #define MAX_TXOP_PER_SCHEDULE           400
 
 /// Scheduling quantum (units of TXOP)
-#define SCH_QUANTUM_QUEUE                 4 
+#define SCH_QUANTUM_QUEUE                 4
 
 /// Maximum unused quantum allowed to be accumulated by a queue
 #define MAX_ACCUMULATED_QUANTUM         500

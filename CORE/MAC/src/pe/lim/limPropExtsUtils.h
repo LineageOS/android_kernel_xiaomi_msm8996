@@ -65,4 +65,3 @@ ePhyChanBondState  limGetHTCBState(ePhyChanBondState aniCBMode) ;
 
 
 #endif /* __LIM_PROP_EXTS_UTILS_H */
-

@@ -149,7 +149,3 @@ cfgSendHostMsg(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U32 msgLen, tANI_U32 
     SysProcessMmhMsg(pMac, &mmhMsg);
 
 } /*** end cfgSendHostMsg() ***/
-
-
-
-

@@ -718,7 +718,7 @@ GetStrValue(tANI_U8 *pBuf, tANI_U8 *pValue, tANI_U32 length)
  */
 
 void
-processCfgDownloadReq(tpAniSirGlobal pMac, tANI_U16 length, 
+processCfgDownloadReq(tpAniSirGlobal pMac, tANI_U16 length,
                       tANI_U32 *pConfig)
 {
     tANI_S32    i;
@@ -918,7 +918,3 @@ end:
     pMac->cfg.gParamList[WNI_CFG_DNLD_CNF_RES] = retVal;
 
 } /*** end ProcessDownloadReq() ***/
-
-
-
-

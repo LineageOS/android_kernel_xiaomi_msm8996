@@ -42,20 +42,20 @@
 #include "aniGlobal.h"
 #include "limTypes.h"
 #include "halMsgApi.h"
-#include "sirParams.h"    
+#include "sirParams.h"
 tSirRetStatus limSendCFParams(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 cfpCount, tANI_U8 cfpPeriod);
-tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, 
+tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
                                   tpUpdateBeaconParams pUpdatedBcnParams,
                                   tpPESession  psessionEntry );
 //tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, tpUpdateBeaconParams pUpdatedBcnParams);
 #ifdef WLAN_FEATURE_11AC
-tSirRetStatus limSendModeUpdate(tpAniSirGlobal pMac, 
+tSirRetStatus limSendModeUpdate(tpAniSirGlobal pMac,
                                 tUpdateVHTOpMode *tempParam,
                                 tpPESession  psessionEntry );
 
 tANI_U32 limGetCenterChannel(tpAniSirGlobal pMac,
                              tANI_U8 primarychanNum,
-                             ePhyChanBondState secondaryChanOffset, 
+                             ePhyChanBondState secondaryChanOffset,
                              tANI_U8 chanWidth);
 
 tSirRetStatus limSetMembership(tpAniSirGlobal pMac,
@@ -66,21 +66,21 @@ tSirRetStatus limSetUserPos(tpAniSirGlobal pMac,
                                 tUpdateUserPos *pTempParam,
                                 tpPESession  psessionEntry );
 #endif
-#if defined WLAN_FEATURE_VOWIFI  
-tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac, tANI_U8 chnlNumber, 
-                                      ePhyChanBondState secondaryChnlOffset, 
+#if defined WLAN_FEATURE_VOWIFI
+tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac, tANI_U8 chnlNumber,
+                                      ePhyChanBondState secondaryChnlOffset,
                                       tPowerdBm maxTxPower,tANI_U8 peSessionId);
 #else
-tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac, tANI_U8 chnlNumber, 
-                                      ePhyChanBondState secondaryChnlOffset, 
+tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac, tANI_U8 chnlNumber,
+                                      ePhyChanBondState secondaryChnlOffset,
                                       tANI_U8 localPwrConstraint,tANI_U8 peSessionId);
 #endif
 tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUpdatedEdcaParams, tANI_U16 bssIdx, tANI_BOOLEAN highPerformance);
-tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,  tSirMacAddr bssId, 
+tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,  tSirMacAddr bssId,
                               tSirMacAddr selfMac, tpSetLinkStateCallback callback,
                               void *callbackArg);
 #ifdef WLAN_FEATURE_VOWIFI_11R
-extern tSirRetStatus limSetLinkStateFT(tpAniSirGlobal pMac, tSirLinkState 
+extern tSirRetStatus limSetLinkStateFT(tpAniSirGlobal pMac, tSirLinkState
 state,tSirMacAddr bssId, tSirMacAddr selfMacAddr, int ft, tpPESession psessionEntry);
 #endif
 tSirRetStatus limSendSetTxPowerReq(tpAniSirGlobal pMac, tANI_U32 *pTxPowerReq);
