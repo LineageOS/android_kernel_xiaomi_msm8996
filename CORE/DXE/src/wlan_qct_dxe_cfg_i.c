@@ -26,11 +26,11 @@
  */
 
 /**=========================================================================
-  
+
   @file  wlan_qct_dxe_cfg_i.c
-  
-  @brief 
-               
+
+  @brief
+
    This file contains the external API exposed by the wlan data transfer abstraction layer module.
 ========================================================================*/
 
@@ -307,7 +307,7 @@ WLANDXE_ChannelMappingType channelList[WDTS_CHANNEL_MAX] =
 #endif /* WLANDXE_TEST_CHANNEL_ENABLE */
 };
 
-WLANDXE_TxCompIntConfigType txCompInt = 
+WLANDXE_TxCompIntConfigType txCompInt =
 {
    /* TX Complete Interrupt enable method */
    WLANDXE_TX_COMP_INT_PER_K_FRAMES,
@@ -329,10 +329,10 @@ WLANDXE_TxCompIntConfigType txCompInt =
 };
 
 /*==========================================================================
-  @  Function Name 
+  @  Function Name
       dxeCommonDefaultConfig
 
-  @  Description 
+  @  Description
 
   @  Parameters
       WLANDXE_CtrlBlkType     *dxeCtrlBlk,
@@ -361,10 +361,10 @@ wpt_status dxeCommonDefaultConfig
 }
 
 /*==========================================================================
-  @  Function Name 
+  @  Function Name
       dxeChannelDefaultConfig
 
-  @  Description 
+  @  Description
       Get defualt configuration values from pre defined structure
       All the channels must have it's own configurations
 
@@ -452,7 +452,7 @@ wpt_status dxeChannelDefaultConfig
    /* Enable INT External Descriptor */
    channelEntry->extraConfig.chan_mask |= WLANDXE_CH_CTRL_INE_ED_MASK;
    /* Set Channel This is not channel, event counter, somthing wrong */
-   channelEntry->extraConfig.chan_mask |= 
+   channelEntry->extraConfig.chan_mask |=
                 mappedChannel->DMAChannel << WLANDXE_CH_CTRL_CTR_SEL_OFFSET;
    /* Transfer Type */
    channelEntry->extraConfig.chan_mask |= mappedChannel->channelConfig->xfrType;
@@ -483,7 +483,7 @@ wpt_status dxeChannelDefaultConfig
    /* Host System Using Little Endian */
    channelEntry->extraConfig.chan_mask |= WLANDXE_CH_CTRL_ENDIAN_MASK;
    /* BMU Threshold select */
-   channelEntry->extraConfig.chan_mask |= 
+   channelEntry->extraConfig.chan_mask |=
                  channelEntry->channelConfig.bmuThdSel << WLANDXE_CH_CTRL_BTHLD_SEL_OFFSET;
    /* EOP for control register ??? */
    channelEntry->extraConfig.chan_mask |= WLANDXE_CH_CTRL_EOP_MASK;
@@ -595,10 +595,10 @@ wpt_status dxeChannelDefaultConfig
 
 
    /* size mask???? */
-   channelEntry->extraConfig.chk_size_mask = 
+   channelEntry->extraConfig.chk_size_mask =
             mappedChannel->channelConfig->chk_size << 10;
 
-   channelEntry->extraConfig.refWQ_swapped = 
+   channelEntry->extraConfig.refWQ_swapped =
                 WLANDXE_U32_SWAP_ENDIAN(channelEntry->channelConfig.refWQ);
 
    /* Set Channel specific Interrupt mask */
