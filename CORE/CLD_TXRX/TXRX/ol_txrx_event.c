@@ -45,19 +45,19 @@ wdi_event_del_subs(wdi_event_subscribe *wdi_sub, int event_index)
     wdi_event_notify deallocate_sub;
     while (wdi_sub) {
         wdi_event_subscribe *next = wdi_event_next_sub(wdi_sub);
-            /* 
+            /*
              *  Context is NULL for static allocation of subs
              *  In dynamic allocation case notify the user
              */
         if (wdi_sub->context) {
-            deallocate_sub = wdi_sub->context; 
+            deallocate_sub = wdi_sub->context;
             deallocate_sub(
                 WDI_EVENT_SUB_DEALLOCATE, WDI_EVENT_BASE + event_index);
         }
         wdi_sub = next;
     }
     //adf_os_mem_free(wdi_sub);
-} 
+}
 
 static inline void
 wdi_event_iter_sub(
@@ -70,7 +70,7 @@ wdi_event_iter_sub(
 
     if (wdi_sub) {
         do {
-            wdi_sub->callback(pdev, event, data); 
+            wdi_sub->callback(pdev, event, data);
         } while ((wdi_sub = wdi_event_next_sub(wdi_sub)));
     }
 }
@@ -85,9 +85,9 @@ wdi_event_handler(
     wdi_event_subscribe *wdi_sub;
     /*
      * Input validation
-     */ 
+     */
     if (!event) {
-        adf_os_print("Invalid WDI event in %s\n", __FUNCTION__); 
+        adf_os_print("Invalid WDI event in %s\n", __FUNCTION__);
         return;
     }
     if (!txrx_pdev) {
@@ -99,7 +99,7 @@ wdi_event_handler(
      *  Subscribers must do the sanity based on the requirements
      */
     event_index = event - WDI_EVENT_BASE;
-    
+
     wdi_sub = txrx_pdev->wdi_event_list[event_index];
 
     /* Find the subscriber */
@@ -109,7 +109,7 @@ wdi_event_handler(
 A_STATUS
 wdi_event_sub(
     struct ol_txrx_pdev_t *txrx_pdev,
-    wdi_event_subscribe *event_cb_sub, 
+    wdi_event_subscribe *event_cb_sub,
     enum WDI_EVENT event)
 {
     uint32_t event_index;
@@ -127,11 +127,11 @@ wdi_event_sub(
         adf_os_print("Invalid event in %s", __FUNCTION__);
         return A_ERROR;
     } /* Input validation */
-    
+
     event_index = event - WDI_EVENT_BASE;
 
     wdi_sub = txrx_pdev->wdi_event_list[event_index];
-    /* 
+    /*
      *  Check if it is the first subscriber of the event
      */
     if (!wdi_sub) {
@@ -152,7 +152,7 @@ wdi_event_sub(
 A_STATUS
 wdi_event_unsub(
     struct ol_txrx_pdev_t *txrx_pdev,
-    wdi_event_subscribe *event_cb_sub, 
+    wdi_event_subscribe *event_cb_sub,
     enum WDI_EVENT event)
 {
     uint32_t event_index = event - WDI_EVENT_BASE;
@@ -172,7 +172,7 @@ wdi_event_unsub(
     }
     //adf_os_mem_free(event_cb_sub);
 
-    return A_OK; 
+    return A_OK;
 }
 
 A_STATUS
@@ -184,7 +184,7 @@ wdi_event_attach(struct ol_txrx_pdev_t *txrx_pdev)
             "Invalid device in %s\nWDI event attach failed", __FUNCTION__);
         return A_ERROR;
     }
-    /* Separate subscriber list for each event */ 
+    /* Separate subscriber list for each event */
     txrx_pdev->wdi_event_list = (wdi_event_subscribe **)
         adf_os_mem_alloc(
             txrx_pdev->osdev, sizeof(wdi_event_subscribe *) * WDI_NUM_EVENTS);
@@ -192,7 +192,7 @@ wdi_event_attach(struct ol_txrx_pdev_t *txrx_pdev)
         adf_os_print("Insufficient memory for the WDI event lists\n");
         return A_NO_MEMORY;
     }
-    return A_OK; 
+    return A_OK;
 }
 
 A_STATUS

@@ -28,7 +28,7 @@
 #ifndef TXRX_H
 #define TXRX_H
 
-#include "vos_api.h" 
+#include "vos_api.h"
 #include "adf_nbuf.h"
 #include "csrApi.h"
 #include "sapApi.h"
@@ -36,7 +36,7 @@
 #include "ol_txrx_osif_api.h"
 #include "wlan_qct_tl.h"
 
-enum txrx_wmm_ac {  
+enum txrx_wmm_ac {
 	TXRX_WMM_AC_VO,
 	TXRX_WMM_AC_VI,
 	TXRX_WMM_AC_BK,
@@ -72,14 +72,14 @@ enum bt_frame_type {
 };
 
 enum wlan_ts_direction {
-	/* uplink */         
-	WLAN_TX_DIR = 0,          
+	/* uplink */
+	WLAN_TX_DIR = 0,
 
-	/* downlink */                                                              
-	WLAN_RX_DIR = 1,                                    
+	/* downlink */
+	WLAN_RX_DIR = 1,
 
-	/*bidirectional*/                            
-	WLAN_BI_DIR = 2,     
+	/*bidirectional*/
+	WLAN_BI_DIR = 2,
 };
 
 enum wlan_sta_state {
@@ -194,7 +194,7 @@ static inline int wlan_get_txrx_stats(void *g_vosctx, struct wlan_txrx_stats *st
 }
 
 static inline int wlan_txrx_update_rssi_bmps(void *g_vosctx, u8 sta_id,
-					     v_S7_t rssi) 
+					     v_S7_t rssi)
 {
 	return 0;
 }
@@ -234,4 +234,4 @@ static inline void wlan_txrx_mc_free_msg(void *g_vosctx, vos_msg_t *msg)
 static inline void wlan_txrx_tx_free_msg(void *g_vosctx, vos_msg_t *msg)
 {
 }
-#endif 
+#endif

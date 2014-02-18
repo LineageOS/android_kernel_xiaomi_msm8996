@@ -39,19 +39,19 @@
 #include <ol_txrx_types.h>  /* ol_tx_desc_t, ol_txrx_msdu_info_t */
 
 /**
- * @brief Encap outgoing frm from OS dependent format to Target 
+ * @brief Encap outgoing frm from OS dependent format to Target
  *        acceptable frm format
  * @details
  *     For native wifi format, the function will add Qos control field
  *  based on peer's QOS capbabilities .
- *     For 802.3 format, the function will transform to 802.11 format 
+ *     For 802.3 format, the function will transform to 802.11 format
  *  with or without QOS control field based on peer's QOS capabilites.
  * @param vdev - handle to vdev object
  * @param tx_desc - tx desc struct,some fields will be updated.
  * @param msdu - adf_nbuf_t
  * @param msdu_info - informations from tx classification.
- * @return 
- *     A_OK: encap operation sucessful 
+ * @return
+ *     A_OK: encap operation sucessful
  *     other: operation failed,the msdu need be dropped.
  */
 A_STATUS
@@ -82,8 +82,8 @@ struct ol_rx_decap_info_t {
  * @param peer - the peer object.
  * @param msdu - adf_nbuf_t
  * @param info - ol_rx_decap_info_t: context info for decap
- * @return 
- *     A_OK: decap operation sucessful 
+ * @return
+ *     A_OK: decap operation sucessful
  *     other: operation failed,the msdu need be dropped.
  */
 A_STATUS
@@ -94,7 +94,7 @@ ol_rx_decap (
     struct ol_rx_decap_info_t *info);
 
 
-static inline A_STATUS 
+static inline A_STATUS
 OL_TX_ENCAP(
     struct ol_txrx_vdev_t *vdev,
     struct ol_tx_desc_t *tx_desc,
@@ -107,7 +107,7 @@ OL_TX_ENCAP(
     return A_OK;
 }
 
-static inline A_STATUS 
+static inline A_STATUS
 OL_RX_DECAP(
     struct ol_txrx_vdev_t *vdev,
     struct ol_txrx_peer_t *peer,
@@ -127,6 +127,6 @@ OL_RX_DECAP(
 #else
 #define OL_TX_ENCAP(vdev, tx_desc, msdu, msdu_info) A_OK
 #define OL_RX_DECAP(vdev, peer, msdu, info) A_OK
-#define OL_TX_RESTORE_HDR(__tx_desc,__msdu)  
+#define OL_TX_RESTORE_HDR(__tx_desc,__msdu)
 #endif
 #endif /* _OL_TXRX_ENCAP__H_ */

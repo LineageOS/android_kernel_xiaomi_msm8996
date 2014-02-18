@@ -60,7 +60,7 @@ enum ol_rx_err_type {
 #ifdef SUPPORT_HOST_STATISTICS
 /** * @brief Update tx statistics
  * @details
- *  Update tx statistics after tx complete. 
+ *  Update tx statistics after tx complete.
  *
  * @param pdev - ol_pdev_handle instance
  * @param vdev_id - ID of the virtual device that tx frame
@@ -70,7 +70,7 @@ void ol_tx_statistics(ol_pdev_handle pdev,
                       u_int16_t vdev_id,
 					  int had_error);
 #else
-#define ol_tx_statistics(pdev, vdev_id, had_error) 
+#define ol_tx_statistics(pdev, vdev_id, had_error)
 #endif
 
 /** * @brief Count on received packets for invalid peer case

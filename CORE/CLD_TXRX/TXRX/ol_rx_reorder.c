@@ -131,7 +131,7 @@ OL_RX_REORDER_IDX_START_SELF_SELECT(
             tail_msdu = rx_reorder_array_elem->tail; \
         } \
     } while (0)
-    
+
 #else
 
 /* reorder array elements are known to be non-NULL */
@@ -186,7 +186,7 @@ ol_rx_reorder_seq_num_check(
 
     if (seq_num_delta > (IEEE80211_SEQ_MAX >> 1)) {
          return htt_rx_status_err_replay; /* or maybe htt_rx_status_err_dup */
-    } 
+    }
     return htt_rx_status_ok;
 }
 
@@ -337,7 +337,7 @@ ol_rx_reorder_flush(
     idx_end   &= win_sz_mask;
 
     do {
-        rx_reorder_array_elem = 
+        rx_reorder_array_elem =
             &peer->tids_rx_reorder[tid].array[idx_start];
         idx_start = (idx_start + 1);
         OL_RX_REORDER_IDX_WRAP(idx_start, win_sz, win_sz_mask);
@@ -561,13 +561,13 @@ ol_rx_flush_handler(
         vdev = peer->vdev;
     } else {
         return;
-    } 
+    }
 
     OL_RX_REORDER_TIMEOUT_MUTEX_LOCK(pdev);
 
     idx = idx_start & peer->tids_rx_reorder[tid].win_sz_mask;
     rx_reorder_array_elem = &peer->tids_rx_reorder[tid].array[idx];
-    if (rx_reorder_array_elem->head) {    
+    if (rx_reorder_array_elem->head) {
         rx_desc =
             htt_rx_msdu_desc_retrieve(htt_pdev, rx_reorder_array_elem->head);
         if (htt_rx_msdu_is_frag(htt_pdev, rx_desc)) {
@@ -575,7 +575,7 @@ ol_rx_flush_handler(
             /*
              * Assuming flush message sent seperately for frags
              * and for normal frames
-             */ 
+             */
             OL_RX_REORDER_TIMEOUT_MUTEX_UNLOCK(pdev);
             return;
         }
@@ -680,7 +680,7 @@ ol_rx_pn_ind_handler(
             }
             rx_reorder_array_elem->head = NULL;
             rx_reorder_array_elem->tail = NULL;
-        } 
+        }
         seq_num = (seq_num + 1) & win_sz_mask;
     } while (seq_num != seq_num_end);
 

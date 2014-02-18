@@ -28,7 +28,7 @@
 #ifndef _OL_RX_DEFRAG_H_
 #define _OL_RX_DEFRAG_H_
 
-#include <adf_nbuf.h> 
+#include <adf_nbuf.h>
 #include <ieee80211_common.h>
 #include <adf_os_util.h>
 #include <adf_os_types.h>
@@ -42,12 +42,12 @@
 #define DEFRAG_IEEE80211_FCS_LEN     4
 
 struct ol_rx_defrag_cipher {
-    const char *ic_name;				
-    u_int16_t	ic_header;		
+    const char *ic_name;
+    u_int16_t	ic_header;
     u_int8_t	ic_trailer;
-    u_int8_t    ic_miclen;		
-}; 
-       
+    u_int8_t    ic_miclen;
+};
+
 enum {
     OL_RX_DEFRAG_ERR,
     OL_RX_DEFRAG_OK,
@@ -60,12 +60,12 @@ enum {
 #define ol_rx_defrag_len(buf) \
     adf_nbuf_len(buf)
 
-void 
+void
 ol_rx_fraglist_insert(
     htt_pdev_handle htt_pdev,
-    adf_nbuf_t *head_addr, 
-    adf_nbuf_t *tail_addr, 
-    adf_nbuf_t frag, 
+    adf_nbuf_t *head_addr,
+    adf_nbuf_t *tail_addr,
+    adf_nbuf_t frag,
     u_int8_t *all_frag_present);
 
 void
@@ -82,7 +82,7 @@ void
 ol_rx_defrag_waitlist_flush(
     struct ol_txrx_pdev_t *pdev);
 
-void 
+void
 ol_rx_defrag(
     ol_txrx_pdev_handle pdev,
     struct ol_txrx_peer_t *peer,
@@ -91,7 +91,7 @@ ol_rx_defrag(
 
 int
 ol_rx_frag_tkip_decap(
-    adf_nbuf_t msdu, 
+    adf_nbuf_t msdu,
     u_int16_t hdrlen);
 
 void
@@ -99,23 +99,23 @@ ol_rx_defrag_nwifi_to_8023(adf_nbuf_t msdu);
 
 void
 ol_rx_defrag_qos_decap(
-    adf_nbuf_t nbuf, 
+    adf_nbuf_t nbuf,
     u_int16_t hdrlen);
 
 int
 ol_rx_frag_tkip_demic(
-    const u_int8_t *key, 
-    adf_nbuf_t msdu, 
+    const u_int8_t *key,
+    adf_nbuf_t msdu,
     u_int16_t hdrlen);
 
 int
 ol_rx_frag_ccmp_decap(
-    adf_nbuf_t nbuf, 
+    adf_nbuf_t nbuf,
     u_int16_t hdrlen);
 
 int
 ol_rx_frag_ccmp_demic(
-    adf_nbuf_t wbuf, 
+    adf_nbuf_t wbuf,
     u_int16_t hdrlen);
 
 u_int16_t
@@ -123,7 +123,7 @@ ol_rx_frag_hdrsize(const void *data);
 
 void
 ol_rx_defrag_michdr(
-    const struct ieee80211_frame *wh0, 
+    const struct ieee80211_frame *wh0,
     u_int8_t hdr[]);
 
 void
@@ -134,16 +134,16 @@ ol_rx_reorder_store_frag(
     u_int16_t seq_num,
     adf_nbuf_t frag);
 
-adf_nbuf_t 
+adf_nbuf_t
 ol_rx_defrag_decap_recombine(
-    htt_pdev_handle htt_pdev, 
-    adf_nbuf_t frag_list, 
+    htt_pdev_handle htt_pdev,
+    adf_nbuf_t frag_list,
     u_int16_t hdrsize);
 
 int
 ol_rx_defrag_mic(
     const u_int8_t *key,
-    adf_nbuf_t wbuf, 
+    adf_nbuf_t wbuf,
     u_int16_t off,
     u_int16_t data_len,
     u_int8_t mic[]);
@@ -157,8 +157,8 @@ ol_rx_reorder_flush_frag(
 
 static inline void
 xor_block(
-    u_int8_t *b, 
-    const u_int8_t *a, 
+    u_int8_t *b,
+    const u_int8_t *a,
     adf_os_size_t len)
 {
     adf_os_size_t i;
@@ -168,47 +168,47 @@ xor_block(
     }
 }
 
-static inline u_int32_t 
+static inline u_int32_t
 rotl(
-    u_int32_t val, 
+    u_int32_t val,
     int bits)
 {
     return (val << bits) | (val >> (32 - bits));
 }
 
-static inline u_int32_t 
+static inline u_int32_t
 rotr(
-    u_int32_t val, 
+    u_int32_t val,
     int bits)
 {
     return (val >> bits) | (val << (32 - bits));
 }
 
-static inline u_int32_t 
+static inline u_int32_t
 xswap(u_int32_t val)
 {
     return ((val & 0x00ff00ff) << 8) | ((val & 0xff00ff00) >> 8);
 }
 
-static inline u_int32_t 
+static inline u_int32_t
 get_le32_split(
-    u_int8_t b0, 
-    u_int8_t b1, 
-    u_int8_t b2, 
+    u_int8_t b0,
+    u_int8_t b1,
+    u_int8_t b2,
     u_int8_t b3)
 {
     return b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
 }
 
-static inline u_int32_t 
+static inline u_int32_t
 get_le32(const u_int8_t *p)
 {
     return get_le32_split(p[0], p[1], p[2], p[3]);
 }
 
-static inline void 
+static inline void
 put_le32(
-    u_int8_t *p, 
+    u_int8_t *p,
     u_int32_t v)
 {
     p[0] = (v) & 0xff;
@@ -219,7 +219,7 @@ put_le32(
 
 static inline u_int8_t
 ol_rx_defrag_concat(
-    adf_nbuf_t dst, 
+    adf_nbuf_t dst,
     adf_nbuf_t src)
 {
     /*
@@ -230,7 +230,7 @@ ol_rx_defrag_concat(
      * contains the rx desc.)
      */
     if (adf_nbuf_cat(dst, src)) {
-        return OL_RX_DEFRAG_ERR; 
+        return OL_RX_DEFRAG_ERR;
     }
 
     return OL_RX_DEFRAG_OK;

@@ -37,14 +37,14 @@
 #include <ol_rx.h>            /* ol_rx_deliver */
 
 /* add the MSDUs from this MPDU to the list of good frames */
-#define ADD_MPDU_TO_LIST(head, tail, mpdu, mpdu_tail) do { 	\
+#define ADD_MPDU_TO_LIST(head, tail, mpdu, mpdu_tail) do {	\
         if (!head) {                                        \
-            head = mpdu;                                	\
+            head = mpdu;					\
         } else {                                            \
-            adf_nbuf_set_next(tail, mpdu);    				\
+            adf_nbuf_set_next(tail, mpdu);				\
         }                                                   \
-        tail = mpdu_tail;                               	\
-    } while(0);                                          
+        tail = mpdu_tail;					\
+    } while(0);
 
 int ol_rx_pn_cmp24(
     union htt_rx_pn_t *new_pn,
@@ -343,6 +343,6 @@ ol_rx_pn_trace_display(ol_txrx_pdev_handle pdev, int just_once)
         cnt++;
         i++;
         i &= pdev->rx_pn_trace.mask;
-    } while (i != end); 
+    } while (i != end);
 }
 #endif /* ENABLE_RX_PN_TRACE */

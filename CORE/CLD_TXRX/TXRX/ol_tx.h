@@ -67,7 +67,7 @@ ol_tx_non_std_hl(
     enum ol_tx_spec tx_spec,
     adf_nbuf_t msdu_list);
 
-adf_nbuf_t 
+adf_nbuf_t
 ol_tx_reinject(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu, u_int16_t peer_id);
 
 void
