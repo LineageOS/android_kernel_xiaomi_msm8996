@@ -63,9 +63,9 @@
 /* ############# function definitions ############ */
 
 /* function   : wma_cfg_nv_get_hal_message_buffer
- * Descriptin :  
- * Args       :        
- * Retruns    :     
+ * Descriptin :
+ * Args       :
+ * Retruns    :
  */
 VOS_STATUS wma_cfg_nv_get_hal_message_buffer(tp_wma_handle wma_handle,
 		v_U16_t req_type, v_U16_t buf_len, v_U8_t **msgbuf,
@@ -95,7 +95,7 @@ end:
  * FUNCTION: wma_prepare_config_tlv
  * Function to prepare CFG for DAL(WDA)
  */
-VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context, 
+VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 		t_wma_start_req  *wma_start_params)
 {
 	/* get mac to acess CFG data base */
@@ -118,14 +118,14 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 		VOS_ASSERT(0);
 		return VOS_STATUS_E_FAILURE;
 	}
-	cfg_param_sz = (sizeof(tHalCfg) * QWLAN_HAL_CFG_MAX_PARAMS) + 
+	cfg_param_sz = (sizeof(tHalCfg) * QWLAN_HAL_CFG_MAX_PARAMS) +
 		WNI_CFG_STA_ID_LEN +
 		WNI_CFG_EDCA_WME_ACBK_LEN +
 		WNI_CFG_EDCA_WME_ACBE_LEN +
 		WNI_CFG_EDCA_WME_ACVI_LEN +
 		WNI_CFG_EDCA_WME_ACVO_LEN +
 		+ (QWLAN_HAL_CFG_INTEGER_PARAM * sizeof(tANI_U32));
-	/* malloc memory for all configs in one shot */ 
+	/* malloc memory for all configs in one shot */
 	cfg_param = vos_mem_malloc(cfg_param_sz);
 
 	if(NULL == cfg_param ) {
@@ -142,7 +142,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	/* QWLAN_HAL_CFG_STA_ID */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_STA_ID;
 	cfg_data_val = (tANI_U32*)((v_U8_t *) tlv_struct + sizeof(tHalCfg));
-	if(wlan_cfgGetStr(mac, WNI_CFG_STA_ID, (v_U8_t*)cfg_data_val, &str_len) != 
+	if(wlan_cfgGetStr(mac, WNI_CFG_STA_ID, (v_U8_t*)cfg_data_val, &str_len) !=
 			eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_STA_ID");
@@ -150,119 +150,119 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	}
 	tlv_struct->uCfgLen = str_len ;
 	/* calculate the pad bytes to have the CFG in aligned format */
-	tlv_struct->uCfgPadBytes = ALIGNED_WORD_SIZE - 
+	tlv_struct->uCfgPadBytes = ALIGNED_WORD_SIZE -
 		(tlv_struct->uCfgLen & (ALIGNED_WORD_SIZE - 1));
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen + tlv_struct->uCfgPadBytes)) ;
 	/* QWLAN_HAL_CFG_CURRENT_TX_ANTENNA */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_CURRENT_TX_ANTENNA;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_CURRENT_TX_ANTENNA, cfg_data_val ) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_CURRENT_TX_ANTENNA, cfg_data_val )
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_CURRENT_TX_ANTENNA");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
-				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ; 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
+				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ;
 	/* QWLAN_HAL_CFG_CURRENT_RX_ANTENNA */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_CURRENT_RX_ANTENNA;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_CURRENT_RX_ANTENNA, cfg_data_val) != 
+	if(wlan_cfgGetInt(mac, WNI_CFG_CURRENT_RX_ANTENNA, cfg_data_val) !=
 			eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_CURRENT_RX_ANTENNA");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
-				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ; 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
+				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ;
 	/* QWLAN_HAL_CFG_LOW_GAIN_OVERRIDE */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_LOW_GAIN_OVERRIDE;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_LOW_GAIN_OVERRIDE, cfg_data_val ) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_LOW_GAIN_OVERRIDE, cfg_data_val )
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_LOW_GAIN_OVERRIDE");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ;
 
 	/* QWLAN_HAL_CFG_POWER_STATE_PER_CHAIN */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_POWER_STATE_PER_CHAIN;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_POWER_STATE_PER_CHAIN, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_POWER_STATE_PER_CHAIN,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_POWER_STATE_PER_CHAIN");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
-				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)); 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
+				+ sizeof(tHalCfg) + tlv_struct->uCfgLen));
 	/* QWLAN_HAL_CFG_CAL_PERIOD */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_CAL_PERIOD;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_CAL_PERIOD, cfg_data_val ) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_CAL_PERIOD, cfg_data_val )
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_CAL_PERIOD");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen));
 	/* QWLAN_HAL_CFG_CAL_CONTROL  */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_CAL_CONTROL ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_CAL_CONTROL, cfg_data_val ) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_CAL_CONTROL, cfg_data_val )
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_CAL_CONTROL");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen));
 	/* QWLAN_HAL_CFG_PROXIMITY  */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_PROXIMITY ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_PROXIMITY, cfg_data_val ) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_PROXIMITY, cfg_data_val )
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_PROXIMITY");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
-				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ; 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
+				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ;
 	/* QWLAN_HAL_CFG_NETWORK_DENSITY  */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_NETWORK_DENSITY ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_NETWORK_DENSITY, cfg_data_val ) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_NETWORK_DENSITY, cfg_data_val )
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_NETWORK_DENSITY");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
-				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)); 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
+				+ sizeof(tHalCfg) + tlv_struct->uCfgLen));
 	/* QWLAN_HAL_CFG_MAX_MEDIUM_TIME  */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_MAX_MEDIUM_TIME ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_MAX_MEDIUM_TIME, cfg_data_val ) != 
+	if(wlan_cfgGetInt(mac, WNI_CFG_MAX_MEDIUM_TIME, cfg_data_val ) !=
 			eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_MAX_MEDIUM_TIME");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
-				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)); 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
+				+ sizeof(tHalCfg) + tlv_struct->uCfgLen));
 	/* QWLAN_HAL_CFG_MAX_MPDUS_IN_AMPDU   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_MAX_MPDUS_IN_AMPDU  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
@@ -273,55 +273,55 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 				"Failed to get value for WNI_CFG_MAX_MPDUS_IN_AMPDU");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ;
 	/* QWLAN_HAL_CFG_RTS_THRESHOLD   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_RTS_THRESHOLD  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_RTS_THRESHOLD, cfg_data_val ) != 
+	if(wlan_cfgGetInt(mac, WNI_CFG_RTS_THRESHOLD, cfg_data_val ) !=
 			eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_RTS_THRESHOLD");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen));
 	/* QWLAN_HAL_CFG_SHORT_RETRY_LIMIT   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_SHORT_RETRY_LIMIT  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_SHORT_RETRY_LIMIT, cfg_data_val ) != 
+	if(wlan_cfgGetInt(mac, WNI_CFG_SHORT_RETRY_LIMIT, cfg_data_val ) !=
 			eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_SHORT_RETRY_LIMIT");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
-				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ; 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
+				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ;
 	/* QWLAN_HAL_CFG_LONG_RETRY_LIMIT   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_LONG_RETRY_LIMIT  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_LONG_RETRY_LIMIT, cfg_data_val ) != 
+	if(wlan_cfgGetInt(mac, WNI_CFG_LONG_RETRY_LIMIT, cfg_data_val ) !=
 			eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_LONG_RETRY_LIMIT");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ;
 	/* QWLAN_HAL_CFG_FRAGMENTATION_THRESHOLD   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_FRAGMENTATION_THRESHOLD  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_FRAGMENTATION_THRESHOLD, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_FRAGMENTATION_THRESHOLD,
 				cfg_data_val ) != eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_FRAGMENTATION_THRESHOLD");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ;
 	/* QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ZERO   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ZERO  ;
@@ -333,254 +333,254 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 				"Failed to get value for WNI_CFG_DYNAMIC_THRESHOLD_ZERO");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen));
 
 	/* QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ONE   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ONE  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_DYNAMIC_THRESHOLD_ONE, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_DYNAMIC_THRESHOLD_ONE,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DYNAMIC_THRESHOLD_ONE");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
-				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)); 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
+				+ sizeof(tHalCfg) + tlv_struct->uCfgLen));
 	/* QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_TWO   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_TWO  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_DYNAMIC_THRESHOLD_TWO, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_DYNAMIC_THRESHOLD_TWO,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DYNAMIC_THRESHOLD_TWO");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen));
 
 	/* QWLAN_HAL_CFG_FIXED_RATE   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_FIXED_RATE  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_FIXED_RATE, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_FIXED_RATE, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_FIXED_RATE");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen));
 
 	/* QWLAN_HAL_CFG_RETRYRATE_POLICY   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_RETRYRATE_POLICY  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_RETRYRATE_POLICY, cfg_data_val ) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_RETRYRATE_POLICY, cfg_data_val )
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_RETRYRATE_POLICY");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
 				+ sizeof(tHalCfg) + tlv_struct->uCfgLen));
 
 	/* QWLAN_HAL_CFG_RETRYRATE_SECONDARY   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_RETRYRATE_SECONDARY  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_RETRYRATE_SECONDARY, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_RETRYRATE_SECONDARY,
 				cfg_data_val ) != eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_RETRYRATE_SECONDARY");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
-				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ; 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
+				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ;
 	/* QWLAN_HAL_CFG_RETRYRATE_TERTIARY   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_RETRYRATE_TERTIARY  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_RETRYRATE_TERTIARY, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_RETRYRATE_TERTIARY,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_RETRYRATE_TERTIARY");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct 
-				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ; 
+	tlv_struct = (tHalCfg *)(( (v_U8_t *) tlv_struct
+				+ sizeof(tHalCfg) + tlv_struct->uCfgLen)) ;
 	/* QWLAN_HAL_CFG_FORCE_POLICY_PROTECTION   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_FORCE_POLICY_PROTECTION  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_FORCE_POLICY_PROTECTION, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_FORCE_POLICY_PROTECTION,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_FORCE_POLICY_PROTECTION");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen); 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 	/* QWLAN_HAL_CFG_FIXED_RATE_MULTICAST_24GHZ   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_FIXED_RATE_MULTICAST_24GHZ  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_FIXED_RATE_MULTICAST_24GHZ, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_FIXED_RATE_MULTICAST_24GHZ,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_FIXED_RATE_MULTICAST_24GHZ");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen); 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 	/* QWLAN_HAL_CFG_FIXED_RATE_MULTICAST_5GHZ   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_FIXED_RATE_MULTICAST_5GHZ  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_FIXED_RATE_MULTICAST_5GHZ, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_FIXED_RATE_MULTICAST_5GHZ,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_FIXED_RATE_MULTICAST_5GHZ");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen); 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 
 #if 0 /*FIXME_PRIMA : Enable this after the RA is enabled in HAL*/
 	/* QWLAN_HAL_CFG_DEFAULT_RATE_INDEX_24GHZ   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_DEFAULT_RATE_INDEX_24GHZ  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_DEFAULT_RATE_INDEX_24GHZ, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_DEFAULT_RATE_INDEX_24GHZ,
 				cfg_data_val ) != eSIR_SUCCESS)
 	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DEFAULT_RATE_INDEX_24GHZ");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen); 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 #endif
 	/* QWLAN_HAL_CFG_DEFAULT_RATE_INDEX_5GHZ   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_DEFAULT_RATE_INDEX_5GHZ  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_DEFAULT_RATE_INDEX_5GHZ, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_DEFAULT_RATE_INDEX_5GHZ,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DEFAULT_RATE_INDEX_5GHZ");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen); 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 	/* QWLAN_HAL_CFG_MAX_BA_SESSIONS   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_MAX_BA_SESSIONS  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_MAX_BA_SESSIONS, cfg_data_val ) != 
+	if(wlan_cfgGetInt(mac, WNI_CFG_MAX_BA_SESSIONS, cfg_data_val ) !=
 			eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_MAX_BA_SESSIONS");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
 			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 
 	/* QWLAN_HAL_CFG_PS_DATA_INACTIVITY_TIMEOUT   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_PS_DATA_INACTIVITY_TIMEOUT  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen); 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 	/* QWLAN_HAL_CFG_PS_ENABLE_BCN_FILTER   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_PS_ENABLE_BCN_FILTER  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_PS_ENABLE_BCN_FILTER, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_PS_ENABLE_BCN_FILTER,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_PS_ENABLE_BCN_FILTER");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen); 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 	/* QWLAN_HAL_CFG_PS_ENABLE_RSSI_MONITOR   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_PS_ENABLE_RSSI_MONITOR  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_PS_ENABLE_RSSI_MONITOR, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_PS_ENABLE_RSSI_MONITOR,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_PS_ENABLE_RSSI_MONITOR");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen); 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 	/* QWLAN_HAL_CFG_NUM_BEACON_PER_RSSI_AVERAGE   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_NUM_BEACON_PER_RSSI_AVERAGE  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
 			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 
 	/* QWLAN_HAL_CFG_STATS_PERIOD   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_STATS_PERIOD  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_STATS_PERIOD, cfg_data_val ) != 
+	if(wlan_cfgGetInt(mac, WNI_CFG_STATS_PERIOD, cfg_data_val ) !=
 			eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_STATS_PERIOD");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen); 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 	/* QWLAN_HAL_CFG_CFP_MAX_DURATION   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_CFP_MAX_DURATION  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_CFP_MAX_DURATION, cfg_data_val ) != 
+	if(wlan_cfgGetInt(mac, WNI_CFG_CFP_MAX_DURATION, cfg_data_val ) !=
 			eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_CFP_MAX_DURATION");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_FRAME_TRANS_ENABLED */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_FRAME_TRANS_ENABLED  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	vos_mem_copy(cfg_data_val, &wma_handle->frameTransRequired, 
+	vos_mem_copy(cfg_data_val, &wma_handle->frameTransRequired,
 			sizeof(tANI_U32));
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_DTIM_PERIOD */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_DTIM_PERIOD  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_DTIM_PERIOD, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_DTIM_PERIOD, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DTIM_PERIOD");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_EDCA_WMM_ACBK */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_EDCA_WMM_ACBK  ;
 	str_len = WNI_CFG_EDCA_WME_ACBK_LEN;
@@ -593,10 +593,10 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	}
 	tlv_struct->uCfgLen = str_len;
 	/* calculate the pad bytes to have the CFG in aligned format */
-	tlv_struct->uCfgPadBytes = ALIGNED_WORD_SIZE - 
+	tlv_struct->uCfgPadBytes = ALIGNED_WORD_SIZE -
 		(tlv_struct->uCfgLen & (ALIGNED_WORD_SIZE - 1));
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen + tlv_struct->uCfgPadBytes) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen + tlv_struct->uCfgPadBytes) ;
 	/* QWLAN_HAL_CFG_EDCA_WMM_ACBE */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_EDCA_WMM_ACBE  ;
 	str_len = WNI_CFG_EDCA_WME_ACBE_LEN;
@@ -609,10 +609,10 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	}
 	tlv_struct->uCfgLen = str_len;
 	/* calculate the pad bytes to have the CFG in aligned format */
-	tlv_struct->uCfgPadBytes = ALIGNED_WORD_SIZE - 
+	tlv_struct->uCfgPadBytes = ALIGNED_WORD_SIZE -
 		(tlv_struct->uCfgLen & (ALIGNED_WORD_SIZE - 1));
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen + tlv_struct->uCfgPadBytes) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen + tlv_struct->uCfgPadBytes) ;
 	/* QWLAN_HAL_CFG_EDCA_WMM_ACVI */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_EDCA_WMM_ACVO  ;
 	str_len = WNI_CFG_EDCA_WME_ACVI_LEN;
@@ -625,10 +625,10 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	}
 	tlv_struct->uCfgLen = str_len;
 	/* calculate the pad bytes to have the CFG in aligned format */
-	tlv_struct->uCfgPadBytes = ALIGNED_WORD_SIZE - 
+	tlv_struct->uCfgPadBytes = ALIGNED_WORD_SIZE -
 		(tlv_struct->uCfgLen & (ALIGNED_WORD_SIZE - 1));
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen + tlv_struct->uCfgPadBytes) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen + tlv_struct->uCfgPadBytes) ;
 	/* QWLAN_HAL_CFG_EDCA_WMM_ACVO */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_EDCA_WMM_ACVI  ;
 	str_len = WNI_CFG_EDCA_WME_ACVO_LEN;
@@ -641,143 +641,143 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	}
 	tlv_struct->uCfgLen = str_len;
 	/* calculate the pad bytes to have the CFG in aligned format */
-	tlv_struct->uCfgPadBytes = ALIGNED_WORD_SIZE - 
+	tlv_struct->uCfgPadBytes = ALIGNED_WORD_SIZE -
 		(tlv_struct->uCfgLen & (ALIGNED_WORD_SIZE - 1));
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen + tlv_struct->uCfgPadBytes) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen + tlv_struct->uCfgPadBytes) ;
 	/* QWLAN_HAL_CFG_BA_THRESHOLD_HIGH */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BA_THRESHOLD_HIGH  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_BA_THRESHOLD_HIGH, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_BA_THRESHOLD_HIGH, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_BA_THRESHOLD_HIGH");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_MAX_BA_BUFFERS */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_MAX_BA_BUFFERS  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_MAX_BA_BUFFERS, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_MAX_BA_BUFFERS, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_MAX_BA_BUFFERS");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_DYNAMIC_PS_POLL_VALUE */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_DYNAMIC_PS_POLL_VALUE  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_DYNAMIC_PS_POLL_VALUE, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_DYNAMIC_PS_POLL_VALUE, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DYNAMIC_PS_POLL_VALUE");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_TELE_BCN_TRANS_LI */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_TELE_BCN_TRANS_LI  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_TRANS_LI, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_TRANS_LI, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TELE_BCN_TRANS_LI");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_TELE_BCN_MAX_LI */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_TELE_BCN_MAX_LI  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_MAX_LI, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_MAX_LI, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TELE_BCN_MAX_LI");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_TELE_BCN_WAKEUP_EN */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_TELE_BCN_WAKEUP_EN  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_WAKEUP_EN, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_WAKEUP_EN, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TELE_BCN_WAKEUP_EN");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/*QWLAN_HAL_CFG_TX_PWR_CTRL_ENABLE*/
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_TX_PWR_CTRL_ENABLE  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_TX_PWR_CTRL_ENABLE, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_TX_PWR_CTRL_ENABLE, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TX_PWR_CTRL_ENABLE");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
 			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_ENABLE_CLOSE_LOOP   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_ENABLE_CLOSE_LOOP  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_CLOSE_LOOP, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_CLOSE_LOOP, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_ENABLE_CLOSE_LOOP");
 		goto handle_failure;
 	}
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
-	/* [COEX] strictly speaking, the Coex parameters are not part of the WLAN_CFG_FILE binary, 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
+	/* [COEX] strictly speaking, the Coex parameters are not part of the WLAN_CFG_FILE binary,
 	 * but are from the WLAN_INI_FILE file.  However, this is the only parameter download routine
 	 * into FW, so the parameters are added here.
 	 */
@@ -785,126 +785,126 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_EXECUTION_MODE  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcExecutionMode; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcExecutionMode;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* [COEX] QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcConsBtSlotsToBlockDuringDhcp; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcConsBtSlotsToBlockDuringDhcp;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* [COEX] QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcA2DPBtSubIntervalsDuringDhcp; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcA2DPBtSubIntervalsDuringDhcp;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_INQ_BT */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_STATIC_LEN_INQ_BT  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcStaticLenInqBt; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcStaticLenInqBt;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_PAGE_BT */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_STATIC_LEN_PAGE_BT  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcStaticLenPageBt; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcStaticLenPageBt;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_CONN_BT */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_STATIC_LEN_CONN_BT  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcStaticLenConnBt; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcStaticLenConnBt;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_LE_BT */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_STATIC_LEN_LE_BT  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcStaticLenLeBt; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcStaticLenLeBt;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_INQ_WLAN */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_STATIC_LEN_INQ_WLAN  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcStaticLenInqWlan; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcStaticLenInqWlan;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_PAGE_WLAN */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_STATIC_LEN_PAGE_WLAN  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcStaticLenPageWlan; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcStaticLenPageWlan;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_CONN_WLAN */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_STATIC_LEN_CONN_WLAN  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcStaticLenConnWlan; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcStaticLenConnWlan;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_LE_WLAN */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_STATIC_LEN_LE_WLAN  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcStaticLenLeWlan; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcStaticLenLeWlan;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_DYN_MAX_LEN_BT */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_DYN_MAX_LEN_BT  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcDynMaxLenBt; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcDynMaxLenBt;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_DYN_MAX_LEN_WLAN */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_DYN_MAX_LEN_WLAN  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcDynMaxLenWlan; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcDynMaxLenWlan;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_MAX_SCO_BLOCK_PERC */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_MAX_SCO_BLOCK_PERC  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcMaxScoBlockPerc; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcMaxScoBlockPerc;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_DHCP_PROT_ON_A2DP */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_DHCP_PROT_ON_A2DP  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcDhcpProtOnA2dp; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcDhcpProtOnA2dp;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* [COEX] QWLAN_HAL_CFG_BTC_DHCP_PROT_ON_SCO */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_BTC_DHCP_PROT_ON_SCO  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	*cfg_data_val = mac->btc.btcConfig.btcDhcpProtOnSco; 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	*cfg_data_val = mac->btc.btcConfig.btcDhcpProtOnSco;
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/*TODO: what to send ?*/
 #if 0
 	/* QWLAN_HAL_CFG_WCNSS_API_VERSION */
@@ -916,63 +916,63 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 			wcnssCompiledApiVersion.minor,
 			wcnssCompiledApiVersion.version,
 			wcnssCompiledApiVersion.revision);
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 #endif
 	/* QWLAN_HAL_CFG_AP_KEEPALIVE_TIMEOUT   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_AP_KEEPALIVE_TIMEOUT  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_AP_KEEP_ALIVE_TIMEOUT, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_AP_KEEP_ALIVE_TIMEOUT,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_AP_KEEP_ALIVE_TIMEOUT");
 		goto handle_failure;
 	}
 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 	/* QWLAN_HAL_CFG_GO_KEEPALIVE_TIMEOUT   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_GO_KEEPALIVE_TIMEOUT  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_GO_KEEP_ALIVE_TIMEOUT, 
+	if(wlan_cfgGetInt(mac, WNI_CFG_GO_KEEP_ALIVE_TIMEOUT,
 				cfg_data_val ) != eSIR_SUCCESS)	{
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_GO_KEEP_ALIVE_TIMEOUT");
 		goto handle_failure;
 	}
 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* QWLAN_HAL_CFG_ENABLE_MC_ADDR_LIST */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_ENABLE_MC_ADDR_LIST;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_MC_ADDR_LIST, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_MC_ADDR_LIST, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_ENABLE_MC_ADDR_LIST");
 		goto handle_failure;
 	}
 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* QWLAN_HAL_CFG_ENABLE_UNICAST_FILTER */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_ENABLE_UNICAST_FILTER;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_UC_FILTER, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_UC_FILTER, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_ENABLE_UC_FILTER");
 		goto handle_failure;
 	}
 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_MAX_ASSOC_LIMIT;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
@@ -991,29 +991,29 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_ENABLE_LPWR_IMG_TRANSITION  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
-	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_LPWR_IMG_TRANSITION, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_LPWR_IMG_TRANSITION, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_ENABLE_LPWR_IMG_TRANSITION");
 		goto handle_failure;
 	}
 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
-			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ; 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
+			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	/* QWLAN_HAL_CFG_ENABLE_MCC_ADAPTIVE_SCHEDULER */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_ENABLE_MCC_ADAPTIVE_SCHEDULER;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 
-	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, cfg_data_val) 
+	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, cfg_data_val)
 			!= eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED");
 		goto handle_failure;
 	}
 
-	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct 
+	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
 			+ sizeof(tHalCfg) + tlv_struct->uCfgLen) ;
 
 	wma_start_params->usConfigBufferLen = (v_U8_t *)tlv_struct - tlv_struct_start ;
@@ -1024,7 +1024,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 				"****** Dumping CFG TLV ***** ");
 		for (i=0; (i+7) < wma_start_params->usConfigBufferLen; i+=8) {
 			VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-					"%02x %02x %02x %02x %02x %02x %02x %02x", 
+					"%02x %02x %02x %02x %02x %02x %02x %02x",
 					tlv_struct_start[i],
 					tlv_struct_start[i+1],
 					tlv_struct_start[i+2],
@@ -1049,10 +1049,10 @@ handle_failure:
 	return VOS_STATUS_E_FAILURE;
 }
 
-/* function:    
- * Descriptin:  
- * Args:        
- * Retruns:     
+/* function:
+ * Descriptin:
+ * Args:
+ * Retruns:
  */
 VOS_STATUS wma_nv_download_start(void *vos_context)
 {
@@ -1071,7 +1071,7 @@ VOS_STATUS wma_nv_download_start(void *vos_context)
 	v_U16_t no_pkts = 0;
 	v_U16_t frag_num = 0;
 
-	WMA_LOGD("Enter");	
+	WMA_LOGD("Enter");
 	/* Fill hal msg*/
 	/* halMsgHeader+driverType+configbuffer*/
 	/*-----------------------------------------------------------------------
@@ -1083,7 +1083,7 @@ VOS_STATUS wma_nv_download_start(void *vos_context)
 	no_pkts = TOTALFRAGMENTS(length);
 	last_frag_len = length % FRAGMENT_SIZE;
 
-	WMA_LOGD("no_pkts = %hu, last_frag_len = %hu", 
+	WMA_LOGD("no_pkts = %hu, last_frag_len = %hu",
 			no_pkts, last_frag_len);
 	// Download FRAGMENT_SIZE packets
 	if (no_pkts > 1) {
@@ -1268,10 +1268,10 @@ end:
 	WMA_LOGD("Exit");
 	return vos_status;
 }
-/* function   : wma_get_hal_drv_type 
- * Descriptin :  
- * Args       :        
- * Retruns    :     
+/* function   : wma_get_hal_drv_type
+ * Descriptin :
+ * Args       :
+ * Retruns    :
  */
 tDriverType wma_get_hal_drv_type(t_wma_drv_type wma_driver_type)
 {
@@ -1288,9 +1288,9 @@ tDriverType wma_get_hal_drv_type(t_wma_drv_type wma_driver_type)
 }
 
 /* function   : wma_cfg_download_isoc
- * Descriptin :  
- * Args       :        
- * Retruns    :     
+ * Descriptin :
+ * Args       :
+ * Retruns    :
  */
 VOS_STATUS wma_cfg_download_isoc(v_VOID_t *vos_context, tp_wma_handle wma_handle)
 {
@@ -1403,10 +1403,10 @@ end:
 	return vos_status;
 }
 
-/* function   : wma_cfg_nv_download_complete    
- * Descriptin :  
- * Args       :        
- * Retruns    :     
+/* function   : wma_cfg_nv_download_complete
+ * Descriptin :
+ * Args       :
+ * Retruns    :
  */
 v_VOID_t wma_cfg_nv_download_complete(WMA_HANDLE handle, HTC_PACKET *htc_pkt)
 {
@@ -1484,10 +1484,10 @@ void wma_cfg_nv_rx(WMA_HANDLE handle, HTC_PACKET *htc_pkt)
 					!= VOS_STATUS_SUCCESS))
 		WMA_LOGE("Failed to set the event");
 }
-/* function   : wma_htc_cfg_nv_connect_service    
- * Descriptin :  
- * Args       :        
- * Retruns    :     
+/* function   : wma_htc_cfg_nv_connect_service
+ * Descriptin :
+ * Args       :
+ * Retruns    :
  */
 VOS_STATUS wma_htc_cfg_nv_connect_service(tp_wma_handle wma_handle)
 {
@@ -1496,7 +1496,7 @@ VOS_STATUS wma_htc_cfg_nv_connect_service(tp_wma_handle wma_handle)
 	A_STATUS status = A_OK;
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
-	WMA_LOGD("Enter");	
+	WMA_LOGD("Enter");
 
 	/* meta data is unused for now */
 	connect_req.pMetaData = NULL;
@@ -1504,34 +1504,34 @@ VOS_STATUS wma_htc_cfg_nv_connect_service(tp_wma_handle wma_handle)
 
 	/* these fields are the same for all service endpoints */
 	connect_req.EpCallbacks.pContext = wma_handle;
-	connect_req.EpCallbacks.EpTxCompleteMultiple = NULL; 
+	connect_req.EpCallbacks.EpTxCompleteMultiple = NULL;
 	connect_req.EpCallbacks.EpRecv = wma_cfg_nv_rx;
-	connect_req.EpCallbacks.EpRecvRefill = NULL; 
-	connect_req.EpCallbacks.EpSendFull = NULL; 
+	connect_req.EpCallbacks.EpRecvRefill = NULL;
+	connect_req.EpCallbacks.EpSendFull = NULL;
 	connect_req.EpCallbacks.EpTxComplete = wma_cfg_nv_download_complete;
 
 	/* connect to control service */
 	connect_req.ServiceID = CFG_NV_SVC;
-	
+
 	status = HTCConnectService(wma_handle->htc_handle, &connect_req, &connect_resp);
-	
+
 	if (A_OK != status) {
-		WMA_LOGP("Failed to connect htc endpoint for cfg nv");	
+		WMA_LOGP("Failed to connect htc endpoint for cfg nv");
 		vos_status = VOS_STATUS_SUCCESS;
 		goto end;
 	}
 
 	if (HTC_SERVICE_SUCCESS == connect_resp.ConnectRespCode) {
-		WMA_LOGA("WMA --> HTCConnectService(CFG_NV_SVC) - success");	
+		WMA_LOGA("WMA --> HTCConnectService(CFG_NV_SVC) - success");
 		wma_handle->cfg_nv.endpoint_id = connect_resp.Endpoint;
 		vos_status = VOS_STATUS_SUCCESS;
 	}
 	else {
-		WMA_LOGP("HTCConnectService failed for cfg nv");	
+		WMA_LOGP("HTCConnectService failed for cfg nv");
 		vos_status = VOS_STATUS_E_FAILURE;
 	}
 end:
-	WMA_LOGD("Exit");	
+	WMA_LOGD("Exit");
 	return vos_status;
 }
 
