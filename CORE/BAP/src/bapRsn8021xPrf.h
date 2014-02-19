@@ -116,7 +116,7 @@ int
 aagPtkPrf(v_U32_t cryptHandle,
           v_U8_t result[AAG_PRF_MAX_OUTPUT_SIZE],
           v_U32_t prfLen,
-          tAniPacket *pmk, 
+          tAniPacket *pmk,
           tAniMacAddr authAddr,
           tAniMacAddr suppAddr,
           v_U8_t aNonce[ANI_EAPOL_KEY_RSN_NONCE_SIZE],

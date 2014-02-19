@@ -30,12 +30,12 @@
 
 /*===========================================================================
 
-               W L A N   B T - A M P  P A L   L A Y E R 
+               W L A N   B T - A M P  P A L   L A Y E R
                     T I M E R  S E R V I C E S  A P I
-                
-                   
+
+
 DESCRIPTION
-  This file contains the timer APIs used by the wlan BT-AMP PAL layer 
+  This file contains the timer APIs used by the wlan BT-AMP PAL layer
   module.
 ===========================================================================*/
 
@@ -69,16 +69,16 @@ when        who    what, where, why
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
-// Pick up all the BT-AMP internal definitions 
+// Pick up all the BT-AMP internal definitions
 // And underlying supporting types. (Including VOSS, CSR, and...)
-#include "bapInternal.h" 
+#include "bapInternal.h"
 
-/* Pick up the SIRIUS and HAL types */ 
-// Already taken care of, above 
+/* Pick up the SIRIUS and HAL types */
+// Already taken care of, above
 //#include "sirApi.h"
 //#include "halTypes.h"
 
-/* Pick up the CCM API def'n */ 
+/* Pick up the CCM API def'n */
 #include "ccmApi.h"
 
 /*----------------------------------------------------------------------------
@@ -86,13 +86,13 @@ when        who    what, where, why
  * -------------------------------------------------------------------------*/
  #ifdef __cplusplus
  extern "C" {
- #endif 
- 
+ #endif
+
 
 /*----------------------------------------------------------------------------
  *  Defines
  * -------------------------------------------------------------------------*/
-// Temporary 
+// Temporary
 //#define BAP_DEBUG
 
 
@@ -102,16 +102,16 @@ when        who    what, where, why
 
 
 /*----------------------------------------------------------------------------
- *  External declarations for global context 
+ *  External declarations for global context
  * -------------------------------------------------------------------------*/
 
 
 /*----------------------------------------------------------------------------
- *  Function prototypes 
+ *  Function prototypes
  * -------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------
- *  Utility Function prototypes 
+ *  Utility Function prototypes
  * -------------------------------------------------------------------------*/
 
 #if 0
@@ -119,123 +119,122 @@ when        who    what, where, why
 
   FUNCTION    WLANBAP_StartConnectionAcceptTimer
 
-  DESCRIPTION 
+  DESCRIPTION
     Clear out all fields in the BAP context.
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     IN
     pBtampCtx:   pointer to the BAP control block
     interval:    time interval.
-   
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
-    VOS_STATUS_E_FAULT:  access would cause a page fault  
-    VOS_STATUS_SUCCESS:  Everything is good :) 
+    VOS_STATUS_E_FAULT:  access would cause a page fault
+    VOS_STATUS_SUCCESS:  Everything is good :)
 
-  SIDE EFFECTS 
-  
+  SIDE EFFECTS
+
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANBAP_StartConnectionAcceptTimer
-( 
+(
   ptBtampContext  pBtampCtx,
   v_U32_t interval
 );
 #endif // 0
 
 /* Connection Accept timer*/
-VOS_STATUS WLANBAP_InitConnectionAcceptTimer 
+VOS_STATUS WLANBAP_InitConnectionAcceptTimer
     ( ptBtampContext  pBtampCtx);
 
 VOS_STATUS WLANBAP_DeinitConnectionAcceptTimer
     ( ptBtampContext  pBtampCtx);
 
-VOS_STATUS WLANBAP_StartConnectionAcceptTimer 
+VOS_STATUS WLANBAP_StartConnectionAcceptTimer
     (ptBtampContext  pBtampCtx, v_U32_t interval);
 
-VOS_STATUS WLANBAP_StopConnectionAcceptTimer 
+VOS_STATUS WLANBAP_StopConnectionAcceptTimer
     ( ptBtampContext  pBtampCtx);
 
-v_VOID_t WLANBAP_ConnectionAcceptTimerHandler 
+v_VOID_t WLANBAP_ConnectionAcceptTimerHandler
     ( v_PVOID_t userData );
 
 /* Link Supervision timer*/
-VOS_STATUS WLANBAP_InitLinkSupervisionTimer 
+VOS_STATUS WLANBAP_InitLinkSupervisionTimer
     ( ptBtampContext  pBtampCtx);
 
-VOS_STATUS WLANBAP_DeinitLinkSupervisionTimer 
+VOS_STATUS WLANBAP_DeinitLinkSupervisionTimer
     ( ptBtampContext  pBtampCtx);
 
-VOS_STATUS WLANBAP_StartLinkSupervisionTimer 
+VOS_STATUS WLANBAP_StartLinkSupervisionTimer
     (ptBtampContext  pBtampCtx, v_U32_t interval);
 
-VOS_STATUS WLANBAP_StopLinkSupervisionTimer 
+VOS_STATUS WLANBAP_StopLinkSupervisionTimer
     ( ptBtampContext  pBtampCtx);
 
-v_VOID_t WLANBAP_LinkSupervisionTimerHandler 
+v_VOID_t WLANBAP_LinkSupervisionTimerHandler
     ( v_PVOID_t userData );
 
 /* Logical Link Accept timer*/
-VOS_STATUS WLANBAP_InitLogicalLinkAcceptTimer 
+VOS_STATUS WLANBAP_InitLogicalLinkAcceptTimer
     ( ptBtampContext  pBtampCtx);
 
-VOS_STATUS WLANBAP_DeinitLogicalLinkAcceptTimer 
+VOS_STATUS WLANBAP_DeinitLogicalLinkAcceptTimer
     ( ptBtampContext  pBtampCtx);
 
-VOS_STATUS WLANBAP_StartLogicalLinkAcceptTimer 
+VOS_STATUS WLANBAP_StartLogicalLinkAcceptTimer
     (ptBtampContext  pBtampCtx, v_U32_t interval);
 
-VOS_STATUS WLANBAP_StopLogicalLinkAcceptTimer 
+VOS_STATUS WLANBAP_StopLogicalLinkAcceptTimer
     ( ptBtampContext  pBtampCtx);
 
-v_VOID_t WLANBAP_LogicalLinkAcceptTimerHandler 
+v_VOID_t WLANBAP_LogicalLinkAcceptTimerHandler
     ( v_PVOID_t userData );
 
 /* Best Effort Flush timer*/
-VOS_STATUS WLANBAP_InitBEFlushTimer 
+VOS_STATUS WLANBAP_InitBEFlushTimer
     ( ptBtampContext  pBtampCtx);
 
-VOS_STATUS WLANBAP_DeinitBEFlushTimer 
+VOS_STATUS WLANBAP_DeinitBEFlushTimer
     ( ptBtampContext  pBtampCtx);
 
-VOS_STATUS WLANBAP_StartBEFlushTimer 
+VOS_STATUS WLANBAP_StartBEFlushTimer
     (ptBtampContext  pBtampCtx, v_U32_t interval);
 
-VOS_STATUS WLANBAP_StopBEFlushTimer 
+VOS_STATUS WLANBAP_StopBEFlushTimer
     ( ptBtampContext  pBtampCtx);
 
-v_VOID_t WLANBAP_BEFlushTimerHandler 
+v_VOID_t WLANBAP_BEFlushTimerHandler
     ( v_PVOID_t userData );
 
 /* Tx Packet monitor timer handler */
-v_VOID_t 
+v_VOID_t
 WLANBAP_TxPacketMonitorHandler
-( 
-  v_PVOID_t userData 
+(
+  v_PVOID_t userData
 );
 
 /* Tx Packet monitor start timer */
-VOS_STATUS 
+VOS_STATUS
 WLANBAP_StartTxPacketMonitorTimer
-( 
+(
   ptBtampContext  pBtampCtx
 );
 
 /* Tx Packet monitor stop timer */
-VOS_STATUS 
-WLANBAP_StopTxPacketMonitorTimer 
-( 
+VOS_STATUS
+WLANBAP_StopTxPacketMonitorTimer
+(
   ptBtampContext  pBtampCtx
 );
 
 #ifdef __cplusplus
  }
-#endif 
+#endif
 
 
 #endif /* #ifndef WLAN_QCT_WLANBAP_API_TIMER_H */
-

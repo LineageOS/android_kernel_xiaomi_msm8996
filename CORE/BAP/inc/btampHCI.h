@@ -41,7 +41,7 @@
   * Mon Mar 02 14:06:14 2009 from the following file(s):
   *
   * btampHCI.frms
-  * 
+  *
   * PLEASE DON'T EDIT THIS FILE BY HAND!
   *
   * Instead, please update the input files & re-run
@@ -63,28 +63,28 @@
 
   FUNCTION    Unpack_XxxMessage
 
-  DESCRIPTION 
-    Unpack from a Message buffer into a structured type. 
+  DESCRIPTION
+    Unpack from a Message buffer into a structured type.
 
 
-  DEPENDENCIES 
+  DEPENDENCIES
 
 
-  PARAMETERS 
- 
+  PARAMETERS
+
 
     IN
     void * :       halHandle (passed down to the MAC layer and below)
     v_U8_t* :      Pointer to the source message buffer
     v_U16_t :      Length in bytes of the contents of the message buffer.
     tXxxMessage* : Pointer to the structure in which to return the unpacked values.
-   
+
   RETURN VALUE
 
-    The result code associated with performing the operation  
- 
+    The result code associated with performing the operation
 
-  SIDE EFFECTS 
+
+  SIDE EFFECTS
 
 ============================================================================*/
 v_U32_t Unpack_XxxMessage(void *, v_U8_t*,v_U16_t, tXxxMessage*);
@@ -94,14 +94,14 @@ v_U32_t Unpack_XxxMessage(void *, v_U8_t*,v_U16_t, tXxxMessage*);
 
   FUNCTION    Pack_XxxMessage
 
-  DESCRIPTION 
-    Pack the data from a structure into a Message buffer. 
+  DESCRIPTION
+    Pack the data from a structure into a Message buffer.
 
 
-  DEPENDENCIES 
+  DEPENDENCIES
 
 
-  PARAMETERS 
+  PARAMETERS
 
 
     IN
@@ -114,16 +114,16 @@ v_U32_t Unpack_XxxMessage(void *, v_U8_t*,v_U16_t, tXxxMessage*);
 
   RETURN VALUE
 
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
-  SIDE EFFECTS 
+  SIDE EFFECTS
 
 
 ============================================================================*/
 v_U32_t Pack_XxxMessage(void *, tXxxMessage*, v_U8_t*, v_U32_t, v_U32_t*);
 
 #endif
- 
+
 
 typedef v_U32_t tBTAMP_U64[2];
 
@@ -2034,24 +2034,24 @@ extern "C" {
 typedef struct sBtampTLVHCI_Num_Completed_Pkts_Event
 {
     v_U8_t       present;
-    /* 
+    /*
       The number of Connection Handles and Num_Data_Packets
       parameters pairs contained in this event.Range: 0-255
     */
 
     v_U8_t   num_handles;
 
-    /* 
-      Size , Number of Handles * 2 Octets,Range: 0x0000-0x0EFF 
+    /*
+      Size , Number of Handles * 2 Octets,Range: 0x0000-0x0EFF
     */
-    v_U16_t  conn_handles[WLANBAP_MAX_LOG_LINKS];  
+    v_U16_t  conn_handles[WLANBAP_MAX_LOG_LINKS];
 
-    /* 
+    /*
       The number of HCI Data Packets that have been completed (transmitted
       or flushed) for the associated Connection Handle since the previous time
       the event was returned.Range for N: 0x0000-0xFFFF
     */
-    v_U16_t  num_completed_pkts[WLANBAP_MAX_LOG_LINKS]; 
+    v_U16_t  num_completed_pkts[WLANBAP_MAX_LOG_LINKS];
 } tBtampTLVHCI_Num_Completed_Pkts_Event;
 
 #define BTAMP_TLV_HCI_NUM_OF_COMPLETED_PKTS_EVENT ( 19 )
@@ -2075,7 +2075,7 @@ extern "C" {
 typedef struct sBtampTLVHCI_Num_Completed_Data_Blocks_Event
 {
     v_U8_t       present;
-    /* 
+    /*
       Total number of data block buffers available in the Controller for the
       storage of data packets scheduled for transmission. This indicates
       the existing value is unchanged, or increased, or reduced by up to
@@ -2084,32 +2084,32 @@ typedef struct sBtampTLVHCI_Num_Completed_Data_Blocks_Event
 
     v_U16_t   total_num_data_blocks;
 
-    /* 
+    /*
       The number of Connection Handles and Num_Data_Packets
       parameters pairs contained in this event.Range: 0-255
     */
 
     v_U8_t   num_handles;
 
-    /* 
-      Size , Number of Handles * 2 Octets,Range: 0x0000-0x0EFF 
+    /*
+      Size , Number of Handles * 2 Octets,Range: 0x0000-0x0EFF
     */
-    v_U16_t  conn_handles[WLANBAP_MAX_LOG_LINKS];  
+    v_U16_t  conn_handles[WLANBAP_MAX_LOG_LINKS];
 
-    /* 
+    /*
       The number of HCI Data Packets that have been completed (transmitted
       or flushed) for the associated Connection Handle since the previous time
       the event was returned.Range for N: 0x0000-0xFFFF
     */
-    v_U16_t  num_completed_pkts[WLANBAP_MAX_LOG_LINKS]; 
+    v_U16_t  num_completed_pkts[WLANBAP_MAX_LOG_LINKS];
 
-    /* 
+    /*
       The number of data blocks that have been freed for the associated
       Handle since the previous time that a Number Of Completed Data
       Blocks event provided information about this Handle.
       Range for N: 0x0000-0xFFFF
     */
-    v_U16_t  num_completed_blocks[WLANBAP_MAX_LOG_LINKS]; 
+    v_U16_t  num_completed_blocks[WLANBAP_MAX_LOG_LINKS];
 
 } tBtampTLVHCI_Num_Completed_Data_Blocks_Event;
 
@@ -2124,5 +2124,3 @@ v_U32_t btampGetPackedTlvHCI_Num_Completed_Data_Blocks_Event(void *, tBtampTLVHC
 #endif /* C++ */
 
 #endif /* BTAMPHCI_H */
-
-

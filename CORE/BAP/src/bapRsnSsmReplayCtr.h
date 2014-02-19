@@ -79,7 +79,7 @@ typedef struct sAniSsmReplayCtr tAniSsmReplayCtr;
  * @return ANI_OK if the operation succeeds
  */
 int
-aniSsmReplayCtrCreate(v_U32_t cryptHandle, tAniSsmReplayCtr **ctrPtr, 
+aniSsmReplayCtrCreate(v_U32_t cryptHandle, tAniSsmReplayCtr **ctrPtr,
                       v_U8_t size,
                       int initValue);
 
@@ -87,7 +87,7 @@ aniSsmReplayCtrCreate(v_U32_t cryptHandle, tAniSsmReplayCtr **ctrPtr,
  * aniSsmReplayCtrCmp
  *
  * Used to check if the passed in value is greater
- * than, less than, or the same as the previous value. 
+ * than, less than, or the same as the previous value.
  *
  * Can be used on the TX side to determine if the response to a
  * request contains the same counter as the one in the request.

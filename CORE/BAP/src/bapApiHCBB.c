@@ -28,16 +28,16 @@
 /*===========================================================================
 
                       b a p A p i H C B B . C
-                                               
+
   OVERVIEW:
-  
+
   This software unit holds the implementation of the WLAN BAP modules
   Host Controller and Baseband functions.
-  
-  The functions externalized by this module are to be called ONLY by other 
+
+  The functions externalized by this module are to be called ONLY by other
   WLAN modules (HDD) that properly register with the BAP Layer initially.
 
-  DEPENDENCIES: 
+  DEPENDENCIES:
 
   Are listed for each API below.
 ===========================================================================*/
@@ -68,9 +68,9 @@
 // Pick up the sme callback registration API
 #include "sme_Api.h"
 
-/* BT-AMP PAL API header file */ 
-#include "bapApi.h" 
-#include "bapInternal.h" 
+/* BT-AMP PAL API header file */
+#include "bapApi.h"
+#include "bapInternal.h"
 
 //#define BAP_DEBUG
 /*----------------------------------------------------------------------------
@@ -109,30 +109,30 @@
 
   FUNCTION    WLAN_BAPReset()
 
-  DESCRIPTION 
+  DESCRIPTION
     Implements the actual HCI Reset command.
-    Produces an asynchronous command complete event. Through the 
+    Produces an asynchronous command complete event. Through the
     command complete callback.  (I.E., (*tpWLAN_BAPEventCB).)
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
-   
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReset
-( 
+(
   ptBtampHandle btampHandle
 )
 {
@@ -144,8 +144,8 @@ WLAN_BAPReset
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
-    if (btampHandle == NULL) 
+    /* Validate params */
+    if (btampHandle == NULL)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                      "btampHandle is NULL in %s", __func__);
@@ -153,9 +153,9 @@ WLAN_BAPReset
       return VOS_STATUS_E_FAULT;
     }
 
-    /* Perform a "reset" */ 
+    /* Perform a "reset" */
     hHal = VOS_GET_HAL_CB(btampContext->pvosGCtx);
-    if (NULL == hHal) 
+    if (NULL == hHal)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                      "hHal is NULL in %s", __func__);
@@ -176,30 +176,30 @@ WLAN_BAPReset
 
     /* Need to reset the timers as well*/
     /* Connection Accept Timer interval*/
-    btampContext->bapConnectionAcceptTimerInterval = WLANBAP_CONNECTION_ACCEPT_TIMEOUT;  
+    btampContext->bapConnectionAcceptTimerInterval = WLANBAP_CONNECTION_ACCEPT_TIMEOUT;
     /* Link Supervision Timer interval*/
-    btampContext->bapLinkSupervisionTimerInterval = WLANBAP_LINK_SUPERVISION_TIMEOUT;  
+    btampContext->bapLinkSupervisionTimerInterval = WLANBAP_LINK_SUPERVISION_TIMEOUT;
     /* Logical Link Accept Timer interval*/
-    btampContext->bapLogicalLinkAcceptTimerInterval = WLANBAP_LOGICAL_LINK_ACCEPT_TIMEOUT;  
+    btampContext->bapLogicalLinkAcceptTimerInterval = WLANBAP_LOGICAL_LINK_ACCEPT_TIMEOUT;
     /* Best Effort Flush timer interval*/
-    btampContext->bapBEFlushTimerInterval = WLANBAP_BE_FLUSH_TIMEOUT;  
+    btampContext->bapBEFlushTimerInterval = WLANBAP_BE_FLUSH_TIMEOUT;
 
 
-    /* Form and immediately return the command complete event... */ 
+    /* Form and immediately return the command complete event... */
     bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     bapHCIEvent.u.btampCommandCompleteEvent.present = 1;
     bapHCIEvent.u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    bapHCIEvent.u.btampCommandCompleteEvent.command_opcode 
+    bapHCIEvent.u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_RESET_CMD;
-    bapHCIEvent.u.btampCommandCompleteEvent.cc_event.Reset.status 
+    bapHCIEvent.u.btampCommandCompleteEvent.cc_event.Reset.status
         = WLANBAP_STATUS_SUCCESS;
 
-    vosStatus = (*btampContext->pBapHCIEventCB) 
-        (  
+    vosStatus = (*btampContext->pBapHCIEventCB)
+        (
          //btampContext->pHddHdl,   /* this refers to the BSL per connection context */
          btampContext->pAppHdl,   /* this refers the BSL per application context */
          &bapHCIEvent, /* This now encodes ALL event types */
-         VOS_FALSE /* Flag to indicate assoc-specific event */ 
+         VOS_FALSE /* Flag to indicate assoc-specific event */
         );
 
     return vosStatus;
@@ -209,36 +209,36 @@ WLAN_BAPReset
 
   FUNCTION    WLAN_BAPSetEventMask()
 
-  DESCRIPTION 
-    Implements the actual HCI Set Event Mask command.  There is no need for 
+  DESCRIPTION
+    Implements the actual HCI Set Event Mask command.  There is no need for
     a callback because when this call returns the action has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCISetEventMask:  pointer to the "HCI Set Event Mask" Structure.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCISetEventMask is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCISetEventMask is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPSetEventMask
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Set_Event_Mask_Cmd   *pBapHCISetEventMask,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -253,33 +253,33 @@ WLAN_BAPSetEventMask
 
   FUNCTION    WLAN_BAPFlush()
 
-  DESCRIPTION 
+  DESCRIPTION
     Implements the actual HCI Flush command
-    Produces an asynchronous command complete event. Through the 
-    event callback. And an asynchronous Flush occurred event. Also through the 
+    Produces an asynchronous command complete event. Through the
+    event callback. And an asynchronous Flush occurred event. Also through the
     event callback.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIFlush:  pointer to the "HCI Flush" Structure.
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIFlush is NULL 
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIFlush is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPFlush
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Flush_Cmd     *pBapHCIFlush
 )
@@ -291,26 +291,26 @@ WLAN_BAPFlush
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if (btampHandle == NULL) {
       return VOS_STATUS_E_FAULT;
     }
 
-    /* Form and immediately return the command complete event... */ 
+    /* Form and immediately return the command complete event... */
     bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     bapHCIEvent.u.btampCommandCompleteEvent.present = 1;
     bapHCIEvent.u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    bapHCIEvent.u.btampCommandCompleteEvent.command_opcode 
+    bapHCIEvent.u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_FLUSH_CMD;
     bapHCIEvent.u.btampCommandCompleteEvent.cc_event.Flush.status
         = WLANBAP_STATUS_SUCCESS;
 
-    vosStatus = (*btampContext->pBapHCIEventCB) 
-        (  
+    vosStatus = (*btampContext->pBapHCIEventCB)
+        (
          //btampContext->pHddHdl,   /* this refers to the BSL per connection context */
          btampContext->pAppHdl,   /* this refers the BSL per application context */
          &bapHCIEvent, /* This now encodes ALL event types */
-         VOS_FALSE /* Flag to indicate assoc-specific event */ 
+         VOS_FALSE /* Flag to indicate assoc-specific event */
         );
 
     return vosStatus;
@@ -320,36 +320,36 @@ WLAN_BAPFlush
 
   FUNCTION    WLAN_EnhancedBAPFlush()
 
-  DESCRIPTION 
+  DESCRIPTION
     Implements the actual HCI Enhanced Flush command
-    Produces an asynchronous command complete event. Through the command status 
-    event callback. And an asynchronous Enhanced Flush Complete event. 
+    Produces an asynchronous command complete event. Through the command status
+    event callback. And an asynchronous Enhanced Flush Complete event.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIFlush:  pointer to the "HCI Enhanced Flush" Structure.
     IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
                 the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIFlush is NULL 
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIFlush is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_EnhancedBAPFlush
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Enhanced_Flush_Cmd     *pBapHCIFlush,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -364,8 +364,8 @@ WLAN_EnhancedBAPFlush
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
-    /* Validate params */ 
+    /* Validate params */
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIEvent))
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -382,18 +382,18 @@ WLAN_EnhancedBAPFlush
         = BTAMP_TLV_HCI_ENHANCED_FLUSH_CMD;
     bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_STATUS_SUCCESS;
 
-    /* Form and immediately return the command complete event... */ 
+    /* Form and immediately return the command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_ENHANCED_FLUSH_COMPLETE_EVENT;
     pBapHCIEvent->u.btampEnhancedFlushCompleteEvent.present = 1;
-    pBapHCIEvent->u.btampEnhancedFlushCompleteEvent.log_link_handle = 
+    pBapHCIEvent->u.btampEnhancedFlushCompleteEvent.log_link_handle =
         pBapHCIFlush->log_link_handle;
 
-    vosStatus = (*btampContext->pBapHCIEventCB) 
-        (  
+    vosStatus = (*btampContext->pBapHCIEventCB)
+        (
          //btampContext->pHddHdl,   /* this refers to the BSL per connection context */
          btampContext->pAppHdl,   /* this refers the BSL per application context */
          &bapHCIEvent, /* This now encodes ALL event types */
-         VOS_FALSE /* Flag to indicate assoc-specific event */ 
+         VOS_FALSE /* Flag to indicate assoc-specific event */
         );
 
     return vosStatus;
@@ -403,36 +403,36 @@ WLAN_EnhancedBAPFlush
 
   FUNCTION    WLAN_BAPReadConnectionAcceptTimeout()
 
-  DESCRIPTION 
-    Implements the actual HCI Read Connection Accept Timeout command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Read Connection Accept Timeout command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadConnectionAcceptTimeout is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadConnectionAcceptTimeout is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReadConnectionAcceptTimeout
-( 
+(
   ptBtampHandle btampHandle,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
                                 /* Including "Read" Command Complete */
@@ -444,7 +444,7 @@ WLAN_BAPReadConnectionAcceptTimeout
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIEvent))
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -452,11 +452,11 @@ WLAN_BAPReadConnectionAcceptTimeout
         return VOS_STATUS_E_FAULT;
     }
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_READ_CONNECTION_ACCEPT_TIMEOUT_CMD;
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Connection_Accept_TO.status
         = WLANBAP_STATUS_SUCCESS;
@@ -470,37 +470,37 @@ WLAN_BAPReadConnectionAcceptTimeout
 
   FUNCTION    WLAN_BAPWriteConnectionAcceptTimeout()
 
-  DESCRIPTION 
-    Implements the actual HCI Write Connection Accept Timeout command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Write Connection Accept Timeout command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIWriteConnectionAcceptTimeout:  pointer to the "HCI Connection Accept Timeout" Structure.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteConnectionAcceptTimeout is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteConnectionAcceptTimeout is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPWriteConnectionAcceptTimeout
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Write_Connection_Accept_Timeout_Cmd   *pBapHCIWriteConnectionAcceptTimeout,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -513,7 +513,7 @@ WLAN_BAPWriteConnectionAcceptTimeout
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIWriteConnectionAcceptTimeout)
         || (NULL == pBapHCIEvent))
     {
@@ -524,7 +524,7 @@ WLAN_BAPWriteConnectionAcceptTimeout
 
     /* Validate the allowed timeout interval range */
     if ((pBapHCIWriteConnectionAcceptTimeout->connection_accept_timeout >
-         WLANBAP_CON_ACCEPT_TIMEOUT_MAX_RANGE) || 
+         WLANBAP_CON_ACCEPT_TIMEOUT_MAX_RANGE) ||
         (pBapHCIWriteConnectionAcceptTimeout->connection_accept_timeout <
          WLANBAP_CON_ACCEPT_TIMEOUT_MIN_RANGE))
     {
@@ -537,7 +537,7 @@ WLAN_BAPWriteConnectionAcceptTimeout
     else
     {
         /* Save the Physical link connection accept timeout value */
-        btampContext->bapConnectionAcceptTimerInterval = 
+        btampContext->bapConnectionAcceptTimerInterval =
             pBapHCIWriteConnectionAcceptTimeout->connection_accept_timeout;
 
         /* Return status for command complete event */
@@ -545,11 +545,11 @@ WLAN_BAPWriteConnectionAcceptTimeout
             = WLANBAP_STATUS_SUCCESS;
     }
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_WRITE_CONNECTION_ACCEPT_TIMEOUT_CMD;
 
     return VOS_STATUS_SUCCESS;
@@ -560,36 +560,36 @@ WLAN_BAPWriteConnectionAcceptTimeout
 
   FUNCTION    WLAN_BAPReadLinkSupervisionTimeout()
 
-  DESCRIPTION 
-    Implements the actual HCI Read Link Supervision Timeout command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Read Link Supervision Timeout command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLinkSupervisionTimeout is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLinkSupervisionTimeout is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReadLinkSupervisionTimeout
-( 
+(
   ptBtampHandle btampHandle,
   /* Only 8 bits (phy_link_handle) of this log_link_handle are valid. */
   tBtampTLVHCI_Read_Link_Supervision_Timeout_Cmd *pBapHCIReadLinkSupervisionTimeout,
@@ -604,7 +604,7 @@ WLAN_BAPReadLinkSupervisionTimeout
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIReadLinkSupervisionTimeout) ||
         (NULL == pBapHCIEvent))
     {
@@ -638,11 +638,11 @@ WLAN_BAPReadLinkSupervisionTimeout
             = WLANBAP_STATUS_SUCCESS;
     }
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_READ_LINK_SUPERVISION_TIMEOUT_CMD;
 
     return VOS_STATUS_SUCCESS;
@@ -652,37 +652,37 @@ WLAN_BAPReadLinkSupervisionTimeout
 
   FUNCTION    WLAN_BAPWriteLinkSupervisionTimeout()
 
-  DESCRIPTION 
-    Implements the actual HCI Write Link Supervision Timeout command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Write Link Supervision Timeout command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIWriteLinkSupervisionTimeout:  pointer to the "HCI Link Supervision Timeout" Structure.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteLinkSupervisionTimeout is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteLinkSupervisionTimeout is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPWriteLinkSupervisionTimeout
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Write_Link_Supervision_Timeout_Cmd   *pBapHCIWriteLinkSupervisionTimeout,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -696,7 +696,7 @@ WLAN_BAPWriteLinkSupervisionTimeout
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIWriteLinkSupervisionTimeout) ||
         (NULL == pBapHCIEvent))
     {
@@ -730,11 +730,11 @@ WLAN_BAPWriteLinkSupervisionTimeout
             = WLANBAP_STATUS_SUCCESS;
     }
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_WRITE_LINK_SUPERVISION_TIMEOUT_CMD;
 
     return VOS_STATUS_SUCCESS;
@@ -747,36 +747,36 @@ WLAN_BAPWriteLinkSupervisionTimeout
 
   FUNCTION    WLAN_BAPReadLogicalLinkAcceptTimeout()
 
-  DESCRIPTION 
-    Implements the actual HCI Read Logical Link Accept Timeout command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Read Logical Link Accept Timeout command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLogicalLinkAcceptTimeout is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLogicalLinkAcceptTimeout is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReadLogicalLinkAcceptTimeout
-( 
+(
   ptBtampHandle btampHandle,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
                                 /* Including "Read" Command Complete*/
@@ -788,7 +788,7 @@ WLAN_BAPReadLogicalLinkAcceptTimeout
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIEvent))
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -796,11 +796,11 @@ WLAN_BAPReadLogicalLinkAcceptTimeout
         return VOS_STATUS_E_FAULT;
     }
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_READ_LOGICAL_LINK_ACCEPT_TIMEOUT_CMD;
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Logical_Link_Accept_TO.status
         = WLANBAP_STATUS_SUCCESS;
@@ -814,37 +814,37 @@ WLAN_BAPReadLogicalLinkAcceptTimeout
 
   FUNCTION    WLAN_BAPWriteLogicalLinkAcceptTimeout()
 
-  DESCRIPTION 
-    Implements the actual HCI Write Logical Link Accept Timeout command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Write Logical Link Accept Timeout command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIWriteLogicalLinkAcceptTimeout:  pointer to the "HCI Logical Link Accept Timeout" Structure.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteLogicalLinkAcceptTimeout is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteLogicalLinkAcceptTimeout is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPWriteLogicalLinkAcceptTimeout
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Write_Logical_Link_Accept_Timeout_Cmd   *pBapHCIWriteLogicalLinkAcceptTimeout,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -857,7 +857,7 @@ WLAN_BAPWriteLogicalLinkAcceptTimeout
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIWriteLogicalLinkAcceptTimeout)
         || (NULL == pBapHCIEvent))
     {
@@ -868,7 +868,7 @@ WLAN_BAPWriteLogicalLinkAcceptTimeout
 
     /* Validate the allowed timeout interval range */
     if ((pBapHCIWriteLogicalLinkAcceptTimeout->logical_link_accept_timeout >
-         WLANBAP_CON_ACCEPT_TIMEOUT_MAX_RANGE) || 
+         WLANBAP_CON_ACCEPT_TIMEOUT_MAX_RANGE) ||
         (pBapHCIWriteLogicalLinkAcceptTimeout->logical_link_accept_timeout <
          WLANBAP_CON_ACCEPT_TIMEOUT_MIN_RANGE))
     {
@@ -881,7 +881,7 @@ WLAN_BAPWriteLogicalLinkAcceptTimeout
     else
     {
         /* Save the Physical link connection accept timeout value */
-        btampContext->bapLogicalLinkAcceptTimerInterval = 
+        btampContext->bapLogicalLinkAcceptTimerInterval =
             pBapHCIWriteLogicalLinkAcceptTimeout->logical_link_accept_timeout;
 
         /* Return status for command complete event */
@@ -889,11 +889,11 @@ WLAN_BAPWriteLogicalLinkAcceptTimeout
             = WLANBAP_STATUS_SUCCESS;
     }
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_WRITE_LOGICAL_LINK_ACCEPT_TIMEOUT_CMD;
 
     return VOS_STATUS_SUCCESS;
@@ -903,36 +903,36 @@ WLAN_BAPWriteLogicalLinkAcceptTimeout
 
   FUNCTION    WLAN_BAPSetEventMaskPage2()
 
-  DESCRIPTION 
-    Implements the actual HCI Set Event Mask Page 2 command.  There is no need for 
+  DESCRIPTION
+    Implements the actual HCI Set Event Mask Page 2 command.  There is no need for
     a callback because when this call returns the action has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCISetEventMaskPage2:  pointer to the "HCI Set Event Mask Page 2" Structure.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCISetEventMaskPage2 is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCISetEventMaskPage2 is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPSetEventMaskPage2
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Set_Event_Mask_Page_2_Cmd   *pBapHCISetEventMaskPage2,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -945,7 +945,7 @@ WLAN_BAPSetEventMaskPage2
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCISetEventMaskPage2)
         || (NULL == pBapHCIEvent))
     {
@@ -956,20 +956,20 @@ WLAN_BAPSetEventMaskPage2
 
 
     /* Save away the event mask */
-    vos_mem_copy(  
-            btampContext->event_mask_page_2, 
-            pBapHCISetEventMaskPage2->event_mask_page_2, 
+    vos_mem_copy(
+            btampContext->event_mask_page_2,
+            pBapHCISetEventMaskPage2->event_mask_page_2,
             8 );
 
     /* Return status for command complete event */
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Set_Event_Mask_Page_2.status
         = WLANBAP_STATUS_SUCCESS;
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_SET_EVENT_MASK_PAGE_2_CMD;
 
     return VOS_STATUS_SUCCESS;
@@ -979,36 +979,36 @@ WLAN_BAPSetEventMaskPage2
 
   FUNCTION    WLAN_BAPReadLocationData()
 
-  DESCRIPTION 
-    Implements the actual HCI Read Location Data command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Read Location Data command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLocationData is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLocationData is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReadLocationData
-( 
+(
   ptBtampHandle btampHandle,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
                                 /* Including "Read" Command Complete*/
@@ -1020,7 +1020,7 @@ WLAN_BAPReadLocationData
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIEvent))
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -1036,20 +1036,20 @@ WLAN_BAPReadLocationData
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Location_Data.loc_options
         = btampContext->btamp_Location_Data_Info.loc_options;
 
-    vos_mem_copy(  
+    vos_mem_copy(
             pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Location_Data.loc_domain,
-            btampContext->btamp_Location_Data_Info.loc_domain, 
+            btampContext->btamp_Location_Data_Info.loc_domain,
             3 );
 
     /* Return status for command complete event */
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Location_Data.status
         = WLANBAP_STATUS_SUCCESS;
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_READ_LOCATION_DATA_CMD;
 
     return VOS_STATUS_SUCCESS;
@@ -1059,37 +1059,37 @@ WLAN_BAPReadLocationData
 
   FUNCTION    WLAN_BAPWriteLocationData()
 
-  DESCRIPTION 
-    Implements the actual HCI Write Location Data command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Write Location Data command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIWriteLocationData:  pointer to the "HCI Write Location Data" Structure.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteLocationData is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteLocationData is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPWriteLocationData
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Write_Location_Data_Cmd   *pBapHCIWriteLocationData,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -1102,7 +1102,7 @@ WLAN_BAPWriteLocationData
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIWriteLocationData)
         || (NULL == pBapHCIEvent))
     {
@@ -1113,26 +1113,26 @@ WLAN_BAPWriteLocationData
 
     btampContext = (ptBtampContext) btampHandle;
 
-    btampContext->btamp_Location_Data_Info.loc_domain_aware = 
+    btampContext->btamp_Location_Data_Info.loc_domain_aware =
         pBapHCIWriteLocationData->loc_domain_aware;
-    
-    btampContext->btamp_Location_Data_Info.loc_options = 
+
+    btampContext->btamp_Location_Data_Info.loc_options =
         pBapHCIWriteLocationData->loc_options;
 
-    vos_mem_copy(  
-            btampContext->btamp_Location_Data_Info.loc_domain, 
-            pBapHCIWriteLocationData->loc_domain, 
+    vos_mem_copy(
+            btampContext->btamp_Location_Data_Info.loc_domain,
+            pBapHCIWriteLocationData->loc_domain,
             3 );
 
     /* Return status for command complete event */
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Write_Location_Data.status
         = WLANBAP_STATUS_SUCCESS;
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_WRITE_LOCATION_DATA_CMD;
 
     return VOS_STATUS_SUCCESS;
@@ -1143,36 +1143,36 @@ WLAN_BAPWriteLocationData
 
   FUNCTION    WLAN_BAPReadFlowControlMode()
 
-  DESCRIPTION 
-    Implements the actual HCI Read Flow Control Mode command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Read Flow Control Mode command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadFlowControlMode is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadFlowControlMode is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReadFlowControlMode
-( 
+(
   ptBtampHandle btampHandle,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
                                 /* Including "Read" Command Complete*/
@@ -1183,7 +1183,7 @@ WLAN_BAPReadFlowControlMode
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIEvent))
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -1191,11 +1191,11 @@ WLAN_BAPReadFlowControlMode
         return VOS_STATUS_E_FAULT;
     }
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_READ_FLOW_CONTROL_MODE_CMD;
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Flow_Control_Mode.status
         = WLANBAP_STATUS_SUCCESS;
@@ -1209,37 +1209,37 @@ WLAN_BAPReadFlowControlMode
 
   FUNCTION    WLAN_BAPWriteFlowControlMode()
 
-  DESCRIPTION 
-    Implements the actual HCI Write Flow Control Mode command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Write Flow Control Mode command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIWriteFlowControlMode:  pointer to the "HCI Write Flow Control Mode" Structure.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteFlowControlMode is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteFlowControlMode is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPWriteFlowControlMode
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Write_Flow_Control_Mode_Cmd   *pBapHCIWriteFlowControlMode,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -1254,36 +1254,36 @@ WLAN_BAPWriteFlowControlMode
 
   FUNCTION    WLAN_BAPReadBestEffortFlushTimeout()
 
-  DESCRIPTION 
-    Implements the actual HCI Read Best Effort Flush Timeout command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Read Best Effort Flush Timeout command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadBEFlushTO is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadBEFlushTO is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReadBestEffortFlushTimeout
-( 
+(
   ptBtampHandle btampHandle,
   /* The log_link_hanlde identifies which logical link's BE TO*/
   tBtampTLVHCI_Read_Best_Effort_Flush_Timeout_Cmd   *pBapHCIReadBEFlushTO,
@@ -1299,37 +1299,37 @@ WLAN_BAPReadBestEffortFlushTimeout
 
   FUNCTION    WLAN_BAPWriteBestEffortFlushTimeout()
 
-  DESCRIPTION 
-    Implements the actual HCI Write Best Effort Flush TO command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Write Best Effort Flush TO command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIWriteBEFlushTO:  pointer to the "HCI Write BE Flush TO" Structure.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteBEFlushTO is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteBEFlushTO is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPWriteBestEffortFlushTimeout
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Write_Best_Effort_Flush_Timeout_Cmd   *pBapHCIWriteBEFlushTO,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -1345,36 +1345,36 @@ WLAN_BAPWriteBestEffortFlushTimeout
 
   FUNCTION    WLAN_BAPSetShortRangeMode()
 
-  DESCRIPTION 
-    Implements the actual HCI Set Short Range Mode command.  There is no need for 
+  DESCRIPTION
+    Implements the actual HCI Set Short Range Mode command.  There is no need for
     a callback because when this call returns the action has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIShortRangeMode:  pointer to the "HCI Set Short Range Mode" Structure.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIShortRangeMode is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIShortRangeMode is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPSetShortRangeMode
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Set_Short_Range_Mode_Cmd   *pBapHCIShortRangeMode,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -1438,7 +1438,7 @@ WLAN_BAPSetShortRangeMode
          VOS_FALSE /* Flag to indicate assoc-specific event */
         );
 
-    /* Format the Short Range Mode Complete event to return... */ 
+    /* Format the Short Range Mode Complete event to return... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_SHORT_RANGE_MODE_CHANGE_COMPLETE_EVENT;
     pBapHCIEvent->u.btampShortRangeModeChangeCompleteEvent.present = 1;
 
@@ -1655,31 +1655,31 @@ WLAN_BAPVendorSpecificCmd1
 
 /*----------------------------------------------------------------------------
 
-  DESCRIPTION   
+  DESCRIPTION
     Callback registered with TL for BAP, this is required in order for
-    TL to inform BAP, that the flush operation requested has been completed. 
-    
-    The registered reception callback is being triggered by TL whenever a 
+    TL to inform BAP, that the flush operation requested has been completed.
+
+    The registered reception callback is being triggered by TL whenever a
     frame SIR_TL_HAL_FLUSH_AC_RSP is received by TL from HAL.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
-    pvosGCtx:       pointer to the global vos context; a handle to TL's 
-                    or SME's control block can be extracted from its context 
+    pvosGCtx:       pointer to the global vos context; a handle to TL's
+                    or SME's control block can be extracted from its context
     ucStaId:        station identifier for the requested value
-    ucTid:          identifier of the tspec 
+    ucTid:          identifier of the tspec
     status:         status of the Flush operation
-  
-  RETURN VALUE 
+
+  RETURN VALUE
     The result code associated with performing the operation
 
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAP_TLFlushCompCallback
-( 
+(
   v_PVOID_t     pvosGCtx,
-  v_U8_t        ucStaId, 
-  v_U8_t        ucTID, 
+  v_U8_t        ucStaId,
+  v_U8_t        ucTID,
   v_U8_t        status
 )
 {
@@ -1689,8 +1689,3 @@ VOS_STATUS WLANBAP_TLFlushCompCallback
 
 
 /* End of v3.0 Host Controller and Baseband Commands */
-
-
- 
-
-
