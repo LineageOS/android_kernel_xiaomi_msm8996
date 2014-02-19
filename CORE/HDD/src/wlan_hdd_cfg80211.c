@@ -8289,7 +8289,6 @@ void hdd_cfg80211_sched_scan_done_callback(void *callbackContext,
     int ret;
     hdd_adapter_t* pAdapter = (hdd_adapter_t*)callbackContext;
     hdd_context_t *pHddCtx;
-    hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
 
     if (NULL == pAdapter)
     {
@@ -8321,8 +8320,6 @@ void hdd_cfg80211_sched_scan_done_callback(void *callbackContext,
 
     if (0 > ret)
         hddLog(VOS_TRACE_LEVEL_INFO, "%s: NO SCAN result", __func__);
-
-    pScanInfo->mPnoScanPending = FALSE;
 
     cfg80211_sched_scan_results(pHddCtx->wiphy);
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,

@@ -15250,6 +15250,9 @@ static int wma_nlo_match_evt_handler(void *handle, u_int8_t *event,
 	if (node)
 		node->nlo_match_evt_received = TRUE;
 
+	vos_wake_lock_timeout_acquire(&wma->pno_wake_lock,
+				      WMA_PNO_WAKE_LOCK_TIMEOUT);
+
 	return 0;
 }
 
@@ -15263,7 +15266,6 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 			(WMI_NLO_SCAN_COMPLETE_EVENTID_param_tlvs *) event;
 	tSirScanOffloadEvent *scan_event;
 	struct wma_txrx_node *node;
-	VOS_STATUS status;
 
 	if (!param_buf) {
 		WMA_LOGE("Invalid NLO scan comp event buffer");
@@ -15283,10 +15285,6 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 		nlo_event->vdev_id);
 		goto skip_pno_cmp_ind;
 	}
-	/* FW need explict stop to really stop PNO operation */
-	status = wma_pno_stop(wma, nlo_event->vdev_id);
-	if (status)
-		WMA_LOGE("Failed to stop PNO scan");
 
 	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc(
 					      sizeof(tSirScanOffloadEvent));
