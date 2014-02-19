@@ -29,11 +29,11 @@
 #define __I_VOS_DIAG_CORE_EVENT_H
 
 /**=========================================================================
-  
+
   \file  i_vos_diag_core_event.h
-  
+
   \brief Android specific definitions for vOSS DIAG events
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -46,7 +46,7 @@
 #include <event_defs.h>
 #endif
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
 
@@ -61,7 +61,7 @@ void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPaylo
   Allocate an event payload holder
 ---------------------------------------------------------------------------*/
 #define WLAN_VOS_DIAG_EVENT_DEF( payload_name, payload_type ) \
-           payload_type(payload_name)                         
+           payload_type(payload_name)
 
 /*---------------------------------------------------------------------------
   Report the event
@@ -77,13 +77,13 @@ void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPaylo
 
 #else /* FEATURE_WLAN_DIAG_SUPPORT */
 
-#define WLAN_VOS_DIAG_EVENT_DEF( payload_name, payload_type ) 
-#define WLAN_VOS_DIAG_EVENT_REPORT( payload_ptr, ev_id ) 
+#define WLAN_VOS_DIAG_EVENT_DEF( payload_name, payload_type )
+#define WLAN_VOS_DIAG_EVENT_REPORT( payload_ptr, ev_id )
 
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
 
 
-/*------------------------------------------------------------------------- 
+/*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/
 
