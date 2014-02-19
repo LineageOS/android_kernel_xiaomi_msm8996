@@ -30,10 +30,10 @@
 
 /*===========================================================================
 
-               W L A N   T R A N S P O R T   L A Y E R 
+               W L A N   T R A N S P O R T   L A Y E R
                HO SUPPORT    I N T E R N A L  A P I
-                
-                   
+
+
 DESCRIPTION
 ===========================================================================*/
 
@@ -63,7 +63,7 @@ when        who    what, where, why
                           INCLUDE FILES FOR MODULE
 
 ===========================================================================*/
-#include "wlan_qct_tl.h" 
+#include "wlan_qct_tl.h"
 
 #if defined WLAN_FEATURE_NEIGHBOR_ROAMING
 /*----------------------------------------------------------------------------
@@ -73,9 +73,9 @@ when        who    what, where, why
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -94,9 +94,9 @@ VOS_STATUS WLANTL_HSHandleRXFrame
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -114,9 +114,9 @@ VOS_STATUS WLANTL_HSHandleTXFrame
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -135,9 +135,9 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -155,9 +155,9 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -172,9 +172,9 @@ VOS_STATUS WLANTL_HSBMPSRSSIRegionChangedNotification
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -189,9 +189,9 @@ VOS_STATUS WLANTL_HSSetAlpha
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -209,9 +209,9 @@ VOS_STATUS WLANTL_HSRegGetTrafficStatus
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -226,9 +226,9 @@ VOS_STATUS WLANTL_HSInit
 
    FUNCTION    WLANTL_HSDeInit
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -244,9 +244,9 @@ VOS_STATUS WLANTL_HSDeInit
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -265,9 +265,9 @@ VOS_STATUS WLANTL_SetFWRSSIThresholds
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -285,9 +285,9 @@ VOS_STATUS WLANTL_HSSerializeTlIndication
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
