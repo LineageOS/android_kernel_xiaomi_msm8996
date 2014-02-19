@@ -14892,7 +14892,7 @@ static void wma_process_set_p2pgo_noa_Req(tp_wma_handle wma,
 						tP2pPsParams *ps_params)
 {
 	WMA_LOGD("%s: Enter", __func__);
-	if (ps_params->count == 0 && ps_params->interval == 0) {
+	if (ps_params->opp_ps) {
 		wma_set_p2pgo_oppps_req(wma, ps_params);
 	} else {
 		wma_set_p2pgo_noa_Req(wma, ps_params);
