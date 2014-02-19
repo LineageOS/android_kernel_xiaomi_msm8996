@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -110,4 +110,28 @@ wmi_unified_unregister_event_handler(wmi_unified_t wmi_handle, WMI_EVT_ID event_
  */
 int
 wmi_unified_connect_htc_service(struct wmi_unified * wmi_handle, void *htc_handle);
+
+/*
+ * WMI API to verify the host has enough credits to suspend
+*/
+
+int
+wmi_is_suspend_ready(wmi_unified_t wmi_handle);
+
+/**
+ WMI API to get updated host_credits
+*/
+
+int
+wmi_get_host_credits(wmi_unified_t wmi_handle);
+
+/**
+ WMI API to get WMI Pending Commands in the HTC queue
+*/
+
+int
+wmi_get_pending_cmds(wmi_unified_t wmi_handle);
+
+
+
 #endif /* _WMI_UNIFIED_API_H_ */

@@ -212,6 +212,7 @@ typedef struct sSirAssocReq
     tDot11fIEVHTCaps          VHTCaps;
     tDot11fIEOperatingMode    operMode;
 #endif
+    tDot11fIEExtCap           ExtCap;
 } tSirAssocReq, *tpSirAssocReq;
 
 
@@ -263,6 +264,7 @@ typedef struct sSirAssocRsp
     tDot11fIEVHTCaps          VHTCaps;
     tDot11fIEVHTOperation     VHTOperation;
 #endif
+    tDot11fIEExtCap           ExtCap;
 } tSirAssocRsp, *tpSirAssocRsp;
 
 #if defined(FEATURE_WLAN_CCX_UPLOAD)

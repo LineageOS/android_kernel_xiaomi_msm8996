@@ -32,7 +32,8 @@
   
     \file csrNeighborRoam.c
   
-    Implementation for the simple roaming algorithm for 802.11r Fast transitions and Legacy roaming for Android platform.========================================================================== */
+    Implementation for the simple roaming algorithm for 802.11r Fast transitions and Legacy roaming for Android platform.
+========================================================================== */
 
 /*===========================================================================
 

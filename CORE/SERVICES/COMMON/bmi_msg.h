@@ -257,9 +257,14 @@ PREPACK struct bmi_target_info {
 #define TARGET_TYPE_AR9888    7
 #define TARGET_TYPE_AR6320    8
 #define TARGET_TYPE_AR900B    9
-#define TARGET_TYPE_AR6320V2  10
 /* For attach Peregrine 2.0 board target_reg_tbl only */
 #define TARGET_TYPE_AR9888V2  10
+/* For attach Rome1.0 target_reg_tbl only*/
+#define TARGET_TYPE_AR6320V1    11
+/* For Rome2.0/2.1 target_reg_tbl ID*/
+#define TARGET_TYPE_AR6320V2    12
+/* For Rome3.0 target_reg_tbl ID*/
+#define TARGET_TYPE_AR6320V3    13
 
 #define BMI_ROMPATCH_INSTALL               9
         /*

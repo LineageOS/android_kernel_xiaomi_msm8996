@@ -31,7 +31,8 @@
   
     \file csrInsideApi.h
   
-    Define interface only used by CSR.========================================================================== */
+    Define interface only used by CSR.
+========================================================================== */
 #ifndef CSR_INSIDE_API_H__
 #define CSR_INSIDE_API_H__
 

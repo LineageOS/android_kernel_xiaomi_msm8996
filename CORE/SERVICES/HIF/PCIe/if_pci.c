@@ -1,5 +1,5 @@
 /*
- * Copyright (c) . The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -613,27 +613,32 @@ again:
         ret = -EIO;
         goto err_region;
     }
-
+#ifdef CONFIG_ARM_LPAE
+    /* if CONFIG_ARM_LPAE is enabled, we have to set 64 bits mask
+     * for 32 bits device also. */
     ret =  pci_set_dma_mask(pdev, DMA_BIT_MASK(64));
-    if (!ret) {
-        ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
-
-        if (ret) {
-            printk(KERN_ERR "ath: Cannot enable 64-bit consistent DMA\n");
-            goto err_dma;
-        }
-    } else {
-        ret = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
-
-        if (!ret) {
-            ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
-            if (ret) {
-                printk(KERN_ERR "ath: Cannot enable 32-bit consistent DMA\n");
-                goto err_dma;
-            }
-        }
+    if (ret) {
+        printk(KERN_ERR "ath: Cannot enable 64-bit pci DMA\n");
+        goto err_dma;
     }
-
+    ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
+    if (ret) {
+        printk(KERN_ERR "ath: Cannot enable 64-bit consistent DMA\n");
+        goto err_dma;
+    }
+#else
+    ret = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
+    if (ret) {
+        printk(KERN_ERR "ath: Cannot enable 32-bit pci DMA\n");
+        goto err_dma;
+    }
+    ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+    if (ret) {
+        printk(KERN_ERR "%s: Cannot enable 32-bit consistent DMA!\n",
+               __func__);
+        goto err_dma;
+    }
+#endif
 
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);
@@ -913,26 +918,32 @@ again:
         goto err_region;
     }
 
+#ifdef CONFIG_ARM_LPAE
+    /* if CONFIG_ARM_LPAE is enabled, we have to set 64 bits mask
+     * for 32 bits device also. */
     ret =  pci_set_dma_mask(pdev, DMA_BIT_MASK(64));
-    if (!ret) {
-        ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
-
-        if (ret) {
-            printk(KERN_ERR "%s: Cannot enable 64-bit consistent DMA!\n",
-                   __func__);
-            goto err_dma;
-        }
-    } else {
-        ret = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
-        if (!ret) {
-            ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
-            if (ret) {
-                printk(KERN_ERR "%s: Cannot enable 32-bit consistent DMA!\n",
-                       __func__);
-                goto err_dma;
-            }
-        }
+    if (ret) {
+        printk(KERN_ERR "ath: Cannot enable 64-bit pci DMA\n");
+        goto err_dma;
     }
+    ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
+    if (ret) {
+        printk(KERN_ERR "ath: Cannot enable 64-bit consistent DMA\n");
+        goto err_dma;
+    }
+#else
+    ret = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
+    if (ret) {
+        printk(KERN_ERR "ath: Cannot enable 32-bit pci DMA\n");
+        goto err_dma;
+    }
+    ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+    if (ret) {
+        printk(KERN_ERR "%s: Cannot enable 32-bit consistent DMA!\n",
+               __func__);
+        goto err_dma;
+    }
+#endif
 
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);

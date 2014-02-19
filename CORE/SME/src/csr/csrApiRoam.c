@@ -62,7 +62,6 @@
 #include "csrApi.h"
 #include "pmc.h"
 #include "vos_nvitem.h"
-#include "wlan_hdd_main.h"
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
 #include "csrNeighborRoam.h"
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
@@ -5434,6 +5433,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     roamInfo.staId = ( tANI_U8 )pJoinRsp->staId;
                     roamInfo.ucastSig = ( tANI_U8 )pJoinRsp->ucastSig;
                     roamInfo.bcastSig = ( tANI_U8 )pJoinRsp->bcastSig;
+                    roamInfo.timingMeasCap = pJoinRsp->timingMeasCap;
                 }
                 else
                 {
@@ -8296,6 +8296,7 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
             vos_mem_copy(&pRoamInfo->bssid, pUpperLayerAssocCnf->bssId,
                          sizeof(tCsrBssid));
             pRoamInfo->wmmEnabledSta = pUpperLayerAssocCnf->wmmEnabledSta;
+            pRoamInfo->timingMeasCap = pUpperLayerAssocCnf->timingMeasCap;
             if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile) )
             {
                 pMac->roam.roamSession[sessionId].connectState = eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED;
@@ -9248,6 +9249,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     vos_mem_copy(&pRoamInfo->bssid, pAssocInd->bssId,
                                  sizeof(tCsrBssid));
                     pRoamInfo->wmmEnabledSta = pAssocInd->wmmEnabledSta;
+                    pRoamInfo->timingMeasCap = pAssocInd->timingMeasCap;
                     if(CSR_IS_WDS_AP( pRoamInfo->u.pConnectedProfile))
                         status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_WDS_IND, eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND);//Sta
                     if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile))
@@ -13605,6 +13607,9 @@ eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac,
         //reassocReq
         *pBuf = pAssocInd->reassocReq;
         pBuf += sizeof (tANI_U8);
+        //timingMeasCap
+        *pBuf = pAssocInd->timingMeasCap;
+        pBuf += sizeof (tANI_U8);
         msgQ.type = eWNI_SME_UPPER_LAYER_ASSOC_CNF;
         msgQ.bodyptr = pMsg;
         msgQ.bodyval = 0;
@@ -14120,36 +14125,6 @@ eHalStatus csrProcessAddStaSessionCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
          &pCommand->u.addStaSessionCmd,
          pCommand->sessionId);
 }
-
-/* Function: csr_check_max_interfaces
- * Return: 0 - Success, 1 - Failure
- */
-tANI_U8 csr_check_max_interfaces(tpAniSirGlobal pMac,tANI_U32 i)
-{
-   hdd_context_t *pHddCtx;
-   v_CONTEXT_t vosContext;
-
-   vosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
-   if (NULL == vosContext) {
-      smsLog(pMac, LOGE, "%s: Failed to get vos context", __func__);
-      return 1;
-   }
-
-   pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, vosContext);
-   if (NULL == pHddCtx) {
-      smsLog(pMac, LOGE, "%s: Failed to get hdd context", __func__);
-      return 1;
-   }
-
-   if ((v_U8_t)i >= pHddCtx->max_intf_count){
-      smsLog(pMac, LOGE, "%s: Max interfaces! Session creation will fail", __func__);
-      return 1;
-   }
-   else {
-      return 0;
-   }
-}
-
 eHalStatus csrRoamOpenSession(tpAniSirGlobal pMac,
                               csrRoamCompleteCallback callback,
                               void *pContext,
@@ -14167,8 +14142,10 @@ eHalStatus csrRoamOpenSession(tpAniSirGlobal pMac,
 
     for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
     {
-        if (csr_check_max_interfaces( pMac, i))
+        if ((v_U8_t)i >= pMac->sme.max_intf_count) {
+            smsLog(pMac, LOGE, "%s: Reached max interfaces! Session creation will fail", __func__);
             break;
+        }
 
         if( !CSR_IS_SESSION_VALID( pMac, i ) )
         {

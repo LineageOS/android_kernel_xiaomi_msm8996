@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -39,7 +39,7 @@
 #define WAIT_REM_CHAN_READY     1000
 #define WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX 3000
 #define READY_EVENT_PROPOGATE_TIME 2
-#define ESTIMATED_ROC_DUR_REQD_FOR_ACTION_TX 50
+#define ESTIMATED_ROC_DUR_REQD_FOR_ACTION_TX 20
 
 #define ACTION_FRAME_DEFAULT_WAIT 200
 

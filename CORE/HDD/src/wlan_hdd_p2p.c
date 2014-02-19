@@ -322,7 +322,8 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
      * wlan driver is keep on receiving the remain on channel command
      * and which is resulting in crash. So not allowing any remain on
      * channel requets when Load/Unload is in progress*/
-    if (((hdd_context_t*)pAdapter->pHddCtx)->isLoadUnloadInProgress)
+    if (((hdd_context_t*)pAdapter->pHddCtx)->isLoadInProgress ||
+        ((hdd_context_t*)pAdapter->pHddCtx)->isUnloadInProgress)
     {
         hddLog( LOGE,
                 "%s: Wlan Load/Unload is in progress", __func__);
@@ -351,6 +352,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     pRemainChanCtx->chan_type = channel_type;
 #endif
     pRemainChanCtx->duration = duration;
+    pRemainChanCtx->p2pRemOnChanTimeStamp = vos_timer_get_system_time();
     pRemainChanCtx->dev = dev;
     *cookie = (uintptr_t) pRemainChanCtx;
     pRemainChanCtx->cookie = *cookie;
@@ -616,6 +618,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
     hdd_adapter_t *goAdapter;
 #endif
+    u64 old_cookie = 0;
 
     status = wlan_hdd_validate_context(pHddCtx);
 
@@ -743,7 +746,6 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     if( offchan && wait)
     {
         int status;
-        tANI_U32 current_time = vos_timer_get_system_time();
 
         // In case of P2P Client mode if we are already
         // on the same channel then send the frame directly
@@ -760,27 +762,39 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             cfgState->remain_on_chan_ctx &&
             cfgState->current_freq == chan->center_freq ) {
 
+            tANI_U32 current_time = vos_timer_get_system_time();
+
             // In case of P2P Client mode if we are already
             // on the same channel then send the frame directly only if
             // there is enough remain on channel time left.
-            // If remain on channel time is about to expire in next 50ms then
-            // dont send frame without a fresh remain on channel as this may
-            // cause a race condition with lim remain_on_channel_timer which
-            // might expire by the time the action frame reaches lim layer.
-
-            // Check remaining time of RoC only in case of GO NEG CNF.
-
+            // If remain on channel time is about to expire in next 20ms
+            // then dont send frame without a fresh remain on channel as this
+            //  may cause a race condition with lim remain_on_channel_timer
+            //  which might expire by the time the action frame reaches lim
+            // layer.
+            // For Rome check remaining time of RoC only in case of GO NEG CNF.
+            // For other RSPs always extend
             actionFrmType = buf[WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET];
 
-            if ((actionFrmType != WLAN_HDD_GO_NEG_CNF) ||
-                ((current_time - cfgState->remain_on_chan_ctx->p2pRemOnChanTimeStamp) >
-                      (cfgState->remain_on_chan_ctx->duration
-                                     - ESTIMATED_ROC_DUR_REQD_FOR_ACTION_TX )))
+            if (
+#if defined (QCA_WIFI_2_0) && !defined (QCA_WIFI_ISOC)
+                (actionFrmType != WLAN_HDD_GO_NEG_CNF) ||
+#endif
+                ((int)(cfgState->remain_on_chan_ctx->duration  -
+                      (current_time -
+                       cfgState->remain_on_chan_ctx->p2pRemOnChanTimeStamp)) <
+                ESTIMATED_ROC_DUR_REQD_FOR_ACTION_TX))
             {
-                hddLog(LOG1,"action frame: Extending the RoC\n");
+                hddLog(LOG1,"action frame: Extending the RoC");
+                old_cookie = cfgState->remain_on_chan_ctx->cookie;
+                pAdapter->internalCancelRemainOnChReq = VOS_TRUE;
                 status = wlan_hdd_check_remain_on_channel(pAdapter);
-                if ( !status )
-                    pAdapter->internalCancelRemainOnChReq = VOS_TRUE;
+                pAdapter->internalCancelRemainOnChReq = VOS_FALSE;
+                if ( status )
+                {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                             "Failed to cancel the existing RoC");
+                }
             }
         }
 
@@ -788,7 +802,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
            (cfgState->current_freq == chan->center_freq)
           )
         {
-            hddLog(LOG1,"action frame: extending the wait time\n");
+            hddLog(LOG1,"action frame: extending the wait time");
             extendedWait = (tANI_U16)wait;
             goto send_frame;
         }
@@ -803,6 +817,10 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
                                         wait, cookie,
                                         OFF_CHANNEL_ACTION_TX);
 
+        // Assign the preserved cookie value here to appear as
+        // same RoC to supplicant
+        if (old_cookie)
+            cfgState->remain_on_chan_ctx->cookie = old_cookie;
         if(0 != status)
         {
             if( (-EBUSY == status) &&

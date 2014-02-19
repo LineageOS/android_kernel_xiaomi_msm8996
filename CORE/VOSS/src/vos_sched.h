@@ -294,7 +294,7 @@ typedef struct _VosSchedContext
    struct list_head VosTlshimPktFreeQ;
 
    /* cpu hotplug notifier */
-   struct notifier_block cpuHotPlugNotifier;
+   struct notifier_block *cpuHotPlugNotifier;
 #endif
 } VosSchedContext, *pVosSchedContext;
 

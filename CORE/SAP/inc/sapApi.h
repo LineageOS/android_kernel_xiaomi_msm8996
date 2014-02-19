@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -277,6 +277,7 @@ typedef struct sap_StationAssocReassocCompleteEvent_s {
     tANI_U8*     assocReqPtr;
     tANI_U32     assocRespLength;
     tANI_U8*     assocRespPtr;    
+    tANI_U8      timingMeasCap;
 } tSap_StationAssocReassocCompleteEvent;
 
 typedef struct sap_StationDisassocCompleteEvent_s {

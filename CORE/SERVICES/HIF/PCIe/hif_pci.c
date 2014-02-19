@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2377,7 +2377,7 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
         adf_os_spin_unlock_irqrestore(&hif_state->keep_awake_lock);
 
         if (wait_for_it && !hif_state->verified_awake) {
-#define PCIE_WAKE_TIMEOUT 5000 /* 5Ms */
+#define PCIE_WAKE_TIMEOUT 8000 /* 8Ms */
             int tot_delay = 0;
             int curr_delay = 5;
 
@@ -2392,9 +2392,34 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
                 //ASSERT(tot_delay <= PCIE_WAKE_TIMEOUT);
                 if (tot_delay > PCIE_WAKE_TIMEOUT)
                 {
-                    printk("%s: keep_awake_count %d PCIE_SOC_WAKE_ADDRESS = %x\n",__func__,
-                            hif_state->keep_awake_count, 
-                            A_PCI_READ32(pci_addr + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS));
+                    u_int16_t val;
+                    u_int32_t bar;
+
+                    printk("%s: keep_awake_count = %d\n", __func__,
+                           hif_state->keep_awake_count);
+
+                    pci_read_config_word(sc->pdev, PCI_VENDOR_ID, &val);
+                    printk("%s: PCI Vendor ID = 0x%04x\n", __func__, val);
+
+                    pci_read_config_word(sc->pdev, PCI_DEVICE_ID, &val);
+                    printk("%s: PCI Device ID = 0x%04x\n", __func__, val);
+
+                    pci_read_config_word(sc->pdev, PCI_COMMAND, &val);
+                    printk("%s: PCI Command = 0x%04x\n", __func__, val);
+
+                    pci_read_config_word(sc->pdev, PCI_STATUS, &val);
+                    printk("%s: PCI Status = 0x%04x\n", __func__, val);
+
+                    pci_read_config_dword(sc->pdev, PCI_BASE_ADDRESS_0, &bar);
+                    printk("%s: PCI BAR 0 = 0x%08x\n", __func__, bar);
+
+                    printk("%s: PCIE_SOC_WAKE_ADDRESS = 0x%08x,"    \
+                           " RTC_STATE_ADDRESS = 0x%08x\n", __func__,
+                           A_PCI_READ32(pci_addr + PCIE_LOCAL_BASE_ADDRESS
+                                        + PCIE_SOC_WAKE_ADDRESS),
+                           A_PCI_READ32(pci_addr + PCIE_LOCAL_BASE_ADDRESS
+                                        + RTC_STATE_ADDRESS));
+
                     VOS_BUG(0);
                 }
 

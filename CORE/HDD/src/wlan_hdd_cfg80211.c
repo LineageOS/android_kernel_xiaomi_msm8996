@@ -4397,8 +4397,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
         ((ie_length != 0) ? (const char *)&bss_desc->ieFields: NULL);
     unsigned int freq;
     struct ieee80211_channel *chan;
-    struct ieee80211_mgmt *mgmt =
-        kzalloc((sizeof (struct ieee80211_mgmt) + ie_length), GFP_KERNEL);
+    struct ieee80211_mgmt *mgmt;
     struct cfg80211_bss *bss_status = NULL;
     size_t frame_len = sizeof (struct ieee80211_mgmt) + ie_length;
     int rssi = 0;
@@ -4412,16 +4411,6 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
-
-    /*bss_update is not allowed during wlan driver loading or unloading*/
-    if (pHddCtx->isLoadUnloadInProgress)
-    {
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                    "%s:Loading_unloading in Progress. Ignore!!!",__func__);
-         return NULL;
-    }
-
-
     if (0 != status)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -4429,7 +4418,16 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
         return NULL;
     }
 
+    /*bss_update is not allowed during wlan driver loading or unloading*/
+    if ((pHddCtx->isLoadInProgress) ||
+        (pHddCtx->isUnloadInProgress))
+    {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s:Loading_unloading in Progress. Ignore!!!",__func__);
+         return NULL;
+    }
 
+    mgmt = kzalloc((sizeof (struct ieee80211_mgmt) + ie_length), GFP_KERNEL);
     if (!mgmt)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -4609,7 +4607,8 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
 
 
     /*bss_update is not allowed during wlan driver loading or unloading*/
-    if (pHddCtx->isLoadUnloadInProgress)
+    if ((pHddCtx->isLoadInProgress) ||
+        (pHddCtx->isUnloadInProgress))
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s:Loading_unloading in Progress. Ignore!!!",__func__);
@@ -8647,7 +8646,8 @@ static int wlan_hdd_cfg80211_sched_scan_stop(struct wiphy *wiphy,
         return ret;
     }
 
-    if (pHddCtx->isLoadUnloadInProgress)
+    if ((pHddCtx->isLoadInProgress) ||
+        (pHddCtx->isUnloadInProgress))
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: Unloading/Loading in Progress. Ignore!!!", __func__);
@@ -9806,7 +9806,8 @@ int wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
         return 0;
     }
 
-    if (pHddCtx->isLoadUnloadInProgress)
+    if ((pHddCtx->isLoadInProgress) ||
+        (pHddCtx->isUnloadInProgress))
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: Unloading/Loading in Progress. Ignore!!!", __func__);

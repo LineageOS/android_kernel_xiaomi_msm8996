@@ -1143,7 +1143,9 @@ struct hdd_context_s
 
    volatile v_BOOL_t isLogpInProgress;
 
-   v_BOOL_t isLoadUnloadInProgress;
+   v_BOOL_t isLoadInProgress;
+
+   v_BOOL_t isUnloadInProgress;
 
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;

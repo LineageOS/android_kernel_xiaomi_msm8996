@@ -1,5 +1,5 @@
 /*
- * Copyright (c) . The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -281,7 +281,6 @@ A_STATUS HTCRxCompletionHandler(
     do {
 
         htc_ep_id = HTC_GET_FIELD(HtcHdr, HTC_FRAME_HDR, ENDPOINTID);
-        pEndpoint = &target->EndPoint[htc_ep_id];
 
         if (htc_ep_id >= ENDPOINT_MAX) {
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("HTC Rx: invalid EndpointID=%d\n",htc_ep_id));
@@ -290,6 +289,8 @@ A_STATUS HTCRxCompletionHandler(
             VOS_BUG(0);
             break;
         }
+
+        pEndpoint = &target->EndPoint[htc_ep_id];
 
         /*
          * If this endpoint that received a message from the target has
@@ -319,6 +320,7 @@ A_STATUS HTCRxCompletionHandler(
                 netlen, payloadLen + HTC_HDR_LENGTH));
             DebugDumpBytes((A_UINT8 *)HtcHdr,sizeof(HTC_FRAME_HDR),"BAD RX packet length");
             status = A_ERROR;
+            VOS_BUG(0);
             break;
 #endif
         }

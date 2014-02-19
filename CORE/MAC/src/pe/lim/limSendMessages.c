@@ -175,6 +175,7 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
                     pUpdatedBcnParams->paramChangeBitmap);)
     if(NULL == psessionEntry)
     {
+        vos_mem_free(pBcnParams);
         MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
         return eSIR_FAILURE;
     }
