@@ -330,7 +330,8 @@ tSirRetStatus limPostMsgDelBAInd( tpAniSirGlobal pMac,
 
 tSirRetStatus limPostSMStateUpdate(tpAniSirGlobal pMac,
     tANI_U16 StaIdx, 
-    tSirMacHTMIMOPowerSaveState MIMOPSState);
+    tSirMacHTMIMOPowerSaveState MIMOPSState,
+    tANI_U8 *pPeerStaMac, tANI_U8 sessionId);
 
 void limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
 void limProcessAddBaInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
