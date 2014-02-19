@@ -29,52 +29,52 @@
 #define __WLAN_QCT_PACK_ALIGN_H
 
 /**=========================================================================
-  
+
   \file  wlan_pack_align.h
-  
+
   \brief pack and align primitives
-               
+
    Definitions for platform independent means of packing and aligning
    data structures
-  
+
   ========================================================================*/
 
 /*
- 
-  Place the macro WPT_PACK_START above a structure declaration to pack. We 
-  are not going to allow modifying the pack size because pack size cannot be 
-  specified in AMSS and GNU. Place the macro WPT_PACK_END below a structure 
+
+  Place the macro WPT_PACK_START above a structure declaration to pack. We
+  are not going to allow modifying the pack size because pack size cannot be
+  specified in AMSS and GNU. Place the macro WPT_PACK_END below a structure
   declaration to stop the pack. This requirement is necessitated by Windows
   which need pragma based prolog and epilog.
 
   Pack-size > 1-byte is not supported since gcc and arm do not support that.
-  
+
   Here are some examples
-  
-  1. Pack-size 1-byte foo_t across all platforms  
-  
+
+  1. Pack-size 1-byte foo_t across all platforms
+
   WPT_PACK_START
-  typedef WPT_PACK_PRE struct foo_s { ... } WPT_PACK_POST foo_t; 
+  typedef WPT_PACK_PRE struct foo_s { ... } WPT_PACK_POST foo_t;
   WPT_PACK_END
-  
+
   2. 2-byte alignment for foo_t across all platforms
-  
-  typedef WPT_ALIGN_PRE(2) struct foo_s { ... } WPT_ALIGN_POST(2) foo_t; 
+
+  typedef WPT_ALIGN_PRE(2) struct foo_s { ... } WPT_ALIGN_POST(2) foo_t;
 
   3. Pack-size 1-byte and 2-byte alignment for foo_t across all platforms
 
   WPT_PACK_START
-  typedef WPT_PACK_PRE WPT_ALIGN_PRE(2) struct foo_s { ... } WPT_ALIGN_POST(2) WPT_PACK_POST foo_t; 
+  typedef WPT_PACK_PRE WPT_ALIGN_PRE(2) struct foo_s { ... } WPT_ALIGN_POST(2) WPT_PACK_POST foo_t;
   WPT_PACK_END
-  
+
 */
 
 #if defined __GNUC__
 
-   #define WPT_PACK_START 
-   #define WPT_PACK_END 
+   #define WPT_PACK_START
+   #define WPT_PACK_END
 
-   #define WPT_PACK_PRE 
+   #define WPT_PACK_PRE
    #define WPT_PACK_POST  __attribute__((__packed__))
 
    #define WPT_ALIGN_PRE(__value)
@@ -82,8 +82,8 @@
 
 #elif defined __arm
 
-   #define WPT_PACK_START 
-   #define WPT_PACK_END 
+   #define WPT_PACK_START
+   #define WPT_PACK_END
 
    #define WPT_PACK_PRE  __packed
    #define WPT_PACK_POST
@@ -96,7 +96,7 @@
 #define WPT_PACK_START  __pragma(pack(push,1))
 #define WPT_PACK_END  __pragma(pack(pop))
 
-   #define WPT_PACK_PRE 
+   #define WPT_PACK_PRE
    #define WPT_PACK_POST
 
    #define WPT_ALIGN_PRE(__value)  __declspec(align(__value))

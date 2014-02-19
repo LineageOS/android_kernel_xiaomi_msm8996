@@ -29,13 +29,13 @@
 #define __WLAN_QCT_PAL_SYNC_H
 
 /**=========================================================================
-  
+
   \file  wlan_pal_sync.h
-  
+
   \brief define synchronization objects PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
-               
+
    Definitions for platform independent.
-  
+
   ========================================================================*/
 
 #include "wlan_qct_pal_type.h"

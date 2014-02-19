@@ -29,13 +29,13 @@
 #define __WLAN_QCT_PAL_TYPE_H
 
 /**=========================================================================
-  
+
   \file  wlan_qct_pal_type.h
-  
+
   \brief define basic types PAL exports. wpt = (Wlan Pal Type)
-               
+
    Definitions for platform independent.
-  
+
   ========================================================================*/
 #include "wlan_qct_os_type.h"
 
@@ -53,7 +53,7 @@ typedef enum
    eWLAN_MODULE_DAL_CTRL,
    eWLAN_MODULE_DAL_DATA,
    eWLAN_MODULE_PAL,
-   
+
    //Always the last one
    eWLAN_MODULE_COUNT
 } wpt_moduleid;
@@ -61,7 +61,7 @@ typedef enum
 
 typedef struct
 {
-   //BIT order is most likely little endian. 
+   //BIT order is most likely little endian.
    //This structure is for netowkr-order byte array (or big-endian byte order)
 #ifndef WLAN_PAL_BIG_ENDIAN_BIT
    wpt_byte protVer :2;
