@@ -699,6 +699,7 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
       "BEACON_EVENT_EARLY_RX_SLEEP_SLOP",
       "BEACON_EVENT_EARLY_RX_CONT_BMISS_TIMEOUT",
       "BEACON_EVENT_EARLY_RX_PAUSE_SKIP_BCN_NUM",
+      "BEACON_EVENT_EARLY_RX_BCN_TYPE",
     },
     { /* Offload Mgr */
         "OFFLOAD_MGR_DBGID_DEFINITION_START",
@@ -2325,6 +2326,13 @@ dbglog_beacon_print_handler(
         if (numargs == 1) {
             dbglog_printf(timestamp, vap_id,
                     "early_rx skip bcn num:%d",
+                    args[0]);
+        }
+        break;
+    case BEACON_EVENT_EARLY_RX_BCN_TYPE:
+        if (numargs == 1) {
+            dbglog_printf(timestamp, vap_id,
+                    "early_rx bcn type:%d",
                     args[0]);
         }
         break;
