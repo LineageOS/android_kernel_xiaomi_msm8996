@@ -3011,7 +3011,11 @@ eHalStatus pmcSetPreferredNetworkList
 
     if (pMac->pnoOffload)
     {
-       sme_MoveCsrToScanStateForPno(hHal, sessionId);
+       if (pRequestBuf->enable)
+       {
+           sme_MoveCsrToScanStateForPno(hHal, sessionId);
+       }
+
        pRequestBuf->sessionId = sessionId;
     }
 
