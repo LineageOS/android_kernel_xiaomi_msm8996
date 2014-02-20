@@ -434,6 +434,7 @@ struct wma_txrx_node {
 	u_int16_t pause_bitmap;
 	tPowerdBm  tx_power; /* TX power in dBm */
 	tPowerdBm  max_tx_power; /* max Tx power in dBm */
+        u_int32_t  nwType;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)

@@ -6040,6 +6040,10 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
         wmi_vht_rate_set *mcs;
 	u_int32_t num_peer_legacy_rates;
 	u_int32_t num_peer_ht_rates;
+	u_int32_t num_peer_11b_rates=0;
+	u_int32_t num_peer_11a_rates=0;
+        u_int32_t phymode;
+
 	struct wma_txrx_node *intr = &wma->interfaces[params->smesessionId];
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
@@ -6052,6 +6056,11 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	vos_mem_zero(&peer_legacy_rates, sizeof(wmi_rate_set));
 	vos_mem_zero(&peer_ht_rates, sizeof(wmi_rate_set));
 
+        phymode = wma_peer_phymode(nw_type, params->htCapable,
+                                             params->txChannelWidthSet,
+                                             params->vhtCapable,
+                                             params->vhtTxChannelWidthSet);
+
 	/* Legacy Rateset */
 	rate_pos = (u_int8_t *) peer_legacy_rates.rates;
 	for (i = 0; i < SIR_NUM_11B_RATES; i++) {
@@ -6059,14 +6068,22 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 			continue;
 		rate_pos[peer_legacy_rates.num_rates++] =
 			params->supportedRates.llbRates[i];
+                num_peer_11b_rates++;
 	}
 	for (i = 0; i < SIR_NUM_11A_RATES; i++) {
 		if (!params->supportedRates.llaRates[i])
 			continue;
 		rate_pos[peer_legacy_rates.num_rates++] =
 			params->supportedRates.llaRates[i];
+                num_peer_11a_rates++;
 	}
 
+    if ((phymode == MODE_11A && num_peer_11a_rates == 0) ||
+        (phymode == MODE_11B && num_peer_11b_rates == 0)) {
+	WMA_LOGW("%s: Invalid phy rates. phymode 0x%x, 11b_rates %d, 11a_rates %d",
+			__func__, phymode, num_peer_11b_rates, num_peer_11a_rates);
+		return -EINVAL;
+    }
 	/* Set the Legacy Rates to Word Aligned */
 	num_peer_legacy_rates = roundup(peer_legacy_rates.num_rates,
 					sizeof(u_int32_t));
@@ -6294,10 +6311,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	}
 
 	intr->nss = cmd->peer_nss;
-	cmd->peer_phymode = wma_peer_phymode(nw_type, params->htCapable,
-                                             params->txChannelWidthSet,
-                                             params->vhtCapable,
-                                             params->vhtTxChannelWidthSet);
+        cmd->peer_phymode = phymode;
 
         WMA_LOGD("%s: vdev_id %d associd %d peer_flags %x rate_caps %x "
                  "peer_caps %x listen_intval %d ht_caps %x max_mpdu %d "
@@ -7747,6 +7761,7 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		iface->dtimPeriod = add_bss->dtimPeriod;
 		iface->llbCoexist = add_bss->llbCoexist;
 		iface->shortSlotTimeSupported = add_bss->shortSlotTimeSupported;
+                iface->nwType = add_bss->nwType;
 		if (add_bss->reassocReq) {
 			// Called in preassoc state. BSSID peer is already added by set_linkstate
 			peer = ol_txrx_find_peer_by_addr(pdev, add_bss->bssId, &peer_id);
@@ -7815,6 +7830,7 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		}
 
 		wmi_unified_send_txbf(wma, &add_bss->staContext);
+
 
 		wmi_unified_send_peer_assoc(wma, add_bss->nwType,
 					    &add_bss->staContext);
@@ -8447,8 +8463,10 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 					   params->smesessionId);
 		}
 		wmi_unified_send_txbf(wma, params);
-                wmi_unified_send_peer_assoc(wma, params->nwType,
-                                (tAddStaParams *)iface->addBssStaContext);
+
+                wmi_unified_send_peer_assoc(wma,
+                        iface->nwType,
+                        (tAddStaParams *)iface->addBssStaContext);
 #ifdef WLAN_FEATURE_11W
 		if (params->rmfEnabled) {
 			/* when 802.11w PMF is enabled for hw encr/decr
