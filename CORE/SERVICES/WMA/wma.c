@@ -11541,7 +11541,9 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	vos_event_reset(&wma->target_suspend);
 
 	if (wmi_get_host_credits(wma->wmi_handle) < WMI_WOW_REQUIRED_CREDITS) {
-		WMA_LOGE("Cannot Post WMI_WOW_ENABLE_CMDID !. No Credits\n");
+		WMA_LOGE("Cannot Post WMI_WOW_ENABLE_CMDID !.Credits:%d"
+			"pending_cmds:%d\n", wmi_get_host_credits(wma->wmi_handle),
+					wmi_get_pending_cmds(wma->wmi_handle));
 		goto error;
 	}
 
@@ -11562,8 +11564,10 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	if ((wmi_get_host_credits(wma->wmi_handle) != WMI_MAX_HOST_CREDITS) ||
 					wmi_get_pending_cmds(wma->wmi_handle))
 	{
-		WMA_LOGE("Host Doesn't have enough credits!. FW didn't give enough credits");
-		VOS_BUG(0);
+		WMA_LOGE("Host Doesn't have enough credits after HTC ACK:%d !"
+			"pending_cmds:%d\n", wmi_get_host_credits(wma->wmi_handle),
+			wmi_get_pending_cmds(wma->wmi_handle));
+		VOS_ASSERT(0);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -12210,9 +12214,12 @@ enable_wow:
 
 	ret = wmi_is_suspend_ready(wma->wmi_handle);
 	if (ret) {
+		if (wmi_get_host_credits(wma->wmi_handle))
+			goto send_ready_to_suspend;
+
 		WMA_LOGE("WMI Commands are pending in the queue for long time"
-					"FW is not responding with credits");
-		VOS_BUG(0);
+			"FW is not responding with credits; Fail to suspend");
+		VOS_ASSERT(0);
 		return VOS_STATUS_E_FAILURE;
 	}
 
