@@ -2160,14 +2160,29 @@ static int wma_unified_bcntx_status_event_handler(void *handle, u_int8_t *cmd_pa
       return -EINVAL;
    }
 
+   resp_event = param_buf->fixed_param;
+
+   /* Check for valid handle to ensure session is not deleted in any race */
+   if (!wma->interfaces[resp_event->vdev_id].handle) {
+      WMA_LOGE("%s: The session does not exist", __func__);
+      return -EINVAL;
+   }
+
+   /* Beacon Tx Indication supports only AP mode. Ignore in other modes */
+   if ((wma->interfaces[resp_event->vdev_id].type != WMI_VDEV_TYPE_AP) ||
+       (wma->interfaces[resp_event->vdev_id].sub_type != 0)) {
+      WMA_LOGI("%s: Beacon Tx Indication does not support type %d and sub_type %d",
+                    __func__, wma->interfaces[resp_event->vdev_id].type,
+                     wma->interfaces[resp_event->vdev_id].sub_type);
+      return 0;
+   }
+
    beacon_tx_complete_ind = (tSirFirstBeaconTxCompleteInd *)
                adf_os_mem_alloc(NULL, sizeof(tSirFirstBeaconTxCompleteInd));
    if (!beacon_tx_complete_ind) {
 	   WMA_LOGE("%s: Failed to alloc beacon_tx_complete_ind", __func__);
 	   return -ENOMEM;
    }
-
-   resp_event = param_buf->fixed_param;
 
    beacon_tx_complete_ind->messageType = WDA_DFS_BEACON_TX_SUCCESS_IND;
    beacon_tx_complete_ind->length = sizeof(tSirFirstBeaconTxCompleteInd);
@@ -4489,9 +4504,9 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
          * T(HomeAway) = N * T(dwell) + (N+1) * T(cs)
          * where N is number of channels scanned in single burst
          */
+        scan_params->dwell_time_active  = roam_req->NeighborScanChannelMaxTime;
         if (roam_req->HomeAwayTime < 2*WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME) {
             // clearly we can't follow home away time
-            scan_params->dwell_time_active  = roam_req->NeighborScanChannelMaxTime;
             scan_params->burst_duration     = scan_params->dwell_time_active;
         } else {
             channels_per_burst =
@@ -4505,8 +4520,6 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
                   roam_req->HomeAwayTime - 2*WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME;
                 scan_params->burst_duration = scan_params->dwell_time_active;
             } else {
-                scan_params->dwell_time_active =
-                  roam_req->NeighborScanChannelMaxTime;
                 scan_params->burst_duration =
                   channels_per_burst * scan_params->dwell_time_active;
             }
@@ -14461,6 +14474,35 @@ static void wma_process_set_p2pgo_noa_Req(tp_wma_handle wma,
 	WMA_LOGD("%s: Exit", __func__);
 }
 
+/* function   : wma_process_set_mimops_req
+ * Descriptin : Set the received MiMo PS state to firmware.
+ * Args       :
+                wma_handle  : Pointer to WMA handle
+ *              tSetMIMOPS  : Pointer to MiMo PS struct
+ * Returns    :
+ */
+static void wma_process_set_mimops_req(tp_wma_handle wma_handle,
+					tSetMIMOPS *mimops)
+{
+	/* Translate to what firmware understands */
+	if ( mimops->htMIMOPSState == eSIR_HT_MIMO_PS_DYNAMIC)
+		mimops->htMIMOPSState = WMI_PEER_MIMO_PS_DYNAMIC;
+	else if ( mimops->htMIMOPSState == eSIR_HT_MIMO_PS_STATIC)
+		mimops->htMIMOPSState = WMI_PEER_MIMO_PS_STATIC;
+	else if ( mimops->htMIMOPSState == eSIR_HT_MIMO_PS_NO_LIMIT)
+		mimops->htMIMOPSState = WMI_PEER_MIMO_PS_NONE;
+
+	WMA_LOGD("%s: htMIMOPSState = %d, sessionId = %d \
+		peerMac <%02x:%02x:%02x:%02x:%02x:%02x>", __func__,
+		mimops->htMIMOPSState, mimops->sessionId, mimops->peerMac[0],
+		mimops->peerMac[1], mimops->peerMac[2], mimops->peerMac[3],
+		mimops->peerMac[4], mimops->peerMac[5]);
+
+	wma_set_peer_param(wma_handle, mimops->peerMac,
+			WMI_PEER_MIMO_PS_STATE, mimops->htMIMOPSState,
+			mimops->sessionId);
+}
+
 /*
  * function   : wma_mc_process_msg
  * Descriptin :
@@ -14840,6 +14882,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_process_set_p2pgo_noa_Req(wma_handle,
 						(tP2pPsParams *)msg->bodyptr);
                         vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_MIMOPS_REQ:
+			wma_process_set_mimops_req(wma_handle, (tSetMIMOPS *) msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 
 		default:

@@ -6383,7 +6383,8 @@ returnFailure:
  */
 tSirRetStatus 
 limPostSMStateUpdate(tpAniSirGlobal pMac, 
-        tANI_U16 staIdx, tSirMacHTMIMOPowerSaveState state)
+        tANI_U16 staIdx, tSirMacHTMIMOPowerSaveState state,
+        tANI_U8 *pPeerStaMac, tANI_U8 sessionId)
 {
     tSirRetStatus             retCode = eSIR_SUCCESS;
     tSirMsgQ                    msgQ;
@@ -6403,6 +6404,10 @@ limPostSMStateUpdate(tpAniSirGlobal pMac,
     pMIMO_PSParams->htMIMOPSState = state;
     pMIMO_PSParams->staIdx = staIdx;
     pMIMO_PSParams->fsendRsp = true;
+    pMIMO_PSParams->sessionId = sessionId;
+    vos_mem_copy(pMIMO_PSParams->peerMac, pPeerStaMac,
+                    sizeof( tSirMacAddr ));
+
     msgQ.bodyptr = pMIMO_PSParams;
     msgQ.bodyval = 0;
 
