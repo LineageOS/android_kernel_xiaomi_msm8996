@@ -998,7 +998,7 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		}
 	}
 	vos_timer_destroy(&req_msg->event_timeout);
-	vos_mem_free(req_msg);
+	adf_os_mem_free(req_msg);
 	return 0;
 }
 
@@ -5678,7 +5678,7 @@ error0:
 		wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
 	}
 	vos_timer_destroy(&tgt_req->event_timeout);
-	vos_mem_free(tgt_req);
+	adf_os_mem_free(tgt_req);
 }
 
 static struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
@@ -5719,7 +5719,7 @@ static void wma_remove_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 
 	vos_timer_stop(&req_msg->event_timeout);
 	vos_timer_destroy(&req_msg->event_timeout);
-	vos_mem_free(req_msg);
+	adf_os_mem_free(req_msg);
 }
 
 /* function   : wma_roam_preauth_chan_set
@@ -16139,7 +16139,7 @@ static void wma_cleanup_vdev_resp(tp_wma_handle wma)
 				 &wma->vdev_resp_queue, node) {
 		list_del(&msg->node);
 		vos_timer_destroy(&msg->event_timeout);
-		vos_mem_free(msg);
+		adf_os_mem_free(msg);
 	}
 	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
 }
