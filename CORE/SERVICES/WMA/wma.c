@@ -14517,6 +14517,7 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 		pThermalParams->thermalLevels[3].minTempThreshold;
 	wma->thermal_mgmt_info.thermalLevels[3].maxTempThreshold =
 		pThermalParams->thermalLevels[3].maxTempThreshold;
+	wma->thermal_mgmt_info.thermalCurrLevel = WLAN_WMA_THERMAL_LEVEL_0;
 
 	WMA_LOGD("TM level min max:\n"
 			 "0 %d   %d\n"
@@ -14600,6 +14601,14 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 		WMA_LOGE("Invalid thermal level set %d", thermal_level);
 		return VOS_STATUS_E_FAILURE;
 	}
+
+	if (thermal_level == wma->thermal_mgmt_info.thermalCurrLevel) {
+		WMA_LOGD("Current level %d is same as the set level, ignoring",
+				  wma->thermal_mgmt_info.thermalCurrLevel);
+		return VOS_STATUS_SUCCESS;
+	}
+
+	wma->thermal_mgmt_info.thermalCurrLevel = thermal_level;
 
 	ol_tx_throttle_set_level(curr_pdev, thermal_level);
 
@@ -15934,6 +15943,12 @@ static int wma_thermal_mgmt_evt_handler(void *handle, u_int8_t *event,
 	/* Get the thermal mitigation level for the reported temperature*/
 	thermal_level = wma_thermal_mgmt_get_level(handle, tm_event->temperature_degreeC);
 	WMA_LOGD("Thermal mgmt level  %d", thermal_level);
+
+	if (thermal_level == wma->thermal_mgmt_info.thermalCurrLevel) {
+		WMA_LOGD("Current level %d is same as the set level, ignoring",
+				  wma->thermal_mgmt_info.thermalCurrLevel);
+		return 0;
+	}
 
 	wma->thermal_mgmt_info.thermalCurrLevel = thermal_level;
 
