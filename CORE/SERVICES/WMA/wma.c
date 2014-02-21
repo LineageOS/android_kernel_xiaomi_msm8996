@@ -2569,10 +2569,6 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 #endif
 
         /*TODO: Recheck below parameters */
-	/*
-	 * Increase maxStation by 1 here so that correct hashtable and
-	 * gpLimPeerIdxpool memory is allocated in peCreateSession
-	 */
 	scn = vos_get_context(VOS_MODULE_ID_HIF, vos_context);
 
 	if (NULL == scn) {
@@ -2581,7 +2577,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		goto err_wmi_attach;
 	}
 
-	mac_params->maxStation = ol_get_number_of_peers_supported(scn) + 1;
+	mac_params->maxStation = ol_get_number_of_peers_supported(scn);
 
         mac_params->maxBssId = WMA_MAX_SUPPORTED_BSS;
 	mac_params->frameTransRequired = 0;

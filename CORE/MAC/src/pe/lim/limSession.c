@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -110,23 +110,38 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid, tANI_U8* sessio
             vos_mem_set((void*)&pMac->lim.gpSession[i], sizeof(tPESession), 0);
 
             //Allocate space for Station Table for this session.
+#ifdef QCA_WIFI_2_0
             pMac->lim.gpSession[i].dph.dphHashTable.pHashTable = vos_mem_malloc(
-                                                  sizeof(tpDphHashNode)*numSta);
+                                                  sizeof(tpDphHashNode)* (numSta + 1));
+#else
+            pMac->lim.gpSession[i].dph.dphHashTable.pHashTable = vos_mem_malloc(
+                                                   sizeof(tpDphHashNode)*numSta);
+#endif
             if ( NULL == pMac->lim.gpSession[i].dph.dphHashTable.pHashTable )
             {
                 limLog(pMac, LOGE, FL("memory allocate failed!"));
                 return NULL;
             }
-
+#ifdef QCA_WIFI_2_0
+            pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray = vos_mem_malloc(
+                                                       sizeof(tDphHashNode) * (numSta + 1));
+#else
             pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray = vos_mem_malloc(
                                                        sizeof(tDphHashNode)*numSta);
+#endif
             if ( NULL == pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray )
             {
                 limLog(pMac, LOGE, FL("memory allocate failed!"));
                 vos_mem_free(pMac->lim.gpSession[i].dph.dphHashTable.pHashTable);
+                pMac->lim.gpSession[i].dph.dphHashTable.pHashTable = NULL;
                 return NULL;
             }
+
+#ifdef QCA_WIFI_2_0
+            pMac->lim.gpSession[i].dph.dphHashTable.size = numSta + 1;
+#else
             pMac->lim.gpSession[i].dph.dphHashTable.size = numSta;
+#endif
 
             dphHashTableClassInit(pMac,
                            &pMac->lim.gpSession[i].dph.dphHashTable);
@@ -138,6 +153,8 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid, tANI_U8* sessio
                 PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!"));)
                 vos_mem_free(pMac->lim.gpSession[i].dph.dphHashTable.pHashTable);
                 vos_mem_free(pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray);
+                pMac->lim.gpSession[i].dph.dphHashTable.pHashTable = NULL;
+                pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray = NULL;
                 return NULL;
             }
             vos_mem_set(pMac->lim.gpSession[i].gpLimPeerIdxpool,
@@ -349,7 +366,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
     limLog(pMac, LOGW, FL("Trying to delete a session %d"), psessionEntry->peSessionId);
 
-    for (n = 0; n < pMac->lim.maxStation; n++)
+    for (n = 0; n < (pMac->lim.maxStation + 1); n++)
     {
         timer_ptr = &pMac->lim.limTimers.gpLimCnfWaitTimer[n];
 

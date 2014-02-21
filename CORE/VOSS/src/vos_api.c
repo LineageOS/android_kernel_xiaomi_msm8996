@@ -445,11 +445,12 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
 #if defined (QCA_WIFI_2_0) && \
    !defined (QCA_WIFI_ISOC)
-   /* This macOpenParams.maxStation has value incremented by 1 for PeerIdx logic.
-    * So here we are decrementing by 1 to assign in the ini.With this change
-    * there is no ned to define gSoftApMaxPeers ini for Rome >= 1.3
-    */
-   pHddCtx->cfg_ini->maxNumberOfPeers = macOpenParms.maxStation - 1;
+   /* Number of peers limit differs in each chip version. If peer max
+    * limit configured in ini exceeds more than supported, WMA adjusts
+    * and keeps correct limit in macOpenParms.maxStation. So, make sure
+    * ini entry pHddCtx->cfg_ini->maxNumberOfPeers has adjusted value
+   */
+   pHddCtx->cfg_ini->maxNumberOfPeers = macOpenParms.maxStation;
    HTCHandle = vos_get_context(VOS_MODULE_ID_HTC, gpVosContext);
    if (!HTCHandle) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
