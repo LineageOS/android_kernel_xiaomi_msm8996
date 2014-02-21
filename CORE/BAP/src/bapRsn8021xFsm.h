@@ -61,7 +61,7 @@ typedef struct tSuppContext tSuppContext;
 #define ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE 8 // Bytes
 
 #define  BAP_SET_RSN_KEY   1
-#define  BAP_RESET_RSN_KEY  0 
+#define  BAP_RESET_RSN_KEY  0
 
 
 #define AAG_ACL_LOOKUP_NEEDED(ctx) \
@@ -81,17 +81,17 @@ typedef struct tSuppContext tSuppContext;
 /************************
  * AuthRsnFsm structure:
  *************************/
-typedef struct tagAuthRsnFsm 
+typedef struct tagAuthRsnFsm
 {
     v_U8_t currentState;
-    
+
     tBtampContext *ctx;
-    tStaContext *staCtx; 
+    tStaContext *staCtx;
 
     // Variables used for EAPOL-Key messages
     v_U8_t aNonce[ANI_EAPOL_KEY_RSN_NONCE_SIZE];
     v_U8_t sNonce[ANI_EAPOL_KEY_RSN_NONCE_SIZE];
- 
+
     // Flags set by external events
     v_U8_t authReq;
     v_U8_t eapolAvail;
@@ -120,7 +120,7 @@ typedef struct tagAuthRsnFsm
 typedef struct tagSuppRsnFsm {
 
     v_U8_t currentState;
-    
+
     tBtampContext *ctx;
     tSuppContext *suppCtx;
 
@@ -152,19 +152,19 @@ typedef enum
 {
     //Internal to RSN
     //This event is triggered by RSN’s timers
-    RSN_FSM_TIMER_EXPIRED,  
+    RSN_FSM_TIMER_EXPIRED,
     //BAP use this event to inform auth/supp to start processing
-    //authentication. When BAP send this event to RSN, it is presumed 
+    //authentication. When BAP send this event to RSN, it is presumed
     //that the PMK is available.
-    RSN_FSM_AUTH_START,    
+    RSN_FSM_AUTH_START,
     //Internal to RSN
     //This event is triggered by the Rx routine when called by TL
-    RSN_FSM_EAPOL_FRAME_AVAILABLE,  
-    //BAP use this event to inform RSN that the connection is lost  
-    RSN_FSM_DISCONNECT,    
+    RSN_FSM_EAPOL_FRAME_AVAILABLE,
+    //BAP use this event to inform RSN that the connection is lost
+    RSN_FSM_DISCONNECT,
     //Internal to RSN
     //This event hannpens when RSN detect key integraty check fails
-    RSN_FSM_INTEG_FAILED,  
+    RSN_FSM_INTEG_FAILED,
 
 }tRsnFsmEvent;
 
@@ -191,7 +191,7 @@ typedef enum
  *     message is generated, this one is freed and the new one is
  *     stored.
  */
-typedef struct tEapInfo 
+typedef struct tEapInfo
 
 {
     tAniPacket *message;
@@ -221,7 +221,7 @@ struct tStaContext {
 
     // Local association point
     tAniMacAddr authMac;
-    v_U8_t ssidName[SIR_MAC_MAX_SSID_LENGTH + 1];    
+    v_U8_t ssidName[SIR_MAC_MAX_SSID_LENGTH + 1];
     tAagSsidEntry *ssid;
 
     // The different FSM's that can be instantiated for the STA
@@ -359,7 +359,7 @@ typedef struct tSuppFsmConsts {
     v_U16_t authPeriod;
     v_U16_t heldPeriod;
     v_U16_t startPeriod;
-    v_U8_t maxStart;    
+    v_U8_t maxStart;
 } tSuppFsmConsts;
 
 /**
@@ -387,7 +387,7 @@ typedef struct tAuthRsnGroupKeyFsmConsts {
  * FUNCTION
  * Frees a previously allocated RSN Key FSM in a STA context. If the
  * RSN Key FSM is not yet allocated, then this is an error.
- * 
+ *
  * @param ctx the STA context whose FSM instance is to be freed
  *
  * @return ANI_OK if the operation succeeds
@@ -400,7 +400,7 @@ authRsnFsmFree(tBtampContext *ctx);
  *
  * FUNCTION
  * Passes an event to the RSN key FSM instance for immediate processing.
- * 
+ *
  * @param fsm the RSN Key FSM instance
  * @param eventId the AAG event to process
  * @param arg an optional argument for this event
@@ -417,7 +417,7 @@ authRsnFsmProcessEvent(tAuthRsnFsm *fsm, tRsnFsmEvent eventId, void *arg);
  * FUNCTION
  * Allocates and initializes the state of an SuppFsm instance for the
  * given STA context.
- * 
+ *
  * @parm ctx the supplicant context whose SuppFsm is being created
  *
  * @return ANI_OK if the operation succeeds
@@ -430,7 +430,7 @@ suppRsnFsmCreate(tBtampContext *ctx);
  *
  * FUNCTION
  * Frees a previously allocated SuppFsm.
- * 
+ *
  * @param suppCtx the supplicant context whose suppFsm is to be freed
  *
  * @return ANI_OK if the operation succeeds
@@ -443,7 +443,7 @@ suppRsnFsmFree(tBtampContext *ctx);
  *
  * FUNCTION
  * Passes an event to the suppFsm for immediate processing.
- * 
+ *
  * Note: The pertinent event data is already stored in the context.
  *
  * @param suppFsm the suppFsm

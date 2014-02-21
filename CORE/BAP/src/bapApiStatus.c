@@ -28,16 +28,16 @@
 /*===========================================================================
 
                       b a p A p i S t a t u s . C
-                                               
+
   OVERVIEW:
-  
+
   This software unit holds the implementation of the WLAN BAP modules
   Status functions.
-  
-  The functions externalized by this module are to be called ONLY by other 
+
+  The functions externalized by this module are to be called ONLY by other
   WLAN modules (HDD) that properly register with the BAP Layer initially.
 
-  DEPENDENCIES: 
+  DEPENDENCIES:
 
   Are listed for each API below.
 ===========================================================================*/
@@ -66,9 +66,9 @@
 //#include "wlan_qct_tl.h"
 #include "vos_trace.h"
 
-/* BT-AMP PAL API header file */ 
-#include "bapApi.h" 
-#include "bapInternal.h" 
+/* BT-AMP PAL API header file */
+#include "bapApi.h"
+#include "bapInternal.h"
 
 //#define BAP_DEBUG
 /*----------------------------------------------------------------------------
@@ -108,39 +108,39 @@ Status Parameters
 
   FUNCTION    WLAN_BAPReadFailedContactCounter()
 
-  DESCRIPTION 
-    Implements the actual HCI Read Failed Contact Counter command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Read Failed Contact Counter command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIReadFailedContactCounter:  pointer to the "HCI Read Failed Contact Counter" structure.
     pFailedContactCounter:  pointer to return value for the "Failed Contact Counter"
-   
+
     IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
                 the Command Complete event up the HCI interface.)
-   
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
     VOS_STATUS_E_FAULT:  pointer to pBapHCIReadFailedContactCounter or
-                         pFailedContactCounter is NULL 
+                         pFailedContactCounter is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReadFailedContactCounter
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Read_Failed_Contact_Counter_Cmd  *pBapHCIReadFailedContactCounter,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -155,37 +155,37 @@ WLAN_BAPReadFailedContactCounter
 
   FUNCTION    WLAN_BAPResetFailedContactCounter()
 
-  DESCRIPTION 
-    Implements the actual HCI Reset Failed Contact Counter command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Reset Failed Contact Counter command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIResetFailedContactCounter:  pointer to the "HCI Reset Failed Contact Counter" structure.
-   
+
     IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
                 the Command Complete event up the HCI interface.)
-   
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
     VOS_STATUS_E_FAULT:  pointer to pBapHCIResetFailedContactCounter is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPResetFailedContactCounter
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Reset_Failed_Contact_Counter_Cmd *pBapHCIResetFailedContactCounter,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -200,39 +200,39 @@ WLAN_BAPResetFailedContactCounter
 
   FUNCTION    WLAN_BAPReadLinkQuality()
 
-  DESCRIPTION 
-    Implements the actual HCI Read Link Quality command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Read Link Quality command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIReadLinkQuality:  pointer to the "HCI Read Link Quality" structure.
     pBapHCILinkQuality:  pointer to return value for the "Link Quality"
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLinkQuality or 
-                         pBapHCILinkQuality is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLinkQuality or
+                         pBapHCILinkQuality is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReadLinkQuality
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Read_Link_Quality_Cmd *pBapHCIReadLinkQuality,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -246,7 +246,7 @@ WLAN_BAPReadLinkQuality
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIReadLinkQuality) ||
         (NULL == pBapHCIEvent))
     {
@@ -282,11 +282,11 @@ WLAN_BAPReadLinkQuality
             = WLANBAP_STATUS_SUCCESS;
     }
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_READ_LINK_QUALITY_CMD;
 
     return VOS_STATUS_SUCCESS;
@@ -296,39 +296,39 @@ WLAN_BAPReadLinkQuality
 
   FUNCTION    WLAN_BAPReadRSSI()
 
-  DESCRIPTION 
-    Implements the actual HCI Read RSSI command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Read RSSI command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIReadRSSI:  pointer to the "HCI Read RSSI" structure.
     pBapHCIRSSI:  pointer to return value for the "RSSI".
-   
+
     IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
                 the Command Complete event up the HCI interface.)
-   
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
     VOS_STATUS_E_FAULT:  pointer to pBapHCIReadRSSI or
-                         pBapHCIRSSI is NULL 
+                         pBapHCIRSSI is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReadRSSI
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Read_RSSI_Cmd *pBapHCIReadRSSI,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -343,7 +343,7 @@ WLAN_BAPReadRSSI
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Validate params */ 
+    /* Validate params */
     if ((NULL == btampHandle) || (NULL == pBapHCIReadRSSI) ||
         (NULL == pBapHCIEvent))
     {
@@ -388,11 +388,11 @@ WLAN_BAPReadRSSI
         }
     }
 
-    /* Fill in the parameters for command complete event... */ 
+    /* Fill in the parameters for command complete event... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_READ_RSSI_CMD;
 
     return VOS_STATUS_SUCCESS;
@@ -402,50 +402,50 @@ WLAN_BAPReadRSSI
 
   FUNCTION    WLAN_BAPReadLocalAMPInfo()
 
-  DESCRIPTION 
-    Implements the actual HCI Read Local AMP Information command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Read Local AMP Information command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIReadLocalAMPInfo:  pointer to the "HCI Read Local AMP Info" Structure.
-   
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLocalAMPInfo or 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLocalAMPInfo or
                          pBapHCILocalAMPInfo is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReadLocalAMPInfo
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Read_Local_AMP_Information_Cmd *pBapHCIReadLocalAMPInfo,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
                                 /* Including Command Complete and Command Status*/
 )
 {
-    /* Validate params */ 
+    /* Validate params */
     if (btampHandle == NULL) {
       return VOS_STATUS_E_FAULT;
     }
 
-    /* Validate params */ 
+    /* Validate params */
     if (pBapHCIReadLocalAMPInfo == NULL) {
       return VOS_STATUS_E_FAULT;
     }
@@ -453,13 +453,13 @@ WLAN_BAPReadLocalAMPInfo
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %p", __func__,  btampHandle);
 
 
-    /* Format the command complete event to return... */ 
+    /* Format the command complete event to return... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = 1;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_READ_LOCAL_AMP_INFORMATION_CMD;
-    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Local_AMP_Info.status 
+    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Local_AMP_Info.status
         = WLANBAP_STATUS_SUCCESS;
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Local_AMP_Info.HC_AMP_Status
         = WLANBAP_HCI_AMP_STATUS_NOT_SHARED;
@@ -471,7 +471,7 @@ WLAN_BAPReadLocalAMPInfo
         = 100;
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Local_AMP_Info.HC_Max_PDU_Size
         = WLANBAP_MAX_80211_PAL_PDU_SIZE;
-    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Local_AMP_Info.HC_Controller_Type 
+    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Local_AMP_Info.HC_Controller_Type
         = 1;
 #if 0
 AMP Info PAL_Capabilities: Size: 2 Octets
@@ -499,39 +499,39 @@ Value    Parameter Description
 
   FUNCTION    WLAN_BAPReadLocalAMPAssoc()
 
-  DESCRIPTION 
-    Implements the actual HCI Read Local AMP Assoc command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Read Local AMP Assoc command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIReadLocalAMPAssoc:  pointer to the "HCI Read Local AMP Assoc" Structure.
-    
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLocalAMPAssoc 
-                        (or pBapHCILocalAMPAssoc) is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIReadLocalAMPAssoc
+                        (or pBapHCILocalAMPAssoc) is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPReadLocalAMPAssoc
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Read_Local_AMP_Assoc_Cmd   *pBapHCIReadLocalAMPAssoc,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -539,14 +539,14 @@ WLAN_BAPReadLocalAMPAssoc
 )
 {
     VOS_STATUS  vosStatus;
-    ptBtampContext btampContext = (ptBtampContext) btampHandle; /* btampContext value */ 
+    ptBtampContext btampContext = (ptBtampContext) btampHandle; /* btampContext value */
     tHalHandle hHal;
-    tBtampAMP_ASSOC btamp_ASSOC; 
+    tBtampAMP_ASSOC btamp_ASSOC;
     v_U32_t nConsumed = 0;
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
 
-    /* Validate params */ 
+    /* Validate params */
     if ((pBapHCIReadLocalAMPAssoc == NULL) || (NULL == btampHandle))
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
@@ -555,7 +555,7 @@ WLAN_BAPReadLocalAMPAssoc
         return VOS_STATUS_E_FAULT;
     }
     hHal = VOS_GET_HAL_CB(btampContext->pvosGCtx);
-    if (NULL == hHal) 
+    if (NULL == hHal)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                      "hHal is NULL in %s", __func__);
@@ -564,9 +564,9 @@ WLAN_BAPReadLocalAMPAssoc
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, 
-            "In %s, phy_link_handle = %d", __func__, 
-            pBapHCIReadLocalAMPAssoc->phy_link_handle); 
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+            "In %s, phy_link_handle = %d", __func__,
+            pBapHCIReadLocalAMPAssoc->phy_link_handle);
 
     /* Update the MAC address and SSID if in case the Read Local AMP Assoc
      * Request is made before Create Physical Link creation.
@@ -574,44 +574,44 @@ WLAN_BAPReadLocalAMPAssoc
     WLANBAP_ReadMacConfig (btampContext);
 
     /* Fill in the contents of an AMP_Assoc structure in preparation
-     * for Packing it into the AMP_assoc_fragment field of the Read 
-     * Local AMP Assoc Command Complete Event 
-     */ 
-    /* Return the local MAC address */ 
+     * for Packing it into the AMP_assoc_fragment field of the Read
+     * Local AMP Assoc Command Complete Event
+     */
+    /* Return the local MAC address */
     btamp_ASSOC.AMP_Assoc_MAC_Addr.present = 1;
-    vos_mem_copy( 
-            btamp_ASSOC.AMP_Assoc_MAC_Addr.mac_addr,   
-            btampContext->self_mac_addr, 
-            sizeof(btampContext->self_mac_addr)); 
+    vos_mem_copy(
+            btamp_ASSOC.AMP_Assoc_MAC_Addr.mac_addr,
+            btampContext->self_mac_addr,
+            sizeof(btampContext->self_mac_addr));
 
     /*Save the local AMP assoc info*/
     vos_mem_copy(btampContext->btamp_AMP_Assoc.HC_mac_addr,
-                 btampContext->self_mac_addr, 
-                 sizeof(btampContext->self_mac_addr)); 
+                 btampContext->self_mac_addr,
+                 sizeof(btampContext->self_mac_addr));
 
 
-    /* JEZ090303: This logic should return a single channel list with the */ 
+    /* JEZ090303: This logic should return a single channel list with the */
     /* selected channel, if we have one. */
-    //if (btampContext->channel)  
-    if (1)  
-    { 
-        /* Return the local Preferred Channel List */ 
-        /* Return both the Regulatory Info and one channel list */ 
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.present = 1; 
-        memcpy (btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.country, "XXX", 3); 
+    //if (btampContext->channel)
+    if (1)
+    {
+        /* Return the local Preferred Channel List */
+        /* Return both the Regulatory Info and one channel list */
+        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.present = 1;
+        memcpy (btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.country, "XXX", 3);
         /*Save the local AMP assoc info*/
         vos_mem_copy(btampContext->btamp_AMP_Assoc.HC_pref_country, "XXX", 3);
 
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.num_triplets = 2; 
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][0] = 201; 
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][1] = 254; 
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][2] = 0; 
+        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.num_triplets = 2;
+        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][0] = 201;
+        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][1] = 254;
+        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][2] = 0;
 
         if (( BT_INITIATOR == btampContext->BAPDeviceRole ) &&
             ( 0 != btampContext->channel ))
         {
           btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][0] = btampContext->channel;
-          btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1] = 0x01; //we are AP - we start on their 1st preferred channel 
+          btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1] = 0x01; //we are AP - we start on their 1st preferred channel
           btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][2] = 0x11;
         }
         else
@@ -619,56 +619,56 @@ WLAN_BAPReadLocalAMPAssoc
             if (btampContext->config.ucPreferredChannel)
             {
                 btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][0] = btampContext->config.ucPreferredChannel;
-                btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1] = 
-                    0x0B - btampContext->config.ucPreferredChannel + 1;  
+                btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1] =
+                    0x0B - btampContext->config.ucPreferredChannel + 1;
             }
             else
             {
-                btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][0] = 0x01; 
-                btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1] = 0x0B; //all channels for 1 to 11 
+                btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][0] = 0x01;
+                btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1] = 0x0B; //all channels for 1 to 11
             }
 
             btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][2] = 0x11;
         }
-    } else 
-    { 
-        /* Return the local Preferred Channel List */ 
-        /* Return only the Regulatory Info */ 
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.present = 1; 
-        memcpy (btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.country, "XXX", 3); 
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.num_triplets = 1; 
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][0] = 201; 
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][1] = 254; 
+    } else
+    {
+        /* Return the local Preferred Channel List */
+        /* Return only the Regulatory Info */
+        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.present = 1;
+        memcpy (btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.country, "XXX", 3);
+        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.num_triplets = 1;
+        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][0] = 201;
+        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][1] = 254;
         btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][2] = 0;
 
-    }  
+    }
 
     /*Save the local AMP assoc info*/
     btampContext->btamp_AMP_Assoc.HC_pref_num_triplets   = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.num_triplets;
     btampContext->btamp_AMP_Assoc.HC_pref_triplets[0][0] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][0];
-    btampContext->btamp_AMP_Assoc.HC_pref_triplets[0][1] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][1]; 
+    btampContext->btamp_AMP_Assoc.HC_pref_triplets[0][1] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][1];
     btampContext->btamp_AMP_Assoc.HC_pref_triplets[0][2] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][2];
     btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][0] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][0];
-    btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][1] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1]; 
+    btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][1] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1];
     btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][2] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][2];
 
     /* Also, at this point, lie and tell the other side we are connected on */
     /* the one channel we support. I hope this convinces the peer as BT-AMP AP */
-    /* We really want him to use our channel.  Since we only support one.*/ 
-    /* Return the local Connected Channel */ 
-    btamp_ASSOC.AMP_Assoc_Connected_Channel.present = 1; 
-    memcpy (btamp_ASSOC.AMP_Assoc_Connected_Channel.country, "XXX", 3); 
-    btamp_ASSOC.AMP_Assoc_Connected_Channel.num_triplets = 2; 
-    btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[0][0] = 201; 
-    btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[0][1] = 254; 
-    btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[0][2] = 0; 
-    //btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[1][0] = 0x01; 
-    btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[1][0] = (0 != btampContext->channel)?btampContext->channel:0x01; 
-    btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[1][1] = 0x01; 
+    /* We really want him to use our channel.  Since we only support one.*/
+    /* Return the local Connected Channel */
+    btamp_ASSOC.AMP_Assoc_Connected_Channel.present = 1;
+    memcpy (btamp_ASSOC.AMP_Assoc_Connected_Channel.country, "XXX", 3);
+    btamp_ASSOC.AMP_Assoc_Connected_Channel.num_triplets = 2;
+    btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[0][0] = 201;
+    btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[0][1] = 254;
+    btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[0][2] = 0;
+    //btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[1][0] = 0x01;
+    btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[1][0] = (0 != btampContext->channel)?btampContext->channel:0x01;
+    btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[1][1] = 0x01;
     btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets[1][2] = 0x11;
 
 
-    /* Return the local PAL Capabilities */ 
+    /* Return the local PAL Capabilities */
     btamp_ASSOC.AMP_Assoc_PAL_Capabilities.present = 1;
 
 #if 0
@@ -693,52 +693,52 @@ AMP ASSOC Pal Capabilities: Size: 4 Octets
 
 #endif //0
 
-    btamp_ASSOC.AMP_Assoc_PAL_Capabilities.pal_capabilities 
-//        = btampContext->btamp_Remote_AMP_Assoc.HC_pal_capabilities; 
+    btamp_ASSOC.AMP_Assoc_PAL_Capabilities.pal_capabilities
+//        = btampContext->btamp_Remote_AMP_Assoc.HC_pal_capabilities;
         //= 0x03;
         = 0x00;
 
-    /* Return the local PAL Version */ 
+    /* Return the local PAL Version */
     btamp_ASSOC.AMP_Assoc_PAL_Version.present = 1;
 
-    /* Return the version and company ID data */ 
+    /* Return the version and company ID data */
     btamp_ASSOC.AMP_Assoc_PAL_Version.pal_version = WLANBAP_PAL_VERSION;
     btamp_ASSOC.AMP_Assoc_PAL_Version.pal_CompanyID = WLANBAP_QUALCOMM_COMPANY_ID;  // Qualcomm Company ID
     btamp_ASSOC.AMP_Assoc_PAL_Version.pal_subversion = WLANBAP_PAL_SUBVERSION;
 
     //Pack the AMP Assoc structure
     vosStatus = btampPackAMP_ASSOC(
-            hHal, 
-            &btamp_ASSOC, 
-            pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.AMP_assoc_fragment, 
-            248, 
+            hHal,
+            &btamp_ASSOC,
+            pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.AMP_assoc_fragment,
+            248,
             &nConsumed);
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: nConsumed value: %d", __func__,  nConsumed); 
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: nConsumed value: %d", __func__,  nConsumed);
 
-    /* Format the command complete event to return... */ 
+    /* Format the command complete event to return... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = 1;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_READ_LOCAL_AMP_ASSOC_CMD;
     /*Validate the Physical handle*/
-    if(pBapHCIReadLocalAMPAssoc->phy_link_handle != 
-       btampContext->phy_link_handle) { 
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, 
-                "%s: Wrong Physical Link handle in Read Local AMP Assoc cmd: current: %x, new: %x", __func__,  
-                btampContext->phy_link_handle, 
+    if(pBapHCIReadLocalAMPAssoc->phy_link_handle !=
+       btampContext->phy_link_handle) {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                "%s: Wrong Physical Link handle in Read Local AMP Assoc cmd: current: %x, new: %x", __func__,
+                btampContext->phy_link_handle,
                 pBapHCIReadLocalAMPAssoc->phy_link_handle);
 
         pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.status
             = WLANBAP_ERROR_NO_CNCT;
     } else
-        pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.status 
+        pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.status
             = WLANBAP_STATUS_SUCCESS;
-    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.phy_link_handle 
+    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.phy_link_handle
         = pBapHCIReadLocalAMPAssoc->phy_link_handle;
-    /* We will fit in one fragment, so remaining is exactly equal to encoded size*/ 
-    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.remaining_length 
+    /* We will fit in one fragment, so remaining is exactly equal to encoded size*/
+    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.remaining_length
         = nConsumed;
 
     return VOS_STATUS_SUCCESS;
@@ -748,37 +748,37 @@ AMP ASSOC Pal Capabilities: Size: 4 Octets
 
   FUNCTION    WLAN_BAPWriteRemoteAMPAssoc()
 
-  DESCRIPTION 
-    Implements the actual HCI Write Remote AMP Assoc command.  There 
-    is no need for a callback because when this call returns the action 
+  DESCRIPTION
+    Implements the actual HCI Write Remote AMP Assoc command.  There
+    is no need for a callback because when this call returns the action
     has been completed.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
     pBapHCIWriteRemoteAMPAssoc:  pointer to the "HCI Write Remote AMP Assoc" Structure.
-    
-    IN/OUT
-    pBapHCIEvent:  Return event value for the command complete event. 
-                (The caller of this routine is responsible for sending 
-                the Command Complete event up the HCI interface.)
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteRemoteAMPAssoc is NULL 
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIWriteRemoteAMPAssoc is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
+VOS_STATUS
 WLAN_BAPWriteRemoteAMPAssoc
-( 
+(
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Write_Remote_AMP_ASSOC_Cmd   *pBapHCIWriteRemoteAMPAssoc,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
@@ -789,64 +789,58 @@ WLAN_BAPWriteRemoteAMPAssoc
     VOS_STATUS  vosStatus;
     tBtampHCI_Event bapHCIEvent;
 
-    /* I am using btampContext, instead of pBapPhysLinkMachine */ 
+    /* I am using btampContext, instead of pBapPhysLinkMachine */
     //tWLAN_BAPbapPhysLinkMachine *pBapPhysLinkMachine;
-    ptBtampContext btampContext = (ptBtampContext) btampHandle; /* btampContext value */ 
+    ptBtampContext btampContext = (ptBtampContext) btampHandle; /* btampContext value */
     v_U8_t status;    /* return the BT-AMP status here */
 
-    /* Validate params */ 
+    /* Validate params */
     if (pBapHCIWriteRemoteAMPAssoc == NULL) {
       return VOS_STATUS_E_FAULT;
     }
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %p", __func__,  btampHandle);
 
-    /* Fill in the event structure */ 
+    /* Fill in the event structure */
     bapEvent.event = eWLAN_BAP_HCI_WRITE_REMOTE_AMP_ASSOC;
     bapEvent.params = pBapHCIWriteRemoteAMPAssoc;
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampContext value: %p", __func__,  btampContext);
 
-    /* Handle event */ 
+    /* Handle event */
     vosStatus = btampFsm(btampContext, &bapEvent, &status);
-  
-    /* Format the command complete event to return... */ 
+
+    /* Format the command complete event to return... */
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
     pBapHCIEvent->u.btampCommandCompleteEvent.present = 1;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
-    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
         = BTAMP_TLV_HCI_WRITE_REMOTE_AMP_ASSOC_CMD;
-    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Write_Remote_AMP_Assoc.status 
+    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Write_Remote_AMP_Assoc.status
         = status;
-    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Write_Remote_AMP_Assoc.phy_link_handle 
+    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Write_Remote_AMP_Assoc.phy_link_handle
         = pBapHCIWriteRemoteAMPAssoc->phy_link_handle;
 
     if(WLANBAP_ERROR_NO_SUITABLE_CHANNEL == status)
     {
-        /* Format the Physical Link Complete event to return... */ 
+        /* Format the Physical Link Complete event to return... */
         bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_PHYSICAL_LINK_COMPLETE_EVENT;
         bapHCIEvent.u.btampPhysicalLinkCompleteEvent.present = 1;
         bapHCIEvent.u.btampPhysicalLinkCompleteEvent.status = status;
-        bapHCIEvent.u.btampPhysicalLinkCompleteEvent.phy_link_handle 
+        bapHCIEvent.u.btampPhysicalLinkCompleteEvent.phy_link_handle
             = btampContext->phy_link_handle;
-        bapHCIEvent.u.btampPhysicalLinkCompleteEvent.ch_number 
+        bapHCIEvent.u.btampPhysicalLinkCompleteEvent.ch_number
             = 0;
-    
-        vosStatus = (*btampContext->pBapHCIEventCB) 
-            (  
+
+        vosStatus = (*btampContext->pBapHCIEventCB)
+            (
              btampContext->pHddHdl,   /* this refers the BSL per application context */
              &bapHCIEvent, /* This now encodes ALL event types */
-             VOS_TRUE /* Flag to indicate assoc-specific event */ 
+             VOS_TRUE /* Flag to indicate assoc-specific event */
             );
     }
 
-    /* ... */ 
+    /* ... */
 
     return VOS_STATUS_SUCCESS;
 } /* WLAN_BAPWriteRemoteAMPAssoc */
-
-
-
-
-
-

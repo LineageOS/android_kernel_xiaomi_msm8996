@@ -75,6 +75,7 @@ ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev)
 	cfg_ctx->vow_config = vow_config;
 	cfg_ctx->target_tx_credit = CFG_TGT_NUM_MSDU_DESC;
 	cfg_ctx->throttle_period_ms = 40;
+	cfg_ctx->rx_fwd_disabled = 0;
 	return (ol_pdev_handle) cfg_ctx;
 }
 
@@ -110,6 +111,23 @@ int ol_cfg_rx_fwd_check(ol_pdev_handle pdev)
 {
 	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
 	return cfg->pn_rx_fwd_check;
+}
+
+void ol_set_cfg_rx_fwd_disabled(ol_pdev_handle pdev, u_int8_t disable_rx_fwd)
+{
+	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
+	cfg->rx_fwd_disabled = disable_rx_fwd;
+}
+
+int ol_cfg_rx_fwd_disabled(ol_pdev_handle pdev)
+{
+#if defined(ATHR_WIN_NWF)
+	/* for Windows, let the OS handle the forwarding */
+	return 1;
+#else
+	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
+	return cfg->rx_fwd_disabled;
+#endif
 }
 
 int ol_cfg_rx_fwd_inter_bss(ol_pdev_handle pdev)

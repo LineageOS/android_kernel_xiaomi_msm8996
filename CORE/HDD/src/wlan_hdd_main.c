@@ -5136,6 +5136,7 @@ void hdd_update_tgt_cfg(void *context, void *param)
     hdd_ctx->cfg_ini->nBandCapability = cfg->band_cap;
 
     hdd_ctx->reg.reg_domain = cfg->reg_domain;
+    hdd_ctx->reg.eeprom_rd_ext = cfg->eeprom_rd_ext;
 
     /* This can be extended to other configurations like ht, vht cap... */
 

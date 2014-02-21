@@ -67,6 +67,7 @@ struct txrx_pdev_cfg_t {
 	u32 max_nbuf_frags;
 	u32 throttle_period_ms;
 	enum wlan_frm_fmt frame_type;
+	u8 rx_fwd_disabled;
 };
 
 /**
@@ -139,6 +140,18 @@ int ol_cfg_rx_pn_check(ol_pdev_handle pdev);
 int ol_cfg_rx_fwd_check(ol_pdev_handle pdev);
 
 /**
+ * @brief set rx fwd disable/enable.
+ * @details
+ *  Choose whether to forward rx frames to tx (where applicable) within the
+ *  WLAN driver, or to leave all forwarding up to the operating system.
+ *  currently only intra-bss fwd is supported.
+ *
+ * @param pdev - handle to the physical device
+ * @param disable_rx_fwd 1 -> no rx->tx forward -> rx->tx forward
+ */
+void ol_set_cfg_rx_fwd_disabled(ol_pdev_handle pdev, u_int8_t disalbe_rx_fwd);
+
+/**
  * @brief Check whether rx forwarding is enabled or disabled.
  * @details
  *  Choose whether to forward rx frames to tx (where applicable) within the
@@ -147,15 +160,7 @@ int ol_cfg_rx_fwd_check(ol_pdev_handle pdev);
  * @param pdev - handle to the physical device
  * @return 1 -> no rx->tx forward -OR- 0 -> rx->tx forward (in host or target)
  */
-static inline int ol_cfg_rx_fwd_disabled(ol_pdev_handle pdev)
-{
-#if defined(ATHR_WIN_NWF)
-    /* for Windows, let the OS handle the forwarding */
-    return 1;
-#else
-    return 0;
-#endif
-}
+int ol_cfg_rx_fwd_disabled(ol_pdev_handle pdev);
 
 /**
  * @brief Check whether to perform inter-BSS or intra-BSS rx->tx forwarding.

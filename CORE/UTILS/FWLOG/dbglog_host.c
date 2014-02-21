@@ -719,6 +719,7 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "BEACON_EVENT_EARLY_RX_SLEEP_SLOP",
         "BEACON_EVENT_EARLY_RX_CONT_BMISS_TIMEOUT",
         "BEACON_EVENT_EARLY_RX_PAUSE_SKIP_BCN_NUM",
+        "BEACON_EVENT_EARLY_RX_BCN_TYPE",
     },
     { /* Offload Mgr */
         "OFFLOAD_MGR_DBGID_DEFINITION_START",
@@ -1049,6 +1050,26 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "THERMAL_MGR_NEW_THRESH",
         "THERMAL_MGR_THRESH_CROSSED",
         "THERMAL_MGR_DBGID_DEFINITION END",
+    },
+    {   /* WLAN_MODULE_PHYERR_DFS */
+        ""
+    },
+    {
+        /* WLAN_MODULE_RMC */
+        "RMC_DBGID_DEFINITION_START",
+        "RMC_CREATE_INSTANCE",
+        "RMC_DELETE_INSTANCE",
+        "RMC_LDR_SEL",
+        "RMC_NO_LDR",
+        "RMC_LDR_NOT_SEL",
+        "RMC_LDR_INF_SENT",
+        "RMC_PEER_ADD",
+        "RMC_PEER_DELETE",
+        "RMC_PEER_UNKNOWN",
+        "RMC_SET_MODE",
+        "RMC_SET_ACTION_PERIOD",
+        "RMC_ACRION_FRAME_RX",
+        "RMC_DBGID_DEFINITION_END",
     },
 };
 
@@ -2758,6 +2779,13 @@ dbglog_beacon_print_handler(
         if (numargs == 1) {
             dbglog_printf(timestamp, vap_id,
                     "early_rx skip bcn num:%d",
+                    args[0]);
+        }
+        break;
+    case BEACON_EVENT_EARLY_RX_BCN_TYPE:
+        if (numargs == 1) {
+            dbglog_printf(timestamp, vap_id,
+                    "early_rx bcn type:%d",
                     args[0]);
         }
         break;

@@ -665,7 +665,13 @@ extern "C" {
 #define WAL_DBGID_CURRENT_BRSSI_AVE                 57
 #define WAL_DBGID_BCN_TX_COMP                       58
 #define WAL_DBGID_RX_REENTRY                        59
-#define WAL_DBGID_DEFINITION_END                    60
+#define WAL_DBGID_SET_HW_CHAINMASK                  60
+#define WAL_DBGID_SET_HW_CHAINMASK_TXRX_STOP_FAIL   61
+#define WAL_DBGID_GET_HW_CHAINMASK                  62
+#define WAL_DBGID_SMPS_DISABLE                      63
+#define WAL_DBGID_SMPS_ENABLE_HW_CNTRL              64
+#define WAL_DBGID_SMPS_SWSEL_CHAINMASK              65
+#define WAL_DBGID_DEFINITION_END                    66
 
 #define ANI_DBGID_POLL                               0
 #define ANI_DBGID_CONTROL                            1
@@ -903,7 +909,18 @@ extern "C" {
 #define STA_SMPS_DBGID_VIRTUAL_CHAN_SMPS_START          6
 #define STA_SMPS_DBGID_VIRTUAL_CHAN_SMPS_STOP           7
 #define STA_SMPS_DBGID_SEND_SMPS_ACTION_FRAME           8
-#define SMPS_DBGID_DEFINITION_END                       9
+#define STA_SMPS_DBGID_HOST_FORCED_MODE                 9
+#define STA_SMPS_DBGID_FW_FORCED_MODE                   10
+#define STA_SMPS_DBGID_RSSI_THRESHOLD_CROSSED           11
+#define STA_SMPS_DBGID_SMPS_ACTION_FRAME_COMPLETION     12
+#define STA_SMPS_DBGID_DTIM_EBT_EVENT_CHMASK_UPDATE     13
+#define STA_SMPS_DBGID_DTIM_CHMASK_UPDATE               14
+#define STA_SMPS_DBGID_DTIM_BEACON_EVENT_CHMASK_UPDATE  15
+#define STA_SMPS_DBGID_DTIM_POWER_STATE_CHANGE          16
+#define STA_SMPS_DBGID_DTIM_CHMASK_UPDATE_SLEEP         17
+#define STA_SMPS_DBGID_DTIM_CHMASK_UPDATE_AWAKE         18
+
+#define STA_SMPS_DBGID_DEFINITION_END                   18
 
 /* RTT module DBGIDs*/
 #define RTT_CALL_FLOW                 0

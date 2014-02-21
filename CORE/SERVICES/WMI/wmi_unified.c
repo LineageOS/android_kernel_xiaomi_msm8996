@@ -483,6 +483,8 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		CASE_RETURN_STRING(WMI_OEM_REQ_CMDID);
 		/* NAN request cmd */
 		CASE_RETURN_STRING(WMI_NAN_CMDID);
+		/* Modem power state cmd */
+		CASE_RETURN_STRING(WMI_MODEM_POWER_STATE_CMDID);
 	}
 	return "Invalid WMI cmd";
 }

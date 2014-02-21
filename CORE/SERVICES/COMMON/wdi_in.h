@@ -1264,6 +1264,7 @@ ol_tx_queue_log_display(ol_txrx_pdev_handle pdev);
 
 #define wdi_in_event_sub wdi_event_sub
 #define wdi_in_event_unsub wdi_event_unsub
+#define wdi_in_set_cfg_rx_fwd_disabled ol_set_cfg_rx_fwd_disabled
 
 #endif /* WDI_API_AS_FUNCS / MACROS */
 

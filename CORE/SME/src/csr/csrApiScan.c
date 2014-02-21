@@ -210,75 +210,68 @@ static eHalStatus csrLLScanPurgeResult(tpAniSirGlobal pMac, tDblLinkList *pList)
     return (status);
 }
 
+#ifdef CSR_VALIDATE_LIST
+static int validateList(tDblLinkList *pChannelPwrList, int idx)
+{
+   tListElem *pElem, *pHead;
+   int count;
+
+   if(!pChannelPwrList)
+   {
+      return 1;
+   }
+
+   count = (int)(pChannelPwrList->Count);
+   pHead = &pChannelPwrList->ListHead;
+   pElem = pHead->next;
+   if((tANI_U32)(pHead->next) > 0x00010000) //Assuming kernel address is not that low.
+   {
+      //this loop crashes if the pointer is not right
+      while(pElem->next != pHead)
+      {
+         if((tANI_U32)(pElem->next) > 0x00010000)
+         {
+            pElem = pElem->next;
+            if (count <=0)
+            {
+               VOS_BUG(count > 0);
+               return 0;
+            }
+            count--;
+         }
+         else
+         {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, "%d Detect list(0x%X) error Head(0x%X) next(0x%X) Count %d",
+                  idx, (unsigned int)pChannelPwrList, (unsigned int)pHead,
+                  (unsigned int)(pHead->next), (int)pChannelPwrList->Count);
+            VOS_BUG(0);
+            return 0;
+         }
+      }
+   }
+   else
+   {
+      //Bad list
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, "%d Detect list(0x%X) error Head(0x%X) next(0x%X) Count %d",
+            idx, (unsigned int)pChannelPwrList, (unsigned int)pHead,
+            (unsigned int)(pHead->next), (int)pChannelPwrList->Count);
+      VOS_BUG(0);
+      return 0;
+   }
+   return 1;
+}
+#endif
 
 int csrCheckValidateLists(void * dest, const void *src, v_SIZE_t num, int idx)
 {
 #ifdef CSR_VALIDATE_LIST
-
-    int ii = 1;
-
     if( (NULL == g_pMac) || (!g_pMac->scan.fValidateList ) )
     {
-        return ii;
-    }
-    if(g_pchannelPowerInfoList24)
-    {
-        //check 2.4 list
-        tListElem *pElem, *pHead;
-        int count;
-        
-        count = (int)(g_pchannelPowerInfoList24->Count);
-        pHead = &g_pchannelPowerInfoList24->ListHead;
-        pElem = pHead->next;
-        if((tANI_U32)(pHead->next) > 0x00010000) //Assuming kernel address is not that low.
-        {
-            //this loop crashes if the pointer is not right
-            while(pElem->next != pHead)
-            {
-                if((tANI_U32)(pElem->next) > 0x00010000)
-                {
-                    pElem = pElem->next;
-                    if (count <=0)
-                    {
-                       VOS_ASSERT(count > 0);
-                       return 0;
-                    }
-                    count--;
-                }
-                else
-                {
-                    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, 
-                         " %d Detect 1 list(0x%X) error Head(0x%X) next(0x%X) Count %d, dest(0x%X) src(0x%X) numBytes(%d)",
-                         idx, (unsigned int)g_pchannelPowerInfoList24, (unsigned int)pHead, 
-                        (unsigned int)(pHead->next), (int)g_pchannelPowerInfoList24->Count, 
-                        (unsigned int)dest, (unsigned int)src, (int)num);
-                    VOS_ASSERT(0);
-                    ii = 0;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            //Bad list
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, " %d Detect list(0x%X) error Head(0x%X) next(0x%X) Count %d, dest(0x%X) src(0x%X) numBytes(%d)", 
-                idx, (unsigned int)g_pchannelPowerInfoList24, (unsigned int)pHead, 
-                (unsigned int)(pHead->next), (int)g_pchannelPowerInfoList24->Count, 
-                (unsigned int)dest, (unsigned int)src, (int)num);
-            VOS_ASSERT(0);
-            ii = 0;
-            return ii;
-        }
-    }
-    else
-    {
-        //list ok
-        ii = 1;
+        return 1;
     }
 
-
-    return ii;
-
+    return (validateList(g_pchannelPowerInfoList24, idx) &&
+          validateList(g_pchannelPowerInfoList5, idx)) ? 1 : 0;
 #else
     return 1;
 #endif //#ifdef CSR_VALIDATE_LIST

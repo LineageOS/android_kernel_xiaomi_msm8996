@@ -30,12 +30,12 @@
 
 /*===========================================================================
 
-               W L A N   B T - A M P  P A L   L A Y E R 
+               W L A N   B T - A M P  P A L   L A Y E R
                        E X T E R N A L  A P I
-                
-                   
+
+
 DESCRIPTION
-  This file contains the external APIs used by the wlan BT-AMP PAL layer 
+  This file contains the external APIs used by the wlan BT-AMP PAL layer
   module.
 ===========================================================================*/
 
@@ -69,16 +69,16 @@ when        who    what, where, why
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
-// Pick up all the BT-AMP internal definitions 
+// Pick up all the BT-AMP internal definitions
 // And underlying supporting types. (Including VOSS, CSR, and...)
-#include "bapInternal.h" 
+#include "bapInternal.h"
 
-/* Pick up the SIRIUS and HAL types */ 
-// Already taken care of, above 
+/* Pick up the SIRIUS and HAL types */
+// Already taken care of, above
 //#include "sirApi.h"
 //#include "halTypes.h"
 
-/* Pick up the CCM API def'n */ 
+/* Pick up the CCM API def'n */
 #include "ccmApi.h"
 
 /*----------------------------------------------------------------------------
@@ -86,19 +86,19 @@ when        who    what, where, why
  * -------------------------------------------------------------------------*/
  #ifdef __cplusplus
  extern "C" {
- #endif 
- 
+ #endif
+
 
 /*----------------------------------------------------------------------------
  *  Defines
  * -------------------------------------------------------------------------*/
-// Temporary 
+// Temporary
 //#define BAP_DEBUG
 
-// How do I get BAP context from voss context? 
-//#define VOS_GET_BAP_CB(ctx) vos_get_context( VOS_MODULE_ID_BAP, ctx) 
-// How do I get halHandle from voss context? 
-//#define VOS_GET_HAL_CB(ctx) vos_get_context( VOS_MODULE_ID_HAL, ctx) 
+// How do I get BAP context from voss context?
+//#define VOS_GET_BAP_CB(ctx) vos_get_context( VOS_MODULE_ID_BAP, ctx)
+// How do I get halHandle from voss context?
+//#define VOS_GET_HAL_CB(ctx) vos_get_context( VOS_MODULE_ID_HAL, ctx)
 
 /*----------------------------------------------------------------------------
  *  Typedefs
@@ -106,47 +106,47 @@ when        who    what, where, why
 
 
 /*----------------------------------------------------------------------------
- *  External declarations for global context 
+ *  External declarations for global context
  * -------------------------------------------------------------------------*/
 
 
 /*----------------------------------------------------------------------------
- *  Function prototypes 
+ *  Function prototypes
  * -------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------
- *  Utility Function prototypes 
+ *  Utility Function prototypes
  * -------------------------------------------------------------------------*/
 
 /*==========================================================================
 
   FUNCTION    WLANBAP_GetCurrentChannel
 
-  DESCRIPTION 
+  DESCRIPTION
     Clear out all fields in the BAP context.
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     IN
     pBtampCtx:   pointer to the BAP control block
     channel:     current configured channel number.
     activeFlag:  flag indicating whether there is an active link.
-   
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
-    VOS_STATUS_E_FAULT:  pointer to return channel is NULL ; access would cause a page 
-                         fault  
-    VOS_STATUS_SUCCESS:  Everything is good :) 
+    VOS_STATUS_E_FAULT:  pointer to return channel is NULL ; access would cause a page
+                         fault
+    VOS_STATUS_SUCCESS:  Everything is good :)
 
-  SIDE EFFECTS 
-  
+  SIDE EFFECTS
+
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANBAP_GetCurrentChannel
-( 
+(
   ptBtampContext  pBtampCtx,
   v_U32_t *channel, // return current channel here
   v_U32_t *activeFlag   // return active flag here
@@ -155,8 +155,7 @@ WLANBAP_GetCurrentChannel
 
 #ifdef __cplusplus
  }
-#endif 
+#endif
 
 
 #endif /* #ifndef WLAN_QCT_WLANBAP_API_EXT_H */
-

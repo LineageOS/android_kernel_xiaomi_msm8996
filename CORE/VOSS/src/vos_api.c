@@ -411,6 +411,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
        macOpenParms.olIniInfo      = macOpenParms.olIniInfo | 0x2;
 #endif
 
+   macOpenParms.apDisableIntraBssFwd = pHddCtx->cfg_ini->apDisableIntraBssFwd;
+
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
 #if defined (QCA_WIFI_2_0) && \
    !defined (QCA_WIFI_ISOC)
@@ -2250,7 +2252,7 @@ VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
     vosStatus = WDA_shutdown(vosContext, VOS_TRUE);
     if (!VOS_IS_STATUS_SUCCESS(vosStatus))
     {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to shutdown WDA!", __func__);
       VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
     }
@@ -2271,6 +2273,14 @@ VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
     HTCStop(gpVosContext->htc_ctx);
     HTCDestroy(gpVosContext->htc_ctx);
     gpVosContext->htc_ctx = NULL;
+  }
+
+  vosStatus = wma_wmi_service_close(vosContext);
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+               "%s: Failed to close wma_wmi_service!", __func__);
+               VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
   }
 #endif
 

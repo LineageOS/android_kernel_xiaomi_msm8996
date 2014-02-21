@@ -614,8 +614,7 @@ wdi_out_ctrl_rx_addba_complete(
 #define wdi_out_tx_paused_peer_data ol_tx_paused_peer_data
 #define wdi_out_ctrl_addba_req ol_ctrl_addba_req
 #define wdi_out_ctrl_rx_addba_complete ol_ctrl_rx_addba_complete
-#define wdi_out_ctrl_addba_req ol_ctrl_addba_req
-#define wdi_out_ctrl_rx_addba_complete ol_ctrl_rx_addba_complete
+#define wdi_out_cfg_rx_fwd_disabled ol_cfg_rx_fwd_disabled
 
 #endif /* WDI_API_AS_FUNCS / MACROS */
 

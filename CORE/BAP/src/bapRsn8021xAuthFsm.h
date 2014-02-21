@@ -70,7 +70,7 @@ authRsnFsmInit(tAuthRsnFsmConsts *consts);
  * FUNCTION
  * Allocates and initializes the state of an RSN key FSM instance for
  * the given STA context.
- * 
+ *
  * @parm ctx the STA context whose instance is being created
  * @param pskBased pass in eANI_BOOLEAN_TRUE is this STA is to be
  * authenticated based on a pre-shared key as opposed to EAP.

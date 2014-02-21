@@ -28,16 +28,16 @@
 /*===========================================================================
 
                       b a p A p i D a t a . C
-                                               
+
   OVERVIEW:
-  
+
   This software unit holds the implementation of the WLAN BAP modules
   "platform independent" Data path functions.
-  
-  The functions externalized by this module are to be called ONLY by other 
+
+  The functions externalized by this module are to be called ONLY by other
   WLAN modules (HDD) that properly register with the BAP Layer initially.
 
-  DEPENDENCIES: 
+  DEPENDENCIES:
 
   Are listed for each API below.
 ===========================================================================*/
@@ -70,9 +70,9 @@
 
 #include "wlan_qct_hal.h"
 
-/* BT-AMP PAL API header file */ 
-#include "bapApi.h" 
-#include "bapInternal.h" 
+/* BT-AMP PAL API header file */
+#include "bapApi.h"
+#include "bapInternal.h"
 #include "bapApiTimer.h"
 
 //#define BAP_DEBUG
@@ -87,7 +87,7 @@
 /*LLC header definitions*/
 
 /* Length of the LLC header*/
-#define WLANBAP_LLC_HEADER_LEN   8 
+#define WLANBAP_LLC_HEADER_LEN   8
 #if 0
 /*Offset of the OUI field inside the LLC/SNAP header*/
 #define WLANBAP_LLC_OUI_OFFSET                 3
@@ -167,7 +167,7 @@ static v_U8_t WLANBAP_LLC_HEADER[] =  {0xAA, 0xAA, 0x03, 0x00, 0x00, 0x00 };
 // Don't we have this type defined somewhere?
 #if 0
 /* 802.3 header */
-typedef struct 
+typedef struct
 {
  /* Destination address field */
  v_U8_t   vDA[VOS_MAC_ADDR_SIZE];
@@ -196,17 +196,17 @@ typedef struct
  *    ~                                    ~
  *    +--------+---------+--------+--------+
  *
- *  NB: 
+ *  NB:
  *  This is in little-endian
  *  1) phy_link_handle is the first 8 bits
- *  2) log_link_handle is the next 4 bits 
+ *  2) log_link_handle is the next 4 bits
  *  3) PB flag is the next 2 bits
  *  4) BC flags is the next 2 bits
  *  5) Total length of the data field is the next 16 bits
  *
  */
 
-typedef struct 
+typedef struct
 {
 
 #ifndef BAP_LITTLE_BIT_ENDIAN
@@ -262,45 +262,45 @@ typedef struct
 
   FUNCTION    WLANBAP_XlateTxDataPkt
 
-  DESCRIPTION 
+  DESCRIPTION
 
-    HDD will call this API when it has a HCI Data Packet and it wants 
+    HDD will call this API when it has a HCI Data Packet and it wants
     to translate it into a 802.3 LLC frame - ready to send using TL.
 
 
-  PARAMETERS 
+  PARAMETERS
 
     btampHandle: The BT-AMP PAL handle returned in WLANBAP_GetNewHndl.
-    phy_link_handle: Used by BAP to indentify the WLAN assoc. (StaId) 
+    phy_link_handle: Used by BAP to indentify the WLAN assoc. (StaId)
 
-    pucAC:       Pointer to return the access category 
-    vosDataBuff: The data buffer containing the BT-AMP packet to be 
+    pucAC:       Pointer to return the access category
+    vosDataBuff: The data buffer containing the BT-AMP packet to be
                  translated to an 802.3 LLC frame
     tlMetaInfo:  return meta info gleaned from the outgoing frame, here.
-   
+
   RETURN VALUE
 
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
-    VOS_STATUS_E_INVAL:  Input parameters are invalid 
-    VOS_STATUS_E_FAULT:  BAP handle is NULL  
-    VOS_STATUS_SUCCESS:  Everything is good :) 
+    VOS_STATUS_E_INVAL:  Input parameters are invalid
+    VOS_STATUS_E_FAULT:  BAP handle is NULL
+    VOS_STATUS_SUCCESS:  Everything is good :)
 
-  SIDE EFFECTS 
-  
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANBAP_XlateTxDataPkt
-( 
+(
     ptBtampHandle     btampHandle,  /* Used by BAP to identify the actual session
-                                      and therefore addresses */ 
+                                      and therefore addresses */
     v_U8_t            phy_link_handle,  /* Used by BAP to indentify the WLAN assoc. (StaId) */
     WLANTL_ACEnumType    *pucAC,        /* Return the AC here */
     WLANTL_MetaInfoType  *tlMetaInfo, /* Return the MetaInfo here. An assist to WLANBAP_STAFetchPktCBType */
     vos_pkt_t        *vosDataBuff
 )
 {
-    ptBtampContext           pBtampCtx = (ptBtampContext) btampHandle; 
+    ptBtampContext           pBtampCtx = (ptBtampContext) btampHandle;
     tpBtampLogLinkCtx        pLogLinkContext;
     WLANBAP_8023HeaderType   w8023Header;
     WLANBAP_HCIACLHeaderType hciACLHeader = { 0 };
@@ -313,22 +313,22 @@ WLANBAP_XlateTxDataPkt
     uintptr_t                value = 0;
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
- 
+
     /*------------------------------------------------------------------------
         Sanity check params
       ------------------------------------------------------------------------*/
-    if ( NULL == pBtampCtx) 
+    if ( NULL == pBtampCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                      "Invalid BAP handle value in %s", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
-    // Here, I have to make the assumption that this is an 
-    // HCI ACL Data packet that I am being handed. 
+    // Here, I have to make the assumption that this is an
+    // HCI ACL Data packet that I am being handed.
     vosStatus = vos_pkt_pop_head( vosDataBuff, &hciACLHeader, WLANBAP_HCI_ACL_HEADER_LEN);
 
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    if ( VOS_STATUS_SUCCESS != vosStatus )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                   "WLAN BAP: Failed to pop HCI ACL header from packet %d",
@@ -337,10 +337,10 @@ WLANBAP_XlateTxDataPkt
         return vosStatus;
     }
 
-    // JEZ081003: Remove this after debugging 
-    // Sanity check the phy_link_handle value 
+    // JEZ081003: Remove this after debugging
+    // Sanity check the phy_link_handle value
 
-    if ( phy_link_handle != hciACLHeader.phyLinkHandle ) 
+    if ( phy_link_handle != hciACLHeader.phyLinkHandle )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                 "WLAN BAP: phy_link_handle mismatch in %s phy_link_handle=%d hciACLHeader.phyLinkHandle=%d",
@@ -349,26 +349,26 @@ WLANBAP_XlateTxDataPkt
     }
 
 
-    /* Lookup the StaId using the phy_link_handle and the BAP context */ 
+    /* Lookup the StaId using the phy_link_handle and the BAP context */
 
-    vosStatus = WLANBAP_GetStaIdFromLinkCtx ( 
-            btampHandle,  /* btampHandle value in  */ 
+    vosStatus = WLANBAP_GetStaIdFromLinkCtx (
+            btampHandle,  /* btampHandle value in  */
             phy_link_handle,  /* phy_link_handle value in */
             &ucSTAId,  /* The StaId (used by TL, PE, and HAL) */
             &pHddHdl); /* Handle to return BSL context */
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    if ( VOS_STATUS_SUCCESS != vosStatus )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                      "Unable to retrieve STA Id from BAP context and phy_link_handle in %s", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
-    // JEZ081003: Remove this after debugging 
-    // Sanity check the log_link_handle value 
+    // JEZ081003: Remove this after debugging
+    // Sanity check the log_link_handle value
     if (!BTAMP_VALID_LOG_LINK( hciACLHeader.logLinkHandle))
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-                "WLAN BAP: Invalid logical link handle (%d) in %s. Corrected.", 
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                "WLAN BAP: Invalid logical link handle (%d) in %s. Corrected.",
                 hciACLHeader.logLinkHandle,
                 __func__);
 
@@ -377,16 +377,16 @@ WLANBAP_XlateTxDataPkt
         //return VOS_STATUS_E_INVAL;
     }
 
-    /* Use the log_link_handle to retrieve the logical link context */ 
-    /* JEZ081006: abstract this with a proc.  So you can change the impl later */ 
+    /* Use the log_link_handle to retrieve the logical link context */
+    /* JEZ081006: abstract this with a proc.  So you can change the impl later */
     pLogLinkContext = &(pBtampCtx->btampLogLinkCtx[ hciACLHeader.logLinkHandle ]);
 
-    // JEZ081003: Remove this after debugging 
-    // Sanity check the log_link_handle value 
-    // JEZ081113: I changed this to fail on an UNOCCUPIED entry 
+    // JEZ081003: Remove this after debugging
+    // Sanity check the log_link_handle value
+    // JEZ081113: I changed this to fail on an UNOCCUPIED entry
     if ( pLogLinkContext->present != VOS_TRUE)
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                 "WLAN BAP: Invalid logical link entry in %s",
                 __func__);
 
@@ -397,7 +397,7 @@ WLANBAP_XlateTxDataPkt
 
     // Now copy the AC values from the Logical Link context
     *pucAC = pLogLinkContext->btampAC;
-    // Now copy the values from the Logical Link context to the MetaInfo 
+    // Now copy the values from the Logical Link context to the MetaInfo
     tlMetaInfo->ucTID = pLogLinkContext->ucTID;
     tlMetaInfo->ucUP = pLogLinkContext->ucUP;
     tlMetaInfo->ucIsEapol = VOS_FALSE;
@@ -411,10 +411,10 @@ WLANBAP_XlateTxDataPkt
 
     vos_mem_copy( w8023Header.vDA, pBtampCtx->peer_mac_addr, VOS_MAC_ADDR_SIZE);
     vos_mem_copy( w8023Header.vSA, pBtampCtx->self_mac_addr, VOS_MAC_ADDR_SIZE);
-    
+
     /* Now this length passed down in HCI...is in little-endian */
-    headerLength = vos_le16_to_cpu(hciACLHeader.dataLength);  
-    headerLength += WLANBAP_LLC_HEADER_LEN;  
+    headerLength = vos_le16_to_cpu(hciACLHeader.dataLength);
+    headerLength += WLANBAP_LLC_HEADER_LEN;
     /* Now the 802.3 length field is big-endian?! */
     w8023Header.usLenType = vos_cpu_to_be16(headerLength);
 
@@ -422,26 +422,26 @@ WLANBAP_XlateTxDataPkt
     protoType = vos_cpu_to_be16( protoType);
 
     /* Now form the LLC header */
-    vos_mem_copy(aucLLCHeader, 
-            WLANBAP_LLC_HEADER,  
+    vos_mem_copy(aucLLCHeader,
+            WLANBAP_LLC_HEADER,
             sizeof(WLANBAP_LLC_HEADER));
-    vos_mem_copy(&aucLLCHeader[WLANBAP_LLC_OUI_OFFSET], 
-            WLANBAP_BT_AMP_OUI,  
+    vos_mem_copy(&aucLLCHeader[WLANBAP_LLC_OUI_OFFSET],
+            WLANBAP_BT_AMP_OUI,
             WLANBAP_LLC_OUI_SIZE);
-    vos_mem_copy(&aucLLCHeader[WLANBAP_LLC_PROTO_TYPE_OFFSET], 
+    vos_mem_copy(&aucLLCHeader[WLANBAP_LLC_PROTO_TYPE_OFFSET],
             &protoType,  //WLANBAP_BT_AMP_TYPE_DATA
             WLANBAP_LLC_PROTO_TYPE_SIZE);
- 
+
     /* Push on the LLC header */
-    vos_pkt_push_head(vosDataBuff, 
-            aucLLCHeader, 
-            WLANBAP_LLC_HEADER_LEN);  
+    vos_pkt_push_head(vosDataBuff,
+            aucLLCHeader,
+            WLANBAP_LLC_HEADER_LEN);
 
     /* Push on the 802.3 header */
     vos_pkt_push_head(vosDataBuff, &w8023Header, sizeof(w8023Header));
 
 
-    /*Set the logical link handle as user data so that we can retrieve it on 
+    /*Set the logical link handle as user data so that we can retrieve it on
       Tx Complete */
     value = (uintptr_t)hciACLHeader.logLinkHandle;
     vos_pkt_set_user_data_ptr( vosDataBuff, VOS_PKT_USER_DATA_ID_BAP,
@@ -454,42 +454,42 @@ WLANBAP_XlateTxDataPkt
 
   FUNCTION    WLANBAP_GetAcFromTxDataPkt
 
-  DESCRIPTION 
+  DESCRIPTION
 
-    HDD will call this API when it has a HCI Data Packet (SKB) and it wants 
+    HDD will call this API when it has a HCI Data Packet (SKB) and it wants
     to find AC type of the data frame from the HCI header on the data pkt
     - to be send using TL.
 
 
-  PARAMETERS 
+  PARAMETERS
 
     btampHandle: The BT-AMP PAL handle returned in WLANBAP_GetNewHndl.
- 
+
     pHciData: Pointer to the HCI data frame
- 
-    pucAC:       Pointer to return the access category 
-   
+
+    pucAC:       Pointer to return the access category
+
   RETURN VALUE
 
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
-    VOS_STATUS_E_INVAL:  Input parameters are invalid 
-    VOS_STATUS_E_FAULT:  BAP handle is NULL  
-    VOS_STATUS_SUCCESS:  Everything is good :) 
+    VOS_STATUS_E_INVAL:  Input parameters are invalid
+    VOS_STATUS_E_FAULT:  BAP handle is NULL
+    VOS_STATUS_SUCCESS:  Everything is good :)
 
-  SIDE EFFECTS 
-  
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANBAP_GetAcFromTxDataPkt
-( 
+(
   ptBtampHandle     btampHandle,  /* Used by BAP to identify the actual session
                                     and therefore addresses */
   void              *pHciData,     /* Pointer to the HCI data frame */
   WLANTL_ACEnumType *pucAC        /* Return the AC here */
 )
 {
-    ptBtampContext           pBtampCtx; 
+    ptBtampContext           pBtampCtx;
     tpBtampLogLinkCtx        pLogLinkContext;
     WLANBAP_HCIACLHeaderType hciACLHeader;
     /*------------------------------------------------------------------------
@@ -504,26 +504,26 @@ WLANBAP_GetAcFromTxDataPkt
     pBtampCtx = (ptBtampContext) btampHandle;
 
     vos_mem_copy( &hciACLHeader, pHciData, WLANBAP_HCI_ACL_HEADER_LEN);
-    // Sanity check the log_link_handle value 
+    // Sanity check the log_link_handle value
     if (!BTAMP_VALID_LOG_LINK( hciACLHeader.logLinkHandle))
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-                "WLAN BAP: Invalid logical link handle (%d) in %s", 
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                "WLAN BAP: Invalid logical link handle (%d) in %s",
                 hciACLHeader.logLinkHandle,
                 __func__);
 
         return VOS_STATUS_E_INVAL;
     }
 
-    /* Use the log_link_handle to retrieve the logical link context */ 
-    /* JEZ081006: abstract this with a proc.  So you can change the impl later */ 
+    /* Use the log_link_handle to retrieve the logical link context */
+    /* JEZ081006: abstract this with a proc.  So you can change the impl later */
     pLogLinkContext = &(pBtampCtx->btampLogLinkCtx[ hciACLHeader.logLinkHandle ]);
 
-    // Sanity check the log_link_handle value 
-    // JEZ081113: I changed this to fail on an UNOCCUPIED entry 
+    // Sanity check the log_link_handle value
+    // JEZ081113: I changed this to fail on an UNOCCUPIED entry
     if ( pLogLinkContext->present != VOS_TRUE)
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                 "WLAN BAP: Invalid logical link entry in %s",
                 __func__);
 
@@ -542,35 +542,35 @@ WLANBAP_GetAcFromTxDataPkt
 
   FUNCTION    WLANBAP_XlateRxDataPkt
 
-  DESCRIPTION 
+  DESCRIPTION
 
-    HDD will call this API when it has received a 802.3 (TL/UMA has 
-    Xlated from 802.11) frame from TL and it wants to form a 
+    HDD will call this API when it has received a 802.3 (TL/UMA has
+    Xlated from 802.11) frame from TL and it wants to form a
     BT HCI Data Packet - ready to signal up to the BT stack application.
 
 
-  PARAMETERS 
+  PARAMETERS
 
     btampHandle: The BT-AMP PAL handle returned in WLANBAP_GetNewHndl.
-    pucAC:       Pointer to return the access category 
-    vosDataBuff: The data buffer containing the 802.3 frame to be 
+    pucAC:       Pointer to return the access category
+    vosDataBuff: The data buffer containing the 802.3 frame to be
                  translated to BT HCI Data Packet
-   
+
   RETURN VALUE
 
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
-    VOS_STATUS_E_INVAL:  Input parameters are invalid 
-    VOS_STATUS_E_FAULT:  BAP handle is NULL  
-    VOS_STATUS_SUCCESS:  Everything is good :) 
+    VOS_STATUS_E_INVAL:  Input parameters are invalid
+    VOS_STATUS_E_FAULT:  BAP handle is NULL
+    VOS_STATUS_SUCCESS:  Everything is good :)
 
-  SIDE EFFECTS 
-  
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANBAP_XlateRxDataPkt
-( 
-  ptBtampHandle     btampHandle, 
+(
+  ptBtampHandle     btampHandle,
   v_U8_t            phy_link_handle,  /* Used by BAP to indentify the WLAN assoc. (StaId) */
   WLANTL_ACEnumType  *pucAC,        /* Return the AC here. I don't think this is needed */
   vos_pkt_t        *vosDataBuff
@@ -579,7 +579,7 @@ WLANBAP_XlateRxDataPkt
     WLANBAP_8023HeaderType  w8023Header;
     WLANBAP_HCIACLHeaderType hciACLHeader;
     v_U8_t                   aucLLCHeader[WLANBAP_LLC_HEADER_LEN];
-    ptBtampContext           pBtampCtx = (ptBtampContext) btampHandle; 
+    ptBtampContext           pBtampCtx = (ptBtampContext) btampHandle;
     VOS_STATUS               vosStatus;
     //v_PVOID_t                pHddHdl; /* Handle to return BSL context in */
     v_U16_t                  hciDataLength;  /* The HCI packet data length*/
@@ -589,19 +589,19 @@ WLANBAP_XlateRxDataPkt
     /*------------------------------------------------------------------------
         Sanity check params
       ------------------------------------------------------------------------*/
-    if ( NULL == pBtampCtx) 
+    if ( NULL == pBtampCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                      "Invalid BAP handle value in %s", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
-    // Here, I have to make the assumption that this is an 
-    // 802.3 header followed by an LLC/SNAP packet. 
+    // Here, I have to make the assumption that this is an
+    // 802.3 header followed by an LLC/SNAP packet.
     vos_mem_set( &w8023Header, sizeof(w8023Header), 0 );
     vosStatus = vos_pkt_pop_head( vosDataBuff, &w8023Header, sizeof(w8023Header));
 
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    if ( VOS_STATUS_SUCCESS != vosStatus )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                   "WLAN BAP: Failed to pop 802.3 header from packet %d",
@@ -610,12 +610,12 @@ WLANBAP_XlateRxDataPkt
         return vosStatus;
     }
 
-    // Here, is that LLC/SNAP header. 
-    // With the BT SIG OUI that I am being handed. 
+    // Here, is that LLC/SNAP header.
+    // With the BT SIG OUI that I am being handed.
     vos_mem_set( aucLLCHeader, WLANBAP_LLC_HEADER_LEN, 0 );
     vosStatus = vos_pkt_pop_head( vosDataBuff, aucLLCHeader, WLANBAP_LLC_HEADER_LEN);
 
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    if ( VOS_STATUS_SUCCESS != vosStatus )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                   "WLAN BAP: Failed to pop LLC/SNAP header from packet %d",
@@ -625,15 +625,15 @@ WLANBAP_XlateRxDataPkt
     }
 
 #ifdef BAP_DEBUG
-    // JEZ081003: Remove this after debugging 
+    // JEZ081003: Remove this after debugging
     // Should I double check that I am getting the BT SIG OUI ?
-    if ( !(vos_mem_compare( aucLLCHeader, 
-             WLANBAP_LLC_HEADER,  
-             sizeof(WLANBAP_LLC_HEADER)  
-             - WLANBAP_LLC_OUI_SIZE)  /* Don't check the last three bytes here */ 
-         && vos_mem_compare( &aucLLCHeader[WLANBAP_LLC_OUI_OFFSET], 
-             (v_VOID_t*)WLANBAP_BT_AMP_OUI,  
-             WLANBAP_LLC_OUI_SIZE)))  /* check them here */ 
+    if ( !(vos_mem_compare( aucLLCHeader,
+             WLANBAP_LLC_HEADER,
+             sizeof(WLANBAP_LLC_HEADER)
+             - WLANBAP_LLC_OUI_SIZE)  /* Don't check the last three bytes here */
+         && vos_mem_compare( &aucLLCHeader[WLANBAP_LLC_OUI_OFFSET],
+             (v_VOID_t*)WLANBAP_BT_AMP_OUI,
+             WLANBAP_LLC_OUI_SIZE)))  /* check them here */
     {
 
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
@@ -646,11 +646,11 @@ WLANBAP_XlateRxDataPkt
     protoType = vos_cpu_to_be16( protoType);
     // check if this is a data frame or other, internal to BAP, type...
     // we are only handling data frames in here...
-    // The others (Security and AR) are handled by TLs BAP client API. 
+    // The others (Security and AR) are handled by TLs BAP client API.
     // (Verify with TL)
-    if ( !(vos_mem_compare( &aucLLCHeader[WLANBAP_LLC_PROTO_TYPE_OFFSET], 
+    if ( !(vos_mem_compare( &aucLLCHeader[WLANBAP_LLC_PROTO_TYPE_OFFSET],
             &protoType,  //WLANBAP_BT_AMP_TYPE_DATA
-            WLANBAP_LLC_PROTO_TYPE_SIZE))) 
+            WLANBAP_LLC_PROTO_TYPE_SIZE)))
     {
 
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
@@ -659,13 +659,13 @@ WLANBAP_XlateRxDataPkt
     }
 
 #ifdef BAP_DEBUG
-    // JEZ081003: Remove this after debugging 
+    // JEZ081003: Remove this after debugging
     /*------------------------------------------------------------------------
-        Sanity check the MAC address in the physical link context 
+        Sanity check the MAC address in the physical link context
         against the value in the incoming Rx Frame.
       ------------------------------------------------------------------------*/
     if ( !(vos_mem_compare( w8023Header.vDA, pBtampCtx->self_mac_addr, VOS_MAC_ADDR_SIZE)
-    && vos_mem_compare( w8023Header.vSA, pBtampCtx->peer_mac_addr, VOS_MAC_ADDR_SIZE))) 
+    && vos_mem_compare( w8023Header.vSA, pBtampCtx->peer_mac_addr, VOS_MAC_ADDR_SIZE)))
     {
 
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
@@ -674,16 +674,16 @@ WLANBAP_XlateRxDataPkt
     }
 #endif //BAP_DEBUG
 
-    /* No lookup is needed.  Because TL has already told WLANBAP_STARxCB 
-     * the StaId.  And I told WLANBAP_STARxCBType the corresponding BSL context 
-     * Which he used to lookup the phy_link_handle value. 
-     */ 
+    /* No lookup is needed.  Because TL has already told WLANBAP_STARxCB
+     * the StaId.  And I told WLANBAP_STARxCBType the corresponding BSL context
+     * Which he used to lookup the phy_link_handle value.
+     */
 
 
-    // Start filling in the HCI header 
+    // Start filling in the HCI header
     hciACLHeader.phyLinkHandle = phy_link_handle;
 
-    // Continue filling in the HCI header 
+    // Continue filling in the HCI header
     //JEZ100913: On Rx the Logical Link is ALWAYS 0. See Vol 2, Sec E, 5.4.2 of spec.
     hciACLHeader.logLinkHandle = 0;
     hciACLHeader.PBFlag = WLANBAP_HCI_PKT_AMP;
@@ -694,12 +694,12 @@ WLANBAP_XlateRxDataPkt
     /* Max length WLANBAP_MAX_80211_PAL_PDU_SIZE (1492) */
     hciDataLength -= WLANBAP_LLC_HEADER_LEN;
     /* The HCI packet data length is Little-endian */
-    hciACLHeader.dataLength = vos_cpu_to_le16(hciDataLength);  
+    hciACLHeader.dataLength = vos_cpu_to_le16(hciDataLength);
 
-    /* Return the AC here. 
+    /* Return the AC here.
      * (I can't because there is no way to figure out what it is.)
      */
-    *pucAC = 0;        
+    *pucAC = 0;
 
     /* Push on the HCI header */
     vos_pkt_push_head(vosDataBuff, &hciACLHeader, WLANBAP_HCI_ACL_HEADER_LEN);
@@ -709,46 +709,46 @@ WLANBAP_XlateRxDataPkt
 
 /*----------------------------------------------------------------------------
 
-  FUNCTION    WLANBAP_STAFetchPktCB 
+  FUNCTION    WLANBAP_STAFetchPktCB
 
-  DESCRIPTION   
-    The fetch packet callback registered with TL. 
-    
-    It is called by the TL when the scheduling algorithms allows for 
-    transmission of another packet to the module. 
-    It will be called in the context of the BAL fetch transmit packet 
-    function, initiated by the bus lower layer. 
+  DESCRIPTION
+    The fetch packet callback registered with TL.
+
+    It is called by the TL when the scheduling algorithms allows for
+    transmission of another packet to the module.
+    It will be called in the context of the BAL fetch transmit packet
+    function, initiated by the bus lower layer.
 
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
-    pvosGCtx:       pointer to the global vos context; a handle 
-                    to TL's or HDD's control block can be extracted 
-                    from its context 
+    pvosGCtx:       pointer to the global vos context; a handle
+                    to TL's or HDD's control block can be extracted
+                    from its context
 
     IN/OUT
-    pucSTAId:       the Id of the station for which TL is requesting a 
-                    packet, in case HDD does not maintain per station 
-                    queues it can give the next packet in its queue 
-                    and put in the right value for the 
-    pucAC:          access category requested by TL, if HDD does not have 
-                    packets on this AC it can choose to service another AC 
+    pucSTAId:       the Id of the station for which TL is requesting a
+                    packet, in case HDD does not maintain per station
+                    queues it can give the next packet in its queue
+                    and put in the right value for the
+    pucAC:          access category requested by TL, if HDD does not have
+                    packets on this AC it can choose to service another AC
                     queue in the order of priority
 
     OUT
-    vosDataBuff:   pointer to the VOSS data buffer that was transmitted 
+    vosDataBuff:   pointer to the VOSS data buffer that was transmitted
     tlMetaInfo:    meta info related to the data frame
 
 
-  
-  RETURN VALUE 
+
+  RETURN VALUE
     The result code associated with performing the operation
 
 ----------------------------------------------------------------------------*/
-VOS_STATUS 
-WLANBAP_STAFetchPktCB 
-( 
+VOS_STATUS
+WLANBAP_STAFetchPktCB
+(
   v_PVOID_t             pvosGCtx,
   v_U8_t*               pucSTAId,
   v_U8_t                ucAC,
@@ -756,32 +756,32 @@ WLANBAP_STAFetchPktCB
   WLANTL_MetaInfoType*  tlMetaInfo
 )
 {
-    VOS_STATUS    vosStatus; 
-    ptBtampHandle bapHdl;  /* holds ptBtampHandle value returned  */ 
-    ptBtampContext bapContext; /* Holds the btampContext value returned */ 
+    VOS_STATUS    vosStatus;
+    ptBtampHandle bapHdl;  /* holds ptBtampHandle value returned  */
+    ptBtampContext bapContext; /* Holds the btampContext value returned */
     v_PVOID_t     pHddHdl; /* Handle to return BSL context in */
 
-    /* Lookup the BSL and BAP contexts using the StaId */ 
+    /* Lookup the BSL and BAP contexts using the StaId */
 
-    vosStatus = WLANBAP_GetCtxFromStaId ( 
+    vosStatus = WLANBAP_GetCtxFromStaId (
             *pucSTAId,  /* The StaId (used by TL, PE, and HAL) */
-            &bapHdl,  /* "handle" to return ptBtampHandle value in  */ 
-            &bapContext,  /* "handle" to return ptBtampContext value in  */ 
+            &bapHdl,  /* "handle" to return ptBtampHandle value in  */
+            &bapContext,  /* "handle" to return ptBtampContext value in  */
             &pHddHdl); /* "handle" to return BSL context in */
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    if ( VOS_STATUS_SUCCESS != vosStatus )
     {
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                    "Unable to retrieve BSL or BAP context from STA Id in WLANBAP_STAFetchPktCB");
       return VOS_STATUS_E_FAULT;
     }
 
-    /* Invoke the callback that BSL registered with me */ 
-    vosStatus = (*bapContext->pfnBtampFetchPktCB)( 
-            pHddHdl, 
-            (WLANTL_ACEnumType)   ucAC, /* typecast it for now */ 
-            vosDataBuff, 
-            tlMetaInfo);    
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    /* Invoke the callback that BSL registered with me */
+    vosStatus = (*bapContext->pfnBtampFetchPktCB)(
+            pHddHdl,
+            (WLANTL_ACEnumType)   ucAC, /* typecast it for now */
+            vosDataBuff,
+            tlMetaInfo);
+    if ( VOS_STATUS_SUCCESS != vosStatus )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                 "Callback registered by BSL failed to fetch pkt in WLANNBAP_STAFetchPktCB");
@@ -789,64 +789,64 @@ WLANBAP_STAFetchPktCB
     }
 
     return vosStatus;
-} /* WLANBAP_STAFetchPktCB */ 
+} /* WLANBAP_STAFetchPktCB */
 
 #ifndef QCA_WIFI_2_0
 /*----------------------------------------------------------------------------
 
   FUNCTION    WLANBAP_STARxCB
 
-  DESCRIPTION   
-    The receive callback registered with TL. 
-    
-    TL will call this to notify the client when a packet was received 
+  DESCRIPTION
+    The receive callback registered with TL.
+
+    TL will call this to notify the client when a packet was received
     for a registered STA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
-    pvosGCtx:       pointer to the global vos context; a handle to 
-                    TL's or HDD's control block can be extracted from 
-                    its context 
+    pvosGCtx:       pointer to the global vos context; a handle to
+                    TL's or HDD's control block can be extracted from
+                    its context
     vosDataBuff:   pointer to the VOSS data buffer that was received
-                    (it may be a linked list) 
+                    (it may be a linked list)
     ucSTAId:        station id
-    pRxMetaInfo:   meta info for the received packet(s) 
-   
-  RETURN VALUE 
+    pRxMetaInfo:   meta info for the received packet(s)
+
+  RETURN VALUE
     The result code associated with performing the operation
 
 ----------------------------------------------------------------------------*/
-VOS_STATUS 
+VOS_STATUS
 WLANBAP_STARxCB
-( 
+(
   v_PVOID_t          pvosGCtx,
   vos_pkt_t*         vosDataBuff,
   v_U8_t             ucSTAId,
   WLANTL_RxMetaInfoType* pRxMetaInfo
 )
 {
-    VOS_STATUS    vosStatus; 
-    ptBtampHandle bapHdl;  /* holds ptBtampHandle value returned  */ 
-    ptBtampContext bapContext; /* Holds the btampContext value returned */ 
+    VOS_STATUS    vosStatus;
+    ptBtampHandle bapHdl;  /* holds ptBtampHandle value returned  */
+    ptBtampContext bapContext; /* Holds the btampContext value returned */
     v_PVOID_t     pHddHdl; /* Handle to return BSL context in */
     ptBtampHandle            btampHandle;
     WLANBAP_8023HeaderType   w8023Header;
     v_U8_t                   aucLLCHeader[WLANBAP_LLC_HEADER_LEN];
     v_U16_t                  protoType ;
     v_SIZE_t                 llcHeaderLen = WLANBAP_LLC_HEADER_LEN ;
-    
+
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                    "In WLANBAP_STARxCB");
 
-    /* Lookup the BSL and BAP contexts using the StaId */ 
+    /* Lookup the BSL and BAP contexts using the StaId */
 
-    vosStatus = WLANBAP_GetCtxFromStaId ( 
+    vosStatus = WLANBAP_GetCtxFromStaId (
             ucSTAId,  /* The StaId (used by TL, PE, and HAL) */
-            &bapHdl,  /* "handle" to return ptBtampHandle value in  */ 
-            &bapContext,  /* "handle" to return ptBtampContext value in  */ 
+            &bapHdl,  /* "handle" to return ptBtampHandle value in  */
+            &bapContext,  /* "handle" to return ptBtampContext value in  */
             &pHddHdl); /* "handle" to return BSL context in */
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    if ( VOS_STATUS_SUCCESS != vosStatus )
     {
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                    "Unable to retrieve BSL or BAP context from STA Id in WLANBAP_STARxCB");
@@ -867,24 +867,24 @@ WLANBAP_STARxCB
         vos_pkt_return_packet(vosDataBuff);
         return VOS_STATUS_E_FAULT;
     }
-    
+
     vos_mem_copy(&protoType,&aucLLCHeader[WLANBAP_LLC_PROTO_TYPE_OFFSET],WLANBAP_LLC_PROTO_TYPE_SIZE);
     protoType = vos_be16_to_cpu(protoType);
-    
+
     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
             "%s: received : %d, => BAP",__func__,
                  protoType);
-    
+
     if(WLANBAP_BT_AMP_TYPE_DATA == protoType)
     {
         if (bapContext->bapLinkSupervisionTimerInterval)
         {
             /* Reset Link Supervision timer */
-            //vosStatus = WLANBAP_StopLinkSupervisionTimer(bapContext); 
+            //vosStatus = WLANBAP_StopLinkSupervisionTimer(bapContext);
             //vosStatus = WLANBAP_StartLinkSupervisionTimer(bapContext,7000);
-            bapContext->dataPktPending = VOS_TRUE;//Indication for LinkSupervision module that data is pending 
-            /* Invoke the callback that BSL registered with me */ 
-            vosStatus = (*bapContext->pfnBtamp_STARxCB)( 
+            bapContext->dataPktPending = VOS_TRUE;//Indication for LinkSupervision module that data is pending
+            /* Invoke the callback that BSL registered with me */
+            vosStatus = (*bapContext->pfnBtamp_STARxCB)(
                 pHddHdl,
                 vosDataBuff,
                 pRxMetaInfo);
@@ -902,14 +902,14 @@ WLANBAP_STARxCB
           VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                 "%s: link Supervision packet received over TL: %d, => BAP",
                      __func__,protoType);
-          btampHandle = (ptBtampHandle)bapContext; 
+          btampHandle = (ptBtampHandle)bapContext;
           vosStatus = WLANBAP_RxProcLsPkt(
                         btampHandle,
                         bapContext->phy_link_handle,
                         protoType,
                         vosDataBuff
                         );
-    }  
+    }
 
     return vosStatus;
 } /* WLANBAP_STARxCB */
@@ -952,85 +952,85 @@ WLANBAP_STARxCB(v_PVOID_t pvosGCtx,
 
   FUNCTION    WLANBAP_TxCompCB
 
-  DESCRIPTION   
-    The tx complete callback registered with TL. 
-    
-    TL will call this to notify the client when a transmission for a 
-    packet  has ended. 
+  DESCRIPTION
+    The tx complete callback registered with TL.
 
-  PARAMETERS 
+    TL will call this to notify the client when a transmission for a
+    packet  has ended.
+
+  PARAMETERS
 
     IN
-    pvosGCtx:       pointer to the global vos context; a handle to 
-                    TL/HAL/PE/BAP/HDD control block can be extracted from 
-                    its context 
-    vosDataBuff:   pointer to the VOSS data buffer that was transmitted 
-    wTxSTAtus:      status of the transmission 
+    pvosGCtx:       pointer to the global vos context; a handle to
+                    TL/HAL/PE/BAP/HDD control block can be extracted from
+                    its context
+    vosDataBuff:   pointer to the VOSS data buffer that was transmitted
+    wTxSTAtus:      status of the transmission
 
-  
-  RETURN VALUE 
+
+  RETURN VALUE
     The result code associated with performing the operation
 
 ----------------------------------------------------------------------------*/
-VOS_STATUS 
+VOS_STATUS
 WLANBAP_TxCompCB
-( 
+(
   v_PVOID_t      pvosGCtx,
   vos_pkt_t*     vosDataBuff,
-  VOS_STATUS     wTxSTAtus 
+  VOS_STATUS     wTxSTAtus
 )
 {
     VOS_STATUS     vosStatus;
     ptBtampHandle  bapHdl;  /* holds ptBtampHandle value returned  */
-    ptBtampContext bapContext; /* Holds the btampContext value returned */ 
+    ptBtampContext bapContext; /* Holds the btampContext value returned */
     v_PVOID_t      pHddHdl; /* Handle to return BSL context in */
     v_PVOID_t      pvlogLinkHandle = NULL;
     uintptr_t      value;
 
     WLANBAP_HCIACLHeaderType hciACLHeader;
 
-    /* retrieve the BSL and BAP contexts */ 
+    /* retrieve the BSL and BAP contexts */
 
     /* I don't really know how to do this - in the general case. */
     /* So, for now, I will just use something that works. */
     /* (In general, I will have to keep a list of the outstanding transmit */
     /* buffers, in order to determine which assoc they are with.) */
-    //vosStatus = WLANBAP_GetCtxFromStaId ( 
+    //vosStatus = WLANBAP_GetCtxFromStaId (
     //        ucSTAId,  /* The StaId (used by TL, PE, and HAL) */
-    //        &bapHdl,  /* "handle" to return ptBtampHandle value in  */ 
-    //        &bapContext,  /* "handle" to return ptBtampContext value in  */ 
+    //        &bapHdl,  /* "handle" to return ptBtampHandle value in  */
+    //        &bapContext,  /* "handle" to return ptBtampContext value in  */
     //        &pHddHdl); /* "handle" to return BSL context in */
-    /* Temporarily we do the following*/ 
+    /* Temporarily we do the following*/
     //bapHdl = &btampCtx;
     bapHdl = (v_PVOID_t)gpBtampCtx;
-    /* Typecast the handle into a context. Works as we have only one link*/ 
-    bapContext = ((ptBtampContext) bapHdl);  
+    /* Typecast the handle into a context. Works as we have only one link*/
+    bapContext = ((ptBtampContext) bapHdl);
 
     /*------------------------------------------------------------------------
       Sanity check params
     ------------------------------------------------------------------------*/
-    if ( NULL == vosDataBuff) 
+    if ( NULL == vosDataBuff)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                 "Invalid vosDataBuff value in %s", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
-    if ( NULL == bapContext) 
+    if ( NULL == bapContext)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                 "Invalid bapContext value in %s", __func__);
-        vos_pkt_return_packet( vosDataBuff ); 
+        vos_pkt_return_packet( vosDataBuff );
         return VOS_STATUS_E_FAULT;
     }
 
     pHddHdl = bapContext->pHddHdl;
     vosStatus = VOS_STATUS_SUCCESS;
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    if ( VOS_STATUS_SUCCESS != vosStatus )
     {
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                    "Unable to retrieve BSL or BAP context from STA Id in WLANBAP_TxCompCB");
-      vos_pkt_return_packet( vosDataBuff ); 
+      vos_pkt_return_packet( vosDataBuff );
       return VOS_STATUS_E_FAULT;
     }
 
@@ -1047,7 +1047,7 @@ WLANBAP_TxCompCB
               "WLAN BAP Context Monitor: bapContext value = %p in %s:%d. vosDataBuff=%p", bapContext, __func__, __LINE__, vosDataBuff );
 #endif //BAP_DEBUG
 
-    // Sanity check the log_link_handle value 
+    // Sanity check the log_link_handle value
 // JEZ100722: Temporary changes.
     if (BTAMP_VALID_LOG_LINK( hciACLHeader.logLinkHandle))
     {
@@ -1056,14 +1056,14 @@ WLANBAP_TxCompCB
 //           &bapContext->btampLogLinkCtx[0].uTxPktCompleted);
 //       vos_atomic_increment_U32(
 //           &bapContext->btampLogLinkCtx[1].uTxPktCompleted);
-    } else 
+    } else
     {
        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                    "In %s:%d: Invalid logical link handle: %d", __func__, __LINE__, hciACLHeader.logLinkHandle);
     }
 
-    /* Invoke the callback that BSL registered with me */ 
-    vosStatus = (*bapContext->pfnBtampTxCompCB)( 
+    /* Invoke the callback that BSL registered with me */
+    vosStatus = (*bapContext->pfnBtampTxCompCB)(
             pHddHdl,
             vosDataBuff,
             wTxSTAtus);
@@ -1075,52 +1075,52 @@ WLANBAP_TxCompCB
 
   FUNCTION    WLANBAP_RegisterDataPlane
 
-  DESCRIPTION 
+  DESCRIPTION
     The HDD calls this routine to register the "data plane" routines
     for Tx, Rx, and Tx complete with BT-AMP.  For now, with only one
-    physical association supported at a time, this COULD be called 
+    physical association supported at a time, this COULD be called
     by HDD at the same time as WLANBAP_GetNewHndl.  But, in general
     it needs to be called upon each new physical link establishment.
-    
+
     This registration is really two part.  The routines themselves are
     registered here.  But, the mapping between the BSL context and the
-    actual physical link takes place during WLANBAP_PhysicalLinkCreate. 
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+    actual physical link takes place during WLANBAP_PhysicalLinkCreate.
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     IN
     btampHandle: The BT-AMP PAL handle returned in WLANBAP_GetNewHndl.
-   
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
-    VOS_STATUS_E_FAULT:  pointer to BAP cb is NULL ; access would cause a page 
-                         fault  
-    VOS_STATUS_SUCCESS:  Everything is good :) 
+    VOS_STATUS_E_FAULT:  pointer to BAP cb is NULL ; access would cause a page
+                         fault
+    VOS_STATUS_SUCCESS:  Everything is good :)
 
-  SIDE EFFECTS 
-  
+  SIDE EFFECTS
+
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANBAP_RegisterDataPlane
-( 
-  ptBtampHandle btampHandle,  /* BTAMP context */ 
-  WLANBAP_STAFetchPktCBType pfnBtampFetchPktCB, 
+(
+  ptBtampHandle btampHandle,  /* BTAMP context */
+  WLANBAP_STAFetchPktCBType pfnBtampFetchPktCB,
   WLANBAP_STARxCBType pfnBtamp_STARxCB,
   WLANBAP_TxCompCBType pfnBtampTxCompCB,
   // phy_link_handle, of course, doesn't come until much later.  At Physical Link create.
   v_PVOID_t      pHddHdl   /* BSL specific context */
 )
 {
-    ptBtampContext pBtampCtx = (ptBtampContext) btampHandle; 
+    ptBtampContext pBtampCtx = (ptBtampContext) btampHandle;
 
-  
+
     /*------------------------------------------------------------------------
       Sanity check params
      ------------------------------------------------------------------------*/
-    if ( NULL == pBtampCtx) 
+    if ( NULL == pBtampCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                      "Invalid BAP handle value in WLANBAP_RegisterDataPlane");
@@ -1128,13 +1128,13 @@ WLANBAP_RegisterDataPlane
     }
 
     // Include the HDD BAP Shim Layer callbacks for Fetch, TxComp, and RxPkt
-    pBtampCtx->pfnBtampFetchPktCB = pfnBtampFetchPktCB; 
+    pBtampCtx->pfnBtampFetchPktCB = pfnBtampFetchPktCB;
     pBtampCtx->pfnBtamp_STARxCB = pfnBtamp_STARxCB;
     pBtampCtx->pfnBtampTxCompCB = pfnBtampTxCompCB;
 
     // (Right now, there is only one)
     pBtampCtx->pHddHdl = pHddHdl;
-    /* Set the default data transfer mode */ 
+    /* Set the default data transfer mode */
     pBtampCtx->ucDataTrafficMode = WLANBAP_FLOW_CONTROL_MODE_BLOCK_BASED;
 
     return VOS_STATUS_SUCCESS;
@@ -1145,53 +1145,53 @@ WLANBAP_RegisterDataPlane
 
   FUNCTION    WLANBAP_STAPktPending
 
-  DESCRIPTION 
+  DESCRIPTION
 
-    HDD will call this API when a packet is pending transmission in its 
+    HDD will call this API when a packet is pending transmission in its
     queues. HDD uses this instead of WLANTL_STAPktPending because he is
     not aware of the mapping from session to STA ID.
 
-  DEPENDENCIES 
+  DEPENDENCIES
 
     HDD must have called WLANBAP_GetNewHndl before calling this API.
 
-  PARAMETERS 
+  PARAMETERS
 
     btampHandle: The BT-AMP PAL handle returned in WLANBAP_GetNewHndl.
                  BSL can obtain this from the physical handle value in the
                  downgoing HCI Data Packet. He, after all, was there
-                 when the PhysicalLink was created. He knew the btampHandle 
+                 when the PhysicalLink was created. He knew the btampHandle
                  value returned by WLANBAP_GetNewHndl. He knows as well, his
                  own pHddHdl (see next).
     phy_link_handle: Used by BAP to indentify the WLAN assoc. (StaId)
     ucAc:        The access category for the pending frame
-   
+
   RETURN VALUE
 
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
-    VOS_STATUS_E_INVAL:  Input parameters are invalid 
-    VOS_STATUS_E_FAULT:  BAP handle is NULL  
-    VOS_STATUS_SUCCESS:  Everything is good :) 
+    VOS_STATUS_E_INVAL:  Input parameters are invalid
+    VOS_STATUS_E_FAULT:  BAP handle is NULL
+    VOS_STATUS_SUCCESS:  Everything is good :)
 
-  SIDE EFFECTS 
-  
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
-WLANBAP_STAPktPending 
-( 
-  ptBtampHandle  btampHandle,  /* Used by BAP to identify the app context and VOSS ctx (!?) */ 
+WLANBAP_STAPktPending
+(
+  ptBtampHandle  btampHandle,  /* Used by BAP to identify the app context and VOSS ctx (!?) */
   v_U8_t         phy_link_handle,  /* Used by BAP to indentify the WLAN assoc. (StaId) */
   WLANTL_ACEnumType ucAc   /* This is the first instance of a TL type in bapApi.h */
 )
 {
-    VOS_STATUS     vosStatus; 
-    ptBtampContext pBtampCtx = (ptBtampContext) btampHandle; 
+    VOS_STATUS     vosStatus;
+    ptBtampContext pBtampCtx = (ptBtampContext) btampHandle;
     v_PVOID_t      pvosGCtx;
     v_U8_t         ucSTAId;  /* The StaId (used by TL, PE, and HAL) */
     v_PVOID_t      pHddHdl; /* Handle to return BSL context in */
 
-  
+
 #ifdef BAP_DEBUG
     /* Trace the tBtampCtx being passed in. */
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -1201,24 +1201,24 @@ WLANBAP_STAPktPending
     /*------------------------------------------------------------------------
       Sanity check params
      ------------------------------------------------------------------------*/
-    if ( NULL == pBtampCtx) 
+    if ( NULL == pBtampCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                "Invalid BAP handle value in WLANBAP_STAPktPending"); 
+                "Invalid BAP handle value in WLANBAP_STAPktPending");
         return VOS_STATUS_E_FAULT;
     }
 
     // Retrieve the VOSS context
     pvosGCtx = pBtampCtx->pvosGCtx;
- 
-    /* Lookup the StaId using the phy_link_handle and the BAP context */ 
 
-    vosStatus = WLANBAP_GetStaIdFromLinkCtx ( 
-            btampHandle,  /* btampHandle value in  */ 
+    /* Lookup the StaId using the phy_link_handle and the BAP context */
+
+    vosStatus = WLANBAP_GetStaIdFromLinkCtx (
+            btampHandle,  /* btampHandle value in  */
             phy_link_handle,  /* phy_link_handle value in */
             &ucSTAId,  /* The StaId (used by TL, PE, and HAL) */
             &pHddHdl); /* Handle to return BSL context */
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    if ( VOS_STATUS_SUCCESS != vosStatus )
     {
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                    "Unable to retrieve STA Id from BAP context and phy_link_handle in WLANBAP_STAPktPending");
@@ -1227,79 +1227,77 @@ WLANBAP_STAPktPending
 
 
     // Let TL know we have a packet to send...
-    vosStatus = WLANTL_STAPktPending( 
+    vosStatus = WLANTL_STAPktPending(
             pvosGCtx,
             ucSTAId,
             ucAc);
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    if ( VOS_STATUS_SUCCESS != vosStatus )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                         "Tx: Packet rejected by TL in WLANBAP_STAPktPending");
         return vosStatus;
-    }            
-    pBtampCtx->dataPktPending = VOS_TRUE;//Indication for LinkSupervision module that data is pending 
+    }
+    pBtampCtx->dataPktPending = VOS_TRUE;//Indication for LinkSupervision module that data is pending
     return VOS_STATUS_SUCCESS;
-} /* WLANBAP_STAPktPending */ 
+} /* WLANBAP_STAPktPending */
 
 /*----------------------------------------------------------------------------
 
-  FUNCTION    WLAN_BAPRegisterBAPCallbacks() 
+  FUNCTION    WLAN_BAPRegisterBAPCallbacks()
 
-  DESCRIPTION 
+  DESCRIPTION
     Register the BAP "Event" callbacks.
     Return the per instance handle.
 
-  DEPENDENCIES 
-    NA. 
+  DEPENDENCIES
+    NA.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
     btampHandle: The BT-AMP PAL handle returned in WLANBAP_GetNewHndl.
     pBapHCIEventCB:  pointer to the Event callback
     pAppHdl:  The context passed in by caller. (I.E., BSL app specific context.)
 
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_FAULT:  pointer to pBapHCIEventCB is NULL 
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIEventCB is NULL
     VOS_STATUS_SUCCESS:  Success
-  
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ----------------------------------------------------------------------------*/
-VOS_STATUS  
-WLAN_BAPRegisterBAPCallbacks 
-( 
+VOS_STATUS
+WLAN_BAPRegisterBAPCallbacks
+(
   ptBtampHandle           btampHandle, /* BSL uses my handle to talk to me */
                             /* Returned from WLANBAP_GetNewHndl() */
                             /* It's like each of us is using the other */
                             /* guys reference when invoking him. */
-  tpWLAN_BAPEventCB       pBapHCIEventCB, /*Implements the callback for ALL asynchronous events. */ 
+  tpWLAN_BAPEventCB       pBapHCIEventCB, /*Implements the callback for ALL asynchronous events. */
   v_PVOID_t               pAppHdl  // Per-app BSL context
 )
 {
-    ptBtampContext pBtampCtx = (ptBtampContext) btampHandle; 
+    ptBtampContext pBtampCtx = (ptBtampContext) btampHandle;
 
-  
+
     /*------------------------------------------------------------------------
       Sanity check params
      ------------------------------------------------------------------------*/
-    if ( NULL == pBtampCtx) 
+    if ( NULL == pBtampCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                      "Invalid BAP handle value in WLAN_BAPRegisterBAPCallbacks");
         return VOS_STATUS_E_FAULT;
     }
 
-    // Save the Event callback 
-    pBtampCtx->pBapHCIEventCB = pBapHCIEventCB; 
+    // Save the Event callback
+    pBtampCtx->pBapHCIEventCB = pBapHCIEventCB;
 
     // (Right now, there is only one)
     pBtampCtx->pAppHdl = pAppHdl;
 
     return VOS_STATUS_SUCCESS;
 } /* WLAN_BAPRegisterBAPCallbacks */
-
-
