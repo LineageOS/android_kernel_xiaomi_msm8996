@@ -1347,6 +1347,7 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
     {
         // cannot log a failure without a valid pMac
         vos_pkt_return_packet(pVosPkt);
+        pVosPkt = NULL;
         return VOS_STATUS_E_FAILURE;
     }
 
@@ -1355,6 +1356,7 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
     if(!VOS_IS_STATUS_SUCCESS(vosStatus))
     {
         vos_pkt_return_packet(pVosPkt);
+        pVosPkt = NULL;
         return VOS_STATUS_E_FAILURE;
     }
 
@@ -1387,6 +1389,7 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
                                                   mHdr->fc.subType ))
     {
         vos_pkt_return_packet(pVosPkt);
+        pVosPkt = NULL;
         limLog( pMac, LOGW,
                 FL ( "sysBbtProcessMessageCore failed to process SIR_BB_XPORT_MGMT_MSG" ));
         return VOS_STATUS_E_FAILURE;

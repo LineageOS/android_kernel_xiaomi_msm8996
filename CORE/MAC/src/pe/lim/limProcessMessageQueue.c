@@ -1094,6 +1094,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         limMsg->bodyptr = NULL;
         return;
     }
+    if (limMsg == NULL)
+    {
+        limLog(pMac, LOGE, FL("Message pointer is Null"));
+        VOS_ASSERT(0);
+        return;
+    }
 #ifdef WLAN_DEBUG    
     pMac->lim.numTot++;
 #endif
@@ -1188,6 +1194,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                  * and next time when we try to process the msg, we will try to use 'BD' as 
                  * 'Vos Pkt' which will cause a crash
                  */
+                if (limMsg->bodyptr == NULL)
+                {
+                    limLog(pMac, LOGE, FL("Message bodyptr is Null"));
+                    VOS_ASSERT(0);
+                    break;
+                }
                 vos_mem_copy((tANI_U8*)&limMsgNew, (tANI_U8*)limMsg,
                              sizeof(tSirMsgQ));
                 pVosPkt = (vos_pkt_t *)limMsgNew.bodyptr;

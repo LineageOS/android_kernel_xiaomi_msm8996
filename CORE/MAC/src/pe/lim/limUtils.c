@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -7326,12 +7326,16 @@ tpPESession limIsApSessionActive(tpAniSirGlobal pMac)
 
 void limHandleDeferMsgError(tpAniSirGlobal pMac, tpSirMsgQ pLimMsg)
 {
-      if(SIR_BB_XPORT_MGMT_MSG == pLimMsg->type) 
-        {
-            vos_pkt_return_packet((vos_pkt_t*)pLimMsg->bodyptr);
-        }
-      else if(pLimMsg->bodyptr != NULL)
-            vos_mem_free( pLimMsg->bodyptr);
+    if(SIR_BB_XPORT_MGMT_MSG == pLimMsg->type)
+    {
+        vos_pkt_return_packet((vos_pkt_t*)pLimMsg->bodyptr);
+        pLimMsg->bodyptr = NULL;
+    }
+    else if(pLimMsg->bodyptr != NULL)
+    {
+        vos_mem_free(pLimMsg->bodyptr);
+        pLimMsg->bodyptr = NULL;
+    }
 
 }
 

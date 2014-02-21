@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -64,6 +64,8 @@ VOS_STATUS vos_pkt_return_packet(vos_pkt_t *packet)
    /* Free up the Adf nbuf */
    adf_nbuf_free(packet->pkt_buf);
 
+   packet->pkt_buf = NULL;
+
    /* Free up the Rx packet */
    vos_mem_free(packet);
 
@@ -89,7 +91,8 @@ VOS_STATUS vos_pkt_get_packet_length( vos_pkt_t *pPacket,
                                       v_U16_t *pPacketSize )
 {
    // Validate the parameter pointers
-   if (unlikely((pPacket == NULL) || (pPacketSize == NULL)))
+   if (unlikely((pPacket == NULL) || (pPacketSize == NULL)) ||
+                   (pPacket->pkt_buf == NULL))
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "VPKT [%d]: NULL pointer", __LINE__);
