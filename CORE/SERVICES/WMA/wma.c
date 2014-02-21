@@ -16780,10 +16780,10 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	cfg->en_11ac = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 					      WMI_SERVICE_11AC);
         if (cfg->en_11ac)
-		gFwWlanFeatCaps |= DOT11AC;
+		gFwWlanFeatCaps |= (1 << DOT11AC);
 
 	/* Proactive ARP response */
-	gFwWlanFeatCaps |= WLAN_PERIODIC_TX_PTRN;
+	gFwWlanFeatCaps |= (1 << WLAN_PERIODIC_TX_PTRN);
 
 	/* ARP offload */
 	cfg->arp_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
@@ -18375,7 +18375,7 @@ eHalStatus WMA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
 
 tANI_U8 wma_getFwWlanFeatCaps(tANI_U8 featEnumValue)
 {
-       return gFwWlanFeatCaps & featEnumValue;
+       return gFwWlanFeatCaps & (1 << featEnumValue);
 }
 
 void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
