@@ -9510,7 +9510,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
         case eWNI_SME_MIC_FAILURE_IND:
             {
                 tpSirSmeMicFailureInd pMicInd = (tpSirSmeMicFailureInd)pSirMsg;
-                tCsrRoamInfo roamInfo, *pRoamInfo = NULL;
                 eCsrRoamResult result = eCSR_ROAM_RESULT_MIC_ERROR_UNICAST;
 
                 status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pMicInd->bssId, &sessionId );
@@ -9558,7 +9557,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
         case eWNI_SME_WPS_PBC_PROBE_REQ_IND:
             {
                 tpSirSmeProbeReqInd pProbeReqInd = (tpSirSmeProbeReqInd)pSirMsg;
-                tCsrRoamInfo roamInfo;
                 smsLog( pMac, LOG1, FL("WPS PBC Probe request Indication from SME"));
            
                 status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pProbeReqInd->bssId, &sessionId );

@@ -167,6 +167,15 @@ typedef struct {
     A_UINT32 high_5ghz_chan;
 } HAL_REG_CAPABILITIES;
 
+typedef enum {
+    WHAL_REG_EXT_FCC_MIDBAND            = 0,
+    WHAL_REG_EXT_JAPAN_MIDBAND          = 1,
+    WHAL_REG_EXT_FCC_DFS_HT40           = 2,
+    WHAL_REG_EXT_JAPAN_NONDFS_HT40      = 3,
+    WHAL_REG_EXT_JAPAN_DFS_HT40         = 4,
+    WHAL_REG_EXT_FCC_CH_144             = 5,
+} WHAL_REG_EXT_BITMAP;
+
 /*
  * Used to update rate-control logic with the status of the tx-completion.
  * In host-based implementation of the rate-control feature, this struture is used to 

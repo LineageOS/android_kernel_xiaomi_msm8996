@@ -59,11 +59,11 @@
 #   pragma warning (disable: 4996) /* ... was declared deprecated */
 #endif /* Microsoft C/C++ */
 
-/*Length of the value field expected in a TLV of type Connected Channel in an 
+/*Length of the value field expected in a TLV of type Connected Channel in an
  AMP Assoc*/
 #define WLAN_BAP_PAL_AMP_ASSOC_CONN_CH_TLV_MIN_LEN    3
 
-/*Length of the value field expected in a TLV of type Preferred Channel in an 
+/*Length of the value field expected in a TLV of type Preferred Channel in an
  AMP Assoc*/
 #define WLAN_BAP_PAL_AMP_ASSOC_PREF_CH_TLV_MIN_LEN    3
 
@@ -98,19 +98,19 @@
 #define WLAN_BAP_PAL_FLOW_SPEC_MOD_TLV_LEN                 34
 
 /*Length of the value field expected in a TLV of type Flush*/
-#define WLAN_BAP_PAL_FLUSH_TLV_LEN                          2 
+#define WLAN_BAP_PAL_FLUSH_TLV_LEN                          2
 
 /*Length of the value field expected in a TLV of type enhanced Flush*/
-#define WLAN_BAP_PAL_ENHANCED_FLUSH_TLV_LEN                 3 
+#define WLAN_BAP_PAL_ENHANCED_FLUSH_TLV_LEN                 3
 
 /*Length of the value field expected in a TLV of type Cancel Log Link*/
 #define WLAN_BAP_PAL_CANCEL_LOG_LINK_TLV_LEN                2
 
-/*Length of the value field expected in a TLV of type Read Best Effort Flush 
+/*Length of the value field expected in a TLV of type Read Best Effort Flush
  Timeout*/
 #define WLAN_BAP_PAL_READ_BE_FLUSH_TIMEOUT_TLV_LEN          2
 
-/*Length of the value field expected in a TLV of type Read Failed Contact 
+/*Length of the value field expected in a TLV of type Read Failed Contact
  Counter*/
 #define WLAN_BAP_PAL_READ_FAILED_CONTACT_CNT_TLV_LEN        2
 
@@ -127,7 +127,7 @@
 /*Length of the value field expected in a TLV of type Read RSSI*/
 #define WLAN_BAP_PAL_READ_RSSI_TLV_LEN                      2
 
-/*Length of the value field expected in a TLV of type Reset Failed Contact 
+/*Length of the value field expected in a TLV of type Reset Failed Contact
  Counter*/
 #define WLAN_BAP_PAL_RESET_FAILED_CONTACT_CNT_TLV_LEN       2
 
@@ -140,11 +140,11 @@
 /*Length of the value field expected in a TLV of type Set SHort Range Mode*/
 #define WLAN_BAP_PAL_SET_SHORT_RANGE_MODE_TLV_LEN           2
 
-/*Length of the value field expected in a TLV of type Write Best Effort Flush 
+/*Length of the value field expected in a TLV of type Write Best Effort Flush
   Timeout*/
 #define WLAN_BAP_PAL_WRITE_BE_FLUSH_TIMEOUT_TLV_LEN         6
 
-/*Length of the value field expected in a TLV of type Write Connection Accept 
+/*Length of the value field expected in a TLV of type Write Connection Accept
   Timeout*/
 #define WLAN_BAP_PAL_WRITE_CON_ACC_TIMEOUT_TLV_LEN          2
 
@@ -165,7 +165,7 @@
 #define WLAN_BAP_PAL_WRITE_LOOOPBACK_MODE_TLV_LEN           1
 
 /*Length of the value field expected in a TLV of type Write Remote AMP Assoc*/
-#define WLAN_BAP_PAL_WRITE_REMOTE_AMP_ASSOC_MIN_TLV_LEN     5 
+#define WLAN_BAP_PAL_WRITE_REMOTE_AMP_ASSOC_MIN_TLV_LEN     5
 
 /* As per AMP specification */
 /* Regulatory Extension Identifier for channel list */
@@ -546,13 +546,13 @@ static tTLVDefn* FindTLVDefn( void *    pCtx,
     v_U32_t      sType, sLen;
     v_U32_t pec;
     v_U16_t id;
- 
+
     sType = 1;
     sLen  = 2;
- 
+
     (void)pCtx;
- 
-    if (sType == 2) 
+
+    if (sType == 2)
         framesntohs( pCtx, &id, pBuf, 2 );
     else {
         id = *pBuf;
@@ -607,19 +607,19 @@ v_U32_t btampUnpackTlvAMP_Assoc_Connected_Channel(void * pCtx, v_U8_t *pBuf, v_U
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_AMP_ASSOC_CONN_CH_TLV_MIN_LEN > tlvlen ) 
+    if ( WLAN_BAP_PAL_AMP_ASSOC_CONN_CH_TLV_MIN_LEN > tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR, "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR, "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
 
 
@@ -660,19 +660,19 @@ v_U32_t btampUnpackTlvAMP_Assoc_MAC_Addr(void * pCtx, v_U8_t *pBuf, v_U16_t tlvl
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_MAC_ADDR_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_MAC_ADDR_TLV_LEN != tlvlen )
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     BTAMP_MEMCPY(pCtx, pDst->mac_addr, pBuf, 6);
@@ -693,19 +693,19 @@ v_U32_t btampUnpackTlvAMP_Assoc_PAL_Capabilities(void * pCtx, v_U8_t *pBuf, v_U1
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_CAPABILITIES_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_CAPABILITIES_TLV_LEN != tlvlen )
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohl(pCtx, &pDst->pal_capabilities, pBuf, 0);
@@ -727,23 +727,23 @@ v_U32_t btampUnpackTlvAMP_Assoc_PAL_Version(void * pCtx, v_U8_t *pBuf, v_U16_t t
 
 
      /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_VERSION_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_VERSION_TLV_LEN != tlvlen )
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->pal_version = *pBuf;
-    pBuf += 1;  
+    pBuf += 1;
     tlvlen -= (v_U8_t)1;
     framesntohs(pCtx, &pDst->pal_CompanyID, pBuf, 0);
     pBuf += 2;
@@ -766,19 +766,19 @@ v_U32_t btampUnpackTlvAMP_Assoc_Preferred_Channel_List(void * pCtx, v_U8_t *pBuf
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_AMP_ASSOC_PREF_CH_TLV_MIN_LEN > tlvlen ) 
+    if ( WLAN_BAP_PAL_AMP_ASSOC_PREF_CH_TLV_MIN_LEN > tlvlen )
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     /* Contry String - 3 bytes */
@@ -818,20 +818,20 @@ v_U32_t btampUnpackTlvFlow_Spec(void * pCtx, v_U8_t *pBuf, v_U16_t tlvlen, tBtam
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_FLOW_SPEC_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_FLOW_SPEC_TLV_LEN != tlvlen )
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->flow_spec_id = *pBuf;
@@ -867,22 +867,22 @@ v_U32_t btampUnpackTlvHCI_Accept_Logical_Link_Cmd(void * pCtx, v_U8_t *pBuf, v_U
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
 #ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
-    if ( WLAN_BAP_PAL_ACC_LOG_LINK_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_ACC_LOG_LINK_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-//      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+//      return BTAMP_INVALID_TLV_LENGTH;
     }
 #endif
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
 
     pDst->present = 1;
@@ -910,20 +910,20 @@ v_U32_t btampUnpackTlvHCI_Accept_Physical_Link_Cmd(void * pCtx, v_U8_t *pBuf, v_
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_ACC_PHY_LINK_TLV_MIN_LEN > tlvlen ) 
+    if ( WLAN_BAP_PAL_ACC_PHY_LINK_TLV_MIN_LEN > tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->phy_link_handle = *pBuf;
@@ -1326,21 +1326,21 @@ v_U32_t btampUnpackTlvHCI_Create_Logical_Link_Cmd(void * pCtx, v_U8_t *pBuf, v_U
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
 #ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
-    if ( WLAN_BAP_PAL_CREATE_LOG_LINK_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_CREATE_LOG_LINK_TLV_LEN != tlvlen )
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-//      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+//      return BTAMP_INVALID_TLV_LENGTH;
     }
-#endif 
+#endif
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->phy_link_handle = *pBuf;
@@ -1367,20 +1367,20 @@ v_U32_t btampUnpackTlvHCI_Create_Physical_Link_Cmd(void * pCtx, v_U8_t *pBuf, v_
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_CREATE_PHY_LINK_TLV_MIN_LEN > tlvlen ) 
+    if ( WLAN_BAP_PAL_CREATE_PHY_LINK_TLV_MIN_LEN > tlvlen )
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->phy_link_handle = *pBuf;
@@ -1432,20 +1432,20 @@ v_U32_t btampUnpackTlvHCI_Disconnect_Logical_Link_Cmd(void * pCtx, v_U8_t *pBuf,
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_DISC_LOG_LINK_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_DISC_LOG_LINK_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -1489,22 +1489,22 @@ v_U32_t btampUnpackTlvHCI_Disconnect_Physical_Link_Cmd(void * pCtx, v_U8_t *pBuf
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
 #ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
-    if ( WLAN_BAP_PAL_DISC_PHY_LINK_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_DISC_PHY_LINK_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-//      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+//      return BTAMP_INVALID_TLV_LENGTH;
     }
-#endif      
+#endif
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->phy_link_handle = *pBuf;
@@ -1551,20 +1551,20 @@ v_U32_t btampUnpackTlvHCI_Flow_Spec_Modify_Cmd(void * pCtx, v_U8_t *pBuf, v_U16_
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_FLOW_SPEC_MOD_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_FLOW_SPEC_MOD_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -1614,20 +1614,20 @@ v_U32_t btampUnpackTlvHCI_Flush_Cmd(void * pCtx, v_U8_t *pBuf, v_U16_t tlvlen, t
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_FLUSH_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_FLUSH_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -1705,20 +1705,20 @@ v_U32_t btampUnpackTlvHCI_Logical_Link_Cancel_Cmd(void * pCtx, v_U8_t *pBuf, v_U
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_CANCEL_LOG_LINK_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_CANCEL_LOG_LINK_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->phy_link_handle = *pBuf;
@@ -1856,20 +1856,20 @@ v_U32_t btampUnpackTlvHCI_Read_Best_Effort_Flush_Timeout_Cmd(void * pCtx, v_U8_t
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_READ_BE_FLUSH_TIMEOUT_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_READ_BE_FLUSH_TIMEOUT_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -1932,20 +1932,20 @@ v_U32_t btampUnpackTlvHCI_Read_Failed_Contact_Counter_Cmd(void * pCtx, v_U8_t *p
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_READ_FAILED_CONTACT_CNT_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_READ_FAILED_CONTACT_CNT_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -1980,20 +1980,20 @@ v_U32_t btampUnpackTlvHCI_Read_Link_Quality_Cmd(void * pCtx, v_U8_t *pBuf, v_U16
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_READ_LINK_QUALITY_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_READ_LINK_QUALITY_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -2014,20 +2014,20 @@ v_U32_t btampUnpackTlvHCI_Read_Link_Supervision_Timeout_Cmd(void * pCtx, v_U8_t 
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_READ_LINK_SVISISON_TIMEOUT_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_READ_LINK_SVISISON_TIMEOUT_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -2048,25 +2048,25 @@ v_U32_t btampUnpackTlvHCI_Read_Local_AMP_Assoc_Cmd(void * pCtx, v_U8_t *pBuf, v_
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s. tlvlen=%d.", __func__, tlvlen); 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s. tlvlen=%d.", __func__, tlvlen);
 
 #ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
-    if ( WLAN_BAP_PAL_READ_LOCAL_AMP_ASSOC_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_READ_LOCAL_AMP_ASSOC_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-//      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+//      return BTAMP_INVALID_TLV_LENGTH;
     }
-#endif      
+#endif
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->phy_link_handle = *pBuf;
@@ -2177,20 +2177,20 @@ v_U32_t btampUnpackTlvHCI_Read_RSSI_Cmd(void * pCtx, v_U8_t *pBuf, v_U16_t tlvle
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_READ_RSSI_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_READ_RSSI_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -2225,20 +2225,20 @@ v_U32_t btampUnpackTlvHCI_Reset_Failed_Contact_Counter_Cmd(void * pCtx, v_U8_t *
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_RESET_FAILED_CONTACT_CNT_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_RESET_FAILED_CONTACT_CNT_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -2259,20 +2259,20 @@ v_U32_t btampUnpackTlvHCI_Set_Event_Mask_Cmd(void * pCtx, v_U8_t *pBuf, v_U16_t 
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_SET_EVENT_MASK_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_SET_EVENT_MASK_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     BTAMP_MEMCPY(pCtx, pDst->event_mask, pBuf, 8);
@@ -2293,25 +2293,25 @@ v_U32_t btampUnpackTlvHCI_Set_Event_Mask_Page_2_Cmd(void * pCtx, v_U8_t *pBuf, v
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
 
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s. tlvlen=%d.", __func__, tlvlen); 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s. tlvlen=%d.", __func__, tlvlen);
 #ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
-    if ( WLAN_BAP_PAL_SET_EVENT_MASK2_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_SET_EVENT_MASK2_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-//      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+//      return BTAMP_INVALID_TLV_LENGTH;
     }
-#endif      
+#endif
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     BTAMP_MEMCPY(pCtx, pDst->event_mask_page_2, pBuf, 8);
@@ -2332,20 +2332,20 @@ v_U32_t btampUnpackTlvHCI_Set_Short_Range_Mode_Cmd(void * pCtx, v_U8_t *pBuf, v_
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_SET_SHORT_RANGE_MODE_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_SET_SHORT_RANGE_MODE_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->phy_link_handle = *pBuf;
@@ -2392,20 +2392,20 @@ v_U32_t btampUnpackTlvHCI_Write_Best_Effort_Flush_Timeout_Cmd(void * pCtx, v_U8_
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_WRITE_BE_FLUSH_TIMEOUT_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_WRITE_BE_FLUSH_TIMEOUT_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -2429,20 +2429,20 @@ v_U32_t btampUnpackTlvHCI_Write_Connection_Accept_Timeout_Cmd(void * pCtx, v_U8_
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_WRITE_CON_ACC_TIMEOUT_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_WRITE_CON_ACC_TIMEOUT_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->connection_accept_timeout, pBuf, 0);
@@ -2463,20 +2463,20 @@ v_U32_t btampUnpackTlvHCI_Write_Flow_Control_Mode_Cmd(void * pCtx, v_U8_t *pBuf,
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_WRITE_FLOW_CTRL_MODE_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_WRITE_FLOW_CTRL_MODE_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->flow_control_mode = *pBuf;
@@ -2496,20 +2496,20 @@ v_U32_t btampUnpackTlvHCI_Write_Link_Supervision_Timeout_Cmd(void * pCtx, v_U8_t
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_WRITE_LINK_SVISION_TIMEOUT_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_WRITE_LINK_SVISION_TIMEOUT_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -2533,20 +2533,20 @@ v_U32_t btampUnpackTlvHCI_Write_Location_Data_Cmd(void * pCtx, v_U8_t *pBuf, v_U
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_WRITE_LOCATION_DATA_CMD_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_WRITE_LOCATION_DATA_CMD_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->loc_domain_aware = *pBuf;
@@ -2573,20 +2573,20 @@ v_U32_t btampUnpackTlvHCI_Write_Logical_Link_Accept_Timeout_Cmd(void * pCtx, v_U
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_WRITE_LOG_LINK_ACC_TIMEOUT_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_WRITE_LOG_LINK_ACC_TIMEOUT_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->logical_link_accept_timeout, pBuf, 0);
@@ -2607,20 +2607,20 @@ v_U32_t btampUnpackTlvHCI_Write_Loopback_Mode_Cmd(void * pCtx, v_U8_t *pBuf, v_U
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_WRITE_LOOOPBACK_MODE_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_WRITE_LOOOPBACK_MODE_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->loopback_mode = *pBuf;
@@ -2641,20 +2641,20 @@ v_U32_t btampUnpackTlvHCI_Write_Remote_AMP_ASSOC_Cmd(void * pCtx, v_U8_t *pBuf, 
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_WRITE_REMOTE_AMP_ASSOC_MIN_TLV_LEN > tlvlen ) 
+    if ( WLAN_BAP_PAL_WRITE_REMOTE_AMP_ASSOC_MIN_TLV_LEN > tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     pDst->phy_link_handle = *pBuf;
@@ -2688,20 +2688,20 @@ v_U32_t btampUnpackTlvHCI_Enhanced_Flush_Cmd(void * pCtx, v_U8_t *pBuf, v_U16_t 
     (void)pBuf; (void)tlvlen; /* Shutup the compiler */
 
     /*-----------------------------------------------------------------------
-       TLV Sanity check 
+       TLV Sanity check
     -------------------------------------------------------------------------*/
-    if ( WLAN_BAP_PAL_ENHANCED_FLUSH_TLV_LEN != tlvlen ) 
+    if ( WLAN_BAP_PAL_ENHANCED_FLUSH_TLV_LEN != tlvlen )
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-            "Invalid TLV len on %s", __func__); 
-#endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TLV len on %s", __func__);
+#endif
+      return BTAMP_INVALID_TLV_LENGTH;
     }
 
     /*-----------------------------------------------------------------------
-      Parse TLV 
+      Parse TLV
      -----------------------------------------------------------------------*/
     pDst->present = 1;
     framesntohs(pCtx, &pDst->log_link_handle, pBuf, 0);
@@ -2751,8 +2751,8 @@ v_U32_t btampUnpackAMP_ASSOC(void * pCtx, v_U8_t *pBuf, v_U32_t nBuf, tBtampAMP_
     v_U32_t status = 0;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampUnpackAMP_ASSOC. nBuf - %d\n", nBuf); 
-#endif    
+      "In btampUnpackAMP_ASSOC. nBuf - %d\n", nBuf);
+#endif
 
     status |= UnpackTlvCore(pCtx,pBuf,nBuf,TLVS,(v_U8_t*)pFrm,sizeof(*pFrm));
 
@@ -2841,8 +2841,8 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
     nBufRemaining = nBuf;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In UnpackTlvCore, nBufRemaining - %d\n", nBufRemaining); 
-#endif    
+      "In UnpackTlvCore, nBufRemaining - %d\n", nBufRemaining);
+#endif
 
     // While we have data...
     while ( nBufRemaining )
@@ -2859,7 +2859,7 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
         npec = 0U;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
         VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-          "Calling FindTLVDefn...\n", nBufRemaining); 
+          "Calling FindTLVDefn...\n", nBufRemaining);
 #endif
 
         // Look for a matching TLV definition,
@@ -2867,10 +2867,10 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
         sType = 1;
         sLen  = 2;
         // consume the type,
-        if (sType == 2) 
+        if (sType == 2)
             framesntohs(pCtx, &id, pBufRemaining, 1);
-        else { 
-            id = *pBufRemaining; 
+        else {
+            id = *pBufRemaining;
         }
         pBufRemaining += sType;
         nBufRemaining -= sType;
@@ -2886,7 +2886,7 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
             {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
                 VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-                  "3 > nBufRemaining\n"); 
+                  "3 > nBufRemaining\n");
 #endif
 
                 FRAMES_LOG2(pCtx, FRLOGW, FRFL("TLV %d reports length"
@@ -2906,7 +2906,7 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
         }
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
         VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-          "Len - %d nBufRemaining - %d\n", len, nBufRemaining); 
+          "Len - %d nBufRemaining - %d\n", len, nBufRemaining);
 #endif
 
         // Whether we found a hit or not, we can validate the reported
@@ -2956,7 +2956,7 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
             {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
                 VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-                  "pTlv->sig - %d\n", pTlv->sig); 
+                  "pTlv->sig - %d\n", pTlv->sig);
 #endif
 
                 switch (pTlv->sig)
@@ -3157,7 +3157,7 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
             status |= status2;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
             VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-              "status - %x\n", status); 
+              "status - %x\n", status);
 #endif
         }
         else
@@ -3172,7 +3172,7 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
         pBufRemaining += len;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
         VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-          "len - %d nBufRemaining - %d\n", len, nBufRemaining); 
+          "len - %d nBufRemaining - %d\n", len, nBufRemaining);
 #endif
 
         if (len > nBufRemaining)
@@ -3194,8 +3194,8 @@ MandatoryCheck:
     pTlv = &TLVs[0];
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "pTlv->id - %x\n", pTlv->id); 
-#endif    
+      "pTlv->id - %x\n", pTlv->id);
+#endif
 
     while (0xffff != pTlv->id)
     {
@@ -3224,8 +3224,8 @@ v_U32_t btampGetPackedTlvAMP_Assoc_Connected_Channel(void * pCtx, tBtampTLVAMP_A
     (void)pCtx; (void)pTlv; (void)pnNeeded;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampGetPackedTlvAMP_Assoc_Connected_Channel\n"); 
-#endif    
+      "In btampGetPackedTlvAMP_Assoc_Connected_Channel\n");
+#endif
 
     while ( pTlv->present )
     {
@@ -3249,8 +3249,8 @@ v_U32_t btampGetPackedTlvAMP_Assoc_MAC_Addr(void * pCtx, tBtampTLVAMP_Assoc_MAC_
     (void)pCtx; (void)pTlv; (void)pnNeeded;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampGetPackedTlvAMP_Assoc_MAC_Addr\n"); 
-#endif    
+      "In btampGetPackedTlvAMP_Assoc_MAC_Addr\n");
+#endif
 
     while ( pTlv->present )
     {
@@ -3269,8 +3269,8 @@ v_U32_t btampGetPackedTlvAMP_Assoc_PAL_Capabilities(void * pCtx, tBtampTLVAMP_As
     (void)pCtx; (void)pTlv; (void)pnNeeded;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampGetPackedTlvAMP_Assoc_PAL_Capabilities\n"); 
-#endif    
+      "In btampGetPackedTlvAMP_Assoc_PAL_Capabilities\n");
+#endif
 
     while ( pTlv->present )
     {
@@ -3306,8 +3306,8 @@ v_U32_t btampGetPackedTlvAMP_Assoc_Preferred_Channel_List(void * pCtx, tBtampTLV
     (void)pCtx; (void)pTlv; (void)pnNeeded;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampGetPackedTlvAMP_Assoc_Preferred_Channel_List\n"); 
-#endif    
+      "In btampGetPackedTlvAMP_Assoc_Preferred_Channel_List\n");
+#endif
 
     while ( pTlv->present )
     {
@@ -3761,14 +3761,14 @@ v_U32_t btampGetPackedTlvHCI_Num_Completed_Pkts_Event(void * pCtx, tBtampTLVHCI_
         *pnNeeded += 2;
         *pnNeeded += 2;
 #if 0
-// New 
+// New
         *pnNeeded += 2;
         *pnNeeded += 2;
         *pnNeeded += 2;
         *pnNeeded += 2;
         *pnNeeded += 2;
         *pnNeeded += 2;
-// End of New 
+// End of New
 #endif
 //        break;
     }
@@ -4376,8 +4376,8 @@ v_U32_t btampGetPackedTlvHCI_Write_Remote_AMP_ASSOC_Cmd(void * pCtx, tBtampTLVHC
     (void)pCtx; (void)pTlv; (void)pnNeeded;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampGetPackedTlvHCI_Write_Remote_AMP_ASSOC_Cmd\n"); 
-#endif    
+      "In btampGetPackedTlvHCI_Write_Remote_AMP_ASSOC_Cmd\n");
+#endif
 
     while ( pTlv->present )
     {
@@ -4439,8 +4439,8 @@ v_U32_t btampGetPackedAMP_ASSOCSize(void * pCtx, tBtampAMP_ASSOC *pFrm, v_U32_t 
     *pnNeeded = 0;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampGetPackedAMP_ASSOCSize\n"); 
-#endif    
+      "In btampGetPackedAMP_ASSOCSize\n");
+#endif
 
     status |= GetPackedSizeTlvCore(pCtx,(v_U8_t*)pFrm,pnNeeded,TLVS);
     return status;
@@ -4459,8 +4459,8 @@ static v_U32_t GetPackedSizeTlvCore(void * pCtx,
     status2 = BTAMP_PARSE_SUCCESS;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In GetPackedSizeTlvCore\n"); 
-#endif    
+      "In GetPackedSizeTlvCore\n");
+#endif
 
     pTlv = &( TLVs[0] );
     while ( 0xffff != pTlv->id )
@@ -4473,7 +4473,7 @@ static v_U32_t GetPackedSizeTlvCore(void * pCtx,
             if ( pTlv->pec ) *pnNeeded += 3U;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
             VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-              "In GetPackedSizeTlvCore, pTlv->sig - %d\n", pTlv->sig); 
+              "In GetPackedSizeTlvCore, pTlv->sig - %d\n", pTlv->sig);
 #endif
 
             switch (pTlv->sig)
@@ -4749,8 +4749,8 @@ v_U32_t btampPackTlvAMP_Assoc_Connected_Channel(void * pCtx,
     sLen = 2;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampPackTlvAMP_Assoc_Connected_Channel\n"); 
-#endif    
+      "In btampPackTlvAMP_Assoc_Connected_Channel\n");
+#endif
     // sanity checking
     if( pCtx == NULL || pSrc == NULL ||
         pBuf == NULL || pnConsumed == NULL)
@@ -4790,7 +4790,7 @@ v_U32_t btampPackTlvAMP_Assoc_Connected_Channel(void * pCtx,
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } 
+    }
     else if(NULL != pTlvLen)
     {
         *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
@@ -4817,8 +4817,8 @@ v_U32_t btampPackTlvAMP_Assoc_MAC_Addr(void * pCtx,
     sLen = 2;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampPackTlvAMP_Assoc_MAC_Addr\n"); 
-#endif    
+      "In btampPackTlvAMP_Assoc_MAC_Addr\n");
+#endif
     // sanity checking
     if( pCtx == NULL || pSrc == NULL ||
         pBuf == NULL || pnConsumed == NULL)
@@ -4877,8 +4877,8 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Capabilities(void * pCtx,
     sLen = 2;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampPackTlvAMP_Assoc_PAL_Capabilities\n"); 
-#endif    
+      "In btampPackTlvAMP_Assoc_PAL_Capabilities\n");
+#endif
     // sanity checking
     if( pCtx == NULL || pSrc == NULL ||
         pBuf == NULL || pnConsumed == NULL)
@@ -4937,8 +4937,8 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Version(void * pCtx,
     sLen = 2;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampPackTlvAMP_Assoc_PAL_Version\n"); 
-#endif    
+      "In btampPackTlvAMP_Assoc_PAL_Version\n");
+#endif
     // sanity checking
     if( pCtx == NULL || pSrc == NULL ||
         pBuf == NULL || pnConsumed == NULL)
@@ -5005,8 +5005,8 @@ v_U32_t btampPackTlvAMP_Assoc_Preferred_Channel_List(void * pCtx,
     sLen = 2;
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
-      "In btampPackTlvAMP_Assoc_Preferred_Channel_List\n"); 
-#endif    
+      "In btampPackTlvAMP_Assoc_Preferred_Channel_List\n");
+#endif
     // sanity checking
     if( pCtx == NULL || pSrc == NULL ||
         pBuf == NULL || pnConsumed == NULL)
@@ -5122,7 +5122,7 @@ v_U32_t btampPackTlvFlow_Spec(void * pCtx,
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else if(NULL != pTlvLen) 
+    } else if(NULL != pTlvLen)
     {
         *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
     }
@@ -7481,7 +7481,7 @@ v_U32_t btampPackTlvHCI_Read_Flow_Control_Mode_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
@@ -7535,7 +7535,7 @@ v_U32_t btampPackTlvHCI_Read_Link_Quality_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
@@ -7805,7 +7805,7 @@ v_U32_t btampPackTlvHCI_Read_Local_Version_Info_Cmd(void * pCtx,
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else if(NULL != pTlvLen) 
+    } else if(NULL != pTlvLen)
     {
         *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
     }
@@ -9308,4 +9308,3 @@ static v_U32_t PackTlvCore(void * pCtx,
     return status;
 
 }
-

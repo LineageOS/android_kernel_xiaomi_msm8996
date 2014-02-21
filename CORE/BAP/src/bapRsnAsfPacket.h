@@ -149,7 +149,7 @@ aniAsfPacketFree(tAniPacket *packet);
  *
  * FUNCTION:
  * Returns a printable representation of the data contained in the
- * packet. 
+ * packet.
  * Note: This function returns a static buffer used by aniAsfHexStr.
  *
  * @param packet the packet whose contents need to be printed
@@ -543,7 +543,7 @@ aniAsfPacketGetMac(tAniPacket *packet, tAniMacAddr macAddr);
  * interfacing with other libraries that only support byte array
  * manipulation.
  *
- * WARNING: 
+ * WARNING:
  * Applications are discouraged from using this function
  * because correct usage is a two-step process - one: copy some bytes
  * to the packet's internal buffer, two: move head and length. This
@@ -567,7 +567,7 @@ aniAsfPacketMoveLeft(tAniPacket *packet, v_U32_t count);
  * interfacing with other libraries that only support byte array
  * manipulation.
  *
- * WARNING: 
+ * WARNING:
  * Applications are discouraged from using this function
  * because correct usage is a two-step process - one: copy some bytes
  * to the packet's internal buffer, two: move tail and length. This
@@ -585,16 +585,16 @@ aniAsfPacketMoveRight(tAniPacket *packet, v_U32_t count);
  * aniAsfPacketGetBytesFromTail
  *
  * FUNCTION:
- * Returns a pointer to the tail of the valid data stored 
+ * Returns a pointer to the tail of the valid data stored
  * in the packet.
  *
- * WARNING: 
+ * WARNING:
  * Applications are discouraged from using this function
  * because correct usage is a three-step process - one: call this
- * routine to obtain a pointer to the current tail of the packet. 
- * two: treat this returned pointer like a simple array and copy 
- * some bytes to the packet's internal buffer, and finally 
- * three: move tail and length. This violates the encapsulation 
+ * routine to obtain a pointer to the current tail of the packet.
+ * two: treat this returned pointer like a simple array and copy
+ * some bytes to the packet's internal buffer, and finally
+ * three: move tail and length. This violates the encapsulation
  * the packet library aims to provide.
  *
  * @param packet the packet whose bytes we need

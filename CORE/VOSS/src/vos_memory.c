@@ -273,7 +273,7 @@ v_VOID_t * vos_mem_malloc( v_SIZE_t size )
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: called with arg > 1024K; passed in %d !!!", __func__,size); 
        return NULL;
    }
-   if (in_interrupt())
+   if (in_interrupt() || irqs_disabled())
    {
       flags = GFP_ATOMIC;
    }

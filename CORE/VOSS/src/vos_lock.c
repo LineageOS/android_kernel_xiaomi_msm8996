@@ -181,18 +181,21 @@ VOS_STATUS vos_lock_acquire ( vos_lock_t* lock )
       if ( lock == NULL )
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: NULL pointer passed in",__func__);
+         VOS_ASSERT(0);
          return VOS_STATUS_E_FAULT;
       }
       // check if lock refers to an initialized object
       if ( LINUX_LOCK_COOKIE != lock->cookie )
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: uninitialized lock",__func__);
+         VOS_ASSERT(0);
          return VOS_STATUS_E_INVAL;
       }
 
       if (in_interrupt())
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __func__);
+         VOS_ASSERT(0);
          return VOS_STATUS_E_FAULT; 
       }
       if ((lock->processID == current->pid) && 
@@ -211,6 +214,7 @@ VOS_STATUS vos_lock_acquire ( vos_lock_t* lock )
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 "%s: unable to lock mutex (rc = %d)", __func__, rc);
+         VOS_ASSERT(0);
          return VOS_STATUS_E_FAILURE;
       }
  
@@ -230,6 +234,7 @@ VOS_STATUS vos_lock_acquire ( vos_lock_t* lock )
          // lock is already destroyed
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Lock is already destroyed", __func__);
          mutex_unlock(&lock->m_lock);
+         VOS_ASSERT(0);
          return VOS_STATUS_E_FAILURE;
       }
 }
@@ -269,6 +274,7 @@ VOS_STATUS vos_lock_release ( vos_lock_t *lock )
       if ( lock == NULL )
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: NULL pointer passed in",__func__);
+         VOS_ASSERT(0);
          return VOS_STATUS_E_FAULT;
       }
 
@@ -276,12 +282,14 @@ VOS_STATUS vos_lock_release ( vos_lock_t *lock )
       if ( LINUX_LOCK_COOKIE != lock->cookie )
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: uninitialized lock",__func__);
+         VOS_ASSERT(0);
          return VOS_STATUS_E_INVAL;
       }
 
       if (in_interrupt())
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __func__);
+         VOS_ASSERT(0);
          return VOS_STATUS_E_FAULT; 
       }
 
@@ -295,6 +303,7 @@ VOS_STATUS vos_lock_release ( vos_lock_t *lock )
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,"%s: Lock held by=%d being released by=%d", __func__, lock->processID, current->pid);
 #endif
 
+         VOS_ASSERT(0);
          return VOS_STATUS_E_PERM;
       }
       if ((lock->processID == current->pid) && 

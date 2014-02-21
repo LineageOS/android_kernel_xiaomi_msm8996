@@ -1592,6 +1592,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
 #endif //WLAN_BTAMP_FEATURE
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing WDA STOP", __func__);
    vosStatus = WDA_stop(pVosContext, HAL_STOP_TYPE_RF_KILL);
 
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))

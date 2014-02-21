@@ -991,6 +991,8 @@ typedef struct sMacOpenParameters
  * offload currently, rest bits are unused
  */
     tANI_U8 olIniInfo;
+/* pass intra-bss-fwd info to txrx module */
+    tANI_U8 apDisableIntraBssFwd;
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters

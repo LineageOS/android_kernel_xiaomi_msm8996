@@ -154,7 +154,7 @@ aniAsfPacketAllocateExplicit(tAniPacket **packetPtr,
 
   packet = (tAniPacket *) vos_mem_malloc( sizeof(tAniPacket) );
 
-  if (packet == NULL) 
+  if (packet == NULL)
   {
       VOS_ASSERT( 0 );
       return ANI_E_MALLOC_FAILED;
@@ -164,7 +164,7 @@ aniAsfPacketAllocateExplicit(tAniPacket **packetPtr,
   size = (size + 4) & 0xfffffffc;
 
   packet->buf = (v_U8_t *)vos_mem_malloc( sizeof(v_U8_t) * size );
-  if (packet->buf == NULL) 
+  if (packet->buf == NULL)
   {
       vos_mem_free( packet );
       VOS_ASSERT( 0 );
@@ -192,7 +192,7 @@ aniAsfPacketAllocateExplicit(tAniPacket **packetPtr,
  * @param oldPacket the original packet that should be duplicated
  *
  * @return ANI_OK if the operation succeeds; ANI_E_NULL if oldPacket
- * is NULL; 
+ * is NULL;
  */
 int
 aniAsfPacketDuplicate(tAniPacket **newPacketPtr, tAniPacket *oldPacket)
@@ -213,14 +213,14 @@ aniAsfPacketDuplicate(tAniPacket **newPacketPtr, tAniPacket *oldPacket)
     retVal = aniAsfPacketAppendBuffer(packet,
                                       oldPacket->head,
                                       oldPacket->len);
-    if (retVal != ANI_OK) 
+    if (retVal != ANI_OK)
     {
         VOS_ASSERT( 0 );
         aniAsfPacketFree(packet);
         return ANI_E_FAILED;
     }
 
-    if (oldPacket->recordHeader != NULL) 
+    if (oldPacket->recordHeader != NULL)
     {
         recordPos = oldPacket->recordHeader - oldPacket->buf;
         packet->recordHeader = packet->buf + recordPos;
@@ -928,7 +928,7 @@ aniAsfPacketGetMac(tAniPacket *packet, tAniMacAddr macAddr)
  * interfacing with other libraries that only support byte array
  * manipulation.
  *
- * WARNING: 
+ * WARNING:
  * Applications are discouraged from using this function
  * because correct usage is a two-step process - one: copy some bytes
  * to the packet's internal buffer, two: move head and length. This
@@ -961,7 +961,7 @@ aniAsfPacketMoveLeft(tAniPacket *packet, v_U32_t count)
  * interfacing with other libraries that only support byte array
  * manipulation.
  *
- * WARNING: 
+ * WARNING:
  * Applications are discouraged from using this function
  * because correct usage is a two-step process - one: copy some bytes
  * to the packet's internal buffer, two: move tail and length. This
@@ -988,16 +988,16 @@ aniAsfPacketMoveRight(tAniPacket *packet, v_U32_t count)
  * aniAsfPacketGetBytesFromTail
  *
  * FUNCTION:
- * Returns a pointer to the tail of the valid data stored 
+ * Returns a pointer to the tail of the valid data stored
  * in the packet.
  *
- * WARNING: 
+ * WARNING:
  * Applications are discouraged from using this function
  * because correct usage is a three-step process - one: call this
- * routine to obtain a pointer to the current tail of the packet. 
- * two: treat this returned pointer like a simple array and copy 
- * some bytes to the packet's internal buffer, and finally 
- * three: move tail and length. This violates the encapsulation 
+ * routine to obtain a pointer to the current tail of the packet.
+ * two: treat this returned pointer like a simple array and copy
+ * some bytes to the packet's internal buffer, and finally
+ * three: move tail and length. This violates the encapsulation
  * the packet library aims to provide.
  *
  * @param packet the packet whose bytes we need
@@ -1017,4 +1017,3 @@ aniAsfPacketGetBytesFromTail(tAniPacket *packet, v_U8_t **rawBytesPtr)
     *rawBytesPtr = packet->tail;
     return 0; // The length of used bytes returned is zero
 }
-
