@@ -337,6 +337,12 @@ typedef struct {
 	u_int32_t tx_rate;
 	u_int32_t ampdu;
 	u_int32_t amsdu;
+	u_int32_t erx_adjust;
+	u_int32_t erx_bmiss_num;
+	u_int32_t erx_bmiss_cycle;
+	u_int32_t erx_slop_step;
+	u_int32_t erx_init_slop;
+	u_int32_t erx_adj_pause;
         struct pps pps_params;
 	struct qpower_params qpower_params;
 	gtx_config_t gtx_info;

@@ -6979,6 +6979,24 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_VDEV_PARAM_FIXED_RATE:
 			intr[vid].config.tx_rate = privcmd->param_value;
 			break;
+		case WMI_VDEV_PARAM_EARLY_RX_ADJUST_ENABLE:
+			intr[vid].config.erx_adjust = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_EARLY_RX_TGT_BMISS_NUM:
+			intr[vid].config.erx_bmiss_num = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_EARLY_RX_BMISS_SAMPLE_CYCLE:
+			intr[vid].config.erx_bmiss_cycle = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_EARLY_RX_SLOP_STEP:
+			intr[vid].config.erx_slop_step = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_EARLY_RX_INIT_SLOP:
+			intr[vid].config.erx_init_slop = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_EARLY_RX_ADJUST_PAUSE:
+			intr[vid].config.erx_adj_pause = privcmd->param_value;
+			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set vdev command/Not"
 				" yet implemented 0x%x", privcmd->param_id);
@@ -16416,6 +16434,10 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	/* ARP offload */
 	cfg->arp_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 						  WMI_SERVICE_ARPNS_OFFLOAD);
+
+	/* Adaptive early-rx */
+	cfg->early_rx = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+						WMI_SERVICE_EARLY_RX);
 #ifdef FEATURE_WLAN_SCAN_PNO
 	/* PNO offload */
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_NLO))
