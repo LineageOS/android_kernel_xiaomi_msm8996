@@ -1927,6 +1927,9 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       goto err_unregister_pmops;
    }
    vos_set_reinit_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+
+   wlan_hdd_send_svc_nlink_msg(WLAN_SVC_FW_CRASHED_IND);
+
    goto success;
 
 err_unregister_pmops:

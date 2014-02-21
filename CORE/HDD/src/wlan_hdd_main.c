@@ -10928,6 +10928,7 @@ void hdd_ch_avoid_cb
               {
                   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                             "%s: Restarting SAP", __func__);
+                  wlan_hdd_send_svc_nlink_msg(WLAN_SVC_LTE_COEX_IND);
                   restart_sap_in_progress = 1;
                   /* current operating channel is un-safe channel, restart driver */
                   hdd_hostapd_stop(hostapd_adapter->dev);
@@ -10940,6 +10941,51 @@ void hdd_ch_avoid_cb
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+void wlan_hdd_send_svc_nlink_msg(int type)
+{
+    struct sk_buff *skb;
+    struct nlmsghdr *nlh;
+    tAniMsgHdr *ani_hdr;
+
+    skb = alloc_skb(NLMSG_SPACE(WLAN_NL_MAX_PAYLOAD), GFP_KERNEL);
+
+    if(skb == NULL) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: alloc_skb failed", __func__);
+        return;
+    }
+
+    nlh = (struct nlmsghdr *)skb->data;
+    nlh->nlmsg_pid = 0;  /* from kernel */
+    nlh->nlmsg_flags = 0;
+    nlh->nlmsg_seq = 0;
+    nlh->nlmsg_type = WLAN_NL_MSG_SVC;
+
+    ani_hdr = NLMSG_DATA(nlh);
+    ani_hdr->type = type;
+
+    switch(type) {
+    case WLAN_SVC_FW_CRASHED_IND:
+        ani_hdr->length = 0;
+        nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr)));
+        skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr)));
+        break;
+    case WLAN_SVC_LTE_COEX_IND:
+        ani_hdr->length = 0;
+        nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr)));
+        skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr)));
+        break;
+    default:
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "WLAN SVC: Attempt to send unknown nlink message %d\n", type);
+        kfree_skb(skb);
+        return;
+    }
+
+    nl_srv_bcast(skb);
+
+    return;
+}
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);
