@@ -5857,31 +5857,46 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 		goto send_resp;
 	}
 
-        peer = ol_txrx_find_peer_by_addr(pdev, intr[vdev_id].bssid, &peer_id);
+	peer = ol_txrx_find_peer_by_addr(pdev, intr[vdev_id].bssid, &peer_id);
 
-        if (peer && (peer->state == ol_txrx_peer_state_conn ||
-                     peer->state == ol_txrx_peer_state_auth)) {
-                /* Trying to change channel while connected should not invoke VDEV_START.
-                 * Instead, use start scan command in passive mode to park station
-                 * on that channel
-                 */
-                WMA_LOGI("%s: calling set_scan, state 0x%x", __func__, wma->roam_preauth_scan_state);
-                if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_NONE) {
-                    status = wma_roam_preauth_chan_set(wma, params, vdev_id);
-                    /* response will be asynchronous */
-                    return;
-                } else if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_REQUESTED ||
-                               wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_ON_CHAN) {
-                    status = wma_roam_preauth_chan_cancel(wma, params, vdev_id);
-                    /* response will be asynchronous */
-                    return;
-                } else if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_COMPLETED) {
-                        /* Already back on home channel. Complete the request */
-                        wma->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
-                        status = VOS_STATUS_SUCCESS;
-                }
-                goto send_resp;
-        }
+	/*
+	 * Roam offload feature is currently supported
+	 * only in STA mode. Other modes still require
+	 * to issue a Vdev Start/Vdev Restart for
+	 * channel change.
+	 */
+	if ((wma->interfaces[vdev_id].type == WMI_VDEV_TYPE_STA) &&
+		(wma->interfaces[vdev_id].sub_type == 0)) {
+
+		if (peer && (peer->state == ol_txrx_peer_state_conn ||
+			peer->state == ol_txrx_peer_state_auth)) {
+			/* Trying to change channel while connected
+			 * should not invoke VDEV_START.
+			 * Instead, use start scan command in passive
+			 * mode to park station on that channel
+			 */
+			WMA_LOGI("%s: calling set_scan, state 0x%x",
+						__func__, wma->roam_preauth_scan_state);
+			if (wma->roam_preauth_scan_state ==
+				WMA_ROAM_PREAUTH_CHAN_NONE) {
+				status = wma_roam_preauth_chan_set(wma, params, vdev_id);
+				/* response will be asynchronous */
+				return;
+			} else if (wma->roam_preauth_scan_state ==
+				WMA_ROAM_PREAUTH_CHAN_REQUESTED ||
+				wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_ON_CHAN) {
+				status = wma_roam_preauth_chan_cancel(wma, params, vdev_id);
+				/* response will be asynchronous */
+				return;
+			} else if (wma->roam_preauth_scan_state ==
+				WMA_ROAM_PREAUTH_CHAN_COMPLETED) {
+				/* Already back on home channel. Complete the request */
+				wma->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
+				status = VOS_STATUS_SUCCESS;
+			}
+			goto send_resp;
+		}
+	}
         vos_mem_zero(&req, sizeof(req));
         req.vdev_id = vdev_id;
 	msg = wma_fill_vdev_req(wma, req.vdev_id, WDA_CHNL_SWITCH_REQ,
