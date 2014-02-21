@@ -3916,11 +3916,13 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
        }
        else if (strncmp(command, "SCAN-ACTIVE", 11) == 0)
        {
-          pAdapter->scan_info.scan_mode = eSIR_ACTIVE_SCAN;
+          hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+          pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
        }
        else if (strncmp(command, "SCAN-PASSIVE", 12) == 0)
        {
-          pAdapter->scan_info.scan_mode = eSIR_PASSIVE_SCAN;
+          hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+          pHddCtx->ioctl_scan_mode = eSIR_PASSIVE_SCAN;
        }
        else if (strncmp(command, "GETDWELLTIME", 12) == 0)
        {
@@ -9041,6 +9043,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    pHddCtx->wiphy = wiphy;
    hdd_prevent_suspend();
    pHddCtx->isLoadInProgress = TRUE;
+   pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 

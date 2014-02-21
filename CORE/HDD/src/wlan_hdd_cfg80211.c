@@ -5251,7 +5251,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         else
         {
             /*Set the scan type to default type, in this case it is ACTIVE*/
-            scanRequest.scanType = pScanInfo->scan_mode;
+            scanRequest.scanType = pHddCtx->ioctl_scan_mode;
         }
         scanRequest.minChnTime = cfg_param->nActiveMinChnTime;
         scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;

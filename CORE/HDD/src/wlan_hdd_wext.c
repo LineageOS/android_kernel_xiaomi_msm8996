@@ -3289,12 +3289,14 @@ static int iw_set_priv(struct net_device *dev,
     }
     else if (strcasecmp(cmd, "scan-active") == 0)
     {
-        pAdapter->scan_info.scan_mode = eSIR_ACTIVE_SCAN;
+        hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+        pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
         ret = snprintf(cmd, cmd_len, "OK");
     }
     else if (strcasecmp(cmd, "scan-passive") == 0)
     {
-        pAdapter->scan_info.scan_mode = eSIR_PASSIVE_SCAN;
+        hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+        pHddCtx->ioctl_scan_mode = eSIR_PASSIVE_SCAN;
         ret = snprintf(cmd, cmd_len, "OK");
     }
     else if( strcasecmp(cmd, "scan-mode") == 0 )

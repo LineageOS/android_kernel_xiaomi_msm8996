@@ -1293,6 +1293,7 @@ struct hdd_context_s
     v_U8_t max_intf_count;
     v_U8_t current_intf_count;
 
+    tSirScanType ioctl_scan_mode;
 };
 
 
