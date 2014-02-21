@@ -1911,6 +1911,38 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
     return status;
 }
 
+/*
+ * FUNCTION: wlan_hdd_set_acs_allowed_channels
+ * set only allowed channel for ACS
+ * input channel list is a string with comma separated
+ * channel number, the first number is the total number
+ * of channels specified. e.g. 4,1,6,9,36
+ */
+static void wlan_hdd_set_acs_allowed_channels(
+                                             char *acsAllowedChnls,
+                                             char *acsSapChnlList,
+                                             int length)
+{
+    char *p;
+
+    /* a white space is required at the beginning of the
+       string to be properly parsed by function
+       sapSetPreferredChannel later */
+    strlcpy(acsSapChnlList, " ", length);
+    strlcat(acsSapChnlList, acsAllowedChnls, length);
+    p = acsSapChnlList;
+    while (*p)
+    {
+        /* looking for comma, replace it with white space */
+        if (*p == ',')
+            *p = ' ';
+
+        p++;
+    }
+
+    return;
+}
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
 static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                             struct beacon_parameters *params)
@@ -1969,6 +2001,13 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                                       pConfig->dtim_period);
 
     pConfig->enOverLapCh = !!pHddCtx->cfg_ini->gEnableOverLapCh;
+    if (strlen(iniConfig->acsAllowedChnls) > 0)
+    {
+        wlan_hdd_set_acs_allowed_channels(
+                                     iniConfig->acsAllowedChnls,
+                                     pConfig->acsAllowedChnls,
+                                     sizeof(pConfig->acsAllowedChnls));
+    }
 
     if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP)
     {

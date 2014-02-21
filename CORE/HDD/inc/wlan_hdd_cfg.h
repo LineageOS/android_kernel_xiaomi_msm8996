@@ -629,7 +629,6 @@ typedef enum
 #define CFG_NUM_P2P_CHAN_COMBINED_CONC_MIN              ( 1 )
 #define CFG_NUM_P2P_CHAN_COMBINED_CONC_MAX              ( 255 )
 #define CFG_NUM_P2P_CHAN_COMBINED_CONC_DEFAULT          ( 1 )
-
 #endif
 
 #define CFG_MAX_PS_POLL_NAME                   "gMaxPsPoll"
@@ -1595,6 +1594,9 @@ typedef enum
 #define CFG_SAP_AUTO_CHANNEL_SELECTION_MIN        ( 0 )
 #define CFG_SAP_AUTO_CHANNEL_SELECTION_MAX        ( 1 )
 #define CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT    ( 0 )
+
+#define CFG_ONLY_ALLOWED_CHANNELS                   "gACSAllowedChannels"
+#define CFG_ONLY_ALLOWED_CHANNELS_DEFAULT           ""
 
 /*BMPS Logic
  * Notes:
@@ -2724,6 +2726,7 @@ typedef struct
    v_U8_t                      enableRxThread;
    v_BOOL_t                    fDfsPhyerrFilterOffload;
    v_BOOL_t                    gEnableOverLapCh;
+   char                        acsAllowedChnls[CFG_MAX_STR_LEN];
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation
