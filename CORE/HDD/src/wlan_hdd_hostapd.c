@@ -702,7 +702,13 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                    WLAN_CLIENT_CONNECT_EX,
                    pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac.bytes);
 #endif
-
+#ifdef QCA_PKT_PROTO_TRACE
+            /* Peer associated, update into trace buffer */
+            if (pHddCtx->cfg_ini->gEnableDebugLog)
+            {
+               vos_pkt_trace_buf_update("HA:ASSOC");
+            }
+#endif /* QCA_PKT_PROTO_TRACE */
             // Stop AP inactivity timer
             if (pHddApCtx->hdd_ap_inactivity_timer.state == VOS_TIMER_STATE_RUNNING)
             {
@@ -774,6 +780,13 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                hdd_ipa_wlan_evt(pHostapdAdapter, staId, WLAN_CLIENT_DISCONNECT,
                   pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac.bytes);
 #endif
+#ifdef QCA_PKT_PROTO_TRACE
+            /* Peer dis-associated, update into trace buffer */
+            if (pHddCtx->cfg_ini->gEnableDebugLog)
+            {
+               vos_pkt_trace_buf_update("HA:DISASC");
+            }
+#endif /* QCA_PKT_PROTO_TRACE */
             hdd_softap_DeregisterSTA(pHostapdAdapter, staId);
 
             if (0 != (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nAPAutoShutOff)
@@ -1702,6 +1715,23 @@ static iw_softap_setparam(struct net_device *dev,
              }
 
 
+
+#ifdef QCA_PKT_PROTO_TRACE
+         case QCASAP_SET_DEBUG_LOG:
+             {
+                  hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+
+                  hddLog(LOG1, "QCASAP_SET_DEBUG_LOG val %d", set_value);
+                  /* Trace buffer dump only */
+                  if (VOS_PKT_TRAC_DUMP_CMD == set_value)
+                  {
+                      vos_pkt_trace_buf_dump();
+                      break;
+                  }
+                  pHddCtx->cfg_ini->gEnableDebugLog = set_value;
+                  break;
+             }
+#endif /* QCA_PKT_PROTO_TRACE */
 
 #endif /* QCA_WIFI_2_0 */
         default:
@@ -3910,6 +3940,13 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_gtxBWMask" },
+
+#ifdef QCA_PKT_PROTO_TRACE
+    {   QCASAP_SET_DEBUG_LOG,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setDbgLvl" },
+#endif /* QCA_PKT_PROTO_TRACE */
 
 #endif /* QCA_WIFI_2_0 */
 

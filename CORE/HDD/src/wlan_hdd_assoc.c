@@ -817,6 +817,14 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
                 WLAN_STA_DISCONNECT, pHddStaCtx->conn_info.bssId);
 #endif
 
+#ifdef QCA_PKT_PROTO_TRACE
+     /* STA disconnected, update into trace buffer */
+     if (pHddCtx->cfg_ini->gEnableDebugLog)
+     {
+        vos_pkt_trace_buf_update("ST:DISASC");
+     }
+#endif /* QCA_PKT_PROTO_TRACE */
+
     if(pHddStaCtx->conn_info.connState != eConnectionState_Disconnecting)
     {
         INIT_COMPLETION(pAdapter->disconnect_comp_var);
@@ -1312,6 +1320,14 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 #ifdef FEATURE_WLAN_TDLS
         wlan_hdd_tdls_connection_callback(pAdapter);
 #endif
+
+#ifdef QCA_PKT_PROTO_TRACE
+        /* STA Associated, update into trace buffer */
+        if (pHddCtx->cfg_ini->gEnableDebugLog)
+        {
+           vos_pkt_trace_buf_update("ST:ASSOC");
+        }
+#endif /* QCA_PKT_PROTO_TRACE */
         //For reassoc, the station is already registered, all we need is to change the state
         //of the STA in TL.
         //If authentication is required (WPA/WPA2/DWEP), change TL to CONNECTED instead of AUTHENTICATED

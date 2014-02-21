@@ -33,6 +33,7 @@
 #include <adf_os_types.h>
 #include <adf_nbuf.h>
 
+adf_nbuf_trace_update_t  trace_update_cb = NULL;
 
 /*
  * @brief This allocates an nbuf aligns if needed and reserves
@@ -377,6 +378,56 @@ __adf_nbuf_dmamap_set_cb(__adf_os_dma_map_t dmap, void *cb, void *arg)
 {
     return;
 }
+
+void
+__adf_nbuf_reg_trace_cb(adf_nbuf_trace_update_t cb_func_ptr)
+{
+   trace_update_cb = cb_func_ptr;
+   return;
+}
+
+#ifdef QCA_PKT_PROTO_TRACE
+void
+__adf_nbuf_trace_update(adf_nbuf_t buf, char *event_string)
+{
+
+   char string_buf[NBUF_PKT_TRAC_MAX_STRING];
+
+   if ((!trace_update_cb) || (!event_string)) {
+      return;
+   }
+
+   if (!adf_nbuf_trace_get_proto_type(buf)) {
+      return;
+   }
+
+   /* Buffer over flow */
+   if (NBUF_PKT_TRAC_MAX_STRING <
+       (adf_os_str_len(event_string) + NBUF_PKT_TRAC_PROTO_STRING)) {
+      return;
+   }
+
+   adf_os_mem_zero(string_buf,
+                   NBUF_PKT_TRAC_MAX_STRING);
+   adf_os_mem_copy(string_buf,
+                   event_string, adf_os_str_len(event_string));
+   if (NBUF_PKT_TRAC_TYPE_EAPOL &
+       adf_nbuf_trace_get_proto_type(buf)) {
+      adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
+                      "EPL",
+                      NBUF_PKT_TRAC_PROTO_STRING);
+   }
+   else if (NBUF_PKT_TRAC_TYPE_DHCP &
+            adf_nbuf_trace_get_proto_type(buf)) {
+      adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
+                      "DHC",
+                      NBUF_PKT_TRAC_PROTO_STRING);
+   }
+
+   trace_update_cb(string_buf);
+   return;
+}
+#endif /* QCA_PKT_PROTO_TRACE */
 
 EXPORT_SYMBOL(__adf_nbuf_alloc);
 EXPORT_SYMBOL(__adf_nbuf_free);

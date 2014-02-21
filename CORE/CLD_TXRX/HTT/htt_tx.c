@@ -318,6 +318,8 @@ htt_tx_send_std(
         htt_tx_sched(pdev);
         return 0;
     }
+
+    adf_nbuf_trace_update(msdu, "HT:T:");
     if (HTCSendDataPkt(pdev->htc_pdev, msdu, pdev->htc_endpoint, download_len)){
         HTT_TX_NBUF_QUEUE_ADD(pdev, msdu);
     }

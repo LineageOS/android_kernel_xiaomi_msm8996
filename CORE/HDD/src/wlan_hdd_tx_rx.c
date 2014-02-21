@@ -830,6 +830,11 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    v_U8_t STAId = WLAN_MAX_STA_COUNT;
    hdd_station_ctx_t *pHddStaCtx = &pAdapter->sessionCtx.station;
 
+#ifdef QCA_PKT_PROTO_TRACE
+   hdd_context_t *hddCtxt = (hdd_context_t *)pAdapter->pHddCtx;
+   v_U8_t proto_type = 0;
+#endif /* QCA_PKT_PROTO_TRACE */
+
 #ifdef QCA_WIFI_FTM
    if (hdd_get_conparam() == VOS_FTM_MODE) {
        kfree_skb(skb);
@@ -951,11 +956,32 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       skb->queue_mapping = hddLinuxUpToAcMap[up];
    }
 
+#ifdef QCA_PKT_PROTO_TRACE
+   if ((hddCtxt->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_EAPOL) ||
+       (hddCtxt->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_DHCP))
+   {
+      proto_type = vos_pkt_get_proto_type(skb,
+                      hddCtxt->cfg_ini->gEnableDebugLog);
+      if (VOS_PKT_TRAC_TYPE_EAPOL & proto_type)
+      {
+         vos_pkt_trace_buf_update("ST:T:EPL");
+      }
+      else if (VOS_PKT_TRAC_TYPE_DHCP & proto_type)
+      {
+         vos_pkt_trace_buf_update("ST:T:DHC");
+      }
+   }
+#endif /* QCA_PKT_PROTO_TRACE */
+
    /*
     * TODO: Should we stop net queues when txrx returns non-NULL?.
     */
    if (WLANTL_SendSTA_DataFrame((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-				STAId, (adf_nbuf_t) skb) != NULL) {
+				STAId, (adf_nbuf_t) skb
+#ifdef QCA_PKT_PROTO_TRACE
+                               , proto_type
+#endif /* QCA_PKT_PROTO_TRACE */
+                                ) != NULL) {
 	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
 		  "%s: Failed to send packet to txrx for staid:%d",
 		  __func__, STAId);
@@ -1955,6 +1981,9 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
    hdd_context_t *pHddCtx = NULL;
    int rxstat;
    struct sk_buff *skb = NULL;
+#ifdef QCA_PKT_PROTO_TRACE
+   v_U8_t proto_type;
+#endif /* QCA_PKT_PROTO_TRACE */
 
    //Sanity check on inputs
    if ((NULL == vosContext) || (NULL == rxBuf))
@@ -2020,6 +2049,23 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
     }
 #endif /* QCA_WIFI_2_0 */
 #endif
+
+#ifdef QCA_PKT_PROTO_TRACE
+   if ((pHddCtx->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_EAPOL) ||
+       (pHddCtx->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_DHCP))
+   {
+      proto_type = vos_pkt_get_proto_type(skb,
+                        pHddCtx->cfg_ini->gEnableDebugLog);
+      if (VOS_PKT_TRAC_TYPE_EAPOL & proto_type)
+      {
+         vos_pkt_trace_buf_update("ST:R:EPL");
+      }
+      else if (VOS_PKT_TRAC_TYPE_DHCP & proto_type)
+      {
+         vos_pkt_trace_buf_update("ST:R:DHC");
+      }
+   }
+#endif /* QCA_PKT_PROTO_TRACE */
 
    skb->dev = pAdapter->dev;
    skb->protocol = eth_type_trans(skb, skb->dev);

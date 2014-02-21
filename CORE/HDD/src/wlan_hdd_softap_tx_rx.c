@@ -475,6 +475,10 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    v_MACADDR_t *pDestMacAddress;
    v_U8_t STAId;
+#ifdef QCA_PKT_PROTO_TRACE
+   hdd_context_t *hddCtxt = (hdd_context_t *)pAdapter->pHddCtx;
+   v_U8_t proto_type = 0;
+#endif /* QCA_PKT_PROTO_TRACE */
 
    /* Prevent this funtion to be called during SSR since TL context may
       not be reinitialized at this time which will lead crash. */
@@ -556,8 +560,30 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    }
 #endif
 
+#ifdef QCA_PKT_PROTO_TRACE
+   if ((hddCtxt->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_EAPOL) ||
+       (hddCtxt->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_DHCP))
+   {
+      /* Proto Trace enabled */
+      proto_type = vos_pkt_get_proto_type(skb,
+                      hddCtxt->cfg_ini->gEnableDebugLog);
+      if (VOS_PKT_TRAC_TYPE_EAPOL & proto_type)
+      {
+         vos_pkt_trace_buf_update("HA:T:EPL");
+      }
+      else if (VOS_PKT_TRAC_TYPE_DHCP & proto_type)
+      {
+         vos_pkt_trace_buf_update("HA:T:DHC");
+      }
+   }
+#endif /* QCA_PKT_PROTO_TRACE */
+
    if (WLANTL_SendSTA_DataFrame((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                 STAId, skb) != NULL) {
+                                 STAId, skb
+#ifdef QCA_PKT_PROTO_TRACE
+                               , proto_type
+#endif /* QCA_PKT_PROTO_TRACE */
+                                ) != NULL) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                   "%s: Failed to send packet to txrx for staid:%d",
                   __func__, STAId);
@@ -1595,6 +1621,9 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
    int rxstat;
    struct sk_buff *skb = NULL;
    hdd_context_t *pHddCtx = NULL;
+#ifdef QCA_PKT_PROTO_TRACE
+   v_U8_t proto_type;
+#endif /* QCA_PKT_PROTO_TRACE */
 
    //Sanity check on inputs
    if ((NULL == vosContext) || (NULL == rxBuf))
@@ -1635,6 +1664,22 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
    ++pAdapter->stats.rx_packets;
    pAdapter->stats.rx_bytes += skb->len;
 
+#ifdef QCA_PKT_PROTO_TRACE
+   if ((pHddCtx->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_EAPOL) ||
+       (pHddCtx->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_DHCP))
+   {
+      proto_type = vos_pkt_get_proto_type(skb,
+                        pHddCtx->cfg_ini->gEnableDebugLog);
+      if (VOS_PKT_TRAC_TYPE_EAPOL & proto_type)
+      {
+         vos_pkt_trace_buf_update("HA:R:EPL");
+      }
+      else if (VOS_PKT_TRAC_TYPE_DHCP & proto_type)
+      {
+         vos_pkt_trace_buf_update("HA:R:DHC");
+      }
+   }
+#endif /* QCA_PKT_PROTO_TRACE */
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
               "%s: send one packet to kernel \n", __func__);
