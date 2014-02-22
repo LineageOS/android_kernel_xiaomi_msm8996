@@ -305,12 +305,12 @@ htt_tx_send_batch(
 
 
 /* The htt scheduler for queued packets in htt
- * htt when unable to send to HTC because of lack of resource 
- * forms a nbuf queue which is flushed when tx completion event from 
- * target is recieved 
+ * htt when unable to send to HTC because of lack of resource
+ * forms a nbuf queue which is flushed when tx completion event from
+ * target is recieved
  */
 
-void 
+void
 htt_tx_sched(htt_pdev_handle pdev);
 
 
@@ -391,15 +391,15 @@ htt_tx_desc_init(
 
     word0 = (u_int32_t *) htt_tx_desc;
     word1 = word0 + 1;
-    /* 
-     * word2 is frag desc pointer 
-     * word3 is peer_id 
+    /*
+     * word2 is frag desc pointer
+     * word3 is peer_id
      */
     word3 = word0 + 3; // Dword 3
 
     *word0 = 0;
-                
-    HTT_H2T_MSG_TYPE_SET(*word0, HTT_H2T_MSG_TYPE_TX_FRM);    
+
+    HTT_H2T_MSG_TYPE_SET(*word0, HTT_H2T_MSG_TYPE_TX_FRM);
     HTT_TX_DESC_PKT_TYPE_SET(*word0, msdu_info->info.l2_hdr_type);
     HTT_TX_DESC_VDEV_ID_SET(*word0, msdu_info->info.vdev_id);
     HTT_TX_DESC_EXT_TID_SET(*word0, msdu_info->info.ext_tid);

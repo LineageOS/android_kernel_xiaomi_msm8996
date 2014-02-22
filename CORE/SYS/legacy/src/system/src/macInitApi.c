@@ -359,4 +359,3 @@ macSysResetReqFromHDD(void *pMac, tANI_U32 rc)
 {
     macSysResetReq( (tpAniSirGlobal)pMac, rc );
 }
-

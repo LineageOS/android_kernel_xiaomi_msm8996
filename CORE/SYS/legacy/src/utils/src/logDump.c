@@ -41,7 +41,7 @@ logDump.c
  *
  */
 
-/* 
+/*
  * @note : Bytes is to print overflow message information.
  */
 
@@ -362,11 +362,11 @@ static tANI_U32 print_menu(tpAniSirGlobal pMac, char  *p, tANI_U32 startId)
         nItems = pMac->dumpTableEntry[i]->nItems;
 
         for (j = 0; j < nItems; j++, pEntry++) {
-            if (pEntry->description == NULL) 
+            if (pEntry->description == NULL)
                 continue;
 
             if (pEntry->id == 0) {
-                ret = log_sprintf( pMac,p, "---- %s\n", pEntry->description); 
+                ret = log_sprintf( pMac,p, "---- %s\n", pEntry->description);
 
                 if (ret <= 0)
                     break;
@@ -426,7 +426,7 @@ int logRtaiDump( tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2
                continue;
            }
        }
-       
+
        if((nItems > 0) && (pEntry != NULL)) {
            for (i = 0; i < nItems; i++, pEntry++) {
                if( cmd == pEntry->id ) {

@@ -58,7 +58,7 @@ typedef struct _HTC_INIT_INFO {
     void   (*TargetFailure)(void *Instance, A_STATUS Status);
     void   (*TargetSendSuspendComplete)(void *ctx);
 } HTC_INIT_INFO;
-    
+
 /* Struct for HTC layer packet stats*/
 struct ol_ath_htc_stats {
     int     htc_get_pkt_q_fail_count;
@@ -288,8 +288,8 @@ typedef struct _HTC_ENDPOINT_STATS {
   @example:
   @see also: HTCDestroy
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-HTC_HANDLE HTCCreate(void *HifDevice, 
-                     HTC_INIT_INFO *pInfo, 
+HTC_HANDLE HTCCreate(void *HifDevice,
+                     HTC_INIT_INFO *pInfo,
                      adf_os_device_t osdev);
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   @desc: Get the underlying HIF device handle
@@ -431,7 +431,7 @@ A_STATUS    HTCSendPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket);
   @see also: HTCSendPkt
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #ifdef ATH_11AC_TXCOMPACT
-A_STATUS     HTCSendDataPkt(HTC_HANDLE HTCHandle, adf_nbuf_t       netbuf, 
+A_STATUS     HTCSendDataPkt(HTC_HANDLE HTCHandle, adf_nbuf_t       netbuf,
                             int Epid, int ActualLength);
 #else  /*ATH_11AC_TXCOMPACT*/
 A_STATUS    HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket);
@@ -654,7 +654,7 @@ A_STATUS HTCWaitForPendingRecv(HTC_HANDLE   HTCHandle,
 
 /* function to fetch stats from htc layer*/
 struct ol_ath_htc_stats *ieee80211_ioctl_get_htc_stats(HTC_HANDLE HTCHandle);
-    
+
 #ifdef  HIF_USB
 #define HTCReturnReceivePkt(target,p,osbuf)                   \
     A_NETBUF_FREE(osbuf);                                     \

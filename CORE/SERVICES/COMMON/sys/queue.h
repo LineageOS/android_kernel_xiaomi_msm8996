@@ -424,7 +424,7 @@ struct {                                \
 /*
  * Tail queue declarations.
  */
-#define  HEADNAME    
+#define  HEADNAME
 #define  COPY_HEADNAME(head)
 
 #define    TAILQ_HEAD(name, type)                        \

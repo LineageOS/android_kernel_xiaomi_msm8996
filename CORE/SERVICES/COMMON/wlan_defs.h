@@ -38,7 +38,7 @@
 
 /*
  * This file contains WLAN definitions that may be used across both
- * Host and Target software.  
+ * Host and Target software.
  */
 
 #define MAX_SPATIAL_STREAM   3
@@ -98,7 +98,7 @@ typedef enum {
                                  ((mode) == MODE_11NA_HT20) || \
                                  ((mode) == MODE_11NA_HT40) || \
                                  (IS_MODE_VHT(mode)))
-                                 
+
 #define IS_MODE_11B(mode)       ((mode) == MODE_11B)
 #define IS_MODE_11G(mode)       (((mode) == MODE_11G) || \
                                  ((mode) == MODE_11GONLY) || \
@@ -157,10 +157,10 @@ enum {
 typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMI_TLVTAG_STRUC_HAL_REG_CAPABILITIES */
     A_UINT32 eeprom_rd;      //regdomain value specified in EEPROM
-    A_UINT32 eeprom_rd_ext;  //regdomain 
+    A_UINT32 eeprom_rd_ext;  //regdomain
     A_UINT32 regcap1;        // CAP1 capabilities bit map.
     A_UINT32 regcap2;        // REGDMN EEPROM CAP.
-    A_UINT32 wireless_modes; // REGDMN MODE 
+    A_UINT32 wireless_modes; // REGDMN MODE
     A_UINT32 low_2ghz_chan;
     A_UINT32 high_2ghz_chan;
     A_UINT32 low_5ghz_chan;
@@ -178,7 +178,7 @@ typedef enum {
 
 /*
  * Used to update rate-control logic with the status of the tx-completion.
- * In host-based implementation of the rate-control feature, this struture is used to 
+ * In host-based implementation of the rate-control feature, this struture is used to
  * create the payload for HTT message/s from target to host.
  */
 
@@ -292,9 +292,9 @@ typedef struct{
 typedef struct {
    A_UINT32   tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wlan_host_memory_chunk */
    /** id of the request that is passed up in service ready */
-   A_UINT32 req_id; 
+   A_UINT32 req_id;
    /** the physical address the memory chunk */
-   A_UINT32 ptr; 
+   A_UINT32 ptr;
    /** size of the chunk */
    A_UINT32 size;
 } wlan_host_memory_chunk;
@@ -303,7 +303,7 @@ typedef struct {
 #define NUM_UNITS_IS_NUM_PEERS   0x2
 
 /**
- * structure used by FW for requesting host memory 
+ * structure used by FW for requesting host memory
  */
 typedef struct {
     A_UINT32    tlv_header;     /* TLV tag and len; tag equals WMI_TLVTAG_STRUC_wlan_host_mem_req */

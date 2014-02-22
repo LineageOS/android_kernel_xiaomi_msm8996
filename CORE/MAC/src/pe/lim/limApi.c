@@ -580,31 +580,31 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
 
    /* WNI_CFG_MAX_PS_POLL */
 
-   /* Allocate and fill in power save configuration. */
-   pPowerSaveConfig = vos_mem_malloc(sizeof(tSirPowerSaveCfg));
-   if (NULL == pPowerSaveConfig)
-   {
-      PELOGE(limLog(pMac, LOGE, FL("LIM: Cannot allocate memory for power save "
-                                  "configuration"));)
-      return eSIR_FAILURE;
-   }
-       
-   /* This context should be valid if power-save configuration message has been
-    * already dispatched during initialization process. Re-using the present
-    * configuration mask
-    */
    if (!pMac->psOffloadEnabled)
    {
-      vos_mem_copy(pPowerSaveConfig, (tANI_U8 *)&pMac->pmm.gPmmCfg,
+       /* Allocate and fill in power save configuration. */
+       pPowerSaveConfig = vos_mem_malloc(sizeof(tSirPowerSaveCfg));
+       if (NULL == pPowerSaveConfig)
+       {
+           PELOGE(limLog(pMac, LOGE,
+                         FL("LIM: Cannot allocate memory for power save configuration"));)
+           return eSIR_FAILURE;
+       }
+
+       /* This context should be valid if power-save configuration message has
+        * been already dispatched during initialization process. Re-using the
+        * present configuration mask
+        */
+       vos_mem_copy(pPowerSaveConfig, (tANI_U8 *)&pMac->pmm.gPmmCfg,
                    sizeof(tSirPowerSaveCfg));
 
-      /* Note: it is okay to do this since DAL/HAL is alrady started */
-      if ( (pmmSendPowerSaveCfg(pMac, pPowerSaveConfig)) != eSIR_SUCCESS)
-      {
-	      PELOGE(limLog(pMac, LOGE,
+       /* Note: it is okay to do this since DAL/HAL is alrady started */
+       if ( (pmmSendPowerSaveCfg(pMac, pPowerSaveConfig)) != eSIR_SUCCESS)
+       {
+              PELOGE(limLog(pMac, LOGE,
                             FL("LIM: pmmSendPowerSaveCfg() failed "));)
-           return eSIR_FAILURE;
-      }
+              return eSIR_FAILURE;
+       }
    }
 
    /* WNI_CFG_BG_SCAN_CHANNEL_LIST_CHANNEL_LIST */

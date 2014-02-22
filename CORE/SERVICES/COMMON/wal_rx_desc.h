@@ -35,9 +35,9 @@
 #include <a_types.h> /* A_UINT8 */
 #endif
 
-/* 
- * As this header is used by host also, 
- * and host will access target registers by target reg tbl, 
+/*
+ * As this header is used by host also,
+ * and host will access target registers by target reg tbl,
  * so disable direct-reference here for host.
  *
  */

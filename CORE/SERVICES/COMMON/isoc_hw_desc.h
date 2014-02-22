@@ -46,7 +46,7 @@
 * @brief isoc_rx_bd_t - the format of the "RX BD" (rx buffer descriptor)
 */
 
-typedef struct 
+typedef struct
 {
     /* 0x00 */
 #ifdef BIG_ENDIAN_HOST
@@ -97,7 +97,7 @@ typedef struct
     0 - No decryption required */
     A_UINT32 robust_mgmt:1;
 
-    /** 
+    /**
     This bit is only in Virgo2.0/libra it is reserved in Virgo 1.0
     This 1-bit field indicates to DPU Unicast/BC/MC packet
     0 - Unicast packet
@@ -112,20 +112,20 @@ typedef struct
     In virgo2.0/libra it is 3bits for the BC/MC packets */
     A_UINT32 rx_key_id:3;
 
-    /**  (Only used by the DPU)    
+    /**  (Only used by the DPU)
     No encryption/decryption
     0: No action
     1: DPU will not encrypt/decrypt the frame, and discard any encryption
     related settings in the PDU descriptor. */
     A_UINT32 dpu_no_encrypt:1;
 
-    /** 
+    /**
     This is only available in libra/virgo2.0  it is reserved for virgo1.0
     This bit is filled by RXP and modified by ADU
     This bit indicates to ADU/UMA module that the packet requires 802.11n to
     802.3 frame translation. Once ADU/UMA is done with translation they
     overwrite it with 1'b0/1'b1 depending on how the translation resulted
-    When used by ADU 
+    When used by ADU
     0 - No frame translation required
     1 - Frame Translation required
     When used by SW
@@ -135,9 +135,9 @@ typedef struct
     A_UINT32 frame_translate:1;
 
     /** (Only used by the DPU)
-    BD Type 
+    BD Type
     00: 'Generic BD', as indicted above
-    01: De-fragmentation format 
+    01: De-fragmentation format
     10-11: Reserved for future use. */
     A_UINT32 bd_type:2;
 
@@ -173,7 +173,7 @@ typedef struct
 #ifdef QCA_ISOC_PRONTO
     A_UINT32 adu_feedback:7;
     //ToDO: Add meaning of this bit
-    A_UINT32 dpu_magic_packet: 1; 
+    A_UINT32 dpu_magic_packet: 1;
 #else
     A_UINT32 adu_feedback:8;
 #endif //QCA_ISOC_PRONTO
@@ -183,8 +183,8 @@ typedef struct
 
 #else
     A_UINT32 dpu_feedback:8;
-#ifdef QCA_ISOC_PRONTO 
-    A_UINT32 dpu_magic_packet: 1; 
+#ifdef QCA_ISOC_PRONTO
+    A_UINT32 dpu_magic_packet: 1;
     A_UINT32 adu_feedback:7;
 #else
     A_UINT32 adu_feedback:8;
@@ -213,24 +213,24 @@ typedef struct
     /* 0x0c */
 #ifdef BIG_ENDIAN_HOST
 
-    /** The length (in number of bytes) of the MPDU header. 
+    /** The length (in number of bytes) of the MPDU header.
     Limitation: The MPDU header offset + MPDU header length can never go beyond
     the end of the first PDU */
     A_UINT32 mpdu_header_length:8;
 
-    /** The start byte number of the MPDU header. 
+    /** The start byte number of the MPDU header.
     The byte numbering is done in the BE format. Word 0x0, bits [31:24] has
     byte index 0. */
     A_UINT32 mpdu_header_offset:8;
 
-    /** The start byte number of the MPDU data. 
+    /** The start byte number of the MPDU data.
     The byte numbering is done in the BE format. Word 0x0, bits [31:24] has
     byte index 0. Note that this offset can point all the way into the first
     linked PDU.
     Limitation: MPDU DATA OFFSET can not point into the 2nd linked PDU */
     A_UINT32 mpdu_data_offset:9;
 
-    /** The number of PDUs linked to the BD. 
+    /** The number of PDUs linked to the BD.
     This field should always indicate the correct amount. */
     A_UINT32 pdu_count:7;
 #else
@@ -244,13 +244,13 @@ typedef struct
     /* 0x10 */
 #ifdef BIG_ENDIAN_HOST
 
-    /** This is the length (in number of bytes) of the entire MPDU 
+    /** This is the length (in number of bytes) of the entire MPDU
     (header and data). Note that the length does not include FCS field. */
     A_UINT32 mpdu_length:16;
 
     A_UINT32 reserved3: 3;
     //ToDO: Add meaning of this bit
-    A_UINT32 rx_dxe_priority_routing:1; 
+    A_UINT32 rx_dxe_priority_routing:1;
 
     /** Traffic Identifier
     Indicates the traffic class the frame belongs to. For non QoS frames,
@@ -276,7 +276,7 @@ typedef struct
     A_UINT32 sw_flag_discard:1;
     A_UINT32 sw_flag_forward:1;
     A_UINT32 tid:4;
-    A_UINT32 rx_dxe_priority_routing:1; 
+    A_UINT32 rx_dxe_priority_routing:1;
     A_UINT32 reserved3: 3;
     A_UINT32 mpdu_length:16;
 #endif
@@ -401,7 +401,7 @@ typedef struct
 #ifdef BIG_ENDIAN_HOST
     /** The bits from the PMI command as received from the PHY RX. */
     A_UINT32 pmi_cmd24to25:16;
-    
+
     /* 16-bit CSU Checksum value for the fragmented receive frames */
     A_UINT32 csu_checksum:16;
 #else
@@ -626,7 +626,7 @@ typedef enum
 
     ISOC_RX_OPCODE_DROPCUR         = 9, /* not used? */
 
-    ISOC_RX_OPCODE_MAX 
+    ISOC_RX_OPCODE_MAX
 } isoc_rx_opcode;
 
 
@@ -639,7 +639,7 @@ enum {
 /* dpu_feedback defined */
 enum {
     ISOC_DPU_FEEDBACK_MULTI_ERROR = 0,   /* DPU detected multiple errors. Should never occur. */
-    ISOC_DPU_FEEDBACK_BAD_TAG,           /* Tag fields in the BD and associated DPU descriptor did not match. */       
+    ISOC_DPU_FEEDBACK_BAD_TAG,           /* Tag fields in the BD and associated DPU descriptor did not match. */
     ISOC_DPU_FEEDBACK_BAD_BD,            /*  At least one of the following conditions applied:
     * The BD type was not 0 (normal BD) in a TX packet.
     * The BD type was not either 0 or 1 (normal or defrag BD) in an RX packet.
@@ -647,7 +647,7 @@ enum {
     * The MPDU header was not located entirely within the BD.
     * The MPDU Data Offset pointed past the end of the first PDU.
     */
-    ISOC_DPU_FEEDBACK_BAD_TKIP_MIC,     /* The TKIP MIC of a received packet is incorrect. */    
+    ISOC_DPU_FEEDBACK_BAD_TKIP_MIC,     /* The TKIP MIC of a received packet is incorrect. */
     ISOC_DPU_FEEDBACK_BAD_DECRYPT,      /* Decryption of an RX fragment has failed.This error occurs only if none of the following more specific conditions applied. */
     ISOC_DPU_FEEDBACK_ENVELOPE_ONLY,    /* The received protected fragment had exactly sufficient MPDU data for an empty cryptographic envelope of the selected encryption mode. */
     ISOC_DPU_FEEDBACK_ENVELOPE_PART,    /* The received protected fragment had less MPDU data than required for the cryptographic envelope of the selected encryption mode. */
@@ -665,7 +665,7 @@ enum {
 /**
 * @brief isoc_tx_bd_t - the format of the "TX BD" (tx buffer descriptor)
 */
-typedef struct 
+typedef struct
 {
     /* byte offset 0x0 */
 #ifdef BIG_ENDIAN_HOST
@@ -685,13 +685,13 @@ typedef struct
     /** Reserved  */
     A_UINT32 reserved0:2;
 
-    /** Set to '1' to terminate the current AMPDU session. Added based on the 
+    /** Set to '1' to terminate the current AMPDU session. Added based on the
     request for WiFi Display */
     A_UINT32 terminate_ampdu:1;
 
-    /** Bssid index to indicate ADU to use which of the 4 default MAC address 
-    to use while 802.3 to 802.11 translation in case search in ADU UMA table 
-    fails. The default MAC address should be appropriately programmed in the 
+    /** Bssid index to indicate ADU to use which of the 4 default MAC address
+    to use while 802.3 to 802.11 translation in case search in ADU UMA table
+    fails. The default MAC address should be appropriately programmed in the
     uma_tx_default_wmacaddr_u(_1,_2,_3) and uma_tx_default_wmacaddr_l(_1,_2,_3)
      registers */
     A_UINT32 uma_bssid_idx:2;
@@ -708,7 +708,7 @@ typedef struct
 
     /** Enable/Disable CSU on TX direction.
     0: Disable Checksum Unit (CSU) for Transmit.
-    1: Enable 
+    1: Enable
     */
     A_UINT32 csu_tx_enable:1;
 
@@ -777,16 +777,16 @@ typedef struct
 
     /**
     * This bit indicates to ADU/UMA module that the packet requires 802.11n
-    * to 802.3 frame translation. When used by ADU 
+    * to 802.3 frame translation. When used by ADU
     * 0 - No frame translation required
     * 1 - Frame Translation required
     */
     A_UINT32 frame_translate: 1;
 
     /**
-    * BD Type 
+    * BD Type
     * 00: 'Generic BD', as indicted above
-    * 01: De-fragmentation format 
+    * 01: De-fragmentation format
     * 10-11: Reserved for future use.
     */
     A_UINT32 bd_type: 2;
@@ -794,12 +794,12 @@ typedef struct
     A_UINT32 bd_type:               2;
     A_UINT32 frame_translate:       1;
     A_UINT32 dpu_no_encrypt:        1;
-    A_UINT32 fw_tx_complete_intr:   1; 
+    A_UINT32 fw_tx_complete_intr:   1;
     A_UINT32 tx_complete_intr:      1;
     A_UINT32 reserved1:             1;
     A_UINT32 not_unicast:           1;
     A_UINT32 robust_mgmt:           1;
-    
+
     A_UINT32 csu_no_valid_header:1;
     A_UINT32 csu_tl_checksum_generated:1;
     A_UINT32 csu_enable_ip_checksum:1;
@@ -810,7 +810,7 @@ typedef struct
     A_UINT32 uma_bssid_idx:2;
     A_UINT32 terminate_ampdu:1;
     A_UINT32 reserved0:2;
-    
+
     A_UINT32 dpu_signature:         3;
     A_UINT32 dpu_routing_flag:      8;
 #endif
@@ -870,12 +870,12 @@ typedef struct
     */
     A_UINT32 mpdu_header_offset: 8;
 
-    /** 
+    /**
     * The start byte number of the MPDU data.
     * The byte numbering is done in the BE format.
     * Word 0x0, bits [31:24] has byte index 0.
     * Note that this offset can point all the way into the
-    * first linked PDU. 
+    * first linked PDU.
     * Limitation: MPDU DATA OFFSET can not point into the
     * 2nd linked PDU
     */
@@ -898,7 +898,7 @@ typedef struct
 
     /* byte offset 0x10 */
 #ifdef BIG_ENDIAN_HOST
-    /** 
+    /**
     * This covers MPDU header length + MPDU data length.
     * This does not include FCS.
     * For single frame transmission, PSDU size is mpdu_length + 4.
@@ -949,7 +949,7 @@ typedef struct
     */
     A_UINT32 dpu_desc_idx: 8;
 
-    /** 
+    /**
     * The STAid of the RA address, a.k.a. peer ID
     */
     A_UINT32 sta_index: 8;
@@ -971,7 +971,7 @@ typedef struct
     */
     A_UINT32 bd_rate: 2;
 
-    /** 
+    /**
     * Which HW tx queue the frame should go into
     */
     A_UINT32 queue_id: 5;
@@ -1004,11 +1004,11 @@ typedef struct
 
     /* byte offset 0x28 */
 #ifdef BIG_ENDIAN_HOST
-    /** 10 bit value to indicate the start of TCP UDP frame relative to 
+    /** 10 bit value to indicate the start of TCP UDP frame relative to
              * the first IP frame header */
     A_UINT32 csu_tcp_udp_start_offset:10;
 
-    /** 16 bit pseudo header for TCP UDP used by CSU to generate TCP/UDP 
+    /** 16 bit pseudo header for TCP UDP used by CSU to generate TCP/UDP
      * frame checksum */
     A_UINT32 csu_pseudo_header_checksum:16;
 
@@ -1195,4 +1195,3 @@ static inline void
 }
 
 #endif /* _ISOC_HW_DESC__H_ */
-

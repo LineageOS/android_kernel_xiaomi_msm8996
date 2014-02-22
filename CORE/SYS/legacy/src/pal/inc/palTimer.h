@@ -26,16 +26,16 @@
  */
 
 
-/** ------------------------------------------------------------------------- * 
-    ------------------------------------------------------------------------- *  
+/** ------------------------------------------------------------------------- *
+    ------------------------------------------------------------------------- *
 
-  
+
     \file palTimer.h
-  
+
     \brief Define data structure and ptototype for PAL timer.
-  
+
     $Id$... description...
-  
+
    ========================================================================== */
 
 #if !defined( PALTIMER_H__ )
@@ -44,7 +44,7 @@
 
 /*
 PAL TIMER
-  This timer can be used for every module in Windows side. 
+  This timer can be used for every module in Windows side.
   On Linus side, this can only be used by timer for HDD. Not for timers used in rtlib, hence it doesn't replace TX_TIMER
 */
 
@@ -65,8 +65,8 @@ typedef void (*palTimerCallback)(void *);
 #ifdef TIMER_MANAGER
 #define palTimerAlloc(hHdd, phPalTimer, pCallback, pContext) \
               palTimerAlloc_debug(hHdd, phPalTimer, pCallback, pContext, __FILE__, __LINE__)
-eHalStatus palTimerAlloc_debug( tHddHandle hHdd, tPalTimerHandle *phPalTimer, 
-                          palTimerCallback pCallback, void *pContext, char* fileName, v_U32_t lineNum  );              
+eHalStatus palTimerAlloc_debug( tHddHandle hHdd, tPalTimerHandle *phPalTimer,
+                          palTimerCallback pCallback, void *pContext, char* fileName, v_U32_t lineNum  );
 #else
 eHalStatus palTimerAlloc(tHddHandle hHdd, tPalTimerHandle *phPalTimer, palTimerCallback pCallback, void *pContext);
 #endif
@@ -78,8 +78,8 @@ eHalStatus palTimerFree(tHddHandle, tPalTimerHandle);
 //uExpireTime is set so that it is the new interval, in units of microseconds
 eHalStatus palTimerStart(tHddHandle, tPalTimerHandle, tANI_U32 uExpireTime, tANI_BOOLEAN fRestart);
 //palTimerStop will cancel the timer but doesn't guarrantee the callback will not called afterwards
-//For Windows, if the driver is halting, the callback is not called after this function returns. 
-eHalStatus palTimerStop(tHddHandle, tPalTimerHandle); 
+//For Windows, if the driver is halting, the callback is not called after this function returns.
+eHalStatus palTimerStop(tHddHandle, tPalTimerHandle);
 #endif
 
 #endif

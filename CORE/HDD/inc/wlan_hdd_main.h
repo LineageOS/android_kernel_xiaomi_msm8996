@@ -1425,4 +1425,6 @@ void hdd_deinit_batch_scan(hdd_adapter_t *pAdapter);
 
 #endif /*End of FEATURE_WLAN_BATCH_SCAN*/
 
+void wlan_hdd_send_svc_nlink_msg(int type);
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

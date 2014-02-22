@@ -38,37 +38,37 @@ typedef struct S_OL_CTRL_ADDBA_CTX *ol_ctrl_addba_handle;
 
 /**
  * @brief ol_ctrl_addba_attach : Allocate OL ADDBA Context for managing ADDBA Negotiation Process
- * 
+ *
  * @param[in] void
- * 
- * @return ol_txrx_addba_handle 
+ *
+ * @return ol_txrx_addba_handle
  */
 ol_ctrl_addba_handle ol_ctrl_addba_attach(adf_os_device_t osdev,void * ni,A_UINT32 vdev_id,u_int8_t *mac_addr,wmi_unified_t wmi_handle);
 
 /**
  * @brief ol_ctrl_addba_detach : Free OL ADDBA Context and cleanup
- * 
- * @param[in] 
- * 
- * @return void 
+ *
+ * @param[in]
+ *
+ * @return void
  */
 void ol_ctrl_addba_detach(ol_ctrl_addba_handle ol_addba_handle);
 
 /**
- * @brief ol_ctrl_addba_init : Initialize aggr state for the Tx / Rx 
- * 
+ * @brief ol_ctrl_addba_init : Initialize aggr state for the Tx / Rx
+ *
 * @param ni      : the Node for which the aggr params need to be initialized
 
-* @return void 
+* @return void
 */
 void ol_ctrl_addba_init(ol_ctrl_addba_handle ol_addba_handle,adf_os_device_t osdev,void *ni,A_UINT32 vdev_id,u_int8_t *mac_addr,wmi_unified_t wmi_handle);
 
 /**
  * @brief ol_addba_cleanup : DeInitialize aggr state for the Tx / Rx
-* 
+*
 * @param ni      : the Node for which the aggr params need to be De-initialized
-* 
-* @return void 
+*
+* @return void
 */
 void ol_ctrl_addba_cleanup(ol_ctrl_addba_handle ol_addba_handle);
 
@@ -76,13 +76,13 @@ void ol_ctrl_addba_cleanup(ol_ctrl_addba_handle ol_addba_handle);
  * @brief ol_ctrl_addba_request_setup : (Initiator Role) umac needs to call this API to get
  * the Block ack request parameters and use them to construct Addba request.
  *Setsup ADDBA Request Parameters and Start ADDBA Timer for Retry/Cancel ADDBA negotiation.
- * 
+ *
 * @param tidno      : the TID number for this ADDBA request
 * @param baparamset : the data structure for lmac to fill in ADDBA request info
 * @param batimeout  : the pointer for lmac to fill in ADDBA timeout
 * @param basequencectrl : the data structure for lmac to fill in frame sequence control info
-* @param buffersize : BAW(block ack window size) for transmit AMPDU. 
-* @return void 
+* @param buffersize : BAW(block ack window size) for transmit AMPDU.
+* @return void
 */
 void ol_ctrl_addba_request_setup(ol_ctrl_addba_handle ol_addba_handle,u_int8_t tidno,
                        struct ieee80211_ba_parameterset *baparamset,
@@ -92,14 +92,14 @@ void ol_ctrl_addba_request_setup(ol_ctrl_addba_handle ol_addba_handle,u_int8_t t
 
 /**
  * @brief ol_ctrl_addba_response_setup : (Responder Role)Setup ADDBA Response Parameters
- * 
+ *
 * @param tidno      : the TID number for this ADDBA response
 * @param dialogtoken: The dialog token for the response (filled by lmac)
 * @param statuscode : The status code for this response (filled by lmac)
 * @param baparamset : The BA parameters for this response (filled by lmac)
 * @param batimeout  : The BA timeout for this response (filled by lmac)
- * 
- * @return void 
+ *
+ * @return void
  */
 void ol_ctrl_addba_response_setup(ol_ctrl_addba_handle ol_addba_handle,u_int8_t tidno, u_int8_t *dialogtoken,
                        u_int16_t *statuscode,
@@ -110,7 +110,7 @@ void ol_ctrl_addba_response_setup(ol_ctrl_addba_handle ol_addba_handle,u_int8_t 
  * @brief ol_ctrl_addba_request_process : (Responder Role)Process ADDBA Request From Peer
 * save response information in per-TID data structure
 * umac needs to call this function when it receives addba request.
- * 
+ *
  * @param dialogtoken : the dialog token saved for future ADDBA response
  * @param baparamset  : pointer to the BA parameters from  received the ADDBA request
  * @param batimeout   : the BA timeout value from ADDBA request
@@ -126,12 +126,12 @@ int  ol_ctrl_addba_request_process(ol_ctrl_addba_handle ol_addba_handle,u_int8_t
 /**
  * @brief ol_ctrl_addba_response_process : (Initiator Role) Process ADDBA Response and store Negotiated ADDBA Params.
  *                                                       Send WMI Command to FW to Enable Aggregation for TID if all ok.
- * 
+ *
 * @param statuscode : the status code from the received ADDBA response
 * @param baparamset : pointer to the BA parameter structure from the received  ADDBA response
 * @param batimeout  : the BA timeout value from the received ADDBA response
- * 
- * @return void 
+ *
+ * @return void
  */
 void  ol_ctrl_addba_response_process(ol_ctrl_addba_handle ol_addba_handle,u_int16_t statuscode,
                        struct ieee80211_ba_parameterset *baparamset,
@@ -139,28 +139,28 @@ void  ol_ctrl_addba_response_process(ol_ctrl_addba_handle ol_addba_handle,u_int1
 
 /**
  * @brief ol_ctrl_addba_clear : Clear ADD BA Session for  all the TID's in Session
- * 
- * @param[in] 
- * 
- * @return void 
+ *
+ * @param[in]
+ *
+ * @return void
  */
 void  ol_ctrl_addba_clear(ol_ctrl_addba_handle ol_addba_handle);
 
 /**
  * @brief ol_ctrl_delba_process : (Responder Role)Process DELBA Request from Peer TID
  *umac needs to call this function when it receives DELBA.
- * 
+ *
  * @param delbaparamset : point to the DELBA parameter structure
  * @param reasoncode	: reason code from this DELBA
- * 
- * @return void 
+ *
+ * @return void
  */
 void  ol_ctrl_delba_process(ol_ctrl_addba_handle ol_addba_handle,struct ieee80211_delba_parameterset *delbaparamset,
                         u_int16_t reasoncode);
 
 /**
  * @brief ol_ctrl_addba_get_status : Returns Status of ADDBA Negotiation with Peer for  TID
- * 
+ *
  * @param tidno : the TID number
  * @return ADDBA status code
  */

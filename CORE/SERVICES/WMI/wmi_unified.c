@@ -842,7 +842,7 @@ wmi_unified_connect_htc_service(struct wmi_unified * wmi_handle, void *htc_handl
     }
     wmi_handle->wmi_endpoint_id = response.Endpoint;
     wmi_handle->htc_handle = htc_handle;
-    
+
     return EOK;
 }
 

@@ -149,7 +149,7 @@ ol_txrx_peer_attach(
 /**
 * @brief Parameter type to be input to ol_txrx_peer_update
 * @details
-*  This struct is union,to be used to specify various informations to update 
+*  This struct is union,to be used to specify various informations to update
 *   txrx peer object.
 */
 typedef union  {
@@ -331,7 +331,7 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle data_vdev);
  *  suspend all WLAN traffic, e.g. to allow another device such as bluetooth
  *  to temporarily have exclusive access to shared RF chain resources.
  *  This function suspends tx traffic within the specified physical device.
- * 
+ *
  * @param data_pdev - the physical device being paused
  */
 #if defined(CONFIG_HL_SUPPORT)
@@ -520,8 +520,8 @@ ol_txrx_mgmt_tx_cb_set(
  * @param vdev - virtual device transmitting the frame
  * @param tx_mgmt_frm - management frame to transmit
  * @param type - the type of managment frame (determines what callback to use)
- * @param use_6mbps - specify whether management frame to transmit should use 6 Mbps 
- *                    rather than 1 Mbps min rate(for 5GHz band or P2P) 
+ * @param use_6mbps - specify whether management frame to transmit should use 6 Mbps
+ *                    rather than 1 Mbps min rate(for 5GHz band or P2P)
  * @return
  *      0 -> the frame is accepted for transmission, -OR-
  *      1 -> the frame was not accepted
@@ -545,7 +545,7 @@ ol_txrx_mgmt_send(
  *  object that only receives monitor mode packets OR a point to a a vdev
  *  object that also receives non-monitor traffic. In the second case the
  *  OS stack is responsible for delivering the two streams using approprate
- *  OS APIs 
+ *  OS APIs
  *
  * @param pdev - the data physical device object
  * @param vdev - the data virtual device object to deliver monitor mode
@@ -560,10 +560,10 @@ ol_txrx_set_monitor_mode_vap(
     ol_txrx_vdev_handle vdev);
 
 /**
- * @brief Setup the current operating channel of the device 
+ * @brief Setup the current operating channel of the device
  * @details
  *  Mainly used when populating monitor mode status that requires the
- *  current operating channel 
+ *  current operating channel
  *
  * @param pdev - the data physical device object
  * @param chan_mhz - the channel frequency (mhz)
@@ -603,8 +603,8 @@ ol_txrx_discard_tx_pending(
 /**
  * @brief set the safemode of the device
  * @details
- *  This flag is used to bypass the encrypt and decrypt processes when send and 
- *  receive packets. It works like open AUTH mode, HW will treate all packets 
+ *  This flag is used to bypass the encrypt and decrypt processes when send and
+ *  receive packets. It works like open AUTH mode, HW will treate all packets
  *  as non-encrypt frames because no key installed. For rx fragmented frames,
  *  it bypasses all the rx defragmentaion.
  *
@@ -612,7 +612,7 @@ ol_txrx_discard_tx_pending(
  * @param val - the safemode state
  * @return - void
  */
-void 
+void
 ol_txrx_set_safemode(
     ol_txrx_vdev_handle vdev,
     u_int32_t val);
@@ -630,7 +630,7 @@ ol_txrx_set_safemode(
  */
 void
 ol_txrx_set_privacy_filters(
-    ol_txrx_vdev_handle vdev, 
+    ol_txrx_vdev_handle vdev,
 	void *filter,
     u_int32_t num);
 
@@ -639,7 +639,7 @@ ol_txrx_set_privacy_filters(
  * @details
  *  Rx related. When set this flag, all the unencrypted frames
  *  received over a secure connection will be discarded
- * 
+ *
  * @param vdev - the data virtual device object
  * @param val - flag
  * @return - void

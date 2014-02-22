@@ -56,4 +56,3 @@
       }
   #define wmi_tlv_os_mem_free   adf_os_mem_free
 #endif
-

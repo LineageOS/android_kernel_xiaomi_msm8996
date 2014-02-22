@@ -110,7 +110,7 @@ extern void __hdd_wlan_exit(void);
 #define HIF_DMODE_MASK              (HIF_BYTE_BASIS | HIF_BLOCK_BASIS)
 
 /*
- *     amode - This indicates if the address has to be incremented on AR6000 
+ *     amode - This indicates if the address has to be incremented on AR6000
  *             after every read/write operation (HIF?FIXED_ADDRESS/
  *             HIF_INCREMENTAL_ADDRESS).
  */
@@ -561,7 +561,7 @@ inline int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *da
  *   The LIKELY interface works just like A_TARGET_ACCESS_BEGIN,
  *   except that it may return before the Target is actually
  *   available. It's a vague indication that some Target accesses
- *   are expected "soon".  When the LIKELY API is used, 
+ *   are expected "soon".  When the LIKELY API is used,
  *   A_TARGET_ACCESS_BEGIN must be used before any access.
  *
  *   There are several uses for the LIKELY/UNLIKELY API:
@@ -713,7 +713,7 @@ extern void HIFTargetWriteChecked(A_target_id_t targid, A_UINT32 offset, A_UINT3
 #endif
 
 #endif /* CONFIG_ATH_PCIE_MAX_PERF */
-    
+
 /*Macro to increment the HIF layer packet error count*/
 #define OL_ATH_HIF_PKT_ERROR_COUNT_INCR(_hif_state,_hif_ecode);\
 {\

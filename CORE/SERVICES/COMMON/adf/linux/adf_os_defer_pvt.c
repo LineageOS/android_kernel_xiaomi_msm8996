@@ -33,7 +33,7 @@
 
 #include "adf_os_defer_pvt.h"
 
-void 
+void
 __adf_os_defer_func(struct work_struct *work)
 {
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,19)
@@ -49,7 +49,7 @@ __adf_os_defer_func(struct work_struct *work)
 #endif
 }
 
-void 
+void
 __adf_os_defer_delayed_func(struct work_struct *dwork)
 {
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,19)
@@ -67,4 +67,3 @@ __adf_os_defer_delayed_func(struct work_struct *dwork)
 }
 EXPORT_SYMBOL(__adf_os_defer_func);
 EXPORT_SYMBOL(__adf_os_defer_delayed_func);
-

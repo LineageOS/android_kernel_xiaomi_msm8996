@@ -105,8 +105,8 @@ __adf_os_mdelay(a_uint32_t msecs)
 
 /**
  * @brief Check if _a is later than _b.
- */ 
-static inline a_bool_t 
+ */
+static inline a_bool_t
 __adf_os_time_after(__adf_time_t a, __adf_time_t b)
 {
     return ((long)(b) - (long)(a) < 0);
@@ -114,7 +114,7 @@ __adf_os_time_after(__adf_time_t a, __adf_time_t b)
 
 /**
  * @brief Check if _a is prior to _b.
- */ 
+ */
 static inline a_bool_t
 __adf_os_time_before(__adf_time_t a, __adf_time_t b)
 {
@@ -123,7 +123,7 @@ __adf_os_time_before(__adf_time_t a, __adf_time_t b)
 
 /**
  * @brief Check if _a atleast as recent as _b, if not later.
- */ 
+ */
 static inline a_bool_t
 __adf_os_time_after_eq(__adf_time_t a, __adf_time_t b)
 {

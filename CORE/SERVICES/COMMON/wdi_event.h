@@ -30,7 +30,7 @@
 
 #include "athdefs.h"
 #include "adf_nbuf.h"
-#define WDI_EVENT_BASE 0x100 	 /* Event starting number */
+#define WDI_EVENT_BASE 0x100	 /* Event starting number */
 
 enum WDI_EVENT {
 	WDI_EVENT_TX_STATUS = WDI_EVENT_BASE,

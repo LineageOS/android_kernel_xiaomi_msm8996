@@ -589,4 +589,3 @@ void    remque(void *a);
 #endif /* _KERNEL */
 
 #endif /* !_SYS_QUEUE_H_ */
-

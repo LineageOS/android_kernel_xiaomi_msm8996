@@ -45,17 +45,17 @@ typedef struct __adf_os_linux_spinlock {
 } adf_os_linux_spinlock_t;
 
 /* define for flag */
-#define ADF_OS_LINUX_UNLOCK_BH 	1
+#define ADF_OS_LINUX_UNLOCK_BH	1
 
 typedef adf_os_linux_spinlock_t   __adf_os_spinlock_t;
 typedef struct semaphore __adf_os_mutex_t;
 
-/** 
+/**
  * @brief Initialize the mutex
- * 
+ *
  * @param mutex
- * 
- * @return 
+ *
+ * @return
  */
 static inline a_status_t
 __adf_os_init_mutex(struct semaphore *m)
@@ -85,7 +85,7 @@ __adf_os_mutex_release(adf_os_device_t osdev, struct semaphore *m)
     up(m);
 }
 
-static inline a_status_t 
+static inline a_status_t
 __adf_os_spinlock_init(__adf_os_spinlock_t *lock)
 {
     spin_lock_init(&lock->spinlock);
@@ -107,9 +107,9 @@ __adf_os_spin_lock(__adf_os_spinlock_t *lock)
     spin_lock(&lock->spinlock);
 }
 
-/** 
+/**
  * @brief Unlock the spinlock and enables the Preemption
- * 
+ *
  * @param lock
  * @param flags
  */
@@ -141,9 +141,9 @@ __adf_os_spin_unlock_irqrestore(__adf_os_spinlock_t *lock)
     spin_unlock_irqrestore(&lock->spinlock, lock->_flags);
 }
 
-/** 
+/**
  * @brief Acquire the spinlock and disable bottom halves
- * 
+ *
  * @param lock
  */
 
@@ -157,12 +157,12 @@ static inline void
 __adf_os_spin_lock_bh(__adf_os_spinlock_t *lock)
 {
 	if (likely(irqs_disabled() || in_softirq())) {
-		spin_lock(&lock->spinlock);	
+		spin_lock(&lock->spinlock);
 	} else {
 		spin_lock_bh(&lock->spinlock);
 		lock->flags |= ADF_OS_LINUX_UNLOCK_BH;
-	}	
-   
+	}
+
 }
 static inline void
 __adf_os_spin_unlock_bh(__adf_os_spinlock_t *lock)
@@ -171,13 +171,13 @@ __adf_os_spin_unlock_bh(__adf_os_spinlock_t *lock)
 		lock->flags &= ~ADF_OS_LINUX_UNLOCK_BH;
 		spin_unlock_bh(&lock->spinlock);
 	} else
-		spin_unlock(&lock->spinlock);	
+		spin_unlock(&lock->spinlock);
 }
 
 static inline a_bool_t
-__adf_os_spinlock_irq_exec(adf_os_handle_t  hdl, 
-                           __adf_os_spinlock_t      *lock, 
-                           adf_os_irqlocked_func_t func, 
+__adf_os_spinlock_irq_exec(adf_os_handle_t  hdl,
+                           __adf_os_spinlock_t      *lock,
+                           adf_os_irqlocked_func_t func,
                            void            *arg)
 {
     unsigned long flags;
