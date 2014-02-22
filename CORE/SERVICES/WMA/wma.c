@@ -12014,6 +12014,15 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 			pno_in_progress ? "enabled" : "disabled");
 	}
 
+	/* Configure roaming scan better AP based wakeup */
+	ret = wma_add_wow_wakeup_event(wma, WOW_BETTER_AP_EVENT,
+				       TRUE);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to configure roaming scan better AP based wakeup");
+	} else {
+		WMA_LOGD("Roaming scan better AP based wakeup is enabled in fw");
+	}
+
 	/* WOW is enabled in pcie suspend callback */
 	wma->wow.wow_enable = TRUE;
 	wma->wow.wow_enable_cmd_sent = FALSE;
