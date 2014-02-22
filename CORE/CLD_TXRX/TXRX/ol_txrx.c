@@ -63,6 +63,7 @@
 #include <ol_rx_pn.h>              /* ol_rx_pn_check, etc. */
 #include <ol_rx_fwd.h>             /* ol_rx_fwd_check, etc. */
 #include <ol_rx_reorder_timeout.h> /* OL_RX_REORDER_TIMEOUT_INIT, etc. */
+#include <ol_rx_reorder.h>
 #include <ol_tx_send.h>            /* ol_tx_discard_target_frms */
 #include <ol_tx_desc.h>            /* ol_tx_desc_frame_free */
 #include <ol_tx_queue.h>
@@ -1311,6 +1312,7 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
 {
     struct ol_txrx_vdev_t *vdev;
     struct ol_txrx_pdev_t *pdev;
+    int i;
 
     /* preconditions */
     TXRX_ASSERT2(peer);
@@ -1395,7 +1397,6 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
         #if defined(CONFIG_HL_SUPPORT)
         if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
             struct ol_tx_frms_queue_t *txq;
-            int i;
 
             for (i = 0; i < OL_TX_NUM_TIDS; i++) {
                 txq = &peer->txqs[i];
@@ -1403,6 +1404,23 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
             }
         }
         #endif /* defined(CONFIG_HL_SUPPORT) */
+        /*
+         * 'array' is allocated in addba handler and is supposed to be freed
+         * in delba handler. There is the case (for example, in SSR) where
+         * delba handler is not called. Because array points to address of
+         * 'base' by default and is reallocated in addba handler later, only
+         * free the memory when the array does not point to base.
+         */
+        for (i = 0; i < OL_TXRX_NUM_EXT_TIDS; i++) {
+            if (peer->tids_rx_reorder[i].array !=
+                &peer->tids_rx_reorder[i].base) {
+                    TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
+                               "%s, delete reorder array, tid:%d\n",
+                               __func__, i);
+                    adf_os_mem_free(peer->tids_rx_reorder[i].array);
+                    ol_rx_reorder_init(&peer->tids_rx_reorder[i], (u_int8_t)i);
+            }
+        }
 
         adf_os_mem_free(peer);
     } else {
