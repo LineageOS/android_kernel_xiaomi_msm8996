@@ -13865,6 +13865,7 @@ VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
 
 	/* Get the vdev id */
 	if (pRateUpdateParams->dev_mode == VOS_STA_SAP_MODE ||
+		pRateUpdateParams->dev_mode == VOS_IBSS_MODE ||
 		pRateUpdateParams->dev_mode == VOS_P2P_GO_MODE)
 	{
 		pdev = wma_find_vdev_by_addr(wma, pRateUpdateParams->bssid, &vdev_id);

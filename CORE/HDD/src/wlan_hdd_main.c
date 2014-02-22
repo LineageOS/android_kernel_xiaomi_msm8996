@@ -4041,8 +4041,10 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
           rateUpdateParams->reliableMcastDataRateTxFlag = txFlags;
           rateUpdateParams->dev_mode = pAdapter->device_mode;
           rateUpdateParams->bcastDataRate = -1;
-
-          status = sme_SendRateUpdateInd((tHalHandle)(pHddCtx->hHal), rateUpdateParams);
+          memcpy(rateUpdateParams->bssid, pAdapter->macAddressCurrent.bytes,
+             sizeof(rateUpdateParams->bssid));
+          status = sme_SendRateUpdateInd((tHalHandle)(pHddCtx->hHal),
+                      rateUpdateParams);
        }
 
 
