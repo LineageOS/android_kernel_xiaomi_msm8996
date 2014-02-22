@@ -5857,31 +5857,46 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 		goto send_resp;
 	}
 
-        peer = ol_txrx_find_peer_by_addr(pdev, intr[vdev_id].bssid, &peer_id);
+	peer = ol_txrx_find_peer_by_addr(pdev, intr[vdev_id].bssid, &peer_id);
 
-        if (peer && (peer->state == ol_txrx_peer_state_conn ||
-                     peer->state == ol_txrx_peer_state_auth)) {
-                /* Trying to change channel while connected should not invoke VDEV_START.
-                 * Instead, use start scan command in passive mode to park station
-                 * on that channel
-                 */
-                WMA_LOGI("%s: calling set_scan, state 0x%x", __func__, wma->roam_preauth_scan_state);
-                if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_NONE) {
-                    status = wma_roam_preauth_chan_set(wma, params, vdev_id);
-                    /* response will be asynchronous */
-                    return;
-                } else if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_REQUESTED ||
-                               wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_ON_CHAN) {
-                    status = wma_roam_preauth_chan_cancel(wma, params, vdev_id);
-                    /* response will be asynchronous */
-                    return;
-                } else if (wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_CHAN_COMPLETED) {
-                        /* Already back on home channel. Complete the request */
-                        wma->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
-                        status = VOS_STATUS_SUCCESS;
-                }
-                goto send_resp;
-        }
+	/*
+	 * Roam offload feature is currently supported
+	 * only in STA mode. Other modes still require
+	 * to issue a Vdev Start/Vdev Restart for
+	 * channel change.
+	 */
+	if ((wma->interfaces[vdev_id].type == WMI_VDEV_TYPE_STA) &&
+		(wma->interfaces[vdev_id].sub_type == 0)) {
+
+		if (peer && (peer->state == ol_txrx_peer_state_conn ||
+			peer->state == ol_txrx_peer_state_auth)) {
+			/* Trying to change channel while connected
+			 * should not invoke VDEV_START.
+			 * Instead, use start scan command in passive
+			 * mode to park station on that channel
+			 */
+			WMA_LOGI("%s: calling set_scan, state 0x%x",
+						__func__, wma->roam_preauth_scan_state);
+			if (wma->roam_preauth_scan_state ==
+				WMA_ROAM_PREAUTH_CHAN_NONE) {
+				status = wma_roam_preauth_chan_set(wma, params, vdev_id);
+				/* response will be asynchronous */
+				return;
+			} else if (wma->roam_preauth_scan_state ==
+				WMA_ROAM_PREAUTH_CHAN_REQUESTED ||
+				wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_ON_CHAN) {
+				status = wma_roam_preauth_chan_cancel(wma, params, vdev_id);
+				/* response will be asynchronous */
+				return;
+			} else if (wma->roam_preauth_scan_state ==
+				WMA_ROAM_PREAUTH_CHAN_COMPLETED) {
+				/* Already back on home channel. Complete the request */
+				wma->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
+				status = VOS_STATUS_SUCCESS;
+			}
+			goto send_resp;
+		}
+	}
         vos_mem_zero(&req, sizeof(req));
         req.vdev_id = vdev_id;
 	msg = wma_fill_vdev_req(wma, req.vdev_id, WDA_CHNL_SWITCH_REQ,
@@ -15250,6 +15265,9 @@ static int wma_nlo_match_evt_handler(void *handle, u_int8_t *event,
 	if (node)
 		node->nlo_match_evt_received = TRUE;
 
+	vos_wake_lock_timeout_acquire(&wma->pno_wake_lock,
+				      WMA_PNO_WAKE_LOCK_TIMEOUT);
+
 	return 0;
 }
 
@@ -15263,7 +15281,6 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 			(WMI_NLO_SCAN_COMPLETE_EVENTID_param_tlvs *) event;
 	tSirScanOffloadEvent *scan_event;
 	struct wma_txrx_node *node;
-	VOS_STATUS status;
 
 	if (!param_buf) {
 		WMA_LOGE("Invalid NLO scan comp event buffer");
@@ -15283,10 +15300,6 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 		nlo_event->vdev_id);
 		goto skip_pno_cmp_ind;
 	}
-	/* FW need explict stop to really stop PNO operation */
-	status = wma_pno_stop(wma, nlo_event->vdev_id);
-	if (status)
-		WMA_LOGE("Failed to stop PNO scan");
 
 	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc(
 					      sizeof(tSirScanOffloadEvent));

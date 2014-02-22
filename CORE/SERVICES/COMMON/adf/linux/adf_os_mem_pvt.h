@@ -163,7 +163,7 @@ __adf_os_mem_move(void *dst, const void *src, size_t size)
  */
 static inline a_int32_t
 __adf_os_str_cmp(const char *str1, const char *str2)
-{   
+{
     return strcmp(str1, str2);
 }
 
@@ -178,7 +178,7 @@ __adf_os_str_cmp(const char *str1, const char *str2)
  */
 static inline char *
 __adf_os_str_ncopy(char *dest, const char *src, a_uint32_t bytes)
-{   
+{
     return strncpy(dest, src, bytes);
 }
 
@@ -191,7 +191,7 @@ __adf_os_str_ncopy(char *dest, const char *src, a_uint32_t bytes)
  */
 static inline adf_os_size_t
 __adf_os_str_len(const char *str)
-{   
+{
     return strlen(str);
 }
 

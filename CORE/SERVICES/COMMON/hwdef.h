@@ -39,8 +39,8 @@ typedef enum {
     ANTENNA_DUMMY_MAX
 } ANTENNA_CONTROL;
 
-/* 
- * Number of (OEM-defined) functions using GPIO pins currently defined 
+/*
+ * Number of (OEM-defined) functions using GPIO pins currently defined
  *
  * Function 0: Link/Power LED
  * Function 1: Network/Activity LED
@@ -72,6 +72,6 @@ static INLINE int32_t cmpxchg(int32_t *_patomic_arg, int32_t _comparand, int32_t
 }
 
 
-#endif 
+#endif
 
 #endif

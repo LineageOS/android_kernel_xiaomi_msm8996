@@ -68,13 +68,13 @@ static inline VOS_STATUS WMA_HALDumpCmdReq(tpAniSirGlobal   pMac, tANI_U32  cmd,
 	return VOS_STATUS_SUCCESS;
 }
 
-static inline void WMA_TrafficStatsTimerActivate(v_BOOL_t activate) 
+static inline void WMA_TrafficStatsTimerActivate(v_BOOL_t activate)
 {
 	return;
 }
 
 static inline VOS_STATUS WMA_GetWcnssWlanReportedVersion(v_PVOID_t pvosGCtx,
-		tSirVersionType *pVersion) 
+		tSirVersionType *pVersion)
 {
 	return VOS_STATUS_SUCCESS;
 }
@@ -89,4 +89,3 @@ static inline void WMA_UpdateRssiBmps(v_PVOID_t pvosGCtx,
 }
 
 #endif
-

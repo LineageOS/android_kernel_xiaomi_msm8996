@@ -142,7 +142,7 @@ struct __adf_device  {
     struct device          *dev;
     __adf_os_resource_t    res;
     __adf_os_intr          func;/*Interrupt handler*/
-}; 
+};
 
 typedef struct __adf_device *__adf_os_device_t;
 
@@ -152,7 +152,7 @@ typedef uint8_t __iomem * __adf_os_iomem_t;
 
 typedef struct __adf_os_segment{
     dma_addr_t  daddr;
-    uint32_t    len; 
+    uint32_t    len;
 }__adf_os_segment_t;
 
 struct __adf_os_dma_map{
@@ -166,7 +166,7 @@ typedef uint32_t  ath_dma_addr_t;
 typedef uint8_t           __a_uint8_t;
 typedef int8_t            __a_int8_t;
 typedef uint16_t          __a_uint16_t;
-typedef int16_t           __a_int16_t; 
+typedef int16_t           __a_int16_t;
 typedef uint32_t          __a_uint32_t;
 typedef int32_t           __a_int32_t;
 typedef uint64_t          __a_uint64_t;
@@ -181,7 +181,7 @@ enum __adf_net_wireless_evcode{
     __ADF_IEEE80211_SCAN = SIOCGIWSCAN,
     __ADF_IEEE80211_REPLAY = IWEVCUSTOM,
     __ADF_IEEE80211_MICHAEL = IWEVCUSTOM,
-    __ADF_IEEE80211_REJOIN = IWEVCUSTOM, 
+    __ADF_IEEE80211_REJOIN = IWEVCUSTOM,
     __ADF_CUSTOM_PUSH_BUTTON = IWEVCUSTOM,
 };
 

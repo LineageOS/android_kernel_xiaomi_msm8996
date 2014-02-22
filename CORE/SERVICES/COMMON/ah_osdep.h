@@ -119,7 +119,7 @@ typedef u_int32_t os_atomic_t;
 
 
 
-/* 
+/*
 
  * Supported Bus types
 
@@ -216,7 +216,7 @@ struct hal_reg_parm {
 
     u_int16_t            diversityControl;                // Enable/disable antenna diversity
 
-    u_int16_t            antennaSwitchSwap; 
+    u_int16_t            antennaSwitchSwap;
 
     u_int32_t            forceBias;
 
@@ -224,7 +224,7 @@ struct hal_reg_parm {
 
     int                  calInFlash;
 
-#ifdef ATH_SUPPORT_TxBF         
+#ifdef ATH_SUPPORT_TxBF
 
     u_int8_t             CVTimeOut;
 
@@ -464,4 +464,3 @@ extern void ath_hal_get_chip_revisionid(u_int32_t *);
 #endif
 
 #endif /* _ATH_AH_OSDEP_H_ */
-

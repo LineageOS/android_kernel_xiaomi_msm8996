@@ -256,9 +256,14 @@ vos_sched_open
   spin_lock_init(&pSchedContext->TlshimRxQLock);
   spin_lock_init(&pSchedContext->VosTlshimPktFreeQLock);
   INIT_LIST_HEAD(&pSchedContext->tlshimRxQueue);
+  spin_lock_bh(&pSchedContext->VosTlshimPktFreeQLock);
   INIT_LIST_HEAD(&pSchedContext->VosTlshimPktFreeQ);
   if (vos_alloc_tlshim_pkt_freeq(pSchedContext) !=  VOS_STATUS_SUCCESS)
+  {
+       spin_unlock_bh(&pSchedContext->VosTlshimPktFreeQLock);
        return VOS_STATUS_E_FAILURE;
+  }
+  spin_unlock_bh(&pSchedContext->VosTlshimPktFreeQLock);
   register_hotcpu_notifier(&vos_cpu_hotplug_notifier);
   pSchedContext->cpuHotPlugNotifier = &vos_cpu_hotplug_notifier;
 #endif

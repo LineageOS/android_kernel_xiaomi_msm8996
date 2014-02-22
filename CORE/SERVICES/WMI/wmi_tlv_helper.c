@@ -1006,4 +1006,3 @@ wmi_cmp_and_set_abi_version(int num_whitelist, wmi_whitelist_version_info *versi
         return 0; /* Compatible */
     }
 }
-

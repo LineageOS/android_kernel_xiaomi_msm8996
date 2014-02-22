@@ -31,7 +31,7 @@
 
 
 
-/** 
+/**
  * @brief The basic data types
  */
 typedef __a_uint8_t     a_uint8_t; /**< 1 Byte */
@@ -51,12 +51,12 @@ enum a_bool {
 typedef a_uint8_t   a_bool_t;/**< 1 Byte */
 
 
-/** 
+/**
  * @brief Generic status for the API's
  */
 enum {
     A_STATUS_OK = 0,
-    A_STATUS_FAILED, 
+    A_STATUS_FAILED,
     A_STATUS_ENOENT,
     A_STATUS_ENOMEM,
     A_STATUS_EINVAL,

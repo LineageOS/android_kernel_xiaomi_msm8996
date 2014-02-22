@@ -331,7 +331,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       {
          case SYS_MSG_ID_MC_START:
          {
-            /* Handling for this message is not needed now so adding 
+            /* Handling for this message is not needed now so adding
              *debug print and VOS_ASSERT*/
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
                        " Received SYS_MSG_ID_MC_START message msgType= %d [0x%08x]",
@@ -419,7 +419,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
                        "MC message type= %d [0x%08X]", pMsg->type, pMsg->type );
 
             vosStatus = VOS_STATUS_E_BADMSG;
-            if (pMsg->bodyptr) 
+            if (pMsg->bodyptr)
                vos_mem_free(pMsg->bodyptr);
             break;
          }
@@ -452,7 +452,7 @@ VOS_STATUS sysTxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          // function that is in the message.
          case SYS_MSG_ID_TX_THR_PROBE:
          {
-           /* Handling for this message is not needed now so adding 
+           /* Handling for this message is not needed now so adding
             * debug print and VOS_ASSERT*/
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
                        " Received SYS_MSG_ID_TX_THR_PROBE message msgType= %d [0x%08x]",
@@ -753,4 +753,3 @@ void wlan_sys_probe(void)
 
     return;
 }
-

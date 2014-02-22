@@ -66,7 +66,7 @@
 #include <ar9100.h>
 #endif /* AR9100 */
 
-#define INLINE    __adf_os_inline 
+#define INLINE    __adf_os_inline
 
 /* UNREFERENCED_PARAMETER - provide a dummy reference */
 #define UNREFERENCED_PARAMETER(an) ((void) (an))
@@ -103,7 +103,7 @@
 #ifdef ANDROID
 static inline void spin_lock_dpc(spinlock_t *lock)
 {
-    adf_os_spin_lock_bh((adf_os_spinlock_t *)lock);                                                                            
+    adf_os_spin_lock_bh((adf_os_spinlock_t *)lock);
 }
 static inline void spin_unlock_dpc(spinlock_t *lock)
 {
@@ -111,7 +111,7 @@ static inline void spin_unlock_dpc(spinlock_t *lock)
 }
 #else
 #define spin_lock_dpc(a)    adf_os_spin_lock_bh(a)
-#define spin_unlock_dpc(a)  adf_os_spin_unlock_bh(a) 
+#define spin_unlock_dpc(a)  adf_os_spin_unlock_bh(a)
 #endif
 
 #define spin_lock_destroy(a)
@@ -123,7 +123,7 @@ static inline void spin_unlock_dpc(spinlock_t *lock)
 ** Need to define byte order based on the CPU configuration.
 */
 #ifndef _LITTLE_ENDIAN
-#define _LITTLE_ENDIAN  1234    
+#define _LITTLE_ENDIAN  1234
 #endif
 #ifndef _BIG_ENDIAN
 #define _BIG_ENDIAN 4321
@@ -132,7 +132,7 @@ static inline void spin_unlock_dpc(spinlock_t *lock)
     #define _BYTE_ORDER    _BIG_ENDIAN
 #else
     #define _BYTE_ORDER    _LITTLE_ENDIAN
-#endif 
+#endif
 
 /*
  * Work Queue related macros
@@ -150,8 +150,8 @@ static inline void spin_unlock_dpc(spinlock_t *lock)
  * Deduce if tasklets are available.  If not then
  * fall back to using the immediate work queue.
  */
-#define tq_struct adf_os_bh_t 
-#define ATH_INIT_TQUEUE(a,b,c)      adf_os_create_bh(0, a, b, c) 
+#define tq_struct adf_os_bh_t
+#define ATH_INIT_TQUEUE(a,b,c)      adf_os_create_bh(0, a, b, c)
 #define ATH_SCHEDULE_TQUEUE(a,b)    adf_os_sched_bh(0, a)
 typedef unsigned long TQUEUE_ARG;
 #define mark_bh(a)
@@ -270,7 +270,7 @@ typedef unsigned int rwlock_state_t __attribute__((unused));
 #define OS_NETDEV_UPDATE_TRANS(__sc)\
 {\
     ((__sc)->sc_osdev->netdev)->trans_start = jiffies;\
-}   
+}
 
 /*
  * Locking interface for node
@@ -283,7 +283,7 @@ typedef rwlock_t usb_readwrite_lock_t;
 #define OS_RWLOCK_DESTROY(_nt)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33)
-#ifdef CONFIG_SMP 
+#ifdef CONFIG_SMP
 /* Undo the one provided by the kernel to debug spin locks */
 #undef spin_lock
 #undef spin_trylock
@@ -307,7 +307,7 @@ typedef rwlock_t usb_readwrite_lock_t;
       } \
       _spin_unlock_bh(x);\
     } while (0)
-    
+
 #define spin_lock_irqsave(x, f) \
     do { \
       f = _spin_lock_irqsave(x);\
@@ -327,7 +327,7 @@ typedef rwlock_t usb_readwrite_lock_t;
 
 #endif // ifdef CONFIG_SMP
 #else  // if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,37)
-#ifdef CONFIG_SMP 
+#ifdef CONFIG_SMP
 /* Undo the one provided by the kernel to debug spin locks */
 #undef spin_lock
 #undef spin_unlock
@@ -411,18 +411,18 @@ spin_unlock_bh(x);\
 
 #define OS_RWLOCK_WRITE_LOCK_IRQSAVE(rwl, lock_state, flags) do { \
    write_lock_irqsave(rwl, flags); \
-} while (0) 
+} while (0)
 
 #define OS_RWLOCK_READ_UNLOCK_IRQRESTORE(rwl, lock_state, flags) do { \
    read_unlock_irqrestore(rwl, flags); \
-} while (0) 
+} while (0)
 
 #define OS_RWLOCK_WRITE_UNLOCK_IRQRESTORE(rwl, lock_state, flags) do { \
    write_unlock_irqrestore(rwl, flags); \
-} while (0) 
+} while (0)
 
 
-#ifndef OS_SUPPORT_ASYNC_Q 
+#ifndef OS_SUPPORT_ASYNC_Q
 #define OS_SUPPORT_ASYNC_Q 0
 #endif
 
@@ -500,9 +500,9 @@ typedef void (*timer_func)(void *);
 
 typedef struct _os_mesg_t {
     STAILQ_ENTRY(_os_mesg_t)  mesg_next;
-    u_int16_t                 mesg_type;                          
-    u_int16_t                 mesg_len;                          
-    /* followed by mesg_len bytes */ 
+    u_int16_t                 mesg_type;
+    u_int16_t                 mesg_len;
+    /* followed by mesg_len bytes */
 } os_mesg_t;
 
 #define OS_ASYNC_Q_MAX_MESGS 4
@@ -523,14 +523,14 @@ typedef struct {
 } os_task_t;
 
 typedef struct _os_schedule_routing_mesg {
-   os_tasklet_routine_t routine; 
+   os_tasklet_routine_t routine;
    void* context;
 } os_schedule_routing_mesg ;
 
 typedef union _os_async_q_mesg {
    os_schedule_routing_mesg s_mesg;
 } os_async_q_mesg;
-        
+
 
 typedef void (*os_mesg_handler_t)(
     void                *ctx,
@@ -549,11 +549,11 @@ typedef struct {
     spinlock_t                  lock;
     spinlock_t                  ev_handler_lock;
 #ifdef USE_SOFTINTR
-    void                        *_task; 
+    void                        *_task;
 #else
     os_timer_t                  _timer;
 #endif
-    os_mesg_handler_t           handler; 
+    os_mesg_handler_t           handler;
     void                        *ctx;
     u_int8_t                    is_synchronous:1;
 } os_mesg_queue_t;
@@ -587,7 +587,7 @@ struct _NIC_DEV {
     wait_queue_head_t   event_queue;
 #endif /* PERF_PWR_OFFLOAD */
 #if OS_SUPPORT_ASYNC_Q
-    os_mesg_queue_t     async_q;  /* mesgq to handle async calls */ 
+    os_mesg_queue_t     async_q;  /* mesgq to handle async calls */
 #endif
 #ifdef ATH_BUS_PM
     u_int8_t		    isDeviceAsleep;
@@ -703,8 +703,8 @@ typedef dma_addr_t * dma_context_t;
 
 #define OS_FREE_TIMER(_timer)          adf_os_timer_cancel(_timer)
 
-static INLINE void 
-OS_GET_RANDOM_BYTES(void *p, u_int16_t n) 
+static INLINE void
+OS_GET_RANDOM_BYTES(void *p, u_int16_t n)
 {
     get_random_bytes(p, n);
 }
@@ -718,7 +718,7 @@ typedef enum _mesgq_priority_t {
 typedef enum _mesgq_event_delivery_type {
     MESGQ_ASYNCHRONOUS_EVENT_DELIVERY,
     MESGQ_SYNCHRONOUS_EVENT_DELIVERY,
-} mesgq_event_delivery_type; 
+} mesgq_event_delivery_type;
 
 
 
@@ -730,14 +730,14 @@ typedef enum _mesgq_event_delivery_type {
  * module boundaries.
  */
 
-static INLINE void 
+static INLINE void
 os_mesgq_handler(void *timer_arg)
 {
     os_mesg_queue_t    *queue = (os_mesg_queue_t*)timer_arg;
     os_mesg_t          *mesg = NULL;
     void               *msg;
 
-    /* 
+    /*
      * Request access to message queue to retrieve message for processing
      */
     spin_lock(&(queue->lock));
@@ -762,16 +762,16 @@ os_mesgq_handler(void *timer_arg)
         queue->handler(queue->ctx,mesg->mesg_type,mesg->mesg_len, msg);
         spin_unlock(&(queue->ev_handler_lock));
 
-        /* 
+        /*
          * Request access to message queue to retrieve next message
          */
         spin_lock(&(queue->lock));
         queue->num_queued--;
         STAILQ_INSERT_TAIL(&queue->mesg_free_head,mesg, mesg_next);
         mesg = STAILQ_FIRST(&queue->mesg_head);
-    } 
+    }
 
-    /* 
+    /*
      * Release message queue
      */
     spin_unlock(&(queue->lock));
@@ -782,22 +782,22 @@ os_mesgq_handler(void *timer_arg)
  * devhandle   : os dev handle.
  * queue       : message queue.
  * mesg_len    : maximum length of message.
- * max_queued  : maximum number of messages that can be queued at any time. 
+ * max_queued  : maximum number of messages that can be queued at any time.
  * msg_handler : handler function which will be called
  *                asynchronously to deliver each message.
- */   
-static INLINE int OS_MESGQ_INIT(osdev_t devhandle, os_mesg_queue_t *queue, 
+ */
+static INLINE int OS_MESGQ_INIT(osdev_t devhandle, os_mesg_queue_t *queue,
                                 u_int32_t mesg_len, u_int32_t max_queued,
                                 os_mesg_handler_t msg_handler, void *context,
-                                mesgq_priority_t priority, 
-                                mesgq_event_delivery_type mq_type) 
+                                mesgq_priority_t priority,
+                                mesgq_event_delivery_type mq_type)
 {
     int i,len;
     os_mesg_t *mesg;
 
     len = (mesg_len + sizeof(struct _os_mesg_t));
     queue->mesg_queue_buf = adf_os_mem_alloc(NULL, (adf_os_size_t) len*max_queued);
-    if (!queue->mesg_queue_buf) 
+    if (!queue->mesg_queue_buf)
         return -ENOMEM;
     queue->dev_handle = devhandle;
     STAILQ_INIT(&queue->mesg_head);
@@ -832,9 +832,9 @@ static INLINE int OS_MESGQ_INIT(osdev_t devhandle, os_mesg_queue_t *queue,
  * queue : message queue.
  * msg   : message (opaque) . the size of the message
  *         is equal to the mesg_length passed to the OS_MESG_INIT
- *     
+ *
  */
-static INLINE int OS_MESGQ_SEND(os_mesg_queue_t *queue,u_int16_t type, u_int16_t len,  void *msg) 
+static INLINE int OS_MESGQ_SEND(os_mesg_queue_t *queue,u_int16_t type, u_int16_t len,  void *msg)
 {
     os_mesg_t *mesg;
 
@@ -875,7 +875,7 @@ static INLINE int OS_MESGQ_SEND(os_mesg_queue_t *queue,u_int16_t type, u_int16_t
  * this is only for single threaded operating systems.
  * assert for now.
  */
-static INLINE int OS_MESGQ_SEND_SYNC(os_mesg_queue_t *queue,u_int16_t type, u_int16_t len,  void *msg, bool flush) 
+static INLINE int OS_MESGQ_SEND_SYNC(os_mesg_queue_t *queue,u_int16_t type, u_int16_t len,  void *msg, bool flush)
 {
     KASSERT(0,(" mesg queue sync send is not supported by linux"));
     return 0;
@@ -903,7 +903,7 @@ static INLINE void OS_MESGQ_DRAIN(os_mesg_queue_t *queue, os_mesg_handler_t msg_
     while(mesg) {
         STAILQ_REMOVE_HEAD(&queue->mesg_head, mesg_next);
         queue->num_queued--;
-        if (msg_handler != NULL) {            
+        if (msg_handler != NULL) {
             if (mesg->mesg_len) {
                 msg = (void *) (mesg+1);
             } else {
@@ -916,7 +916,7 @@ static INLINE void OS_MESGQ_DRAIN(os_mesg_queue_t *queue, os_mesg_handler_t msg_
     };
     STAILQ_INIT(&queue->mesg_head);
     spin_unlock(&(queue->lock));
-} 
+}
 
 
 /*
@@ -952,14 +952,14 @@ static INLINE void OS_MESGQ_DESTROY(os_mesg_queue_t *queue)
  */
 static INLINE int
 OS_SCHEDULE_ROUTING(osdev_t pNicDev,
-                     os_tasklet_routine_t routine, 
+                     os_tasklet_routine_t routine,
                      void* context)
 {
 #if OS_SUPPORT_ASYNC_Q
    os_schedule_routing_mesg  s_mesg ;
-   s_mesg.routine = routine; 
+   s_mesg.routine = routine;
    s_mesg.context = context;
-   OS_MESGQ_SEND(&pNicDev->async_q,OS_SCHEDULE_ROUTING_MESG_TYPE, sizeof(os_schedule_routing_mesg), &s_mesg); 
+   OS_MESGQ_SEND(&pNicDev->async_q,OS_SCHEDULE_ROUTING_MESG_TYPE, sizeof(os_schedule_routing_mesg), &s_mesg);
 
 #else
     routine(context, NULL);
@@ -1011,7 +1011,7 @@ static INLINE u_int32_t
 OS_PCI_READ_CONFIG(osdev_t osdev, u_int32_t offset, void *p, u_int32_t bytes)
 {
     struct pci_dev *pdev = (struct pci_dev *)osdev->bdev;
-    
+
     switch (bytes) {
     case 1:
         pci_read_config_byte(pdev, offset, p);
@@ -1030,7 +1030,7 @@ static INLINE void
 OS_PCI_WRITE_CONFIG(osdev_t osdev, u_int32_t offset, void *p, u_int32_t bytes)
 {
     struct pci_dev *pdev = (struct pci_dev *)osdev->bdev;
-    
+
     switch (bytes) {
     case 1:
         pci_write_config_byte(pdev, offset, *(u_int8_t *)p);

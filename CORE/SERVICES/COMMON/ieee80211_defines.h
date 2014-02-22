@@ -43,19 +43,19 @@
  * @brief Opaque handle of 802.11 protocal layer.
  */
 struct ieee80211com;
-typedef struct ieee80211com *wlan_dev_t; 
+typedef struct ieee80211com *wlan_dev_t;
 
 /**
  * @brief Opaque handle to App IE module.
 */
 struct wlan_mlme_app_ie;
-typedef struct wlan_mlme_app_ie *wlan_mlme_app_ie_t; 
+typedef struct wlan_mlme_app_ie *wlan_mlme_app_ie_t;
 
 /**
  * @brief Opaque handle of network instance (vap) in 802.11 protocal layer.
 */
 struct ieee80211vap;
-typedef struct ieee80211vap *wlan_if_t; 
+typedef struct ieee80211vap *wlan_if_t;
 
 struct ieee80211vapprofile;
 typedef struct ieee80211vapprofile *wlan_if_info_t;
@@ -70,13 +70,13 @@ typedef struct ieee80211_node *wlan_node_t;
  * @brief Opaque handle of OS interface (ifp in the case of unix ).
  */
 struct _os_if_t;
-typedef struct _os_if_t *os_if_t; 
+typedef struct _os_if_t *os_if_t;
 
 /**
  *
  * @brief Opaque handle.
  */
-typedef void *os_handle_t; 
+typedef void *os_handle_t;
 
 /**
  * @brief Opaque handle of a channel.
@@ -87,7 +87,7 @@ typedef struct ieee80211_channel *wlan_chan_t;
 /**
  * @brief Opaque handle scan_entry.
  */
-struct ieee80211_scan_entry; 
+struct ieee80211_scan_entry;
 typedef struct ieee80211_scan_entry *wlan_scan_entry_t;
 
 /* AoW related defines */
@@ -147,22 +147,22 @@ typedef struct ieee80211_rx_status {
 
 #define IEEE80211_MAX_ANTENNA       3                /* Keep the same as ATH_MAX_ANTENNA */
     u_int8_t    rs_rssictl[IEEE80211_MAX_ANTENNA];   /* RSSI (noise floor ajusted) */
-    u_int8_t    rs_rssiextn[IEEE80211_MAX_ANTENNA];  /* RSSI (noise floor ajusted) */    
+    u_int8_t    rs_rssiextn[IEEE80211_MAX_ANTENNA];  /* RSSI (noise floor ajusted) */
     u_int8_t    rs_isvalidrssi;                      /* rs_rssi is valid or not */
 
     enum ieee80211_phymode rs_phymode;
     int         rs_freq;
-    
+
     union {
         u_int8_t            data[8];
         u_int64_t           tsf;
     } rs_tstamp;
 
-    /* 
-     * Detail channel structure of recv frame. 
-     * It could be NULL if not available 
+    /*
+     * Detail channel structure of recv frame.
+     * It could be NULL if not available
      */
-    struct ieee80211_channel *rs_full_chan; 
+    struct ieee80211_channel *rs_full_chan;
 
     u_int8_t rs_isaggr;
     u_int8_t rs_isapsd;
@@ -284,11 +284,11 @@ typedef u_int32_t    IEEE80211_SCAN_ID;
 #define IEEE80211_VAP_SCAN            0x01000000
 #define IEEE80211_ALL_SCANS           0x04000000
 
-/** 
- * host scan bit. only relevant for host/target architecture. 
+/**
+ * host scan bit. only relevant for host/target architecture.
  * do not reuse this bit definition. target uses this .
  *
- */ 
+ */
 #define IEEE80211_HOST_SCAN           0x80000000
 #define IEEE80211_SCAN_CLASS_MASK     0xFF000000
 
@@ -312,9 +312,9 @@ typedef u_int32_t    IEEE80211_SCAN_ID;
 
 /* flag definitions passed to scan_cancel API */
 
-#define IEEE80211_SCAN_CANCEL_ASYNC 0x0 /* asynchronouly wait for scan SM to complete cancel */ 
-#define IEEE80211_SCAN_CANCEL_WAIT  0x1 /* wait for scan SM to complete cancel */ 
-#define IEEE80211_SCAN_CANCEL_SYNC  0x2 /* synchronously execute cancel scan */ 
+#define IEEE80211_SCAN_CANCEL_ASYNC 0x0 /* asynchronouly wait for scan SM to complete cancel */
+#define IEEE80211_SCAN_CANCEL_WAIT  0x1 /* wait for scan SM to complete cancel */
+#define IEEE80211_SCAN_CANCEL_SYNC  0x2 /* synchronously execute cancel scan */
 
 #ifndef EXTERNAL_USE_ONLY
 typedef bool (*ieee80211_scan_termination_check) (void *arg);
@@ -348,7 +348,7 @@ typedef struct _ieee80211_scan_params {
     int                                 num_bssid;              /* number of desired bssids */
     u_int8_t                            bssid_list[IEEE80211_SCAN_PARAMS_MAX_BSSID][IEEE80211_ADDR_LEN];
     struct ieee80211_node               *bss_node;              /* BSS node */
-    int                                 ie_len;                 /* length of the ie data to be added to probe req */ 
+    int                                 ie_len;                 /* length of the ie data to be added to probe req */
     u_int8_t                            *ie_data;               /* pointer to ie data */
     ieee80211_scan_termination_check    check_termination_function;  /* function checking for termination condition */
     void                                *check_termination_context;  /* context passed to function above */
@@ -414,23 +414,23 @@ typedef u_int32_t IEEE80211_PRIORITY_MAPPING[IEEE80211_SCAN_PRIORITY_COUNT];
 /*
  * idle time is only valid for scan type IEEE80211_SCAN_BACKGROUND.
  * if idle time is set then the scanner would change channel from BSS
- * channel to foreign channel only if both resttime is expired and 
+ * channel to foreign channel only if both resttime is expired and
  * the theres was not traffic for idletime msec on the bss channel.
  * value of 0 for idletime would cause the channel to switch from BSS
  * channel to foreign channel as soon  as the resttime is expired.
  *
- * if maxscantime is nonzero and if the scanner can not complete the 
+ * if maxscantime is nonzero and if the scanner can not complete the
  * scan in maxscantime msec then the scanner will cancel the scan and
  * post IEEE80211_SCAN_COMPLETED event with reason SCAN_TIMEDOUT.
  *
- */  
+ */
 
 /*
  * chanlist can be either ieee channels (or) frequencies.
- * if a value is less than 1000 implementation assumes it 
- * as ieee channel # otherwise implementation assumes it 
+ * if a value is less than 1000 implementation assumes it
+ * as ieee channel # otherwise implementation assumes it
  * as frequency in Mhz.
- */ 
+ */
 
 typedef enum _ieee80211_scan_event_type {
     IEEE80211_SCAN_STARTED,
@@ -482,7 +482,7 @@ typedef enum _ieee80211_scan_request_status {
  * event type is IEEE80211_SCAN_BSSID_MATCH.
  */
 
-typedef void (*ieee80211_scan_event_handler) (wlan_if_t vaphandle, ieee80211_scan_event *event, void *arg);  
+typedef void (*ieee80211_scan_event_handler) (wlan_if_t vaphandle, ieee80211_scan_event *event, void *arg);
 
 typedef struct _ieee80211_scan_info {
     ieee80211_scan_type                type;
@@ -500,7 +500,7 @@ typedef struct _ieee80211_scan_info {
     int                                repeat_probe_time;           /* time before sending second probe request */
     int                                min_beacon_count;            /* number of home AP beacons to receive before leaving the home channel */
     int                                flags;                       /* scan flags */
-    systime_t                          scan_start_time;             /* system time when last scani started */ 
+    systime_t                          scan_start_time;             /* system time when last scani started */
     int                                scanned_channels;            /* number of scanned channels */
     int                                default_channel_list_length; /* number of channels in the default channel list */
     int                                channel_list_length;         /* number of channels in the channel list used for the current scan */
@@ -525,7 +525,7 @@ typedef struct _ieee80211_scan_request_info {
 #endif /* EXTERNAL_USE_ONLY */
 
 #ifndef EXTERNAL_USE_ONLY
-typedef void (*ieee80211_acs_event_handler) (void *arg, wlan_chan_t channel);  
+typedef void (*ieee80211_acs_event_handler) (void *arg, wlan_chan_t channel);
 #endif /* EXTERNAL_USE_ONLY */
 
 #define MAX_CHAINS 3
@@ -582,7 +582,7 @@ struct ieee80211_nodestats {
     u_int32_t    ns_rx_noprivacy;        /* rx w/ wep but privacy off */
     u_int32_t    ns_rx_wepfail;          /* rx wep processing failed */
     u_int32_t    ns_rx_demicfail;        /* rx demic failed */
-       
+
     /* We log MIC and decryption failures against Transmitter STA stats.
        Though the frames may not actually be sent by STAs corresponding
        to TA, the stats are still valuable for some customers as a sort
@@ -702,7 +702,7 @@ typedef enum _ieee80211_device_param {
     IEEE80211_DEVICE_TX_CHAIN_MASK,
     IEEE80211_DEVICE_RX_CHAIN_MASK,
     IEEE80211_DEVICE_TX_CHAIN_MASK_LEGACY,
-    IEEE80211_DEVICE_RX_CHAIN_MASK_LEGACY, 
+    IEEE80211_DEVICE_RX_CHAIN_MASK_LEGACY,
     IEEE80211_DEVICE_BMISS_LIMIT,            /* # of beacon misses for HW to generate BMISS intr */
     IEEE80211_DEVICE_PROTECTION_MODE,        /* protection mode*/
     IEEE80211_DEVICE_BLKDFSCHAN,             /* block the use of DFS channels */
@@ -716,7 +716,7 @@ typedef enum _ieee80211_device_param {
     IEEE80211_DEVICE_DOTH,
     IEEE80211_DEVICE_ADDBA_MODE,
     IEEE80211_DEVICE_COUNTRYCODE,
-    IEEE80211_DEVICE_MULTI_CHANNEL,           /* turn on/off off channel support */    
+    IEEE80211_DEVICE_MULTI_CHANNEL,           /* turn on/off off channel support */
     IEEE80211_DEVICE_MAX_AMSDU_SIZE,          /* Size of AMSDU to be sent on the air */
     IEEE80211_DEVICE_P2P,                     /* Enable or Disable P2P */
     IEEE80211_DEVICE_OVERRIDE_SCAN_PROBERESPONSE_IE, /* Override scan Probe response IE, 0: Don't over-ride */
@@ -736,9 +736,9 @@ typedef enum _ieee80211_param {
     IEEE80211_SHORT_PREAMBLE,                /* short preamble on/off */
     IEEE80211_RTS_THRESHOLD,                 /* rts threshold, 0 means no rts threshold  */
     IEEE80211_FRAG_THRESHOLD,                /* fragmentation threshold, 0 means no rts threshold  */
-    IEEE80211_FIXED_RATE,                    /* 
-                                              * rate code series(0: auto rate, 32 bit value:  rate 
-                                              * codes for 4 rate series. each byte for one rate series) 
+    IEEE80211_FIXED_RATE,                    /*
+                                              * rate code series(0: auto rate, 32 bit value:  rate
+                                              * codes for 4 rate series. each byte for one rate series)
                                               */
     IEEE80211_MCAST_RATE,                    /* rate in Kbps */
     IEEE80211_TXPOWER,                       /* in 0.5db units */
@@ -782,7 +782,7 @@ typedef enum _ieee80211_param {
 #ifdef ATH_COALESCING
     IEEE80211_FEATURE_TX_COALESCING,         /* enable tx coalescing */
 #endif
-    IEEE80211_FEATURE_VAP_IND,               /* Repeater independant VAP */   
+    IEEE80211_FEATURE_VAP_IND,               /* Repeater independant VAP */
     IEEE80211_FIXED_RETRIES,                 /* fixed retries  0-4 */
     IEEE80211_SHORT_GI,                      /* short gi on/off */
     IEEE80211_HT40_INTOLERANT,
@@ -793,19 +793,19 @@ typedef enum _ieee80211_param {
     IEEE80211_STA_QUICKKICKOUT,
     IEEE80211_CHSCANINIT,
     IEEE80211_FEATURE_STAFWD,                /* dynamic AP Client  feature */
-    IEEE80211_DRIVER_CAPS,                   
+    IEEE80211_DRIVER_CAPS,
     IEEE80211_UAPSD_MAXSP,                    /* UAPSD service period setting (0:unlimited, 2,4,6) */
     IEEE80211_WEP_MBSSID,
-    IEEE80211_MGMT_RATE,                      /* ieee rate to be used for management*/ 
+    IEEE80211_MGMT_RATE,                      /* ieee rate to be used for management*/
     IEEE80211_RESMGR_VAP_AIR_TIME_LIMIT,      /* When multi-channel enabled, restrict air-time allocated to a VAP */
     IEEE80211_TDLS_MACADDR1,                  /* Upper 4 bytes of device's MAC address */
     IEEE80211_TDLS_MACADDR2,                  /* Lower 2 bytes of device's MAC address */
-    IEEE80211_TDLS_ACTION,                    /* TDLS action requested                 */ 
+    IEEE80211_TDLS_ACTION,                    /* TDLS action requested                 */
     IEEE80211_AUTO_ASSOC,
     IEEE80211_PROTECTION_MODE,                /* per VAP protection mode*/
-    IEEE80211_AUTH_INACT_TIMEOUT,             /* inactivity time while waiting for 802.11x auth to complete */ 
-    IEEE80211_INIT_INACT_TIMEOUT,             /* inactivity time while waiting for 802.11 auth/assoc to complete */ 
-    IEEE80211_RUN_INACT_TIMEOUT,              /* inactivity time when fully authed*/ 
+    IEEE80211_AUTH_INACT_TIMEOUT,             /* inactivity time while waiting for 802.11x auth to complete */
+    IEEE80211_INIT_INACT_TIMEOUT,             /* inactivity time while waiting for 802.11 auth/assoc to complete */
+    IEEE80211_RUN_INACT_TIMEOUT,              /* inactivity time when fully authed*/
     IEEE80211_PROBE_INACT_TIMEOUT,            /* inactivity counter value below which starts probing */
     IEEE80211_QBSS_LOAD,
     IEEE80211_WNM_CAP,
@@ -847,11 +847,11 @@ typedef enum _ieee80211_param {
 #ifdef ATH_SUPPORT_TxBF
     IEEE80211_TXBF_AUTO_CVUPDATE,             /* auto CV update enable */
     IEEE80211_TXBF_CVUPDATE_PER,              /* per threshold to initial CV update*/
-#endif  
+#endif
     IEEE80211_MAX_CLIENT_NUMBERS,
 	IEEE80211_SMARTNET,
     IEEE80211_FEATURE_MFP_TEST,               /* MFP test */
-	IEEE80211_WEATHER_RADAR, 				  /* weather radar channel skip */
+	IEEE80211_WEATHER_RADAR,				  /* weather radar channel skip */
     IEEE80211_WEP_KEYCACHE,                   /* WEP KEYCACHE is enable */
     IEEE80211_SEND_DEAUTH,                  /* send deauth instead of disassoc while doing interface down  */
     IEEE80211_SET_TXPWRADJUST,
@@ -890,7 +890,7 @@ typedef enum _ieee80211_privacy_filter_packet_type {
 
 typedef struct _ieee80211_privacy_excemption_filter {
     u_int16_t                               ether_type; /* type of ethernet to apply this filter, in host byte order*/
-    ieee80211_privacy_filter                filter_type; 
+    ieee80211_privacy_filter                filter_type;
     ieee80211_privacy_filter_packet_type    packet_type;
 } ieee80211_privacy_exemption;
 
@@ -957,14 +957,14 @@ typedef struct _ieee80211_keyval {
     u_int8_t                *keydata;
 #ifdef ATH_SUPPORT_WAPI
     u_int8_t                key_used;       /*index for WAPI rekey labeling*/
-#endif    
+#endif
 } ieee80211_keyval;
 
 #define IEEE80211_AES_CMAC_LEN     128
 typedef enum _ieee80211_rsn_param {
     IEEE80211_UCAST_CIPHER_LEN,
     IEEE80211_MCAST_CIPHER_LEN,
-    IEEE80211_MCASTMGMT_CIPHER_LEN,    
+    IEEE80211_MCASTMGMT_CIPHER_LEN,
     IEEE80211_KEYMGT_ALGS,
     IEEE80211_RSN_CAPS
 } ieee80211_rsn_param;
@@ -992,7 +992,7 @@ typedef enum _ieee80211_frame_type {
     IEEE80211_FRAME_TYPE_ASSOCREQ,
     IEEE80211_FRAME_TYPE_ASSOCRESP,
     IEEE80211_FRAME_TYPE_AUTH
-} ieee80211_frame_type; 
+} ieee80211_frame_type;
 
 #define IEEE80211_FRAME_TYPE_MAX    (IEEE80211_FRAME_TYPE_AUTH+1)
 
@@ -1025,7 +1025,7 @@ typedef struct _ieee80211_reset_request {
 } ieee80211_reset_request;
 
 #define IEEE80211_MSG_MAX 63
-#define IEEE80211_MSG_SMARTANT 7            /* Bit 7 (0x80)for Smart Antenna debug */ 
+#define IEEE80211_MSG_SMARTANT 7            /* Bit 7 (0x80)for Smart Antenna debug */
 enum {
     /* IEEE80211_PARAM_DBG_LVL */
     IEEE80211_MSG_TDLS      = 0,            /* TDLS */
@@ -1076,22 +1076,22 @@ enum {
 };
 
 /* verbosity levels */
-#define     IEEE80211_VERBOSE_OFF                  100 
+#define     IEEE80211_VERBOSE_OFF                  100
 #define     IEEE80211_VERBOSE_FORCE               1
 #define     IEEE80211_VERBOSE_SERIOUS             2
 #define     IEEE80211_VERBOSE_NORMAL              3
 #define     IEEE80211_VERBOSE_LOUD                4
 #define     IEEE80211_VERBOSE_DETAILED            5
 #define     IEEE80211_VERBOSE_COMPLEX             6
-#define     IEEE80211_VERBOSE_FUNCTION            7 
+#define     IEEE80211_VERBOSE_FUNCTION            7
 #define     IEEE80211_VERBOSE_TRACE               8
 
-#define IEEE80211_DEBUG_DEFAULT IEEE80211_MSG_DEBUG     
+#define IEEE80211_DEBUG_DEFAULT IEEE80211_MSG_DEBUG
 
 /*
  * the lower 4 bits of the msg flags are used for extending the
- * debug flags. 
- */ 
+ * debug flags.
+ */
 
 /*
  * flag defintions for wlan_mlme_stop_bss(vap) API.
@@ -1162,7 +1162,7 @@ struct ieee80211_mac_stats {
 
     u_int64_t   ims_tx_datapyld_bytes;  /* data payload bytes successfully
                                            transmitted */
-    u_int64_t   ims_rx_datapyld_bytes;  /* data payload successfully 
+    u_int64_t   ims_rx_datapyld_bytes;  /* data payload successfully
                                            received */
 
     /* Decryption errors */
@@ -1179,7 +1179,7 @@ struct ieee80211_mac_stats {
     u_int64_t   ims_rx_ccmpformat;  /* rx format bad (CCMP) */
     u_int64_t   ims_rx_ccmpmic;     /* rx MIC check failed (CCMP) */
 /*this file can be included by applications as 80211stats that has no such MACRO definition*/
-//#if ATH_SUPPORT_WAPI 
+//#if ATH_SUPPORT_WAPI
     u_int64_t   ims_rx_wpireplay;  /* rx seq# violation (WPI) */
     u_int64_t   ims_rx_wpimic;     /* rx MIC check failed (WPI) */
 //#endif
@@ -1366,7 +1366,7 @@ struct ieee80211_app_ie_t {
         u_int8_t        *ie;
 };
 
-/* 
+/*
  * MAC ACL operations.
  */
 enum {

@@ -63,7 +63,7 @@ struct llc_snap_hdr_t {
 #define LLC_SNAP_HDR_LEN (sizeof(struct llc_snap_hdr_t))
 #define LLC_SNAP_HDR_OFFSET_ETHERTYPE \
     (offsetof(struct llc_snap_hdr_t, ethertype[0]))
-	
+
 #define ETHERTYPE_VLAN_LEN  4
 
 struct ethernet_vlan_hdr_t {

@@ -1658,6 +1658,42 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
 
    return VOS_STATUS_SUCCESS;
 }
+
+#ifdef IPA_OFFLOAD
+/**============================================================================
+  @brief hdd_softap_rx_mul_packet_cbk() - Receive callback registered with TL.
+  IPA integrated platform, TL Shim will give multiple RX frames with NETBUF
+  link. Linked frames should be un-link and send to NETDEV.
+
+  @param vosContext      : [in] pointer to VOS context
+  @param rx_buf_list     : [in] pointer to rx adf_nbuf linked list
+  @param staId           : [in] Station Id (Adress 1 Index)
+
+  @return                : VOS_STATUS_E_FAILURE if any errors encountered,
+                         : VOS_STATUS_SUCCESS otherwise
+  ===========================================================================*/
+VOS_STATUS hdd_softap_rx_mul_packet_cbk(v_VOID_t *vosContext,
+                                    adf_nbuf_t rx_buf_list, v_U8_t staId)
+{
+   adf_nbuf_t buf, next_buf;
+   VOS_STATUS status;
+
+   buf = rx_buf_list;
+   while(buf)
+   {
+      next_buf = adf_nbuf_queue_next(buf);
+      status = hdd_softap_rx_packet_cbk(vosContext, buf, staId);
+      if(!VOS_IS_STATUS_SUCCESS(status))
+      {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: RX fail, satus %d", __func__, status);
+         return status;
+      }
+      buf = next_buf;
+   }
+   return VOS_STATUS_SUCCESS;
+}
+#endif /* IPA_OFFLOAD */
 #endif
 
 VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
@@ -1809,13 +1845,16 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
                                          hdd_softap_tx_complete_cbk,
                                          hdd_softap_tx_fetch_packet_cbk, &staDesc, 0 );
    } else {
-#endif
+      vosStatus = WLANTL_RegisterSTAClient( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+                                         hdd_softap_rx_mul_packet_cbk,
+                                         hdd_softap_tx_complete_cbk,
+                                         hdd_softap_tx_fetch_packet_cbk, &staDesc, 0 );
+   }
+#else
    vosStatus = WLANTL_RegisterSTAClient( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, 
                                          hdd_softap_rx_packet_cbk, 
                                          hdd_softap_tx_complete_cbk, 
                                          hdd_softap_tx_fetch_packet_cbk, &staDesc, 0 );
-#ifdef IPA_OFFLOAD
-   }
 #endif
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {

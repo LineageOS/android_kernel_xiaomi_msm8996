@@ -63,7 +63,7 @@ extern void __adf_os_defer_delayed_func(struct work_struct *work);
 
 typedef void (*__adf_os_bh_fn_t)(unsigned long arg);
 
-static inline a_status_t 
+static inline a_status_t
 __adf_os_init_work(adf_os_handle_t    hdl,
                    __adf_os_work_t      *work,
                    adf_os_defer_fn_t    func,
@@ -81,7 +81,7 @@ __adf_os_init_work(adf_os_handle_t    hdl,
     return A_STATUS_OK;
 }
 
-static inline a_status_t 
+static inline a_status_t
 __adf_os_init_delayed_work(adf_os_handle_t    hdl,
                    __adf_os_delayed_work_t      *work,
                    adf_os_defer_fn_t    func,
@@ -109,7 +109,7 @@ static inline void __adf_os_queue_work(adf_os_handle_t hdl, __adf_os_workqueue_t
     queue_work(wqueue, work);
 #else
     queue_work(wqueue, &work->work);
-#endif    
+#endif
 }
 
 static inline void __adf_os_queue_delayed_work(adf_os_handle_t hdl, __adf_os_workqueue_t *wqueue, __adf_os_delayed_work_t* work, a_uint32_t delay)
@@ -118,7 +118,7 @@ static inline void __adf_os_queue_delayed_work(adf_os_handle_t hdl, __adf_os_wor
     queue_delayed_work(wqueue, work, delay);
 #else
     queue_delayed_work(wqueue, &work->dwork, delay);
-#endif    
+#endif
 }
 
 static inline void __adf_os_flush_workqueue(adf_os_handle_t hdl, __adf_os_workqueue_t *wqueue)
@@ -137,11 +137,11 @@ static inline  a_status_t __adf_os_init_bh(adf_os_handle_t  hdl,
                                      void               *arg)
 {
      tasklet_init(bh, (__adf_os_bh_fn_t)func, (unsigned long)arg);
-  
+
      return A_STATUS_OK;
 }
 
-static inline a_status_t 
+static inline a_status_t
 __adf_os_sched_work(adf_os_handle_t hdl, __adf_os_work_t  * work)
 {
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,19)
@@ -152,15 +152,15 @@ __adf_os_sched_work(adf_os_handle_t hdl, __adf_os_work_t  * work)
     return A_STATUS_OK;
 }
 
-static inline a_status_t  __adf_os_sched_bh(adf_os_handle_t hdl, 
+static inline a_status_t  __adf_os_sched_bh(adf_os_handle_t hdl,
                                      struct tasklet_struct * bh)
 {
     tasklet_schedule(bh);
-     
+
     return A_STATUS_OK;
 }
 
-static inline a_status_t 
+static inline a_status_t
 __adf_os_disable_work(adf_os_handle_t hdl, __adf_os_work_t  * work)
 {
    /**
@@ -168,7 +168,7 @@ __adf_os_disable_work(adf_os_handle_t hdl, __adf_os_work_t  * work)
     */
     return A_STATUS_OK;
 }
-static inline a_status_t 
+static inline a_status_t
 __adf_os_disable_bh(adf_os_handle_t hdl, struct tasklet_struct *bh)
 {
     tasklet_kill(bh);

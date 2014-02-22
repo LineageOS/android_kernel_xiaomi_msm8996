@@ -241,7 +241,7 @@ int ol_cfg_netbuf_frags_max(ol_pdev_handle pdev);
  *  transmit frames until the target explicitly indicates it is finished
  *  transmitting them, or if it should free its copy as soon as the
  *  tx frame is downloaded to the target.
- *  
+ *
  * @param pdev - handle to the physical device
  * @return
  *      0 -> retain the tx frame until the target indicates it is done
@@ -253,14 +253,14 @@ int ol_cfg_tx_free_at_download(ol_pdev_handle pdev);
 
 
 /**
- * @brief Low water mark for target tx credit. 
- * Tx completion handler is invoked to reap the buffers when the target tx 
+ * @brief Low water mark for target tx credit.
+ * Tx completion handler is invoked to reap the buffers when the target tx
  * credit goes below Low Water Mark.
  */
 #define OL_CFG_NUM_MSDU_REAP 512
 #define ol_cfg_tx_credit_lwm(pdev)                                             \
         ((CFG_TGT_NUM_MSDU_DESC >  OL_CFG_NUM_MSDU_REAP) ?                     \
-                        (CFG_TGT_NUM_MSDU_DESC -  OL_CFG_NUM_MSDU_REAP) : 0)   
+                        (CFG_TGT_NUM_MSDU_DESC -  OL_CFG_NUM_MSDU_REAP) : 0)
 
 /**
  * @brief In a HL system, specify the target initial credit count.
@@ -311,12 +311,12 @@ int ol_cfg_tx_download_size(ol_pdev_handle pdev);
  *   logic to time out stale fragments is moved to the host.
  *
  * @param pdev - handle to the physical device
- * @return 
+ * @return
  *  0 -> target is responsible non-aggregate duplicate detection and
- *          timing out stale fragments. 
+ *          timing out stale fragments.
  *
  *  1 -> host is responsible non-aggregate duplicate detection and
- *          timing out stale fragments. 
+ *          timing out stale fragments.
  */
 int ol_cfg_rx_host_defrag_timeout_duplicate_check(ol_pdev_handle pdev);
 

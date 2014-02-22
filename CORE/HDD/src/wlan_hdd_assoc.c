@@ -1089,14 +1089,18 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
                                          hdd_tx_fetch_packet_cbk, &staDesc,
                                          pBssDesc->rssi );
    } else {
-#endif
+      vosStatus = WLANTL_RegisterSTAClient( pHddCtx->pvosContext,
+                                         hdd_rx_mul_packet_cbk,
+                                         hdd_tx_complete_cbk,
+                                         hdd_tx_fetch_packet_cbk, &staDesc,
+                                         pBssDesc->rssi );
+   }
+#else
    vosStatus = WLANTL_RegisterSTAClient( pHddCtx->pvosContext,
                                          hdd_rx_packet_cbk,
                                          hdd_tx_complete_cbk,
                                          hdd_tx_fetch_packet_cbk, &staDesc,
                                          pBssDesc->rssi );
-#ifdef IPA_OFFLOAD
-   }
 #endif
 
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -2218,13 +2222,16 @@ VOS_STATUS hdd_roamRegisterTDLSSTA( hdd_adapter_t *pAdapter,
                                           hdd_tx_complete_cbk,
                                           hdd_tx_fetch_packet_cbk, &staDesc, 0 );
     } else {
-#endif
+       vosStatus = WLANTL_RegisterSTAClient( pHddCtx->pvosContext,
+                                          hdd_rx_mul_packet_cbk,
+                                          hdd_tx_complete_cbk,
+                                          hdd_tx_fetch_packet_cbk, &staDesc, 0 );
+   }
+#else
     vosStatus = WLANTL_RegisterSTAClient( pVosContext,
                                           hdd_rx_packet_cbk,
                                           hdd_tx_complete_cbk,
                                           hdd_tx_fetch_packet_cbk, &staDesc, 0 );
-#ifdef IPA_OFFLOAD
-	}
 #endif
 
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )

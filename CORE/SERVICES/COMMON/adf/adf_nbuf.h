@@ -28,13 +28,13 @@
 
 /**
  * @defgroup adf_nbuf_public network buffer API
- */ 
+ */
 
 /**
  * @ingroup adf_nbuf_public
  * @file adf_nbuf.h
  * This file defines the network buffer abstraction.
- */ 
+ */
 
 #ifndef _ADF_NBUF_H
 #define _ADF_NBUF_H
@@ -54,8 +54,8 @@ typedef __adf_nbuf_t         adf_nbuf_t;
 
 /**
  * @brief Dma map callback prototype
- */ 
-typedef void (*adf_os_dma_map_cb_t)(void *arg, adf_nbuf_t buf, 
+ */
+typedef void (*adf_os_dma_map_cb_t)(void *arg, adf_nbuf_t buf,
                                     adf_os_dma_map_t dmap);
 
 /**
@@ -77,10 +77,10 @@ typedef __adf_nbuf_queue_t   adf_nbuf_queue_t;
  *          - need space in adf_drv's software descriptor
  *          - are typically created during adf_drv_create
  *          - need to be created before any API(adf_nbuf_map) that uses them
- * 
+ *
  * @param[in]  osdev os device
  * @param[out] dmap  map handle
- * 
+ *
  * @return status of the operation
  */
 static inline a_status_t
@@ -93,7 +93,7 @@ adf_nbuf_dmamap_create(adf_os_device_t osdev,
 
 /**
  * @brief Delete a dmap map
- * 
+ *
  * @param[in] osdev os device
  * @param[in] dmap
  */
@@ -128,8 +128,8 @@ adf_nbuf_dmamap_set_cb(adf_os_dma_map_t dmap, adf_os_dma_map_cb_t cb,
  * @return status of the operation
  */
 static inline a_status_t
-adf_nbuf_map(adf_os_device_t        osdev, 
-             adf_nbuf_t             buf, 
+adf_nbuf_map(adf_os_device_t        osdev,
+             adf_nbuf_t             buf,
              adf_os_dma_dir_t       dir)
 {
 #if defined(HIF_PCI) || defined(QCA_WIFI_ISOC)
@@ -149,8 +149,8 @@ adf_nbuf_map(adf_os_device_t        osdev,
  * @param[in] dir    DMA direction
  */
 static inline void
-adf_nbuf_unmap(adf_os_device_t      osdev, 
-               adf_nbuf_t           buf, 
+adf_nbuf_unmap(adf_os_device_t      osdev,
+               adf_nbuf_t           buf,
                adf_os_dma_dir_t     dir)
 {
 #if defined(HIF_PCI) || defined(QCA_WIFI_ISOC)
@@ -228,7 +228,7 @@ adf_nbuf_frag_push_head(
 
 /**
  * @brief returns information about the mapped buf
- * 
+ *
  * @param[in]  bmap map handle
  * @param[out] sg   map info
  */
@@ -251,20 +251,20 @@ adf_nbuf_dmamap_info(adf_os_dma_map_t bmap, adf_os_dmamap_info_t *sg)
  * The nbuf created is guarenteed to have only 1 physical segment
  *
  * @param[in] hdl   platform device object
- * @param[in] size  data buffer size for this adf_nbuf including max header 
+ * @param[in] size  data buffer size for this adf_nbuf including max header
  *                  size
  * @param[in] reserve  headroom to start with.
  * @param[in] align    alignment for the start buffer.
- * @param[i] prio   Indicate if the nbuf is high priority (some OSes e.g darwin 
- *                   polls few times if allocation fails and priority is  TRUE) 
+ * @param[i] prio   Indicate if the nbuf is high priority (some OSes e.g darwin
+ *                   polls few times if allocation fails and priority is  TRUE)
  *
  * @return The new adf_nbuf instance or NULL if there's not enough memory.
  */
-static inline adf_nbuf_t 
+static inline adf_nbuf_t
 adf_nbuf_alloc(adf_os_device_t      osdev,
                adf_os_size_t        size,
                int                  reserve,
-               int                  align, 
+               int                  align,
                int                  prio)
 {
     return __adf_nbuf_alloc(osdev, size, reserve,align, prio);
@@ -324,10 +324,10 @@ adf_nbuf_tx_free(adf_nbuf_t buf_list, int tx_err)
  *        buf. Note that this can allocate a new buffer, or
  *        change geometry of the orignial buffer. The new buffer
  *        is returned in the (new_buf).
- * 
+ *
  * @param[in] buf (older buffer)
  * @param[in] headroom
- * 
+ *
  * @return newly allocated buffer
  */
 static inline adf_nbuf_t
@@ -340,10 +340,10 @@ adf_nbuf_realloc_headroom(adf_nbuf_t buf, a_uint32_t headroom)
 /**
  * @brief expand the tailroom to the new tailroom, but the buffer
  * remains the same
- * 
+ *
  * @param[in] buf       buffer
  * @param[in] tailroom  new tailroom
- * 
+ *
  * @return expanded buffer or NULL on failure
  */
 static inline adf_nbuf_t
@@ -361,11 +361,11 @@ adf_nbuf_realloc_tailroom(adf_nbuf_t buf, a_uint32_t tailroom)
  *        having an extra API is that some OS do this in more
  *        optimized way, rather than calling realloc (head/tail)
  *        back to back.
- * 
+ *
  * @param[in] buf       buffer
- * @param[in] headroom  new headroom  
+ * @param[in] headroom  new headroom
  * @param[in] tailroom  new tailroom
- * 
+ *
  * @return expanded buffer
  */
 static inline adf_nbuf_t
@@ -382,9 +382,9 @@ adf_nbuf_expand(adf_nbuf_t buf, a_uint32_t headroom, a_uint32_t tailroom)
  *        effect, it also "linearizes" a buffer (which is
  *        perhaps why you'll use it mostly). It creates a
  *        writeable copy.
- * 
+ *
  * @param[in] buf source nbuf to copy from
- * 
+ *
  * @return the new nbuf
  */
 static inline adf_nbuf_t
@@ -397,10 +397,10 @@ adf_nbuf_copy(adf_nbuf_t buf)
 /**
  * @brief link two nbufs, the new buf is piggybacked into the
  *        older one.
- * 
+ *
  * @param[in] dst   buffer to piggyback into
  * @param[in] src   buffer to put
- * 
+ *
  * @return status of the call - 0 successful
  */
 static inline a_status_t
@@ -412,9 +412,9 @@ adf_nbuf_cat(adf_nbuf_t dst, adf_nbuf_t src)
 
 /**
  * @brief return the length of the copy bits for skb
- * 
+ *
  * @param skb, offset, len, to
- * 
+ *
  * @return int32_t
  */
 static inline int32_t
@@ -426,12 +426,12 @@ adf_nbuf_copy_bits(adf_nbuf_t nbuf, u_int32_t offset, u_int32_t len, void *to)
 
 /**
  * @brief clone the nbuf (copy is readonly)
- * 
+ *
  * @param[in] buf nbuf to clone from
- * 
+ *
  * @return cloned buffer
  */
-static inline adf_nbuf_t 
+static inline adf_nbuf_t
 adf_nbuf_clone(adf_nbuf_t buf)
 {
     return(__adf_nbuf_clone(buf));
@@ -444,12 +444,12 @@ adf_nbuf_clone(adf_nbuf_t buf)
  *         other users.If the nbuf is a clone then this function
  *         creates a new copy of the data. If the buffer is not
  *         a clone the original buffer is returned.
- * 
+ *
  * @param[in] buf   source nbuf to create a writable copy from
- * 
+ *
  * @return new buffer which is writeable
  */
-static inline adf_nbuf_t 
+static inline adf_nbuf_t
 adf_nbuf_unshare(adf_nbuf_t buf)
 {
     return(__adf_nbuf_unshare(buf));
@@ -490,9 +490,9 @@ adf_nbuf_data(adf_nbuf_t buf)
 
 /**
  * @brief return the amount of headroom int the current nbuf
- * 
+ *
  * @param[in] buf   buffer
- * 
+ *
  * @return amount of head room
  */
 static inline a_uint32_t
@@ -504,10 +504,10 @@ adf_nbuf_headroom(adf_nbuf_t buf)
 
 /**
  * @brief return the amount of tail space available
- * 
+ *
  * @param[in] buf   buffer
- * 
- * @return amount of tail room 
+ *
+ * @return amount of tail room
  */
 static inline a_uint32_t
 adf_nbuf_tailroom(adf_nbuf_t buf)
@@ -588,7 +588,7 @@ adf_nbuf_pull_head(adf_nbuf_t buf, adf_os_size_t size)
 
 
 /**
- * 
+ *
  * @brief trim data out from the end
  *
  * @param[in] buf   buf instance
@@ -632,9 +632,9 @@ adf_nbuf_set_pktlen(adf_nbuf_t buf, uint32_t len)
 
 /**
  * @brief test whether the nbuf is cloned or not
- * 
+ *
  * @param[in] buf   buffer
- * 
+ *
  * @return TRUE if it is cloned, else FALSE
  */
 static inline a_bool_t
@@ -644,7 +644,7 @@ adf_nbuf_is_cloned(adf_nbuf_t buf)
 }
 
 /**
- * 
+ *
  * @brief trim data out from the end
  *
  * @param[in] buf   buf instance
@@ -665,19 +665,19 @@ adf_nbuf_reserve(adf_nbuf_t buf, adf_os_size_t size)
 
 /**
  * @brief return the frag pointer & length of the frag
- * 
+ *
  * @param[in]  buf   buffer
  * @param[out] sg    this will return all the frags of the nbuf
- * 
+ *
  */
-static inline void 
-adf_nbuf_frag_info(adf_nbuf_t buf, adf_os_sglist_t *sg) 
+static inline void
+adf_nbuf_frag_info(adf_nbuf_t buf, adf_os_sglist_t *sg)
 {
     __adf_nbuf_frag_info(buf, sg);
 }
 /**
  * @brief return the data pointer & length of the header
- * 
+ *
  * @param[in]  buf  nbuf
  * @param[out] addr data pointer
  * @param[out] len  length of the data
@@ -694,9 +694,9 @@ adf_nbuf_peek_header(adf_nbuf_t buf, a_uint8_t **addr, a_uint32_t *len)
 
 /**
  * @brief get the priv pointer from the nbuf'f private space
- * 
+ *
  * @param[in] buf
- * 
+ *
  * @return data pointer to typecast into your priv structure
  */
 static inline a_uint8_t *
@@ -763,9 +763,9 @@ adf_nbuf_queue_remove(adf_nbuf_queue_t *head)
 
 /**
  * @brief get the length of the queue
- * 
+ *
  * @param[in] head  buf queue head
- * 
+ *
  * @return length of the queue
  */
 static inline a_uint32_t
@@ -777,12 +777,12 @@ adf_nbuf_queue_len(adf_nbuf_queue_t *head)
 
 /**
  * @brief get the first guy/packet in the queue
- * 
+ *
  * @param[in] head  buf queue head
- * 
+ *
  * @return first buffer in queue
  */
-static inline adf_nbuf_t 
+static inline adf_nbuf_t
 adf_nbuf_queue_first(adf_nbuf_queue_t *head)
 {
     return (__adf_nbuf_queue_first(head));
@@ -792,9 +792,9 @@ adf_nbuf_queue_first(adf_nbuf_queue_t *head)
 /**
  * @brief get the next guy/packet of the given buffer (or
  *        packet)
- * 
+ *
  * @param[in] buf   buffer
- * 
+ *
  * @return next buffer/packet
  */
 static inline adf_nbuf_t
@@ -806,7 +806,7 @@ adf_nbuf_queue_next(adf_nbuf_t buf)
 
 /**
  * @brief Check if the buf queue is empty
- * 
+ *
  * @param[in] nbq   buf queue handle
  *
  * @return    TRUE  if queue is empty
@@ -903,7 +903,7 @@ adf_nbuf_append_ext_list(adf_nbuf_t head_buf, adf_nbuf_t ext_list,
 
 /**
  * @brief Gets the tx checksumming to be performed on this buf
- * 
+ *
  * @param[in]  buf       buffer
  * @param[out] hdr_off   the (tcp) header start
  * @param[out] where     the checksum offset
@@ -917,7 +917,7 @@ adf_nbuf_tx_cksum_info(adf_nbuf_t buf, a_uint8_t **hdr_off, a_uint8_t **where)
 
 /**
  * @brief Gets the tx checksum offload demand
- * 
+ *
  * @param[in]  buf             buffer
  * @return adf_nbuf_tx_cksum_t checksum offload demand for the frame
  */
@@ -930,7 +930,7 @@ adf_nbuf_get_tx_cksum(adf_nbuf_t buf)
 /**
  * @brief Drivers that support hw checksumming use this to
  *        indicate checksum info to the stack.
- * 
+ *
  * @param[in]  buf      buffer
  * @param[in]  cksum    checksum
  */
@@ -944,7 +944,7 @@ adf_nbuf_set_rx_cksum(adf_nbuf_t buf, adf_nbuf_rx_cksum_t *cksum)
 /**
  * @brief Drivers that are capable of TCP Large segment offload
  *        use this to get the offload info out of an buf.
- * 
+ *
  * @param[in]  buf  buffer
  * @param[out] tso  offload info
  */
@@ -964,26 +964,26 @@ adf_nbuf_set_vlan_info(adf_nbuf_t buf, adf_net_vlan_tag_t vlan_tag)
 /**
  * @brief This function extracts the vid & priority from an
  *        nbuf
- * 
- * 
+ *
+ *
  * @param[in] hdl   net handle
  * @param[in] buf   buffer
  * @param[in] vlan  vlan header
- * 
+ *
  * @return status of the operation
  */
 static inline a_status_t
-adf_nbuf_get_vlan_info(adf_net_handle_t hdl, adf_nbuf_t buf, 
+adf_nbuf_get_vlan_info(adf_net_handle_t hdl, adf_nbuf_t buf,
                        adf_net_vlanhdr_t *vlan)
 {
     return __adf_nbuf_get_vlan_info(hdl, buf, vlan);
 }
 
 /**
- * @brief This function extracts the TID value from nbuf 
- * 
+ * @brief This function extracts the TID value from nbuf
+ *
  * @param[in] buf   buffer
- * 
+ *
  * @return TID value
  */
 static inline a_uint8_t
@@ -1006,10 +1006,10 @@ adf_nbuf_set_tid(adf_nbuf_t buf, a_uint8_t tid)
 }
 
 /**
- * @brief This function extracts the exemption type from nbuf 
- * 
+ * @brief This function extracts the exemption type from nbuf
+ *
  * @param[in] buf   buffer
- * 
+ *
  * @return exemption type
  */
 static inline a_uint8_t
@@ -1026,12 +1026,12 @@ adf_nbuf_reset_ctxt(__adf_nbuf_t nbuf)
 
 /**
  * @brief This function peeks data into the buffer at given offset
- * 
+ *
  * @param[in] buf   buffer
  * @param[out] data  peeked output buffer
  * @param[in] off   offset
  * @param[in] len   length of buffer requested beyond offset
- * 
+ *
  * @return status of operation
  */
 static inline a_status_t

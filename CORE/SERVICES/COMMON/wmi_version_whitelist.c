@@ -37,5 +37,3 @@ wmi_whitelist_version_info version_whitelist[] =
 {
     {0, 0, 0x5F414351, 0x00004C4D, 0, 0},    //Placeholder: Major=0, Minor=0, Namespace="QCA_ML" (Dummy entry)
 };
-
-

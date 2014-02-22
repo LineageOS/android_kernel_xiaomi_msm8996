@@ -423,4 +423,3 @@ void wlan_sys_probe(void);
 
 
 #endif  // WLAN_QCT_SYS_H__
-

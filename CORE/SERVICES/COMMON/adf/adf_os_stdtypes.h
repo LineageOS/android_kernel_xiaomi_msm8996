@@ -28,7 +28,7 @@
 
 /**
  * @defgroup adf_os_public OS abstraction API
- */ 
+ */
 
 /**
  * @ingroup adf_os_public

@@ -49,7 +49,7 @@ struct ol_txrx_pdev_t;
  */
 A_STATUS wdi_event_sub(
     struct ol_txrx_pdev_t *txrx_pdev,
-    wdi_event_subscribe *event_cb_sub, 
+    wdi_event_subscribe *event_cb_sub,
     enum WDI_EVENT event);
 
 /**
@@ -67,7 +67,7 @@ A_STATUS wdi_event_sub(
  */
 A_STATUS wdi_event_unsub(
     struct ol_txrx_pdev_t *txrx_pdev,
-    wdi_event_subscribe *event_cb_sub, 
+    wdi_event_subscribe *event_cb_sub,
     enum WDI_EVENT event);
 
 #ifdef WDI_EVENT_ENABLE

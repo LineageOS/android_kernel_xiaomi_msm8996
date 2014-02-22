@@ -3669,10 +3669,10 @@ VOS_STATUS hdd_update_mac_config(hdd_context_t *pHddCtx)
 
    if (status)
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: request_firmware failed %d\n",
+      hddLog(VOS_TRACE_LEVEL_WARN, "%s: request_firmware failed %d\n",
              __func__, status);
       vos_status = VOS_STATUS_E_FAILURE;
-      goto config_exit;
+      return vos_status;
    }
    if (!fw || !fw->data || !fw->size)
    {
