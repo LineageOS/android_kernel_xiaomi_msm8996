@@ -1385,6 +1385,7 @@ void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);
 #endif
 
 int hdd_wmmps_helper(hdd_adapter_t *pAdapter, tANI_U8 *ptr);
+int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate);
 
 int hdd_wlan_startup(struct device *dev, void *hif_sc);
 void __hdd_wlan_exit(void);

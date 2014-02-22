@@ -14220,14 +14220,7 @@ VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
 	struct wma_txrx_node *intr = wma->interfaces;
 
 	/* Get the vdev id */
-	if (pRateUpdateParams->dev_mode == VOS_STA_SAP_MODE ||
-		pRateUpdateParams->dev_mode == VOS_IBSS_MODE ||
-		pRateUpdateParams->dev_mode == VOS_P2P_GO_MODE)
-	{
-		pdev = wma_find_vdev_by_addr(wma, pRateUpdateParams->bssid, &vdev_id);
-	} else {
-		pdev = wma_find_vdev_by_bssid(wma, pRateUpdateParams->bssid, &vdev_id);
-	}
+	pdev = wma_find_vdev_by_addr(wma, pRateUpdateParams->bssid, &vdev_id);
 	if (!pdev) {
 		WMA_LOGE("vdev handle is invalid for %pM", pRateUpdateParams->bssid);
 		vos_mem_free(pRateUpdateParams);
@@ -14246,6 +14239,9 @@ VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
 		mbpsx10_rate = pRateUpdateParams->mcastDataRate24GHz;
 		paramId = WMI_VDEV_PARAM_MCAST_DATA_RATE;
 	}
+	WMA_LOGE("%s: dev_id = %d, dev_type = %d, dev_mode = %d, mac = %pM",
+		__func__, vdev_id, intr[vdev_id].type,
+		pRateUpdateParams->dev_mode, pRateUpdateParams->bssid);
 	ret = wma_encode_mc_rate(short_gi, intr[vdev_id].config.chwidth,
 			intr[vdev_id].chanmode, intr[vdev_id].mhz,
 			mbpsx10_rate, pRateUpdateParams->nss, &rate);
