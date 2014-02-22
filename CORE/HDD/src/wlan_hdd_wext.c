@@ -615,10 +615,8 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
         goto error;
     }
 
-    snprintf(wcnss_SW_version, sizeof(tSirVersionString), "20%x.%x.%x",
-        (pHddContext->target_fw_version&0xff0000)>>16,
-        (pHddContext->target_fw_version&0xff00)>>8,
-        (pHddContext->target_fw_version&0xff)>>0);
+    snprintf(wcnss_SW_version, sizeof(tSirVersionString), "%08x",
+        pHddContext->target_fw_version);
 
     pSWversion = wcnss_SW_version;
 
