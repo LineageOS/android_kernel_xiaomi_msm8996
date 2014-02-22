@@ -8816,7 +8816,7 @@ void hdd_allow_suspend(void)
 
 void hdd_allow_suspend_timeout(v_U32_t timeout)
 {
-    vos_wake_lock_timeout_acquire(&wlan_wake_lock, msecs_to_jiffies(timeout));
+    vos_wake_lock_timeout_acquire(&wlan_wake_lock, timeout);
 }
 
 /**---------------------------------------------------------------------------

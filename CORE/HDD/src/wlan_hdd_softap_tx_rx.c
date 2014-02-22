@@ -1534,7 +1534,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
          skb->ip_summed = CHECKSUM_NONE;
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
          vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
-                 msecs_to_jiffies(HDD_WAKE_LOCK_DURATION));
+                                       HDD_WAKE_LOCK_DURATION);
 #endif
          rxstat = netif_rx_ni(skb);
          if (NET_RX_SUCCESS == rxstat)
@@ -1642,7 +1642,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
    skb->protocol = eth_type_trans(skb, skb->dev);
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
    vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
-           msecs_to_jiffies(HDD_WAKE_LOCK_DURATION));
+                                 HDD_WAKE_LOCK_DURATION);
 #endif
    rxstat = netif_rx_ni(skb);
    if (NET_RX_SUCCESS == rxstat)
