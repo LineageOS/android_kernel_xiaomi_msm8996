@@ -131,12 +131,16 @@ static size_t reorder(FILE *log_in, FILE *log_out)
 {
     unsigned char buf[RECLEN];
     size_t res;
-    unsigned int timestamp, min_timestamp = -1;
+    unsigned int timestamp = 0, min_timestamp = -1;
     int pos = 0, min_pos = 0;
+    struct dbglog_slot *slot;
+    unsigned int length = 0;
 
     pos = 0;
     while ((res = fread(buf, RECLEN, 1, log_in)) == 1) {
-        timestamp = get_le32(buf);
+        slot = (struct dbglog_slot *)buf;
+        timestamp = get_le32((unsigned char *)&slot->timestamp);
+        length = get_le32((unsigned char *)&slot->length);
         if (timestamp < min_timestamp) {
                 min_timestamp = timestamp;
                 min_pos = pos;
@@ -147,8 +151,11 @@ static size_t reorder(FILE *log_in, FILE *log_out)
 
     fseek(log_in, min_pos * RECLEN, SEEK_SET);
     while ((res = fread(buf, RECLEN, 1, log_in)) == 1) {
+        slot = (struct dbglog_slot *)buf;
+        timestamp = get_le32((unsigned char *)&slot->timestamp);
+        length = get_le32((unsigned char *)&slot->length);
         printf("Read record timestamp=%u length=%u\n",
-               get_le32(buf), get_le32(&buf[4]));
+               timestamp, length);
         if (fwrite(buf, RECLEN, res, log_out) != res)
                perror("fwrite");
     }
@@ -156,9 +163,12 @@ static size_t reorder(FILE *log_in, FILE *log_out)
     fseek(log_in, 0, SEEK_SET);
     pos = min_pos;
     while (pos > 0 && (res = fread(buf, RECLEN, 1, log_out)) == 1) {
+        slot = (struct dbglog_slot *)buf;
+        timestamp = get_le32((unsigned char *)&slot->timestamp);
+        length = get_le32((unsigned char *)&slot->length);
         pos--;
         printf("Read record timestamp=%u length=%u\n",
-                get_le32(buf), get_le32(&buf[4]));
+                timestamp, length);
         if (fwrite(buf, RECLEN, res, log_out) != res)
                 perror("fwrite");
     }
@@ -409,28 +419,30 @@ int main(int argc, char *argv[])
                 continue;
             }
             slot = (struct dbglog_slot *)dbgbuf;
-            timestamp = get_le32((unsigned char *)&slot->timestamp);
-            length = get_le32((unsigned char *)&slot->length);
-            dropped = get_le32((unsigned char *)&slot->dropped);
-            if (!((optionflag & SILENT_FLAG) == SILENT_FLAG)) {
-                /* don't like this have to fix it */
-                printf("Read record timestamp=%u length=%u fw dropped=%u\n",
-                       timestamp, length, dropped);
-            }
-            fseek(log_out, record * RECLEN, SEEK_SET);
-            /* Diag type is not required so +4 */
-            if ((res = fwrite((dbgbuf+sizeof(slot->diag_type)), RECLEN,
-                              1, log_out)) != 1){
-                perror("fwrite");
-                break;
-            }
-            record++;
-            if (record == max_records)
-                    record = 0;
-        }
+            diag_type = *(tANI_U16*)dbgbuf;
 
-    printf("Incomplete read: %d bytes\n", (int) res);
-    cleanup();
+            if (diag_type == DIAG_TYPE_FW_DEBUG_MSG) {
+                fseek(log_out, record * RECLEN, SEEK_SET);
+                record++;
+                timestamp = get_le32((unsigned char *)&slot->timestamp);
+                length = get_le32((unsigned char *)&slot->length);
+                dropped = get_le32((unsigned char *)&slot->dropped);
+                if (!((optionflag & SILENT_FLAG) == SILENT_FLAG)) {
+                    /* don't like this have to fix it */
+                    printf("Read record %d timestamp=%u length=%u fw dropped=%u\n",
+                           record, timestamp, length, dropped);
+                }
+                if ((res = fwrite(dbgbuf, RECLEN, 1, log_out)) != 1){
+                    perror("fwrite");
+                    break;
+                }
+                fflush(log_out);
+                if (record == max_records)
+                    record = 0;
+            }
+        }
+        printf("Incomplete read: %d bytes\n", (int) res);
+        cleanup();
     }
 
     if (optionflag & CONSOLE_FLAG) {
@@ -445,9 +457,12 @@ int main(int argc, char *argv[])
                 continue;
             }
             slot = (struct dbglog_slot *)dbgbuf;
-            length = get_le32((unsigned char *)&slot->length);
-            dropped = get_le32((unsigned char *)&slot->dropped);
-            dbglog_parse_debug_logs(slot->payload, length, dropped);
+            diag_type = *(tANI_U16*)dbgbuf;
+            if (diag_type == DIAG_TYPE_FW_DEBUG_MSG) {
+                length = get_le32((unsigned char *)&slot->length);
+                dropped = get_le32((unsigned char *)&slot->dropped);
+                dbglog_parse_debug_logs(slot->payload, length, dropped);
+            }
         }
         close(sock_fd);
         free(nlh);

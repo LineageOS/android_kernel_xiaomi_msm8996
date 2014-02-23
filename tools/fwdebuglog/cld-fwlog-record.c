@@ -53,10 +53,17 @@ static unsigned int get_le32(const unsigned char *pos)
 static size_t capture(FILE *out_log, FILE *in_log)
 {
     size_t res;
+    struct dbglog_slot *slot;
+    unsigned int length = 0, timestamp = 0, dropped = 0;
+
 
     while ((res = fread(buf, RECLEN, 1, in_log)) == 1)  {
+        slot = (struct dbglog_slot *)buf;
+        timestamp = get_le32((unsigned char *)&slot->timestamp);
+        length = get_le32((unsigned char *)&slot->length);
+        dropped = get_le32((unsigned char *)&slot->dropped);
         printf("Read record timestamp=%u length=%u no. fw dropped=%u\n",
-               get_le32(buf), get_le32(&buf[4]), get_le32(&buf[8]));
+               timestamp, length, dropped);
         fseek(out_log, record * RECLEN, SEEK_SET);
         if (fwrite(buf, RECLEN, res, out_log) != res)
                 perror("fwrite");
@@ -74,10 +81,13 @@ static size_t reorder(FILE *log_in, FILE *log_out)
     size_t res;
     unsigned int timestamp, min_timestamp = -1;
     int pos = 0, min_pos = 0;
+    struct dbglog_slot *slot;
+    unsigned int length = 0;
 
     pos = 0;
     while ((res = fread(buf, RECLEN, 1, log_in)) == 1) {
-        timestamp = get_le32(buf);
+        slot = (struct dbglog_slot *)buf;
+        timestamp = get_le32((unsigned char *)&slot->timestamp);
         if (timestamp < min_timestamp) {
                 min_timestamp = timestamp;
                 min_pos = pos;
@@ -88,8 +98,11 @@ static size_t reorder(FILE *log_in, FILE *log_out)
 
     fseek(log_in, min_pos * RECLEN, SEEK_SET);
     while ((res = fread(buf, RECLEN, 1, log_in)) == 1) {
+        slot = (struct dbglog_slot *)buf;
+        timestamp = get_le32((unsigned char *)&slot->timestamp);
+        length = get_le32((unsigned char *)&slot->length);
         printf("Read record timestamp=%u length=%u\n",
-               get_le32(buf), get_le32(&buf[4]));
+               timestamp, length);
         if (fwrite(buf, RECLEN, res, log_out) != res)
                perror("fwrite");
     }
@@ -98,8 +111,11 @@ static size_t reorder(FILE *log_in, FILE *log_out)
     pos = min_pos;
     while (pos > 0 && (res = fread(buf, RECLEN, 1, log_out)) == 1) {
         pos--;
+        slot = (struct dbglog_slot *)buf;
+        timestamp = get_le32((unsigned char *)&slot->timestamp);
+        length = get_le32((unsigned char *)&slot->length);
         printf("Read record timestamp=%u length=%u\n",
-                get_le32(buf), get_le32(&buf[4]));
+               timestamp, length);
         if (fwrite(buf, RECLEN, res, log_out) != res)
                 perror("fwrite");
     }
