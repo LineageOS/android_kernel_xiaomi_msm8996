@@ -9099,6 +9099,7 @@ static int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *d
                                                                tlTid[ac], tlTid[ac], 0, 0,
 #ifdef QCA_WIFI_2_0
                                                                WLANTL_BI_DIR,
+                                                               1,
                                                                pAdapter->sessionId );
 #else
                                                                WLANTL_BI_DIR );

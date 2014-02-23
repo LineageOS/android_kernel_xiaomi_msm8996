@@ -1103,13 +1103,18 @@ VOS_STATUS WLANTL_EnableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
 				   WLANTL_ACEnumType ac, u_int8_t tid,
 				   u_int8_t pri, v_U32_t srvc_int,
 				   v_U32_t sus_int, WLANTL_TSDirType dir,
-				   v_U32_t sessionId)
+				   u_int8_t psb, v_U32_t sessionId)
 {
 	tp_wma_handle wma_handle;
 	t_wma_trigger_uapsd_params uapsd_params;
 	struct txrx_tl_shim_ctx *tl_shim;
 
 	ENTER();
+
+	if (!psb) {
+		TLSHIM_LOGD("No need to configure auto trigger:psb is 0");
+		return VOS_STATUS_SUCCESS;
+	}
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 	if (!wma_handle) {
