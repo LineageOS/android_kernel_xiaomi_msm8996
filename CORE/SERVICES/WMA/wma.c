@@ -2178,7 +2178,7 @@ static int wma_unified_bcntx_status_event_handler(void *handle, u_int8_t *cmd_pa
    }
 
    beacon_tx_complete_ind = (tSirFirstBeaconTxCompleteInd *)
-               adf_os_mem_alloc(NULL, sizeof(tSirFirstBeaconTxCompleteInd));
+               vos_mem_malloc(sizeof(tSirFirstBeaconTxCompleteInd));
    if (!beacon_tx_complete_ind) {
 	   WMA_LOGE("%s: Failed to alloc beacon_tx_complete_ind", __func__);
 	   return -ENOMEM;
