@@ -1108,6 +1108,7 @@ VOS_STATUS WLANTL_EnableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
 	tp_wma_handle wma_handle;
 	t_wma_trigger_uapsd_params uapsd_params;
 	struct txrx_tl_shim_ctx *tl_shim;
+	enum uapsd_ac access_category;
 
 	ENTER();
 
@@ -1128,7 +1129,24 @@ VOS_STATUS WLANTL_EnableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	uapsd_params.wmm_ac = ac;
+	switch (ac) {
+		case WLANTL_AC_BK:
+			access_category = UAPSD_BK;
+			break;
+		case WLANTL_AC_BE:
+			access_category = UAPSD_BE;
+			break;
+		case WLANTL_AC_VI:
+			access_category = UAPSD_VI;
+			break;
+		case WLANTL_AC_VO:
+			access_category = UAPSD_VO;
+			break;
+		default:
+			return VOS_STATUS_E_FAILURE;
+	}
+
+	uapsd_params.wmm_ac = access_category;
 	uapsd_params.user_priority = pri;
 	uapsd_params.service_interval = srvc_int;
 	uapsd_params.delay_interval = tl_shim->delay_interval;

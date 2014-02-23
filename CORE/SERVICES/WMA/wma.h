@@ -1453,10 +1453,10 @@ u_int16_t   dfs_usenol(struct ieee80211com *ic);
 
 /* U-APSD Access Categories */
 enum uapsd_ac {
-	UAPSD_VO,
-	UAPSD_VI,
+	UAPSD_BE,
 	UAPSD_BK,
-	UAPSD_BE
+	UAPSD_VI,
+	UAPSD_VO
 };
 
 VOS_STATUS wma_disable_uapsd_per_ac(tp_wma_handle wma_handle,
