@@ -1182,7 +1182,8 @@ eHalStatus csrIssueRoamAfterLostlinkScan(tpAniSirGlobal pMac, tANI_U32 sessionId
 
 
 eHalStatus csrScanGetScanChnInfo(tpAniSirGlobal pMac, tANI_U8 sessionId,
-                                 void *pContext, void *callback)
+                                 void *pContext, void *callback,
+                                 tANI_U32 scanID)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSmeCmd *pScanCmd;
@@ -1197,8 +1198,18 @@ eHalStatus csrScanGetScanChnInfo(tpAniSirGlobal pMac, tANI_U8 sessionId,
             pScanCmd->u.scanCmd.callback = callback;
             pScanCmd->u.scanCmd.pContext = pContext;
             pScanCmd->u.scanCmd.reason = eCsrScanGetScanChnInfo;
-            //Need to make the following atomic
-            pScanCmd->u.scanCmd.scanID = pMac->scan.nextScanID++; //let it wrap around
+            if (callback)
+            {
+                //use same scanID as maintained in pAdapter
+                pScanCmd->u.scanCmd.scanID = scanID;
+            }
+            else
+            {
+                //Need to make the following atomic
+                pScanCmd->u.scanCmd.scanID =
+                                   pMac->scan.nextScanID++; //let it wrap around
+            }
+
             pScanCmd->sessionId = sessionId;
             status = csrQueueSmeCommand(pMac, pScanCmd, eANI_BOOLEAN_FALSE);
             if( !HAL_STATUS_SUCCESS( status ) )
@@ -5225,14 +5236,16 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
                        if( pCommand->u.scanCmd.reason != eCsrScanUserRequest)
                        {
                            csrScanGetScanChnInfo(pMac, pCommand->sessionId,
-                                                 NULL, NULL);
+                                                 NULL, NULL,
+                                                 pCommand->u.scanCmd.scanID);
                        }
                        else
                        {
                            csrScanGetScanChnInfo(pMac,
                                    pCommand->sessionId,
                                    pCommand->u.scanCmd.pContext,
-                                   pCommand->u.scanCmd.callback);
+                                   pCommand->u.scanCmd.callback,
+                                   pCommand->u.scanCmd.scanID);
                            pCommand->u.scanCmd.callback = NULL;
                        }
                     }
