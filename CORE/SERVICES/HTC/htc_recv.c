@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -368,6 +368,7 @@ A_STATUS HTCRxCompletionHandler(
         if (htc_ep_id == ENDPOINT_0) {
             A_UINT16 message_id;
             HTC_UNKNOWN_MSG *htc_msg;
+            int wow_nack = 0;
 
                 /* remove HTC header */
             adf_nbuf_pull_head(netbuf, HTC_HDR_LENGTH);
@@ -396,6 +397,13 @@ A_STATUS HTCRxCompletionHandler(
                 adf_os_mutex_release(target->osdev, &target->CtrlResponseValid);
                 break;
             case HTC_MSG_SEND_SUSPEND_COMPLETE:
+                wow_nack = 0;
+                target->HTCInitInfo.pContext = (void *)&wow_nack;
+                target->HTCInitInfo.TargetSendSuspendComplete(target->HTCInitInfo.pContext);
+                break;
+            case HTC_MSG_NACK_SUSPEND:
+                wow_nack = 1;
+                target->HTCInitInfo.pContext = (void *)&wow_nack;
                 target->HTCInitInfo.TargetSendSuspendComplete(target->HTCInitInfo.pContext);
                 break;
             }

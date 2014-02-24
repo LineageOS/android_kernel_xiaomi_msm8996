@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -329,28 +329,4 @@ v_VOID_t vos_fwDumpReq(tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2,
 v_VOID_t vos_flush_work(v_VOID_t *work);
 v_VOID_t vos_flush_delayed_work(v_VOID_t *dwork);
 
-/**
-  @brief vos_request_pm_qos()
-
-  This function will vote for QoS latency
-
-  @param
-       qos_val - QoS latency in us
-  @return
-       NONE
-*/
-v_VOID_t vos_request_pm_qos(v_U32_t qos_val);
-
-/**
-  @brief vos_remove_pm_qos()
-
-  This function will remove QoS latency
-  that requested by vos_request_pm_qos()
-
-  @param
-       NONE
-  @return
-       NONE
-*/
-v_VOID_t vos_remove_pm_qos(v_VOID_t);
 #endif // if !defined __VOS_API_H
