@@ -10976,6 +10976,9 @@ VOS_STATUS wma_disable_uapsd_per_ac(tp_wma_handle wma_handle,
 {
 	int32_t ret;
 	struct wma_txrx_node *iface = &wma_handle->interfaces[vdev_id];
+	wmi_sta_uapsd_auto_trig_param uapsd_trigger_param;
+	enum uapsd_up user_priority;
+
 	WMA_LOGD("Disable Uapsd per ac vdevId %d ac %d", vdev_id, ac);
 
 	switch (ac) {
@@ -10983,25 +10986,50 @@ VOS_STATUS wma_disable_uapsd_per_ac(tp_wma_handle wma_handle,
 			iface->uapsd_cached_val &=
 					~(WMI_STA_PS_UAPSD_AC3_DELIVERY_EN |
 					WMI_STA_PS_UAPSD_AC3_TRIGGER_EN);
+			user_priority = UAPSD_UP_VO;
 			break;
 		case UAPSD_VI:
 			iface->uapsd_cached_val &=
 					~(WMI_STA_PS_UAPSD_AC2_DELIVERY_EN |
 					WMI_STA_PS_UAPSD_AC2_TRIGGER_EN);
+			user_priority = UAPSD_UP_VI;
 			break;
 		case UAPSD_BK:
 			iface->uapsd_cached_val &=
 					~(WMI_STA_PS_UAPSD_AC1_DELIVERY_EN |
 					WMI_STA_PS_UAPSD_AC1_TRIGGER_EN);
+			user_priority = UAPSD_UP_BK;
 			break;
 		case UAPSD_BE:
 			iface->uapsd_cached_val &=
 					~(WMI_STA_PS_UAPSD_AC0_DELIVERY_EN |
 					WMI_STA_PS_UAPSD_AC0_TRIGGER_EN);
+			user_priority = UAPSD_UP_BE;
 			break;
 		default:
 			WMA_LOGE("Invalid AC vdevId %d ac %d", vdev_id, ac);
 			return VOS_STATUS_E_FAILURE;
+	}
+
+	/*
+	 * Disable Auto Trigger Functionality before
+	 * disabling uapsd for a particular AC
+	 */
+	uapsd_trigger_param.wmm_ac = ac;
+	uapsd_trigger_param.user_priority = user_priority;
+	uapsd_trigger_param.service_interval = 0;
+	uapsd_trigger_param.suspend_interval = 0;
+	uapsd_trigger_param.delay_interval = 0;
+
+	ret = wmi_unified_set_sta_uapsd_auto_trig_cmd(wma_handle->wmi_handle,
+					vdev_id,
+					wma_handle->interfaces[vdev_id].bssid,
+					(u_int8_t*)(&uapsd_trigger_param),
+					1);
+	if (ret) {
+		WMA_LOGE("Fail to send auto trig cmd for vdevid %d ret = %d",
+			ret, vdev_id);
+		return VOS_STATUS_E_FAILURE;
 	}
 
 	ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,

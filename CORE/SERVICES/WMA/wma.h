@@ -1464,4 +1464,18 @@ enum uapsd_ac {
 VOS_STATUS wma_disable_uapsd_per_ac(tp_wma_handle wma_handle,
 					u_int32_t vdev_id,
 					enum uapsd_ac ac);
+
+/* U-APSD User Priorities */
+enum uapsd_up {
+	UAPSD_UP_BE,
+	UAPSD_UP_BK,
+	UAPSD_UP_RESV,
+	UAPSD_UP_EE,
+	UAPSD_UP_CL,
+	UAPSD_UP_VI,
+	UAPSD_UP_VO,
+	UAPSD_UP_NC,
+	UAPSD_UP_MAX
+};
+
 #endif
