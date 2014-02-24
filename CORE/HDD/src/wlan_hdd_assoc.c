@@ -1455,6 +1455,15 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                              pHddCtx->wiphy,
 #endif
                              bss);
+
+            // perform any WMM-related association processing
+            hdd_wmm_assoc(pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE);
+
+            /* Start the Queue - Start tx queues before hdd_roamRegisterSTA,
+               since hdd_roamRegisterSTA will flush any cached data frames
+               immediately */
+            netif_tx_wake_all_queues(dev);
+
             // Register the Station with TL after associated...
             vosStatus = hdd_roamRegisterSTA( pAdapter,
                     pRoamInfo,
@@ -1490,16 +1499,20 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                                                    WLANTL_STA_AUTHENTICATED );
                 pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
             }
+
+            if ( VOS_IS_STATUS_SUCCESS( vosStatus ) )
+            {
+                // perform any WMM-related association processing
+                hdd_wmm_assoc(pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE);
+            }
+
+            /* Start the tx queues */
+            netif_tx_wake_all_queues(dev);
         }
 
-        if ( VOS_IS_STATUS_SUCCESS( vosStatus ) )
+        if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
         {
-            // perform any WMM-related association processing
-            hdd_wmm_assoc(pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE);
-        }
-        else
-        {
-            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "Cannot register STA with TL.  Failed with vosStatus = %d [%08X]",
                     vosStatus, vosStatus );
         }
@@ -1507,8 +1520,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         vos_mem_zero( &pAdapter->hdd_stats.hddPmfStats,
                       sizeof(pAdapter->hdd_stats.hddPmfStats) );
 #endif
-        // Start the Queue
-        netif_tx_wake_all_queues(dev);
     }
     else
     {
