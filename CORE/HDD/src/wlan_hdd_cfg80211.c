@@ -2784,11 +2784,15 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
                                       struct bss_parameters *params)
 {
     hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    int ret = 0;
+    eHalStatus halStatus;
 
     ENTER();
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
-                               __func__,pAdapter->device_mode);
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d, ap_isolate = %d",
+                               __func__,pAdapter->device_mode,
+                               params->ap_isolate);
 
     if((pAdapter->device_mode == WLAN_HDD_SOFTAP)
      ||  (pAdapter->device_mode == WLAN_HDD_P2P_GO)
@@ -2799,11 +2803,19 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
         if (-1 != params->ap_isolate)
         {
             pAdapter->sessionCtx.ap.apDisableIntraBssFwd = !!params->ap_isolate;
+
+            halStatus = sme_ApDisableIntraBssFwd(pHddCtx->hHal,
+                        pAdapter->sessionId,
+                        pAdapter->sessionCtx.ap.apDisableIntraBssFwd);
+            if (!HAL_STATUS_SUCCESS(halStatus))
+            {
+                ret = -EINVAL;
+            }
         }
     }
 
     EXIT();
-    return 0;
+    return ret;
 }
 
 static int wlan_hdd_change_iface_to_sta_mode(struct net_device *ndev,

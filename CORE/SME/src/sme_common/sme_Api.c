@@ -11505,3 +11505,58 @@ eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value)
     pMac->fEnableDebugLog = set_value;
     return (status);
 }
+
+/* ---------------------------------------------------------------------------
+  \fn    sme_ApDisableIntraBssFwd
+
+  \brief
+    SME will send message to WMA to set Intra BSS in txrx
+
+  \param
+
+    hHal - The handle returned by macOpen
+
+    sessionId - session id ( vdev id)
+
+    disablefwd - boolean value that indicate disable intrabss fwd disable
+
+  \return eHalStatus
+--------------------------------------------------------------------------- */
+eHalStatus sme_ApDisableIntraBssFwd(tHalHandle hHal, tANI_U8 sessionId,
+                                    tANI_BOOLEAN disablefwd)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    int status = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    vos_msg_t vosMessage;
+    tpDisableIntraBssFwd pSapDisableIntraFwd = NULL;
+
+    //Prepare the request to send to SME.
+    pSapDisableIntraFwd = vos_mem_malloc(sizeof(tDisableIntraBssFwd));
+    if (NULL == pSapDisableIntraFwd)
+    {
+       smsLog(pMac, LOGP, "Memory Allocation Failure!!! %s", __func__);
+       return eSIR_MEM_ALLOC_FAILED;
+    }
+
+    vos_mem_zero(pSapDisableIntraFwd, sizeof(tDisableIntraBssFwd));
+
+    pSapDisableIntraFwd->sessionId = sessionId;
+    pSapDisableIntraFwd->disableintrabssfwd = disablefwd;
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
+    {
+        /* serialize the req through MC thread */
+        vosMessage.bodyptr = pSapDisableIntraFwd;
+        vosMessage.type    = WDA_SET_SAP_INTRABSS_DIS;
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+           status = eHAL_STATUS_FAILURE;
+           vos_mem_free(pSapDisableIntraFwd);
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return (status);
+}
+

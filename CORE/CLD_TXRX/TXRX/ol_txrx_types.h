@@ -753,7 +753,7 @@ struct ol_txrx_vdev_t {
 		adf_os_spinlock_t mutex;
 		adf_os_timer_t timer;
 	} ll_pause;
-
+	a_bool_t disable_intrabss_fwd;
 };
 
 struct ol_rx_reorder_array_elem_t {

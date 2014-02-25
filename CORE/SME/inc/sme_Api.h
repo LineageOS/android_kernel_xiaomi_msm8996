@@ -3417,4 +3417,6 @@ eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level );
 eHalStatus sme_TxpowerLimit( tHalHandle hHal, tSirTxPowerLimit *psmetx);
 #endif
 eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value);
+eHalStatus sme_ApDisableIntraBssFwd(tHalHandle hHal, tANI_U8 sessionId,
+                                    tANI_BOOLEAN disablefwd);
 #endif //#if !defined( __SME_API_H )

@@ -14932,6 +14932,25 @@ static void wma_process_set_mimops_req(tp_wma_handle wma_handle,
 			mimops->sessionId);
 }
 
+/* function   : wma_set_vdev_intrabss_fwd
+ * Descriptin : Set intra_fwd value to wni_in.
+ * Args       :
+ *             wma_handle  : Pointer to WMA handle
+ *             pdis_intra_fwd  : Pointer to DisableIntraBssFwd struct
+ * Returns    :
+ */
+static void wma_set_vdev_intrabss_fwd(tp_wma_handle wma_handle,
+		tpDisableIntraBssFwd pdis_intra_fwd)
+{
+	ol_txrx_vdev_handle txrx_vdev;
+	WMA_LOGD("%s:intra_fwd:vdev(%d) intrabss_dis=%s",
+	__func__, pdis_intra_fwd->sessionId,
+	(pdis_intra_fwd->disableintrabssfwd ? "true" : "false"));
+
+	txrx_vdev = wma_handle->interfaces[pdis_intra_fwd->sessionId].handle;
+	wdi_in_vdev_rx_fwd_disabled(txrx_vdev, pdis_intra_fwd->disableintrabssfwd);
+}
+
 /*
  * function   : wma_mc_process_msg
  * Descriptin :
@@ -15316,7 +15335,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_process_set_mimops_req(wma_handle, (tSetMIMOPS *) msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
-
+		case WDA_SET_SAP_INTRABSS_DIS:
+			wma_set_vdev_intrabss_fwd(wma_handle, (tDisableIntraBssFwd *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
