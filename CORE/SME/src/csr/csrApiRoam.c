@@ -7196,15 +7196,21 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
         //Save the bss desc
         status = csrRoamSaveConnectedBssDesc(pMac, sessionId, pSirBssDesc);
            
-           if( CSR_IS_QOS_BSS(pIesTemp) || pIesTemp->HTCaps.present)
-           {
-              //Some HT AP's dont send WMM IE so in that case we assume all HT Ap's are Qos Enabled AP's
-              pConnectProfile->qap = TRUE;
-           }
-           else
-           {
-              pConnectProfile->qap = FALSE;
-           }
+        if( CSR_IS_QOS_BSS(pIesTemp) || pIesTemp->HTCaps.present)
+        {
+           //Some HT AP's dont send WMM IE so in that case we assume all HT Ap's are Qos Enabled AP's
+           pConnectProfile->qap = TRUE;
+        }
+        else
+        {
+           pConnectProfile->qap = FALSE;
+        }
+
+        if (pIesTemp->ExtCap.present)
+        {
+            pConnectProfile->proxyARPService = pIesTemp->ExtCap.proxyARPService;
+        }
+
         if ( NULL == pIes )
         {
             //Free memory if it allocated locally
