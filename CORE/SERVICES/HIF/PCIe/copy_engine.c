@@ -885,6 +885,7 @@ CE_per_engine_service(struct hif_pci_softc *sc, unsigned int CE_id)
     unsigned int flags;
     u_int32_t CE_int_status;
     unsigned int more_comp_cnt = 0;
+    unsigned int more_snd_comp_cnt = 0;
     unsigned int sw_idx, hw_idx;
 
     A_TARGET_ACCESS_BEGIN(targid);
@@ -1005,7 +1006,15 @@ more_watermarks:
     }
 
     if (CE_state->send_cb && CE_send_entries_done_nolock(sc, CE_state)) {
-        goto more_completions;
+        if (more_snd_comp_cnt++ < CE_TXRX_COMP_CHECK_THRESHOLD) {
+            goto more_completions;
+        } else {
+            adf_os_print("%s:Potential infinite loop detected during send completion"
+                         "nentries_mask:0x%x sw read_idx:0x%x hw read_idx:0x%x\n",
+                         __func__, CE_state->src_ring->nentries_mask,
+                         CE_state->src_ring->sw_index,
+                         CE_SRC_RING_READ_IDX_GET(targid, CE_state->ctrl_addr));
+        }
     }
 
 
