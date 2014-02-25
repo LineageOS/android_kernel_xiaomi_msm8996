@@ -2923,7 +2923,21 @@ limProcessMlmDisassocReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_
                                  psessionEntry, FALSE);
 
              /* Send Disassoc CNF and receive path cleanup */
+             if (!VOS_IS_STATUS_SUCCESS(vos_spin_lock_acquire
+                 (&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
+             {
+                 PELOGE(limLog(pMac, LOGE, FL
+                     ("deauth/disassoc process lock aquire failed!"));)
+                 return;
+             }
              limSendDisassocCnf(pMac);
+             if (!VOS_IS_STATUS_SUCCESS(vos_spin_lock_release
+                 (&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
+             {
+                 PELOGE(limLog(pMac, LOGE, FL
+                     ("deauth/disassoc process lock release failed!"));)
+                 return;
+             }
         }
         else
         {
@@ -3048,7 +3062,21 @@ void limCleanUpDisassocDeauthReq(tpAniSirGlobal pMac,
 
 void limProcessDisassocAckTimeout(tpAniSirGlobal pMac)
 {
+    if (!VOS_IS_STATUS_SUCCESS(vos_spin_lock_acquire
+         (&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
+    {
+        PELOGE(limLog(pMac, LOGE, FL
+                     ("deauth/disassoc process lock aquire failed!"));)
+        return;
+    }
     limSendDisassocCnf(pMac);
+    if (!VOS_IS_STATUS_SUCCESS(vos_spin_lock_release
+         (&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
+    {
+        PELOGE(limLog(pMac, LOGE, FL
+                     ("deauth/disassoc process lock release failed!"));)
+        return;
+    }
 }
 
 /**
@@ -3327,7 +3355,21 @@ end:
 
 void limProcessDeauthAckTimeout(tpAniSirGlobal pMac)
 {
+    if (!VOS_IS_STATUS_SUCCESS(vos_spin_lock_acquire
+         (&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
+    {
+        PELOGE(limLog(pMac, LOGE, FL
+                     ("deauth/disassoc process lock aquire failed!"));)
+        return;
+    }
     limSendDeauthCnf(pMac);
+    if (!VOS_IS_STATUS_SUCCESS(vos_spin_lock_release
+         (&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
+    {
+        PELOGE(limLog(pMac, LOGE, FL
+                     ("deauth/disassoc process lock release failed!"));)
+        return;
+    }
 }
 
 /**

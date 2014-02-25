@@ -3650,12 +3650,46 @@ end:
 
 eHalStatus limDisassocTxCompleteCnf(tpAniSirGlobal pMac, tANI_U32 txCompleteSuccess)
 {
-    return limSendDisassocCnf(pMac);
+    eHalStatus status = eHAL_STATUS_FAILURE;
+
+    if (!VOS_IS_STATUS_SUCCESS(vos_spin_lock_acquire
+         (&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
+    {
+        PELOGE(limLog(pMac, LOGE, FL
+                     ("deauth/disassoc process lock aquire failed!"));)
+        return status;
+    }
+    status = limSendDisassocCnf(pMac);
+    if (!VOS_IS_STATUS_SUCCESS(vos_spin_lock_release
+         (&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
+    {
+        PELOGE(limLog(pMac, LOGE, FL
+                     ("deauth/disassoc process lock release failed!"));)
+        return eHAL_STATUS_FAILURE;
+    }
+    return status;
 }
 
 eHalStatus limDeauthTxCompleteCnf(tpAniSirGlobal pMac, tANI_U32 txCompleteSuccess)
 {
-    return limSendDeauthCnf(pMac);
+    eHalStatus status = eHAL_STATUS_FAILURE;
+
+    if (!VOS_IS_STATUS_SUCCESS(vos_spin_lock_acquire
+         (&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
+    {
+        PELOGE(limLog(pMac, LOGE, FL
+                     ("deauth/disassoc process lock aquire failed!"));)
+        return status;
+    }
+    status = limSendDeauthCnf(pMac);
+    if (!VOS_IS_STATUS_SUCCESS(vos_spin_lock_release
+         (&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
+    {
+        PELOGE(limLog(pMac, LOGE, FL
+                     ("deauth/disassoc process lock release failed!"));)
+        return eHAL_STATUS_FAILURE;
+    }
+    return status;
 }
 
 /**
