@@ -2045,6 +2045,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
 #ifdef QCA_PKT_PROTO_TRACE
    v_U8_t proto_type;
 #endif /* QCA_PKT_PROTO_TRACE */
+   hdd_station_ctx_t *pHddStaCtx = NULL;
 
    //Sanity check on inputs
    if ((NULL == vosContext) || (NULL == rxBuf))
@@ -2077,12 +2078,22 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
        return eHAL_STATUS_FAILURE;
    }
 
+   pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+   if ((pHddStaCtx->conn_info.proxyARPService) &&
+         cfg80211_is_gratuitous_arp_unsolicited_na(skb))
+   {
+         ++pAdapter->hdd_stats.hddTxRxStats.rxDropped;
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+            "%s: Dropping HS 2.0 Gratuitous ARP or Unsolicited NA", __func__);
+        kfree_skb(skb);
+        return VOS_STATUS_SUCCESS;
+   }
+
 #ifdef FEATURE_WLAN_TDLS
 #ifndef QCA_WIFI_2_0
     if ((eTDLS_SUPPORT_ENABLED == pHddCtx->tdls_mode) &&
          0 != pHddCtx->connected_peer_count)
     {
-        hdd_station_ctx_t *pHddStaCtx = &pAdapter->sessionCtx.station;
         u8 mac[6];
 
         wlan_hdd_tdls_extract_sa(skb, mac);
