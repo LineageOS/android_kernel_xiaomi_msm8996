@@ -6128,7 +6128,7 @@ v_CountryInfoSource_t source
         }
         else
         {
-            smsLog(pMac, LOGW, FL("  doesn't match country %c%c"), pCountry[0], pCountry[1]);
+            smsLog(pMac, LOGE, FL("  doesn't match country %c%c, status %d"), pCountry[0], pCountry[1], vosStatus);
             status = eHAL_STATUS_INVALID_PARAMETER;
         }
     }

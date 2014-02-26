@@ -340,10 +340,16 @@ eHalStatus csr_init_chan_list(tpAniSirGlobal mac)
                                               mac->scan.countryCodeDefault,
                                               &reg_id, source);
     if (status != eHAL_STATUS_SUCCESS)
+    {
+       smsLog(mac, LOGE, FL("csrGetRegulatoryDomainForCountry failed"));
        return status;
+    }
 
     if (vos_nv_setRegDomain(mac, reg_id, FALSE) != VOS_STATUS_SUCCESS)
+    {
+       smsLog(mac, LOGE, FL("vos_nv_setRegDomain failed"));
        return eHAL_STATUS_FAILURE;
+    }
     mac->scan.domainIdDefault = reg_id;
     mac->scan.domainIdCurrent = mac->scan.domainIdDefault;
     vos_mem_copy(mac->scan.countryCodeCurrent,
