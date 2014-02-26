@@ -530,7 +530,11 @@ ol_rx_delba_handler(
      * the single-element statically-allocated reorder array
      * used for non block-ack cases.
      */
-    adf_os_mem_free(rx_reorder->array);
+    if (rx_reorder->array != &rx_reorder->base) {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "%s, delete reorder array, tid:%d\n",
+                   __func__, tid);
+        adf_os_mem_free(rx_reorder->array);
+    }
 
     /* set up the TID with default parameters (ARQ window size = 1) */
     ol_rx_reorder_init(rx_reorder, tid);
