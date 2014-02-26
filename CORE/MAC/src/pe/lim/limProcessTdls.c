@@ -638,6 +638,7 @@ tSirRetStatus limSendTdlsDisReqFrame(tpAniSirGlobal pMac, tSirMacAddr peer_mac,
     LIM_LOG_TDLS(VOS_TRACE(VOS_MODULE_ID_PE, TDLS_DEBUG_LOG_LEVEL, ("[TDLS] action %d (%s) -AP-> OTA "),
             SIR_MAC_TDLS_DIS_REQ, limTraceTdlsActionString(SIR_MAC_TDLS_DIS_REQ) ));
 
+    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
                             ANI_TXDIR_TODS,
@@ -652,7 +653,6 @@ tSirRetStatus limSendTdlsDisReqFrame(tpAniSirGlobal pMac, tSirMacAddr peer_mac,
         limLog( pMac, LOGE, FL("could not send TDLS Dis Request frame!" ));
         return eSIR_FAILURE;
     }
-    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
 
     return eSIR_SUCCESS;
 
@@ -1150,6 +1150,7 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
             SIR_MAC_TDLS_DIS_RSP, limTraceTdlsActionString(SIR_MAC_TDLS_DIS_RSP) ));
 
 
+    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
     /*
      * Transmit Discovery response and watch if this is delivered to
      * peer STA.
@@ -1181,7 +1182,6 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("could not send TDLS Dis Request frame!" ));
         return eSIR_FAILURE;
     }
-    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
 
     return eSIR_SUCCESS;
 
@@ -1427,6 +1427,7 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
     LIM_LOG_TDLS(VOS_TRACE(VOS_MODULE_ID_PE, TDLS_DEBUG_LOG_LEVEL, ("[TDLS] action %d (%s) -AP-> OTA"),
             SIR_MAC_TDLS_SETUP_REQ, limTraceTdlsActionString(SIR_MAC_TDLS_SETUP_REQ) ));
 
+    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
                             ANI_TXDIR_TODS,
@@ -1442,7 +1443,6 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("could not send TDLS Dis Request frame!" ));
         return eSIR_FAILURE;
     }
-    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
 
     return eSIR_SUCCESS;
 
@@ -1632,6 +1632,7 @@ tSirRetStatus limSendTdlsTeardownFrame(tpAniSirGlobal pMac,
          SIR_MAC_TDLS_TEARDOWN, limTraceTdlsActionString(SIR_MAC_TDLS_TEARDOWN),
          (reason == eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE) ? "AP": "DIRECT" ));
 
+    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
                             ANI_TXDIR_TODS,
@@ -1647,7 +1648,6 @@ tSirRetStatus limSendTdlsTeardownFrame(tpAniSirGlobal pMac,
         return eSIR_FAILURE;
 
     }
-    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
     return eSIR_SUCCESS;
 
 }
@@ -1852,6 +1852,7 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
     LIM_LOG_TDLS(VOS_TRACE(VOS_MODULE_ID_PE, TDLS_DEBUG_LOG_LEVEL, ("[TDLS] action %d (%s) -AP-> OTA"),
          SIR_MAC_TDLS_SETUP_RSP, limTraceTdlsActionString(SIR_MAC_TDLS_SETUP_RSP) ));
 
+    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
                             ANI_TXDIR_TODS,
@@ -1867,7 +1868,6 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("could not send TDLS Dis Request frame!" ));
         return eSIR_FAILURE;
     }
-    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
 
     return eSIR_SUCCESS;
 
@@ -2086,6 +2086,7 @@ tSirRetStatus limSendTdlsLinkSetupCnfFrame(tpAniSirGlobal pMac, tSirMacAddr peer
     LIM_LOG_TDLS(VOS_TRACE(VOS_MODULE_ID_PE, TDLS_DEBUG_LOG_LEVEL, ("[TDLS] action %d (%s) -AP-> OTA"),
          SIR_MAC_TDLS_SETUP_CNF, limTraceTdlsActionString(SIR_MAC_TDLS_SETUP_CNF) ));
 
+    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
                             ANI_TXDIR_TODS,
@@ -2103,7 +2104,6 @@ tSirRetStatus limSendTdlsLinkSetupCnfFrame(tpAniSirGlobal pMac, tSirMacAddr peer
         return eSIR_FAILURE;
 
     }
-    pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
 
     return eSIR_SUCCESS;
 }
