@@ -9483,10 +9483,6 @@ static void wma_del_tdls_sta(tp_wma_handle wma,
 
 	wma_update_tdls_peer_state(wma, peerStateParams);
 
-	WMA_LOGD("%s: wma_remove_peer for peer: %pM, vdevId: %d",
-	         __func__, peer->mac_addr.raw, del_sta->smesessionId);
-
-	wma_remove_peer(wma, peer->mac_addr.raw, del_sta->smesessionId, peer);
 	del_sta->status = VOS_STATUS_SUCCESS;
 
 send_del_rsp:
@@ -18593,6 +18589,9 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	wmi_buf_t wmi_buf;
 	u_int8_t *buf_ptr;
 	u_int32_t i;
+	ol_txrx_pdev_handle pdev;
+	u_int8_t peer_id;
+	struct ol_txrx_peer_t *peer;
 	int32_t len = sizeof(wmi_tdls_peer_update_cmd_fixed_param) +
 	              sizeof(wmi_tdls_peer_capabilities);
 
@@ -18662,6 +18661,29 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	          __func__);
 		adf_nbuf_free(wmi_buf);
 		return -EIO;
+	}
+
+	/* in case of teardown, remove peer from fw */
+	if (WDA_TDLS_PEER_STATE_TEARDOWN == peerStateParams->peerState) {
+		pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma_handle->vos_context);
+		if (!pdev) {
+			WMA_LOGE("%s: Failed to find pdev", __func__);
+			return -EIO;
+		}
+
+		peer = ol_txrx_find_peer_by_addr(pdev, peerStateParams->peerMacAddr,
+		                                 &peer_id);
+		if (!peer) {
+			WMA_LOGE("%s: Failed to get peer handle using peer mac %pM",
+			         __func__, peerStateParams->peerMacAddr);
+			return -EIO;
+		}
+
+		WMA_LOGD("%s: calling wma_remove_peer for peer " MAC_ADDRESS_STR
+		         " vdevId: %d", __func__,
+		         MAC_ADDR_ARRAY(peer->mac_addr.raw), peerStateParams->vdevId);
+		wma_remove_peer(wma_handle, peer->mac_addr.raw,
+		                peerStateParams->vdevId, peer);
 	}
 	return 0;
 }

@@ -2284,6 +2284,7 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
 #ifdef CONFIG_TDLS_IMPLICIT
     tdlsCtx_t *pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
 #endif
+    tSmeTdlsPeerStateParams smeTdlsPeerStateParams;
 #endif
     eHalStatus status = eHAL_STATUS_FAILURE ;
     tANI_U8 staIdx;
@@ -2466,6 +2467,31 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                                 MAC_ADDR_ARRAY(pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes));
                     wlan_hdd_tdls_reset_peer(pAdapter, pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes);
                     hdd_roamDeregisterTDLSSTA ( pAdapter,  pHddCtx->tdlsConnInfo[staIdx].staId );
+#ifdef QCA_WIFI_2_0
+                    vos_mem_zero(&smeTdlsPeerStateParams,
+                                 sizeof(smeTdlsPeerStateParams));
+                    smeTdlsPeerStateParams.vdevId =
+                                 pHddCtx->tdlsConnInfo[staIdx].sessionId;
+                    vos_mem_copy(&smeTdlsPeerStateParams.peerMacAddr,
+                                 &pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes,
+                                 VOS_MAC_ADDR_SIZE);
+                    smeTdlsPeerStateParams.peerState =
+                                 eSME_TDLS_PEER_STATE_TEARDOWN;
+
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                              ("hdd_tdlsStatusUpdate: calling sme_UpdateTdlsPeerState for staIdx %d " MAC_ADDRESS_STR),
+                                pHddCtx->tdlsConnInfo[staIdx].staId,
+                                MAC_ADDR_ARRAY(pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes));
+                    status = sme_UpdateTdlsPeerState(pHddCtx->hHal,
+                                                     &smeTdlsPeerStateParams);
+                    if (eHAL_STATUS_SUCCESS != status)
+                    {
+                       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                                 "%s: sme_UpdateTdlsPeerState failed for "
+                                 MAC_ADDRESS_STR, __func__,
+                                 MAC_ADDR_ARRAY(pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes));
+                    }
+#endif
                     wlan_hdd_tdls_decrement_peer_count(pAdapter);
 
                     (WLAN_HDD_GET_CTX(pAdapter))->sta_to_adapter[staIdx] = NULL;
