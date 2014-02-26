@@ -171,6 +171,8 @@ typedef struct _HTC_TARGET {
     adf_os_device_t             osdev;
     struct ol_ath_htc_stats     htc_pkt_stats;
     HTC_PACKET                  *pBundleFreeList;
+    A_UINT32                    CE_send_cnt;
+    A_UINT32                    TX_comp_cnt;
 } HTC_TARGET;
 
 #ifdef RX_SG_SUPPORT

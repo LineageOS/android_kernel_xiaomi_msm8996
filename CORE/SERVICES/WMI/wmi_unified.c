@@ -33,7 +33,9 @@
 #include "osapi_linux.h"
 #include "a_types.h"
 #include "a_debug.h"
+#include "ol_if_athvar.h"
 #include "ol_defines.h"
+#include "ol_fw.h"
 #include "htc_api.h"
 #include "htc_api.h"
 #include "dbglog_host.h"
@@ -42,6 +44,7 @@
 #include "wma_api.h"
 #include "wma.h"
 #include "macTrace.h"
+#include "if_pci.h"
 
 #define WMI_MIN_HEAD_ROOM 64
 
@@ -495,6 +498,8 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 {
 	HTC_PACKET *pkt;
 	A_STATUS status;
+	void *vos_context;
+	struct ol_softc *scn;
 
 	/* Do sanity check on the TLV parameter structure. Can be #ifdef DEBUG if desired */
 	{
@@ -522,9 +527,12 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 
 	adf_os_atomic_inc(&wmi_handle->pending_cmds);
 	if (adf_os_atomic_read(&wmi_handle->pending_cmds) >= WMI_MAX_CMDS) {
-		adf_os_atomic_dec(&wmi_handle->pending_cmds);
-		pr_err("%s, too many pending commands\n", __func__);
-		return -EBUSY;
+		vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+		scn = vos_get_context(VOS_MODULE_ID_HIF, vos_context);
+		HTC_dump_counter_info(wmi_handle->htc_handle);
+		dump_CE_register(scn);
+		dump_CE_debug_register(scn->hif_sc);
+		VOS_BUG(0);
 	}
 
 	pkt = adf_os_mem_alloc(NULL, sizeof(*pkt));

@@ -59,6 +59,15 @@ static unsigned ep_debug_mask = (1 << ENDPOINT_0) | (1 << ENDPOINT_1) | (1 << EN
 #endif
 
 
+void HTC_dump_counter_info(HTC_HANDLE HTCHandle)
+{
+    HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
+
+    AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+                    ("%s: CE_send_cnt = %d, TX_comp_cnt = %d",
+		     __func__, target->CE_send_cnt, target->TX_comp_cnt));
+}
+
 void HTCGetHostCredits(HTC_HANDLE HTCHandle,int *credits)
 {
     HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
@@ -380,6 +389,8 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
                               HTC_HDR_LENGTH + pPacket->ActualLength,
                               netbuf);
 
+	target->CE_send_cnt++;
+
         if (adf_os_unlikely(A_FAILED(status))) {
             if (status != A_NO_RESOURCE) {
                 /* TODO : if more than 1 endpoint maps to the same PipeID it is possible
@@ -387,6 +398,7 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
                 AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("HIFSend Failed status:%d \n",status));
             }
             LOCK_HTC_TX(target);
+	    target->CE_send_cnt--;
             pEndpoint->ul_outstanding_cnt--;
             HTC_PACKET_REMOVE(&pEndpoint->TxLookupQueue,pPacket);
                 /* reclaim credits */
@@ -1277,6 +1289,7 @@ A_STATUS HTCTxCompletionHandler(void *Context,
 #endif
 
     pEndpoint = &target->EndPoint[EpID];
+    target->TX_comp_cnt++;
 
     do {
         pPacket = HTCLookupTxPacket(target, pEndpoint, netbuf);
