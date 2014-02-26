@@ -6158,8 +6158,9 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 	 * to issue a Vdev Start/Vdev Restart for
 	 * channel change.
 	 */
-	if ((wma->interfaces[vdev_id].type == WMI_VDEV_TYPE_STA) &&
-		(wma->interfaces[vdev_id].sub_type == 0)) {
+	if (((wma->interfaces[vdev_id].type == WMI_VDEV_TYPE_STA) &&
+		(wma->interfaces[vdev_id].sub_type == 0)) &&
+			!wma->interfaces[vdev_id].is_channel_switch) {
 
 		if (peer && (peer->state == ol_txrx_peer_state_conn ||
 			peer->state == ol_txrx_peer_state_auth)) {
@@ -6227,7 +6228,8 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 		goto send_resp;
 	}
 
-	wma->interfaces[req.vdev_id].is_channel_switch = VOS_FALSE;
+	if (wma->interfaces[req.vdev_id].is_channel_switch)
+		wma->interfaces[req.vdev_id].is_channel_switch = VOS_FALSE;
 	return;
 send_resp:
 	WMA_LOGD("%s: channel %d offset %d txpower %d status %d", __func__,
