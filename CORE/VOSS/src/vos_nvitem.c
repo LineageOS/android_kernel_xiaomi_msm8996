@@ -3032,14 +3032,14 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
         {
             INIT_COMPLETION(pHddCtx->linux_reg_req);
             regulatory_hint(wiphy, country_code);
-            wait_result = wait_for_completion_interruptible_timeout(
-                                                            &pHddCtx->linux_reg_req,
-                                                            LINUX_REG_WAIT_TIME);
+            wait_result = wait_for_completion_timeout(
+                &pHddCtx->linux_reg_req,
+                LINUX_REG_WAIT_TIME);
 
             /* if the country information does not exist with the kernel,
                then the driver callback would not be called */
 
-            if (wait_result >= 0) {
+            if (wait_result > 0) {
 
                 /* the driver callback was called. this means the country
                    regulatory information was found in the kernel database.
@@ -3062,7 +3062,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
                 /* the country information has not been found in the kernel
                    database, return failure */
 
-                VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
+                VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                            ("runtime country code is not found in kernel db"));
 
                 return VOS_STATUS_E_EXISTS;

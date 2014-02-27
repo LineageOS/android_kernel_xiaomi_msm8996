@@ -233,7 +233,7 @@ dump_pmc_enter_wowl( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32
         wowlEnterParams.ucMagicPktEnable = 1;
         /* magic packet */
         length = SIR_MAC_ADDR_LENGTH;
-        status = wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, (tANI_U8 *)wowlEnterParams.magicPtrn, &length); 
+        status = wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, (tANI_U8 *)wowlEnterParams.magicPtrn, &length);
         if (eSIR_SUCCESS != status)
         {
             pmcLog(pMac, LOGE,
@@ -261,7 +261,7 @@ dump_pmc_enter_wowl( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32
 
     sessionId = (tANI_U8 ) arg3;
 #ifdef WLAN_WAKEUP_EVENTS
-    (void)sme_EnterWowl(pMac, dump_pmc_callbackRoutine, pMac, dump_pmc_callbackRoutine2, pMac, 
+    (void)sme_EnterWowl(pMac, dump_pmc_callbackRoutine, pMac, dump_pmc_callbackRoutine2, pMac,
                         &wowlEnterParams, sessionId);
 #else // WLAN_WAKEUP_EVENTS
     (void)sme_EnterWowl(pMac, dump_pmc_callbackRoutine, pMac, &wowlEnterParams, sessionId);
@@ -285,7 +285,7 @@ dump_pmc_remove_ptrn( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U3
     tSirWowlDelBcastPtrn delPattern;
     tANI_U8  sessionId = 0;
     (void) arg3; (void) arg4;
- 
+
     vos_mem_set(&delPattern, sizeof(tSirWowlDelBcastPtrn), 0);
 
     if((arg1 <= 7) || (arg2 == CSR_ROAM_SESSION_MAX))
@@ -361,7 +361,7 @@ dump_pmc_test_Wowl( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 
 
     //Enter Wowl
 #ifdef WLAN_WAKEUP_EVENTS
-    sme_EnterWowl(pMac, dump_pmc_callbackRoutine, pMac, dump_pmc_callbackRoutine2, pMac, 
+    sme_EnterWowl(pMac, dump_pmc_callbackRoutine, pMac, dump_pmc_callbackRoutine2, pMac,
                    &wowlEnterParams, sessionId);
 #else // WLAN_WAKEUP_EVENTS
     sme_EnterWowl(pMac, dump_pmc_callbackRoutine, pMac, &wowlEnterParams, sessionId);

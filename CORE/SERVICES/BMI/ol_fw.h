@@ -38,6 +38,7 @@
 #define AR6320_REV1_VERSION	     0x5000000
 #define AR6320_REV1_1_VERSION	     0x5000001
 #define AR6320_REV1_3_VERSION	     0x5000003
+#define AR6320_REV2_1_VERSION	     0x5010000
 #define QCA_FIRMWARE_FILE            "athwlan.bin"
 #define QCA_UTF_FIRMWARE_FILE        "utf.bin"
 #define QCA_BOARD_DATA_FILE          "fakeboar.bin"
@@ -50,8 +51,16 @@
 #define PEER_DEFAULT_STATS_UPDATE_PERIOD    500
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-#define REGISTER_LOCATION       0x00000000
-#define REGISTER_SIZE           0x00000800
+/*
+ * Note that not all the register locations are accessible.
+ * A list of accessible target registers are specified with
+ * their start and end addresses in a table for given target
+ * version. We should NOT access other locations as either
+ * they are invalid locations or host does not have read
+ * access to it or the value of the particular register
+ * read might change
+ */
+#define REGISTER_LOCATION       0x00000800
 
 #define DRAM_LOCATION           0x00400000
 #define DRAM_SIZE               0x00070000

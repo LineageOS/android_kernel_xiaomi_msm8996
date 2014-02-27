@@ -9483,10 +9483,6 @@ static void wma_del_tdls_sta(tp_wma_handle wma,
 
 	wma_update_tdls_peer_state(wma, peerStateParams);
 
-	WMA_LOGD("%s: wma_remove_peer for peer: %pM, vdevId: %d",
-	         __func__, peer->mac_addr.raw, del_sta->smesessionId);
-
-	wma_remove_peer(wma, peer->mac_addr.raw, del_sta->smesessionId, peer);
 	del_sta->status = VOS_STATUS_SUCCESS;
 
 send_del_rsp:
@@ -10980,6 +10976,9 @@ VOS_STATUS wma_disable_uapsd_per_ac(tp_wma_handle wma_handle,
 {
 	int32_t ret;
 	struct wma_txrx_node *iface = &wma_handle->interfaces[vdev_id];
+	wmi_sta_uapsd_auto_trig_param uapsd_trigger_param;
+	enum uapsd_up user_priority;
+
 	WMA_LOGD("Disable Uapsd per ac vdevId %d ac %d", vdev_id, ac);
 
 	switch (ac) {
@@ -10987,25 +10986,50 @@ VOS_STATUS wma_disable_uapsd_per_ac(tp_wma_handle wma_handle,
 			iface->uapsd_cached_val &=
 					~(WMI_STA_PS_UAPSD_AC3_DELIVERY_EN |
 					WMI_STA_PS_UAPSD_AC3_TRIGGER_EN);
+			user_priority = UAPSD_UP_VO;
 			break;
 		case UAPSD_VI:
 			iface->uapsd_cached_val &=
 					~(WMI_STA_PS_UAPSD_AC2_DELIVERY_EN |
 					WMI_STA_PS_UAPSD_AC2_TRIGGER_EN);
+			user_priority = UAPSD_UP_VI;
 			break;
 		case UAPSD_BK:
 			iface->uapsd_cached_val &=
 					~(WMI_STA_PS_UAPSD_AC1_DELIVERY_EN |
 					WMI_STA_PS_UAPSD_AC1_TRIGGER_EN);
+			user_priority = UAPSD_UP_BK;
 			break;
 		case UAPSD_BE:
 			iface->uapsd_cached_val &=
 					~(WMI_STA_PS_UAPSD_AC0_DELIVERY_EN |
 					WMI_STA_PS_UAPSD_AC0_TRIGGER_EN);
+			user_priority = UAPSD_UP_BE;
 			break;
 		default:
 			WMA_LOGE("Invalid AC vdevId %d ac %d", vdev_id, ac);
 			return VOS_STATUS_E_FAILURE;
+	}
+
+	/*
+	 * Disable Auto Trigger Functionality before
+	 * disabling uapsd for a particular AC
+	 */
+	uapsd_trigger_param.wmm_ac = ac;
+	uapsd_trigger_param.user_priority = user_priority;
+	uapsd_trigger_param.service_interval = 0;
+	uapsd_trigger_param.suspend_interval = 0;
+	uapsd_trigger_param.delay_interval = 0;
+
+	ret = wmi_unified_set_sta_uapsd_auto_trig_cmd(wma_handle->wmi_handle,
+					vdev_id,
+					wma_handle->interfaces[vdev_id].bssid,
+					(u_int8_t*)(&uapsd_trigger_param),
+					1);
+	if (ret) {
+		WMA_LOGE("Fail to send auto trig cmd for vdevid %d ret = %d",
+			ret, vdev_id);
+		return VOS_STATUS_E_FAILURE;
 	}
 
 	ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
@@ -14196,14 +14220,7 @@ VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
 	struct wma_txrx_node *intr = wma->interfaces;
 
 	/* Get the vdev id */
-	if (pRateUpdateParams->dev_mode == VOS_STA_SAP_MODE ||
-		pRateUpdateParams->dev_mode == VOS_IBSS_MODE ||
-		pRateUpdateParams->dev_mode == VOS_P2P_GO_MODE)
-	{
-		pdev = wma_find_vdev_by_addr(wma, pRateUpdateParams->bssid, &vdev_id);
-	} else {
-		pdev = wma_find_vdev_by_bssid(wma, pRateUpdateParams->bssid, &vdev_id);
-	}
+	pdev = wma_find_vdev_by_addr(wma, pRateUpdateParams->bssid, &vdev_id);
 	if (!pdev) {
 		WMA_LOGE("vdev handle is invalid for %pM", pRateUpdateParams->bssid);
 		vos_mem_free(pRateUpdateParams);
@@ -14222,6 +14239,9 @@ VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
 		mbpsx10_rate = pRateUpdateParams->mcastDataRate24GHz;
 		paramId = WMI_VDEV_PARAM_MCAST_DATA_RATE;
 	}
+	WMA_LOGE("%s: dev_id = %d, dev_type = %d, dev_mode = %d, mac = %pM",
+		__func__, vdev_id, intr[vdev_id].type,
+		pRateUpdateParams->dev_mode, pRateUpdateParams->bssid);
 	ret = wma_encode_mc_rate(short_gi, intr[vdev_id].config.chwidth,
 			intr[vdev_id].chanmode, intr[vdev_id].mhz,
 			mbpsx10_rate, pRateUpdateParams->nss, &rate);
@@ -16163,7 +16183,7 @@ static int wma_channel_avoid_evt_handler(void *handle, u_int8_t *event,
 
 	WMA_LOGD("Channel avoid event received with %d ranges", num_freq_ranges);
 	for (freq_range_idx = 0; freq_range_idx < num_freq_ranges; freq_range_idx++) {
-			afr_desc = (wmi_avoid_freq_range_desc *) (param_buf->avd_freq_range
+			afr_desc = (wmi_avoid_freq_range_desc *) ((void *)param_buf->avd_freq_range
 				+ freq_range_idx * sizeof(wmi_avoid_freq_range_desc));
 			WMA_LOGD("range %d: tlv id = %u, start freq = %u,  end freq = %u",
 					freq_range_idx,
@@ -16181,7 +16201,7 @@ static int wma_channel_avoid_evt_handler(void *handle, u_int8_t *event,
 
 	sca_indication->avoid_range_count = num_freq_ranges;
 	for (freq_range_idx = 0; freq_range_idx < num_freq_ranges; freq_range_idx++) {
-		afr_desc = (wmi_avoid_freq_range_desc *) (param_buf->avd_freq_range
+		afr_desc = (wmi_avoid_freq_range_desc *) ((void *)param_buf->avd_freq_range
 			+ freq_range_idx * sizeof(wmi_avoid_freq_range_desc));
 		sca_indication->avoid_freq_range[freq_range_idx].start_freq =
 			afr_desc->start_freq + 10;
@@ -18593,6 +18613,9 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	wmi_buf_t wmi_buf;
 	u_int8_t *buf_ptr;
 	u_int32_t i;
+	ol_txrx_pdev_handle pdev;
+	u_int8_t peer_id;
+	struct ol_txrx_peer_t *peer;
 	int32_t len = sizeof(wmi_tdls_peer_update_cmd_fixed_param) +
 	              sizeof(wmi_tdls_peer_capabilities);
 
@@ -18662,6 +18685,29 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	          __func__);
 		adf_nbuf_free(wmi_buf);
 		return -EIO;
+	}
+
+	/* in case of teardown, remove peer from fw */
+	if (WDA_TDLS_PEER_STATE_TEARDOWN == peerStateParams->peerState) {
+		pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma_handle->vos_context);
+		if (!pdev) {
+			WMA_LOGE("%s: Failed to find pdev", __func__);
+			return -EIO;
+		}
+
+		peer = ol_txrx_find_peer_by_addr(pdev, peerStateParams->peerMacAddr,
+		                                 &peer_id);
+		if (!peer) {
+			WMA_LOGE("%s: Failed to get peer handle using peer mac %pM",
+			         __func__, peerStateParams->peerMacAddr);
+			return -EIO;
+		}
+
+		WMA_LOGD("%s: calling wma_remove_peer for peer " MAC_ADDRESS_STR
+		         " vdevId: %d", __func__,
+		         MAC_ADDR_ARRAY(peer->mac_addr.raw), peerStateParams->vdevId);
+		wma_remove_peer(wma_handle, peer->mac_addr.raw,
+		                peerStateParams->vdevId, peer);
 	}
 	return 0;
 }

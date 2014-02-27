@@ -30,11 +30,11 @@
 
 
 /**=========================================================================
-  
+
   \file  smeInside.h
-  
+
   \brief prototype for SME structures and APIs used insside SME
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -62,7 +62,7 @@
 #endif
 ePhyChanBondState csrConvertCBIniValueToPhyCBState(v_U32_t cbIniValue);
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
 
@@ -215,7 +215,7 @@ typedef struct tagSmeCmd
 
 
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
                          Internal to SME
   ------------------------------------------------------------------------*/
 
@@ -243,7 +243,7 @@ tANI_BOOLEAN qosProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 eHalStatus csrProcessScanCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 void csrRoamProcessWmStatusChangeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
-void csrReinitRoamCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand); 
+void csrReinitRoamCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 void csrReinitWmStatusChangeCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 void csrReinitSetKeyCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 void csrReinitRemoveKeyCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);
@@ -279,7 +279,7 @@ eHalStatus csrProcessDelStaSessionRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg);
     \param  sessionId .  Session index of the session
     \return eHalStatus
             eHAL_STATUS_FAILURE  Cannot set the offload.
-            eHAL_STATUS_SUCCESS  Request accepted. 
+            eHAL_STATUS_SUCCESS  Request accepted.
   ---------------------------------------------------------------------------*/
 eHalStatus pmcSetNSOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest, tANI_U8 sessionId);
 #endif //WLAN_NS_OFFLOAD

@@ -31,11 +31,11 @@
 
 
 /**=========================================================================
-  
+
   \file  smeQosInternal.h
-  
+
   \brief prototype for SME QoS APIs
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -52,7 +52,7 @@
 #include "sme_QosApi.h"
 #include "smeInternal.h"
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
 #define SME_QOS_AP_SUPPORTS_APSD         0x80
@@ -67,13 +67,13 @@ typedef enum
    SME_QOS_EDCA_AC_BK = 1,  /* Background access category              */
    SME_QOS_EDCA_AC_VI = 2,  /* Video access category                   */
    SME_QOS_EDCA_AC_VO = 3,  /* Voice access category                   */
-  
+
    SME_QOS_EDCA_AC_MAX
 } sme_QosEdcaAcType;
 
 
 /*---------------------------------------------------------------------------
-   Enumeration of the various CSR event indication types that would be reported 
+   Enumeration of the various CSR event indication types that would be reported
    by CSR
 ---------------------------------------------------------------------------*/
 typedef enum
@@ -116,109 +116,109 @@ typedef enum
 
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 /*---------------------------------------------------------------------------
-    The association information structure to be passed by CSR after assoc or 
+    The association information structure to be passed by CSR after assoc or
     reassoc is done
 ---------------------------------------------------------------------------*/
 typedef struct
-{ 
+{
    tSirBssDescription            *pBssDesc;
    tCsrRoamProfile               *pProfile;
 } sme_QosAssocInfo;
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
                          External APIs for CSR - Internal to SME
   ------------------------------------------------------------------------*/
 
 /* --------------------------------------------------------------------------
-    \brief sme_QosOpen() - This function must be called before any API call to 
+    \brief sme_QosOpen() - This function must be called before any API call to
     SME QoS module.
 
     \param pMac - Pointer to the global MAC parameter structure.
-    
-    \return eHalStatus     
+
+    \return eHalStatus
 ----------------------------------------------------------------------------*/
 eHalStatus sme_QosOpen(tpAniSirGlobal pMac);
 
 /* --------------------------------------------------------------------------
-    \brief sme_QosClose() - To close down SME QoS module. There should not be 
+    \brief sme_QosClose() - To close down SME QoS module. There should not be
     any API call into this module after calling this function until another
     call of sme_QosOpen.
 
     \param pMac - Pointer to the global MAC parameter structure.
-    
-    \return eHalStatus     
+
+    \return eHalStatus
 ----------------------------------------------------------------------------*/
 eHalStatus sme_QosClose(tpAniSirGlobal pMac);
 
 /*--------------------------------------------------------------------------
-  \brief sme_QosSetParams() - This function is used by HDD to provide the 
+  \brief sme_QosSetParams() - This function is used by HDD to provide the
    default TSPEC params to SME.
-  
+
   \param pMac - Pointer to the global MAC parameter structure.
   \param pQoSInfo - Pointer to sme_QosWmmTspecInfo which contains the WMM TSPEC
                     related info per AC as defined above, provided by HDD
-  
+
   \return eHAL_STATUS_SUCCESS - Setparam is successful.
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
 eHalStatus sme_QosSetParams(tpAniSirGlobal pMac, sme_QosWmmTspecInfo * pQoSInfo);
 
 /*--------------------------------------------------------------------------
-  \brief sme_QosMsgProcessor() - sme_ProcessMsg() calls this function for the 
+  \brief sme_QosMsgProcessor() - sme_ProcessMsg() calls this function for the
   messages that are handled by SME QoS module.
-  
+
   \param pMac - Pointer to the global MAC parameter structure.
   \param msg_type - the type of msg passed by PE as defined in wniApi.h
-  \param pMsgBuf - a pointer to a buffer that maps to various structures base 
+  \param pMsgBuf - a pointer to a buffer that maps to various structures base
                    on the message type.
                    The beginning of the buffer can always map to tSirSmeRsp.
-  
+
   \return eHalStatus.
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
-eHalStatus sme_QosMsgProcessor( tpAniSirGlobal pMac,  v_U16_t msg_type, 
+eHalStatus sme_QosMsgProcessor( tpAniSirGlobal pMac,  v_U16_t msg_type,
                                 void *pMsgBuf);
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
                          Internal APIs for CSR
   ------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------
-  \brief sme_QosValidateParams() - The SME QoS API exposed to CSR to validate AP 
+  \brief sme_QosValidateParams() - The SME QoS API exposed to CSR to validate AP
   capabilities regarding QoS support & any other QoS parameter validation.
-  
+
   \param pMac - Pointer to the global MAC parameter structure.
-  \param pBssDesc - Pointer to the BSS Descriptor information passed down by 
+  \param pBssDesc - Pointer to the BSS Descriptor information passed down by
                     CSR to PE while issuing the Join request
-  
+
   \return eHAL_STATUS_SUCCESS - Validation is successful
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
-eHalStatus sme_QosValidateParams(tpAniSirGlobal pMac, 
+eHalStatus sme_QosValidateParams(tpAniSirGlobal pMac,
                                  tSirBssDescription *pBssDesc);
 
 /*--------------------------------------------------------------------------
-  \brief sme_QosCsrEventInd() - The QoS sub-module in SME expects notifications 
+  \brief sme_QosCsrEventInd() - The QoS sub-module in SME expects notifications
   from CSR when certain events occur as mentioned in sme_QosCsrEventIndType.
 
   \param pMac - Pointer to the global MAC parameter structure.
   \param ind - The event occurred of type sme_QosCsrEventIndType.
   \param pEvent_info - Information related to the event
-  
+
   \return eHalStatus
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
 eHalStatus sme_QosCsrEventInd(tpAniSirGlobal pMac,
                               v_U8_t sessionId,
-                              sme_QosCsrEventIndType ind, 
+                              sme_QosCsrEventIndType ind,
                               void *pEvent_info);
 
 /*--------------------------------------------------------------------------
@@ -229,11 +229,11 @@ eHalStatus sme_QosCsrEventInd(tpAniSirGlobal pMac,
   \param pSirBssDesc - The event occurred of type sme_QosCsrEventIndType.
   \param pIes - the parsed IE for pSirBssDesc. This can be NULL.
 
-  
+
   \return a bit mask indicating for which ACs AP has ACM set to 1
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
 v_U8_t sme_QosGetACMMask(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes);
 

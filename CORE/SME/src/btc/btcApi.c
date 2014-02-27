@@ -499,7 +499,7 @@ VOS_STATUS btcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
    {
       if(VOS_STATUS_SUCCESS != btcSendCfgMsg(hHal, pSmeBtcConfig))
       {
-         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, 
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
             "Failure to send BTC config down");
          return VOS_STATUS_E_FAILURE;
       }
@@ -583,7 +583,7 @@ VOS_STATUS btcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
                     pointer to caller alocated buffer containing the BD address to find a match
            handle - BT_INVALID_CONN_HANDLE == not care
                     otherwise, a handle to match
-    NOPTE: Either bdAddr or handle can be valid, if both of them are valid, use bdAddr only. If neither 
+    NOPTE: Either bdAddr or handle can be valid, if both of them are valid, use bdAddr only. If neither
            bdAddr nor handle is valid, return the next free slot.
 */
 static tpSmeBtAclEventHist btcFindAclEventHist( tpAniSirGlobal pMac, v_U8_t *bdAddr, v_U16_t handle )
@@ -642,7 +642,7 @@ static tpSmeBtAclEventHist btcFindAclEventHist( tpAniSirGlobal pMac, v_U8_t *bdA
                     pointer to caller alocated buffer containing the BD address to find a match
            handle - BT_INVALID_CONN_HANDLE == not care
                     otherwise, a handle to match
-    NOPTE: Either bdAddr or handle can be valid, if both of them are valid, use bdAddr only. If neither 
+    NOPTE: Either bdAddr or handle can be valid, if both of them are valid, use bdAddr only. If neither
            bdAddr nor handle is valid, return the next free slot.
 */
 static tpSmeBtSyncEventHist btcFindSyncEventHist( tpAniSirGlobal pMac, v_U8_t *bdAddr, v_U16_t handle )
@@ -697,7 +697,7 @@ static tpSmeBtSyncEventHist btcFindSyncEventHist( tpAniSirGlobal pMac, v_U8_t *b
 
 /*
     btcFindDisconnEventHist find a slot for the deferred disconnect event
-    If handle is invlid, it returns a free slot, if any. 
+    If handle is invlid, it returns a free slot, if any.
     If handle is valid, it tries to find a match first in case same disconnect event comes down again.
 */
 static tpSmeBtDisconnectEventHist btcFindDisconnEventHist( tpAniSirGlobal pMac, v_U16_t handle )
@@ -734,7 +734,7 @@ static tpSmeBtDisconnectEventHist btcFindDisconnEventHist( tpAniSirGlobal pMac, 
 
 /*
     btcFindModeChangeEventHist find a slot for the deferred mopde change event
-    If handle is invalid, it returns a free slot, if any. 
+    If handle is invalid, it returns a free slot, if any.
     If handle is valid, it tries to find a match first in case same disconnect event comes down again.
 */
 tpSmeBtAclModeChangeEventHist btcFindModeChangeEventHist( tpAniSirGlobal pMac, v_U16_t handle )
@@ -771,7 +771,7 @@ tpSmeBtAclModeChangeEventHist btcFindModeChangeEventHist( tpAniSirGlobal pMac, v
 
 /*
     btcFindSyncUpdateEventHist find a slot for the deferred SYNC_UPDATE event
-    If handle is invalid, it returns a free slot, if any. 
+    If handle is invalid, it returns a free slot, if any.
     If handle is valid, it tries to find a match first in case same disconnect event comes down again.
 */
 tpSmeBtSyncUpdateHist btcFindSyncUpdateEventHist( tpAniSirGlobal pMac, v_U16_t handle )
@@ -825,7 +825,7 @@ static void btcReleaseSyncEventHist( tpAniSirGlobal pMac, tpSmeBtSyncEventHist p
 /*To defer a ACL creation event
     We only support one ACL per BD address.
     If the last cached event another ACL create event, replace that event with the new event
-    If a completion event with success status code, and the new ACL creation 
+    If a completion event with success status code, and the new ACL creation
     on same address, defer a new disconnect event(fake one), then cache this ACL creation event.
     Otherwise, save this create event.
 */
@@ -837,7 +837,7 @@ static VOS_STATUS btcDeferAclCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
     do
     {
         //Find a match
-        pAclEventHist = btcFindAclEventHist( pMac, pEvent->uEventParam.btAclConnection.bdAddr, 
+        pAclEventHist = btcFindAclEventHist( pMac, pEvent->uEventParam.btAclConnection.bdAddr,
                                     BT_INVALID_CONN_HANDLE );
         if( NULL == pAclEventHist )
         {
@@ -846,7 +846,7 @@ static VOS_STATUS btcDeferAclCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
             pAclEventHist = btcFindAclEventHist( pMac, NULL, BT_INVALID_CONN_HANDLE );
             if( NULL != pAclEventHist )
             {
-                vos_mem_copy(&pAclEventHist->btAclConnection[0], &pEvent->uEventParam.btAclConnection, 
+                vos_mem_copy(&pAclEventHist->btAclConnection[0], &pEvent->uEventParam.btAclConnection,
                                 sizeof(tSmeBtAclConnectionParam));
                 pAclEventHist->btEventType[0] = BT_EVENT_CREATE_ACL_CONNECTION;
                 pAclEventHist->bNextEventIdx = 1;
@@ -882,14 +882,14 @@ static VOS_STATUS btcDeferAclCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
                 //done
                 break;
             }
-            else if(BT_EVENT_ACL_CONNECTION_COMPLETE == 
+            else if(BT_EVENT_ACL_CONNECTION_COMPLETE ==
                         pAclEventHist->btEventType[pAclEventHist->bNextEventIdx - 1])
             {
                 //The last cached event is completion, check the status.
                 if(BT_CONN_STATUS_SUCCESS == pAclEvent->status)
                 {
                     tSmeBtEvent btEvent;
-                    //The last event we have is success completion event. 
+                    //The last event we have is success completion event.
                     //Should not get a creation event before creation.
                     smsLog(pMac, LOGE, FL("  Missing disconnect event on handle %d"), pAclEvent->connectionHandle);
                     //Fake a disconnect event
@@ -902,8 +902,8 @@ static VOS_STATUS btcDeferAclCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
             if(pAclEventHist->bNextEventIdx < BT_MAX_NUM_EVENT_ACL_DEFERRED)
             {
                 pAclEventHist->btEventType[pAclEventHist->bNextEventIdx] = BT_EVENT_CREATE_ACL_CONNECTION;
-                vos_mem_copy(&pAclEventHist->btAclConnection[pAclEventHist->bNextEventIdx], 
-                                &pEvent->uEventParam.btAclConnection, 
+                vos_mem_copy(&pAclEventHist->btAclConnection[pAclEventHist->bNextEventIdx],
+                                &pEvent->uEventParam.btAclConnection,
                                 sizeof(tSmeBtAclConnectionParam));
                 pAclEventHist->bNextEventIdx++;
             }
@@ -929,7 +929,7 @@ static VOS_STATUS btcDeferAclComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent 
     do
     {
         //Find a match
-        pAclEventHist = btcFindAclEventHist( pMac, pEvent->uEventParam.btAclConnection.bdAddr, 
+        pAclEventHist = btcFindAclEventHist( pMac, pEvent->uEventParam.btAclConnection.bdAddr,
                                     BT_INVALID_CONN_HANDLE );
         if(pAclEventHist)
         {
@@ -944,7 +944,7 @@ static VOS_STATUS btcDeferAclComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent 
                 //If completion fails, and the last one is creation, remove the creation event
                 if(BT_EVENT_CREATE_ACL_CONNECTION == pAclEventHist->btEventType[pAclEventHist->bNextEventIdx-1])
                 {
-                    vos_mem_zero(&pAclEventHist->btAclConnection[pAclEventHist->bNextEventIdx-1], 
+                    vos_mem_zero(&pAclEventHist->btAclConnection[pAclEventHist->bNextEventIdx-1],
                                     sizeof(tSmeBtAclConnectionParam));
                     pAclEventHist->bNextEventIdx--;
                     //Done with this event
@@ -967,8 +967,8 @@ static VOS_STATUS btcDeferAclComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent 
             {
                 //Save this event
                 pAclEventHist->btEventType[pAclEventHist->bNextEventIdx] = BT_EVENT_ACL_CONNECTION_COMPLETE;
-                vos_mem_copy(&pAclEventHist->btAclConnection[pAclEventHist->bNextEventIdx], 
-                                &pEvent->uEventParam.btAclConnection, 
+                vos_mem_copy(&pAclEventHist->btAclConnection[pAclEventHist->bNextEventIdx],
+                                &pEvent->uEventParam.btAclConnection,
                                 sizeof(tSmeBtAclConnectionParam));
                 pAclEventHist->bNextEventIdx++;
             }
@@ -991,9 +991,9 @@ static VOS_STATUS btcDeferAclComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent 
 }
 
 /*To defer a SYNC creation event
-    If the last cached event is another SYNC create event, replace 
+    If the last cached event is another SYNC create event, replace
     that event with the new event.
-    If there is a completion event with success status code, cache a new 
+    If there is a completion event with success status code, cache a new
     disconnect event(fake) first, then cache this SYNC creation event.
     Otherwise, cache this create event.
 */
@@ -1005,7 +1005,7 @@ static VOS_STATUS btcDeferSyncCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
     do
     {
         //Find a match
-        pSyncEventHist = btcFindSyncEventHist( pMac, pEvent->uEventParam.btSyncConnection.bdAddr, 
+        pSyncEventHist = btcFindSyncEventHist( pMac, pEvent->uEventParam.btSyncConnection.bdAddr,
                                     BT_INVALID_CONN_HANDLE );
         if( NULL == pSyncEventHist )
         {
@@ -1014,7 +1014,7 @@ static VOS_STATUS btcDeferSyncCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
             pSyncEventHist = btcFindSyncEventHist( pMac, NULL, BT_INVALID_CONN_HANDLE );
             if( NULL != pSyncEventHist )
             {
-                vos_mem_copy(&pSyncEventHist->btSyncConnection[0], &pEvent->uEventParam.btSyncConnection, 
+                vos_mem_copy(&pSyncEventHist->btSyncConnection[0], &pEvent->uEventParam.btSyncConnection,
                                 sizeof(tSmeBtSyncConnectionParam));
                 pSyncEventHist->btEventType[0] = BT_EVENT_CREATE_SYNC_CONNECTION;
                 pSyncEventHist->bNextEventIdx = 1;
@@ -1038,7 +1038,7 @@ static VOS_STATUS btcDeferSyncCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
                 return status;
             }
             pSyncEvent = &pSyncEventHist->btSyncConnection[pSyncEventHist->bNextEventIdx - 1];
-            if(BT_EVENT_CREATE_SYNC_CONNECTION == 
+            if(BT_EVENT_CREATE_SYNC_CONNECTION ==
                 pSyncEventHist->btEventType[pSyncEventHist->bNextEventIdx - 1])
             {
                 //The last cached event is creation, replace it with the new one
@@ -1051,14 +1051,14 @@ static VOS_STATUS btcDeferSyncCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
                 //done
                 break;
             }
-            else if(BT_EVENT_SYNC_CONNECTION_COMPLETE == 
+            else if(BT_EVENT_SYNC_CONNECTION_COMPLETE ==
                         pSyncEventHist->btEventType[pSyncEventHist->bNextEventIdx - 1])
             {
                 //The last cached event is completion, check the status.
                 if(BT_CONN_STATUS_SUCCESS == pSyncEvent->status)
                 {
                     tSmeBtEvent btEvent;
-                    //The last event we have is success completion event. 
+                    //The last event we have is success completion event.
                     //Should not get a creation event before creation.
                     smsLog(pMac, LOGE, FL("  Missing disconnect event on handle %d"), pSyncEvent->connectionHandle);
                     //Fake a disconnect event
@@ -1071,8 +1071,8 @@ static VOS_STATUS btcDeferSyncCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
             if(pSyncEventHist->bNextEventIdx < BT_MAX_NUM_EVENT_SCO_DEFERRED)
             {
                 pSyncEventHist->btEventType[pSyncEventHist->bNextEventIdx] = BT_EVENT_CREATE_SYNC_CONNECTION;
-                vos_mem_copy(&pSyncEventHist->btSyncConnection[pSyncEventHist->bNextEventIdx], 
-                                &pEvent->uEventParam.btSyncConnection, 
+                vos_mem_copy(&pSyncEventHist->btSyncConnection[pSyncEventHist->bNextEventIdx],
+                                &pEvent->uEventParam.btSyncConnection,
                                 sizeof(tSmeBtSyncConnectionParam));
                 pSyncEventHist->bNextEventIdx++;
             }
@@ -1088,7 +1088,7 @@ static VOS_STATUS btcDeferSyncCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
 /*Defer a SYNC completion event
   If there is cached event on this BD address, check completion status.
   If status is fail and last cached event is creation, remove te creation event and drop
-  this completion event. 
+  this completion event.
   Otherwise, cache this completion event as the latest one.
 */
 static VOS_STATUS btcDeferSyncComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
@@ -1098,7 +1098,7 @@ static VOS_STATUS btcDeferSyncComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent
     do
     {
         //Find a match
-        pSyncEventHist = btcFindSyncEventHist( pMac, pEvent->uEventParam.btSyncConnection.bdAddr, 
+        pSyncEventHist = btcFindSyncEventHist( pMac, pEvent->uEventParam.btSyncConnection.bdAddr,
                                     BT_INVALID_CONN_HANDLE );
         if(pSyncEventHist)
         {
@@ -1113,7 +1113,7 @@ static VOS_STATUS btcDeferSyncComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent
                 //If completion fails, and the last one is creation, remove the creation event
                 if(BT_EVENT_CREATE_SYNC_CONNECTION == pSyncEventHist->btEventType[pSyncEventHist->bNextEventIdx-1])
                 {
-                    vos_mem_zero(&pSyncEventHist->btSyncConnection[pSyncEventHist->bNextEventIdx-1], 
+                    vos_mem_zero(&pSyncEventHist->btSyncConnection[pSyncEventHist->bNextEventIdx-1],
                                     sizeof(tSmeBtSyncConnectionParam));
                     pSyncEventHist->bNextEventIdx--;
                     //Done with this event
@@ -1137,8 +1137,8 @@ static VOS_STATUS btcDeferSyncComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent
             {
                 //Save this event
                 pSyncEventHist->btEventType[pSyncEventHist->bNextEventIdx] = BT_EVENT_SYNC_CONNECTION_COMPLETE;
-                vos_mem_copy(&pSyncEventHist->btSyncConnection[pSyncEventHist->bNextEventIdx], 
-                                &pEvent->uEventParam.btSyncConnection, 
+                vos_mem_copy(&pSyncEventHist->btSyncConnection[pSyncEventHist->bNextEventIdx],
+                                &pEvent->uEventParam.btSyncConnection,
                                 sizeof(tSmeBtSyncConnectionParam));
                 pSyncEventHist->bNextEventIdx++;
             }
@@ -1178,7 +1178,7 @@ static VOS_STATUS btcDeferDisconnectEventForACL( tpAniSirGlobal pMac, tpSmeBtEve
     tpSmeBtAclModeChangeEventHist pModeChangeEventHist;
     v_BOOL_t fDone = VOS_FALSE;
     int i;
-    pAclEventHist = btcFindAclEventHist( pMac, NULL, 
+    pAclEventHist = btcFindAclEventHist( pMac, NULL,
                                 pEvent->uEventParam.btDisconnect.connectionHandle );
     if(pAclEventHist)
     {
@@ -1215,7 +1215,7 @@ static VOS_STATUS btcDeferDisconnectEventForACL( tpAniSirGlobal pMac, tpSmeBtEve
             //Save this disconnect event
             if(pAclEventHist->bNextEventIdx < BT_MAX_NUM_EVENT_ACL_DEFERRED)
             {
-                pAclEventHist->btEventType[pAclEventHist->bNextEventIdx] = 
+                pAclEventHist->btEventType[pAclEventHist->bNextEventIdx] =
                     BT_EVENT_DISCONNECTION_COMPLETE;
                 pAclEventHist->btAclConnection[pAclEventHist->bNextEventIdx].connectionHandle =
                     pEvent->uEventParam.btDisconnect.connectionHandle;
@@ -1233,7 +1233,7 @@ static VOS_STATUS btcDeferDisconnectEventForACL( tpAniSirGlobal pMac, tpSmeBtEve
         status = VOS_STATUS_E_EXISTS;
     }
     //Wipe out the related mode change event if it is there
-    pModeChangeEventHist = btcFindModeChangeEventHist( pMac,  
+    pModeChangeEventHist = btcFindModeChangeEventHist( pMac,
                             pEvent->uEventParam.btDisconnect.connectionHandle );
     if( pModeChangeEventHist && pModeChangeEventHist->fValid )
     {
@@ -1262,7 +1262,7 @@ static VOS_STATUS btcDeferDisconnectEventForSync( tpAniSirGlobal pMac, tpSmeBtEv
     tpSmeBtSyncUpdateHist pSyncUpdateHist;
     v_BOOL_t fDone = VOS_FALSE;
     int i;
-    pSyncEventHist = btcFindSyncEventHist( pMac, NULL, 
+    pSyncEventHist = btcFindSyncEventHist( pMac, NULL,
                                 pEvent->uEventParam.btDisconnect.connectionHandle );
     if(pSyncEventHist)
     {
@@ -1300,7 +1300,7 @@ static VOS_STATUS btcDeferDisconnectEventForSync( tpAniSirGlobal pMac, tpSmeBtEv
             //Save this disconnect event
             if(pSyncEventHist->bNextEventIdx < BT_MAX_NUM_EVENT_SCO_DEFERRED)
             {
-                pSyncEventHist->btEventType[pSyncEventHist->bNextEventIdx] = 
+                pSyncEventHist->btEventType[pSyncEventHist->bNextEventIdx] =
                     BT_EVENT_DISCONNECTION_COMPLETE;
                 pSyncEventHist->btSyncConnection[pSyncEventHist->bNextEventIdx].connectionHandle =
                     pEvent->uEventParam.btDisconnect.connectionHandle;
@@ -1318,7 +1318,7 @@ static VOS_STATUS btcDeferDisconnectEventForSync( tpAniSirGlobal pMac, tpSmeBtEv
         status = VOS_STATUS_E_EXISTS;
     }
     //Wipe out the related mode change event if it is there
-    pSyncUpdateHist = btcFindSyncUpdateEventHist( pMac,  
+    pSyncUpdateHist = btcFindSyncUpdateEventHist( pMac,
                             pEvent->uEventParam.btDisconnect.connectionHandle );
     if( pSyncUpdateHist && pSyncUpdateHist->fValid )
     {
@@ -1329,8 +1329,8 @@ static VOS_STATUS btcDeferDisconnectEventForSync( tpAniSirGlobal pMac, tpSmeBtEv
 
 /*
   Defer a disconnect event.
-  Try to defer it as part of the ACL event first. 
-  If no match is found, try SYNC. 
+  Try to defer it as part of the ACL event first.
+  If no match is found, try SYNC.
   If still no match found, defer it at DISCONNECT event bin.
 */
 static VOS_STATUS btcDeferDisconnEvent( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
@@ -1351,7 +1351,7 @@ static VOS_STATUS btcDeferDisconnEvent( tpAniSirGlobal pMac, tpSmeBtEvent pEvent
     if( !VOS_IS_STATUS_SUCCESS(status) )
     {
         //Save the disconnect event
-        pDisconnEventHist = btcFindDisconnEventHist( pMac, 
+        pDisconnEventHist = btcFindDisconnEventHist( pMac,
             pEvent->uEventParam.btDisconnect.connectionHandle );
         if( pDisconnEventHist )
         {
@@ -1426,12 +1426,12 @@ static VOS_STATUS btcDeferEvent( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
             break;
         }
         //Find a match on handle. If not found, get a free slot.
-        pSyncUpdateHist = btcFindSyncUpdateEventHist( pMac,  
+        pSyncUpdateHist = btcFindSyncUpdateEventHist( pMac,
                                     pEvent->uEventParam.btSyncConnection.connectionHandle );
         if(pSyncUpdateHist)
         {
             pSyncUpdateHist->fValid = VOS_TRUE;
-            vos_mem_copy(&pSyncUpdateHist->btSyncConnection, &pEvent->uEventParam.btSyncConnection, 
+            vos_mem_copy(&pSyncUpdateHist->btSyncConnection, &pEvent->uEventParam.btSyncConnection,
                             sizeof(tSmeBtSyncConnectionParam));
         }
         else
@@ -1452,7 +1452,7 @@ static VOS_STATUS btcDeferEvent( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
             break;
         }
         //Find a match on handle, If not found, return a free slot
-        pModeChangeEventHist = btcFindModeChangeEventHist( pMac,  
+        pModeChangeEventHist = btcFindModeChangeEventHist( pMac,
                                     pEvent->uEventParam.btAclModeChange.connectionHandle );
         if(pModeChangeEventHist)
         {
@@ -1488,7 +1488,7 @@ static VOS_STATUS btcDeferEvent( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
     1. If BT_SWITCH_OFF event, send it.
     2. Send INQUIRY event (START or STOP),if available
     3. Send PAGE event (START or STOP), if available
-    4. Send DISCONNECT events, these DISCONNECT events are not tied to 
+    4. Send DISCONNECT events, these DISCONNECT events are not tied to
         any ACL/SYNC event that we have cached
     5. Send ACL events (possible events, CREATION, COMPLETION, DISCONNECT)
     6. Send MODE_CHANGE events, if available
@@ -1503,13 +1503,13 @@ static void btcReplayEvents( tpAniSirGlobal pMac )
     tpSmeBtAclEventHist pAclHist;
     tpSmeBtSyncEventHist pSyncHist;
     tSmeBtcEventReplay *pReplay = &pMac->btc.btcEventReplay;
-    //Always turn on HB monitor first. 
+    //Always turn on HB monitor first.
     //It is independent of BT events even though BT event causes this
     if( pReplay->fRestoreHBMonitor )
     {
         pReplay->fRestoreHBMonitor = VOS_FALSE;
         //Only do it when needed
-        if( !pMac->btc.btcHBActive ) 
+        if( !pMac->btc.btcHBActive )
         {
             ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
             pMac->btc.btcHBActive = VOS_TRUE;
@@ -1584,7 +1584,7 @@ static void btcReplayEvents( tpAniSirGlobal pMac )
             {
                 vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
                 btEvent.btEventType = BT_EVENT_DISCONNECTION_COMPLETE;
-                vos_mem_copy( &btEvent.uEventParam.btDisconnect, 
+                vos_mem_copy( &btEvent.uEventParam.btDisconnect,
                     &pReplay->btcEventHist.btDisconnectEvent[i].btDisconnect, sizeof(tSmeBtDisconnectParam) );
                 btcSendBTEvent( pMac, &btEvent );
             }
@@ -1604,7 +1604,7 @@ static void btcReplayEvents( tpAniSirGlobal pMac )
                     if(BT_EVENT_DISCONNECTION_COMPLETE != btEvent.btEventType)
                     {
                         //It must be CREATE or CONNECTION_COMPLETE
-                       vos_mem_copy( &btEvent.uEventParam.btAclConnection, 
+                       vos_mem_copy( &btEvent.uEventParam.btAclConnection,
                                      &pAclHist->btAclConnection[j], sizeof(tSmeBtAclConnectionParam) );
                     }
                     else
@@ -1622,7 +1622,7 @@ static void btcReplayEvents( tpAniSirGlobal pMac )
             {
                 vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
                 btEvent.btEventType = BT_EVENT_MODE_CHANGED;
-                vos_mem_copy( &btEvent.uEventParam.btAclModeChange, 
+                vos_mem_copy( &btEvent.uEventParam.btAclModeChange,
                     &pReplay->btcEventHist.btAclModeChangeEvent[i].btAclModeChange, sizeof(tSmeBtAclModeChangeParam) );
                 btcSendBTEvent( pMac, &btEvent );
             }
@@ -1655,7 +1655,7 @@ static void btcReplayEvents( tpAniSirGlobal pMac )
                     if(BT_EVENT_DISCONNECTION_COMPLETE != btEvent.btEventType)
                     {
                         //Must be CREATION or CONNECTION_COMPLETE
-                       vos_mem_copy( &btEvent.uEventParam.btSyncConnection, 
+                       vos_mem_copy( &btEvent.uEventParam.btSyncConnection,
                                      &pSyncHist->btSyncConnection[j], sizeof(tSmeBtSyncConnectionParam) );
                     }
                     else
@@ -1673,8 +1673,8 @@ static void btcReplayEvents( tpAniSirGlobal pMac )
             {
                 vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
                 btEvent.btEventType = BT_EVENT_SYNC_CONNECTION_UPDATED;
-                vos_mem_copy( &btEvent.uEventParam.btSyncConnection, 
-                            &pReplay->btcEventHist.btSyncUpdateEvent[i].btSyncConnection, 
+                vos_mem_copy( &btEvent.uEventParam.btSyncConnection,
+                            &pReplay->btcEventHist.btSyncUpdateEvent[i].btSyncConnection,
                             sizeof(tSmeBtSyncConnectionParam) );
                 btcSendBTEvent( pMac, &btEvent );
             }
@@ -1801,7 +1801,7 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
    switch( pBtEvent->btEventType )
    {
    case BT_EVENT_DISCONNECTION_COMPLETE:
-       if( (VOS_FALSE == pMac->btc.btcUapsdOk) && 
+       if( (VOS_FALSE == pMac->btc.btcUapsdOk) &&
            BT_INVALID_CONN_HANDLE != pBtEvent->uEventParam.btDisconnect.connectionHandle )
        {
            //Check whether all SCO connections are gone
@@ -1922,7 +1922,7 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
                }
        }
            /*If No Other Sco/A2DP is ON reenable UAPSD*/
-           if( (BT_MAX_SCO_SUPPORT == i)  && !pMac->btc.fA2DPUp)           
+           if( (BT_MAX_SCO_SUPPORT == i)  && !pMac->btc.fA2DPUp)
            {
                pMac->btc.btcUapsdOk = VOS_TRUE;
            }
@@ -1984,7 +1984,7 @@ eHalStatus btcHandleCoexInd(tHalHandle hHal, void* pMsg)
      // resume heartbeat monitoring
      else if (pSmeCoexInd->coexIndType == SIR_COEX_IND_TYPE_ENABLE_HB_MONITOR)
      {
-        if (!pMac->btc.btcHBActive) 
+        if (!pMac->btc.btcHBActive)
         {
            ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
            pMac->btc.btcHBActive = VOS_TRUE;

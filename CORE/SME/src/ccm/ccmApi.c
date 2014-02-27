@@ -84,18 +84,18 @@ static tANI_U32 * encodeCfgReq(tHddHandle hHdd, tANI_U32 *pl, tANI_U32 cfgId, tA
 
 /*
  * CCM_STRING_TYPE                       CCM_INTEGER_TYPE
- * |<--------  4   ----->|               |<--------  4   ----->|                          
- * +----------+            <-- msg  -->  +----------+                                 
- * |type      |                          |type      |           
- * +----------+                          +----------+           
- * |msgLen=24 |                          |msgLen=16 |           
+ * |<--------  4   ----->|               |<--------  4   ----->|
+ * +----------+            <-- msg  -->  +----------+
+ * |type      |                          |type      |
+ * +----------+                          +----------+
+ * |msgLen=24 |                          |msgLen=16 |
  * +----------+----------+               +----------+----------+
- * | cfgId               |               | cfgId               |  
+ * | cfgId               |               | cfgId               |
  * +---------------------+               +---------------------+
- * | length=11           |               | length=4            |  
+ * | length=11           |               | length=4            |
  * +---------------------+               +---------------------+
- * |                     |               | value               |  
- * |                     |               +---------------------+  
+ * |                     |               | value               |
+ * |                     |               +---------------------+
  * |                     |
  * |                +----+
  * |                |////| <- padding to 4-byte boundary
@@ -255,8 +255,8 @@ static void sendQueuedReqToMacSw(tpAniSirGlobal pMac, tHddHandle hHdd)
     return ;
 }
 
-static eHalStatus cfgSetSub(tpAniSirGlobal pMac, tHddHandle hHdd, tANI_U32 cfgId, tANI_U32 type, 
-                            tANI_S32 length, void *ccmPtr, tANI_U32 ccmValue, 
+static eHalStatus cfgSetSub(tpAniSirGlobal pMac, tHddHandle hHdd, tANI_U32 cfgId, tANI_U32 type,
+                            tANI_S32 length, void *ccmPtr, tANI_U32 ccmValue,
                             tCcmCfgSetCallback callback, eAniBoolean toBeSaved, void *sem, tCfgReq **r)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -409,7 +409,7 @@ eHalStatus ccmClose(tHalHandle hHal)
 {
     tHddHandle hHdd = halHandle2HddHandle(hHal);
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    tANI_U32 i ; 
+    tANI_U32 i ;
     tCfgReq *req ;
 
     ccmStop(hHal);
@@ -643,7 +643,7 @@ eHalStatus ccmCfgGetInt(tHalHandle hHal, tANI_U32 cfgId, tANI_U32 *pValue)
 
     if (req && req->state == eCCM_REQ_DONE)
     {
-        *pValue = req->ccmValue ; 
+        *pValue = req->ccmValue ;
     }
     else
     {
@@ -683,17 +683,17 @@ eHalStatus ccmCfgGetStr(tHalHandle hHal, tANI_U32 cfgId, tANI_U8 *pBuf, tANI_U32
 
 /*
  * Loop thru comp[] and form an ANI message which contains all completed cfgIds.
- * The message begins with an INTEGER parameter (cfgId=CFG_UPDATE_MAGIC_DWORD)     
+ * The message begins with an INTEGER parameter (cfgId=CFG_UPDATE_MAGIC_DWORD)
  * to mark the start of the message.
- */ 
+ */
 static eHalStatus cfgUpdate(tpAniSirGlobal pMac, tHddHandle hHdd, tCcmCfgSetCallback callback)
 {
     tANI_U32 i, *pl ;
     tCfgReq *req ;
     tSirMbMsg *msg ;
     eHalStatus status ;
-    tANI_S16 msgLen = 4 +       /* 4 bytes for msg header */ 
-                                /* for CFG_UPDATE_MAGIC_DWORD */ 
+    tANI_S16 msgLen = 4 +       /* 4 bytes for msg header */
+                                /* for CFG_UPDATE_MAGIC_DWORD */
         CFGOBJ_ID_SIZE +
         CFGOBJ_LEN_SIZE +
         CFGOBJ_INTEGER_VALUE_SIZE ;
@@ -827,4 +827,3 @@ eHalStatus ccmCfgUpdate(tHalHandle hHal, tCcmCfgSetCallback callback)
 
     return status ;
 }
-
