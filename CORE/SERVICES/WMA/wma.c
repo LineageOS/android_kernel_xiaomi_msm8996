@@ -3704,7 +3704,8 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
             wma_handle->roam_offload_vdev_id = (A_UINT32) self_sta_req->sessionId;
             wma_handle->roam_offload_enabled = TRUE;
             wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
-                                            WMI_VDEV_PARAM_ROAM_FW_OFFLOAD, 1);
+                             WMI_VDEV_PARAM_ROAM_FW_OFFLOAD,
+                             (WMI_ROAM_FW_OFFLOAD_ENABLE_FLAG|WMI_ROAM_BMISS_FINAL_SCAN_ENABLE_FLAG));
         }
 
 	if (wlan_cfgGetInt(mac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED,
@@ -4925,6 +4926,11 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle)
     /* first program the parameters to conservative values so that roaming scan won't be
      * triggered before association completes
      */
+    wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
+            WMI_VDEV_PARAM_BMISS_FIRST_BCNT, WMA_ROAM_BMISS_FIRST_BCNT_DEFAULT);
+
+    wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
+            WMI_VDEV_PARAM_BMISS_FINAL_BCNT, WMA_ROAM_BMISS_FINAL_BCNT_DEFAULT);
     /* rssi_thresh = 10 is low enough */
     vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle, WMA_ROAM_LOW_RSSI_TRIGGER_VERYLOW,
                                                    pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff);
@@ -15630,6 +15636,20 @@ static void wma_roam_better_ap_handler(tp_wma_handle wma, u_int32_t vdev_id)
 	ret = tlshim_mgmt_roam_event_ind(wma->vos_context, vdev_id);
 }
 
+/* function   : wma_roam_better_ap_handler
+ * Descriptin : Handler for WMI_ROAM_REASON_BETTER_AP event from roam firmware in Rome.
+ *            : This event means roam algorithm in Rome has found a better matching
+ *            : candidate AP. The indication is sent through tl_shim as by repeating
+ *            : the last beacon. Hence this routine calls a tlshim routine.
+ * Args       :
+ * Returns    :
+ */
+static void wma_roam_bmiss_scan_ap_handler(tp_wma_handle wma, u_int32_t vdev_id)
+{
+	VOS_STATUS ret;
+	ret = tlshim_mgmt_roam_event_ind(wma->vos_context, vdev_id);
+}
+
 /* function   : wma_roam_event_callback
  * Descriptin : Handler for all events from roam engine in firmware
  * Args       :
@@ -15655,12 +15675,17 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 
 	switch(wmi_event->reason) {
 	case WMI_ROAM_REASON_BMISS:
-		WMA_LOGA("Beacon Miss for vdevid %x",
+		WMA_LOGD("Beacon Miss for vdevid %x",
 			wmi_event->vdev_id);
 		wma_beacon_miss_handler(wma_handle, wmi_event->vdev_id);
 		break;
 	case WMI_ROAM_REASON_BETTER_AP:
 		WMA_LOGD("%s:Better AP found for vdevid %x, rssi %d", __func__,
+			wmi_event->vdev_id, wmi_event->rssi);
+		wma_roam_better_ap_handler(wma_handle, wmi_event->vdev_id);
+		break;
+	case WMI_ROAM_REASON_SUITABLE_AP:
+		WMA_LOGD("%s:Bmiss scan AP found for vdevid %x, rssi %d", __func__,
 			wmi_event->vdev_id, wmi_event->rssi);
 		wma_roam_better_ap_handler(wma_handle, wmi_event->vdev_id);
 		break;
