@@ -227,6 +227,13 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #undef WE_SET_TX_POWER
 #endif
 #define WE_SET_TX_POWER                 74
+/* Private ioctl for earlyrx power save feature */
+#define WE_SET_EARLY_RX_ADJUST_ENABLE         75
+#define WE_SET_EARLY_RX_TGT_BMISS_NUM         76
+#define WE_SET_EARLY_RX_BMISS_SAMPLE_CYCLE    77
+#define WE_SET_EARLY_RX_SLOP_STEP             78
+#define WE_SET_EARLY_RX_INIT_SLOP             79
+#define WE_SET_EARLY_RX_ADJUST_PAUSE          80
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -615,10 +622,8 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
         goto error;
     }
 
-    snprintf(wcnss_SW_version, sizeof(tSirVersionString), "20%x.%x.%x",
-        (pHddContext->target_fw_version&0xff0000)>>16,
-        (pHddContext->target_fw_version&0xff00)>>8,
-        (pHddContext->target_fw_version&0xff)>>0);
+    snprintf(wcnss_SW_version, sizeof(tSirVersionString), "%08x",
+        pHddContext->target_fw_version);
 
     pSWversion = wcnss_SW_version;
 
@@ -3284,12 +3289,14 @@ static int iw_set_priv(struct net_device *dev,
     }
     else if (strcasecmp(cmd, "scan-active") == 0)
     {
-        pAdapter->scan_info.scan_mode = eSIR_ACTIVE_SCAN;
+        hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+        pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
         ret = snprintf(cmd, cmd_len, "OK");
     }
     else if (strcasecmp(cmd, "scan-passive") == 0)
     {
-        pAdapter->scan_info.scan_mode = eSIR_PASSIVE_SCAN;
+        hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+        pHddCtx->ioctl_scan_mode = eSIR_PASSIVE_SCAN;
         ret = snprintf(cmd, cmd_len, "OK");
     }
     else if( strcasecmp(cmd, "scan-mode") == 0 )
@@ -5690,7 +5697,62 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            sme_UpdateConnectDebug(pHddCtx->hHal, set_value);
            break;
        }
-
+       case WE_SET_EARLY_RX_ADJUST_ENABLE:
+       {
+            hddLog(LOG1, "SET early_rx enable val %d", set_value);
+            if ((set_value == 0) || (set_value == 1)) {
+                 ret = process_wma_set_command((int)pAdapter->sessionId,
+                                (int)WMI_VDEV_PARAM_EARLY_RX_ADJUST_ENABLE,
+                                set_value, VDEV_CMD);
+            }
+            else
+              ret = -EINVAL;
+            break;
+       }
+       case WE_SET_EARLY_RX_TGT_BMISS_NUM:
+       {
+            hddLog(LOG1, "SET early_rx bmiss val %d", set_value);
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                            (int)WMI_VDEV_PARAM_EARLY_RX_TGT_BMISS_NUM,
+                            set_value, VDEV_CMD);
+            break;
+       }
+       case WE_SET_EARLY_RX_BMISS_SAMPLE_CYCLE:
+       {
+            hddLog(LOG1, "SET early_rx bmiss sample cycle %d", set_value);
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                            (int)WMI_VDEV_PARAM_EARLY_RX_BMISS_SAMPLE_CYCLE,
+                            set_value, VDEV_CMD);
+            break;
+       }
+       case WE_SET_EARLY_RX_SLOP_STEP:
+       {
+            hddLog(LOG1, "SET early_rx bmiss slop step val %d", set_value);
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                            (int)WMI_VDEV_PARAM_EARLY_RX_SLOP_STEP,
+                            set_value, VDEV_CMD);
+            break;
+       }
+       case WE_SET_EARLY_RX_INIT_SLOP:
+       {
+            hddLog(LOG1, "SET early_rx init slop step val %d", set_value);
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                            (int)WMI_VDEV_PARAM_EARLY_RX_INIT_SLOP,
+                            set_value, VDEV_CMD);
+            break;
+       }
+       case WE_SET_EARLY_RX_ADJUST_PAUSE:
+       {
+            hddLog(LOG1, "SET early_rx adjust pause %d", set_value);
+            if ((set_value == 0) || (set_value == 1)) {
+                 ret = process_wma_set_command((int)pAdapter->sessionId,
+                                (int)WMI_VDEV_PARAM_EARLY_RX_ADJUST_PAUSE,
+                                set_value, VDEV_CMD);
+            }
+            else
+              ret = -EINVAL;
+            break;
+       }
 #endif
         default:
         {
@@ -9939,6 +10001,30 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_SCAN_BAND_PREFERENCE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "set_scan_pref" },
+    /* handlers for early_rx power save */
+    {   WE_SET_EARLY_RX_ADJUST_ENABLE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "erx_enable" },
+
+    {   WE_SET_EARLY_RX_TGT_BMISS_NUM,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "erx_bmiss_val" },
+
+    {   WE_SET_EARLY_RX_BMISS_SAMPLE_CYCLE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "erx_bmiss_smpl" },
+
+    {   WE_SET_EARLY_RX_SLOP_STEP,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "erx_slop_step" },
+
+    {   WE_SET_EARLY_RX_INIT_SLOP,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "erx_init_slop" },
+
+    {   WE_SET_EARLY_RX_ADJUST_PAUSE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "erx_adj_pause" },
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,

@@ -53,10 +53,10 @@ A_STATUS HTCConnectService(HTC_HANDLE               HTCHandle,
     A_BOOL                              disableCreditFlowCtrl = FALSE;
     A_UINT16                            conn_flags;
     A_UINT16                            rsp_msg_id, rsp_msg_serv_id, rsp_msg_max_msg_size;
-    A_UINT8                             rsp_msg_status, rsp_msg_end_id, rsp_msg_serv_meta_len; 
+    A_UINT8                             rsp_msg_status, rsp_msg_end_id, rsp_msg_serv_meta_len;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+HTCConnectService, target:%p SvcID:0x%X \n",
-               		target, pConnectReq->ServiceID));
+                                    target, pConnectReq->ServiceID));
 
     do {
 
@@ -165,7 +165,7 @@ A_STATUS HTCConnectService(HTC_HANDLE               HTCHandle,
                     HTC_CONNECT_SERVICE_RESPONSE_MSG, MAXMSGSIZE);
             rsp_msg_serv_meta_len = HTC_GET_FIELD(pResponseMsg,
                     HTC_CONNECT_SERVICE_RESPONSE_MSG, SERVICEMETALENGTH);
-            
+
 
             if ((rsp_msg_id != HTC_MSG_CONNECT_SERVICE_RESPONSE_ID) ||
                 (target->CtrlResponseLength < sizeof(HTC_CONNECT_SERVICE_RESPONSE_MSG))) {
@@ -190,7 +190,7 @@ A_STATUS HTCConnectService(HTC_HANDLE               HTCHandle,
                 break;
             }
 
-            assignedEndpoint = (HTC_ENDPOINT_ID)rsp_msg_end_id; 
+            assignedEndpoint = (HTC_ENDPOINT_ID)rsp_msg_end_id;
             maxMsgSize = rsp_msg_max_msg_size;
 
             if ((pConnectResp->pMetaData != NULL) &&

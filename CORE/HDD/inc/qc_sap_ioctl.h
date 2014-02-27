@@ -280,6 +280,22 @@ typedef struct
 #define QCSAP_SET_VHT_RATE                 49
 #define QCSAP_SET_AMPDU                    50
 #define QCSAP_SET_AMSDU                    51
+#define QCSAP_SET_GTX_HT_MCS               52
+#define QCSAP_SET_GTX_VHT_MCS              53
+#define QCSAP_SET_GTX_USRCFG               54
+#define QCSAP_SET_GTX_THRE                 55
+#define QCSAP_SET_GTX_MARGIN               56
+#define QCSAP_SET_GTX_STEP                 57
+#define QCSAP_SET_GTX_MINTPC               58
+#define QCSAP_SET_GTX_BWMASK               59
+#define QCSAP_GET_GTX_HT_MCS               60
+#define QCSAP_GET_GTX_VHT_MCS              61
+#define QCSAP_GET_GTX_USRCFG               62
+#define QCSAP_GET_GTX_THRE                 63
+#define QCSAP_GET_GTX_MARGIN               64
+#define QCSAP_GET_GTX_STEP                 65
+#define QCSAP_GET_GTX_MINTPC               66
+#define QCSAP_GET_GTX_BWMASK               67
 #endif /* QCA_WIFI_2_0 */
 
 enum { 

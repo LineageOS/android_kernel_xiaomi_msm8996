@@ -826,4 +826,3 @@ dfs_get_random_bin5_dur(struct ath_dfs *dfs, u_int64_t tstamp)
 }
 
 #endif /* ATH_SUPPORT_DFS */
-

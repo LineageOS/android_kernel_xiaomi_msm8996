@@ -5251,7 +5251,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         else
         {
             /*Set the scan type to default type, in this case it is ACTIVE*/
-            scanRequest.scanType = pScanInfo->scan_mode;
+            scanRequest.scanType = pHddCtx->ioctl_scan_mode;
         }
         scanRequest.minChnTime = cfg_param->nActiveMinChnTime;
         scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;
@@ -8523,7 +8523,8 @@ static int wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
         memcpy(pPnoRequest->aNetworks[i].aChannels, valid_ch, num_ch);
         pPnoRequest->aNetworks[i].ucChannelCount = num_ch;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)) && defined (QCA_WIFI_2_0)
-        pPnoRequest->aNetworks[i].rssiThreshold = request->rssi_thold;
+        pPnoRequest->aNetworks[i].rssiThreshold =
+                                    request->match_sets[i].rssi_thold;
 #else
         pPnoRequest->aNetworks[i].rssiThreshold = 0; //Default value
 #endif
@@ -9099,6 +9100,7 @@ static int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *d
                                                                tlTid[ac], tlTid[ac], 0, 0,
 #ifdef QCA_WIFI_2_0
                                                                WLANTL_BI_DIR,
+                                                               1,
                                                                pAdapter->sessionId );
 #else
                                                                WLANTL_BI_DIR );

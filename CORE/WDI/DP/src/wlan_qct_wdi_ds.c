@@ -26,14 +26,14 @@
  */
 
 /**=========================================================================
- *     
+ *
  *       \file  wlan_qct_wdi_ds.c
- *          
- *       \brief define Dataservice API 
- *                               
+ *
+ *       \brief define Dataservice API
+ *
  * WLAN Device Abstraction layer External API for Dataservice
  * DESCRIPTION
- *  This file contains the external API implemntation exposed by the 
+ *  This file contains the external API implemntation exposed by the
  *   wlan device abstarction layer module.
  *
  */
@@ -50,16 +50,16 @@
 
 
 
-/* DAL registration function. 
+/* DAL registration function.
  * Parameters:
- *  pContext:Cookie that should be passed back to the caller along 
+ *  pContext:Cookie that should be passed back to the caller along
  *  with the callback.
- *  pfnTxCompleteCallback:Callback function that is to be invoked to return 
+ *  pfnTxCompleteCallback:Callback function that is to be invoked to return
  *  packets which have been transmitted.
- *  pfnRxPacketCallback:Callback function that is to be invoked to deliver 
+ *  pfnRxPacketCallback:Callback function that is to be invoked to deliver
  *  packets which have been received
- *  pfnTxFlowControlCallback:Callback function that is to be invoked to 
- *  indicate/clear congestion. 
+ *  pfnTxFlowControlCallback:Callback function that is to be invoked to
+ *  indicate/clear congestion.
  *
  * Return Value: SUCCESS  Completed successfully.
  *     FAILURE_XXX  Request was rejected due XXX Reason.
@@ -162,7 +162,7 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   pAddr2MACAddress = &(pTxMetadata->addr2MACAddress[0]);
 
   /*------------------------------------------------------------------------
-     Get type and subtype of the frame first 
+     Get type and subtype of the frame first
   ------------------------------------------------------------------------*/
   ucType = (ucTypeSubtype & WDI_FRAME_TYPE_MASK) >> WDI_FRAME_TYPE_OFFSET;
   switch(ucType)
@@ -218,7 +218,7 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   if(eWLAN_PAL_STATUS_SUCCESS !=WDTS_TxPacket(pContext, pFrame)){
     WDI_DS_MemPoolFree(pMemPool, pvBDHeader, physBDHeader);
     return WDI_STATUS_E_FAILURE;
-  }  
+  }
 
   /* resource count only for data packet */
   // EAPOL packet doesn't use data mem pool if being treated as higher priority
@@ -235,11 +235,11 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   {
     WDI_DS_MemPoolIncreaseReserveCount(pMemPool, staId);
   }
-  return WDI_STATUS_SUCCESS;  
+  return WDI_STATUS_SUCCESS;
 }
- 
- 
-/* DAL Transmit Complete function. 
+
+
+/* DAL Transmit Complete function.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  ucTxResReq:TX resource number required by TL
@@ -254,17 +254,17 @@ WDI_Status WDI_DS_TxComplete(void *pContext, wpt_uint32 ucTxResReq)
   // Do Sanity checks
   if(NULL == pContext)
     return WDI_STATUS_E_FAILURE;
-  
+
   // Send notification to transport layer.
   if(eWLAN_PAL_STATUS_SUCCESS !=WDTS_CompleteTx(pContext, ucTxResReq))
   {
     return WDI_STATUS_E_FAILURE;
-  }  
+  }
 
-  return WDI_STATUS_SUCCESS;  
-} 
+  return WDI_STATUS_SUCCESS;
+}
 
-/* DAL Suspend Transmit function. 
+/* DAL Suspend Transmit function.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  * Return Value: SUCCESS  Completed successfully.
@@ -275,16 +275,16 @@ WDI_Status WDI_DS_TxComplete(void *pContext, wpt_uint32 ucTxResReq)
 
 WDI_Status WDI_DS_TxSuspend(void *pContext)
 {
-  WDI_DS_ClientDataType *pClientData =  
+  WDI_DS_ClientDataType *pClientData =
     (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
   pClientData->suspend = 1;
 
-  return WDI_STATUS_SUCCESS;  
+  return WDI_STATUS_SUCCESS;
 
 }
 
 
-/* DAL Resume Transmit function. 
+/* DAL Resume Transmit function.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  * Return Value: SUCCESS  Completed successfully.
@@ -295,15 +295,15 @@ WDI_Status WDI_DS_TxSuspend(void *pContext)
 
 WDI_Status WDI_DS_TxResume(void *pContext)
 {
-  WDI_DS_ClientDataType *pClientData =  
+  WDI_DS_ClientDataType *pClientData =
     (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
 
   pClientData->suspend = 0;
 
-  return WDI_STATUS_SUCCESS;  
+  return WDI_STATUS_SUCCESS;
 }
 
-/* DAL Get Available Resource Count. 
+/* DAL Get Available Resource Count.
  * This is the number of free descririptor in DXE
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
@@ -315,7 +315,7 @@ WDI_Status WDI_DS_TxResume(void *pContext)
 
 wpt_uint32 WDI_GetAvailableResCount(void *pContext,WDI_ResPoolType wdiResPool)
 {
-  WDI_DS_ClientDataType *pClientData =  
+  WDI_DS_ClientDataType *pClientData =
     (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
 
   switch(wdiResPool)
@@ -329,7 +329,7 @@ wpt_uint32 WDI_GetAvailableResCount(void *pContext,WDI_ResPoolType wdiResPool)
   }
 }
 
-/* DAL Get resrved Resource Count per STA. 
+/* DAL Get resrved Resource Count per STA.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  wdiResPool: - identifier of resource pool
@@ -339,7 +339,7 @@ wpt_uint32 WDI_GetAvailableResCount(void *pContext,WDI_ResPoolType wdiResPool)
  */
 wpt_uint32 WDI_DS_GetReservedResCountPerSTA(void *pContext,WDI_ResPoolType wdiResPool, wpt_uint8 staId)
 {
-  WDI_DS_ClientDataType *pClientData =  
+  WDI_DS_ClientDataType *pClientData =
     (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
   switch(wdiResPool)
   {
@@ -352,7 +352,7 @@ wpt_uint32 WDI_DS_GetReservedResCountPerSTA(void *pContext,WDI_ResPoolType wdiRe
   }
 }
 
-/* DAL STA info add into memPool. 
+/* DAL STA info add into memPool.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  staId: STA ID
@@ -362,7 +362,7 @@ wpt_uint32 WDI_DS_GetReservedResCountPerSTA(void *pContext,WDI_ResPoolType wdiRe
 WDI_Status WDI_DS_AddSTAMemPool(void *pContext, wpt_uint8 staIndex)
 {
   WDI_Status status = WDI_STATUS_SUCCESS;
-  WDI_DS_ClientDataType *pClientData =  
+  WDI_DS_ClientDataType *pClientData =
     (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
 
   status = WDI_DS_MemPoolAddSTA(&pClientData->mgmtMemPool, staIndex);
@@ -379,10 +379,10 @@ WDI_Status WDI_DS_AddSTAMemPool(void *pContext, wpt_uint8 staIndex)
     return status;
   }
 
-  return WDI_STATUS_SUCCESS; 
+  return WDI_STATUS_SUCCESS;
 }
 
-/* DAL STA info del from memPool. 
+/* DAL STA info del from memPool.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  staId: STA ID
@@ -392,7 +392,7 @@ WDI_Status WDI_DS_AddSTAMemPool(void *pContext, wpt_uint8 staIndex)
 WDI_Status WDI_DS_DelSTAMemPool(void *pContext, wpt_uint8 staIndex)
 {
   WDI_Status status = WDI_STATUS_SUCCESS;
-  WDI_DS_ClientDataType *pClientData =  
+  WDI_DS_ClientDataType *pClientData =
     (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
 
   status = WDI_DS_MemPoolDelSTA(&pClientData->mgmtMemPool, staIndex);
@@ -407,10 +407,10 @@ WDI_Status WDI_DS_DelSTAMemPool(void *pContext, wpt_uint8 staIndex)
     /* Del STA from DATA memPool Fail */
     return status;
   }
-  return WDI_STATUS_SUCCESS; 
+  return WDI_STATUS_SUCCESS;
 }
 
-/* DAL Set STA index associated with BSS index. 
+/* DAL Set STA index associated with BSS index.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  bssIdx: BSS index
@@ -446,7 +446,7 @@ WDI_Status WDI_DS_SetStaIdxPerBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uint8
   return WDI_STATUS_E_FAILURE;
 }
 
-/* DAL Get STA index associated with BSS index. 
+/* DAL Get STA index associated with BSS index.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  bssIdx: BSS index
@@ -474,7 +474,7 @@ WDI_Status WDI_DS_GetStaIdxFromBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uint
   return WDI_STATUS_E_FAILURE;
 }
 
-/* DAL Clear STA index associated with BSS index. 
+/* DAL Clear STA index associated with BSS index.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  bssIdx: BSS index
@@ -545,4 +545,3 @@ void WDI_DS_ClearTrafficStats(void)
 {
    return WDTS_ClearTrafficStats();
 }
-

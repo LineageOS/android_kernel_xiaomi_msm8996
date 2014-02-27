@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -146,6 +146,7 @@ typedef PREPACK struct _HTC_FRAME_HDR{
 #define HTC_MSG_SETUP_COMPLETE_ID           4
 #define HTC_MSG_SETUP_COMPLETE_EX_ID        5
 #define HTC_MSG_SEND_SUSPEND_COMPLETE       6
+#define HTC_MSG_NACK_SUSPEND                7
 
 #define HTC_MAX_CONTROL_MESSAGE_LENGTH  256
 

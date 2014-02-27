@@ -3326,6 +3326,7 @@ sme_StopBatchScanInd
  * is enabled
  */
 VOS_STATUS sme_SetIdlePowersaveConfig(v_PVOID_t vosContext, tANI_U32 value);
+VOS_STATUS sme_notify_modem_power_state(v_PVOID_t vosContext, tANI_U32 value);
 
 eHalStatus sme_ConfigEnablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode);
 eHalStatus sme_ConfigDisablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode);

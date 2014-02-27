@@ -2205,6 +2205,7 @@ WLANTL_EnableUAPSDForAC
   v_U32_t            uSuspendInt,
 #ifdef QCA_WIFI_2_0
   WLANTL_TSDirType   wTSDir,
+  v_U8_t             psb,
   v_U32_t            sessionId
 #else
   WLANTL_TSDirType   wTSDir

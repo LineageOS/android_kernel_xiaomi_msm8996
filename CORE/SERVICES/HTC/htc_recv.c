@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -44,7 +44,7 @@ void DebugDumpBytes(A_UCHAR *buffer, A_UINT16 length, char *pDescription)
     offset = 0;
     byteOffset = 0;
     for(i = 0; i < length; i++) {
-        A_SNPRINTF(stream + offset, (sizeof(stream) - offset), 
+        A_SNPRINTF(stream + offset, (sizeof(stream) - offset),
                    "%02X ", buffer[i]);
         count ++;
         offset += 3;
@@ -368,6 +368,7 @@ A_STATUS HTCRxCompletionHandler(
         if (htc_ep_id == ENDPOINT_0) {
             A_UINT16 message_id;
             HTC_UNKNOWN_MSG *htc_msg;
+            int wow_nack = 0;
 
                 /* remove HTC header */
             adf_nbuf_pull_head(netbuf, HTC_HDR_LENGTH);
@@ -396,6 +397,13 @@ A_STATUS HTCRxCompletionHandler(
                 adf_os_mutex_release(target->osdev, &target->CtrlResponseValid);
                 break;
             case HTC_MSG_SEND_SUSPEND_COMPLETE:
+                wow_nack = 0;
+                target->HTCInitInfo.pContext = (void *)&wow_nack;
+                target->HTCInitInfo.TargetSendSuspendComplete(target->HTCInitInfo.pContext);
+                break;
+            case HTC_MSG_NACK_SUSPEND:
+                wow_nack = 1;
+                target->HTCInitInfo.pContext = (void *)&wow_nack;
                 target->HTCInitInfo.TargetSendSuspendComplete(target->HTCInitInfo.pContext);
                 break;
             }
@@ -415,7 +423,7 @@ A_STATUS HTCRxCompletionHandler(
             break;
         }
         pPacket->Status = A_OK;
-        pPacket->Endpoint = htc_ep_id; 
+        pPacket->Endpoint = htc_ep_id;
         pPacket->pPktContext = netbuf;
         pPacket->pBuffer = adf_nbuf_data(netbuf) + HTC_HDR_LENGTH;
         pPacket->ActualLength = netlen - HTC_HEADER_LEN - trailerlen;
@@ -649,7 +657,7 @@ static A_STATUS HTCProcessTrailer(HTC_TARGET     *target,
         }
 
             /* advance buffer past this record for next time around */
-        pBuffer += htc_rec_len; 
+        pBuffer += htc_rec_len;
         Length -= htc_rec_len;
     }
 
@@ -661,4 +669,3 @@ static A_STATUS HTCProcessTrailer(HTC_TARGET     *target,
     return status;
 
 }
-

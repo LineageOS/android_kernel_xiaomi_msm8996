@@ -3105,6 +3105,12 @@ REG_VARIABLE( CFG_ENABLE_RX_THREAD, WLAN_PARAM_Integer,
                CFG_ENABLE_RX_THREAD_DEFAULT,
                CFG_ENABLE_RX_THREAD_MIN,
                CFG_ENABLE_RX_THREAD_MAX),
+REG_VARIABLE( CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, fDfsPhyerrFilterOffload,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_DEFAULT,
+              CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MIN,
+              CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MAX ),
 };
 
 /*
@@ -3481,6 +3487,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAmsduSupportInAMPDU] Value = [%u] ",pHddCtx->cfg_ini->isAmsduSupportInAMPDU);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nSelect5GHzMargin] Value = [%u] ",pHddCtx->cfg_ini->nSelect5GHzMargin);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gCoalesingInIBSS] Value = [%u] ",pHddCtx->cfg_ini->isCoalesingInIBSSAllowed);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fDfsPhyerrFilterOffload] Value = [%u] ",pHddCtx->cfg_ini->fDfsPhyerrFilterOffload);
 
 #ifdef IPA_OFFLOAD
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAEnable] Value = [%u] ",pHddCtx->cfg_ini->IpaEnable);

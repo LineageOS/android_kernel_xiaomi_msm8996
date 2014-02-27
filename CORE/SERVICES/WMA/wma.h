@@ -78,6 +78,7 @@
 #define WMA_CFG_NV_DNLD_TIMEOUT            500
 #define WMA_READY_EVENTID_TIMEOUT          2000
 #define WMA_TGT_SUSPEND_COMPLETE_TIMEOUT   1000
+#define WMA_WAKE_LOCK_TIMEOUT              1000
 #define MAX_MEM_CHUNKS 32
 /*
    In prima 12 HW stations are supported including BCAST STA(staId 0)
@@ -337,6 +338,12 @@ typedef struct {
 	u_int32_t tx_rate;
 	u_int32_t ampdu;
 	u_int32_t amsdu;
+	u_int32_t erx_adjust;
+	u_int32_t erx_bmiss_num;
+	u_int32_t erx_bmiss_cycle;
+	u_int32_t erx_slop_step;
+	u_int32_t erx_init_slop;
+	u_int32_t erx_adj_pause;
         struct pps pps_params;
 	struct qpower_params qpower_params;
 	gtx_config_t gtx_info;
@@ -434,6 +441,7 @@ struct wma_txrx_node {
 	u_int16_t pause_bitmap;
 	tPowerdBm  tx_power; /* TX power in dBm */
 	tPowerdBm  max_tx_power; /* max Tx power in dBm */
+        u_int32_t  nwType;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -572,11 +580,12 @@ typedef struct {
 	vos_wake_lock_t pno_wake_lock;
 #endif
 	vos_wake_lock_t wow_wake_lock;
-	vos_wake_lock_t pm_qos_lock;
-	u_int32_t ap_client_cnt;
+	int wow_nack;
 
 	vos_timer_t wma_scan_comp_timer;
 	scan_timer_info wma_scan_timer_info;
+
+	u_int8_t dfs_phyerr_filter_offload;
 
 }t_wma_handle, *tp_wma_handle;
 
@@ -1446,10 +1455,10 @@ u_int16_t   dfs_usenol(struct ieee80211com *ic);
 
 /* U-APSD Access Categories */
 enum uapsd_ac {
-	UAPSD_VO,
-	UAPSD_VI,
+	UAPSD_BE,
 	UAPSD_BK,
-	UAPSD_BE
+	UAPSD_VI,
+	UAPSD_VO
 };
 
 VOS_STATUS wma_disable_uapsd_per_ac(tp_wma_handle wma_handle,

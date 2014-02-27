@@ -3634,7 +3634,12 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     vos_mem_copy(pAddBssParams->rateSet.rate,
                  pAssocRsp->supportedRates.rate, pAssocRsp->supportedRates.numRates);
 
-    pAddBssParams->nwType = bssDescription->nwType;
+    if (IS_DOT11_MODE_11B(psessionEntry->dot11mode) &&
+        bssDescription->nwType != eSIR_11B_NW_TYPE) {
+        pAddBssParams->nwType = eSIR_11B_NW_TYPE;
+    } else {
+        pAddBssParams->nwType = bssDescription->nwType;
+    }
     
     pAddBssParams->shortSlotTimeSupported = (tANI_U8)pAssocRsp->capabilityInfo.shortSlotTime;
     pAddBssParams->llaCoexist = (tANI_U8) psessionEntry->beaconParams.llaCoexist;    

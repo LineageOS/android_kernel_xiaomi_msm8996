@@ -37,6 +37,7 @@ struct hdd_tgt_services {
         u_int32_t ap_dfs;
         u_int32_t en_11ac;
         u_int32_t arp_offload;
+        u_int32_t early_rx;
 #ifdef FEATURE_WLAN_SCAN_PNO
         v_BOOL_t  pno_offload;
 #endif

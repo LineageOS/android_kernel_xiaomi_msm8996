@@ -210,18 +210,18 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb)
 /* ---------------------------------------------------------
  * FUNCTION:  wdaGetGlobalSystemRole()
  *
- * Get the global HAL system role. 
+ * Get the global HAL system role.
  * ---------------------------------------------------------
  */
 tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac)
 {
    v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
-   tWDA_CbContext *wdaContext = 
+   tWDA_CbContext *wdaContext =
                        vos_get_context(VOS_MODULE_ID_WDA, pVosContext);
    if(NULL == wdaContext)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                           "%s:WDA context is NULL", __func__); 
+                           "%s:WDA context is NULL", __func__);
       VOS_ASSERT(0);
       return eSYSTEM_UNKNOWN_ROLE;
    }
@@ -229,4 +229,3 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac)
              wdaContext->wdaGlobalSystemRole));
    return  wdaContext->wdaGlobalSystemRole;
 }
-

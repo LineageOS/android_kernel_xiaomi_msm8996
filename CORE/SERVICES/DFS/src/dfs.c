@@ -973,4 +973,3 @@ u_int16_t   dfs_isdfsregdomain(struct ieee80211com *ic)
 }
 
 #endif /* ATH_UPPORT_DFS */
-
