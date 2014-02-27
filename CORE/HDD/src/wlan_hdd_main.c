@@ -2220,7 +2220,7 @@ eHalStatus hdd_parse_plm_cmd(tANI_U8 *pValue, tSirPlmReq *pPlmRequest)
         ret = kstrtos32(buf, 10, &content);
         if ( ret < 0) return eHAL_STATUS_FAILURE;
 
-        if (content <= 0)
+        if (content < 0)
            return eHAL_STATUS_FAILURE;
 
         pPlmRequest->plmNumCh = content;

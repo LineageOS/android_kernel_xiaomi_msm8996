@@ -11298,20 +11298,23 @@ static VOS_STATUS wma_plm_start(tp_wma_handle wma, const tpSirPlmReq plm)
 	WMA_LOGD("tx_power: %d", cmd->tx_power);
 	WMA_LOGD("Number of channels : %d", cmd->num_chans);
 
-	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
-			(cmd->num_chans * sizeof(u_int32_t)));
+	if (cmd->num_chans)
+        {
+		WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
+				(cmd->num_chans * sizeof(u_int32_t)));
 
-	buf_ptr += WMI_TLV_HDR_SIZE;
+		buf_ptr += WMI_TLV_HDR_SIZE;
 
-	channel_list = (u_int32_t *) buf_ptr;
-	for (count = 0; count < cmd->num_chans; count++) {
-		channel_list[count] = plm->plmChList[count];
-		if (channel_list[count] < WMA_NLO_FREQ_THRESH)
-			channel_list[count] =
-				vos_chan_to_freq(channel_list[count]);
-		WMA_LOGD("Ch[%d]: %d MHz", count, channel_list[count]);
+		channel_list = (u_int32_t *) buf_ptr;
+		for (count = 0; count < cmd->num_chans; count++) {
+			channel_list[count] = plm->plmChList[count];
+			if (channel_list[count] < WMA_NLO_FREQ_THRESH)
+				channel_list[count] =
+					vos_chan_to_freq(channel_list[count]);
+			WMA_LOGD("Ch[%d]: %d MHz", count, channel_list[count]);
+		}
+		buf_ptr += cmd->num_chans * sizeof(u_int32_t);
 	}
-	buf_ptr += cmd->num_chans * sizeof(u_int32_t);
 
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 					WMI_VDEV_PLMREQ_START_CMDID);

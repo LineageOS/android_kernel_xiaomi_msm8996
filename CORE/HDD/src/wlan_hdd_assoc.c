@@ -4189,7 +4189,7 @@ void hdd_indicateCckmPreAuth(hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo)
 
     /* Timestamp0 is lower 32 bits and Timestamp1 is upper 32 bits */
     hddLog(VOS_TRACE_LEVEL_INFO,
-           "CCXPREAUTHNOTIFY=" MAC_ADDRESS_STR" %lu:%lu",
+           "CCXPREAUTHNOTIFY=" MAC_ADDRESS_STR" %d:%d",
            MAC_ADDR_ARRAY(pRoamInfo->bssid),
            pRoamInfo->timestamp[0],
            pRoamInfo->timestamp[1]);
