@@ -193,7 +193,7 @@ typedef struct _HTC_TARGET {
 
 #define IS_TX_CREDIT_FLOW_ENABLED(ep)  ((ep)->TxCreditFlowEnabled)
 
-#define HTC_POLL_CLEANUP_PERIOD_MS 10 /* milliseconds */ 
+#define HTC_POLL_CLEANUP_PERIOD_MS 10 /* milliseconds */
 
 
 /* Macro to Increment the  HTC_PACKET_ERRORS for Tx.*/
@@ -285,4 +285,3 @@ HTCSendCompleteCheck(HTC_ENDPOINT *pEndpoint, int force)
 
 
 #endif	/* !_HTC_HOST_INTERNAL_H_ */
-

@@ -285,7 +285,12 @@ extern "C" {
 #define WHAL_ERROR_POWER_RFLP_BIAS2X_CONFIG        40
 #define WHAL_ERROR_POWER_RFLP_PLLBYPASS_CONFIG     41
 #define WHAL_ERROR_POWER_RFLP_OFF1CHAN_CONFIG      42
-#define WHAL_DBGID_DEFINITION_END                  43
+#define WHAL_ERROR_POWER_ANTENNA_LMIT              43
+#define WHAL_ERROR_POWER_REGDMN_TX_LMIT            44
+#define WHAL_ERROR_POWER_MODE_SCALED_PWR           45
+#define WHAL_ERROR_POWER_EDGE_PWR_TPSCALE          46
+#define WHAL_ERROR_POWER_CHAN_REGALLOW             47
+#define WHAL_DBGID_DEFINITION_END                  48
 
 #define COEX_DEBUGID_START              0
 #define BTCOEX_DBG_MCI_1                            1
@@ -598,6 +603,10 @@ extern "C" {
 #define AP_PS_DBGID_SEND_N_COMPLETE                 16
 #define AP_PS_DBGID_DETECT_OUT_OF_SYNC_STA          17
 #define AP_PS_DBGID_DELIVER_CAB                     18
+#define AP_PS_DBGID_NO_CLIENT                       27
+#define AP_PS_DBGID_CLIENT_IN_PS_ACTIVE             28
+#define AP_PS_DBGID_CLIENT_IN_PS_NON_ACTIVE         29
+#define AP_PS_DBGID_CLIENT_IN_AWAKE                 30
 
 /* WLAN_MODULE_MGMT_TXRX Debugids*/
 #define MGMT_TXRX_DBGID_DEFINITION_START            0
@@ -807,7 +816,10 @@ extern "C" {
 #define WOW_INIT 8
 #define WOW_RECV_MAGIC_PKT 9
 #define WOW_RECV_BITMAP_PATTERN 10
-#define WOW_DBGID_DEFINITION_END 11
+#define WOW_AP_VDEV_DISALLOW    11
+#define WOW_STA_VDEV_DISALLOW   12
+#define WOW_P2PGO_VDEV_DISALLOW 13
+#define WOW_DBGID_DEFINITION_END 14
 
 /* SWBMISS module DBGIDs */
 #define SWBMISS_DBGID_DEFINITION_START  0
@@ -971,6 +983,7 @@ extern "C" {
 #define WLAN_PHYERR_DFS_DBDID_RADAR_SUMMARY       3
 #define WLAN_PHYERR_DFS_DBDID_SEARCH_FFT          4
 #define WLAN_PHTERR_DFS_DBDID_FILTER_STATUS       5
+#define WLAN_PHYERR_DFS_DBGID_DEFINITION_END      6
 
 /* RMC DBGIDs */
 #define RMC_DBGID_DEFINITION_START             0

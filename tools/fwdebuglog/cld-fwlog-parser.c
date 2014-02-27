@@ -2530,6 +2530,10 @@ dbglog_pcielp_print_handler(
 int main(int argc, char *argv[])
 {
     int res;
+    struct dbglog_slot *slot;
+    unsigned int dropped = 0;
+    unsigned int length = 0;
+    unsigned int record_num = 0;
 
     if (argc != 2) {
         fprintf(stderr, "usage:\n"
@@ -2560,7 +2564,13 @@ int main(int argc, char *argv[])
 
 
     while ((res = fread(buf, RECLEN, 1, log_in)) == 1) {
-        dbglog_parse_debug_logs(&buf[12], get_le32(&buf[4]), get_le32(&buf[8]));
+        slot =(struct dbglog_slot *)buf;
+        length = get_le32((unsigned char *)&slot->length);
+        dropped = get_le32((unsigned char *)&slot->dropped);
+        record_num++;
+        fprintf(stderr, "Length %d Dropped %d record_num %d\n",
+                length, dropped, record_num);
+        dbglog_parse_debug_logs(slot->payload, length, dropped);
     }
 
     fclose(log_in);

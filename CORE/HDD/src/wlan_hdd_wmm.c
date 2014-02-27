@@ -211,6 +211,7 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
                                     suspension_interval,
 #ifdef QCA_WIFI_2_0
                                     direction,
+                                    psb,
                                     pAdapter->sessionId);
 #else
                                     direction);
@@ -2173,6 +2174,7 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdVoSuspIntv,
 #ifdef QCA_WIFI_2_0
                                         WLANTL_BI_DIR,
+                                        1,
                                         pAdapter->sessionId);
 #else
                                         WLANTL_BI_DIR);
@@ -2192,6 +2194,7 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdViSuspIntv,
 #ifdef QCA_WIFI_2_0
                                         WLANTL_BI_DIR,
+                                        1,
                                         pAdapter->sessionId);
 #else
                                         WLANTL_BI_DIR);
@@ -2211,6 +2214,7 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdBkSuspIntv,
 #ifdef QCA_WIFI_2_0
                                         WLANTL_BI_DIR,
+                                        1,
                                         pAdapter->sessionId);
 #else
                                         WLANTL_BI_DIR);
@@ -2230,6 +2234,7 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdBeSuspIntv,
 #ifdef QCA_WIFI_2_0
                                         WLANTL_BI_DIR,
+                                        1,
                                         pAdapter->sessionId);
 #else
                                         WLANTL_BI_DIR);

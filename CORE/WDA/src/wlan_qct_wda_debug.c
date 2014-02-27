@@ -58,4 +58,3 @@ void wdaLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...) {
 
     va_end( marker );              /* Reset variable arguments.      */
 }
-

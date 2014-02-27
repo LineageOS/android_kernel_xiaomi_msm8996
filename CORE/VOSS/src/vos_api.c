@@ -359,7 +359,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    }
    htcInfo.pContext = gpVosContext->pHIFContext;
    htcInfo.TargetFailure = ol_target_failure;
-   htcInfo.TargetSendSuspendComplete = wma_target_suspend_complete;
+   htcInfo.TargetSendSuspendComplete = wma_target_suspend_acknowledge;
 #endif
    adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, gpVosContext);
 
@@ -409,6 +409,13 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
        macOpenParms.olIniInfo      = macOpenParms.olIniInfo | 0x1;
   if ( pHddCtx->cfg_ini->fhostNSOffload)
        macOpenParms.olIniInfo      = macOpenParms.olIniInfo | 0x2;
+  /*
+   * Copy the DFS Phyerr Filtering Offload status.
+   * This parameter reflects the value of the
+   * dfsPhyerrFilterOffload flag  as set in the ini.
+   */
+  macOpenParms.dfsPhyerrFilterOffload =
+                        pHddCtx->cfg_ini->fDfsPhyerrFilterOffload;
 #endif
 
    macOpenParms.apDisableIntraBssFwd = pHddCtx->cfg_ini->apDisableIntraBssFwd;
@@ -2538,40 +2545,5 @@ v_VOID_t vos_flush_delayed_work(v_VOID_t *dwork)
    cnss_flush_delayed_work(dwork);
 #elif defined (WLAN_OPEN_SOURCE)
    cancel_delayed_work_sync(dwork);
-#endif
-}
-
-/**
- @brief vos_request_pm_qos()
-
- This function will vote for QoS latency
-
- @param
-   qos_val - QoS latency in us
- @return
-   NONE
-*/
-v_VOID_t vos_request_pm_qos(v_U32_t qos_val)
-{
-#if defined (CONFIG_CNSS)
-    cnss_request_pm_qos(qos_val);
-#endif
-}
-
-/**
- @brief vos_remove_pm_qos()
-
- This function will remove QoS latency
- that requested by vos_request_pm_qos().
-
- @param
-   NONE
-@return
-   NONE
-*/
-v_VOID_t vos_remove_pm_qos(v_VOID_t)
-{
-#if defined (CONFIG_CNSS)
-    cnss_remove_pm_qos();
 #endif
 }

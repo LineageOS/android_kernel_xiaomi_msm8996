@@ -945,11 +945,11 @@ hdd_parse_set_batchscan_command
 
         if (('A' == val) || ('a' == val))
         {
-            ucRfBand = HDD_SET_BATCH_SCAN_24GHz_BAND_ONLY;
+            ucRfBand = HDD_SET_BATCH_SCAN_5GHz_BAND_ONLY;
         }
         else if (('B' == val) || ('b' == val))
         {
-            ucRfBand = HDD_SET_BATCH_SCAN_5GHz_BAND_ONLY;
+            ucRfBand = HDD_SET_BATCH_SCAN_24GHz_BAND_ONLY;
         }
         else
         {
@@ -3916,11 +3916,13 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
        }
        else if (strncmp(command, "SCAN-ACTIVE", 11) == 0)
        {
-          pAdapter->scan_info.scan_mode = eSIR_ACTIVE_SCAN;
+          hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+          pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
        }
        else if (strncmp(command, "SCAN-PASSIVE", 12) == 0)
        {
-          pAdapter->scan_info.scan_mode = eSIR_PASSIVE_SCAN;
+          hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+          pHddCtx->ioctl_scan_mode = eSIR_PASSIVE_SCAN;
        }
        else if (strncmp(command, "GETDWELLTIME", 12) == 0)
        {
@@ -4041,8 +4043,10 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
           rateUpdateParams->reliableMcastDataRateTxFlag = txFlags;
           rateUpdateParams->dev_mode = pAdapter->device_mode;
           rateUpdateParams->bcastDataRate = -1;
-
-          status = sme_SendRateUpdateInd((tHalHandle)(pHddCtx->hHal), rateUpdateParams);
+          memcpy(rateUpdateParams->bssid, pAdapter->macAddressCurrent.bytes,
+             sizeof(rateUpdateParams->bssid));
+          status = sme_SendRateUpdateInd((tHalHandle)(pHddCtx->hHal),
+                      rateUpdateParams);
        }
 
 
@@ -8642,6 +8646,33 @@ void __hdd_wlan_exit(void)
 }
 #endif  /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
 
+/**--------------------------------------------------------------------------
+
+  \brief notify FW with modem power status
+
+  -------------------------------------------------------------------------*/
+int hdd_wlan_notify_modem_power_state(int state)
+{
+   VOS_STATUS vosStatus;
+   v_CONTEXT_t pVosContext = NULL;
+   hdd_context_t *pHddCtx = NULL;
+
+   pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+   if (!pVosContext)
+      return -1;
+   pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+   if (!pHddCtx)
+      return -1;
+
+   vosStatus = sme_notify_modem_power_state(pHddCtx->pvosContext, state);
+   if (VOS_STATUS_SUCCESS != vosStatus) {
+      hddLog(LOGE, "Fail to send notification with modem power state %d\n",
+             state);
+      return -1;
+   }
+   return 0;
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_update_config_from_nv() - Function to update the contents of
@@ -9039,6 +9070,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    pHddCtx->wiphy = wiphy;
    hdd_prevent_suspend();
    pHddCtx->isLoadInProgress = TRUE;
+   pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 

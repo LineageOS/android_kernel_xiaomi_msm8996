@@ -1293,6 +1293,7 @@ struct hdd_context_s
     v_U8_t max_intf_count;
     v_U8_t current_intf_count;
 
+    tSirScanType ioctl_scan_mode;
 };
 
 
@@ -1384,6 +1385,10 @@ void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);
 #endif
 
 int hdd_wmmps_helper(hdd_adapter_t *pAdapter, tANI_U8 *ptr);
+
+int hdd_wlan_startup(struct device *dev, void *hif_sc);
+void __hdd_wlan_exit(void);
+int hdd_wlan_notify_modem_power_state(int state);
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
 /**---------------------------------------------------------------------------

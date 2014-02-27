@@ -1439,6 +1439,11 @@ typedef enum
 #define CFG_DISABLE_DFS_CH_SWITCH_MAX             ( 1 )
 #define CFG_DISABLE_DFS_CH_SWITCH_DEFAULT         ( 0 )
 
+#define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_NAME       "dfsPhyerrFilterOffload"
+#define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MIN        ( 0 )
+#define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MAX        ( 1 )
+#define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_DEFAULT    ( 0 )
+
 #define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
 #define CFG_REPORT_MAX_LINK_SPEED_MIN              ( eHDD_LINK_SPEED_REPORT_ACTUAL )
 #define CFG_REPORT_MAX_LINK_SPEED_MAX              ( eHDD_LINK_SPEED_REPORT_MAX_SCALED )
@@ -2684,6 +2689,7 @@ typedef struct
 #endif
    v_U32_t                     gEnableDebugLog;
    v_U8_t                      enableRxThread;
+   v_BOOL_t                    fDfsPhyerrFilterOffload;
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation

@@ -60,5 +60,3 @@ SOURCES=$(SOURCES)          \
         dfs_fcc_bin5.c       \
         dfs_init.c            \
         dfs.c
-
-

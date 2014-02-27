@@ -523,7 +523,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    }
    htcInfo.pContext = gpVosContext->pHIFContext;
    htcInfo.TargetFailure = ol_target_failure;
-   htcInfo.TargetSendSuspendComplete = wma_target_suspend_complete;
+   htcInfo.TargetSendSuspendComplete = wma_target_suspend_acknowledge;
 #endif
    adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, gpVosContext);
 

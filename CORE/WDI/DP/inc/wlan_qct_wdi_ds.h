@@ -29,14 +29,14 @@
 #define __WLAN_QCT_WTI_DS_H
 
 /**=========================================================================
- *     
+ *
  *       \file  wlan_qct_wdi_ds.h
- *          
- *       \brief define Dataservice API 
- *                               
+ *
+ *       \brief define Dataservice API
+ *
  * WLAN Device Abstraction layer External API for Dataservice
  * DESCRIPTION
- *  This file contains the external API exposed by the 
+ *  This file contains the external API exposed by the
  *   wlan device abstarction layer module.
  *
  */
@@ -46,14 +46,14 @@
 #include "wlan_qct_pal_status.h"
 #include "wlan_qct_pal_packet.h"
 #include "wlan_qct_wdi.h"
-   
 
-typedef struct 
+
+typedef struct
 {
    wpt_uint32 txFlags;
    wpt_uint8 ac;
    wpt_uint8 isEapol:1; //0 - not eapol 1 - eapol
-   wpt_uint8 isWai:1;   //WAPI 0 - not WAI 1 WAI 
+   wpt_uint8 isWai:1;   //WAPI 0 - not WAI 1 WAI
    wpt_uint8 fdisableFrmXlt:1;   //0 - Let ADU do FT. 1 - bypass ADU FT
    wpt_uint8 qosEnabled:1; //0 - non-Qos 1 - Qos
    wpt_uint8 fenableWDS:1; //0 - not WDS 1 WDS
@@ -86,7 +86,7 @@ typedef enum
   WDI_DS_OPCODE_MAX
 }WDI_DS_BAOpCodeEnumType;
 
-typedef struct 
+typedef struct
 {
    wpt_uint8 staId;
    wpt_uint8 addr3Idx;
@@ -139,7 +139,7 @@ typedef struct
    wpt_uint32 fcSTAValidMask:16;
 
    wpt_uint16 fcStaTxDisabledBitmap;
-   wpt_uint8 fcSTATxQLen[12]; // one byte per STA. 
+   wpt_uint8 fcSTATxQLen[12]; // one byte per STA.
    wpt_uint8 fcSTACurTxRate[12]; // current Tx rate for each sta.
 
    wpt_uint64 replayCount;
@@ -187,30 +187,30 @@ typedef void (*WDI_DS_TxFlowControlCallback)(void *pContext, wpt_uint8 ac_mask);
 
 
 
-/* DAL registration function. 
+/* DAL registration function.
  * Parameters:
- *  pContext:Cookie that should be passed back to the caller along 
+ *  pContext:Cookie that should be passed back to the caller along
  *  with the callback.
- *  pfnTxCompleteCallback:Callback function that is to be invoked to return 
+ *  pfnTxCompleteCallback:Callback function that is to be invoked to return
  *  packets which have been transmitted.
- *  pfnRxPacketCallback:Callback function that is to be invoked to deliver 
+ *  pfnRxPacketCallback:Callback function that is to be invoked to deliver
  *  packets which have been received
- *  pfnTxFlowControlCallback:Callback function that is to be invoked to 
- *  indicate/clear congestion. 
+ *  pfnTxFlowControlCallback:Callback function that is to be invoked to
+ *  indicate/clear congestion.
  *
  * Return Value: SUCCESS  Completed successfully.
  *     FAILURE_XXX  Request was rejected due XXX Reason.
  *
  */
-WDI_Status WDI_DS_Register( void *pContext, 
+WDI_Status WDI_DS_Register( void *pContext,
   WDI_DS_TxCompleteCallback pfnTxCompleteCallback,
-  WDI_DS_RxPacketCallback pfnRxPacketCallback, 
+  WDI_DS_RxPacketCallback pfnRxPacketCallback,
   WDI_DS_TxFlowControlCallback pfnTxFlowControlCallback,
   void *pCallbackContext);
 
 
 
-/* DAL Transmit function. 
+/* DAL Transmit function.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  pFrame:Refernce to PAL frame.
@@ -224,9 +224,9 @@ WDI_Status WDI_DS_Register( void *pContext,
 WDI_Status WDI_DS_TxPacket(void *pContext,
   wpt_packet *pFrame,
   wpt_boolean more);
-  
-  
-/* DAL Transmit Complete function. 
+
+
+/* DAL Transmit Complete function.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  ucTxResReq:TX resource number required by TL
@@ -238,7 +238,7 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
 
 WDI_Status WDI_DS_TxComplete(void *pContext, wpt_uint32 ucTxResReq);
 
-/* DAL Suspend Transmit function. 
+/* DAL Suspend Transmit function.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  * Return Value: SUCCESS  Completed successfully.
@@ -250,7 +250,7 @@ WDI_Status WDI_DS_TxComplete(void *pContext, wpt_uint32 ucTxResReq);
 WDI_Status WDI_DS_TxSuspend(void *pContext);
 
 
-/* DAL Resume Transmit function. 
+/* DAL Resume Transmit function.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  * Return Value: SUCCESS  Completed successfully.
@@ -261,7 +261,7 @@ WDI_Status WDI_DS_TxSuspend(void *pContext);
 
 WDI_Status WDI_DS_TxResume(void *pContext);
 
-/* DAL Get Reserved resource by STA 
+/* DAL Get Reserved resource by STA
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  wdiResPool: MemPool, MGMT ot DATA
@@ -291,7 +291,7 @@ WDI_Status WDI_DS_AddSTAMemPool(void *pContext, wpt_uint8 staIndex);
  */
 WDI_Status WDI_DS_DelSTAMemPool(void *pContext, wpt_uint8 staIndex);
 
-/* DAL Set STA index associated with BSS index. 
+/* DAL Set STA index associated with BSS index.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  bssIdx: BSS index
@@ -301,7 +301,7 @@ WDI_Status WDI_DS_DelSTAMemPool(void *pContext, wpt_uint8 staIndex);
  */
 WDI_Status WDI_DS_SetStaIdxPerBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uint8 staIdx);
 
-/* DAL Get STA index associated with BSS index. 
+/* DAL Get STA index associated with BSS index.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  bssIdx: BSS index
@@ -311,7 +311,7 @@ WDI_Status WDI_DS_SetStaIdxPerBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uint8
  */
 WDI_Status WDI_DS_GetStaIdxFromBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uint8 *staIdx);
 
-/* DAL Clear STA index associated with BSS index. 
+/* DAL Clear STA index associated with BSS index.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  bssIdx: BSS index

@@ -947,6 +947,7 @@ typedef struct tagCsrRoamConnectedProfile
     tANI_BOOLEAN    isCCXAssoc;
 #endif
     tANI_U32 dot11Mode;
+    tANI_U8 proxyARPService;
 }tCsrRoamConnectedProfile;
 
 
