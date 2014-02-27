@@ -2986,6 +2986,9 @@ typedef enum {
 
     /* enable/disable drift sample. 0: disable; 1: clk_drift; 2: ap_drift; 3 both clk and ap drift*/
     WMI_VDEV_PARAM_EARLY_RX_DRIFT_SAMPLE,
+    /* set Tx failure count threshold for the vdev */
+    WMI_VDEV_PARAM_SET_IBSS_TX_FAIL_CNT_THR,
+
 } WMI_VDEV_PARAM;
 
 enum wmi_pkt_type {
@@ -3832,7 +3835,7 @@ typedef struct {
  * For AP VDEV this peer corresponds to the remote peer STA.
  */
 #define WMI_PEER_CRIT_PROTO_HINT_ENABLED                0x9
-/* set Tx failure count threshold for the peer*/
+/* set Tx failure count threshold for the peer - Currently unused */
 #define WMI_PEER_TX_FAIL_CNT_THR                        0xA
 
 /** mimo ps values for the parameter WMI_PEER_MIMO_PS_STATE  */
@@ -6155,8 +6158,10 @@ typedef struct {
     A_UINT32 vdev_id;
     /** mac address */
     wmi_mac_addr peer_mac_address;
-    /** tx failure count */
+    /** tx failure count- will eventually be removed and not used * */
     A_UINT32 tx_fail_cnt;
+    /** seq number of the nth tx_fail_event */
+     A_UINT32 seq_no;
 } wmi_peer_tx_fail_cnt_thr_event_fixed_param;
 
 enum wmi_rmc_mode {
