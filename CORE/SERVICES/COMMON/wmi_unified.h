@@ -4670,6 +4670,7 @@ typedef enum event_type_e {
     WOW_PROBE_REQ_WPS_IE_EVENT,
     WOW_AUTH_REQ_EVENT,
     WOW_ASSOC_REQ_EVENT,
+    WOW_HTT_EVENT,
 }WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -4691,6 +4692,7 @@ typedef enum wake_reason_e {
     WOW_REASON_PROBE_REQ_WPS_IE_RECV,
     WOW_REASON_AUTH_REQ_RECV,
     WOW_REASON_ASSOC_REQ_RECV,
+    WOW_REASON_HTT_EVENT,
     WOW_REASON_DEBUG_TEST = 0xFF,
 }WOW_WAKE_REASON_TYPE;
 
