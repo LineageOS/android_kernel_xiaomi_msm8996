@@ -1099,6 +1099,9 @@ static void initConfigParam(tpAniSirGlobal pMac)
     pMac->roam.configParam.neighborRoamConfig.neighborScanChanList.channelList[2] = 11;
     pMac->roam.configParam.neighborRoamConfig.nNeighborResultsRefreshPeriod = 20000; //20 seconds
     pMac->roam.configParam.neighborRoamConfig.nEmptyScanRefreshPeriod = 0;
+    pMac->roam.configParam.neighborRoamConfig.nRoamBmissFirstBcnt = 10;
+    pMac->roam.configParam.neighborRoamConfig.nRoamBmissFinalBcnt = 10;
+    pMac->roam.configParam.neighborRoamConfig.nRoamBeaconRssiWeight = 14;
 #endif
 #ifdef WLAN_FEATURE_11AC
      pMac->roam.configParam.nVhtChannelWidth = WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ + 1;
@@ -1779,6 +1782,9 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
               smsLog( pMac, LOG1, "%d ", pMac->roam.configParam.neighborRoamConfig.neighborScanChanList.channelList[i] );
            }
         }
+        smsLog( pMac, LOG1, "nRoamBmissFirstBcnt = %d", pMac->roam.configParam.neighborRoamConfig.nRoamBmissFirstBcnt);
+        smsLog( pMac, LOG1, "nRoamBmissFinalBcnt = %d", pMac->roam.configParam.neighborRoamConfig.nRoamBmissFinalBcnt);
+        smsLog( pMac, LOG1, "nRoamBeaconRssiWeight = %d", pMac->roam.configParam.neighborRoamConfig.nRoamBeaconRssiWeight);
 #endif
         pMac->roam.configParam.addTSWhenACMIsOff = pParam->addTSWhenACMIsOff;
         pMac->scan.fValidateList = pParam->fValidateList;
@@ -15855,6 +15861,12 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 command, tANI_U8 reas
             pNeighborRoamInfo->cfgParams.maxChannelScanTime;
     pRequestBuf->EmptyRefreshScanPeriod =
             pNeighborRoamInfo->cfgParams.emptyScanRefreshPeriod;
+    pRequestBuf->RoamBmissFirstBcnt =
+            pNeighborRoamInfo->cfgParams.nRoamBmissFirstBcnt;
+    pRequestBuf->RoamBmissFinalBcnt =
+            pNeighborRoamInfo->cfgParams.nRoamBmissFinalBcnt;
+    pRequestBuf->RoamBeaconRssiWeight =
+            pNeighborRoamInfo->cfgParams.nRoamBeaconRssiWeight;
     /* MAWC feature */
     pRequestBuf->MAWCEnabled =
             pMac->roam.configParam.MAWCEnabled;

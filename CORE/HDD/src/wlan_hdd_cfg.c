@@ -216,6 +216,30 @@ static void cbNotifySetNeighborScanMaxChanTime(hdd_context_t *pHddCtx, unsigned 
 {
     sme_setNeighborScanMaxChanTime((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nNeighborScanMaxChanTime);
 }
+static void cbNotifySetRoamBmissFirstBcnt(hdd_context_t *pHddCtx,
+                                          unsigned long NotifyId)
+{
+    /*
+     * at the point this routine is called, the value in the cfg_ini table
+     * has already been updated
+     */
+    sme_SetRoamBmissFirstBcnt((tHalHandle)(pHddCtx->hHal),
+                              pHddCtx->cfg_ini->nRoamBmissFirstBcnt);
+}
+
+static void cbNotifySetRoamBmissFinalBcnt(hdd_context_t *pHddCtx,
+                                          unsigned long NotifyId)
+{
+    sme_SetRoamBmissFinalBcnt((tHalHandle)(pHddCtx->hHal),
+                              pHddCtx->cfg_ini->nRoamBmissFinalBcnt);
+}
+
+static void cbNotifySetRoamBeaconRssiWeight(hdd_context_t *pHddCtx,
+                                          unsigned long NotifyId)
+{
+    sme_SetRoamBeaconRssiWeight((tHalHandle)(pHddCtx->hHal),
+                              pHddCtx->cfg_ini->nRoamBeaconRssiWeight);
+}
 #endif
 
 static void cbNotifySetEnableSSR(hdd_context_t *pHddCtx, unsigned long NotifyId)
@@ -1941,6 +1965,30 @@ REG_TABLE_ENTRY g_registry_table[] =
                          CFG_EMPTY_SCAN_REFRESH_PERIOD_MIN,
                          CFG_EMPTY_SCAN_REFRESH_PERIOD_MAX,
                          cbNotifySetEmptyScanRefreshPeriod, 0 ),
+
+   REG_DYNAMIC_VARIABLE( CFG_ROAM_BMISS_FIRST_BCNT_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, nRoamBmissFirstBcnt,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_ROAM_BMISS_FIRST_BCNT_DEFAULT,
+               CFG_ROAM_BMISS_FIRST_BCNT_MIN,
+               CFG_ROAM_BMISS_FIRST_BCNT_MAX,
+               cbNotifySetRoamBmissFirstBcnt, 0 ),
+
+   REG_DYNAMIC_VARIABLE( CFG_ROAM_BMISS_FINAL_BCNT_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, nRoamBmissFinalBcnt,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_ROAM_BMISS_FINAL_BCNT_DEFAULT,
+               CFG_ROAM_BMISS_FINAL_BCNT_MIN,
+               CFG_ROAM_BMISS_FINAL_BCNT_MAX,
+               cbNotifySetRoamBmissFinalBcnt, 0 ),
+
+   REG_DYNAMIC_VARIABLE( CFG_ROAM_BEACON_RSSI_WEIGHT_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, nRoamBeaconRssiWeight,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_ROAM_BEACON_RSSI_WEIGHT_DEFAULT,
+               CFG_ROAM_BEACON_RSSI_WEIGHT_MIN,
+               CFG_ROAM_BEACON_RSSI_WEIGHT_MAX,
+               cbNotifySetRoamBeaconRssiWeight, 0 ),
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
 
    REG_VARIABLE( CFG_QOS_WMM_BURST_SIZE_DEFN_NAME , WLAN_PARAM_Integer,
@@ -3443,6 +3491,15 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanPeriod] Value = [%u] ",pHddCtx->cfg_ini->nNeighborScanPeriod);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanResultsRefreshPeriod] Value = [%u] ",pHddCtx->cfg_ini->nNeighborResultsRefreshPeriod);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nEmptyScanRefreshPeriod] Value = [%u] ",pHddCtx->cfg_ini->nEmptyScanRefreshPeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [nRoamBmissFirstBcnt] Value = [%u] ",
+            pHddCtx->cfg_ini->nRoamBmissFirstBcnt);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [nRoamBmissFinalBcnt] Value = [%u] ",
+            pHddCtx->cfg_ini->nRoamBmissFinalBcnt);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [nRoamBeaconRssiWeight] Value = [%u] ",
+            pHddCtx->cfg_ini->nRoamBeaconRssiWeight);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [burstSizeDefinition] Value = [0x%x] ",pHddCtx->cfg_ini->burstSizeDefinition);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [tsInfoAckPolicy] Value = [0x%x] ",pHddCtx->cfg_ini->tsInfoAckPolicy);
@@ -5146,6 +5203,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                                         smeConfig.csrConfig.neighborRoamConfig.neighborScanChanList.channelList,
                                         &smeConfig.csrConfig.neighborRoamConfig.neighborScanChanList.numChannels,
                                         WNI_CFG_VALID_CHANNEL_LIST_LEN );
+   smeConfig.csrConfig.neighborRoamConfig.nRoamBmissFirstBcnt = pConfig->nRoamBmissFirstBcnt;
+   smeConfig.csrConfig.neighborRoamConfig.nRoamBmissFinalBcnt = pConfig->nRoamBmissFinalBcnt;
+   smeConfig.csrConfig.neighborRoamConfig.nRoamBeaconRssiWeight = pConfig->nRoamBeaconRssiWeight;
 #endif
 
    smeConfig.csrConfig.addTSWhenACMIsOff = pConfig->AddTSWhenACMIsOff;

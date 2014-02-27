@@ -4906,6 +4906,32 @@ error:
     return vos_status;
 }
 
+VOS_STATUS wma_roam_scan_bmiss_cnt(tp_wma_handle wma_handle,
+			A_INT32 first_bcnt, A_UINT32 final_bcnt)
+{
+    int status = 0;
+
+    WMA_LOGI("%s: first_bcnt=%d, final_bcnt=%d", __func__, first_bcnt, final_bcnt);
+
+    status = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
+            WMI_VDEV_PARAM_BMISS_FIRST_BCNT, first_bcnt);
+    if (status != EOK) {
+        WMA_LOGE("wmi_unified_vdev_set_param_send WMI_VDEV_PARAM_BMISS_FIRST_BCNT returned Error %d",
+            status);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    status = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
+            WMI_VDEV_PARAM_BMISS_FINAL_BCNT, final_bcnt);
+    if (status != EOK) {
+        WMA_LOGE("wmi_unified_vdev_set_param_send WMI_VDEV_PARAM_BMISS_FINAL_BCNT returned Error %d",
+            status);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    return VOS_STATUS_SUCCESS;
+}
+
 /* function   : wma_roam_scan_offload_init_connect
  * Descriptin : Rome firmware requires that roam scan engine is configured prior to
  *            : sending VDEV_UP command to firmware. This routine configures it
@@ -4926,11 +4952,9 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle)
     /* first program the parameters to conservative values so that roaming scan won't be
      * triggered before association completes
      */
-    wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
-            WMI_VDEV_PARAM_BMISS_FIRST_BCNT, WMA_ROAM_BMISS_FIRST_BCNT_DEFAULT);
+    vos_status = wma_roam_scan_bmiss_cnt(wma_handle,
+            WMA_ROAM_BMISS_FIRST_BCNT_DEFAULT, WMA_ROAM_BMISS_FINAL_BCNT_DEFAULT);
 
-    wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, wma_handle->roam_offload_vdev_id,
-            WMI_VDEV_PARAM_BMISS_FINAL_BCNT, WMA_ROAM_BMISS_FINAL_BCNT_DEFAULT);
     /* rssi_thresh = 10 is low enough */
     vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle, WMA_ROAM_LOW_RSSI_TRIGGER_VERYLOW,
                                                    pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff);
@@ -5011,6 +5035,12 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
+            vos_status = wma_roam_scan_bmiss_cnt(wma_handle,
+                    roam_req->RoamBmissFirstBcnt, roam_req->RoamBmissFinalBcnt);
+            if (vos_status != VOS_STATUS_SUCCESS) {
+                break;
+            }
+
             /* Opportunistic scan runs on a timer, value set by EmptyRefreshScanPeriod.
              * Age out the entries after 3 such cycles.
              */
@@ -5031,7 +5061,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
              */
             vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
                                       roam_req->RoamRescanRssiDiff,
-                                      WMA_ROAM_BEACON_WEIGHT_DEFAULT);
+                                      roam_req->RoamBeaconRssiWeight);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
@@ -5092,6 +5122,12 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 break;
             }
 
+            vos_status = wma_roam_scan_bmiss_cnt(wma_handle,
+                    roam_req->RoamBmissFirstBcnt, roam_req->RoamBmissFinalBcnt);
+            if (vos_status != VOS_STATUS_SUCCESS) {
+                break;
+            }
+
             /*
              * Runtime (after association) changes to rssi thresholds and other parameters.
              */
@@ -5124,7 +5160,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 
             vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
                                 roam_req->RoamRescanRssiDiff,
-                                WMA_ROAM_BEACON_WEIGHT_DEFAULT);
+                                roam_req->RoamBeaconRssiWeight);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
@@ -6052,10 +6088,15 @@ VOS_STATUS wma_roam_preauth_chan_set(tp_wma_handle wma_handle,
         wma_handle->roam_preauth_chan_context = params;
         wma_handle->roam_preauth_chanfreq = vos_chan_to_freq(params->channelNumber);
 
+        /* set the state in advance before calling wma_start_scan and be ready
+         * to handle scan events from firmware. Otherwise print statments
+         * in wma_start_can create a race condition.
+         */
+        wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_REQUESTED;
         vos_status = wma_start_scan(wma_handle, &scan_req, WDA_CHNL_SWITCH_REQ);
 
-        wma_handle->roam_preauth_scan_state = (vos_status == VOS_STATUS_SUCCESS) ?
-                        WMA_ROAM_PREAUTH_CHAN_REQUESTED : WMA_ROAM_PREAUTH_CHAN_NONE;
+        if (vos_status != VOS_STATUS_SUCCESS)
+            wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
         return vos_status;
 }
 

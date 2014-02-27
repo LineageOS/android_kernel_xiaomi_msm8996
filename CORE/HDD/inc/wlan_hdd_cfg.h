@@ -1266,6 +1266,21 @@ typedef enum
 #define CFG_EMPTY_SCAN_REFRESH_PERIOD_MIN          (0)
 #define CFG_EMPTY_SCAN_REFRESH_PERIOD_MAX          (60000)
 #define CFG_EMPTY_SCAN_REFRESH_PERIOD_DEFAULT      (0)
+
+#define CFG_ROAM_BMISS_FIRST_BCNT_NAME                  "gRoamBmissFirstBcnt"
+#define CFG_ROAM_BMISS_FIRST_BCNT_MIN                   (5)
+#define CFG_ROAM_BMISS_FIRST_BCNT_MAX                   (100)
+#define CFG_ROAM_BMISS_FIRST_BCNT_DEFAULT               (10)
+
+#define CFG_ROAM_BMISS_FINAL_BCNT_NAME                  "gRoamBmissFinalBcnt"
+#define CFG_ROAM_BMISS_FINAL_BCNT_MIN                   (5)
+#define CFG_ROAM_BMISS_FINAL_BCNT_MAX                   (100)
+#define CFG_ROAM_BMISS_FINAL_BCNT_DEFAULT               (10)
+
+#define CFG_ROAM_BEACON_RSSI_WEIGHT_NAME                "gRoamBeaconRssiWeight"
+#define CFG_ROAM_BEACON_RSSI_WEIGHT_MIN                 (0)
+#define CFG_ROAM_BEACON_RSSI_WEIGHT_MAX                 (16)
+#define CFG_ROAM_BEACON_RSSI_WEIGHT_DEFAULT             (14)
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
 
 #define CFG_QOS_WMM_BURST_SIZE_DEFN_NAME                        "burstSizeDefinition"
@@ -2374,6 +2389,9 @@ typedef struct
    v_U16_t       nMaxNeighborReqTries;
    v_U16_t       nNeighborResultsRefreshPeriod;
    v_U16_t       nEmptyScanRefreshPeriod;
+   v_U8_t        nRoamBmissFirstBcnt;
+   v_U8_t        nRoamBmissFinalBcnt;
+   v_U8_t        nRoamBeaconRssiWeight;
 #endif
 
    //Additional Handoff params

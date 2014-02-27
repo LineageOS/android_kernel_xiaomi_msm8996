@@ -3848,6 +3848,9 @@ typedef struct sSirRoamOffloadScanReq
   tSirRoamNetworkType ConnectedNetwork;
   tSirMobilityDomainInfo MDID;
   tANI_U8 sessionId;
+  tANI_U8   RoamBmissFirstBcnt;
+  tANI_U8   RoamBmissFinalBcnt;
+  tANI_U8   RoamBeaconRssiWeight;
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 #endif //WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 
