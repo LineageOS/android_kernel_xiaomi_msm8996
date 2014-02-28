@@ -9933,7 +9933,7 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
            INIT_COMPLETION(pScanInfo->abortscan_event_var);
            hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId);
 
-           status = wait_for_completion_interruptible_timeout(
+           status = wait_for_completion_timeout(
                            &pScanInfo->abortscan_event_var,
                            msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
            if (!status)
@@ -9953,13 +9953,13 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
 
     hdd_suspend_wlan(&wlan_hdd_cfg80211_ready_to_suspend, pHddCtx);
 
-    rc = wait_for_completion_interruptible_timeout(&pHddCtx->ready_to_suspend,
+    rc = wait_for_completion_timeout(&pHddCtx->ready_to_suspend,
                              msecs_to_jiffies(WLAN_WAIT_TIME_READY_TO_SUSPEND));
     if (!rc)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: Failed to get ready to suspend", __func__);
-        return -ETIME;
+        goto resume_tx;
     }
 
     /* Suspend MC thread */
@@ -9967,37 +9967,55 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     wake_up_interruptible(&vosSchedContext->mcWaitQueue);
 
     /* Wait for suspend confirmation from MC thread */
-    rc = wait_for_completion_interruptible_timeout(&pHddCtx->mc_sus_event_var,
+    rc = wait_for_completion_timeout(&pHddCtx->mc_sus_event_var,
                                  msecs_to_jiffies(WLAN_WAIT_TIME_MCTHREAD_SUSPEND));
     if (!rc)
     {
         clear_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: Failed to stop mc thread", __func__);
-        return -ETIME;
+        goto resume_tx;
     }
 
     pHddCtx->isMcThreadSuspended = TRUE;
 #endif
-    pHddCtx->isWiphySuspended = TRUE;
 
 #ifdef QCA_CONFIG_SMP
     /* Suspend tlshim rx thread */
     set_bit(RX_SUSPEND_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
     wake_up_interruptible(&vosSchedContext->tlshimRxWaitQueue);
-    rc = wait_for_completion_interruptible_timeout(
+    rc = wait_for_completion_timeout(
                      &vosSchedContext->SuspndTlshimRxEvent,
                      msecs_to_jiffies(RX_TLSHIM_SUSPEND_TIMEOUT));
     if (!rc) {
         clear_bit(RX_SUSPEND_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: Failed to stop tl_shim rx thread", __func__);
-        return -ETIME;
+        goto resume_all;
     }
 #endif
 
+    pHddCtx->isWiphySuspended = TRUE;
+
     EXIT();
     return 0;
+
+#ifdef QCA_CONFIG_SMP
+resume_all:
+
+#ifdef QCA_WIFI_2_0
+    complete(&vosSchedContext->ResumeMcEvent);
+    pHddCtx->isMcThreadSuspended = FALSE;
+#endif
+#endif
+
+#ifdef QCA_WIFI_2_0
+resume_tx:
+
+    hdd_resume_wlan();
+    return -ETIME;
+#endif
+
 }
 
 /* cfg80211_ops */

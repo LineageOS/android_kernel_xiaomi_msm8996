@@ -11919,6 +11919,8 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	int32_t len;
 	int ret;
 	struct ol_softc *scn;
+	int host_credits;
+	int wmi_pending_cmds;
 
 	len = sizeof(wmi_wow_enable_cmd_fixed_param);
 
@@ -11938,10 +11940,12 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	vos_event_reset(&wma->target_suspend);
 	wma->wow_nack = 0;
 
-	if (wmi_get_host_credits(wma->wmi_handle) < WMI_WOW_REQUIRED_CREDITS) {
-		WMA_LOGE("Cannot Post WMI_WOW_ENABLE_CMDID !.Credits:%d"
-			"pending_cmds:%d\n", wmi_get_host_credits(wma->wmi_handle),
-					wmi_get_pending_cmds(wma->wmi_handle));
+	host_credits = wmi_get_host_credits(wma->wmi_handle);
+	wmi_pending_cmds = wmi_get_pending_cmds(wma->wmi_handle);
+
+	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
+		WMA_LOGE("%s: Host Doesn't have enough credits to Post WMI_WOW_ENABLE_CMDID! "
+			"Credits:%d, pending_cmds:%d\n", __func__, host_credits, wmi_pending_cmds);
 		goto error;
 	}
 
@@ -11964,14 +11968,14 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 		return VOS_STATUS_E_AGAIN;
 	}
 
-	if ((wmi_get_host_credits(wma->wmi_handle) != WMI_MAX_HOST_CREDITS) ||
-					wmi_get_pending_cmds(wma->wmi_handle))
-	{
-		WMA_LOGE("Host Doesn't have enough credits after HTC ACK:%d !"
-			"pending_cmds:%d\n", wmi_get_host_credits(wma->wmi_handle),
-			wmi_get_pending_cmds(wma->wmi_handle));
-		VOS_ASSERT(0);
-		return VOS_STATUS_E_FAILURE;
+	host_credits = wmi_get_host_credits(wma->wmi_handle);
+	wmi_pending_cmds = wmi_get_pending_cmds(wma->wmi_handle);
+
+	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
+		WMA_LOGE("%s: No Credits after HTC ACK:%d, pending_cmds:%d, "
+			"cannot resume back", __func__, host_credits, wmi_pending_cmds);
+		HTC_dump_counter_info(wma->htc_handle);
+		VOS_BUG(0);
 	}
 
 
