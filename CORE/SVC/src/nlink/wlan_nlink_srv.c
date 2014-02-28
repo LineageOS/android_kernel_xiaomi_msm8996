@@ -384,4 +384,3 @@ void nl_srv_nl_close_indication
    return;
 }
 #endif /* WLAN_KD_READY_NOTIFIER */
-

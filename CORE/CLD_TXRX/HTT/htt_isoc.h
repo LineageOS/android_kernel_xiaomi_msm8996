@@ -179,8 +179,8 @@ enum {
  * |-----------------------------------------------------------------------|
  * |    MAC addr 5   |    MAC addr 4   |    MAC addr 3   |    MAC addr 2   |
  * |-----------------------------------------------------------------------|
- * 
- * 
+ *
+ *
  * The following field definitions describe the format of the peer info
  * message sent from the target to the host.
  *
@@ -428,8 +428,8 @@ typedef struct htt_isoc_t2h_peer_info_s {
  * |-----------------------------------------------------------------------|
  * |         reserved         |          peer ID         |     msg type    |
  * |-----------------------------------------------------------------------|
- * 
- * 
+ *
+ *
  * The following field definitions describe the format of the peer info
  * message sent from the target to the host.
  *
@@ -500,7 +500,7 @@ enum {
  * |---------------------------------------------------------------------|
  * |                  reserved                |S|      start seq num     |
  * |---------------------------------------------------------------------|
- * 
+ *
  * The following field definitions describe the format of the ADDBA
  * message sent from the target to the host.
  *
@@ -625,7 +625,7 @@ typedef struct htt_isoc_t2h_addba_s {
  * |---------------------------------------------------------------------|
  * |          peer ID         |  TID |    reserved   |S|     msg type    |
  * |---------------------------------------------------------------------|
- * 
+ *
  * The following field definitions describe the format of the ADDBA
  * message sent from the target to the host.
  *
@@ -725,8 +725,8 @@ typedef struct htt_isoc_t2h_delba_s {
  * |-----------------------------------------------------------------------|
  * |                    mic key2                                           |
  * |-----------------------------------------------------------------------|
- * 
- * 
+ *
+ *
  * The following field definitions describe the format of the peer info
  * message sent from the target to the host.
  *
@@ -851,8 +851,8 @@ typedef struct htt_isoc_t2h_sec_ind_s {
  * |-----------------------------------------------------------------------|
  * |         reserved         |          peer ID         |     msg type    |
  * |-----------------------------------------------------------------------|
- * 
- * 
+ *
+ *
  * The following field definitions describe the format of the peer info
  * message sent from the target to the host.
  *
@@ -922,7 +922,7 @@ typedef struct htt_isoc_t2h_peer_tx_ready_s {
  * |---------------------------------------------------------------------|
  * M = multicast
  * r = reserved
- * 
+ *
  * The following field definitions describe the format of the peer info
  * message sent from the target to the host.
  *

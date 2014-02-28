@@ -56,7 +56,7 @@
 #include <ol_tx_sched.h>
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
 #include <ol_txrx_encap.h>    /* OL_TX_RESTORE_HDR, etc*/
-#endif 
+#endif
 
 #ifdef TX_CREDIT_RECLAIM_SUPPORT
 
@@ -380,7 +380,7 @@ ol_tx_delay_compute(
 
 #endif /*!ATH_11AC_TXCOMPACT*/
 
-#ifdef QCA_TX_SINGLE_COMPLETIONS 
+#ifdef QCA_TX_SINGLE_COMPLETIONS
     #ifdef QCA_TX_STD_PATH_ONLY
         #define ol_tx_msdu_complete(_pdev, _tx_desc, _tx_descs, _netbuf, _lcl_freelist,         \
                                         _tx_desc_last, _status)                                 \
@@ -495,7 +495,7 @@ ol_tx_completion_handler(
     if (lcl_freelist) {
         adf_os_spin_lock(&pdev->tx_mutex);
         tx_desc_last->next = pdev->tx_desc.freelist;
-        pdev->tx_desc.freelist = lcl_freelist; 
+        pdev->tx_desc.freelist = lcl_freelist;
         adf_os_spin_unlock(&pdev->tx_mutex);
         pdev->tx_desc.num_free += (u_int16_t) num_msdus;
     } else {
@@ -601,12 +601,12 @@ ol_tx_inspect_handler(
 
         /* vdev now points to the vdev for this descriptor. */
 
-#ifndef ATH_11AC_TXCOMPACT        
+#ifndef ATH_11AC_TXCOMPACT
         /* save this multicast packet to local free list */
-        if (adf_os_atomic_dec_and_test(&tx_desc->ref_cnt)) 
-#endif            
+        if (adf_os_atomic_dec_and_test(&tx_desc->ref_cnt))
+#endif
         {
-            /* for this function only, force htt status to be "htt_tx_status_ok" 
+            /* for this function only, force htt status to be "htt_tx_status_ok"
              * for graceful freeing of this multicast frame
              */
             ol_tx_msdu_complete(pdev, tx_desc, tx_descs, netbuf, lcl_freelist,
@@ -617,7 +617,7 @@ ol_tx_inspect_handler(
     if (lcl_freelist) {
         adf_os_spin_lock(&pdev->tx_mutex);
         tx_desc_last->next = pdev->tx_desc.freelist;
-        pdev->tx_desc.freelist = lcl_freelist; 
+        pdev->tx_desc.freelist = lcl_freelist;
         adf_os_spin_unlock(&pdev->tx_mutex);
     } else {
         ol_tx_desc_frame_list_free(pdev, &tx_descs, htt_tx_status_discard);

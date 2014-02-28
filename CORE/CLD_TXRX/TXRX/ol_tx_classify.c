@@ -152,7 +152,7 @@ ol_tx_tid_by_ether_type(
         typeorlength = (ptr[0] << 8) | ptr[1];
         l3_data_ptr += ETHERTYPE_VLAN_LEN;
     }
-    
+
     if (!IS_ETHERTYPE(typeorlength)) { // 802.3 header
         struct llc_snap_hdr_t *llc_hdr = (struct llc_snap_hdr_t *) l3_data_ptr;
         typeorlength = (llc_hdr->ethertype[0] << 8) | llc_hdr->ethertype[1];
@@ -160,7 +160,7 @@ ol_tx_tid_by_ether_type(
     }
     tx_msdu_info->htt.info.l3_hdr_offset = (A_UINT8)(l3_data_ptr - datap);
     tx_msdu_info->htt.info.ethertype = typeorlength;
-    
+
     /* IP packet, do packet inspection for TID */
     if (typeorlength == ETHERTYPE_IPV4) {
         tid = ol_tx_tid_by_ipv4(l3_data_ptr);
@@ -226,8 +226,8 @@ ol_tx_tid_by_raw_type(
 
 static A_UINT8
 ol_tx_tid(
-    struct ol_txrx_pdev_t *pdev, 
-    adf_nbuf_t tx_nbuf, 
+    struct ol_txrx_pdev_t *pdev,
+    adf_nbuf_t tx_nbuf,
     struct ol_txrx_msdu_info_t *tx_msdu_info)
 {
     A_UINT8 *datap = adf_nbuf_data(tx_nbuf);

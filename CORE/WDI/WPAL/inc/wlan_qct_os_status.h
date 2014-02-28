@@ -29,13 +29,13 @@
 #define __WLAN_QCT_OS_STATUS_H
 
 /**=========================================================================
-  
+
   \file  wlan_qct_os_status.h
-  
+
   \brief define synchronization objects PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
-               
+
    Definitions for platform dependent(Windows XP).
-  
+
   ========================================================================*/
 
 #include "vos_status.h"
@@ -44,17 +44,17 @@
  * \brief Macros to derive PAL STATUS from the VOS STATUS
  */
 
-#define WPAL_IS_VOS_STATUS_E_RESOURCES(status) ( VOS_STATUS_E_RESOURCES == (status)) 
-#define WPAL_IS_VOS_STATUS_E_NOMEM(status) ( VOS_STATUS_E_NOMEM == (status)) 
-#define WPAL_IS_VOS_STATUS_E_INVAL(status) ( VOS_STATUS_E_INVAL == (status)) 
-#define WPAL_IS_VOS_STATUS_E_FAULT(status) ( VOS_STATUS_E_FAULT == (status)) 
-#define WPAL_IS_VOS_STATUS_E_BUSY(status) ( VOS_STATUS_E_BUSY == (status)) 
-#define WPAL_IS_VOS_STATUS_E_CANCELED(status) ( VOS_STATUS_E_CANCELED == (status)) 
-#define WPAL_IS_VOS_STATUS_E_ABORTED(status) ( VOS_STATUS_E_ABORTED == (status)) 
-#define WPAL_IS_VOS_STATUS_E_NOSUPPORT(status) ( VOS_STATUS_E_NOSUPPORT == (status)) 
-#define WPAL_IS_VOS_STATUS_E_EMPTY(status) ( VOS_STATUS_E_EMPTY == (status)) 
-#define WPAL_IS_VOS_STATUS_E_EXISTS(status) ( VOS_STATUS_E_EXISTS == (status)) 
-#define WPAL_IS_VOS_STATUS_E_TIMEOUT(status) ( VOS_STATUS_E_TIMEOUT == (status)) 
+#define WPAL_IS_VOS_STATUS_E_RESOURCES(status) ( VOS_STATUS_E_RESOURCES == (status))
+#define WPAL_IS_VOS_STATUS_E_NOMEM(status) ( VOS_STATUS_E_NOMEM == (status))
+#define WPAL_IS_VOS_STATUS_E_INVAL(status) ( VOS_STATUS_E_INVAL == (status))
+#define WPAL_IS_VOS_STATUS_E_FAULT(status) ( VOS_STATUS_E_FAULT == (status))
+#define WPAL_IS_VOS_STATUS_E_BUSY(status) ( VOS_STATUS_E_BUSY == (status))
+#define WPAL_IS_VOS_STATUS_E_CANCELED(status) ( VOS_STATUS_E_CANCELED == (status))
+#define WPAL_IS_VOS_STATUS_E_ABORTED(status) ( VOS_STATUS_E_ABORTED == (status))
+#define WPAL_IS_VOS_STATUS_E_NOSUPPORT(status) ( VOS_STATUS_E_NOSUPPORT == (status))
+#define WPAL_IS_VOS_STATUS_E_EMPTY(status) ( VOS_STATUS_E_EMPTY == (status))
+#define WPAL_IS_VOS_STATUS_E_EXISTS(status) ( VOS_STATUS_E_EXISTS == (status))
+#define WPAL_IS_VOS_STATUS_E_TIMEOUT(status) ( VOS_STATUS_E_TIMEOUT == (status))
 
 
 #define WPAL_STATUS_E_TIMEOUT_CHECK(status) ( WPAL_IS_VOS_STATUS_E_TIMEOUT(status)? eWLAN_PAL_STATUS_E_TIMEOUT : eWLAN_PAL_STATUS_E_FAILURE )

@@ -29,13 +29,13 @@
 #define __WLAN_QCT_OS_SYNC_H
 
 /**=========================================================================
-  
+
   \file  wlan_qct_os_sync.h
-  
+
   \brief define synchronization objects PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
-               
+
    Definitions for platform dependent(LA).
-  
+
   ========================================================================*/
 
 #include "vos_event.h"

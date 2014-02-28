@@ -50,9 +50,9 @@
  */
 void
 ol_tx_enqueue(
-    struct ol_txrx_pdev_t *pdev, 
-    struct ol_tx_frms_queue_t *txq, 
-    struct ol_tx_desc_t *tx_desc, 
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_tx_frms_queue_t *txq,
+    struct ol_tx_desc_t *tx_desc,
     struct ol_txrx_msdu_info_t *tx_msdu_info);
 
 /**
@@ -77,9 +77,9 @@ ol_tx_enqueue(
 */
 u_int16_t
 ol_tx_dequeue(
-	struct ol_txrx_pdev_t *pdev, 
-	struct ol_tx_frms_queue_t *txq, 
-	ol_tx_desc_list *head, 
+	struct ol_txrx_pdev_t *pdev,
+	struct ol_tx_frms_queue_t *txq,
+	ol_tx_desc_list *head,
 	u_int16_t num_frames,
     u_int32_t *credit,
     int *bytes);
@@ -98,7 +98,7 @@ ol_tx_dequeue(
  */
 void
 ol_tx_queue_free(
-    struct ol_txrx_pdev_t *pdev, 
+    struct ol_txrx_pdev_t *pdev,
     struct ol_tx_frms_queue_t *txq,
     int tid);
 
@@ -178,4 +178,3 @@ void ol_tx_throttle_init(struct ol_txrx_pdev_t *pdev);
 #define ol_tx_throttle_init(pdev) /*no op*/
 #endif
 #endif /* _OL_TX_QUEUE__H_ */
-

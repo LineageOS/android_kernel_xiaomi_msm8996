@@ -52,7 +52,7 @@ static void htt_t2h_stats_tx_rate_stats_print(
 
     /* MCS */
     adf_os_print("MCS counts (0..9): ");
-    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", 
+    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n",
                   tx_rate_info->mcs[0],
                   tx_rate_info->mcs[1],
                   tx_rate_info->mcs[2],
@@ -67,7 +67,7 @@ static void htt_t2h_stats_tx_rate_stats_print(
 
    /* SGI */
     adf_os_print("SGI counts (0..9): ");
-    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", 
+    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n",
                   tx_rate_info->sgi[0],
                   tx_rate_info->sgi[1],
                   tx_rate_info->sgi[2],
@@ -82,7 +82,7 @@ static void htt_t2h_stats_tx_rate_stats_print(
 
     /* NSS */
     adf_os_print("NSS  counts: ");
-    adf_os_print("1x1 %d, 2x2 %d, 3x3 %d\n", 
+    adf_os_print("1x1 %d, 2x2 %d, 3x3 %d\n",
                   tx_rate_info->nss[0],
                   tx_rate_info->nss[1],
                   tx_rate_info->nss[2]
@@ -90,7 +90,7 @@ static void htt_t2h_stats_tx_rate_stats_print(
 
     /* BW */
     adf_os_print("BW counts: ");
-    adf_os_print("20MHz %d, 40MHz %d, 80MHz %d\n", 
+    adf_os_print("20MHz %d, 40MHz %d, 80MHz %d\n",
                   tx_rate_info->bw[0],
                   tx_rate_info->bw[1],
                   tx_rate_info->bw[2]
@@ -98,7 +98,7 @@ static void htt_t2h_stats_tx_rate_stats_print(
 
      /* Preamble */
     adf_os_print("Preamble (O C H V) counts: ");
-    adf_os_print("%d, %d, %d, %d\n", 
+    adf_os_print("%d, %d, %d, %d\n",
                   tx_rate_info->pream[0],
                   tx_rate_info->pream[1],
                   tx_rate_info->pream[2],
@@ -107,7 +107,7 @@ static void htt_t2h_stats_tx_rate_stats_print(
 
      /* STBC rate counts */
     adf_os_print("STBC rate counts (0..9): ");
-    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", 
+    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n",
                   tx_rate_info->stbc[0],
                   tx_rate_info->stbc[1],
                   tx_rate_info->stbc[2],
@@ -136,7 +136,7 @@ static void htt_t2h_stats_rx_rate_stats_print(
 
     /* MCS */
     adf_os_print("MCS counts (0..9): ");
-    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", 
+    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n",
                   rx_phy_info->mcs[0],
                   rx_phy_info->mcs[1],
                   rx_phy_info->mcs[2],
@@ -151,7 +151,7 @@ static void htt_t2h_stats_rx_rate_stats_print(
 
    /* SGI */
     adf_os_print("SGI counts (0..9): ");
-    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", 
+    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n",
                   rx_phy_info->sgi[0],
                   rx_phy_info->sgi[1],
                   rx_phy_info->sgi[2],
@@ -172,7 +172,7 @@ static void htt_t2h_stats_rx_rate_stats_print(
      * change the value that needs to be printed (from "stbc+non-stbc count to
      * only non-stbc count") if needed in the future. Hence the addition in the
      * host code at this line. */
-    adf_os_print("1x1 %d, 2x2 %d, 3x3 %d, 4x4 %d\n", 
+    adf_os_print("1x1 %d, 2x2 %d, 3x3 %d, 4x4 %d\n",
                   rx_phy_info->nss[0] + rx_phy_info->nsts,
                   rx_phy_info->nss[1],
                   rx_phy_info->nss[2],
@@ -185,7 +185,7 @@ static void htt_t2h_stats_rx_rate_stats_print(
 
     /* BW */
     adf_os_print("BW counts: ");
-    adf_os_print("20MHz %d, 40MHz %d, 80MHz %d\n", 
+    adf_os_print("20MHz %d, 40MHz %d, 80MHz %d\n",
                   rx_phy_info->bw[0],
                   rx_phy_info->bw[1],
                   rx_phy_info->bw[2]
@@ -193,7 +193,7 @@ static void htt_t2h_stats_rx_rate_stats_print(
 
      /* Preamble */
     adf_os_print("Preamble counts: ");
-    adf_os_print("%d, %d, %d, %d, %d, %d\n", 
+    adf_os_print("%d, %d, %d, %d, %d, %d\n",
                   rx_phy_info->pream[0],
                   rx_phy_info->pream[1],
                   rx_phy_info->pream[2],
@@ -204,7 +204,7 @@ static void htt_t2h_stats_rx_rate_stats_print(
 
      /* STBC rate counts */
     adf_os_print("STBC rate counts (0..9): ");
-    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", 
+    adf_os_print("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n",
                   rx_phy_info->stbc[0],
                   rx_phy_info->stbc[1],
                   rx_phy_info->stbc[2],
@@ -329,31 +329,31 @@ htt_t2h_stats_rx_reorder_stats_print(
     struct rx_reorder_stats *stats_ptr, int concise)
 {
     adf_os_print("Rx reorder statistics:\n");
-    adf_os_print("  %u non-QoS frames received\n", 
+    adf_os_print("  %u non-QoS frames received\n",
                  stats_ptr->deliver_non_qos);
-    adf_os_print("  %u frames received in-order\n", 
+    adf_os_print("  %u frames received in-order\n",
                  stats_ptr->deliver_in_order);
-    adf_os_print("  %u frames flushed due to timeout\n", 
+    adf_os_print("  %u frames flushed due to timeout\n",
                  stats_ptr->deliver_flush_timeout);
-    adf_os_print("  %u frames flushed due to moving out of window\n", 
+    adf_os_print("  %u frames flushed due to moving out of window\n",
                  stats_ptr->deliver_flush_oow);
-    adf_os_print("  %u frames flushed due to receiving DELBA\n", 
+    adf_os_print("  %u frames flushed due to receiving DELBA\n",
                  stats_ptr->deliver_flush_delba);
-    adf_os_print("  %u frames discarded due to FCS error\n", 
+    adf_os_print("  %u frames discarded due to FCS error\n",
                  stats_ptr->fcs_error);
-    adf_os_print("  %u frames discarded due to invalid peer\n", 
+    adf_os_print("  %u frames discarded due to invalid peer\n",
                  stats_ptr->invalid_peer);
-    adf_os_print("  %u frames discarded due to duplication (non aggregation)\n", 
+    adf_os_print("  %u frames discarded due to duplication (non aggregation)\n",
                  stats_ptr->dup_non_aggr);
     adf_os_print("  %u frames discarded due to duplication in "
                  "reorder queue\n", stats_ptr->dup_in_reorder);
-    adf_os_print("  %u frames discarded due to processed before\n", 
+    adf_os_print("  %u frames discarded due to processed before\n",
                  stats_ptr->dup_past);
-    adf_os_print("  %u times reorder timeout happened\n", 
+    adf_os_print("  %u times reorder timeout happened\n",
                  stats_ptr->reorder_timeout);
-    adf_os_print("  %u times bar ssn reset happened\n", 
+    adf_os_print("  %u times bar ssn reset happened\n",
                  stats_ptr->ssn_reset);
-    adf_os_print("  %u times incorrect bar received\n", 
+    adf_os_print("  %u times incorrect bar received\n",
                  stats_ptr->invalid_bar_ssn);
 }
 
@@ -381,7 +381,7 @@ htt_t2h_tx_ppdu_log_bitmaps_print(
 
     adf_os_mem_set(queued_str, '0', HTT_FW_STATS_MAX_BLOCK_ACK_WINDOW);
     adf_os_mem_set(acked_str, '-', HTT_FW_STATS_MAX_BLOCK_ACK_WINDOW);
-    i = 0; 
+    i = 0;
     for (word = 0; word < 2; word++) {
         u_int32_t queued = *(queued_ptr + word);
         u_int32_t acked = *(acked_ptr + word);
@@ -721,5 +721,3 @@ htt_t2h_stats_print(u_int8_t *stats_data, int concise)
         break;
     }
 }
-
-

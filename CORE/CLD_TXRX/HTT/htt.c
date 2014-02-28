@@ -64,9 +64,9 @@ htt_htc_pkt_alloc(struct htt_pdev_t *pdev)
     if (pdev->htt_htc_pkt_freelist) {
         pkt = pdev->htt_htc_pkt_freelist;
         pdev->htt_htc_pkt_freelist = pdev->htt_htc_pkt_freelist->u.next;
-    } 
+    }
     HTT_TX_MUTEX_RELEASE(&pdev->htt_tx_mutex);
-   
+
     if (pkt == NULL) {
         pkt = adf_os_mem_alloc(pdev->osdev, sizeof(*pkt));
     }

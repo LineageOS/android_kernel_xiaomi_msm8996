@@ -38,13 +38,13 @@
 #include <asm/div64.h>
 
 /**=========================================================================
-  
+
   \file  i_vos_Types.h
-  
+
   \brief virtual Operating System Servies (vOSS) Types
-               
+
    Linux specific basic type definitions
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -53,14 +53,14 @@
   Include Files
   ------------------------------------------------------------------------*/
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
 /*
  * 1. GNU C/C++ Compiler
  *
  * How to detect gcc : __GNUC__
- * How to detect gcc version : 
+ * How to detect gcc version :
  *   major version : __GNUC__ (2 = 2.x, 3 = 3.x, 4 = 4.x)
  *   minor version : __GNUC_MINOR__
  *
@@ -71,10 +71,10 @@
  *   _MSC_VER (1200 = MSVC 6.0, 1300 = MSVC 7.0, ...)
  *
  */
-   
-// MACROs to help with compiler and OS specifics.  
+
+// MACROs to help with compiler and OS specifics.
 // \note: may need to get a little more sophisticated than this and define
-// these to specific 'VERSIONS' of the compiler and OS.  Until we have a 
+// these to specific 'VERSIONS' of the compiler and OS.  Until we have a
 // need for that, lets go with this.
 #if defined( _MSC_VER )
 
@@ -89,26 +89,26 @@
 #endif
 
 
-// VOS definitions (compiler specific) for Packing structures.  Note that the 
-// Windows compiler defines a way to pack a 'range' of code in a file.  To 
+// VOS definitions (compiler specific) for Packing structures.  Note that the
+// Windows compiler defines a way to pack a 'range' of code in a file.  To
 // accomodate this, we have to include a file that has the packing #pragmas
 // These files are called
 // vos_pack_range_n_start.h where "n" is the packing aligment.  For example,
-// vos_pack_range_2_start.h is included in the file where you want to 
+// vos_pack_range_2_start.h is included in the file where you want to
 // start packing on a 2 byte alignment.  vos_pack_range_end.h is included
 // in the file where you want to stop the packing.
 //
 // Other compilers allow packing individual strucutres so we have a series
 // of macros that are added to the structure to define the packing attributes.
-// For example, VOS_PACK_STRUCT_2 will add the attributes to pack an 
-// individual structure on a 2 byte boundary.  
+// For example, VOS_PACK_STRUCT_2 will add the attributes to pack an
+// individual structure on a 2 byte boundary.
 //
 // So what does a coder have to do to properly pack a structure for all the
-// supported compilers?  You have to add two includes around *all* the 
-// structures you want packed the same way and you also have to add the 
-// VOS_PACK_STRUCT_n macros to the individual structures.  
+// supported compilers?  You have to add two includes around *all* the
+// structures you want packed the same way and you also have to add the
+// VOS_PACK_STRUCT_n macros to the individual structures.
 //
-// For example to properly pack myStruct on a 2 byte boundary for all 
+// For example to properly pack myStruct on a 2 byte boundary for all
 // voss supported compilers, the following needs coded...
 //
 //
@@ -121,7 +121,7 @@
 // } myStruct VOS_PACK_STRUCT_2;
 //
 //
-// note... you can include other structure definitions in here that have the 
+// note... you can include other structure definitions in here that have the
 // same 2 byte packing
 //
 // #include <vos_pack_range_end.h>
@@ -130,7 +130,7 @@
 // /todo: not sure what the flag is to identify the Microsoft compiler for WinMobile
 // Let's leave this out for now and just include the defintions for WinMobile.  Need
 // to address this when we move to support other operating systems.  Probably best to
-// define some of our own 'types' or preprocessor flags like VOS_COMPILER_TYPE, 
+// define some of our own 'types' or preprocessor flags like VOS_COMPILER_TYPE,
 // VOS_OS_TYPE, etc. and then all our code can base on those flags/types independent
 // of the operating system, compiler, etc.
 #if defined( VOS_COMPILER_MSC )
@@ -138,7 +138,7 @@
 
 #define VOS_INLINE_FN  __inline
 
-// does nothing on Windows.  packing individual structs is not 
+// does nothing on Windows.  packing individual structs is not
 // supported on the Windows compiler.
 #define VOS_PACK_STRUCT_1
 #define VOS_PACK_STRUCT_2
@@ -154,9 +154,9 @@
 #error "Compiling with an unknown compiler!!"
 #endif
 
- 
 
-/*-------------------------------------------------------------------------- 
+
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
 
@@ -194,7 +194,7 @@ typedef signed long v_SLONG_t;
 
 /// signed integer types
 typedef signed int   v_SINT_t;
-                              
+
 /// Boolean types
 typedef unsigned char v_BOOL_t;
 

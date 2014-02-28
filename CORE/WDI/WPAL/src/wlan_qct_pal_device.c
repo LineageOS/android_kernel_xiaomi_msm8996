@@ -26,11 +26,11 @@
  */
 
 /**=========================================================================
-  
+
   @file  wlan_qct_pal_device.c
-  
-  @brief 
-               
+
+  @brief
+
   This file implements the device specific HW access interface
   required by the WLAN Platform Abstraction Layer (WPAL)
 ========================================================================*/
@@ -110,12 +110,12 @@ static wcnss_env *gpEnv = NULL;
 /**
   @brief wpalTxIsr is the interrupt service routine which handles
          the DXE TX Complete interrupt
-  
+
   wpalTxIsr is registered with the Operating System to handle the
   DXE TX Complete interrupt during system initialization.  When a DXE
   TX Complete interrupt occurs, it is dispatched to the handler which
   had previously been registered via wpalRegisterInterrupt.
-  
+
   @param  irq:    Enumeration of the interrupt that occurred
   @param  dev_id: User-supplied data passed back via the ISR
 
@@ -139,12 +139,12 @@ static irqreturn_t wpalTxIsr
 /**
   @brief wpalRxIsr is the interrupt service routine which handles
          the DXE RX Available interrupt
-  
+
   wpalRxIsr is registered with the Operating System to handle the
   DXE RX Available interrupt during system initalization.  When a DXE
   RX Available interrupt occurs, it is dispatched to the handler which
   had previously been registered via wpalRegisterInterrupt.
-  
+
   @param  irq:    Enumeration of the interrupt that occurred
   @param  dev_id: User-supplied data passed back via the ISR
 
@@ -177,7 +177,7 @@ static irqreturn_t wpalRxIsr
   Available.  This interface provides the mechanism whereby a client
   can register to support one of these.  It is expected that the core
   DXE implementation will invoke this API twice, once for each interrupt.
-  
+
   @param  intType:          Enumeration of the interrupt type (TX or RX)
   @param  callbackFunction: ISR function pointer
   @param  usrCtxt:          User context passed back whenever the
@@ -248,7 +248,7 @@ wpt_status wpalRegisterInterrupt
          to un-register for a given interrupt
 
   When DXE stop, remove registered information from PAL
-  
+
   @param  intType:          Enumeration of the interrupt type (TX or RX)
 
   @return NONE
@@ -310,7 +310,7 @@ void wpalUnRegisterInterrupt
   given interrupt to occur.  The expectation is that if a given
   interrupt is not enabled, if the interrupt occurs then the APPS CPU
   will not be interrupted.
-  
+
   @param  intType:          Enumeration of the interrupt type (TX or RX)
 
   @return SUCCESS if the interrupt was enabled
@@ -321,11 +321,11 @@ wpt_status wpalEnableInterrupt
 )
 {
    int ret;
-   
-   switch (intType) 
+
+   switch (intType)
    {
    case DXE_INTERRUPT_RX_READY:
-      if (!gpEnv->rx_registered) 
+      if (!gpEnv->rx_registered)
       {
          gpEnv->rx_registered = 1;
          ret = request_irq(gpEnv->rx_irq, wpalRxIsr, IRQF_TRIGGER_HIGH,
@@ -336,8 +336,8 @@ wpt_status wpalEnableInterrupt
                        __func__);
            break;
          }
-      
-        
+
+
          ret = enable_irq_wake(gpEnv->rx_irq);
          if (ret) {
             WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
@@ -352,7 +352,7 @@ wpt_status wpalEnableInterrupt
       }
       break;
    case DXE_INTERRUPT_TX_COMPLE:
-      if (!gpEnv->tx_registered) 
+      if (!gpEnv->tx_registered)
       {
          gpEnv->tx_registered = 1;
          ret = request_irq(gpEnv->tx_irq, wpalTxIsr, IRQF_TRIGGER_HIGH,
@@ -363,8 +363,8 @@ wpt_status wpalEnableInterrupt
                        __func__);
             break;
          }
-   
-   
+
+
          ret = enable_irq_wake(gpEnv->tx_irq);
          if (ret) {
             WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
@@ -399,7 +399,7 @@ wpt_status wpalEnableInterrupt
   given interrupt to occur.  The expectation is that if a given
   interrupt is not enabled, if the interrupt occurs then the APPS CPU
   will not be interrupted.
-  
+
   @param  intType:          Enumeration of the interrupt type (TX or RX)
 
   @return SUCCESS if the interrupt was disabled
@@ -409,7 +409,7 @@ wpt_status wpalDisableInterrupt
    wpt_uint32    intType
 )
 {
-   switch (intType) 
+   switch (intType)
    {
    case DXE_INTERRUPT_RX_READY:
       disable_irq_nosync(gpEnv->rx_irq);
@@ -754,11 +754,11 @@ wpt_status wpalDeviceClose
 }
 
 /**
-  @brief wpalNotifySmsm provides a mechansim for a client to 
+  @brief wpalNotifySmsm provides a mechansim for a client to
          notify SMSM to start DXE engine and/or condition of Tx
          ring buffer
 
-  @param  clrSt:   bit(s) to be cleared on the MASK 
+  @param  clrSt:   bit(s) to be cleared on the MASK
   @param  setSt:   bit(s) to be set on the MASK
 
   @return SUCCESS if the operation is successful
@@ -771,7 +771,7 @@ wpt_status wpalNotifySmsm
 {
    int rc;
    rc = smsm_change_state(SMSM_APPS_STATE, clrSt, setSt);
-   if(0 != rc) 
+   if(0 != rc)
    {
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: smsm_change_state failed",
@@ -780,4 +780,3 @@ wpt_status wpalNotifySmsm
    }
    return eWLAN_PAL_STATUS_SUCCESS;
 }
-

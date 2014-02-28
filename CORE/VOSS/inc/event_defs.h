@@ -42,36 +42,36 @@ typedef enum
   EVENT_PZID_CHANGE,                  /* Includes PZID as payload */
   EVENT_PDE_SESSION_END,              /* No payload */
   EVENT_OP_MODE_CHANGE,               /* Includes operation mode as payload */
-  EVENT_MESSAGE_RECEIVED,             /* Includes channel and message ID as 
+  EVENT_MESSAGE_RECEIVED,             /* Includes channel and message ID as
                                          payload */
-  EVENT_MESSAGE_TRANSMITTED,          /* Includes channel and message ID as 
+  EVENT_MESSAGE_TRANSMITTED,          /* Includes channel and message ID as
                                          payload */
   EVENT_TIMER_EXPIRED,                /* Includes timer ID as payload */
   EVENT_COUNTER_THRESHOLD,            /* Includes counter ID as payload */
   EVENT_CALL_PROCESSING_STATE_CHANGE, /* Includes new state and old state as
-                                         payload */ 
+                                         payload */
   EVENT_CALL_CONTROL_INSTANTIATED,    /* Includes con_ref as payload */
   EVENT_CALL_CONTROL_STATE_CHANGE,    /* Includes con_ref, old substate and
                                          new substate as payload */
   EVENT_CALL_CONTROL_TERMINATED,      /* Includes con_ref as payload */
-  EVENT_REG_ZONE_CHANGE,              /* Includes reg_zone as payload */ 
+  EVENT_REG_ZONE_CHANGE,              /* Includes reg_zone as payload */
   EVENT_SLOTTED_MODE_OPERATION,       /* Includes enter/exit bit as payload */
   EVENT_QPCH_IN_USE,                  /* Includes enable/disable bit as payload */
   EVENT_IDLE_HANDOFF,                 /* Includes pn_offset as payload */
   EVENT_ACCESS_HANDOFF,               /* Includes pn_offset as payload */
   EVENT_ACCESS_PROBE_HANDOFF,         /* Includes pn_offset as payload */
-  EVENT_SOFT_HANDOFF,   
-    /* Includes pn_offsets of each BS in aset and indicators whether BS in SCH 
-       aset*/ 
-  EVENT_HARD_HANDOFF_FREQ_CHANGE, 
-    /* Includes pn_offsets of each BS in aset and indicators whether BS in SCH 
-       aset*/ 
-  EVENT_HARD_HANDOFF_FRAME_OFFSET_CHANGE, 
-    /* Includes pn_offsets of each BS in aset and indicators whether BS in SCH 
-       aset*/ 
+  EVENT_SOFT_HANDOFF,
+    /* Includes pn_offsets of each BS in aset and indicators whether BS in SCH
+       aset*/
+  EVENT_HARD_HANDOFF_FREQ_CHANGE,
+    /* Includes pn_offsets of each BS in aset and indicators whether BS in SCH
+       aset*/
+  EVENT_HARD_HANDOFF_FRAME_OFFSET_CHANGE,
+    /* Includes pn_offsets of each BS in aset and indicators whether BS in SCH
+       aset*/
   EVENT_HARD_HANDOFF_DISJOINT_ASET,
-    /* Includes pn_offsets of each BS in aset and indicators whether BS in SCH 
-       aset*/ 
+    /* Includes pn_offsets of each BS in aset and indicators whether BS in SCH
+       aset*/
   EVENT_UNSUCCESSFUL_HARD_HANDOFF,    /* No payload */
   EVENT_TMSI_ASSIGNED,                /* Includes TMSI as payload */
   EVENT_SERVICE_NEGOTIATION_COMPLETED,/* No payload */
@@ -95,12 +95,12 @@ typedef enum
   EVENT_ACCESS_ATTEMPT_FAIL_LOSS_OF_PC_OR_FCCC, /* No payload */
   EVENT_PCH_ACQUIRED,                 /* Includes pagech and pn_offset
                                          as payload */
-  EVENT_BCCH_ACQUIRED,                /* Includes walsh code for BCCH and 
+  EVENT_BCCH_ACQUIRED,                /* Includes walsh code for BCCH and
                                          pn_offset as payload */
   EVENT_FFCH_ACQUIRED,                /* Payload: 14 bytes */
   EVENT_FDCCH_ACQUIRED,               /* Payload: 14 bytes */
   EVENT_FFCH_PLUS_DCCH_ACQUIRED,      /* No payload */
-  EVENT_REGISTRATION_PERFORMED,       /* Includes reg_type as payload */ 
+  EVENT_REGISTRATION_PERFORMED,       /* Includes reg_type as payload */
   EVENT_NEW_SYSTEM_IDLE_HANDOFF,      /* No payload */
   EVENT_SYSTEM_RESELECTION,           /* Includes ecio and ps as payload */
   EVENT_RESCAN,                       /* No payload */
@@ -125,7 +125,7 @@ typedef enum
   EVENT_HDR_RXMSG_IGNORED_STATE,      /* protocol, msg- 3 bytes */
   EVENT_HDR_RXMSG_IGNORED_SEQ,        /* protocol, msg- 3 bytes */
   EVENT_HDR_TXMSG_ACKED,              /* protocol, msg- 3 bytes */
-  EVENT_HDR_TXMSG_DROPPED,            /* protocol, msg- 3 bytes */      
+  EVENT_HDR_TXMSG_DROPPED,            /* protocol, msg- 3 bytes */
   EVENT_HDR_STATE_CHANGE,             /* protocol, from, to - 5 bytes */
   EVENT_HDR_ALMP_OBEYING_REDIRECTION, /* No payload */
   EVENT_HDR_ALMP_CONNECTION_CLOSED,   /* No payload */
@@ -306,7 +306,7 @@ typedef enum
   EVENT_MT_SMS_NOTIFY,              /* Payload: 1 byte mem_type, 4 byte msg_index */
   EVENT_SMS_SLOT_WAKEUP,            /* Payload: 1 byte slot_mask */
   EVENT_MO_SMS_STATUS,              /* Payload: 4 byte transaction_id, 1 byte mem_type,
-                                                4 byte msg_index, 1 byte report_status, 
+                                                4 byte msg_index, 1 byte report_status,
                                                 1 byte case_code */
   EVENT_GPRS_SURROUND_SEARCH_START,
   EVENT_GPRS_SURROUND_SEARCH_END,
@@ -323,7 +323,7 @@ typedef enum
   EVENT_GPRS_SMGMM_MSG_RECEIVED,    /* Payload: 3 bytes giving message identity and channel */
 
   EVENT_CP_MATCHED_MSG,             /* Payload: 1 byte */
-  EVENT_PREF_SYS_RESEL,             /* Payload: none */ 
+  EVENT_PREF_SYS_RESEL,             /* Payload: none */
 
   EVENT_WCDMA_LAYER1_PRACH,         /* Payload: 4 bytes */
   EVENT_WCDMA_LAYER1_MEASUREMENT,   /* Payload: Unspecified */
@@ -404,18 +404,18 @@ typedef enum
   EVENT_GPS_SRCH_END,               /* No Payload */
   EVENT_GPS_PPM_PAUSE,              /* Payload: pause_reason (1 byte) */
   EVENT_GPS_PPM_RESUME,             /* No Payload */
-  EVENT_GPS_SA_RECEIVED,            /* Payload: REF_BIT_NUM (2 bytes), 
-                                                DR_SIZE     (1byte) 
+  EVENT_GPS_SA_RECEIVED,            /* Payload: REF_BIT_NUM (2 bytes),
+                                                DR_SIZE     (1byte)
                                     */
   EVENT_GPS_CLK_ON,                 /* No Payload */
   EVENT_GPS_CLK_OFF,                /* No Payload */
-  EVENT_GPS_VISIT_REQUEST,          /* No Payload */ 
+  EVENT_GPS_VISIT_REQUEST,          /* No Payload */
   EVENT_GPS_VISIT_RESPONSE,         /* Payload: response_result (1 byte)
-                                    */ 
+                                    */
   EVENT_GPS_TA_START,               /* No Payload */
   EVENT_GPS_DSP_READY,              /* No Payload */
-  EVENT_GPS_DSP_CHANNEL_START,      /* Payload: SV_ID         (1 byte), 
-                                                SRCH_MODE     (1 byte), 
+  EVENT_GPS_DSP_CHANNEL_START,      /* Payload: SV_ID         (1 byte),
+                                                SRCH_MODE     (1 byte),
                                                 CHANNEL_NUM   (1 byte),
                                                 RESERVED      (1 byte)
                                     */
@@ -426,7 +426,7 @@ typedef enum
   EVENT_GPS_SRCH_LARGE_DOPP_WIN,    /* Payload: sv_prn_num (1 byte),
                                                 srch_mode (1 byte),
                                                 dopp_wind (2 byte)
-                                    */ 
+                                    */
   EVENT_GPS_SRCH_EXCEPTION,         /* Payload: grid_log_id (2 byte),
                                                 exception_type (1 byte)
                                     */
@@ -450,7 +450,7 @@ typedef enum
 
 
 
-  EVENT_GPS_PD_FIX_START,                /* Payload: event_log_cnt  (2 byte), 
+  EVENT_GPS_PD_FIX_START,                /* Payload: event_log_cnt  (2 byte),
                                                 operation_mode (1 byte)
                                          */
   EVENT_GPS_PD_FIX_END,                  /* Payload: end_status     (1 byte)  */
@@ -1126,16 +1126,16 @@ typedef enum
   EVENT_HDR_IDLE_SET_SLEEP_DURATION,      /* 2 byte payload */
   EVENT_HDR_SCM_SESSION_CHANGED,          /* 1 byte payload */
 
-  EVENT_UMTS_TO_CDMA_DATA_HANDOVER,       /* No payload */ 
-  EVENT_UMTS_TO_CDMA_VOICE_HANDOVER,      /* 18 byte payload */ 
+  EVENT_UMTS_TO_CDMA_DATA_HANDOVER,       /* No payload */
+  EVENT_UMTS_TO_CDMA_VOICE_HANDOVER,      /* 18 byte payload */
 
-  EVENT_MO_SMS_RETRY_ATTEMPT,             /* 14 byte payload */ 
+  EVENT_MO_SMS_RETRY_ATTEMPT,             /* 14 byte payload */
 
-  EVENT_HDR_LMAC_UPDATE_QSM_STATUS,       /* 1 byte payload */ 
+  EVENT_HDR_LMAC_UPDATE_QSM_STATUS,       /* 1 byte payload */
 
-  EVENT_CM_CELL_SRV_IND,                  /* 5 byte payload */ 
+  EVENT_CM_CELL_SRV_IND,                  /* 5 byte payload */
 
-  EVENT_RLP_NAK_ABORT,                    /* 9 byte payload */ 
+  EVENT_RLP_NAK_ABORT,                    /* 9 byte payload */
 
   EVENT_DRM_RIGHTS_OPERATION,             /* 2 byte payload */
 
@@ -1176,11 +1176,11 @@ typedef enum
   EVENT_PM_APP_OTG_PERI_MODE_SET_REM_A_DEV_INFO,               /* 3 byte payload */
   EVENT_PM_APP_OTG_STATE_TRANSITION,                           /* 2 byte payload */
 
-  EVENT_DTV_TABLE_ACQ_SUCCESS,                                 /* 10 byte payload */  
-  EVENT_DTV_TABLE_ACQ_FAIL,                                    /* 5 byte payload */  
+  EVENT_DTV_TABLE_ACQ_SUCCESS,                                 /* 10 byte payload */
+  EVENT_DTV_TABLE_ACQ_FAIL,                                    /* 5 byte payload */
   EVENT_DTV_DVBH_SEL_PLTFM_REQ_RCVD,                           /* 4 byte payload */
   EVENT_DTV_DVBH_PLTFM_ACQ_SUCCESS,                            /* 4 byte payload */
-  EVENT_DTV_DVBH_PLTFM_ACQ_FAIL,                               /* 4 byte payload */  
+  EVENT_DTV_DVBH_PLTFM_ACQ_FAIL,                               /* 4 byte payload */
   EVENT_DTV_DVBH_TBL_MGR_STATE_CHANGED,                        /* 2 byte payload */
   EVENT_DTV_DVBH_CE_STATE_CHANGED,                             /* 2 byte payload */
   EVENT_DTV_DVBH_MCAST_JOIN_REQ_RCVD,                          /* 18 byte payload */
@@ -1218,12 +1218,12 @@ typedef enum
   EVENT_FLUTE_FDT_INST_EXPIRED,           /* 8 byte payload */
   EVENT_FLUTE_JOIN_SESSION_REQ_RCVD,      /* 24 byte payload */
   EVENT_FLUTE_LEAVE_SESSION_REQ_RCVD,     /* 4 byte payload */
-  EVENT_FLUTE_SESSION_CLOSED,             /* 5 byte payload */ 
-  EVENT_FLUTE_SESSION_CLOSED_BY_APP,      /* 4 byte payload */ 
-  EVENT_FLUTE_B_FLAG_RCVD,                /* 8 byte payload */ 
-  EVENT_FLUTE_GET_FILE_REQUEST_RCVD,      /* 8 byte payload */ 
-  EVENT_FLUTE_JOIN_SESSION_RSP,           /* 6 byte payload */ 
-  EVENT_FLUTE_FILE_STATUS_RSP,            /* 16 byte payload */ 
+  EVENT_FLUTE_SESSION_CLOSED,             /* 5 byte payload */
+  EVENT_FLUTE_SESSION_CLOSED_BY_APP,      /* 4 byte payload */
+  EVENT_FLUTE_B_FLAG_RCVD,                /* 8 byte payload */
+  EVENT_FLUTE_GET_FILE_REQUEST_RCVD,      /* 8 byte payload */
+  EVENT_FLUTE_JOIN_SESSION_RSP,           /* 6 byte payload */
+  EVENT_FLUTE_FILE_STATUS_RSP,            /* 16 byte payload */
   EVENT_FLUTE_CANCEL_FILE_REQ_RCVD,       /* 8 byte payload */
 
   EVENT_DTV_DVBH_DEINIT_REQ_RCVD,         /* No payload */
@@ -1298,7 +1298,7 @@ typedef enum
   EVENT_MOBILEVIEW_RESERVED4,             /* TBD */
   EVENT_MOBILEVIEW_RESERVED5,             /* TBD */
 
-  EVENT_HDR_DOS_MO_DOS_STATUS,            /* 3 byte payload */ 
+  EVENT_HDR_DOS_MO_DOS_STATUS,            /* 3 byte payload */
 
   EVENT_GPSONEXTRA_START_DOWNLOAD,        /* 4 byte payload */
   EVENT_GPSONEXTRA_END_DOWNLOAD,          /* 4 byte payload */
@@ -1310,7 +1310,7 @@ typedef enum
   EVENT_SNSD_EVENT_COND_MET,              /* 8 byte payload */
   EVENT_SNSD_DEVICE_DOWN,                 /* 8 byte payload */
   EVENT_SNSD_ERROR,                       /* 8 byte payload */
-  
+
   EVENT_CM_COUNTRY_SELECTED,              /* 2 byte payload */
   EVENT_CM_SELECT_COUNTRY,                /* 7 byte payload */
 
@@ -1334,12 +1334,12 @@ typedef enum
   EVENT_MOBILEVIEW_RESERVED31,            /* EVENT TO BE REPLACED */
   EVENT_MOBILEVIEW_RESERVED32,            /* EVENT TO BE REPLACED */
 
-  EVENT_GPS_DCME_MEAS_CYCLE_START,        /* No payload */ 
-  EVENT_GPS_DCME_MEAS_CYCLE_END,          /* No payload */ 
-  EVENT_GPS_CME_ENGAGED,                  /* No payload */ 
-  EVENT_GPS_CME_NOT_ENGAGED,              /* No payload */ 
-  EVENT_GPS_DCME_ENGAGED,                 /* No payload */ 
-  EVENT_GPS_DCME_NOT_ENGAGED,             /* No payload */ 
+  EVENT_GPS_DCME_MEAS_CYCLE_START,        /* No payload */
+  EVENT_GPS_DCME_MEAS_CYCLE_END,          /* No payload */
+  EVENT_GPS_CME_ENGAGED,                  /* No payload */
+  EVENT_GPS_CME_NOT_ENGAGED,              /* No payload */
+  EVENT_GPS_DCME_ENGAGED,                 /* No payload */
+  EVENT_GPS_DCME_NOT_ENGAGED,             /* No payload */
 
   EVENT_HS_USB_DEVICE_ATTACHED,           /* No payload */
   EVENT_HS_USB_HID_DISCONECT,             /* No payload */
@@ -1520,13 +1520,13 @@ typedef enum
   EVENT_MSG_FATAL,                        /* 32 byte payload */
 
   EVENT_GAN_START_TU3910,                 /* No payload */
-  EVENT_GAN_STOP_TU3910,                  /* No payload */ 
+  EVENT_GAN_STOP_TU3910,                  /* No payload */
   EVENT_GAN_EXPIRY_TU3910,                /* No payload */
   EVENT_GAN_START_TU3920,                 /* No payload */
   EVENT_GAN_STOP_TU3920,                  /* No payload */
   EVENT_GAN_EXPIRY_TU3920,                /* No payload */
-  EVENT_GAN_START_TU3906,                 /* No payload */ 
-  EVENT_GAN_STOP_TU3906,                  /* No payload */ 
+  EVENT_GAN_START_TU3906,                 /* No payload */
+  EVENT_GAN_STOP_TU3906,                  /* No payload */
   EVENT_GAN_EXPIRY_TU3906,                /* No payload */
   EVENT_GAN_URR_REGISTER_UPDATE,          /* 1 byte payload */
 
@@ -1538,7 +1538,7 @@ typedef enum
   EVENT_IPSEC_IKE_EAP_START,               /* No payload */
   EVENT_IPSEC_IKE_EAP_FINISH,              /* 1 byte payload */
   EVENT_IPSEC_CHILD_SA_ESTABLISHED,        /* 8 bytes payload */
-  EVENT_IPSEC_IKE_INFO_MSG_SENT,           /* 16 bytes payload */ 
+  EVENT_IPSEC_IKE_INFO_MSG_SENT,           /* 16 bytes payload */
   EVENT_IPSEC_IKE_INFO_MSG_RECV,           /* 16 bytes payload */
   EVENT_IPSEC_CREATE_CHILD_SA_SENT,        /* 16 bytes payload */
   EVENT_IPSEC_CREATE_CHILD_SA_RECV,        /* 16 bytes payload */
@@ -1575,7 +1575,7 @@ typedef enum
   EVENT_LTE_RRC_STATE_CHANGE,              /* 1 byte payload */
   EVENT_LTE_RRC_OUT_OF_SERVICE,            /* 2 byte payload */
   EVENT_LTE_RRC_RADIO_LINK_FAILURE,        /* 2 byte payload */
-  EVENT_LTE_RRC_DL_MSG,                    /* 2 byte payload */ 
+  EVENT_LTE_RRC_DL_MSG,                    /* 2 byte payload */
   EVENT_LTE_RRC_UL_MSG,                    /* 2 byte payload */
   EVENT_LTE_RRC_NEW_CELL_IND,              /* 5 byte payload */
   EVENT_LTE_RRC_CELL_RESEL_FAILURE,        /* 5 byte payload */
@@ -1594,7 +1594,7 @@ typedef enum
   EVENT_MBP_RF_ANALOG_JD_INT,              /* 4 byte payload */
 
   EVENT_CGPS_QWIP_SYSD_TRANSITION,         /* 4 byte payload */
-  
+
   EVENT_HPLMN_TIMER_EXPIRED,               /* No Payload */
 
   EVENT_GSDI_GET_FEATURE_INDICATOR_DATA,   /* 6 byte payload */
@@ -1627,14 +1627,14 @@ typedef enum
 
   EVENT_SNS_DRIVER_STATE_CHANGE,           /* 9 byte payload */
 
-  EVENT_WCDMA_TIMER_DISCARD_EXPIRY,        /* 3 byte payload */  
+  EVENT_WCDMA_TIMER_DISCARD_EXPIRY,        /* 3 byte payload */
 
-  EVENT_NAS_CB_PAGE_RECEIVED,              /* 5 byte payload */  
+  EVENT_NAS_CB_PAGE_RECEIVED,              /* 5 byte payload */
 
-  EVENT_WCDMA_RLC_RESET,                   /* 1 byte payload */  
+  EVENT_WCDMA_RLC_RESET,                   /* 1 byte payload */
 
-  EVENT_HDR_MRLP_EHRPD_PERSONALITY_IS_ACTIVE, /* 1 byte payload */  
-  
+  EVENT_HDR_MRLP_EHRPD_PERSONALITY_IS_ACTIVE, /* 1 byte payload */
+
   EVENT_WLAN_SECURITY,                     /* 13 byte payload */
   EVENT_WLAN_STATUS,                       /* 15 byte payload */
   EVENT_WLAN_HANDOFF,                      /* 15 byte payload */
@@ -1703,14 +1703,14 @@ typedef enum
 
   EVENT_WLAN_PE_FRAME,                     /* 16 byte payload */
 
-  EVENT_SNS_VCPS_HEADING_COMPUTED,         /* 12 byte payload */ 
-  EVENT_SNS_VCPS_TRACKED_CAL_SET_SAVED,    /* 22 byte payload */ 
+  EVENT_SNS_VCPS_HEADING_COMPUTED,         /* 12 byte payload */
+  EVENT_SNS_VCPS_TRACKED_CAL_SET_SAVED,    /* 22 byte payload */
 
-  EVENT_GNSS_PRESC_DWELL_COMPLETE,         /* 2 byte payload */ 
+  EVENT_GNSS_PRESC_DWELL_COMPLETE,         /* 2 byte payload */
 
-  EVENT_LTE_MAC_RESET,                     /* 1 byte payload */ 
-  EVENT_LTE_BSR_SR_REQUEST,                /* 1 byte payload */ 
-  EVENT_LTE_MAC_TIMER,                     /* 2 byte payload */ 
+  EVENT_LTE_MAC_RESET,                     /* 1 byte payload */
+  EVENT_LTE_BSR_SR_REQUEST,                /* 1 byte payload */
+  EVENT_LTE_MAC_TIMER,                     /* 2 byte payload */
 
   EVENT_CM_DS_OPERATIONAL_MODE,            /* 2 byte payload */
   EVENT_CM_DS_MODE_PREF,                   /* 5 byte payload */
@@ -1739,22 +1739,22 @@ typedef enum
   EVENT_CM_DS_USS_RESPONSE_NOTIFY_IND,     /* 4 byte payload */
   EVENT_CM_DS_LCS_MOLR_CONF,               /* 2 byte payload */
 
-  EVENT_DS_NAS_MESSAGE_SENT,               /* 5 byte payload */ 
-  EVENT_DS_NAS_MESSAGE_RECEIVED,           /* 5 byte payload */  
-  EVENT_DS_MM_STATE,                       /* 3 byte payload */ 
-  EVENT_DS_GMM_STATE,                      /* 3 byte payload */ 
-  EVENT_DS_PLMN_INFORMATION,               /* 10 byte payload */ 
+  EVENT_DS_NAS_MESSAGE_SENT,               /* 5 byte payload */
+  EVENT_DS_NAS_MESSAGE_RECEIVED,           /* 5 byte payload */
+  EVENT_DS_MM_STATE,                       /* 3 byte payload */
+  EVENT_DS_GMM_STATE,                      /* 3 byte payload */
+  EVENT_DS_PLMN_INFORMATION,               /* 10 byte payload */
 
-  EVENT_DIAG_STRESS_TEST_COMPLETED,        /* 4 byte payload */ 
+  EVENT_DIAG_STRESS_TEST_COMPLETED,        /* 4 byte payload */
 
-  EVENT_GNSS_CC_STATUS,                    /* 2 byte payload */ 
+  EVENT_GNSS_CC_STATUS,                    /* 2 byte payload */
 
-  EVENT_SNS_USER_STATE_CHANGE,             /* 6 byte payload */ 
+  EVENT_SNS_USER_STATE_CHANGE,             /* 6 byte payload */
 
-  EVENT_DS_HPLMN_TIMER_EXPIRED,            /* 1 byte payload */  
-  EVENT_DS_RAT_CHANGE,                     /* 2 byte payload */ 
+  EVENT_DS_HPLMN_TIMER_EXPIRED,            /* 1 byte payload */
+  EVENT_DS_RAT_CHANGE,                     /* 2 byte payload */
 
-  EVENT_DTV_CMMB_API_CALL_ACTIVATE,               /*9 byte payload*/ /*ID=1757*/ 
+  EVENT_DTV_CMMB_API_CALL_ACTIVATE,               /*9 byte payload*/ /*ID=1757*/
   EVENT_DTV_CMMB_API_CALL_DEACTIVATE,           /*9 byte payload*/
   EVENT_DTV_CMMB_API_CALL_TUNE,                     /*13 byte payload*/
   EVENT_DTV_CMMB_API_CALL_SELECT_SERVICE,     /*11 byte payload*/
@@ -1772,7 +1772,7 @@ typedef enum
   EVENT_DTV_CMMB_API_CALL_DEREGISTER_FROM_CONTROL_NOTIFICATIONS,   /*9 byte payload*/
   EVENT_DTV_CMMB_API_NOTIFICATION_ACTIVATE,               /*9 byte payload*/
   EVENT_DTV_CMMB_API_NOTIFICATION_DEACTIVATE,           /*9 byte payload*/
-  EVENT_DTV_CMMB_API_NOTIFICATION_TUNE,      /*13 byte payload*/ 
+  EVENT_DTV_CMMB_API_NOTIFICATION_TUNE,      /*13 byte payload*/
   EVENT_DTV_CMMB_API_NOTIFICATION_SELECT_SERVICE,     /*11 byte payload*/
   EVENT_DTV_CMMB_API_NOTIFICATION_DESELECT_SERVICE,  /*11 byte payload*/
   EVENT_DTV_CMMB_API_NOTIFICATION_TABLE_UPDATE,        /*6 byte payload*/
@@ -1796,9 +1796,9 @@ typedef enum
   EVENT_DTV_CMMB_CAS_INITIALIZED,                 /*9 byte payload*/
   EVENT_DTV_CMMB_CAS_EMM_RECEIVED_AND_PROCESSED,    /*9 byte payload*/
   EVENT_DTV_CMMB_CAS_ECM_RECEIVED_AND_PROCESSED,    /*11 byte payload*/ /*ID=1798*/
-  
-  EVENT_ECALL_START,                                      /*3 byte payload*/ 
-  EVENT_ECALL_STOP,                                       /*1 byte payload*/ 
+
+  EVENT_ECALL_START,                                      /*3 byte payload*/
+  EVENT_ECALL_STOP,                                       /*1 byte payload*/
   EVENT_ECALL_SESSION_START,                        /*1 byte payload*/
   EVENT_ECALL_SESSION_FAILURE,                      /*1 byte payload*/
   EVENT_ECALL_SESSION_COMPLETE,                   /*3 byte payload*/

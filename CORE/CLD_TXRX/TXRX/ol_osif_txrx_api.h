@@ -37,10 +37,10 @@
 /**
  * @brief Call tx completion handler to release the buffers
  * @details
- * 
+ *
  * Invoke tx completion handler when the tx credit goes below low water mark.
- * This eliminate the packet drop in the host driver due to send routine not yielding 
- * the cpu when the amount of traffic pumped from the network layer is very high. 
+ * This eliminate the packet drop in the host driver due to send routine not yielding
+ * the cpu when the amount of traffic pumped from the network layer is very high.
  *
  * @param osdev
  */

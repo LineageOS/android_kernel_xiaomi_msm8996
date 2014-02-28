@@ -512,7 +512,7 @@ ol_txrx_pdev_attach(
         goto fail8;
     }
 
-#ifdef PERE_IP_HDR_ALIGNMENT_WAR 
+#ifdef PERE_IP_HDR_ALIGNMENT_WAR
     pdev->host_80211_enable = ol_scn_host_80211_enable_get(pdev->ctrl_pdev);
 #endif
 
@@ -677,7 +677,7 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
 
     /* check that the pdev has no vdevs allocated */
     TXRX_ASSERT1(TAILQ_EMPTY(&pdev->vdev_list));
-	
+
     OL_RX_REORDER_TIMEOUT_CLEANUP(pdev);
 
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
@@ -917,7 +917,7 @@ ol_txrx_vdev_detach(
 
     /* preconditions */
     TXRX_ASSERT2(vdev);
-    	
+
 #if defined(CONFIG_HL_SUPPORT)
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
         struct ol_tx_frms_queue_t *txq;
@@ -1352,7 +1352,7 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
             peer->mac_addr.raw[0], peer->mac_addr.raw[1],
             peer->mac_addr.raw[2], peer->mac_addr.raw[3],
             peer->mac_addr.raw[4], peer->mac_addr.raw[5]);
-		
+
         /* remove the reference to the peer from the hash table */
         ol_txrx_peer_find_hash_remove(pdev, peer);
 

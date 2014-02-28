@@ -29,13 +29,13 @@
 #define __WLAN_QCT_OS_TYPE_H
 
 /**=========================================================================
-  
+
   \file  wlan_qct_pal_type.h
-  
+
   \brief define basi types PAL exports. wpt = (Wlan Pal Type)
-               
+
    Definitions for platform dependent. This is for Linux/Android
-  
+
   ========================================================================*/
 
 #include <linux/types.h>

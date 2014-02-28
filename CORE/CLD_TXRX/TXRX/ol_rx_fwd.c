@@ -65,7 +65,7 @@ ol_ap_fwd_check(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu)
     type    = mac_header->i_fc[0] & IEEE80211_FC0_TYPE_MASK;
     subtype = mac_header->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK;
     tods    = mac_header->i_fc[1] & IEEE80211_FC1_DIR_TODS;
-    fromds  = mac_header->i_fc[1] & IEEE80211_FC1_DIR_FROMDS; 
+    fromds  = mac_header->i_fc[1] & IEEE80211_FC1_DIR_FROMDS;
 
 	/*
      * Make sure no QOS or any other non-data subtype
@@ -74,7 +74,7 @@ ol_ap_fwd_check(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu)
      * These packets should come up through the normal rx path and not forwarded.
      */
     if (type != IEEE80211_FC0_TYPE_DATA ||
-        subtype != 0x0 || 
+        subtype != 0x0 ||
         ((tods != 1) || (fromds != 0)) ||
         (adf_os_mem_cmp(
             mac_header->i_addr3, vdev->mac_addr.raw, IEEE80211_ADDR_LEN) == 0))
@@ -119,7 +119,7 @@ void
 ol_rx_fwd_to_tx(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu)
 {
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
-    
+
     if (pdev->frame_format == wlan_frm_fmt_native_wifi)
     {
         ol_ap_fwd_check(vdev, msdu);

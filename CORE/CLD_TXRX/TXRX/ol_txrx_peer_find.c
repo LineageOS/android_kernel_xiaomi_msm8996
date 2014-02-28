@@ -68,11 +68,11 @@ ol_txrx_log2_ceil(unsigned value)
     if (1U << log2 != value) {
         log2++;
     }
-    
+
     return log2;
 }
 
-static int 
+static int
 ol_txrx_peer_find_add_id_to_obj(
     struct ol_txrx_peer_t *peer,
     u_int16_t peer_id)
@@ -83,7 +83,7 @@ ol_txrx_peer_find_add_id_to_obj(
         if (peer->peer_ids[i] == HTT_INVALID_PEER) {
             peer->peer_ids[i] = peer_id;
             return 0; /* success */
-        } 
+        }
     }
     return 1; /* failure */
 }
@@ -113,7 +113,7 @@ static int
 ol_txrx_peer_find_hash_attach(struct ol_txrx_pdev_t *pdev)
 {
     int i, hash_elems, log2;
-	
+
     /* allocate the peer MAC address -> peer object hash table */
     hash_elems = ol_cfg_max_peer_id(pdev->ctrl_pdev) + 1;
     hash_elems *= TXRX_PEER_HASH_LOAD_MULT;
@@ -197,7 +197,7 @@ ol_txrx_peer_find_hash_find(
             &local_mac_addr_aligned.raw[0],
             peer_mac_addr, OL_TXRX_MAC_ADDR_LEN);
         mac_addr = &local_mac_addr_aligned;
-    } 
+    }
     index = ol_txrx_peer_find_hash_index(pdev, mac_addr);
     adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
     TAILQ_FOREACH(peer, &pdev->peer_hash.bins[index], hash_list_elem) {
@@ -248,7 +248,7 @@ ol_txrx_peer_find_hash_erase(struct ol_txrx_pdev_t *pdev)
      * Not really necessary to take peer_ref_mutex lock - by this point,
      * it's known that the pdev is no longer in use.
      */
-	
+
     for (i = 0; i <= pdev->peer_hash.mask; i++) {
         if (!TAILQ_EMPTY(&pdev->peer_hash.bins[i])) {
             struct ol_txrx_peer_t *peer, *peer_next;
@@ -263,7 +263,7 @@ ol_txrx_peer_find_hash_erase(struct ol_txrx_pdev_t *pdev)
 				/*
                  * Don't remove the peer from the hash table -
                  * that would modify the list we are currently traversing,
-                 * and it's not necessary anyway. 
+                 * and it's not necessary anyway.
                  */
                 /*
                  * Artificially adjust the peer's ref count to 1, so it
@@ -447,11 +447,11 @@ ol_rx_peer_unmap_handler(
      * If the peer ID is for a vdev, then the peer pointer stored
      * in peer_id_to_obj_map will be NULL.
      */
-    if (!peer) return;	
+    if (!peer) return;
     /*
      * Remove a reference to the peer.
      * If there are no more references, delete the peer object.
-     */	
+     */
     ol_txrx_peer_unref_delete(peer);
 }
 

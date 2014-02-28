@@ -149,9 +149,9 @@ enum htt_h2t_msg_type {
 /**
  * @brief General specification of the tx frame contents
  *
- * @details 
- * for efficiency, the HTT packet type values correspond 
- * to the bit positions of the WAL packet type values, so the 
+ * @details
+ * for efficiency, the HTT packet type values correspond
+ * to the bit positions of the WAL packet type values, so the
  * translation is a simple shift operation.
  */
 enum htt_pkt_type {
@@ -291,7 +291,7 @@ PREPACK struct htt_tx_msdu_desc_t
         more_in_batch: 1,
 
         /* cksum_offload -
-         * This flag indicates whether checksum offload is enabled or not 
+         * This flag indicates whether checksum offload is enabled or not
          * for this frame. Target FW use this flag to turn on HW checksumming
          *  0x0 - No checksum offload
          *  0x1 - L3 header checksum only
@@ -300,13 +300,13 @@ PREPACK struct htt_tx_msdu_desc_t
          */
         cksum_offload: 2,
 
-        #define HTT_TX_L3_CKSUM_OFFLOAD      1 
-        #define HTT_TX_L4_CKSUM_OFFLOAD      2 
+        #define HTT_TX_L3_CKSUM_OFFLOAD      1
+        #define HTT_TX_L4_CKSUM_OFFLOAD      2
 
         reserved_dword0_bits31: 1; /* unused */
 
         /* DWORD 1: MSDU length and ID */
-#define HTT_TX_MSDU_LEN_DWORD 1 
+#define HTT_TX_MSDU_LEN_DWORD 1
 #define HTT_TX_MSDU_LEN_MASK 0xffff;
         A_UINT32
             len: 16, /* MSDU length, in bytes */
@@ -326,16 +326,16 @@ PREPACK struct htt_tx_msdu_desc_t
         A_UINT32 frags_desc_ptr;
 
         /* DWORD 3: peerid */
-        /* 
-         * Peer ID : Target can use this value to know which peer-id packet 
+        /*
+         * Peer ID : Target can use this value to know which peer-id packet
          *           destined to.
-         *           It's intended to be specified by host in case of NAWDS. 
+         *           It's intended to be specified by host in case of NAWDS.
          */
         A_UINT32 peerid;
 
         /* Reason reserved is commented is increasing the htt structure size
          * leads to some wierd issues. Contact Raj/Kyeyoon for more info
-         * A_UINT32 reserved_dword3_bits0_31; 
+         * A_UINT32 reserved_dword3_bits0_31;
          */
 } POSTPACK;
 
@@ -407,7 +407,7 @@ PREPACK struct htt_mgmt_tx_compl_ind {
 #define HTT_TX_DESC_NO_ENCRYPT_OFFSET_BYTES 0
 #define HTT_TX_DESC_NO_ENCRYPT_OFFSET_DWORD 0
 #define HTT_TX_DESC_NO_ENCRYPT_M      0x00000400
-#define HTT_TX_DESC_NO_ENCRYPT_S      10 
+#define HTT_TX_DESC_NO_ENCRYPT_S      10
 
 #define HTT_TX_DESC_PKT_TYPE_OFFSET_BYTES 0
 #define HTT_TX_DESC_PKT_TYPE_OFFSET_DWORD 0
@@ -676,17 +676,17 @@ PREPACK struct htt_mgmt_tx_compl_ind {
 #define HTT_RX_RING_CFG_ENABLED_FRAG_INFO_M    0x200
 #define HTT_RX_RING_CFG_ENABLED_FRAG_INFO_S    9
 #define HTT_RX_RING_CFG_ENABLED_UCAST_M        0x400
-#define HTT_RX_RING_CFG_ENABLED_UCAST_S        10 
+#define HTT_RX_RING_CFG_ENABLED_UCAST_S        10
 #define HTT_RX_RING_CFG_ENABLED_MCAST_M        0x800
-#define HTT_RX_RING_CFG_ENABLED_MCAST_S        11 
+#define HTT_RX_RING_CFG_ENABLED_MCAST_S        11
 #define HTT_RX_RING_CFG_ENABLED_CTRL_M         0x1000
-#define HTT_RX_RING_CFG_ENABLED_CTRL_S         12 
+#define HTT_RX_RING_CFG_ENABLED_CTRL_S         12
 #define HTT_RX_RING_CFG_ENABLED_MGMT_M         0x2000
-#define HTT_RX_RING_CFG_ENABLED_MGMT_S         13 
+#define HTT_RX_RING_CFG_ENABLED_MGMT_S         13
 #define HTT_RX_RING_CFG_ENABLED_NULL_M         0x4000
-#define HTT_RX_RING_CFG_ENABLED_NULL_S         14 
+#define HTT_RX_RING_CFG_ENABLED_NULL_S         14
 #define HTT_RX_RING_CFG_ENABLED_PHY_M          0x8000
-#define HTT_RX_RING_CFG_ENABLED_PHY_S          15 
+#define HTT_RX_RING_CFG_ENABLED_PHY_S          15
 #define HTT_RX_RING_CFG_IDX_INIT_VAL_M         0xffff0000
 #define HTT_RX_RING_CFG_IDX_INIT_VAL_S         16
 #define HTT_RX_RING_CFG_OFFSET_802_11_HDR_M    0xffff
@@ -710,7 +710,7 @@ PREPACK struct htt_mgmt_tx_compl_ind {
 #define HTT_RX_RING_CFG_OFFSET_FRAG_INFO_M     0xffff0000
 #define HTT_RX_RING_CFG_OFFSET_FRAG_INFO_S     16
 
-#define HTT_RX_RING_CFG_HDR_BYTES 4 
+#define HTT_RX_RING_CFG_HDR_BYTES 4
 #define HTT_RX_RING_CFG_PAYLD_BYTES 36
 #define HTT_RX_RING_CFG_BYTES(num_rings) \
     (HTT_RX_RING_CFG_HDR_BYTES + (num_rings) * HTT_RX_RING_CFG_PAYLD_BYTES)
@@ -1151,12 +1151,12 @@ PREPACK struct htt_mgmt_tx_compl_ind {
 /**
  * @brief HTT aggregation configuration
  */
-#define HTT_AGGR_CFG_MSG_SZ                     4 
+#define HTT_AGGR_CFG_MSG_SZ                     4
 
 #define HTT_AGGR_CFG_MAX_NUM_AMPDU_SUBFRM_M     0xff00
 #define HTT_AGGR_CFG_MAX_NUM_AMPDU_SUBFRM_S     8
 #define HTT_AGGR_CFG_MAX_NUM_AMSDU_SUBFRM_M     0x1f0000
-#define HTT_AGGR_CFG_MAX_NUM_AMSDU_SUBFRM_S     16 
+#define HTT_AGGR_CFG_MAX_NUM_AMSDU_SUBFRM_S     16
 
 #define HTT_AGGR_CFG_MAX_NUM_AMPDU_SUBFRM_GET(_var) \
     (((_var) & HTT_AGGR_CFG_MAX_NUM_AMPDU_SUBFRM_M) >> \
@@ -1444,7 +1444,7 @@ PREPACK struct htt_rx_ind_hdr_t
  * 1.  the message meta-information, including identification of the
  *     sender and type of the received data, and a 4-octet flush/release IE
  * 2.  the firmware rx PPDU descriptor
- * 
+ *
  * The format of the message is depicted below.
  * in this depiction, the following abbreviations are used for information
  * elements within the message:
@@ -1534,7 +1534,7 @@ PREPACK struct htt_rx_ind_hdr_t
  *     Bits 31:16
  *     Purpose: Identify, by ID, which peer sent the rx data
  *     Value: ID of the peer who sent the rx data
- *   - FLUSH_SEQ_NUM_START 
+ *   - FLUSH_SEQ_NUM_START
  *     Bits 5:0
  *     Purpose: Indicate the start of a series of MPDUs to flush
  *         Not all MPDUs within this series are necessarily valid - the host
@@ -1555,7 +1555,7 @@ PREPACK struct htt_rx_ind_hdr_t
  *         must check each sequence number within this range to see if the
  *         corresponding MPDU is actually present.
  *         This field is only valid if the FV bit is set.
- *   - REL_SEQ_NUM_START 
+ *   - REL_SEQ_NUM_START
  *     Bits 5:0
  *     Purpose: Indicate the start of a series of MPDUs to release.
  *         All MPDUs within this series are present and valid - the host
@@ -1808,9 +1808,9 @@ PREPACK struct htt_rx_ind_hdr_t
 #define HTT_RX_IND_EXT_TID_M      0x1f00
 #define HTT_RX_IND_EXT_TID_S      8
 #define HTT_RX_IND_FLUSH_VALID_M  0x2000
-#define HTT_RX_IND_FLUSH_VALID_S  13 
+#define HTT_RX_IND_FLUSH_VALID_S  13
 #define HTT_RX_IND_REL_VALID_M    0x4000
-#define HTT_RX_IND_REL_VALID_S    14 
+#define HTT_RX_IND_REL_VALID_S    14
 #define HTT_RX_IND_PEER_ID_M      0xffff0000
 #define HTT_RX_IND_PEER_ID_S      16
 
@@ -2183,7 +2183,7 @@ struct htt_rx_ind_hl_rx_desc_t {
 #define HTT_RX_IND_HL_FLAG_IPV6         (0x01 << 4) // is ipv6, or else ipv4
 #define HTT_RX_IND_HL_FLAG_TCP          (0x01 << 5) // is tcp
 #define HTT_RX_IND_HL_FLAG_UDP          (0x01 << 6) // is udp
-/* This structure is used in HL, the basic descriptor information 
+/* This structure is used in HL, the basic descriptor information
  * used by host. the structure is translated by FW from HW desc
  * or generated by FW. But in HL monitor mode, the host would use
  * the same structure with LL.
@@ -2602,16 +2602,16 @@ PREPACK struct hl_htt_rx_desc_base {
  * |-----------------------------------------------------------------------|
  * |              reserved             |    MAC addr 5   |    MAC addr 4   |
  * |-----------------------------------------------------------------------|
- * 
- * 
+ *
+ *
  * The following diagram shows the format of the rx conn unmap message sent
  * from the target to the host.
- * 
+ *
  * |31             24|23             16|15              8|7               0|
  * |-----------------------------------------------------------------------|
  * |              peer ID              |     reserved    |     msg type    |
  * |-----------------------------------------------------------------------|
- * 
+ *
  * The following field definitions describe the format of the rx conn map
  * and conn unmap messages sent from the target to the host.
  *   - MSG_TYPE
@@ -2735,26 +2735,26 @@ PREPACK struct hl_htt_rx_desc_base {
  *     Value: Michael Key K1 (if security type is TKIP)
  *   - WAPI_RSC_LOW0
  *     Bits 31:0
- *     Purpose: 4-byte word that forms the 1st quarter of the 16 byte WAPI RSC 
+ *     Purpose: 4-byte word that forms the 1st quarter of the 16 byte WAPI RSC
  *     Value: WAPI RSC Low0 (if security type is WAPI)
  *   - WAPI_RSC_LOW1
  *     Bits 31:0
- *     Purpose: 4-byte word that forms the 2nd quarter of the 16 byte WAPI RSC 
+ *     Purpose: 4-byte word that forms the 2nd quarter of the 16 byte WAPI RSC
  *     Value: WAPI RSC Low1 (if security type is WAPI)
  *   - WAPI_RSC_HI0
  *     Bits 31:0
- *     Purpose: 4-byte word that forms the 3rd quarter of the 16 byte WAPI RSC 
+ *     Purpose: 4-byte word that forms the 3rd quarter of the 16 byte WAPI RSC
  *     Value: WAPI RSC Hi0 (if security type is WAPI)
  *   - WAPI_RSC_HI1
  *     Bits 31:0
- *     Purpose: 4-byte word that forms the 4th quarter of the 16 byte WAPI RSC 
+ *     Purpose: 4-byte word that forms the 4th quarter of the 16 byte WAPI RSC
  *     Value: WAPI RSC Hi1 (if security type is WAPI)
  */
 
 #define HTT_SEC_IND_SEC_TYPE_M     0x00007f00
-#define HTT_SEC_IND_SEC_TYPE_S     8 
+#define HTT_SEC_IND_SEC_TYPE_S     8
 #define HTT_SEC_IND_UNICAST_M      0x00008000
-#define HTT_SEC_IND_UNICAST_S      15 
+#define HTT_SEC_IND_UNICAST_S      15
 #define HTT_SEC_IND_PEER_ID_M      0xffff0000
 #define HTT_SEC_IND_PEER_ID_S      16
 
@@ -2805,7 +2805,7 @@ PREPACK struct hl_htt_rx_desc_base {
  * |---------------------------------------------------------------------|
  * |          peer ID         |  TID |     reserved    |     msg type    |
  * |---------------------------------------------------------------------|
- * 
+ *
  * The following field definitions describe the format of the rx ADDBA
  * and DELBA messages sent from the target to the host.
  *   - MSG_TYPE
@@ -2864,10 +2864,10 @@ PREPACK struct hl_htt_rx_desc_base {
 #define HTT_RX_ADDBA_BYTES 4
 
 
-#define HTT_RX_DELBA_TID_M         HTT_RX_ADDBA_TID_M       
-#define HTT_RX_DELBA_TID_S         HTT_RX_ADDBA_TID_S       
-#define HTT_RX_DELBA_PEER_ID_M     HTT_RX_ADDBA_PEER_ID_M 
-#define HTT_RX_DELBA_PEER_ID_S     HTT_RX_ADDBA_PEER_ID_S 
+#define HTT_RX_DELBA_TID_M         HTT_RX_ADDBA_TID_M
+#define HTT_RX_DELBA_TID_S         HTT_RX_ADDBA_TID_S
+#define HTT_RX_DELBA_PEER_ID_M     HTT_RX_ADDBA_PEER_ID_M
+#define HTT_RX_DELBA_PEER_ID_S     HTT_RX_ADDBA_PEER_ID_S
 
 #define HTT_RX_DELBA_TID_SET       HTT_RX_ADDBA_TID_SET
 #define HTT_RX_DELBA_TID_GET       HTT_RX_ADDBA_TID_GET
@@ -3077,7 +3077,7 @@ typedef struct {
  * The rx fragment indication message shares the format of the
  * rx indication message, but not all fields from the rx indication message
  * are relevant to the rx fragment indication message.
- * 
+ *
  *
  *     |31       24|23         18|17|16|15|14|13|12|11|10|9|8|7|6|5|4     0|
  *     |-----------+-------------------+---------------------+-------------|
@@ -3089,8 +3089,8 @@ typedef struct {
  *     |-------------------------------------------------------------------|
  *     |           reserved            |         FW rx desc bytes          |
  *     |-------------------------------------------------------------------|
- *     |                                                     | FW MSDU Rx  | 
- *     |                                                     |   desc B0   | 
+ *     |                                                     | FW MSDU Rx  |
+ *     |                                                     |   desc B0   |
  *     |-------------------------------------------------------------------|
  * Header fields:
  *   - MSG_TYPE
@@ -3114,7 +3114,7 @@ typedef struct {
  *     Bits 31:16
  *     Purpose: Identify, by ID, which peer sent the rx data
  *     Value: ID of the peer who sent the rx data
- *   - FLUSH_SEQ_NUM_START 
+ *   - FLUSH_SEQ_NUM_START
  *     Bits 5:0
  *     Purpose: Indicate the start of a series of MPDUs to flush
  *         Not all MPDUs within this series are necessarily valid - the host
@@ -3486,7 +3486,7 @@ enum htt_dbg_stats_status {
  *
  */
 
-/** @todo Compress the fields to fit MAX HTT Message size, until then configure to a 
+/** @todo Compress the fields to fit MAX HTT Message size, until then configure to a
  *         safe value.
  *  @note MAX supported banks is 16.
  */
@@ -3560,7 +3560,7 @@ enum htt_dbg_stats_status {
 
 
 PREPACK struct htt_tx_frag_desc_bank_cfg_t {
-      /** word 0 
+      /** word 0
        * msg_type:      8,
        * pdev_id:      2,
        * swap:         1,
@@ -3592,8 +3592,8 @@ PREPACK struct htt_tx_frag_desc_bank_cfg_t {
  *     Bits 8
  *      identifies whether credit delta is positive or negative
  *     Value:
- *       - 0x0: credti delta is positive, rebalance in some buffers 
- *       - 0x1: credti delta is negative, rebalance out some buffers 
+ *       - 0x0: credti delta is positive, rebalance in some buffers
+ *       - 0x1: credti delta is negative, rebalance out some buffers
  *     Bits 15:9
  *       - reserved
  *   - DELTA_COUNT

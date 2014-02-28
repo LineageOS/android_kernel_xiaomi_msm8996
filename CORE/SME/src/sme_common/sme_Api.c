@@ -1465,9 +1465,7 @@ eHalStatus sme_SetPlmRequest(tHalHandle hHal, tpSirPlmReq pPlmReq)
                   if (NV_CHANNEL_DFS ==
                        vos_nv_getChannelEnabledState(pPlmReq->plmChList[count]))
                   /* DFS channel is provided, no PLM bursts can be
-                  * transmitted. TODO shall we ignore these channels
-                  * and continue PLM bursts on other channels ??
-                  * OR return error ?? For now, ignoring these channels
+                  * transmitted. Ignoring these channels.
                   */
                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                             "%s DFS channel %d ignored for PLM", __func__,
@@ -1476,10 +1474,7 @@ eHalStatus sme_SetPlmRequest(tHalHandle hHal, tpSirPlmReq pPlmReq)
               }
               else if (!ret)
               {
-                   /* Not supported channel
-                    * TODO : shall we return error ? OR ignore this channel ?
-                    * for now ignoring the channel
-                   */
+                   /* Not supported, ignore the channel */
                    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                              "%s Unsupported channel %d ignored for PLM",
                              __func__, pPlmReq->plmChList[count]);
@@ -1490,7 +1485,13 @@ eHalStatus sme_SetPlmRequest(tHalHandle hHal, tpSirPlmReq pPlmReq)
            } /* End of for () */
 
            /* Copying back the valid channel list to plm struct */
-           vos_mem_copy(pPlmReq->plmChList, ch_list, valid_count);
+           vos_mem_set((void *)pPlmReq->plmChList, pPlmReq->plmNumCh, 0);
+           if (valid_count)
+              vos_mem_copy(pPlmReq->plmChList, ch_list, valid_count);
+           /* All are invalid channels, FW need to send the PLM
+           *  report with "incapable" bit set.
+           */
+           pPlmReq->plmNumCh = valid_count;
         } /* PLM START */
 
         msg.type     = WDA_SET_PLM_REQ;
