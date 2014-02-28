@@ -17523,9 +17523,9 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	tANI_U8         *pFrame = NULL;
 	void            *pPacket = NULL;
 	u_int16_t	newFrmLen = 0;
+#endif /* WLAN_FEATURE_11W */
 	struct wma_txrx_node *iface;
 	tpAniSirGlobal pMac;
-#endif /* WLAN_FEATURE_11W */
 
         if (NULL == wma_handle)
         {
