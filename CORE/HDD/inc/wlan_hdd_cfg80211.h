@@ -215,7 +215,9 @@ void hdd_suspend_wlan(void (*callback)(void *callbackContext),
 void hdd_resume_wlan(void);
 #endif
 
+#ifdef FEATURE_WLAN_CH_AVOID
 int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
                                    tHddAvoidFreqList *pAvoidFreqList);
+#endif
 
 #endif
