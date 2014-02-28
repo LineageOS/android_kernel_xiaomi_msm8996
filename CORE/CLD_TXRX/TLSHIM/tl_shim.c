@@ -275,14 +275,15 @@ tlshim_mgmt_over_data_rx_handler_non_interrupt_ctx(pVosContextType pVosGCtx,
  */
 bool
 tlshim_check_n_process_iapp_frame (pVosContextType pVosGCtx,
-	adf_nbuf_t msdu, u_int16_t sta_id)
+	adf_nbuf_t *msdu, u_int16_t sta_id)
 {
-    u_int8_t *data = adf_nbuf_data(msdu);
+    u_int8_t *data;
     u_int8_t offset_snap_header;
     struct ol_txrx_pdev_t *pdev = pVosGCtx->pdev_txrx_ctx;
     struct ol_txrx_peer_t *peer =
     ol_txrx_peer_find_by_local_id(pVosGCtx->pdev_txrx_ctx, sta_id);
     struct ol_txrx_vdev_t *vdev = peer->vdev;
+    adf_nbuf_t new_head = NULL, buf, new_list = NULL, next_buf;
 
     /* frame format is natve wifi */
     if(pdev->frame_format == wlan_frm_fmt_native_wifi)
@@ -290,20 +291,35 @@ tlshim_check_n_process_iapp_frame (pVosContextType pVosGCtx,
     else
         offset_snap_header = ETHERNET_HDR_LEN;
 
-    if(vos_mem_compare( &data[offset_snap_header],
-        &AIRONET_SNAP_HEADER[0], LLC_SNAP_SIZE) == VOS_TRUE) {
-        /* process IAPP frames */
-        tlshim_mgmt_over_data_rx_handler_non_interrupt_ctx(pVosGCtx,
-            msdu, vdev);
-        /* if returned true: the packet will not be passed to upper layer */
-        return true;
+    buf = *msdu;
+    while (buf) {
+	data = adf_nbuf_data(buf);
+	next_buf = adf_nbuf_queue_next(buf);
+	if (vos_mem_compare( &data[offset_snap_header],
+           &AIRONET_SNAP_HEADER[0], LLC_SNAP_SIZE) == VOS_TRUE) {
+		/* process IAPP frames */
+		tlshim_mgmt_over_data_rx_handler_non_interrupt_ctx(pVosGCtx,
+								   buf, vdev);
+	} else { /* Add the packet onto a new list */
+		if (new_list == NULL)
+			new_head = buf;
+		else
+			adf_nbuf_set_next(new_list, buf);
+		new_list = buf;
+		adf_nbuf_set_next(buf, NULL);
+	}
+	buf = next_buf;
     }
 
+    if (!new_list)
+	return true;
+
+    *msdu = new_head;
     /* if returned false the packet will be handled by the upper layer */
     return false;
 }
-
 #endif /* defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD) */
+
 
 #ifdef QCA_WIFI_ISOC
 static void tlshim_mgmt_rx_dxe_handler(void *context, adf_nbuf_t buflist)
@@ -657,34 +673,50 @@ static void tl_shim_flush_rx_frames(void *vos_ctx,
 	clear_bit(TLSHIM_FLUSH_CACHE_IN_PROGRESS, &sta_info->flags);
 }
 
-static VOS_STATUS tlshim_data_rx_cb(struct txrx_tl_shim_ctx *tl_shim,
-				    adf_nbuf_t buf, u_int16_t staid)
+static void tlshim_data_rx_cb(struct txrx_tl_shim_ctx *tl_shim,
+			      adf_nbuf_t buf_list, u_int16_t staid)
 {
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, tl_shim);
 	struct tlshim_sta_info *sta_info;
+	adf_nbuf_t buf, next_buf;
 	VOS_STATUS ret;
 
-	if (!vos_ctx)
-		return VOS_STATUS_E_FAILURE;
+	if (unlikely(!vos_ctx))
+		goto free_buf;
+
 	sta_info = &tl_shim->sta_info[staid];
-	if (unlikely(!sta_info->registered)) {
-		adf_nbuf_free(buf);
-		return VOS_STATUS_E_FAILURE;
-	}
+	if (unlikely(!sta_info->registered))
+		goto free_buf;
 
 	adf_os_spin_lock_bh(&tl_shim->bufq_lock);
-	sta_info->suspend_flush = 1;
-	adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+	if (!list_empty(&sta_info->cached_bufq)) {
+		sta_info->suspend_flush = 1;
+		adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+		/* Flush the cached frames to HDD before passing new rx frame */
+		tl_shim_flush_rx_frames(vos_ctx, tl_shim, staid, 0);
+	} else
+		adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
 
-	/* Flush the cached frames to HDD before passing new rx frame */
-	tl_shim_flush_rx_frames(vos_ctx, tl_shim, staid, 0);
-	ret = sta_info->data_rx(vos_ctx, buf, staid);
-	if (ret != VOS_STATUS_SUCCESS) {
-		TLSHIM_LOGW("Frame Rx to HDD failed");
-		adf_nbuf_free(buf);
-		return VOS_STATUS_E_FAILURE;
+	buf = buf_list;
+	while (buf) {
+		next_buf = adf_nbuf_queue_next(buf);
+		ret = sta_info->data_rx(vos_ctx, buf, staid);
+		if (ret != VOS_STATUS_SUCCESS) {
+			TLSHIM_LOGE("Frame Rx to HDD failed");
+			adf_nbuf_free(buf);
+		}
+		buf = next_buf;
 	}
-	return VOS_STATUS_SUCCESS;
+	return;
+
+free_buf:
+	TLSHIM_LOGW("%s:Dropping frames", __func__);
+	buf = buf_list;
+	while (buf) {
+		next_buf = adf_nbuf_queue_next(buf);
+		adf_nbuf_free(buf);
+		buf = next_buf;
+	}
 }
 
 /*
@@ -750,9 +782,6 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 		ret = sta_info->data_rx(vos_ctx, rx_buf_list, staid);
 		if (ret == VOS_STATUS_E_INVAL) {
 #endif
-		buf = rx_buf_list;
-		while (buf) {
-			next_buf = adf_nbuf_queue_next(buf);
 
 #if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
 			/*
@@ -762,11 +791,9 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 			 * 2) send to PE/LIM
 			 * 3) free the involved sk_buff
 			 */
-			if(tlshim_check_n_process_iapp_frame(vos_ctx,
-							buf, staid)) {
-				buf = next_buf;
-				continue;
-			}
+			if (tlshim_check_n_process_iapp_frame(vos_ctx,
+							&rx_buf_list, staid))
+				return;
 
 			/*
 			 * above returned false, the packet was not IAPP.
@@ -779,36 +806,30 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 			 * better use multicores.
 			 */
 			if (!tl_shim->enable_rxthread) {
-				tlshim_data_rx_cb(tl_shim, buf, staid);
+				tlshim_data_rx_cb(tl_shim, rx_buf_list, staid);
 			} else {
 				pVosSchedContext sched_ctx =
 						get_vos_sched_ctxt();
 				struct VosTlshimPkt *pkt;
 
-				if (unlikely(!sched_ctx)) {
-					adf_nbuf_free(buf);
-					buf = next_buf;
-					continue;
-				}
+				if (unlikely(!sched_ctx))
+					goto drop_rx_buf;
+
 				pkt = vos_alloc_tlshim_pkt(sched_ctx);
 				if (!pkt) {
 					TLSHIM_LOGW("No available Rx message buffer");
-					adf_nbuf_free(buf);
-					buf = next_buf;
-					continue;
+					goto drop_rx_buf;
 				}
 				pkt->callback = (vos_tlshim_cb)
 						tlshim_data_rx_cb;
 				pkt->context = (void *) tl_shim;
-				pkt->Rxpkt = (void *) buf;
+				pkt->Rxpkt = (void *) rx_buf_list;
 				pkt->staId = staid;
 				vos_indicate_rxpkt(sched_ctx, pkt);
 			}
 #else /* QCA_CONFIG_SMP */
-			tlshim_data_rx_cb(tl_shim, buf, staid);
+			tlshim_data_rx_cb(tl_shim, rx_buf_list, staid);
 #endif /* QCA_CONFIG_SMP */
-			buf = next_buf;
-		}
 #ifdef IPA_OFFLOAD
 	}
 #endif
