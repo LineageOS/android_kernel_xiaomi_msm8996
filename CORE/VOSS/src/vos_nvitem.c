@@ -3378,9 +3378,11 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 #endif
     }
 
-    if (pHddCtx->isUnloadInProgress) {
+    if (pHddCtx->isUnloadInProgress ||
+        pHddCtx->isLogpInProgress)
+    {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Unloading in Progress, Ignore!!!", __func__);
+                  "%s: Unloading or SSR in Progress, Ignore!!!", __func__);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
             return;
 #else
@@ -3843,6 +3845,33 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
 
     wiphy_dbg(wiphy, "info: cfg80211 reg_notifier callback for country"
                      " %c%c\n", request->alpha2[0], request->alpha2[1]);
+
+    /* During load and SSR, vos_open (which will lead to WDA_SetRegDomain)
+     * is called before we assign pHddCtx->hHal so we might get it as
+     * NULL here leading to crash.
+     */
+    if (NULL == pHddCtx)
+    {
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                   ("%s Invalid pHddCtx pointer"), __func__);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+       return;
+#else
+       return 0;
+#endif
+    }
+    if(pHddCtx->isUnloadInProgress ||
+        pHddCtx->isLogpInProgress)
+    {
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                   ("%s Unload or SSR is in progress Ignore"), __func__ );
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+       return;
+#else
+       return 0;
+#endif
+    }
+
     if (request->initiator == NL80211_REGDOM_SET_BY_USER)
     {
        int status;
