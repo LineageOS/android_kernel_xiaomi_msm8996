@@ -1494,6 +1494,7 @@ WDA_DS_PeekRxPacketInfo
 
 #define WDA_TrafficStatsTimerActivate WMA_TrafficStatsTimerActivate
 #define WDA_SetEnableSSR(enable_ssr) (void)enable_ssr
+void WDA_TxAbort(v_U8_t vdev_id);
 
 #else	/* #ifdef QCA_WIFI_2_0 */
 
@@ -2195,6 +2196,9 @@ void WDA_TrafficStatsTimerActivate(wpt_boolean activate);
 
 ===========================================================================*/
 void WDA_SetEnableSSR(v_BOOL_t enableSSR);
+static inline void WDA_TxAbort(v_U8_t vdev_id)
+{
+}
 #endif	/* #ifdef QCA_WIFI_2_0 */
 
 /* Powersave Offload Changes */
