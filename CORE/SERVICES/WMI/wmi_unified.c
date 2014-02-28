@@ -530,9 +530,9 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 		vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 		scn = vos_get_context(VOS_MODULE_ID_HIF, vos_context);
 		HTC_dump_counter_info(wmi_handle->htc_handle);
-		dump_CE_register(scn);
-		dump_CE_debug_register(scn->hif_sc);
-		VOS_BUG(0);
+		//dump_CE_register(scn);
+		//dump_CE_debug_register(scn->hif_sc);
+		VOS_ASSERT(0);
 	}
 
 	pkt = adf_os_mem_alloc(NULL, sizeof(*pkt));
