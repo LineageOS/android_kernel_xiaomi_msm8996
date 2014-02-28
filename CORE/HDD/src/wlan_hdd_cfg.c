@@ -1843,6 +1843,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_AP_AUTO_SHUT_OFF_MIN,
                  CFG_AP_AUTO_SHUT_OFF_MAX ),
 
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+   REG_VARIABLE( CFG_WLAN_AUTO_SHUTDOWN , WLAN_PARAM_Integer,
+                 hdd_config_t, WlanAutoShutdown,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_WLAN_AUTO_SHUTDOWN_DEFAULT,
+                 CFG_WLAN_AUTO_SHUTDOWN_MIN,
+                 CFG_WLAN_AUTO_SHUTDOWN_MAX ),
+#endif
 #if defined WLAN_FEATURE_VOWIFI
    REG_VARIABLE( CFG_RRM_ENABLE_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fRrmEnable,
@@ -3398,7 +3406,9 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
       pHddCtx->cfg_ini->apCntryCode[2]);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]", pHddCtx->cfg_ini->apProtEnabled);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPAutoShutOff] Value = [%u]\n", pHddCtx->cfg_ini->nAPAutoShutOff);
-
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gWlanAutoShutdown] Value = [%u]\n", pHddCtx->cfg_ini->WlanAutoShutdown);
+#endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]\n", pHddCtx->cfg_ini->nEnableListenMode);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApProtection] value = [%u]\n",pHddCtx->cfg_ini->apProtection);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApOBSSProt] value = [%u]\n",pHddCtx->cfg_ini->apOBSSProtEnabled);

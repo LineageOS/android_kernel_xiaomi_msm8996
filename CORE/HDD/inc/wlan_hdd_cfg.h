@@ -456,6 +456,13 @@ typedef enum
 #define CFG_AP_AUTO_SHUT_OFF_MAX            ( 4294967295UL )
 #define CFG_AP_AUTO_SHUT_OFF_DEFAULT        ( 0 )
 
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+#define CFG_WLAN_AUTO_SHUTDOWN              "gWlanAutoShutdown"
+#define CFG_WLAN_AUTO_SHUTDOWN_MIN          ( 0 )
+#define CFG_WLAN_AUTO_SHUTDOWN_MAX          ( 86400 ) /* Max 1 day timeout */
+#define CFG_WLAN_AUTO_SHUTDOWN_DEFAULT      ( 0 )
+#endif
+
 #define CFG_FRAMES_PROCESSING_TH_MODE_NAME     "gMinFramesProcThres"
 #define CFG_FRAMES_PROCESSING_TH_MIN           ( 0 )
 #define CFG_FRAMES_PROCESSING_TH_MAX           ( 39 )
@@ -2693,6 +2700,9 @@ typedef struct
    v_BOOL_t                    IpaPreFilterEnable;
    v_BOOL_t                    IpaRMEnable;
    v_U32_t                     IpaDescSize;
+#endif
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+   v_U32_t                     WlanAutoShutdown;
 #endif
    v_U8_t                      maxWoWFilters;
    v_U8_t                      wowEnable;
