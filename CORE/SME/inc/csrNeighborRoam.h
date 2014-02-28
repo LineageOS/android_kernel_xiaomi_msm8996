@@ -25,13 +25,13 @@
  * to the Linux Foundation.
  */
 
-/** ------------------------------------------------------------------------- * 
-    ------------------------------------------------------------------------- *  
+/** ------------------------------------------------------------------------- *
+    ------------------------------------------------------------------------- *
 
-  
+
     \file csrNeighborRoam.h
-  
-    Exports and types for the neighbor roaming algorithm which is sepcifically 
+
+    Exports and types for the neighbor roaming algorithm which is sepcifically
     designed for Android.
 ========================================================================== */
 #ifndef CSR_NEIGHBOR_ROAM_H
@@ -53,7 +53,7 @@ typedef enum
     eCSR_NEIGHBOR_ROAM_STATE_REPORT_SCAN,
     eCSR_NEIGHBOR_ROAM_STATE_PREAUTHENTICATING,
     eCSR_NEIGHBOR_ROAM_STATE_PREAUTH_DONE,
-#endif /* WLAN_FEATURE_VOWIFI_11R */    
+#endif /* WLAN_FEATURE_VOWIFI_11R */
     eNEIGHBOR_STATE_MAX
 } eCsrNeighborRoamState;
 
@@ -126,9 +126,9 @@ typedef struct sCsr11rAssocNeighborInfo
 } tCsr11rAssocNeighborInfo, *tpCsr11rAssocNeighborInfo;
 #endif /* WLAN_FEATURE_VOWIFI_11R */
 
-/* Below macros are used to increase the registered neighbor Lookup threshold with TL when 
- * we dont see any AP during back ground scanning. The values are incremented from neighborLookupThreshold 
- * from CFG, incremented by 5,10,15...50(LOOKUP_THRESHOLD_INCREMENT_MULTIPLIER_MAX * 
+/* Below macros are used to increase the registered neighbor Lookup threshold with TL when
+ * we dont see any AP during back ground scanning. The values are incremented from neighborLookupThreshold
+ * from CFG, incremented by 5,10,15...50(LOOKUP_THRESHOLD_INCREMENT_MULTIPLIER_MAX *
  * NEIGHBOR_LOOKUP_THRESHOLD_INCREMENT_CONSTANT) */
 #define NEIGHBOR_LOOKUP_THRESHOLD_INCREMENT_CONSTANT    5
 #define LOOKUP_THRESHOLD_INCREMENT_MULTIPLIER_MAX       4
@@ -178,11 +178,11 @@ typedef struct sCsrNeighborRoamControlInfo
     tDblLinkList                roamableAPList;    // List of current FT candidates
     tANI_U32                    csrSessionId;
     tCsrRoamProfile             csrNeighborRoamProfile;
-#ifdef WLAN_FEATURE_VOWIFI_11R    
+#ifdef WLAN_FEATURE_VOWIFI_11R
     tANI_BOOLEAN                is11rAssoc;
     tCsr11rAssocNeighborInfo    FTRoamInfo;
 #endif /* WLAN_FEATURE_VOWIFI_11R */
-#ifdef FEATURE_WLAN_CCX    
+#ifdef FEATURE_WLAN_CCX
     tANI_BOOLEAN                isCCXAssoc;
     tANI_BOOLEAN                isVOAdmitted;
     tANI_U32                    MinQBssLoadRequired;
@@ -298,4 +298,3 @@ VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp);
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
 
 #endif /* CSR_NEIGHBOR_ROAM_H */
-

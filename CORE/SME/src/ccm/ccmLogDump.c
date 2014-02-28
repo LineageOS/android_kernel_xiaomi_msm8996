@@ -46,9 +46,8 @@ static tDumpFuncEntry ccmMenuDumpTable[] = {
 
 void ccmDumpInit(tHalHandle hHal)
 {
-   logDumpRegisterTable( (tpAniSirGlobal) hHal, &ccmMenuDumpTable[0], 
+   logDumpRegisterTable( (tpAniSirGlobal) hHal, &ccmMenuDumpTable[0],
                          sizeof(ccmMenuDumpTable)/sizeof(ccmMenuDumpTable[0]) );
 }
 
 #endif //#if defined(ANI_LOGDUMP)
-

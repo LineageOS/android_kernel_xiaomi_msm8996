@@ -1400,7 +1400,7 @@ eHalStatus sme_getSoftApDomain(tHalHandle hHal,  v_REGDOMAIN_t *domainIdSoftAp)
 
    *domainIdSoftAp = pMac->scan.domainIdCurrent;
    status = eHAL_STATUS_SUCCESS;
-    
+
    return status;
 }
 
@@ -3308,7 +3308,7 @@ eHalStatus sme_RoamReassoc(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamProfile *
         if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
         {
             if((NULL == pProfile) && (fForce == 1))
-            { 
+            {
                 tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
                 /* to force the AP initiate fresh 802.1x authentication need to clear
                  * the PMKID cache for that set the following boolean. this is needed
@@ -4375,7 +4375,7 @@ eHalStatus sme_RequestBmps (
 
 /* ---------------------------------------------------------------------------
     \fn  sme_SetDHCPTillPowerActiveFlag
-    \brief  Sets/Clears DHCP related flag in PMC to disable/enable auto BMPS 
+    \brief  Sets/Clears DHCP related flag in PMC to disable/enable auto BMPS
             entry by PMC
     \param  hHal - The handle returned by macOpen.
   ---------------------------------------------------------------------------*/
@@ -6260,7 +6260,7 @@ eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, tANI_U32 sessionId,
     \param pContext - a pointer passed in for the callback
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_getOemDataRsp(tHalHandle hHal, 
+eHalStatus sme_getOemDataRsp(tHalHandle hHal,
         tOemDataRsp **pOemDataRsp)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -6302,11 +6302,11 @@ eHalStatus sme_getOemDataRsp(tHalHandle hHal,
     \param pContext - a pointer passed in for the callback
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_OemDataReq(tHalHandle hHal, 
+eHalStatus sme_OemDataReq(tHalHandle hHal,
         tANI_U8 sessionId,
-        tOemDataReqConfig *pOemDataReqConfig, 
-        tANI_U32 *pOemDataReqID, 
-        oemData_OemDataReqCompleteCallback callback, 
+        tOemDataReqConfig *pOemDataReqConfig,
+        tANI_U32 *pOemDataReqID,
+        oemData_OemDataReqCompleteCallback callback,
         void *pContext)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -6858,7 +6858,7 @@ eHalStatus sme_GetOperationChannel(tHalHandle hHal, tANI_U32 *pChannel, tANI_U8 
 
     \brief To register managment frame of specified type and subtype.
     \param frameType - type of the frame that needs to be passed to HDD.
-    \param matchData - data which needs to be matched before passing frame 
+    \param matchData - data which needs to be matched before passing frame
                        to HDD.
     \param matchDataLen - Length of matched data.
     \return eHalStatus
@@ -7207,24 +7207,24 @@ eHalStatus sme_ConfigureRxpFilter( tHalHandle hHal,
   \fn    sme_ConfigureSuspendInd
 
   \brief
-    SME will pass this request to lower mac to Indicate that the wlan needs to 
+    SME will pass this request to lower mac to Indicate that the wlan needs to
     be suspended
 
   \param
 
     hHal - The handle returned by macOpen.
- 
+
     wlanSuspendParam- Depicts the wlan suspend params
 
     csrReadyToSuspendCallback - Callback to be called when ready to suspend
                                 event is received.
     callbackContext  - Context associated with csrReadyToSuspendCallback.
-   
-  \return eHalStatus    
-  
-  
+
+  \return eHalStatus
+
+
 --------------------------------------------------------------------------- */
-eHalStatus sme_ConfigureSuspendInd( tHalHandle hHal, 
+eHalStatus sme_ConfigureSuspendInd( tHalHandle hHal,
                           tpSirWlanSuspendParam  wlanSuspendParam,
                           csrReadyToSuspendCallback callback,
                           void *callbackContext)
@@ -7263,13 +7263,13 @@ eHalStatus sme_ConfigureSuspendInd( tHalHandle hHal,
   \fn    sme_ConfigureResumeReq
 
   \brief
-    SME will pass this request to lower mac to Indicate that the wlan needs to 
+    SME will pass this request to lower mac to Indicate that the wlan needs to
     be Resumed
 
   \param
 
     hHal - The handle returned by macOpen.
- 
+
     wlanResumeParam- Depicts the wlan resume params
 
 
@@ -8039,7 +8039,7 @@ eHalStatus sme_ReceiveFilterSetFilter(tHalHandle hHal, tpSirRcvPktFilterCfgType 
            pRequestBuf->paramsData[idx].compareData[4],
            pRequestBuf->paramsData[idx].compareData[5]);
 
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
            "MData: %d:%d:%d:%d:%d:%d",
            pRequestBuf->paramsData[idx].dataMask[0],
            pRequestBuf->paramsData[idx].dataMask[1],
@@ -8524,12 +8524,12 @@ eHalStatus sme_HideSSID(tHalHandle hHal, v_U8_t sessionId, v_U8_t ssidHidden)
             sme_ReleaseGlobalLock( &pMac->sme );
             return eHAL_STATUS_FAILURE;
         }
-        
+
         if( !pSession->sessionActive )
             VOS_ASSERT(0);
 
         /* Create the message and send to lim */
-        len = sizeof(tSirUpdateParams); 
+        len = sizeof(tSirUpdateParams);
         pMsg = vos_mem_malloc(len);
         if ( NULL == pMsg )
            status = eHAL_STATUS_FAILURE;
@@ -10103,7 +10103,7 @@ VOS_STATUS sme_AddTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr pe
 /* ---------------------------------------------------------------------------
     \fn sme_DeleteTdlsPeerSta
     \brief  API to Delete TDLS peer sta entry.
-            
+
     \param  peerMac - peer's Mac Adress.
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/

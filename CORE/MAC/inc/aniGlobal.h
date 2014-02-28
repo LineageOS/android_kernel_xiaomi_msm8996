@@ -261,6 +261,7 @@ typedef struct sLimTimers
 typedef struct {
     void *pMlmDisassocReq;
     void *pMlmDeauthReq;
+    vos_spin_lock_t deauthDisassocInprogress;
 }tLimDisassocDeauthCnfReq;
 
 typedef struct sAniSirLim

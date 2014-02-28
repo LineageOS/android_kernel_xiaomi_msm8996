@@ -25,16 +25,16 @@
  * to the Linux Foundation.
  */
 
-/** ------------------------------------------------------------------------- * 
-    ------------------------------------------------------------------------- *  
+/** ------------------------------------------------------------------------- *
+    ------------------------------------------------------------------------- *
     \file ccmApi.h
-  
+
     \brief Exports and types for the Common Config Module (CCM)
-  
+
     $Id$This file contains all the interfaces for thge Platform Abstration Layer
-    functions.  It is intended to be included in all modules that are using 
+    functions.  It is intended to be included in all modules that are using
     the PAL interfaces.
-  
+
    ========================================================================== */
 #ifndef CCMAPI_H__
 #define CCMAPI_H__

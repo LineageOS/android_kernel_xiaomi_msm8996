@@ -31,7 +31,7 @@
 #include "vos_diag_core_event.h"
 #include "vos_diag_core_log.h"
 
-#ifdef FEATURE_WLAN_DIAG_SUPPORT 
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
 
 typedef enum
 {
@@ -66,12 +66,12 @@ typedef enum
    WLAN_FULL_PWR_NEEDED_BY_BAP,    /* BAP request full power for BT_AMP */
    WLAN_FULL_PWR_NEEDED_BY_CSR,    /* CSR requests full power */
    WLAN_FULL_PWR_NEEDED_BY_QOS,    /* QOS requests full power */
-   WLAN_REASON_OTHER               /* No specific reason. General reason code */ 
+   WLAN_REASON_OTHER               /* No specific reason. General reason code */
 
 } wlan_ps_full_power_request_reason_t;
 
 // maps directly to ePmcState
-typedef enum 
+typedef enum
 {
    WLAN_PMC_STOPPED, /* PMC is stopped */
    WLAN_PMC_FULL_POWER, /* full power */
@@ -142,4 +142,3 @@ typedef enum
 #endif // FEATURE_WLAN_DIAG_SUPPORT
 
 #endif // _WLAN_PS_WOW_DIAG_H_
-

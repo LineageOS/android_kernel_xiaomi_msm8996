@@ -234,6 +234,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_EARLY_RX_SLOP_STEP             78
 #define WE_SET_EARLY_RX_INIT_SLOP             79
 #define WE_SET_EARLY_RX_ADJUST_PAUSE          80
+#define WE_SET_MC_RATE                        81
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -4658,6 +4659,11 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                ret = -EINVAL;
            }
            break;
+        }
+        case WE_SET_MC_RATE:
+        {
+            ret = wlan_hdd_set_mc_rate(pAdapter, set_value);
+            break;
         }
         case WE_SET_TX_POWER:
         {
@@ -9672,6 +9678,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "setTxPower" },
+
+    {   WE_SET_MC_RATE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setMcRate" },
 
     {   WE_SET_MAX_TX_POWER_2_4,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,

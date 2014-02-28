@@ -2257,6 +2257,58 @@ eHalStatus hdd_parse_plm_cmd(tANI_U8 *pValue, tSirPlmReq *pPlmRequest)
 }
 #endif
 
+int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate)
+{
+   tSirRateUpdateInd *rateUpdate;
+   eHalStatus status;
+   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   hdd_config_t *pConfig = NULL;
+
+   if (pHddCtx == NULL) {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+         "%s: HDD context is null", __func__);
+      return -EINVAL;
+   }
+   if ((WLAN_HDD_IBSS != pAdapter->device_mode) &&
+       (WLAN_HDD_SOFTAP != pAdapter->device_mode) &&
+       (WLAN_HDD_INFRA_STATION != pAdapter->device_mode))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+         "%s: Received SETMCRATE command in invalid mode %d \n"
+         "SETMCRATE command is only allowed in STA, IBSS or SOFTAP mode",
+         __func__, pAdapter->device_mode);
+      return -EINVAL;
+   }
+   pConfig = pHddCtx->cfg_ini;
+   rateUpdate = (tSirRateUpdateInd *)vos_mem_malloc(sizeof(tSirRateUpdateInd));
+   if (NULL == rateUpdate)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,
+         "%s: SETMCRATE indication alloc fail", __func__);
+      return -EFAULT;
+   }
+   vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd ));
+   rateUpdate->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
+   rateUpdate->dev_mode = pAdapter->device_mode;
+   rateUpdate->mcastDataRate24GHz = targetRate;
+   rateUpdate->mcastDataRate5GHz = targetRate;
+   rateUpdate->bcastDataRate = -1;
+   memcpy(rateUpdate->bssid, pAdapter->macAddressCurrent.bytes,
+      sizeof(rateUpdate->bssid));
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+      "%s: MC Target rate %d, mac = %pM, dev_mode = %d",
+      __func__, rateUpdate->mcastDataRate24GHz, rateUpdate->bssid,
+      pAdapter->device_mode);
+   status = sme_SendRateUpdateInd(pHddCtx->hHal, rateUpdate);
+   if (eHAL_STATUS_SUCCESS != status) {
+      hddLog(VOS_TRACE_LEVEL_ERROR,
+         "%s: SETMCRATE failed", __func__);
+      vos_mem_free(rateUpdate);
+      return -EFAULT;
+   }
+   return 0;
+}
+
 int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
@@ -4268,46 +4320,12 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
        {
            tANI_U8 *value = command;
            int      targetRate;
-           tSirRateUpdateInd *rateUpdate;
-           eHalStatus status;
-           hdd_config_t *pConfig = pHddCtx->cfg_ini;
-           hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
            /* Move pointer to ahead of SETMCRATE<delimiter> */
            /* input value is in units of hundred kbps */
            value = value + 10;
            /* Convert the value from ascii to integer, decimal base */
            ret = kstrtouint(value, 10, &targetRate);
-
-           rateUpdate = (tSirRateUpdateInd *)vos_mem_malloc(sizeof(tSirRateUpdateInd));
-           if (NULL == rateUpdate)
-           {
-              hddLog(VOS_TRACE_LEVEL_ERROR,
-                     "%s: SETMCRATE indication alloc fail", __func__);
-              ret = -EFAULT;
-              goto exit;
-           }
-           vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd ));
-
-           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                     "MC Target rate %d", targetRate);
-
-           rateUpdate->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
-           rateUpdate->dev_mode = pAdapter->device_mode;
-           rateUpdate->mcastDataRate24GHz = targetRate;
-           rateUpdate->mcastDataRate5GHz = targetRate;
-           rateUpdate->bcastDataRate = -1;
-           memcpy(rateUpdate->bssid, pHddStaCtx->conn_info.bssId,
-               sizeof(rateUpdate->bssid));
-
-           status = sme_SendRateUpdateInd(pHddCtx->hHal, rateUpdate);
-           if (eHAL_STATUS_SUCCESS != status)
-           {
-              hddLog(VOS_TRACE_LEVEL_ERROR,
-                     "%s: SET_MC_RATE failed", __func__);
-              vos_mem_free(rateUpdate);
-              ret = -EFAULT;
-              goto exit;
-           }
+           ret = wlan_hdd_set_mc_rate(pAdapter, targetRate);
        }
        else {
            hddLog( VOS_TRACE_LEVEL_WARN, "%s: Unsupported GUI command %s",

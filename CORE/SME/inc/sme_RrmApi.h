@@ -31,11 +31,11 @@
 
 
 /**=========================================================================
-  
+
   \file  sme_RrmApi.h
-  
+
   \brief prototype for SME RRM APIs
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -54,7 +54,7 @@
 
 
 //APIs
-eHalStatus sme_RrmMsgProcessor( tpAniSirGlobal pMac,  v_U16_t msg_type, 
+eHalStatus sme_RrmMsgProcessor( tpAniSirGlobal pMac,  v_U16_t msg_type,
                                 void *pMsgBuf);
 
 VOS_STATUS rrmClose (tpAniSirGlobal pMac);
