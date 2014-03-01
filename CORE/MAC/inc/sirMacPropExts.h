@@ -102,7 +102,7 @@
 
 #define PROP_CAPABILITY_RESET(bitname, value) \
   ((value) = (value) & ~((tANI_U16)(1 << SIR_MAC_PROP_CAPABILITY_ ## bitname)))
-        
+
 #define PROP_CAPABILITY_GET(bitname, value) \
         (((value) >> SIR_MAC_PROP_CAPABILITY_ ## bitname) & 1)
 
@@ -129,7 +129,7 @@
           (dot11Mode ==  WNI_CFG_DOT11_MODE_ALL)) ? TRUE: FALSE)
 #endif
         /*
-        * When Titan capabilities can be turned on based on the 
+        * When Titan capabilities can be turned on based on the
         * Proprietary Extensions CFG, then this macro can be used.
         * Here Titan capabilities can be turned on for 11G/Gonly/N/NOnly mode also.
         */
@@ -142,7 +142,7 @@
 
 
         /*
-        * When Taurus capabilities can be turned on based on the 
+        * When Taurus capabilities can be turned on based on the
         * Proprietary Extensions CFG, then this macro can be used.
         * Here Taurus capabilities can be turned on for 11N/Nonly mode also.
         */
@@ -298,10 +298,10 @@ typedef struct sSirPropIEStruct
     tANI_U8                    edcaParamPresent:1;
     tANI_U8                    capabilityPresent:1;
     tANI_U8                    titanPresent:1;
-    tANI_U8                    taurusPresent:1;  
+    tANI_U8                    taurusPresent:1;
     tANI_U8                    propChannelSwitchPresent:1;
     tANI_U8                    quietBssPresent:1;
-    tANI_U8                    triggerStaScanPresent:1;                
+    tANI_U8                    triggerStaScanPresent:1;
     tANI_U8                    rsvd:5;
 
 

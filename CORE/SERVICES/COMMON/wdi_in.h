@@ -1221,6 +1221,7 @@ ol_tx_queue_log_display(ol_txrx_pdev_handle pdev);
 #define wdi_in_set_drop_unenc ol_txrx_set_drop_unenc
 #define wdi_in_peer_state_update ol_txrx_peer_state_update
 #define wdi_in_peer_keyinstalled_state_update ol_txrx_peer_keyinstalled_state_update
+#define wdi_in_vdev_rx_fwd_disabled ol_vdev_rx_set_intrabss_fwd
 
 #include <ol_txrx_dbg.h>
 

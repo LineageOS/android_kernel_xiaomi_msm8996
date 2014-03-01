@@ -157,7 +157,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
         // TO SUPPORT BT-AMP
     if (((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||   //mlm state check should be global - 18th oct
         (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE) ||     //mlm state check should be global - 18th oct
-        (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE) ||            //mlm state check should be global - 18th oct 
+        (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE) ||            //mlm state check should be global - 18th oct
         (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE) ||
         (psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE) )||
         ((GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_IN_IBSS_ROLE) &&
@@ -196,7 +196,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
         //To Support BT-AMP
         if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||    //mlm state check should be global - 18th oct
             (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE))
-            limCheckAndAddBssDescription(pMac, pProbeRsp, pRxPacketInfo, 
+            limCheckAndAddBssDescription(pMac, pProbeRsp, pRxPacketInfo,
                ((pMac->lim.gLimHalScanState == eLIM_HAL_SCANNING_STATE) ? eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE), eANI_BOOLEAN_TRUE);
         else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)           //mlm state check should be global - 18th oct
         {
@@ -219,7 +219,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
             }
             else
             {
-                //Store the Beacon/ProbeRsp. This is sent to csr/hdd in join cnf response. 
+                //Store the Beacon/ProbeRsp. This is sent to csr/hdd in join cnf response.
                 vos_mem_copy(psessionEntry->beacon,
                              WDA_GET_RX_MPDU_DATA(pRxPacketInfo),
                              psessionEntry->bcnLen);
@@ -265,7 +265,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                     limReceivedHBHandler(pMac, (tANI_U8)pProbeRsp->channelNumber, psessionEntry);
             }
 
-            
+
             if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
             {
                 if (pProbeRsp->channelSwitchPresent ||
@@ -278,8 +278,8 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                     limCancelDot11hChannelSwitch(pMac, psessionEntry);
                 }
             }
-        
-            
+
+
             /**
             * Now Process EDCA Parameters, if EDCAParamSet count is different.
             *     -- While processing beacons in link established state if it is determined that
@@ -305,7 +305,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                 else if (pStaDs != NULL)
                 {
                     // If needed, downgrade the EDCA parameters
-                    limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry); 
+                    limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
 
                     if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE)
                         limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
@@ -391,9 +391,9 @@ limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
      *   - eLIM_MLM_LINK_ESTABLISHED_STATE
      *   - eLIM_MLM_BSS_STARTED_STATE
      *  Hence, expect Probe Response only when
-     *   1. STA is in scan mode waiting for Beacon/Probe response 
+     *   1. STA is in scan mode waiting for Beacon/Probe response
      *   2. LFR logic in FW sends up candidate frames
-     *  
+     *
      *  Ignore Probe Response frame in all other states
      */
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
@@ -472,7 +472,7 @@ limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
         else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)
         {
         }
-    } 
+    }
     vos_mem_free(pProbeRsp);
     return;
 } /*** end limProcessProbeRspFrameNew() ***/

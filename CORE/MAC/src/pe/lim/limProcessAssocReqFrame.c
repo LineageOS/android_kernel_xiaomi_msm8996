@@ -279,10 +279,10 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
         limLog(pMac, LOGE, FL("Unable to allocate memory for the assoc req, length=%d from "),framelen);
         goto error;
     }
-    
+
     vos_mem_copy((tANI_U8 *) pAssocReq->assocReqFrame,
                   (tANI_U8 *) pBody, framelen);
-    pAssocReq->assocReqFrameLength = framelen;    
+    pAssocReq->assocReqFrameLength = framelen;
 
     if (cfgGetCapabilityInfo(pMac, &temp,psessionEntry) != eSIR_SUCCESS)
     {
@@ -396,18 +396,18 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
        (psessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11G_ONLY) &&
        ((!pAssocReq->extendedRatesPresent ) || (pAssocReq->HTCaps.present)))
     {
-        limSendAssocRspMgmtFrame( pMac, eSIR_MAC_CAPABILITIES_NOT_SUPPORTED_STATUS, 
+        limSendAssocRspMgmtFrame( pMac, eSIR_MAC_CAPABILITIES_NOT_SUPPORTED_STATUS,
                                   1, pHdr->sa, subType, 0, psessionEntry );
         limLog(pMac, LOGE, FL("SOFTAP was in 11G only mode, rejecting legacy STA's"));
         goto error;
 
     }//end if phyMode == 11G_only
- 
-    if((psessionEntry->limSystemRole == eLIM_AP_ROLE) && 
-       (psessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11N_ONLY) && 
+
+    if((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
+       (psessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11N_ONLY) &&
        (!pAssocReq->HTCaps.present))
     {
-        limSendAssocRspMgmtFrame( pMac, eSIR_MAC_CAPABILITIES_NOT_SUPPORTED_STATUS, 
+        limSendAssocRspMgmtFrame( pMac, eSIR_MAC_CAPABILITIES_NOT_SUPPORTED_STATUS,
                                   1, pHdr->sa, subType, 0, psessionEntry );
         limLog(pMac, LOGE, FL("SOFTAP was in 11N only mode, rejecting legacy STA's"));
         goto error;
@@ -428,7 +428,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     {
         tSirRetStatus status = eSIR_SUCCESS;
 
-        /* If station is 11h capable, then it SHOULD send all mandatory 
+        /* If station is 11h capable, then it SHOULD send all mandatory
          * IEs in assoc request frame. Let us verify that
          */
         if (pAssocReq->capabilityInfo.spectrumMgt)
@@ -540,8 +540,8 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
             limLog(pMac, LOGW, FL("Rejecting Re/Assoc req from 11b STA: "));
             limPrintMacAddr(pMac, pHdr->sa, LOGW);
-            
-#ifdef WLAN_DEBUG    
+
+#ifdef WLAN_DEBUG
             pMac->lim.gLim11bStaAssocRejectCount++;
 #endif
             goto error;
@@ -614,10 +614,10 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
                 // Make sure the STA's caps are compatible with our own:
                 //11.15.2 Support of DSSS/CCK in 40 MHz
-                //the AP shall refuse association requests from an HT STA that has the DSSS/CCK 
+                //the AP shall refuse association requests from an HT STA that has the DSSS/CCK
                 //Mode in 40 MHz subfield set to 1;
 
-            //FIXME_BTAMP_AP : Need to be enabled 
+            //FIXME_BTAMP_AP : Need to be enabled
             /*
             if ( !pMac->lim.gHTDsssCckRate40MHzSupport && pAssocReq->HTCaps.dsssCckMode40MHz )
             {
@@ -643,8 +643,8 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     if( wpsIe == NULL )
     {
         /** check whether as RSN IE is present */
-        if(psessionEntry->limSystemRole == eLIM_AP_ROLE 
-            && psessionEntry->pLimStartBssReq->privacy 
+        if(psessionEntry->limSystemRole == eLIM_AP_ROLE
+            && psessionEntry->pLimStartBssReq->privacy
             && psessionEntry->pLimStartBssReq->rsnIE.length)
         {
             limLog(pMac, LOGE,
@@ -654,10 +654,10 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
             {
                 if(pAssocReq->rsn.length)
                 {
-                    // Unpack the RSN IE 
-                    dot11fUnpackIeRSN(pMac, 
-                                        &pAssocReq->rsn.info[0], 
-                                        pAssocReq->rsn.length, 
+                    // Unpack the RSN IE
+                    dot11fUnpackIeRSN(pMac,
+                                        &pAssocReq->rsn.info[0],
+                                        pAssocReq->rsn.length,
                                         &Dot11fIERSN);
 
                     /* Check RSN version is supported or not */
@@ -711,17 +711,17 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
                     limLog(pMac, LOGW, FL("Rejecting Re/Assoc req from STA: "));
                     limPrintMacAddr(pMac, pHdr->sa, LOGW);
                     goto error;
-                    
+
                 }
             } /* end - if(pAssocReq->rsnPresent) */
             if((!pAssocReq->rsnPresent) && pAssocReq->wpaPresent)
             {
-                // Unpack the WPA IE 
+                // Unpack the WPA IE
                 if(pAssocReq->wpa.length)
                 {
-                    dot11fUnpackIeWPA(pMac, 
+                    dot11fUnpackIeWPA(pMac,
                                         &pAssocReq->wpa.info[4], //OUI is not taken care
-                                        pAssocReq->wpa.length, 
+                                        pAssocReq->wpa.length,
                                         &Dot11fIEWPA);
                     /* check the groupwise and pairwise cipher suites */
                     if(eSIR_SUCCESS != (status = limCheckRxWPAIeMatch(pMac, Dot11fIEWPA, psessionEntry, pAssocReq->HTCaps.present)))
@@ -755,7 +755,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
                     goto error;
                 }/* end - if(pAssocReq->wpa.length) */
             } /* end - if(pAssocReq->wpaPresent) */
-        } /* end of if(psessionEntry->pLimStartBssReq->privacy 
+        } /* end of if(psessionEntry->pLimStartBssReq->privacy
             && psessionEntry->pLimStartBssReq->rsnIE->length) */
 
     } /* end of     if( ! pAssocReq->wscInfo.present ) */
@@ -838,15 +838,15 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
              */
             if (subType == LIM_ASSOC)
             {
-            
-#ifdef WLAN_DEBUG    
+
+#ifdef WLAN_DEBUG
                 pMac->lim.gLimNumAssocReqDropInvldState++;
 #endif
                 limLog(pMac, LOG1, FL("received Assoc req in state %X from "), pStaDs->mlmStaContext.mlmState);
             }
             else
-            {     
-#ifdef WLAN_DEBUG    
+            {
+#ifdef WLAN_DEBUG
                 pMac->lim.gLimNumReassocReqDropInvldState++;
 #endif
                 limLog(pMac, LOG1, FL("received ReAssoc req in state %X from "), pStaDs->mlmStaContext.mlmState);
@@ -922,7 +922,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
                                1,
                                pHdr->sa,
                                subType, 0,psessionEntry);
-#ifdef WLAN_DEBUG    
+#ifdef WLAN_DEBUG
                 pMac->lim.gLimNumAssocReqDropACRejectTS++;
 #endif
                 goto error;
@@ -938,7 +938,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
                     1,
                     pHdr->sa,
                     subType, 0,psessionEntry);
-#ifdef WLAN_DEBUG    
+#ifdef WLAN_DEBUG
             pMac->lim.gLimNumAssocReqDropACRejectSta++;
 #endif
             goto error;
@@ -961,7 +961,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     /**
      * AID for this association will be same as the peer Index used in DPH table.
      * Assign unused/least recently used peer Index from perStaDs.
-     * NOTE: limAssignPeerIdx() assigns AID values ranging 
+     * NOTE: limAssignPeerIdx() assigns AID values ranging
      * between 1 - cfg_item(WNI_CFG_ASSOC_STA_LIMIT)
      */
 
@@ -1019,7 +1019,7 @@ sendIndToSme:
     /* short slot and short preamble should be updated before doing limaddsta */
     pStaDs->shortPreambleEnabled = (tANI_U8)pAssocReq->capabilityInfo.shortPreamble;
     pStaDs->shortSlotTimeEnabled = (tANI_U8)pAssocReq->capabilityInfo.shortSlotTime;
- 
+
     if (pAssocReq->propIEinfo.versionPresent) //update STA version info
     {
         pStaDs->versionPresent = 1;
@@ -1044,13 +1044,13 @@ sendIndToSme:
 
     /* The following count will be used to knock-off the station if it doesn't
      * come back to receive the buffered data. The AP will wait for numTimSent number
-     * of beacons after sending TIM information for the station, before assuming that 
+     * of beacons after sending TIM information for the station, before assuming that
      * the station is no more associated and disassociates it
      */
 
     /** timWaitCount is used by PMM for monitoring the STA's in PS for LINK*/
     pStaDs->timWaitCount = (tANI_U8)GET_TIM_WAIT_COUNT(pAssocReq->listenInterval);
-    
+
     /** Initialise the Current successful MPDU's tranfered to this STA count as 0 */
     pStaDs->curTxMpduCnt = 0;
 
@@ -1072,24 +1072,24 @@ sendIndToSme:
          */
         pStaDs->htSecondaryChannelOffset = (pStaDs->htSupportedChannelWidthSet)?psessionEntry->htSecondaryChannelOffset:0;
 #ifdef WLAN_FEATURE_11AC
-        if(pAssocReq->operMode.present) 
+        if(pAssocReq->operMode.present)
         {
             pStaDs->vhtSupportedChannelWidthSet = (tANI_U8)((pAssocReq->operMode.chanWidth == eHT_CHANNEL_WIDTH_80MHZ) ? WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ : WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ);
             pStaDs->htSupportedChannelWidthSet  = (tANI_U8)(pAssocReq->operMode.chanWidth ? eHT_CHANNEL_WIDTH_40MHZ : eHT_CHANNEL_WIDTH_20MHZ);
         }
         else if (pAssocReq->VHTCaps.present)
         {
-            // Check if STA has enabled it's channel bonding mode. 
+            // Check if STA has enabled it's channel bonding mode.
             // If channel bonding mode is enabled, we decide based on SAP's current configuration.
             // else, we set it to VHT20.
-            pStaDs->vhtSupportedChannelWidthSet = (tANI_U8)((pStaDs->htSupportedChannelWidthSet == eHT_CHANNEL_WIDTH_20MHZ) ? 
-                                                             WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ : 
+            pStaDs->vhtSupportedChannelWidthSet = (tANI_U8)((pStaDs->htSupportedChannelWidthSet == eHT_CHANNEL_WIDTH_20MHZ) ?
+                                                             WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ :
                                                              psessionEntry->vhtTxChannelWidthSet );
             pStaDs->htMaxRxAMpduFactor = pAssocReq->VHTCaps.maxAMPDULenExp;
         }
 
         // Lesser among the AP and STA bandwidth of operation.
-        pStaDs->htSupportedChannelWidthSet = 
+        pStaDs->htSupportedChannelWidthSet =
                 (pStaDs->htSupportedChannelWidthSet < psessionEntry->htSupportedChannelWidthSet) ?
                 pStaDs->htSupportedChannelWidthSet : psessionEntry->htSupportedChannelWidthSet ;
 
@@ -1116,7 +1116,7 @@ if (limPopulateMatchingRateSet(pMac,
                                &(pAssocReq->extendedRates),
                                pAssocReq->HTCaps.supportedMCSSet,
                                &(pAssocReq->propIEinfo.propRates),
-                               psessionEntry , &pAssocReq->VHTCaps) 
+                               psessionEntry , &pAssocReq->VHTCaps)
                                != eSIR_SUCCESS)
 #else
 
@@ -1157,7 +1157,7 @@ if (limPopulateMatchingRateSet(pMac,
     if (pAssocReq->capabilityInfo.qos && (qosMode == eHAL_SET))
     {
         pStaDs->lleEnabled = eANI_BOOLEAN_TRUE;
-        pStaDs->qosMode    = eANI_BOOLEAN_TRUE; 
+        pStaDs->qosMode    = eANI_BOOLEAN_TRUE;
     }
 
     pStaDs->wmeEnabled = eANI_BOOLEAN_FALSE;
@@ -1175,9 +1175,9 @@ if (limPopulateMatchingRateSet(pMac,
         {
             /* check whether AP supports or not */
             if ((psessionEntry->limSystemRole == eLIM_AP_ROLE)
-                 && (psessionEntry->apUapsdEnable == 0) && (pAssocReq->WMMInfoStation.acbe_uapsd 
-                    || pAssocReq->WMMInfoStation.acbk_uapsd 
-                    || pAssocReq->WMMInfoStation.acvo_uapsd 
+                 && (psessionEntry->apUapsdEnable == 0) && (pAssocReq->WMMInfoStation.acbe_uapsd
+                    || pAssocReq->WMMInfoStation.acbk_uapsd
+                    || pAssocReq->WMMInfoStation.acvo_uapsd
                     || pAssocReq->WMMInfoStation.acvi_uapsd))
             {
 
@@ -1244,15 +1244,15 @@ if (limPopulateMatchingRateSet(pMac,
     // BTAMP: Storing the parsed assoc request in the psessionEntry array
     psessionEntry->parsedAssocReq[pStaDs->assocId] = pAssocReq;
 
-    /* BTAMP: If STA context already exist (ie. updateContext = 1)  
-     * for this STA, then we should delete the old one, and add 
-     * the new STA. This is taken care of in the limDelSta() routine.   
+    /* BTAMP: If STA context already exist (ie. updateContext = 1)
+     * for this STA, then we should delete the old one, and add
+     * the new STA. This is taken care of in the limDelSta() routine.
      *
      * Prior to BTAMP, we were setting this flag so that when
-     * PE receives SME_ASSOC_CNF, and if this flag is set, then 
+     * PE receives SME_ASSOC_CNF, and if this flag is set, then
      * PE shall delete the old station and then add. But now in
      * BTAMP, we're directly adding station before waiting for
-     * SME_ASSOC_CNF, so we can do this now.  
+     * SME_ASSOC_CNF, so we can do this now.
      */
     if (!updateContext)
     {
@@ -1318,7 +1318,7 @@ if (limPopulateMatchingRateSet(pMac,
 error:
     if (pAssocReq != NULL)
     {
-        if ( pAssocReq->assocReqFrame ) 
+        if ( pAssocReq->assocReqFrame )
         {
             vos_mem_free(pAssocReq->assocReqFrame);
             pAssocReq->assocReqFrame = NULL;
@@ -1340,7 +1340,7 @@ error:
 
 /**---------------------------------------------------------------
 \fn     limSendMlmAssocInd
-\brief  This function sends either LIM_MLM_ASSOC_IND  
+\brief  This function sends either LIM_MLM_ASSOC_IND
 \       or LIM_MLM_REASSOC_IND to SME.
 \
 \param  pMac
@@ -1348,7 +1348,7 @@ error:
 \param  psessionEntry - PE session entry
 \return None
 
- * ?????? How do I get 
+ * ?????? How do I get
  *  - subtype   =====> psessionEntry->parsedAssocReq.reassocRequest
  *  - aid       =====> pStaDs->assocId
  *  - pHdr->sa  =====> pStaDs->staAddr
@@ -1366,7 +1366,7 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
     tANI_U8                 subType;
     tANI_U8                 *wpsIe = NULL;
     tANI_U32                tmp;
-//    tANI_U16                statusCode;    
+//    tANI_U16                statusCode;
     tANI_U16                i, j=0;
 
     // Get a copy of the already parsed Assoc Request
@@ -1374,13 +1374,13 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
 
     // Get the phyMode
     limGetPhyMode(pMac, &phyMode, psessionEntry);
- 
+
     // Extract pre-auth context for the peer BTAMP-STA, if any.
- 
+
     // Determiine if its Assoc or ReAssoc Request
     if (pAssocReq->reassocRequest == 1)
         subType = LIM_REASSOC;
-    else 
+    else
         subType = LIM_ASSOC;
     if (subType == LIM_ASSOC || subType == LIM_REASSOC)
     {
@@ -1397,13 +1397,13 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
 
         vos_mem_copy((tANI_U8 *)pMlmAssocInd->peerMacAddr,
                      (tANI_U8 *)pStaDs->staAddr, sizeof(tSirMacAddr));
- 
+
         pMlmAssocInd->aid    = pStaDs->assocId;
         vos_mem_copy((tANI_U8 *)&pMlmAssocInd->ssId,
                      (tANI_U8 *)&(pAssocReq->ssId), pAssocReq->ssId.length + 1);
         pMlmAssocInd->sessionId = psessionEntry->peSessionId;
         pMlmAssocInd->authType =  pStaDs->mlmStaContext.authType;
- 
+
         pMlmAssocInd->capabilityInfo = pAssocReq->capabilityInfo;
 
         // Fill in RSN IE information
@@ -1485,7 +1485,7 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
         // Required for indicating the frames to upper layer
         pMlmAssocInd->assocReqLength = pAssocReq->assocReqFrameLength;
         pMlmAssocInd->assocReqPtr = pAssocReq->assocReqFrame;
-        
+
         pMlmAssocInd->beaconPtr = psessionEntry->beacon;
         pMlmAssocInd->beaconLength = psessionEntry->bcnLen;
 
@@ -1494,7 +1494,7 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
     }
     else
     {
-        // If its of Reassociation Request, then post LIM_MLM_REASSOC_IND 
+        // If its of Reassociation Request, then post LIM_MLM_REASSOC_IND
         temp  = sizeof(tLimMlmReassocInd);
 
         pMlmReassocInd = vos_mem_malloc(temp);

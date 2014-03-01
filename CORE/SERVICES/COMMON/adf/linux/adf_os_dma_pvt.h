@@ -37,6 +37,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/cache.h>
 #include <asm/io.h>
+#include <asm/cacheflush.h>
 
 #include <adf_os_types.h>
 #include <adf_os_util.h>
@@ -120,6 +121,12 @@ static inline adf_os_size_t
 __adf_os_cache_line_size(void)
 {
     return SMP_CACHE_BYTES;
+}
+
+static inline void
+__adf_os_invalidate_range(void * start, void * end)
+{
+    dmac_inv_range(start, end);
 }
 
 

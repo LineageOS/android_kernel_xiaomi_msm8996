@@ -136,6 +136,74 @@ htt_rx_desc(adf_nbuf_t msdu)
             ~HTT_RX_DESC_ALIGN_MASK);
 }
 
+static inline
+void
+htt_print_rx_desc(struct htt_host_rx_desc_base *rx_desc)
+{
+    adf_os_print("attention: %#010x\n",
+                 (unsigned int)(*(u_int32_t *) &rx_desc->attention));
+    adf_os_print("frag_info: %#010x\n",
+                 (unsigned int)(*(u_int32_t *) &rx_desc->frag_info));
+    adf_os_print("mpdu_start: %#010x %#010x %#010x\n",
+                  (unsigned int)(((u_int32_t *) &rx_desc->mpdu_start)[0]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->mpdu_start)[1]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->mpdu_start)[2]));
+    adf_os_print("mpdu_start: %#010x %#010x %#010x\n",
+                  (unsigned int)(((u_int32_t *) &rx_desc->msdu_start)[0]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->msdu_start)[1]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->msdu_start)[2]));
+    adf_os_print("msdu_end: %#010x %#010x %#010x %#010x %#010x\n",
+                  (unsigned int)(((u_int32_t *) &rx_desc->msdu_end)[0]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->msdu_end)[1]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->msdu_end)[2]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->msdu_end)[3]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->msdu_end)[4]));
+    adf_os_print("mpdu_end: %#010x\n",
+                 (unsigned int)(*(u_int32_t *) &rx_desc->mpdu_end));
+    adf_os_print("ppdu_start: "
+                 "%#010x %#010x %#010x %#010x %#010x\n"
+                 "%#010x %#010x %#010x %#010x %#010x\n",
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_start)[0]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_start)[1]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_start)[2]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_start)[3]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_start)[4]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_start)[5]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_start)[6]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_start)[7]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_start)[8]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_start)[9]));
+    adf_os_print("ppdu_end:"
+                 "%#010x %#010x %#010x %#010x %#010x\n"
+                 "%#010x %#010x %#010x %#010x %#010x\n"
+                 "%#010x,%#010x %#010x %#010x %#010x\n"
+                 "%#010x %#010x %#010x %#010x %#010x\n"
+                 "%#010x %#010x\n",
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[0]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[1]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[2]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[3]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[4]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[5]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[6]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[7]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[8]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[9]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[10]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[11]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[12]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[13]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[14]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[15]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[16]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[17]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[18]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[19]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[20]),
+                  (unsigned int)(((u_int32_t *) &rx_desc->ppdu_end)[21]));
+
+}
+
 
 #ifndef HTT_ASSERT_LEVEL
 #define HTT_ASSERT_LEVEL 3

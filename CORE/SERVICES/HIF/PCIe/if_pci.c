@@ -782,7 +782,11 @@ again:
 
     ol_sc->enableuartprint = 0;
     ol_sc->enablefwlog = 0;
+#ifdef QCA_SINGLE_BINARY_SUPPORT
+    ol_sc->enablesinglebinary = TRUE;
+#else
     ol_sc->enablesinglebinary = FALSE;
+#endif
     ol_sc->max_no_of_peers = 1;
 
     adf_os_atomic_init(&sc->tasklet_from_intr);
@@ -1089,7 +1093,11 @@ again:
 
     ol_sc->enableuartprint = 0;
     ol_sc->enablefwlog = 0;
+#ifdef QCA_SINGLE_BINARY_SUPPORT
+    ol_sc->enablesinglebinary = TRUE;
+#else
     ol_sc->enablesinglebinary = FALSE;
+#endif
     ol_sc->max_no_of_peers = 1;
 
     adf_os_atomic_init(&sc->tasklet_from_intr);

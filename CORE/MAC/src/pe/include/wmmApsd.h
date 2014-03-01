@@ -30,7 +30,7 @@
 
 #include "aniGlobal.h"
 
-// WMM Info Element OUI subtypes 
+// WMM Info Element OUI subtypes
 #define WMM_APSD_INFO_ELEMENT  0
 #define WMM_APSD_PARAM_ELEMENT 1
 

@@ -305,16 +305,16 @@ char *dumpLim( tpAniSirGlobal pMac, char *p, tANI_U32 sessionId)
 char *triggerBeaconGen( tpAniSirGlobal pMac, char *p )
 {
     tSirMsgQ mesg = { (tANI_U16) SIR_LIM_BEACON_GEN_IND, (tANI_U16) 0, (tANI_U32) 0 };
-    
+
     pMac->lim.gLimSmeState = eLIM_SME_NORMAL_STATE;
     MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
     pMac->lim.gLimSystemRole = eLIM_AP_ROLE;
-    
+
     p += log_sprintf( pMac, p,
           "Posted SIR_LIM_BEACON_GEN_IND with result = %s\n",
           (eSIR_SUCCESS == limPostMsgApi( pMac, &mesg ))?
             "Success": "Failure" );
-    
+
     return p;
 }
 
@@ -465,7 +465,7 @@ static char *sendSmeDisAssocReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1 ,tANI
 
     pDisAssocReq->sessionId = 0;
 
-    pDisAssocReq->transactionId = 0; 
+    pDisAssocReq->transactionId = 0;
 
     msg.type = eWNI_SME_DISASSOC_REQ;
     msg.bodyptr = pDisAssocReq;
@@ -487,7 +487,7 @@ static char *sendSmeStartBssReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1)
     tSirNwType  nwType;
 
     p += log_sprintf( pMac,p, "sendSmeStartBssReq: Preparing eWNI_SME_START_BSS_REQ message\n");
-   
+
     if(arg1 > 2)
     {
         p += log_sprintf( pMac,p,"Invalid Argument1 \n");
@@ -503,15 +503,15 @@ static char *sendSmeStartBssReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1)
 
     pStartBssReq->messageType = eWNI_SME_START_BSS_REQ;
     pStartBssReq->length = 29;    // 0x1d
-    
-    if(arg1 == 0) //BTAMP STATION 
+
+    if(arg1 == 0) //BTAMP STATION
     {
         pStartBssReq->bssType = eSIR_BTAMP_STA_MODE;
 
         pStartBssReq->ssId.length = 5;
         vos_mem_copy((void *) &pStartBssReq->ssId.ssId, (void *)"BTSTA", 5);
     }
-    else if(arg1 == 1) //BTAMP AP 
+    else if(arg1 == 1) //BTAMP AP
     {
         pStartBssReq->bssType = eSIR_BTAMP_AP_MODE;
         pStartBssReq->ssId.length = 4;
@@ -543,7 +543,7 @@ static char *sendSmeStartBssReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1)
     vos_mem_copy(pBuf, (tANI_U8 *)&nwType, sizeof(tSirNwType));
     pBuf += sizeof(tSirNwType);
 
-    /* ---- To be filled by LIM later ---- 
+    /* ---- To be filled by LIM later ----
     pStartBssReq->operationalRateSet
     pStartBssReq->extendedRateSet
     pStartBssReq->dot11mode
@@ -551,7 +551,7 @@ static char *sendSmeStartBssReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1)
     pStartBssReq->selfMacAddr
     pStartBssReq->beaconInterval
     pStartBssReq->sessionId = 0;
-    pStartBssReq->transactionId = 0; 
+    pStartBssReq->transactionId = 0;
     * ------------------------------------ */
 
     msg.type = eWNI_SME_START_BSS_REQ;
@@ -589,7 +589,7 @@ static char *sendSmeStopBssReq(tpAniSirGlobal pMac, char *p, tANI_U32 sessionId)
 
     pStopBssReq->messageType = eWNI_SME_STOP_BSS_REQ;
     msgLen += sizeof(tANI_U32);    // msgType + length
-   
+
     pStopBssReq->reasonCode = eSIR_SME_SUCCESS;
     msgLen += sizeof(tSirResultCodes);
 
@@ -621,36 +621,36 @@ static char *sendSmeJoinReq(tpAniSirGlobal pMac, char *p)
     tANI_U16  msgLen = 307;
 
     tANI_U8  msgDump[307] = {
-        0x06, 0x12, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x01, 0x00, 
-        0xDE, 0xAD, 0xBA, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-        0x00, 0x00, 0x00, 0x64, 0x00, 0x21, 0x04, 0x02, 0x00, 0x00, 
-        0x00, 0x01, 0x1E, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x18, 
-        0x00, 0x00, 0x00, 0xA8, 0x85, 0x4F, 0x7A, 0x00, 0x06, 0x41, 
-        0x6E, 0x69, 0x4E, 0x65, 0x74, 0x01, 0x04, 0x82, 0x84, 0x8B, 
-        0x96, 0x03, 0x01, 0x06, 0x07, 0x06, 0x55, 0x53, 0x49, 0x01, 
-        0x0E, 0x1E, 0x2A, 0x01, 0x00, 0x32, 0x08, 0x0C, 0x12, 0x18, 
-        0x24, 0x30, 0x48, 0x60, 0x6C, 0x2D, 0x1A, 0xEE, 0x11, 0x03, 
-        0xFF, 0xFF, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-        0x00, 0x00, 0x00, 0x3D, 0x16, 0x06, 0x07, 0x11, 0x00, 0x00, 
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x18, 0x00, 
-        0x50, 0xF2, 0x02, 0x01, 0x01, 0x01, 0x00, 0x03, 0xA4, 0x00, 
-        0x00, 0x27, 0xA4, 0x00, 0x00, 0x42, 0x43, 0x5E, 0x00, 0x62, 
-        0x32, 0x2F, 0x00, 0xDD, 0x14, 0x00, 0x0A, 0xF5, 0x00, 0x03, 
-        0x01, 0x03, 0x05, 0x0A, 0x02, 0x80, 0xC0, 0x12, 0x06, 0xFF, 
-        0xFF, 0xFF, 0xFF, 0xB6, 0x0D, 0xDD, 0x6E, 0x00, 0x50, 0xF2, 
-        0x04, 0x10, 0x4A, 0x00, 0x01, 0x10, 0x10, 0x44, 0x00, 0x01, 
-        0x01, 0x10, 0x3B, 0x00, 0x01, 0x03, 0x10, 0x47, 0x00, 0x10, 
-        0xDB, 0xC6, 0x77, 0x28, 0xB9, 0xF3, 0xD8, 0x58, 0x86, 0xFF, 
-        0xFC, 0x6B, 0xB6, 0xB9, 0x27, 0x79, 0x10, 0x21, 0x00, 0x08, 
-        0x51, 0x75, 0x61, 0x6C, 0x63, 0x6F, 0x6D, 0x6D, 0x10, 0x23, 
+        0x06, 0x12, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x01, 0x00,
+        0xDE, 0xAD, 0xBA, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x64, 0x00, 0x21, 0x04, 0x02, 0x00, 0x00,
+        0x00, 0x01, 0x1E, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x18,
+        0x00, 0x00, 0x00, 0xA8, 0x85, 0x4F, 0x7A, 0x00, 0x06, 0x41,
+        0x6E, 0x69, 0x4E, 0x65, 0x74, 0x01, 0x04, 0x82, 0x84, 0x8B,
+        0x96, 0x03, 0x01, 0x06, 0x07, 0x06, 0x55, 0x53, 0x49, 0x01,
+        0x0E, 0x1E, 0x2A, 0x01, 0x00, 0x32, 0x08, 0x0C, 0x12, 0x18,
+        0x24, 0x30, 0x48, 0x60, 0x6C, 0x2D, 0x1A, 0xEE, 0x11, 0x03,
+        0xFF, 0xFF, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x3D, 0x16, 0x06, 0x07, 0x11, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x18, 0x00,
+        0x50, 0xF2, 0x02, 0x01, 0x01, 0x01, 0x00, 0x03, 0xA4, 0x00,
+        0x00, 0x27, 0xA4, 0x00, 0x00, 0x42, 0x43, 0x5E, 0x00, 0x62,
+        0x32, 0x2F, 0x00, 0xDD, 0x14, 0x00, 0x0A, 0xF5, 0x00, 0x03,
+        0x01, 0x03, 0x05, 0x0A, 0x02, 0x80, 0xC0, 0x12, 0x06, 0xFF,
+        0xFF, 0xFF, 0xFF, 0xB6, 0x0D, 0xDD, 0x6E, 0x00, 0x50, 0xF2,
+        0x04, 0x10, 0x4A, 0x00, 0x01, 0x10, 0x10, 0x44, 0x00, 0x01,
+        0x01, 0x10, 0x3B, 0x00, 0x01, 0x03, 0x10, 0x47, 0x00, 0x10,
+        0xDB, 0xC6, 0x77, 0x28, 0xB9, 0xF3, 0xD8, 0x58, 0x86, 0xFF,
+        0xFC, 0x6B, 0xB6, 0xB9, 0x27, 0x79, 0x10, 0x21, 0x00, 0x08,
+        0x51, 0x75, 0x61, 0x6C, 0x63, 0x6F, 0x6D, 0x6D, 0x10, 0x23,
         0x00, 0x07, 0x57, 0x46, 0x52, 0x34, 0x30, 0x33, 0x31, 0x10,
-        0x24, 0x00, 0x06, 0x4D, 0x4E, 0x31, 0x32, 0x33, 0x34, 0x10, 
-        0x42, 0x00, 0x06, 0x53, 0x4E, 0x31, 0x32, 0x33, 0x34, 0x10, 
-        0x54, 0x00, 0x08, 0x00, 0x06, 0x00, 0x50, 0xF2, 0x04, 0x00, 
-        0x01, 0x10, 0x11, 0x00, 0x06, 0x31, 0x31, 0x6E, 0x2D, 0x41, 
+        0x24, 0x00, 0x06, 0x4D, 0x4E, 0x31, 0x32, 0x33, 0x34, 0x10,
+        0x42, 0x00, 0x06, 0x53, 0x4E, 0x31, 0x32, 0x33, 0x34, 0x10,
+        0x54, 0x00, 0x08, 0x00, 0x06, 0x00, 0x50, 0xF2, 0x04, 0x00,
+        0x01, 0x10, 0x11, 0x00, 0x06, 0x31, 0x31, 0x6E, 0x2D, 0x41,
         0x50, 0x10, 0x08, 0x00, 0x02, 0x01, 0x8E
     };
 
@@ -675,7 +675,7 @@ static char *sendSmeJoinReq(tpAniSirGlobal pMac, char *p)
 
 static char *printSessionInfo(tpAniSirGlobal pMac, char *p)
 {
-    tpPESession psessionEntry = &pMac->lim.gpSession[0];  
+    tpPESession psessionEntry = &pMac->lim.gpSession[0];
     tANI_U8  i;
 
     p += log_sprintf( pMac, p, "Dump PE Session \n");
@@ -684,16 +684,16 @@ static char *printSessionInfo(tpAniSirGlobal pMac, char *p)
     {
         if( pMac->lim.gpSession[i].valid )
         {
-            psessionEntry = &pMac->lim.gpSession[i];  
+            psessionEntry = &pMac->lim.gpSession[i];
             p += log_sprintf( pMac,p, "*****************************************\n");
-            p += log_sprintf( pMac,p, "    PE Session [%d]    \n", i);   
+            p += log_sprintf( pMac,p, "    PE Session [%d]    \n", i);
             p += log_sprintf( pMac,p, "available: %d \n", psessionEntry->available);
-            p += log_sprintf( pMac,p, "peSessionId: %d,  smeSessionId: %d, transactionId: %d \n", 
+            p += log_sprintf( pMac,p, "peSessionId: %d,  smeSessionId: %d, transactionId: %d \n",
                               psessionEntry->peSessionId, psessionEntry->smeSessionId, psessionEntry->smeSessionId);
-            p += log_sprintf( pMac,p, "bssId:  %02X:%02X:%02X:%02X:%02X:%02X \n", 
+            p += log_sprintf( pMac,p, "bssId:  %02X:%02X:%02X:%02X:%02X:%02X \n",
                               psessionEntry->bssId[0], psessionEntry->bssId[1], psessionEntry->bssId[2],
                               psessionEntry->bssId[3], psessionEntry->bssId[4], psessionEntry->bssId[5]);
-            p += log_sprintf( pMac,p, "selfMacAddr: %02X:%02X:%02X:%02X:%02X:%02X  \n", 
+            p += log_sprintf( pMac,p, "selfMacAddr: %02X:%02X:%02X:%02X:%02X:%02X  \n",
                               psessionEntry->selfMacAddr[0], psessionEntry->selfMacAddr[1], psessionEntry->selfMacAddr[2],
                               psessionEntry->selfMacAddr[3], psessionEntry->selfMacAddr[4], psessionEntry->selfMacAddr[5]);
             p += log_sprintf( pMac,p, "bssIdx: %d \n", psessionEntry->bssIdx);
@@ -715,7 +715,7 @@ static char *printSessionInfo(tpAniSirGlobal pMac, char *p)
             p += log_sprintf( pMac,p, "limCurrentBssPropCap: %d \n", psessionEntry->limCurrentBssPropCap);
             p += log_sprintf( pMac,p, "limSentCapsChangeNtf: %d \n", psessionEntry->limSentCapsChangeNtf);
             p += log_sprintf( pMac,p, "LimAID: %d \n", psessionEntry->limAID);
-            p += log_sprintf( pMac,p, "ReassocbssId: %02X:%02X:%02X:%02X:%02X:%02X  \n", 
+            p += log_sprintf( pMac,p, "ReassocbssId: %02X:%02X:%02X:%02X:%02X:%02X  \n",
                               psessionEntry->limReAssocbssId[0], psessionEntry->limReAssocbssId[1], psessionEntry->limReAssocbssId[2],
                               psessionEntry->limReAssocbssId[3], psessionEntry->limReAssocbssId[4], psessionEntry->limReAssocbssId[5]);
             p += log_sprintf( pMac,p, "limReassocChannelId: %d \n", psessionEntry->limReassocChannelId);
@@ -741,7 +741,7 @@ static char *
 limDumpEdcaParams(tpAniSirGlobal pMac, char *p)
 {
     tANI_U8 i = 0;
-    tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????    
+    tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
     p += log_sprintf( pMac,p, "EDCA parameter set count = %d\n",  psessionEntry->gLimEdcaParamSetCount);
     p += log_sprintf( pMac,p, "Broadcast parameters\n");
     p += log_sprintf( pMac,p, "AC\tACI\tACM\tAIFSN\tCWMax\tCWMin\tTxopLimit\t\n");
@@ -857,11 +857,11 @@ static char* limDumpDphTableSummary(tpAniSirGlobal pMac,char *p)
                                       pMac->lim.gpSession[j].dph.dphHashTable.pDphNodeArray[i].staAddr[4],
                                       pMac->lim.gpSession[j].dph.dphHashTable.pDphNodeArray[i].staAddr[5]);
                 }
-            }   
-        }   
+            }
+        }
     }
     return p;
-}     
+}
 
 // add the specified tspec to the tspec list
 static char* limDumpTsecTable( tpAniSirGlobal pMac, char* p)
@@ -1117,7 +1117,7 @@ dump_lim_del_sta( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 ar
             p += log_sprintf( pMac,p, "Could not find station with assocId = %d\n", arg1);
             return p;
     }
-    
+
     if (pStaDs->mlmStaContext.mlmState != eLIM_MLM_LINK_ESTABLISHED_STATE)
     {
         p += log_sprintf( pMac,p, "received Disassoc frame from peer that is in state %X \n", pStaDs->mlmStaContext.mlmState);
@@ -1386,17 +1386,17 @@ dump_lim_AddBA_DeclineStat( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
     if (arg1 > 1) {
         log_sprintf( pMac,p, "%s:Invalid Value is entered for Enable/Disable \n", __func__ );
         arg1 &= 1;
-    }       
-    
+    }
+
     val = pMac->lim.gAddBA_Declined;
-    
+
     if (arg2 > 7) {
         log_sprintf( pMac,p, "%s:Invalid Value is entered for Tid \n", __func__ );
         Tid = arg2 & 0x7;
     } else
         Tid = arg2;
-    
-    
+
+
     if ( Enable)
         val  |= Enable << Tid;
     else
@@ -1444,7 +1444,7 @@ static char* dump_lim_update_cb_Mode(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U3
     psessionEntry->htRecommendedTxWidthSet = psessionEntry->htSupportedChannelWidthSet;
     psessionEntry->htSecondaryChannelOffset = arg2;
 
-    if(eSIR_SUCCESS != cfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE,  
+    if(eSIR_SUCCESS != cfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE,
                                     arg2 ? WNI_CFG_CHANNEL_BONDING_MODE_ENABLE : WNI_CFG_CHANNEL_BONDING_MODE_DISABLE))
         p += log_sprintf(pMac,p, "cfgSetInt failed for WNI_CFG_CHANNEL_BONDING_MODE\n");
 
@@ -1464,7 +1464,7 @@ static char* dump_lim_abort_scan(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 ar
  (void) arg1; (void) arg2; (void) arg3; (void) arg4;
  //csrScanAbortMacScan(pMac);
     return p;
-    
+
 }
 
 static char* dump_lim_start_stop_bg_scan(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
@@ -1498,10 +1498,10 @@ static char* dump_lim_start_stop_bg_scan(tpAniSirGlobal pMac, tANI_U32 arg1, tAN
      pMac->lim.gLimForceBackgroundScanDisable = true;
  }
     return p;
-    
+
 }
 
-static char* 
+static char*
 dump_lim_get_pe_statistics(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     tpAniGetPEStatsReq pReq;
@@ -1509,9 +1509,9 @@ dump_lim_get_pe_statistics(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tA
 
     (void) arg2; (void) arg3; (void) arg4;
 
-    
+
     switch(arg1)
-    {        
+    {
         case 1:
             statsMask = PE_SUMMARY_STATS_INFO;
             break;
@@ -1539,16 +1539,16 @@ dump_lim_get_pe_statistics(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tA
     }
 
     vos_mem_set(pReq, sizeof(*pReq), 0);
-    
+
     pReq->msgType = eWNI_SME_GET_STATISTICS_REQ;
     pReq->statsMask = statsMask;
     pReq->staId = (tANI_U16)arg2;
 
     pMac->lim.gLimRspReqd = eANI_BOOLEAN_TRUE;
     limPostSmeMessage(pMac, eWNI_SME_GET_STATISTICS_REQ, (tANI_U32 *) pReq);
-    
+
     return p;
-    
+
 }
 
 extern char* setLOGLevel( tpAniSirGlobal pMac, char *p, tANI_U32 module, tANI_U32 level );
@@ -1586,7 +1586,7 @@ static char *
 dump_lim_send_join_req( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     (void) arg1; (void) arg2; (void) arg3; (void) arg4;
-    p = sendSmeJoinReq(pMac, p); 
+    p = sendSmeJoinReq(pMac, p);
     return p;
 }
 
@@ -1715,7 +1715,7 @@ static char *finishScan(tpAniSirGlobal pMac, char *p)
     msg.type = SIR_LIM_MIN_CHANNEL_TIMEOUT;
     msg.bodyval = 0;
     msg.bodyptr = NULL;
-    
+
     limPostMsgApi(pMac, &msg);
     return p;
 }
@@ -1801,10 +1801,10 @@ dump_lim_send_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tAN
               /* send two reports with incapable bit set */
               pRRMReport[0].type = 6;
               pRRMReport[1].type = 7;
-              limSendRadioMeasureReportActionFrame( pMac, 1, 2, &pRRMReport[0], psessionEntry->bssId, psessionEntry ); 
-              break;     
+              limSendRadioMeasureReportActionFrame( pMac, 1, 2, &pRRMReport[0], psessionEntry->bssId, psessionEntry );
+              break;
          case 1:
-              for ( i = 0 ; i < num ; i++ ) 
+              for ( i = 0 ; i < num ; i++ )
               {
                    pRRMReport[i].type = 5;
                    if ( i == 3 )
@@ -1821,7 +1821,7 @@ dump_lim_send_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tAN
                    pRRMReport[i].report.beaconReport.rcpi = 40;
 
                    pRRMReport[i].report.beaconReport.bssid[0] = 0x00;
-                   pRRMReport[i].report.beaconReport.bssid[1] = 0xAA; 
+                   pRRMReport[i].report.beaconReport.bssid[1] = 0xAA;
                    pRRMReport[i].report.beaconReport.bssid[2] = 0xBB;
                    pRRMReport[i].report.beaconReport.bssid[3] = 0xCC;
                    pRRMReport[i].report.beaconReport.bssid[4] = 0x00;
@@ -1841,7 +1841,7 @@ dump_lim_send_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tAN
                    }
 
               }
-              limSendRadioMeasureReportActionFrame( pMac, 1, num, &pRRMReport[0], psessionEntry->bssId, psessionEntry ); 
+              limSendRadioMeasureReportActionFrame( pMac, 1, num, &pRRMReport[0], psessionEntry->bssId, psessionEntry );
               break;
          case 2:
               //send Neighbor request.
@@ -1867,7 +1867,7 @@ dump_lim_send_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tAN
                   link.txAntenna = 1;
                   link.rcpi = 9;
                   link.rsni = 3;
-                  limSendLinkReportActionFrame( pMac, &link, psessionEntry->bssId, psessionEntry ); 
+                  limSendLinkReportActionFrame( pMac, &link, psessionEntry->bssId, psessionEntry );
               }
               break;
          default:
@@ -1876,7 +1876,7 @@ dump_lim_send_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tAN
 
 done:
     vos_mem_free(pRRMReport);
-    return p;    
+    return p;
 }
 
 static char *
@@ -1897,17 +1897,17 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
    tANI_U8 pBody[][100] = {
       {
          /*Beacon Request 0*/
-      0x05, 0x00, 0x01, 0x00, 0x00, 
+      0x05, 0x00, 0x01, 0x00, 0x00,
       //Measurement request IE
-      0x26, 0x25, 0x01, 0x00, 
+      0x26, 0x25, 0x01, 0x00,
       //Beacon request type
       0x05,
       //Beacon request starts here
       0x0C, 0x01, 0x30, 0x00, 0x14, 0x00, 0x01,
       //BSSID
-      0xFF, 0xFF, 0xFF, 0xFF, 0xff, 0xFF, 
+      0xFF, 0xFF, 0xFF, 0xFF, 0xff, 0xFF,
       //SSID
-      0x00, 0x05, 0x57, 0x69, 0x46, 0x69, 0x31, 
+      0x00, 0x05, 0x57, 0x69, 0x46, 0x69, 0x31,
       //Reporting Condition
       0x01, 0x02, 0x00, 0x00,
       //Reporting Detail
@@ -1917,15 +1917,15 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
       },
       {
          /*Beacon Request 1*/
-      0x05, 0x00, 0x01, 0x00, 0x00, 
+      0x05, 0x00, 0x01, 0x00, 0x00,
       //Measurement request IE
-      0x26, 0x28, 0x01, 0x00, 
+      0x26, 0x28, 0x01, 0x00,
       //Beacon request type
       0x05,
       //Beacon request starts here
       0x0C, 0xFF, 0x30, 0x00, 0x14, 0x00, 0x01,
       //BSSID
-      0xFF, 0xFF, 0xFF, 0xFF, 0xff, 0xFF, 
+      0xFF, 0xFF, 0xFF, 0xFF, 0xff, 0xFF,
       //SSID
 /*      0x00, 0x08, 0x35, 0x36, 0x37, 0x38, 0x39, 0x40, 0x41, 0x42, */
       //Reporting Condition
@@ -1935,23 +1935,23 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
       //Request IE
       0x0A, 0x05, 0x00, 0x30, 0x46, 0x36, 0xDD,
       //AP channel report
-      0x33, 0x03, 0x0C, 0x01, 0x06,    
-      0x33, 0x03, 0x0C, 0x24, 0x30,    
+      0x33, 0x03, 0x0C, 0x01, 0x06,
+      0x33, 0x03, 0x0C, 0x24, 0x30,
       },
       {
          /*Beacon Request 2*/
-      0x05, 0x00, 0x01, 0x00, 0x00, 
+      0x05, 0x00, 0x01, 0x00, 0x00,
       //Measurement request IE
-      0x26, 0x1E, 0x01, 0x00, 
+      0x26, 0x1E, 0x01, 0x00,
       //Beacon request type
       0x05,
       //Beacon request starts here
       0x0C, 0x00, 0x30, 0x00, 0x14, 0x00, 0x02,
       //BSSID
-      0xFF, 0xFF, 0xFF, 0xFF, 0xff, 0xFF, 
+      0xFF, 0xFF, 0xFF, 0xFF, 0xff, 0xFF,
       //SSID
-      0x00, 0x05, 0x57, 0x69, 0x46, 0x69, 0x31, 
-      //0x00, 0x08, 0x41, 0x53, 0x54, 0x2D, 0x57, 0x41, 0x50, 0x49, 
+      0x00, 0x05, 0x57, 0x69, 0x46, 0x69, 0x31,
+      //0x00, 0x08, 0x41, 0x53, 0x54, 0x2D, 0x57, 0x41, 0x50, 0x49,
       //Reporting Condition
       0x01, 0x02, 0x00, 0x00,
       //Reporting Detail
@@ -1960,17 +1960,17 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
       },
       {
          /*Beacon Request 3*/
-      0x05, 0x00, 0x01, 0x00, 0x00, 
+      0x05, 0x00, 0x01, 0x00, 0x00,
       //Measurement request IE
-      0x26, 0x25, 0x01, 0x00, 
+      0x26, 0x25, 0x01, 0x00,
       //Beacon request type
       0x05,
       //Beacon request starts here
       0x0C, 0x01, 0x30, 0x00, 0x69, 0x00, 0x00,
       //BSSID
-      0xFF, 0xFF, 0xFF, 0xFF, 0xff, 0xFF, 
+      0xFF, 0xFF, 0xFF, 0xFF, 0xff, 0xFF,
       //SSID
-      0x00, 0x05, 0x57, 0x69, 0x46, 0x69, 0x31, 
+      0x00, 0x05, 0x57, 0x69, 0x46, 0x69, 0x31,
       //Reporting Condition
       0x01, 0x02, 0x00, 0x00,
       //Reporting Detail
@@ -1980,15 +1980,15 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
       },
       {
          /*Neighbor report*/
-      0x05, 0x05, 0x01,  
+      0x05, 0x05, 0x01,
       //Measurement request IE
-      0x34, 0x17,  
+      0x34, 0x17,
       //BSSID
-      0xFF, 0xFF, 0xFF, 0xFF, 0xff, 0xFF, 
+      0xFF, 0xFF, 0xFF, 0xFF, 0xff, 0xFF,
       //BSSID INFOo
       0xED, 0x01, 0x00, 0x00,
       //Reg class, channel, Phy type
-      0x20, 0x01, 0x02, 
+      0x20, 0x01, 0x02,
       //TSF Info
       0x01, 0x04, 0x02, 0x00, 0x60, 0x00,
       //Condensed country
@@ -2000,7 +2000,7 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
       //Txpower used
       0x00,
       //Max Tx Power
-      0x00   
+      0x00
       }
    };
 
@@ -2057,7 +2057,7 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
       case 6:
          {
             tPowerdBm localConstraint = (tPowerdBm) arg3;
-            tPowerdBm maxTxPower = cfgGetRegulatoryMaxTransmitPower( pMac, psessionEntry->currentOperChannel ); 
+            tPowerdBm maxTxPower = cfgGetRegulatoryMaxTransmitPower( pMac, psessionEntry->currentOperChannel );
             maxTxPower = VOS_MIN( maxTxPower, maxTxPower-localConstraint );
             if( maxTxPower != psessionEntry->maxTxPower )
             {
@@ -2070,14 +2070,14 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
          p += log_sprintf( pMac, p, "Invalid option" );
          break;
    }
-   return p;    
+   return p;
 }
 #endif
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
 #ifdef RSSI_HACK
-/* This dump command is needed to set the RSSI values in TL while testing handoff. Handoff code was tested 
- * using this dump command. Whatever the value gives as the first parameter will be considered as the average 
+/* This dump command is needed to set the RSSI values in TL while testing handoff. Handoff code was tested
+ * using this dump command. Whatever the value gives as the first parameter will be considered as the average
  * RSSI by TL and invokes corresponding callback registered by the clients */
 extern int dumpCmdRSSI;
 static char *
@@ -2132,7 +2132,7 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
                    pftPreAuthReq->messageType = eWNI_SME_FT_PRE_AUTH_REQ;
                    pftPreAuthReq->length = auth_req_len + sizeof(Profile.pBssDesc->length) +
                        Profile.pBssDesc->length;
-                   pftPreAuthReq->preAuthchannelNum = 6; 
+                   pftPreAuthReq->preAuthchannelNum = 6;
 
                    vos_mem_copy((void *) &pftPreAuthReq->currbssId,
                                 (void *)psessionEntry->bssId, 6);
@@ -2143,26 +2143,26 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
                    // Also setup the mac address in sme context.
                    vos_mem_copy(pMac->ft.ftSmeContext.preAuthbssId, macAddr, 6);
 
-                   vos_mem_copy(pftPreAuthReq->ft_ies, pMac->ft.ftSmeContext.auth_ft_ies, 
+                   vos_mem_copy(pftPreAuthReq->ft_ies, pMac->ft.ftSmeContext.auth_ft_ies,
                        pMac->ft.ftSmeContext.auth_ft_ies_length);
 
                    vos_mem_copy(Profile.pBssDesc->bssId, macAddr, 6);
 
                    p += log_sprintf( pMac,p, "\n ----- LIM Debug Information ----- \n");
-                   p += log_sprintf( pMac, p, "%s: length = %d\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: length = %d\n", __func__,
                             (int)pMac->ft.ftSmeContext.auth_ft_ies_length);
-                   p += log_sprintf( pMac, p, "%s: length = %02x\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: length = %02x\n", __func__,
                             (int)pMac->ft.ftSmeContext.auth_ft_ies[0]);
-                   p += log_sprintf( pMac, p, "%s: Auth Req %02x %02x %02x\n", 
+                   p += log_sprintf( pMac, p, "%s: Auth Req %02x %02x %02x\n",
                             __func__, pftPreAuthReq->ft_ies[0],
                             pftPreAuthReq->ft_ies[1], pftPreAuthReq->ft_ies[2]);
 
-                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x\n", __func__,
                             psessionEntry->bssId[0],
                             psessionEntry->bssId[1], psessionEntry->bssId[2]);
-                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x %p\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x %p\n", __func__,
                             pftPreAuthReq->currbssId[0],
-                            pftPreAuthReq->currbssId[1], 
+                            pftPreAuthReq->currbssId[1],
                             pftPreAuthReq->currbssId[2], pftPreAuthReq);
 
                    Profile.pBssDesc->channelId = (tANI_U8)arg3;
@@ -2181,7 +2181,7 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
          default:
               break;
     }
-    return p;    
+    return p;
 }
 #endif
 static char *
@@ -2209,7 +2209,7 @@ dump_lim_channel_switch_announcement( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U
     psessionEntry->gLimChannelSwitch.primaryChannel = nNewChannel;
 
     schSetFixedBeaconFields(pMac, psessionEntry);
-    limSendBeaconInd(pMac, psessionEntry); 
+    limSendBeaconInd(pMac, psessionEntry);
 
   return p;
 }
@@ -2228,16 +2228,16 @@ dump_lim_vht_opmode_notification(tpAniSirGlobal pMac, tANI_U32 arg1,tANI_U32 arg
             p,"Session does not exist usage: 366 <0> sessionid channel \n");
         return p;
     }
-    
+
     limSendVHTOpmodeNotificationFrame(pMac, peer, nMode,psessionEntry);
-    
+
     psessionEntry->gLimOperatingMode.present = 1;
     psessionEntry->gLimOperatingMode.chanWidth = nMode;
     psessionEntry->gLimOperatingMode.rxNSS   = 0;
     psessionEntry->gLimOperatingMode.rxNSSType    = 0;
 
     schSetFixedBeaconFields(pMac, psessionEntry);
-    limSendBeaconInd(pMac, psessionEntry); 
+    limSendBeaconInd(pMac, psessionEntry);
 
     return p;
 }
@@ -2268,9 +2268,9 @@ dump_lim_vht_channel_switch_notification(tpAniSirGlobal pMac, tANI_U32 arg1,tANI
     psessionEntry->gLimWiderBWChannelSwitch.newChanWidth = nChanWidth;
     psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq0 = limGetCenterChannel(pMac,nNewChannel,(ncbMode+1),nChanWidth);
     psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq1 = 0;
-    
+
     schSetFixedBeaconFields(pMac, psessionEntry);
-    limSendBeaconInd(pMac, psessionEntry);    
+    limSendBeaconInd(pMac, psessionEntry);
 
     return p;
 }
@@ -2294,7 +2294,7 @@ dump_lim_cancel_channel_switch_announcement( tpAniSirGlobal pMac, tANI_U32 arg1,
     psessionEntry->gLimChannelSwitch.primaryChannel = 0;
 
     schSetFixedBeaconFields(pMac, psessionEntry);
-    limSendBeaconInd(pMac, psessionEntry); 
+    limSendBeaconInd(pMac, psessionEntry);
 
   return p;
 }
@@ -2304,9 +2304,9 @@ static char *
 dump_lim_mcc_policy_maker(tpAniSirGlobal pMac, tANI_U32 arg1,tANI_U32 arg2,tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
    VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_FATAL, "dump_lim_mcc_policy_maker arg = %d",arg1);
-    
+
    if(arg1 == 0) //Disable feature completely
-   {  
+   {
       WDA_TrafficStatsTimerActivate(FALSE);
       if (ccmCfgSetInt(pMac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, FALSE,
           NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
@@ -2315,15 +2315,15 @@ dump_lim_mcc_policy_maker(tpAniSirGlobal pMac, tANI_U32 arg1,tANI_U32 arg2,tANI_
       }
    }
    else if(arg1 == 1) //Enable feature
-   {   
+   {
       if (ccmCfgSetInt(pMac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, TRUE,
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
         limLog( pMac, LOGE, FL("Could not set WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED"));
-      }    
+      }
    }
    else if(arg1 == 2) //Enable feature and activate periodic timer
-   {   
+   {
       if (ccmCfgSetInt(pMac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, TRUE,
           NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
@@ -2417,12 +2417,12 @@ static tDumpFuncEntry limMenuDumpTable[] = {
     {308,   "PE:LIM: dump all 11H related data",                     dump_lim_dot11h_stats},
     {309,   "PE:LIM: dump to enable Measurement on AP",              dump_lim_enable_measurement},
     {310,   "PE:LIM: dump to enable QuietIE on AP",                  dump_lim_enable_quietIE},
-    {311,   "PE:LIM: disable/enable scan 1(disable)",                dump_lim_disable_enable_scan},    
+    {311,   "PE:LIM: disable/enable scan 1(disable)",                dump_lim_disable_enable_scan},
     {320,   "PE.LIM: send sme scan request",                         dump_lim_scan_req_send},
 
 
     /*FIXME_GEN6*/
-    /* This dump command is more of generic dump cmd and hence it should 
+    /* This dump command is more of generic dump cmd and hence it should
      * be moved to logDump.c
      */
     {321,   "PE:LIM: Set Log Level <VOS Module> <VOS Log Level>",    dump_lim_update_log_level},
@@ -2454,7 +2454,7 @@ static tDumpFuncEntry limMenuDumpTable[] = {
     {355,   "PE.LIM: send sme start BSS request",                    dump_lim_send_start_bss_req},
     {356,   "PE.LIM: dump pesession info ",                          dump_lim_session_print},
     {357,   "PE.LIM: send DisAssocRequest",                          dump_lim_send_disassoc_req},
-    {358,   "PE.LIM: send sme stop bss request <session ID>",        dump_lim_stop_bss_req}, 
+    {358,   "PE.LIM: send sme stop bss request <session ID>",        dump_lim_stop_bss_req},
     {359,   "PE.LIM: send sme join request",                         dump_lim_send_join_req},
 #if defined WLAN_FEATURE_VOWIFI
     {360,   "PE.LIM: send an RRM action frame",                      dump_lim_send_rrm_action},
@@ -2488,10 +2488,9 @@ static tDumpFuncEntry limMenuDumpTable[] = {
 
 void limDumpInit(tpAniSirGlobal pMac)
 {
-    logDumpRegisterTable( pMac, &limMenuDumpTable[0], 
+    logDumpRegisterTable( pMac, &limMenuDumpTable[0],
                           sizeof(limMenuDumpTable)/sizeof(limMenuDumpTable[0]) );
 }
 
 
 #endif //#if defined(ANI_LOGDUMP)
-

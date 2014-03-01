@@ -73,7 +73,3 @@
 
 
 #endif /* __CFGDEF_H */
-
-
-
-

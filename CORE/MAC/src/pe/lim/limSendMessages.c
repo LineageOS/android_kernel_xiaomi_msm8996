@@ -41,7 +41,7 @@
 #include "limTrace.h"
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT
 #include "vos_diag_core_log.h"
-#endif //FEATURE_WLAN_DIAG_SUPPORT 
+#endif //FEATURE_WLAN_DIAG_SUPPORT
 /* When beacon filtering is enabled, firmware will
  * analyze the selected beacons received during BMPS,
  * and monitor any changes in the IEs as listed below.
@@ -59,8 +59,8 @@ static tBeaconFilterIe beaconFilterTable[] = {
    {SIR_MAC_EDCA_PARAM_SET_EID,  0, {0, 0, EDCA_FILTER_MASK,      0}},
    {SIR_MAC_QOS_CAPABILITY_EID,  0, {0, 0, QOS_FILTER_MASK,       0}},
    {SIR_MAC_CHNL_SWITCH_ANN_EID, 1, {0, 0, 0,                     0}},
-   {SIR_MAC_HT_INFO_EID,         0, {0, 0, HT_BYTE0_FILTER_MASK,  0}},  
-   {SIR_MAC_HT_INFO_EID,         0, {2, 0, HT_BYTE2_FILTER_MASK,  0}}, 
+   {SIR_MAC_HT_INFO_EID,         0, {0, 0, HT_BYTE0_FILTER_MASK,  0}},
+   {SIR_MAC_HT_INFO_EID,         0, {2, 0, HT_BYTE2_FILTER_MASK,  0}},
    {SIR_MAC_HT_INFO_EID,         0, {5, 0, HT_BYTE5_FILTER_MASK,  0}}
 #if defined WLAN_FEATURE_VOWIFI
    ,{SIR_MAC_PWR_CONSTRAINT_EID,  0, {0, 0, 0, 0}}
@@ -150,7 +150,7 @@ returnFailure:
  *
  * @return success if message send is ok, else false.
  */
-tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, 
+tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
                                   tpUpdateBeaconParams pUpdatedBcnParams,
                                   tpPESession  psessionEntry )
 {
@@ -216,7 +216,7 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
  *
  * @return success if message send is ok, else false.
  */
-#if !defined WLAN_FEATURE_VOWIFI  
+#if !defined WLAN_FEATURE_VOWIFI
 tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
                                       tANI_U8 chnlNumber,
                                       ePhyChanBondState secondaryChnlOffset,
@@ -250,7 +250,7 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
     pChnlParams->secondaryChannelOffset = secondaryChnlOffset;
     pChnlParams->channelNumber= chnlNumber;
     vos_mem_copy( pChnlParams->selfStaMacAddr, pSessionEntry->selfMacAddr, sizeof(tSirMacAddr) );
-#if defined WLAN_FEATURE_VOWIFI  
+#if defined WLAN_FEATURE_VOWIFI
     pChnlParams->maxTxPower = maxTxPower;
 #else
     pChnlParams->localPowerConstraint = localPwrConstraint;
@@ -263,14 +263,14 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
        pChnlParams->isDfsChannel= VOS_TRUE;
     else
        pChnlParams->isDfsChannel = VOS_FALSE;
-    
+
     //we need to defer the message until we get the response back from WDA.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
     msgQ.type = WDA_CHNL_SWITCH_REQ;
     msgQ.reserved = 0;
     msgQ.bodyptr = pChnlParams;
     msgQ.bodyval = 0;
-#if defined WLAN_FEATURE_VOWIFI  
+#if defined WLAN_FEATURE_VOWIFI
     PELOG3(limLog( pMac, LOG3,
         FL( "Sending WDA_CHNL_SWITCH_REQ with SecondaryChnOffset - %d, ChannelNumber - %d, maxTxPower - %d"),
         pChnlParams->secondaryChannelOffset, pChnlParams->channelNumber, pChnlParams->maxTxPower);)
@@ -342,7 +342,7 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
         for(i=0; i<MAX_NUM_AC; i++)
         {
             PELOG1(limLog(pMac, LOG1, FL("AC[%d]:  AIFSN %d, ACM %d, CWmin %d, CWmax %d, TxOp %d "),
-                   i, pUpdatedEdcaParams[i].aci.aifsn, pUpdatedEdcaParams[i].aci.acm, 
+                   i, pUpdatedEdcaParams[i].aci.aifsn, pUpdatedEdcaParams[i].aci.acm,
                    pUpdatedEdcaParams[i].cw.min, pUpdatedEdcaParams[i].cw.max, pUpdatedEdcaParams[i].txoplimit);)
         }
     }
@@ -380,7 +380,7 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
     tANI_U8   acAdmitted;
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT
     vos_log_qos_edca_pkt_type *log_ptr = NULL;
-#endif //FEATURE_WLAN_DIAG_SUPPORT 
+#endif //FEATURE_WLAN_DIAG_SUPPORT
     // Initialize gLimEdcaParamsActive[] to be same as localEdcaParams
     psessionEntry->gLimEdcaParamsActive[EDCA_AC_BE] = plocalEdcaParams[EDCA_AC_BE];
     psessionEntry->gLimEdcaParamsActive[EDCA_AC_BK] = plocalEdcaParams[EDCA_AC_BK];
@@ -468,7 +468,7 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
     }
     WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
-    
+
     return;
  }
 
@@ -495,9 +495,9 @@ tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAd
     return retCode;
 }
 #endif //0
-tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAddr bssId, 
-                              tSirMacAddr selfMacAddr, tpSetLinkStateCallback callback, 
-                              void *callbackArg) 
+tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAddr bssId,
+                              tSirMacAddr selfMacAddr, tpSetLinkStateCallback callback,
+                              void *callbackArg)
 {
     tSirMsgQ msgQ;
     tSirRetStatus retCode;
@@ -515,7 +515,7 @@ tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAd
     pLinkStateParams->state        = state;
     pLinkStateParams->callback     = callback;
     pLinkStateParams->callbackArg  = callbackArg;
-     
+
     /* Copy Mac address */
     sirCopyMacAddr(pLinkStateParams->bssid,bssId);
     sirCopyMacAddr(pLinkStateParams->selfMacAddr, selfMacAddr);
@@ -524,7 +524,7 @@ tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAd
     msgQ.reserved = 0;
     msgQ.bodyptr = pLinkStateParams;
     msgQ.bodyval = 0;
-    
+
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
 
     retCode = (tANI_U32)wdaPostCtrlMsg(pMac, &msgQ);
@@ -537,7 +537,7 @@ tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAd
     return retCode;
 }
 #ifdef WLAN_FEATURE_VOWIFI_11R
-extern tSirRetStatus limSetLinkStateFT(tpAniSirGlobal pMac, tSirLinkState 
+extern tSirRetStatus limSetLinkStateFT(tpAniSirGlobal pMac, tSirLinkState
 state,tSirMacAddr bssId, tSirMacAddr selfMacAddr, int ft, tpPESession psessionEntry)
 {
     tSirMsgQ msgQ;
@@ -586,7 +586,7 @@ state,tSirMacAddr bssId, tSirMacAddr selfMacAddr, int ft, tpPESession psessionEn
 
 /** ---------------------------------------------------------
 \fn      limSendSetTxPowerReq
-\brief   LIM sends a WDA_SET_TX_POWER_REQ message to WDA 
+\brief   LIM sends a WDA_SET_TX_POWER_REQ message to WDA
 \param   tpAniSirGlobal      pMac
 \param   tpSirSetTxPowerReq  request message
 \return  None
@@ -719,7 +719,7 @@ tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac,tpPESession psessionEn
         pIe->byte.offset = beaconFilterTable[i].byte.offset;
         pIe->byte.value =  beaconFilterTable[i].byte.value;
         pIe->byte.bitMask =  beaconFilterTable[i].byte.bitMask;
-        pIe->byte.ref =  beaconFilterTable[i].byte.ref; 
+        pIe->byte.ref =  beaconFilterTable[i].byte.ref;
         ptr += sizeof(tBeaconFilterIe);
     }
     msgQ.type = WDA_BEACON_FILTER_IND;
@@ -740,7 +740,7 @@ tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac,tpPESession psessionEn
 }
 
 #ifdef WLAN_FEATURE_11AC
-tSirRetStatus limSendModeUpdate(tpAniSirGlobal pMac, 
+tSirRetStatus limSendModeUpdate(tpAniSirGlobal pMac,
                                 tUpdateVHTOpMode *pTempParam,
                                 tpPESession  psessionEntry )
 {
@@ -872,10 +872,10 @@ tSirRetStatus limSetUserPos(tpAniSirGlobal pMac,
 \fn      limSendTdlsLinkEstablish
 \brief   LIM sends a message to HAL to set tdls direct link
 \param   tpAniSirGlobal  pMac
-\param   
+\param
 \return  None
   -----------------------------------------------------------*/
-tSirRetStatus limSendTdlsLinkEstablish(tpAniSirGlobal pMac, tANI_U8 bIsPeerResponder, tANI_U8 linkIdenOffset, 
+tSirRetStatus limSendTdlsLinkEstablish(tpAniSirGlobal pMac, tANI_U8 bIsPeerResponder, tANI_U8 linkIdenOffset,
                 tANI_U8 ptiBufStatusOffset, tANI_U8 ptiFrameLen, tANI_U8 *ptiFrame, tANI_U8 *extCapability)
 {
     tSirMsgQ msgQ;
@@ -895,7 +895,7 @@ tSirRetStatus limSendTdlsLinkEstablish(tpAniSirGlobal pMac, tANI_U8 bIsPeerRespo
 
     vos_mem_set((tANI_U8 *) pTdlsLinkEstablish, sizeof(tSirTdlsLinkEstablishInd), 0);
 
-    pTdlsLinkEstablish->bIsResponder = !!bIsPeerResponder; 
+    pTdlsLinkEstablish->bIsResponder = !!bIsPeerResponder;
     pTdlsLinkEstablish->linkIdenOffset = linkIdenOffset;
     pTdlsLinkEstablish->ptiBufStatusOffset = ptiBufStatusOffset;
     pTdlsLinkEstablish->ptiTemplateLen = ptiFrameLen;
@@ -908,7 +908,7 @@ tSirRetStatus limSendTdlsLinkEstablish(tpAniSirGlobal pMac, tANI_U8 bIsPeerRespo
     msgQ.reserved = 0;
     msgQ.bodyptr = pTdlsLinkEstablish;
     msgQ.bodyval = 0;
-    
+
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
 
     retCode = (tANI_U32)wdaPostCtrlMsg(pMac, &msgQ);
@@ -925,7 +925,7 @@ tSirRetStatus limSendTdlsLinkEstablish(tpAniSirGlobal pMac, tANI_U8 bIsPeerRespo
 \fn      limSendTdlsLinkTeardown
 \brief   LIM sends a message to HAL to indicate tdls direct link is teardowned
 \param   tpAniSirGlobal  pMac
-\param   
+\param
 \return  None
   -----------------------------------------------------------*/
 tSirRetStatus limSendTdlsLinkTeardown(tpAniSirGlobal pMac, tANI_U16 staId)
@@ -953,7 +953,7 @@ tSirRetStatus limSendTdlsLinkTeardown(tpAniSirGlobal pMac, tANI_U16 staId)
     msgQ.reserved = 0;
     msgQ.bodyptr = pTdlsLinkTeardown;
     msgQ.bodyval = 0;
-    
+
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
 
     retCode = (tANI_U32)wdaPostCtrlMsg(pMac, &msgQ);
@@ -1017,4 +1017,3 @@ tSirRetStatus limSendExcludeUnencryptInd(tpAniSirGlobal pMac,
     return retCode;
 }
 #endif
-

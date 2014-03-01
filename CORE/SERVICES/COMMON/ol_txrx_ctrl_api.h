@@ -995,5 +995,6 @@ static inline void ol_tx_throttle_init_period(struct ol_txrx_pdev_t *pdev,
 }
 #endif /* QCA_SUPPORT_TX_THROTTLE_LL */
 
+void ol_vdev_rx_set_intrabss_fwd(ol_txrx_vdev_handle vdev, a_bool_t val);
 
 #endif /* _OL_TXRX_CTRL_API__H_ */

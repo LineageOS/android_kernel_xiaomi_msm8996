@@ -345,6 +345,3 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"CURRENT_RSSI",
     (unsigned char *)"RTT3_ENABLE",
 };
-
-
-

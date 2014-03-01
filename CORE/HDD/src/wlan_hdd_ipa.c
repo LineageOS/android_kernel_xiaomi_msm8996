@@ -605,7 +605,7 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 		/* send_desc_head is a anchor node */
 		send_desc_head = hdd_ipa_get_desc_from_freeq();
 		if (!send_desc_head) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_WARN,
 					"send_desc_head=Null. FreeQ Empty");
 			buf = rxt->rx_buf_list;
 			while (buf) {

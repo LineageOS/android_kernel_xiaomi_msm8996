@@ -6158,8 +6158,9 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 	 * to issue a Vdev Start/Vdev Restart for
 	 * channel change.
 	 */
-	if ((wma->interfaces[vdev_id].type == WMI_VDEV_TYPE_STA) &&
-		(wma->interfaces[vdev_id].sub_type == 0)) {
+	if (((wma->interfaces[vdev_id].type == WMI_VDEV_TYPE_STA) &&
+		(wma->interfaces[vdev_id].sub_type == 0)) &&
+			!wma->interfaces[vdev_id].is_channel_switch) {
 
 		if (peer && (peer->state == ol_txrx_peer_state_conn ||
 			peer->state == ol_txrx_peer_state_auth)) {
@@ -6227,7 +6228,8 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 		goto send_resp;
 	}
 
-	wma->interfaces[req.vdev_id].is_channel_switch = VOS_FALSE;
+	if (wma->interfaces[req.vdev_id].is_channel_switch)
+		wma->interfaces[req.vdev_id].is_channel_switch = VOS_FALSE;
 	return;
 send_resp:
 	WMA_LOGD("%s: channel %d offset %d txpower %d status %d", __func__,
@@ -14515,6 +14517,7 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 		pThermalParams->thermalLevels[3].minTempThreshold;
 	wma->thermal_mgmt_info.thermalLevels[3].maxTempThreshold =
 		pThermalParams->thermalLevels[3].maxTempThreshold;
+	wma->thermal_mgmt_info.thermalCurrLevel = WLAN_WMA_THERMAL_LEVEL_0;
 
 	WMA_LOGD("TM level min max:\n"
 			 "0 %d   %d\n"
@@ -14598,6 +14601,14 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 		WMA_LOGE("Invalid thermal level set %d", thermal_level);
 		return VOS_STATUS_E_FAILURE;
 	}
+
+	if (thermal_level == wma->thermal_mgmt_info.thermalCurrLevel) {
+		WMA_LOGD("Current level %d is same as the set level, ignoring",
+				  wma->thermal_mgmt_info.thermalCurrLevel);
+		return VOS_STATUS_SUCCESS;
+	}
+
+	wma->thermal_mgmt_info.thermalCurrLevel = thermal_level;
 
 	ol_tx_throttle_set_level(curr_pdev, thermal_level);
 
@@ -14892,7 +14903,7 @@ static void wma_process_set_p2pgo_noa_Req(tp_wma_handle wma,
 						tP2pPsParams *ps_params)
 {
 	WMA_LOGD("%s: Enter", __func__);
-	if (ps_params->count == 0 && ps_params->interval == 0) {
+	if (ps_params->opp_ps) {
 		wma_set_p2pgo_oppps_req(wma, ps_params);
 	} else {
 		wma_set_p2pgo_noa_Req(wma, ps_params);
@@ -14928,6 +14939,25 @@ static void wma_process_set_mimops_req(tp_wma_handle wma_handle,
 	wma_set_peer_param(wma_handle, mimops->peerMac,
 			WMI_PEER_MIMO_PS_STATE, mimops->htMIMOPSState,
 			mimops->sessionId);
+}
+
+/* function   : wma_set_vdev_intrabss_fwd
+ * Descriptin : Set intra_fwd value to wni_in.
+ * Args       :
+ *             wma_handle  : Pointer to WMA handle
+ *             pdis_intra_fwd  : Pointer to DisableIntraBssFwd struct
+ * Returns    :
+ */
+static void wma_set_vdev_intrabss_fwd(tp_wma_handle wma_handle,
+		tpDisableIntraBssFwd pdis_intra_fwd)
+{
+	ol_txrx_vdev_handle txrx_vdev;
+	WMA_LOGD("%s:intra_fwd:vdev(%d) intrabss_dis=%s",
+	__func__, pdis_intra_fwd->sessionId,
+	(pdis_intra_fwd->disableintrabssfwd ? "true" : "false"));
+
+	txrx_vdev = wma_handle->interfaces[pdis_intra_fwd->sessionId].handle;
+	wdi_in_vdev_rx_fwd_disabled(txrx_vdev, pdis_intra_fwd->disableintrabssfwd);
 }
 
 /*
@@ -15314,7 +15344,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_process_set_mimops_req(wma_handle, (tSetMIMOPS *) msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
-
+		case WDA_SET_SAP_INTRABSS_DIS:
+			wma_set_vdev_intrabss_fwd(wma_handle, (tDisableIntraBssFwd *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -15910,6 +15943,12 @@ static int wma_thermal_mgmt_evt_handler(void *handle, u_int8_t *event,
 	/* Get the thermal mitigation level for the reported temperature*/
 	thermal_level = wma_thermal_mgmt_get_level(handle, tm_event->temperature_degreeC);
 	WMA_LOGD("Thermal mgmt level  %d", thermal_level);
+
+	if (thermal_level == wma->thermal_mgmt_info.thermalCurrLevel) {
+		WMA_LOGD("Current level %d is same as the set level, ignoring",
+				  wma->thermal_mgmt_info.thermalCurrLevel);
+		return 0;
+	}
 
 	wma->thermal_mgmt_info.thermalCurrLevel = thermal_level;
 

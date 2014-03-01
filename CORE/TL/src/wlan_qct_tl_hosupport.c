@@ -28,10 +28,10 @@
 /*===========================================================================
 
                        W L A N _ Q C T _ T L _ HOSUPPORT. C
-                                               
+
   OVERVIEW:
-  
-  DEPENDENCIES: 
+
+  DEPENDENCIES:
 
   Are listed for each API below.
 ===========================================================================*/
@@ -55,7 +55,7 @@
 12/11/08      sch     Initial creation
 
 ===========================================================================*/
-#include "wlan_qct_tl.h" 
+#include "wlan_qct_tl.h"
 #include "wlan_qct_wda.h"
 #if defined WLAN_FEATURE_NEIGHBOR_ROAMING
 /*----------------------------------------------------------------------------
@@ -100,11 +100,11 @@
            }                                                  \
         }while(0)
 
-const v_U8_t  WLANTL_HO_TID_2_AC[WLAN_MAX_TID] = {WLANTL_AC_BE, 
+const v_U8_t  WLANTL_HO_TID_2_AC[WLAN_MAX_TID] = {WLANTL_AC_BE,
                                                   WLANTL_AC_BK,
-                                                  WLANTL_AC_BK, 
+                                                  WLANTL_AC_BK,
                                                   WLANTL_AC_BE,
-                                                  WLANTL_AC_VI, 
+                                                  WLANTL_AC_VI,
                                                   WLANTL_AC_VI,
                                                   WLANTL_AC_VO,
                                                   WLANTL_AC_VO};
@@ -119,8 +119,8 @@ typedef struct
 } WLANTL_HSTempPSIndType;
 
 #ifdef RSSI_HACK
-/* This is a dummy averaged RSSI value that can be controlled using dump commands 
- * to trigger TL to issue handoff related events. We will be using dump 362 <average RSSI> 
+/* This is a dummy averaged RSSI value that can be controlled using dump commands
+ * to trigger TL to issue handoff related events. We will be using dump 362 <average RSSI>
  * value to change its value */
 int  dumpCmdRSSI = -48;
 #endif
@@ -130,9 +130,9 @@ int  dumpCmdRSSI = -48;
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -162,9 +162,9 @@ void TLHS_UtestHandleNewRSSI(v_S7_t *newRSSI, v_PVOID_t pAdapter)
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -301,9 +301,9 @@ void WLANTLPrintPktsRcvdPerRssi(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t flush
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -394,9 +394,9 @@ void WLANTL_HSDebugDisplay
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -493,9 +493,9 @@ VOS_STATUS WLANTL_SetFWRSSIThresholds
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -506,7 +506,7 @@ VOS_STATUS WLANTL_StatHandleRXFrame
    v_PVOID_t        pBDHeader,
    v_U8_t           STAid,
    v_BOOL_t         isBroadcast,
-   vos_pkt_t       *dataBuffer   
+   vos_pkt_t       *dataBuffer
 )
 {
    WLANTL_CbType            *tlCtxt = VOS_GET_TL_CB(pAdapter);
@@ -623,9 +623,9 @@ VOS_STATUS WLANTL_StatHandleRXFrame
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -697,10 +697,10 @@ VOS_STATUS WLANTL_StatHandleTXFrame
    FUNCTION  WLANTL_HSTrafficStatusTimerExpired
 
    DESCRIPTION  If traffic status monitoring timer is expiered,
-                Count how may frames have sent and received during 
+                Count how may frames have sent and received during
                 measure period and if traffic status is changed
                 send notification to Client(SME)
-    
+
    PARAMETERS pAdapter
               Global handle
 
@@ -790,7 +790,7 @@ v_VOID_t WLANTL_HSTrafficStatusTimerExpired
       /* restart timer  only when the callback is not NULL */
       vos_timer_start(&trafficHandle->trafficTimer, trafficHandle->measurePeriod);
    }
-   
+
    return;
 }
 
@@ -799,9 +799,9 @@ v_VOID_t WLANTL_HSTrafficStatusTimerExpired
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -833,9 +833,9 @@ VOS_STATUS WLANTL_HSGetRSSI
        return VOS_STATUS_E_FAILURE;
    }
 
-   /* 
+   /*
       Compute RSSI only for the last MPDU of an AMPDU.
-      Only last MPDU carries the Phy Stats Values 
+      Only last MPDU carries the Phy Stats Values
    */
     if (WDA_IS_RX_AN_AMPDU (pBDHeader)) {
        if (!WDA_IS_RX_LAST_MPDU(pBDHeader)) {
@@ -881,9 +881,9 @@ VOS_STATUS WLANTL_HSGetRSSI
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -1061,9 +1061,9 @@ VOS_STATUS WLANTL_HSBMPSRSSIRegionChangedNotification
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -1118,7 +1118,7 @@ VOS_STATUS WLANTL_HSHandleRSSIChange
    /* This is a hack. Actual assignment was happening after the below checks. This hack is needed till TL
       posts message and nothing else in the callback indicating UP/DOWN event to the registered module */
    currentHO->historyRSSI = currentRSSI;
-   
+
    if(currentRegion == currentHO->regionNumber)
    {
       currentHO->historyRSSI = currentRSSI;
@@ -1186,9 +1186,9 @@ VOS_STATUS WLANTL_HSHandleRSSIChange
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -1298,9 +1298,9 @@ VOS_STATUS WLANTL_HSHandleRXFrame
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -1351,9 +1351,9 @@ VOS_STATUS WLANTL_HSHandleTXFrame
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -1571,9 +1571,9 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -1719,7 +1719,7 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
        /* this function holds the lock across a downstream WDA function call, this is violates some lock
          ordering checks done on some HLOS see CR323221*/
       THSRELEASELOCK("WLANTL_HSDeregRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
-      WLANTL_SetFWRSSIThresholds(pAdapter); 
+      WLANTL_SetFWRSSIThresholds(pAdapter);
       THSGETLOCK("WLANTL_HSDeregRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
    }
 
@@ -1743,9 +1743,9 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -1775,9 +1775,9 @@ VOS_STATUS WLANTL_HSSetAlpha
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -1821,9 +1821,9 @@ VOS_STATUS WLANTL_HSRegGetTrafficStatus
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -1898,9 +1898,9 @@ VOS_STATUS WLANTL_HSInit
 
    FUNCTION    WLANTL_HSDeInit
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -1920,13 +1920,13 @@ VOS_STATUS WLANTL_HSDeInit
       return VOS_STATUS_E_INVAL;
    }
 
-   // Destroy the timer...      
+   // Destroy the timer...
    status = vos_timer_destroy( &tlCtxt->hoSupport.currentTraffic.trafficTimer );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_HSStop: Timer Destroy Fail Status %d", status));
    }
-   return status;   
+   return status;
 }
 
 
@@ -1934,9 +1934,9 @@ VOS_STATUS WLANTL_HSDeInit
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -1973,16 +1973,16 @@ VOS_STATUS WLANTL_HSStop
    tlCtxt->hoSupport.currentTraffic.trafficCB     = NULL;
    tlCtxt->hoSupport.currentTraffic.usrCtxt       = NULL;
 
-   return status;   
+   return status;
 }
 
 /*==========================================================================
 
    FUNCTION
 
-   DESCRIPTION 
-    
-   PARAMETERS 
+   DESCRIPTION
+
+   PARAMETERS
 
    RETURN VALUE
 
@@ -2001,7 +2001,7 @@ VOS_STATUS WLANTL_HSSerializeTlIndication
    WLANTL_TlIndicationReq *pMsg;
 
    pMsg = vos_mem_malloc(sizeof(WLANTL_TlIndicationReq));
-   if ( NULL == pMsg ) 
+   if ( NULL == pMsg )
    {
       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, "In %s, failed to allocate mem for req", __func__);
       return VOS_STATUS_E_NOMEM;
@@ -2028,7 +2028,7 @@ VOS_STATUS WLANTL_HSSerializeTlIndication
        status = VOS_STATUS_E_FAILURE;
    }
 
-   return status;   
+   return status;
 }
 
 #endif //WLAN_FEATURE_NEIGHBOR_ROAMING

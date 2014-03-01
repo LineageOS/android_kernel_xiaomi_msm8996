@@ -1958,3 +1958,12 @@ ol_txrx_peer_stats_copy(
     return A_OK;
 }
 #endif /* QCA_ENABLE_OL_TXRX_PEER_STATS */
+
+void
+ol_vdev_rx_set_intrabss_fwd(
+    ol_txrx_vdev_handle vdev,
+    a_bool_t val)
+{
+    vdev->disable_intrabss_fwd = val;
+}
+

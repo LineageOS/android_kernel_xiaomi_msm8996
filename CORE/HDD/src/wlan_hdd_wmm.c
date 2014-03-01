@@ -647,6 +647,10 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
                 pCurrentQosInfo,
                 sizeof(pAc->wmmAcTspecInfo));
       }
+      pAc->wmmAcAccessAllowed = VOS_TRUE;
+      pAc->wmmAcAccessGranted = VOS_TRUE;
+      pAc->wmmAcAccessPending = VOS_FALSE;
+      pAc->wmmAcAccessFailed = VOS_FALSE;
 
       if (HDD_WMM_HANDLE_IMPLICIT == pQosContext->handle)
       {
@@ -654,12 +658,6 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
                    "%s: Implicit Qos, notifying TL for TL AC %d",
                    __func__, acType);
-
-         // this was triggered by implicit QoS so we know packets are pending
-         // update state
-         pAc->wmmAcAccessAllowed = VOS_TRUE;
-         pAc->wmmAcAccessGranted = VOS_TRUE;
-         pAc->wmmAcAccessPending = VOS_FALSE;
 
          // notify TL that packets are pending
          status = WLANTL_STAPktPending( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
@@ -704,18 +702,16 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
                 "%s: Setup is complete (U-APSD set previously)",
                 __func__);
 
+      pAc->wmmAcAccessAllowed = VOS_TRUE;
+      pAc->wmmAcAccessGranted = VOS_TRUE;
+      pAc->wmmAcAccessPending = VOS_FALSE;
+
       if (HDD_WMM_HANDLE_IMPLICIT == pQosContext->handle)
       {
 
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
                    "%s: Implicit Qos, notifying TL",
                    __func__);
-
-         // this was triggered by implicit QoS so we know packets are pending
-         // update state
-         pAc->wmmAcAccessAllowed = VOS_TRUE;
-         pAc->wmmAcAccessGranted = VOS_TRUE;
-         pAc->wmmAcAccessPending = VOS_FALSE;
 
          // notify TL that packets are pending
          status = WLANTL_STAPktPending( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
@@ -748,18 +744,15 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
                 __func__);
       // QoS setup failed
 
+      pAc->wmmAcAccessPending = VOS_FALSE;
+      pAc->wmmAcAccessFailed = VOS_TRUE;
+      pAc->wmmAcAccessAllowed = VOS_FALSE;
       if (HDD_WMM_HANDLE_IMPLICIT == pQosContext->handle)
       {
 
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
                    "%s: Implicit Qos, notifying TL",
                    __func__);
-
-         // we note the failure, but we also mark access as allowed so that
-         // the packets will flow.  Note that the MAC will "do the right thing"
-         pAc->wmmAcAccessPending = VOS_FALSE;
-         pAc->wmmAcAccessFailed = VOS_TRUE;
-         pAc->wmmAcAccessAllowed = VOS_FALSE;
 
          // this was triggered by implicit QoS so we know packets are pending
          status = WLANTL_STAPktPending( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
@@ -781,9 +774,6 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
 
          // this was triggered by an application
          pQosContext->lastStatus = HDD_WLAN_WMM_STATUS_SETUP_FAILED;
-
-         pAc->wmmAcAccessAllowed = VOS_FALSE;
-         pAc->wmmAcAccessFailed = VOS_TRUE;
 
          hdd_wmm_notify_app(pQosContext);
       }
@@ -985,6 +975,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
                 "%s: Release is complete",
                 __func__);
+      pAc->wmmAcAccessGranted = VOS_FALSE;
 
       if (pCurrentQosInfo)
       {
@@ -1230,8 +1221,10 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
    //not always true. If Access to particular AC fails and if
    //admission is required for that particular AC, then access is not
    //allowed to that AC.
-   if (pAc->wmmAcAccessFailed && pAc->wmmAcAccessRequired)
+   if ((pAc->wmmAcAccessFailed && pAc->wmmAcAccessRequired) ||
+        !pAc->wmmAcAccessGranted) {
       pAc->wmmAcAccessAllowed = VOS_FALSE;
+   }
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
              "%s: complete, access for TL AC %d is%sallowed",

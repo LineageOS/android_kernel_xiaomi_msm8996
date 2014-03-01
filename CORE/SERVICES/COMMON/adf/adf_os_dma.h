@@ -119,4 +119,17 @@ adf_os_cache_line_size(void)
     return __adf_os_cache_line_size();
 }
 
+/**
+ * @brief invalidate the virtual address range specified by
+ *        start and end addresses.
+ * Note: This does not write back the cache entries.
+ *
+ * @return void
+ */
+static inline void
+adf_os_invalidate_range(void * start, void * end)
+{
+    return __adf_os_invalidate_range(start, end);
+}
+
 #endif

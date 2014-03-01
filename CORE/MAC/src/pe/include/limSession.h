@@ -59,26 +59,26 @@ typedef struct sPowersaveoffloadInfo
 
 
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
 #define NUM_WEP_KEYS 4
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
-typedef struct 
+typedef struct
 {
     tSirMacBeaconInterval   beaconInterval;
-    tANI_U8                 fShortPreamble;   
-    tANI_U8                 llaCoexist;    
+    tANI_U8                 fShortPreamble;
+    tANI_U8                 llaCoexist;
     tANI_U8                 llbCoexist;
     tANI_U8                 llgCoexist;
     tANI_U8                 ht20Coexist;
     tANI_U8                 llnNonGFCoexist;
     tANI_U8                 fRIFSMode;
     tANI_U8                 fLsigTXOPProtectionFullSupport;
-    tANI_U8                 gHTObssMode; 
+    tANI_U8                 gHTObssMode;
 }tBeaconParams, *tpBeaconParams;
 
 typedef struct sPESession           // Added to Support BT-AMP
@@ -102,7 +102,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     tLimSmeStates           limPrevSmeState;        //Previous SME State
     tLimSystemRole          limSystemRole;
     tSirBssType             bssType;
-    tANI_U8                 operMode;               // AP - 0; STA - 1 ; 
+    tANI_U8                 operMode;               // AP - 0; STA - 1 ;
     tSirNwType              nwType;
     tpSirSmeStartBssReq     pLimStartBssReq;        //handle to smestart bss req
     tpSirSmeJoinReq         pLimJoinReq;            // handle to sme join req
@@ -149,7 +149,7 @@ typedef struct sPESession           // Added to Support BT-AMP
 
     // Assoc or ReAssoc Response Data/Frame
     void                   *limAssocResponseData;
-    
+
 
 
     /** BSS Table parameters **/
@@ -170,7 +170,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8                 currentOperChannel;
     tANI_U8                 currentReqChannel;
     tANI_U8                 LimRxedBeaconCntDuringHB;
-    
+
     //Time stamp of the last beacon received from the BSS to which STA is connected.
     tANI_U64                lastBeaconTimeStamp;
     //RX Beacon count for the current BSS to which STA is connected.
@@ -188,11 +188,11 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8                 *assocRsp;              //Used to store association response received while associating
     tAniSirDph              dph;
     void *                  *parsedAssocReq;        //Used to store parsed assoc req from various requesting station
-#ifdef WLAN_FEATURE_VOWIFI_11R    
+#ifdef WLAN_FEATURE_VOWIFI_11R
     tANI_U32                RICDataLen;             //Used to store the Ric data received in the assoc response
     tANI_U8                 *ricData;
 #endif
-#ifdef FEATURE_WLAN_CCX    
+#ifdef FEATURE_WLAN_CCX
     tANI_U32                tspecLen;               //Used to store the TSPEC IEs received in the assoc response
     tANI_U8                 *tspecIes;
 #endif
@@ -299,19 +299,19 @@ typedef struct sPESession           // Added to Support BT-AMP
     /* EDCA QoS parameters
      * gLimEdcaParams - These EDCA parameters are used locally on AP or STA.
      * If STA, then these are values taken from the Assoc Rsp when associating,
-     * or Beacons/Probe Response after association.  If AP, then these are 
-     * values originally set locally on AP. 
+     * or Beacons/Probe Response after association.  If AP, then these are
+     * values originally set locally on AP.
      *
-     * gLimEdcaParamsBC - These EDCA parameters are use by AP to broadcast 
-     * to other STATIONs in the BSS. 
+     * gLimEdcaParamsBC - These EDCA parameters are use by AP to broadcast
+     * to other STATIONs in the BSS.
      *
      * gLimEdcaParamsActive: These EDCA parameters are what's actively being
-     * used on station. Specific AC values may be downgraded depending on 
-     * admission control for that particular AC. 
+     * used on station. Specific AC values may be downgraded depending on
+     * admission control for that particular AC.
      */
-    tSirMacEdcaParamRecord gLimEdcaParams[MAX_NUM_AC];   //used locally 
+    tSirMacEdcaParamRecord gLimEdcaParams[MAX_NUM_AC];   //used locally
     tSirMacEdcaParamRecord gLimEdcaParamsBC[MAX_NUM_AC]; //used for broadcast
-    tSirMacEdcaParamRecord gLimEdcaParamsActive[MAX_NUM_AC]; 
+    tSirMacEdcaParamRecord gLimEdcaParamsActive[MAX_NUM_AC];
 
     tANI_U8  gLimEdcaParamSetCount;
 
@@ -422,26 +422,26 @@ typedef struct sPESession           // Added to Support BT-AMP
 #define LIM_MAX_ACTIVE_SESSIONS 4
 
 
-/*------------------------------------------------------------------------- 
+/*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/
 
 
 /*--------------------------------------------------------------------------
-  
+
   \brief peCreateSession() - creates a new PE session given the BSSID
 
-  This function returns the session context and the session ID if the session 
+  This function returns the session context and the session ID if the session
   corresponding to the passed BSSID is found in the PE session table.
-    
+
   \param pMac                   - pointer to global adapter context
   \param bssid                   - BSSID of the new session
   \param sessionId             -session ID is returned here, if session is created.
-  
+
   \return tpPESession          - pointer to the session context or NULL if session can not be created.
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
 tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessionId, tANI_U16 numSta);
 
@@ -449,15 +449,15 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
 /*--------------------------------------------------------------------------
   \brief peFindSessionByBssid() - looks up the PE session given the BSSID.
 
-  This function returns the session context and the session ID if the session 
+  This function returns the session context and the session ID if the session
   corresponding to the given BSSID is found in the PE session table.
-    
+
   \param pMac                   - pointer to global adapter context
   \param bssid                   - BSSID of the session
-  \param sessionId             -session ID is returned here, if session is found. 
-  
+  \param sessionId             -session ID is returned here, if session is found.
+
   \return tpPESession          - pointer to the session context or NULL if session is not found.
-  
+
   \sa
   --------------------------------------------------------------------------*/
 tpPESession peFindSessionByBssid(tpAniSirGlobal pMac,  tANI_U8*  bssid,    tANI_U8* sessionId);
@@ -482,15 +482,15 @@ tpPESession peFindSessionByBssIdx(tpAniSirGlobal pMac,  tANI_U8 bssIdx);
 /*--------------------------------------------------------------------------
   \brief peFindSessionByPeerSta() - looks up the PE session given the Peer Station Address.
 
-  This function returns the session context and the session ID if the session 
+  This function returns the session context and the session ID if the session
   corresponding to the given destination address is found in the PE session table.
-    
+
   \param pMac                   - pointer to global adapter context
   \param sa                   - Peer STA Address of the session
-  \param sessionId             -session ID is returned here, if session is found. 
-  
+  \param sessionId             -session ID is returned here, if session is found.
+
   \return tpPESession          - pointer to the session context or NULL if session is not found.
-  
+
   \sa
   --------------------------------------------------------------------------*/
 tpPESession peFindSessionByPeerSta(tpAniSirGlobal pMac, tANI_U8*  sa, tANI_U8* sessionId);
@@ -498,14 +498,14 @@ tpPESession peFindSessionByPeerSta(tpAniSirGlobal pMac, tANI_U8*  sa, tANI_U8* s
 /*--------------------------------------------------------------------------
   \brief peFindSessionBySessionId() - looks up the PE session given the session ID.
 
-  This function returns the session context  if the session 
+  This function returns the session context  if the session
   corresponding to the given session ID is found in the PE session table.
-    
+
   \param pMac                   - pointer to global adapter context
   \param sessionId             -session ID for which session context needs to be looked up.
-  
+
   \return tpPESession          - pointer to the session context or NULL if session is not found.
-  
+
   \sa
   --------------------------------------------------------------------------*/
  tpPESession peFindSessionBySessionId(tpAniSirGlobal pMac , tANI_U8 sessionId);
@@ -515,7 +515,7 @@ tpPESession peFindSessionByPeerSta(tpAniSirGlobal pMac, tANI_U8*  sa, tANI_U8* s
 
   This function returns the session context and the session ID if the session
   corresponding to the given StaId is found in the PE session table.
-   
+
   \param pMac                  - pointer to global adapter context
   \param staid                 - StaId of the session
   \param sessionId             - session ID is returned here, if session is found.
@@ -524,7 +524,7 @@ tpPESession peFindSessionByPeerSta(tpAniSirGlobal pMac, tANI_U8*  sa, tANI_U8* s
 
 --------------------------------------------------------------------------*/
  tpPESession peFindSessionByStaId(tpAniSirGlobal pMac,  tANI_U8  staid,    tANI_U8* sessionId);
- 
+
 
 
 
@@ -532,10 +532,10 @@ tpPESession peFindSessionByPeerSta(tpAniSirGlobal pMac, tANI_U8*  sa, tANI_U8* s
 /*--------------------------------------------------------------------------
   \brief peDeleteSession() - deletes the PE session given the session ID.
 
-    
+
   \param pMac                   - pointer to global adapter context
   \param sessionId             -session ID of the session which needs to be deleted.
-    
+
   \sa
   --------------------------------------------------------------------------*/
 void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry);
@@ -544,17 +544,12 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry);
 /*--------------------------------------------------------------------------
   \brief peDeleteSession() - Returns the SME session ID and Transaction ID .
 
-    
+
   \param pMac                   - pointer to global adapter context
   \param sessionId             -session ID of the session which needs to be deleted.
-    
+
   \sa
   --------------------------------------------------------------------------*/
 
 
 #endif //#if !defined( __LIM_SESSION_H )
-
-
-
-
-

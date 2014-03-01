@@ -1470,4 +1470,10 @@ typedef __ani_attr_pre_packed struct sRemBeaconFilterMsg
     tANI_U8  ucRemIeId[1];
 }  __ani_attr_packed tRemBeaconFilterMsg, *tpRemBeaconFilterMsg;
 
+typedef __ani_attr_pre_packed struct sDisableIntraBssFwd
+{
+   tANI_U16  sessionId;
+   tANI_BOOLEAN disableintrabssfwd;
+} __ani_attr_packed tDisableIntraBssFwd, *tpDisableIntraBssFwd;
+
 #endif /* _HALMSGAPI_H_ */

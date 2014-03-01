@@ -116,4 +116,3 @@ void macTraceMsgTxNew(tpAniSirGlobal pMac, tANI_U8 module, tANI_U8 session, tANI
 #endif
 
 #endif
-

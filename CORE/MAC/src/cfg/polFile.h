@@ -29,10 +29,10 @@
 //
 //  File:         polFile.h
 //
-//  Description:  Structures that define the firmware file format.                
+//  Description:  Structures that define the firmware file format.
 //
 //  Author:       Larry Cawley
-// 
+//
 ////
 //  Change History:
 //  04/09/2002 - LAC - Initial version.
@@ -43,7 +43,7 @@
 
 
 
-   
+
 // File format
 //
 //  byte 0        1        2       3
@@ -70,7 +70,7 @@
 // |                                    |                             |
 // | Directory Entry 1 Length           |   DirEntryLength            |
 // +------------------------------------+                        <----+
-// |            . . .                   |                        . . . 
+// |            . . .                   |                        . . .
 // +------------------------------------+                        <----+
 // |                                    |                             |
 // | Directory Entry n Type             |                             |
@@ -102,7 +102,7 @@
 // +---------+---------+
 //
 //
-//         
+//
 //
 
 
@@ -171,4 +171,3 @@ __inline unsigned short polFileChkSum( unsigned short *FileData, unsigned long N
 
 
 #endif
-

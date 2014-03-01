@@ -58,7 +58,7 @@
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 #include "vos_diag_core_log.h"
-#endif //FEATURE_WLAN_DIAG_SUPPORT 
+#endif //FEATURE_WLAN_DIAG_SUPPORT
 
 /**
  * Number of bytes of variation in beacon length from the last beacon
@@ -92,8 +92,8 @@ ap_beacon_process(
             if (pBcnStruct->channelNumber == psessionEntry->currentOperChannel)
             {
               //11a (non HT) AP  overlaps or
-              //HT AP with HT op mode as mixed overlaps.              
-              //HT AP with HT op mode as overlap legacy overlaps.                            
+              //HT AP with HT op mode as mixed overlaps.
+              //HT AP with HT op mode as overlap legacy overlaps.
               if ((!pBcnStruct->HTInfo.present) ||
                   (eSIR_HT_OP_MODE_MIXED == pBcnStruct->HTInfo.opMode) ||
                   (eSIR_HT_OP_MODE_OVERLAP_LEGACY == pBcnStruct->HTInfo.opMode))
@@ -118,7 +118,7 @@ ap_beacon_process(
                   }
               }
             }
-        }    
+        }
     }
     else if(SIR_BAND_2_4_GHZ == rfBand)
     {
@@ -126,10 +126,10 @@ ap_beacon_process(
         if ((phyMode == WNI_CFG_PHY_MODE_11G) &&
               (false == psessionEntry->htCapability))
         {
-            if (pBcnStruct->channelNumber == psessionEntry->currentOperChannel)        
+            if (pBcnStruct->channelNumber == psessionEntry->currentOperChannel)
             {
-                if (((!(pBcnStruct->erpPresent)) && 
-                      !(pBcnStruct->HTInfo.present))|| 
+                if (((!(pBcnStruct->erpPresent)) &&
+                      !(pBcnStruct->HTInfo.present))||
                     //if erp not present then  11B AP overlapping
                     (pBcnStruct->erpPresent &&
                     (pBcnStruct->erpIEInfo.useProtection ||
@@ -138,25 +138,25 @@ ap_beacon_process(
 #ifdef FEATURE_WLAN_CCX
                     if( psessionEntry->isCCXconnection )
                     {
-                        VOS_TRACE (VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO, 
+                        VOS_TRACE (VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
                             "%s: [INFOLOG]CCX 11g erpPresent=%d useProtection=%d nonErpPresent=%d", __func__,
                             pBcnStruct->erpPresent,
                             pBcnStruct->erpIEInfo.useProtection,
                             pBcnStruct->erpIEInfo.nonErpPresent);
-                    } 
-#endif 
+                    }
+#endif
                     limEnableOverlap11gProtection(pMac, pBeaconParams, pMh,psessionEntry);
                 }
 
             }
-        }        
+        }
         // handling the case when HT AP has overlapping legacy BSS.
         else if(psessionEntry->htCapability)
-        {             
+        {
             if (pBcnStruct->channelNumber == psessionEntry->currentOperChannel)
             {
-              if (((!(pBcnStruct->erpPresent)) && 
-                    !(pBcnStruct->HTInfo.present))|| 
+              if (((!(pBcnStruct->erpPresent)) &&
+                    !(pBcnStruct->HTInfo.present))||
                   //if erp not present then  11B AP overlapping
                   (pBcnStruct->erpPresent &&
                   (pBcnStruct->erpIEInfo.useProtection ||
@@ -165,24 +165,24 @@ ap_beacon_process(
 #ifdef FEATURE_WLAN_CCX
                   if( psessionEntry->isCCXconnection )
                   {
-                      VOS_TRACE (VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO, 
+                      VOS_TRACE (VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
                           "%s: [INFOLOG]CCX 11g erpPresent=%d useProtection=%d nonErpPresent=%d", __func__,
                           pBcnStruct->erpPresent,
                           pBcnStruct->erpIEInfo.useProtection,
                           pBcnStruct->erpIEInfo.nonErpPresent);
-                  }  
-#endif 
+                  }
+#endif
                   limEnableOverlap11gProtection(pMac, pBeaconParams, pMh,psessionEntry);
               }
 
               //11g device overlaps
               if (pBcnStruct->erpPresent &&
-                  !(pBcnStruct->erpIEInfo.useProtection || 
+                  !(pBcnStruct->erpIEInfo.useProtection ||
                     pBcnStruct->erpIEInfo.nonErpPresent) && !(pBcnStruct->HTInfo.present))
               {
                     limUpdateOverlapStaParam(pMac, pMh->bssId, &(psessionEntry->gLimOverlap11gParams));
 
-                  if (psessionEntry->gLimOverlap11gParams.numSta && 
+                  if (psessionEntry->gLimOverlap11gParams.numSta &&
                       !psessionEntry->gLimOverlap11gParams.protectionEnabled)
                   {
                       limEnableHtProtectionFrom11g(pMac, true, true, pBeaconParams,psessionEntry);
@@ -197,7 +197,7 @@ ap_beacon_process(
               {
                   //if we are not already in mixed mode or legacy mode as HT operating mode
                   //and received beacon has HT operating mode as legacy
-                  //then we need to enable protection from 11g station. 
+                  //then we need to enable protection from 11g station.
                   //we don't need protection from 11b because if that's needed then our operating
                   //mode would have already been set to legacy in the previous blocks.
                   if(eSIR_HT_OP_MODE_OVERLAP_LEGACY == pBcnStruct->HTInfo.opMode)
@@ -212,7 +212,7 @@ ap_beacon_process(
                               limEnableHtProtectionFrom11g(pMac, true, true, pBeaconParams,psessionEntry);
                           }
                       }
-                  }           
+                  }
                   else if(eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT == pBcnStruct->HTInfo.opMode)
                   {
                       limUpdateOverlapStaParam(pMac, pMh->bssId, &(psessionEntry->gLimOverlapHt20Params));
@@ -223,9 +223,9 @@ ap_beacon_process(
                       }
                   }
               }
-              
+
             }
-        }     
+        }
     }
     pMac->sch.gSchBcnIgnored++;
 }
@@ -238,22 +238,22 @@ ap_beacon_process(
  * __schBeaconProcessNoSession
  *
  * FUNCTION:
- * Process the received beacon frame when 
- *  -- Station is not scanning 
+ * Process the received beacon frame when
+ *  -- Station is not scanning
  *  -- No corresponding session is found
  *
  * LOGIC:
  *        Following scenarios exist when Session Does not exist:
- *             * IBSS Beacons, when IBSS session already exists with same SSID, 
+ *             * IBSS Beacons, when IBSS session already exists with same SSID,
  *                but from STA which has not yet joined and has a different BSSID.
  *                - invoke limHandleIBSScoalescing with the session context of existing IBSS session.
  *
  *             * IBSS Beacons when IBSS session does not exist, only Infra or BT-AMP session exists,
  *                then save the beacon in the scan results and throw it away.
- *                
+ *
  *             * Infra Beacons
- *                - beacons received when no session active 
- *                    should not come here, it should be handled as part of scanning, 
+ *                - beacons received when no session active
+ *                    should not come here, it should be handled as part of scanning,
  *                    else they should not be getting received, should update scan results and drop it if that happens.
  *                - beacons received when IBSS session active:
  *                    update scan results and drop it.
@@ -263,23 +263,23 @@ ap_beacon_process(
  *                    update scan results and drop it.
  *                - beacons received when Infra/BT-STA  or Infra/IBSS is active.
  *                    update scan results and drop it.
- * 
+ *
 
  */
 static void __schBeaconProcessNoSession(tpAniSirGlobal pMac, tpSchBeaconStruct pBeacon,tANI_U8* pRxPacketInfo)
 {
     tpPESession psessionEntry = NULL;
- 
+
     if(  (psessionEntry = limIsIBSSSessionActive(pMac)) != NULL)
     {
         limHandleIBSScoalescing(pMac, pBeacon, pRxPacketInfo, psessionEntry);
     }
 
     //If station(STA/BT-STA/BT-AP/IBSS) mode, Always save the beacon in the scan results, if atleast one session is active
-    //schBeaconProcessNoSession will be called only when there is atleast one session active, so not checking 
+    //schBeaconProcessNoSession will be called only when there is atleast one session active, so not checking
     //it again here.
     limCheckAndAddBssDescription(pMac, pBeacon, pRxPacketInfo, eANI_BOOLEAN_FALSE, eANI_BOOLEAN_FALSE);
-    return;  
+    return;
 }
 
 
@@ -288,8 +288,8 @@ static void __schBeaconProcessNoSession(tpAniSirGlobal pMac, tpSchBeaconStruct p
  * __schBeaconProcessForSession
  *
  * FUNCTION:
- * Process the received beacon frame when 
- *  -- Station is not scanning 
+ * Process the received beacon frame when
+ *  -- Station is not scanning
  *  -- Corresponding session is found
  *
  * LOGIC:
@@ -300,15 +300,15 @@ static void __schBeaconProcessNoSession(tpAniSirGlobal pMac, tpSchBeaconStruct p
  *                 - call schBeaconProcessFromAP with that session's context.
  *             * BTAMP STA receving beacons from BTAMP AP
  *                 - call schBeaconProcessFromAP with that session's context.
- *             * BTAMP AP receiving beacons from BTAMP STA 
+ *             * BTAMP AP receiving beacons from BTAMP STA
  *               (here need to make sure BTAP creates session entry for BT STA)
- *                - just update the beacon count for heart beat purposes for now, 
+ *                - just update the beacon count for heart beat purposes for now,
  *                  for now, don't process the beacon.
  *             * Infra/IBSS both active and receives IBSS beacon:
  *                  - call limHandleIBSScoalescing with that session context.
  *             * Infra/IBSS both active and receives Infra beacon:
  *                  - call schBeaconProcessFromAP with that session's context.
- *                     any updates to EDCA parameters will be effective for IBSS as well, 
+ *                     any updates to EDCA parameters will be effective for IBSS as well,
  *                     even though no WMM for IBSS ?? Need to figure out how to handle this scenario.
  *             * Infra/BTSTA both active and receive Infra beacon.
  *                  - change in EDCA parameters on Infra affect the BTSTA link.
@@ -324,7 +324,7 @@ static void __schBeaconProcessNoSession(tpAniSirGlobal pMac, tpSchBeaconStruct p
 
 static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
                                                                      tpSchBeaconStruct   pBeacon,
-                                                                     tANI_U8* pRxPacketInfo,    
+                                                                     tANI_U8* pRxPacketInfo,
                                                                      tpPESession psessionEntry)
 {
     tANI_U32                     bi;
@@ -350,12 +350,12 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     {
         limHandleIBSScoalescing(pMac, pBeacon,  pRxPacketInfo, psessionEntry);
     }
-    else if(  (eLIM_STA_ROLE == psessionEntry->limSystemRole) || 
+    else if(  (eLIM_STA_ROLE == psessionEntry->limSystemRole) ||
                   (eLIM_BT_AMP_STA_ROLE == psessionEntry->limSystemRole))
     {
         /*
         *  This handles two cases:
-        *  -- Infra STA receving beacons from AP  
+        *  -- Infra STA receving beacons from AP
         *  -- BTAMP_STA receving beacons from BTAMP_AP
         */
         //Always save the beacon into LIM's cached scan results
@@ -363,7 +363,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
 
         /**
                * This is the Beacon received from the AP  we're currently associated with. Check
-               * if there are any changes in AP's capabilities 
+               * if there are any changes in AP's capabilities
                */
         if((tANI_U8) pBeacon->channelNumber != psessionEntry->currentOperChannel)
         {
@@ -436,7 +436,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
                 else if(pStaDs != NULL)
                 {
                     // If needed, downgrade the EDCA parameters
-                    limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry); 
+                    limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
 
                     if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE)
                         limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
@@ -461,7 +461,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
           (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) )
     {
         /* Channel Switch information element updated */
-        if(pBeacon->channelSwitchPresent || 
+        if(pBeacon->channelSwitchPresent ||
             pBeacon->propIEinfo.propChannelSwitchPresent)
         {
             limUpdateChannelSwitch(pMac, pBeacon, psessionEntry);
@@ -678,7 +678,7 @@ fail:
  * @param pRxPacketInfo pointer to buffer descriptor
  * @return None
  */
- 
+
 void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession psessionEntry)
 {
     static tSchBeaconStruct beaconStruct;
@@ -704,15 +704,15 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession p
     /*
     * First process the beacon in the context of any existing AP or BTAP session.
     * This takes cares of following two scenarios:
-    *  - psessionEntry = NULL:  
+    *  - psessionEntry = NULL:
     *      e.g. beacon received from a neighboring BSS, you want to apply the protection settings to BTAP/InfraAP beacons
-    *  - psessionEntry is non NULL: 
+    *  - psessionEntry is non NULL:
     *      e.g. beacon received is from the INFRA AP to which you are connected on another concurrent link.
     *      In this case also, we want to apply the protection settings(as advertised by Infra AP) to BTAP beacons
-    * 
-    * 
+    *
+    *
     */
-    
+
     if (((pAPSession = limIsApSessionActive(pMac)) != NULL)
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
           && (!(WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo)))
@@ -738,11 +738,11 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession p
     */
     if(psessionEntry == NULL)
     {
-        __schBeaconProcessNoSession(pMac,   &beaconStruct, pRxPacketInfo );   
+        __schBeaconProcessNoSession(pMac,   &beaconStruct, pRxPacketInfo );
     }
     else
     {
-        __schBeaconProcessForSession(pMac,   &beaconStruct, pRxPacketInfo, psessionEntry );   
+        __schBeaconProcessForSession(pMac,   &beaconStruct, pRxPacketInfo, psessionEntry );
     }
 
 }
@@ -773,7 +773,7 @@ tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *e
     tANI_U8 i;
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
     vos_log_qos_edca_pkt_type *log_ptr = NULL;
-#endif //FEATURE_WLAN_DIAG_SUPPORT 
+#endif //FEATURE_WLAN_DIAG_SUPPORT
 
     PELOG1(schLog(pMac, LOG1, FL("Updating parameter set count: Old %d ---> new %d"),
            psessionEntry->gLimEdcaParamSetCount, edca->qosInfo.count);)
@@ -812,7 +812,7 @@ tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *e
     {
         PELOG1(schLog(pMac, LOG1, FL("AC[%d]:  AIFSN: %d, ACM %d, CWmin %d, CWmax %d, TxOp %d"),
             i,
-            psessionEntry->gLimEdcaParams[i].aci.aifsn, 
+            psessionEntry->gLimEdcaParams[i].aci.aifsn,
             psessionEntry->gLimEdcaParams[i].aci.acm,
             psessionEntry->gLimEdcaParams[i].cw.min,
             psessionEntry->gLimEdcaParams[i].cw.max,

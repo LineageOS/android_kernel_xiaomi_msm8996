@@ -1321,6 +1321,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_TDLS_PEER_DISCONNECTED    SIR_HAL_TDLS_PEER_DISCONNECTED
 #endif
 #endif
+#define WDA_SET_SAP_INTRABSS_DIS      SIR_HAL_SET_SAP_INTRABSS_DIS
 
 /* Message to Indicate Radar Presence on SAP Channel */
 #define WDA_DFS_RADAR_IND           SIR_HAL_DFS_RADAR_IND

@@ -733,7 +733,7 @@ NONE
 0    11    5
 
 *
-* For 11b/g, use 1Mbps 
+* For 11b/g, use 1Mbps
 * as the default beaconRateIndex and
 * nonBeaconRateIndex.
 *
@@ -777,7 +777,7 @@ V    RW    NP
 HAL
 0    44     0
 
-#ENUM AUTO 	                                0
+#ENUM AUTO	                                0
 
 #ENUM 1MBPS                                 1
 #ENUM 2MBPS                                 2
@@ -1004,12 +1004,12 @@ NONE
 
 *
 * ACCEPT Short Slot Association only
-*   
-* 1:  If AP supports shortSlot, then AP will accept 
+*
+* 1:  If AP supports shortSlot, then AP will accept
 *     association only from stations that supports
 *     supports short slot
-* 0:  AP supports shortSlot, but AP will accept association 
-*     from stations regardless of whether station supports 
+* 0:  AP supports shortSlot, but AP will accept association
+*     from stations regardless of whether station supports
 *     short slot or long slot
 *
 WNI_CFG_ACCEPT_SHORT_SLOT_ASSOC_ONLY    I    4    9
@@ -1202,10 +1202,10 @@ NONE
 WNI_CFG_MANUFACTURER_PRODUCT_VERSION    S    33    8
 V    RO    NP
 NONE
-6    0x53 0x4e 0x31 0x32 0x33 0x34 
+6    0x53 0x4e 0x31 0x32 0x33 0x34
 V    RO    NP
 NONE
-6    0x53 0x4e 0x31 0x32 0x33 0x34 
+6    0x53 0x4e 0x31 0x32 0x33 0x34
 
 *
 * Multi Domain Capability (11d) Enable
@@ -1354,8 +1354,8 @@ HAL
 #ENUM RX                3
 #ENUM MASK              0xf
 #ENUM CHAIN_0_OFFSET    0
-#ENUM CHAIN_1_OFFSET    4 
-#ENUM CHAIN_2_OFFSET    8 
+#ENUM CHAIN_1_OFFSET    4
+#ENUM CHAIN_2_OFFSET    8
 
 
 *
@@ -1509,7 +1509,7 @@ NONE
 *11g ==> protection from 11g
 *11b ==> protection from 11b
 *each byte will have the following info
-*bit7 	  bit6 	 bit5   bit4 bit3   bit2  bit1 bit0
+*bit7	  bit6	 bit5   bit4 bit3   bit2  bit1 bit0
 *reserved reserved RIFS Lsig n-GF ht20 11g 11b
 **********************************
 WNI_CFG_PROTECTION_ENABLED    I    4    9
@@ -1562,11 +1562,11 @@ NONE
 * 4 :  RTS (threshold 0)
 * 5 :  auto
 
-WNI_CFG_FORCE_POLICY_PROTECTION    I    4    9 
-V    RW    NP  RESTART 
+WNI_CFG_FORCE_POLICY_PROTECTION    I    4    9
+V    RW    NP  RESTART
 HAL
-0    5    5 
-V    RW    NP  RESTART 
+0    5    5
+V    RW    NP  RESTART
 HAL
 0    5    5
 
@@ -1704,13 +1704,13 @@ NONE
 0    65535    1000
 
 
- * Max SP Length indicates the max number of 
+ * Max SP Length indicates the max number of
  * total buffered MSDUs and MMPDUs the WMM AP
  * may deliver to WMM STA during any service period
- * triggered by WMM STA. 
+ * triggered by WMM STA.
  * 1) If AP sends WMM IE with the UAPSD bit 0, max_sp_length=0
- * 2) If WMM STA's all 4 UAPSD flag are set to 0, max_sp_length=0 
- * 3) If AP sends WMM IE with UAPSD=1, and at least one of stations 
+ * 2) If WMM STA's all 4 UAPSD flag are set to 0, max_sp_length=0
+ * 3) If AP sends WMM IE with UAPSD=1, and at least one of stations
  *    UAPSD flag is set to 1, then max_sp_length can be set to:
  *    [b5:b6]=0x00: WMM AP may deliver all buffered frames
  *    [b5:b6]=0x10: WMM AP may deliver max 2 buffered frames
@@ -2277,8 +2277,8 @@ LIM
 *
 *  When the channel is 40MHz wide, this CFG indicates
 *  if the secondary channel is located above (at
-*  a higher frequency), or located below (at a 
-*  lower frequency). 
+*  a higher frequency), or located below (at a
+*  lower frequency).
 *
 *  0 - There is no secondary channel. The channel is 20Mhz
 *  1 - LOWER:  Secondary channel 40MHZ is located below the primary channel
@@ -2468,11 +2468,11 @@ HAL
 *
 WNI_CFG_HT_RX_STBC  I	4   7
 V    RW    NP   RESTART
-LIM 
-0  	3 	1
+LIM
+0	3	1
 V    RW    NP   RESTART
-LIM 
-0  	3 	1
+LIM
+0	3	1
 
 
 *
@@ -2730,23 +2730,23 @@ LIM
 * By default set to zero for 3895 octets
 *
 WNI_CFG_VHT_MAX_MPDU_LENGTH  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    2    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    2    0
 
 *
 * Supported Channel Width Set
-* By default set to zero for 
+* By default set to zero for
 * STAs does not support either 160 or 80+80MHz
 *
 WNI_CFG_VHT_SUPPORTED_CHAN_WIDTH_SET  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    0    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    0    0
 
@@ -2755,10 +2755,10 @@ LIM
 * Riva/Pronto supports, default set to 1
 *
 WNI_CFG_VHT_LDPC_CODING_CAP  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
 
@@ -2767,10 +2767,10 @@ LIM
 * Riva/Pronto supports, default set to 1
 *
 WNI_CFG_VHT_SHORT_GI_80MHZ  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    1
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    1
 
@@ -2779,10 +2779,10 @@ LIM
 * Riva/Pronto does not supports, default set to 0
 *
 WNI_CFG_VHT_SHORT_GI_160_AND_80_PLUS_80MHZ  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
 
@@ -2791,10 +2791,10 @@ LIM
 * Riva/Pronto does not supports, default set to 0
 *
 WNI_CFG_VHT_TXSTBC  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
 
@@ -2803,10 +2803,10 @@ LIM
 * Riva/Pronto supports, default set to 1
 *
 WNI_CFG_VHT_RXSTBC  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    1
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    1
 
@@ -2815,10 +2815,10 @@ LIM
 * Riva/Pronto does not supports, default set to 0
 *
 WNI_CFG_VHT_SU_BEAMFORMER_CAP  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
 
@@ -2827,10 +2827,10 @@ LIM
 * Riva does not support, But Pronto supports, default set to 0
 *
 WNI_CFG_VHT_SU_BEAMFORMEE_CAP  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
 
@@ -2839,10 +2839,10 @@ LIM
 * Riva does not support,Pronto supports, default set to 0
 *
 WNI_CFG_VHT_CSN_BEAMFORMEE_ANT_SUPPORTED  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    3    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    3    0
 
@@ -2852,10 +2852,10 @@ LIM
 * Riva/Pronto does not support beamformer, default set to 0
 *
 WNI_CFG_VHT_NUM_SOUNDING_DIMENSIONS  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    3    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    3    0
 
@@ -2864,10 +2864,10 @@ LIM
 * Riva/Pronto does not support, default set to 0
 *
 WNI_CFG_VHT_MU_BEAMFORMER_CAP  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
 
@@ -2876,10 +2876,10 @@ LIM
 * Riva does not support but pronto supports, default set to 0
 *
 WNI_CFG_VHT_MU_BEAMFORMEE_CAP  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
 
@@ -2888,10 +2888,10 @@ LIM
 * Riva does not support but pronto supports, default set to 0
 *
 WNI_CFG_VHT_TXOP_PS  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
 
@@ -2900,10 +2900,10 @@ LIM
 * Riva does not support but pronto supports, default set to 0
 *
 WNI_CFG_VHT_HTC_VHTC_CAP  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    0
 
@@ -2912,10 +2912,10 @@ LIM
 * 2^(13+Max AMPDU Length)-1, default set to 0
 *
 WNI_CFG_VHT_AMPDU_LEN_EXPONENT  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    7    3
-V    RW    NP    
+V    RW    NP
 LIM
 0    7    3
 
@@ -2924,10 +2924,10 @@ LIM
 * Riva does not support but pronto supports, default set to 0
 *
 WNI_CFG_VHT_LINK_ADAPTATION_CAP  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    3    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    3    0
 
@@ -2935,10 +2935,10 @@ LIM
 * VHT Rx Antenna Pattern Consistency
 *
 WNI_CFG_VHT_RX_ANT_PATTERN  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    1
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    1
 
@@ -2946,10 +2946,10 @@ LIM
 * VHT Tx Antenna Pattern Consistency
 *
 WNI_CFG_VHT_TX_ANT_PATTERN  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    1
-V    RW    NP    
+V    RW    NP
 LIM
 0    1    1
 
@@ -2959,10 +2959,10 @@ LIM
 * number of spacial streams. Riva supports MCS 0-9
 *
 WNI_CFG_VHT_RX_MCS_MAP  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    0xFFFF    0xFFFE
-V    RW    NP    
+V    RW    NP
 LIM
 0    0xFFFF    0xFFFE
 
@@ -2971,10 +2971,10 @@ LIM
 * number of spacial streams.
 *
 WNI_CFG_VHT_TX_MCS_MAP  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    0xFFFF    0xFFFE
-V    RW    NP    
+V    RW    NP
 LIM
 0    0xFFFF    0xFFFE
 
@@ -2982,10 +2982,10 @@ LIM
 * Rx Highest supported data rate.
 *
 WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    780   780
-V    RW    NP    
+V    RW    NP
 LIM
 0    780   780
 
@@ -2993,10 +2993,10 @@ LIM
 * Tx Highest supported data rate.
 *
 WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    780    780
-V    RW    NP    
+V    RW    NP
 LIM
 0    780    780
 
@@ -3006,10 +3006,10 @@ LIM
 * set to 1 for 80MHz. 2->160Mhz, 3->80+80MHz
 *
 WNI_CFG_VHT_CHANNEL_WIDTH  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    3    0
-V    RW    NP    
+V    RW    NP
 LIM
 0    3    0
 
@@ -3018,13 +3018,13 @@ LIM
 #ENUM 160MHZ         2
 #ENUM 80_PLUS_80MHZ  3
 *
-* Channel center freq Seg1 
+* Channel center freq Seg1
 *
 WNI_CFG_VHT_CHANNEL_CENTER_FREQ_SEGMENT1  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
-0    256   0 
-V    RW    NP    
+0    256   0
+V    RW    NP
 LIM
 0    256   0
 
@@ -3032,10 +3032,10 @@ LIM
 * Channel center freq Seg2 for 80+80 Mhz
 *
 WNI_CFG_VHT_CHANNEL_CENTER_FREQ_SEGMENT2  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
-0    0     0 
-V    RW    NP    
+0    0     0
+V    RW    NP
 LIM
 0    0     0
 
@@ -3043,10 +3043,10 @@ LIM
 * Basic MCS Set
 *
 WNI_CFG_VHT_BASIC_MCS_SET  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
 0    0xFFFF    0xFFFE
-V    RW    NP    
+V    RW    NP
 LIM
 0    0xFFFF    0xFFFE
 
@@ -3054,10 +3054,10 @@ LIM
 * MU-MIMO Capable STA Count
 *
 WNI_CFG_VHT_MU_MIMO_CAP_STA_COUNT  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
-0     4    0 
-V    RW    NP    
+0     4    0
+V    RW    NP
 LIM
 0     4     0
 
@@ -3065,10 +3065,10 @@ LIM
 * Spatial Stream Under-Utilization
 *
 WNI_CFG_VHT_SS_UNDER_UTIL  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
-0     0    0 
-V    RW    NP    
+0     0    0
+V    RW    NP
 LIM
 0     0     0
 
@@ -3076,10 +3076,10 @@ LIM
 * Forty MHZ Utilization
 *
 WNI_CFG_VHT_40MHZ_UTILIZATION  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
-0     0    0 
-V    RW    NP    
+0     0    0
+V    RW    NP
 LIM
 0     0     0
 
@@ -3087,10 +3087,10 @@ LIM
 * Eighty MHz Utilization
 *
 WNI_CFG_VHT_80MHZ_UTILIZATION  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
-0     0    0 
-V    RW    NP    
+0     0    0
+V    RW    NP
 LIM
 0     0     0
 
@@ -3098,16 +3098,16 @@ LIM
 * Hundred Sixty MHz Utilization
 *
 WNI_CFG_VHT_160MHZ_UTILIZATION  I    4    19
-V    RW    NP    
+V    RW    NP
 LIM
-0     0    0 
-V    RW    NP    
+0     0    0
+V    RW    NP
 LIM
 0     0     0
 
 *
 * Maximum AMSDU length
-* User can set it to either 3839 or 7935 bytes. 
+* User can set it to either 3839 or 7935 bytes.
 *
 WNI_CFG_MAX_AMSDU_LENGTH    I    4    7
 V    RW    NP    RESTART
@@ -3146,10 +3146,10 @@ LIM
 * Defines number of buffers advertised in ADDBA
 *
 WNI_CFG_NUM_BUFF_ADVERT  I    4    7
-V    RW    NP    
+V    RW    NP
 LIM
 0    128    64
-V    RW    NP    
+V    RW    NP
 LIM
 0    128    64
 
@@ -3243,8 +3243,8 @@ LIM
 
 
 *
-* Period for which Firmware will collect the 
-* RSSI stats. Its in units of beacon interval. 
+* Period for which Firmware will collect the
+* RSSI stats. Its in units of beacon interval.
 * Rssi Filter period should always be >=
 * the num_beacon_per_rssi_average.
 *
@@ -3294,12 +3294,12 @@ LIM
 
 
 *
-* Ignore DTIM support - If disabled(value=0), HAL will 
-* try to align the Listen Interval to the DTIM 
+* Ignore DTIM support - If disabled(value=0), HAL will
+* try to align the Listen Interval to the DTIM
 * period and the following rules will be applied:
 * 1) If LI=DTIM, then set LI=DTIM
 * 2) If LI<DTIM, then align LI to DTIM
-* 3) If LI>DTIM, then set LI=DTIM 
+* 3) If LI>DTIM, then set LI=DTIM
 *
 WNI_CFG_IGNORE_DTIM    I    4    5
 V    RW    NP
@@ -3311,8 +3311,8 @@ NONE
 
 * *********************************************************
 *
-* WoWLAN Configuration  The following configurations 
-* are valid only when magicPktEnable = 1. 
+* WoWLAN Configuration  The following configurations
+* are valid only when magicPktEnable = 1.
 *
 WNI_CFG_WOWLAN_UCAST_PATTERN_FILTER_ENABLE    I    4    5
 V    RW    NP
@@ -3494,7 +3494,7 @@ HAL
 
 
 *
-* Maximum number of MPDUs in single A-MPDU. 
+* Maximum number of MPDUs in single A-MPDU.
 *
 WNI_CFG_MAX_MPDUS_IN_AMPDU    I    4    8
 V    RW    NP
@@ -3659,7 +3659,7 @@ LIM
 WNI_CFG_WPS_ENABLE  I   4   7
 V    RW     NP
 LIM
-0    0xff    0 
+0    0xff    0
 V    RW     NP
 LIM
 0    0xff    0
@@ -3670,7 +3670,7 @@ LIM
 WNI_CFG_WPS_STATE  I   4   7
 V    RW     NP
 LIM
-0    0xff   1 
+0    0xff   1
 V    RW     NP
 LIM
 0    0xff   1
@@ -3698,7 +3698,7 @@ LIM
 WNI_CFG_WPS_VERSION  I   4   7
 V    RW     NP
 LIM
-0    0xff   0x10 
+0    0xff   0x10
 V    RW     NP
 LIM
 0    0xff   0x10
@@ -3713,7 +3713,7 @@ LIM
 WNI_CFG_WPS_REQUEST_TYPE  I   4   7
 V    RW     NP
 LIM
-0    0xff   0x00 
+0    0xff   0x00
 V    RW     NP
 LIM
 0    0xff   0x03
@@ -3765,10 +3765,10 @@ LIM
 WNI_CFG_WPS_UUID    S    16    8
 V    RW    NP
 LIM
-6    0xa 0xb 0xc 0xd 0xe 0xf 
+6    0xa 0xb 0xc 0xd 0xe 0xf
 V    RW    NP
 LIM
-6    0xa 0xb 0xc 0xd 0xe 0xf 
+6    0xa 0xb 0xc 0xd 0xe 0xf
 
 ************************************************************************
 * The following cfgs contains the primary type of the device. Its format
@@ -3832,7 +3832,7 @@ LIM
 WNI_CFG_WPS_PIMARY_DEVICE_OUI  I   4   7
 V    RW     NP
 LIM
-0    0xffffffff   0x0050f204 
+0    0xffffffff   0x0050f204
 V    RW     NP
 LIM
 0    0xffffffff   0x0050f204
@@ -3949,7 +3949,7 @@ LIM
 WNI_CFG_WPS_DEVICE_PASSWORD_ID  I   4   7
 V    RW     NP
 LIM
-0    0xffffffff   0 
+0    0xffffffff   0
 V    RW     NP
 LIM
 0    0xffffffff   0
@@ -4113,7 +4113,7 @@ HAL
 
 
 *
-* Single RC for all TID 
+* Single RC for all TID
 *
 
 WNI_CFG_SINGLE_TID_RC    I    4    7
@@ -4125,14 +4125,14 @@ NONE
 0    1    1
 
 *
-* RRM Enabled 
+* RRM Enabled
 *
 
 WNI_CFG_RRM_ENABLED    I    4    8
-V    RW    NP 
+V    RW    NP
 NONE
 0    1    0
-V    RW    NP 
+V    RW    NP
 NONE
 0    1    0
 
@@ -4143,10 +4143,10 @@ NONE
 *
 
 WNI_CFG_RRM_OPERATING_CHAN_MAX    I    4    8
-V    RW    NP 
+V    RW    NP
 NONE
 0    8    0
-V    RW    NP 
+V    RW    NP
 NONE
 0    8    0
 
@@ -4155,13 +4155,13 @@ NONE
 *
 
 WNI_CFG_RRM_NON_OPERATING_CHAN_MAX    I    4    8
-V    RW    NP 
+V    RW    NP
 NONE
 0    8    0
-V    RW    NP 
+V    RW    NP
 NONE
 0    8    0
-   
+
 *
 * TX power control feature
 *
@@ -4188,7 +4188,7 @@ HAL
 0    3    0
 
 *
-*  BTC DHCP No of Bt slots to block 
+*  BTC DHCP No of Bt slots to block
 *
 WNI_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK    I    4    7
 V    RW    NP
@@ -4199,7 +4199,7 @@ HAL
 0    0xFF     0
 
 *
-*  Config parameter to Enable/Disable Dynamic PS-Poll mechanism 
+*  Config parameter to Enable/Disable Dynamic PS-Poll mechanism
 *  0: Disable, x: FW will send x number of NULL frames before switching to PS-Poll mexhanism
 *
 WNI_CFG_DYNAMIC_PS_POLL_VALUE    I    4    7
@@ -4223,7 +4223,7 @@ NONE
 0    80    0
 
 *
-*  Config parameter to Enable/Disable Telescopic Bcn Wakeups 
+*  Config parameter to Enable/Disable Telescopic Bcn Wakeups
 *  0: Disable, 1: Enable
 *
 
@@ -4237,7 +4237,7 @@ HAL
 
 
 *
-*  Config parameter for Transient LI 
+*  Config parameter for Transient LI
 *  0: Disable, x: Transient LI
 *
 
@@ -4250,7 +4250,7 @@ HAL
 0    7    3
 
 *
-*  Config parameter for Idle bcns for Transient LI 
+*  Config parameter for Idle bcns for Transient LI
 *  x: Num Idle bcns before switch to trans LI
 *
 
@@ -4263,7 +4263,7 @@ HAL
 5    255    10
 
 *
-*  Config parameter for Max LI 
+*  Config parameter for Max LI
 *  0: Disable, x: Max LI
 *
 
@@ -4276,7 +4276,7 @@ HAL
 0    7    5
 
 *
-*  Config parameter for Idle bcns for max LI 
+*  Config parameter for Idle bcns for max LI
 *  x: Num Idle bcns before switch to max LI
 *
 
@@ -4289,7 +4289,7 @@ HAL
 5    255    15
 
 *
-*  BTC DHCP No of Bt sub interval during DHCP 
+*  BTC DHCP No of Bt sub interval during DHCP
 *
 WNI_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS    I    4    7
 V    RW    NP
@@ -4299,8 +4299,8 @@ V    RW    NP
 HAL
 0    0xFF     7
 
-* 
-* Infra STA mode Keep alive period (in secs) for 
+*
+* Infra STA mode Keep alive period (in secs) for
 * sending keep alive (Qos)Null frames to the AP.
 * 0 = disabled. Recommended values is 30 secs
 *
@@ -4330,7 +4330,7 @@ LIM
 WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL    I    4    7
 V    RW    NP
 NONE
-1    0xFC  1   
+1    0xFC  1
 V    RW    NP
 NONE
 1    0xFC  1
@@ -4358,9 +4358,9 @@ V    RW    NP
 NONE
 0    0x4     0
 
-* 
-* Softap data available poll period (in milliseconds) for 
-* queueing (Qos)Null frames to the station if there 
+*
+* Softap data available poll period (in milliseconds) for
+* queueing (Qos)Null frames to the station if there
 * is no data available and PS-Poll/Trigger frame is pending.
 * 0 = disabled. Recommended values is 5ms
 *
@@ -4374,7 +4374,7 @@ NONE
 
 *
 * Close loop power control will be enabled if value is set to 1
-* 
+*
 *
 *
 WNI_CFG_ENABLE_CLOSE_LOOP  I   4   0
@@ -4387,7 +4387,7 @@ NONE
 
 *
 * LTE Coexistence will be enabled if value is set to 1
-* 
+*
 *
 *
 WNI_CFG_ENABLE_LTE_COEX  I   4   0
@@ -4422,7 +4422,7 @@ HAL
 
 *
 * MC Addr List power control will be enabled if value is set to 1
-* 
+*
 *
 *
 WNI_CFG_ENABLE_MC_ADDR_LIST  I   4   0
@@ -4448,7 +4448,7 @@ HAL
 
 *
 * Low Power Image Transition will be enabled if value is set to 1
-* 
+*
 *
 *
 WNI_CFG_ENABLE_LPWR_IMG_TRANSITION  I   4   0
@@ -4461,7 +4461,7 @@ NONE
 
 *
 * MCC Adaptive Scheduler will be enabled if value is set to 1
-* 
+*
 *
 *
 WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED  I   4   0
