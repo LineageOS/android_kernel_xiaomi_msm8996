@@ -131,7 +131,7 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
             ol_rx_flush_handler(
                 pdev->txrx_pdev,
                 peer_id, tid,
-                seq_num_start, 
+                seq_num_start,
                 seq_num_end,
                 action);
             break;
@@ -187,9 +187,9 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
             adf_nbuf_map(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
 
             ol_rx_frag_indication_handler(
-                pdev->txrx_pdev, 
-                htt_t2h_msg, 
-                peer_id, 
+                pdev->txrx_pdev,
+                htt_t2h_msg,
+                peer_id,
                 tid);
             break;
         }
@@ -289,10 +289,10 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
             break;
         }
 #endif
-#ifndef REMOVE_PKT_LOG 
+#ifndef REMOVE_PKT_LOG
     case HTT_T2H_MSG_TYPE_PKTLOG:
         {
-            u_int32_t *pl_hdr; 
+            u_int32_t *pl_hdr;
             u_int32_t log_type;
             pl_hdr = (msg_word + 1);
             log_type = (*(pl_hdr + 1) & ATH_PKTLOG_HDR_LOG_TYPE_MASK) >>
@@ -349,9 +349,9 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
 }
 
 /* Generic Target to host Msg/event  handler  for low priority messages
-  Low priority message are handler in a different handler called from 
-  this function . So that the most likely succes path like Rx and 
-  Tx comp   has little code   foot print 
+  Low priority message are handler in a different handler called from
+  this function . So that the most likely succes path like Rx and
+  Tx comp   has little code   foot print
  */
 void
 htt_t2h_msg_handler(void *context, HTC_PACKET *pkt)
@@ -426,17 +426,17 @@ htt_t2h_msg_handler(void *context, HTC_PACKET *pkt)
             status = HTT_TX_COMPL_IND_STATUS_GET(*msg_word);
             num_msdus = HTT_TX_COMPL_IND_NUM_GET(*msg_word);
             if (num_msdus & 0x1) {
-                struct htt_tx_compl_ind_base *compl = (void *)msg_word; 
+                struct htt_tx_compl_ind_base *compl = (void *)msg_word;
 
-                /* 
-                 * Host CPU endianness can be different from FW CPU. This 
+                /*
+                 * Host CPU endianness can be different from FW CPU. This
                  * can result in even and odd MSDU IDs being switched. If
                  * this happens, copy the switched final odd MSDU ID from
-                 * location payload[size], to location payload[size-1], 
+                 * location payload[size], to location payload[size-1],
                  * where the message handler function expects to find it
                  */
                 if (compl->payload[num_msdus] != HTT_TX_COMPL_INV_MSDU_ID) {
-                    compl->payload[num_msdus - 1] = 
+                    compl->payload[num_msdus - 1] =
                         compl->payload[num_msdus];
                 }
             }
@@ -483,17 +483,17 @@ htt_t2h_msg_handler(void *context, HTC_PACKET *pkt)
 
             num_msdus = HTT_TX_COMPL_IND_NUM_GET(*msg_word);
             if (num_msdus & 0x1) {
-                struct htt_tx_compl_ind_base *compl = (void *)msg_word; 
+                struct htt_tx_compl_ind_base *compl = (void *)msg_word;
 
-                /* 
-                 * Host CPU endianness can be different from FW CPU. This 
+                /*
+                 * Host CPU endianness can be different from FW CPU. This
                  * can result in even and odd MSDU IDs being switched. If
                  * this happens, copy the switched final odd MSDU ID from
-                 * location payload[size], to location payload[size-1], 
+                 * location payload[size], to location payload[size-1],
                  * where the message handler function expects to find it
                  */
                 if (compl->payload[num_msdus] != HTT_TX_COMPL_INV_MSDU_ID) {
-                    compl->payload[num_msdus - 1] = 
+                    compl->payload[num_msdus - 1] =
                         compl->payload[num_msdus];
                 }
             }

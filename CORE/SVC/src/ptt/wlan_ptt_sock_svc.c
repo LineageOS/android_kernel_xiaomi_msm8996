@@ -139,8 +139,8 @@ static void ptt_sock_proc_reg_req(tAniHdr *wmsg, int radio)
     * to make sure connection, broadcast READY notification */
    nl_srv_nl_ready_indication();
 #endif /* WLAN_KD_READY_NOTIFIER */
-   /*Save the pid*/    
-   pAdapterHandle->ptt_pid = reg_req->pid;   
+   /*Save the pid*/
+   pAdapterHandle->ptt_pid = reg_req->pid;
    rspmsg.regReq.pid= reg_req->pid;
    rspmsg.wniHdr.type = cpu_to_be16(ANI_MSG_APP_REG_RSP);
    rspmsg.wniHdr.length = cpu_to_be16(sizeof(rspmsg));

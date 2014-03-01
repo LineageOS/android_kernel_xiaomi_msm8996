@@ -162,4 +162,3 @@ v_BOOL_t vos_concurrent_sessions_running(void)
 
     return (j>1);
 }
-

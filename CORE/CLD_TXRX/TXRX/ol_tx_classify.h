@@ -75,15 +75,15 @@ ol_tx_dest_addr_find(
  */
 struct ol_tx_frms_queue_t *
 ol_tx_classify(
-    struct ol_txrx_vdev_t *vdev, 
-    struct ol_tx_desc_t *tx_desc, 
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_tx_desc_t *tx_desc,
     adf_nbuf_t netbuf,
     struct ol_txrx_msdu_info_t *tx_msdu_info);
 
 struct ol_tx_frms_queue_t *
 ol_tx_classify_mgmt(
-    struct ol_txrx_vdev_t *vdev, 
-    struct ol_tx_desc_t *tx_desc, 
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_tx_desc_t *tx_desc,
     adf_nbuf_t netbuf,
     struct ol_txrx_msdu_info_t *tx_msdu_info);
 
@@ -96,4 +96,3 @@ ol_tx_classify_mgmt(
 
 
 #endif /* _OL_TX_CLASSIFY__H_ */
-

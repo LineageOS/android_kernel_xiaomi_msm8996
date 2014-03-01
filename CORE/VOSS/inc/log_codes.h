@@ -39,7 +39,7 @@ General Description
 
 /* DO NOT MODIFY THIS FILE WITHOUT PRIOR APPROVAL
 **
-** Log codes, by design, are a tightly controlled set of values.  
+** Log codes, by design, are a tightly controlled set of values.
 ** Developers may not create log codes at will.
 **
 ** Request new logs using the following process:
@@ -55,11 +55,11 @@ General Description
                              Edit History
 
 $Header: //source/qcom/qct/core/services/diag/api/inc/main/latest/log_codes.h#9 $
-   
+
 when       who     what, where, why
 --------   ---     ----------------------------------------------------------
 07/30/09   dhao    Consolidate log_codes_apps.h
-07/30/09   dhao    Add Last log code definition for Equip ID 11 
+07/30/09   dhao    Add Last log code definition for Equip ID 11
 06/26/09   dhao    Update format the macro
 06/24/09   sar     Reverted last change.
 06/24/09   sar     Added log code for LOG_MC_STM_C.
@@ -72,7 +72,7 @@ when       who     what, where, why
 05/16/01   sfh     Reserved log code 155.
 05/08/01   sfh     Reserved log codes 150 - 154.
 04/06/01   lad     Added definitions of base IDs (such as LOG_WCDMA_BASE_C).
-                   This is currently using temporary ID values in the 0x1000 
+                   This is currently using temporary ID values in the 0x1000
                    range.
 02/23/01   lad     Created file from DMSS log.h.  Log codes only
 
@@ -86,10 +86,10 @@ when       who     what, where, why
 /* -------------------------------------------------------------------------
  * Log equipment IDs.
  * The most significant 4 bits of the 16 bit log code is the equipment ID.
- * Orignally, the mobile was to have an ID, and base stations and other 
+ * Orignally, the mobile was to have an ID, and base stations and other
  * IDs.  As QCT technology diversifies, new equipment IDs are assigned to new
- * technology areas.  0x2000 and 0x3000 are reserved for legacy reasons, so 
- * the first 
+ * technology areas.  0x2000 and 0x3000 are reserved for legacy reasons, so
+ * the first
  * addition starts at 0x4000.
  * ------------------------------------------------------------------------- */
 
@@ -108,15 +108,15 @@ when       who     what, where, why
 
 #define LOG_TOOLS_BASE_C ((v_U16_t) 0xF000)
 
-/* LOG_BASE_C is what was used before expanding the use of the equipment ID. 
+/* LOG_BASE_C is what was used before expanding the use of the equipment ID.
  * TODO: Once all targets are using the "core" diag system, this should be
  * ommitted. */
-#define LOG_BASE_C LOG_1X_BASE_C 
+#define LOG_BASE_C LOG_1X_BASE_C
 
 /* -------------------------------------------------------------------------
  * Log Codes
- *   These codes identify the kind of information contained in a log entry. 
- *   They are used in conjunction with the 'code' field of the log entry 
+ *   These codes identify the kind of information contained in a log entry.
+ *   They are used in conjunction with the 'code' field of the log entry
  *   header.  The data types associated with each code are defined below.
  * ------------------------------------------------------------------------- */
 
@@ -140,11 +140,11 @@ when       who     what, where, why
 
 /* 5 Reverse link traffic channel message entry */
 #define LOG_R_TC_MSG_C                                 (0x5 + LOG_1X_BASE_C)
-                               
+
 /* 6 Sync channel message entry */
 #define LOG_SC_MSG_C                                   (0x6 + LOG_1X_BASE_C)
 
-/* 7 Paging channel message entry */ 
+/* 7 Paging channel message entry */
 #define LOG_PC_MSG_C                                   (0x7 + LOG_1X_BASE_C)
 
 /* 8 Forward link traffic channel message entry */
@@ -191,7 +191,7 @@ when       who     what, where, why
 
 /* 22 Sparse (20ms) AGC / closed loop power control entry */
 #define LOG_S_AGC_PCTL_C                               (0x16 + LOG_1X_BASE_C)
-  
+
 /* 23 Notification of a band class change */
 #define LOG_BAND_CHANGE_C                              (0x17 + LOG_1X_BASE_C)
 
@@ -204,8 +204,8 @@ when       who     what, where, why
 /* 26 General temporal analyzer w/supplemental channels */
 #define LOG_GENRL_TA_SUP_CH_C                          (0x1A + LOG_1X_BASE_C)
 
-/* Featurization Removal requested by CMI 
-#ifdef FEATURE_PLT 
+/* Featurization Removal requested by CMI
+#ifdef FEATURE_PLT
 */
 
 /* 27 Decoder raw bits logging */
@@ -213,9 +213,9 @@ when       who     what, where, why
 
 /* Featurization Removal requested by CMI
 #else
-27 EFS Usage Info - No implementation as yet 
+27 EFS Usage Info - No implementation as yet
 #define LOG_EFS_INFO_C                                 (0x1B + LOG_1X_BASE_C)
-#endif   
+#endif
 */
 
 /* 28 Analog Forward Channel */
@@ -229,7 +229,7 @@ when       who     what, where, why
 
 /* 31 FM Slot Statistis entry */
 #define LOG_ANALOG_FMSLOT_C                            (0x1F + LOG_1X_BASE_C)
-  
+
 /* 32 FOCC Word Sync Count entry */
 #define LOG_ANALOG_WS_COUNT_C                          (0x20 + LOG_1X_BASE_C)
 
@@ -246,10 +246,10 @@ when       who     what, where, why
 #define LOG_FNBDT_MESSAGE_LOG_C                        (0x24 + LOG_1X_BASE_C)
 
 /* Begin IS-2000 LOG features */
- 
-/* 37 RLP RX Frames logging */ 
+
+/* 37 RLP RX Frames logging */
 #define LOG_RLP_RX_FRAMES_C                            (0x25 + LOG_1X_BASE_C)
-  
+
 /* 38 RLP TX Frames logging */
 #define LOG_RLP_TX_FRAMES_C                            (0x26 + LOG_1X_BASE_C)
 
@@ -261,10 +261,10 @@ when       who     what, where, why
 
 /* 41 Forward Link Frame Types logging */
 #define LOG_FWD_FRAME_TYPES_C                          (0x29 + LOG_1X_BASE_C)
-  
+
 /* 42 Reverse Link Frame Types logging */
 #define LOG_REV_FRAME_TYPES_C                          (0x2A + LOG_1X_BASE_C)
-  
+
 /* 43 Fast Forward Power Control Parameters logging */
 #define LOG_FFWD_PCTRL_C                               (0x2B + LOG_1X_BASE_C)
 
@@ -273,10 +273,10 @@ when       who     what, where, why
 
 /* 45 Searcher and Finger Information logging */
 #define LOG_SRCH_FING_INFO_C                           (0x2D + LOG_1X_BASE_C)
-  
+
 /* 46 Service Configuration logging */
 #define LOG_SVC_CONFIG_C                               (0x2E + LOG_1X_BASE_C)
-  
+
 /* 47 Active Set Configuration logging */
 #define LOG_ASET_CONFIG_C                              (0x2F + LOG_1X_BASE_C)
 
@@ -341,7 +341,7 @@ when       who     what, where, why
 /* 144 IS2000 DCCH Forward link channel */
 #define LOG_FOR_DCCH_MSG_C                             (0x90 + LOG_1X_BASE_C)
 #define LOG_DCCH_FWD_C                                 LOG_FOR_DCCH_MSG_C
-  
+
 /* 145 IS2000 DCCH Forward link channel */
 #define LOG_REV_DCCH_MSG_C                             (0x91 + LOG_1X_BASE_C)
 #define LOG_DCCH_REV_C                                 LOG_REV_DCCH_MSG_C
@@ -794,7 +794,7 @@ when       who     what, where, why
 
 /* GPS Decoded Ephemeris */
 #define LOG_GPS_DECODED_EPHEMERIS_C                     (0x2E6 + LOG_1X_BASE_C)
- 
+
 /* GPS Decoded Almanac */
 #define LOG_GPS_DECODED_ALMANAC_C                       (0x2E7 + LOG_1X_BASE_C)
 
@@ -1640,7 +1640,7 @@ when       who     what, where, why
 #define LOG_DTV_DVBH_SEC_SC_HTTP_DIGEST_REQ_C           (0x462 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard HTTP Digest Response Info */
-#define LOG_DTV_DVBH_SEC_SC_HTTP_DIGEST_RSP_C           (0x463 + LOG_1X_BASE_C) 
+#define LOG_DTV_DVBH_SEC_SC_HTTP_DIGEST_RSP_C           (0x463 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard Services Registration Request Info */
 #define LOG_DTV_DVBH_SEC_SC_SVC_REG_REQ_C               (0x464 + LOG_1X_BASE_C)
@@ -1652,13 +1652,13 @@ when       who     what, where, why
 #define LOG_DTV_DVBH_SEC_SC_SVC_DEREG_REQ_C             (0x466 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard Services Deregistration Complete Info */
-#define LOG_DTV_DVBH_SEC_SC_SVC_DEREG_COMPLETE_C        (0x467 + LOG_1X_BASE_C) 
+#define LOG_DTV_DVBH_SEC_SC_SVC_DEREG_COMPLETE_C        (0x467 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard LTKM Request Info */
 #define LOG_DTV_DVBH_SEC_SC_LTKM_REQ_C                  (0x468 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard LTKM Request Complete Info */
-#define LOG_DTV_DVBH_SEC_SC_LTKM_REQ_COMPLETE_C         (0x469 + LOG_1X_BASE_C) 
+#define LOG_DTV_DVBH_SEC_SC_LTKM_REQ_COMPLETE_C         (0x469 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard Program Selection Info */
 #define LOG_DTV_DVBH_SEC_SC_PROG_SEL_C                  (0x46A + LOG_1X_BASE_C)
@@ -1667,10 +1667,10 @@ when       who     what, where, why
 #define LOG_DTV_DVBH_SEC_SC_PROG_SEL_COMPLETE_C         (0x46B + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard LTKM */
-#define LOG_DTV_DVBH_SEC_SC_LTKM_C                      (0x46C + LOG_1X_BASE_C)  
+#define LOG_DTV_DVBH_SEC_SC_LTKM_C                      (0x46C + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard LTKM Verification Message */
-#define LOG_DTV_DVBH_SEC_SC_LTKM_VERIFICATION_C         (0x46D + LOG_1X_BASE_C) 
+#define LOG_DTV_DVBH_SEC_SC_LTKM_VERIFICATION_C         (0x46D + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard Parental Control Message */
 #define LOG_DTV_DVBH_SEC_SC_PARENTAL_CTRL_C             (0x46E + LOG_1X_BASE_C)
@@ -1691,52 +1691,52 @@ when       who     what, where, why
 #define LOG_MCS_QTF_C                                   (0x473 + LOG_1X_BASE_C)
 
 /* Sensors Stationary Detector Output */
-#define LOG_STATIONARY_DETECTOR_OUTPUT_C                (0x474 + LOG_1X_BASE_C)  
+#define LOG_STATIONARY_DETECTOR_OUTPUT_C                (0x474 + LOG_1X_BASE_C)
 
 /* Print out the ppm data portion  */
-#define LOG_CGPS_PDSM_EXT_STATUS_MEAS_REPORT_PPM_C      (0x475 + LOG_1X_BASE_C)  
+#define LOG_CGPS_PDSM_EXT_STATUS_MEAS_REPORT_PPM_C      (0x475 + LOG_1X_BASE_C)
 
 /* GNSS Position Report */
-#define LOG_GNSS_POSITION_REPORT_C                      (0x476 + LOG_1X_BASE_C)  
+#define LOG_GNSS_POSITION_REPORT_C                      (0x476 + LOG_1X_BASE_C)
 
 /* GNSS GPS Measurement Report */
-#define LOG_GNSS_GPS_MEASUREMENT_REPORT_C               (0x477 + LOG_1X_BASE_C)  
+#define LOG_GNSS_GPS_MEASUREMENT_REPORT_C               (0x477 + LOG_1X_BASE_C)
 
 /* GNSS Clock Report */
-#define LOG_GNSS_CLOCK_REPORT_C                         (0x478 + LOG_1X_BASE_C)  
+#define LOG_GNSS_CLOCK_REPORT_C                         (0x478 + LOG_1X_BASE_C)
 
 /* GNSS Demod Soft Decision */
-#define LOG_GNSS_DEMOD_SOFT_DECISIONS_C                 (0x479 + LOG_1X_BASE_C)  
+#define LOG_GNSS_DEMOD_SOFT_DECISIONS_C                 (0x479 + LOG_1X_BASE_C)
 
 /* GNSS ME 5MS IQ sum */
-#define LOG_GNSS_ME_5MS_IQ_SUMS_C                       (0x47A + LOG_1X_BASE_C)  
+#define LOG_GNSS_ME_5MS_IQ_SUMS_C                       (0x47A + LOG_1X_BASE_C)
 
 /* GNSS CD DB report */
-#define LOG_GNSS_CD_DB_REPORT_C                         (0x47B + LOG_1X_BASE_C) 
+#define LOG_GNSS_CD_DB_REPORT_C                         (0x47B + LOG_1X_BASE_C)
 
 /* GNSS PE WLS position report */
-#define LOG_GNSS_PE_WLS_POSITION_REPORT_C               (0x47C + LOG_1X_BASE_C) 
+#define LOG_GNSS_PE_WLS_POSITION_REPORT_C               (0x47C + LOG_1X_BASE_C)
 
 /* GNSS PE KF position report */
-#define LOG_GNSS_PE_KF_POSITION_REPORT_C                (0x47D + LOG_1X_BASE_C) 
+#define LOG_GNSS_PE_KF_POSITION_REPORT_C                (0x47D + LOG_1X_BASE_C)
 
 /* GNSS PRX RF HW status report */
-#define LOG_GNSS_PRX_RF_HW_STATUS_REPORT_C              (0x47E + LOG_1X_BASE_C) 
+#define LOG_GNSS_PRX_RF_HW_STATUS_REPORT_C              (0x47E + LOG_1X_BASE_C)
 
 /* GNSS DRX RF HW status report */
-#define LOG_GNSS_DRX_RF_HW_STATUS_REPORT_C              (0x47F + LOG_1X_BASE_C) 
+#define LOG_GNSS_DRX_RF_HW_STATUS_REPORT_C              (0x47F + LOG_1X_BASE_C)
 
 /* GNSS Glonass Measurement report */
-#define LOG_GNSS_GLONASS_MEASUREMENT_REPORT_C           (0x480 + LOG_1X_BASE_C) 
+#define LOG_GNSS_GLONASS_MEASUREMENT_REPORT_C           (0x480 + LOG_1X_BASE_C)
 
 /* GNSS GPS HBW RXD measurement */
-#define LOG_GNSS_GPS_HBW_RXD_MEASUREMENT_C              (0x481 + LOG_1X_BASE_C) 
+#define LOG_GNSS_GPS_HBW_RXD_MEASUREMENT_C              (0x481 + LOG_1X_BASE_C)
 
 /* GNSS PDSM position report callback */
 #define LOG_GNSS_PDSM_POSITION_REPORT_CALLBACK_C        (0x482 + LOG_1X_BASE_C)
 
 /* ISense Request String  */
-#define LOG_ISENSE_REQUEST_STR_C                        (0x483 + LOG_1X_BASE_C) 
+#define LOG_ISENSE_REQUEST_STR_C                        (0x483 + LOG_1X_BASE_C)
 
 /* ISense Response String */
 #define LOG_ISENSE_RESPONSE_STR_C                       (0x484 + LOG_1X_BASE_C)
@@ -1836,7 +1836,7 @@ when       who     what, where, why
 
 /* PMIC Vreg Level */
 #define LOG_PM_VREG_LEVEL_C                             (0x4A4 + LOG_1X_BASE_C)
- 
+
 /* PMIC Vreg State */
 #define LOG_PM_VREG_STATE_C                             (0x4A5 + LOG_1X_BASE_C)
 
@@ -1890,7 +1890,7 @@ when       who     what, where, why
 
 /* Motion State Hard Decision */
 #define LOG_MOTION_STATE_HARD_DECISION_C                (0x4B6 + LOG_1X_BASE_C)
-  
+
 /* Motion State Soft Decision */
 #define LOG_MOTION_STATE_SOFT_DECISION_C                (0x4B7 + LOG_1X_BASE_C)
 
@@ -2057,23 +2057,23 @@ typedef enum {
 
 #define LOG_EQUIP_ID_MAX 0xF /* The equipment ID is 4 bits */
 
-/* Note that these are the official values and are used by default in 
+/* Note that these are the official values and are used by default in
    diagtune.h.
 */
-#define LOG_EQUIP_ID_0_LAST_CODE_DEFAULT 0 
+#define LOG_EQUIP_ID_0_LAST_CODE_DEFAULT 0
 #define LOG_EQUIP_ID_1_LAST_CODE_DEFAULT LOG_1X_LAST_C
-#define LOG_EQUIP_ID_2_LAST_CODE_DEFAULT 0 
-#define LOG_EQUIP_ID_3_LAST_CODE_DEFAULT 0 
+#define LOG_EQUIP_ID_2_LAST_CODE_DEFAULT 0
+#define LOG_EQUIP_ID_3_LAST_CODE_DEFAULT 0
 #define LOG_EQUIP_ID_4_LAST_CODE_DEFAULT 0
 #define LOG_EQUIP_ID_5_LAST_CODE_DEFAULT 0
-#define LOG_EQUIP_ID_6_LAST_CODE_DEFAULT 0 
+#define LOG_EQUIP_ID_6_LAST_CODE_DEFAULT 0
 #define LOG_EQUIP_ID_7_LAST_CODE_DEFAULT 0
 #define LOG_EQUIP_ID_8_LAST_CODE_DEFAULT 0
-#define LOG_EQUIP_ID_9_LAST_CODE_DEFAULT 0 
-#define LOG_EQUIP_ID_10_LAST_CODE_DEFAULT 0 
-#define LOG_EQUIP_ID_11_LAST_CODE_DEFAULT LOG_LTE_LAST_C 
-#define LOG_EQUIP_ID_12_LAST_CODE_DEFAULT 0 
-#define LOG_EQUIP_ID_13_LAST_CODE_DEFAULT 0 
+#define LOG_EQUIP_ID_9_LAST_CODE_DEFAULT 0
+#define LOG_EQUIP_ID_10_LAST_CODE_DEFAULT 0
+#define LOG_EQUIP_ID_11_LAST_CODE_DEFAULT LOG_LTE_LAST_C
+#define LOG_EQUIP_ID_12_LAST_CODE_DEFAULT 0
+#define LOG_EQUIP_ID_13_LAST_CODE_DEFAULT 0
 #define LOG_EQUIP_ID_14_LAST_CODE_DEFAULT 0
 #define LOG_EQUIP_ID_15_LAST_CODE_DEFAULT 0
 

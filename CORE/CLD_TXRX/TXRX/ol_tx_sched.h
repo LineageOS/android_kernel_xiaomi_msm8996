@@ -117,4 +117,3 @@ ol_tx_sched_detach(struct ol_txrx_pdev_t *pdev);
 #endif
 
 #endif /* _OL_TX_SCHED__H_ */
-

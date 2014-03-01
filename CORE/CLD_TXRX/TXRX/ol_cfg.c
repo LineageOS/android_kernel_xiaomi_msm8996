@@ -33,7 +33,7 @@ module_param(vow_config, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(vow_config, "Do VoW Configuration");
 EXPORT_SYMBOL(vow_config);
 
-/* FIX THIS - 
+/* FIX THIS -
  * For now, all these configuration parameters are hardcoded.
  * Many of these should actually be determined dynamically instead.
  */

@@ -3043,12 +3043,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                  * protect the concurrent access for the Adapters by TDLS
                  * module.
                  */
-                if (mutex_lock_interruptible(&pHddCtx->tdls_lock))
-                {
-                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                              "%s: unable to lock list", __func__);
-                    return -EINVAL;
-                }
+                mutex_lock(&pHddCtx->tdls_lock);
 #endif
                 //De-init the adapter.
                 hdd_stop_adapter( pHddCtx, pAdapter );
@@ -3181,12 +3176,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                  * protect the concurrent access for the Adapters by TDLS
                  * module.
                  */
-                if (mutex_lock_interruptible(&pHddCtx->tdls_lock))
-                {
-                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                              "%s: unable to lock list", __func__);
-                    return -EINVAL;
-                }
+                mutex_lock(&pHddCtx->tdls_lock);
 #endif
                 status = wlan_hdd_change_iface_to_sta_mode(ndev, type);
 #ifdef FEATURE_WLAN_TDLS
@@ -3288,6 +3278,7 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
     VOS_STATUS status;
     hddTdlsPeer_t *pTdlsPeer;
+    tANI_U16 numCurrTdlsPeers;
 
     ENTER();
 
@@ -3362,12 +3353,15 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
     /* first to check if we reached to maximum supported TDLS peer.
        TODO: for now, return -EPERM looks working fine,
        but need to check if any other errno fit into this category.*/
-    if (HDD_MAX_NUM_TDLS_STA <= wlan_hdd_tdlsConnectedPeers(pAdapter))
+    numCurrTdlsPeers = wlan_hdd_tdlsConnectedPeers(pAdapter);
+    if (HDD_MAX_NUM_TDLS_STA <= numCurrTdlsPeers)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: " MAC_ADDRESS_STR
-                   " TDLS Max peer already connected. Request declined.",
-                    __func__, MAC_ADDR_ARRAY(mac));
+                   " TDLS Max peer already connected. Request declined."
+                   " Num of peers (%d), Max allowed (%d).",
+                   __func__, MAC_ADDR_ARRAY(mac), numCurrTdlsPeers,
+                   HDD_MAX_NUM_TDLS_STA);
         goto error;
     }
     else
@@ -8711,6 +8705,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
     int max_sta_failed = 0;
     int responder;
     long rc;
+    tANI_U16 numCurrTdlsPeers;
 
     if (NULL == pHddCtx || NULL == pHddCtx->cfg_ini)
     {
@@ -8766,7 +8761,8 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
     if (SIR_MAC_TDLS_SETUP_REQ == action_code ||
         SIR_MAC_TDLS_SETUP_RSP == action_code )
     {
-        if (HDD_MAX_NUM_TDLS_STA <= wlan_hdd_tdlsConnectedPeers(pAdapter))
+        numCurrTdlsPeers = wlan_hdd_tdlsConnectedPeers(pAdapter);
+        if (HDD_MAX_NUM_TDLS_STA <= numCurrTdlsPeers)
         {
             /* supplicant still sends tdls_mgmt(SETUP_REQ) even after
                we return error code at 'add_station()'. Hence we have this
@@ -8776,8 +8772,9 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
             {
                 VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                            "%s: " MAC_ADDRESS_STR
-                           " TDLS Max peer already connected. action %d declined.",
-                           __func__, MAC_ADDR_ARRAY(peer), action_code);
+                           " TDLS Max peer already connected. action (%d) declined. Num of peers (%d), Max allowed (%d).",
+                           __func__, MAC_ADDR_ARRAY(peer), action_code,
+                           numCurrTdlsPeers, HDD_MAX_NUM_TDLS_STA);
                 goto error;
             }
             else
@@ -8787,8 +8784,9 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
                 status_code = eSIR_MAC_UNSPEC_FAILURE_STATUS;
                 VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                            "%s: " MAC_ADDRESS_STR
-                           " TDLS Max peer already connected send response status %d",
-                           __func__, MAC_ADDR_ARRAY(peer), status_code);
+                           " TDLS Max peer already connected, send response status (%d). Num of peers (%d), Max allowed (%d).",
+                           __func__, MAC_ADDR_ARRAY(peer), status_code,
+                           numCurrTdlsPeers, HDD_MAX_NUM_TDLS_STA);
                 max_sta_failed = -EPERM;
                 /* fall through to send setup resp with failure status
                 code */

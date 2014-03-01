@@ -78,7 +78,7 @@ wmi_buf_alloc(wmi_unified_t wmi_handle, u_int16_t len);
  *  @return 0  on success and -ve on failure.
  */
 int
-wmi_unified_cmd_send(wmi_unified_t wmi_handle, void *buf, int buflen, WMI_CMD_ID cmd_id);
+wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int buflen, WMI_CMD_ID cmd_id);
 
 /**
  * WMI event handler register function

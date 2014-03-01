@@ -1460,7 +1460,7 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
      skb->ip_summed = CHECKSUM_NONE;
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
      vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
-            msecs_to_jiffies(HDD_WAKE_LOCK_DURATION));
+                                   HDD_WAKE_LOCK_DURATION);
 #endif
      rxstat = netif_rx_ni(skb);
      if( NET_RX_SUCCESS == rxstat )
@@ -1788,7 +1788,7 @@ static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
     memset( skb->cb, 0, sizeof( skb->cb ) );
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
     vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
-            msecs_to_jiffies(HDD_WAKE_LOCK_DURATION));
+                                  HDD_WAKE_LOCK_DURATION);
 #endif
     if (in_interrupt())
         netif_rx( skb );

@@ -711,7 +711,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                    hddLog(LOGE, FL("Failed to start AP inactivity timer\n"));
             }
             vos_wake_lock_timeout_acquire(&pHddCtx->sap_wake_lock,
-                    msecs_to_jiffies(HDD_SAP_WAKE_LOCK_DURATION));
+                                          HDD_SAP_WAKE_LOCK_DURATION);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
             {
                 struct station_info staInfo;

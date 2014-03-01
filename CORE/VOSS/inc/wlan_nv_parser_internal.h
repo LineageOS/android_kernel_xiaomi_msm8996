@@ -89,5 +89,3 @@ typedef int (*pF_NumElemBasedOnStorageType)(_NV_TEMPLATE_TABLE *pTableEntry,
     int nvBin);
 
 #endif
-
-

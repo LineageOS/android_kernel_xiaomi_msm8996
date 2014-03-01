@@ -11298,20 +11298,23 @@ static VOS_STATUS wma_plm_start(tp_wma_handle wma, const tpSirPlmReq plm)
 	WMA_LOGD("tx_power: %d", cmd->tx_power);
 	WMA_LOGD("Number of channels : %d", cmd->num_chans);
 
-	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
-			(cmd->num_chans * sizeof(u_int32_t)));
+	if (cmd->num_chans)
+        {
+		WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
+				(cmd->num_chans * sizeof(u_int32_t)));
 
-	buf_ptr += WMI_TLV_HDR_SIZE;
+		buf_ptr += WMI_TLV_HDR_SIZE;
 
-	channel_list = (u_int32_t *) buf_ptr;
-	for (count = 0; count < cmd->num_chans; count++) {
-		channel_list[count] = plm->plmChList[count];
-		if (channel_list[count] < WMA_NLO_FREQ_THRESH)
-			channel_list[count] =
-				vos_chan_to_freq(channel_list[count]);
-		WMA_LOGD("Ch[%d]: %d MHz", count, channel_list[count]);
+		channel_list = (u_int32_t *) buf_ptr;
+		for (count = 0; count < cmd->num_chans; count++) {
+			channel_list[count] = plm->plmChList[count];
+			if (channel_list[count] < WMA_NLO_FREQ_THRESH)
+				channel_list[count] =
+					vos_chan_to_freq(channel_list[count]);
+			WMA_LOGD("Ch[%d]: %d MHz", count, channel_list[count]);
+		}
+		buf_ptr += cmd->num_chans * sizeof(u_int32_t);
 	}
-	buf_ptr += cmd->num_chans * sizeof(u_int32_t);
 
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 					WMI_VDEV_PLMREQ_START_CMDID);
@@ -11628,6 +11631,7 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *param_buf;
 	WOW_EVENT_INFO_fixed_param *wake_info;
 	struct wma_txrx_node *node;
+	u_int32_t wake_lock_duration = 0;
 
 	param_buf = (WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *) event;
 	if (!param_buf) {
@@ -11641,51 +11645,68 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		 wma_wow_wake_reason_str(wake_info->wake_reason),
 		 wake_info->vdev_id);
 
-	if (wake_info->wake_reason == WOW_REASON_AUTH_REQ_RECV) {
-		WMA_LOGD("Holding 50 sec wake_lock");
-		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 50000);
-	} else if (wake_info->wake_reason == WOW_REASON_ASSOC_REQ_RECV) {
-		WMA_LOGD("Holding 30 sec wake_lock");
-		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 30000);
-	} else if (wake_info->wake_reason == WOW_REASON_DEAUTH_RECVD) {
-		WMA_LOGD("Holding 30 sec wake_lock");
-		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 30000);
-	} else if (wake_info->wake_reason == WOW_REASON_DISASSOC_RECVD) {
-		 WMA_LOGD("Holding 30 sec wake_lock");
-		 vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 30000);
-	}
+	switch (wake_info->wake_reason) {
+	case WOW_REASON_AUTH_REQ_RECV:
+		wake_lock_duration = WMA_AUTH_REQ_RECV_WAKE_LOCK_TIMEOUT;
+		break;
 
-	if(wake_info->wake_reason == WOW_REASON_AP_ASSOC_LOST) {
+	case WOW_REASON_ASSOC_REQ_RECV:
+		wake_lock_duration = WMA_ASSOC_REQ_RECV_WAKE_LOCK_DURATION;
+		break;
+
+	case WOW_REASON_DEAUTH_RECVD:
+		wake_lock_duration = WMA_DEAUTH_RECV_WAKE_LOCK_DURATION;
+		break;
+
+	case WOW_REASON_DISASSOC_RECVD:
+		wake_lock_duration = WMA_DISASSOC_RECV_WAKE_LOCK_DURATION;
+		break;
+
+	case WOW_REASON_AP_ASSOC_LOST:
 		WMA_LOGA("Beacon miss indication on vdev %x",
-				wake_info->vdev_id);
+			 wake_info->vdev_id);
 		wma_beacon_miss_handler(wma, wake_info->vdev_id);
-	}
+		break;
+
 #ifdef FEATURE_WLAN_SCAN_PNO
-	if (wake_info->wake_reason == WOW_REASON_NLOD) {
+	case WOW_REASON_NLOD:
+		wake_lock_duration = WMA_PNO_WAKE_LOCK_TIMEOUT;
 		node = &wma->interfaces[wake_info->vdev_id];
 		if (node) {
 			WMA_LOGD("NLO match happened");
 			node->nlo_match_evt_received = TRUE;
 		}
-
-		WMA_LOGD("Holding %d sec wake_lock", WMA_PNO_WAKE_LOCK_TIMEOUT);
-		vos_wake_lock_timeout_acquire(&wma->pno_wake_lock,
-					      WMA_PNO_WAKE_LOCK_TIMEOUT);
-	}
+		break;
 #endif
 
-	if (wake_info->wake_reason == WOW_REASON_CSA_EVENT) {
-		WMI_CSA_HANDLING_EVENTID_param_tlvs param;
+	case WOW_REASON_CSA_EVENT:
+		{
+			WMI_CSA_HANDLING_EVENTID_param_tlvs param;
+			WMA_LOGD("Host woken up because of CSA IE");
+			param.fixed_param = (wmi_csa_event_fixed_param *)
+					    (((u_int8_t *) wake_info)
+					    + sizeof(WOW_EVENT_INFO_fixed_param)
+					    + WOW_CSA_EVENT_OFFSET);
+			wma_csa_offload_handler(handle, (u_int8_t *)&param,
+						sizeof(param));
+		}
+		break;
 
-		WMA_LOGD("Host woken up because of CSA IE");
-		param.fixed_param =  (wmi_csa_event_fixed_param *) (((u_int8_t *) wake_info) +
-				sizeof(WOW_EVENT_INFO_fixed_param) + WOW_CSA_EVENT_OFFSET);
-		wma_csa_offload_handler(handle, (u_int8_t *)&param, sizeof(param));
-	}
 #ifdef FEATURE_WLAN_LPHB
-	if(wake_info->wake_reason == WOW_REASON_WLAN_HB)
+	case WOW_REASON_WLAN_HB:
 		wma_lphb_handler(wma, (u_int8_t *)param_buf->hb_indevt);
-#endif /* FEATURE_WLAN_LPHB */
+		break;
+#endif
+
+	default:
+		break;
+	}
+
+	if (wake_lock_duration) {
+		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock,
+					      wake_lock_duration);
+		WMA_LOGD("Holding %d msec wake_lock", wake_lock_duration);
+	}
 
 	return 0;
 }
@@ -16759,10 +16780,10 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	cfg->en_11ac = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 					      WMI_SERVICE_11AC);
         if (cfg->en_11ac)
-		gFwWlanFeatCaps |= DOT11AC;
+		gFwWlanFeatCaps |= (1 << DOT11AC);
 
 	/* Proactive ARP response */
-	gFwWlanFeatCaps |= WLAN_PERIODIC_TX_PTRN;
+	gFwWlanFeatCaps |= (1 << WLAN_PERIODIC_TX_PTRN);
 
 	/* ARP offload */
 	cfg->arp_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
@@ -18354,7 +18375,7 @@ eHalStatus WMA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
 
 tANI_U8 wma_getFwWlanFeatCaps(tANI_U8 featEnumValue)
 {
-       return gFwWlanFeatCaps & featEnumValue;
+       return gFwWlanFeatCaps & (1 << featEnumValue);
 }
 
 void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,

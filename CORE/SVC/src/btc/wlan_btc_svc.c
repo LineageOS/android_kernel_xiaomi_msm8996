@@ -48,7 +48,7 @@ static int gBtcDriverMode = WLAN_HDD_INFRA_STATION;  /* Driver mode in BTC */
 // Forward declrarion
 static int btc_msg_callback (struct sk_buff * skb);
 /*
- * Send a netlink message to the user space. 
+ * Send a netlink message to the user space.
  * Destination pid as zero implies broadcast
  */
 void send_btc_nlink_msg (int type, int dest_pid)
@@ -62,7 +62,7 @@ void send_btc_nlink_msg (int type, int dest_pid)
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
          "BTC: alloc_skb failed\n");
       return;
-   }   
+   }
    nlh = (struct nlmsghdr *)skb->data;
    nlh->nlmsg_pid = 0;  /* from kernel */
    nlh->nlmsg_flags = 0;
@@ -107,7 +107,7 @@ void send_btc_nlink_msg (int type, int dest_pid)
 
       case WLAN_MODULE_UP_IND:
       case WLAN_MODULE_DOWN_IND:
-         aniHdr->length = 0; 
+         aniHdr->length = 0;
          nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr)));
          skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr)));
          break;
@@ -117,7 +117,7 @@ void send_btc_nlink_msg (int type, int dest_pid)
          aniHdr->length = sizeof(tWlanAssocData);
          nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr) + sizeof(tWlanAssocData)));
          assocData = ( tWlanAssocData *)((char*)aniHdr + sizeof(tAniMsgHdr));
-         
+
          assocData->channel = hdd_get_operating_channel( pHddCtx, gBtcDriverMode );
 
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_LOW,
@@ -192,7 +192,7 @@ void send_btc_nlink_msg (int type, int dest_pid)
          break;
 
       default:
-         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
             "BTC: Attempt to send unknown nlink message %d\n", type);
          kfree_skb(skb);
          return;
@@ -208,7 +208,7 @@ void send_btc_nlink_msg (int type, int dest_pid)
  */
 int btc_activate_service(void *pAdapter)
 {
-   pHddCtx = (struct hdd_context_s*)pAdapter;  
+   pHddCtx = (struct hdd_context_s*)pAdapter;
 
    //Register the msg handler for msgs addressed to ANI_NL_MSG_BTC
    nl_srv_register(WLAN_NL_MSG_BTC, btc_msg_callback);
@@ -225,17 +225,17 @@ int btc_msg_callback (struct sk_buff * skb)
    tSmeBtEvent *btEvent = NULL;
    nlh = (struct nlmsghdr *)skb->data;
    msg_hdr = NLMSG_DATA(nlh);
-   
+
    /* Continue with parsing payload. */
    switch(msg_hdr->type)
    {
       case WLAN_BTC_QUERY_STATE_REQ:
-         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "BTC: Received probe from BTC Service\n");
          send_btc_nlink_msg(WLAN_BTC_QUERY_STATE_RSP, nlh->nlmsg_pid);
          break;
       case WLAN_BTC_BT_EVENT_IND:
-         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "BTC: Received Bluetooth event indication\n");
          if(msg_hdr->length != sizeof(tSmeBtEvent)) {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,

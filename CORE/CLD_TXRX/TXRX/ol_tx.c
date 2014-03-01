@@ -56,8 +56,8 @@
 #define ol_tx_prepare_ll(tx_desc, vdev, msdu, msdu_info) \
     do {                                                                      \
         struct ol_txrx_pdev_t *pdev = vdev->pdev;                             \
-        /* 
-         * The TXRX module doesn't accept tx frames unless the target has 
+        /*
+         * The TXRX module doesn't accept tx frames unless the target has
          * enough descriptors for them.
          * For LL, the TXRX descriptor pool is sized to match the target's
          * descriptor pool.  Hence, if the descriptor allocation in TXRX
@@ -81,7 +81,7 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
 
     msdu_info.htt.info.l2_hdr_type = vdev->pdev->htt_pkt_type;
     /*
-     * The msdu_list variable could be used instead of the msdu var, 
+     * The msdu_list variable could be used instead of the msdu var,
      * but just to clarify which operations are done on a single MSDU
      * vs. a list of MSDUs, use a distinct variable for single MSDUs
      * within the list.
@@ -382,7 +382,7 @@ ol_tx_non_std_ll(
     msdu_info.htt.info.l2_hdr_type = vdev->pdev->htt_pkt_type;
 
     /*
-     * The msdu_list variable could be used instead of the msdu var, 
+     * The msdu_list variable could be used instead of the msdu var,
      * but just to clarify which operations are done on a single MSDU
      * vs. a list of MSDUs, use a distinct variable for single MSDUs
      * within the list.
@@ -843,7 +843,7 @@ ol_txrx_mgmt_send(
     TXRX_STATS_MSDU_INCR(pdev, tx.mgmt, tx_mgmt_frm);
     TXRX_ASSERT1(type < OL_TXRX_MGMT_NUM_TYPES);
     tx_desc->pkt_type = type + OL_TXRX_MGMT_TYPE_BASE;
-    
+
     if (pdev->cfg.is_high_latency) {
 	struct ol_tx_frms_queue_t *txq;
         /*

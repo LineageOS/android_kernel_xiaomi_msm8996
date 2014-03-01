@@ -34,9 +34,9 @@
 
   \brief virtual Operating System Services (vOSS) binary APIs
 
-   Binary retrieval definitions and APIs.  
+   Binary retrieval definitions and APIs.
 
-   These APIs allow components to retrieve binary contents (firmware, 
+   These APIs allow components to retrieve binary contents (firmware,
    configuration data, etc.) from a storage medium on the platform.
 
   ========================================================================*/
@@ -49,19 +49,19 @@
 #include <vos_types.h>
 #include <vos_status.h>
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
-/// Binary IDs  
+/// Binary IDs
 typedef enum
 {
   /// Binary ID for firmware
   VOS_BINARY_ID_FIRMWARE,
-  
+
   /// Binary ID for Configuration data
   VOS_BINARY_ID_CONFIG,
 
@@ -73,63 +73,63 @@ typedef enum
 
   /// Binary ID for Dictionary Configuration data
   VOS_BINARY_ID_DICT_CONFIG
-  
+
 } VOS_BINARY_ID;
 
 
 
-/*------------------------------------------------------------------------- 
+/*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/
-  
+
 
 /**---------------------------------------------------------------------------
-  
+
   \brief vos_get_binary_blob() - get binary data from platform
 
   This API allows components to get binary data from the platform independent
   of where the data is stored on the device.
-  
+
   <ul>
     <li> Firmware
     <li> Configuration Data
-  </ul> 
-  
+  </ul>
+
   \param binaryId - identifies the binary data to return to the caller.
-         
-  \param pBuffer - a pointer to the buffer where the binary data will be 
-         retrieved.  Memory for this buffer is allocated by the caller 
-         and free'd by the caller. vOSS will fill this buffer with 
+
+  \param pBuffer - a pointer to the buffer where the binary data will be
+         retrieved.  Memory for this buffer is allocated by the caller
+         and free'd by the caller. vOSS will fill this buffer with
          raw binary data and update the *pBufferSize with the exact
          size of the data that has been retreived.
-         
-         Input value of NULL is valid and will cause the API to return 
+
+         Input value of NULL is valid and will cause the API to return
          the size of the binary data in *pBufferSize.
-         
-  \param pBufferSize - pointer to a variable that upon input contains the 
+
+  \param pBufferSize - pointer to a variable that upon input contains the
          size of the data buffer available at pBuffer.  Upon success, this
-         variable is updated with the size of the binary data that was 
+         variable is updated with the size of the binary data that was
          retreived and written to the buffer at pBuffer.
-         
+
          Input value of 0 is valid and will cause the API to return
          the size of the binary data in *pBufferSize.
-         
-  \return VOS_STATUS_SUCCESS - the binary data has been successfully 
+
+  \return VOS_STATUS_SUCCESS - the binary data has been successfully
           retreived and written to the buffer.
-          
-          VOS_STATUS_E_INVAL - The value specified by binaryId does not 
+
+          VOS_STATUS_E_INVAL - The value specified by binaryId does not
           refer to a valid VOS Binary ID.
-          
-          VOS_STATUS_E_FAULT - pBufferSize is not a valid pointer to a 
+
+          VOS_STATUS_E_FAULT - pBufferSize is not a valid pointer to a
           variable that the API can write to.
-          
-          VOS_STATUS_E_NOMEM - the memory referred to by pBuffer and 
+
+          VOS_STATUS_E_NOMEM - the memory referred to by pBuffer and
           *pBufferSize is not big enough to contain the binary.
 
   \sa
-  
+
   --------------------------------------------------------------------------*/
-VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId, 
+VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId,
                                 v_VOID_t *pBuffer, v_SIZE_t *pBufferSize );
 
 /**----------------------------------------------------------------------------

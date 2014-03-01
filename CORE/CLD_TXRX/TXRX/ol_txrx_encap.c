@@ -76,10 +76,10 @@ ol_tx_copy_native_wifi_header(
     return A_OK;
 }
 
-static inline A_STATUS 
+static inline A_STATUS
 ol_tx_encap_from_native_wifi (
-    struct ol_txrx_vdev_t *vdev, 
-    struct ol_tx_desc_t *tx_desc, 
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_tx_desc_t *tx_desc,
     adf_nbuf_t msdu,
     struct ol_txrx_msdu_info_t *tx_msdu_info
 )
@@ -112,8 +112,8 @@ ol_tx_encap_from_native_wifi (
 #if 0
         if ( wmmParam[ac].wmep_noackPolicy ) {
             qos_cntl->i_qos[0]|= 1 << IEEE80211_QOS_ACKPOLICY_S;
-        } 
-#endif 
+        }
+#endif
 
         qos_cntl->i_qos[1] = 0;
         wh->i_fc[0] |= IEEE80211_FC0_SUBTYPE_QOS;
@@ -152,10 +152,10 @@ ol_tx_encap_from_native_wifi (
 
 static inline A_STATUS
 ol_tx_encap_from_8023 (
-    struct ol_txrx_vdev_t *vdev, 
-    struct ol_tx_desc_t *tx_desc, 
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_tx_desc_t *tx_desc,
     adf_nbuf_t msdu,
-    struct ol_txrx_msdu_info_t *tx_msdu_info 
+    struct ol_txrx_msdu_info_t *tx_msdu_info
 )
 {
     u_int8_t localbuf[ sizeof(struct ieee80211_qosframe_htc_addr4) \
@@ -171,7 +171,7 @@ ol_tx_encap_from_8023 (
     u_int16_t ether_type;
 
     if (tx_msdu_info->htt.info.frame_type != htt_frm_type_data)
-        return A_OK; 
+        return A_OK;
 
     /*
      * for unicast,the peer should not be NULL.
@@ -189,34 +189,34 @@ ol_tx_encap_from_8023 (
     switch (vdev->opmode) {
     case wlan_op_mode_ap:
         /* DA , BSSID , SA*/
-        adf_os_mem_copy(wh->i_addr1, eth_hdr->dest_addr,        
+        adf_os_mem_copy(wh->i_addr1, eth_hdr->dest_addr,
                         IEEE80211_ADDR_LEN);
-        adf_os_mem_copy(wh->i_addr2, &vdev->mac_addr.raw, 
+        adf_os_mem_copy(wh->i_addr2, &vdev->mac_addr.raw,
                         IEEE80211_ADDR_LEN);
-        adf_os_mem_copy(wh->i_addr3, eth_hdr->src_addr, 
+        adf_os_mem_copy(wh->i_addr3, eth_hdr->src_addr,
                         IEEE80211_ADDR_LEN);
         wh->i_fc[1] = IEEE80211_FC1_DIR_FROMDS;
         new_hdsize = sizeof(struct ieee80211_frame);
         break;
     case wlan_op_mode_ibss:
         /* DA, SA, BSSID */
-        adf_os_mem_copy(wh->i_addr1, eth_hdr->dest_addr, 
+        adf_os_mem_copy(wh->i_addr1, eth_hdr->dest_addr,
                         IEEE80211_ADDR_LEN);
-        adf_os_mem_copy(wh->i_addr2, eth_hdr->src_addr, 
+        adf_os_mem_copy(wh->i_addr2, eth_hdr->src_addr,
                         IEEE80211_ADDR_LEN);
          /* need to check the bssid behaviour for IBSS vdev */
-        adf_os_mem_copy(wh->i_addr3, &vdev->mac_addr.raw, 
+        adf_os_mem_copy(wh->i_addr3, &vdev->mac_addr.raw,
                         IEEE80211_ADDR_LEN);
         wh->i_fc[1] = IEEE80211_FC1_DIR_NODS;
         new_hdsize = sizeof(struct ieee80211_frame);
         break;
     case wlan_op_mode_sta:
         /* BSSID, SA , DA*/
-        adf_os_mem_copy(wh->i_addr1, &peer->mac_addr.raw, 
+        adf_os_mem_copy(wh->i_addr1, &peer->mac_addr.raw,
                         IEEE80211_ADDR_LEN);
-        adf_os_mem_copy(wh->i_addr2, eth_hdr->src_addr, 
+        adf_os_mem_copy(wh->i_addr2, eth_hdr->src_addr,
                         IEEE80211_ADDR_LEN);
-        adf_os_mem_copy(wh->i_addr3, eth_hdr->dest_addr, 
+        adf_os_mem_copy(wh->i_addr3, eth_hdr->dest_addr,
                         IEEE80211_ADDR_LEN);
         wh->i_fc[1] = IEEE80211_FC1_DIR_TODS;
         new_hdsize = sizeof(struct ieee80211_frame);
@@ -233,8 +233,8 @@ ol_tx_encap_from_8023 (
 #if 0
         if ( wmmParam[ac].wmep_noackPolicy ) {
             qos_cntl->i_qos[0]|= 1 << IEEE80211_QOS_ACKPOLICY_S;
-        } 
-#endif 
+        }
+#endif
         qos_cntl->i_qos[1] = 0;
         new_hdsize += sizeof(struct ieee80211_qoscntl);
 
@@ -250,8 +250,8 @@ ol_tx_encap_from_8023 (
         llc_hdr = (struct llc_snap_hdr_t *) (localbuf + new_hdsize);
         ether_type = (eth_hdr->ethertype[0]<<8) |(eth_hdr->ethertype[1]);
         if ( ether_type >= IEEE8023_MAX_LEN ) {
-            adf_os_mem_copy(llc_hdr, 
-                            ethernet_II_llc_snap_header_prefix,  
+            adf_os_mem_copy(llc_hdr,
+                            ethernet_II_llc_snap_header_prefix,
                             sizeof(ethernet_II_llc_snap_header_prefix));
             if ( ether_type == ETHERTYPE_AARP || ether_type == ETHERTYPE_IPX) {
                 llc_hdr->org_code[2] = BTEP_SNAP_ORGCODE_2;// 0xf8; bridge tunnel header
@@ -274,7 +274,7 @@ ol_tx_encap_from_8023 (
     return A_OK;
 }
 
-A_STATUS 
+A_STATUS
 ol_tx_encap(
     struct ol_txrx_vdev_t *vdev,
     struct ol_tx_desc_t *tx_desc,
@@ -293,9 +293,9 @@ ol_tx_encap(
     }
 }
 
-static inline void 
+static inline void
 ol_rx_decap_to_native_wifi(
-    struct ol_txrx_vdev_t *vdev, 
+    struct ol_txrx_vdev_t *vdev,
     adf_nbuf_t msdu,
     struct ol_rx_decap_info_t *info,
     struct ethernet_hdr_t *ethr_hdr)
@@ -303,14 +303,14 @@ ol_rx_decap_to_native_wifi(
     struct ieee80211_frame_addr4 *wh;
     u_int16_t hdsize;
 
-    /* 
+    /*
      * we need to remove Qos control field and HT control.
      * MSFT: http://msdn.microsoft.com/en-us/library/windows/hardware/ff552608(v=vs.85).aspx
      */
     wh = (struct ieee80211_frame_addr4 *)info->hdr;
     if ( (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK) == IEEE80211_FC1_DIR_DSTODS) {
         hdsize = sizeof(struct ieee80211_frame_addr4);
-    } 
+    }
     else {
         hdsize = sizeof(struct ieee80211_frame);
     }
@@ -348,9 +348,9 @@ ol_rx_decap_to_native_wifi(
     }
 }
 
-static inline void 
+static inline void
 ol_rx_decap_to_8023 (
-    struct ol_txrx_vdev_t *vdev, 
+    struct ol_txrx_vdev_t *vdev,
     adf_nbuf_t msdu,
     struct ol_rx_decap_info_t *info,
     struct ethernet_hdr_t *ethr_hdr)
@@ -389,7 +389,7 @@ ol_rx_decap_to_8023 (
     }
     if (l2_hdr_space > ETHERNET_HDR_LEN) {
         buf = adf_nbuf_pull_head(msdu, l2_hdr_space - ETHERNET_HDR_LEN);
-    } 
+    }
     else if (l2_hdr_space <  ETHERNET_HDR_LEN) {
         buf = adf_nbuf_push_head(msdu, ETHERNET_HDR_LEN - l2_hdr_space);
     }
@@ -436,9 +436,9 @@ ol_rx_decap_to_8023 (
 
 static inline A_STATUS
 ol_rx_decap_subfrm_amsdu(
-    struct ol_txrx_vdev_t *vdev, 
+    struct ol_txrx_vdev_t *vdev,
     adf_nbuf_t msdu,
-    struct ol_rx_decap_info_t *info) 
+    struct ol_rx_decap_info_t *info)
 {
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     u_int8_t * subfrm_hdr;
@@ -459,7 +459,7 @@ ol_rx_decap_subfrm_amsdu(
     }
     else if (pdev->frame_format == wlan_frm_fmt_802_3) {
         if (pdev->sw_rx_llc_proc_enable)  {
-             /* remove llc snap hdr if it's necessary according to 
+             /* remove llc snap hdr if it's necessary according to
              * 802.11 table P-3
              */
             adf_os_mem_copy(ether_hdr,
@@ -482,14 +482,14 @@ ol_rx_decap_subfrm_amsdu(
         /* todo for othertype*/
     }
     return A_OK;
-    
+
 }
 
 static inline A_STATUS
 ol_rx_decap_msdu(
-    struct ol_txrx_vdev_t *vdev, 
+    struct ol_txrx_vdev_t *vdev,
     adf_nbuf_t msdu,
-    struct ol_rx_decap_info_t *info) 
+    struct ol_rx_decap_info_t *info)
 {
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     struct ieee80211_frame *wh;
@@ -521,7 +521,7 @@ ol_rx_decap_msdu(
                             wh,
                             info->hdr_len);
             adf_nbuf_pull_head(msdu, info->hdr_len);
-            /* remove llc snap hdr if it's necessary according to 
+            /* remove llc snap hdr if it's necessary according to
              * 802.11 table P-3
              */
             ol_rx_decap_to_8023(vdev,
@@ -540,7 +540,7 @@ ol_rx_decap_msdu(
          /* todo for othertype*/
     }
     return A_OK;
-    
+
 }
 
 A_STATUS
@@ -561,7 +561,7 @@ ol_rx_decap(
             info->is_subfrm = 1;
             info->hdr_len = 0;
             if (vdev->pdev->sw_subfrm_hdr_recovery_enable) {
-                /* we save the first subfrm mpdu hdr for subsequent 
+                /* we save the first subfrm mpdu hdr for subsequent
                  * subfrm 802.11 header recovery in certain chip(such as Riva).
                  */
                 mpdu_hdr = adf_nbuf_data(msdu);
@@ -575,9 +575,9 @@ ol_rx_decap(
 
     if (info->is_subfrm && vdev->pdev->sw_subfrm_hdr_recovery_enable) {
        /*
-        * This case is enabled for some HWs(such as Riva).The HW de-aggregate 
+        * This case is enabled for some HWs(such as Riva).The HW de-aggregate
         * doesn't have capability to generate 802.11 header for non-first subframe
-        * of A-MSDU.That means sw needs to cache the first subfrm mpdu header 
+        * of A-MSDU.That means sw needs to cache the first subfrm mpdu header
         * to generate the subsequent subfrm's 802.11 header.
         */
         TXRX_ASSERT2(info->hdr_len != 0);
@@ -587,10 +587,10 @@ ol_rx_decap(
     }
 
     if (info->is_msdu_cmpl_mpdu) {
-        info->is_subfrm = 
-        info->is_first_subfrm = 
+        info->is_subfrm =
+        info->is_first_subfrm =
         info->hdr_len = 0;
     }
     return status;
 }
-#endif 
+#endif

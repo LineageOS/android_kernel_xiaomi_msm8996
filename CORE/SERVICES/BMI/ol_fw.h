@@ -83,6 +83,7 @@ int ol_diag_read(struct ol_softc *scn, u_int8_t* buffer,
                  u_int32_t pos, size_t count);
 void ol_schedule_ramdump_work(struct ol_softc *scn);
 int ol_copy_ramdump(struct ol_softc *scn);
+int dump_CE_register(struct ol_softc *scn);
 #endif
 int ol_download_firmware(struct ol_softc *scn);
 int ol_configure_target(struct ol_softc *scn);

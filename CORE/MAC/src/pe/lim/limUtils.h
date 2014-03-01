@@ -496,4 +496,14 @@ void limCleanUpDisassocDeauthReq(tpAniSirGlobal pMac, tANI_U8 *staMac, tANI_BOOL
 
 tANI_BOOLEAN limCheckDisassocDeauthAckPending(tpAniSirGlobal pMac, tANI_U8 *staMac);
 
+
+void limUtilsframeshtons(tpAniSirGlobal  pCtx,
+                            tANI_U8  *pOut,
+                            tANI_U16  pIn,
+                            tANI_U8  fMsb);
+
+void limUtilsframeshtonl(tpAniSirGlobal  pCtx,
+                            tANI_U8  *pOut,
+                            tANI_U32  pIn,
+                            tANI_U8  fMsb);
 #endif /* __LIM_UTILS_H */

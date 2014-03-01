@@ -2866,6 +2866,8 @@ static int create_crda_regulatory_entry_from_regd(struct wiphy *wiphy,
 }
 
 #ifdef CONFIG_ENABLE_LINUX_REG
+static int create_linux_regulatory_entry(struct wiphy *wiphy,
+                                         v_U8_t nBandCapability);
 
 /**------------------------------------------------------------------------
   \brief vos_nv_setRegDomain -
@@ -3065,7 +3067,23 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
                 VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                            ("runtime country code is not found in kernel db"));
 
-                return VOS_STATUS_E_EXISTS;
+                /* Set to world only if kernel never respnded before*/
+                if ((linux_reg_cc[0] == 0) && (linux_reg_cc[1] == 0))
+                {
+                   temp_reg_domain = REGDOMAIN_WORLD;
+                   cur_reg_domain = temp_reg_domain;
+
+                   if (create_linux_regulatory_entry(wiphy,
+                            pHddCtx->cfg_ini->nBandCapability) != 0)
+                   {
+                      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                            ("Error while creating regulatory entry"));
+                      return VOS_STATUS_E_FAULT;
+                   }
+                }
+                *pRegDomain = temp_reg_domain;
+
+                return VOS_STATUS_SUCCESS;
             }
         }
         else if (COUNTRY_IE == source || COUNTRY_USER == source)

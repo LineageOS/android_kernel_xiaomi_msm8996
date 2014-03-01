@@ -45,9 +45,9 @@ ol_rx_discard(
     unsigned tid,
     adf_nbuf_t head_msdu);
 
-void 
+void
 ol_rx_frames_free(
-    htt_pdev_handle htt_pdev, 
+    htt_pdev_handle htt_pdev,
     adf_nbuf_t frames);
 
 void

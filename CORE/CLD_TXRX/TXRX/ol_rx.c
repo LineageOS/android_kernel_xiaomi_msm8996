@@ -711,7 +711,7 @@ ol_rx_filter(
         {
             continue;
         }
-        
+
 
         filter_type = vdev->privacy_filters[i].filter_type;
         if (filter_type == PRIVACY_FILTER_ALWAYS) {

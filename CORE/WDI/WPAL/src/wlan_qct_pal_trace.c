@@ -28,13 +28,13 @@
 
 
 /**=========================================================================
-  
+
   \file  wlan_qct_pal_trace.c
-  
+
   \brief Implementation trace/logging APIs PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
-               
+
    Definitions for Linux/Android platform
-  
+
   ========================================================================*/
 
 #include "wlan_qct_pal_trace.h"
@@ -75,10 +75,10 @@ typedef struct
 // the 3 character 'name' of the module for marking the trace logs.
 moduleTraceInfo gTraceInfo[ eWLAN_MODULE_COUNT ] =
 {
-   { (1<<eWLAN_PAL_TRACE_LEVEL_FATAL)|(1<<eWLAN_PAL_TRACE_LEVEL_ERROR), "DAL" }, 
+   { (1<<eWLAN_PAL_TRACE_LEVEL_FATAL)|(1<<eWLAN_PAL_TRACE_LEVEL_ERROR), "DAL" },
    { (1<<eWLAN_PAL_TRACE_LEVEL_FATAL)|(1<<eWLAN_PAL_TRACE_LEVEL_ERROR), "CTL" },
-   { (1<<eWLAN_PAL_TRACE_LEVEL_FATAL)|(1<<eWLAN_PAL_TRACE_LEVEL_ERROR), "DAT" }, 
-   { (1<<eWLAN_PAL_TRACE_LEVEL_FATAL)|(1<<eWLAN_PAL_TRACE_LEVEL_ERROR), "PAL" }, 
+   { (1<<eWLAN_PAL_TRACE_LEVEL_FATAL)|(1<<eWLAN_PAL_TRACE_LEVEL_ERROR), "DAT" },
+   { (1<<eWLAN_PAL_TRACE_LEVEL_FATAL)|(1<<eWLAN_PAL_TRACE_LEVEL_ERROR), "PAL" },
 };
 
 
@@ -99,7 +99,7 @@ static void wpalOutput(wpt_tracelevel level, char *strBuffer)
    switch(level)
    {
    default:
-      printk(KERN_CRIT "%s: Unknown trace level passed in!\n", __func__); 
+      printk(KERN_CRIT "%s: Unknown trace level passed in!\n", __func__);
       // fall thru and use FATAL
 
    case eWLAN_PAL_TRACE_LEVEL_FATAL:
@@ -195,7 +195,7 @@ void wpalTraceDisplay(void)
 
    printk(KERN_CRIT
           "     1)FATAL  2)ERROR  3)WARN  4)INFO  "
-          "5)INFO_H  6)INFO_M  7)INFO_L\n"); 
+          "5)INFO_H  6)INFO_M  7)INFO_L\n");
    for (moduleId = 0; moduleId < eWLAN_MODULE_COUNT; ++moduleId)
    {
       printk(KERN_CRIT
@@ -276,27 +276,27 @@ void wpalTrace( wpt_moduleid module, wpt_tracelevel level, char *strFormat, ... 
 }
 
 /**----------------------------------------------------------------------------
-  
+
  \brief WPAL_DUMP() / wpalDump() - Trace / logging API
-   
- Users wishing to add tracing memory dumps to their code should use 
+
+ Users wishing to add tracing memory dumps to their code should use
  WPAL_DUMP.  WPAL_DUMP() will compile into a call to wpalDump() when
  tracing is enabled.
-  
+
  \param module - module identifier.   A member of the wpt_moduleid
                  enumeration that identifies the module performing the dump
-         
- \param level - trace level.   A member of the wpt_tracelevel 
+
+ \param level - trace level.   A member of the wpt_tracelevel
                 enumeration indicating the severity of the condition causing the
-                memory to be dumped.   More severe conditions are more 
+                memory to be dumped.   More severe conditions are more
                 likely to be logged.
-         
+
  \param pMemory - memory.  A pointer to the memory to be dumped
 
  \param length - length.  How many bytes of memory to be dumped
-  
+
    \return  nothing
-    
+
   --------------------------------------------------------------------------*/
 // how many bytes do we output per line
 #define BYTES_PER_LINE 16

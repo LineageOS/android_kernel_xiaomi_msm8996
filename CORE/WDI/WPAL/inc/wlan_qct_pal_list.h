@@ -29,13 +29,13 @@
 #define __WLAN_QCT_PAL_LIST_H
 
 /**=========================================================================
-  
+
   \file  wlan_qct_pal_list.h
-  
+
   \brief define linked list PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
-               
+
    Definitions for platform independent.
-  
+
   ========================================================================*/
 
 #include "wlan_qct_os_list.h"
