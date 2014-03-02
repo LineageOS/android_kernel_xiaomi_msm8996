@@ -10337,7 +10337,7 @@ void csrRoamWaitForKeyTimeOutHandler(void *pv)
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, pInfo->sessionId );
     eHalStatus status = eHAL_STATUS_FAILURE;
 
-    smsLog(pMac, LOGW, "WaitForKey timer expired in state=%d sub-state=%d",
+    smsLog(pMac, LOGE, "WaitForKey timer expired in state=%d sub-state=%d",
             pMac->roam.neighborRoamInfo.neighborRoamState,
             pMac->roam.curSubState[pInfo->sessionId]);
 
@@ -10358,7 +10358,7 @@ void csrRoamWaitForKeyTimeOutHandler(void *pv)
                     NULL, eANI_BOOLEAN_FALSE);
         }
 #endif
-        smsLog(pMac, LOGW, " SME pre-auth state timeout. ");
+        smsLog(pMac, LOGE, " SME pre-auth state timeout. ");
 
         //Change the substate so command queue is unblocked.
         if (CSR_ROAM_SESSION_MAX > pInfo->sessionId)
@@ -10373,31 +10373,23 @@ void csrRoamWaitForKeyTimeOutHandler(void *pv)
             {
                 csrRoamLinkUp(pMac, pSession->connectedProfile.bssid);
                 smeProcessPendingQueue(pMac);
-                if ((pSession->connectedProfile.AuthType ==
-                                           eCSR_AUTH_TYPE_SHARED_KEY) &&
-                    ((pSession->connectedProfile.EncryptionType ==
-                                           eCSR_ENCRYPT_TYPE_WEP40) ||
-                      (pSession->connectedProfile.EncryptionType ==
-                                           eCSR_ENCRYPT_TYPE_WEP104)))
+                status = sme_AcquireGlobalLock(&pMac->sme);
+                if (HAL_STATUS_SUCCESS(status ))
                 {
-                    status = sme_AcquireGlobalLock(&pMac->sme);
-                    if (HAL_STATUS_SUCCESS(status ))
-                    {
-                        csrRoamDisconnect(pMac, pInfo->sessionId,
-                                      eCSR_DISCONNECT_REASON_UNSPECIFIED);
-                        sme_ReleaseGlobalLock(&pMac->sme);
-                    }
+                    csrRoamDisconnect(pMac, pInfo->sessionId,
+                                  eCSR_DISCONNECT_REASON_UNSPECIFIED);
+                    sme_ReleaseGlobalLock(&pMac->sme);
                 }
             }
             else
             {
-                smsLog(pMac, LOGW, "%s: could not post link up",
-                        __func__);
+                smsLog(pMac, LOGE, "%s: Session id %d is disconnected",
+                        __func__, pInfo->sessionId);
             }
         }
         else
         {
-            smsLog(pMac, LOGW, "%s: session not found", __func__);
+            smsLog(pMac, LOGE, "%s: session not found", __func__);
         }
     }
 
