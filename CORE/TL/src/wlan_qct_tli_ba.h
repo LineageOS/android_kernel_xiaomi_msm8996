@@ -30,13 +30,13 @@
 
 /*===========================================================================
 
-               W L A N   T R A N S P O R T   L A Y E R 
+               W L A N   T R A N S P O R T   L A Y E R
                B L O C K   A C K    I N T E R N A L  A P I
-                
-                   
+
+
 DESCRIPTION
-  This file contains the internal declarations used within wlan transport 
-  layer module for BA session support, AMSDU de-aggregation and 
+  This file contains the internal declarations used within wlan transport
+  layer module for BA session support, AMSDU de-aggregation and
   MSDU reordering.
 ===========================================================================*/
 
@@ -71,10 +71,10 @@ when        who    what, where, why
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
-#include "wlan_qct_tli.h" 
+#include "wlan_qct_tli.h"
 
 /*---------------------------------------------------------------------------
-   Re-order opcode filled in by RPE 
+   Re-order opcode filled in by RPE
    !!! fix me: (check with RPE doc if the codes are correct)
  ---------------------------------------------------------------------------*/
 typedef enum
@@ -101,84 +101,84 @@ void WLANTL_InitBAReorderBuffer
 
   FUNCTION    WLANTL_BaSessionAdd
 
-  DESCRIPTION 
-    HAL notifies TL when a new Block Ack session is being added. 
-    
-  DEPENDENCIES 
-    A BA session on Rx needs to be added in TL before the response is 
-    being sent out 
-    
-  PARAMETERS 
+  DESCRIPTION
+    HAL notifies TL when a new Block Ack session is being added.
+
+  DEPENDENCIES
+    A BA session on Rx needs to be added in TL before the response is
+    being sent out
+
+  PARAMETERS
 
     IN
-    pvosGCtx:       pointer to the global vos context; a handle to TL's 
-                    control block can be extracted from its context 
-    ucSTAId:        identifier of the station for which requested the BA 
+    pvosGCtx:       pointer to the global vos context; a handle to TL's
+                    control block can be extracted from its context
+    ucSTAId:        identifier of the station for which requested the BA
                     session
     ucTid:          Tspec ID for the new BA session
     uSize:          size of the reordering window
 
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_INVAL:      Input parameters are invalid 
-    VOS_STATUS_E_FAULT:      Station ID is outside array boundaries or pointer 
-                             to TL cb is NULL ; access would cause a page fault  
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_INVAL:      Input parameters are invalid
+    VOS_STATUS_E_FAULT:      Station ID is outside array boundaries or pointer
+                             to TL cb is NULL ; access would cause a page fault
     VOS_STATUS_E_EXISTS:     Station was not registered or BA session already
                              exists
     VOS_STATUS_E_NOSUPPORT:  Not yet supported
-    
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
-WLANTL_BaSessionAdd 
-( 
-  v_PVOID_t   pvosGCtx, 
+WLANTL_BaSessionAdd
+(
+  v_PVOID_t   pvosGCtx,
   v_U16_t     sessionID,
   v_U32_t     ucSTAId,
-  v_U8_t      ucTid, 
+  v_U8_t      ucTid,
   v_U32_t     uBufferSize,
   v_U32_t     winSize,
-  v_U32_t     SSN 
+  v_U32_t     SSN
 );
 
 /*==========================================================================
 
   FUNCTION    WLANTL_BaSessionDel
 
-  DESCRIPTION 
-    HAL notifies TL when a new Block Ack session is being deleted. 
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+  DESCRIPTION
+    HAL notifies TL when a new Block Ack session is being deleted.
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     IN
-    pvosGCtx:       pointer to the global vos context; a handle to TL's 
-                    control block can be extracted from its context 
-    ucSTAId:        identifier of the station for which requested the BA 
+    pvosGCtx:       pointer to the global vos context; a handle to TL's
+                    control block can be extracted from its context
+    ucSTAId:        identifier of the station for which requested the BA
                     session
     ucTid:          Tspec ID for the new BA session
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-    VOS_STATUS_E_INVAL:      Input parameters are invalid 
-    VOS_STATUS_E_FAULT:      Station ID is outside array boundaries or pointer 
-                             to TL cb is NULL ; access would cause a page fault  
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_INVAL:      Input parameters are invalid
+    VOS_STATUS_E_FAULT:      Station ID is outside array boundaries or pointer
+                             to TL cb is NULL ; access would cause a page fault
     VOS_STATUS_E_EXISTS:     Station was not registered or BA session already
                              exists
     VOS_STATUS_E_NOSUPPORT:  Not yet supported
-    
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
-WLANTL_BaSessionDel 
-( 
-  v_PVOID_t           pvosGCtx, 
+WLANTL_BaSessionDel
+(
+  v_PVOID_t           pvosGCtx,
   v_U16_t             ucSTAId,
   v_U8_t              ucTid
 );
@@ -186,38 +186,38 @@ WLANTL_BaSessionDel
 /*==========================================================================
   FUNCTION    WLANTL_AMSDUProcess
 
-  DESCRIPTION 
-    Process A-MSDU sub-frame. Start of chain if marked as first frame. 
-    Linked at the end of the existing AMSDU chain. 
-    
+  DESCRIPTION
+    Process A-MSDU sub-frame. Start of chain if marked as first frame.
+    Linked at the end of the existing AMSDU chain.
 
-  DEPENDENCIES 
-         
-  PARAMETERS 
+
+  DEPENDENCIES
+
+  PARAMETERS
 
    IN/OUT:
    vosDataBuff: vos packet for the received data
-                 outgoing contains the root of the chain for the rx 
-                 aggregated MSDU if the frame is marked as last; otherwise 
+                 outgoing contains the root of the chain for the rx
+                 aggregated MSDU if the frame is marked as last; otherwise
                  NULL
-   
-   IN
-   pAdapter:     pointer to the global adapter context; a handle to TL's 
-                 control block can be extracted from its context 
-   pvBDHeader:   pointer to the BD header
-   ucSTAId:      STAtion ID 
-      
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-  SIDE EFFECTS 
-  
+   IN
+   pAdapter:     pointer to the global adapter context; a handle to TL's
+                 control block can be extracted from its context
+   pvBDHeader:   pointer to the BD header
+   ucSTAId:      STAtion ID
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANTL_AMSDUProcess
-( 
+(
   v_PVOID_t   pvosGCtx,
-  vos_pkt_t** ppVosDataBuff, 
+  vos_pkt_t** ppVosDataBuff,
   v_PVOID_t   pvBDHeader,
   v_U8_t      ucSTAId,
   v_U8_t      ucMPDUHLen,
@@ -227,30 +227,30 @@ WLANTL_AMSDUProcess
 /*==========================================================================
   FUNCTION    WLANTL_MSDUReorder
 
-  DESCRIPTION 
-    MSDU reordering 
+  DESCRIPTION
+    MSDU reordering
 
-  DEPENDENCIES 
-         
-  PARAMETERS 
+  DEPENDENCIES
+
+  PARAMETERS
 
    IN
-   
+
    vosDataBuff: vos packet for the received data
    pvBDHeader: pointer to the BD header
-   ucSTAId:    STAtion ID 
-      
-  RETURN VALUE
-    The result code associated with performing the operation  
+   ucSTAId:    STAtion ID
 
-  SIDE EFFECTS 
-  
+  RETURN VALUE
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANTL_MSDUReorder
-( 
+(
    WLANTL_CbType    *pTLCb,
-   vos_pkt_t        **vosDataBuff, 
+   vos_pkt_t        **vosDataBuff,
    v_PVOID_t        pvBDHeader,
    v_U8_t           ucSTAId,
    v_U8_t           ucTid
@@ -264,29 +264,29 @@ WLANTL_MSDUReorder
 /*==========================================================================
   FUNCTION    WLANTL_AMSDUCompleteFrame
 
-  DESCRIPTION 
+  DESCRIPTION
     Complete AMSDU de-aggregation
 
-  DEPENDENCIES 
-         
-  PARAMETERS 
+  DEPENDENCIES
+
+  PARAMETERS
 
    IN/OUT:
    vosDataBuff: vos packet for the received data
-   
+
    IN
    pvBDHeader: pointer to the BD header
-   ucSTAId:    STAtion ID 
-      
-  RETURN VALUE
-    The result code associated with performing the operation  
+   ucSTAId:    STAtion ID
 
-  SIDE EFFECTS 
-  
+  RETURN VALUE
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANTL_AMSDUCompleteFrame
-( 
+(
   vos_pkt_t*  vosDataBuff,
   v_U8_t      ucMPDUHLen,
   v_U16_t     usMPDULen
@@ -296,26 +296,26 @@ WLANTL_AMSDUCompleteFrame
 
   FUNCTION    WLANTL_QueueCurrent
 
-  DESCRIPTION 
-    It will queue a packet at a given slot index in the MSDU reordering list. 
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+  DESCRIPTION
+    It will queue a packet at a given slot index in the MSDU reordering list.
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     IN
-    pwBaReorder:   pointer to the BA reordering session info 
+    pwBaReorder:   pointer to the BA reordering session info
     vosDataBuff:   data buffer to be queued
-    ucSlotIndex:   slot index 
-   
+    ucSlotIndex:   slot index
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
     VOS_STATUS_E_SUCCESS:     Everything is OK
 
-    
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANTL_QueueCurrent
@@ -329,32 +329,32 @@ WLANTL_QueueCurrent
 
   FUNCTION    WLANTL_ChainFrontPkts
 
-  DESCRIPTION 
-    It will remove all the packets from the front of a vos list and chain 
-    them to a vos pkt . 
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+  DESCRIPTION
+    It will remove all the packets from the front of a vos list and chain
+    them to a vos pkt .
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     IN
     ucCount:       number of packets to extract
-    pwBaReorder:   pointer to the BA reordering session info 
+    pwBaReorder:   pointer to the BA reordering session info
 
     OUT
     vosDataBuff:   data buffer containing the extracted chain of packets
-   
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
     VOS_STATUS_E_SUCCESS:     Everything is OK
 
-    
-  SIDE EFFECTS 
-  
+
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS WLANTL_ChainFrontPkts
-( 
+(
    v_U32_t                fwdIndex,
    v_U8_t                 opCode,
    vos_pkt_t              **vosDataBuff,
@@ -363,28 +363,28 @@ VOS_STATUS WLANTL_ChainFrontPkts
 );
 
 /*==========================================================================
- 
+
    FUNCTION    WLANTL_FillReplayCounter
- 
-   DESCRIPTION 
-    It will fill repaly counter at a given slot index in the MSDU reordering list. 
-              
-   DEPENDENCIES 
-                
-   PARAMETERS 
+
+   DESCRIPTION
+    It will fill repaly counter at a given slot index in the MSDU reordering list.
+
+   DEPENDENCIES
+
+   PARAMETERS
 
    IN
-   pwBaReorder  :   pointer to the BA reordering session info 
+   pwBaReorder  :   pointer to the BA reordering session info
    replayCounter:   replay counter to be filled
-   ucSlotIndex  :   slot index 
-                 
+   ucSlotIndex  :   slot index
+
    RETURN VALUE
-   NONE 
- 
-                                             
-   SIDE EFFECTS 
    NONE
-                                                   
+
+
+   SIDE EFFECTS
+   NONE
+
  ============================================================================*/
 void WLANTL_FillReplayCounter
 (

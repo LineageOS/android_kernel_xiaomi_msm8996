@@ -26,18 +26,18 @@
  */
 
 /**=========================================================================
-  
+
   \file  cfgDebug.c
-  
+
   \brief implementation for log Debug related APIs
 
   \author Sunit Bhatia
-  
+
   ========================================================================*/
 
 #include "cfgDebug.h"
 
-void cfgLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...) 
+void cfgLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...)
 {
 #ifdef WLAN_DEBUG
     // Verify against current log level
@@ -50,7 +50,7 @@ void cfgLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...)
         va_start( marker, pString );     /* Initialize variable arguments. */
 
         logDebug(pMac, SIR_CFG_MODULE_ID, loglevel, pString, marker);
-        
+
         va_end( marker );              /* Reset variable arguments.      */
     }
 #endif

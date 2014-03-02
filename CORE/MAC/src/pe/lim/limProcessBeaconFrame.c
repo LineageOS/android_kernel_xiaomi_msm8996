@@ -76,10 +76,10 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
 
     pMac->lim.gLimNumBeaconsRcvd++;
 
-    /* here is it required to increment session specific heartBeat beacon counter */  
+    /* here is it required to increment session specific heartBeat beacon counter */
 
 
-    
+
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
 
 
@@ -180,12 +180,12 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
               }
               else
               {
-                //Store the Beacon/ProbeRsp. This is sent to csr/hdd in join cnf response. 
+                //Store the Beacon/ProbeRsp. This is sent to csr/hdd in join cnf response.
                 vos_mem_copy(psessionEntry->beacon, WDA_GET_RX_MPDU_DATA(pRxPacketInfo),
                              psessionEntry->bcnLen);
 
                }
-             
+
              // STA in WT_JOIN_BEACON_STATE (IBSS)
             limCheckAndAnnounceJoinSuccess(pMac, pBeacon, pHdr,psessionEntry);
         } // if (pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE)
@@ -215,7 +215,7 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
             PELOG1(limLog(pMac, LOG1, FL("Received Beacon in unexpected state %d"),
                    psessionEntry->limMlmState);
             limPrintMlmState(pMac, LOG1, psessionEntry->limMlmState);)
-#ifdef WLAN_DEBUG                    
+#ifdef WLAN_DEBUG
             pMac->lim.gLimUnexpBcnCnt++;
 #endif
         }
@@ -228,7 +228,7 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
 /**---------------------------------------------------------------
 \fn     limProcessBeaconFrameNoSession
 \brief  This function is called by limProcessMessageQueue()
-\       upon Beacon reception. 
+\       upon Beacon reception.
 \
 \param pMac
 \param *pRxPacketInfo    - A pointer to Rx packet info structure
@@ -271,7 +271,7 @@ limProcessBeaconFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
 
         if (sirConvertBeaconFrame2Struct(pMac, (tANI_U8 *) pRxPacketInfo, pBeacon) != eSIR_SUCCESS)
         {
-            // Received wrongly formatted/invalid Beacon. Ignore and move on. 
+            // Received wrongly formatted/invalid Beacon. Ignore and move on.
             limLog(pMac, LOGW, FL("Received invalid Beacon in global MLM state %X"), pMac->lim.gLimMlmState);
             limPrintMlmState(pMac, LOGW,  pMac->lim.gLimMlmState);
             vos_mem_free(pBeacon);
@@ -290,18 +290,17 @@ limProcessBeaconFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
         }
         else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)
         {
-        }  // end of eLIM_MLM_LEARN_STATE)       
+        }  // end of eLIM_MLM_LEARN_STATE)
         vos_mem_free(pBeacon);
     } // end of (eLIM_MLM_WT_PROBE_RESP_STATE) || (eLIM_MLM_PASSIVE_SCAN_STATE)
     else
     {
         limLog(pMac, LOG1, FL("Rcvd Beacon in unexpected MLM state %d"), pMac->lim.gLimMlmState);
         limPrintMlmState(pMac, LOG1, pMac->lim.gLimMlmState);
-#ifdef WLAN_DEBUG                    
+#ifdef WLAN_DEBUG
         pMac->lim.gLimUnexpBcnCnt++;
 #endif
     }
 
     return;
 } /*** end limProcessBeaconFrameNoSession() ***/
-

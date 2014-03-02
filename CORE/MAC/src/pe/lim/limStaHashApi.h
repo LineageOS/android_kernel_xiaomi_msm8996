@@ -48,7 +48,3 @@
 tSirRetStatus limGetStaHashBssidx(tpAniSirGlobal pMac, tANI_U16 assocId, tANI_U8 *bssidx,tpPESession psessionEntry);
 
 #endif
-
-
-
-

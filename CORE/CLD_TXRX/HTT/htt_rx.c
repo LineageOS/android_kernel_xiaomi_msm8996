@@ -764,9 +764,37 @@ htt_rx_amsdu_pop_ll(
          * To prevent the case that we handle a stale Rx descriptor, just
          * assert for now until we have a way to recover.
          */
-        HTT_ASSERT_ALWAYS(
-            (*(u_int32_t *) &rx_desc->attention) &
-            RX_ATTENTION_0_MSDU_DONE_MASK);
+
+        /* if done bit is not set */
+        if (adf_os_unlikely(!((*(u_int32_t *) &rx_desc->attention)
+                            & RX_ATTENTION_0_MSDU_DONE_MASK))) {
+
+            /* invalidate the cache */
+            adf_os_print("rx desc done bit not set invalidating cache\n");
+            htt_print_rx_desc(rx_desc);
+
+            adf_os_invalidate_range((void *)rx_desc,
+                                    (void*)((char *)rx_desc +
+                                            HTT_RX_STD_DESC_RESERVATION));
+
+            /* if done bit still not set try waiting for 1 ms and check again */
+            if (!((*(u_int32_t *) &rx_desc->attention) &
+                 RX_ATTENTION_0_MSDU_DONE_MASK)) {
+
+                adf_os_print("done bit still not set delay and try again\n");
+                htt_print_rx_desc(rx_desc);
+
+                adf_os_mdelay(1);
+
+                adf_os_invalidate_range((void *)rx_desc,
+                                        (void*)((char *)rx_desc +
+                                                HTT_RX_STD_DESC_RESERVATION));
+
+                HTT_ASSERT_ALWAYS(
+                   (*(u_int32_t *) &rx_desc->attention) &
+                   RX_ATTENTION_0_MSDU_DONE_MASK);
+            }
+        }
 
         /*
          * Copy the FW rx descriptor for this MSDU from the rx indication

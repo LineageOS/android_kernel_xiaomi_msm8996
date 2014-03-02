@@ -103,7 +103,3 @@ extern void cfgSendHostMsg(tpAniSirGlobal, tANI_U16, tANI_U32, tANI_U32, tANI_U3
 
 
 #endif /* __CFGPRIV_H */
-
-
-
-

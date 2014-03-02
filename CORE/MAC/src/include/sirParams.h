@@ -649,6 +649,7 @@ typedef struct sSirMbMsgP2p
 #endif
 
 #define SIR_HAL_SET_TX_POWER_LIMIT         (SIR_HAL_ITC_MSG_TYPES_BEGIN + 251)
+#define SIR_HAL_SET_SAP_INTRABSS_DIS       (SIR_HAL_ITC_MSG_TYPES_BEGIN + 252)
 
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 

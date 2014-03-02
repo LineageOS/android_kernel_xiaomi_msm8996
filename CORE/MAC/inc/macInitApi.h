@@ -48,4 +48,3 @@ tSirRetStatus macClose(tHalHandle hHal);
 tSirRetStatus macPreStart(tHalHandle hHal);
 
 #endif //__MAC_INIT_API_H
-

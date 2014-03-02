@@ -44,7 +44,7 @@
 #include "limDebug.h"
 
 
-#include "halMsgApi.h" 
+#include "halMsgApi.h"
 
 // ---------------------------------------------------------------------
 /**
@@ -86,7 +86,7 @@ void dphHashTableClassInit(tpAniSirGlobal pMac, dphHashTableClass* pDphHashTable
       pDphHashTable->pDphNodeArray[i].added = 0;
       pDphHashTable->pDphNodeArray[i].assocId = i;
     }
-    
+
 }
 
 // ---------------------------------------------------------------------
@@ -110,10 +110,10 @@ tANI_U16 hashFunction(tpAniSirGlobal pMac, tANI_U8 staAddr[], tANI_U16 numSta)
 {
   int i;
   tANI_U16 sum = 0;
-  
+
   for (i=0; i<6; i++)
     sum += staAddr[i];
-   
+
   return (sum % numSta);
 }
 
@@ -136,7 +136,7 @@ tANI_U16 hashFunction(tpAniSirGlobal pMac, tANI_U8 staAddr[], tANI_U16 numSta)
  *         NULL if lookup was a failure
  */
 
-tpDphHashNode dphLookupHashEntry(tpAniSirGlobal pMac, tANI_U8 staAddr[], tANI_U16 *pAssocId, 
+tpDphHashNode dphLookupHashEntry(tpAniSirGlobal pMac, tANI_U8 staAddr[], tANI_U16 *pAssocId,
                                  dphHashTableClass* pDphHashTable)
 {
     tpDphHashNode ptr = NULL;

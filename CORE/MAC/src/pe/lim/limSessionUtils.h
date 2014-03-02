@@ -30,13 +30,13 @@
 #define __LIM_SESSION_UTILS_H
 
 /**=========================================================================
-  
+
   \file  limSessionUtils.h
-  
+
   \brief prototype for lim Session Utility related APIs
 
   \author Sunit Bhatia
-  
+
   ========================================================================*/
 
 
@@ -46,23 +46,23 @@
 
 
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
 
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
 
 
-/*------------------------------------------------------------------------- 
+/*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------
-  
+
   \brief peGetVhtCapable() - Returns the Vht capable from a valid session.
- 
+
   This function iterates the session Table and returns the VHT capable from first valid session
   if no sessions are valid/present  it returns FALSE
 
@@ -94,14 +94,14 @@ tANI_U8 peValidateBtJoinRequest(tpAniSirGlobal pMac);
 /*--------------------------------------------------------------------------
   \brief peGetValidPowerSaveSession() - Fetches the valid session for powersave .
 
-  This function is called to check the valid session for power save, if more than one session is active , this function 
+  This function is called to check the valid session for power save, if more than one session is active , this function
   it returns NULL.
   if there is only one valid "infrastructure" session present in "linkestablished" state this function returns sessionentry.
   For all other cases it returns NULL.
-    
+
   \param pMac                   - pointer to global adapter context
   \return                            - return session is address if valid session is  present else return NULL.
-  
+
   \sa
   --------------------------------------------------------------------------*/
 
@@ -115,10 +115,10 @@ tpPESession peGetValidPowerSaveSession(tpAniSirGlobal pMac);
   \brief peIsAnySessionActive() - checks for the active session presence .
 
   This function returns TRUE if atleast one valid session is present else it returns FALSE
-      
+
   \param pMac                   - pointer to global adapter context
   \return                            - return TRUE if atleast one session is active else return FALSE.
-  
+
   \sa
   --------------------------------------------------------------------------*/
 
@@ -128,17 +128,17 @@ tANI_U8 peIsAnySessionActive(tpAniSirGlobal pMac);
 
 
 /*--------------------------------------------------------------------------
-  \brief isLimSessionOffChannel() - Determines if the session is 
+  \brief isLimSessionOffChannel() - Determines if the session is
                                         off channel.
 
   This function returns TRUE if the session Id passed needs to be on a different
   channel than atleast one session already active.
-    
+
   \param pMac                   - pointer to global adapter context
-  \param sessionId              - session ID of the session to be verified.  
-  
+  \param sessionId              - session ID of the session to be verified.
+
   \return tANI_U8               - Boolean value for off-channel operation.
-  
+
   \sa
   --------------------------------------------------------------------------*/
 tANI_U8
@@ -156,42 +156,42 @@ void
 peGetActiveSessionChannel(tpAniSirGlobal pMac, tANI_U8* resumeChannel, ePhyChanBondState* resumePhyCbState);
 
 /*--------------------------------------------------------------------------
-  \brief limIsChanSwitchRunning() - Check if channel switch is running on any  
+  \brief limIsChanSwitchRunning() - Check if channel switch is running on any
                                     valid session.
 
   \param pMac                   - pointer to global adapter context
-  
+
   \return tANI_U8               - 1 - if chann switching running.
-                                  0 - if chann switching is not running. 
-  
+                                  0 - if chann switching is not running.
+
   \sa
   --------------------------------------------------------------------------*/
 tANI_U8
 limIsChanSwitchRunning (tpAniSirGlobal pMac);
 
 /*--------------------------------------------------------------------------
-  \brief limIsInQuietDuration() - Check if channel quieting is running on any  
+  \brief limIsInQuietDuration() - Check if channel quieting is running on any
                                     valid session.
 
   \param pMac                   - pointer to global adapter context
-  
+
   \return tANI_U8               - 1 - if chann quiet running.
-                                  0 - if chann quiet is not running. 
-  
+                                  0 - if chann quiet is not running.
+
   \sa
   --------------------------------------------------------------------------*/
 tANI_U8
 limIsInQuietDuration (tpAniSirGlobal pMac);
 
 /*--------------------------------------------------------------------------
-  \brief limIsQuietBegin() - Check if channel quieting is begining on any  
+  \brief limIsQuietBegin() - Check if channel quieting is begining on any
                                     valid session.
 
   \param pMac                   - pointer to global adapter context
-  
+
   \return tANI_U8               - 1 - if chann quiet running.
-                                  0 - if chann quiet is not running. 
-  
+                                  0 - if chann quiet is not running.
+
   \sa
   --------------------------------------------------------------------------*/
 tANI_U8
@@ -200,21 +200,21 @@ limIsQuietBegin (tpAniSirGlobal pMac);
   \brief limIsInMCC() - Check if Device is in MCC.
 
   \param pMac                   - pointer to global adapter context
-  
+
   \return tANI_U8               - TRUE - if in MCC.
-                                  FALSE - NOT in MCC. 
-  
+                                  FALSE - NOT in MCC.
+
   \sa
   --------------------------------------------------------------------------*/
 tANI_U8
 limIsInMCC (tpAniSirGlobal pMac);
 /*--------------------------------------------------------------------------
-  \brief peGetCurrentSTAsCount() - Returns total stations associated on 
+  \brief peGetCurrentSTAsCount() - Returns total stations associated on
                                       all session.
 
   \param pMac                   - pointer to global adapter context
   \return                       - Number of station active on all sessions.
-  
+
   \sa
   --------------------------------------------------------------------------*/
 tANI_U8
@@ -236,4 +236,3 @@ limIsFastRoamEnabled(tpAniSirGlobal pMac, tANI_U8 sessionId);
 
 
 #endif //#if !defined( __LIM_SESSION_UTILS_H )
-

@@ -74,6 +74,3 @@ tSirRetStatus limGetStaHashBssidx(tpAniSirGlobal pMac, tANI_U16 assocId, tANI_U8
     *bssidx = (tANI_U8)pSta->bssId;
     return eSIR_SUCCESS;
 }
-
-
-

@@ -45,7 +45,7 @@
 // LIM SME request messages related utility functions
 tANI_U8 limIsSmeStartReqValid(tpAniSirGlobal, tANI_U32 *);
 tANI_U8 limIsSmeStartBssReqValid(tpAniSirGlobal, tpSirSmeStartBssReq);
-tANI_U8 limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal, 
+tANI_U8 limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal,
                                           tpSirRSNie,
                                           tpPESession);
 tANI_U8 limIsSmeScanReqValid(tpAniSirGlobal, tpSirSmeScanReq);

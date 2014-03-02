@@ -75,7 +75,7 @@
  */
 void
 limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
-                       tANI_U8 *qosCap, tANI_U16 *propCap, tANI_U8 *uapsd, 
+                       tANI_U8 *qosCap, tANI_U16 *propCap, tANI_U8 *uapsd,
                        tPowerdBm *localConstraint,
                        tpPESession psessionEntry
                        )
@@ -153,7 +153,7 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
 #endif
 #endif
         {
-#if defined WLAN_FEATURE_VOWIFI 
+#if defined WLAN_FEATURE_VOWIFI
            *localConstraint -= pBeaconStruct->localPowerConstraint.localPowerConstraints;
 #else
            localPowerConstraints = (tANI_U32)pBeaconStruct->localPowerConstraint.localPowerConstraints;
@@ -174,7 +174,7 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
  * limGetHTCBState
  *
  *FUNCTION:
- * This routing provides the translation of Airgo Enum to HT enum for determining 
+ * This routing provides the translation of Airgo Enum to HT enum for determining
  * secondary channel offset.
  * Airgo Enum is required for backward compatibility purposes.
  *
@@ -184,7 +184,7 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
  * @param  pMac - Pointer to Global MAC structure
  * @return The corresponding HT enumeration
  */
-ePhyChanBondState  limGetHTCBState(ePhyChanBondState aniCBMode) 
+ePhyChanBondState  limGetHTCBState(ePhyChanBondState aniCBMode)
 {
     switch ( aniCBMode )
     {
@@ -258,4 +258,3 @@ tStaRateMode staPeerType = eSTA_11b;
         staPeerType = eSTA_11a;
   return staPeerType;
 }
-

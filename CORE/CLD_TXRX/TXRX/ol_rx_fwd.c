@@ -168,7 +168,8 @@ ol_rx_fwd_check(
 
         rx_desc = htt_rx_msdu_desc_retrieve(pdev->htt_pdev, msdu);
 
-        if (htt_rx_msdu_forward(pdev->htt_pdev, rx_desc)) {
+        if (!vdev->disable_intrabss_fwd &&
+            htt_rx_msdu_forward(pdev->htt_pdev, rx_desc)) {
             /*
              * Use the same vdev that received the frame to
              * transmit the frame.

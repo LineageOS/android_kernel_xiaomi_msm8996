@@ -47,7 +47,7 @@
  * 1. GNU C/C++ Compiler
  *
  * How to detect gcc : __GNUC__
- * How to detect gcc version : 
+ * How to detect gcc version :
  *   major version : __GNUC__ (2 = 2.x, 3 = 3.x, 4 = 4.x)
  *   minor version : __GNUC_MINOR__
  *
@@ -81,7 +81,7 @@
  * Alignment directives : Compiler may think packed data structures have
  * no specific alignment requirement. Then compiler may generate multiple
  * byte accesses to access two byte or four bytes data structures. This
- * affects on performance especially for RISC systems. If some data 
+ * affects on performance especially for RISC systems. If some data
  * structure is located on specific alignment always, alignment directives
  * help compiler generate more efficient codes.
  */
@@ -92,8 +92,8 @@
 #if defined(_MSC_VER)
 #define __ANI_COMPILER_PRAGMA_PACK_STACK        1
 #define __ANI_COMPILER_PRAGMA_PACK              1
-#define __ani_attr_pre_packed 
-#define __ani_attr_packed 
+#define __ani_attr_pre_packed
+#define __ani_attr_packed
 #define __ani_attr_aligned_2
 #define __ani_attr_aligned_4
 #define __ani_attr_aligned_8
@@ -101,15 +101,15 @@
 #define __ani_attr_aligned_32
 #elif defined(__INTEL_COMPILER) || defined(__ICC) || defined(__ECC)
 #define __ANI_COMPILER_PRAGMA_PACK              1
-#define __ani_attr_pre_packed 
-#define __ani_attr_packed 
+#define __ani_attr_pre_packed
+#define __ani_attr_packed
 #define __ani_attr_aligned_2
 #define __ani_attr_aligned_4
 #define __ani_attr_aligned_8
 #define __ani_attr_aligned_16
 #define __ani_attr_aligned_32
 #elif defined(__GNUC__)
-#define __ani_attr_pre_packed 
+#define __ani_attr_pre_packed
 #define __ani_attr_packed                       __packed
 #define __ani_attr_aligned_2                    __attribute__((aligned(2)))
 #define __ani_attr_aligned_4                    __attribute__((aligned(4)))
@@ -135,11 +135,10 @@
 #define  __DP_SRC                   __attribute__((section(".dpsrc")))
 #define  __ANIHDD_MODULE            __attribute__((section(".anihdd")))
 #else
-#define  __DP_SRC_RX 
+#define  __DP_SRC_RX
 #define  __DP_SRC_TX
-#define  __DP_SRC  
+#define  __DP_SRC
 #define  __ANIHDD_MODULE
 #endif
 
 #endif
-

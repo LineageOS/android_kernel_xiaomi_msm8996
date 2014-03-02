@@ -27,11 +27,11 @@
 
 
 /**=========================================================================
-  
+
   \file  rrmApi.h
-  
+
   \brief RRM APIs
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -52,32 +52,32 @@ extern tSirRetStatus rrmInitialize(tpAniSirGlobal pMac);
 extern tSirRetStatus rrmCleanup(tpAniSirGlobal pMac);
 
 
-extern tSirRetStatus rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac, 
+extern tSirRetStatus rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
                                   tANI_U8 *pRxPacketInfo,
                                   tDot11fLinkMeasurementRequest *pLinkReq,
                                   tpPESession pSessionEntry );
 
-extern tSirRetStatus rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac, 
+extern tSirRetStatus rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac,
                                   tSirMacAddr peer,
                                   tDot11fRadioMeasurementRequest *pRRMReq,
                                   tpPESession pSessionEntry );
 
-extern tSirRetStatus rrmProcessNeighborReportResponse( tpAniSirGlobal pMac, 
+extern tSirRetStatus rrmProcessNeighborReportResponse( tpAniSirGlobal pMac,
                                   tDot11fNeighborReportResponse *pNeighborRep,
                                   tpPESession pSessionEntry );
 
-extern void rrmProcessMessage(tpAniSirGlobal pMac, 
+extern void rrmProcessMessage(tpAniSirGlobal pMac,
                                   tpSirMsgQ pMsg);
 
-extern tSirRetStatus rrmSendSetMaxTxPowerReq ( tpAniSirGlobal pMac, 
-                                  tPowerdBm txPower, 
+extern tSirRetStatus rrmSendSetMaxTxPowerReq ( tpAniSirGlobal pMac,
+                                  tPowerdBm txPower,
                                   tpPESession pSessionEntry );
 
-extern tPowerdBm rrmGetMgmtTxPower ( tpAniSirGlobal pMac, 
+extern tPowerdBm rrmGetMgmtTxPower ( tpAniSirGlobal pMac,
                                   tpPESession pSessionEntry );
 
-extern void rrmCacheMgmtTxPower ( tpAniSirGlobal pMac, 
-                                  tPowerdBm txPower, 
+extern void rrmCacheMgmtTxPower ( tpAniSirGlobal pMac,
+                                  tPowerdBm txPower,
                                   tpPESession pSessionEntry );
 
 extern tpRRMCaps rrmGetCapabilities ( tpAniSirGlobal pMac,
@@ -86,13 +86,13 @@ extern tpRRMCaps rrmGetCapabilities ( tpAniSirGlobal pMac,
 extern void rrmUpdateConfig ( tpAniSirGlobal pMac,
                                   tpPESession pSessionEntry );
 
-extern void rrmGetStartTSF ( tpAniSirGlobal pMac, 
+extern void rrmGetStartTSF ( tpAniSirGlobal pMac,
                                   tANI_U32 *pStartTSF );
 
-extern void rrmUpdateStartTSF ( tpAniSirGlobal pMac, 
+extern void rrmUpdateStartTSF ( tpAniSirGlobal pMac,
                                   tANI_U32 startTSF[2] );
 
-extern tSirRetStatus rrmSetMaxTxPowerRsp ( tpAniSirGlobal pMac, 
+extern tSirRetStatus rrmSetMaxTxPowerRsp ( tpAniSirGlobal pMac,
                                   tpSirMsgQ limMsgQ );
 
 extern tSirRetStatus

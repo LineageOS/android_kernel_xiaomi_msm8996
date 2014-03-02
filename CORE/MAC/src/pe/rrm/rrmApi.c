@@ -118,7 +118,7 @@ rrmGetMgmtTxPower ( tpAniSirGlobal pMac, tpPESession pSessionEntry )
 #endif
    if( pSessionEntry == NULL )
       return pMac->rrm.rrmPEContext.txMgmtPower;
-   
+
    return pSessionEntry->txMgmtPower;
 }
 
@@ -254,7 +254,7 @@ rrmSetMaxTxPowerRsp ( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
  * @return None
  */
 tSirRetStatus
-rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac, 
+rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
                                   tANI_U8 *pRxPacketInfo,
                                   tDot11fLinkMeasurementRequest *pLinkReq,
                                   tpPESession pSessionEntry )
@@ -336,18 +336,18 @@ rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
 
    // 2008 11k spec reference: 18.4.8.5 RCPI Measurement
    if ((currentRSSI) <= RCPI_LOW_RSSI_VALUE)
-       LinkReport.rcpi = 0; 
+       LinkReport.rcpi = 0;
    else if ((currentRSSI > RCPI_LOW_RSSI_VALUE) && (currentRSSI <= 0))
        LinkReport.rcpi = CALCULATE_RCPI(currentRSSI);
-   else 
-       LinkReport.rcpi = RCPI_MAX_VALUE; 
+   else
+       LinkReport.rcpi = RCPI_MAX_VALUE;
 
-   LinkReport.rsni = WDA_GET_RX_SNR(pRxPacketInfo); 
-   
+   LinkReport.rsni = WDA_GET_RX_SNR(pRxPacketInfo);
+
 #if defined WLAN_VOWIFI_DEBUG
    PELOG1(limLog( pMac, LOG1, "Sending Link report frame");)
 #endif
-   return limSendLinkReportActionFrame( pMac, &LinkReport, pHdr->sa, pSessionEntry ); 
+   return limSendLinkReportActionFrame( pMac, &LinkReport, pHdr->sa, pSessionEntry );
 
 
 }
@@ -401,8 +401,8 @@ rrmProcessNeighborReportResponse( tpAniSirGlobal pMac,
       return eSIR_FAILURE;
    }
    length = (sizeof( tSirNeighborReportInd )) +
-            (sizeof( tSirNeighborBssDescription ) * (pNeighborRep->num_NeighborReport - 1) ) ; 
-            
+            (sizeof( tSirNeighborBssDescription ) * (pNeighborRep->num_NeighborReport - 1) ) ;
+
    //Prepare the request to send to SME.
    pSmeNeighborRpt = vos_mem_malloc(length);
    if( NULL == pSmeNeighborRpt )
@@ -457,7 +457,7 @@ rrmProcessNeighborReportResponse( tpAniSirGlobal pMac,
 /**
  * rrmProcessNeighborReportReq
  *
- * FUNCTION:  
+ * FUNCTION:
  *
  * LOGIC: Create a Neighbor report request and send it to peer.
  *
@@ -496,7 +496,7 @@ rrmProcessNeighborReportReq( tpAniSirGlobal pMac,
    vos_mem_set(&NeighborReportReq,sizeof( tSirMacNeighborReportReq ), 0);
 
    NeighborReportReq.dialogToken = ++pMac->rrm.rrmPEContext.DialogToken;
-   NeighborReportReq.ssid_present = !pNeighborReq->noSSID; 
+   NeighborReportReq.ssid_present = !pNeighborReq->noSSID;
    if( NeighborReportReq.ssid_present )
    {
       vos_mem_copy(&NeighborReportReq.ssid, &pNeighborReq->ucSSID, sizeof(tSirMacSSid));
@@ -529,7 +529,7 @@ rrmProcessNeighborReportReq( tpAniSirGlobal pMac,
  * @return None
  */
 static tRrmRetStatus
-rrmProcessBeaconReportReq( tpAniSirGlobal pMac, 
+rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
                            tpRRMReq pCurrentReq,
                            tDot11fIEMeasurementRequest *pBeaconReq,
                            tpPESession pSessionEntry )
@@ -541,7 +541,7 @@ rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
    tANI_S8  maxDuration;
    tANI_U8  sign;
 
-   if( pBeaconReq->measurement_request.Beacon.BeaconReporting.present && 
+   if( pBeaconReq->measurement_request.Beacon.BeaconReporting.present &&
        (pBeaconReq->measurement_request.Beacon.BeaconReporting.reportingCondition != 0) )
    {
       //Repeated measurement is not supported. This means number of repetitions should be zero.(Already checked)
@@ -554,12 +554,12 @@ rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
    }
 
    /* The logic here is to check the measurement duration passed in the beacon request. Following are the cases handled.
-      Case 1: If measurement duration received in the beacon request is greater than the max measurement duration advertised 
+      Case 1: If measurement duration received in the beacon request is greater than the max measurement duration advertised
                 in the RRM capabilities(Assoc Req), and Duration Mandatory bit is set to 1, REFUSE the beacon request
-      Case 2: If measurement duration received in the beacon request is greater than the max measurement duration advertised 
-                in the RRM capabilities(Assoc Req), and Duration Mandatory bit is set to 0, perform measurement for 
+      Case 2: If measurement duration received in the beacon request is greater than the max measurement duration advertised
+                in the RRM capabilities(Assoc Req), and Duration Mandatory bit is set to 0, perform measurement for
                 the duration advertised in the RRM capabilities
-      
+
       maxMeasurementDuration = 2^(nonOperatingChanMax - 4) * BeaconInterval
     */
    maxDuration = pMac->rrm.rrmPEContext.rrmEnabledCaps.nonOperatingChanMax - 4;
@@ -570,11 +570,11 @@ rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
    else
       maxMeasduration = pSessionEntry->beaconParams.beaconInterval / maxDuration;
 
-   measDuration = pBeaconReq->measurement_request.Beacon.meas_duration; 
+   measDuration = pBeaconReq->measurement_request.Beacon.meas_duration;
 
 #if defined WLAN_VOWIFI_DEBUG
    limLog( pMac, LOGE, "maxDuration = %d sign = %d maxMeasduration = %d measDuration = %d",
-        maxDuration, sign, maxMeasduration, measDuration ); 
+        maxDuration, sign, maxMeasduration, measDuration );
 #endif
 
    if( maxMeasduration < measDuration )
@@ -682,7 +682,7 @@ rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
 /**
  * rrmFillBeaconIes
  *
- * FUNCTION:  
+ * FUNCTION:
  *
  * LOGIC: Fills Fixed fields and Ies in bss description to an array of tANI_U8.
  *
@@ -699,8 +699,8 @@ rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
  * @return None
  */
 static void
-rrmFillBeaconIes( tpAniSirGlobal pMac, 
-                  tANI_U8 *pIes, tANI_U8 *pNumIes, tANI_U8 pIesMaxSize, 
+rrmFillBeaconIes( tpAniSirGlobal pMac,
+                  tANI_U8 *pIes, tANI_U8 *pNumIes, tANI_U8 pIesMaxSize,
                   tANI_U8 *eids, tANI_U8 numEids,
                   tpSirBssDescription pBssDesc )
 {
@@ -729,7 +729,7 @@ rrmFillBeaconIes( tpAniSirGlobal pMac,
    *((tANI_U16*)pIes) = pBssDesc->capabilityInfo;
    *pNumIes+=sizeof(tANI_U16); pIes+=sizeof(tANI_U16);
 
-   while ( BcnNumIes > 0 ) 
+   while ( BcnNumIes > 0 )
    {
       len = *(pBcnIes + 1) + 2; //element id + length.
 #if defined WLAN_VOWIFI_DEBUG
@@ -738,7 +738,7 @@ rrmFillBeaconIes( tpAniSirGlobal pMac,
 
       i = 0;
       do
-      {  
+      {
          if( ( (eids == NULL) || ( *pBcnIes == eids[i] ) )  &&
              ( (*pNumIes) + len) < pIesMaxSize )
          {
@@ -761,12 +761,12 @@ rrmFillBeaconIes( tpAniSirGlobal pMac,
    PELOGE(limLog( pMac, LOGE, "Total length of Ies added = %d", *pNumIes );)
 #endif
 }
-      
+
 // --------------------------------------------------------------------
 /**
  * rrmProcessBeaconReportXmit
  *
- * FUNCTION:  
+ * FUNCTION:
  *
  * LOGIC: Create a Radio measurement report action frame and send it to peer.
  *
@@ -783,7 +783,7 @@ rrmProcessBeaconReportXmit( tpAniSirGlobal pMac,
 {
    tSirRetStatus status = eSIR_SUCCESS;
    tSirMacRadioMeasureReport *pReport = NULL;
-   tpRRMReq pCurrentReq = pMac->rrm.rrmPEContext.pCurrentReq; 
+   tpRRMReq pCurrentReq = pMac->rrm.rrmPEContext.pCurrentReq;
    tpPESession pSessionEntry ;
    tANI_U8 sessionId;
    v_U8_t flagBSSPresent = FALSE, bssDescCnt = 0;
@@ -950,11 +950,11 @@ rrmProcessBeaconReportXmit( tpAniSirGlobal pMac,
    return status;
 }
 
-void rrmProcessBeaconRequestFailure(tpAniSirGlobal pMac, tpPESession pSessionEntry, 
+void rrmProcessBeaconRequestFailure(tpAniSirGlobal pMac, tpPESession pSessionEntry,
                                                 tSirMacAddr peer, tRrmRetStatus status)
 {
     tpSirMacRadioMeasureReport pReport = NULL;
-    tpRRMReq pCurrentReq = pMac->rrm.rrmPEContext.pCurrentReq; 
+    tpRRMReq pCurrentReq = pMac->rrm.rrmPEContext.pCurrentReq;
 
     pReport = vos_mem_malloc(sizeof( tSirMacRadioMeasureReport ));
     if ( NULL == pReport )
@@ -971,7 +971,7 @@ void rrmProcessBeaconRequestFailure(tpAniSirGlobal pMac, tpPESession pSessionEnt
     {
         case eRRM_REFUSED:
             pReport->refused = 1;
-            break;            
+            break;
         case eRRM_INCAPABLE:
             pReport->incapable = 1;
             break;
@@ -981,7 +981,7 @@ void rrmProcessBeaconRequestFailure(tpAniSirGlobal pMac, tpPESession pSessionEnt
             return;
     }
 
-    limSendRadioMeasureReportActionFrame( pMac, pCurrentReq->dialog_token, 1, 
+    limSendRadioMeasureReportActionFrame( pMac, pCurrentReq->dialog_token, 1,
                                                         pReport, peer, pSessionEntry );
 
     vos_mem_free(pReport);
@@ -998,7 +998,7 @@ void rrmProcessBeaconRequestFailure(tpAniSirGlobal pMac, tpPESession pSessionEnt
  * FUNCTION:  Processes the Radio Resource Measurement request.
  *
  * LOGIC:
- 
+
 
 *
  * ASSUMPTIONS:
@@ -1020,7 +1020,7 @@ rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac,
    tSirRetStatus status = eSIR_SUCCESS;
    tpSirMacRadioMeasureReport pReport = NULL;
    tANI_U8 num_report = 0;
-   tpRRMReq pCurrentReq = pMac->rrm.rrmPEContext.pCurrentReq; 
+   tpRRMReq pCurrentReq = pMac->rrm.rrmPEContext.pCurrentReq;
    tRrmRetStatus    rrmStatus = eRRM_SUCCESS;
 
    if( !pRRMReq->num_MeasurementRequest )
@@ -1127,7 +1127,7 @@ rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac,
                    rrmCleanup(pMac);
                }
             }
-            break;            
+            break;
          default:
             //Send a report with incapabale bit set.
             if ( pReport == NULL ) //Allocate memory to send reports for any subsequent requests.
@@ -1160,7 +1160,7 @@ rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac,
 end:
    if( pReport )
    {
-      limSendRadioMeasureReportActionFrame( pMac, pRRMReq->DialogToken.token, num_report, 
+      limSendRadioMeasureReportActionFrame( pMac, pRRMReq->DialogToken.token, num_report,
             pReport, peer, pSessionEntry );
 
       vos_mem_free(pReport);
@@ -1220,7 +1220,7 @@ rrmGetStartTSF ( tpAniSirGlobal pMac, tANI_U32 *pStartTSF )
 #endif
    pStartTSF[0] = pMac->rrm.rrmPEContext.startTSF[0];
    pStartTSF[1] = pMac->rrm.rrmPEContext.startTSF[1];
-   
+
 }
 // --------------------------------------------------------------------
 /**
@@ -1262,7 +1262,7 @@ tpRRMCaps rrmGetCapabilities ( tpAniSirGlobal pMac,
  */
 void rrmUpdateConfig ( tpAniSirGlobal pMac,
                                tpPESession pSessionEntry )
-{      
+{
    tANI_U32 val;
    tpRRMCaps pRRMCaps = &pMac->rrm.rrmPEContext.rrmEnabledCaps;
 
@@ -1271,7 +1271,7 @@ void rrmUpdateConfig ( tpAniSirGlobal pMac,
        limLog(pMac, LOGP, FL("cfg get rrm enabled failed"));
        return;
    }
-   pMac->rrm.rrmPEContext.rrmEnable = (val) ? 1 : 0;    
+   pMac->rrm.rrmPEContext.rrmEnable = (val) ? 1 : 0;
 
    if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_OPERATING_CHAN_MAX, &val) != eSIR_SUCCESS)
    {
@@ -1313,7 +1313,7 @@ rrmInitialize(tpAniSirGlobal pMac)
 {
    tpRRMCaps pRRMCaps = &pMac->rrm.rrmPEContext.rrmEnabledCaps;
 
-   pMac->rrm.rrmPEContext.pCurrentReq = NULL; 
+   pMac->rrm.rrmPEContext.pCurrentReq = NULL;
    pMac->rrm.rrmPEContext.txMgmtPower = 0;
    pMac->rrm.rrmPEContext.DialogToken = 0;
 
@@ -1372,7 +1372,7 @@ rrmCleanup(tpAniSirGlobal pMac)
 #endif
    }
 
-   pMac->rrm.rrmPEContext.pCurrentReq = NULL; 
+   pMac->rrm.rrmPEContext.pCurrentReq = NULL;
    return eSIR_SUCCESS;
 }
 

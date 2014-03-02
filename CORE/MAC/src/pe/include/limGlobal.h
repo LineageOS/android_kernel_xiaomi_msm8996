@@ -81,7 +81,7 @@
 #define LIM_TIM_WAIT_COUNT_FACTOR          5
 
 /** Use this count if (LIM_TIM_WAIT_FACTOR * ListenInterval) is less than LIM_MIN_TIM_WAIT_CNT*/
-#define LIM_MIN_TIM_WAIT_COUNT          50  
+#define LIM_MIN_TIM_WAIT_COUNT          50
 
 #define GET_TIM_WAIT_COUNT(LIntrvl)        ((LIntrvl * LIM_TIM_WAIT_COUNT_FACTOR) > LIM_MIN_TIM_WAIT_COUNT ? \
                                                                     (LIntrvl * LIM_TIM_WAIT_COUNT_FACTOR) : LIM_MIN_TIM_WAIT_COUNT)
@@ -180,7 +180,7 @@ typedef enum eLimMlmStates
     eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE,
     eLIM_MLM_WT_SET_BSS_KEY_STATE,
     eLIM_MLM_WT_SET_STA_KEY_STATE,
-    eLIM_MLM_WT_SET_STA_BCASTKEY_STATE,    
+    eLIM_MLM_WT_SET_STA_BCASTKEY_STATE,
     eLIM_MLM_WT_ADDBA_RSP_STATE,
     eLIM_MLM_WT_REMOVE_BSS_KEY_STATE,
     eLIM_MLM_WT_REMOVE_STA_KEY_STATE,
@@ -269,7 +269,7 @@ typedef struct sLimMlmAuthReq
     tSirMacAddr    peerMacAddr;
     tAniAuthType   authType;
     tANI_U32       authFailureTimeout;
-    tANI_U8        sessionId; 
+    tANI_U8        sessionId;
 } tLimMlmAuthReq, *tpLimMlmAuthReq;
 
 typedef struct sLimMlmJoinReq
@@ -305,7 +305,7 @@ typedef struct sLimMlmScanReq
     /*-----------------------------
       tLimMlmScanReq....
       -----------------------------
-      uIEFiledLen 
+      uIEFiledLen
       -----------------------------
       uIEFiledOffset               ----+
       -----------------------------    |
@@ -316,7 +316,7 @@ typedef struct sLimMlmScanReq
       This can be zero, if             |
       numChannel is zero.              |
       ----------------------------- <--+
-      ... variable size uIEFiled 
+      ... variable size uIEFiled
       up to uIEFieldLen (can be 0)
       -----------------------------*/
 } tLimMlmScanReq, *tpLimMlmScanReq;
@@ -394,7 +394,7 @@ typedef struct sLimMlmStaContext
 
     tSirResultCodes resultCode;
     tANI_U16 protStatusCode;
-    
+
     tANI_U8                 subType:1; // Indicates ASSOC (0) or REASSOC (1)
     tANI_U8                 updateContext:1;
     tANI_U8                 schClean:1;
@@ -454,16 +454,16 @@ typedef enum eLimProtStaCacheType
 {
     eLIM_PROT_STA_CACHE_TYPE_INVALID,
     eLIM_PROT_STA_CACHE_TYPE_llB,
-    eLIM_PROT_STA_CACHE_TYPE_llG,  
+    eLIM_PROT_STA_CACHE_TYPE_llG,
     eLIM_PROT_STA_CACHE_TYPE_HT20
 }tLimProtStaCacheType;
 
 typedef struct sCacheParams
 {
     tANI_U8        active;
-    tSirMacAddr   addr;    
+    tSirMacAddr   addr;
     tLimProtStaCacheType protStaCacheType;
-    
+
 } tCacheParams, *tpCacheParams;
 
 #define LIM_PROT_STA_OVERLAP_CACHE_SIZE    HAL_NUM_ASSOC_STA
@@ -650,7 +650,7 @@ typedef enum eLimWscEnrollState
     eLIM_WSC_ENROLL_BEGIN,
     eLIM_WSC_ENROLL_IN_PROGRESS,
     eLIM_WSC_ENROLL_END
-    
+
 } tLimWscEnrollState;
 
 #define WSC_PASSWD_ID_PUSH_BUTTON         (0x0004)
@@ -681,7 +681,7 @@ typedef struct sLimSpecMgmtInfo
     tANI_BOOLEAN       fQuietEnabled;    /* Used on AP, if quiet is enabled during learning */
 
     tLimDot11hChanSwStates dot11hChanSwState;
-        
+
     tANI_BOOLEAN       fRadarDetCurOperChan; /* Radar detected in cur oper chan on AP */
     tANI_BOOLEAN       fRadarIntrConfigured; /* Whether radar interrupt has been configured */
 }tLimSpecMgmtInfo, *tpLimSpecMgmtInfo;
@@ -708,7 +708,7 @@ typedef struct tLimTDLSPeerSta
     tSirMacRateSet           extendedRates;
     tSirMacQosCapabilityStaIE qosCaps;
     tSirMacEdcaParamSetIE    edcaParams;
-    tANI_U8                  mcsSet[SIZE_OF_SUPPORTED_MCS_SET];    
+    tANI_U8                  mcsSet[SIZE_OF_SUPPORTED_MCS_SET];
     tANI_U8                  tdls_bIsResponder ;
     /* HT Capabilties */
     tDot11fIEHTCaps tdlsPeerHTCaps ;
@@ -728,7 +728,7 @@ typedef struct tLimTdlsLinkSetupInfo
     tANI_U8 num_tdls_peers ;
     tANI_U8 tdls_flags ;
     tANI_U8 tdls_state ;
-    tANI_U8 tdls_prev_state ; 
+    tANI_U8 tdls_prev_state ;
 }tLimTdlsLinkSetupInfo, *tpLimTdlsLinkSetupInfo ;
 
 typedef enum tdlsLinkMode
