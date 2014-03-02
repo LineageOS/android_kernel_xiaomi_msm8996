@@ -1057,18 +1057,25 @@ dbglog_printf(
 {
     char buf[128];
     va_list ap;
+    int j;
 
     if (vap_id < DBGLOG_MAX_VDEVID) {
-        printf(DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id);
+        j = snprintf(buf, sizeof(buf), DBGLOG_PRINT_PREFIX
+                     "[%u] vap-%u ", timestamp, vap_id);
     } else {
-        printf(DBGLOG_PRINT_PREFIX "[%u] ", timestamp);
+        j = snprintf(buf, sizeof(buf), DBGLOG_PRINT_PREFIX
+                     "[%u] ", timestamp);
     }
 
     va_start(ap, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, ap);
+    vsnprintf(buf+j, sizeof(buf)-j, fmt, ap);
     va_end(ap);
 
-    printf("%s\n", buf);
+    if (optionflag & QXDM_FLAG) {
+        qxdm_log(buf);
+    } else {
+        printf("%s\n", buf);
+    }
 }
 
 void
@@ -1079,18 +1086,25 @@ dbglog_printf_no_line_break(
 {
     char buf[128];
     va_list ap;
+    int j;
 
     if (vap_id < DBGLOG_MAX_VDEVID) {
-        printf(DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id);
+        j = snprintf(buf, sizeof(buf), DBGLOG_PRINT_PREFIX
+                      "[%u] vap-%u ", timestamp, vap_id);
     } else {
-        printf(DBGLOG_PRINT_PREFIX "[%u] ", timestamp);
+        j = snprintf(buf, sizeof(buf), DBGLOG_PRINT_PREFIX
+                     "[%u] ", timestamp);
     }
 
     va_start(ap, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, ap);
+    vsnprintf(buf+j, sizeof(buf)-j, fmt, ap);
     va_end(ap);
 
-    printf("%s", buf);
+    if (optionflag & QXDM_FLAG) {
+        qxdm_log(buf);
+    } else {
+        printf("%s", buf);
+    }
 }
 
 #define USE_NUMERIC 0
