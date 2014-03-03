@@ -2764,6 +2764,7 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
 #endif
 
                 case VOS_STA_SAP_MODE:
+#ifndef WLAN_FEATURE_MBSSID
                     if((pMac->roam.roamSession[sessionId].bssParams.bssPersona
                                       == VOS_STA_SAP_MODE)&&
                        (pMac->roam.roamSession[sessionId].connectState
@@ -2772,7 +2773,9 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                         smsLog(pMac, LOGE, FL(" ****SoftAP mode already exists ****"));
                         return eHAL_STATUS_FAILURE;
                     }
-                    else if( (pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                    else
+#endif
+                        if( (pMac->roam.roamSession[sessionId].bssParams.bssPersona
                                       == VOS_P2P_GO_MODE &&
                               pMac->roam.roamSession[sessionId].connectState
                                       != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED) ||

@@ -258,9 +258,18 @@ void sapUpdateUnsafeChannelList()
     NULL
 ============================================================================*/
 
-void sapCleanupChannelList(void)
+void sapCleanupChannelList
+(
+#ifdef WLAN_FEATURE_MBSSID
+    v_PVOID_t pvosGCtx
+#else
+    void
+#endif
+)
 {
+#ifndef WLAN_FEATURE_MBSSID
     v_PVOID_t pvosGCtx = vos_get_global_context(VOS_MODULE_ID_SAP, NULL);
+#endif
     ptSapContext pSapCtx;
 
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
@@ -273,7 +282,7 @@ void sapCleanupChannelList(void)
         return ;
     }
 
-    pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+	pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
     if (NULL == pSapCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
@@ -305,10 +314,17 @@ void sapCleanupChannelList(void)
     int:  return 0 when success else returns error code.
 ============================================================================*/
 
-int sapSetPreferredChannel(tANI_U8* ptr)
+int sapSetPreferredChannel
+(
+#ifdef WLAN_FEATURE_MBSSID
+    v_PVOID_t pvosGCtx,
+#endif
+    tANI_U8* ptr
+)
 {
-
+#ifndef WLAN_FEATURE_MBSSID
     v_PVOID_t pvosGCtx = vos_get_global_context(VOS_MODULE_ID_SAP, NULL);
+#endif
     ptSapContext pSapCtx;
     tANI_U8* param;
     int tempInt;
@@ -334,7 +350,11 @@ int sapSetPreferredChannel(tANI_U8* ptr)
 
     if (NULL != pSapCtx->SapChnlList.channelList)
     {
+#ifdef WLAN_FEATURE_MBSSID
+        sapCleanupChannelList(pSapCtx);
+#else
         sapCleanupChannelList();
+#endif
     }
 
     param = strchr(ptr, ' ');
@@ -398,7 +418,11 @@ int sapSetPreferredChannel(tANI_U8* ptr)
         /*no channel list after the number of channels argument*/
         if (NULL == param)
         {
+#ifdef WLAN_FEATURE_MBSSID
+            sapCleanupChannelList(pSapCtx);
+#else
             sapCleanupChannelList();
+#endif
             return -EINVAL;
         }
 
@@ -410,7 +434,11 @@ int sapSetPreferredChannel(tANI_U8* ptr)
         /*no channel list after the number of channels argument and spaces*/
         if( '\0' == *param )
         {
+#ifdef WLAN_FEATURE_MBSSID
+            sapCleanupChannelList(pSapCtx);
+#else
             sapCleanupChannelList();
+#endif
             return -EINVAL;
         }
 
@@ -418,14 +446,22 @@ int sapSetPreferredChannel(tANI_U8* ptr)
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                        "%s: Cannot read channel number", __func__);
+#ifdef WLAN_FEATURE_MBSSID
+            sapCleanupChannelList(pSapCtx);
+#else
             sapCleanupChannelList();
+#endif
             return -EINVAL;
         }
         if (tempInt < 0 || tempInt > 255)
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                        "%s: Invalid channel number received", __func__);
+#ifdef WLAN_FEATURE_MBSSID
+            sapCleanupChannelList(pSapCtx);
+#else
             sapCleanupChannelList();
+#endif
             return -EINVAL;
         }
 
@@ -445,7 +481,11 @@ int sapSetPreferredChannel(tANI_U8* ptr)
 
         if('\0' !=  *param)
         {
+#ifdef WLAN_FEATURE_MBSSID
+            sapCleanupChannelList(pSapCtx);
+#else
             sapCleanupChannelList();
+#endif
             return -EINVAL;
         }
     }

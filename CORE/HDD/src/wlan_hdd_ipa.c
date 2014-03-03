@@ -36,7 +36,6 @@
 Include Files
 ------------------------------------------------------------------------*/
 #ifdef IPA_OFFLOAD
-
 #include <wlan_hdd_includes.h>
 #include <wlan_hdd_ipa.h>
 
@@ -1240,14 +1239,16 @@ static void hdd_ipa_clean_hdr(hdd_adapter_t *adapter)
 				adapter->dev->name, ret);
 }
 
-static void hdd_ipa_cleanup_iface(struct hdd_ipa_priv *hdd_ipa,
-		struct hdd_ipa_iface_context *iface_context)
+static void hdd_ipa_cleanup_iface(struct hdd_ipa_iface_context *iface_context)
 {
-	hdd_ipa_clean_hdr(iface_context->adapter);
+        if (iface_context == NULL)
+                return;
 
-	iface_context->adapter->ipa_context = NULL;
-	iface_context->adapter = NULL;
-	iface_context->tl_context = NULL;
+        hdd_ipa_clean_hdr(iface_context->adapter);
+
+        iface_context->adapter->ipa_context = NULL;
+        iface_context->adapter = NULL
+        iface_context->tl_context = NULL
 }
 
 
@@ -1260,7 +1261,7 @@ static int hdd_ipa_setup_iface(struct hdd_ipa_priv *hdd_ipa,
 
 	for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
 		if (hdd_ipa->iface_context[i].adapter == NULL) {
-			iface_context = &hdd_ipa->iface_context[i];
+			iface_context = &(hdd_ipa->iface_context[i]);
 			break;
 		}
 	}
@@ -1307,7 +1308,7 @@ cleanup_header:
 	hdd_ipa_clean_hdr(adapter);
 end:
 	if (iface_context)
-		hdd_ipa_cleanup_iface(hdd_ipa, iface_context);
+		hdd_ipa_cleanup_iface(iface_context);
 	return ret;
 }
 
@@ -1363,8 +1364,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 
 	case WLAN_STA_DISCONNECT:
 	case WLAN_AP_DISCONNECT:
-		hdd_ipa_cleanup_iface(hdd_ipa,
-				adapter->ipa_context);
+		hdd_ipa_cleanup_iface(adapter->ipa_context);
 		break;
 
 	case WLAN_CLIENT_CONNECT_EX:

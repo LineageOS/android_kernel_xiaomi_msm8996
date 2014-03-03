@@ -61,6 +61,9 @@
 #include "wlan_hdd_tdls.h"
 #endif
 #include "wlan_hdd_cfg80211.h"
+#ifdef WLAN_FEATURE_MBSSID
+#include "sapApi.h"
+#endif
 
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -205,7 +208,11 @@
 #ifndef QCA_WIFI_2_0
 #define WLAN_MAX_INTERFACES 3
 #else
+#ifndef WLAN_OPEN_P2P_INTERFACE
+#define WLAN_MAX_INTERFACES 3
+#else
 #define WLAN_MAX_INTERFACES 4
+#endif
 #endif
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
@@ -767,6 +774,10 @@ struct hdd_ap_ctx_s
    beacon_data_t *beacon;
 
    v_BOOL_t bApActive;
+#ifdef WLAN_FEATURE_MBSSID
+   /* SAP Context */
+   v_PVOID_t sapContext;
+#endif
 };
 
 struct hdd_mon_ctx_s
@@ -1076,6 +1087,9 @@ struct hdd_adapter_s
 #define WLAN_HDD_GET_HAL_CTX(pAdapter)  (((hdd_context_t*)(pAdapter->pHddCtx))->hHal)
 #define WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter) (&(pAdapter)->sessionCtx.ap.HostapdState)
 #define WLAN_HDD_GET_CFG_STATE_PTR(pAdapter)  (&(pAdapter)->cfg80211State)
+#ifdef WLAN_FEATURE_MBSSID
+#define WLAN_HDD_GET_SAP_CTX_PTR(pAdapter) (pAdapter->sessionCtx.ap.sapContext)
+#endif
 #ifdef FEATURE_WLAN_TDLS
 #define WLAN_HDD_IS_TDLS_SUPPORTED_ADAPTER(pAdapter) \
         (((WLAN_HDD_INFRA_STATION != pAdapter->device_mode) && \
@@ -1121,8 +1135,14 @@ struct hdd_context_s
    //TODO Remove this from here.
 
    hdd_list_t hddAdapters; //List of adapters
-   /* One per STA: 1 for RX_BCMC_STA_ID and 1 for SAP_SELF_STA_ID*/
+
+#ifdef WLAN_FEATURE_MBSSID
+   /* One per STA: 1 for RX_BCMC_STA_ID, 2 for SAP_SELF_STA_ID */
+   hdd_adapter_t *sta_to_adapter[WLAN_MAX_STA_COUNT + 4]; //One per sta. For quick reference.
+#else
+   /* One per STA: 1 for RX_BCMC_STA_ID, 1 for SAP_SELF_STA_ID */
    hdd_adapter_t *sta_to_adapter[WLAN_MAX_STA_COUNT + 3]; //One per sta. For quick reference.
+#endif
 
    /** Pointer for firmware image data */
    const struct firmware *fw;

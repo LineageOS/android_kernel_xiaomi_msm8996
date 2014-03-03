@@ -200,9 +200,14 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
             )
     {
         WLANSAP_DeRegisterMgmtFrame(
+#ifdef WLAN_FEATURE_MBSSID
+                WLAN_HDD_GET_SAP_CTX_PTR(pAdapter),
+#else
                 (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+#endif
                 (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
                 NULL, 0 );
+
     }
 
     if(pRemainChanCtx->action_pkt_buff.frame_ptr != NULL
@@ -259,7 +264,11 @@ void wlan_hdd_cancel_existing_remain_on_channel(hdd_adapter_t *pAdapter)
                 )
         {
             WLANSAP_CancelRemainOnChannel(
+#ifdef WLAN_FEATURE_MBSSID
+                                     WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
+#else
                                      (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+#endif
         }
 
         status = wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
@@ -490,10 +499,13 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     {
         //call sme API to start remain on channel.
         if (VOS_STATUS_SUCCESS != WLANSAP_RemainOnChannel(
+#ifdef WLAN_FEATURE_MBSSID
+                          WLAN_HDD_GET_SAP_CTX_PTR(pAdapter),
+#else
                           (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+#endif
                           chan->hw_value, duration,
-                          wlan_hdd_remain_on_channel_callback, pAdapter ))
-
+                          wlan_hdd_remain_on_channel_callback, pAdapter))
         {
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: WLANSAP_RemainOnChannel returned fail", __func__);
@@ -508,14 +520,22 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
 
 
         if (VOS_STATUS_SUCCESS != WLANSAP_RegisterMgmtFrame(
+#ifdef WLAN_FEATURE_MBSSID
+                    WLAN_HDD_GET_SAP_CTX_PTR(pAdapter),
+#else
                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+#endif
                     (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
-                    NULL, 0 ))
+                    NULL, 0))
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: WLANSAP_RegisterMgmtFrame returned fail", __func__);
             WLANSAP_CancelRemainOnChannel(
+#ifdef WLAN_FEATURE_MBSSID
+                    WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
+#else
                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+#endif
             hdd_allow_suspend();
             return -EINVAL;
         }
@@ -704,7 +724,12 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
             )
     {
         WLANSAP_CancelRemainOnChannel(
+#ifdef WLAN_FEATURE_MBSSID
+                                WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
+#else
                                 (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+#endif
+
     }
     else
     {
@@ -1054,8 +1079,13 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             )
      {
         if( VOS_STATUS_SUCCESS !=
+#ifdef WLAN_FEATURE_MBSSID
+             WLANSAP_SendAction( WLAN_HDD_GET_SAP_CTX_PTR(pAdapter),
+#else
              WLANSAP_SendAction( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+#endif
                                   buf, len, 0 ) )
+
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: WLANSAP_SendAction returned fail", __func__);
@@ -1431,16 +1461,21 @@ int wlan_hdd_add_virtual_intf( struct wiphy *wiphy, char *name,
 #endif
     }
 
-    /*Allow addition multiple interface for WLAN_HDD_P2P_CLIENT session type*/
+    /*Allow addition multiple interface for WLAN_HDD_P2P_CLIENT and
+      WLAN_HDD_SOFTAP session type*/
     if ((hdd_get_adapter(pHddCtx, wlan_hdd_get_session_type(type)) != NULL)
 #ifdef QCA_WIFI_2_0
+#ifdef WLAN_FEATURE_MBSSID
+        && WLAN_HDD_SOFTAP != wlan_hdd_get_session_type(type)
+#endif
         && WLAN_HDD_P2P_CLIENT != wlan_hdd_get_session_type(type)
         && WLAN_HDD_INFRA_STATION != wlan_hdd_get_session_type(type)
 #endif
             )
     {
-       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Interface type %d already exists. Two"
-                     "interfaces of same type are not supported currently.",__func__, type);
+       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Interface type %d already exists. "
+                  "Two interfaces of same type are not supported currently.",
+                  __func__, type);
        return NULL;
     }
 

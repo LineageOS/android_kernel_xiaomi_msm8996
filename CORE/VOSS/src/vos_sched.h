@@ -385,8 +385,10 @@ typedef struct _VosContextType
    /* BAP Context */
    v_VOID_t           *pBAPContext;
 
+#ifndef WLAN_FEATURE_MBSSID
    /* SAP Context */
    v_VOID_t           *pSAPContext;
+#endif
 
    vos_event_t         ProbeEvent;
 

@@ -411,6 +411,34 @@ wlan_hdd_txrx_stypes[NUM_NL80211_IFTYPES] = {
 };
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+
+#ifdef WLAN_FEATURE_MBSSID
+
+/* Max. 3 devices = 1STA + 2SOFTAP */
+static const struct ieee80211_iface_limit
+wlan_hdd_iface_limit[] = {
+    {
+        .max = 1,
+        .types = BIT(NL80211_IFTYPE_STATION),
+    },
+    {
+        .max = VOS_MAX_NO_OF_SAP_MODE,
+        .types = BIT(NL80211_IFTYPE_AP),
+    },
+};
+
+/* By default, only single channel concurrency is allowed */
+static struct ieee80211_iface_combination
+wlan_hdd_iface_combination = {
+        .limits = wlan_hdd_iface_limit,
+        .num_different_channels = 1,
+        .max_interfaces = WLAN_MAX_INTERFACES,
+        .n_limits = ARRAY_SIZE(wlan_hdd_iface_limit),
+        .beacon_int_infra_match = false,
+};
+
+#else
+
 static const struct ieee80211_iface_limit
 wlan_hdd_iface_limit[] = {
     {
@@ -474,6 +502,9 @@ wlan_hdd_iface_combination = {
         .n_limits = ARRAY_SIZE(wlan_hdd_iface_limit),
         .beacon_int_infra_match = false,
 };
+
+#endif /* WLAN_FEATURE_MBSSID */
+
 #endif
 
 static struct cfg80211_ops wlan_hdd_cfg80211_ops;
@@ -2461,8 +2492,15 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pConfig->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
 
     pSapEventCallback = hdd_hostapd_SAPEventCB;
-    if(WLANSAP_StartBss(pVosContext, pSapEventCallback, pConfig,
-                 (v_PVOID_t)pHostapdAdapter->dev) != VOS_STATUS_SUCCESS)
+
+    status = WLANSAP_StartBss(
+#ifdef WLAN_FEATURE_MBSSID
+                 WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter),
+#else
+                 pVosContext,
+#endif
+                 pSapEventCallback, pConfig, (v_PVOID_t)pHostapdAdapter->dev);
+    if (!VOS_IS_STATUS_SUCCESS(status))
     {
         hddLog(LOGE,FL("SAP Start Bss fail\n"));
         return -EINVAL;
@@ -2695,7 +2733,12 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         mutex_lock(&pHddCtx->sap_lock);
         if(test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags))
         {
-            if ( VOS_STATUS_SUCCESS == (status = WLANSAP_StopBss(pHddCtx->pvosContext) ) )
+#ifdef WLAN_FEATURE_MBSSID
+            status = WLANSAP_StopBss(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
+#else
+            status = WLANSAP_StopBss(pHddCtx->pvosContext);
+#endif
+            if (VOS_IS_STATUS_SUCCESS(status))
             {
                 hdd_hostapd_state_t *pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
 
@@ -2798,8 +2841,8 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         return status;
     }
 
-    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: device mode = %d",
-           __func__, pAdapter->device_mode);
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: pAdapter = %p, device mode = %d",
+           __func__, pAdapter, pAdapter->device_mode);
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
       || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
@@ -2913,7 +2956,6 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
     int ret = 0;
     eHalStatus halStatus;
     v_CONTEXT_t pVosContext = pHddCtx->pvosContext;
-    ptSapContext pSapCtx = NULL;
 
     ENTER();
 
@@ -2921,11 +2963,6 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
                                __func__,pAdapter->device_mode,
                                params->ap_isolate);
     if (!pVosContext)
-        return -EINVAL;
-
-    pSapCtx = VOS_GET_SAP_CB(pVosContext);
-
-    if (!pSapCtx)
         return -EINVAL;
 
     if((pAdapter->device_mode == WLAN_HDD_SOFTAP)
@@ -2939,7 +2976,7 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
             pAdapter->sessionCtx.ap.apDisableIntraBssFwd = !!params->ap_isolate;
 
             halStatus = sme_ApDisableIntraBssFwd(pHddCtx->hHal,
-                        pSapCtx->sessionId,
+                        pAdapter->sessionId,
                         pAdapter->sessionCtx.ap.apDisableIntraBssFwd);
             if (!HAL_STATUS_SUCCESS(halStatus))
             {
@@ -3047,8 +3084,8 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
         return status;
     }
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
-                             __func__, pAdapter->device_mode);
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d, IFTYPE = 0x%x",
+                             __func__, pAdapter->device_mode, type);
 
     pConfig = pHddCtx->cfg_ini;
     wdev = ndev->ieee80211_ptr;
@@ -3808,7 +3845,9 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
     u8 groupmacaddr[WNI_CFG_BSSID_LEN] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
     int status;
     v_U32_t roamId= 0xFF;
+#ifndef WLAN_FEATURE_MBSSID
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
+#endif
     hdd_hostapd_state_t *pHostapdState;
 #ifndef QCA_WIFI_2_0
     VOS_STATUS vos_status;
@@ -3997,8 +4036,12 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
         if( pHostapdState->bssState == BSS_START )
         {
+#ifdef WLAN_FEATURE_MBSSID
+            status = WLANSAP_SetKeySta( WLAN_HDD_GET_SAP_CTX_PTR(pAdapter),
+                                        &setKey);
+#else
             status = WLANSAP_SetKeySta( pVosContext, &setKey);
-
+#endif
             if ( status != eHAL_STATUS_SUCCESS )
             {
                 VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -4291,7 +4334,12 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
                                   WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
         if( pHostapdState->bssState == BSS_START)
         {
+#ifdef WLAN_FEATURE_MBSSID
+            status = WLANSAP_SetKeySta( WLAN_HDD_GET_SAP_CTX_PTR(pAdapter),
+                                        &setKey);
+#else
             status = WLANSAP_SetKeySta( pVosContext, &setKey);
+#endif
 
             if ( status != eHAL_STATUS_SUCCESS )
             {
@@ -9567,6 +9615,7 @@ static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
     v_CONTEXT_t pVosContext = NULL;
     hdd_context_t *pHddCtx;
     int status;
+    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
     ENTER();
 
@@ -9667,7 +9716,12 @@ static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
             }
         }
 
-        if (VOS_STATUS_SUCCESS != WLANSAP_SetMacACL(pVosContext, pConfig))
+#ifdef WLAN_FEATURE_MBSSID
+        vos_status = WLANSAP_SetMacACL(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter),pConfig);
+#else
+        vos_status = WLANSAP_SetMacACL(pVosContext, pConfig);
+#endif
+        if (!VOS_IS_STATUS_SUCCESS(vos_status))
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                        "%s: SAP Set Mac Acl fail", __func__);

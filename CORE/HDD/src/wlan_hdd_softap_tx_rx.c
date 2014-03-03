@@ -1524,6 +1524,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
    vos_pkt_t* pVosPacket;
    vos_pkt_t* pNextVosPacket;
    hdd_context_t *pHddCtx = NULL;
+   hdd_ap_ctx_t *pHddApCtx;
 
    //Sanity check on inputs
    if ( ( NULL == vosContext ) ||
@@ -1609,13 +1610,13 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
       ++pAdapter->stats.rx_packets;
       pAdapter->stats.rx_bytes += skb->len;
 
+      pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
+
       if (WLAN_RX_BCMC_STA_ID == pRxMetaInfo->ucDesSTAId)
       {
          //MC/BC packets. Duplicate a copy of packet
          struct sk_buff *pSkbCopy;
-         hdd_ap_ctx_t *pHddApCtx;
 
-         pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
          if (!(pHddApCtx->apDisableIntraBssFwd))
          {
              pSkbCopy = skb_copy(skb, GFP_ATOMIC);
@@ -1634,7 +1635,11 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
       } //(WLAN_RX_BCMC_STA_ID == staId)
 
       if ((WLAN_RX_BCMC_STA_ID == pRxMetaInfo->ucDesSTAId) ||
+#ifdef WLAN_FEATURE_MBSSID
+          (pHddApCtx->uBCStaId == pRxMetaInfo->ucDesSTAId))
+#else
           (WLAN_RX_SAP_SELF_STA_ID == pRxMetaInfo->ucDesSTAId))
+#endif
       {
          VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
                           "%s: send one packet to kernel \n", __func__);
@@ -2055,10 +2060,16 @@ VOS_STATUS hdd_softap_Register_BC_STA( hdd_adapter_t *pAdapter, v_BOOL_t fPrivac
    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    v_MACADDR_t broadcastMacAddr = VOS_MAC_ADDR_BROADCAST_INITIALIZER;
+   hdd_ap_ctx_t *pHddApCtx;
 
+   pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
 
    pHddCtx->sta_to_adapter[WLAN_RX_BCMC_STA_ID] = pAdapter;
+#ifdef WLAN_FEATURE_MBSSID
+   pHddCtx->sta_to_adapter[pHddApCtx->uBCStaId] = pAdapter;
+#else
    pHddCtx->sta_to_adapter[WLAN_RX_SAP_SELF_STA_ID] = pAdapter;
+#endif
    vosStatus = hdd_softap_RegisterSTA( pAdapter, VOS_FALSE, fPrivacyBit, (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->uBCStaId, 0, 1, &broadcastMacAddr,0);
 
    return vosStatus;

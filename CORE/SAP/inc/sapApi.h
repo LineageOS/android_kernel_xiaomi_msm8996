@@ -106,6 +106,7 @@ when           who                what, where, why
 #define       MAX_TEXT_SIZE                32
 
 #define       MAX_CHANNEL_LIST_LEN         256
+#define       VOS_MAX_NO_OF_SAP_MODE       2 // max # of SAP
 
 /*--------------------------------------------------------------------------
   reasonCode take form 802.11 standard Table 7-22 to be passed to WLANSAP_DisassocSta api.
@@ -582,9 +583,20 @@ typedef struct sap_SoftapStats_s {
 #endif
 } tSap_SoftapStats, *tpSap_SoftapStats;
 
+int sapSetPreferredChannel
+(
+#ifdef WLAN_FEATURE_MBSSID
+    v_PVOID_t sapContext,
+#endif
+    tANI_U8* ptr
+);
 
-int sapSetPreferredChannel(tANI_U8* ptr);
+#ifdef WLAN_FEATURE_MBSSID
+void sapCleanupChannelList(v_PVOID_t sapContext);
+#else
 void sapCleanupChannelList(void);
+#endif
+
 void sapCleanupAllChannelList(void);
 
 /*==========================================================================
@@ -612,7 +624,8 @@ void sapCleanupAllChannelList(void);
 VOS_STATUS
 WLANSAP_Set_WpsIe
 (
-    v_PVOID_t pvosGCtx, tSap_WPSIE *pWPSIe
+    v_PVOID_t pvosGCtx,
+    tSap_WPSIE *pWPSIe
 );
 
 /*==========================================================================
@@ -696,7 +709,8 @@ pbWPSState: Pointer to variable to indicate if it is in WPS Registration state
 VOS_STATUS
 WLANSAP_Get_WPS_State
 (
-    v_PVOID_t pvosGCtx, v_BOOL_t * pbWPSState
+    v_PVOID_t pvosGCtx,
+    v_BOOL_t * pbWPSState
 );
 
 /*----------------------------------------------------------------------------
@@ -734,7 +748,11 @@ typedef v_PVOID_t tSapHandle, *ptSapHandle;
 
   SIDE EFFECTS
 ============================================================================*/
+#ifdef WLAN_FEATURE_MBSSID
+v_PVOID_t
+#else
 VOS_STATUS
+#endif
 WLANSAP_Open
 (
     v_PVOID_t  pvosGCtx
@@ -877,7 +895,10 @@ typedef VOS_STATUS (*tpWLAN_SAPEventCB)( tpSap_Event pSapEvent, v_PVOID_t  pUsrC
     Returns the SAP FSM state.
 ============================================================================*/
 
-v_U8_t WLANSAP_getState ( v_PVOID_t  pvosGCtx);
+v_U8_t WLANSAP_getState
+(
+    v_PVOID_t pvosGCtx
+);
 
 /*==========================================================================
   FUNCTION    WLANSAP_StartBss
@@ -908,9 +929,10 @@ usrDataForCallback: Parameter that will be passed back in all the SAP callback e
 VOS_STATUS
 WLANSAP_StartBss
 (
-    v_PVOID_t  pvosGCtx,
+    v_PVOID_t pvosGCtx,
     tpWLAN_SAPEventCB pSapEventCallback,
-    tsap_Config_t *pConfig, v_PVOID_t  pUsrContext
+    tsap_Config_t *pConfig,
+    v_PVOID_t  pUsrContext
 );
 
 /*==========================================================================
@@ -941,7 +963,7 @@ pConfig:  Pointer to configuration structure passed down from
 VOS_STATUS
 WLANSAP_SetMacACL
 (
-    v_PVOID_t  pvosGCtx,
+    v_PVOID_t pvosGCtx,
     tsap_Config_t *pConfig
 );
 
@@ -970,7 +992,7 @@ stopping BSS
 VOS_STATUS
 WLANSAP_StopBss
 (
-    v_PVOID_t  pvosGCtx
+    v_PVOID_t pvosGCtx
 );
 
 /*==========================================================================
@@ -998,7 +1020,8 @@ WLANSAP_StopBss
 VOS_STATUS
 WLANSAP_DisassocSta
 (
-    v_PVOID_t  pvosGCtx, v_U8_t *pPeerStaMac
+    v_PVOID_t pvosGCtx,
+    v_U8_t *pPeerStaMac
 );
 
 /*==========================================================================
@@ -1026,7 +1049,8 @@ WLANSAP_DisassocSta
 VOS_STATUS
 WLANSAP_DeauthSta
 (
-    v_PVOID_t  pvosGCtx, v_U8_t *pPeerStaMac
+    v_PVOID_t pvosGCtx,
+    v_U8_t *pPeerStaMac
 );
 
 /*==========================================================================
@@ -1081,7 +1105,8 @@ pSetKeyInfo: tCsrRoamSetKey structure for the station
 VOS_STATUS
 WLANSAP_SetKeySta
 (
-    v_PVOID_t pvosGCtx, tCsrRoamSetKey *pSetKeyInfo
+    v_PVOID_t pvosGCtx,
+    tCsrRoamSetKey *pSetKeyInfo
 );
 
 /*==========================================================================
@@ -1109,9 +1134,9 @@ pSetKeyInfo: tCsrRoamSetKey structure for the station
 VOS_STATUS
 WLANSAP_DelKeySta
 (
-    v_PVOID_t pvosGCtx, tCsrRoamRemoveKey *pDelKeyInfo
+    v_PVOID_t pvosGCtx,
+    tCsrRoamRemoveKey *pDelKeyInfo
 );
-
 
 
 /*==========================================================================
@@ -1144,7 +1169,8 @@ NOTE:- The memory for this list will be allocated by the caller of this API
 VOS_STATUS
 WLANSAP_GetAssocStations
 (
-    v_PVOID_t pvosGCtx, VOS_MODULE_ID module,
+    v_PVOID_t pvosGCtx,
+    VOS_MODULE_ID module,
     tpSap_AssocMacAddr pAssocStas
 );
 /*==========================================================================
@@ -1241,7 +1267,8 @@ will come out of this state.
 VOS_STATUS
 WLANSAP_SetCounterMeasure
 (
-    v_PVOID_t pvosGCtx, v_BOOL_t bEnable
+    v_PVOID_t pvosGCtx,
+    v_BOOL_t bEnable
 );
 
 /*==========================================================================
@@ -1268,16 +1295,13 @@ WLANSAP_SetCounterMeasure
   SIDE EFFECTS
 ============================================================================*/
 VOS_STATUS
-WLANSap_getstationIE_information(v_PVOID_t pvosGCtx,
-                                 v_U32_t   *pLen,
-                                 v_U8_t    *pBuf);
-
-
-VOS_STATUS
-WLANSAP_getWpsSessionOverlap
+WLANSap_getstationIE_information
 (
-    v_PVOID_t pvosGCtx
+    v_PVOID_t pvosGCtx,
+    v_U32_t   *pLen,
+    v_U8_t    *pBuf
 );
+
 /*==========================================================================
   FUNCTION    WLANSAP_ClearACL
 
@@ -1302,7 +1326,7 @@ WLANSAP_getWpsSessionOverlap
 VOS_STATUS
 WLANSAP_ClearACL
 (
-    v_PVOID_t  pvosGCtx
+    v_PVOID_t pvosGCtx
 );
 
 /*==========================================================================
@@ -1329,7 +1353,7 @@ WLANSAP_ClearACL
 VOS_STATUS
 WLANSAP_SetMode
 (
-    v_PVOID_t  pvosGCtx,
+    v_PVOID_t pvosGCtx,
     v_U32_t mode
 );
 
@@ -1359,7 +1383,7 @@ WLANSAP_SetMode
 VOS_STATUS
 WLANSAP_ModifyACL
 (
-    v_PVOID_t  pvosGCtx,
+    v_PVOID_t pvosGCtx,
     v_U8_t *pPeerStaMac,
     eSapACLType listType,
     eSapACLCmdType cmd
@@ -1388,7 +1412,12 @@ WLANSAP_ModifyACL
 
   SIDE EFFECTS
 ============================================================================*/
-VOS_STATUS WLANSAP_Set_WPARSNIes(v_PVOID_t pvosGCtx, v_U8_t *pWPARSNIEs, v_U32_t WPARSNIEsLen);
+VOS_STATUS WLANSAP_Set_WPARSNIes
+(
+    v_PVOID_t pvosGCtx,
+    v_U8_t *pWPARSNIEs,
+    v_U32_t WPARSNIEsLen
+);
 
 /*==========================================================================
   FUNCTION    WLANSAP_GetStatistics
@@ -1414,7 +1443,12 @@ VOS_STATUS WLANSAP_Set_WPARSNIes(v_PVOID_t pvosGCtx, v_U8_t *pWPARSNIEs, v_U32_t
 
   SIDE EFFECTS
 ============================================================================*/
-VOS_STATUS WLANSAP_GetStatistics(v_PVOID_t pvosGCtx, tSap_SoftapStats *statBuf, v_BOOL_t bReset);
+VOS_STATUS WLANSAP_GetStatistics
+(
+    v_PVOID_t pvosGCtx,
+    tSap_SoftapStats *statBuf,
+    v_BOOL_t bReset
+);
 
 /*==========================================================================
 
@@ -1440,8 +1474,13 @@ VOS_STATUS WLANSAP_GetStatistics(v_PVOID_t pvosGCtx, tSap_SoftapStats *statBuf, 
 
   SIDE EFFECTS
 ============================================================================*/
-VOS_STATUS WLANSAP_SendAction( v_PVOID_t pvosGCtx, const tANI_U8 *pBuf,
-                               tANI_U32 len, tANI_U16 wait );
+VOS_STATUS WLANSAP_SendAction
+(
+    v_PVOID_t pvosGCtx,
+    const tANI_U8 *pBuf,
+    tANI_U32 len,
+    tANI_U16 wait
+);
 
 /*==========================================================================
 
@@ -1470,10 +1509,14 @@ VOS_STATUS WLANSAP_SendAction( v_PVOID_t pvosGCtx, const tANI_U8 *pBuf,
 
   SIDE EFFECTS
 ============================================================================*/
-VOS_STATUS WLANSAP_RemainOnChannel( v_PVOID_t pvosGCtx,
-                                    tANI_U8 channel, tANI_U32 duration,
-                                    remainOnChanCallback callback,
-                                    void *pContext );
+VOS_STATUS WLANSAP_RemainOnChannel
+(
+    v_PVOID_t pvosGCtx,
+    tANI_U8 channel,
+    tANI_U32 duration,
+    remainOnChanCallback callback,
+    void *pContext
+);
 
 /*==========================================================================
 
@@ -1497,7 +1540,10 @@ VOS_STATUS WLANSAP_RemainOnChannel( v_PVOID_t pvosGCtx,
 
   SIDE EFFECTS
 ============================================================================*/
-VOS_STATUS WLANSAP_CancelRemainOnChannel( v_PVOID_t pvosGCtx );
+VOS_STATUS WLANSAP_CancelRemainOnChannel
+(
+    v_PVOID_t pvosGCtx
+);
 
 
 /*==========================================================================
@@ -1526,8 +1572,13 @@ VOS_STATUS WLANSAP_CancelRemainOnChannel( v_PVOID_t pvosGCtx );
 
   SIDE EFFECTS
 ============================================================================*/
-VOS_STATUS WLANSAP_RegisterMgmtFrame( v_PVOID_t pvosGCtx, tANI_U16 frameType,
-                                      tANI_U8* matchData, tANI_U16 matchLen );
+VOS_STATUS WLANSAP_RegisterMgmtFrame
+(
+    v_PVOID_t pvosGCtx,
+    tANI_U16 frameType,
+    tANI_U8* matchData,
+    tANI_U16 matchLen
+);
 
 /*==========================================================================
 
@@ -1554,8 +1605,13 @@ VOS_STATUS WLANSAP_RegisterMgmtFrame( v_PVOID_t pvosGCtx, tANI_U16 frameType,
 
   SIDE EFFECTS
 ============================================================================*/
-VOS_STATUS WLANSAP_DeRegisterMgmtFrame( v_PVOID_t pvosGCtx, tANI_U16 frameType,
-                                      tANI_U8* matchData, tANI_U16 matchLen );
+VOS_STATUS WLANSAP_DeRegisterMgmtFrame
+(
+    v_PVOID_t pvosGCtx,
+    tANI_U16 frameType,
+    tANI_U8* matchData,
+    tANI_U16 matchLen
+);
 
 /*==========================================================================
 

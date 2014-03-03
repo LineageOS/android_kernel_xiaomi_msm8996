@@ -410,8 +410,13 @@ void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
       "%s: Sending action frame to SAP to TX, Len %d", __func__, skb->len);
 
    if (VOS_STATUS_SUCCESS !=
+#ifdef WLAN_FEATURE_MBSSID
+      WLANSAP_SendAction( pAdapter->sessionCtx.ap.sapContext,
+#else
       WLANSAP_SendAction( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+#endif
                            skb->data, skb->len, 0) )
+
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
           "%s: WLANSAP_SendAction returned fail", __func__);

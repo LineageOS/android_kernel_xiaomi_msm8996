@@ -2458,7 +2458,11 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                       " Received Command to Set Preferred Channels for SAP in %s", __func__);
 
+#ifdef WLAN_FEATURE_MBSSID
+           ret = sapSetPreferredChannel(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), ptr);
+#else
            ret = sapSetPreferredChannel(ptr);
+#endif
        }
        else if (strncmp(command, "SETSUSPENDMODE", 14) == 0)
        {
@@ -7181,7 +7185,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    VOS_STATUS exitbmpsStatus = VOS_STATUS_E_FAILURE;
    hdd_cfg80211_state_t *cfgState;
 
-   hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s iface =%s type = %d\n",__func__,iface_name,session_type);
+   hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: iface =%s type = %d\n", __func__,
+                                      iface_name, session_type);
 
    if (pHddCtx->current_intf_count >= pHddCtx->max_intf_count){
         /* Max limit reached on the number of vdevs configured by the host.
@@ -7417,6 +7422,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       /* Adapter successfully added. Increment the vdev count  */
       pHddCtx->current_intf_count++;
 
+      hddLog(VOS_TRACE_LEVEL_DEBUG,"%s: current_intf_count=%d", __func__,
+                                    pHddCtx->current_intf_count);
    }
 
 #ifdef QCA_WIFI_2_0
@@ -7724,7 +7731,12 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
             hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
             //Stop Bss.
+#ifdef WLAN_FEATURE_MBSSID
+            status = WLANSAP_StopBss(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
+#else
             status = WLANSAP_StopBss(pHddCtx->pvosContext);
+#endif
+
             if (VOS_IS_STATUS_SUCCESS(status))
             {
                hdd_hostapd_state_t *pHostapdState =
@@ -10865,7 +10877,9 @@ void hdd_set_conparam ( v_UINT_t newParam )
 
 VOS_STATUS hdd_softap_sta_deauth(hdd_adapter_t *pAdapter, v_U8_t *pDestMacAddress)
 {
+#ifndef WLAN_FEATURE_MBSSID
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
+#endif
     VOS_STATUS vosStatus = VOS_STATUS_E_FAULT;
 
     ENTER();
@@ -10877,7 +10891,11 @@ VOS_STATUS hdd_softap_sta_deauth(hdd_adapter_t *pAdapter, v_U8_t *pDestMacAddres
     if( pDestMacAddress[0] & 0x1 )
        return vosStatus;
 
-    vosStatus = WLANSAP_DeauthSta(pVosContext,pDestMacAddress);
+#ifdef WLAN_FEATURE_MBSSID
+    vosStatus = WLANSAP_DeauthSta(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), pDestMacAddress);
+#else
+    vosStatus = WLANSAP_DeauthSta(pVosContext, pDestMacAddress);
+#endif
 
     EXIT();
     return vosStatus;
@@ -10899,7 +10917,9 @@ VOS_STATUS hdd_softap_sta_deauth(hdd_adapter_t *pAdapter, v_U8_t *pDestMacAddres
 
 void hdd_softap_sta_disassoc(hdd_adapter_t *pAdapter,v_U8_t *pDestMacAddress)
 {
-        v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
+#ifndef WLAN_FEATURE_MBSSID
+    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
+#endif
 
     ENTER();
 
@@ -10909,18 +10929,28 @@ void hdd_softap_sta_disassoc(hdd_adapter_t *pAdapter,v_U8_t *pDestMacAddress)
     if( pDestMacAddress[0] & 0x1 )
        return;
 
+#ifdef WLAN_FEATURE_MBSSID
+    WLANSAP_DisassocSta(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), pDestMacAddress);
+#else
     WLANSAP_DisassocSta(pVosContext,pDestMacAddress);
+#endif
 }
 
 void hdd_softap_tkip_mic_fail_counter_measure(hdd_adapter_t *pAdapter,v_BOOL_t enable)
 {
+#ifndef WLAN_FEATURE_MBSSID
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
+#endif
 
     ENTER();
 
     hddLog( LOGE, "hdd_softap_tkip_mic_fail_counter_measure:(%p, false)", (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
 
+#ifdef WLAN_FEATURE_MBSSID
+    WLANSAP_SetCounterMeasure(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), (v_BOOL_t)enable);
+#else
     WLANSAP_SetCounterMeasure(pVosContext, (v_BOOL_t)enable);
+#endif
 }
 
 /**---------------------------------------------------------------------------
@@ -10943,6 +10973,8 @@ tVOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void )
        pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
        if (NULL != pHddCtx)
        {
+          hddLog(VOS_TRACE_LEVEL_INFO, "%s: concurrency_mode = 0x%x", __func__,
+                                        pHddCtx->concurrency_mode);
           return (tVOS_CONCURRENCY_MODE)pHddCtx->concurrency_mode;
        }
     }
