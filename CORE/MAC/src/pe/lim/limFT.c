@@ -680,7 +680,7 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
     tPowerdBm         regMax;
     tSchBeaconStruct  *pBeaconStruct;
     tANI_U32          selfDot11Mode;
-    ePhyChanBondState cbMode;
+    ePhyChanBondState cbEnabledMode;
 
     pBeaconStruct = vos_mem_malloc(sizeof(tSchBeaconStruct));
     if (NULL == pBeaconStruct)
@@ -815,14 +815,15 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
 
     if (pftSessionEntry->limRFBand == SIR_BAND_2_4_GHZ)
     {
-        cbMode = pMac->roam.configParam.channelBondingMode24GHz;
+        cbEnabledMode = pMac->roam.configParam.channelBondingMode24GHz;
     }
     else
     {
-        cbMode = pMac->roam.configParam.channelBondingMode5GHz;
+        cbEnabledMode = pMac->roam.configParam.channelBondingMode5GHz;
     }
     pftSessionEntry->htSupportedChannelWidthSet =
-               cbMode && pBeaconStruct->HTCaps.supportedChannelWidthSet;
+               (pBeaconStruct->HTInfo.present)?
+               (cbEnabledMode && pBeaconStruct->HTInfo.recommendedTxWidthSet):0;
     pftSessionEntry->htRecommendedTxWidthSet =
                pftSessionEntry->htSupportedChannelWidthSet;
 
