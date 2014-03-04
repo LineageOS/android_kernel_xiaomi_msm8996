@@ -7379,14 +7379,19 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
     //convert to the UI units of 100kbps
     myRate = pAdapter->hdd_stats.ClassA_stat.tx_rate * 5;
 #ifdef QCA_WIFI_2_0
-    if (!(rate_flags & eHAL_TX_RATE_LEGACY) && myRate)
+    if (!(rate_flags & eHAL_TX_RATE_LEGACY))
     {
         nss = pAdapter->hdd_stats.ClassA_stat.rx_frag_cnt;
-        pAdapter->hdd_stats.ClassA_stat.mcs_index =
-                                  wlan_hdd_get_mcs_idx(myRate, rate_flags, nss);
-        hddLog(VOS_TRACE_LEVEL_DEBUG, "computed mcs idx %d from rate:%d",
+
+        if(myRate)
+        {
+            pAdapter->hdd_stats.ClassA_stat.mcs_index =
+                wlan_hdd_get_mcs_idx(myRate, rate_flags, nss);
+            hddLog(VOS_TRACE_LEVEL_DEBUG, "computed mcs idx %d from rate:%d",
                                      pAdapter->hdd_stats.ClassA_stat.mcs_index,
                                      myRate);
+        }
+
         myRate = 0;
     }
 #endif
