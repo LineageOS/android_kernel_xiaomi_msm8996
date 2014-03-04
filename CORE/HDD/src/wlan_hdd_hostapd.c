@@ -1577,9 +1577,11 @@ static iw_softap_setparam(struct net_device *dev,
                 tsap_Config_t *pConfig =
                     &pHostapdAdapter->sessionCtx.ap.sapConfig;
 
-                if (pConfig->SapHw_mode != eSAP_DOT11_MODE_11ac ||
+                if (pConfig->SapHw_mode != eSAP_DOT11_MODE_11ac &&
                     pConfig->SapHw_mode != eSAP_DOT11_MODE_11ac_ONLY) {
-                    hddLog(VOS_TRACE_LEVEL_ERROR, "Not valid mode for VHT");
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                        "%s: SET_VHT_RATE error: SapHw_mode= 0x%x, ch = %d",
+                        __func__, pConfig->SapHw_mode, pConfig->channel);
                     ret = -EIO;
                     break;
                 }

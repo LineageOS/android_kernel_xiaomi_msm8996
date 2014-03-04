@@ -61,29 +61,29 @@ VOS_STATUS hdd_register_hostapd(hdd_adapter_t *pAdapter, tANI_U8 rtnl_held);
 
 VOS_STATUS hdd_unregister_hostapd(hdd_adapter_t *pAdapter);
 
-eCsrAuthType 
+eCsrAuthType
 hdd_TranslateRSNToCsrAuthType( u_int8_t auth_suite[4]);
 
-eCsrEncryptionType 
+eCsrEncryptionType
 hdd_TranslateRSNToCsrEncryptionType(u_int8_t cipher_suite[4]);
 
-eCsrEncryptionType 
+eCsrEncryptionType
 hdd_TranslateRSNToCsrEncryptionType(u_int8_t cipher_suite[4]);
 
-eCsrAuthType 
+eCsrAuthType
 hdd_TranslateWPAToCsrAuthType(u_int8_t auth_suite[4]);
 
-eCsrEncryptionType 
+eCsrEncryptionType
 hdd_TranslateWPAToCsrEncryptionType(u_int8_t cipher_suite[4]);
 
 VOS_STATUS hdd_softap_sta_deauth(hdd_adapter_t*,v_U8_t*);
 void hdd_softap_sta_disassoc(hdd_adapter_t*,v_U8_t*);
 void hdd_softap_tkip_mic_fail_counter_measure(hdd_adapter_t*,v_BOOL_t);
 int hdd_softap_unpackIE( tHalHandle halHandle,
-                eCsrEncryptionType *pEncryptType, 
-                eCsrEncryptionType *mcEncryptType, 
-                eCsrAuthType *pAuthType, 
-                u_int16_t gen_ie_len, 
+                eCsrEncryptionType *pEncryptType,
+                eCsrEncryptionType *mcEncryptType,
+                eCsrAuthType *pAuthType,
+                u_int16_t gen_ie_len,
                 u_int8_t *gen_ie );
 
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback);

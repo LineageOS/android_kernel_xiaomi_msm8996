@@ -90,7 +90,7 @@ struct ol_pl_os_dep_funcs *g_ol_pl_os_dep_funcs = NULL;
 #endif
 
 /* Setting SOC_GLOBAL_RESET during driver unload causes intermittent PCIe data bus error
- * As workaround for this issue - changing the reset sequence to use TargetCPU warm reset 
+ * As workaround for this issue - changing the reset sequence to use TargetCPU warm reset
  * instead of SOC_GLOBAL_RESET
  */
 #define CPU_WARM_RESET_WAR
@@ -243,10 +243,10 @@ hif_pci_device_reset(struct hif_pci_softc *sc)
 }
 
 
-/* CPU warm reset function 
+/* CPU warm reset function
  * Steps:
- * 	1. Disable all pending interrupts - so no pending interrupts on WARM reset
- * 	2. Clear the FW_INDICATOR_ADDRESS -so Traget CPU intializes FW correctly on WARM reset 
+ *	1. Disable all pending interrupts - so no pending interrupts on WARM reset
+ *	2. Clear the FW_INDICATOR_ADDRESS -so Traget CPU intializes FW correctly on WARM reset
  *      3. Clear TARGET CPU LF timer interrupt
  *      4. Reset all CEs to clear any pending CE tarnsactions
  *      5. Warm reset CPU
@@ -543,8 +543,8 @@ irq_handled:
             A_TARGET_ACCESS_BEGIN(hif_state->targid);
 
         /* Enable Legacy PCI line interrupts */
-        A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 
-		    PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL); 
+        A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS),
+		    PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
         /* IMPORTANT: this extra read transaction is required to flush the posted write buffer */
         tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
 
@@ -591,9 +591,9 @@ again:
 	return -EIO;
      }
 
-    /* FIXME: temp. commenting out assign_resource 
+    /* FIXME: temp. commenting out assign_resource
      * call for dev_attach to work on 2.6.38 kernel
-     */ 
+     */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0) && !defined(__LINUX_ARM_ARCH__)
     if (pci_assign_resource(pdev, BAR_NUM)) {
         printk(KERN_ERR "ath: cannot assign PCI space\n");
@@ -1214,12 +1214,12 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
 
 	/*
 	 * Interrupt Management is divided into these scenarios :
-	 * A) We wish to use MSI and Multiple MSI is supported and we 
+	 * A) We wish to use MSI and Multiple MSI is supported and we
 	 *    are able to obtain the number of MSI interrupts desired
 	 *    (best performance)
 	 * B) We wish to use MSI and Single MSI is supported and we are
 	 *    able to obtain a single MSI interrupt
-	 * C) We don't want to use MSI or MSI is not supported and we 
+	 * C) We don't want to use MSI or MSI is not supported and we
 	 *    are able to obtain a legacy interrupt
 	 * D) Failure
 	 */
@@ -1272,7 +1272,7 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
             }
         }
     }
-    
+
     if (num_msi_desired == 1) {
         /*
          * We are here because either the platform only supports
@@ -1290,7 +1290,7 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
     }
 
     if ( num_msi_desired <= 1) {
-	    /* We are here because we want to multiplex a single host interrupt among all 
+	    /* We are here because we want to multiplex a single host interrupt among all
 	     * Target interrupt sources
 	     */
 	    ret = request_irq(sc->pdev->irq, hif_pci_interrupt_handler, IRQF_SHARED,
@@ -1368,7 +1368,7 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
             if (num_msi_desired == 0) {
                 /* Fix potential race by repeating CORE_BASE writes */
                 A_PCI_WRITE32(sc->mem + (SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS),
-                      PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL); 
+                      PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
             }
             A_MDELAY(10);
         }
@@ -1440,7 +1440,7 @@ hif_pci_remove(struct pci_dev *pdev)
 
 #if defined(CPU_WARM_RESET_WAR)
     /* Currently CPU warm reset sequence is tested only for AR9888_REV2
-     * Need to enable for AR9888_REV1 once CPU warm reset sequence is 
+     * Need to enable for AR9888_REV1 once CPU warm reset sequence is
      * verified for AR9888_REV1
      */
     if (scn->target_version == AR9888_REV2_VERSION) {

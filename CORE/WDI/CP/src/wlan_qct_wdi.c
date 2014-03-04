@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -17257,7 +17257,6 @@ WDI_ProcessDelSTASelfRsp
  @see
  @return Result of the function call
 */
-#define OFFSET_OF(structType,fldName)   (&((structType*)0)->fldName)
 
 WDI_Status
 WDI_ProcessStartOemDataRsp

@@ -31,8 +31,8 @@
 /*============================================================================
   @file wlan_hdd_wowl.h
 
-  This module houses all the logic for WOWL in HDD. 
-  
+  This module houses all the logic for WOWL in HDD.
+
   It provides the following APIs
 
   - Ability to enable/disable following WoWL modes
@@ -40,12 +40,12 @@
     2) Pattern Byte Matching (PBM) mode
   - Ability to add/remove patterns for PBM
 
-  A Magic Packet is a packet that contains 6 0xFFs followed by 16 contiguous 
+  A Magic Packet is a packet that contains 6 0xFFs followed by 16 contiguous
   copies of the receiving NIC's Ethernet address. There is no API to configure
   Magic Packet Pattern.
 
   Wakeup pattern (used for PBM) is defined as following:
-  typedef struct 
+  typedef struct
   {
     U8  PatternSize;                  // Non-Zero pattern size
     U8  PatternMaskSize;              // Non-zero pattern mask size
@@ -54,19 +54,19 @@
   } hdd_wowl_ptrn_t;
 
   PatternSize and PatternMaskSize indicate size of the variable length Pattern
-  and PatternMask. PatternMask indicates which bytes of an incoming packet 
+  and PatternMask. PatternMask indicates which bytes of an incoming packet
   should be compared with corresponding bytes in the pattern.
 
-  Maximum allowed pattern size is 128 bytes. Maximum allowed PatternMaskSize 
-  is 16 bytes. 
+  Maximum allowed pattern size is 128 bytes. Maximum allowed PatternMaskSize
+  is 16 bytes.
 
   Maximum number of patterns that can be configured is 8
 
   HDD will add following 2 commonly used patterns for PBM by default:
     1) ARP Broadcast Pattern
     2) Unicast Pattern
-  
-  However note that WoWL will not be enabled by default by HDD. WoWL needs to 
+
+  However note that WoWL will not be enabled by default by HDD. WoWL needs to
   enabled explcitly by exercising the iwpriv command.
 
   HDD will expose an API that accepts patterns as Hex string in the following
@@ -87,13 +87,13 @@
   Mangement frames are not subjected to WoWL filtering and are discarded when
   WoWL is enabled.
 
-  Whenever a patern match succeeds, RX path is restored and packets (both 
-  management and data) will be pushed to the host from that point onwards. 
-  Therefore, exit from WoWL is implicit and happens automatically when the 
+  Whenever a patern match succeeds, RX path is restored and packets (both
+  management and data) will be pushed to the host from that point onwards.
+  Therefore, exit from WoWL is implicit and happens automatically when the
   first packet match succeeds.
 
   WoWL works on top of BMPS. So when WoWL is requested, SME will attempt to put
-  the device in BMPS mode (if not already in BMPS). If attempt to BMPS fails, 
+  the device in BMPS mode (if not already in BMPS). If attempt to BMPS fails,
   request for WoWL will be rejected.
 
 ============================================================================*/
@@ -193,7 +193,7 @@ v_BOOL_t hdd_exit_wowl (hdd_adapter_t*pAdapter);
 
 /**============================================================================
   @brief hdd_init_wowl() - Init function which will initialize the WoWL module
-  and perform any required intial configuration 
+  and perform any required intial configuration
 
   @return           : FALSE if any errors encountered
                     : TRUE otherwise

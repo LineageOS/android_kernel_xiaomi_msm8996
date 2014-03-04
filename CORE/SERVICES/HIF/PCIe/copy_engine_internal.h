@@ -71,11 +71,11 @@ struct CE_ring_state {
      * For dest ring, this is currently unused.
      */
     unsigned int hw_index;    /* cached copy */
-	
+
     /* Start of DMA-coherent area reserved for descriptors */
     void *base_addr_owner_space_unaligned; /* Host address space */
     CE_addr_t base_addr_CE_space_unaligned;  /* CE address space */
-	
+
     /*
      * Actual start of descriptors.
      * Aligned to descriptor-size boundary.
@@ -118,7 +118,7 @@ struct CE_state {
 
     /*Record the state of the copy compl interrupt*/
     int disable_copy_compl_intr;
-    
+
     unsigned int src_sz_max;
     struct CE_ring_state *src_ring;
     struct CE_ring_state *dest_ring;
@@ -130,13 +130,13 @@ struct CE_state {
 
 struct CE_src_desc {
     CE_addr_t src_ptr;
-#if _BYTE_ORDER == _BIG_ENDIAN 
+#if _BYTE_ORDER == _BIG_ENDIAN
     u_int32_t  meta_data:14,
             byte_swap:1,
             gather:1,
             nbytes:16;
 #else
-    
+
     u_int32_t nbytes:16,
 	      gather:1,
 	      byte_swap:1,
@@ -145,7 +145,7 @@ struct CE_src_desc {
 };
 
 struct dest_desc_info {
-#if _BYTE_ORDER == _BIG_ENDIAN 
+#if _BYTE_ORDER == _BIG_ENDIAN
     u_int32_t  meta_data:14,
                byte_swap:1,
                gather:1,
@@ -311,7 +311,7 @@ struct CE_sendlist_s {
                            MISC_IS_DST_MAX_LEN_VIO_MASK   | \
                            MISC_IS_DST_RING_OVERFLOW_MASK | \
                            MISC_IS_SRC_RING_OVERFLOW_MASK)
-  
+
 #define CE_SRC_RING_TO_DESC(baddr, idx)                 &(((struct CE_src_desc *)baddr)[idx])
 #define CE_DEST_RING_TO_DESC(baddr, idx)                &(((struct CE_dest_desc *)baddr)[idx])
 

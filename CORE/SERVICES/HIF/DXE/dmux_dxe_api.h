@@ -53,7 +53,7 @@ void dmux_dxe_detach(dmux_dxe_handle pdev);
 typedef void (*dmux_dxe_ctrl_cb)(void *context, adf_nbuf_t info);
 
 /**
- * @brief 
+ * @brief
  * allow clients to register for rx control frame callbacks
  */
 A_STATUS
@@ -64,7 +64,7 @@ dmux_dxe_register_callback_rx_ctrl(
 typedef void (*dmux_dxe_mgmt_cb)(void *context, adf_nbuf_t info);
 
 /**
- * @brief 
+ * @brief
  * allow clients to register for rx management frame callbacks
  */
 A_STATUS
@@ -76,7 +76,7 @@ typedef void
 (*dmux_dxe_data_cb)(void *context, adf_nbuf_t info, E_HIFDXE_CHANNELTYPE chan);
 
 /**
- * @brief 
+ * @brief
  * allow clients to register for rx data frame callbacks
  */
 A_STATUS
@@ -87,7 +87,7 @@ dmux_dxe_register_callback_rx_data(
 typedef void (*dmux_dxe_msg_cb)(void *context, adf_nbuf_t info);
 
 /**
- * @brief 
+ * @brief
  * allow clients to register for HTT T2H message callbacks
  */
 A_STATUS

@@ -1017,7 +1017,7 @@ limCleanupMlm(tpAniSirGlobal pMac)
 
 
         // Deactivate and delete cnf wait timer
-        for (n = 0; n < pMac->lim.maxStation; n++)
+        for (n = 0; n < (pMac->lim.maxStation + 1); n++)
         {
             tx_timer_deactivate(&pMac->lim.limTimers.gpLimCnfWaitTimer[n]);
             tx_timer_delete(&pMac->lim.limTimers.gpLimCnfWaitTimer[n]);

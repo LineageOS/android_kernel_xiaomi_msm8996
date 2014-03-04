@@ -50,15 +50,9 @@
 #include "vos_nvitem.h"
 #include "wlan_qct_wda.h"
 
-#define CSR_VALIDATE_LIST  //This portion of code need to be removed once the issue is resolved.
 #define MIN_CHN_TIME_TO_FIND_GO 100
 #define MAX_CHN_TIME_TO_FIND_GO 100
 #define DIRECT_SSID_LEN 7
-
-#ifdef CSR_VALIDATE_LIST
-tDblLinkList *g_pchannelPowerInfoList24 = NULL, * g_pchannelPowerInfoList5 = NULL;
-tpAniSirGlobal g_pMac;
-#endif
 
 /* Purpose of HIDDEN_TIMER
 ** When we remove hidden ssid from the profile i.e., forget the SSID via GUI that SSID shouldn't see in the profile
@@ -210,74 +204,6 @@ static eHalStatus csrLLScanPurgeResult(tpAniSirGlobal pMac, tDblLinkList *pList)
     return (status);
 }
 
-#ifdef CSR_VALIDATE_LIST
-static int validateList(tDblLinkList *pChannelPwrList, int idx)
-{
-   tListElem *pElem, *pHead;
-   int count;
-
-   if(!pChannelPwrList)
-   {
-      return 1;
-   }
-
-   count = (int)(pChannelPwrList->Count);
-   pHead = &pChannelPwrList->ListHead;
-   pElem = pHead->next;
-   if((tANI_U32)(pHead->next) > 0x00010000) //Assuming kernel address is not that low.
-   {
-      //this loop crashes if the pointer is not right
-      while(pElem->next != pHead)
-      {
-         if((tANI_U32)(pElem->next) > 0x00010000)
-         {
-            pElem = pElem->next;
-            if (count <=0)
-            {
-               VOS_BUG(count > 0);
-               return 0;
-            }
-            count--;
-         }
-         else
-         {
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, "%d Detect list(0x%X) error Head(0x%X) next(0x%X) Count %d",
-                  idx, (unsigned int)pChannelPwrList, (unsigned int)pHead,
-                  (unsigned int)(pHead->next), (int)pChannelPwrList->Count);
-            VOS_BUG(0);
-            return 0;
-         }
-      }
-   }
-   else
-   {
-      //Bad list
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, "%d Detect list(0x%X) error Head(0x%X) next(0x%X) Count %d",
-            idx, (unsigned int)pChannelPwrList, (unsigned int)pHead,
-            (unsigned int)(pHead->next), (int)pChannelPwrList->Count);
-      VOS_BUG(0);
-      return 0;
-   }
-   return 1;
-}
-#endif
-
-int csrCheckValidateLists(void * dest, const void *src, v_SIZE_t num, int idx)
-{
-#ifdef CSR_VALIDATE_LIST
-    if( (NULL == g_pMac) || (!g_pMac->scan.fValidateList ) )
-    {
-        return 1;
-    }
-
-    return (validateList(g_pchannelPowerInfoList24, idx) &&
-          validateList(g_pchannelPowerInfoList5, idx)) ? 1 : 0;
-#else
-    return 1;
-#endif //#ifdef CSR_VALIDATE_LIST
-}
-
-
 eHalStatus csrScanOpen( tpAniSirGlobal pMac )
 {
     eHalStatus status;
@@ -290,11 +216,6 @@ eHalStatus csrScanOpen( tpAniSirGlobal pMac )
         csrLLOpen(pMac->hHdd, &pMac->scan.channelPowerInfoList5G);
 #ifdef WLAN_AP_STA_CONCURRENCY
         csrLLOpen(pMac->hHdd, &pMac->scan.scanCmdPendingList);
-#endif
-#ifdef CSR_VALIDATE_LIST
-        g_pchannelPowerInfoList5 = &pMac->scan.channelPowerInfoList5G;
-        g_pMac = pMac;
-        g_pchannelPowerInfoList24 = &pMac->scan.channelPowerInfoList24;
 #endif
         pMac->scan.fFullScanIssued = eANI_BOOLEAN_FALSE;
         pMac->scan.nBssLimit = CSR_MAX_BSS_SUPPORT;
@@ -339,11 +260,6 @@ eHalStatus csrScanOpen( tpAniSirGlobal pMac )
 
 eHalStatus csrScanClose( tpAniSirGlobal pMac )
 {
-#ifdef CSR_VALIDATE_LIST
-    g_pchannelPowerInfoList24 = NULL;
-    g_pchannelPowerInfoList5 = NULL;
-    g_pMac = NULL;
-#endif
     csrLLScanPurgeResult(pMac, &pMac->scan.tempScanResults);
     csrLLScanPurgeResult(pMac, &pMac->scan.scanResultList);
 #ifdef WLAN_AP_STA_CONCURRENCY

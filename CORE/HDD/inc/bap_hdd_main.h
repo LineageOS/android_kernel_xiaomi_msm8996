@@ -29,17 +29,17 @@
 #define BAP_HDD_MAIN_H
 
 /**===========================================================================
-  
+
   \file  BAP_HDD_MAIN_H.h
-  
+
   \brief Linux HDD Adapter Type
-  
+
   ==========================================================================*/
-  
-/*--------------------------------------------------------------------------- 
+
+/*---------------------------------------------------------------------------
   Include files
-  -------------------------------------------------------------------------*/ 
-  
+  -------------------------------------------------------------------------*/
+
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
 #include <vos_list.h>
@@ -51,34 +51,34 @@
 #define BSL_MAX_CLIENTS               1
 #define BSL_MAX_PHY_LINK_PER_CLIENT   1
 
-/*--------------------------------------------------------------------------- 
+/*---------------------------------------------------------------------------
   Function declarations and documenation
-  -------------------------------------------------------------------------*/ 
+  -------------------------------------------------------------------------*/
 
 /**---------------------------------------------------------------------------
-  
+
   \brief BSL_Init() - Initialize the BSL Misc char driver
-  
+
   This is called in by WLANBAP_Open() as part of bringing up the BT-AMP PAL (BAP)
   WLANBAP_Open() will pass in the device context created.
-  
+
   \param  - NA
-  
+
   \return - 0 for success non-zero for failure
-              
+
   --------------------------------------------------------------------------*/
 int BSL_Init (void *pCtx);
 
 /**---------------------------------------------------------------------------
-  
+
   \brief BSL_Deinit() - De-initialize the BSL Misc char driver
-  
+
   This is called in by WLANBAP_Close() as part of bringing down the BT-AMP PAL (BAP)
-  
+
   \param  - NA
-  
+
   \return - 0 for success non-zero for failure
-              
+
   --------------------------------------------------------------------------*/
 
 int BSL_Deinit(void *pCtx);

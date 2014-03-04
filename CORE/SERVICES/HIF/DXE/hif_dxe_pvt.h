@@ -27,7 +27,7 @@
 
 /**
  * @file hif_dxe_pvt.h
- * @brief Defines Software Structures used by DXE 
+ * @brief Defines Software Structures used by DXE
  * @details
  *  This file Provides the HIF DXE Software Structures.
  *  DXE software module communicates with the RIVA DXE HW block for data path which
@@ -67,7 +67,7 @@
 #define HIF_DXE_TX_PENDING_DEBUG_THRESHOLD 5
 // Number of resources which are allocated from ACPI table for RIVA
 #define HIFDXE_NUM_OS_MEM_RES       (1) // memory 0x03000000 - 0x04000000
-#define HIFDXE_NUM_INTR_RES      (2) // TX complete(235) and RX ready(234) 
+#define HIFDXE_NUM_INTR_RES      (2) // TX complete(235) and RX ready(234)
 
 #define HIFDXE_RX_INTERRUPT_PRO_MASK    0x20
 #define HIFDXE_TX_INTERRUPT_PRO_MASK    0x40
@@ -90,14 +90,14 @@
 #define HIFDXE_TX_LO_PRI_RES_NUM (HIFDXE_TX_MAX_FRMS * HIFDXE_TX_AVG_FRAGS_PER_FRAME + HIFDXE_TX_LO_PRI_RES_MARGIN)
 
 
-/*The maximum number of packets that can be chained in dxe for the HI 
+/*The maximum number of packets that can be chained in dxe for the HI
   priority channel */
 #define HIFDXE_TX_HI_PRI_RES_NUM 10
 
 #define WLANDXE_TX_LOW_RES_THRESHOLD     (5)
 
 #define HIF_DXE_NUM_RX_CHANNEL                  2
-#define HIF_DXE_RX_BUFFER_SIZE                  2612     
+#define HIF_DXE_RX_BUFFER_SIZE                  2612
 #define HIF_DXE_RX_RING_REFILL_RETRY_TIME_MS    50
 
 /*----------------------------------------------------------------------------
@@ -138,7 +138,7 @@ typedef enum
 
 typedef struct _WLANDXE_DescCtrlBlkType {
    struct _WLANDXE_DescCtrlBlkType *nextCtrlBlk;
-   adf_nbuf_t                      xfrFrame;  
+   adf_nbuf_t                      xfrFrame;
    volatile WLANDXE_DescType       *linkedDesc;
    adf_os_dma_addr_t                linkedDescPhyAddr;
    A_UINT32                         ctrlBlkOrder;
@@ -201,7 +201,7 @@ typedef struct
 {
    u_int32_t                      refWQ_swapped;
    u_int8_t                       chEnabled;
-   u_int8_t                       chConfigured;    
+   u_int8_t                       chConfigured;
    u_int32_t                      channel;
    u_int32_t                      chk_size_mask;
    u_int32_t                      bmuThdSel_mask;
@@ -241,13 +241,13 @@ typedef struct
     E_HIFDXE_CHANNELTYPE            channelType;
     WLANDXE_DescCtrlBlkType        *headCtrlBlk;
     WLANDXE_DescCtrlBlkType        *tailCtrlBlk;
-    struct 
+    struct
     {
         void *vaddr;
         adf_os_dma_addr_t paddr;
         adf_os_dma_mem_context(memctx);
     } descblk_mem_pool;
-    void                            *ctrlblk_mem_pool;  //Memory Pool For per Descriptor Control Block 
+    void                            *ctrlblk_mem_pool;  //Memory Pool For per Descriptor Control Block
     volatile WLANDXE_DescType       *DescBottomLoc;
     adf_os_dma_addr_t               descBottomLocPhyAddr;
     u_int32_t                      numDesc;
@@ -291,20 +291,20 @@ typedef struct _S_HIFDXE_CONTEXT
     u_int32_t                       dxeCookie;
     hif_dxe_oshandle                hif_os_handle;
     WLANDXE_TxCompIntConfigType     txCompInt;
-    adf_os_atomic_t                 tx_pkts_pending; 
+    adf_os_atomic_t                 tx_pkts_pending;
     S_HIFDXE_CALLBACK               hif_client_cb;
     volatile E_DXE_HOST_PS_TYPE     hostPowerState;
     volatile E_DXE_FIRMWARE_PS_TYPE fwPowerState;
     adf_os_atomic_t                 ref_count;
-    adf_os_atomic_t 				tx_pk_count;
+    adf_os_atomic_t				tx_pk_count;
 
 
 //Do Not Need These variables . Check and clean.
 #ifdef FIXME_RT
    u_int32_t                      interruptPath;
    WLANDXE_SetPowerStateCbType    setPowerStateCb;
-   u_int8_t                       ucTxMsgCnt; 
-   u_int16_t                      lastKickOffDxe; 
+   u_int8_t                       ucTxMsgCnt;
+   u_int16_t                      lastKickOffDxe;
    u_int32_t                      dxeFlushTxFrames;
 #endif
 } S_HIFDXE_CONTEXT;

@@ -2569,10 +2569,6 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 #endif
 
         /*TODO: Recheck below parameters */
-	/*
-	 * Increase maxStation by 1 here so that correct hashtable and
-	 * gpLimPeerIdxpool memory is allocated in peCreateSession
-	 */
 	scn = vos_get_context(VOS_MODULE_ID_HIF, vos_context);
 
 	if (NULL == scn) {
@@ -2581,7 +2577,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		goto err_wmi_attach;
 	}
 
-	mac_params->maxStation = ol_get_number_of_peers_supported(scn) + 1;
+	mac_params->maxStation = ol_get_number_of_peers_supported(scn);
 
         mac_params->maxBssId = WMA_MAX_SUPPORTED_BSS;
 	mac_params->frameTransRequired = 0;
@@ -11919,6 +11915,8 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	int32_t len;
 	int ret;
 	struct ol_softc *scn;
+	int host_credits;
+	int wmi_pending_cmds;
 
 	len = sizeof(wmi_wow_enable_cmd_fixed_param);
 
@@ -11938,10 +11936,12 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	vos_event_reset(&wma->target_suspend);
 	wma->wow_nack = 0;
 
-	if (wmi_get_host_credits(wma->wmi_handle) < WMI_WOW_REQUIRED_CREDITS) {
-		WMA_LOGE("Cannot Post WMI_WOW_ENABLE_CMDID !.Credits:%d"
-			"pending_cmds:%d\n", wmi_get_host_credits(wma->wmi_handle),
-					wmi_get_pending_cmds(wma->wmi_handle));
+	host_credits = wmi_get_host_credits(wma->wmi_handle);
+	wmi_pending_cmds = wmi_get_pending_cmds(wma->wmi_handle);
+
+	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
+		WMA_LOGE("%s: Host Doesn't have enough credits to Post WMI_WOW_ENABLE_CMDID! "
+			"Credits:%d, pending_cmds:%d\n", __func__, host_credits, wmi_pending_cmds);
 		goto error;
 	}
 
@@ -11964,14 +11964,14 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 		return VOS_STATUS_E_AGAIN;
 	}
 
-	if ((wmi_get_host_credits(wma->wmi_handle) != WMI_MAX_HOST_CREDITS) ||
-					wmi_get_pending_cmds(wma->wmi_handle))
-	{
-		WMA_LOGE("Host Doesn't have enough credits after HTC ACK:%d !"
-			"pending_cmds:%d\n", wmi_get_host_credits(wma->wmi_handle),
-			wmi_get_pending_cmds(wma->wmi_handle));
-		VOS_ASSERT(0);
-		return VOS_STATUS_E_FAILURE;
+	host_credits = wmi_get_host_credits(wma->wmi_handle);
+	wmi_pending_cmds = wmi_get_pending_cmds(wma->wmi_handle);
+
+	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
+		WMA_LOGE("%s: No Credits after HTC ACK:%d, pending_cmds:%d, "
+			"cannot resume back", __func__, host_credits, wmi_pending_cmds);
+		HTC_dump_counter_info(wma->htc_handle);
+		VOS_BUG(0);
 	}
 
 
@@ -17519,9 +17519,9 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	tANI_U8         *pFrame = NULL;
 	void            *pPacket = NULL;
 	u_int16_t	newFrmLen = 0;
+#endif /* WLAN_FEATURE_11W */
 	struct wma_txrx_node *iface;
 	tpAniSirGlobal pMac;
-#endif /* WLAN_FEATURE_11W */
 
         if (NULL == wma_handle)
         {

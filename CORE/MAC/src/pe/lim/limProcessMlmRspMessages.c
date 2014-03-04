@@ -3236,7 +3236,7 @@ void limProcessMlmSetStaKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
     if( eLIM_MLM_WT_SET_STA_KEY_STATE != psessionEntry->limMlmState )
     {
         // Mesg received from HAL in Invalid state!
-        limLog( pMac, LOGW, FL( "Received unexpected [Mesg Id - %d] in state %X" ), limMsgQ->type, psessionEntry->limMlmState );
+        limLog( pMac, LOGE, FL( "Received unexpected [Mesg Id - %d] in state %X" ), limMsgQ->type, psessionEntry->limMlmState );
         // There's not much that MLME can do at this stage...
         respReqd = 0;
     }
@@ -3303,7 +3303,7 @@ void limProcessMlmSetBssKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
         eLIM_MLM_WT_SET_STA_BCASTKEY_STATE != psessionEntry->limMlmState )
     {
         // Mesg received from HAL in Invalid state!
-        limLog( pMac, LOGW, FL( "Received unexpected [Mesg Id - %d] in state %X" ), limMsgQ->type, psessionEntry->limMlmState );
+        limLog( pMac, LOGE, FL( "Received unexpected [Mesg Id - %d] in state %X" ), limMsgQ->type, psessionEntry->limMlmState );
         // There's not much that MLME can do at this stage...
         respReqd = 0;
     }

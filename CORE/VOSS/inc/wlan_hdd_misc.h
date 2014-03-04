@@ -65,6 +65,7 @@
 #define WLAN_DICT_FILE             ""
 #define WLAN_COUNTRY_INFO_FILE     "wlan/wlan_country_info.dat"
 #define WLAN_HO_CFG_FILE           "wlan/wlan_ho_config"
+#define WLAN_MAC_FILE              "wlan/wlan_mac.bin"
 #endif // MSM_PLATFORM
 
 

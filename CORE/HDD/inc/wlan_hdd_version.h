@@ -32,13 +32,13 @@
 //  Description:  Miniport driver version information
 //
 //  Author:       Larry Cawley
-// 
+//
 ////
 //===================================================================
 #if !defined( __hddVersion_h__ )
 #define __hddVersion_h__
 
-// force string expansion from chars                               
+// force string expansion from chars
 #define strEXPAND(x) #x
 #define strSTRING(x) strEXPAND(x)
 #define strVERSION( _mj, _mn, _sfx, _build ) strSTRING(_mj) "." strSTRING(_mn) "." strSTRING(_sfx) "." strSTRING(_build)
@@ -46,38 +46,38 @@
 
 #if defined( BLD_REL )
 #define HDD_DRIVER_MAJOR_VERSION BLD_REL
-#else 
-#define HDD_DRIVER_MAJOR_VERSION             0   
+#else
+#define HDD_DRIVER_MAJOR_VERSION             0
 #endif
 
 #if defined( BLD_VER )
 #define HDD_DRIVER_MINOR_VERSION BLD_VER
-#else 
+#else
 #define HDD_DRIVER_MINOR_VERSION             0
 #endif
 
 #if defined( BLD_SFX )
-#define HDD_DRIVER_SUFFIX BLD_SFX 
+#define HDD_DRIVER_SUFFIX BLD_SFX
 #else
 #define HDD_DRIVER_SUFFIX                    0
-#endif 
+#endif
 
 #if defined( BLD_NUM )
 #define HDD_DRIVER_BUILD BLD_NUM
-#else 
-#define HDD_DRIVER_BUILD                     0000  
-#endif 
-#define HDD_BUILD_DATETIME __DATE__ " " __TIME__  
+#else
+#define HDD_DRIVER_BUILD                     0000
+#endif
+#define HDD_BUILD_DATETIME __DATE__ " " __TIME__
 
 #define HDD_DRIVER_VERSION WNI_DRIVER_MAJOR_VERSION,WNI_DRIVER_MINOR_VERSION
 
 #define HDD_DRIVER_VERSION_STR strVERSION( WNI_DRIVER_MAJOR_VERSION, WNI_DRIVER_MINOR_VERSION, WNI_DRIVER_SUFFIX, WNI_DRIVER_BUILD )
-                                            
+
 #define HDD_COMPANYNAME_FULL        "QUALCOMM, Inc."
 #define HDD_DRIVER_DESCRIPTION      "QUALCOMM Gen6 802.11n Wireless Adapter"
-#define OEM_FILEDESCRIPTION_STR     ANI_DRIVER_DESCRIPTION 
-                        
-#define OEM_COMPANYNAME_STR         ANI_COMPANYNAME_FULL 
+#define OEM_FILEDESCRIPTION_STR     ANI_DRIVER_DESCRIPTION
+
+#define OEM_COMPANYNAME_STR         ANI_COMPANYNAME_FULL
 
 #define OEM_INTERNALNAME_STR        "WLAN_QCT_DRV.dll"
 #define OEM_INTERNALNAME_STR2       "WLAN_QCT_DRV.dll"

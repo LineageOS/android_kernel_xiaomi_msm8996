@@ -43,11 +43,11 @@
 /**-----------------------------------------------------------------------------
   Preprocessor definitions and constants
  ----------------------------------------------------------------------------*/
-  
+
 /**-----------------------------------------------------------------------------
   Type declarations
  ----------------------------------------------------------------------------*/
-  
+
 /**-----------------------------------------------------------------------------
   Function declarations and documenation
  ----------------------------------------------------------------------------*/
@@ -83,7 +83,7 @@ VOS_STATUS hdd_list_remove_front( hdd_list_t *pList, hdd_list_node_t **ppNode )
    {
       return VOS_STATUS_E_EMPTY;
    }
-         
+
    listptr = pList->anchor.next;
    *ppNode = listptr;
    list_del(pList->anchor.next);
@@ -121,7 +121,7 @@ VOS_STATUS hdd_list_remove_node( hdd_list_t *pList,
    }
 
     // verify that pNodeToRemove is indeed part of list pList
-   list_for_each(tmp, &pList->anchor) 
+   list_for_each(tmp, &pList->anchor)
    {
      if (tmp == pNodeToRemove)
      {
@@ -132,7 +132,7 @@ VOS_STATUS hdd_list_remove_node( hdd_list_t *pList,
    if (found == 0)
        return VOS_STATUS_E_INVAL;
 
-   list_del(pNodeToRemove); 
+   list_del(pNodeToRemove);
    pList->count--;
 
    return VOS_STATUS_SUCCESS;
@@ -158,7 +158,7 @@ VOS_STATUS hdd_list_peek_next( hdd_list_t *pList, hdd_list_node_t *pNode,
    struct list_head * listptr;
    int found = 0;
    hdd_list_node_t *tmp;
-      
+
    if ( ( pList == NULL) || ( pNode == NULL) || (ppNode == NULL))
    {
       return VOS_STATUS_E_FAULT;
@@ -170,7 +170,7 @@ VOS_STATUS hdd_list_peek_next( hdd_list_t *pList, hdd_list_node_t *pNode,
    }
 
    // verify that pNode is indeed part of list pList
-   list_for_each(tmp, &pList->anchor) 
+   list_for_each(tmp, &pList->anchor)
    {
      if (tmp == pNode)
      {
@@ -219,4 +219,3 @@ VOS_STATUS hdd_string_to_hex( char *pSrcMac, int length, char *pDescMac )
 
    return VOS_STATUS_SUCCESS;
 }
-

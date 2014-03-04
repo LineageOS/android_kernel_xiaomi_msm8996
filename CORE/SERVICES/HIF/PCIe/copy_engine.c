@@ -147,13 +147,13 @@ CE_send_nolock(struct CE_handle *copyeng,
     unsigned int nentries_mask = src_ring->nentries_mask;
     unsigned int sw_index = src_ring->sw_index;
     unsigned int write_index = src_ring->write_index;
-    
+
 	A_TARGET_ACCESS_BEGIN(targid);
     if (unlikely(CE_RING_DELTA(nentries_mask, write_index, sw_index-1) <= 0)) {
         OL_ATH_CE_PKT_ERROR_COUNT_INCR(sc,CE_RING_DELTA_FAIL);
         status = A_ERROR;
-    	A_TARGET_ACCESS_END(targid);
-    	return status;
+	A_TARGET_ACCESS_END(targid);
+	return status;
     }
     {
         struct CE_src_desc *src_ring_base = (struct CE_src_desc *)src_ring->base_addr_owner_space;
@@ -280,7 +280,7 @@ CE_sendlist_send(struct CE_handle *copyeng,
             item = &sl->item[i];
             /* TBDXXX: Support extensible sendlist_types? */
             A_ASSERT(item->send_type == CE_SIMPLE_BUFFER_TYPE);
-            status = CE_send_nolock(copyeng, CE_SENDLIST_ITEM_CTXT, 
+            status = CE_send_nolock(copyeng, CE_SENDLIST_ITEM_CTXT,
                                     (CE_addr_t)item->data, item->u.nbytes,
                                     transfer_id,
                                     item->flags | CE_SEND_FLAG_GATHER);
@@ -290,7 +290,7 @@ CE_sendlist_send(struct CE_handle *copyeng,
         item = &sl->item[i];
         /* TBDXXX: Support extensible sendlist_types? */
         A_ASSERT(item->send_type == CE_SIMPLE_BUFFER_TYPE);
-        status = CE_send_nolock(copyeng, per_transfer_context, 
+        status = CE_send_nolock(copyeng, per_transfer_context,
                                 (CE_addr_t)item->data, item->u.nbytes,
                                 transfer_id, item->flags);
         A_ASSERT(status == A_OK);
@@ -336,7 +336,7 @@ CE_recv_buf_enqueue(struct CE_handle *copyeng,
         dest_desc->info.nbytes = 0; /* NB: Enable CE_completed_recv_next_nolock to
 								protect against race between DRRI update and
 								desc update */
-		
+
         dest_ring->per_transfer_context[write_index] = per_recv_context;
 
         /* Update Destination Ring Write Index */
@@ -519,9 +519,9 @@ CE_completed_recv_next_nolock(struct CE_state *CE_state,
     int nbytes;
     struct dest_desc_info dest_desc_info;
 
-    /* 
+    /*
      * By copying the dest_desc_info element to local memory, we could
-     * avoid extra memory read from non-cachable memory.          
+     * avoid extra memory read from non-cachable memory.
      */
     dest_desc_info = dest_desc->info;
     nbytes = dest_desc_info.nbytes;
@@ -537,7 +537,7 @@ CE_completed_recv_next_nolock(struct CE_state *CE_state,
     }
 
     dest_desc->info.nbytes = 0;
-		
+
     /* Return data from completed destination descriptor */
     *bufferp      = (CE_addr_t)(dest_desc->dest_ptr);
     *nbytesp      = nbytes;
@@ -692,7 +692,7 @@ CE_completed_send_next_nolock(struct CE_state *CE_state,
         *bufferp      = (CE_addr_t)(shadow_src_desc->src_ptr);
         *nbytesp      = shadow_src_desc->nbytes;
         *transfer_idp = shadow_src_desc->meta_data;
-        
+
         if (per_CE_contextp) {
             *per_CE_contextp = CE_state->send_context;
         }
@@ -807,7 +807,7 @@ CE_completed_send_next(struct CE_handle *copyeng,
    does recieve and reaping of completed descriptor ,
    This function only handles reaping of Tx complete descriptor.
    The Function is called from threshold reap  poll routine HIFSendCompleteCheck
-   So should not countain recieve functionality within it . 
+   So should not countain recieve functionality within it .
  */
 
 void
@@ -897,7 +897,7 @@ CE_per_engine_service(struct hif_pci_softc *sc, unsigned int CE_id)
     sc->force_break = 0;
 more_completions:
     if (CE_state->recv_cb) {
-        
+
         /* Pop completed recv buffers and call the registered recv callback for each */
         while (CE_completed_recv_next_nolock(CE_state, &CE_context, &transfer_context,
                     &buf, &nbytes, &id, &flags) == A_OK)
@@ -905,9 +905,9 @@ more_completions:
                 adf_os_spin_unlock(&sc->target_lock);
                 CE_state->recv_cb((struct CE_handle *)CE_state, CE_context, transfer_context,
                                     buf, nbytes, id, flags);
-                
+
                 /*
-                 * EV #112693 - [Peregrine][ES1][WB342][Win8x86][Performance] BSoD_0x133 occurred in VHT80 UDP_DL      
+                 * EV #112693 - [Peregrine][ES1][WB342][Win8x86][Performance] BSoD_0x133 occurred in VHT80 UDP_DL
                  * Break out DPC by force if number of loops in HIF_PCI_CE_recv_data reaches MAX_NUM_OF_RECEIVES to avoid spending too long time in DPC for each interrupt handling.
                  * Schedule another DPC to avoid data loss if we had taken force-break action before
                  * Apply to Windows OS only currently, Linux/MAC os can expand to their platform if necessary
@@ -929,7 +929,7 @@ more_completions:
      * Attention: We may experience potential infinite loop for below While Loop during Sending Stress test
      * Resolve the same way as Receive Case (Refer to EV #112693)
      */
-    
+
     if (CE_state->send_cb) {
         /* Pop completed send buffers and call the registered send callback for each */
 
@@ -950,7 +950,7 @@ more_completions:
                 adf_os_spin_unlock(&pipe_info->completion_freeq_lock);
             }
         }
-#else  /*ATH_11AC_TXCOMPACT*/ 
+#else  /*ATH_11AC_TXCOMPACT*/
         while (CE_completed_send_next_nolock(CE_state, &CE_context, &transfer_context,
                     &buf, &nbytes, &id, &sw_idx, &hw_idx) == A_OK){
             adf_os_spin_unlock(&sc->target_lock);
@@ -1045,7 +1045,7 @@ CE_per_engine_service_any(int irq, void *arg)
     A_target_id_t targid = TARGID(sc);
     int CE_id;
     A_UINT32 intr_summary;
-	
+
     A_TARGET_ACCESS_BEGIN(targid);
     if (!adf_os_atomic_read(&sc->tasklet_from_intr)) {
         for (CE_id=0; CE_id < sc->ce_count; CE_id++) {
@@ -1061,14 +1061,14 @@ CE_per_engine_service_any(int irq, void *arg)
     }
 
     intr_summary = CE_INTERRUPT_SUMMARY(targid);
-	
+
     for (CE_id=0; intr_summary && (CE_id < sc->ce_count); CE_id++) {
         if (intr_summary & (1<<CE_id)) {
             intr_summary &= ~(1<<CE_id);
         } else {
             continue; /* no intr pending on this CE */
         }
-		
+
         CE_per_engine_service(sc, CE_id);
     }
 
@@ -1114,12 +1114,12 @@ void CE_disable_any_copy_compl_intr_nolock(struct hif_pci_softc *sc)
 {
     A_target_id_t targid = TARGID(sc);
     int CE_id;
-    
+
     A_TARGET_ACCESS_BEGIN(targid);
     for (CE_id=0; CE_id < sc->ce_count; CE_id++) {
         struct CE_state *CE_state = sc->CE_id_to_state[CE_id];
         u_int32_t ctrl_addr = CE_state->ctrl_addr;
-        
+
         /* if the interrupt is currently enabled, disable it */
         if (!CE_state->disable_copy_compl_intr && (CE_state->send_cb || CE_state->recv_cb)) {
             CE_COPY_COMPLETE_INTR_DISABLE(targid, ctrl_addr);
@@ -1284,7 +1284,7 @@ CE_init(struct hif_pci_softc *sc,
     ctrl_addr = CE_BASE_ADDRESS(CE_id);
     adf_os_spin_lock(&sc->target_lock);
     CE_state = sc->CE_id_to_state[CE_id];
-    
+
 
     if (!CE_state) {
         adf_os_spin_unlock(&sc->target_lock);
@@ -1384,7 +1384,7 @@ CE_init(struct hif_pci_softc *sc,
                                     (nentries * sizeof(struct CE_src_desc) + CE_DESC_RING_ALIGN),
                                     &base_addr);
             src_ring->base_addr_CE_space_unaligned = base_addr;
-		
+
 
             if (src_ring->base_addr_CE_space_unaligned & (CE_DESC_RING_ALIGN-1)) {
 
