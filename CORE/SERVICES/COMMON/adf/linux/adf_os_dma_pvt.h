@@ -126,7 +126,13 @@ __adf_os_cache_line_size(void)
 static inline void
 __adf_os_invalidate_range(void * start, void * end)
 {
+#ifdef MSM_PLATFORM
     dmac_inv_range(start, end);
+#else
+    //TODO figure out how to invalidate cache on x86 and other non-MSM platform
+    __adf_os_print("Cache Invalidate not yet implemented for non-MSM platform\n");
+    return;
+#endif
 }
 
 
