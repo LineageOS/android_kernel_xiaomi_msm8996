@@ -12788,6 +12788,14 @@ static VOS_STATUS wma_resume_req(tp_wma_handle wma, tpSirWlanResumeParam info)
 		if (!wma->interfaces[vdev_id].handle)
 			continue;
 
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+		/* When host resume, by default, unpause all active vdev */
+		if (wma->interfaces[vdev_id].pause_bitmap) {
+			wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
+			wma->interfaces[vdev_id].pause_bitmap = 0;
+		}
+#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
+
 		iface = &wma->interfaces[vdev_id];
 		iface->conn_state = FALSE;
 	}
