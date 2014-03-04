@@ -603,6 +603,7 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
     int we_event;
     char *msg;
     int type = -1;
+    unsigned long flags;
 #ifdef QCA_WIFI_2_0
     v_MACADDR_t peerMacAddr;
 #endif
@@ -653,6 +654,18 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
                 MAC_ADDR_ARRAY(wrqu.ap_addr.sa_data));
         hdd_SendUpdateBeaconIEsEvent(pAdapter, pCsrRoamInfo);
 
+#ifdef MSM_PLATFORM
+        if (pAdapter->device_mode == WLAN_HDD_INFRA_STATION) {
+            spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+            pHddCtx->sta_cnt++;
+            pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
+            pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
+            if (1 == pHddCtx->sta_cnt)
+                hdd_start_bus_bw_compute_timer(pAdapter);
+            spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
+        }
+#endif
+
         /* Send IWEVASSOCRESPIE Event if WLAN_FEATURE_CIQ_METRICS is Enabled Or
          * Send IWEVASSOCRESPIE Event if WLAN_FEATURE_VOWIFI_11R is Enabled
          * and fFTEnable is TRUE */
@@ -695,6 +708,19 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         pr_info("wlan: disconnected\n");
         type = WLAN_STA_DISASSOC_DONE_IND;
         memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
+
+#ifdef MSM_PLATFORM
+        if (pAdapter->device_mode == WLAN_HDD_INFRA_STATION) {
+            spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+            pHddCtx->sta_cnt--;
+            pAdapter->prev_tx_packets = 0;
+            pAdapter->prev_rx_packets = 0;
+            if (0 == pHddCtx->sta_cnt)
+                hdd_stop_bus_bw_compute_timer(pAdapter);
+            spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
+        }
+#endif
+
 #ifdef QCA_WIFI_2_0
         if (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
         {

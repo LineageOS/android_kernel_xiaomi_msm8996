@@ -223,6 +223,16 @@
 
 #define HDD_MAC_ADDR_LEN    6
 #define HDD_SESSION_ID_ANY  50 //This should be same as CSR_SESSION_ID_ANY
+
+#ifdef MSM_PLATFORM
+/* Threshold value for number of packets recevied in 3sec */
+#define HDD_HIGH_BUS_BANDWIDTH_THRESHOLD_RX 40000
+#define HDD_HIGH_BUS_BANDWIDTH_THRESHOLD_TX 40000
+#define HDD_MEDIUM_BUS_BANDWIDTH_THRESHOLD_TX 5000
+#define HDD_MEDIUM_BUS_BANDWIDTH_THRESHOLD_RX 5000
+#define HDD_BUS_BANDWIDTH_COMPUTE_INTERVAL  3000
+#endif
+
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
 /*
@@ -1030,6 +1040,10 @@ struct hdd_adapter_s
 #ifdef IPA_OFFLOAD
     void *ipa_context;
 #endif
+#ifdef MSM_PLATFORM
+    unsigned long prev_rx_packets;
+    unsigned long prev_tx_packets;
+#endif
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
@@ -1267,6 +1281,17 @@ struct hdd_context_s
     * TX_rx_pkt_count_timer
     */
     vos_timer_t    tx_rx_trafficTmr;
+
+#ifdef MSM_PLATFORM
+   /* DDR bus bandwidth compute timer
+    */
+    vos_timer_t    bus_bw_timer;
+    int            cur_bus_bw;
+    v_BOOL_t       bus_bw_triggered;
+    spinlock_t     bus_bw_lock;
+    int            sta_cnt;
+#endif
+
     v_U8_t         drvr_miracast;
     v_U8_t         issplitscan_enabled;
 
@@ -1392,6 +1417,20 @@ void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);
 
 int hdd_wmmps_helper(hdd_adapter_t *pAdapter, tANI_U8 *ptr);
 int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate);
+#ifdef MSM_PLATFORM
+void hdd_start_bus_bw_compute_timer(hdd_adapter_t *pAdapter);
+void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter);
+#else
+static inline void hdd_start_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
+{
+    return;
+}
+
+static inline void hdd_stop_bus_bw_computer_timer(hdd_adapter_t *pAdapter)
+{
+    return;
+}
+#endif
 
 int hdd_wlan_startup(struct device *dev, void *hif_sc);
 void __hdd_wlan_exit(void);

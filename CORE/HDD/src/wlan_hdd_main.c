@@ -8416,6 +8416,21 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
            "%s: Cannot deallocate Traffic monitor timer", __func__);
    }
 
+#ifdef MSM_PLATFORM
+   if (VOS_TIMER_STATE_RUNNING ==
+                        vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
+   {
+        vos_timer_stop(&pHddCtx->bus_bw_timer);
+   }
+
+   if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
+                         &pHddCtx->bus_bw_timer)))
+   {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+           "%s: Cannot deallocate Bus bandwidth timer", __func__);
+   }
+#endif
+
    if(!pConfig->enablePowersaveOffload)
    {
       //Disable IMPS/BMPS as we do not want the device to enter any power
@@ -9038,6 +9053,87 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
 }
 #endif
 
+#ifdef MSM_PLATFORM
+enum cnss_bus_width_type hdd_get_vote_level(unsigned long tx,
+                                            unsigned long rx)
+{
+    if (tx > HDD_HIGH_BUS_BANDWIDTH_THRESHOLD_TX ||
+        rx > HDD_HIGH_BUS_BANDWIDTH_THRESHOLD_RX)
+        return CNSS_BUS_WIDTH_HIGH;
+    else if (tx > HDD_MEDIUM_BUS_BANDWIDTH_THRESHOLD_TX ||
+             rx > HDD_MEDIUM_BUS_BANDWIDTH_THRESHOLD_RX)
+        return CNSS_BUS_WIDTH_MEDIUM;
+    else
+        return CNSS_BUS_WIDTH_LOW;
+}
+
+static void hdd_bus_bw_compute_cbk(void *phddctx)
+{
+    unsigned long tx_pkts;
+    unsigned long rx_pkts;
+    enum cnss_bus_width_type vote_level;
+    enum cnss_bus_width_type vote_level_max = CNSS_BUS_WIDTH_NONE;
+    hdd_adapter_t *pAdapter;
+    hdd_context_t *pHddCtx = (hdd_context_t *)phddctx;
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+    VOS_STATUS status = 0;
+    unsigned long flags;
+    int cnt;
+
+    /* iterate through all adapters and determine the final
+     * voting level based on the highest bandwidth in STA mode
+     */
+    spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+    cnt = pHddCtx->sta_cnt;
+    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status && cnt)
+    {
+        pAdapter = pAdapterNode->pAdapter;
+        if (pAdapter && (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)) {
+            cnt--;
+            if (!hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) {
+                status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+                pAdapterNode = pNext;
+                continue;
+            }
+            tx_pkts = pAdapter->stats.tx_packets - pAdapter->prev_tx_packets;
+            rx_pkts = pAdapter->stats.rx_packets - pAdapter->prev_rx_packets;
+            pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
+            pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
+            vote_level = hdd_get_vote_level(tx_pkts, rx_pkts);
+            vote_level_max = (vote_level > vote_level_max) ?
+                             (vote_level) : (vote_level_max);
+        }
+        status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+        pAdapterNode = pNext;
+    }
+    spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
+
+    if (CNSS_BUS_WIDTH_NONE == vote_level_max) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "bus bandwidth timer running in disconnected state");
+        return;
+    }
+
+    /* skip the one followed by the trigger */
+    if (pHddCtx->bus_bw_triggered) {
+        pHddCtx->bus_bw_triggered = 0;
+        goto exit;
+    }
+
+    if (pHddCtx->cur_bus_bw != vote_level_max) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG,
+               "trigger level %d", vote_level_max);
+        pHddCtx->bus_bw_triggered = 1;
+        pHddCtx->cur_bus_bw = vote_level_max;
+        cnss_request_bus_bandwidth(vote_level_max);
+    }
+
+exit:
+    vos_timer_start(&pHddCtx->bus_bw_timer,
+                    HDD_BUS_BANDWIDTH_COMPUTE_INTERVAL);
+}
+#endif
 
 /**---------------------------------------------------------------------------
 
@@ -9899,6 +9995,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                "%s: Error setting txlimit in sme", __func__);
    }
 #endif /*#ifndef QCA_WIFI_ISOC*/
+
+#ifdef MSM_PLATFORM
+   spin_lock_init(&pHddCtx->bus_bw_lock);
+   vos_timer_init(&pHddCtx->bus_bw_timer,
+                     VOS_TIMER_TYPE_SW,
+                     hdd_bus_bw_compute_cbk,
+                     (void *)pHddCtx);
+#endif
+
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
    complete(&wlan_start_comp);
 #endif
@@ -11134,6 +11239,35 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
         }
 
     }
+}
+#endif
+
+#ifdef MSM_PLATFORM
+void hdd_start_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
+{
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+    if (VOS_TIMER_STATE_RUNNING ==
+        vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
+        return;
+    pHddCtx->bus_bw_triggered = 0;
+    vos_timer_start(&pHddCtx->bus_bw_timer,
+                    HDD_BUS_BANDWIDTH_COMPUTE_INTERVAL);
+}
+
+void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
+{
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+    if (VOS_TIMER_STATE_RUNNING !=
+        vos_timer_getCurrentState(&pHddCtx->bus_bw_timer)) {
+        /* trying to stop timer, when not running is not good */
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "bus band width compute timer is not running");
+        return;
+    }
+    vos_timer_stop(&pHddCtx->bus_bw_timer);
+    pHddCtx->bus_bw_triggered = 0;
 }
 #endif
 
