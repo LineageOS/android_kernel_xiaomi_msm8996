@@ -161,7 +161,6 @@ typedef struct _HTC_TARGET {
 #endif
     HTC_SERVICE_TX_CREDIT_ALLOCATION ServiceTxAllocTable[HTC_MAX_SERVICE_ALLOC_ENTRIES];
     int                         TargetCreditSize;
-    int                         TotalHostCredits;
 #ifdef RX_SG_SUPPORT
     adf_nbuf_queue_t            RxSgQueue;
     A_BOOL                      IsRxSgInprogress;

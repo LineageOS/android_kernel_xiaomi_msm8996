@@ -683,7 +683,7 @@ struct s_htc_msg{
 	void *pContext;
 };
 #endif
-void HTCGetHostCredits(HTC_HANDLE HTCHandle, int *credit);
+void HTCGetControlEndpointTxHostCredits(HTC_HANDLE HTCHandle, int *credit);
 void HTC_dump_counter_info(HTC_HANDLE HTCHandle);
 void *htc_get_targetdef(HTC_HANDLE htc_handle);
 void HTCSetTargetToSleep(void *context);
