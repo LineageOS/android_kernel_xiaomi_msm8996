@@ -1966,6 +1966,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"****pConfig->dtim_period=%d***\n",
                                       pConfig->dtim_period);
 
+    pConfig->enOverLapCh = !!pHddCtx->cfg_ini->gEnableOverLapCh;
+
     if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP)
     {
         pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,

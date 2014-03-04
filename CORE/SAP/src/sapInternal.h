@@ -265,6 +265,7 @@ typedef struct sSapContext {
     tANI_BOOLEAN       allBandScanned;
     eCsrBand           currentPreferredBand;
     eCsrBand           scanBandPreference;
+    tANI_BOOLEAN       enableOverLapCh;
 } *ptSapContext;
 
 

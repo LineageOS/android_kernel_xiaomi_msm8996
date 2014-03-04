@@ -3111,6 +3111,13 @@ REG_VARIABLE( CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_NAME, WLAN_PARAM_Integer,
               CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_DEFAULT,
               CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MIN,
               CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MAX ),
+
+REG_VARIABLE( CFG_ENABLE_OVERLAP_CH, WLAN_PARAM_Integer,
+               hdd_config_t, gEnableOverLapCh,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+               CFG_ENABLE_OVERLAP_CH_DEFAULT,
+               CFG_ENABLE_OVERLAP_CH_MIN,
+               CFG_ENABLE_OVERLAP_CH_MAX ),
 };
 
 /*
@@ -3496,6 +3503,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAPreFilterEnable] Value = [%u] ",pHddCtx->cfg_ini->IpaPreFilterEnable);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPADescSize] Value = [%u] ",pHddCtx->cfg_ini->IpaDescSize);
 #endif
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableOverLapCh] Value = [%u] ",pHddCtx->cfg_ini->gEnableOverLapCh);
 }
 
 

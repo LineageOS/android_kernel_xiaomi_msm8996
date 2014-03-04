@@ -453,6 +453,7 @@ typedef struct sap_Config {
     tVOS_CON_MODE   persona; /*Tells us which persona it is GO or AP for now*/
     v_U8_t          disableDFSChSwitch;
     eCsrBand        scanBandPreference;
+    v_BOOL_t        enOverLapCh;
 } tsap_Config_t;
 
 typedef enum {

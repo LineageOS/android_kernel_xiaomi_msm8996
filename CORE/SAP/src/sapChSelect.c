@@ -1827,6 +1827,39 @@ void sapSortChlWeight(tSapChSelSpectInfo *pSpectInfoParams)
 }
 
 /*==========================================================================
+  FUNCTION    sapFilterOverLapCh
+
+  DESCRIPTION
+    return true if ch is acceptable.
+    This function will decide if we will filter over lap channel or not.
+
+  DEPENDENCIES
+    shall called after ap start.
+
+  PARAMETERS
+
+  IN
+    pSapCtx          : Pointer to ptSapContext.
+    chNum             : Filter channel number.
+
+  RETURN VALUE
+    v_BOOL_t          : true if channel is accepted.
+
+  SIDE EFFECTS
+============================================================================*/
+v_BOOL_t sapFilterOverLapCh(ptSapContext pSapCtx, v_U16_t chNum)
+{
+    if (pSapCtx->enableOverLapCh)
+        return eSAP_TRUE;
+    else if((chNum == CHANNEL_1) ||
+            (chNum == CHANNEL_6) ||
+            (chNum == CHANNEL_11))
+        return eSAP_TRUE;
+
+    return eSAP_FALSE;
+}
+
+/*==========================================================================
   FUNCTION    sapSelectChannel
 
   DESCRIPTION
@@ -1908,32 +1941,31 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
     }
 
     /*Loop till get the best channel in the given range */
-    for(count=0; count < pSpectInfoParams->numSpectChans ; count++)
+    for (count=0; count < pSpectInfoParams->numSpectChans ; count++)
     {
-        if((startChannelNum <= pSpectInfoParams->pSpectCh[count].chNum)&&
-          ( endChannelNum >= pSpectInfoParams->pSpectCh[count].chNum))
+        if ((startChannelNum <= pSpectInfoParams->pSpectCh[count].chNum)&&
+            ( endChannelNum >= pSpectInfoParams->pSpectCh[count].chNum))
         {
-            if(bestChNum == 0)
+            if (bestChNum == 0)
             {
                 bestChNum = (v_U8_t)pSpectInfoParams->pSpectCh[count].chNum;
             }
             else
             {
-                if(operatingBand == RF_SUBBAND_2_4_GHZ)
+                if (operatingBand == RF_SUBBAND_2_4_GHZ)
                 {
                     /* Give preference to Non-overlap channels */
-                    if(((pSpectInfoParams->pSpectCh[count].chNum == CHANNEL_1) ||
-                      (pSpectInfoParams->pSpectCh[count].chNum == CHANNEL_6) ||
-                      (pSpectInfoParams->pSpectCh[count].chNum == CHANNEL_11))&&
-                      (pSpectInfoParams->pSpectCh[count].weight == 0))
-                      {
-                           bestChNum = (v_U8_t)pSpectInfoParams->pSpectCh[count].chNum;
-                           break;
-                      }
+                    if (sapFilterOverLapCh(pSapCtx,
+                            pSpectInfoParams->pSpectCh[count].chNum) &&
+                        (pSpectInfoParams->pSpectCh[count].weight == 0))
+                    {
+                        bestChNum = (v_U8_t)pSpectInfoParams->pSpectCh[count].chNum;
+                        break;
+                    }
                 }
             }
-         }
-      }
+        }
+    }
 #else
     // Get the first channel in sorted array as best 20M Channel
     bestChNum = (v_U8_t)pSpectInfoParams->pSpectCh[0].chNum;

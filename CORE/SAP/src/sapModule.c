@@ -599,6 +599,8 @@ WLANSAP_StartBss
         pSapCtx->scanBandPreference = pConfig->scanBandPreference;
         pSapCtx->pUsrContext = pUsrContext;
 
+        pSapCtx->enableOverLapCh = pConfig->enOverLapCh;
+
         //Set the BSSID to your "self MAC Addr" read the mac address from Configuation ITEM received from HDD
         pSapCtx->csrRoamProfile.BSSIDs.numOfBSSIDs = 1;
         vos_mem_copy(pSapCtx->csrRoamProfile.BSSIDs.bssid,
