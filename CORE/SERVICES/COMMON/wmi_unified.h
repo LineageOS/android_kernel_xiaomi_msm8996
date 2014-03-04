@@ -3006,6 +3006,13 @@ typedef struct {
                 reserved : 4;
 } wmi_vdev_txbf_en;
 
+/** Upto 8 bits are available for Roaming module to be sent along with
+WMI_VDEV_PARAM_ROAM_FW_OFFLOAD WMI_VDEV_PARAM **/
+/* Enable Roaming FW offload LFR1.5/LFR2.0 implementation */
+#define WMI_ROAM_FW_OFFLOAD_ENABLE_FLAG                          0x1
+/* Enable Roaming module in FW to do scan based on Final BMISS */
+#define WMI_ROAM_BMISS_FINAL_SCAN_ENABLE_FLAG                    0x2
+
         /** slot time long */
         #define WMI_VDEV_SLOT_TIME_LONG                                  0x1
         /** slot time short */
@@ -4242,6 +4249,8 @@ enum {
     WMI_AUTH_WAPI_PSK,
     WMI_AUTH_FT_RSNA, /* 11r FT */
     WMI_AUTH_FT_RSNA_PSK,
+    WMI_AUTH_RSNA_PSK_SHA256,
+    WMI_AUTH_RSNA_8021X_SHA256,
 };
 
 typedef struct {
@@ -4416,6 +4425,10 @@ typedef struct {
 #define WMI_ROAM_REASON_BMISS     0x2 /** beacon miss detected */
 #define WMI_ROAM_REASON_DEAUTH    0x2 /** deauth/disassoc received */
 #define WMI_ROAM_REASON_LOW_RSSI  0x3 /** connected AP's low rssi condition detected */
+#define WMI_ROAM_REASON_SUITABLE_AP 0x4 /** found another AP that matches
+                                          SSID and Security profile in
+                                          WMI_ROAM_AP_PROFILE, found during scan
+                                          triggered upon FINAL_BMISS **/
 
 /** WMI_PROFILE_MATCH_EVENT: offload scan
  * generated when ever atleast one of the matching profiles is found
