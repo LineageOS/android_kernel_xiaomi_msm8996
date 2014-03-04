@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -564,7 +564,7 @@ limCreateTimers(tpAniSirGlobal pMac)
     }
     cfgValue = SYS_MS_TO_TICKS(cfgValue);
 
-    for (i=0; i<pMac->lim.maxStation; i++)
+    for (i=0; i < (pMac->lim.maxStation + 1); i++)
     {
         if (tx_timer_create(&pMac->lim.limTimers.gpLimCnfWaitTimer[i],
                             "CNF_MISS_TIMEOUT",

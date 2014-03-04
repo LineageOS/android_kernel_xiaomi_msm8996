@@ -33,7 +33,7 @@
 *  DXE software module communicates with the RIVA DXE HW block for data path which
 *  is a DMA engine to transfer Data from Host DDR to Target DDR.
 *  Provides API to :
-*  - Initialize the DMA block registers, Allocate DMA Memory for Descriptors/Rx Network Packets. 
+*  - Initialize the DMA block registers, Allocate DMA Memory for Descriptors/Rx Network Packets.
 *  - Send Recieve Network Packets over the DXE.
 *  - Register Tx Complete, Rx and Low Resource Callbacks.
 *  - Send Tx Data packets and report Rx Packets
@@ -93,23 +93,23 @@ A_STATUS hif_dxe_notify_smsm(S_HIFDXE_CONTEXT *dxe_ctx,u_int8_t kickDxe,u_int8_t
    if(kickDxe)
    {
      AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s Set Kick off DXE\n",__FUNCTION__));
-     setSt |= HIFDXE_SMSM_WLAN_TX_ENABLE; 
+     setSt |= HIFDXE_SMSM_WLAN_TX_ENABLE;
    }
    else
    {
      AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s Clear Kick off DXE\n",__FUNCTION__));
      clrSt |= HIFDXE_SMSM_WLAN_TX_ENABLE;
    }
-   
+
    if(ringEmpty)
    {
      AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s SMSM Tx Ring Empty\n",__FUNCTION__));
-     clrSt |= HIFDXE_SMSM_WLAN_TX_RINGS_NOT_EMPTY; 
+     clrSt |= HIFDXE_SMSM_WLAN_TX_RINGS_NOT_EMPTY;
    }
    else
    {
      AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s SMSM Tx Ring Not Empty\n",__FUNCTION__));
-     setSt |= HIFDXE_SMSM_WLAN_TX_RINGS_NOT_EMPTY; 
+     setSt |= HIFDXE_SMSM_WLAN_TX_RINGS_NOT_EMPTY;
    }
 
    AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s SMSM C : %x S : %x\n",__FUNCTION__,clrSt,setSt));
@@ -191,7 +191,7 @@ A_STATUS dxe_tx_pull_frames(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBType *ch
         adf_os_assert(0);
         return A_ERROR;
     }
-    //FIXME_RT The Spin Lock must be held only for DMA Channel operation and client cb must not be invoked under this spin lock   
+    //FIXME_RT The Spin Lock must be held only for DMA Channel operation and client cb must not be invoked under this spin lock
     adf_os_spin_lock(&channelEntry->dxeChannelLock);
 
     currentCtrlBlk = channelEntry->tailCtrlBlk;
@@ -358,11 +358,11 @@ A_STATUS dxe_tx_complete_handler(void *pvcontext)
             if (A_OK != status)
             {
                 AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("dxe_tx_complete_handler : Enable TX complete interrupt FAIL! "));
-                return status;         
+                return status;
             }
 
             AR_DEBUG_PRINTF(ATH_DEBUG_TRC,("dxe_tx_complete_handler TX COMP INT Enabled, remain TX frame count on ring %d\n",  adf_os_atomic_read(&pdxectx->tx_pkts_pending)));
-            /*Kicking the DXE after the TX Complete interrupt was enabled - to avoid 
+            /*Kicking the DXE after the TX Complete interrupt was enabled - to avoid
             the posibility of a race*/
             dxe_ps_complete(pdxectx, TRUE);
         }
@@ -424,13 +424,13 @@ A_STATUS dxe_tx_complete_handler(void *pvcontext)
         if (A_OK != status)
         {
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("dxe_tx_complete_handler : Enable TX complete interrupt FAIL! "));
-            return status;         
+            return status;
         }
 
         AR_DEBUG_PRINTF(ATH_DEBUG_TRC,("dxe_tx_complete_handler TX COMP INT Enabled, remaining TX frame count on ring %d\n",  adf_os_atomic_read(&pdxectx->tx_pkts_pending)));
     }
 
-    /*Kicking the DXE after the TX Complete interrupt was enabled - to avoid 
+    /*Kicking the DXE after the TX Complete interrupt was enabled - to avoid
     the posibility of a race*/
     dxe_ps_complete(pdxectx, TRUE);
 
@@ -438,7 +438,7 @@ A_STATUS dxe_tx_complete_handler(void *pvcontext)
     return status;
 }
 
-/* Fill RX ring with adf_nbufs.  
+/* Fill RX ring with adf_nbufs.
 * DOES NOT KICK THE HARDWARE. This is the caller's responsibility.
 *
 * Return TRUE if at least one buffer added to ring.
@@ -470,7 +470,7 @@ static u_int8_t dxe_rx_ring_fill_n(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBT
             * another A-MPDU rx, no special recovery is needed.
             */
             AR_DEBUG_PRINTF(HIF_DXE_DEBUG,("dxe_rx_ring_fill_n: Failed to Retrieve Free Rx Buffers . Starting Rx Refill  Timer  Num Rx Desc : %d \n",adf_os_atomic_read(&channel->numFreeDesc)));
-            adf_os_timer_start(&channel->rx_refill_retry_timer, 
+            adf_os_timer_start(&channel->rx_refill_retry_timer,
                 HIF_DXE_RX_RING_REFILL_RETRY_TIME_MS);
             break;
         }
@@ -505,7 +505,7 @@ static u_int8_t dxe_rx_ring_fill_n(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBT
     {
         /* Issue a dummy read from the DXE descriptor DDR location to ensure
         * that any posted writes are reflected in memory before DXE looks at
-        * the descriptor. 
+        * the descriptor.
         */
         if (channel->extraConfig.cw_ctrl_read != desc->descCtrl.ctrl)
         {
@@ -543,11 +543,11 @@ static void dxe_rx_ring_refill_retry(void *arg)
     S_HIFDXE_CONTEXT *dxe_ctx = channel->dxe_ctx;
     u_int8_t new_frame;
 
-    AR_DEBUG_PRINTF(HIF_DXE_DEBUG,("dxe_rx_ring_refill_retry  Before Replenish NumDesc : %d",adf_os_atomic_read(&channel->numFreeDesc))); 
+    AR_DEBUG_PRINTF(HIF_DXE_DEBUG,("dxe_rx_ring_refill_retry  Before Replenish NumDesc : %d",adf_os_atomic_read(&channel->numFreeDesc)));
 
     new_frame = dxe_rx_ring_replenish(channel->dxe_ctx, channel);
 
-    AR_DEBUG_PRINTF(HIF_DXE_DEBUG,("dxe_rx_ring_refill_retry  After Replenish NumDesc : %d",adf_os_atomic_read(&channel->numFreeDesc))); 
+    AR_DEBUG_PRINTF(HIF_DXE_DEBUG,("dxe_rx_ring_refill_retry  After Replenish NumDesc : %d",adf_os_atomic_read(&channel->numFreeDesc)));
 
     if (!new_frame)
     {
@@ -628,8 +628,8 @@ static adf_nbuf_t dxe_rx_ring_reap(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBT
 
     adf_os_spin_lock(&channelEntry->dxeChannelLock);
 
-    ctrlblk = channelEntry->headCtrlBlk;  
-    desc =  ctrlblk->linkedDesc;         
+    ctrlblk = channelEntry->headCtrlBlk;
+    desc =  ctrlblk->linkedDesc;
     descCtrl = WLANDXE_U32_SWAP_ENDIAN(desc->descCtrl.ctrl);
 
     /* Process hardware RX ring */
@@ -648,8 +648,8 @@ static adf_nbuf_t dxe_rx_ring_reap(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBT
         if (rx_buf_prior)
         {
             adf_nbuf_set_next(rx_buf_prior, rx_buf);
-        } 
-        else 
+        }
+        else
         {
             rx_buf_list_head = rx_buf;
         }
@@ -679,7 +679,7 @@ static adf_nbuf_t dxe_rx_ring_reap(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBT
     return rx_buf_list_head;
 }
 
-/* 
+/*
 * Attempt to resync SW RX ring head ptr with HW RX ring head.
 *
 * This is called as part of a software workaround for a hardware bug.
@@ -713,9 +713,9 @@ static A_BOOL dxe_rx_ring_resync(S_HIFDXE_CONTEXT *dxe_ctx,
     dxeChannelAllDescDump(channelEntry, channelEntry->channelType);
 #endif
 
-    /* Abnormal interrupt detected, try to find invalidated descriptor 
-    * (i.e. hardware completed rx frame) 
-    * This would be the hardware head ptr.      
+    /* Abnormal interrupt detected, try to find invalidated descriptor
+    * (i.e. hardware completed rx frame)
+    * This would be the hardware head ptr.
     */
     for (desc_loop = 0; desc_loop < channel->numDesc; desc_loop++)
     {
@@ -741,7 +741,7 @@ static A_BOOL dxe_rx_ring_resync(S_HIFDXE_CONTEXT *dxe_ctx,
 }
 
 /* Return TRUE if RX ring has completed frames to be processed */
-static u_int8_t dxe_rx_channel_read_and_clear_intr(S_HIFDXE_CONTEXT *dxe_ctx, 
+static u_int8_t dxe_rx_channel_read_and_clear_intr(S_HIFDXE_CONTEXT *dxe_ctx,
                                                  WLANDXE_ChannelCBType *channel,
                                                  u_int32_t *chstatus)
 {
@@ -851,7 +851,7 @@ A_STATUS dxe_rx_handler(void *pvcontext)
         /* Reap - unlink RX bufs from RX ring */
         rx_buf_list_head_array[i] = dxe_rx_ring_reap(dxe_ctx, channel);
 
-        /* START - SW WAR 
+        /* START - SW WAR
         * Workaround for hw and sw's head ptr out of sync after Riva power up.
         * If two successive RX interrupts with no completed frames in RX ring,
         * try to manually resync SW ring head ptr to HW ring head ptr.
@@ -900,7 +900,7 @@ A_STATUS dxe_rx_handler(void *pvcontext)
     if (A_OK != status)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("dxe_rx_handler: Enable RX Ready interrupt fail\n"));
-        return status;         
+        return status;
     }
 
     /* Let Riva go back to sleep */
@@ -928,7 +928,7 @@ A_STATUS dxe_dma_core_start(S_HIFDXE_CONTEXT *dxe_ctx)
     /* Reset First */
     registerData = WLANDXE_DMA_CSR_RESET_MASK;
     registerData = hif_dxe_os_readreg(dxe_ctx->hif_os_handle,WALNDEX_DMA_CSR_ADDRESS);
-    registerData  = WLANDXE_DMA_CSR_EN_MASK;  
+    registerData  = WLANDXE_DMA_CSR_EN_MASK;
     registerData |= WLANDXE_DMA_CSR_ECTR_EN_MASK;
     registerData |= WLANDXE_DMA_CSR_TSTMP_EN_MASK;
     registerData |= WLANDXE_DMA_CSR_H2H_SYNC_EN_MASK;
@@ -1055,7 +1055,7 @@ A_STATUS dxe_tx_push_frame(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBType *cha
     }
 
     adf_os_spin_lock(&channelEntry->dxeChannelLock);
-    adf_os_atomic_set(&channelEntry->numFragmentCurrentChain, 0);    
+    adf_os_atomic_set(&channelEntry->numFragmentCurrentChain, 0);
     num_frags = adf_nbuf_get_num_frags(nbuf);
 
     currentCtrlBlk = channelEntry->headCtrlBlk;
@@ -1126,7 +1126,7 @@ A_STATUS dxe_tx_push_frame(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBType *cha
     }
 
     channelEntry->numTotalFrame++;
-    AR_DEBUG_PRINTF(ATH_DEBUG_TRC,("dxe_tx_push_frame NUM TX FRAG %d, Total Frame %d\n",adf_os_atomic_read(&channelEntry->numFragmentCurrentChain), channelEntry->numTotalFrame));    
+    AR_DEBUG_PRINTF(ATH_DEBUG_TRC,("dxe_tx_push_frame NUM TX FRAG %d, Total Frame %d\n",adf_os_atomic_read(&channelEntry->numFragmentCurrentChain), channelEntry->numTotalFrame));
 
     /* Program Channel control register
     * Set as end of packet
@@ -1159,7 +1159,7 @@ A_STATUS dxe_tx_push_frame(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBType *cha
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_TRC,( "dxe_tx_push_frame SMSM_ret LO=%d HI=%d\n", adf_os_atomic_read(&dxe_ctx->dxeChannel[HIFDXE_CHANNEL_TX_LOW_PRI].numRsvdDesc),
             adf_os_atomic_read(&dxe_ctx->dxeChannel[HIFDXE_CHANNEL_TX_HIGH_PRI].numRsvdDesc )));
-          
+
         hif_dxe_notify_smsm(dxe_ctx, TRUE, FALSE);
         return status;
     }
@@ -1205,7 +1205,7 @@ A_STATUS dxe_tx_push_frame(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBType *cha
     hif_dxe_os_writereg(dxe_ctx->hif_os_handle,channelEntry->channelRegister.chDXESadrlRegAddr,
         WLANDXE_U32_SWAP_ENDIAN(firstDesc->dxedesc.dxe_short_desc.srcMemAddrL));
 
-    hif_dxe_os_writereg(dxe_ctx->hif_os_handle,channelEntry->channelRegister.chDXESadrhRegAddr,0);       
+    hif_dxe_os_writereg(dxe_ctx->hif_os_handle,channelEntry->channelRegister.chDXESadrhRegAddr,0);
 
     /* Linked list Descriptor pointer */
     hif_dxe_os_writereg(dxe_ctx->hif_os_handle,channelEntry->channelRegister.chDXEDesclRegAddr,
@@ -1283,7 +1283,7 @@ A_STATUS dxe_alloc_dma_ring(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBType *ch
         currentCtrlBlk->linkedDescPhyAddr = 0;
         currentCtrlBlk->ctrlBlkOrder      = idx;
 
-        //Initialize Desc 
+        //Initialize Desc
         //AR_DEBUG_PRINTF(HIF_DXE_DEBUG,("dxe_alloc_dmaring : Allocated Descriptor %d VA 0x%x, PA 0x%x\n", idx,currentDesc, physAddress));
         if ((HIFDXE_CHANNEL_TX_LOW_PRI == channelEntry->channelType) ||
             (HIFDXE_CHANNEL_TX_HIGH_PRI == channelEntry->channelType))
@@ -1328,7 +1328,7 @@ A_STATUS dxe_alloc_dma_ring(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBType *ch
         {
             prevCtrlBlk->nextCtrlBlk    = currentCtrlBlk;
             currentCtrlBlk->nextCtrlBlk = channelEntry->headCtrlBlk;
-            prevDesc->dxedesc.dxe_short_desc.phyNextL = 
+            prevDesc->dxedesc.dxe_short_desc.phyNextL =
                 WLANDXE_U32_SWAP_ENDIAN(physAddress);
             currentDesc->dxedesc.dxe_short_desc.phyNextL =
                 WLANDXE_U32_SWAP_ENDIAN(channelEntry->headCtrlBlk->linkedDescPhyAddr);
@@ -1394,11 +1394,11 @@ A_STATUS dxe_free_dma_ring(S_HIFDXE_CONTEXT *dxe_ctx, WLANDXE_ChannelCBType *cha
 //End Local Functions
 
 /**
-* @ HIF DXE Attach . One Time Initialize of DXE HW / Allocate DXE SW Module Context / Alloc DXE Descriptors , Rx Buffers , Control Block /Attach OS Interrupts etc 
+* @ HIF DXE Attach . One Time Initialize of DXE HW / Allocate DXE SW Module Context / Alloc DXE Descriptors , Rx Buffers , Control Block /Attach OS Interrupts etc
 *
 * @param[in]dev - OS Dev Handle
 *
-* @retval   hif_dxe_handle  Allocates HIF DEX Context Block and returns handle for subsequent calls to DXE     
+* @retval   hif_dxe_handle  Allocates HIF DEX Context Block and returns handle for subsequent calls to DXE
 */
 hif_dxe_handle hif_dxe_attach(adf_os_device_t dev)
 {
@@ -1423,7 +1423,7 @@ hif_dxe_handle hif_dxe_attach(adf_os_device_t dev)
     if (NULL == dxe_ctx)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("WLANDXE_Open Control Block Alloc Fail \n"));
-        return NULL;  
+        return NULL;
     }
     adf_os_mem_zero(dxe_ctx, sizeof(S_HIFDXE_CONTEXT));
 
@@ -1440,7 +1440,7 @@ hif_dxe_handle hif_dxe_attach(adf_os_device_t dev)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("WLANDXE_Open : hif_dxe_os_init Failure! \n"));
         adf_os_mem_free(dxe_ctx);
-        return NULL;   
+        return NULL;
     }
 
     status = dxe_cmn_def_config(dxe_ctx);
@@ -1448,7 +1448,7 @@ hif_dxe_handle hif_dxe_attach(adf_os_device_t dev)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("WLANDXE_Open Common Configuration Fail"));
         hif_dxe_detach(dxe_ctx);
-        return NULL;         
+        return NULL;
     }
 
     dxe_ctx->dxeChannel[HIFDXE_CHANNEL_TX_LOW_PRI].channelType = HIFDXE_CHANNEL_TX_LOW_PRI;
@@ -1468,10 +1468,10 @@ hif_dxe_handle hif_dxe_attach(adf_os_device_t dev)
         {
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("WLANDXE_Open Channel Basic Configuration Fail for channel %d", idx));
             hif_dxe_detach(dxe_ctx);
-            return NULL;         
+            return NULL;
         }
 
-        adf_os_spinlock_init(&currentChannel->dxeChannelLock); 
+        adf_os_spinlock_init(&currentChannel->dxeChannelLock);
 
         /* Allocate DXE Control Block will be used by host DXE driver */
         status = dxe_alloc_dma_ring(dxe_ctx, currentChannel);
@@ -1480,7 +1480,7 @@ hif_dxe_handle hif_dxe_attach(adf_os_device_t dev)
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("WLANDXE_Open Alloc DXE Control Block Fail for channel %d", idx));
 
             hif_dxe_detach(dxe_ctx);
-            return NULL;         
+            return NULL;
         }
 
         /* RX specific attach */
@@ -1492,7 +1492,7 @@ hif_dxe_handle hif_dxe_attach(adf_os_device_t dev)
 
             dxe_rx_ring_fill_n(dxe_ctx, currentChannel, currentChannel->numDesc);
 
-            adf_os_timer_init(dxe_ctx->osdev, &currentChannel->rx_refill_retry_timer, 
+            adf_os_timer_init(dxe_ctx->osdev, &currentChannel->rx_refill_retry_timer,
                 dxe_rx_ring_refill_retry, (void *)currentChannel);
         }
 
@@ -1503,7 +1503,7 @@ hif_dxe_handle hif_dxe_attach(adf_os_device_t dev)
     dxe_ctx->rxIntDisabledByIMPS = FALSE;
     dxe_ctx->txIntDisabledByIMPS = FALSE;
 
-    /* Initializing default BMPS host power state and firmware Power state*/  
+    /* Initializing default BMPS host power state and firmware Power state*/
     dxe_ctx->hostPowerState = HIF_DXE_POWER_STATE_BMPS;
     dxe_ctx->fwPowerState = HIF_DXE_FW_POWER_STATE_BMPS_UNKNOWN;
 
@@ -1530,11 +1530,11 @@ hif_dxe_handle hif_dxe_attach(adf_os_device_t dev)
 }
 
 /**
-* @ HIF DXE Start . Initialize DXE Channels For DMA 
+* @ HIF DXE Start . Initialize DXE Channels For DMA
 *
-* @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+* @param[in]hif_dxe_pdev -  HIF DXE Specific Context
 *
-* @retval   A_STATUS     
+* @retval   A_STATUS
 */
 
 A_STATUS hif_dxe_start(hif_dxe_handle hif_dxe_pdev)
@@ -1549,7 +1549,7 @@ A_STATUS hif_dxe_start(hif_dxe_handle hif_dxe_pdev)
     if (NULL == pdxectx)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_start : Invalid DXE Context \n"));
-        return A_EINVAL;   
+        return A_EINVAL;
     }
 
     /* WLANDXE_Start called means DXE engine already initiates
@@ -1559,7 +1559,7 @@ A_STATUS hif_dxe_start(hif_dxe_handle hif_dxe_pdev)
     if (A_OK != status)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_start : DXE HW init Fail \n"));
-        return status;         
+        return status;
     }
 
     /* Individual Channel Start */
@@ -1573,7 +1573,7 @@ A_STATUS hif_dxe_start(hif_dxe_handle hif_dxe_pdev)
         if (A_OK != status)
         {
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_start :  Start DMA channel %d Fail \n", idx));
-            return status;         
+            return status;
         }
         AR_DEBUG_PRINTF(HIF_DXE_DEBUG,("hif_dxe_start : Start DXE Channel %d SUCCESS! \n", idx));
     }
@@ -1586,7 +1586,7 @@ A_STATUS hif_dxe_start(hif_dxe_handle hif_dxe_pdev)
     if (A_OK != status)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_start : Enable TX complete interrupt FAIL! "));
-        return status;         
+        return status;
     }
 
 	/* Disable TX ready Interrupt and Re-Enable Only when required  */
@@ -1594,7 +1594,7 @@ A_STATUS hif_dxe_start(hif_dxe_handle hif_dxe_pdev)
     if (A_OK != status)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_start : Enable TX complete interrupt FAIL! "));
-        return status;         
+        return status;
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
@@ -1604,9 +1604,9 @@ A_STATUS hif_dxe_start(hif_dxe_handle hif_dxe_pdev)
 /**
 * @ HIF DXE Register . Register Packet Callbacks
 *
-* @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+* @param[in]hif_dxe_pdev -  HIF DXE Specific Context
 *
-* @retval   A_STATUS     
+* @retval   A_STATUS
 */
 A_STATUS hif_dxe_client_registration(hif_dxe_handle hif_dxe_pdev, S_HIFDXE_CALLBACK *hif_dxe_cb)
 {
@@ -1617,7 +1617,7 @@ A_STATUS hif_dxe_client_registration(hif_dxe_handle hif_dxe_pdev, S_HIFDXE_CALLB
     if ((NULL == pdxectx) || (NULL == hif_dxe_cb))
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_client_registration : Invalid DXE Context \n"));
-        return A_EINVAL;   
+        return A_EINVAL;
     }
 
     if (NULL != hif_dxe_cb->HifTxCompleteCb) {
@@ -1640,13 +1640,13 @@ A_STATUS hif_dxe_client_registration(hif_dxe_handle hif_dxe_pdev, S_HIFDXE_CALLB
 }
 
 /**
-* @ HIF DXE Send . Send packet on DXE 
+* @ HIF DXE Send . Send packet on DXE
 *
-* @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+* @param[in]hif_dxe_pdev -  HIF DXE Specific Context
 * @param[in]eHifDxeChannel -  DXE Channel for Send
 * @param[in]nbuf -  SDU to send
 *
-* @retval   A_STATUS     
+* @retval   A_STATUS
 */
 A_STATUS hif_dxe_send(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYPE channel, adf_nbuf_t nbuf)
 {
@@ -1661,19 +1661,19 @@ A_STATUS hif_dxe_send(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYPE channel,
     if (NULL == pdxectx)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_send : Invalid DXE Context \n"));
-        return A_EINVAL;   
+        return A_EINVAL;
     }
 
     if (NULL == nbuf)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_send : Invalid Data packet \n"));
-        return A_EINVAL;   
+        return A_EINVAL;
     }
 
     if ((HIFDXE_CHANNEL_MAX <= channel))
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_send : Invalid Channel \n"));
-        return A_EINVAL;   
+        return A_EINVAL;
     }
 
     currentChannel = &pdxectx->dxeChannel[channel];
@@ -1722,10 +1722,10 @@ A_STATUS hif_dxe_send(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYPE channel,
         return status;
     }
     adf_os_atomic_inc(&pdxectx->tx_pkts_pending);
-   
+
     adf_os_atomic_inc(&currentChannel->tx_pkts_pending);
 
-    
+
 #if 0
     //Try Drain Tx Queues
     currentChannel = &pdxectx->dxeChannel[HIFDXE_CHANNEL_TX_HIGH_PRI];
@@ -1753,16 +1753,16 @@ A_STATUS hif_dxe_send(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYPE channel,
         if (A_OK != status)
         {
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_send : Enable TX complete interrupt FAIL! "));
-            return status;         
+            return status;
         }
         AR_DEBUG_PRINTF(ATH_DEBUG_TRC,("hif_dxe_send TX COMP INT Enabled, remain TX frame count on ring %d\n",  adf_os_atomic_read(&pdxectx->tx_pkts_pending)));
-        /*Kicking the DXE after the TX Complete interrupt was enabled - to avoid 
+        /*Kicking the DXE after the TX Complete interrupt was enabled - to avoid
         the posibility of a race*/
     }
-    
+
     //Invoke PS Handler to check if SMSM Notify required
     dxe_ps_complete(pdxectx, FALSE);
-        
+
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
 
     return status;
@@ -1775,10 +1775,10 @@ A_STATUS hif_dxe_send(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYPE channel,
 /**
 * @ HIF DXE GetResources . Return Available Free Tx Slots in DXE DMA  Tx Ring for specified channel
 *
-* @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
-* @param[in]eHifDxeChannel -  DXE Channel 
+* @param[in]hif_dxe_pdev -  HIF DXE Specific Context
+* @param[in]eHifDxeChannel -  DXE Channel
 *
-* @retval   a_uint32_t Num Available Resources     
+* @retval   a_uint32_t Num Available Resources
 */
 u_int32_t hif_dxe_get_resources(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYPE channel)
 {
@@ -1790,7 +1790,7 @@ u_int32_t hif_dxe_get_resources(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYP
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_get_resources : Invalid DXE Context \n"));
         adf_os_assert(0);
-        return A_EINVAL;   
+        return A_EINVAL;
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
@@ -1799,9 +1799,9 @@ u_int32_t hif_dxe_get_resources(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYP
 /**
 * @ HIF DXE Flush Tx Packets . Flush And return Tx Packets Pending in DMA through Tx Completion Callbacks.
 *
-* @param[in]dxe_ctx -  HIF DXE Specific Context 
+* @param[in]dxe_ctx -  HIF DXE Specific Context
 *
-* @retval   A_STATUS     
+* @retval   A_STATUS
 */
 A_STATUS hif_dxe_flush_txpackets(hif_dxe_handle hif_dxe_pdev)
 {
@@ -1818,7 +1818,7 @@ A_STATUS hif_dxe_flush_txpackets(hif_dxe_handle hif_dxe_pdev)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_flush_txpackets : Invalid DXE Context \n"));
         adf_os_assert(0);
-        return A_EINVAL;   
+        return A_EINVAL;
     }
 
     /* To ensure DXE wake up, Sedn SMSM Notification */
@@ -1881,10 +1881,10 @@ A_STATUS hif_dxe_flush_txpackets(hif_dxe_handle hif_dxe_pdev)
 /**
 * @ HIF DXE Set Power State . Synchronously Set Power State relevant for DXE / Ensure No references into DXE are Outstanding
 *
-* @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+* @param[in]hif_dxe_pdev -  HIF DXE Specific Context
 * @param[in]PowerState    -  New Power State
 *
-* @retval   A_STATUS     
+* @retval   A_STATUS
 */
 A_STATUS hif_dxe_set_power_state(hif_dxe_handle hif_dxe_pdev, a_uint8_t PowerState )
 {
@@ -1895,11 +1895,11 @@ A_STATUS hif_dxe_set_power_state(hif_dxe_handle hif_dxe_pdev, a_uint8_t PowerSta
 }
 
 /**
-* @ HIF DXE Stop . Stop DMA 
+* @ HIF DXE Stop . Stop DMA
 *
-* @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+* @param[in]hif_dxe_pdev -  HIF DXE Specific Context
 *
-* @retval   A_STATUS     
+* @retval   A_STATUS
 */
 A_STATUS hif_dxe_stop(hif_dxe_handle hif_dxe_pdev)
 {
@@ -1913,7 +1913,7 @@ A_STATUS hif_dxe_stop(hif_dxe_handle hif_dxe_pdev)
     if (NULL == pdxectx)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_stop : Invalid DXE Context \n"));
-        return A_EINVAL;   
+        return A_EINVAL;
     }
 
     //FIXME_RT Make sure No Outstanding References to DXE . Synchronize with dxe_stopped
@@ -1948,10 +1948,10 @@ A_STATUS hif_dxe_stop(hif_dxe_handle hif_dxe_pdev)
 
 /**
  * @brief HIF DXE Read register
- * 
- * @param[in] hif_dxe_pdev -  HIF DXE Specific Context 
+ *
+ * @param[in] hif_dxe_pdev -  HIF DXE Specific Context
  * @param[in] Addr
- * 
+ *
  * @return Read Value
  */
 u_int32_t hif_dxe_readreg(hif_dxe_handle hif_dxe_pdev, u_int32_t addr)
@@ -1962,11 +1962,11 @@ u_int32_t hif_dxe_readreg(hif_dxe_handle hif_dxe_pdev, u_int32_t addr)
 
 /**
  * @brief HIF DXE Write register
- * 
- * @param[in] hif_dxe_pdev - HIF DXE Specific Context 
+ *
+ * @param[in] hif_dxe_pdev - HIF DXE Specific Context
  * @param[in] Addr
  * @param[in] val
- * 
+ *
  * @return void
  */
 void
@@ -1979,9 +1979,9 @@ hif_dxe_writereg(hif_dxe_handle hif_dxe_pdev, u_int32_t addr, u_int32_t val)
 /**
 * @ HIF DXE Detach . UnInitialize DXE Resources / HW / Free Memory  / Detach OS Interrupts etc
 *
-* @param[in]dxe_ctx -  HIF DXE Specific Context 
+* @param[in]dxe_ctx -  HIF DXE Specific Context
 *
-* @retval   A_STATUS     
+* @retval   A_STATUS
 */
 A_STATUS hif_dxe_detach(hif_dxe_handle hif_dxe_pdev)
 {
@@ -1995,7 +1995,7 @@ A_STATUS hif_dxe_detach(hif_dxe_handle hif_dxe_pdev)
     if (NULL == pdxectx)
     {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("hif_dxe_detach Invalid DXE Context \n"));
-        return A_EINVAL;   
+        return A_EINVAL;
     }
 
 
@@ -2055,8 +2055,8 @@ void hif_dxe_dump()
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Num Free Desc : %d\n",currentChannel->numFreeDesc));
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Channel Status : 0x%x\n",regval));
         }
-    
-    //For Debugging Tx Stall Scenario check and print Avalibale BD's in BMU 
+
+    //For Debugging Tx Stall Scenario check and print Avalibale BD's in BMU
         if(((currentChannel->channelType == HIFDXE_CHANNEL_TX_LOW_PRI) || (currentChannel->channelType == HIFDXE_CHANNEL_TX_HIGH_PRI)) &&
             currentChannel->tx_pkts_pending > HIF_DXE_TX_PENDING_DEBUG_THRESHOLD )
     {
@@ -2069,7 +2069,7 @@ void hif_dxe_dump()
             A_UINT8 wq_idx = 0;
             //Currently dump only if bd's less than 10 times Threshold
              AR_DEBUG_PRINTF(ATH_DEBUG_ERR,(" Channel : %d TxPending : %d Avail BD-PDU : 0x%x Threshold : 0x%x \n",idx,currentChannel->tx_pkts_pending,avail_bds,bd_thres0));
-        
+
              for(wq_idx=0; wq_idx < 27; wq_idx++)
              {
                  wq_addr = (0xFB80001c | ((wq_idx << 8) & 0xff00));

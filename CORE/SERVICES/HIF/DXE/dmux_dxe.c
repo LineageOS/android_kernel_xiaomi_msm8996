@@ -64,7 +64,7 @@ ATH_DEBUG_INSTANTIATE_MODULE_VAR(dmux_dxe,
 #endif
 
 //PS TEST - need to put this in a common location
-#define HIF_DXE_RX_BUFFER_SIZE                  2612  
+#define HIF_DXE_RX_BUFFER_SIZE                  2612
 
 enum dmux_dxe_frame_type {
     DMUX_DXE_FRAME_TYPE_DATA    = 0,
@@ -85,10 +85,10 @@ static inline void dmux_dxe_rx_bd_swap(isoc_rx_bd_t *rx_bd)
 {
     isoc_hw_bd_swap_bytes32((char *) rx_bd, sizeof(*rx_bd));
 }
-#endif 
+#endif
 
-//static enum A_BOOL 
-static A_BOOL 
+//static enum A_BOOL
+static A_BOOL
 dmux_dxe_validate_frame(adf_nbuf_t rx_frame)
 {
     isoc_rx_bd_t *rx_bd;
@@ -126,7 +126,7 @@ dmux_dxe_validate_frame(adf_nbuf_t rx_frame)
 
     if ((mpdu_header_offset < sizeof(*rx_bd)) &&  (!(amsdu_subframe && !amsdu_subframe_first))) {
         /* AMSDU case, ucMPDUHOffset = 0  it should be handled separately. Drop packet */
-        return FALSE;  
+        return FALSE;
     }
 
     /* A-MSDU frame, but not first sub-frame
@@ -143,17 +143,17 @@ dmux_dxe_validate_frame(adf_nbuf_t rx_frame)
     }
 
     /* Update RX BD */
-    //PS TEST - NOTE - this is uncached memory.  We might consider keeping a cached RX SW DESC 
+    //PS TEST - NOTE - this is uncached memory.  We might consider keeping a cached RX SW DESC
     rx_bd->mpdu_header_offset = mpdu_header_offset;
 
-    /*  
+    /*
      * Fix HW reported frame type as typeSubtype in BD is not reliable.
-     * Determine frame type (data/mgmt) from 802.11 MAC header. 
+     * Determine frame type (data/mgmt) from 802.11 MAC header.
      */
     frame_type_subtype = IEEE80211_FC0_TYPE_DATA | IEEE80211_FC0_SUBTYPE_QOS;
-    if (0 == rx_bd->frame_translate) 
+    if (0 == rx_bd->frame_translate)
     {
-        if(!amsdu_subframe) 
+        if(!amsdu_subframe)
         {
             dot11frame = (struct ieee80211_frame *)(((a_uint8_t *)rx_bd) + mpdu_header_offset);
             frame_type_subtype = dot11frame->i_fc[0];
@@ -164,14 +164,14 @@ dmux_dxe_validate_frame(adf_nbuf_t rx_frame)
             dot11frame = (struct ieee80211_frame *)(((a_uint8_t *)rx_bd) + sizeof(*rx_bd));
             frame_type_subtype = dot11frame->i_fc[0];
         }
-    } 
+    }
 
     rx_bd->frame_type_subtype = frame_type_subtype;
 
     return TRUE;
 }
 
-static inline enum dmux_dxe_frame_type 
+static inline enum dmux_dxe_frame_type
 dmux_dxe_determine_frame_type(adf_nbuf_t rx_frame, E_HIFDXE_CHANNELTYPE channel_type)
 {
     isoc_rx_bd_t *rx_bd;
@@ -199,7 +199,7 @@ dmux_dxe_determine_frame_type(adf_nbuf_t rx_frame, E_HIFDXE_CHANNELTYPE channel_
     }
 }
 
-static void 
+static void
 dmux_dxe_indicate_frame_list(dmux_dxe_handle pdev, adf_nbuf_t rx_frame_list,
                              enum dmux_dxe_frame_type frame_type,
                              E_HIFDXE_CHANNELTYPE chan_type)
@@ -320,7 +320,7 @@ dmux_dxe_rx(void *pContext, adf_nbuf_t rx_list, E_HIFDXE_CHANNELTYPE channel_typ
 }
 
 
-dmux_dxe_handle 
+dmux_dxe_handle
 dmux_dxe_attach(adf_os_device_t osdev)
 {
     S_HIFDXE_CALLBACK hif_dxe_callbacks = {0};
@@ -337,7 +337,7 @@ dmux_dxe_attach(adf_os_device_t osdev)
     g_pdev = adf_os_mem_alloc(osdev, sizeof(struct dmux_dxe_pdev_t));
     if (NULL == g_pdev) {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("%s : dmux_dxe object allocation failure.\n", __FUNCTION__));
-        return NULL;  
+        return NULL;
     }
     adf_os_mem_zero(g_pdev, sizeof(*g_pdev));
 
@@ -371,9 +371,9 @@ void dmux_dxe_detach(dmux_dxe_handle pdev)
 
     if ((NULL == pdev) || (pdev != g_pdev)) {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("dmux_dxe_detach: Invalid handle.\n"));
-        return; 
+        return;
     }
-    
+
     if (!adf_os_atomic_dec_and_test(&pdev->ref_count)) {
         /* there are other clients still using dmux_dxe */
         return;
@@ -401,7 +401,7 @@ dmux_dxe_register_callback_rx_mgmt(
 {
     if ((NULL == pdev) || (pdev != g_pdev)) {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("%s: Invalid handle.\n", __FUNCTION__));
-        return A_EINVAL; 
+        return A_EINVAL;
     }
 
     pdev->rx_mgmt_cb = rx_mgmt_cb;
@@ -416,7 +416,7 @@ dmux_dxe_register_callback_rx_ctrl(
 {
     if ((NULL == pdev) || (pdev != g_pdev)) {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("%s: Invalid handle.\n", __FUNCTION__));
-        return A_EINVAL; 
+        return A_EINVAL;
     }
 
     pdev->rx_ctrl_cb = rx_ctrl_cb;
@@ -431,7 +431,7 @@ dmux_dxe_register_callback_rx_data(
 {
     if ((NULL == pdev) || (pdev != g_pdev)) {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("%s: Invalid handle.\n", __FUNCTION__));
-        return A_EINVAL; 
+        return A_EINVAL;
     }
 
     pdev->rx_data_cb = rx_data_cb;
@@ -446,7 +446,7 @@ dmux_dxe_register_callback_msg(
 {
     if ((NULL == pdev) || (pdev != g_pdev)) {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("%s: Invalid handle.\n", __FUNCTION__));
-        return A_EINVAL; 
+        return A_EINVAL;
     }
 
     pdev->msg_cb = msg_cb;

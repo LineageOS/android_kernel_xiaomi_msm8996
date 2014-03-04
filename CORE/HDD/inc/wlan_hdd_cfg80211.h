@@ -41,7 +41,7 @@
 
 
 //value for initial part of frames and number of bytes to be compared
-#define GAS_INITIAL_REQ "\x04\x0a"  
+#define GAS_INITIAL_REQ "\x04\x0a"
 #define GAS_INITIAL_REQ_SIZE 2
 
 #define GAS_INITIAL_RSP "\x04\x0b"
@@ -53,7 +53,7 @@
 #define GAS_COMEBACK_RSP "\x04\x0d"
 #define GAS_COMEBACK_RSP_SIZE 2
 
-#define P2P_PUBLIC_ACTION_FRAME "\x04\x09\x50\x6f\x9a\x09" 
+#define P2P_PUBLIC_ACTION_FRAME "\x04\x09\x50\x6f\x9a\x09"
 #define P2P_PUBLIC_ACTION_FRAME_SIZE 6
 
 #define P2P_ACTION_FRAME "\x7f\x50\x6f\x9a\x09"
@@ -215,7 +215,9 @@ void hdd_suspend_wlan(void (*callback)(void *callbackContext),
 void hdd_resume_wlan(void);
 #endif
 
+#ifdef FEATURE_WLAN_CH_AVOID
 int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
                                    tHddAvoidFreqList *pAvoidFreqList);
+#endif
 
 #endif

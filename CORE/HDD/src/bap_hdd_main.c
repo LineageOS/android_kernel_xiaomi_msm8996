@@ -479,7 +479,7 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STAFetchPktCB vos_pkt_wrap_data_packet "
              "failed status =%d\n", VosStatus );
-        kfree_skb(skb);  
+        kfree_skb(skb);
         return VosStatus;
     }
 
@@ -496,7 +496,7 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
 
         // return the packet
         VosStatus = vos_pkt_return_packet( pVosPkt );
-        kfree_skb(skb);  
+        kfree_skb(skb);
         VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
 
         return VosStatus;
@@ -573,14 +573,14 @@ static VOS_STATUS WLANBAP_STARxCB
        // get the pointer to the next packet in the chain
        // (but don't unlink the packet since we free the entire chain later)
        VosStatus = vos_pkt_walk_packet_chain( pVosPacket, &pNextVosPacket, VOS_FALSE);
-       
+
        // both "success" and "empty" are acceptable results
        if (!((VosStatus == VOS_STATUS_SUCCESS) || (VosStatus == VOS_STATUS_E_EMPTY)))
        {
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: Failure walking packet chain", __func__);
            return VOS_STATUS_E_FAILURE;
        }
-       
+
        // process the packet
        VosStatus = WLANBAP_XlateRxDataPkt( ppctx->bapHdl, pctx->PhyLinkHdl,
                                               &Ac, pVosPacket );
@@ -613,7 +613,7 @@ static VOS_STATUS WLANBAP_STARxCB
        bt_cb(skb)->pkt_type = HCI_ACLDATA_PKT;
        //skb->protocol = eth_type_trans(skb, skb->dev);
        //skb->ip_summed = CHECKSUM_UNNECESSARY;
- 
+
        // This is my receive skb pointer
        gpBslctx->rx_skb = skb;
 
@@ -622,7 +622,7 @@ static VOS_STATUS WLANBAP_STARxCB
 
        // now process the next packet in the chain
        pVosPacket = pNextVosPacket;
-       
+
    } while (pVosPacket);
 
 
@@ -874,13 +874,13 @@ static VOS_STATUS WLANBAP_EventCB
 
     if ( pHddHdl == NULL )
     {
-        /* Consider the following error scenarios to bypass the NULL check: 
-        - create LL without a call for create PL before 
-        - delete LL or PL when no AMP connection has been established yet 
-        Client context is unimportant from HCI point of view, only needed by the TLV API in BAP 
-        TODO: Change the TLV APIs to not to carry the client context; it doesn't use it anyway 
+        /* Consider the following error scenarios to bypass the NULL check:
+        - create LL without a call for create PL before
+        - delete LL or PL when no AMP connection has been established yet
+        Client context is unimportant from HCI point of view, only needed by the TLV API in BAP
+        TODO: Change the TLV APIs to not to carry the client context; it doesn't use it anyway
         */
-        if (( AssocSpecificEvent ) && 
+        if (( AssocSpecificEvent ) &&
             (BTAMP_TLV_HCI_PHYSICAL_LINK_COMPLETE_EVENT != pBapHCIEvent->bapHCIEventCode) &&
             (BTAMP_TLV_HCI_DISCONNECT_PHYSICAL_LINK_COMPLETE_EVENT != pBapHCIEvent->bapHCIEventCode))
         {
@@ -1514,9 +1514,9 @@ static VOS_STATUS WLANBAP_EventCB
     return(VOS_STATUS_SUCCESS);
 } // WLANBAP_EventCB()
 
-static VOS_STATUS  
+static VOS_STATUS
 WLANBAP_PhyLinkFailure
-( 
+(
     BslClientCtxType* pctx,
     v_U8_t       phy_link_handle
 )
@@ -1524,13 +1524,13 @@ WLANBAP_PhyLinkFailure
     VOS_STATUS  vosStatus;
     tBtampHCI_Event bapHCIEvent;
 
-    /* Format the Physical Link Complete event to return... */ 
+    /* Format the Physical Link Complete event to return... */
     bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_PHYSICAL_LINK_COMPLETE_EVENT;
     bapHCIEvent.u.btampPhysicalLinkCompleteEvent.present = 1;
     bapHCIEvent.u.btampPhysicalLinkCompleteEvent.status = WLANBAP_ERROR_UNSPECIFIED_ERROR;
-    bapHCIEvent.u.btampPhysicalLinkCompleteEvent.phy_link_handle 
+    bapHCIEvent.u.btampPhysicalLinkCompleteEvent.phy_link_handle
         = phy_link_handle;
-    bapHCIEvent.u.btampPhysicalLinkCompleteEvent.ch_number 
+    bapHCIEvent.u.btampPhysicalLinkCompleteEvent.ch_number
         = 0;
     //TBD: Could be a cleaner way to get the PhyLinkCtx handle; For now works
     BslPhyLinkCtx[0].pClientCtx = pctx;

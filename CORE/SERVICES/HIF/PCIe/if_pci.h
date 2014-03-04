@@ -133,7 +133,7 @@ void dump_CE_debug_register(struct hif_pci_softc *sc);
 /*
  * Typically, MSI Interrupts are used with PCIe. To force use of legacy
  * "ABCD" PCI line interrupts rather than MSI, define FORCE_LEGACY_PCI_INTERRUPTS.
- * Even when NOT forced, the driver may attempt to use legacy PCI interrupts 
+ * Even when NOT forced, the driver may attempt to use legacy PCI interrupts
  * MSI allocation fails
  */
 #define LEGACY_INTERRUPTS(sc) ((sc)->num_msi_intrs == 0)

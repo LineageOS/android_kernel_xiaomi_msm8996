@@ -110,7 +110,7 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
                                        u64 cookie );
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
-int wlan_hdd_cfg80211_mgmt_tx_cancel_wait(struct wiphy *wiphy, 
+int wlan_hdd_cfg80211_mgmt_tx_cancel_wait(struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
                                           struct wireless_dev *wdev,
 #else

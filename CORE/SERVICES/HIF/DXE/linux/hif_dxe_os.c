@@ -29,15 +29,15 @@
 
   \file     hif_dxe_os.c
   \brief    Implementation of WMA
-		Provide Linux OS Specific Shim Layer Implementation for 
+		Provide Linux OS Specific Shim Layer Implementation for
 		DXE HIF module.
 
-		This file Provides the Linux OS Specific Layer API for 
+		This file Provides the Linux OS Specific Layer API for
 		HIF DXE Module.
-		
-		DXE software module communicates with this layer 
+
+		DXE software module communicates with this layer
 		for Linux Specific Functionality
-		
+
 		Implements :
 		1. Linux OS Initialization required for DXE Module
 			- Get hold of and Initialize DXE OS Resources(
@@ -73,7 +73,7 @@
 #include "hif_dxe_os.h"
 #include "hif_dxe_ospvt.h"
 #include "hif_dxe.h"
-#include "hif_dxe_hw_pvt.h" 
+#include "hif_dxe_hw_pvt.h"
 #include "hif_dxe_pvt.h"
 #include <mach/msm_smsm.h>
 #include "vos_threads.h"
@@ -102,7 +102,7 @@ irqreturn_t hif_dxe_os_rx_isr(int irq,void* pSrvcCtx);
 /**
  * @ HIF OS Enable Tx Interrupt
  *
- * @param[in/out] osdev  OS Specific Context 
+ * @param[in/out] osdev  OS Specific Context
  *
  * @retval     TRUE/FALSE [Success/Fail]
  */
@@ -115,7 +115,7 @@ unsigned char hif_dxe_os_enable_tx_intr(void* pctx)
 	/* Enable Tx IRQ at OS level */
 	if(!hif_dxeos_ctx->bTxRegistered)
 	{
-		ret = request_irq(hif_dxeos_ctx->tx_irq, hif_dxe_os_tx_isr, 
+		ret = request_irq(hif_dxeos_ctx->tx_irq, hif_dxe_os_tx_isr,
 				IRQF_TRIGGER_HIGH, "wcnss_wlan", hif_dxeos_ctx);
 
 		if(ret)
@@ -151,9 +151,9 @@ unsigned char hif_dxe_os_enable_tx_intr(void* pctx)
 /**
  * @ HIF OS Disable Tx Interrupt
  *
- * @param[in/out] osdev  OS Specific Context 
+ * @param[in/out] osdev  OS Specific Context
  *
- * @retval     void    
+ * @retval     void
  */
 unsigned char hif_dxe_os_disable_tx_intr(void* pctx)
 {
@@ -161,7 +161,7 @@ unsigned char hif_dxe_os_disable_tx_intr(void* pctx)
 	u_int32_t val = 0;
 
 	/* Disable Tx Channel Interrupt */
-	val = ~TX_INT_SELECT(CH_TX_LOW_PRI) & ~TX_INT_SELECT(CH_TX_HIGH_PRI) & 
+	val = ~TX_INT_SELECT(CH_TX_LOW_PRI) & ~TX_INT_SELECT(CH_TX_HIGH_PRI) &
 		DXE_READ_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT);
 
 	DXE_WRITE_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT,val);
@@ -177,7 +177,7 @@ unsigned char hif_dxe_os_disable_tx_intr(void* pctx)
 /**
  * @ HIF OS Enable Rx Interrupt
  *
- * @param[in/out] osdev  OS Specific Context 
+ * @param[in/out] osdev  OS Specific Context
  *
  * @retval     TRUE/FALSE [Success/Fail]
  */
@@ -190,7 +190,7 @@ unsigned char hif_dxe_os_enable_rx_intr(void* pctx)
 	/* Enable Rx IRQ at OS level */
 	if(!hif_dxeos_ctx->bRxRegistered)
 	{
-		ret = request_irq(hif_dxeos_ctx->rx_irq, hif_dxe_os_rx_isr, 
+		ret = request_irq(hif_dxeos_ctx->rx_irq, hif_dxe_os_rx_isr,
 				IRQF_TRIGGER_HIGH, "wcnss_wlan", hif_dxeos_ctx);
 
 		if(ret)
@@ -226,9 +226,9 @@ unsigned char hif_dxe_os_enable_rx_intr(void* pctx)
 /**
  * @ HIF OS Disable Rx Interrupt
  *
- * @param[in/out] osdev  OS Specific Context 
+ * @param[in/out] osdev  OS Specific Context
  *
- * @retval     void    
+ * @retval     void
  */
 unsigned char hif_dxe_os_disable_rx_intr(void* pctx)
 {
@@ -236,7 +236,7 @@ unsigned char hif_dxe_os_disable_rx_intr(void* pctx)
 	u_int32_t val = 0;
 
 	/* Disable Rx Channel Interrupt */
-	val = ~RX_INT_SELECT(CH_RX_LOW_PRI) & ~RX_INT_SELECT(CH_RX_HIGH_PRI) & 
+	val = ~RX_INT_SELECT(CH_RX_LOW_PRI) & ~RX_INT_SELECT(CH_RX_HIGH_PRI) &
 		DXE_READ_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT);
 
 	DXE_WRITE_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT,val);
@@ -269,8 +269,8 @@ irqreturn_t hif_dxe_os_tx_isr(int irq,void* pSrvcCtx)
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s \n",__FUNCTION__));
 
-	if ((NULL == hif_dxeos_ctx) || 
-			(NULL == hif_dxeos_ctx->dxe_hif_params.dxe_tx_cb) || 
+	if ((NULL == hif_dxeos_ctx) ||
+			(NULL == hif_dxeos_ctx->dxe_hif_params.dxe_tx_cb) ||
 			(FALSE == hif_dxeos_ctx->bTxIntEnabled))
 	{
 		AR_DEBUG_PRINTF(ATH_DEBUG_ERR,(
@@ -281,9 +281,9 @@ irqreturn_t hif_dxe_os_tx_isr(int irq,void* pSrvcCtx)
 		return IRQ_HANDLED;
 	}
 
-	/* 
+	/*
 	   Set Interrupt processing bit
-	   During this bit set, WLAN HW may not power collapse 
+	   During this bit set, WLAN HW may not power collapse
 	 */
 	val = DXE_READ_REG(hif_dxeos_ctx,WLANDXE_INT_MASK_REG_ADDRESS);
 	val |= HIFDXE_TX_INTERRUPT_PRO_MASK;
@@ -301,7 +301,7 @@ irqreturn_t hif_dxe_os_tx_isr(int irq,void* pSrvcCtx)
 
 
 /**
-  @brief hif_dxe_tx_tasklet_proc 
+  @brief hif_dxe_tx_tasklet_proc
 
   Function which actually does the DXE TX Complete Processing.
   This tasklet is scheduled from hif_dxe_os_tx_isr.
@@ -319,11 +319,11 @@ void hif_dxe_os_tx_processing(unsigned long DeferredContext)
 	adf_os_atomic_inc(&hif_dxeos_ctx->ref_count);
 
 	/* Call the Dxe Tx Callback */
-	if ((NULL != hif_dxeos_ctx) && 
-		(NULL != hif_dxeos_ctx->dxe_hif_params.dxe_tx_cb)) 
+	if ((NULL != hif_dxeos_ctx) &&
+		(NULL != hif_dxeos_ctx->dxe_hif_params.dxe_tx_cb))
 	{
 		hif_dxeos_ctx->dxe_hif_params.dxe_tx_cb(
-			hif_dxeos_ctx->dxe_hif_params.pvcontext);   
+			hif_dxeos_ctx->dxe_hif_params.pvcontext);
 	}
 
 	adf_os_atomic_dec(&hif_dxeos_ctx->ref_count);
@@ -332,7 +332,7 @@ void hif_dxe_os_tx_processing(unsigned long DeferredContext)
 }
 
 /**
-  @brief hif_dxe_rx_tasklet_proc 
+  @brief hif_dxe_rx_tasklet_proc
 
   Function which actually does the DXE Rx Data Avail Processing.
   This tasklet is scheduled from hif_dxe_os_rx_isr.
@@ -343,7 +343,7 @@ void hif_dxe_os_tx_processing(unsigned long DeferredContext)
  */
 void hif_dxe_os_rx_processing(unsigned long DeferredContext)
 {
-	S_HIF_DXE_OSCONTEXT * hif_dxeos_ctx = 
+	S_HIF_DXE_OSCONTEXT * hif_dxeos_ctx =
 				(S_HIF_DXE_OSCONTEXT *)DeferredContext;
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s \n",__FUNCTION__));
@@ -352,10 +352,10 @@ void hif_dxe_os_rx_processing(unsigned long DeferredContext)
 
 	/* Call the Dxe Rx Callback */
 	if ((NULL != hif_dxeos_ctx) && (
-		NULL != hif_dxeos_ctx->dxe_hif_params.dxe_rx_cb)) 
+		NULL != hif_dxeos_ctx->dxe_hif_params.dxe_rx_cb))
 	{
 		hif_dxeos_ctx->dxe_hif_params.dxe_rx_cb(
-			hif_dxeos_ctx->dxe_hif_params.pvcontext);        
+			hif_dxeos_ctx->dxe_hif_params.pvcontext);
 	}
 
 	adf_os_atomic_dec(&hif_dxeos_ctx->ref_count);
@@ -381,14 +381,14 @@ void hif_dxe_os_rx_processing(unsigned long DeferredContext)
  */
 irqreturn_t hif_dxe_os_rx_isr(int irq, void* pSrvcCtx)
 {
-	S_HIF_DXE_OSCONTEXT * hif_dxeos_ctx = 
+	S_HIF_DXE_OSCONTEXT * hif_dxeos_ctx =
 			(S_HIF_DXE_OSCONTEXT *)pSrvcCtx;
 	u_int32_t val = 0;
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s \n",__FUNCTION__));
 
-	if ((NULL == hif_dxeos_ctx) || 
-			(NULL == hif_dxeos_ctx->dxe_hif_params.dxe_rx_cb) || 
+	if ((NULL == hif_dxeos_ctx) ||
+			(NULL == hif_dxeos_ctx->dxe_hif_params.dxe_rx_cb) ||
 			(FALSE == hif_dxeos_ctx->bRxIntEnabled))
 	{
 		AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
@@ -399,9 +399,9 @@ irqreturn_t hif_dxe_os_rx_isr(int irq, void* pSrvcCtx)
 		return IRQ_HANDLED;
 	}
 
-	/* 
+	/*
 	   Set Interrupt processing bit
-	   During this bit set, WLAN HW may not power collapse 
+	   During this bit set, WLAN HW may not power collapse
 	 */
 	val = DXE_READ_REG(hif_dxeos_ctx,WLANDXE_INT_MASK_REG_ADDRESS);
 	val |= HIFDXE_RX_INTERRUPT_PRO_MASK;
@@ -429,9 +429,9 @@ A_STATUS ol_ath_dxe_initialize(void* Adapter)
 /**
  * @ HIF OS Init Dxe
  *
- * @param[in/out] osdev  OS Specific Context 
+ * @param[in/out] osdev  OS Specific Context
  *
- * @retval    hif_dxe_oshandle Returns OS Specific Allocation Handle     
+ * @retval    hif_dxe_oshandle Returns OS Specific Allocation Handle
  */
 hif_dxe_oshandle hif_dxe_os_init(adf_os_device_t osdev ,
 					S_HIF_DXE_OS_PARAMS *hif_dxe_os_params)
@@ -443,16 +443,16 @@ hif_dxe_oshandle hif_dxe_os_init(adf_os_device_t osdev ,
 	{
 		AR_DEBUG_PRINTF(ATH_DEBUG_ERR,(
 			"hif_dxe_os_init : Invalid Dev - Null\n"));
-		return NULL;    
+		return NULL;
 	}
 
-	/* Get the parent dev  ????????? Need to check */ 
+	/* Get the parent dev  ????????? Need to check */
 	wcnss_device = osdev->dev;
 
 	hif_dxeos_ctx = (S_HIF_DXE_OSCONTEXT *)
 			adf_os_mem_alloc(osdev,sizeof(S_HIF_DXE_OSCONTEXT));
 
-	if (NULL == hif_dxeos_ctx) 
+	if (NULL == hif_dxeos_ctx)
 	{
 		AR_DEBUG_PRINTF(ATH_DEBUG_ERR,(
 			"hif_dxe_os_init : Failed To "
@@ -468,10 +468,10 @@ hif_dxe_oshandle hif_dxe_os_init(adf_os_device_t osdev ,
 	do
 	{
 		/* Get the WCNSS Memory Map */
-		hif_dxeos_ctx->wcnss_memory = 
+		hif_dxeos_ctx->wcnss_memory =
 			wcnss_wlan_get_memory_map(wcnss_device);
 
-		if (NULL == hif_dxeos_ctx->wcnss_memory) 
+		if (NULL == hif_dxeos_ctx->wcnss_memory)
 		{
 			AR_DEBUG_PRINTF(ATH_DEBUG_ERR,(
 				"hif_dxe_os_init : WCNSS memory map "
@@ -480,10 +480,10 @@ hif_dxe_oshandle hif_dxe_os_init(adf_os_device_t osdev ,
 		}
 
 		/* Get the wcnss Tx Irq */
-		hif_dxeos_ctx->tx_irq = 
+		hif_dxeos_ctx->tx_irq =
 				wcnss_wlan_get_dxe_tx_irq(wcnss_device);
 
-		if (0 > hif_dxeos_ctx->tx_irq) 
+		if (0 > hif_dxeos_ctx->tx_irq)
 		{
 			AR_DEBUG_PRINTF(ATH_DEBUG_ERR,(
 				"hif_dxe_os_init : "
@@ -492,10 +492,10 @@ hif_dxe_oshandle hif_dxe_os_init(adf_os_device_t osdev ,
 		}
 
 		/* Get the wcnss Rx Irq */
-		hif_dxeos_ctx->rx_irq = 
+		hif_dxeos_ctx->rx_irq =
 				wcnss_wlan_get_dxe_rx_irq(wcnss_device);
 
-		if (0 > hif_dxeos_ctx->tx_irq) 
+		if (0 > hif_dxeos_ctx->tx_irq)
 		{
 			AR_DEBUG_PRINTF(ATH_DEBUG_ERR,(
 					"hif_dxe_os_init :"
@@ -503,14 +503,14 @@ hif_dxe_oshandle hif_dxe_os_init(adf_os_device_t osdev ,
 			break;
 		}
 
-		/* 
+		/*
 		   note the we don't invoke request_mem_region().
 		   the memory described by wcnss_memory encompases the entire
 		   register space (including BT and FM) and we do not want
-		   exclusive access to that memory 
+		   exclusive access to that memory
 		 */
 		hif_dxeos_ctx->mmio = ioremap(
-					hif_dxeos_ctx->wcnss_memory->start, 
+					hif_dxeos_ctx->wcnss_memory->start,
 					resource_size(
 						hif_dxeos_ctx->wcnss_memory));
 
@@ -523,13 +523,13 @@ hif_dxe_oshandle hif_dxe_os_init(adf_os_device_t osdev ,
 		}
 
 		/* Initialize Hif Dxe Tx Tasklet */
-		tasklet_init(&hif_dxeos_ctx->hif_dxe_tx_tasklet, 
-				hif_dxe_os_tx_processing, 
+		tasklet_init(&hif_dxeos_ctx->hif_dxe_tx_tasklet,
+				hif_dxe_os_tx_processing,
 				(unsigned long)hif_dxeos_ctx);
 
 		/* Initialize  Hif Dxe Rx Tasklet */
-		tasklet_init(&hif_dxeos_ctx->hif_dxe_rx_tasklet, 
-				hif_dxe_os_rx_processing, 
+		tasklet_init(&hif_dxeos_ctx->hif_dxe_rx_tasklet,
+				hif_dxe_os_rx_processing,
 				(unsigned long)hif_dxeos_ctx);
 
 		/* successfully allocated environment, memory and IRQs */
@@ -546,9 +546,9 @@ hif_dxe_oshandle hif_dxe_os_init(adf_os_device_t osdev ,
 /**
  * @ HIF OS DeInit Dxe
  *
- * @param[in]hif_dxe_osdev  OS Specific Context 
+ * @param[in]hif_dxe_osdev  OS Specific Context
  *
- * @retval   void     
+ * @retval   void
  */
 void hif_dxe_os_deinit(hif_dxe_oshandle hif_dxe_osdev)
 {
@@ -590,16 +590,16 @@ void hif_dxe_os_deinit(hif_dxe_oshandle hif_dxe_osdev)
 /**
  * @ HIF Dxe OS Specific Initialization
  *
- * @param[in]hif_dxe_osdev - OS Specific Context 
- * @param[in]eIntType    
- * @param[in]bEnable    
+ * @param[in]hif_dxe_osdev - OS Specific Context
+ * @param[in]eIntType
+ * @param[in]bEnable
  *
- * @retval   A_STATUS     
+ * @retval   A_STATUS
  */
-A_STATUS hif_dxe_os_program_int(hif_dxe_oshandle hif_dxe_osdev , 
-				E_DXE_INTTYPE eIntType , 
+A_STATUS hif_dxe_os_program_int(hif_dxe_oshandle hif_dxe_osdev ,
+				E_DXE_INTTYPE eIntType ,
 				E_DXE_INT_ACTION eAction)
-{  
+{
 	S_HIF_DXE_OSCONTEXT * hif_dxeos_ctx = hif_dxe_osdev;
 
 	switch (eIntType)
@@ -608,7 +608,7 @@ A_STATUS hif_dxe_os_program_int(hif_dxe_oshandle hif_dxe_osdev ,
 			{
 				if (eAction == E_HIFDXE_INT_ENABLE)
 				{
-					if(FALSE == 
+					if(FALSE ==
 						hif_dxe_os_enable_tx_intr
 								(hif_dxeos_ctx))
 					{
@@ -620,7 +620,7 @@ A_STATUS hif_dxe_os_program_int(hif_dxe_oshandle hif_dxe_osdev ,
 				}
 				else if (eAction == E_HIFDXE_INT_DISABLE)
 				{
-					if(FALSE == 
+					if(FALSE ==
 						hif_dxe_os_disable_tx_intr
 								(hif_dxeos_ctx))
 					{
@@ -650,7 +650,7 @@ A_STATUS hif_dxe_os_program_int(hif_dxe_oshandle hif_dxe_osdev ,
 			{
 				if (eAction == E_HIFDXE_INT_ENABLE)
 				{
-					if(FALSE == 
+					if(FALSE ==
 						hif_dxe_os_enable_rx_intr(
 								hif_dxeos_ctx))
 					{
@@ -659,7 +659,7 @@ A_STATUS hif_dxe_os_program_int(hif_dxe_oshandle hif_dxe_osdev ,
 				}
 				else if (eAction == E_HIFDXE_INT_DISABLE)
 				{
-					if(FALSE == 
+					if(FALSE ==
 						hif_dxe_os_disable_rx_intr(
 								hif_dxeos_ctx))
 					{
@@ -682,22 +682,22 @@ A_STATUS hif_dxe_os_program_int(hif_dxe_oshandle hif_dxe_osdev ,
 				}
 			}
 			break;
-	}   
+	}
 	return A_OK;
 }
 
 /**
  * @ HIF OS Notify SMSM
  *
- * @param[in]hif_dxe_osdev - OS Specific Context 
- * @param[in]clrSt    
- * @param[in]setSt    
+ * @param[in]hif_dxe_osdev - OS Specific Context
+ * @param[in]clrSt
+ * @param[in]setSt
  *
- * @retval   A_STATUS     
+ * @retval   A_STATUS
  */
-A_STATUS hif_dxe_os_notifysmsm(hif_dxe_oshandle hif_dxe_osdev, 
+A_STATUS hif_dxe_os_notifysmsm(hif_dxe_oshandle hif_dxe_osdev,
 				u_int32_t clrSt, u_int32_t setSt)
-{    
+{
 	int rc;
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, (
@@ -718,10 +718,10 @@ A_STATUS hif_dxe_os_notifysmsm(hif_dxe_oshandle hif_dxe_osdev,
 
 /**
  * @brief HIF OS Read register
- * 
+ *
  * @param[in] OS Context
  * @param[in] Addr
- * 
+ *
  * @return Read Value
  */
 u_int32_t hif_dxe_os_readreg(hif_dxe_oshandle hif_dxe_osdev, u_int32_t addr)
@@ -740,19 +740,19 @@ u_int32_t hif_dxe_os_readreg(hif_dxe_oshandle hif_dxe_osdev, u_int32_t addr)
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
 
-	return val;	
+	return val;
 }
 
 /**
  * @brief HIF OS Write register
- * 
+ *
  * @param[in] OS Context
  * @param[in] Addr
  * @param[in] val
- * 
+ *
  * @return Read Value
  */
-void hif_dxe_os_writereg(hif_dxe_oshandle hif_dxe_osdev, 
+void hif_dxe_os_writereg(hif_dxe_oshandle hif_dxe_osdev,
 				u_int32_t addr, u_int32_t val)
 {
 	S_HIF_DXE_OSCONTEXT * hif_dxeos_ctx = hif_dxe_osdev;
@@ -762,7 +762,7 @@ void hif_dxe_os_writereg(hif_dxe_oshandle hif_dxe_osdev,
 			(unsigned int)hif_dxeos_ctx->mmio,(unsigned int)addr));
 
 	wmb();
-	writel_relaxed(val, hif_dxeos_ctx->mmio + 
+	writel_relaxed(val, hif_dxeos_ctx->mmio +
 					(addr - WLANDXE_RIVA_BASE_ADDRESS));
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
@@ -770,9 +770,9 @@ void hif_dxe_os_writereg(hif_dxe_oshandle hif_dxe_osdev,
 
 /**
  * @brief HIF Mem Barrier
- * 
+ *
  * @param[in] void
- * 
+ *
  * @return void
  */
 void hif_dxe_os_mem_barrier(void)
@@ -785,9 +785,9 @@ void hif_dxe_os_mem_barrier(void)
 #define DXE_STOP_WAIT_SLEEP_UNIT_MS 100
 /**
  * @brief Notify HIF DXE OS Layer Of Stop
- * 
+ *
  * @param[in] OS Context
- *  
+ *
  * @return void
  */
 void hif_dxe_os_stop(hif_dxe_oshandle hif_dxe_osdev)
@@ -805,9 +805,9 @@ void hif_dxe_os_stop(hif_dxe_oshandle hif_dxe_osdev)
 
 /**
  * @brief  HIF DXE OS Layer Dump for Debug
- * 
+ *
  * @param[in] OS Context
- *  
+ *
  * @return void
  */
 void hif_dxe_os_dbgdump(hif_dxe_oshandle hif_dxe_osdev)
@@ -820,7 +820,3 @@ void hif_dxe_os_dbgdump(hif_dxe_oshandle hif_dxe_osdev)
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("hif_dxeos_ctx->mem_phy_end : %x \n",(
 			unsigned int)hif_dxeos_ctx->wcnss_memory->end));
 }
-
-
-
-

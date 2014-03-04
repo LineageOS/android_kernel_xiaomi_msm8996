@@ -357,12 +357,7 @@ static void __limInitAssocVars(tpAniSirGlobal pMac)
     {
         limLog( pMac, LOGP, FL( "cfg get assoc sta limit failed" ));
     }
-#ifdef QCA_WIFI_2_0
-    /* This +1 is done because of peerIdx assign logic in limAssignPeerIdx */
-    pMac->lim.gLimAssocStaLimit = val + 1;
-#else
     pMac->lim.gLimAssocStaLimit = val;
-#endif
     pMac->lim.gLimIbssStaLimit = val;
     // Place holder for current authentication request
     // being handled
@@ -981,7 +976,7 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
          return eSIR_FAILURE;
     }
 
-    pMac->lim.limTimers.gpLimCnfWaitTimer = vos_mem_malloc(sizeof(TX_TIMER) * pMac->lim.maxStation);
+    pMac->lim.limTimers.gpLimCnfWaitTimer = vos_mem_malloc(sizeof(TX_TIMER) * (pMac->lim.maxStation + 1));
     if (NULL == pMac->lim.limTimers.gpLimCnfWaitTimer)
     {
         PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!"));)

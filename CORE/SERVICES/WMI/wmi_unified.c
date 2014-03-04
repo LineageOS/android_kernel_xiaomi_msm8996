@@ -892,6 +892,6 @@ int wmi_is_suspend_ready(wmi_unified_t wmi_handle)
 		i=i+1;
 	}
 
-	pr_info(" Pending wmi_pending_cmds:%d \n", wmi_pending_cmds);
+	pr_info("%s:Pending wmi_pending_cmds:%d \n", __func__, wmi_pending_cmds);
 	return 0;
 }

@@ -33,7 +33,7 @@
  *  DXE software module communicates with the RIVA DXE HW block for data path which
  *  is a DMA engine to transfer Data between [ Host DDR <--> Target DDR]
  *  Provides API to :
- *  - Initialize the DMA block registers , Allocate DMA Memory for Descriptors/Rx Network Packets. 
+ *  - Initialize the DMA block registers , Allocate DMA Memory for Descriptors/Rx Network Packets.
  *  - Register Tx Complete , Rx and Low Resource Callbacks.
  *  - Send Tx Data packets and report Rx Packets
  *  - Report Available Free Slots in Tx Ring
@@ -76,20 +76,20 @@ typedef struct _S_HIFDXE_CALLBACK
 
 
 /**
- * @ HIF DXE Attach . One Time Initialize of DXE HW / Allocate DXE SW Module Context / Alloc DXE Descriptors , Rx Buffers , Control Block /Attach OS Interrupts etc 
+ * @ HIF DXE Attach . One Time Initialize of DXE HW / Allocate DXE SW Module Context / Alloc DXE Descriptors , Rx Buffers , Control Block /Attach OS Interrupts etc
  *
  * @param[in]dev - OS Dev Handle
  *
- * @retval   hif_dxe_handle  Allocates HIF DEX Context Block and returns handle for subsequent calls to DXE     
+ * @retval   hif_dxe_handle  Allocates HIF DEX Context Block and returns handle for subsequent calls to DXE
  */
 hif_dxe_handle hif_dxe_attach(adf_os_device_t dev);
 
 /**
- * @ HIF DXE Start . Initialize the DMA Channels and per channel DMA Registers to Valid Values. 
+ * @ HIF DXE Start . Initialize the DMA Channels and per channel DMA Registers to Valid Values.
  *
- * @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+ * @param[in]hif_dxe_pdev -  HIF DXE Specific Context
  *
- * @retval   A_STATUS     
+ * @retval   A_STATUS
  */
 
 A_STATUS hif_dxe_start(hif_dxe_handle hif_dxe_pdev);
@@ -97,20 +97,20 @@ A_STATUS hif_dxe_start(hif_dxe_handle hif_dxe_pdev);
 /**
  * @ HIF DXE Register . Register Packet Callbacks
  *
- * @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+ * @param[in]hif_dxe_pdev -  HIF DXE Specific Context
  *
- * @retval   A_STATUS     
+ * @retval   A_STATUS
  */
 A_STATUS hif_dxe_client_registration(hif_dxe_handle hif_dxe_pdev,  S_HIFDXE_CALLBACK *hif_dxe_cb);
 
 /**
- * @ HIF DXE Send . Send packet on DXE 
+ * @ HIF DXE Send . Send packet on DXE
  *
- * @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+ * @param[in]hif_dxe_pdev -  HIF DXE Specific Context
  * @param[in]eHifDxeChannel -  DXE Channel for Send
  * @param[in]nbuf -  SDU to send
  *
- * @retval   A_STATUS     
+ * @retval   A_STATUS
  */
 A_STATUS hif_dxe_send(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYPE channel, adf_nbuf_t nbuf);
 
@@ -123,10 +123,10 @@ A_STATUS hif_dxe_send(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYPE channel,
 /**
  * @ HIF DXE GetResources . Return Available Free Tx Slots in DXE DMA  Tx Ring for specified channel
  *
- * @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
- * @param[in]eHifDxeChannel -  DXE Channel 
+ * @param[in]hif_dxe_pdev -  HIF DXE Specific Context
+ * @param[in]eHifDxeChannel -  DXE Channel
  *
- * @retval   a_uint32_t Num Available Resources     
+ * @retval   a_uint32_t Num Available Resources
  */
 u_int32_t hif_dxe_get_resources(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYPE channel);
 
@@ -134,9 +134,9 @@ u_int32_t hif_dxe_get_resources(hif_dxe_handle hif_dxe_pdev, E_HIFDXE_CHANNELTYP
 /**
  * @ HIF DXE Flush Tx Packets . Flush And return Tx Packets Pending in DMA through Tx Completion Callbacks.
  *
- * @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+ * @param[in]hif_dxe_pdev -  HIF DXE Specific Context
  *
- * @retval   A_STATUS     
+ * @retval   A_STATUS
  */
 A_STATUS hif_dxe_flush_packets(hif_dxe_handle hif_dxe_pdev);
 
@@ -144,20 +144,20 @@ A_STATUS hif_dxe_flush_packets(hif_dxe_handle hif_dxe_pdev);
 /**
  * @ HIF DXE Set Power State . Synchronously Set Power State relevant for DXE / Ensure No references into DXE are Outstanding
  *
- * @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+ * @param[in]hif_dxe_pdev -  HIF DXE Specific Context
  * @param[in]PowerState    -  New Power State
  *
- * @retval   A_STATUS     
+ * @retval   A_STATUS
  */
 A_STATUS hif_dxe_set_power_state(hif_dxe_handle hif_dxe_pdev, u_int8_t power_state );
 
 
 /**
  * @brief HIF DXE Read register
- * 
- * @param[in] hif_dxe_pdev -  HIF DXE Specific Context 
+ *
+ * @param[in] hif_dxe_pdev -  HIF DXE Specific Context
  * @param[in] Addr
- * 
+ *
  * @return Read Value
  */
 u_int32_t hif_dxe_readreg(hif_dxe_handle hif_dxe_pdev, u_int32_t addr);
@@ -165,11 +165,11 @@ u_int32_t hif_dxe_readreg(hif_dxe_handle hif_dxe_pdev, u_int32_t addr);
 
 /**
  * @brief HIF DXE Write register
- * 
- * @param[in] hif_dxe_pdev - HIF DXE Specific Context 
+ *
+ * @param[in] hif_dxe_pdev - HIF DXE Specific Context
  * @param[in] Addr
  * @param[in] val
- * 
+ *
  * @return void
  */
 void
@@ -177,11 +177,11 @@ hif_dxe_writereg(hif_dxe_handle hif_dxe_pdev, u_int32_t addr, u_int32_t val);
 
 
 /**
- * @ HIF DXE Stop . Stop DMA 
+ * @ HIF DXE Stop . Stop DMA
  *
- * @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+ * @param[in]hif_dxe_pdev -  HIF DXE Specific Context
  *
- * @retval   A_STATUS     
+ * @retval   A_STATUS
  */
 A_STATUS hif_dxe_stop(hif_dxe_handle hif_dxe_pdev);
 
@@ -189,9 +189,9 @@ A_STATUS hif_dxe_stop(hif_dxe_handle hif_dxe_pdev);
 /**
  * @ HIF DXE Detach . UnInitialize DXE Resources / HW / Free Memory  / Detach OS Interrupts etc
  *
- * @param[in]hif_dxe_pdev -  HIF DXE Specific Context 
+ * @param[in]hif_dxe_pdev -  HIF DXE Specific Context
  *
- * @retval   A_STATUS     
+ * @retval   A_STATUS
  */
 A_STATUS hif_dxe_detach(hif_dxe_handle hif_dxe_pdev);
 

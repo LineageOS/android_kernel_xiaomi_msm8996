@@ -78,7 +78,9 @@ void HTCGetHostCredits(HTC_HANDLE HTCHandle,int *credits)
         *credits = 0;
     }
 
+    LOCK_HTC_TX(target);
     *credits = target->TotalHostCredits;
+    UNLOCK_HTC_TX(target);
 }
 
 static INLINE void RestoreTxPacket(HTC_TARGET *target, HTC_PACKET *pPacket)

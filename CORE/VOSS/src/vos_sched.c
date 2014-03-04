@@ -1444,6 +1444,7 @@ void vos_drop_rxpkt_by_staid(pVosSchedContext pSchedContext, u_int16_t staId)
 {
    struct list_head local_list;
    struct VosTlshimPkt *pkt, *tmp;
+   adf_nbuf_t buf, next_buf;
 
    INIT_LIST_HEAD(&local_list);
    spin_lock_bh(&pSchedContext->TlshimRxQLock);
@@ -1459,7 +1460,12 @@ void vos_drop_rxpkt_by_staid(pVosSchedContext pSchedContext, u_int16_t staId)
 
    list_for_each_entry_safe(pkt, tmp, &local_list, list) {
        list_del(&pkt->list);
-       kfree_skb(pkt->Rxpkt);
+       buf = pkt->Rxpkt;
+       while (buf) {
+           next_buf = adf_nbuf_queue_next(buf);
+           adf_nbuf_free(buf);
+           buf = next_buf;
+       }
        vos_free_tlshim_pkt(pSchedContext, pkt);
    }
 }
@@ -1485,11 +1491,7 @@ static void vos_rx_from_queue(pVosSchedContext pSchedContext)
            list_del(&pkt->list);
            spin_unlock_bh(&pSchedContext->TlshimRxQLock);
            sta_id = pkt->staId;
-           if (pkt->callback)
-               pkt->callback(pkt->context, pkt->Rxpkt, sta_id);
-           else
-               kfree_skb(pkt->Rxpkt);
-
+           pkt->callback(pkt->context, pkt->Rxpkt, sta_id);
            vos_free_tlshim_pkt(pSchedContext, pkt);
            spin_lock_bh(&pSchedContext->TlshimRxQLock);
    }
