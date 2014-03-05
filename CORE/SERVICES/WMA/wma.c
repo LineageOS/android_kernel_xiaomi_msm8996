@@ -16838,6 +16838,14 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_NLO))
 		cfg->pno_offload = TRUE;
 #endif
+
+#ifdef FEATURE_WLAN_BATCH_SCAN
+	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+		WMI_SERVICE_BATCH_SCAN)){
+		gFwWlanFeatCaps |= (1 << BATCH_SCAN);
+	}
+#endif
+
 	cfg->lte_coex_ant_share = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 					WMI_SERVICE_LTE_ANT_SHARE_SUPPORT);
 #ifdef FEATURE_WLAN_TDLS
@@ -18416,7 +18424,7 @@ eHalStatus WMA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
 
 tANI_U8 wma_getFwWlanFeatCaps(tANI_U8 featEnumValue)
 {
-       return gFwWlanFeatCaps & (1 << featEnumValue);
+	return ((gFwWlanFeatCaps & (1 << featEnumValue)) ? TRUE : FALSE);
 }
 
 void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
