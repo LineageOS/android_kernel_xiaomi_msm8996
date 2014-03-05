@@ -6865,6 +6865,10 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
         alloc_bssid = VOS_TRUE;
     }
 
+    pRoamProfile->beaconInterval = 100;
+    if ((params->beacon_interval >= 1) && (params->beacon_interval <= 1000))
+        pRoamProfile->beaconInterval = params->beacon_interval;
+
     /* Set Channel */
     if (NULL !=
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
