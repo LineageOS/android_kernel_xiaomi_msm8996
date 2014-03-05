@@ -296,6 +296,9 @@ typedef struct
 #define QCSAP_GET_GTX_STEP                 65
 #define QCSAP_GET_GTX_MINTPC               66
 #define QCSAP_GET_GTX_BWMASK               67
+#ifdef QCA_PKT_PROTO_TRACE
+#define QCASAP_SET_DEBUG_LOG               68
+#endif /* QCA_PKT_PROTO_TRACE */
 #endif /* QCA_WIFI_2_0 */
 
 enum {

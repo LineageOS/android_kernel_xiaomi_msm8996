@@ -2998,7 +2998,6 @@ limSendSmeDfsEventNotify(tpAniSirGlobal pMac, tANI_U16 msgType, void *event)
 static void
 limSendDfsChanSwIEUpdate(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
-   limLog(pMac, LOG1, FL("DFS Channel Switch update timer expired"));
 
    /* Update the beacon template and send to FW */
    if (schSetFixedBeaconFields(pMac, psessionEntry) != eSIR_SUCCESS)
@@ -3009,6 +3008,9 @@ limSendDfsChanSwIEUpdate(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
    /* Send update beacon template message */
    limSendBeaconInd(pMac, psessionEntry);
+   PELOG1(limLog(pMac, LOG1,
+                   FL(" Updated CSA IE, IE COUNT = %d"),
+                       psessionEntry->gLimChannelSwitch.switchCount );)
 
    return;
 }
@@ -3116,13 +3118,15 @@ limProcessBeaconTxSuccessInd(tpAniSirGlobal pMac, tANI_U16 msgType, void *event)
    if (eLIM_AP_ROLE == psessionEntry->limSystemRole &&
        VOS_TRUE == psessionEntry->dfsIncludeChanSwIe)
    {
-      /* Start a timer to send next CSA IE update */
-      if (--psessionEntry->gLimChannelSwitch.switchCount >= 0)
+      /* Send only 5 beacons with CSA IE Set in when a radar is detected */
+      if (psessionEntry->gLimChannelSwitch.switchCount > 0)
       {
-         /* Start a timer of timeout less than 100ms, to give enough
-          * time for template update and transmission
+         /*
+          * Send the next beacon with updated CSA IE count
           */
           limSendDfsChanSwIEUpdate(pMac, psessionEntry);
+          /* Decrement the IE count */
+          psessionEntry->gLimChannelSwitch.switchCount--;
       }
       else
       {
@@ -3130,8 +3134,6 @@ limProcessBeaconTxSuccessInd(tpAniSirGlobal pMac, tANI_U16 msgType, void *event)
          psessionEntry->gLimChannelSwitch.switchCount = 0;
          psessionEntry->dfsIncludeChanSwIe = VOS_FALSE;
 
-         /* Reset CSA IE parameters in beacon/probe responses */
-         limSendDfsChanSwIEUpdate(pMac, psessionEntry);
 
          pChanSwTxResponse = (tSirSmeCSAIeTxCompleteRsp *)
                              vos_mem_malloc(length);

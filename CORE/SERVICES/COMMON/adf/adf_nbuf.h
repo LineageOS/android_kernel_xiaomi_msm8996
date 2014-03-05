@@ -47,6 +47,12 @@
 #ifdef IPA_OFFLOAD
 #define IPA_NBUF_OWNER_ID 0xaa55aa55
 #endif
+
+#define NBUF_PKT_TRAC_TYPE_EAPOL   0x02
+#define NBUF_PKT_TRAC_TYPE_DHCP    0x04
+#define NBUF_PKT_TRAC_MAX_STRING   11
+#define NBUF_PKT_TRAC_PROTO_STRING 3
+
 /**
  * @brief Platform indepedent packet abstraction
  */
@@ -1051,5 +1057,51 @@ static inline void
 adf_nbuf_set_protocol(adf_nbuf_t buf, uint16_t proto)
 {
 	__adf_nbuf_set_protocol(buf, proto);
+}
+
+/**
+ * @brief This function return packet proto type
+ *
+ * @param[in] buf    buffer
+ */
+static inline uint8_t
+adf_nbuf_trace_get_proto_type(adf_nbuf_t buf)
+{
+   return __adf_nbuf_trace_get_proto_type(buf);
+}
+
+/**
+ * @brief This function updates packet proto type
+ *
+ * @param[in] buf        buffer
+ * @param[in] proto_type protocol type
+*/
+static inline void
+adf_nbuf_trace_set_proto_type(adf_nbuf_t buf, uint8_t proto_type)
+{
+   __adf_nbuf_trace_set_proto_type(buf, proto_type);
+}
+
+/**
+ * @brief This function registers protocol trace callback
+ *
+ * @param[in] adf_nbuf_trace_update_t   callback pointer
+ */
+static inline void
+adf_nbuf_reg_trace_cb(adf_nbuf_trace_update_t cb_func_ptr)
+{
+   __adf_nbuf_reg_trace_cb(cb_func_ptr);
+}
+
+/**
+ * @brief This function updates protocol event
+ *
+ * @param[in] buf      buffer
+ * @param[in] char *   event string
+ */
+static inline void
+adf_nbuf_trace_update(adf_nbuf_t buf, char *event_string)
+{
+    __adf_nbuf_trace_update(buf, event_string);
 }
 #endif
