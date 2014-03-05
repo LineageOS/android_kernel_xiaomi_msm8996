@@ -15082,6 +15082,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SEND_BEACON_REQ:
 			wma_send_beacon(wma_handle,
 					(tpSendbeaconParams)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_CLI_SET_CMD:
 			wma_process_cli_set_cmd(wma_handle,
