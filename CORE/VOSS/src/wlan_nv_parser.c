@@ -1118,7 +1118,7 @@ static void copyDataToBuiltInFromBin(int tableIdx,int fieldId,
                           FIELD_ID_TABLE_OR_ENUM_IDX_MASK];
 
    if (storageType == SINGULAR ) {
-      ptr = (unsigned char*)((int)gpnvData_t + tableBaseOffset + addOffset);
+      ptr = ((unsigned char*)gpnvData_t) + tableBaseOffset + addOffset;
       dptr = (unsigned char *)&pStream[*pos];
 
       if (IsFieldTypeBasicData(pTable[tableIdx][fieldId].fieldId)) {
@@ -1151,7 +1151,7 @@ static void copyDataToBuiltInFromBin(int tableIdx,int fieldId,
    }
    else {
       if (ARRAY_1 == storageType) {
-         ptr = (unsigned char*)((int)gpnvData_t + tableBaseOffset + addOffset);
+         ptr = ((unsigned char*)gpnvData_t) + tableBaseOffset + addOffset;
          dptr = (unsigned char *)&pStream[*pos];
 
          idx = _STORAGE_SIZE1(pTable[tableIdx][fieldId].fieldStorageSize1,
@@ -1202,7 +1202,7 @@ static void copyDataToBuiltInFromBin(int tableIdx,int fieldId,
          *pos = *pos + (size1Bin * sizeOneElem);
       }
       else if (ARRAY_2 == storageType) {
-         ptr = (unsigned char*)((int)gpnvData_t + tableBaseOffset + addOffset);
+         ptr = ((unsigned char*)gpnvData_t) + tableBaseOffset + addOffset;
          dptr = (unsigned char *)&pStream[*pos];
 
          idx = _STORAGE_SIZE1(pTable[tableIdx][fieldId].fieldStorageSize1,
@@ -1294,7 +1294,7 @@ static void copyDataToBuiltInFromBin(int tableIdx,int fieldId,
          *pos = *pos + size2Bin * size1Bin * sizeOneElem;
       }
       else if (ARRAY_3 == storageType) {
-         ptr = (unsigned char*)((int)gpnvData_t + tableBaseOffset + addOffset);
+         ptr = ((unsigned char*)gpnvData_t) + tableBaseOffset + addOffset;
          dptr = (unsigned char *)&pStream[*pos];
 
          idx = _STORAGE_SIZE1(pTable[tableIdx][fieldId].fieldStorageSize1,
