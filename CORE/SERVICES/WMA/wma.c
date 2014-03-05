@@ -2029,7 +2029,7 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
     /* Ensure it's at least the size of the header */
     if (datalen < sizeof(*pe_hdr))
     {
-        WMA_LOGE("%s:  Expected minimum size %d, received %d",
+        WMA_LOGE("%s:  Expected minimum size %zu, received %d",
                   __func__, sizeof(*pe_hdr), datalen);
         return 0;
     }
@@ -2063,7 +2063,7 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
         /* ensure there's at least space for the header */
         if ((pe_hdr->buf_len - n) < sizeof(ev->hdr))
         {
-            WMA_LOGE("%s: Not enough space.(datalen=%d, n=%d, hdr=%d bytes",
+            WMA_LOGE("%s: Not enough space.(datalen=%d, n=%zu, hdr=%zu bytes",
                       __func__,pe_hdr->buf_len,n,sizeof(ev->hdr));
             error = 1;
             break;
@@ -2092,7 +2092,7 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
         }
         if (n + ev->hdr.buf_len > pe_hdr->buf_len)
         {
-            WMA_LOGE("%s: buf_len exceeds available space n=%d,"
+            WMA_LOGE("%s: buf_len exceeds available space n=%zu,"
                           "buf_len=%d, datalen=%d",
                           __func__,n,ev->hdr.buf_len,pe_hdr->buf_len);
             error = 1;
@@ -18188,7 +18188,7 @@ wma_process_utf_event(WMA_HANDLE handle,
 	if (wma_handle->utf_event_info.expectedSeq == totalNumOfSegments) {
 		if (wma_handle->utf_event_info.offset != segHdrInfo.len)
 			WMA_LOGE("All segs received total len mismatch.."
-				 " len %d total len %d",
+				 " len %zu total len %d",
 				 wma_handle->utf_event_info.offset,
 				 segHdrInfo.len);
 
