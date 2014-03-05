@@ -4069,7 +4069,7 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                 }
             }
         }
-        smsLog(pMac, LOG3, FL("  %d sets each one is %d"), pIesLocal->Country.num_triplets, sizeof(tSirMacChanInfo));
+        smsLog(pMac, LOG3, FL("  %d sets each one is %zu"), pIesLocal->Country.num_triplets, sizeof(tSirMacChanInfo));
 
         // set the indicator of the channel where the country IE was found...
         pMac->scan.channelOf11dInfo = pSirBssDesc->channelId;
