@@ -648,7 +648,7 @@ dfs_control(struct ieee80211com *ic, u_int id,
    case DFS_SET_THRESH:
       if (insize < sizeof(struct dfs_ioctl_params) || !indata) {
          DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,
-             "%s: insize=%d, expected=%d bytes, indata=%p\n",
+             "%s: insize=%d, expected=%zu bytes, indata=%p\n",
              __func__, insize, sizeof(struct dfs_ioctl_params),
              indata);
          error = -EINVAL;
