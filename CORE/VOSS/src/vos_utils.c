@@ -166,8 +166,6 @@ VOS_STATUS vos_crypto_deinit( v_U32_t hCryptProv )
 VOS_STATUS vos_rand_get_bytes( v_U32_t cryptHandle, v_U8_t *pbBuf, v_U32_t numBytes )
 {
    VOS_STATUS uResult = VOS_STATUS_E_FAILURE;
-   //v_UINT_t uCode;
-//   HCRYPTPROV hCryptProv = (HCRYPTPROV) cryptHandle;
 
    //check for invalid pointer
    if ( NULL == pbBuf )
@@ -176,13 +174,9 @@ VOS_STATUS vos_rand_get_bytes( v_U32_t cryptHandle, v_U8_t *pbBuf, v_U32_t numBy
       return ( uResult );
    }
 
-//#if 0
-   // get_random_bytes() is a void procedure
    get_random_bytes( pbBuf, numBytes);
    // "Random sequence generated."
    uResult = VOS_STATUS_SUCCESS;
-//#endif
-
    return ( uResult );
 }
 
