@@ -11145,6 +11145,7 @@ eHalStatus sme_MoveCsrToScanStateForPno (tHalHandle hHal, tANI_U8 sessionId)
 }
 #endif
 
+#define HT20_SHORT_GI_MCS7_RATE 722
 /* ---------------------------------------------------------------------------
     \fn sme_SendRateUpdateInd
     \brief  API to Update rate
@@ -11167,6 +11168,15 @@ eHalStatus sme_SendRateUpdateInd(tHalHandle hHal,
     rateUpdateParams->reliableMcastDataRate &= ~0x70000000;
     rateUpdateParams->mcastDataRate5GHz &= ~0x70000000;
 #endif
+
+    if (rateUpdateParams->mcastDataRate24GHz ==
+            HT20_SHORT_GI_MCS7_RATE)
+        rateUpdateParams->mcastDataRate24GHzTxFlag =
+           eHAL_TX_RATE_HT20 | eHAL_TX_RATE_SGI;
+    else if (rateUpdateParams->reliableMcastDataRate ==
+             HT20_SHORT_GI_MCS7_RATE)
+        rateUpdateParams->reliableMcastDataRateTxFlag =
+           eHAL_TX_RATE_HT20 | eHAL_TX_RATE_SGI;
 
     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
     {

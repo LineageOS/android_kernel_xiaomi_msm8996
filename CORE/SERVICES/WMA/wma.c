@@ -14251,22 +14251,30 @@ VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
 		vos_mem_free(pRateUpdateParams);
 		return VOS_STATUS_E_INVAL;
 	}
-	short_gi = (intr[vdev_id].rate_flags & eHAL_TX_RATE_SGI) ? TRUE : FALSE;
+	short_gi = intr[vdev_id].config.shortgi;
+	if (short_gi == 0)
+		short_gi = (intr[vdev_id].rate_flags & eHAL_TX_RATE_SGI) ? TRUE : FALSE;
 	/* first check if reliable TX mcast rate is used. If not check the bcast.
 	 * Then is mcast. Mcast rate is saved in mcastDataRate24GHz */
 	if (pRateUpdateParams->reliableMcastDataRateTxFlag > 0) {
 		mbpsx10_rate = pRateUpdateParams->reliableMcastDataRate;
 		paramId = WMI_VDEV_PARAM_MCAST_DATA_RATE;
+		if (pRateUpdateParams->reliableMcastDataRateTxFlag & eHAL_TX_RATE_SGI)
+			short_gi = 1; /* upper layer specified short GI */
 	} else if (pRateUpdateParams->bcastDataRate > -1) {
 		mbpsx10_rate = pRateUpdateParams->bcastDataRate;
 		paramId = WMI_VDEV_PARAM_BCAST_DATA_RATE;
 	} else {
 		mbpsx10_rate = pRateUpdateParams->mcastDataRate24GHz;
 		paramId = WMI_VDEV_PARAM_MCAST_DATA_RATE;
+		if (pRateUpdateParams->mcastDataRate24GHzTxFlag & eHAL_TX_RATE_SGI)
+			short_gi = 1; /* upper layer specified short GI */
 	}
-	WMA_LOGE("%s: dev_id = %d, dev_type = %d, dev_mode = %d, mac = %pM",
+	WMA_LOGE("%s: dev_id = %d, dev_type = %d, dev_mode = %d, "
+		"mac = %pM, config.shortgi = %d, rate_flags = 0x%x",
 		__func__, vdev_id, intr[vdev_id].type,
-		pRateUpdateParams->dev_mode, pRateUpdateParams->bssid);
+		pRateUpdateParams->dev_mode, pRateUpdateParams->bssid,
+		intr[vdev_id].config.shortgi, intr[vdev_id].rate_flags);
 	ret = wma_encode_mc_rate(short_gi, intr[vdev_id].config.chwidth,
 			intr[vdev_id].chanmode, intr[vdev_id].mhz,
 			mbpsx10_rate, pRateUpdateParams->nss, &rate);
@@ -18404,9 +18412,12 @@ eHalStatus wma_set_htconfig(tANI_U8 vdev_id, tANI_U16 ht_capab, int value)
 	break;
 	case WNI_CFG_HT_CAP_INFO_SHORT_GI_20MHZ:
 	case WNI_CFG_HT_CAP_INFO_SHORT_GI_40MHZ:
-	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
-						WMI_VDEV_PARAM_SGI, value);
-	break;
+		WMA_LOGE("%s: ht_capab = %d, value = %d", __func__, ht_capab, value);
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_SGI, value);
+		if (ret == 0)
+			wma->interfaces[vdev_id].config.shortgi = value;
+		break;
 	default:
 	WMA_LOGE("%s:INVALID HT CONFIG", __func__);
 	}

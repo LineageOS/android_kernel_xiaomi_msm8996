@@ -2291,6 +2291,7 @@ int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate)
    rateUpdate->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
    rateUpdate->dev_mode = pAdapter->device_mode;
    rateUpdate->mcastDataRate24GHz = targetRate;
+   rateUpdate->mcastDataRate24GHzTxFlag = 1;
    rateUpdate->mcastDataRate5GHz = targetRate;
    rateUpdate->bcastDataRate = -1;
    memcpy(rateUpdate->bssid, pAdapter->macAddressCurrent.bytes,
