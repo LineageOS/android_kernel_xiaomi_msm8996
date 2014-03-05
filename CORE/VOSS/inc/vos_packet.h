@@ -57,6 +57,77 @@ struct vos_pkt_t;
 typedef struct vos_pkt_t vos_pkt_t;
 
 #ifdef QCA_WIFI_2_0
+
+#ifdef QCA_PKT_PROTO_TRACE
+#include "adf_nbuf.h"
+
+#define VOS_PKT_TRAC_TYPE_EAPOL   NBUF_PKT_TRAC_TYPE_EAPOL
+#define VOS_PKT_TRAC_TYPE_DHCP    NBUF_PKT_TRAC_TYPE_DHCP
+
+#define VOS_PKT_TRAC_DUMP_CMD     9999
+
+/*---------------------------------------------------------------------------
+
+  * brief vos_pkt_get_proto_type() -
+      Find protoco type from packet contents
+
+  * skb Packet Pointer
+  * tracking_map packet type want to track
+
+---------------------------------------------------------------------------*/
+v_U8_t vos_pkt_get_proto_type
+(
+   struct sk_buff *skb,
+   v_U8_t tracking_map
+);
+
+/*---------------------------------------------------------------------------
+
+  * brief vos_pkt_trace_buf_update() -
+      Update storage buffer with interest event string
+
+  * event_string Event String may packet type or outstanding event
+
+---------------------------------------------------------------------------*/
+void vos_pkt_trace_buf_update
+(
+   char    *event_string
+);
+
+/*---------------------------------------------------------------------------
+
+  * brief vos_pkt_trace_buf_dump() -
+      Dump stored information into kernel log
+
+---------------------------------------------------------------------------*/
+void vos_pkt_trace_buf_dump
+(
+   void
+);
+
+/*---------------------------------------------------------------------------
+
+  * brief vos_pkt_proto_trace_init() -
+      Initialize protocol trace functionality, allocate required resource
+
+---------------------------------------------------------------------------*/
+void vos_pkt_proto_trace_init
+(
+   void
+);
+
+/*---------------------------------------------------------------------------
+
+  * brief vos_pkt_proto_trace_close() -
+      Free required resource
+
+---------------------------------------------------------------------------*/
+void vos_pkt_proto_trace_close
+(
+   void
+);
+#endif /* QCA_PKT_PROTO_TRACE */
+
 /**
  * vos_pkt_return_packet  Free the voss Packet
  * @ vos Packet

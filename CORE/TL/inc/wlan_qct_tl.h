@@ -1299,7 +1299,11 @@ WLANTL_STAPktPending
 
 ============================================================================*/
 adf_nbuf_t WLANTL_SendSTA_DataFrame(v_PVOID_t pvosGCtx, v_U8_t ucSTAId,
-                                    adf_nbuf_t buf);
+                                    adf_nbuf_t buf
+#ifdef QCA_PKT_PROTO_TRACE
+                                  , v_U8_t proto_type
+#endif /* QCA_PKT_PROTO_TRACE */
+                                    );
 #endif
 
 #ifdef IPA_OFFLOAD

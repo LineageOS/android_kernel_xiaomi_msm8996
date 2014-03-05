@@ -904,7 +904,11 @@ void WLANTL_RegisterVdev(void *vos_ctx, void *vdev)
  * in case of success, skb pointer in case of failure.
  */
 adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
-				    adf_nbuf_t skb)
+				    adf_nbuf_t skb
+#ifdef QCA_PKT_PROTO_TRACE
+				  , v_U8_t proto_type
+#endif /* QCA_PKT_PROTO_TRACE */
+                   )
 {
 	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
 							   vos_ctx);
@@ -951,6 +955,10 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 	/* Zero out skb's context buffer for the driver to use */
 	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
 	adf_nbuf_map_single(adf_ctx, skb, ADF_OS_DMA_TO_DEVICE);
+
+#ifdef QCA_PKT_PROTO_TRACE
+	adf_nbuf_trace_set_proto_type(skb, proto_type);
+#endif /* QCA_PKT_PROTO_TRACE */
 
 	if ((tl_shim->ip_checksum_offload) && (skb->protocol == htons(ETH_P_IP))
 		 && (skb->ip_summed == CHECKSUM_PARTIAL))

@@ -105,6 +105,11 @@
 #include "qc_sap_ioctl.h"
 #include "sme_Api.h"
 #include "wlan_qct_wda.h"
+
+#ifdef QCA_PKT_PROTO_TRACE
+#include "vos_packet.h"
+#endif /* QCA_PKT_PROTO_TRACE */
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 extern void hdd_suspend_wlan(struct early_suspend *wlan_suspend);
 extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
@@ -5699,6 +5704,14 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
        case WE_SET_DEBUG_LOG:
        {
            hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+#ifdef QCA_PKT_PROTO_TRACE
+           /* Trace buffer dump only */
+           if (VOS_PKT_TRAC_DUMP_CMD == set_value)
+           {
+              vos_pkt_trace_buf_dump();
+              break;
+           }
+#endif /* QCA_PKT_PROTO_TRACE */
            pHddCtx->cfg_ini->gEnableDebugLog = set_value;
            sme_UpdateConnectDebug(pHddCtx->hHal, set_value);
            break;

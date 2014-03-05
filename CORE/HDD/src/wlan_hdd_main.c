@@ -9505,6 +9505,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 #endif
 
+#ifdef QCA_PKT_PROTO_TRACE
+   vos_pkt_proto_trace_init();
+#endif /* QCA_PKT_PROTO_TRACE */
+
  ftm_processing:
    if (VOS_FTM_MODE == hdd_get_conparam())
    {
@@ -10221,6 +10225,9 @@ static void hdd_driver_exit(void)
    }
    else
    {
+#ifdef QCA_PKT_PROTO_TRACE
+      vos_pkt_proto_trace_close();
+#endif /* QCA_PKT_PROTO_TRACE */
       while(pHddCtx->isLogpInProgress ||
             vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
