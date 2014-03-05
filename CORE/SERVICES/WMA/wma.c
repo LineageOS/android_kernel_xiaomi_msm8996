@@ -5828,7 +5828,7 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
    }
 
 	cmd->num_noa_descriptors = 0;
-	buf_ptr = (u_int8_t *)(((u_int32_t) cmd) + sizeof(*cmd) +
+	buf_ptr = (u_int8_t *)(((uintptr_t) cmd) + sizeof(*cmd) +
 				sizeof(wmi_channel));
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
 		       cmd->num_noa_descriptors *
