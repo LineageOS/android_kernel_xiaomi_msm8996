@@ -1160,23 +1160,61 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 }
 
 static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
-				       u_int32_t len)
+				   u_int32_t len)
 {
-	tp_wma_handle wma = (tp_wma_handle)handle;
+	WMI_UPDATE_STATS_EVENTID_param_tlvs *param_buf;
 	wmi_stats_event_fixed_param *event;
+	vos_msg_t vos_msg = {0};
+	u_int32_t buf_size;
+	u_int8_t *buf;
+
+	param_buf = (WMI_UPDATE_STATS_EVENTID_param_tlvs *)cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGA("%s: Invalid stats event", __func__);
+		return -1;
+	}
+	event = param_buf->fixed_param;
+	buf_size = sizeof(*event) +
+		   (event->num_pdev_stats * sizeof(wmi_pdev_stats)) +
+		   (event->num_vdev_stats * sizeof(wmi_vdev_stats)) +
+		   (event->num_peer_stats * sizeof(wmi_peer_stats));
+	buf = vos_mem_malloc(buf_size);
+	if (!buf) {
+		WMA_LOGE("%s: Failed alloc memory for buf", __func__);
+		return -1;
+	}
+	vos_mem_zero(buf, buf_size);
+	vos_mem_copy(buf, event, sizeof(*event));
+	vos_mem_copy(buf + sizeof(*event), (u_int8_t *)param_buf->data,
+		     (buf_size - sizeof(*event)));
+	vos_msg.type = WDA_FW_STATS_IND;
+	vos_msg.bodyptr = buf;
+	vos_msg.bodyval = 0;
+
+	if (VOS_STATUS_SUCCESS !=
+	    vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg)) {
+		WMA_LOGP("%s: Failed to post WDA_FW_STATS_IND msg", __func__);
+		vos_mem_free(buf);
+		return -1;
+	}
+	WMA_LOGD("WDA_FW_STATS_IND posted");
+	return 0;
+}
+
+static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
+{
+	wmi_stats_event_fixed_param *event = (wmi_stats_event_fixed_param *)buf;
 	wmi_pdev_stats *pdev_stats;
 	wmi_vdev_stats *vdev_stats;
 	wmi_peer_stats *peer_stats;
-	WMI_UPDATE_STATS_EVENTID_param_tlvs *param_buf;
 	u_int8_t i, *temp;
 
 	WMA_LOGI("%s: Enter", __func__);
-	param_buf = (WMI_UPDATE_STATS_EVENTID_param_tlvs *)cmd_param_info;
-	if (!param_buf)
-		return -1;
 
-	event = param_buf->fixed_param;
-	temp = (A_UINT8 *)param_buf->data;
+	temp = buf + sizeof(*event);
+	WMA_LOGD("%s: num_stats: pdev: %u vdev: %u peer %u",
+		 __func__, event->num_pdev_stats, event->num_vdev_stats,
+		 event->num_peer_stats);
 	if (event->num_pdev_stats > 0) {
 		for (i = 0; i < event->num_pdev_stats; i++) {
 			pdev_stats = (wmi_pdev_stats*)temp;
@@ -1202,7 +1240,6 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	}
 
 	WMA_LOGI("%s: Exit", __func__);
-	return 0;
 }
 
 #ifndef QCA_WIFI_ISOC
@@ -15402,6 +15439,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_SET_SAP_INTRABSS_DIS:
 			wma_set_vdev_intrabss_fwd(wma_handle, (tDisableIntraBssFwd *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_FW_STATS_IND:
+			wma_fw_stats_ind(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		default:

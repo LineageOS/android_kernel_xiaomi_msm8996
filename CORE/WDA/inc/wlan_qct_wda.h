@@ -1330,6 +1330,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
  * beacon offload case
  */
 #define WDA_DFS_BEACON_TX_SUCCESS_IND   SIR_HAL_BEACON_TX_SUCCESS_IND
+#define WDA_FW_STATS_IND           SIR_HAL_FW_STATS_IND
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 

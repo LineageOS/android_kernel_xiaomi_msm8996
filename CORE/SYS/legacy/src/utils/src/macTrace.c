@@ -805,6 +805,7 @@ tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg )
         CASE_RETURN_STRING(WDA_INIT_THERMAL_INFO_CMD);
         CASE_RETURN_STRING(WDA_SET_THERMAL_LEVEL);
         CASE_RETURN_STRING(WDA_SET_SAP_INTRABSS_DIS);
+        CASE_RETURN_STRING(WDA_FW_STATS_IND);
         default:
             return((tANI_U8*) "UNKNOWN" );
             break;
