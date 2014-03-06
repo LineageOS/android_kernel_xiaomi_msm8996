@@ -1537,14 +1537,8 @@ static iw_softap_setparam(struct net_device *dev,
                                 (int)WMI_VDEV_PARAM_ENABLE_RTSCTS,
                                 set_value, VDEV_CMD);
                 if (!ret) {
-                    if (ccmCfgSetInt(hHal, WNI_CFG_RTS_THRESHOLD, (tANI_U32)value,
-                        ccmCfgSetCallback, eANI_BOOLEAN_TRUE) !=
-                        eHAL_STATUS_SUCCESS) {
-
-                        hddLog(LOGE, "FAILED TO SET RTSCTS at SAP");
-                        ret = -EIO;
-                        break;
-                    }
+                    hddLog(LOGE, "FAILED TO SET RTSCTS at SAP");
+                    ret = -EIO;
                 }
                 break;
             }
