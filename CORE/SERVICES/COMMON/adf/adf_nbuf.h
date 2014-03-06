@@ -1104,4 +1104,5 @@ adf_nbuf_trace_update(adf_nbuf_t buf, char *event_string)
 {
     __adf_nbuf_trace_update(buf, event_string);
 }
+
 #endif
