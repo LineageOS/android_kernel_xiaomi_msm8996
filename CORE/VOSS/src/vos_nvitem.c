@@ -821,7 +821,13 @@ bool is_world_regd(u_int32_t regd)
 static const struct ieee80211_regdomain *vos_default_world_regdomain(void)
 {
    /* this is the most restrictive */
-   return &vos_world_regdom_64;
+    return &vos_world_regdom_64;
+}
+
+static const struct ieee80211_regdomain *vos_custom_world_regdomain(void)
+{
+   /* this is the most restrictive */
+    return &vos_world_regdom_60_61_62;
 }
 
 static const
@@ -1028,17 +1034,24 @@ static void vos_reg_apply_world_flags(struct wiphy *wiphy,
    }
 }
 
-static int regd_init_wiphy(struct regulatory *reg,
+static int regd_init_wiphy(hdd_context_t *pHddCtx, struct regulatory *reg,
       struct wiphy *wiphy)
 {
    const struct ieee80211_regdomain *regd;
 
-   if (is_world_regd(reg->reg_domain)) {
-      regd = vos_world_regdomain(reg);
-      wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
-   } else {
-      regd = vos_default_world_regdomain();
-      wiphy->flags |= WIPHY_FLAG_STRICT_REGULATORY;
+   if  (pHddCtx->cfg_ini->fRegChangeDefCountry) {
+       regd = vos_custom_world_regdomain();
+       wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+   }
+   else if (is_world_regd(reg->reg_domain))
+   {
+       regd = vos_world_regdomain(reg);
+       wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+   }
+   else
+   {
+       regd = vos_default_world_regdomain();
+       wiphy->flags |= WIPHY_FLAG_STRICT_REGULATORY;
    }
    wiphy_apply_custom_regulatory(wiphy, regd);
    vos_reg_apply_radar_flags(wiphy);
@@ -1046,7 +1059,7 @@ static int regd_init_wiphy(struct regulatory *reg,
    return 0;
 }
 
-static int reg_init_from_eeprom(struct regulatory *reg,
+static int reg_init_from_eeprom(hdd_context_t *pHddCtx, struct regulatory *reg,
       struct wiphy *wiphy)
 {
    int ret_val = 0;
@@ -1062,7 +1075,7 @@ static int reg_init_from_eeprom(struct regulatory *reg,
    pnvEFSTable->halnv.tables.defaultCountryTable.countryCode[1] =
       reg->alpha2[1];
 
-   regd_init_wiphy(reg, wiphy);
+   regd_init_wiphy(pHddCtx, reg, wiphy);
 
    return ret_val;
 }
@@ -3482,7 +3495,7 @@ VOS_STATUS vos_init_wiphy_from_eeprom(void)
 
    wiphy = pHddCtx->wiphy;
 
-   if (reg_init_from_eeprom(&pHddCtx->reg, wiphy))
+   if (reg_init_from_eeprom(pHddCtx, &pHddCtx->reg, wiphy))
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
             ("Error during regulatory init from EEPROM"));
