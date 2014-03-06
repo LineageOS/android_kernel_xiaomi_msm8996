@@ -4353,10 +4353,10 @@ NONE
 WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND     I    4    7
 V    RW    NP
 NONE
-0    0x4     0
+0    0x5     0
 V    RW    NP
 NONE
-0    0x4     0
+0    0x5     0
 
 *
 * Softap data available poll period (in milliseconds) for

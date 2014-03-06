@@ -7562,13 +7562,10 @@ void hdd_deinit_batch_scan(hdd_adapter_t *pAdapter)
             vos_mem_free((v_VOID_t * )pPrev);
         }
         pAdapter->pBatchScanRsp = NULL;
+        pAdapter->numScanList = 0;
+        pAdapter->batchScanState = eHDD_BATCH_SCAN_STATE_STOPPED;
+        pAdapter->prev_batch_id = 0;
     }
-
-    pAdapter->pBatchScanRsp = NULL;
-    pAdapter->numScanList = 0;
-    pAdapter->batchScanState = eHDD_BATCH_SCAN_STATE_STOPPED;
-    pAdapter->prev_batch_id = 0;
-
     return;
 }
 #endif
