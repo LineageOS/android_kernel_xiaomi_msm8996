@@ -6914,9 +6914,16 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
         alloc_bssid = VOS_TRUE;
     }
 
-    pRoamProfile->beaconInterval = 100;
-    if ((params->beacon_interval >= 1) && (params->beacon_interval <= 1000))
+    if ((params->beacon_interval > CFG_BEACON_INTERVAL_MIN)
+        && (params->beacon_interval <= CFG_BEACON_INTERVAL_MAX))
         pRoamProfile->beaconInterval = params->beacon_interval;
+    else {
+        pRoamProfile->beaconInterval = CFG_BEACON_INTERVAL_DEFAULT;
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                "%s: input beacon interval %d TU is invalid, use default %d TU",
+                __func__, params->beacon_interval,
+                pRoamProfile->beaconInterval);
+    }
 
     /* Set Channel */
     if (NULL !=
