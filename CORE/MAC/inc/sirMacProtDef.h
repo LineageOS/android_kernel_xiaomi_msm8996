@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1406,8 +1406,8 @@ typedef __ani_attr_pre_packed struct sSirMacTclasParamEthernet
 typedef __ani_attr_pre_packed struct sSirMacTclasParamIPv4
 {
     tANI_U8             version;
-    tANI_U32            srcIpAddr;
-    tANI_U32            dstIpAddr;
+    tANI_U8             srcIpAddr[4];
+    tANI_U8             dstIpAddr[4];
     tANI_U16            srcPort;
     tANI_U16            dstPort;
     tANI_U8             dscp;

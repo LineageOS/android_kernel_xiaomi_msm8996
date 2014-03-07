@@ -1745,7 +1745,7 @@ static int wma_oem_capability_event_callback(void *handle,
 		return -EINVAL;
 	}
 
-	pStartOemDataRsp = adf_os_mem_alloc(NULL, sizeof(tStartOemDataRsp));
+	pStartOemDataRsp = vos_mem_malloc(sizeof(*pStartOemDataRsp));
 	if (!pStartOemDataRsp) {
 		WMA_LOGE("%s: Failed to alloc pStartOemDataRsp", __func__);
 		return -ENOMEM;
@@ -1797,7 +1797,7 @@ static int wma_oem_measurement_report_event_callback(void *handle,
 		return -EINVAL;
 	}
 
-	pStartOemDataRsp = adf_os_mem_alloc(NULL, sizeof(tStartOemDataRsp));
+	pStartOemDataRsp = vos_mem_malloc(sizeof(*pStartOemDataRsp));
 	if (!pStartOemDataRsp) {
 		WMA_LOGE("%s: Failed to alloc pStartOemDataRsp", __func__);
 		return -ENOMEM;
@@ -1849,7 +1849,7 @@ static int wma_oem_error_report_event_callback(void *handle,
 		return -EINVAL;
 	}
 
-	pStartOemDataRsp = adf_os_mem_alloc(NULL, sizeof(tStartOemDataRsp));
+	pStartOemDataRsp = vos_mem_malloc(sizeof(*pStartOemDataRsp));
 	if (!pStartOemDataRsp) {
 		WMA_LOGE("%s: Failed to alloc pStartOemDataRsp", __func__);
 		return -ENOMEM;
@@ -1955,7 +1955,7 @@ static int wma_tdls_event_handler(void *handle, u_int8_t *event, u_int32_t len)
 	}
 
 	tdls_event = (tSirTdlsEventNotify *)
-	              adf_os_mem_alloc(NULL, sizeof(tSirTdlsEventNotify));
+	              vos_mem_malloc(sizeof(*tdls_event));
 	if (!tdls_event) {
 	 WMA_LOGE("%s: failed to allocate memory for tdls_event", __func__);
 	 return -1;
@@ -2029,7 +2029,7 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
     /* Ensure it's at least the size of the header */
     if (datalen < sizeof(*pe_hdr))
     {
-        WMA_LOGE("%s:  Expected minimum size %d, received %d",
+        WMA_LOGE("%s:  Expected minimum size %zu, received %d",
                   __func__, sizeof(*pe_hdr), datalen);
         return 0;
     }
@@ -2063,7 +2063,7 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
         /* ensure there's at least space for the header */
         if ((pe_hdr->buf_len - n) < sizeof(ev->hdr))
         {
-            WMA_LOGE("%s: Not enough space.(datalen=%d, n=%d, hdr=%d bytes",
+            WMA_LOGE("%s: Not enough space.(datalen=%d, n=%zu, hdr=%zu bytes",
                       __func__,pe_hdr->buf_len,n,sizeof(ev->hdr));
             error = 1;
             break;
@@ -2092,7 +2092,7 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
         }
         if (n + ev->hdr.buf_len > pe_hdr->buf_len)
         {
-            WMA_LOGE("%s: buf_len exceeds available space n=%d,"
+            WMA_LOGE("%s: buf_len exceeds available space n=%zu,"
                           "buf_len=%d, datalen=%d",
                           __func__,n,ev->hdr.buf_len,pe_hdr->buf_len);
             error = 1;
@@ -4313,7 +4313,7 @@ VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
 		}
 
 
-		WMI_SET_CHANNEL_MAX_POWER(chan_info,
+		WMI_SET_CHANNEL_MAX_TX_POWER(chan_info,
 					  chan_list->chanParam[i].pwr);
 
 		WMI_SET_CHANNEL_REG_POWER(chan_info,
@@ -5804,6 +5804,7 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	cmd->dtim_period = req->dtim_period;
 	/* FIXME: Find out min, max and regulatory power levels */
 	WMI_SET_CHANNEL_REG_POWER(chan, req->max_txpow);
+	WMI_SET_CHANNEL_MAX_TX_POWER(chan, req->max_txpow);
 
 	/* TODO: Handle regulatory class, max antenna */
    if (!isRestart) {
@@ -5828,7 +5829,7 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
    }
 
 	cmd->num_noa_descriptors = 0;
-	buf_ptr = (u_int8_t *)(((u_int32_t) cmd) + sizeof(*cmd) +
+	buf_ptr = (u_int8_t *)(((uintptr_t) cmd) + sizeof(*cmd) +
 				sizeof(wmi_channel));
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
 		       cmd->num_noa_descriptors *
@@ -8066,7 +8067,6 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	ol_txrx_peer_handle peer;
 	VOS_STATUS status;
 	struct wma_txrx_node *iface;
-	tPowerdBm maxTxPower = 0;
 #ifdef WLAN_FEATURE_11W
 	int ret = 0;
 #endif /* WLAN_FEATURE_11W */
@@ -8126,10 +8126,8 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 			req.chan_offset = add_bss->currentExtChannel;
 #if defined WLAN_FEATURE_VOWIFI
 			req.max_txpow = add_bss->maxTxPower;
-			maxTxPower = add_bss->maxTxPower;
 #else
 			req.max_txpow = 0;
-			maxTxPower = 0;
 #endif
 			req.beacon_intval = add_bss->beaconInterval;
 			req.dtim_period = add_bss->dtimPeriod;
@@ -8198,7 +8196,7 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 			wma_vdev_set_bss_params(wma, add_bss->staContext.smesessionId,
 					add_bss->beaconInterval, add_bss->dtimPeriod,
 					add_bss->shortSlotTimeSupported, add_bss->llbCoexist,
-					maxTxPower);
+					add_bss->maxTxPower);
 		}
 		/*
 		 * Store the bssid in interface table, bssid will
@@ -14251,22 +14249,30 @@ VOS_STATUS wma_process_rate_update_indicate(tp_wma_handle wma,
 		vos_mem_free(pRateUpdateParams);
 		return VOS_STATUS_E_INVAL;
 	}
-	short_gi = (intr[vdev_id].rate_flags & eHAL_TX_RATE_SGI) ? TRUE : FALSE;
+	short_gi = intr[vdev_id].config.shortgi;
+	if (short_gi == 0)
+		short_gi = (intr[vdev_id].rate_flags & eHAL_TX_RATE_SGI) ? TRUE : FALSE;
 	/* first check if reliable TX mcast rate is used. If not check the bcast.
 	 * Then is mcast. Mcast rate is saved in mcastDataRate24GHz */
 	if (pRateUpdateParams->reliableMcastDataRateTxFlag > 0) {
 		mbpsx10_rate = pRateUpdateParams->reliableMcastDataRate;
 		paramId = WMI_VDEV_PARAM_MCAST_DATA_RATE;
+		if (pRateUpdateParams->reliableMcastDataRateTxFlag & eHAL_TX_RATE_SGI)
+			short_gi = 1; /* upper layer specified short GI */
 	} else if (pRateUpdateParams->bcastDataRate > -1) {
 		mbpsx10_rate = pRateUpdateParams->bcastDataRate;
 		paramId = WMI_VDEV_PARAM_BCAST_DATA_RATE;
 	} else {
 		mbpsx10_rate = pRateUpdateParams->mcastDataRate24GHz;
 		paramId = WMI_VDEV_PARAM_MCAST_DATA_RATE;
+		if (pRateUpdateParams->mcastDataRate24GHzTxFlag & eHAL_TX_RATE_SGI)
+			short_gi = 1; /* upper layer specified short GI */
 	}
-	WMA_LOGE("%s: dev_id = %d, dev_type = %d, dev_mode = %d, mac = %pM",
+	WMA_LOGE("%s: dev_id = %d, dev_type = %d, dev_mode = %d, "
+		"mac = %pM, config.shortgi = %d, rate_flags = 0x%x",
 		__func__, vdev_id, intr[vdev_id].type,
-		pRateUpdateParams->dev_mode, pRateUpdateParams->bssid);
+		pRateUpdateParams->dev_mode, pRateUpdateParams->bssid,
+		intr[vdev_id].config.shortgi, intr[vdev_id].rate_flags);
 	ret = wma_encode_mc_rate(short_gi, intr[vdev_id].config.chwidth,
 			intr[vdev_id].chanmode, intr[vdev_id].mhz,
 			mbpsx10_rate, pRateUpdateParams->nss, &rate);
@@ -15082,6 +15088,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SEND_BEACON_REQ:
 			wma_send_beacon(wma_handle,
 					(tpSendbeaconParams)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_CLI_SET_CMD:
 			wma_process_cli_set_cmd(wma_handle,
@@ -16838,6 +16845,14 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_NLO))
 		cfg->pno_offload = TRUE;
 #endif
+
+#ifdef FEATURE_WLAN_BATCH_SCAN
+	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+		WMI_SERVICE_BATCH_SCAN)){
+		gFwWlanFeatCaps |= (1 << BATCH_SCAN);
+	}
+#endif
+
 	cfg->lte_coex_ant_share = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 					WMI_SERVICE_LTE_ANT_SHARE_SUPPORT);
 #ifdef FEATURE_WLAN_TDLS
@@ -18173,7 +18188,7 @@ wma_process_utf_event(WMA_HANDLE handle,
 	if (wma_handle->utf_event_info.expectedSeq == totalNumOfSegments) {
 		if (wma_handle->utf_event_info.offset != segHdrInfo.len)
 			WMA_LOGE("All segs received total len mismatch.."
-				 " len %d total len %d",
+				 " len %zu total len %d",
 				 wma_handle->utf_event_info.offset,
 				 segHdrInfo.len);
 
@@ -18395,9 +18410,12 @@ eHalStatus wma_set_htconfig(tANI_U8 vdev_id, tANI_U16 ht_capab, int value)
 	break;
 	case WNI_CFG_HT_CAP_INFO_SHORT_GI_20MHZ:
 	case WNI_CFG_HT_CAP_INFO_SHORT_GI_40MHZ:
-	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
-						WMI_VDEV_PARAM_SGI, value);
-	break;
+		WMA_LOGE("%s: ht_capab = %d, value = %d", __func__, ht_capab, value);
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_SGI, value);
+		if (ret == 0)
+			wma->interfaces[vdev_id].config.shortgi = value;
+		break;
 	default:
 	WMA_LOGE("%s:INVALID HT CONFIG", __func__);
 	}
@@ -18416,7 +18434,7 @@ eHalStatus WMA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
 
 tANI_U8 wma_getFwWlanFeatCaps(tANI_U8 featEnumValue)
 {
-       return gFwWlanFeatCaps & (1 << featEnumValue);
+	return ((gFwWlanFeatCaps & (1 << featEnumValue)) ? TRUE : FALSE);
 }
 
 void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,

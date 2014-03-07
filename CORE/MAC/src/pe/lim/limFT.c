@@ -470,6 +470,12 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
     if (IS_DOT11_MODE_HT(pftSessionEntry->dot11mode) && ( pBeaconStruct->HTCaps.present ))
     {
         pAddBssParams->htCapable = pBeaconStruct->HTCaps.present;
+        vos_mem_copy(&pAddBssParams->staContext.capab_info,
+                     &pBeaconStruct->capabilityInfo,
+                     sizeof(pAddBssParams->staContext.capab_info));
+        vos_mem_copy(&pAddBssParams->staContext.ht_caps,
+                     (tANI_U8 *)&pBeaconStruct->HTCaps + sizeof(tANI_U8),
+                     sizeof(pAddBssParams->staContext.ht_caps));
 
         if ( pBeaconStruct->HTInfo.present )
         {
@@ -507,6 +513,41 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
                                                                   pAddBssParams->currentExtChannel,
                                                                   pftSessionEntry->apCenterChan,
                                                                   pftSessionEntry);
+        pAddBssParams->staContext.vht_caps =
+             ((pBeaconStruct->VHTCaps.maxMPDULen << SIR_MAC_VHT_CAP_MAX_MPDU_LEN) |
+              (pBeaconStruct->VHTCaps.supportedChannelWidthSet <<
+                                       SIR_MAC_VHT_CAP_SUPP_CH_WIDTH_SET) |
+              (pBeaconStruct->VHTCaps.ldpcCodingCap <<
+                                       SIR_MAC_VHT_CAP_LDPC_CODING_CAP) |
+              (pBeaconStruct->VHTCaps.shortGI80MHz <<
+                                       SIR_MAC_VHT_CAP_SHORTGI_80MHZ) |
+              (pBeaconStruct->VHTCaps.shortGI160and80plus80MHz <<
+                                       SIR_MAC_VHT_CAP_SHORTGI_160_80_80MHZ) |
+              (pBeaconStruct->VHTCaps.txSTBC << SIR_MAC_VHT_CAP_TXSTBC) |
+              (pBeaconStruct->VHTCaps.rxSTBC << SIR_MAC_VHT_CAP_RXSTBC) |
+              (pBeaconStruct->VHTCaps.suBeamFormerCap <<
+                                       SIR_MAC_VHT_CAP_SU_BEAMFORMER_CAP) |
+              (pBeaconStruct->VHTCaps.suBeamformeeCap <<
+                                       SIR_MAC_VHT_CAP_SU_BEAMFORMEE_CAP) |
+              (pBeaconStruct->VHTCaps.csnofBeamformerAntSup <<
+                                   SIR_MAC_VHT_CAP_CSN_BEAMORMER_ANT_SUP) |
+              (pBeaconStruct->VHTCaps.numSoundingDim <<
+                                        SIR_MAC_VHT_CAP_NUM_SOUNDING_DIM) |
+              (pBeaconStruct->VHTCaps.muBeamformerCap <<
+                                      SIR_MAC_VHT_CAP_NUM_BEAM_FORMER_CAP)|
+              (pBeaconStruct->VHTCaps.muBeamformeeCap <<
+                                     SIR_MAC_VHT_CAP_NUM_BEAM_FORMEE_CAP) |
+              (pBeaconStruct->VHTCaps.vhtTXOPPS << SIR_MAC_VHT_CAP_TXOPPS) |
+              (pBeaconStruct->VHTCaps.htcVHTCap << SIR_MAC_VHT_CAP_HTC_CAP) |
+              (pBeaconStruct->VHTCaps.maxAMPDULenExp <<
+                                 SIR_MAC_VHT_CAP_MAX_AMDU_LEN_EXPO) |
+              (pBeaconStruct->VHTCaps.vhtLinkAdaptCap <<
+                                    SIR_MAC_VHT_CAP_LINK_ADAPT_CAP) |
+              (pBeaconStruct->VHTCaps.rxAntPattern <<
+                                SIR_MAC_VHT_CAP_RX_ANTENNA_PATTERN) |
+              (pBeaconStruct->VHTCaps.txAntPattern <<
+                                SIR_MAC_VHT_CAP_TX_ANTENNA_PATTERN) |
+              (pBeaconStruct->VHTCaps.reserved1 << SIR_MAC_VHT_CAP_RESERVED2));
     }
     else
     {
@@ -680,7 +721,7 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
     tPowerdBm         regMax;
     tSchBeaconStruct  *pBeaconStruct;
     tANI_U32          selfDot11Mode;
-    ePhyChanBondState cbMode;
+    ePhyChanBondState cbEnabledMode;
 
     pBeaconStruct = vos_mem_malloc(sizeof(tSchBeaconStruct));
     if (NULL == pBeaconStruct)
@@ -815,14 +856,15 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
 
     if (pftSessionEntry->limRFBand == SIR_BAND_2_4_GHZ)
     {
-        cbMode = pMac->roam.configParam.channelBondingMode24GHz;
+        cbEnabledMode = pMac->roam.configParam.channelBondingMode24GHz;
     }
     else
     {
-        cbMode = pMac->roam.configParam.channelBondingMode5GHz;
+        cbEnabledMode = pMac->roam.configParam.channelBondingMode5GHz;
     }
     pftSessionEntry->htSupportedChannelWidthSet =
-               cbMode && pBeaconStruct->HTCaps.supportedChannelWidthSet;
+               (pBeaconStruct->HTInfo.present)?
+               (cbEnabledMode && pBeaconStruct->HTInfo.recommendedTxWidthSet):0;
     pftSessionEntry->htRecommendedTxWidthSet =
                pftSessionEntry->htSupportedChannelWidthSet;
 

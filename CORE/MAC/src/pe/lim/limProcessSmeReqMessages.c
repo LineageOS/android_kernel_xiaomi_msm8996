@@ -1682,7 +1682,8 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         {
             limLog(pMac, LOGE, FL("Session Already exists for given BSSID"));
 
-            if(psessionEntry->limSmeState == eLIM_SME_LINK_EST_STATE)
+            if(psessionEntry->limSmeState == eLIM_SME_LINK_EST_STATE &&
+               psessionEntry->smeSessionId == pSmeJoinReq->sessionId)
             {
                 // Received eWNI_SME_JOIN_REQ for same
                 // BSS as currently associated.
