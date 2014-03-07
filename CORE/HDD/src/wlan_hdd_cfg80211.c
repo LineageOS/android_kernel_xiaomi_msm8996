@@ -104,6 +104,32 @@
 #define GET_IE_LEN_IN_BSS_DESC(lenInBss) ( lenInBss + sizeof(lenInBss) - \
         ((uintptr_t)OFFSET_OF( tSirBssDescription, ieFields)))
 
+/* For IBSS, enable obss, fromllb, overlapOBSS & overlapFromllb protection
+   check. The bit map is defined in:
+
+    typedef struct sCfgProtection
+    {
+        tANI_U32 overlapFromlla:1;
+        tANI_U32 overlapFromllb:1;
+        tANI_U32 overlapFromllg:1;
+        tANI_U32 overlapHt20:1;
+        tANI_U32 overlapNonGf:1;
+        tANI_U32 overlapLsigTxop:1;
+        tANI_U32 overlapRifs:1;
+        tANI_U32 overlapOBSS:1;
+        tANI_U32 fromlla:1;
+        tANI_U32 fromllb:1;
+        tANI_U32 fromllg:1;
+        tANI_U32 ht20:1;
+        tANI_U32 nonGf:1;
+        tANI_U32 lsigTxop:1;
+        tANI_U32 rifs:1;
+        tANI_U32 obss:1;
+    }tCfgProtection, *tpCfgProtection;
+
+*/
+#define IBSS_CFG_PROTECTION_ENABLE_MASK 0x8282
+
 #define HDD2GHZCHAN(freq, chan, flag)   {     \
     .band =  IEEE80211_BAND_2GHZ, \
     .center_freq = (freq), \
@@ -6882,6 +6908,9 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
                 "%s Interface type is not set to IBSS \n", __func__);
         return -EINVAL;
     }
+
+    /* enable selected protection checks in IBSS mode */
+    pRoamProfile->cfg_protection = IBSS_CFG_PROTECTION_ENABLE_MASK;
 
     /* BSSID is provided by upper layers hence no need to AUTO generate */
     if (NULL != params->bssid) {
