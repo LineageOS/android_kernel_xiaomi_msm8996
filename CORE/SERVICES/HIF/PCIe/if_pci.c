@@ -525,6 +525,9 @@ wlan_tasklet(unsigned long data)
     }
 
     (irqreturn_t)HIF_fw_interrupt_handler(sc->irq_event, sc);
+    if (sc->ol_sc->target_status == OL_TRGET_STATUS_RESET)
+        goto irq_handled;
+
     CE_per_engine_service_any(sc->irq_event, sc);
     adf_os_atomic_set(&sc->tasklet_from_intr, 0);
     if (CE_get_rx_pending(sc)) {
@@ -537,7 +540,8 @@ wlan_tasklet(unsigned long data)
         return;
     }
 irq_handled:
-    if (LEGACY_INTERRUPTS(sc)) {
+    if (LEGACY_INTERRUPTS(sc) && (sc->ol_sc->target_status !=
+                                  OL_TRGET_STATUS_RESET)) {
 
         if (sc->hif_init_done == TRUE)
             A_TARGET_ACCESS_BEGIN(hif_state->targid);
