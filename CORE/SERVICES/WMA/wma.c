@@ -4010,7 +4010,10 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		       WMITLV_TAG_ARRAY_UINT32,
 		       (cmd->num_chan * sizeof(u_int32_t)));
 	buf_ptr += WMI_TLV_HDR_SIZE + (cmd->num_chan * sizeof(u_int32_t));
-
+	if (scan_req->numSsid > SIR_SCAN_MAX_NUM_SSID) {
+		WMA_LOGE("Invalid value for numSsid");
+		goto error;
+	}
 	cmd->num_ssids = scan_req->numSsid;
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_FIXED_STRUC,
 		       (cmd->num_ssids * sizeof(wmi_ssid)));
@@ -4985,7 +4988,10 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle)
                 wma_handle->vos_context);
     wmi_start_scan_cmd_fixed_param scan_params;
     wmi_ap_profile ap_profile;
-
+    if (NULL == pMac) {
+            WMA_LOGE("%s: Failed to get pMac", __func__);
+            return VOS_STATUS_E_FAILURE;
+    }
     /* first program the parameters to conservative values so that roaming scan won't be
      * triggered before association completes
      */
