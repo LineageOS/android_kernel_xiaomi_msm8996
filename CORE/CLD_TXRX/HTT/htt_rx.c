@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1237,6 +1237,9 @@ htt_rx_restitch_mpdu_from_msdus(
 
     prev_buf = mpdu_buf;
     dest = adf_nbuf_put_tail(prev_buf, wifi_hdr_len);
+    if (!dest) {
+        goto mpdu_stitch_fail;
+    }
     adf_os_mem_copy(dest, hdr_desc, wifi_hdr_len);
     hdr_desc += wifi_hdr_len;
 

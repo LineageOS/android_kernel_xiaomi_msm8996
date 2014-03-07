@@ -1670,6 +1670,11 @@ void *tl_shim_get_vdev_by_addr(void *vos_context, uint8_t *mac_addr)
 	}
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_context);
+	if (!pdev) {
+		TLSHIM_LOGE("PDEV [%pM] not found", mac_addr);
+		return NULL;
+	}
+
 	peer = ol_txrx_find_peer_by_addr(pdev, mac_addr, &peer_id);
 
 	if (!peer) {
@@ -1694,6 +1699,10 @@ void *tl_shim_get_vdev_by_sta_id(void *vos_context, uint8_t sta_id)
 	}
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_context);
+	if (!pdev) {
+                TLSHIM_LOGE("PDEV not found for sta_id [%d]", sta_id);
+		return NULL;
+	}
 
 	peer = ol_txrx_peer_find_by_local_id(pdev, sta_id);
 
