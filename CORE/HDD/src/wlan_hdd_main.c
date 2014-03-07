@@ -90,7 +90,7 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #include <linux/semaphore.h>
 #include <linux/ctype.h>
 #ifdef MSM_PLATFORM
-#include <mach/subsystem_restart.h>
+#include <soc/qcom/subsystem_restart.h>
 #endif
 #include <wlan_hdd_hostapd.h>
 #include <wlan_hdd_softap_tx_rx.h>
