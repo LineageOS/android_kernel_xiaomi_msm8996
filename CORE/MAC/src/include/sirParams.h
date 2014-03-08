@@ -144,6 +144,13 @@ typedef struct sSirMsgQ
      */
     void *bodyptr;
     tANI_U32 bodyval;
+
+    /*
+     * Some messages provide a callback function.  The function signature
+     * must be agreed upon between the two entities exchanging the message
+     */
+    void *callback;
+
 } tSirMsgQ, *tpSirMsgQ;
 
 /// Mailbox Message Structure Define
@@ -650,6 +657,7 @@ typedef struct sSirMbMsgP2p
 
 #define SIR_HAL_SET_TX_POWER_LIMIT         (SIR_HAL_ITC_MSG_TYPES_BEGIN + 251)
 #define SIR_HAL_SET_SAP_INTRABSS_DIS       (SIR_HAL_ITC_MSG_TYPES_BEGIN + 252)
+#define SIR_HAL_FW_STATS_IND               (SIR_HAL_ITC_MSG_TYPES_BEGIN + 253)
 
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -46,7 +46,7 @@
 #include "vos_api.h"
 
 #include "dma-mapping.h"
-#include <mach/subsystem_restart.h>
+#include <soc/qcom/subsystem_restart.h>
 #include <linux/wcnss_wlan.h>
 
 typedef struct sPalStruct

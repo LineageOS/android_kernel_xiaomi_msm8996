@@ -267,7 +267,9 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
     .ht_cap.cap            =  IEEE80211_HT_CAP_SGI_20
                             | IEEE80211_HT_CAP_GRN_FLD
                             | IEEE80211_HT_CAP_DSSSCCK40
-                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT,
+                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT
+                            | IEEE80211_HT_CAP_SGI_40
+                            | IEEE80211_HT_CAP_SUP_WIDTH_20_40,
     .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
     .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
     .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -1909,6 +1911,38 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
     return status;
 }
 
+/*
+ * FUNCTION: wlan_hdd_set_acs_allowed_channels
+ * set only allowed channel for ACS
+ * input channel list is a string with comma separated
+ * channel number, the first number is the total number
+ * of channels specified. e.g. 4,1,6,9,36
+ */
+static void wlan_hdd_set_acs_allowed_channels(
+                                             char *acsAllowedChnls,
+                                             char *acsSapChnlList,
+                                             int length)
+{
+    char *p;
+
+    /* a white space is required at the beginning of the
+       string to be properly parsed by function
+       sapSetPreferredChannel later */
+    strlcpy(acsSapChnlList, " ", length);
+    strlcat(acsSapChnlList, acsAllowedChnls, length);
+    p = acsSapChnlList;
+    while (*p)
+    {
+        /* looking for comma, replace it with white space */
+        if (*p == ',')
+            *p = ' ';
+
+        p++;
+    }
+
+    return;
+}
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
 static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                             struct beacon_parameters *params)
@@ -1967,6 +2001,13 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                                       pConfig->dtim_period);
 
     pConfig->enOverLapCh = !!pHddCtx->cfg_ini->gEnableOverLapCh;
+    if (strlen(iniConfig->acsAllowedChnls) > 0)
+    {
+        wlan_hdd_set_acs_allowed_channels(
+                                     iniConfig->acsAllowedChnls,
+                                     pConfig->acsAllowedChnls,
+                                     sizeof(pConfig->acsAllowedChnls));
+    }
 
     if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP)
     {
@@ -2780,7 +2821,6 @@ static int wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
 
 #endif //(LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0))
 
-
 static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
                                       struct net_device *dev,
                                       struct bss_parameters *params)
@@ -2789,12 +2829,21 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     int ret = 0;
     eHalStatus halStatus;
+    v_CONTEXT_t pVosContext = pHddCtx->pvosContext;
+    ptSapContext pSapCtx = NULL;
 
     ENTER();
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d, ap_isolate = %d",
                                __func__,pAdapter->device_mode,
                                params->ap_isolate);
+    if (!pVosContext)
+        return -EINVAL;
+
+    pSapCtx = VOS_GET_SAP_CB(pVosContext);
+
+    if (!pSapCtx)
+        return -EINVAL;
 
     if((pAdapter->device_mode == WLAN_HDD_SOFTAP)
      ||  (pAdapter->device_mode == WLAN_HDD_P2P_GO)
@@ -2807,7 +2856,7 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
             pAdapter->sessionCtx.ap.apDisableIntraBssFwd = !!params->ap_isolate;
 
             halStatus = sme_ApDisableIntraBssFwd(pHddCtx->hHal,
-                        pAdapter->sessionId,
+                        pSapCtx->sessionId,
                         pAdapter->sessionCtx.ap.apDisableIntraBssFwd);
             if (!HAL_STATUS_SUCCESS(halStatus))
             {

@@ -879,8 +879,13 @@ ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
 CDEFINES +=	-DWLANTL_DEBUG
 else
 CDEFINES +=	-DOSIF_NEED_RX_PEER_ID \
-		-DQCA_SUPPORT_TXRX_LOCAL_PEER_ID \
-		-DQCA_PKT_PROTO_TRACE
+		-DQCA_SUPPORT_TXRX_LOCAL_PEER_ID
+endif
+
+ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
+ifeq ($(CONFIG_DEBUG_LL),y)
+CDEFINES +=    	-DQCA_PKT_PROTO_TRACE
+endif
 endif
 
 ifneq ($(CONFIG_QCA_CLD_WLAN),)
@@ -1108,6 +1113,11 @@ endif
 ifeq ($(CONFIG_SMP),y)
 CDEFINES += -DQCA_CONFIG_SMP
 endif
+endif
+
+#enable wlan auto shutdown feature for mdm9630
+ifeq ($(CONFIG_ARCH_MDM9630), y)
+CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN
 endif
 
 #Open P2P device interface only for non-MDM9630 platform

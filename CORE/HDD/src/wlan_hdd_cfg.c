@@ -216,6 +216,30 @@ static void cbNotifySetNeighborScanMaxChanTime(hdd_context_t *pHddCtx, unsigned 
 {
     sme_setNeighborScanMaxChanTime((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nNeighborScanMaxChanTime);
 }
+static void cbNotifySetRoamBmissFirstBcnt(hdd_context_t *pHddCtx,
+                                          unsigned long NotifyId)
+{
+    /*
+     * at the point this routine is called, the value in the cfg_ini table
+     * has already been updated
+     */
+    sme_SetRoamBmissFirstBcnt((tHalHandle)(pHddCtx->hHal),
+                              pHddCtx->cfg_ini->nRoamBmissFirstBcnt);
+}
+
+static void cbNotifySetRoamBmissFinalBcnt(hdd_context_t *pHddCtx,
+                                          unsigned long NotifyId)
+{
+    sme_SetRoamBmissFinalBcnt((tHalHandle)(pHddCtx->hHal),
+                              pHddCtx->cfg_ini->nRoamBmissFinalBcnt);
+}
+
+static void cbNotifySetRoamBeaconRssiWeight(hdd_context_t *pHddCtx,
+                                          unsigned long NotifyId)
+{
+    sme_SetRoamBeaconRssiWeight((tHalHandle)(pHddCtx->hHal),
+                              pHddCtx->cfg_ini->nRoamBeaconRssiWeight);
+}
 #endif
 
 static void cbNotifySetEnableSSR(hdd_context_t *pHddCtx, unsigned long NotifyId)
@@ -1819,6 +1843,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_AP_AUTO_SHUT_OFF_MIN,
                  CFG_AP_AUTO_SHUT_OFF_MAX ),
 
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+   REG_VARIABLE( CFG_WLAN_AUTO_SHUTDOWN , WLAN_PARAM_Integer,
+                 hdd_config_t, WlanAutoShutdown,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_WLAN_AUTO_SHUTDOWN_DEFAULT,
+                 CFG_WLAN_AUTO_SHUTDOWN_MIN,
+                 CFG_WLAN_AUTO_SHUTDOWN_MAX ),
+#endif
 #if defined WLAN_FEATURE_VOWIFI
    REG_VARIABLE( CFG_RRM_ENABLE_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fRrmEnable,
@@ -1941,6 +1973,30 @@ REG_TABLE_ENTRY g_registry_table[] =
                          CFG_EMPTY_SCAN_REFRESH_PERIOD_MIN,
                          CFG_EMPTY_SCAN_REFRESH_PERIOD_MAX,
                          cbNotifySetEmptyScanRefreshPeriod, 0 ),
+
+   REG_DYNAMIC_VARIABLE( CFG_ROAM_BMISS_FIRST_BCNT_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, nRoamBmissFirstBcnt,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_ROAM_BMISS_FIRST_BCNT_DEFAULT,
+               CFG_ROAM_BMISS_FIRST_BCNT_MIN,
+               CFG_ROAM_BMISS_FIRST_BCNT_MAX,
+               cbNotifySetRoamBmissFirstBcnt, 0 ),
+
+   REG_DYNAMIC_VARIABLE( CFG_ROAM_BMISS_FINAL_BCNT_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, nRoamBmissFinalBcnt,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_ROAM_BMISS_FINAL_BCNT_DEFAULT,
+               CFG_ROAM_BMISS_FINAL_BCNT_MIN,
+               CFG_ROAM_BMISS_FINAL_BCNT_MAX,
+               cbNotifySetRoamBmissFinalBcnt, 0 ),
+
+   REG_DYNAMIC_VARIABLE( CFG_ROAM_BEACON_RSSI_WEIGHT_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, nRoamBeaconRssiWeight,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_ROAM_BEACON_RSSI_WEIGHT_DEFAULT,
+               CFG_ROAM_BEACON_RSSI_WEIGHT_MIN,
+               CFG_ROAM_BEACON_RSSI_WEIGHT_MAX,
+               cbNotifySetRoamBeaconRssiWeight, 0 ),
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
 
    REG_VARIABLE( CFG_QOS_WMM_BURST_SIZE_DEFN_NAME , WLAN_PARAM_Integer,
@@ -3111,13 +3167,16 @@ REG_VARIABLE( CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_NAME, WLAN_PARAM_Integer,
               CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_DEFAULT,
               CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MIN,
               CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MAX ),
-
 REG_VARIABLE( CFG_ENABLE_OVERLAP_CH, WLAN_PARAM_Integer,
                hdd_config_t, gEnableOverLapCh,
                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
                CFG_ENABLE_OVERLAP_CH_DEFAULT,
                CFG_ENABLE_OVERLAP_CH_MIN,
                CFG_ENABLE_OVERLAP_CH_MAX ),
+REG_VARIABLE_STRING( CFG_ONLY_ALLOWED_CHANNELS, WLAN_PARAM_String,
+                     hdd_config_t, acsAllowedChnls,
+                     VAR_FLAGS_OPTIONAL,
+                     (void *)CFG_ONLY_ALLOWED_CHANNELS_DEFAULT),
 };
 
 /*
@@ -3350,7 +3409,9 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
       pHddCtx->cfg_ini->apCntryCode[2]);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]", pHddCtx->cfg_ini->apProtEnabled);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPAutoShutOff] Value = [%u]\n", pHddCtx->cfg_ini->nAPAutoShutOff);
-
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gWlanAutoShutdown] Value = [%u]\n", pHddCtx->cfg_ini->WlanAutoShutdown);
+#endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]\n", pHddCtx->cfg_ini->nEnableListenMode);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApProtection] value = [%u]\n",pHddCtx->cfg_ini->apProtection);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApOBSSProt] value = [%u]\n",pHddCtx->cfg_ini->apOBSSProtEnabled);
@@ -3443,6 +3504,15 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanPeriod] Value = [%u] ",pHddCtx->cfg_ini->nNeighborScanPeriod);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanResultsRefreshPeriod] Value = [%u] ",pHddCtx->cfg_ini->nNeighborResultsRefreshPeriod);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nEmptyScanRefreshPeriod] Value = [%u] ",pHddCtx->cfg_ini->nEmptyScanRefreshPeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [nRoamBmissFirstBcnt] Value = [%u] ",
+            pHddCtx->cfg_ini->nRoamBmissFirstBcnt);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [nRoamBmissFinalBcnt] Value = [%u] ",
+            pHddCtx->cfg_ini->nRoamBmissFinalBcnt);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [nRoamBeaconRssiWeight] Value = [%u] ",
+            pHddCtx->cfg_ini->nRoamBeaconRssiWeight);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [burstSizeDefinition] Value = [0x%x] ",pHddCtx->cfg_ini->burstSizeDefinition);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [tsInfoAckPolicy] Value = [0x%x] ",pHddCtx->cfg_ini->tsInfoAckPolicy);
@@ -5146,6 +5216,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                                         smeConfig.csrConfig.neighborRoamConfig.neighborScanChanList.channelList,
                                         &smeConfig.csrConfig.neighborRoamConfig.neighborScanChanList.numChannels,
                                         WNI_CFG_VALID_CHANNEL_LIST_LEN );
+   smeConfig.csrConfig.neighborRoamConfig.nRoamBmissFirstBcnt = pConfig->nRoamBmissFirstBcnt;
+   smeConfig.csrConfig.neighborRoamConfig.nRoamBmissFinalBcnt = pConfig->nRoamBmissFinalBcnt;
+   smeConfig.csrConfig.neighborRoamConfig.nRoamBeaconRssiWeight = pConfig->nRoamBeaconRssiWeight;
 #endif
 
    smeConfig.csrConfig.addTSWhenACMIsOff = pConfig->AddTSWhenACMIsOff;

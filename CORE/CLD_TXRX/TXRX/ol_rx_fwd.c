@@ -186,10 +186,17 @@ ol_rx_fwd_check(
              * from the target, so we can locate the tx vdev.
              */
             tx_vdev = vdev;
-            /* Copying TID value of RX packet to forwarded
-             * packet
+            /*
+             * Copying TID value of RX packet to forwarded
+             * packet if the tid is other than non qos tid.
+             * But for non qos tid fill invalid tid so that
+             * Fw will take care of filling proper tid.
              */
-            adf_nbuf_set_tid(msdu, tid);
+            if (tid != HTT_NON_QOS_TID) {
+                adf_nbuf_set_tid(msdu, tid);
+            } else {
+                adf_nbuf_set_tid(msdu, ADF_NBUF_TX_EXT_TID_INVALID);
+            }
             /*
              * This MSDU needs to be forwarded to the tx path.
              * Check whether it also needs to be sent to the OS shim,

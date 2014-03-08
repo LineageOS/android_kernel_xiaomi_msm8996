@@ -105,6 +105,7 @@ when           who                what, where, why
 #define       MAX_NAME_SIZE                64
 #define       MAX_TEXT_SIZE                32
 
+#define       MAX_CHANNEL_LIST_LEN         256
 
 /*--------------------------------------------------------------------------
   reasonCode take form 802.11 standard Table 7-22 to be passed to WLANSAP_DisassocSta api.
@@ -454,6 +455,7 @@ typedef struct sap_Config {
     v_U8_t          disableDFSChSwitch;
     eCsrBand        scanBandPreference;
     v_BOOL_t        enOverLapCh;
+    char            acsAllowedChnls[MAX_CHANNEL_LIST_LEN];
 } tsap_Config_t;
 
 typedef enum {
