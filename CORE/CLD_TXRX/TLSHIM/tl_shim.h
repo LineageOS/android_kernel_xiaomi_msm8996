@@ -51,6 +51,8 @@ struct tlshim_sta_info {
 	bool registered;
 	bool suspend_flush;
 	WLANTL_STARxCBType data_rx;
+	/* To protect stainfo data like registered and data_rx */
+	adf_os_spinlock_t stainfo_lock;
 	struct list_head cached_bufq;
 	unsigned long flags;
 };

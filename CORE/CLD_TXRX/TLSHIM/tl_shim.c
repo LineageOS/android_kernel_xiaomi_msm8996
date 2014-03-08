@@ -648,9 +648,17 @@ static void tl_shim_flush_rx_frames(void *vos_ctx,
 	struct tlshim_sta_info *sta_info = &tl_shim->sta_info[sta_id];
 	struct tlshim_buf *cache_buf, *tmp;
 	VOS_STATUS ret;
+	WLANTL_STARxCBType data_rx = NULL;
 
 	if (test_and_set_bit(TLSHIM_FLUSH_CACHE_IN_PROGRESS, &sta_info->flags))
 		return;
+
+	adf_os_spin_lock_bh(&sta_info->stainfo_lock);
+	if (sta_info->registered)
+		data_rx = sta_info->data_rx;
+	else
+		drop = true;
+	adf_os_spin_unlock_bh(&sta_info->stainfo_lock);
 
 	adf_os_spin_lock_bh(&tl_shim->bufq_lock);
 	list_for_each_entry_safe(cache_buf, tmp,
@@ -661,8 +669,7 @@ static void tl_shim_flush_rx_frames(void *vos_ctx,
 			adf_nbuf_free(cache_buf->buf);
 		else {
 			/* Flush the cached frames to HDD */
-			ret = sta_info->data_rx(vos_ctx, cache_buf->buf,
-						sta_id);
+			ret = data_rx(vos_ctx, cache_buf->buf, sta_id);
 			if (ret != VOS_STATUS_SUCCESS)
 				adf_nbuf_free(cache_buf->buf);
 		}
@@ -680,13 +687,19 @@ static void tlshim_data_rx_cb(struct txrx_tl_shim_ctx *tl_shim,
 	struct tlshim_sta_info *sta_info;
 	adf_nbuf_t buf, next_buf;
 	VOS_STATUS ret;
+	WLANTL_STARxCBType data_rx = NULL;
 
 	if (unlikely(!vos_ctx))
 		goto free_buf;
 
 	sta_info = &tl_shim->sta_info[staid];
-	if (unlikely(!sta_info->registered))
+	adf_os_spin_lock_bh(&sta_info->stainfo_lock);
+	if (unlikely(!sta_info->registered)) {
+		adf_os_spin_unlock_bh(&sta_info->stainfo_lock);
 		goto free_buf;
+	}
+	data_rx = sta_info->data_rx;
+	adf_os_spin_unlock_bh(&sta_info->stainfo_lock);
 
 	adf_os_spin_lock_bh(&tl_shim->bufq_lock);
 	if (!list_empty(&sta_info->cached_bufq)) {
@@ -700,7 +713,7 @@ static void tlshim_data_rx_cb(struct txrx_tl_shim_ctx *tl_shim,
 	buf = buf_list;
 	while (buf) {
 		next_buf = adf_nbuf_queue_next(buf);
-		ret = sta_info->data_rx(vos_ctx, buf, staid);
+		ret = data_rx(vos_ctx, buf, staid);
 		if (ret != VOS_STATUS_SUCCESS) {
 			TLSHIM_LOGE("Frame Rx to HDD failed");
 			adf_nbuf_free(buf);
@@ -732,6 +745,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 #endif
 	struct tlshim_sta_info *sta_info;
 	adf_nbuf_t buf, next_buf;
+	WLANTL_STARxCBType data_rx = NULL;
 
 	if (staid >= WLAN_MAX_STA_COUNT) {
 		TLSHIM_LOGE("Invalid sta id :%d", staid);
@@ -741,12 +755,17 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 	tl_shim = (struct txrx_tl_shim_ctx *) context;
 	sta_info = &tl_shim->sta_info[staid];
 
+	adf_os_spin_lock_bh(&sta_info->stainfo_lock);
+	if (sta_info->registered)
+		data_rx = sta_info->data_rx;
+	adf_os_spin_unlock_bh(&sta_info->stainfo_lock);
+
 	/*
 	 * If there is a data frame from peer before the peer is
 	 * registered for data service, enqueue them on to pending queue
 	 * which will be flushed to HDD once that station is registered.
 	 */
-	if (!sta_info->registered) {
+	if (!data_rx) {
 		struct tlshim_buf *cache_buf;
 		buf = rx_buf_list;
 		while (buf) {
@@ -764,7 +783,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 			}
 			buf = next_buf;
 		}
-	} else if (sta_info->data_rx) { /* Send rx packet to HDD if there is no frame pending in cached_bufq */
+	} else { /* Send rx packet to HDD if there is no frame pending in cached_bufq */
 		/* Suspend frames flush from timer */
 		/*
 		 * TODO: Need to see if acquiring/releasing lock even when
@@ -779,7 +798,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 
 		/* Flush the cached frames to HDD before passing new rx frame */
 		tl_shim_flush_rx_frames(vos_ctx, tl_shim, staid, 0);
-		ret = sta_info->data_rx(vos_ctx, rx_buf_list, staid);
+		ret = data_rx(vos_ctx, rx_buf_list, staid);
 		if (ret == VOS_STATUS_E_INVAL) {
 #endif
 
@@ -833,8 +852,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 #ifdef IPA_OFFLOAD
 	}
 #endif
-	} else /* This should not happen if sta_info->registered is true */
-		goto drop_rx_buf;
+	}
 
 	return;
 
@@ -1442,7 +1460,6 @@ VOS_STATUS WLANTL_ClearSTAClient(void *vos_ctx, u_int8_t sta_id)
 		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
-	tl_shim->sta_info[sta_id].registered = 0;
 
 #ifdef QCA_CONFIG_SMP
 	{
@@ -1459,7 +1476,10 @@ VOS_STATUS WLANTL_ClearSTAClient(void *vos_ctx, u_int8_t sta_id)
 	tl_shim->sta_info[sta_id].suspend_flush = 0;
 	adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
 
+	adf_os_spin_lock_bh(&tl_shim->sta_info[sta_id].stainfo_lock);
+	tl_shim->sta_info[sta_id].registered = 0;
 	tl_shim->sta_info[sta_id].data_rx = NULL;
+	adf_os_spin_unlock_bh(&tl_shim->sta_info[sta_id].stainfo_lock);
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -1479,6 +1499,7 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 	struct txrx_tl_shim_ctx *tl_shim;
 	struct ol_txrx_peer_t *peer;
 	ol_txrx_peer_update_param_t param;
+	struct tlshim_sta_info *sta_info;
 
 	ENTER();
 	if (sta_desc->ucSTAId >= WLAN_MAX_STA_COUNT) {
@@ -1496,8 +1517,13 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 		TLSHIM_LOGE("tl_shim is NULL");
 		return VOS_STATUS_E_FAULT;
 	}
-	tl_shim->sta_info[sta_desc->ucSTAId].data_rx = rxcb;
-	tl_shim->sta_info[sta_desc->ucSTAId].registered = true;
+
+	sta_info = &tl_shim->sta_info[sta_desc->ucSTAId];
+	adf_os_spin_lock_bh(&sta_info->stainfo_lock);
+	sta_info->data_rx = rxcb;
+	sta_info->registered = true;
+	adf_os_spin_unlock_bh(&sta_info->stainfo_lock);
+
 	param.qos_capable =  sta_desc->ucQosEnabled;
 	wdi_in_peer_update(peer->vdev, peer->mac_addr.raw, &param,
 			   ol_txrx_peer_update_qos_capable);
@@ -1594,6 +1620,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 
 	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
 		tl_shim->sta_info[i].suspend_flush = 0;
+		adf_os_spinlock_init(&tl_shim->sta_info[i].stainfo_lock);
 		tl_shim->sta_info[i].flags = 0;
 		INIT_LIST_HEAD(&tl_shim->sta_info[i].cached_bufq);
 	}
