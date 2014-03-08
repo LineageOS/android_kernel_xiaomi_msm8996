@@ -858,7 +858,8 @@ int wmi_get_host_credits(wmi_unified_t wmi_handle)
 {
 	int host_credits;
 
-	HTCGetHostCredits(wmi_handle->htc_handle, &host_credits);
+	HTCGetControlEndpointTxHostCredits(wmi_handle->htc_handle,
+					   &host_credits);
 	return host_credits;
 }
 

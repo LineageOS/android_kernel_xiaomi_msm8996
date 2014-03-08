@@ -1223,6 +1223,7 @@ static iw_softap_setparam(struct net_device *dev,
                 rateUpdate->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
                 rateUpdate->dev_mode = pHostapdAdapter->device_mode;
                 rateUpdate->mcastDataRate24GHz = set_value;
+                rateUpdate->mcastDataRate24GHzTxFlag = 1;
                 rateUpdate->mcastDataRate5GHz = set_value;
                 rateUpdate->bcastDataRate = -1;
                 status = sme_SendRateUpdateInd(hHal, rateUpdate);

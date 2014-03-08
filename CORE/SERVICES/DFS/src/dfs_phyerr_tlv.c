@@ -175,7 +175,7 @@ radar_summary_parse(struct ath_dfs *dfs, const char *buf, size_t len,
    if (len < sizeof(rs)) {
       DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR |
           ATH_DEBUG_DFS_PHYERR_SUM,
-          "%s: len (%d) < expected (%d)!",
+          "%s: len (%d) < expected (%zu)!",
           __func__,
           len,
           sizeof(rs));
@@ -223,7 +223,7 @@ radar_fft_search_report_parse(struct ath_dfs *dfs, const char *buf, size_t len,
    if (len < sizeof(rs)) {
       DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR |
           ATH_DEBUG_DFS_PHYERR_SUM,
-          "%s: len (%d) < expected (%d)!",
+          "%s: len (%d) < expected (%zu)!",
           __func__,
           len,
           sizeof(rs));
@@ -276,7 +276,7 @@ tlv_parse_frame(struct ath_dfs *dfs, struct rx_radar_status *rs,
         bool false_detect = false;
 
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-       "%s: total length = %d bytes", __func__, len);
+       "%s: total length = %zu bytes", __func__, len);
    while ((i < len ) && (false_detect == false)) {
       /* Ensure we at least have four bytes */
       if ((len - i) < sizeof(tlv_hdr)) {
