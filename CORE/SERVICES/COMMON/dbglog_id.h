@@ -719,7 +719,10 @@ extern "C" {
 #define RESOURCE_PEER_ALLOC                         1
 #define RESOURCE_PEER_FREE                          2
 #define RESOURCE_PEER_ALLOC_WAL_PEER                3
-#define RESOURCE_DBGID_DEFINITION_END               4
+#define RESOURCE_PEER_NBRHOOD_MGMT_ALLOC            4
+#define RESOURCE_PEER_NBRHOOD_MGMT_INFO             5
+#define RESOURCE_DBGID_DEFINITION_END               6
+
 /* DCS debug IDs*/
 #define WLAN_DCS_DBGID_INIT                         0
 #define WLAN_DCS_DBGID_WMI_CWINT                    1
@@ -860,7 +863,9 @@ extern "C" {
 #define ROAM_CANCEL_LOW_PRIO_SCAN 29
 #define ROAM_FINAL_BMISS_RECVD    30
 #define ROAM_CONFIG_SCAN_MODE     31
-#define ROAM_DBGID_DEFINITION_END 32
+#define ROAM_BMISS_FINAL_SCAN_ENABLE 32
+#define ROAM_SUITABLE_AP_EVENT    33
+#define ROAM_DBGID_DEFINITION_END 34
 
 /* DATA_TXRX module DBGIDs*/
 #define DATA_TXRX_DBGID_DEFINITION_START         0

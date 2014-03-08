@@ -194,7 +194,7 @@ WLANSAP_ScanCallback
                     the selected sub-band so select default channel in the
                     BAND(2.4GHz/5GHZ) */
                  ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
-                 if(RF_SUBBAND_2_4_GHZ == operatingBand )
+                 if(eSAP_RF_SUBBAND_2_4_GHZ == operatingBand )
                      psapContext->channel = SAP_DEFAULT_CHANNEL;
                  else
                      psapContext->channel = SAP_DEFAULT_5GHZ_CHANNEL;

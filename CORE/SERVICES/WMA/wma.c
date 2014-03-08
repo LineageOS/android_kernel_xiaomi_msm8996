@@ -958,6 +958,7 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		iface = &wma->interfaces[resp_event->vdev_id];
 		ol_txrx_vdev_flush(iface->handle);
 		wdi_in_vdev_unpause(iface->handle);
+		iface->pause_bitmap = 0;
 		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
 			 __func__, iface->type, iface->sub_type);
@@ -5901,6 +5902,7 @@ void wma_vdev_resp_timer(void *data)
 		}
 		ol_txrx_vdev_flush(iface->handle);
 		wdi_in_vdev_unpause(iface->handle);
+		iface->pause_bitmap = 0;
 		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
 			 __func__, iface->type, iface->sub_type);
@@ -19161,4 +19163,29 @@ void ol_rx_err(ol_pdev_handle pdev, u_int8_t vdev_id,
         mic_err_ind->info.multicast = IEEE80211_IS_MULTICAST(eth_hdr->ether_dhost);
 	adf_os_mem_copy(mic_err_ind->info.TSC, pn, SIR_CIPHER_SEQ_CTR_SIZE);
 	wma_send_msg(wma, SIR_HAL_MIC_FAILURE_IND, (void *) mic_err_ind, 0);
+}
+
+void WDA_TxAbort(v_U8_t vdev_id)
+{
+#define PEER_ALL_TID_BITMASK 0xffffffff
+	tp_wma_handle wma;
+	u_int32_t peer_tid_bitmap = PEER_ALL_TID_BITMASK;
+	struct wma_txrx_node *iface;
+
+	wma = vos_get_context(VOS_MODULE_ID_WDA,
+			      vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+	iface = &wma->interfaces[vdev_id];
+	if (!wma || !iface->handle) {
+		WMA_LOGE("%s: Failed to get handle wma: %p iface: %p",
+			 __func__, wma, iface->handle);
+		return;
+	}
+	WMA_LOGA("%s: vdevid %d bssid %pM", __func__, vdev_id, iface->bssid);
+	iface->pause_bitmap |= (1 << PAUSE_TYPE_HOST);
+	wdi_in_vdev_pause(iface->handle);
+
+	/* Flush all TIDs except MGMT TID for this peer in Target */
+	peer_tid_bitmap &= ~(0x1 << WMI_MGMT_TID);
+	wmi_unified_peer_flush_tids_send(wma->wmi_handle, iface->bssid,
+					 peer_tid_bitmap, vdev_id);
 }

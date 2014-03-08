@@ -496,6 +496,9 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     {
         pMac->lim.deauthMsgCnt = 0;
     }
+    if (eLIM_STA_ROLE == psessionEntry->limSystemRole)
+        WDA_TxAbort(psessionEntry->smeSessionId);
+
     /// Deauthentication from peer MAC entity
     limPostSmeMessage(pMac, LIM_MLM_DEAUTH_IND, (tANI_U32 *) &mlmDeauthInd);
 
