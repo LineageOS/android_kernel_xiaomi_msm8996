@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -170,7 +170,7 @@ eHalStatus csrTdlsChangePeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr 
     //If connected and in Infra. Only then allow this
     if (CSR_IS_SESSION_VALID( pMac, sessionId ) &&
         csrIsConnStateConnectedInfra( pMac, sessionId ) &&
-        (NULL != peerMac)){
+        (NULL != peerMac) && (NULL != pstaParams)) {
 
         tdlsAddStaCmd = csrGetCommandBuffer(pMac) ;
 
