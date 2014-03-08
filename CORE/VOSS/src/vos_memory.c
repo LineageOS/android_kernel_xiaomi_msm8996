@@ -190,7 +190,7 @@ v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
        return NULL;
    }
 
-   if (in_interrupt())
+   if (in_interrupt() || in_atomic())
    {
        flags = GFP_ATOMIC;
    }
@@ -273,7 +273,7 @@ v_VOID_t * vos_mem_malloc( v_SIZE_t size )
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: called with arg > 1024K; passed in %d !!!", __func__,size);
        return NULL;
    }
-   if (in_interrupt() || irqs_disabled())
+   if (in_interrupt() || irqs_disabled() || in_atomic())
    {
       flags = GFP_ATOMIC;
    }
