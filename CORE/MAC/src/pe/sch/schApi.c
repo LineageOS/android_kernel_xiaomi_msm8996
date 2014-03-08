@@ -315,6 +315,7 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
       schLog(pMac, LOGE,FL("Invalid p2pIeOffset:[%d]"),
               pMac->sch.schObject.p2pIeOffset);
       VOS_ASSERT( 0 );
+      vos_mem_free(beaconParams);
       return eSIR_FAILURE;
   }
   beaconParams->p2pIeOffset = pMac->sch.schObject.p2pIeOffset;
