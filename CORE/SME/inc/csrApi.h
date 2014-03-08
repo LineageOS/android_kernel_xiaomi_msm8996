@@ -973,6 +973,9 @@ typedef struct tagCsrNeighborRoamConfigParams
     tANI_U16       nEmptyScanRefreshPeriod;
     tANI_U8        nOpportunisticThresholdDiff;
     tANI_U8        nRoamRescanRssiDiff;
+    tANI_U8        nRoamBmissFirstBcnt;
+    tANI_U8        nRoamBmissFinalBcnt;
+    tANI_U8        nRoamBeaconRssiWeight;
 }tCsrNeighborRoamConfigParams;
 #endif
 

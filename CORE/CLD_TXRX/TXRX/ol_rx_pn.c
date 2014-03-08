@@ -154,6 +154,10 @@ ol_rx_pn_check_base(
 
         if (pn_is_replay) {
             adf_nbuf_t msdu;
+            static u_int32_t last_pncheck_print_time = 0;
+            int log_level;
+            u_int32_t current_time_ms;
+
             /*
              * This MPDU failed the PN check:
              * 1.  Notify the control SW of the PN failure
@@ -161,7 +165,17 @@ ol_rx_pn_check_base(
              * 2.  Discard all the MSDUs from this MPDU.
              */
             msdu = mpdu;
-            TXRX_PRINT(TXRX_PRINT_LEVEL_WARN,
+            current_time_ms = adf_os_ticks_to_msecs(adf_os_ticks());
+            if (TXRX_PN_CHECK_FAILURE_PRINT_PERIOD_MS <
+                     (current_time_ms - last_pncheck_print_time)) {
+                last_pncheck_print_time = current_time_ms;
+                log_level = TXRX_PRINT_LEVEL_WARN;
+            }
+            else {
+                log_level = TXRX_PRINT_LEVEL_INFO2;
+            }
+
+            TXRX_PRINT(log_level,
                 "PN check failed - TID %d, peer %p "
                 "(%02x:%02x:%02x:%02x:%02x:%02x) %s\n"
                 "    old PN (u64 x2)= 0x%08llx %08llx (LSBs = %lld)\n"

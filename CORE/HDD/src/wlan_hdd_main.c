@@ -90,7 +90,7 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #include <linux/semaphore.h>
 #include <linux/ctype.h>
 #ifdef MSM_PLATFORM
-#include <mach/subsystem_restart.h>
+#include <soc/qcom/subsystem_restart.h>
 #endif
 #include <wlan_hdd_hostapd.h>
 #include <wlan_hdd_softap_tx_rx.h>
@@ -249,7 +249,9 @@ extern int hdd_ftm_start(hdd_context_t *pHddCtx);
 extern int hdd_ftm_stop(hdd_context_t *pHddCtx);
 #endif
 #endif
-
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+v_VOID_t wlan_hdd_auto_shutdown_cb(v_PVOID_t data);
+#endif
 
 #if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
 VOS_STATUS hdd_parse_get_cckm_ie(tANI_U8 *pValue,
@@ -8585,7 +8587,13 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 #ifdef IPA_OFFLOAD
    hdd_ipa_cleanup(pHddCtx);
 #endif
-
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+    if (pHddCtx->cfg_ini->WlanAutoShutdown != 0) {
+        vosStatus = vos_timer_destroy(&pHddCtx->hdd_wlan_shutdown_timer);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+            hddLog(LOGE, FL("Failed to Destroy wlan auto shutdown timer"));
+    }
+#endif
    //Free up dynamically allocated members inside HDD Adapter
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
@@ -9345,7 +9353,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (status != VOS_STATUS_SUCCESS) {
       hddLog(VOS_TRACE_LEVEL_FATAL,
              "%s: Failed to init channel list", __func__);
-      goto err_vosclose;
+      goto err_wiphy_unregister;
    }
 
    if (0 == enable_dfs_chan_scan || 1 == enable_dfs_chan_scan)
@@ -9369,7 +9377,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if ( VOS_STATUS_SUCCESS != status )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed hdd_set_sme_config", __func__);
-      goto err_vosclose;
+      goto err_wiphy_unregister;
    }
 
    //Initialize the WMM module
@@ -9377,7 +9385,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __func__);
-      goto err_vosclose;
+      goto err_wiphy_unregister;
    }
 
    /* In the integrated architecture we update the configuration from
@@ -9388,7 +9396,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (FALSE == hdd_update_config_dat(pHddCtx))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: config update failed",__func__ );
-      goto err_vosclose;
+      goto err_wiphy_unregister;
    }
 
    // Apply the NV to cfg.dat
@@ -9469,7 +9477,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       {
          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed to set MAC Address. "
                 "HALStatus is %08d [x%08x]",__func__, halStatus, halStatus );
-         goto err_vosclose;
+         goto err_wiphy_unregister;
       }
    }
 
@@ -9478,7 +9486,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
-      goto err_vosclose;
+      goto err_wiphy_unregister;
    }
 
 #ifdef FEATURE_WLAN_CH_AVOID
@@ -9834,6 +9842,16 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 	goto err_nl_srv;
 #endif
 
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+    if (pHddCtx->cfg_ini->WlanAutoShutdown != 0) {
+        status = vos_timer_init( &pHddCtx->hdd_wlan_shutdown_timer,
+                                VOS_TIMER_TYPE_SW, wlan_hdd_auto_shutdown_cb,
+                                                                        NULL);
+        if (!VOS_IS_STATUS_SUCCESS(status))
+           hddLog(LOGE, FL("Failed to init wlan auto shutdown timer\n"));
+    }
+#endif
+
 #ifndef QCA_WIFI_ISOC
    /* Thermal Mitigation */
    thermalParam.smeThermalMgmtEnabled =
@@ -9924,6 +9942,11 @@ err_close_adapter:
 err_vosstop:
    vos_stop(pVosContext);
 
+err_wiphy_unregister:
+#ifdef CONFIG_ENABLE_LINUX_REG
+   wiphy_unregister(wiphy);
+#endif
+
 err_vosclose:
    status = vos_sched_close( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(status))    {
@@ -9933,12 +9956,10 @@ err_vosclose:
    }
    vos_close(pVosContext );
 
-#ifdef CONFIG_ENABLE_LINUX_REG
-   wiphy_unregister(wiphy);
-
 err_vos_nv_close:
-   vos_nv_close();
 
+#ifdef CONFIG_ENABLE_LINUX_REG
+   vos_nv_close();
 err_clkvote:
 #endif
 
@@ -11031,6 +11052,13 @@ void wlan_hdd_send_svc_nlink_msg(int type)
         nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr)));
         skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr)));
         break;
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+    case WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND:
+        ani_hdr->length = 0;
+        nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr)));
+        skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr)));
+        break;
+#endif
     default:
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "WLAN SVC: Attempt to send unknown nlink message %d\n", type);
@@ -11042,6 +11070,73 @@ void wlan_hdd_send_svc_nlink_msg(int type)
 
     return;
 }
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+v_VOID_t wlan_hdd_auto_shutdown_cb(v_PVOID_t data)
+{
+    hddLog(LOGE, FL("%s: Wlan Idle. Sending Shutdown event.."),__func__);
+    wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND);
+}
+
+void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
+{
+    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+    VOS_STATUS status;
+    hdd_adapter_t      *pAdapter;
+    v_BOOL_t ap_connected = VOS_FALSE, sta_connected = VOS_FALSE;
+
+    if (hdd_ctx->cfg_ini->WlanAutoShutdown == 0)
+        return;
+
+    if (enable == VOS_FALSE) {
+        if (hdd_ctx->hdd_wlan_shutdown_timer.state == VOS_TIMER_STATE_RUNNING) {
+            vos_status = vos_timer_stop(&hdd_ctx->hdd_wlan_shutdown_timer);
+            if (!VOS_IS_STATUS_SUCCESS(vos_status))
+               hddLog(LOGE, FL("Failed to stop wlan auto shutdown timer"));
+        }
+        return;
+    }
+
+    /* To enable shutdown timer check conncurrency */
+    if (vos_concurrent_sessions_running()) {
+        status = hdd_get_front_adapter ( hdd_ctx, &pAdapterNode );
+
+        while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status ) {
+            pAdapter = pAdapterNode->pAdapter;
+            if (pAdapter && pAdapter->device_mode == WLAN_HDD_INFRA_STATION) {
+                if (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)->conn_info.connState
+                                               == eConnectionState_Associated) {
+                    sta_connected = VOS_TRUE;
+                    break;
+                }
+            }
+            if (pAdapter && pAdapter->device_mode == WLAN_HDD_SOFTAP) {
+                if(WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->bApActive == VOS_TRUE) {
+                    ap_connected = VOS_TRUE;
+                    break;
+                }
+            }
+            status = hdd_get_next_adapter ( hdd_ctx, pAdapterNode, &pNext );
+            pAdapterNode = pNext;
+        }
+    }
+
+    if (ap_connected == VOS_TRUE || sta_connected == VOS_TRUE) {
+            hddLog(LOGE, FL("CC Session active. Shutdown timer not enabled"));
+            return;
+    } else {
+        if (hdd_ctx->hdd_wlan_shutdown_timer.state == VOS_TIMER_STATE_STOPPED) {
+            vos_status = vos_timer_start( &hdd_ctx->hdd_wlan_shutdown_timer,
+                                   hdd_ctx->cfg_ini->WlanAutoShutdown * 1000);
+
+            if (!VOS_IS_STATUS_SUCCESS(vos_status))
+               hddLog(LOGE, FL("Failed to start wlan auto shutdown timer"));
+        }
+
+    }
+}
+#endif
+
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);

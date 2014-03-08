@@ -456,6 +456,13 @@ typedef enum
 #define CFG_AP_AUTO_SHUT_OFF_MAX            ( 4294967295UL )
 #define CFG_AP_AUTO_SHUT_OFF_DEFAULT        ( 0 )
 
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+#define CFG_WLAN_AUTO_SHUTDOWN              "gWlanAutoShutdown"
+#define CFG_WLAN_AUTO_SHUTDOWN_MIN          ( 0 )
+#define CFG_WLAN_AUTO_SHUTDOWN_MAX          ( 86400 ) /* Max 1 day timeout */
+#define CFG_WLAN_AUTO_SHUTDOWN_DEFAULT      ( 0 )
+#endif
+
 #define CFG_FRAMES_PROCESSING_TH_MODE_NAME     "gMinFramesProcThres"
 #define CFG_FRAMES_PROCESSING_TH_MIN           ( 0 )
 #define CFG_FRAMES_PROCESSING_TH_MAX           ( 39 )
@@ -622,7 +629,6 @@ typedef enum
 #define CFG_NUM_P2P_CHAN_COMBINED_CONC_MIN              ( 1 )
 #define CFG_NUM_P2P_CHAN_COMBINED_CONC_MAX              ( 255 )
 #define CFG_NUM_P2P_CHAN_COMBINED_CONC_DEFAULT          ( 1 )
-
 #endif
 
 #define CFG_MAX_PS_POLL_NAME                   "gMaxPsPoll"
@@ -1266,6 +1272,21 @@ typedef enum
 #define CFG_EMPTY_SCAN_REFRESH_PERIOD_MIN          (0)
 #define CFG_EMPTY_SCAN_REFRESH_PERIOD_MAX          (60000)
 #define CFG_EMPTY_SCAN_REFRESH_PERIOD_DEFAULT      (0)
+
+#define CFG_ROAM_BMISS_FIRST_BCNT_NAME                  "gRoamBmissFirstBcnt"
+#define CFG_ROAM_BMISS_FIRST_BCNT_MIN                   (5)
+#define CFG_ROAM_BMISS_FIRST_BCNT_MAX                   (100)
+#define CFG_ROAM_BMISS_FIRST_BCNT_DEFAULT               (10)
+
+#define CFG_ROAM_BMISS_FINAL_BCNT_NAME                  "gRoamBmissFinalBcnt"
+#define CFG_ROAM_BMISS_FINAL_BCNT_MIN                   (5)
+#define CFG_ROAM_BMISS_FINAL_BCNT_MAX                   (100)
+#define CFG_ROAM_BMISS_FINAL_BCNT_DEFAULT               (10)
+
+#define CFG_ROAM_BEACON_RSSI_WEIGHT_NAME                "gRoamBeaconRssiWeight"
+#define CFG_ROAM_BEACON_RSSI_WEIGHT_MIN                 (0)
+#define CFG_ROAM_BEACON_RSSI_WEIGHT_MAX                 (16)
+#define CFG_ROAM_BEACON_RSSI_WEIGHT_DEFAULT             (14)
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
 
 #define CFG_QOS_WMM_BURST_SIZE_DEFN_NAME                        "burstSizeDefinition"
@@ -1573,6 +1594,9 @@ typedef enum
 #define CFG_SAP_AUTO_CHANNEL_SELECTION_MIN        ( 0 )
 #define CFG_SAP_AUTO_CHANNEL_SELECTION_MAX        ( 1 )
 #define CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT    ( 0 )
+
+#define CFG_ONLY_ALLOWED_CHANNELS                   "gACSAllowedChannels"
+#define CFG_ONLY_ALLOWED_CHANNELS_DEFAULT           ""
 
 /*BMPS Logic
  * Notes:
@@ -2374,6 +2398,9 @@ typedef struct
    v_U16_t       nMaxNeighborReqTries;
    v_U16_t       nNeighborResultsRefreshPeriod;
    v_U16_t       nEmptyScanRefreshPeriod;
+   v_U8_t        nRoamBmissFirstBcnt;
+   v_U8_t        nRoamBmissFinalBcnt;
+   v_U8_t        nRoamBeaconRssiWeight;
 #endif
 
    //Additional Handoff params
@@ -2676,6 +2703,9 @@ typedef struct
    v_BOOL_t                    IpaRMEnable;
    v_U32_t                     IpaDescSize;
 #endif
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+   v_U32_t                     WlanAutoShutdown;
+#endif
    v_U8_t                      maxWoWFilters;
    v_U8_t                      wowEnable;
    v_U8_t                      maxNumberOfPeers;
@@ -2696,6 +2726,7 @@ typedef struct
    v_U8_t                      enableRxThread;
    v_BOOL_t                    fDfsPhyerrFilterOffload;
    v_BOOL_t                    gEnableOverLapCh;
+   char                        acsAllowedChnls[CFG_MAX_STR_LEN];
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation

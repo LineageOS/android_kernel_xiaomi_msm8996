@@ -1208,9 +1208,11 @@ VOS_STATUS vos_nv_open(void)
        vos_mem_free(pnvData);
     }
 
+#ifdef CONFIG_QCA_WIFI_ISOC
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
            "INFO: NV binary file version=%d Driver default NV version=%d, continue...",
            gnvEFSTable->halnv.fields.nvVersion, WLAN_NV_VERSION);
+#endif
 
      /* Copying the read nv data to the globa NV EFS table */
     {
@@ -1230,9 +1232,11 @@ VOS_STATUS vos_nv_open(void)
         if ( nvReadBufSize != bufSize)
         {
             pnvEFSTable->nvValidityBitmap = DEFAULT_NV_VALIDITY_BITMAP;
+#ifdef CONFIG_QCA_WIFI_ISOC
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                       "!!!WARNING: INVALID NV FILE, DRIVER IS USING DEFAULT CAL VALUES %d %d!!!",
                       nvReadBufSize, bufSize);
+#endif
             return VOS_STATUS_SUCCESS;
         }
 

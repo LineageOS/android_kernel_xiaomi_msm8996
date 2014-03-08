@@ -738,6 +738,8 @@ struct hdd_ap_ctx_s
    tCsrRoamSetKey wepKey[CSR_MAX_NUM_KEY];
 
    beacon_data_t *beacon;
+
+   v_BOOL_t bApActive;
 };
 
 struct hdd_mon_ctx_s
@@ -1294,6 +1296,11 @@ struct hdd_context_s
     v_U8_t current_intf_count;
 
     tSirScanType ioctl_scan_mode;
+
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+    vos_timer_t hdd_wlan_shutdown_timer;
+#endif
+
 };
 
 
@@ -1432,5 +1439,7 @@ void hdd_deinit_batch_scan(hdd_adapter_t *pAdapter);
 #endif /*End of FEATURE_WLAN_BATCH_SCAN*/
 
 void wlan_hdd_send_svc_nlink_msg(int type);
-
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_U8_t enable);
+#endif
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

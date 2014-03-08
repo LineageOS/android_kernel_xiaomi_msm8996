@@ -128,6 +128,10 @@ extern unsigned g_txrx_print_level;
 #define TXRX_PRINT_VERBOSE(fmt, ...)
 #endif /* TXRX_PRINT_VERBOSE_ENABLE */
 
+/* define PN check failure message print rate
+   as 1 second */
+#define TXRX_PN_CHECK_FAILURE_PRINT_PERIOD_MS  1000
+
 #else
 #define TXRX_PRINT(level, fmt, ...)
 #define TXRX_PRINT_VERBOSE(fmt, ...)

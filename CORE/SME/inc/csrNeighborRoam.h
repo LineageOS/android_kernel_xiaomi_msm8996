@@ -71,6 +71,9 @@ typedef struct sCsrNeighborRoamCfgParams
     tANI_U16        emptyScanRefreshPeriod;
     tANI_U8         nOpportunisticThresholdDiff;
     tANI_U8         nRoamRescanRssiDiff;
+    tANI_U8         nRoamBmissFirstBcnt;
+    tANI_U8         nRoamBmissFinalBcnt;
+    tANI_U8         nRoamBeaconRssiWeight;
 } tCsrNeighborRoamCfgParams, *tpCsrNeighborRoamCfgParams;
 
 #define CSR_NEIGHBOR_ROAM_INVALID_CHANNEL_INDEX    255
@@ -205,6 +208,9 @@ typedef struct sCsrNeighborRoamControlInfo
 #endif
     tSmeFastRoamTrigger         cfgRoamEn;
     tSirMacAddr                 cfgRoambssId;
+    tANI_U8                     currentRoamBmissFirstBcnt;
+    tANI_U8                     currentRoamBmissFinalBcnt;
+    tANI_U8                     currentRoamBeaconRssiWeight;
 } tCsrNeighborRoamControlInfo, *tpCsrNeighborRoamControlInfo;
 
 
@@ -236,6 +242,15 @@ csrNeighborRoamSetOpportunisticScanThresholdDiff(tpAniSirGlobal pMac,
 VOS_STATUS
 csrNeighborRoamSetRoamRescanRssiDiff(tpAniSirGlobal pMac,
                                      v_U8_t nRoamRescanRssiDiff);
+VOS_STATUS
+csrNeighborRoamSetRoamBmissFirstBcnt(tpAniSirGlobal pMac,
+                                     v_U8_t nRoamBmissFirstBcnt);
+VOS_STATUS
+csrNeighborRoamSetRoamBmissFinalBcnt(tpAniSirGlobal pMac,
+                                     v_U8_t nRoamBmissFinalBcnt);
+VOS_STATUS
+csrNeighborRoamSetRoamBeaconRssiWeight(tpAniSirGlobal pMac,
+                                     v_U8_t nRoamBeaconRssiWeight);
 VOS_STATUS csrNeighborRoamUpdateFastRoamingEnabled(tpAniSirGlobal pMac, const v_BOOL_t fastRoamEnabled);
 VOS_STATUS csrNeighborRoamUpdateCcxModeEnabled(tpAniSirGlobal pMac, const v_BOOL_t ccxMode);
 VOS_STATUS csrNeighborRoamChannelsFilterByCurrentBand(
@@ -280,6 +295,9 @@ VOS_STATUS csrNeighborRoamMergeChannelLists(tpAniSirGlobal pMac,
 #define REASON_SCAN_HOME_TIME_CHANGED               17
 #define REASON_OPPORTUNISTIC_THRESH_DIFF_CHANGED    18
 #define REASON_ROAM_RESCAN_RSSI_DIFF_CHANGED        19
+#define REASON_ROAM_BMISS_FIRST_BCNT_CHANGED        20
+#define REASON_ROAM_BMISS_FINAL_BCNT_CHANGED        21
+#define REASON_ROAM_BEACON_RSSI_WEIGHT_CHANGED      22
 eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 command, tANI_U8 reason);
 eHalStatus csrNeighborRoamCandidateFoundIndHdlr(tpAniSirGlobal pMac, void* pMsg);
 eHalStatus csrNeighborRoamHandoffReqHdlr(tpAniSirGlobal pMac, void* pMsg);

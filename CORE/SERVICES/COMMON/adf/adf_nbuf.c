@@ -388,9 +388,8 @@ __adf_nbuf_reg_trace_cb(adf_nbuf_trace_update_t cb_func_ptr)
 
 #ifdef QCA_PKT_PROTO_TRACE
 void
-__adf_nbuf_trace_update(adf_nbuf_t buf, char *event_string)
+__adf_nbuf_trace_update(struct sk_buff *buf, char *event_string)
 {
-
    char string_buf[NBUF_PKT_TRAC_MAX_STRING];
 
    if ((!trace_update_cb) || (!event_string)) {
@@ -402,7 +401,7 @@ __adf_nbuf_trace_update(adf_nbuf_t buf, char *event_string)
    }
 
    /* Buffer over flow */
-   if (NBUF_PKT_TRAC_MAX_STRING <
+   if (NBUF_PKT_TRAC_MAX_STRING <=
        (adf_os_str_len(event_string) + NBUF_PKT_TRAC_PROTO_STRING)) {
       return;
    }

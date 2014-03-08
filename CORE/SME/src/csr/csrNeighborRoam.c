@@ -619,6 +619,164 @@ csrNeighborRoamSetRoamRescanRssiDiff(tpAniSirGlobal pMac,
     return vosStatus;
 }
 
+VOS_STATUS
+csrNeighborRoamSetRoamBmissFirstBcnt(tpAniSirGlobal pMac,
+                                     v_U8_t nRoamBmissFirstBcnt)
+{
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+
+    if (eCSR_NEIGHBOR_ROAM_STATE_CONNECTED
+         == pMac->roam.neighborRoamInfo.neighborRoamState)
+    {
+        NEIGHBOR_ROAM_DEBUG(pMac,
+                            LOG2,
+                            FL("Currently in CONNECTED state, so deregister"
+                               " all and re-register for DOWN event again"));
+
+        pMac->roam.neighborRoamInfo.cfgParams.nRoamBmissFirstBcnt =
+            nRoamBmissFirstBcnt;
+        pMac->roam.neighborRoamInfo.currentRoamBmissFirstBcnt =
+            nRoamBmissFirstBcnt;
+
+        /* De-register existing lookup UP/DOWN, Rssi indications */
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+        if (pMac->roam.configParam.isRoamOffloadScanEnabled)
+        {
+            csrRoamOffloadScan(pMac,
+                               ROAM_SCAN_OFFLOAD_UPDATE_CFG,
+                               REASON_ROAM_BMISS_FIRST_BCNT_CHANGED);
+        }
+#endif
+    }
+    else if (eCSR_NEIGHBOR_ROAM_STATE_INIT
+      == pMac->roam.neighborRoamInfo.neighborRoamState)
+    {
+        NEIGHBOR_ROAM_DEBUG(pMac,
+                            LOG2,
+                            FL("Currently in INIT state, safe to set"
+                               " roam rescan rssi diff"));
+        pMac->roam.neighborRoamInfo.cfgParams.nRoamBmissFirstBcnt =
+            nRoamBmissFirstBcnt;
+        pMac->roam.neighborRoamInfo.currentRoamBmissFirstBcnt =
+            nRoamBmissFirstBcnt;
+    }
+    else
+    {
+        NEIGHBOR_ROAM_DEBUG(pMac,
+                            LOGE,
+                            FL("Unexpected state %d"
+                              " returning failure"),
+                            pMac->roam.neighborRoamInfo.neighborRoamState);
+        vosStatus = VOS_STATUS_E_FAILURE;
+    }
+    return vosStatus;
+}
+
+VOS_STATUS
+csrNeighborRoamSetRoamBmissFinalBcnt(tpAniSirGlobal pMac,
+                                     v_U8_t nRoamBmissFinalBcnt)
+{
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+
+    if (eCSR_NEIGHBOR_ROAM_STATE_CONNECTED
+         == pMac->roam.neighborRoamInfo.neighborRoamState)
+    {
+        NEIGHBOR_ROAM_DEBUG(pMac,
+                            LOG2,
+                            FL("Currently in CONNECTED state, so deregister"
+                               " all and re-register for DOWN event again"));
+
+        pMac->roam.neighborRoamInfo.cfgParams.nRoamBmissFinalBcnt =
+            nRoamBmissFinalBcnt;
+        pMac->roam.neighborRoamInfo.currentRoamBmissFinalBcnt =
+            nRoamBmissFinalBcnt;
+
+        /* De-register existing lookup UP/DOWN, Rssi indications */
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+        if (pMac->roam.configParam.isRoamOffloadScanEnabled)
+        {
+            csrRoamOffloadScan(pMac,
+                               ROAM_SCAN_OFFLOAD_UPDATE_CFG,
+                               REASON_ROAM_BMISS_FINAL_BCNT_CHANGED);
+        }
+#endif
+    }
+    else if (eCSR_NEIGHBOR_ROAM_STATE_INIT
+      == pMac->roam.neighborRoamInfo.neighborRoamState)
+    {
+        NEIGHBOR_ROAM_DEBUG(pMac,
+                            LOG2,
+                            FL("Currently in INIT state, safe to set"
+                               " roam rescan rssi diff"));
+        pMac->roam.neighborRoamInfo.cfgParams.nRoamBmissFinalBcnt =
+            nRoamBmissFinalBcnt;
+        pMac->roam.neighborRoamInfo.currentRoamBmissFinalBcnt =
+            nRoamBmissFinalBcnt;
+    }
+    else
+    {
+        NEIGHBOR_ROAM_DEBUG(pMac,
+                            LOGE,
+                            FL("Unexpected state %d"
+                              " returning failure"),
+                            pMac->roam.neighborRoamInfo.neighborRoamState);
+        vosStatus = VOS_STATUS_E_FAILURE;
+    }
+    return vosStatus;
+}
+
+VOS_STATUS
+csrNeighborRoamSetRoamBeaconRssiWeight(tpAniSirGlobal pMac,
+                                     v_U8_t nRoamBeaconRssiWeight)
+{
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+
+    if (eCSR_NEIGHBOR_ROAM_STATE_CONNECTED
+         == pMac->roam.neighborRoamInfo.neighborRoamState)
+    {
+        NEIGHBOR_ROAM_DEBUG(pMac,
+                            LOG2,
+                            FL("Currently in CONNECTED state, so deregister"
+                               " all and re-register for DOWN event again"));
+
+        pMac->roam.neighborRoamInfo.cfgParams.nRoamBeaconRssiWeight =
+            nRoamBeaconRssiWeight;
+        pMac->roam.neighborRoamInfo.currentRoamBeaconRssiWeight =
+            nRoamBeaconRssiWeight;
+
+        /* De-register existing lookup UP/DOWN, Rssi indications */
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+        if (pMac->roam.configParam.isRoamOffloadScanEnabled)
+        {
+            csrRoamOffloadScan(pMac,
+                               ROAM_SCAN_OFFLOAD_UPDATE_CFG,
+                               REASON_ROAM_BEACON_RSSI_WEIGHT_CHANGED);
+        }
+#endif
+    }
+    else if (eCSR_NEIGHBOR_ROAM_STATE_INIT
+      == pMac->roam.neighborRoamInfo.neighborRoamState)
+    {
+        NEIGHBOR_ROAM_DEBUG(pMac,
+                            LOG2,
+                            FL("Currently in INIT state, safe to set"
+                               " roam rescan rssi diff"));
+        pMac->roam.neighborRoamInfo.cfgParams.nRoamBeaconRssiWeight =
+            nRoamBeaconRssiWeight;
+        pMac->roam.neighborRoamInfo.currentRoamBeaconRssiWeight =
+            nRoamBeaconRssiWeight;
+    }
+    else
+    {
+        NEIGHBOR_ROAM_DEBUG(pMac,
+                            LOGE,
+                            FL("Unexpected state %d"
+                              " returning failure"),
+                            pMac->roam.neighborRoamInfo.neighborRoamState);
+        vosStatus = VOS_STATUS_E_FAILURE;
+    }
+    return vosStatus;
+}
 /* ---------------------------------------------------------------------------
 
     \fn csrNeighborRoamReassocIndCallback
@@ -821,6 +979,12 @@ static void csrNeighborRoamDeregAllRssiIndication(tpAniSirGlobal pMac)
                 pNeighborRoamInfo->cfgParams.nOpportunisticThresholdDiff;
         pNeighborRoamInfo->currentRoamRescanRssiDiff =
                 pNeighborRoamInfo->cfgParams.nRoamRescanRssiDiff;
+        pNeighborRoamInfo->currentRoamBmissFirstBcnt =
+                pNeighborRoamInfo->cfgParams.nRoamBmissFirstBcnt;
+        pNeighborRoamInfo->currentRoamBmissFinalBcnt =
+                pNeighborRoamInfo->cfgParams.nRoamBmissFinalBcnt;
+        pNeighborRoamInfo->currentRoamBeaconRssiWeight =
+                pNeighborRoamInfo->cfgParams.nRoamBeaconRssiWeight;
 #ifdef FEATURE_WLAN_LFR
         pNeighborRoamInfo->uEmptyScanCount = 0;
         pNeighborRoamInfo->lookupDOWNRssi = 0;
@@ -4259,6 +4423,12 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac, tANI_U8 sessionId
                 pNeighborRoamInfo->cfgParams.nOpportunisticThresholdDiff;
             pNeighborRoamInfo->currentRoamRescanRssiDiff =
                 pNeighborRoamInfo->cfgParams.nRoamRescanRssiDiff;
+            pNeighborRoamInfo->currentRoamBmissFirstBcnt =
+                pNeighborRoamInfo->cfgParams.nRoamBmissFirstBcnt;
+            pNeighborRoamInfo->currentRoamBmissFinalBcnt =
+                pNeighborRoamInfo->cfgParams.nRoamBmissFinalBcnt;
+            pNeighborRoamInfo->currentRoamBeaconRssiWeight =
+                pNeighborRoamInfo->cfgParams.nRoamBeaconRssiWeight;
 #ifdef FEATURE_WLAN_LFR
             pNeighborRoamInfo->uEmptyScanCount = 0;
             pNeighborRoamInfo->lookupDOWNRssi = 0;
@@ -4448,6 +4618,12 @@ eHalStatus csrNeighborRoamInit(tpAniSirGlobal pMac)
         pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff;
     pNeighborRoamInfo->cfgParams.nRoamRescanRssiDiff =
         pMac->roam.configParam.neighborRoamConfig.nRoamRescanRssiDiff;
+    pNeighborRoamInfo->cfgParams.nRoamBmissFirstBcnt =
+        pMac->roam.configParam.neighborRoamConfig.nRoamBmissFirstBcnt;
+    pNeighborRoamInfo->cfgParams.nRoamBmissFinalBcnt =
+        pMac->roam.configParam.neighborRoamConfig.nRoamBmissFinalBcnt;
+    pNeighborRoamInfo->cfgParams.nRoamBeaconRssiWeight =
+        pMac->roam.configParam.neighborRoamConfig.nRoamBeaconRssiWeight;
     pNeighborRoamInfo->cfgParams.neighborReassocThreshold = pMac->roam.configParam.neighborRoamConfig.nNeighborReassocRssiThreshold;
     pNeighborRoamInfo->cfgParams.neighborScanPeriod = pMac->roam.configParam.neighborRoamConfig.nNeighborScanTimerPeriod;
     pNeighborRoamInfo->cfgParams.neighborResultsRefreshPeriod = pMac->roam.configParam.neighborRoamConfig.nNeighborResultsRefreshPeriod;
@@ -4476,6 +4652,12 @@ eHalStatus csrNeighborRoamInit(tpAniSirGlobal pMac)
         pMac->roam.neighborRoamInfo.cfgParams.nOpportunisticThresholdDiff;
     pNeighborRoamInfo->currentRoamRescanRssiDiff =
         pMac->roam.neighborRoamInfo.cfgParams.nRoamRescanRssiDiff;
+    pNeighborRoamInfo->currentRoamBmissFirstBcnt =
+        pMac->roam.neighborRoamInfo.cfgParams.nRoamBmissFirstBcnt;
+    pNeighborRoamInfo->currentRoamBmissFinalBcnt =
+        pMac->roam.neighborRoamInfo.cfgParams.nRoamBmissFinalBcnt;
+    pNeighborRoamInfo->currentRoamBeaconRssiWeight =
+        pMac->roam.neighborRoamInfo.cfgParams.nRoamBeaconRssiWeight;
 #ifdef FEATURE_WLAN_LFR
     pNeighborRoamInfo->lookupDOWNRssi = 0;
     pNeighborRoamInfo->uEmptyScanCount = 0;
