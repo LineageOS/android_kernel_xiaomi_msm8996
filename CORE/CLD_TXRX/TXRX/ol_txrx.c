@@ -211,7 +211,8 @@ OL_TXRX_LOCAL_PEER_ID_FREE(
     struct ol_txrx_peer_t *peer)
 {
     int i = peer->local_id;
-    if (i == OL_TXRX_INVALID_LOCAL_PEER_ID) {
+    if ((i == OL_TXRX_INVALID_LOCAL_PEER_ID) ||
+        (i >= OL_TXRX_NUM_LOCAL_PEER_IDS)) {
         return;
     }
     /* put this ID on the head of the freelist */
@@ -1288,7 +1289,7 @@ ol_txrx_peer_uapsdmask_get(struct ol_txrx_pdev_t *txrx_pdev, u_int16_t peer_id)
 
     struct ol_txrx_peer_t *peer;
     peer = ol_txrx_peer_find_by_id(txrx_pdev, peer_id);
-    if (!peer) {
+    if (peer) {
         return peer->uapsd_mask;
     }
 

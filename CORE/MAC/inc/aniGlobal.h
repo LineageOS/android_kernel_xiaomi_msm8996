@@ -657,7 +657,7 @@ typedef struct sAniSirLim
 
     // admission control policy information
     tLimAdmitPolicyInfo admitPolicyInfo;
-    vos_lock_t lkPeGlobalLock;
+    vos_spin_lock_t lkPeGlobalLock;
     tANI_U8 disableLDPCWithTxbfAP;
 #ifdef FEATURE_WLAN_TDLS
     tANI_U8 gLimTDLSBufStaEnabled;
