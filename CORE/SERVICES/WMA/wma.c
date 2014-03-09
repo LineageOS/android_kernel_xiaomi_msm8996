@@ -699,14 +699,6 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 	tgt_cfg.num_peers = no_of_peers_supported + CFG_TGT_NUM_VDEV + 2;
 	tgt_cfg.num_tids = (2 * (no_of_peers_supported + CFG_TGT_NUM_VDEV + 2));
 
-        /* Set the num of Keys per peer to 3 and 4 for Rome 1.1 and
-         * Rome 1.3 respectively
-         */
-        if (scn->target_version == AR6320_REV1_1_VERSION)
-            tgt_cfg.num_peer_keys = CFG_TGT_NUM_PEER_KEYS;
-        else
-            tgt_cfg.num_peer_keys = CFG_TGT_NUM_PEER_KEYS + 1;
-
 	WMITLV_SET_HDR(&tgt_cfg.tlv_header,WMITLV_TAG_STRUC_wmi_resource_config,
 		       WMITLV_GET_STRUCT_TLVLEN(wmi_resource_config));
 	/* reduce the peer/vdev if CFG_TGT_NUM_MSDU_DESC exceeds 1000 */
@@ -4010,7 +4002,10 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		       WMITLV_TAG_ARRAY_UINT32,
 		       (cmd->num_chan * sizeof(u_int32_t)));
 	buf_ptr += WMI_TLV_HDR_SIZE + (cmd->num_chan * sizeof(u_int32_t));
-
+	if (scan_req->numSsid > SIR_SCAN_MAX_NUM_SSID) {
+		WMA_LOGE("Invalid value for numSsid");
+		goto error;
+	}
 	cmd->num_ssids = scan_req->numSsid;
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_FIXED_STRUC,
 		       (cmd->num_ssids * sizeof(wmi_ssid)));
@@ -4985,7 +4980,10 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle)
                 wma_handle->vos_context);
     wmi_start_scan_cmd_fixed_param scan_params;
     wmi_ap_profile ap_profile;
-
+    if (NULL == pMac) {
+            WMA_LOGE("%s: Failed to get pMac", __func__);
+            return VOS_STATUS_E_FAILURE;
+    }
     /* first program the parameters to conservative values so that roaming scan won't be
      * triggered before association completes
      */

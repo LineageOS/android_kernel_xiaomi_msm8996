@@ -145,23 +145,25 @@ ol_tx_vdev_ll_pause_queue_send_base(struct ol_txrx_vdev_t *vdev)
         max_to_accept--;
         vdev->ll_pause.txq.depth--;
         tx_msdu = vdev->ll_pause.txq.head;
-        vdev->ll_pause.txq.head = adf_nbuf_next(tx_msdu);
-        if (NULL == vdev->ll_pause.txq.head) {
-            vdev->ll_pause.txq.tail = NULL;
-        }
-        adf_nbuf_set_next(tx_msdu, NULL);
-        tx_msdu = ol_tx_ll(vdev, tx_msdu);
-        /*
-         * It is unexpected that ol_tx_ll would reject the frame,
-         * since we checked that there's room for it, though there's
-         * an infinitesimal possibility that between the time we checked
-         * the room available and now, a concurrent batch of tx frames
-         * used up all the room.
-         * For simplicity, just drop the frame.
-         */
         if (tx_msdu) {
-            adf_nbuf_unmap(vdev->pdev->osdev, tx_msdu, ADF_OS_DMA_TO_DEVICE);
-            adf_nbuf_tx_free(tx_msdu, 1 /* error */);
+            vdev->ll_pause.txq.head = adf_nbuf_next(tx_msdu);
+            if (NULL == vdev->ll_pause.txq.head) {
+                vdev->ll_pause.txq.tail = NULL;
+            }
+            adf_nbuf_set_next(tx_msdu, NULL);
+            tx_msdu = ol_tx_ll(vdev, tx_msdu);
+            /*
+             * It is unexpected that ol_tx_ll would reject the frame,
+             * since we checked that there's room for it, though there's
+             * an infinitesimal possibility that between the time we checked
+             * the room available and now, a concurrent batch of tx frames
+             * used up all the room.
+             * For simplicity, just drop the frame.
+             */
+            if (tx_msdu) {
+                adf_nbuf_unmap(vdev->pdev->osdev, tx_msdu, ADF_OS_DMA_TO_DEVICE);
+                adf_nbuf_tx_free(tx_msdu, 1 /* error */);
+            }
         }
     }
     if (vdev->ll_pause.txq.depth) {

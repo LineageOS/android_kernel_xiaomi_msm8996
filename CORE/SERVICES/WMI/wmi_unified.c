@@ -52,6 +52,7 @@
 #define WMI_SLEEP_TO_FLUSH_HTC_QUEUE 40
 
 static void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf);
+int wmi_get_host_credits(wmi_unified_t wmi_handle);
 /* WMI buffer APIs */
 
 wmi_buf_t
@@ -529,6 +530,8 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 	if (adf_os_atomic_read(&wmi_handle->pending_cmds) >= WMI_MAX_CMDS) {
 		vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 		scn = vos_get_context(VOS_MODULE_ID_HIF, vos_context);
+		pr_err("\n%s: hostcredits = %d\n", __func__,
+		       wmi_get_host_credits(wmi_handle));
 		HTC_dump_counter_info(wmi_handle->htc_handle);
 		//dump_CE_register(scn);
 		//dump_CE_debug_register(scn->hif_sc);

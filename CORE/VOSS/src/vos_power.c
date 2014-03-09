@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -58,14 +58,6 @@ when       who     what, where, why
 
 ===========================================================================*/
 #include <vos_power.h>
-
-#ifdef MSM_PLATFORM
-#include <mach/mpp.h>
-#include <mach/vreg.h>
-#include <linux/err.h>
-#include <linux/delay.h>
-#endif //MSM_PLATFORM
-
 #include <vos_sched.h>
 
 //To work around issues of fail to turn WIFI back on after turning it off
