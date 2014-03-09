@@ -15058,6 +15058,26 @@ static void wma_set_vdev_intrabss_fwd(tp_wma_handle wma_handle,
 	wdi_in_vdev_rx_fwd_disabled(txrx_vdev, pdis_intra_fwd->disableintrabssfwd);
 }
 
+VOS_STATUS wma_notify_modem_power_state(void *wda_handle,
+			tSirModemPowerStateInd *pReq)
+{
+	int32_t ret;
+	tp_wma_handle wma = (tp_wma_handle)wda_handle;
+
+	WMA_LOGD("%s: WMA Notify Modem Power State %d", __func__, pReq->param);
+
+	ret = wmi_unified_modem_power_state(wma->wmi_handle, pReq->param);
+	if (ret) {
+		WMA_LOGE("%s: Fail to notify Modem Power State %d",
+		 __func__, pReq->param);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGD("Successfully notify Modem Power State %d", pReq->param);
+	return VOS_STATUS_SUCCESS;
+}
+
+
 /*
  * function   : wma_mc_process_msg
  * Descriptin :
@@ -15451,6 +15471,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_fw_stats_ind(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_MODEM_POWER_STATE_IND:
+			wma_notify_modem_power_state(wma_handle,
+					(tSirModemPowerStateInd *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -18459,23 +18483,6 @@ wma_process_ftm_command(tp_wma_handle wma_handle,
 	return VOS_STATUS_SUCCESS;
 }
 #endif
-
-VOS_STATUS WDA_notify_modem_power_state(void *wda_handle, tANI_U32 value)
-{
-	int32_t ret;
-	tp_wma_handle wma = (tp_wma_handle)wda_handle;
-
-	WMA_LOGD("%s: WMA Notify Modem Power State %d", __func__, value);
-
-	ret = wmi_unified_modem_power_state(wma->wmi_handle, value);
-	if (ret) {
-		WMA_LOGE("%s: Fail to notify Modem Power State %d", __func__, value);
-		return VOS_STATUS_E_FAILURE;
-	}
-
-	WMA_LOGD("Successfully notify Modem Power State %d", value);
-	return VOS_STATUS_SUCCESS;
-}
 
 /* Function to enable/disble Low Power Support(Pdev Specific) */
 VOS_STATUS WDA_SetIdlePsConfig(void *wda_handle, tANI_U32 idle_ps)
