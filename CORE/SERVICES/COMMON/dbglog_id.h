@@ -822,7 +822,14 @@ extern "C" {
 #define WOW_AP_VDEV_DISALLOW    11
 #define WOW_STA_VDEV_DISALLOW   12
 #define WOW_P2PGO_VDEV_DISALLOW 13
-#define WOW_DBGID_DEFINITION_END 14
+#define WOW_NS_OFLD_ENABLE       14
+#define WOW_ARP_OFLD_ENABLE      15
+#define WOW_NS_ARP_OFLD_DISABLE  16
+#define WOW_NS_RECEIVED          17
+#define WOW_NS_REPLIED           18
+#define WOW_ARP_RECEIVED         19
+#define WOW_ARP_REPLIED          20
+#define WOW_DBGID_DEFINITION_END 21
 
 /* SWBMISS module DBGIDs */
 #define SWBMISS_DBGID_DEFINITION_START  0
