@@ -398,13 +398,11 @@ A_STATUS HTCRxCompletionHandler(
                 break;
             case HTC_MSG_SEND_SUSPEND_COMPLETE:
                 wow_nack = 0;
-                target->HTCInitInfo.pContext = (void *)&wow_nack;
-                target->HTCInitInfo.TargetSendSuspendComplete(target->HTCInitInfo.pContext);
+                target->HTCInitInfo.TargetSendSuspendComplete((void *)&wow_nack);
                 break;
             case HTC_MSG_NACK_SUSPEND:
                 wow_nack = 1;
-                target->HTCInitInfo.pContext = (void *)&wow_nack;
-                target->HTCInitInfo.TargetSendSuspendComplete(target->HTCInitInfo.pContext);
+                target->HTCInitInfo.TargetSendSuspendComplete((void *)&wow_nack);
                 break;
             }
 
