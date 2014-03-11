@@ -166,11 +166,26 @@ HTC_PACKET *AllocateHTCBundlePacket(HTC_TARGET *target)
                 0,
                 4,
                 FALSE);
-	AR_DEBUG_ASSERT(netbuf);
+        AR_DEBUG_ASSERT(netbuf);
+        if (!netbuf)
+        {
+            return NULL;
+        }
         pPacket = adf_os_mem_alloc(NULL, sizeof(HTC_PACKET));
-	AR_DEBUG_ASSERT(pPacket);
+        AR_DEBUG_ASSERT(pPacket);
+        if (!pPacket)
+        {
+            adf_nbuf_free(netbuf);
+            return NULL;
+        }
         pQueueSave = adf_os_mem_alloc(NULL, sizeof(HTC_PACKET_QUEUE));
-	AR_DEBUG_ASSERT(pQueueSave);
+        AR_DEBUG_ASSERT(pQueueSave);
+        if (!pQueueSave)
+        {
+            adf_nbuf_free(netbuf);
+            A_FREE(pPacket);
+            return NULL;
+        }
         INIT_HTC_PACKET_QUEUE(pQueueSave);
         pPacket->pContext = pQueueSave;
         SET_HTC_PACKET_NET_BUF_CONTEXT(pPacket, netbuf);
@@ -178,11 +193,27 @@ HTC_PACKET *AllocateHTCBundlePacket(HTC_TARGET *target)
     }
 
     pPacket = target->pBundleFreeList;
+    AR_DEBUG_ASSERT(pPacket);
+    if (!pPacket)
+    {
+        UNLOCK_HTC_TX(target);
+        return NULL;
+    }
     target->pBundleFreeList = (HTC_PACKET *)pPacket->ListLink.pNext;
     UNLOCK_HTC_TX(target);
     netbuf = GET_HTC_PACKET_NET_BUF_CONTEXT(pPacket);
+    AR_DEBUG_ASSERT(netbuf);
+    if (!netbuf)
+    {
+        return NULL;
+    }
     adf_nbuf_trim_tail(netbuf, adf_nbuf_len(netbuf));
     pQueueSave = (HTC_PACKET_QUEUE*)pPacket->pContext;
+    AR_DEBUG_ASSERT(pQueueSave);
+    if (!pQueueSave)
+    {
+        return NULL;
+    }
     INIT_HTC_PACKET_QUEUE(pQueueSave);
     pPacket->ListLink.pNext = NULL;
     return pPacket;
@@ -255,6 +286,13 @@ static void HTCIssuePacketsBundle(HTC_TARGET *target,
 
    bundlesSpaceRemaining = HTC_HOST_MAX_MSG_PER_BUNDLE * pEndpoint->TxCreditSize;
    pPacketTx = AllocateHTCBundlePacket(target);
+   if (!pPacketTx)
+   {
+       //good time to panic
+       AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("AllocateHTCBundlePacket failed \n"));
+       AR_DEBUG_ASSERT(FALSE);
+       return;
+   }
    bundleBuf = GET_HTC_PACKET_NET_BUF_CONTEXT(pPacketTx);
    pBundleBuffer = adf_nbuf_data(bundleBuf);
    pQueueSave = (HTC_PACKET_QUEUE*)pPacketTx->pContext;
@@ -283,6 +321,13 @@ static void HTCIssuePacketsBundle(HTC_TARGET *target,
            }
            bundlesSpaceRemaining = HTC_HOST_MAX_MSG_PER_BUNDLE * pEndpoint->TxCreditSize;
            pPacketTx = AllocateHTCBundlePacket(target);
+           if (!pPacketTx)
+           {
+               //good time to panic
+               AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("AllocateHTCBundlePacket failed \n"));
+               AR_DEBUG_ASSERT(FALSE);
+               return;
+           }
            bundleBuf = GET_HTC_PACKET_NET_BUF_CONTEXT(pPacketTx);
            pBundleBuffer = adf_nbuf_data(bundleBuf);
            pQueueSave = (HTC_PACKET_QUEUE*)pPacketTx->pContext;

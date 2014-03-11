@@ -9960,8 +9960,15 @@ eHalStatus sme_ChangeRoamScanChannelList(tHalHandle hHal, tANI_U8 *pChannelList,
         {
             for (i = 0; i < pNeighborRoamInfo->cfgParams.channelInfo.numOfChannels; i++)
             {
-                j += snprintf(oldChannelList + j, sizeof(oldChannelList) - j," %d",
-                pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i]);
+                if (j < sizeof(oldChannelList))
+                {
+                    j += snprintf(oldChannelList + j, sizeof(oldChannelList) - j," %d",
+                    pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i]);
+                }
+                else
+                {
+                    break;
+                }
             }
         }
         csrFlushCfgBgScanRoamChannelList(pMac);
@@ -9972,8 +9979,15 @@ eHalStatus sme_ChangeRoamScanChannelList(tHalHandle hHal, tANI_U8 *pChannelList,
             j = 0;
             for (i = 0; i < pNeighborRoamInfo->cfgParams.channelInfo.numOfChannels; i++)
             {
-                j += snprintf(newChannelList + j, sizeof(newChannelList) - j," %d",
-                pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i]);
+                if (j < sizeof(newChannelList))
+                {
+                    j += snprintf(newChannelList + j, sizeof(newChannelList) - j," %d",
+                           pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i]);
+                }
+                else
+                {
+                    break;
+                }
             }
         }
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
@@ -11071,23 +11085,40 @@ void activeListCmdTimeoutHandle(void *userData)
     smeGetCommandQStatus((tHalHandle) userData);
 }
 
-VOS_STATUS sme_notify_modem_power_state(v_PVOID_t vosContext, tANI_U32 value)
+VOS_STATUS sme_notify_modem_power_state(tHalHandle hHal, tANI_U32 value)
 {
-   v_PVOID_t wdaContext = vos_get_context(VOS_MODULE_ID_WDA, vosContext);
+   vos_msg_t msg;
+   tpSirModemPowerStateInd pRequestBuf;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-   if (NULL == wdaContext)
+   if (NULL == pMac)
    {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                "%s: wdaContext is NULL", __func__);
       return VOS_STATUS_E_FAILURE;
    }
 
-   if (VOS_STATUS_SUCCESS != WDA_notify_modem_power_state(wdaContext, value))
+   pRequestBuf = vos_mem_malloc(sizeof(tSirModemPowerStateInd));
+   if (NULL == pRequestBuf)
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                "Failed to notify modem power state %d", value);
+       "%s: Not able to allocate memory for MODEM POWER STATE IND",
+       __func__);
       return VOS_STATUS_E_FAILURE;
    }
+
+   pRequestBuf->param = value;
+
+   msg.type     = WDA_MODEM_POWER_STATE_IND;
+   msg.reserved = 0;
+   msg.bodyptr  = pRequestBuf;
+   if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+   {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+         "%s: Not able to post WDA_MODEM_POWER_STATE_IND message"
+         " to WDA", __func__);
+       vos_mem_free(pRequestBuf);
+       return VOS_STATUS_E_FAILURE;
+   }
+
    return VOS_STATUS_SUCCESS;
 }
 

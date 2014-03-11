@@ -4866,4 +4866,10 @@ typedef struct sSirTxPowerLimit
     u_int32_t txPower5g;
 } tSirTxPowerLimit;
 
+// Notify MODEM power state to FW
+typedef struct
+{
+    tANI_U32 param;
+} tSirModemPowerStateInd, *tpSirModemPowerStateInd;
+
 #endif /* __SIR_API_H */
