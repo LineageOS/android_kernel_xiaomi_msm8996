@@ -1965,6 +1965,9 @@ ol_vdev_rx_set_intrabss_fwd(
     ol_txrx_vdev_handle vdev,
     a_bool_t val)
 {
+    if (NULL == vdev)
+        return;
+
     vdev->disable_intrabss_fwd = val;
 }
 
