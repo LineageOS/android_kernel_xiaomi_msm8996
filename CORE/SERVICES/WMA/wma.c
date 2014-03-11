@@ -15602,6 +15602,29 @@ static void wma_mgmt_tx_ack_work_handler(struct work_struct *ack_work)
 	wma_handle->ack_work_ctx = NULL;
 }
 
+/* function   : wma_mgmt_tx_comp_conf_ind
+ * Descriptin : Post mgmt tx complete indication to PE.
+ * Args       :
+                wma_handle  : Pointer to WMA handle
+ *              sub_type    : Tx mgmt frame sub type
+ *              status      : Mgmt frame tx status
+ * Returns    :
+ */
+static void
+wma_mgmt_tx_comp_conf_ind(tp_wma_handle wma_handle, u_int8_t sub_type,
+							int32_t status)
+{
+	int32_t tx_comp_status;
+
+	tx_comp_status = status ? 0 : 1;
+	if(sub_type == SIR_MAC_MGMT_DISASSOC) {
+		wma_send_msg(wma_handle, WDA_DISASSOC_TX_COMP, NULL, tx_comp_status);
+	}
+	else if(sub_type == SIR_MAC_MGMT_DEAUTH) {
+		wma_send_msg(wma_handle, WDA_DEAUTH_TX_COMP, NULL, tx_comp_status);
+	}
+}
+
 /**
   * wma_mgmt_tx_ack_comp_hdlr - handles tx ack mgmt completion
   * @context: context with which the handler is registered
@@ -15620,20 +15643,27 @@ wma_mgmt_tx_ack_comp_hdlr(void *wma_context,
 	tp_wma_handle wma_handle = (tp_wma_handle)wma_context;
 
 	if(wma_handle && wma_handle->umac_ota_ack_cb[pFc->subType]) {
-		struct wma_tx_ack_work_ctx *ack_work;
+		if((pFc->subType == SIR_MAC_MGMT_DISASSOC) ||
+			(pFc->subType == SIR_MAC_MGMT_DEAUTH)) {
+			wma_mgmt_tx_comp_conf_ind(wma_handle, (u_int8_t)pFc->subType,
+										status);
+		}
+		else {
+			struct wma_tx_ack_work_ctx *ack_work;
 
-		ack_work =
-		adf_os_mem_alloc(NULL, sizeof(struct wma_tx_ack_work_ctx));
+			ack_work =
+			adf_os_mem_alloc(NULL, sizeof(struct wma_tx_ack_work_ctx));
 
-		if(ack_work) {
-			INIT_WORK(&ack_work->ack_cmp_work,
-					wma_mgmt_tx_ack_work_handler);
-			ack_work->wma_handle = wma_handle;
-			ack_work->sub_type = pFc->subType;
-			ack_work->status = status;
+			if(ack_work) {
+				INIT_WORK(&ack_work->ack_cmp_work,
+						wma_mgmt_tx_ack_work_handler);
+				ack_work->wma_handle = wma_handle;
+				ack_work->sub_type = pFc->subType;
+				ack_work->status = status;
 
-			/* Schedue the Work */
-			schedule_work(&ack_work->ack_cmp_work);
+				/* Schedue the Work */
+				schedule_work(&ack_work->ack_cmp_work);
+			}
 		}
 	}
 }

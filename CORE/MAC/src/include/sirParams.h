@@ -661,6 +661,9 @@ typedef struct sSirMbMsgP2p
 
 #define SIR_HAL_MODEM_POWER_STATE_IND      (SIR_HAL_ITC_MSG_TYPES_BEGIN + 254)
 
+#define SIR_HAL_DISASSOC_TX_COMP           (SIR_HAL_ITC_MSG_TYPES_BEGIN + 255)
+#define SIR_HAL_DEAUTH_TX_COMP             (SIR_HAL_ITC_MSG_TYPES_BEGIN + 256)
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types
