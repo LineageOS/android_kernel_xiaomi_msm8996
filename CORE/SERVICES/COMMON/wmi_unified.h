@@ -2990,6 +2990,9 @@ typedef enum {
     /* set Tx failure count threshold for the vdev */
     WMI_VDEV_PARAM_SET_IBSS_TX_FAIL_CNT_THR,
 
+    /* set ebt resync timeout value, in the unit of TU */
+    WMI_VDEV_PARAM_EBT_RESYNC_TIMEOUT,
+
 } WMI_VDEV_PARAM;
 
 enum wmi_pkt_type {
