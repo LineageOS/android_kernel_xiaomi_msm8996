@@ -183,7 +183,7 @@ HTC_PACKET *AllocateHTCBundlePacket(HTC_TARGET *target)
         if (!pQueueSave)
         {
             adf_nbuf_free(netbuf);
-            A_FREE(pPacket);
+            adf_os_mem_free(pPacket);
             return NULL;
         }
         INIT_HTC_PACKET_QUEUE(pQueueSave);
