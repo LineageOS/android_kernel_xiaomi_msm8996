@@ -835,10 +835,9 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 
 	if (kickout_event->reason == WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT) {
 		p_inactivity = (tpSirIbssPeerInactivityInd)
-			adf_os_mem_alloc(NULL,
-					 sizeof(tSirIbssPeerInactivityInd));
+			vos_mem_malloc(sizeof(tSirIbssPeerInactivityInd));
 		if (!p_inactivity) {
-			WMA_LOGE("Memory Alloc Failed for tSirIbssPeerInactivity");
+			WMA_LOGE("VOS MEM Alloc Failed for tSirIbssPeerInactivity");
 			return -EINVAL;
 		}
 
@@ -848,10 +847,9 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 	}
 	else {
 		del_sta_ctx =
-			(tpDeleteStaContext)adf_os_mem_alloc(NULL,
-					sizeof(tDeleteStaContext));
+			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
 		if (!del_sta_ctx) {
-			WMA_LOGE("Memory Alloc Failed for tDeleteStaContext");
+			WMA_LOGE("VOS MEM Alloc Failed for tDeleteStaContext");
 			return -EINVAL;
 		}
 
@@ -19222,9 +19220,7 @@ wma_dfs_indicate_radar(struct ieee80211com *ic,
         return (0);
     }
     radar_event = (struct wma_dfs_radar_indication *)
-                   OS_MALLOC(NULL,
-                             sizeof(struct wma_dfs_radar_indication),
-                             GFP_ATOMIC);
+                   vos_mem_malloc(sizeof(struct wma_dfs_radar_indication));
     if (radar_event == NULL)
     {
         WMA_LOGE("%s:DFS- Invalid radar_event",__func__);
@@ -19331,7 +19327,7 @@ void ol_rx_err(ol_pdev_handle pdev, u_int8_t vdev_id,
 	if (adf_nbuf_len(rx_frame) < sizeof(*eth_hdr))
 		return;
 	eth_hdr = (struct ether_header *) adf_nbuf_data(rx_frame);
-	mic_err_ind = adf_os_mem_alloc(NULL, sizeof(*mic_err_ind));
+	mic_err_ind = vos_mem_malloc(sizeof(*mic_err_ind));
 	if (!mic_err_ind) {
 		WMA_LOGE("%s: Failed to allocate memory for MIC indication message", __func__);
 		return;
