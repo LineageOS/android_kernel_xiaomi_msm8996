@@ -604,7 +604,6 @@ ol_rx_pn_ind_handler(
     void *rx_desc;
     struct ol_txrx_peer_t *peer;
     struct ol_rx_reorder_array_elem_t *rx_reorder_array_elem;
-    union htt_rx_pn_t pn;
     unsigned win_sz_mask;
     adf_nbuf_t head_msdu = NULL;
     adf_nbuf_t tail_msdu = NULL;
@@ -618,6 +617,7 @@ ol_rx_pn_ind_handler(
         return;
     }
 
+    adf_os_atomic_set(&peer->fw_pn_check, 1);
     /*TODO: Fragmentation case*/
     win_sz_mask = peer->tids_rx_reorder[tid].win_sz_mask;
     seq_num_start &= win_sz_mask;
@@ -634,6 +634,8 @@ ol_rx_pn_ind_handler(
                 static u_int32_t last_pncheck_print_time = 0;
                 int log_level;
                 u_int32_t current_time_ms;
+                union htt_rx_pn_t pn = {0};
+                int index, pn_len;
 
                 mpdu_head = msdu = rx_reorder_array_elem->head;
                 mpdu_tail = rx_reorder_array_elem->tail;
@@ -641,7 +643,10 @@ ol_rx_pn_ind_handler(
                 pn_ie_cnt--;
                 i++;
                 rx_desc = htt_rx_msdu_desc_retrieve(htt_pdev, msdu);
-                htt_rx_mpdu_desc_pn(htt_pdev, rx_desc, &pn, 16);
+                index = htt_rx_msdu_is_wlan_mcast(pdev->htt_pdev, rx_desc) ?
+                                   txrx_sec_mcast : txrx_sec_ucast;
+                pn_len = pdev->rx_pn[peer->security[index].sec_type].len;
+                htt_rx_mpdu_desc_pn(htt_pdev, rx_desc, &pn, pn_len);
 
                 current_time_ms = adf_os_ticks_to_msecs(adf_os_ticks());
                 if (TXRX_PN_CHECK_FAILURE_PRINT_PERIOD_MS <

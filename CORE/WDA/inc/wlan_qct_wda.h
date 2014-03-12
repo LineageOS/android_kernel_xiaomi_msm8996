@@ -1332,6 +1332,9 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_DFS_BEACON_TX_SUCCESS_IND   SIR_HAL_BEACON_TX_SUCCESS_IND
 #define WDA_FW_STATS_IND           SIR_HAL_FW_STATS_IND
 
+#define WDA_MODEM_POWER_STATE_IND SIR_HAL_MODEM_POWER_STATE_IND
+
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames

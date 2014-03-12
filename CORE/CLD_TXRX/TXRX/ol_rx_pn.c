@@ -108,6 +108,11 @@ ol_rx_pn_check_base(
     void *rx_desc;
     int last_pn_valid;
 
+    /* Make sure host pn check is not redundant */
+    if (adf_os_atomic_read(&peer->fw_pn_check)) {
+        return msdu_list;
+    }
+
     /* First, check whether the PN check applies */
     rx_desc = htt_rx_msdu_desc_retrieve(pdev->htt_pdev, msdu_list);
     adf_os_assert(htt_rx_msdu_has_wlan_mcast_flag(pdev->htt_pdev, rx_desc));

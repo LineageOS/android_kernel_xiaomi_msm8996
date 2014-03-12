@@ -861,6 +861,9 @@ struct ol_txrx_peer_t {
 	u_int8_t  uapsd_mask;
 	/*flag indicating key installed*/
 	u_int8_t keyinstalled;
+
+        /* Bit to indicate if PN check is done in fw */
+        adf_os_atomic_t fw_pn_check;
 };
 
 #endif /* _OL_TXRX_TYPES__H_ */
