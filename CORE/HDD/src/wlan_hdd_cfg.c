@@ -3187,6 +3187,12 @@ REG_VARIABLE( CFG_REG_CHANGE_DEF_COUNTRY_NAME, WLAN_PARAM_Integer,
               CFG_REG_CHANGE_DEF_COUNTRY_MIN,
               CFG_REG_CHANGE_DEF_COUNTRY_MAX),
 
+REG_VARIABLE( CFG_SAP_SCAN_BAND_PREFERENCE, WLAN_PARAM_Integer,
+               hdd_config_t, acsScanBandPreference,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+               CFG_SAP_SCAN_BAND_PREFERENCE_DEFAULT,
+               CFG_SAP_SCAN_BAND_PREFERENCE_MIN,
+               CFG_SAP_SCAN_BAND_PREFERENCE_MAX ),
 };
 
 /*
@@ -3584,6 +3590,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPADescSize] Value = [%u] ",pHddCtx->cfg_ini->IpaDescSize);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableOverLapCh] Value = [%u] ",pHddCtx->cfg_ini->gEnableOverLapCh);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAcsScanBandPreference] Value = [%u] ",pHddCtx->cfg_ini->acsScanBandPreference);
 }
 
 
@@ -5258,7 +5265,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #ifdef QCA_WIFI_2_0
    /* Update the p2p listen offload setting */
    smeConfig.fP2pListenOffload =  pHddCtx->cfg_ini->fP2pListenOffload;
-   smeConfig.csrConfig.scanBandPreference = eCSR_BAND_ALL;
+   smeConfig.csrConfig.scanBandPreference =
+                              pHddCtx->cfg_ini->acsScanBandPreference;
 #endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
