@@ -647,6 +647,9 @@ hif_completion_thread(struct HIF_CE_state *hif_state)
             msg_callbacks->fwEventHandler(msg_callbacks->Context);
         }
 
+        if (hif_state->sc->ol_sc->target_status == OL_TRGET_STATUS_RESET)
+            return 0;
+
         for (;;) {
             struct HIF_CE_pipe_info *pipe_info;
             int send_done = 0;
