@@ -9189,6 +9189,10 @@ static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
 			vos_mem_copy (iface->key.key,
 					(const void *) key_params->key_data,
 					iface->key.key_length);
+			if ((cmd->key_ix == WMA_IGTK_KEY_INDEX_4) ||
+				(cmd->key_ix == WMA_IGTK_KEY_INDEX_5))
+				vos_mem_zero (iface->key.key_id[cmd->key_ix - WMA_IGTK_KEY_INDEX_4].ipn,
+						 CMAC_IPN_LEN);
 		}
 	}
 #endif /* WLAN_FEATURE_11W */
