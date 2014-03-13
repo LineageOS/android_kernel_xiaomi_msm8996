@@ -517,19 +517,19 @@ enum {
 static const struct qwlan_hw qwlan_hw_list[] = {
     {
         .id = AR6320_REV1_VERSION,
-        .name = "AR6320_REV1",
+        .name = "QCA6174_REV1",
     },
     {
         .id = AR6320_REV1_1_VERSION,
-        .name = "AR6320_REV1_1",
+        .name = "QCA6174_REV1_1",
     },
     {
         .id = AR6320_REV1_3_VERSION,
-        .name = "AR6320_REV1_3",
+        .name = "QCA6174_REV1_3",
     },
     {
         .id = AR6320_REV2_1_VERSION,
-        .name = "AR6320_REV2_1",
+        .name = "QCA6174_REV2_1",
     }
 };
 

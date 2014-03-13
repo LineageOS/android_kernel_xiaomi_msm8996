@@ -4692,7 +4692,11 @@ A_UINT32 eCsrAuthType_to_rsn_authmode (eCsrAuthType authtype, eCsrEncryptionType
 #ifdef FEATURE_WLAN_CCX
         case    eCSR_AUTH_TYPE_CCKM_WPA:
         case    eCSR_AUTH_TYPE_CCKM_RSN:
-            return(WMI_AUTH_CCKM);
+            return (WMI_AUTH_CCKM);
+#endif
+#ifdef WLAN_FEATURE_11W
+        case    eCSR_AUTH_TYPE_RSN_PSK_SHA256:
+            return (WMI_AUTH_RSNA_PSK_SHA256);
 #endif
         case    eCSR_AUTH_TYPE_NONE:
         case    eCSR_AUTH_TYPE_AUTOSWITCH:
