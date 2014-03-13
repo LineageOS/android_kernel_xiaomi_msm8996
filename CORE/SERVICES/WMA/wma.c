@@ -16785,6 +16785,15 @@ VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
 }
 
 
+/*
+ * Detach DFS methods
+ */
+static void wma_dfs_detach(struct ieee80211com *dfs_ic)
+{
+	dfs_detach(dfs_ic);
+	OS_FREE(dfs_ic);
+}
+
 /* function   : wma_close
  * Descriptin :
  * Args       :
@@ -16857,6 +16866,11 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	if (vos_get_conparam() == VOS_FTM_MODE)
 		wma_utf_detach(wma_handle);
 #endif
+
+	if (NULL != wma_handle->dfs_ic){
+		wma_dfs_detach(wma_handle->dfs_ic);
+		wma_handle->dfs_ic = NULL;
+	}
 
 	WMA_LOGD("%s: Exit", __func__);
 	return VOS_STATUS_SUCCESS;
