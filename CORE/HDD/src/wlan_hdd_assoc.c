@@ -1122,6 +1122,14 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
       return vosStatus;
    }
 
+#ifdef QCA_LL_TX_FLOW_CT
+   WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
+                                staDesc.ucSTAId,
+                                hdd_tx_resume_cb,
+                                pAdapter->sessionId,
+                                (void *)pAdapter);
+#endif /* QCA_LL_TX_FLOW_CT */
+
    if ( cfg_param->dynSplitscan &&
       ( VOS_TIMER_STATE_RUNNING !=
                       vos_timer_getCurrentState(&pHddCtx->tx_rx_trafficTmr)))

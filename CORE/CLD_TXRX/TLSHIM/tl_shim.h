@@ -55,6 +55,11 @@ struct tlshim_sta_info {
 	adf_os_spinlock_t stainfo_lock;
 	struct list_head cached_bufq;
 	unsigned long flags;
+#ifdef QCA_LL_TX_FLOW_CT
+	WLANTL_TxFlowControlCBType flowControl;
+	v_U8_t                     sessionId;
+	void                      *adpaterCtxt;
+#endif /* QCA_LL_TX_FLOW_CT */
 };
 
 struct txrx_tl_shim_ctx {

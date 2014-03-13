@@ -309,4 +309,18 @@ void hdd_flush_ibss_tx_queues( hdd_adapter_t *pAdapter, v_U8_t STAId);
    ========================================================================*/
 void hdd_wmm_acquire_access_required(hdd_adapter_t *pAdapter,
                                      WLANTL_ACEnumType acType);
+
+#ifdef QCA_LL_TX_FLOW_CT
+/**============================================================================
+  @brief hdd_tx_resume_cb() - Resume OS TX Q.
+      Q was stopped due to WLAN TX path low resource condition
+
+  @param adapter_context : [in] pointer to vdev apdapter
+  @param tx_resume       : [in] TX Q resume trigger
+
+  @return         : NONE
+  ===========================================================================*/
+void hdd_tx_resume_cb(void *adapter_context,
+                        v_U8_t tx_resume);
+#endif /* QCA_LL_TX_FLOW_CT */
 #endif    // end #if !defined( WLAN_HDD_TX_RX_H )
