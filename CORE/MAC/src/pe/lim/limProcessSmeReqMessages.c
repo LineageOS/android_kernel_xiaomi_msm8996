@@ -835,9 +835,8 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
              * */
         limSetRSNieWPAiefromSmeStartBSSReqMessage(pMac,&pSmeStartBssReq->rsnIE,psessionEntry);
 
-
-        //Taken care for only softAP case rest need to be done
-        if (psessionEntry->limSystemRole == eLIM_AP_ROLE){
+        if ((psessionEntry->limSystemRole == eLIM_AP_ROLE)
+            || (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)) {
             psessionEntry->gLimProtectionControl =  pSmeStartBssReq->protEnabled;
             /*each byte will have the following info
              *bit7       bit6    bit5   bit4 bit3   bit2  bit1 bit0
