@@ -10533,6 +10533,9 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
     if(!CSR_IS_INFRA_AP(&pSession->connectedProfile))
     {
         csrRoamCallCallback(pMac, sessionId, NULL, 0, eCSR_ROAM_LOSTLINK_DETECTED, result);
+        /*Move the state to Idle after disconnection*/
+        csrRoamStateChange( pMac, eCSR_ROAMING_STATE_IDLE, sessionId );
+
     }
 
     if ( eWNI_SME_DISASSOC_IND == type )
