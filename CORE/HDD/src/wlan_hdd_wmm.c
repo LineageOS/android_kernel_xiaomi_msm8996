@@ -792,6 +792,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
                 "%s: Setup Invalid Params, notify TL",
                 __func__);
       // QoS setup failed
+      pAc->wmmAcAccessAllowed = VOS_FALSE;
 
       if (HDD_WMM_HANDLE_IMPLICIT == pQosContext->handle)
       {
@@ -975,7 +976,6 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
                 "%s: Release is complete",
                 __func__);
-      pAc->wmmAcAccessGranted = VOS_FALSE;
 
       if (pCurrentQosInfo)
       {
@@ -1000,6 +1000,9 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
 
          // this is the last flow active for this AC so update the AC state
          pAc->wmmAcTspecValid = VOS_FALSE;
+
+         // DELTS is successful, do not allow
+         pAc->wmmAcAccessAllowed = VOS_FALSE;
 
          // need to tell TL to update its UAPSD handling
          hdd_wmm_disable_tl_uapsd(pQosContext);
@@ -1046,6 +1049,8 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
 
       // current TSPEC is no longer valid
       pAc->wmmAcTspecValid = VOS_FALSE;
+      // AP has sent DELTS, do not allow
+      pAc->wmmAcAccessAllowed = VOS_FALSE;
 
       // need to tell TL to update its UAPSD handling
       hdd_wmm_disable_tl_uapsd(pQosContext);
@@ -1211,20 +1216,21 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       VOS_ASSERT(0);
    }
 
+#ifndef QCA_WIFI_2_0
    // our access to the particular access category may have changed.
    // some of the implicit QoS cases above may have already set this
    // prior to invoking TL (so that we will properly service the
    // Tx queues) but let's consistently handle all cases here
    pAc->wmmAcAccessAllowed = hdd_wmm_is_access_allowed(pAdapter, pAc);
-
-   //hdd_wmm_is_access_allowed returns true for explicit case. This is
-   //not always true. If Access to particular AC fails and if
-   //admission is required for that particular AC, then access is not
-   //allowed to that AC.
-   if ((pAc->wmmAcAccessFailed && pAc->wmmAcAccessRequired) ||
-        !pAc->wmmAcAccessGranted) {
+#else
+   // if Tspec only allows downstream traffic then access is not allowed
+   if (pAc->wmmAcTspecInfo.ts_info.direction == SME_QOS_WMM_TS_DIR_DOWNLINK)
       pAc->wmmAcAccessAllowed = VOS_FALSE;
-   }
+
+   // if ACM bit is not set, allow access
+   if (!(pAc->wmmAcAccessRequired))
+      pAc->wmmAcAccessAllowed = VOS_TRUE;
+#endif
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
              "%s: complete, access for TL AC %d is%sallowed",
