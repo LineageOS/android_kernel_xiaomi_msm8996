@@ -16822,6 +16822,12 @@ VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
 static void wma_dfs_detach(struct ieee80211com *dfs_ic)
 {
 	dfs_detach(dfs_ic);
+
+	if (NULL != dfs_ic->ic_curchan) {
+		OS_FREE(dfs_ic->ic_curchan);
+		dfs_ic->ic_curchan = NULL;
+	}
+
 	OS_FREE(dfs_ic);
 }
 
