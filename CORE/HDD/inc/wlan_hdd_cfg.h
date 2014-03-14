@@ -1622,6 +1622,11 @@ typedef enum
 #define CFG_SAP_SCAN_BAND_PREFERENCE_MIN          (0)
 #define CFG_SAP_SCAN_BAND_PREFERENCE_MAX          (2)
 #define CFG_SAP_SCAN_BAND_PREFERENCE_DEFAULT      (0)
+#define CFG_ACS_BAND_SWITCH_THRESHOLD             "gACSBandSwitchThreshold"
+#define CFG_ACS_BAND_SWITCH_THRESHOLD_MIN         (0)
+#define CFG_ACS_BAND_SWITCH_THRESHOLD_MAX         (4444)
+/* 2 BSS, maximus RSSI -90 */
+#define CFG_ACS_BAND_SWITCH_THRESHOLD_DEFAULT     (296)
 
 /*BMPS Logic
  * Notes:
@@ -2783,6 +2788,7 @@ typedef struct
    v_U32_t                     TxIbssFlowLowWaterMark;
    v_U32_t                     TxIbssFlowHighWaterMarkOffset;
 #endif /* QCA_LL_TX_FLOW_CT */
+   v_U16_t                     acsBandSwitchThreshold;
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation

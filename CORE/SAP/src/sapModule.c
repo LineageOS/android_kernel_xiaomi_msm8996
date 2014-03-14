@@ -598,6 +598,7 @@ WLANSAP_StartBss
         /* Channel selection is auto or configured */
         pSapCtx->channel = pConfig->channel;
         pSapCtx->scanBandPreference = pConfig->scanBandPreference;
+        pSapCtx->acsBandSwitchThreshold = pConfig->acsBandSwitchThreshold;
         pSapCtx->pUsrContext = pUsrContext;
 
         pSapCtx->enableOverLapCh = pConfig->enOverLapCh;

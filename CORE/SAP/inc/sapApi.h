@@ -457,6 +457,7 @@ typedef struct sap_Config {
     eCsrBand        scanBandPreference;
     v_BOOL_t        enOverLapCh;
     char            acsAllowedChnls[MAX_CHANNEL_LIST_LEN];
+    v_U16_t         acsBandSwitchThreshold;
 } tsap_Config_t;
 
 typedef enum {
