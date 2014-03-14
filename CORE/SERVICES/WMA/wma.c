@@ -16931,6 +16931,11 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		wma_handle->dfs_ic = NULL;
 	}
 
+	if (NULL != wma_handle->pGetRssiReq) {
+		adf_os_mem_free(wma_handle->pGetRssiReq);
+		wma_handle->pGetRssiReq = NULL;
+	}
+
 	WMA_LOGD("%s: Exit", __func__);
 	return VOS_STATUS_SUCCESS;
 }
