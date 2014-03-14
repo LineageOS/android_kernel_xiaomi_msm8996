@@ -7744,6 +7744,23 @@ wma_update_protection_mode(tp_wma_handle wma, u_int8_t vdev_id,
 		WMA_LOGD("Updated protection mode %d to target", prot_mode);
 }
 
+static void
+wma_update_beacon_interval(tp_wma_handle wma, u_int8_t vdev_id,
+                           u_int16_t beaconInterval)
+{
+        int ret;
+
+        ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+                                              WMI_VDEV_PARAM_BEACON_INTERVAL,
+                                              beaconInterval);
+
+        if (ret)
+                WMA_LOGE("Failed to update beacon interval");
+        else
+                WMA_LOGE("Updated beacon interval %d for vdev %d", beaconInterval, vdev_id);
+}
+
+
 /*
  * Function	: wma_process_update_beacon_params
  * Description	: update the beacon parameters to target
@@ -7762,6 +7779,11 @@ wma_process_update_beacon_params(tp_wma_handle wma,
 	if (bcn_params->smeSessionId >= wma->max_bssid) {
 		WMA_LOGE("Invalid vdev id %d", bcn_params->smeSessionId);
 		return;
+	}
+
+	if (bcn_params->paramChangeBitmap & PARAM_BCN_INTERVAL_CHANGED) {
+		wma_update_beacon_interval(wma, bcn_params->smeSessionId,
+						bcn_params->beaconInterval);
 	}
 
 	if (bcn_params->paramChangeBitmap & PARAM_llBCOEXIST_CHANGED)
