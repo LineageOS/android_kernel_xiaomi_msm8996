@@ -18135,6 +18135,11 @@ void wma_target_suspend_acknowledge(void *context)
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 	int wow_nack = *((int *)context);
 
+	if (NULL == wma) {
+		WMA_LOGE("%s: wma is NULL", __func__);
+		return;
+	}
+
 	wma->wow_nack = wow_nack;
 	vos_event_set(&wma->target_suspend);
 	if (wow_nack)
@@ -19361,10 +19366,15 @@ void WDA_TxAbort(v_U8_t vdev_id)
 
 	wma = vos_get_context(VOS_MODULE_ID_WDA,
 			      vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+	if (NULL == wma) {
+		WMA_LOGE("%s: wma is NULL", __func__);
+		return;
+	}
+
 	iface = &wma->interfaces[vdev_id];
-	if (!wma || !iface->handle) {
-		WMA_LOGE("%s: Failed to get handle wma: %p iface: %p",
-			 __func__, wma, iface->handle);
+	if (!iface->handle) {
+		WMA_LOGE("%s: Failed to get iface handle: %p",
+			 __func__, iface->handle);
 		return;
 	}
 	WMA_LOGA("%s: vdevid %d bssid %pM", __func__, vdev_id, iface->bssid);
