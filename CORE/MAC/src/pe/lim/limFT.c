@@ -465,6 +465,9 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
     pAddBssParams->llbCoexist = (tANI_U8) pftSessionEntry->beaconParams.llbCoexist;
     pAddBssParams->llgCoexist = (tANI_U8) pftSessionEntry->beaconParams.llgCoexist;
     pAddBssParams->ht20Coexist = (tANI_U8) pftSessionEntry->beaconParams.ht20Coexist;
+#ifdef WLAN_FEATURE_11W
+    pAddBssParams->rmfEnabled = pftSessionEntry->limRmfEnabled;
+#endif
 
     // Use the advertised capabilities from the received beacon/PR
     if (IS_DOT11_MODE_HT(pftSessionEntry->dot11mode) && ( pBeaconStruct->HTCaps.present ))
@@ -577,6 +580,9 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
         pAddBssParams->staContext.shortPreambleSupported = (tANI_U8)pBeaconStruct->capabilityInfo.shortPreamble;
         pAddBssParams->staContext.updateSta = updateEntry;
         pAddBssParams->staContext.encryptType = pftSessionEntry->encryptType;
+#ifdef WLAN_FEATURE_11W
+        pAddBssParams->staContext.rmfEnabled = pftSessionEntry->limRmfEnabled;
+#endif
 
         if (IS_DOT11_MODE_HT(pftSessionEntry->dot11mode) && ( pBeaconStruct->HTCaps.present ))
         {
@@ -853,6 +859,9 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
     MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, pftSessionEntry->peSessionId, pftSessionEntry->limSmeState));
 
     pftSessionEntry->encryptType = psessionEntry->encryptType;
+#ifdef WLAN_FEATURE_11W
+    pftSessionEntry->limRmfEnabled = psessionEntry->limRmfEnabled;
+#endif
 
     if (pftSessionEntry->limRFBand == SIR_BAND_2_4_GHZ)
     {

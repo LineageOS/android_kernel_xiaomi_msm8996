@@ -629,7 +629,7 @@ ol_rx_pn_ind_handler(
             &peer->tids_rx_reorder[tid].array[seq_num];
 
         if (rx_reorder_array_elem->head) {
-            if (pn_ie_cnt && seq_num_start == (int)(pn_ie[i])) {
+            if (pn_ie_cnt && seq_num == (int)(pn_ie[i])) {
                 adf_nbuf_t msdu, next_msdu, mpdu_head, mpdu_tail;
                 static u_int32_t last_pncheck_print_time = 0;
                 int log_level;
