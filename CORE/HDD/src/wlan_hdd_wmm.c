@@ -2032,7 +2032,9 @@ VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
              "%s: Entered for AC %d", __func__, acType);
 
-   if (!hdd_wmm_is_active(pAdapter) || !(WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->bImplicitQosEnabled)
+   if (!hdd_wmm_is_active(pAdapter) ||
+       !(WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->bImplicitQosEnabled ||
+       !pAdapter->hddWmmStatus.wmmAcStatus[acType].wmmAcAccessRequired)
    {
       // either we don't want QoS or the AP doesn't support QoS
       // or we don't want to do implicit QoS
