@@ -15287,6 +15287,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
                 case WDA_UPDATE_OP_MODE:
                         wma_process_update_opmode(wma_handle,
                                        (tUpdateVHTOpMode *)msg->bodyptr);
+                        vos_mem_free(msg->bodyptr);
                         break;
 #ifdef WLAN_FEATURE_11AC
                 case WDA_UPDATE_MEMBERSHIP:
