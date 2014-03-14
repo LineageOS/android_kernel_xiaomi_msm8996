@@ -4188,7 +4188,7 @@ eHalStatus csrNeighborRoamIndicateDisconnect(tpAniSirGlobal pMac, tANI_U8 sessio
         smsLog(pMac, LOGE, FL("pSession is NULL "));
         return eHAL_STATUS_FAILURE;
     }
-    smsLog(pMac, LOGE, FL("Disconnect indication on session %d in state %d from BSSID : "
+    smsLog(pMac, LOG1, FL("Disconnect indication on session %d in state %d from BSSID : "
                           MAC_ADDRESS_STR), sessionId, pNeighborRoamInfo->neighborRoamState,
                           MAC_ADDR_ARRAY(pSession->connectedProfile.bssid));
 

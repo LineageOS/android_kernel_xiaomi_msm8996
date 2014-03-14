@@ -71,7 +71,7 @@ void limFTCleanup(tpAniSirGlobal pMac)
     if (pMac->ft.ftPEContext.pFTPreAuthReq)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        PELOGE(limLog( pMac, LOGE, "%s: Freeing pFTPreAuthReq= %p",
+        PELOGE(limLog( pMac, LOG1, "%s: Freeing pFTPreAuthReq= %p",
             __func__, pMac->ft.ftPEContext.pFTPreAuthReq);)
 #endif
         if (pMac->ft.ftPEContext.pFTPreAuthReq->pbssDescription)
@@ -88,7 +88,7 @@ void limFTCleanup(tpAniSirGlobal pMac)
     if (pMac->ft.ftPEContext.psavedsessionEntry)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        PELOGE(limLog( pMac, LOGE, "%s: Setting psavedsessionEntry= %p to NULL",
+        PELOGE(limLog( pMac, LOG1, "%s: Setting psavedsessionEntry= %p to NULL",
             __func__, pMac->ft.ftPEContext.psavedsessionEntry);)
 #endif
         pMac->ft.ftPEContext.psavedsessionEntry = NULL;
@@ -106,7 +106,7 @@ void limFTCleanup(tpAniSirGlobal pMac)
         }
         pMac->ft.ftPEContext.pftSessionEntry = NULL;
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        PELOGE(limLog( pMac, LOGE, "%s: Setting psavedsessionEntry= %p to NULL",
+        PELOGE(limLog( pMac, LOG1, "%s: Setting psavedsessionEntry= %p to NULL",
             __func__, pMac->ft.ftPEContext.psavedsessionEntry);)
 #endif
     }
@@ -135,7 +135,7 @@ void limFTInit(tpAniSirGlobal pMac)
     if (pMac->ft.ftPEContext.pFTPreAuthReq)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        PELOGE(limLog( pMac, LOGE, "%s: Freeing pFTPreAuthReq= %p",
+        PELOGE(limLog( pMac, LOG1, "%s: Freeing pFTPreAuthReq= %p",
             __func__, pMac->ft.ftPEContext.pFTPreAuthReq);)
 #endif
         if (pMac->ft.ftPEContext.pFTPreAuthReq->pbssDescription)
@@ -153,7 +153,7 @@ void limFTInit(tpAniSirGlobal pMac)
     if (pMac->ft.ftPEContext.psavedsessionEntry)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        PELOGE(limLog( pMac, LOGE, "%s: Setting psavedsessionEntry= %p to NULL",
+        PELOGE(limLog( pMac, LOG1, "%s: Setting psavedsessionEntry= %p to NULL",
             __func__, pMac->ft.ftPEContext.psavedsessionEntry);)
 #endif
         pMac->ft.ftPEContext.psavedsessionEntry = NULL;
@@ -165,7 +165,7 @@ void limFTInit(tpAniSirGlobal pMac)
     {
         /* Cannot delete sessions across associations */
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        PELOGE(limLog( pMac, LOGE, "%s: Deleting session = %p ",
+        PELOGE(limLog( pMac, LOG1, "%s: Deleting session = %p ",
             __func__, pMac->ft.ftPEContext.pftSessionEntry);)
 #endif
         pMac->ft.ftPEContext.pftSessionEntry = NULL;
@@ -174,7 +174,7 @@ void limFTInit(tpAniSirGlobal pMac)
     if (pMac->ft.ftPEContext.pAddBssReq)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        PELOGE(limLog( pMac, LOGE, "%s: Freeing AddBssReq = %p ",
+        PELOGE(limLog( pMac, LOG1, "%s: Freeing AddBssReq = %p ",
             __func__, pMac->ft.ftPEContext.pAddBssReq);)
 #endif
         vos_mem_free(pMac->ft.ftPEContext.pAddBssReq);
@@ -185,7 +185,7 @@ void limFTInit(tpAniSirGlobal pMac)
     if (pMac->ft.ftPEContext.pAddStaReq)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        PELOGE(limLog( pMac, LOGE, "%s: Freeing AddStaReq = %p ",
+        PELOGE(limLog( pMac, LOG1, "%s: Freeing AddStaReq = %p ",
             __func__, pMac->ft.ftPEContext.pAddStaReq);)
 #endif
         vos_mem_free(pMac->ft.ftPEContext.pAddStaReq);

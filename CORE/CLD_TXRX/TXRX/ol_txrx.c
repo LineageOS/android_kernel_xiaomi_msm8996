@@ -1555,7 +1555,7 @@ ol_txrx_discard_tx_pending(ol_txrx_pdev_handle pdev_handle)
 
 /*--- debug features --------------------------------------------------------*/
 
-unsigned g_txrx_print_level = TXRX_PRINT_LEVEL_INFO1; /* default */
+unsigned g_txrx_print_level = TXRX_PRINT_LEVEL_ERR; /* default */
 
 void ol_txrx_print_level_set(unsigned level)
 {

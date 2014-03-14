@@ -492,7 +492,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
         if(pmmPsOffloadClose(pMac, psessionEntry)
            != eHAL_STATUS_SUCCESS)
         {
-            limLog(pMac, LOGE,
+            limLog(pMac, LOGW,
                    FL("Failed to close ps offload for pe session %x"),
                    psessionEntry->peSessionId);
         }

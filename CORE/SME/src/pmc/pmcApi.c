@@ -3928,14 +3928,14 @@ eHalStatus pmcOffloadStartUapsd(tHalHandle hHal,  tANI_U32 sessionId,
     /* Check if Sta Ps is enabled. */
     if(!pMac->pmcOffloadInfo.staPsEnabled)
     {
-        smsLog(pMac, LOGE, "PMC: Cannot start uapsd. BMPS is disabled");
+        smsLog(pMac, LOG2, "PMC: Cannot start uapsd. BMPS is disabled");
         return eHAL_STATUS_PMC_DISABLED;
     }
 
     /* Check whether the give session is Infra and in Connected State */
     if(!csrIsConnStateConnectedInfra(pMac, sessionId))
     {
-        smsLog(pMac, LOGE, "PMC:Sta not infra/connected state %d", sessionId);
+        smsLog(pMac, LOG2, "PMC:Sta not infra/connected state %d", sessionId);
         return eHAL_STATUS_FAILURE;
     }
 
@@ -3986,21 +3986,21 @@ eHalStatus pmcOffloadStopUapsd(tHalHandle hHal,  tANI_U32 sessionId)
     /* Check if Sta Ps is enabled. */
     if(!pMac->pmcOffloadInfo.staPsEnabled)
     {
-        smsLog(pMac, LOGE, "PMC: Cannot stop uapsd. BMPS is disabled");
+        smsLog(pMac, LOGW, "PMC: Cannot stop uapsd. BMPS is disabled");
         return eHAL_STATUS_PMC_DISABLED;
     }
 
     /* Check whether the give session is Infra and in Connected State */
     if(!csrIsConnStateConnectedInfra(pMac, sessionId))
     {
-        smsLog(pMac, LOGE, "PMC:Sta not infra/connected state %d", sessionId);
+        smsLog(pMac, LOGW, "PMC:Sta not infra/connected state %d", sessionId);
         return eHAL_STATUS_FAILURE;
     }
 
     status =  pmcOffloadQueueStopUapsdRequest(pMac, sessionId);
     if(eHAL_STATUS_SUCCESS != status)
     {
-        smsLog(pMac, LOGE, "PMC:Failed to queue Stop Uapsd Req SessionId %d",
+        smsLog(pMac, LOGW, "PMC:Failed to queue Stop Uapsd Req SessionId %d",
                sessionId);
     }
     return status;

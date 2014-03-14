@@ -2508,6 +2508,34 @@ static int wma_unified_bcntx_status_event_handler(void *handle, u_int8_t *cmd_pa
    return 0;
 }
 
+static int wma_vdev_install_key_complete_event_handler(void *handle, u_int8_t *event, u_int32_t len)
+{
+    WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID_param_tlvs *param_buf = NULL;
+    wmi_vdev_install_key_complete_event_fixed_param *key_fp = NULL;
+
+    if (!event) {
+        WMA_LOGE("%s: event param null", __func__);
+        return -1;
+    }
+
+    param_buf = (WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID_param_tlvs *) event;
+    if (!param_buf) {
+        WMA_LOGE("%s: received null buf from target", __func__);
+        return -1;
+    }
+
+    key_fp = param_buf->fixed_param;
+    if (!key_fp) {
+        WMA_LOGE("%s: received null event data from target", __func__);
+        return -1;
+    }
+    /*
+     * Do nothing for now. Completion of set key is already indicated to lim
+     */
+    WMA_LOGI("%s: WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID", __func__);
+    return 0;
+}
+
 /*
  * Allocate and init wmi adaptation layer.
  */
@@ -2761,6 +2789,11 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	        WMI_TDLS_PEER_EVENTID,
 	        wma_tdls_event_handler);
 #endif /* FEATURE_WLAN_TDLS */
+
+    /* register for install key completion event */
+    wmi_unified_register_event_handler(wma_handle->wmi_handle,
+                                      WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID,
+                                      wma_vdev_install_key_complete_event_handler);
 
 	WMA_LOGD("%s: Exit", __func__);
 
@@ -7757,7 +7790,7 @@ wma_update_beacon_interval(tp_wma_handle wma, u_int8_t vdev_id,
         if (ret)
                 WMA_LOGE("Failed to update beacon interval");
         else
-                WMA_LOGE("Updated beacon interval %d for vdev %d", beaconInterval, vdev_id);
+                WMA_LOGI("Updated beacon interval %d for vdev %d", beaconInterval, vdev_id);
 }
 
 
@@ -7877,7 +7910,7 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id,
 
 	if (!maxTxPower)
 	{
-		WMA_LOGE("Setting Tx power limit to 0");
+		WMA_LOGW("Setting Tx power limit to 0");
 	}
 
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
@@ -10494,7 +10527,7 @@ static int32_t wma_set_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, u_int8_
 	u_int32_t inactivity_time;
 	u_int32_t psmode;
 
-	WMA_LOGE("Set Force Sleep vdevId %d val %d", vdev_id, enable);
+	WMA_LOGD("Set Force Sleep vdevId %d val %d", vdev_id, enable);
 
 	if (NULL == mac) {
 		WMA_LOGE("%s: Unable to get PE context", __func__);
@@ -10828,7 +10861,7 @@ static void wma_disable_sta_ps_mode(tp_wma_handle wma, tpDisablePsParams ps_req)
         int32_t ret;
         uint32_t vdev_id = ps_req->sessionid;
 
-        WMA_LOGE("Disable Sta Mode Ps vdevId %d", vdev_id);
+        WMA_LOGD("Disable Sta Mode Ps vdevId %d", vdev_id);
 
         /* Disable Sta Mode Power save */
         ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, false);

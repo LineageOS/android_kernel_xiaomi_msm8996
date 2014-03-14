@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3023,7 +3023,7 @@ eHalStatus pmmPsOffloadClose(tpAniSirGlobal pMac, tpPESession psessionEntry)
     }
     else
     {
-        pmmLog(pMac, LOGE,
+        pmmLog(pMac, LOGW,
                FL("ps offload close failed:invalid pe session"));
         return eHAL_STATUS_FAILURE;
     }
