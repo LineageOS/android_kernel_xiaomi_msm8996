@@ -179,7 +179,6 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     tAniAuthType            authType;
     tSirMacCapabilityInfo   localCapabilities;
     tpDphHashNode           pStaDs = NULL;
-    tSirNwType              nwType;
     tpSirAssocReq           pAssocReq;
     tLimMlmStates           mlmPrevState;
     tDot11fIERSN            Dot11fIERSN;
@@ -189,7 +188,6 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     tHalBitVal wsmMode, wmeMode;
     tANI_U8    *wpsIe = NULL;
     tSirMacRateSet  basicRates;
-    tANI_U8 maxBasicRate = 0;
     tANI_U8 i = 0, j = 0;
     tANI_BOOLEAN pmfConnection = eANI_BOOLEAN_FALSE;
 
@@ -361,24 +359,13 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     {
         basicRates.rate[i] = pAssocReq->supportedRates.rate[i];
         basicRates.numRates++;
-        if ((basicRates.rate[i] & ~0x80) > maxBasicRate)
-            maxBasicRate = (basicRates.rate[i] & ~0x80);
     }
-
-    if (maxBasicRate > SIR_MAC_RATE_11) /* 0x16 = 11 Mbps Max rate of 802.11b*/
-        nwType =  psessionEntry->nwType;
-    else
-        nwType = eSIR_11B_NW_TYPE;
-
-	limLog(pMac, LOG1, FL("Station Peer: Max Rate: %x Phymode: %d"), maxBasicRate,  nwType);
 
     for(j = 0; (j < pAssocReq->extendedRates.numRates) && (i < SIR_MAC_RATESET_EID_MAX); i++,j++)
     {
         basicRates.rate[i] = pAssocReq->extendedRates.rate[j];
         basicRates.numRates++;
     }
-
-
     if (limCheckRxBasicRates(pMac, basicRates, psessionEntry) == false)
     {
         /**
@@ -1053,7 +1040,7 @@ sendIndToSme:
     pStaDs->valid                  = 0;
     pStaDs->mlmStaContext.authType = authType;
     pStaDs->staType = STA_ENTRY_PEER;
-    pStaDs->nwType = nwType;
+
     //TODO: If listen interval is more than certain limit, reject the association.
     //Need to check customer requirements and then implement.
     pStaDs->mlmStaContext.listenInterval = pAssocReq->listenInterval;

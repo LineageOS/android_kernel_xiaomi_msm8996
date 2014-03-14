@@ -418,6 +418,7 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
         struct wma_txrx_node *iface = NULL;
 	tp_wma_handle wma;
 	u_int8_t *efrm, *orig_hdr;
+        u_int16_t key_id;
 #endif /* WLAN_FEATURE_11W */
 
 	vos_pkt_t *rx_pkt;
@@ -580,8 +581,18 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 				 IEEE80211_IS_MULTICAST(wh->i_addr1))
 			{
 				efrm = adf_nbuf_data(wbuf) + adf_nbuf_len(wbuf);
+
+				key_id = (u_int16_t)*(efrm - vos_get_mmie_size() + 2);
+				if (!((key_id == WMA_IGTK_KEY_INDEX_4) ||
+					(key_id == WMA_IGTK_KEY_INDEX_5))) {
+					TLSHIM_LOGE("Invalid KeyID(%d)"
+					" dropping the frame", key_id);
+					vos_pkt_return_packet(rx_pkt);
+					return 0;
+				}
+
 				if (vos_is_mmie_valid(iface->key.key,
-					 iface->key.ipn,
+				    iface->key.key_id[key_id - WMA_IGTK_KEY_INDEX_4].ipn,
 					 (u_int8_t *)wh, efrm))
 				{
 					TLSHIM_LOGD("Protected BC/MC frame MMIE"

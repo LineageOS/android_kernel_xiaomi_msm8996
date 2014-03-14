@@ -9189,6 +9189,10 @@ static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
 			vos_mem_copy (iface->key.key,
 					(const void *) key_params->key_data,
 					iface->key.key_length);
+			if ((cmd->key_ix == WMA_IGTK_KEY_INDEX_4) ||
+				(cmd->key_ix == WMA_IGTK_KEY_INDEX_5))
+				vos_mem_zero (iface->key.key_id[cmd->key_ix - WMA_IGTK_KEY_INDEX_4].ipn,
+						 CMAC_IPN_LEN);
 		}
 	}
 #endif /* WLAN_FEATURE_11W */
@@ -9786,7 +9790,7 @@ out:
  * Function to update per ac EDCA parameters
  */
 static void wma_update_edca_params_for_ac(tSirMacEdcaParamRecord *edca_param,
-					  wmi_wmm_params *wmm_param,
+					  wmi_wmm_vparams *wmm_param,
 					  int ac)
 {
 	wmm_param->cwmin = edca_param->cw.min;
@@ -9933,11 +9937,11 @@ static VOS_STATUS wma_process_update_edca_param_req(WMA_HANDLE handle,
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
 	u_int8_t *buf_ptr;
 	wmi_buf_t buf;
-	wmi_pdev_set_wmm_params_cmd_fixed_param *cmd;
-	wmi_wmm_params *wmm_param;
+	wmi_vdev_set_wmm_params_cmd_fixed_param *cmd;
+	wmi_wmm_vparams *wmm_param;
 	tSirMacEdcaParamRecord *edca_record;
 	int ac;
-	int len = sizeof(*cmd) + (WME_NUM_AC * sizeof(wmi_wmm_params));
+	int len = sizeof(*cmd);
 
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 
@@ -9947,20 +9951,18 @@ static VOS_STATUS wma_process_update_edca_param_req(WMA_HANDLE handle,
 	}
 
 	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
-	cmd = (wmi_pdev_set_wmm_params_cmd_fixed_param *) buf_ptr;
+	cmd = (wmi_vdev_set_wmm_params_cmd_fixed_param *) buf_ptr;
 	WMITLV_SET_HDR(&cmd->tlv_header,
-		       WMITLV_TAG_STRUC_wmi_pdev_set_wmm_params_cmd_fixed_param,
+		       WMITLV_TAG_STRUC_wmi_vdev_set_wmm_params_cmd_fixed_param,
 		       WMITLV_GET_STRUCT_TLVLEN(
-			       wmi_pdev_set_wmm_params_cmd_fixed_param));
-	cmd->reserved0 = 0;
-	buf_ptr += sizeof(wmi_pdev_set_wmm_params_cmd_fixed_param);
+			       wmi_vdev_set_wmm_params_cmd_fixed_param));
+	cmd->vdev_id = edca_params->bssIdx;
 
 	for (ac = 0; ac < WME_NUM_AC; ac++) {
-		wmm_param = (wmi_wmm_params *)
-				(buf_ptr + ac * sizeof(wmi_wmm_params));
+		wmm_param = (wmi_wmm_vparams *)(&cmd->wmm_params[ac]);
 		WMITLV_SET_HDR(&wmm_param->tlv_header,
-			       WMITLV_TAG_STRUC_wmi_wmm_params,
-			       WMITLV_GET_STRUCT_TLVLEN(wmi_wmm_params));
+			       WMITLV_TAG_STRUC_wmi_vdev_set_wmm_params_cmd_fixed_param,
+			       WMITLV_GET_STRUCT_TLVLEN(wmi_wmm_vparams));
 		switch (ac) {
 		case WME_AC_BE:
 			edca_record = &edca_params->acbe;
@@ -9982,7 +9984,7 @@ static VOS_STATUS wma_process_update_edca_param_req(WMA_HANDLE handle,
 	}
 
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
-				  WMI_PDEV_SET_WMM_PARAMS_CMDID))
+				  WMI_VDEV_SET_WMM_PARAMS_CMDID))
 		goto fail;
 
 	return VOS_STATUS_SUCCESS;
