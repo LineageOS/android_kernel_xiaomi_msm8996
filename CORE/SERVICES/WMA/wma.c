@@ -11386,6 +11386,7 @@ static VOS_STATUS wma_plm_start(tp_wma_handle wma, const tpSirPlmReq plm)
 	cmd->vdev_id = plm->sessionId;
 
 	cmd->meas_token = plm->meas_token;
+	cmd->dialog_token = plm->diag_token;
 	cmd->number_bursts = plm->numBursts;
         cmd->burst_interval = WMA_SEC_TO_MSEC(plm->burstInt);
 	cmd->off_duration = plm->measDuration;
@@ -11397,6 +11398,7 @@ static VOS_STATUS wma_plm_start(tp_wma_handle wma, const tpSirPlmReq plm)
 	buf_ptr += sizeof(wmi_vdev_plmreq_start_cmd_fixed_param);
 
 	WMA_LOGD("vdev : %d measu token : %d", cmd->vdev_id, cmd->meas_token);
+	WMA_LOGD("dialog_token: %d", cmd->dialog_token);
 	WMA_LOGD("number_bursts: %d", cmd->number_bursts);
 	WMA_LOGD("burst_interval: %d", cmd->burst_interval);
 	WMA_LOGD("off_duration: %d", cmd->off_duration);
@@ -11404,13 +11406,12 @@ static VOS_STATUS wma_plm_start(tp_wma_handle wma, const tpSirPlmReq plm)
 	WMA_LOGD("tx_power: %d", cmd->tx_power);
 	WMA_LOGD("Number of channels : %d", cmd->num_chans);
 
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
+			(cmd->num_chans * sizeof(u_int32_t)));
+
+	buf_ptr += WMI_TLV_HDR_SIZE;
 	if (cmd->num_chans)
         {
-		WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
-				(cmd->num_chans * sizeof(u_int32_t)));
-
-		buf_ptr += WMI_TLV_HDR_SIZE;
-
 		channel_list = (u_int32_t *) buf_ptr;
 		for (count = 0; count < cmd->num_chans; count++) {
 			channel_list[count] = plm->plmChList[count];
