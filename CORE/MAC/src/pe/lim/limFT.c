@@ -706,6 +706,14 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
     pAddBssParams->maxTxPower = pftSessionEntry->maxTxPower;
 #endif
 
+#ifdef WLAN_FEATURE_11W
+    if (pftSessionEntry->limRmfEnabled)
+    {
+        pAddBssParams->rmfEnabled = 1;
+        pAddBssParams->staContext.rmfEnabled = 1;
+    }
+#endif
+
     pAddBssParams->status = eHAL_STATUS_SUCCESS;
     pAddBssParams->respReqd = true;
 
@@ -922,6 +930,11 @@ void limFTSetupAuthSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 #ifdef FEATURE_WLAN_LFR
         pftSessionEntry->isFastRoamIniFeatureEnabled = psessionEntry->isFastRoamIniFeatureEnabled;
 #endif
+
+#ifdef WLAN_FEATURE_11W
+        pftSessionEntry->limRmfEnabled = psessionEntry->limRmfEnabled;
+#endif
+
         limFTPrepareAddBssReq( pMac, FALSE, pftSessionEntry,
             pMac->ft.ftPEContext.pFTPreAuthReq->pbssDescription );
         pMac->ft.ftPEContext.pftSessionEntry = pftSessionEntry;
