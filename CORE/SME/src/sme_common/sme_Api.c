@@ -11323,34 +11323,6 @@ int sme_UpdateHTConfig(tHalHandle hHal, tANI_U8 sessionId, tANI_U16 htCapab,
    return 0;
 }
 
-#ifdef FEATURE_WLAN_SCAN_PNO
-/*--------------------------------------------------------------------------
-
-  \brief sme_MoveCsrToScanStateForPno() - Request CSR module to be in Scan state
-                                          for PNO operation.
-
-  \param hHal - The handle returned by macOpen.
-  \param sessionId - A previous opened session's ID.
-
-  \return eHAL_STATUS_SUCCESS - CSR moved to Scan state.
-          eHAL_STATUS_INVALID_PARAMETER - Failed to acquire sme lock
-  --------------------------------------------------------------------------*/
-eHalStatus sme_MoveCsrToScanStateForPno (tHalHandle hHal, tANI_U8 sessionId)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    eHalStatus status;
-
-    status = sme_AcquireGlobalLock( &pMac->sme );
-    if ( HAL_STATUS_SUCCESS( status ) )
-    {
-        csrMoveToScanStateForPno( pMac, sessionId );
-        sme_ReleaseGlobalLock( &pMac->sme );
-    }
-
-    return status;
-}
-#endif
-
 #define HT20_SHORT_GI_MCS7_RATE 722
 /* ---------------------------------------------------------------------------
     \fn sme_SendRateUpdateInd

@@ -1027,16 +1027,9 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
     pMac->lim.mgmtFrameSessionId = 0xff;
     pMac->lim.deferredMsgCnt = 0;
 
-    if( !VOS_IS_STATUS_SUCCESS( vos_spin_lock_init( &pMac->lim.lkPeGlobalLock ) ) )
+    if( !VOS_IS_STATUS_SUCCESS( vos_lock_init( &pMac->lim.lkPeGlobalLock ) ) )
     {
         PELOGE(limLog(pMac, LOGE, FL("pe lock init failed!"));)
-        return eSIR_FAILURE;
-    }
-
-    if (!VOS_IS_STATUS_SUCCESS(
-        vos_spin_lock_init(&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
-    {
-        PELOGE(limLog(pMac, LOGE, FL("deauth/disassoc process lock init failed!"));)
         return eSIR_FAILURE;
     }
     pMac->lim.deauthMsgCnt = 0;
@@ -1081,14 +1074,8 @@ tSirRetStatus peClose(tpAniSirGlobal pMac)
     */
     vos_mem_free(pMac->pmm.gPmmTim.pTim);
     pMac->pmm.gPmmTim.pTim = NULL;
-    if( !VOS_IS_STATUS_SUCCESS( vos_spin_lock_destroy( &pMac->lim.lkPeGlobalLock ) ) )
+    if( !VOS_IS_STATUS_SUCCESS( vos_lock_destroy( &pMac->lim.lkPeGlobalLock ) ) )
     {
-        return eSIR_FAILURE;
-    }
-    if (!VOS_IS_STATUS_SUCCESS(
-        vos_spin_lock_destroy(&pMac->lim.limDisassocDeauthCnfReq.deauthDisassocInprogress)))
-    {
-        PELOGE(limLog(pMac, LOGE, FL("deauth/disassoc process lock destroy failed!"));)
         return eSIR_FAILURE;
     }
     return eSIR_SUCCESS;
@@ -2384,7 +2371,7 @@ eHalStatus pe_AcquireGlobalLock( tAniSirLim *psPe)
 
     if(psPe)
     {
-        if( VOS_IS_STATUS_SUCCESS( vos_spin_lock_acquire( &psPe->lkPeGlobalLock) ) )
+        if( VOS_IS_STATUS_SUCCESS( vos_lock_acquire( &psPe->lkPeGlobalLock) ) )
         {
             status = eHAL_STATUS_SUCCESS;
         }
@@ -2396,7 +2383,7 @@ eHalStatus pe_ReleaseGlobalLock( tAniSirLim *psPe)
     eHalStatus status = eHAL_STATUS_INVALID_PARAMETER;
     if(psPe)
     {
-        if( VOS_IS_STATUS_SUCCESS( vos_spin_lock_release( &psPe->lkPeGlobalLock) ) )
+        if( VOS_IS_STATUS_SUCCESS( vos_lock_release( &psPe->lkPeGlobalLock) ) )
         {
             status = eHAL_STATUS_SUCCESS;
         }

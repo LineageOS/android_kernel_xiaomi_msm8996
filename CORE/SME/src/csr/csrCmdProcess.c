@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -48,11 +48,43 @@ eHalStatus csrMsgProcessor( tpAniSirGlobal pMac,  void *pMsgBuf )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirSmeRsp *pSmeRsp = (tSirSmeRsp *)pMsgBuf;
+#ifdef FEATURE_WLAN_SCAN_PNO
+    tSirMbMsg *pMsg = (tSirMbMsg *)pMsgBuf;
+    tCsrRoamSession *pSession;
+#endif
 
     smsLog( pMac, LOG2, "  Message %d[0x%04X] received in curState %d and substate %d",
                 pSmeRsp->messageType, pSmeRsp->messageType,
                 pMac->roam.curState[pSmeRsp->sessionId],
                 pMac->roam.curSubState[pSmeRsp->sessionId] );
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+    /*
+     * PNO scan responses have to be handled irrespective of CSR roam state.
+     * Check if PNO has been started and only then process the PNO scan results.
+     * Also note that normal scan is not allowed when PNO scan is in progress
+     * and so the scan responses reaching here when PNO is started must be
+     * PNO responses. For normal scan, the PNO started flag will be FALSE and
+     * it will be processed as usual based on the current CSR roam state.
+     */
+    pSession = CSR_GET_SESSION(pMac, pSmeRsp->sessionId);
+    if(!pSession)
+    {
+        smsLog(pMac, LOGE, FL(" session %d not found"), pSmeRsp->sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    if((eWNI_SME_SCAN_RSP == pMsg->type) && (TRUE == pSession->pnoStarted))
+    {
+        status = csrScanningStateMsgProcessor(pMac, pMsgBuf);
+        if (eHAL_STATUS_SUCCESS != status)
+        {
+            smsLog(pMac, LOGE, FL(" handling PNO scan resp msg 0x%X CSR state is %d"),
+                   pSmeRsp->messageType, pMac->roam.curState[pSmeRsp->sessionId]);
+        }
+        return (status);
+    }
+#endif
 
     // Process the message based on the state of the roaming states...
 

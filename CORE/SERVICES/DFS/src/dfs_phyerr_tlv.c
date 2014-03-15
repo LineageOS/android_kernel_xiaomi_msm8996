@@ -175,7 +175,7 @@ radar_summary_parse(struct ath_dfs *dfs, const char *buf, size_t len,
    if (len < sizeof(rs)) {
       DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR |
           ATH_DEBUG_DFS_PHYERR_SUM,
-          "%s: len (%d) < expected (%zu)!",
+          "%s: len (%zu) < expected (%zu)!",
           __func__,
           len,
           sizeof(rs));
@@ -223,7 +223,7 @@ radar_fft_search_report_parse(struct ath_dfs *dfs, const char *buf, size_t len,
    if (len < sizeof(rs)) {
       DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR |
           ATH_DEBUG_DFS_PHYERR_SUM,
-          "%s: len (%d) < expected (%zu)!",
+          "%s: len (%zu) < expected (%zu)!",
           __func__,
           len,
           sizeof(rs));
@@ -282,7 +282,7 @@ tlv_parse_frame(struct ath_dfs *dfs, struct rx_radar_status *rs,
       if ((len - i) < sizeof(tlv_hdr)) {
          DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR |
              ATH_DEBUG_DFS_PHYERR_SUM,
-             "%s: ran out of bytes, len=%d, i=%d",
+             "%s: ran out of bytes, len=%zu, i=%d",
              __func__, len, i);
          return (0);
       }
@@ -309,7 +309,7 @@ tlv_parse_frame(struct ath_dfs *dfs, struct rx_radar_status *rs,
        */
       if (MS(tlv_hdr[TLV_REG], TLV_LEN) + i >= len) {
          DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-             "%s: TLV oversize: TLV LEN=%d, available=%d, "
+             "%s: TLV oversize: TLV LEN=%zu, available=%d, "
              "i=%d",
              __func__,
              MS(tlv_hdr[TLV_REG], TLV_LEN),

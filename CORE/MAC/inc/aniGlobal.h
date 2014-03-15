@@ -261,7 +261,6 @@ typedef struct sLimTimers
 typedef struct {
     void *pMlmDisassocReq;
     void *pMlmDeauthReq;
-    vos_spin_lock_t deauthDisassocInprogress;
 }tLimDisassocDeauthCnfReq;
 
 typedef struct sAniSirLim
@@ -657,7 +656,7 @@ typedef struct sAniSirLim
 
     // admission control policy information
     tLimAdmitPolicyInfo admitPolicyInfo;
-    vos_spin_lock_t lkPeGlobalLock;
+    vos_lock_t lkPeGlobalLock;
     tANI_U8 disableLDPCWithTxbfAP;
 #ifdef FEATURE_WLAN_TDLS
     tANI_U8 gLimTDLSBufStaEnabled;
