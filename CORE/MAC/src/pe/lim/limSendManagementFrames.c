@@ -209,6 +209,38 @@ void limMergeExtCapIEStruct(tDot11fIEExtCap *pDst,
     }
 }
 
+#ifdef QCA_WIFI_2_0
+/**
+ *
+ * \brief This function is called to add the sequence number to the
+ * management frames
+ *
+ * \param  pMac Pointer to Global MAC structure
+ *
+ * \param  pMacHdr Pointer to MAC management header
+ *
+ * The pMacHdr argument points to the MAC management header. The
+ * sequence number stored in the pMac structure will be incremented
+ * and updated to the MAC management header. The start sequence
+ * number is WLAN_HOST_SEQ_NUM_MIN and the end value is
+ * WLAN_HOST_SEQ_NUM_MAX. After reaching the MAX value, the sequence
+ * number will roll over.
+ *
+ */
+void
+limAddMgmtSeqNum (tpAniSirGlobal pMac, tpSirMacMgmtHdr pMacHdr)
+{
+    if (pMac->mgmtSeqNum >= WLAN_HOST_SEQ_NUM_MAX) {
+        pMac->mgmtSeqNum = WLAN_HOST_SEQ_NUM_MIN-1;
+    }
+
+    pMac->mgmtSeqNum++;
+
+    pMacHdr->seqControl.seqNumLo = (pMac->mgmtSeqNum & LOW_SEQ_NUM_MASK);
+    pMacHdr->seqControl.seqNumHi =
+            ((pMac->mgmtSeqNum & HIGH_SEQ_NUM_MASK) >> HIGH_SEQ_NUM_OFFSET);
+}
+#endif /* QCA_WIFI_2_0 */
 
 /**
  *
@@ -264,6 +296,16 @@ tSirRetStatus limPopulateMacHeader( tpAniSirGlobal pMac,
     vos_mem_copy(  (tANI_U8 *) pMacHdr->bssId,
                    (tANI_U8 *) peerAddr,
                    sizeof( tSirMacAddr ));
+
+#ifdef QCA_WIFI_2_0
+    /* Prepare sequence number */
+    limAddMgmtSeqNum(pMac, pMacHdr);
+    limLog(pMac, LOG1,"seqNumLo=%d, seqNumHi=%d, mgmtSeqNum=%d",
+            pMacHdr->seqControl.seqNumLo,
+            pMacHdr->seqControl.seqNumHi,
+            pMac->mgmtSeqNum);
+#endif /* QCA_WIFI_2_0 */
+
     return statusCode;
 } /*** end limPopulateMacHeader() ***/
 
