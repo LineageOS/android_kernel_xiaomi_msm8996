@@ -95,6 +95,7 @@ struct htt_pdev_t {
 #ifdef ATH_11AC_TXCOMPACT
     HTT_TX_MUTEX_TYPE		txnbufq_mutex;
     adf_nbuf_queue_t		txnbufq;
+    struct htt_htc_pkt_union *htt_htc_pkt_misclist;
 #endif
 
     struct htt_htc_pkt_union *htt_htc_pkt_freelist;

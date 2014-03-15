@@ -97,6 +97,41 @@ htt_htc_pkt_pool_free(struct htt_pdev_t *pdev)
     pdev->htt_htc_pkt_freelist = NULL;
 }
 
+#ifdef ATH_11AC_TXCOMPACT
+void
+htt_htc_misc_pkt_list_add(struct htt_pdev_t *pdev, struct htt_htc_pkt *pkt)
+{
+    struct htt_htc_pkt_union *u_pkt = (struct htt_htc_pkt_union *) pkt;
+
+    HTT_TX_MUTEX_ACQUIRE(&pdev->htt_tx_mutex);
+    if (pdev->htt_htc_pkt_misclist) {
+        u_pkt->u.next = pdev->htt_htc_pkt_misclist;
+        pdev->htt_htc_pkt_misclist = u_pkt;
+    } else {
+        pdev->htt_htc_pkt_misclist = u_pkt;
+    }
+    HTT_TX_MUTEX_RELEASE(&pdev->htt_tx_mutex);
+}
+
+void
+htt_htc_misc_pkt_pool_free(struct htt_pdev_t *pdev)
+{
+    struct htt_htc_pkt_union *pkt, *next;
+    adf_nbuf_t netbuf;
+    pkt = pdev->htt_htc_pkt_misclist;
+
+    while (pkt) {
+        next = pkt->u.next;
+        netbuf = (adf_nbuf_t)(pkt->u.pkt.htc_pkt.pNetBufContext);
+        adf_nbuf_unmap(pdev->osdev, netbuf, ADF_OS_DMA_TO_DEVICE);
+        adf_os_mem_free(netbuf);
+        adf_os_mem_free(pkt);
+        pkt = next;
+    }
+    pdev->htt_htc_pkt_misclist = NULL;
+}
+#endif
+
 /*---*/
 
 htt_pdev_handle
@@ -123,6 +158,9 @@ htt_attach(
 
     adf_os_mem_set(&pdev->stats, 0, sizeof(pdev->stats));
     pdev->htt_htc_pkt_freelist = NULL;
+#ifdef ATH_11AC_TXCOMPACT
+    pdev->htt_htc_pkt_misclist = NULL;
+#endif
 
     /* for efficiency, store a local copy of the is_high_latency flag */
     pdev->cfg.is_high_latency = ol_cfg_is_high_latency(pdev->ctrl_pdev);
@@ -299,6 +337,9 @@ htt_detach(htt_pdev_handle pdev)
     htt_rx_detach(pdev);
     htt_tx_detach(pdev);
     htt_htc_pkt_pool_free(pdev);
+#ifdef ATH_11AC_TXCOMPACT
+    htt_htc_misc_pkt_pool_free(pdev);
+#endif
     HTT_TX_MUTEX_DESTROY(&pdev->htt_tx_mutex);
     HTT_TX_NBUF_QUEUE_MUTEX_DESTROY(pdev);
     adf_os_mem_free(pdev);
