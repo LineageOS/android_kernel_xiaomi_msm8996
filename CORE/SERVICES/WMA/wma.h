@@ -162,6 +162,10 @@
 
 #define WMA_INVALID_KEY_IDX	0xff
 #define WMA_DFS_RADAR_FOUND   1
+
+#define WMA_MAX_RF_CHAINS(x)	((1 << x) - 1)
+#define WMA_MIN_RF_CHAINS		(1)
+
 typedef struct {
 	HTC_ENDPOINT_ID endpoint_id;
 }t_cfg_nv_param;

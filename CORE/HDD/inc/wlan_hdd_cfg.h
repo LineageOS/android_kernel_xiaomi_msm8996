@@ -1445,6 +1445,16 @@ typedef enum
 #define CFG_VHT_ENABLE_GID_FEATURE_DEFAULT      ( 0 )
 #endif
 
+#define CFG_VHT_ENABLE_1x1_TX_CHAINMASK         "gSetTxChainmask1x1"
+#define CFG_VHT_ENABLE_1x1_TX_CHAINMASK_MIN     ( 1 )
+#define CFG_VHT_ENABLE_1x1_TX_CHAINMASK_MAX     ( 2 )
+#define CFG_VHT_ENABLE_1x1_TX_CHAINMASK_DEFAULT ( 1 )
+
+#define CFG_VHT_ENABLE_1x1_RX_CHAINMASK         "gSetRxChainmask1x1"
+#define CFG_VHT_ENABLE_1x1_RX_CHAINMASK_MIN     ( 1 )
+#define CFG_VHT_ENABLE_1x1_RX_CHAINMASK_MAX     ( 2 )
+#define CFG_VHT_ENABLE_1x1_RX_CHAINMASK_DEFAULT ( 1 )
+
 #define CFG_ENABLE_AMPDUPS_FEATURE              "gEnableAMPDUPS"
 #define CFG_ENABLE_AMPDUPS_FEATURE_MIN          ( 0 )
 #define CFG_ENABLE_AMPDUPS_FEATURE_MAX          ( 1 )
@@ -2616,6 +2626,8 @@ typedef struct
    v_U8_t                      vhtRxMCS2x2;
    v_U8_t                      vhtTxMCS2x2;
    v_BOOL_t                    enable2x2;
+   v_BOOL_t                    txchainmask1x1;
+   v_BOOL_t                    rxchainmask1x1;
    v_BOOL_t                    enableMuBformee;
    v_BOOL_t                    enableVhtpAid;
    v_BOOL_t                    enableVhtGid;

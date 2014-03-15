@@ -7049,6 +7049,25 @@ wmi_unified_vdev_set_gtx_cfg_send(wmi_unified_t wmi_handle, u_int32_t if_id,
 	return wmi_unified_cmd_send(wmi_handle, buf, len, WMI_VDEV_SET_GTX_PARAMS_CMDID);
 }
 
+void wma_update_txrx_chainmask(int num_rf_chains, int *cmd_value)
+{
+	if (*cmd_value > WMA_MAX_RF_CHAINS(num_rf_chains)) {
+		WMA_LOGE("%s: Chainmask value exceeds the maximum"
+				" supported range setting it to"
+				" maximum value. Requested value %d"
+				" Updated value %d", __func__, *cmd_value,
+				WMA_MAX_RF_CHAINS(num_rf_chains));
+		*cmd_value = WMA_MAX_RF_CHAINS(num_rf_chains);
+	} else if (*cmd_value < WMA_MIN_RF_CHAINS) {
+		WMA_LOGE("%s: Chainmask value is less than the minimum"
+				" supported range setting it to"
+				" minimum value. Requested value %d"
+				" Updated value %d", __func__, *cmd_value,
+				WMA_MIN_RF_CHAINS);
+		*cmd_value = WMA_MIN_RF_CHAINS;
+	}
+}
+
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					wda_cli_set_cmd_t *privcmd)
 {
@@ -7092,6 +7111,11 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 	case PDEV_CMD:
 		WMA_LOGD("pdev pid %d pval %d", privcmd->param_id,
 				privcmd->param_value);
+		if ((privcmd->param_id == WMI_PDEV_PARAM_RX_CHAIN_MASK) ||
+			(privcmd->param_id == WMI_PDEV_PARAM_TX_CHAIN_MASK)) {
+			wma_update_txrx_chainmask(wma->num_rf_chains,
+						&privcmd->param_value);
+		}
 		ret = wmi_unified_pdev_set_param(wma->wmi_handle,
 						privcmd->param_id,
 						privcmd->param_value);
@@ -17434,6 +17458,7 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 
 	wma_handle->phy_capability = ev->phy_capability;
 	wma_handle->max_frag_entry = ev->max_frag_entry;
+	wma_handle->num_rf_chains = ev->num_rf_chains;
 	vos_mem_copy(&wma_handle->reg_cap, param_buf->hal_reg_capabilities,
 		     sizeof(HAL_REG_CAPABILITIES));
 	wma_handle->ht_cap_info = ev->ht_cap_info;
