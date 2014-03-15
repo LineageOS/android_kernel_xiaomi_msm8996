@@ -1025,9 +1025,7 @@ struct hdd_adapter_s
    v_U8_t psbChanged;
    /* UAPSD psb value configured through framework */
    v_U8_t configuredPsb;
-#ifdef QCA_WIFI_2_0
-   v_BOOL_t internalCancelRemainOnChReq;
-#endif
+   v_BOOL_t internalRoCinProgress;
 #ifdef IPA_OFFLOAD
     void *ipa_context;
 #endif

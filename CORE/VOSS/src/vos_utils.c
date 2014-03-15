@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -221,7 +221,7 @@ v_BOOL_t vos_is_mmie_valid(v_U8_t *igtk, v_U8_t *ipn,
     {
         /* Replay error */
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            " mmie ipn %02X %02X %02X %02X %02X %02X"
+            "Replay error mmie ipn %02X %02X %02X %02X %02X %02X"
             " drvr ipn %02X %02X %02X %02X %02X %02X",
             rx_ipn[0], rx_ipn[1], rx_ipn[2], rx_ipn[3], rx_ipn[4], rx_ipn[5],
             ipn[0], ipn[1], ipn[2], ipn[3], ipn[4], ipn[5]);

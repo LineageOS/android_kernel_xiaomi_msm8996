@@ -613,7 +613,6 @@ typedef struct sDphHashNode
 
     tANI_U8 timingMeasCap;
 
-    tSirNwType              nwType;
     /* When a station with already an existing dph entry tries to
 
      * associate again, the old dph entry will be zeroed out except

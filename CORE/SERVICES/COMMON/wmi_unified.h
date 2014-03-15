@@ -2990,6 +2990,9 @@ typedef enum {
     /* set Tx failure count threshold for the vdev */
     WMI_VDEV_PARAM_SET_IBSS_TX_FAIL_CNT_THR,
 
+    /* set ebt resync timeout value, in the unit of TU */
+    WMI_VDEV_PARAM_EBT_RESYNC_TIMEOUT,
+
 } WMI_VDEV_PARAM;
 
 enum wmi_pkt_type {
@@ -5357,6 +5360,7 @@ typedef struct {
     A_UINT32 tlv_header;
     A_UINT32 vdev_id;        /* home vdev id */
     A_UINT32 meas_token;     /* from measure request frame */
+    A_UINT32 dialog_token;
     A_UINT32 number_bursts;  /* zero keep sending until cancel, bigger than 0 means times e.g. 1,2 */
     A_UINT32 burst_interval; /* unit in mill seconds, interval between consecutive burst*/
     A_UINT32 burst_cycle;   /* times cycle through within one burst */

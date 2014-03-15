@@ -383,11 +383,23 @@ struct wma_wow {
 	v_BOOL_t gtk_err_enable;
 };
 #ifdef WLAN_FEATURE_11W
-#define CMAC_IPN_LEN 6
+#define CMAC_IPN_LEN         (6)
+#define WMA_IGTK_KEY_INDEX_4 (4)
+#define WMA_IGTK_KEY_INDEX_5 (5)
+
+typedef struct {
+	u_int8_t  ipn[CMAC_IPN_LEN];
+} wma_igtk_ipn_t;
+
 typedef struct {
 	u_int16_t key_length;
 	u_int8_t  key[CSR_AES_KEY_LEN];
-	u_int8_t  ipn[CMAC_IPN_LEN];
+
+	/* IPN is maintained per iGTK keyID
+	 * 0th index for iGTK keyID = 4;
+	 * 1st index for iGTK KeyID = 5
+	*/
+        wma_igtk_ipn_t key_id[2];
 } wma_igtk_key_t;
 #endif
 
