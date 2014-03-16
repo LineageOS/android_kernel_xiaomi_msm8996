@@ -214,6 +214,7 @@ htt_rx_ring_fill_n(struct htt_pdev_t *pdev, int num)
 
         rx_netbuf = adf_nbuf_alloc(pdev->osdev, HTT_RX_BUF_SIZE, 0, 4, FALSE);
         if (!rx_netbuf) {
+            adf_os_timer_cancel(&pdev->rx_ring.refill_retry_timer);
             /*
              * Failed to fill it to the desired level -
              * we'll start a timer and try again next time.
