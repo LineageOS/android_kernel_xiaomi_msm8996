@@ -2414,6 +2414,8 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
        }
        else if ( strncasecmp(command, "COUNTRY", 7) == 0 )
        {
+           eHalStatus status;
+           long rc;
            char *country_code;
 
            country_code = command + 8;
@@ -2423,25 +2425,30 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 #ifndef CONFIG_ENABLE_LINUX_REG
            hdd_checkandupdate_phymode(pAdapter, country_code);
 #endif
-           ret = (int)sme_ChangeCountryCode(pHddCtx->hHal,
-                  (void *)(tSmeChangeCountryCallback)
-                    wlan_hdd_change_country_code_callback,
-                     country_code, pAdapter, pHddCtx->pvosContext, eSIR_TRUE, eSIR_TRUE);
-           if (eHAL_STATUS_SUCCESS == ret)
+           status =
+              sme_ChangeCountryCode(pHddCtx->hHal,
+                                    (void *)(tSmeChangeCountryCallback)
+                                    wlan_hdd_change_country_code_callback,
+                                    country_code, pAdapter,
+                                    pHddCtx->pvosContext,
+                                    eSIR_TRUE, eSIR_TRUE);
+           if (status == eHAL_STATUS_SUCCESS)
            {
-               ret = wait_for_completion_interruptible_timeout(
+               rc = wait_for_completion_interruptible_timeout(
                        &pAdapter->change_country_code,
-                            msecs_to_jiffies(WLAN_WAIT_TIME_COUNTRY));
-               if (0 >= ret)
+                       msecs_to_jiffies(WLAN_WAIT_TIME_COUNTRY));
+               if (0 >= rc)
                {
-                   hddLog(VOS_TRACE_LEVEL_ERROR, "%s: SME while setting country code timed out",
-                   __func__);
+                   hddLog(VOS_TRACE_LEVEL_ERROR,
+                          "%s: SME while setting country code timed out",
+                          __func__);
                }
            }
            else
            {
-               VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                 "%s: SME Change Country code fail ret=%d", __func__, ret);
+               hddLog(VOS_TRACE_LEVEL_ERROR,
+                      "%s: SME Change Country code fail, status=%d",
+                      __func__, status);
                ret = -EINVAL;
            }
 
