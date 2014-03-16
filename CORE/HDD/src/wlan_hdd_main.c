@@ -7422,6 +7422,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
    union iwreq_data wrqu;
+   v_U8_t retry = 0;
 
    ENTER();
 
@@ -7455,7 +7456,23 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
          {
             hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId);
          }
-
+         if (pAdapter->device_mode != WLAN_HDD_INFRA_STATION) {
+            while (pAdapter->is_roc_inprogress) {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                         "%s: ROC in progress for session %d!!!",
+                         __func__, pAdapter->sessionId);
+               msleep(500);
+               if (retry++ > 3) {
+                  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                            "%s: ROC completion is not received.!!!", __func__);
+                  sme_CancelRemainOnChannel(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                            pAdapter->sessionId);
+                  wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
+                                            msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
+                  break;
+               }
+            }
+         }
          if (test_bit(SME_SESSION_OPENED, &pAdapter->event_flags))
          {
             INIT_COMPLETION(pAdapter->session_close_comp_var);
@@ -7475,6 +7492,24 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
       case WLAN_HDD_SOFTAP:
       case WLAN_HDD_P2P_GO:
          //Any softap specific cleanup here...
+         if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
+            while (pAdapter->is_roc_inprogress) {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                         "%s: ROC in progress for session %d!!!",
+                         __func__, pAdapter->sessionId);
+               msleep(500);
+               if (retry++ > 3) {
+                  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                            "%s: ROC completion is not received.!!!", __func__);
+                  WLANSAP_CancelRemainOnChannel(
+                                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+                  wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
+                                            msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
+                  break;
+               }
+            }
+         }
+
          mutex_lock(&pHddCtx->sap_lock);
          if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags))
          {
@@ -10351,7 +10386,6 @@ static int __init hdd_module_init ( void)
    return 0;
 }
 #endif /* #ifdef MODULE */
-
 
 /**---------------------------------------------------------------------------
 

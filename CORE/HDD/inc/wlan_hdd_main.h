@@ -579,6 +579,13 @@ typedef struct
    v_BOOL_t             qBlocked;
 } hdd_thermal_mitigation_info_t;
 
+typedef struct action_pkt_buffer
+{
+   tANI_U8* frame_ptr;
+   tANI_U32 frame_length;
+   tANI_U16 freq;
+}action_pkt_buffer_t;
+
 typedef struct hdd_remain_on_chan_ctx
 {
   struct net_device *dev;
@@ -588,6 +595,8 @@ typedef struct hdd_remain_on_chan_ctx
   u64 cookie;
   rem_on_channel_request_type_t rem_on_chan_request;
   v_U32_t p2pRemOnChanTimeStamp;
+  vos_timer_t hdd_remain_on_chan_timer;
+  action_pkt_buffer_t action_pkt_buff;
 }hdd_remain_on_chan_ctx_t;
 
 typedef enum{
@@ -1036,7 +1045,6 @@ struct hdd_adapter_s
    v_U8_t psbChanged;
    /* UAPSD psb value configured through framework */
    v_U8_t configuredPsb;
-   v_BOOL_t internalRoCinProgress;
 #ifdef IPA_OFFLOAD
     void *ipa_context;
 #endif
@@ -1044,6 +1052,7 @@ struct hdd_adapter_s
     unsigned long prev_rx_packets;
     unsigned long prev_tx_packets;
 #endif
+    v_BOOL_t is_roc_inprogress;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
