@@ -835,10 +835,9 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 
 	if (kickout_event->reason == WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT) {
 		p_inactivity = (tpSirIbssPeerInactivityInd)
-			adf_os_mem_alloc(NULL,
-					 sizeof(tSirIbssPeerInactivityInd));
+			vos_mem_malloc(sizeof(tSirIbssPeerInactivityInd));
 		if (!p_inactivity) {
-			WMA_LOGE("Memory Alloc Failed for tSirIbssPeerInactivity");
+			WMA_LOGE("VOS MEM Alloc Failed for tSirIbssPeerInactivity");
 			return -EINVAL;
 		}
 
@@ -848,10 +847,9 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 	}
 	else {
 		del_sta_ctx =
-			(tpDeleteStaContext)adf_os_mem_alloc(NULL,
-					sizeof(tDeleteStaContext));
+			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
 		if (!del_sta_ctx) {
-			WMA_LOGE("Memory Alloc Failed for tDeleteStaContext");
+			WMA_LOGE("VOS MEM Alloc Failed for tDeleteStaContext");
 			return -EINVAL;
 		}
 
@@ -15289,6 +15287,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
                 case WDA_UPDATE_OP_MODE:
                         wma_process_update_opmode(wma_handle,
                                        (tUpdateVHTOpMode *)msg->bodyptr);
+                        vos_mem_free(msg->bodyptr);
                         break;
 #ifdef WLAN_FEATURE_11AC
                 case WDA_UPDATE_MEMBERSHIP:
@@ -15602,6 +15601,29 @@ static void wma_mgmt_tx_ack_work_handler(struct work_struct *ack_work)
 	wma_handle->ack_work_ctx = NULL;
 }
 
+/* function   : wma_mgmt_tx_comp_conf_ind
+ * Descriptin : Post mgmt tx complete indication to PE.
+ * Args       :
+                wma_handle  : Pointer to WMA handle
+ *              sub_type    : Tx mgmt frame sub type
+ *              status      : Mgmt frame tx status
+ * Returns    :
+ */
+static void
+wma_mgmt_tx_comp_conf_ind(tp_wma_handle wma_handle, u_int8_t sub_type,
+							int32_t status)
+{
+	int32_t tx_comp_status;
+
+	tx_comp_status = status ? 0 : 1;
+	if(sub_type == SIR_MAC_MGMT_DISASSOC) {
+		wma_send_msg(wma_handle, WDA_DISASSOC_TX_COMP, NULL, tx_comp_status);
+	}
+	else if(sub_type == SIR_MAC_MGMT_DEAUTH) {
+		wma_send_msg(wma_handle, WDA_DEAUTH_TX_COMP, NULL, tx_comp_status);
+	}
+}
+
 /**
   * wma_mgmt_tx_ack_comp_hdlr - handles tx ack mgmt completion
   * @context: context with which the handler is registered
@@ -15620,20 +15642,27 @@ wma_mgmt_tx_ack_comp_hdlr(void *wma_context,
 	tp_wma_handle wma_handle = (tp_wma_handle)wma_context;
 
 	if(wma_handle && wma_handle->umac_ota_ack_cb[pFc->subType]) {
-		struct wma_tx_ack_work_ctx *ack_work;
+		if((pFc->subType == SIR_MAC_MGMT_DISASSOC) ||
+			(pFc->subType == SIR_MAC_MGMT_DEAUTH)) {
+			wma_mgmt_tx_comp_conf_ind(wma_handle, (u_int8_t)pFc->subType,
+										status);
+		}
+		else {
+			struct wma_tx_ack_work_ctx *ack_work;
 
-		ack_work =
-		adf_os_mem_alloc(NULL, sizeof(struct wma_tx_ack_work_ctx));
+			ack_work =
+			adf_os_mem_alloc(NULL, sizeof(struct wma_tx_ack_work_ctx));
 
-		if(ack_work) {
-			INIT_WORK(&ack_work->ack_cmp_work,
-					wma_mgmt_tx_ack_work_handler);
-			ack_work->wma_handle = wma_handle;
-			ack_work->sub_type = pFc->subType;
-			ack_work->status = status;
+			if(ack_work) {
+				INIT_WORK(&ack_work->ack_cmp_work,
+						wma_mgmt_tx_ack_work_handler);
+				ack_work->wma_handle = wma_handle;
+				ack_work->sub_type = pFc->subType;
+				ack_work->status = status;
 
-			/* Schedue the Work */
-			schedule_work(&ack_work->ack_cmp_work);
+				/* Schedue the Work */
+				schedule_work(&ack_work->ack_cmp_work);
+			}
 		}
 	}
 }
@@ -15884,8 +15913,10 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 		/* Posting scan completion msg would take scan cache result
 		 * from LIM module and update in scan cache maintained in SME.*/
 		WMA_LOGD("Posting Scan completion to umac");
+		vos_mem_zero(scan_event, sizeof(tSirScanOffloadEvent));
 		scan_event->reasonCode = eSIR_SME_SUCCESS;
 		scan_event->event = SCAN_EVENT_COMPLETED;
+		scan_event->sessionId = nlo_event->vdev_id;
 		wma_send_msg(wma, WDA_RX_SCAN_EVENT,
 			     (void *) scan_event, 0);
 	} else {
@@ -16785,6 +16816,15 @@ VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
 }
 
 
+/*
+ * Detach DFS methods
+ */
+static void wma_dfs_detach(struct ieee80211com *dfs_ic)
+{
+	dfs_detach(dfs_ic);
+	OS_FREE(dfs_ic);
+}
+
 /* function   : wma_close
  * Descriptin :
  * Args       :
@@ -16857,6 +16897,11 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	if (vos_get_conparam() == VOS_FTM_MODE)
 		wma_utf_detach(wma_handle);
 #endif
+
+	if (NULL != wma_handle->dfs_ic){
+		wma_dfs_detach(wma_handle->dfs_ic);
+		wma_handle->dfs_ic = NULL;
+	}
 
 	WMA_LOGD("%s: Exit", __func__);
 	return VOS_STATUS_SUCCESS;
@@ -19176,9 +19221,7 @@ wma_dfs_indicate_radar(struct ieee80211com *ic,
         return (0);
     }
     radar_event = (struct wma_dfs_radar_indication *)
-                   OS_MALLOC(NULL,
-                             sizeof(struct wma_dfs_radar_indication),
-                             GFP_ATOMIC);
+                   vos_mem_malloc(sizeof(struct wma_dfs_radar_indication));
     if (radar_event == NULL)
     {
         WMA_LOGE("%s:DFS- Invalid radar_event",__func__);
@@ -19285,7 +19328,7 @@ void ol_rx_err(ol_pdev_handle pdev, u_int8_t vdev_id,
 	if (adf_nbuf_len(rx_frame) < sizeof(*eth_hdr))
 		return;
 	eth_hdr = (struct ether_header *) adf_nbuf_data(rx_frame);
-	mic_err_ind = adf_os_mem_alloc(NULL, sizeof(*mic_err_ind));
+	mic_err_ind = vos_mem_malloc(sizeof(*mic_err_ind));
 	if (!mic_err_ind) {
 		WMA_LOGE("%s: Failed to allocate memory for MIC indication message", __func__);
 		return;

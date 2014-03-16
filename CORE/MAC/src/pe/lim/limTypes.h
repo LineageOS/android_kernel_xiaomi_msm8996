@@ -1089,6 +1089,10 @@ void limProcessDisassocAckTimeout(tpAniSirGlobal pMac);
 void limProcessDeauthAckTimeout(tpAniSirGlobal pMac);
 eHalStatus limSendDisassocCnf(tpAniSirGlobal pMac);
 eHalStatus limSendDeauthCnf(tpAniSirGlobal pMac);
+eHalStatus limDisassocTxCompleteCnf(tpAniSirGlobal pMac,
+                tANI_U32 txCompleteSuccess);
+eHalStatus limDeauthTxCompleteCnf(tpAniSirGlobal pMac,
+                tANI_U32 txCompleteSuccess);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 typedef struct sSetLinkCbackParams

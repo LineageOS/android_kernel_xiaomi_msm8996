@@ -1459,6 +1459,7 @@ hif_pci_remove(struct pci_dev *pdev)
 
     pci_disable_msi(pdev);
     A_FREE(scn);
+    A_FREE(sc->hif_device);
     A_FREE(sc);
     pci_set_drvdata(pdev, NULL);
     pci_iounmap(pdev, mem);

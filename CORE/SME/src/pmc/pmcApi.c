@@ -3013,7 +3013,11 @@ eHalStatus pmcSetPreferredNetworkList
     {
        if (pRequestBuf->enable)
        {
-           sme_MoveCsrToScanStateForPno(hHal, sessionId);
+           pSession->pnoStarted = TRUE;
+       }
+       else
+       {
+           pSession->pnoStarted = FALSE;
        }
 
        pRequestBuf->sessionId = sessionId;

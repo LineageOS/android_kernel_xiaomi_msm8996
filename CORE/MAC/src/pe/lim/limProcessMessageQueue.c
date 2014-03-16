@@ -2086,6 +2086,14 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         limMsg->bodyptr = NULL;
         break;
 
+    case WDA_DISASSOC_TX_COMP:
+        limDisassocTxCompleteCnf(pMac , limMsg->bodyval);
+        break;
+
+    case WDA_DEAUTH_TX_COMP:
+        limDeauthTxCompleteCnf(pMac, limMsg->bodyval);
+        break;
+
     case eWNI_SME_DFS_BEACON_CHAN_SW_IE_REQ:
         limProcessSmeReqMessages(pMac, limMsg);
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);
