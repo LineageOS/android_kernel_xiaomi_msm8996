@@ -1222,6 +1222,9 @@ ol_tx_queue_log_display(ol_txrx_pdev_handle pdev);
 #define wdi_in_peer_state_update ol_txrx_peer_state_update
 #define wdi_in_peer_keyinstalled_state_update ol_txrx_peer_keyinstalled_state_update
 #define wdi_in_vdev_rx_fwd_disabled ol_vdev_rx_set_intrabss_fwd
+#ifdef QCA_LL_TX_FLOW_CT
+#define wdi_in_get_tx_resource ol_txrx_get_tx_resource
+#endif /* QCA_LL_TX_FLOW_CT */
 
 #include <ol_txrx_dbg.h>
 

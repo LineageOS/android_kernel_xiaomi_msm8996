@@ -383,4 +383,12 @@ htt_htc_pkt_free(struct htt_pdev_t *pdev, struct htt_htc_pkt *pkt);
 void
 htt_htc_pkt_pool_free(struct htt_pdev_t *pdev);
 
+#ifdef ATH_11AC_TXCOMPACT
+void
+htt_htc_misc_pkt_list_add(struct htt_pdev_t *pdev, struct htt_htc_pkt *pkt);
+
+void
+htt_htc_misc_pkt_pool_free(struct htt_pdev_t *pdev);
+#endif
+
 #endif /* _HTT_INTERNAL__H_ */

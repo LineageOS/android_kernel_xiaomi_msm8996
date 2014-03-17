@@ -630,6 +630,29 @@ typedef VOS_STATUS (*WLANTL_STARxCBType)( v_PVOID_t              pvosGCtx,
 typedef VOS_STATUS (*WLANTL_STARxCBType)(v_PVOID_t              pvosGCtx,
                                          adf_nbuf_t             pDataBuff,
                                          v_U8_t                 ucSTAId);
+
+#ifdef QCA_LL_TX_FLOW_CT
+/*----------------------------------------------------------------------------
+
+  DESCRIPTION
+    Type of the TX Flow Control callback registered with TL.
+
+    TL will call this to notify the client when TX resource condition
+    is chnaged
+
+  PARAMETERS
+
+    IN
+    adapterCtxt:    pointer to device apapter context
+    resume_tx:      Ressume OS TX Q
+
+  RETURN VALUE
+    NONE
+
+----------------------------------------------------------------------------*/
+typedef void (*WLANTL_TxFlowControlCBType)(void *adapterCtxt,
+                                               v_BOOL_t resume_tx);
+#endif /* QCA_LL_TX_FLOW_CT */
 #endif /* QCA_WIFI_2_0 */
 
 /*----------------------------------------------------------------------------
@@ -2991,6 +3014,98 @@ WLANTL_TLDebugMessage
 {
 
 }
+#endif /* QCA_WIFI_2_0 */
+
+
+#ifdef QCA_WIFI_2_0
+#ifdef QCA_LL_TX_FLOW_CT
+/*=============================================================================
+  FUNCTION    WLANTL_GetTxResource
+
+  DESCRIPTION
+    This function will query WLAN kernel driver TX resource availability.
+    Per STA/VDEV instance, if TX resource is not available, should back
+    pressure to OS NET layer.
+
+  DEPENDENCIES
+    NONE
+
+  PARAMETERS
+   IN
+   vos_context   : Pointer to VOS global context
+   sta_id : STA/VDEV instance to query TX resource
+
+  RETURN VALUE
+    VOS_TRUE : Enough resource available, Not need to PAUSE TX OS Q
+    VOS_FALSE : TX resource is not enough, stop OS TX Q
+
+  SIDE EFFECTS
+
+==============================================================================*/
+v_BOOL_t WLANTL_GetTxResource
+(
+   void *vos_context,
+   uint8_t sta_id
+);
+
+/*=============================================================================
+  FUNCTION    WLANTL_TXFlowControlCb
+
+  DESCRIPTION
+    This function will be called by TX resource management unit.
+    If TC resource management unit reserved enough resource for TX session,
+    Call this function to resume OS TX Q.
+
+  PARAMETERS
+   IN
+   tlContext : Pointer to TL SHIM context
+   sessionId : STA/VDEV instance to query TX resource
+   resume_tx : Resume OS TX Q or not
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_TXFlowControlCb
+(
+   void  *tlContext,
+   v_U8_t sessionId,
+   v_BOOL_t resume_tx
+);
+
+/*=============================================================================
+  FUNCTION    WLANTL_RegisterTXFlowControl
+
+  DESCRIPTION
+    This function will be called by TL client.
+    Any device want to enable TX flow control, should register Cb function
+    And needed information into TL SHIM
+
+  PARAMETERS
+   IN
+   vos_ctx : Global OS context context
+   sta_id  : STA/VDEV instance index
+   flowControl : Flow control callback function pointer
+   sessionId : VDEV ID
+   adpaterCtxt : VDEV os interface adapter context
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_RegisterTXFlowControl
+(
+   void *vos_ctx,
+   v_U8_t sta_id,
+   WLANTL_TxFlowControlCBType flowControl,
+   v_U8_t sessionId,
+   void *adpaterCtxt
+);
+#endif /* QCA_LL_TX_FLOW_CT */
 #endif /* QCA_WIFI_2_0 */
 
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

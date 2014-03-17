@@ -151,8 +151,13 @@ htt_h2t_ver_req_msg(struct htt_pdev_t *pdev)
 
     SET_HTC_PACKET_NET_BUF_CONTEXT(&pkt->htc_pkt, msg);
 
+#ifdef ATH_11AC_TXCOMPACT
+    if (HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt) == A_OK) {
+        htt_htc_misc_pkt_list_add(pdev, pkt);
+    }
+#else
     HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt);
-
+#endif
     return A_OK;
 }
 
@@ -303,8 +308,13 @@ htt_h2t_rx_ring_cfg_msg_ll(struct htt_pdev_t *pdev)
 
     SET_HTC_PACKET_NET_BUF_CONTEXT(&pkt->htc_pkt, msg);
 
+#ifdef ATH_11AC_TXCOMPACT
+    if (HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt) == A_OK) {
+        htt_htc_misc_pkt_list_add(pdev, pkt);
+    }
+#else
     HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt);
-
+#endif
     return A_OK;
 }
 
@@ -434,8 +444,13 @@ htt_h2t_rx_ring_cfg_msg_hl(struct htt_pdev_t *pdev)
 
     SET_HTC_PACKET_NET_BUF_CONTEXT(&pkt->htc_pkt, msg);
 
+#ifdef ATH_11AC_TXCOMPACT
+    if (HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt) == A_OK) {
+        htt_htc_misc_pkt_list_add(pdev, pkt);
+    }
+#else
     HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt);
-
+#endif
     return A_OK;
 }
 
@@ -519,7 +534,13 @@ htt_h2t_dbg_stats_get(
 
     SET_HTC_PACKET_NET_BUF_CONTEXT(&pkt->htc_pkt, msg);
 
+#ifdef ATH_11AC_TXCOMPACT
+    if (HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt) == A_OK) {
+        htt_htc_misc_pkt_list_add(pdev, pkt);
+    }
+#else
     HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt);
+#endif
     return 0;
 }
 
@@ -571,8 +592,13 @@ htt_h2t_sync_msg(struct htt_pdev_t *pdev, u_int8_t sync_cnt)
 
     SET_HTC_PACKET_NET_BUF_CONTEXT(&pkt->htc_pkt, msg);
 
+#ifdef ATH_11AC_TXCOMPACT
+    if (HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt) == A_OK) {
+        htt_htc_misc_pkt_list_add(pdev, pkt);
+    }
+#else
     HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt);
-
+#endif
     return A_OK;
 }
 
@@ -633,6 +659,12 @@ htt_h2t_aggr_cfg_msg(struct htt_pdev_t *pdev,
 
     SET_HTC_PACKET_NET_BUF_CONTEXT(&pkt->htc_pkt, msg);
 
+#ifdef ATH_11AC_TXCOMPACT
+    if (HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt) == A_OK) {
+        htt_htc_misc_pkt_list_add(pdev, pkt);
+    }
+#else
     HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt);
+#endif
     return 0;
 }

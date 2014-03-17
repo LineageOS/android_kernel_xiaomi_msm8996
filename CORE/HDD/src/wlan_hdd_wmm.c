@@ -1224,8 +1224,10 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
    pAc->wmmAcAccessAllowed = hdd_wmm_is_access_allowed(pAdapter, pAc);
 #else
    // if Tspec only allows downstream traffic then access is not allowed
-   if (pAc->wmmAcTspecInfo.ts_info.direction == SME_QOS_WMM_TS_DIR_DOWNLINK)
+   if (pAc->wmmAcTspecValid &&
+       (pAc->wmmAcTspecInfo.ts_info.direction == SME_QOS_WMM_TS_DIR_DOWNLINK)) {
       pAc->wmmAcAccessAllowed = VOS_FALSE;
+   }
 
    // if ACM bit is not set, allow access
    if (!(pAc->wmmAcAccessRequired))
@@ -2317,6 +2319,12 @@ VOS_STATUS hdd_wmm_connect( hdd_adapter_t* pAdapter,
          pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessRequired = VOS_TRUE;
          pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed = VOS_FALSE;
          pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessGranted = VOS_FALSE;
+         //after reassoc if we have valid tspec, allow access
+         if (pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcTspecValid &&
+               (pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcTspecInfo.ts_info.direction !=
+                SME_QOS_WMM_TS_DIR_DOWNLINK)) {
+            pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed = VOS_TRUE;
+         }
       }
       else
       {

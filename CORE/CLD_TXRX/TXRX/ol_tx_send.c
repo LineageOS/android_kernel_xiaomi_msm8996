@@ -456,6 +456,7 @@ ol_tx_completion_handler(
     u_int16_t tx_desc_id;
     struct ol_tx_desc_t *tx_desc;
     char *trace_str;
+    struct ol_txrx_vdev_t *vdev;
 
     uint32_t   byte_cnt = 0;
     union ol_tx_desc_list_elem_t *td_array = pdev->tx_desc.array;
@@ -516,6 +517,20 @@ ol_tx_completion_handler(
     } else {
         OL_TX_TARGET_CREDIT_ADJUST(num_msdus, pdev, NULL);
     }
+
+#ifdef QCA_LL_TX_FLOW_CT
+    adf_os_spin_lock(&pdev->tx_mutex);
+    TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem)
+    {
+        if (vdev->os_q_paused &&
+            (pdev->tx_desc.num_free > TXRX_LL_FLOW_CT_FREE_D_HWM)) {
+            vdev->osif_flow_control_cb(vdev->osif_dev, vdev->vdev_id, A_TRUE);
+            vdev->os_q_paused = A_FALSE;
+        }
+    }
+    adf_os_spin_unlock(&pdev->tx_mutex);
+#endif /* QCA_LL_TX_FLOW_CT */
+
     /* Do one shot statistics */
     TXRX_STATS_UPDATE_TX_STATS(pdev, status, num_msdus, byte_cnt);
 }

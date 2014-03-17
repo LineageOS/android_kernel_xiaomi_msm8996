@@ -575,16 +575,17 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 
 /* WMI Event handler register API */
 int wmi_unified_get_event_handler_ix(wmi_unified_t wmi_handle,
-                                       WMI_EVT_ID event_id)
+					WMI_EVT_ID event_id)
 {
-    u_int32_t idx=0;
-    for (idx=0; idx<wmi_handle->max_event_idx; ++idx) {
-        if (wmi_handle->event_id[idx] == event_id &&
-            wmi_handle->event_handler[idx] != NULL ) {
-           return idx;
-        }
-    }
-    return  -1;
+	u_int32_t idx = 0;
+	for (idx = 0; (idx < wmi_handle->max_event_idx &&
+		idx < WMI_UNIFIED_MAX_EVENT); ++idx) {
+		if (wmi_handle->event_id[idx] == event_id &&
+			wmi_handle->event_handler[idx] != NULL ) {
+			return idx;
+		}
+	}
+	return  -1;
 }
 
 int wmi_unified_register_event_handler(wmi_unified_t wmi_handle,

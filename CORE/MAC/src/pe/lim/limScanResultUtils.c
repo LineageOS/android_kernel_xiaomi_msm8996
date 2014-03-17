@@ -739,6 +739,18 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
                                       ptemp->bssDescription.channelId))))
         )
         {
+            if (ptemp->bssDescription.fProbeRsp &&
+                    !pBssDescr->bssDescription.fProbeRsp)
+            {
+                /* If the previously saved frame is probe response
+                 * and the current frame is beacon, then no need
+                 * to update the scan database. Probe response is
+                 * going to have more proper information than beacon
+                 * frame. So it is better to inform the probe
+                 * response frame instead of beacon for proper
+                 * information. */
+                return eHAL_STATUS_FAILURE;
+            }
             // Found the same BSS description
             if (action == LIM_HASH_UPDATE)
             {
