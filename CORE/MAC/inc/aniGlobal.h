@@ -142,6 +142,13 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #define EQUALS_TO_ASCII_VALUE (61)
 #endif
 
+#ifdef QCA_WIFI_2_0
+#define WLAN_HOST_SEQ_NUM_MIN				2048
+#define WLAN_HOST_SEQ_NUM_MAX				4095
+#define LOW_SEQ_NUM_MASK				0x000F
+#define HIGH_SEQ_NUM_MASK				0x0FF0
+#define HIGH_SEQ_NUM_OFFSET				4
+#endif /* QCA_WIFI_2_0 */
 
 // -------------------------------------------------------------------
 // Change channel generic scheme
@@ -1095,6 +1102,9 @@ typedef struct sAniSirGlobal
     tANI_U8 lteCoexAntShare;
     tANI_U8 beacon_offload;
     tANI_U32 fEnableDebugLog;
+#ifdef QCA_WIFI_2_0
+    tANI_U16 mgmtSeqNum;
+#endif /* QCA_WIFI_2_0 */
 } tAniSirGlobal;
 
 typedef enum

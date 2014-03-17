@@ -90,6 +90,15 @@ typedef void (*ol_txrx_rx_fp)(void *osif_dev, adf_nbuf_t msdus);
 #endif /* OSIF_NEED_RX_PEER_ID */
 
 /**
+ * @typedef ol_txrx_tx_fc_fp
+ * @brief tx flow control notification function from txrx to OS shim
+ * @param osif_dev - the virtual device's OS shim object
+ * @param vdev_id - virtual device id
+ * @param tx_resume - tx os q should be resumed or not
+ */
+typedef void (*ol_txrx_tx_fc_fp)(void *osif_dev, u_int8_t vdev_id, a_bool_t tx_resume);
+
+/**
  * @typedef ol_txrx_rx_fp
  * @brief receive function to hand batches of data frames from txrx to OS shim
  */
@@ -99,6 +108,9 @@ struct ol_txrx_osif_ops {
     struct {
         ol_txrx_tx_fp         std;
         ol_txrx_tx_non_std_fp non_std;
+#ifdef QCA_LL_TX_FLOW_CT
+        ol_txrx_tx_fc_fp      flow_control_cb;
+#endif /* QCA_LL_TX_FLOW_CT */
     } tx;
 
     /* rx function pointers - specified by OS shim, stored by txrx */

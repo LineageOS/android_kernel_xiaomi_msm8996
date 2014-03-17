@@ -7744,6 +7744,23 @@ wma_update_protection_mode(tp_wma_handle wma, u_int8_t vdev_id,
 		WMA_LOGD("Updated protection mode %d to target", prot_mode);
 }
 
+static void
+wma_update_beacon_interval(tp_wma_handle wma, u_int8_t vdev_id,
+                           u_int16_t beaconInterval)
+{
+        int ret;
+
+        ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+                                              WMI_VDEV_PARAM_BEACON_INTERVAL,
+                                              beaconInterval);
+
+        if (ret)
+                WMA_LOGE("Failed to update beacon interval");
+        else
+                WMA_LOGE("Updated beacon interval %d for vdev %d", beaconInterval, vdev_id);
+}
+
+
 /*
  * Function	: wma_process_update_beacon_params
  * Description	: update the beacon parameters to target
@@ -7762,6 +7779,11 @@ wma_process_update_beacon_params(tp_wma_handle wma,
 	if (bcn_params->smeSessionId >= wma->max_bssid) {
 		WMA_LOGE("Invalid vdev id %d", bcn_params->smeSessionId);
 		return;
+	}
+
+	if (bcn_params->paramChangeBitmap & PARAM_BCN_INTERVAL_CHANGED) {
+		wma_update_beacon_interval(wma, bcn_params->smeSessionId,
+						bcn_params->beaconInterval);
 	}
 
 	if (bcn_params->paramChangeBitmap & PARAM_llBCOEXIST_CHANGED)
@@ -15480,6 +15502,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_notify_modem_power_state(wma_handle,
 					(tSirModemPowerStateInd *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -16822,6 +16845,12 @@ VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
 static void wma_dfs_detach(struct ieee80211com *dfs_ic)
 {
 	dfs_detach(dfs_ic);
+
+	if (NULL != dfs_ic->ic_curchan) {
+		OS_FREE(dfs_ic->ic_curchan);
+		dfs_ic->ic_curchan = NULL;
+	}
+
 	OS_FREE(dfs_ic);
 }
 
@@ -16901,6 +16930,11 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	if (NULL != wma_handle->dfs_ic){
 		wma_dfs_detach(wma_handle->dfs_ic);
 		wma_handle->dfs_ic = NULL;
+	}
+
+	if (NULL != wma_handle->pGetRssiReq) {
+		adf_os_mem_free(wma_handle->pGetRssiReq);
+		wma_handle->pGetRssiReq = NULL;
 	}
 
 	WMA_LOGD("%s: Exit", __func__);
@@ -18135,6 +18169,11 @@ void wma_target_suspend_acknowledge(void *context)
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 	int wow_nack = *((int *)context);
 
+	if (NULL == wma) {
+		WMA_LOGE("%s: wma is NULL", __func__);
+		return;
+	}
+
 	wma->wow_nack = wow_nack;
 	vos_event_set(&wma->target_suspend);
 	if (wow_nack)
@@ -19361,10 +19400,15 @@ void WDA_TxAbort(v_U8_t vdev_id)
 
 	wma = vos_get_context(VOS_MODULE_ID_WDA,
 			      vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+	if (NULL == wma) {
+		WMA_LOGE("%s: wma is NULL", __func__);
+		return;
+	}
+
 	iface = &wma->interfaces[vdev_id];
-	if (!wma || !iface->handle) {
-		WMA_LOGE("%s: Failed to get handle wma: %p iface: %p",
-			 __func__, wma, iface->handle);
+	if (!iface->handle) {
+		WMA_LOGE("%s: Failed to get iface handle: %p",
+			 __func__, iface->handle);
 		return;
 	}
 	WMA_LOGA("%s: vdevid %d bssid %pM", __func__, vdev_id, iface->bssid);

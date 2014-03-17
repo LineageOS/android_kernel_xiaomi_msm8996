@@ -1603,6 +1603,16 @@ typedef enum
 #define CFG_ONLY_ALLOWED_CHANNELS                   "gACSAllowedChannels"
 #define CFG_ONLY_ALLOWED_CHANNELS_DEFAULT           ""
 
+/* ACS Scan band preference
+ * 0 -- No preference
+ * 1 -- Scan 2.4G first
+ * 2 -- Scan 5G first
+*/
+#define CFG_SAP_SCAN_BAND_PREFERENCE              "gAcsScanBandPreference"
+#define CFG_SAP_SCAN_BAND_PREFERENCE_MIN          (0)
+#define CFG_SAP_SCAN_BAND_PREFERENCE_MAX          (2)
+#define CFG_SAP_SCAN_BAND_PREFERENCE_DEFAULT      (0)
+
 /*BMPS Logic
  * Notes:
  * 1 - Then Host driver and above layers control the PS mechanism
@@ -2733,6 +2743,7 @@ typedef struct
    v_BOOL_t                    gEnableOverLapCh;
    char                        acsAllowedChnls[CFG_MAX_STR_LEN];
    v_BOOL_t                    fRegChangeDefCountry;
+   v_U8_t                      acsScanBandPreference;
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation

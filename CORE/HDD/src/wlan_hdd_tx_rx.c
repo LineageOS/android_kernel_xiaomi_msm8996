@@ -809,6 +809,36 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    return NETDEV_TX_OK;
 }
 #else
+#ifdef QCA_LL_TX_FLOW_CT
+/**============================================================================
+  @brief hdd_tx_resume_cb() - Resume OS TX Q.
+      Q was stopped due to WLAN TX path low resource condition
+
+  @param adapter_context : [in] pointer to vdev apdapter
+  @param tx_resume       : [in] TX Q resume trigger
+
+  @return         : NONE
+  ===========================================================================*/
+void hdd_tx_resume_cb(void *adapter_context,
+                        v_U8_t tx_resume)
+{
+   hdd_adapter_t *pAdapter = (hdd_adapter_t *)adapter_context;
+
+   if (!pAdapter)
+   {
+      /* INVALID ARG */
+      return;
+   }
+
+   /* Resume TX  */
+   if (VOS_TRUE == tx_resume)
+   {
+      netif_tx_wake_all_queues(pAdapter->dev);
+   }
+   return;
+}
+#endif /* QCA_LL_TX_FLOW_CT */
+
 /**============================================================================
   @brief hdd_hard_start_xmit() - Function registered with the Linux OS for
   transmitting packets. This version of the function directly passes the packet
@@ -867,6 +897,15 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          kfree_skb(skb);
          return NETDEV_TX_OK;
       }
+#ifdef QCA_LL_TX_FLOW_CT
+      if(VOS_FALSE == WLANTL_GetTxResource((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+                                         STAId))
+      {
+          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+                        "%s: Out of TX resource, stop Q", __func__);
+          netif_tx_stop_all_queues(dev);
+      }
+#endif /* QCA_LL_TX_FLOW_CT */
    }
    else
    {
