@@ -774,6 +774,7 @@ void *htc_get_targetdef(HTC_HANDLE htc_handle)
 
 void HTCSetTargetToSleep(void *context)
 {
+#ifdef HIF_PCI
 #if CONFIG_ATH_PCIE_MAX_PERF == 0
 #if CONFIG_ATH_PCIE_AWAKE_WHILE_DRIVER_LOAD
     struct ol_softc *sc = (struct ol_softc *)context;
@@ -781,12 +782,15 @@ void HTCSetTargetToSleep(void *context)
     HIFSetTargetSleep(sc->hif_hdl, true, false);
 #endif
 #endif
+#endif
 }
 
 void HTCCancelDeferredTargetSleep(void *context)
 {
+#ifdef HIF_PCI
 #if CONFIG_ATH_PCIE_MAX_PERF == 0
     struct ol_softc *sc = (struct ol_softc *)context;
     HIFCancelDeferredTargetSleep(sc->hif_hdl);
+#endif
 #endif
 }
