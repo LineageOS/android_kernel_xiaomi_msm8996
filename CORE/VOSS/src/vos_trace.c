@@ -111,6 +111,7 @@ moduleTraceInfo gVosTraceInfo[ VOS_MODULE_ID_MAX ] =
 #if defined (QCA_WIFI_2_0) && \
     defined (QCA_WIFI_ISOC)
    /* Message Queue ID for messages bound for HTC*/
+   [VOS_MODULE_ID_HIF]        = { VOS_DEFAULT_TRACE_LEVEL, "HIF" },
    [VOS_MODULE_ID_HTC]        = { VOS_DEFAULT_TRACE_LEVEL, "HTC" },
 #endif
 };
@@ -411,10 +412,10 @@ void vos_trace_hex_dump( VOS_MODULE_ID module, VOS_TRACE_LEVEL level,
                 VOS_TRACE_LEVEL_TO_MODULE_BITMASK(level)))
         return;
 
-    for (i=0; (i+7)<buf_len; i+=8)
+    for (i=0; (i+15)< buf_len; i+=16)
     {
         vos_trace_msg( module, level,
-                 "%02x %02x %02x %02x %02x %02x %02x %02x",
+                 "%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
                  buf[i],
                  buf[i+1],
                  buf[i+2],
@@ -422,7 +423,15 @@ void vos_trace_hex_dump( VOS_MODULE_ID module, VOS_TRACE_LEVEL level,
                  buf[i+4],
                  buf[i+5],
                  buf[i+6],
-                 buf[i+7]);
+                 buf[i+7],
+                 buf[i+8],
+                 buf[i+9],
+                 buf[i+10],
+                 buf[i+11],
+                 buf[i+12],
+                 buf[i+13],
+                 buf[i+14],
+                 buf[i+15]);
     }
 
     // Dump the bytes in the last line
