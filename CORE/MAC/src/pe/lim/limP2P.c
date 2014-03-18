@@ -1152,7 +1152,7 @@ send_frame1:
     }
     else
     {
-        pMac->lim.mgmtFrameSessionId = 0xff;
+        pMac->lim.mgmtFrameSessionId = pMbMsg->sessionId;
         halstatus = halTxFrameWithTxComplete( pMac, pPacket, (tANI_U16)nBytes,
                         HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
                         7,/*SMAC_SWBD_TX_TID_MGMT_HIGH */ limTxComplete, pFrame,
