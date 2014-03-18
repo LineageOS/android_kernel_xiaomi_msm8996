@@ -311,9 +311,11 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
     .vht_cap.cap = IEEE80211_VHT_CAP_MAX_MPDU_LENGTH_11454
                             | IEEE80211_VHT_CAP_SHORT_GI_80
                             | IEEE80211_VHT_CAP_TXSTBC
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0))
                             | (IEEE80211_VHT_CAP_RXSTBC_MASK &
                               ( IEEE80211_VHT_CAP_RXSTBC_1
                               | IEEE80211_VHT_CAP_RXSTBC_2))
+#endif
                             | IEEE80211_VHT_CAP_RXLDPC,
 #endif
 };
@@ -360,9 +362,11 @@ static struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
     .vht_cap.cap = IEEE80211_VHT_CAP_MAX_MPDU_LENGTH_11454
                  | IEEE80211_VHT_CAP_SHORT_GI_80
                  | IEEE80211_VHT_CAP_TXSTBC
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0))
                  | (IEEE80211_VHT_CAP_RXSTBC_MASK &
                    ( IEEE80211_VHT_CAP_RXSTBC_1
                    | IEEE80211_VHT_CAP_RXSTBC_2))
+#endif
                  | IEEE80211_VHT_CAP_RXLDPC
 };
 
@@ -726,11 +730,13 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
 int is_driver_dfs_capable(struct wiphy *wiphy, struct wireless_dev *wdev,
                           void *data, int data_len)
 {
-    u32 dfs_capability;
+    u32 dfs_capability = 0;
     struct sk_buff *temp_skbuff;
     int ret_val;
 
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0))
     dfs_capability = !!(wiphy->flags & WIPHY_FLAG_DFS_OFFLOAD);
+#endif
 
     temp_skbuff = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(u32) +
                                                       NLMSG_HDRLEN);
@@ -1056,7 +1062,9 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->vendor_events = wlan_hdd_cfg80211_vendor_events;
     wiphy->n_vendor_events = ARRAY_SIZE(wlan_hdd_cfg80211_vendor_events);
 
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0))
     wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
+#endif
 
     EXIT();
     return 0;
