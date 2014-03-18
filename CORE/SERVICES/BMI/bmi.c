@@ -290,8 +290,19 @@ A_STATUS bmi_download_firmware(struct ol_softc *scn)
 	struct bmi_target_info targ_info;
 	OS_MEMZERO(&targ_info, sizeof(targ_info));
 
+	if (!scn){
+		AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Invalid scn context\n"));
+		ASSERT(0);
+		return A_EINVAL;
+	}
+
 	/* Initialize BMI */
 	BMIInit(scn);
+
+	if (scn->pBMICmdBuf == NULL || scn->pBMIRspBuf == NULL) {
+		AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("BMIInit failed!\n"));
+		return -1;
+	}
 
 	/* Get target information */
 	if (BMIGetTargetInfo(scn->hif_hdl, &targ_info, scn) != A_OK)
