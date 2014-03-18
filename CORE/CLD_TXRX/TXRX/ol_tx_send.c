@@ -234,6 +234,8 @@ ol_tx_send_nonstd(
     failed = htt_tx_send_nonstd(
         pdev->htt_pdev, msdu, id, pkt_type);
     if (failed) {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                "Error: freeing tx frame after htt_tx failed");
         OL_TX_TARGET_CREDIT_INCR_INT(pdev, msdu_credit_consumed);
         ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1 /* had error */);
     }

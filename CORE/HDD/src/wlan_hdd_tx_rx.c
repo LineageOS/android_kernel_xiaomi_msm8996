@@ -1022,7 +1022,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        (hddCtxt->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_DHCP))
    {
       proto_type = vos_pkt_get_proto_type(skb,
-                      hddCtxt->cfg_ini->gEnableDebugLog);
+                      hddCtxt->cfg_ini->gEnableDebugLog, 0);
       if (VOS_PKT_TRAC_TYPE_EAPOL & proto_type)
       {
          vos_pkt_trace_buf_update("ST:T:EPL");
@@ -2115,7 +2115,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
        (pHddCtx->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_DHCP))
    {
       proto_type = vos_pkt_get_proto_type(skb,
-                        pHddCtx->cfg_ini->gEnableDebugLog);
+                        pHddCtx->cfg_ini->gEnableDebugLog, 0);
       if (VOS_PKT_TRAC_TYPE_EAPOL & proto_type)
       {
          vos_pkt_trace_buf_update("ST:R:EPL");

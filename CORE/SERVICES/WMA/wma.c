@@ -13514,8 +13514,10 @@ static void wma_data_tx_ack_work_handler(struct work_struct *ack_work)
 	wma_handle = work->wma_handle;
 	ack_cb = wma_handle->umac_data_ota_ack_cb;
 
-	WMA_LOGD("Data Tx Ack Cb Status %d",
-			work->status);
+	if (work->status)
+		WMA_LOGE("Data Tx Ack Cb Status %d", work->status);
+	else
+		WMA_LOGD("Data Tx Ack Cb Status %d", work->status);
 
 	/* Call the Ack Cb registered by UMAC */
 	ack_cb((tpAniSirGlobal)(wma_handle->mac_context),
@@ -17833,6 +17835,9 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 #endif /* WLAN_FEATURE_11W */
 	struct wma_txrx_node *iface;
 	tpAniSirGlobal pMac;
+#ifdef QCA_PKT_PROTO_TRACE
+	v_U8_t proto_type = 0;
+#endif
 
         if (NULL == wma_handle)
         {
@@ -18010,6 +18015,15 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 				wma_handle->umac_ota_ack_cb[pFc->subType] =
 							tx_frm_ota_comp_cb;
 			}
+#ifdef QCA_PKT_PROTO_TRACE
+			if (pFc->subType == SIR_MAC_MGMT_ACTION)
+				proto_type = vos_pkt_get_proto_type(tx_frame,
+						pMac->fEnableDebugLog,
+						NBUF_PKT_TRAC_TYPE_MGMT_ACTION);
+			if (proto_type & NBUF_PKT_TRAC_TYPE_MGMT_ACTION)
+				vos_pkt_trace_buf_update("WM:T:MACT");
+			adf_nbuf_trace_set_proto_type(tx_frame, proto_type);
+#endif /* QCA_PKT_PROTO_TRACE */
 		} else {
 			if(downld_comp_required)
 				tx_frm_index =
