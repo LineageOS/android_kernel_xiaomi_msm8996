@@ -667,11 +667,4 @@ do {                                                                            
 #define QCA_SUPPORT_TXRX_VDEV_LL_TXQ
 #endif
 
-#ifdef QCA_LL_TX_FLOW_CT
-#define TXRX_LL_FLOW_CT_FREE_Q_LWM   100
-#define TXRX_LL_FLOW_CT_FREE_Q_HWM   300
-#define TXRX_LL_FLOW_CT_FREE_D_LWM   500
-#define TXRX_LL_FLOW_CT_FREE_D_HWM   550
-#endif /* QCA_LL_TX_FLOW_CT */
-
 #endif /* _OL_TXRX_INTERNAL__H_ */

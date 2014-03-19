@@ -1779,7 +1779,9 @@ void *tl_shim_get_vdev_by_sta_id(void *vos_context, uint8_t sta_id)
 v_BOOL_t WLANTL_GetTxResource
 (
 	void *vos_context,
-	uint8_t sta_id
+	uint8_t sta_id,
+	unsigned int low_watermark,
+	unsigned int high_watermark_offset
 )
 {
 	struct ol_txrx_peer_t *peer = NULL;
@@ -1795,7 +1797,9 @@ v_BOOL_t WLANTL_GetTxResource
 		return VOS_TRUE;
 	}
 
-	return (v_BOOL_t)wdi_in_get_tx_resource(peer->vdev);
+	return (v_BOOL_t)wdi_in_get_tx_resource(peer->vdev,
+				low_watermark,
+				high_watermark_offset);
 }
 
 /*=============================================================================
@@ -1821,29 +1825,27 @@ v_BOOL_t WLANTL_GetTxResource
 void WLANTL_TXFlowControlCb
 (
 	void  *tlContext,
+	v_U8_t peer_idx,
 	v_U8_t sessionId,
 	v_BOOL_t resume_tx
 )
 {
 	struct txrx_tl_shim_ctx *tl_shim;
-	v_U8_t sta_loop;
 	WLANTL_TxFlowControlCBType flow_control_cb = NULL;
 	void *adpter_ctxt = NULL;
 
 	tl_shim = (struct txrx_tl_shim_ctx *)tlContext;
 	if (!tl_shim) {
+		TLSHIM_LOGE("%s, tl_shim is NULL", __func__);
 		/* Invalid instace */
 		return;
 	}
 
-	for (sta_loop = 0; sta_loop < WLAN_MAX_STA_COUNT; sta_loop++) {
-		if ((tl_shim->sta_info[sta_loop].sessionId == sessionId) &&
-			(tl_shim->sta_info[sta_loop].flowControl))
-		{
-			flow_control_cb = tl_shim->sta_info[sta_loop].flowControl;
-			adpter_ctxt = tl_shim->sta_info[sta_loop].adpaterCtxt;
-			break;
-		}
+	if ((peer_idx < WLAN_MAX_STA_COUNT) &&
+		(tl_shim->sta_info[peer_idx].sessionId == sessionId) &&
+		(tl_shim->sta_info[peer_idx].flowControl)) {
+		flow_control_cb = tl_shim->sta_info[peer_idx].flowControl;
+		adpter_ctxt = tl_shim->sta_info[peer_idx].adpaterCtxt;
 	}
 
 	if ((flow_control_cb) && (adpter_ctxt)) {

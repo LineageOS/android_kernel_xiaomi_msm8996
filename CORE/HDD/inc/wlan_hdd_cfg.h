@@ -2282,6 +2282,27 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_SET_TXPOWER_LIMIT5G_MAX                ( 30 )
 #define CFG_SET_TXPOWER_LIMIT5G_DEFAULT            ( 15 )
 
+#ifdef QCA_LL_TX_FLOW_CT
+#define CFG_LL_TX_STA_FLOW_LWM                     "TxStaFlowLowWaterMark"
+#define CFG_LL_TX_STA_FLOW_LWM_MIN                 ( 0 )
+#define CFG_LL_TX_STA_FLOW_LWM_MAX                 ( 1000 )
+#define CFG_LL_TX_STA_FLOW_LWM_DEFAULT             ( 406 )
+
+#define CFG_LL_TX_STA_FLOW_HWM_OFFSET              "TxStaFlowHighWaterMarkOffset"
+#define CFG_LL_TX_STA_FLOW_HWM_OFFSET_MIN          ( 0 )
+#define CFG_LL_TX_STA_FLOW_HWM_OFFSET_MAX          ( 300 )
+#define CFG_LL_TX_STA_FLOW_HWM_OFFSET_DEFAULT      ( 50 )
+
+#define CFG_LL_TX_IBSS_FLOW_LWM                    "TxIbssFlowLowWaterMark"
+#define CFG_LL_TX_IBSS_FLOW_LWM_MIN                ( 0 )
+#define CFG_LL_TX_IBSS_FLOW_LWM_MAX                ( 1000 )
+#define CFG_LL_TX_IBSS_FLOW_LWM_DEFAULT            ( 550 )
+
+#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET             "TxIbssFlowHighWaterMarkOffset"
+#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET_MIN         ( 0 )
+#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET_MAX         ( 300 )
+#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET_DEFAULT     ( 50 )
+#endif /* QCA_LL_TX_FLOW_CT */
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -2756,6 +2777,12 @@ typedef struct
    char                        acsAllowedChnls[CFG_MAX_STR_LEN];
    v_BOOL_t                    fRegChangeDefCountry;
    v_U8_t                      acsScanBandPreference;
+#ifdef QCA_LL_TX_FLOW_CT
+   v_U32_t                     TxStaFlowLowWaterMark;
+   v_U32_t                     TxStaFlowHighWaterMarkOffset;
+   v_U32_t                     TxIbssFlowLowWaterMark;
+   v_U32_t                     TxIbssFlowHighWaterMarkOffset;
+#endif /* QCA_LL_TX_FLOW_CT */
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation
