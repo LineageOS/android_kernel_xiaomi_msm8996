@@ -570,6 +570,7 @@ typedef struct {
 	u_int8_t powersave_mode;
 	v_BOOL_t ptrn_match_enable_all_vdev;
 	void* pGetRssiReq;
+	v_S7_t first_rssi;
 	t_thermal_mgmt thermal_mgmt_info;
         u_int32_t roam_offload_vdev_id;
         v_BOOL_t  roam_offload_enabled;
@@ -1240,7 +1241,8 @@ VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 			tp_wma_trigger_uapsd_params trigger_uapsd_params);
 
 /* added to get average snr for both data and beacon */
-VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq);
+VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq,
+				v_S7_t first_rssi);
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 
@@ -1496,4 +1498,5 @@ enum uapsd_up {
 	UAPSD_UP_MAX
 };
 
+#define WMA_TGT_INVALID_SNR (-1)
 #endif

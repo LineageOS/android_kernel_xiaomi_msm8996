@@ -1062,21 +1062,40 @@ static void wma_update_vdev_stats(tp_wma_handle wma,
 
 	if (pGetRssiReq &&
 		pGetRssiReq->sessionId == vdev_stats->vdev_id) {
-		if((vdev_stats->vdev_snr.dat_snr > 0) &&
-			(vdev_stats->vdev_snr.bcn_snr > 0))
-			rssi = (vdev_stats->vdev_snr.dat_snr + vdev_stats->vdev_snr.bcn_snr)/2;
-		else
-			rssi = vdev_stats->vdev_snr.bcn_snr;
+		if ((vdev_stats->vdev_snr.bcn_snr == WMA_TGT_INVALID_SNR) &&
+			(vdev_stats->vdev_snr.dat_snr == WMA_TGT_INVALID_SNR)) {
+			/*
+			 * Firmware sends invalid snr till it sees
+			 * Beacon/Data after connection since after
+			 * vdev up fw resets the snr to invalid.
+			 * In this duartion Host will return the last know
+			 * rssi during connection.
+			 */
+			rssi = wma->first_rssi;
+		} else {
+			if (((vdev_stats->vdev_snr.dat_snr > 0) &&
+					(vdev_stats->vdev_snr.dat_snr != WMA_TGT_INVALID_SNR)) &&
+				((vdev_stats->vdev_snr.bcn_snr > 0) &&
+					(vdev_stats->vdev_snr.bcn_snr != WMA_TGT_INVALID_SNR))) {
+				rssi = (vdev_stats->vdev_snr.dat_snr +
+						vdev_stats->vdev_snr.bcn_snr)/2;
+			} else if (vdev_stats->vdev_snr.bcn_snr != WMA_TGT_INVALID_SNR) {
+				rssi = vdev_stats->vdev_snr.bcn_snr;
+			} else if (vdev_stats->vdev_snr.dat_snr != WMA_TGT_INVALID_SNR) {
+				rssi = vdev_stats->vdev_snr.dat_snr;
+			}
 
-		/* Get the absolute rssi value from the current rssi value
-		 * the sinr value is hardcoded into 0 in the core stack
-		 */
+			/*
+			 * Get the absolute rssi value from the current rssi value
+			 * the sinr value is hardcoded into 0 in the core stack
+			 */
+			rssi = rssi + WMA_TGT_NOISE_FLOOR_DBM;
+		}
+
 		WMA_LOGD("vdev id %d beancon snr %d data snr %d",
 				vdev_stats->vdev_id,
 				vdev_stats->vdev_snr.bcn_snr,
 				vdev_stats->vdev_snr.dat_snr);
-
-		rssi = rssi + WMA_TGT_NOISE_FLOOR_DBM;
 		WMA_LOGD("Average Rssi = %d, vdev id= %d", rssi,
 				pGetRssiReq->sessionId);
 
@@ -4118,7 +4137,8 @@ error:
 
 }
 
-VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq)
+VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq,
+				v_S7_t first_rssi)
 {
 	wmi_buf_t buf;
 	wmi_request_stats_cmd_fixed_param *cmd;
@@ -4128,6 +4148,8 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq)
 	/* command is in progess */
 	if(NULL != wma_handle->pGetRssiReq)
 		return VOS_STATUS_SUCCESS;
+
+	wma_handle->first_rssi = first_rssi;
 
 	/* create a copy of csrRssiCallback to send rssi value
 	 * after wmi event

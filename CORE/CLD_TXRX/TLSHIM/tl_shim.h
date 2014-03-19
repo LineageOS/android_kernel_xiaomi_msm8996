@@ -60,6 +60,7 @@ struct tlshim_sta_info {
 	v_U8_t                     sessionId;
 	void                      *adpaterCtxt;
 #endif /* QCA_LL_TX_FLOW_CT */
+	v_S7_t first_rssi;
 };
 
 struct txrx_tl_shim_ctx {

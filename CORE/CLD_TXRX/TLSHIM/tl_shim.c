@@ -1365,6 +1365,9 @@ VOS_STATUS WLANTL_RegisterMgmtFrmClient(void *vos_ctx,
 VOS_STATUS WLANTL_GetRssi(void *vos_ctx, u_int8_t sta_id, v_S7_t *rssi, void *pGetRssiReq)
 {
 	tp_wma_handle wma_handle;
+	struct txrx_tl_shim_ctx *tl_shim;
+	struct tlshim_sta_info *sta_info;
+	v_S7_t first_rssi;
 
 	ENTER();
 
@@ -1374,12 +1377,26 @@ VOS_STATUS WLANTL_GetRssi(void *vos_ctx, u_int8_t sta_id, v_S7_t *rssi, void *pG
 		return VOS_STATUS_E_FAILURE;
 	}
 
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	if (!tl_shim) {
+		TLSHIM_LOGE("tl_shim is NULL");
+		return VOS_STATUS_E_FAULT;
+	}
+
+	if (sta_id >= WLAN_MAX_STA_COUNT) {
+		TLSHIM_LOGE("Invalid sta id :%d", sta_id);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	sta_info = &tl_shim->sta_info[sta_id];
+	first_rssi = sta_info->first_rssi;
+
 	if(VOS_STATUS_SUCCESS !=
-		wma_send_snr_request(wma_handle, pGetRssiReq))
-	{
+		wma_send_snr_request(wma_handle, pGetRssiReq, first_rssi)) {
 		TLSHIM_LOGE("Failed to Trigger wma stats request");
 		return VOS_STATUS_E_FAILURE;
 	}
+
 	/* dont send success, otherwise call back
 	 * will released with out values */
 	return VOS_STATUS_E_BUSY;
@@ -1493,6 +1510,7 @@ VOS_STATUS WLANTL_ClearSTAClient(void *vos_ctx, u_int8_t sta_id)
 	adf_os_spin_lock_bh(&tl_shim->sta_info[sta_id].stainfo_lock);
 	tl_shim->sta_info[sta_id].registered = 0;
 	tl_shim->sta_info[sta_id].data_rx = NULL;
+	tl_shim->sta_info[sta_id].first_rssi = 0;
 	adf_os_spin_unlock_bh(&tl_shim->sta_info[sta_id].stainfo_lock);
 
 	return VOS_STATUS_SUCCESS;
@@ -1536,6 +1554,7 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 	adf_os_spin_lock_bh(&sta_info->stainfo_lock);
 	sta_info->data_rx = rxcb;
 	sta_info->registered = true;
+	sta_info->first_rssi = rssi;
 	adf_os_spin_unlock_bh(&sta_info->stainfo_lock);
 
 	param.qos_capable =  sta_desc->ucQosEnabled;
