@@ -1497,10 +1497,6 @@ ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
 {
     struct ol_txrx_pdev_t *pdev = (ol_txrx_pdev_handle)pdev_handle;
     int total;
-#ifndef QCA_WIFI_ISOC
-    union ol_tx_desc_list_elem_t *p_tx_desc;
-    int unused = 0;
-#endif
 
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
         total = adf_os_atomic_read(&pdev->orig_target_tx_credit);
@@ -1509,28 +1505,7 @@ ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
     }
 
 #ifndef QCA_WIFI_ISOC
-    /*
-     * Iterate over the tx descriptor freelist to see how many are available,
-     * and thus by inference, how many are in use.
-     * This iteration is inefficient, but this code is called during
-     * cleanup, when performance is not paramount.  It is preferable
-     * to do have a large inefficiency during this non-critical
-     * cleanup stage than to have lots of little inefficiencies of
-     * updating counters during the performance-critical tx "fast path".
-     *
-     * Use the lock to ensure there are no new allocations made while
-     * we're trying to count the number of allocations.
-     * This function is expected to be used only during cleanup, at which
-     * time there should be no new allocations made, but just to be safe...
-     */
-    adf_os_spin_lock_bh(&pdev->tx_mutex);
-    p_tx_desc = pdev->tx_desc.freelist;
-    while (p_tx_desc) {
-        p_tx_desc = p_tx_desc->next;
-        unused++;
-    }
-    adf_os_spin_unlock_bh(&pdev->tx_mutex);
-    return (total - unused);
+    return (total - pdev->tx_desc.num_free);
 #else
     return total - adf_os_atomic_read(&pdev->target_tx_credit);
 #endif
