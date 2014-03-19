@@ -3839,16 +3839,14 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                goto exit;
            }
 
-           if (0 != roamScanControl)
-           {
-               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                      "roam scan control invalid value = %d",
-                      roamScanControl);
-               ret = -EINVAL;
-               goto exit;
-           }
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                       "%s: Received Command to Set roam scan control = %d", __func__, roamScanControl);
+
+           if (0 != roamScanControl)
+           {
+               ret = 0; /* return success but ignore param value "TRUE" */
+               goto exit;
+           }
 
            sme_SetRoamScanControl((tHalHandle)(pHddCtx->hHal), roamScanControl);
        }
