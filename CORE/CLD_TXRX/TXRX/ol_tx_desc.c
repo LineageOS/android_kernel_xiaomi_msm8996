@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -314,7 +314,8 @@ void ol_tx_desc_frame_free_nonstd(
         /* free the netbuf */
         adf_nbuf_set_next(tx_desc->netbuf, NULL);
         adf_nbuf_tx_free(tx_desc->netbuf, had_error);
-    } else if (tx_desc->pkt_type >= OL_TXRX_MGMT_TYPE_BASE) {
+    } else if ((tx_desc->pkt_type >= OL_TXRX_MGMT_TYPE_BASE) &&
+                (tx_desc->pkt_type != 0xff)) {
         /* FIX THIS -
          * The FW currently has trouble using the host's fragments table
          * for management frames.  Until this is fixed, rather than
@@ -327,7 +328,6 @@ void ol_tx_desc_frame_free_nonstd(
 
         mgmt_type = tx_desc->pkt_type - OL_TXRX_MGMT_TYPE_BASE;
         /*
-         * KW# 6158
          *  we already checked the value when the mgmt frame was provided to the txrx layer.
          *  no need to check it a 2nd time.
          */
