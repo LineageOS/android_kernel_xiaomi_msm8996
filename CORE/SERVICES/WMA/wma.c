@@ -13565,6 +13565,7 @@ static void wma_data_tx_ack_work_handler(struct work_struct *ack_work)
 	ack_cb((tpAniSirGlobal)(wma_handle->mac_context),
 				work->status ? 0 : 1);
 	wma_handle->umac_data_ota_ack_cb = NULL;
+	wma_handle->last_umac_data_nbuf = NULL;
 	adf_os_mem_free(work);
 	wma_handle->ack_work_ctx = NULL;
 }
@@ -13597,6 +13598,21 @@ wma_data_tx_ack_comp_hdlr(void *wma_context,
 		return;
 	}
 
+	/*
+	 * if netBuf does not match with pending nbuf then just free the
+	 * netbuf and do not call ack cb
+	 */
+	if (wma_handle->last_umac_data_nbuf != netbuf) {
+		if (wma_handle->umac_data_ota_ack_cb) {
+			WMA_LOGE("%s: nbuf does not match but umac_data_ota_ack_cb is not null",
+				        __func__);
+		} else {
+			WMA_LOGE("%s: nbuf does not match and umac_data_ota_ack_cb is also null",
+				        __func__);
+		}
+		goto free_nbuf;
+	}
+
 	if(wma_handle && wma_handle->umac_data_ota_ack_cb) {
 		struct wma_tx_ack_work_ctx *ack_work;
 
@@ -13615,6 +13631,7 @@ wma_data_tx_ack_comp_hdlr(void *wma_context,
 		}
 	}
 
+free_nbuf:
 	/* unmap and freeing the tx buf as txrx is not taking care */
 	adf_nbuf_unmap_single(pdev->osdev, netbuf, ADF_OS_DMA_TO_DEVICE);
 	adf_nbuf_free(netbuf);
@@ -15904,6 +15921,9 @@ static VOS_STATUS wma_tx_detach(tp_wma_handle wma_handle)
 	/* Reset Tx Data Frame Ack Cb */
 	wma_handle->umac_data_ota_ack_cb = NULL;
 
+	/* Reset last Tx Data Frame nbuf ptr */
+	wma_handle->last_umac_data_nbuf = NULL;
+
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -17973,6 +17993,7 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		struct wma_decap_info_t decap_info;
 		struct ieee80211_frame *wh =
 			(struct ieee80211_frame *)adf_nbuf_data(skb);
+		v_TIME_t curr_timestamp = vos_timer_get_system_ticks();
 
 		if (pdev == NULL) {
 			WMA_LOGE("%s: pdev pointer is not available", __func__);
@@ -17985,9 +18006,21 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		 * 2) Only one Outstanding Data pending for Ack is allowed
 		 */
 		if (tx_frm_ota_comp_cb) {
-			if(wma_handle->umac_data_ota_ack_cb) {
-				WMA_LOGE("Already one Data pending for Ack.Don't Allow");
-				return VOS_STATUS_E_FAILURE;
+			if (wma_handle->umac_data_ota_ack_cb) {
+				/*
+				 * If last data frame was sent more than 5 seconds
+				 * ago and still we did not receive ack/nack from
+				 * fw then allow Tx of this data frame
+				 */
+				if (curr_timestamp >=
+					 wma_handle->last_umac_data_ota_timestamp + 500) {
+					WMA_LOGE("%s: No Tx Ack for last data frame for more than 5 secs, allow Tx of current data frame",
+					 __func__);
+			 } else {
+					WMA_LOGE("%s: Already one Data pending for Ack, reject Tx of data frame",
+					 __func__);
+					return VOS_STATUS_E_FAILURE;
+				}
 			}
 		} else {
 			/*
@@ -18018,6 +18051,10 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		/* Store the Ack Complete Cb */
 		wma_handle->umac_data_ota_ack_cb = tx_frm_ota_comp_cb;
 
+		/* Store the timestamp and nbuf for this data Tx */
+		wma_handle->last_umac_data_ota_timestamp = curr_timestamp;
+		wma_handle->last_umac_data_nbuf = skb;
+
 		/* Send the Data frame to TxRx in Non Standard Path */
 		ret = ol_tx_non_std(txrx_vdev, ol_tx_spec_no_free, skb);
 		if (ret) {
@@ -18027,6 +18064,7 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 			if (tx_frm_download_comp_cb)
 				tx_frm_download_comp_cb(wma_handle->mac_context, tx_frame, 1);
 			wma_handle->umac_data_ota_ack_cb = NULL;
+			wma_handle->last_umac_data_nbuf = NULL;
 			return VOS_STATUS_E_FAILURE;
 		}
 
@@ -18973,17 +19011,20 @@ static int wma_update_fw_tdls_state(WMA_HANDLE handle, void *pwmaTdlsparams)
 	t_wma_tdls_mode  tdls_mode;
 	t_wma_tdls_params  *wma_tdls = (t_wma_tdls_params *)pwmaTdlsparams;
 	u_int16_t len = sizeof(wmi_tdls_set_state_cmd_fixed_param);
+	int ret = 0;
 
 	if (!wma_handle || !wma_handle->wmi_handle) {
 		WMA_LOGE("%s: WMA is closed, can not issue fw tdls state cmd",
 		         __func__);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto end_fw_tdls_state;
 	}
 
 	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!wmi_buf) {
 		WMA_LOGE("%s: wmai_buf_alloc failed", __func__);
-		return ENOMEM;
+		ret = ENOMEM;
+		goto end_fw_tdls_state;
 	}
 	tdls_mode = wma_tdls->tdls_state;
 	cmd = (wmi_tdls_set_state_cmd_fixed_param *)wmi_buf_data(wmi_buf);
@@ -19014,12 +19055,15 @@ static int wma_update_fw_tdls_state(WMA_HANDLE handle, void *pwmaTdlsparams)
 		   WMI_TDLS_SET_STATE_CMDID)) {
 		WMA_LOGP("%s: failed to send tdls set state command", __func__);
 		adf_nbuf_free(wmi_buf);
-		return -EIO;
+		ret = -EIO;
+		goto end_fw_tdls_state;
 	}
 	WMA_LOGD("%s: vdev_id %d", __func__, wma_tdls->vdev_id);
+
+end_fw_tdls_state:
 	if (pwmaTdlsparams)
 		vos_mem_free(pwmaTdlsparams);
-	return 0;
+	return ret;
 }
 
 static int wma_update_tdls_peer_state(WMA_HANDLE handle,
@@ -19036,16 +19080,19 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	struct ol_txrx_peer_t *peer;
 	int32_t len = sizeof(wmi_tdls_peer_update_cmd_fixed_param) +
 	              sizeof(wmi_tdls_peer_capabilities);
+	int ret = 0;
 
 	if (!wma_handle || !wma_handle->wmi_handle) {
 		WMA_LOGE("%s: WMA is closed, can not issue cmd", __func__);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto end_tdls_peer_state;
 	}
 
 	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!wmi_buf) {
 		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
-		return ENOMEM;
+		ret = ENOMEM;
+		goto end_tdls_peer_state;
 	}
 
 	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_buf);
@@ -19102,7 +19149,8 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 		WMA_LOGE("%s: failed to send tdls peer update state command",
 	          __func__);
 		adf_nbuf_free(wmi_buf);
-		return -EIO;
+		ret = -EIO;
+		goto end_tdls_peer_state;
 	}
 
 	/* in case of teardown, remove peer from fw */
@@ -19110,7 +19158,8 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 		pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma_handle->vos_context);
 		if (!pdev) {
 			WMA_LOGE("%s: Failed to find pdev", __func__);
-			return -EIO;
+			ret = -EIO;
+			goto end_tdls_peer_state;
 		}
 
 		peer = ol_txrx_find_peer_by_addr(pdev, peerStateParams->peerMacAddr,
@@ -19118,7 +19167,8 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 		if (!peer) {
 			WMA_LOGE("%s: Failed to get peer handle using peer mac %pM",
 			         __func__, peerStateParams->peerMacAddr);
-			return -EIO;
+			ret = -EIO;
+			goto end_tdls_peer_state;
 		}
 
 		WMA_LOGD("%s: calling wma_remove_peer for peer " MAC_ADDRESS_STR
@@ -19127,7 +19177,11 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 		wma_remove_peer(wma_handle, peer->mac_addr.raw,
 		                peerStateParams->vdevId, peer);
 	}
-	return 0;
+
+end_tdls_peer_state:
+	if (peerStateParams)
+		vos_mem_free(peerStateParams);
+	return ret;
 }
 #endif /* FEATURE_WLAN_TDLS */
 
