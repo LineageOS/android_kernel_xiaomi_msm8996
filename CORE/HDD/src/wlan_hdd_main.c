@@ -11104,6 +11104,10 @@ void hdd_ch_avoid_cb
 
    wlan_hdd_send_avoid_freq_event(hdd_ctxt, &hdd_avoid_freq_list);
 
+   /* clear existing unsafe channel cache */
+   hdd_ctxt->unsafe_channel_count = 0;
+   vos_mem_zero(hdd_ctxt->unsafe_channel_list, sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
+
    if (0 == ch_avoid_indi->avoid_range_count) {
        hdd_ctxt->unsafe_channel_count = 0;
    } else {
