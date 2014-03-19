@@ -186,7 +186,7 @@ void HIF_USBDeviceDetached(struct usb_interface *interface,
 		}
 
 		usb_hif_destroy(device);
-
+		athdiag_procfs_remove();
 	} while (FALSE);
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n", __func__));
@@ -1057,6 +1057,43 @@ HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data,
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n", __func__));
 
+	if ((address & 0x3) || ((uintptr_t)data & 0x3)) {
+		return (-EIO);
+	}
+
+	while ((nbytes >= 4) &&
+			(A_OK == (status = HIFDiagReadAccess(hif_device, address,
+					   (A_UINT32*)data)))) {
+
+		nbytes -= sizeof(A_UINT32);
+		address += sizeof(A_UINT32);
+		data   += sizeof(A_UINT32);
+
+	}
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n", __func__));
+	return status;
+}
+
+A_STATUS
+HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbytes)
+{
+	A_STATUS status = EOK;
+
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n", __func__));
+
+	if ((address & 0x3) || ((uintptr_t)data & 0x3)) {
+		return (-EIO);
+	}
+
+	while ((nbytes >= 4) &&
+			(A_OK == (status = HIFDiagWriteAccess(hif_device, address,
+					   *((A_UINT32*)data))))) {
+
+		nbytes -= sizeof(A_UINT32);
+		address += sizeof(A_UINT32);
+		data   += sizeof(A_UINT32);
+
+	}
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n", __func__));
 	return status;
 }

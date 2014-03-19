@@ -68,6 +68,11 @@ hif_usb_configure(struct hif_usb_softc *sc, hif_handle_t *hif_hdl,
 		goto err_stalled;
 	}
 
+	if (athdiag_procfs_init(sc) != 0) {
+		pr_err("athdiag_procfs_init failed\n");
+		return A_ERROR;
+	}
+
 	*hif_hdl = sc->hif_device;
 	return 0;
 

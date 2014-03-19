@@ -74,6 +74,13 @@ struct hif_usb_softc {
 	struct targetdef_s *targetdef;
 	struct hostdef_s *hostdef;
 };
+#if defined(CONFIG_ATH_PROCFS_DIAG_SUPPORT)
+int athdiag_procfs_init(void *scn);
+void athdiag_procfs_remove(void);
+#else
+static inline int athdiag_procfs_init(void *scn) { return 0; }
+static inline void athdiag_procfs_remove(void) { return; }
+#endif
 
 /* Function to set the TXRX handle in the ol_sc context */
 void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle);
