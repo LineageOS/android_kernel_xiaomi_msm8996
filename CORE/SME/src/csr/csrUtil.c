@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2893,6 +2893,16 @@ tANI_U16 csrCalculateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U16 sta_bi, tAN
     //if GO's given beacon Interval is greater than or equal to 100
     else
        go_cbi = 100 + (go_gbi % 100);
+
+    if ( sta_bi == 0 )
+    {
+        /* There is possibility to receive zero as value.
+           Which will cause divide by zero. Hence initialise with 100
+        */
+        sta_bi =  100;
+        smsLog(pMac, LOGW,
+            FL("sta_bi 2nd parameter is zero, initialise to %d"), sta_bi);
+    }
 
     // check, if either one is multiple of another
     if (sta_bi > go_cbi)
