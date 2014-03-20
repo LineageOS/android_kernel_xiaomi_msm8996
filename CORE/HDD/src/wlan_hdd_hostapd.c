@@ -473,6 +473,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     hdd_context_t *pHddCtx;
     hdd_scaninfo_t *pScanInfo  = NULL;
     struct iw_michaelmicfailure msg;
+#ifdef MSM_PLATFORM
+    unsigned long flags;
+#endif
 
     dev = (struct net_device *)usrDataForCallback;
     if (!dev)
@@ -767,6 +770,20 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                   pHostapdAdapter->sessionId, pHddApCtx->operatingChannel);
             }
 #endif
+
+#ifdef MSM_PLATFORM
+            /* start timer in sap/p2p_go */
+            spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+            pHddCtx->sta_cnt++;
+            pHostapdAdapter->connection++;
+            if (1 == pHostapdAdapter->connection) {
+                pHostapdAdapter->prev_tx_packets = pHostapdAdapter->stats.tx_packets;
+                pHostapdAdapter->prev_rx_packets = pHostapdAdapter->stats.rx_packets;
+            }
+            if (1 == pHddCtx->sta_cnt)
+                hdd_start_bus_bw_compute_timer(pHostapdAdapter);
+            spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
+#endif
             break;
         case eSAP_STA_DISASSOC_EVENT:
             memcpy(wrqu.addr.sa_data, &pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac,
@@ -844,6 +861,20 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                   ePeerDisconnected, 0,
                   pHostapdAdapter->sessionId, pHddApCtx->operatingChannel);
             }
+#endif
+
+#ifdef MSM_PLATFORM
+            /*stop timer in sap/p2p_go */
+            spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+            pHddCtx->sta_cnt--;
+            pHostapdAdapter->connection--;
+            if (0 == pHostapdAdapter->connection) {
+                pHostapdAdapter->prev_tx_packets = 0;
+                pHostapdAdapter->prev_rx_packets = 0;
+            }
+            if (0 == pHddCtx->sta_cnt)
+                hdd_stop_bus_bw_compute_timer(pHostapdAdapter);
+            spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
 #endif
             break;
         case eSAP_WPS_PBC_PROBE_REQ_EVENT:

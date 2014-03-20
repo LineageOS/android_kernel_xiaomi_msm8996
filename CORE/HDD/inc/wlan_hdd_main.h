@@ -1052,6 +1052,7 @@ struct hdd_adapter_s
 #ifdef MSM_PLATFORM
     unsigned long prev_rx_packets;
     unsigned long prev_tx_packets;
+    int connection;
 #endif
     v_BOOL_t is_roc_inprogress;
 };

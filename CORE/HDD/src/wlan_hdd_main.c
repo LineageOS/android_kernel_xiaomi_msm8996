@@ -9169,20 +9169,17 @@ static void hdd_bus_bw_compute_cbk(void *phddctx)
     hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
     VOS_STATUS status = 0;
     unsigned long flags;
-    int cnt;
 
     /* iterate through all adapters and determine the final
-     * voting level based on the highest bandwidth in STA mode
+     * voting level based on the highest bandwidth requirement
      */
     spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
-    cnt = pHddCtx->sta_cnt;
     status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
-    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status && cnt)
+    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status)
     {
         pAdapter = pAdapterNode->pAdapter;
-        if (pAdapter && (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)) {
-            cnt--;
-            if (!hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) {
+        if (pAdapter) {
+            if (0 == pAdapter->connection) {
                 status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
                 pAdapterNode = pNext;
                 continue;
