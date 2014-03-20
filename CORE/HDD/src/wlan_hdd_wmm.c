@@ -1229,9 +1229,12 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       pAc->wmmAcAccessAllowed = VOS_FALSE;
    }
 
-   // if ACM bit is not set, allow access
-   if (!(pAc->wmmAcAccessRequired))
-      pAc->wmmAcAccessAllowed = VOS_TRUE;
+   // if we have valid Tpsec or if ACM bit is not set, allow access
+   if ((pAc->wmmAcTspecValid &&
+       (pAc->wmmAcTspecInfo.ts_info.direction != SME_QOS_WMM_TS_DIR_DOWNLINK)) ||
+       !pAc->wmmAcAccessRequired) {
+         pAc->wmmAcAccessAllowed = VOS_TRUE;
+   }
 #endif
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
