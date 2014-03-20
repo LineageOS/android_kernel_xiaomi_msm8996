@@ -603,7 +603,9 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
     int we_event;
     char *msg;
     int type = -1;
+#ifdef MSM_PLATFORM
     unsigned long flags;
+#endif
 #ifdef QCA_WIFI_2_0
     v_MACADDR_t peerMacAddr;
 #endif
