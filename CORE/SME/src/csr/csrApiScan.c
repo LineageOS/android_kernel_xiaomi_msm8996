@@ -5168,22 +5168,29 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
                 }
             smeProcessPendingQueue( pMac );
         }
+#ifdef FEATURE_WLAN_SCAN_PNO
+        else if (pMac->pnoOffload && !HAL_STATUS_SUCCESS(csrSavePnoScanResults(pMac, pScanRsp)))
+        {
+            smsLog( pMac, LOGE, "CSR: Unable to store scan results for PNO" );
+            status = eHAL_STATUS_FAILURE;
+        }
+#endif
         else
         {
-            smsLog( pMac, LOGW, "CSR: Scan Completion called but SCAN command is not ACTIVE ..." );
+            smsLog( pMac, LOGE, "CSR: Scan Completion called but SCAN command is not ACTIVE ..." );
             status = eHAL_STATUS_FAILURE;
         }
     }
 #ifdef FEATURE_WLAN_SCAN_PNO
     else if (pMac->pnoOffload && !HAL_STATUS_SUCCESS(csrSavePnoScanResults(pMac, pScanRsp)))
     {
-        smsLog( pMac, LOGW, "CSR: Unable to store scan results for PNO" );
+        smsLog( pMac, LOGE, "CSR: Unable to store scan results for PNO" );
         status = eHAL_STATUS_FAILURE;
     }
 #endif
     else if (pMac->pnoOffload == FALSE)
     {
-        smsLog( pMac, LOGW, "CSR: Scan Completion called but NO commands are ACTIVE ..." );
+        smsLog( pMac, LOGE, "CSR: Scan Completion called but NO commands are ACTIVE ..." );
         status = eHAL_STATUS_FAILURE;
     }
 

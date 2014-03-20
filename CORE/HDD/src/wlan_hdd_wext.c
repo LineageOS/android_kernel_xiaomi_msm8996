@@ -7916,7 +7916,7 @@ static int iw_set_fties(struct net_device *dev, struct iw_request_info *info,
     }
 
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
-    hddLog(LOGE, FL("%s called with Ie of length = %d\n"), __func__, wrqu->data.length);
+    hddLog(LOG1, FL("%s called with Ie of length = %d\n"), __func__, wrqu->data.length);
 #endif
 
     // Pass the received FT IEs to SME

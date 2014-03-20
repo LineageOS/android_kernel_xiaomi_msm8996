@@ -1664,6 +1664,9 @@ hif_pci_resume(struct pci_dev *pdev)
         (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
         return wma_resume_target(temp_module);
     }
+    else if (wma_disable_wow_in_fw(temp_module))
+        return (-1);
+
 
     return 0;
 }

@@ -309,7 +309,7 @@ tlv_parse_frame(struct ath_dfs *dfs, struct rx_radar_status *rs,
        */
       if (MS(tlv_hdr[TLV_REG], TLV_LEN) + i >= len) {
          DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR,
-             "%s: TLV oversize: TLV LEN=%zu, available=%d, "
+             "%s: TLV oversize: TLV LEN=%d, available=%zu, "
              "i=%d",
              __func__,
              MS(tlv_hdr[TLV_REG], TLV_LEN),

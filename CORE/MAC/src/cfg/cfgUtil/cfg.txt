@@ -2442,10 +2442,10 @@ NIM
 WNI_CFG_BLOCK_ACK_ENABLED    I    4    8
 V    RW    NP RESTART
 LIM
-0    3    0
+0    3    2
 V    RW    NP RESTART
 LIM
-0    3    0
+0    3    2
 
 #ENUM DELAYED 0
 #ENUM IMMEDIATE 1
@@ -4404,10 +4404,10 @@ NONE
 WNI_CFG_AP_KEEP_ALIVE_TIMEOUT    I    4    7
 V    RW    NP
 HAL
-1    255    20
+1    65535    20
 V    RW    NP
 HAL
-1    255    20
+1    65535    20
 
 *
 * GO Keep Alive Timeout (TU)
@@ -4415,10 +4415,10 @@ HAL
 WNI_CFG_GO_KEEP_ALIVE_TIMEOUT    I    4    7
 V    RW    NP
 HAL
-1    255    20
+1    65535    20
 V    RW    NP
 HAL
-1    255    20
+1    65535    20
 
 *
 * MC Addr List power control will be enabled if value is set to 1

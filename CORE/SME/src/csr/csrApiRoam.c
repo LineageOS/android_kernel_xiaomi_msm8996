@@ -7347,7 +7347,7 @@ static eHalStatus csrRoamIssueReassociate( tpAniSirGlobal pMac, tANI_U32 session
     // Set the roaming substate to 'join attempt'...
     csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_REASSOC_REQ, sessionId );
 
-    smsLog(pMac, LOGE, FL(" calling csrSendJoinReqMsg (eWNI_SME_REASSOC_REQ)"));
+    smsLog(pMac, LOG1, FL(" calling csrSendJoinReqMsg (eWNI_SME_REASSOC_REQ)"));
 
     // attempt to Join this BSS...
     return csrSendJoinReqMsg( pMac, sessionId, pSirBssDesc, pProfile, pIes, eWNI_SME_REASSOC_REQ);
@@ -7932,7 +7932,7 @@ void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisass
     }
     else if ( CSR_IS_ROAM_SUBSTATE_DISASSOC_HO( pMac, sessionId ) )
     {
-       smsLog( pMac, LOGE, "CSR SmeDisassocReq due to HO on session %d", sessionId );
+       smsLog( pMac, LOG2, "CSR SmeDisassocReq due to HO on session %d", sessionId );
 #if   defined (WLAN_FEATURE_NEIGHBOR_ROAMING)
       /*
         * First ensure if the roam profile is in the scan cache.
@@ -8990,7 +8990,7 @@ static void csrUpdateRssi(tpAniSirGlobal pMac, void* pMsg)
         {
             if(vosStatus!=VOS_STATUS_E_BUSY)
                ((tCsrRssiCallback)(pGetRssiReq->rssiCallback))(rssi, pGetRssiReq->staId, pGetRssiReq->pDevContext);
-            else smsLog( pMac, LOGE, FL("rssi request is posted. waiting for reply"));
+            else smsLog( pMac, LOG1, FL("rssi request is posted. waiting for reply"));
         }
         else
         {
@@ -9054,6 +9054,7 @@ void csrRoamRssiRspProcessor(tpAniSirGlobal pMac, void* pMsg)
             ((tCsrRssiCallback)(reqBkp->rssiCallback))(rssi, pRoamRssiRsp->staId, reqBkp->pDevContext);
             reqBkp->rssiCallback = NULL;
             vos_mem_free(reqBkp);
+            pRoamRssiRsp->rssiReq = NULL;
         }
         else
         {
@@ -9061,6 +9062,7 @@ void csrRoamRssiRspProcessor(tpAniSirGlobal pMac, void* pMsg)
             if (NULL != reqBkp)
             {
                 vos_mem_free(reqBkp);
+                pRoamRssiRsp->rssiReq = NULL;
             }
         }
     }
@@ -9096,6 +9098,7 @@ void csrTsmStatsRspProcessor(tpAniSirGlobal pMac, void* pMsg)
         reqBkp->tsmStatsCallback = NULL;
       }
       vos_mem_free(reqBkp);
+      pTsmStatsRsp->tsmStatsReq = NULL;
     }
     else
     {
@@ -9103,6 +9106,7 @@ void csrTsmStatsRspProcessor(tpAniSirGlobal pMac, void* pMsg)
         if (NULL != reqBkp)
         {
             vos_mem_free(reqBkp);
+            pTsmStatsRsp->tsmStatsReq = NULL;
         }
     }
   }
@@ -10533,6 +10537,9 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
     if(!CSR_IS_INFRA_AP(&pSession->connectedProfile))
     {
         csrRoamCallCallback(pMac, sessionId, NULL, 0, eCSR_ROAM_LOSTLINK_DETECTED, result);
+        /*Move the state to Idle after disconnection*/
+        csrRoamStateChange( pMac, eCSR_ROAMING_STATE_IDLE, sessionId );
+
     }
 
     if ( eWNI_SME_DISASSOC_IND == type )
@@ -17025,7 +17032,7 @@ void csrRoamFTPreAuthRspProcessor( tHalHandle hHal, tpSirFTPreAuthRsp pFTPreAuth
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-    smsLog( pMac, LOGE, FL("Preauth response status code 0x%x"), pFTPreAuthRsp->status);
+    smsLog( pMac, LOG1, FL("Preauth response status code 0x%x"), pFTPreAuthRsp->status);
 #endif
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
     status = csrNeighborRoamPreauthRspHandler(pMac, pFTPreAuthRsp->status);

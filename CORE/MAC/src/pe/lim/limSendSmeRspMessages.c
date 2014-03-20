@@ -2952,7 +2952,7 @@ limSendSmeCandidateFoundInd(tpAniSirGlobal pMac, tANI_U8  sessionId)
     pSirSmeCandidateFoundInd->sessionId     =  sessionId;
 
 
-    limLog( pMac, LOGE, FL("posting candidate ind to SME"));
+    limLog( pMac, LOG1, FL("posting candidate ind to SME"));
     mmhMsg.type = eWNI_SME_CANDIDATE_FOUND_IND;
     mmhMsg.bodyptr = pSirSmeCandidateFoundInd;
     mmhMsg.bodyval = 0;

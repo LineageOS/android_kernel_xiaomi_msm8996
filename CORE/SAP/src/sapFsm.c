@@ -682,6 +682,8 @@ sapSignalHDDevent
             else
                 sapApAppEvent.sapevt.sapStartBssCompleteEvent.staId = 0;
             sapApAppEvent.sapevt.sapStartBssCompleteEvent.operatingChannel = (v_U8_t)sapContext->channel;
+            sapApAppEvent.sapevt.sapStartBssCompleteEvent.sessionId =
+                    sapContext->sessionId;
             break;
 
         case eSAP_STOP_BSS_EVENT:

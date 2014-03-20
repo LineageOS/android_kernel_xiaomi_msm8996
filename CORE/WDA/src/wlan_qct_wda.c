@@ -11278,7 +11278,9 @@ static VOS_STATUS WDA_ProcessDHCPStartInd (tWDA_CbContext *pWDA,
    }
 
    wdiDHCPInd->device_mode = dhcpStartInd->device_mode;
-   vos_mem_copy(wdiDHCPInd->macAddr, dhcpStartInd->macAddr,
+   vos_mem_copy(wdiDHCPInd->adapterMacAddr, dhcpStartInd->adapterMacAddr,
+                                               sizeof(tSirMacAddr));
+   vos_mem_copy(wdiDHCPInd->peerMacAddr, dhcpStartInd->peerMacAddr,
                                                sizeof(tSirMacAddr));
 
    status = WDI_dhcpStartInd(wdiDHCPInd);
@@ -11311,7 +11313,8 @@ static VOS_STATUS WDA_ProcessDHCPStartInd (tWDA_CbContext *pWDA,
       return VOS_STATUS_E_NOMEM;
    }
    wdiDHCPInd->device_mode = dhcpStopInd->device_mode;
-   vos_mem_copy(wdiDHCPInd->macAddr, dhcpStopInd->macAddr, sizeof(tSirMacAddr));
+   vos_mem_copy(wdiDHCPInd->adapterMacAddr, dhcpStopInd->adapterMacAddr, sizeof(tSirMacAddr));
+   vos_mem_copy(wdiDHCPInd->peerMacAddr, dhcpStopInd->peerMacAddr, sizeof(tSirMacAddr));
    status = WDI_dhcpStopInd(wdiDHCPInd);
    if (IS_WDI_STATUS_FAILURE(status))
    {
