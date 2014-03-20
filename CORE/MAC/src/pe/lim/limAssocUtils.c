@@ -2313,7 +2313,7 @@ limAddSta(
     tSirMsgQ msgQ;
     tSirRetStatus     retCode = eSIR_SUCCESS;
     tSirMacAddr     staMac, *pStaAddr;
-    tANI_U8 i;
+    tANI_U8 i, nwType11b = 0;
     tpSirAssocReq   pAssocReq;
     tLimIbssPeerNode *pPeerNode; /* for IBSS mode */
     tDot11fIEVHTCaps vht_caps;   /* for IBSS mode */
@@ -2656,7 +2656,26 @@ limAddSta(
     if (pAddStaParams->respReqd)
         SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
-    pAddStaParams->nwType = psessionEntry->nwType;
+    for (i = 0; i < SIR_NUM_11A_RATES; i++)
+    {
+        if (sirIsArate(pStaDs->supportedRates.llaRates[i] & 0x7F))
+        {
+            nwType11b = 0;
+            break;
+        }
+        else
+        {
+            nwType11b = 1;
+        }
+    }
+    if (nwType11b)
+    {
+        pAddStaParams->nwType = eSIR_11B_NW_TYPE;
+    }
+    else
+    {
+        pAddStaParams->nwType = psessionEntry->nwType;
+    }
 
     msgQ.type = WDA_ADD_STA_REQ;
 
