@@ -1430,6 +1430,8 @@ tANI_BOOLEAN limProcessFTUpdateKey(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf )
     PELOG1(limLog(pMac, LOG1,
            FL("BSSID = "MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pKeyInfo->bssId));)
 
+    sirCopyMacAddr(pAddBssParams->extSetStaKeyParam.peerMacAddr, pKeyInfo->bssId);
+
     if(pAddBssParams->extSetStaKeyParam.key[0].keyLength == 16)
     {
         PELOG1(limLog(pMac, LOG1,

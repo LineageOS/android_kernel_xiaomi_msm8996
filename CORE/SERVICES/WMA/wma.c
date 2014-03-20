@@ -227,6 +227,9 @@ void wma_set_dfs_regdomain(tp_wma_handle wma);
 static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
 				    t_thermal_cmd_params thermal_info);
 
+static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info,
+	                         v_BOOL_t sendResp);
+
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
 {
@@ -3052,6 +3055,11 @@ void wma_vdev_detach_callback(void *ctx)
 	}
 	if(iface->addBssStaContext)
                 adf_os_mem_free(iface->addBssStaContext);
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+        if (iface->staKeyParams)
+                adf_os_mem_free(iface->staKeyParams);
+#endif
 	vos_mem_zero(iface, sizeof(*iface));
 	param->status = VOS_STATUS_SUCCESS;
 
@@ -3150,6 +3158,10 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 out:
         if(iface->addBssStaContext)
                 adf_os_mem_free(iface->addBssStaContext);
+#if defined WLAN_FEATURE_VOWIFI_11R
+        if (iface->staKeyParams)
+                adf_os_mem_free(iface->staKeyParams);
+#endif
 	vos_mem_zero(iface, sizeof(*iface));
 	pdel_sta_self_req_param->status = status;
 	if (generateRsp)
@@ -6068,6 +6080,10 @@ void wma_vdev_resp_timer(void *data)
 			     (void *)iface->del_staself_req, 0);
 		if(iface->addBssStaContext)
 			adf_os_mem_free(iface->addBssStaContext);
+#if defined WLAN_FEATURE_VOWIFI_11R
+                if (iface->staKeyParams)
+                    adf_os_mem_free(iface->staKeyParams);
+#endif
 		vos_mem_zero(iface, sizeof(*iface));
 	} else if (tgt_req->msg_type == WDA_ADD_BSS_REQ) {
 		tpAddBssParams params = (tpAddBssParams)tgt_req->user_data;
@@ -8279,6 +8295,22 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
                 }
                 adf_os_mem_copy(iface->addBssStaContext, &add_bss->staContext,
                                                 sizeof(tAddStaParams));
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+                if (iface->staKeyParams) {
+                        adf_os_mem_free(iface->staKeyParams);
+                        iface->staKeyParams = NULL;
+                }
+                if (add_bss->extSetStaKeyParamValid) {
+                    iface->staKeyParams = adf_os_mem_alloc(NULL, sizeof(tSetStaKeyParams));
+                    if (!iface->staKeyParams) {
+                            WMA_LOGE("%s Failed to allocat memory", __func__);
+                            goto send_fail_resp;
+                    }
+                    adf_os_mem_copy(iface->staKeyParams, &add_bss->extSetStaKeyParam,
+                                                sizeof(tSetStaKeyParams));
+                }
+#endif
 		// Save parameters later needed by WDA_ADD_STA_REQ
 		iface->rmfEnabled = add_bss->rmfEnabled;
 		iface->beaconInterval = add_bss->beaconInterval;
@@ -9004,6 +9036,14 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 			}
 		}
 #endif /* WLAN_FEATURE_11W */
+#if defined WLAN_FEATURE_VOWIFI_11R
+             /*
+              * Set the PTK in 11r mode because we already have it.
+              */
+              if (iface->staKeyParams) {
+                  wma_set_stakey(wma, (tpSetStaKeyParams) iface->staKeyParams, FALSE);
+             }
+#endif
 	}
 #if defined WLAN_FEATURE_VOWIFI
 	maxTxPower = params->maxTxPower;
@@ -9473,7 +9513,7 @@ static void wma_set_ibsskey_helper(tp_wma_handle wma_handle, tpSetBssKeyParams k
         }
 }
 
-static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
+static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info, v_BOOL_t sendResp)
 {
 	wmi_buf_t buf;
 	int32_t status, i;
@@ -9581,7 +9621,8 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 	/* TODO: Should we wait till we get HTT_T2H_MSG_TYPE_SEC_IND? */
 	key_info->status = eHAL_STATUS_SUCCESS;
 out:
-	wma_send_msg(wma_handle, WDA_SET_STAKEY_RSP, (void *) key_info, 0);
+        if (sendResp)
+            wma_send_msg(wma_handle, WDA_SET_STAKEY_RSP, (void *) key_info, 0);
 }
 
 static void wma_delete_sta_req_ap_mode(tp_wma_handle wma,
@@ -15282,7 +15323,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_SET_STAKEY_REQ:
 			wma_set_stakey(wma_handle,
-					(tpSetStaKeyParams)msg->bodyptr);
+					(tpSetStaKeyParams)msg->bodyptr, TRUE);
 			break;
 		case WDA_DELETE_STA_REQ:
 			wma_delete_sta(wma_handle,

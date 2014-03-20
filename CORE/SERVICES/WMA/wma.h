@@ -460,6 +460,9 @@ struct wma_txrx_node {
 	tPowerdBm  tx_power; /* TX power in dBm */
 	tPowerdBm  max_tx_power; /* max Tx power in dBm */
         u_int32_t  nwType;
+#if defined WLAN_FEATURE_VOWIFI_11R
+        void    *staKeyParams;
+#endif
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
