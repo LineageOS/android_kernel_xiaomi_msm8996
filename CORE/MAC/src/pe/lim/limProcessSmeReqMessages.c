@@ -1268,6 +1268,9 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
      */
   if (__limFreshScanReqd(pMac, pScanReq->returnFreshResults))
   {
+      if (pMac->fScanOffload)
+         limFlushp2pScanResults(pMac);
+
       if (pScanReq->returnFreshResults & SIR_BG_SCAN_PURGE_RESUTLS)
       {
           // Discard previously cached scan results
@@ -1495,6 +1498,9 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
             }
 #endif
+
+            if (pMac->fScanOffload)
+                 limFlushp2pScanResults(pMac);
 
             if (pScanReq->returnFreshResults & SIR_BG_SCAN_PURGE_RESUTLS)
             {

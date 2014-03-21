@@ -46,6 +46,7 @@ void    limInitHashTable(tpAniSirGlobal);
 eHalStatus
    limLookupNaddHashEntry(tpAniSirGlobal, tLimScanResultNode *, tANI_U8, tANI_U8);
 void    limDeleteHashEntry(tLimScanResultNode *);
+void    limFlushp2pScanResults(tpAniSirGlobal);
 void    limDeleteCachedScanResults(tpAniSirGlobal);
 void    limRestorePreScanState(tpAniSirGlobal);
 void    limCopyScanResult(tpAniSirGlobal, tANI_U8 *);
