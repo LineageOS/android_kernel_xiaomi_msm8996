@@ -117,6 +117,8 @@ typedef struct connection_info_s
    /** Dot11Mode */
    tANI_U32 dot11Mode;
 
+   v_U8_t proxyARPService;
+
 }connection_info_t;
 /*Forward declaration of Adapter*/
 typedef struct hdd_adapter_s hdd_adapter_t;

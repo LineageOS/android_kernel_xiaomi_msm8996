@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -321,6 +321,6 @@ void hdd_wmm_acquire_access_required(hdd_adapter_t *pAdapter,
   @return         : NONE
   ===========================================================================*/
 void hdd_tx_resume_cb(void *adapter_context,
-                        v_U8_t tx_resume);
+                        v_BOOL_t tx_resume);
 #endif /* QCA_LL_TX_FLOW_CT */
 #endif    // end #if !defined( WLAN_HDD_TX_RX_H )

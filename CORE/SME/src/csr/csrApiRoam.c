@@ -7146,7 +7146,10 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
     pConnectProfile->modifyProfileFields.uapsd_mask = pProfile->uapsd_mask;
     pConnectProfile->operationChannel = pSirBssDesc->channelId;
     pConnectProfile->beaconInterval = pSirBssDesc->beaconInterval;
-
+    if (!pConnectProfile->beaconInterval)
+    {
+        smsLog(pMac, LOGW, FL("ERROR: Beacon interval is ZERO"));
+    }
     vos_mem_copy(&pConnectProfile->Keys, &pProfile->Keys, sizeof(tCsrKeys));
     /* saving the addional IE`s like Hot spot indication element and extended capabilities */
     if(pProfile->nAddIEAssocLength)
@@ -17382,19 +17385,11 @@ VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp)
  * Channel Change Req for SAP
  */
 eHalStatus
-csrRoamChannelChangeReq( tpAniSirGlobal pMac, tANI_U32 sessionId,
-                          tANI_U8 targetChannel, tANI_U8 cbMode)
+csrRoamChannelChangeReq( tpAniSirGlobal pMac, tCsrBssid bssid,
+                          tANI_U8 targetChannel, tANI_U8 cbMode )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirChanChangeRequest *pMsg;
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-
-    if (NULL == pSession)
-    {
-        smsLog( pMac, LOGE, FL
-                ( " Session does not exist for session id %d" ), sessionId);
-        return eHAL_STATUS_FAILURE;
-    }
 
     pMsg = vos_mem_malloc( sizeof(tSirChanChangeRequest) );
     if (!pMsg)
@@ -17422,9 +17417,9 @@ csrRoamChannelChangeReq( tpAniSirGlobal pMac, tANI_U32 sessionId,
 
     pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_CHANNEL_CHANGE_REQ);
     pMsg->messageLen = sizeof(tSirChanChangeRequest);
-    pMsg->sessionId = pSession->sessionId;
     pMsg->targetChannel = targetChannel;
     pMsg->cbMode = cbMode;
+    vos_mem_copy(pMsg->bssid, bssid, WNI_CFG_BSSID_LEN);
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
 
@@ -17436,19 +17431,11 @@ csrRoamChannelChangeReq( tpAniSirGlobal pMac, tANI_U32 sessionId,
  * immediately after SAP CAC WAIT is
  * completed without any RADAR indications.
  */
-eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac, tANI_U32 sessionId,
-                                                  tANI_U8 dfsCacWaitStatus)
+eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac, tCsrBssid bssid,
+                             tANI_U8 dfsCacWaitStatus)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirStartBeaconIndication *pMsg;
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-
-    if (NULL == pSession)
-    {
-        smsLog( pMac, LOGE, FL
-                ( " Session does not exist for session id %d" ), sessionId);
-        return eHAL_STATUS_FAILURE;
-    }
 
     pMsg = vos_mem_malloc(sizeof(tSirStartBeaconIndication));
 
@@ -17460,8 +17447,8 @@ eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac, tANI_U32 sessionId,
     vos_mem_set((void *)pMsg, sizeof( tSirStartBeaconIndication ), 0);
     pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_START_BEACON_REQ);
     pMsg->messageLen = sizeof(tSirStartBeaconIndication);
-    pMsg->sessionId = pSession->sessionId;
     pMsg->beaconStartStatus  = dfsCacWaitStatus;
+    vos_mem_copy(pMsg->bssid, bssid, WNI_CFG_BSSID_LEN);
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
 
@@ -17478,19 +17465,11 @@ eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac, tANI_U32 sessionId,
  \- return Success or failure
 -----------------------------------------------------------------------------*/
 eHalStatus
-csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
-                                       tANI_U8 targetChannel, tANI_U8 csaIeReqd)
+csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tCsrBssid bssid,
+                       tANI_U8 targetChannel, tANI_U8 csaIeReqd)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirDfsCsaIeRequest *pMsg;
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-
-    if (NULL == pSession)
-    {
-        smsLog( pMac, LOGE, FL
-                ( " Session does not exist for session id %d" ), sessionId);
-        return eHAL_STATUS_FAILURE;
-    }
 
     pMsg = vos_mem_malloc(sizeof(tSirDfsCsaIeRequest));
     if (!pMsg)
@@ -17503,9 +17482,9 @@ csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
         pal_cpu_to_be16((tANI_U16)eWNI_SME_DFS_BEACON_CHAN_SW_IE_REQ);
     pMsg->msgLen = sizeof(tSirDfsCsaIeRequest);
 
-    pMsg->sessionId = pSession->sessionId;
     pMsg->targetChannel = targetChannel;
     pMsg->csaIeRequired = csaIeReqd;
+    vos_mem_copy(pMsg->bssid, bssid, WNI_CFG_BSSID_LEN);
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
 

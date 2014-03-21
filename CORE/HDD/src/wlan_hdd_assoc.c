@@ -307,6 +307,8 @@ void hdd_connSaveConnectInfo( hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, 
 
           // Save  dot11mode in which STA associated to AP
           pHddStaCtx->conn_info.dot11Mode = pRoamInfo->u.pConnectedProfile->dot11Mode;
+
+          pHddStaCtx->conn_info.proxyARPService = pRoamInfo->u.pConnectedProfile->proxyARPService;
       }
    }
 
@@ -603,7 +605,9 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
     int we_event;
     char *msg;
     int type = -1;
+#ifdef MSM_PLATFORM
     unsigned long flags;
+#endif
 #ifdef QCA_WIFI_2_0
     v_MACADDR_t peerMacAddr;
 #endif
@@ -773,6 +777,7 @@ void hdd_connRemoveConnectInfo( hdd_station_ctx_t *pHddStaCtx )
    // Set not-connected state
    pHddStaCtx->conn_info.connDot11DesiredBssType = eCSR_BSS_TYPE_ANY;
    hdd_connSetConnectionState( pHddStaCtx, eConnectionState_NotConnected );
+   pHddStaCtx->conn_info.proxyARPService = 0;
 
    vos_mem_zero( &pHddStaCtx->conn_info.SSID, sizeof( tCsrSSIDInfo ) );
 }

@@ -374,7 +374,6 @@ eHalStatus sme_FTUpdateKey( tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo )
     switch(pMac->ft.ftSmeContext.FTState)
     {
     case eFT_SET_KEY_WAIT:
-#ifdef QCA_WIFI_ISOC
     if (sme_GetFTPreAuthState (hHal) == TRUE)
       {
           status = sme_FTSendUpdateKeyInd(pMac, pFTKeyInfo);
@@ -393,9 +392,6 @@ eHalStatus sme_FTUpdateKey( tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo )
           }
           sme_SetFTPreAuthState(hHal, FALSE);
       }
-#else
-      status = eHAL_STATUS_FT_PREAUTH_KEY_FAILED;
-#endif /* QCA_WIFI_ISOC */
 
       pMac->ft.ftSmeContext.FTState = eFT_START_READY;
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG

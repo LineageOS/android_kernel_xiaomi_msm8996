@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -50,8 +50,9 @@
 
 #define NBUF_PKT_TRAC_TYPE_EAPOL   0x02
 #define NBUF_PKT_TRAC_TYPE_DHCP    0x04
-#define NBUF_PKT_TRAC_MAX_STRING   11
-#define NBUF_PKT_TRAC_PROTO_STRING 3
+#define NBUF_PKT_TRAC_TYPE_MGMT_ACTION    0x08
+#define NBUF_PKT_TRAC_MAX_STRING   12
+#define NBUF_PKT_TRAC_PROTO_STRING 4
 
 /**
  * @brief Platform indepedent packet abstraction

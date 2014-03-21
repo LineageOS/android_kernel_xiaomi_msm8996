@@ -2931,6 +2931,12 @@ limProcessMlmDisassocReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_
                                  pMlmDisassocReq->reasonCode,
                                  pMlmDisassocReq->peerMacAddr,
                                  psessionEntry, TRUE);
+             /*
+              * Abort Tx so that data frames won't be sent to the AP
+              * after sending Disassoc.
+              */
+             if (eLIM_STA_ROLE == psessionEntry->limSystemRole)
+                  WDA_TxAbort(psessionEntry->smeSessionId);
         }
     }
     else

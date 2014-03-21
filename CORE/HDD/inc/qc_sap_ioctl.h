@@ -299,6 +299,7 @@ typedef struct
 #ifdef QCA_PKT_PROTO_TRACE
 #define QCASAP_SET_DEBUG_LOG               68
 #endif /* QCA_PKT_PROTO_TRACE */
+#define QCASAP_SET_TM_LEVEL                69
 #endif /* QCA_WIFI_2_0 */
 
 enum {

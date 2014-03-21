@@ -245,18 +245,29 @@ VOS_STATUS vos_pkt_extract_data( vos_pkt_t *pPacket,
 
   * skb Packet Pointer
   * tracking_map packet type want to track
+  * dot11_type, type of dot11 frame
 
 ---------------------------------------------------------------------------*/
 v_U8_t vos_pkt_get_proto_type
 (
    struct sk_buff *skb,
-   v_U8_t tracking_map
+   v_U8_t tracking_map,
+   v_U8_t dot11_type
 )
 {
    v_U8_t     pkt_proto_type = 0;
    v_U16_t    ether_type;
    v_U16_t    SPort;
    v_U16_t    DPort;
+
+   if (dot11_type)
+   {
+      if (dot11_type == (VOS_PKT_TRAC_TYPE_MGMT_ACTION & tracking_map))
+         pkt_proto_type |= VOS_PKT_TRAC_TYPE_MGMT_ACTION;
+
+      /* Protocol type map */
+      return pkt_proto_type;
+   }
 
    /* EAPOL Tracking enabled */
    if (VOS_PKT_TRAC_TYPE_EAPOL & tracking_map)
@@ -309,6 +320,8 @@ void vos_pkt_trace_buf_update
    slot = trace_buffer_order % VOS_PKT_TRAC_MAX_TRACE_BUF;
    trace_buffer[slot].order = trace_buffer_order;
    trace_buffer[slot].event_time = vos_timer_get_system_time();
+   vos_mem_zero(trace_buffer[slot].event_string,
+                sizeof(trace_buffer[slot].event_string));
    vos_mem_copy(trace_buffer[slot].event_string,
                 event_string,
                 (VOS_PKT_TRAC_MAX_STRING_LEN < strlen(event_string))?

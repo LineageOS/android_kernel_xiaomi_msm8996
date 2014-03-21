@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -754,10 +754,10 @@ struct ol_txrx_vdev_t {
 		adf_os_timer_t timer;
 	} ll_pause;
 	a_bool_t disable_intrabss_fwd;
-#ifdef QCA_LL_TX_FLOW_CT
-	a_bool_t os_q_paused;
-	ol_txrx_tx_fc_fp osif_flow_control_cb;
-#endif /* QCA_LL_TX_FLOW_CT */
+	adf_os_atomic_t os_q_paused;
+	u_int16_t tx_fl_lwm;
+	u_int16_t tx_fl_hwm;
+	ol_txrx_tx_flow_control_fp osif_flow_control_cb;
 };
 
 struct ol_rx_reorder_array_elem_t {

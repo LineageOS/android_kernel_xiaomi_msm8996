@@ -838,11 +838,11 @@ ol_txrx_vdev_attach(
             &vdev->ll_pause.timer,
             ol_tx_vdev_ll_pause_queue_send,
             vdev);
-
-#ifdef QCA_LL_TX_FLOW_CT
-    vdev->os_q_paused = A_FALSE;
+    adf_os_atomic_init(&vdev->os_q_paused);
+    adf_os_atomic_set(&vdev->os_q_paused, 0);
+    vdev->tx_fl_lwm = 0;
+    vdev->tx_fl_hwm = 0;
     vdev->osif_flow_control_cb = NULL;
-#endif /* QCA_LL_TX_FLOW_CT */
 
     /* add this vdev into the pdev's list */
     TAILQ_INSERT_TAIL(&pdev->vdev_list, vdev, vdev_list_elem);
@@ -1957,14 +1957,17 @@ ol_vdev_rx_set_intrabss_fwd(
 #ifdef QCA_LL_TX_FLOW_CT
 a_bool_t
 ol_txrx_get_tx_resource(
-    ol_txrx_vdev_handle vdev
+    ol_txrx_vdev_handle vdev,
+    unsigned int low_watermark,
+    unsigned int high_watermark_offset
 )
 {
    adf_os_spin_lock_bh(&vdev->pdev->tx_mutex);
-   if ((vdev->pdev->tx_desc.num_free) <
-        TXRX_LL_FLOW_CT_FREE_D_LWM) {
+   if (vdev->pdev->tx_desc.num_free < (u_int16_t)low_watermark) {
+      vdev->tx_fl_lwm = (u_int16_t)low_watermark;
+      vdev->tx_fl_hwm = (u_int16_t)(low_watermark + high_watermark_offset);
       /* Not enough free resource, stop TX OS Q */
-      vdev->os_q_paused = A_TRUE;
+      adf_os_atomic_set(&vdev->os_q_paused, 1);
       adf_os_spin_unlock_bh(&vdev->pdev->tx_mutex);
       return A_FALSE;
    }

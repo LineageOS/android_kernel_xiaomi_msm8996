@@ -11484,12 +11484,11 @@ eHalStatus sme_AddChAvoidCallback
    \fn sme_RoamChannelChangeReq
    \brief API to Indicate Channel change to new target channel
    \param hHal - The handle returned by macOpen
-   \param sessionId - session ID
    \param targetChannel - New Channel to move the SAP to.
    \return eHalStatus
 ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal,
-                tANI_U8 sessionId, tANI_U8 targetChannel, eCsrPhyMode phyMode)
+eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal, tCsrBssid bssid,
+                                tANI_U8 targetChannel, eCsrPhyMode phyMode )
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -11498,8 +11497,8 @@ eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal,
     {
         sme_SelectCBMode(hHal, phyMode, targetChannel);
 
-        status = csrRoamChannelChangeReq( pMac, sessionId, targetChannel,
-                       pMac->roam.configParam.channelBondingMode5GHz);
+        status = csrRoamChannelChangeReq( pMac, bssid, targetChannel,
+                       pMac->roam.configParam.channelBondingMode5GHz );
 
         sme_ReleaseGlobalLock( &pMac->sme );
     }
@@ -11571,8 +11570,8 @@ eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
    \param dfsCacWaitStatus - CAC WAIT status flag
    \return eHalStatus
 ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal, tANI_U8 sessionId,
-                                              tANI_U8 dfsCacWaitStatus)
+eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal, tCsrBssid bssid,
+                              tANI_U8 dfsCacWaitStatus)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -11580,7 +11579,7 @@ eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal, tANI_U8 sessionId,
 
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrRoamStartBeaconReq( pMac, sessionId, dfsCacWaitStatus);
+        status = csrRoamStartBeaconReq( pMac, bssid, dfsCacWaitStatus);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
     return (status);
@@ -11590,11 +11589,11 @@ eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal, tANI_U8 sessionId,
    \fn sme_RoamCsaIeRequest
    \brief API to request CSA IE transmission from PE
    \param hHal - The handle returned by macOpen
-   \param sessionId - session ID
    \param pDfsCsaReq - CSA IE request
+   \param bssid - SAP bssid
    \return eHalStatus
 ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tANI_U8 sessionId,
+eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tCsrBssid bssid,
                                     tANI_U8 targetChannel, tANI_U8 csaIeReqd)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
@@ -11602,8 +11601,8 @@ eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tANI_U8 sessionId,
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrRoamSendChanSwIERequest(pMac, sessionId,
-                                            targetChannel, csaIeReqd);
+        status = csrRoamSendChanSwIERequest(pMac, bssid, targetChannel,
+                                                             csaIeReqd);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
     return (status);
