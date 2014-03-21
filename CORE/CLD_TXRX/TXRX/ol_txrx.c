@@ -580,7 +580,7 @@ ol_txrx_pdev_attach(
     adf_os_mem_zero(&pdev->tx_delay, sizeof(pdev->tx_delay));
     adf_os_spinlock_init(&pdev->tx_delay.mutex);
 
-    /* initialize compute interval with 5 seconds (CCX default) */
+    /* initialize compute interval with 5 seconds (ESE default) */
     pdev->tx_delay.avg_period_ticks = adf_os_msecs_to_ticks(5000);
     {
         u_int32_t bin_width_1000ticks;

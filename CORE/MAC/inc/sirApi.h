@@ -45,8 +45,8 @@
 #include "aniSystemDefs.h"
 #include "sirParams.h"
 
-#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
-#include "ccxGlobal.h"
+#if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
+#include "eseGlobal.h"
 #endif
 
 /// Maximum number of STAs allowed in the BSS
@@ -697,7 +697,7 @@ typedef struct sSirBssDescription
     tANI_U8              mdiePresent;
     tANI_U8              mdie[SIR_MDIE_SIZE];                // MDIE for 11r, picked from the beacons
 #endif
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
     tANI_U16             QBSSLoad_present;
     tANI_U16             QBSSLoad_avail;
 #endif
@@ -734,7 +734,7 @@ typedef struct sSirSmeStartBssRsp
 typedef struct sSirChannelList
 {
     tANI_U8          numChannels;
-    tANI_U8          channelNumber[SIR_CCX_MAX_MEAS_IE_REQS];
+    tANI_U8          channelNumber[SIR_ESE_MAX_MEAS_IE_REQS];
 } tSirChannelList, *tpSirChannelList;
 
 typedef struct sSirDFSChannelList
@@ -743,17 +743,17 @@ typedef struct sSirDFSChannelList
 
 } tSirDFSChannelList, *tpSirDFSChannelList;
 
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
 typedef struct sTspecInfo {
     tANI_U8         valid;
     tSirMacTspecIE  tspec;
 } tTspecInfo;
 
-#define SIR_CCX_MAX_TSPEC_IES   4
-typedef struct sCCXTspecTspecInfo {
+#define SIR_ESE_MAX_TSPEC_IES   4
+typedef struct sESETspecTspecInfo {
     tANI_U8 numTspecs;
-    tTspecInfo tspec[SIR_CCX_MAX_TSPEC_IES];
-} tCCXTspecInfo;
+    tTspecInfo tspec[SIR_ESE_MAX_TSPEC_IES];
+} tESETspecInfo;
 #endif
 
 
@@ -1041,7 +1041,7 @@ typedef struct sSirSmeJoinReq
     tSirMacRateSet      extendedRateSet;    // Has 11g rates
     tSirRSNie           rsnIE;                  // RSN IE to be sent in
                                                 // (Re) Association Request
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
     tSirCCKMie          cckmIE;             // CCMK IE to be included as handler for join and reassoc is
                                             // the same. The join will never carry cckm, but will be set to
                                             // 0.
@@ -1064,13 +1064,13 @@ typedef struct sSirSmeJoinReq
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tAniBool            is11Rconnection;
 #endif
-#ifdef FEATURE_WLAN_CCX
-    tAniBool            isCCXFeatureIniEnabled;
-    tAniBool            isCCXconnection;
-    tCCXTspecInfo       ccxTspecInfo;
+#ifdef FEATURE_WLAN_ESE
+    tAniBool            isESEFeatureIniEnabled;
+    tAniBool            isESEconnection;
+    tESETspecInfo       eseTspecInfo;
 #endif
 
-#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
     tAniBool            isFastTransitionEnabled;
 #endif
 #ifdef FEATURE_WLAN_LFR
@@ -1119,7 +1119,7 @@ typedef struct sSirSmeJoinRsp
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tANI_U32        parsedRicRspLen;
 #endif
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
     tANI_U32        tspecIeLen;
 #endif
     tANI_U32        staId;//Station ID for peer
@@ -2160,7 +2160,7 @@ typedef struct sAniGetSnrReq
     void                    *pDevContext; //device context
 } tAniGetSnrReq, *tpAniGetSnrReq;
 
-#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
 typedef struct sAniGetRoamRssiRsp
 {
     // Common for all types are responses
@@ -2176,7 +2176,7 @@ typedef struct sAniGetRoamRssiRsp
 
 #endif
 
-#if defined(FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_ESE_UPLOAD)
 typedef struct sSirTsmIE
 {
     tANI_U8      tsid;
@@ -2231,22 +2231,22 @@ typedef struct sAniGetTsmStatsRsp
     void               *tsmStatsReq;  /* tsm stats request backup */
 } tAniGetTsmStatsRsp, *tpAniGetTsmStatsRsp;
 
-typedef struct sSirCcxBcnReportBssInfo
+typedef struct sSirEseBcnReportBssInfo
 {
     tBcnReportFields  bcnReportFields;
     tANI_U8           ieLen;
     tANI_U8           *pBuf;
-} tSirCcxBcnReportBssInfo, *tpSirCcxBcnReportBssInfo;
+} tSirEseBcnReportBssInfo, *tpSirEseBcnReportBssInfo;
 
-typedef struct sSirCcxBcnReportRsp
+typedef struct sSirEseBcnReportRsp
 {
     tANI_U16    measurementToken;
     tANI_U8     flag;     /* Flag to report measurement done and more data */
     tANI_U8     numBss;
-    tSirCcxBcnReportBssInfo bcnRepBssInfo[SIR_BCN_REPORT_MAX_BSS_DESC];
-} tSirCcxBcnReportRsp, *tpSirCcxBcnReportRsp;
+    tSirEseBcnReportBssInfo bcnRepBssInfo[SIR_BCN_REPORT_MAX_BSS_DESC];
+} tSirEseBcnReportRsp, *tpSirEseBcnReportRsp;
 
-#endif /* FEATURE_WLAN_CCX || FEATURE_WLAN_CCX_UPLOAD */
+#endif /* FEATURE_WLAN_ESE || FEATURE_WLAN_ESE_UPLOAD */
 
 /* Change country code request MSG structure */
 typedef struct sAniChangeCountryCodeReq
@@ -2534,40 +2534,40 @@ typedef __ani_attr_pre_packed struct sSirTclasInfo
     }__ani_attr_packed tclasParams;
 } __ani_attr_packed tSirTclasInfo;
 
-#if defined(FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_ESE_UPLOAD)
 #define TSRS_11AG_RATE_6MBPS   0xC
 #define TSRS_11B_RATE_5_5MBPS  0xB
-typedef struct sSirMacCCXTSRSIE
+typedef struct sSirMacESETSRSIE
 {
     tANI_U8      tsid;
     tANI_U8      rates[8];
-} tSirMacCCXTSRSIE;
-typedef struct sSirMacCCXTSMIE
+} tSirMacESETSRSIE;
+typedef struct sSirMacESETSMIE
 {
     tANI_U8      tsid;
     tANI_U8      state;
     tANI_U16     msmt_interval;
-} tSirMacCCXTSMIE;
+} tSirMacESETSMIE;
 typedef struct sTSMStats
 {
     tANI_U8           tid;
     tSirMacAddr       bssId;
     tTrafStrmMetrics  tsmMetrics;
 } tTSMStats, *tpTSMStats;
-typedef struct sCcxTSMContext
+typedef struct sEseTSMContext
 {
    tANI_U8           tid;
-   tSirMacCCXTSMIE   tsmInfo;
+   tSirMacESETSMIE   tsmInfo;
    tTrafStrmMetrics  tsmMetrics;
-} tCcxTSMContext, *tpCcxTSMContext;
-typedef struct sCcxPEContext
+} tEseTSMContext, *tpEseTSMContext;
+typedef struct sEsePEContext
 {
-#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
-   tCcxMeasReq       curMeasReq;
+#if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
+   tEseMeasReq       curMeasReq;
 #endif
-   tCcxTSMContext    tsm;
-} tCcxPEContext, *tpCcxPEContext;
-#endif /* FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
+   tEseTSMContext    tsm;
+} tEsePEContext, *tpEsePEContext;
+#endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 
 typedef struct sSirAddtsReqInfo
 {
@@ -2577,8 +2577,8 @@ typedef struct sSirAddtsReqInfo
     tANI_U8               numTclas; // number of Tclas elements
     tSirTclasInfo    tclasInfo[SIR_MAC_TCLASIE_MAXNUM];
     tANI_U8               tclasProc;
-#if defined(FEATURE_WLAN_CCX)
-    tSirMacCCXTSRSIE      tsrsIE;
+#if defined(FEATURE_WLAN_ESE)
+    tSirMacESETSRSIE      tsrsIE;
     tANI_U8               tsrsPresent:1;
 #endif
     tANI_U8               wmeTspecPresent:1;
@@ -2598,8 +2598,8 @@ typedef struct sSirAddtsRspInfo
     tSirTclasInfo      tclasInfo[SIR_MAC_TCLASIE_MAXNUM];
     tANI_U8                 tclasProc;
     tSirMacScheduleIE  schedule;
-#if defined(FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_CCX_UPLOAD)
-    tSirMacCCXTSMIE    tsmIE;
+#if defined(FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_ESE_UPLOAD)
+    tSirMacESETSMIE    tsmIE;
     tANI_U8                 tsmPresent:1;
 #endif
     tANI_U8                 wmeTspecPresent:1;
@@ -2666,7 +2666,7 @@ typedef struct sSirDeltsRsp
     tSirDeltsReqInfo        rsp;
 } tSirDeltsRsp, *tpSirDeltsRsp;
 
-#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 typedef struct sSirPlmReq
 {
     tANI_U16                diag_token; // Dialog token
@@ -2687,7 +2687,7 @@ typedef struct sSirPlmReq
 } tSirPlmReq, *tpSirPlmReq;
 #endif
 
-#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
 
 #define SIR_QOS_NUM_TSPEC_MAX 2
 #define SIR_QOS_NUM_AC_MAX 4
@@ -2724,7 +2724,7 @@ typedef struct sSirAggrQosRsp
     tSirAggrQosRspInfo      aggrInfo;
 } tSirAggrQosRsp, *tpSirAggrQosRsp;
 
-#endif/*WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_CCX*/
+#endif/*WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_ESE*/
 
 typedef struct sSirSetTxPowerReq
 {
@@ -3829,7 +3829,7 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U16    EmptyRefreshScanPeriod;
   tANI_U8     ValidChannelCount;
   tANI_U8     ValidChannelList[SIR_ROAM_MAX_CHANNELS];
-  eAniBoolean IsCCXEnabled;
+  eAniBoolean IsESEEnabled;
   tANI_U16  us24GProbeTemplateLen;
   tANI_U8   p24GProbeTemplate[SIR_ROAM_SCAN_MAX_PB_REQ_SIZE];
   tANI_U16  us5GProbeTemplateLen;

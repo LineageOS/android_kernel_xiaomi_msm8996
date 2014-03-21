@@ -276,7 +276,7 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     }
 #endif
 
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
     pBssDescr->QBSSLoad_present = FALSE;
     pBssDescr->QBSSLoad_avail = 0;
     if( pBPR->QBSSLoad.present)

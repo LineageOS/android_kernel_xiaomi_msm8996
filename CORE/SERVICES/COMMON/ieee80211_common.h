@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011,2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1480,7 +1480,7 @@ struct ieee80211_tpc_ie {
 /*
  * MHDRIE included in TKIP MFP protected management frames
  */
-struct ieee80211_ccx_mhdr_ie {
+struct ieee80211_ese_mhdr_ie {
     u_int8_t    mhdr_id;
     u_int8_t    mhdr_len;
     u_int8_t    mhdr_oui[3];

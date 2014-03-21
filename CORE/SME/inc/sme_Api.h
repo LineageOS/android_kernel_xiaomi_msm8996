@@ -114,13 +114,13 @@ typedef struct _smeConfigParams
     tANI_U8   isFastRoamIniFeatureEnabled;
     tANI_U8   MAWCEnabled;
 #endif
-#if defined FEATURE_WLAN_CCX
-    tANI_U8   isCcxIniFeatureEnabled;
+#if defined FEATURE_WLAN_ESE
+    tANI_U8   isEseIniFeatureEnabled;
 #endif
 #if defined WLAN_FEATURE_P2P_INTERNAL
    tP2PConfigParam  p2pConfig;
 #endif
-#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
     tANI_U8       isFastTransitionEnabled;
     tANI_U8       RoamRssiDiff;
     tANI_BOOLEAN  isWESModeEnabled;
@@ -401,7 +401,7 @@ eHalStatus sme_UpdateChannelConfig(tHalHandle hHal);
 
 #endif // FEATURE_WLAN_SCAN_PNLO
 
-#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 /*--------------------------------------------------------------------------
 
   \brief sme_SetPlmRequest() - send PLM request to firmware
@@ -927,7 +927,7 @@ eHalStatus sme_GetSnr(tHalHandle hHal,
                        tCsrSnrCallback callback,
                        tANI_U8 staId, tCsrBssid bssId,
                        void *pContext);
-#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
 eHalStatus sme_GetRoamRssi(tHalHandle hHal,
                            tCsrRssiCallback callback,
                            tANI_U8 staId,
@@ -936,7 +936,7 @@ eHalStatus sme_GetRoamRssi(tHalHandle hHal,
                            void* pVosContext);
 #endif
 
-#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 /* ---------------------------------------------------------------------------
     \fn sme_GetTsmStats
     \brief a wrapper function that client calls to register a callback to get
@@ -965,16 +965,16 @@ eHalStatus sme_SetCCKMIe(tHalHandle hHal,
                          tANI_U8 *pCckmIe,
                          tANI_U8 cckmIeLen);
 /* ---------------------------------------------------------------------------
-    \fn sme_SetCcxBeaconRequest
-    \brief  function to set CCX beacon request parameters
+    \fn sme_SetEseBeaconRequest
+    \brief  function to set ESE beacon request parameters
     \param  hHal - HAL handle for device
-    \param  pCcxBcnReq - pointer to CCX beacon request
+    \param  pEseBcnReq - pointer to ESE beacon request
     \- return Success or failure
     -------------------------------------------------------------------------*/
-eHalStatus sme_SetCcxBeaconRequest(tHalHandle hHal, const tANI_U8 sessionId,
-                                   const tCsrCcxBeaconReq* pCcxBcnReq);
+eHalStatus sme_SetEseBeaconRequest(tHalHandle hHal, const tANI_U8 sessionId,
+                                   const tCsrEseBeaconReq* pEseBcnReq);
 
-#endif /*FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
+#endif /*FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 
 /* ---------------------------------------------------------------------------
     \fn sme_CfgSetInt
@@ -2514,7 +2514,7 @@ void sme_transportDebug(tHalHandle hHal, v_BOOL_t displaySnapshot, v_BOOL_t togg
     -------------------------------------------------------------------------*/
 void sme_ResetPowerValuesFor5G (tHalHandle hHal);
 
-#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 /* ---------------------------------------------------------------------------
     \fn sme_UpdateRoamPrefer5GHz
     \brief  enable/disable Roam prefer 5G runtime option
@@ -2649,7 +2649,7 @@ eHalStatus sme_UpdateWESMode(tHalHandle hHal, v_BOOL_t isWESModeEnabled);
           Other status means SME failure to update
     -------------------------------------------------------------------------*/
 eHalStatus sme_SetRoamScanControl(tHalHandle hHal, v_BOOL_t roamScanControl);
-#endif /* (WLAN_FEATURE_VOWIFI_11R) || (FEATURE_WLAN_CCX) || (FEATURE_WLAN_LFR) */
+#endif /* (WLAN_FEATURE_VOWIFI_11R) || (FEATURE_WLAN_ESE) || (FEATURE_WLAN_LFR) */
 
 #ifdef FEATURE_WLAN_LFR
 /*--------------------------------------------------------------------------
@@ -2695,22 +2695,22 @@ eHalStatus sme_UpdateEnableFastRoamInConcurrency(tHalHandle hHal,
 #endif
 #endif /* FEATURE_WLAN_LFR */
 
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
 /*--------------------------------------------------------------------------
-  \brief sme_UpdateIsCcxFeatureEnabled() - enable/disable CCX support at runtime
+  \brief sme_UpdateIsEseFeatureEnabled() - enable/disable ESE support at runtime
   It is used at in the REG_DYNAMIC_VARIABLE macro definition of
-  isCcxIniFeatureEnabled.
+  isEseIniFeatureEnabled.
   This is a synchronuous call
   \param hHal - The handle returned by macOpen.
-  \return eHAL_STATUS_SUCCESS - SME update isCcxIniFeatureEnabled config successfully.
-          Other status means SME is failed to update isCcxIniFeatureEnabled.
+  \return eHAL_STATUS_SUCCESS - SME update isEseIniFeatureEnabled config successfully.
+          Other status means SME is failed to update isEseIniFeatureEnabled.
   \sa
   --------------------------------------------------------------------------*/
 
-eHalStatus sme_UpdateIsCcxFeatureEnabled(tHalHandle hHal,
-        const v_BOOL_t isCcxIniFeatureEnabled);
+eHalStatus sme_UpdateIsEseFeatureEnabled(tHalHandle hHal,
+        const v_BOOL_t isEseIniFeatureEnabled);
 
-#endif /* FEATURE_WLAN_CCX */
+#endif /* FEATURE_WLAN_ESE */
 
 /*--------------------------------------------------------------------------
   \brief sme_UpdateConfigFwRssiMonitoring() - enable/disable firmware RSSI Monitornig at runtime
@@ -2989,7 +2989,7 @@ eHalStatus sme_SetRoamBeaconRssiWeight(tHalHandle hHal,
 v_U8_t sme_GetRoamBeaconRssiWeight(tHalHandle hHal);
 #endif
 
-#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 /*--------------------------------------------------------------------------
   \brief sme_getRoamRssiDiff() - get Roam rssi diff
   This is a synchronuous call
@@ -3011,16 +3011,16 @@ v_U8_t sme_getRoamRssiDiff(tHalHandle hHal);
 eHalStatus sme_ChangeRoamScanChannelList(tHalHandle hHal, tANI_U8 *pChannelList,
                                          tANI_U8 numChannels);
 
-#ifdef FEATURE_WLAN_CCX_UPLOAD
+#ifdef FEATURE_WLAN_ESE_UPLOAD
 /*--------------------------------------------------------------------------
-  \brief sme_SetCcxRoamScanChannelList() - set ccx roam scan channel list
+  \brief sme_SetEseRoamScanChannelList() - set ese roam scan channel list
   This is a synchronuous call
   \param hHal - The handle returned by macOpen.
   \return eHAL_STATUS_SUCCESS - SME update config successful.
           Other status means SME is failed to update
   \sa
   --------------------------------------------------------------------------*/
-eHalStatus sme_SetCcxRoamScanChannelList(tHalHandle hHal,
+eHalStatus sme_SetEseRoamScanChannelList(tHalHandle hHal,
                                                    tANI_U8 *pChannelList,
                                                    tANI_U8 numChannels);
 #endif
@@ -3037,14 +3037,14 @@ eHalStatus sme_getRoamScanChannelList(tHalHandle hHal, tANI_U8 *pChannelList,
                                          tANI_U8 *pNumChannels);
 
 /*--------------------------------------------------------------------------
-  \brief sme_getIsCcxFeatureEnabled() - get CCX feature enabled or not
+  \brief sme_getIsEseFeatureEnabled() - get ESE feature enabled or not
   This is a synchronuous call
   \param hHal - The handle returned by macOpen.
-  \return TRUE (1) - if the CCX feature is enabled
+  \return TRUE (1) - if the ESE feature is enabled
           FALSE (0) - if feature is disabled (compile or runtime)
   \sa
   --------------------------------------------------------------------------*/
-tANI_BOOLEAN sme_getIsCcxFeatureEnabled(tHalHandle hHal);
+tANI_BOOLEAN sme_getIsEseFeatureEnabled(tHalHandle hHal);
 
 /*--------------------------------------------------------------------------
   \brief sme_getWESMode() - getWES Mode
