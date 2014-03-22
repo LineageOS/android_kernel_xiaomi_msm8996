@@ -6035,6 +6035,7 @@ void wma_vdev_resp_timer(void *data)
 		params->status = VOS_STATUS_E_TIMEOUT;
 		WMA_LOGA("%s: WDA_SWITCH_CHANNEL_REQ timedout", __func__);
 		wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
+		wma->roam_preauth_chan_context = NULL;
 	} else if (tgt_req->msg_type == WDA_DELETE_BSS_REQ) {
 		tpDeleteBssParams params =
 			(tpDeleteBssParams)tgt_req->user_data;
