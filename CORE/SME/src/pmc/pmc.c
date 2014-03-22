@@ -3027,21 +3027,21 @@ eHalStatus pmcOffloadEnableStaPsCheck(tpAniSirGlobal pMac,
     /* Check if Sta Ps is enabled. */
     if(!pMac->pmcOffloadInfo.staPsEnabled)
     {
-       smsLog(pMac, LOGE, "PMC: Cannot initiate BMPS. BMPS is disabled");
+       smsLog(pMac, LOG1, "PMC: Cannot initiate BMPS. BMPS is disabled");
        return eHAL_STATUS_PMC_DISABLED;
     }
 
     /* Check whether the give session is Infra and in Connected State */
     if(!csrIsConnStateConnectedInfra(pMac, sessionId))
     {
-       smsLog(pMac, LOGE, "PMC:Sta not infra/connected state %d", sessionId);
+       smsLog(pMac, LOG1, "PMC:Sta not infra/connected state %d", sessionId);
        return eHAL_STATUS_FAILURE;
     }
 
     /* Check whether the PMC Offload state is in Full Power or not */
     if(FULL_POWER != pMac->pmcOffloadInfo.pmc[sessionId].pmcState)
     {
-       smsLog(pMac, LOGE,
+       smsLog(pMac, LOG1,
          "PMC: Device not in full power. Cannot request BMPS. pmcState %d",
          pMac->pmcOffloadInfo.pmc[sessionId].pmcState);
        return eHAL_STATUS_FAILURE;
@@ -3050,7 +3050,7 @@ eHalStatus pmcOffloadEnableStaPsCheck(tpAniSirGlobal pMac,
 #ifdef FEATURE_WLAN_TDLS
     if (pMac->pmcOffloadInfo.pmc[sessionId].isTdlsPowerSaveProhibited)
     {
-       smsLog(pMac, LOGE,
+       smsLog(pMac, LOG1,
        "Dont enter BMPS.TDLS session active on session %d", sessionId);
        return eHAL_STATUS_FAILURE;
     }
@@ -3059,7 +3059,7 @@ eHalStatus pmcOffloadEnableStaPsCheck(tpAniSirGlobal pMac,
     /* Check that entry into a power save mode is allowed at this time. */
     if(!pmcOffloadPowerSaveCheck(pMac, sessionId))
     {
-       smsLog(pMac, LOGE,
+       smsLog(pMac, LOG1,
         "PMC: Power save check failed. BMPS cannot be entered now");
        return eHAL_STATUS_PMC_NOT_NOW;
     }
@@ -3296,7 +3296,7 @@ eHalStatus pmcOffloadDisableStaPsHandler(tpAniSirGlobal pMac,
         * Stop the auto ps entry timer if running
         */
        pmcOffloadStopAutoStaPsTimer(pMac, sessionId);
-       smsLog(pMac, LOGE, "PMC:Sta not infra/connected state %d", sessionId);
+       smsLog(pMac, LOG2, "PMC:Sta not infra/connected state %d", sessionId);
        return eHAL_STATUS_SUCCESS;
     }
 
@@ -3322,13 +3322,13 @@ eHalStatus pmcOffloadDisableStaPsHandler(tpAniSirGlobal pMac,
                  /*
                   * Fail to issue eSmeCommandExitBmps
                   */
-                 smsLog(pMac, LOGE, FL("Fail to issue eSmeCommandExitBmps"));
+                 smsLog(pMac, LOGW, FL("Fail to issue eSmeCommandExitBmps"));
                  return eHAL_STATUS_FAILURE;
             }
             break;
 
         default:
-            smsLog(pMac, LOGE,
+            smsLog(pMac, LOGW,
                    FL("Invalid pmcState State %x"), pmc->pmcState);
             return eHAL_STATUS_FAILURE;
     }

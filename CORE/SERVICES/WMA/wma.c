@@ -2508,6 +2508,34 @@ static int wma_unified_bcntx_status_event_handler(void *handle, u_int8_t *cmd_pa
    return 0;
 }
 
+static int wma_vdev_install_key_complete_event_handler(void *handle, u_int8_t *event, u_int32_t len)
+{
+    WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID_param_tlvs *param_buf = NULL;
+    wmi_vdev_install_key_complete_event_fixed_param *key_fp = NULL;
+
+    if (!event) {
+        WMA_LOGE("%s: event param null", __func__);
+        return -1;
+    }
+
+    param_buf = (WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID_param_tlvs *) event;
+    if (!param_buf) {
+        WMA_LOGE("%s: received null buf from target", __func__);
+        return -1;
+    }
+
+    key_fp = param_buf->fixed_param;
+    if (!key_fp) {
+        WMA_LOGE("%s: received null event data from target", __func__);
+        return -1;
+    }
+    /*
+     * Do nothing for now. Completion of set key is already indicated to lim
+     */
+    WMA_LOGI("%s: WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID", __func__);
+    return 0;
+}
+
 /*
  * Allocate and init wmi adaptation layer.
  */
@@ -2761,6 +2789,11 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	        WMI_TDLS_PEER_EVENTID,
 	        wma_tdls_event_handler);
 #endif /* FEATURE_WLAN_TDLS */
+
+    /* register for install key completion event */
+    wmi_unified_register_event_handler(wma_handle->wmi_handle,
+                                      WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID,
+                                      wma_vdev_install_key_complete_event_handler);
 
 	WMA_LOGD("%s: Exit", __func__);
 
@@ -5648,7 +5681,7 @@ VOS_STATUS wma_process_dhcp_ind(tp_wma_handle wma_handle,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	if (!wma_find_vdev_by_addr(wma_handle, ta_dhcp_ind->macAddr,
+	if (!wma_find_vdev_by_addr(wma_handle, ta_dhcp_ind->adapterMacAddr,
 		&vdev_id))
 	{
 		WMA_LOGE("%s: Failed to find vdev id for DHCP indication",
@@ -5663,7 +5696,7 @@ VOS_STATUS wma_process_dhcp_ind(tp_wma_handle wma_handle,
 		ta_dhcp_ind->msgType==WDA_DHCP_START_IND?
 			"WDA_DHCP_START_IND":"WDA_DHCP_STOP_IND",
 		ta_dhcp_ind->device_mode,
-		MAC_ADDR_ARRAY(ta_dhcp_ind->macAddr));
+		MAC_ADDR_ARRAY(ta_dhcp_ind->peerMacAddr));
 
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!buf) {
@@ -5685,7 +5718,7 @@ VOS_STATUS wma_process_dhcp_ind(tp_wma_handle wma_handle,
 		peer_set_param_fp->param_value = 1;
 	else
 		peer_set_param_fp->param_value = 0;
-	WMI_CHAR_ARRAY_TO_MAC_ADDR(ta_dhcp_ind->macAddr,
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(ta_dhcp_ind->peerMacAddr,
 		&peer_set_param_fp->peer_macaddr);
 
 	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
@@ -7757,7 +7790,7 @@ wma_update_beacon_interval(tp_wma_handle wma, u_int8_t vdev_id,
         if (ret)
                 WMA_LOGE("Failed to update beacon interval");
         else
-                WMA_LOGE("Updated beacon interval %d for vdev %d", beaconInterval, vdev_id);
+                WMA_LOGI("Updated beacon interval %d for vdev %d", beaconInterval, vdev_id);
 }
 
 
@@ -7877,7 +7910,7 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id,
 
 	if (!maxTxPower)
 	{
-		WMA_LOGE("Setting Tx power limit to 0");
+		WMA_LOGW("Setting Tx power limit to 0");
 	}
 
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
@@ -9813,8 +9846,9 @@ static void wma_update_edca_params_for_ac(tSirMacEdcaParamRecord *edca_param,
 					  wmi_wmm_vparams *wmm_param,
 					  int ac)
 {
-	wmm_param->cwmin = edca_param->cw.min;
-	wmm_param->cwmax = edca_param->cw.max;
+#define WMA_WMM_EXPO_TO_VAL(val)	((1 << (val)) - 1)
+	wmm_param->cwmin = WMA_WMM_EXPO_TO_VAL(edca_param->cw.min);
+	wmm_param->cwmax = WMA_WMM_EXPO_TO_VAL(edca_param->cw.max);
 	wmm_param->aifs = edca_param->aci.aifsn;
 	wmm_param->txoplimit = edca_param->txoplimit;
 	wmm_param->acm = edca_param->aci.acm;
@@ -10493,7 +10527,7 @@ static int32_t wma_set_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, u_int8_
 	u_int32_t inactivity_time;
 	u_int32_t psmode;
 
-	WMA_LOGE("Set Force Sleep vdevId %d val %d", vdev_id, enable);
+	WMA_LOGD("Set Force Sleep vdevId %d val %d", vdev_id, enable);
 
 	if (NULL == mac) {
 		WMA_LOGE("%s: Unable to get PE context", __func__);
@@ -10827,7 +10861,7 @@ static void wma_disable_sta_ps_mode(tp_wma_handle wma, tpDisablePsParams ps_req)
         int32_t ret;
         uint32_t vdev_id = ps_req->sessionid;
 
-        WMA_LOGE("Disable Sta Mode Ps vdevId %d", vdev_id);
+        WMA_LOGD("Disable Sta Mode Ps vdevId %d", vdev_id);
 
         /* Disable Sta Mode Power save */
         ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, false);
@@ -11386,6 +11420,7 @@ static VOS_STATUS wma_plm_start(tp_wma_handle wma, const tpSirPlmReq plm)
 	cmd->vdev_id = plm->sessionId;
 
 	cmd->meas_token = plm->meas_token;
+	cmd->dialog_token = plm->diag_token;
 	cmd->number_bursts = plm->numBursts;
         cmd->burst_interval = WMA_SEC_TO_MSEC(plm->burstInt);
 	cmd->off_duration = plm->measDuration;
@@ -11397,6 +11432,7 @@ static VOS_STATUS wma_plm_start(tp_wma_handle wma, const tpSirPlmReq plm)
 	buf_ptr += sizeof(wmi_vdev_plmreq_start_cmd_fixed_param);
 
 	WMA_LOGD("vdev : %d measu token : %d", cmd->vdev_id, cmd->meas_token);
+	WMA_LOGD("dialog_token: %d", cmd->dialog_token);
 	WMA_LOGD("number_bursts: %d", cmd->number_bursts);
 	WMA_LOGD("burst_interval: %d", cmd->burst_interval);
 	WMA_LOGD("off_duration: %d", cmd->off_duration);
@@ -11404,13 +11440,12 @@ static VOS_STATUS wma_plm_start(tp_wma_handle wma, const tpSirPlmReq plm)
 	WMA_LOGD("tx_power: %d", cmd->tx_power);
 	WMA_LOGD("Number of channels : %d", cmd->num_chans);
 
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
+			(cmd->num_chans * sizeof(u_int32_t)));
+
+	buf_ptr += WMI_TLV_HDR_SIZE;
 	if (cmd->num_chans)
         {
-		WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
-				(cmd->num_chans * sizeof(u_int32_t)));
-
-		buf_ptr += WMI_TLV_HDR_SIZE;
-
 		channel_list = (u_int32_t *) buf_ptr;
 		for (count = 0; count < cmd->num_chans; count++) {
 			channel_list[count] = plm->plmChList[count];
@@ -12788,25 +12823,20 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 	return VOS_STATUS_SUCCESS;
 }
 
-/*
- * UMAC sends resume indication request on each vdev. This function
- * performs wow resume when very first resume indication received
- * from umac. wow resume is applicable only if the driver is in
- * wow suspend state.
- */
-static VOS_STATUS wma_resume_req(tp_wma_handle wma, tpSirWlanResumeParam info)
+/* Disable wow in PCIe resume context.*/
+
+int wma_disable_wow_in_fw(WMA_HANDLE handle)
 {
+	tp_wma_handle wma = handle;
 	struct wma_txrx_node *iface;
 	int8_t vdev_id;
 	VOS_STATUS ret;
 
-	if (!wma->wow.wow_enable || !wma->wow.wow_enable_cmd_sent) {
-		vos_mem_free(info);
+	if(!wma->wow.wow_enable || !wma->wow.wow_enable_cmd_sent) {
 		return VOS_STATUS_SUCCESS;
 	}
 
-	WMA_LOGD("WOW Resume");
-
+	WMA_LOGD("WoW Resume in PCIe Context\n");
 	wma->wow.wow_enable = FALSE;
 	wma->wow.wow_enable_cmd_sent = FALSE;
 
@@ -12814,20 +12844,19 @@ static VOS_STATUS wma_resume_req(tp_wma_handle wma, tpSirWlanResumeParam info)
 		if (!wma->interfaces[vdev_id].handle)
 			continue;
 
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
-		/* When host resume, by default, unpause all active vdev */
+	#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+	/* When host resume, by default, unpause all active vdev */
 		if (wma->interfaces[vdev_id].pause_bitmap) {
 			wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
 			wma->interfaces[vdev_id].pause_bitmap = 0;
 		}
-#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
+	#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
 
 		iface = &wma->interfaces[vdev_id];
 		iface->conn_state = FALSE;
 	}
 
 	ret = wma_send_host_wakeup_ind_to_fw(wma);
-	vos_mem_free(info);
 	vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 2000);
 
 	return ret;
@@ -15368,10 +15397,6 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_WLAN_SUSPEND_IND:
 			wma_suspend_req(wma_handle,
 					(tpSirWlanSuspendParam)msg->bodyptr);
-			break;
-		case WDA_WLAN_RESUME_REQ:
-			wma_resume_req(wma_handle,
-				       (tpSirWlanResumeParam)msg->bodyptr);
 			break;
 		case WDA_8023_MULTICAST_LIST_REQ:
 			wma_process_mcbc_set_filter_req(wma_handle,

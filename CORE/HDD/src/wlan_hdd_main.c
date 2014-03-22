@@ -2414,6 +2414,8 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
        }
        else if ( strncasecmp(command, "COUNTRY", 7) == 0 )
        {
+           eHalStatus status;
+           long rc;
            char *country_code;
 
            country_code = command + 8;
@@ -2423,25 +2425,30 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 #ifndef CONFIG_ENABLE_LINUX_REG
            hdd_checkandupdate_phymode(pAdapter, country_code);
 #endif
-           ret = (int)sme_ChangeCountryCode(pHddCtx->hHal,
-                  (void *)(tSmeChangeCountryCallback)
-                    wlan_hdd_change_country_code_callback,
-                     country_code, pAdapter, pHddCtx->pvosContext, eSIR_TRUE, eSIR_TRUE);
-           if (eHAL_STATUS_SUCCESS == ret)
+           status =
+              sme_ChangeCountryCode(pHddCtx->hHal,
+                                    (void *)(tSmeChangeCountryCallback)
+                                    wlan_hdd_change_country_code_callback,
+                                    country_code, pAdapter,
+                                    pHddCtx->pvosContext,
+                                    eSIR_TRUE, eSIR_TRUE);
+           if (status == eHAL_STATUS_SUCCESS)
            {
-               ret = wait_for_completion_interruptible_timeout(
+               rc = wait_for_completion_interruptible_timeout(
                        &pAdapter->change_country_code,
-                            msecs_to_jiffies(WLAN_WAIT_TIME_COUNTRY));
-               if (0 >= ret)
+                       msecs_to_jiffies(WLAN_WAIT_TIME_COUNTRY));
+               if (0 >= rc)
                {
-                   hddLog(VOS_TRACE_LEVEL_ERROR, "%s: SME while setting country code timed out",
-                   __func__);
+                   hddLog(VOS_TRACE_LEVEL_ERROR,
+                          "%s: SME while setting country code timed out",
+                          __func__);
                }
            }
            else
            {
-               VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                 "%s: SME Change Country code fail ret=%d", __func__, ret);
+               hddLog(VOS_TRACE_LEVEL_ERROR,
+                      "%s: SME Change Country code fail, status=%d",
+                      __func__, status);
                ret = -EINVAL;
            }
 
@@ -3839,16 +3846,14 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                goto exit;
            }
 
-           if (0 != roamScanControl)
-           {
-               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                      "roam scan control invalid value = %d",
-                      roamScanControl);
-               ret = -EINVAL;
-               goto exit;
-           }
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                       "%s: Received Command to Set roam scan control = %d", __func__, roamScanControl);
+
+           if (0 != roamScanControl)
+           {
+               ret = 0; /* return success but ignore param value "TRUE" */
+               goto exit;
+           }
 
            sme_SetRoamScanControl((tHalHandle)(pHddCtx->hHal), roamScanControl);
        }
@@ -3957,16 +3962,16 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
        else if (strncmp(command, "BTCOEXMODE", 10) == 0 )
        {
            char *dhcpPhase;
-           dhcpPhase = command + 12;
+           dhcpPhase = command + 11;
            if ('1' == *dhcpPhase)
            {
                sme_DHCPStartInd(pHddCtx->hHal, pAdapter->device_mode,
-                                pAdapter->sessionId);
+                                pAdapter->macAddressCurrent.bytes, pAdapter->sessionId);
            }
            else if ('2' == *dhcpPhase)
            {
                sme_DHCPStopInd(pHddCtx->hHal, pAdapter->device_mode,
-                               pAdapter->sessionId);
+                               pAdapter->macAddressCurrent.bytes, pAdapter->sessionId);
            }
        }
        else if (strncmp(command, "SCAN-ACTIVE", 11) == 0)
@@ -7763,7 +7768,6 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
    v_U8_t staChannel = 0, p2pChannel = 0, apChannel = 0;
    const char *p2pMode = "DEV";
    const char *ccMode = "Standalone";
-   int n;
 
    status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
@@ -7813,14 +7817,14 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
    if (staChannel > 0 && (apChannel > 0 || p2pChannel > 0)) {
        ccMode = (p2pChannel==staChannel||apChannel==staChannel) ? "SCC" : "MCC";
    }
-   n = pr_info("wlan(%d) " MAC_ADDRESS_STR " %s",
+   hddLog(VOS_TRACE_LEVEL_INFO, "wlan(%d) " MAC_ADDRESS_STR " %s",
                 staChannel, MAC_ADDR_ARRAY(staBssid), ccMode);
    if (p2pChannel > 0) {
-       n +=  pr_info("p2p-%s(%d) " MAC_ADDRESS_STR,
+       hddLog(VOS_TRACE_LEVEL_INFO, "p2p-%s(%d) " MAC_ADDRESS_STR,
                      p2pMode, p2pChannel, MAC_ADDR_ARRAY(p2pBssid));
    }
    if (apChannel > 0) {
-       n += pr_info("AP(%d) " MAC_ADDRESS_STR,
+       hddLog(VOS_TRACE_LEVEL_INFO, "AP(%d) " MAC_ADDRESS_STR,
                      apChannel, MAC_ADDR_ARRAY(apBssid));
    }
 
@@ -8418,6 +8422,21 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
        hddLog(VOS_TRACE_LEVEL_ERROR,
            "%s: Cannot deallocate Traffic monitor timer", __func__);
    }
+
+#ifdef MSM_PLATFORM
+   if (VOS_TIMER_STATE_RUNNING ==
+                        vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
+   {
+        vos_timer_stop(&pHddCtx->bus_bw_timer);
+   }
+
+   if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
+                         &pHddCtx->bus_bw_timer)))
+   {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+           "%s: Cannot deallocate Bus bandwidth timer", __func__);
+   }
+#endif
 
    if(!pConfig->enablePowersaveOffload)
    {
@@ -9041,6 +9060,87 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
 }
 #endif
 
+#ifdef MSM_PLATFORM
+enum cnss_bus_width_type hdd_get_vote_level(unsigned long tx,
+                                            unsigned long rx)
+{
+    if (tx > HDD_HIGH_BUS_BANDWIDTH_THRESHOLD_TX ||
+        rx > HDD_HIGH_BUS_BANDWIDTH_THRESHOLD_RX)
+        return CNSS_BUS_WIDTH_HIGH;
+    else if (tx > HDD_MEDIUM_BUS_BANDWIDTH_THRESHOLD_TX ||
+             rx > HDD_MEDIUM_BUS_BANDWIDTH_THRESHOLD_RX)
+        return CNSS_BUS_WIDTH_MEDIUM;
+    else
+        return CNSS_BUS_WIDTH_LOW;
+}
+
+static void hdd_bus_bw_compute_cbk(void *phddctx)
+{
+    unsigned long tx_pkts;
+    unsigned long rx_pkts;
+    enum cnss_bus_width_type vote_level;
+    enum cnss_bus_width_type vote_level_max = CNSS_BUS_WIDTH_NONE;
+    hdd_adapter_t *pAdapter;
+    hdd_context_t *pHddCtx = (hdd_context_t *)phddctx;
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+    VOS_STATUS status = 0;
+    unsigned long flags;
+    int cnt;
+
+    /* iterate through all adapters and determine the final
+     * voting level based on the highest bandwidth in STA mode
+     */
+    spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+    cnt = pHddCtx->sta_cnt;
+    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status && cnt)
+    {
+        pAdapter = pAdapterNode->pAdapter;
+        if (pAdapter && (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)) {
+            cnt--;
+            if (!hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) {
+                status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+                pAdapterNode = pNext;
+                continue;
+            }
+            tx_pkts = pAdapter->stats.tx_packets - pAdapter->prev_tx_packets;
+            rx_pkts = pAdapter->stats.rx_packets - pAdapter->prev_rx_packets;
+            pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
+            pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
+            vote_level = hdd_get_vote_level(tx_pkts, rx_pkts);
+            vote_level_max = (vote_level > vote_level_max) ?
+                             (vote_level) : (vote_level_max);
+        }
+        status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+        pAdapterNode = pNext;
+    }
+    spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
+
+    if (CNSS_BUS_WIDTH_NONE == vote_level_max) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "bus bandwidth timer running in disconnected state");
+        return;
+    }
+
+    /* skip the one followed by the trigger */
+    if (pHddCtx->bus_bw_triggered) {
+        pHddCtx->bus_bw_triggered = 0;
+        goto exit;
+    }
+
+    if (pHddCtx->cur_bus_bw != vote_level_max) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG,
+               "trigger level %d", vote_level_max);
+        pHddCtx->bus_bw_triggered = 1;
+        pHddCtx->cur_bus_bw = vote_level_max;
+        cnss_request_bus_bandwidth(vote_level_max);
+    }
+
+exit:
+    vos_timer_start(&pHddCtx->bus_bw_timer,
+                    HDD_BUS_BANDWIDTH_COMPUTE_INTERVAL);
+}
+#endif
 
 /**---------------------------------------------------------------------------
 
@@ -9902,6 +10002,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                "%s: Error setting txlimit in sme", __func__);
    }
 #endif /*#ifndef QCA_WIFI_ISOC*/
+
+#ifdef MSM_PLATFORM
+   spin_lock_init(&pHddCtx->bus_bw_lock);
+   vos_timer_init(&pHddCtx->bus_bw_timer,
+                     VOS_TIMER_TYPE_SW,
+                     hdd_bus_bw_compute_cbk,
+                     (void *)pHddCtx);
+#endif
+
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
    complete(&wlan_start_comp);
 #endif
@@ -11137,6 +11246,35 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
         }
 
     }
+}
+#endif
+
+#ifdef MSM_PLATFORM
+void hdd_start_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
+{
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+    if (VOS_TIMER_STATE_RUNNING ==
+        vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
+        return;
+    pHddCtx->bus_bw_triggered = 0;
+    vos_timer_start(&pHddCtx->bus_bw_timer,
+                    HDD_BUS_BANDWIDTH_COMPUTE_INTERVAL);
+}
+
+void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
+{
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+    if (VOS_TIMER_STATE_RUNNING !=
+        vos_timer_getCurrentState(&pHddCtx->bus_bw_timer)) {
+        /* trying to stop timer, when not running is not good */
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "bus band width compute timer is not running");
+        return;
+    }
+    vos_timer_stop(&pHddCtx->bus_bw_timer);
+    pHddCtx->bus_bw_triggered = 0;
 }
 #endif
 

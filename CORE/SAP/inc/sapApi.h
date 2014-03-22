@@ -248,6 +248,7 @@ typedef struct sap_StartBssCompleteEvent_s {
     v_U8_t  status;
     v_U8_t  operatingChannel;
     v_U16_t staId; //self StaID
+    v_U8_t  sessionId; /* SoftAP SME session ID */
 } tSap_StartBssCompleteEvent;
 
 typedef struct sap_StopBssCompleteEvent_s {

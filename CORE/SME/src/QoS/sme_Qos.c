@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -7598,7 +7598,7 @@ void sme_OffloadQosPmcDeviceStateUpdateInd(void *callbackContext,
       break;
    default:
       status = eHAL_STATUS_SUCCESS;
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
                 "%s: %d: nothing to process in PMC state %d",
                 __func__, __LINE__,
                 pmcState);

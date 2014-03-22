@@ -898,7 +898,7 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 		skb = WLANTL_SendIPA_DataFrame(hdd_ipa->hdd_ctx->pvosContext,
 				iface_context->tl_context, ipa_tx_desc->skb);
 		if (skb) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL, "TLSHIM tx fail");
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "TLSHIM tx fail");
 			ipa_free_skb(ipa_tx_desc);
 			return;
 		}

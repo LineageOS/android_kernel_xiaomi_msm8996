@@ -5457,6 +5457,8 @@ eHalStatus sme_GenericChangeCountryCode( tHalHandle hHal,
 
     \param device_mode - mode(AP,SAP etc) of the device.
 
+    \param macAddr - MAC address of the adapter.
+
     \param sessionId - session ID.
 
     \return eHalStatus  SUCCESS.
@@ -5465,6 +5467,7 @@ eHalStatus sme_GenericChangeCountryCode( tHalHandle hHal,
   --------------------------------------------------------------------------*/
 eHalStatus sme_DHCPStartInd( tHalHandle hHal,
                                    tANI_U8 device_mode,
+                                   tANI_U8 *macAddr,
                                    tANI_U8 sessionId )
 {
     eHalStatus          status;
@@ -5497,7 +5500,8 @@ eHalStatus sme_DHCPStartInd( tHalHandle hHal,
         pMsg->msgType = WDA_DHCP_START_IND;
         pMsg->msgLen = (tANI_U16)sizeof(tAniDHCPInd);
         pMsg->device_mode = device_mode;
-        vos_mem_copy( pMsg->macAddr, pSession->connectedProfile.bssid,
+        vos_mem_copy( pMsg->adapterMacAddr, macAddr, sizeof(tSirMacAddr));
+        vos_mem_copy( pMsg->peerMacAddr, pSession->connectedProfile.bssid,
                       sizeof(tSirMacAddr) );
 
         vosMessage.type = WDA_DHCP_START_IND;
@@ -5525,6 +5529,8 @@ eHalStatus sme_DHCPStartInd( tHalHandle hHal,
 
     \param device_mode - mode(AP, SAP etc) of the device.
 
+    \param macAddr - MAC address of the adapter.
+
     \param sessionId - session ID.
 
     \return eHalStatus  SUCCESS.
@@ -5532,6 +5538,7 @@ eHalStatus sme_DHCPStartInd( tHalHandle hHal,
   --------------------------------------------------------------------------*/
 eHalStatus sme_DHCPStopInd( tHalHandle hHal,
                               tANI_U8 device_mode,
+                              tANI_U8 *macAddr,
                               tANI_U8 sessionId )
 {
     eHalStatus          status;
@@ -5565,7 +5572,8 @@ eHalStatus sme_DHCPStopInd( tHalHandle hHal,
        pMsg->msgType = WDA_DHCP_STOP_IND;
        pMsg->msgLen = (tANI_U16)sizeof(tAniDHCPInd);
        pMsg->device_mode = device_mode;
-       vos_mem_copy( pMsg->macAddr, pSession->connectedProfile.bssid,
+       vos_mem_copy( pMsg->adapterMacAddr, macAddr, sizeof(tSirMacAddr));
+       vos_mem_copy( pMsg->peerMacAddr, pSession->connectedProfile.bssid,
                      sizeof(tSirMacAddr) );
 
        vosMessage.type = WDA_DHCP_STOP_IND;
@@ -7460,6 +7468,11 @@ eHalStatus sme_PreferredNetworkFoundInd (tHalHandle hHal, void* pMsg)
        dumpSsId[ssIdLength] = 0;
        smsLog(pMac, LOG2, "%s:SSID=%s frame length %d",
            __func__, dumpSsId, pPrefNetworkFoundInd->frameLength);
+
+         /* Flush scan results, So as to avoid indication/updation of
+          * stale entries, which may not have aged out during APPS collapse
+          */
+         sme_ScanFlushResult(hHal,0);
 
        //Save the frame to scan result
        if (pPrefNetworkFoundInd->mesgLen > sizeof(tSirPrefNetworkFoundInd))

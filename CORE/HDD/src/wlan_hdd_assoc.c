@@ -543,13 +543,13 @@ void hdd_SendUpdateBeaconIEsEvent(hdd_adapter_t *pAdapter, tCsrRoamInfo *pCsrRoa
 
     if (0 == pCsrRoamInfo->nBeaconLength)
     {
-        hddLog(LOGE, "%s: pCsrRoamInfo->nBeaconFrameLength = 0", __func__);
+        hddLog(LOGW, "%s: pCsrRoamInfo->nBeaconFrameLength = 0", __func__);
         return;
     }
     pBeaconIes = (u8 *)(pCsrRoamInfo->pbFrames + BEACON_FRAME_IES_OFFSET);
     if (pBeaconIes == NULL)
     {
-        hddLog(LOGE, "%s: Beacon IEs is NULL", __func__);
+        hddLog(LOGW, "%s: Beacon IEs is NULL", __func__);
         return;
     }
 
@@ -603,6 +603,7 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
     int we_event;
     char *msg;
     int type = -1;
+    unsigned long flags;
 #ifdef QCA_WIFI_2_0
     v_MACADDR_t peerMacAddr;
 #endif
@@ -653,6 +654,18 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
                 MAC_ADDR_ARRAY(wrqu.ap_addr.sa_data));
         hdd_SendUpdateBeaconIEsEvent(pAdapter, pCsrRoamInfo);
 
+#ifdef MSM_PLATFORM
+        if (pAdapter->device_mode == WLAN_HDD_INFRA_STATION) {
+            spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+            pHddCtx->sta_cnt++;
+            pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
+            pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
+            if (1 == pHddCtx->sta_cnt)
+                hdd_start_bus_bw_compute_timer(pAdapter);
+            spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
+        }
+#endif
+
         /* Send IWEVASSOCRESPIE Event if WLAN_FEATURE_CIQ_METRICS is Enabled Or
          * Send IWEVASSOCRESPIE Event if WLAN_FEATURE_VOWIFI_11R is Enabled
          * and fFTEnable is TRUE */
@@ -695,6 +708,19 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         pr_info("wlan: disconnected\n");
         type = WLAN_STA_DISASSOC_DONE_IND;
         memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
+
+#ifdef MSM_PLATFORM
+        if (pAdapter->device_mode == WLAN_HDD_INFRA_STATION) {
+            spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+            pHddCtx->sta_cnt--;
+            pAdapter->prev_tx_packets = 0;
+            pAdapter->prev_rx_packets = 0;
+            if (0 == pHddCtx->sta_cnt)
+                hdd_stop_bus_bw_compute_timer(pAdapter);
+            spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
+        }
+#endif
+
 #ifdef QCA_WIFI_2_0
         if (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
         {
@@ -2328,7 +2354,7 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
     tANI_U8 staIdx;
 
 #ifdef WLAN_FEATURE_TDLS_DEBUG
-    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
     ("hdd_tdlsStatusUpdate: %s staIdx %d " MAC_ADDRESS_STR),
       roamResult == eCSR_ROAM_RESULT_ADD_TDLS_PEER ? "ADD_TDLS_PEER" :
       roamResult == eCSR_ROAM_RESULT_DELETE_TDLS_PEER ? "DEL_TDLS_PEER" :
@@ -2350,7 +2376,7 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
 #ifdef CONFIG_TDLS_IMPLICIT
     if (!pHddTdlsCtx)
     {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                   "%s: TDLS ctx is null, ignore roamResult (%d)",
                   __func__, roamResult);
         return status;
@@ -2652,6 +2678,35 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
 }
 #endif
 
+static void iw_full_power_cbfn (void *pContext, eHalStatus status)
+{
+    hdd_adapter_t *pAdapter = (hdd_adapter_t *)pContext;
+    hdd_context_t *pHddCtx = NULL;
+    int ret;
+
+    if ((NULL == pAdapter) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic))
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+             "%s: Bad param, pAdapter [%p]",
+               __func__, pAdapter);
+        return;
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: HDD context is not valid (%d)", __func__, ret);
+        return;
+    }
+
+    if (pHddCtx->cfg_ini->fIsBmpsEnabled)
+    {
+        sme_RequestBmps(WLAN_HDD_GET_HAL_CTX(pAdapter), NULL, NULL);
+    }
+}
+
 eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                                 eRoamCmdStatus roamStatus, eCsrRoamResult roamResult )
 {
@@ -2897,11 +2952,9 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                     {
                         hddLog( LOGE, FL("Not expected: device is already in BMPS mode, Exit & Enter BMPS again!"));
 
-                        /* put the device into full power */
-                        wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_ACTIVE);
-
-                        /* put the device back into BMPS */
-                        wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_AUTO);
+                        sme_RequestFullPower(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                         iw_full_power_cbfn, pAdapter,
+                                         eSME_FULL_PWR_NEEDED_BY_HDD);
                     }
                 }
                 halStatus = hdd_RoamSetKeyCompleteHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );

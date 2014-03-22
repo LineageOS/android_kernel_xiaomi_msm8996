@@ -2278,7 +2278,8 @@ typedef struct sAniDHCPStopInd
     tANI_U16                msgType;      // message type is same as the request type
     tANI_U16                msgLen;       // length of the entire request
     tANI_U8                 device_mode;  // Mode of the device(ex:STA, AP)
-    tSirMacAddr             macAddr;
+    tSirMacAddr             adapterMacAddr; // MAC address of the adapter
+    tSirMacAddr             peerMacAddr; // MAC address of the connected peer
 
 } tAniDHCPInd, *tpAniDHCPInd;
 

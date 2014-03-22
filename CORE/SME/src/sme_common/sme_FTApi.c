@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -79,7 +79,7 @@ void sme_FTClose(tHalHandle hHal)
     if (pMac->ft.ftSmeContext.auth_ft_ies != NULL)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        smsLog( pMac, LOGE, FL(" Freeing %p and setting to NULL"),
+        smsLog( pMac, LOG1, FL(" Freeing %p and setting to NULL"),
             pMac->ft.ftSmeContext.auth_ft_ies);
 #endif
         vos_mem_free(pMac->ft.ftSmeContext.auth_ft_ies);
@@ -90,7 +90,7 @@ void sme_FTClose(tHalHandle hHal)
     if (pMac->ft.ftSmeContext.reassoc_ft_ies != NULL)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        smsLog( pMac, LOGE, FL(" Freeing %p and setting to NULL"),
+        smsLog( pMac, LOG1, FL(" Freeing %p and setting to NULL"),
             pMac->ft.ftSmeContext.reassoc_ft_ies);
 #endif
         vos_mem_free(pMac->ft.ftSmeContext.reassoc_ft_ies);
@@ -104,7 +104,7 @@ void sme_FTClose(tHalHandle hHal)
     if (pMac->ft.ftSmeContext.psavedFTPreAuthRsp != NULL)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        smsLog( pMac, LOGE, FL("Freeing %p and setting to NULL"),
+        smsLog( pMac, LOG1, FL("Freeing %p and setting to NULL"),
             pMac->ft.ftSmeContext.psavedFTPreAuthRsp);
 #endif
         vos_mem_free(pMac->ft.ftSmeContext.psavedFTPreAuthRsp);
@@ -148,7 +148,7 @@ void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, const tANI_U8 *ft_ies,
     }
 
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-    smsLog( pMac, LOGE, "FT IEs Req is received in state %d",
+    smsLog( pMac, LOG1, "FT IEs Req is received in state %d",
         pMac->ft.ftSmeContext.FTState);
 #endif
 
@@ -193,10 +193,10 @@ void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, const tANI_U8 *ft_ies,
             // Delete the pre-auth node locally. Set your self back to restart pre-auth
             // TBD
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-            smsLog( pMac, LOGE,
+            smsLog( pMac, LOG1,
                 "Pre-auth done and now receiving---> AUTH REQ <---- in state %d",
                 pMac->ft.ftSmeContext.FTState);
-            smsLog( pMac, LOGE, "Unhandled reception of FT IES in state %d",
+            smsLog( pMac, LOG1, "Unhandled reception of FT IES in state %d",
                 pMac->ft.ftSmeContext.FTState);
 #endif
             break;
@@ -207,7 +207,7 @@ void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, const tANI_U8 *ft_ies,
 
             // At this juncture we are ready to start sending Re-Assoc Req.
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-            smsLog( pMac, LOGE, "New Reassoc Req=%p in state %d",
+            smsLog( pMac, LOG1, "New Reassoc Req=%p in state %d",
                 ft_ies, pMac->ft.ftSmeContext.FTState);
 #endif
             if ((pMac->ft.ftSmeContext.reassoc_ft_ies) &&
@@ -405,7 +405,7 @@ eHalStatus sme_FTUpdateKey( tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo )
        break;
 
     default:
-       smsLog( pMac, LOGE, "%s: Unhandled state=%d", __func__,
+       smsLog( pMac, LOGW, "%s: Unhandled state=%d", __func__,
                pMac->ft.ftSmeContext.FTState);
        status = eHAL_STATUS_FAILURE;
        break;
@@ -456,7 +456,7 @@ void sme_GetFTPreAuthResponse( tHalHandle hHal, tANI_U8 *ft_ies,
     pMac->ft.ftSmeContext.FTState = eFT_REASSOC_REQ_WAIT;
 
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
-    smsLog( pMac, LOGE, FL(" Filled auth resp = %d"), *ft_ies_length);
+    smsLog( pMac, LOG1, FL(" Filled auth resp = %d"), *ft_ies_length);
 #endif
     sme_ReleaseGlobalLock( &pMac->sme );
     return;
@@ -495,7 +495,7 @@ void sme_GetRICIEs( tHalHandle hHal, tANI_U8 *ric_ies, tANI_U32 ric_ies_ip_len,
     *ric_ies_length = pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies_length;
 
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
-    smsLog( pMac, LOGE, FL(" Filled ric ies = %d"), *ric_ies_length);
+    smsLog( pMac, LOG1, FL(" Filled ric ies = %d"), *ric_ies_length);
 #endif
 
     sme_ReleaseGlobalLock( &pMac->sme );

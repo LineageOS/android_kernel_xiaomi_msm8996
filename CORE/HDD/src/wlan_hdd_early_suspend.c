@@ -938,8 +938,11 @@ static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
 
 static void hdd_conf_resume_ind(hdd_adapter_t *pAdapter)
 {
-    eHalStatus halStatus = eHAL_STATUS_FAILURE;
     hdd_context_t* pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+#ifndef QCA_WIFI_2_0
+
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
     tpSirWlanResumeParam wlanResumeParam;
 
     hddLog(VOS_TRACE_LEVEL_INFO,
@@ -961,6 +964,8 @@ static void hdd_conf_resume_ind(hdd_adapter_t *pAdapter)
     {
         vos_mem_free(wlanResumeParam);
     }
+
+#endif
 
     /* Disable supported OffLoads */
     hdd_conf_hostoffload(pAdapter, FALSE);

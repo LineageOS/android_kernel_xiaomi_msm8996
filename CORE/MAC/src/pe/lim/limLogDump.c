@@ -2391,6 +2391,51 @@ dump_lim_get_pkts_rcvd_per_rssi_values( tpAniSirGlobal pMac, tANI_U32 arg1, tANI
 #endif
 
 
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+static char *
+dump_send_plm_start(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2,
+             tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+
+           eHalStatus status = eHAL_STATUS_SUCCESS;
+           tpSirPlmReq pPlmRequest = NULL;
+
+           pPlmRequest = vos_mem_malloc(sizeof(tSirPlmReq));
+           if (NULL == pPlmRequest){
+               VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,"dump allocating PLM struct failed");
+               return p;
+           }
+
+           pPlmRequest->diag_token = 0x5;
+           pPlmRequest->meas_token = 0x4;
+           pPlmRequest->numBursts = 2;
+           pPlmRequest->burstInt = 10;
+           pPlmRequest->measDuration = 20;
+           pPlmRequest->burstLen = 1;
+           pPlmRequest->desiredTxPwr = 12;
+           pPlmRequest->macAddr[0] = 0xff;
+           pPlmRequest->macAddr[1] = 0xff;
+           pPlmRequest->macAddr[2] = 0xff;
+           pPlmRequest->macAddr[3] = 0xff;
+           pPlmRequest->macAddr[4] = 0xff;
+           pPlmRequest->macAddr[5] = 0xff;
+           pPlmRequest->plmNumCh = 0;
+           pPlmRequest->sessionId = 0;
+           pPlmRequest->enable = 1;
+
+           status = sme_SetPlmRequest((tHalHandle)pMac, pPlmRequest);
+           if (eHAL_STATUS_SUCCESS != status)
+           {
+               VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,"dump sending PLM command failed");
+               vos_mem_free(pPlmRequest);
+               pPlmRequest = NULL;
+               return p;
+           }
+           VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,"dump sending PLM command is SUCCESS");
+           return p;
+}
+#endif
+
 /* API to fill Rate Info based on mac efficiency
  * arg 1: mac efficiency to be used to calculate mac thorughput for a given rate index
  * arg 2: starting rateIndex to apply the macEfficiency to
@@ -2482,6 +2527,9 @@ static tDumpFuncEntry limMenuDumpTable[] = {
 #ifndef QCA_WIFI_2_0
     {371,   "PE.LIM: MAS RX stats MAC eff <MAC eff in percentage>",  dump_limRateInfoBasedOnMacEff},
 #endif /* QCA_WIFI_2_0 */
+#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+    {376,   "PE.LIM: send PLM start command Usage: iwpriv wlan0 376", dump_send_plm_start },
+#endif
 };
 
 
