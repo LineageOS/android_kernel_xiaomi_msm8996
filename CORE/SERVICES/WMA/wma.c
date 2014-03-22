@@ -13461,7 +13461,7 @@ static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 	cmd->vdev_id = msg->sessionId;
 	cmd->ac = TID_TO_WME_AC(msg->tspec.tsinfo.traffic.userPrio);
 	cmd->medium_time_us = msg->tspec.mediumTime * 32;
-	cmd->downgrade_type = WMM_AC_DOWNGRADE_DEPRIO;
+	cmd->downgrade_type = WMM_AC_DOWNGRADE_DROP;
 	WMA_LOGD("Addts vdev:%d, ac:%d, mediumTime:%d, %s:%d",
 			cmd->vdev_id, cmd->ac, cmd->medium_time_us, __func__, __LINE__);
 	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
