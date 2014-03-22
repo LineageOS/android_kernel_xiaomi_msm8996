@@ -3243,6 +3243,14 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
                               __func__, wiphy->bands[i]->channels[j].center_freq);
                     wiphy->bands[i]->channels[j].flags &= ~IEEE80211_CHAN_PASSIVE_SCAN;
                 }
+
+                if (!(reg_rule->flags & NL80211_RRF_NO_IBSS))
+                {
+                    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                              "%s: Remove no ibss restriction for %u",
+                              __func__, wiphy->bands[i]->channels[j].center_freq);
+                    wiphy->bands[i]->channels[j].flags &= ~IEEE80211_CHAN_NO_IBSS;
+                }
             }
 
             if (wiphy->bands[i]->channels[j].flags & IEEE80211_CHAN_DISABLED)

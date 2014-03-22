@@ -3450,20 +3450,20 @@ eHalStatus sme_AddChAvoidCallback
 );
 #endif /* FEATURE_WLAN_CH_AVOID */
 
-eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal, tANI_U8 sessionId,
-                                tANI_U8 targetChannel, eCsrPhyMode phyMode);
+eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal, tCsrBssid bssid,
+                                tANI_U8 targetChannel, eCsrPhyMode phyMode );
 
 eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal,
-                   tANI_U8 sessionId, tANI_U8 dfsCacWaitStatus);
+                   tCsrBssid bssid, tANI_U8 dfsCacWaitStatus);
 /* -------------------------------------------------------------------------
    \fn sme_RoamCsaIeRequest
    \brief API to request CSA IE transmission from PE
    \param hHal - The handle returned by macOpen
-   \param sessionId - session ID
    \param pDfsCsaReq - CSA IE request
+   \param bssid - SAP bssid
    \return eHalStatus
 ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tANI_U8 sessionId,
+eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tCsrBssid bssid,
                   tANI_U8 targetChannel, tANI_U8 csaIeReqd);
 
 #ifndef QCA_WIFI_ISOC

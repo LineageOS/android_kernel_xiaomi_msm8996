@@ -385,9 +385,9 @@ htt_tx_desc_init(
     struct htt_msdu_info_t *msdu_info)
 {
     u_int32_t *word0, *word1, *word3;
+    u_int32_t local_word0, local_word1;
     struct htt_host_tx_desc_t *htt_host_tx_desc = (struct htt_host_tx_desc_t *)
         (((char *) htt_tx_desc) - HTT_TX_DESC_VADDR_OFFSET);
-
 
     word0 = (u_int32_t *) htt_tx_desc;
     word1 = word0 + 1;
@@ -397,18 +397,25 @@ htt_tx_desc_init(
      */
     word3 = word0 + 3; // Dword 3
 
-    *word0 = 0;
+    /*
+     * HTT Tx Desc is in uncached memory. Used cached writes per word, to
+     * reduce unnecessary memory access.
+     */
 
-    HTT_H2T_MSG_TYPE_SET(*word0, HTT_H2T_MSG_TYPE_TX_FRM);
-    HTT_TX_DESC_PKT_TYPE_SET(*word0, msdu_info->info.l2_hdr_type);
-    HTT_TX_DESC_VDEV_ID_SET(*word0, msdu_info->info.vdev_id);
-    HTT_TX_DESC_EXT_TID_SET(*word0, msdu_info->info.ext_tid);
-    HTT_TX_DESC_CKSUM_OFFLOAD_SET(*word0, msdu_info->action.cksum_offload);
-    HTT_TX_DESC_NO_ENCRYPT_SET(*word0, msdu_info->action.do_encrypt ? 0 : 1);
+    local_word0 = 0;
+    HTT_H2T_MSG_TYPE_SET(local_word0, HTT_H2T_MSG_TYPE_TX_FRM);
+    HTT_TX_DESC_PKT_TYPE_SET(local_word0, msdu_info->info.l2_hdr_type);
+    HTT_TX_DESC_VDEV_ID_SET(local_word0, msdu_info->info.vdev_id);
+    HTT_TX_DESC_EXT_TID_SET(local_word0, msdu_info->info.ext_tid);
+    HTT_TX_DESC_CKSUM_OFFLOAD_SET(local_word0, msdu_info->action.cksum_offload);
+    HTT_TX_DESC_NO_ENCRYPT_SET(local_word0, msdu_info->action.do_encrypt ? 0 : 1);
+    *word0 = local_word0;
 
-    *word1 = 0;
-    HTT_TX_DESC_FRM_LEN_SET(*word1, adf_nbuf_len(msdu));
-    HTT_TX_DESC_FRM_ID_SET(*word1, msdu_id);
+    local_word1 = 0;
+    HTT_TX_DESC_FRM_LEN_SET(local_word1, adf_nbuf_len(msdu));
+    HTT_TX_DESC_FRM_ID_SET(local_word1, msdu_id);
+    *word1 = local_word1;
+
     /* Initialize peer_id to INVALID_PEER bcoz this is NOT Reinjection path*/
     *word3 = HTT_INVALID_PEER;
 

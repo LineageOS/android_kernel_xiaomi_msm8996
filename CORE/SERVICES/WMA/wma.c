@@ -227,6 +227,9 @@ void wma_set_dfs_regdomain(tp_wma_handle wma);
 static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
 				    t_thermal_cmd_params thermal_info);
 
+static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info,
+	                         v_BOOL_t sendResp);
+
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
 {
@@ -1062,21 +1065,40 @@ static void wma_update_vdev_stats(tp_wma_handle wma,
 
 	if (pGetRssiReq &&
 		pGetRssiReq->sessionId == vdev_stats->vdev_id) {
-		if((vdev_stats->vdev_snr.dat_snr > 0) &&
-			(vdev_stats->vdev_snr.bcn_snr > 0))
-			rssi = (vdev_stats->vdev_snr.dat_snr + vdev_stats->vdev_snr.bcn_snr)/2;
-		else
-			rssi = vdev_stats->vdev_snr.bcn_snr;
+		if ((vdev_stats->vdev_snr.bcn_snr == WMA_TGT_INVALID_SNR) &&
+			(vdev_stats->vdev_snr.dat_snr == WMA_TGT_INVALID_SNR)) {
+			/*
+			 * Firmware sends invalid snr till it sees
+			 * Beacon/Data after connection since after
+			 * vdev up fw resets the snr to invalid.
+			 * In this duartion Host will return the last know
+			 * rssi during connection.
+			 */
+			rssi = wma->first_rssi;
+		} else {
+			if (((vdev_stats->vdev_snr.dat_snr > 0) &&
+					(vdev_stats->vdev_snr.dat_snr != WMA_TGT_INVALID_SNR)) &&
+				((vdev_stats->vdev_snr.bcn_snr > 0) &&
+					(vdev_stats->vdev_snr.bcn_snr != WMA_TGT_INVALID_SNR))) {
+				rssi = (vdev_stats->vdev_snr.dat_snr +
+						vdev_stats->vdev_snr.bcn_snr)/2;
+			} else if (vdev_stats->vdev_snr.bcn_snr != WMA_TGT_INVALID_SNR) {
+				rssi = vdev_stats->vdev_snr.bcn_snr;
+			} else if (vdev_stats->vdev_snr.dat_snr != WMA_TGT_INVALID_SNR) {
+				rssi = vdev_stats->vdev_snr.dat_snr;
+			}
 
-		/* Get the absolute rssi value from the current rssi value
-		 * the sinr value is hardcoded into 0 in the core stack
-		 */
+			/*
+			 * Get the absolute rssi value from the current rssi value
+			 * the sinr value is hardcoded into 0 in the core stack
+			 */
+			rssi = rssi + WMA_TGT_NOISE_FLOOR_DBM;
+		}
+
 		WMA_LOGD("vdev id %d beancon snr %d data snr %d",
 				vdev_stats->vdev_id,
 				vdev_stats->vdev_snr.bcn_snr,
 				vdev_stats->vdev_snr.dat_snr);
-
-		rssi = rssi + WMA_TGT_NOISE_FLOOR_DBM;
 		WMA_LOGD("Average Rssi = %d, vdev id= %d", rssi,
 				pGetRssiReq->sessionId);
 
@@ -3033,6 +3055,11 @@ void wma_vdev_detach_callback(void *ctx)
 	}
 	if(iface->addBssStaContext)
                 adf_os_mem_free(iface->addBssStaContext);
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+        if (iface->staKeyParams)
+                adf_os_mem_free(iface->staKeyParams);
+#endif
 	vos_mem_zero(iface, sizeof(*iface));
 	param->status = VOS_STATUS_SUCCESS;
 
@@ -3131,6 +3158,10 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 out:
         if(iface->addBssStaContext)
                 adf_os_mem_free(iface->addBssStaContext);
+#if defined WLAN_FEATURE_VOWIFI_11R
+        if (iface->staKeyParams)
+                adf_os_mem_free(iface->staKeyParams);
+#endif
 	vos_mem_zero(iface, sizeof(*iface));
 	pdel_sta_self_req_param->status = status;
 	if (generateRsp)
@@ -4118,7 +4149,8 @@ error:
 
 }
 
-VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq)
+VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq,
+				v_S7_t first_rssi)
 {
 	wmi_buf_t buf;
 	wmi_request_stats_cmd_fixed_param *cmd;
@@ -4128,6 +4160,8 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq)
 	/* command is in progess */
 	if(NULL != wma_handle->pGetRssiReq)
 		return VOS_STATUS_SUCCESS;
+
+	wma_handle->first_rssi = first_rssi;
 
 	/* create a copy of csrRssiCallback to send rssi value
 	 * after wmi event
@@ -6046,6 +6080,10 @@ void wma_vdev_resp_timer(void *data)
 			     (void *)iface->del_staself_req, 0);
 		if(iface->addBssStaContext)
 			adf_os_mem_free(iface->addBssStaContext);
+#if defined WLAN_FEATURE_VOWIFI_11R
+                if (iface->staKeyParams)
+                    adf_os_mem_free(iface->staKeyParams);
+#endif
 		vos_mem_zero(iface, sizeof(*iface));
 	} else if (tgt_req->msg_type == WDA_ADD_BSS_REQ) {
 		tpAddBssParams params = (tpAddBssParams)tgt_req->user_data;
@@ -7027,6 +7065,25 @@ wmi_unified_vdev_set_gtx_cfg_send(wmi_unified_t wmi_handle, u_int32_t if_id,
 	return wmi_unified_cmd_send(wmi_handle, buf, len, WMI_VDEV_SET_GTX_PARAMS_CMDID);
 }
 
+void wma_update_txrx_chainmask(int num_rf_chains, int *cmd_value)
+{
+	if (*cmd_value > WMA_MAX_RF_CHAINS(num_rf_chains)) {
+		WMA_LOGE("%s: Chainmask value exceeds the maximum"
+				" supported range setting it to"
+				" maximum value. Requested value %d"
+				" Updated value %d", __func__, *cmd_value,
+				WMA_MAX_RF_CHAINS(num_rf_chains));
+		*cmd_value = WMA_MAX_RF_CHAINS(num_rf_chains);
+	} else if (*cmd_value < WMA_MIN_RF_CHAINS) {
+		WMA_LOGE("%s: Chainmask value is less than the minimum"
+				" supported range setting it to"
+				" minimum value. Requested value %d"
+				" Updated value %d", __func__, *cmd_value,
+				WMA_MIN_RF_CHAINS);
+		*cmd_value = WMA_MIN_RF_CHAINS;
+	}
+}
+
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					wda_cli_set_cmd_t *privcmd)
 {
@@ -7070,6 +7127,11 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 	case PDEV_CMD:
 		WMA_LOGD("pdev pid %d pval %d", privcmd->param_id,
 				privcmd->param_value);
+		if ((privcmd->param_id == WMI_PDEV_PARAM_RX_CHAIN_MASK) ||
+			(privcmd->param_id == WMI_PDEV_PARAM_TX_CHAIN_MASK)) {
+			wma_update_txrx_chainmask(wma->num_rf_chains,
+						&privcmd->param_value);
+		}
 		ret = wmi_unified_pdev_set_param(wma->wmi_handle,
 						privcmd->param_id,
 						privcmd->param_value);
@@ -8233,6 +8295,22 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
                 }
                 adf_os_mem_copy(iface->addBssStaContext, &add_bss->staContext,
                                                 sizeof(tAddStaParams));
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+                if (iface->staKeyParams) {
+                        adf_os_mem_free(iface->staKeyParams);
+                        iface->staKeyParams = NULL;
+                }
+                if (add_bss->extSetStaKeyParamValid) {
+                    iface->staKeyParams = adf_os_mem_alloc(NULL, sizeof(tSetStaKeyParams));
+                    if (!iface->staKeyParams) {
+                            WMA_LOGE("%s Failed to allocat memory", __func__);
+                            goto send_fail_resp;
+                    }
+                    adf_os_mem_copy(iface->staKeyParams, &add_bss->extSetStaKeyParam,
+                                                sizeof(tSetStaKeyParams));
+                }
+#endif
 		// Save parameters later needed by WDA_ADD_STA_REQ
 		iface->rmfEnabled = add_bss->rmfEnabled;
 		iface->beaconInterval = add_bss->beaconInterval;
@@ -8958,6 +9036,14 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 			}
 		}
 #endif /* WLAN_FEATURE_11W */
+#if defined WLAN_FEATURE_VOWIFI_11R
+             /*
+              * Set the PTK in 11r mode because we already have it.
+              */
+              if (iface->staKeyParams) {
+                  wma_set_stakey(wma, (tpSetStaKeyParams) iface->staKeyParams, FALSE);
+             }
+#endif
 	}
 #if defined WLAN_FEATURE_VOWIFI
 	maxTxPower = params->maxTxPower;
@@ -9427,7 +9513,7 @@ static void wma_set_ibsskey_helper(tp_wma_handle wma_handle, tpSetBssKeyParams k
         }
 }
 
-static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
+static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info, v_BOOL_t sendResp)
 {
 	wmi_buf_t buf;
 	int32_t status, i;
@@ -9535,7 +9621,8 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 	/* TODO: Should we wait till we get HTT_T2H_MSG_TYPE_SEC_IND? */
 	key_info->status = eHAL_STATUS_SUCCESS;
 out:
-	wma_send_msg(wma_handle, WDA_SET_STAKEY_RSP, (void *) key_info, 0);
+        if (sendResp)
+            wma_send_msg(wma_handle, WDA_SET_STAKEY_RSP, (void *) key_info, 0);
 }
 
 static void wma_delete_sta_req_ap_mode(tp_wma_handle wma,
@@ -13468,8 +13555,10 @@ static void wma_data_tx_ack_work_handler(struct work_struct *ack_work)
 	wma_handle = work->wma_handle;
 	ack_cb = wma_handle->umac_data_ota_ack_cb;
 
-	WMA_LOGD("Data Tx Ack Cb Status %d",
-			work->status);
+	if (work->status)
+		WMA_LOGE("Data Tx Ack Cb Status %d", work->status);
+	else
+		WMA_LOGD("Data Tx Ack Cb Status %d", work->status);
 
 	/* Call the Ack Cb registered by UMAC */
 	ack_cb((tpAniSirGlobal)(wma_handle->mac_context),
@@ -15234,7 +15323,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_SET_STAKEY_REQ:
 			wma_set_stakey(wma_handle,
-					(tpSetStaKeyParams)msg->bodyptr);
+					(tpSetStaKeyParams)msg->bodyptr, TRUE);
 			break;
 		case WDA_DELETE_STA_REQ:
 			wma_delete_sta(wma_handle,
@@ -17412,6 +17501,7 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 
 	wma_handle->phy_capability = ev->phy_capability;
 	wma_handle->max_frag_entry = ev->max_frag_entry;
+	wma_handle->num_rf_chains = ev->num_rf_chains;
 	vos_mem_copy(&wma_handle->reg_cap, param_buf->hal_reg_capabilities,
 		     sizeof(HAL_REG_CAPABILITIES));
 	wma_handle->ht_cap_info = ev->ht_cap_info;
@@ -17786,6 +17876,9 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 #endif /* WLAN_FEATURE_11W */
 	struct wma_txrx_node *iface;
 	tpAniSirGlobal pMac;
+#ifdef QCA_PKT_PROTO_TRACE
+	v_U8_t proto_type = 0;
+#endif
 
         if (NULL == wma_handle)
         {
@@ -17963,6 +18056,15 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 				wma_handle->umac_ota_ack_cb[pFc->subType] =
 							tx_frm_ota_comp_cb;
 			}
+#ifdef QCA_PKT_PROTO_TRACE
+			if (pFc->subType == SIR_MAC_MGMT_ACTION)
+				proto_type = vos_pkt_get_proto_type(tx_frame,
+						pMac->fEnableDebugLog,
+						NBUF_PKT_TRAC_TYPE_MGMT_ACTION);
+			if (proto_type & NBUF_PKT_TRAC_TYPE_MGMT_ACTION)
+				vos_pkt_trace_buf_update("WM:T:MACT");
+			adf_nbuf_trace_set_proto_type(tx_frame, proto_type);
+#endif /* QCA_PKT_PROTO_TRACE */
 		} else {
 			if(downld_comp_required)
 				tx_frm_index =

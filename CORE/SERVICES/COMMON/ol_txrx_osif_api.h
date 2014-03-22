@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -93,10 +93,12 @@ typedef void (*ol_txrx_rx_fp)(void *osif_dev, adf_nbuf_t msdus);
  * @typedef ol_txrx_tx_fc_fp
  * @brief tx flow control notification function from txrx to OS shim
  * @param osif_dev - the virtual device's OS shim object
+ * @param peer_id - peer id belongs to virtual device
  * @param vdev_id - virtual device id
  * @param tx_resume - tx os q should be resumed or not
  */
-typedef void (*ol_txrx_tx_fc_fp)(void *osif_dev, u_int8_t vdev_id, a_bool_t tx_resume);
+typedef void (*ol_txrx_tx_flow_control_fp)(void *osif_dev, u_int8_t peer_id,
+                                           u_int8_t vdev_id, a_bool_t tx_resume);
 
 /**
  * @typedef ol_txrx_rx_fp
@@ -106,11 +108,9 @@ typedef void (*ol_txrx_tx_fc_fp)(void *osif_dev, u_int8_t vdev_id, a_bool_t tx_r
 struct ol_txrx_osif_ops {
     /* tx function pointers - specified by txrx, stored by OS shim */
     struct {
-        ol_txrx_tx_fp         std;
-        ol_txrx_tx_non_std_fp non_std;
-#ifdef QCA_LL_TX_FLOW_CT
-        ol_txrx_tx_fc_fp      flow_control_cb;
-#endif /* QCA_LL_TX_FLOW_CT */
+        ol_txrx_tx_fp              std;
+        ol_txrx_tx_non_std_fp      non_std;
+        ol_txrx_tx_flow_control_fp flow_control_cb;
     } tx;
 
     /* rx function pointers - specified by OS shim, stored by txrx */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-14 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -420,6 +420,11 @@ __adf_nbuf_trace_update(struct sk_buff *buf, char *event_string)
             adf_nbuf_trace_get_proto_type(buf)) {
       adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
                       "DHC",
+                      NBUF_PKT_TRAC_PROTO_STRING);
+   } else if (NBUF_PKT_TRAC_TYPE_MGMT_ACTION &
+              adf_nbuf_trace_get_proto_type(buf)) {
+      adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
+                      "MACT",
                       NBUF_PKT_TRAC_PROTO_STRING);
    }
 

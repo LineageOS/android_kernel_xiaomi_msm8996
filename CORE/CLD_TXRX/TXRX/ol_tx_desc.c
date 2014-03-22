@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -282,11 +282,14 @@ void ol_tx_desc_frame_free_nonstd(
 {
     int mgmt_type;
     ol_txrx_mgmt_tx_cb ota_ack_cb;
+    char *trace_str;
 
     adf_os_atomic_init(&tx_desc->ref_cnt); /* clear the ref cnt */
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
     OL_TX_RESTORE_HDR(tx_desc, (tx_desc->netbuf)); /* restore original hdr offset */
 #endif
+    trace_str = (had_error) ? "OT:C:F:" : "OT:C:S:";
+    adf_nbuf_trace_update(tx_desc->netbuf, trace_str);
     if (tx_desc->pkt_type == ol_tx_frm_no_free) {
         /* free the tx desc but don't unmap or free the frame */
         if (pdev->tx_data_callback.func) {
@@ -314,7 +317,8 @@ void ol_tx_desc_frame_free_nonstd(
         /* free the netbuf */
         adf_nbuf_set_next(tx_desc->netbuf, NULL);
         adf_nbuf_tx_free(tx_desc->netbuf, had_error);
-    } else if (tx_desc->pkt_type >= OL_TXRX_MGMT_TYPE_BASE) {
+    } else if ((tx_desc->pkt_type >= OL_TXRX_MGMT_TYPE_BASE) &&
+                (tx_desc->pkt_type != 0xff)) {
         /* FIX THIS -
          * The FW currently has trouble using the host's fragments table
          * for management frames.  Until this is fixed, rather than
@@ -327,7 +331,6 @@ void ol_tx_desc_frame_free_nonstd(
 
         mgmt_type = tx_desc->pkt_type - OL_TXRX_MGMT_TYPE_BASE;
         /*
-         * KW# 6158
          *  we already checked the value when the mgmt frame was provided to the txrx layer.
          *  no need to check it a 2nd time.
          */

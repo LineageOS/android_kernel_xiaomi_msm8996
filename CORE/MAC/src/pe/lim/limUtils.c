@@ -3948,7 +3948,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             if(overlap)
             {
                 psessionEntry->gLimOlbcParams.protectionEnabled = true;
-                PELOGE(limLog(pMac, LOGE, FL("protection from olbc is enabled"));)
+                PELOGE(limLog(pMac, LOG1, FL("protection from olbc is enabled"));)
                 if(true == psessionEntry->htCapability)
                 {
                     if((eSIR_HT_OP_MODE_OVERLAP_LEGACY != psessionEntry->htOperMode) &&
@@ -3967,7 +3967,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             else
             {
                 psessionEntry->gLim11bParams.protectionEnabled = true;
-                PELOGE(limLog(pMac, LOGE, FL("protection from 11b is enabled"));)
+                PELOGE(limLog(pMac, LOG1, FL("protection from 11b is enabled"));)
                 if(true == psessionEntry->htCapability)
                 {
                     if(eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode)
@@ -4056,7 +4056,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             {
                 //Disable protection from 11B stations.
                 psessionEntry->gLim11bParams.protectionEnabled = false;
-                PELOGE(limLog(pMac, LOGE, FL("===> 11B Protection Disabled"));)
+                PELOGE(limLog(pMac, LOG1, FL("===> 11B Protection Disabled"));)
                     //Check if any other non-HT protection enabled.
                 if(!psessionEntry->gLim11gParams.protectionEnabled)
                 {
@@ -4071,7 +4071,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                             psessionEntry->gLimOverlapNonGfParams.protectionEnabled)
                     {
                         psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
-                        PELOGE(limLog(pMac, LOGE, FL("===> 11G Protection Disabled"));)
+                        PELOGE(limLog(pMac, LOG1, FL("===> 11G Protection Disabled"));)
                         limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
                     }
                     else if(psessionEntry->gLimHt20Params.protectionEnabled)
@@ -4079,7 +4079,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                         //Commenting because of CR 258588 WFA cert
                         //psessionEntry->htOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
                         psessionEntry->htOperMode = eSIR_HT_OP_MODE_PURE;
-                        PELOGE(limLog(pMac, LOGE, FL("===> 11G Protection Disabled"));)
+                        PELOGE(limLog(pMac, LOG1, FL("===> 11G Protection Disabled"));)
                         limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
                     }
                     else
@@ -4092,7 +4092,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             if(!psessionEntry->gLimOlbcParams.protectionEnabled &&
                     !psessionEntry->gLim11bParams.protectionEnabled)
             {
-                PELOGE(limLog(pMac, LOGE, FL("===> 11G Protection Disabled"));)
+                PELOGE(limLog(pMac, LOG1, FL("===> 11G Protection Disabled"));)
                 pBeaconParams->llbCoexist = psessionEntry->beaconParams.llbCoexist = false;
                 pBeaconParams->paramChangeBitmap |= PARAM_llBCOEXIST_CHANGED;
             }
@@ -5608,7 +5608,7 @@ limProcessAddBaInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
             if((eBA_DISABLE == pSta->tcCfg[tid].fUseBATx) &&
                  (pBaCandidate->baInfo[tid].fBaEnable))
             {
-                limLog(pMac, LOGE, FL("BA setup for staId = %d, TID: %d, SSN: %d"),
+                limLog(pMac, LOG1, FL("BA setup for staId = %d, TID: %d, SSN: %d"),
                         pSta->staIndex, tid, pBaCandidate->baInfo[tid].startingSeqNum);
                 limPostMlmAddBAReq(pMac, pSta, tid, pBaCandidate->baInfo[tid].startingSeqNum,psessionEntry);
             }
@@ -6845,7 +6845,7 @@ limPrepareFor11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry)
     if(pMac->lim.gLimSmeState == eLIM_SME_LINK_EST_WT_SCAN_STATE ||
         pMac->lim.gLimSmeState == eLIM_SME_CHANNEL_SCAN_STATE)
     {
-        PELOGE(limLog(pMac, LOGE, FL("Posting finish scan as we are in scan state"));)
+        PELOGE(limLog(pMac, LOG1, FL("Posting finish scan as we are in scan state"));)
         /* Stop ongoing scanning if any */
         if (GET_LIM_PROCESS_DEFD_MESGS(pMac))
         {
@@ -6862,7 +6862,7 @@ limPrepareFor11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry)
     }
     else
     {
-        PELOGE(limLog(pMac, LOGE, FL("Not in scan state, start channel switch timer"));)
+        PELOGE(limLog(pMac, LOG1, FL("Not in scan state, start channel switch timer"));)
         /** We are safe to switch channel at this point */
         limStopTxAndSwitchChannel(pMac, psessionEntry->peSessionId);
     }
@@ -7011,8 +7011,8 @@ void limSetTspecUapsdMask(tpAniSirGlobal pMac, tSirMacTSInfo *pTsInfo, tANI_U32 
         }
     }
 
-    limLog(pMac, LOGE, FL("New pMac->lim.gUapsdPerAcTriggerEnableMask = 0x%x "), pMac->lim.gUapsdPerAcTriggerEnableMask );
-    limLog(pMac, LOGE, FL("New pMac->lim.gUapsdPerAcDeliveryEnableMask = 0x%x "), pMac->lim.gUapsdPerAcDeliveryEnableMask );
+    limLog(pMac, LOG1, FL("New pMac->lim.gUapsdPerAcTriggerEnableMask = 0x%x "), pMac->lim.gUapsdPerAcTriggerEnableMask );
+    limLog(pMac, LOG1, FL("New pMac->lim.gUapsdPerAcDeliveryEnableMask = 0x%x "), pMac->lim.gUapsdPerAcDeliveryEnableMask );
 
     return;
 }
@@ -7060,10 +7060,10 @@ void limSetTspecUapsdMaskPerSession(tpAniSirGlobal pMac,
         }
     }
 
-    limLog(pMac, LOGE,
+    limLog(pMac, LOG1,
            FL("New psessionEntry->gUapsdPerAcTriggerEnableMask = 0x%x "),
            psessionEntry->gUapsdPerAcTriggerEnableMask );
-    limLog(pMac, LOGE,
+    limLog(pMac, LOG1,
            FL("New psessionEntry->gUapsdPerAcDeliveryEnableMask = 0x%x "),
            psessionEntry->gUapsdPerAcDeliveryEnableMask );
 

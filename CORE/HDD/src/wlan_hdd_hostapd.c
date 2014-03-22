@@ -1757,6 +1757,18 @@ static iw_softap_setparam(struct net_device *dev,
              }
 #endif /* QCA_PKT_PROTO_TRACE */
 
+        case QCASAP_SET_TM_LEVEL:
+             {
+                  hddLog(VOS_TRACE_LEVEL_INFO, "Set Thermal Mitigation Level %d",
+                            set_value);
+#ifdef QCA_WIFI_ISOC
+                  hddLog(VOS_TRACE_LEVEL_ERROR, " 'setTmLevel' Command Not supported for this mode");
+#else
+                  (void)sme_SetThermalLevel(hHal, set_value);
+#endif
+                  break;
+             }
+
 #endif /* QCA_WIFI_2_0 */
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
@@ -3972,6 +3984,11 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "setDbgLvl" },
 #endif /* QCA_PKT_PROTO_TRACE */
+
+    {   QCASAP_SET_TM_LEVEL,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setTmLevel" },
 
 #endif /* QCA_WIFI_2_0 */
 

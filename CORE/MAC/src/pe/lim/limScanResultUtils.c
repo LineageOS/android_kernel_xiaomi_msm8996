@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -193,7 +193,13 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     pBssDescr->beaconInterval = pBPR->beaconInterval;
     pBssDescr->capabilityInfo = limGetU16((tANI_U8 *) &pBPR->capabilityInfo);
 
-
+    if(!pBssDescr->beaconInterval )
+    {
+        limLog(pMac, LOGW,
+            FL("Beacon Interval is ZERO, making it to default 100 "
+            MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->bssId));
+        pBssDescr->beaconInterval= 100;
+    }
     /*
     * There is a narrow window after Channel Switch msg is sent to HAL and before the AGC is shut
     * down and beacons/Probe Rsps can trickle in and we may report the incorrect channel in 5Ghz

@@ -5537,7 +5537,7 @@ eHalStatus sme_QosProcessAddTsSuccessRsp(tpAniSirGlobal pMac,
    pACInfo->curr_QoSInfo[tspec_pending - 1].medium_time =
                                                pRsp->tspec.mediumTime;
 
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
              "%s: %d: On session %d AddTspec Medium Time %d",
              __func__, __LINE__,
              sessionId, pRsp->tspec.mediumTime);

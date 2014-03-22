@@ -2429,8 +2429,9 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, tANI_U8 tArgetChannel)
         return VOS_STATUS_E_FAULT;
     }
 
-    halStatus = sme_RoamChannelChangeReq( hHal, sapContext->sessionId, tArgetChannel,
-                sapConvertSapPhyModeToCsrPhyMode(sapContext->csrRoamProfile.phyMode));
+    halStatus = sme_RoamChannelChangeReq( hHal, sapContext->bssid,
+       tArgetChannel,
+       sapConvertSapPhyModeToCsrPhyMode(sapContext->csrRoamProfile.phyMode) );
 
     if (halStatus == eHAL_STATUS_SUCCESS)
     {
@@ -2495,7 +2496,7 @@ VOS_STATUS WLANSAP_StartBeaconReq(v_PVOID_t pSapCtx)
        /* CAC Wait done without any Radar Detection */
        dfsCacWaitStatus = VOS_TRUE;
        halStatus = sme_RoamStartBeaconReq( hHal,
-                   sapContext->sessionId, dfsCacWaitStatus);
+                   sapContext->bssid, dfsCacWaitStatus);
        if (halStatus == eHAL_STATUS_SUCCESS)
        {
            return VOS_STATUS_SUCCESS;
@@ -2549,9 +2550,11 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx)
         return VOS_STATUS_E_FAULT;
     }
 
-    halStatus = sme_RoamCsaIeRequest(hHal, sapContext->sessionId,
+    halStatus = sme_RoamCsaIeRequest(hHal,
+                              sapContext->bssid,
                               sapContext->SapDfsInfo.target_channel,
                               sapContext->SapDfsInfo.csaIERequired);
+
     if (halStatus == eHAL_STATUS_SUCCESS)
     {
         return VOS_STATUS_SUCCESS;

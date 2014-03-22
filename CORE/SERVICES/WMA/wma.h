@@ -162,6 +162,10 @@
 
 #define WMA_INVALID_KEY_IDX	0xff
 #define WMA_DFS_RADAR_FOUND   1
+
+#define WMA_MAX_RF_CHAINS(x)	((1 << x) - 1)
+#define WMA_MIN_RF_CHAINS		(1)
+
 typedef struct {
 	HTC_ENDPOINT_ID endpoint_id;
 }t_cfg_nv_param;
@@ -456,6 +460,9 @@ struct wma_txrx_node {
 	tPowerdBm  tx_power; /* TX power in dBm */
 	tPowerdBm  max_tx_power; /* max Tx power in dBm */
         u_int32_t  nwType;
+#if defined WLAN_FEATURE_VOWIFI_11R
+        void    *staKeyParams;
+#endif
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -570,6 +577,7 @@ typedef struct {
 	u_int8_t powersave_mode;
 	v_BOOL_t ptrn_match_enable_all_vdev;
 	void* pGetRssiReq;
+	v_S7_t first_rssi;
 	t_thermal_mgmt thermal_mgmt_info;
         u_int32_t roam_offload_vdev_id;
         v_BOOL_t  roam_offload_enabled;
@@ -1240,7 +1248,8 @@ VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 			tp_wma_trigger_uapsd_params trigger_uapsd_params);
 
 /* added to get average snr for both data and beacon */
-VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq);
+VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq,
+				v_S7_t first_rssi);
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 
@@ -1496,4 +1505,5 @@ enum uapsd_up {
 	UAPSD_UP_MAX
 };
 
+#define WMA_TGT_INVALID_SNR (-1)
 #endif

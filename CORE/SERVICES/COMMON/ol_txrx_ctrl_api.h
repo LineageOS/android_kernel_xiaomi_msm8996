@@ -1004,10 +1004,18 @@ void ol_vdev_rx_set_intrabss_fwd(ol_txrx_vdev_handle vdev, a_bool_t val);
  *  OS IF will query TX resource status to decide back pressuring or not
  *
  * @param vdev - the virtual device
+ * @param low_watermark - low free descriptor count to pause os tx q
+ * @param high_watermark_offset - high free descriptor count to resume os tx q
+ *    offset value from low watermark.
+ *    high watermark = low watermark + high_watermark_offset
+ * @return boolean- true if tx data path has enough resource
+                    false if tx data path does not have enough resource
  */
 a_bool_t
 ol_txrx_get_tx_resource(
-    ol_txrx_vdev_handle vdev
+    ol_txrx_vdev_handle vdev,
+    unsigned int low_watermark,
+    unsigned int high_watermark_offset
 );
 #endif /* QCA_LL_TX_FLOW_CT */
 

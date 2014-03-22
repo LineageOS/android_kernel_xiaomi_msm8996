@@ -1445,6 +1445,16 @@ typedef enum
 #define CFG_VHT_ENABLE_GID_FEATURE_DEFAULT      ( 0 )
 #endif
 
+#define CFG_VHT_ENABLE_1x1_TX_CHAINMASK         "gSetTxChainmask1x1"
+#define CFG_VHT_ENABLE_1x1_TX_CHAINMASK_MIN     ( 1 )
+#define CFG_VHT_ENABLE_1x1_TX_CHAINMASK_MAX     ( 2 )
+#define CFG_VHT_ENABLE_1x1_TX_CHAINMASK_DEFAULT ( 1 )
+
+#define CFG_VHT_ENABLE_1x1_RX_CHAINMASK         "gSetRxChainmask1x1"
+#define CFG_VHT_ENABLE_1x1_RX_CHAINMASK_MIN     ( 1 )
+#define CFG_VHT_ENABLE_1x1_RX_CHAINMASK_MAX     ( 2 )
+#define CFG_VHT_ENABLE_1x1_RX_CHAINMASK_DEFAULT ( 1 )
+
 #define CFG_ENABLE_AMPDUPS_FEATURE              "gEnableAMPDUPS"
 #define CFG_ENABLE_AMPDUPS_FEATURE_MIN          ( 0 )
 #define CFG_ENABLE_AMPDUPS_FEATURE_MAX          ( 1 )
@@ -2272,6 +2282,27 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_SET_TXPOWER_LIMIT5G_MAX                ( 30 )
 #define CFG_SET_TXPOWER_LIMIT5G_DEFAULT            ( 15 )
 
+#ifdef QCA_LL_TX_FLOW_CT
+#define CFG_LL_TX_STA_FLOW_LWM                     "TxStaFlowLowWaterMark"
+#define CFG_LL_TX_STA_FLOW_LWM_MIN                 ( 0 )
+#define CFG_LL_TX_STA_FLOW_LWM_MAX                 ( 1000 )
+#define CFG_LL_TX_STA_FLOW_LWM_DEFAULT             ( 406 )
+
+#define CFG_LL_TX_STA_FLOW_HWM_OFFSET              "TxStaFlowHighWaterMarkOffset"
+#define CFG_LL_TX_STA_FLOW_HWM_OFFSET_MIN          ( 0 )
+#define CFG_LL_TX_STA_FLOW_HWM_OFFSET_MAX          ( 300 )
+#define CFG_LL_TX_STA_FLOW_HWM_OFFSET_DEFAULT      ( 50 )
+
+#define CFG_LL_TX_IBSS_FLOW_LWM                    "TxIbssFlowLowWaterMark"
+#define CFG_LL_TX_IBSS_FLOW_LWM_MIN                ( 0 )
+#define CFG_LL_TX_IBSS_FLOW_LWM_MAX                ( 1000 )
+#define CFG_LL_TX_IBSS_FLOW_LWM_DEFAULT            ( 550 )
+
+#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET             "TxIbssFlowHighWaterMarkOffset"
+#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET_MIN         ( 0 )
+#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET_MAX         ( 300 )
+#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET_DEFAULT     ( 50 )
+#endif /* QCA_LL_TX_FLOW_CT */
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -2616,6 +2647,8 @@ typedef struct
    v_U8_t                      vhtRxMCS2x2;
    v_U8_t                      vhtTxMCS2x2;
    v_BOOL_t                    enable2x2;
+   v_BOOL_t                    txchainmask1x1;
+   v_BOOL_t                    rxchainmask1x1;
    v_BOOL_t                    enableMuBformee;
    v_BOOL_t                    enableVhtpAid;
    v_BOOL_t                    enableVhtGid;
@@ -2744,6 +2777,12 @@ typedef struct
    char                        acsAllowedChnls[CFG_MAX_STR_LEN];
    v_BOOL_t                    fRegChangeDefCountry;
    v_U8_t                      acsScanBandPreference;
+#ifdef QCA_LL_TX_FLOW_CT
+   v_U32_t                     TxStaFlowLowWaterMark;
+   v_U32_t                     TxStaFlowHighWaterMarkOffset;
+   v_U32_t                     TxIbssFlowLowWaterMark;
+   v_U32_t                     TxIbssFlowHighWaterMarkOffset;
+#endif /* QCA_LL_TX_FLOW_CT */
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation

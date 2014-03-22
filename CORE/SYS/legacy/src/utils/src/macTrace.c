@@ -1134,8 +1134,15 @@ void macTraceDumpAll(tpAniSirGlobal pMac, tANI_U8 code, tANI_U8 session, tANI_U3
             }
         }
 
-        if ((i >= 0 && i < MAX_TRACE_RECORDS))
-            pRecord = &gTraceTbl[i];
+        if (i < 0)
+        {
+            i = 0;
+        }
+        else if (i >= MAX_TRACE_RECORDS)
+        {
+            i = MAX_TRACE_RECORDS - 1;
+        }
+        pRecord = &gTraceTbl[i];
 
         for (;;)
         {

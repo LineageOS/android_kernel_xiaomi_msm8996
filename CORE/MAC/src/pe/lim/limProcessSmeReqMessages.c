@@ -5799,12 +5799,14 @@ limProcessSmeStartBeaconReq(tpAniSirGlobal pMac, tANI_U32 * pMsg)
     }
 
     pBeaconStartInd = (tpSirStartBeaconIndication)pMsg;
-    sessionId = pBeaconStartInd->sessionId;
-
-    if((psessionEntry = peFindSessionBySessionId(pMac, sessionId)) == NULL)
+    if((psessionEntry =
+              peFindSessionByBssid(pMac, pBeaconStartInd->bssid, &sessionId))
+                  == NULL)
     {
-        limLog(pMac, LOGW, "Session does not exist for given sessionId %d",
-                          pBeaconStartInd->sessionId);
+        limPrintMacAddr(pMac,  pBeaconStartInd->bssid, LOGE);
+        PELOGE(limLog(pMac, LOGE,
+               "%s[%d]: Session does not exist for given bssId",
+               __func__, __LINE__ );)
         return;
     }
 
@@ -5845,12 +5847,15 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
         return;
     }
     pChannelChangeReq = (tpSirChanChangeRequest)pMsg;
-    sessionId = pChannelChangeReq->sessionId;
 
-    if((psessionEntry = peFindSessionBySessionId(pMac, sessionId)) == NULL)
+    if((psessionEntry =
+              peFindSessionByBssid(pMac, pChannelChangeReq->bssid, &sessionId))
+                  == NULL)
     {
-        limLog(pMac, LOGW, "Session does not exist for given sessionId %d",
-               pChannelChangeReq->sessionId);
+        limPrintMacAddr(pMac,  pChannelChangeReq->bssid, LOGE);
+        PELOGE(limLog(pMac, LOGE,
+               "%s[%d]: Session does not exist for given bssId",
+               __func__, __LINE__ );)
         return;
     }
 
@@ -5973,7 +5978,6 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 {
 
     tpSirDfsCsaIeRequest  pDfsCsaIeRequest = (tSirDfsCsaIeRequest *)pMsg;
-    //tANI_U8               sessionId = pDfsCsaIeRequest->sessionId;
     tpPESession           psessionEntry = NULL;
     int i;
 

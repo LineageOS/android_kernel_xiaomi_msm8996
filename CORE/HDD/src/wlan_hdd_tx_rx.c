@@ -820,7 +820,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
   @return         : NONE
   ===========================================================================*/
 void hdd_tx_resume_cb(void *adapter_context,
-                        v_U8_t tx_resume)
+                        v_BOOL_t tx_resume)
 {
    hdd_adapter_t *pAdapter = (hdd_adapter_t *)adapter_context;
 
@@ -860,10 +860,18 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    v_U8_t STAId = WLAN_MAX_STA_COUNT;
    hdd_station_ctx_t *pHddStaCtx = &pAdapter->sessionCtx.station;
 
+#if defined(QCA_PKT_PROTO_TRACE) || defined (QCA_LL_TX_FLOW_CT)
+   hdd_context_t *hddCtxt = WLAN_HDD_GET_CTX(pAdapter);
+#endif /* defined(QCA_PKT_PROTO_TRACE) || defined (QCA_LL_TX_FLOW_CT) */
+
 #ifdef QCA_PKT_PROTO_TRACE
-   hdd_context_t *hddCtxt = (hdd_context_t *)pAdapter->pHddCtx;
    v_U8_t proto_type = 0;
 #endif /* QCA_PKT_PROTO_TRACE */
+
+#ifdef QCA_LL_TX_FLOW_CT
+   unsigned int low_watermark;
+   unsigned int high_watermark_offset;
+#endif /* QCA_LL_TX_FLOW_CT */
 
 #ifdef QCA_WIFI_FTM
    if (hdd_get_conparam() == VOS_FTM_MODE) {
@@ -898,19 +906,33 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          return NETDEV_TX_OK;
       }
 #ifdef QCA_LL_TX_FLOW_CT
-      if(VOS_FALSE == WLANTL_GetTxResource((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                         STAId))
-      {
-          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
-                        "%s: Out of TX resource, stop Q", __func__);
-          netif_tx_stop_all_queues(dev);
-      }
+      low_watermark = hddCtxt->cfg_ini->TxIbssFlowLowWaterMark;
+      high_watermark_offset = hddCtxt->cfg_ini->TxIbssFlowHighWaterMarkOffset;
 #endif /* QCA_LL_TX_FLOW_CT */
    }
    else
    {
       STAId = pHddStaCtx->conn_info.staId[0];
+#ifdef QCA_LL_TX_FLOW_CT
+      low_watermark = hddCtxt->cfg_ini->TxStaFlowLowWaterMark;
+      high_watermark_offset = hddCtxt->cfg_ini->TxStaFlowHighWaterMarkOffset;
+#endif /* QCA_LL_TX_FLOW_CT */
    }
+
+#ifdef QCA_LL_TX_FLOW_CT
+   if (VOS_FALSE == WLANTL_GetTxResource((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+                                         STAId,
+                                         low_watermark,
+                                         high_watermark_offset))
+   {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+                 "%s: Out of TX resource, stop Q, LWM %d, HWM %d, dev 0x%x",
+                 __func__, low_watermark,
+                 (low_watermark + high_watermark_offset), (unsigned int)dev);
+       netif_tx_stop_all_queues(dev);
+   }
+#endif /* QCA_LL_TX_FLOW_CT */
+
    //Get TL AC corresponding to Qdisc queue index/AC.
    ac = hdd_QdiscAcToTlAC[skb->queue_mapping];
 
@@ -1000,7 +1022,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        (hddCtxt->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_DHCP))
    {
       proto_type = vos_pkt_get_proto_type(skb,
-                      hddCtxt->cfg_ini->gEnableDebugLog);
+                      hddCtxt->cfg_ini->gEnableDebugLog, 0);
       if (VOS_PKT_TRAC_TYPE_EAPOL & proto_type)
       {
          vos_pkt_trace_buf_update("ST:T:EPL");
@@ -2023,6 +2045,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
 #ifdef QCA_PKT_PROTO_TRACE
    v_U8_t proto_type;
 #endif /* QCA_PKT_PROTO_TRACE */
+   hdd_station_ctx_t *pHddStaCtx = NULL;
 
    //Sanity check on inputs
    if ((NULL == vosContext) || (NULL == rxBuf))
@@ -2055,12 +2078,22 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
        return eHAL_STATUS_FAILURE;
    }
 
+   pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+   if ((pHddStaCtx->conn_info.proxyARPService) &&
+         cfg80211_is_gratuitous_arp_unsolicited_na(skb))
+   {
+         ++pAdapter->hdd_stats.hddTxRxStats.rxDropped;
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+            "%s: Dropping HS 2.0 Gratuitous ARP or Unsolicited NA", __func__);
+        kfree_skb(skb);
+        return VOS_STATUS_SUCCESS;
+   }
+
 #ifdef FEATURE_WLAN_TDLS
 #ifndef QCA_WIFI_2_0
     if ((eTDLS_SUPPORT_ENABLED == pHddCtx->tdls_mode) &&
          0 != pHddCtx->connected_peer_count)
     {
-        hdd_station_ctx_t *pHddStaCtx = &pAdapter->sessionCtx.station;
         u8 mac[6];
 
         wlan_hdd_tdls_extract_sa(skb, mac);
@@ -2093,7 +2126,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
        (pHddCtx->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_DHCP))
    {
       proto_type = vos_pkt_get_proto_type(skb,
-                        pHddCtx->cfg_ini->gEnableDebugLog);
+                        pHddCtx->cfg_ini->gEnableDebugLog, 0);
       if (VOS_PKT_TRAC_TYPE_EAPOL & proto_type)
       {
          vos_pkt_trace_buf_update("ST:R:EPL");
