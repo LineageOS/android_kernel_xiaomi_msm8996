@@ -7023,6 +7023,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    hdd_adapter_list_node_t *pHddAdapterNode = NULL;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
    VOS_STATUS exitbmpsStatus = VOS_STATUS_E_FAILURE;
+   hdd_cfg80211_state_t *cfgState;
 
    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s iface =%s type = %d\n",__func__,iface_name,session_type);
 
@@ -7198,6 +7199,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       }
    }
 
+    cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+    mutex_init(&cfgState->remain_on_chan_ctx_lock);
 
    if( VOS_STATUS_SUCCESS == status )
    {
