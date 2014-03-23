@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012,2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -92,16 +92,16 @@ typedef struct sRrmSMEContext
    tAniSSID ssId;  //SSID used in the measuring beacon report.
    tSirMacAddr bssId; //bssid used for beacon report measurement.
    tANI_U16 randnIntvl; //Randomization interval to be used in subsequent measurements.
-   tANI_U16 duration[SIR_CCX_MAX_MEAS_IE_REQS];
-   tANI_U8 measMode[SIR_CCX_MAX_MEAS_IE_REQS];
+   tANI_U16 duration[SIR_ESE_MAX_MEAS_IE_REQS];
+   tANI_U8 measMode[SIR_ESE_MAX_MEAS_IE_REQS];
    tRrmConfigParam rrmConfig;
    vos_timer_t IterMeasTimer;
    tDblLinkList neighborReportCache;
    tRrmNeighborRequestControlInfo neighborReqControlInfo;
 
-#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
-   tCsrCcxBeaconReq  ccxBcnReqInfo;
-#endif /* FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
+#if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
+   tCsrEseBeaconReq  eseBcnReqInfo;
+#endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
    tRrmMsgReqSource msgSource;
 }tRrmSMEContext, *tpRrmSMEContext;
 

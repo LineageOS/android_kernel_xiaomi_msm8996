@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1074,7 +1074,7 @@ tSirRetStatus limUpdateAdmitPolicy(tpAniSirGlobal    pMac)
 \param       tANI_U16          tsm_interval
 \return eSirRetStatus - status
   -------------------------------------------------------------*/
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
 tSirRetStatus
 limSendHalMsgAddTs(
   tpAniSirGlobal pMac,
@@ -1109,7 +1109,7 @@ limSendHalMsgAddTs(
     vos_mem_copy(&pAddTsParam->tspec, &tspecIE, sizeof(tSirMacTspecIE));
     pAddTsParam->sessionId = sessionId;
 
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
     pAddTsParam->tsm_interval = tsm_interval;
 #endif
 

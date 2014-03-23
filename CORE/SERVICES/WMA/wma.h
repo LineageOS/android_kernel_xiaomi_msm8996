@@ -425,7 +425,7 @@ struct wma_txrx_node {
 	v_BOOL_t nlo_match_evt_received;
 	v_BOOL_t pno_in_progress;
 #endif
-#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 	v_BOOL_t plm_in_progress;
 #endif
 	v_BOOL_t ptrn_match_enable;

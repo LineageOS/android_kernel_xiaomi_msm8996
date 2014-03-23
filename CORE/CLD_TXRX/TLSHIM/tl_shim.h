@@ -31,7 +31,7 @@
 #include <ol_txrx_osif_api.h>
 #include <adf_os_lock.h>
 
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
 typedef struct deferred_iapp_work {
     pVosContextType	pVosGCtx;
     adf_nbuf_t nbuf;
@@ -71,7 +71,7 @@ struct txrx_tl_shim_ctx {
 	adf_os_spinlock_t bufq_lock;
 	struct work_struct cache_flush_work;
 
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
     /*
      * work structures to defer IAPP processing to
      * non interrupt context

@@ -1622,14 +1622,14 @@ void PopulateDot11fWMMCaps(tDot11fIEWMMCaps *pCaps)
     pCaps->present       = 1;
 } // End PopulateDot11fWmmCaps.
 
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
 void PopulateDot11fReAssocTspec(tpAniSirGlobal pMac, tDot11fReAssocRequest *pReassoc, tpPESession psessionEntry)
 {
     tANI_U8 numTspecs = 0, idx;
     tTspecInfo *pTspec = NULL;
 
-    numTspecs = psessionEntry->pLimReAssocReq->ccxTspecInfo.numTspecs;
-    pTspec = &psessionEntry->pLimReAssocReq->ccxTspecInfo.tspec[0];
+    numTspecs = psessionEntry->pLimReAssocReq->eseTspecInfo.numTspecs;
+    pTspec = &psessionEntry->pLimReAssocReq->eseTspecInfo.tspec[0];
     pReassoc->num_WMMTSPEC = numTspecs;
     if (numTspecs) {
         for (idx=0; idx<numTspecs; idx++) {
@@ -2154,7 +2154,7 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
     }
 #endif
 
-#if defined FEATURE_WLAN_CCX
+#if defined FEATURE_WLAN_ESE
     if (pr->QBSSLoad.present)
     {
         vos_mem_copy(&pProbeResp->QBSSLoad, &pr->QBSSLoad, sizeof(tDot11fIEQBSSLoad));
@@ -2515,7 +2515,7 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
     }
 #endif
 
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
     if (ar.num_WMMTSPEC) {
         pAssocRsp->num_tspecs = ar.num_WMMTSPEC;
         for (cnt=0; cnt < ar.num_WMMTSPEC; cnt++) {
@@ -2525,11 +2525,11 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
         pAssocRsp->tspecPresent = TRUE;
     }
 
-    if(ar.CCXTrafStrmMet.present)
+    if(ar.ESETrafStrmMet.present)
     {
         pAssocRsp->tsmPresent = 1;
         vos_mem_copy(&pAssocRsp->tsmIE.tsid,
-                &ar.CCXTrafStrmMet.tsid,sizeof(tSirMacCCXTSMIE));
+                &ar.ESETrafStrmMet.tsid,sizeof(tSirMacESETSMIE));
     }
 #endif
 
@@ -2747,9 +2747,9 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
 } // End sirConvertReassocReqFrame2Struct.
 
 
-#if defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE_UPLOAD)
 tSirRetStatus
-sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
+sirFillBeaconMandatoryIEforEseBcnReport(tpAniSirGlobal   pMac,
                                         tANI_U8         *pPayload,
                                         const tANI_U32   nPayload,
                                         tANI_U8        **outIeBuf,
@@ -2758,7 +2758,7 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
     tDot11fBeaconIEs            *pBies = NULL;
     tANI_U32                    status = eHAL_STATUS_SUCCESS;
     tSirRetStatus               retStatus = eSIR_SUCCESS;
-    tSirCcxBcnReportMandatoryIe ccxBcnReportMandatoryIe;
+    tSirEseBcnReportMandatoryIe eseBcnReportMandatoryIe;
 
     /* To store how many bytes are required to be allocated
            for Bcn report mandatory Ies */
@@ -2766,7 +2766,7 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
     tANI_U8  *pos = NULL;
 
     // Zero-init our [out] parameter,
-    vos_mem_set( (tANI_U8*)&ccxBcnReportMandatoryIe, sizeof(ccxBcnReportMandatoryIe), 0 );
+    vos_mem_set( (tANI_U8*)&eseBcnReportMandatoryIe, sizeof(eseBcnReportMandatoryIe), 0 );
     pBies = vos_mem_malloc(sizeof(tDot11fBeaconIEs));
     if ( NULL == pBies )
         status = eHAL_STATUS_FAILURE;
@@ -2794,17 +2794,17 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
         PELOG2(sirDumpBuf(pMac, SIR_DBG_MODULE_ID, LOG2, pPayload, nPayload);)
     }
 
-    // & "transliterate" from a 'tDot11fBeaconIEs' to a 'ccxBcnReportMandatoryIe'...
+    // & "transliterate" from a 'tDot11fBeaconIEs' to a 'eseBcnReportMandatoryIe'...
     if ( !pBies->SSID.present )
     {
         PELOGW(limLog(pMac, LOGW, FL("Mandatory IE SSID not present!\n"));)
     }
     else
     {
-        ccxBcnReportMandatoryIe.ssidPresent = 1;
-        ConvertSSID( pMac, &ccxBcnReportMandatoryIe.ssId, &pBies->SSID );
+        eseBcnReportMandatoryIe.ssidPresent = 1;
+        ConvertSSID( pMac, &eseBcnReportMandatoryIe.ssId, &pBies->SSID );
         /* 1 for EID, 1 for length and length bytes */
-        numBytes += 1 + 1 + ccxBcnReportMandatoryIe.ssId.length;
+        numBytes += 1 + 1 + eseBcnReportMandatoryIe.ssId.length;
     }
 
     if ( !pBies->SuppRates.present )
@@ -2813,53 +2813,53 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
     }
     else
     {
-        ccxBcnReportMandatoryIe.suppRatesPresent = 1;
-        ConvertSuppRates( pMac, &ccxBcnReportMandatoryIe.supportedRates, &pBies->SuppRates );
-        numBytes += 1 + 1 + ccxBcnReportMandatoryIe.supportedRates.numRates;
+        eseBcnReportMandatoryIe.suppRatesPresent = 1;
+        ConvertSuppRates( pMac, &eseBcnReportMandatoryIe.supportedRates, &pBies->SuppRates );
+        numBytes += 1 + 1 + eseBcnReportMandatoryIe.supportedRates.numRates;
     }
 
     if ( pBies->FHParamSet.present)
     {
-        ccxBcnReportMandatoryIe.fhParamPresent = 1;
-        ConvertFHParams( pMac, &ccxBcnReportMandatoryIe.fhParamSet, &pBies->FHParamSet );
+        eseBcnReportMandatoryIe.fhParamPresent = 1;
+        ConvertFHParams( pMac, &eseBcnReportMandatoryIe.fhParamSet, &pBies->FHParamSet );
         numBytes += 1 + 1 + SIR_MAC_FH_PARAM_SET_EID_MAX;
     }
 
     if ( pBies->DSParams.present )
     {
-        ccxBcnReportMandatoryIe.dsParamsPresent = 1;
-        ccxBcnReportMandatoryIe.dsParamSet.channelNumber = pBies->DSParams.curr_channel;
+        eseBcnReportMandatoryIe.dsParamsPresent = 1;
+        eseBcnReportMandatoryIe.dsParamSet.channelNumber = pBies->DSParams.curr_channel;
         numBytes += 1 + 1 + SIR_MAC_DS_PARAM_SET_EID_MAX;
     }
 
     if ( pBies->CFParams.present )
     {
-        ccxBcnReportMandatoryIe.cfPresent = 1;
-        ConvertCFParams( pMac, &ccxBcnReportMandatoryIe.cfParamSet, &pBies->CFParams );
+        eseBcnReportMandatoryIe.cfPresent = 1;
+        ConvertCFParams( pMac, &eseBcnReportMandatoryIe.cfParamSet, &pBies->CFParams );
         numBytes += 1 + 1 + SIR_MAC_CF_PARAM_SET_EID_MAX;
     }
 
     if ( pBies->IBSSParams.present )
     {
-        ccxBcnReportMandatoryIe.ibssParamPresent = 1;
-        ccxBcnReportMandatoryIe.ibssParamSet.atim = pBies->IBSSParams.atim;
+        eseBcnReportMandatoryIe.ibssParamPresent = 1;
+        eseBcnReportMandatoryIe.ibssParamSet.atim = pBies->IBSSParams.atim;
         numBytes += 1 + 1 + SIR_MAC_IBSS_PARAM_SET_EID_MAX;
     }
 
     if ( pBies->TIM.present )
     {
-        ccxBcnReportMandatoryIe.timPresent = 1;
-        ccxBcnReportMandatoryIe.tim.dtimCount     = pBies->TIM.dtim_count;
-        ccxBcnReportMandatoryIe.tim.dtimPeriod    = pBies->TIM.dtim_period;
-        ccxBcnReportMandatoryIe.tim.bitmapControl = pBies->TIM.bmpctl;
-        /* As per the CCX spec, May truncate and report first 4 octets only */
+        eseBcnReportMandatoryIe.timPresent = 1;
+        eseBcnReportMandatoryIe.tim.dtimCount     = pBies->TIM.dtim_count;
+        eseBcnReportMandatoryIe.tim.dtimPeriod    = pBies->TIM.dtim_period;
+        eseBcnReportMandatoryIe.tim.bitmapControl = pBies->TIM.bmpctl;
+        /* As per the ESE spec, May truncate and report first 4 octets only */
         numBytes += 1 + 1 + SIR_MAC_TIM_EID_MIN;
     }
 
     if ( pBies->RRMEnabledCap.present )
     {
-        ccxBcnReportMandatoryIe.rrmPresent = 1;
-        vos_mem_copy( &ccxBcnReportMandatoryIe.rmEnabledCapabilities, &pBies->RRMEnabledCap, sizeof( tDot11fIERRMEnabledCap ) );
+        eseBcnReportMandatoryIe.rrmPresent = 1;
+        vos_mem_copy( &eseBcnReportMandatoryIe.rmEnabledCapabilities, &pBies->RRMEnabledCap, sizeof( tDot11fIERRMEnabledCap ) );
         numBytes += 1 + 1 + SIR_MAC_RM_ENABLED_CAPABILITY_EID_MAX;
     }
 
@@ -2876,9 +2876,9 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
 
     /* Start filling the output Ie with Mandatory IE information */
     /* Fill SSID IE */
-    if (ccxBcnReportMandatoryIe.ssidPresent)
+    if (eseBcnReportMandatoryIe.ssidPresent)
     {
-      if (freeBytes < (1 + 1 + ccxBcnReportMandatoryIe.ssId.length))
+      if (freeBytes < (1 + 1 + eseBcnReportMandatoryIe.ssId.length))
       {
         limLog(pMac, LOGP, FL("Insufficient memory to copy SSID"));
         retStatus = eSIR_FAILURE;
@@ -2886,19 +2886,19 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
       }
       *pos = SIR_MAC_SSID_EID;
       pos++;
-      *pos = ccxBcnReportMandatoryIe.ssId.length;
+      *pos = eseBcnReportMandatoryIe.ssId.length;
       pos++;
       vos_mem_copy(pos,
-                   (tANI_U8*)ccxBcnReportMandatoryIe.ssId.ssId,
-                   ccxBcnReportMandatoryIe.ssId.length);
-      pos += ccxBcnReportMandatoryIe.ssId.length;
-      freeBytes -= (1 + 1 + ccxBcnReportMandatoryIe.ssId.length);
+                   (tANI_U8*)eseBcnReportMandatoryIe.ssId.ssId,
+                   eseBcnReportMandatoryIe.ssId.length);
+      pos += eseBcnReportMandatoryIe.ssId.length;
+      freeBytes -= (1 + 1 + eseBcnReportMandatoryIe.ssId.length);
     }
 
     /* Fill Supported Rates IE */
-    if (ccxBcnReportMandatoryIe.suppRatesPresent)
+    if (eseBcnReportMandatoryIe.suppRatesPresent)
     {
-      if (freeBytes < (1 + 1 + ccxBcnReportMandatoryIe.supportedRates.numRates))
+      if (freeBytes < (1 + 1 + eseBcnReportMandatoryIe.supportedRates.numRates))
       {
         limLog(pMac, LOGP, FL("Insufficient memory to copy Rates IE"));
         retStatus = eSIR_FAILURE;
@@ -2906,17 +2906,17 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
       }
       *pos = SIR_MAC_RATESET_EID;
       pos++;
-      *pos = ccxBcnReportMandatoryIe.supportedRates.numRates;
+      *pos = eseBcnReportMandatoryIe.supportedRates.numRates;
       pos++;
       vos_mem_copy(pos,
-                   (tANI_U8*)ccxBcnReportMandatoryIe.supportedRates.rate,
-                   ccxBcnReportMandatoryIe.supportedRates.numRates);
-      pos += ccxBcnReportMandatoryIe.supportedRates.numRates;
-      freeBytes -= (1 + 1 + ccxBcnReportMandatoryIe.supportedRates.numRates);
+                   (tANI_U8*)eseBcnReportMandatoryIe.supportedRates.rate,
+                   eseBcnReportMandatoryIe.supportedRates.numRates);
+      pos += eseBcnReportMandatoryIe.supportedRates.numRates;
+      freeBytes -= (1 + 1 + eseBcnReportMandatoryIe.supportedRates.numRates);
     }
 
     /* Fill FH Parameter set IE */
-    if (ccxBcnReportMandatoryIe.fhParamPresent)
+    if (eseBcnReportMandatoryIe.fhParamPresent)
     {
       if (freeBytes < (1 + 1 + SIR_MAC_FH_PARAM_SET_EID_MAX))
       {
@@ -2929,14 +2929,14 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
       *pos = SIR_MAC_FH_PARAM_SET_EID_MAX;
       pos++;
       vos_mem_copy(pos,
-                   (tANI_U8*)&ccxBcnReportMandatoryIe.fhParamSet,
+                   (tANI_U8*)&eseBcnReportMandatoryIe.fhParamSet,
                    SIR_MAC_FH_PARAM_SET_EID_MAX);
       pos += SIR_MAC_FH_PARAM_SET_EID_MAX;
       freeBytes -= (1 + 1 + SIR_MAC_FH_PARAM_SET_EID_MAX);
     }
 
     /* Fill DS Parameter set IE */
-    if (ccxBcnReportMandatoryIe.dsParamsPresent)
+    if (eseBcnReportMandatoryIe.dsParamsPresent)
     {
        if (freeBytes < (1 + 1 + SIR_MAC_DS_PARAM_SET_EID_MAX))
        {
@@ -2948,13 +2948,13 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
        pos++;
        *pos = SIR_MAC_DS_PARAM_SET_EID_MAX;
        pos++;
-       *pos = ccxBcnReportMandatoryIe.dsParamSet.channelNumber;
+       *pos = eseBcnReportMandatoryIe.dsParamSet.channelNumber;
        pos += SIR_MAC_DS_PARAM_SET_EID_MAX;
        freeBytes -= (1 + 1 + SIR_MAC_DS_PARAM_SET_EID_MAX);
     }
 
     /* Fill CF Parameter set */
-    if (ccxBcnReportMandatoryIe.cfPresent)
+    if (eseBcnReportMandatoryIe.cfPresent)
     {
       if (freeBytes < (1 + 1 + SIR_MAC_CF_PARAM_SET_EID_MAX))
       {
@@ -2967,14 +2967,14 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
       *pos = SIR_MAC_CF_PARAM_SET_EID_MAX;
       pos++;
       vos_mem_copy(pos,
-                  (tANI_U8*)&ccxBcnReportMandatoryIe.cfParamSet,
+                  (tANI_U8*)&eseBcnReportMandatoryIe.cfParamSet,
                   SIR_MAC_CF_PARAM_SET_EID_MAX);
       pos += SIR_MAC_CF_PARAM_SET_EID_MAX;
       freeBytes -= (1 + 1 + SIR_MAC_CF_PARAM_SET_EID_MAX);
     }
 
     /* Fill IBSS Parameter set IE */
-    if (ccxBcnReportMandatoryIe.ibssParamPresent)
+    if (eseBcnReportMandatoryIe.ibssParamPresent)
     {
        if (freeBytes < (1 + 1 + SIR_MAC_IBSS_PARAM_SET_EID_MAX))
        {
@@ -2987,14 +2987,14 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
        *pos = SIR_MAC_IBSS_PARAM_SET_EID_MAX;
        pos++;
        vos_mem_copy(pos,
-                    (tANI_U8*)&ccxBcnReportMandatoryIe.ibssParamSet.atim,
+                    (tANI_U8*)&eseBcnReportMandatoryIe.ibssParamSet.atim,
                     SIR_MAC_IBSS_PARAM_SET_EID_MAX);
        pos += SIR_MAC_IBSS_PARAM_SET_EID_MAX;
        freeBytes -= (1 + 1 + SIR_MAC_IBSS_PARAM_SET_EID_MAX);
     }
 
     /* Fill TIM IE */
-    if (ccxBcnReportMandatoryIe.timPresent)
+    if (eseBcnReportMandatoryIe.timPresent)
     {
        if (freeBytes < (1 + 1 + SIR_MAC_TIM_EID_MIN))
        {
@@ -3007,14 +3007,14 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
        *pos = SIR_MAC_TIM_EID_MIN;
        pos++;
        vos_mem_copy(pos,
-                    (tANI_U8*)&ccxBcnReportMandatoryIe.tim,
+                    (tANI_U8*)&eseBcnReportMandatoryIe.tim,
                     SIR_MAC_TIM_EID_MIN);
        pos += SIR_MAC_TIM_EID_MIN;
        freeBytes -= (1 + 1 + SIR_MAC_TIM_EID_MIN);
     }
 
     /* Fill RM Capability IE */
-    if (ccxBcnReportMandatoryIe.rrmPresent)
+    if (eseBcnReportMandatoryIe.rrmPresent)
     {
       if (freeBytes < (1 + 1 + SIR_MAC_RM_ENABLED_CAPABILITY_EID_MAX))
       {
@@ -3027,7 +3027,7 @@ sirFillBeaconMandatoryIEforCcxBcnReport(tpAniSirGlobal   pMac,
       *pos = SIR_MAC_RM_ENABLED_CAPABILITY_EID_MAX;
       pos++;
       vos_mem_copy(pos,
-                   (tANI_U8*)&ccxBcnReportMandatoryIe.rmEnabledCapabilities,
+                   (tANI_U8*)&eseBcnReportMandatoryIe.rmEnabledCapabilities,
                    SIR_MAC_RM_ENABLED_CAPABILITY_EID_MAX);
       freeBytes -= (1 + 1 + SIR_MAC_RM_ENABLED_CAPABILITY_EID_MAX);
     }
@@ -3055,7 +3055,7 @@ err_bcnrep:
     return retStatus;
 }
 
-#endif /* FEATURE_WLAN_CCX_UPLOAD */
+#endif /* FEATURE_WLAN_ESE_UPLOAD */
 
 tSirRetStatus
 sirParseBeaconIE(tpAniSirGlobal        pMac,
@@ -3158,11 +3158,11 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
                       &pBies->PowerConstraints,
                       sizeof(tDot11fIEPowerConstraints));
     }
-#ifdef FEATURE_WLAN_CCX
-    if(pBies->CCXTxmitPower.present)
+#ifdef FEATURE_WLAN_ESE
+    if(pBies->ESETxmitPower.present)
     {
-        pBeaconStruct->ccxTxPwr.present = 1;
-        pBeaconStruct->ccxTxPwr.power_limit = pBies->CCXTxmitPower.power_limit;
+        pBeaconStruct->eseTxPwr.present = 1;
+        pBeaconStruct->eseTxPwr.power_limit = pBies->ESETxmitPower.power_limit;
     }
     if (pBies->QBSSLoad.present)
     {
@@ -3553,14 +3553,14 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     }
 #endif
 
-#ifdef FEATURE_WLAN_CCX
-    if (pBeacon->CCXTxmitPower.present)
+#ifdef FEATURE_WLAN_ESE
+    if (pBeacon->ESETxmitPower.present)
     {
-        /* copy CCX TPC info element */
-        pBeaconStruct->ccxTxPwr.present = 1;
-        vos_mem_copy( &pBeaconStruct->ccxTxPwr,
-                      &pBeacon->CCXTxmitPower,
-                      sizeof(tDot11fIECCXTxmitPower));
+        /* copy ESE TPC info element */
+        pBeaconStruct->eseTxPwr.present = 1;
+        vos_mem_copy( &pBeaconStruct->eseTxPwr,
+                      &pBeacon->ESETxmitPower,
+                      sizeof(tDot11fIEESETxmitPower));
     }
     if (pBeacon->QBSSLoad.present)
     {
@@ -3903,12 +3903,12 @@ sirConvertAddtsRsp2Struct(tpAniSirGlobal    pMac,
             pAddTs->tclasProcPresent = 1;
             pAddTs->tclasProc = addts.TCLASSPROC.processing;
         }
-#ifdef FEATURE_WLAN_CCX
-        if(addts.CCXTrafStrmMet.present)
+#ifdef FEATURE_WLAN_ESE
+        if(addts.ESETrafStrmMet.present)
         {
             pAddTs->tsmPresent = 1;
             vos_mem_copy(&pAddTs->tsmIE.tsid,
-                      &addts.CCXTrafStrmMet.tsid,sizeof(tSirMacCCXTSMIE));
+                      &addts.ESETrafStrmMet.tsid,sizeof(tSirMacESETSMIE));
         }
 #endif
         if ( addts.Schedule.present )
@@ -3973,12 +3973,12 @@ sirConvertAddtsRsp2Struct(tpAniSirGlobal    pMac,
             return eSIR_FAILURE;
         }
 
-#ifdef FEATURE_WLAN_CCX
-        if(wmmaddts.CCXTrafStrmMet.present)
+#ifdef FEATURE_WLAN_ESE
+        if(wmmaddts.ESETrafStrmMet.present)
         {
             pAddTs->tsmPresent = 1;
             vos_mem_copy(&pAddTs->tsmIE.tsid,
-                         &wmmaddts.CCXTrafStrmMet.tsid,sizeof(tSirMacCCXTSMIE));
+                         &wmmaddts.ESETrafStrmMet.tsid,sizeof(tSirMacESETSMIE));
         }
 #endif
 
@@ -4269,32 +4269,32 @@ PopulateDot11fWMMTSPEC(tSirMacTspecIE     *pOld,
 
 } // End PopulateDot11fWMMTSPEC.
 
-#if defined(FEATURE_WLAN_CCX)
-// Fill the CCX version currently supported
-void PopulateDot11fCCXVersion(tDot11fIECCXVersion *pCCXVersion)
+#if defined(FEATURE_WLAN_ESE)
+// Fill the ESE version currently supported
+void PopulateDot11fESEVersion(tDot11fIEESEVersion *pESEVersion)
 {
-    pCCXVersion->present = 1;
-    pCCXVersion->version = CCX_VERSION_SUPPORTED;
+    pESEVersion->present = 1;
+    pESEVersion->version = ESE_VERSION_SUPPORTED;
 }
-// Fill the CCX ie for the station.
+// Fill the ESE ie for the station.
 // The State is Normal (1)
 // The MBSSID for station is set to 0.
-void PopulateDot11fCCXRadMgmtCap(tDot11fIECCXRadMgmtCap *pCCXRadMgmtCap)
+void PopulateDot11fESERadMgmtCap(tDot11fIEESERadMgmtCap *pESERadMgmtCap)
 {
-    pCCXRadMgmtCap->present = 1;
-    pCCXRadMgmtCap->mgmt_state = RM_STATE_NORMAL;
-    pCCXRadMgmtCap->mbssid_mask = 0;
-    pCCXRadMgmtCap->reserved = 0;
+    pESERadMgmtCap->present = 1;
+    pESERadMgmtCap->mgmt_state = RM_STATE_NORMAL;
+    pESERadMgmtCap->mbssid_mask = 0;
+    pESERadMgmtCap->reserved = 0;
 }
-tSirRetStatus PopulateDot11fCCXCckmOpaque( tpAniSirGlobal pMac,
+tSirRetStatus PopulateDot11fESECckmOpaque( tpAniSirGlobal pMac,
                                            tpSirCCKMie    pCCKMie,
-                                           tDot11fIECCXCckmOpaque *pDot11f )
+                                           tDot11fIEESECckmOpaque *pDot11f )
 {
     int idx;
     if ( pCCKMie->length )
     {
         if( 0 <= ( idx = FindIELocation( pMac, (tpSirRSNie)pCCKMie,
-                                         DOT11F_EID_CCXCCKMOPAQUE ) ) )
+                                         DOT11F_EID_ESECCKMOPAQUE ) ) )
         {
             pDot11f->present  = 1;
             // Dont include OUI
@@ -4305,11 +4305,11 @@ tSirRetStatus PopulateDot11fCCXCckmOpaque( tpAniSirGlobal pMac,
         }
     }
     return eSIR_SUCCESS;
-} // End PopulateDot11fCCXCckmOpaque.
+} // End PopulateDot11fESECckmOpaque.
 
 void PopulateDot11TSRSIE(tpAniSirGlobal  pMac,
-                               tSirMacCCXTSRSIE     *pOld,
-                               tDot11fIECCXTrafStrmRateSet  *pDot11f,
+                               tSirMacESETSRSIE     *pOld,
+                               tDot11fIEESETrafStrmRateSet  *pDot11f,
                                tANI_U8 rate_length)
 {
     pDot11f->tsid = pOld->tsid;

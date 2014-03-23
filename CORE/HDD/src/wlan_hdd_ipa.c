@@ -912,13 +912,26 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 {
 	int i, ret = 0;
 	struct ipa_sys_connect_params *ipa;
+	uint32_t desc_fifo_sz;
+
+	/* The maximum number of descriptors that can be provided to a BAM at
+	 * once is one less than the total number of descriptors that the buffer
+	 * can contain.
+	 * If max_num_of_descriptors = (BAM_PIPE_DESCRIPTOR_FIFO_SIZE / sizeof
+	 * (SPS_DESCRIPTOR)), then (max_num_of_descriptors - 1) descriptors can
+	 * be provided at once.
+	 * Because of above requirement, one extra descriptor will be added to
+	 * make sure hardware always has one descriptor.
+	 */
+	desc_fifo_sz = hdd_ipa->hdd_ctx->cfg_ini->IpaDescSize
+                        + sizeof(struct sps_iovec);
 
 	/*setup TX pipes */
 	for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
 		ipa = &hdd_ipa->sys_pipe[i].ipa_sys_params;
 
 		ipa->client = hdd_ipa_adapter_2_client[i].cons_client;
-		ipa->desc_fifo_sz = hdd_ipa->hdd_ctx->cfg_ini->IpaDescSize;
+		ipa->desc_fifo_sz = desc_fifo_sz;
 		ipa->priv = &hdd_ipa->iface_context[i];
 		ipa->notify = hdd_ipa_i2w_cb;
 
@@ -944,17 +957,7 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 
 	ipa->client = hdd_ipa->prod_client;
 
-	/* The maximum number of descriptors that can be provided to a BAM at
-	 * once is one less than the total number of descriptors that the buffer
-	 * can contain.
-	 * If max_num_of_descriptors = (BAM_PIPE_DESCRIPTOR_FIFO_SIZE / sizeof
-	 * (SPS_DESCRIPTOR)), then (max_num_of_descriptors - 1) descriptors can
-	 * be provided at once.
-	 * Because of above requirement, one extra descriptor will be added to
-	 * make sure hardware always has one descriptor.
-	 */
-	ipa->desc_fifo_sz = hdd_ipa->hdd_ctx->cfg_ini->IpaDescSize
-		+ sizeof(struct sps_iovec);
+	ipa->desc_fifo_sz = desc_fifo_sz;
 	ipa->priv = hdd_ipa;
 	ipa->notify = hdd_ipa_w2i_cb;
 

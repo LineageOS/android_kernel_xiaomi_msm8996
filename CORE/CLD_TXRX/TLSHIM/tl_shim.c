@@ -57,7 +57,7 @@
 #define TLSHIM_LOGP(args...) \
 	VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL, ## args)
 
-#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
 
 /************************/
 /*   Internal defines   */
@@ -186,7 +186,7 @@ tlshim_mgmt_over_data_rx_handler(struct work_struct *ptr_work)
         * if not native wifi populate: copy just part after 802.11 hdr
         * i.e. part starting from snap header
         */
-        tpCcxIappHdr iapp_hdr_ptr = (tpCcxIappHdr)&data[ETHERNET_HDR_LEN];
+        tpEseIappHdr iapp_hdr_ptr = (tpEseIappHdr)&data[ETHERNET_HDR_LEN];
         u_int8_t *snap_hdr_ptr = &(((u_int8_t*)wh)[SIZEOF_80211_HDR]);
         tpSirMacFrameCtl ptr_80211_FC = (tpSirMacFrameCtl)&wh->i_fc;
         ptr_80211_FC->protVer = SIR_MAC_PROTOCOL_VERSION;
@@ -318,7 +318,7 @@ tlshim_check_n_process_iapp_frame (pVosContextType pVosGCtx,
     /* if returned false the packet will be handled by the upper layer */
     return false;
 }
-#endif /* defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD) */
+#endif /* defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD) */
 
 
 #ifdef QCA_WIFI_ISOC
@@ -751,7 +751,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 {
 	struct txrx_tl_shim_ctx *tl_shim;
 #if defined(IPA_OFFLOAD) || \
-    (defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD))
+    (defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD))
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, context);
 #endif
 	struct tlshim_sta_info *sta_info;
@@ -813,7 +813,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 		if (ret == VOS_STATUS_E_INVAL) {
 #endif
 
-#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
 			/*
 			 * in case following returns true, a defered task was created
 			 * inside function, which does following:
@@ -1609,7 +1609,7 @@ VOS_STATUS WLANTL_Close(void *vos_ctx)
 		return VOS_STATUS_E_FAILURE;
 	}
 
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
 	vos_flush_work(&tl_shim->iapp_work.deferred_work);
 #endif
 	vos_flush_work(&tl_shim->cache_flush_work);
@@ -1664,7 +1664,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 	}
 
 	INIT_WORK(&tl_shim->cache_flush_work, tl_shim_cache_flush_work);
-#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
     INIT_WORK(&(tl_shim->iapp_work.deferred_work),
         tlshim_mgmt_over_data_rx_handler);
 #endif

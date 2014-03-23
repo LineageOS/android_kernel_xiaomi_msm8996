@@ -42,6 +42,23 @@
 
 typedef adf_nbuf_t wmi_buf_t;
 
+#ifdef WMI_INTERFACE_EVENT_LOGGING
+
+#define WMI_EVENT_DEBUG_MAX_ENTRY (1024)
+
+struct wmi_command_debug{
+	u_int32_t command;
+	unsigned long time;
+};
+
+struct wmi_event_debug{
+	u_int32_t event;
+	unsigned long time;
+};
+
+#endif /*WMI_INTERFACE_EVENT_LOGGING*/
+
+
 #ifdef WLAN_OPEN_SOURCE
 struct fwdebug {
        struct sk_buff_head fwlog_queue;
@@ -67,5 +84,11 @@ struct wmi_unified {
        struct fwdebug dbglog;
        struct dentry *debugfs_phy;
 #endif /* WLAN_OPEN_SOURCE */
+
+#ifdef WMI_INTERFACE_EVENT_LOGGING
+	adf_os_spinlock_t wmi_cmd_record_lock;
+	adf_os_spinlock_t wmi_event_record_lock;
+#endif /*WMI_INTERFACE_EVENT_LOGGING*/
+
 };
 #endif
