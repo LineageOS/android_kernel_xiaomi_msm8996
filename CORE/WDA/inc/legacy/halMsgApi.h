@@ -1033,7 +1033,7 @@ typedef struct
   tSirMacTspecIE   tspec;
   eHalStatus       status;
   tANI_U8          sessionId;          //PE session id for PE<->HAL interface
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
   tANI_U16         tsm_interval; // TSM interval period passed from lim to wda
 #endif
 } tAddTsParams, *tpAddTsParams;
@@ -1334,7 +1334,7 @@ typedef struct sEnterBmpsParams
     //if association is based on ProbeRsp instead of beacon.
     tANI_U8 dtimPeriod;
 
-    // For CCX and 11R Roaming
+    // For ESE and 11R Roaming
     tANI_U8  bRssiFilterEnable;
     tANI_U32 rssiFilterPeriod;
     tANI_U32 numBeaconPerRssiAverage;

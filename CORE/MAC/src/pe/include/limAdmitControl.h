@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012,2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -95,7 +95,7 @@ limUpdateAdmitPolicy(
     tpAniSirGlobal    pMac);
 
 tSirRetStatus limAdmitControlInit(tpAniSirGlobal pMac);
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
 tSirRetStatus limSendHalMsgAddTs(tpAniSirGlobal pMac,
                                  tANI_U16 staIdx,
                                  tANI_U8 tspecIdx,

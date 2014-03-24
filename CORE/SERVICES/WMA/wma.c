@@ -4754,7 +4754,7 @@ A_UINT32 eCsrAuthType_to_rsn_authmode (eCsrAuthType authtype, eCsrEncryptionType
         case    eCSR_AUTH_TYPE_WAPI_WAI_PSK:
             return(WMI_AUTH_WAPI_PSK);
 #endif
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
         case    eCSR_AUTH_TYPE_CCKM_WPA:
         case    eCSR_AUTH_TYPE_CCKM_RSN:
             return (WMI_AUTH_CCKM);
@@ -11469,7 +11469,7 @@ static void wma_config_pno(tp_wma_handle wma, tpSirPNOScanReq pno)
 	vos_mem_free(pno);
 }
 
-#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 static VOS_STATUS wma_plm_start(tp_wma_handle wma, const tpSirPlmReq plm)
 {
 	wmi_vdev_plmreq_start_cmd_fixed_param *cmd;
@@ -13197,7 +13197,7 @@ out:
 }
 #endif /* FEATURE_OEM_DATA_SUPPORT */
 
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
 
 #define TSM_DELAY_HISTROGRAM_BINS 4
 /*
@@ -13217,7 +13217,7 @@ VOS_STATUS wma_process_tsm_stats_req(tp_wma_handle wma_handler,
     u_int16_t packet_count = 0;
     u_int16_t packet_loss_count = 0;
     tpAniTrafStrmMetrics pTsmMetric = NULL;
-#ifdef FEATURE_WLAN_CCX_UPLOAD
+#ifdef FEATURE_WLAN_ESE_UPLOAD
     tpAniGetTsmStatsReq pStats = (tpAniGetTsmStatsReq)pTsmStatsMsg;
     tpAniGetTsmStatsRsp pTsmRspParams = NULL;
 #else
@@ -13244,7 +13244,7 @@ VOS_STATUS wma_process_tsm_stats_req(tp_wma_handle wma_handler,
     ol_tx_delay_hist(pdev, bin_values, tid);
     ol_tx_packet_count(pdev, &packet_count, &packet_loss_count, tid );
 
-#ifdef FEATURE_WLAN_CCX_UPLOAD
+#ifdef FEATURE_WLAN_ESE_UPLOAD
     pTsmRspParams =
     (tpAniGetTsmStatsRsp)vos_mem_malloc(sizeof(tAniGetTsmStatsRsp));
     if(NULL == pTsmRspParams)
@@ -13278,7 +13278,7 @@ VOS_STATUS wma_process_tsm_stats_req(tp_wma_handle wma_handler,
      * being populated just before sending IAPP frame out
      */
     /* post this message to LIM/PE */
-#ifdef FEATURE_WLAN_CCX_UPLOAD
+#ifdef FEATURE_WLAN_ESE_UPLOAD
     wma_send_msg(wma_handler, WDA_TSM_STATS_RSP, (void *)pTsmRspParams , 0) ;
 #else
     wma_send_msg(wma_handler, WDA_TSM_STATS_RSP, (void *)pTsmStatsMsg , 0) ;
@@ -13286,7 +13286,7 @@ VOS_STATUS wma_process_tsm_stats_req(tp_wma_handle wma_handler,
     return VOS_STATUS_SUCCESS;
 }
 
-#endif /* FEATURE_WLAN_CCX */
+#endif /* FEATURE_WLAN_ESE */
 
 static void wma_del_ts_req(tp_wma_handle wma, tDelTsParams *msg)
 {
@@ -13380,7 +13380,7 @@ static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 	wmi_buf_t buf;
 	int32_t len = sizeof(*cmd);
 
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
 	/*
 	 * msmt_interval is in unit called TU (1 TU = 1024 us)
 	 * max value of msmt_interval cannot make resulting
@@ -15257,7 +15257,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 	}
 
 	switch (msg->type) {
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
         case WDA_TSM_STATS_REQ:
             WMA_LOGA("McThread: WDA_TSM_STATS_REQ");
             wma_process_tsm_stats_req(wma_handle, (void*)msg->bodyptr);
@@ -15399,7 +15399,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_scan_cache_updated_ind(wma_handle);
 			break;
 #endif
-#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
+#if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 		case WDA_SET_PLM_REQ:
 			wma_config_plm(wma_handle,
 					(tpSirPlmReq)msg->bodyptr);

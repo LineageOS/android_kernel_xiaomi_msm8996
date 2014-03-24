@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -59,8 +59,8 @@
 #endif
 #include "limSessionUtils.h"
 
-#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
-#include "ccxApi.h"
+#if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
+#include "eseApi.h"
 #endif
 #include "wlan_qct_wda.h"
 
@@ -709,18 +709,18 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
 
         return;
     }
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
     if (addts.tsmPresent) {
         limLog(pMac, LOGW, "TSM IE Present");
-        psessionEntry->ccxContext.tsm.tid = addts.tspec.tsinfo.traffic.userPrio;
-        vos_mem_copy(&psessionEntry->ccxContext.tsm.tsmInfo,
-                                         &addts.tsmIE,sizeof(tSirMacCCXTSMIE));
-#ifdef FEATURE_WLAN_CCX_UPLOAD
+        psessionEntry->eseContext.tsm.tid = addts.tspec.tsinfo.traffic.userPrio;
+        vos_mem_copy(&psessionEntry->eseContext.tsm.tsmInfo,
+                                         &addts.tsmIE,sizeof(tSirMacESETSMIE));
+#ifdef FEATURE_WLAN_ESE_UPLOAD
         limSendSmeTsmIEInd(pMac, psessionEntry, addts.tsmIE.tsid,
                            addts.tsmIE.state, addts.tsmIE.msmt_interval);
 #else
         limActivateTSMStatsTimer(pMac, psessionEntry);
-#endif /* FEATURE_WLAN_CCX_UPLOAD */
+#endif /* FEATURE_WLAN_ESE_UPLOAD */
     }
 #endif
     /* Since AddTS response was successful, check for the PSB flag
@@ -820,7 +820,7 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
     if((addts.tspec.tsinfo.traffic.accessPolicy != SIR_MAC_ACCESSPOLICY_EDCA) ||
        ((upToAc(addts.tspec.tsinfo.traffic.userPrio) < MAX_NUM_AC)))
     {
-#ifdef FEATURE_WLAN_CCX
+#ifdef FEATURE_WLAN_ESE
         retval = limSendHalMsgAddTs(pMac,
                                     pSta->staIndex,
                                     tspecInfo->idx,
@@ -1060,12 +1060,12 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
 
     PELOG1(limLog(pMac, LOG1, FL("DeleteTS succeeded"));)
 
-#ifdef FEATURE_WLAN_CCX
-#ifdef FEATURE_WLAN_CCX_UPLOAD
+#ifdef FEATURE_WLAN_ESE
+#ifdef FEATURE_WLAN_ESE_UPLOAD
     limSendSmeTsmIEInd(pMac, psessionEntry, 0, 0, 0);
 #else
     limDeactivateAndChangeTimer(pMac,eLIM_TSM_TIMER);
-#endif /* FEATURE_WLAN_CCX_UPLOAD */
+#endif /* FEATURE_WLAN_ESE_UPLOAD */
 #endif
 
 }
@@ -2307,7 +2307,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         }
         break;
 #endif
-#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
         case SIR_MAC_ACTION_VENDOR_SPECIFIC_CATEGORY:
             {
               tpSirMacVendorSpecificFrameHdr pVendorSpecific = (tpSirMacVendorSpecificFrameHdr) pActionHdr;
@@ -2345,7 +2345,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
               }
            }
            break;
-#endif /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_CCX ||
+#endif /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_ESE ||
           FEATURE_WLAN_LFR */
     case SIR_MAC_ACTION_PUBLIC_USAGE:
         switch(pActionHdr->actionID) {

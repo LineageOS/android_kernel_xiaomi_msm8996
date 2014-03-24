@@ -51,6 +51,36 @@
 #define WMI_EMPTY_HTC_QUEUE_MAX_RETRY 40
 #define WMI_SLEEP_TO_FLUSH_HTC_QUEUE 40
 
+#ifdef WMI_INTERFACE_EVENT_LOGGING
+
+u_int32_t g_wmi_command_buf_idx = 0;
+struct wmi_command_debug wmi_command_log_buffer[WMI_EVENT_DEBUG_MAX_ENTRY];
+
+
+u_int32_t g_wmi_event_buf_idx = 0;
+struct wmi_event_debug wmi_event_log_buffer[WMI_EVENT_DEBUG_MAX_ENTRY];
+
+#define WMI_COMMAND_RECORD(a) {						\
+	if (WMI_EVENT_DEBUG_MAX_ENTRY <= g_wmi_command_buf_idx)		\
+		g_wmi_command_buf_idx = 0;				\
+	wmi_command_log_buffer[g_wmi_command_buf_idx].command = a;	\
+	wmi_command_log_buffer[g_wmi_command_buf_idx].time =		\
+						 adf_os_ticks();	\
+	g_wmi_command_buf_idx++;					\
+}
+
+#define WMI_EVENT_RECORD(a) {						\
+	if (WMI_EVENT_DEBUG_MAX_ENTRY <= g_wmi_event_buf_idx)		\
+		g_wmi_event_buf_idx = 0;				\
+	wmi_event_log_buffer[g_wmi_event_buf_idx].event = a;		\
+	wmi_event_log_buffer[g_wmi_event_buf_idx].time =		\
+						adf_os_ticks();		\
+	g_wmi_event_buf_idx++;						\
+}
+
+#endif /*WMI_INTERFACE_EVENT_LOGGING*/
+
+
 static void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf);
 int wmi_get_host_credits(wmi_unified_t wmi_handle);
 /* WMI buffer APIs */
@@ -561,6 +591,13 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 
 	WMA_LOGD("Send WMI command:%s command_id:%d",
 			get_wmi_cmd_string(cmd_id), cmd_id);
+
+#ifdef WMI_INTERFACE_EVENT_LOGGING
+	adf_os_spin_lock_bh(&wmi_handle->wmi_cmd_record_lock);
+	WMI_COMMAND_RECORD(cmd_id);
+	adf_os_spin_unlock_bh(&wmi_handle->wmi_cmd_record_lock);
+#endif
+
 	status = HTCSendPkt(wmi_handle->htc_handle, pkt);
 
 	if (A_OK != status) {
@@ -727,6 +764,11 @@ void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 			goto end;
 		}
 
+#ifdef WMI_INTERFACE_EVENT_LOGGING
+		adf_os_spin_lock_bh(&wmi_handle->wmi_event_record_lock);
+		WMI_EVENT_RECORD(id);
+		adf_os_spin_unlock_bh(&wmi_handle->wmi_event_record_lock);
+#endif
 		/* Call the WMI registered event handler */
 		wmi_handle->event_handler[idx](wmi_handle->scn_handle,
 					       wmi_cmd_struct_ptr, len);
@@ -789,6 +831,10 @@ wmi_unified_attach(ol_scn_t scn_handle)
     adf_os_spinlock_init(&wmi_handle->eventq_lock);
     adf_nbuf_queue_init(&wmi_handle->event_queue);
     INIT_WORK(&wmi_handle->rx_event_work, wmi_rx_event_work);
+#endif
+#ifdef WMI_INTERFACE_EVENT_LOGGING
+    adf_os_spinlock_init(&wmi_handle->wmi_cmd_record_lock);
+    adf_os_spinlock_init(&wmi_handle->wmi_event_record_lock);
 #endif
     return wmi_handle;
 }
