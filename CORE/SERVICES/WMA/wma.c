@@ -15602,6 +15602,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_DHCP_STOP_IND:
 			wma_process_dhcp_ind(wma_handle,
 				(tAniDHCPInd *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 
 	    case WDA_INIT_THERMAL_INFO_CMD:
