@@ -7543,6 +7543,9 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_VDEV_PARAM_EARLY_RX_ADJUST_PAUSE:
 			intr[vid].config.erx_adj_pause = privcmd->param_value;
 			break;
+		case WMI_VDEV_PARAM_EARLY_RX_DRIFT_SAMPLE:
+			intr[vid].config.erx_dri_sample = privcmd->param_value;
+			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set vdev command/Not"
 				" yet implemented 0x%x", privcmd->param_id);

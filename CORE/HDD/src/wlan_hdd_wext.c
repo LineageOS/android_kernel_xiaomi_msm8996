@@ -240,6 +240,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_EARLY_RX_INIT_SLOP             79
 #define WE_SET_EARLY_RX_ADJUST_PAUSE          80
 #define WE_SET_MC_RATE                        81
+#define WE_SET_EARLY_RX_DRIFT_SAMPLE          82
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -5790,6 +5791,14 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
               ret = -EINVAL;
             break;
        }
+       case WE_SET_EARLY_RX_DRIFT_SAMPLE:
+       {
+            hddLog(LOG1, "SET early_rx drift sample %d", set_value);
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                            (int)WMI_VDEV_PARAM_EARLY_RX_DRIFT_SAMPLE,
+                            set_value, VDEV_CMD);
+            break;
+       }
 #endif
         default:
         {
@@ -10073,6 +10082,10 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_EARLY_RX_ADJUST_PAUSE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "erx_adj_pause" },
+
+    {   WE_SET_EARLY_RX_DRIFT_SAMPLE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "erx_dri_sample" },
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
