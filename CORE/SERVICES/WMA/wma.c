@@ -6733,7 +6733,6 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		default:
 			break;
 	}
-	cmd->peer_flags |= WMI_PEER_AUTH;
 	if (params->wpa_rsn
 #ifdef FEATURE_WLAN_WAPI
 	    || params->encryptType == eSIR_ED_WPI
