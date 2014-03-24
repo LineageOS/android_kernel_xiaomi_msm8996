@@ -1180,13 +1180,6 @@ void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter)
     sme_RegisterMgmtFrame(hHal, HDD_SESSION_ID_ANY, type,
                          (v_U8_t*)WNM_BSS_ACTION_FRAME,
                                   WNM_BSS_ACTION_FRAME_SIZE );
-
-#ifdef WLAN_FEATURE_11W
-    /* SA Query Response Action Frame */
-    sme_RegisterMgmtFrame(hHal, HDD_SESSION_ID_ANY, type,
-                         (v_U8_t*)SA_QUERY_FRAME_RSP,
-                                  SA_QUERY_FRAME_RSP_SIZE );
-#endif /* WLAN_FEATURE_11W */
 }
 
 void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter)
@@ -2093,6 +2086,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     hdd_config_t *iniConfig;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
     tSmeConfigParams *psmeConfig;
+    v_BOOL_t MFPCapable;
+    v_BOOL_t MFPRequired;
 
     ENTER();
 
@@ -2241,6 +2236,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                         &RSNEncryptType,
                         &mcRSNEncryptType,
                         &RSNAuthType,
+                        &MFPCapable,
+                        &MFPRequired,
                         pConfig->pRSNWPAReqIE[1]+2,
                         pConfig->pRSNWPAReqIE );
 
@@ -2280,6 +2277,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                           &RSNEncryptType,
                           &mcRSNEncryptType,
                           &RSNAuthType,
+                          &MFPCapable,
+                          &MFPRequired,
                           pConfig->pRSNWPAReqIE[1]+2,
                           pConfig->pRSNWPAReqIE );
 
@@ -2465,6 +2464,13 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     //Enable OBSS protection
     pConfig->obssProtEnabled =
            (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apOBSSProtEnabled;
+
+#ifdef WLAN_FEATURE_11W
+    pConfig->mfpCapable = MFPCapable;
+    pConfig->mfpRequired = MFPRequired;
+    hddLog(LOG1, FL("Soft AP MFP capable %d, MFP required %d\n"),
+           pConfig->mfpCapable, pConfig->mfpRequired);
+#endif
 
     hddLog(LOGW, FL("SOftAP macaddress : "MAC_ADDRESS_STR),
                  MAC_ADDR_ARRAY(pHostapdAdapter->macAddressCurrent.bytes));
