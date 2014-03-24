@@ -936,6 +936,20 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 #ifndef QCA_WIFI_ISOC
 		struct beacon_info *bcn;
 #endif
+		if (resp_event->vdev_id > wma->max_bssid) {
+			WMA_LOGE("%s: Invalid vdev_id %d", __func__,
+				resp_event->vdev_id);
+			return -EINVAL;
+		}
+
+		iface = &wma->interfaces[resp_event->vdev_id];
+		if (WMA_BSS_STATUS_STOPPED ==
+					adf_os_atomic_read(&iface->bss_status)){
+			WMA_LOGE("%s: vdev_id %d is already stopped", __func__,
+				resp_event->vdev_id);
+			return -EINVAL;
+		}
+
 		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
 		if (!peer)
 			WMA_LOGD("%s Failed to find peer %pM",
@@ -948,11 +962,9 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		} else {
 			wma->interfaces[resp_event->vdev_id].vdev_up = FALSE;
 		}
-		iface = &wma->interfaces[resp_event->vdev_id];
 		ol_txrx_vdev_flush(iface->handle);
 		wdi_in_vdev_unpause(iface->handle);
 		iface->pause_bitmap = 0;
-		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
 			 __func__, iface->type, iface->sub_type);
 #ifndef QCA_WIFI_ISOC
@@ -986,6 +998,7 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 			WMA_LOGD("%s: scheduling defered deletion", __func__);
 			wma_vdev_detach(wma, iface->del_staself_req, 1);
 		}
+		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 	}
 	vos_timer_destroy(&req_msg->event_timeout);
 	adf_os_mem_free(req_msg);
@@ -6039,7 +6052,25 @@ void wma_vdev_resp_timer(void *data)
 	} else if (tgt_req->msg_type == WDA_DELETE_BSS_REQ) {
 		tpDeleteBssParams params =
 			(tpDeleteBssParams)tgt_req->user_data;
-		struct wma_txrx_node *iface = &wma->interfaces[tgt_req->vdev_id];
+#ifndef QCA_WIFI_ISOC
+		struct beacon_info *bcn;
+#endif
+		struct wma_txrx_node *iface;
+
+		if (tgt_req->vdev_id > wma->max_bssid) {
+			WMA_LOGE("%s: Invalid vdev_id %d", __func__,
+				tgt_req->vdev_id);
+			return;
+		}
+
+		iface = &wma->interfaces[tgt_req->vdev_id];
+		if (WMA_BSS_STATUS_STOPPED ==
+					adf_os_atomic_read(&iface->bss_status)){
+			WMA_LOGE("%s: vdev_id %d is already stopped", __func__,
+				tgt_req->vdev_id);
+			return;
+		}
+
 		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
 		wma_remove_peer(wma, params->bssid, tgt_req->vdev_id, peer);
 		if (wmi_unified_vdev_down_send(wma->wmi_handle, tgt_req->vdev_id) < 0) {
@@ -6051,9 +6082,25 @@ void wma_vdev_resp_timer(void *data)
 		ol_txrx_vdev_flush(iface->handle);
 		wdi_in_vdev_unpause(iface->handle);
 		iface->pause_bitmap = 0;
-		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
 			 __func__, iface->type, iface->sub_type);
+
+#ifndef QCA_WIFI_ISOC
+		bcn = wma->interfaces[tgt_req->vdev_id].beacon;
+
+		if (bcn) {
+			WMA_LOGD("%s: Freeing beacon struct %p, "
+				 "template memory %p", __func__,
+				 bcn, bcn->buf);
+			if (bcn->dma_mapped)
+				adf_nbuf_unmap_single(pdev->osdev, bcn->buf,
+						      ADF_OS_DMA_TO_DEVICE);
+			adf_nbuf_free(bcn->buf);
+			vos_mem_free(bcn);
+			wma->interfaces[tgt_req->vdev_id].beacon = NULL;
+		}
+#endif
+
 #ifdef QCA_IBSS_SUPPORT
 		if (wma_is_vdev_in_ibss_mode(wma, params->sessionId)) {
 			del_sta_param.sessionId   = params->sessionId;
@@ -6069,6 +6116,7 @@ void wma_vdev_resp_timer(void *data)
 			WMA_LOGD("%s: scheduling defered deletion", __func__);
 			wma_vdev_detach(wma, iface->del_staself_req, 1);
 		}
+		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 	} else if (tgt_req->msg_type == WDA_DEL_STA_SELF_REQ) {
 		struct wma_txrx_node *iface =
 			(struct wma_txrx_node *)tgt_req->user_data;
