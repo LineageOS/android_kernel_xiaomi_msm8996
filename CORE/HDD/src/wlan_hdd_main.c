@@ -7253,6 +7253,22 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    if (!pHddCtx->cfg_ini->enable2x2)
    {
       int ret;
+#define HDD_DTIM_1CHAIN_RX_ID 0x5
+#define HDD_SMPS_PARAM_VALUE_S 29
+
+      /* Disable DTIM 1 chain Rx when in 1x1, we are passing two values as
+         param_id << 29 | param_value. Below param_value = 0(disable) */
+      ret = process_wma_set_command((int)pAdapter->sessionId,
+                             (int)WMI_STA_SMPS_PARAM_CMDID,
+                             HDD_DTIM_1CHAIN_RX_ID << HDD_SMPS_PARAM_VALUE_S,
+                             VDEV_CMD);
+
+      if (ret != 0)
+      {
+         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: DTIM 1 chain set failed %d", __func__, ret);
+         goto err_free_netdev;
+      }
+
       ret = process_wma_set_command((int)pAdapter->sessionId,
                                     (int)WMI_PDEV_PARAM_TX_CHAIN_MASK,
                                     (int)pHddCtx->cfg_ini->txchainmask1x1,
@@ -7273,6 +7289,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                                       " failed %d", __func__, ret);
          goto err_free_netdev;
       }
+#undef HDD_DTIM_1CHAIN_RX_ID
+#undef HDD_SMPS_PARAM_VALUE_S
    }
 #endif
 
