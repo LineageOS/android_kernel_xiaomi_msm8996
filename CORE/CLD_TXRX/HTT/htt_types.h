@@ -166,6 +166,13 @@ struct htt_pdev_t {
          * to replenish Rx ring.
          */
         adf_os_atomic_t refill_ref_cnt;
+#ifdef DEBUG_DMA_DONE
+        u_int32_t dbg_initial_msdu_payld;
+        u_int32_t dbg_mpdu_range;
+        u_int32_t dbg_mpdu_count;
+        u_int32_t dbg_ring_idx;
+        u_int32_t dbg_refill_cnt;
+#endif
     } rx_ring;
     int rx_desc_size_hl;
     long rx_fw_desc_offset;

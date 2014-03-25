@@ -53,6 +53,16 @@
 #include <ieee80211_common.h>         /* ieee80211_frame, ieee80211_qoscntl */
 #include <ieee80211_defines.h> /* ieee80211_rx_status */
 
+#ifdef DEBUG_DMA_DONE
+#include <asm/barrier.h>
+#include <wma_api.h>
+#endif
+
+#ifdef DEBUG_DMA_DONE
+extern int process_wma_set_command(int sessid, int paramid,
+                                   int sval, int vpdev);
+#endif
+
 /* AR9888v1 WORKAROUND for EV#112367 */
 /* FIX THIS - remove this WAR when the bug is fixed */
 #define PEREGRINE_1_0_ZERO_LEN_PHY_ERR_WAR
@@ -221,6 +231,9 @@ htt_rx_ring_fill_n(struct htt_pdev_t *pdev, int num)
              * As long as enough buffers are left in the ring for
              * another A-MPDU rx, no special recovery is needed.
              */
+#ifdef DEBUG_DMA_DONE
+            pdev->rx_ring.dbg_refill_cnt++;
+#endif
             adf_os_timer_start(&pdev->rx_ring.refill_retry_timer,
                                HTT_RX_RING_REFILL_RETRY_TIME_MS);
             goto fail;
@@ -230,6 +243,13 @@ htt_rx_ring_fill_n(struct htt_pdev_t *pdev, int num)
         rx_desc = htt_rx_desc(rx_netbuf);
         *(u_int32_t *)&rx_desc->attention = 0;
 
+#ifdef DEBUG_DMA_DONE
+        *(u_int32_t *)&rx_desc->msdu_end = 1;
+
+        /* To ensure that attention bit is reset and msdu_end is set before
+           calling dma_map */
+        smp_mb();
+#endif
         /*
          * Adjust adf_nbuf_data to point to the location in the buffer
          * where the rx descriptor will be filled in.
@@ -604,6 +624,12 @@ htt_rx_netbuf_pop(
     adf_nbuf_t msdu;
 
     HTT_ASSERT1(htt_rx_ring_elems(pdev) != 0);
+
+#ifdef DEBUG_DMA_DONE
+    pdev->rx_ring.dbg_ring_idx++;
+    pdev->rx_ring.dbg_ring_idx &= pdev->rx_ring.size_mask;
+#endif
+
     idx = pdev->rx_ring.sw_rd_idx.msdu_payld;
     msdu = pdev->rx_ring.buf.netbufs_ring[idx];
     idx++;
@@ -713,6 +739,85 @@ htt_set_checksum_result_hl(adf_nbuf_t msdu,
 #define htt_set_checksum_result_hl(msdu, rx_desc) /* no-op */
 #endif
 
+#ifdef DEBUG_DMA_DONE
+void
+htt_rx_print_rx_indication(
+   adf_nbuf_t rx_ind_msg,
+   htt_pdev_handle pdev)
+{
+    u_int32_t *msg_word;
+    int byte_offset;
+    int mpdu_range, num_mpdu_range;
+
+    msg_word = (u_int32_t *)adf_nbuf_data(rx_ind_msg);
+
+    adf_os_print("------------------HTT RX IND-----------------------------\n");
+    adf_os_print("alloc idx paddr %x (*vaddr) %d\n",
+                  pdev->rx_ring.alloc_idx.paddr,
+                  *pdev->rx_ring.alloc_idx.vaddr);
+
+    adf_os_print("sw_rd_idx msdu_payld %d msdu_desc %d\n",
+                 pdev->rx_ring.sw_rd_idx.msdu_payld,
+                 pdev->rx_ring.sw_rd_idx.msdu_desc);
+
+    adf_os_print("dbg_ring_idx %d\n", pdev->rx_ring.dbg_ring_idx);
+
+    adf_os_print("fill_level %d fill_cnt %d\n",pdev->rx_ring.fill_level,
+                  pdev->rx_ring.fill_cnt);
+
+    adf_os_print("initial msdu_payld %d curr mpdu range %d curr mpdu cnt %d\n",
+                  pdev->rx_ring.dbg_initial_msdu_payld,
+                  pdev->rx_ring.dbg_mpdu_range,
+                  pdev->rx_ring.dbg_mpdu_count);
+
+    /* Print the RX_IND contents */
+
+    adf_os_print("peer id %x RV %x FV %x ext_tid %x msg_type %x\n",
+                  HTT_RX_IND_PEER_ID_GET(*msg_word),
+                  HTT_RX_IND_REL_VALID_GET(*msg_word),
+                  HTT_RX_IND_FLUSH_VALID_GET(*msg_word),
+                  HTT_RX_IND_EXT_TID_GET(*msg_word),
+                  HTT_T2H_MSG_TYPE_GET(*msg_word));
+
+    adf_os_print("num_mpdu_ranges %x rel_seq_num_end %x rel_seq_num_start %x\n"
+                 " flush_seq_num_end %x flush_seq_num_start %x\n",
+                  HTT_RX_IND_NUM_MPDU_RANGES_GET(*(msg_word + 1)),
+                  HTT_RX_IND_REL_SEQ_NUM_END_GET(*(msg_word + 1)),
+                  HTT_RX_IND_REL_SEQ_NUM_START_GET(*(msg_word + 1)),
+                  HTT_RX_IND_FLUSH_SEQ_NUM_END_GET(*(msg_word + 1)),
+                  HTT_RX_IND_FLUSH_SEQ_NUM_START_GET(*(msg_word + 1)));
+
+    adf_os_print("fw_rx_desc_bytes %x\n", HTT_RX_IND_FW_RX_DESC_BYTES_GET(
+       *(msg_word + 2 + HTT_RX_PPDU_DESC_SIZE32)));
+
+    /* receive MSDU desc for current frame */
+    byte_offset = HTT_ENDIAN_BYTE_IDX_SWAP(HTT_RX_IND_FW_RX_DESC_BYTE_OFFSET +
+                                            pdev->rx_ind_msdu_byte_idx);
+
+    adf_os_print("msdu byte idx %x msdu desc %x\n", pdev->rx_ind_msdu_byte_idx,
+                  HTT_RX_IND_FW_RX_DESC_BYTES_GET(
+                     *(msg_word + 2 + HTT_RX_PPDU_DESC_SIZE32)));
+
+    num_mpdu_range = HTT_RX_IND_NUM_MPDU_RANGES_GET(*(msg_word + 1));
+
+    for (mpdu_range = 0; mpdu_range < num_mpdu_range; mpdu_range++) {
+        enum htt_rx_status status;
+        int num_mpdus;
+
+        htt_rx_ind_mpdu_range_info(
+            pdev, rx_ind_msg, mpdu_range, &status, &num_mpdus);
+
+        adf_os_print("mpdu_range %x status %x num_mpdus %x\n",
+                      pdev->rx_ind_msdu_byte_idx, status, num_mpdus);
+    }
+    adf_os_print("---------------------------------------------------------\n");
+}
+#endif
+
+#ifdef DEBUG_DMA_DONE
+#define MAX_DONE_BIT_CHECK_ITER 5
+#endif
+
 int
 htt_rx_amsdu_pop_ll(
     htt_pdev_handle pdev,
@@ -766,37 +871,46 @@ htt_rx_amsdu_pop_ll(
          * assert for now until we have a way to recover.
          */
 
+#ifdef DEBUG_DMA_DONE
         /* if done bit is not set */
         if (adf_os_unlikely(!((*(u_int32_t *) &rx_desc->attention)
                             & RX_ATTENTION_0_MSDU_DONE_MASK))) {
 
-            /* invalidate the cache */
-            adf_os_print("rx desc done bit not set invalidating cache\n");
+            int dbg_iter = MAX_DONE_BIT_CHECK_ITER;
+
+            htt_rx_print_rx_indication(rx_ind_msg, pdev);
             htt_print_rx_desc(rx_desc);
+
+            adf_os_print("done bit still not set retrying...\n");
+
+            while (dbg_iter &&
+                   (!((*(u_int32_t *) &rx_desc->attention) &
+                      RX_ATTENTION_0_MSDU_DONE_MASK))) {
+                adf_os_mdelay(1);
 
             adf_os_invalidate_range((void *)rx_desc,
                                     (void*)((char *)rx_desc +
                                             HTT_RX_STD_DESC_RESERVATION));
+                dbg_iter--;
+            }
 
-            /* if done bit still not set try waiting for 1 ms and check again */
-            if (!((*(u_int32_t *) &rx_desc->attention) &
-                 RX_ATTENTION_0_MSDU_DONE_MASK)) {
-
-                adf_os_print("done bit still not set delay and try again\n");
+            /* if the done bit is still not set, ASSERT the target */
+            if (adf_os_unlikely(!((*(u_int32_t *) &rx_desc->attention)
+                                  & RX_ATTENTION_0_MSDU_DONE_MASK)))
+            {
+                htt_rx_print_rx_indication(rx_ind_msg, pdev);
                 htt_print_rx_desc(rx_desc);
 
-                adf_os_mdelay(1);
-
-                adf_os_invalidate_range((void *)rx_desc,
-                                        (void*)((char *)rx_desc +
-                                                HTT_RX_STD_DESC_RESERVATION));
-
+                process_wma_set_command(0,(int)GEN_PARAM_CRASH_INJECT,
+                                        0, GEN_CMD);
+                HTT_ASSERT_ALWAYS(0);
+            }
+        }
+#else
                 HTT_ASSERT_ALWAYS(
                    (*(u_int32_t *) &rx_desc->attention) &
                    RX_ATTENTION_0_MSDU_DONE_MASK);
-            }
-        }
-
+#endif
         /*
          * Copy the FW rx descriptor for this MSDU from the rx indication
          * message into the MSDU's netbuf.
@@ -880,6 +994,10 @@ htt_rx_amsdu_pop_ll(
             adf_nbuf_set_next(msdu, next);
             msdu = next;
             msdu_chaining = 1;
+
+#ifdef DEBUG_DMA_DONE
+            adf_os_print("msdu_chained %d!\n", msdu_chained);
+#endif
 
             if (msdu_chained == 0) {
                 /* Trim the last one to the correct size - accounting for
@@ -1716,6 +1834,10 @@ htt_rx_attach(struct htt_pdev_t *pdev)
                           htt_rx_ring_refill_retry, (void *)pdev);
 
         pdev->rx_ring.fill_cnt = 0;
+#ifdef DEBUG_DMA_DONE
+        pdev->rx_ring.dbg_ring_idx = 0;
+        pdev->rx_ring.dbg_refill_cnt = 0;
+#endif
         htt_rx_ring_fill_n(pdev, pdev->rx_ring.fill_level);
 
         htt_rx_amsdu_pop = htt_rx_amsdu_pop_ll;

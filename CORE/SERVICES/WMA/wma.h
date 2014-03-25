@@ -538,6 +538,11 @@ typedef struct {
 	pWDAAckFnTxComp umac_ota_ack_cb[SIR_MAC_MGMT_RESERVED15];
 	pWDAAckFnTxComp umac_data_ota_ack_cb;
 
+	/* timestamp when OTA of last umac data was done */
+	v_TIME_t last_umac_data_ota_timestamp;
+	/* cache nbuf ptr for the last umac data buf */
+	adf_nbuf_t last_umac_data_nbuf;
+
 	v_BOOL_t needShutdown;
 #if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
 	u_int32_t num_mem_chunks;

@@ -214,11 +214,20 @@ ol_rx_indication_handler(
             pdev->htt_pdev, rx_ind_msg, &seq_num_start, &seq_num_end);
     }
 
+#ifdef DEBUG_DMA_DONE
+    pdev->htt_pdev->rx_ring.dbg_initial_msdu_payld =
+        pdev->htt_pdev->rx_ring.sw_rd_idx.msdu_payld;
+#endif
+
     for (mpdu_range = 0; mpdu_range < num_mpdu_ranges; mpdu_range++) {
         enum htt_rx_status status;
         int i, num_mpdus;
         adf_nbuf_t head_msdu, tail_msdu, msdu;
         void *rx_mpdu_desc;
+
+#ifdef DEBUG_DMA_DONE
+        pdev->htt_pdev->rx_ring.dbg_mpdu_range = mpdu_range;
+#endif
 
         htt_rx_ind_mpdu_range_info(
             pdev->htt_pdev, rx_ind_msg, mpdu_range, &status, &num_mpdus);
@@ -246,6 +255,11 @@ ol_rx_indication_handler(
                  * data written by the MAC DMA into memory will be
                  * fetched, rather than garbage from the cache.
                  */
+
+#ifdef DEBUG_DMA_DONE
+                pdev->htt_pdev->rx_ring.dbg_mpdu_count = i;
+#endif
+
                 msdu_chaining = htt_rx_amsdu_pop(
                     htt_pdev, rx_ind_msg, &head_msdu, &tail_msdu);
                 rx_mpdu_desc =
