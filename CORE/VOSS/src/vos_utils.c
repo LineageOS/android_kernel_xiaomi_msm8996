@@ -850,3 +850,12 @@ v_U8_t vos_freq_to_chan(v_U32_t freq)
         chan = (freq - VOS_5_GHZ_BASE_FREQ)/VOS_CHAN_SPACING_5MHZ;
     return chan;
 }
+
+
+v_U8_t vos_freq_to_band(v_U32_t freq)
+{
+    if (freq <= VOS_CHAN_14_FREQ)
+        return VOS_BAND_2GHZ;
+
+    return VOS_BAND_5GHZ;
+}
