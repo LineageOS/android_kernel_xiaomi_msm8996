@@ -252,6 +252,7 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
         vos_mem_free(pRemainChanCtx->action_pkt_buff.frame_ptr);
     }
     vos_mem_free( pRemainChanCtx );
+    pRemainChanCtx = NULL;
     complete(&pAdapter->cancel_rem_on_chan_var);
     pAdapter->is_roc_inprogress = FALSE;
     hdd_allow_suspend();

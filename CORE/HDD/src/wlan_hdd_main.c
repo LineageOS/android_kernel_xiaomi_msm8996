@@ -4804,6 +4804,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                if (NULL != cckmIe)
                {
                    vos_mem_free(cckmIe);
+                   cckmIe = NULL;
                }
                ret = -EINVAL;
                goto exit;
@@ -4815,6 +4816,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            if (NULL != cckmIe)
            {
                vos_mem_free(cckmIe);
+               cckmIe = NULL;
            }
        }
        else if (strncmp(command, "CCXBEACONREQ", 12) == 0)
@@ -8053,6 +8055,7 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 
       hdd_remove_adapter( pHddCtx, pAdapterNode );
       vos_mem_free( pAdapterNode );
+      pAdapterNode = NULL;
 
       /* Adapter removed. Decrement vdev count */
       if (pHddCtx->current_intf_count != 0)
@@ -8389,6 +8392,7 @@ void hdd_deinit_batch_scan(hdd_adapter_t *pAdapter)
         pPrev = pNode;
         pNode = pNode->pNext;
         vos_mem_free((v_VOID_t * )pPrev);
+        pPrev = NULL;
     }
 
     pAdapter->pBatchScanRsp = NULL;
@@ -9197,12 +9201,14 @@ void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter)
          {
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s kmalloc failed", __func__);
             vos_mem_free(channelInfo.ChannelList);
+            channelInfo.ChannelList = NULL;
             return;
          }
          vos_mem_copy(scanReq.ChannelInfo.ChannelList, channelInfo.ChannelList,
             channelInfo.numOfChannels);
          scanReq.ChannelInfo.numOfChannels = channelInfo.numOfChannels;
          vos_mem_free(channelInfo.ChannelList);
+         channelInfo.ChannelList = NULL;
       }
 
       scanReq.scanType = eSIR_PASSIVE_SCAN;
