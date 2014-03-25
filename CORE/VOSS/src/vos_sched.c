@@ -238,6 +238,9 @@ vos_sched_open
   spin_lock_init(&pSchedContext->McThreadLock);
   spin_lock_init(&pSchedContext->TxThreadLock);
   spin_lock_init(&pSchedContext->RxThreadLock);
+#ifdef QCA_CONFIG_SMP
+  spin_lock_init(&pSchedContext->TlshimRxThreadLock);
+#endif
 
   init_waitqueue_head(&pSchedContext->mcWaitQueue);
   pSchedContext->mcEventFlag = 0;
@@ -1569,8 +1572,10 @@ static int VosTlshimRxThread(void *arg)
                         &pSchedContext->tlshimRxEvtFlg)) {
                clear_bit(RX_SUSPEND_EVENT_MASK,
                          &pSchedContext->tlshimRxEvtFlg);
+               spin_lock(&pSchedContext->TlshimRxThreadLock);
                complete(&pSchedContext->SuspndTlshimRxEvent);
-               init_completion(&pSchedContext->ResumeTlshimRxEvent);
+               INIT_COMPLETION(pSchedContext->ResumeTlshimRxEvent);
+               spin_unlock(&pSchedContext->TlshimRxThreadLock);
                wait_for_completion_interruptible(
                               &pSchedContext->ResumeTlshimRxEvent);
            }
