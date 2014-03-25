@@ -66,11 +66,12 @@
 #include "aniAsfMem.h"
 
 
+#define WLAN_NL_MSG_CNSS_DIAG  27 /* Msg type between user space/wlan driver */
 /* CAPs needed
  * CAP_NET_RAW   : Use RAW and packet socket
  * CAP_NET_ADMIN : NL broadcast receive
  */
-const tANI_U32 capabilities = (1 << CAP_NET_RAW) | (1 << CAP_NET_ADMIN);
+const unsigned int capabilities = (1 << CAP_NET_RAW) | (1 << CAP_NET_ADMIN);
 
 /* Groups needed
  * AID_INET      : Open INET socket
@@ -79,8 +80,6 @@ const tANI_U32 capabilities = (1 << CAP_NET_RAW) | (1 << CAP_NET_ADMIN);
  * AID_WIFI      : WIFI Operation
  */
 const gid_t groups[] = {AID_INET, AID_NET_ADMIN, AID_QCOM_DIAG, AID_WIFI};
-
-
 
 const char options[] =
 "Options:\n\
@@ -94,7 +93,7 @@ The options can also be given in the abbreviated form --option=x or -o x. The op
 struct sockaddr_nl src_addr, dest_addr;
 struct nlmsghdr *nlh = NULL;
 struct iovec iov;
-int sock_fd;
+static int sock_fd = -1;
 struct msghdr msg;
 
 static FILE *fwlog_res;
@@ -105,6 +104,9 @@ int record;
 const char *progname;
 char dbglogoutfile[PATH_MAX];
 int optionflag = 0;
+int isDriverLoaded = FALSE;
+const char driverLoaded[] = "KNLREADY";
+const char driverUnLoaded[] = "KNLCLOSE";
 
 int rec_limit = 100000000; /* Million records is a good default */
 
@@ -259,21 +261,129 @@ static void stop(int signum)
     }
     exit(0);
 }
+/*
+ * Process FW debug, FW event and FW log messages
+ * Read the payload and process accordingly.
+ *
+ */
+void process_cnss_diag_msg(unsigned char *eventbuf)
+{
+    unsigned char *dbgbuf;
+    unsigned short diag_type = 0;
+    unsigned int event_id = 0;
+    unsigned int target_time = 0;
+    unsigned short length = 0;
+    struct dbglog_slot *slot;
+    unsigned int dropped = 0;
+
+    dbgbuf = eventbuf;
+
+    diag_type = *(unsigned short *)eventbuf;
+    eventbuf += sizeof(unsigned short);
+
+    length = *(unsigned short *)eventbuf;
+    eventbuf += sizeof(unsigned short);
+
+    if (diag_type == DIAG_TYPE_FW_EVENT) {
+        target_time = *(unsigned int *)eventbuf;
+        eventbuf += sizeof(unsigned int);
+
+        event_id = *(unsigned int *)eventbuf;
+        eventbuf += sizeof(unsigned int);
+
+        if (length)
+            event_report_payload(event_id, length, eventbuf);
+        else
+            event_report(event_id);
+    } else if (diag_type == DIAG_TYPE_FW_LOG) {
+       /* Do nothing for now */
+    } else if (diag_type == DIAG_TYPE_FW_DEBUG_MSG) {
+        slot =(struct dbglog_slot *)dbgbuf;
+        length = get_le32((unsigned char *)&slot->length);
+        dropped = get_le32((unsigned char *)&slot->dropped);
+        dbglog_parse_debug_logs(slot->payload, length, dropped);
+    } else {
+       /* Do nothing for now */
+    }
+}
+
+/*
+ * Open the socket and bind the socket with src
+ * address. Return the socket fd if sucess.
+ *
+ */
+static int create_nl_socket()
+{
+    int ret;
+    int sock_fd;
+
+    sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_USERSOCK);
+    if (sock_fd < 0) {
+        fprintf(stderr, "Socket creation failed sock_fd 0x%x \n", sock_fd);
+        return -1;
+    }
+
+    memset(&src_addr, 0, sizeof(src_addr));
+    src_addr.nl_family = AF_NETLINK;
+    src_addr.nl_groups = 0x01;
+    src_addr.nl_pid = getpid(); /* self pid */
+
+    ret = bind(sock_fd, (struct sockaddr *)&src_addr, sizeof(src_addr));
+    if (ret < 0)
+    {
+        close(sock_fd);
+        return ret;
+    }
+    return sock_fd;
+}
+
+static unsigned int initialize(int sock_fd)
+{
+    char *mesg = "Hello";
+
+    memset(&dest_addr, 0, sizeof(dest_addr));
+    dest_addr.nl_family = AF_NETLINK;
+    dest_addr.nl_pid = 0; /* For Linux Kernel */
+    dest_addr.nl_groups = 0; /* unicast */
+
+    nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(RECLEN));
+    if (nlh == NULL) {
+        fprintf(stderr, "Cannot allocate memory \n");
+        close(sock_fd);
+        return -1;
+    }
+    memset(nlh, 0, NLMSG_SPACE(RECLEN));
+    nlh->nlmsg_len = NLMSG_SPACE(RECLEN);
+    nlh->nlmsg_pid = getpid();
+    nlh->nlmsg_type = WLAN_NL_MSG_CNSS_DIAG;
+    nlh->nlmsg_flags = NLM_F_REQUEST;
+
+    memcpy(NLMSG_DATA(nlh), mesg, strlen(mesg));
+
+    iov.iov_base = (void *)nlh;
+    iov.iov_len = nlh->nlmsg_len;
+    msg.msg_name = (void *)&dest_addr;
+    msg.msg_namelen = sizeof(dest_addr);
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+
+    sendmsg(sock_fd, &msg, 0);
+    return 0;
+}
 
 int main(int argc, char *argv[])
 {
     unsigned int res =0;
-    unsigned char *eventbuf;
-    unsigned char *dbgbuf;
+    unsigned char *eventbuf = NULL;
+    unsigned char *dbgbuf = NULL;
     int c, rc = 0;
-    char *mesg="Hello";
     struct dbglog_slot *slot;
 
     progname = argv[0];
-    tANI_U16 diag_type = 0;
-    tANI_U16 length = 0;
-    tANI_U32 event_id = 0;
-    tANI_U32 target_time = 0;
+    unsigned short diag_type = 0;
+    unsigned short length = 0;
+    unsigned int event_id = 0;
+    unsigned int target_time = 0;
     unsigned int dropped = 0;
     unsigned int timestamp = 0;
 
@@ -338,52 +448,13 @@ int main(int argc, char *argv[])
         }
     }
 
-    do
-    {
-        /* 5 sec sleep waiting for driver to load */
-        sleep(CNSS_DIAG_SLEEP_INTERVAL);
-        rc = is_wifi_driver_loaded();
-    } while(rc == 0);
-
-    sock_fd = socket(PF_NETLINK, SOCK_RAW, CLD_NETLINK_USER);
+    sock_fd = create_nl_socket();
     if (sock_fd < 0) {
         fprintf(stderr, "Socket creation failed sock_fd 0x%x \n", sock_fd);
         return -1;
     }
 
-    memset(&src_addr, 0, sizeof(src_addr));
-    src_addr.nl_family = AF_NETLINK;
-    src_addr.nl_pid = getpid(); /* self pid */
-
-    bind(sock_fd, (struct sockaddr *)&src_addr, sizeof(src_addr));
-
-    memset(&dest_addr, 0, sizeof(dest_addr));
-    dest_addr.nl_family = AF_NETLINK;
-    dest_addr.nl_pid = 0; /* For Linux Kernel */
-    dest_addr.nl_groups = 0; /* unicast */
-
-    nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(RECLEN));
-    if (nlh == NULL) {
-        fprintf(stderr, "Cannot allocate memory \n");
-        close(sock_fd);
-        return -1;
-    }
-    memset(nlh, 0, NLMSG_SPACE(RECLEN));
-    nlh->nlmsg_len = NLMSG_SPACE(RECLEN);
-    nlh->nlmsg_pid = getpid();
-    nlh->nlmsg_flags = 0;
-
-    memcpy(NLMSG_DATA(nlh), mesg, strlen(mesg));
-
-    iov.iov_base = (void *)nlh;
-    iov.iov_len = nlh->nlmsg_len;
-    msg.msg_name = (void *)&dest_addr;
-    msg.msg_namelen = sizeof(dest_addr);
-    msg.msg_iov = &iov;
-    msg.msg_iovlen = 1;
-
-    /* Pass the pid info and register the service */
-    sendmsg(sock_fd, &msg, 0);
+    initialize(sock_fd);
 
     signal(SIGINT, stop);
     signal(SIGTERM, stop);
@@ -412,14 +483,14 @@ int main(int argc, char *argv[])
 
         /* Read message from kernel */
         while ((res = recvmsg(sock_fd, &msg, 0)) > 0)  {
-            if (res >= sizeof(struct dbglog_slot)) {
+            if (res > sizeof(struct dbglog_slot) &&
+                (res == SIZEOF_NL_MSG_DBG_MSG)) {
                 dbgbuf = (unsigned char *)NLMSG_DATA(nlh);
             } else {
-                fprintf(stderr, "Incorrect msg Length 0x%x \n", res);
                 continue;
             }
             slot = (struct dbglog_slot *)dbgbuf;
-            diag_type = *(tANI_U16*)dbgbuf;
+            diag_type = *(unsigned short*)dbgbuf;
 
             if (diag_type == DIAG_TYPE_FW_DEBUG_MSG) {
                 fseek(log_out, record * RECLEN, SEEK_SET);
@@ -450,14 +521,14 @@ int main(int argc, char *argv[])
         parser_init();
 
         while ((res = recvmsg(sock_fd, &msg, 0)) > 0)  {
-            if (res >= sizeof(struct dbglog_slot)) {
+            if ((res > sizeof(struct dbglog_slot)) &&
+                (res == SIZEOF_NL_MSG_DBG_MSG)) {
                 dbgbuf = (unsigned char *)NLMSG_DATA(nlh);
             } else {
-                fprintf(stderr, "Incorrect msg Length 0x%x \n", res);
                 continue;
             }
             slot = (struct dbglog_slot *)dbgbuf;
-            diag_type = *(tANI_U16*)dbgbuf;
+            diag_type = *(unsigned short*)dbgbuf;
             if (diag_type == DIAG_TYPE_FW_DEBUG_MSG) {
                 length = get_le32((unsigned char *)&slot->length);
                 dropped = get_le32((unsigned char *)&slot->dropped);
@@ -473,43 +544,41 @@ int main(int argc, char *argv[])
         parser_init();
 
         while ((res = recvmsg(sock_fd, &msg, 0)) > 0)  {
+            eventbuf = (unsigned char *)NLMSG_DATA(nlh);
 
-            if (res >= sizeof(struct dbglog_slot)) {
+            if ((isDriverLoaded == FALSE) &&
+                 (res == SIZEOF_NL_MSG_LOAD)) {
                 eventbuf = (unsigned char *)NLMSG_DATA(nlh);
+                if (0 == strncmp(driverLoaded, (const char *)eventbuf,
+                                 strlen(driverLoaded))) {
+                    isDriverLoaded = TRUE;
+                    close(sock_fd);
+                    /* Wait for driver to Load */
+                    sleep(5);
+                    sock_fd = create_nl_socket();
+                    if (sock_fd < 0) {
+                        printf("create nl sock failed ret %d \n", sock_fd);
+                        return -1;
+                   }
+                   initialize(sock_fd);
+                }
+            } else if ((isDriverLoaded == TRUE) &&
+                        (res == SIZEOF_NL_MSG_UNLOAD)) {
+                eventbuf = (unsigned char *)NLMSG_DATA(nlh);
+                if (0 == strncmp(driverUnLoaded, (const char *)eventbuf,
+                                 strlen(driverUnLoaded))) {
+                    isDriverLoaded = FALSE;
+                }
+            } else if((res >= sizeof(struct dbglog_slot)) &&
+                      (res == SIZEOF_NL_MSG_DBG_MSG)) {
+                isDriverLoaded = TRUE;
+                eventbuf = (unsigned char *)NLMSG_DATA(nlh);
+                process_cnss_diag_msg(eventbuf);
             } else {
-                fprintf(stderr, "Incorrect msg Length 0x%x \n", res);
-                return -1;
-            }
-
-            dbgbuf = eventbuf;
-
-            diag_type = *(tANI_U16*)eventbuf;
-            eventbuf += sizeof(tANI_U16);
-
-            length = *(tANI_U16*)eventbuf;
-            eventbuf += sizeof(tANI_U16);
-
-            if (diag_type == DIAG_TYPE_FW_EVENT) {
-                target_time = *(tANI_U32*)eventbuf;
-                eventbuf += sizeof(tANI_U32);
-
-                event_id = *(tANI_U32*)eventbuf;
-                eventbuf += sizeof(tANI_U32);
-
-                if (length)
-                    event_report_payload(event_id, length, eventbuf);
-                else
-                    event_report(event_id);
-            } else if (diag_type == DIAG_TYPE_FW_LOG) {
-                /* Do nothing for now */
-            } else {
-                slot =(struct dbglog_slot *)dbgbuf;
-                length = get_le32((unsigned char *)&slot->length);
-                dropped = get_le32((unsigned char *)&slot->dropped);
-                dbglog_parse_debug_logs(slot->payload, length, dropped);
+                /* Ignore other messages that might be broadcast */
+                continue;
             }
         }
-
         /* Release the handle to Diag*/
         Diag_LSM_DeInit();
         close(sock_fd);

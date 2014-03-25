@@ -72,6 +72,7 @@
 #include <wlan_btc_svc.h>
 #include <wlan_hdd_cfg.h>
 #include <wlan_ptt_sock_svc.h>
+#include <dbglog_host.h>
 #include <wlan_hdd_wowl.h>
 #include <wlan_hdd_misc.h>
 #include <wlan_hdd_wext.h>
@@ -9284,6 +9285,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
 #ifdef WLAN_KD_READY_NOTIFIER
    nl_srv_exit(pHddCtx->ptt_pid);
+   cnss_diag_notify_wlan_close();
 #else
    nl_srv_exit();
 #endif /* WLAN_KD_READY_NOTIFIER */
@@ -10588,6 +10590,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 #endif
 
+   //Initialize the CNSS-DIAG service
+   if (cnss_diag_activate_service() < 0)
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: cnss_diag_activate_service failed", __func__);
+      goto err_nl_srv;
+   }
+
    hdd_register_mcast_bcast_filter(pHddCtx);
    if (VOS_STA_SAP_MODE != hdd_get_conparam())
    {
@@ -10714,6 +10724,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 err_nl_srv:
 #ifdef WLAN_KD_READY_NOTIFIER
    nl_srv_exit(pHddCtx->ptt_pid);
+   cnss_diag_notify_wlan_close();
 #else
    nl_srv_exit();
 #endif /* WLAN_KD_READY_NOTIFIER */

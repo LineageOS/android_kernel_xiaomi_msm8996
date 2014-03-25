@@ -62,6 +62,7 @@
 #include <wlan_hdd_dev_pwr.h>
 #include <wlan_nlink_srv.h>
 #include <wlan_hdd_misc.h>
+#include <dbglog_host.h>
 
 #include <linux/semaphore.h>
 #include <wlan_hdd_hostapd.h>
@@ -1992,6 +1993,7 @@ err_vosclose:
        send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
 #ifdef WLAN_KD_READY_NOTIFIER
        nl_srv_exit(pHddCtx->ptt_pid);
+       cnss_diag_notify_wlan_close();
 #else
        nl_srv_exit();
 #endif /* WLAN_KD_READY_NOTIFIER */
