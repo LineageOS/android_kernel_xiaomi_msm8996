@@ -4713,7 +4713,8 @@ VOS_STATUS wma_roam_scan_offload_chan_list(tp_wma_handle wma_handle,
                (chan_list_fp->num_chan * sizeof(u_int32_t)));
     roam_chan_list_array = (A_UINT32 *)(buf_ptr + WMI_TLV_HDR_SIZE);
     WMA_LOGI("%s: %d channels = ", __func__, chan_list_fp->num_chan);
-    for (i = 0; i < chan_list_fp->num_chan; i++) {
+    for (i = 0; ((i < chan_list_fp->num_chan) &&
+                 (i < SIR_ROAM_MAX_CHANNELS)); i++) {
         roam_chan_list_array[i] = vos_chan_to_freq(chan_list[i]);
         WMA_LOGI("%d,",roam_chan_list_array[i]);
     }

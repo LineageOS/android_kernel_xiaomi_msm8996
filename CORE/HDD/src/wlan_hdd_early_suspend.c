@@ -1725,6 +1725,11 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    }
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+   if (!hif_sc) {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hif_sc is NULL", __func__);
+      goto err_re_init;
+   }
+
    /* Initialize the adf_ctx handle */
    adf_ctx = vos_mem_malloc(sizeof(adf_os_device_t));
 
