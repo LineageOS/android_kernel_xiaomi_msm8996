@@ -64,7 +64,9 @@
 #include <wlan_hdd_includes.h>
 #include <net/arp.h>
 #include <net/cfg80211.h>
+#ifdef CONFIG_CNSS
 #include <net/cnss.h>
+#endif
 #include <linux/wireless.h>
 #include <wlan_hdd_wowl.h>
 #include <aniGlobal.h>
@@ -9987,7 +9989,9 @@ int wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
         return 0;
     }
 
+#ifdef CONFIG_CNSS
     cnss_request_bus_bandwidth(CNSS_BUS_WIDTH_MEDIUM);
+#endif
 
 #ifdef QCA_WIFI_2_0
     /* Resume MC thread */
@@ -10157,7 +10161,9 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
 
     pHddCtx->isWiphySuspended = TRUE;
 
+#ifdef CONFIG_CNSS
     cnss_request_bus_bandwidth(CNSS_BUS_WIDTH_NONE);
+#endif
 
     EXIT();
     return 0;
