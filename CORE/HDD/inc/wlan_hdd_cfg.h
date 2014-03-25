@@ -2378,6 +2378,13 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_SAP_MAX_OFFLOAD_PEERS_MAX              (5)
 #define CFG_SAP_MAX_OFFLOAD_PEERS_DEFAULT          (2)
 #endif
+//Enable Memory Debug
+#ifdef MEMORY_DEBUG
+#define CFG_ENABLE_MEMORY_DEBUG_NAME             "gEnableMemoryDebug"
+#define CFG_ENABLE_MEMORY_DEBUG_MIN              (0)
+#define CFG_ENABLE_MEMORY_DEBUG_MAX              (1)
+#define CFG_ENABLE_MEMORY_DEBUG_DEFAULT          (0)
+#endif
 
 #define CFG_INITIAL_DWELL_TIME_NAME            "gInitialDwellTime"
 #define CFG_INITIAL_DWELL_TIME_DEFAULT         (0)
@@ -2885,6 +2892,9 @@ typedef struct
    v_BOOL_t                    enableHystereticMode;
    v_U32_t                     defaultRateIndex24Ghz;
    char                        overrideCountryCode[4];
+#ifdef MEMORY_DEBUG
+   v_BOOL_t                    IsMemoryDebugSupportEnabled;
+#endif
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation
