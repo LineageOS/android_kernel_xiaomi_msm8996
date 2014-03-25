@@ -118,6 +118,7 @@ static eHalStatus hdd_AddIwStreamEvent(int cmd, int length, char* data, hdd_scan
     if(*last_event == *current_event)
     {
             /* no space to add event */
+        hddLog( LOGE, "%s: no space left to add event", __func__);
         return -E2BIG; /* Error code, may be E2BIG */
     }
 
@@ -232,7 +233,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
    {
       /* no space to add event */
       /* Error code may be E2BIG */
-       hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWAP ");
+       hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWAP ");
        return -E2BIG;
    }
 
@@ -268,7 +269,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
 
    if (last_event == current_event)
    { /* no space to add event */
-       hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWNAME");
+       hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWNAME");
       /* Error code, may be E2BIG */
        return -E2BIG;
    }
@@ -287,6 +288,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
 
    if (last_event == current_event)
    { /* no space to add event */
+       hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWFREQ");
        return -E2BIG;
    }
 
@@ -317,7 +319,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
 
    if (last_event == current_event)
    { /* no space to add event */
-       hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWMODE");
+       hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWMODE");
        return -E2BIG;
    }
    /* To extract SSID */
@@ -357,14 +359,14 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
 
           if(last_event == current_event)
           { /* no space to add event */
-             hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWESSID");
+             hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID");
              return -E2BIG;
           }
        }
 
       if( hdd_GetWPARSNIEs( ( tANI_U8 *) descriptor->ieFields, ie_length, &last_event, &current_event, scanInfo )  < 0    )
       {
-          hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWESSID");
+          hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID");
           return -E2BIG;
       }
 
@@ -440,7 +442,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
       {
           if (last_event == current_event)
           { /* no space to add event */
-              hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWRATE");
+              hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWRATE");
               return -E2BIG;
           }
       }
@@ -467,6 +469,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
       if(last_event == current_event)
       { /* no space to add event
                Error code, may be E2BIG */
+          hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWENCODE");
           return -E2BIG;
       }
    }
@@ -501,7 +504,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
 
    if(last_event == current_event)
    { /* no space to add event */
-       hddLog( LOGW, "hdd_IndicateScanResult: no space for IWEVQUAL");
+       hddLog( LOGE, "hdd_IndicateScanResult: no space for IWEVQUAL");
        return -E2BIG;
    }
 
@@ -516,7 +519,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
                                          &event, custom);
    if(last_event == current_event)
    { /* no space to add event */
-      hddLog( LOGW, "hdd_IndicateScanResult: no space for IWEVCUSTOM (age)");
+      hddLog( LOGE, "hdd_IndicateScanResult: no space for IWEVCUSTOM (age)");
       return -E2BIG;
    }
 
@@ -1028,7 +1031,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
                 scanRequest.ChannelInfo.ChannelList = vos_mem_malloc(scanRequest.ChannelInfo.numOfChannels * sizeof(v_U8_t));
                 if(NULL == scanRequest.ChannelInfo.ChannelList)
                 {
-                    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "memory alloc failed for channel list creation");
+                    hddLog(LOGE, "memory alloc failed for channel list creation");
                     status = -ENOMEM;
                     goto exit_point;
                 }
