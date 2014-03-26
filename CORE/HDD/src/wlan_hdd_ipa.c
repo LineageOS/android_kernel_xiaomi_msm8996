@@ -938,6 +938,9 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 		ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_TX_HDR_LEN;
 		ipa->ipa_ep_cfg.mode.mode = IPA_BASIC;
 
+		if (!hdd_ipa_is_rm_enabled(hdd_ipa))
+			ipa->keep_ipa_awake = 1;
+
 		ret = ipa_setup_sys_pipe(ipa, &(hdd_ipa->sys_pipe[i].conn_hdl));
 		if (ret) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Failed for pipe %d"
@@ -965,6 +968,9 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 	ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_RX_HDR_LEN;
 	ipa->ipa_ep_cfg.hdr.hdr_ofst_metadata_valid = 1;
 	ipa->ipa_ep_cfg.mode.mode = IPA_BASIC;
+
+	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
+		ipa->keep_ipa_awake = 1;
 
 	ret = ipa_setup_sys_pipe(ipa, &(hdd_ipa->sys_pipe[i].conn_hdl));
 	if (ret) {
