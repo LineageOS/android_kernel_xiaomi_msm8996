@@ -15770,8 +15770,9 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 		WMA_LOGI("Received WMI_SCAN_EVENT_COMPLETED, Stoping the scan timer");
                 vos_status = vos_timer_stop(&wma_handle->wma_scan_comp_timer);
                 if (vos_status != VOS_STATUS_SUCCESS) {
-                        WMA_LOGE("Failed to stop the scan completion timeout");
-                        return -EPERM;
+			WMA_LOGE("Failed to stop the scan completion timeout");
+			vos_mem_free(scan_event);
+			return -EPERM;
                 }
         }
 
