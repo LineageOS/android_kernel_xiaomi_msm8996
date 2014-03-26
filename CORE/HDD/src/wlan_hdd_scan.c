@@ -610,6 +610,7 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
                  union iwreq_data *wrqu, char *extra)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
+   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    hdd_wext_state_t *pwextBuf = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
    tCsrScanRequest scanRequest;
    v_U32_t scanId = 0;
@@ -643,7 +644,8 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
    if (NULL != wrqu->data.pointer)
    {
        /* set scanType, active or passive */
-       if ((IW_SCAN_TYPE_ACTIVE ==  scanReq->scan_type) || (eSIR_ACTIVE_SCAN == pAdapter->scan_info.scan_mode))
+       if ((IW_SCAN_TYPE_ACTIVE ==  scanReq->scan_type) ||
+           (eSIR_ACTIVE_SCAN == pHddCtx->ioctl_scan_mode))
        {
            scanRequest.scanType = eSIR_ACTIVE_SCAN;
        }
@@ -681,7 +683,7 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
    }
    else
    {
-       if(pAdapter->scan_info.scan_mode == eSIR_ACTIVE_SCAN) {
+       if (pHddCtx->ioctl_scan_mode == eSIR_ACTIVE_SCAN) {
            /* set the scan type to active */
            scanRequest.scanType = eSIR_ACTIVE_SCAN;
        } else {
