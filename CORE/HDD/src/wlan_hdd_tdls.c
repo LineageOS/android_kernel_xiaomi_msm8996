@@ -739,7 +739,7 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
               tInfo->rssi_delta,
               tInfo->tdls_options);
 
-    halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tInfo);
+    halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tInfo, TRUE);
     if (eHAL_STATUS_SUCCESS != halStatus)
     {
         vos_mem_free(tInfo);
@@ -823,7 +823,7 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
                   tInfo->rssi_delta,
                   tInfo->tdls_options);
 
-        halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tInfo);
+        halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tInfo, FALSE);
         if (eHAL_STATUS_SUCCESS != halStatus)
         {
             vos_mem_free(tInfo);
@@ -1383,7 +1383,7 @@ int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *confi
               tdlsParams->rssi_delta,
               tdlsParams->tdls_options);
 
-    halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tdlsParams);
+    halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tdlsParams, TRUE);
     if (eHAL_STATUS_SUCCESS != halStatus)
     {
         vos_mem_free(tdlsParams);
