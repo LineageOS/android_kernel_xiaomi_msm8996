@@ -4702,12 +4702,16 @@ static int iw_ftm_setchar_getnone(struct net_device *dev, struct iw_request_info
     sub_cmd = wrqu->data.flags;
     pAdapter = (hdd_adapter_t *)netdev_priv(dev);
 
-    /*we can only accept input falling between 1 and length bytes,
+    /*we can only accept input length bytes at most less than 512,
      *and ensure extra is null delimited string
      */
-    if (wrqu->data.length>=512)
+    if (length >= 512)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                  "%s: Received command out of bound %s", __func__, extra);
         return -EINVAL;
-    vos_mem_zero(extra + length,512 - length);
+    }
+    extra[length] = 0;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
               "%s: Received length %d", __func__, length);
@@ -4733,8 +4737,8 @@ static int iw_ftm_setchar_getnone(struct net_device *dev, struct iw_request_info
              ret = -EINVAL;
           }
 
+          break;
        }
-       break;
        case WE_SET_TX_RATE:
        {
             status  = wlan_ftm_priv_set_txrate(pAdapter,extra);
@@ -4748,7 +4752,7 @@ static int iw_ftm_setchar_getnone(struct net_device *dev, struct iw_request_info
             }
 
             break;
-        }
+       }
        default:
        {
            hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
