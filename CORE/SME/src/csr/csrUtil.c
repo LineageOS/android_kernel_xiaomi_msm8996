@@ -5017,8 +5017,8 @@ tANI_BOOLEAN csrIsSsidMatch( tpAniSirGlobal pMac, tANI_U8 *ssid1, tANI_U8 ssid1L
             if ( eANI_BOOLEAN_FALSE == fSsidRequired )
             {
                 fMatch = TRUE;
+                break;
             }
-            break;
         }
 
         // Check for the specification of the Broadcast SSID at the beginning of the list.
