@@ -3634,4 +3634,6 @@ PREPACK struct htt_tx_frag_desc_bank_cfg_t {
 #define HTT_TX_CREDIT_SIGN_BIT_POSITIVE  0x0
 #define HTT_TX_CREDIT_SIGN_BIT_NEGATIVE  0x1
 
+#define DEBUG_DMA_DONE
+
 #endif

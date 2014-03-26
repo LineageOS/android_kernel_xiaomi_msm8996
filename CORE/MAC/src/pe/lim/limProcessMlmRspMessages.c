@@ -3788,7 +3788,6 @@ void limProcessSwitchChannelRsp(tpAniSirGlobal pMac,  void *body)
 
     if((psessionEntry = peFindSessionBySessionId(pMac, peSessionId))== NULL)
     {
-        vos_mem_free(body);
         limLog(pMac, LOGP, FL("session does not exist for given sessionId"));
         return;
     }
