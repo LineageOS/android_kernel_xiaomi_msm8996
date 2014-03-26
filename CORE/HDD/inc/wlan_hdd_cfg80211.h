@@ -106,14 +106,30 @@ typedef struct {
 #endif
 
 /* Vendor id to be used in vendor specific command and events
- * to user space
+ * to user space.
+ * NOTE: The authoritative place for definition of QCA_NL80211_VENDOR_ID,
+ * vendor subcmd definitions prefixed with QCA_NL80211_VENDOR_SUBCMD, and
+ * qca_wlan_vendor_attr is open source file src/common/qca-vendor.h in
+ * git://w1.fi/srv/git/hostap.git; the values here are just a copy of that
  */
-#define QCOM_NL80211_VENDOR_ID                0x001374
+#define QCA_NL80211_VENDOR_ID                          0x001374
+#define QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY      10
+#define QCA_NL80211_VENDOR_SUBCMD_DFS_CAPABILITY       11
 
-/* Vendor speicific sub-command id and their index */
+enum qca_wlan_vendor_attr
+{
+    QCA_WLAN_VENDOR_ATTR_INVALID = 0,
+    /* used by QCA_NL80211_VENDOR_SUBCMD_DFS_CAPABILITY */
+    QCA_WLAN_VENDOR_ATTR_DFS     = 1,
+    /* keep last */
+    QCA_WLAN_VENDOR_ATTR_AFTER_LAST,
+    QCA_WLAN_VENDOR_ATTR_MAX       = QCA_WLAN_VENDOR_ATTR_AFTER_LAST - 1,
+};
+
+
+/* Vendor specific sub-command id and their index */
 #ifdef FEATURE_WLAN_CH_AVOID
-#define QCOM_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY         10
-#define QCOM_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY_INDEX   0
+#define QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY_INDEX   0
 #endif /* FEATURE_WLAN_CH_AVOID */
 
 #ifdef FEATURE_WLAN_CH_AVOID

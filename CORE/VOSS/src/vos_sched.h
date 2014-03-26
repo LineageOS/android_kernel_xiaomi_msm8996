@@ -256,8 +256,9 @@ typedef struct _VosSchedContext
    spinlock_t McThreadLock;
    spinlock_t TxThreadLock;
    spinlock_t RxThreadLock;
-
 #ifdef QCA_CONFIG_SMP
+   spinlock_t TlshimRxThreadLock;
+
    /* Tlshim Rx thread handle */
    struct task_struct *TlshimRxThread;
 

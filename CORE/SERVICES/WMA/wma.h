@@ -350,6 +350,7 @@ typedef struct {
 	u_int32_t erx_slop_step;
 	u_int32_t erx_init_slop;
 	u_int32_t erx_adj_pause;
+	u_int32_t erx_dri_sample;
         struct pps pps_params;
 	struct qpower_params qpower_params;
 	gtx_config_t gtx_info;

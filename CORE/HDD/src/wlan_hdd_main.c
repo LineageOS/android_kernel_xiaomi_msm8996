@@ -1812,7 +1812,7 @@ int hdd_handle_batch_scan_ioctl
 
          if (eHDD_BATCH_SCAN_STATE_STARTED !=  pAdapter->batchScanState)
          {
-              VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+              VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                 "Batch scan is not yet enabled batch scan state %d",
                 pAdapter->batchScanState);
               ret = -EINVAL;
@@ -1857,8 +1857,8 @@ int hdd_handle_batch_scan_ioctl
 
           if (eHDD_BATCH_SCAN_STATE_STARTED !=  pAdapter->batchScanState)
           {
-              VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "Batch scan is not yet enabled could not return results"
+              VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                "Batch scan is not yet enabled could not return results "
                 "Batch Scan state %d",
                 pAdapter->batchScanState);
               ret = -EINVAL;
@@ -7253,6 +7253,22 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    if (!pHddCtx->cfg_ini->enable2x2)
    {
       int ret;
+#define HDD_DTIM_1CHAIN_RX_ID 0x5
+#define HDD_SMPS_PARAM_VALUE_S 29
+
+      /* Disable DTIM 1 chain Rx when in 1x1, we are passing two values as
+         param_id << 29 | param_value. Below param_value = 0(disable) */
+      ret = process_wma_set_command((int)pAdapter->sessionId,
+                             (int)WMI_STA_SMPS_PARAM_CMDID,
+                             HDD_DTIM_1CHAIN_RX_ID << HDD_SMPS_PARAM_VALUE_S,
+                             VDEV_CMD);
+
+      if (ret != 0)
+      {
+         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: DTIM 1 chain set failed %d", __func__, ret);
+         goto err_free_netdev;
+      }
+
       ret = process_wma_set_command((int)pAdapter->sessionId,
                                     (int)WMI_PDEV_PARAM_TX_CHAIN_MASK,
                                     (int)pHddCtx->cfg_ini->txchainmask1x1,
@@ -7273,6 +7289,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                                       " failed %d", __func__, ret);
          goto err_free_netdev;
       }
+#undef HDD_DTIM_1CHAIN_RX_ID
+#undef HDD_SMPS_PARAM_VALUE_S
    }
 #endif
 
@@ -9151,20 +9169,17 @@ static void hdd_bus_bw_compute_cbk(void *phddctx)
     hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
     VOS_STATUS status = 0;
     unsigned long flags;
-    int cnt;
 
     /* iterate through all adapters and determine the final
-     * voting level based on the highest bandwidth in STA mode
+     * voting level based on the highest bandwidth requirement
      */
     spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
-    cnt = pHddCtx->sta_cnt;
     status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
-    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status && cnt)
+    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status)
     {
         pAdapter = pAdapterNode->pAdapter;
-        if (pAdapter && (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)) {
-            cnt--;
-            if (!hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) {
+        if (pAdapter) {
+            if (0 == pAdapter->connection) {
                 status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
                 pAdapterNode = pNext;
                 continue;
