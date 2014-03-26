@@ -3935,8 +3935,9 @@ static inline void wma_reset_scan_info(tp_wma_handle wma_handle,
 			sizeof(struct scan_param));
 }
 
-static inline bool wma_check_ongoing_scan_request(tp_wma_handle wma_handle)
+bool wma_check_scan_in_progress(WMA_HANDLE handle)
 {
+	tp_wma_handle wma_handle = handle;
 	int i;
 
 	for (i = 0; i < wma_handle->max_bssid; i++)
@@ -12196,18 +12197,6 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	int host_credits;
 	int wmi_pending_cmds;
 
-	/*
-	 * Check for any ongoing scans that may have been started by the driver
-	 * internally and if so, abort the suspend. If the scan is started by
-	 * the supplicant or framework, then device would not suspend as
-	 * a wakelock is held till scan is completed and results are posted
-	 * back. Those scan requests are aborted in cfg80211_suspend.
-	 */
-	if (wma_check_ongoing_scan_request(wma)) {
-		WMA_LOGE("%s: Scan is ongoing. Aborting suspend\n", __func__);
-		return VOS_STATUS_E_BUSY;
-	}
-
 	len = sizeof(wmi_wow_enable_cmd_fixed_param);
 
 	buf = wmi_buf_alloc(wma->wmi_handle, len);
@@ -18343,22 +18332,6 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 		WMA_LOGE("WMA is closed. can not issue suspend cmd");
 		return -EINVAL;
 	}
-
-	/*
-	 * Check for any scan that may be ongoing before issuing suspend
-	 * command to firmware. This check is only required for suspending
-	 * the target when device goes to runtime suspend. This is not
-	 * applicable to cases wherein SSR or driver unload is happening while
-	 * scan is ongoing. For this we check the disable_target_intr argument
-	 * and not performing check for ongoing scans. For such cases scan
-	 * should be aborted from higher layers.
-	 */
-	if (wma_check_ongoing_scan_request(wma_handle)
-		&& !disable_target_intr) {
-		WMA_LOGE("%s: Scan is ongoing. Aborting suspend\n", __func__);
-		return -1;
-	}
-
 	/*
 	 * send the comand to Target to ignore the
 	 * PCIE reset so as to ensure that Host and target
