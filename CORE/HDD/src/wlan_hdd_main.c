@@ -10341,11 +10341,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /*
     * cfg80211: Initialization  ...
     */
-   if (0 < wlan_hdd_cfg80211_init(dev, wiphy, pHddCtx->cfg_ini))
+   if (VOS_FTM_MODE != hdd_get_conparam())
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL,
-              "%s: wlan_hdd_cfg80211_init return failure", __func__);
-      goto err_config;
+      if (0 < wlan_hdd_cfg80211_init(dev, wiphy, pHddCtx->cfg_ini))
+      {
+          hddLog(VOS_TRACE_LEVEL_FATAL,
+                 "%s: wlan_hdd_cfg80211_init return failure", __func__);
+          goto err_config;
+      }
    }
 
    // Update VOS trace levels based upon the cfg.ini
