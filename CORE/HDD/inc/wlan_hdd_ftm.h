@@ -215,6 +215,7 @@ int wlan_hdd_ftm_close(hdd_context_t *pHddCtx);
 #if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) \
     && !defined(QCA_WIFI_ISOC)
 VOS_STATUS wlan_hdd_ftm_testmode_cmd(void *data, int len);
+int wlan_hdd_qcmbr_unified_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr);
 #endif
 
 #endif

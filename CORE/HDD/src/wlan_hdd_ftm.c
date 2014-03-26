@@ -84,6 +84,7 @@
 #include "if_pci.h"
 #elif defined(HIF_USB)
 #include "if_usb.h"
+#include <linux/compat.h>
 #elif defined(HIF_SDIO)
 #include "if_ath_sdio.h"
 #endif
@@ -518,6 +519,26 @@ static FTM_STATUS ftm_status;
 
 //tpAniSirGlobal pMac;
 static tPttMsgbuffer *pMsgBuf;
+
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
+#if defined(HIF_USB)
+#define ATH_XIOCTL_UNIFIED_UTF_CMD  0x1000
+#define ATH_XIOCTL_UNIFIED_UTF_RSP  0x1001
+#define MAX_UTF_LENGTH              1024
+typedef struct qcmbr_data_s {
+    unsigned int cmd;
+    unsigned int length;
+    unsigned char buf[MAX_UTF_LENGTH + 4];
+    unsigned int copy_to_user;
+} qcmbr_data_t;
+typedef struct qcmbr_queue_s {
+    unsigned char utf_buf[MAX_UTF_LENGTH + 4];
+    struct list_head list;
+} qcmbr_queue_t;
+LIST_HEAD(qcmbr_queue_head);
+DEFINE_SPINLOCK(qcmbr_queue_lock);
+#endif
+#endif
 
 static void _ftm_status_init(void)
 {
@@ -1644,6 +1665,18 @@ int wlan_hdd_ftm_close(hdd_context_t *pHddCtx)
     //Free up dynamically allocated members inside HDD Adapter
     kfree(pHddCtx->cfg_ini);
     pHddCtx->cfg_ini= NULL;
+
+#if defined(QCA_WIFI_FTM) && defined(HIF_USB)
+    spin_lock_bh(&qcmbr_queue_lock);
+    if (!list_empty(&qcmbr_queue_head)) {
+        qcmbr_queue_t *msg_buf, *tmp_buf;
+        list_for_each_entry_safe(msg_buf, tmp_buf, &qcmbr_queue_head, list) {
+            list_del(&msg_buf->list);
+            kfree(msg_buf);
+        }
+    }
+    spin_unlock_bh(&qcmbr_queue_lock);
+#endif
 
     return 0;
 
@@ -5481,6 +5514,141 @@ static int wlan_ftm_register_wext(hdd_adapter_t *pAdapter)
 }
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
+#if defined(HIF_USB)
+int wlan_hdd_qcmbr_command(hdd_adapter_t *pAdapter, qcmbr_data_t *pqcmbr_data)
+{
+    int ret = 0;
+    qcmbr_queue_t *qcmbr_buf = NULL;
+
+    switch (pqcmbr_data->cmd) {
+        case ATH_XIOCTL_UNIFIED_UTF_CMD: {
+            pqcmbr_data->copy_to_user = 0;
+            if (pqcmbr_data->length) {
+                if (wlan_hdd_ftm_testmode_cmd(pqcmbr_data->buf,
+                                              pqcmbr_data->length)
+                        != VOS_STATUS_SUCCESS) {
+                    ret = -EBUSY;
+                } else {
+                    ret = 0;
+                }
+            }
+        }
+        break;
+        case ATH_XIOCTL_UNIFIED_UTF_RSP: {
+            pqcmbr_data->copy_to_user = 1;
+            if (!list_empty(&qcmbr_queue_head)) {
+                spin_lock_bh(&qcmbr_queue_lock);
+                qcmbr_buf = list_first_entry(&qcmbr_queue_head,
+                                             qcmbr_queue_t, list);
+                list_del(&qcmbr_buf->list);
+                spin_unlock_bh(&qcmbr_queue_lock);
+                ret = 0;
+            } else {
+                ret = -1;
+            }
+
+            if (!ret) {
+                memcpy(pqcmbr_data->buf, qcmbr_buf->utf_buf,
+                       (MAX_UTF_LENGTH + 4));
+                kfree(qcmbr_buf);
+            } else {
+                ret = -EAGAIN;
+            }
+        }
+        break;
+    }
+
+    return ret;
+}
+
+#ifdef CONFIG_COMPAT
+static int wlan_hdd_qcmbr_compat_ioctl(hdd_adapter_t *pAdapter,
+                                       struct ifreq *ifr)
+{
+    qcmbr_data_t *qcmbr_data;
+    int ret = 0;
+
+    qcmbr_data = kzalloc(sizeof(qcmbr_data_t), GFP_KERNEL);
+    if (qcmbr_data == NULL)
+        return -ENOMEM;
+
+    if (copy_from_user(qcmbr_data, ifr->ifr_data, sizeof(*qcmbr_data))) {
+        ret = -EFAULT;
+        goto exit;
+    }
+
+    ret = wlan_hdd_qcmbr_command(pAdapter, qcmbr_data);
+    if (qcmbr_data->copy_to_user) {
+        ret = copy_to_user(ifr->ifr_data, qcmbr_data->buf,
+                           (MAX_UTF_LENGTH + 4));
+    }
+
+exit:
+    kfree(qcmbr_data);
+    return ret;
+}
+#else /* CONFIG_COMPAT */
+static int wlan_hdd_qcmbr_compat_ioctl(hdd_adapter_t *pAdapter,
+                                       struct ifreq *ifr)
+{
+   return 0;
+}
+#endif /* CONFIG_COMPAT */
+
+static int wlan_hdd_qcmbr_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
+{
+    qcmbr_data_t *qcmbr_data;
+    int ret = 0;
+
+    qcmbr_data = kzalloc(sizeof(qcmbr_data_t), GFP_KERNEL);
+    if (qcmbr_data == NULL)
+        return -ENOMEM;
+
+    if (copy_from_user(qcmbr_data, ifr->ifr_data, sizeof(*qcmbr_data))) {
+        ret = -EFAULT;
+        goto exit;
+    }
+
+    ret = wlan_hdd_qcmbr_command(pAdapter, qcmbr_data);
+    if (qcmbr_data->copy_to_user) {
+        ret = copy_to_user(ifr->ifr_data, qcmbr_data->buf,
+                           (MAX_UTF_LENGTH + 4));
+    }
+
+exit:
+    kfree(qcmbr_data);
+    return ret;
+}
+
+int wlan_hdd_qcmbr_unified_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
+{
+    int ret = 0;
+
+    if (is_compat_task()) {
+        ret = wlan_hdd_qcmbr_compat_ioctl(pAdapter, ifr);
+    } else {
+        ret = wlan_hdd_qcmbr_ioctl(pAdapter, ifr);
+    }
+
+    return ret;
+}
+
+void WLANQCMBR_McProcessMsg(v_VOID_t *message)
+{
+    qcmbr_queue_t *qcmbr_buf = NULL;
+    u_int32_t data_len;
+
+    data_len = *((u_int32_t *)message) + sizeof(u_int32_t);
+    qcmbr_buf = kzalloc(sizeof(qcmbr_queue_t), GFP_KERNEL);
+    if (qcmbr_buf != NULL) {
+        memcpy(qcmbr_buf->utf_buf, message, data_len);
+        spin_lock_bh(&qcmbr_queue_lock);
+        list_add_tail(&(qcmbr_buf->list), &qcmbr_queue_head);
+        spin_unlock_bh(&qcmbr_queue_lock);
+    }
+}
+#endif
+
 VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
 {
     void *data;
@@ -5492,8 +5660,12 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
     data_len = *((u_int32_t *)message);
     data = (u_int32_t *)message + 1;
 
+#if defined(HIF_USB)
+    WLANQCMBR_McProcessMsg(message);
+#else
 #ifdef CONFIG_NL80211_TESTMODE
     wlan_hdd_testmode_rx_event(data, (size_t)data_len);
+#endif
 #endif
 
     vos_mem_free(message);

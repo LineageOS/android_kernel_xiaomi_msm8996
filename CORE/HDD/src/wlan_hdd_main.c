@@ -131,6 +131,7 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #include "if_pci.h"
 #elif defined(HIF_USB)
 #include "if_usb.h"
+#define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
 #elif defined(HIF_SDIO)
 #include "if_ath_sdio.h"
 #endif
@@ -5349,6 +5350,15 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
       ret = -EINVAL;
       goto exit;
    }
+
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM) && defined(HIF_USB)
+   if (VOS_FTM_MODE == hdd_get_conparam()) {
+       if (SIOCIOCTLTX99 == cmd) {
+           ret = wlan_hdd_qcmbr_unified_ioctl(pAdapter, ifr);
+           goto exit;
+       }
+   }
+#endif
 
    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    ret = wlan_hdd_validate_context(pHddCtx);
