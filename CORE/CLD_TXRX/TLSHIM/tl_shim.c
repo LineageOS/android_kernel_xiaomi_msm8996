@@ -45,7 +45,9 @@
 #include "adf_nbuf.h"
 #include "wma_api.h"
 #include "vos_utils.h"
-
+#ifdef QCA_LL_TX_FLOW_CT
+#include "wdi_out.h"
+#endif /* QCA_LL_TX_FLOW_CT */
 #define ENTER() VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, "Enter:%s", __func__)
 
 #define TLSHIM_LOGD(args...) \
@@ -1609,6 +1611,10 @@ VOS_STATUS WLANTL_Close(void *vos_ctx)
 		return VOS_STATUS_E_FAILURE;
 	}
 
+#ifdef QCA_LL_TX_FLOW_CT
+	adf_os_mem_free(tl_shim->session_flow_control);
+#endif /* QCA_LL_TX_FLOW_CT */
+
 #ifdef FEATURE_WLAN_ESE
 	vos_flush_work(&tl_shim->iapp_work.deferred_work);
 #endif
@@ -1631,6 +1637,9 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 	struct txrx_tl_shim_ctx *tl_shim;
 	VOS_STATUS status;
 	u_int8_t i;
+#ifdef QCA_LL_TX_FLOW_CT
+	int max_vdev;
+#endif /* QCA_LL_TX_FLOW_CT */
 
 	ENTER();
 	status = vos_alloc_context(vos_ctx, VOS_MODULE_ID_TL,
@@ -1656,11 +1665,6 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 		adf_os_spinlock_init(&tl_shim->sta_info[i].stainfo_lock);
 		tl_shim->sta_info[i].flags = 0;
 		INIT_LIST_HEAD(&tl_shim->sta_info[i].cached_bufq);
-#ifdef QCA_LL_TX_FLOW_CT
-		tl_shim->sta_info[i].flowControl = NULL;
-		tl_shim->sta_info[i].sessionId = 0xFF;
-		tl_shim->sta_info[i].adpaterCtxt = NULL;
-#endif /* QCA_LL_TX_FLOW_CT */
 	}
 
 	INIT_WORK(&tl_shim->cache_flush_work, tl_shim_cache_flush_work);
@@ -1672,6 +1676,23 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 	 * TODO: Allocate memory for tx callback for maximum supported
 	 * vdevs to maintain tx callbacks per vdev.
 	 */
+
+#ifdef QCA_LL_TX_FLOW_CT
+	max_vdev = wdi_out_cfg_max_vdevs(((pVosContextType)vos_ctx)->cfg_ctx);
+	tl_shim->session_flow_control = adf_os_mem_alloc(NULL,
+			max_vdev * sizeof(struct tlshim_session_flow_Control));
+	if (!tl_shim->session_flow_control) {
+		TLSHIM_LOGE("Failed to allocate memory for tx flow control");
+		vos_free_context(vos_ctx, VOS_MODULE_ID_TL, tl_shim);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	for (i = 0; i < max_vdev; i++) {
+		tl_shim->session_flow_control[i].flowControl = NULL;
+		tl_shim->session_flow_control[i].sessionId = 0xFF;
+		tl_shim->session_flow_control[i].adpaterCtxt = NULL;
+	}
+#endif /* QCA_LL_TX_FLOW_CT */
 
 	tl_shim->ip_checksum_offload = tl_cfg->ip_checksum_offload;
 	tl_shim->delay_interval = tl_cfg->uDelayedTriggerFrmInt;
@@ -1786,7 +1807,9 @@ v_BOOL_t WLANTL_GetTxResource
 {
 	struct ol_txrx_peer_t *peer = NULL;
 
-	if (!vos_context) {
+	/* If low watermark is zero, TX flow control is not enabled at all
+	 * return TRUE by default */
+	if ((!vos_context) || (!low_watermark)) {
 		return VOS_TRUE;
 	}
 
@@ -1825,7 +1848,6 @@ v_BOOL_t WLANTL_GetTxResource
 void WLANTL_TXFlowControlCb
 (
 	void  *tlContext,
-	v_U8_t peer_idx,
 	v_U8_t sessionId,
 	v_BOOL_t resume_tx
 )
@@ -1841,11 +1863,10 @@ void WLANTL_TXFlowControlCb
 		return;
 	}
 
-	if ((peer_idx < WLAN_MAX_STA_COUNT) &&
-		(tl_shim->sta_info[peer_idx].sessionId == sessionId) &&
-		(tl_shim->sta_info[peer_idx].flowControl)) {
-		flow_control_cb = tl_shim->sta_info[peer_idx].flowControl;
-		adpter_ctxt = tl_shim->sta_info[peer_idx].adpaterCtxt;
+	if ((tl_shim->session_flow_control[sessionId].sessionId == sessionId) &&
+		(tl_shim->session_flow_control[sessionId].flowControl)) {
+		flow_control_cb = tl_shim->session_flow_control[sessionId].flowControl;
+		adpter_ctxt = tl_shim->session_flow_control[sessionId].adpaterCtxt;
 	}
 
 	if ((flow_control_cb) && (adpter_ctxt)) {
@@ -1879,25 +1900,22 @@ void WLANTL_TXFlowControlCb
 void WLANTL_RegisterTXFlowControl
 (
 	void *vos_ctx,
-	v_U8_t sta_id,
 	WLANTL_TxFlowControlCBType flowControl,
 	v_U8_t sessionId,
 	void *adpaterCtxt
 )
 {
 	struct txrx_tl_shim_ctx *tl_shim;
-	struct tlshim_sta_info *sta_info;
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-	if (!tl_shim) {
+	if ((!tl_shim) || (!tl_shim->session_flow_control)) {
 		TLSHIM_LOGE("tl_shim is NULL");
 		return;
 	}
 
-	sta_info = &tl_shim->sta_info[sta_id];
-	sta_info->flowControl = flowControl;
-	sta_info->sessionId = sessionId;
-	sta_info->adpaterCtxt = adpaterCtxt;
+	tl_shim->session_flow_control[sessionId].flowControl = flowControl;
+	tl_shim->session_flow_control[sessionId].sessionId = sessionId;
+	tl_shim->session_flow_control[sessionId].adpaterCtxt = adpaterCtxt;
 
 	return;
 }

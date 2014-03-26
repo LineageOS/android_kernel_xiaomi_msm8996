@@ -61,6 +61,9 @@
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/
+/* MAX OS Q block time value in msec
+ * Prevent from permanent stall, resume OS Q if timer expired */
+#define WLAN_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME 1000
 
 const v_U8_t hddWmmAcToHighestUp[] = {
    SME_QOS_WMM_UP_RESV,
@@ -821,6 +824,30 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 #else
 #ifdef QCA_LL_TX_FLOW_CT
 /**============================================================================
+  @brief hdd_tx_resume_timer_expired_handler() - Resume OS TX Q timer expired
+      handler.
+      If Blocked OS Q is not resumed during timeout period, to prevent
+      permanent stall, resume OS Q forcefully.
+
+  @param adapter_context : [in] pointer to vdev apdapter
+
+  @return         : NONE
+  ===========================================================================*/
+void hdd_tx_resume_timer_expired_handler(void *adapter_context)
+{
+   hdd_adapter_t *pAdapter = (hdd_adapter_t *)adapter_context;
+
+   if (!pAdapter)
+   {
+      /* INVALID ARG */
+      return;
+   }
+
+   netif_tx_wake_all_queues(pAdapter->dev);
+   return;
+}
+
+/**============================================================================
   @brief hdd_tx_resume_cb() - Resume OS TX Q.
       Q was stopped due to WLAN TX path low resource condition
 
@@ -843,6 +870,11 @@ void hdd_tx_resume_cb(void *adapter_context,
    /* Resume TX  */
    if (VOS_TRUE == tx_resume)
    {
+       if (VOS_TIMER_STATE_STOPPED !=
+          vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
+       {
+          vos_timer_stop(&pAdapter->tx_flow_control_timer);
+       }
       netif_tx_wake_all_queues(pAdapter->dev);
    }
    return;
@@ -879,8 +911,8 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 #endif /* QCA_PKT_PROTO_TRACE */
 
 #ifdef QCA_LL_TX_FLOW_CT
-   unsigned int low_watermark;
-   unsigned int high_watermark_offset;
+   unsigned int low_watermark = 0;
+   unsigned int high_watermark_offset = 0;
 #endif /* QCA_LL_TX_FLOW_CT */
 
 #ifdef QCA_WIFI_FTM
@@ -924,8 +956,13 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    {
       STAId = pHddStaCtx->conn_info.staId[0];
 #ifdef QCA_LL_TX_FLOW_CT
-      low_watermark = hddCtxt->cfg_ini->TxStaFlowLowWaterMark;
-      high_watermark_offset = hddCtxt->cfg_ini->TxStaFlowHighWaterMarkOffset;
+      /* P2P CLI mode, no TX Flow Control
+       * TDLS mode, will same flow control watermark values */
+      if (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
+      {
+         low_watermark = hddCtxt->cfg_ini->TxStaFlowLowWaterMark;
+         high_watermark_offset = hddCtxt->cfg_ini->TxStaFlowHighWaterMarkOffset;
+      }
 #endif /* QCA_LL_TX_FLOW_CT */
    }
 
@@ -940,6 +977,12 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                  __func__, low_watermark,
                  (low_watermark + high_watermark_offset));
        netif_tx_stop_all_queues(dev);
+       if (VOS_TIMER_STATE_STOPPED ==
+           vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
+       {
+          vos_timer_start(&pAdapter->tx_flow_control_timer,
+                          WLAN_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME);
+       }
    }
 #endif /* QCA_LL_TX_FLOW_CT */
 

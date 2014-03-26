@@ -7105,6 +7105,17 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          //netif_tx_disable(pWlanDev);
          netif_carrier_off(pAdapter->dev);
 
+#ifdef QCA_LL_TX_FLOW_CT
+         vos_timer_init(&pAdapter->tx_flow_control_timer,
+                     VOS_TIMER_TYPE_SW,
+                     hdd_tx_resume_timer_expired_handler,
+                     pAdapter);
+         WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
+                     hdd_tx_resume_cb,
+                     pAdapter->sessionId,
+                     (void *)pAdapter);
+#endif /* QCA_LL_TX_FLOW_CT */
+
          break;
       }
 
@@ -7507,7 +7518,14 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
                           msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
             }
          }
-
+#ifdef QCA_LL_TX_FLOW_CT
+         if(VOS_TIMER_STATE_STOPPED !=
+            vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
+         {
+            vos_timer_stop(&pAdapter->tx_flow_control_timer);
+         }
+         vos_timer_destroy(&pAdapter->tx_flow_control_timer);
+#endif /* QCA_LL_TX_FLOW_CT */
          break;
 
       case WLAN_HDD_SOFTAP:
