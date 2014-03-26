@@ -3906,7 +3906,7 @@ tANI_BOOLEAN csrGetWapiInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eC
     tANI_U8 Authentication[ CSR_WAPI_OUI_SIZE ];
     tANI_U8 MulticastCyphers[ CSR_WAPI_MAX_MULTICAST_CYPHERS ][ CSR_WAPI_OUI_SIZE ];
     eCsrAuthType negAuthType = eCSR_AUTH_TYPE_UNKNOWN;
-
+    tANI_U8 wapiOuiIndex = 0;
     do{
         if ( pWapiIe->present )
         {
@@ -3927,12 +3927,18 @@ tANI_BOOLEAN csrGetWapiInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eC
 
             if( !fAcceptableCyphers ) break;
 
-
             //Unicast is supported. Pick the first matching Group cipher, if any.
             for( i = 0 ; i < pMCEncryption->numEntries ; i++ )
             {
+                wapiOuiIndex = csrGetOUIIndexFromCipher( pMCEncryption->encryptionType[i] );
+                if (wapiOuiIndex >= CSR_WAPI_OUI_SIZE)
+                {
+                    smsLog(pMac, LOGE, FL("Wapi OUI index = %d out of limit"), wapiOuiIndex);
+                    fAcceptableCyphers = FALSE;
+                    break;
+                }
                 fAcceptableCyphers = csrMatchWapiOUIIndex( pMac, MulticastCyphers,  cMulticastCyphers,
-                csrGetOUIIndexFromCipher( pMCEncryption->encryptionType[i] ), Multicast );
+                        wapiOuiIndex, Multicast );
                 if(fAcceptableCyphers)
                 {
                     break;
@@ -6566,7 +6572,8 @@ tANI_BOOLEAN csrIsChannelPresentInList(
     }
 
     // Look for the channel in the list
-    for (i = 0; i < numChannels; i++)
+    for (i = 0; (i < numChannels) &&
+            (i < WNI_CFG_VALID_CHANNEL_LIST_LEN); i++)
     {
         if (pChannelList[i] == channel)
             return TRUE;

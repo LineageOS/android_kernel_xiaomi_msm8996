@@ -946,8 +946,13 @@ sapFsm
                 {
                     tANI_U32 type, subType;
                     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
-
-                    if(VOS_STATUS_SUCCESS == vos_get_vdev_types(VOS_STA_MODE,
+                    if (NULL == hHal)
+                    {
+                        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                            "In %s, NULL hHal in state %s, msg %d",
+                            __func__, "eSAP_DISCONNECTED", msg);
+                    }
+                    else if(VOS_STATUS_SUCCESS == vos_get_vdev_types(VOS_STA_MODE,
                            &type, &subType)) {
                            /* Open SME Session for scan */
                            if(eHAL_STATUS_SUCCESS  != sme_OpenSession(hHal,
@@ -1064,12 +1069,17 @@ sapFsm
 
                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
                   "ENTERTRED CAC WAIT STATE-->eSAP_DISCONNECTING\n");
-
-               if (sapContext->SapDfsInfo.target_channel)
-               {
-                  sme_SelectCBMode(hHal, phyMode,
+                if (NULL == hHal)
+                {
+                   VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                               "In %s, NULL hHal in state %s, msg %d",
+                               __func__, "eSAP_DFS_CAC_WAIT", msg);
+                }
+                else if (sapContext->SapDfsInfo.target_channel)
+                {
+                   sme_SelectCBMode(hHal, phyMode,
                                    sapContext->SapDfsInfo.target_channel);
-               }
+                }
 
                /*
                 * eSAP_DFS_CHANNEL_CAC_RADAR_FOUND:
@@ -1478,6 +1488,14 @@ sapSortMacList(v_MACADDR_t *macList, v_U8_t size)
     v_MACADDR_t temp;
     v_SINT_t nRes = -1;
 
+    if ((NULL == macList) || (size >= MAX_ACL_MAC_ADDRESS))
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                      "In %s, either buffer is NULL or size = %d is more."
+                      , __func__, size);
+        return;
+    }
+
     for(outer = 0; outer < size; outer++)
     {
         for(inner = 0; inner < size - 1; inner++)
@@ -1582,7 +1600,15 @@ void sapPrintACL(v_MACADDR_t *macList, v_U8_t size)
     int i;
     v_BYTE_t *macArray;
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"print acl entered");
-    if (size==0) return;
+
+    if ((NULL == macList) || (size == 0) || (size >= MAX_ACL_MAC_ADDRESS))
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "In %s, either buffer is NULL or size %d is incorrect."
+                    , __func__, size);
+        return;
+    }
+
     for (i=0; i<size; i++)
     {
         macArray = (macList+i)->bytes;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -349,7 +349,7 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
         }
 
         // Check validity of WPA IE
-        if(wpaIndex +4 < SIR_MAC_MAX_IE_LENGTH )
+        if(wpaIndex +6 < SIR_MAC_MAX_IE_LENGTH )
         {
             val = sirReadU32((tANI_U8 *) &pRSNie->rsnIEdata[wpaIndex + 2]);
 
