@@ -437,10 +437,13 @@ typedef enum
   /* WLAN FW LPHB config request */
   WDI_LPHB_CFG_REQ                              = 85,
 
-#ifdef FEATURE_WLAN_BATCH_SCAN
   /* WLAN FW set batch scan request */
+<<<<<<< HEAD
   WDI_SET_BATCH_SCAN_REQ                        = 86,
 #endif
+=======
+  WDI_SET_BATCH_SCAN_REQ                        = 88,
+>>>>>>> b786da9... wlan: Fix of crash issue with batch scan disabled
 
   /*WLAN DAL Set Max Tx Power Per band Request*/
   WDI_SET_MAX_TX_POWER_PER_BAND_REQ             = 87,
@@ -471,12 +474,10 @@ typedef enum
   /* Send Rate Update Indication */
   WDI_RATE_UPDATE_IND,
 
-#ifdef FEATURE_WLAN_BATCH_SCAN
   /*Send stop batch scan indication to FW*/
   WDI_STOP_BATCH_SCAN_IND,
   /*Send stop batch scan indication to FW*/
   WDI_TRIGGER_BATCH_SCAN_RESULT_IND,
-#endif
 
   /*Keep adding the indications to the max request
     such that we keep them sepparate */
@@ -740,7 +741,7 @@ typedef enum
   WDI_LPHB_CFG_RESP                             = 84,
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
-  WDI_SET_BATCH_SCAN_RESP                        = 85,
+  WDI_SET_BATCH_SCAN_RESP                       = 85,
 #endif
 
   WDI_SET_MAX_TX_POWER_PER_BAND_RSP             = 86,
