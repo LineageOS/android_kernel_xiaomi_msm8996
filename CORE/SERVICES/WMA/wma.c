@@ -12979,6 +12979,12 @@ int wma_disable_wow_in_fw(WMA_HANDLE handle)
 	}
 
 	WMA_LOGD("WoW Resume in PCIe Context\n");
+
+	ret = wma_send_host_wakeup_ind_to_fw(wma);
+
+	if (ret != VOS_STATUS_SUCCESS)
+		return ret;
+
 	wma->wow.wow_enable = FALSE;
 	wma->wow.wow_enable_cmd_sent = FALSE;
 
@@ -12998,7 +13004,6 @@ int wma_disable_wow_in_fw(WMA_HANDLE handle)
 		iface->conn_state = FALSE;
 	}
 
-	ret = wma_send_host_wakeup_ind_to_fw(wma);
 	vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 2000);
 
 	return ret;
