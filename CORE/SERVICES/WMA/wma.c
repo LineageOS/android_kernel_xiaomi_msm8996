@@ -6730,6 +6730,12 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		default:
 			break;
 	}
+
+#ifdef FEATURE_WLAN_TDLS
+	if (STA_ENTRY_TDLS_PEER == params->staType)
+		cmd->peer_flags |= WMI_PEER_AUTH;
+#endif
+
 	if (params->wpa_rsn
 #ifdef FEATURE_WLAN_WAPI
 	    || params->encryptType == eSIR_ED_WPI
