@@ -179,6 +179,11 @@ typedef struct sSapDfsInfo {
 
 }tSapDfsInfo;
 
+typedef struct sSapAcsChannelInfo {
+    v_U32_t             channelNum;
+    v_U32_t             weight;
+}tSapAcsChannelInfo;
+
 typedef struct sSapContext {
 
     vos_lock_t          SapGlobalLock;
@@ -265,6 +270,8 @@ typedef struct sSapContext {
     tANI_BOOLEAN       allBandScanned;
     eCsrBand           currentPreferredBand;
     eCsrBand           scanBandPreference;
+    v_U16_t            acsBandSwitchThreshold;
+    tSapAcsChannelInfo acsBestChannelInfo;
     tANI_BOOLEAN       enableOverLapCh;
 } *ptSapContext;
 

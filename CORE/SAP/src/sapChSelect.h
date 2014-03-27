@@ -107,7 +107,10 @@ typedef enum
     CHANNEL_8,
     CHANNEL_9,
     CHANNEL_10,
-    CHANNEL_11
+    CHANNEL_11,
+    CHANNEL_12,
+    CHANNEL_13,
+    CHANNEL_14
 } tSapChannel;
 
 /**

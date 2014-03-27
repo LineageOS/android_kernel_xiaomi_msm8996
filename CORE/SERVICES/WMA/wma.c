@@ -943,13 +943,6 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		}
 
 		iface = &wma->interfaces[resp_event->vdev_id];
-		if (WMA_BSS_STATUS_STOPPED ==
-					adf_os_atomic_read(&iface->bss_status)){
-			WMA_LOGE("%s: vdev_id %d is already stopped", __func__,
-				resp_event->vdev_id);
-			return -EINVAL;
-		}
-
 		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
 		if (!peer)
 			WMA_LOGD("%s Failed to find peer %pM",
@@ -965,6 +958,7 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		ol_txrx_vdev_flush(iface->handle);
 		wdi_in_vdev_unpause(iface->handle);
 		iface->pause_bitmap = 0;
+		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
 			 __func__, iface->type, iface->sub_type);
 #ifndef QCA_WIFI_ISOC
@@ -998,7 +992,6 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 			WMA_LOGD("%s: scheduling defered deletion", __func__);
 			wma_vdev_detach(wma, iface->del_staself_req, 1);
 		}
-		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 	}
 	vos_timer_destroy(&req_msg->event_timeout);
 	adf_os_mem_free(req_msg);
@@ -3942,6 +3935,16 @@ static inline void wma_reset_scan_info(tp_wma_handle wma_handle,
 			sizeof(struct scan_param));
 }
 
+static inline bool wma_check_ongoing_scan_request(tp_wma_handle wma_handle)
+{
+	int i;
+
+	for (i = 0; i < wma_handle->max_bssid; i++)
+		if (wma_handle->interfaces[i].scan_info.scan_id)
+			return true;
+	return false;
+}
+
 /* function   : wma_get_buf_start_scan_cmd
  * Descriptin :
  * Args       :
@@ -4713,7 +4716,8 @@ VOS_STATUS wma_roam_scan_offload_chan_list(tp_wma_handle wma_handle,
                (chan_list_fp->num_chan * sizeof(u_int32_t)));
     roam_chan_list_array = (A_UINT32 *)(buf_ptr + WMI_TLV_HDR_SIZE);
     WMA_LOGI("%s: %d channels = ", __func__, chan_list_fp->num_chan);
-    for (i = 0; i < chan_list_fp->num_chan; i++) {
+    for (i = 0; ((i < chan_list_fp->num_chan) &&
+                 (i < SIR_ROAM_MAX_CHANNELS)); i++) {
         roam_chan_list_array[i] = vos_chan_to_freq(chan_list[i]);
         WMA_LOGI("%d,",roam_chan_list_array[i]);
     }
@@ -6064,13 +6068,6 @@ void wma_vdev_resp_timer(void *data)
 		}
 
 		iface = &wma->interfaces[tgt_req->vdev_id];
-		if (WMA_BSS_STATUS_STOPPED ==
-					adf_os_atomic_read(&iface->bss_status)){
-			WMA_LOGE("%s: vdev_id %d is already stopped", __func__,
-				tgt_req->vdev_id);
-			return;
-		}
-
 		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
 		wma_remove_peer(wma, params->bssid, tgt_req->vdev_id, peer);
 		if (wmi_unified_vdev_down_send(wma->wmi_handle, tgt_req->vdev_id) < 0) {
@@ -6082,6 +6079,7 @@ void wma_vdev_resp_timer(void *data)
 		ol_txrx_vdev_flush(iface->handle);
 		wdi_in_vdev_unpause(iface->handle);
 		iface->pause_bitmap = 0;
+		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
 			 __func__, iface->type, iface->sub_type);
 
@@ -6116,7 +6114,6 @@ void wma_vdev_resp_timer(void *data)
 			WMA_LOGD("%s: scheduling defered deletion", __func__);
 			wma_vdev_detach(wma, iface->del_staself_req, 1);
 		}
-		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 	} else if (tgt_req->msg_type == WDA_DEL_STA_SELF_REQ) {
 		struct wma_txrx_node *iface =
 			(struct wma_txrx_node *)tgt_req->user_data;
@@ -6732,7 +6729,6 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		default:
 			break;
 	}
-	cmd->peer_flags |= WMI_PEER_AUTH;
 	if (params->wpa_rsn
 #ifdef FEATURE_WLAN_WAPI
 	    || params->encryptType == eSIR_ED_WPI
@@ -7546,6 +7542,9 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		case WMI_VDEV_PARAM_EARLY_RX_ADJUST_PAUSE:
 			intr[vid].config.erx_adj_pause = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_EARLY_RX_DRIFT_SAMPLE:
+			intr[vid].config.erx_dri_sample = privcmd->param_value;
 			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set vdev command/Not"
@@ -12196,6 +12195,18 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	struct ol_softc *scn;
 	int host_credits;
 	int wmi_pending_cmds;
+
+	/*
+	 * Check for any ongoing scans that may have been started by the driver
+	 * internally and if so, abort the suspend. If the scan is started by
+	 * the supplicant or framework, then device would not suspend as
+	 * a wakelock is held till scan is completed and results are posted
+	 * back. Those scan requests are aborted in cfg80211_suspend.
+	 */
+	if (wma_check_ongoing_scan_request(wma)) {
+		WMA_LOGE("%s: Scan is ongoing. Aborting suspend\n", __func__);
+		return VOS_STATUS_E_BUSY;
+	}
 
 	len = sizeof(wmi_wow_enable_cmd_fixed_param);
 
@@ -18332,6 +18343,22 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 		WMA_LOGE("WMA is closed. can not issue suspend cmd");
 		return -EINVAL;
 	}
+
+	/*
+	 * Check for any scan that may be ongoing before issuing suspend
+	 * command to firmware. This check is only required for suspending
+	 * the target when device goes to runtime suspend. This is not
+	 * applicable to cases wherein SSR or driver unload is happening while
+	 * scan is ongoing. For this we check the disable_target_intr argument
+	 * and not performing check for ongoing scans. For such cases scan
+	 * should be aborted from higher layers.
+	 */
+	if (wma_check_ongoing_scan_request(wma_handle)
+		&& !disable_target_intr) {
+		WMA_LOGE("%s: Scan is ongoing. Aborting suspend\n", __func__);
+		return -1;
+	}
+
 	/*
 	 * send the comand to Target to ignore the
 	 * PCIE reset so as to ensure that Host and target

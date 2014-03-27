@@ -240,6 +240,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_EARLY_RX_INIT_SLOP             79
 #define WE_SET_EARLY_RX_ADJUST_PAUSE          80
 #define WE_SET_MC_RATE                        81
+#define WE_SET_EARLY_RX_DRIFT_SAMPLE          82
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -2889,6 +2890,24 @@ static int iw_get_linkspeed(struct net_device *dev,
    return rc;
 }
 
+/*
+ * Helper function to return correct value for WLAN_GET_LINK_SPEED
+ *
+ */
+static int iw_get_linkspeed_priv(struct net_device *dev,
+                                 struct iw_request_info *info,
+                                 union iwreq_data *wrqu, char *extra)
+{
+    int rc;
+
+    rc = iw_get_linkspeed(dev, info, wrqu, extra);
+
+    if (rc < 0)
+       return rc;
+
+    /* a value is being successfully returned */
+    return 0;
+}
 
 /*
  * Support for the RSSI & RSSI-APPROX private commands
@@ -5770,6 +5789,14 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             }
             else
               ret = -EINVAL;
+            break;
+       }
+       case WE_SET_EARLY_RX_DRIFT_SAMPLE:
+       {
+            hddLog(LOG1, "SET early_rx drift sample %d", set_value);
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                            (int)WMI_VDEV_PARAM_EARLY_RX_DRIFT_SAMPLE,
+                            set_value, VDEV_CMD);
             break;
        }
 #endif
@@ -9639,7 +9666,7 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_SET_MCBC_FILTER           - SIOCIWFIRSTPRIV]   = iw_set_dynamic_mcbc_filter,
    [WLAN_PRIV_CLEAR_MCBC_FILTER         - SIOCIWFIRSTPRIV]   = iw_clear_dynamic_mcbc_filter,
    [WLAN_SET_POWER_PARAMS               - SIOCIWFIRSTPRIV]   = iw_set_power_params_priv,
-   [WLAN_GET_LINK_SPEED                 - SIOCIWFIRSTPRIV]   = iw_get_linkspeed,
+   [WLAN_GET_LINK_SPEED                 - SIOCIWFIRSTPRIV]   = iw_get_linkspeed_priv,
    [WLAN_PRIV_SET_TWO_INT_GET_NONE      - SIOCIWFIRSTPRIV]   = iw_set_two_ints_getnone,
 };
 
@@ -10055,6 +10082,10 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_EARLY_RX_ADJUST_PAUSE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "erx_adj_pause" },
+
+    {   WE_SET_EARLY_RX_DRIFT_SAMPLE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "erx_dri_sample" },
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,

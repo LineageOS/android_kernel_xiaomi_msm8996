@@ -1326,10 +1326,15 @@ void hdd_resume_wlan(void)
        if ( (WLAN_HDD_INFRA_STATION != pAdapter->device_mode)
          && (WLAN_HDD_SOFTAP != pAdapter->device_mode)
          && (WLAN_HDD_P2P_CLIENT != pAdapter->device_mode) )
-       {  // we skip this registration for modes other than STA, SAP and P2P client modes.
+       {
+#ifndef QCA_WIFI_2_0
+         // we skip this registration for modes other than STA, SAP and P2P client modes.
             status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
             pAdapterNode = pNext;
             continue;
+#else
+            goto send_resume_ind;
+#endif
        }
 
 
@@ -1377,6 +1382,7 @@ void hdd_resume_wlan(void)
       }
 
 #ifdef QCA_WIFI_2_0
+send_resume_ind:
       //wake the tx queues
       netif_tx_wake_all_queues(pAdapter->dev);
 #endif
@@ -1725,6 +1731,11 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    }
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+   if (!hif_sc) {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hif_sc is NULL", __func__);
+      goto err_re_init;
+   }
+
    /* Initialize the adf_ctx handle */
    adf_ctx = vos_mem_malloc(sizeof(adf_os_device_t));
 

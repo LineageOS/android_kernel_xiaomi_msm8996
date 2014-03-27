@@ -926,9 +926,9 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                                          high_watermark_offset))
    {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-                 "%s: Out of TX resource, stop Q, LWM %d, HWM %d, dev 0x%x",
+                 "%s: Out of TX resource, stop Q, LWM %d, HWM %d",
                  __func__, low_watermark,
-                 (low_watermark + high_watermark_offset), (unsigned int)dev);
+                 (low_watermark + high_watermark_offset));
        netif_tx_stop_all_queues(dev);
    }
 #endif /* QCA_LL_TX_FLOW_CT */
