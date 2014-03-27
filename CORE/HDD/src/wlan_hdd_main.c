@@ -10433,6 +10433,42 @@ void __hdd_wlan_exit(void)
 }
 #endif  /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
 
+#ifdef QCA_HT_2040_COEX
+/**--------------------------------------------------------------------------
+
+  \brief notify FW with HT20/HT40 mode
+
+  -------------------------------------------------------------------------*/
+int hdd_wlan_set_ht2040_mode(hdd_adapter_t *pAdapter, v_U16_t staId,
+                             v_MACADDR_t macAddrSTA, int channel_type)
+{
+   int status;
+   VOS_STATUS vosStatus;
+   hdd_context_t *pHddCtx = NULL;
+
+   pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+   status = wlan_hdd_validate_context(pHddCtx);
+   if (0 != status)
+   {
+       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: HDD context is not valid", __func__);
+       return -1;
+   }
+   if (!pHddCtx->hHal)
+      return -1;
+
+   vosStatus = sme_notify_ht2040_mode(pHddCtx->hHal, staId, macAddrSTA,
+                                      pAdapter->sessionId, channel_type);
+   if (VOS_STATUS_SUCCESS != vosStatus) {
+      hddLog(LOGE, "Fail to send notification with ht2040 mode\n");
+      return -1;
+   }
+
+   return 0;
+}
+#endif
+
 /**--------------------------------------------------------------------------
 
   \brief notify FW with modem power status

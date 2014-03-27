@@ -2597,6 +2597,13 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_MAX_CONCURRENT_CONNECTIONS_MIN        ( 1 )
 #define CFG_MAX_CONCURRENT_CONNECTIONS_MAX        ( 4 )
 
+#ifdef QCA_HT_2040_COEX
+#define CFG_ENABLE_HT_2040_COEX                    "gHT2040CoexEnabled"
+#define CFG_ENABLE_HT_2040_COEX_MIN                ( 0 )
+#define CFG_ENABLE_HT_2040_COEX_MAX                ( 1 )
+#define CFG_ENABLE_HT_2040_COEX_DEFAULT            ( 0 )
+#endif
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3148,7 +3155,12 @@ typedef struct
    v_U32_t                     pmfSaQueryMaxRetries;
    v_U32_t                     pmfSaQueryRetryInterval;
 #endif
+
    v_U8_t                      gMaxConcurrentActiveSessions;
+
+#ifdef QCA_HT_2040_COEX
+   v_BOOL_t                    ht2040CoexEnabled;
+#endif
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

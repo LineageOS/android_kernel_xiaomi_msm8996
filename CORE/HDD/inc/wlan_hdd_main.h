@@ -1609,6 +1609,10 @@ static inline void hdd_stop_bus_bw_computer_timer(hdd_adapter_t *pAdapter)
 int hdd_wlan_startup(struct device *dev, void *hif_sc);
 void __hdd_wlan_exit(void);
 int hdd_wlan_notify_modem_power_state(int state);
+#ifdef QCA_HT_2040_COEX
+int hdd_wlan_set_ht2040_mode(hdd_adapter_t *pAdapter, v_U16_t staId,
+                             v_MACADDR_t macAddrSTA, int width);
+#endif
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
 /**---------------------------------------------------------------------------

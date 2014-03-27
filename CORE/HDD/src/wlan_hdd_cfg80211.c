@@ -1186,6 +1186,11 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 
     wiphy->max_ap_assoc_sta = pCfg->maxNumberOfPeers;
 
+#ifdef QCA_HT_2040_COEX
+    if (pCfg->ht2040CoexEnabled)
+        wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
+#endif
+
     EXIT();
     return 0;
 }
@@ -2078,6 +2083,33 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                    return -EINVAL;
                 }
                 (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
+            }
+
+            /* set channel bonding mode for 2.4G */
+            if ( channel <= 14 )
+            {
+                tSmeConfigParams smeConfig;
+                sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
+
+                switch (channel_type)
+                {
+                case NL80211_CHAN_HT20:
+                    smeConfig.csrConfig.channelBondingMode24GHz = 0;
+                    sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+                    break;
+
+                case NL80211_CHAN_HT40MINUS:
+                case NL80211_CHAN_HT40PLUS:
+                    smeConfig.csrConfig.channelBondingMode24GHz = 1;
+                    sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+                    break;
+
+                default:
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                              "%s:Error!!! Invalid HT20/40 mode !",
+                              __func__);
+                    return -EINVAL;
+                }
             }
         }
     }
@@ -7762,6 +7794,7 @@ static int __wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
         }
     }
 
+
     return 0;
 }
 
@@ -11073,6 +11106,108 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
 
     return ret;
 }
+
+#ifdef QCA_HT_2040_COEX
+int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
+                                     struct net_device *dev,
+                                     struct cfg80211_chan_def *chandef)
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx;
+    VOS_STATUS status;
+    tSmeConfigParams smeConfig;
+    int i;
+    bool cbModeChange;
+
+    if (NULL == pAdapter) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                   "%s: HDD adapter is Null", __func__);
+        return -ENODEV;
+    }
+
+    if (NULL == wiphy) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                   "%s: wiphy is Null", __func__);
+        return -ENODEV;
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    status = wlan_hdd_validate_context(pHddCtx);
+
+    if (0 != status) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is not valid", __func__);
+        return status;
+    }
+
+    if (!pHddCtx->cfg_ini->ht2040CoexEnabled)
+        return -EOPNOTSUPP;
+
+    vos_mem_zero(&smeConfig, sizeof (tSmeConfigParams));
+    sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
+    switch (chandef->width) {
+    case NL80211_CHAN_WIDTH_20:
+        if (smeConfig.csrConfig.channelBondingMode24GHz != 0) {
+            smeConfig.csrConfig.channelBondingMode24GHz = 0;
+            sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+            cbModeChange = TRUE;
+        }
+        break;
+
+    case NL80211_CHAN_WIDTH_40:
+        if (smeConfig.csrConfig.channelBondingMode24GHz != 1) {
+            smeConfig.csrConfig.channelBondingMode24GHz = 1;
+            sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+            cbModeChange = TRUE;
+        }
+        break;
+
+    default:
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                      "%s:Error!!! Invalid HT20/40 mode !",
+                      __func__);
+        return -EINVAL;
+    }
+
+    if (!cbModeChange)
+       return 0;
+
+    if (WLAN_HDD_SOFTAP != pAdapter->device_mode)
+        return 0;
+
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: channel bonding changed to %d",
+             __func__, smeConfig.csrConfig.channelBondingMode24GHz);
+
+    /* change SAP ht2040 mode */
+    status = hdd_set_sap_ht2040_mode(pAdapter,
+                                     cfg80211_get_chandef_type(chandef));
+    if (status != VOS_STATUS_SUCCESS) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s:Error!!! Cannot set SAP HT20/40 mode!",
+               __func__);
+        return -EINVAL;
+    }
+
+    for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
+        if (!pAdapter->aStaInfo[i].isUsed)
+            continue;
+
+        status = hdd_wlan_set_ht2040_mode(pAdapter,
+                                          pAdapter->aStaInfo[i].ucSTAId,
+                                          pAdapter->aStaInfo[i].macAddrSTA,
+                                          cfg80211_get_chandef_type(chandef));
+        if (status != VOS_STATUS_SUCCESS) {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                    "%s:Error!!! Cannot set HT20/40 mode for STA %d!",
+                    __func__, pAdapter->aStaInfo[i].ucSTAId);
+            return -EINVAL;
+        }
+    }
+
+    return 0;
+}
+#endif
+
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops =
 {
@@ -11139,6 +11274,9 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .set_mac_acl = wlan_hdd_cfg80211_set_mac_acl,
 #ifdef WLAN_NL80211_TESTMODE
      .testmode_cmd = wlan_hdd_cfg80211_testmode,
+#endif
+#ifdef QCA_HT_2040_COEX
+     .set_ap_chanwidth = wlan_hdd_cfg80211_set_ap_channel_width,
 #endif
      .dump_survey = wlan_hdd_cfg80211_dump_survey,
 };

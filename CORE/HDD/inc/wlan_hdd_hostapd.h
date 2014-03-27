@@ -92,4 +92,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter );
 void hdd_set_ap_ops( struct net_device *pWlanHostapdDev );
 int hdd_hostapd_stop (struct net_device *dev);
+#ifdef QCA_HT_2040_COEX
+VOS_STATUS hdd_set_sap_ht2040_mode(hdd_adapter_t *pHostapdAdapter,
+                                   tANI_U8 channel_type);
+#endif
 #endif    // end #if !defined( WLAN_HDD_HOSTAPD_H )

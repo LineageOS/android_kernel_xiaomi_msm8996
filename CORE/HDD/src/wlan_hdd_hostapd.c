@@ -421,6 +421,35 @@ static int hdd_hostapd_ioctl(struct net_device *dev,
    return ret;
 }
 
+#ifdef QCA_HT_2040_COEX
+VOS_STATUS hdd_set_sap_ht2040_mode(hdd_adapter_t *pHostapdAdapter,
+                                   tANI_U8 channel_type)
+{
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+    v_PVOID_t hHal = NULL;
+
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: change HT20/40 mode", __func__);
+
+    if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode) {
+        hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+        if ( NULL == hHal ) {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Hal ctx is null", __func__);
+            return VOS_STATUS_E_FAULT;
+        }
+        halStatus = sme_SetHT2040Mode(hHal, pHostapdAdapter->sessionId,
+                                      channel_type);
+        if (halStatus == eHAL_STATUS_FAILURE ) {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Failed to change HT20/40 mode", __func__);
+            return VOS_STATUS_E_FAILURE;
+        }
+    }
+    return VOS_STATUS_SUCCESS;
+}
+#endif
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_hostapd_set_mac_address() -
