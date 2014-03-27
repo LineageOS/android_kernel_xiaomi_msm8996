@@ -129,6 +129,7 @@ int wma_resume_target(WMA_HANDLE handle);
 int wma_disable_wow_in_fw(WMA_HANDLE handle);
 int wma_is_wow_mode_selected(WMA_HANDLE handle);
 int wma_enable_wow_in_fw(WMA_HANDLE handle);
+bool wma_check_scan_in_progress(WMA_HANDLE handle);
 #endif
 int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,
 			u_int32_t param_value, u_int32_t vdev_id);

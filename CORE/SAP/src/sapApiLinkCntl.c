@@ -743,6 +743,15 @@ WLANSAP_RoamCallback
             tHalHandle hHal =
                (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, sapContext->pvosGCtx);
 
+            if (NULL == hHal)
+            {
+               VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                         "In %s invalid hHal roamStatus = %d "
+                         "roamResult = %d", __func__, roamStatus, roamResult);
+               halStatus = eHAL_STATUS_FAILED_ALLOC;
+               break;
+            }
+
             /* Both success and failure cases are handled intentionally handled
              * together. Irrespective of whether the channel switch IE was
              * sent out successfully or not, SAP should still vacate the

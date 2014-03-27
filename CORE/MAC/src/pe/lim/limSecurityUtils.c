@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1067,9 +1067,16 @@ tANI_U32 val = 0;
       }else {
           /*This case the keys are coming from upper layer so need to fill the
           * key at the default wep key index and send to the HAL */
-          vos_mem_copy((tANI_U8 *) &pSetStaKeyParams->key[defWEPIdx],
+          if (defWEPIdx < SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS)
+          {
+             vos_mem_copy((tANI_U8 *) &pSetStaKeyParams->key[defWEPIdx],
                              (tANI_U8 *) &pMlmSetKeysReq->key[0], sizeof( pMlmSetKeysReq->key[0] ));
-          pMlmSetKeysReq->numKeys = SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS;
+             pMlmSetKeysReq->numKeys = SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS;
+          }
+          else
+          {
+             limLog( pMac, LOGE, FL( "Wrong Key Index %d" ), defWEPIdx);
+          }
       }
       break;
   case eSIR_ED_TKIP:

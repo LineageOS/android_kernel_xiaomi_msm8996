@@ -240,6 +240,39 @@ limAddMgmtSeqNum (tpAniSirGlobal pMac, tpSirMacMgmtHdr pMacHdr)
     pMacHdr->seqControl.seqNumHi =
             ((pMac->mgmtSeqNum & HIGH_SEQ_NUM_MASK) >> HIGH_SEQ_NUM_OFFSET);
 }
+
+/**
+ *
+ * \brief This function is called before sending a p2p action frame
+ * inorder to add sequence numbers to action packets
+ *
+ * \param  pMac Pointer to Global MAC structure
+ *
+ * \param pBD Pointer to the frame buffer that needs to be populate
+ *
+ * The pMacHdr argument points to the MAC management header. The
+ * sequence number stored in the pMac structure will be incremented
+ * and updated to the MAC management header. The start sequence
+ * number is WLAN_HOST_SEQ_NUM_MIN and the end value is
+ * WLAN_HOST_SEQ_NUM_MAX. After reaching the MAX value, the sequence
+ * number will roll over.
+ *
+ */
+void
+limPopulateP2pMacHeader(tpAniSirGlobal pMac, tANI_U8* pBD)
+{
+    tpSirMacMgmtHdr pMacHdr;
+
+    /// Prepare MAC management header
+    pMacHdr = (tpSirMacMgmtHdr) (pBD);
+
+    /* Prepare sequence number */
+    limAddMgmtSeqNum(pMac, pMacHdr);
+    limLog(pMac, LOG1,"seqNumLo=%d, seqNumHi=%d, mgmtSeqNum=%d",
+            pMacHdr->seqControl.seqNumLo,
+            pMacHdr->seqControl.seqNumHi,
+            pMac->mgmtSeqNum);
+}
 #endif /* QCA_WIFI_2_0 */
 
 /**

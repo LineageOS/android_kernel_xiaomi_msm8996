@@ -315,12 +315,24 @@ void hdd_wmm_acquire_access_required(hdd_adapter_t *pAdapter,
   @brief hdd_tx_resume_cb() - Resume OS TX Q.
       Q was stopped due to WLAN TX path low resource condition
 
-  @param adapter_context : [in] pointer to vdev apdapter
+  @param adapter_context : [in] pointer to vdev adapter
   @param tx_resume       : [in] TX Q resume trigger
 
   @return         : NONE
   ===========================================================================*/
 void hdd_tx_resume_cb(void *adapter_context,
                         v_BOOL_t tx_resume);
+
+/**============================================================================
+  @brief hdd_tx_resume_timer_expired_handler() - Resume OS TX Q timer expired
+      handler.
+      If Blocked OS Q is not resumed during timeout period, to prevent
+      permanent stall, resume OS Q forcefully.
+
+  @param adapter_context : [in] pointer to vdev adapter
+
+  @return         : NONE
+  ===========================================================================*/
+void hdd_tx_resume_timer_expired_handler(void *adapter_context);
 #endif /* QCA_LL_TX_FLOW_CT */
 #endif    // end #if !defined( WLAN_HDD_TX_RX_H )

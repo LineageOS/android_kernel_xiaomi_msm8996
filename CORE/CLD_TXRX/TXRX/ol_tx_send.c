@@ -118,7 +118,6 @@ do {                                                                            
             adf_os_spin_lock(&pdev->tx_mutex);                                    \
             if (pdev->tx_desc.num_free > vdev->tx_fl_hwm) {                       \
                vdev->osif_flow_control_cb(vdev->osif_dev,                         \
-                                          vdev->last_real_peer->local_id,         \
                                           vdev->vdev_id, A_TRUE);                 \
                adf_os_atomic_set(&vdev->os_q_paused, 0);                          \
             }                                                                     \

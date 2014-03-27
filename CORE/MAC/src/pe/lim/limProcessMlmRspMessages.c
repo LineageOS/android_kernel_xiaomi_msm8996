@@ -2478,12 +2478,12 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
         if (psessionEntry->privacy)
         {
             if ((psessionEntry->gStartBssRSNIe.present) || (psessionEntry->gStartBssWPAIe.present))
-                limLog(pMac, LOGP, FL("WPA/WPA2 SAP configuration\n"));
+                limLog(pMac, LOG1, FL("WPA/WPA2 SAP configuration\n"));
             else
             {
                 if (pMac->lim.gLimAssocStaLimit > MAX_SUPPORTED_PEERS_WEP)
                 {
-                    limLog(pMac, LOGP, FL("WEP SAP Configuration\n"));
+                    limLog(pMac, LOG1, FL("WEP SAP Configuration\n"));
                     pMac->lim.gLimAssocStaLimit = MAX_SUPPORTED_PEERS_WEP;
                     isWepEnabled = TRUE;
                 }
@@ -3537,10 +3537,15 @@ void limProcessInitScanRsp(tpAniSirGlobal pMac,  void *body)
         case eLIM_HAL_SUSPEND_LINK_WAIT_STATE:
             if( pMac->lim.gpLimSuspendCallback )
             {
-               if( status == eHAL_STATUS_SUCCESS )
+               if( eHAL_STATUS_SUCCESS == status )
+               {
                   pMac->lim.gLimHalScanState = eLIM_HAL_SUSPEND_LINK_STATE;
+               }
                else
+               {
                   pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
+                  pMac->lim.gLimSystemInScanLearnMode = 0;
+               }
 
                pMac->lim.gpLimSuspendCallback( pMac, status, pMac->lim.gpLimSuspendData );
                pMac->lim.gpLimSuspendCallback = NULL;

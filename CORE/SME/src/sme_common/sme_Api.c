@@ -2923,6 +2923,11 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
 #endif
                         status = csrScanRequest( hHal, sessionId, pscanReq,
                                                  pScanRequestID, callback, pContext );
+                        if ( !HAL_STATUS_SUCCESS( status ) )
+                        {
+                           smsLog(pMac, LOGE, FL("csrScanRequest failed"
+                                  " SId=%d"), sessionId);
+                        }
 #ifdef FEATURE_WLAN_LFR
                     }
                     else
@@ -10416,27 +10421,40 @@ void sme_SetTdlsPowerSaveProhibited(tHalHandle hHal, tANI_U32 sessionId, v_BOOL_
 
     psmeTdlsParams - TDLS state info to update in f/w
 
+    useSmeLock - Need to acquire SME Global Lock before state update or not
+
   \return eHalStatus
 --------------------------------------------------------------------------- */
-eHalStatus sme_UpdateFwTdlsState(tHalHandle hHal, void  *psmeTdlsParams)
+eHalStatus sme_UpdateFwTdlsState(tHalHandle hHal, void  *psmeTdlsParams,
+                                 tANI_BOOLEAN useSmeLock)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tpAniSirGlobal pMac;
     vos_msg_t vosMessage;
 
-    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
-    {
-        /* serialize the req through MC thread */
-        vosMessage.bodyptr = psmeTdlsParams;
-        vosMessage.type    = WDA_UPDATE_FW_TDLS_STATE;
-        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
-        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-        {
-           status = eHAL_STATUS_FAILURE;
-        }
-        sme_ReleaseGlobalLock(&pMac->sme);
+    /* only acquire sme global lock before state update if asked to */
+    if (useSmeLock) {
+        pMac = PMAC_STRUCT(hHal);
+        if (NULL == pMac)
+            return eHAL_STATUS_FAILURE;
+
+        status = sme_AcquireGlobalLock(&pMac->sme);
+        if (eHAL_STATUS_SUCCESS != status)
+            return status;
     }
+
+    /* serialize the req through MC thread */
+    vosMessage.bodyptr = psmeTdlsParams;
+    vosMessage.type    = WDA_UPDATE_FW_TDLS_STATE;
+    vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        status = eHAL_STATUS_FAILURE;
+
+    /* release the lock if it was acquired */
+    if (useSmeLock)
+        sme_ReleaseGlobalLock(&pMac->sme);
+
     return(status);
 }
 

@@ -3074,7 +3074,6 @@ v_BOOL_t WLANTL_GetTxResource
 void WLANTL_TXFlowControlCb
 (
    void  *tlContext,
-   v_U8_t peer_idx,
    v_U8_t sessionId,
    v_BOOL_t resume_tx
 );
@@ -3104,7 +3103,6 @@ void WLANTL_TXFlowControlCb
 void WLANTL_RegisterTXFlowControl
 (
    void *vos_ctx,
-   v_U8_t sta_id,
    WLANTL_TxFlowControlCBType flowControl,
    v_U8_t sessionId,
    void *adpaterCtxt
