@@ -83,6 +83,8 @@
 
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
+#include <linux/inetdevice.h>
+#include <net/addrconf.h>
 #include "wlan_hdd_cfg80211.h"
 #include "wlan_hdd_p2p.h"
 #include <linux/rtnetlink.h>
@@ -8195,6 +8197,12 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
             }
          }
 
+         if (pAdapter->ipv4_notifier_registered)
+         {
+             hddLog(LOG1, FL("Unregistered IPv4 notifier"));
+             unregister_inetaddr_notifier(&pAdapter->ipv4_notifier);
+             pAdapter->ipv4_notifier_registered = false;
+         }
 #ifdef WLAN_OPEN_SOURCE
          cancel_work_sync(&pAdapter->ipv4NotifierWorkQueue);
 #endif
