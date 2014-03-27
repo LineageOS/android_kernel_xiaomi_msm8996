@@ -1184,27 +1184,33 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
         case WDA_INIT_SCAN_RSP:
             limProcessInitScanRsp(pMac, limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
             break;
 
         case WDA_START_SCAN_RSP:
             limProcessStartScanRsp(pMac, limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
             break;
 
         case WDA_END_SCAN_RSP:
             limProcessEndScanRsp(pMac, limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
             break;
 
         case WDA_FINISH_SCAN_RSP:
             limProcessFinishScanRsp(pMac, limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
             break;
 #ifdef FEATURE_OEM_DATA_SUPPORT
         case WDA_START_OEM_DATA_RSP:
             limProcessOemDataRsp(pMac, limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
             break;
 #endif
 
         case WDA_SWITCH_CHANNEL_RSP:
             limProcessSwitchChannelRsp(pMac, limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
             break;
 
 #ifdef ANI_SIR_IBSS_PEER_CACHING
@@ -2019,6 +2025,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
            /*Free message body pointer*/
            vos_mem_free((v_VOID_t *)(limMsg->bodyptr));
+           limMsg->bodyptr = NULL;
            break;
        }
 
@@ -2044,6 +2051,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
           linkStateParams->callback( pMac, linkStateParams->callbackArg );
        }
        vos_mem_free((v_VOID_t *)(limMsg->bodyptr));
+       limMsg->bodyptr = NULL;
        break;
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
@@ -2290,6 +2298,7 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
             limPrintMsgName(pMac, LOGE, pLimMsg->type);
             // Release body
             vos_mem_free(pLimMsg->bodyptr);
+            pLimMsg->bodyptr = NULL;
         }
     }
     else
@@ -2310,6 +2319,7 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
             // Release body
             // limProcessSmeReqMessage consumed the buffer. We can free it.
             vos_mem_free(pLimMsg->bodyptr);
+            pLimMsg->bodyptr = NULL;
         }
     }
 }

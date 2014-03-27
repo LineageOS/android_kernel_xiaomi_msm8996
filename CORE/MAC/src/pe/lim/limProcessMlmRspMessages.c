@@ -129,6 +129,7 @@ limProcessMlmRspMessages(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsgBu
 #ifdef FEATURE_OEM_DATA_SUPPORT
         case LIM_MLM_OEM_DATA_CNF:
             limProcessMlmOemDataReqCnf(pMac, pMsgBuf);
+            pMsgBuf = NULL;
             break;
 #endif
 
@@ -181,9 +182,11 @@ limProcessMlmRspMessages(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsgBu
             break;
         case LIM_MLM_ADDBA_CNF:
             limProcessMlmAddBACnf( pMac, pMsgBuf );
+            pMsgBuf = NULL;
             break;
         case LIM_MLM_DELBA_CNF:
             limProcessMlmDelBACnf( pMac, pMsgBuf );
+            pMsgBuf = NULL;
             break;
         default:
             break;
@@ -1953,6 +1956,7 @@ end:
     if( 0 != limMsgQ->bodyptr )
     {
       vos_mem_free(pAddStaParams);
+      limMsgQ->bodyptr = NULL;
     }
     /* Updating PE session Id*/
     mlmAssocCnf.sessionId = psessionEntry->peSessionId;
@@ -2053,6 +2057,7 @@ void limProcessStaMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESessi
      if( 0 != limMsgQ->bodyptr )
      {
         vos_mem_free(pDelBssParams);
+        limMsgQ->bodyptr = NULL;
      }
     if(pStaDs == NULL)
           return;
@@ -2083,7 +2088,10 @@ void limProcessBtAmpApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
     {
         limLog(pMac, LOGE,FL("Session entry passed is NULL"));
         if(pDelBss != NULL)
+        {
             vos_mem_free(pDelBss);
+            limMsgQ->bodyptr = NULL;
+        }
         return;
     }
 
@@ -2138,7 +2146,10 @@ void limProcessBtAmpApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
     peDeleteSession(pMac, psessionEntry);
 
     if(pDelBss != NULL)
+    {
         vos_mem_free(pDelBss);
+        limMsgQ->bodyptr = NULL;
+    }
 }
 
 void limProcessMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
@@ -2157,7 +2168,10 @@ void limProcessMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
     {
         limLog(pMac, LOGP,FL("Session Does not exist or invalid body pointer in message"));
         if(pDeleteStaParams != NULL)
+        {
             vos_mem_free(pDeleteStaParams);
+            limMsgQ->bodyptr = NULL;
+        }
         return;
     }
 
@@ -2188,6 +2202,7 @@ void limProcessBtAmpApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
              FL( "DPH Entry for STA %X missing."), pDelStaParams->assocId);
         statusCode = eSIR_SME_REFUSED;
         vos_mem_free(pDelStaParams);
+        limMsgQ->bodyptr = NULL;
 
         return;
     }
@@ -2213,6 +2228,7 @@ void limProcessBtAmpApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
        if(eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE == pStaDs->mlmStaContext.mlmState)
        {
             vos_mem_free(pDelStaParams);
+            limMsgQ->bodyptr = NULL;
             if (limAddSta(pMac, pStaDs, false, psessionEntry) != eSIR_SUCCESS)
             {
                 PELOGE(limLog(pMac, LOGE,
@@ -2249,6 +2265,7 @@ void limProcessBtAmpApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
     }
     end:
     vos_mem_free(pDelStaParams);
+    limMsgQ->bodyptr = NULL;
     if(eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE != pStaDs->mlmStaContext.mlmState)
     {
        limPrepareAndSendDelStaCnf(pMac, pStaDs, statusCode,psessionEntry);
@@ -2292,6 +2309,7 @@ void limProcessStaMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESessi
         if( 0 != limMsgQ->bodyptr )
         {
             vos_mem_free(pDelStaParams);
+            limMsgQ->bodyptr = NULL;
         }
         statusCode = (tSirResultCodes) limDelBss(pMac, pStaDs, 0,psessionEntry);
         return;
@@ -2305,6 +2323,7 @@ end:
     if( 0 != limMsgQ->bodyptr )
     {
         vos_mem_free(pDelStaParams);
+        limMsgQ->bodyptr = NULL;
     }
     return;
 }
@@ -2373,6 +2392,7 @@ end:
     if( 0 != limMsgQ->bodyptr )
     {
         vos_mem_free(pAddStaParams);
+        limMsgQ->bodyptr = NULL;
     }
     return;
 }
@@ -2431,7 +2451,10 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
     {
         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given sessionId"));)
         if( NULL != pAddBssParams )
+        {
             vos_mem_free(pAddBssParams);
+            limMsgQ->bodyptr = NULL;
+        }
         return;
     }
     /* Update PE session Id*/
@@ -2526,7 +2549,10 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
     limPostSmeMessage( pMac, LIM_MLM_START_CNF, (tANI_U32 *) &mlmStartCnf );
     end:
     if( 0 != limMsgQ->bodyptr )
+    {
         vos_mem_free(pAddBssParams);
+        limMsgQ->bodyptr = NULL;
+    }
 }
 
 
@@ -2636,7 +2662,10 @@ limProcessIbssMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession 
     limPostSmeMessage( pMac, LIM_MLM_START_CNF, (tANI_U32 *) &mlmStartCnf );
     end:
     if( 0 != limMsgQ->bodyptr )
+    {
         vos_mem_free(pAddBssParams);
+        limMsgQ->bodyptr = NULL;
+    }
 }
 
 static void
@@ -3106,7 +3135,10 @@ limProcessStaMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession ps
     }
     end:
     if( 0 != limMsgQ->bodyptr )
+    {
         vos_mem_free(pAddBssParams);
+        limMsgQ->bodyptr = NULL;
+    }
 }
 
 
@@ -3162,8 +3194,11 @@ void limProcessMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
     if((psessionEntry = peFindSessionBySessionId(pMac,pAddBssParams->sessionId))== NULL)
     {
         limLog( pMac, LOGE, FL( "Session Does not exist for given sessionId" ));
-            if( NULL != pAddBssParams )
-                vos_mem_free(pAddBssParams);
+        if( NULL != pAddBssParams )
+        {
+            vos_mem_free(pAddBssParams);
+            limMsgQ->bodyptr = NULL;
+        }
         return;
     }
     /* update PE session Id*/
@@ -3182,7 +3217,10 @@ void limProcessMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
                   psessionEntry->limMlmState );
                 mlmStartCnf.resultCode = eSIR_SME_BSS_ALREADY_STARTED_OR_JOINED;
                 if( 0 != limMsgQ->bodyptr )
+                {
                     vos_mem_free(pAddBssParams);
+                    limMsgQ->bodyptr = NULL;
+                }
                 limPostSmeMessage( pMac, LIM_MLM_START_CNF, (tANI_U32 *) &mlmStartCnf );
             }
             else if ((psessionEntry->bssType == eSIR_BTAMP_AP_MODE)||(psessionEntry->bssType == eSIR_BTAMP_STA_MODE))
@@ -3267,6 +3305,7 @@ void limProcessMlmSetStaKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
     {
         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given sessionId"));)
         vos_mem_free(limMsgQ->bodyptr);
+        limMsgQ->bodyptr = NULL;
         return;
     }
     if( eLIM_MLM_WT_SET_STA_KEY_STATE != psessionEntry->limMlmState )
@@ -3280,6 +3319,7 @@ void limProcessMlmSetStaKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
       mlmSetKeysCnf.resultCode = (tANI_U16) (((tpSetStaKeyParams) limMsgQ->bodyptr)->status);
 
     vos_mem_free(limMsgQ->bodyptr);
+    limMsgQ->bodyptr = NULL;
     // Restore MLME state
     psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
@@ -3320,6 +3360,7 @@ void limProcessMlmSetBssKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
     {
         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given sessionId"));)
         vos_mem_free( limMsgQ->bodyptr );
+        limMsgQ->bodyptr = NULL;
         return;
     }
     if( eLIM_MLM_WT_SET_BSS_KEY_STATE == psessionEntry->limMlmState )
@@ -3347,6 +3388,7 @@ void limProcessMlmSetBssKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
       mlmSetKeysCnf.resultCode = resultCode;
 
     vos_mem_free(limMsgQ->bodyptr);
+    limMsgQ->bodyptr = NULL;
     // Restore MLME state
     psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
 
@@ -3437,6 +3479,7 @@ void limProcessMlmRemoveKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
     //
 
     vos_mem_free(limMsgQ->bodyptr);
+    limMsgQ->bodyptr = NULL;
 
     // Restore MLME state
     psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
@@ -3628,6 +3671,7 @@ end:
         /* Update PE session Id*/
         mlmReassocCnf.sessionId = pMlmReassocReq->sessionId;
         vos_mem_free(pMlmReassocReq);
+        psessionEntry->pLimMlmReassocReq = NULL;
     }
     else
     {
@@ -3892,6 +3936,7 @@ void limProcessStartScanRsp(tpAniSirGlobal pMac,  void *body)
     rrmUpdateStartTSF( pMac, pStartScanParam->startTSF );
 #endif
     vos_mem_free(body);
+    body = NULL;
     if( pMac->lim.abortScan )
     {
         limLog( pMac, LOGW, FL(" finish scan") );
@@ -3941,6 +3986,7 @@ void limProcessEndScanRsp(tpAniSirGlobal pMac,  void *body)
     pEndScanParam = (tpEndScanParams) body;
     status = pEndScanParam->status;
     vos_mem_free(body);
+    body = NULL;
     switch(pMac->lim.gLimHalScanState)
     {
         case eLIM_HAL_END_SCAN_WAIT_STATE:
@@ -4031,6 +4077,7 @@ void limProcessFinishScanRsp(tpAniSirGlobal pMac,  void *body)
     pFinishScanParam = (tpFinishScanParams) body;
     status = pFinishScanParam->status;
     vos_mem_free(body);
+    body = NULL;
 
     limLog(pMac, LOGW, FL("Rcvd FinishScanRsp in state %d"),
                         pMac->lim.gLimHalScanState);
@@ -4116,6 +4163,7 @@ void limProcessMlmHalAddBARsp( tpAniSirGlobal pMac,
     {
         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given sessionID: %d"),pAddBAParams->sessionId );)
         vos_mem_free(limMsgQ->bodyptr);
+        limMsgQ->bodyptr = NULL;
         return;
     }
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT
@@ -4127,6 +4175,7 @@ void limProcessMlmHalAddBARsp( tpAniSirGlobal pMac,
     if ( NULL == pMlmAddBACnf ) {
         limLog( pMac, LOGP, FL(" AllocateMemory failed for pMlmAddBACnf"));
         vos_mem_free(limMsgQ->bodyptr);
+        limMsgQ->bodyptr = NULL;
         return;
     }
      vos_mem_set((void *) pMlmAddBACnf, sizeof( tLimMlmAddBACnf ), 0);
@@ -4146,6 +4195,7 @@ void limProcessMlmHalAddBARsp( tpAniSirGlobal pMac,
      else
         pMlmAddBACnf->addBAResultCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
      vos_mem_free(limMsgQ->bodyptr);
+     limMsgQ->bodyptr = NULL;
      // Send ADDBA CNF to LIM
      limPostSmeMessage( pMac, LIM_MLM_ADDBA_CNF, (tANI_U32 *) pMlmAddBACnf );
 }
@@ -4239,6 +4289,7 @@ pMlmAddBACnf = (tpLimMlmAddBACnf) pMsgBuf;
   }
   // Free the memory allocated for LIM_MLM_ADDBA_CNF
   vos_mem_free(pMsgBuf);
+  pMsgBuf = NULL;
 }
 /**
  * \brief Process LIM_MLM_DELBA_CNF
@@ -4331,6 +4382,7 @@ void limProcessMlmHalBADeleteInd( tpAniSirGlobal pMac,
     {
         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given BSSId"));)
         vos_mem_free(limMsgQ->bodyptr);
+        limMsgQ->bodyptr = NULL;
         return;
     }
     // First, extract the DPH entry
@@ -4394,6 +4446,7 @@ void limProcessMlmHalBADeleteInd( tpAniSirGlobal pMac,
 returnAfterCleanup:
   // Free the memory allocated for SIR_LIM_DEL_BA_IND
   vos_mem_free(limMsgQ->bodyptr);
+  limMsgQ->bodyptr = NULL;
 }
 /**
  *  @function : limProcessSetMimoRsp()
@@ -4632,7 +4685,10 @@ limProcessBtampAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession ps
     limPostSmeMessage( pMac, LIM_MLM_START_CNF, (tANI_U32 *) &mlmStartCnf );
     end:
     if( 0 != limMsgQ->bodyptr )
+    {
         vos_mem_free(pAddBssParams);
+        limMsgQ->bodyptr = NULL;
+    }
 }
 
 /**

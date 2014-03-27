@@ -777,7 +777,10 @@ limCreateTimers(tpAniSirGlobal pMac)
         tx_timer_delete(&pMac->lim.limTimers.gLimActiveToPassiveChannelTimer);
 
         if(NULL != pMac->lim.gLimPreAuthTimerTable.pTable)
+        {
             vos_mem_free(pMac->lim.gLimPreAuthTimerTable.pTable);
+            pMac->lim.gLimPreAuthTimerTable.pTable = NULL;
+        }
 
         return TX_TIMER_ERROR;
 
