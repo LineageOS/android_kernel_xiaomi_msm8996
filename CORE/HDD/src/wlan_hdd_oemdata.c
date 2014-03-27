@@ -56,7 +56,7 @@ static struct hdd_context_s *pHddCtx;
 
   This function also reports the results to the user space
 
-  \return - 0 for success, non zero for failure
+  \return - eHalStatus enumeration
 
 -----------------------------------------------------------------------------------------------*/
 static eHalStatus hdd_OemDataReqCallback(tHalHandle hHal,
@@ -121,7 +121,8 @@ int iw_get_oem_data_rsp(
         union iwreq_data *wrqu,
         char *extra)
 {
-    eHalStatus                            status = eHAL_STATUS_SUCCESS;
+    int                                   rc = 0;
+    eHalStatus                            status;
     struct iw_oem_data_rsp*               pHddOemDataRsp;
     tOemDataRsp*                          pSmeOemDataRsp;
 
@@ -138,14 +139,15 @@ int iw_get_oem_data_rsp(
     {
         //get the oem data response from sme
         status = sme_getOemDataRsp(WLAN_HDD_GET_HAL_CTX(pAdapter), &pSmeOemDataRsp);
-        if(status != eHAL_STATUS_SUCCESS)
+        if (status != eHAL_STATUS_SUCCESS)
         {
             hddLog(LOGE, "%s: failed in sme_getOemDataRsp", __func__);
+            rc = -EIO;
             break;
         }
         else
         {
-            if(pSmeOemDataRsp != NULL)
+            if (pSmeOemDataRsp != NULL)
             {
                 pHddOemDataRsp = (struct iw_oem_data_rsp*)(extra);
                 vos_mem_copy(pHddOemDataRsp->oemDataRsp, pSmeOemDataRsp->oemDataRsp, OEM_DATA_RSP_SIZE);
@@ -153,13 +155,13 @@ int iw_get_oem_data_rsp(
             else
             {
                 hddLog(LOGE, "%s: pSmeOemDataRsp = NULL", __func__);
-                status = eHAL_STATUS_FAILURE;
+                rc = -EIO;
                 break;
             }
         }
     } while(0);
 
-    return eHAL_STATUS_SUCCESS;
+    return rc;
 }
 
 /**---------------------------------------------------------------------------
@@ -184,6 +186,7 @@ int iw_set_oem_data_req(
         union iwreq_data *wrqu,
         char *extra)
 {
+    int rc = 0;
     eHalStatus status = eHAL_STATUS_SUCCESS;
     struct iw_oem_data_req *pOemDataReq = NULL;
     tOemDataReqConfig oemDataReqConfig;
@@ -202,15 +205,15 @@ int iw_set_oem_data_req(
 
     do
     {
-        if(NULL != wrqu->data.pointer)
+        if (NULL != wrqu->data.pointer)
         {
             pOemDataReq = (struct iw_oem_data_req *)wrqu->data.pointer;
         }
 
-        if(pOemDataReq == NULL)
+        if (pOemDataReq == NULL)
         {
             hddLog(LOGE, "in %s oemDataReq == NULL", __func__);
-            status = eHAL_STATUS_FAILURE;
+            rc = -EIO;
             break;
         }
 
@@ -221,7 +224,8 @@ int iw_set_oem_data_req(
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                       "%s: copy_from_user() failed!", __func__);
-            return -EFAULT;
+            rc = -EFAULT;
+            break;
         }
 
         status = sme_OemDataReq(WLAN_HDD_GET_HAL_CTX(pAdapter),
@@ -230,13 +234,19 @@ int iw_set_oem_data_req(
                                                 &oemDataReqID,
                                                 &hdd_OemDataReqCallback,
                                                 dev);
-
+        if (status != eHAL_STATUS_SUCCESS)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: sme_OemDataReq status %d", __func__, status);
+            rc = -EFAULT;
+            break;
+        }
         pwextBuf->oemDataReqID = oemDataReqID;
         pwextBuf->oemDataReqInProgress = TRUE;
 
-    } while(0);
+    } while (0);
 
-    return status;
+    return rc;
 }
 
 #ifdef QCA_WIFI_2_0
@@ -265,7 +275,7 @@ int iw_get_oem_data_cap(
         union iwreq_data *wrqu,
         char *extra)
 {
-    eHalStatus status = eHAL_STATUS_SUCCESS;
+    eHalStatus status;
     t_iw_oem_data_cap oemDataCap;
     t_iw_oem_data_cap *pHddOemDataCap;
     hdd_adapter_t *pAdapter = (netdev_priv(dev));
@@ -357,10 +367,10 @@ int iw_get_oem_data_cap(
 
        pHddOemDataCap = (t_iw_oem_data_cap *)(extra);
        vos_mem_copy(pHddOemDataCap, &oemDataCap, sizeof(*pHddOemDataCap));
-    } while(0);
+    } while (0);
 
     EXIT();
-    return status;
+    return 0;
 }
 
 /**---------------------------------------------------------------------------
@@ -587,10 +597,10 @@ void send_oem_data_rsp_msg(int length, tANI_U8 *oemDataRsp)
      - oemDataLen - Length to OEM Data buffer
      - oemData - Pointer to OEM Data buffer
 
-  \return - 0 for success, non zero for failure
+  \return - eHalStatus enumeration
 
   --------------------------------------------------------------------------*/
-int oem_process_data_req_msg(int oemDataLen, char *oemData)
+eHalStatus oem_process_data_req_msg(int oemDataLen, char *oemData)
 {
    hdd_adapter_t *pAdapter = NULL;
    tOemDataReqConfig oemDataReqConfig;
