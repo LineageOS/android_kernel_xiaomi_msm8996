@@ -10430,7 +10430,7 @@ eHalStatus sme_UpdateFwTdlsState(tHalHandle hHal, void  *psmeTdlsParams,
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-    tpAniSirGlobal pMac;
+    tpAniSirGlobal pMac = NULL;
     vos_msg_t vosMessage;
 
     /* only acquire sme global lock before state update if asked to */
