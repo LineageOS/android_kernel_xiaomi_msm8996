@@ -53,6 +53,8 @@
   ------------------------------------------------------------------------*/
 #define VOS_DIGEST_SHA1_SIZE    20
 #define VOS_DIGEST_MD5_SIZE     16
+#define VOS_BAND_2GHZ          1
+#define VOS_BAND_5GHZ          2
 
 #define VOS_24_GHZ_BASE_FREQ   2407
 #define VOS_5_GHZ_BASE_FREQ    5000
@@ -168,6 +170,7 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
 
 v_U32_t vos_chan_to_freq(v_U8_t chan);
 v_U8_t vos_freq_to_chan(v_U32_t freq);
+v_U8_t vos_freq_to_band(v_U32_t freq);
 #ifdef WLAN_FEATURE_11W
 v_BOOL_t vos_is_mmie_valid(v_U8_t *key, v_U8_t *ipn,
 				v_U8_t* frm, v_U8_t* efrm);

@@ -1601,6 +1601,12 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         printk("%s: WDA module is NULL\n", __func__);
         return (-1);
     }
+
+    if (wma_check_scan_in_progress(temp_module)) {
+        printk("%s: Scan in progress. Aborting suspend\n", __func__);
+        return (-1);
+    }
+
     if (wma_is_wow_mode_selected(temp_module)) {
           if(wma_enable_wow_in_fw(temp_module))
                 return (-1);

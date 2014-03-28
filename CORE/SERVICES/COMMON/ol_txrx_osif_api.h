@@ -93,11 +93,10 @@ typedef void (*ol_txrx_rx_fp)(void *osif_dev, adf_nbuf_t msdus);
  * @typedef ol_txrx_tx_fc_fp
  * @brief tx flow control notification function from txrx to OS shim
  * @param osif_dev - the virtual device's OS shim object
- * @param peer_id - peer id belongs to virtual device
  * @param vdev_id - virtual device id
  * @param tx_resume - tx os q should be resumed or not
  */
-typedef void (*ol_txrx_tx_flow_control_fp)(void *osif_dev, u_int8_t peer_id,
+typedef void (*ol_txrx_tx_flow_control_fp)(void *osif_dev,
                                            u_int8_t vdev_id, a_bool_t tx_resume);
 
 /**

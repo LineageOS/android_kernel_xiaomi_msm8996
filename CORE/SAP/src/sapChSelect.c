@@ -141,6 +141,7 @@ sapSafeChannelType safeChannels[NUM_20MHZ_RF_CHANNELS] =
     {161, VOS_TRUE},      //RF_CHAN_161,
     {165, VOS_TRUE},      //RF_CHAN_165,
 };
+#endif
 
 typedef struct
 {
@@ -174,6 +175,7 @@ sapAcsChannelInfo acsHT80Channels[ ] = {
     {149,  ACS_WEIGHT_MAX},
 };
 
+#ifdef FEATURE_WLAN_CH_AVOID
 /*==========================================================================
   FUNCTION    sapUpdateUnsafeChannelList
 

@@ -3131,9 +3131,11 @@ VOS_STATUS csrNeighborRoamChannelsFilterByCurrentBand(
     \brief  This function is used to merge two channel list.
             NB: If called with outputNumOfChannels == 0, this routines
                 simply copies the input channel list to the output channel list.
+                if number of merged channels are more than 100, num of channels
+                set to 100
 
     \param  pMac - The handle returned by macOpen.
-    \param  pInputChannelList - The addtional channels to merge in to the "merged" channels list.
+    \param  pInputChannelList - The additional channels to merge in to the "merged" channels list.
     \param  inputNumOfChannels - The number of additional channels.
     \param  pOutputChannelList - The place to put the "merged" channel list.
     \param  outputNumOfChannels - The original number of channels in the "merged" channels list.
@@ -3168,6 +3170,13 @@ VOS_STATUS csrNeighborRoamMergeChannelLists(
              __func__, inputNumOfChannels);
          return VOS_STATUS_E_INVAL;
     }
+    if (outputNumOfChannels > WNI_CFG_VALID_CHANNEL_LIST_LEN)
+    {
+         VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+             "%s: Wrong Number of Output Channels %d",
+             __func__, outputNumOfChannels);
+         return VOS_STATUS_E_INVAL;
+    }
     // Add the "new" channels in the input list to the end of the output list.
     for (i = 0; i < inputNumOfChannels; i++)
     {
@@ -3186,6 +3195,14 @@ VOS_STATUS csrNeighborRoamMergeChannelLists(
                 pOutputChannelList[numChannels] = pInputChannelList[i];
                 numChannels++;
             }
+        }
+        if (numChannels >= WNI_CFG_VALID_CHANNEL_LIST_LEN)
+        {
+            VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                    "%s: Merge Neighbor channel list reached Max "
+                    "limit %d", __func__,
+                    numChannels);
+            break;
         }
     }
 

@@ -1055,6 +1055,10 @@ struct hdd_adapter_s
     int connection;
 #endif
     v_BOOL_t is_roc_inprogress;
+
+#ifdef QCA_LL_TX_FLOW_CT
+    vos_timer_t  tx_flow_control_timer;
+#endif /* QCA_LL_TX_FLOW_CT */
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)

@@ -3427,7 +3427,8 @@ tANI_S16 sme_GetHTConfig(tHalHandle hHal, tANI_U8 session_id, tANI_U16 ht_capab)
 eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
                               tSmeChannelInfo *chanInfo);
 #ifdef FEATURE_WLAN_TDLS
-eHalStatus sme_UpdateFwTdlsState(tHalHandle hHal, void *psmeTdlsParams);
+eHalStatus sme_UpdateFwTdlsState(tHalHandle hHal, void *psmeTdlsParams,
+                                 tANI_BOOLEAN useSmeLock);
 eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
                                    tSmeTdlsPeerStateParams *pPeerStateParams);
 #endif /* FEATURE_WLAN_TDLS */
