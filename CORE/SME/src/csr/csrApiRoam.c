@@ -2559,6 +2559,9 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
 
        connectionStatus.eventId = eCSR_WLAN_STATUS_DISCONNECT;
        connectionStatus.reason = eCSR_REASON_DISASSOC;
+       if(pRoamInfo)
+           connectionStatus.reasonDisconnect = pRoamInfo->reasonCode;
+
        WLAN_VOS_DIAG_EVENT_REPORT(&connectionStatus, EVENT_WLAN_STATUS);
     }
     if(eCSR_ROAM_RESULT_DEAUTH_IND == u2)
@@ -2570,6 +2573,8 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
 
        connectionStatus.eventId = eCSR_WLAN_STATUS_DISCONNECT;
        connectionStatus.reason = eCSR_REASON_DEAUTH;
+       if(pRoamInfo)
+           connectionStatus.reasonDisconnect = pRoamInfo->reasonCode;
        WLAN_VOS_DIAG_EVENT_REPORT(&connectionStatus, EVENT_WLAN_STATUS);
     }
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
@@ -9370,6 +9375,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     pRoamInfo = &roamInfo;
 
                     pRoamInfo->statusCode = pDisassocInd->statusCode;
+                    pRoamInfo->reasonCode = pDisassocInd->reasonCode;
                     pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
 
                     pRoamInfo->staId = (tANI_U8)pDisassocInd->staId;
@@ -9451,6 +9457,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     pRoamInfo = &roamInfo;
 
                     pRoamInfo->statusCode = pDeauthInd->statusCode;
+                    pRoamInfo->reasonCode = pDeauthInd->reasonCode;
                     pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
 
                     pRoamInfo->staId = (tANI_U8)pDeauthInd->staId;
@@ -10568,6 +10575,7 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
         vos_mem_copy(roamInfo.peerMac, pDisassocIndMsg->peerMacAddr,
                      sizeof(tSirMacAddr));
         roamInfo.staId = (tANI_U8)pDisassocIndMsg->staId;
+        roamInfo.reasonCode = pDisassocIndMsg->reasonCode;
     }
     else if( eWNI_SME_DEAUTH_IND == type )
     {
@@ -10575,6 +10583,7 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
         vos_mem_copy(roamInfo.peerMac, pDeauthIndMsg->peerMacAddr,
                      sizeof(tSirMacAddr));
         roamInfo.staId = (tANI_U8)pDeauthIndMsg->staId;
+        roamInfo.reasonCode = pDeauthIndMsg->reasonCode;
     }
     smsLog(pMac, LOGW, FL("roamInfo.staId (%d)"), roamInfo.staId);
 
