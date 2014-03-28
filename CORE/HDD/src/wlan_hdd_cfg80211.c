@@ -8371,9 +8371,8 @@ static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *d
     /*in case index is 0,no entry to delete*/
     if (0 == PMKIDCacheIndex)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid entry to delete" ,
-              __func__);
-        return -EINVAL;
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("No entries to flush"));
+       return -EINVAL;
     }
 
     /*find the matching PMKSA entry from j=0 to (index-1),
@@ -8612,7 +8611,7 @@ void hdd_cfg80211_sched_scan_done_callback(void *callbackContext,
 
 /*
  * FUNCTION: wlan_hdd_is_pno_allowed
- * Check if PNO is allowed or not.
+ * Disallow pno if any session is active
  */
 static eHalStatus wlan_hdd_is_pno_allowed(hdd_adapter_t *pAdapter)
 {
@@ -8623,10 +8622,10 @@ static eHalStatus wlan_hdd_is_pno_allowed(hdd_adapter_t *pAdapter)
 
    status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
 
-   /* Current firmware design for PNO does not consider concurrent
-    * active sessions. Hence , determine the concurrent active sessions
-    * and return a failure.
-    */
+ /* The current firmware design does not allow PNO during any
+  * active sessions. Hence, determine the active sessions
+  * and return a failure.
+  */
 
    while ((NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status))
    {
