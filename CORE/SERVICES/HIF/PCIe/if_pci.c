@@ -1442,21 +1442,6 @@ hif_pci_remove(struct pci_dev *pdev)
 
     mem = (void __iomem *)sc->mem;
 
-#if defined(CPU_WARM_RESET_WAR)
-    /* Currently CPU warm reset sequence is tested only for AR9888_REV2
-     * Need to enable for AR9888_REV1 once CPU warm reset sequence is
-     * verified for AR9888_REV1
-     */
-    if (scn->target_version == AR9888_REV2_VERSION) {
-        hif_pci_device_warm_reset(sc);
-    }
-    else {
-        hif_pci_device_reset(sc);
-    }
-#else
-        hif_pci_device_reset(sc);
-#endif
-
     pci_disable_msi(pdev);
     A_FREE(scn);
     A_FREE(sc->hif_device);
@@ -1754,4 +1739,25 @@ void hif_disable_isr(void *ol_sc)
 #endif
 	/* Cancel the pending tasklet */
 	tasklet_kill(&hif_sc->intr_tq);
+}
+
+void hif_reset_soc(void *ol_sc)
+{
+	struct ol_softc *scn = (struct ol_softc *)ol_sc;
+	struct hif_pci_softc *sc = scn->hif_sc;
+
+#if defined(CPU_WARM_RESET_WAR)
+	/* Currently CPU warm reset sequence is tested only for AR9888_REV2
+	* Need to enable for AR9888_REV1 once CPU warm reset sequence is
+	* verified for AR9888_REV1
+	*/
+	if (scn->target_version == AR9888_REV2_VERSION) {
+		hif_pci_device_warm_reset(sc);
+	}
+	else {
+		hif_pci_device_reset(sc);
+	}
+#else
+	hif_pci_device_reset(sc);
+#endif
 }
