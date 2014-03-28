@@ -1500,7 +1500,7 @@ send_fw_diag_nl_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
         memcpy(nlmsg_data(nlh), buffer, len);
         NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
 
-        res = nl_srv_ucast(skb_out, cnss_diag_pid);
+        res = nl_srv_ucast(skb_out, cnss_diag_pid, MSG_DONTWAIT);
         if (res < 0)
         {
             AR_DEBUG_PRINTF(ATH_DEBUG_INFO,
@@ -1551,7 +1551,7 @@ dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
         memcpy(slot->payload, buffer, len);
         NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
 
-        res = nl_srv_ucast(skb_out, cnss_diag_pid);
+        res = nl_srv_ucast(skb_out, cnss_diag_pid, MSG_DONTWAIT);
         if (res < 0)
         {
             AR_DEBUG_PRINTF(ATH_DEBUG_INFO,
