@@ -117,7 +117,11 @@ rrmGetMgmtTxPower ( tpAniSirGlobal pMac, tpPESession pSessionEntry )
    PELOGE(limLog( pMac, LOGE, "RrmGetMgmtTxPower called" );)
 #endif
    if( pSessionEntry == NULL )
+   {
+     limLog( pMac, LOG3, "%s: txpower from rrmPEContext: %d",
+            __func__, pMac->rrm.rrmPEContext.txMgmtPower);
       return pMac->rrm.rrmPEContext.txMgmtPower;
+   }
 
    return pSessionEntry->txMgmtPower;
 }
