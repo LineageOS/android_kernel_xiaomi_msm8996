@@ -1711,14 +1711,6 @@ static iw_softap_setparam(struct net_device *dev,
                  break;
              }
 
-         case QCASAP_SET_TXRX_FWSTATS:
-             {
-                  hddLog(LOG1, "WE_SET_TXRX_FWSTATS val %d", set_value);
-                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
-                                                (int)WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID,
-                                                set_value, VDEV_CMD);
-                   break;
-             }
          case QCASAP_TXRX_FWSTATS_RESET:
              {
                   hddLog(LOG1, "WE_TXRX_FWSTATS_RESET val %d", set_value);
@@ -1728,7 +1720,7 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 
-         case QCSAP_PARAM_SETRTSCTS:
+         case QCSAP_PARAM_RTSCTS:
             {
                 ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
                                 (int)WMI_VDEV_PARAM_ENABLE_RTSCTS,
@@ -1819,7 +1811,7 @@ static iw_softap_setparam(struct net_device *dev,
                 break;
             }
 
-         case QCASAP_SET_SHORT_GI:
+         case QCASAP_SHORT_GI:
              {
                   hddLog(LOG1, "QCASAP_SET_SHORT_GI val %d", set_value);
 
@@ -1848,7 +1840,7 @@ static iw_softap_setparam(struct net_device *dev,
                                                set_value, GEN_CMD);
                   break;
              }
-        case QCSAP_SET_GTX_HT_MCS:
+        case QCSAP_GTX_HT_MCS:
              {
                   hddLog(LOG1, "WMI_VDEV_PARAM_GTX_HT_MCS %d", set_value);
                   ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
@@ -1857,7 +1849,7 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 
-        case QCSAP_SET_GTX_VHT_MCS:
+        case QCSAP_GTX_VHT_MCS:
              {
                   hddLog(LOG1, "WMI_VDEV_PARAM_GTX_VHT_MCS %d", set_value);
                   ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
@@ -1866,7 +1858,7 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 
-       case QCSAP_SET_GTX_USRCFG:
+       case QCSAP_GTX_USRCFG:
              {
                   hddLog(LOG1, "WMI_VDEV_PARAM_GTX_USR_CFG %d", set_value);
                   ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
@@ -1875,7 +1867,7 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 
-        case QCSAP_SET_GTX_THRE:
+        case QCSAP_GTX_THRE:
              {
                   hddLog(LOG1, "WMI_VDEV_PARAM_GTX_THRE %d", set_value);
                   ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
@@ -1884,7 +1876,7 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 
-        case QCSAP_SET_GTX_MARGIN:
+        case QCSAP_GTX_MARGIN:
              {
                   hddLog(LOG1, "WMI_VDEV_PARAM_GTX_MARGIN %d", set_value);
                   ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
@@ -1893,7 +1885,7 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 
-        case QCSAP_SET_GTX_STEP:
+        case QCSAP_GTX_STEP:
              {
                   hddLog(LOG1, "WMI_VDEV_PARAM_GTX_STEP %d", set_value);
                   ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
@@ -1902,7 +1894,7 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 
-        case QCSAP_SET_GTX_MINTPC:
+        case QCSAP_GTX_MINTPC:
              {
                   hddLog(LOG1, "WMI_VDEV_PARAM_GTX_MINTPC %d", set_value);
                   ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
@@ -1911,7 +1903,7 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 
-        case QCSAP_SET_GTX_BWMASK:
+        case QCSAP_GTX_BWMASK:
              {
                   hddLog(LOG1, "WMI_VDEV_PARAM_GTX_BWMASK %d", set_value);
                   ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
@@ -1974,9 +1966,6 @@ static iw_softap_getparam(struct net_device *dev,
     int sub_cmd = value[0];
     eHalStatus status;
     int ret = 0; /* success */
-#ifndef WLAN_FEATURE_MBSSID
-    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
-#endif
 
     switch (sub_cmd)
     {
@@ -1986,20 +1975,6 @@ static iw_softap_getparam(struct net_device *dev,
         {
             ret = -EIO;
         }
-        break;
-
-    case QCSAP_PARAM_CLR_ACL:
-        if (VOS_STATUS_SUCCESS != WLANSAP_ClearACL(
-#ifdef WLAN_FEATURE_MBSSID
-            WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter)
-#else
-            pVosContext
-#endif
-        ))
-        {
-               ret = -EIO;
-        }
-        *value = 0;
         break;
 
     case QCSAP_PARAM_MODULE_DOWN_IND:
@@ -2029,7 +2004,7 @@ static iw_softap_getparam(struct net_device *dev,
              break;
         }
 
-    case QCSAP_PARAM_GETRTSCTS:
+    case QCSAP_PARAM_RTSCTS:
         {
             hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pHostapdAdapter);
             void *wmapvosContext = wmahddCtxt->pvosContext;
@@ -2040,7 +2015,7 @@ static iw_softap_getparam(struct net_device *dev,
             break;
         }
 
-    case QCASAP_GET_SHORT_GI:
+    case QCASAP_SHORT_GI:
         {
             *value = (int)sme_GetHTConfig(hHal,
                                           pHostapdAdapter->sessionId,
@@ -2048,7 +2023,7 @@ static iw_softap_getparam(struct net_device *dev,
             break;
         }
 
-    case QCSAP_GET_GTX_HT_MCS:
+    case QCSAP_GTX_HT_MCS:
         {
             hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pHostapdAdapter);
             hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_HT_MCS");
@@ -2059,7 +2034,7 @@ static iw_softap_getparam(struct net_device *dev,
             break;
         }
 
-    case QCSAP_GET_GTX_VHT_MCS:
+    case QCSAP_GTX_VHT_MCS:
         {
             hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pHostapdAdapter);
             hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_VHT_MCS");
@@ -2070,7 +2045,7 @@ static iw_softap_getparam(struct net_device *dev,
             break;
         }
 
-    case QCSAP_GET_GTX_USRCFG:
+    case QCSAP_GTX_USRCFG:
         {
             hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pHostapdAdapter);
             hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_USR_CFG");
@@ -2081,7 +2056,7 @@ static iw_softap_getparam(struct net_device *dev,
             break;
         }
 
-    case QCSAP_GET_GTX_THRE:
+    case QCSAP_GTX_THRE:
         {
             hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pHostapdAdapter);
             hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_THRE");
@@ -2092,7 +2067,7 @@ static iw_softap_getparam(struct net_device *dev,
             break;
         }
 
-    case QCSAP_GET_GTX_MARGIN:
+    case QCSAP_GTX_MARGIN:
         {
             hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pHostapdAdapter);
             hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_MARGIN");
@@ -2103,7 +2078,7 @@ static iw_softap_getparam(struct net_device *dev,
             break;
         }
 
-    case QCSAP_GET_GTX_STEP:
+    case QCSAP_GTX_STEP:
         {
             hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pHostapdAdapter);
             hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_STEP");
@@ -2114,7 +2089,7 @@ static iw_softap_getparam(struct net_device *dev,
             break;
         }
 
-    case QCSAP_GET_GTX_MINTPC:
+    case QCSAP_GTX_MINTPC:
         {
             hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pHostapdAdapter);
             hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_MINTPC");
@@ -2125,7 +2100,7 @@ static iw_softap_getparam(struct net_device *dev,
             break;
         }
 
-    case QCSAP_GET_GTX_BWMASK:
+    case QCSAP_GTX_BWMASK:
         {
             hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pHostapdAdapter);
             hddLog(LOG1, "GET WMI_VDEV_PARAM_GTX_BW_MASK");
@@ -4116,21 +4091,15 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "crash_inject" },
 #endif
-    {   QCASAP_SET_TXRX_FWSTATS,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        0,
-        "txrx_fw_stats" },
     {   QCASAP_TXRX_FWSTATS_RESET,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "txrx_fw_st_rst" },
-    {   QCSAP_PARAM_SETRTSCTS,
+    {   QCSAP_PARAM_RTSCTS,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "enablertscts" },
-    {   QCSAP_PARAM_GETRTSCTS, 0,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "get_rtscts" },
+
     {   QCASAP_SET_11N_RATE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
@@ -4141,14 +4110,10 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "set11ACRates" },
 
-    {   QCASAP_SET_SHORT_GI,
+    {   QCASAP_SHORT_GI,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "enable_short_gi" },
-
-    {   QCASAP_GET_SHORT_GI, 0,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "get_short_gi" },
 
     {   QCSAP_SET_AMPDU,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
@@ -4160,85 +4125,56 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "amsdu" },
 
-    {  QCSAP_SET_GTX_HT_MCS,
+    {  QCSAP_GTX_HT_MCS,
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "gtxHTMcs" },
 
-    {  QCSAP_SET_GTX_VHT_MCS,
+    {  QCSAP_GTX_VHT_MCS,
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "gtxVHTMcs" },
 
-    {  QCSAP_SET_GTX_USRCFG,
+    {  QCSAP_GTX_USRCFG,
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "gtxUsrCfg" },
 
-    {  QCSAP_SET_GTX_THRE,
+    {  QCSAP_GTX_THRE,
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "gtxThre" },
 
-    {  QCSAP_SET_GTX_MARGIN,
+    {  QCSAP_GTX_MARGIN,
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "gtxMargin" },
 
-    {  QCSAP_SET_GTX_STEP,
+    {  QCSAP_GTX_STEP,
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "gtxStep" },
 
-    {  QCSAP_SET_GTX_MINTPC,
+    {  QCSAP_GTX_MINTPC,
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "gtxMinTpc" },
 
-    {  QCSAP_SET_GTX_BWMASK,
+    {  QCSAP_GTX_BWMASK,
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "gtxBWMask" },
 
-    {  QCSAP_GET_GTX_HT_MCS,
-       0,
-       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "get_gtxHTMcs" },
+    { QCSAP_PARAM_CLR_ACL,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+      0,
+      "setClearAcl" },
 
-    {  QCSAP_GET_GTX_VHT_MCS,
-       0,
-       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "get_gtxVHTMcs" },
+   {  QCSAP_PARAM_ACL_MODE,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+      0,
+      "setAclMode" },
 
-    {  QCSAP_GET_GTX_USRCFG,
-        0,
-       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "get_gtxUsrCfg" },
-
-    {  QCSAP_GET_GTX_THRE,
-        0,
-       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "get_gtxThre" },
-
-    {  QCSAP_GET_GTX_MARGIN,
-        0,
-       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "get_gtxMargin" },
-
-    {  QCSAP_GET_GTX_STEP,
-        0,
-       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "get_gtxStep" },
-
-    {  QCSAP_GET_GTX_MINTPC,
-        0,
-       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "get_gtxMinTpc" },
-
-    {  QCSAP_GET_GTX_BWMASK,
-        0,
-       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "get_gtxBWMask" },
 
 #ifdef QCA_PKT_PROTO_TRACE
     {   QCASAP_SET_DEBUG_LOG,
@@ -4254,8 +4190,7 @@ static const struct iw_priv_args hostapd_private_args[] = {
 
 #endif /* QCA_WIFI_2_0 */
 
-  { QCSAP_IOCTL_GETPARAM,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+  { QCSAP_IOCTL_GETPARAM, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
   { QCSAP_IOCTL_GETPARAM, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "" },
@@ -4267,10 +4202,28 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getAutoChannel" },
   { QCSAP_PARAM_MODULE_DOWN_IND, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "moduleDownInd" },
-  { QCSAP_PARAM_CLR_ACL, 0,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, "setClearAcl" },
-  { QCSAP_PARAM_ACL_MODE,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "setAclMode" },
+  { QCSAP_GTX_BWMASK, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_gtxBWMask" },
+  { QCSAP_GTX_MINTPC, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_gtxMinTpc" },
+  { QCSAP_GTX_STEP, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_gtxStep" },
+  { QCSAP_GTX_MARGIN, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_gtxMargin" },
+  { QCSAP_GTX_THRE, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_gtxThre" },
+  { QCSAP_GTX_USRCFG, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_gtxUsrCfg" },
+  { QCSAP_GTX_VHT_MCS, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_gtxVHTMcs" },
+  { QCSAP_GTX_HT_MCS, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_gtxHTMcs" },
+  { QCASAP_SHORT_GI, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_short_gi" },
+  { QCSAP_PARAM_RTSCTS, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_rtscts" },
+
+
   { QCSAP_IOCTL_COMMIT,
       IW_PRIV_TYPE_BYTE | sizeof(struct s_CommitConfig) | IW_PRIV_SIZE_FIXED, 0, "commit" },
   { QCSAP_IOCTL_SETMLME,
