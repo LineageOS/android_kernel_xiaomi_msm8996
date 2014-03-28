@@ -1512,7 +1512,7 @@ void hif_pci_shutdown(struct pci_dev *pdev)
 
 void hif_pci_crash_shutdown(struct pci_dev *pdev)
 {
-#ifdef CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC
+#ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
     struct hif_pci_softc *sc;
     struct ol_softc *scn;
     int status;

@@ -708,7 +708,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		goto out_fail;
 	}
 
-#ifdef CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC
+#ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
 	if (ramdump_scn->crash_shutdown) {
 		if (!hif_pci_check_soc_status(ramdump_scn->hif_sc)
 			&& !ol_copy_ramdump(ramdump_scn))
@@ -797,7 +797,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 		return;
 	}
 
-#ifdef CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC
+#ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
 	if (scn->crash_shutdown)
 		printk("XXX TARGET ASSERTED because of Kernel Panic XXX\n");
 	else
