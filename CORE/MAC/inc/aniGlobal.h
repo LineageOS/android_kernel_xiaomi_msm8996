@@ -1105,6 +1105,7 @@ typedef struct sAniSirGlobal
 #ifdef QCA_WIFI_2_0
     tANI_U16 mgmtSeqNum;
 #endif /* QCA_WIFI_2_0 */
+    v_BOOL_t enable5gEBT;
 } tAniSirGlobal;
 
 typedef enum

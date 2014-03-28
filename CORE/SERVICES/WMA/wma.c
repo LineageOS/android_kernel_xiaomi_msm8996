@@ -7352,6 +7352,11 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 				   (PKT_PWR_SAVE_RSSI_CHECK & 0xffff);
 			intr[vid].config.pps_params.rssi_chk = privcmd->param_value;
 			break;
+		case WMI_VDEV_PPS_5G_EBT:
+			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
+				   (PKT_PWR_SAVE_5G_EBT & 0xffff);
+			intr[vid].config.pps_params.ebt_5g = privcmd->param_value;
+			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
 			break;
@@ -8320,9 +8325,15 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	ol_txrx_peer_handle peer;
 	VOS_STATUS status;
 	struct wma_txrx_node *iface;
-#ifdef WLAN_FEATURE_11W
 	int ret = 0;
-#endif /* WLAN_FEATURE_11W */
+	int pps_val = 0;
+	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
+				wma->vos_context);
+
+	if (NULL == pMac) {
+		WMA_LOGE("%s: Unable to get PE context", __func__);
+		goto send_fail_resp;
+	}
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -8437,6 +8448,15 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 
 		wmi_unified_send_txbf(wma, &add_bss->staContext);
 
+		pps_val = ((pMac->enable5gEBT << 31) & 0xffff0000) | (PKT_PWR_SAVE_5G_EBT & 0xffff);
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+							WMI_VDEV_PARAM_PACKET_POWERSAVE,
+							pps_val);
+		if (ret)
+			WMA_LOGE("Failed to send wmi packet power save cmd");
+		else
+			WMA_LOGD("Sent PKT_PWR_SAVE_5G_EBT cmd to target, val = %x, ret = %d",
+				 pps_val, ret);
 
 		wmi_unified_send_peer_assoc(wma, add_bss->nwType,
 					    &add_bss->staContext);

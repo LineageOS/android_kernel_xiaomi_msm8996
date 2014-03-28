@@ -2597,6 +2597,13 @@ REG_VARIABLE( CFG_ENABLE_RX_LDPC, WLAN_PARAM_Integer,
               CFG_ENABLE_RX_LDPC_MIN,
               CFG_ENABLE_RX_LDPC_MAX ),
 
+REG_VARIABLE( CFG_PPS_ENABLE_5G_EBT, WLAN_PARAM_Integer,
+              hdd_config_t, enable5gEBT,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_PPS_ENABLE_5G_EBT_FEATURE_DEFAULT,
+              CFG_PPS_ENABLE_5G_EBT_FEATURE_MIN,
+              CFG_PPS_ENABLE_5G_EBT_FEATURE_MAX ),
+
 #ifdef FEATURE_WLAN_TDLS
    REG_VARIABLE( CFG_TDLS_SUPPORT_ENABLE, WLAN_PARAM_Integer,
               hdd_config_t, fEnableTDLSSupport,
@@ -5355,6 +5362,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.max_intf_count = pHddCtx->max_intf_count;
 
    smeConfig.fEnableDebugLog = pHddCtx->cfg_ini->gEnableDebugLog;
+
+   smeConfig.enable5gEBT = pHddCtx->cfg_ini->enable5gEBT;
+
    halStatus = sme_UpdateConfig( pHddCtx->hHal, &smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {

@@ -298,6 +298,7 @@ struct pps {
 	v_BOOL_t delim_fail;
 	v_BOOL_t nsts_zero;
 	v_BOOL_t rssi_chk;
+	v_BOOL_t ebt_5g;
 };
 
 struct qpower_params {
@@ -1395,7 +1396,8 @@ typedef enum {
 	WMI_VDEV_PPS_DELIM_CRC_FAIL = 6,
 	WMI_VDEV_PPS_GID_NSTS_ZERO = 7,
 	WMI_VDEV_PPS_RSSI_CHECK = 8,
-	WMI_VDEV_VHT_SET_GID_MGMT = 9
+	WMI_VDEV_VHT_SET_GID_MGMT = 9,
+	WMI_VDEV_PPS_5G_EBT = 10
 } packet_power_save;
 
 typedef enum {
