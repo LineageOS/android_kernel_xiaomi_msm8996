@@ -4450,6 +4450,9 @@ typedef struct sAniHandoffReq
     tANI_U8   sessionId;
     tANI_U8   bssid[WNI_CFG_BSSID_LEN];
     tANI_U8   channel;
+#ifndef QCA_WIFI_ISOC
+    tANI_U8   handoff_src;
+#endif
 } tAniHandoffReq, *tpAniHandoffReq;
 
 typedef struct sSirScanOffloadReq {

@@ -88,6 +88,12 @@ RSSI *cannot* be more than 0xFF or less than 0 for meaningful WLAN operation
 #define CSR_SCAN_HANDOFF_DELTA 10
 #define MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL 140
 #define MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL 120
+
+#ifndef QCA_WIFI_ISOC
+#define MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC 30
+#define MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC 20
+#endif
+
 #define CSR_SCAN_OVERALL_SCORE( rssi )                          \
     (( rssi < CSR_SCAN_MAX_SCORE_VAL )                          \
      ? (CSR_SCAN_MAX_SCORE_VAL-rssi) : CSR_SCAN_MIN_SCORE_VAL)
@@ -7278,8 +7284,19 @@ eHalStatus csrScanForSSID(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
             /* For one channel be good enpugh time to receive beacon atleast */
             if(  1 == pProfile->ChannelInfo.numOfChannels )
             {
-                 pScanCmd->u.scanCmd.u.scanRequest.maxChnTime = MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL;
-                 pScanCmd->u.scanCmd.u.scanRequest.minChnTime = MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL;
+#ifndef QCA_WIFI_ISOC
+                 if(pMac->roam.neighborRoamInfo.handoffReqInfo.src == FASTREASSOC)
+                 {
+                     pScanCmd->u.scanCmd.u.scanRequest.maxChnTime = MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC;
+                     pScanCmd->u.scanCmd.u.scanRequest.minChnTime = MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC;
+                     pMac->roam.neighborRoamInfo.handoffReqInfo.src = 0; //reset this value
+                 }
+                 else
+#endif
+                 {
+                     pScanCmd->u.scanCmd.u.scanRequest.maxChnTime = MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL;
+                     pScanCmd->u.scanCmd.u.scanRequest.minChnTime = MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL;
+                 }
             }
             else
             {

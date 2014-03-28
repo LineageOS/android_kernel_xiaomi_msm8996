@@ -17301,6 +17301,9 @@ eHalStatus csrHandoffRequest(tpAniSirGlobal pMac,
    pMsg->msgLen = (tANI_U16)sizeof(tAniHandoffReq);
    pMsg->sessionId = pMac->roam.neighborRoamInfo.csrSessionId;
    pMsg->channel = pHandoffInfo->channel;
+#ifndef QCA_WIFI_ISOC
+   pMsg->handoff_src = pHandoffInfo->src;
+#endif
    vos_mem_copy(pMsg->bssid,
                        pHandoffInfo->bssid,
                        6);
