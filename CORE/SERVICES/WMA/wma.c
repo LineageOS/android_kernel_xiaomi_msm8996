@@ -160,8 +160,6 @@ static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
 
 #ifdef QCA_IBSS_SUPPORT
-static void wma_send_beacon_tmpl(WMA_HANDLE handle,
-                                 u_int8_t vdev_id);
 static void wma_data_tx_ack_comp_hdlr(void *wma_context,
                                       adf_nbuf_t netbuf,
                                       int32_t status);
@@ -201,7 +199,6 @@ wma_process_ftm_command(tp_wma_handle wma_handle,
 
 /*DFS Attach*/
 struct ieee80211com* wma_dfs_attach(struct ieee80211com *ic);
-static void wma_set_regdomain(a_uint32_t regdmn);
 static void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
 							tpAddBssParams add_bss);
 /*Configure DFS with radar tables and regulatory domain*/
@@ -10510,15 +10507,6 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 	wma_set_sap_keepalive(wma, vdev_id);
 }
 
-#ifdef QCA_IBSS_SUPPORT
-static void wma_send_beacon_tmpl(WMA_HANDLE handle,
-                            u_int8_t vdev_id)
-{
-	/*TODO: implement after beacon template is created by PE and send
-	 to target upon received WMI_SEND_BEACON command */
-}
-#endif
-
 #if !defined(REMOVE_PKT_LOG) && !defined(QCA_WIFI_ISOC)
 static VOS_STATUS wma_pktlog_wmi_send_cmd(WMA_HANDLE handle,
 					  struct ath_pktlog_wmi_params *params)
@@ -16002,20 +15990,6 @@ static void wma_roam_better_ap_handler(tp_wma_handle wma, u_int32_t vdev_id)
 	ret = tlshim_mgmt_roam_event_ind(wma->vos_context, vdev_id);
 }
 
-/* function   : wma_roam_better_ap_handler
- * Descriptin : Handler for WMI_ROAM_REASON_BETTER_AP event from roam firmware in Rome.
- *            : This event means roam algorithm in Rome has found a better matching
- *            : candidate AP. The indication is sent through tl_shim as by repeating
- *            : the last beacon. Hence this routine calls a tlshim routine.
- * Args       :
- * Returns    :
- */
-static void wma_roam_bmiss_scan_ap_handler(tp_wma_handle wma, u_int32_t vdev_id)
-{
-	VOS_STATUS ret;
-	ret = tlshim_mgmt_roam_event_ind(wma->vos_context, vdev_id);
-}
-
 /* function   : wma_roam_event_callback
  * Descriptin : Handler for all events from roam engine in firmware
  * Args       :
@@ -17678,44 +17652,6 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 		wmi_buf_free(buf);
 		return;
 	}
-}
-
-static void wma_set_regdomain(a_uint32_t regdmn)
-{
-	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
-	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
-	u_int32_t modeSelect = 0xFFFFFFFF;
-
-	if (NULL == wma) {
-		WMA_LOGE("Failed to set regulatory domain");
-		return;
-	}
-
-	/* Set DFS regulatory domain */
-	wma_set_dfs_regdomain(wma);
-
-	switch (wma->phy_capability) {
-	case WMI_11G_CAPABILITY:
-	case WMI_11NG_CAPABILITY:
-		modeSelect &= ~(REGDMN_MODE_11A | REGDMN_MODE_TURBO |
-			REGDMN_MODE_108A | REGDMN_MODE_11A_HALF_RATE |
-			REGDMN_MODE_11A_QUARTER_RATE | REGDMN_MODE_11NA_HT20 |
-			REGDMN_MODE_11NA_HT40PLUS | REGDMN_MODE_11NA_HT40MINUS |
-			REGDMN_MODE_11AC_VHT20 | REGDMN_MODE_11AC_VHT40PLUS |
-			REGDMN_MODE_11AC_VHT40MINUS | REGDMN_MODE_11AC_VHT80);
-		break;
-	case WMI_11A_CAPABILITY:
-	case WMI_11NA_CAPABILITY:
-	case WMI_11AC_CAPABILITY:
-		modeSelect &= ~(REGDMN_MODE_11B | REGDMN_MODE_11G |
-			REGDMN_MODE_108G | REGDMN_MODE_11NG_HT20 |
-			REGDMN_MODE_11NG_HT40PLUS | REGDMN_MODE_11NG_HT40MINUS |
-			REGDMN_MODE_11AC_VHT20_2G | REGDMN_MODE_11AC_VHT40_2G |
-			REGDMN_MODE_11AC_VHT80_2G);
-		break;
-	}
-
-	return;
 }
 
 /* function   : wma_rx_ready_event
