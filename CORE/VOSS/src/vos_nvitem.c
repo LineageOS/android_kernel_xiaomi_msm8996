@@ -72,10 +72,12 @@ static struct completion change_country_code;
 
 #endif
 
+#ifndef CONFIG_ENABLE_LINUX_REG
 static char crda_alpha2[2] = {0, 0}; /* country code from initial crda req */
 static char run_time_alpha2[2] = {0, 0}; /* country code from none-default country req */
 static v_BOOL_t crda_regulatory_entry_valid = VOS_FALSE;
 static v_BOOL_t crda_regulatory_run_time_entry_valid = VOS_FALSE;
+#endif /* ndef CONFIG_ENABLE_LINUX_REG */
 
 
 /*----------------------------------------------------------------------------
@@ -2473,6 +2475,7 @@ static int bw20_ch_index_to_bw40_ch_index(int k)
    return m;
 }
 
+#ifndef CONFIG_ENABLE_LINUX_REG
 void crda_regulatory_entry_default(v_U8_t *countryCode, int domain_id)
 {
    int k;
@@ -2904,6 +2907,7 @@ static int create_crda_regulatory_entry_from_regd(struct wiphy *wiphy,
   crda_regulatory_entry_post_processing(wiphy, request, nBandCapability, domain_id);
   return 0;
 }
+#endif /* ndef CONFIG_ENABLE_LINUX_REG */
 
 #ifdef CONFIG_ENABLE_LINUX_REG
 static int create_linux_regulatory_entry(struct wiphy *wiphy,
