@@ -107,7 +107,6 @@ static void limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac,
                                                       tANI_U32 *pMsg);
 static void limProcessSmeStartBeaconReq(tpAniSirGlobal pMac,
                                                  tANI_U32 *pMsg);
-static void limProcessSmeDfsCacIndication(tpAniSirGlobal pMac, tANI_U32 *pMsg);
 static void limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg);
 
 void __limProcessSmeAssocCnfNew(tpAniSirGlobal, tANI_U32, tANI_U32 *);

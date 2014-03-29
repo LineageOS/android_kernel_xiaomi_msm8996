@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2436,6 +2436,7 @@ dump_send_plm_start(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2,
 }
 #endif
 
+#ifndef QCA_WIFI_2_0
 /* API to fill Rate Info based on mac efficiency
  * arg 1: mac efficiency to be used to calculate mac thorughput for a given rate index
  * arg 2: starting rateIndex to apply the macEfficiency to
@@ -2448,6 +2449,7 @@ dump_limRateInfoBasedOnMacEff(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2,
     WDTS_FillRateInfo((tANI_U8)(arg1), (tANI_U16)(arg2), (tANI_U16)(arg3));
     return p;
 }
+#endif /* QCA_WIFI_2_0 */
 
 static tDumpFuncEntry limMenuDumpTable[] = {
     {0,     "PE (300-499)",                                          NULL},
