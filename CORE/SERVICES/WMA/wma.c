@@ -5131,10 +5131,11 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 
     WMA_LOGI("%s: command 0x%x", __func__, roam_req->Command);
     if (!wma_handle->roam_offload_enabled) {
-        /* roam scan offload is not enabled in firmware.
-         * Cannot initialize it in the middle of connection.
-         */
-        return VOS_STATUS_E_PERM;
+	/* roam scan offload is not enabled in firmware.
+	 * Cannot initialize it in the middle of connection.
+	*/
+	vos_mem_free(roam_req);
+	return VOS_STATUS_E_PERM;
     }
     switch (roam_req->Command) {
         case ROAM_SCAN_OFFLOAD_START:
