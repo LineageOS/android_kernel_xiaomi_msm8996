@@ -665,6 +665,7 @@ int wmi_unified_unregister_event_handler(wmi_unified_t wmi_handle,
     return 0;
 }
 
+#if 0 /* currently not used */
 static int wmi_unified_event_rx(struct wmi_unified *wmi_handle,
 				wmi_buf_t evt_buf)
 {
@@ -699,6 +700,7 @@ end:
 	adf_nbuf_free(evt_buf);
 	return status;
 }
+#endif /* 0 */
 
 /*
  * Temporarily added to support older WMI events. We should move all events to unified
