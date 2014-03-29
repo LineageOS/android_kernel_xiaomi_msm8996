@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -78,6 +78,7 @@ int domainoverride=DFS_UNINIT_DOMAIN;
 int usenol=1;
 u_int32_t dfs_debug_level=ATH_DEBUG_DFS;
 
+#if 0 /* the code to call this is curently commented-out below */
 /*
  * Mark a channel as having interference detected upon it.
  *
@@ -126,7 +127,7 @@ dfs_channel_mark_radar(struct ath_dfs *dfs, struct ieee80211_channel *chan)
         dfs_nol_update(dfs);
     }
 }
-
+#endif /* #if 0 */
 
 static OS_TIMER_FUNC(dfs_task)
 {
