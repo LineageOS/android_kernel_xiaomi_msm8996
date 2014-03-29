@@ -1149,9 +1149,6 @@ ifeq ($(CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC), 1)
 CDEFINES += -DTARGET_RAMDUMP_AFTER_KERNEL_PANIC
 endif
 
-# Fix build for GCC 4.7
-EXTRA_CFLAGS += -Wno-maybe-uninitialized -Wno-unused-function
-
 KBUILD_CPPFLAGS += $(CDEFINES)
 
 # Module information used by KBuild framework
