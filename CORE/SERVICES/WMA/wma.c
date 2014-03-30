@@ -829,9 +829,10 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		return -EINVAL;
 	}
 
-	WMA_LOGA("PEER:[%pM]\n BSSID:[%pM]\nINTERFACE:%d\npeer_ID:%d",
-		macaddr, wma->interfaces[vdev_id].addr, vdev_id,
-		peer_id);
+	WMA_LOGA("%s: PEER:[%pM], BSSID:[%pM], ADDR:[%pN], INTERFACE:%d, peer_id:%d, reason:%d",
+	         __func__, macaddr, wma->interfaces[vdev_id].bssid,
+	         wma->interfaces[vdev_id].addr, vdev_id,
+	         peer_id, kickout_event->reason);
 
 	if (kickout_event->reason == WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT) {
 		p_inactivity = (tpSirIbssPeerInactivityInd)
@@ -845,6 +846,26 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		vos_mem_copy(p_inactivity->peerAddr, macaddr, IEEE80211_ADDR_LEN);
 		wma_send_msg(wma, WDA_IBSS_PEER_INACTIVITY_IND, (void *)p_inactivity, 0);
 	}
+#ifdef FEATURE_WLAN_TDLS
+	else if (kickout_event->reason ==
+	         WMI_PEER_STA_KICKOUT_REASON_TDLS_DISCONNECT) {
+		del_sta_ctx =
+			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
+		if (!del_sta_ctx) {
+			WMA_LOGE("%s: mem alloc failed for tDeleteStaContext for TDLS peer: %pM",
+			         __func__, macaddr);
+			return -EINVAL;
+		}
+
+		del_sta_ctx->staId = peer_id;
+		vos_mem_copy(del_sta_ctx->addr2, macaddr, IEEE80211_ADDR_LEN);
+		vos_mem_copy(del_sta_ctx->bssId, wma->interfaces[vdev_id].bssid,
+				IEEE80211_ADDR_LEN);
+		del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
+		wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx,
+			0);
+	}
+#endif /* FEATURE_WLAN_TDLS */
 	else {
 		del_sta_ctx =
 			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
