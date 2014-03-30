@@ -3573,6 +3573,7 @@ void limProcessInitScanRsp(tpAniSirGlobal pMac,  void *body)
                  */
                 pMac->lim.gLimNumOfConsecutiveBkgndScanFailure = 0;
                 pMac->lim.gLimNumOfBackgroundScanSuccess += 1;
+                pMac->lim.probeCounter = 0;
             }
             limContinueChannelScan(pMac);
             break;

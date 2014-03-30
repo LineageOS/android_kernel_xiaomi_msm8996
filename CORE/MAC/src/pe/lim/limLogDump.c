@@ -2436,6 +2436,18 @@ dump_send_plm_start(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2,
 }
 #endif
 
+static char *
+dump_set_max_probe_req(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2,
+             tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    if ((arg1 <= 0) || (arg1 > 4)){
+       limLog(pMac, LOGE,
+           FL("invalid number. valid range 1 - 4 \n"));
+       return p;
+    }
+    pMac->lim.maxProbe = arg1;
+    return p;
+}
 #ifndef QCA_WIFI_2_0
 /* API to fill Rate Info based on mac efficiency
  * arg 1: mac efficiency to be used to calculate mac thorughput for a given rate index
@@ -2532,6 +2544,7 @@ static tDumpFuncEntry limMenuDumpTable[] = {
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
     {372,   "PE.LIM: send PLM start command Usage: iwpriv wlan0 372", dump_send_plm_start },
 #endif
+    {376,   "PE.LIM: max number of probe per scan", dump_set_max_probe_req },
 };
 
 
