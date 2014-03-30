@@ -13632,8 +13632,9 @@ static void wma_aggr_qos_req(tp_wma_handle wma, tAggrAddTsParams *pAggrQosRspMsg
         cmd->ac = TID_TO_WME_AC(pAggrQosRspMsg->tspec[i].tsinfo.traffic.userPrio);
         cmd->medium_time_us = pAggrQosRspMsg->tspec[i].mediumTime * 32;
         cmd->downgrade_type = WMM_AC_DOWNGRADE_DEPRIO;
-        WMA_LOGD("%s:%d: Addts vdev:%d, ac:%d, mediumTime:%d",
-                        __func__, __LINE__, cmd->vdev_id, cmd->ac, cmd->medium_time_us);
+        WMA_LOGD("%s:%d: Addts vdev:%d, ac:%d, mediumTime:%d downgrade_type:%d",
+              __func__, __LINE__, cmd->vdev_id, cmd->ac,
+              cmd->medium_time_us, cmd->downgrade_type);
         if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
                                 WMI_VDEV_WMM_ADDTS_CMDID)) {
                 WMA_LOGP("%s: Failed to send vdev ADDTS command", __func__);
@@ -13687,8 +13688,9 @@ static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 	cmd->ac = TID_TO_WME_AC(msg->tspec.tsinfo.traffic.userPrio);
 	cmd->medium_time_us = msg->tspec.mediumTime * 32;
 	cmd->downgrade_type = WMM_AC_DOWNGRADE_DROP;
-	WMA_LOGD("Addts vdev:%d, ac:%d, mediumTime:%d, %s:%d",
-			cmd->vdev_id, cmd->ac, cmd->medium_time_us, __func__, __LINE__);
+	WMA_LOGD("Addts vdev:%d, ac:%d, mediumTime:%d, downgrade_type:%d %s:%d",
+			cmd->vdev_id, cmd->ac, cmd->medium_time_us,
+			cmd->downgrade_type, __func__, __LINE__);
 	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				WMI_VDEV_WMM_ADDTS_CMDID)) {
 		WMA_LOGP("%s: Failed to send vdev ADDTS command", __func__);
