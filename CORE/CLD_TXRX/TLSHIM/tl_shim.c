@@ -982,7 +982,7 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
 			sta_id);
 	if (!peer) {
-		TLSHIM_LOGE("Invalid peer");
+		TLSHIM_LOGW("Invalid peer");
 		return skb;
 	}
 

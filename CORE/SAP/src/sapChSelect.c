@@ -66,9 +66,7 @@
 #ifdef ANI_OS_TYPE_QNX
 #include "stdio.h"
 #endif
-#ifdef FEATURE_WLAN_CH_AVOID
 #include "wlan_hdd_main.h"
-#endif /* FEATURE_WLAN_CH_AVOID */
 
 /*--------------------------------------------------------------------------
   Function definitions

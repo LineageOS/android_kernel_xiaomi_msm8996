@@ -86,8 +86,7 @@ struct wmi_unified {
 #endif /* WLAN_OPEN_SOURCE */
 
 #ifdef WMI_INTERFACE_EVENT_LOGGING
-	adf_os_spinlock_t wmi_cmd_record_lock;
-	adf_os_spinlock_t wmi_event_record_lock;
+	adf_os_spinlock_t wmi_record_lock;
 #endif /*WMI_INTERFACE_EVENT_LOGGING*/
 
 };

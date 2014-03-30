@@ -6730,6 +6730,12 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		default:
 			break;
 	}
+
+#ifdef FEATURE_WLAN_TDLS
+	if (STA_ENTRY_TDLS_PEER == params->staType)
+		cmd->peer_flags |= WMI_PEER_AUTH;
+#endif
+
 	if (params->wpa_rsn
 #ifdef FEATURE_WLAN_WAPI
 	    || params->encryptType == eSIR_ED_WPI
@@ -12973,6 +12979,12 @@ int wma_disable_wow_in_fw(WMA_HANDLE handle)
 	}
 
 	WMA_LOGD("WoW Resume in PCIe Context\n");
+
+	ret = wma_send_host_wakeup_ind_to_fw(wma);
+
+	if (ret != VOS_STATUS_SUCCESS)
+		return ret;
+
 	wma->wow.wow_enable = FALSE;
 	wma->wow.wow_enable_cmd_sent = FALSE;
 
@@ -12992,7 +13004,6 @@ int wma_disable_wow_in_fw(WMA_HANDLE handle)
 		iface->conn_state = FALSE;
 	}
 
-	ret = wma_send_host_wakeup_ind_to_fw(wma);
 	vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 2000);
 
 	return ret;
@@ -13461,7 +13472,7 @@ static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 	cmd->vdev_id = msg->sessionId;
 	cmd->ac = TID_TO_WME_AC(msg->tspec.tsinfo.traffic.userPrio);
 	cmd->medium_time_us = msg->tspec.mediumTime * 32;
-	cmd->downgrade_type = WMM_AC_DOWNGRADE_DEPRIO;
+	cmd->downgrade_type = WMM_AC_DOWNGRADE_DROP;
 	WMA_LOGD("Addts vdev:%d, ac:%d, mediumTime:%d, %s:%d",
 			cmd->vdev_id, cmd->ac, cmd->medium_time_us, __func__, __LINE__);
 	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
