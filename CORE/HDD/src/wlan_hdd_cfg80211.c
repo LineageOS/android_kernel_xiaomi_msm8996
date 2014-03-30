@@ -4760,8 +4760,6 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     struct timespec ts;
 #endif
 
-    ENTER();
-
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
@@ -4846,6 +4844,8 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     }
     else
     {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s Invalid chan_no:%d",
+               __func__, chan_no);
         kfree(mgmt);
         return NULL;
     }
@@ -4867,7 +4867,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
      */
     if(chan == NULL)
     {
-       hddLog(VOS_TRACE_LEVEL_INFO, "%s chan pointer is NULL", __func__);
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s chan pointer is NULL", __func__);
        kfree(mgmt);
        return NULL;
     }
@@ -4888,6 +4888,9 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     {
        rssi = (VOS_MIN ((bss_desc->rssi + bss_desc->sinr), 0))*100;
     }
+
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: BSSID:" MAC_ADDRESS_STR " Channel:%d RSSI:%d",
+           __func__, MAC_ADDR_ARRAY(mgmt->bssid),chan->center_freq, (int)(rssi/100));
 
     bss_status = cfg80211_inform_bss_frame(wiphy, chan, mgmt,
             frame_len, rssi, GFP_KERNEL);
@@ -4981,7 +4984,8 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
     /* no scan results */
     if (NULL == pResult)
     {
-        hddLog(VOS_TRACE_LEVEL_INFO, "%s: No scan result", __func__);
+        hddLog(VOS_TRACE_LEVEL_INFO, "%s: No scan result Status %d",
+               __func__, status);
         return status;
     }
 
@@ -5385,9 +5389,8 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
                 {
                     staMac = (v_U8_t *) &(pAdapter->macAddressCurrent.bytes[0]);
                     hddLog(VOS_TRACE_LEVEL_ERROR,
-                           "%s: client " MAC_ADDRESS_STR
-                           " is in the middle of WPS/EAPOL exchange.", __func__,
-                            MAC_ADDR_ARRAY(staMac));
+                           "%s: client " MAC_ADDRESS_STR " is in the middle of WPS/EAPOL exchange.",
+                           __func__,MAC_ADDR_ARRAY(staMac));
                     return VOS_FALSE;
                 }
             }
@@ -5532,9 +5535,15 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
                                           dev,
 #endif
                                           request);
-    if(status <= 0)
+    if (status <= 0)
     {
-        hddLog(VOS_TRACE_LEVEL_INFO, "%s: TDLS Pending %d", __func__, status);
+      if (!status)
+          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: TDLS in progress.scan rejected %d",
+                 __func__, status);
+      else
+          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: TDLS teardown is ongoing %d",
+                 __func__, status);
+
         return status;
     }
 #endif
@@ -5547,7 +5556,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     }
     if (TRUE == pHddCtx->tmInfo.tmAction.enterImps)
     {
-        hddLog(VOS_TRACE_LEVEL_WARN,
+        hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: MAX TM Level Scan not allowed", __func__);
         mutex_unlock(&pHddCtx->tmInfo.tmOperationLock);
         return -EBUSY;
@@ -5588,10 +5597,10 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
                       ( tCsrSSIDInfo *)vos_mem_malloc(
                               request->n_ssids*sizeof(tCsrSSIDInfo));
 
-            if(NULL == scanRequest.SSIDs.SSIDList)
+            if (NULL == scanRequest.SSIDs.SSIDList)
             {
                 hddLog(VOS_TRACE_LEVEL_ERROR,
-                               "memory alloc failed SSIDInfo buffer");
+                       "%s: memory alloc failed SSIDInfo buffer", __func__);
                 return -ENOMEM;
             }
 
@@ -5603,8 +5612,8 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
                 vos_mem_copy(SsidInfo->SSID.ssId, &request->ssids[j].ssid[0],
                              SsidInfo->SSID.length);
                 SsidInfo->SSID.ssId[SsidInfo->SSID.length] = '\0';
-                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID number %d:  %s",
-                                                   j, SsidInfo->SSID.ssId);
+                hddLog(VOS_TRACE_LEVEL_INFO, "SSID number %d: %s",
+                       j, SsidInfo->SSID.ssId);
             }
             /* set the scan type to active */
             scanRequest.scanType = eSIR_ACTIVE_SCAN;
@@ -5639,21 +5648,31 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     /*TODO: scan the requested channels only*/
 
     /*Right now scanning all the channels */
-    if( request )
+    if (request)
     {
-        if( request->n_channels )
+        hddLog(VOS_TRACE_LEVEL_INFO,
+               "No of Scan Channels: %d", request->n_channels);
+        if (request->n_channels)
         {
-            channelList = vos_mem_malloc( request->n_channels );
-            if( NULL == channelList )
+            char chList [(request->n_channels*5)+1];
+            int len;
+            channelList = vos_mem_malloc(request->n_channels);
+            if (NULL == channelList)
             {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                       "%s: memory alloc failed channelList", __func__);
                 status = -ENOMEM;
                 goto free_mem;
             }
+            for (i = 0, len = 0; i < request->n_channels ; i++ )
+            {
+                 channelList[i] = request->channels[i]->hw_value;
+                 len += snprintf(chList+len, 5, "%d ", channelList[i]);
+            }
 
-            for( i = 0 ; i < request->n_channels ; i++ )
-                channelList[i] = request->channels[i]->hw_value;
+            hddLog(VOS_TRACE_LEVEL_INFO, "Channel-List: %s", chList);
+
         }
-
         scanRequest.ChannelInfo.numOfChannels = request->n_channels;
         scanRequest.ChannelInfo.ChannelList = channelList;
 
@@ -5674,6 +5693,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 
         if( request->n_channels != WLAN_HDD_P2P_SINGLE_CHANNEL_SCAN )
         {
+            hddLog(VOS_TRACE_LEVEL_DEBUG, "Flushing P2P Results");
             sme_ScanFlushP2PResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
                                                 pAdapter->sessionId );
         }
@@ -5766,6 +5786,12 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
      */
     hdd_prevent_suspend();
 
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+           "requestType %d, scanType %d, minChnTime %d, maxChnTime %d,p2pSearch %d, skipDfsChnlIn P2pSearch %d",
+           scanRequest.requestType, scanRequest.scanType,
+           scanRequest.minChnTime, scanRequest.maxChnTime,
+           scanRequest.p2pSearch, scanRequest.skipDfsChnlInP2pSearch);
+
     status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
                               pAdapter->sessionId, &scanRequest, &scanId,
                               &hdd_cfg80211_scan_done_callback, dev );
@@ -5777,11 +5803,15 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         complete(&pScanInfo->scan_req_completion_event);
         if(eHAL_STATUS_RESOURCES == status)
         {
-                hddLog(VOS_TRACE_LEVEL_INFO, "%s: HO is in progress.So defer the scan by informing busy",__func__);
-                status = -EBUSY;
-        } else {
-                status = -EIO;
+           hddLog(VOS_TRACE_LEVEL_ERROR, "%s: HO is in progress.So defer the scan by informing busy",
+                  __func__);
+           status = -EBUSY;
         }
+        else
+        {
+           status = -EIO;
+        }
+
         hdd_allow_suspend();
         goto free_mem;
     }
