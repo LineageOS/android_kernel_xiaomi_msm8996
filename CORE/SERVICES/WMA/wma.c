@@ -6445,43 +6445,62 @@ send_resp:
 	wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
 }
 
-static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t is_ht,
-				      u_int8_t is_cw40, u_int8_t is_vht, u_int8_t is_cw_vht)
+static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t sta_type,
+	u_int8_t is_ht, u_int8_t is_cw40, u_int8_t is_vht, u_int8_t is_cw_vht)
 {
 	WLAN_PHY_MODE phymode = MODE_UNKNOWN;
 
 	switch (nw_type) {
 		case eSIR_11B_NW_TYPE:
-			phymode = MODE_11B;
+#ifdef FEATURE_WLAN_TDLS
+			if (STA_ENTRY_TDLS_PEER == sta_type) {
+				if (is_vht) {
+					if (is_cw_vht)
+						phymode = MODE_11AC_VHT80;
+					else
+						phymode = (is_cw40) ?
+						          MODE_11AC_VHT40 :
+						          MODE_11AC_VHT20;
+				}
+				else if (is_ht) {
+					phymode = (is_cw40) ?
+					          MODE_11NG_HT40 : MODE_11NG_HT20;
+				} else
+					phymode = MODE_11B;
+			} else
+#endif /* FEATURE_WLAN_TDLS */
+				phymode = MODE_11B;
 			break;
 		case eSIR_11G_NW_TYPE:
-                        if (is_vht) {
-                               if (is_cw_vht)
-                                       phymode = MODE_11AC_VHT80;
-                               else
-                                       phymode = (is_cw40) ?
-                                               MODE_11AC_VHT40 :
-                                               MODE_11AC_VHT20;
-                        }
-                        else if (is_ht)
+			if (is_vht) {
+				if (is_cw_vht)
+					phymode = MODE_11AC_VHT80;
+				else
+					phymode = (is_cw40) ?
+					          MODE_11AC_VHT40 :
+					          MODE_11AC_VHT20;
+			}
+			else if (is_ht) {
 				phymode = (is_cw40) ?
-					MODE_11NG_HT40 : MODE_11NG_HT20;
-			else
+				          MODE_11NG_HT40 :
+				          MODE_11NG_HT20;
+			} else
 				phymode = MODE_11G;
 			break;
 		case eSIR_11A_NW_TYPE:
-                        if (is_vht) {
-                                if (is_cw_vht)
-                                        phymode = MODE_11AC_VHT80;
-                                else
-                                        phymode = (is_cw40) ?
-                                                MODE_11AC_VHT40 :
-                                                MODE_11AC_VHT20;
-                        }
-                        else if (is_ht)
+			if (is_vht) {
+				if (is_cw_vht)
+					phymode = MODE_11AC_VHT80;
+				else
+					phymode = (is_cw40) ?
+					          MODE_11AC_VHT40 :
+					          MODE_11AC_VHT20;
+			}
+			else if (is_ht) {
 				phymode = (is_cw40) ?
-					MODE_11NA_HT40 : MODE_11NA_HT20;
-			else
+				          MODE_11NA_HT40 :
+				          MODE_11NA_HT20;
+			} else
 				phymode = MODE_11A;
 			break;
 		default:
@@ -6489,8 +6508,8 @@ static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t is_ht,
 			break;
 	}
 	WMA_LOGD("%s: nw_type %d is_ht %d is_cw40 %d is_vht %d is_cw_vht %d\
-                 phymode %d", __func__, nw_type, is_ht, is_cw40,
-                 is_vht, is_cw_vht, phymode);
+	         phymode %d", __func__, nw_type, is_ht, is_cw40,
+	         is_vht, is_cw_vht, phymode);
 
 	return phymode;
 }
@@ -6550,10 +6569,11 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	vos_mem_zero(&peer_legacy_rates, sizeof(wmi_rate_set));
 	vos_mem_zero(&peer_ht_rates, sizeof(wmi_rate_set));
 
-        phymode = wma_peer_phymode(nw_type, params->htCapable,
-                                             params->txChannelWidthSet,
-                                             params->vhtCapable,
-                                             params->vhtTxChannelWidthSet);
+	phymode = wma_peer_phymode(nw_type, params->staType,
+	                           params->htCapable,
+	                           params->txChannelWidthSet,
+	                           params->vhtCapable,
+	                           params->vhtTxChannelWidthSet);
 
 	/* Legacy Rateset */
 	rate_pos = (u_int8_t *) peer_legacy_rates.rates;
