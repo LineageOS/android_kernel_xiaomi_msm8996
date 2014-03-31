@@ -40,7 +40,7 @@
 #include "wlan_hdd_p2p.h"
 #include "sapApi.h"
 #include "wlan_hdd_main.h"
-
+#include "vos_trace.h"
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
 #include <linux/etherdevice.h>
@@ -51,6 +51,33 @@
 
 //Ms to Micro Sec
 #define MS_TO_MUS(x)   ((x)*1000);
+
+tANI_U8* hdd_getActionString( tANI_U16 MsgType )
+{
+    switch (MsgType)
+    {
+       CASE_RETURN_STRING(SIR_MAC_ACTION_SPECTRUM_MGMT);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_QOS_MGMT);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_DLP);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_BLKACK);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_PUBLIC_USAGE);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_RRM);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_FAST_BSS_TRNST);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_HT);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_SA_QUERY);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_PROT_DUAL_PUB);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_WNM);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_UNPROT_WNM);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_TDLS);
+       CASE_RETURN_STRING(SIR_MAC_ACITON_MESH);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_MULTIHOP);
+       CASE_RETURN_STRING(SIR_MAC_SELF_PROTECTED);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_WME);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_VHT);
+       default:
+           return ("UNKNOWN");
+     }
+}
 
 #ifdef WLAN_FEATURE_P2P_DEBUG
 #define MAX_P2P_ACTION_FRAME_TYPE 9
@@ -715,6 +742,7 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
          ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
        )
     {
+
         tANI_U8 sessionId = pAdapter->sessionId;
         sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
                                             sessionId );
@@ -902,7 +930,11 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
         }
     }
 
-    hddLog( LOG1, "Action frame tx request");
+    if( subType == SIR_MAC_MGMT_ACTION)
+    {
+         hddLog( LOG1, "Action frame tx request : %s",
+         hdd_getActionString(buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET]));
+     }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
     goAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_P2P_GO );
@@ -1350,6 +1382,7 @@ int hdd_setP2pOpps( struct net_device *dev, tANI_U8 *command )
     if (opp_ps != -1)
     {
         pAdapter->ops = opp_ps;
+
 
         if ((opp_ps != -1) && (pAdapter->ctw))
         {
