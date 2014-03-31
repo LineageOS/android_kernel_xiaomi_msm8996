@@ -2010,7 +2010,7 @@ static int hdd_parse_setrmcrate_command(tANI_U8 *pValue,
   \brief hdd_parse_plm_cmd() - HDD Parse Plm command
 
   This function parses the plm command passed in the format
-  ESEPLMREQ<space><enable><space><dialog_token><space>
+  CCXPLMREQ<space><enable><space><dialog_token><space>
   <meas_token><space><num_of_bursts><space><burst_int><space>
   <measu duration><space><burst_len><space><desired_tx_pwr>
   <space><multcast_addr><space><number_of_channels>
@@ -3799,7 +3799,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
 #endif
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
-       else if (strncmp(command, "ESEPLMREQ", 9) == 0)
+       else if (strncmp(command, "CCXPLMREQ", 9) == 0)
        {
            tANI_U8 *value = command;
            eHalStatus status = eHAL_STATUS_SUCCESS;
