@@ -2179,7 +2179,7 @@ hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
    vos_mem_copy(hdr->addr3, bssid, VOS_MAC_ADDR_SIZE);
    vos_mem_copy(hdr + 1, payload, payload_len);
 
-   ret = wlan_hdd_action(NULL,
+   ret = wlan_hdd_mgmt_tx(NULL,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
                          &(pAdapter->wdev),
 #else
