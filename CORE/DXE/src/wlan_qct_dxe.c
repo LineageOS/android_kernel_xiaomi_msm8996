@@ -1074,7 +1074,8 @@ static wpt_status dxeDescAllocAndLink
    WLANDXE_DescType         *prevDesc    = NULL;
    WLANDXE_DescCtrlBlkType  *currentCtrlBlk = NULL;
    unsigned int              idx;
-   void                     *physAddress = NULL;
+   void                     *physAddressAlloc = NULL;
+   wpt_uint32                physAddress;
 #ifdef WLANDXE_TEST_CHANNEL_ENABLE
    WLANDXE_ChannelCBType    *testTXChannelCB = &dxeCtrlBlk->dxeChannel[WDTS_CHANNEL_H2H_TEST_TX];
    WLANDXE_DescCtrlBlkType  *currDescCtrlBlk = testTXChannelCB->headCtrlBlk;
@@ -1097,7 +1098,8 @@ static wpt_status dxeDescAllocAndLink
    /* allocate all DXE descriptors for this channel in one chunk */
    channelEntry->descriptorAllocation = (WLANDXE_DescType *)
       wpalDmaMemoryAllocate(sizeof(WLANDXE_DescType)*channelEntry->numDesc,
-                            &physAddress);
+                            &physAddressAlloc);
+   physAddress = (wpt_uint32) (uintptr_t)(physAddressAlloc);
    if(NULL == channelEntry->descriptorAllocation)
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
@@ -1115,40 +1117,43 @@ static wpt_status dxeDescAllocAndLink
       // descriptors were allocated in a chunk -- use the current one
       memset((wpt_uint8 *)currentDesc, 0, sizeof(WLANDXE_DescType));
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
-               "Allocated Descriptor VA %p, PA %p", currentDesc, physAddress);
+               "Allocated Descriptor VA %p, PA %p", currentDesc, physAddressAlloc);
 #else
       if(WDTS_CHANNEL_H2H_TEST_RX != channelEntry->channelType)
       {
          // allocate a descriptor
          currentDesc = (WLANDXE_DescType *)wpalDmaMemoryAllocate(sizeof(WLANDXE_DescType),
-                                                                 &physAddress);
+                                                                 &physAddressAlloc);
          memset((wpt_uint8 *)currentDesc, 0, sizeof(WLANDXE_DescType));
+         physAddress = (wpt_uint32) (uintptr_t)(physAddressAlloc);
       }
       else
       {
          currentDesc     = currDescCtrlBlk->linkedDesc;
-         physAddress     = (void *)currDescCtrlBlk->linkedDescPhyAddr;
+         physAddress     = currDescCtrlBlk->linkedDescPhyAddr;
          currDescCtrlBlk = (WLANDXE_DescCtrlBlkType *)currDescCtrlBlk->nextCtrlBlk;
       }
 #endif /* WLANDXE_TEST_CHANNEL_ENABLE */
 #else
 #ifndef WLANDXE_TEST_CHANNEL_ENABLE
-      currentDesc = (WLANDXE_DescType *)wpalAcpuDdrDxeDescMemoryAllocate(&physAddress);
+      currentDesc = (WLANDXE_DescType *)wpalAcpuDdrDxeDescMemoryAllocate(&physAddressAlloc);
       memset((wpt_uint8 *)currentDesc, 0, sizeof(WLANDXE_DescType));
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
-               "Allocated Descriptor VA %p, PA %p", currentDesc, physAddress);
+               "Allocated Descriptor VA %p, PA %p", currentDesc, physAddressAlloc);
+      physAddress = (wpt_uint32) (uintptr_t)(physAddressAlloc);
 #else
       if(WDTS_CHANNEL_H2H_TEST_RX != channelEntry->channelType)
       {
-         currentDesc = (WLANDXE_DescType *)wpalAcpuDdrDxeDescMemoryAllocate(&physAddress);
+         currentDesc = (WLANDXE_DescType *)wpalAcpuDdrDxeDescMemoryAllocate(&physAddressAlloc);
          memset((wpt_uint8 *)currentDesc, 0, sizeof(WLANDXE_DescType));
          HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
-                  "Allocated Descriptor VA %p, PA %p", currentDesc, physAddress);
+                  "Allocated Descriptor VA %p, PA %p", currentDesc, physAddressAlloc);
+         physAddress = (wpt_uint32) (uintptr_t)(physAddressAlloc);
       }
       else
       {
          currentDesc     = currDescCtrlBlk->linkedDesc;
-         physAddress     = (void *)currDescCtrlBlk->linkedDescPhyAddr;
+         physAddress     = currDescCtrlBlk->linkedDescPhyAddr;
          currDescCtrlBlk = (WLANDXE_DescCtrlBlkType *)currDescCtrlBlk->nextCtrlBlk;
       }
 #endif /* WLANDXE_TEST_CHANNEL_ENABLE */
@@ -1162,14 +1167,14 @@ static wpt_status dxeDescAllocAndLink
       }
 
       currentCtrlBlk->linkedDesc        = currentDesc;
-      currentCtrlBlk->linkedDescPhyAddr = (unsigned int)physAddress;
+      currentCtrlBlk->linkedDescPhyAddr = physAddress;
       /* First descriptor, next none
        * descriptor bottom location is first descriptor address */
       if(0 == idx)
       {
          currentDesc->dxedesc.dxe_short_desc.phyNextL = 0;
          channelEntry->DescBottomLoc                  = currentDesc;
-         channelEntry->descBottomLocPhyAddr           = (unsigned int)physAddress;
+         channelEntry->descBottomLocPhyAddr           = physAddress;
       }
       /* Not first, not last descriptor
        * may make link for previous descriptor with current descriptor
@@ -1177,7 +1182,7 @@ static wpt_status dxeDescAllocAndLink
       else if((0 < idx) && (idx < (channelEntry->numDesc - 1)))
       {
          prevDesc->dxedesc.dxe_short_desc.phyNextL =
-                                  WLANDXE_U32_SWAP_ENDIAN((wpt_uint32)physAddress);
+                                WLANDXE_U32_SWAP_ENDIAN(physAddress);
       }
       /* Last descriptor
        * make a ring by asign next pointer as first descriptor
@@ -1185,9 +1190,9 @@ static wpt_status dxeDescAllocAndLink
       else if((channelEntry->numDesc - 1) == idx)
       {
          prevDesc->dxedesc.dxe_short_desc.phyNextL    =
-                                  WLANDXE_U32_SWAP_ENDIAN((wpt_uint32)physAddress);
+                                WLANDXE_U32_SWAP_ENDIAN(physAddress);
          currentDesc->dxedesc.dxe_short_desc.phyNextL =
-                                  WLANDXE_U32_SWAP_ENDIAN((wpt_uint32)channelEntry->headCtrlBlk->linkedDescPhyAddr);
+                                WLANDXE_U32_SWAP_ENDIAN(channelEntry->headCtrlBlk->linkedDescPhyAddr);
       }
 
       /* If Current Channel is RX channel PAL Packet and OS packet buffer should be
@@ -1240,7 +1245,7 @@ static wpt_status dxeDescAllocAndLink
 #ifndef WLANDXE_TEST_CHANNEL_ENABLE
       // advance to the next pre-allocated descriptor in the chunk
       currentDesc++;
-      physAddress = ((wpt_int8 *)physAddress) + sizeof(WLANDXE_DescType);
+      physAddress = (physAddress + sizeof(WLANDXE_DescType));
 #endif
 #endif
    }
@@ -2193,7 +2198,7 @@ static wpt_status dxeRXFrameSingleBufferAlloc
    /* DXE descriptor must have SWAPPED addres in it's structure
     * !!! SWAPPED !!! */
    currentDesc->dxedesc.dxe_short_desc.dstMemAddrL =
-                                       WLANDXE_U32_SWAP_ENDIAN((wpt_uint32)currentPalPacketBuffer->pBDPhys);
+                                       WLANDXE_U32_SWAP_ENDIAN((wpt_uint32)(uintptr_t)currentPalPacketBuffer->pBDPhys);
 
    return status;
 }
@@ -3278,7 +3283,7 @@ static wpt_status dxeTXPushFrame
 
       /* Program DXE descriptor */
       currentDesc->dxedesc.dxe_short_desc.srcMemAddrL =
-                               WLANDXE_U32_SWAP_ENDIAN((wpt_uint32)sourcePhysicalAddress);
+                               WLANDXE_U32_SWAP_ENDIAN((wpt_uint32)(uintptr_t)sourcePhysicalAddress);
 
       /* Just normal data transfer from aCPU Flat Memory to BMU Q */
       if((WDTS_CHANNEL_TX_LOW_PRI  == channelEntry->channelType) ||
