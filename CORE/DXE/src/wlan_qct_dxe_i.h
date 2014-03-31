@@ -662,6 +662,7 @@ typedef struct
    wpt_boolean                     driverReloadInProcessing;
    wpt_boolean                     smsmToggled;
    wpt_timer                       rxResourceAvailableTimer;
+   wpt_timer                       dxeSSRTimer;
 } WLANDXE_CtrlBlkType;
 
 /*==========================================================================
