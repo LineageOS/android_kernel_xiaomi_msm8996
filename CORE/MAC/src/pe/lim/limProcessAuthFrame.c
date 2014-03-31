@@ -179,16 +179,18 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     {
         // Received Auth frame from a BC/MC address
         // Log error and ignore it
-        PELOG1(limLog(pMac, LOG1,
+        PELOGE(limLog(pMac, LOGE,
                FL("received Auth frame from a BC/MC address - "));)
-       PELOG1( limPrintMacAddr(pMac, pHdr->sa, LOG1);)
+        PELOGE( limPrintMacAddr(pMac, pHdr->sa, LOGE);)
 
         return;
     }
 
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-              FL("Auth Frame Received: BSSID " MAC_ADDRESS_STR " (RSSI %d)"),
-              MAC_ADDR_ARRAY(pHdr->bssId),
+    limLog(pMac, LOG1,
+               FL("Sessionid: %d System role : %d limMlmState: %d :Auth "
+               "Frame Received: BSSID: "MAC_ADDRESS_STR " (RSSI %d)"),
+               psessionEntry->peSessionId, psessionEntry->limSystemRole,
+               psessionEntry->limMlmState, MAC_ADDR_ARRAY(pHdr->bssId),
               (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pRxPacketInfo)));
 
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
@@ -198,6 +200,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     //Restore default failure timeout
     if (VOS_P2P_CLIENT_MODE == psessionEntry->pePersona && psessionEntry->defaultAuthFailureTimeout)
     {
+        limLog(pMac, LOG1, FL("Restore default failure timeout"));
         ccmCfgSetInt(pMac,WNI_CFG_AUTHENTICATE_FAILURE_TIMEOUT ,
                           psessionEntry->defaultAuthFailureTimeout, NULL, eANI_BOOLEAN_FALSE);
     }
@@ -239,15 +242,15 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
             authFrame.authAlgoNumber = eSIR_SHARED_KEY;
             authFrame.authTransactionSeqNumber = SIR_MAC_AUTH_FRAME_4;
             authFrame.authStatusCode = eSIR_MAC_CHALLENGE_FAILURE_STATUS;
+            // Log error
+            PELOGE(limLog(pMac, LOGE,
+                   FL("received Authentication frame with wep bit set on role=%d "
+                      MAC_ADDRESS_STR), psessionEntry->limSystemRole,
+                      MAC_ADDR_ARRAY(pHdr->sa) );)
 
             limSendAuthMgmtFrame(pMac, &authFrame,
                                  pHdr->sa,
                                  LIM_NO_WEP_IN_FC,psessionEntry);
-            // Log error
-            PELOGE(limLog(pMac, LOGE,
-                   FL("received Authentication frame with wep bit set on role=%d "MAC_ADDRESS_STR),
-                   psessionEntry->limSystemRole, MAC_ADDR_ARRAY(pHdr->sa) );)
-
             return;
         }
 
@@ -290,6 +293,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
             if (pAuthNode == NULL)
             {
+               // Log error
+               PELOGE(limLog(pMac, LOGE,
+                      FL("received Authentication frame from peer that has "
+                      "no preauth context with WEP bit set "MAC_ADDRESS_STR),
+                      MAC_ADDR_ARRAY(pHdr->sa));)
                 /**
                  * No 'pre-auth' context exists for this STA that sent
                  * an Authentication frame with FC bit set.
@@ -304,13 +312,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 limSendAuthMgmtFrame(pMac, &authFrame,
                                      pHdr->sa,
                                      LIM_NO_WEP_IN_FC,psessionEntry);
-
-                // Log error
-                PELOGE(limLog(pMac, LOGE,
-                       FL("received Authentication frame from peer that has "
-                       "no preauth context with WEP bit set "MAC_ADDRESS_STR),
-                       MAC_ADDR_ARRAY(pHdr->sa));)
-
                 return;
             }
             else
@@ -326,6 +327,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     (pAuthNode->mlmState !=
                      eLIM_MLM_AUTH_RSP_TIMEOUT_STATE))
                 {
+                   // Log error
+                   PELOGE(limLog(pMac, LOGE,
+                          FL("received Authentication frame from peer that is in state %d "
+                          MAC_ADDRESS_STR),
+                          pAuthNode->mlmState, MAC_ADDR_ARRAY(pHdr->sa));)
                     /**
                      * Should not have received Authentication frame
                      * with WEP bit set in FC in other states.
@@ -342,12 +348,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     limSendAuthMgmtFrame(pMac, &authFrame,
                                          pHdr->sa,
                                          LIM_NO_WEP_IN_FC,psessionEntry);
-
-                    // Log error
-                    PELOGE(limLog(pMac, LOGE,
-                           FL("received Authentication frame from peer that is in state %d "
-                           MAC_ADDRESS_STR), pAuthNode->mlmState, MAC_ADDR_ARRAY(pHdr->sa));)
-
                     return;
                 }
             }
@@ -362,6 +362,10 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
             {
                 if (!pKeyMapEntry->wepOn)
                 {
+                   // Log error
+                   PELOGE(limLog(pMac, LOGE,
+                          FL("received Auth frame3 from peer that has NULL key map entry "
+                          MAC_ADDRESS_STR),MAC_ADDR_ARRAY(pHdr->sa));)
                     /**
                      * Key Mapping entry has null key.
                      * Send Authentication frame
@@ -376,12 +380,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     limSendAuthMgmtFrame(pMac, &authFrame,
                                          pHdr->sa,
                                          LIM_NO_WEP_IN_FC,psessionEntry);
-
-                    // Log error
-                    PELOGE(limLog(pMac, LOGE,
-                           FL("received Auth frame3 from peer that has NULL key map entry "
-                           MAC_ADDRESS_STR),MAC_ADDR_ARRAY(pHdr->sa));)
-
                     return;
                 } // if (!pKeyMapEntry->wepOn)
                 else
@@ -393,8 +391,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                                         (tANI_U16) (frameLen-SIR_MAC_WEP_IV_LENGTH));
                     if (decryptResult == LIM_DECRYPT_ICV_FAIL)
                     {
-                        /// ICV failure
-                        PELOGW(limLog(pMac, LOGW, FL("=====> decryptResult == LIM_DECRYPT_ICV_FAIL ..."));)
+                        // Log error
+                        PELOGE(limLog(pMac, LOGE,
+                               FL("received Authentication frame from peer that failed decryption, Addr "
+                               MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->sa));)
+
                         limDeletePreAuthNode(pMac,
                                              pHdr->sa);
                         authFrame.authAlgoNumber = eSIR_SHARED_KEY;
@@ -408,17 +409,18 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                             pHdr->sa,
                                             LIM_NO_WEP_IN_FC,psessionEntry);
 
-                        // Log error
-                        PELOGE(limLog(pMac, LOGE,
-                               FL("received Authentication frame from peer that failed decryption, Addr "
-                               MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->sa));)
 
                         return;
                     }
 
-                    if ((sirConvertAuthFrame2Struct(pMac, plainBody, frameLen-8, &rxAuthFrame)!=eSIR_SUCCESS)||(!isAuthValid(pMac, &rxAuthFrame,psessionEntry)))
+                    if ((sirConvertAuthFrame2Struct(pMac, plainBody, frameLen-8,
+                         &rxAuthFrame)!=eSIR_SUCCESS ) ||
+                        ( !isAuthValid(pMac, &rxAuthFrame,psessionEntry)))
+                    {
+                        PELOGE(limLog(pMac, LOGE, FL(
+                               "failed to convert Auth Frame to structure or Auth is not valid "));)
                         return;
-
+                    }
 
                 } // end if (pKeyMapEntry->key == NULL)
             } // if keyMappings has entry
@@ -470,8 +472,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                                         (tANI_U16) (frameLen-SIR_MAC_WEP_IV_LENGTH));
                     if (decryptResult == LIM_DECRYPT_ICV_FAIL)
                     {
-                        PELOGW(limLog(pMac, LOGW, FL("=====> decryptResult == LIM_DECRYPT_ICV_FAIL ..."));)
-                        /// ICV failure
+                         // Log error
+                        PELOGE(limLog(pMac, LOGE,
+                               FL("received Authentication frame from peer that failed decryption: "
+                               MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->sa));)
+                       /// ICV failure
                         limDeletePreAuthNode(pMac,
                                              pHdr->sa);
                         authFrame.authAlgoNumber = eSIR_SHARED_KEY;
@@ -484,21 +489,25 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                             pMac, &authFrame,
                                             pHdr->sa,
                                             LIM_NO_WEP_IN_FC,psessionEntry);
-
-                        // Log error
-                        PELOGE(limLog(pMac, LOGE,
-                               FL("received Authentication frame from peer that failed decryption: "
-                               MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->sa));)
-
                         return;
                     }
-                    if ((sirConvertAuthFrame2Struct(pMac, plainBody, frameLen-8, &rxAuthFrame)!=eSIR_SUCCESS)||(!isAuthValid(pMac, &rxAuthFrame,psessionEntry)))
+                    if ( ( sirConvertAuthFrame2Struct(pMac, plainBody, frameLen-8,
+                          &rxAuthFrame)!=eSIR_SUCCESS ) ||
+                        ( !isAuthValid(pMac, &rxAuthFrame, psessionEntry) ) )
+                    {
+                        limLog(pMac, LOGE,
+                               FL("failed to convert Auth Frame to structure or Auth is not valid "));
                         return;
+                    }
 
             } // End of check for Key Mapping/Default key presence
         }
         else
         {
+            // Log error
+            PELOGE(limLog(pMac, LOGE,
+                   FL("received Authentication frame3 from peer that while privacy option is turned OFF "
+                   MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->sa));)
             /**
              * Privacy option is not implemented.
              * So reject Authentication frame received with
@@ -517,21 +526,20 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
             limSendAuthMgmtFrame(pMac, &authFrame,
                                  pHdr->sa,
                                  LIM_NO_WEP_IN_FC,psessionEntry);
-
-            // Log error
-            PELOGE(limLog(pMac, LOGE,
-                   FL("received Authentication frame3 from peer that while privacy option is turned OFF "
-                   MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->sa));)
-
             return;
         } // else if (wlan_cfgGetInt(CFG_PRIVACY_OPTION_IMPLEMENTED))
     } // if (fc.wep)
     else
     {
-
-
-        if ((sirConvertAuthFrame2Struct(pMac, pBody, frameLen, &rxAuthFrame)!=eSIR_SUCCESS)||(!isAuthValid(pMac, &rxAuthFrame,psessionEntry)))
+        if ( ( sirConvertAuthFrame2Struct(pMac, pBody,
+            frameLen, &rxAuthFrame)!=eSIR_SUCCESS ) ||
+            ( !isAuthValid(pMac, &rxAuthFrame,psessionEntry) ) )
+        {
+            PELOGE(limLog(pMac, LOGE,
+                   FL("failed to convert Auth Frame to structure or Auth is "
+                   "not valid "));)
             return;
+        }
     }
 
 
@@ -650,7 +658,9 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                     if (NULL != pStaDs)
                     {
-                        PELOGE(limLog(pMac, LOGE, FL("lim Delete Station Context (staId: %d, assocId: %d) "),pStaDs->staIndex, assocId);)
+                        PELOGE(limLog(pMac, LOGE,
+                               FL("lim Delete Station Context (staId: %d, assocId: %d) "),
+                               pStaDs->staIndex, assocId);)
                         limSendDeauthMgmtFrame(pMac,
                                eSIR_MAC_UNSPEC_FAILURE_REASON, (tANI_U8 *) pAuthNode->peerMacAddr, psessionEntry, FALSE);
                         limTriggerSTAdeletion(pMac, pStaDs, psessionEntry);
@@ -784,6 +794,12 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                         cfgPrivacyOptImp = (tANI_U8)val;
                         if (!cfgPrivacyOptImp)
                         {
+                            // Log error
+                            PELOGE(limLog(pMac, LOGE,
+                                   FL("received Auth frame for unsupported auth algorithm %d "
+                                   MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
+                                   MAC_ADDR_ARRAY(pHdr->sa));)
+
                             /**
                              * Authenticator does not have WEP
                              * implemented.
@@ -803,13 +819,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                                 pMac, &authFrame,
                                                 pHdr->sa,
                                                 LIM_NO_WEP_IN_FC,psessionEntry);
-
-                            // Log error
-                            PELOGE(limLog(pMac, LOGE,
-                                   FL("received Auth frame for unsupported auth algorithm %d "
-                                   MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
-                                   MAC_ADDR_ARRAY(pHdr->sa));)
-
                             return;
                         }
                         else
@@ -915,6 +924,12 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                         break;
 
                     default:
+                        // Log error
+                       PELOGE( limLog(pMac, LOGE,
+                               FL("received Auth frame for unsupported auth algorithm %d "
+                               MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
+                               MAC_ADDR_ARRAY(pHdr->sa));)
+
                         /**
                          * Responding party does not support the
                          * authentication algorithm requested by
@@ -934,18 +949,17 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                             pMac, &authFrame,
                                             pHdr->sa,
                                             LIM_NO_WEP_IN_FC,psessionEntry);
-
-                        // Log error
-                       PELOGE( limLog(pMac, LOGE,
-                               FL("received Auth frame for unsupported auth algorithm %d "
-                               MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
-                               MAC_ADDR_ARRAY(pHdr->sa));)
-
                         return;
                 } // end switch(pRxAuthFrameBody->authAlgoNumber)
             } // if (limIsAuthAlgoSupported(pRxAuthFrameBody->authAlgoNumber))
             else
             {
+                // Log error
+                PELOGE(limLog(pMac, LOGE,
+                       FL("received Authentication frame for unsupported auth algorithm %d "
+                       MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
+                       MAC_ADDR_ARRAY(pHdr->sa));)
+
                 /**
                  * Responding party does not support the
                  * authentication algorithm requested by sending party.
@@ -961,12 +975,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 limSendAuthMgmtFrame(pMac, &authFrame,
                                      pHdr->sa,
                                      LIM_NO_WEP_IN_FC,psessionEntry);
-
-                // Log error
-                PELOGE(limLog(pMac, LOGE,
-                       FL("received Authentication frame for unsupported auth algorithm %d "
-                       MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
-                       MAC_ADDR_ARRAY(pHdr->sa));)
                 return;
             } //end if (limIsAuthAlgoSupported(pRxAuthFrameBody->authAlgoNumber))
             break;
@@ -1147,6 +1155,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                         {
                             if (pKeyMapEntry->key == NULL)
                             {
+                                // Log error
+                                PELOGE(limLog(pMac, LOGE,
+                                       FL("received Auth frame from peer when key mapping key is NULL"
+                                       MAC_ADDRESS_STR),MAC_ADDR_ARRAY(pHdr->sa));)
+
                                 /**
                                  * Key Mapping entry has null key.
                                  * Send Auth frame with
@@ -1162,11 +1175,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                 limSendAuthMgmtFrame(pMac, &authFrame,
                                                      pHdr->sa,
                                                      LIM_NO_WEP_IN_FC,psessionEntry);
-
-                                // Log error
-                                PELOGE(limLog(pMac, LOGE,
-                                       FL("received Auth frame from peer when key mapping key is NULL"
-                                       MAC_ADDRESS_STR),MAC_ADDR_ARRAY(pHdr->sa));)
 
                                 limRestoreFromAuthState(pMac, eSIR_SME_NO_KEY_MAPPING_KEY_FOR_PEER,
                                                               eSIR_MAC_UNSPEC_FAILURE_REASON,psessionEntry);
@@ -1307,6 +1315,12 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
             if (pRxAuthFrameBody->authAlgoNumber != eSIR_SHARED_KEY)
             {
+                // Log error
+                PELOGE(limLog(pMac, LOGE,
+                       FL("received Auth frame3 from peer with auth algo number %d "
+                       MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
+                       MAC_ADDR_ARRAY(pHdr->sa));)
+
                 /**
                  * Received Authentication frame3 with algorithm other than
                  * Shared Key authentication type. Reject with Auth frame4
@@ -1321,13 +1335,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 limSendAuthMgmtFrame(pMac, &authFrame,
                                      pHdr->sa,
                                      LIM_NO_WEP_IN_FC,psessionEntry);
-
-                // Log error
-                PELOGE(limLog(pMac, LOGE,
-                       FL("received Auth frame3 from peer with auth algo number %d "
-                       MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
-                       MAC_ADDR_ARRAY(pHdr->sa));)
-
                 return;
             }
 
@@ -1341,6 +1348,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                  */
                 if (!pHdr->fc.wep)
                 {
+                    // Log error
+                    PELOGE(limLog(pMac, LOGE,
+                           FL("received Auth frame3 from peer with no WEP bit set "MAC_ADDRESS_STR),
+                           MAC_ADDR_ARRAY(pHdr->sa));)
+
                     /// WEP bit is not set in FC of Auth Frame3
                     authFrame.authAlgoNumber = eSIR_SHARED_KEY;
                     authFrame.authTransactionSeqNumber =
@@ -1351,12 +1363,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     limSendAuthMgmtFrame(pMac, &authFrame,
                                          pHdr->sa,
                                          LIM_NO_WEP_IN_FC,psessionEntry);
-
-                    // Log error
-                    PELOGE(limLog(pMac, LOGE,
-                           FL("received Auth frame3 from peer with no WEP bit set "MAC_ADDRESS_STR),
-                           MAC_ADDR_ARRAY(pHdr->sa));)
-
                     return;
                 }
 
@@ -1364,7 +1370,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                                 pHdr->sa);
                 if (pAuthNode == NULL)
                 {
-                    /**
+                    // Log error
+                    PELOGE(limLog(pMac, LOGW,
+                           FL("received AuthFrame3 from peer that has no preauth context "
+                           MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->sa));)
+                   /**
                      * No 'pre-auth' context exists for
                      * this STA that sent an Authentication
                      * frame3.
@@ -1380,17 +1390,16 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     limSendAuthMgmtFrame(pMac, &authFrame,
                                          pHdr->sa,
                                          LIM_NO_WEP_IN_FC,psessionEntry);
-
-                    // Log error
-                    PELOGE(limLog(pMac, LOGW,
-                           FL("received AuthFrame3 from peer that has no preauth context "
-                           MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->sa));)
-
                     return;
                 }
 
                 if (pAuthNode->mlmState == eLIM_MLM_AUTH_RSP_TIMEOUT_STATE)
                 {
+                    // Log error
+                    limLog(pMac, LOGW,
+                           FL("auth response timer timedout for peer "
+                           MAC_ADDRESS_STR),MAC_ADDR_ARRAY(pHdr->sa));
+
                     /**
                      * Received Auth Frame3 after Auth Response timeout.
                      * Reject by sending Auth Frame4 with
@@ -1406,11 +1415,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                         pMac, &authFrame,
                                         pHdr->sa,
                                         LIM_NO_WEP_IN_FC,psessionEntry);
-
-                    // Log error
-                    limLog(pMac, LOGW,
-                           FL("auth response timer timedout for peer "));
-                    limPrintMacAddr(pMac, pHdr->sa, LOGW);
 
                     /// Delete pre-auth context of STA
                     limDeletePreAuthNode(pMac,
@@ -1483,7 +1487,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 }
                 else
                 {
-                    /**
+                     // Log error
+                    PELOGE( limLog(pMac, LOGW,
+                                   FL("Challenge failure for peer "MAC_ADDRESS_STR),
+                                   MAC_ADDR_ARRAY(pHdr->sa));)
+                   /**
                      * Challenge Failure.
                      * Send Authentication frame4 with 'challenge failure'
                      * status code and wait until Auth response timeout to
@@ -1500,11 +1508,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     limSendAuthMgmtFrame(pMac, &authFrame,
                                          pHdr->sa,
                                          LIM_NO_WEP_IN_FC,psessionEntry);
-
-                    // Log error
-                    PELOGE( limLog(pMac, LOGW,
-                                   FL("Challenge failure for peer "MAC_ADDRESS_STR),
-                                   MAC_ADDR_ARRAY(pHdr->sa));)
                     return;
                 }
             } // if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE || ...
@@ -1522,9 +1525,9 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                 // Log error
                 PELOG1(limLog(pMac, LOG1,
-                       FL("received unexpected Auth frame4 from peer in state %d, addr "),
-                       psessionEntry->limMlmState);)
-               PELOG1( limPrintMacAddr(pMac, pHdr->sa, LOG1);)
+                       FL("received unexpected Auth frame4 from peer in state %d, addr "
+                       MAC_ADDRESS_STR), psessionEntry->limMlmState,
+                       MAC_ADDR_ARRAY(pHdr->sa));)
 
                 return;
             }
@@ -1676,27 +1679,29 @@ tSirRetStatus limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd, vo
     pBody = WDA_GET_RX_MPDU_DATA(pBd);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
 
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-              FL("Auth Frame Received: BSSID " MAC_ADDRESS_STR " (RSSI %d)"),
-              MAC_ADDR_ARRAY(pHdr->bssId),
-              (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pBd)));
+    limLog(pMac, LOG1,
+           FL("Auth Frame Received: BSSID "MAC_ADDRESS_STR" (RSSI %d)"),
+           MAC_ADDR_ARRAY(pHdr->bssId),
+           (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pBd)));
 
     // Check for the operating channel and see what needs to be done next.
     psessionEntry = pMac->ft.ftPEContext.psavedsessionEntry;
     if (psessionEntry == NULL)
     {
-        limLog(pMac, LOGW, FL("Error: Unable to find session id while in pre-auth phase for FT"));
+        limLog(pMac, LOGE, FL("Error: Unable to find session id while in pre-auth phase for FT"));
         return eSIR_FAILURE;
     }
 
     if (pMac->ft.ftPEContext.pFTPreAuthReq == NULL)
     {
+        limLog(pMac, LOGE, FL("Error: No FT"));
         // No FT in progress.
         return eSIR_FAILURE;
     }
 
     if (frameLen == 0)
     {
+        limLog(pMac, LOGE, FL("Error: Frame len = 0"));
         return eSIR_FAILURE;
     }
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
@@ -1712,6 +1717,7 @@ tSirRetStatus limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd, vo
     if (!vos_mem_compare(pMac->ft.ftPEContext.pFTPreAuthReq->preAuthbssId,
                          pHdr->bssId, sizeof( tSirMacAddr )))
     {
+        limLog(pMac, LOGE, FL("Error: NOT Same bssid as preauth BSSID"));
         // In this case SME if indeed has triggered a
         // pre auth it will time out.
         return eSIR_FAILURE;
@@ -1763,6 +1769,7 @@ tSirRetStatus limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd, vo
     // Save off the auth resp.
     if ((sirConvertAuthFrame2Struct(pMac, pBody, frameLen, &rxAuthFrame) != eSIR_SUCCESS))
     {
+        limLog(pMac, LOGE, FL("failed to convert Auth frame to struct"));
         limHandleFTPreAuthRsp(pMac, eSIR_FAILURE, NULL, 0, psessionEntry);
         return eSIR_FAILURE;
     }
