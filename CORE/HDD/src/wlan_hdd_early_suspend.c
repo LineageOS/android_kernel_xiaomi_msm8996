@@ -781,7 +781,7 @@ VOS_STATUS hdd_conf_arp_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
        }
        else
        {
-           hddLog(VOS_TRACE_LEVEL_INFO, "%s:IP Address is not assigned", __func__);
+           hddLog(VOS_TRACE_LEVEL_ERROR, "%s:IP Address is not assigned ", __func__);
            return VOS_STATUS_E_AGAIN;
        }
    }
@@ -806,7 +806,8 @@ VOS_STATUS hdd_conf_arp_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
 /*
  * This function is called before setting mcbc filters
  * to modify filter value considering Different Offloads
-*/
+ */
+
 void hdd_mcbc_filter_modification(hdd_context_t* pHddCtx,
                                   tANI_U8 *pMcBcFilter)
 {
@@ -1313,7 +1314,8 @@ void hdd_resume_wlan(void)
       return;
    }
 
-   if (pHddCtx->isLogpInProgress) {
+   if (pHddCtx->isLogpInProgress)
+   {
       hddLog(VOS_TRACE_LEVEL_INFO,
              "%s: Ignore resume wlan, LOGP in progress!", __func__);
       return;
