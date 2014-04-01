@@ -5303,6 +5303,9 @@ eHalStatus csrNeighborRoamHandoffReqHdlr(tpAniSirGlobal pMac, void* pMsg)
             {
 
                 pNeighborRoamInfo->handoffReqInfo.channel = pHandoffReqInfo->channel;
+#ifndef QCA_WIFI_ISOC
+                pNeighborRoamInfo->handoffReqInfo.src     = pHandoffReqInfo->handoff_src;
+#endif
                 vos_mem_copy(pNeighborRoamInfo->handoffReqInfo.bssid,
                              pHandoffReqInfo->bssid,
                              6);

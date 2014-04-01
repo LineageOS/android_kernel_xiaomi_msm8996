@@ -160,8 +160,6 @@ static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
 
 #ifdef QCA_IBSS_SUPPORT
-static void wma_send_beacon_tmpl(WMA_HANDLE handle,
-                                 u_int8_t vdev_id);
 static void wma_data_tx_ack_comp_hdlr(void *wma_context,
                                       adf_nbuf_t netbuf,
                                       int32_t status);
@@ -201,7 +199,6 @@ wma_process_ftm_command(tp_wma_handle wma_handle,
 
 /*DFS Attach*/
 struct ieee80211com* wma_dfs_attach(struct ieee80211com *ic);
-static void wma_set_regdomain(a_uint32_t regdmn);
 static void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
 							tpAddBssParams add_bss);
 /*Configure DFS with radar tables and regulatory domain*/
@@ -832,9 +829,10 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		return -EINVAL;
 	}
 
-	WMA_LOGA("PEER:[%pM]\n BSSID:[%pM]\nINTERFACE:%d\npeer_ID:%d",
-		macaddr, wma->interfaces[vdev_id].addr, vdev_id,
-		peer_id);
+	WMA_LOGA("%s: PEER:[%pM], BSSID:[%pM], ADDR:[%pN], INTERFACE:%d, peer_id:%d, reason:%d",
+	         __func__, macaddr, wma->interfaces[vdev_id].bssid,
+	         wma->interfaces[vdev_id].addr, vdev_id,
+	         peer_id, kickout_event->reason);
 
 	if (kickout_event->reason == WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT) {
 		p_inactivity = (tpSirIbssPeerInactivityInd)
@@ -848,6 +846,26 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		vos_mem_copy(p_inactivity->peerAddr, macaddr, IEEE80211_ADDR_LEN);
 		wma_send_msg(wma, WDA_IBSS_PEER_INACTIVITY_IND, (void *)p_inactivity, 0);
 	}
+#ifdef FEATURE_WLAN_TDLS
+	else if (kickout_event->reason ==
+	         WMI_PEER_STA_KICKOUT_REASON_TDLS_DISCONNECT) {
+		del_sta_ctx =
+			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
+		if (!del_sta_ctx) {
+			WMA_LOGE("%s: mem alloc failed for tDeleteStaContext for TDLS peer: %pM",
+			         __func__, macaddr);
+			return -EINVAL;
+		}
+
+		del_sta_ctx->staId = peer_id;
+		vos_mem_copy(del_sta_ctx->addr2, macaddr, IEEE80211_ADDR_LEN);
+		vos_mem_copy(del_sta_ctx->bssId, wma->interfaces[vdev_id].bssid,
+				IEEE80211_ADDR_LEN);
+		del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
+		wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx,
+			0);
+	}
+#endif /* FEATURE_WLAN_TDLS */
 	else {
 		del_sta_ctx =
 			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
@@ -5134,10 +5152,11 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 
     WMA_LOGI("%s: command 0x%x", __func__, roam_req->Command);
     if (!wma_handle->roam_offload_enabled) {
-        /* roam scan offload is not enabled in firmware.
-         * Cannot initialize it in the middle of connection.
-         */
-        return VOS_STATUS_E_PERM;
+	/* roam scan offload is not enabled in firmware.
+	 * Cannot initialize it in the middle of connection.
+	*/
+	vos_mem_free(roam_req);
+	return VOS_STATUS_E_PERM;
     }
     switch (roam_req->Command) {
         case ROAM_SCAN_OFFLOAD_START:
@@ -6447,43 +6466,62 @@ send_resp:
 	wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
 }
 
-static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t is_ht,
-				      u_int8_t is_cw40, u_int8_t is_vht, u_int8_t is_cw_vht)
+static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t sta_type,
+	u_int8_t is_ht, u_int8_t is_cw40, u_int8_t is_vht, u_int8_t is_cw_vht)
 {
 	WLAN_PHY_MODE phymode = MODE_UNKNOWN;
 
 	switch (nw_type) {
 		case eSIR_11B_NW_TYPE:
-			phymode = MODE_11B;
+#ifdef FEATURE_WLAN_TDLS
+			if (STA_ENTRY_TDLS_PEER == sta_type) {
+				if (is_vht) {
+					if (is_cw_vht)
+						phymode = MODE_11AC_VHT80;
+					else
+						phymode = (is_cw40) ?
+						          MODE_11AC_VHT40 :
+						          MODE_11AC_VHT20;
+				}
+				else if (is_ht) {
+					phymode = (is_cw40) ?
+					          MODE_11NG_HT40 : MODE_11NG_HT20;
+				} else
+					phymode = MODE_11B;
+			} else
+#endif /* FEATURE_WLAN_TDLS */
+				phymode = MODE_11B;
 			break;
 		case eSIR_11G_NW_TYPE:
-                        if (is_vht) {
-                               if (is_cw_vht)
-                                       phymode = MODE_11AC_VHT80;
-                               else
-                                       phymode = (is_cw40) ?
-                                               MODE_11AC_VHT40 :
-                                               MODE_11AC_VHT20;
-                        }
-                        else if (is_ht)
+			if (is_vht) {
+				if (is_cw_vht)
+					phymode = MODE_11AC_VHT80;
+				else
+					phymode = (is_cw40) ?
+					          MODE_11AC_VHT40 :
+					          MODE_11AC_VHT20;
+			}
+			else if (is_ht) {
 				phymode = (is_cw40) ?
-					MODE_11NG_HT40 : MODE_11NG_HT20;
-			else
+				          MODE_11NG_HT40 :
+				          MODE_11NG_HT20;
+			} else
 				phymode = MODE_11G;
 			break;
 		case eSIR_11A_NW_TYPE:
-                        if (is_vht) {
-                                if (is_cw_vht)
-                                        phymode = MODE_11AC_VHT80;
-                                else
-                                        phymode = (is_cw40) ?
-                                                MODE_11AC_VHT40 :
-                                                MODE_11AC_VHT20;
-                        }
-                        else if (is_ht)
+			if (is_vht) {
+				if (is_cw_vht)
+					phymode = MODE_11AC_VHT80;
+				else
+					phymode = (is_cw40) ?
+					          MODE_11AC_VHT40 :
+					          MODE_11AC_VHT20;
+			}
+			else if (is_ht) {
 				phymode = (is_cw40) ?
-					MODE_11NA_HT40 : MODE_11NA_HT20;
-			else
+				          MODE_11NA_HT40 :
+				          MODE_11NA_HT20;
+			} else
 				phymode = MODE_11A;
 			break;
 		default:
@@ -6491,8 +6529,8 @@ static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t is_ht,
 			break;
 	}
 	WMA_LOGD("%s: nw_type %d is_ht %d is_cw40 %d is_vht %d is_cw_vht %d\
-                 phymode %d", __func__, nw_type, is_ht, is_cw40,
-                 is_vht, is_cw_vht, phymode);
+	         phymode %d", __func__, nw_type, is_ht, is_cw40,
+	         is_vht, is_cw_vht, phymode);
 
 	return phymode;
 }
@@ -6552,10 +6590,11 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	vos_mem_zero(&peer_legacy_rates, sizeof(wmi_rate_set));
 	vos_mem_zero(&peer_ht_rates, sizeof(wmi_rate_set));
 
-        phymode = wma_peer_phymode(nw_type, params->htCapable,
-                                             params->txChannelWidthSet,
-                                             params->vhtCapable,
-                                             params->vhtTxChannelWidthSet);
+	phymode = wma_peer_phymode(nw_type, params->staType,
+	                           params->htCapable,
+	                           params->txChannelWidthSet,
+	                           params->vhtCapable,
+	                           params->vhtTxChannelWidthSet);
 
 	/* Legacy Rateset */
 	rate_pos = (u_int8_t *) peer_legacy_rates.rates;
@@ -7354,6 +7393,11 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
 				   (PKT_PWR_SAVE_RSSI_CHECK & 0xffff);
 			intr[vid].config.pps_params.rssi_chk = privcmd->param_value;
+			break;
+		case WMI_VDEV_PPS_5G_EBT:
+			pps_val = ((privcmd->param_value << 31) & 0xffff0000) |
+				   (PKT_PWR_SAVE_5G_EBT & 0xffff);
+			intr[vid].config.pps_params.ebt_5g = privcmd->param_value;
 			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
@@ -8323,9 +8367,15 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	ol_txrx_peer_handle peer;
 	VOS_STATUS status;
 	struct wma_txrx_node *iface;
-#ifdef WLAN_FEATURE_11W
 	int ret = 0;
-#endif /* WLAN_FEATURE_11W */
+	int pps_val = 0;
+	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
+				wma->vos_context);
+
+	if (NULL == pMac) {
+		WMA_LOGE("%s: Unable to get PE context", __func__);
+		goto send_fail_resp;
+	}
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -8440,6 +8490,15 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 
 		wmi_unified_send_txbf(wma, &add_bss->staContext);
 
+		pps_val = ((pMac->enable5gEBT << 31) & 0xffff0000) | (PKT_PWR_SAVE_5G_EBT & 0xffff);
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+							WMI_VDEV_PARAM_PACKET_POWERSAVE,
+							pps_val);
+		if (ret)
+			WMA_LOGE("Failed to send wmi packet power save cmd");
+		else
+			WMA_LOGD("Sent PKT_PWR_SAVE_5G_EBT cmd to target, val = %x, ret = %d",
+				 pps_val, ret);
 
 		wmi_unified_send_peer_assoc(wma, add_bss->nwType,
 					    &add_bss->staContext);
@@ -10509,15 +10568,6 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 
 	wma_set_sap_keepalive(wma, vdev_id);
 }
-
-#ifdef QCA_IBSS_SUPPORT
-static void wma_send_beacon_tmpl(WMA_HANDLE handle,
-                            u_int8_t vdev_id)
-{
-	/*TODO: implement after beacon template is created by PE and send
-	 to target upon received WMI_SEND_BEACON command */
-}
-#endif
 
 #if !defined(REMOVE_PKT_LOG) && !defined(QCA_WIFI_ISOC)
 static VOS_STATUS wma_pktlog_wmi_send_cmd(WMA_HANDLE handle,
@@ -16002,20 +16052,6 @@ static void wma_roam_better_ap_handler(tp_wma_handle wma, u_int32_t vdev_id)
 	ret = tlshim_mgmt_roam_event_ind(wma->vos_context, vdev_id);
 }
 
-/* function   : wma_roam_better_ap_handler
- * Descriptin : Handler for WMI_ROAM_REASON_BETTER_AP event from roam firmware in Rome.
- *            : This event means roam algorithm in Rome has found a better matching
- *            : candidate AP. The indication is sent through tl_shim as by repeating
- *            : the last beacon. Hence this routine calls a tlshim routine.
- * Args       :
- * Returns    :
- */
-static void wma_roam_bmiss_scan_ap_handler(tp_wma_handle wma, u_int32_t vdev_id)
-{
-	VOS_STATUS ret;
-	ret = tlshim_mgmt_roam_event_ind(wma->vos_context, vdev_id);
-}
-
 /* function   : wma_roam_event_callback
  * Descriptin : Handler for all events from roam engine in firmware
  * Args       :
@@ -17678,44 +17714,6 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 		wmi_buf_free(buf);
 		return;
 	}
-}
-
-static void wma_set_regdomain(a_uint32_t regdmn)
-{
-	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
-	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
-	u_int32_t modeSelect = 0xFFFFFFFF;
-
-	if (NULL == wma) {
-		WMA_LOGE("Failed to set regulatory domain");
-		return;
-	}
-
-	/* Set DFS regulatory domain */
-	wma_set_dfs_regdomain(wma);
-
-	switch (wma->phy_capability) {
-	case WMI_11G_CAPABILITY:
-	case WMI_11NG_CAPABILITY:
-		modeSelect &= ~(REGDMN_MODE_11A | REGDMN_MODE_TURBO |
-			REGDMN_MODE_108A | REGDMN_MODE_11A_HALF_RATE |
-			REGDMN_MODE_11A_QUARTER_RATE | REGDMN_MODE_11NA_HT20 |
-			REGDMN_MODE_11NA_HT40PLUS | REGDMN_MODE_11NA_HT40MINUS |
-			REGDMN_MODE_11AC_VHT20 | REGDMN_MODE_11AC_VHT40PLUS |
-			REGDMN_MODE_11AC_VHT40MINUS | REGDMN_MODE_11AC_VHT80);
-		break;
-	case WMI_11A_CAPABILITY:
-	case WMI_11NA_CAPABILITY:
-	case WMI_11AC_CAPABILITY:
-		modeSelect &= ~(REGDMN_MODE_11B | REGDMN_MODE_11G |
-			REGDMN_MODE_108G | REGDMN_MODE_11NG_HT20 |
-			REGDMN_MODE_11NG_HT40PLUS | REGDMN_MODE_11NG_HT40MINUS |
-			REGDMN_MODE_11AC_VHT20_2G | REGDMN_MODE_11AC_VHT40_2G |
-			REGDMN_MODE_11AC_VHT80_2G);
-		break;
-	}
-
-	return;
 }
 
 /* function   : wma_rx_ready_event

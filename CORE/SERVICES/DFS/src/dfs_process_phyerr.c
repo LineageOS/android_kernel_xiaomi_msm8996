@@ -461,6 +461,7 @@ dfs_process_phyerr_merlin(struct ath_dfs *dfs, void *buf,
 static void
 dump_phyerr_contents(const char *d, int len)
 {
+#ifdef CONFIG_ENABLE_DUMP_PHYERR_CONTENTS
    int i, n, bufsize = 64;
 
    /*
@@ -495,6 +496,7 @@ dump_phyerr_contents(const char *d, int len)
     */
    if (n != 0)
       VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s: %s\n", __func__, buf);
+#endif /* def CONFIG_ENABLE_DUMP_PHYERR_CONTENTS */
 }
 
 void
@@ -515,7 +517,7 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
    }
 
    dfs->dfs_phyerr_count++;
-       //dump_phyerr_contents(buf, datalen);
+   dump_phyerr_contents(buf, datalen);
    /*
     * XXX The combined_rssi_ok support has been removed.
     * This was only clear for Owl.
@@ -535,7 +537,7 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
     * start queueing data for new channel. (EV74162)
     */
    if (dfs->dfs_debug_mask & ATH_DEBUG_DFS_PHYERR_PKT)
-      //dump_phyerr_contents(buf, datalen);
+      dump_phyerr_contents(buf, datalen);
 
    if (IEEE80211_IS_CHAN_RADAR(chan)) {
          DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,

@@ -142,6 +142,9 @@ CONFIG_QCA_SIGNED_SPLIT_BINARY_SUPPORT := 0
 #Enable single firmware binary format
 CONFIG_QCA_SINGLE_BINARY_SUPPORT := 0
 
+#Enable collecting target RAM dump after kernel panic
+CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC := 1
+
 ifeq ($(CONFIG_CFG80211),y)
 HAVE_CFG80211 := 1
 else
@@ -1137,6 +1140,11 @@ endif
 #Enable single firmware binary format
 ifeq ($(CONFIG_QCA_SINGLE_BINARY_SUPPORT), 1)
 CDEFINES += -DQCA_SINGLE_BINARY_SUPPORT
+endif
+
+#Enable collecting target RAM dump after kernel panic
+ifeq ($(CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC), 1)
+CDEFINES += -DTARGET_RAMDUMP_AFTER_KERNEL_PANIC
 endif
 
 # Fix build for GCC 4.7
