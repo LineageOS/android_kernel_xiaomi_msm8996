@@ -18617,40 +18617,92 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		return VOS_STATUS_E_FAILURE;
 	}
 #ifdef WLAN_FEATURE_11W
-	if ((iface && iface->rmfEnabled && pFc->wep) &&
+	if ((iface && iface->rmfEnabled) &&
 		(frmType == HAL_TXRX_FRM_802_11_MGMT) &&
 		(pFc->subType == SIR_MAC_MGMT_DISASSOC ||
 			pFc->subType == SIR_MAC_MGMT_DEAUTH ||
 			pFc->subType == SIR_MAC_MGMT_ACTION)) {
 		struct ieee80211_frame *wh =
-			(struct ieee80211_frame *)adf_nbuf_data(tx_frame);
-		/* Allocate extra bytes for privacy header and trailer */
-		newFrmLen = frmLen + IEEE80211_CCMP_HEADERLEN + IEEE80211_CCMP_MICLEN;
-		vos_status = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-				( tANI_U16 )newFrmLen, ( void** ) &pFrame,
-				( void** ) &pPacket );
+				(struct ieee80211_frame *)adf_nbuf_data(tx_frame);
+		if(!IEEE80211_IS_BROADCAST(wh->i_addr1) &&
+		   !IEEE80211_IS_MULTICAST(wh->i_addr1)) {
+			if (pFc->wep) {
+				/* Allocate extra bytes for privacy header and trailer */
+				newFrmLen = frmLen + IEEE80211_CCMP_HEADERLEN +
+							IEEE80211_CCMP_MICLEN;
+				vos_status = palPktAlloc( pMac->hHdd,
+							  HAL_TXRX_FRM_802_11_MGMT,
+							  ( tANI_U16 )newFrmLen,
+							  ( void** ) &pFrame,
+							  ( void** ) &pPacket );
 
-		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
-			WMA_LOGP("%s: Failed to allocate %d bytes for RMF status "
-				"code (%x)", __func__, newFrmLen, vos_status);
-			/* Free the original packet memory */
+				if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+					WMA_LOGP("%s: Failed to allocate %d bytes for RMF status "
+							 "code (%x)", __func__, newFrmLen, vos_status);
+					/* Free the original packet memory */
+					palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+								( void* ) pData, ( void* ) tx_frame );
+					goto error;
+				}
+
+				/*
+				 * Initialize the frame with 0's and only fill
+				 * MAC header and data, Keep the CCMP header and
+				 * trailer as 0's, firmware shall fill this
+				 */
+				vos_mem_set(  pFrame, newFrmLen , 0 );
+				vos_mem_copy( pFrame, wh, sizeof(*wh));
+				vos_mem_copy( pFrame + sizeof(*wh) + IEEE80211_CCMP_HEADERLEN,
+							  pData + sizeof(*wh), frmLen - sizeof(*wh));
+
+				palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+							( void* ) pData, ( void* ) tx_frame );
+				tx_frame = pPacket;
+				frmLen = newFrmLen;
+			}
+		} else {
+			/* Allocate extra bytes for MMIE */
+			newFrmLen = frmLen + IEEE80211_MMIE_LEN;
+			vos_status = palPktAlloc( pMac->hHdd,
+						  HAL_TXRX_FRM_802_11_MGMT,
+						  ( tANI_U16 )newFrmLen,
+						  ( void** ) &pFrame,
+						  ( void** ) &pPacket );
+
+			if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+				WMA_LOGP("%s: Failed to allocate %d bytes for RMF status "
+						 "code (%x)", __func__, newFrmLen, vos_status);
+				/* Free the original packet memory */
+				palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+							( void* ) pData, ( void* ) tx_frame );
+				goto error;
+			}
+			/*
+			 * Initialize the frame with 0's and only fill
+			 * MAC header and data. MMIE field will be
+			 * filled by vos_attach_mmie API
+			 */
+			vos_mem_set(  pFrame, newFrmLen , 0 );
+			vos_mem_copy( pFrame, wh, sizeof(*wh));
+			vos_mem_copy( pFrame + sizeof(*wh),
+						  pData + sizeof(*wh), frmLen - sizeof(*wh));
+			if (!vos_attach_mmie(iface->key.key,
+					iface->key.key_id[0].ipn,
+					WMA_IGTK_KEY_INDEX_4,
+					pFrame,
+					pFrame+newFrmLen, newFrmLen)) {
+				WMA_LOGP("%s: Failed to attach MMIE at the end of "
+						 "frame", __func__);
+				/* Free the original packet memory */
+				palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+					( void* ) pData, ( void* ) tx_frame );
+					goto error;
+			}
 			palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-	                    ( void* ) pData, ( void* ) tx_frame );
-			goto error;
+						( void* ) pData, ( void* ) tx_frame );
+			tx_frame = pPacket;
+			frmLen = newFrmLen;
 		}
-
-		/* Initialize the frame with 0's and only fill
-		   MAC header and data, Keep the CCMP header and
-		   trailer as 0's, firmware shall fill this */
-		vos_mem_set(  pFrame, newFrmLen , 0 );
-		vos_mem_copy( pFrame, wh, sizeof(*wh));
-		vos_mem_copy( pFrame + sizeof(*wh) + IEEE80211_CCMP_HEADERLEN,
-				pData + sizeof(*wh), frmLen - sizeof(*wh));
-
-		palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-			( void* ) pData, ( void* ) tx_frame );
-		tx_frame = pPacket;
-		frmLen = newFrmLen;
 	}
 #endif /* WLAN_FEATURE_11W */
 
