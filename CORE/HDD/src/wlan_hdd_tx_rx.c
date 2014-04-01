@@ -1052,6 +1052,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    }
 
    if (!granted) {
+      bool isDefaultAc = VOS_FALSE;
       /* ADDTS request for this AC is sent, for now
        * send this packet through next avaiable lower
        * Access category until ADDTS negotiation completes.
@@ -1066,11 +1067,18 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                ac = WLANTL_AC_BE;
                up = SME_QOS_WMM_UP_BE;
                break;
-            default:
+            case WLANTL_AC_BE:
                ac = WLANTL_AC_BK;
                up = SME_QOS_WMM_UP_BK;
                break;
+            default:
+               ac = WLANTL_AC_BK;
+               up = SME_QOS_WMM_UP_BK;
+               isDefaultAc = VOS_TRUE;
+               break;
          }
+         if (isDefaultAc)
+             break;
       }
       skb->priority = up;
       skb->queue_mapping = hddLinuxUpToAcMap[up];
