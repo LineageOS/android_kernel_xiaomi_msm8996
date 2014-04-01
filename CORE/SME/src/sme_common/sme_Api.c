@@ -1637,6 +1637,8 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    /* update interface configuration */
    pMac->sme.max_intf_count = pSmeConfigParams->max_intf_count;
 
+   pMac->enable5gEBT = pSmeConfigParams->enable5gEBT;
+
    return status;
 }
 

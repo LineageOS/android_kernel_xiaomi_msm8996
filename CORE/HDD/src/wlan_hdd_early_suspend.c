@@ -111,8 +111,10 @@ extern void hdd_wlan_initial_scan(hdd_context_t *pHddCtx);
 extern struct notifier_block hdd_netdev_notifier;
 extern tVOS_CON_MODE hdd_get_conparam ( void );
 
+#ifdef QCA_WIFI_ISOC
 static struct timer_list ssr_timer;
 static bool ssr_timer_started;
+#endif /* QCA_WIFI_ISOC */
 
 //Callback invoked by PMC to report status of standby request
 void hdd_suspend_standby_cbk (void *callbackContext, eHalStatus status)
@@ -1439,6 +1441,7 @@ void hdd_set_wlan_suspend_mode(bool suspend)
         hdd_resume_wlan();
 }
 
+#ifdef QCA_WIFI_ISOC
 static void hdd_ssr_timer_init(void)
 {
     init_timer(&ssr_timer);
@@ -1476,6 +1479,7 @@ static void hdd_ssr_timer_start(int msec)
     add_timer(&ssr_timer);
     ssr_timer_started = true;
 }
+#endif /* QCA_WIFI_ISOC */
 
 /* the HDD interface to WLAN driver shutdown,
  * the primary shutdown function in SSR

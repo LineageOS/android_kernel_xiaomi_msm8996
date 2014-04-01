@@ -381,6 +381,21 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		printk("%s: no Patch file defined\n", __func__);
 		return EOK;
 	case ATH_BOARD_DATA_FILE:
+#ifdef QCA_WIFI_FTM
+		if (vos_get_conparam() == VOS_FTM_MODE) {
+#ifdef CONFIG_CNSS
+			filename = fw_files.utf_board_data;
+#else
+			filename = QCA_BOARD_DATA_FILE;
+#endif
+#ifdef QCA_SIGNED_SPLIT_BINARY_SUPPORT
+			bin_sign = TRUE;
+#endif
+			printk(KERN_INFO "%s: Loading board data file %s\n",
+				__func__, filename);
+			break;
+	}
+#endif /* QCA_WIFI_FTM */
 #ifdef CONFIG_CNSS
 		filename = fw_files.board_data;
 #else
@@ -398,7 +413,26 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 
 		if (file == ATH_OTP_FILE)
 			return -ENOENT;
+
+#if defined(QCA_WIFI_FTM) && defined(CONFIG_CNSS)
+		/* Try default board data file if FTM specific
+		 * board data file is not present. */
+		if (filename == fw_files.utf_board_data) {
+			filename = fw_files.board_data;
+			printk("%s: Trying to load default %s\n",
+				__func__, filename);
+			if (request_firmware(&fw_entry, filename,
+				scn->sc_osdev->device) != 0) {
+				printk("%s: Failed to get %s\n",
+					__func__, filename);
+				return -1;
+			}
+		} else {
+			return -1;
+		}
+#else
 		return -1;
+#endif
 	}
 
         if (!fw_entry || !fw_entry->data) {
@@ -674,7 +708,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		goto out_fail;
 	}
 
-#ifdef CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC
+#ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
 	if (ramdump_scn->crash_shutdown) {
 		if (!hif_pci_check_soc_status(ramdump_scn->hif_sc)
 			&& !ol_copy_ramdump(ramdump_scn))
@@ -763,7 +797,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 		return;
 	}
 
-#ifdef CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC
+#ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
 	if (scn->crash_shutdown)
 		printk("XXX TARGET ASSERTED because of Kernel Panic XXX\n");
 	else

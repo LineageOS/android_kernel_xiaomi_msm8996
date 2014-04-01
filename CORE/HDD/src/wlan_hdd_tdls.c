@@ -45,7 +45,10 @@
 #include "wlan_hdd_cfg80211.h"
 
 
+#ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
 static tANI_S32 wlan_hdd_get_tdls_discovery_peer_cnt(tdlsCtx_t *pHddTdlsCtx);
+#endif /* TDLS_USE_SEPARATE_DISCOVERY_TIMER */
+
 static tANI_S32 wlan_hdd_tdls_peer_reset_discovery_processed(tdlsCtx_t *pHddTdlsCtx);
 static void wlan_hdd_tdls_timers_destroy(tdlsCtx_t *pHddTdlsCtx);
 static void wlan_hdd_tdls_peer_timers_destroy(tdlsCtx_t *pHddTdlsCtx);
@@ -84,6 +87,7 @@ void wlan_hdd_tdls_pre_setup_init_work(tdlsCtx_t * pHddTdlsCtx,
 }
 #endif
 
+#ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
 static v_VOID_t wlan_hdd_tdls_start_peer_discover_timer(tdlsCtx_t *pHddTdlsCtx,
                                                         tANI_BOOLEAN mutexLock,
                                                         v_U32_t discoveryExpiry)
@@ -122,7 +126,6 @@ static v_VOID_t wlan_hdd_tdls_start_peer_discover_timer(tdlsCtx_t *pHddTdlsCtx,
     return;
 }
 
-#ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
 static v_VOID_t wlan_hdd_tdls_discover_peer_cb( v_PVOID_t userData )
 {
     int i;
@@ -241,7 +244,7 @@ done:
         mutex_unlock(&pHddCtx->tdls_lock);
     return;
 }
-#endif
+#endif /* TDLS_USE_SEPARATE_DISCOVERY_TIMER */
 
 #ifndef QCA_WIFI_2_0
 static v_VOID_t wlan_hdd_tdls_update_peer_cb( v_PVOID_t userData )
@@ -395,6 +398,7 @@ next_peer:
 }
 #endif
 
+#ifndef QCA_WIFI_2_0
 static v_VOID_t wlan_hdd_tdls_idle_cb( v_PVOID_t userData )
 {
 #ifdef CONFIG_TDLS_IMPLICIT
@@ -452,6 +456,7 @@ static v_VOID_t wlan_hdd_tdls_idle_cb( v_PVOID_t userData )
     mutex_unlock(&pHddCtx->tdls_lock);
 #endif
 }
+#endif /* QCA_WIFI_2_0 */
 
 static v_VOID_t wlan_hdd_tdls_discovery_timeout_peer_cb(v_PVOID_t userData)
 {
@@ -1548,6 +1553,7 @@ static tANI_S32 wlan_hdd_tdls_peer_reset_discovery_processed(tdlsCtx_t *pHddTdls
     return 0;
 }
 
+#ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
 static tANI_S32 wlan_hdd_get_tdls_discovery_peer_cnt(tdlsCtx_t *pHddTdlsCtx)
 {
     int i;
@@ -1572,6 +1578,7 @@ static tANI_S32 wlan_hdd_get_tdls_discovery_peer_cnt(tdlsCtx_t *pHddTdlsCtx)
     }
     return discovery_peer_cnt;
 }
+#endif /* TDLS_USE_SEPARATE_DISCOVERY_TIMER */
 
 tANI_U16 wlan_hdd_tdlsConnectedPeers(hdd_adapter_t *pAdapter)
 {

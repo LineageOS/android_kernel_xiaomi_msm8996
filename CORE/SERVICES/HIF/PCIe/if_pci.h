@@ -114,6 +114,9 @@ adf_os_size_t initBufferCount(adf_os_size_t maxSize);
 void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle);
 void hif_disable_isr(void *ol_sc);
 
+/* Function to reset SoC*/
+void hif_reset_soc(void *ol_sc);
+
 void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc);
 
 #ifndef REMOVE_PKT_LOG

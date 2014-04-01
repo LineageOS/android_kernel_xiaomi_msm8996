@@ -4591,6 +4591,7 @@ typedef enum wmi_peer_sta_kickout_reason {
     WMI_PEER_STA_KICKOUT_REASON_XRETRY = 1,
     WMI_PEER_STA_KICKOUT_REASON_INACTIVITY = 2,
     WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT = 3,
+    WMI_PEER_STA_KICKOUT_REASON_TDLS_DISCONNECT = 4,    /* TDLS peer has disappeared. All tx is failing */
 } PEER_KICKOUT_REASON;
 
 typedef struct {
@@ -4832,7 +4833,8 @@ typedef enum {
     PKT_PWR_SAVE_DELIM_CRC_FAIL =     0x0040,
     PKT_PWR_SAVE_GID_NSTS_ZERO =      0x0080,
     PKT_PWR_SAVE_RSSI_CHECK =         0x0100,
-    WMI_PKT_PWR_SAVE_MAX =            0x0200,
+    PKT_PWR_SAVE_5G_EBT =             0x0200,
+    WMI_PKT_PWR_SAVE_MAX =            0x0400,
 } WMI_PKT_PWR_SAVE_TYPE;
 
 typedef struct {

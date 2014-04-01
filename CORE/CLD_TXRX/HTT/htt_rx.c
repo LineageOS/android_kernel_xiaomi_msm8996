@@ -995,10 +995,6 @@ htt_rx_amsdu_pop_ll(
             msdu = next;
             msdu_chaining = 1;
 
-#ifdef DEBUG_DMA_DONE
-            adf_os_print("msdu_chained %d!\n", msdu_chained);
-#endif
-
             if (msdu_chained == 0) {
                 /* Trim the last one to the correct size - accounting for
                  * inconsistent HW lengths cuasing length overflows and

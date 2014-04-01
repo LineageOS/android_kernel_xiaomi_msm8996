@@ -387,6 +387,7 @@ static void hdd_wmm_notify_app (hdd_wmm_qos_context_t* pQosContext)
 }
 
 
+#ifndef QCA_WIFI_2_0
 /**
   @brief hdd_wmm_is_access_allowed() - function which determines if access
   is allowed for the given AC.  this is designed to be called during SME
@@ -439,6 +440,7 @@ static v_BOOL_t hdd_wmm_is_access_allowed(hdd_adapter_t* pAdapter,
    // we meet all of the criteria for access
    return VOS_TRUE;
 }
+#endif /* QCA_WIFI_2_0 */
 
 #ifdef FEATURE_WLAN_ESE
 /**
