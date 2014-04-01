@@ -227,6 +227,8 @@ static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
 static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info,
 	                         v_BOOL_t sendResp);
 
+static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id);
+
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
 {
@@ -843,7 +845,8 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 	         wma->interfaces[vdev_id].addr, vdev_id,
 	         peer_id, kickout_event->reason);
 
-	if (kickout_event->reason == WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT) {
+	switch (kickout_event->reason) {
+	    case WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT:
 		p_inactivity = (tpSirIbssPeerInactivityInd)
 			vos_mem_malloc(sizeof(tSirIbssPeerInactivityInd));
 		if (!p_inactivity) {
@@ -854,10 +857,10 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		p_inactivity->staIdx = peer_id;
 		vos_mem_copy(p_inactivity->peerAddr, macaddr, IEEE80211_ADDR_LEN);
 		wma_send_msg(wma, WDA_IBSS_PEER_INACTIVITY_IND, (void *)p_inactivity, 0);
-	}
+		break;
+
 #ifdef FEATURE_WLAN_TDLS
-	else if (kickout_event->reason ==
-	         WMI_PEER_STA_KICKOUT_REASON_TDLS_DISCONNECT) {
+	    case WMI_PEER_STA_KICKOUT_REASON_TDLS_DISCONNECT:
 		del_sta_ctx =
 			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
 		if (!del_sta_ctx) {
@@ -873,9 +876,58 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
 		wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx,
 			0);
-	}
+		break;
 #endif /* FEATURE_WLAN_TDLS */
-	else {
+
+	    case WMI_PEER_STA_KICKOUT_REASON_XRETRY:
+		if(wma->interfaces[vdev_id].type == WMI_VDEV_TYPE_STA &&
+		   (wma->interfaces[vdev_id].sub_type == 0 ||
+		    wma->interfaces[vdev_id].sub_type ==
+				 WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) &&
+		   vos_mem_compare(wma->interfaces[vdev_id].bssid,
+				   macaddr, ETH_ALEN)) {
+		    /*
+		     * KICKOUT event is for current station-AP connection.
+		     * Treat it like final beacon miss. Station may not have
+		     * missed beacons but not able to transmit frames to AP
+		     * for a long time. Must disconnect to get out of
+		     * this sticky situation.
+		     * In future implementation, roaming module will also
+		     * handle this event and perform a scan.
+		     */
+		    WMA_LOGW("%s: WMI_PEER_STA_KICKOUT_REASON_XRETRY event for STA",
+				__func__);
+		    wma_beacon_miss_handler(wma, vdev_id);
+		}
+		break;
+
+	    case WMI_PEER_STA_KICKOUT_REASON_UNSPECIFIED:
+		/*
+		 * Default legacy value used by original firmware implementation.
+		 */
+		if(wma->interfaces[vdev_id].type == WMI_VDEV_TYPE_STA &&
+		   (wma->interfaces[vdev_id].sub_type == 0 ||
+		    wma->interfaces[vdev_id].sub_type ==
+				 WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) &&
+		   vos_mem_compare(wma->interfaces[vdev_id].bssid,
+				   macaddr, ETH_ALEN)) {
+		    /*
+		     * KICKOUT event is for current station-AP connection.
+		     * Treat it like final beacon miss. Station may not have
+		     * missed beacons but not able to transmit frames to AP
+		     * for a long time. Must disconnect to get out of
+		     * this sticky situation.
+		     * In future implementation, roaming module will also
+		     * handle this event and perform a scan.
+		     */
+		    WMA_LOGW("%s: WMI_PEER_STA_KICKOUT_REASON_UNSPECIFIED event for STA",
+				__func__);
+		    wma_beacon_miss_handler(wma, vdev_id);
+		}
+		break;
+
+	    case WMI_PEER_STA_KICKOUT_REASON_INACTIVITY:
+	    default:
 		del_sta_ctx =
 			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
 		if (!del_sta_ctx) {
@@ -890,6 +942,7 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
 		wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx,
 			0);
+		break;
 	}
 	WMA_LOGD("%s: Exit", __func__);
 	return 0;
