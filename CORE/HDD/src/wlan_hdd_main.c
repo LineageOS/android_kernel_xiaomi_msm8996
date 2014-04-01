@@ -228,7 +228,8 @@ int isWDresetInProgress(void);
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand);
-static VOS_STATUS hdd_parse_channellist(tANI_U8 *pValue, tANI_U8 *pChannelList, tANI_U8 *pNumChannels);
+static int hdd_parse_channellist(const tANI_U8 *pValue, tANI_U8 *pChannelList,
+                                 tANI_U8 *pNumChannels);
 static VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTargetApBssid,
                               tANI_U8 *pChannel, tANI_U8 *pDwellTime,
                               tANI_U8 **pBuf, tANI_U8 *pBufLen);
@@ -1903,6 +1904,179 @@ exit:
 
 #endif/*End of FEATURE_WLAN_BATCH_SCAN*/
 
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
+/*
+  \brief hdd_parse_set_roam_scan_channels_v1() - parse version 1 of the
+  SETROAMSCANCHANNELS command
+
+  This function parses the v1 SETROAMSCANCHANNELS command with the format
+
+      SETROAMSCANCHANNELS N C1 C2 ... Cn
+
+  Where "N" is the ASCII representation of the number of channels and
+  C1 thru Cn is the ASCII representation of the channels.  For example
+
+      SETROAMSCANCHANNELS 4 36 40 44 48
+
+  \param - pAdapter - Adapter upon which the command was received
+  \param - command - ASCII text command that was received
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int
+hdd_parse_set_roam_scan_channels_v1(hdd_adapter_t *pAdapter,
+                                    const char *command)
+{
+   tANI_U8 channel_list[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
+   tANI_U8 num_chan = 0;
+   eHalStatus status;
+   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   int ret;
+
+   ret = hdd_parse_channellist(command, channel_list, &num_chan);
+   if (ret) {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Failed to parse channel list information", __func__);
+      goto exit;
+   }
+
+   if (num_chan > WNI_CFG_VALID_CHANNEL_LIST_LEN) {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: number of channels (%d) supported exceeded max (%d)",
+                  __func__, num_chan, WNI_CFG_VALID_CHANNEL_LIST_LEN);
+      ret = -EINVAL;
+      goto exit;
+   }
+
+   status = sme_ChangeRoamScanChannelList(pHddCtx->hHal, channel_list,
+                                          num_chan);
+   if (eHAL_STATUS_SUCCESS != status) {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Failed to update channel list information", __func__);
+      ret = -EINVAL;
+      goto exit;
+   }
+ exit:
+   return ret;
+}
+
+/*
+  \brief hdd_parse_set_roam_scan_channels_v2() - parse version 2 of the
+  SETROAMSCANCHANNELS command
+
+  This function parses the v2 SETROAMSCANCHANNELS command with the format
+
+      SETROAMSCANCHANNELS [N][C1][C2][Cn]
+
+  The command begins with SETROAMSCANCHANNELS followed by a space, but
+  what follows the space is an array of u08 parameters.  For example
+
+      SETROAMSCANCHANNELS [0x04 0x24 0x28 0x2c 0x30]
+
+  \param - pAdapter - Adapter upon which the command was received
+  \param - command - command that was received, ASCII command followed
+                     by binary data
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int
+hdd_parse_set_roam_scan_channels_v2(hdd_adapter_t *pAdapter,
+                                    const char *command)
+{
+   const tANI_U8 *value;
+   tANI_U8 channel_list[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
+   tANI_U8 channel;
+   tANI_U8 num_chan;
+   int i;
+   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   eHalStatus status;
+   int ret = 0;
+
+   /* array of values begins after "SETROAMSCANCHANNELS " */
+   value = command + 20;
+
+   num_chan = *value++;
+   if (num_chan > WNI_CFG_VALID_CHANNEL_LIST_LEN) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: number of channels (%d) supported exceeded max (%d)",
+                __func__, num_chan, WNI_CFG_VALID_CHANNEL_LIST_LEN);
+      ret = -EINVAL;
+      goto exit;
+   }
+
+   for (i = 0; i < num_chan; i++) {
+      channel = *value++;
+      if (channel > WNI_CFG_CURRENT_CHANNEL_STAMAX) {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: index %d invalid channel %d", __func__, i, channel);
+         ret = -EINVAL;
+         goto exit;
+      }
+      channel_list[i] = channel;
+   }
+   status = sme_ChangeRoamScanChannelList(pHddCtx->hHal, channel_list,
+                                          num_chan);
+   if (eHAL_STATUS_SUCCESS != status) {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Failed to update channel list information", __func__);
+      ret = -EINVAL;
+      goto exit;
+   }
+ exit:
+   return ret;
+}
+
+/*
+  \brief hdd_parse_set_roam_scan_channels() - parse the
+  SETROAMSCANCHANNELS command
+
+  There are two different versions of the SETROAMSCANCHANNELS command.
+  Version 1 of the command contains a parameter list that is ASCII
+  characters whereas version 2 contains a binary payload.  Determine
+  if a version 1 or a version 2 command is being parsed by examining
+  the parameters, and then dispatch the parser that is appropriate for
+  the command.
+
+  \param - pAdapter - Adapter upon which the command was received
+  \param - command - command that was received
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int
+hdd_parse_set_roam_scan_channels(hdd_adapter_t *pAdapter,
+                                 const char *command)
+{
+   const char *cursor;
+   char ch;
+   bool v1;
+   int ret;
+
+   /* start after "SETROAMSCANCHANNELS " */
+   cursor = command + 20;
+
+   /* assume we have a version 1 command until proven otherwise */
+   v1 = true;
+
+   /* v1 params will only contain ASCII digits and space */
+   while ((ch = *cursor++) && v1) {
+      if (!(isdigit(ch) || isspace(ch))) {
+         v1 = false;
+      }
+   }
+   if (v1) {
+      ret = hdd_parse_set_roam_scan_channels_v1(pAdapter, command);
+   } else {
+      ret = hdd_parse_set_roam_scan_channels_v2(pAdapter, command);
+   }
+
+   return ret;
+}
+
+#endif /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_ESE || FEATURE_WLAN_LFR */
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_parse_setrmcrate_command() - HDD Parse reliable multicast
@@ -2885,42 +3059,9 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                goto exit;
            }
        }
-       else if (strncmp(command, "SETROAMSCANCHANNELS", 19) == 0)
+       else if (strncmp(command, "SETROAMSCANCHANNELS ", 20) == 0)
        {
-           tANI_U8 *value = command;
-           tANI_U8 ChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
-           tANI_U8 numChannels = 0;
-           eHalStatus status = eHAL_STATUS_SUCCESS;
-
-           status = hdd_parse_channellist(value, ChannelList, &numChannels);
-           if (eHAL_STATUS_SUCCESS != status)
-           {
-               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Failed to parse channel list information", __func__);
-               ret = -EINVAL;
-               goto exit;
-           }
-
-           if (numChannels > WNI_CFG_VALID_CHANNEL_LIST_LEN)
-           {
-               VOS_TRACE( VOS_MODULE_ID_HDD,
-                  VOS_TRACE_LEVEL_ERROR,
-                  "%s: number of channels (%d) supported exceeded max (%d)",
-                  __func__,
-                  numChannels,
-                  WNI_CFG_VALID_CHANNEL_LIST_LEN);
-               ret = -EINVAL;
-               goto exit;
-           }
-           status = sme_ChangeRoamScanChannelList((tHalHandle)(pHddCtx->hHal), ChannelList,
-                                                  numChannels);
-           if (eHAL_STATUS_SUCCESS != status)
-           {
-               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Failed to update channel list information", __func__);
-               ret = -EINVAL;
-               goto exit;
-           }
+           ret = hdd_parse_set_roam_scan_channels(pAdapter, command);
        }
        else if (strncmp(command, "GETROAMSCANCHANNELS", 19) == 0)
        {
@@ -4243,13 +4384,12 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            tANI_U8 *value = command;
            tANI_U8 ChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
            tANI_U8 numChannels = 0;
-           eHalStatus status = eHAL_STATUS_SUCCESS;
-           status = hdd_parse_channellist(value, ChannelList, &numChannels);
-           if (eHAL_STATUS_SUCCESS != status)
+           eHalStatus status;
+           ret = hdd_parse_channellist(value, ChannelList, &numChannels);
+           if (ret)
            {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: Failed to parse channel list information", __func__);
-               ret = -EINVAL;
                goto exit;
            }
            if (numChannels > WNI_CFG_VALID_CHANNEL_LIST_LEN)
@@ -5710,9 +5850,11 @@ VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTargetApB
   \return - 0 for success non-zero for failure
 
   --------------------------------------------------------------------------*/
-VOS_STATUS hdd_parse_channellist(tANI_U8 *pValue, tANI_U8 *pChannelList, tANI_U8 *pNumChannels)
+static int
+hdd_parse_channellist(const tANI_U8 *pValue, tANI_U8 *pChannelList,
+                      tANI_U8 *pNumChannels)
 {
-    tANI_U8 *inPtr = pValue;
+    const tANI_U8 *inPtr = pValue;
     int tempInt;
     int j = 0;
     int v = 0;
@@ -5767,7 +5909,7 @@ VOS_STATUS hdd_parse_channellist(tANI_U8 *pValue, tANI_U8 *pChannelList, tANI_U8
             if (0 != j)
             {
                 *pNumChannels = j;
-                return VOS_STATUS_SUCCESS;
+                return 0;
             }
             else
             {
@@ -5784,7 +5926,7 @@ VOS_STATUS hdd_parse_channellist(tANI_U8 *pValue, tANI_U8 *pChannelList, tANI_U8
             if (0 != j)
             {
                 *pNumChannels = j;
-                return VOS_STATUS_SUCCESS;
+                return 0;
             }
             else
             {
@@ -5809,7 +5951,7 @@ VOS_STATUS hdd_parse_channellist(tANI_U8 *pValue, tANI_U8 *pChannelList, tANI_U8
                    pChannelList[j] );
     }
 
-    return VOS_STATUS_SUCCESS;
+    return 0;
 }
 
 
