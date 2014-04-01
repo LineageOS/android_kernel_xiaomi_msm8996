@@ -590,7 +590,9 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
         }
 #endif /* FEATURE_WLAN_CH_AVOID */
 
-        if(*pChans == 14 ) //OFDM rates are not supported on channel 14
+        /* OFDM rates are not supported on channel 14 */
+        if(*pChans == 14 &&
+               eCSR_DOT11_MODE_11b != sme_GetPhyMode(halHandle))
             continue;
 
 #ifdef FEATURE_WLAN_CH_AVOID
