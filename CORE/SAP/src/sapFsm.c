@@ -701,6 +701,7 @@ sapSignalHDDevent
             break;
 
         case eSAP_STA_ASSOC_EVENT:
+        case eSAP_STA_REASSOC_EVENT:
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, SAP event callback event = %s",
                 __func__, "eSAP_STA_ASSOC_EVENT");

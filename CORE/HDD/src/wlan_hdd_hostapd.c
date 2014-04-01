@@ -3693,14 +3693,19 @@ static int iw_softap_version(struct net_device *dev,
 VOS_STATUS hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
 {
     v_U8_t i;
+    v_U8_t maxSta = 0;
     int len = 0;
     const char sta_info_header[] = "staId staAddress";
+    hdd_context_t *pHddCtx = (hdd_context_t*)(pAdapter->pHddCtx);
 
     len = scnprintf(pBuf, buf_len, sta_info_header);
     pBuf += len;
     buf_len -= len;
 
-    for (i = 0; i < WLAN_MAX_STA_COUNT; i++)
+    if(pHddCtx)
+        maxSta = pHddCtx->cfg_ini->maxNumberOfPeers;
+
+    for (i = 0; i <= maxSta; i++)
     {
         if(pAdapter->aStaInfo[i].isUsed)
         {
