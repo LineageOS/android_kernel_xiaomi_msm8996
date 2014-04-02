@@ -213,6 +213,15 @@ struct android_wifi_reassoc_params {
    int channel;
 };
 
+#define ANDROID_WIFI_ACTION_FRAME_SIZE 1040
+struct android_wifi_af_params {
+   unsigned char bssid[18];
+   int channel;
+   int dwell_time;
+   int len;
+   unsigned char data[ANDROID_WIFI_ACTION_FRAME_SIZE];
+} ;
+
 static vos_wake_lock_t wlan_wake_lock;
 /* set when SSR is needed after unload */
 static e_hdd_ssr_required isSsrRequired = HDD_SSR_NOT_REQUIRED;
@@ -239,9 +248,12 @@ int isWDresetInProgress(void);
 void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand);
 static int hdd_parse_channellist(const tANI_U8 *pValue, tANI_U8 *pChannelList,
                                  tANI_U8 *pNumChannels);
-static VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTargetApBssid,
-                              tANI_U8 *pChannel, tANI_U8 *pDwellTime,
-                              tANI_U8 **pBuf, tANI_U8 *pBufLen);
+static int hdd_parse_send_action_frame_v1_data(const tANI_U8 *pValue,
+                                               tANI_U8 *pTargetApBssid,
+                                               tANI_U8 *pChannel,
+                                               tANI_U8 *pDwellTime,
+                                               tANI_U8 **pBuf,
+                                               tANI_U8 *pBufLen);
 static int hdd_parse_reassoc_command_v1_data(const tANI_U8 *pValue,
                                              tANI_U8 *pTargetApBssid,
                                              tANI_U8 *pChannel);
@@ -2093,6 +2105,228 @@ hdd_parse_reassoc(hdd_adapter_t *pAdapter, const char *command)
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 /*
+  \brief hdd_sendactionframe() - send a userspace-supplied action frame
+
+  \param - pAdapter - Adapter upon which the command was received
+  \param - bssid - BSSID target of the action frame
+  \param - channel - channel upon which to send the frame
+  \param - dwell_time - amount of time to dwell when the frame is sent
+  \param - payload_len - length of the payload
+  \param - payload - payload of the frame
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int
+hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
+                    const tANI_U8 channel, const tANI_U8 dwell_time,
+                    const tANI_U8 payload_len, const tANI_U8 *payload)
+{
+   struct ieee80211_channel chan;
+   tANI_U8 frame_len;
+   tANI_U8 *frame;
+   struct ieee80211_hdr_3addr *hdr;
+   u64 cookie;
+   hdd_station_ctx_t *pHddStaCtx;
+   int ret = 0;
+
+   pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+   /* if not associated, no need to send action frame */
+   if (eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
+      hddLog(VOS_TRACE_LEVEL_INFO, "%s: Not associated", __func__);
+      ret = -EINVAL;
+      goto exit;
+   }
+
+   /* if the target bssid is different from currently associated AP,
+      then no need to send action frame */
+   if (!memcmp(bssid, pHddStaCtx->conn_info.bssId, VOS_MAC_ADDR_SIZE)) {
+      hddLog(VOS_TRACE_LEVEL_INFO, "%s: STA is not associated to this AP",
+             __func__);
+      ret = -EINVAL;
+      goto exit;
+   }
+
+   /* if the channel number is different from operating channel then
+      no need to send action frame */
+   if (channel != pHddStaCtx->conn_info.operationChannel) {
+      hddLog(VOS_TRACE_LEVEL_INFO,
+             "%s: channel(%d) is different from operating channel(%d)",
+             __func__, channel, pHddStaCtx->conn_info.operationChannel);
+      ret = -EINVAL;
+      goto exit;
+   }
+
+   chan.center_freq = sme_ChnToFreq(channel);
+
+   frame_len = payload_len + 24;
+   frame = vos_mem_malloc(frame_len);
+   if (!frame) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s:memory allocation failed", __func__);
+      ret = -ENOMEM;
+      goto exit;
+   }
+   vos_mem_zero(frame, frame_len);
+
+   hdr = (struct ieee80211_hdr_3addr *)frame;
+   hdr->frame_control =
+      cpu_to_le16(IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_ACTION);
+   vos_mem_copy(hdr->addr1, bssid, VOS_MAC_ADDR_SIZE);
+   vos_mem_copy(hdr->addr2, pAdapter->macAddressCurrent.bytes,
+                VOS_MAC_ADDR_SIZE);
+   vos_mem_copy(hdr->addr3, bssid, VOS_MAC_ADDR_SIZE);
+   vos_mem_copy(hdr + 1, payload, payload_len);
+
+   ret = wlan_hdd_action(NULL,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
+                         &(pAdapter->wdev),
+#else
+                         pAdapter->dev,
+#endif
+                         &chan, 0,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+                         NL80211_CHAN_HT20, 1,
+#endif
+                         dwell_time, frame, frame_len, 1, 1, &cookie );
+   vos_mem_free(frame);
+ exit:
+   return ret;
+}
+
+/*
+  \brief hdd_parse_sendactionframe_v1() - parse version 1 of the
+         SENDACTIONFRAME command
+
+  This function parses the v1 SENDACTIONFRAME command with the format
+
+      SENDACTIONFRAME xx:xx:xx:xx:xx:xx CH DW xxxxxx
+
+  Where "xx:xx:xx:xx:xx:xx" is the Hex-ASCII representation of the
+  BSSID, CH is the ASCII representation of the channel, DW is the
+  ASCII representation of the dwell time, and xxxxxx is the Hex-ASCII
+  payload.  For example
+
+      SENDACTIONFRAME 00:0a:0b:11:22:33 48 40 aabbccddee
+
+  \param - pAdapter - Adapter upon which the command was received
+  \param - command - ASCII text command that was received
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int
+hdd_parse_sendactionframe_v1(hdd_adapter_t *pAdapter, const char *command)
+{
+   tANI_U8 channel = 0;
+   tANI_U8 dwell_time = 0;
+   tANI_U8 payload_len = 0;
+   tANI_U8 *payload = NULL;
+   tSirMacAddr bssid;
+   int ret;
+
+   ret = hdd_parse_send_action_frame_v1_data(command, bssid, &channel,
+                                             &dwell_time, &payload,
+                                             &payload_len);
+   if (ret) {
+      hddLog(VOS_TRACE_LEVEL_ERROR,
+             "%s: Failed to parse send action frame data", __func__);
+   } else {
+      ret = hdd_sendactionframe(pAdapter, bssid, channel, dwell_time,
+                                payload_len, payload);
+      vos_mem_free(payload);
+   }
+
+   return ret;
+}
+
+/*
+  \brief hdd_parse_sendactionframe_v2() - parse version 2 of the
+         SENDACTIONFRAME command
+
+  This function parses the v2 SENDACTIONFRAME command with the format
+
+      SENDACTIONFRAME <android_wifi_af_params>
+
+  \param - pAdapter - Adapter upon which the command was received
+  \param - command - command that was received, ASCII command followed
+                     by binary data
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int
+hdd_parse_sendactionframe_v2(hdd_adapter_t *pAdapter,
+                             const char *command)
+{
+   struct android_wifi_af_params *params;
+   tSirMacAddr bssid;
+   int ret;
+
+   /* params are large so keep off the stack */
+   params = kmalloc(sizeof(*params), GFP_KERNEL);
+   if (!params) return -ENOMEM;
+
+   /* The params are located after "SENDACTIONFRAME " */
+   memcpy(params, command + 16, sizeof(*params));
+
+   if (!mac_pton(params->bssid, (u8 *)&bssid)) {
+      hddLog(LOGE, "%s: MAC address parsing failed", __func__);
+      ret = -EINVAL;
+   } else {
+      ret = hdd_sendactionframe(pAdapter, bssid, params->channel,
+                                params->dwell_time, params->len, params->data);
+   }
+   kfree(params);
+   return ret;
+}
+
+/*
+  \brief hdd_parse_sendactionframe() - parse the SENDACTIONFRAME command
+
+  There are two different versions of the SENDACTIONFRAME command.
+  Version 1 of the command contains a parameter list that is ASCII
+  characters whereas version 2 contains a combination of ASCII and
+  binary payload.  Determine if a version 1 or a version 2 command is
+  being parsed by examining the parameters, and then dispatch the
+  parser that is appropriate for the version of the command.
+
+  \param - pAdapter - Adapter upon which the command was received
+  \param - command - command that was received
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int
+hdd_parse_sendactionframe(hdd_adapter_t *pAdapter, const char *command)
+{
+   int ret;
+
+   /* both versions start with "SENDACTIONFRAME "
+    * v1 has a bssid and other parameters as an ASCII string
+    *    SENDACTIONFRAME xx:xx:xx:xx:xx:xx CH DWELL LEN FRAME
+    * v2 has a C struct
+    *    SENDACTIONFRAME <binary c struct>
+    *
+    * The first field in the v2 struct is also the bssid in ASCII.
+    * But in the case of a v2 message the BSSID is NUL-terminated.
+    * Hence we can peek at that offset to see if this is V1 or V2
+    * SENDACTIONFRAME xx:xx:xx:xx:xx:xx*
+    *           111111111122222222223333
+    * 0123456789012345678901234567890123
+    */
+   if (command[33]) {
+      ret = hdd_parse_sendactionframe_v1(pAdapter, command);
+   } else {
+      ret = hdd_parse_sendactionframe_v2(pAdapter, command);
+   }
+
+   return ret;
+}
+#endif  /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_ESE FEATURE_WLAN_LFR */
+
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
+/*
   \brief hdd_parse_set_roam_scan_channels_v1() - parse version 1 of the
   SETROAMSCANCHANNELS command
 
@@ -3414,110 +3648,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if (strncmp(command, "SENDACTIONFRAME", 15) == 0)
        {
-           tANI_U8 *value = command;
-           tANI_U8 channel = 0;
-           tANI_U8 dwellTime = 0;
-           tANI_U8 bufLen = 0;
-           tANI_U8 *buf = NULL;
-           tSirMacAddr targetApBssid;
-           eHalStatus status = eHAL_STATUS_SUCCESS;
-           struct ieee80211_channel chan;
-           tANI_U8 finalLen = 0;
-           tANI_U8 *finalBuf = NULL;
-           tANI_U8 temp = 0;
-           u64 cookie;
-           hdd_station_ctx_t *pHddStaCtx = NULL;
-           pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-
-           /* if not associated, no need to send action frame */
-           if (eConnectionState_Associated != pHddStaCtx->conn_info.connState)
-           {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s:Not associated!",__func__);
-               ret = -EINVAL;
-               goto exit;
-           }
-
-           status = hdd_parse_send_action_frame_data(value, targetApBssid, &channel,
-                                                     &dwellTime, &buf, &bufLen);
-           if (eHAL_STATUS_SUCCESS != status)
-           {
-               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Failed to parse send action frame data", __func__);
-               ret = -EINVAL;
-               goto exit;
-           }
-
-           /* if the target bssid is different from currently associated AP,
-              then no need to send action frame */
-           if (VOS_TRUE != vos_mem_compare(targetApBssid,
-                                           pHddStaCtx->conn_info.bssId, sizeof(tSirMacAddr)))
-           {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s:STA is not associated to this AP!",__func__);
-               ret = -EINVAL;
-               vos_mem_free(buf);
-               goto exit;
-           }
-
-           /* if the channel number is different from operating channel then
-              no need to send action frame */
-           if (channel != pHddStaCtx->conn_info.operationChannel)
-           {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                         "%s: channel(%d) is different from operating channel(%d)",
-                         __func__, channel, pHddStaCtx->conn_info.operationChannel);
-               ret = -EINVAL;
-               vos_mem_free(buf);
-               goto exit;
-           }
-           chan.center_freq = sme_ChnToFreq(channel);
-
-           finalLen = bufLen + 24;
-           finalBuf = vos_mem_malloc(finalLen);
-           if (NULL == finalBuf)
-           {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s:memory allocation failed",__func__);
-               ret = -ENOMEM;
-               vos_mem_free(buf);
-               goto exit;
-           }
-           vos_mem_zero(finalBuf, finalLen);
-
-           /* Fill subtype */
-           temp = SIR_MAC_MGMT_ACTION << 4;
-           vos_mem_copy(finalBuf + 0, &temp, sizeof(temp));
-
-           /* Fill type */
-           temp = SIR_MAC_MGMT_FRAME;
-           vos_mem_copy(finalBuf + 2, &temp, sizeof(temp));
-
-           /* Fill destination address (bssid of the AP) */
-           vos_mem_copy(finalBuf + 4, targetApBssid, sizeof(targetApBssid));
-
-           /* Fill source address (STA mac address) */
-           vos_mem_copy(finalBuf + 10, pAdapter->macAddressCurrent.bytes, sizeof(pAdapter->macAddressCurrent.bytes));
-
-           /* Fill BSSID (AP mac address) */
-           vos_mem_copy(finalBuf + 16, targetApBssid, sizeof(targetApBssid));
-
-           /* Fill received buffer from 24th address */
-           vos_mem_copy(finalBuf + 24, buf, bufLen);
-
-           /* done with the parsed buffer */
-           vos_mem_free(buf);
-
-           wlan_hdd_action( NULL,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
-                       &(pAdapter->wdev),
-#else
-                       dev,
-#endif
-                       &chan, 0,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
-                       NL80211_CHAN_HT20, 1,
-#endif
-                       dwellTime, finalBuf, finalLen,  1,
-                       1, &cookie );
-           vos_mem_free(finalBuf);
+           ret = hdd_parse_sendactionframe(pAdapter, command);
        }
        else if (strncmp(command, "GETROAMSCANCHANNELMINTIME", 25) == 0)
        {
@@ -5807,11 +5938,14 @@ void hdd_dfs_indicate_radar(void *context, void *param)
   \return - 0 for success non-zero for failure
 
   --------------------------------------------------------------------------*/
-VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTargetApBssid, tANI_U8 *pChannel,
-                                            tANI_U8 *pDwellTime, tANI_U8 **pBuf, tANI_U8 *pBufLen)
+static int
+hdd_parse_send_action_frame_v1_data(const tANI_U8 *pValue,
+                                    tANI_U8 *pTargetApBssid,
+                                    tANI_U8 *pChannel, tANI_U8 *pDwellTime,
+                                    tANI_U8 **pBuf, tANI_U8 *pBufLen)
 {
-    tANI_U8 *inPtr = pValue;
-    tANI_U8 *dataEnd;
+    const tANI_U8 *inPtr = pValue;
+    const tANI_U8 *dataEnd;
     int tempInt;
     int j = 0;
     int i = 0;
@@ -5959,7 +6093,7 @@ VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTargetApB
         (*pBuf)[i++] = tempByte;
     }
     *pBufLen = i;
-    return VOS_STATUS_SUCCESS;
+    return 0;
 }
 
 /**---------------------------------------------------------------------------
