@@ -448,7 +448,8 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
                         pMac, pBody, frameLen, pAssocRsp) == eSIR_FAILURE)
     {
         vos_mem_free(pAssocRsp);
-        PELOGE(limLog(pMac, LOGE, FL("Parse error Assoc resp subtype %d, length=%d"), frameLen,subType);)
+        PELOGE(limLog(pMac, LOGE, FL("Parse error Assoc resp subtype %d,"
+                     "length=%d"), frameLen,subType);)
         vos_mem_free(pBeaconStruct);
 
         return;
@@ -456,7 +457,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
 
     if(!pAssocRsp->suppRatesPresent)
     {
-        PELOGE(limLog(pMac, LOGW, FL("assoc response does not have supported rate set"));)
+        PELOGE(limLog(pMac, LOGE, FL("assoc response does not have supported rate set"));)
         vos_mem_copy(&pAssocRsp->supportedRates,
                       &psessionEntry->rateSet, sizeof(tSirMacRateSet));
     }
@@ -618,7 +619,8 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
         // Re/Association response was received
         // with invalid AID value
         // Log error
-        PELOGW(limLog(pMac, LOGW, FL("received Re/AssocRsp frame with invalid aid %X "),  pAssocRsp->aid);)
+        PELOGW(limLog(pMac, LOGE, FL("received Re/AssocRsp frame with"
+                     "invalid aid %X"), pAssocRsp->aid);)
         mlmAssocCnf.resultCode = eSIR_SME_INVALID_ASSOC_RSP_RXED;
         mlmAssocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
 

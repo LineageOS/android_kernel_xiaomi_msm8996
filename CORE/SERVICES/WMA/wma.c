@@ -2749,6 +2749,13 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 				__func__);
 		goto err_event_init;
 	}
+
+	vos_status = vos_event_init(&wma_handle->wma_resume_event);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGP("%s: wma_resume_event initialization failed", __func__);
+		goto err_event_init;
+	}
+
 	INIT_LIST_HEAD(&wma_handle->vdev_resp_queue);
 	adf_os_spinlock_init(&wma_handle->vdev_respq_lock);
 
@@ -11978,6 +11985,8 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		 wma_wow_wake_reason_str(wake_info->wake_reason),
 		 wake_info->vdev_id);
 
+	vos_event_set(&wma->wma_resume_event);
+
 	switch (wake_info->wake_reason) {
 	case WOW_REASON_AUTH_REQ_RECV:
 		wake_lock_duration = WMA_AUTH_REQ_RECV_WAKE_LOCK_TIMEOUT;
@@ -12984,6 +12993,7 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 {
 	wmi_wow_hostwakeup_from_sleep_cmd_fixed_param *cmd;
 	wmi_buf_t buf;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	int32_t len;
 	int ret;
 
@@ -13002,6 +13012,8 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 		WMITLV_GET_STRUCT_TLVLEN(
 				wmi_wow_hostwakeup_from_sleep_cmd_fixed_param));
 
+	vos_event_reset(&wma->wma_resume_event);
+
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				   WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID);
 	if (ret) {
@@ -13012,7 +13024,19 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 
 	WMA_LOGD("Host wakeup indication sent to fw");
 
-	return VOS_STATUS_SUCCESS;
+	vos_status = vos_wait_single_event(&(wma->wma_resume_event),
+			WMA_RESUME_TIMEOUT);
+	if (VOS_STATUS_SUCCESS != vos_status) {
+		WMA_LOGP("%s: Timeout waiting for resume event from FW", __func__);
+		WMA_LOGP("%s: Pending commands %d credits %d", __func__,
+				wmi_get_pending_cmds(wma->wmi_handle),
+				wmi_get_host_credits(wma->wmi_handle));
+		VOS_ASSERT(0);
+	} else {
+		WMA_LOGD("Host wakeup received");
+	}
+
+	return vos_status;
 }
 
 /* Disable wow in PCIe resume context.*/
@@ -17136,6 +17160,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	/* close the vos events */
 	vos_event_destroy(&wma_handle->wma_ready_event);
 	vos_event_destroy(&wma_handle->target_suspend);
+	vos_event_destroy(&wma_handle->wma_resume_event);
 	wma_cleanup_vdev_resp(wma_handle);
 #ifdef QCA_WIFI_ISOC
 	vos_event_destroy(&wma_handle->cfg_nv_tx_complete);
@@ -18411,6 +18436,8 @@ int wma_resume_target(WMA_HANDLE handle)
 	wmi_buf_t wmibuf;
 	wmi_pdev_resume_cmd_fixed_param *cmd;
 	int ret;
+	int timeout = 0;
+	int wmi_pending_cmds;
 
 	wmibuf = wmi_buf_alloc(wma_handle->wmi_handle, sizeof(*cmd));
 	if (wmibuf == NULL) {
@@ -18418,15 +18445,26 @@ int wma_resume_target(WMA_HANDLE handle)
 	}
 	cmd = (wmi_pdev_resume_cmd_fixed_param *) wmi_buf_data(wmibuf);
 	WMITLV_SET_HDR(&cmd->tlv_header,
-		   WMITLV_TAG_STRUC_wmi_pdev_resume_cmd_fixed_param,
-		   WMITLV_GET_STRUCT_TLVLEN(wmi_pdev_resume_cmd_fixed_param));
+			WMITLV_TAG_STRUC_wmi_pdev_resume_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_pdev_resume_cmd_fixed_param));
 	cmd->reserved0 = 0;
 	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, wmibuf, sizeof(*cmd),
-				    WMI_PDEV_RESUME_CMDID);
+				WMI_PDEV_RESUME_CMDID);
 	if(ret != EOK) {
 		WMA_LOGE("Failed to send WMI_PDEV_RESUME_CMDID command");
 		wmi_buf_free(wmibuf);
 	}
+	wmi_pending_cmds = wmi_get_pending_cmds(wma_handle->wmi_handle);
+	while (wmi_pending_cmds && timeout++ < WMA_MAX_RESUME_RETRY) {
+		msleep(100);
+		wmi_pending_cmds = wmi_get_pending_cmds(wma_handle->wmi_handle);
+	}
+
+	if (wmi_pending_cmds) {
+		WMA_LOGE("Failed to deliver WMI_PDEV_RESUME_CMDID command %d\n", timeout);
+		ret = -1;
+	}
+
 	return ret;
 }
 #endif

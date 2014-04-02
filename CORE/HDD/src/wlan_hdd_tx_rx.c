@@ -344,7 +344,7 @@ void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
    hdd_adapter_t* pMonAdapter = NULL;
    struct ieee80211_hdr *hdr;
 
-   if (pAdapter == NULL )
+   if (pAdapter == NULL)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
        FL("pAdapter is NULL"));
@@ -353,6 +353,12 @@ void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
    }
 
    pMonAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_MONITOR );
+   if (pMonAdapter == NULL)
+   {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: pMonAdapter is NULL", __func__);
+       return;
+   }
 
    cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
@@ -1046,6 +1052,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    }
 
    if (!granted) {
+      bool isDefaultAc = VOS_FALSE;
       /* ADDTS request for this AC is sent, for now
        * send this packet through next avaiable lower
        * Access category until ADDTS negotiation completes.
@@ -1060,11 +1067,18 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                ac = WLANTL_AC_BE;
                up = SME_QOS_WMM_UP_BE;
                break;
-            default:
+            case WLANTL_AC_BE:
                ac = WLANTL_AC_BK;
                up = SME_QOS_WMM_UP_BK;
                break;
+            default:
+               ac = WLANTL_AC_BK;
+               up = SME_QOS_WMM_UP_BK;
+               isDefaultAc = VOS_TRUE;
+               break;
          }
+         if (isDefaultAc)
+             break;
       }
       skb->priority = up;
       skb->queue_mapping = hddLinuxUpToAcMap[up];
