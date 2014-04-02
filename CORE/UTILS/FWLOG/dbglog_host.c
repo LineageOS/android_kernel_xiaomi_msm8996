@@ -140,6 +140,8 @@ const char *dbglog_get_module_str(A_UINT32 module_id)
         return "TDLS";
     case WLAN_MODULE_P2P:
         return "P2P";
+    case WLAN_MODULE_WOW:
+        return "WoW";
     default:
         return "UNKNOWN";
     }
@@ -955,6 +957,16 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WOW_INIT",
         "WOW_RECV_MAGIC_PKT",
         "WOW_RECV_BITMAP_PATTERN",
+	"WOW_AP_VDEV_DISALLOW",
+        "WOW_STA_VDEV_DISALLOW",
+        "WOW_P2PGO_VDEV_DISALLOW",
+        "WOW_NS_OFLD_ENABLE",
+        "WOW_ARP_OFLD_ENABLE",
+        "WOW_NS_ARP_OFLD_DISABLE",
+        "WOW_NS_RECEIVED",
+        "WOW_NS_REPLIED",
+        "WOW_ARP_RECEIVED",
+        "WOW_ARP_REPLIED",
         "WOW_DBGID_DEFINITION_END",
     },
     {   /* WAL VDEV  */
@@ -3224,6 +3236,98 @@ void dbglog_netlink_deinit(wmi_unified_t wmi_handle)
     netlink_kernel_release(nl_sk);
 }
 
+A_BOOL
+dbglog_wow_print_handler(
+			 A_UINT32 mod_id,
+			 A_UINT16 vap_id,
+			 A_UINT32 dbg_id,
+			 A_UINT32 timestamp,
+			 A_UINT16 numargs,
+			 A_UINT32 *args)
+{
+
+	switch (dbg_id) {
+	case WOW_NS_OFLD_ENABLE:
+		if (4 == numargs) {
+			dbglog_printf(timestamp, vap_id,
+                "Enable NS offload, for sender %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x\
+                :%02x%02x:%02x%02x:%02x%02x",
+				      *(A_UINT8*)&args[0], *((A_UINT8*)&args[0]+1), *((A_UINT8*)&args[0]+2), *((A_UINT8*)&args[0]+3),
+				      *(A_UINT8*)&args[1], *((A_UINT8*)&args[1]+1), *((A_UINT8*)&args[1]+2), *((A_UINT8*)&args[1]+3),
+				      *(A_UINT8*)&args[2], *((A_UINT8*)&args[2]+1), *((A_UINT8*)&args[2]+2), *((A_UINT8*)&args[2]+3),
+				      *(A_UINT8*)&args[3], *((A_UINT8*)&args[3]+1), *((A_UINT8*)&args[3]+2), *((A_UINT8*)&args[3]+3));
+		} else {
+			return FALSE;
+		}
+		break;
+	case WOW_ARP_OFLD_ENABLE:
+		if (1 == numargs) {
+			dbglog_printf(timestamp, vap_id,
+				      "Enable ARP offload, for sender %d.%d.%d.%d",
+				      *(A_UINT8*)args, *((A_UINT8*)args+1), *((A_UINT8*)args+2), *((A_UINT8*)args+3));
+		} else {
+			return FALSE;
+		}
+		break;
+	case WOW_NS_ARP_OFLD_DISABLE:
+		if (0 == numargs) {
+			dbglog_printf(timestamp, vap_id, "disable NS/ARP offload");
+		} else {
+			return FALSE;
+		}
+		break;
+	case WOW_NS_RECEIVED:
+		if (4 == numargs) {
+			dbglog_printf(timestamp, vap_id,
+                "NS requested from %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x\
+                :%02x%02x:%02x%02x:%02x%02x",
+				      *(A_UINT8*)&args[0], *((A_UINT8*)&args[0]+1), *((A_UINT8*)&args[0]+2), *((A_UINT8*)&args[0]+3),
+				      *(A_UINT8*)&args[1], *((A_UINT8*)&args[1]+1), *((A_UINT8*)&args[1]+2), *((A_UINT8*)&args[1]+3),
+				      *(A_UINT8*)&args[2], *((A_UINT8*)&args[2]+1), *((A_UINT8*)&args[2]+2), *((A_UINT8*)&args[2]+3),
+				      *(A_UINT8*)&args[3], *((A_UINT8*)&args[3]+1), *((A_UINT8*)&args[3]+2), *((A_UINT8*)&args[3]+3));
+		} else {
+			return FALSE;
+		}
+		break;
+	case WOW_NS_REPLIED:
+		if (4 == numargs) {
+			dbglog_printf(timestamp, vap_id,
+                "NS replied to %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x\
+                :%02x%02x:%02x%02x:%02x%02x",
+				      *(A_UINT8*)&args[0], *((A_UINT8*)&args[0]+1), *((A_UINT8*)&args[0]+2), *((A_UINT8*)&args[0]+3),
+				      *(A_UINT8*)&args[1], *((A_UINT8*)&args[1]+1), *((A_UINT8*)&args[1]+2), *((A_UINT8*)&args[1]+3),
+				      *(A_UINT8*)&args[2], *((A_UINT8*)&args[2]+1), *((A_UINT8*)&args[2]+2), *((A_UINT8*)&args[2]+3),
+				      *(A_UINT8*)&args[3], *((A_UINT8*)&args[3]+1), *((A_UINT8*)&args[3]+2), *((A_UINT8*)&args[3]+3));
+		} else {
+			return FALSE;
+		}
+		break;
+	case WOW_ARP_RECEIVED:
+		if (1 == numargs) {
+			dbglog_printf(timestamp, vap_id,
+				      "ARP requested from %d.%d.%d.%d",
+				      *(A_UINT8*)args, *((A_UINT8*)args+1), *((A_UINT8*)args+2), *((A_UINT8*)args+3));
+		} else {
+			return FALSE;
+		}
+		break;
+		break;
+	case WOW_ARP_REPLIED:
+		if (1 == numargs) {
+			dbglog_printf(timestamp, vap_id,
+				      "ARP replied to %d.%d.%d.%d",
+				      *(A_UINT8*)args, *((A_UINT8*)args+1), *((A_UINT8*)args+2), *((A_UINT8*)args+3));
+		} else {
+			return FALSE;
+		}
+		break;
+	default:
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 int dbglog_parser_type_init(wmi_unified_t wmi_handle, int type)
 {
     if(type >= DBGLOG_PROCESS_MAX){
@@ -3249,6 +3353,7 @@ dbglog_init(wmi_unified_t wmi_handle)
     dbglog_reg_modprint(WLAN_MODULE_ANI, dbglog_ani_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_COEX, dbglog_coex_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_BEACON,dbglog_beacon_print_handler);
+    dbglog_reg_modprint(WLAN_MODULE_WOW, dbglog_wow_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_DATA_TXRX,dbglog_data_txrx_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_STA_SMPS, dbglog_smps_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_P2P, dbglog_p2p_print_handler);
