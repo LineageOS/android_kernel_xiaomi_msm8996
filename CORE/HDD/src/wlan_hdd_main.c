@@ -9938,24 +9938,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
  ftm_processing:
    if (VOS_FTM_MODE == hdd_get_conparam())
    {
-
-       /* registration of wiphy dev with cfg80211 */
-       if (0 > wlan_hdd_cfg80211_register(wiphy))
-       {
-           hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy register failed", __func__);
-           goto err_vosstop;
-       }
-
       if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
       {
-          wiphy_unregister(wiphy);
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
           goto err_free_hdd_context;
       }
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
       if (hdd_ftm_start(pHddCtx))
       {
-          wiphy_unregister(wiphy);
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_start Failed",__func__);
           goto err_free_hdd_context;
       }
