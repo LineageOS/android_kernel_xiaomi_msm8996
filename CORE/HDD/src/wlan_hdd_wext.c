@@ -122,7 +122,6 @@ extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
 #define HDD_FINISH_ULA_TIME_OUT    800
 
 extern int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand);
-int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr);
 
 static int ioctl_debug;
 module_param(ioctl_debug, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -4316,7 +4315,7 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     case IEEE80211_MODE_11A:
          if (band_5g) {
              sme_SetPhyMode(hal, eCSR_DOT11_MODE_11a);
-             if ((hdd_setBand_helper(net, "SETBAND 1") == 0))
+             if ((hdd_setBand(net, WLAN_HDD_UI_BAND_5_GHZ) == 0))
                  phymode = eCSR_DOT11_MODE_11a;
              else {
                  sme_SetPhyMode(hal, old_phymode);
@@ -4327,7 +4326,7 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     case IEEE80211_MODE_11B:
          if (band_24) {
              sme_SetPhyMode(hal, eCSR_DOT11_MODE_11b);
-             if ((hdd_setBand_helper(net, "SETBAND 2") == 0))
+             if ((hdd_setBand(net, WLAN_HDD_UI_BAND_2_4_GHZ) == 0))
                  phymode = eCSR_DOT11_MODE_11b;
              else {
                  sme_SetPhyMode(hal, old_phymode);
@@ -4338,7 +4337,7 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     case IEEE80211_MODE_11G:
          if (band_24) {
              sme_SetPhyMode(hal, eCSR_DOT11_MODE_11g);
-             if ((hdd_setBand_helper(net, "SETBAND 2") == 0))
+             if ((hdd_setBand(net, WLAN_HDD_UI_BAND_2_4_GHZ) == 0))
                  phymode = eCSR_DOT11_MODE_11g;
              else {
                  sme_SetPhyMode(hal, old_phymode);
@@ -4353,7 +4352,7 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     case IEEE80211_MODE_11NA_HT20:
          if (band_5g) {
              sme_SetPhyMode(hal, eCSR_DOT11_MODE_11n);
-             if ((hdd_setBand_helper(net, "SETBAND 1") == 0)) {
+             if ((hdd_setBand(net, WLAN_HDD_UI_BAND_5_GHZ) == 0)) {
                  phymode = eCSR_DOT11_MODE_11n;
                  chwidth = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
                  curr_band = eCSR_BAND_5G;
@@ -4366,7 +4365,7 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     case IEEE80211_MODE_11NA_HT40:
          if (band_5g && ch_bond5g) {
              sme_SetPhyMode(hal, eCSR_DOT11_MODE_11n);
-             if ((hdd_setBand_helper(net, "SETBAND 1") == 0)) {
+             if ((hdd_setBand(net, WLAN_HDD_UI_BAND_5_GHZ) == 0)) {
                  phymode = eCSR_DOT11_MODE_11n;
                  chwidth = WNI_CFG_CHANNEL_BONDING_MODE_ENABLE;
                  curr_band = eCSR_BAND_5G;
@@ -4379,7 +4378,7 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     case IEEE80211_MODE_11NG_HT20:
          if (band_24) {
              sme_SetPhyMode(hal, eCSR_DOT11_MODE_11n);
-             if ((hdd_setBand_helper(net, "SETBAND 2") == 0)) {
+             if ((hdd_setBand(net, WLAN_HDD_UI_BAND_2_4_GHZ) == 0)) {
                  phymode = eCSR_DOT11_MODE_11n;
                  chwidth = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
                  curr_band = eCSR_BAND_24;
@@ -4392,7 +4391,7 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     case IEEE80211_MODE_11NG_HT40:
          if (band_24 && ch_bond24) {
              sme_SetPhyMode(hal, eCSR_DOT11_MODE_11n);
-             if ((hdd_setBand_helper(net, "SETBAND 2") == 0)) {
+             if ((hdd_setBand(net, WLAN_HDD_UI_BAND_2_4_GHZ) == 0)) {
                  phymode = eCSR_DOT11_MODE_11n;
                  chwidth = WNI_CFG_CHANNEL_BONDING_MODE_ENABLE;
                  curr_band = eCSR_BAND_24;
@@ -4409,7 +4408,7 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
               vhtchanwidth == eHT_CHANNEL_WIDTH_40MHZ) &&
                                          band_5g) {
              sme_SetPhyMode(hal, eCSR_DOT11_MODE_11ac);
-             if ((hdd_setBand_helper(net, "SETBAND 1") == 0)) {
+             if ((hdd_setBand(net, WLAN_HDD_UI_BAND_5_GHZ) == 0)) {
                  phymode = eCSR_DOT11_MODE_11ac;
              } else {
                  sme_SetPhyMode(hal, old_phymode);
@@ -4421,7 +4420,7 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
          if ((vhtchanwidth == eHT_CHANNEL_WIDTH_80MHZ) &&
                                          band_5g) {
              sme_SetPhyMode(hal, eCSR_DOT11_MODE_11ac);
-             if ((hdd_setBand_helper(net, "SETBAND 1") == 0)) {
+             if ((hdd_setBand(net, WLAN_HDD_UI_BAND_5_GHZ) == 0)) {
                  phymode = eCSR_DOT11_MODE_11ac;
              } else {
                  sme_SetPhyMode(hal, old_phymode);
@@ -9270,17 +9269,15 @@ static int iw_set_pno_priv(struct net_device *dev,
 #endif /*FEATURE_WLAN_SCAN_PNO*/
 
 //Common function to SetBand
-int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr)
+int hdd_setBand(struct net_device *dev, u8 ui_band)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    tANI_U8 band = 0;
+    eCsrBand band;
     eCsrBand currBand = eCSR_BAND_MAX;
 
-    band = ptr[WLAN_HDD_UI_SET_BAND_VALUE_OFFSET] - '0'; /*convert the band value from ascii to integer*/
-
-    switch(band)
+    switch(ui_band)
     {
         case WLAN_HDD_UI_BAND_AUTO:
              band = eCSR_BAND_ALL;
@@ -9295,15 +9292,15 @@ int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr)
             band = eCSR_BAND_MAX;
     }
 
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: change band to %u",
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: change band to %u",
                 __func__, band);
 
     if (band == eCSR_BAND_MAX)
     {
         /* Received change band request with invalid band value */
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-               "%s: Invalid band value %u", __func__, band);
-        return -EIO;
+               "%s: Invalid band value %u", __func__, ui_band);
+        return -EINVAL;
     }
 
     if ( (band == eCSR_BAND_24 && pHddCtx->cfg_ini->nBandCapability==2) ||
@@ -9389,13 +9386,23 @@ int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr)
     return 0;
 }
 
+int hdd_setBand_helper(struct net_device *dev, const char *command)
+{
+    u8 band;
+
+    /*convert the band value from ascii to integer*/
+    band = command[WLAN_HDD_UI_SET_BAND_VALUE_OFFSET] - '0';
+
+    return hdd_setBand(dev, band);
+
+}
+
 static int iw_set_band_config(struct net_device *dev,
                            struct iw_request_info *info,
                            union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    tANI_U8 *ptr = NULL;
-    int ret = 0;
+    int *value = (int *)extra;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: ", __func__);
 
@@ -9406,24 +9413,7 @@ static int iw_set_band_config(struct net_device *dev,
         return -EBUSY;
     }
 
-    /* ODD number is used for set, copy data using copy_from_user */
-    ptr = mem_alloc_copy_from_user_helper(wrqu->data.pointer,
-                                          wrqu->data.length);
-    if (NULL == ptr)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "mem_alloc_copy_from_user_helper fail");
-        return -ENOMEM;
-    }
-
-    if (memcmp(ptr, "SETBAND ", 8) == 0)
-    {
-        /* Change band request received */
-        ret = hdd_setBand_helper(dev, ptr);
-    }
-    kfree(ptr);
-
-    return ret;
+    return hdd_setBand(dev, value[0]);
 }
 
 static int iw_set_power_params_priv(struct net_device *dev,
@@ -10788,7 +10778,7 @@ static const struct iw_priv_args we_private_args[] = {
 #endif
     {
         WLAN_SET_BAND_CONFIG,
-        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "SETBAND" },
     /* handlers for dynamic MC BC ioctl */
