@@ -204,6 +204,14 @@ static VOS_STATUS hdd_parse_ese_beacon_req(tANI_U8 *pValue,
  */
 #define NUM_OF_STA_DATA_TO_PRINT 16
 
+/*
+ * Android DRIVER command structures
+ */
+struct android_wifi_reassoc_params {
+   unsigned char bssid[18];
+   int channel;
+};
+
 static vos_wake_lock_t wlan_wake_lock;
 /* set when SSR is needed after unload */
 static e_hdd_ssr_required isSsrRequired = HDD_SSR_NOT_REQUIRED;
@@ -233,9 +241,9 @@ static int hdd_parse_channellist(const tANI_U8 *pValue, tANI_U8 *pChannelList,
 static VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTargetApBssid,
                               tANI_U8 *pChannel, tANI_U8 *pDwellTime,
                               tANI_U8 **pBuf, tANI_U8 *pBufLen);
-static VOS_STATUS hdd_parse_reassoc_command_data(tANI_U8 *pValue,
-                                                 tANI_U8 *pTargetApBssid,
-                                                 tANI_U8 *pChannel);
+static int hdd_parse_reassoc_command_v1_data(const tANI_U8 *pValue,
+                                             tANI_U8 *pTargetApBssid,
+                                             tANI_U8 *pChannel);
 #endif
 
 #if defined (QCA_WIFI_2_0) && \
@@ -1903,6 +1911,184 @@ exit:
 }
 
 #endif/*End of FEATURE_WLAN_BATCH_SCAN*/
+
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
+/*
+  \brief hdd_reassoc() - perform a userspace-directed reassoc
+
+  \param - pAdapter - Adapter upon which the command was received
+  \param - bssid - BSSID with which to reassociate
+  \param - channel - channel upon which to reassociate
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int
+hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid, const tANI_U8 channel)
+{
+   hdd_station_ctx_t *pHddStaCtx;
+   int ret = 0;
+
+   pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+   /* if not associated, no need to proceed with reassoc */
+   if (eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
+      hddLog(VOS_TRACE_LEVEL_INFO, "%s: Not associated", __func__);
+      ret = -EINVAL;
+      goto exit;
+   }
+
+   /* if the target bssid is same as currently associated AP,
+      then no need to proceed with reassoc */
+   if (!memcmp(bssid, pHddStaCtx->conn_info.bssId, sizeof(tSirMacAddr))) {
+      hddLog(VOS_TRACE_LEVEL_INFO,
+             "%s: Reassoc BSSID is same as currently associated AP bssid",
+             __func__);
+      ret = -EINVAL;
+      goto exit;
+   }
+
+   /* Check channel number is a valid channel number */
+   if (VOS_STATUS_SUCCESS !=
+       wlan_hdd_validate_operation_channel(pAdapter, channel)) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid Channel %d",
+             __func__, channel);
+      ret = -EINVAL;
+      goto exit;
+   }
+
+   /* Proceed with reassoc */
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+   {
+      tCsrHandoffRequest handoffInfo;
+      hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+      handoffInfo.channel = channel;
+#ifndef QCA_WIFI_ISOC
+      handoffInfo.src = REASSOC;
+#endif
+      memcpy(handoffInfo.bssid, bssid, sizeof(tSirMacAddr));
+      sme_HandoffRequest(pHddCtx->hHal, &handoffInfo);
+   }
+#endif
+ exit:
+   return ret;
+}
+
+/*
+  \brief hdd_parse_reassoc_v1() - parse version 1 of the REASSOC command
+
+  This function parses the v1 REASSOC command with the format
+
+      REASSOC xx:xx:xx:xx:xx:xx CH
+
+  Where "xx:xx:xx:xx:xx:xx" is the Hex-ASCII representation of the
+  BSSID and CH is the ASCII representation of the channel.  For
+  example
+
+      REASSOC 00:0a:0b:11:22:33 48
+
+  \param - pAdapter - Adapter upon which the command was received
+  \param - command - ASCII text command that was received
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int
+hdd_parse_reassoc_v1(hdd_adapter_t *pAdapter, const char *command)
+{
+   tANI_U8 channel = 0;
+   tSirMacAddr bssid;
+   int ret;
+
+   ret = hdd_parse_reassoc_command_v1_data(command, bssid, &channel);
+   if (ret)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,
+             "%s: Failed to parse reassoc command data", __func__);
+   } else {
+      ret = hdd_reassoc(pAdapter, bssid, channel);
+   }
+   return ret;
+}
+
+/*
+  \brief hdd_parse_reassoc_v2() - parse version 2 of the REASSOC command
+
+  This function parses the v2 REASSOC command with the format
+
+      REASSOC <android_wifi_reassoc_params>
+
+  \param - pAdapter - Adapter upon which the command was received
+  \param - command - command that was received, ASCII command followed
+                     by binary data
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int
+hdd_parse_reassoc_v2(hdd_adapter_t *pAdapter,
+                     const char *command)
+{
+   struct android_wifi_reassoc_params params;
+   tSirMacAddr bssid;
+   int ret;
+
+   /* The params are located after "REASSOC " */
+   memcpy(&params, command + 8, sizeof(params));
+
+   if (!mac_pton(params.bssid, (u8 *)&bssid)) {
+      hddLog(LOGE, "%s: MAC address parsing failed", __func__);
+      ret = -EINVAL;
+   } else {
+      ret = hdd_reassoc(pAdapter, bssid, params.channel);
+   }
+   return ret;
+}
+
+/*
+  \brief hdd_parse_reassoc() - parse the REASSOC command
+
+  There are two different versions of the REASSOC command.  Version 1
+  of the command contains a parameter list that is ASCII characters
+  whereas version 2 contains a combination of ASCII and binary
+  payload.  Determine if a version 1 or a version 2 command is being
+  parsed by examining the parameters, and then dispatch the parser
+  that is appropriate for the command.
+
+  \param - pAdapter - Adapter upon which the command was received
+  \param - command - command that was received
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int
+hdd_parse_reassoc(hdd_adapter_t *pAdapter, const char *command)
+{
+   int ret;
+
+   /* both versions start with "REASSOC "
+    * v1 has a bssid and channel # as an ASCII string
+    *    REASSOC xx:xx:xx:xx:xx:xx CH
+    * v2 has a C struct
+    *    REASSOC <binary c struct>
+    *
+    * The first field in the v2 struct is also the bssid in ASCII.
+    * But in the case of a v2 message the BSSID is NUL-terminated.
+    * Hence we can peek at that offset to see if this is V1 or V2
+    * REASSOC xx:xx:xx:xx:xx:xx*
+    *           1111111111222222
+    * 01234567890123456789012345
+    */
+   if (command[25]) {
+      ret = hdd_parse_reassoc_v1(pAdapter, command);
+   } else {
+      ret = hdd_parse_reassoc_v2(pAdapter, command);
+   }
+
+   return ret;
+}
+#endif  /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_ESE FEATURE_WLAN_LFR */
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 /*
@@ -3629,61 +3815,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if (strncmp(command, "REASSOC", 7) == 0)
        {
-           tANI_U8 *value = command;
-           tANI_U8 channel = 0;
-           tSirMacAddr targetApBssid;
-           eHalStatus status = eHAL_STATUS_SUCCESS;
-#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-           tCsrHandoffRequest handoffInfo;
-#endif
-           hdd_station_ctx_t *pHddStaCtx = NULL;
-           pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-
-           /* if not associated, no need to proceed with reassoc */
-           if (eConnectionState_Associated != pHddStaCtx->conn_info.connState)
-           {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s:Not associated!",__func__);
-               ret = -EINVAL;
-               goto exit;
-           }
-
-           status = hdd_parse_reassoc_command_data(value, targetApBssid, &channel);
-           if (eHAL_STATUS_SUCCESS != status)
-           {
-               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Failed to parse reassoc command data", __func__);
-               ret = -EINVAL;
-               goto exit;
-           }
-
-           /* if the target bssid is same as currently associated AP,
-              then no need to proceed with reassoc */
-           if (VOS_TRUE == vos_mem_compare(targetApBssid,
-                                           pHddStaCtx->conn_info.bssId, sizeof(tSirMacAddr)))
-           {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s:Reassoc BSSID is same as currently associated AP bssid",__func__);
-               ret = -EINVAL;
-               goto exit;
-           }
-
-           /* Check channel number is a valid channel number */
-           if (VOS_STATUS_SUCCESS !=
-                         wlan_hdd_validate_operation_channel(pAdapter, channel))
-           {
-               hddLog(VOS_TRACE_LEVEL_ERROR,
-                      "%s: Invalid Channel [%d] \n", __func__, channel);
-               return -EINVAL;
-           }
-
-           /* Proceed with reassoc */
-#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-           handoffInfo.channel = channel;
-#ifndef QCA_WIFI_ISOC
-           handoffInfo.src = REASSOC;
-#endif
-           vos_mem_copy(handoffInfo.bssid, targetApBssid, sizeof(tSirMacAddr));
-           sme_HandoffRequest(pHddCtx->hHal, &handoffInfo);
-#endif
+           ret = hdd_parse_reassoc(pAdapter, command);
        }
        else if (strncmp(command, "SETWESMODE", 10) == 0)
        {
@@ -3910,7 +4042,6 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            tANI_U8 *value = command;
            tANI_U8 channel = 0;
            tSirMacAddr targetApBssid;
-           eHalStatus status = eHAL_STATUS_SUCCESS;
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
            tCsrHandoffRequest handoffInfo;
 #endif
@@ -3925,12 +4056,12 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                goto exit;
            }
 
-           status = hdd_parse_reassoc_command_data(value, targetApBssid, &channel);
-           if (eHAL_STATUS_SUCCESS != status)
+           ret = hdd_parse_reassoc_command_v1_data(value, targetApBssid,
+                                                   &channel);
+           if (ret)
            {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Failed to parse reassoc command data", __func__);
-               ret = -EINVAL;
+                          "%s: Failed to parse reassoc command data", __func__);
                goto exit;
            }
 
@@ -3964,7 +4095,6 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            tANI_U8 *value = command;
            tSirMacAddr targetApBssid;
            tANI_U8 trigger = 0;
-           eHalStatus status = eHAL_STATUS_SUCCESS;
            hdd_station_ctx_t *pHddStaCtx = NULL;
            pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
@@ -3976,12 +4106,12 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                goto exit;
            }
 
-           status = hdd_parse_reassoc_command_data(value, targetApBssid, &trigger);
-           if (eHAL_STATUS_SUCCESS != status)
+           ret = hdd_parse_reassoc_command_v1_data(value, targetApBssid,
+                                                   &trigger);
+           if (ret)
            {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: Failed to parse reassoc command data", __func__);
-               ret = -EINVAL;
                goto exit;
            }
 
@@ -5969,10 +6099,11 @@ hdd_parse_channellist(const tANI_U8 *pValue, tANI_U8 *pChannelList,
   \return - 0 for success non-zero for failure
 
   --------------------------------------------------------------------------*/
-VOS_STATUS hdd_parse_reassoc_command_data(tANI_U8 *pValue,
-                            tANI_U8 *pTargetApBssid, tANI_U8 *pChannel)
+static int hdd_parse_reassoc_command_v1_data(const tANI_U8 *pValue,
+                                             tANI_U8 *pTargetApBssid,
+                                             tANI_U8 *pChannel)
 {
-    tANI_U8 *inPtr = pValue;
+    const tANI_U8 *inPtr = pValue;
     int tempInt;
     int v = 0;
     tANI_U8 tempBuf[32];
