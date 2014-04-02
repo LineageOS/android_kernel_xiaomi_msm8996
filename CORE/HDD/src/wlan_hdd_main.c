@@ -7264,6 +7264,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          netif_carrier_off(pAdapter->dev);
 
 #ifdef QCA_LL_TX_FLOW_CT
+         /* SAT mode default TX Flow control instance
+          * This instance will be used for
+          * STA mode, IBSS mode and TDLS mode */
          vos_timer_init(&pAdapter->tx_flow_control_timer,
                      VOS_TIMER_TYPE_SW,
                      hdd_tx_resume_timer_expired_handler,
@@ -7707,6 +7710,15 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
             }
          }
 
+#ifdef QCA_LL_TX_FLOW_CT
+         if(VOS_TIMER_STATE_STOPPED !=
+            vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
+         {
+            vos_timer_stop(&pAdapter->tx_flow_control_timer);
+         }
+         vos_timer_destroy(&pAdapter->tx_flow_control_timer);
+#endif /* QCA_LL_TX_FLOW_CT */
+
          mutex_lock(&pHddCtx->sap_lock);
          if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags))
          {
@@ -8029,6 +8041,10 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
    const char *p2pMode = "DEV";
    const char *ccMode = "Standalone";
 
+#ifdef QCA_LL_TX_FLOW_CT
+   v_U8_t targetChannel = 0;
+#endif /* QCA_LL_TX_FLOW_CT */
+
    status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
@@ -8039,6 +8055,9 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
           if (eConnectionState_Associated == pHddStaCtx->conn_info.connState) {
               staChannel = pHddStaCtx->conn_info.operationChannel;
               memcpy(staBssid, pHddStaCtx->conn_info.bssId, sizeof(staBssid));
+#ifdef QCA_LL_TX_FLOW_CT
+              targetChannel = staChannel;
+#endif /* QCA_LL_TX_FLOW_CT */
           }
           break;
       case WLAN_HDD_P2P_CLIENT:
@@ -8047,6 +8066,9 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
               p2pChannel = pHddStaCtx->conn_info.operationChannel;
               memcpy(p2pBssid, pHddStaCtx->conn_info.bssId, sizeof(p2pBssid));
               p2pMode = "CLI";
+#ifdef QCA_LL_TX_FLOW_CT
+              targetChannel = p2pChannel;
+#endif /* QCA_LL_TX_FLOW_CT */
           }
           break;
       case WLAN_HDD_P2P_GO:
@@ -8055,6 +8077,9 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
           if (pHostapdState->bssState == BSS_START && pHostapdState->vosStatus==VOS_STATUS_SUCCESS) {
               p2pChannel = pHddApCtx->operatingChannel;
               memcpy(p2pBssid, pAdapter->macAddressCurrent.bytes, sizeof(p2pBssid));
+#ifdef QCA_LL_TX_FLOW_CT
+              targetChannel = p2pChannel;
+#endif /* QCA_LL_TX_FLOW_CT */
           }
           p2pMode = "GO";
           break;
@@ -8064,6 +8089,9 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
           if (pHostapdState->bssState == BSS_START && pHostapdState->vosStatus==VOS_STATUS_SUCCESS) {
               apChannel = pHddApCtx->operatingChannel;
               memcpy(apBssid, pAdapter->macAddressCurrent.bytes, sizeof(apBssid));
+#ifdef QCA_LL_TX_FLOW_CT
+              targetChannel = apChannel;
+#endif /* QCA_LL_TX_FLOW_CT */
           }
           break;
       case WLAN_HDD_IBSS:
@@ -8071,6 +8099,30 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
       default:
           break;
       }
+#ifdef QCA_LL_TX_FLOW_CT
+      /* First stage implementation for all interface TX flow control
+       * All interfaces will have same flow control threshold
+       * 2nd stage will have MCC-Bandwidth dependent TX flow control
+       * TL/TXRX APIs are not called */
+      if (targetChannel)
+      {
+          pAdapter->tx_flow_low_watermark =
+                    pHddCtx->cfg_ini->TxHbwFlowLowWaterMark;
+          pAdapter->tx_flow_high_watermark_offset =
+                    pHddCtx->cfg_ini->TxHbwFlowHighWaterMarkOffset;
+          /* Temporary set log level as error
+           * TX Flow control feature settled down, will lower log level */
+          hddLog(VOS_TRACE_LEVEL_ERROR,
+                 "MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                 pAdapter->device_mode,
+                 targetChannel,
+                 pAdapter->tx_flow_low_watermark,
+                 pAdapter->tx_flow_low_watermark +
+                 pAdapter->tx_flow_high_watermark_offset,
+                 pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
+      }
+      targetChannel = 0;
+#endif /* QCA_LL_TX_FLOW_CT */
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }

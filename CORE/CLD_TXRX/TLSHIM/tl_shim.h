@@ -63,6 +63,7 @@ struct tlshim_session_flow_Control {
 	WLANTL_TxFlowControlCBType flowControl;
 	v_U8_t                     sessionId;
 	void                      *adpaterCtxt;
+	void                      *vdev;
 };
 #endif /* QCA_LL_TX_FLOW_CT */
 

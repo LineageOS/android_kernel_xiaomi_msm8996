@@ -1017,6 +1017,24 @@ ol_txrx_get_tx_resource(
     unsigned int low_watermark,
     unsigned int high_watermark_offset
 );
+
+/**
+ * @brief Set MAX LL TX Pause Q depth per vdev
+ * @details
+ *  Each vdev will have different TX Pause Q depth
+ *  High bandwidth vdev may have more TX Pause Q depth
+ *  Low bandwidth vdev will have less TX Pause Q depth not to block
+ *  high bandwidth vdev
+ *
+ * @param vdev - the virtual device
+ * @param pause_q_depth - TX Pause Q depth per vdev
+ * @return NONE
+ */
+void
+ol_txrx_ll_set_tx_pause_q_depth(
+    ol_txrx_vdev_handle vdev,
+    int pause_q_depth
+);
 #endif /* QCA_LL_TX_FLOW_CT */
 
 #endif /* _OL_TXRX_CTRL_API__H_ */

@@ -61,10 +61,6 @@
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/
-/* MAX OS Q block time value in msec
- * Prevent from permanent stall, resume OS Q if timer expired */
-#define WLAN_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME 1000
-
 const v_U8_t hddWmmAcToHighestUp[] = {
    SME_QOS_WMM_UP_RESV,
    SME_QOS_WMM_UP_EE,
@@ -907,19 +903,10 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    v_BOOL_t granted;
    v_U8_t STAId = WLAN_MAX_STA_COUNT;
    hdd_station_ctx_t *pHddStaCtx = &pAdapter->sessionCtx.station;
-
-#if defined(QCA_PKT_PROTO_TRACE) || defined (QCA_LL_TX_FLOW_CT)
-   hdd_context_t *hddCtxt = WLAN_HDD_GET_CTX(pAdapter);
-#endif /* defined(QCA_PKT_PROTO_TRACE) || defined (QCA_LL_TX_FLOW_CT) */
-
 #ifdef QCA_PKT_PROTO_TRACE
+   hdd_context_t *hddCtxt = WLAN_HDD_GET_CTX(pAdapter);
    v_U8_t proto_type = 0;
 #endif /* QCA_PKT_PROTO_TRACE */
-
-#ifdef QCA_LL_TX_FLOW_CT
-   unsigned int low_watermark = 0;
-   unsigned int high_watermark_offset = 0;
-#endif /* QCA_LL_TX_FLOW_CT */
 
 #ifdef QCA_WIFI_FTM
    if (hdd_get_conparam() == VOS_FTM_MODE) {
@@ -953,35 +940,18 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          kfree_skb(skb);
          return NETDEV_TX_OK;
       }
-#ifdef QCA_LL_TX_FLOW_CT
-      low_watermark = hddCtxt->cfg_ini->TxIbssFlowLowWaterMark;
-      high_watermark_offset = hddCtxt->cfg_ini->TxIbssFlowHighWaterMarkOffset;
-#endif /* QCA_LL_TX_FLOW_CT */
    }
    else
    {
       STAId = pHddStaCtx->conn_info.staId[0];
-#ifdef QCA_LL_TX_FLOW_CT
-      /* P2P CLI mode, no TX Flow Control
-       * TDLS mode, will same flow control watermark values */
-      if (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
-      {
-         low_watermark = hddCtxt->cfg_ini->TxStaFlowLowWaterMark;
-         high_watermark_offset = hddCtxt->cfg_ini->TxStaFlowHighWaterMarkOffset;
-      }
-#endif /* QCA_LL_TX_FLOW_CT */
    }
 
 #ifdef QCA_LL_TX_FLOW_CT
    if (VOS_FALSE == WLANTL_GetTxResource((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                         STAId,
-                                         low_watermark,
-                                         high_watermark_offset))
+                                         pAdapter->sessionId,
+                                         pAdapter->tx_flow_low_watermark,
+                                         pAdapter->tx_flow_high_watermark_offset))
    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-                 "%s: Out of TX resource, stop Q, LWM %d, HWM %d",
-                 __func__, low_watermark,
-                 (low_watermark + high_watermark_offset));
        netif_tx_stop_all_queues(dev);
        if (VOS_TIMER_STATE_STOPPED ==
            vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
@@ -1177,7 +1147,7 @@ void hdd_tx_timeout(struct net_device *dev)
       return;
    }
 
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
       "%s: Transmission timeout occurred", __func__);
    //Getting here implies we disabled the TX queues for too long. Queues are
    //disabled either because of disassociation or low resource scenarios. In
