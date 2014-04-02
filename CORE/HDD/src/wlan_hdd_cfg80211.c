@@ -2517,6 +2517,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                  ("ERROR: HDD vos wait for single_event failed!!\n"));
         smeGetCommandQStatus(hHal);
         VOS_ASSERT(0);
+        return -EINVAL;
     }
 
     //Succesfully started Bss update the state bit.
@@ -2592,6 +2593,11 @@ static int wlan_hdd_cfg80211_add_beacon(struct wiphy *wiphy,
         pAdapter->sessionCtx.ap.beacon = new;
 
         status = wlan_hdd_cfg80211_start_bss(pAdapter, params);
+
+        if (0 != status) {
+           pAdapter->sessionCtx.ap.beacon = NULL;
+           kfree(new);
+        }
     }
 
     EXIT();
