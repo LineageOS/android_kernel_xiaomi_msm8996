@@ -614,6 +614,7 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
     tSirVersionString wcnss_SW_version;
     const char *pSWversion;
     const char *pHWversion;
+    v_U32_t CRMId = 0;
 #ifndef QCA_WIFI_2_0
     VOS_STATUS status;
     tSirVersionString wcnss_HW_version;
@@ -635,6 +636,7 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
         pHddContext->target_fw_version);
 
     pSWversion = wcnss_SW_version;
+    CRMId = pHddContext->target_fw_version & 0x7fff;
 
     for (i = 0; i < ARRAY_SIZE(qwlan_hw_list); i++) {
         if (pHddContext->target_hw_version == qwlan_hw_list[i].id) {
@@ -671,14 +673,16 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
 
     if (wrqu) {
         wrqu->data.length = scnprintf(extra, WE_MAX_STR_LEN,
-                                     "Host SW:%s, FW:%s, HW:%s",
+                                     "Host SW:%s, FW:%s BuildId:%d, HW:%s",
                                      QWLAN_VERSIONSTR,
                                      pSWversion,
+                                     CRMId,
                                      pHWversion);
     } else {
-        pr_info("Host SW:%s, FW:%s, HW:%s\n",
+        pr_info("Host SW:%s, FW:%s BuildId:%d, HW:%s\n",
                 QWLAN_VERSIONSTR,
                 pSWversion,
+                CRMId,
                 pHWversion);
     }
 error:
