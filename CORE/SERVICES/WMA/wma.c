@@ -8238,6 +8238,9 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	u_int8_t vdev_id, peer_id;
 	VOS_STATUS status;
 	tPowerdBm maxTxPower;
+#ifdef WLAN_FEATURE_11W
+	int ret = 0;
+#endif /* WLAN_FEATURE_11W */
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -8287,6 +8290,24 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	req.max_txpow = 0;
 	maxTxPower = 0;
 #endif
+#ifdef WLAN_FEATURE_11W
+	if (add_bss->rmfEnabled) {
+		/*
+		 * when 802.11w PMF is enabled for hw encr/decr
+		 * use hw MFP Qos bits 0x10
+		 */
+		ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+				WMI_PDEV_PARAM_PMF_QOS, TRUE);
+		if(ret) {
+			WMA_LOGE("%s: Failed to set QOS MFP/PMF (%d)",
+				__func__, ret);
+		} else {
+			WMA_LOGI("%s: QOS MFP/PMF set to %d",
+				__func__, TRUE);
+		}
+	}
+#endif /* WLAN_FEATURE_11W */
+
 	req.beacon_intval = add_bss->beaconInterval;
 	req.dtim_period = add_bss->dtimPeriod;
 	req.hidden_ssid = add_bss->bHiddenSSIDEn;
@@ -8856,6 +8877,9 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 	u_int8_t peer_id;
 	VOS_STATUS status;
 	int32_t ret;
+#ifdef WLAN_FEATURE_11W
+	struct wma_txrx_node *iface = NULL;
+#endif /* WLAN_FEATURE_11W */
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -8923,6 +8947,31 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		}
 		state = ol_txrx_peer_state_auth;
 	}
+#ifdef WLAN_FEATURE_11W
+	if (add_sta->rmfEnabled) {
+		/*
+		 * We have to store the state of PMF connection
+		 * per STA for SAP case
+		 * We will isolate the ifaces based on vdevid
+		 */
+		iface = &wma->interfaces[vdev->vdev_id];
+		iface->rmfEnabled = add_sta->rmfEnabled;
+		/*
+		 * when 802.11w PMF is enabled for hw encr/decr
+		 * use hw MFP Qos bits 0x10
+		 */
+		ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+				WMI_PDEV_PARAM_PMF_QOS, TRUE);
+		if(ret) {
+			WMA_LOGE("%s: Failed to set QOS MFP/PMF (%d)",
+				__func__, ret);
+		}
+		else {
+			WMA_LOGI("%s: QOS MFP/PMF set to %d",
+				__func__, TRUE);
+		}
+	}
+#endif /* WLAN_FEATURE_11W */
 
 	if (add_sta->uAPSD) {
 		ret = wma_set_ap_peer_uapsd(wma, add_sta->smesessionId,
