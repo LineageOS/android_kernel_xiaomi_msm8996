@@ -45,7 +45,7 @@
 #define RRM_BCN_RPT_NO_BSS_INFO    0
 #define RRM_BCN_RPT_MIN_RPT        1
 
-tANI_U8 rrmGetMinOfMaxTxPower(tPowerdBm regMax, tPowerdBm apTxPower);
+tANI_U8 rrmGetMinOfMaxTxPower(tpAniSirGlobal pMac, tPowerdBm regMax, tPowerdBm apTxPower);
 
 extern tSirRetStatus rrmInitialize(tpAniSirGlobal pMac);
 
