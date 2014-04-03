@@ -676,6 +676,14 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             pHddApCtx->operatingChannel = pSapEvent->sapevt.sapStartBssCompleteEvent.operatingChannel;
             pHostapdState->bssState = BSS_START;
 
+#ifdef FEATURE_GREEN_AP
+            if (!(VOS_STA&pHddCtx->concurrency_mode))
+                hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_PS_START_EVENT);
+            else {
+                hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_PS_STOP_EVENT);
+                hddLog(VOS_TRACE_LEVEL_INFO, FL("Green-AP: STA interface detected, disable GreenAP"));
+            }
+#endif
             // Send current operating channel of SoftAP to BTC-ES
             send_btc_nlink_msg(WLAN_BTC_SOFTAP_BSS_START, 0);
 
@@ -745,6 +753,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             hddLog(LOG1, FL("BSS stop status = %s"),pSapEvent->sapevt.sapStopBssCompleteEvent.status ?
                              "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
 
+#ifdef FEATURE_GREEN_AP
+            hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_PS_STOP_EVENT);
+#endif
             //Free up Channel List incase if it is set
 #ifdef WLAN_FEATURE_MBSSID
             sapCleanupChannelList(WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter));
@@ -956,6 +967,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 hdd_start_bus_bw_compute_timer(pHostapdAdapter);
             spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
 #endif
+
+#ifdef FEATURE_GREEN_AP
+            hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_ADD_STA_EVENT);
+#endif
             break;
         case eSAP_STA_DISASSOC_EVENT:
             memcpy(wrqu.addr.sa_data, &pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac,
@@ -1061,6 +1076,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             if (0 == pHddCtx->sta_cnt)
                 hdd_stop_bus_bw_compute_timer(pHostapdAdapter);
             spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
+#endif
+#ifdef FEATURE_GREEN_AP
+            hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_DEL_STA_EVENT);
 #endif
             break;
         case eSAP_WPS_PBC_PROBE_REQ_EVENT:
