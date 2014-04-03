@@ -7427,7 +7427,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    }
 
 #ifdef QCA_WIFI_2_0
-   if (!pHddCtx->cfg_ini->enable2x2)
+   if ((vos_get_conparam() != VOS_FTM_MODE) && (!pHddCtx->cfg_ini->enable2x2))
    {
       int ret;
 #define HDD_DTIM_1CHAIN_RX_ID 0x5
