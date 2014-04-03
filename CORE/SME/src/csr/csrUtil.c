@@ -3921,9 +3921,16 @@ tANI_BOOLEAN csrGetWapiInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eC
                              CSR_WAPI_OUI_SIZE);
             }
 
+            wapiOuiIndex = csrGetOUIIndexFromCipher( enType );
+            if (wapiOuiIndex >= CSR_WAPI_OUI_SIZE)
+            {
+                smsLog(pMac, LOGE, FL("Wapi OUI index = %d out of limit"), wapiOuiIndex);
+                fAcceptableCyphers = FALSE;
+                break;
+            }
             //Check - Is requested Unicast Cipher supported by the BSS.
             fAcceptableCyphers = csrMatchWapiOUIIndex( pMac, pWapiIe->unicast_cipher_suites, cUnicastCyphers,
-                    csrGetOUIIndexFromCipher( enType ), Unicast );
+                    wapiOuiIndex, Unicast );
 
             if( !fAcceptableCyphers ) break;
 

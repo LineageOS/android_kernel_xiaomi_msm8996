@@ -1700,6 +1700,10 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
          }
          else
          {
+            if (!(new_tmask > 0 && new_tmask <= SME_QOS_TSPEC_INDEX_MAX))
+            {
+                 return SME_QOS_STATUS_SETUP_FAILURE_RSP;
+            }
             tmask = new_tmask;
             pACInfo->requested_QoSInfo[tmask-1] = Tspec_Info;
          }
