@@ -3034,6 +3034,8 @@ WLANTL_TLDebugMessage
    IN
    vos_context   : Pointer to VOS global context
    sta_id : STA/VDEV instance to query TX resource
+   low_watermark : Low threashold to block OS Q
+   high_watermark_offset : Offset to high watermark from low watermark
 
   RETURN VALUE
     VOS_TRUE : Enough resource available, Not need to PAUSE TX OS Q
@@ -3045,7 +3047,7 @@ WLANTL_TLDebugMessage
 v_BOOL_t WLANTL_GetTxResource
 (
    void *vos_context,
-   uint8_t sta_id,
+   v_U8_t sessionId,
    unsigned int low_watermark,
    unsigned int high_watermark_offset
 );
@@ -3106,6 +3108,35 @@ void WLANTL_RegisterTXFlowControl
    WLANTL_TxFlowControlCBType flowControl,
    v_U8_t sessionId,
    void *adpaterCtxt
+);
+
+/*=============================================================================
+  FUNCTION    WLANTL_SetAdapterMaxQDepth
+
+  DESCRIPTION
+    This function will be called by TL client.
+    Based on the adapter TX available bandwidth, set different TX Pause Q size
+    Low Bandwidth adapter will have less count of TX Pause Q size to prevent
+    reserve all TX descriptors which shared with FW.
+    High Bandwidth adapter will have more count of TX Pause Q size
+
+  PARAMETERS
+   IN
+   vos_ctx : Global OS context context
+   sessionId  : adapter instance index
+   max_q_depth : Max pause Q depth for adapter
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_SetAdapterMaxQDepth
+(
+   void *vos_ctx,
+   v_U8_t sessionId,
+   int max_q_depth
 );
 #endif /* QCA_LL_TX_FLOW_CT */
 #endif /* QCA_WIFI_2_0 */

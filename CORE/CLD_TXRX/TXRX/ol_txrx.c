@@ -843,7 +843,9 @@ ol_txrx_vdev_attach(
     vdev->tx_fl_lwm = 0;
     vdev->tx_fl_hwm = 0;
     vdev->osif_flow_control_cb = NULL;
-
+    /* Default MAX Q depth for every VDEV */
+    vdev->ll_pause.max_q_depth =
+        ol_tx_cfg_max_tx_queue_depth_ll(vdev->pdev->ctrl_pdev);
     /* add this vdev into the pdev's list */
     TAILQ_INSERT_TAIL(&pdev->vdev_list, vdev, vdev_list_elem);
 
@@ -1973,5 +1975,18 @@ ol_txrx_get_tx_resource(
    }
    adf_os_spin_unlock_bh(&vdev->pdev->tx_mutex);
    return A_TRUE;
+}
+
+void
+ol_txrx_ll_set_tx_pause_q_depth(
+    ol_txrx_vdev_handle vdev,
+    int pause_q_depth
+)
+{
+    adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
+    vdev->ll_pause.max_q_depth = pause_q_depth;
+    adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
+
+    return;
 }
 #endif /* QCA_LL_TX_FLOW_CT */

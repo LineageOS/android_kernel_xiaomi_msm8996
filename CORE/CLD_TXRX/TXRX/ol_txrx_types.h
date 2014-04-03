@@ -752,6 +752,7 @@ struct ol_txrx_vdev_t {
 		a_bool_t is_paused;
 		adf_os_spinlock_t mutex;
 		adf_os_timer_t timer;
+		int max_q_depth;
 	} ll_pause;
 	a_bool_t disable_intrabss_fwd;
 	adf_os_atomic_t os_q_paused;

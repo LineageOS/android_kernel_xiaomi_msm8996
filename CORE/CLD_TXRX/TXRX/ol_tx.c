@@ -183,7 +183,7 @@ ol_tx_vdev_pause_queue_append(
 {
     adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
     while (msdu_list &&
-            vdev->ll_pause.txq.depth < vdev->pdev->cfg.ll_pause_txq_limit)
+            vdev->ll_pause.txq.depth < vdev->ll_pause.max_q_depth)
     {
         adf_nbuf_t next = adf_nbuf_next(msdu_list);
 

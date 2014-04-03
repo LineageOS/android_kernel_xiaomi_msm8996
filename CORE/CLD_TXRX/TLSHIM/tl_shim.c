@@ -926,6 +926,7 @@ void WLANTL_RegisterVdev(void *vos_ctx, void *vdev)
 
 #ifdef QCA_LL_TX_FLOW_CT
 	txrx_ops.tx.flow_control_cb = WLANTL_TXFlowControlCb;
+	tl_shim->session_flow_control[vdev_handle->vdev_id].vdev = vdev;
 #endif /* QCA_LL_TX_FLOW_CT */
 	txrx_ops.rx.std = tlshim_data_rx_handler;
 	wdi_in_osif_vdev_register(vdev_handle, tl_shim, &txrx_ops);
@@ -1691,6 +1692,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 		tl_shim->session_flow_control[i].flowControl = NULL;
 		tl_shim->session_flow_control[i].sessionId = 0xFF;
 		tl_shim->session_flow_control[i].adpaterCtxt = NULL;
+		tl_shim->session_flow_control[i].vdev = NULL;
 	}
 #endif /* QCA_LL_TX_FLOW_CT */
 
@@ -1788,7 +1790,9 @@ void *tl_shim_get_vdev_by_sta_id(void *vos_context, uint8_t sta_id)
   PARAMETERS
    IN
    vos_context   : Pointer to VOS global context
-   sta_id : STA/VDEV instance to query TX resource
+   sessionId : VDEV instance to query TX resource
+   low_watermark : Low threashold to block OS Q
+   high_watermark_offset : Offset to high watermark from low watermark
 
   RETURN VALUE
     VOS_TRUE : Enough resource available, Not need to PAUSE TX OS Q
@@ -1800,12 +1804,12 @@ void *tl_shim_get_vdev_by_sta_id(void *vos_context, uint8_t sta_id)
 v_BOOL_t WLANTL_GetTxResource
 (
 	void *vos_context,
-	uint8_t sta_id,
+	v_U8_t sessionId,
 	unsigned int low_watermark,
 	unsigned int high_watermark_offset
 )
 {
-	struct ol_txrx_peer_t *peer = NULL;
+	struct txrx_tl_shim_ctx *tl_shim;
 
 	/* If low watermark is zero, TX flow control is not enabled at all
 	 * return TRUE by default */
@@ -1813,16 +1817,18 @@ v_BOOL_t WLANTL_GetTxResource
 		return VOS_TRUE;
 	}
 
-	peer = ol_txrx_peer_find_by_local_id(
-		((pVosContextType) vos_context)->pdev_txrx_ctx,
-		sta_id);
-	if (!peer) {
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_context);
+	if ((!tl_shim) || (!tl_shim->session_flow_control[sessionId].vdev)) {
+		TLSHIM_LOGE("%s, tl_shim is NULL or session id %d",
+                    __func__, sessionId);
+		/* Invalid instace */
 		return VOS_TRUE;
 	}
 
-	return (v_BOOL_t)wdi_in_get_tx_resource(peer->vdev,
-				low_watermark,
-				high_watermark_offset);
+	return (v_BOOL_t)wdi_in_get_tx_resource(
+		(struct ol_txrx_vdev_t *)tl_shim->session_flow_control[sessionId].vdev,
+		low_watermark,
+		high_watermark_offset);
 }
 
 /*=============================================================================
@@ -1909,7 +1915,7 @@ void WLANTL_RegisterTXFlowControl
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
 	if ((!tl_shim) || (!tl_shim->session_flow_control)) {
-		TLSHIM_LOGE("tl_shim is NULL");
+		TLSHIM_LOGE("%s : Invalid ARG", __func__);
 		return;
 	}
 
@@ -1917,6 +1923,52 @@ void WLANTL_RegisterTXFlowControl
 	tl_shim->session_flow_control[sessionId].sessionId = sessionId;
 	tl_shim->session_flow_control[sessionId].adpaterCtxt = adpaterCtxt;
 
+	return;
+}
+
+/*=============================================================================
+  FUNCTION    WLANTL_SetAdapterMaxQDepth
+
+  DESCRIPTION
+    This function will be called by TL client.
+    Based on the adapter TX available bandwidth, set different TX Pause Q size
+    Low Bandwidth adapter will have less count of TX Pause Q size to prevent
+    reserve all TX descriptors which shared with FW.
+    High Bandwidth adapter will have more count of TX Pause Q size
+    !!! This function is place holder till MCC TX FLOW CT Enabled !!!
+
+  PARAMETERS
+   IN
+   vos_ctx : Global OS context context
+   sessionId  : adapter instance index
+   max_q_depth : Max pause Q depth for adapter
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_SetAdapterMaxQDepth
+(
+	void *vos_ctx,
+	v_U8_t sessionId,
+	int max_q_depth
+)
+{
+	struct txrx_tl_shim_ctx *tl_shim;
+
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	if ((!tl_shim) || (!tl_shim->session_flow_control) ||
+		(!tl_shim->session_flow_control[sessionId].vdev)) {
+		TLSHIM_LOGE("%s: TLSHIM NULL or session ID %d",
+			__func__, sessionId);
+		return;
+	}
+
+	wdi_in_ll_set_tx_pause_q_depth(
+		(struct ol_txrx_vdev_t *)tl_shim->session_flow_control[sessionId].vdev,
+		max_q_depth);
 	return;
 }
 #endif /* QCA_LL_TX_FLOW_CT */

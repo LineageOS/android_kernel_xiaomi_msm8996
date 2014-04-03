@@ -3140,6 +3140,20 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 if (status != VOS_STATUS_SUCCESS)
                     return status;
 
+#ifdef QCA_LL_TX_FLOW_CT
+                if (NL80211_IFTYPE_P2P_CLIENT == type)
+                {
+                   vos_timer_init(&pAdapter->tx_flow_control_timer,
+                              VOS_TIMER_TYPE_SW,
+                              hdd_tx_resume_timer_expired_handler,
+                              pAdapter);
+                   WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
+                              hdd_tx_resume_cb,
+                              pAdapter->sessionId,
+                             (void *)pAdapter);
+                }
+#endif /* QCA_LL_TX_FLOW_CT */
+
                 goto done;
 #endif
             case NL80211_IFTYPE_ADHOC:
@@ -3286,6 +3300,17 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 }
                 hdd_set_conparam(1);
 
+#ifdef QCA_LL_TX_FLOW_CT
+                vos_timer_init(&pAdapter->tx_flow_control_timer,
+                         VOS_TIMER_TYPE_SW,
+                         hdd_softap_tx_resume_timer_expired_handler,
+                         pAdapter);
+                WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
+                         hdd_softap_tx_resume_cb,
+                         pAdapter->sessionId,
+                         (void *)pAdapter);
+#endif /* QCA_LL_TX_FLOW_CT */
+
                 /*interface type changed update in wiphy structure*/
                 if(wdev)
                 {
@@ -3342,6 +3367,19 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                     hdd_set_pwrparams(pHddCtx);
                 }
                 hdd_enable_bmps_imps(pHddCtx);
+#ifdef QCA_LL_TX_FLOW_CT
+                if (NL80211_IFTYPE_P2P_CLIENT == type)
+                {
+                   vos_timer_init(&pAdapter->tx_flow_control_timer,
+                              VOS_TIMER_TYPE_SW,
+                              hdd_tx_resume_timer_expired_handler,
+                              pAdapter);
+                   WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
+                              hdd_tx_resume_cb,
+                              pAdapter->sessionId,
+                             (void *)pAdapter);
+                }
+#endif /* QCA_LL_TX_FLOW_CT */
                 goto done;
             case NL80211_IFTYPE_AP:
             case NL80211_IFTYPE_P2P_GO:
@@ -3349,6 +3387,16 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 wdev->iftype = type;
                 pAdapter->device_mode = (type == NL80211_IFTYPE_AP) ?
                                         WLAN_HDD_SOFTAP : WLAN_HDD_P2P_GO;
+#ifdef QCA_LL_TX_FLOW_CT
+                vos_timer_init(&pAdapter->tx_flow_control_timer,
+                         VOS_TIMER_TYPE_SW,
+                         hdd_softap_tx_resume_timer_expired_handler,
+                         pAdapter);
+                WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
+                         hdd_softap_tx_resume_cb,
+                         pAdapter->sessionId,
+                         (void *)pAdapter);
+#endif /* QCA_LL_TX_FLOW_CT */
                goto done;
            default:
                 hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported interface Type",
