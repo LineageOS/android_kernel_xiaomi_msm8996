@@ -3264,6 +3264,13 @@ REG_VARIABLE( CFG_ACS_BAND_SWITCH_THRESHOLD, WLAN_PARAM_Integer,
               CFG_ACS_BAND_SWITCH_THRESHOLD_DEFAULT,
               CFG_ACS_BAND_SWITCH_THRESHOLD_MIN,
               CFG_ACS_BAND_SWITCH_THRESHOLD_MAX ),
+
+REG_VARIABLE( CFG_SAP_MAX_OFFLOAD_PEERS, WLAN_PARAM_Integer,
+              hdd_config_t, apMaxOffloadPeers,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+              CFG_SAP_MAX_OFFLOAD_PEERS_DEFAULT,
+              CFG_SAP_MAX_OFFLOAD_PEERS_MIN,
+              CFG_SAP_MAX_OFFLOAD_PEERS_MAX ),
 };
 
 /*
@@ -3657,6 +3664,8 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableOverLapCh] Value = [%u] ",pHddCtx->cfg_ini->gEnableOverLapCh);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAcsScanBandPreference] Value = [%u] ",pHddCtx->cfg_ini->acsScanBandPreference);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gMaxOffloadPeers] Value = [%u] ",pHddCtx->cfg_ini->apMaxOffloadPeers);
+
 }
 
 

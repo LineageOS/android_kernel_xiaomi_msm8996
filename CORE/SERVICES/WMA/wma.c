@@ -2681,11 +2681,18 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
 	mac_params->maxStation = ol_get_number_of_peers_supported(scn);
 
-        mac_params->maxBssId = WMA_MAX_SUPPORTED_BSS;
+	mac_params->maxBssId = WMA_MAX_SUPPORTED_BSS;
 	mac_params->frameTransRequired = 0;
 
 	wma_handle->wlan_resource_config.num_wow_filters = mac_params->maxWoWFilters;
 	wma_handle->wlan_resource_config.num_keep_alive_pattern = WMA_MAXNUM_PERIODIC_TX_PTRNS;
+
+	/* The current firmware implementation requires the number of offload peers
+	* should be (number of vdevs + 1).
+	*/
+	wma_handle->wlan_resource_config.num_offload_peers =
+		mac_params->apMaxOffloadPeers;
+
 	wma_handle->ol_ini_info = mac_params->olIniInfo;
 	wma_handle->max_station = mac_params->maxStation;
 	wma_handle->max_bssid = mac_params->maxBssId;
