@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) "2012,2014" The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -135,6 +135,9 @@ static const struct ath_target_reg_info reg_ar6320_v1[] = {
 
 
 #define INVALID_TARGET_INDEX    0xffff
+#define MIN_TARGET_INDEX        0
+#define MAX_TARGET_INDEX        2
+
 struct ath_target_info {
     const char *name;
     const struct ath_target_reg_info *reg_info;
@@ -407,11 +410,14 @@ DumpTargetMem(int dev, unsigned int target_idx, char *pathname)
     A_UINT8 *buffer;
     unsigned int i, address, length, remaining;
 
+    if ((target_idx < MIN_TARGET_INDEX) || (target_idx >= MAX_TARGET_INDEX))
+        return;
+
     buffer = (A_UINT8 *)MALLOC(MAX_BUF);
     if (buffer == NULL)
         return;
-    reg_info = target_info[target_idx].reg_info;
 
+    reg_info = target_info[target_idx].reg_info;
     while ((reg_info->reg_start != 0) || (reg_info->reg_len != 0)) {
         memset(filename, 0, sizeof(filename));
         snprintf(filename, sizeof(filename), "%s%s", pathname,

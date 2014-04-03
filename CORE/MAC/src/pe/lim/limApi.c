@@ -561,8 +561,8 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
    if(cfgSetInt(pMac,  WNI_CFG_HT_AMPDU_PARAMS, *(tANI_U8*)pAmpduParamInfo) !=
       eSIR_SUCCESS)
    {
-      PELOGE(limLog(pMac, LOGE, FL("could not update HT AMPDU Param CFG"));)
-      return eSIR_FAILURE;
+     limLog(pMac, LOGE, FL("cfg get short preamble failed"));
+     return eSIR_FAILURE;
    }
 
    /* WNI_CFG_SHORT_PREAMBLE - this one is not updated in
@@ -1634,7 +1634,7 @@ limUpdateOverlapStaParam(tpAniSirGlobal pMac, tSirMacAddr bssId, tpLimProtStaPar
 
     if (i == LIM_PROT_STA_OVERLAP_CACHE_SIZE)
     {
-        PELOG1(limLog(pMac, LOG1, FL("Overlap cache is full"));)
+       PELOG1(limLog(pMac, LOGW, FL("Overlap cache is full"));)
     }
     else
     {
