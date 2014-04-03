@@ -240,6 +240,9 @@
 #define HDD_BUS_BANDWIDTH_COMPUTE_INTERVAL  3000
 #endif
 
+#define HDD_MIN_TX_POWER (-100) // minimum tx power
+#define HDD_MAX_TX_POWER (+100)  // maximum tx power
+
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
 /*

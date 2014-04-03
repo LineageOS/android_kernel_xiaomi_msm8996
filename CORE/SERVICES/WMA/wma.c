@@ -10166,24 +10166,16 @@ static void wma_set_max_tx_power(WMA_HANDLE handle,
 		ret = 0;
 		goto end;
 	}
-	if (wma_handle->interfaces[vdev_id].tx_power == 0) {
-		ret = 0;
-		goto end;
-	} else if (wma_handle->interfaces[vdev_id].max_tx_power <
-			wma_handle->interfaces[vdev_id].tx_power) {
-		WMA_LOGW("Set MAX TX power limit [WMI_VDEV_PARAM_TX_PWRLIMIT] to %d",
+	WMA_LOGW("Set MAX TX power limit [WMI_VDEV_PARAM_TX_PWRLIMIT] to %d",
+		wma_handle->interfaces[vdev_id].max_tx_power);
+	ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
+			WMI_VDEV_PARAM_TX_PWRLIMIT,
 			wma_handle->interfaces[vdev_id].max_tx_power);
-		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
-				WMI_VDEV_PARAM_TX_PWRLIMIT,
-				wma_handle->interfaces[vdev_id].max_tx_power);
-		if (ret == 0)
-			wma_handle->interfaces[vdev_id].tx_power =
-				wma_handle->interfaces[vdev_id].max_tx_power;
-		else
-			wma_handle->interfaces[vdev_id].max_tx_power = prev_max_power;
-	} else {
-		ret = 0;
-	}
+	if (ret == 0)
+		wma_handle->interfaces[vdev_id].tx_power =
+			wma_handle->interfaces[vdev_id].max_tx_power;
+	else
+		wma_handle->interfaces[vdev_id].max_tx_power = prev_max_power;
 end:
 	vos_mem_free(tx_pwr_params);
 	if (ret)

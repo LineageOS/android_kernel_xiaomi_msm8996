@@ -2324,6 +2324,69 @@ int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate)
    return 0;
 }
 
+/**---------------------------------------------------------------------------
+
+  \brief hdd_parse_setmaxtxpower_command() - HDD Parse MAXTXPOWER command
+
+  This function parses the MAXTXPOWER command passed in the format
+  MAXTXPOWER<space>X(Tx power in dbm)
+  For example input commands:
+  1) MAXTXPOWER -8 -> This is translated into set max TX power to -8 dbm
+  2) MAXTXPOWER -23 -> This is translated into set max TX power to -23 dbm
+
+  \param  - pValue Pointer to MAXTXPOWER command
+  \param  - pDbm Pointer to tx power
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int hdd_parse_setmaxtxpower_command(tANI_U8 *pValue, int *pTxPower)
+{
+    tANI_U8 *inPtr = pValue;
+    int tempInt;
+    int v = 0;
+    *pTxPower = 0;
+
+    inPtr = strnchr(pValue, strlen(pValue), SPACE_ASCII_VALUE);
+    /*no argument after the command*/
+    if (NULL == inPtr)
+    {
+        return -EINVAL;
+    }
+
+    /*no space after the command*/
+    else if (SPACE_ASCII_VALUE != *inPtr)
+    {
+        return -EINVAL;
+    }
+
+    /*removing empty spaces*/
+    while ((SPACE_ASCII_VALUE  == *inPtr) && ('\0' !=  *inPtr)) inPtr++;
+
+    /*no argument followed by spaces*/
+    if ('\0' == *inPtr)
+    {
+        return 0;
+    }
+
+    v = kstrtos32(inPtr, 10, &tempInt);
+
+    /* Range checking for passed parameter */
+    if ( (tempInt < HDD_MIN_TX_POWER) ||
+         (tempInt > HDD_MAX_TX_POWER) )
+    {
+       return -EINVAL;
+    }
+
+    *pTxPower = tempInt;
+
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+       "SETMAXTXPOWER: %d", *pTxPower);
+
+    return 0;
+} /*End of hdd_parse_setmaxtxpower_command*/
+
+
 static int hdd_driver_command(hdd_adapter_t *pAdapter,
                               hdd_priv_data_t *ppriv_data)
 {
@@ -4391,6 +4454,56 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            /* Convert the value from ascii to integer, decimal base */
            ret = kstrtouint(value, 10, &targetRate);
            ret = wlan_hdd_set_mc_rate(pAdapter, targetRate);
+       }
+       else if (strncmp(command, "MAXTXPOWER", 10) == 0)
+       {
+           int status;
+           int txPower;
+           VOS_STATUS vosStatus;
+           eHalStatus smeStatus;
+           tANI_U8 *value = command;
+           hdd_adapter_t      *pAdapter;
+           tSirMacAddr bssid = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+           tSirMacAddr selfMac = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+           hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+
+           status = hdd_parse_setmaxtxpower_command(value, &txPower);
+           if (status)
+           {
+             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "Invalid MAXTXPOWER command ");
+             ret = -EINVAL;
+             goto exit;
+           }
+
+           vosStatus = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+           while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == vosStatus )
+           {
+               pAdapter = pAdapterNode->pAdapter;
+               /* Assign correct self MAC address */
+               vos_mem_copy(bssid, pAdapter->macAddressCurrent.bytes,
+                   VOS_MAC_ADDR_SIZE);
+               vos_mem_copy(selfMac, pAdapter->macAddressCurrent.bytes,
+                   VOS_MAC_ADDR_SIZE);
+
+               hddLog(VOS_TRACE_LEVEL_INFO, "Device mode %d max tx power %d"
+                   " selfMac: " MAC_ADDRESS_STR " bssId: " MAC_ADDRESS_STR " ",
+                   pAdapter->device_mode, txPower, MAC_ADDR_ARRAY(selfMac),
+                   MAC_ADDR_ARRAY(bssid));
+               smeStatus = sme_SetMaxTxPower((tHalHandle)(pHddCtx->hHal), bssid,
+                                                              selfMac, txPower);
+               if (eHAL_STATUS_SUCCESS != status)
+               {
+                   hddLog(VOS_TRACE_LEVEL_ERROR, "%s:Set max tx power failed",
+                      __func__);
+                   ret = -EINVAL;
+                   goto exit;
+               }
+               hddLog(VOS_TRACE_LEVEL_INFO, "%s: Set max tx power success",
+                   __func__);
+               vosStatus = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+               pAdapterNode = pNext;
+           }
        }
        else {
            hddLog( VOS_TRACE_LEVEL_WARN, "%s: Unsupported GUI command %s",
