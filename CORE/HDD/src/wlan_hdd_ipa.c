@@ -56,7 +56,7 @@ Include Files
 #define HDD_IPA_IPV4_NAME_EXT "_ipv4"
 #define HDD_IPA_IPV6_NAME_EXT "_ipv6"
 
-#define HDD_IPA_RX_INACTIVITY_MSEC_DELAY 2000
+#define HDD_IPA_RX_INACTIVITY_MSEC_DELAY 1000
 
 struct llc_snap_hdr {
 	uint8_t dsap;
@@ -124,7 +124,6 @@ enum hdd_ipa_rm_state {
 	HDD_IPA_RM_RELEASED,
 	HDD_IPA_RM_GRANT_PENDING,
 	HDD_IPA_RM_GRANTED,
-	HDD_IPA_RM_RELEASE_PENDING,
 };
 
 #define HDD_IPA_MAX_IFACE 3
@@ -169,6 +168,7 @@ struct hdd_ipa_stats {
 	uint64_t prefilter;
 	uint64_t rm_grant;
 	uint64_t rm_release;
+	uint64_t rm_grant_imm;
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
 	uint64_t rx_ipa_rm_qued;
 #endif
@@ -210,10 +210,6 @@ struct hdd_ipa_priv {
 	struct hdd_ipa_sys_pipe sys_pipe[HDD_IPA_MAX_SYSBAM_PIPE];
 	struct hdd_ipa_iface_context iface_context[HDD_IPA_MAX_IFACE];
 	atomic_t rm_state;
-#ifndef HDD_IPA_USE_IPA_RM_TIMER
-	struct timer_list rm_timer;
-	uint8_t rm_timer_on;
-#endif
 	enum ipa_client_type prod_client;
 
 	uint32_t pending_desc_cnt;
@@ -326,15 +322,11 @@ static int hdd_ipa_rm_request(struct hdd_ipa_priv *hdd_ipa)
 		atomic_set(&hdd_ipa->rm_state, HDD_IPA_RM_GRANTED);
 		return 0;
 	}
-#ifdef HDD_IPA_USE_IPA_RM_TIMER
 	ret = ipa_rm_inactivity_timer_request_resource(
-						IPA_RM_RESOURCE_WLAN_PROD);
-#else
-	ret = ipa_rm_request_resource(IPA_RM_RESOURCE_WLAN_PROD);
-#endif
+			IPA_RM_RESOURCE_WLAN_PROD);
 	if (ret == 0) {
 		atomic_set(&hdd_ipa->rm_state, HDD_IPA_RM_GRANTED);
-		hdd_ipa->stats.rm_grant++;
+		hdd_ipa->stats.rm_grant_imm++;
 	}
 	return ret;
 }
@@ -346,12 +338,8 @@ static int hdd_ipa_rm_release(struct hdd_ipa_priv *hdd_ipa)
 	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
 		return 0;
 
-#ifdef HDD_IPA_USE_IPA_RM_TIMER
 	ret = ipa_rm_inactivity_timer_release_resource(
-						IPA_RM_RESOURCE_WLAN_PROD);
-#else
-	ret = ipa_rm_release_resource(IPA_RM_RESOURCE_WLAN_PROD);
-#endif
+			IPA_RM_RESOURCE_WLAN_PROD);
 	if (ret == 0) {
 		atomic_set(&hdd_ipa->rm_state, HDD_IPA_RM_RELEASED);
 		hdd_ipa->stats.rm_release++;
@@ -368,16 +356,29 @@ static void hdd_ipa_rm_notify(void *user_data, enum ipa_rm_event event,
 
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "Evt: %d", event);
 
-	if (event == IPA_RM_RESOURCE_GRANTED) {
+	switch(event) {
+	case IPA_RM_RESOURCE_GRANTED:
 		atomic_set(&hdd_ipa->rm_state, HDD_IPA_RM_GRANTED);
 		hdd_ipa->stats.rm_grant++;
 		hdd_ipa_process_evt(HDD_IPA_RM_GRANT_EVT, NULL);
-	} else {
-		if (event == IPA_RM_RESOURCE_RELEASED) {
-			atomic_set(&hdd_ipa->rm_state, HDD_IPA_RM_RELEASED);
-			hdd_ipa->stats.rm_release++;
-		}
+		break;
+	case IPA_RM_RESOURCE_RELEASED:
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "RM Release not expected!");
+		break;
+	default:
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Unknow RM Evt: %d", event);
+		break;
 	}
+}
+
+static int hdd_ipa_rm_cons_release(void)
+{
+	return 0;
+}
+
+static int hdd_ipa_rm_cons_request(void)
+{
+	return 0;
 }
 
 static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
@@ -387,11 +388,10 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 
 	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
 		return 0;
+	memset(&create_params, 0, sizeof(create_params));
 	create_params.name = IPA_RM_RESOURCE_WLAN_PROD;
 	create_params.reg_params.user_data = hdd_ipa;
 	create_params.reg_params.notify_cb = hdd_ipa_rm_notify;
-	create_params.request_resource = NULL;
-	create_params.release_resource = NULL;
 
 	ret = ipa_rm_create_resource(&create_params);
 	if (ret) {
@@ -399,14 +399,27 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 		goto setup_rm_fail;
 	}
 
-#ifdef HDD_IPA_USE_IPA_RM_TIMER
+	memset(&create_params, 0, sizeof(create_params));
+	create_params.name = IPA_RM_RESOURCE_WLAN_CONS;
+	create_params.request_resource= hdd_ipa_rm_cons_request;
+	create_params.release_resource= hdd_ipa_rm_cons_release;
+
+	ret = ipa_rm_create_resource(&create_params);
+	if (ret) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"Create RM CONS resource failed");
+		goto setup_rm_fail;
+	}
+
+	ipa_rm_add_dependency(IPA_RM_RESOURCE_WLAN_PROD,
+			IPA_RM_RESOURCE_APPS_CONS);
+
 	ret = ipa_rm_inactivity_timer_init(IPA_RM_RESOURCE_WLAN_PROD,
 					HDD_IPA_RX_INACTIVITY_MSEC_DELAY);
 	if (ret) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Timer init failed");
 		goto setup_rm_fail;
 	}
-#endif
 
 	atomic_set(&hdd_ipa->rm_state, HDD_IPA_RM_RELEASED);
 
@@ -421,20 +434,11 @@ static void hdd_ipa_destory_rm_resource(struct hdd_ipa_priv *hdd_ipa)
 	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
 		return;
 
-#ifdef HDD_IPA_USE_IPA_RM_TIMER
 	ipa_rm_inactivity_timer_destroy(IPA_RM_RESOURCE_WLAN_PROD);
-#endif
+
 	ret = ipa_rm_delete_resource(IPA_RM_RESOURCE_WLAN_PROD);
 	if (ret)
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "RM resource delete failed");
-}
-
-static void hdd_ipa_rm_timer_handler(unsigned long ptr)
-{
-	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
-	atomic_set(&hdd_ipa->rm_state,
-			 HDD_IPA_RM_RELEASE_PENDING);
-	hdd_ipa_rm_release(hdd_ipa);
 }
 
 static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
@@ -467,104 +471,98 @@ static void hdd_ipa_send_pkt_to_ipa(struct ipa_tx_data_desc *send_desc_head,
 	uint32_t cur_send_cnt = 0;
 	adf_nbuf_t buf;
 
-#ifndef HDD_IPA_USE_IPA_RM_TIMER
-		if (hdd_ipa->rm_timer_on) {
-			del_timer(&hdd_ipa->rm_timer);
-			hdd_ipa->rm_timer_on = 0;
-		}
-#endif
-		/* In RM GRANT CTX send_desc_head is null */
-		if (!send_desc_head) {
-			send_desc_head = hdd_ipa_get_desc_from_freeq();
-			if (!send_desc_head)
-				return;
+	/* In RM GRANT CTX send_desc_head is null */
+	if (!send_desc_head) {
+		send_desc_head = hdd_ipa_get_desc_from_freeq();
+		if (!send_desc_head)
+			return;
 
-			INIT_LIST_HEAD(&send_desc_head->link);
-		}
+		INIT_LIST_HEAD(&send_desc_head->link);
+	}
 
-		spin_lock_bh(&hdd_ipa->q_lock);
-		if ((hdd_ipa->pending_desc_cnt + send_desc_cnt)
-						< hdd_ipa->hw_desc_cnt) {
+	spin_lock_bh(&hdd_ipa->q_lock);
+	if ((hdd_ipa->pending_desc_cnt + send_desc_cnt)
+			< hdd_ipa->hw_desc_cnt) {
 
-			if (!list_empty(&hdd_ipa->pend_desc_head)) {
-				list_splice_tail_init(&send_desc_head->link,
-						&hdd_ipa->pend_desc_head);
-				while ((hdd_ipa->pending_desc_cnt <
+		if (!list_empty(&hdd_ipa->pend_desc_head)) {
+			list_splice_tail_init(&send_desc_head->link,
+					&hdd_ipa->pend_desc_head);
+			while ((hdd_ipa->pending_desc_cnt <
 						hdd_ipa->hw_desc_cnt) &&
 					!(list_empty(
 						&hdd_ipa->pend_desc_head))) {
-					send_desc = list_first_entry(
+				send_desc = list_first_entry(
 						&ghdd_ipa->pend_desc_head,
 						struct ipa_tx_data_desc, link);
-					list_del(&send_desc->link);
-					list_add_tail(&send_desc->link,
-						 &send_desc_head->link);
-					hdd_ipa->pending_desc_cnt++;
-					cur_send_cnt++;
-				}
-			} else {
-				hdd_ipa->pending_desc_cnt += send_desc_cnt;
-				cur_send_cnt = send_desc_cnt;
+				list_del(&send_desc->link);
+				list_add_tail(&send_desc->link,
+						&send_desc_head->link);
+				hdd_ipa->pending_desc_cnt++;
+				cur_send_cnt++;
 			}
-			hdd_ipa->stats.rx_ipa_sent_desc_cnt += cur_send_cnt;
+		} else {
+			hdd_ipa->pending_desc_cnt += send_desc_cnt;
+			cur_send_cnt = send_desc_cnt;
+		}
+		hdd_ipa->stats.rx_ipa_sent_desc_cnt += cur_send_cnt;
 
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
-			hdd_ipa->stats.rx_ipa_dh_sent++; /* for desc head */
+		hdd_ipa->stats.rx_ipa_dh_sent++; /* for desc head */
 #endif
-			spin_unlock_bh(&hdd_ipa->q_lock);
-			if (ipa_tx_dp_mul(hdd_ipa->prod_client,
-							send_desc_head) != 0) {
-				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-						"ipa_tx_dp_mul failed!!!"
-						" (cur_send_cnt=%d)",
-						cur_send_cnt);
-				hdd_ipa->stats.tx_dp_err_cnt++;
-				spin_lock_bh(&hdd_ipa->q_lock);
+		spin_unlock_bh(&hdd_ipa->q_lock);
+		if (ipa_tx_dp_mul(hdd_ipa->prod_client,
+					send_desc_head) != 0) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+					"ipa_tx_dp_mul failed!!!"
+					" (cur_send_cnt=%d)",
+					cur_send_cnt);
+			hdd_ipa->stats.tx_dp_err_cnt++;
+			spin_lock_bh(&hdd_ipa->q_lock);
 
-				list_for_each_entry_safe(desc, tmp,
-						&send_desc_head->link, link) {
-					list_del(&desc->link);
-					buf = desc->priv;
-					adf_nbuf_free(buf);
-					desc->priv = NULL;
-					desc->pyld_buffer = NULL;
-					desc->pyld_len = 0;
-					list_add_tail(&desc->link,
-						&hdd_ipa->free_desc_head);
-					hdd_ipa->stats.freeq_cnt++;
-#ifdef HDD_IPA_EXTRA_DP_COUNTERS
-					hdd_ipa->stats.freeq_reclaim++;
-#endif
-					hdd_ipa->pending_desc_cnt--;
-				}
-
-				/* return anchor node */
-				list_add_tail(&send_desc_head->link,
+			list_for_each_entry_safe(desc, tmp,
+					&send_desc_head->link, link) {
+				list_del(&desc->link);
+				buf = desc->priv;
+				adf_nbuf_free(buf);
+				desc->priv = NULL;
+				desc->pyld_buffer = NULL;
+				desc->pyld_len = 0;
+				list_add_tail(&desc->link,
 						&hdd_ipa->free_desc_head);
 				hdd_ipa->stats.freeq_cnt++;
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
-				hdd_ipa->stats.rx_ipa_dh_reclaim++;
 				hdd_ipa->stats.freeq_reclaim++;
 #endif
 				spin_unlock_bh(&hdd_ipa->q_lock);
 			}
-		} else {
-#ifdef HDD_IPA_EXTRA_DP_COUNTERS
-			hdd_ipa->stats.rx_ipa_hw_max_qued += send_desc_cnt;
-#endif
 
-			hdd_ipa->stats.rx_ipa_hw_maxed_out++;
-			list_splice_tail_init(&send_desc_head->link,
-					&hdd_ipa->pend_desc_head);
+			/* return anchor node */
 			list_add_tail(&send_desc_head->link,
 					&hdd_ipa->free_desc_head);
 			hdd_ipa->stats.freeq_cnt++;
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
-			hdd_ipa->stats.rx_ipa_dh_not_used++;
+			hdd_ipa->stats.rx_ipa_dh_reclaim++;
 			hdd_ipa->stats.freeq_reclaim++;
 #endif
 			spin_unlock_bh(&hdd_ipa->q_lock);
 		}
+	} else {
+#ifdef HDD_IPA_EXTRA_DP_COUNTERS
+		hdd_ipa->stats.rx_ipa_hw_max_qued += send_desc_cnt;
+#endif
+
+		hdd_ipa->stats.rx_ipa_hw_maxed_out++;
+		list_splice_tail_init(&send_desc_head->link,
+				&hdd_ipa->pend_desc_head);
+		list_add_tail(&send_desc_head->link,
+				&hdd_ipa->free_desc_head);
+		hdd_ipa->stats.freeq_cnt++;
+#ifdef HDD_IPA_EXTRA_DP_COUNTERS
+		hdd_ipa->stats.rx_ipa_dh_not_used++;
+		hdd_ipa->stats.freeq_reclaim++;
+#endif
+		spin_unlock_bh(&hdd_ipa->q_lock);
+	}
 
 }
 
@@ -773,19 +771,8 @@ rxt_end:
 
 		if (list_empty(&hdd_ipa->pend_desc_head)) {
 			if (atomic_read(&hdd_ipa->rm_state)
-						!= HDD_IPA_RM_RELEASE_PENDING) {
-#ifndef HDD_IPA_USE_IPA_RM_TIMER
-				del_timer(&hdd_ipa->rm_timer);
-				mod_timer(&hdd_ipa->rm_timer,
-					jiffies +
-					msecs_to_jiffies(
-					HDD_IPA_RX_INACTIVITY_MSEC_DELAY));
-				hdd_ipa->rm_timer_on = 1;
-#else
-				atomic_set(&hdd_ipa->rm_state,
-						 HDD_IPA_RM_RELEASE_PENDING);
+						== HDD_IPA_RM_GRANTED) {
 				hdd_ipa_rm_release(hdd_ipa);
-#endif
 			}
 		} else {
 			/* no rx pkt come in so flash the last few */
@@ -1534,10 +1521,14 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 	len += scnprintf(buf + len, buf_len - len, "%25s\n\n",
 	 "===========");
 
+	len += scnprintf(buf + len, buf_len - len, "%20s %10d\n",
+	 "RM State: ", atomic_read(&hdd_ipa->rm_state));
 	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n",
 	 "RM Grants: ", hdd_ipa->stats.rm_grant);
 	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n",
 	 "RM Releases: ", hdd_ipa->stats.rm_release);
+	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n",
+	 "RM Grants Imm: ", hdd_ipa->stats.rm_grant_imm);
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
 	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n",
 	 "IPA RM Qued:", hdd_ipa->stats.rx_ipa_rm_qued);
@@ -1698,12 +1689,6 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 	if (ret)
 		goto fail_alloc_rx_pipe_desc;
 
-#ifndef HDD_IPA_USE_IPA_RM_TIMER
-	setup_timer(&hdd_ipa->rm_timer, hdd_ipa_rm_timer_handler,
-						 (unsigned long) &hdd_ipa);
-#endif
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "IPA Init Done");
-
 	return VOS_STATUS_SUCCESS;
 fail_alloc_rx_pipe_desc:
 	hdd_ipa_rx_pipe_desc_free();
@@ -1725,9 +1710,6 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 
 	hdd_ipa_debugfs_remove(hdd_ipa);
 
-#ifndef HDD_IPA_USE_IPA_RM_TIMER
-	del_timer(&hdd_ipa->rm_timer);
-#endif
 	if (hdd_ipa->pending_desc_cnt != 0) {
 		msleep(5);
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL, "IPA Pending");

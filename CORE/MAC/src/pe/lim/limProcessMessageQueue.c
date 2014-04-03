@@ -78,9 +78,10 @@
 #include "vos_packet.h"
 #include "vos_memory.h"
 
+#ifdef QCA_WIFI_ISOC
 /* This value corresponds to 500 ms */
 #define MAX_PROBEREQ_TIME 5000
-
+#endif
 void limLogSessionStates(tpAniSirGlobal pMac);
 
 /** -------------------------------------------------------------
@@ -1055,7 +1056,7 @@ void limProcessOemDataRsp(tpAniSirGlobal pMac, tANI_U32* body)
 }
 
 #endif
-
+#ifdef QCA_WIFI_ISOC
 static tANI_BOOLEAN limAgeOutProbeReq( tpAniSirGlobal pMac, tpSirMsgQ  limMsg,
                                        vos_pkt_t  *pVosPkt )
 {
@@ -1083,7 +1084,7 @@ static tANI_BOOLEAN limAgeOutProbeReq( tpAniSirGlobal pMac, tpSirMsgQ  limMsg,
 
     return match;
 }
-
+#endif
 
 /**
  * limProcessMessages
@@ -1244,7 +1245,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                     break;
 
                 }
-
+#ifdef QCA_WIFI_ISOC
                 /*
                 * putting a check for age out probe request frames
                 * such that any probe req more than 0.5 sec old can directly
@@ -1255,7 +1256,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 {
                    break;
                 }
-
+#endif
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
                 /*
                  * TDLS frames comes as translated frames as well as

@@ -3814,6 +3814,10 @@ VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac)
                                 (tANI_U8 *)pMac->roam.validChannelList,
                                 (tANI_U32 *) &numOfChannels)))
             {
+                if (numOfChannels > WNI_CFG_VALID_CHANNEL_LIST_LEN)
+                {
+                    numOfChannels = WNI_CFG_VALID_CHANNEL_LIST_LEN;
+                }
 #ifdef FEATURE_WLAN_LFR
                 /*
                  * Prepare non-occupied channel list (channelList)
