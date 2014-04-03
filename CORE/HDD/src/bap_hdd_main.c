@@ -769,7 +769,7 @@ static void BslReleasePhyCtx
     BslPhyLinkCtxType* pPhyCtx
 )
 {
-    v_U32_t OldMapVal;
+    uintptr_t OldMapVal;
     VOS_STATUS VosStatus = VOS_STATUS_SUCCESS;
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslReleasePhyCtx\n" );
@@ -781,8 +781,8 @@ static void BslReleasePhyCtx
 
 
     // update the phy link handle based map so TX data is stopped from flowing through
-    OldMapVal = vos_atomic_set_U32( (v_U32_t *) (BslPhyLinkMap[pPhyCtx->PhyLinkHdl].ptr),
-                                    (v_U32_t) 0 );
+    OldMapVal = vos_atomic_set( (uintptr_t *) (BslPhyLinkMap[pPhyCtx->PhyLinkHdl].ptr),
+                                    (uintptr_t) 0 );
 
     // clear out the Tx Queues
     VosStatus =  BslFlushTxQueues(pPhyCtx);
@@ -1212,8 +1212,8 @@ static VOS_STATUS WLANBAP_EventCB
             else
             {
                 // update the phy link handle based map so TX data can start flowing through
-                OldMapVal = vos_atomic_set_U32( (v_U32_t *)BslPhyLinkMap+pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.phy_link_handle,
-                                                (v_U32_t) pHddHdl );
+                OldMapVal = vos_atomic_set( (uintptr_t*)BslPhyLinkMap+pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.phy_link_handle,
+                                                (uintptr_t) pHddHdl );
 
 //                  VOS_ASSERT( OldMapVal == 0 );//Commented to test reconnect
             }
@@ -1228,8 +1228,8 @@ static VOS_STATUS WLANBAP_EventCB
         {
             //We need to update the phy link handle here to be able to reissue physical link accept
             // update the phy link handle based map so TX data can start flowing through
-            OldMapVal = vos_atomic_set_U32( (v_U32_t *)BslPhyLinkMap+pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.phy_link_handle,
-                                            (v_U32_t) pHddHdl );
+            OldMapVal = vos_atomic_set( (uintptr_t*)BslPhyLinkMap+pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.phy_link_handle,
+                                            (uintptr_t) pHddHdl );
 
 //                  VOS_ASSERT( OldMapVal == 0 );//Commented to test reconnect
 
@@ -1240,8 +1240,8 @@ static VOS_STATUS WLANBAP_EventCB
         {
             //We need to update the phy link handle here to be able to reissue physical link /create/accept
             // update the phy link handle based map so TX data can start flowing through
-            OldMapVal = vos_atomic_set_U32( (v_U32_t *)BslPhyLinkMap+pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.phy_link_handle,
-                                            (v_U32_t) pHddHdl );
+            OldMapVal = vos_atomic_set( (uintptr_t*)BslPhyLinkMap+pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.phy_link_handle,
+                                            (uintptr_t) pHddHdl );
 //                  VOS_ASSERT( OldMapVal == 0 );//Commented to test reconnect
 
             BslReleasePhyCtx( (BslPhyLinkCtxType *)pHddHdl );
