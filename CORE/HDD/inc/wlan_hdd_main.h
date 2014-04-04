@@ -1526,4 +1526,6 @@ void wlan_hdd_send_svc_nlink_msg(int type);
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_U8_t enable);
 #endif
+
+boolean hdd_is_5g_supported(hdd_context_t * pHddCtx);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
