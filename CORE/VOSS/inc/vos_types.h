@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -147,6 +147,12 @@ typedef enum
     VOS_MAX_NO_OF_MODE
 } tVOS_CON_MODE;
 
+#ifdef WLAN_OPEN_P2P_INTERFACE
+#define VOS_MAX_CONCURRENCY_PERSONA    4  // This should match with WLAN_MAX_INTERFACES
+#else
+#define VOS_MAX_CONCURRENCY_PERSONA    3
+#endif
+
 //This is a bit pattern to be set for each mode
 //bit 0 - sta mode
 //bit 1 - ap mode
@@ -159,7 +165,6 @@ typedef enum
     VOS_STA_SAP=3, //to support sta, softAp  mode . This means STA+AP mode
     VOS_P2P_CLIENT=4,
     VOS_P2P_GO=8,
-    VOS_MAX_CONCURRENCY_PERSONA=4
 } tVOS_CONCURRENCY_MODE;
 
 #if !defined( NULL )

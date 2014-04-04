@@ -1211,6 +1211,9 @@ eHalStatus sme_Open(tHalHandle hHal)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+#ifndef WLAN_FEATURE_MBSSID
+   v_PVOID_t pvosGCtx = vos_get_global_context(VOS_MODULE_ID_SAP, NULL);
+#endif
 
    do {
       pMac->sme.state = SME_STATE_STOP;
@@ -1288,21 +1291,21 @@ eHalStatus sme_Open(tHalHandle hHal)
       if(!HAL_STATUS_SUCCESS((status = initSmeCmdList(pMac))))
           break;
 
-      {
-         v_PVOID_t pvosGCtx = vos_get_global_context(VOS_MODULE_ID_SAP, NULL);
-         if ( NULL == pvosGCtx ){
-            smsLog( pMac, LOGE, "WLANSAP_Open open failed during initialization");
-            status = eHAL_STATUS_FAILURE;
-            break;
-         }
-
-         status = WLANSAP_Open( pvosGCtx );
-         if ( ! HAL_STATUS_SUCCESS( status ) ) {
-             smsLog( pMac, LOGE,
-                     "WLANSAP_Open open failed during initialization with status=%d", status );
-             break;
-         }
+#ifndef WLAN_FEATURE_MBSSID
+      if ( NULL == pvosGCtx ){
+         smsLog( pMac, LOGE, "WLANSAP_Open open failed during initialization");
+         status = eHAL_STATUS_FAILURE;
+         break;
       }
+
+      status = WLANSAP_Open( pvosGCtx );
+      if ( ! HAL_STATUS_SUCCESS( status ) ) {
+          smsLog( pMac, LOGE,
+                  "WLANSAP_Open open failed during initialization with status=%d", status );
+          break;
+      }
+#endif
+
 #if defined WLAN_FEATURE_VOWIFI
       status = rrmOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
@@ -1918,12 +1921,15 @@ eHalStatus sme_Start(tHalHandle hHal)
           }
       }
 
+#ifndef WLAN_FEATURE_MBSSID
       status = WLANSAP_Start(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
          smsLog( pMac, LOGE, "WLANSAP_Start failed during smeStart with status=%d",
                  status );
          break;
       }
+#endif
+
       pMac->sme.state = SME_STATE_START;
    }while (0);
 
@@ -2702,12 +2708,14 @@ eHalStatus sme_Stop(tHalHandle hHal, tHalStopType stopType)
    eHalStatus fail_status = eHAL_STATUS_SUCCESS;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+#ifndef WLAN_FEATURE_MBSSID
    status = WLANSAP_Stop(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
       smsLog( pMac, LOGE, "WLANSAP_Stop failed during smeStop with status=%d",
                           status );
       fail_status = status;
    }
+#endif
 
    p2pStop(hHal);
 
@@ -2784,12 +2792,14 @@ eHalStatus sme_Close(tHalHandle hHal)
       fail_status = status;
    }
 
+#ifndef WLAN_FEATURE_MBSSID
    status = WLANSAP_Close(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
       smsLog( pMac, LOGE, "WLANSAP_close failed during sme close with status=%d",
               status );
       fail_status = status;
    }
+#endif
 
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
    status = btcClose(hHal);
@@ -6415,6 +6425,8 @@ eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback,
 {
    eHalStatus status;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: type=%d, subType=%d", __func__, type, subType);
 
    if( NULL == pbSessionId )
    {

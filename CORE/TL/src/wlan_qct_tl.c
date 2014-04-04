@@ -7597,6 +7597,7 @@ WLANTL_STARxConn
    v_PVOID_t                aucBDHeader;
    v_U8_t                   ucTid;
    WLANTL_RxMetaInfoType    wRxMetaInfo;
+
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -7740,7 +7741,11 @@ WLANTL_STARxConn
                "WLAN TL %s:Sending data chain to station", __func__));
       if ( WLAN_STA_SOFTAP == pClientSTA->wSTADesc.wSTAType )
       {
+#ifdef WLAN_FEATURE_MBSSID
+        wRxMetaInfo.ucDesSTAId = pClientSTA->wSTADesc.ucSTAId;
+#else
         wRxMetaInfo.ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
+#endif
         pClientSTA->pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
                                             &wRxMetaInfo );
       }
@@ -7877,16 +7882,25 @@ WLANTL_FwdPktToHDD
          if (vos_is_macaddr_equal(pDestMacAddress, &pClientSTA->wSTADesc.vSelfMACAddress))
          {
             // destination is AP itself
+#ifdef WLAN_FEATURE_MBSSID
+            ucDesSTAId = pClientSTA->wSTADesc.ucSTAId;
+#else
             ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
+#endif
             TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-                     "%s: packet to AP itself, id %d", __func__, WLAN_RX_SAP_SELF_STA_ID));
+                                "%s: packet to AP itself, id %d", __func__, ucDesSTAId));
          }
          else if (( WLAN_MAX_STA_COUNT <= ucDesSTAId ) || (NULL != pTLCb->atlSTAClients[ucDesSTAId] && pTLCb->atlSTAClients[ucDesSTAId]->ucExists == 0))
          {
             // destination station is something else
             TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-                 "%s: get an station index larger than WLAN_MAX_STA_COUNT %d", __func__, ucDesSTAId));
+                 "%s: get an station index larger than WLAN_MAX_STA_COUNT %d\n", __func__, ucDesSTAId));
+
+#ifdef WLAN_FEATURE_MBSSID
+            ucDesSTAId = pClientSTA->wSTADesc.ucSTAId;
+#else
             ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
+#endif
          }
 
 

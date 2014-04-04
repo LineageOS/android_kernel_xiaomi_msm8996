@@ -1128,7 +1128,9 @@ CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN
 endif
 
 #Open P2P device interface only for non-MDM9630 platform
-ifneq ($(CONFIG_ARCH_MDM9630), y)
+ifeq ($(CONFIG_ARCH_MDM9630), y)
+CDEFINES += -DWLAN_FEATURE_MBSSID
+else
 CDEFINES += -DWLAN_OPEN_P2P_INTERFACE
 endif
 
