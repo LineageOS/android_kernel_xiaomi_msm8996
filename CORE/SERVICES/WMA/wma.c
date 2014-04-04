@@ -12025,6 +12025,8 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 		return "AUTH_REQ_RECV";
 	case WOW_REASON_ASSOC_REQ_RECV:
 		return "ASSOC_REQ_RECV";
+	case WOW_REASON_HTT_EVENT:
+		return "WOW_REASON_HTT_EVENT";
 	}
 	return "unknown";
 }
@@ -12171,6 +12173,9 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		wma_lphb_handler(wma, (u_int8_t *)param_buf->hb_indevt);
 		break;
 #endif
+
+	case WOW_REASON_HTT_EVENT:
+		break;
 
 	default:
 		break;
@@ -12868,6 +12873,14 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	} else {
 		WMA_LOGD("Roaming scan better AP based wakeup is enabled in fw");
 	}
+
+	/* Configure ADDBA/DELBA wakeup */
+	ret = wma_add_wow_wakeup_event(wma, WOW_HTT_EVENT, TRUE);
+
+	if (ret != VOS_STATUS_SUCCESS)
+		WMA_LOGE("Failed to Configure WOW_HTT_EVENT to FW");
+	else
+		WMA_LOGD("Successfully Configured WOW_HTT_EVENT to FW");
 
 	/* WOW is enabled in pcie suspend callback */
 	wma->wow.wow_enable = TRUE;
