@@ -930,7 +930,7 @@ sapFsm
     v_U32_t msg = sapEvent->event;  /* State machine input event message */
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
 
-    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG, "%s: sapContext=0x%x, stateVar=%d, msg=0x%x", __func__, (unsigned int)sapContext, stateVar, msg);
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG, "%s: sapContext=%p, stateVar=%d, msg=0x%x", __func__, sapContext, stateVar, msg);
 
     switch (stateVar)
     {
