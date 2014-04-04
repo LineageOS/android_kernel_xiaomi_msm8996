@@ -274,6 +274,11 @@
 #define CFG_REG_CHANGE_DEF_COUNTRY_MIN           ( 0 )
 #define CFG_REG_CHANGE_DEF_COUNTRY_MAX           ( 1 )
 
+#define CFG_ADVERTISE_CONCURRENT_OPERATION_NAME    "gAdvertiseConcurrentOperation"
+#define CFG_ADVERTISE_CONCURRENT_OPERATION_DEFAULT ( 1 )
+#define CFG_ADVERTISE_CONCURRENT_OPERATION_MIN     ( 0 )
+#define CFG_ADVERTISE_CONCURRENT_OPERATION_MAX     ( 1 )
+
 typedef enum
 {
     eHDD_DOT11_MODE_AUTO = 0, //covers all things we support
@@ -2816,6 +2821,7 @@ typedef struct
 #endif /* QCA_LL_TX_FLOW_CT */
    v_U16_t                     acsBandSwitchThreshold;
    v_U8_t                      apMaxOffloadPeers;
+   v_BOOL_t                    advertiseConcurrentOperation;
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation
