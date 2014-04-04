@@ -2293,25 +2293,35 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_SET_TXPOWER_LIMIT5G_DEFAULT            ( 15 )
 
 #ifdef QCA_LL_TX_FLOW_CT
-#define CFG_LL_TX_STA_FLOW_LWM                     "TxStaFlowLowWaterMark"
-#define CFG_LL_TX_STA_FLOW_LWM_MIN                 ( 0 )
-#define CFG_LL_TX_STA_FLOW_LWM_MAX                 ( 1000 )
-#define CFG_LL_TX_STA_FLOW_LWM_DEFAULT             ( 406 )
+#define CFG_LL_TX_LBW_FLOW_LWM                     "TxLbwFlowLowWaterMark"
+#define CFG_LL_TX_LBW_FLOW_LWM_MIN                 ( 0 )
+#define CFG_LL_TX_LBW_FLOW_LWM_MAX                 ( 1000 )
+#define CFG_LL_TX_LBW_FLOW_LWM_DEFAULT             ( 650 )
 
-#define CFG_LL_TX_STA_FLOW_HWM_OFFSET              "TxStaFlowHighWaterMarkOffset"
-#define CFG_LL_TX_STA_FLOW_HWM_OFFSET_MIN          ( 0 )
-#define CFG_LL_TX_STA_FLOW_HWM_OFFSET_MAX          ( 300 )
-#define CFG_LL_TX_STA_FLOW_HWM_OFFSET_DEFAULT      ( 50 )
+#define CFG_LL_TX_LBW_FLOW_HWM_OFFSET              "TxLbwFlowHighWaterMarkOffset"
+#define CFG_LL_TX_LBW_FLOW_HWM_OFFSET_MIN          ( 0 )
+#define CFG_LL_TX_LBW_FLOW_HWM_OFFSET_MAX          ( 300 )
+#define CFG_LL_TX_LBW_FLOW_HWM_OFFSET_DEFAULT      ( 50 )
 
-#define CFG_LL_TX_IBSS_FLOW_LWM                    "TxIbssFlowLowWaterMark"
-#define CFG_LL_TX_IBSS_FLOW_LWM_MIN                ( 0 )
-#define CFG_LL_TX_IBSS_FLOW_LWM_MAX                ( 1000 )
-#define CFG_LL_TX_IBSS_FLOW_LWM_DEFAULT            ( 550 )
+#define CFG_LL_TX_LBW_FLOW_MAX_Q_DEPTH             "TxLbwFlowMaxQueueDepth"
+#define CFG_LL_TX_LBW_FLOW_MAX_Q_DEPTH_MIN         ( 400 )
+#define CFG_LL_TX_LBW_FLOW_MAX_Q_DEPTH_MAX         ( 3500 )
+#define CFG_LL_TX_LBW_FLOW_MAX_Q_DEPTH_DEFAULT     ( 750 )
 
-#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET             "TxIbssFlowHighWaterMarkOffset"
-#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET_MIN         ( 0 )
-#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET_MAX         ( 300 )
-#define CFG_LL_TX_IBSS_FLOW_HWM_OFFSET_DEFAULT     ( 50 )
+#define CFG_LL_TX_HBW_FLOW_LWM                     "TxHbwFlowLowWaterMark"
+#define CFG_LL_TX_HBW_FLOW_LWM_MIN                 ( 0 )
+#define CFG_LL_TX_HBW_FLOW_LWM_MAX                 ( 1000 )
+#define CFG_LL_TX_HBW_FLOW_LWM_DEFAULT             ( 406 )
+
+#define CFG_LL_TX_HBW_FLOW_HWM_OFFSET              "TxHbwFlowHighWaterMarkOffset"
+#define CFG_LL_TX_HBW_FLOW_HWM_OFFSET_MIN          ( 0 )
+#define CFG_LL_TX_HBW_FLOW_HWM_OFFSET_MAX          ( 300 )
+#define CFG_LL_TX_HBW_FLOW_HWM_OFFSET_DEFAULT      ( 50 )
+
+#define CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH             "TxHbwFlowMaxQueueDepth"
+#define CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH_MIN         ( 400 )
+#define CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH_MAX         ( 3500 )
+#define CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH_DEFAULT     ( 1500 )
 #endif /* QCA_LL_TX_FLOW_CT */
 /*---------------------------------------------------------------------------
   Type declarations
@@ -2789,10 +2799,12 @@ typedef struct
    v_BOOL_t                    fRegChangeDefCountry;
    v_U8_t                      acsScanBandPreference;
 #ifdef QCA_LL_TX_FLOW_CT
-   v_U32_t                     TxStaFlowLowWaterMark;
-   v_U32_t                     TxStaFlowHighWaterMarkOffset;
-   v_U32_t                     TxIbssFlowLowWaterMark;
-   v_U32_t                     TxIbssFlowHighWaterMarkOffset;
+   v_U32_t                     TxLbwFlowLowWaterMark;
+   v_U32_t                     TxLbwFlowHighWaterMarkOffset;
+   v_U32_t                     TxLbwFlowMaxQueueDepth;
+   v_U32_t                     TxHbwFlowLowWaterMark;
+   v_U32_t                     TxHbwFlowHighWaterMarkOffset;
+   v_U32_t                     TxHbwFlowMaxQueueDepth;
 #endif /* QCA_LL_TX_FLOW_CT */
    v_U16_t                     acsBandSwitchThreshold;
 } hdd_config_t;

@@ -296,6 +296,12 @@ extern spinlock_t hdd_context_lock;
 #endif
 #endif
 
+#ifdef QCA_LL_TX_FLOW_CT
+/* MAX OS Q block time value in msec
+ * Prevent from permanent stall, resume OS Q if timer expired */
+#define WLAN_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME 1000
+#define WLAN_HDD_TX_FLOW_CONTROL_MAX_24BAND_CH   14
+#endif /* QCA_LL_TX_FLOW_CT */
 
 typedef struct hdd_tx_rx_stats_s
 {
@@ -1058,6 +1064,8 @@ struct hdd_adapter_s
 
 #ifdef QCA_LL_TX_FLOW_CT
     vos_timer_t  tx_flow_control_timer;
+    unsigned int tx_flow_low_watermark;
+    unsigned int tx_flow_high_watermark_offset;
 #endif /* QCA_LL_TX_FLOW_CT */
 };
 
