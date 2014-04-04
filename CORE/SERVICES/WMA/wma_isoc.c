@@ -448,7 +448,6 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
 			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
 
-#if 0 /*FIXME_PRIMA : Enable this after the RA is enabled in HAL*/
 	/* QWLAN_HAL_CFG_DEFAULT_RATE_INDEX_24GHZ   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_DEFAULT_RATE_INDEX_24GHZ  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
@@ -462,7 +461,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	}
 	tlv_struct = (tHalCfg *)( (v_U8_t *) tlv_struct
 			+ sizeof(tHalCfg) + tlv_struct->uCfgLen);
-#endif
+
 	/* QWLAN_HAL_CFG_DEFAULT_RATE_INDEX_5GHZ   */
 	tlv_struct->uCfgId = QWLAN_HAL_CFG_DEFAULT_RATE_INDEX_5GHZ  ;
 	tlv_struct->uCfgLen = sizeof(tANI_U32);
