@@ -256,64 +256,50 @@ typedef struct
 #define RC_2_RATE_IDX_11AC(_rc)         ((_rc) & 0xf)
 #define HT_RC_2_STREAMS_11AC(_rc)       ((((_rc) & 0x30) >> 4) + 1)
 
-/* Private ioctl for firmware debug log */
-#define QCSAP_DBGLOG_LOG_LEVEL             31
-#define QCSAP_DBGLOG_VAP_ENABLE            32
-#define QCSAP_DBGLOG_VAP_DISABLE           33
-#define QCSAP_DBGLOG_MODULE_ENABLE         34
-#define QCSAP_DBGLOG_MODULE_DISABLE        35
-#define QCSAP_DBGLOG_MOD_LOG_LEVEL         36
-#define QCSAP_DBGLOG_TYPE                  37
-#define QCSAP_DBGLOG_REPORT_ENABLE         38
-#ifdef DEBUG
-#define QCSAP_FW_CRASH_INJECT              39
-#endif
-#define QCASAP_SET_TXRX_FWSTATS            40
-#define QCASAP_TXRX_FWSTATS_RESET          41
-#define QCSAP_PARAM_SETRTSCTS              42
-#define QCSAP_PARAM_GETRTSCTS              43
-#define QCASAP_SET_11N_RATE                44
-#define QCASAP_SET_VHT_RATE                45
-#define QCASAP_SET_SHORT_GI                46
-#define QCASAP_GET_SHORT_GI                47
-#define QCSAP_SET_11N_RATE                 48
-#define QCSAP_SET_VHT_RATE                 49
-#define QCSAP_SET_AMPDU                    50
-#define QCSAP_SET_AMSDU                    51
-#define QCSAP_SET_GTX_HT_MCS               52
-#define QCSAP_SET_GTX_VHT_MCS              53
-#define QCSAP_SET_GTX_USRCFG               54
-#define QCSAP_SET_GTX_THRE                 55
-#define QCSAP_SET_GTX_MARGIN               56
-#define QCSAP_SET_GTX_STEP                 57
-#define QCSAP_SET_GTX_MINTPC               58
-#define QCSAP_SET_GTX_BWMASK               59
-#define QCSAP_GET_GTX_HT_MCS               60
-#define QCSAP_GET_GTX_VHT_MCS              61
-#define QCSAP_GET_GTX_USRCFG               62
-#define QCSAP_GET_GTX_THRE                 63
-#define QCSAP_GET_GTX_MARGIN               64
-#define QCSAP_GET_GTX_STEP                 65
-#define QCSAP_GET_GTX_MINTPC               66
-#define QCSAP_GET_GTX_BWMASK               67
-#ifdef QCA_PKT_PROTO_TRACE
-#define QCASAP_SET_DEBUG_LOG               68
-#endif /* QCA_PKT_PROTO_TRACE */
-#define QCASAP_SET_TM_LEVEL                69
 #endif /* QCA_WIFI_2_0 */
 
 enum {
     QCSAP_PARAM_MAX_ASSOC = 1,
-    QCSAP_PARAM_GET_WLAN_DBG = 4,
-    QCSAP_PARAM_MODULE_DOWN_IND = 5,
-    QCSAP_PARAM_CLR_ACL = 6,
-    QCSAP_PARAM_ACL_MODE = 7,
-    QCSAP_PARAM_HIDE_SSID = 8,
-    QCSAP_PARAM_AUTO_CHANNEL = 9,
-    QCSAP_PARAM_SET_MC_RATE = 10,
-    QCSAP_PARAM_SET_TXRX_FW_STATS=11,
-    QCSAP_PARAM_SET_MCC_CHANNEL_LATENCY = 12,
-    QCSAP_PARAM_SET_MCC_CHANNEL_QUOTA = 13,
+    QCSAP_PARAM_GET_WLAN_DBG,
+    QCSAP_PARAM_MODULE_DOWN_IND,
+    QCSAP_PARAM_CLR_ACL,
+    QCSAP_PARAM_ACL_MODE,
+    QCSAP_PARAM_HIDE_SSID,
+    QCSAP_PARAM_AUTO_CHANNEL,
+    QCSAP_PARAM_SET_MC_RATE,
+    QCSAP_PARAM_SET_TXRX_FW_STATS,
+    QCSAP_PARAM_SET_MCC_CHANNEL_LATENCY,
+    QCSAP_PARAM_SET_MCC_CHANNEL_QUOTA,
+    QCSAP_DBGLOG_LOG_LEVEL,
+    QCSAP_DBGLOG_VAP_ENABLE,
+    QCSAP_DBGLOG_VAP_DISABLE,
+    QCSAP_DBGLOG_MODULE_ENABLE,
+    QCSAP_DBGLOG_MODULE_DISABLE,
+    QCSAP_DBGLOG_MOD_LOG_LEVEL,
+    QCSAP_DBGLOG_TYPE,
+    QCSAP_DBGLOG_REPORT_ENABLE,
+#ifdef DEBUG
+    QCSAP_FW_CRASH_INJECT,
+#endif
+    QCASAP_TXRX_FWSTATS_RESET,
+    QCSAP_PARAM_RTSCTS,
+    QCASAP_SET_11N_RATE,
+    QCASAP_SET_VHT_RATE,
+    QCASAP_SHORT_GI,
+    QCSAP_SET_AMPDU,
+    QCSAP_SET_AMSDU,
+    QCSAP_GTX_HT_MCS,
+    QCSAP_GTX_VHT_MCS,
+    QCSAP_GTX_USRCFG,
+    QCSAP_GTX_THRE,
+    QCSAP_GTX_MARGIN,
+    QCSAP_GTX_STEP,
+    QCSAP_GTX_MINTPC,
+    QCSAP_GTX_BWMASK,
+#ifdef QCA_PKT_PROTO_TRACE
+    QCASAP_SET_DEBUG_LOG,
+#endif
+    QCASAP_SET_TM_LEVEL
 };
 
 int iw_softap_get_channel_list(struct net_device *dev,

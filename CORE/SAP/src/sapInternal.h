@@ -95,8 +95,13 @@ when           who        what, where, why
 #define SAP_DEBUG
 // Used to enable or disable security on the BT-AMP link
 #define WLANSAP_SECURITY_ENABLED_STATE VOS_TRUE
+#ifdef WLAN_FEATURE_MBSSID
+// When MBSSID feature is enabled, SAP context is directly passed to SAP APIs
+#define VOS_GET_SAP_CB(ctx) (ptSapContext)(ctx)
+#else
 // How do I get SAP context from voss context?
 #define VOS_GET_SAP_CB(ctx) vos_get_context( VOS_MODULE_ID_SAP, ctx)
+#endif
 
 #define VOS_GET_HAL_CB(ctx) vos_get_context( VOS_MODULE_ID_PE, ctx)
 //MAC Address length
@@ -106,7 +111,7 @@ when           who        what, where, why
 #define DEFAULT_CAC_TIMEOUT (60 * 1000) //msecs - 1 min
 #define ETSI_WEATHER_CH_CAC_TIMEOUT (10 * 60 * 1000) //msecs - 10 min
 
-extern sRegulatoryChannel *regChannels;
+extern const sRegulatoryChannel *regChannels;
 extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
 
 /*----------------------------------------------------------------------------

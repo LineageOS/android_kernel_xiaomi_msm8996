@@ -35,13 +35,10 @@
 #include "wmi_unified_api.h"
 #include "wma.h"
 #include "ol_defines.h"
+#include <wlan_nlink_srv.h>
 
 #include <net/sock.h>
 #include <linux/netlink.h>
-
-struct sock *nl_sk = NULL;
-int g_pid;
-bool appstarted = FALSE;
 
 #ifdef WLAN_OPEN_SOURCE
 #include <linux/debugfs.h>
@@ -56,6 +53,10 @@ bool appstarted = FALSE;
 #define FWLOG_DEBUG   ATH_DEBUG_MAKE_MODULE_MASK(0)
 
 #if defined(DEBUG)
+
+bool appstarted = FALSE;
+bool kd_nl_init = FALSE;
+int cnss_diag_pid = 0;
 
 static ATH_DEBUG_MASK_DESCRIPTION g_fwlogDebugDescription[] = {
     {FWLOG_DEBUG,"fwlog"},
@@ -1481,22 +1482,31 @@ send_fw_diag_nl_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
     if (WARN_ON(len > ATH6KL_FWLOG_PAYLOAD_SIZE))
         return -ENODEV;
 
-
-    skb_out = nlmsg_new(len, 0);
-    if (!skb_out)
+    /* NL is not ready yet, WLAN KO started first */
+    if ((kd_nl_init) && (!cnss_diag_pid))
     {
-        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Failed to allocate new skb\n"));
-        return -1;
+        nl_srv_nl_ready_indication();
     }
-    nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, len, 0);
-    memcpy(nlmsg_data(nlh), buffer, len);
-    NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
 
-    res = nlmsg_unicast(nl_sk, skb_out, g_pid);
-    if (res < 0)
+    if (cnss_diag_pid)
     {
-        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("nlmsg_unicast failed 0x%x \n", res));
-        return res;
+        skb_out = nlmsg_new(len, 0);
+        if (!skb_out)
+        {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Failed to allocate new skb\n"));
+            return -1;
+        }
+        nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, len, 0);
+        memcpy(nlmsg_data(nlh), buffer, len);
+        NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+
+        res = nl_srv_ucast(skb_out, cnss_diag_pid);
+        if (res < 0)
+        {
+            AR_DEBUG_PRINTF(ATH_DEBUG_INFO,
+                            ("nl_srv_ucast failed 0x%x \n", res));
+            return res;
+        }
     }
     return res;
 }
@@ -1515,29 +1525,39 @@ dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
     if (WARN_ON(len > ATH6KL_FWLOG_PAYLOAD_SIZE))
         return -ENODEV;
 
-    slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE;
-
-    skb_out = nlmsg_new(slot_len, 0);
-    if (!skb_out)
+    /* NL is not ready yet, WLAN KO started first */
+    if ((kd_nl_init) && (!cnss_diag_pid))
     {
-        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Failed to allocate new skb\n"));
-        return -1;
+        nl_srv_nl_ready_indication();
     }
 
-    nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, slot_len, 0);
-    slot = (struct dbglog_slot *) nlmsg_data(nlh);
-    slot->diag_type = (A_UINT32)DIAG_TYPE_FW_DEBUG_MSG;
-    slot->timestamp = cpu_to_le32(jiffies);
-    slot->length = cpu_to_le32(len);
-    slot->dropped = cpu_to_le32(dropped);
-    memcpy(slot->payload, buffer, len);
-    NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
-
-    res = nlmsg_unicast(nl_sk, skb_out, g_pid);
-    if (res < 0)
+    if (cnss_diag_pid)
     {
-        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("nlmsg_unicast failed 0x%x \n", res));
-        return res;
+        slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE;
+
+        skb_out = nlmsg_new(slot_len, 0);
+        if (!skb_out)
+        {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Failed to allocate new skb\n"));
+            return -1;
+        }
+
+        nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, slot_len, 0);
+        slot = (struct dbglog_slot *) nlmsg_data(nlh);
+        slot->diag_type = (A_UINT32)DIAG_TYPE_FW_DEBUG_MSG;
+        slot->timestamp = cpu_to_le32(jiffies);
+        slot->length = cpu_to_le32(len);
+        slot->dropped = cpu_to_le32(dropped);
+        memcpy(slot->payload, buffer, len);
+        NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+
+        res = nl_srv_ucast(skb_out, cnss_diag_pid);
+        if (res < 0)
+        {
+            AR_DEBUG_PRINTF(ATH_DEBUG_INFO,
+                            ("nl_srv_ucast failed 0x%x \n", res));
+            return res;
+        }
     }
     return res;
 }
@@ -1648,7 +1668,7 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
 
     dropped = *((A_UINT32 *)datap);
     if (dropped > 0) {
-        AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("%d log buffers are dropped \n", dropped));
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%d log buffers are dropped \n", dropped));
     }
     datap += sizeof(dropped);
     len -= sizeof(dropped);
@@ -3191,49 +3211,81 @@ int dbglog_debugfs_remove(wmi_unified_t wmi_handle)
     return TRUE;
 }
 #endif /* WLAN_OPEN_SOURCE */
-static void nl_recv_msg(struct sk_buff *skb)
+
+/**---------------------------------------------------------------------------
+  \brief cnss_diag_msg_callback() - Call back invoked by netlink service
+
+  This function gets invoked by netlink service when a message is recevied
+  from the cnss-diag application in user-space.
+
+  \param -
+      - skb - skb with netlink message
+
+  \return - 0 for success, non zero for failure
+--------------------------------------------------------------------------*/
+int cnss_diag_msg_callback(struct sk_buff *skb)
 {
     struct nlmsghdr *nlh;
+    tAniMsgHdr *msg_hdr;
 
     nlh = (struct nlmsghdr *)skb->data;
-    g_pid = nlh->nlmsg_pid; /*pid of sending process */
-    appstarted = TRUE;
-}
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
-struct netlink_kernel_cfg cfg = {
-	    .input = nl_recv_msg,
-};
-#endif
-
-int dbglog_netlink_init(wmi_unified_t wmi_handle)
-{
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
-    nl_sk = netlink_kernel_create(&init_net,
-		                  CLD_NETLINK_USER,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0))
-                                       THIS_MODULE,
-#endif
-                                  &cfg);
-#else
-    nl_sk = netlink_kernel_create(&init_net,
-		                  CLD_NETLINK_USER,
-                                  0,
-                                  nl_recv_msg,
-                                  NULL,
-                                  THIS_MODULE);
-#endif
-    if (!nl_sk)
+    if (!nlh)
     {
-        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Error creating socket. \n"));
-        return -1;
+       AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("%s: Netlink header null \n", __func__));
+       return -1;
     }
-    return A_OK;
-}
 
-void dbglog_netlink_deinit(wmi_unified_t wmi_handle)
+    msg_hdr = NLMSG_DATA(nlh);
+
+    appstarted = TRUE;
+    cnss_diag_pid = nlh->nlmsg_pid;
+    AR_DEBUG_PRINTF(ATH_DEBUG_INFO,
+                   ("%s: registered pid %d \n", __func__, cnss_diag_pid));
+    return 0;
+
+}
+/**---------------------------------------------------------------------------
+  \brief cnss_diag_notify_wlan_close() - Notify APP driver closed
+
+  This function notifies the user cnss-diag app that wlan driver is closed.
+
+  \param -
+      - None
+
+  \return - 0 for success, non zero for failure
+--------------------------------------------------------------------------*/
+int cnss_diag_notify_wlan_close()
 {
-    netlink_kernel_release(nl_sk);
+    /* Send nl msg about the wlan close */
+    nl_srv_exit(cnss_diag_pid);
+    cnss_diag_pid = 0;
+    return 0;
+
+}
+/**---------------------------------------------------------------------------
+  \brief cnss_diag_activate_service() - Activate cnss_diag message handler
+
+  This function registers a handler to receive netlink message from
+  an cnss-diag application process.
+
+  \param -
+      - None
+
+  \return - 0 for success, non zero for failure
+--------------------------------------------------------------------------*/
+int cnss_diag_activate_service()
+{
+    int ret = 0;
+
+    /* Register the msg handler for msgs addressed to WLAN_NL_MSG_OEM */
+    ret = nl_srv_register(WLAN_NL_MSG_CNSS_DIAG, cnss_diag_msg_callback);
+    if (ret == -EINVAL)
+    {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("CNSS-DIAG Registeration failed \n"));
+        return ret;
+    }
+    kd_nl_init = TRUE;
+    return 0;
 }
 
 A_BOOL
@@ -3372,10 +3424,6 @@ dbglog_init(wmi_unified_t wmi_handle)
     if(res != 0)
         return res;
 
-    res = dbglog_netlink_init(wmi_handle);
-    if(res != 0)
-        return res;
-
 #ifdef WLAN_OPEN_SOURCE
     /* Initialize the fw debug log queue */
     skb_queue_head_init(&wmi_handle->dbglog.fwlog_queue);
@@ -3402,11 +3450,10 @@ dbglog_deinit(wmi_unified_t wmi_handle)
     dbglog_debugfs_remove(wmi_handle);
 #endif /* WLAN_OPEN_SOURCE */
 
-    dbglog_netlink_deinit(wmi_handle);
-
     res = wmi_unified_unregister_event_handler(wmi_handle, WMI_DEBUG_MESG_EVENTID);
     if(res != 0)
         return res;
 
+    kd_nl_init = FALSE;
     return res;
 }

@@ -66,7 +66,7 @@ ePhyChanBondState csrConvertCBIniValueToPhyCBState(v_U32_t cbIniValue);
   Type declarations
   ------------------------------------------------------------------------*/
 
-#define SME_TOTAL_COMMAND  30
+#define SME_TOTAL_COMMAND  40
 
 
 typedef struct sGenericPmcCmd

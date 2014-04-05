@@ -82,7 +82,9 @@ enum cnss_diag_type {
     DIAG_TYPE_FW_DEBUG_MSG
 };
 
-
+#define SIZEOF_NL_MSG_LOAD     28 /* sizeof nlmsg and load length */
+#define SIZEOF_NL_MSG_UNLOAD   28 /* sizeof nlmsg and Unload length */
+#define SIZEOF_NL_MSG_DBG_MSG  1532
 
 /* log/event are always 32-bit aligned. Padding is inserted after
  * optional payload to satisify this requirement */
@@ -101,7 +103,7 @@ struct dbglog_slot {
     unsigned int dropped;
     /* max ATH6KL_FWLOG_PAYLOAD_SIZE bytes */
     u_int8_t payload[0];
-};
+}__packed;
 
 
 #define ATH6KL_FWLOG_MAX_ENTRIES                20
@@ -200,6 +202,10 @@ typedef A_BOOL (*module_dbg_print) (A_UINT32, A_UINT16, A_UINT32, A_UINT32,
 
 /** Register module specific dbg print*/
 void dbglog_reg_modprint(A_UINT32 mod_id, module_dbg_print printfn);
+
+/** Register the cnss_diag activate with the wlan driver */
+int cnss_diag_activate_service(void);
+int cnss_diag_notify_wlan_close(void);
 
 #ifdef __cplusplus
 }

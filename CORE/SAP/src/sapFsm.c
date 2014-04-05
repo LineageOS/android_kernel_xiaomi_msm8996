@@ -458,6 +458,7 @@ sapGotoStarting
     vos_mem_copy(sapContext->key_material, key_material, sizeof(key_material));  /* Need a key size define */
 
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s", __func__);
+
     if (NULL == hHal)
     {
         /* we have a serious problem */
@@ -680,7 +681,13 @@ sapSignalHDDevent
                 sapApAppEvent.sapevt.sapStartBssCompleteEvent.staId = pCsrRoamInfo->staId;
             }
             else
+            {
                 sapApAppEvent.sapevt.sapStartBssCompleteEvent.staId = 0;
+            }
+
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s(eSAP_START_BSS_EVENT): staId = %d",
+                __func__, sapApAppEvent.sapevt.sapStartBssCompleteEvent.staId);
+
             sapApAppEvent.sapevt.sapStartBssCompleteEvent.operatingChannel = (v_U8_t)sapContext->channel;
             sapApAppEvent.sapevt.sapStartBssCompleteEvent.sessionId =
                     sapContext->sessionId;
@@ -694,6 +701,7 @@ sapSignalHDDevent
             break;
 
         case eSAP_STA_ASSOC_EVENT:
+        case eSAP_STA_REASSOC_EVENT:
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, SAP event callback event = %s",
                 __func__, "eSAP_STA_ASSOC_EVENT");
@@ -922,6 +930,8 @@ sapFsm
     v_U32_t msg = sapEvent->event;  /* State machine input event message */
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
 
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG, "%s: sapContext=0x%x, stateVar=%d, msg=0x%x", __func__, (unsigned int)sapContext, stateVar, msg);
+
     switch (stateVar)
     {
         case eSAP_DISCONNECTED:
@@ -1036,9 +1046,6 @@ sapFsm
                  sapContext->csrRoamProfile.ChannelInfo.ChannelList = &sapContext->csrRoamProfile.operationChannel;
                  sapContext->csrRoamProfile.operationChannel = (tANI_U8)sapContext->channel;
                  vosStatus = sapGotoStarting( sapContext, sapEvent, eCSR_BSS_TYPE_INFRA_AP);
-                 /* Transition from eSAP_CH_SELECT to eSAP_STARTING (both without substates) */
-                 VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
-                             __func__, "eSAP_CH_SELECT", "eSAP_STARTING");
             }
             else
             {
@@ -1255,7 +1262,7 @@ sapFsm
                           "In %s, Send CSA IE Request", __func__);
 
                 /* Request for CSA IE transmission */
-                WLANSAP_DfsSendCSAIeRequest(sapContext);
+                WLANSAP_DfsSendCSAIeRequest((v_PVOID_t)sapContext);
             }
             else
             {

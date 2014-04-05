@@ -418,6 +418,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
                         pHddCtx->cfg_ini->fDfsPhyerrFilterOffload;
 #endif
 
+   macOpenParms.apMaxOffloadPeers = pHddCtx->cfg_ini->apMaxOffloadPeers;
+
    macOpenParms.apDisableIntraBssFwd = pHddCtx->cfg_ini->apDisableIntraBssFwd;
 
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
@@ -1240,11 +1242,13 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
     }
 #endif //WLAN_BTAMP_FEATURE
 
+#ifndef WLAN_FEATURE_MBSSID
     case VOS_MODULE_ID_SAP:
     {
       pModContext = gpVosContext->pSAPContext;
       break;
     }
+#endif
 
     case VOS_MODULE_ID_HDD_SOFTAP:
     {
@@ -1513,11 +1517,13 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
     }
 #endif //WLAN_BTAMP_FEATURE
 
+#ifndef WLAN_FEATURE_MBSSID
     case VOS_MODULE_ID_SAP:
     {
       pGpModContext = &(gpVosContext->pSAPContext);
       break;
     }
+#endif
 
     case VOS_MODULE_ID_WDA:
     {
@@ -1638,11 +1644,13 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
     }
 #endif //WLAN_BTAMP_FEATURE
 
+#ifndef WLAN_FEATURE_MBSSID
     case VOS_MODULE_ID_SAP:
     {
       pGpModContext = &(gpVosContext->pSAPContext);
       break;
     }
+#endif
 
     case VOS_MODULE_ID_WDA:
     {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1689,7 +1689,7 @@ VOS_STATUS
 WLANTL_FwdPktToHDD
 (
   v_PVOID_t       pvosGCtx,
-  vos_pkt_t*     pvosDataBuff,
+  vos_pkt_t*      pvosDataBuff,
   v_U8_t          ucSTAId
 );
 

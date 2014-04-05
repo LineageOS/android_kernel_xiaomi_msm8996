@@ -2681,11 +2681,18 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
 	mac_params->maxStation = ol_get_number_of_peers_supported(scn);
 
-        mac_params->maxBssId = WMA_MAX_SUPPORTED_BSS;
+	mac_params->maxBssId = WMA_MAX_SUPPORTED_BSS;
 	mac_params->frameTransRequired = 0;
 
 	wma_handle->wlan_resource_config.num_wow_filters = mac_params->maxWoWFilters;
 	wma_handle->wlan_resource_config.num_keep_alive_pattern = WMA_MAXNUM_PERIODIC_TX_PTRNS;
+
+	/* The current firmware implementation requires the number of offload peers
+	* should be (number of vdevs + 1).
+	*/
+	wma_handle->wlan_resource_config.num_offload_peers =
+		mac_params->apMaxOffloadPeers;
+
 	wma_handle->ol_ini_info = mac_params->olIniInfo;
 	wma_handle->max_station = mac_params->maxStation;
 	wma_handle->max_bssid = mac_params->maxBssId;
@@ -10156,6 +10163,12 @@ static void wma_set_max_tx_power(WMA_HANDLE handle,
 		return;
 	}
 
+	if (! (wma_handle->interfaces[vdev_id].vdev_up)) {
+		WMA_LOGE("%s: vdev id %d is not up",__func__, vdev_id);
+		vos_mem_free(tx_pwr_params);
+		return;
+	}
+
 	if (wma_handle->interfaces[vdev_id].max_tx_power == tx_pwr_params->power) {
 		ret = 0;
 		goto end;
@@ -10166,24 +10179,16 @@ static void wma_set_max_tx_power(WMA_HANDLE handle,
 		ret = 0;
 		goto end;
 	}
-	if (wma_handle->interfaces[vdev_id].tx_power == 0) {
-		ret = 0;
-		goto end;
-	} else if (wma_handle->interfaces[vdev_id].max_tx_power <
-			wma_handle->interfaces[vdev_id].tx_power) {
-		WMA_LOGW("Set MAX TX power limit [WMI_VDEV_PARAM_TX_PWRLIMIT] to %d",
+	WMA_LOGW("Set MAX TX power limit [WMI_VDEV_PARAM_TX_PWRLIMIT] to %d",
+		wma_handle->interfaces[vdev_id].max_tx_power);
+	ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
+			WMI_VDEV_PARAM_TX_PWRLIMIT,
 			wma_handle->interfaces[vdev_id].max_tx_power);
-		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
-				WMI_VDEV_PARAM_TX_PWRLIMIT,
-				wma_handle->interfaces[vdev_id].max_tx_power);
-		if (ret == 0)
-			wma_handle->interfaces[vdev_id].tx_power =
-				wma_handle->interfaces[vdev_id].max_tx_power;
-		else
-			wma_handle->interfaces[vdev_id].max_tx_power = prev_max_power;
-	} else {
-		ret = 0;
-	}
+	if (ret == 0)
+		wma_handle->interfaces[vdev_id].tx_power =
+			wma_handle->interfaces[vdev_id].max_tx_power;
+	else
+		wma_handle->interfaces[vdev_id].max_tx_power = prev_max_power;
 end:
 	vos_mem_free(tx_pwr_params);
 	if (ret)
@@ -11981,7 +11986,7 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 
 	wake_info = param_buf->fixed_param;
 
-	WMA_LOGD("WOW wakeup host event received (reason: %s) for vdev %d",
+	WMA_LOGI("WOW wakeup host event received (reason: %s) for vdev %d",
 		 wma_wow_wake_reason_str(wake_info->wake_reason),
 		 wake_info->vdev_id);
 

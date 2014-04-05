@@ -1006,6 +1006,10 @@ typedef struct sMacOpenParameters
     tANI_U8 dfsPhyerrFilterOffload;
 /* pass intra-bss-fwd info to txrx module */
     tANI_U8 apDisableIntraBssFwd;
+
+    /* max offload peer */
+    tANI_U8 apMaxOffloadPeers;
+
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters
