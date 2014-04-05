@@ -517,8 +517,6 @@ void hdd_softap_tx_resume_cb(void *adapter_context,
           vos_timer_stop(&pAdapter->tx_flow_control_timer);
        }
 
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                 "Resume DEV 0x%x", (unsigned int)pAdapter->dev);
        netif_tx_wake_all_queues(pAdapter->dev);
    }
    return;

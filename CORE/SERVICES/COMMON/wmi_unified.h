@@ -2637,6 +2637,15 @@ typedef struct {
 #define WMI_VDEV_TYPE_IBSS       0x3
 #define WMI_VDEV_TYPE_MONITOR    0x4
 
+/** VDEV type is for social wifi interface.This VDEV is Currently mainly needed
+* by FW to execute the NAN specific WMI commands and also implement NAN specific
+* operations like Network discovery, service provisioning and service
+* subscription  ..etc. If FW needs NAN VDEV then Host should issue VDEV create
+* WMI command to create this VDEV once during initialization and host is not
+* expected to use any VDEV specific WMI commands on this VDEV.
+**/
+#define WMI_VDEV_TYPE_NAN        0x5
+
 /** values for vdev_subtype */
 #define WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE 0x1
 #define WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT 0x2

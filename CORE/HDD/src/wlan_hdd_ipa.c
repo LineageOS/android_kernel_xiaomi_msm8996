@@ -1241,14 +1241,14 @@ static void hdd_ipa_clean_hdr(hdd_adapter_t *adapter)
 
 static void hdd_ipa_cleanup_iface(struct hdd_ipa_iface_context *iface_context)
 {
-        if (iface_context == NULL)
-                return;
+	if (iface_context == NULL)
+		return;
 
-        hdd_ipa_clean_hdr(iface_context->adapter);
+	hdd_ipa_clean_hdr(iface_context->adapter);
 
-        iface_context->adapter->ipa_context = NULL;
-        iface_context->adapter = NULL
-        iface_context->tl_context = NULL
+	iface_context->adapter->ipa_context = NULL;
+	iface_context->adapter = NULL;
+	iface_context->tl_context = NULL;
 }
 
 
