@@ -4491,7 +4491,7 @@ eHalStatus sme_RequestStandby (
 
    MTRACE(macTraceNew(pMac, VOS_MODULE_ID_SME,
              TRACE_CODE_SME_RX_HDD_REQUEST_STANDBY, NO_SESSION, 0));
-   smsLog( pMac, LOG1, FL("") );
+   smsLog( pMac, LOG1, FL(" called") );
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
