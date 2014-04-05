@@ -8358,24 +8358,29 @@ void hdd_deinit_batch_scan(hdd_adapter_t *pAdapter)
     tHddBatchScanRsp *pNode;
     tHddBatchScanRsp *pPrev;
 
-    if (pAdapter)
+    if (NULL == pAdapter)
     {
-        pNode = pAdapter->pBatchScanRsp;
-        while (pNode)
-        {
-            pPrev = pNode;
-            pNode = pNode->pNext;
-            vos_mem_free((v_VOID_t * )pPrev);
-        }
-        pAdapter->pBatchScanRsp = NULL;
-        pAdapter->numScanList = 0;
-        pAdapter->batchScanState = eHDD_BATCH_SCAN_STATE_STOPPED;
-        pAdapter->prev_batch_id = 0;
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Adapter context is Null", __func__);
+        return;
     }
+
+    pNode = pAdapter->pBatchScanRsp;
+    while (pNode)
+    {
+        pPrev = pNode;
+        pNode = pNode->pNext;
+        vos_mem_free((v_VOID_t * )pPrev);
+    }
+
+    pAdapter->pBatchScanRsp = NULL;
+    pAdapter->numScanList = 0;
+    pAdapter->batchScanState = eHDD_BATCH_SCAN_STATE_STOPPED;
+    pAdapter->prev_batch_id = 0;
+
     return;
 }
 #endif
-
 
 VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx )
 {
@@ -8630,26 +8635,54 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
           break;
       }
 #ifdef QCA_LL_TX_FLOW_CT
-      /* First stage implementation for all interface TX flow control
-       * All interfaces will have same flow control threshold
-       * 2nd stage will have MCC-Bandwidth dependent TX flow control
-       * TL/TXRX APIs are not called */
       if (targetChannel)
       {
-          pAdapter->tx_flow_low_watermark =
-                    pHddCtx->cfg_ini->TxHbwFlowLowWaterMark;
-          pAdapter->tx_flow_high_watermark_offset =
-                    pHddCtx->cfg_ini->TxHbwFlowHighWaterMarkOffset;
-          /* Temporary set log level as error
-           * TX Flow control feature settled down, will lower log level */
-          hddLog(VOS_TRACE_LEVEL_ERROR,
-                 "MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
-                 pAdapter->device_mode,
-                 targetChannel,
-                 pAdapter->tx_flow_low_watermark,
-                 pAdapter->tx_flow_low_watermark +
-                 pAdapter->tx_flow_high_watermark_offset,
-                 pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
+          /* First stage implementation
+           * 2.4GHz band channels handle as low bandwidth adapter
+           * OS Q block will be done more aggressively
+           * TX PAUSE Q depth will be less */
+          if (targetChannel <= WLAN_HDD_TX_FLOW_CONTROL_MAX_24BAND_CH)
+          {
+             pAdapter->tx_flow_low_watermark =
+                       pHddCtx->cfg_ini->TxLbwFlowLowWaterMark;
+             pAdapter->tx_flow_high_watermark_offset =
+                       pHddCtx->cfg_ini->TxLbwFlowHighWaterMarkOffset;
+             WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
+                                        pAdapter->sessionId,
+                                        pHddCtx->cfg_ini->TxLbwFlowMaxQueueDepth);
+             /* Temporary set log level as error
+              * TX Flow control feature settled down, will lower log level */
+             hddLog(VOS_TRACE_LEVEL_ERROR,
+                    "MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                    pAdapter->device_mode,
+                    targetChannel,
+                    pAdapter->tx_flow_low_watermark,
+                    pAdapter->tx_flow_low_watermark +
+                    pAdapter->tx_flow_high_watermark_offset,
+                    pHddCtx->cfg_ini->TxLbwFlowMaxQueueDepth);
+          }
+          /* First stage implementation
+           * 5GHz band channels handle as high bandwidth adapter */
+          else
+          {
+             pAdapter->tx_flow_low_watermark =
+                       pHddCtx->cfg_ini->TxHbwFlowLowWaterMark;
+             pAdapter->tx_flow_high_watermark_offset =
+                       pHddCtx->cfg_ini->TxHbwFlowHighWaterMarkOffset;
+             WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
+                                        pAdapter->sessionId,
+                                        pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
+             /* Temporary set log level as error
+              * TX Flow control feature settled down, will lower log level */
+             hddLog(VOS_TRACE_LEVEL_ERROR,
+                    "MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                    pAdapter->device_mode,
+                    targetChannel,
+                    pAdapter->tx_flow_low_watermark,
+                    pAdapter->tx_flow_low_watermark +
+                    pAdapter->tx_flow_high_watermark_offset,
+                    pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
+          }
       }
       targetChannel = 0;
 #endif /* QCA_LL_TX_FLOW_CT */
