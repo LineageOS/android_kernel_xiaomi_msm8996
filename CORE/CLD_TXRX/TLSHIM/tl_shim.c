@@ -1935,7 +1935,6 @@ void WLANTL_RegisterTXFlowControl
     Low Bandwidth adapter will have less count of TX Pause Q size to prevent
     reserve all TX descriptors which shared with FW.
     High Bandwidth adapter will have more count of TX Pause Q size
-    !!! This function is place holder till MCC TX FLOW CT Enabled !!!
 
   PARAMETERS
    IN

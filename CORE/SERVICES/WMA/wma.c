@@ -4297,6 +4297,11 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 
 	/* Save current scan info */
 	cmd = (wmi_start_scan_cmd_fixed_param *) wmi_buf_data(buf);
+	if (msg_type == WDA_CHNL_SWITCH_REQ) {
+	    /* Adjust parameters for channel switch scan */
+	    cmd->min_rest_time = WMA_ROAM_PREAUTH_REST_TIME;
+	    cmd->max_rest_time = WMA_ROAM_PREAUTH_REST_TIME;
+	}
 
 	wma_set_scan_info(wma_handle, cmd->scan_id,
 			cmd->scan_req_id, cmd->vdev_id,
