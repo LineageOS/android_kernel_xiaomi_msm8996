@@ -1330,7 +1330,16 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
     TXRX_ASSERT2(peer);
 
     vdev = peer->vdev;
+    if (NULL == vdev) {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "The vdev is not present anymore\n");
+        return;
+    }
+
     pdev = vdev->pdev;
+    if (NULL == pdev) {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "The pdev is not present anymore\n");
+        return;
+    }
 
     /*
      * Check for the reference count before deleting the peer
