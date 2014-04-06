@@ -3294,6 +3294,13 @@ REG_VARIABLE( CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH, WLAN_PARAM_Integer,
               CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH_MIN,
               CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH_MAX ),
 #endif /* QCA_LL_TX_FLOW_CT */
+
+   REG_VARIABLE(CFG_INITIAL_DWELL_TIME_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, nInitialDwellTime,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_INITIAL_DWELL_TIME_DEFAULT,
+               CFG_INITIAL_DWELL_TIME_MIN,
+               CFG_INITIAL_DWELL_TIME_MAX ),
 REG_VARIABLE( CFG_ACS_BAND_SWITCH_THRESHOLD, WLAN_PARAM_Integer,
               hdd_config_t, acsBandSwitchThreshold,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
@@ -5236,6 +5243,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.vccUlMacLossThreshold    = pConfig->nVccUlMacLossThreshold;
    smeConfig.csrConfig.nRoamingTime             = pConfig->nRoamingTime;
    smeConfig.csrConfig.IsIdleScanEnabled        = pConfig->nEnableIdleScan;
+   smeConfig.csrConfig.nInitialDwellTime        = pConfig->nInitialDwellTime;
    smeConfig.csrConfig.nActiveMaxChnTime        = pConfig->nActiveMaxChnTime;
    smeConfig.csrConfig.nActiveMinChnTime        = pConfig->nActiveMinChnTime;
    smeConfig.csrConfig.nPassiveMaxChnTime       = pConfig->nPassiveMaxChnTime;
