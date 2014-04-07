@@ -629,8 +629,10 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->maxTxPower = cfgGetRegulatoryMaxTransmitPower( pMac,
             psessionEntry->currentOperChannel );
         /* Store the dot 11 mode in to the session Table*/
-
         psessionEntry->dot11mode = pSmeStartBssReq->dot11mode;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        psessionEntry->cc_switch_mode = pSmeStartBssReq->cc_switch_mode;
+#endif
         psessionEntry->htCapability = IS_DOT11_MODE_HT(psessionEntry->dot11mode);
 #ifdef WLAN_FEATURE_11AC
         psessionEntry->vhtCapability = IS_DOT11_MODE_VHT(psessionEntry->dot11mode);
@@ -1761,6 +1763,9 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         /* Copy the dot 11 mode in to the session table */
 
         psessionEntry->dot11mode  = pSmeJoinReq->dot11mode;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        psessionEntry->cc_switch_mode = pSmeJoinReq->cc_switch_mode;
+#endif
         psessionEntry->nwType = pSmeJoinReq->bssDescription.nwType;
         psessionEntry->enableAmpduPs = pSmeJoinReq->enableAmpduPs;
         psessionEntry->enableHtSmps = pSmeJoinReq->enableHtSmps;

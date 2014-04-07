@@ -464,6 +464,9 @@ typedef struct sap_Config {
     v_BOOL_t        mfpRequired;
     v_BOOL_t        mfpCapable;
 #endif
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    v_U8_t          cc_switch_mode;
+#endif
 } tsap_Config_t;
 
 typedef enum {
@@ -940,6 +943,24 @@ WLANSAP_StartBss
     v_PVOID_t  pUsrContext
 );
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+/*==========================================================================
+  FUNCTION    WLANSAP_CheckCCIntf
+
+  DESCRIPTION Restart SAP if Concurrent Channel interfering
+
+  DEPENDENCIES NA.
+
+  PARAMETERS
+  IN
+  Ctx: Pointer to vos Context or Sap Context based on MBSSID
+
+  RETURN VALUE Interference channel value
+
+  SIDE EFFECTS
+============================================================================*/
+v_U16_t WLANSAP_CheckCCIntf(v_PVOID_t Ctx);
+#endif
 /*==========================================================================
   FUNCTION    WLANSAP_SetMacACL
 

@@ -473,6 +473,14 @@ typedef enum
 #define CFG_WLAN_AUTO_SHUTDOWN_DEFAULT      ( 0 )
 #endif
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE          "gWlanMccToSccSwitchMode"
+#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_MIN      ( VOS_MCC_TO_SCC_SWITCH_DISABLE)
+#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_MAX      ( VOS_MCC_TO_SCC_SWITCH_FORCE )
+#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_DEFAULT  (VOS_MCC_TO_SCC_SWITCH_DISABLE)
+#endif
+
+
 #define CFG_FRAMES_PROCESSING_TH_MODE_NAME     "gMinFramesProcThres"
 #define CFG_FRAMES_PROCESSING_TH_MIN           ( 0 )
 #define CFG_FRAMES_PROCESSING_TH_MAX           ( 39 )
@@ -2808,6 +2816,9 @@ typedef struct
    v_BOOL_t                    IpaPreFilterEnable;
    v_BOOL_t                    IpaRMEnable;
    v_U32_t                     IpaDescSize;
+#endif
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+   v_U32_t                     WlanMccToSccSwitchMode;
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
    v_U32_t                     WlanAutoShutdown;

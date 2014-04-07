@@ -43,9 +43,9 @@
 #include "smsDebug.h"
 #include "smeQosInternal.h"
 #include "wlan_qct_wda.h"
+#include "vos_utils.h"
 
 #if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
-#include "vos_utils.h"
 #include "csrEse.h"
 #endif /* FEATURE_WLAN_ESE && !FEATURE_WLAN_ESE_UPLOAD*/
 
@@ -1462,6 +1462,171 @@ tANI_U8 csrGetConcurrentOperationChannel( tpAniSirGlobal pMac )
   }
   return 0;
 }
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+void csrGetChFromHTProfile (tpAniSirGlobal pMac, tCsrRoamHTProfile *htp,
+                            tANI_U16 och, tANI_U16 *cfreq, tANI_U16 *hbw)
+{
+    tANI_U16 cch, ch_bond;
+
+    if (och > 14)
+        ch_bond = pMac->roam.configParam.channelBondingMode5GHz;
+    else
+        ch_bond = pMac->roam.configParam.channelBondingMode24GHz;
+
+    cch = och;
+    *hbw = 10;
+
+    if (!ch_bond) {
+        goto ret;
+    }
+    smsLog(pMac, LOG1,
+        FL("##HTC: %d scbw: %d rcbw: %d sco: %d"
+#ifdef WLAN_FEATURE_11AC
+           "VHTC: %d apc: %d apbw: %d"
+#endif
+        ),
+        htp->htCapability, htp->htSupportedChannelWidthSet,
+        htp->htRecommendedTxWidthSet, htp->htSecondaryChannelOffset,
+#ifdef WLAN_FEATURE_11AC
+        htp->vhtCapability, htp->apCenterChan, htp->apChanWidth
+#endif
+        );
+
+#ifdef WLAN_FEATURE_11AC
+    if (htp->vhtCapability) {
+        cch = htp->apCenterChan;
+        *hbw = (htp->apChanWidth * 80) / 2;
+
+        if (!*hbw && htp->htCapability) {
+            if (htp->htSupportedChannelWidthSet == eHT_CHANNEL_WIDTH_40MHZ)
+                *hbw = 20;
+            else
+                *hbw = 10;
+        }
+     } else
+#endif
+    if (htp->htCapability) {
+        if (htp->htSupportedChannelWidthSet == eHT_CHANNEL_WIDTH_40MHZ) {
+            *hbw = 20;
+            if (htp->htSecondaryChannelOffset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+                cch = och + *hbw/10;
+            else if (htp->htSecondaryChannelOffset ==
+                                                PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
+                cch = och - *hbw/10;
+        } else {
+            cch = och;
+            *hbw = 10;
+        }
+    }
+
+ret:
+    *cfreq = vos_chan_to_freq(cch);
+    return;
+}
+
+v_U16_t csrCheckConcurrentChannelOverlap(tpAniSirGlobal pMac, v_U16_t sap_ch,
+                                eCsrPhyMode sap_phymode, v_U8_t cc_switch_mode)
+{
+    tCsrRoamSession *pSession = NULL;
+    v_U8_t i = 0,  chb = PHY_SINGLE_CHANNEL_CENTERED;
+    v_U16_t intf_ch=0, sap_hbw = 0, intf_hbw = 0, intf_cfreq = 0, sap_cfreq = 0;
+    v_U16_t sap_lfreq, sap_hfreq, intf_lfreq, intf_hfreq;
+
+    if (pMac->roam.configParam.cc_switch_mode == VOS_MCC_TO_SCC_SWITCH_DISABLE)
+        return 0;
+
+    if (sap_ch !=0) {
+
+        sap_cfreq = vos_chan_to_freq(sap_ch);
+        sap_hbw = 20/2;
+
+        if (sap_ch > 14)
+            chb = pMac->roam.configParam.channelBondingMode5GHz;
+        else
+            chb = pMac->roam.configParam.channelBondingMode24GHz;
+
+        if (chb) {
+            if (sap_phymode == eCSR_DOT11_MODE_11n ||
+                sap_phymode == eCSR_DOT11_MODE_11n_ONLY)
+                sap_hbw = 40/2;
+            else if (sap_phymode == eCSR_DOT11_MODE_11ac ||
+                     sap_phymode == eCSR_DOT11_MODE_11ac_ONLY)
+                sap_hbw = 80/2;
+        }
+    }
+
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ ) {
+        if( !CSR_IS_SESSION_VALID( pMac, i ) )
+            continue;
+
+        pSession = CSR_GET_SESSION( pMac, i );
+
+        if (NULL != pSession->pCurRoamProfile) {
+            if (((pSession->pCurRoamProfile->csrPersona == VOS_STA_MODE) ||
+                       (pSession->pCurRoamProfile->csrPersona ==
+                            VOS_P2P_CLIENT_MODE)) &&
+                       (pSession->connectState ==
+                            eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED)) {
+                intf_ch = pSession->connectedProfile.operationChannel;
+                csrGetChFromHTProfile(pMac,
+                        &pSession->connectedProfile.HTProfile, intf_ch,
+                        &intf_cfreq, &intf_hbw);
+            } else if(((pSession->pCurRoamProfile->csrPersona ==
+                            VOS_P2P_GO_MODE) ||
+                       (pSession->pCurRoamProfile->csrPersona ==
+                            VOS_STA_SAP_MODE)) &&
+                       (pSession->connectState !=
+                             eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) {
+                if (sap_ch  == 0) {
+                    sap_ch = pSession->connectedProfile.operationChannel;
+                    csrGetChFromHTProfile(pMac,
+                        &pSession->connectedProfile.HTProfile, sap_ch,
+                        &sap_cfreq, &sap_hbw);
+                } else if (sap_ch !=
+                               pSession->connectedProfile.operationChannel) {
+                    intf_ch = pSession->connectedProfile.operationChannel;
+                    csrGetChFromHTProfile(pMac,
+                               &pSession->connectedProfile.HTProfile, intf_ch,
+                                      &intf_cfreq, &intf_hbw);
+                }
+            }
+        }
+    }
+
+
+    if (intf_ch && sap_ch != intf_ch &&
+       cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_FORCE) {
+         sap_lfreq = sap_cfreq - sap_hbw;
+         sap_hfreq = sap_cfreq + sap_hbw;
+         intf_lfreq = intf_cfreq -intf_hbw;
+         intf_hfreq = intf_cfreq +intf_hbw;
+
+         smsLog(pMac, LOGE,
+         FL("\nSAP:  OCH: %03d OCF: %d CCH: %03d CF: %d BW: %d LF: %d HF: %d\n"
+            "INTF: OCH: %03d OCF: %d CCH: %03d CF: %d BW: %d LF: %d HF: %d"),
+                 sap_ch, vos_chan_to_freq(sap_ch), vos_freq_to_chan(sap_cfreq),
+                 sap_cfreq, sap_hbw*2, sap_lfreq, sap_hfreq,
+                 intf_ch, vos_chan_to_freq(intf_ch),
+                 vos_freq_to_chan(intf_cfreq),
+                 intf_cfreq, intf_hbw*2, intf_lfreq, intf_hfreq);
+
+         if ( !((sap_lfreq >= intf_lfreq && sap_lfreq <= intf_hfreq)
+            || (sap_hfreq >= intf_lfreq && sap_hfreq <= intf_hfreq)) ) {
+             intf_ch = 0;
+         }
+    }
+    else if (intf_ch && sap_ch!= intf_ch &&
+             cc_switch_mode == VOS_MCC_TO_SCC_SWITCH_FORCE) {
+         if (!((intf_ch < 14 && sap_ch < 14) || (intf_ch > 14 && sap_ch > 14)))
+             intf_ch = 0;
+    }else if (intf_ch == sap_ch)
+         intf_ch = 0;
+
+   smsLog(pMac, LOGE, FL("##Concurrent Channels %s Interfering"), intf_ch == 0 ?
+                         "Not" : "Are" );
+  return intf_ch;
+}
+#endif
 
 tANI_BOOLEAN csrIsAllSessionDisconnected( tpAniSirGlobal pMac )
 {

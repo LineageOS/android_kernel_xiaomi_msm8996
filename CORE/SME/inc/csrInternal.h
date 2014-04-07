@@ -676,6 +676,9 @@ typedef struct tagCsrConfig
     tANI_U8 isAmsduSupportInAMPDU;
     tANI_U8 nSelect5GHzMargin;
     tANI_U8 isCoalesingInIBSSAllowed;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    tANI_U8 cc_switch_mode;
+#endif
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo
@@ -1392,6 +1395,10 @@ tANI_S8 csrGetInfraSessionId( tpAniSirGlobal pMac );
 tANI_U8 csrGetInfraOperationChannel( tpAniSirGlobal pMac, tANI_U8 sessionId);
 tANI_U8 csrGetConcurrentOperationChannel( tpAniSirGlobal pMac );
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+v_U16_t csrCheckConcurrentChannelOverlap(tpAniSirGlobal pMac, v_U16_t sap_ch,
+                               eCsrPhyMode sap_phymode, v_U8_t cc_switch_mode );
+#endif
 eHalStatus csrRoamCopyConnectProfile(tpAniSirGlobal pMac, tANI_U32 sessionId,
                                tCsrRoamConnectedProfile *pProfile);
 tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId);

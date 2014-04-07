@@ -278,6 +278,9 @@ typedef struct sSapContext {
     v_U16_t            acsBandSwitchThreshold;
     tSapAcsChannelInfo acsBestChannelInfo;
     tANI_BOOLEAN       enableOverLapCh;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    v_U8_t             cc_switch_mode;
+#endif
 } *ptSapContext;
 
 

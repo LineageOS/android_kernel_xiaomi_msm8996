@@ -7473,6 +7473,25 @@ tANI_U8 sme_GetConcurrentOperationChannel( tHalHandle hHal )
 
    return (channel);
 }
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+v_U16_t sme_CheckConcurrentChannelOverlap( tHalHandle hHal, v_U16_t sap_ch,
+                                 eCsrPhyMode sapPhyMode, v_U8_t cc_switch_mode)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   v_U16_t channel = 0;
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+      channel = csrCheckConcurrentChannelOverlap( pMac, sap_ch, sapPhyMode,
+                                                  cc_switch_mode);
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (channel);
+}
+#endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 /******************************************************************************

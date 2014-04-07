@@ -2362,6 +2362,10 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pConfig->SapMacaddr_acl = eSAP_ACCEPT_UNLESS_DENIED;
     pConfig->num_accept_mac = 0;
     pConfig->num_deny_mac = 0;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    pConfig->cc_switch_mode =
+           (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->WlanMccToSccSwitchMode;
+#endif
 
     pIe = wlan_hdd_get_vendor_oui_ie_ptr(BLACKLIST_OUI_TYPE, WPA_OUI_TYPE_SIZE,
                                          pBeacon->tail, pBeacon->tail_len);
@@ -8157,7 +8161,7 @@ static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
 }
 #endif //LINUX_VERSION_CODE
 
-static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
+int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                                          struct net_device *dev, u8 *mac)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);

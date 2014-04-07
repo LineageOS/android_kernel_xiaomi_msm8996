@@ -1372,6 +1372,17 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         wlan_hdd_auto_shutdown_enable(pHddCtx, VOS_FALSE);
 #endif
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        if (pHddCtx->cfg_ini->WlanMccToSccSwitchMode
+                != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+            adf_os_create_work(0, &pHddCtx->sta_ap_intf_check_work,
+                wlan_hdd_check_sta_ap_concurrent_ch_intf, (void *)pAdapter);
+            adf_os_sched_work(0, &pHddCtx->sta_ap_intf_check_work);
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                                "Checking for Concurrent Channge interference");
+        }
+#endif
+
 #ifdef FEATURE_WLAN_TDLS
         wlan_hdd_tdls_connection_callback(pAdapter);
 #endif

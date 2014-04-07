@@ -296,7 +296,9 @@ sapGotoChannelSel
     v_U8_t     numOfChannels = 0 ;
 #endif
     tHalHandle hHal;
+#ifndef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tANI_U8   channel;
+#endif
 
     hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, sapContext->pvosGCtx);
     if (NULL == hHal)
@@ -307,11 +309,11 @@ sapGotoChannelSel
         return VOS_STATUS_E_FAULT;
     }
 
+#ifndef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     /*If STA-AP concurrency is enabled take the concurrent connected channel first. In other cases wpa_supplicant should take care */
     if (vos_get_concurrency_mode() == VOS_STA_SAP)
     {
         channel = sme_GetConcurrentOperationChannel(hHal);
-
         if (channel)
         { /*if a valid channel is returned then use concurrent channel.
                   Else take whatever comes from configuartion*/
@@ -321,6 +323,7 @@ sapGotoChannelSel
                              channel);
         }
     }
+#endif
 
     if (sapContext->channel == AUTO_CHANNEL_SELECT)
     {
@@ -1036,6 +1039,30 @@ sapFsm
 
             if (msg == eSAP_MAC_SCAN_COMPLETE)
             {
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+                 v_U16_t cc_ch;
+                 tHalHandle  hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+                 if (NULL != hHal &&
+                     sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE)
+                 {
+                     cc_ch = sme_CheckConcurrentChannelOverlap(hHal,
+                         sapContext->channel,
+                         sapConvertSapPhyModeToCsrPhyMode(
+                                            sapContext->csrRoamProfile.phyMode),
+                         sapContext->cc_switch_mode);
+                     if (cc_ch)
+                     {
+                         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                             "%s: Override Chosen Ch:%d to %d due to CC Intf!!",
+                            __func__,sapContext->channel, cc_ch);
+                         sapContext->channel = cc_ch;
+                         sme_SelectCBMode(hHal,
+                             sapConvertSapPhyModeToCsrPhyMode(
+                                            sapContext->csrRoamProfile.phyMode),
+                             sapContext->channel);
+                     }
+                 }
+#endif
                  /* Transition from eSAP_CH_SELECT to eSAP_STARTING (both without substates) */
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
                             __func__, "eSAP_CH_SELECT", "eSAP_STARTING");
@@ -1262,7 +1289,7 @@ sapFsm
                           "In %s, Send CSA IE Request", __func__);
 
                 /* Request for CSA IE transmission */
-                WLANSAP_DfsSendCSAIeRequest((v_PVOID_t)sapContext);
+                vosStatus = WLANSAP_DfsSendCSAIeRequest((v_PVOID_t)sapContext);
             }
             else
             {
