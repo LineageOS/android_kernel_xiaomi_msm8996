@@ -16546,15 +16546,26 @@ u_int8_t wma_thermal_mgmt_get_level(void *handle, u_int32_t temp)
 {
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	int i;
-	t_thermal_level_info thermal_info;
+	u_int8_t level;
 
-	for (i = 0; i < (WLAN_WMA_MAX_THERMAL_LEVELS - 1); i++) {
-		thermal_info = wma->thermal_mgmt_info.thermalLevels[i];
-		if (temp < thermal_info.maxTempThreshold) {
-			return i;
-		}
+	level = i = wma->thermal_mgmt_info.thermalCurrLevel;
+	while (temp < wma->thermal_mgmt_info.thermalLevels[i].minTempThreshold &&
+		   i > 0) {
+		i--;
+		level = i;
 	}
-	return (WLAN_WMA_MAX_THERMAL_LEVELS - 1);
+
+	i = wma->thermal_mgmt_info.thermalCurrLevel;
+	while (temp > wma->thermal_mgmt_info.thermalLevels[i].maxTempThreshold &&
+		   i < (WLAN_WMA_MAX_THERMAL_LEVELS - 1)) {
+		i++;
+		level = i;
+	}
+
+	WMA_LOGW("Change thermal level from %d -> %d\n",
+			  wma->thermal_mgmt_info.thermalCurrLevel, level);
+
+	return level;
 }
 
 /* function   : wma_thermal_mgmt_evt_handler
