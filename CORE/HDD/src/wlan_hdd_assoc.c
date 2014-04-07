@@ -716,6 +716,14 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         type = WLAN_STA_DISASSOC_DONE_IND;
         memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
 
+#ifdef IPA_OFFLOAD
+        if (hdd_ipa_is_enabled(pHddCtx))
+            hdd_ipa_wlan_evt(pAdapter, pHddStaCtx->conn_info.staId[0],
+                     WLAN_STA_DISCONNECT, pHddStaCtx->conn_info.bssId);
+#endif
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+        wlan_hdd_auto_shutdown_enable(pHddCtx, VOS_TRUE);
+#endif
 
 #ifdef QCA_WIFI_2_0
         if (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)

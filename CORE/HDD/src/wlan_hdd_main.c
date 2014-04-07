@@ -12133,7 +12133,7 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
     }
 
     if (ap_connected == VOS_TRUE || sta_connected == VOS_TRUE) {
-            hddLog(LOGE, FL("CC Session active. Shutdown timer not enabled"));
+            hddLog(LOG1, FL("CC Session active. Shutdown timer not enabled"));
             return;
     } else {
         if (hdd_ctx->hdd_wlan_shutdown_timer.state == VOS_TIMER_STATE_STOPPED) {
@@ -12142,6 +12142,9 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
 
             if (!VOS_IS_STATUS_SUCCESS(vos_status))
                hddLog(LOGE, FL("Failed to start wlan auto shutdown timer"));
+            else
+               hddLog(LOG1, FL("CC Session Inactive. Shutdown timer enabled"));
+
         }
 
     }
