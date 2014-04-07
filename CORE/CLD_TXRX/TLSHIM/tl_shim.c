@@ -935,6 +935,25 @@ void WLANTL_RegisterVdev(void *vos_ctx, void *vdev)
 }
 
 /*
+ * TL API called from WMA to un-register a vdev for data service with
+ * txrx. This API is called once vdev delete.
+ */
+void WLANTL_UnRegisterVdev(void *vos_ctx, u_int8_t vdev_id)
+{
+	struct txrx_tl_shim_ctx *tl_shim;
+
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	if (!tl_shim) {
+		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
+		return;
+	}
+
+#ifdef QCA_LL_TX_FLOW_CT
+	WLANTL_DeRegisterTXFlowControl(vos_ctx, vdev_id);
+#endif /* QCA_LL_TX_FLOW_CT */
+}
+
+/*
  * TL API to transmit a frame given by HDD. Returns NULL
  * in case of success, skb pointer in case of failure.
  */
@@ -1604,6 +1623,9 @@ VOS_STATUS WLANTL_Start(void *vos_ctx)
 VOS_STATUS WLANTL_Close(void *vos_ctx)
 {
 	struct txrx_tl_shim_ctx *tl_shim;
+#ifdef QCA_LL_TX_FLOW_CT
+	u_int8_t i;
+#endif /* QCA_LL_TX_FLOW_CT */
 
 	ENTER();
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
@@ -1613,6 +1635,11 @@ VOS_STATUS WLANTL_Close(void *vos_ctx)
 	}
 
 #ifdef QCA_LL_TX_FLOW_CT
+	for (i = 0;
+		i < wdi_out_cfg_max_vdevs(((pVosContextType)vos_ctx)->cfg_ctx);
+		i++) {
+		adf_os_spinlock_destroy(&tl_shim->session_flow_control[i].fc_lock);
+	}
 	adf_os_mem_free(tl_shim->session_flow_control);
 #endif /* QCA_LL_TX_FLOW_CT */
 
@@ -1693,6 +1720,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 		tl_shim->session_flow_control[i].sessionId = 0xFF;
 		tl_shim->session_flow_control[i].adpaterCtxt = NULL;
 		tl_shim->session_flow_control[i].vdev = NULL;
+		adf_os_spinlock_init(&tl_shim->session_flow_control[i].fc_lock);
 	}
 #endif /* QCA_LL_TX_FLOW_CT */
 
@@ -1810,6 +1838,7 @@ v_BOOL_t WLANTL_GetTxResource
 )
 {
 	struct txrx_tl_shim_ctx *tl_shim;
+	v_BOOL_t enough_resource = VOS_TRUE;
 
 	/* If low watermark is zero, TX flow control is not enabled at all
 	 * return TRUE by default */
@@ -1818,17 +1847,28 @@ v_BOOL_t WLANTL_GetTxResource
 	}
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_context);
-	if ((!tl_shim) || (!tl_shim->session_flow_control[sessionId].vdev)) {
-		TLSHIM_LOGE("%s, tl_shim is NULL or session id %d",
-                    __func__, sessionId);
+	if (!tl_shim) {
+		TLSHIM_LOGD("%s, tl_shim is NULL",
+                    __func__);
 		/* Invalid instace */
 		return VOS_TRUE;
 	}
 
-	return (v_BOOL_t)wdi_in_get_tx_resource(
+	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	if (!tl_shim->session_flow_control[sessionId].vdev) {
+		TLSHIM_LOGD("%s, session id %d, VDEV NULL",
+                    __func__, sessionId);
+		adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+		return VOS_TRUE;
+	}
+
+	enough_resource = (v_BOOL_t)wdi_in_get_tx_resource(
 		(struct ol_txrx_vdev_t *)tl_shim->session_flow_control[sessionId].vdev,
 		low_watermark,
 		high_watermark_offset);
+	adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+
+	return enough_resource;
 }
 
 /*=============================================================================
@@ -1869,6 +1909,7 @@ void WLANTL_TXFlowControlCb
 		return;
 	}
 
+	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
 	if ((tl_shim->session_flow_control[sessionId].sessionId == sessionId) &&
 		(tl_shim->session_flow_control[sessionId].flowControl)) {
 		flow_control_cb = tl_shim->session_flow_control[sessionId].flowControl;
@@ -1878,6 +1919,8 @@ void WLANTL_TXFlowControlCb
 	if ((flow_control_cb) && (adpter_ctxt)) {
 		flow_control_cb(adpter_ctxt, resume_tx);
 	}
+	adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+
 	return;
 }
 
@@ -1919,9 +1962,54 @@ void WLANTL_RegisterTXFlowControl
 		return;
 	}
 
+	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
 	tl_shim->session_flow_control[sessionId].flowControl = flowControl;
 	tl_shim->session_flow_control[sessionId].sessionId = sessionId;
 	tl_shim->session_flow_control[sessionId].adpaterCtxt = adpaterCtxt;
+	adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+
+	return;
+}
+
+/*=============================================================================
+  FUNCTION    WLANTL_DeRegisterTXFlowControl
+
+  DESCRIPTION
+    This function will be called by TL client.
+    Any device want to close TX flow control, should de-register Cb function
+    And needed information into TL SHIM
+
+  PARAMETERS
+   IN
+   vos_ctx : Global OS context context
+   sessionId  : VDEV instance index
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_DeRegisterTXFlowControl
+(
+	void *vos_ctx,
+	v_U8_t sessionId
+)
+{
+	struct txrx_tl_shim_ctx *tl_shim;
+
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	if (!tl_shim) {
+		TLSHIM_LOGE("%s : Invalid ARG", __func__);
+		return;
+	}
+
+	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	tl_shim->session_flow_control[sessionId].flowControl = NULL;
+	tl_shim->session_flow_control[sessionId].sessionId = 0xFF;
+	tl_shim->session_flow_control[sessionId].adpaterCtxt = NULL;
+        tl_shim->session_flow_control[sessionId].vdev = NULL;
+	adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
 
 	return;
 }
@@ -1958,16 +2046,24 @@ void WLANTL_SetAdapterMaxQDepth
 	struct txrx_tl_shim_ctx *tl_shim;
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-	if ((!tl_shim) || (!tl_shim->session_flow_control) ||
-		(!tl_shim->session_flow_control[sessionId].vdev)) {
-		TLSHIM_LOGE("%s: TLSHIM NULL or session ID %d",
-			__func__, sessionId);
+	if ((!tl_shim) || (!tl_shim->session_flow_control)) {
+		TLSHIM_LOGE("%s: TLSHIM NULL or FC main context NULL",
+			__func__);
 		return;
 	}
 
+	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	if (!tl_shim->session_flow_control[sessionId].vdev) {
+		TLSHIM_LOGD("%s, session id %d, VDEV NULL",
+                    __func__, sessionId);
+		adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+		return;
+	}
 	wdi_in_ll_set_tx_pause_q_depth(
 		(struct ol_txrx_vdev_t *)tl_shim->session_flow_control[sessionId].vdev,
 		max_q_depth);
+	adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+
 	return;
 }
 #endif /* QCA_LL_TX_FLOW_CT */

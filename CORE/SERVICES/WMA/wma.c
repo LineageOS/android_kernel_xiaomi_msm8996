@@ -3265,6 +3265,10 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		return status;
         }
 
+        /* Unregister vdev from TL shim before vdev delete
+         * Will protect from invalid vdev access */
+        WLANTL_UnRegisterVdev(wma_handle->vos_context, vdev_id);
+
         /* remove the interface from ath_dev */
         if (wma_unified_vdev_delete_send(wma_handle->wmi_handle, vdev_id)) {
                 WMA_LOGE("Unable to remove an interface for ath_dev.");

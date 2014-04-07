@@ -3114,6 +3114,30 @@ void WLANTL_RegisterTXFlowControl
 );
 
 /*=============================================================================
+  FUNCTION    WLANTL_DeRegisterTXFlowControl
+
+  DESCRIPTION
+    This function will be called by TL client.
+    Any device want to close TX flow control, should de-register Cb function
+
+  PARAMETERS
+   IN
+   vos_ctx : Global OS context context
+   sessionId  : VDEV instance index
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_DeRegisterTXFlowControl
+(
+	void *vos_ctx,
+	v_U8_t sessionId
+);
+
+/*=============================================================================
   FUNCTION    WLANTL_SetAdapterMaxQDepth
 
   DESCRIPTION

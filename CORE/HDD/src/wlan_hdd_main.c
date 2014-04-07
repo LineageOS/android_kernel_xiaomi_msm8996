@@ -8206,6 +8206,17 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 #ifdef WLAN_OPEN_SOURCE
          cancel_work_sync(&pAdapter->ipv4NotifierWorkQueue);
 #endif
+
+#ifdef QCA_LL_TX_FLOW_CT
+         WLANTL_DeRegisterTXFlowControl(pHddCtx->pvosContext, pAdapter->sessionId);
+         if(VOS_TIMER_STATE_STOPPED !=
+            vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
+         {
+            vos_timer_stop(&pAdapter->tx_flow_control_timer);
+         }
+         vos_timer_destroy(&pAdapter->tx_flow_control_timer);
+#endif /* QCA_LL_TX_FLOW_CT */
+
          if (test_bit(SME_SESSION_OPENED, &pAdapter->event_flags))
          {
             INIT_COMPLETION(pAdapter->session_close_comp_var);
@@ -8219,14 +8230,6 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
                           msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
             }
          }
-#ifdef QCA_LL_TX_FLOW_CT
-         if(VOS_TIMER_STATE_STOPPED !=
-            vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
-         {
-            vos_timer_stop(&pAdapter->tx_flow_control_timer);
-         }
-         vos_timer_destroy(&pAdapter->tx_flow_control_timer);
-#endif /* QCA_LL_TX_FLOW_CT */
          break;
 
       case WLAN_HDD_SOFTAP:
@@ -8251,6 +8254,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
          }
 
 #ifdef QCA_LL_TX_FLOW_CT
+         WLANTL_DeRegisterTXFlowControl(pHddCtx->pvosContext, pAdapter->sessionId);
          if(VOS_TIMER_STATE_STOPPED !=
             vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
          {
