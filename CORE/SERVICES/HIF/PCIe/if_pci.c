@@ -68,6 +68,7 @@
 #define AR6320_FW_1_1  (0x11)
 #define AR6320_FW_1_3  (0x13)
 #define AR6320_FW_2_0  (0x20)
+#define AR6320_FW_3_0  (0x30)
 
 #define MAX_NUM_OF_RECEIVES 1000 /* Maximum number of Rx buf to process before break out */
 #define PCIE_WAKE_TIMEOUT 1000 /* Maximum ms timeout for host to wake up target */
@@ -701,6 +702,7 @@ again:
             break;
 
         case AR6320_FW_2_0:
+        case AR6320_FW_3_0:
             hif_type = HIF_TYPE_AR6320V2;
             target_type = TARGET_TYPE_AR6320V2;
             break;
@@ -1006,6 +1008,7 @@ again:
             break;
 
         case AR6320_FW_2_0:
+        case AR6320_FW_3_0:
             hif_type = HIF_TYPE_AR6320V2;
             target_type = TARGET_TYPE_AR6320V2;
             break;
