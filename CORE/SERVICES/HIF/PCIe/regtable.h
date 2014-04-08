@@ -783,6 +783,9 @@ typedef struct hostdef_s {
 #define AR6320V2_CORE_CLK_DIV_ADDR	0x403fd8
 #define AR6320V2_CPU_PLL_INIT_DONE_ADDR	0x403fd0
 #define AR6320V2_CPU_SPEED_ADDR		0x403fd4
+#define AR6320V3_CORE_CLK_DIV_ADDR	0x404028
+#define AR6320V3_CPU_PLL_INIT_DONE_ADDR	0x404020
+#define AR6320V3_CPU_SPEED_ADDR		0x404024
 
 typedef enum {
 	SOC_REFCLK_UNKNOWN   = -1, /* Unsupported ref clock -- use PLL Bypass */

@@ -114,13 +114,14 @@ typedef enum
    VOS_MODULE_ID_SAP        = 11,
    VOS_MODULE_ID_HDD_SOFTAP = 12,
    VOS_MODULE_ID_PMC        = 13,
+   VOS_MODULE_ID_HDD_DATA   = 14,
 
 #ifdef QCA_WIFI_2_0
-   VOS_MODULE_ID_HIF        = 14,
-   VOS_MODULE_ID_HTC        = 15,
-   VOS_MODULE_ID_TXRX       = 16,
-   VOS_MODULE_ID_ADF        = 17,
-   VOS_MODULE_ID_CFG        = 18,
+   VOS_MODULE_ID_HIF        = 15,
+   VOS_MODULE_ID_HTC        = 16,
+   VOS_MODULE_ID_TXRX       = 17,
+   VOS_MODULE_ID_ADF        = 18,
+   VOS_MODULE_ID_CFG        = 19,
 #endif
 
    // not a real module ID.  This is used to identify the maxiumum
@@ -414,19 +415,19 @@ VOS_INLINE_FN v_VOID_t vos_set_macaddr_broadcast( v_MACADDR_t *pMacAddr )
 
 /*----------------------------------------------------------------------------
 
-  \brief vos_atomic_set_U32() - set a U32 variable atomically
+  \brief vos_atomic_set() - set a variable atomically
 
-  \param pTarget - pointer to the v_U32_t to set.
+  \param pTarget - pointer to the variable to set.
 
-  \param value - the value to set in the v_U32_t variable.
+  \param value - the value to set in the  variable.
 
-  \return This function returns the value previously in the v_U32_t before
+  \return This function returns the value previously in the uintptr_t before
           the new value is set.
 
   \sa vos_atomic_increment_U32(), vos_atomic_decrement_U32()
 
   --------------------------------------------------------------------------*/
-v_U32_t vos_atomic_set_U32( v_U32_t *pTarget, v_U32_t value );
+uintptr_t vos_atomic_set( uintptr_t *pTarget, uintptr_t value );
 
 
 // TODO: the below function is a stub to perform atomic set on a BYTE

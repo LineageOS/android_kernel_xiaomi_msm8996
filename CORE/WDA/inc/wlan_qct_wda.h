@@ -153,7 +153,7 @@ typedef enum
 
 #ifdef QCA_WIFI_2_0
 
-#define IS_MCC_SUPPORTED 0
+#define IS_MCC_SUPPORTED 1
 #define IS_FEATURE_SUPPORTED_BY_FW(feat_enum_value) wma_getFwWlanFeatCaps(feat_enum_value)
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE

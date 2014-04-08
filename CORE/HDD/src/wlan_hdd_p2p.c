@@ -40,7 +40,7 @@
 #include "wlan_hdd_p2p.h"
 #include "sapApi.h"
 #include "wlan_hdd_main.h"
-
+#include "vos_trace.h"
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
 #include <linux/etherdevice.h>
@@ -51,6 +51,33 @@
 
 //Ms to Micro Sec
 #define MS_TO_MUS(x)   ((x)*1000);
+
+tANI_U8* hdd_getActionString( tANI_U16 MsgType )
+{
+    switch (MsgType)
+    {
+       CASE_RETURN_STRING(SIR_MAC_ACTION_SPECTRUM_MGMT);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_QOS_MGMT);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_DLP);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_BLKACK);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_PUBLIC_USAGE);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_RRM);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_FAST_BSS_TRNST);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_HT);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_SA_QUERY);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_PROT_DUAL_PUB);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_WNM);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_UNPROT_WNM);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_TDLS);
+       CASE_RETURN_STRING(SIR_MAC_ACITON_MESH);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_MULTIHOP);
+       CASE_RETURN_STRING(SIR_MAC_SELF_PROTECTED);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_WME);
+       CASE_RETURN_STRING(SIR_MAC_ACTION_VHT);
+       default:
+           return ("UNKNOWN");
+     }
+}
 
 #ifdef WLAN_FEATURE_P2P_DEBUG
 #define MAX_P2P_ACTION_FRAME_TYPE 9
@@ -101,9 +128,8 @@ static void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
                                                tANI_U8* pbFrames,
                                                tANI_U8 frameType );
 
-static bool hdd_p2p_is_action_type_rsp( const u8 *buf )
+static bool wlan_hdd_is_type_p2p_action( const u8 *buf )
 {
-    tActionFrmType actionFrmType;
     const u8 *ouiPtr;
 
     if ( buf[WLAN_HDD_PUBLIC_ACTION_FRAME_CATEGORY_OFFSET] !=
@@ -127,14 +153,24 @@ static bool hdd_p2p_is_action_type_rsp( const u8 *buf )
         return FALSE;
     }
 
-    actionFrmType = buf[WLAN_HDD_PUBLIC_ACTION_FRAME_SUB_TYPE_OFFSET];
-    if ( actionFrmType != WLAN_HDD_INVITATION_REQ &&
-        actionFrmType != WLAN_HDD_GO_NEG_REQ &&
-        actionFrmType != WLAN_HDD_DEV_DIS_REQ &&
-        actionFrmType != WLAN_HDD_PROV_DIS_REQ )
-        return TRUE;
-    else
-        return FALSE;
+    return TRUE;
+}
+
+static bool hdd_p2p_is_action_type_rsp( const u8 *buf )
+{
+    tActionFrmType actionFrmType;
+
+    if ( wlan_hdd_is_type_p2p_action(buf) )
+    {
+        actionFrmType = buf[WLAN_HDD_PUBLIC_ACTION_FRAME_SUB_TYPE_OFFSET];
+        if ( actionFrmType != WLAN_HDD_INVITATION_REQ &&
+            actionFrmType != WLAN_HDD_GO_NEG_REQ &&
+            actionFrmType != WLAN_HDD_DEV_DIS_REQ &&
+            actionFrmType != WLAN_HDD_PROV_DIS_REQ )
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
@@ -715,6 +751,7 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
          ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
        )
     {
+
         tANI_U8 sessionId = pAdapter->sessionId;
         sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
                                             sessionId );
@@ -806,7 +843,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 #ifdef WLAN_FEATURE_P2P_DEBUG
     if ((type == SIR_MAC_MGMT_FRAME) &&
             (subType == SIR_MAC_MGMT_ACTION) &&
-            (buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET] == WLAN_HDD_PUBLIC_ACTION_FRAME))
+            wlan_hdd_is_type_p2p_action(&buf[WLAN_HDD_PUBLIC_ACTION_FRAME_BODY_OFFSET]))
     {
         actionFrmType = buf[WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET];
         if(actionFrmType >= MAX_P2P_ACTION_FRAME_TYPE)
@@ -902,7 +939,11 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
         }
     }
 
-    hddLog( LOG1, "Action frame tx request");
+    if( subType == SIR_MAC_MGMT_ACTION)
+    {
+         hddLog( LOG1, "Action frame tx request : %s",
+         hdd_getActionString(buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET]));
+     }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
     goAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_P2P_GO );
@@ -1042,16 +1083,16 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
                 (buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET] == WLAN_HDD_PUBLIC_ACTION_FRAME))
         {
             actionFrmType = buf[WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET];
-            hddLog(LOG1, "Tx Action Frame %u \n", actionFrmType);
+            hddLog(LOG1, "Tx Action Frame %u", actionFrmType);
             if (actionFrmType == WLAN_HDD_PROV_DIS_REQ)
             {
                 cfgState->actionFrmState = HDD_PD_REQ_ACK_PENDING;
-                hddLog(LOG1, "%s: HDD_PD_REQ_ACK_PENDING \n", __func__);
+                hddLog(LOG1, "%s: HDD_PD_REQ_ACK_PENDING", __func__);
             }
             else if (actionFrmType == WLAN_HDD_GO_NEG_REQ)
             {
                 cfgState->actionFrmState = HDD_GO_NEG_REQ_ACK_PENDING;
-                hddLog(LOG1, "%s: HDD_GO_NEG_REQ_ACK_PENDING \n", __func__);
+                hddLog(LOG1, "%s: HDD_GO_NEG_REQ_ACK_PENDING", __func__);
             }
         }
 #ifdef WLAN_FEATURE_11W
@@ -1223,7 +1264,7 @@ int hdd_setP2pNoa( struct net_device *dev, tANI_U8 *command )
     param++;
     sscanf(param, "%d %d %d", &count, &start_time, &duration);
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-               "%s: P2P_SET GO NoA: count=%d duration=%d interval=%d \n",
+               "%s: P2P_SET GO NoA: count=%d duration=%d interval=%d",
                 __func__, count, start_time, duration);
     duration = MS_TO_MUS(duration);
     /* PS Selection
@@ -1251,7 +1292,7 @@ int hdd_setP2pNoa( struct net_device *dev, tANI_U8 *command )
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                 "%s: P2P_PS_ATTR:oppPS %d ctWindow %d duration %d "
                 "interval %d count %d single noa duration %d "
-                "PsSelection %x \n", __func__, NoA.opp_ps,
+                "PsSelection %x", __func__, NoA.opp_ps,
                 NoA.ctWindow, NoA.duration, NoA.interval,
                 NoA.count, NoA.single_noa_duration,
                 NoA.psSelection);
@@ -1296,7 +1337,7 @@ int hdd_setP2pOpps( struct net_device *dev, tANI_U8 *command )
     param++;
     sscanf(param, "%d %d %d", &legacy_ps, &opp_ps, &ctwindow);
     VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                 "%s: P2P_SET GO PS: legacy_ps=%d opp_ps=%d ctwindow=%d \n",
+                 "%s: P2P_SET GO PS: legacy_ps=%d opp_ps=%d ctwindow=%d",
                  __func__, legacy_ps, opp_ps, ctwindow);
 
     /* PS Selection
@@ -1315,7 +1356,7 @@ int hdd_setP2pOpps( struct net_device *dev, tANI_U8 *command )
     {
 
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                    "Opportunistic Power Save is %s \n",
+                    "Opportunistic Power Save is %s",
                     (TRUE == pAdapter->ops) ? "Enable" : "Disable" );
 
         if (ctwindow != pAdapter->ctw)
@@ -1336,7 +1377,7 @@ int hdd_setP2pOpps( struct net_device *dev, tANI_U8 *command )
                 VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                             "%s: P2P_PS_ATTR:oppPS %d ctWindow %d duration %d "
                             "interval %d count %d single noa duration %d "
-                            "PsSelection %x \n", __func__, NoA.opp_ps,
+                            "PsSelection %x", __func__, NoA.opp_ps,
                             NoA.ctWindow, NoA.duration, NoA.interval,
                             NoA.count, NoA.single_noa_duration,
                             NoA.psSelection);
@@ -1350,6 +1391,7 @@ int hdd_setP2pOpps( struct net_device *dev, tANI_U8 *command )
     if (opp_ps != -1)
     {
         pAdapter->ops = opp_ps;
+
 
         if ((opp_ps != -1) && (pAdapter->ctw))
         {
@@ -1365,7 +1407,7 @@ int hdd_setP2pOpps( struct net_device *dev, tANI_U8 *command )
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                         "%s: P2P_PS_ATTR:oppPS %d ctWindow %d duration %d "
                         "interval %d count %d single noa duration %d "
-                        "PsSelection %x \n", __func__, NoA.opp_ps,
+                        "PsSelection %x", __func__, NoA.opp_ps,
                         NoA.ctWindow, NoA.duration, NoA.interval,
                         NoA.count, NoA.single_noa_duration,
                         NoA.psSelection);
@@ -1644,7 +1686,7 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     VOS_STATUS status;
     hdd_remain_on_chan_ctx_t* pRemainChanCtx = NULL;
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Frame Type = %d Frame Length = %d\n",
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Frame Type = %d Frame Length = %d",
             __func__, frameType, nFrameLength);
 
     if (NULL == pAdapter)
@@ -1683,7 +1725,8 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
                                MAC_ADDRESS_STR ,
                                MAC_ADDR_ARRAY(&pbFrames[WLAN_HDD_80211_FRM_DA_OFFSET]));
              hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Frame Type = %d Frame Length = %d"
-                              " subType = %d \n",__func__,frameType,nFrameLength,subType);
+                              " subType = %d", __func__, frameType,
+                              nFrameLength, subType);
              return;
          }
     }
@@ -1742,7 +1785,7 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
             // P2P action frames
             {
                 actionFrmType = pbFrames[WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET];
-                hddLog(LOG1, "Rx Action Frame %u \n", actionFrmType);
+                hddLog(LOG1, "Rx Action Frame %u", actionFrmType);
 #ifdef WLAN_FEATURE_P2P_DEBUG
                 if(actionFrmType >= MAX_P2P_ACTION_FRAME_TYPE)
                 {

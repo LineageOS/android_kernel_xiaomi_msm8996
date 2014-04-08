@@ -310,6 +310,9 @@ typedef struct
 
   /* Rx processing in thread from TL shim */
   v_BOOL_t enable_rxthread;
+
+  /* Re-order Aging Time */
+  v_U16_t  ucReorderAgingTime[WLANTL_MAX_AC];
 }WLANTL_ConfigInfoType;
 
 /*---------------------------------------------------------------------------

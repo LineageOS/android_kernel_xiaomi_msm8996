@@ -73,12 +73,12 @@ static void hdd_softap_dump_sk_buff(struct sk_buff * skb)
   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: end = %p ", __func__, skb->end);
   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: len = %d ", __func__, skb->len);
   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: data_len = %d ", __func__, skb->data_len);
-  VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: mac_len = %d\n", __func__, skb->mac_len);
+  VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: mac_len = %d", __func__, skb->mac_len);
 
   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x ",
      skb->data[0], skb->data[1], skb->data[2], skb->data[3], skb->data[4],
      skb->data[5], skb->data[6], skb->data[7]);
-  VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x \n",
+  VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x",
      skb->data[8], skb->data[9], skb->data[10], skb->data[11], skb->data[12],
      skb->data[13], skb->data[14], skb->data[15]);
 }
@@ -301,7 +301,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       skb->queue_mapping = HDD_LINUX_AC_BE;
 
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-              "%s: BC/MC packet\n", __func__);
+              "%s: BC/MC packet", __func__);
    }
    else
    {
@@ -365,7 +365,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
     if(pktListSize >= pAdapter->aTxQueueLimit[ac])
     {
        VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_WARN,
-            "%s: station %d ac %d queue over limit %d \n", __func__, STAId, ac, pktListSize);
+            "%s: station %d ac %d queue over limit %d", __func__, STAId, ac, pktListSize);
        pAdapter->aStaInfo[STAId].txSuspended[ac] = VOS_TRUE;
        netif_stop_subqueue(dev, skb_get_queue_mapping(skb));
        txSuspended = VOS_TRUE;
@@ -450,7 +450,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    }
    dev->trans_start = jiffies;
 
-   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit \n", __func__);
+   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit", __func__);
 
 xmit_done:
    spin_unlock_bh( &pAdapter->staInfo_lock );
@@ -677,7 +677,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
    dev->trans_start = jiffies;
 
-   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit \n", __func__);
+   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit", __func__);
 
    return NETDEV_TX_OK;
 
@@ -757,7 +757,7 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
        pktListSize >= pAdapter->aTxQueueLimit[ac])
    {
        VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_WARN,
-            "%s: station %d ac %d queue over limit %d \n", __func__, STAId, ac, pktListSize);
+            "%s: station %d ac %d queue over limit %d", __func__, STAId, ac, pktListSize);
        /* TODO:Rx Flowchart should be trigerred here to SUPEND SSC on RX side.
         * SUSPEND should be done based on Threshold. RESUME would be
         * triggered in fetch cbk after recovery.
@@ -809,7 +809,7 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
       }
    }
 
-   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit \n", __func__);
+   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit", __func__);
 
 xmit_end:
    spin_unlock_bh( &pAdapter->staInfo_lock );
@@ -1601,7 +1601,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
 
       if(skb->dev == NULL) {
 
-          hddLog(VOS_TRACE_LEVEL_FATAL, "ERROR!!Invalid netdevice\n");
+          hddLog(VOS_TRACE_LEVEL_FATAL, "ERROR!!Invalid netdevice");
           return VOS_STATUS_E_FAILURE;
       }
       ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
@@ -1640,7 +1640,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
 #endif
       {
          VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-                          "%s: send one packet to kernel \n", __func__);
+                          "%s: send one packet to kernel", __func__);
 
          skb->protocol = eth_type_trans(skb, skb->dev);
          skb->ip_summed = CHECKSUM_NONE;
@@ -1742,7 +1742,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
 
    if (skb->dev == NULL) {
 
-      hddLog(VOS_TRACE_LEVEL_FATAL, "ERROR!!Invalid netdevice\n");
+      hddLog(VOS_TRACE_LEVEL_FATAL, "ERROR!!Invalid netdevice");
       return VOS_STATUS_E_FAILURE;
    }
    ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
@@ -1767,7 +1767,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
 #endif /* QCA_PKT_PROTO_TRACE */
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-              "%s: send one packet to kernel \n", __func__);
+              "%s: send one packet to kernel", __func__);
 
    skb->protocol = eth_type_trans(skb, skb->dev);
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
@@ -1933,7 +1933,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
    vos_copy_macaddr( &staDesc.vSelfMACAddress, &pAdapter->macAddressCurrent );
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
-              "register station \n");
+              "register station");
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
               "station mac " MAC_ADDRESS_STR,
               MAC_ADDR_ARRAY(staDesc.vSTAMACAddress.bytes));
@@ -2041,7 +2041,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
    pmonAdapter= hdd_get_mon_adapter( pAdapter->pHddCtx);
    if(pmonAdapter)
    {
-       hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Turn on Monitor the carrier\n");
+       hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Turn on Monitor the carrier");
        netif_carrier_on(pmonAdapter->dev);
            //Enable Tx queue
        netif_tx_start_all_queues(pmonAdapter->dev);
@@ -2150,7 +2150,7 @@ VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADDR_t *pD
     }
 
     VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
-                                     "%s exit\n",__func__);
+                                     "%s exit", __func__);
 
     return vosStatus;
 }

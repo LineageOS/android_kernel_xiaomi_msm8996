@@ -816,7 +816,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		iface_id = HDD_IPA_GET_IFACE_ID(skb->data);
 		if (iface_id >= HDD_IPA_MAX_IFACE) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-					"IPA_RECEIVE: Invalid iface_id: %u\n",
+					"IPA_RECEIVE: Invalid iface_id: %u",
 					iface_id);
 			adf_nbuf_free(skb);
 			return;
@@ -1484,7 +1484,7 @@ static int hdd_ipa_rx_pipe_desc_alloc(void)
 			ret = -ENOMEM;
 
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-					"Descriptor allocation failed\n");
+					"Descriptor allocation failed");
 			goto fail;
 		}
 		spin_lock_bh(&hdd_ipa->q_lock);
