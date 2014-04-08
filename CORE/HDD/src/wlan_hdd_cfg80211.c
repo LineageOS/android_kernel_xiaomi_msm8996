@@ -870,6 +870,8 @@ int wlan_hdd_cfg80211_init(struct device *dev,
                                )
 {
     int i, j;
+    hdd_context_t *pHddCtx = wiphy_priv(wiphy);
+
     ENTER();
 
     /* Now bind the underlying wlan device with wiphy */
@@ -961,19 +963,22 @@ int wlan_hdd_cfg80211_init(struct device *dev,
                              | BIT(NL80211_IFTYPE_P2P_GO)
                              | BIT(NL80211_IFTYPE_AP);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
-    if( pCfg->enableMCC )
+    if( pCfg->advertiseConcurrentOperation )
     {
-        /* Currently, supports up to two channels */
-        wlan_hdd_iface_combination.num_different_channels = 2;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+        if( pCfg->enableMCC )
+        {
+            /* Currently, supports up to two channels */
+            wlan_hdd_iface_combination.num_different_channels = 2;
 
-        if( !pCfg->allowMCCGODiffBI )
-            wlan_hdd_iface_combination.beacon_int_infra_match = true;
+            if( !pCfg->allowMCCGODiffBI )
+                wlan_hdd_iface_combination.beacon_int_infra_match = true;
 
-    }
-    wiphy->iface_combinations = &wlan_hdd_iface_combination;
-    wiphy->n_iface_combinations = 1;
+        }
+        wiphy->iface_combinations = &wlan_hdd_iface_combination;
+        wiphy->n_iface_combinations = 1;
 #endif
+    }
 
     /* Before registering we need to update the ht capabilitied based
      * on ini values*/
@@ -995,7 +1000,10 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     }
 
    wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_2_4_GHZ;
-   wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
+   if (true == hdd_is_5g_supported(pHddCtx))
+   {
+       wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
+   }
 
    for (i = 0; i < IEEE80211_NUM_BANDS; i++)
    {
@@ -2427,7 +2435,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             pConfig->SapHw_mode = eSAP_DOT11_MODE_11ac;
 
         /* Disable VHT support in 2.4 GHz band */
-        if (pConfig->channel <= 14 &&
+        if (pConfig->channel <= 14 && AUTO_CHANNEL_SELECT != pConfig->channel &&
             (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->enableVhtFor24GHzBand == FALSE)
         {
             pConfig->SapHw_mode = eSAP_DOT11_MODE_11n;
@@ -9842,6 +9850,7 @@ static int wlan_hdd_cfg80211_testmode(struct wiphy *wiphy, void *data, int len)
             int   buf_len;
             void *buf;
             tSirLPHBReq *hb_params = NULL;
+            tSirLPHBReq *hb_params_temp = NULL;
 
             if (!tb[WLAN_HDD_TM_ATTR_DATA])
             {
@@ -9852,6 +9861,12 @@ static int wlan_hdd_cfg80211_testmode(struct wiphy *wiphy, void *data, int len)
 
             buf = nla_data(tb[WLAN_HDD_TM_ATTR_DATA]);
             buf_len = nla_len(tb[WLAN_HDD_TM_ATTR_DATA]);
+
+            hb_params_temp =(tSirLPHBReq *)buf;
+            if ((hb_params_temp->cmd == LPHB_SET_TCP_PARAMS_INDID) &&
+                (hb_params_temp->params.lphbTcpParamReq.timePeriodSec == 0))
+                return -EINVAL;
+
             hb_params = (tSirLPHBReq *)vos_mem_malloc(sizeof(tSirLPHBReq));
             if (NULL == hb_params)
             {

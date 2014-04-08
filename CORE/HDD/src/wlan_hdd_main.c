@@ -9879,7 +9879,7 @@ VOS_STATUS hdd_set_sme_chan_list(hdd_context_t *hdd_ctx)
   \return -  true if hardware supports 5GHz
 
   --------------------------------------------------------------------------*/
-static boolean hdd_is_5g_supported(hdd_context_t * pHddCtx)
+boolean hdd_is_5g_supported(hdd_context_t * pHddCtx)
 {
    /* If wcnss_wlan_iris_xo_mode() returns WCNSS_XO_48MHZ(1);
     * then hardware support 5Ghz.

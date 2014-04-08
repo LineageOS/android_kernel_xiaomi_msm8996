@@ -227,6 +227,8 @@ static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
 static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info,
 	                         v_BOOL_t sendResp);
 
+static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id);
+
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
 {
@@ -782,6 +784,7 @@ static void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 {
 #define PEER_ALL_TID_BITMASK 0xffffffff
 	u_int32_t peer_tid_bitmap = PEER_ALL_TID_BITMASK;
+	u_int8_t *peer_addr = bssid;
 
 	if (peer)
 		ol_txrx_peer_detach(peer);
@@ -794,7 +797,15 @@ static void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 	wmi_unified_peer_flush_tids_send(wma->wmi_handle, bssid,
 					 peer_tid_bitmap, vdev_id);
 
-	wmi_unified_peer_delete_send(wma->wmi_handle, bssid, vdev_id);
+#if defined(QCA_IBSS_SUPPORT)
+	if (wma_is_vdev_in_ibss_mode(wma, vdev_id)) {
+		WMA_LOGD("%s: bssid %pM peer->mac_addr %pM", __func__,
+			bssid, peer->mac_addr.raw);
+		peer_addr = peer->mac_addr.raw;
+	}
+#endif
+
+	wmi_unified_peer_delete_send(wma->wmi_handle, peer_addr, vdev_id);
 #undef PEER_ALL_TID_BITMASK
 }
 
@@ -829,12 +840,13 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		return -EINVAL;
 	}
 
-	WMA_LOGA("%s: PEER:[%pM], BSSID:[%pM], ADDR:[%pN], INTERFACE:%d, peer_id:%d, reason:%d",
-	         __func__, macaddr, wma->interfaces[vdev_id].bssid,
+	WMA_LOGA("%s: PEER:[%pM], ADDR:[%pN], INTERFACE:%d, peer_id:%d, reason:%d",
+	         __func__, macaddr,
 	         wma->interfaces[vdev_id].addr, vdev_id,
 	         peer_id, kickout_event->reason);
 
-	if (kickout_event->reason == WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT) {
+	switch (kickout_event->reason) {
+	    case WMI_PEER_STA_KICKOUT_REASON_IBSS_DISCONNECT:
 		p_inactivity = (tpSirIbssPeerInactivityInd)
 			vos_mem_malloc(sizeof(tSirIbssPeerInactivityInd));
 		if (!p_inactivity) {
@@ -845,10 +857,10 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		p_inactivity->staIdx = peer_id;
 		vos_mem_copy(p_inactivity->peerAddr, macaddr, IEEE80211_ADDR_LEN);
 		wma_send_msg(wma, WDA_IBSS_PEER_INACTIVITY_IND, (void *)p_inactivity, 0);
-	}
+		break;
+
 #ifdef FEATURE_WLAN_TDLS
-	else if (kickout_event->reason ==
-	         WMI_PEER_STA_KICKOUT_REASON_TDLS_DISCONNECT) {
+	    case WMI_PEER_STA_KICKOUT_REASON_TDLS_DISCONNECT:
 		del_sta_ctx =
 			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
 		if (!del_sta_ctx) {
@@ -864,9 +876,58 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
 		wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx,
 			0);
-	}
+		break;
 #endif /* FEATURE_WLAN_TDLS */
-	else {
+
+	    case WMI_PEER_STA_KICKOUT_REASON_XRETRY:
+		if(wma->interfaces[vdev_id].type == WMI_VDEV_TYPE_STA &&
+		   (wma->interfaces[vdev_id].sub_type == 0 ||
+		    wma->interfaces[vdev_id].sub_type ==
+				 WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) &&
+		   vos_mem_compare(wma->interfaces[vdev_id].bssid,
+				   macaddr, ETH_ALEN)) {
+		    /*
+		     * KICKOUT event is for current station-AP connection.
+		     * Treat it like final beacon miss. Station may not have
+		     * missed beacons but not able to transmit frames to AP
+		     * for a long time. Must disconnect to get out of
+		     * this sticky situation.
+		     * In future implementation, roaming module will also
+		     * handle this event and perform a scan.
+		     */
+		    WMA_LOGW("%s: WMI_PEER_STA_KICKOUT_REASON_XRETRY event for STA",
+				__func__);
+		    wma_beacon_miss_handler(wma, vdev_id);
+		}
+		break;
+
+	    case WMI_PEER_STA_KICKOUT_REASON_UNSPECIFIED:
+		/*
+		 * Default legacy value used by original firmware implementation.
+		 */
+		if(wma->interfaces[vdev_id].type == WMI_VDEV_TYPE_STA &&
+		   (wma->interfaces[vdev_id].sub_type == 0 ||
+		    wma->interfaces[vdev_id].sub_type ==
+				 WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) &&
+		   vos_mem_compare(wma->interfaces[vdev_id].bssid,
+				   macaddr, ETH_ALEN)) {
+		    /*
+		     * KICKOUT event is for current station-AP connection.
+		     * Treat it like final beacon miss. Station may not have
+		     * missed beacons but not able to transmit frames to AP
+		     * for a long time. Must disconnect to get out of
+		     * this sticky situation.
+		     * In future implementation, roaming module will also
+		     * handle this event and perform a scan.
+		     */
+		    WMA_LOGW("%s: WMI_PEER_STA_KICKOUT_REASON_UNSPECIFIED event for STA",
+				__func__);
+		    wma_beacon_miss_handler(wma, vdev_id);
+		}
+		break;
+
+	    case WMI_PEER_STA_KICKOUT_REASON_INACTIVITY:
+	    default:
 		del_sta_ctx =
 			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
 		if (!del_sta_ctx) {
@@ -881,6 +942,7 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
 		wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx,
 			0);
+		break;
 	}
 	WMA_LOGD("%s: Exit", __func__);
 	return 0;
@@ -911,6 +973,35 @@ static int wmi_unified_vdev_down_send(wmi_unified_t wmi, u_int8_t vdev_id)
 	return 0;
 }
 
+#ifdef QCA_IBSS_SUPPORT
+static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
+{
+	ol_txrx_vdev_handle vdev;
+	ol_txrx_peer_handle peer;
+
+	if (!wma || vdev_id > wma->max_bssid)
+		return;
+
+	vdev = wma->interfaces[vdev_id].handle;
+	if (!vdev)
+		return;
+
+	/* remove all IBSS remote peers first */
+	TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+		if (peer != TAILQ_FIRST(&vdev->peer_list)) {
+			adf_os_atomic_init(&peer->ref_cnt);
+			adf_os_atomic_inc(&peer->ref_cnt);
+			wma_remove_peer(wma, wma->interfaces[vdev_id].bssid,
+				vdev_id, peer);
+		}
+	}
+
+	/* remote IBSS bss peer last */
+	peer = TAILQ_FIRST(&vdev->peer_list);
+	wma_remove_peer(wma, wma->interfaces[vdev_id].bssid, vdev_id, peer);
+}
+#endif //#ifdef QCA_IBSS_SUPPORT
+
 static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 				      u32 len)
 {
@@ -923,6 +1014,7 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	u_int8_t peer_id;
 #ifdef QCA_IBSS_SUPPORT
         tDelStaSelfParams del_sta_param;
+        ol_txrx_vdev_handle vdev;
 #endif
 	struct wma_txrx_node *iface;
 
@@ -961,11 +1053,21 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		}
 
 		iface = &wma->interfaces[resp_event->vdev_id];
-		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
-		if (!peer)
-			WMA_LOGD("%s Failed to find peer %pM",
+
+#ifdef QCA_IBSS_SUPPORT
+		if (wma_is_vdev_in_ibss_mode(wma, resp_event->vdev_id))
+			wma_delete_all_ibss_peers(wma, resp_event->vdev_id);
+		else
+#endif
+		{
+			peer = ol_txrx_find_peer_by_addr(pdev, params->bssid,
+					&peer_id);
+			if (!peer)
+				WMA_LOGD("%s Failed to find peer %pM",
 					__func__, params->bssid);
-		wma_remove_peer(wma, params->bssid, resp_event->vdev_id, peer);
+			wma_remove_peer(wma, params->bssid, resp_event->vdev_id,
+					peer);
+		}
 
 		if (wmi_unified_vdev_down_send(wma->wmi_handle, resp_event->vdev_id) < 0) {
 			WMA_LOGE("Failed to send vdev down cmd: vdev %d",
@@ -996,10 +1098,12 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 #endif
 
 #ifdef QCA_IBSS_SUPPORT
+		vdev = wma->interfaces[resp_event->vdev_id].handle;
 		if (wma_is_vdev_in_ibss_mode(wma, params->sessionId)) {
 			del_sta_param.sessionId   = params->sessionId;
 			vos_mem_copy((void *)del_sta_param.selfMacAddr,
-			(void *)params->bssid, VOS_MAC_ADDR_SIZE);
+				(void *)&(vdev->mac_addr),
+				VOS_MAC_ADDR_SIZE);
 			wma_vdev_detach(wma, &del_sta_param, 0);
 		}
 #endif
@@ -6107,8 +6211,18 @@ void wma_vdev_resp_timer(void *data)
 		}
 
 		iface = &wma->interfaces[tgt_req->vdev_id];
-		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
-		wma_remove_peer(wma, params->bssid, tgt_req->vdev_id, peer);
+#ifdef QCA_IBSS_SUPPORT
+		if (wma_is_vdev_in_ibss_mode(wma, tgt_req->vdev_id))
+			wma_delete_all_ibss_peers(wma, tgt_req->vdev_id);
+		else
+#endif
+		{
+			peer = ol_txrx_find_peer_by_addr(pdev, params->bssid,
+				&peer_id);
+			wma_remove_peer(wma, params->bssid, tgt_req->vdev_id,
+				peer);
+		}
+
 		if (wmi_unified_vdev_down_send(wma->wmi_handle, tgt_req->vdev_id) < 0) {
 			WMA_LOGE("Failed to send vdev down cmd: vdev %d",
 				tgt_req->vdev_id);
@@ -8234,10 +8348,9 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 
                 TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
 	                WMA_LOGE("%s: peer found for vdev id %d. deleting the peer",
-			 __func__, vdev_id);
-			wma_remove_peer(wma, (u_int8_t *)&vdev->mac_addr,
-			 vdev_id, peer);
-                        ol_txrx_peer_detach(peer);
+                                __func__, vdev_id);
+                        wma_remove_peer(wma, (u_int8_t *)&vdev->mac_addr,
+		                vdev_id, peer);
                 }
 
                 vos_copy_macaddr((v_MACADDR_t *)&(del_sta_param.selfMacAddr),
@@ -9937,7 +10050,7 @@ static int32_t wmi_unified_vdev_stop_send(wmi_unified_t wmi, u_int8_t vdev_id)
 static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 {
 	ol_txrx_pdev_handle pdev;
-	ol_txrx_peer_handle peer;
+	ol_txrx_peer_handle peer = NULL;
 	struct wma_target_req *msg;
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 	u_int8_t peer_id;
@@ -9950,8 +10063,17 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 		goto out;
 	}
 
-	peer = ol_txrx_find_peer_by_addr(pdev, params->bssid,
+#ifdef QCA_IBSS_SUPPORT
+	if (wma_is_vdev_in_ibss_mode(wma, params->smesessionId))
+		/* in rome ibss case, self mac is used to create the bss peer */
+		peer = ol_txrx_find_peer_by_addr(pdev,
+				wma->interfaces[params->smesessionId].addr,
+				&peer_id);
+	else
+#endif
+		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid,
 					 &peer_id);
+
 	if (!peer) {
 		WMA_LOGP("%s: Failed to find peer %pM", __func__,
 			 params->bssid);
@@ -11903,6 +12025,8 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 		return "AUTH_REQ_RECV";
 	case WOW_REASON_ASSOC_REQ_RECV:
 		return "ASSOC_REQ_RECV";
+	case WOW_REASON_HTT_EVENT:
+		return "WOW_REASON_HTT_EVENT";
 	}
 	return "unknown";
 }
@@ -12049,6 +12173,9 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		wma_lphb_handler(wma, (u_int8_t *)param_buf->hb_indevt);
 		break;
 #endif
+
+	case WOW_REASON_HTT_EVENT:
+		break;
 
 	default:
 		break;
@@ -12746,6 +12873,14 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	} else {
 		WMA_LOGD("Roaming scan better AP based wakeup is enabled in fw");
 	}
+
+	/* Configure ADDBA/DELBA wakeup */
+	ret = wma_add_wow_wakeup_event(wma, WOW_HTT_EVENT, TRUE);
+
+	if (ret != VOS_STATUS_SUCCESS)
+		WMA_LOGE("Failed to Configure WOW_HTT_EVENT to FW");
+	else
+		WMA_LOGD("Successfully Configured WOW_HTT_EVENT to FW");
 
 	/* WOW is enabled in pcie suspend callback */
 	wma->wow.wow_enable = TRUE;

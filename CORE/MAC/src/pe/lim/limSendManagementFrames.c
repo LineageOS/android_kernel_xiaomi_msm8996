@@ -2266,6 +2266,8 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         return;
     }
 
+    smeSessionId = psessionEntry->smeSessionId;
+
     /* check this early to avoid unncessary operation */
     if(NULL == psessionEntry->pLimJoinReq)
     {
@@ -3505,8 +3507,11 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
 
     if(NULL == psessionEntry)
     {
+        limLog(pMac, LOGE, FL("Error: psession Entry is NULL"));
         return;
     }
+
+    smeSessionId = psessionEntry->smeSessionId;
 
     limLog(pMac, LOG1,
            FL("Sending Auth seq# %d status %d (%d) to "MAC_ADDRESS_STR),
