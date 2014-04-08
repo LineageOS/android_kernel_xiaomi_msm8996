@@ -22,7 +22,7 @@ LOCAL_LDLIBS := -landroid
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE := cnss-diag
+LOCAL_MODULE := cnss_diag
 LOCAL_MODULE_TAGS := optional
 LOCAL_C_INCLUDES := $(TARGET_OUT_HEADERS)/diag/include \
 LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/common/inc \

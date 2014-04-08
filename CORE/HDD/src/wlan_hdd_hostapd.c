@@ -124,13 +124,23 @@ extern int process_wma_set_command(int sessid, int paramid,
   --------------------------------------------------------------------------*/
 int hdd_hostapd_open (struct net_device *dev)
 {
+   hdd_adapter_t *pAdapter = netdev_priv(dev);
+
    ENTER();
+
+   if (WLAN_HDD_GET_CTX(pAdapter)->isLoadInProgress ||
+        WLAN_HDD_GET_CTX(pAdapter)->isUnloadInProgress)
+   {
+       hddLog(LOGE, FL("Driver load/unload in progress, ignore adapter open"));
+       goto done;
+   }
 
    //Turn ON carrier state
    netif_carrier_on(dev);
    //Enable all Tx queues
    netif_tx_start_all_queues(dev);
 
+done:
    EXIT();
    return 0;
 }
