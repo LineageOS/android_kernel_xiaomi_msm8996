@@ -39,6 +39,7 @@
 #define AR6320_REV1_1_VERSION	     0x5000001
 #define AR6320_REV1_3_VERSION	     0x5000003
 #define AR6320_REV2_1_VERSION	     0x5010000
+#define AR6320_REV3_VERSION	     0x5020000
 #define QCA_FIRMWARE_FILE            "athwlan.bin"
 #define QCA_UTF_FIRMWARE_FILE        "utf.bin"
 #define QCA_BOARD_DATA_FILE          "fakeboar.bin"

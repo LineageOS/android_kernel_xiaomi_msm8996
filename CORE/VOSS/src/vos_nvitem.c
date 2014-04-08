@@ -3361,7 +3361,7 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 #endif
 {
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
-    tANI_U8 nBandCapability;
+    eCsrBand nBandCapability = eCSR_BAND_ALL;
     v_COUNTRYCODE_t country_code;
     int i;
     v_BOOL_t isVHT80Allowed;
@@ -3390,15 +3390,16 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 #endif
     }
 
+    sme_GetFreqBand(pHddCtx->hHal, &nBandCapability);
+
     /* first check if this callback is in response to the driver callback */
 
     switch (request->initiator)
     {
        case NL80211_REGDOM_SET_BY_DRIVER:
 
-          nBandCapability = pHddCtx->cfg_ini->nBandCapability;
           isVHT80Allowed = pHddCtx->isVHT80Allowed;
-          if (create_linux_regulatory_entry(wiphy, pHddCtx->cfg_ini->nBandCapability) == 0)
+          if (create_linux_regulatory_entry(wiphy, nBandCapability) == 0)
           {
 
              VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
@@ -3444,7 +3445,7 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
           nBandCapability = pHddCtx->cfg_ini->nBandCapability;
           isVHT80Allowed = pHddCtx->isVHT80Allowed;
           if (create_linux_regulatory_entry(wiphy,
-                   pHddCtx->cfg_ini->nBandCapability) == 0)
+                            nBandCapability) == 0)
           {
              VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                    (" regulatory entry created"));
@@ -3839,7 +3840,7 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
     v_REGDOMAIN_t domainIdCurrent;
     tANI_U8 ccode[WNI_CFG_COUNTRY_CODE_LEN];
     tANI_U8 uBufLen = WNI_CFG_COUNTRY_CODE_LEN;
-    tANI_U8 nBandCapability;
+    eCsrBand nBandCapability = eCSR_BAND_ALL;
     int i,j,k,m;
 
     wiphy_dbg(wiphy, "info: cfg80211 reg_notifier callback for country"
@@ -3895,10 +3896,12 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
        //    &country_code[0], pAdapter, pHddCtx->pvosContext);
     }
 
+    sme_GetFreqBand(pHddCtx->hHal, &nBandCapability);
+
     if (request->initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE)
     {
        wiphy_dbg(wiphy, "info: set by country IE\n");
-       if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0)
+       if (create_crda_regulatory_entry(wiphy, request,                            nBandCapability) != 0)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
           return;
 #else
@@ -3943,7 +3946,6 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
             settings. iwiphy->bands doesn't seem to set ht40 flags in kernel
             correctly, this may be fixed by later kernel */
 
-         nBandCapability = pHddCtx->cfg_ini->nBandCapability;
          for (i = 0, m = 0; i < IEEE80211_NUM_BANDS; i++)
          {
              if (NULL == wiphy->bands[i])

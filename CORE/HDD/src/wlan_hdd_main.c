@@ -2882,7 +2882,7 @@ int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate)
        (WLAN_HDD_INFRA_STATION != pAdapter->device_mode))
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-         "%s: Received SETMCRATE command in invalid mode %d \n"
+         "%s: Received SETMCRATE command in invalid mode %d"
          "SETMCRATE command is only allowed in STA, IBSS or SOFTAP mode",
          __func__, pAdapter->device_mode);
       return -EINVAL;
@@ -4585,7 +4585,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
               (WLAN_HDD_SOFTAP != pAdapter->device_mode))
           {
              VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "Received SETRMCTXRATE command in invalid mode %d \n"
+                "Received SETRMCTXRATE command in invalid mode %d"
                 "SETRMC command is only allowed in IBSS or SOFTAP mode",
                 pAdapter->device_mode);
              ret = -EINVAL;
@@ -4735,15 +4735,15 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            }
            VOS_TRACE( VOS_MODULE_ID_HDD,
                       VOS_TRACE_LEVEL_INFO,
-                      "UplinkPktQueueDly(%d)\n"
-                      "UplinkPktQueueDlyHist[0](%d)\n"
-                      "UplinkPktQueueDlyHist[1](%d)\n"
-                      "UplinkPktQueueDlyHist[2](%d)\n"
-                      "UplinkPktQueueDlyHist[3](%d)\n"
-                      "UplinkPktTxDly(%u)\n"
-                      "UplinkPktLoss(%d)\n"
-                      "UplinkPktCount(%d)\n"
-                      "RoamingCount(%d)\n"
+                      "UplinkPktQueueDly(%d)"
+                      "UplinkPktQueueDlyHist[0](%d)"
+                      "UplinkPktQueueDlyHist[1](%d)"
+                      "UplinkPktQueueDlyHist[2](%d)"
+                      "UplinkPktQueueDlyHist[3](%d)"
+                      "UplinkPktTxDly(%u)"
+                      "UplinkPktLoss(%d)"
+                      "UplinkPktCount(%d)"
+                      "RoamingCount(%d)"
                       "RoamingDly(%d)",
                       tsmMetrics.UplinkPktQueueDly,
                       tsmMetrics.UplinkPktQueueDlyHist[0],
@@ -4981,7 +4981,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
    pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    if (NULL == pAdapter) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                 "%s: HDD adapter context is Null", __func__);
+                 "%s: pAdapter context is Null", __func__);
       ret = -ENODEV;
       goto exit;
    }
@@ -6549,7 +6549,7 @@ int hdd_stop (struct net_device *dev)
    if (NULL == pAdapter)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: HDD adapter context is Null", __func__);
+                "%s: pAdapter context is Null", __func__);
       return -ENODEV;
    }
 
@@ -6820,7 +6820,7 @@ void hdd_req_bmps_cbk(void *callbackContext, eHalStatus status)
 
    struct completion *completion_var = (struct completion*) callbackContext;
 
-   hddLog(VOS_TRACE_LEVEL_ERROR, "HDD BMPS request Callback, status = %d\n", status);
+   hddLog(VOS_TRACE_LEVEL_ERROR, "HDD BMPS request Callback, status = %d", status);
    if(completion_var != NULL)
    {
       complete(completion_var);
@@ -7353,7 +7353,7 @@ void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
       if(!rc)
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-              ("ERROR: HDD Wait for Action Confirmation Failed!!\n"));
+              ("ERROR: HDD Wait for Action Confirmation Failed!!"));
       }
    }
    return;
@@ -7642,7 +7642,7 @@ VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type)
                  if(eHAL_STATUS_SUCCESS != halStatus)
                  {
                     status = VOS_STATUS_E_FAILURE;
-                    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Fail to Disable Power Save\n", __func__);
+                    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Fail to Disable Power Save", __func__);
                     VOS_ASSERT(0);
                     return status;
                  }
@@ -7655,7 +7655,7 @@ VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type)
                  if(eHAL_STATUS_SUCCESS != halStatus)
                  {
                     status = VOS_STATUS_E_FAILURE;
-                    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Fail to Stop Auto Bmps Timer\n", __func__);
+                    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Fail to Stop Auto Bmps Timer", __func__);
                     VOS_ASSERT(0);
                     return status;
                  }
@@ -7681,7 +7681,7 @@ VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type)
                  else
                  {
                     status = VOS_STATUS_E_FAILURE;
-                    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Request for Full Power failed\n", __func__);
+                    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Request for Full Power failed", __func__);
                     VOS_ASSERT(0);
                     return status;
                  }
@@ -8115,7 +8115,7 @@ void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
                             eANI_BOOLEAN_FALSE) )
     {
         hddLog(LOGE,
-           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM\n");
+           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
     }
 
     if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
@@ -8123,7 +8123,7 @@ void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
                             eANI_BOOLEAN_FALSE) )
     {
         hddLog(LOGE,
-           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM\n");
+           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM");
     }
 
     if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
@@ -8131,7 +8131,7 @@ void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
                             eANI_BOOLEAN_FALSE) )
     {
         hddLog(LOGE,
-           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM\n");
+           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM");
     }
 }
 
@@ -9019,7 +9019,7 @@ static void hdd_set_multicast_list(struct net_device *dev)
             break;
          memset(&(pAdapter->mc_addr_list.addr[i][0]), 0, ETH_ALEN);
          memcpy(&(pAdapter->mc_addr_list.addr[i][0]), ha->addr, ETH_ALEN);
-         hddLog(VOS_TRACE_LEVEL_INFO, "\n%s: mlist[%d] = "MAC_ADDRESS_STR,
+         hddLog(VOS_TRACE_LEVEL_INFO, "%s: mlist[%d] = "MAC_ADDRESS_STR,
                __func__, i,
                MAC_ADDR_ARRAY(pAdapter->mc_addr_list.addr[i]));
          i++;
@@ -9462,12 +9462,12 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
     * exited at this point
     */
    hddLog(VOS_TRACE_LEVEL_WARN, "In module exit: Cancel the vote for XO Core ON"
-                                    " when WLAN is turned OFF\n");
+                                    " when WLAN is turned OFF");
    if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
    {
        hddLog(VOS_TRACE_LEVEL_ERROR, "Could not cancel the vote for XO Core ON."
                                         " Not returning failure."
-                                        " Power consumed will be high\n");
+                                        " Power consumed will be high");
    }
 
    hdd_close_all_adapters( pHddCtx );
@@ -9589,7 +9589,7 @@ int hdd_wlan_notify_modem_power_state(int state)
 
    vosStatus = sme_notify_modem_power_state(pHddCtx->hHal, state);
    if (VOS_STATUS_SUCCESS != vosStatus) {
-      hddLog(LOGE, "Fail to send notification with modem power state %d\n",
+      hddLog(LOGE, "Fail to send notification with modem power state %d",
              state);
       return -1;
    }
@@ -9617,20 +9617,20 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
    status = vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid);
    if(status != VOS_STATUS_SUCCESS)
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR," vos_nv_getValidity() failed\n ");
+      hddLog(VOS_TRACE_LEVEL_ERROR," vos_nv_getValidity() failed");
        return VOS_STATUS_E_FAILURE;
    }
 
    if (itemIsValid == VOS_TRUE)
    {
-        hddLog(VOS_TRACE_LEVEL_INFO_HIGH," Reading the Macaddress from NV\n ");
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH," Reading the Macaddress from NV");
       status = vos_nv_readMultiMacAddress((v_U8_t *)&macFromNV[0].bytes[0],
                                           VOS_MAX_CONCURRENCY_PERSONA);
         if(status != VOS_STATUS_SUCCESS)
         {
          /* Get MAC from NV fail, not update CFG info
           * INI MAC value will be used for MAC setting */
-         hddLog(VOS_TRACE_LEVEL_ERROR," vos_nv_readMacAddress() failed\n ");
+         hddLog(VOS_TRACE_LEVEL_ERROR," vos_nv_readMacAddress() failed");
             return VOS_STATUS_E_FAILURE;
         }
 
@@ -9887,13 +9887,13 @@ boolean hdd_is_5g_supported(hdd_context_t * pHddCtx)
 #ifdef QCA_WIFI_ISOC
    if (WCNSS_XO_48MHZ == wcnss_wlan_iris_xo_mode())
    {
-      hddLog(VOS_TRACE_LEVEL_INFO, "%s: Hardware supports 5Ghz", __func__);
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Hardware supports 5Ghz", __func__);
       return true;
    }
    else
    {
-      hddLog(VOS_TRACE_LEVEL_INFO, "%s: Hardware doesn't supports 5Ghz",
-                    __func__);
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Hardware doesn't supports 5Ghz",
+             __func__);
       return false;
    }
 #else
@@ -10822,7 +10822,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                                 VOS_TIMER_TYPE_SW, wlan_hdd_auto_shutdown_cb,
                                                                         NULL);
         if (!VOS_IS_STATUS_SUCCESS(status))
-           hddLog(LOGE, FL("Failed to init wlan auto shutdown timer\n"));
+           hddLog(LOGE, FL("Failed to init wlan auto shutdown timer"));
     }
 #endif
 
@@ -11137,7 +11137,7 @@ static int hdd_driver_init( void)
       if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
       {
           hddLog(VOS_TRACE_LEVEL_ERROR, "Could not cancel XO Core ON vote. Not returning failure."
-                                            " Power consumed will be high\n");
+                                            " Power consumed will be high");
       }
    } while (0);
 
@@ -12072,7 +12072,7 @@ void wlan_hdd_send_svc_nlink_msg(int type)
 #endif
     default:
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "WLAN SVC: Attempt to send unknown nlink message %d\n", type);
+                "WLAN SVC: Attempt to send unknown nlink message %d", type);
         kfree_skb(skb);
         return;
     }
@@ -12133,7 +12133,7 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
     }
 
     if (ap_connected == VOS_TRUE || sta_connected == VOS_TRUE) {
-            hddLog(LOGE, FL("CC Session active. Shutdown timer not enabled"));
+            hddLog(LOG1, FL("CC Session active. Shutdown timer not enabled"));
             return;
     } else {
         if (hdd_ctx->hdd_wlan_shutdown_timer.state == VOS_TIMER_STATE_STOPPED) {
@@ -12142,6 +12142,9 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
 
             if (!VOS_IS_STATUS_SUCCESS(vos_status))
                hddLog(LOGE, FL("Failed to start wlan auto shutdown timer"));
+            else
+               hddLog(LOG1, FL("CC Session Inactive. Shutdown timer enabled"));
+
         }
 
     }

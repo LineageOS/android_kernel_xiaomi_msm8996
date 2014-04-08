@@ -2238,6 +2238,7 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
              case 0x1: /* ROME 1.1 */
              case 0x4: /* ROME 2.1 */
              case 0x5: /* ROME 2.2 */
+             case 0x8: /* ROME 3.0 */
              default:
                      /* 3 banks are switched to IRAM */
                      banks_switched = 3;

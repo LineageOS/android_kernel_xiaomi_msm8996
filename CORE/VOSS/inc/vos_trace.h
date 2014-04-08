@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -90,6 +90,9 @@ typedef enum
 #define WCONN_TRACE_KMSG_LOG_BUFF
 
 #include  <i_vos_trace.h>
+
+#define CASE_RETURN_STRING( str ) \
+    case ( ( str ) ): return( (tANI_U8*)(#str) );
 
 /*-------------------------------------------------------------------------
   Function declarations and documenation
