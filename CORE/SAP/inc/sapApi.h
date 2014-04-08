@@ -599,6 +599,15 @@ int sapSetPreferredChannel
     tANI_U8* ptr
 );
 
+#ifdef FEATURE_WLAN_CH_AVOID
+/* Store channel safety information */
+typedef struct
+{
+   v_U16_t   channelNumber;
+   v_BOOL_t  isSafe;
+} sapSafeChannelType;
+#endif //FEATURE_WLAN_CH_AVOID
+
 #ifdef WLAN_FEATURE_MBSSID
 void sapCleanupChannelList(v_PVOID_t sapContext);
 #else
