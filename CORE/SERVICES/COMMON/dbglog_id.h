@@ -290,7 +290,8 @@ extern "C" {
 #define WHAL_ERROR_POWER_MODE_SCALED_PWR           45
 #define WHAL_ERROR_POWER_EDGE_PWR_TPSCALE          46
 #define WHAL_ERROR_POWER_CHAN_REGALLOW             47
-#define WHAL_DBGID_DEFINITION_END                  48
+#define WHAL_ERROR_WAIT_REG_TIMEOUT                48
+#define WHAL_DBGID_DEFINITION_END                  49
 
 #define COEX_DEBUGID_START              0
 #define BTCOEX_DBG_MCI_1                            1
@@ -829,7 +830,9 @@ extern "C" {
 #define WOW_NS_REPLIED           18
 #define WOW_ARP_RECEIVED         19
 #define WOW_ARP_REPLIED          20
-#define WOW_DBGID_DEFINITION_END 21
+#define WOW_BEACON_OFFLOAD_TX    21
+#define WOW_BEACON_OFFLOAD_CFG   22
+#define WOW_DBGID_DEFINITION_END 23
 
 /* SWBMISS module DBGIDs */
 #define SWBMISS_DBGID_DEFINITION_START  0
