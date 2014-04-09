@@ -89,6 +89,9 @@
 extern int process_wma_set_command(int sessid, int paramid,
                                    int sval, int vpdev);
 #endif /* QCA_WIFI_2_0 */
+#include "wlan_hdd_trace.h"
+#include "vos_types.h"
+#include "vos_trace.h"
 
 #define    IS_UP(_dev) \
     (((_dev)->flags & (IFF_RUNNING|IFF_UP)) == (IFF_RUNNING|IFF_UP))
@@ -127,6 +130,9 @@ int hdd_hostapd_open (struct net_device *dev)
    hdd_adapter_t *pAdapter = netdev_priv(dev);
 
    ENTER();
+
+   MTRACE(vos_trace(VOS_MODULE_ID_HDD,
+                    TRACE_CODE_HDD_HOSTAPD_OPEN_REQUEST, NO_SESSION, 0));
 
    if (WLAN_HDD_GET_CTX(pAdapter)->isLoadInProgress ||
         WLAN_HDD_GET_CTX(pAdapter)->isUnloadInProgress)
