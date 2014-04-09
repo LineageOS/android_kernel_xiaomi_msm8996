@@ -1150,11 +1150,14 @@ ifeq ($(CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC), 1)
 CDEFINES += -DTARGET_RAMDUMP_AFTER_KERNEL_PANIC
 endif
 
-ifeq ($(EXISTS_MSM_SMD),1)
+# Some kernel include files are being moved.  Check to see if
+# the old version of the files are present
+
+ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/mach-msm/include/mach/msm_smd.h),)
 CDEFINES += -DEXISTS_MSM_SMD
 endif
 
-ifeq ($(EXISTS_MSM_SMSM),1)
+ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/mach-msm/include/mach/msm_smsm.h),)
 CDEFINES += -DEXISTS_MSM_SMSM
 endif
 

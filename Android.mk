@@ -41,17 +41,6 @@ else
        DLKM_DIR := build/dlkm
 endif
 
-# Some kernel include files are being moved.  Check to see if
-# the old version of the files are present
-INCLUDE_SELECT :=
-ifneq ($(wildcard $(TOP)/kernel//arch/arm/mach-msm/include/mach/msm_smd.h),)
-        INCLUDE_SELECT += EXISTS_MSM_SMD=1
-endif
-
-ifneq ($(wildcard $(TOP)/kernel//arch/arm/mach-msm/include/mach/msm_smsm.h),)
-        INCLUDE_SELECT += EXISTS_MSM_SMSM=1
-endif
-
 # Build wlan.ko as either prima_wlan.ko or pronto_wlan.ko or qca_cld_wlan.ko
 ###########################################################
 # This is set once per LOCAL_PATH, not per (kernel) module
@@ -63,7 +52,6 @@ KBUILD_OPTIONS := WLAN_ROOT=../$(WLAN_BLD_DIR)/qcacld-2.0
 KBUILD_OPTIONS += MODNAME=wlan
 KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 KBUILD_OPTIONS += $(WLAN_SELECT)
-KBUILD_OPTIONS += $(INCLUDE_SELECT)
 KBUILD_OPTIONS += $(WLAN_ISOC_SELECT)
 KBUILD_OPTIONS += WLAN_OPEN_SOURCE=$(WLAN_OPEN_SOURCE)
 
