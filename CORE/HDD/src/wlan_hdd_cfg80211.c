@@ -5908,8 +5908,12 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
         {
             vos_mem_zero((void *)(pRoamProfile->BSSIDs.bssid),WNI_CFG_BSSID_LEN);
         }
-        hddLog(LOG1, FL("Connect to SSID: %s opertating Channel: %u"),
-               pRoamProfile->SSIDs.SSIDList->SSID.ssId, operatingChannel);
+
+        hddLog(LOG1, FL("Connect to SSID: %.*s operating Channel: %u"),
+               pRoamProfile->SSIDs.SSIDList->SSID.length,
+               pRoamProfile->SSIDs.SSIDList->SSID.ssId,
+               operatingChannel);
+
         if ((IW_AUTH_WPA_VERSION_WPA == pWextState->wpaVersion) ||
                 (IW_AUTH_WPA_VERSION_WPA2 == pWextState->wpaVersion))
         {
@@ -5977,6 +5981,7 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
         {
             hdd_select_cbmode(pAdapter,operatingChannel);
         }
+
         /* change conn_state to connecting before sme_RoamConnect(), because sme_RoamConnect()
          * has a direct path to call hdd_smeRoamCallback(), which will change the conn_state
          * If direct path, conn_state will be accordingly changed to NotConnected or Associated
