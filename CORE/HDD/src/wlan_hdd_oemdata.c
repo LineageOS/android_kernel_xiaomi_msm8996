@@ -452,7 +452,7 @@ void send_oem_reg_rsp_nlink_msg(void)
              "%s: sending App Reg Response length (%d) to process pid (%d)",
              __func__, aniHdr->length, pHddCtx->oem_pid);
 
-   (void)nl_srv_ucast(skb, pHddCtx->oem_pid);
+   (void)nl_srv_ucast(skb, pHddCtx->oem_pid, MSG_DONTWAIT);
 
    return;
 }
@@ -504,7 +504,7 @@ void send_oem_err_rsp_nlink_msg(v_SINT_t app_pid, tANI_U8 error_code)
              "%s: sending oem error response to process pid (%d)",
              __func__, app_pid);
 
-   (void)nl_srv_ucast(skb, app_pid);
+   (void)nl_srv_ucast(skb, app_pid, MSG_DONTWAIT);
 
    return;
 }
@@ -572,7 +572,7 @@ void send_oem_data_rsp_msg(int length, tANI_U8 *oemDataRsp)
              "%s: sending Oem Data Response of len (%d) to process pid (%d)",
              __func__, length, pHddCtx->oem_pid);
 
-   (void)nl_srv_ucast(skb, pHddCtx->oem_pid);
+   (void)nl_srv_ucast(skb, pHddCtx->oem_pid, MSG_DONTWAIT);
 
    return;
 }
@@ -736,7 +736,7 @@ int oem_process_channel_info_req_msg(int numOfChannels, char *chanList)
              "%s: sending channel info resp for num channels (%d) to pid (%d)",
              __func__, numOfChannels, pHddCtx->oem_pid);
 
-   (void)nl_srv_ucast(skb, pHddCtx->oem_pid);
+   (void)nl_srv_ucast(skb, pHddCtx->oem_pid, MSG_DONTWAIT);
 
    return 0;
 }
@@ -842,7 +842,7 @@ void hdd_SendPeerStatusIndToOemApp(v_MACADDR_t *peerMac,
              __func__, MAC_ADDR_ARRAY(peerMac->bytes), peerStatus,
              peerTimingMeasCap, sessionId, chanId, pHddCtx->oem_pid);
 
-   (void)nl_srv_ucast(skb, pHddCtx->oem_pid);
+   (void)nl_srv_ucast(skb, pHddCtx->oem_pid, MSG_DONTWAIT);
 
    return;
 }
