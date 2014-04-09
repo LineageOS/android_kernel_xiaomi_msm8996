@@ -106,6 +106,7 @@
 #define CSR_OUI_WAPI_RESERVED_INDEX    0x00
 #define CSR_OUI_WAPI_WAI_CERT_OR_SMS4_INDEX    0x01
 #define CSR_OUI_WAPI_WAI_PSK_INDEX     0x02
+#define CSR_OUI_WAPI_WAI_MAX_INDEX     0x03     // max index, should be last & highest
 #endif /* FEATURE_WLAN_WAPI */
 
 
