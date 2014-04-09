@@ -1000,6 +1000,7 @@ typedef struct sMacOpenParameters
  * offload currently, rest bits are unused
  */
     tANI_U8 olIniInfo;
+    v_BOOL_t ssdp;
     /*
      * DFS Phyerror Filtering offload status from ini
      * 0 indicates offload disabled

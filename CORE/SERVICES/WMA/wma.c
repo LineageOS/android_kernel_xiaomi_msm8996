@@ -2896,6 +2896,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_handle->max_bssid = mac_params->maxBssId;
 	wma_handle->frame_xln_reqd = mac_params->frameTransRequired;
 	wma_handle->driver_type = mac_params->driverType;
+	wma_handle->ssdp = mac_params->ssdp;
 
 	/*
 	 * Indicates if DFS Phyerr filtering offload
@@ -2918,7 +2919,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 					   wma_unified_debug_print_event_handler);
 
 	wma_handle->tgt_cfg_update_cb = tgt_cfg_cb;
-   wma_handle->dfs_radar_indication_cb = radar_ind_cb;
+	wma_handle->dfs_radar_indication_cb = radar_ind_cb;
 
 #ifdef QCA_WIFI_ISOC
 	vos_status = vos_event_init(&wma_handle->cfg_nv_tx_complete);
@@ -12837,14 +12838,18 @@ static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
 	 * Setup multicast pattern for mDNS 224.0.0.251,
 	 * SSDP 239.255.255.250 and LLMNR 224.0.0.252
 	 */
-	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
-			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
-			discvr_ptrn, sizeof(discvr_ptrn), discvr_offset,
-			discvr_mask, sizeof(discvr_ptrn));
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to add WOW mDNS/SSDP/LLMNR pattern");
-		return ret;
+	if (wma->ssdp) {
+		ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
+				wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
+				discvr_ptrn, sizeof(discvr_ptrn), discvr_offset,
+				discvr_mask, sizeof(discvr_ptrn));
+		if (ret != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("Failed to add WOW mDNS/SSDP/LLMNR pattern");
+			return ret;
+		}
 	}
+	else
+		WMA_LOGD("mDNS, SSDP, LLMNR patterns are disabled from ini");
 
 	/* when arp offload or ns offloaded is disabled
 	 * from ini file, configure broad cast arp pattern
@@ -12861,6 +12866,7 @@ static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
 			return ret;
 		}
 	}
+
 	/* for NS or NDP offload packets */
 	if (!(wma->ol_ini_info & 0x2)) {
 		/* Setup all NS pkt pattern */

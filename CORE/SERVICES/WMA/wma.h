@@ -604,6 +604,7 @@ typedef struct {
 	 * offload currently, rest bits are unused
 	 */
 	u_int8_t ol_ini_info;
+	v_BOOL_t ssdp;
         u_int8_t ibss_started;
         tSetBssKeyParams ibsskey_info;
 
