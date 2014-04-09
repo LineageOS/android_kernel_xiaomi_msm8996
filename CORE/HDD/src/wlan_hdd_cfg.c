@@ -3379,6 +3379,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_DEBUG_P2P_REMAIN_ON_CHANNEL_DEFAULT,
                  CFG_DEBUG_P2P_REMAIN_ON_CHANNEL_MIN,
                  CFG_DEBUG_P2P_REMAIN_ON_CHANNEL_MAX ),
+
+   REG_VARIABLE( CFG_SAP_DOT11_MODE_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, sapDot11Mode,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_SAP_DOT11_MODE_DEFAULT,
+                 CFG_SAP_DOT11_MODE_MIN,
+                 CFG_SAP_DOT11_MODE_MAX ),
 };
 
 /*
