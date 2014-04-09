@@ -986,7 +986,6 @@ void hdd_checkandupdate_dfssetting( hdd_adapter_t *pAdapter, char *country_code)
 
 }
 
-
 #ifdef FEATURE_WLAN_BATCH_SCAN
 
 /**---------------------------------------------------------------------------
