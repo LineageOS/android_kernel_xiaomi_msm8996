@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -635,7 +635,7 @@ inline int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *da
 #define CONFIG_PCIE_ENABLE_AXI_CLK_GATE 0
 
 extern A_target_id_t HIFGetTargetId(HIF_DEVICE *hifDevice);
-extern void HIFTargetSleepStateAdjust(A_target_id_t targid, A_BOOL sleep_ok, A_BOOL wait_for_it);
+extern int HIFTargetSleepStateAdjust(A_target_id_t targid, A_BOOL sleep_ok, A_BOOL wait_for_it);
 extern void
 HIFSetTargetSleep(HIF_DEVICE *hif_device, A_BOOL sleep_ok, A_BOOL wait_for_it);
 extern A_BOOL HIFTargetForcedAwake(A_target_id_t targid);
@@ -674,10 +674,35 @@ void WAR_PCI_WRITE32(char *addr, u32 offset, u32 value);
 #else /* CONFIG_ATH_PCIE_MAX_PERF */
 
 void WAR_PCI_WRITE32(char *addr, u32 offset, u32 value);
+
+#define A_TARGET_ACCESS_BEGIN_RET(targid) \
+        if (Q_TARGET_ACCESS_BEGIN(targid) < 0) \
+            return -1;
+
+#define A_TARGET_ACCESS_BEGIN_RET_PTR(targid) \
+        if (Q_TARGET_ACCESS_BEGIN(targid) < 0) \
+            return NULL;
+
 #define A_TARGET_ACCESS_BEGIN(targid) \
+        if(Q_TARGET_ACCESS_BEGIN(targid) < 0) \
+            return;
+
+#define Q_TARGET_ACCESS_BEGIN(targid) \
         HIFTargetSleepStateAdjust((targid), FALSE, TRUE)
 
+#define A_TARGET_ACCESS_END_RET(targid) \
+        if (Q_TARGET_ACCESS_END(targid) < 0) \
+            return -1;
+
+#define A_TARGET_ACCESS_END_RET_PTR(targid) \
+        if (Q_TARGET_ACCESS_END(targid) < 0) \
+            return NULL;
+
 #define A_TARGET_ACCESS_END(targid) \
+        if (Q_TARGET_ACCESS_END(targid) < 0) \
+            return;
+
+#define Q_TARGET_ACCESS_END(targid) \
         HIFTargetSleepStateAdjust((targid), TRUE, FALSE)
 
 #define A_TARGET_ACCESS_OK(targid)            HIFTargetForcedAwake(targid)
