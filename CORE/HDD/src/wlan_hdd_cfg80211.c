@@ -10222,12 +10222,18 @@ int wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
 
 #ifdef QCA_WIFI_2_0
     /* Resume MC thread */
-    complete(&vosSchedContext->ResumeMcEvent);
-    pHddCtx->isMcThreadSuspended = FALSE;
+    if (pHddCtx->isMcThreadSuspended) {
+        complete(&vosSchedContext->ResumeMcEvent);
+        pHddCtx->isMcThreadSuspended = FALSE;
+    }
 
 #ifdef QCA_CONFIG_SMP
     /* Resume tlshim Rx thread */
-    complete(&vosSchedContext->ResumeTlshimRxEvent);
+    if (pHddCtx->isTlshimRxThreadSuspended) {
+        complete(&vosSchedContext->ResumeTlshimRxEvent);
+        pHddCtx->isTlshimRxThreadSuspended = FALSE;
+    }
+
 #endif
     hdd_resume_wlan();
 #endif
@@ -10391,6 +10397,7 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                    "%s: Failed to stop tl_shim rx thread", __func__);
         goto resume_all;
     }
+    pHddCtx->isTlshimRxThreadSuspended = TRUE;
 #endif
 
     pHddCtx->isWiphySuspended = TRUE;

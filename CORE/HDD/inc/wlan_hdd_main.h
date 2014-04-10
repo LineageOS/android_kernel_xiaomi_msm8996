@@ -1219,6 +1219,10 @@ struct hdd_context_s
 
    v_BOOL_t isRxThreadSuspended;
 
+#ifdef QCA_CONFIG_SMP
+   v_BOOL_t isTlshimRxThreadSuspended;
+#endif
+
    volatile v_BOOL_t isLogpInProgress;
 
    v_BOOL_t isLoadInProgress;

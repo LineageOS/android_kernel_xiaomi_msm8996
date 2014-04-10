@@ -1794,6 +1794,12 @@ VOS_STATUS hdd_wlan_shutdown(void)
       complete(&vosSchedContext->ResumeRxEvent);
       pHddCtx->isRxThreadSuspended= FALSE;
    }
+#ifdef QCA_CONFIG_SMP
+   if (TRUE == pHddCtx->isTlshimRxThreadSuspended) {
+      complete(&vosSchedContext->ResumeTlshimRxEvent);
+      pHddCtx->isTlshimRxThreadSuspended = FALSE;
+    }
+#endif
 
    /* Reset the Suspend Variable */
    pHddCtx->isWlanSuspended = FALSE;
