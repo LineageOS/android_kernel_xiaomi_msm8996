@@ -4541,6 +4541,32 @@ LIM
 V    RW    NP
 LIM
 10   20    10
+
+*
+* PMF SA Query Maximum Retries
+*
+
+WNI_CFG_PMF_SA_QUERY_MAX_RETRIES    I    4    1
+V    RO   NP RESTART
+NONE
+0    20   5
+V    RO   NP RESTART
+NONE
+0    20   5
+
+*
+* PMF SA Query Retry Interval (in TUs)
+*
+
+WNI_CFG_PMF_SA_QUERY_RETRY_INTERVAL    I    4    1
+V    RO   NP RESTART
+NONE
+0    2000 200
+V    RO   NP RESTART
+NONE
+0    2000 200
+
+
 *
 *MCC ENABLE/DISABLE ADAPTIVE RX Drain feature
 *

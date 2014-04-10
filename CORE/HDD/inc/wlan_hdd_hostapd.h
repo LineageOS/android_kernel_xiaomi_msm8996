@@ -83,6 +83,8 @@ int hdd_softap_unpackIE( tHalHandle halHandle,
                 eCsrEncryptionType *pEncryptType,
                 eCsrEncryptionType *mcEncryptType,
                 eCsrAuthType *pAuthType,
+                v_BOOL_t *pMFPCapable,
+                v_BOOL_t *pMFPRequired,
                 u_int16_t gen_ie_len,
                 u_int8_t *gen_ie );
 

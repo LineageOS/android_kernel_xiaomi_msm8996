@@ -732,6 +732,7 @@ again:
 #if PCIE_BAR0_READY_CHECKING
         int wait_limit = 200;
 #endif
+        int targ_awake_limit = 500;
 
         /*
          * Verify that the Target was started cleanly.
@@ -746,7 +747,13 @@ again:
          */
         A_PCI_WRITE32(mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
         while (!hif_pci_targ_is_awake(sc, mem)) {
-            ;
+            if (0 == targ_awake_limit) {
+                printk(KERN_ERR "%s: target awake timeout\n", __func__);
+                ret = -EAGAIN;
+                goto err_tgtstate;
+            }
+            A_MDELAY(1);
+            targ_awake_limit--;
         }
 
 #if PCIE_BAR0_READY_CHECKING

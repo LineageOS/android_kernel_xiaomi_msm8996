@@ -8378,10 +8378,10 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		WMA_LOGE("%s: Failed to create vdev", __func__);
 		goto send_fail_resp;
 	}
-        WLANTL_RegisterVdev(wma->vos_context, vdev);
-        /* Register with TxRx Module for Data Ack Complete Cb */
-        wdi_in_data_tx_cb_set(vdev, wma_data_tx_ack_comp_hdlr, wma);
-	WMA_LOGE("%s: new vdev created for IBSS", __func__);
+	WLANTL_RegisterVdev(wma->vos_context, vdev);
+	/* Register with TxRx Module for Data Ack Complete Cb */
+	wdi_in_data_tx_cb_set(vdev, wma_data_tx_ack_comp_hdlr, wma);
+	WMA_LOGA("new IBSS vdev created with mac %pM", add_bss->selfMacAddr);
 
         /* create self peer */
 	status = wma_create_peer(wma, pdev, vdev, add_bss->selfMacAddr,
@@ -8390,6 +8390,7 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		WMA_LOGE("%s: Failed to create peer", __func__);
 		goto send_fail_resp;
 	}
+	WMA_LOGA("IBSS BSS peer created with mac %pM", add_bss->selfMacAddr);
 
 	peer = ol_txrx_find_peer_by_addr(pdev, add_bss->selfMacAddr, &peer_id);
 	if (!peer) {
@@ -9629,17 +9630,12 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 		vos_mem_copy(key_params.peer_mac,
 			wma_handle->interfaces[key_info->smesessionId].bssid,
 			ETH_ALEN);
-	}
-        else if (wlan_op_mode_ibss == txrx_vdev->opmode) {
-		/* vdev mac address will be passed for IBSS mode
-                ** Self Mac address is supposed to be in  wma_handle->hwaddr
-               */
-		vos_mem_copy(key_params.peer_mac, wma_handle->hwaddr,
-			     ETH_ALEN);
 	} else {
                /* vdev mac address will be passed for all other modes */
 		vos_mem_copy(key_params.peer_mac, txrx_vdev->mac_addr.raw,
 			     ETH_ALEN);
+		WMA_LOGA("BSS Key setup with vdev_mac %pM\n",
+			 txrx_vdev->mac_addr.raw);
         }
 
 	if (key_info->numKeys == 0 &&
@@ -10674,7 +10670,7 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 #ifndef QCA_WIFI_ISOC
 	if (WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
 				   WMI_SERVICE_BEACON_OFFLOAD)) {
-            WMA_LOGE("%s : Beacon Offload Enabled Sending Unified command", __func__);
+	    WMA_LOGA("Beacon Offload Enabled Sending Unified command");
 	    if (wmi_unified_bcn_tmpl_send(wma, vdev_id, bcn_info, 4) < 0){
                 WMA_LOGE("%s : wmi_unified_bcn_tmpl_send Failed ", __func__);
 		return;
