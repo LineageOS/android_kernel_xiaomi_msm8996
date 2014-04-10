@@ -568,6 +568,19 @@ eHalStatus sme_ScanGetResult(tHalHandle hHal, tANI_U8 sessionId, tCsrScanResultF
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus sme_ScanFlushResult(tHalHandle hHal, tANI_U8 sessionId);
+
+/*
+ * ---------------------------------------------------------------------------
+ *  \fn sme_FilterScanResults
+ *  \brief a wrapper function to request CSR to filter the scan results based
+ *   on valid chennel list.
+ *  \param hHal - The handle returned by macOpen.
+ *  \param sessionId - the sessionId returned by sme_OpenSession.
+ *  \return eHalStatus
+ *---------------------------------------------------------------------------
+ */
+eHalStatus sme_FilterScanResults(tHalHandle hHal, tANI_U8 sessionId);
+
 eHalStatus sme_ScanFlushP2PResult(tHalHandle hHal, tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
