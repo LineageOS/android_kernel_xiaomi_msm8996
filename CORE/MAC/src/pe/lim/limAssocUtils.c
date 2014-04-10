@@ -4058,9 +4058,13 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             if (!pAddBssParams->staContext.vhtCapable)
                 // Use max ampd factor advertised in HTCAP for non-vht connection
 #endif
-             {
-                pAddBssParams->staContext.maxAmpduSize= pAssocRsp->HTCaps.maxRxAMPDUFactor;
-             }
+            {
+               pAddBssParams->staContext.maxAmpduSize = pAssocRsp->HTCaps.maxRxAMPDUFactor;
+            }
+            else if (pAddBssParams->staContext.maxAmpduSize < pAssocRsp->HTCaps.maxRxAMPDUFactor)
+            {
+               pAddBssParams->staContext.maxAmpduSize = pAssocRsp->HTCaps.maxRxAMPDUFactor;
+            }
             if( pAddBssParams->staContext.vhtTxBFCapable && pMac->lim.disableLDPCWithTxbfAP )
             {
                 pAddBssParams->staContext.htLdpcCapable = 0;
