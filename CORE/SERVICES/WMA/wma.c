@@ -6610,23 +6610,18 @@ static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t sta_type,
 
 	switch (nw_type) {
 		case eSIR_11B_NW_TYPE:
-#ifdef FEATURE_WLAN_TDLS
-			if (STA_ENTRY_TDLS_PEER == sta_type) {
-				if (is_vht) {
-					if (is_cw_vht)
-						phymode = MODE_11AC_VHT80;
-					else
-						phymode = (is_cw40) ?
-						          MODE_11AC_VHT40 :
-						          MODE_11AC_VHT20;
-				}
-				else if (is_ht) {
+			if (is_vht) {
+			    if (is_cw_vht)
+					phymode = MODE_11AC_VHT80;
+			    else
 					phymode = (is_cw40) ?
-					          MODE_11NG_HT40 : MODE_11NG_HT20;
-				} else
-					phymode = MODE_11B;
+					          MODE_11AC_VHT40 :
+					          MODE_11AC_VHT20;
+			}
+			else if (is_ht) {
+				phymode = (is_cw40) ?
+				          MODE_11NG_HT40 : MODE_11NG_HT20;
 			} else
-#endif /* FEATURE_WLAN_TDLS */
 				phymode = MODE_11B;
 			break;
 		case eSIR_11G_NW_TYPE:
