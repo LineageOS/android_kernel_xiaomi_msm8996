@@ -168,6 +168,16 @@ typedef enum
     VOS_P2P_GO=8,
 } tVOS_CONCURRENCY_MODE;
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+typedef enum
+{
+    VOS_MCC_TO_SCC_SWITCH_DISABLE = 0,
+    VOS_MCC_TO_SCC_SWITCH_ENABLE,
+    VOS_MCC_TO_SCC_SWITCH_FORCE,
+    VOS_MCC_TO_SCC_SWITCH_MAX
+} tVOS_MCC_TO_SCC_SWITCH_MODE;
+#endif
+
 #if !defined( NULL )
 #ifdef __cplusplus
 #define NULL    0

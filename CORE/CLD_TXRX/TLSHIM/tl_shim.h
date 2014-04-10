@@ -64,6 +64,7 @@ struct tlshim_session_flow_Control {
 	v_U8_t                     sessionId;
 	void                      *adpaterCtxt;
 	void                      *vdev;
+	adf_os_spinlock_t          fc_lock;
 };
 #endif /* QCA_LL_TX_FLOW_CT */
 
@@ -97,6 +98,7 @@ struct deferred_iapp_work iapp_work;
  * in WMA.
  */
 void WLANTL_RegisterVdev(void *vos_ctx, void *vdev);
+void WLANTL_UnRegisterVdev(void *vos_ctx, u_int8_t vdev_id);
 VOS_STATUS tl_shim_get_vdevid(struct ol_txrx_peer_t *peer, u_int8_t *vdev_id);
 
 /*

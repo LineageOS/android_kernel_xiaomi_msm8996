@@ -83,13 +83,6 @@
 )
 
 #ifdef FEATURE_WLAN_CH_AVOID
-/* Store channel safty information */
-typedef struct
-{
-   v_U16_t   channelNumber;
-   v_BOOL_t  isSafe;
-} sapSafeChannelType;
-
 sapSafeChannelType safeChannels[NUM_20MHZ_RF_CHANNELS] =
 {
   /*CH  , SAFE, default safe */
@@ -641,7 +634,10 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
         /* OFDM rates are not supported on channel 14 */
         if(*pChans == 14 &&
                eCSR_DOT11_MODE_11b != sme_GetPhyMode(halHandle))
+        {
+            pChans++;
             continue;
+        }
 
 #ifdef FEATURE_WLAN_CH_AVOID
         if (VOS_TRUE == chSafe)

@@ -567,6 +567,40 @@ v_U8_t WLANSAP_getState
     return pSapCtx->sapsMachine;
 }
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+/*==========================================================================
+  FUNCTION    WLANSAP_CheckCCIntf
+
+  DESCRIPTION Restart SAP if Concurrent Channel interfering
+
+  DEPENDENCIES NA.
+
+  PARAMETERS
+  IN
+  Ctx: Pointer to vos Context or Sap Context based on MBSSID
+
+  RETURN VALUE NONE
+
+  SIDE EFFECTS
+============================================================================*/
+v_U16_t WLANSAP_CheckCCIntf(v_PVOID_t Ctx)
+{
+    tHalHandle hHal;
+    v_U16_t intf_ch;
+    ptSapContext pSapCtx = VOS_GET_SAP_CB(Ctx);
+
+    hHal = (tHalHandle)VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
+    if (NULL == hHal)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid MAC context from pvosGCtx", __func__);
+        return 0;
+    }
+    intf_ch = sme_CheckConcurrentChannelOverlap(hHal, 0, 0,
+                                                pSapCtx->cc_switch_mode);
+    return intf_ch;
+}
+#endif
 /*==========================================================================
   FUNCTION    WLANSAP_StartBss
 
@@ -635,6 +669,9 @@ WLANSAP_StartBss
 
         /* Channel selection is auto or configured */
         pSapCtx->channel = pConfig->channel;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        pSapCtx->cc_switch_mode = pConfig->cc_switch_mode;
+#endif
         pSapCtx->scanBandPreference = pConfig->scanBandPreference;
         pSapCtx->acsBandSwitchThreshold = pConfig->acsBandSwitchThreshold;
         pSapCtx->pUsrContext = pUsrContext;

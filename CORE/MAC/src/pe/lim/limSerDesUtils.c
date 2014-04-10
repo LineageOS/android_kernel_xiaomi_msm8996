@@ -539,6 +539,14 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    // Extract mcc to scc switch mode
+    pStartBssReq->cc_switch_mode = *pBuf++;
+    len --;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+#endif
+
     // Extract bssType
     pStartBssReq->bssType = (tSirBssType) limGetU32(pBuf);
     pBuf += sizeof(tANI_U32);
@@ -963,6 +971,17 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
         limLog(pMac, LOGE, FL("remaining len %d is too short"), len);
         return eSIR_FAILURE;
     }
+
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    // Extract mcc to scc switch mode
+    pJoinReq->cc_switch_mode= *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+    {
+        limLog(pMac, LOGE, FL("remaining len %d is too short"), len);
+        return eSIR_FAILURE;
+    }
+#endif
 
     // Extract bssPersona
     pJoinReq->staPersona = *pBuf++;

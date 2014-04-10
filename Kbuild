@@ -169,6 +169,7 @@ ADF_INC :=	-I$(WLAN_ROOT)/$(ADF_DIR) \
 ADF_OBJS :=     $(ADF_DIR)/adf_nbuf.o \
                 $(ADF_DIR)/adf_os_lock.o \
                 $(ADF_DIR)/adf_os_mem.o \
+                $(ADF_DIR)/linux/adf_os_defer_pvt.o \
                 $(ADF_DIR)/linux/adf_os_lock_pvt.o
 endif
 
@@ -1124,7 +1125,7 @@ endif
 
 #enable wlan auto shutdown feature for mdm9630
 ifeq ($(CONFIG_ARCH_MDM9630), y)
-CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN
+CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN -DFEATURE_WLAN_MCC_TO_SCC_SWITCH
 endif
 
 #Open P2P device interface only for non-MDM9630 platform

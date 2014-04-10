@@ -61,6 +61,9 @@
 #include "wlan_hdd_tdls.h"
 #endif
 #include "wlan_hdd_cfg80211.h"
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+#include <adf_os_defer.h>
+#endif
 #ifdef WLAN_FEATURE_MBSSID
 #include "sapApi.h"
 #endif
@@ -1375,7 +1378,9 @@ struct hdd_context_s
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
     vos_timer_t hdd_wlan_shutdown_timer;
 #endif
-
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    adf_os_work_t  sta_ap_intf_check_work;
+#endif
 };
 
 
@@ -1383,6 +1388,10 @@ struct hdd_context_s
 /*---------------------------------------------------------------------------
   Function declarations and documenation
   -------------------------------------------------------------------------*/
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *sta_pAdapter);
+#endif
+
 VOS_STATUS hdd_get_front_adapter( hdd_context_t *pHddCtx,
                                   hdd_adapter_list_node_t** ppAdapterNode);
 

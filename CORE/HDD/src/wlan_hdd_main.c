@@ -243,7 +243,6 @@ static void hdd_set_multicast_list(struct net_device *dev);
 #endif
 
 void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter);
-int isWDresetInProgress(void);
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand);
@@ -2179,7 +2178,7 @@ hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
    vos_mem_copy(hdr->addr3, bssid, VOS_MAC_ADDR_SIZE);
    vos_mem_copy(hdr + 1, payload, payload_len);
 
-   ret = wlan_hdd_action(NULL,
+   ret = wlan_hdd_mgmt_tx(NULL,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
                          &(pAdapter->wdev),
 #else
@@ -8206,6 +8205,17 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 #ifdef WLAN_OPEN_SOURCE
          cancel_work_sync(&pAdapter->ipv4NotifierWorkQueue);
 #endif
+
+#ifdef QCA_LL_TX_FLOW_CT
+         WLANTL_DeRegisterTXFlowControl(pHddCtx->pvosContext, pAdapter->sessionId);
+         if(VOS_TIMER_STATE_STOPPED !=
+            vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
+         {
+            vos_timer_stop(&pAdapter->tx_flow_control_timer);
+         }
+         vos_timer_destroy(&pAdapter->tx_flow_control_timer);
+#endif /* QCA_LL_TX_FLOW_CT */
+
          if (test_bit(SME_SESSION_OPENED, &pAdapter->event_flags))
          {
             INIT_COMPLETION(pAdapter->session_close_comp_var);
@@ -8219,14 +8229,6 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
                           msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
             }
          }
-#ifdef QCA_LL_TX_FLOW_CT
-         if(VOS_TIMER_STATE_STOPPED !=
-            vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
-         {
-            vos_timer_stop(&pAdapter->tx_flow_control_timer);
-         }
-         vos_timer_destroy(&pAdapter->tx_flow_control_timer);
-#endif /* QCA_LL_TX_FLOW_CT */
          break;
 
       case WLAN_HDD_SOFTAP:
@@ -8251,6 +8253,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
          }
 
 #ifdef QCA_LL_TX_FLOW_CT
+         WLANTL_DeRegisterTXFlowControl(pHddCtx->pvosContext, pAdapter->sessionId);
          if(VOS_TIMER_STATE_STOPPED !=
             vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
          {
@@ -8707,14 +8710,14 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
    if (staChannel > 0 && (apChannel > 0 || p2pChannel > 0)) {
        ccMode = (p2pChannel==staChannel||apChannel==staChannel) ? "SCC" : "MCC";
    }
-   hddLog(VOS_TRACE_LEVEL_INFO, "wlan(%d) " MAC_ADDRESS_STR " %s",
+   hddLog(VOS_TRACE_LEVEL_ERROR, "wlan(%d) " MAC_ADDRESS_STR " %s",
                 staChannel, MAC_ADDR_ARRAY(staBssid), ccMode);
    if (p2pChannel > 0) {
        hddLog(VOS_TRACE_LEVEL_INFO, "p2p-%s(%d) " MAC_ADDRESS_STR,
                      p2pMode, p2pChannel, MAC_ADDR_ARRAY(p2pBssid));
    }
    if (apChannel > 0) {
-       hddLog(VOS_TRACE_LEVEL_INFO, "AP(%d) " MAC_ADDRESS_STR,
+       hddLog(VOS_TRACE_LEVEL_ERROR, "AP(%d) " MAC_ADDRESS_STR,
                      apChannel, MAC_ADDR_ARRAY(apBssid));
    }
 
@@ -12193,6 +12196,99 @@ void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
     vos_timer_stop(&pHddCtx->bus_bw_timer);
     pHddCtx->bus_bw_triggered = 0;
 }
+#endif
+
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+void wlan_hdd_restart_sap(hdd_adapter_t *ap_pAdapter)
+{
+    hdd_ap_ctx_t *pHddApCtx;
+    hdd_hostapd_state_t *pHostapdState;
+    VOS_STATUS vos_status;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(ap_pAdapter);
+
+    pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(ap_pAdapter);
+
+    mutex_lock(&pHddCtx->sap_lock);
+    if(test_bit(SOFTAP_BSS_STARTED, &ap_pAdapter->event_flags))
+    {
+        wlan_hdd_cfg80211_del_station(ap_pAdapter->wdev.wiphy, ap_pAdapter->dev,
+                                                                          NULL);
+        hdd_cleanup_actionframe(pHddCtx, ap_pAdapter);
+
+        pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(ap_pAdapter);
+        if ( VOS_STATUS_SUCCESS == (vos_status = WLANSAP_StopBss(
+#ifdef WLAN_FEATURE_MBSSID
+            pHddApCtx->sapContext
+#else
+            (WLAN_HDD_GET_CTX(ap_pAdapter))->pvosContext
+#endif
+        ))) {
+            vos_status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
+
+            if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+                hddLog(LOGE,FL("%s: SAP Stop Failed"), __func__);
+                goto end;
+            }
+        }
+        clear_bit(SOFTAP_BSS_STARTED, &ap_pAdapter->event_flags);
+        hddLog(LOGE,FL("%s: SAP Stop Success"), __func__);
+
+        if (WLANSAP_StartBss(
+#ifdef WLAN_FEATURE_MBSSID
+            pHddApCtx->sapContext,
+#else
+            pHddCtx->pvosContext,
+#endif
+            hdd_hostapd_SAPEventCB, &pHddApCtx->sapConfig,
+            (v_PVOID_t)ap_pAdapter->dev) != VOS_STATUS_SUCCESS) {
+            hddLog(LOGE,FL("%s: SAP Start Bss fail"), __func__);
+            goto end;
+        }
+
+        hddLog(LOG1, FL("%s: Waiting for SAP to start"), __func__);
+        vos_status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
+        if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+            hddLog(LOGE,FL("%s: SAP Start failed"), __func__);
+            goto end;
+        }
+        hddLog(LOGE,FL("%s: SAP Start Success"), __func__);
+        set_bit(SOFTAP_BSS_STARTED, &ap_pAdapter->event_flags);
+        pHostapdState->bCommit = TRUE;
+    }
+end:
+    mutex_unlock(&pHddCtx->sap_lock);
+    return;
+}
+
+void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
+{
+    hdd_adapter_t *ap_pAdapter = NULL, *sta_pAdapter = (hdd_adapter_t *)data;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(sta_pAdapter);
+    hdd_ap_ctx_t *pHddApCtx;
+    v_U16_t intf_ch = 0;
+
+   if ((pHddCtx->cfg_ini->WlanMccToSccSwitchMode == VOS_MCC_TO_SCC_SWITCH_DISABLE)
+       || !(vos_concurrent_sessions_running()
+       || !(vos_get_concurrency_mode() == VOS_STA_SAP)))
+        return;
+
+    ap_pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
+    if (ap_pAdapter == NULL)
+        return;
+    pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(ap_pAdapter);
+
+#ifdef WLAN_FEATURE_MBSSID
+    intf_ch = WLANSAP_CheckCCIntf(pHddApCtx->sapContext);
+#else
+    intf_ch = WLANSAP_CheckCCIntf(pHddCtx->pvosContext);
+#endif
+    if (intf_ch == 0)
+        return;
+
+    pHddApCtx->sapConfig.channel = intf_ch;
+    wlan_hdd_restart_sap(ap_pAdapter);
+}
+
 #endif
 
 //Register the module init/exit functions

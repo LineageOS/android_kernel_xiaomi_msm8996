@@ -908,6 +908,22 @@ typedef struct tagCsrRoamProfile
 }tCsrRoamProfile;
 
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+typedef struct tagCsrRoamHTProfile
+{
+    eCsrPhyMode         phymode;
+    tANI_U8             htCapability;
+    tANI_U8             htSupportedChannelWidthSet;
+    tANI_U8             htRecommendedTxWidthSet;
+    ePhyChanBondState   htSecondaryChannelOffset;
+#ifdef WLAN_FEATURE_11AC
+    tANI_U8             vhtCapability;
+    tANI_U8             vhtTxChannelWidthSet;
+    tANI_U8             apCenterChan;
+    tANI_U8             apChanWidth;
+#endif
+}tCsrRoamHTProfile;
+#endif
 typedef struct tagCsrRoamConnectedProfile
 {
     tSirMacSSid SSID;
@@ -947,6 +963,9 @@ typedef struct tagCsrRoamConnectedProfile
 #endif
     tANI_U32 dot11Mode;
     tANI_U8 proxyARPService;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    tCsrRoamHTProfile HTProfile;
+#endif
 }tCsrRoamConnectedProfile;
 
 
@@ -1037,6 +1056,8 @@ typedef struct tagCsrConfigParam
     tANI_U32  nPassiveMaxChnTime;    //in units of milliseconds
     tANI_U32  nActiveMinChnTime;     //in units of milliseconds
     tANI_U32  nActiveMaxChnTime;     //in units of milliseconds
+
+    tANI_U32  nInitialDwellTime;      //in units of milliseconds
 
     tANI_U32  nActiveMinChnTimeBtc;     //in units of milliseconds
     tANI_U32  nActiveMaxChnTimeBtc;     //in units of milliseconds
@@ -1147,6 +1168,9 @@ typedef struct tagCsrConfigParam
     tANI_U8 isCoalesingInIBSSAllowed;
 
     eCsrBand  scanBandPreference;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    tANI_U8  cc_switch_mode;
+#endif
 }tCsrConfigParam;
 
 //Tush

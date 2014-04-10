@@ -473,6 +473,14 @@ typedef enum
 #define CFG_WLAN_AUTO_SHUTDOWN_DEFAULT      ( 0 )
 #endif
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE          "gWlanMccToSccSwitchMode"
+#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_MIN      ( VOS_MCC_TO_SCC_SWITCH_DISABLE)
+#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_MAX      ( VOS_MCC_TO_SCC_SWITCH_FORCE )
+#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_DEFAULT  (VOS_MCC_TO_SCC_SWITCH_DISABLE)
+#endif
+
+
 #define CFG_FRAMES_PROCESSING_TH_MODE_NAME     "gMinFramesProcThres"
 #define CFG_FRAMES_PROCESSING_TH_MIN           ( 0 )
 #define CFG_FRAMES_PROCESSING_TH_MAX           ( 39 )
@@ -1410,7 +1418,7 @@ typedef enum
 #define CFG_ENABLE_BYPASS_11D_NAME                 "gEnableBypass11d"
 #define CFG_ENABLE_BYPASS_11D_MIN                  ( 0 )
 #define CFG_ENABLE_BYPASS_11D_MAX                  ( 1 )
-#define CFG_ENABLE_BYPASS_11D_DEFAULT              ( 0 )
+#define CFG_ENABLE_BYPASS_11D_DEFAULT              ( 1 )
 
 #define CFG_ENABLE_DFS_CHNL_SCAN_NAME              "gEnableDFSChnlScan"
 #define CFG_ENABLE_DFS_CHNL_SCAN_MIN               ( 0 )
@@ -2356,6 +2364,10 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_SAP_MAX_OFFLOAD_PEERS_DEFAULT          (2)
 #endif
 
+#define CFG_INITIAL_DWELL_TIME_NAME            "gInitialDwellTime"
+#define CFG_INITIAL_DWELL_TIME_DEFAULT         (0)
+#define CFG_INITIAL_DWELL_TIME_MIN             (0)
+#define CFG_INITIAL_DWELL_TIME_MAX             (100)
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -2512,6 +2524,8 @@ typedef struct
    v_U32_t        nPassiveMaxChnTime;    //in units of milliseconds
    v_U32_t        nActiveMinChnTime;     //in units of milliseconds
    v_U32_t        nActiveMaxChnTime;     //in units of milliseconds
+
+   v_U32_t        nInitialDwellTime;     //in units of milliseconds
 
    v_U32_t        nActiveMinChnTimeBtc;     //in units of milliseconds
    v_U32_t        nActiveMaxChnTimeBtc;     //in units of milliseconds
@@ -2808,6 +2822,9 @@ typedef struct
    v_BOOL_t                    IpaPreFilterEnable;
    v_BOOL_t                    IpaRMEnable;
    v_U32_t                     IpaDescSize;
+#endif
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+   v_U32_t                     WlanMccToSccSwitchMode;
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
    v_U32_t                     WlanAutoShutdown;

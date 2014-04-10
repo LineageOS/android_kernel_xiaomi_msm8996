@@ -2146,6 +2146,10 @@ tANI_U8 sme_GetInfraOperationChannel( tHalHandle hHal, tANI_U8 sessionId);
   -------------------------------------------------------------------------------*/
 tANI_U8 sme_GetConcurrentOperationChannel( tHalHandle hHal );
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+v_U16_t sme_CheckConcurrentChannelOverlap( tHalHandle hHal, v_U16_t sap_ch,
+                                eCsrPhyMode sapPhyMode, v_U8_t cc_switch_mode);
+#endif
 /* ---------------------------------------------------------------------------
     \fn sme_AbortMacScan
     \brief  API to cancel MAC scan.
