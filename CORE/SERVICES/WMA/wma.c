@@ -857,6 +857,7 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		p_inactivity->staIdx = peer_id;
 		vos_mem_copy(p_inactivity->peerAddr, macaddr, IEEE80211_ADDR_LEN);
 		wma_send_msg(wma, WDA_IBSS_PEER_INACTIVITY_IND, (void *)p_inactivity, 0);
+		goto exit_handler;
 		break;
 
 #ifdef FEATURE_WLAN_TDLS
@@ -876,6 +877,7 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
 		wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx,
 			0);
+		goto exit_handler;
 		break;
 #endif /* FEATURE_WLAN_TDLS */
 
@@ -898,6 +900,7 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		    WMA_LOGW("%s: WMI_PEER_STA_KICKOUT_REASON_XRETRY event for STA",
 				__func__);
 		    wma_beacon_miss_handler(wma, vdev_id);
+		    goto exit_handler;
 		}
 		break;
 
@@ -923,27 +926,32 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		    WMA_LOGW("%s: WMI_PEER_STA_KICKOUT_REASON_UNSPECIFIED event for STA",
 				__func__);
 		    wma_beacon_miss_handler(wma, vdev_id);
+		    goto exit_handler;
 		}
 		break;
 
 	    case WMI_PEER_STA_KICKOUT_REASON_INACTIVITY:
 	    default:
-		del_sta_ctx =
-			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
-		if (!del_sta_ctx) {
-			WMA_LOGE("VOS MEM Alloc Failed for tDeleteStaContext");
-			return -EINVAL;
-		}
-
-		del_sta_ctx->staId = peer_id;
-		vos_mem_copy(del_sta_ctx->addr2, macaddr, IEEE80211_ADDR_LEN);
-		vos_mem_copy(del_sta_ctx->bssId, wma->interfaces[vdev_id].addr,
-				IEEE80211_ADDR_LEN);
-		del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
-		wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx,
-			0);
 		break;
 	}
+
+	/*
+	 * default action is to send delete station context indication to LIM
+	 */
+	del_sta_ctx = (tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
+	if (!del_sta_ctx) {
+		WMA_LOGE("VOS MEM Alloc Failed for tDeleteStaContext");
+		return -EINVAL;
+	}
+
+	del_sta_ctx->staId = peer_id;
+	vos_mem_copy(del_sta_ctx->addr2, macaddr, IEEE80211_ADDR_LEN);
+	vos_mem_copy(del_sta_ctx->bssId, wma->interfaces[vdev_id].addr,
+		IEEE80211_ADDR_LEN);
+	del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
+	wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx, 0);
+
+exit_handler:
 	WMA_LOGD("%s: Exit", __func__);
 	return 0;
 }
