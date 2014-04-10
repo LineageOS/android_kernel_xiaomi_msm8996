@@ -9364,7 +9364,8 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
                 "%s: Current band value = %u, new setting %u ",
                  __func__, currBand, band);
 
-        hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId);
+        hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
+                           eCSR_SCAN_ABORT_DUE_TO_BAND_CHANGE);
 
         if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
         {

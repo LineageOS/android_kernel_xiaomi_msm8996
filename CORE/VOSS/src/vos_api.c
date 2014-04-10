@@ -2219,7 +2219,7 @@ void vos_abort_mac_scan(v_U8_t sessionId)
        return;
     }
 
-    hdd_abort_mac_scan(pHddCtx, sessionId);
+    hdd_abort_mac_scan(pHddCtx, sessionId, eCSR_SCAN_ABORT_DEFAULT);
     return;
 }
 /*---------------------------------------------------------------------------

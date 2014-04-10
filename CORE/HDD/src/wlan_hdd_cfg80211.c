@@ -2727,7 +2727,8 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     if ((pScanInfo != NULL) && pScanInfo->mScanPending && staAdapter)
     {
         INIT_COMPLETION(pScanInfo->abortscan_event_var);
-        hdd_abort_mac_scan(staAdapter->pHddCtx, pAdapter->sessionId);
+        hdd_abort_mac_scan(staAdapter->pHddCtx, pAdapter->sessionId,
+                           eCSR_SCAN_ABORT_DEFAULT);
         status = wait_for_completion_interruptible_timeout(
                            &pScanInfo->abortscan_event_var,
                            msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
@@ -6990,9 +6991,10 @@ static int wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
             pScanInfo =  &pAdapter->scan_info;
             if (pScanInfo->mScanPending)
             {
-               hddLog(VOS_TRACE_LEVEL_INFO, "Disconnect is in progress, "
+                hddLog(VOS_TRACE_LEVEL_INFO, "Disconnect is in progress, "
                               "Aborting Scan");
-                hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId);
+                hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
+                                   eCSR_SCAN_ABORT_DEFAULT);
             }
 
 #ifdef FEATURE_WLAN_TDLS
@@ -8649,7 +8651,8 @@ static int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter)
     if (pScanInfo->mScanPending && pAdapter->request)
     {
         INIT_COMPLETION(pScanInfo->abortscan_event_var);
-        hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId);
+        hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
+                           eCSR_SCAN_ABORT_DEFAULT);
 
         status = wait_for_completion_interruptible_timeout(
                            &pScanInfo->abortscan_event_var,
@@ -10440,7 +10443,8 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         if (pScanInfo->mScanPending && pAdapter->request)
         {
            INIT_COMPLETION(pScanInfo->abortscan_event_var);
-           hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId);
+           hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
+                              eCSR_SCAN_ABORT_DEFAULT);
 
            status = wait_for_completion_timeout(
                            &pScanInfo->abortscan_event_var,
