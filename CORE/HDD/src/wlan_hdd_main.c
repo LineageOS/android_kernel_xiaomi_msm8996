@@ -7708,6 +7708,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
    VOS_STATUS exitbmpsStatus = VOS_STATUS_E_FAILURE;
    hdd_cfg80211_state_t *cfgState;
+   int ret;
 
    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: iface =%s type = %d\n", __func__,
                                       iface_name, session_type);
@@ -7961,7 +7962,6 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 #ifdef QCA_WIFI_2_0
    if ((vos_get_conparam() != VOS_FTM_MODE) && (!pHddCtx->cfg_ini->enable2x2))
    {
-      int ret;
 #define HDD_DTIM_1CHAIN_RX_ID 0x5
 #define HDD_SMPS_PARAM_VALUE_S 29
 
@@ -8000,6 +8000,17 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       }
 #undef HDD_DTIM_1CHAIN_RX_ID
 #undef HDD_SMPS_PARAM_VALUE_S
+   }
+   ret = process_wma_set_command((int)pAdapter->sessionId,
+                           (int)WMI_PDEV_PARAM_HYST_EN,
+                           (int)pHddCtx->cfg_ini->enableHystereticMode,
+                           PDEV_CMD);
+
+   if (ret != 0)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: WMI_PDEV_PARAM_HYST_EN set"
+                                   " failed %d", __func__, ret);
+      goto err_free_netdev;
    }
 #endif
 
