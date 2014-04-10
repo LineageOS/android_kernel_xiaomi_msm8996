@@ -11123,7 +11123,7 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 
 	if (eSIR_ADDON_NOTHING == ps_req->psSetting) {
 		WMA_LOGD("Enable Sta Mode Ps vdevId %d", vdev_id);
-		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+		ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
 						WMI_STA_PS_PARAM_UAPSD, 0);
 		if (ret) {
 			WMA_LOGE("Set Uapsd param 0 Failed vdevId %d", vdev_id);
@@ -11200,7 +11200,7 @@ static void wma_disable_sta_ps_mode(tp_wma_handle wma, tpDisablePsParams ps_req)
 	/* Disable UAPSD incase if additional Req came */
 	if (eSIR_ADDON_DISABLE_UAPSD == ps_req->psSetting) {
 		WMA_LOGD("Disable Uapsd vdevId %d", vdev_id);
-		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+		ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
 						WMI_STA_PS_PARAM_UAPSD, 0);
 		if (ret) {
 			WMA_LOGE("Disable Uapsd Failed vdevId %d", vdev_id);
@@ -11235,7 +11235,7 @@ static void wma_enable_uapsd_mode(tp_wma_handle wma,
 	uapsd_val = wma_get_uapsd_mask(&ps_req->uapsdParams);
 
 	WMA_LOGD("Enable Uapsd vdevId %d Mask %d", vdev_id, uapsd_val);
-	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
 				WMI_STA_PS_PARAM_UAPSD, uapsd_val);
 	if (ret) {
 		WMA_LOGE("Enable Uapsd Failed vdevId %d", vdev_id);
@@ -11276,7 +11276,7 @@ static void wma_disable_uapsd_mode(tp_wma_handle wma,
 		goto resp;
 	}
 
-	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
 					WMI_STA_PS_PARAM_UAPSD, 0);
 	if (ret) {
 		WMA_LOGE("Disable Uapsd Failed vdevId %d", vdev_id);
@@ -11498,7 +11498,7 @@ VOS_STATUS wma_disable_uapsd_per_ac(tp_wma_handle wma_handle,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
+	ret = wmi_unified_set_sta_ps_param(wma_handle->wmi_handle, vdev_id,
 			WMI_STA_PS_PARAM_UAPSD, iface->uapsd_cached_val);
 	if (ret) {
 		WMA_LOGE("Disable Uapsd per ac Failed vdevId %d ac %d", vdev_id, ac);
