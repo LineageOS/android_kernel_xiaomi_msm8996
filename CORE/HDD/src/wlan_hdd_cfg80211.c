@@ -10179,7 +10179,7 @@ int wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: LOGP in Progress. Ignore!!!", __func__);
-        return 0;
+        return -EAGAIN;
     }
 
     if ((pHddCtx->isLoadInProgress) ||
@@ -10283,6 +10283,13 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
               "%s: HddCtx validation failed", __func__);
         return 0;
+    }
+
+    if (pHddCtx->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
     }
 
 #ifdef QCA_WIFI_2_0
