@@ -383,6 +383,30 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
             PELOG1(limLog(pMac, LOG1, FL("AssocRsp=%d"), psessionEntry->assocRspLen);)
 #endif
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+            if (psessionEntry->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+                pSirSmeJoinRsp->HTProfile.htSupportedChannelWidthSet =
+                                      psessionEntry->htSupportedChannelWidthSet;
+                pSirSmeJoinRsp->HTProfile.htRecommendedTxWidthSet =
+                                      psessionEntry->htRecommendedTxWidthSet;
+                pSirSmeJoinRsp->HTProfile.htSecondaryChannelOffset =
+                                      psessionEntry->htSecondaryChannelOffset;
+                pSirSmeJoinRsp->HTProfile.dot11mode =
+                                      psessionEntry->dot11mode;
+                pSirSmeJoinRsp->HTProfile.htCapability =
+                                      psessionEntry->htCapability;
+#ifdef WLAN_FEATURE_11AC
+                pSirSmeJoinRsp->HTProfile.vhtCapability =
+                                      psessionEntry->vhtCapability;
+                pSirSmeJoinRsp->HTProfile.vhtTxChannelWidthSet =
+                                      psessionEntry->vhtTxChannelWidthSet;
+                pSirSmeJoinRsp->HTProfile.apCenterChan =
+                                      psessionEntry->apCenterChan;
+                pSirSmeJoinRsp->HTProfile.apChanWidth =
+                                      psessionEntry->apChanWidth;
+#endif
+            }
+#endif
         }
         else
         {
@@ -570,6 +594,31 @@ limSendSmeStartBssRsp(tpAniSirGlobal pMac,
                                                 ieLen;
                 //This is the size of the message, subtracting the size of the pointer to ieFields
                 size += ieLen - sizeof(tANI_U32);
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+                if (psessionEntry->cc_switch_mode
+                                             != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+                    pSirSmeRsp->HTProfile.htSupportedChannelWidthSet =
+                                      psessionEntry->htSupportedChannelWidthSet;
+                    pSirSmeRsp->HTProfile.htRecommendedTxWidthSet =
+                                      psessionEntry->htRecommendedTxWidthSet;
+                    pSirSmeRsp->HTProfile.htSecondaryChannelOffset =
+                                      psessionEntry->htSecondaryChannelOffset;
+                    pSirSmeRsp->HTProfile.dot11mode =
+                                      psessionEntry->dot11mode;
+                    pSirSmeRsp->HTProfile.htCapability =
+                                      psessionEntry->htCapability;
+#ifdef WLAN_FEATURE_11AC
+                    pSirSmeRsp->HTProfile.vhtCapability =
+                                      psessionEntry->vhtCapability;
+                    pSirSmeRsp->HTProfile.vhtTxChannelWidthSet =
+                                      psessionEntry->vhtTxChannelWidthSet;
+                    pSirSmeRsp->HTProfile.apCenterChan =
+                                      psessionEntry->apCenterChan;
+                    pSirSmeRsp->HTProfile.apChanWidth =
+                                      psessionEntry->apChanWidth;
+#endif
+                }
+#endif
         }
 
 

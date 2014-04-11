@@ -977,6 +977,9 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
         sta_id = pHddStaCtx->conn_info.staId[0];
     }
      hdd_wmm_adapter_clear(pAdapter);
+#if defined(WLAN_FEATURE_VOWIFI_11R)
+    sme_FTReset(WLAN_HDD_GET_HAL_CTX(pAdapter));
+#endif
     //We should clear all sta register with TL, for now, only one.
     vstatus = hdd_roamDeregisterSTA( pAdapter, sta_id );
     if ( !VOS_IS_STATUS_SUCCESS(vstatus ) )
@@ -1370,6 +1373,17 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
         wlan_hdd_auto_shutdown_enable(pHddCtx, VOS_FALSE);
+#endif
+
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        if (pHddCtx->cfg_ini->WlanMccToSccSwitchMode
+                != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+            adf_os_create_work(0, &pHddCtx->sta_ap_intf_check_work,
+                wlan_hdd_check_sta_ap_concurrent_ch_intf, (void *)pAdapter);
+            adf_os_sched_work(0, &pHddCtx->sta_ap_intf_check_work);
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                                "Checking for Concurrent Channge interference");
+        }
 #endif
 
 #ifdef FEATURE_WLAN_TDLS

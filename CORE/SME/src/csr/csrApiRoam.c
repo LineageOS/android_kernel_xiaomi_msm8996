@@ -1606,6 +1606,11 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.disableAggWithBtc = pParam->disableAggWithBtc;
         //if HDD passed down non zero values then only update,
         //otherwise keep using the defaults
+        if (pParam->nInitialDwellTime)
+        {
+            pMac->roam.configParam.nInitialDwellTime =
+                                        pParam->nInitialDwellTime;
+        }
         if (pParam->nActiveMaxChnTime)
         {
             pMac->roam.configParam.nActiveMaxChnTime = pParam->nActiveMaxChnTime;
@@ -1825,6 +1830,9 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.nSelect5GHzMargin = pParam->nSelect5GHzMargin;
         pMac->roam.configParam.isCoalesingInIBSSAllowed =
                                pParam->isCoalesingInIBSSAllowed;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        pMac->roam.configParam.cc_switch_mode = pParam->cc_switch_mode;
+#endif
     }
 
     return status;
@@ -1953,6 +1961,9 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         }
 #endif
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        pParam->cc_switch_mode = pMac->roam.configParam.cc_switch_mode;
+#endif
         pParam->enableTxLdpc = pMac->roam.configParam.txLdpcEnable;
 
         pParam->isAmsduSupportInAMPDU = pMac->roam.configParam.isAmsduSupportInAMPDU;
@@ -5231,6 +5242,56 @@ tANI_BOOLEAN csrRoamIsEseIniFeatureEnabled(tpAniSirGlobal pMac)
 }
 #endif /*FEATURE_WLAN_ESE*/
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+eCsrPhyMode csrRoamdot11modeToPhymode(tANI_U8 dot11mode)
+{
+    eCsrPhyMode phymode = eCSR_DOT11_MODE_abg;
+
+    switch (dot11mode)
+    {
+    case WNI_CFG_DOT11_MODE_ALL:
+        phymode = eCSR_DOT11_MODE_abg;
+        break;
+    case WNI_CFG_DOT11_MODE_11A:
+        phymode = eCSR_DOT11_MODE_11a;
+        break;
+    case WNI_CFG_DOT11_MODE_11B:
+        phymode = eCSR_DOT11_MODE_11b;
+        break;
+    case WNI_CFG_DOT11_MODE_11G:
+        phymode = eCSR_DOT11_MODE_11g;
+        break;
+    case WNI_CFG_DOT11_MODE_11N:
+        phymode = eCSR_DOT11_MODE_11n;
+        break;
+    case WNI_CFG_DOT11_MODE_POLARIS:
+        phymode = eCSR_DOT11_MODE_POLARIS;
+        break;
+    case WNI_CFG_DOT11_MODE_TITAN:
+        phymode = eCSR_DOT11_MODE_TITAN;
+        break;
+    case WNI_CFG_DOT11_MODE_TAURUS:
+        phymode = eCSR_DOT11_MODE_TAURUS;
+        break;
+    case WNI_CFG_DOT11_MODE_11G_ONLY:
+        phymode = eCSR_DOT11_MODE_11g_ONLY;
+        break;
+    case WNI_CFG_DOT11_MODE_11N_ONLY:
+        phymode = eCSR_DOT11_MODE_11n_ONLY;
+        break;
+    case WNI_CFG_DOT11_MODE_11AC:
+        phymode = eCSR_DOT11_MODE_11ac;
+        break;
+    case WNI_CFG_DOT11_MODE_11AC_ONLY:
+        phymode = eCSR_DOT11_MODE_11ac_ONLY;
+        break;
+    default:
+        break;
+    }
+
+    return phymode;
+}
+#endif
 //Return true means the command can be release, else not
 static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                                        eCsrRoamCompleteResult Result, void *Context )
@@ -5304,6 +5365,12 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
             So moving this after saving the profile
             */
             //csrRoamStateChange( pMac, eCSR_ROAMING_STATE_JOINED );
+
+            /* Reset remainInPowerActiveTillDHCP as it might have been set
+             * by last failed secured connection.
+             * It should be set only for secured connection.
+             */
+            pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
             if( CSR_IS_INFRASTRUCTURE( pProfile ) )
             {
                 pSession->connectState = eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED;
@@ -5389,6 +5456,11 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     //Set the subestate to WaitForKey in case authentiation is needed
                     csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_WAIT_FOR_KEY, sessionId );
 
+                    /* Set remainInPowerActiveTillDHCP to make sure we wait for
+                     * until keys are set before going into BMPS.
+                     */
+                     pMac->pmc.remainInPowerActiveTillDHCP = TRUE;
+
                     if(pProfile->bWPSAssociation)
                     {
                         key_timeout_interval = CSR_WAIT_FOR_WPS_KEY_TIMEOUT_PERIOD;
@@ -5454,6 +5526,31 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     roamInfo.ucastSig = ( tANI_U8 )pJoinRsp->ucastSig;
                     roamInfo.bcastSig = ( tANI_U8 )pJoinRsp->bcastSig;
                     roamInfo.timingMeasCap = pJoinRsp->timingMeasCap;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+                    if (pMac->roam.configParam.cc_switch_mode
+                                            != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+                        pSession->connectedProfile.HTProfile.phymode =
+                            csrRoamdot11modeToPhymode(pJoinRsp->HTProfile.dot11mode);
+                        pSession->connectedProfile.HTProfile.htCapability =
+                                    pJoinRsp->HTProfile.htCapability;
+                        pSession->connectedProfile.HTProfile.htSupportedChannelWidthSet =
+                                    pJoinRsp->HTProfile.htSupportedChannelWidthSet;
+                        pSession->connectedProfile.HTProfile.htRecommendedTxWidthSet =
+                                    pJoinRsp->HTProfile.htRecommendedTxWidthSet;
+                        pSession->connectedProfile.HTProfile.htSecondaryChannelOffset =
+                                    pJoinRsp->HTProfile.htSecondaryChannelOffset;
+#ifdef WLAN_FEATURE_11AC
+                        pSession->connectedProfile.HTProfile.vhtCapability =
+                                    pJoinRsp->HTProfile.vhtCapability;
+                        pSession->connectedProfile.HTProfile.vhtTxChannelWidthSet =
+                                    pJoinRsp->HTProfile.vhtTxChannelWidthSet;
+                        pSession->connectedProfile.HTProfile.apCenterChan =
+                                    pJoinRsp->HTProfile.apCenterChan;
+                        pSession->connectedProfile.HTProfile.apChanWidth =
+                                    pJoinRsp->HTProfile.apChanWidth;
+#endif
+                    }
+#endif
                 }
                 else
                 {
@@ -5708,6 +5805,31 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                    pMac->roam.configParam.doBMPSWorkaround = 1;
                 }
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+                if (pMac->roam.configParam.cc_switch_mode
+                                        != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+                    pSession->connectedProfile.HTProfile.phymode =
+                            csrRoamdot11modeToPhymode(pSmeStartBssRsp->HTProfile.dot11mode);
+                    pSession->connectedProfile.HTProfile.htCapability =
+                            pSmeStartBssRsp->HTProfile.htCapability;
+                    pSession->connectedProfile.HTProfile.htSupportedChannelWidthSet =
+                            pSmeStartBssRsp->HTProfile.htSupportedChannelWidthSet;
+                    pSession->connectedProfile.HTProfile.htRecommendedTxWidthSet =
+                            pSmeStartBssRsp->HTProfile.htRecommendedTxWidthSet;
+                    pSession->connectedProfile.HTProfile.htSecondaryChannelOffset =
+                            pSmeStartBssRsp->HTProfile.htSecondaryChannelOffset;
+#ifdef WLAN_FEATURE_11AC
+                    pSession->connectedProfile.HTProfile.vhtCapability =
+                                pSmeStartBssRsp->HTProfile.vhtCapability;
+                    pSession->connectedProfile.HTProfile.vhtTxChannelWidthSet =
+                                pSmeStartBssRsp->HTProfile.vhtTxChannelWidthSet;
+                    pSession->connectedProfile.HTProfile.apCenterChan =
+                                pSmeStartBssRsp->HTProfile.apCenterChan;
+                    pSession->connectedProfile.HTProfile.apChanWidth =
+                                pSmeStartBssRsp->HTProfile.apChanWidth;
+#endif
+                }
+#endif
                 csrRoamCallCallback( pMac, sessionId, &roamInfo, pCommand->u.roamCmd.roamId, roamStatus, roamResult );
             }
 
@@ -7105,6 +7227,10 @@ eHalStatus csrRoamDisconnectInternal(tpAniSirGlobal pMac, tANI_U32 sessionId, eC
         smsLog(pMac, LOG2, FL("called"));
         status = csrRoamIssueDisassociateCmd(pMac, sessionId, reason);
     }
+    else
+    {
+        smsLog( pMac, LOGE, FL("Roam command is not present"));
+    }
     return (status);
 }
 
@@ -7460,6 +7586,22 @@ tANI_BOOLEAN csrIsRoamCommandWaitingForSession(tpAniSirGlobal pMac, tANI_U32 ses
             pEntry = csrLLNext(&pMac->sme.smeCmdPendingList, pEntry, LL_ACCESS_NOLOCK);
         }
         csrLLUnlock(&pMac->sme.smeCmdPendingList);
+    }
+    if (eANI_BOOLEAN_FALSE == fRet)
+    {
+        csrLLLock(&pMac->roam.roamCmdPendingList);
+        pEntry = csrLLPeekHead(&pMac->roam.roamCmdPendingList, LL_ACCESS_NOLOCK);
+        while (pEntry)
+        {
+            pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
+            if (( eSmeCommandRoam == pCommand->command ) && ( sessionId == pCommand->sessionId ) )
+            {
+                fRet = eANI_BOOLEAN_TRUE;
+                break;
+            }
+            pEntry = csrLLNext(&pMac->roam.roamCmdPendingList, pEntry, LL_ACCESS_NOLOCK);
+        }
+        csrLLUnlock(&pMac->roam.roamCmdPendingList);
     }
     csrLLUnlock( &pMac->sme.smeCmdActiveList );
     return (fRet);
@@ -12604,6 +12746,10 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         }
         *pBuf = (tANI_U8)ucDot11Mode;
         pBuf++;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        *pBuf = pMac->roam.configParam.cc_switch_mode;
+        pBuf += 1;
+#endif
         //Persona
         *pBuf = (tANI_U8)pProfile->csrPersona;
         pBuf++;
@@ -13834,6 +13980,11 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         // dot11mode
         *pBuf = (tANI_U8)csrTranslateToWNICfgDot11Mode( pMac, pParam->uCfgDot11Mode );
         pBuf += 1;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        *pBuf = pMac->roam.configParam.cc_switch_mode;
+        pBuf += 1;
+#endif
+
         // bssType
         dwTmp = pal_cpu_to_be32( csrTranslateBsstypeToMacType( bssType ) );
         vos_mem_copy(pBuf, &dwTmp, sizeof(tSirBssType));
@@ -15424,6 +15575,13 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
       //smsLog(pMac, LOGW, "csrGetStatistics: wrong state curState(%d) not connected", pMac->roam.curState);
       return eHAL_STATUS_FAILURE;
    }
+
+   if (csrNeighborMiddleOfRoaming((tHalHandle)pMac))
+   {
+       smsLog(pMac, LOG1, FL("in the middle of roaming states"));
+       return eHAL_STATUS_FAILURE;
+   }
+
    if((!statsMask) && (!callback))
    {
       //msg
