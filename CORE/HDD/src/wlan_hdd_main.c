@@ -7849,6 +7849,19 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
             goto err_free_netdev;
          }
 
+#ifdef QCA_LL_TX_FLOW_CT
+         /* SAP mode default TX Flow control instance
+          * This instance will be used SAP concurrency */
+         vos_timer_init(&pAdapter->tx_flow_control_timer,
+                     VOS_TIMER_TYPE_SW,
+                     hdd_softap_tx_resume_timer_expired_handler,
+                     pAdapter);
+         WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
+                     hdd_softap_tx_resume_cb,
+                     pAdapter->sessionId,
+                     (void *)pAdapter);
+#endif /* QCA_LL_TX_FLOW_CT */
+
          netif_tx_disable(pAdapter->dev);
          netif_carrier_off(pAdapter->dev);
 
