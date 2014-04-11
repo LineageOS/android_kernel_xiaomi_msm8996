@@ -1624,4 +1624,8 @@ void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
         hdd_green_ap_event_t event);
 #endif
 
+#ifdef WLAN_FEATURE_STATS_EXT
+void wlan_hdd_cfg80211_stats_ext_init(hdd_context_t *pHddCtx);
+#endif
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

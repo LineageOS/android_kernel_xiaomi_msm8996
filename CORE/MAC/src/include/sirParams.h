@@ -669,6 +669,13 @@ typedef struct sSirMbMsgP2p
 #endif
 
 #define SIR_HAL_VDEV_STOP_IND              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 258)
+
+#ifdef WLAN_FEATURE_STATS_EXT
+#define SIR_HAL_STATS_EXT_REQUEST          (SIR_HAL_ITC_MSG_TYPES_BEGIN + 259)
+#define SIR_HAL_STATS_EXT_EVENT            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 260)
+#endif /* WLAN_FEATURE_STATS_EXT */
+
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types
