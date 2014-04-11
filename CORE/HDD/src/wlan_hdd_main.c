@@ -83,6 +83,8 @@
 
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
+#include <linux/inetdevice.h>
+#include <net/addrconf.h>
 #include "wlan_hdd_cfg80211.h"
 #include "wlan_hdd_p2p.h"
 #include <linux/rtnetlink.h>
@@ -7781,6 +7783,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
             hdd_deinit_adapter(pHddCtx, pAdapter);
             goto err_free_netdev;
          }
+         // Workqueue which gets scheduled in IPv4 notification callback.
+         INIT_WORK(&pAdapter->ipv4NotifierWorkQueue, hdd_ipv4_notifier_work_queue);
+
          //Stop the Interface TX queue.
          netif_tx_disable(pAdapter->dev);
          //netif_tx_disable(pWlanDev);
@@ -8191,6 +8196,16 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
                }
             }
          }
+
+         if (pAdapter->ipv4_notifier_registered)
+         {
+             hddLog(LOG1, FL("Unregistered IPv4 notifier"));
+             unregister_inetaddr_notifier(&pAdapter->ipv4_notifier);
+             pAdapter->ipv4_notifier_registered = false;
+         }
+#ifdef WLAN_OPEN_SOURCE
+         cancel_work_sync(&pAdapter->ipv4NotifierWorkQueue);
+#endif
          if (test_bit(SME_SESSION_OPENED, &pAdapter->event_flags))
          {
             INIT_COMPLETION(pAdapter->session_close_comp_var);

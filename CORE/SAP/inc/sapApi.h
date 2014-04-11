@@ -459,6 +459,11 @@ typedef struct sap_Config {
     v_BOOL_t        enOverLapCh;
     char            acsAllowedChnls[MAX_CHANNEL_LIST_LEN];
     v_U16_t         acsBandSwitchThreshold;
+
+#ifdef WLAN_FEATURE_11W
+    v_BOOL_t        mfpRequired;
+    v_BOOL_t        mfpCapable;
+#endif
 } tsap_Config_t;
 
 typedef enum {

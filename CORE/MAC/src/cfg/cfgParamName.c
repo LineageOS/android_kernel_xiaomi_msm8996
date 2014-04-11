@@ -337,6 +337,8 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"TDLS_BUF_STA_ENABLED",
     (unsigned char *)"TDLS_PUAPSD_INACT_TIME",
     (unsigned char *)"TDLS_RX_FRAME_THRESHOLD",
+    (unsigned char *)"PMF_SA_QUERY_MAX_RETRIES",
+    (unsigned char *)"PMF_SA_QUERY_RETRY_INTERVAL",
     (unsigned char *)"ENABLE_ADAPT_RX_DRAIN",
     (unsigned char *)"FLEX_CONNECT_POWER_FACTOR",
     (unsigned char *)"ANTENNA_DIVESITY",
