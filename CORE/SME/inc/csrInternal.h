@@ -793,6 +793,7 @@ typedef struct tagCsrScanStruct
     tCsrChannel occupiedChannels;   //This includes all channels on which candidate APs are found
     tANI_S8     inScanResultBestAPRssi;
     eCsrBand  scanBandPreference;  //This defines the band perference for scan
+    csrScanCompleteCallback callback11dScanDone;
 }tCsrScanStruct;
 
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
@@ -1024,6 +1025,7 @@ typedef struct tagCsrRoamStruct
     tANI_U8        RoamRssiDiff;
     tANI_BOOLEAN   isWESModeEnabled;
 #endif
+    tANI_U32 deauthRspStatus;
 }tCsrRoamStruct;
 
 

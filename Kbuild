@@ -1150,6 +1150,17 @@ ifeq ($(CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC), 1)
 CDEFINES += -DTARGET_RAMDUMP_AFTER_KERNEL_PANIC
 endif
 
+# Some kernel include files are being moved.  Check to see if
+# the old version of the files are present
+
+ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/mach-msm/include/mach/msm_smd.h),)
+CDEFINES += -DEXISTS_MSM_SMD
+endif
+
+ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/mach-msm/include/mach/msm_smsm.h),)
+CDEFINES += -DEXISTS_MSM_SMSM
+endif
+
 KBUILD_CPPFLAGS += $(CDEFINES)
 
 # Module information used by KBuild framework
