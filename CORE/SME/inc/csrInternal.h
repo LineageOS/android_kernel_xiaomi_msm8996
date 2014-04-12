@@ -681,6 +681,7 @@ typedef struct tagCsrConfig
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tANI_U8 cc_switch_mode;
 #endif
+    tANI_BOOLEAN allowDFSChannelRoam;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo

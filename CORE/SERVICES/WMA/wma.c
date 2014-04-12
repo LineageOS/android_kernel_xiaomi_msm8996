@@ -5102,6 +5102,9 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
         scan_params->idle_time = scan_params->min_rest_time;
         scan_params->burst_duration = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
     }
+    if (!pMac->roam.configParam.allowDFSChannelRoam) {
+        scan_params->scan_ctrl_flags |= WMI_SCAN_BYPASS_DFS_CHN;
+    }
     WMA_LOGI("%s: Rome roam scan parameters:"
              " dwell_time_active = %d, dwell_time_passive = %d",
              __func__,
@@ -5114,11 +5117,12 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
              scan_params->max_rest_time,
              scan_params->repeat_probe_time);
     WMA_LOGI("%s: max_scan_time = %d, idle_time = %d,"
-             " burst_duration = %d",
+             " burst_duration = %d, scan_ctrl_flags = 0x%x",
              __func__,
              scan_params->max_scan_time,
              scan_params->idle_time,
-             scan_params->burst_duration);
+             scan_params->burst_duration,
+             scan_params->scan_ctrl_flags);
 }
 
 /* function   : wma_roam_scan_offload_ap_profile
