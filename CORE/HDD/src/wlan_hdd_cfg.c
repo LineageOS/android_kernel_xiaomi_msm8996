@@ -3309,6 +3309,13 @@ REG_VARIABLE( CFG_ENABLE_HYSTERETIC_MODE, WLAN_PARAM_Integer,
               CFG_ENABLE_HYSTERETIC_MODE_DEFAULT,
               CFG_ENABLE_HYSTERETIC_MODE_MIN,
               CFG_ENABLE_HYSTERETIC_MODE_MAX ),
+
+      REG_VARIABLE( CFG_DEFAULT_RATE_INDEX_24GH, WLAN_PARAM_Integer,
+                 hdd_config_t, defaultRateIndex24Ghz,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DEFAULT_RATE_INDEX_24GH_DEFAULT,
+                 CFG_DEFAULT_RATE_INDEX_24GH_MIN,
+                 CFG_DEFAULT_RATE_INDEX_24GH_MAX ),
 };
 
 /*
@@ -5170,6 +5177,14 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
       hddLog(LOGE, "Could not pass on WNI_CFG_ANTENNA_DIVESITY to CCM");
    }
 
+   if (ccmCfgSetInt(pHddCtx->hHal,
+                    WNI_CFG_DEFAULT_RATE_INDEX_24GHZ,
+                    pConfig->defaultRateIndex24Ghz,
+                    NULL, eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+   {
+       fStatus = FALSE;
+       hddLog(LOGE, "Could not pass on WNI_CFG_DEFAULT_RATE_INDEX_24GHZ to CCM");
+   }
    return fStatus;
 }
 

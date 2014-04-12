@@ -54,11 +54,15 @@
 #include <a_debug.h>
 #include "hif_pci.h"
 #include "vos_trace.h"
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
+#include <net/cnss.h>
+#endif
 
 /* use credit flow control over HTC */
 unsigned int htc_credit_flow = 1;
 int hif_pci_war1 = 0;
 static DEFINE_SPINLOCK(pciwar_lock);
+
 
 OSDRV_CALLBACKS HIF_osDrvcallback;
 
@@ -979,9 +983,9 @@ HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbyt
              * to
              *    CE address space
              */
-            A_TARGET_ACCESS_BEGIN(targid);
+            A_TARGET_ACCESS_BEGIN_RET(targid);
             address = TARG_CPU_SPACE_TO_CE_SPACE(sc->mem, address);
-            A_TARGET_ACCESS_END(targid);
+            A_TARGET_ACCESS_END_RET(targid);
 
             status = CE_send(ce_diag, NULL, (CE_addr_t)address, nbytes, 0, 0);
             if (status != EOK) {
@@ -1067,9 +1071,9 @@ HIFDiagReadAccess(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT32 *data)
 
         targid = hif_state->targid;
 
-        A_TARGET_ACCESS_BEGIN(targid);
+        A_TARGET_ACCESS_BEGIN_RET(targid);
         *data = A_TARGET_READ(targid, address);
-        A_TARGET_ACCESS_END(targid);
+        A_TARGET_ACCESS_END_RET(targid);
 
         return A_OK;
     }
@@ -1132,9 +1136,9 @@ HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nby
      * to
      *    CE address space
      */
-    A_TARGET_ACCESS_BEGIN(targid);
+    A_TARGET_ACCESS_BEGIN_RET(targid);
     address = TARG_CPU_SPACE_TO_CE_SPACE(sc->mem, address);
-    A_TARGET_ACCESS_END(targid);
+    A_TARGET_ACCESS_END_RET(targid);
 
     remaining_bytes = orig_nbytes;
     CE_data = CE_data_base;
@@ -1241,9 +1245,9 @@ HIFDiagWriteAccess(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT32 data)
         hif_state = (struct HIF_CE_state *)hif_device;
         targid = hif_state->targid;
 
-        A_TARGET_ACCESS_BEGIN(targid);
+        A_TARGET_ACCESS_BEGIN_RET(targid);
         A_TARGET_WRITE(targid, address, data);
-        A_TARGET_ACCESS_END(targid);
+        A_TARGET_ACCESS_END_RET(targid);
 
         return A_OK;
     }
@@ -2074,7 +2078,8 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
     hif_state->targid = A_TARGET_ID(sc->hif_device);
 #if CONFIG_ATH_PCIE_MAX_PERF || CONFIG_ATH_PCIE_AWAKE_WHILE_DRIVER_LOAD
     /* Force AWAKE forever/till the driver is loaded */
-    HIFTargetSleepStateAdjust(hif_state->targid, FALSE, TRUE);
+    if (HIFTargetSleepStateAdjust(hif_state->targid, FALSE, TRUE) < 0)
+        return -EACCES;
 #endif
 
     A_TARGET_ACCESS_LIKELY(hif_state->targid); /* During CE initializtion */
@@ -2315,6 +2320,14 @@ HIFGetTargetId(HIF_DEVICE *hif_device)
     return(TARGID(sc));
 }
 
+/* worker thread to recover when target does not respond over PCIe */
+static void recovery_work_handler(struct work_struct *recovery)
+{
+    cnss_device_self_recovery();
+}
+
+static DECLARE_WORK(recovery_work, recovery_work_handler);
+
 extern void HIFdebug(void);
 
 /*
@@ -2342,7 +2355,7 @@ extern void HIFdebug(void);
  *
  * Note: parameter wait_for_it has meaning only when waking (when sleep_ok==0).
  */
-void
+int
 HIFTargetSleepStateAdjust(A_target_id_t targid,
                           A_BOOL sleep_ok,
                           A_BOOL wait_for_it)
@@ -2352,6 +2365,9 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
     static int max_delay;
     struct hif_pci_softc *sc = hif_state->sc;
 
+
+    if (sc->recovery)
+        return -EACCES;
 
     if (sleep_ok) {
         adf_os_spin_lock_irqsave(&hif_state->keep_awake_lock);
@@ -2430,7 +2446,10 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
                            A_PCI_READ32(pci_addr + PCIE_LOCAL_BASE_ADDRESS
                                         + RTC_STATE_ADDRESS));
 
-                    VOS_BUG(0);
+                    printk("%s:error, can't wakeup target\n", __func__);
+                    sc->recovery = true;
+                    schedule_work(&recovery_work);
+                    return -EACCES;
                 }
 
                 OS_DELAY(curr_delay);
@@ -2451,6 +2470,7 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
             }
         }
     }
+    return EOK;
 }
 
 void
@@ -2567,7 +2587,7 @@ HIF_fw_interrupt_handler(int irq, void *arg)
     A_target_id_t targid = hif_state->targid;
     A_UINT32 fw_indicator_address, fw_indicator;
 
-    A_TARGET_ACCESS_BEGIN(targid);
+    A_TARGET_ACCESS_BEGIN_RET(targid);
 
     fw_indicator_address = hif_state->fw_indicator_address;
     /* For sudden unplug this will return ~0 */
@@ -2576,7 +2596,7 @@ HIF_fw_interrupt_handler(int irq, void *arg)
     if ((fw_indicator != ~0) && (fw_indicator & FW_IND_EVENT_PENDING)) {
         /* ACK: clear Target-side pending event */
         A_TARGET_WRITE(targid, fw_indicator_address, fw_indicator & ~FW_IND_EVENT_PENDING);
-        A_TARGET_ACCESS_END(targid);
+        A_TARGET_ACCESS_END_RET(targid);
 
         if (hif_state->started) {
             /* Alert the Host-side service thread */
@@ -2590,7 +2610,7 @@ HIF_fw_interrupt_handler(int irq, void *arg)
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("ath ERROR: Early firmware event indicated\n"));
         }
     } else {
-        A_TARGET_ACCESS_END(targid);
+        A_TARGET_ACCESS_END_RET(targid);
     }
 
     return ATH_ISR_SCHED;

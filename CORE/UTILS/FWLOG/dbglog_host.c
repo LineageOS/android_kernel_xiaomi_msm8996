@@ -3257,8 +3257,11 @@ int cnss_diag_msg_callback(struct sk_buff *skb)
 int cnss_diag_notify_wlan_close()
 {
     /* Send nl msg about the wlan close */
-    nl_srv_exit(cnss_diag_pid);
-    cnss_diag_pid = 0;
+    if (0 != cnss_diag_pid)
+    {
+        nl_srv_nl_close_indication(cnss_diag_pid);
+        cnss_diag_pid = 0;
+    }
     return 0;
 
 }

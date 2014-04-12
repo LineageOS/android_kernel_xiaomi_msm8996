@@ -4090,7 +4090,7 @@ tANI_BOOLEAN csrGetWapiInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eC
             }
 
             wapiOuiIndex = csrGetOUIIndexFromCipher( enType );
-            if (wapiOuiIndex >= CSR_WAPI_OUI_SIZE)
+            if (wapiOuiIndex >= CSR_OUI_WAPI_WAI_MAX_INDEX)
             {
                 smsLog(pMac, LOGE, FL("Wapi OUI index = %d out of limit"), wapiOuiIndex);
                 fAcceptableCyphers = FALSE;
@@ -4106,7 +4106,7 @@ tANI_BOOLEAN csrGetWapiInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eC
             for( i = 0 ; i < pMCEncryption->numEntries ; i++ )
             {
                 wapiOuiIndex = csrGetOUIIndexFromCipher( pMCEncryption->encryptionType[i] );
-                if (wapiOuiIndex >= CSR_WAPI_OUI_SIZE)
+                if (wapiOuiIndex >= CSR_OUI_WAPI_WAI_MAX_INDEX)
                 {
                     smsLog(pMac, LOGE, FL("Wapi OUI index = %d out of limit"), wapiOuiIndex);
                     fAcceptableCyphers = FALSE;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -148,12 +148,12 @@ CE_send_nolock(struct CE_handle *copyeng,
     unsigned int sw_index = src_ring->sw_index;
     unsigned int write_index = src_ring->write_index;
 
-	A_TARGET_ACCESS_BEGIN(targid);
+    A_TARGET_ACCESS_BEGIN_RET(targid);
     if (unlikely(CE_RING_DELTA(nentries_mask, write_index, sw_index-1) <= 0)) {
         OL_ATH_CE_PKT_ERROR_COUNT_INCR(sc,CE_RING_DELTA_FAIL);
         status = A_ERROR;
-	A_TARGET_ACCESS_END(targid);
-	return status;
+        A_TARGET_ACCESS_END_RET(targid);
+        return status;
     }
     {
         struct CE_src_desc *src_ring_base = (struct CE_src_desc *)src_ring->base_addr_owner_space;
@@ -191,7 +191,7 @@ CE_send_nolock(struct CE_handle *copyeng,
         src_ring->write_index = write_index;
         status = A_OK;
     }
-    A_TARGET_ACCESS_END(targid);
+    A_TARGET_ACCESS_END_RET(targid);
 
     return status;
 }
@@ -326,7 +326,7 @@ CE_recv_buf_enqueue(struct CE_handle *copyeng,
     write_index = dest_ring->write_index;
     sw_index = dest_ring->sw_index;
 
-    A_TARGET_ACCESS_BEGIN(targid);
+    A_TARGET_ACCESS_BEGIN_RET(targid);
     if (CE_RING_DELTA(nentries_mask, write_index, sw_index-1) > 0) {
         struct CE_dest_desc *dest_ring_base = (struct CE_dest_desc *)dest_ring->base_addr_owner_space;
         struct CE_dest_desc *dest_desc = CE_DEST_RING_TO_DESC(dest_ring_base, write_index);
@@ -347,7 +347,7 @@ CE_recv_buf_enqueue(struct CE_handle *copyeng,
     } else {
         status = A_ERROR;
     }
-    A_TARGET_ACCESS_END(targid);
+    A_TARGET_ACCESS_END_RET(targid);
     adf_os_spin_unlock_bh(&sc->target_lock);
 
     return status;
@@ -672,9 +672,9 @@ CE_completed_send_next_nolock(struct CE_state *CE_state,
          * the SW has really caught up to the HW, or if the cached
          * value of the HW index has become stale.
          */
-        A_TARGET_ACCESS_BEGIN(targid);
+        A_TARGET_ACCESS_BEGIN_RET(targid);
         src_ring->hw_index = CE_SRC_RING_READ_IDX_GET(targid, ctrl_addr);
-        A_TARGET_ACCESS_END(targid);
+        A_TARGET_ACCESS_END_RET(targid);
     }
     read_index = src_ring->hw_index;
 
@@ -1369,11 +1369,11 @@ CE_init(struct hif_pci_softc *sc,
             ptr += sizeof(struct CE_ring_state);
             src_ring->nentries = nentries;
             src_ring->nentries_mask = nentries-1;
-            A_TARGET_ACCESS_BEGIN(targid);
+            A_TARGET_ACCESS_BEGIN_RET_PTR(targid);
             src_ring->hw_index =
                 src_ring->sw_index = CE_SRC_RING_READ_IDX_GET(targid, ctrl_addr);
             src_ring->write_index = CE_SRC_RING_WRITE_IDX_GET(targid, ctrl_addr);
-            A_TARGET_ACCESS_END(targid);
+            A_TARGET_ACCESS_END_RET_PTR(targid);
             src_ring->low_water_mark_nentries = 0;
             src_ring->high_water_mark_nentries = nentries;
             src_ring->per_transfer_context = (void **)ptr;
@@ -1407,7 +1407,7 @@ CE_init(struct hif_pci_softc *sc,
                 (((size_t) src_ring->shadow_base_unaligned +
                 CE_DESC_RING_ALIGN-1) & ~(CE_DESC_RING_ALIGN-1));
 
-            A_TARGET_ACCESS_BEGIN(targid);
+            A_TARGET_ACCESS_BEGIN_RET_PTR(targid);
             CE_SRC_RING_BASE_ADDR_SET(targid, ctrl_addr, src_ring->base_addr_CE_space);
             CE_SRC_RING_SZ_SET(targid, ctrl_addr, nentries);
             CE_SRC_RING_DMAX_SET(targid, ctrl_addr, attr->src_sz_max);
@@ -1417,7 +1417,7 @@ CE_init(struct hif_pci_softc *sc,
 #endif
             CE_SRC_RING_LOWMARK_SET(targid, ctrl_addr, 0);
             CE_SRC_RING_HIGHMARK_SET(targid, ctrl_addr, nentries);
-            A_TARGET_ACCESS_END(targid);
+            A_TARGET_ACCESS_END_RET_PTR(targid);
         }
     }
 
@@ -1460,10 +1460,10 @@ CE_init(struct hif_pci_softc *sc,
             ptr += sizeof(struct CE_ring_state);
             dest_ring->nentries = nentries;
             dest_ring->nentries_mask = nentries-1;
-            A_TARGET_ACCESS_BEGIN(targid);
+            A_TARGET_ACCESS_BEGIN_RET_PTR(targid);
             dest_ring->sw_index = CE_DEST_RING_READ_IDX_GET(targid, ctrl_addr);
             dest_ring->write_index = CE_DEST_RING_WRITE_IDX_GET(targid, ctrl_addr);
-            A_TARGET_ACCESS_END(targid);
+            A_TARGET_ACCESS_END_RET_PTR(targid);
             dest_ring->low_water_mark_nentries = 0;
             dest_ring->high_water_mark_nentries = nentries;
             dest_ring->per_transfer_context = (void **)ptr;
@@ -1492,7 +1492,7 @@ CE_init(struct hif_pci_softc *sc,
                 dest_ring->base_addr_owner_space = dest_ring->base_addr_owner_space_unaligned;
             }
 
-            A_TARGET_ACCESS_BEGIN(targid);
+            A_TARGET_ACCESS_BEGIN_RET_PTR(targid);
             CE_DEST_RING_BASE_ADDR_SET(targid, ctrl_addr, dest_ring->base_addr_CE_space);
             CE_DEST_RING_SZ_SET(targid, ctrl_addr, nentries);
 #ifdef BIG_ENDIAN_HOST
@@ -1501,14 +1501,14 @@ CE_init(struct hif_pci_softc *sc,
 #endif
             CE_DEST_RING_LOWMARK_SET(targid, ctrl_addr, 0);
             CE_DEST_RING_HIGHMARK_SET(targid, ctrl_addr, nentries);
-            A_TARGET_ACCESS_END(targid);
+            A_TARGET_ACCESS_END_RET_PTR(targid);
         }
     }
 
     /* Enable CE error interrupts */
-    A_TARGET_ACCESS_BEGIN(targid);
+    A_TARGET_ACCESS_BEGIN_RET_PTR(targid);
     CE_ERROR_INTR_ENABLE(targid, ctrl_addr);
-    A_TARGET_ACCESS_END(targid);
+    A_TARGET_ACCESS_END_RET_PTR(targid);
 
     return (struct CE_handle *)CE_state;
 }

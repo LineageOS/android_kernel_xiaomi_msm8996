@@ -1287,6 +1287,7 @@ limFlushp2pScanResults(tpAniSirGlobal pMac)
 void
 limReInitScanResults(tpAniSirGlobal pMac)
 {
+    limLog(pMac, LOG1, FL("Re initialize scan hash table."));
     limDeleteCachedScanResults(pMac);
     limInitHashTable(pMac);
 
@@ -1365,6 +1366,7 @@ limDeleteCachedLfrScanResults(tpAniSirGlobal pMac)
 void
 limReInitLfrScanResults(tpAniSirGlobal pMac)
 {
+    limLog(pMac, LOG1, FL("Re initialize lfr scan hash table."));
     limDeleteCachedLfrScanResults(pMac);
     limInitLfrHashTable(pMac);
 
