@@ -79,6 +79,7 @@
 #include <wlan_hdd_cfg.h>
 #include <wlan_hdd_cfg80211.h>
 #include <net/addrconf.h>
+
 /**-----------------------------------------------------------------------------
 *   Preprocessor definitions and constants
 * ----------------------------------------------------------------------------*/
@@ -565,7 +566,76 @@ void hdd_conf_hostoffload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
 }
 
 #ifdef WLAN_NS_OFFLOAD
-void hdd_conf_ns_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
+void hdd_ipv6_notifier_work_queue(struct work_struct *work)
+{
+    hdd_adapter_t* pAdapter =
+             container_of(work, hdd_adapter_t, ipv6NotifierWorkQueue);
+    hdd_context_t *pHddCtx;
+    int status;
+
+    hddLog(LOG1, FL("Reconfiguring NS Offload"));
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    status = wlan_hdd_validate_context(pHddCtx);
+    if (0 != status)
+    {
+        hddLog(LOGE, FL("HDD context is invalid"));
+        return;
+    }
+
+    if ((eConnectionState_Associated ==
+                (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState)
+         && (VOS_TRUE == pHddCtx->sus_res_mcastbcast_filter_valid))
+    {
+        // This invocation being part of the IPv6 registration callback,
+        // we are passing second parameter as 2 to avoid registration
+        // of IPv6 notifier again.
+        hdd_conf_ns_offload(pAdapter, 2);
+    }
+}
+
+static int wlan_hdd_ipv6_changed(struct notifier_block *nb,
+                                   unsigned long data, void *arg)
+{
+    struct inet6_ifaddr *ifa = (struct inet6_ifaddr *)arg;
+    struct net_device *ndev = ifa->idev->dev;
+    hdd_adapter_t *pAdapter =
+             container_of(nb, struct hdd_adapter_s, ipv6_notifier);
+    hdd_context_t *pHddCtx;
+    int status;
+
+    if (pAdapter && pAdapter->dev == ndev)
+    {
+        pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+        status = wlan_hdd_validate_context(pHddCtx);
+        if (0 != status)
+        {
+            hddLog(LOGE, FL("HDD context is invalid"));
+            return NOTIFY_DONE;
+        }
+
+        schedule_work(&pAdapter->ipv6NotifierWorkQueue);
+    }
+
+    return NOTIFY_DONE;
+}
+
+/**----------------------------------------------------------------------------
+
+  \brief hdd_conf_ns_offload() - Configure NS offload
+
+  Called during SUSPEND to configure the NS offload (MC BC filter) which
+  reduces power consumption.
+
+  \param  - pAdapter - Adapter context for which NS offload is to be configured
+  \param  - fenable - 0 - disable.
+                      1 - enable. (with IPv6 notifier registration)
+                      2 - enable. (without IPv6 notifier registration)
+
+  \return - void
+
+  ---------------------------------------------------------------------------*/
+void hdd_conf_ns_offload(hdd_adapter_t *pAdapter, int fenable)
 {
     struct inet6_dev *in6_dev;
     struct inet6_ifaddr *ifp;
@@ -576,11 +646,14 @@ void hdd_conf_ns_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
     hdd_context_t *pHddCtx;
 
     int i =0;
+    int ret =0;
     eHalStatus returnStatus;
+
+    ENTER();
+    hddLog(LOG1, FL(" fenable = %d"), fenable);
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
-    ENTER();
     if (fenable)
     {
         in6_dev = __in6_dev_get(pAdapter->dev);
@@ -685,6 +758,23 @@ void hdd_conf_ns_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
                     vos_mem_zero(&offLoadRequest, sizeof(offLoadRequest));
                 }
             }
+            if (fenable == 1 && !pAdapter->ipv6_notifier_registered)
+            {
+                // Register IPv6 notifier to notify if any change in IP
+                // So that we can reconfigure the offload parameters
+                pAdapter->ipv6_notifier.notifier_call =
+                             wlan_hdd_ipv6_changed;
+                ret = register_inet6addr_notifier(&pAdapter->ipv6_notifier);
+                if (ret)
+                {
+                    hddLog(LOGE, FL("Failed to register IPv6 notifier"));
+                }
+                else
+                {
+                    hddLog(LOG1, FL("Registered IPv6 notifier"));
+                    pAdapter->ipv6_notifier_registered = true;
+                }
+            }
         }
         else
         {
@@ -696,6 +786,12 @@ void hdd_conf_ns_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
     else
     {
         //Disable NSOffload
+        if (pAdapter->ipv6_notifier_registered)
+        {
+            hddLog(LOG1, FL("Unregistered IPv6 notifier"));
+            unregister_inet6addr_notifier(&pAdapter->ipv6_notifier);
+            pAdapter->ipv6_notifier_registered = false;
+        }
         vos_mem_zero((void *)&offLoadRequest, sizeof(tSirHostOffloadReq));
         offLoadRequest.enableOrDisable = SIR_OFFLOAD_DISABLE;
         offLoadRequest.offloadType =  SIR_IPV6_NS_OFFLOAD;
@@ -1231,9 +1327,11 @@ static void hdd_PowerStateChangedCB
        pHddCtx->hdd_ignore_dtim_enabled = TRUE;
    }
    spin_lock(&pHddCtx->filter_lock);
-   if((newState == BMPS) &&  pHddCtx->hdd_wlan_suspended) {
+   if ((newState == BMPS) &&  pHddCtx->hdd_wlan_suspended)
+   {
       spin_unlock(&pHddCtx->filter_lock);
-      if (VOS_FALSE == pHddCtx->sus_res_mcastbcast_filter_valid) {
+      if (VOS_FALSE == pHddCtx->sus_res_mcastbcast_filter_valid)
+      {
           pHddCtx->sus_res_mcastbcast_filter =
               pHddCtx->configuredMcastBcastFilter;
           pHddCtx->sus_res_mcastbcast_filter_valid = VOS_TRUE;
@@ -1251,7 +1349,31 @@ static void hdd_PowerStateChangedCB
          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Not able to set mcast/bcast filter ", __func__);
    }
    else
+   {
+      /* Android framework can send resume request when the WCN chip is
+       * in IMPS mode. When the chip exits IMPS mode the firmware will
+       * restore all the registers to the state they were before the chip
+       * entered IMPS and so our hardware filter settings confgured by the
+       * resume request will be lost. So reconfigure the filters on detecting
+       * a change in the power state of the WCN chip.
+       */
       spin_unlock(&pHddCtx->filter_lock);
+      if (IMPS != newState)
+      {
+           spin_lock(&pHddCtx->filter_lock);
+           if (FALSE == pHddCtx->hdd_wlan_suspended)
+           {
+                spin_unlock(&pHddCtx->filter_lock);
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                          "Not in IMPS/BMPS and suspended state");
+                hdd_conf_mcastbcast_filter(pHddCtx, FALSE);
+           }
+           else
+           {
+                spin_unlock(&pHddCtx->filter_lock);
+           }
+      }
+   }
 }
 
 

@@ -252,6 +252,7 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
         vos_mem_free(pRemainChanCtx->action_pkt_buff.frame_ptr);
     }
     vos_mem_free( pRemainChanCtx );
+    pRemainChanCtx = NULL;
     complete(&pAdapter->cancel_rem_on_chan_var);
     pAdapter->is_roc_inprogress = FALSE;
     hdd_allow_suspend();
@@ -740,6 +741,13 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
         hddLog( LOGE,
                 "%s: timeout waiting for remain on channel ready indication",
                 __func__);
+
+        if (pHddCtx->isLogpInProgress)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: LOGP in Progress. Ignore!!!", __func__);
+            return -EAGAIN;
+        }
     }
     INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
     /* Issue abort remain on chan request to sme.

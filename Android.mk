@@ -41,7 +41,6 @@ else
        DLKM_DIR := build/dlkm
 endif
 
-
 # Build wlan.ko as either prima_wlan.ko or pronto_wlan.ko or qca_cld_wlan.ko
 ###########################################################
 # This is set once per LOCAL_PATH, not per (kernel) module

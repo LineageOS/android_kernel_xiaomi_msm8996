@@ -2150,6 +2150,8 @@ typedef enum {
     WMI_PDEV_PARAM_LOW_POWER_RF_ENABLE,
     /** L1SS entry and residency time track */
     WMI_PDEV_PARAM_L1SS_TRACK,
+    /** set hyst at runtime, requirement from SS */
+    WMI_PDEV_PARAM_HYST_EN,
 } WMI_PDEV_PARAM;
 
 typedef enum {

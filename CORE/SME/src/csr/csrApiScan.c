@@ -799,7 +799,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
 
                         pChnInfo->numOfChannels = (tANI_U8)numChn;
                         p11dScanCmd->command = eSmeCommandScan;
-                        p11dScanCmd->u.scanCmd.callback = NULL;
+                        p11dScanCmd->u.scanCmd.callback = pMac->scan.callback11dScanDone;
                         p11dScanCmd->u.scanCmd.pContext = NULL;
                         p11dScanCmd->u.scanCmd.scanID = pMac->scan.nextScanID++;
                         scanReq.BSSType = eCSR_BSS_TYPE_ANY;
@@ -7563,6 +7563,11 @@ void csrSetCfgValidChannelList( tpAniSirGlobal pMac, tANI_U8 *pChannelList, tANI
     tANI_U32 dataLen = sizeof( tANI_U8 ) * NumChannels;
     eHalStatus status;
 
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                "%s: dump valid channel list(NumChannels(%d))",
+                __func__,NumChannels);
+    VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                       pChannelList, NumChannels);
     ccmCfgSetStr(pMac, WNI_CFG_VALID_CHANNEL_LIST, pChannelList, dataLen, NULL, eANI_BOOLEAN_FALSE);
 
     if (pMac->fScanOffload)
@@ -7748,6 +7753,10 @@ void csrSetCfgScanControlList( tpAniSirGlobal pMac, tANI_U8 *countryCode, tCsrCh
                 }
 
             }
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                      "%s: dump scan control list",__func__);
+            VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                               pControlList, len);
 
             ccmCfgSetStr(pMac, WNI_CFG_SCAN_CONTROL_LIST, pControlList, len, NULL, eANI_BOOLEAN_FALSE);
         }//Successfully getting scan control list
