@@ -613,7 +613,6 @@ eHalStatus csrStop(tpAniSirGlobal pMac, tHalStopType stopType)
 
     //Reset the domain back to the deault
     pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
-    csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE, eANI_BOOLEAN_FALSE );
 
     for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
     {

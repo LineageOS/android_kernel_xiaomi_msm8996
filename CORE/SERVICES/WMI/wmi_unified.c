@@ -532,6 +532,14 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 	void *vos_context;
 	struct ol_softc *scn;
 
+	if (adf_os_atomic_read(&wmi_handle->is_target_suspended) &&
+		( (WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID != cmd_id) ||
+		  (WMI_PDEV_RESUME_CMDID != cmd_id)) ){
+		pr_err("%s: Target is suspended  could not send WMI command\n", __func__);
+		VOS_ASSERT(0);
+		return -EBUSY;
+	}
+
 	/* Do sanity check on the TLV parameter structure. Can be #ifdef DEBUG if desired */
 	{
 		void *buf_ptr = (void *) adf_nbuf_data(buf);
@@ -829,6 +837,7 @@ wmi_unified_attach(ol_scn_t scn_handle)
     OS_MEMZERO(wmi_handle, sizeof(struct wmi_unified));
     wmi_handle->scn_handle = scn_handle;
     adf_os_atomic_init(&wmi_handle->pending_cmds);
+    adf_os_atomic_init(&wmi_handle->is_target_suspended);
 #ifndef QCA_WIFI_ISOC
     adf_os_spinlock_init(&wmi_handle->eventq_lock);
     adf_nbuf_queue_init(&wmi_handle->event_queue);
@@ -920,6 +929,11 @@ int wmi_get_host_credits(wmi_unified_t wmi_handle)
 int wmi_get_pending_cmds(wmi_unified_t wmi_handle)
 {
 	return adf_os_atomic_read(&wmi_handle->pending_cmds);
+}
+
+void wmi_set_target_suspend(wmi_unified_t wmi_handle, A_BOOL val)
+{
+	adf_os_atomic_set(&wmi_handle->is_target_suspended, val);
 }
 
 int wmi_is_suspend_ready(wmi_unified_t wmi_handle)
