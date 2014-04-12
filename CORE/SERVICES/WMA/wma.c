@@ -17146,9 +17146,9 @@ static int wma_channel_avoid_evt_handler(void *handle, u_int8_t *event,
 		afr_desc = (wmi_avoid_freq_range_desc *) ((void *)param_buf->avd_freq_range
 			+ freq_range_idx * sizeof(wmi_avoid_freq_range_desc));
 		sca_indication->avoid_freq_range[freq_range_idx].start_freq =
-			afr_desc->start_freq + 10;
-		sca_indication->avoid_freq_range[freq_range_idx].end_freq = afr_desc->end_freq
-			- 10;
+			afr_desc->start_freq;
+		sca_indication->avoid_freq_range[freq_range_idx].end_freq =
+			afr_desc->end_freq;
 	}
 
 	sme_msg.type = eWNI_SME_CH_AVOID_IND;
