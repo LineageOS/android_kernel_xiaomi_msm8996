@@ -659,6 +659,11 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
 #endif
 
+    if (NULL == pHddCtx)
+        return -1;
+
+    mutex_lock(&pHddCtx->tdls_lock);
+
     /* QCA 2.0 Discrete ANDs feature capability in cfg_ini with that
      * received from target, so cfg_ini gives combined intersected result
      */
@@ -680,6 +685,7 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
                "%s TDLS not enabled (%d) or FW doesn't support",
                __func__, pHddCtx->cfg_ini->fEnableTDLSSupport);
 #endif
+        mutex_unlock(&pHddCtx->tdls_lock);
         return 0;
     }
     /* TDLS is supported only in STA / P2P Client modes,
@@ -694,6 +700,7 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
      */
     if (0 == WLAN_HDD_IS_TDLS_SUPPORTED_ADAPTER(pAdapter))
     {
+        mutex_unlock(&pHddCtx->tdls_lock);
         return 0;
     }
     /* Check for the valid pHddTdlsCtx. If valid do not further
@@ -709,6 +716,7 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
         if (NULL == pHddTdlsCtx) {
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s malloc failed!", __func__);
             pAdapter->sessionCtx.station.pHddTdlsCtx = NULL;
+            mutex_unlock(&pHddCtx->tdls_lock);
             return -1;
         }
         /* initialize TDLS pAdater context */
@@ -792,6 +800,11 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
 #endif
     INIT_DELAYED_WORK(&pHddCtx->tdls_scan_ctxt.tdls_scan_work, wlan_hdd_tdls_schedule_scan);
 
+    /*
+     * Release tdls lock before calling in SME api
+     * which would try to acquire sme lock.
+     */
+    mutex_unlock(&pHddCtx->tdls_lock);
 #ifdef QCA_WIFI_2_0
     tInfo = vos_mem_malloc(sizeof(tdlsInfo_t));
     if (NULL == tInfo)
