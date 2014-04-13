@@ -5763,6 +5763,7 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
 {
     int status = 0;
     hdd_wext_state_t *pWextState;
+    hdd_context_t *pHddCtx;
     v_U32_t roamId;
     tCsrRoamProfile *pRoamProfile;
     eCsrAuthType RSNAuthType;
@@ -5770,6 +5771,15 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
     ENTER();
 
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+    status = wlan_hdd_validate_context(pHddCtx);
+    if (status)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: HDD context is not valid!", __func__);
+        return status;
+    }
 
     if (SIR_MAC_MAX_SSID_LENGTH < ssid_len)
     {
@@ -8406,10 +8416,9 @@ static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *d
     tANI_U32 j=0;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle halHandle;
-    int status;
     tANI_U8  BSSIDMatched = 0;
     hdd_context_t *pHddCtx;
-    eHalStatus result = eHAL_STATUS_SUCCESS;
+    int status = 0;
 
     hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: deleting PMKSA for " MAC_ADDRESS_STR,
            __func__, MAC_ADDR_ARRAY(pmksa->bssid));
@@ -8472,11 +8481,12 @@ static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *d
              PMKIDCacheIndex--;
 
              /*delete the last PMKID cache in CSR*/
-             result = sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pmksa->bssid);
-             if (!HAL_STATUS_SUCCESS(result))
+             if (eHAL_STATUS_SUCCESS !=
+                 sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pmksa->bssid))
              {
                 hddLog(VOS_TRACE_LEVEL_ERROR,"%s: cannot delete PMKSA %d CONTENT.",
                           __func__,PMKIDCacheIndex);
+                status = -EINVAL;
              }
 
              dump_bssid(pmksa->bssid);
@@ -8496,8 +8506,7 @@ static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *d
        dump_pmkid(halHandle, pmksa->pmkid);
        return -EINVAL;
     }
-
-    return HAL_STATUS_SUCCESS(result) ? 0 : -EINVAL;
+    return status;
 }
 
 
@@ -8509,15 +8518,14 @@ static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device 
     tHalHandle halHandle;
     hdd_context_t *pHddCtx;
     tANI_U8 *pBSSId;
-    int status = -1;
-    eHalStatus result = eHAL_STATUS_SUCCESS;
+    int status = 0;
 
     hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: flushing PMKSA ",__func__);
 
     /* Validate pAdapter */
     if (NULL == pAdapter)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
+       hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: Invalid Adapter" ,__func__);
        return -EINVAL;
     }
@@ -8549,21 +8557,21 @@ static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device 
           pBSSId =(tANI_U8 *)(PMKIDCache[j].BSSID);
 
           /*delete the PMKID in CSR*/
-          result = sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pBSSId);
-
-          if (!HAL_STATUS_SUCCESS(result))
+          if (eHAL_STATUS_SUCCESS !=
+              sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pBSSId))
           {
              hddLog(VOS_TRACE_LEVEL_ERROR ,"%s cannot flush PMKIDCache %d.",
                     __func__,j);
+             status = -EINVAL;
           }
           /*clear the entry in HDD cache 0--index-1 */
           vos_mem_zero(PMKIDCache[j].BSSID, WNI_CFG_BSSID_LEN);
           vos_mem_zero(PMKIDCache[j].PMKID, CSR_RSN_PMKID_SIZE);
-      }
+    }
 
     PMKIDCacheIndex = 0;
 
-    return HAL_STATUS_SUCCESS(result) ? 0 : -EINVAL;
+    return status;
 }
 #endif
 
@@ -9154,7 +9162,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
                            " TDLS Max peer already connected. action (%d) declined. Num of peers (%d), Max allowed (%d).",
                            __func__, MAC_ADDR_ARRAY(peer), action_code,
                            numCurrTdlsPeers, HDD_MAX_NUM_TDLS_STA);
-                goto error;
+                return -EINVAL;
             }
             else
             {
@@ -9256,7 +9264,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
         pAdapter->mgmtTxCompletionStatus = FALSE;
 
         wlan_hdd_tdls_check_bmps(pAdapter);
-        goto error;
+        return -EINVAL;
     }
 
     rc = wait_for_completion_interruptible_timeout(&pAdapter->tdls_mgmt_comp,
@@ -9277,7 +9285,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
         }
 
         wlan_hdd_tdls_check_bmps(pAdapter);
-        goto error;
+        return -EINVAL;
     }
 
     if (max_sta_failed)
@@ -9296,16 +9304,6 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
     }
 
     return 0;
-error:
-    /* max_sta_failed ; we didn't set to CONNECTING for this case,
-       because we already know that this transaction will be failed,
-       but we weren't sure if supplicant call DISABLE_LINK or not. So,
-       to be safe, do not change the state mahine.
-    */
-    if(max_sta_failed == 0 &&
-           (WLAN_IS_TDLS_SETUP_ACTION(action_code)))
-            wlan_hdd_tdls_set_link_status(pAdapter, peerMac, eTDLS_LINK_IDLE);
-    return -EPERM;
 }
 
 static int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *dev,
@@ -10222,12 +10220,18 @@ int wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
 
 #ifdef QCA_WIFI_2_0
     /* Resume MC thread */
-    complete(&vosSchedContext->ResumeMcEvent);
-    pHddCtx->isMcThreadSuspended = FALSE;
+    if (pHddCtx->isMcThreadSuspended) {
+        complete(&vosSchedContext->ResumeMcEvent);
+        pHddCtx->isMcThreadSuspended = FALSE;
+    }
 
 #ifdef QCA_CONFIG_SMP
     /* Resume tlshim Rx thread */
-    complete(&vosSchedContext->ResumeTlshimRxEvent);
+    if (pHddCtx->isTlshimRxThreadSuspended) {
+        complete(&vosSchedContext->ResumeTlshimRxEvent);
+        pHddCtx->isTlshimRxThreadSuspended = FALSE;
+    }
+
 #endif
     hdd_resume_wlan();
 #endif
@@ -10391,6 +10395,7 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                    "%s: Failed to stop tl_shim rx thread", __func__);
         goto resume_all;
     }
+    pHddCtx->isTlshimRxThreadSuspended = TRUE;
 #endif
 
     pHddCtx->isWiphySuspended = TRUE;

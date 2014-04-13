@@ -115,13 +115,14 @@ typedef enum
    VOS_MODULE_ID_HDD_SOFTAP = 12,
    VOS_MODULE_ID_PMC        = 13,
    VOS_MODULE_ID_HDD_DATA   = 14,
+   VOS_MODULE_ID_HDD_SAP_DATA  = 15,
 
 #ifdef QCA_WIFI_2_0
-   VOS_MODULE_ID_HIF        = 15,
-   VOS_MODULE_ID_HTC        = 16,
-   VOS_MODULE_ID_TXRX       = 17,
-   VOS_MODULE_ID_ADF        = 18,
-   VOS_MODULE_ID_CFG        = 19,
+   VOS_MODULE_ID_HIF        = 16,
+   VOS_MODULE_ID_HTC        = 17,
+   VOS_MODULE_ID_TXRX       = 18,
+   VOS_MODULE_ID_ADF        = 19,
+   VOS_MODULE_ID_CFG        = 20,
 #endif
 
    // not a real module ID.  This is used to identify the maxiumum

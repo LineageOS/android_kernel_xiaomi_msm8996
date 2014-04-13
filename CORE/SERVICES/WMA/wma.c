@@ -857,6 +857,7 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		p_inactivity->staIdx = peer_id;
 		vos_mem_copy(p_inactivity->peerAddr, macaddr, IEEE80211_ADDR_LEN);
 		wma_send_msg(wma, WDA_IBSS_PEER_INACTIVITY_IND, (void *)p_inactivity, 0);
+		goto exit_handler;
 		break;
 
 #ifdef FEATURE_WLAN_TDLS
@@ -876,6 +877,7 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
 		wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx,
 			0);
+		goto exit_handler;
 		break;
 #endif /* FEATURE_WLAN_TDLS */
 
@@ -898,6 +900,7 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		    WMA_LOGW("%s: WMI_PEER_STA_KICKOUT_REASON_XRETRY event for STA",
 				__func__);
 		    wma_beacon_miss_handler(wma, vdev_id);
+		    goto exit_handler;
 		}
 		break;
 
@@ -923,27 +926,32 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		    WMA_LOGW("%s: WMI_PEER_STA_KICKOUT_REASON_UNSPECIFIED event for STA",
 				__func__);
 		    wma_beacon_miss_handler(wma, vdev_id);
+		    goto exit_handler;
 		}
 		break;
 
 	    case WMI_PEER_STA_KICKOUT_REASON_INACTIVITY:
 	    default:
-		del_sta_ctx =
-			(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
-		if (!del_sta_ctx) {
-			WMA_LOGE("VOS MEM Alloc Failed for tDeleteStaContext");
-			return -EINVAL;
-		}
-
-		del_sta_ctx->staId = peer_id;
-		vos_mem_copy(del_sta_ctx->addr2, macaddr, IEEE80211_ADDR_LEN);
-		vos_mem_copy(del_sta_ctx->bssId, wma->interfaces[vdev_id].addr,
-				IEEE80211_ADDR_LEN);
-		del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
-		wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx,
-			0);
 		break;
 	}
+
+	/*
+	 * default action is to send delete station context indication to LIM
+	 */
+	del_sta_ctx = (tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
+	if (!del_sta_ctx) {
+		WMA_LOGE("VOS MEM Alloc Failed for tDeleteStaContext");
+		return -EINVAL;
+	}
+
+	del_sta_ctx->staId = peer_id;
+	vos_mem_copy(del_sta_ctx->addr2, macaddr, IEEE80211_ADDR_LEN);
+	vos_mem_copy(del_sta_ctx->bssId, wma->interfaces[vdev_id].addr,
+		IEEE80211_ADDR_LEN);
+	del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
+	wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx, 0);
+
+exit_handler:
 	WMA_LOGD("%s: Exit", __func__);
 	return 0;
 }
@@ -8238,6 +8246,9 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	u_int8_t vdev_id, peer_id;
 	VOS_STATUS status;
 	tPowerdBm maxTxPower;
+#ifdef WLAN_FEATURE_11W
+	int ret = 0;
+#endif /* WLAN_FEATURE_11W */
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -8287,6 +8298,24 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	req.max_txpow = 0;
 	maxTxPower = 0;
 #endif
+#ifdef WLAN_FEATURE_11W
+	if (add_bss->rmfEnabled) {
+		/*
+		 * when 802.11w PMF is enabled for hw encr/decr
+		 * use hw MFP Qos bits 0x10
+		 */
+		ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+				WMI_PDEV_PARAM_PMF_QOS, TRUE);
+		if(ret) {
+			WMA_LOGE("%s: Failed to set QOS MFP/PMF (%d)",
+				__func__, ret);
+		} else {
+			WMA_LOGI("%s: QOS MFP/PMF set to %d",
+				__func__, TRUE);
+		}
+	}
+#endif /* WLAN_FEATURE_11W */
+
 	req.beacon_intval = add_bss->beaconInterval;
 	req.dtim_period = add_bss->dtimPeriod;
 	req.hidden_ssid = add_bss->bHiddenSSIDEn;
@@ -8856,6 +8885,9 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 	u_int8_t peer_id;
 	VOS_STATUS status;
 	int32_t ret;
+#ifdef WLAN_FEATURE_11W
+	struct wma_txrx_node *iface = NULL;
+#endif /* WLAN_FEATURE_11W */
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -8923,6 +8955,31 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		}
 		state = ol_txrx_peer_state_auth;
 	}
+#ifdef WLAN_FEATURE_11W
+	if (add_sta->rmfEnabled) {
+		/*
+		 * We have to store the state of PMF connection
+		 * per STA for SAP case
+		 * We will isolate the ifaces based on vdevid
+		 */
+		iface = &wma->interfaces[vdev->vdev_id];
+		iface->rmfEnabled = add_sta->rmfEnabled;
+		/*
+		 * when 802.11w PMF is enabled for hw encr/decr
+		 * use hw MFP Qos bits 0x10
+		 */
+		ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+				WMI_PDEV_PARAM_PMF_QOS, TRUE);
+		if(ret) {
+			WMA_LOGE("%s: Failed to set QOS MFP/PMF (%d)",
+				__func__, ret);
+		}
+		else {
+			WMA_LOGI("%s: QOS MFP/PMF set to %d",
+				__func__, TRUE);
+		}
+	}
+#endif /* WLAN_FEATURE_11W */
 
 	if (add_sta->uAPSD) {
 		ret = wma_set_ap_peer_uapsd(wma, add_sta->smesessionId,

@@ -111,7 +111,7 @@ hif_pci_interrupt_handler(int irq, void *arg)
     if (LEGACY_INTERRUPTS(sc)) {
 
         if (sc->hif_init_done == TRUE)
-           A_TARGET_ACCESS_BEGIN(hif_state->targid);
+           A_TARGET_ACCESS_BEGIN_RET(hif_state->targid);
 
         /* Clear Legacy PCI line interrupts */
         /* IMPORTANT: INTR_CLR regiser has to be set after INTR_ENABLE is set to 0, */
@@ -126,7 +126,7 @@ hif_pci_interrupt_handler(int irq, void *arg)
             VOS_BUG(0);
         }
         if (sc->hif_init_done == TRUE)
-          A_TARGET_ACCESS_END(hif_state->targid);
+          A_TARGET_ACCESS_END_RET(hif_state->targid);
     }
     /* TBDXXX: Add support for WMAC */
 
@@ -1573,9 +1573,9 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     u32 val;
     v_VOID_t * temp_module;
 
-    A_TARGET_ACCESS_BEGIN(targid);
+    A_TARGET_ACCESS_BEGIN_RET(targid);
     A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
-    A_TARGET_ACCESS_END(targid);
+    A_TARGET_ACCESS_END_RET(targid);
 
     if (!txrx_pdev) {
         printk("%s: txrx_pdev is NULL\n", __func__);
@@ -1651,9 +1651,9 @@ hif_pci_resume(struct pci_dev *pdev)
             pci_write_config_dword(pdev, 0x40, val & 0xffff00ff);
     }
 
-    A_TARGET_ACCESS_BEGIN(targid);
+    A_TARGET_ACCESS_BEGIN_RET(targid);
     val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
-    A_TARGET_ACCESS_END(targid);
+    A_TARGET_ACCESS_END_RET(targid);
 
     /* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
     temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
