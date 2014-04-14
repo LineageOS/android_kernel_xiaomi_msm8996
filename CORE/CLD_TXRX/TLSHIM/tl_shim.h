@@ -88,6 +88,7 @@ struct deferred_iapp_work iapp_work;
 	u_int32_t   last_beacon_len;
 	u_int32_t delay_interval;
 	v_BOOL_t enable_rxthread;
+	adf_os_atomic_t *vdev_active;
 #ifdef QCA_LL_TX_FLOW_CT
 	struct tlshim_session_flow_Control *session_flow_control;
 #endif /* QCA_LL_TX_FLOW_CT */
