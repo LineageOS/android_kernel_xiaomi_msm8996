@@ -3071,15 +3071,14 @@ void* wlan_hdd_change_country_code_cb(void *pAdapter)
 }
 
 /*
- * FUNCTION: wlan_hdd_cfg80211_change_iface
+ * FUNCTION: __wlan_hdd_cfg80211_change_iface
  * This function is used to set the interface type (INFRASTRUCTURE/ADHOC)
  */
-int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
-                                    struct net_device *ndev,
-                                    enum nl80211_iftype type,
-                                    u32 *flags,
-                                    struct vif_params *params
-                                  )
+static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
+                                            struct net_device *ndev,
+                                            enum nl80211_iftype type,
+                                            u32 *flags,
+                                            struct vif_params *params)
 {
     struct wireless_dev *wdev;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev );
@@ -3541,6 +3540,25 @@ done:
 #endif //WLAN_BTAMP_FEATURE
     EXIT();
     return 0;
+}
+
+/*
+ * FUNCTION: wlan_hdd_cfg80211_change_iface
+ * wrapper function to protect the actual implementation from SSR.
+ */
+static int wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
+                                          struct net_device *ndev,
+                                          enum nl80211_iftype type,
+                                          u32 *flags,
+                                          struct vif_params *params)
+{
+    int ret;
+
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_cfg80211_change_iface(wiphy, ndev, type, flags, params);
+    vos_ssr_unprotect(__func__);
+
+    return ret;
 }
 
 #ifdef FEATURE_WLAN_TDLS
