@@ -357,6 +357,7 @@ WDA_DS_FinishULA
 
   sMessage.callback = callbackRoutine;
   sMessage.bodyptr  = callbackContext;
+  sMessage.bodyval  = 0;
   sMessage.type     = WDA_DS_FINISH_ULA;
 
   return vos_tx_mq_serialize(VOS_MQ_ID_TL, &sMessage);

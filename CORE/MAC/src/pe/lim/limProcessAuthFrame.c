@@ -293,11 +293,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
             if (pAuthNode == NULL)
             {
-               // Log error
-               PELOGE(limLog(pMac, LOGE,
-                      FL("received Authentication frame from peer that has "
-                      "no preauth context with WEP bit set "MAC_ADDRESS_STR),
-                      MAC_ADDR_ARRAY(pHdr->sa));)
+                // Log error
+                PELOGE(limLog(pMac, LOGE,
+                       FL("received Authentication frame from peer that has no preauth context with WEP bit set "
+                           MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->sa));)
+
                 /**
                  * No 'pre-auth' context exists for this STA that sent
                  * an Authentication frame with FC bit set.
@@ -421,7 +421,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                "failed to convert Auth Frame to structure or Auth is not valid "));)
                         return;
                     }
-
                 } // end if (pKeyMapEntry->key == NULL)
             } // if keyMappings has entry
             else
@@ -499,7 +498,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                FL("failed to convert Auth Frame to structure or Auth is not valid "));
                         return;
                     }
-
             } // End of check for Key Mapping/Default key presence
         }
         else
@@ -536,8 +534,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
             ( !isAuthValid(pMac, &rxAuthFrame,psessionEntry) ) )
         {
             PELOGE(limLog(pMac, LOGE,
-                   FL("failed to convert Auth Frame to structure or Auth is "
-                   "not valid "));)
+                   FL("failed to convert Auth Frame to structure or Auth is not valid "));)
             return;
         }
     }
@@ -690,6 +687,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
             }
             if (pMac->lim.gLimNumPreAuthContexts == maxNumPreAuth)
             {
+                PELOGE(limLog(pMac, LOGE, FL("Max number of preauth context reached"));)
                 /**
                  * Maximum number of pre-auth contexts
                  * reached. Send Authentication frame
@@ -1010,7 +1008,8 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                 // Log error
                 PELOGW(limLog(pMac, LOGW,
-                       FL("received Auth frame2 from unexpected peer "MAC_ADDRESS_STR),
+                       FL("received Auth frame2 from unexpected peer "
+                       MAC_ADDRESS_STR),
                        MAC_ADDR_ARRAY(pHdr->sa));)
 
                 break;
@@ -1544,7 +1543,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 // Log error
                 PELOGE(limLog(pMac, LOGE,
                        FL("received Auth frame4 from peer with invalid auth algo %d "
-                       MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
+                           MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
                        MAC_ADDR_ARRAY(pHdr->sa));)
 
                 return;
@@ -1640,8 +1639,9 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
             // Log error
             PELOGE(limLog(pMac, LOGE,
-                   FL("received Auth frame from peer with invalid auth seq number %d "
-                   MAC_ADDRESS_STR), pRxAuthFrameBody->authTransactionSeqNumber,
+                   FL("received Auth frame from peer with invalid auth seq "
+                   "number %d " MAC_ADDRESS_STR),
+                   pRxAuthFrameBody->authTransactionSeqNumber,
                    MAC_ADDR_ARRAY(pHdr->sa));)
 
             break;
@@ -1717,7 +1717,7 @@ tSirRetStatus limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd, vo
     if (!vos_mem_compare(pMac->ft.ftPEContext.pFTPreAuthReq->preAuthbssId,
                          pHdr->bssId, sizeof( tSirMacAddr )))
     {
-        limLog(pMac, LOGE, FL("Error: NOT Same bssid as preauth BSSID"));
+        limLog(pMac, LOGE, FL("Error: Same bssid as preauth BSSID"));
         // In this case SME if indeed has triggered a
         // pre auth it will time out.
         return eSIR_FAILURE;

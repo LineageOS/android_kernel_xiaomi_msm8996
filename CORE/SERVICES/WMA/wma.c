@@ -12520,6 +12520,8 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	HTCCancelDeferredTargetSleep(scn);
 
 	wma->wow.wow_enable_cmd_sent = TRUE;
+
+	wmi_set_target_suspend(wma->wmi_handle, TRUE);
 	return VOS_STATUS_SUCCESS;
 
 error:
@@ -13232,6 +13234,9 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 	} else {
 		WMA_LOGD("Host wakeup received");
 	}
+
+	if (VOS_STATUS_SUCCESS == vos_status)
+		wmi_set_target_suspend(wma->wmi_handle, FALSE);
 
 	return vos_status;
 }
@@ -16541,15 +16546,26 @@ u_int8_t wma_thermal_mgmt_get_level(void *handle, u_int32_t temp)
 {
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	int i;
-	t_thermal_level_info thermal_info;
+	u_int8_t level;
 
-	for (i = 0; i < (WLAN_WMA_MAX_THERMAL_LEVELS - 1); i++) {
-		thermal_info = wma->thermal_mgmt_info.thermalLevels[i];
-		if (temp < thermal_info.maxTempThreshold) {
-			return i;
-		}
+	level = i = wma->thermal_mgmt_info.thermalCurrLevel;
+	while (temp < wma->thermal_mgmt_info.thermalLevels[i].minTempThreshold &&
+		   i > 0) {
+		i--;
+		level = i;
 	}
-	return (WLAN_WMA_MAX_THERMAL_LEVELS - 1);
+
+	i = wma->thermal_mgmt_info.thermalCurrLevel;
+	while (temp > wma->thermal_mgmt_info.thermalLevels[i].maxTempThreshold &&
+		   i < (WLAN_WMA_MAX_THERMAL_LEVELS - 1)) {
+		i++;
+		level = i;
+	}
+
+	WMA_LOGW("Change thermal level from %d -> %d\n",
+			  wma->thermal_mgmt_info.thermalCurrLevel, level);
+
+	return level;
 }
 
 /* function   : wma_thermal_mgmt_evt_handler
@@ -18609,6 +18625,7 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 
 	HTCCancelDeferredTargetSleep(scn);
 
+	wmi_set_target_suspend(wma_handle->wmi_handle, TRUE);
 	return 0;
 }
 
@@ -18663,6 +18680,9 @@ int wma_resume_target(WMA_HANDLE handle)
 		WMA_LOGE("Failed to deliver WMI_PDEV_RESUME_CMDID command %d\n", timeout);
 		ret = -1;
 	}
+
+	if (EOK == ret)
+		wmi_set_target_suspend(wma_handle->wmi_handle, FALSE);
 
 	return ret;
 }

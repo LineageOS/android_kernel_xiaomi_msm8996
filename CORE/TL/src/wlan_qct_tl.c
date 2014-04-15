@@ -8766,7 +8766,10 @@ WLANTL_TxProcessMsg
   case WDA_DS_FINISH_ULA:
     callbackRoutine = message->callback;
     callbackContext = message->bodyptr;
-    callbackRoutine(callbackContext);
+    if ( NULL != callbackRoutine )
+    {
+      callbackRoutine(callbackContext);
+    }
     break;
 
   case WLANTL_TX_SNAPSHOT:
