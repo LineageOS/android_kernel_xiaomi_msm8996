@@ -1394,6 +1394,8 @@ struct hdd_context_s
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     adf_os_work_t  sta_ap_intf_check_work;
 #endif
+
+    v_BOOL_t btCoexModeSet;
 };
 
 

@@ -1602,6 +1602,9 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         return (-1);
     }
 
+    printk("\n%s: wow mode %d event %d\n", __func__,
+       wma_is_wow_mode_selected(temp_module), state.event);
+
     if (wma_is_wow_mode_selected(temp_module)) {
           if(wma_enable_wow_in_fw(temp_module))
                 return (-1);
@@ -1632,7 +1635,11 @@ hif_pci_resume(struct pci_dev *pdev)
 
     err = pci_enable_device(pdev);
     if (err)
+    {
+        printk("\n%s %d : pci_enable_device returned failure %d\n",
+           __func__, __LINE__, err);
         return err;
+    }
 
     pci_read_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, &val);
     if ((val & 0x000000ff) != 0) {
@@ -1661,6 +1668,10 @@ hif_pci_resume(struct pci_dev *pdev)
         printk("%s: WDA module is NULL\n", __func__);
         return (-1);
     }
+
+    printk("\n%s: wow mode %d val %d\n", __func__,
+       wma_is_wow_mode_selected(temp_module), val);
+
     if (!wma_is_wow_mode_selected(temp_module) &&
         (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
         return wma_resume_target(temp_module);

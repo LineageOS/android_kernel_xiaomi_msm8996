@@ -132,6 +132,13 @@ wmi_get_host_credits(wmi_unified_t wmi_handle);
 int
 wmi_get_pending_cmds(wmi_unified_t wmi_handle);
 
+/**
+ WMI API to set target suspend state
+*/
+
+void
+wmi_set_target_suspend(wmi_unified_t wmi_handle, A_BOOL val);
+
 
 
 #endif /* _WMI_UNIFIED_API_H_ */

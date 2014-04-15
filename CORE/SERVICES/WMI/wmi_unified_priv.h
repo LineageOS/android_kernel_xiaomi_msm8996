@@ -89,5 +89,6 @@ struct wmi_unified {
 	adf_os_spinlock_t wmi_record_lock;
 #endif /*WMI_INTERFACE_EVENT_LOGGING*/
 
+	adf_os_atomic_t  is_target_suspended;
 };
 #endif
