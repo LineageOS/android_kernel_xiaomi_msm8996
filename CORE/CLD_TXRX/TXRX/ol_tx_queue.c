@@ -220,7 +220,6 @@ ol_tx_enqueue(
     struct ol_tx_sched_notify_ctx_t notify_ctx;
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
-    adf_os_spin_lock(&pdev->tx_queue_spinlock);
 
     /*
      * If too few tx descriptors are available, drop some currently-queued

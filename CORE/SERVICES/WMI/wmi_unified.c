@@ -44,7 +44,11 @@
 #include "wma_api.h"
 #include "wma.h"
 #include "macTrace.h"
+#if defined(HIF_PCI)
 #include "if_pci.h"
+#elif defined(HIF_USB)
+#include "if_usb.h"
+#endif
 
 #define WMI_MIN_HEAD_ROOM 64
 
@@ -533,7 +537,7 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 	struct ol_softc *scn;
 
 	if (adf_os_atomic_read(&wmi_handle->is_target_suspended) &&
-		( (WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID != cmd_id) ||
+		( (WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID != cmd_id) &&
 		  (WMI_PDEV_RESUME_CMDID != cmd_id)) ){
 		pr_err("%s: Target is suspended  could not send WMI command\n", __func__);
 		VOS_ASSERT(0);

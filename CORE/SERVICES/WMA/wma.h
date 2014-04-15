@@ -550,7 +550,7 @@ typedef struct {
 	adf_nbuf_t last_umac_data_nbuf;
 
 	v_BOOL_t needShutdown;
-#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC)
 	u_int32_t num_mem_chunks;
 	struct wma_mem_chunk mem_chunks[MAX_MEM_CHUNKS];
 #endif

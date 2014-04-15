@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ *  Copyright (c) 2013-2014 Qualcomm Atheros, Inc.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -116,6 +116,7 @@ int HIFSend_head(HIF_DEVICE *hifDevice, u_int8_t PipeID,
  * @param[in]: force - whether this is a poll suggestion or poll command
  */
 void HIFSendCompleteCheck(HIF_DEVICE *hifDevice, u_int8_t PipeID, int force);
+void HIFCancelDeferredTargetSleep(HIF_DEVICE *hif_device);
 
 /**
  * @brief: Shutdown the HIF layer.

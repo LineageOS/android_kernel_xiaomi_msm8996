@@ -94,7 +94,7 @@ struct hif_pci_softc {
 #define TARGID(sc) ((A_target_id_t)(&(sc)->mem))
 #define TARGID_TO_HIF(targid) (((struct hif_pci_softc *)((char *)(targid) - (char *)&(((struct hif_pci_softc *)0)->mem)))->hif_device)
 
-int athdiag_procfs_init(struct hif_pci_softc *scn);
+int athdiag_procfs_init(void *scn);
 void athdiag_procfs_remove(void);
 
 bool hif_pci_targ_is_awake(struct hif_pci_softc *sc, void *__iomem *mem);

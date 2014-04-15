@@ -123,7 +123,11 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #include <wlan_hdd_ipa.h>
 #endif
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#if defined(HIF_PCI)
 #include "if_pci.h"
+#elif defined(HIF_USB)
+#include "if_usb.h"
+#endif
 #endif
 
 #ifdef MODULE
@@ -2152,7 +2156,7 @@ hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
 
    /* if the target bssid is different from currently associated AP,
       then no need to send action frame */
-   if (!memcmp(bssid, pHddStaCtx->conn_info.bssId, VOS_MAC_ADDR_SIZE)) {
+   if (memcmp(bssid, pHddStaCtx->conn_info.bssId, VOS_MAC_ADDR_SIZE)) {
       hddLog(VOS_TRACE_LEVEL_INFO, "%s: STA is not associated to this AP",
              __func__);
       ret = -EINVAL;
@@ -10429,6 +10433,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
+#ifdef MEMORY_DEBUG
+   if (pHddCtx->cfg_ini->IsMemoryDebugSupportEnabled)
+      vos_mem_init();
+
+   hddLog(VOS_TRACE_LEVEL_INFO, "%s: gEnableMemoryDebug=%d",
+          __func__, pHddCtx->cfg_ini->IsMemoryDebugSupportEnabled);
+#endif
+
    pHddCtx->current_intf_count=0;
    pHddCtx->max_intf_count = WLAN_MAX_INTERFACES;
 
@@ -11345,10 +11357,6 @@ static int hdd_driver_init( void)
          ret_status = -1;
          break;
       }
-#endif
-
-#ifdef MEMORY_DEBUG
-      vos_mem_init();
 #endif
 
 #ifdef TIMER_MANAGER
@@ -12565,7 +12573,9 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);
 
+//#ifdef HIF_USB
 MODULE_LICENSE("Dual BSD/GPL");
+//#endif
 MODULE_AUTHOR("Qualcomm Atheros, Inc.");
 MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");
 

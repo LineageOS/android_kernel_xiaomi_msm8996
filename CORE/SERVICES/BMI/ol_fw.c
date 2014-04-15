@@ -34,7 +34,11 @@
 #include "vos_api.h"
 #include "wma_api.h"
 #include "wma.h"
+#if defined(HIF_PCI)
 #include "if_pci.h"
+#elif defined(HIF_USB)
+#include "if_usb.h"
+#endif
 #include "regtable.h"
 
 #define ATH_MODULE_NAME bmi
@@ -635,7 +639,11 @@ u_int32_t host_interest_item_address(u_int32_t target_type, u_int32_t item_offse
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 int dump_CE_register(struct ol_softc *scn)
 {
+#ifdef HIF_USB
+	struct hif_usb_softc *sc = scn->hif_sc;
+#else
 	struct hif_pci_softc *sc = scn->hif_sc;
+#endif
 	A_UINT32 CE_reg_address = CE0_BASE_ADDRESS;
 	A_UINT32 CE_reg_values[8][CE_USEFUL_SIZE>>2];
 	A_UINT32 CE_reg_word_size = CE_USEFUL_SIZE>>2;
@@ -1083,7 +1091,11 @@ A_STATUS ol_patch_pll_switch(struct ol_softc * scn)
 	u_int32_t cmnos_core_clk_div_addr = 0;
 	u_int32_t cmnos_cpu_pll_init_done_addr = 0;
 	u_int32_t cmnos_cpu_speed_addr = 0;
+#ifdef HIF_USB/* fail for USB case */
+	struct hif_usb_softc *sc = scn->hif_sc;
+#else
 	struct hif_pci_softc *sc = scn->hif_sc;
+#endif
 
 	switch (scn->target_version) {
 	case AR6320_REV1_1_VERSION:
@@ -1367,7 +1379,9 @@ int ol_download_firmware(struct ol_softc *scn)
 	u_int32_t param, address = 0;
 	int status = !EOK;
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#if defined(HIF_PCI)
 	A_STATUS ret;
+#endif
 #endif
 
 	/* Transfer Board Data from Target EEPROM to Target RAM */
@@ -1382,11 +1396,13 @@ int ol_download_firmware(struct ol_softc *scn)
 	}
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#if defined(HIF_PCI)
 	ret = ol_patch_pll_switch(scn);
 	if (ret) {
 		pr_err("pll switch failed. status %d\n", ret);
 		return -1;
 	}
+#endif
 #endif
 
 	if (scn->cal_in_flash) {
@@ -1725,10 +1741,13 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 				bufferLoc += result;
 				sectionCount++;
 			} else {
+#ifdef CONFIG_HL_SUPPORT
+#else
 				printk(KERN_ERR "Could not read dump section!\n");
 				dump_CE_register(scn);
 				dump_CE_debug_register(scn->hif_sc);
 				ret = -EACCES;
+#endif
 				break; /* Could not read the section */
 			}
 		} else {
@@ -1740,8 +1759,14 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 }
 #endif
 
+#if defined(CONFIG_HL_SUPPORT)
+#define MAX_SUPPORTED_PEERS_REV1_1 8
+#define MAX_SUPPORTED_PEERS_REV1_3 8
+#else
 #define MAX_SUPPORTED_PEERS_REV1_1 14
 #define MAX_SUPPORTED_PEERS_REV1_3 32
+#endif
+
 u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)
 {
 	u_int8_t max_no_of_peers = 0;

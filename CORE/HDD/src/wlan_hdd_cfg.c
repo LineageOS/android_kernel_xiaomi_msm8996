@@ -3292,6 +3292,13 @@ REG_VARIABLE( CFG_SAP_MAX_NO_PEERS, WLAN_PARAM_Integer,
               CFG_ACS_BAND_SWITCH_THRESHOLD_MIN,
               CFG_ACS_BAND_SWITCH_THRESHOLD_MAX ),
 
+   REG_VARIABLE( CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, gEnableStrictRegulatoryForFCC,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_DEFAULT,
+                CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_MIN,
+                CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_MAX ),
+
    REG_VARIABLE( CFG_SAP_MAX_OFFLOAD_PEERS, WLAN_PARAM_Integer,
               hdd_config_t, apMaxOffloadPeers,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
@@ -3325,6 +3332,21 @@ REG_VARIABLE( CFG_SAP_MAX_NO_PEERS, WLAN_PARAM_Integer,
               VAR_FLAGS_OPTIONAL,
               (void *)CFG_OVERRIDE_COUNTRY_CODE_DEFAULT),
 
+#ifdef MEMORY_DEBUG
+   REG_VARIABLE(CFG_ENABLE_MEMORY_DEBUG_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, IsMemoryDebugSupportEnabled,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_ENABLE_MEMORY_DEBUG_DEFAULT,
+              CFG_ENABLE_MEMORY_DEBUG_MIN,
+              CFG_ENABLE_MEMORY_DEBUG_MAX ),
+#endif
+
+   REG_VARIABLE( CFG_ROAMING_DFS_CHANNEL_NAME , WLAN_PARAM_Integer,
+              hdd_config_t, allowDFSChannelRoam,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_ROAMING_DFS_CHANNEL_DEFAULT,
+              CFG_ROAMING_DFS_CHANNEL_MIN,
+              CFG_ROAMING_DFS_CHANNEL_MAX ),
 };
 
 /*
@@ -3726,8 +3748,8 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableOverLapCh] Value = [%u] ",pHddCtx->cfg_ini->gEnableOverLapCh);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAcsScanBandPreference] Value = [%u] ",pHddCtx->cfg_ini->acsScanBandPreference);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gMaxOffloadPeers] Value = [%u] ",pHddCtx->cfg_ini->apMaxOffloadPeers);
-
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [overrideCountryCode] Value = [%s] ",pHddCtx->cfg_ini->overrideCountryCode);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAllowDFSChannelRoam] Value = [%u] ",pHddCtx->cfg_ini->allowDFSChannelRoam);
 }
 
 
@@ -5407,6 +5429,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    smeConfig.csrConfig.addTSWhenACMIsOff = pConfig->AddTSWhenACMIsOff;
    smeConfig.csrConfig.fValidateList = pConfig->fValidateScanList;
+   smeConfig.csrConfig.allowDFSChannelRoam = pConfig->allowDFSChannelRoam;
 
    //Enable/Disable MCC
    smeConfig.csrConfig.fEnableMCCMode = pConfig->enableMCC;

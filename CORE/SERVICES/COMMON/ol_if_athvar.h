@@ -146,8 +146,11 @@ struct ol_softc {
 
     /* Handles for Lower Layers : filled in at init time */
     hif_handle_t            hif_hdl;
+#if defined(HIF_PCI)
     struct hif_pci_softc    *hif_sc;
-
+#elif defined(HIF_USB)
+    struct hif_usb_softc    *hif_sc;
+#endif
     /* HTC handles */
     void                    *htc_handle;
 

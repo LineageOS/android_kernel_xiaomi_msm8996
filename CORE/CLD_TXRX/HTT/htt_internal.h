@@ -307,7 +307,7 @@ htt_print_rx_desc(struct htt_host_rx_desc_base *rx_desc)
      ((char *)(_tx_desc_vaddr) -                       \
       (char *)((_pdev)->tx_descs.pool_vaddr)))
 
-#if ATH_11AC_TXCOMPACT
+#ifdef ATH_11AC_TXCOMPACT
 
 #define HTT_TX_NBUF_QUEUE_MUTEX_INIT(_pdev)             \
         adf_os_spinlock_init(&_pdev->txnbufq_mutex)
@@ -339,7 +339,7 @@ htt_print_rx_desc(struct htt_host_rx_desc_base *rx_desc)
 
 #endif
 
-#if ATH_11AC_TXCOMPACT
+#ifdef ATH_11AC_TXCOMPACT
 #define HTT_TX_SCHED htt_tx_sched
 #else
 #define HTT_TX_SCHED(pdev) /* no-op */

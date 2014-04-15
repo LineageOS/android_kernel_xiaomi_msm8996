@@ -2058,6 +2058,7 @@ typedef enum
 #define CFG_LIST_OF_NON_DFS_COUNTRY_CODE                    "gListOfNonDfsCountryCode"
 #define CFG_LIST_OF_NON_DFS_COUNTRY_CODE_DEFAULT            "JO,MA"
 
+
 /*
  * IBSS Operating Channels for 2.4G and 5GHz channels
  */
@@ -2372,11 +2373,23 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH_DEFAULT     ( 1500 )
 #endif /* QCA_LL_TX_FLOW_CT */
 
+#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_NAME                "gEnableStrictRegulatoryForFCC"
+#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_MIN                 ( 0 )
+#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_MAX                 ( 1 )
+#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_DEFAULT             ( 1 )
+
 #ifdef QCA_WIFI_2_0
 #define CFG_SAP_MAX_OFFLOAD_PEERS                  "gMaxOffloadPeers"
 #define CFG_SAP_MAX_OFFLOAD_PEERS_MIN              (2)
 #define CFG_SAP_MAX_OFFLOAD_PEERS_MAX              (5)
 #define CFG_SAP_MAX_OFFLOAD_PEERS_DEFAULT          (2)
+#endif
+//Enable Memory Debug
+#ifdef MEMORY_DEBUG
+#define CFG_ENABLE_MEMORY_DEBUG_NAME             "gEnableMemoryDebug"
+#define CFG_ENABLE_MEMORY_DEBUG_MIN              (0)
+#define CFG_ENABLE_MEMORY_DEBUG_MAX              (1)
+#define CFG_ENABLE_MEMORY_DEBUG_DEFAULT          (0)
 #endif
 
 #define CFG_INITIAL_DWELL_TIME_NAME            "gInitialDwellTime"
@@ -2386,6 +2399,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 
 #define CFG_OVERRIDE_COUNTRY_CODE                "gStaCountryCode"
 #define CFG_OVERRIDE_COUNTRY_CODE_DEFAULT        "000"
+
+#define CFG_ROAMING_DFS_CHANNEL_NAME                "gAllowDFSChannelRoam"
+#define CFG_ROAMING_DFS_CHANNEL_MIN                 (0)
+#define CFG_ROAMING_DFS_CHANNEL_MAX                 (1)
+#define CFG_ROAMING_DFS_CHANNEL_DEFAULT             (0)
 
 /*---------------------------------------------------------------------------
   Type declarations
@@ -2880,11 +2898,19 @@ typedef struct
    v_U32_t                     TxHbwFlowMaxQueueDepth;
 #endif /* QCA_LL_TX_FLOW_CT */
    v_U16_t                     acsBandSwitchThreshold;
+   v_BOOL_t                    gEnableStrictRegulatoryForFCC;
    v_U8_t                      apMaxOffloadPeers;
    v_BOOL_t                    advertiseConcurrentOperation;
    v_BOOL_t                    enableHystereticMode;
+
    v_U32_t                     defaultRateIndex24Ghz;
    char                        overrideCountryCode[4];
+#ifdef MEMORY_DEBUG
+   v_BOOL_t                    IsMemoryDebugSupportEnabled;
+#endif
+
+   v_BOOL_t                    allowDFSChannelRoam;
+
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation

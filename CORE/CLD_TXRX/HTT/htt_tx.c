@@ -249,7 +249,7 @@ htt_tx_desc_flag_batch_more(htt_pdev_handle pdev, void *desc)
 
 /*--- tx send function ------------------------------------------------------*/
 
-#if ATH_11AC_TXCOMPACT
+#ifdef ATH_11AC_TXCOMPACT
 
 /* Scheduling the Queued packets in HTT which could not be sent out because of No CE desc*/
 void

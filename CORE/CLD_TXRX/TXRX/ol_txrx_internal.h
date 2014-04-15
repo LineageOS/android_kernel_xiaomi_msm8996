@@ -42,7 +42,7 @@
 #include <ipv6.h>          /* IPV6_HDR_LEN, etc. */
 #include <ip_prot.h>       /* IP_PROTOCOL_TCP, etc. */
 
-#if ATH_11AC_TXCOMPACT
+#ifdef ATH_11AC_TXCOMPACT
 #define OL_TX_DESC_NO_REFS(tx_desc) 1
 #define OL_TX_DESC_REF_INIT(tx_desc) /* no-op */
 #define OL_TX_DESC_REF_INC(tx_desc) /* no-op */

@@ -2438,11 +2438,10 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             pConfig->SapHw_mode = eSAP_DOT11_MODE_11ac;
 
         /* Disable VHT support in 2.4 GHz band */
-        if (pConfig->channel <= 14 && AUTO_CHANNEL_SELECT != pConfig->channel &&
-            (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->enableVhtFor24GHzBand == FALSE)
-        {
+        if (iniConfig->apOperatingBand == eSAP_RF_SUBBAND_2_4_GHZ &&
+                WLAN_HDD_GET_CTX(pHostapdAdapter)->
+                        cfg_ini->enableVhtFor24GHzBand == FALSE)
             pConfig->SapHw_mode = eSAP_DOT11_MODE_11n;
-        }
     }
 #endif
 

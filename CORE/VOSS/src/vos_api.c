@@ -87,7 +87,11 @@
 #include "bmi.h"
 #include "ol_fw.h"
 #include "ol_if_athvar.h"
+#if defined(HIF_PCI)
 #include "if_pci.h"
+#elif defined(HIF_USB)
+#include "if_usb.h"
+#endif
 #else
 #include "htc_api.h"
 #endif /* #ifndef QCA_WIFI_ISOC */
