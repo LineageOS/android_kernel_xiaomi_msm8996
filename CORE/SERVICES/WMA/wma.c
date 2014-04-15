@@ -1010,6 +1010,29 @@ static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 }
 #endif //#ifdef QCA_IBSS_SUPPORT
 
+static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
+{
+		ol_txrx_vdev_handle vdev;
+		ol_txrx_peer_handle peer;
+
+		if (!wma || vdev_id > wma->max_bssid)
+			return;
+
+		vdev = wma->interfaces[vdev_id].handle;
+		if (!vdev)
+			return;
+
+		/* remove all remote peers of SAP */
+		TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+		if (peer != TAILQ_FIRST(&vdev->peer_list)) {
+			adf_os_atomic_init(&peer->ref_cnt);
+			adf_os_atomic_inc(&peer->ref_cnt);
+			wma_remove_peer(wma, wma->interfaces[vdev_id].bssid,
+					vdev_id, peer);
+		}
+	}
+}
+
 static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 				      u32 len)
 {
@@ -1063,11 +1086,15 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		iface = &wma->interfaces[resp_event->vdev_id];
 
 #ifdef QCA_IBSS_SUPPORT
-		if (wma_is_vdev_in_ibss_mode(wma, resp_event->vdev_id))
+		if ( wma_is_vdev_in_ibss_mode(wma, resp_event->vdev_id))
 			wma_delete_all_ibss_peers(wma, resp_event->vdev_id);
 		else
 #endif
 		{
+			if (wma_is_vdev_in_ap_mode(wma, resp_event->vdev_id))
+			{
+				wma_delete_all_ap_remote_peers(wma, resp_event->vdev_id);
+			}
 			peer = ol_txrx_find_peer_by_addr(pdev, params->bssid,
 					&peer_id);
 			if (!peer)
@@ -6233,6 +6260,10 @@ void wma_vdev_resp_timer(void *data)
 		else
 #endif
 		{
+			if (wma_is_vdev_in_ap_mode(wma, tgt_req->vdev_id))
+			{
+				wma_delete_all_ap_remote_peers(wma, tgt_req->vdev_id);
+			}
 			peer = ol_txrx_find_peer_by_addr(pdev, params->bssid,
 				&peer_id);
 			wma_remove_peer(wma, params->bssid, tgt_req->vdev_id,
