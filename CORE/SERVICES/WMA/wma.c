@@ -5953,11 +5953,11 @@ static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
 		switch (chan_offset) {
 		case PHY_SINGLE_CHANNEL_CENTERED:
                         /* Configure MODE_11NG_HT20 for self vdev(for vht too) */
-			phymode = MODE_11NG_HT20;
+			phymode = vht_capable ? MODE_11AC_VHT20_2G :MODE_11NG_HT20;
 			break;
 		case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
 		case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
-			phymode = vht_capable ? MODE_11AC_VHT40 :MODE_11NG_HT40;
+			phymode = vht_capable ? MODE_11AC_VHT40_2G :MODE_11NG_HT40;
 			break;
                 case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED:
                 case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
@@ -5966,7 +5966,7 @@ static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
                 case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW:
                 case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH:
                 case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH:
-                        phymode = MODE_11AC_VHT80;
+                        phymode = MODE_11AC_VHT80_2G;
                         break;
 
 		default:
