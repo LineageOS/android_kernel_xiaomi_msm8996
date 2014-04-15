@@ -2058,6 +2058,7 @@ typedef enum
 #define CFG_LIST_OF_NON_DFS_COUNTRY_CODE                    "gListOfNonDfsCountryCode"
 #define CFG_LIST_OF_NON_DFS_COUNTRY_CODE_DEFAULT            "JO,MA"
 
+
 /*
  * IBSS Operating Channels for 2.4G and 5GHz channels
  */
@@ -2371,6 +2372,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH_MAX         ( 3500 )
 #define CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH_DEFAULT     ( 1500 )
 #endif /* QCA_LL_TX_FLOW_CT */
+
+#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_NAME                "gEnableStrictRegulatoryForFCC"
+#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_MIN                 ( 0 )
+#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_MAX                 ( 1 )
+#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_DEFAULT             ( 1 )
 
 #ifdef QCA_WIFI_2_0
 #define CFG_SAP_MAX_OFFLOAD_PEERS                  "gMaxOffloadPeers"
@@ -2892,6 +2898,7 @@ typedef struct
    v_U32_t                     TxHbwFlowMaxQueueDepth;
 #endif /* QCA_LL_TX_FLOW_CT */
    v_U16_t                     acsBandSwitchThreshold;
+   v_BOOL_t                    gEnableStrictRegulatoryForFCC;
    v_U8_t                      apMaxOffloadPeers;
    v_BOOL_t                    advertiseConcurrentOperation;
    v_BOOL_t                    enableHystereticMode;
