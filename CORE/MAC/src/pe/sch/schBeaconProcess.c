@@ -685,6 +685,10 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession p
     static tSchBeaconStruct beaconStruct;
     tUpdateBeaconParams beaconParams;
     tpPESession pAPSession = NULL;
+#ifdef WLAN_FEATURE_MBSSID
+    tANI_U8 i;
+#endif
+
     vos_mem_zero(&beaconParams, sizeof(tUpdateBeaconParams));
     beaconParams.paramChangeBitmap = 0;
 
@@ -715,6 +719,44 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession p
     *
     */
 
+#ifdef WLAN_FEATURE_MBSSID
+
+    for (i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if (((pAPSession = peFindSessionBySessionId(pMac, i)) != NULL)
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+              && (!(WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo)))
+#endif
+    )
+        {
+            if (eLIM_AP_ROLE != pAPSession->limSystemRole)
+            {
+                continue;
+            }
+
+            beaconParams.bssIdx = pAPSession->bssIdx;
+            if (pAPSession->gLimProtectionControl !=
+                    WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
+                ap_beacon_process(pMac,  pRxPacketInfo, &beaconStruct,
+                        &beaconParams, pAPSession);
+
+            if (beaconParams.paramChangeBitmap)
+            {
+                //Update the beacons and apply the new settings to HAL
+                schSetFixedBeaconFields(pMac, pAPSession);
+                PELOG1(schLog(pMac, LOG1,
+                        FL("Beacon for PE session[%d] got changed."),
+                        pAPSession->peSessionId);)
+                PELOG1(schLog(pMac, LOG1,
+                        FL("sending beacon param change bitmap: 0x%x"),
+                        beaconParams.paramChangeBitmap);)
+                limSendBeaconParams(pMac, &beaconParams, pAPSession);
+            }
+        }
+    }
+
+#else
+
     if (((pAPSession = limIsApSessionActive(pMac)) != NULL)
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
           && (!(WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo)))
@@ -734,6 +776,8 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession p
             limSendBeaconParams(pMac, &beaconParams, pAPSession);
         }
     }
+
+#endif
 
     /*
     * Now process the beacon in the context of the BSS which is transmitting the beacons, if one is found
