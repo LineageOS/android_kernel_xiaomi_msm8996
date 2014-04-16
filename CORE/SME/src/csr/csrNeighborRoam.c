@@ -2759,6 +2759,13 @@ eHalStatus csrNeighborRoamPerformBgScan(tpAniSirGlobal pMac, tANI_U32 sessionId)
     bgScanParams.ChannelInfo.ChannelList = &channel;
 
     csrNeighborRoamFillNonChannelBgScanParams(pMac, &bgScanParams);
+   /* Update the passive scan time for DFS channel */
+   if ((TRUE == CSR_IS_CHANNEL_DFS(channel)) &&
+       (TRUE == pMac->roam.configParam.allowDFSChannelRoam))
+   {
+        bgScanParams.minChnTime = pMac->roam.configParam.nPassiveMinChnTime;
+        bgScanParams.maxChnTime = pMac->roam.configParam.nPassiveMaxChnTime;
+   }
 
     status = csrNeighborRoamIssueBgScanRequest(pMac, &bgScanParams,
                                                sessionId, csrNeighborRoamScanRequestCallback);
@@ -3609,7 +3616,19 @@ VOS_STATUS csrNeighborRoamPrepareNonOccupiedChannelList(
         if (!csrIsChannelPresentInList(pOccupiedChannelList, numOccupiedChannels,
              pInputChannelList[i]))
         {
-            pOutputChannelList[outputNumOfChannels++] = pInputChannelList[i];
+           /* DFS channel will be added in the list only when the
+              DFS Roaming scan flag is enabled*/
+            if (CSR_IS_CHANNEL_DFS(pInputChannelList[i]))
+            {
+                if (pMac->roam.configParam.allowDFSChannelRoam == TRUE)
+                {
+                    pOutputChannelList[outputNumOfChannels++] = pInputChannelList[i];
+                }
+            }
+            else
+            {
+                pOutputChannelList[outputNumOfChannels++] = pInputChannelList[i];
+            }
         }
     }
 

@@ -280,7 +280,7 @@ htt_attach(
          * This maximum download length is for management tx frames,
          * which have an 802.11 header.
          */
-        #if ATH_11AC_TXCOMPACT
+        #ifdef ATH_11AC_TXCOMPACT
         pdev->download_len =
             sizeof(struct htt_host_tx_desc_t) +
             HTT_TX_HDR_SIZE_OUTER_HDR_MAX + /* worst case */

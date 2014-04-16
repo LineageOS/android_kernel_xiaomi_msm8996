@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -19,11 +19,6 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-/*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
- */
 
 #ifndef __WLAN_TGT_DEF_CONFIG_H__
 #define __WLAN_TGT_DEF_CONFIG_H__
@@ -36,21 +31,24 @@
  * set of default target config , that can be over written by platform
  */
 
+#ifdef QCA_SUPPORT_INTEGRATED_SOC
+#define CFG_TGT_NUM_VDEV                3 /*STA, P2P device, P2P GO/Cli*/
+#else
 /*
  * default limit of VAPs per device.
- * Roma PRD support 5 vdevs
  */
-#define CFG_TGT_NUM_VDEV                5
-
+#define CFG_TGT_NUM_VDEV                3
+#endif
 /*
- * We would need 1 AST entry per peer. Scale it by a factor of 2 to minimize hash collisions.
+ * We would need 1 AST entry per peer. Scale it by a factor of 2 to minimize
+ * hash collisions.
  * TODO: This scaling factor would be taken care inside the WAL in the future.
  */
 #define CFG_TGT_NUM_PEER_AST            2
 
 /* # of WDS entries to support.
  */
-#define CFG_TGT_WDS_ENTRIES             32
+#define CFG_TGT_WDS_ENTRIES             2
 
 /* MAC DMA burst size. 0: 128B - default, 1: 256B, 2: 64B
  */
@@ -72,6 +70,10 @@
  */
 #define CFG_TGT_NUM_PEERS               8
 /*
+ *  max number of peers per device.
+ */
+#define CFG_TGT_NUM_PEERS_MAX           8
+/*
  * In offload mode target supports features like WOW, chatter and other
  * protocol offloads. In order to support them some functionalities like
  * reorder buffering, PN checking need to be done in target. This determines
@@ -90,6 +92,10 @@
  * total number of TX/RX data TIDs
  */
 #define CFG_TGT_NUM_TIDS                (2 * (CFG_TGT_NUM_PEERS + CFG_TGT_NUM_VDEV))
+/*
+ * max number of Tx TIDS
+ */
+#define CFG_TGT_NUM_TIDS_MAX            (2 * (CFG_TGT_NUM_PEERS_MAX + CFG_TGT_NUM_VDEV))
 /*
  * number of multicast keys.
  */
@@ -134,13 +140,13 @@
  * need to be set dynamically based on the HW capability.
  * this is rome
  */
-#define CFG_TGT_DEFAULT_TX_CHAIN_MASK   0x3//0x7
+#define CFG_TGT_DEFAULT_TX_CHAIN_MASK   0x3
 /*
  * set this to 0x7 (Peregrine = 3 chains).
  * need to be set dynamically based on the HW capability.
  * this is rome
  */
-#define CFG_TGT_DEFAULT_RX_CHAIN_MASK   0x3//0x7
+#define CFG_TGT_DEFAULT_RX_CHAIN_MASK   0x3
 /* 100 ms for video, best-effort, and background */
 #define CFG_TGT_RX_TIMEOUT_LO_PRI       100
 /* 40 ms for voice*/
@@ -208,5 +214,53 @@
  */
 #define CFG_TGT_MAX_FRAG_TABLE_ENTRIES 2
 
+/*
+ * number of vdevs that can support tdls
+ */
+#define CFG_TGT_NUM_TDLS_VDEVS    1
+
+/*
+ * number of peers that each Tdls vdev can track
+ */
+#define CFG_TGT_NUM_TDLS_CONN_TABLE_ENTRIES    64
+#define CFG_TGT_MAX_MULTICAST_FILTER_ENTRIES 5
+/*
+ * Maximum number of VDEV that beacon tx offload will support
+ */
+#define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 1
+
+/*
+ * ht enable highest MCS by default
+ */
+#define CFG_TGT_DEFAULT_GTX_HT_MASK     0x8080
+/*
+ * vht enable highest MCS by default
+ */
+#define CFG_TGT_DEFAULT_GTX_VHT_MASK        0x80200
+/*
+ * resv for furture use, bit 30 is used for fix tpc, bit0-3 for Power save
+ * balance
+ */
+#define CFG_TGT_DEFAULT_GTX_USR_CFG     0xa
+/*
+ * threshold to enable GTX
+ */
+#define CFG_TGT_DEFAULT_GTX_PER_THRESHOLD   3
+/*
+ * margin to move back when per > margin + threshold
+ */
+#define CFG_TGT_DEFAULT_GTX_PER_MARGIN      2
+/*
+ * step for every move
+ */
+#define CFG_TGT_DEFAULT_GTX_TPC_STEP        1
+/*
+ * lowest TPC
+ */
+#define CFG_TGT_DEFAULT_GTX_TPC_MIN     0
+/*
+ * enable all BW 20/40/80/160
+ */
+#define CFG_TGT_DEFAULT_GTX_BW_MASK     0xf
 
 #endif  /*__WLAN_TGT_DEF_CONFIG_H__ */
