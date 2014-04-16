@@ -2830,7 +2830,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	* should be (number of vdevs + 1).
 	*/
 	wma_handle->wlan_resource_config.num_offload_peers =
-		mac_params->apMaxOffloadPeers;
+		mac_params->apMaxOffloadPeers + 1;
 
 	wma_handle->ol_ini_info = mac_params->olIniInfo;
 	wma_handle->max_station = mac_params->maxStation;
