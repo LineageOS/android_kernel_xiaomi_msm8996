@@ -1035,7 +1035,7 @@ static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 		if (peer != TAILQ_FIRST(&vdev->peer_list)) {
 			adf_os_atomic_init(&peer->ref_cnt);
 			adf_os_atomic_inc(&peer->ref_cnt);
-			wma_remove_peer(wma, wma->interfaces[vdev_id].bssid,
+			wma_remove_peer(wma, peer->mac_addr.raw,
 					vdev_id, peer);
 		}
 	}
