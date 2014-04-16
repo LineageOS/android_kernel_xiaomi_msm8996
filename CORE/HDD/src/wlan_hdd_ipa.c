@@ -172,6 +172,8 @@ struct hdd_ipa_stats {
 	uint64_t rm_grant;
 	uint64_t rm_release;
 	uint64_t rm_grant_imm;
+	uint64_t cons_perf_req;
+	uint64_t prod_perf_req;
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
 	uint64_t rx_ipa_rm_qued;
 #endif
@@ -227,6 +229,8 @@ struct hdd_ipa_priv {
 	struct hdd_ipa_stats stats;
 
 	struct notifier_block ipv4_notifier;
+	uint32_t curr_prod_bw;
+	uint32_t curr_cons_bw;
 };
 
 enum hdd_ipa_evt {
@@ -240,32 +244,47 @@ struct hdd_ipa_rxt {
 	adf_nbuf_t rx_buf_list;
 };
 
-
-
 static struct hdd_ipa_priv *ghdd_ipa;
 static void hdd_ipa_process_evt(int evt, void *priv);
 
+#define HDD_IPA_ENABLE_MASK			BIT(0)
+#define HDD_IPA_PRE_FILTER_ENABLE_MASK		BIT(1)
+#define HDD_IPA_IPV6_ENABLE_MASK		BIT(2)
+#define HDD_IPA_RM_ENABLE_MASK			BIT(3)
+#define HDD_IPA_CLK_SCALING_ENABLE_MASK		BIT(4)
+
+#define HDD_IPA_IS_CONFIG_ENABLED(_hdd_ctx, _mask)\
+	(((_hdd_ctx)->cfg_ini->IpaConfig & (_mask)) == (_mask))
+
 bool hdd_ipa_is_enabled(hdd_context_t *hdd_ctx)
 {
-	return hdd_ctx->cfg_ini->IpaEnable;
+	return HDD_IPA_IS_CONFIG_ENABLED(hdd_ctx, HDD_IPA_ENABLE_MASK);
 }
 
 static inline bool hdd_ipa_is_pre_filter_enabled(struct hdd_ipa_priv *hdd_ipa)
 {
 	hdd_context_t *hdd_ctx = hdd_ipa->hdd_ctx;
-	return hdd_ctx->cfg_ini->IpaPreFilterEnable;
+	return HDD_IPA_IS_CONFIG_ENABLED(hdd_ctx, HDD_IPA_PRE_FILTER_ENABLE_MASK);
 }
 
 static inline bool hdd_ipa_is_ipv6_enabled(struct hdd_ipa_priv *hdd_ipa)
 {
 	hdd_context_t *hdd_ctx = hdd_ipa->hdd_ctx;
-	return hdd_ctx->cfg_ini->IpaIPv6Enable;
+	return HDD_IPA_IS_CONFIG_ENABLED(hdd_ctx, HDD_IPA_IPV6_ENABLE_MASK);
 }
 
 static inline bool hdd_ipa_is_rm_enabled(struct hdd_ipa_priv *hdd_ipa)
 {
 	hdd_context_t *hdd_ctx = hdd_ipa->hdd_ctx;
-	return hdd_ctx->cfg_ini->IpaRMEnable;
+	return HDD_IPA_IS_CONFIG_ENABLED(hdd_ctx, HDD_IPA_RM_ENABLE_MASK);
+}
+
+static inline bool hdd_ipa_is_clk_scaling_enabled(struct hdd_ipa_priv *hdd_ipa)
+{
+	hdd_context_t *hdd_ctx = hdd_ipa->hdd_ctx;
+	return HDD_IPA_IS_CONFIG_ENABLED(hdd_ctx,
+			HDD_IPA_CLK_SCALING_ENABLE_MASK |
+			HDD_IPA_RM_ENABLE_MASK);
 }
 
 static inline struct ipa_tx_data_desc *hdd_ipa_get_desc_from_freeq(void)
@@ -405,6 +424,73 @@ static int hdd_ipa_rm_cons_request(void)
 	return 0;
 }
 
+int hdd_ipa_set_perf_level(hdd_context_t *hdd_ctx, uint64_t tx_packets,
+		uint64_t rx_packets)
+{
+	uint32_t  next_cons_bw, next_prod_bw;
+	struct hdd_ipa_priv *hdd_ipa = hdd_ctx->hdd_ipa;
+	struct ipa_rm_perf_profile profile;
+	int ret;
+
+	if (!hdd_ipa_is_clk_scaling_enabled(hdd_ipa))
+		return 0;
+
+	memset(&profile, 0, sizeof(profile));
+
+	if (tx_packets > (hdd_ctx->cfg_ini->busBandwidthHighThreshold / 2))
+		next_cons_bw = hdd_ctx->cfg_ini->IpaHighBandwidthMbps;
+	else if (tx_packets >
+			(hdd_ctx->cfg_ini->busBandwidthMediumThreshold / 2))
+		next_cons_bw = hdd_ctx->cfg_ini->IpaMediumBandwidthMbps;
+	else
+		next_cons_bw = hdd_ctx->cfg_ini->IpaLowBandwidthMbps;
+
+	if (rx_packets > (hdd_ctx->cfg_ini->busBandwidthHighThreshold / 2))
+		next_prod_bw = hdd_ctx->cfg_ini->IpaHighBandwidthMbps;
+	else if (rx_packets >
+			(hdd_ctx->cfg_ini->busBandwidthMediumThreshold / 2))
+		next_prod_bw = hdd_ctx->cfg_ini->IpaMediumBandwidthMbps;
+	else
+		next_prod_bw = hdd_ctx->cfg_ini->IpaLowBandwidthMbps;
+
+	if (hdd_ipa->curr_cons_bw != next_cons_bw) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+				"Requesting CONS perf curr: %d, next: %d",
+				hdd_ipa->curr_cons_bw, next_cons_bw);
+		profile.max_supported_bandwidth_mbps = next_cons_bw;
+		ret = ipa_rm_set_perf_profile(IPA_RM_RESOURCE_WLAN_CONS,
+				&profile);
+		if (ret) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+					"RM CONS set perf profile failed: %d",
+					ret);
+
+			return ret;
+		}
+		hdd_ipa->curr_cons_bw = next_cons_bw;
+		hdd_ipa->stats.cons_perf_req++;
+	}
+
+	if (hdd_ipa->curr_prod_bw != next_prod_bw) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+				"Requesting PROD perf curr: %d, next: %d",
+				hdd_ipa->curr_prod_bw, next_prod_bw);
+		profile.max_supported_bandwidth_mbps = next_prod_bw;
+		ret = ipa_rm_set_perf_profile(IPA_RM_RESOURCE_WLAN_PROD,
+				&profile);
+		if (ret) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+					"RM PROD set perf profile failed: %d",
+					ret);
+			return ret;
+		}
+		hdd_ipa->curr_prod_bw = next_prod_bw;
+		hdd_ipa->stats.prod_perf_req++;
+	}
+
+	return 0;
+}
+
 static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 {
 	struct ipa_rm_create_params create_params = {0};
@@ -412,14 +498,17 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 
 	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
 		return 0;
+
 	memset(&create_params, 0, sizeof(create_params));
 	create_params.name = IPA_RM_RESOURCE_WLAN_PROD;
 	create_params.reg_params.user_data = hdd_ipa;
 	create_params.reg_params.notify_cb = hdd_ipa_rm_notify;
+	create_params.floor_voltage = IPA_VOLTAGE_SVS;
 
 	ret = ipa_rm_create_resource(&create_params);
 	if (ret) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Create RM resource failed");
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Create RM resource failed: %d",
+				ret);
 		goto setup_rm_fail;
 	}
 
@@ -427,25 +516,47 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 	create_params.name = IPA_RM_RESOURCE_WLAN_CONS;
 	create_params.request_resource= hdd_ipa_rm_cons_request;
 	create_params.release_resource= hdd_ipa_rm_cons_release;
+	create_params.floor_voltage = IPA_VOLTAGE_SVS;
 
 	ret = ipa_rm_create_resource(&create_params);
 	if (ret) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-				"Create RM CONS resource failed");
-		goto setup_rm_fail;
+				"Create RM CONS resource failed: %d", ret);
+		goto delete_prod;
 	}
 
 	ipa_rm_add_dependency(IPA_RM_RESOURCE_WLAN_PROD,
 			IPA_RM_RESOURCE_APPS_CONS);
 
 	ret = ipa_rm_inactivity_timer_init(IPA_RM_RESOURCE_WLAN_PROD,
-					HDD_IPA_RX_INACTIVITY_MSEC_DELAY);
+			HDD_IPA_RX_INACTIVITY_MSEC_DELAY);
 	if (ret) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Timer init failed");
-		goto setup_rm_fail;
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Timer init failed: %d",
+				ret);
+		goto timer_init_failed;
+	}
+
+	/* Set the lowest bandwidth to start with */
+	ret = hdd_ipa_set_perf_level(hdd_ipa->hdd_ctx, 0, 0);
+
+	if (ret) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"Set perf level failed: %d", ret);
+		goto set_perf_failed;
 	}
 
 	atomic_set(&hdd_ipa->rm_state, HDD_IPA_RM_RELEASED);
+
+	return ret;
+
+set_perf_failed:
+	ipa_rm_inactivity_timer_destroy(IPA_RM_RESOURCE_WLAN_PROD);
+
+timer_init_failed:
+	ipa_rm_delete_resource(IPA_RM_RESOURCE_WLAN_CONS);
+
+delete_prod:
+	ipa_rm_delete_resource(IPA_RM_RESOURCE_WLAN_PROD);
 
 setup_rm_fail:
 	return ret;
@@ -484,8 +595,6 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 	skb->protocol = eth_type_trans(skb, skb->dev);
 	skb->ip_summed = CHECKSUM_NONE;
 	++adapter->hdd_stats.hddTxRxStats.rxPackets;
-	++adapter->stats.rx_packets;
-	adapter->stats.rx_bytes += skb->len;
 	if (netif_rx_ni(skb) == NET_RX_SUCCESS)
 		++adapter->hdd_stats.hddTxRxStats.rxDelivered;
 	else
@@ -670,6 +779,8 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 
 			next_buf = adf_nbuf_queue_next(buf);
 
+			++adapter->stats.rx_packets;
+			adapter->stats.rx_bytes += buf->len;
 			/*
 			 * we want to send Rx packets to IPA only when it is
 			 * IPV4 or IPV6i(if IPV6 is enabled). All other packets
@@ -880,7 +991,7 @@ static void hdd_ipa_set_adapter_ip_filter(hdd_adapter_t *adapter)
 	if(ifa && ifa->ifa_address) {
 		iface_context->ifa_address = ifa->ifa_address;
 
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,"%s: %d.%d.%d.%d\n", dev->name,
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,"%s: %d.%d.%d.%d", dev->name,
 		iface_context->ifa_address & 0x000000ff,
 		iface_context->ifa_address >> 8 & 0x000000ff,
 		iface_context->ifa_address >> 16 & 0x000000ff,
@@ -889,7 +1000,7 @@ static void hdd_ipa_set_adapter_ip_filter(hdd_adapter_t *adapter)
 }
 
 static int hdd_ipa_ipv4_changed(struct notifier_block *nb,
-                                   unsigned long data, void *arg)
+		unsigned long data, void *arg)
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 	hdd_adapter_list_node_t *padapter_node = NULL, *pnext = NULL;
@@ -1006,6 +1117,9 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 		}
 		vos_spin_lock_release(&iface_context->interface_lock);
 
+		++iface_context->adapter->stats.tx_packets;
+		iface_context->adapter->stats.tx_bytes += ipa_tx_desc->skb->len;
+
 		skb = WLANTL_SendIPA_DataFrame(hdd_ipa->hdd_ctx->pvosContext,
 				iface_context->tl_context, ipa_tx_desc->skb, interface_id);
 		if (skb) {
@@ -1035,7 +1149,7 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 	 * make sure hardware always has one descriptor.
 	 */
 	desc_fifo_sz = hdd_ipa->hdd_ctx->cfg_ini->IpaDescSize
-                        + sizeof(struct sps_iovec);
+		+ sizeof(struct sps_iovec);
 
 	/*setup TX pipes */
 	for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
@@ -1631,6 +1745,17 @@ fail:
 	return ret;
 }
 
+static inline char *hdd_ipa_rm_state_to_str(enum hdd_ipa_rm_state state)
+{
+	switch (state) {
+	case HDD_IPA_RM_RELEASED: return "RELEASED";
+	case HDD_IPA_RM_GRANT_PENDING: return "GRANT_PENDING";
+	case HDD_IPA_RM_GRANTED: return "GRANTED";
+	}
+
+	return "UNKNOWN";
+}
+
 static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 		char __user *user_buf, size_t count, loff_t *ppos)
 {
@@ -1649,8 +1774,12 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 	len += scnprintf(buf + len, buf_len - len, "%25s\n\n",
 	 "===========");
 
-	len += scnprintf(buf + len, buf_len - len, "%20s %10d\n",
-	 "RM State: ", atomic_read(&hdd_ipa->rm_state));
+	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
+		goto skip;
+
+	len += scnprintf(buf + len, buf_len - len, "%20s %10s\n",
+	 "RM State: ",
+	 hdd_ipa_rm_state_to_str(atomic_read(&hdd_ipa->rm_state)));
 	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n",
 	 "RM Grants: ", hdd_ipa->stats.rm_grant);
 	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n",
@@ -1661,6 +1790,19 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n",
 	 "IPA RM Qued:", hdd_ipa->stats.rx_ipa_rm_qued);
 #endif
+
+	if (!hdd_ipa_is_clk_scaling_enabled(hdd_ipa))
+		goto skip;
+
+	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n",
+	 "RM CONS perf req: ", hdd_ipa->stats.cons_perf_req);
+	len += scnprintf(buf + len, buf_len - len, "%20s %10llu\n",
+	 "RM PROD perf req: ", hdd_ipa->stats.prod_perf_req);
+	len += scnprintf(buf + len, buf_len - len, "%20s %10d\n",
+	 "RM CONS BW: ", hdd_ipa->curr_cons_bw);
+	len += scnprintf(buf + len, buf_len - len, "%20s %10d\n",
+	 "RM PROD BW: ", hdd_ipa->curr_prod_bw);
+skip:
 	len += scnprintf(buf + len, buf_len - len, "%20s %10u\n\n",
 	 "Pending cnt:", hdd_ipa->pending_desc_cnt);
 

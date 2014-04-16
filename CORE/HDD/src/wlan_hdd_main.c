@@ -10639,6 +10639,10 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 
     hdd_cnss_request_bus_bandwidth(pHddCtx, tx_packets, rx_packets);
 
+#ifdef IPA_OFFLOAD
+    hdd_ipa_set_perf_level(pHddCtx, tx_packets, rx_packets);
+#endif
+
     vos_timer_start(&pHddCtx->bus_bw_timer,
             pHddCtx->cfg_ini->busBandwidthComputeInterval);
 }
