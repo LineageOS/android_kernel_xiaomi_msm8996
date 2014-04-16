@@ -936,8 +936,6 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    }
 #endif
 
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
-
    if (WLAN_HDD_IBSS == pAdapter->device_mode)
    {
       v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
@@ -957,7 +955,6 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_WARN,
                    "%s: Received Unicast frame with invalid staID", __func__);
          ++pAdapter->stats.tx_dropped;
-         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
          kfree_skb(skb);
          return NETDEV_TX_OK;
       }
@@ -1010,16 +1007,10 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    //select_queue call back function
    up = skb->priority;
 
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
-
 #ifdef HDD_WMM_DEBUG
    VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_FATAL,
               "%s: Classified as ac %d up %d", __func__, ac, up);
 #endif // HDD_WMM_DEBUG
-
-
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueued;
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueuedAC[ac];
 
    if (HDD_PSB_CHANGED == pAdapter->psbChanged)
    {
@@ -1092,6 +1083,8 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    }
 #endif /* QCA_PKT_PROTO_TRACE */
 
+   pAdapter->stats.tx_bytes += skb->len;
+   ++pAdapter->stats.tx_packets;
    /*
     * TODO: Should we stop net queues when txrx returns non-NULL?.
     */
@@ -1113,8 +1106,6 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
 drop_pkt:
    ++pAdapter->stats.tx_dropped;
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
    kfree_skb(skb);
    return NETDEV_TX_OK;
 }

@@ -697,14 +697,9 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 #ifdef CONFIG_CNSS
         /* start timer in sta/p2p_cli */
         spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
-        pHddCtx->sta_cnt++;
-        pAdapter->connection++;
-        if (1 == pAdapter->connection) {
-            pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
-            pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
-        }
-        if (1 == pHddCtx->sta_cnt)
-            hdd_start_bus_bw_compute_timer(pAdapter);
+        pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
+        pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
+        hdd_start_bus_bw_compute_timer(pAdapter);
         spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
 #endif
 #endif
@@ -747,14 +742,9 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 #ifdef MSM_PLATFORM
         /* stop timer in sta/p2p_cli */
         spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
-        pHddCtx->sta_cnt--;
-        pAdapter->connection--;
-        if (0 == pAdapter->connection) {
-            pAdapter->prev_tx_packets = 0;
-            pAdapter->prev_rx_packets = 0;
-        }
-        if (0 == pHddCtx->sta_cnt)
-            hdd_stop_bus_bw_compute_timer(pAdapter);
+        pAdapter->prev_tx_packets = 0;
+        pAdapter->prev_rx_packets = 0;
+        hdd_stop_bus_bw_compute_timer(pAdapter);
         spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
 #endif
     }
