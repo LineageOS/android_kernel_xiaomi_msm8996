@@ -3182,38 +3182,85 @@ tSirRetStatus pmmOffloadEnterBmpsRespHandler(tpAniSirGlobal pMac,
 eHalStatus pmmOffloadFillUapsdParams(tpPESession psessionEntry,
                                      tpUapsd_Params pUapsdParams)
 {
-    tANI_U8  uapsdDeliveryMask = 0;
-    tANI_U8  uapsdTriggerMask = 0;
+    /*
+    * If gAcAdmitMask[SIR_MAC_DIRECTION_DLINK] is set,DeliveryEnabled bits are filled
+    * based on PSB from addts dynamically. If it is not set, DeliveryEnabled bits are
+    * filled from static values as per UapsdMask in ini file.
+    */
 
-    uapsdDeliveryMask = (psessionEntry->gUapsdPerAcBitmask |
-                         psessionEntry->gUapsdPerAcDeliveryEnableMask);
+    if ( psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] & LIM_ADMIT_MASK_FLAG_ACBE)
+    {
+        pUapsdParams->beDeliveryEnabled = LIM_UAPSD_GET(ACBE, psessionEntry->gUapsdPerAcDeliveryEnableMask);
+    }
+    else
+    {
+        pUapsdParams->beDeliveryEnabled = LIM_UAPSD_GET(ACBE, psessionEntry->gUapsdPerAcBitmask);
+    }
+    if ( psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] & LIM_ADMIT_MASK_FLAG_ACBK)
+    {
+        pUapsdParams->bkDeliveryEnabled = LIM_UAPSD_GET(ACBK, psessionEntry->gUapsdPerAcDeliveryEnableMask);
+    }
+    else
+    {
+        pUapsdParams->bkDeliveryEnabled = LIM_UAPSD_GET(ACBK, psessionEntry->gUapsdPerAcBitmask);
+    }
+    if  ( psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] & LIM_ADMIT_MASK_FLAG_ACVI)
+    {
+        pUapsdParams->viDeliveryEnabled = LIM_UAPSD_GET(ACVI, psessionEntry->gUapsdPerAcDeliveryEnableMask);
+    }
+    else
+    {
+        pUapsdParams->viDeliveryEnabled = LIM_UAPSD_GET(ACVI, psessionEntry->gUapsdPerAcBitmask);
+    }
 
-    uapsdTriggerMask = (psessionEntry->gUapsdPerAcBitmask |
-                        psessionEntry->gUapsdPerAcTriggerEnableMask);
+    if ( psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] & LIM_ADMIT_MASK_FLAG_ACVO)
+    {
+        pUapsdParams->voDeliveryEnabled = LIM_UAPSD_GET(ACVO, psessionEntry->gUapsdPerAcDeliveryEnableMask);
+    }
+    else
+    {
+        pUapsdParams->voDeliveryEnabled = LIM_UAPSD_GET(ACVO, psessionEntry->gUapsdPerAcBitmask);
+    }
 
-    pUapsdParams->bkDeliveryEnabled =
-                             LIM_UAPSD_GET(ACBK, uapsdDeliveryMask);
+    /*
+    * If gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] is set,TriggerEnabled bits are filled
+    * based on PSB from addts dynamically. If it is not set, TriggerEnabled bits are
+    * filled from static values as per UapsdMask in ini file.
+    */
 
-    pUapsdParams->beDeliveryEnabled =
-                             LIM_UAPSD_GET(ACBE, uapsdDeliveryMask);
+    if ( psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] & LIM_ADMIT_MASK_FLAG_ACBE)
+    {
+         pUapsdParams->beTriggerEnabled = LIM_UAPSD_GET(ACBE, psessionEntry->gUapsdPerAcTriggerEnableMask);
+    }
+    else
+    {
+         pUapsdParams->beTriggerEnabled = LIM_UAPSD_GET(ACBE, psessionEntry->gUapsdPerAcBitmask);
+    }
+    if ( psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] & LIM_ADMIT_MASK_FLAG_ACBK)
+    {
+         pUapsdParams->bkTriggerEnabled = LIM_UAPSD_GET(ACBK, psessionEntry->gUapsdPerAcTriggerEnableMask);
+    }
+    else
+    {
+         pUapsdParams->bkTriggerEnabled = LIM_UAPSD_GET(ACBK, psessionEntry->gUapsdPerAcBitmask);
+    }
+    if ( psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] & LIM_ADMIT_MASK_FLAG_ACVI)
+    {
+         pUapsdParams->viTriggerEnabled = LIM_UAPSD_GET(ACVI, psessionEntry->gUapsdPerAcTriggerEnableMask);
+    }
+    else
+    {
+         pUapsdParams->viTriggerEnabled = LIM_UAPSD_GET(ACVI, psessionEntry->gUapsdPerAcBitmask);
+    }
 
-    pUapsdParams->viDeliveryEnabled =
-                             LIM_UAPSD_GET(ACVI, uapsdDeliveryMask);
-
-    pUapsdParams->voDeliveryEnabled =
-                             LIM_UAPSD_GET(ACVO, uapsdDeliveryMask);
-
-    pUapsdParams->bkTriggerEnabled =
-                             LIM_UAPSD_GET(ACBK, uapsdTriggerMask);
-
-    pUapsdParams->beTriggerEnabled =
-                             LIM_UAPSD_GET(ACBE, uapsdTriggerMask);
-
-    pUapsdParams->viTriggerEnabled =
-                             LIM_UAPSD_GET(ACVI, uapsdTriggerMask);
-
-    pUapsdParams->voTriggerEnabled =
-                             LIM_UAPSD_GET(ACVO, uapsdTriggerMask);
+    if ( psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] & LIM_ADMIT_MASK_FLAG_ACVO)
+    {
+         pUapsdParams->voTriggerEnabled = LIM_UAPSD_GET(ACVO, psessionEntry->gUapsdPerAcTriggerEnableMask);
+    }
+    else
+    {
+         pUapsdParams->voTriggerEnabled = LIM_UAPSD_GET(ACVO, psessionEntry->gUapsdPerAcBitmask);
+    }
 
     return eHAL_STATUS_SUCCESS;
 }
