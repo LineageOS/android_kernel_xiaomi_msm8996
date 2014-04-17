@@ -195,6 +195,9 @@ typedef enum {
     eSAP_UNKNOWN_STA_JOIN, /* Event send when a STA in neither white list or black list tries to associate in softap mode */
     eSAP_MAX_ASSOC_EXCEEDED, /* Event send when a new STA is rejected association since softAP max assoc limit has reached */
     eSAP_CHANNEL_CHANGE_EVENT,
+    eSAP_DFS_CAC_START,
+    eSAP_DFS_CAC_END,
+    eSAP_DFS_RADAR_DETECT,
 } eSapHddEvent;
 
 typedef enum {

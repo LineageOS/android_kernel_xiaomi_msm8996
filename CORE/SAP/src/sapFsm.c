@@ -699,6 +699,17 @@ sapSignalHDDevent
                     sapContext->sessionId;
             break;
 
+        case eSAP_DFS_CAC_START:
+        case eSAP_DFS_CAC_END:
+        case eSAP_DFS_RADAR_DETECT:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                "In %s, SAP event callback event = %s : %d", __func__,
+                "eSAP_DFS event", sapHddevent);
+            sapApAppEvent.sapHddEventCode = sapHddevent;
+            sapApAppEvent.sapevt.sapStopBssCompleteEvent.status =
+                                                        (eSapStatus )context;
+            break;
+
         case eSAP_STOP_BSS_EVENT:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, SAP event callback event = %s",
                        __func__, "eSAP_STOP_BSS_EVENT");
@@ -1126,6 +1137,8 @@ sapFsm
                 * Send the Channel change message to SME/PE.
                 * sap_radar_found_status is set to 1
                 */
+               sapSignalHDDevent(sapContext, NULL, eSAP_DFS_RADAR_DETECT,
+                                              (v_PVOID_t) eSAP_STATUS_SUCCESS);
 
                WLANSAP_ChannelChangeRequest((v_PVOID_t)sapContext,
                               sapContext->SapDfsInfo.target_channel);
@@ -1291,6 +1304,8 @@ sapFsm
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                           "In %s, Send CSA IE Request", __func__);
 
+                sapSignalHDDevent(sapContext, NULL, eSAP_DFS_RADAR_DETECT,
+                                              (v_PVOID_t) eSAP_STATUS_SUCCESS);
                 /* Request for CSA IE transmission */
                 vosStatus = WLANSAP_DfsSendCSAIeRequest((v_PVOID_t)sapContext);
             }
@@ -2128,22 +2143,12 @@ void sapDfsCacTimerCallback(void *data)
         sapEvent.params = 0;
         sapEvent.u1 = 0;
         sapEvent.u2 = 0;
-    }
-    else if (sapContext->sapsMachine == eSAP_DFS_CAC_WAIT)
-    {
-        vos_timer_destroy(&sapContext->SapDfsInfo.sap_dfs_cac_timer);
-        sapContext->SapDfsInfo.is_dfs_cac_timer_running = 0;
 
-        /*
-         * CAC Complete, post eSAP_DFS_CHANNEL_CAC_END to sapFsm
-         */
-        sapEvent.event = eSAP_DFS_CHANNEL_CAC_END;
-        sapEvent.params = 0;
-        sapEvent.u1 = 0;
-        sapEvent.u2 = 0;
+        sapSignalHDDevent(sapContext, NULL, eSAP_DFS_CAC_END,
+                                              (v_PVOID_t) eSAP_STATUS_SUCCESS);
+        sapFsm(sapContext, &sapEvent);
     }
 
-    sapFsm(sapContext, &sapEvent);
 }
 
 /*
@@ -2188,6 +2193,8 @@ int sapStartDfsCacTimer(ptSapContext sapContext)
     if (status == VOS_STATUS_SUCCESS)
     {
         sapContext->SapDfsInfo.is_dfs_cac_timer_running = VOS_TRUE;
+        sapSignalHDDevent(sapContext, NULL, eSAP_DFS_CAC_START,
+                                              (v_PVOID_t) eSAP_STATUS_SUCCESS);
         return 1;
     }
     else
