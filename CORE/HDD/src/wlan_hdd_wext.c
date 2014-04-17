@@ -619,7 +619,7 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
     tSirVersionString wcnss_SW_version;
     const char *pSWversion;
     const char *pHWversion;
-    v_U32_t CRMId = 0;
+    v_U32_t CBId = 0, CBSId = 0, CRMId = 0;
 #ifndef QCA_WIFI_2_0
     VOS_STATUS status;
     tSirVersionString wcnss_HW_version;
@@ -641,6 +641,8 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
         pHddContext->target_fw_version);
 
     pSWversion = wcnss_SW_version;
+    CBId = (pHddContext->target_fw_version & 0xf8000000) >> 27;
+    CBSId = (pHddContext->target_fw_version & 0x07000000) >> 24;
     CRMId = pHddContext->target_fw_version & 0x7fff;
 
     for (i = 0; i < ARRAY_SIZE(qwlan_hw_list); i++) {
@@ -678,15 +680,17 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
 
     if (wrqu) {
         wrqu->data.length = scnprintf(extra, WE_MAX_STR_LEN,
-                                     "Host SW:%s, FW:%s BuildId:%d, HW:%s",
+                                     "Host SW:%s, FW:%d.%d.%d, HW:%s",
                                      QWLAN_VERSIONSTR,
-                                     pSWversion,
+                                     CBId,
+                                     CBSId,
                                      CRMId,
                                      pHWversion);
     } else {
-        pr_info("Host SW:%s, FW:%s BuildId:%d, HW:%s\n",
+        pr_info("Host SW:%s, FW:%d.%d.%d, HW:%s\n",
                 QWLAN_VERSIONSTR,
-                pSWversion,
+                CBId,
+                CBSId,
                 CRMId,
                 pHWversion);
     }
