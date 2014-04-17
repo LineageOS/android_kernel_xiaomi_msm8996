@@ -1197,6 +1197,18 @@ if (limPopulateMatchingRateSet(pMac,
         goto error;
     }
 
+#ifdef WLAN_FEATURE_11AC
+    if(pAssocReq->operMode.present)
+    {
+        pStaDs->vhtSupportedRxNss = pAssocReq->operMode.rxNSS + 1;
+    }
+    else
+    {
+        pStaDs->vhtSupportedRxNss = ((pStaDs->supportedRates.vhtRxMCSMap & MCSMAPMASK2x2)
+                                                                == MCSMAPMASK2x2) ? 1 : 2;
+    }
+#endif
+
     vos_mem_copy((tANI_U8 *) &pStaDs->mlmStaContext.propRateSet,
                  (tANI_U8 *) &(pAssocReq->propIEinfo.propRates),
                   pAssocReq->propIEinfo.propRates.numPropRates + 1);

@@ -286,6 +286,7 @@ typedef struct
 #ifdef WLAN_FEATURE_11AC
     tANI_U8    vhtCapable;
     tANI_U8    vhtTxChannelWidthSet;
+    tANI_U8    vhtSupportedRxNss;
     tANI_U8    vhtTxBFCapable;
     tANI_U8    vhtTxMUBformeeCapable;
     tANI_U8    enableVhtpAid;
@@ -909,6 +910,14 @@ typedef struct
    tANI_U16  smesessionId;
    tSirMacAddr peer_mac;
 }tUpdateVHTOpMode, *tpUpdateVHTOpMode;
+
+typedef struct
+{
+   tANI_U16  rxNss;
+   tANI_U16  staId;
+   tANI_U16  smesessionId;
+   tSirMacAddr peer_mac;
+}tUpdateRxNss, *tpUpdateRxNss;
 
 typedef struct
 {

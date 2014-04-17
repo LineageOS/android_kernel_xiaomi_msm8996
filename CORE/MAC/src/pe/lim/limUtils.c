@@ -7802,18 +7802,34 @@ void limPmfSaQueryTimerHandler(void *pMacGlobal, tANI_U32 param)
 
 
 #ifdef WLAN_FEATURE_11AC
-tANI_BOOLEAN limCheckVHTOpModeChange( tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 chanWidth, tANI_U8 staId)
+tANI_BOOLEAN limCheckVHTOpModeChange( tpAniSirGlobal pMac, tpPESession psessionEntry,
+                                      tANI_U8 chanWidth, tANI_U8 staId, tANI_U8 *peerMac)
 {
     tUpdateVHTOpMode tempParam;
 
     tempParam.opMode = chanWidth;
     tempParam.staId  = staId;
     tempParam.smesessionId = psessionEntry->smeSessionId;
-    vos_mem_copy(tempParam.peer_mac, psessionEntry->bssId,
+    vos_mem_copy(tempParam.peer_mac, peerMac,
                  sizeof(tSirMacAddr));
 
-
     limSendModeUpdate( pMac, &tempParam, psessionEntry );
+
+    return eANI_BOOLEAN_TRUE;
+}
+
+tANI_BOOLEAN limSetNssChange( tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 rxNss,
+                              tANI_U8 staId, tANI_U8 *peerMac)
+{
+    tUpdateRxNss tempParam;
+
+    tempParam.rxNss = rxNss;
+    tempParam.staId  = staId;
+    tempParam.smesessionId = psessionEntry->smeSessionId;
+    vos_mem_copy(tempParam.peer_mac, peerMac,
+                 sizeof(tSirMacAddr));
+
+    limSendRxNssUpdate( pMac, &tempParam, psessionEntry );
 
     return eANI_BOOLEAN_TRUE;
 }

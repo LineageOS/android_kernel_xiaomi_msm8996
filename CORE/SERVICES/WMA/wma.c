@@ -7090,8 +7090,12 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
                 mcs->tx_max_rate = params->supportedRates.vhtTxHighestDataRate;
                 mcs->tx_mcs_set  = params->supportedRates.vhtTxMCSMap;
 
-                cmd->peer_nss = ((mcs->rx_mcs_set & VHT2x2MCSMASK)
-                                    == VHT2x2MCSMASK) ? 1 : 2;
+                if(params->vhtSupportedRxNss) {
+                    cmd->peer_nss = params->vhtSupportedRxNss;
+                } else {
+                    cmd->peer_nss = ((mcs->rx_mcs_set & VHT2x2MCSMASK)
+                                       == VHT2x2MCSMASK) ? 1 : 2;
+                }
 	}
 
 	intr->nss = cmd->peer_nss;
@@ -13630,11 +13634,21 @@ static void wma_finish_scan_req(tp_wma_handle wma_handle,
 static void wma_process_update_opmode(tp_wma_handle wma_handle,
                                 tUpdateVHTOpMode *update_vht_opmode)
 {
-        WMA_LOGD("%s: Update Opmode", __func__);
+        WMA_LOGD("%s: opMode = %d", __func__, update_vht_opmode->opMode);
 
         wma_set_peer_param(wma_handle, update_vht_opmode->peer_mac,
                            WMI_PEER_CHWIDTH, update_vht_opmode->opMode,
                            update_vht_opmode->smesessionId);
+}
+
+static void wma_process_update_rx_nss(tp_wma_handle wma_handle,
+                                tUpdateRxNss *update_rx_nss)
+{
+        WMA_LOGD("%s: Rx Nss = %d", __func__, update_rx_nss->rxNss);
+
+        wma_set_peer_param(wma_handle, update_rx_nss->peer_mac,
+                           WMI_PEER_NSS, update_rx_nss->rxNss,
+                           update_rx_nss->smesessionId);
 }
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
@@ -15962,6 +15976,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
                 case WDA_UPDATE_OP_MODE:
                         wma_process_update_opmode(wma_handle,
                                        (tUpdateVHTOpMode *)msg->bodyptr);
+                        vos_mem_free(msg->bodyptr);
+                        break;
+                case WDA_UPDATE_RX_NSS:
+                        wma_process_update_rx_nss(wma_handle,
+                                       (tUpdateRxNss *)msg->bodyptr);
                         vos_mem_free(msg->bodyptr);
                         break;
 #ifdef WLAN_FEATURE_11AC

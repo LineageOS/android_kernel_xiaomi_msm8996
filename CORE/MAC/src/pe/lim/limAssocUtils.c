@@ -2505,6 +2505,7 @@ limAddSta(
     if(pAddStaParams->vhtCapable)
     {
         pAddStaParams->vhtTxChannelWidthSet = pStaDs->vhtSupportedChannelWidthSet;
+        pAddStaParams->vhtSupportedRxNss = pStaDs->vhtSupportedRxNss;
         pAddStaParams->vhtTxBFCapable =
 #ifdef FEATURE_WLAN_TDLS
         (( STA_ENTRY_PEER == pStaDs->staType ) || (STA_ENTRY_TDLS_PEER == pStaDs->staType)) ?
@@ -3966,6 +3967,7 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             if (psessionEntry->vhtCapability && pBeaconStruct->VHTCaps.present)
             {
                 pAddBssParams->staContext.vhtCapable = 1;
+                pAddBssParams->staContext.vhtSupportedRxNss = pStaDs->vhtSupportedRxNss;
                 if ((pAssocRsp->VHTCaps.suBeamFormerCap ||
                      pAssocRsp->VHTCaps.muBeamformerCap) &&
                      psessionEntry->txBFIniFeatureEnabled)
