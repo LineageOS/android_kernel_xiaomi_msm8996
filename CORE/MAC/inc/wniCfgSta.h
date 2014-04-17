@@ -17,13 +17,7 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
- */
+*/
 
 /*
  * DO NOT EDIT - This file is generated automatically
@@ -349,6 +343,7 @@
 #define WNI_CFG_RMC_ACTION_PERIOD_FREQUENCY    308
 #define WNI_CFG_CURRENT_RSSI    309
 #define WNI_CFG_RTT3_ENABLE    310
+#define WNI_CFG_DEBUG_P2P_REMAIN_ON_CHANNEL    311
 
 /*
  * String parameter lengths
@@ -1675,8 +1670,12 @@
 #define WNI_CFG_RTT3_ENABLE_STAMAX    1
 #define WNI_CFG_RTT3_ENABLE_STADEF    1
 
-#define CFG_PARAM_MAX_NUM        311
-#define CFG_STA_IBUF_MAX_SIZE    245
+#define WNI_CFG_DEBUG_P2P_REMAIN_ON_CHANNEL_STAMIN    0
+#define WNI_CFG_DEBUG_P2P_REMAIN_ON_CHANNEL_STAMAX    1
+#define WNI_CFG_DEBUG_P2P_REMAIN_ON_CHANNEL_STADEF    0
+
+#define CFG_PARAM_MAX_NUM        312
+#define CFG_STA_IBUF_MAX_SIZE    246
 #define CFG_STA_SBUF_MAX_SIZE    3388
 #define CFG_SEM_MAX_NUM          19
 
