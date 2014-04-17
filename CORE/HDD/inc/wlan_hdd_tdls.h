@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -134,6 +134,7 @@ typedef struct {
 } tdls_rssi_config_t;
 
 struct _hddTdlsPeer_t;
+
 typedef struct {
     struct list_head peer_list[256];
     hdd_adapter_t   *pAdapter;
@@ -174,6 +175,7 @@ typedef struct _hddTdlsPeer_t {
     vos_timer_t     peerIdleTimer;
 #endif
     vos_timer_t     initiatorWaitTimeoutTimer;
+    tANI_BOOLEAN isForcedPeer;
 } hddTdlsPeer_t;
 
 typedef struct {
@@ -303,5 +305,8 @@ void wlan_hdd_tdls_pre_setup_init_work(tdlsCtx_t *pHddTdlsCtx,
                                        hddTdlsPeer_t *curr_candidate);
 #endif
 #endif
+
+int wlan_hdd_tdls_set_force_peer(hdd_adapter_t *pAdapter, u8 *mac,
+                                 tANI_BOOLEAN forcePeer);
 
 #endif // __HDD_TDSL_H

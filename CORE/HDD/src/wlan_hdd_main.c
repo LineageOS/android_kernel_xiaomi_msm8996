@@ -8034,17 +8034,22 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 #undef HDD_DTIM_1CHAIN_RX_ID
 #undef HDD_SMPS_PARAM_VALUE_S
    }
-   ret = process_wma_set_command((int)pAdapter->sessionId,
-                           (int)WMI_PDEV_PARAM_HYST_EN,
-                           (int)pHddCtx->cfg_ini->enableHystereticMode,
-                           PDEV_CMD);
 
-   if (ret != 0)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: WMI_PDEV_PARAM_HYST_EN set"
-                                   " failed %d", __func__, ret);
-      goto err_free_netdev;
-   }
+  if (VOS_FTM_MODE != vos_get_conparam())
+  {
+       ret = process_wma_set_command((int)pAdapter->sessionId,
+                         (int)WMI_PDEV_PARAM_HYST_EN,
+                         (int)pHddCtx->cfg_ini->enableHystereticMode,
+                         PDEV_CMD);
+
+       if (ret != 0)
+       {
+           hddLog(VOS_TRACE_LEVEL_ERROR,"%s: WMI_PDEV_PARAM_HYST_EN set"
+                                 " failed %d", __func__, ret);
+           goto err_free_netdev;
+       }
+  }
+
 #endif
 
    return pAdapter;
