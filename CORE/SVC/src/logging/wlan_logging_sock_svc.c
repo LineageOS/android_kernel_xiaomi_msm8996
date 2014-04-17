@@ -208,6 +208,7 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
 	int total_log_len;
 	unsigned int *pfilled_length;
 	bool wake_up_thread = false;
+	unsigned long flags;
 
 	struct timeval tv;
 
@@ -233,7 +234,7 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
 	/* 1+1 indicate '\n'+'\0' */
 	total_log_len = length + tlen + 1 + 1;
 
-	spin_lock_bh(&gwlan_logging.spin_lock);
+	spin_lock_irqsave(&gwlan_logging.spin_lock, flags);
 	pfilled_length = &gwlan_logging.pcur_node->filled_length;
 
 	 /* Check if we can accomodate more log into current node/buffer */
@@ -266,7 +267,7 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
 	ptr[*pfilled_length] = '\n';
 	*pfilled_length += 1;
 
-	spin_unlock_bh(&gwlan_logging.spin_lock);
+	spin_unlock_irqrestore(&gwlan_logging.spin_lock, flags);
 
 	/* Wakeup logger thread */
 	if (true == wake_up_thread)
@@ -291,6 +292,7 @@ static int send_filled_buffers_to_user(void)
 	struct sk_buff *skb = NULL;
 	struct nlmsghdr *nlh;
 	static int nlmsg_seq;
+	unsigned long flags;
 
 	while (!list_empty(&gwlan_logging.filled_list)
 		&& !gwlan_logging.exit) {
@@ -303,7 +305,7 @@ static int send_filled_buffers_to_user(void)
 			break;
 		}
 
-		spin_lock(&gwlan_logging.spin_lock);
+		spin_lock_irqsave(&gwlan_logging.spin_lock, flags);
 
 		plog_msg = (struct log_msg *)
 			(gwlan_logging.filled_list.next);
@@ -319,7 +321,8 @@ static int send_filled_buffers_to_user(void)
 		if (NULL == nlh) {
 			list_add_tail(&plog_msg->node,
 				&gwlan_logging.free_list);
-			spin_unlock(&gwlan_logging.spin_lock);
+			spin_unlock_irqrestore(&gwlan_logging.spin_lock,
+							flags);
 			pr_err("%s: drop_count = %u\n", __func__,
 				++gwlan_logging.drop_count);
 			pr_err("%s: nlmsg_put() failed for msg size[%d]\n",
@@ -329,7 +332,7 @@ static int send_filled_buffers_to_user(void)
 			ret = -EINVAL;
 			continue;
 		}
-		spin_unlock(&gwlan_logging.spin_lock);
+		spin_unlock_irqrestore(&gwlan_logging.spin_lock, flags);
 
 		wnl = (tAniNlHdr *) nlh;
 		wnl->radio = plog_msg->radio;
@@ -337,10 +340,10 @@ static int send_filled_buffers_to_user(void)
 				plog_msg->filled_length +
 				sizeof(tAniHdr));
 
-		spin_lock(&gwlan_logging.spin_lock);
+		spin_lock_irqsave(&gwlan_logging.spin_lock, flags);
 		list_add_tail(&plog_msg->node,
 				&gwlan_logging.free_list);
-		spin_unlock(&gwlan_logging.spin_lock);
+		spin_unlock_irqrestore(&gwlan_logging.spin_lock, flags);
 
 		ret = nl_srv_ucast(skb, gapp_pid, 0);
 		if (ret < 0) {
