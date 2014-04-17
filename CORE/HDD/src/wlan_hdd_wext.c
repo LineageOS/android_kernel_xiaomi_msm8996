@@ -86,7 +86,6 @@
 #endif
 #include "wlan_hdd_power.h"
 #include "qwlan_version.h"
-#include <vos_power.h>
 #include "wlan_hdd_host_offload.h"
 #include "wlan_hdd_keep_alive.h"
 #ifdef WLAN_FEATURE_PACKET_FILTERING
@@ -4694,7 +4693,6 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                  break;
 #endif
               case  14://reset wlan (power down/power up)
-                 vos_chipReset(NULL, VOS_FALSE, NULL, NULL, VOS_CHIP_RESET_UNKNOWN_EXCEPTION);
                  break;
               default:
                  hddLog(LOGE, "Invalid arg  %d in WE_SET_POWER IOCTL", set_value);
