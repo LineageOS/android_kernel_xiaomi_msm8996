@@ -1710,8 +1710,12 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
                 }
             }
         }
+        else
+        {
+            limLog(pMac, LOG1, FL("addnIEPresent = %d for Assoc Resp : %d"),
+                                addnIEPresent, pAssocReq->addIEPresent);
+        }
     }
-
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
                              ( void** ) &pPacket );
