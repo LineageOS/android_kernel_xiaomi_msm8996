@@ -1745,16 +1745,16 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 	* START   = 0x00980000
 	* LENGTH  = 0x00038000
 	*
-	* SECTION = REG
-	* START   = 0x00000800
-	* LENGTH  = 0x0007F820
-	*
 	* SECTION = AXI
 	* START   = 0x000a0000
 	* LENGTH  = 0x00018000
+	*
+	* SECTION = REG
+	* START   = 0x00000800
+	* LENGTH  = 0x0007F820
 	*/
 
-	while ((sectionCount < 3) && (amountRead < blockLength)) {
+	while ((sectionCount < 4) && (amountRead < blockLength)) {
 		switch (sectionCount) {
 		case 0:
 			/* DRAM SECTION */
@@ -1767,15 +1767,17 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 			readLen = IRAM_SIZE;
 			break;
 		case 2:
-			/* REG SECTION */
-			pos = REGISTER_LOCATION;
-			/*  ol_diag_read_reg_loc checks for buffer overrun */
-			readLen = 0;
-			break;
-		case 3:
 			/* AXI SECTION */
 			pos = AXI_LOCATION;
 			readLen = AXI_SIZE;
+			printk("%s: Dumping AXI section...\n", __func__);
+			break;
+		case 3:
+			/* REG SECTION */
+			pos = REGISTER_LOCATION;
+			/* ol_diag_read_reg_loc checks for buffer overrun */
+			readLen = 0;
+			printk("%s: Dumping Register section...\n", __func__);
 			break;
 		}
 
