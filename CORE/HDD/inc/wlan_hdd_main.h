@@ -1214,13 +1214,8 @@ struct hdd_context_s
 
    hdd_list_t hddAdapters; //List of adapters
 
-#ifdef WLAN_FEATURE_MBSSID
-   /* One per STA: 1 for RX_BCMC_STA_ID, 2 for SAP_SELF_STA_ID */
-   hdd_adapter_t *sta_to_adapter[WLAN_MAX_STA_COUNT + 4]; //One per sta. For quick reference.
-#else
-   /* One per STA: 1 for RX_BCMC_STA_ID, 1 for SAP_SELF_STA_ID */
-   hdd_adapter_t *sta_to_adapter[WLAN_MAX_STA_COUNT + 3]; //One per sta. For quick reference.
-#endif
+   /* One per STA: 1 for BCMC_STA_ID, 1 for each SAP_SELF_STA_ID, 1 for WDS_STAID */
+   hdd_adapter_t *sta_to_adapter[WLAN_MAX_STA_COUNT + VOS_MAX_NO_OF_SAP_MODE + 2]; //One per sta. For quick reference.
 
    /** Pointer for firmware image data */
    const struct firmware *fw;
