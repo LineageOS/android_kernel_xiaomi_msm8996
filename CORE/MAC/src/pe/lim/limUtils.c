@@ -5092,7 +5092,6 @@ void limTxComplete( tHalHandle hHal, void *pData, v_BOOL_t free)
         if(VOS_IS_STATUS_SUCCESS(vosStatus))
         {
             mHdr = WDA_GET_RX_MAC_HEADER(pRxBd);
-            MTRACE(macTrace(pMac, TRACE_CODE_TX_COMPLETE, NO_SESSION, mHdr->fc.subType);)
 
         }
     }
@@ -7767,7 +7766,6 @@ void limPmfSaQueryTimerHandler(void *pMacGlobal, tANI_U32 param)
     {
         limLog(pMac, LOGE, FL("Entry does not exist for given peer index %d"),
                timerId.fields.peerIdx);
-        pSta->pmfSaQueryState = DPH_SA_QUERY_NOT_IN_PROGRESS;
         return;
     }
     if (DPH_SA_QUERY_IN_PROGRESS != pSta->pmfSaQueryState)

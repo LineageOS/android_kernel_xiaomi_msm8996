@@ -197,6 +197,14 @@ wma_process_ftm_command(tp_wma_handle wma_handle,
 			struct ar6k_testmode_cmd_data *msg_buffer);
 #endif
 
+static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
+		ol_txrx_vdev_handle vdev, u8 peer_addr[6],
+		u_int32_t peer_type, u_int8_t vdev_id);
+static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
+		tpAddStaSelfParams self_sta_req,
+		u_int8_t generateRsp);
+static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info);
+
 /*DFS Attach*/
 struct ieee80211com* wma_dfs_attach(struct ieee80211com *ic);
 static void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
@@ -1004,7 +1012,7 @@ static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 		}
 	}
 
-	/* remote IBSS bss peer last */
+	/* remove IBSS bss peer last */
 	peer = TAILQ_FIRST(&vdev->peer_list);
 	wma_remove_peer(wma, wma->interfaces[vdev_id].bssid, vdev_id, peer);
 }
@@ -1032,6 +1040,60 @@ static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 		}
 	}
 }
+#ifdef QCA_IBSS_SUPPORT
+static void wma_recreate_ibss_vdev_and_bss_peer(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	ol_txrx_vdev_handle vdev;
+	tDelStaSelfParams del_sta_param;
+	tAddStaSelfParams add_sta_self_param;
+	VOS_STATUS status;
+
+	if (!wma) {
+		WMA_LOGE("%s: Null wma handle", __func__);
+		return;
+	}
+
+	vdev = wma_find_vdev_by_id(wma, vdev_id);
+	if (!vdev) {
+		WMA_LOGE("%s: Can't find vdev with id %d", __func__, vdev_id);
+		return;
+	}
+
+        vos_copy_macaddr((v_MACADDR_t *)&(add_sta_self_param.selfMacAddr),
+			(v_MACADDR_t *)&(vdev->mac_addr));
+	add_sta_self_param.sessionId = vdev_id;
+	add_sta_self_param.type      = WMI_VDEV_TYPE_IBSS;
+	add_sta_self_param.subType   = 0;
+	add_sta_self_param.status    = 0;
+
+	/* delete old ibss vdev */
+	del_sta_param.sessionId   = vdev_id;
+	vos_mem_copy((void *)del_sta_param.selfMacAddr,
+		(void *)&(vdev->mac_addr),
+	VOS_MAC_ADDR_SIZE);
+	wma_vdev_detach(wma, &del_sta_param, 0);
+
+	/* create new vdev for ibss */
+	vdev = wma_vdev_attach(wma, &add_sta_self_param, 0);
+	if (!vdev) {
+		WMA_LOGE("%s: Failed to create vdev", __func__);
+		return;
+	}
+
+	WLANTL_RegisterVdev(wma->vos_context, vdev);
+	/* Register with TxRx Module for Data Ack Complete Cb */
+	wdi_in_data_tx_cb_set(vdev, wma_data_tx_ack_comp_hdlr, wma);
+	WMA_LOGA("new IBSS vdev created with mac %pM", add_sta_self_param.selfMacAddr);
+
+	/* create ibss bss peer */
+	status = wma_create_peer(wma, vdev->pdev, vdev, vdev->mac_addr.raw,
+			WMI_PEER_TYPE_DEFAULT, vdev_id);
+	if (status != VOS_STATUS_SUCCESS)
+		WMA_LOGE("%s: Failed to create IBSS bss peer", __func__);
+	else
+		WMA_LOGA("IBSS BSS peer created with mac %pM", vdev->mac_addr.raw);
+}
+#endif //#ifdef QCA_IBSS_SUPPORT
 
 static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 				      u32 len)
@@ -1043,10 +1105,6 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	ol_txrx_peer_handle peer;
 	ol_txrx_pdev_handle pdev;
 	u_int8_t peer_id;
-#ifdef QCA_IBSS_SUPPORT
-        tDelStaSelfParams del_sta_param;
-        ol_txrx_vdev_handle vdev;
-#endif
 	struct wma_txrx_node *iface;
 
 	WMA_LOGI("%s: Enter", __func__);
@@ -1133,14 +1191,9 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 #endif
 
 #ifdef QCA_IBSS_SUPPORT
-		vdev = wma->interfaces[resp_event->vdev_id].handle;
-		if (wma_is_vdev_in_ibss_mode(wma, params->sessionId)) {
-			del_sta_param.sessionId   = params->sessionId;
-			vos_mem_copy((void *)del_sta_param.selfMacAddr,
-				(void *)&(vdev->mac_addr),
-				VOS_MAC_ADDR_SIZE);
-			wma_vdev_detach(wma, &del_sta_param, 0);
-		}
+		/* recreate ibss vdev and bss peer for scan purpose */
+		if (wma_is_vdev_in_ibss_mode(wma, resp_event->vdev_id))
+			wma_recreate_ibss_vdev_and_bss_peer(wma, resp_event->vdev_id);
 #endif
 
 		params->status = VOS_STATUS_SUCCESS;
@@ -2830,7 +2883,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	* should be (number of vdevs + 1).
 	*/
 	wma_handle->wlan_resource_config.num_offload_peers =
-		mac_params->apMaxOffloadPeers;
+		mac_params->apMaxOffloadPeers + 1;
 
 	wma_handle->ol_ini_info = mac_params->olIniInfo;
 	wma_handle->max_station = mac_params->maxStation;
@@ -3404,6 +3457,22 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 		ol_txrx_peer_detach(peer);
 		goto err;
 	}
+
+#ifdef QCA_IBSS_SUPPORT
+	/* for each remote ibss peer, clear its keys */
+	if (wma_is_vdev_in_ibss_mode(wma, vdev_id)
+		&& !vos_mem_compare(peer_addr, vdev->mac_addr.raw, ETH_ALEN)) {
+
+		tSetStaKeyParams key_info;
+		WMA_LOGD("%s: remote ibss peer %pM key clearing\n", __func__,
+			peer_addr);
+		vos_mem_set(&key_info, sizeof(key_info), 0);
+		key_info.smesessionId= vdev_id;
+		vos_mem_copy(key_info.peerMacAddr, peer_addr, ETH_ALEN);
+		wma_set_stakey(wma, &key_info, FALSE);
+	}
+#endif
+
 	return VOS_STATUS_SUCCESS;
 err:
 	wma->peer_count--;
@@ -6212,9 +6281,6 @@ void wma_vdev_resp_timer(void *data)
 	ol_txrx_pdev_handle pdev;
 	u_int8_t peer_id;
 	struct wma_target_req *msg;
-#ifdef QCA_IBSS_SUPPORT
-        tDelStaSelfParams del_sta_param;
-#endif
 
 	wma = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 
@@ -6300,12 +6366,9 @@ void wma_vdev_resp_timer(void *data)
 #endif
 
 #ifdef QCA_IBSS_SUPPORT
-		if (wma_is_vdev_in_ibss_mode(wma, params->sessionId)) {
-			del_sta_param.sessionId   = params->sessionId;
-                        vos_mem_copy((void *)del_sta_param.selfMacAddr,
-				 (void *)params->bssid, VOS_MAC_ADDR_SIZE);
-                        wma_vdev_detach(wma, &del_sta_param, 0);
-                }
+		/* recreate ibss vdev and bss peer for scan purpose */
+		if (wma_is_vdev_in_ibss_mode(wma, tgt_req->vdev_id))
+			wma_recreate_ibss_vdev_and_bss_peer(wma, tgt_req->vdev_id);
 #endif
 		params->status = VOS_STATUS_E_TIMEOUT;
 		WMA_LOGA("%s: WDA_DELETE_BSS_REQ timedout", __func__);
@@ -8394,6 +8457,7 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	VOS_STATUS status;
         tDelStaSelfParams del_sta_param;
         tAddStaSelfParams add_sta_self_param;
+	tSetBssKeyParams key_info;
 
         WMA_LOGD("%s: add_bss->sessionId = %d", __func__, add_bss->sessionId);
         vdev_id = add_bss->sessionId;
@@ -8404,11 +8468,22 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		goto send_fail_resp;
 	}
 	wma_set_bss_rate_flags(&wma->interfaces[vdev_id], add_bss);
-	vdev = wma_find_vdev_by_id(wma, vdev_id);
-        if (vdev) {
-	        WMA_LOGD("%s: vdev found for vdev id %d. deleting the vdev",
-		 __func__, vdev_id);
 
+	vdev = wma_find_vdev_by_id(wma, vdev_id);
+	if (!vdev) {
+	        WMA_LOGE("%s: vdev not found for vdev id %d.",
+			__func__, vdev_id);
+		goto send_fail_resp;
+	}
+
+	/* only change vdev type to ibss during 1st time join_ibss handling */
+
+        if (FALSE == wma_is_vdev_in_ibss_mode(wma, vdev_id)) {
+
+	        WMA_LOGD("%s: vdev found for vdev id %d. deleting the vdev",
+			__func__, vdev_id);
+
+		/* remove peers on the existing non-ibss vdev */
                 TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
 	                WMA_LOGE("%s: peer found for vdev id %d. deleting the peer",
                                 __func__, vdev_id);
@@ -8416,6 +8491,7 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		                vdev_id, peer);
                 }
 
+		/* remove the non-ibss vdev */
                 vos_copy_macaddr((v_MACADDR_t *)&(del_sta_param.selfMacAddr),
                                  (v_MACADDR_t *)&(vdev->mac_addr));
                 del_sta_param.sessionId   = vdev_id;
@@ -8423,46 +8499,52 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 
 		wma_vdev_detach(wma, &del_sta_param, 0);
 
-        }
-	else {
-		WMA_LOGD("%s: vdev with session id %d not found ", __func__, vdev_id);
-        }
+		/* create new vdev for ibss */
+		vos_copy_macaddr((v_MACADDR_t *)&(add_sta_self_param.selfMacAddr),
+			(v_MACADDR_t *)&(add_bss->selfMacAddr));
+		add_sta_self_param.sessionId = vdev_id;
+		add_sta_self_param.type      = WMI_VDEV_TYPE_IBSS;
+		add_sta_self_param.subType   = 0;
+		add_sta_self_param.status    = 0;
 
-        /* create new vdev for ibss */
-        vos_copy_macaddr((v_MACADDR_t *)&(add_sta_self_param.selfMacAddr),
-                         (v_MACADDR_t *)&(add_bss->selfMacAddr));
-        add_sta_self_param.sessionId = vdev_id;
-        add_sta_self_param.type      = WMI_VDEV_TYPE_IBSS;
-        add_sta_self_param.subType   = 0;
-        add_sta_self_param.status    = 0;
+		vdev = wma_vdev_attach(wma, &add_sta_self_param, 0);
+		if (!vdev) {
+			WMA_LOGE("%s: Failed to create vdev", __func__);
+			goto send_fail_resp;
+		}
 
-	vdev = wma_vdev_attach(wma, &add_sta_self_param, 0);
-	if (!vdev) {
-		WMA_LOGE("%s: Failed to create vdev", __func__);
-		goto send_fail_resp;
-	}
-	WLANTL_RegisterVdev(wma->vos_context, vdev);
-	/* Register with TxRx Module for Data Ack Complete Cb */
-	wdi_in_data_tx_cb_set(vdev, wma_data_tx_ack_comp_hdlr, wma);
-	WMA_LOGA("new IBSS vdev created with mac %pM", add_bss->selfMacAddr);
+		WLANTL_RegisterVdev(wma->vos_context, vdev);
+		/* Register with TxRx Module for Data Ack Complete Cb */
+		wdi_in_data_tx_cb_set(vdev, wma_data_tx_ack_comp_hdlr, wma);
+		WMA_LOGA("new IBSS vdev created with mac %pM", add_bss->selfMacAddr);
 
-        /* create self peer */
-	status = wma_create_peer(wma, pdev, vdev, add_bss->selfMacAddr,
+		/* create ibss bss peer */
+		status = wma_create_peer(wma, pdev, vdev, add_bss->selfMacAddr,
 	                         WMI_PEER_TYPE_DEFAULT, vdev_id);
-	if (status != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("%s: Failed to create peer", __func__);
-		goto send_fail_resp;
-	}
-	WMA_LOGA("IBSS BSS peer created with mac %pM", add_bss->selfMacAddr);
+		if (status != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("%s: Failed to create peer", __func__);
+			goto send_fail_resp;
+		}
+		WMA_LOGA("IBSS BSS peer created with mac %pM", add_bss->selfMacAddr);
 
-	peer = ol_txrx_find_peer_by_addr(pdev, add_bss->selfMacAddr, &peer_id);
-	if (!peer) {
-		WMA_LOGE("%s Failed to find peer %pM", __func__,
-			 add_bss->selfMacAddr);
-		goto send_fail_resp;
-	}
+		peer = ol_txrx_find_peer_by_addr(pdev, add_bss->selfMacAddr, &peer_id);
+		if (!peer) {
+			WMA_LOGE("%s Failed to find peer %pM", __func__,
+				add_bss->selfMacAddr);
+			goto send_fail_resp;
+		}
+        }
 
-        /* set operation mode to be IBSS */
+	/* clear leftover ibss keys on bss peer */
+
+	WMA_LOGD("%s: ibss bss key clearing", __func__);
+	vos_mem_set(&key_info, sizeof(key_info), 0);
+	key_info.smesessionId = vdev_id;
+	key_info.numKeys = SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS;
+        vos_mem_copy(&wma->ibsskey_info, &key_info, sizeof(tSetBssKeyParams));
+
+	/* start ibss vdev */
+
         add_bss->operMode = BSS_OPERATIONAL_MODE_IBSS;
 
 	msg = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
@@ -8478,8 +8560,8 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 
 	vos_mem_zero(&req, sizeof(req));
 	req.vdev_id = vdev_id;
-	req.chan = add_bss->currentOperChannel;        /* FIXME: verify param value */
-	req.chan_offset = add_bss->currentExtChannel;  /* FIXME: verify param value */
+	req.chan = add_bss->currentOperChannel;
+	req.chan_offset = add_bss->currentExtChannel;
         req.vht_capable = add_bss->vhtCapable;
 #if defined WLAN_FEATURE_VOWIF
 	req.max_txpow = add_bss->maxTxPower;
@@ -9754,6 +9836,9 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 				     (const v_VOID_t *) key_info->key[i].key,
 				     key_info->key[i].keyLength);
 
+	        WMA_LOGD("%s: bss key[%d] length %d", __func__, i,
+			key_info->key[i].keyLength);
+
 		buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len);
 		if (!buf) {
 			WMA_LOGE("%s:Failed to setup install key buf", __func__);
@@ -9830,6 +9915,9 @@ static void wma_set_ibsskey_helper(tp_wma_handle wma_handle, tpSetBssKeyParams k
                         vos_mem_copy((v_VOID_t *) key_params.key_data,
                                      (const v_VOID_t *) key_info->key[i].key,
                                      key_info->key[i].keyLength);
+
+                WMA_LOGD("%s: peer bcast key[%d] length %d", __func__, i,
+			key_info->key[i].keyLength);
 
                 buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len);
                 if (!buf) {
@@ -9933,6 +10021,9 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info,
 			key_info->status = eHAL_STATUS_FAILED_ALLOC;
 			goto out;
 		}
+
+	        WMA_LOGD("%s: peer unicast key[%d] %d ", __func__, i,
+			key_info->key[i].keyLength);
 
 		status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 					      WMI_VDEV_INSTALL_KEY_CMDID);
