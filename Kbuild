@@ -1176,16 +1176,26 @@ CDEFINES += -DQCA_CONFIG_SMP
 endif
 endif
 
-#enable wlan auto shutdown feature for mdm9630
+#features specific to mdm9630
 ifeq ($(CONFIG_ARCH_MDM9630), y)
-CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN -DFEATURE_WLAN_MCC_TO_SCC_SWITCH
-endif
+
+#enable MCC TO SCC switch
+CDEFINES += -DFEATURE_WLAN_MCC_TO_SCC_SWITCH
+
+#enable wlan auto shutdown feature for mdm9630
+CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN
+
+#enable for MBSSID
+CDEFINES += -DWLAN_FEATURE_MBSSID
+
+#Green AP feature
+CDEFINES += -DFEATURE_GREEN_AP
+
+else
 
 #Open P2P device interface only for non-MDM9630 platform
-ifeq ($(CONFIG_ARCH_MDM9630), y)
-CDEFINES += -DWLAN_FEATURE_MBSSID
-else
 CDEFINES += -DWLAN_OPEN_P2P_INTERFACE
+
 endif
 
 #Enable Signed firmware support for split binary format

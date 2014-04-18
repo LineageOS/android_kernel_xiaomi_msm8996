@@ -134,7 +134,7 @@ VOS_STATUS hdd_start_trafficMonitor( hdd_adapter_t *pAdapter )
 
     if (0 != status)
     {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
                    "%s: HDD context is not valid", __func__);
         return status;
     }
@@ -174,7 +174,7 @@ VOS_STATUS hdd_stop_trafficMonitor( hdd_adapter_t *pAdapter )
 
     if (-ENODEV == status)
     {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
                    "%s: HDD context is not valid", __func__);
         return status;
     }
@@ -378,7 +378,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    {
       if (pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].count >= HDD_TX_QUEUE_LOW_WATER_MARK)
       {
-          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+          VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
                      "%s: TX queue for Best Effort AC is 3/4th full", __func__);
           pAdapter->aStaInfo[STAId].vosLowResource = VOS_TRUE;
       }
@@ -391,7 +391,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
    if (VOS_TRUE == txSuspended)
    {
-       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+       VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
                   "%s: TX queue full for AC=%d Disable OS TX queue",
                   __func__, ac );
       os_status = NETDEV_TX_BUSY;
@@ -480,7 +480,7 @@ void hdd_softap_tx_resume_timer_expired_handler(void *adapter_context)
 
    if (!pAdapter)
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
                 "%s: INV ARG", __func__);
       /* INVALID ARG */
       return;
@@ -506,7 +506,7 @@ void hdd_softap_tx_resume_cb(void *adapter_context,
 
    if (!pAdapter)
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
                 "%s: INV ARG", __func__);
       /* INVALID ARG */
       return;
@@ -553,7 +553,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       not be reinitialized at this time which will lead crash. */
    if (pHddCtx->isLogpInProgress)
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
                 "%s: LOGP in Progress. Ignore!!!", __func__);
       goto drop_pkt;
    }
@@ -562,7 +562,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
 
-   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
+   VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO,
               "%s: enter", __func__);
 
    if (vos_is_macaddr_broadcast( pDestMacAddress ) ||
@@ -577,13 +577,13 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       STAId = *(v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
       if (STAId == HDD_WLAN_INVALID_STA_ID)
       {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_WARN,
+         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
                     "%s: Failed to find right station", __func__);
          goto drop_pkt;
       }
       else if (FALSE == pAdapter->aStaInfo[STAId].isUsed )
       {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_WARN,
+         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
                     "%s: STA %d is unregistered", __func__, STAId);
          goto drop_pkt;
       }
@@ -591,7 +591,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       if ( (WLANTL_STA_CONNECTED != pAdapter->aStaInfo[STAId].tlSTAState) &&
            (WLANTL_STA_AUTHENTICATED != pAdapter->aStaInfo[STAId].tlSTAState) )
       {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_WARN,
+         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
                     "%s: Station not connected yet", __func__);
          goto drop_pkt;
       }
@@ -599,7 +599,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       {
         if(ntohs(skb->protocol) != HDD_ETHERTYPE_802_1_X)
         {
-            VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_WARN,
+            VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
                        "%s: NON-EAPOL packet in non-Authenticated state", __func__);
             goto drop_pkt;
         }
@@ -669,7 +669,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                                , proto_type
 #endif /* QCA_PKT_PROTO_TRACE */
                                 ) != NULL) {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+        VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
                   "%s: Failed to send packet to txrx for staid:%d",
                   __func__, STAId);
         goto drop_pkt;
@@ -681,7 +681,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
    dev->trans_start = jiffies;
 
-   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit", __func__);
+   VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit", __func__);
 
    return NETDEV_TX_OK;
 
@@ -1731,14 +1731,14 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
    //Sanity check on inputs
    if ((NULL == vosContext) || (NULL == rxBuf))
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Null params being passed", __func__);
+      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"%s: Null params being passed", __func__);
       return VOS_STATUS_E_FAILURE;
    }
 
    pHddCtx = (hdd_context_t *)vos_get_context( VOS_MODULE_ID_HDD, vosContext );
    if ( NULL == pHddCtx )
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __func__);
+      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __func__);
       return VOS_STATUS_E_FAILURE;
    }
 
@@ -1759,7 +1759,8 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
 
    if (skb->dev == NULL) {
 
-      hddLog(VOS_TRACE_LEVEL_FATAL, "ERROR!!Invalid netdevice");
+      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
+                "%s: ERROR!!Invalid netdevice", __func__);
       return VOS_STATUS_E_FAILURE;
    }
    ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
@@ -1783,7 +1784,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
    }
 #endif /* QCA_PKT_PROTO_TRACE */
 
-   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
+   VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO_LOW,
               "%s: send one packet to kernel", __func__);
 
    skb->protocol = eth_type_trans(skb, skb->dev);
@@ -1832,7 +1833,7 @@ VOS_STATUS hdd_softap_rx_mul_packet_cbk(v_VOID_t *vosContext,
       status = hdd_softap_rx_packet_cbk(vosContext, buf, staId);
       if(!VOS_IS_STATUS_SUCCESS(status))
       {
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
                    "%s: RX fail, satus %d", __func__, status);
          return status;
       }
@@ -2108,7 +2109,7 @@ VOS_STATUS hdd_softap_stop_bss( hdd_adapter_t *pAdapter)
     if ((pHddCtx->isLoadInProgress) ||
         (pHddCtx->isUnloadInProgress))
     {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
                    "%s:Loading_unloading in Progress. Ignore!!!",__func__);
         return VOS_STATUS_E_PERM;
     }
