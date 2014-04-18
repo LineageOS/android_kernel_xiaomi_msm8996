@@ -8503,7 +8503,7 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	ol_txrx_pdev_handle pdev;
 	ol_txrx_vdev_handle vdev;
 	struct wma_vdev_start_req req;
-	ol_txrx_peer_handle peer;
+	ol_txrx_peer_handle peer = NULL;
 	struct wma_target_req *msg;
 	u_int8_t vdev_id, peer_id;
 	VOS_STATUS status;
@@ -8578,14 +8578,14 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 			goto send_fail_resp;
 		}
 		WMA_LOGA("IBSS BSS peer created with mac %pM", add_bss->selfMacAddr);
-
-		peer = ol_txrx_find_peer_by_addr(pdev, add_bss->selfMacAddr, &peer_id);
-		if (!peer) {
-			WMA_LOGE("%s Failed to find peer %pM", __func__,
-				add_bss->selfMacAddr);
-			goto send_fail_resp;
-		}
         }
+
+	peer = ol_txrx_find_peer_by_addr(pdev, add_bss->selfMacAddr, &peer_id);
+	if (!peer) {
+		WMA_LOGE("%s Failed to find peer %pM", __func__,
+			add_bss->selfMacAddr);
+		goto send_fail_resp;
+	}
 
 	/* clear leftover ibss keys on bss peer */
 
@@ -8651,7 +8651,9 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	return;
 
 peer_cleanup:
-	wma_remove_peer(wma, add_bss->bssId, vdev_id, peer);
+	if (peer) {
+		wma_remove_peer(wma, add_bss->bssId, vdev_id, peer);
+	}
 send_fail_resp:
 	add_bss->status = VOS_STATUS_E_FAILURE;
 	wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)add_bss, 0);
