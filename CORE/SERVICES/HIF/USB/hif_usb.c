@@ -155,9 +155,6 @@ int HIF_USBDeviceInserted(struct usb_interface *interface, hif_handle_t hif_hdl)
 	return retval;
 }
 
-A_STATUS HIFDiagWriteWARMRESET(struct usb_interface *interface,
-			       A_UINT32 address, A_UINT32 data);
-
 void HIF_USBDeviceDetached(struct usb_interface *interface,
 			   a_uint8_t surprise_removed)
 {
