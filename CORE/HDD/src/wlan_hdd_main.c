@@ -10494,7 +10494,9 @@ static void hdd_bus_bw_compute_cbk(void *phddctx)
                "trigger level %d", vote_level_max);
         pHddCtx->bus_bw_triggered = 1;
         pHddCtx->cur_bus_bw = vote_level_max;
+#ifdef CONFIG_CNSS
         cnss_request_bus_bandwidth(vote_level_max);
+#endif
     }
 
 exit:
@@ -12576,7 +12578,9 @@ void hdd_ch_avoid_cb
        }
    }
 
+#ifdef CONFIG_CNSS
    cnss_set_wlan_unsafe_channel(hdd_ctxt->unsafe_channel_list, hdd_ctxt->unsafe_channel_count);
+#endif
 
    if (hdd_ctxt->unsafe_channel_count) {
        hostapd_adapter = hdd_get_adapter(hdd_ctxt, WLAN_HDD_SOFTAP);
