@@ -1372,12 +1372,18 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 					peer_stats->peer_tx_rate/500;
 			}
 
-			WMA_LOGD("peer tx rate flags:%d nss:%d",
-					node->rate_flags, node->nss);
 			classa_stats->tx_rate_flags = node->rate_flags;
 			/*rx_frag_cnt parameter is currently not used.
 			 *lets use the same parameter to hold the nss value*/
 			classa_stats->rx_frag_cnt = node->nss;
+
+			/* FW returns tx power in intervals of 0.5 dBm
+			   Convert it back to intervals of 1 dBm */
+			classa_stats->max_pwr =
+				 roundup(classa_stats->max_pwr, 2) >> 1;
+			WMA_LOGD("peer tx rate flags:%d nss:%d max_txpwr:%d",
+					node->rate_flags, node->nss,
+					classa_stats->max_pwr);
 		}
 
 		if (node->fw_stats_set & FW_STATS_SET) {
