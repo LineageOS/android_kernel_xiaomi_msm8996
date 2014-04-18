@@ -5247,7 +5247,7 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 
 /**---------------------------------------------------------------------------
 
-  \brief hdd_init_set_sme_config() -
+  \brief hdd_set_sme_config() -
 
    This function initializes the sme configuration parameters
 
@@ -5261,12 +5261,18 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    eHalStatus halStatus;
-   tSmeConfigParams smeConfig;
+   tSmeConfigParams *smeConfig;
 
    hdd_config_t *pConfig = pHddCtx->cfg_ini;
 
-
-   vos_mem_zero( &smeConfig, sizeof( smeConfig ) );
+   smeConfig = vos_mem_malloc(sizeof(*smeConfig));
+   if (NULL == smeConfig)
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+              "%s: unable to allocate smeConfig", __func__);
+      return VOS_STATUS_E_NOMEM;
+   }
+   vos_mem_zero(smeConfig, sizeof(*smeConfig));
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
               "%s bWmmIsEnabled=%d 802_11e_enabled=%d dot11Mode=%d", __func__,
@@ -5276,102 +5282,102 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    /* To Do */
    // set regulatory information here
 
-   smeConfig.csrConfig.RTSThreshold             = pConfig->RTSThreshold;
-   smeConfig.csrConfig.FragmentationThreshold   = pConfig->FragmentationThreshold;
-   smeConfig.csrConfig.shortSlotTime            = pConfig->ShortSlotTimeEnabled;
-   smeConfig.csrConfig.Is11dSupportEnabled      = pConfig->Is11dSupportEnabled;
-   smeConfig.csrConfig.HeartbeatThresh24        = pConfig->HeartbeatThresh24;
+   smeConfig->csrConfig.RTSThreshold             = pConfig->RTSThreshold;
+   smeConfig->csrConfig.FragmentationThreshold   = pConfig->FragmentationThreshold;
+   smeConfig->csrConfig.shortSlotTime            = pConfig->ShortSlotTimeEnabled;
+   smeConfig->csrConfig.Is11dSupportEnabled      = pConfig->Is11dSupportEnabled;
+   smeConfig->csrConfig.HeartbeatThresh24        = pConfig->HeartbeatThresh24;
 
-   smeConfig.csrConfig.phyMode                  = hdd_cfg_xlate_to_csr_phy_mode ( pConfig->dot11Mode );
+   smeConfig->csrConfig.phyMode                  = hdd_cfg_xlate_to_csr_phy_mode ( pConfig->dot11Mode );
 
-   smeConfig.csrConfig.channelBondingMode24GHz  = pConfig->nChannelBondingMode24GHz;
-   smeConfig.csrConfig.channelBondingMode5GHz   = pConfig->nChannelBondingMode5GHz;
-   smeConfig.csrConfig.TxRate                   = pConfig->TxRate;
-   smeConfig.csrConfig.nScanResultAgeCount      = pConfig->ScanResultAgeCount;
-   smeConfig.csrConfig.scanAgeTimeNCNPS         = pConfig->nScanAgeTimeNCNPS;
-   smeConfig.csrConfig.scanAgeTimeNCPS          = pConfig->nScanAgeTimeNCPS;
-   smeConfig.csrConfig.scanAgeTimeCNPS          = pConfig->nScanAgeTimeCNPS;
-   smeConfig.csrConfig.scanAgeTimeCPS           = pConfig->nScanAgeTimeCPS;
-   smeConfig.csrConfig.AdHocChannel24           = pConfig->OperatingChannel;
-   smeConfig.csrConfig.fEnforce11dChannels      = pConfig->fEnforce11dChannels;
-   smeConfig.csrConfig.fSupplicantCountryCodeHasPriority     = pConfig->fSupplicantCountryCodeHasPriority;
-   smeConfig.csrConfig.fEnforceCountryCodeMatch = pConfig->fEnforceCountryCodeMatch;
-   smeConfig.csrConfig.fEnforceDefaultDomain    = pConfig->fEnforceDefaultDomain;
-   smeConfig.csrConfig.bCatRssiOffset           = pConfig->nRssiCatGap;
-   smeConfig.csrConfig.vccRssiThreshold         = pConfig->nVccRssiTrigger;
-   smeConfig.csrConfig.vccUlMacLossThreshold    = pConfig->nVccUlMacLossThreshold;
-   smeConfig.csrConfig.nRoamingTime             = pConfig->nRoamingTime;
-   smeConfig.csrConfig.IsIdleScanEnabled        = pConfig->nEnableIdleScan;
-   smeConfig.csrConfig.nInitialDwellTime        = pConfig->nInitialDwellTime;
-   smeConfig.csrConfig.nActiveMaxChnTime        = pConfig->nActiveMaxChnTime;
-   smeConfig.csrConfig.nActiveMinChnTime        = pConfig->nActiveMinChnTime;
-   smeConfig.csrConfig.nPassiveMaxChnTime       = pConfig->nPassiveMaxChnTime;
-   smeConfig.csrConfig.nPassiveMinChnTime       = pConfig->nPassiveMinChnTime;
-   smeConfig.csrConfig.nActiveMaxChnTimeBtc     = pConfig->nActiveMaxChnTimeBtc;
-   smeConfig.csrConfig.nActiveMinChnTimeBtc     = pConfig->nActiveMinChnTimeBtc;
-   smeConfig.csrConfig.disableAggWithBtc        = pConfig->disableAggWithBtc;
+   smeConfig->csrConfig.channelBondingMode24GHz  = pConfig->nChannelBondingMode24GHz;
+   smeConfig->csrConfig.channelBondingMode5GHz   = pConfig->nChannelBondingMode5GHz;
+   smeConfig->csrConfig.TxRate                   = pConfig->TxRate;
+   smeConfig->csrConfig.nScanResultAgeCount      = pConfig->ScanResultAgeCount;
+   smeConfig->csrConfig.scanAgeTimeNCNPS         = pConfig->nScanAgeTimeNCNPS;
+   smeConfig->csrConfig.scanAgeTimeNCPS          = pConfig->nScanAgeTimeNCPS;
+   smeConfig->csrConfig.scanAgeTimeCNPS          = pConfig->nScanAgeTimeCNPS;
+   smeConfig->csrConfig.scanAgeTimeCPS           = pConfig->nScanAgeTimeCPS;
+   smeConfig->csrConfig.AdHocChannel24           = pConfig->OperatingChannel;
+   smeConfig->csrConfig.fEnforce11dChannels      = pConfig->fEnforce11dChannels;
+   smeConfig->csrConfig.fSupplicantCountryCodeHasPriority     = pConfig->fSupplicantCountryCodeHasPriority;
+   smeConfig->csrConfig.fEnforceCountryCodeMatch = pConfig->fEnforceCountryCodeMatch;
+   smeConfig->csrConfig.fEnforceDefaultDomain    = pConfig->fEnforceDefaultDomain;
+   smeConfig->csrConfig.bCatRssiOffset           = pConfig->nRssiCatGap;
+   smeConfig->csrConfig.vccRssiThreshold         = pConfig->nVccRssiTrigger;
+   smeConfig->csrConfig.vccUlMacLossThreshold    = pConfig->nVccUlMacLossThreshold;
+   smeConfig->csrConfig.nRoamingTime             = pConfig->nRoamingTime;
+   smeConfig->csrConfig.IsIdleScanEnabled        = pConfig->nEnableIdleScan;
+   smeConfig->csrConfig.nInitialDwellTime        = pConfig->nInitialDwellTime;
+   smeConfig->csrConfig.nActiveMaxChnTime        = pConfig->nActiveMaxChnTime;
+   smeConfig->csrConfig.nActiveMinChnTime        = pConfig->nActiveMinChnTime;
+   smeConfig->csrConfig.nPassiveMaxChnTime       = pConfig->nPassiveMaxChnTime;
+   smeConfig->csrConfig.nPassiveMinChnTime       = pConfig->nPassiveMinChnTime;
+   smeConfig->csrConfig.nActiveMaxChnTimeBtc     = pConfig->nActiveMaxChnTimeBtc;
+   smeConfig->csrConfig.nActiveMinChnTimeBtc     = pConfig->nActiveMinChnTimeBtc;
+   smeConfig->csrConfig.disableAggWithBtc        = pConfig->disableAggWithBtc;
 #ifdef WLAN_AP_STA_CONCURRENCY
-   smeConfig.csrConfig.nActiveMaxChnTimeConc    = pConfig->nActiveMaxChnTimeConc;
-   smeConfig.csrConfig.nActiveMinChnTimeConc    = pConfig->nActiveMinChnTimeConc;
-   smeConfig.csrConfig.nPassiveMaxChnTimeConc   = pConfig->nPassiveMaxChnTimeConc;
-   smeConfig.csrConfig.nPassiveMinChnTimeConc   = pConfig->nPassiveMinChnTimeConc;
-   smeConfig.csrConfig.nRestTimeConc            = pConfig->nRestTimeConc;
-   smeConfig.csrConfig.nNumStaChanCombinedConc  = pConfig->nNumStaChanCombinedConc;
-   smeConfig.csrConfig.nNumP2PChanCombinedConc  = pConfig->nNumP2PChanCombinedConc;
+   smeConfig->csrConfig.nActiveMaxChnTimeConc    = pConfig->nActiveMaxChnTimeConc;
+   smeConfig->csrConfig.nActiveMinChnTimeConc    = pConfig->nActiveMinChnTimeConc;
+   smeConfig->csrConfig.nPassiveMaxChnTimeConc   = pConfig->nPassiveMaxChnTimeConc;
+   smeConfig->csrConfig.nPassiveMinChnTimeConc   = pConfig->nPassiveMinChnTimeConc;
+   smeConfig->csrConfig.nRestTimeConc            = pConfig->nRestTimeConc;
+   smeConfig->csrConfig.nNumStaChanCombinedConc  = pConfig->nNumStaChanCombinedConc;
+   smeConfig->csrConfig.nNumP2PChanCombinedConc  = pConfig->nNumP2PChanCombinedConc;
 
 #endif
-   smeConfig.csrConfig.Is11eSupportEnabled      = pConfig->b80211eIsEnabled;
-   smeConfig.csrConfig.WMMSupportMode           = pConfig->WmmMode;
+   smeConfig->csrConfig.Is11eSupportEnabled      = pConfig->b80211eIsEnabled;
+   smeConfig->csrConfig.WMMSupportMode           = pConfig->WmmMode;
 
 #if defined WLAN_FEATURE_VOWIFI
-   smeConfig.rrmConfig.rrmEnabled = pConfig->fRrmEnable;
-   smeConfig.rrmConfig.maxRandnInterval = pConfig->nRrmRandnIntvl;
+   smeConfig->rrmConfig.rrmEnabled = pConfig->fRrmEnable;
+   smeConfig->rrmConfig.maxRandnInterval = pConfig->nRrmRandnIntvl;
 #endif
    //Remaining config params not obtained from registry
    // On RF EVB beacon using channel 1.
 #ifdef WLAN_FEATURE_11AC
-    smeConfig.csrConfig.nVhtChannelWidth = pConfig->vhtChannelWidth;
-    smeConfig.csrConfig.enableTxBF = pConfig->enableTxBF;
-    smeConfig.csrConfig.txBFCsnValue = pConfig->txBFCsnValue;
-    smeConfig.csrConfig.enable2x2 = pConfig->enable2x2;
-    smeConfig.csrConfig.enableVhtFor24GHz = pConfig->enableVhtFor24GHzBand;
-    smeConfig.csrConfig.enableMuBformee = pConfig->enableMuBformee;
-    smeConfig.csrConfig.enableVhtpAid = pConfig->enableVhtpAid;
-    smeConfig.csrConfig.enableVhtGid = pConfig->enableVhtGid;
+   smeConfig->csrConfig.nVhtChannelWidth = pConfig->vhtChannelWidth;
+   smeConfig->csrConfig.enableTxBF = pConfig->enableTxBF;
+   smeConfig->csrConfig.txBFCsnValue = pConfig->txBFCsnValue;
+   smeConfig->csrConfig.enable2x2 = pConfig->enable2x2;
+   smeConfig->csrConfig.enableVhtFor24GHz = pConfig->enableVhtFor24GHzBand;
+   smeConfig->csrConfig.enableMuBformee = pConfig->enableMuBformee;
+   smeConfig->csrConfig.enableVhtpAid = pConfig->enableVhtpAid;
+   smeConfig->csrConfig.enableVhtGid = pConfig->enableVhtGid;
 #endif
-   smeConfig.csrConfig.enableAmpduPs = pConfig->enableAmpduPs;
-   smeConfig.csrConfig.enableHtSmps = pConfig->enableHtSmps;
-   smeConfig.csrConfig.htSmps = pConfig->htSmps;
-   smeConfig.csrConfig.AdHocChannel5G            = pConfig->AdHocChannel5G;
-   smeConfig.csrConfig.AdHocChannel24            = pConfig->AdHocChannel24G;
-   smeConfig.csrConfig.ProprietaryRatesEnabled   = 0;
-   smeConfig.csrConfig.HeartbeatThresh50         = 40;
-   smeConfig.csrConfig.bandCapability            = pConfig->nBandCapability;
+   smeConfig->csrConfig.enableAmpduPs = pConfig->enableAmpduPs;
+   smeConfig->csrConfig.enableHtSmps = pConfig->enableHtSmps;
+   smeConfig->csrConfig.htSmps = pConfig->htSmps;
+   smeConfig->csrConfig.AdHocChannel5G            = pConfig->AdHocChannel5G;
+   smeConfig->csrConfig.AdHocChannel24            = pConfig->AdHocChannel24G;
+   smeConfig->csrConfig.ProprietaryRatesEnabled   = 0;
+   smeConfig->csrConfig.HeartbeatThresh50         = 40;
+   smeConfig->csrConfig.bandCapability            = pConfig->nBandCapability;
    if (pConfig->nBandCapability == eCSR_BAND_24)
    {
-       smeConfig.csrConfig.Is11hSupportEnabled       = 0;
+       smeConfig->csrConfig.Is11hSupportEnabled       = 0;
    } else {
-       smeConfig.csrConfig.Is11hSupportEnabled       = pConfig->Is11hSupportEnabled;
+       smeConfig->csrConfig.Is11hSupportEnabled       = pConfig->Is11hSupportEnabled;
    }
-   smeConfig.csrConfig.cbChoice                  = 0;
-   smeConfig.csrConfig.bgScanInterval            = 0;
-   smeConfig.csrConfig.eBand                     = pConfig->nBandCapability;
-   smeConfig.csrConfig.nTxPowerCap = pConfig->nTxPowerCap;
-   smeConfig.csrConfig.fEnableBypass11d          = pConfig->enableBypass11d;
-   smeConfig.csrConfig.fEnableDFSChnlScan        = pConfig->enableDFSChnlScan;
+   smeConfig->csrConfig.cbChoice                  = 0;
+   smeConfig->csrConfig.bgScanInterval            = 0;
+   smeConfig->csrConfig.eBand                     = pConfig->nBandCapability;
+   smeConfig->csrConfig.nTxPowerCap = pConfig->nTxPowerCap;
+   smeConfig->csrConfig.fEnableBypass11d          = pConfig->enableBypass11d;
+   smeConfig->csrConfig.fEnableDFSChnlScan        = pConfig->enableDFSChnlScan;
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
-   smeConfig.csrConfig.nRoamPrefer5GHz           = pConfig->nRoamPrefer5GHz;
-   smeConfig.csrConfig.nRoamIntraBand            = pConfig->nRoamIntraBand;
-   smeConfig.csrConfig.nProbes                   = pConfig->nProbes;
+   smeConfig->csrConfig.nRoamPrefer5GHz           = pConfig->nRoamPrefer5GHz;
+   smeConfig->csrConfig.nRoamIntraBand            = pConfig->nRoamIntraBand;
+   smeConfig->csrConfig.nProbes                   = pConfig->nProbes;
 
-   smeConfig.csrConfig.nRoamScanHomeAwayTime     = pConfig->nRoamScanHomeAwayTime;
+   smeConfig->csrConfig.nRoamScanHomeAwayTime     = pConfig->nRoamScanHomeAwayTime;
 #endif
-   smeConfig.csrConfig.fFirstScanOnly2GChnl      = pConfig->enableFirstScan2GOnly;
+   smeConfig->csrConfig.fFirstScanOnly2GChnl      = pConfig->enableFirstScan2GOnly;
 
    //FIXME 11d config is hardcoded
    if ( VOS_STA_SAP_MODE != hdd_get_conparam())
    {
-      smeConfig.csrConfig.Csr11dinfo.Channels.numChannels = 0;
+      smeConfig->csrConfig.Csr11dinfo.Channels.numChannels = 0;
 
       /* if there is a requirement that HDD will control the default
        * channel list & country code (say from .ini file) we need to
@@ -5385,12 +5391,12 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
       if (memcmp(pConfig->apCntryCode, CFG_AP_COUNTRY_CODE_DEFAULT, 3) != 0)
          sme_setRegInfo(pHddCtx->hHal, pConfig->apCntryCode);
-      sme_set11dinfo(pHddCtx->hHal, &smeConfig);
+      sme_set11dinfo(pHddCtx->hHal, smeConfig);
    }
 
-   if(!pConfig->enablePowersaveOffload)
+   if (!pConfig->enablePowersaveOffload)
    {
-       hdd_set_power_save_config(pHddCtx, &smeConfig);
+       hdd_set_power_save_config(pHddCtx, smeConfig);
    }
    else
    {
@@ -5400,111 +5406,111 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    hdd_set_btc_config(pHddCtx);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
-   smeConfig.csrConfig.csr11rConfig.IsFTResourceReqSupported = pConfig->fFTResourceReqSupported;
+   smeConfig->csrConfig.csr11rConfig.IsFTResourceReqSupported = pConfig->fFTResourceReqSupported;
 #endif
 #ifdef FEATURE_WLAN_LFR
-   smeConfig.csrConfig.isFastRoamIniFeatureEnabled = pConfig->isFastRoamIniFeatureEnabled;
-   smeConfig.csrConfig.MAWCEnabled = pConfig->MAWCEnabled;
+   smeConfig->csrConfig.isFastRoamIniFeatureEnabled = pConfig->isFastRoamIniFeatureEnabled;
+   smeConfig->csrConfig.MAWCEnabled = pConfig->MAWCEnabled;
 #endif
 #ifdef FEATURE_WLAN_ESE
-   smeConfig.csrConfig.isEseIniFeatureEnabled = pConfig->isEseIniFeatureEnabled;
+   smeConfig->csrConfig.isEseIniFeatureEnabled = pConfig->isEseIniFeatureEnabled;
    if( pConfig->isEseIniFeatureEnabled )
    {
        pConfig->isFastTransitionEnabled = TRUE;
    }
 #endif
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
-   smeConfig.csrConfig.isFastTransitionEnabled = pConfig->isFastTransitionEnabled;
-   smeConfig.csrConfig.RoamRssiDiff = pConfig->RoamRssiDiff;
-   smeConfig.csrConfig.nImmediateRoamRssiDiff = pConfig->nImmediateRoamRssiDiff;
-   smeConfig.csrConfig.isWESModeEnabled = pConfig->isWESModeEnabled;
+   smeConfig->csrConfig.isFastTransitionEnabled = pConfig->isFastTransitionEnabled;
+   smeConfig->csrConfig.RoamRssiDiff = pConfig->RoamRssiDiff;
+   smeConfig->csrConfig.nImmediateRoamRssiDiff = pConfig->nImmediateRoamRssiDiff;
+   smeConfig->csrConfig.isWESModeEnabled = pConfig->isWESModeEnabled;
 #endif
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-   smeConfig.csrConfig.isRoamOffloadScanEnabled = pConfig->isRoamOffloadScanEnabled;
-   smeConfig.csrConfig.bFastRoamInConIniFeatureEnabled = pConfig->bFastRoamInConIniFeatureEnabled;
+   smeConfig->csrConfig.isRoamOffloadScanEnabled = pConfig->isRoamOffloadScanEnabled;
+   smeConfig->csrConfig.bFastRoamInConIniFeatureEnabled = pConfig->bFastRoamInConIniFeatureEnabled;
 
-   if (0 == smeConfig.csrConfig.isRoamOffloadScanEnabled)
+   if (0 == smeConfig->csrConfig.isRoamOffloadScanEnabled)
    {
        /* Disable roaming in concurrency if roam scan offload is disabled */
-       smeConfig.csrConfig.bFastRoamInConIniFeatureEnabled = 0;
+       smeConfig->csrConfig.bFastRoamInConIniFeatureEnabled = 0;
    }
 #endif
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
-   smeConfig.csrConfig.neighborRoamConfig.nNeighborReassocRssiThreshold = pConfig->nNeighborReassocRssiThreshold;
-   smeConfig.csrConfig.neighborRoamConfig.nNeighborLookupRssiThreshold = pConfig->nNeighborLookupRssiThreshold;
-   smeConfig.csrConfig.neighborRoamConfig.nOpportunisticThresholdDiff =
+   smeConfig->csrConfig.neighborRoamConfig.nNeighborReassocRssiThreshold = pConfig->nNeighborReassocRssiThreshold;
+   smeConfig->csrConfig.neighborRoamConfig.nNeighborLookupRssiThreshold = pConfig->nNeighborLookupRssiThreshold;
+   smeConfig->csrConfig.neighborRoamConfig.nOpportunisticThresholdDiff =
        pConfig->nOpportunisticThresholdDiff;
-   smeConfig.csrConfig.neighborRoamConfig.nRoamRescanRssiDiff =
+   smeConfig->csrConfig.neighborRoamConfig.nRoamRescanRssiDiff =
        pConfig->nRoamRescanRssiDiff;
-   smeConfig.csrConfig.neighborRoamConfig.nNeighborScanMaxChanTime = pConfig->nNeighborScanMaxChanTime;
-   smeConfig.csrConfig.neighborRoamConfig.nNeighborScanMinChanTime = pConfig->nNeighborScanMinChanTime;
-   smeConfig.csrConfig.neighborRoamConfig.nNeighborScanTimerPeriod = pConfig->nNeighborScanPeriod;
-   smeConfig.csrConfig.neighborRoamConfig.nMaxNeighborRetries = pConfig->nMaxNeighborReqTries;
-   smeConfig.csrConfig.neighborRoamConfig.nNeighborResultsRefreshPeriod = pConfig->nNeighborResultsRefreshPeriod;
-   smeConfig.csrConfig.neighborRoamConfig.nEmptyScanRefreshPeriod = pConfig->nEmptyScanRefreshPeriod;
+   smeConfig->csrConfig.neighborRoamConfig.nNeighborScanMaxChanTime = pConfig->nNeighborScanMaxChanTime;
+   smeConfig->csrConfig.neighborRoamConfig.nNeighborScanMinChanTime = pConfig->nNeighborScanMinChanTime;
+   smeConfig->csrConfig.neighborRoamConfig.nNeighborScanTimerPeriod = pConfig->nNeighborScanPeriod;
+   smeConfig->csrConfig.neighborRoamConfig.nMaxNeighborRetries = pConfig->nMaxNeighborReqTries;
+   smeConfig->csrConfig.neighborRoamConfig.nNeighborResultsRefreshPeriod = pConfig->nNeighborResultsRefreshPeriod;
+   smeConfig->csrConfig.neighborRoamConfig.nEmptyScanRefreshPeriod = pConfig->nEmptyScanRefreshPeriod;
    hdd_string_to_u8_array( pConfig->neighborScanChanList,
-                                        smeConfig.csrConfig.neighborRoamConfig.neighborScanChanList.channelList,
-                                        &smeConfig.csrConfig.neighborRoamConfig.neighborScanChanList.numChannels,
+                                        smeConfig->csrConfig.neighborRoamConfig.neighborScanChanList.channelList,
+                                        &smeConfig->csrConfig.neighborRoamConfig.neighborScanChanList.numChannels,
                                         WNI_CFG_VALID_CHANNEL_LIST_LEN );
-   smeConfig.csrConfig.neighborRoamConfig.nRoamBmissFirstBcnt = pConfig->nRoamBmissFirstBcnt;
-   smeConfig.csrConfig.neighborRoamConfig.nRoamBmissFinalBcnt = pConfig->nRoamBmissFinalBcnt;
-   smeConfig.csrConfig.neighborRoamConfig.nRoamBeaconRssiWeight = pConfig->nRoamBeaconRssiWeight;
+   smeConfig->csrConfig.neighborRoamConfig.nRoamBmissFirstBcnt = pConfig->nRoamBmissFirstBcnt;
+   smeConfig->csrConfig.neighborRoamConfig.nRoamBmissFinalBcnt = pConfig->nRoamBmissFinalBcnt;
+   smeConfig->csrConfig.neighborRoamConfig.nRoamBeaconRssiWeight = pConfig->nRoamBeaconRssiWeight;
 #endif
 
-   smeConfig.csrConfig.addTSWhenACMIsOff = pConfig->AddTSWhenACMIsOff;
-   smeConfig.csrConfig.fValidateList = pConfig->fValidateScanList;
-   smeConfig.csrConfig.allowDFSChannelRoam = pConfig->allowDFSChannelRoam;
+   smeConfig->csrConfig.addTSWhenACMIsOff = pConfig->AddTSWhenACMIsOff;
+   smeConfig->csrConfig.fValidateList = pConfig->fValidateScanList;
+   smeConfig->csrConfig.allowDFSChannelRoam = pConfig->allowDFSChannelRoam;
 
    //Enable/Disable MCC
-   smeConfig.csrConfig.fEnableMCCMode = pConfig->enableMCC;
-   smeConfig.csrConfig.fAllowMCCGODiffBI = pConfig->allowMCCGODiffBI;
+   smeConfig->csrConfig.fEnableMCCMode = pConfig->enableMCC;
+   smeConfig->csrConfig.fAllowMCCGODiffBI = pConfig->allowMCCGODiffBI;
 
    //Scan Results Aging Time out value
-   smeConfig.csrConfig.scanCfgAgingTime = pConfig->scanAgingTimeout;
+   smeConfig->csrConfig.scanCfgAgingTime = pConfig->scanAgingTimeout;
 
-   smeConfig.csrConfig.enableTxLdpc = pConfig->enableTxLdpc;
+   smeConfig->csrConfig.enableTxLdpc = pConfig->enableTxLdpc;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-   smeConfig.csrConfig.cc_switch_mode = pConfig->WlanMccToSccSwitchMode;
+   smeConfig->csrConfig.cc_switch_mode = pConfig->WlanMccToSccSwitchMode;
 #endif
 
-   smeConfig.csrConfig.isAmsduSupportInAMPDU = pConfig->isAmsduSupportInAMPDU;
-   smeConfig.csrConfig.nSelect5GHzMargin = pConfig->nSelect5GHzMargin;
+   smeConfig->csrConfig.isAmsduSupportInAMPDU = pConfig->isAmsduSupportInAMPDU;
+   smeConfig->csrConfig.nSelect5GHzMargin = pConfig->nSelect5GHzMargin;
 
-   smeConfig.csrConfig.isCoalesingInIBSSAllowed =
+   smeConfig->csrConfig.isCoalesingInIBSSAllowed =
                        pHddCtx->cfg_ini->isCoalesingInIBSSAllowed;
 
 
    /* update SSR config */
    sme_UpdateEnableSSR((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->enableSSR);
    /* Update the Directed scan offload setting */
-   smeConfig.fScanOffload =  pHddCtx->cfg_ini->fScanOffload;
+   smeConfig->fScanOffload =  pHddCtx->cfg_ini->fScanOffload;
 
 #ifdef QCA_WIFI_2_0
    /* Update the p2p listen offload setting */
-   smeConfig.fP2pListenOffload =  pHddCtx->cfg_ini->fP2pListenOffload;
-   smeConfig.csrConfig.scanBandPreference =
+   smeConfig->fP2pListenOffload =  pHddCtx->cfg_ini->fP2pListenOffload;
+   smeConfig->csrConfig.scanBandPreference =
                               pHddCtx->cfg_ini->acsScanBandPreference;
 #endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
    /* Update PNO offoad status */
-   smeConfig.pnoOffload = pHddCtx->cfg_ini->PnoOffload;
+   smeConfig->pnoOffload = pHddCtx->cfg_ini->PnoOffload;
 #endif
 
    /* Update maximum interfaces information */
-   smeConfig.max_intf_count = pHddCtx->max_intf_count;
+   smeConfig->max_intf_count = pHddCtx->max_intf_count;
 
-   smeConfig.fEnableDebugLog = pHddCtx->cfg_ini->gEnableDebugLog;
+   smeConfig->fEnableDebugLog = pHddCtx->cfg_ini->gEnableDebugLog;
 
-   smeConfig.enable5gEBT = pHddCtx->cfg_ini->enable5gEBT;
+   smeConfig->enable5gEBT = pHddCtx->cfg_ini->enable5gEBT;
 
-   halStatus = sme_UpdateConfig( pHddCtx->hHal, &smeConfig);
+   halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {
       status = VOS_STATUS_E_FAILURE;
    }
 
-
+   vos_mem_free(smeConfig);
    return status;
 }
 

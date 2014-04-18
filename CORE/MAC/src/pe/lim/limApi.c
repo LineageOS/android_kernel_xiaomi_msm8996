@@ -769,7 +769,6 @@ limInitialize(tpAniSirGlobal pMac)
 
     vos_trace_setLevel(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR);
 #endif
-    MTRACE(limTraceInit(pMac));
 
     //Initialize the configurations needed by PE
     if( eSIR_FAILURE == __limInitConfig(pMac))
@@ -1035,6 +1034,15 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
         return eSIR_FAILURE;
     }
     pMac->lim.deauthMsgCnt = 0;
+
+    /*
+     * peOpen is successful by now, so it is right time to initialize
+     * MTRACE for PE module. if LIM_TRACE_RECORD is not defined in build file
+     * then nothing will be logged for PE module.
+     */
+#ifdef LIM_TRACE_RECORD
+    MTRACE(limTraceInit(pMac));
+#endif
     return eSIR_SUCCESS;
 }
 

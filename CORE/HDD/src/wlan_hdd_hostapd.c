@@ -89,6 +89,9 @@
 extern int process_wma_set_command(int sessid, int paramid,
                                    int sval, int vpdev);
 #endif /* QCA_WIFI_2_0 */
+#include "wlan_hdd_trace.h"
+#include "vos_types.h"
+#include "vos_trace.h"
 
 #define    IS_UP(_dev) \
     (((_dev)->flags & (IFF_RUNNING|IFF_UP)) == (IFF_RUNNING|IFF_UP))
@@ -127,6 +130,9 @@ int hdd_hostapd_open (struct net_device *dev)
    hdd_adapter_t *pAdapter = netdev_priv(dev);
 
    ENTER();
+
+   MTRACE(vos_trace(VOS_MODULE_ID_HDD,
+                    TRACE_CODE_HDD_HOSTAPD_OPEN_REQUEST, NO_SESSION, 0));
 
    if (WLAN_HDD_GET_CTX(pAdapter)->isLoadInProgress ||
         WLAN_HDD_GET_CTX(pAdapter)->isUnloadInProgress)
@@ -376,7 +382,10 @@ static int hdd_hostapd_ioctl(struct net_device *dev,
       goto exit;
    }
 
-   if ((!ifr) || (!ifr->ifr_data)) {
+   if ((!ifr) || (!ifr->ifr_data))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                FL("ifr or ifr->ifr_data is NULL"));
       ret = -EINVAL;
       goto exit;
    }
@@ -629,7 +638,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 pHostapdAdapter->sessionId =
                         pSapEvent->sapevt.sapStartBssCompleteEvent.sessionId;
                 //@@@ need wep logic here to set privacy bit
-                hdd_softap_Register_BC_STA(pHostapdAdapter, pHddApCtx->uPrivacy);
+                vos_status = hdd_softap_Register_BC_STA(pHostapdAdapter, pHddApCtx->uPrivacy);
+                if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                    hddLog(LOGW, FL("Failed to register BC STA %d"), vos_status);
             }
 #ifdef IPA_OFFLOAD
             if (hdd_ipa_is_enabled(pHddCtx))
@@ -757,6 +768,19 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             }
 #endif
             goto stopbss;
+
+        case eSAP_DFS_CAC_START:
+            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_START_IND);
+            break;
+
+        case eSAP_DFS_CAC_END:
+            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_END_IND);
+            break;
+
+        case eSAP_DFS_RADAR_DETECT:
+            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_RADAR_DETECT_IND);
+            break;
+
         case eSAP_STA_SET_KEY_EVENT:
             //TODO: forward the message to hostapd once implementtation is done for now just print
             hddLog(LOG1, FL("SET Key: configured status = %s"),pSapEvent->sapevt.sapStationSetKeyCompleteEvent.status ?
@@ -816,25 +840,31 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
             if (bAuthRequired || bWPSState == eANI_BOOLEAN_TRUE )
             {
-                hdd_softap_RegisterSTA( pHostapdAdapter,
-                                       TRUE,
-                                       pHddApCtx->uPrivacy,
-                                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staId,
-                                       0,
-                                       0,
-                                       (v_MACADDR_t *)wrqu.addr.sa_data,
-                                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled);
+                vos_status = hdd_softap_RegisterSTA(pHostapdAdapter,
+                                                    TRUE,
+                                                    pHddApCtx->uPrivacy,
+                                                    pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staId,
+                                                    0,
+                                                    0,
+                                                    (v_MACADDR_t *)wrqu.addr.sa_data,
+                                                    pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled);
+                if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                     hddLog(LOGW, FL("Failed to register STA %d "MAC_ADDRESS_STR""),
+                                     vos_status, MAC_ADDR_ARRAY(wrqu.addr.sa_data));
             }
             else
             {
-                hdd_softap_RegisterSTA( pHostapdAdapter,
-                                       FALSE,
-                                       pHddApCtx->uPrivacy,
-                                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staId,
-                                       0,
-                                       0,
-                                       (v_MACADDR_t *)wrqu.addr.sa_data,
-                                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled);
+                vos_status = hdd_softap_RegisterSTA(pHostapdAdapter,
+                                                    FALSE,
+                                                    pHddApCtx->uPrivacy,
+                                                    pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staId,
+                                                    0,
+                                                    0,
+                                                    (v_MACADDR_t *)wrqu.addr.sa_data,
+                                                    pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled);
+                if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                    hddLog(LOGW, FL("Failed to register STA %d "MAC_ADDRESS_STR""),
+                           vos_status, MAC_ADDR_ARRAY(wrqu.addr.sa_data));
             }
 #ifdef IPA_OFFLOAD
             if (hdd_ipa_is_enabled(pHddCtx))
@@ -898,7 +928,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             // Lets do abort scan to ensure smooth authentication for client
             if ((pScanInfo != NULL) && pScanInfo->mScanPending)
             {
-                hdd_abort_mac_scan(pHddCtx, pHostapdAdapter->sessionId);
+                hdd_abort_mac_scan(pHddCtx, pHostapdAdapter->sessionId,
+                                   eCSR_SCAN_ABORT_DEFAULT);
             }
 #ifdef QCA_WIFI_2_0
             if (pHostapdAdapter->device_mode == WLAN_HDD_P2P_GO)
@@ -1001,7 +1032,12 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                             GFP_KERNEL);
 #endif
             //Update the beacon Interval if it is P2P GO
-            hdd_change_mcc_go_beacon_interval(pHostapdAdapter);
+            vos_status = hdd_change_mcc_go_beacon_interval(pHostapdAdapter);
+            if (VOS_STATUS_SUCCESS != vos_status)
+            {
+                hddLog(LOGE, "%s: failed to update Beacon interval %d",
+                       __func__, vos_status);
+            }
 #ifdef QCA_WIFI_2_0
             if (pHostapdAdapter->device_mode == WLAN_HDD_P2P_GO)
             {
@@ -1119,7 +1155,11 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             return VOS_STATUS_SUCCESS;
 
         case eSAP_MAC_TRIG_STOP_BSS_EVENT :
-            hdd_stop_p2p_link(pHostapdAdapter, usrDataForCallback);
+            vos_status = hdd_stop_p2p_link(pHostapdAdapter, usrDataForCallback);
+            if (!VOS_IS_STATUS_SUCCESS(vos_status))
+            {
+                hddLog(LOGW, FL("hdd_stop_p2p_link failed %d"), vos_status);
+            }
             return VOS_STATUS_SUCCESS;
 
         case eSAP_CHANNEL_CHANGE_EVENT:
@@ -1171,7 +1211,9 @@ stopbss :
         hdd_hostapd_stop(dev);
 
         /* reclaim all resources allocated to the BSS */
-        hdd_softap_stop_bss(pHostapdAdapter);
+        vos_status = hdd_softap_stop_bss(pHostapdAdapter);
+        if (!VOS_IS_STATUS_SUCCESS(vos_status))
+            hddLog(LOGW, FL("hdd_softap_stop_bss failed %d"), vos_status);
 
         /* once the event is set, structure dev/pHostapdAdapter should
          * not be touched since they are now subject to being deleted
@@ -1990,6 +2032,8 @@ static iw_softap_getparam(struct net_device *dev,
         status = ccmCfgGetInt(hHal, WNI_CFG_ASSOC_STA_LIMIT, (tANI_U32 *)value);
         if (eHAL_STATUS_SUCCESS != status)
         {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      FL("failed to get WNI_CFG_ASSOC_STA_LIMIT from cfg %d"),status);
             ret = -EIO;
         }
         break;
@@ -2537,7 +2581,7 @@ static iw_softap_commit(struct net_device *dev,
 
     pConfig = kmalloc(sizeof(tsap_Config_t), GFP_KERNEL);
     if(NULL == pConfig) {
-        hddLog(LOG1, "VOS unable to allocate memory");
+        hddLog(LOGE, FL("VOS unable to allocate memory"));
         return -ENOMEM;
     }
     pConfig->beacon_int =  pCommitConfig->beacon_int;
@@ -2703,7 +2747,9 @@ static iw_softap_commit(struct net_device *dev,
     pHostapdState->bCommit = TRUE;
     if(pHostapdState->vosStatus)
     {
-      return -EIO;
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 FL("pHostapdState->vosStatus: %d"), pHostapdState->vosStatus);
+       return -EIO;
     }
     else
     {

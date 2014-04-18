@@ -4200,6 +4200,11 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
 
             /* reset info based on new cc, and we are done */
             csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE, eANI_BOOLEAN_TRUE);
+           /* Regulatory Domain Changed, Purge Only scan result
+            * which does not have channel number belong to 11d
+            * channel list
+            */
+            csrScanFilter11dResult(pMac);
         }
 #endif
         fRet = eANI_BOOLEAN_TRUE;
@@ -7874,7 +7879,8 @@ eHalStatus csrProcessSetBGScanParam(tpAniSirGlobal pMac, tSmeCmd *pCommand)
 }
 
 
-eHalStatus csrScanAbortMacScan(tpAniSirGlobal pMac, tANI_U8 sessionId)
+eHalStatus csrScanAbortMacScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
+                               eCsrAbortReason reason)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tSirSmeScanAbortReq *pMsg;
@@ -8054,7 +8060,7 @@ eHalStatus csrScanAbortMacScanNotForConnect(tpAniSirGlobal pMac,
     if( !csrIsScanForRoamCommandActive( pMac ) )
     {
         //Only abort the scan if it is not used for other roam/connect purpose
-        status = csrScanAbortMacScan(pMac, sessionId);
+        status = csrScanAbortMacScan(pMac, sessionId, eCSR_SCAN_ABORT_DEFAULT);
     }
 
     return (status);
