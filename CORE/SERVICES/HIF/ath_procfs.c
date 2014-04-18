@@ -84,7 +84,7 @@ static ssize_t ath_procfs_diag_read(struct file *file, char __user *buf,
 	}
 
 	hif_hdl = get_hif_hdl_from_file(file);
-	pr_debug("rd buff 0x%p cnt %d offset 0x%x buf 0x%p\n",
+	pr_debug("rd buff 0x%p cnt %zu offset 0x%x buf 0x%p\n",
 			read_buffer,count,
 			(int)*pos, buf);
 
@@ -123,13 +123,13 @@ static ssize_t ath_procfs_diag_write(struct file *file, const char __user *buf,
 		return -EINVAL;
 	}
 	if(copy_from_user(write_buffer, buf, count)) {
-        vos_mem_free(write_buffer);
+		vos_mem_free(write_buffer);
 		return -EFAULT;
-    }
+	}
 
 	hif_hdl = get_hif_hdl_from_file(file);
-	pr_debug("wr buff 0x%p buf 0x%p cnt %d offset 0x%x value 0x%x\n",
-			write_buffer, buf, (int)count,
+	pr_debug("wr buff 0x%p buf 0x%p cnt %zu offset 0x%x value 0x%x\n",
+			write_buffer, buf, count,
 			(int)*pos, *((A_UINT32 *)write_buffer));
 
 	if ((count == 4) && ((((A_UINT32)(*pos)) & 3) == 0)) {
