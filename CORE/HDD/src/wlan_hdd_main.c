@@ -8512,6 +8512,8 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 
    ENTER();
 
+   netif_tx_disable(pAdapter->dev);
+   netif_carrier_off(pAdapter->dev);
    switch(pAdapter->device_mode)
    {
       case WLAN_HDD_INFRA_STATION:
@@ -8722,11 +8724,7 @@ VOS_STATUS hdd_stop_all_adapters( hdd_context_t *pHddCtx )
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
       pAdapter = pAdapterNode->pAdapter;
-      netif_tx_disable(pAdapter->dev);
-      netif_carrier_off(pAdapter->dev);
-
       hdd_stop_adapter( pHddCtx, pAdapter );
-
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
