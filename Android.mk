@@ -3,8 +3,8 @@
 # Assume no targets will be supported
 WLAN_CHIPSET :=
 
-# Build/Package options for 8084/8092 target
-ifeq ($(call is-board-platform-in-list, apq8084 mpq8092),true)
+# Build/Package options for 8084/8092/8960 target
+ifeq ($(call is-board-platform-in-list, apq8084 mpq8092 msm8960),true)
 	WLAN_CHIPSET     := qca_cld
 	WLAN_SELECT      := CONFIG_QCA_CLD_WLAN=m
 	WLAN_ISOC_SELECT := CONFIG_QCA_WIFI_ISOC=0
