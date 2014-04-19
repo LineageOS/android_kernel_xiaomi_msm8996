@@ -5147,6 +5147,12 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
                                    wmi_start_scan_cmd_fixed_param *scan_params)
 {
     tANI_U8 channels_per_burst = 0;
+
+    if (NULL == pMac) {
+        WMA_LOGE("%s: pMac is NULL", __func__);
+        return;
+    }
+
     vos_mem_zero(scan_params, sizeof(wmi_start_scan_cmd_fixed_param));
     if (roam_req != NULL) {
         /* Parameters updated after association is complete */
@@ -5385,6 +5391,12 @@ VOS_STATUS wma_roam_scan_offload_end_connect(tp_wma_handle wma_handle)
                 wma_handle->vos_context);
     wmi_start_scan_cmd_fixed_param scan_params;
 
+    if (NULL == pMac)
+    {
+        WMA_LOGE("%s: pMac is NULL", __func__);
+        return VOS_STATUS_E_FAILURE;
+    }
+
     /* If roam scan is running, stop it */
     if (wma_handle->roam_offload_enabled) {
 
@@ -5411,6 +5423,13 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
     u_int32_t mode = 0;
 
     WMA_LOGI("%s: command 0x%x", __func__, roam_req->Command);
+
+    if (NULL == pMac)
+    {
+        WMA_LOGE("%s: pMac is NULL", __func__);
+        return VOS_STATUS_E_FAILURE;
+    }
+
     if (!wma_handle->roam_offload_enabled) {
 	/* roam scan offload is not enabled in firmware.
 	 * Cannot initialize it in the middle of connection.
