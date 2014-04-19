@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -150,7 +150,10 @@ struct ol_softc {
     struct hif_pci_softc    *hif_sc;
 #elif defined(HIF_USB)
     struct hif_usb_softc    *hif_sc;
+#else
+    struct ath_hif_sdio_softc    *hif_sc;
 #endif
+
     /* HTC handles */
     void                    *htc_handle;
 

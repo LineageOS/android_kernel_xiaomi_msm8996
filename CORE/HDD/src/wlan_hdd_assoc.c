@@ -694,6 +694,7 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 #endif
 
 #ifdef MSM_PLATFORM
+#ifdef CONFIG_CNSS
         /* start timer in sta/p2p_cli */
         spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
         pHddCtx->sta_cnt++;
@@ -705,6 +706,7 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         if (1 == pHddCtx->sta_cnt)
             hdd_start_bus_bw_compute_timer(pAdapter);
         spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
+#endif
 #endif
     }
     else if (eConnectionState_IbssConnected == pHddStaCtx->conn_info.connState) // IBss Associated

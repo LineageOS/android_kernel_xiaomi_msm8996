@@ -955,6 +955,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 #endif
 
 #ifdef MSM_PLATFORM
+#ifdef CONFIG_CNSS
             /* start timer in sap/p2p_go */
             spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
             pHddCtx->sta_cnt++;
@@ -966,6 +967,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             if (1 == pHddCtx->sta_cnt)
                 hdd_start_bus_bw_compute_timer(pHostapdAdapter);
             spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
+#endif
 #endif
 
 #ifdef FEATURE_GREEN_AP

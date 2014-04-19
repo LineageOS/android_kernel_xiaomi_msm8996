@@ -100,6 +100,8 @@
 #include "if_pci.h"
 #elif defined(HIF_USB)
 #include "if_usb.h"
+#elif defined(HIF_SDIO)
+#include "if_ath_sdio.h"
 #endif
 #endif
 #define HDD_SSR_BRING_UP_TIME 180000

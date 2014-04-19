@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013,2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -25,39 +25,23 @@
  * to the Linux Foundation.
  */
 
-#ifndef QWLAN_VERSION_H
-#define QWLAN_VERSION_H
-/*===========================================================================
+//==============================================================================
+// HIF specific declarations and prototypes
+//
+// Author(s): ="Atheros"
+//==============================================================================
+#ifndef _HIF_TRACE_H_
+#define _HIF_TRACE_H_
 
-FILE:
-   qwlan_version.h
-
-BRIEF DESCRIPTION:
-   WLAN Host Version file.
-   Build number automaticly updated by build scripts.
-
-===========================================================================*/
-
-#define QWLAN_VERSION_MAJOR            1
-#define QWLAN_VERSION_MINOR            0
-#define QWLAN_VERSION_PATCH            0
-#define QWLAN_VERSION_EXTRA            ""
-#define QWLAN_VERSION_BUILD            96
-
-#define QWLAN_VERSIONSTR               "1.0.0.96A"
-
-#ifdef QCA_WIFI_2_0
-
-#define AR6320_REV1_VERSION             0x5000000
-#define AR6320_REV1_1_VERSION           0x5000001
-#define AR6320_REV1_3_VERSION           0x5000003
-#define AR6320_REV2_1_VERSION           0x5010000
-
-struct qwlan_hw {
-    unsigned long id;
-    const char *name;
-};
-
+#include "vos_trace.h"
+#ifdef ENTER
+#undef ENTER
 #endif
+#define ENTER(fmt,...) VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_INFO, "Enter: %s "fmt, __FUNCTION__,## __VA_ARGS__)
 
-#endif /* QWLAN_VERSION_H */
+#ifdef EXIT
+#undef EXIT
+#endif
+#define EXIT(fmt,...) VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_INFO, "Exit: %s "fmt, __FUNCTION__,## __VA_ARGS__)
+
+#endif //_HIF_TRACE_H_

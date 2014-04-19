@@ -38,8 +38,11 @@
 #include "if_pci.h"
 #elif defined(HIF_USB)
 #include "if_usb.h"
-#endif
+#else
+#include "if_ath_sdio.h"
 #include "regtable.h"
+#endif
+
 
 #define ATH_MODULE_NAME bmi
 #include "a_debug.h"
@@ -51,6 +54,7 @@
 #include <net/cnss.h>
 #endif
 
+#ifdef HIF_PCI
 static u_int32_t refclk_speed_to_hz[] = {
 	48000000, /* SOC_REFCLK_48_MHZ */
 	19200000, /* SOC_REFCLK_19_2_MHZ */
@@ -61,7 +65,11 @@ static u_int32_t refclk_speed_to_hz[] = {
 	40000000, /* SOC_REFCLK_40_MHZ */
 	52000000, /* SOC_REFCLK_52_MHZ */
 };
+#endif
 
+#ifdef HIF_SDIO
+static A_STATUS ol_sdio_extra_initialization(struct ol_softc *scn);
+#endif
 extern int
 dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *datap, u_int32_t len);
 
@@ -612,6 +620,10 @@ end:
 
 	release_firmware(fw_entry);
 
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+		"%s: transferring file: %s size %d bytes done!", __func__,
+		(filename!=NULL)?filename:"", fw_entry_size);
+
 	return status;
 }
 
@@ -637,6 +649,7 @@ u_int32_t host_interest_item_address(u_int32_t target_type, u_int32_t item_offse
 }
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#ifdef HIF_PCI
 int dump_CE_register(struct ol_softc *scn)
 {
 #ifdef HIF_USB
@@ -672,6 +685,7 @@ int dump_CE_register(struct ol_softc *scn)
 
 	return EOK;
 }
+#endif
 #endif
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
@@ -949,6 +963,7 @@ ol_configure_target(struct ol_softc *scn)
 		}
 	}
 
+#if defined(HIF_PCI)
 #if (CONFIG_DISABLE_CDC_MAX_PERF_WAR)
 	{
 		/* set the firmware to disable CDC max perf WAR */
@@ -973,6 +988,7 @@ ol_configure_target(struct ol_softc *scn)
 	}
 #endif /* CONFIG_CDC_MAX_PERF_WAR */
 
+#endif /*HIF_PCI*/
 	/* If host is running on a BE CPU, set the host interest area */
 	{
 #ifdef BIG_ENDIAN_HOST
@@ -1014,6 +1030,7 @@ ol_check_dataset_patch(struct ol_softc *scn, u_int32_t *address)
 }
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#ifdef HIF_PCI
 
 A_STATUS ol_fw_populate_clk_settings(A_refclk_speed_t refclk,
 				struct cmnos_clock_s *clock_s)
@@ -1373,6 +1390,7 @@ A_STATUS ol_patch_pll_switch(struct ol_softc * scn)
 	return status;
 }
 #endif
+#endif
 
 int ol_download_firmware(struct ol_softc *scn)
 {
@@ -1479,11 +1497,27 @@ int ol_download_firmware(struct ol_softc *scn)
 	}
 
 	if (scn->enableuartprint) {
-		if ((scn->target_version == AR6320_REV1_VERSION) || (scn->target_version == AR6320_REV1_1_VERSION))
-			param = 6;
-		else
+		switch (scn->target_version){
+			case AR6004_VERSION_REV1_3:
+				param = 11;
+				break;
+			case AR6320_REV1_VERSION:
+			case AR6320_REV2_VERSION:
+			case AR6320_REV3_VERSION:
+			case AR6320_REV4_VERSION:
+			case AR6320_DEV_VERSION:
+			/* for SDIO, debug uart output gpio is 29, otherwise it is 6. */
+#ifdef HIF_SDIO
+				param = 19;
+#else
+				param = 6;
+#endif
+				break;
+			default:
 			/* Configure GPIO AR9888 UART */
-			param = 7;
+				param = 7;
+			}
+
 		BMIWriteMemory(scn->hif_hdl,
 				host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_dbg_uart_txpin)),
 				(u_int8_t *)&param, 4, scn);
@@ -1501,6 +1535,17 @@ int ol_download_firmware(struct ol_softc *scn)
 				host_interest_item_address(scn->target_type, offsetof(struct host_interest_s,hi_serial_enable)),
 				(u_int8_t *)&param, 4, scn);
 	}
+
+#ifdef HIF_SDIO
+	/* HACK override dbg TX pin to avoid side effects of default GPIO_6 */
+	param = 19;
+	BMIWriteMemory(scn->hif_hdl,
+		host_interest_item_address(scn->target_type,
+		offsetof(struct host_interest_s,
+		hi_dbg_uart_txpin)),
+		(u_int8_t *)&param, 4, scn);
+#endif
+
 
 	if (scn->enablefwlog) {
 		BMIReadMemory(scn->hif_hdl,
@@ -1526,10 +1571,15 @@ int ol_download_firmware(struct ol_softc *scn)
 				(u_int8_t *)&param, 4, scn);
 	}
 
-	return EOK;
+#ifdef HIF_SDIO
+	status = ol_sdio_extra_initialization(scn);
+#endif
+
+	return status;
 }
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#ifdef HIF_PCI
 int ol_diag_read(struct ol_softc *scn, u_int8_t *buffer,
 	u_int32_t pos, size_t count)
 {
@@ -1758,6 +1808,7 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 	return ret;
 }
 #endif
+#endif
 
 #if defined(CONFIG_HL_SUPPORT)
 #define MAX_SUPPORTED_PEERS_REV1_1 8
@@ -1789,3 +1840,81 @@ u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)
 	}
 	return max_no_of_peers;
 }
+
+#ifdef HIF_SDIO
+/*Setting SDIO block size, mbox ISR yield limit for SDIO based HIF*/
+static A_STATUS
+ol_sdio_extra_initialization(struct ol_softc *scn)
+{
+
+	A_STATUS status;
+
+#ifdef CONFIG_DISABLE_SLEEP_BMI_OPTION
+	uint32 value;
+#endif
+
+	do{
+		A_UINT32 blocksizes[HTC_MAILBOX_NUM_MAX];
+		unsigned int MboxIsrYieldValue = 99;
+		A_UINT32 TargetType = TARGET_TYPE_AR6320;
+		/* get the block sizes */
+		status = HIFConfigureDevice(scn->hif_hdl, HIF_DEVICE_GET_MBOX_BLOCK_SIZE,
+									blocksizes, sizeof(blocksizes));
+
+		if (A_FAILED(status)) {
+			printk("Failed to get block size info from HIF layer...\n");
+			break;
+		}
+			/* note: we actually get the block size for mailbox 1, for SDIO the block
+						size on mailbox 0 is artificially set to 1 must be a power of 2 */
+		A_ASSERT((blocksizes[1] & (blocksizes[1] - 1)) == 0);
+
+		/* set the host interest area for the block size */
+		status = BMIWriteMemory(scn->hif_hdl,
+					HOST_INTEREST_ITEM_ADDRESS(TargetType, hi_mbox_io_block_sz),
+					(A_UCHAR *)&blocksizes[1],
+					4,
+					scn);
+
+		if (A_FAILED(status)) {
+			printk("BMIWriteMemory for IO block size failed \n");
+			break;
+		}
+
+		if (MboxIsrYieldValue != 0) {
+				/* set the host interest area for the mbox ISR yield limit */
+			status = BMIWriteMemory(scn->hif_hdl,
+						HOST_INTEREST_ITEM_ADDRESS(TargetType,
+						hi_mbox_isr_yield_limit),
+						(A_UCHAR *)&MboxIsrYieldValue,
+						4,
+						scn);
+
+			if (A_FAILED(status)) {
+				printk("BMIWriteMemory for yield limit failed \n");
+				break;
+			}
+		}
+
+#ifdef CONFIG_DISABLE_SLEEP_BMI_OPTION
+
+		printk("%s: prevent ROME from sleeping\n",__func__);
+		BMIReadSOCRegister(scn->hif_hdl,
+			MBOX_BASE_ADDRESS + LOCAL_SCRATCH_OFFSET,
+			/* this address should be 0x80C0 for ROME*/
+			&value,
+			scn);
+
+		value |= SOC_OPTION_SLEEP_DISABLE;
+
+		BMIWriteSOCRegister(scn->hif_hdl,
+			MBOX_BASE_ADDRESS + LOCAL_SCRATCH_OFFSET,
+			value,
+			scn);
+#endif
+
+	}while(FALSE);
+
+	return status;
+}
+#endif

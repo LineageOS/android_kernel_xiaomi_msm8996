@@ -112,8 +112,7 @@
 #endif /* QCA_PKT_PROTO_TRACE */
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-extern void hdd_suspend_wlan(struct early_suspend *wlan_suspend);
-extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
+#include "wlan_hdd_cfg80211.h"
 #endif
 
 #ifdef FEATURE_OEM_DATA_SUPPORT

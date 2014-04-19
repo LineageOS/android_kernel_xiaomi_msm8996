@@ -92,6 +92,8 @@
 #include "if_pci.h"
 #elif defined(HIF_USB)
 #include "if_usb.h"
+#elif defined(HIF_SDIO)
+#include "if_ath_sdio.h"
 #endif
 #else
 #include "htc_api.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Qualcomm Atheros, Inc.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -36,7 +36,7 @@
 #include <linux/vmalloc.h>
 #if defined(HIF_USB)
 #include <linux/usb.h>
-#else
+#elif defined(HIF_PCI)
 #include <linux/pci.h> /* pci_alloc_consistent */
 #endif
 #else
@@ -88,7 +88,12 @@ __adf_os_mem_alloc_consistent(
     *paddr = ((adf_os_dma_addr_t) vaddr);
     return vaddr;
 #else
-    return dma_alloc_coherent(osdev->dev, size, paddr, GFP_KERNEL);
+    void* alloc_mem = NULL;
+    alloc_mem = dma_alloc_coherent(osdev->dev, size, paddr, GFP_KERNEL);
+    if (alloc_mem == NULL)
+        pr_err("%s Warning: unable to alloc consistent memory of size %d!\n",
+            __func__, size);
+    return alloc_mem;
 #endif
 }
 

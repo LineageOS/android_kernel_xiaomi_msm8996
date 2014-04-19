@@ -903,7 +903,12 @@ vos_reg_apply_beaconing_flags(struct wiphy *wiphy,
             continue;
 
          if (initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0))
+            freq_reg_info(wiphy, MHZ_TO_KHZ(ch->center_freq),
+                        0, &reg_rule);
+#else
             reg_rule = freq_reg_info(wiphy, MHZ_TO_KHZ(ch->center_freq));
+#endif
             if (IS_ERR(reg_rule))
                continue;
             /*
@@ -966,7 +971,13 @@ vos_reg_apply_active_scan_flags(struct wiphy *wiphy,
     */
 
    ch = &sband->channels[11]; /* CH 12 */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0))
+            freq_reg_info(wiphy, MHZ_TO_KHZ(ch->center_freq),
+                        0, &reg_rule);
+#else
    reg_rule = freq_reg_info(wiphy, MHZ_TO_KHZ(ch->center_freq));
+#endif
+
    if (!IS_ERR(reg_rule)) {
       if (!(reg_rule->flags & NL80211_RRF_PASSIVE_SCAN))
          if (ch->flags & IEEE80211_CHAN_PASSIVE_SCAN)
@@ -974,7 +985,12 @@ vos_reg_apply_active_scan_flags(struct wiphy *wiphy,
    }
 
    ch = &sband->channels[12]; /* CH 13 */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0))
+            freq_reg_info(wiphy, MHZ_TO_KHZ(ch->center_freq),
+                        0, &reg_rule);
+#else
    reg_rule = freq_reg_info(wiphy, MHZ_TO_KHZ(ch->center_freq));
+#endif
    if (!IS_ERR(reg_rule)) {
       if (!(reg_rule->flags & NL80211_RRF_PASSIVE_SCAN))
          if (ch->flags & IEEE80211_CHAN_PASSIVE_SCAN)

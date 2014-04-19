@@ -6,6 +6,14 @@ else
 	KERNEL_BUILD := 0
 endif
 
+ifeq ($(CONFIG_CLD_HL_SDIO_CORE), y)
+	CONFIG_QCA_WIFI_SDIO := 1
+endif
+
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+	CONFIG_ROME_IF = sdio
+endif
+
 ifndef CONFIG_ROME_IF
 	#use pci as default interface
 	CONFIG_ROME_IF = pci
@@ -37,6 +45,9 @@ ifeq ($(KERNEL_BUILD), 0)
 		CONFIG_PRIMA_WLAN_11AC_HIGH_TP := y
 	endif
 	ifeq ($(CONFIG_ROME_IF),usb)
+		CONFIG_PRIMA_WLAN_11AC_HIGH_TP := n
+	endif
+	ifeq ($(CONFIG_ROME_IF),sdio)
 		CONFIG_PRIMA_WLAN_11AC_HIGH_TP := n
 	endif
 	#Flag to enable TDLS feature
@@ -95,12 +106,19 @@ endif
 ifeq ($(CONFIG_ROME_IF),usb)
 	CONFIG_ATH_11AC_TXCOMPACT := 0
 endif
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+CONFIG_ATH_11AC_TXCOMPACT := 0
+endif
 
 #Enable OS specific IRQ abstraction
 CONFIG_ATH_SUPPORT_SHARED_IRQ := 1
 
 #Enable message based HIF instead of RAW access in BMI
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+CONFIG_HIF_MESSAGE_BASED := 0
+else
 CONFIG_HIF_MESSAGE_BASED := 1
+endif
 
 #Enable PCI specific APIS (dma, etc)
 ifeq ($(CONFIG_ROME_IF),pci)
@@ -117,6 +135,19 @@ ifeq ($(CONFIG_ROME_IF),pci)
 endif
 ifeq ($(CONFIG_ROME_IF),usb)
 #CONFIG_ATH_PCI := 1
+endif
+
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+CONFIG_HIF_PCI := 0
+else
+CONFIG_HIF_PCI := 1
+endif
+
+#Enable pci read/write config functions
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+CONFIG_ATH_PCI := 0
+else
+CONFIG_ATH_PCI := 1
 endif
 
 #Enable IBSS support on CLD
@@ -227,6 +258,41 @@ BAP_OBJS := 	$(BAP_SRC_DIR)/bapApiData.o \
 		$(BAP_SRC_DIR)/btampFsm.o \
 		$(BAP_SRC_DIR)/btampHCI.o
 
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+############ HIF ############
+HIF_COMMON_DIR := CORE/SERVICES/HIF/common
+HIF_COMMON_OBJS := $(HIF_COMMON_DIR)/hif_bmi_reg_access.o \
+                   $(HIF_COMMON_DIR)/hif_diag_reg_access.o
+
+HIF_SDIO_DIR := CORE/SERVICES/HIF/sdio
+HIF_SDIO_OBJS := $(HIF_SDIO_DIR)/hif_sdio_send.o \
+                 $(HIF_SDIO_DIR)/hif_sdio_dev.o \
+                 $(HIF_SDIO_DIR)/hif_sdio.o \
+                 $(HIF_SDIO_DIR)/hif_sdio_recv.o \
+                 $(HIF_SDIO_DIR)/regtable.o \
+
+HIF_SDIO_LINUX_DIR := $(HIF_SDIO_DIR)/linux
+HIF_SDIO_LINUX_OBJS := $(HIF_SDIO_LINUX_DIR)/if_ath_sdio.o
+
+
+HIF_SDIO_NATIVE_DIR := $(HIF_SDIO_LINUX_DIR)/native_sdio
+HIF_SDIO_NATIVE_INC_DIR := $(HIF_SDIO_NATIVE_DIR)/include
+HIF_SDIO_NATIVE_SRC_DIR := $(HIF_SDIO_NATIVE_DIR)/src
+
+HIF_SDIO_NATIVE_OBJS := $(HIF_SDIO_NATIVE_SRC_DIR)/hif.o \
+                        $(HIF_SDIO_NATIVE_SRC_DIR)/hif_scatter.o
+
+HIF_INC := -I$(WLAN_ROOT)/$(HIF_COMMON_DIR) \
+           -I$(WLAN_ROOT)/$(HIF_SDIO_DIR) \
+           -I$(WLAN_ROOT)/$(HIF_SDIO_LINUX_DIR) \
+           -I$(WLAN_ROOT)/$(HIF_SDIO_NATIVE_INC_DIR) \
+           -I$(WLAN_ROOT)/$(HIF_SDIO_NATIVE_SRC_DIR)
+
+HIF_OBJS := $(HIF_COMMON_OBJS)\
+            $(HIF_SDIO_OBJS)\
+            $(HIF_SDIO_LINUX_OBJS)\
+            $(HIF_SDIO_NATIVE_OBJS)
+else
 ############ DXE ############
 DXE_DIR :=	CORE/DXE
 DXE_INC_DIR :=	$(DXE_DIR)/inc
@@ -259,6 +325,7 @@ HIF_DXE_OBJS:=  $(HIF_DXE_DIR)/hif_dxe.o \
 
 DXE_INC += $(HIF_DXE_INC)
 DXE_OBJS := $(HIF_DXE_OBJS)
+endif
 endif
 endif
 
@@ -661,6 +728,7 @@ HTC_OBJS := $(HTC_DIR)/htc.o \
             $(HTC_DIR)/htc_services.o
 endif
 
+ifneq ($(CONFIG_QCA_WIFI_SDIO), 1)
 ########### HIF ###########
 HIF_DIR := CORE/SERVICES/HIF
 ifeq ($(CONFIG_HIF_PCI), 1)
@@ -690,6 +758,7 @@ HIF_USB_OBJS := $(HIF_USB_DIR)/usbdrv.o \
                  $(HIF_USB_DIR)/if_usb.o
 
 HIF_OBJS += $(HIF_USB_OBJS)
+endif
 endif
 
 ############ WMA ############
@@ -918,6 +987,13 @@ CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
                 -DQCA_SUPPORT_TXRX_VDEV_PAUSE_LL \
 		-DQCA_SUPPORT_TX_THROTTLE_LL \
 		-DWMI_INTERFACE_EVENT_LOGGING\
+
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+CDEFINES +=     -DCONFIG_HL_SUPPORT \
+                -DCONFIG_AR6320_SUPPORT \
+                -DSDIO_3_0 \
+                -DHIF_SDIO
+endif
 
 ifeq ($(CONFIG_ARCH_MSM), y)
 CDEFINES += -DMSM_PLATFORM
