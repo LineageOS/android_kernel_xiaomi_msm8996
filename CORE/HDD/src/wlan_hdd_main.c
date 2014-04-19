@@ -288,6 +288,265 @@ VOS_STATUS hdd_parse_get_cckm_ie(tANI_U8 *pValue,
                                  tANI_U8 *pCckmIeLen);
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 
+#ifdef FEATURE_GREEN_AP
+
+static void hdd_wlan_green_ap_timer_fn(void *phddctx)
+{
+    hdd_context_t *pHddCtx = (hdd_context_t *)phddctx;
+    hdd_green_ap_ctx_t *green_ap;
+
+    if (0 != wlan_hdd_validate_context(pHddCtx))
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is not valid", __func__);
+        return;
+    }
+    green_ap = pHddCtx->green_ap_ctx;
+
+    if (green_ap)
+        hdd_wlan_green_ap_mc(pHddCtx, green_ap->ps_event);
+}
+
+static VOS_STATUS hdd_wlan_green_ap_attach(hdd_context_t *pHddCtx)
+{
+    hdd_green_ap_ctx_t *green_ap;
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+    ENTER();
+
+    green_ap = vos_mem_malloc(sizeof(hdd_green_ap_ctx_t));
+
+    if (!green_ap) {
+        hddLog(LOGP, FL("Memory allocation for Green-AP failed!"));
+        status = VOS_STATUS_E_NOMEM;
+        goto error;
+    }
+
+    vos_mem_zero((void *)green_ap, sizeof(*green_ap));
+    green_ap->pHddContext = pHddCtx;
+    pHddCtx->green_ap_ctx = green_ap;
+
+    green_ap->ps_state = GREEN_AP_PS_OFF_STATE;
+    green_ap->ps_event = 0;
+    green_ap->num_nodes = 0;
+    green_ap->ps_on_time = GREEN_AP_PS_ON_TIME;
+    green_ap->ps_delay_time = GREEN_AP_PS_DELAY_TIME;
+
+    vos_timer_init(&green_ap->ps_timer,
+            VOS_TIMER_TYPE_SW,
+            hdd_wlan_green_ap_timer_fn,
+            (void *)pHddCtx);
+
+error:
+
+    EXIT();
+    return status;
+}
+
+static VOS_STATUS hdd_wlan_green_ap_deattach(hdd_context_t *pHddCtx)
+{
+    hdd_green_ap_ctx_t *green_ap = pHddCtx->green_ap_ctx;
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+    ENTER();
+
+    if (green_ap == NULL) {
+        hddLog(LOG1, FL("Green-AP is not enabled"));
+        status = VOS_STATUS_E_NOSUPPORT;
+        goto done;
+    }
+
+    /* check if the timer status is destroyed */
+    if (VOS_TIMER_STATE_RUNNING ==
+            vos_timer_getCurrentState(&green_ap->ps_timer))
+    {
+        vos_timer_stop(&green_ap->ps_timer);
+    }
+
+    /* Destroy the Green AP timer */
+    if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
+                    &green_ap->ps_timer)))
+    {
+        hddLog(LOG1, FL("Cannot deallocate Green-AP's timer"));
+    }
+
+    /* release memory */
+    vos_mem_zero((void *)green_ap, sizeof(*green_ap));
+    vos_mem_free(green_ap);
+    pHddCtx->green_ap_ctx = NULL;
+
+done:
+
+    EXIT();
+    return status;
+}
+
+static void hdd_wlan_green_ap_update(hdd_context_t *pHddCtx,
+    hdd_green_ap_ps_state_t state,
+    hdd_green_ap_event_t event)
+{
+    hdd_green_ap_ctx_t *green_ap = pHddCtx->green_ap_ctx;
+
+    green_ap->ps_state = state;
+    green_ap->ps_event = event;
+}
+
+int hdd_wlan_green_ap_enable(hdd_adapter_t *pHostapdAdapter,
+        v_U8_t enable)
+{
+    int ret = 0;
+
+    hddLog(LOG1, "%s: Set Green-AP val: %d", __func__, enable);
+
+    ret = process_wma_set_command(
+            (int)pHostapdAdapter->sessionId,
+            (int)WMI_PDEV_GREEN_AP_PS_ENABLE_CMDID,
+            enable,
+            DBG_CMD);
+
+    return ret;
+}
+
+
+boolean hdd_wlan_green_ap_is_ps_on(hdd_context_t *pHddCtx)
+{
+    hdd_green_ap_ctx_t *green_ap = pHddCtx->green_ap_ctx;
+
+    if (green_ap == NULL)
+        return FALSE;
+
+    return ((green_ap->ps_state == GREEN_AP_PS_ON_STATE)
+            && (green_ap->ps_enable));
+}
+
+
+void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
+        hdd_green_ap_event_t event)
+{
+    hdd_green_ap_ctx_t *green_ap = pHddCtx->green_ap_ctx;
+    hdd_adapter_t *pAdapter = NULL;
+
+    if (green_ap == NULL)
+        return ;
+
+    hddLog(LOG1, "%s: Green-AP event: %d, state: %d, num_nodes: %d",
+        __func__, event, green_ap->ps_state, green_ap->num_nodes);
+
+    /* handle the green ap ps event */
+    switch(event) {
+        case GREEN_AP_PS_START_EVENT:
+            green_ap->ps_enable = 1;
+            break;
+
+        case GREEN_AP_PS_STOP_EVENT:
+            green_ap->ps_enable = 0;
+            break;
+
+        case GREEN_AP_ADD_STA_EVENT:
+            green_ap->num_nodes++;
+            break;
+
+        case GREEN_AP_DEL_STA_EVENT:
+            if (green_ap->num_nodes)
+                green_ap->num_nodes--;
+            break;
+
+        case GREEN_AP_PS_ON_EVENT:
+        case GREEN_AP_PS_WAIT_EVENT:
+            break;
+
+        default:
+            hddLog(LOGE, "%s: invalid event %d", __func__, event);
+            break;
+    }
+
+    /* Confirm that power save is enabled  before doing state transitions */
+    if (!green_ap->ps_enable) {
+        hdd_wlan_green_ap_update(pHddCtx,
+            GREEN_AP_PS_IDLE_STATE, GREEN_AP_PS_WAIT_EVENT);
+        goto done;
+    }
+
+    pAdapter = hdd_get_adapter (pHddCtx, WLAN_HDD_SOFTAP );
+
+    if (pAdapter == NULL) {
+        hddLog(LOGE, FL("Green-AP no SAP adapter"));
+        goto done;
+    }
+
+    /* handle the green ap ps state */
+    switch(green_ap->ps_state) {
+        case GREEN_AP_PS_IDLE_STATE:
+            hdd_wlan_green_ap_update(pHddCtx,
+                GREEN_AP_PS_OFF_STATE, GREEN_AP_PS_WAIT_EVENT);
+            break;
+
+        case GREEN_AP_PS_OFF_STATE:
+            if (!green_ap->num_nodes) {
+                hdd_wlan_green_ap_update(pHddCtx,
+                    GREEN_AP_PS_WAIT_STATE, GREEN_AP_PS_WAIT_EVENT);
+                vos_timer_start(&green_ap->ps_timer,
+                        green_ap->ps_delay_time);
+            }
+            break;
+
+        case GREEN_AP_PS_WAIT_STATE:
+            if (!green_ap->num_nodes) {
+                hdd_wlan_green_ap_update(pHddCtx,
+                   GREEN_AP_PS_ON_STATE, GREEN_AP_PS_WAIT_EVENT);
+
+                hdd_wlan_green_ap_enable(pAdapter, 1);
+
+                if (green_ap->ps_on_time) {
+                    hdd_wlan_green_ap_update(pHddCtx,
+                        0, GREEN_AP_PS_WAIT_EVENT);
+                    vos_timer_start(&green_ap->ps_timer,
+                            green_ap->ps_on_time);
+                }
+            } else {
+                hdd_wlan_green_ap_update(pHddCtx,
+                    GREEN_AP_PS_OFF_STATE, GREEN_AP_PS_WAIT_EVENT);
+            }
+            break;
+
+        case GREEN_AP_PS_ON_STATE:
+            if (green_ap->num_nodes) {
+                if (hdd_wlan_green_ap_enable(pAdapter, 0)) {
+                    hddLog(LOGE, FL("FAILED TO SET GREEN-AP mode"));
+                    goto done;
+                }
+                hdd_wlan_green_ap_update(pHddCtx,
+                    GREEN_AP_PS_OFF_STATE, GREEN_AP_PS_WAIT_EVENT);
+            } else if ((green_ap->ps_event = GREEN_AP_PS_WAIT_EVENT) &&
+                    (green_ap->ps_on_time)) {
+
+                /* ps_on_time timeout, switch to ps off */
+                hdd_wlan_green_ap_update(pHddCtx,
+                    GREEN_AP_PS_WAIT_STATE, GREEN_AP_PS_ON_EVENT);
+
+                if (hdd_wlan_green_ap_enable(pAdapter, 0)) {
+                    hddLog(LOGE, FL("FAILED TO SET GREEN-AP mode"));
+                    goto done;
+                }
+
+                vos_timer_start(&green_ap->ps_timer,
+                        green_ap->ps_delay_time);
+            }
+            break;
+
+        default:
+            hddLog(LOGE, "%s: invalid state %d", __func__, green_ap->ps_state);
+            hdd_wlan_green_ap_update(pHddCtx,
+                GREEN_AP_PS_OFF_STATE, GREEN_AP_PS_WAIT_EVENT);
+            break;
+    }
+
+done:
+    return;
+}
+
+#endif /* FEATURE_GREEN_AP */
+
 static int hdd_netdev_notifier_call(struct notifier_block * nb,
                                          unsigned long state,
                                          void *ndev)
@@ -9688,6 +9947,14 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
    vos_close(pVosContext);
 
+#ifdef FEATURE_GREEN_AP
+   if (!VOS_IS_STATUS_SUCCESS(
+         hdd_wlan_green_ap_deattach(pHddCtx)))
+   {
+      hddLog(LOGE, FL("Cannot deallocate Green-AP resource"));
+   }
+#endif
+
    //Close Watchdog
    if(pHddCtx->cfg_ini->fIsLogpEnabled)
       vos_watchdog_close(pVosContext);
@@ -11183,6 +11450,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                                                                         NULL);
         if (!VOS_IS_STATUS_SUCCESS(status))
            hddLog(LOGE, FL("Failed to init wlan auto shutdown timer"));
+    }
+#endif
+
+#ifdef FEATURE_GREEN_AP
+    if (!VOS_IS_STATUS_SUCCESS(
+             hdd_wlan_green_ap_attach(pHddCtx))) {
+       hddLog(LOGE, FL("Failed to allocate Green-AP resource"));
     }
 #endif
 

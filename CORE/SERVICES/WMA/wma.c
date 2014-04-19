@@ -1035,7 +1035,7 @@ static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 		if (peer != TAILQ_FIRST(&vdev->peer_list)) {
 			adf_os_atomic_init(&peer->ref_cnt);
 			adf_os_atomic_inc(&peer->ref_cnt);
-			wma_remove_peer(wma, wma->interfaces[vdev_id].bssid,
+			wma_remove_peer(wma, peer->mac_addr.raw,
 					vdev_id, peer);
 		}
 	}
@@ -1372,12 +1372,18 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 					peer_stats->peer_tx_rate/500;
 			}
 
-			WMA_LOGD("peer tx rate flags:%d nss:%d",
-					node->rate_flags, node->nss);
 			classa_stats->tx_rate_flags = node->rate_flags;
 			/*rx_frag_cnt parameter is currently not used.
 			 *lets use the same parameter to hold the nss value*/
 			classa_stats->rx_frag_cnt = node->nss;
+
+			/* FW returns tx power in intervals of 0.5 dBm
+			   Convert it back to intervals of 1 dBm */
+			classa_stats->max_pwr =
+				 roundup(classa_stats->max_pwr, 2) >> 1;
+			WMA_LOGD("peer tx rate flags:%d nss:%d max_txpwr:%d",
+					node->rate_flags, node->nss,
+					classa_stats->max_pwr);
 		}
 
 		if (node->fw_stats_set & FW_STATS_SET) {
@@ -7359,6 +7365,41 @@ static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
 	return 0;
 }
 
+#ifdef FEATURE_GREEN_AP
+static int32_t wmi_unified_pdev_green_ap_ps_enable_cmd(wmi_unified_t wmi_handle,
+		u_int32_t value)
+{
+	wmi_pdev_green_ap_ps_enable_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(*cmd);
+
+	WMA_LOGD("Set Green AP PS val %d", value);
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s: Green AP PS Mem Alloc Failed", __func__);
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_pdev_green_ap_ps_enable_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_pdev_green_ap_ps_enable_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_pdev_green_ap_ps_enable_cmd_fixed_param));
+	cmd->reserved0 = 0;
+	cmd->enable = value;
+
+	if (wmi_unified_cmd_send(wmi_handle, buf, len,
+				WMI_PDEV_GREEN_AP_PS_ENABLE_CMDID)) {
+		WMA_LOGE("Set Green AP PS param Failed val %d", value);
+
+		adf_nbuf_free(buf);
+		return -EIO;
+	}
+	return 0;
+}
+#endif /* FEATURE_GREEN_AP */
+
 static int
 wmi_unified_vdev_set_gtx_cfg_send(wmi_unified_t wmi_handle, u_int32_t if_id,
 				gtx_config_t *gtx_info)
@@ -7577,6 +7618,17 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 				WMA_LOGE("dbglog_report_enable"
 						" failed ret %d", ret);
 			break;
+#ifdef FEATURE_GREEN_AP
+		case WMI_PDEV_GREEN_AP_PS_ENABLE_CMDID:
+			/* Set the Green AP */
+			ret = wmi_unified_pdev_green_ap_ps_enable_cmd(wma->wmi_handle,
+					privcmd->param_value);
+			if (ret) {
+				WMA_LOGE("Set GreenAP Failed val %d", privcmd->param_value);
+			}
+			break;
+#endif /* FEATURE_GREEN_AP */
+
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
 			break;

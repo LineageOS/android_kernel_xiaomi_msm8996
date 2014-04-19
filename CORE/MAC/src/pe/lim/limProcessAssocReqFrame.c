@@ -1393,6 +1393,18 @@ if (limPopulateMatchingRateSet(pMac,
 
     }
 
+    /* AddSta is sucess here */
+    if((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
+         IS_DOT11_MODE_HT(psessionEntry->dot11mode) &&
+       pAssocReq->HTCaps.present && pAssocReq->wmeInfoPresent)
+    {
+
+        /** Update in the HAL Station Table for the Update of the Protection Mode */
+        limPostSMStateUpdate(pMac,pStaDs->staIndex,
+                    pStaDs->htMIMOPSState,
+                    pStaDs->staAddr, psessionEntry->smeSessionId);
+    }
+
     return;
 
 error:

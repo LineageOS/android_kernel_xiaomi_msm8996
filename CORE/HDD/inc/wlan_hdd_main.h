@@ -1141,6 +1141,66 @@ typedef struct
    v_TIME_t    lastFrameTs;
 }hdd_traffic_monitor_t;
 
+#ifdef FEATURE_GREEN_AP
+
+#define GREEN_AP_PS_ON_TIME        (0)
+#define GREEN_AP_PS_DELAY_TIME     (20)
+
+/*
+ * Green-AP power save state
+ */
+typedef enum
+{
+    GREEN_AP_PS_IDLE_STATE = 1,
+    GREEN_AP_PS_OFF_STATE,
+    GREEN_AP_PS_WAIT_STATE,
+    GREEN_AP_PS_ON_STATE,
+}hdd_green_ap_ps_state_t;
+
+typedef enum
+{
+    GREEN_AP_PS_START_EVENT = 1,
+    GREEN_AP_PS_STOP_EVENT,
+    GREEN_AP_ADD_STA_EVENT,
+    GREEN_AP_DEL_STA_EVENT,
+    GREEN_AP_PS_ON_EVENT,
+    GREEN_AP_PS_WAIT_EVENT,
+}hdd_green_ap_event_t;
+
+typedef struct
+{
+    uint64_t ps_on_count;
+    v_TIME_t ps_on_prev_ticks;
+    v_TIME_t ps_on_ticks;
+
+    uint64_t ps_off_count;
+    v_TIME_t ps_off_prev_ticks;
+    v_TIME_t ps_off_ticks;
+
+}hdd_green_ap_stats;
+
+/*
+ * Green-AP context
+ */
+typedef struct
+{
+    v_CONTEXT_t pHddContext;
+
+    v_U8_t ps_enable;
+    v_U32_t ps_on_time;
+    v_U32_t ps_delay_time;
+    v_U32_t num_nodes;
+
+    hdd_green_ap_ps_state_t ps_state;
+    hdd_green_ap_event_t ps_event;
+
+    vos_timer_t ps_timer;
+
+    hdd_green_ap_stats stats;
+
+}hdd_green_ap_ctx_t;
+#endif /* FEATURE_GREEN_AP */
+
 /** Adapter stucture definition */
 
 struct hdd_context_s
@@ -1396,6 +1456,9 @@ struct hdd_context_s
 #endif
 
     v_BOOL_t btCoexModeSet;
+#ifdef FEATURE_GREEN_AP
+    hdd_green_ap_ctx_t *green_ap_ctx;
+#endif
 };
 
 
@@ -1564,4 +1627,13 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_U8_t enable);
 #endif
 
 boolean hdd_is_5g_supported(hdd_context_t * pHddCtx);
+
+#ifdef FEATURE_GREEN_AP
+boolean hdd_wlan_green_ap_is_ps_on(hdd_context_t *pHddCtx);
+int hdd_wlan_green_ap_enable(hdd_adapter_t *pHostapdAdapter,
+        v_U8_t enable);
+void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
+        hdd_green_ap_event_t event);
+#endif
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
