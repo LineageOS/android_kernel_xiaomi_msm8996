@@ -95,9 +95,13 @@ htt_tx_attach(struct htt_pdev_t *pdev, int desc_pool_elems)
 
     pool_size = pdev->tx_descs.pool_elems * pdev->tx_descs.size;
 
-    pdev->tx_descs.pool_vaddr = adf_os_mem_alloc_consistent(
-        pdev->osdev, pool_size, &pool_paddr,
-        adf_os_get_dma_mem_context((&pdev->tx_descs), memctx));
+    if (pdev->cfg.is_high_latency)
+        pdev->tx_descs.pool_vaddr = adf_os_mem_alloc(pdev->osdev, pool_size);
+    else
+        pdev->tx_descs.pool_vaddr =
+        adf_os_mem_alloc_consistent( pdev->osdev, pool_size, &pool_paddr,
+            adf_os_get_dma_mem_context((&pdev->tx_descs), memctx));
+
     pdev->tx_descs.pool_paddr = pool_paddr;
 
     if (!pdev->tx_descs.pool_vaddr) {
@@ -129,13 +133,19 @@ htt_tx_attach(struct htt_pdev_t *pdev, int desc_pool_elems)
 void
 htt_tx_detach(struct htt_pdev_t *pdev)
 {
-    adf_os_mem_free_consistent(
-        pdev->osdev,
-        pdev->tx_descs.pool_elems * pdev->tx_descs.size, /* pool_size */
-        pdev->tx_descs.pool_vaddr,
-        pdev->tx_descs.pool_paddr,
-        adf_os_get_dma_mem_context((&pdev->tx_descs), memctx));
+    if (pdev){
+        if (pdev->cfg.is_high_latency)
+            adf_os_mem_free(pdev->tx_descs.pool_vaddr);
+        else
+            adf_os_mem_free_consistent(
+            pdev->osdev,
+            pdev->tx_descs.pool_elems * pdev->tx_descs.size, /* pool_size */
+            pdev->tx_descs.pool_vaddr,
+            pdev->tx_descs.pool_paddr,
+            adf_os_get_dma_mem_context((&pdev->tx_descs), memctx));
+        }
 }
+
 
 /*--- descriptor allocation functions ---------------------------------------*/
 

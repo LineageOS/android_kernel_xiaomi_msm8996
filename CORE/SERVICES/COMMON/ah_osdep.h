@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -128,9 +128,9 @@ typedef u_int32_t os_atomic_t;
 typedef enum ath_hal_bus_type {
 
    HAL_BUS_TYPE_PCI,
-
-   HAL_BUS_TYPE_AHB
-
+   HAL_BUS_TYPE_AHB,
+   HAL_BUS_TYPE_SIM, /* simulator */
+   HAL_BUS_TYPE_SDIO,
 } HAL_BUS_TYPE;
 
 

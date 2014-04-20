@@ -98,7 +98,9 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #include <linux/ctype.h>
 #include <linux/compat.h>
 #ifdef MSM_PLATFORM
+#ifdef CONFIG_CNSS
 #include <soc/qcom/subsystem_restart.h>
+#endif
 #endif
 #include <wlan_hdd_hostapd.h>
 #include <wlan_hdd_softap_tx_rx.h>
@@ -130,6 +132,8 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #include "if_pci.h"
 #elif defined(HIF_USB)
 #include "if_usb.h"
+#elif defined(HIF_SDIO)
+#include "if_ath_sdio.h"
 #endif
 #endif
 
@@ -9788,14 +9792,15 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
            "%s: pAdapter is NULL, cannot Abort scan", __func__);
 
    //Stop the traffic monitor timer
-   if ( VOS_TIMER_STATE_RUNNING ==
-                        vos_timer_getCurrentState(&pHddCtx->tx_rx_trafficTmr))
+   if ((pHddCtx->cfg_ini->dynSplitscan) && (VOS_TIMER_STATE_RUNNING ==
+               vos_timer_getCurrentState(&pHddCtx->tx_rx_trafficTmr)))
    {
         vos_timer_stop(&pHddCtx->tx_rx_trafficTmr);
    }
 
    // Destroy the traffic monitor timer
-   if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
+   if ((pHddCtx->cfg_ini->dynSplitscan) &&
+           !VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
                          &pHddCtx->tx_rx_trafficTmr)))
    {
        hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -9803,6 +9808,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    }
 
 #ifdef MSM_PLATFORM
+#ifdef CONFIG_CNSS
    if (VOS_TIMER_STATE_RUNNING ==
                         vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
    {
@@ -9815,6 +9821,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
        hddLog(VOS_TRACE_LEVEL_ERROR,
            "%s: Cannot deallocate Bus bandwidth timer", __func__);
    }
+#endif
 #endif
 
    if(!pConfig->enablePowersaveOffload)
@@ -10026,8 +10033,10 @@ free_hdd_ctx:
    if (hdd_is_ssr_required())
    {
 #ifdef MSM_PLATFORM
+#ifdef CONFIG_CNSS
        /* WDI timeout had happened during unload, so SSR is needed here */
        subsystem_restart("wcnss");
+#endif
 #endif
        msleep(5000);
    }
@@ -10449,6 +10458,7 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
 #endif
 
 #ifdef MSM_PLATFORM
+#ifdef CONFIG_CNSS
 enum cnss_bus_width_type hdd_get_vote_level(unsigned long tx,
                                             unsigned long rx)
 {
@@ -10525,6 +10535,7 @@ exit:
     vos_timer_start(&pHddCtx->bus_bw_timer,
                     HDD_BUS_BANDWIDTH_COMPUTE_INTERVAL);
 }
+#endif
 #endif
 
 #if defined(WLAN_AUTOGEN_MACADDR_FEATURE) && defined (QCA_WIFI_ISOC)
@@ -11509,11 +11520,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif /*#ifndef QCA_WIFI_ISOC*/
 
 #ifdef MSM_PLATFORM
+#ifdef CONFIG_CNSS
    spin_lock_init(&pHddCtx->bus_bw_lock);
    vos_timer_init(&pHddCtx->bus_bw_timer,
                      VOS_TIMER_TYPE_SW,
                      hdd_bus_bw_compute_cbk,
                      (void *)pHddCtx);
+#endif
 #endif
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
@@ -11600,8 +11613,10 @@ err_free_hdd_context:
    if (hdd_is_ssr_required())
    {
 #ifdef MSM_PLATFORM
+#ifdef CONFIG_CNSS
        /* WDI timeout had happened during load, so SSR is needed here */
        subsystem_restart("wcnss");
+#endif
 #endif
        msleep(5000);
    }
@@ -11717,7 +11732,11 @@ static int hdd_driver_init( void)
 
 #if defined(QCA_WIFI_2_0) && \
     !defined(QCA_WIFI_ISOC)
+#ifdef HIF_SDIO
+#define WLAN_WAIT_TIME_WLANSTART 10000
+#else
 #define WLAN_WAIT_TIME_WLANSTART 2000
+#endif
    init_completion(&wlan_start_comp);
    ret_status = hif_register_driver();
    if (!ret_status) {
@@ -11725,7 +11744,8 @@ static int hdd_driver_init( void)
                            &wlan_start_comp,
                            msecs_to_jiffies(WLAN_WAIT_TIME_WLANSTART));
        if (!ret_status) {
-           hif_unregister_driver();
+          hddLog(VOS_TRACE_LEVEL_FATAL,
+            "%s: timed-out waiting for hif_register_driver", __func__);
            ret_status = -1;
        } else
            ret_status = 0;
@@ -11733,7 +11753,7 @@ static int hdd_driver_init( void)
 
    if (ret_status)
    {
-       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
+       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN Driver Initialization failed",
                __func__);
        hif_unregister_driver();
        vos_preClose( &pVosContext );
@@ -12904,9 +12924,7 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);
 
-//#ifdef HIF_USB
 MODULE_LICENSE("Dual BSD/GPL");
-//#endif
 MODULE_AUTHOR("Qualcomm Atheros, Inc.");
 MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");
 

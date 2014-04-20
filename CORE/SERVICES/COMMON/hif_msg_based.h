@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2013-2014 Qualcomm Atheros, Inc.
+ *Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *

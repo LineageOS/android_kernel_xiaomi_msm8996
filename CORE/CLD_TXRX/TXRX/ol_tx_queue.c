@@ -181,7 +181,8 @@ ol_tx_queue_discard(
         num = pdev->tx_queue.rsrc_threshold_hi -
             pdev->tx_queue.rsrc_threshold_lo;
     }
-    TX_SCHED_DEBUG_PRINT("+%s : %d\n,", __FUNCTION__, pdev->tx_queue.rsrc_cnt);
+    TX_SCHED_DEBUG_PRINT("+%s : %u\n,", __FUNCTION__,
+                            adf_os_atomic_read(&pdev->tx_queue.rsrc_cnt));
     while (num > 0) {
         discarded = ol_tx_sched_discard_select(
             pdev, (u_int16_t)num, tx_descs, flush_all);

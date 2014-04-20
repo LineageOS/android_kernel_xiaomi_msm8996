@@ -32,14 +32,20 @@
 #include "vos_types.h"
 #endif
 
+#define AR6004_VERSION_REV1_3        0x31c8088a
+
 #define AR9888_REV1_VERSION          0x4000002c
 #define AR9888_REV2_VERSION          0x4100016c
 #define QCA_VERSION                  0x4100270f
-#define AR6320_REV1_VERSION	     0x5000000
-#define AR6320_REV1_1_VERSION	     0x5000001
-#define AR6320_REV1_3_VERSION	     0x5000003
+#define AR6320_REV1_VERSION          0x5000000
+#define AR6320_REV1_1_VERSION        0x5000001
+#define AR6320_REV1_VERSION_1        AR6320_REV1_1_VERSION
+#define AR6320_REV1_3_VERSION        0x5000003
+#define AR6320_REV2_VERSION          AR6320_REV1_1_VERSION
 #define AR6320_REV2_1_VERSION	     0x5010000
 #define AR6320_REV3_VERSION	     0x5020000
+#define AR6320_REV4_VERSION          AR6320_REV2_1_VERSION
+#define AR6320_DEV_VERSION           0x1000000
 #define QCA_FIRMWARE_FILE            "athwlan.bin"
 #define QCA_UTF_FIRMWARE_FILE        "utf.bin"
 #define QCA_BOARD_DATA_FILE          "fakeboar.bin"
