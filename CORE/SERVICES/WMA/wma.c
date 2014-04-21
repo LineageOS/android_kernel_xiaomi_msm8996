@@ -4978,7 +4978,6 @@ VOS_STATUS wma_roam_scan_offload_chan_list(tp_wma_handle wma_handle,
         roam_chan_list_array[i] = vos_chan_to_freq(chan_list[i]);
         WMA_LOGI("%d,",roam_chan_list_array[i]);
     }
-    WMA_LOGI("\n");
 
     status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
             len, WMI_ROAM_CHAN_LIST);

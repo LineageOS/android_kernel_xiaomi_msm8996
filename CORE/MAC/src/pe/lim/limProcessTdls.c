@@ -5530,7 +5530,6 @@ tSirRetStatus limProcesSmeTdlsLinkEstablishReq(tpAniSirGlobal pMac,
     pMsgTdlsLinkEstablishReq->isBufsta = pTdlsLinkEstablishReq->isBufSta;
     pMsgTdlsLinkEstablishReq->isOffChannelSupported =
                                 pTdlsLinkEstablishReq->isOffChannelSupported;
-    pMsgTdlsLinkEstablishReq->isOffChannelSupported = 1;
 
     if ( 0 != pTdlsLinkEstablishReq->supportedChannelsLen)
     {
@@ -5546,6 +5545,21 @@ tSirRetStatus limProcesSmeTdlsLinkEstablishReq(tpAniSirGlobal pMac,
              limLog(pMac, LOGP,
                     FL("could not retrieve Valid channel list"));
         }
+
+        if (selfNumChans > WNI_CFG_VALID_CHANNEL_LIST_LEN) {
+             limLog(pMac, LOGE,
+                   FL("Channel List more than Valid Channel list"));
+             selfNumChans = WNI_CFG_VALID_CHANNEL_LIST_LEN;
+        }
+
+        if (pTdlsLinkEstablishReq->supportedChannelsLen
+                                  > SIR_MAC_MAX_SUPP_CHANNELS ) {
+             limLog(pMac, LOGE,
+                   FL("Channel List is more than the supported Channel list"));
+             pTdlsLinkEstablishReq->supportedChannelsLen
+                                       = SIR_MAC_MAX_SUPP_CHANNELS;
+        }
+
         limTdlsGetIntersection(selfSupportedChannels, selfNumChans,
                                pTdlsLinkEstablishReq->supportedChannels,
                                pTdlsLinkEstablishReq->supportedChannelsLen,

@@ -321,12 +321,18 @@ CE_recv_buf_enqueue(struct CE_handle *copyeng,
     unsigned int nentries_mask = dest_ring->nentries_mask;
     unsigned int write_index ;
     unsigned int sw_index;
+    int val = 0;
 
     adf_os_spin_lock_bh(&sc->target_lock);
     write_index = dest_ring->write_index;
     sw_index = dest_ring->sw_index;
 
-    A_TARGET_ACCESS_BEGIN_RET(targid);
+    A_TARGET_ACCESS_BEGIN_RET_EXT(targid, val);
+    if (val == -1) {
+        adf_os_spin_unlock_bh(&sc->target_lock);
+        return val;
+    }
+
     if (CE_RING_DELTA(nentries_mask, write_index, sw_index-1) > 0) {
         struct CE_dest_desc *dest_ring_base = (struct CE_dest_desc *)dest_ring->base_addr_owner_space;
         struct CE_dest_desc *dest_desc = CE_DEST_RING_TO_DESC(dest_ring_base, write_index);
@@ -347,7 +353,12 @@ CE_recv_buf_enqueue(struct CE_handle *copyeng,
     } else {
         status = A_ERROR;
     }
-    A_TARGET_ACCESS_END_RET(targid);
+    A_TARGET_ACCESS_END_RET_EXT(targid, val);
+    if (val == -1) {
+        adf_os_spin_unlock_bh(&sc->target_lock);
+        return val;
+    }
+
     adf_os_spin_unlock_bh(&sc->target_lock);
 
     return status;
