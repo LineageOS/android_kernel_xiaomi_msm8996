@@ -295,6 +295,42 @@ PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal pMac,
     pDot11f->present = 1;
 }
 
+void
+PopulateDot11fChanSwitchWrapper(tpAniSirGlobal pMac,
+                            tDot11fIEChannelSwitchWrapper *pDot11f,
+                            tpPESession psessionEntry)
+{
+    /*
+     * The new country subelement is present only when
+     * 1. AP performs Extended Channel switching to new country.
+     * 2. New Operating Class table or a changed set of operating
+     * classes relative to the contents of the country element sent
+     * in the beacons.
+     *
+     * In the current scenario Channel Switch wrapper IE is included
+     * when we a radar is found and the AP does a channel change in
+     * the same regulatory domain(No country change or Operating class
+     * table). So, we do not need to include the New Country IE.
+     *
+     * Transmit Power Envlope Subelement is optional
+     * in Channel Switch Wrapper IE. So, not setting
+     * the TPE subelement. We include only WiderBWChanSwitchAnn.
+     */
+    pDot11f->present = 1;
+
+    /*
+     * Add the Wide Channel Bandwidth Sublement.
+     */
+     pDot11f->WiderBWChanSwitchAnn.newChanWidth =
+                     psessionEntry->gLimWiderBWChannelSwitch.newChanWidth;
+     pDot11f->WiderBWChanSwitchAnn.newCenterChanFreq0 =
+                     psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq0;
+     pDot11f->WiderBWChanSwitchAnn.newCenterChanFreq1 =
+                     psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq1;
+     pDot11f->WiderBWChanSwitchAnn.present = 1;
+
+}
+
 #ifdef WLAN_FEATURE_11AC
 void
 PopulateDot11fWiderBWChanSwitchAnn(tpAniSirGlobal pMac,

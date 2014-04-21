@@ -320,7 +320,6 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8 vhtCapability;
     tANI_U8 vhtTxChannelWidthSet;
     tLimOperatingModeInfo  gLimOperatingMode;
-    tLimWiderBWChannelSwitchInfo  gLimWiderBWChannelSwitch;
     tANI_U8    vhtCapabilityPresentInBeacon;
     tANI_U8    apCenterChan;
     tANI_U8    apChanWidth;
@@ -329,6 +328,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8    enableVhtpAid;
     tANI_U8    enableVhtGid;
 #endif
+    tLimWiderBWChannelSwitchInfo  gLimWiderBWChannelSwitch;
     tANI_U8    enableAmpduPs;
     tANI_U8    enableHtSmps;
     tANI_U8    htSmpsvalue;
@@ -417,6 +417,9 @@ typedef struct sPESession           // Added to Support BT-AMP
 
     /* Flag to indicate Chan Sw announcement is required */
     tANI_U8  dfsIncludeChanSwIe;
+
+    /* Flag to indicate Chan Wrapper Element is required */
+    tANI_U8  dfsIncludeChanWrapperIe;
 
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tANI_U8  cc_switch_mode;

@@ -504,6 +504,12 @@ PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal          pMac,
                              tDot11fIEExtChanSwitchAnn *pDot11f,
                              tpPESession psessionEntry);
 
+/// Populate a tDot11fIEChannelSwitchWrapper
+void
+PopulateDot11fChanSwitchWrapper(tpAniSirGlobal             pMac,
+                            tDot11fIEChannelSwitchWrapper *pDot11f,
+                            tpPESession                    psessionEntry);
+
 /// Populate a tDot11fIECountry
 tSirRetStatus
 PopulateDot11fCountry(tpAniSirGlobal    pMac,
