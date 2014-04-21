@@ -6820,7 +6820,8 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	u_int32_t num_peer_ht_rates;
 	u_int32_t num_peer_11b_rates=0;
 	u_int32_t num_peer_11a_rates=0;
-        u_int32_t phymode;
+	u_int32_t phymode;
+	u_int32_t peer_nss=1;
 
 	struct wma_txrx_node *intr = &wma->interfaces[params->smesessionId];
 
@@ -6875,6 +6876,10 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		if (params->supportedRates.supportedMCSSet[i / 8] &
 					(1 << (i % 8))) {
 			rate_pos[peer_ht_rates.num_rates++] = i;
+			if (i >= 8) {
+				/* MCS8 or higher rate is present, must be 2x2 */
+				peer_nss = 2;
+			}
 		}
 		if (peer_ht_rates.num_rates == max_rates)
 		       break;
@@ -7077,7 +7082,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_STRUC_wmi_vht_rate_set,
 		       WMITLV_GET_STRUCT_TLVLEN(wmi_vht_rate_set));
 
-	cmd->peer_nss = MAX((peer_ht_rates.num_rates + 7) / 8, 1);
+	cmd->peer_nss = peer_nss;
 
 	WMA_LOGD("peer_nss %d peer_ht_rates.num_rates %d ", cmd->peer_nss,
                   peer_ht_rates.num_rates);
@@ -7103,12 +7108,13 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 
         WMA_LOGD("%s: vdev_id %d associd %d peer_flags %x rate_caps %x "
                  "peer_caps %x listen_intval %d ht_caps %x max_mpdu %d "
-                 "nss %d phymode %d peer_mpdu_density %d", __func__,
+                 "nss %d phymode %d peer_mpdu_density %d"
+                 "cmd->peer_vht_caps %x", __func__,
                  cmd->vdev_id, cmd->peer_associd, cmd->peer_flags,
                  cmd->peer_rate_caps, cmd->peer_caps,
                  cmd->peer_listen_intval, cmd->peer_ht_caps,
                  cmd->peer_max_mpdu, cmd->peer_nss, cmd->peer_phymode,
-                 cmd->peer_mpdu_density);
+                 cmd->peer_mpdu_density, cmd->peer_vht_caps);
 
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				   WMI_PEER_ASSOC_CMDID);
