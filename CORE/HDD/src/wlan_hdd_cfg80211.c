@@ -7589,7 +7589,7 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
 
     if (changed & WIPHY_PARAM_RTS_THRESHOLD)
     {
-        u16 rts_threshold = (wiphy->rts_threshold == -1) ?
+        u32 rts_threshold = (wiphy->rts_threshold == -1) ?
                                WNI_CFG_RTS_THRESHOLD_STAMAX :
                                wiphy->rts_threshold;
 
@@ -7597,7 +7597,7 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
                 (WNI_CFG_RTS_THRESHOLD_STAMAX < rts_threshold))
         {
             hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "%s: Invalid RTS Threshold value %hu",
+                    "%s: Invalid RTS Threshold value %u",
                     __func__, rts_threshold);
             return -EINVAL;
         }
@@ -7607,12 +7607,12 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
                     eANI_BOOLEAN_TRUE))
         {
             hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "%s: ccmCfgSetInt failed for rts_threshold value %hu",
+                    "%s: ccmCfgSetInt failed for rts_threshold value %u",
                     __func__, rts_threshold);
             return -EIO;
         }
 
-        hddLog(VOS_TRACE_LEVEL_INFO_MED, "%s: set rts threshold %hu", __func__,
+        hddLog(VOS_TRACE_LEVEL_INFO_MED, "%s: set rts threshold %u", __func__,
                 rts_threshold);
     }
 
