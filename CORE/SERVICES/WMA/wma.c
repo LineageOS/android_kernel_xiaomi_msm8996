@@ -12346,7 +12346,9 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *param_buf;
 	WOW_EVENT_INFO_fixed_param *wake_info;
+#ifdef FEATURE_WLAN_SCAN_PNO
 	struct wma_txrx_node *node;
+#endif
 	u_int32_t wake_lock_duration = 0;
 
 	param_buf = (WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *) event;
@@ -13336,11 +13338,13 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 			connected = TRUE;
 			break;
 		}
+#ifdef FEATURE_WLAN_SCAN_PNO
 		if (wma->interfaces[i].pno_in_progress) {
 			WMA_LOGD("PNO is in progress, enabling wow");
 			pno_in_progress = TRUE;
 			break;
 		}
+#endif
 	}
 	if (!connected && !pno_in_progress) {
 		WMA_LOGD("All vdev are in disconnected state, skipping wow");
@@ -14462,6 +14466,7 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 		   ((pHostOffloadParams->enableOrDisable & SIR_OFFLOAD_ENABLE) && i==0)) {
 			ns_tuple->flags |= WMI_NSOFF_FLAGS_VALID;
 
+#ifdef WLAN_NS_OFFLOAD
 			/*Copy the target/solicitation/remote ip addr */
 			if(pHostOffloadParams->nsOffloadInfo.targetIPv6AddrValid[0])
 				A_MEMCPY(&ns_tuple->target_ipaddr[0],
@@ -14479,6 +14484,7 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 			* the target will use the known local MAC address rather than the tuple */
 			WMI_CHAR_ARRAY_TO_MAC_ADDR(pHostOffloadParams->nsOffloadInfo.selfMacAddr,
 					&ns_tuple->target_mac);
+#endif
 			if ((ns_tuple->target_mac.mac_addr31to0 != 0) ||
 				(ns_tuple->target_mac.mac_addr47to32 != 0))
 			{
