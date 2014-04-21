@@ -437,7 +437,13 @@ static void hdd_ipa_destory_rm_resource(struct hdd_ipa_priv *hdd_ipa)
 
 	ret = ipa_rm_delete_resource(IPA_RM_RESOURCE_WLAN_PROD);
 	if (ret)
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "RM resource delete failed");
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"RM PROD resource delete failed %d", ret);
+
+	ret = ipa_rm_delete_resource(IPA_RM_RESOURCE_WLAN_CONS);
+	if (ret)
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"RM CONS resource delete failed %d", ret);
 }
 
 static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
