@@ -286,6 +286,7 @@ typedef struct
 #ifdef WLAN_FEATURE_11AC
     tANI_U8    vhtCapable;
     tANI_U8    vhtTxChannelWidthSet;
+    tANI_U8    vhtSupportedRxNss;
     tANI_U8    vhtTxBFCapable;
     tANI_U8    vhtTxMUBformeeCapable;
     tANI_U8    enableVhtpAid;
@@ -912,6 +913,14 @@ typedef struct
 
 typedef struct
 {
+   tANI_U16  rxNss;
+   tANI_U16  staId;
+   tANI_U16  smesessionId;
+   tSirMacAddr peer_mac;
+}tUpdateRxNss, *tpUpdateRxNss;
+
+typedef struct
+{
    tANI_U32  membership;
    tANI_U16  staId;
    tANI_U16  smesessionId;
@@ -1418,6 +1427,9 @@ typedef struct sP2pPsParams
    tANI_U8   sessionId;
 }tP2pPsParams, *tpP2pPsParams;
 
+#define HAL_MAX_SUPP_CHANNELS     128
+#define HAL_MAX_SUPP_OPER_CLASSES 32
+
 typedef struct sTdlsLinkEstablishParams
 {
    tANI_U16  staIdx;
@@ -1425,6 +1437,13 @@ typedef struct sTdlsLinkEstablishParams
    tANI_U8   uapsdQueues;
    tANI_U8   maxSp;
    tANI_U8   isBufsta;
+   tANI_U8   isOffChannelSupported;
+   tANI_U8   peerCurrOperClass;
+   tANI_U8   selfCurrOperClass;
+   tANI_U8   validChannelsLen;
+   tANI_U8   validChannels[HAL_MAX_SUPP_CHANNELS];
+   tANI_U8   validOperClassesLen;
+   tANI_U8   validOperClasses[HAL_MAX_SUPP_OPER_CLASSES];
    tANI_U32  status;
 }tTdlsLinkEstablishParams, *tpTdlsLinkEstablishParams;
 

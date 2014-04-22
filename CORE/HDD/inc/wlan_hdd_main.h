@@ -619,6 +619,7 @@ typedef struct hdd_remain_on_chan_ctx
   v_U32_t p2pRemOnChanTimeStamp;
   vos_timer_t hdd_remain_on_chan_timer;
   action_pkt_buffer_t action_pkt_buff;
+  v_BOOL_t hdd_remain_on_chan_cancel_in_progress;
 }hdd_remain_on_chan_ctx_t;
 
 typedef enum{

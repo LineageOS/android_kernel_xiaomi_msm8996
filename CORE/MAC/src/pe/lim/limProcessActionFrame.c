@@ -474,8 +474,16 @@ __limProcessOperatingModeActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
             pSta->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
         }
         limCheckVHTOpModeChange( pMac, psessionEntry,
-                                 (pOperatingModeframe->OperatingMode.chanWidth), pSta->staIndex);
+                                 (pOperatingModeframe->OperatingMode.chanWidth),
+                                 pSta->staIndex, pHdr->sa);
     }
+
+    if (pSta->vhtSupportedRxNss != (pOperatingModeframe->OperatingMode.rxNSS + 1)) {
+        pSta->vhtSupportedRxNss = pOperatingModeframe->OperatingMode.rxNSS + 1;
+        limSetNssChange( pMac, psessionEntry, pSta->vhtSupportedRxNss,
+                         pSta->staIndex, pHdr->sa);
+    }
+
     vos_mem_free(pOperatingModeframe);
     return;
 }

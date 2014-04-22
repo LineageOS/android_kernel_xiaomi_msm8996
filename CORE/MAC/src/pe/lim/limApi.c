@@ -615,18 +615,27 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
    /* This was initially done after resume notification from HAL. Now, DAL is
       started before PE so this can be done here */
    handleHTCapabilityandHTInfo(pMac, NULL);
-   if(wlan_cfgGetInt(pMac, WNI_CFG_DISABLE_LDPC_WITH_TXBF_AP,(tANI_U32 *) &pMac->lim.disableLDPCWithTxbfAP) != eSIR_SUCCESS)
+   if (eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_DISABLE_LDPC_WITH_TXBF_AP,
+                       (tANI_U32 *) &pMac->lim.disableLDPCWithTxbfAP))
    {
       limLog(pMac, LOGP, FL("cfg get disableLDPCWithTxbfAP failed"));
       return eSIR_FAILURE;
    }
 #ifdef FEATURE_WLAN_TDLS
-   if(wlan_cfgGetInt(pMac, WNI_CFG_TDLS_BUF_STA_ENABLED,(tANI_U32 *) &pMac->lim.gLimTDLSBufStaEnabled) != eSIR_SUCCESS)
+   if (eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_TDLS_BUF_STA_ENABLED,
+                       (tANI_U32 *) &pMac->lim.gLimTDLSBufStaEnabled))
    {
        limLog(pMac, LOGP, FL("cfg get LimTDLSBufStaEnabled failed"));
        return eSIR_FAILURE;
    }
-   if(wlan_cfgGetInt(pMac, WNI_CFG_TDLS_QOS_WMM_UAPSD_MASK,(tANI_U32 *) &pMac->lim.gLimTDLSUapsdMask) != eSIR_SUCCESS)
+   if (eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_TDLS_QOS_WMM_UAPSD_MASK,
+                       (tANI_U32 *) &pMac->lim.gLimTDLSUapsdMask))
+   {
+       limLog(pMac, LOGP, FL("cfg get LimTDLSUapsdMask failed"));
+       return eSIR_FAILURE;
+   }
+   if (eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_TDLS_OFF_CHANNEL_ENABLED,
+                       (tANI_U32 *) &pMac->lim.gLimTDLSOffChannelEnabled))
    {
        limLog(pMac, LOGP, FL("cfg get LimTDLSUapsdMask failed"));
        return eSIR_FAILURE;

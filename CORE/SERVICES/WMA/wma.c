@@ -2896,6 +2896,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_handle->max_bssid = mac_params->maxBssId;
 	wma_handle->frame_xln_reqd = mac_params->frameTransRequired;
 	wma_handle->driver_type = mac_params->driverType;
+	wma_handle->ssdp = mac_params->ssdp;
 
 	/*
 	 * Indicates if DFS Phyerr filtering offload
@@ -2918,7 +2919,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 					   wma_unified_debug_print_event_handler);
 
 	wma_handle->tgt_cfg_update_cb = tgt_cfg_cb;
-   wma_handle->dfs_radar_indication_cb = radar_ind_cb;
+	wma_handle->dfs_radar_indication_cb = radar_ind_cb;
 
 #ifdef QCA_WIFI_ISOC
 	vos_status = vos_event_init(&wma_handle->cfg_nv_tx_complete);
@@ -7090,8 +7091,12 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
                 mcs->tx_max_rate = params->supportedRates.vhtTxHighestDataRate;
                 mcs->tx_mcs_set  = params->supportedRates.vhtTxMCSMap;
 
-                cmd->peer_nss = ((mcs->rx_mcs_set & VHT2x2MCSMASK)
-                                    == VHT2x2MCSMASK) ? 1 : 2;
+                if(params->vhtSupportedRxNss) {
+                    cmd->peer_nss = params->vhtSupportedRxNss;
+                } else {
+                    cmd->peer_nss = ((mcs->rx_mcs_set & VHT2x2MCSMASK)
+                                       == VHT2x2MCSMASK) ? 1 : 2;
+                }
 	}
 
 	intr->nss = cmd->peer_nss;
@@ -12833,14 +12838,18 @@ static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
 	 * Setup multicast pattern for mDNS 224.0.0.251,
 	 * SSDP 239.255.255.250 and LLMNR 224.0.0.252
 	 */
-	ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
-			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
-			discvr_ptrn, sizeof(discvr_ptrn), discvr_offset,
-			discvr_mask, sizeof(discvr_ptrn));
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to add WOW mDNS/SSDP/LLMNR pattern");
-		return ret;
+	if (wma->ssdp) {
+		ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
+				wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
+				discvr_ptrn, sizeof(discvr_ptrn), discvr_offset,
+				discvr_mask, sizeof(discvr_ptrn));
+		if (ret != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("Failed to add WOW mDNS/SSDP/LLMNR pattern");
+			return ret;
+		}
 	}
+	else
+		WMA_LOGD("mDNS, SSDP, LLMNR patterns are disabled from ini");
 
 	/* when arp offload or ns offloaded is disabled
 	 * from ini file, configure broad cast arp pattern
@@ -12857,6 +12866,7 @@ static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
 			return ret;
 		}
 	}
+
 	/* for NS or NDP offload packets */
 	if (!(wma->ol_ini_info & 0x2)) {
 		/* Setup all NS pkt pattern */
@@ -13630,11 +13640,21 @@ static void wma_finish_scan_req(tp_wma_handle wma_handle,
 static void wma_process_update_opmode(tp_wma_handle wma_handle,
                                 tUpdateVHTOpMode *update_vht_opmode)
 {
-        WMA_LOGD("%s: Update Opmode", __func__);
+        WMA_LOGD("%s: opMode = %d", __func__, update_vht_opmode->opMode);
 
         wma_set_peer_param(wma_handle, update_vht_opmode->peer_mac,
                            WMI_PEER_CHWIDTH, update_vht_opmode->opMode,
                            update_vht_opmode->smesessionId);
+}
+
+static void wma_process_update_rx_nss(tp_wma_handle wma_handle,
+                                tUpdateRxNss *update_rx_nss)
+{
+        WMA_LOGD("%s: Rx Nss = %d", __func__, update_rx_nss->rxNss);
+
+        wma_set_peer_param(wma_handle, update_rx_nss->peer_mac,
+                           WMI_PEER_NSS, update_rx_nss->rxNss,
+                           update_rx_nss->smesessionId);
 }
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
@@ -15964,6 +15984,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
                                        (tUpdateVHTOpMode *)msg->bodyptr);
                         vos_mem_free(msg->bodyptr);
                         break;
+                case WDA_UPDATE_RX_NSS:
+                        wma_process_update_rx_nss(wma_handle,
+                                       (tUpdateRxNss *)msg->bodyptr);
+                        vos_mem_free(msg->bodyptr);
+                        break;
 #ifdef WLAN_FEATURE_11AC
                 case WDA_UPDATE_MEMBERSHIP:
                         wma_process_update_membership(wma_handle,
@@ -17121,9 +17146,9 @@ static int wma_channel_avoid_evt_handler(void *handle, u_int8_t *event,
 		afr_desc = (wmi_avoid_freq_range_desc *) ((void *)param_buf->avd_freq_range
 			+ freq_range_idx * sizeof(wmi_avoid_freq_range_desc));
 		sca_indication->avoid_freq_range[freq_range_idx].start_freq =
-			afr_desc->start_freq + 10;
-		sca_indication->avoid_freq_range[freq_range_idx].end_freq = afr_desc->end_freq
-			- 10;
+			afr_desc->start_freq;
+		sca_indication->avoid_freq_range[freq_range_idx].end_freq =
+			afr_desc->end_freq;
 	}
 
 	sme_msg.type = eWNI_SME_CH_AVOID_IND;

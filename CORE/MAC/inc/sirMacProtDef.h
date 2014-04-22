@@ -450,6 +450,9 @@
 #define SIR_MAX_NOA_DESCR           2
 #define SIR_P2P_IE_HEADER_LEN       6
 
+#define SIR_MAC_CISCO_OUI "\x00\x40\x96"
+#define SIR_MAC_CISCO_OUI_SIZE 3
+
 // min size of wme oui header: oui(3) + type + subtype + version
 #define SIR_MAC_OUI_WME_HDR_MIN       6
 
@@ -1681,6 +1684,8 @@ typedef  struct sSirMacRpiReportIE
 
 #define SIR_MAC_MAX_SUPP_RATES            32
 
+#define SIR_MAC_MAX_SUPP_CHANNELS            100
+#define SIR_MAC_MAX_SUPP_OPER_CLASSES        32
 #define SIR_MAC_MAX_EXTN_CAP               8
 
 // VHT Capabilities Info

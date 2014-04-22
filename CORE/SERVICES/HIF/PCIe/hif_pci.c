@@ -2323,7 +2323,9 @@ HIFGetTargetId(HIF_DEVICE *hif_device)
 /* worker thread to recover when target does not respond over PCIe */
 static void recovery_work_handler(struct work_struct *recovery)
 {
+#ifdef CONFIG_CNSS
     cnss_device_self_recovery();
+#endif
 }
 
 static DECLARE_WORK(recovery_work, recovery_work_handler);
@@ -2366,8 +2368,10 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
     struct hif_pci_softc *sc = hif_state->sc;
 
 
+#ifdef TARGET_RECOVERY_AFTER_LINK_DOWN
     if (sc->recovery)
         return -EACCES;
+#endif
 
     if (sleep_ok) {
         adf_os_spin_lock_irqsave(&hif_state->keep_awake_lock);
@@ -2446,10 +2450,14 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
                            A_PCI_READ32(pci_addr + PCIE_LOCAL_BASE_ADDRESS
                                         + RTC_STATE_ADDRESS));
 
+#ifdef TARGET_RECOVERY_AFTER_LINK_DOWN
                     printk("%s:error, can't wakeup target\n", __func__);
                     sc->recovery = true;
                     schedule_work(&recovery_work);
                     return -EACCES;
+#else
+                    VOS_BUG(0);
+#endif
                 }
 
                 OS_DELAY(curr_delay);

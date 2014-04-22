@@ -163,6 +163,10 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
            return;
        }
 
+#ifdef WLAN_FEATURE_11AC
+        pStaDs->vhtSupportedRxNss = ((pStaDs->supportedRates.vhtRxMCSMap & MCSMAPMASK2x2)
+                                                                == MCSMAPMASK2x2) ? 1 : 2;
+#endif
        //If one of the rates is 11g rates, set the ERP mode.
        if ((phyMode == WNI_CFG_PHY_MODE_11G) && sirIsArate(pStaDs->supportedRates.llaRates[0] & 0x7f))
            pStaDs->erpEnabled = eHAL_SET;

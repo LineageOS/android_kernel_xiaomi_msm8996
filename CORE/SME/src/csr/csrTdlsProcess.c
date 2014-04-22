@@ -254,6 +254,21 @@ VOS_STATUS csrTdlsSendLinkEstablishParams(tHalHandle hHal,
             tdlsLinkEstablishCmdInfo->isResponder= tdlsLinkEstablishParams->isResponder;
             tdlsLinkEstablishCmdInfo->maxSp= tdlsLinkEstablishParams->maxSp;
             tdlsLinkEstablishCmdInfo->uapsdQueues= tdlsLinkEstablishParams->uapsdQueues;
+            tdlsLinkEstablishCmdInfo->isOffChannelSupported =
+                                               tdlsLinkEstablishParams->isOffChannelSupported;
+            vos_mem_copy(tdlsLinkEstablishCmdInfo->supportedChannels,
+                          tdlsLinkEstablishParams->supportedChannels,
+                          tdlsLinkEstablishParams->supportedChannelsLen);
+            tdlsLinkEstablishCmdInfo->supportedChannelsLen =
+                                    tdlsLinkEstablishParams->supportedChannelsLen;
+            vos_mem_copy(tdlsLinkEstablishCmdInfo->supportedOperClasses,
+                          tdlsLinkEstablishParams->supportedOperClasses,
+                          tdlsLinkEstablishParams->supportedOperClassesLen);
+            tdlsLinkEstablishCmdInfo->supportedOperClassesLen =
+                                    tdlsLinkEstablishParams->supportedOperClassesLen;
+            tdlsLinkEstablishCmdInfo->isResponder= tdlsLinkEstablishParams->isResponder;
+            tdlsLinkEstablishCmdInfo->maxSp= tdlsLinkEstablishParams->maxSp;
+            tdlsLinkEstablishCmdInfo->uapsdQueues= tdlsLinkEstablishParams->uapsdQueues;
             tdlsLinkEstablishCmd->command = eSmeCommandTdlsLinkEstablish ;
             tdlsLinkEstablishCmd->u.tdlsCmd.size = sizeof(tTdlsLinkEstablishCmdInfo) ;
             smePushCommand(pMac, tdlsLinkEstablishCmd, FALSE) ;
@@ -864,6 +879,16 @@ eHalStatus csrTdlsProcessLinkEstablish( tpAniSirGlobal pMac, tSmeCmd *cmd )
                   tdlsLinkEstablishCmdInfo->peerMac, sizeof(tSirMacAddr));
     vos_mem_copy(tdlsLinkEstablishReq->bssid, pSession->pConnectBssDesc->bssId,
                   sizeof (tSirMacAddr));
+    vos_mem_copy(tdlsLinkEstablishReq->supportedChannels,
+                  tdlsLinkEstablishCmdInfo->supportedChannels,
+                  tdlsLinkEstablishCmdInfo->supportedChannelsLen);
+    tdlsLinkEstablishReq->supportedChannelsLen =
+                      tdlsLinkEstablishCmdInfo->supportedChannelsLen;
+    vos_mem_copy(tdlsLinkEstablishReq->supportedOperClasses,
+                  tdlsLinkEstablishCmdInfo->supportedOperClasses,
+                  tdlsLinkEstablishCmdInfo->supportedOperClassesLen);
+    tdlsLinkEstablishReq->supportedOperClassesLen =
+                      tdlsLinkEstablishCmdInfo->supportedOperClassesLen;
     tdlsLinkEstablishReq->isBufSta = tdlsLinkEstablishCmdInfo->isBufSta;
     tdlsLinkEstablishReq->isResponder= tdlsLinkEstablishCmdInfo->isResponder;
     tdlsLinkEstablishReq->uapsdQueues= tdlsLinkEstablishCmdInfo->uapsdQueues;
