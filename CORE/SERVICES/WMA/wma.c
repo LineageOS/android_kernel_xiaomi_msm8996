@@ -15971,6 +15971,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_CLI_SET_CMD:
 			wma_process_cli_set_cmd(wma_handle,
 					(wda_cli_set_cmd_t *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 #if !defined(REMOVE_PKT_LOG) && !defined(QCA_WIFI_ISOC)
 		case WDA_PKTLOG_ENABLE_REQ:
