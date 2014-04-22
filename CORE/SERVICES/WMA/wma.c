@@ -7058,6 +7058,20 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	ol_txrx_peer_state_update(pdev, params->bssId, ol_txrx_peer_state_auth);
 #endif
 
+#ifdef FEATURE_WLAN_WAPI
+	if (params->encryptType == eSIR_ED_WPI) {
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+						params->smesessionId,
+						WMI_VDEV_PARAM_DROP_UNENCRY,
+						FALSE);
+		if (ret) {
+			WMA_LOGE("Set WMI_VDEV_PARAM_DROP_UNENCRY Param status:%d\n", ret);
+			adf_nbuf_free(buf);
+			return ret;
+		}
+	}
+#endif
+
 	cmd->peer_caps = params->capab_info;
 	cmd->peer_listen_intval = params->listenInterval;
 	cmd->peer_ht_caps = params->ht_caps;
@@ -9759,9 +9773,15 @@ static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
 					   0x36,0x5c};
 		unsigned char rx_iv[16] = {0x5c,0x36,0x5c,0x36,0x5c,0x36,0x5c,
 					   0x36,0x5c,0x36,0x5c,0x36,0x5c,0x36,
-					   0x5c,0x36};
+					   0x5c,0x37};
 		cmd->key_txmic_len = WMA_TXMIC_LEN;
 		cmd->key_rxmic_len = WMA_RXMIC_LEN;
+		/*Authenticator initializes the value of PN as
+		 *0x5C365C365C365C365C365C365C365C36 for multicast key update.
+		 */
+		if (!key_params->unicast)
+			rx_iv[WPI_IV_LEN - 1] = 0x36;
+
 		vos_mem_copy(&cmd->wpi_key_rsc_counter, &rx_iv, WPI_IV_LEN);
 		vos_mem_copy(&cmd->wpi_key_tsc_counter, &tx_iv, WPI_IV_LEN);
 		cmd->key_cipher = WMI_CIPHER_WAPI;
@@ -9898,7 +9918,12 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 		if (key_params.key_type != eSIR_ED_NONE &&
 		    !key_info->key[i].keyLength)
 			continue;
-		key_params.key_idx = key_info->key[i].keyId;
+		if (key_info->encType == eSIR_ED_WPI) {
+			key_params.key_idx = key_info->key[i].keyId;
+			key_params.def_key_idx = key_info->key[i].keyId;
+		} else
+			key_params.key_idx = key_info->key[i].keyId;
+
 		key_params.key_len = key_info->key[i].keyLength;
 		if (key_info->encType == eSIR_ED_TKIP) {
 			vos_mem_copy(key_params.key_data,
@@ -10089,7 +10114,12 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info,
 		} else
 			vos_mem_copy(key_params.key_data, key_info->key[i].key,
 				     key_info->key[i].keyLength);
-		key_params.key_idx = i;
+		if (key_info->encType == eSIR_ED_WPI) {
+			key_params.key_idx = key_info->key[i].keyId;
+			key_params.def_key_idx = key_info->key[i].keyId;
+		} else
+			key_params.key_idx = i;
+
 		key_params.key_len = key_info->key[i].keyLength;
 		buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len);
 		if (!buf) {
