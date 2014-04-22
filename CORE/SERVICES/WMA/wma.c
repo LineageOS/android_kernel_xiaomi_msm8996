@@ -207,6 +207,7 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 
 /*DFS Attach*/
 struct ieee80211com* wma_dfs_attach(struct ieee80211com *ic);
+static void wma_dfs_detach(struct ieee80211com *ic);
 static void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
 							tpAddBssParams add_bss);
 /*Configure DFS with radar tables and regulatory domain*/
@@ -2859,7 +2860,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	if (!wmi_handle) {
 		WMA_LOGP("%s: failed to attach WMI", __func__);
 		vos_status = VOS_STATUS_E_NOMEM;
-		goto err_wmi_attach;
+		goto err_wma_handle;
 	}
 
 	WMA_LOGA("WMA --> wmi_unified_attach - success");
@@ -2879,7 +2880,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	if (!(((pVosContextType) vos_context)->cfg_ctx)) {
 		WMA_LOGP("%s: failed to init cfg handle", __func__);
 		vos_status = VOS_STATUS_E_NOMEM;
-		goto err_wmi_attach;
+		goto err_wmi_handle;
 	}
 
 	/* adjust the cfg_ctx default value based on setting */
@@ -2894,7 +2895,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	/* Allocate dfs_ic and initialize DFS */
 	wma_handle->dfs_ic = wma_dfs_attach(wma_handle->dfs_ic);
 	if(wma_handle->dfs_ic == NULL) {
-		WMA_LOGP("%s: Memory allocation failed for dfs_ic", __func__);
+		WMA_LOGE("%s: Memory allocation failed for dfs_ic", __func__);
+		goto err_wmi_handle;
 	}
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -2908,7 +2910,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	if (NULL == scn) {
 		WMA_LOGE("%s: Failed to get scn",__func__);
 		vos_status = VOS_STATUS_E_NOMEM;
-		goto err_wmi_attach;
+		goto err_scn_context;
 	}
 
 	mac_params->maxStation = ol_get_number_of_peers_supported(scn);
@@ -2943,7 +2945,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	if (!wma_handle->interfaces) {
 		WMA_LOGP("%s: failed to allocate interface table", __func__);
 		vos_status = VOS_STATUS_E_NOMEM;
-		goto err_wmi_attach;
+		goto err_scn_context;
 	}
 	vos_mem_zero(wma_handle->interfaces, sizeof(struct wma_txrx_node) *
 					wma_handle->max_bssid);
@@ -3052,7 +3054,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	vos_status = dbglog_init(wma_handle->wmi_handle);
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("%s: Firmware Dbglog initialization failed", __func__);
-		goto err_event_init;
+		goto err_dbglog_init;
 	}
 
 	/*
@@ -3092,10 +3094,23 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
 	return VOS_STATUS_SUCCESS;
 
+err_dbglog_init:
+	adf_os_spinlock_destroy(&wma_handle->vdev_respq_lock);
+	adf_os_spinlock_destroy(&wma_handle->vdev_detach_lock);
 err_event_init:
 	wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
 					     WMI_DEBUG_PRINT_EVENTID);
-err_wmi_attach:
+	vos_mem_free(wma_handle->interfaces);
+err_scn_context:
+	wma_dfs_detach(wma_handle->dfs_ic);
+#if defined(QCA_WIFI_FTM) && !(defined(QCA_WIFI_ISOC))
+	wma_utf_detach(wma_handle);
+#endif
+err_wmi_handle:
+	adf_os_mem_free(((pVosContextType) vos_context)->cfg_ctx);
+	OS_FREE(wmi_handle);
+
+err_wma_handle:
 
 	if (vos_get_conparam() != VOS_FTM_MODE) {
 #ifdef FEATURE_WLAN_SCAN_PNO
@@ -3103,8 +3118,6 @@ err_wmi_attach:
 #endif
 		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	}
-
-	vos_mem_free(wma_handle->interfaces);
 	vos_free_context(vos_context, VOS_MODULE_ID_WDA, wma_handle);
 
 	WMA_LOGD("%s: Exit", __func__);

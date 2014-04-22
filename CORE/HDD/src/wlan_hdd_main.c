@@ -9830,8 +9830,10 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
       if (hdd_ftm_stop(pHddCtx))
       {
-          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_ftm_stop Failed", __func__);
+          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_stop Failed",__func__);
+          VOS_ASSERT(0);
       }
+      pHddCtx->ftm.ftm_state = WLAN_FTM_STOPPED;
 #endif
       wlan_hdd_ftm_close(pHddCtx);
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: FTM driver unloaded", __func__);
@@ -11225,13 +11227,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
       {
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
-          goto err_free_hdd_context;
+          goto err_free_adf_context;
       }
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
       if (hdd_ftm_start(pHddCtx))
       {
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_start Failed",__func__);
-          goto err_free_hdd_context;
+          goto err_free_ftm_open;
       }
 #endif
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded", __func__);
@@ -11676,6 +11678,14 @@ err_wdclose:
    if(pHddCtx->cfg_ini->fIsLogpEnabled)
       vos_watchdog_close(pVosContext);
 
+if (VOS_FTM_MODE == hdd_get_conparam())
+{
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
+err_free_ftm_open:
+   wlan_hdd_ftm_close(pHddCtx);
+#endif
+}
+
 err_config:
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
@@ -11684,6 +11694,7 @@ err_free_adf_context:
 #ifdef QCA_WIFI_2_0
    vos_mem_free(adf_ctx);
 #endif
+
 err_free_hdd_context:
    hdd_allow_suspend();
    wiphy_free(wiphy) ;

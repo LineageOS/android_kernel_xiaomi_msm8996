@@ -1001,6 +1001,14 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
       HTCDestroy(gpVosContext->htc_ctx);
       gpVosContext->htc_ctx = NULL;
   }
+  vosStatus = wma_wmi_service_close( vosContext );
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close wma_wmi_service", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
   hif_disable_isr(gpVosContext->pHIFContext);
 #endif
 
@@ -4334,6 +4342,12 @@ VOS_STATUS wlan_ftm_priv_get_ftm_version(hdd_adapter_t *pAdapter,char *pftmVer)
         return VOS_STATUS_E_FAILURE;
     }
 
+    if (!pMsgBuf) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                 "%s: pMsgBuf is NULL", __func__);
+       return VOS_STATUS_E_FAILURE;
+    }
+
     vos_mem_set(pMsgBuf, sizeof(tPttMsgbuffer), 0);
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_DBG_READ_REGISTER;
@@ -4459,6 +4473,12 @@ static VOS_STATUS wlan_ftm_priv_get_txrate(hdd_adapter_t *pAdapter,char *pTxRate
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                    "%s:Ftm has not started. Please start the ftm. ", __func__);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    if (!pMsgBuf) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                   "%s: pMsgBuf is NULL", __func__);
         return VOS_STATUS_E_FAILURE;
     }
 
