@@ -11012,6 +11012,14 @@ static VOS_STATUS wma_pktlog_wmi_send_cmd(WMA_HANDLE handle,
 	int len = 0;
 	wmi_buf_t buf;
 
+	/*Check if packet log is enabled in cfg.ini*/
+	if (! vos_is_packet_log_enabled())
+	{
+		WMA_LOGE("%s:pkt log is not enabled in cfg.ini", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+
 	PKTLOG_EVENT = params->pktlog_event;
 	CMD_ID = params->cmd_id;
 

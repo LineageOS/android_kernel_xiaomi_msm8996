@@ -3386,6 +3386,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SAP_DOT11_MODE_DEFAULT,
                  CFG_SAP_DOT11_MODE_MIN,
                  CFG_SAP_DOT11_MODE_MAX ),
+
+   REG_VARIABLE( CFG_ENABLE_PACKET_LOG, WLAN_PARAM_Integer,
+                 hdd_config_t, enablePacketLog,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_PACKET_LOG_DEFAULT,
+                 CFG_ENABLE_PACKET_LOG_MIN,
+                 CFG_ENABLE_PACKET_LOG_MAX ),
+
 };
 
 /*

@@ -2571,3 +2571,19 @@ v_VOID_t vos_flush_delayed_work(v_VOID_t *dwork)
    cancel_delayed_work_sync(dwork);
 #endif
 }
+
+v_BOOL_t vos_is_packet_log_enabled(void)
+{
+   hdd_context_t *pHddCtx;
+
+   pHddCtx = (hdd_context_t*)(gpVosContext->pHDDContext);
+   if((NULL == pHddCtx) ||
+      (NULL == pHddCtx->cfg_ini))
+   {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Hdd Context is Null", __func__);
+     return FALSE;
+   }
+
+   return pHddCtx->cfg_ini->enablePacketLog;
+}

@@ -118,6 +118,9 @@ void hif_disable_isr(void *ol_sc);
 /* Function to reset SoC*/
 void hif_reset_soc(void *ol_sc);
 
+/* Function to disable ASPM*/
+void hif_disable_aspm(void *ol_sc);
+
 void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc);
 
 #ifndef REMOVE_PKT_LOG

@@ -1588,6 +1588,13 @@ typedef enum
 #define CFG_DEFAULT_RATE_INDEX_24GH_MAX           ( 9 )
 #define CFG_DEFAULT_RATE_INDEX_24GH_DEFAULT       ( 1 )
 
+
+#define CFG_ENABLE_PACKET_LOG            "gEnablePacketLog"
+#define CFG_ENABLE_PACKET_LOG_MIN        ( 0 )
+#define CFG_ENABLE_PACKET_LOG_MAX        ( 1 )
+#define CFG_ENABLE_PACKET_LOG_DEFAULT    ( 0 )
+
+
 /*
  * VOS Trace Enable Control
  * Notes:
@@ -2945,7 +2952,10 @@ typedef struct
    v_BOOL_t                    allowDFSChannelRoam;
 
    v_BOOL_t                    debugP2pRemainOnChannel;
+
    eHddDot11Mode               sapDot11Mode;
+
+   v_BOOL_t                    enablePacketLog;
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation
