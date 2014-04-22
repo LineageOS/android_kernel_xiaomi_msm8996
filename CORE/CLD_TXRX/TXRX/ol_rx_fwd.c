@@ -131,6 +131,17 @@ ol_rx_fwd_to_tx(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu)
     adf_nbuf_map_single(pdev->osdev, msdu, ADF_OS_DMA_TO_DEVICE);
     adf_nbuf_set_next(msdu, NULL); /* add NULL terminator */
     TXRX_STATS_MSDU_INCR(vdev->pdev, rx.forwarded, msdu);
+
+    /* for HL, point to payload before send to tx again.*/
+    if (pdev->cfg.is_high_latency) {
+        void *rx_desc;
+        rx_desc = htt_rx_msdu_desc_retrieve(pdev->htt_pdev, msdu);
+
+        adf_nbuf_pull_head(msdu,
+                htt_rx_msdu_rx_desc_size_hl(pdev->htt_pdev,
+                    rx_desc));
+    }
+
     msdu = vdev->tx(vdev, msdu);
 
     if (msdu) {
