@@ -1142,6 +1142,12 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		}
 
 		iface = &wma->interfaces[resp_event->vdev_id];
+		if (iface->handle == NULL) {
+			WMA_LOGE("%s vdev id %d is already deleted",
+				__func__, resp_event->vdev_id);
+			status = -EINVAL;
+			goto free_req_msg;
+		}
 
 #ifdef QCA_IBSS_SUPPORT
 		if ( wma_is_vdev_in_ibss_mode(wma, resp_event->vdev_id))
@@ -3350,7 +3356,6 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		iface->del_staself_req = pdel_sta_self_req_param;
 		return status;
 	}
-
 
         adf_os_spin_lock_bh(&wma_handle->vdev_detach_lock);
         if(!iface->handle) {
@@ -6326,6 +6331,13 @@ void wma_vdev_resp_timer(void *data)
 		}
 
 		iface = &wma->interfaces[tgt_req->vdev_id];
+		if (iface->handle == NULL) {
+			WMA_LOGE("%s vdev id %d is already deleted",
+				__func__, tgt_req->vdev_id);
+			vos_timer_stop(&tgt_req->event_timeout);
+			goto free_tgt_req;
+		}
+
 #ifdef QCA_IBSS_SUPPORT
 		if (wma_is_vdev_in_ibss_mode(wma, tgt_req->vdev_id))
 			wma_delete_all_ibss_peers(wma, tgt_req->vdev_id);
