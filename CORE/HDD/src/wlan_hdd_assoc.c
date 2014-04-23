@@ -2621,6 +2621,16 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
 #ifdef CONFIG_TDLS_IMPLICIT
             hddTdlsPeer_t *curr_peer;
 
+            /* ignore TDLS_SHOULD_DISCOVER if any concurrency detected */
+            if ((1 << VOS_STA_MODE) != pHddCtx->concurrency_mode)
+            {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "%s: concurrency detected. ignore SHOULD_DISCOVER",
+                          __func__);
+                status = eHAL_STATUS_FAILURE;
+                break;
+            }
+
             curr_peer = wlan_hdd_tdls_get_peer(pAdapter, pRoamInfo->peerMac);
             if (!curr_peer)
             {
