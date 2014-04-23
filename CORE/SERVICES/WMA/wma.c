@@ -1003,14 +1003,18 @@ static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 		return;
 
 	/* remove all IBSS remote peers first */
+	adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
 	TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
 		if (peer != TAILQ_FIRST(&vdev->peer_list)) {
+			adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
 			adf_os_atomic_init(&peer->ref_cnt);
 			adf_os_atomic_inc(&peer->ref_cnt);
 			wma_remove_peer(wma, wma->interfaces[vdev_id].bssid,
 				vdev_id, peer);
+			adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
 		}
 	}
+	adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
 
 	/* remove IBSS bss peer last */
 	peer = TAILQ_FIRST(&vdev->peer_list);
@@ -1020,26 +1024,31 @@ static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 
 static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 {
-		ol_txrx_vdev_handle vdev;
-		ol_txrx_peer_handle peer;
+	ol_txrx_vdev_handle vdev;
+	ol_txrx_peer_handle peer;
 
-		if (!wma || vdev_id > wma->max_bssid)
-			return;
+	if (!wma || vdev_id > wma->max_bssid)
+		return;
 
-		vdev = wma->interfaces[vdev_id].handle;
-		if (!vdev)
-			return;
+	vdev = wma->interfaces[vdev_id].handle;
+	if (!vdev)
+		return;
 
-		/* remove all remote peers of SAP */
-		TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+	/* remove all remote peers of SAP */
+	adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
+	TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
 		if (peer != TAILQ_FIRST(&vdev->peer_list)) {
+			adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
 			adf_os_atomic_init(&peer->ref_cnt);
 			adf_os_atomic_inc(&peer->ref_cnt);
 			wma_remove_peer(wma, peer->mac_addr.raw,
 					vdev_id, peer);
+			adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
 		}
 	}
+	adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
 }
+
 #ifdef QCA_IBSS_SUPPORT
 static void wma_recreate_ibss_vdev_and_bss_peer(tp_wma_handle wma, u_int8_t vdev_id)
 {
