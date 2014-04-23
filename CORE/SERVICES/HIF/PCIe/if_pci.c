@@ -391,7 +391,7 @@ void dump_CE_debug_register(struct hif_pci_softc *sc)
     A_target_id_t targid = hif_state->targid;
     void __iomem *mem = sc->mem;
     u_int32_t val, i, j;
-    u_int32_t wrapper_idx[] = {1, 2, 3, 4, 5, 6, 8, 9};
+    u_int32_t wrapper_idx[] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
     u_int32_t ce_base;
 
     A_TARGET_ACCESS_BEGIN(targid);

@@ -417,9 +417,12 @@ typedef struct sPESession           // Added to Support BT-AMP
 
     /* Flag to indicate Chan Sw announcement is required */
     tANI_U8  dfsIncludeChanSwIe;
+
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tANI_U8  cc_switch_mode;
 #endif
+
+    tANI_BOOLEAN isCiscoVendorAP;
 }tPESession, *tpPESession;
 
 #define LIM_MAX_ACTIVE_SESSIONS 4

@@ -431,6 +431,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    */
   macOpenParms.dfsPhyerrFilterOffload =
                         pHddCtx->cfg_ini->fDfsPhyerrFilterOffload;
+  if (pHddCtx->cfg_ini->ssdp)
+      macOpenParms.ssdp = pHddCtx->cfg_ini->ssdp;
 #endif
 
    macOpenParms.apMaxOffloadPeers = pHddCtx->cfg_ini->apMaxOffloadPeers;

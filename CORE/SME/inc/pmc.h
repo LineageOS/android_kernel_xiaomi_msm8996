@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -188,7 +188,6 @@ typedef struct sPmcInfo
     void *enterWowlCallbackContext;/* value to be passed as parameter to routine specified above */
     tSirSmeWowlEnterParams wowlEnterParams; /* WOWL mode configuration */
     tDblLinkList deferredMsgList;   //The message in here are deferred and DONOT expect response from PE
-    tANI_BOOLEAN rfSuppliesVotedOff;  //Whether RF supplies are voted off or not.
 #ifdef FEATURE_WLAN_SCAN_PNO
     preferredNetworkFoundIndCallback  prefNetwFoundCB; /* routine to call for Preferred Network Found Indication */
     void *preferredNetworkFoundIndCallbackContext;/* value to be passed as parameter to routine specified above */

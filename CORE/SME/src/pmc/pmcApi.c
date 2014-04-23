@@ -94,7 +94,6 @@ eHalStatus pmcOpen (tHalHandle hHal)
     pMac->pmc.bmpsEnabled = TRUE;
     pMac->pmc.standbyEnabled = TRUE;
     pMac->pmc.wowlEnabled = TRUE;
-    pMac->pmc.rfSuppliesVotedOff= FALSE;
 
     vos_mem_set(&(pMac->pmc.bmpsConfig), sizeof(tPmcBmpsConfigParams), 0);
     vos_mem_set(&(pMac->pmc.impsConfig), sizeof(tPmcImpsConfigParams), 0);

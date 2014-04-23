@@ -52,6 +52,9 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
 tSirRetStatus limSendModeUpdate(tpAniSirGlobal pMac,
                                 tUpdateVHTOpMode *tempParam,
                                 tpPESession  psessionEntry );
+tSirRetStatus limSendRxNssUpdate(tpAniSirGlobal pMac,
+                                 tUpdateRxNss *tempParam,
+                                 tpPESession  psessionEntry );
 
 tANI_U32 limGetCenterChannel(tpAniSirGlobal pMac,
                              tANI_U8 primarychanNum,

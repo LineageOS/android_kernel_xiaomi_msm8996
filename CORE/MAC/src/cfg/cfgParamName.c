@@ -341,4 +341,5 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"CURRENT_RSSI",
     (unsigned char *)"RTT3_ENABLE",
     (unsigned char *)"DEBUG_P2P_REMAIN_ON_CHANNEL",
+    (unsigned char *)"TDLS_OFF_CHANNEL_ENABLED",
 };

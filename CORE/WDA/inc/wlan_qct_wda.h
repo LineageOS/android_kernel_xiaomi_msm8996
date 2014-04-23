@@ -1263,6 +1263,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #ifdef WLAN_FEATURE_11AC
 #define WDA_UPDATE_OP_MODE         SIR_HAL_UPDATE_OP_MODE
+#define WDA_UPDATE_RX_NSS          SIR_HAL_UPDATE_RX_NSS
 #define WDA_UPDATE_MEMBERSHIP      SIR_HAL_UPDATE_MEMBERSHIP
 #define WDA_UPDATE_USERPOS         SIR_HAL_UPDATE_USERPOS
 #endif

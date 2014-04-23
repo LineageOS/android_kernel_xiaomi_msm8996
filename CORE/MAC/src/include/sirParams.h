@@ -664,6 +664,10 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_DISASSOC_TX_COMP           (SIR_HAL_ITC_MSG_TYPES_BEGIN + 255)
 #define SIR_HAL_DEAUTH_TX_COMP             (SIR_HAL_ITC_MSG_TYPES_BEGIN + 256)
 
+#ifdef WLAN_FEATURE_11AC
+#define SIR_HAL_UPDATE_RX_NSS              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 257)
+#endif
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

@@ -70,6 +70,8 @@ static tAniBool glimTriggerBackgroundScanDuringQuietBss_Status = eSIR_TRUE;
 //#define LIM_MAX_ACTIVE_SESSIONS 3  //defined temporarily for BT-AMP SUPPORT
 #define SUCCESS 1                   //defined temporarily for BT-AMP
 
+#define MAX_BA_WINDOW_SIZE_FOR_CISCO 25
+
 /** -------------------------------------------------------------
 \fn limAssignDialogueToken
 \brief Assigns dialogue token.
@@ -5908,7 +5910,17 @@ tSirRetStatus limPostMlmAddBAReq( tpAniSirGlobal pMac,
   // Requesting the ADDBA recipient to populate the size.
   // If ADDBA is accepted, a non-zero buffer size should
   // be returned in the ADDBA Rsp
-  pMlmAddBAReq->baBufferSize = 0;
+  if ((TRUE == psessionEntry->isCiscoVendorAP) &&
+        (eHT_CHANNEL_WIDTH_80MHZ != pStaDs->htSupportedChannelWidthSet))
+  {
+     /* Cisco AP has issues in receiving more than 25 "mpdu in ampdu"
+        causing very low throughput in HT40 case */
+     limLog( pMac, LOGW,
+         FL( "Requesting ADDBA with Cisco 1225 AP, window size 25"));
+     pMlmAddBAReq->baBufferSize = MAX_BA_WINDOW_SIZE_FOR_CISCO;
+  }
+  else
+     pMlmAddBAReq->baBufferSize = 0;
 
   limLog( pMac, LOGW,
       FL( "Requesting an ADDBA to setup a %s BA session with STA %d for TID %d" ),
@@ -7802,18 +7814,34 @@ void limPmfSaQueryTimerHandler(void *pMacGlobal, tANI_U32 param)
 
 
 #ifdef WLAN_FEATURE_11AC
-tANI_BOOLEAN limCheckVHTOpModeChange( tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 chanWidth, tANI_U8 staId)
+tANI_BOOLEAN limCheckVHTOpModeChange( tpAniSirGlobal pMac, tpPESession psessionEntry,
+                                      tANI_U8 chanWidth, tANI_U8 staId, tANI_U8 *peerMac)
 {
     tUpdateVHTOpMode tempParam;
 
     tempParam.opMode = chanWidth;
     tempParam.staId  = staId;
     tempParam.smesessionId = psessionEntry->smeSessionId;
-    vos_mem_copy(tempParam.peer_mac, psessionEntry->bssId,
+    vos_mem_copy(tempParam.peer_mac, peerMac,
                  sizeof(tSirMacAddr));
 
-
     limSendModeUpdate( pMac, &tempParam, psessionEntry );
+
+    return eANI_BOOLEAN_TRUE;
+}
+
+tANI_BOOLEAN limSetNssChange( tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 rxNss,
+                              tANI_U8 staId, tANI_U8 *peerMac)
+{
+    tUpdateRxNss tempParam;
+
+    tempParam.rxNss = rxNss;
+    tempParam.staId  = staId;
+    tempParam.smesessionId = psessionEntry->smeSessionId;
+    vos_mem_copy(tempParam.peer_mac, peerMac,
+                 sizeof(tSirMacAddr));
+
+    limSendRxNssUpdate( pMac, &tempParam, psessionEntry );
 
     return eANI_BOOLEAN_TRUE;
 }
