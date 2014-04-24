@@ -1784,6 +1784,10 @@ VOS_STATUS hdd_wlan_shutdown(void)
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN driver shutting down! ",__func__);
 
+#ifdef WLAN_FEATURE_LPSS
+   wlan_hdd_send_status_pkg(NULL, NULL, 0, 0);
+#endif
+
    /* If SSR never completes, then do kernel panic. */
    hdd_ssr_timer_init();
    hdd_ssr_timer_start(HDD_SSR_BRING_UP_TIME);
@@ -2256,7 +2260,7 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    }
 #endif
 
-   wlan_hdd_send_svc_nlink_msg(WLAN_SVC_FW_CRASHED_IND);
+   wlan_hdd_send_svc_nlink_msg(WLAN_SVC_FW_CRASHED_IND, NULL, 0);
 
    /* Allow the phone to go to sleep */
    hdd_allow_suspend();
@@ -2269,6 +2273,12 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    }
    vos_set_reinit_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 
+#ifdef WLAN_FEATURE_LPSS
+   wlan_hdd_send_status_pkg(pAdapter, NULL, 1, 0);
+   wlan_hdd_send_version_pkg(pHddCtx->target_fw_version,
+                             pHddCtx->target_hw_version,
+                             pHddCtx->target_hw_name);
+#endif
    goto success;
 
 err_unregister_pmops:

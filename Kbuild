@@ -62,6 +62,8 @@ ifeq ($(KERNEL_BUILD), 0)
                 CONFIG_WLAN_FEATURE_11W := y
         #Flag to enable LTE CoEx feature
                 CONFIG_QCOM_LTE_COEX := y
+        #Flag to enable LPSS feature
+                CONFIG_WLAN_FEATURE_LPSS := y
                 endif
         endif
 
@@ -1111,6 +1113,10 @@ endif
 
 ifeq ($(CONFIG_QCOM_LTE_COEX),y)
 CDEFINES += -DFEATURE_WLAN_CH_AVOID
+endif
+
+ifeq ($(CONFIG_WLAN_FEATURE_LPSS),y)
+CDEFINES += -DWLAN_FEATURE_LPSS
 endif
 
 ifeq ($(PANIC_ON_BUG),1)
