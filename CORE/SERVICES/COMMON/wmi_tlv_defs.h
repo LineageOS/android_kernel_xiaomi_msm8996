@@ -423,6 +423,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_pdev_l1ss_track_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_diag_data_container_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_modem_power_state_cmd_param,
+    WMITLV_TAG_STRUC_wmi_aggr_state_trig_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -638,7 +639,8 @@ typedef enum {
     OP(WMI_THERMAL_MGMT_EVENTID) \
     OP(WMI_NAN_EVENTID) \
     OP(WMI_PDEV_L1SS_TRACK_EVENTID) \
-    OP(WMI_DIAG_DATA_CONTAINER_EVENTID)
+    OP(WMI_DIAG_DATA_CONTAINER_EVENTID) \
+    OP(WMI_AGGR_STATE_TRIG_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1620,6 +1622,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_TX_ADDBA_COMPLETE_EVENTID);
     WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_ARRAY_STRUC, wmi_ba_event_ssn, ba_event_ssn_list, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_BA_RSP_SSN_EVENTID);
+
+/* Aggregation Request event */
+#define WMITLV_TABLE_WMI_AGGR_STATE_TRIG_EVENTID(id,op,buf,len)                                       \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_aggr_state_trig_event_fixed_param, wmi_aggr_state_trig_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_AGGR_STATE_TRIG_EVENTID);
+
 /* Roam Event */
 #define WMITLV_TABLE_WMI_ROAM_EVENTID(id,op,buf,len)                                                         \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_event_fixed_param, wmi_roam_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
