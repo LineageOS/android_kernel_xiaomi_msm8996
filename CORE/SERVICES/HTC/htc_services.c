@@ -28,6 +28,9 @@
 
 #include "htc_internal.h"
 #include <adf_nbuf.h>  /* adf_nbuf_t */
+#if defined(HIF_PCI)
+#include "if_pci.h"
+#endif
 
 extern unsigned int htc_credit_flow;
 
@@ -316,4 +319,12 @@ void HTCFwEventHandler(void *context)
     if (target->HTCInitInfo.TargetFailure != NULL) {
         initInfo->TargetFailure(initInfo->pContext, A_ERROR);
     }
+}
+
+/* Disable ASPM : disable PCIe low power */
+void htc_disable_aspm(void)
+{
+#if defined(HIF_PCI)
+   hif_disable_aspm();
+#endif
 }

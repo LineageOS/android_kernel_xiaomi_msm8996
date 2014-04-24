@@ -2877,6 +2877,11 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wdi_in_set_cfg_rx_fwd_disabled((ol_pdev_handle)((pVosContextType)vos_context)->cfg_ctx,
 		(u_int8_t)mac_params->apDisableIntraBssFwd);
 
+	/* adjust the packet log enable default value based on CFG INI setting */
+	wdi_in_set_cfg_pakcet_log_enabled((ol_pdev_handle)
+		((pVosContextType)vos_context)->cfg_ctx, (u_int8_t)vos_is_packet_log_enabled());
+
+
 	/* Allocate dfs_ic and initialize DFS */
 	wma_handle->dfs_ic = wma_dfs_attach(wma_handle->dfs_ic);
 	if(wma_handle->dfs_ic == NULL) {
