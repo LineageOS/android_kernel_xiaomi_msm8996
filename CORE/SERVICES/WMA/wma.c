@@ -13774,6 +13774,10 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 	}
 
 out:
+	/* free oem data req buffer received from UMAC */
+	if (startOemDataReq)
+		vos_mem_free(startOemDataReq);
+
 	/* Now send data resp back to PE/SME with message sub-type of
 	 * WMI_OEM_INTERNAL_RSP. This is required so that PE/SME clears
 	 * up pending active command. Later when desired oem response(s)
