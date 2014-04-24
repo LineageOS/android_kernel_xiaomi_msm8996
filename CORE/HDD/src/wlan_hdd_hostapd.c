@@ -4806,6 +4806,7 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
     v_CONTEXT_t sapContext=NULL;
 #endif
+    int ret;
 
     ENTER();
 
@@ -4882,6 +4883,17 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     }
 
     set_bit(WMM_INIT_DONE, &pAdapter->event_flags);
+
+    ret = process_wma_set_command((int)pAdapter->sessionId,
+                         (int)WMI_PDEV_PARAM_BURST_ENABLE,
+                         (int)pHddCtx->cfg_ini->enableSifsBurst,
+                         PDEV_CMD);
+
+    if (0 != ret) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                    "%s: WMI_PDEV_PARAM_BURST_ENABLE set failed %d",
+                    __func__, ret);
+    }
 
     wlan_hdd_set_monitor_tx_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
 
