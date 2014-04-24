@@ -438,8 +438,6 @@ void vos_trace_hex_dump( VOS_MODULE_ID module, VOS_TRACE_LEVEL level,
     for (; i < buf_len; i++)
     {
         vos_trace_msg( module, level, "%02x ", buf[i]);
-        if ((i+1) == buf_len)
-            vos_trace_msg( module, level, "\n");
     }
 
 }
