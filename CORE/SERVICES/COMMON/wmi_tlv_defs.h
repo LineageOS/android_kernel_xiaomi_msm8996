@@ -424,6 +424,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_diag_data_container_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_modem_power_state_cmd_param,
     WMITLV_TAG_STRUC_wmi_aggr_state_trig_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mhf_offload_routing_table_entry,
 } WMITLV_TAG_ID;
 
 /*
@@ -1492,8 +1493,9 @@ WMITLV_CREATE_PARAM_STRUC(WMI_MHF_OFFLOAD_SET_MODE_CMDID);
 
 #define WMITLV_TABLE_WMI_MHF_OFFLOAD_PLUMB_ROUTING_TBL_CMDID(id,op,buf,len)   \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mhf_offload_plumb_routing_table_cmd_fixed_param, \
-    wmi_mhf_offload_plumb_routing_table_cmd, fixed_param, WMITLV_SIZE_FIX)
-
+                wmi_mhf_offload_plumb_routing_table_cmd, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_mhf_offload_routing_table_entry, \
+                routing_tbl_entries, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_MHF_OFFLOAD_PLUMB_ROUTING_TBL_CMDID)
 
 #define WMITLV_TABLE_WMI_BATCH_SCAN_DISABLE_CMDID(id,op,buf,len) \

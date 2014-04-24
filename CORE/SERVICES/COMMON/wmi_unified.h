@@ -6313,10 +6313,12 @@ typedef struct {
 } wmi_mhf_offload_set_mode_cmd_fixed_param;
 
 enum wmi_mhf_ofl_table_action {
-    /** Add entry to multihop forwarding offload table */
-    WMI_MHF_OFL_TBL_ADD_ENTRY = 0,
-    /** Delete entry from multihop forwarding offload table */
-    WMI_MHF_OFL_TBL_DEL_ENTRY = 1,
+   /** Create forwarding offload table in FW */
+   WMI_MHF_OFL_TBL_CREATE = 0,
+   /** Append to existing multihop forwarding offload table */
+   WMI_MHF_OFL_TBL_APPEND = 1,
+   /** Flush entire multihop forwarding offload table in FW */
+   WMI_MHF_OFL_TBL_FLUSH = 2,
 };
 
 typedef struct {
@@ -6326,13 +6328,21 @@ typedef struct {
     /** action corresponds to values from enum
      *  wmi_mhf_ofl_table_action */
     A_UINT32 action;
+    /** number of entries in the table */
+    A_UINT32 num_entries;
+/** Followed by the variable length TLV
+ *  wmi_mhf_offload_routing_table_entry entries[] */
+}wmi_mhf_offload_plumb_routing_table_cmd;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_mhf_offload_routing_table_entry */
+    A_UINT32 tlv_header;
     /** Destination node's IP address */
     WMI_IPV4_ADDR dest_ipv4_addr;
-    /** Next hop node's IP address */
-    WMI_IPV4_ADDR next_hop_ipv4_addr;
     /** Next hop node's MAC address */
     wmi_mac_addr next_hop_mac_addr;
-} wmi_mhf_offload_plumb_routing_table_cmd;
+}wmi_mhf_offload_routing_table_entry;
 
 typedef struct {
     /** tlv tag and len, tag equals
