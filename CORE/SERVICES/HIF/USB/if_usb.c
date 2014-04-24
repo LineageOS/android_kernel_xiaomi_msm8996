@@ -175,6 +175,7 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 		if (sc->hif_device != NULL) {
 			((HIF_DEVICE_USB *)(sc->hif_device))->sc = NULL;
 		}
+		athdiag_procfs_remove();
 		goto err_config;
 	}
 #ifndef REMOVE_PKT_LOG
@@ -223,6 +224,7 @@ static void hif_usb_remove(struct usb_interface *interface)
 	if (!sc)
 		return;
 
+	HIFDiagWriteWARMRESET(interface, 0, 0);
 	unregister_reboot_notifier(&sc->reboot_notifier);
 
 	usb_put_dev(interface_to_usbdev(interface));

@@ -170,8 +170,6 @@ void HIF_USBDeviceDetached(struct usb_interface *interface,
 			break;
 		}
 
-		HIFDiagWriteWARMRESET(interface, 0, 0);
-
 		device->surpriseRemoved = surprise_removed;
 		/* inform upper layer if it is still interested */
 		if (surprise_removed
