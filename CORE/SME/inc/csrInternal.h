@@ -1263,7 +1263,25 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
   ---------------------------------------------------------------------------*/
 tANI_U16 csrGetTLSTAState(tpAniSirGlobal pMac, tANI_U8 staId);
 
-eHalStatus csrGetRssi(tpAniSirGlobal pMac,tCsrRssiCallback callback,tANI_U8 staId,tCsrBssid bssId,void * pContext,void * pVosContext);
+/* ---------------------------------------------------------------------------
+    \fn csrGetRssi
+    \ creates SME req packet for getRSSI and post to Self
+
+    \param pMac     - global MAC context
+    \param callback - hdd callback function to be called once FW returns the
+                      RSSI value
+    \param staId    - The staID to be passed to the TL to get the relevant
+                      TL STA State
+    \param bssID    - bssid for which RSSI is requested
+    \param lastRSSI - RSSI value at time of request. In case request cannot
+                      be sent to firmware, do not hold up but return this value.
+    \param pContext - user context to be passed back along with the callback
+    \param pVosContext - vos conext
+    \return the state as tANI_U16
+  ---------------------------------------------------------------------------*/
+eHalStatus csrGetRssi(tpAniSirGlobal pMac,tCsrRssiCallback callback,
+                      tANI_U8 staId, tCsrBssid bssId, tANI_S8 lastRSSI,
+                      void * pContext,void * pVosContext);
 
 /* ---------------------------------------------------------------------------
     \fn csrGetSnr

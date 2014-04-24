@@ -987,7 +987,7 @@ VOS_STATUS wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value)
 
    hstatus = sme_GetRssi(pHddCtx->hHal, hdd_GetRssiCB,
                          pHddStaCtx->conn_info.staId[ 0 ],
-                         pHddStaCtx->conn_info.bssId,
+                         pHddStaCtx->conn_info.bssId, pAdapter->rssi,
                          &context, pHddCtx->pvosContext);
    if (eHAL_STATUS_SUCCESS != hstatus)
    {
