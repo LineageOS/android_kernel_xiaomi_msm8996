@@ -13721,7 +13721,9 @@ static void wma_get_stats_req(WMA_HANDLE handle,
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 				WMI_REQUEST_STATS_CMDID)) {
 
-		vos_mem_free(buf);
+		WMA_LOGE("%s: Failed to send WMI_REQUEST_STATS_CMDID",
+			__func__);
+		wmi_buf_free(buf);
 		goto failed;
 	}
 
