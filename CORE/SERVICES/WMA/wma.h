@@ -1263,7 +1263,6 @@ VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq,
 				v_S7_t first_rssi);
 
-#ifdef FEATURE_WLAN_SCAN_PNO
 
 #define WMA_NLO_FREQ_THRESH          1000         /* in MHz */
 #define WMA_SEC_TO_MSEC(sec)         (sec * 1000) /* sec to msec */
@@ -1271,13 +1270,14 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq,
 /* Default rssi threshold defined in CFG80211 */
 #define WMA_RSSI_THOLD_DEFAULT   -300
 
+#ifdef FEATURE_WLAN_SCAN_PNO
 #define WMA_PNO_WAKE_LOCK_TIMEOUT		(30 * 1000) /* in msec */
+#endif
 #define WMA_AUTH_REQ_RECV_WAKE_LOCK_TIMEOUT	(50 * 1000) /* in msec */
 #define WMA_ASSOC_REQ_RECV_WAKE_LOCK_DURATION	(30 * 1000) /* in msec */
 #define WMA_DEAUTH_RECV_WAKE_LOCK_DURATION	(30 * 1000) /* in msec */
 #define WMA_DISASSOC_RECV_WAKE_LOCK_DURATION	(30 * 1000) /* in msec */
 
-#endif
 
 /* U-APSD maximum service period of peer station */
 enum uapsd_peer_param_max_sp {

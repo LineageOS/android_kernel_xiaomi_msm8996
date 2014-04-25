@@ -2499,8 +2499,16 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
         if( pRoamInfo )
         {
             pRoamInfo->sessionId = (tANI_U8)sessionId;
+            /*
+             * the reasonCode will be passed to supplicant by cfg80211_disconnected.
+             * Based on the document, the reason code passed to supplicant needs to set
+             * to 0 if unknow. eSIR_BEACON_MISSED reason code is not recognizable so that
+             * we set to 0 instead.
+             */
+            pRoamInfo->reasonCode =
+                    (pRoamInfo->reasonCode == eSIR_BEACON_MISSED) ?
+                    0 : pRoamInfo->reasonCode;
         }
-
         /* avoid holding the global lock when making the roaming callback, original change came
         from a raised CR (CR304874).  Since this callback is in HDD a potential deadlock
         is possible on other OS ports where the callback may need to take locks to protect

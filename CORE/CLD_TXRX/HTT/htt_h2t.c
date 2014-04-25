@@ -49,6 +49,9 @@
 #include <htt.h>         /* HTT host->target msg defs */
 #include <ol_txrx_htt_api.h> /* ol_tx_completion_handler, htt_tx_status */
 #include <ol_htt_tx_api.h>
+#include "vos_api.h"
+#include "vos_sched.h"
+#include "if_pci.h"
 
 
 #include <htt_internal.h>
@@ -225,13 +228,36 @@ htt_h2t_rx_ring_cfg_msg_ll(struct htt_pdev_t *pdev)
     msg_word++;
     *msg_word = 0;
 #ifndef REMOVE_PKT_LOG
-    enable_ctrl_data = 1;
-    enable_mgmt_data = 1;
-    enable_null_data = 1;
-    enable_phy_data  = 1;
-    enable_hdr       = 1;
-    enable_ppdu_start= 1;
-    enable_ppdu_end  = 1;
+ {
+    void *vos_context = NULL;
+
+    vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+
+    if ((NULL != vos_context) && (vos_is_packet_log_enabled()))
+    {
+        enable_ctrl_data = 1;
+        enable_mgmt_data = 1;
+        enable_null_data = 1;
+        enable_phy_data  = 1;
+        enable_hdr       = 1;
+        enable_ppdu_start= 1;
+        enable_ppdu_end  = 1;
+        adf_os_print("Pkt log is enabled -> disable ASPM\n");
+        hif_disable_aspm(((VosContextType*)vos_context)->pHIFContext);
+        /*Disable ASPM when pkt log is enabled*/
+    }
+    else
+    {
+        adf_os_print("Pkt log is disabled \n");
+        enable_ctrl_data = 0;
+        enable_mgmt_data = 0;
+        enable_null_data = 0;
+        enable_phy_data  = 0;
+        enable_hdr       = 0;
+        enable_ppdu_start= 0;
+        enable_ppdu_end  = 0;
+   }
+}
 #else
     enable_ctrl_data = 0;
     enable_mgmt_data = 0;

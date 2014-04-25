@@ -1046,8 +1046,10 @@ ol_txrx_peer_attach(
     ol_txrx_peer_pause(peer);
     #endif /* defined(CONFIG_HL_SUPPORT) */
 
+    adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
     /* add this peer into the vdev's list */
     TAILQ_INSERT_TAIL(&vdev->peer_list, peer, peer_list_elem);
+    adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
     /* check whether this is a real peer (peer mac addr != vdev mac addr) */
     if (ol_txrx_peer_find_mac_addr_cmp(&vdev->mac_addr, &peer->mac_addr)) {
         vdev->last_real_peer = peer;
