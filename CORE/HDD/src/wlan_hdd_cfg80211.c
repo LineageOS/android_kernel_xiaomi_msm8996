@@ -907,6 +907,9 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->flags |= WIPHY_FLAG_HAVE_AP_SME
                  |  WIPHY_FLAG_AP_PROBE_RESP_OFFLOAD
                  |  WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL
+#ifdef FEATURE_WLAN_STA_4ADDR_SCHEME
+                 |  WIPHY_FLAG_4ADDR_STATION
+#endif
                     | WIPHY_FLAG_OFFCHAN_TX;
     wiphy->country_ie_pref = NL80211_COUNTRY_IE_IGNORE_CORE;
 #endif

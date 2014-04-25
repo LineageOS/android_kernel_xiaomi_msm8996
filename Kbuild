@@ -1256,6 +1256,9 @@ CDEFINES += -DWLAN_FEATURE_MBSSID
 #Green AP feature
 CDEFINES += -DFEATURE_GREEN_AP
 
+#Enable 4address scheme for mdm9630
+CDEFINES += -DFEATURE_WLAN_STA_4ADDR_SCHEME
+
 else
 
 #Open P2P device interface only for non-MDM9630 platform
