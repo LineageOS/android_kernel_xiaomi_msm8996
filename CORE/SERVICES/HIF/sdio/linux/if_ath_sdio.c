@@ -63,6 +63,7 @@ ath_hif_sdio_probe(void *context, void *hif_handle)
     struct ol_softc *ol_sc;
     HIF_DEVICE_OS_DEVICE_INFO os_dev_info;
     struct sdio_func *func = NULL;
+    const struct sdio_device_id *id;
     u_int32_t target_type;
     ENTER();
 
@@ -103,8 +104,14 @@ ath_hif_sdio_probe(void *context, void *hif_handle)
         target_register_tbl_attach(TARGET_TYPE_AR9888);
         target_type = TARGET_TYPE_AR9888;
 #elif defined(CONFIG_AR6320_SUPPORT)
-        hif_register_tbl_attach(HIF_TYPE_AR6320);
-        target_register_tbl_attach(TARGET_TYPE_AR6320);
+        id = ((HIF_DEVICE*)hif_handle)->id;
+        if (id->device == MANUFACTURER_ID_QCA9377_BASE) {
+            hif_register_tbl_attach(HIF_TYPE_AR6320V2);
+            target_register_tbl_attach(TARGET_TYPE_AR6320V2);
+        } else {
+            hif_register_tbl_attach(HIF_TYPE_AR6320);
+            target_register_tbl_attach(TARGET_TYPE_AR6320);
+        }
         target_type = TARGET_TYPE_AR6320;
 
 #endif
@@ -209,7 +216,7 @@ ath_hif_sdio_power_change(void *context, A_UINT32 config)
 /*
  * Module glue.
  */
-#include "version.h"
+#include <linux/version.h>
 static char *version = "HIF (Atheros/multi-bss)";
 static char *dev_info = "ath_hif_sdio";
 
