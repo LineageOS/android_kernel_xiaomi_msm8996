@@ -1530,14 +1530,6 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
 #endif
 #endif
 
-#ifdef HDD_SESSIONIZE
-    //Turn off carrier state
-    netif_carrier_off(pAdapter->dev);
-
-    //Stop the Interface TX queue. Just being safe
-    netif_tx_disable(pAdapter->dev);
-#endif
-
    pHddCtx->ftm.processingNVTable    = NV_MAX_TABLE;
    pHddCtx->ftm.targetNVTableSize    = 0;
    pHddCtx->ftm.targetNVTablePointer = NULL;
