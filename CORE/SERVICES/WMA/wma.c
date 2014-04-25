@@ -6242,13 +6242,13 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
     * set the WMI_CHAN_FLAG_DFS flag
     */
    if (req->is_dfs) {
-      /* provide the current channel to DFS*/
-      wma->dfs_ic->ic_curchan =
-               wma_dfs_configure_channel(wma->dfs_ic,chan,chanmode,req);
 		WMI_SET_CHANNEL_FLAG(chan, WMI_CHAN_FLAG_DFS);
 		cmd->disable_hw_ack = VOS_TRUE;
 
 		/*
+		 * Configure the current operating channel
+		 * to DFS module only if the device operating
+		 * mode is AP.
 		 * Enable/Disable Phyerr filtering offload
 		 * depending on dfs_phyerr_filter_offload
 		 * flag status as set in ini for SAP mode.
@@ -6258,6 +6258,30 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 		 */
 		if (intr[cmd->vdev_id].type == WMI_VDEV_TYPE_AP &&
 			 intr[cmd->vdev_id].sub_type == 0) {
+			/*
+			 * If DFS regulatory domain is invalid,
+			 * then, DFS radar filters intialization
+			 * will fail. So, do not configure the
+			 * channel in to DFS modlue, do not
+			 * indicate if phyerror filtering offload
+			 * is enabled or not to the firmware, simply
+			 * fail the VDEV start on the DFS channel
+			 * early on, to protect the DFS module from
+			 * processing phyerrors without being intialized.
+			 */
+			if (DFS_UNINIT_DOMAIN == wma->dfs_ic->current_dfs_regdomain) {
+				WMA_LOGE("%s[%d]:DFS Configured with Invalid regdomain"
+							" Failed to send VDEV START command",
+							__func__, __LINE__);
+
+				adf_nbuf_free(buf);
+				return VOS_STATUS_E_FAILURE;
+			}
+
+			/* provide the current channel to DFS */
+			wma->dfs_ic->ic_curchan =
+				wma_dfs_configure_channel(wma->dfs_ic,chan,chanmode,req);
+
 			wma_unified_dfs_phyerr_filter_offload_enable(wma);
 		}
 	}
@@ -19860,66 +19884,73 @@ struct ieee80211com* wma_dfs_attach(struct ieee80211com *dfs_ic)
 void
 wma_dfs_configure(struct ieee80211com *ic)
 {
-    struct ath_dfs_radar_tab_info rinfo;
-    int dfsdomain;
-    if(ic == NULL)
-    {
-        WMA_LOGE("%s: DFS ic is Invalid",__func__);
-        return;
-    }
+	struct ath_dfs_radar_tab_info rinfo;
+	int dfsdomain;
+	int radar_enabled_status = 0;
+	if(ic == NULL) {
+		WMA_LOGE("%s: DFS ic is Invalid",__func__);
+		return;
+	}
 
-    dfsdomain = ic->current_dfs_regdomain;
+	dfsdomain = ic->current_dfs_regdomain;
 
-    /* Fetch current radar patterns from the lmac */
-    OS_MEMZERO(&rinfo, sizeof(rinfo));
+	/* Fetch current radar patterns from the lmac */
+	OS_MEMZERO(&rinfo, sizeof(rinfo));
 
-    /*
-     * Look up the current DFS
-     * regulatory domain and decide
-     * which radar pulses to use.
-     */
-    switch (dfsdomain)
-    {
-    case DFS_FCC_DOMAIN:
-        WMA_LOGI("%s: DFS-FCC domain",__func__);
-        rinfo.dfsdomain = DFS_FCC_DOMAIN;
-        rinfo.dfs_radars = dfs_fcc_radars;
-        rinfo.numradars = ARRAY_LENGTH(dfs_fcc_radars);
-        rinfo.b5pulses = dfs_fcc_bin5pulses;
-        rinfo.numb5radars = ARRAY_LENGTH(dfs_fcc_bin5pulses);
-    break;
-    case DFS_ETSI_DOMAIN:
-        WMA_LOGI("%s: DFS-ETSI domain",__func__);
-        rinfo.dfsdomain = DFS_ETSI_DOMAIN;
-        rinfo.dfs_radars = dfs_etsi_radars;
-        rinfo.numradars = ARRAY_LENGTH(dfs_etsi_radars);
-        rinfo.b5pulses = NULL;
-        rinfo.numb5radars = 0;
-    break;
-    case DFS_MKK4_DOMAIN:
-        WMA_LOGI("%s: DFS-MKK4 domain",__func__);
-        rinfo.dfsdomain = DFS_MKK4_DOMAIN;
-        rinfo.dfs_radars = dfs_mkk4_radars;
-        rinfo.numradars = ARRAY_LENGTH(dfs_mkk4_radars);
-        rinfo.b5pulses = dfs_jpn_bin5pulses;
-        rinfo.numb5radars = ARRAY_LENGTH(dfs_jpn_bin5pulses);
-    break;
-    default:
-        WMA_LOGI("%s: DFS-UNINT domain",__func__);
-        rinfo.dfsdomain = DFS_UNINIT_DOMAIN;
-        rinfo.dfs_radars = NULL;
-        rinfo.numradars = 0;
-        rinfo.b5pulses = NULL;
-        rinfo.numb5radars = 0;
-    break;
-    }
+	/*
+	 * Look up the current DFS
+	 * regulatory domain and decide
+	 * which radar pulses to use.
+	 */
+	switch (dfsdomain)
+	{
+	case DFS_FCC_DOMAIN:
+		WMA_LOGI("%s: DFS-FCC domain",__func__);
+		rinfo.dfsdomain = DFS_FCC_DOMAIN;
+		rinfo.dfs_radars = dfs_fcc_radars;
+		rinfo.numradars = ARRAY_LENGTH(dfs_fcc_radars);
+		rinfo.b5pulses = dfs_fcc_bin5pulses;
+		rinfo.numb5radars = ARRAY_LENGTH(dfs_fcc_bin5pulses);
+		break;
+	case DFS_ETSI_DOMAIN:
+		WMA_LOGI("%s: DFS-ETSI domain",__func__);
+		rinfo.dfsdomain = DFS_ETSI_DOMAIN;
+		rinfo.dfs_radars = dfs_etsi_radars;
+		rinfo.numradars = ARRAY_LENGTH(dfs_etsi_radars);
+		rinfo.b5pulses = NULL;
+		rinfo.numb5radars = 0;
+		break;
+	case DFS_MKK4_DOMAIN:
+		WMA_LOGI("%s: DFS-MKK4 domain",__func__);
+		rinfo.dfsdomain = DFS_MKK4_DOMAIN;
+		rinfo.dfs_radars = dfs_mkk4_radars;
+		rinfo.numradars = ARRAY_LENGTH(dfs_mkk4_radars);
+		rinfo.b5pulses = dfs_jpn_bin5pulses;
+		rinfo.numb5radars = ARRAY_LENGTH(dfs_jpn_bin5pulses);
+		break;
+	default:
+		WMA_LOGI("%s: DFS-UNINT domain",__func__);
+		rinfo.dfsdomain = DFS_UNINIT_DOMAIN;
+		rinfo.dfs_radars = NULL;
+		rinfo.numradars = 0;
+		rinfo.b5pulses = NULL;
+		rinfo.numb5radars = 0;
+		break;
+	}
 
-    /*
-     * Set the regulatory domain,
-     * radar pulse table and enable
-     * radar events if required.
-     */
-    dfs_radar_enable(ic, &rinfo);
+	/*
+	 * Set the regulatory domain,
+	 * radar pulse table and enable
+	 * radar events if required.
+	 * dfs_radar_enable() returns
+	 * 0 on success and non-zero
+	 * failure.
+	 */
+	radar_enabled_status = dfs_radar_enable(ic, &rinfo);
+	if (radar_enabled_status != DFS_STATUS_SUCCESS) {
+		WMA_LOGE("%s[%d]: DFS- Radar Detection Enabling Failed",
+			__func__, __LINE__);
+	}
 }
 
 /*
@@ -20009,6 +20040,12 @@ wma_set_dfs_regdomain(tp_wma_handle wma)
 	if (regdmn < 0)
 	{
 		WMA_LOGE("%s:DFS-Invalid regdomain",__func__);
+		/*
+		 * Set the DFS reg domain to unintlialized domain
+		 * to indicate dfs regdomain configuration failure
+		 */
+		wma->dfs_ic->current_dfs_regdomain = DFS_UNINIT_DOMAIN;
+		return;
 	}
 
 	regdmn5G = get_regdmn_5g(regdmn);
@@ -20017,6 +20054,12 @@ wma_set_dfs_regdomain(tp_wma_handle wma)
 	if (!ctl)
 	{
 		WMA_LOGI("%s:DFS-Invalid CTL",__func__);
+		/*
+		 * Set the DFS reg domain to unintlialized domain
+		 * to indicate dfs regdomain configuration failure
+		 */
+		wma->dfs_ic->current_dfs_regdomain = DFS_UNINIT_DOMAIN;
+		return;
 	}
 	if (ctl == FCC)
 	{

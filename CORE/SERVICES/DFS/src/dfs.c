@@ -525,6 +525,7 @@ int dfs_radar_enable(struct ieee80211com *ic,
 {
     int                                 is_ext_ch;
     int                                 is_fastclk = 0;
+    int                                 radar_filters_init_status = 0;
     //u_int32_t                        rfilt;
     struct ath_dfs                      *dfs;
     struct dfs_state *rs_pri, *rs_ext;
@@ -548,7 +549,18 @@ int dfs_radar_enable(struct ieee80211com *ic,
     * Setting country code might change the DFS domain
     * so initialize the DFS Radar filters
     */
-   dfs_init_radar_filters(ic, radar_info);
+   radar_filters_init_status = dfs_init_radar_filters(ic, radar_info);
+
+   /*
+    * dfs_init_radar_filters() returns 1 on failure and
+    * 0 on success.
+    */
+   if ( DFS_STATUS_FAIL == radar_filters_init_status ) {
+      VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                      "%s[%d]: DFS Radar Filters Initialization Failed",
+                       __func__,  __LINE__);
+      return -EIO;
+   }
 
    if ((ic->ic_opmode == IEEE80211_M_HOSTAP || ic->ic_opmode == IEEE80211_M_IBSS)) {
 
@@ -619,7 +631,7 @@ int dfs_radar_enable(struct ieee80211com *ic,
       }
    }
 
-   return 0;
+   return DFS_STATUS_SUCCESS;
 }
 
 int

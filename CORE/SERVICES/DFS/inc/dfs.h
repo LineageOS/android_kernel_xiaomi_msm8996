@@ -110,6 +110,9 @@
  */
 #define MAX_EVENTS 100
 
+#define DFS_STATUS_SUCCESS 0
+#define DFS_STATUS_FAIL 1
+
 /*
  * Constants to use for chirping detection.
  *
