@@ -1042,7 +1042,7 @@ adf_nbuf_t WLANTL_SendIPA_DataFrame(void *vos_ctx, void *vdev,
 
 	if (!adf_os_atomic_read(&tl_shim->vdev_active[interface_id])) {
 		TLSHIM_LOGW("INACTIVE VDEV");
-		return nbuf;
+		return skb;
 	}
 
 	if ((tl_shim->ip_checksum_offload) && (skb->protocol == htons(ETH_P_IP))

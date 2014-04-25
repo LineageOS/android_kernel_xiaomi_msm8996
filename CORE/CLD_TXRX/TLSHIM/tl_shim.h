@@ -30,6 +30,7 @@
 
 #include <ol_txrx_osif_api.h>
 #include <adf_os_lock.h>
+#include <adf_os_atomic.h>
 
 #ifdef FEATURE_WLAN_ESE
 typedef struct deferred_iapp_work {
