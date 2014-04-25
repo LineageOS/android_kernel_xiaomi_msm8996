@@ -3423,6 +3423,31 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MIN,
                  CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MAX),
 #endif
+
+#ifdef QCA_WIFI_2_0
+
+   REG_VARIABLE( CFG_ENABLE_FW_LOG_TYPE , WLAN_PARAM_Integer,
+                hdd_config_t, enableFwLogType,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_FW_LOG_TYPE_DEFAULT,
+                CFG_ENABLE_FW_LOG_TYPE_MIN,
+                CFG_ENABLE_FW_LOG_TYPE_MAX ),
+
+   REG_VARIABLE( CFG_ENABLE_FW_DEBUG_LOG_LEVEL, WLAN_PARAM_Integer,
+                hdd_config_t, enableFwLogLevel,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_FW_DEBUG_LOG_LEVEL_DEFAULT,
+                CFG_ENABLE_FW_DEBUG_LOG_LEVEL_MIN,
+                CFG_ENABLE_FW_DEBUG_LOG_LEVEL_MAX ),
+
+   REG_VARIABLE_STRING( CFG_ENABLE_FW_MODULE_LOG_LEVEL, WLAN_PARAM_String,
+                hdd_config_t, enableFwModuleLogLevel,
+                VAR_FLAGS_OPTIONAL,
+                (void *) CFG_ENABLE_FW_MODULE_LOG_DEFAULT),
+
+#endif
+
+
 };
 
 /*
@@ -4540,8 +4565,8 @@ VOS_STATUS hdd_set_idle_ps_config(hdd_context_t *pHddCtx, v_U32_t val)
    return status;
 }
 
-#ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
-static VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len, tANI_U8 intArrayMaxLen )
+VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,
+    tANI_U8 intArrayMaxLen )
 {
    char *s = str;
 
@@ -4569,7 +4594,6 @@ static VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 
    return VOS_STATUS_SUCCESS;
 
 }
-#endif
 
 
 v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )

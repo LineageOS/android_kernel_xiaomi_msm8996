@@ -8417,6 +8417,67 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
 #endif
 
+  /* Enable FW logs based on INI configuration */
+  if ((VOS_FTM_MODE != vos_get_conparam()) &&
+             (pHddCtx->cfg_ini->enableFwLogType))
+  {
+     tANI_U8 count = 0;
+     tANI_U32 value = 0;
+     tANI_U8 numEntries = 0;
+     tANI_U8 moduleLoglevel[FW_MODULE_LOG_LEVEL_STRING_LENGTH];
+
+     ret = process_wma_set_command( (int)pAdapter->sessionId,
+                                  (int)WMI_DBGLOG_TYPE,
+                                  pHddCtx->cfg_ini->enableFwLogType, DBG_CMD );
+     if (ret != 0)
+     {
+          hddLog(LOGE, FL("Failed to enable FW log type ret %d"), ret);
+     }
+
+     ret = process_wma_set_command((int)pAdapter->sessionId,
+                                   (int)WMI_DBGLOG_LOG_LEVEL,
+                                   pHddCtx->cfg_ini->enableFwLogLevel, DBG_CMD);
+     if (ret != 0)
+     {
+          hddLog(LOGE, FL("Failed to enable FW log level ret %d"), ret);
+     }
+
+     hdd_string_to_u8_array( pHddCtx->cfg_ini->enableFwModuleLogLevel,
+                             moduleLoglevel,
+                             &numEntries,
+                             FW_MODULE_LOG_LEVEL_STRING_LENGTH );
+     while (count < numEntries)
+     {
+         /* FW module log level input string looks like below:
+            gFwDebugModuleLoglevel=<FW Module ID>, <Log Level>, so on....
+            For example:
+            gFwDebugModuleLoglevel=1,0,2,1,3,2,4,3,5,4,6,5,7,6,8,7
+            Above input string means :
+            For FW module ID 1 enable log level 0
+            For FW module ID 2 enable log level 1
+            For FW module ID 3 enable log level 2
+            For FW module ID 4 enable log level 3
+            For FW module ID 5 enable log level 4
+            For FW module ID 6 enable log level 5
+            For FW module ID 7 enable log level 6
+            For FW module ID 8 enable log level 7
+         */
+         /* FW expects WMI command value = Module ID * 10 + Module Log level */
+         value = ( (moduleLoglevel[count] * 10) + moduleLoglevel[count + 1] );
+         ret = process_wma_set_command((int)pAdapter->sessionId,
+                                       (int)WMI_DBGLOG_MOD_LOG_LEVEL,
+                                       value, DBG_CMD);
+         if (ret != 0)
+         {
+            hddLog(LOGE, FL("Failed to enable FW module log level %d ret %d"),
+              value, ret);
+         }
+
+         count += 2;
+     }
+  }
+
+
    return pAdapter;
 
 err_free_netdev:
