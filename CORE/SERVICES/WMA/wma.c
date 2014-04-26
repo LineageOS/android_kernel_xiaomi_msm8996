@@ -1106,6 +1106,7 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	ol_txrx_pdev_handle pdev;
 	u_int8_t peer_id;
 	struct wma_txrx_node *iface;
+	int32_t status = 0;
 
 	WMA_LOGI("%s: Enter", __func__);
 	param_buf = (WMI_VDEV_STOPPED_EVENTID_param_tlvs *) cmd_param_info;
@@ -1125,7 +1126,9 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 	if (!pdev) {
 		WMA_LOGE("%s: pdev is NULL", __func__);
-		return -EINVAL;
+		status = -EINVAL;
+		vos_timer_stop(&req_msg->event_timeout);
+		goto free_req_msg;
 	}
 
 	vos_timer_stop(&req_msg->event_timeout);
@@ -1138,10 +1141,17 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		if (resp_event->vdev_id > wma->max_bssid) {
 			WMA_LOGE("%s: Invalid vdev_id %d", __func__,
 				resp_event->vdev_id);
-			return -EINVAL;
+			status = -EINVAL;
+			goto free_req_msg;
 		}
 
 		iface = &wma->interfaces[resp_event->vdev_id];
+		if (iface->handle == NULL) {
+			WMA_LOGE("%s vdev id %d is already deleted",
+				__func__, resp_event->vdev_id);
+			status = -EINVAL;
+			goto free_req_msg;
+		}
 
 #ifdef QCA_IBSS_SUPPORT
 		if ( wma_is_vdev_in_ibss_mode(wma, resp_event->vdev_id))
@@ -1203,9 +1213,10 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 			wma_vdev_detach(wma, iface->del_staself_req, 1);
 		}
 	}
+free_req_msg:
 	vos_timer_destroy(&req_msg->event_timeout);
 	adf_os_mem_free(req_msg);
-	return 0;
+	return status;
 }
 
 static void wma_update_pdev_stats(tp_wma_handle wma,
@@ -3350,7 +3361,6 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		iface->del_staself_req = pdel_sta_self_req_param;
 		return status;
 	}
-
 
         adf_os_spin_lock_bh(&wma_handle->vdev_detach_lock);
         if(!iface->handle) {
@@ -6299,7 +6309,8 @@ void wma_vdev_resp_timer(void *data)
 
 	if (NULL == pdev) {
 		WMA_LOGE("%s: Failed to get pdev", __func__);
-		return;
+		vos_timer_stop(&tgt_req->event_timeout);
+		goto free_tgt_req;
 	}
 
 	WMA_LOGA("%s: request %d is timed out", __func__, tgt_req->msg_type);
@@ -6322,10 +6333,18 @@ void wma_vdev_resp_timer(void *data)
 		if (tgt_req->vdev_id > wma->max_bssid) {
 			WMA_LOGE("%s: Invalid vdev_id %d", __func__,
 				tgt_req->vdev_id);
-			return;
+			vos_timer_stop(&tgt_req->event_timeout);
+			goto free_tgt_req;
 		}
 
 		iface = &wma->interfaces[tgt_req->vdev_id];
+		if (iface->handle == NULL) {
+			WMA_LOGE("%s vdev id %d is already deleted",
+				__func__, tgt_req->vdev_id);
+			vos_timer_stop(&tgt_req->event_timeout);
+			goto free_tgt_req;
+		}
+
 #ifdef QCA_IBSS_SUPPORT
 		if (wma_is_vdev_in_ibss_mode(wma, tgt_req->vdev_id))
 			wma_delete_all_ibss_peers(wma, tgt_req->vdev_id);
@@ -6434,6 +6453,7 @@ error0:
 					params->sessionId, peer);
 		wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
 	}
+free_tgt_req:
 	vos_timer_destroy(&tgt_req->event_timeout);
 	adf_os_mem_free(tgt_req);
 }
@@ -7044,6 +7064,20 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	*/
 #else
 	ol_txrx_peer_state_update(pdev, params->bssId, ol_txrx_peer_state_auth);
+#endif
+
+#ifdef FEATURE_WLAN_WAPI
+	if (params->encryptType == eSIR_ED_WPI) {
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+						params->smesessionId,
+						WMI_VDEV_PARAM_DROP_UNENCRY,
+						FALSE);
+		if (ret) {
+			WMA_LOGE("Set WMI_VDEV_PARAM_DROP_UNENCRY Param status:%d\n", ret);
+			adf_nbuf_free(buf);
+			return ret;
+		}
+	}
 #endif
 
 	cmd->peer_caps = params->capab_info;
@@ -9747,9 +9781,15 @@ static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
 					   0x36,0x5c};
 		unsigned char rx_iv[16] = {0x5c,0x36,0x5c,0x36,0x5c,0x36,0x5c,
 					   0x36,0x5c,0x36,0x5c,0x36,0x5c,0x36,
-					   0x5c,0x36};
+					   0x5c,0x37};
 		cmd->key_txmic_len = WMA_TXMIC_LEN;
 		cmd->key_rxmic_len = WMA_RXMIC_LEN;
+		/*Authenticator initializes the value of PN as
+		 *0x5C365C365C365C365C365C365C365C36 for multicast key update.
+		 */
+		if (!key_params->unicast)
+			rx_iv[WPI_IV_LEN - 1] = 0x36;
+
 		vos_mem_copy(&cmd->wpi_key_rsc_counter, &rx_iv, WPI_IV_LEN);
 		vos_mem_copy(&cmd->wpi_key_tsc_counter, &tx_iv, WPI_IV_LEN);
 		cmd->key_cipher = WMI_CIPHER_WAPI;
@@ -9886,7 +9926,12 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 		if (key_params.key_type != eSIR_ED_NONE &&
 		    !key_info->key[i].keyLength)
 			continue;
-		key_params.key_idx = key_info->key[i].keyId;
+		if (key_info->encType == eSIR_ED_WPI) {
+			key_params.key_idx = key_info->key[i].keyId;
+			key_params.def_key_idx = key_info->key[i].keyId;
+		} else
+			key_params.key_idx = key_info->key[i].keyId;
+
 		key_params.key_len = key_info->key[i].keyLength;
 		if (key_info->encType == eSIR_ED_TKIP) {
 			vos_mem_copy(key_params.key_data,
@@ -10077,7 +10122,12 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info,
 		} else
 			vos_mem_copy(key_params.key_data, key_info->key[i].key,
 				     key_info->key[i].keyLength);
-		key_params.key_idx = i;
+		if (key_info->encType == eSIR_ED_WPI) {
+			key_params.key_idx = key_info->key[i].keyId;
+			key_params.def_key_idx = key_info->key[i].keyId;
+		} else
+			key_params.key_idx = i;
+
 		key_params.key_len = key_info->key[i].keyLength;
 		buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len);
 		if (!buf) {
@@ -10961,6 +11011,14 @@ static VOS_STATUS wma_pktlog_wmi_send_cmd(WMA_HANDLE handle,
 	wmi_pdev_pktlog_disable_cmd_fixed_param *disable_cmd;
 	int len = 0;
 	wmi_buf_t buf;
+
+	/*Check if packet log is enabled in cfg.ini*/
+	if (! vos_is_packet_log_enabled())
+	{
+		WMA_LOGE("%s:pkt log is not enabled in cfg.ini", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
 
 	PKTLOG_EVENT = params->pktlog_event;
 	CMD_ID = params->cmd_id;
@@ -12346,7 +12404,9 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *param_buf;
 	WOW_EVENT_INFO_fixed_param *wake_info;
+#ifdef FEATURE_WLAN_SCAN_PNO
 	struct wma_txrx_node *node;
+#endif
 	u_int32_t wake_lock_duration = 0;
 
 	param_buf = (WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *) event;
@@ -13336,11 +13396,13 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 			connected = TRUE;
 			break;
 		}
+#ifdef FEATURE_WLAN_SCAN_PNO
 		if (wma->interfaces[i].pno_in_progress) {
 			WMA_LOGD("PNO is in progress, enabling wow");
 			pno_in_progress = TRUE;
 			break;
 		}
+#endif
 	}
 	if (!connected && !pno_in_progress) {
 		WMA_LOGD("All vdev are in disconnected state, skipping wow");
@@ -14462,6 +14524,7 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 		   ((pHostOffloadParams->enableOrDisable & SIR_OFFLOAD_ENABLE) && i==0)) {
 			ns_tuple->flags |= WMI_NSOFF_FLAGS_VALID;
 
+#ifdef WLAN_NS_OFFLOAD
 			/*Copy the target/solicitation/remote ip addr */
 			if(pHostOffloadParams->nsOffloadInfo.targetIPv6AddrValid[0])
 				A_MEMCPY(&ns_tuple->target_ipaddr[0],
@@ -14479,6 +14542,7 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 			* the target will use the known local MAC address rather than the tuple */
 			WMI_CHAR_ARRAY_TO_MAC_ADDR(pHostOffloadParams->nsOffloadInfo.selfMacAddr,
 					&ns_tuple->target_mac);
+#endif
 			if ((ns_tuple->target_mac.mac_addr31to0 != 0) ||
 				(ns_tuple->target_mac.mac_addr47to32 != 0))
 			{
@@ -15907,6 +15971,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_CLI_SET_CMD:
 			wma_process_cli_set_cmd(wma_handle,
 					(wda_cli_set_cmd_t *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 #if !defined(REMOVE_PKT_LOG) && !defined(QCA_WIFI_ISOC)
 		case WDA_PKTLOG_ENABLE_REQ:

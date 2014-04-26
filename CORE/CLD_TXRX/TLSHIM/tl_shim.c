@@ -1554,6 +1554,7 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 	struct ol_txrx_peer_t *peer;
 	ol_txrx_peer_update_param_t param;
 	struct tlshim_sta_info *sta_info;
+	privacy_exemption privacy_filter;
 
 	ENTER();
 	if (sta_desc->ucSTAId >= WLAN_MAX_STA_COUNT) {
@@ -1583,6 +1584,11 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 	wdi_in_peer_update(peer->vdev, peer->mac_addr.raw, &param,
 			   ol_txrx_peer_update_qos_capable);
 	if (sta_desc->ucIsWapiSta) {
+		/*Privacy filter to accept unencrypted WAI frames*/
+		privacy_filter.ether_type = ETHERTYPE_WAI;
+		privacy_filter.filter_type = PRIVACY_FILTER_ALWAYS;
+		privacy_filter.packet_type = PRIVACY_FILTER_PACKET_BOTH;
+		ol_txrx_set_privacy_filters(peer->vdev, &privacy_filter, 1);
 		/* param.sec_type = ol_sec_type_wapi; */
 		/*
 		 * TODO: Peer update also updates the other security types

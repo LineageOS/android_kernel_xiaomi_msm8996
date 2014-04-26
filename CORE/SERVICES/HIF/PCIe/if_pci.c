@@ -1782,3 +1782,14 @@ void hif_reset_soc(void *ol_sc)
 	hif_pci_device_reset(sc);
 #endif
 }
+
+void hif_disable_aspm(void *ol_sc)
+{
+        u_int32_t lcr_val = 0;
+        struct ol_softc *scn = (struct ol_softc *)ol_sc;
+        struct hif_pci_softc *sc = scn->hif_sc;
+
+        /*Disable ASPM when pkt log is enabled*/
+        pci_read_config_dword(sc->pdev, 0x80, &lcr_val);
+        pci_write_config_dword(sc->pdev, 0x80, (lcr_val & 0xffffff00));
+}

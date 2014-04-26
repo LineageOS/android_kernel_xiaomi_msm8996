@@ -246,6 +246,9 @@ htt_rx_ring_fill_n(struct htt_pdev_t *pdev, int num)
 #ifdef DEBUG_DMA_DONE
         *(u_int32_t *)&rx_desc->msdu_end = 1;
 
+        #define MAGIC_PATTERN 0xDEADBEEF
+        *(u_int32_t *)&rx_desc->msdu_start = MAGIC_PATTERN;
+
         /* To ensure that attention bit is reset and msdu_end is set before
            calling dma_map */
         smp_mb();

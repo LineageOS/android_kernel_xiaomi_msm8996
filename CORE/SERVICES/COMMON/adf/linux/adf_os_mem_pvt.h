@@ -91,7 +91,7 @@ __adf_os_mem_alloc_consistent(
     void* alloc_mem = NULL;
     alloc_mem = dma_alloc_coherent(osdev->dev, size, paddr, GFP_KERNEL);
     if (alloc_mem == NULL)
-        pr_err("%s Warning: unable to alloc consistent memory of size %d!\n",
+        pr_err("%s Warning: unable to alloc consistent memory of size %zu!\n",
             __func__, size);
     return alloc_mem;
 #endif
