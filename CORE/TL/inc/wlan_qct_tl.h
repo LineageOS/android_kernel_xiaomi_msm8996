@@ -1361,7 +1361,7 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(v_PVOID_t pvosGCtx, v_U8_t ucSTAId,
 
 ============================================================================*/
 adf_nbuf_t WLANTL_SendIPA_DataFrame(void *vos_ctx, void *vdev,
-                                    adf_nbuf_t buf);
+                                    adf_nbuf_t buf, v_U8_t interface_id);
 #endif
 
 

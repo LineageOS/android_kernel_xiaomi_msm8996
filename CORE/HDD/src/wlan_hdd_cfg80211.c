@@ -2487,10 +2487,20 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         else
             pConfig->SapHw_mode = eSAP_DOT11_MODE_11ac;
 
-        /* Disable VHT support in 2.4 GHz band */
-        if (iniConfig->apOperatingBand == eSAP_RF_SUBBAND_2_4_GHZ &&
-                WLAN_HDD_GET_CTX(pHostapdAdapter)->
-                        cfg_ini->enableVhtFor24GHzBand == FALSE)
+        /*If ACS disable and selected channel <= 14
+             OR
+             ACS enabled and ACS operating band is choosen as 2.4
+         AND
+             VHT in 2.4G Disabled
+         THEN
+             Fallback to 11N mode
+        */
+        if (((AUTO_CHANNEL_SELECT != pConfig->channel && pConfig->channel <= 14)
+                || (AUTO_CHANNEL_SELECT == pConfig->channel &&
+                iniConfig->apOperatingBand == eSAP_RF_SUBBAND_2_4_GHZ))
+            &&
+            (WLAN_HDD_GET_CTX(pHostapdAdapter)->cfg_ini->enableVhtFor24GHzBand
+                                                                     == FALSE))
             pConfig->SapHw_mode = eSAP_DOT11_MODE_11n;
     }
 #endif
@@ -7579,7 +7589,7 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
 
     if (changed & WIPHY_PARAM_RTS_THRESHOLD)
     {
-        u16 rts_threshold = (wiphy->rts_threshold == -1) ?
+        u32 rts_threshold = (wiphy->rts_threshold == -1) ?
                                WNI_CFG_RTS_THRESHOLD_STAMAX :
                                wiphy->rts_threshold;
 
@@ -7587,7 +7597,7 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
                 (WNI_CFG_RTS_THRESHOLD_STAMAX < rts_threshold))
         {
             hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "%s: Invalid RTS Threshold value %hu",
+                    "%s: Invalid RTS Threshold value %u",
                     __func__, rts_threshold);
             return -EINVAL;
         }
@@ -7597,12 +7607,12 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
                     eANI_BOOLEAN_TRUE))
         {
             hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "%s: ccmCfgSetInt failed for rts_threshold value %hu",
+                    "%s: ccmCfgSetInt failed for rts_threshold value %u",
                     __func__, rts_threshold);
             return -EIO;
         }
 
-        hddLog(VOS_TRACE_LEVEL_INFO_MED, "%s: set rts threshold %hu", __func__,
+        hddLog(VOS_TRACE_LEVEL_INFO_MED, "%s: set rts threshold %u", __func__,
                 rts_threshold);
     }
 
@@ -9368,7 +9378,8 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
         return -ENOTSUPP;
     }
 
-    /* other than teardown frame, other mgmt frames are not sent if disabled */
+    /* other than teardown frame, other mgmt frames are not sent if disabled
+       or concurrency is detected */
     if (SIR_MAC_TDLS_TEARDOWN != action_code)
     {
        /* if tdls_mode is disabled to respond to peer's request */
@@ -9379,7 +9390,16 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
                         " TDLS mode is disabled. action %d declined.",
                         __func__, MAC_ADDR_ARRAY(peer), action_code);
 
-        return -ENOTSUPP;
+             return -ENOTSUPP;
+        }
+
+        /* if any concurrency is detected */
+        if ((1 << VOS_STA_MODE) != pHddCtx->concurrency_mode)
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                      "%s: concurrency detected. ignore TDLS MGMT frame. action_code=%d",
+                      __func__, action_code);
+            return -ENOTSUPP;
         }
     }
 

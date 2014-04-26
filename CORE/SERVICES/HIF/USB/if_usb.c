@@ -85,6 +85,15 @@ static void hif_nointrs(struct hif_usb_softc *sc)
 {
 }
 
+static int hif_usb_reboot(struct notifier_block *nb, unsigned long val,
+			     void *v)
+{
+	struct hif_usb_softc *sc;
+	sc = container_of(nb, struct hif_usb_softc, reboot_notifier);
+	HIFDiagWriteWARMRESET(sc->interface, 0, 0);
+	return NOTIFY_DONE;
+}
+
 static int
 hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 {
@@ -163,6 +172,10 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 
 	if (ret) {
 		hif_nointrs(sc);
+		if (sc->hif_device != NULL) {
+			((HIF_DEVICE_USB *)(sc->hif_device))->sc = NULL;
+		}
+		athdiag_procfs_remove();
 		goto err_config;
 	}
 #ifndef REMOVE_PKT_LOG
@@ -182,6 +195,9 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
 #endif
 
+	sc->interface = interface;
+	sc->reboot_notifier.notifier_call = hif_usb_reboot;
+	register_reboot_notifier(&sc->reboot_notifier);
 	return 0;
 
 err_config:
@@ -202,15 +218,17 @@ static void hif_usb_remove(struct usb_interface *interface)
 	struct hif_usb_softc *sc = device->sc;
 	struct ol_softc *scn;
 
-	usb_put_dev(interface_to_usbdev(interface));
 	/* Attach did not succeed, all resources have been
 	 * freed in error handler
 	 */
 	if (!sc)
 		return;
 
-	scn = sc->ol_sc;
+	HIFDiagWriteWARMRESET(interface, 0, 0);
+	unregister_reboot_notifier(&sc->reboot_notifier);
 
+	usb_put_dev(interface_to_usbdev(interface));
+	scn = sc->ol_sc;
 #ifndef REMOVE_PKT_LOG
 	if (vos_get_conparam() != VOS_FTM_MODE)
 		pktlogmod_exit(scn);
@@ -314,14 +332,19 @@ void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc)
 	sc->adf_dev = adf_dev;
 }
 
+static int is_usb_driver_register = 0;
 int hif_register_driver(void)
 {
+	is_usb_driver_register = 1;
 	return usb_register(&hif_usb_drv_id);
 }
 
 void hif_unregister_driver(void)
 {
-	usb_deregister(&hif_usb_drv_id);
+	if (is_usb_driver_register) {
+		is_usb_driver_register = 0;
+		usb_deregister(&hif_usb_drv_id);
+	}
 }
 
 void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle)
