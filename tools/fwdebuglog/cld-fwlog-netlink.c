@@ -570,7 +570,8 @@ int main(int argc, char *argv[])
                     isDriverLoaded = FALSE;
                 }
             } else if((res >= sizeof(struct dbglog_slot)) &&
-                      (res == SIZEOF_NL_MSG_DBG_MSG)) {
+                      ((res != SIZEOF_NL_MSG_LOAD) &&
+                      (res != SIZEOF_NL_MSG_UNLOAD))) {
                 isDriverLoaded = TRUE;
                 eventbuf = (unsigned char *)NLMSG_DATA(nlh);
                 process_cnss_diag_msg(eventbuf);
