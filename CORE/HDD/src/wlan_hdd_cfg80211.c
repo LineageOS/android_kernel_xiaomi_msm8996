@@ -5392,11 +5392,11 @@ allow_suspend:
 }
 
 /*
- * FUNCTION: hdd_isScanAllowed
- * Go through each adapter and check if scan allowed
+ * FUNCTION: hdd_isConnectionInProgress
+ * Go through each adapter and check if Connection is in progress
  *
  */
-v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
+v_BOOL_t hdd_isConnectionInProgress( hdd_context_t *pHddCtx )
 {
     hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
     hdd_station_ctx_t *pHddStaCtx = NULL;
@@ -5408,8 +5408,8 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
     if (TRUE == pHddCtx->btCoexModeSet)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-           FL("BTCoex Mode operation in progress, Do not allow scan"));
-        return VOS_FALSE;
+           FL("BTCoex Mode operation in progress"));
+        return VOS_TRUE;
     }
 
     status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
@@ -5423,6 +5423,17 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
             hddLog(VOS_TRACE_LEVEL_INFO,
                     "%s: Adapter with device mode %d exists",
                     __func__, pAdapter->device_mode);
+            if (((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+                 (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
+                 (WLAN_HDD_P2P_DEVICE == pAdapter->device_mode)) &&
+                 (eConnectionState_Connecting ==
+                (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
+            {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                       "%s: %p(%d) Connection is in progress", __func__,
+                       WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pAdapter->sessionId);
+                return VOS_TRUE;
+            }
             if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
                     (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
                     (WLAN_HDD_P2P_DEVICE == pAdapter->device_mode))
@@ -5435,7 +5446,7 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
                     hddLog(VOS_TRACE_LEVEL_ERROR,
                            "%s: client " MAC_ADDRESS_STR " is in the middle of WPS/EAPOL exchange.",
                            __func__,MAC_ADDR_ARRAY(staMac));
-                    return VOS_FALSE;
+                    return VOS_TRUE;
                 }
             }
             else if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
@@ -5452,7 +5463,7 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
                                "%s: client " MAC_ADDRESS_STR " of SoftAP/P2P-GO is in the "
                                "middle of WPS/EAPOL exchange.", __func__,
                                 MAC_ADDR_ARRAY(staMac));
-                        return VOS_FALSE;
+                        return VOS_TRUE;
                     }
                 }
             }
@@ -5460,9 +5471,7 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
         status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
         pAdapterNode = pNext;
     }
-    hddLog(VOS_TRACE_LEVEL_INFO,
-            "%s: Scan allowed", __func__);
-    return VOS_TRUE;
+    return VOS_FALSE;
 }
 
 /*
@@ -5510,17 +5519,6 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 
     cfg_param = pHddCtx->cfg_ini;
     pScanInfo = &pAdapter->scan_info;
-
-    if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
-        (eConnectionState_Connecting ==
-           (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: %p(%d) Connection in progress: Scan request denied (EBUSY)",
-               __func__,
-                WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pAdapter->sessionId);
-        return -EBUSY;
-    }
 
 #ifdef WLAN_BTAMP_FEATURE
     //Scan not supported when AMP traffic is on.
@@ -5610,7 +5608,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 
     /* Check if scan is allowed at this point of time.
      */
-    if (!hdd_isScanAllowed(pHddCtx))
+    if (hdd_isConnectionInProgress(pHddCtx))
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Scan not allowed", __func__);
         return -EBUSY;
