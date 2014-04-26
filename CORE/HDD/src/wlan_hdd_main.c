@@ -286,6 +286,11 @@ extern int hdd_ftm_stop(hdd_context_t *pHddCtx);
 v_VOID_t wlan_hdd_auto_shutdown_cb(v_PVOID_t data);
 #endif
 
+/* Store WLAN driver version info in a global variable such that crash debugger
+   can extract it from driver debug symbol and crashdump for post processing */
+tANI_U8 g_wlan_driver_version[ ] = QWLAN_VERSIONSTR;
+
+
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 VOS_STATUS hdd_parse_get_cckm_ie(tANI_U8 *pValue,
                                  tANI_U8 **pCckmIe,

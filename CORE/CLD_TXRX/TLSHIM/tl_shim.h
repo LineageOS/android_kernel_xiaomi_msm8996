@@ -30,6 +30,7 @@
 
 #include <ol_txrx_osif_api.h>
 #include <adf_os_lock.h>
+#include <adf_os_atomic.h>
 
 #ifdef FEATURE_WLAN_ESE
 typedef struct deferred_iapp_work {
@@ -88,6 +89,7 @@ struct deferred_iapp_work iapp_work;
 	u_int32_t   last_beacon_len;
 	u_int32_t delay_interval;
 	v_BOOL_t enable_rxthread;
+	adf_os_atomic_t *vdev_active;
 #ifdef QCA_LL_TX_FLOW_CT
 	struct tlshim_session_flow_Control *session_flow_control;
 #endif /* QCA_LL_TX_FLOW_CT */

@@ -1003,14 +1003,18 @@ static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 		return;
 
 	/* remove all IBSS remote peers first */
+	adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
 	TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
 		if (peer != TAILQ_FIRST(&vdev->peer_list)) {
+			adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
 			adf_os_atomic_init(&peer->ref_cnt);
 			adf_os_atomic_inc(&peer->ref_cnt);
 			wma_remove_peer(wma, wma->interfaces[vdev_id].bssid,
 				vdev_id, peer);
+			adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
 		}
 	}
+	adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
 
 	/* remove IBSS bss peer last */
 	peer = TAILQ_FIRST(&vdev->peer_list);
@@ -1020,26 +1024,31 @@ static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 
 static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 {
-		ol_txrx_vdev_handle vdev;
-		ol_txrx_peer_handle peer;
+	ol_txrx_vdev_handle vdev;
+	ol_txrx_peer_handle peer;
 
-		if (!wma || vdev_id > wma->max_bssid)
-			return;
+	if (!wma || vdev_id > wma->max_bssid)
+		return;
 
-		vdev = wma->interfaces[vdev_id].handle;
-		if (!vdev)
-			return;
+	vdev = wma->interfaces[vdev_id].handle;
+	if (!vdev)
+		return;
 
-		/* remove all remote peers of SAP */
-		TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+	/* remove all remote peers of SAP */
+	adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
+	TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
 		if (peer != TAILQ_FIRST(&vdev->peer_list)) {
+			adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
 			adf_os_atomic_init(&peer->ref_cnt);
 			adf_os_atomic_inc(&peer->ref_cnt);
 			wma_remove_peer(wma, peer->mac_addr.raw,
 					vdev_id, peer);
+			adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
 		}
 	}
+	adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
 }
+
 #ifdef QCA_IBSS_SUPPORT
 static void wma_recreate_ibss_vdev_and_bss_peer(tp_wma_handle wma, u_int8_t vdev_id)
 {
@@ -5138,6 +5147,12 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
                                    wmi_start_scan_cmd_fixed_param *scan_params)
 {
     tANI_U8 channels_per_burst = 0;
+
+    if (NULL == pMac) {
+        WMA_LOGE("%s: pMac is NULL", __func__);
+        return;
+    }
+
     vos_mem_zero(scan_params, sizeof(wmi_start_scan_cmd_fixed_param));
     if (roam_req != NULL) {
         /* Parameters updated after association is complete */
@@ -5376,6 +5391,12 @@ VOS_STATUS wma_roam_scan_offload_end_connect(tp_wma_handle wma_handle)
                 wma_handle->vos_context);
     wmi_start_scan_cmd_fixed_param scan_params;
 
+    if (NULL == pMac)
+    {
+        WMA_LOGE("%s: pMac is NULL", __func__);
+        return VOS_STATUS_E_FAILURE;
+    }
+
     /* If roam scan is running, stop it */
     if (wma_handle->roam_offload_enabled) {
 
@@ -5402,6 +5423,13 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
     u_int32_t mode = 0;
 
     WMA_LOGI("%s: command 0x%x", __func__, roam_req->Command);
+
+    if (NULL == pMac)
+    {
+        WMA_LOGE("%s: pMac is NULL", __func__);
+        return VOS_STATUS_E_FAILURE;
+    }
+
     if (!wma_handle->roam_offload_enabled) {
 	/* roam scan offload is not enabled in firmware.
 	 * Cannot initialize it in the middle of connection.
@@ -13774,6 +13802,10 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 	}
 
 out:
+	/* free oem data req buffer received from UMAC */
+	if (startOemDataReq)
+		vos_mem_free(startOemDataReq);
+
 	/* Now send data resp back to PE/SME with message sub-type of
 	 * WMI_OEM_INTERNAL_RSP. This is required so that PE/SME clears
 	 * up pending active command. Later when desired oem response(s)

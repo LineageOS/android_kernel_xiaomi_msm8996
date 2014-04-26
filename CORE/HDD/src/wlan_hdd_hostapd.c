@@ -1804,7 +1804,7 @@ static iw_softap_setparam(struct net_device *dev,
                 ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
                                 (int)WMI_VDEV_PARAM_ENABLE_RTSCTS,
                                 set_value, VDEV_CMD);
-                if (!ret) {
+                if (ret) {
                     hddLog(LOGE, "FAILED TO SET RTSCTS at SAP");
                     ret = -EIO;
                 }

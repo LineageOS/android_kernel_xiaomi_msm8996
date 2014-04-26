@@ -161,4 +161,6 @@ extern void usb_hif_io_comp_work(struct work_struct *work);
 /* Support for USB Suspend / Resume */
 extern void usb_hif_suspend(struct usb_interface *interface);
 extern void usb_hif_resume(struct usb_interface *interface);
+A_STATUS HIFDiagWriteWARMRESET(struct usb_interface *interface,
+			       A_UINT32 address, A_UINT32 data);
 #endif

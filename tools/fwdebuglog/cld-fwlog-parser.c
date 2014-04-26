@@ -1867,28 +1867,28 @@ dbglog_wal_print_handler(
         dbglog_printf(timestamp, vap_id, "WAL Tx enqueue discard msdu_id=0x%x", args[0]);
         break;
     case WAL_DBGID_SET_HW_CHAINMASK:
-        dbglog_printf(timestamp, vap_id, "WAL set hw chainmask "
+        dbglog_printf(timestamp, vap_id, "WAL_DBGID_SET_HW_CHAINMASK "
                                          "pdev=%d, txchain=0x%x, rxchain=0x%x",
                 args[0], args[1], args[2]);
         break;
     case WAL_DBGID_SET_HW_CHAINMASK_TXRX_STOP_FAIL:
-        dbglog_printf(timestamp, vap_id, "WAL hw chainmask tx stop fail rxstop=%d, txstop=%d",
+        dbglog_printf(timestamp, vap_id, "WAL_DBGID_SET_HW_CHAINMASK_TXRX_STOP_FAIL rxstop=%d, txstop=%d",
                 args[0], args[1]);
         break;
     case WAL_DBGID_GET_HW_CHAINMASK:
-        dbglog_printf(timestamp, vap_id, "WAL get hw chainmask "
+        dbglog_printf(timestamp, vap_id, "WAL_DBGID_GET_HW_CHAINMASK "
                                          "txchain=0x%x, rxchain=0x%x",
                 args[0], args[1]);
         break;
     case WAL_DBGID_SMPS_DISABLE:
-        dbglog_printf(timestamp, vap_id, "WAL smps disable");
+        dbglog_printf(timestamp, vap_id, "WAL_DBGID_SMPS_DISABLE");
         break;
     case WAL_DBGID_SMPS_ENABLE_HW_CNTRL:
-        dbglog_printf(timestamp, vap_id, "WAL enable hw ctrl low_pwr_mask=0x%x, high_pwr_mask=0x%x",
+        dbglog_printf(timestamp, vap_id, "WAL_DBGID_SMPS_ENABLE_HW_CNTRL low_pwr_mask=0x%x, high_pwr_mask=0x%x",
                 args[0], args[1]);
         break;
     case WAL_DBGID_SMPS_SWSEL_CHAINMASK:
-        dbglog_printf(timestamp, vap_id, "WAL smps swsel chainmask low_pwr=0x%x, chain_mask=0x%x",
+        dbglog_printf(timestamp, vap_id, "WAL_DBGID_SMPS_SWSEL_CHAINMASK low_pwr=0x%x, chain_mask=0x%x",
                 args[0], args[1]);
         break;
     default:
@@ -2486,18 +2486,18 @@ A_BOOL dbglog_smps_print_handler(A_UINT32 mod_id,
                 args[2]);
         break;
     case STA_SMPS_DBGID_DTIM_EBT_EVENT_CHMASK_UPDATE:
-        dbglog_printf(timestamp, vap_id, "STA_SMPS ebt event chmask update");
+        dbglog_printf(timestamp, vap_id, "STA_SMPS_DBGID_DTIM_EBT_EVENT_CHMASK_UPDATE");
         break;
     case STA_SMPS_DBGID_DTIM_CHMASK_UPDATE:
-        dbglog_printf(timestamp, vap_id, "STA_SMPS chmask update "
+        dbglog_printf(timestamp, vap_id, "STA_SMPS_DBGID_DTIM_CHMASK_UPDATE "
                                          "tx_mask %#x rx_mask %#x arb_dtim_mask %#x",
                 args[0], args[1], args[2]);
         break;
     case STA_SMPS_DBGID_DTIM_BEACON_EVENT_CHMASK_UPDATE:
-        dbglog_printf(timestamp, vap_id, "STA_SMPS beacon event chmask update");
+        dbglog_printf(timestamp, vap_id, "STA_SMPS_DBGID_DTIM_BEACON_EVENT_CHMASK_UPDATE");
         break;
     case STA_SMPS_DBGID_DTIM_POWER_STATE_CHANGE:
-        dbglog_printf(timestamp, vap_id, "STA_SMPS cur_pwr_state %s new_pwr_state %d",
+        dbglog_printf(timestamp, vap_id, "STA_SMPS_DBGID_DTIM_POWER_STATE_CHANGE cur_pwr_state %s new_pwr_state %s",
                 (args[0] == 0x1 ? "SLEEP":
                  (args[0] == 0x2 ? "AWAKE":
                   (args[0] == 0x3 ? "FULL_SLEEP" : "UNKNOWN"))),
@@ -2506,12 +2506,12 @@ A_BOOL dbglog_smps_print_handler(A_UINT32 mod_id,
                   (args[1] == 0x3 ? "FULL_SLEEP" : "UNKNOWN"))));
         break;
     case STA_SMPS_DBGID_DTIM_CHMASK_UPDATE_SLEEP:
-        dbglog_printf(timestamp, vap_id, "STA_SMPS chmask update sleep "
+        dbglog_printf(timestamp, vap_id, "STA_SMPS_DBGID_DTIM_CHMASK_UPDATE_SLEEP "
                                          "tx_mask %#x rx_mask %#x orig_rx %#x dtim_rx %#x",
                 args[0], args[1], args[2], args[3]);
         break;
     case STA_SMPS_DBGID_DTIM_CHMASK_UPDATE_AWAKE:
-        dbglog_printf(timestamp, vap_id, "STA_SMPS chmask update awake "
+        dbglog_printf(timestamp, vap_id, "STA_SMPS_DBGID_DTIM_CHMASK_UPDATE_AWAKE "
                                          "tx_mask %#x rx_mask %#x orig_rx %#x",
                 args[0], args[1], args[2]);
     break;
