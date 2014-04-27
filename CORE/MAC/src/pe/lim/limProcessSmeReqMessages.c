@@ -72,10 +72,19 @@
 #endif
 
 #ifdef FEATURE_WLAN_ESE
+#ifdef QCA_WIFI_2_0
 /* These are the min/max tx power (non virtual rates) range
-   supported by prima hardware */
-#define MIN_TX_PWR_CAP    12
+ * supported by rome hardware
+ */
+#define MIN_TX_PWR_CAP    8
 #define MAX_TX_PWR_CAP    19
+#else
+/* These are the min/max tx power (non virtual rates) range
+ * supported by prima hardware
+ */
+#define MIN_TX_PWR_CAP    8
+#define MAX_TX_PWR_CAP    22
+#endif
 
 #endif
 

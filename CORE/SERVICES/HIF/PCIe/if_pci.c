@@ -1783,13 +1783,22 @@ void hif_reset_soc(void *ol_sc)
 #endif
 }
 
-void hif_disable_aspm(void *ol_sc)
+void hif_disable_aspm(void)
 {
-        u_int32_t lcr_val = 0;
-        struct ol_softc *scn = (struct ol_softc *)ol_sc;
-        struct hif_pci_softc *sc = scn->hif_sc;
+	u_int32_t lcr_val = 0;
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+	struct ol_softc *scn =  vos_get_context(VOS_MODULE_ID_HIF, vos_context);
+	struct hif_pci_softc *sc;
 
-        /*Disable ASPM when pkt log is enabled*/
-        pci_read_config_dword(sc->pdev, 0x80, &lcr_val);
-        pci_write_config_dword(sc->pdev, 0x80, (lcr_val & 0xffffff00));
+	if (NULL == scn)
+	{
+		printk(KERN_ERR "%s: Could not disable ASPM scn is null\n", __func__);
+		return;
+	}
+
+	sc = scn->hif_sc;
+
+	/* Disable ASPM when pkt log is enabled */
+	pci_read_config_dword(sc->pdev, 0x80, &lcr_val);
+	pci_write_config_dword(sc->pdev, 0x80, (lcr_val & 0xffffff00));
 }

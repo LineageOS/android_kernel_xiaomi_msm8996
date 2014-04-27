@@ -8436,6 +8436,22 @@ void csrRoamingStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
                                 eCSR_ROAM_CONNECT_STATUS_UPDATE,
                                 eCSR_ROAM_RESULT_IBSS_PEER_DEPARTED);
             break;
+        case eWNI_SME_GET_RSSI_REQ:
+            {
+                tAniGetRssiReq *pGetRssiReq = (tAniGetRssiReq*)pMsgBuf;
+                if (NULL != pGetRssiReq->rssiCallback)
+                {
+                    ((tCsrRssiCallback)(pGetRssiReq->rssiCallback))( pGetRssiReq->lastRSSI,
+                                                                     pGetRssiReq->staId,
+                                                                     pGetRssiReq->pDevContext);
+                }
+                else
+                {
+                    smsLog(pMac, LOGE, FL("pGetRssiReq->rssiCallback is NULL"));
+                }
+            }
+            break;
+
         default:
             smsLog(pMac, LOG1,
                    FL("Unexpected message type = %d[0x%X] received in substate %s"),
@@ -9223,15 +9239,13 @@ void csrRoamRssiRspProcessor(tpAniSirGlobal pMac, void* pMsg)
 
     if (NULL != pRoamRssiRsp)
     {
-        /* Get roam Rssi request is backed up and passed back to the response,
-           Extract the request message to fetch callback */
+       /* Get roam Rssi request is backed up and passed back to the response,
+          Extract the request message to fetch callback */
         tpAniGetRssiReq reqBkp = (tAniGetRssiReq*)pRoamRssiRsp->rssiReq;
         v_S7_t rssi = pRoamRssiRsp->rssi;
-
         if ((NULL != reqBkp) && (NULL != reqBkp->rssiCallback))
         {
             ((tCsrRssiCallback)(reqBkp->rssiCallback))(rssi, pRoamRssiRsp->staId, reqBkp->pDevContext);
-            reqBkp->rssiCallback = NULL;
             vos_mem_free(reqBkp);
             pRoamRssiRsp->rssiReq = NULL;
         }
@@ -15446,8 +15460,12 @@ tCsrPeStatsReqInfo * csrRoamInsertEntryIntoPeStatsReqList( tpAniSirGlobal pMac,
    return pNewStaEntry;
 }
 eHalStatus csrGetRssi(tpAniSirGlobal pMac,
-                            tCsrRssiCallback callback,
-                            tANI_U8 staId, tCsrBssid bssId, void *pContext, void* pVosContext)
+                      tCsrRssiCallback callback,
+                      tANI_U8 staId,
+                      tCsrBssid bssId,
+                      tANI_S8 lastRSSI,
+                      void *pContext,
+                      void* pVosContext)
 {
    eHalStatus status = eHAL_STATUS_SUCCESS;
    vos_msg_t  msg;
@@ -15455,13 +15473,21 @@ eHalStatus csrGetRssi(tpAniSirGlobal pMac,
 
    tAniGetRssiReq *pMsg;
    smsLog(pMac, LOG2, FL("called"));
+
+   status = csrRoamGetSessionIdFromBSSID(pMac, (tCsrBssid *)bssId, &sessionId);
+   if (!HAL_STATUS_SUCCESS(status))
+   {
+      callback(lastRSSI, staId, pContext);
+      smsLog(pMac, LOGE, FL("Failed to get SessionId"));
+      return eHAL_STATUS_FAILURE;
+   }
+
    pMsg = vos_mem_malloc(sizeof(tAniGetRssiReq));
    if ( NULL == pMsg )
    {
       smsLog(pMac, LOGE, " csrGetRssi: failed to allocate mem for req ");
       return eHAL_STATUS_FAILURE;
    }
-   csrRoamGetSessionIdFromBSSID(pMac, (tCsrBssid *)bssId, &sessionId);
 
    pMsg->msgType = pal_cpu_to_be16((tANI_U16)eWNI_SME_GET_RSSI_REQ);
    pMsg->msgLen = (tANI_U16)sizeof(tAniGetRssiReq);
@@ -15470,6 +15496,11 @@ eHalStatus csrGetRssi(tpAniSirGlobal pMac,
    pMsg->rssiCallback = callback;
    pMsg->pDevContext = pContext;
    pMsg->pVosContext = pVosContext;
+   /*
+    * store RSSI at time of calling, so that if RSSI request cannot
+    * be sent to firmware, this value can be used to return immediately
+    */
+   pMsg->lastRSSI = lastRSSI;
    msg.type = eWNI_SME_GET_RSSI_REQ;
    msg.bodyptr = pMsg;
    msg.reserved = 0;

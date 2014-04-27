@@ -1023,6 +1023,15 @@ extern "C" {
 #define RMC_SET_ACTION_PERIOD                  15
 #define RMC_DBGID_DEFINITION_END               16
 
+/* Stats Module DBGIDs */
+#define WLAN_STATS_DBGID_DEFINITION_START                0
+#define WLAN_STATS_DBGID_EST_LINKSPEED_VDEV_EN_DIS       1
+#define WLAN_STATS_DBGID_EST_LINKSPEED_CHAN_TIME_START   2
+#define WLAN_STATS_DBGID_EST_LINKSPEED_CHAN_TIME_END     3
+#define WLAN_STATS_DBGID_EST_LINKSPEED_CALC              4
+#define WLAN_STATS_DBGID_EST_LINKSPEED_UPDATE_HOME_CHAN  5
+#define WLAN_STATS_DBGID_DEFINITION_END                  6
+
 #ifdef __cplusplus
 }
 #endif
