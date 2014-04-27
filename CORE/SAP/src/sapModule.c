@@ -1096,6 +1096,73 @@ WLANSAP_SetMode
     return VOS_STATUS_SUCCESS;
 }
 
+/* Get ACL Mode */
+VOS_STATUS
+WLANSAP_GetACLMode
+(
+    v_PVOID_t pCtx,
+    eSapMacAddrACL *mode
+)
+{
+    ptSapContext pSapCtx = VOS_GET_SAP_CB(pCtx);
+
+    if (NULL == pSapCtx)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid SAP pointer from pCtx", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    *mode = pSapCtx->eSapMacAddrAclMode;
+    return VOS_STATUS_SUCCESS;
+}
+
+/* API to get ACL Accept List */
+VOS_STATUS
+WLANSAP_GetACLAcceptList
+(
+   v_PVOID_t pCtx,
+   v_MACADDR_t *pAcceptList,
+   v_U8_t *nAcceptList
+)
+{
+    ptSapContext pSapCtx = VOS_GET_SAP_CB(pCtx);
+    if (NULL == pSapCtx)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    memcpy((void *)pAcceptList, (void *)pSapCtx->acceptMacList,
+                       (pSapCtx->nAcceptMac*sizeof(v_MACADDR_t)));
+    *nAcceptList = pSapCtx->nAcceptMac;
+    return VOS_STATUS_SUCCESS;
+}
+
+/* API to get Deny List */
+VOS_STATUS
+WLANSAP_GetACLDenyList
+(
+   v_PVOID_t pCtx,
+   v_MACADDR_t *pDenyList,
+   v_U8_t *nDenyList
+)
+{
+    ptSapContext pSapCtx = VOS_GET_SAP_CB(pCtx);
+    if (NULL == pSapCtx)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    memcpy((void *)pDenyList, (void *)pSapCtx->denyMacList,
+                         (pSapCtx->nDenyMac*sizeof(v_MACADDR_t)));
+    *nDenyList = pSapCtx->nDenyMac;
+    return VOS_STATUS_SUCCESS;
+}
+
 /* This routine will clear all the entries in accept list as well as deny list  */
 
 VOS_STATUS

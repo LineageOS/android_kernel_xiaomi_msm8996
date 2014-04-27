@@ -1665,6 +1665,75 @@ static iw_softap_get_ini_cfg(struct net_device *dev,
     return 0;
 }
 
+static void print_mac_list(v_MACADDR_t *macList, v_U8_t size)
+{
+    int i;
+    v_BYTE_t *macArray;
+
+    for (i = 0; i < size; i++) {
+        macArray = (macList + i)->bytes;
+        pr_info("** ACL entry %i - %02x:%02x:%02x:%02x:%02x:%02x \n",
+                                          i, MAC_ADDR_ARRAY(macArray));
+    }
+    return;
+}
+
+static VOS_STATUS hdd_print_acl(hdd_adapter_t *pHostapdAdapter)
+{
+    eSapMacAddrACL acl_mode;
+    v_MACADDR_t MacList[MAX_ACL_MAC_ADDRESS];
+    v_U8_t listnum;
+    v_PVOID_t pvosGCtx = NULL;
+
+#ifdef WLAN_FEATURE_MBSSID
+    pvosGCtx = WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter);
+#else
+    pvosGCtx = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
+#endif
+    vos_mem_zero(&MacList[0], sizeof(MacList));
+    if (VOS_STATUS_SUCCESS == WLANSAP_GetACLMode(pvosGCtx, &acl_mode)) {
+        pr_info("******** ACL MODE *********\n");
+        switch (acl_mode) {
+        case eSAP_ACCEPT_UNLESS_DENIED:
+            pr_info("ACL Mode = ACCEPT_UNLESS_DENIED\n");
+            break;
+        case eSAP_DENY_UNLESS_ACCEPTED:
+            pr_info("ACL Mode = DENY_UNLESS_ACCEPTED\n");
+            break;
+        case eSAP_SUPPORT_ACCEPT_AND_DENY:
+            pr_info("ACL Mode = ACCEPT_AND_DENY\n");
+            break;
+        case eSAP_ALLOW_ALL:
+            pr_info("ACL Mode = ALLOW_ALL\n");
+            break;
+        default:
+            pr_info("Invalid SAP ACL Mode = %d\n", acl_mode);
+            return VOS_STATUS_E_FAILURE;
+        }
+    } else {
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    if (VOS_STATUS_SUCCESS == WLANSAP_GetACLAcceptList(pvosGCtx,
+                                                       &MacList[0], &listnum)) {
+        pr_info("******* WHITE LIST ***********\n");
+        if (listnum < MAX_ACL_MAC_ADDRESS)
+            print_mac_list(&MacList[0], listnum);
+    } else {
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    if (VOS_STATUS_SUCCESS == WLANSAP_GetACLDenyList(pvosGCtx,
+                                                     &MacList[0], &listnum)) {
+        pr_info("******* BLACK LIST ***********\n");
+        if (listnum < MAX_ACL_MAC_ADDRESS)
+            print_mac_list(&MacList[0], listnum);
+    } else {
+        return VOS_STATUS_E_FAILURE;
+    }
+    return VOS_STATUS_SUCCESS;
+}
+
 int
 static iw_softap_setparam(struct net_device *dev,
                           struct iw_request_info *info,
@@ -2604,6 +2673,16 @@ static iw_softap_getparam(struct net_device *dev,
                     );
         }
         break;
+
+    case QCSAP_GET_ACL:
+        {
+            hddLog(LOG1, FL("QCSAP_GET_ACL"));
+            if (hdd_print_acl(pHostapdAdapter) != VOS_STATUS_SUCCESS) {
+                hddLog(LOGE, FL("QCSAP_GET_ACL returned Error: not completed"));
+            }
+            *value = 0;
+            break;
+        }
 
     default:
         hddLog(LOGE, FL("Invalid getparam command %d"), sub_cmd);
@@ -4608,6 +4687,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_rtscts" },
   { QCASAP_GET_DFS_NOL, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getdfsnol" },
+  { QCSAP_GET_ACL, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_acl_list" },
 
   { QCSAP_IOCTL_SETMLME,
       IW_PRIV_TYPE_BYTE | sizeof(struct sQcSapreq_mlme)| IW_PRIV_SIZE_FIXED, 0, "setmlme" },

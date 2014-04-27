@@ -93,7 +93,7 @@ when           who                what, where, why
   ------------------------------------------------------------------------*/
 
 #define       MAX_SSID_LEN                 32
-#define       MAX_ACL_MAC_ADDRESS          16
+#define       MAX_ACL_MAC_ADDRESS          32
 #define       AUTO_CHANNEL_SELECT          0
 #define       MAX_ASSOC_IND_IE_LEN         255
 
@@ -1476,6 +1476,68 @@ WLANSAP_ClearACL
 );
 
 /*==========================================================================
+  FUNCTION    WLANSAP_GetACLAcceptList
+
+  DESCRIPTION
+    This api function to get ACL accept list.
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+        pvosGCtx: Pointer to vos global context structure
+        pAcceptList: ACL Accept list entries
+        nAcceptList: Number of entries in ACL Accept list
+
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation
+
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_GetACLAcceptList
+(
+    v_PVOID_t pvosGCtx,
+    v_MACADDR_t *pAcceptList,
+    v_U8_t *nAcceptList
+);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_GetACLDenyList
+
+  DESCRIPTION
+    This api function to get ACL Deny list.
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+        pvosGCtx: Pointer to vos global context structure
+        pAcceptList: ACL Deny list entries
+        nAcceptList: Number of entries in ACL Deny list
+
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation
+
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_GetACLDenyList
+(
+   v_PVOID_t pCtx,
+   v_MACADDR_t *pDenyList,
+   v_U8_t *nDenyList
+);
+
+/*==========================================================================
   FUNCTION    WLANSAP_SetMode
 
   DESCRIPTION
@@ -1501,6 +1563,35 @@ WLANSAP_SetMode
 (
     v_PVOID_t pvosGCtx,
     v_U32_t mode
+);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_GetACLMode
+
+  DESCRIPTION
+    This api is used to get mode for ACL
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+        pvosGCtx: Pointer to vos global context structure
+        mode: Current Mode of the ACL
+
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation
+
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_GetACLMode
+(
+    v_PVOID_t pvosGCtx,
+    eSapMacAddrACL *mode
 );
 
 /*==========================================================================
