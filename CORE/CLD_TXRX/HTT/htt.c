@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -429,3 +429,9 @@ htt_display(htt_pdev_handle pdev, int indent)
         pdev->rx_ring.sw_rd_idx.msdu_payld);
 }
 #endif
+
+/* Disable ASPM : Disable PCIe low power */
+void htt_htc_disable_aspm(void)
+{
+    htc_disable_aspm();
+}

@@ -54,7 +54,7 @@ eHalStatus csrMsgProcessor( tpAniSirGlobal pMac,  void *pMsgBuf )
 #endif
 
     smsLog(pMac, LOG2, FL("Message %d[0x%04X] received in curState %s"
-           "and substate %s"),
+           " and substate %s"),
            pSmeRsp->messageType, pSmeRsp->messageType,
            macTraceGetcsrRoamState(pMac->roam.curState[pSmeRsp->sessionId]),
            macTraceGetcsrRoamSubState(
@@ -134,6 +134,25 @@ eHalStatus csrMsgProcessor( tpAniSirGlobal pMac,  void *pMsgBuf )
             {
                 smsLog(pMac, LOGW, FL(" handling msg 0x%X CSR state is %d"), pSmeRsp->messageType, pMac->roam.curState[pSmeRsp->sessionId]);
                 csrRoamCheckForLinkStatusChange(pMac, pSmeRsp);
+            }
+            else if(eWNI_SME_GET_RSSI_REQ == pSmeRsp->messageType)
+            {
+                tAniGetRssiReq *pGetRssiReq = (tAniGetRssiReq*)pMsgBuf;
+                if(NULL != pGetRssiReq->rssiCallback)
+                {
+                    smsLog(pMac,
+                           LOGW,
+                           FL("Message eWNI_SME_GET_RSSI_REQ is not handled"
+                           " by CSR in state %d. calling RSSI callback"),
+                           pMac->roam.curState[pSmeRsp->sessionId]);
+                    ((tCsrRssiCallback)(pGetRssiReq->rssiCallback))(pGetRssiReq->lastRSSI,
+                                                                    pGetRssiReq->staId,
+                                                                    pGetRssiReq->pDevContext);
+                }
+                else
+                {
+                     smsLog(pMac, LOGE, FL("pGetRssiReq->rssiCallback is NULL"));
+                }
             }
             else
             {

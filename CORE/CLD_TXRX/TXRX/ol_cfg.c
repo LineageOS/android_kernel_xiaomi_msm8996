@@ -76,6 +76,8 @@ ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev)
 	cfg_ctx->target_tx_credit = CFG_TGT_NUM_MSDU_DESC;
 	cfg_ctx->throttle_period_ms = 40;
 	cfg_ctx->rx_fwd_disabled = 0;
+	cfg_ctx->is_packet_log_enabled = 0;
+
 	return (ol_pdev_handle) cfg_ctx;
 }
 
@@ -117,6 +119,18 @@ void ol_set_cfg_rx_fwd_disabled(ol_pdev_handle pdev, u_int8_t disable_rx_fwd)
 {
 	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
 	cfg->rx_fwd_disabled = disable_rx_fwd;
+}
+
+void ol_set_cfg_packet_log_enabled(ol_pdev_handle pdev, u_int8_t val)
+{
+	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
+	cfg->is_packet_log_enabled = val;
+}
+
+u_int8_t ol_cfg_is_packet_log_enabled(ol_pdev_handle pdev)
+{
+	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
+	return cfg->is_packet_log_enabled;
 }
 
 int ol_cfg_rx_fwd_disabled(ol_pdev_handle pdev)

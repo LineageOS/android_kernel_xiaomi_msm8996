@@ -68,6 +68,7 @@ struct txrx_pdev_cfg_t {
 	u32 throttle_period_ms;
 	enum wlan_frm_fmt frame_type;
 	u8 rx_fwd_disabled;
+	u8 is_packet_log_enabled;
 };
 
 /**
@@ -428,5 +429,15 @@ ol_tx_cfg_max_tx_queue_depth_ll(ol_pdev_handle pdev)
      */
     return 1500;
 }
+
+/**
+ * @brief Set packet log config in HTT config based on CFG ini configuration
+ */
+void ol_set_cfg_packet_log_enabled(ol_pdev_handle pdev, u_int8_t val);
+
+/**
+ * @brief Get packet log config from HTT config
+ */
+u_int8_t ol_cfg_is_packet_log_enabled(ol_pdev_handle pdev);
 
 #endif /* _OL_CFG__H_ */

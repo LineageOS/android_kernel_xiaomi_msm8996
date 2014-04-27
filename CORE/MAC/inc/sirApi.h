@@ -2176,9 +2176,10 @@ typedef struct sAniGetRssiReq
 {
     // Common for all types are requests
     tANI_U16                msgType;    // message type is same as the request type
-    tANI_U16                msgLen;  // length of the entire request
+    tANI_U16                msgLen;     // length of the entire request
     tANI_U8                 sessionId;
     tANI_U8                 staId;
+    tANI_S8                 lastRSSI;   // in case of error, return last RSSI
     void                    *rssiCallback;
     void                    *pDevContext; //device context
     void                    *pVosContext; //voss context

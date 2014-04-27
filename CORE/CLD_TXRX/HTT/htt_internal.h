@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -391,5 +391,7 @@ htt_htc_misc_pkt_list_add(struct htt_pdev_t *pdev, struct htt_htc_pkt *pkt);
 void
 htt_htc_misc_pkt_pool_free(struct htt_pdev_t *pdev);
 #endif
+
+void htt_htc_disable_aspm(void);
 
 #endif /* _HTT_INTERNAL__H_ */

@@ -304,8 +304,6 @@ pktlog_init(struct ol_softc *scn)
 	PKTLOG_RX_REMOTE_SUBSCRIBER.callback = pktlog_callback;
 	PKTLOG_RCFIND_SUBSCRIBER.callback = pktlog_callback;
 	PKTLOG_RCUPDATE_SUBSCRIBER.callback = pktlog_callback;
-
-	printk("pktlog initialized\n");
 }
 
 int
