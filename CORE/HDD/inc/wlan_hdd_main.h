@@ -71,9 +71,6 @@
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/
-/** Number of attempts to detect/remove card */
-#define LIBRA_CARD_INSERT_DETECT_MAX_COUNT      5
-#define LIBRA_CARD_REMOVE_DETECT_MAX_COUNT      5
 /** Number of Tx Queues */
 #define NUM_TX_QUEUES 4
 /** HDD's internal Tx Queue Length. Needs to be a power of 2 */
@@ -1226,9 +1223,6 @@ struct hdd_context_s
 
    /** Pointer to the parent device */
    struct device *parent_dev;
-
-   pid_t  pid_sdio_claimed;
-   atomic_t sdio_claim_count;
 
    /** Config values read from qcom_cfg.ini file */
    hdd_config_t *cfg_ini;
