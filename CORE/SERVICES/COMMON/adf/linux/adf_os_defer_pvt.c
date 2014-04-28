@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2010, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -36,9 +36,6 @@
 void
 __adf_os_defer_func(struct work_struct *work)
 {
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,19)
-    return;
-#else
     __adf_os_work_t  *ctx = container_of(work, __adf_os_work_t, work);
     if (ctx->fn == NULL)
     {
@@ -46,15 +43,11 @@ __adf_os_defer_func(struct work_struct *work)
         return;
     }
     ctx->fn(ctx->arg);
-#endif
 }
 
 void
 __adf_os_defer_delayed_func(struct work_struct *dwork)
 {
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,19)
-    return;
-#else
     __adf_os_delayed_work_t  *ctx = container_of(dwork, __adf_os_delayed_work_t, dwork.work);
     if (ctx->fn == NULL)
     {
@@ -62,8 +55,6 @@ __adf_os_defer_delayed_func(struct work_struct *dwork)
         return;
     }
     ctx->fn(ctx->arg);
-#endif
-
 }
 EXPORT_SYMBOL(__adf_os_defer_func);
 EXPORT_SYMBOL(__adf_os_defer_delayed_func);

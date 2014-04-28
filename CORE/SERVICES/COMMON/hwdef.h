@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -54,24 +54,5 @@ typedef enum {
 */
 
 #define DEFAULT_CACHELINE	32
-
-#if defined(CONFIG_ARM) && (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28))
-
-/*
-** This was borrowed from NETBSD.  Not very atomic
-*/
-
-static INLINE int32_t cmpxchg(int32_t *_patomic_arg, int32_t _comparand, int32_t _exchange)
-{
-    if(*(_patomic_arg) == _comparand)
-    {
-         *(_patomic_arg) = _exchange;
-         return _comparand;
-    }
-    return (*_patomic_arg);
-}
-
-
-#endif
 
 #endif

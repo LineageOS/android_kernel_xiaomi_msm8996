@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -29,11 +29,7 @@
 #ifndef _ADF_CMN_OS_LOCK_PVT_H
 #define _ADF_CMN_OS_LOCK_PVT_H
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,27)
-#include <asm/semaphore.h>
-#else
 #include <linux/semaphore.h>
-#endif
 #include <linux/interrupt.h>
 #include <linux/spinlock.h>
 #include <adf_os_types.h>
@@ -60,12 +56,7 @@ typedef struct semaphore __adf_os_mutex_t;
 static inline a_status_t
 __adf_os_init_mutex(struct semaphore *m)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)
-    init_MUTEX(m);
-#else
     sema_init(m, 1);
-#endif
-
     return A_STATUS_OK;
 }
 

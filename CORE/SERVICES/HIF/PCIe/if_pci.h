@@ -31,11 +31,7 @@
 #define __ATH_PCI_H__
 
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,26)
-#include <asm/semaphore.h>
-#else
 #include <linux/semaphore.h>
-#endif
 #include <linux/interrupt.h>
 
 #define CONFIG_COPY_ENGINE_SUPPORT /* TBDXXX: here for now */

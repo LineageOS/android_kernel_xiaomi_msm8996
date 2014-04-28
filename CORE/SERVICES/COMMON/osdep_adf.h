@@ -160,22 +160,11 @@ static inline void spin_unlock_dpc(spinlock_t *lock)
 typedef unsigned long TQUEUE_ARG;
 #define mark_bh(a)
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,32))
 #define ATH_SYSCTL_DECL(f, ctl, write, filp, buffer, lenp, ppos) \
     f(ctl_table *ctl, int write, void *buffer,                   \
         size_t *lenp, loff_t *ppos)
-#else
-#define ATH_SYSCTL_DECL(f, ctl, write, filp, buffer, lenp, ppos) \
-    f(ctl_table *ctl, int write, struct file *filp, void *buffer,\
-        size_t *lenp, loff_t *ppos)
-#endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,32))
 #define ATH_SYSCTL_PROC_DOINTVEC(ctl, write, filp, buffer, lenp, ppos) \
     proc_dointvec(ctl, write, buffer, lenp, ppos)
-#else
-#define ATH_SYSCTL_PROC_DOINTVEC(ctl, write, filp, buffer, lenp, ppos) \
-    proc_dointvec(ctl, write, filp, buffer, lenp, ppos)
-#endif
 #define ATH_SYSCTL_PROC_DOSTRING(ctl, write, filp, buffer, lenp, ppos) \
     proc_dostring(ctl, write, filp, buffer, lenp, ppos)
 
@@ -286,51 +275,6 @@ typedef rwlock_t usb_readwrite_lock_t;
 #define OS_RWLOCK_INIT(_rwl)        rwlock_init(_rwl)
 #define OS_RWLOCK_DESTROY(_nt)
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33)
-#ifdef CONFIG_SMP
-/* Undo the one provided by the kernel to debug spin locks */
-#undef spin_lock
-#undef spin_trylock
-#undef spin_unlock
-#undef spin_lock_irqsave
-#undef spin_unlock_irqrestore
-
-#define spin_lock(x) \
-    do { \
-      _spin_lock_bh(x);\
-    } while (0)
-
-#define spin_trylock(x) _spin_trylock_bh(x)
-
-#define spin_unlock(x) \
-    do { \
-      if (!spin_is_locked(x)) { \
-           WARN_ON(1); \
-           printk(KERN_EMERG " %s:%d unlock addr=%p, %s \n", __func__, __LINE__, x, \
-                  !spin_is_locked(x)? "Not locked":""); \
-      } \
-      _spin_unlock_bh(x);\
-    } while (0)
-
-#define spin_lock_irqsave(x, f) \
-    do { \
-      f = _spin_lock_irqsave(x);\
-    } while (0)
-
-#define spin_unlock_irqrestore(x, f) \
-    do { \
-      if (!spin_is_locked(x)) { \
-          WARN_ON(1); \
-          printk(KERN_EMERG " %s:%d unlock_irqrestore addr=%p, flags=%lx, %s\n", \
-             __func__, __LINE__, x, f, !spin_is_locked(x)? "Not locked":""); \
-      } \
-      _spin_unlock_irqrestore(x, f);\
-    } while (0)
-
-#define OS_SUPPORT_ASYNC_Q 1 /* support for handling asyn function calls */
-
-#endif // ifdef CONFIG_SMP
-#else  // if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,37)
 #ifdef CONFIG_SMP
 /* Undo the one provided by the kernel to debug spin locks */
 #undef spin_lock
@@ -357,8 +301,6 @@ spin_unlock_bh(x);\
 #define OS_SUPPORT_ASYNC_Q 1 /* support for handling asyn function calls */
 
 #endif // ifdef CONFIG_SMP
-
-#endif // ifdef LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)
 
 #define OS_RWLOCK_READ_LOCK(rwl, lock_state)  do {\
     if (irqs_disabled() || in_irq()) {\
