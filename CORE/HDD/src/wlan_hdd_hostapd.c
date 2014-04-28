@@ -924,30 +924,29 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 #endif
             vos_wake_lock_timeout_acquire(&pHddCtx->sap_wake_lock,
                                           HDD_SAP_WAKE_LOCK_DURATION);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
             {
-                struct station_info staInfo;
-                v_U16_t iesLen =  pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen;
+               struct station_info staInfo;
+               v_U16_t iesLen =  pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen;
 
-                memset(&staInfo, 0, sizeof(staInfo));
-                if (iesLen <= MAX_ASSOC_IND_IE_LEN )
-                {
-                    staInfo.assoc_req_ies =
-                        (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies[0];
-                    staInfo.assoc_req_ies_len = iesLen;
+               memset(&staInfo, 0, sizeof(staInfo));
+               if (iesLen <= MAX_ASSOC_IND_IE_LEN )
+               {
+                  staInfo.assoc_req_ies =
+                     (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies[0];
+                  staInfo.assoc_req_ies_len = iesLen;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,31))
-                    staInfo.filled |= STATION_INFO_ASSOC_REQ_IES;
+                  staInfo.filled |= STATION_INFO_ASSOC_REQ_IES;
 #endif
-                    cfg80211_new_sta(dev,
-                                 (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac.bytes[0],
-                                 &staInfo, GFP_KERNEL);
-                }
-                else
-                {
-                    hddLog(LOGE, FL(" Assoc Ie length is too long"));
-                }
-             }
-#endif
+                  cfg80211_new_sta(dev,
+                        (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac.bytes[0],
+                        &staInfo, GFP_KERNEL);
+               }
+               else
+               {
+                  hddLog(LOGE, FL(" Assoc Ie length is too long"));
+               }
+            }
+
             pScanInfo =  &pHostapdAdapter->scan_info;
             // Lets do abort scan to ensure smooth authentication for client
             if ((pScanInfo != NULL) && pScanInfo->mScanPending)
@@ -1040,11 +1039,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             wlan_hdd_auto_shutdown_enable(pHddCtx, VOS_TRUE);
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
             cfg80211_del_sta(dev,
                             (const u8 *)&pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac.bytes[0],
                             GFP_KERNEL);
-#endif
+
             //Update the beacon Interval if it is P2P GO
             vos_status = hdd_change_mcc_go_beacon_interval(pHostapdAdapter);
             if (VOS_STATUS_SUCCESS != vos_status)
@@ -4447,7 +4445,7 @@ const struct iw_handler_def hostapd_handler_def = {
    .private_args     = hostapd_private_args,
    .get_wireless_stats = NULL,
 };
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29)
+
 struct net_device_ops net_ops_struct  = {
     .ndo_open = hdd_hostapd_open,
     .ndo_stop = hdd_hostapd_stop,
@@ -4460,7 +4458,6 @@ struct net_device_ops net_ops_struct  = {
     .ndo_change_mtu = hdd_hostapd_change_mtu,
     .ndo_select_queue = hdd_hostapd_select_queue,
  };
-#endif
 
 int hdd_set_hostapd(hdd_adapter_t *pAdapter)
 {
@@ -4469,18 +4466,7 @@ int hdd_set_hostapd(hdd_adapter_t *pAdapter)
 
 void hdd_set_ap_ops( struct net_device *pWlanHostapdDev )
 {
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29)
   pWlanHostapdDev->netdev_ops = &net_ops_struct;
-#else
-  pWlanHostapdDev->open = hdd_hostapd_open;
-  pWlanHostapdDev->stop = hdd_hostapd_stop;
-  pWlanHostapdDev->uninit = hdd_hostapd_uninit;
-  pWlanHostapdDev->hard_start_xmit = hdd_softap_hard_start_xmit;
-  pWlanHostapdDev->tx_timeout = hdd_softap_tx_timeout;
-  pWlanHostapdDev->get_stats = hdd_softap_stats;
-  pWlanHostapdDev->set_mac_address = hdd_hostapd_set_mac_address;
-  pWlanHostapdDev->do_ioctl = hdd_hostapd_ioctl;
-#endif
 }
 
 VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
@@ -4637,9 +4623,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
         init_completion(&pHostapdAdapter->tx_action_cnf_event);
         init_completion(&pHostapdAdapter->cancel_rem_on_chan_var);
         init_completion(&pHostapdAdapter->rem_on_chan_ready_event);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
         init_completion(&pHostapdAdapter->offchannel_tx_event);
-#endif
         init_completion(&pHostapdAdapter->scan_info.scan_req_completion_event);
         init_completion(&pHostapdAdapter->scan_info.abortscan_event_var);
         vos_event_init(&pHostapdAdapter->scan_info.scan_finished_event);

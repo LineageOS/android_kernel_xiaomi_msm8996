@@ -949,10 +949,8 @@ struct hdd_adapter_s
    /* completion variable for cancel remain on channel Event */
    struct completion cancel_rem_on_chan_var;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
    /* completion variable for off channel  remain on channel Event */
    struct completion offchannel_tx_event;
-#endif
    /* Completion variable for action frame */
    struct completion tx_action_cnf_event;
    /* Completion variable for remain on channel ready */
