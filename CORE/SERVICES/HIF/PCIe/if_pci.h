@@ -84,6 +84,8 @@ struct hif_pci_softc {
     struct targetdef_s *targetdef;
     struct hostdef_s *hostdef;
     atomic_t tasklet_from_intr;
+    atomic_t wow_done;
+    atomic_t ce_suspend;
     bool hif_init_done;
     bool recovery;
 };
@@ -150,10 +152,13 @@ void dump_CE_debug_register(struct hif_pci_softc *sc);
  */
 #define OL_ATH_TX_DRAIN_WAIT_DELAY     50 /* ms */
 
+#define HIF_CE_DRAIN_WAIT_DELAY        10 /* ms */
 /*
  * Wait time (in unit of OL_ATH_TX_DRAIN_WAIT_DELAY) for pending
  * tx frame completion before suspend. Refer: hif_pci_suspend()
  */
 #define OL_ATH_TX_DRAIN_WAIT_CNT       10
+
+#define HIF_CE_DRAIN_WAIT_CNT          5
 
 #endif /* __ATH_PCI_H__ */

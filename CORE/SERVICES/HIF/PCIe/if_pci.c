@@ -522,12 +522,17 @@ wlan_tasklet(unsigned long data)
     volatile int tmp;
 
     if (sc->hif_init_done == FALSE) {
-       goto irq_handled;
+         goto irq_handled;
     }
+
+    if (adf_os_atomic_read(&sc->wow_done))
+         goto irq_handled;
+
+    adf_os_atomic_set(&sc->ce_suspend, 0);
 
     (irqreturn_t)HIF_fw_interrupt_handler(sc->irq_event, sc);
     if (sc->ol_sc->target_status == OL_TRGET_STATUS_RESET)
-        goto irq_handled;
+         goto irq_handled;
 
     CE_per_engine_service_any(sc->irq_event, sc);
     adf_os_atomic_set(&sc->tasklet_from_intr, 0);
@@ -537,6 +542,7 @@ wlan_tasklet(unsigned long data)
          * Enable the interrupt only when there is no pending frames in
          * any of the Copy Engine pipes.
          */
+        adf_os_atomic_set(&sc->ce_suspend, 1);
         tasklet_schedule(&sc->intr_tq);
         return;
     }
@@ -556,6 +562,7 @@ irq_handled:
         if (sc->hif_init_done == TRUE)
            A_TARGET_ACCESS_END(hif_state->targid);
     }
+    adf_os_atomic_set(&sc->ce_suspend, 1);
 }
 
 #define ATH_PCI_PROBE_RETRY_MAX 3
@@ -803,6 +810,8 @@ again:
     ol_sc->max_no_of_peers = 1;
 
     adf_os_atomic_init(&sc->tasklet_from_intr);
+    adf_os_atomic_init(&sc->wow_done);
+    adf_os_atomic_init(&sc->ce_suspend);
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
     init_completion(&ol_sc->ramdump_event);
 
@@ -1115,6 +1124,9 @@ again:
     ol_sc->max_no_of_peers = 1;
 
     adf_os_atomic_init(&sc->tasklet_from_intr);
+    adf_os_atomic_init(&sc->wow_done);
+    adf_os_atomic_init(&sc->ce_suspend);
+
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
     init_completion(&ol_sc->ramdump_event);
 
@@ -1571,6 +1583,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     A_target_id_t targid = hif_state->targid;
     u32 tx_drain_wait_cnt = 0;
     u32 val;
+    u32 ce_drain_wait_cnt = 0;
     v_VOID_t * temp_module;
 
     A_TARGET_ACCESS_BEGIN_RET(targid);
@@ -1602,6 +1615,17 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         return (-1);
     }
 
+     while (!adf_os_atomic_read(&sc->ce_suspend)) {
+        if (++ce_drain_wait_cnt > HIF_CE_DRAIN_WAIT_CNT) {
+           printk("%s: CE is busy failing suspend: \n", __func__);
+           adf_os_atomic_set(&sc->wow_done, 0);
+           return (-1);
+        }
+        printk("%s: Waiting for CE to finish access: \n", __func__);
+        msleep(10);
+    }
+
+
     printk("\n%s: wow mode %d event %d\n", __func__,
        wma_is_wow_mode_selected(temp_module), state.event);
 
@@ -1612,6 +1636,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
           if (wma_suspend_target(temp_module, 0))
                 return (-1);
     }
+
 
     pci_read_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, &val);
     if ((val & 0x000000ff) != 0x3) {
@@ -1672,6 +1697,7 @@ hif_pci_resume(struct pci_dev *pdev)
     printk("\n%s: wow mode %d val %d\n", __func__,
        wma_is_wow_mode_selected(temp_module), val);
 
+    adf_os_atomic_set(&sc->wow_done, 0);
     if (!wma_is_wow_mode_selected(temp_module) &&
         (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
         return wma_resume_target(temp_module);
