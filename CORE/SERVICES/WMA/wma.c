@@ -9754,6 +9754,28 @@ out:
 	wma_send_msg(wma, WDA_ADD_STA_RSP, (void *)params, 0);
 }
 
+static void wma_prevent_suspend_check(tp_wma_handle wma)
+{
+	wma->ap_client_cnt++;
+	if (wma->ap_client_cnt ==
+	    wma->wlan_resource_config.num_offload_peers) {
+		vos_wake_lock_acquire(&wma->wow_wake_lock);
+		WMA_LOGW("%s: %d clients connected, prevent suspend",
+			 __func__, wma->ap_client_cnt);
+	}
+}
+
+static void wma_allow_suspend_check(tp_wma_handle wma)
+{
+	wma->ap_client_cnt--;
+	if (wma->ap_client_cnt ==
+	    wma->wlan_resource_config.num_offload_peers - 1) {
+		vos_wake_lock_release(&wma->wow_wake_lock);
+		WMA_LOGW("%s: %d clients connected, allow suspend",
+			 __func__, wma->ap_client_cnt);
+	}
+}
+
 static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 {
 	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
@@ -9763,8 +9785,10 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
                  add_sta->bssId[0], add_sta->bssId[1], add_sta->bssId[2],
                  add_sta->bssId[3], add_sta->bssId[4], add_sta->bssId[5]);
 
-	if (wma_is_vdev_in_ap_mode(wma, add_sta->smesessionId))
+	if (wma_is_vdev_in_ap_mode(wma, add_sta->smesessionId)) {
+		wma_prevent_suspend_check(wma);
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
+	}
 #ifdef QCA_IBSS_SUPPORT
         else if (wma_is_vdev_in_ibss_mode(wma, add_sta->smesessionId))
 		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
@@ -10401,8 +10425,10 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 {
 	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
 
-	if (wma_is_vdev_in_ap_mode(wma, del_sta->smesessionId))
+	if (wma_is_vdev_in_ap_mode(wma, del_sta->smesessionId)) {
+		wma_allow_suspend_check(wma);
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
+	}
 #ifdef QCA_IBSS_SUPPORT
 	if (wma_is_vdev_in_ibss_mode(wma, del_sta->smesessionId)) {
 		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
