@@ -606,6 +606,13 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 
 		iface_context =
 			(struct hdd_ipa_iface_context *) adapter->ipa_context;
+		if (iface_context) {
+			vos_spin_lock_acquire(&iface_context->interface_lock);
+		}
+		else {
+			return;
+		}
+
 		/* send_desc_head is a anchor node */
 		send_desc_head = hdd_ipa_get_desc_from_freeq();
 		if (!send_desc_head) {
@@ -627,6 +634,7 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
 			hdd_ipa->stats.rxt_dh_drop++;
 #endif
+			vos_spin_lock_release(&iface_context->interface_lock);
 			return;
 		}
 
@@ -675,6 +683,7 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 #endif
 			buf = next_buf;
 		}
+		vos_spin_lock_release(&iface_context->interface_lock);
 
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
 		if (cur_cnt == 0)
