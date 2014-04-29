@@ -1615,17 +1615,6 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         return (-1);
     }
 
-     while (!adf_os_atomic_read(&sc->ce_suspend)) {
-        if (++ce_drain_wait_cnt > HIF_CE_DRAIN_WAIT_CNT) {
-           printk("%s: CE is busy failing suspend: \n", __func__);
-           adf_os_atomic_set(&sc->wow_done, 0);
-           return (-1);
-        }
-        printk("%s: Waiting for CE to finish access: \n", __func__);
-        msleep(10);
-    }
-
-
     printk("\n%s: wow mode %d event %d\n", __func__,
        wma_is_wow_mode_selected(temp_module), state.event);
 
@@ -1637,6 +1626,28 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
                 return (-1);
     }
 
+    while (!adf_os_atomic_read(&sc->ce_suspend)) {
+        if (++ce_drain_wait_cnt > HIF_CE_DRAIN_WAIT_CNT) {
+            printk("%s: CE still not done with access: \n", __func__);
+            adf_os_atomic_set(&sc->wow_done, 0);
+
+            A_TARGET_ACCESS_BEGIN_RET(targid);
+            val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
+            A_TARGET_ACCESS_END_RET(targid);
+
+            if (!wma_is_wow_mode_selected(temp_module) &&
+               (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
+                  wma_resume_target(temp_module);
+                  return -1;
+            }
+            else {
+               wma_disable_wow_in_fw(temp_module);
+               return (-1);
+            }
+        }
+        printk("%s: Waiting for CE to finish access: \n", __func__);
+        msleep(10);
+    }
 
     pci_read_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, &val);
     if ((val & 0x000000ff) != 0x3) {

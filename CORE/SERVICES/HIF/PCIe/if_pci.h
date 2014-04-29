@@ -159,6 +159,6 @@ void dump_CE_debug_register(struct hif_pci_softc *sc);
  */
 #define OL_ATH_TX_DRAIN_WAIT_CNT       10
 
-#define HIF_CE_DRAIN_WAIT_CNT          5
+#define HIF_CE_DRAIN_WAIT_CNT          20
 
 #endif /* __ATH_PCI_H__ */
