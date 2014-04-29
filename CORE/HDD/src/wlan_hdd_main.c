@@ -879,7 +879,7 @@ void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx)
 
            ret = wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
                       msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-           if (0 >= ret)
+           if (ret <= 0)
                hddLog(LOGE, FL("failure waiting for disconnect_comp_var %ld"),
                                ret);
         }
@@ -7610,7 +7610,8 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
    if (rc <= 0)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,
-             "Session is not opened within timeout period code %ld", rc );
+             FL("Session is not opened within timeout period code %ld"),
+             rc );
       status = VOS_STATUS_E_FAILURE;
       goto error_sme_open;
    }
@@ -7722,8 +7723,8 @@ void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
       if (rc <= 0)
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s ERROR: HDD Wait for Action Confirmation Failed!! %ld"
-                   , __func__, rc);
+                   "%s HDD Wait for Action Confirmation Failed!! %ld",
+                   __func__, rc);
       }
    }
    return;
@@ -8118,7 +8119,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       if(VOS_STATUS_E_FAILURE == exitbmpsStatus)
       {
          //Fail to Exit BMPS
-         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Fail to Exit BMPS", __func__);
+         hddLog(VOS_TRACE_LEVEL_ERROR, FL("Fail to Exit BMPS"));
          VOS_ASSERT(0);
          return NULL;
       }
@@ -9798,15 +9799,15 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 
    if (VOS_FTM_MODE == hdd_get_conparam())
    {
-      hddLog(VOS_TRACE_LEVEL_INFO,"%s: FTM MODE",__func__);
+      hddLog(VOS_TRACE_LEVEL_INFO, "%s: FTM MODE", __func__);
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
       if (hdd_ftm_stop(pHddCtx))
       {
-          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_stop Failed",__func__);
+          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_ftm_stop Failed", __func__);
       }
 #endif
       wlan_hdd_ftm_close(pHddCtx);
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver unloaded", __func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: FTM driver unloaded", __func__);
       goto free_hdd_ctx;
    }
    //Stop the Interface TX queue.

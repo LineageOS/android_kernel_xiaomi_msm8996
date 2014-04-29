@@ -2824,7 +2824,7 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         ret = wait_for_completion_interruptible_timeout(
                            &pScanInfo->abortscan_event_var,
                            msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
-        if (0 >= ret)
+        if (ret <= 0)
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                        FL("Timeout occurred while waiting for abortscan %ld"),
@@ -2848,7 +2848,7 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                       FL("session(%d) beacon data points to NULL"),
                          pAdapter->sessionId);
-            return -ENOENT;
+            return -EINVAL;
         }
 
         hdd_cleanup_actionframe(pHddCtx, pAdapter);
@@ -3059,7 +3059,7 @@ static int wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                       FL("session(%d) beacon data points to NULL"),
                          pAdapter->sessionId);
-            return -ENOENT;
+            return -EINVAL;
         }
 
         status = wlan_hdd_cfg80211_alloc_new_beacon(pAdapter, &new, params, 0);
@@ -5357,7 +5357,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if (waitRet <= 0)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s wait on scan_req_completion_event failed %ld",__func__, waitRet);
+               "%s wait on scan_req_completion_event failed %ld", __func__, waitRet);
        VOS_ASSERT(pScanInfo->mScanPending);
        goto allow_suspend;
     }
@@ -9896,12 +9896,12 @@ static int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *d
         case NL80211_TDLS_DISCOVERY_REQ:
             /* We don't support in-driver setup/teardown/discovery */
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-                      "%s: We don't support in-driver setup/teardown/discovery "
-                      ,__func__);
+                      "%s: We don't support in-driver setup/teardown/discovery",
+                      __func__);
             return -ENOTSUPP;
         default:
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                      "%s: unsupported event",__func__);
+                      "%s: unsupported event", __func__);
             return -ENOTSUPP;
     }
     return 0;
