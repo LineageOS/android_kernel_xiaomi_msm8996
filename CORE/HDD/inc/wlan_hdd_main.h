@@ -1090,6 +1090,7 @@ struct hdd_adapter_s
     unsigned int tx_flow_low_watermark;
     unsigned int tx_flow_high_watermark_offset;
 #endif /* QCA_LL_TX_FLOW_CT */
+    v_BOOL_t offloads_configured;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
