@@ -8418,6 +8418,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
 #endif
 
+#ifdef CONFIG_FW_LOGS_BASED_ON_INI
+
   /* Enable FW logs based on INI configuration */
   if ((VOS_FTM_MODE != vos_get_conparam()) &&
              (pHddCtx->cfg_ini->enableFwLogType))
@@ -8477,6 +8479,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          count += 2;
      }
   }
+
+#endif
 
 
    return pAdapter;
