@@ -2103,6 +2103,18 @@ static void __limProcessSAQueryResponseActionFrame(tpAniSirGlobal pMac, tANI_U8 
     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
                          ("SA Query Response received...")) ;
 
+    /* When a station, supplicant handles SA Query Response.
+     * Forward to SME to HDD to wpa_supplicant.
+     */
+    if (eLIM_STA_ROLE == psessionEntry->limSystemRole)
+    {
+        limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, (tANI_U8*)pHdr,
+                               frameLen + sizeof(tSirMacMgmtHdr), 0,
+                               WDA_GET_RX_CH( pRxPacketInfo ),
+                               psessionEntry, 0);
+        return;
+    }
+
     /* If this is an unprotected SA Query Response, then ignore it. */
     if (pHdr->fc.wep == 0)
         return;

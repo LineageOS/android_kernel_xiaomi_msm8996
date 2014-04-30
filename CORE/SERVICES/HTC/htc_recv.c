@@ -238,6 +238,12 @@ _failed:
 }
 #endif
 
+static void HTCsuspendwow(HTC_TARGET *target)
+{
+    HIFsuspendwow(target->hif_dev);
+    return;
+}
+
 A_STATUS HTCRxCompletionHandler(
     void *Context, adf_nbuf_t netbuf, a_uint8_t pipeID)
 {
@@ -399,6 +405,7 @@ A_STATUS HTCRxCompletionHandler(
             case HTC_MSG_SEND_SUSPEND_COMPLETE:
                 wow_nack = 0;
                 target->HTCInitInfo.TargetSendSuspendComplete((void *)&wow_nack);
+                HTCsuspendwow(target);
                 break;
             case HTC_MSG_NACK_SUSPEND:
                 wow_nack = 1;

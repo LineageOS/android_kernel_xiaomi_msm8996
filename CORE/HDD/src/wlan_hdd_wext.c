@@ -7128,6 +7128,7 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                                   "%s:LOGP in Progress. Ignore!!!", __func__);
+        msleep(1000);
         return -EBUSY;
     }
 

@@ -3394,6 +3394,60 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_PACKET_LOG_MIN,
                  CFG_ENABLE_PACKET_LOG_MAX ),
 
+#ifdef MSM_PLATFORM
+   REG_VARIABLE( CFG_BUS_BANDWIDTH_HIGH_THRESHOLD, WLAN_PARAM_Integer,
+                 hdd_config_t, busBandwidthHighThreshold,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_BUS_BANDWIDTH_HIGH_THRESHOLD_DEFAULT,
+                 CFG_BUS_BANDWIDTH_HIGH_THRESHOLD_MIN,
+                 CFG_BUS_BANDWIDTH_HIGH_THRESHOLD_MAX ),
+
+   REG_VARIABLE( CFG_BUS_BANDWIDTH_MEDIUM_THRESHOLD, WLAN_PARAM_Integer,
+                 hdd_config_t, busBandwidthMediumThreshold,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_BUS_BANDWIDTH_MEDIUM_THRESHOLD_DEFAULT,
+                 CFG_BUS_BANDWIDTH_MEDIUM_THRESHOLD_MIN,
+                 CFG_BUS_BANDWIDTH_MEDIUM_THRESHOLD_MAX ),
+
+   REG_VARIABLE( CFG_BUS_BANDWIDTH_LOW_THRESHOLD, WLAN_PARAM_Integer,
+                 hdd_config_t, busBandwidthLowThreshold,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_BUS_BANDWIDTH_LOW_THRESHOLD_DEFAULT,
+                 CFG_BUS_BANDWIDTH_LOW_THRESHOLD_MIN,
+                 CFG_BUS_BANDWIDTH_LOW_THRESHOLD_MAX ),
+
+   REG_VARIABLE( CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL, WLAN_PARAM_Integer,
+                 hdd_config_t, busBandwidthComputeInterval,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_DEFAULT,
+                 CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MIN,
+                 CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MAX),
+#endif
+
+#ifdef QCA_WIFI_2_0
+
+   REG_VARIABLE( CFG_ENABLE_FW_LOG_TYPE , WLAN_PARAM_Integer,
+                hdd_config_t, enableFwLogType,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_FW_LOG_TYPE_DEFAULT,
+                CFG_ENABLE_FW_LOG_TYPE_MIN,
+                CFG_ENABLE_FW_LOG_TYPE_MAX ),
+
+   REG_VARIABLE( CFG_ENABLE_FW_DEBUG_LOG_LEVEL, WLAN_PARAM_Integer,
+                hdd_config_t, enableFwLogLevel,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_FW_DEBUG_LOG_LEVEL_DEFAULT,
+                CFG_ENABLE_FW_DEBUG_LOG_LEVEL_MIN,
+                CFG_ENABLE_FW_DEBUG_LOG_LEVEL_MAX ),
+
+   REG_VARIABLE_STRING( CFG_ENABLE_FW_MODULE_LOG_LEVEL, WLAN_PARAM_String,
+                hdd_config_t, enableFwModuleLogLevel,
+                VAR_FLAGS_OPTIONAL,
+                (void *) CFG_ENABLE_FW_MODULE_LOG_DEFAULT),
+
+#endif
+
+
 };
 
 /*
@@ -3798,6 +3852,19 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gMaxOffloadPeers] Value = [%u] ",pHddCtx->cfg_ini->apMaxOffloadPeers);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [overrideCountryCode] Value = [%s] ",pHddCtx->cfg_ini->overrideCountryCode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAllowDFSChannelRoam] Value = [%u] ",pHddCtx->cfg_ini->allowDFSChannelRoam);
+
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gBusBandwidthHighThreshold] Value = [%u] ",
+          pHddCtx->cfg_ini->busBandwidthHighThreshold);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gBusBandwidthMediumThreshold] Value = [%u] ",
+          pHddCtx->cfg_ini->busBandwidthMediumThreshold);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gBusBandwidthLowThreshold] Value = [%u] ",
+          pHddCtx->cfg_ini->busBandwidthLowThreshold);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gbusBandwidthComputeInterval] Value = [%u] ",
+          pHddCtx->cfg_ini->busBandwidthComputeInterval);
 }
 
 
@@ -4498,8 +4565,8 @@ VOS_STATUS hdd_set_idle_ps_config(hdd_context_t *pHddCtx, v_U32_t val)
    return status;
 }
 
-#ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
-static VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len, tANI_U8 intArrayMaxLen )
+VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,
+    tANI_U8 intArrayMaxLen )
 {
    char *s = str;
 
@@ -4527,7 +4594,6 @@ static VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 
    return VOS_STATUS_SUCCESS;
 
 }
-#endif
 
 
 v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
