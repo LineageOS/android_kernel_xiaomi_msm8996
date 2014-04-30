@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -113,6 +113,10 @@ struct cvg_nbuf_cb {
     unsigned char proto_type;
     unsigned char vdev_id;
 #endif /* QCA_PKT_PROTO_TRACE */
+#ifdef QCA_TX_HTT2_SUPPORT
+    unsigned char tx_htt2_frm: 1;
+    unsigned char tx_htt2_reserved: 7;
+#endif /* QCA_TX_HTT2_SUPPORT */
 };
 #define NBUF_OWNER_ID(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->owner_id)
@@ -146,6 +150,16 @@ struct cvg_nbuf_cb {
 #define NBUF_SET_PROTO_TYPE(skb, proto_type);
 #define NBUF_GET_PROTO_TYPE(skb) 0;
 #endif /* QCA_PKT_PROTO_TRACE */
+
+#ifdef QCA_TX_HTT2_SUPPORT
+#define NBUF_SET_TX_HTT2_FRM(skb, candi) \
+    (((struct cvg_nbuf_cb *)((skb)->cb))->tx_htt2_frm = candi)
+#define NBUF_GET_TX_HTT2_FRM(skb) \
+    (((struct cvg_nbuf_cb *)((skb)->cb))->tx_htt2_frm)
+#else
+#define NBUF_SET_TX_HTT2_FRM(skb, candi)
+#define NBUF_GET_TX_HTT2_FRM(skb) 0
+#endif /* QCA_TX_HTT2_SUPPORT */
 
 #define __adf_nbuf_get_num_frags(skb)              \
     /* assume the OS provides a single fragment */ \
@@ -1176,5 +1190,10 @@ __adf_nbuf_peek_data(__adf_nbuf_t buf, void **data, a_uint32_t off,
 
 	return A_STATUS_OK;
 }
+
+#define __adf_nbuf_set_tx_htt2_frm(skb, candi) \
+    NBUF_SET_TX_HTT2_FRM(skb, candi)
+#define __adf_nbuf_get_tx_htt2_frm(skb) \
+    NBUF_GET_TX_HTT2_FRM(skb)
 
 #endif /*_adf_nbuf_PVT_H */
