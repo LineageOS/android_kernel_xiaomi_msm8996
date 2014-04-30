@@ -653,6 +653,10 @@ again:
     }
 #endif
 
+    /* Disable L1SS, temporary solution for PCI reset issues */
+    pci_read_config_dword(pdev, 0x80, &lcr_val);
+    pci_write_config_dword(pdev, 0x80, (lcr_val & ~0x00000002));
+
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);
 
@@ -972,6 +976,10 @@ again:
     }
 #endif
 
+    /* Disable L1SS, temporary solution for PCI reset issues */
+    pci_read_config_dword(pdev, 0x80, &lcr_val);
+    pci_write_config_dword(pdev, 0x80, (lcr_val & ~0x00000002));
+
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);
 
@@ -1133,6 +1141,9 @@ again:
     if (VOS_STATUS_SUCCESS == hdd_wlan_re_init(ol_sc)) {
         ret = 0;
     }
+
+    /* Re-enable ASPM after firmware/OTP download is complete */
+    pci_write_config_dword(pdev, 0x80, lcr_val);
 
     if (ret) {
         hif_nointrs(sc);
