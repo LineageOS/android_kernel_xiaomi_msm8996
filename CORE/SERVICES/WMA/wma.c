@@ -1214,9 +1214,18 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		if (wma_is_vdev_in_ibss_mode(wma, resp_event->vdev_id))
 			wma_recreate_ibss_vdev_and_bss_peer(wma, resp_event->vdev_id);
 #endif
+		/* Timeout status means its WMA generated DEL BSS REQ when ADD
+		BSS REQ was timed out to stop the VDEV in this case no need to
+		send response to UMAC */
+		if (params->status == eHAL_STATUS_FW_MSG_TIMEDOUT){
+			vos_mem_free(params);
+			WMA_LOGE("%s: DEL BSS from ADD BSS timeout do not send "
+				"resp to UMAC", __func__);
+		} else {
+			params->status = VOS_STATUS_SUCCESS;
+			wma_send_msg(wma, WDA_DELETE_BSS_RSP, (void *)params, 0);
+		}
 
-		params->status = VOS_STATUS_SUCCESS;
-		wma_send_msg(wma, WDA_DELETE_BSS_RSP, (void *)params, 0);
 		if (iface->del_staself_req) {
 			WMA_LOGD("%s: scheduling defered deletion", __func__);
 			wma_vdev_detach(wma, iface->del_staself_req, 1);
@@ -6478,8 +6487,22 @@ void wma_vdev_resp_timer(void *data)
 		vos_mem_zero(iface, sizeof(*iface));
 	} else if (tgt_req->msg_type == WDA_ADD_BSS_REQ) {
 		tpAddBssParams params = (tpAddBssParams)tgt_req->user_data;
+		tDeleteBssParams *del_bss_params =
+			vos_mem_malloc(sizeof(tDeleteBssParams));
+		if (NULL == del_bss_params) {
+			WMA_LOGE("Failed to allocate memory for del_bss_params");
+			peer = ol_txrx_find_peer_by_addr(pdev, params->bssId,
+					&peer_id);
+			goto error0;
+		}
 
-		params->status = VOS_STATUS_E_TIMEOUT;
+		del_bss_params->status = params->status =
+			eHAL_STATUS_FW_MSG_TIMEDOUT;
+		del_bss_params->sessionId = params->sessionId;
+		del_bss_params->bssIdx = params->bssIdx;
+		vos_mem_copy(del_bss_params->bssid, params->bssId,
+			sizeof(tSirMacAddr));
+
 		WMA_LOGA("%s: WDA_ADD_BSS_REQ timedout", __func__);
                 peer = ol_txrx_find_peer_by_addr(pdev, params->bssId,
                                          &peer_id);
@@ -6487,8 +6510,9 @@ void wma_vdev_resp_timer(void *data)
                         WMA_LOGP("%s: Failed to find peer %pM", __func__,
                                  params->bssId);
                 }
-                msg = wma_fill_vdev_req(wma, params->sessionId, WDA_DELETE_BSS_REQ,
-                                WMA_TARGET_REQ_TYPE_VDEV_STOP, params, 1000);
+                msg = wma_fill_vdev_req(wma, params->sessionId,
+			WDA_DELETE_BSS_REQ, WMA_TARGET_REQ_TYPE_VDEV_STOP,
+			 del_bss_params, 1000);
                 if (!msg) {
                         WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
                                  __func__, params->sessionId);

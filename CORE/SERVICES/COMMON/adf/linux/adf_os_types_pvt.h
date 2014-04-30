@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -87,17 +87,6 @@ typedef unsigned long dma_addr_t;
 #define ADF_BIG_ENDIAN_MACHINE
 #else
 #error  "Please fix <asm/byteorder.h>"
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20) || !defined(__KERNEL__)
-#ifndef __bool_already_defined__
-#define __bool_already_defined__
-/* boolean */
-typedef enum bool {
-    false = 0,
-    true  = 1,
-} bool;
-#endif /* __bool_already_defined__ */
 #endif
 
 #define __adf_os_packed          __attribute__ ((packed))

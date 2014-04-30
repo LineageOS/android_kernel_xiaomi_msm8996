@@ -724,6 +724,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 {
 	int ret;
 	u_int32_t host_interest_address;
+	u_int32_t dram_dump_values[4];
 
 	if (!ramdump_scn) {
 		printk("No RAM dump will be collected since ramdump_scn is NULL!\n");
@@ -757,7 +758,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	if (HIFDiagReadMem(ramdump_scn->hif_hdl,
 		host_interest_item_address(ramdump_scn->target_type,
 		offsetof(struct host_interest_s, hi_failure_state)),
-		(A_UCHAR*) &host_interest_address, sizeof(u_int32_t)) != A_OK) {
+		(A_UCHAR *)&host_interest_address, sizeof(u_int32_t)) != A_OK) {
 		printk(KERN_ERR "HifDiagReadiMem FW Dump Area Pointer failed!\n");
 		dump_CE_register(ramdump_scn);
 		dump_CE_debug_register(ramdump_scn->hif_sc);
@@ -765,6 +766,15 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		goto out_fail;
 	}
 	printk("Host interest item address: 0x%08x\n", host_interest_address);
+
+	if (HIFDiagReadMem(ramdump_scn->hif_hdl, host_interest_address,
+		(A_UCHAR *)&dram_dump_values[0], 4 * sizeof(u_int32_t)) != A_OK)
+	{
+		printk("HifDiagReadiMem FW Dump Area failed!\n");
+		goto out_fail;
+	}
+	printk("FW Assertion at PC: 0x%08x BadVA: 0x%08x TargetID: 0x%08x\n",
+		dram_dump_values[2], dram_dump_values[3], dram_dump_values[0]);
 
 	if (ol_copy_ramdump(ramdump_scn))
 		goto out_fail;

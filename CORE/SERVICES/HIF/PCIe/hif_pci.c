@@ -2631,3 +2631,10 @@ void *hif_get_targetdef(HIF_DEVICE *hif_device)
 
 	return sc->targetdef;
 }
+
+void HIFsuspendwow(HIF_DEVICE *hif_device)
+{
+       struct HIF_CE_state *hif_state = (struct HIF_CE_state *)hif_device;
+       struct hif_pci_softc *sc = hif_state->sc;
+       adf_os_atomic_set(&sc->wow_done, 1);
+}

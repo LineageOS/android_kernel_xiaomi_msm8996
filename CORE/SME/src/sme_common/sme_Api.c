@@ -1468,13 +1468,15 @@ eHalStatus sme_SetPlmRequest(tHalHandle hHal, tpSirPlmReq pPlmReq)
               {
                   if (NV_CHANNEL_DFS ==
                        vos_nv_getChannelEnabledState(pPlmReq->plmChList[count]))
-                  /* DFS channel is provided, no PLM bursts can be
-                  * transmitted. Ignoring these channels.
-                  */
-                  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                            "%s DFS channel %d ignored for PLM", __func__,
-                            pPlmReq->plmChList[count]);
-                  continue;
+                  {
+                      /* DFS channel is provided, no PLM bursts can be
+                      * transmitted. Ignoring these channels.
+                      */
+                      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                                "%s DFS channel %d ignored for PLM", __func__,
+                                pPlmReq->plmChList[count]);
+                      continue;
+                  }
               }
               else if (!ret)
               {

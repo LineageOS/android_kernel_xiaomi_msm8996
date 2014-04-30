@@ -50,6 +50,10 @@
 #include <wlan_hdd_tgt_cfg.h>
 #endif
 
+#ifdef QCA_WIFI_2_0
+#define FW_MODULE_LOG_LEVEL_STRING_LENGTH  (255)
+#endif
+
 //Number of items that can be configured
 #define MAX_CFG_INI_ITEMS   512
 
@@ -1594,6 +1598,23 @@ typedef enum
 #define CFG_ENABLE_PACKET_LOG_MAX        ( 1 )
 #define CFG_ENABLE_PACKET_LOG_DEFAULT    ( 0 )
 
+#ifdef QCA_WIFI_2_0
+#define CFG_ENABLE_FW_LOG_TYPE            "gFwDebugLogType"
+#define CFG_ENABLE_FW_LOG_TYPE_MIN        ( 0 )
+#define CFG_ENABLE_FW_LOG_TYPE_MAX        ( 255 )
+#define CFG_ENABLE_FW_LOG_TYPE_DEFAULT    ( 0 )
+
+
+#define CFG_ENABLE_FW_DEBUG_LOG_LEVEL          "gFwDebugLogLevel"
+#define CFG_ENABLE_FW_DEBUG_LOG_LEVEL_MIN      ( 0 )
+#define CFG_ENABLE_FW_DEBUG_LOG_LEVEL_MAX      ( 255 )
+#define CFG_ENABLE_FW_DEBUG_LOG_LEVEL_DEFAULT  ( 0 )
+
+
+#define CFG_ENABLE_FW_MODULE_LOG_LEVEL    "gFwDebugModuleLoglevel"
+#define CFG_ENABLE_FW_MODULE_LOG_DEFAULT  ""
+#endif
+
 
 /*
  * VOS Trace Enable Control
@@ -2442,6 +2463,27 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ROAMING_DFS_CHANNEL_MAX                 (1)
 #define CFG_ROAMING_DFS_CHANNEL_DEFAULT             (0)
 
+#ifdef MSM_PLATFORM
+#define CFG_BUS_BANDWIDTH_HIGH_THRESHOLD           "gBusBandwidthHighThreshold"
+#define CFG_BUS_BANDWIDTH_HIGH_THRESHOLD_DEFAULT   ( 40000 )
+#define CFG_BUS_BANDWIDTH_HIGH_THRESHOLD_MIN       ( 10000 )
+#define CFG_BUS_BANDWIDTH_HIGH_THRESHOLD_MAX       ( 4294967295UL )
+
+#define CFG_BUS_BANDWIDTH_MEDIUM_THRESHOLD         "gBusBandwidthMediumThreshold"
+#define CFG_BUS_BANDWIDTH_MEDIUM_THRESHOLD_DEFAULT ( 10000 )
+#define CFG_BUS_BANDWIDTH_MEDIUM_THRESHOLD_MIN     ( 3000 )
+#define CFG_BUS_BANDWIDTH_MEDIUM_THRESHOLD_MAX     ( 40000 )
+
+#define CFG_BUS_BANDWIDTH_LOW_THRESHOLD            "gBusBandwidthLowThreshold"
+#define CFG_BUS_BANDWIDTH_LOW_THRESHOLD_DEFAULT    ( 3000 )
+#define CFG_BUS_BANDWIDTH_LOW_THRESHOLD_MIN        ( 0 )
+#define CFG_BUS_BANDWIDTH_LOW_THRESHOLD_MAX        ( 10000 )
+
+#define CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL         "gBusBandwidthComputeInterval"
+#define CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_DEFAULT ( 3000 )
+#define CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MIN     ( 1000 )
+#define CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MAX     ( 10000 )
+#endif /* MSM_PLATFORM */
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -2956,6 +2998,20 @@ typedef struct
    eHddDot11Mode               sapDot11Mode;
 
    v_BOOL_t                    enablePacketLog;
+#ifdef MSM_PLATFORM
+   v_U32_t                     busBandwidthHighThreshold;
+   v_U32_t                     busBandwidthMediumThreshold;
+   v_U32_t                     busBandwidthLowThreshold;
+   v_U32_t                     busBandwidthComputeInterval;
+#endif /* MSM_PLATFORM */
+
+#ifdef QCA_WIFI_2_0
+   /* FW debug log parameters */
+   v_U32_t     enableFwLogType;
+   v_U32_t     enableFwLogLevel;
+   v_U8_t      enableFwModuleLogLevel[FW_MODULE_LOG_LEVEL_STRING_LENGTH];
+#endif
+
 } hdd_config_t;
 /*---------------------------------------------------------------------------
   Function declarations and documenation
@@ -3073,5 +3129,8 @@ static __inline unsigned long utilMin( unsigned long a, unsigned long b )
 void hdd_update_tgt_cfg(void *context, void *param);
 void hdd_dfs_indicate_radar(void *context, void *param);
 #endif /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
+
+VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,
+               tANI_U8 intArrayMaxLen );
 
 #endif

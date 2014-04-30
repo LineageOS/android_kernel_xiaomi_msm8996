@@ -142,6 +142,8 @@ u_int16_t HIFGetMaxQueueNumber(HIF_DEVICE *hifDevice, u_int8_t PipeID);
 
 void HIFDumpInfo(HIF_DEVICE *hifDevice);
 void *hif_get_targetdef(HIF_DEVICE *hif_device);
+void HIFsuspendwow(HIF_DEVICE *hif_device);
+
 #ifdef __cplusplus
 }
 #endif

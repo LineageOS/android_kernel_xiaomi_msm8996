@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -32,10 +32,7 @@
 #include <linux/version.h>
 #include <linux/delay.h>
 #include <linux/timer.h>
-
-#if LINUX_VERSION_CODE  >= KERNEL_VERSION(2,6,19)
 #include <linux/jiffies.h>
-#endif
 #include <adf_os_types.h>
 
 /*

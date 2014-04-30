@@ -887,15 +887,20 @@ static void tl_shim_cache_flush_work(struct work_struct *work)
 
 	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
 		sta_info = &tl_shim->sta_info[i];
-		if (!sta_info->registered)
+		adf_os_spin_lock_bh(&sta_info->stainfo_lock);
+		if (!sta_info->registered) {
+			adf_os_spin_unlock_bh(&sta_info->stainfo_lock);
 			continue;
+        }
 
 		adf_os_spin_lock_bh(&tl_shim->bufq_lock);
 		if (sta_info->suspend_flush) {
 			adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+			adf_os_spin_unlock_bh(&sta_info->stainfo_lock);
 			continue;
 		}
 		adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+		adf_os_spin_unlock_bh(&sta_info->stainfo_lock);
 
 		tl_shim_flush_rx_frames(vos_ctx, tl_shim, i, 0);
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -38,10 +38,6 @@
 typedef struct tasklet_struct  __adf_os_bh_t;
 typedef struct workqueue_struct __adf_os_workqueue_t;
 
-#if LINUX_VERSION_CODE  <= KERNEL_VERSION(2,6,19)
-typedef struct work_struct      __adf_os_work_t;
-typedef struct work_struct      __adf_os_delayed_work_t;
-#else
 /**
  * wrapper around the real task func
  */
@@ -59,7 +55,6 @@ typedef struct {
 
 extern void __adf_os_defer_func(struct work_struct *work);
 extern void __adf_os_defer_delayed_func(struct work_struct *work);
-#endif
 
 typedef void (*__adf_os_bh_fn_t)(unsigned long arg);
 
@@ -69,15 +64,10 @@ __adf_os_init_work(adf_os_handle_t    hdl,
                    adf_os_defer_fn_t    func,
                    void                 *arg)
 {
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,19)
-    INIT_WORK(work, func, arg);
-#else
     /*Initilize func and argument in work struct */
     work->fn = func;
     work->arg = arg;
     INIT_WORK(&work->work, __adf_os_defer_func);
-#endif
-
     return A_STATUS_OK;
 }
 
@@ -87,14 +77,10 @@ __adf_os_init_delayed_work(adf_os_handle_t    hdl,
                    adf_os_defer_fn_t    func,
                    void                 *arg)
 {
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,19)
-    INIT_WORK(work, func, arg);
-#else
     /*Initilize func and argument in work struct */
     work->fn = func;
     work->arg = arg;
     INIT_DELAYED_WORK(&work->dwork, __adf_os_defer_delayed_func);
-#endif
     return A_STATUS_OK;
 }
 
@@ -105,20 +91,12 @@ static inline __adf_os_workqueue_t* __adf_os_create_workqueue(char *name)
 
 static inline void __adf_os_queue_work(adf_os_handle_t hdl, __adf_os_workqueue_t *wqueue, __adf_os_work_t* work)
 {
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,19)
-    queue_work(wqueue, work);
-#else
     queue_work(wqueue, &work->work);
-#endif
 }
 
 static inline void __adf_os_queue_delayed_work(adf_os_handle_t hdl, __adf_os_workqueue_t *wqueue, __adf_os_delayed_work_t* work, a_uint32_t delay)
 {
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,19)
-    queue_delayed_work(wqueue, work, delay);
-#else
     queue_delayed_work(wqueue, &work->dwork, delay);
-#endif
 }
 
 static inline void __adf_os_flush_workqueue(adf_os_handle_t hdl, __adf_os_workqueue_t *wqueue)
@@ -144,11 +122,7 @@ static inline  a_status_t __adf_os_init_bh(adf_os_handle_t  hdl,
 static inline a_status_t
 __adf_os_sched_work(adf_os_handle_t hdl, __adf_os_work_t  * work)
 {
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,19)
-    schedule_work(work);
-#else
     schedule_work(&work->work);
-#endif
     return A_STATUS_OK;
 }
 
