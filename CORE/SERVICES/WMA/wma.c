@@ -798,15 +798,15 @@ static void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 		ol_txrx_peer_detach(peer);
 
 	wma->peer_count--;
-	WMA_LOGD("%s: bssid %pM vdevid %d peer_count %d", __func__,
-		 bssid, vdev_id, wma->peer_count);
+	WMA_LOGE("%s: Removed peer with peer_addr %pM vdevid %d peer_count %d",
+                    __func__, bssid, vdev_id, wma->peer_count);
 	/* Flush all TIDs except MGMT TID for this peer in Target */
 	peer_tid_bitmap &= ~(0x1 << WMI_MGMT_TID);
 	wmi_unified_peer_flush_tids_send(wma->wmi_handle, bssid,
 					 peer_tid_bitmap, vdev_id);
 
 #if defined(QCA_IBSS_SUPPORT)
-	if (wma_is_vdev_in_ibss_mode(wma, vdev_id)) {
+	if ((peer) && (wma_is_vdev_in_ibss_mode(wma, vdev_id))) {
 		WMA_LOGD("%s: bssid %pM peer->mac_addr %pM", __func__,
 			bssid, peer->mac_addr.raw);
 		peer_addr = peer->mac_addr.raw;
@@ -3481,7 +3481,6 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 {
 	ol_txrx_peer_handle peer;
 
-	WMA_LOGD("%s: peer_addr %pM vdev_id %d", __func__, peer_addr, vdev_id);
 	if (++wma->peer_count > wma->wlan_resource_config.num_peers) {
 		WMA_LOGP("%s, the peer count exceeds the limit %d",
 			 __func__, wma->peer_count - 1);
@@ -3497,6 +3496,8 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 		ol_txrx_peer_detach(peer);
 		goto err;
 	}
+	WMA_LOGE("%s: Created peer with peer_addr %pM vdev_id %d, peer_count - %d",
+                    __func__, peer_addr, vdev_id, wma->peer_count);
 
 #ifdef QCA_IBSS_SUPPORT
 	/* for each remote ibss peer, clear its keys */
@@ -9215,6 +9216,14 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		WMA_LOGE("%s: Failed to find vdev", __func__);
 		add_sta->status = VOS_STATUS_E_FAILURE;
 		goto send_rsp;
+	}
+
+	peer = ol_txrx_find_peer_by_addr(pdev, add_sta->staMac,
+					 &peer_id);
+	if (peer) {
+		wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
+		WMA_LOGE("%s: Peer already exists, Deleted peer with peer_addr %pM",
+			 __func__, add_sta->staMac);
 	}
 
 	status = wma_create_peer(wma, pdev, vdev, add_sta->staMac,
