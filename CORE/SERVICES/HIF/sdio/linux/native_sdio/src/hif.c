@@ -2208,3 +2208,8 @@ void HIFDumpCCCR(HIF_DEVICE *hif_device)
    printk("\n");
 }
 
+void HIFsuspendwow(HIF_DEVICE *hif_device)
+{
+    printk(KERN_INFO "HIFsuspendwow TODO\n");
+}
+
