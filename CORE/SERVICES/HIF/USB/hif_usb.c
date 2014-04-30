@@ -1140,3 +1140,7 @@ A_STATUS HIFDiagWriteWARMRESET(struct usb_interface *interface,
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n", __func__));
 	return status;
 }
+void HIFsuspendwow(HIF_DEVICE *hif_device)
+{
+	printk(KERN_INFO "HIFsuspendwow TODO\n");
+}
