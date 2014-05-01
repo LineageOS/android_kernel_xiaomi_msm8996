@@ -1068,6 +1068,8 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
 #endif
 
+    wiphy->max_ap_assoc_sta = pCfg->maxNumberOfPeers;
+
     EXIT();
     return 0;
 }
