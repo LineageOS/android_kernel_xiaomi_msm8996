@@ -3561,6 +3561,17 @@ eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level );
    \- return eHalStatus
   -------------------------------------------------------------------------*/
 eHalStatus sme_TxpowerLimit( tHalHandle hHal, tSirTxPowerLimit *psmetx);
+/* ---------------------------------------------------------------------------
+   \fn sme_GetLinkSpeed
+   \brief SME API to get the linkspeed for peermac
+   \param hHal
+   \param lsReq: peermac address to retrieve linkspeed
+   \param plsContext: callback context
+   \param pCallbackfn: callback fn with response (linkspeed)
+   \- return eHalStatus
+ -------------------------------------------------------------------------*/
+eHalStatus sme_GetLinkSpeed(tHalHandle hHal,tSirLinkSpeedInfo *lsReq,void *plsContext,
+                            void (*pCallbackfn)(tSirLinkSpeedInfo *indParam, void *pContext) );
 #endif
 eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value);
 eHalStatus sme_ApDisableIntraBssFwd(tHalHandle hHal, tANI_U8 sessionId,

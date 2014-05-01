@@ -4674,6 +4674,13 @@ typedef struct sSirLPHBInd
 } tSirLPHBInd;
 #endif /* FEATURE_WLAN_LPHB */
 
+typedef struct sSirLinkSpeedInfo
+{
+  /* MAC Address for the peer */
+  tSirMacAddr peer_macaddr;
+  tANI_U32 estLinkSpeed;     //Linkspeed from firmware
+} tSirLinkSpeedInfo, *tpSirLinkSpeedInfo;
+
 typedef struct sSirAddPeriodicTxPtrn
 {
    /* MAC Address for the adapter */

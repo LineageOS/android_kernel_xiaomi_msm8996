@@ -274,12 +274,20 @@ struct statsContext
    unsigned int magic;
 };
 
+struct linkspeedContext
+{
+   struct completion completion;
+   hdd_adapter_t *pAdapter;
+   unsigned int magic;
+};
+
 extern spinlock_t hdd_context_lock;
 
 #define STATS_CONTEXT_MAGIC 0x53544154   //STAT
 #define RSSI_CONTEXT_MAGIC  0x52535349   //RSSI
 #define POWER_CONTEXT_MAGIC 0x504F5752   //POWR
 #define SNR_CONTEXT_MAGIC   0x534E5200   //SNR
+#define LINK_CONTEXT_MAGIC  0x4C494E4B   //LINKSPEED
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
 #define HDD_BATCH_SCAN_VERSION (17)
@@ -932,6 +940,8 @@ struct hdd_adapter_s
    struct net_device_stats stats;
    /** HDD statistics*/
    hdd_stats_t hdd_stats;
+   /** linkspeed statistics */
+   tSirLinkSpeedInfo ls_stats;
    /**Mib information*/
    sHddMib_t  hdd_mib;
 

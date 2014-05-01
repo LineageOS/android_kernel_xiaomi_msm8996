@@ -3979,7 +3979,7 @@ static int iw_set_ap_genie(struct net_device *dev,
     EXIT();
     return halStatus;
 }
-
+#ifdef QCA_WIFI_ISOC
 static VOS_STATUS  wlan_hdd_get_classAstats_for_station(hdd_adapter_t *pAdapter, u8 staid)
 {
    eHalStatus hstatus;
@@ -4039,6 +4039,73 @@ static VOS_STATUS  wlan_hdd_get_classAstats_for_station(hdd_adapter_t *pAdapter,
 
    return VOS_STATUS_SUCCESS;
 }
+#endif
+
+VOS_STATUS  wlan_hdd_get_linkspeed_for_peermac(hdd_adapter_t *pAdapter,
+                                               tSirMacAddr macAddress)
+{
+   eHalStatus hstatus;
+   long lrc;
+   struct linkspeedContext context;
+   tSirLinkSpeedInfo *linkspeed_req;
+
+   if (NULL == pAdapter)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL", __func__);
+      return VOS_STATUS_E_FAULT;
+   }
+   linkspeed_req = (tSirLinkSpeedInfo *)vos_mem_malloc(sizeof(*linkspeed_req));
+   if (NULL == linkspeed_req)
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                          "%s Request Buffer Alloc Fail", __func__);
+      return VOS_STATUS_E_INVAL;
+   }
+   init_completion(&context.completion);
+   context.pAdapter = pAdapter;
+   context.magic = LINK_CONTEXT_MAGIC;
+
+   vos_mem_copy(linkspeed_req->peer_macaddr, macAddress, sizeof(tSirMacAddr) );
+   hstatus = sme_GetLinkSpeed( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                  linkspeed_req,
+                                  &context,
+                                  hdd_GetLink_SpeedCB);
+   if (eHAL_STATUS_SUCCESS != hstatus)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,
+            "%s: Unable to retrieve statistics for link speed",
+            __func__);
+      vos_mem_free(linkspeed_req);
+   }
+   else
+   {
+      lrc = wait_for_completion_interruptible_timeout(&context.completion,
+            msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
+      if (lrc <= 0)
+      {
+         hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: SME %s while retrieving link speed",
+              __func__, (0 == lrc) ? "timeout" : "interrupt");
+      }
+   }
+
+   /* either we never sent a request, we sent a request and received a
+     response or we sent a request and timed out.  if we never sent a
+     request or if we sent a request and got a response, we want to
+     clear the magic out of paranoia.  if we timed out there is a
+     race condition such that the callback function could be
+     executing at the same time we are. of primary concern is if the
+     callback function had already verified the "magic" but had not
+     yet set the completion variable when a timeout occurred. we
+     serialize these activities by invalidating the magic while
+     holding a shared spinlock which will cause us to block if the
+     callback is currently executing */
+   spin_lock(&hdd_context_lock);
+   context.magic = 0;
+   spin_unlock(&hdd_context_lock);
+   return VOS_STATUS_SUCCESS;
+}
+
 
 int iw_get_softap_linkspeed(struct net_device *dev,
         struct iw_request_info *info,
@@ -4051,14 +4118,12 @@ int iw_get_softap_linkspeed(struct net_device *dev,
    char *pLinkSpeed = (char*)extra;
    char *pmacAddress;
    v_U32_t link_speed = 0;
-   unsigned short staId;
    int len = sizeof(v_U32_t)+1;
-   v_BYTE_t macAddress[VOS_MAC_ADDR_SIZE];
+   tSirMacAddr macAddress;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
    int rc, valid;
 
    pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
-
    valid = wlan_hdd_validate_context(pHddCtx);
 
    if (0 != valid)
@@ -4095,61 +4160,37 @@ int iw_get_softap_linkspeed(struct net_device *dev,
    }
 
    /* If no mac address is passed and/or its length is less than 17,
-    * link speed for first connected client will be returned.
+    * return error
     */
    if (wrqu->data.length < 17 || !VOS_IS_STATUS_SUCCESS(status ))
    {
-      status = hdd_softap_GetConnectedStaId(pHostapdAdapter, (void *)(&staId));
+      hddLog(VOS_TRACE_LEVEL_ERROR,FL("Invalid peer macaddress"));
+      return -EINVAL;
    }
-   else
+   status = wlan_hdd_get_linkspeed_for_peermac(pHostapdAdapter,
+                                               macAddress);
+   if (!VOS_IS_STATUS_SUCCESS(status ))
    {
-      status = hdd_softap_GetStaId(pHostapdAdapter,
-                               (v_MACADDR_t *)macAddress, (void *)(&staId));
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Unable to retrieve SME linkspeed"));
+        return -EINVAL;
    }
 
-   if (!VOS_IS_STATUS_SUCCESS(status))
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR, FL("ERROR: HDD Failed to find sta id!!"));
-      link_speed = 0;
-   }
-   else
-   {
-      status = wlan_hdd_get_classAstats_for_station(pHostapdAdapter , staId);
+   link_speed = pHostapdAdapter->ls_stats.estLinkSpeed;
 
-      if (!VOS_IS_STATUS_SUCCESS(status ))
-      {
-          hddLog(VOS_TRACE_LEVEL_ERROR, FL("Unable to retrieve SME statistics"));
-          return -EINVAL;
-      }
-
-      WLANTL_GetSTALinkCapacity(pHddCtx->pvosContext,
-                                staId, &link_speed);
-
-      link_speed = link_speed / 10;
-
-      if (0 == link_speed)
-      {
-          /* The linkspeed returned by HAL is in units of 500kbps.
-           * converting it to mbps.
-           * This is required to support legacy firmware which does
-           * not return link capacity.
-           */
-          link_speed =(int)pHostapdAdapter->hdd_stats.ClassA_stat.tx_rate/2;
-      }
-   }
-
-   wrqu->data.length = len;
+   /* linkspeed in units of 500 kbps */
+   link_speed = link_speed / 500;
+   wrqu->data.length  = len;
    rc = snprintf(pLinkSpeed, len, "%u", link_speed);
-
    if ((rc < 0) || (rc >= len))
    {
-      // encoding or length error?
-      hddLog(VOS_TRACE_LEVEL_ERROR,FL( "Unable to encode link speed"));
-      return -EIO;
+       // encoding or length error?
+       hddLog(VOS_TRACE_LEVEL_ERROR,FL("Unable to encode link speed"));
+       return -EIO;
    }
 
    return 0;
 }
+
 
 static const iw_handler      hostapd_handler[] =
 {

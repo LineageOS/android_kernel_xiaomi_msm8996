@@ -1643,6 +1643,40 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	return 0;
 }
 
+static int wma_link_speed_event_handler(void *handle, u_int8_t *cmd_param_info,
+					u_int32_t len)
+{
+	WMI_PEER_ESTIMATED_LINKSPEED_EVENTID_param_tlvs *param_buf;
+	wmi_peer_estimated_linkspeed_event_fixed_param *event;
+	tSirLinkSpeedInfo *ls_ind;
+	VOS_STATUS vos_status;
+	vos_msg_t sme_msg = {0} ;
+
+	param_buf = (WMI_PEER_ESTIMATED_LINKSPEED_EVENTID_param_tlvs *)cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid linkspeed event", __func__);
+		return -EINVAL;
+	}
+	event = param_buf->fixed_param;
+	ls_ind = (tSirLinkSpeedInfo *) vos_mem_malloc(sizeof(tSirLinkSpeedInfo));
+	if (!ls_ind) {
+		WMA_LOGE("%s: Invalid link speed buffer", __func__);
+		return -EINVAL;
+	}
+	ls_ind->estLinkSpeed = event->est_linkspeed_kbps;
+	sme_msg.type = eWNI_SME_LINK_SPEED_IND;
+	sme_msg.bodyptr = ls_ind;
+	sme_msg.bodyval = 0;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &sme_msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status) ) {
+		WMA_LOGE("%s: Fail to post linkspeed ind  msg", __func__);
+		vos_mem_free(ls_ind);
+		return -EINVAL;
+	}
+	return 0;
+}
+
 static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 {
 	wmi_stats_event_fixed_param *event = (wmi_stats_event_fixed_param *)buf;
@@ -3279,6 +3313,10 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_UPDATE_STATS_EVENTID,
 					   wma_stats_event_handler);
+	/* register for linkspeed response event */
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+						WMI_PEER_ESTIMATED_LINKSPEED_EVENTID,
+						wma_link_speed_event_handler);
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
@@ -7658,6 +7696,58 @@ wmi_unified_modem_power_state(wmi_unified_t wmi_handle, u_int32_t param_value)
 	}
 	return ret;
 }
+
+VOS_STATUS wma_get_link_speed(WMA_HANDLE handle,
+				tSirLinkSpeedInfo *pLinkSpeed)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_peer_get_estimated_linkspeed_cmd_fixed_param* cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t   len;
+	u_int8_t *buf_ptr;
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue get link speed cmd",
+                        __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	if (!WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+				WMI_SERVICE_ESTIMATE_LINKSPEED)) {
+		WMA_LOGE("%s: Linkspeed feature bit not enabled",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	len  = sizeof(wmi_peer_get_estimated_linkspeed_cmd_fixed_param);
+	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_peer_get_estimated_linkspeed_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_peer_get_estimated_linkspeed_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_peer_get_estimated_linkspeed_cmd_fixed_param));
+
+	/* Copy the peer macaddress to the wma buffer */
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(pLinkSpeed->peer_macaddr, &cmd->peer_macaddr);
+
+	WMA_LOGD("%s: pLinkSpeed->peerMacAddr: %pM, "
+			"peer_macaddr.mac_addr31to0: 0x%x, peer_macaddr.mac_addr47to32: 0x%x",
+			__func__, pLinkSpeed->peer_macaddr,
+			cmd->peer_macaddr.mac_addr31to0,
+			cmd->peer_macaddr.mac_addr47to32);
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
+		WMI_PEER_GET_ESTIMATED_LINKSPEED_CMDID)) {
+		WMA_LOGE("%s: failed to send link speed command", __func__);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
 
 static int
 wmi_unified_pdev_set_param(wmi_unified_t wmi_handle, WMI_PDEV_PARAM param_id,
@@ -16886,6 +16976,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_fw_stats_ind(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_GET_LINK_SPEED:
+			wma_get_link_speed(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		case WDA_MODEM_POWER_STATE_IND:
 			wma_notify_modem_power_state(wma_handle,
 					(tSirModemPowerStateInd *)msg->bodyptr);
@@ -16894,7 +16988,6 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 
 		case WDA_VDEV_STOP_IND:
 			wma_vdev_stop_ind(wma_handle, msg->bodyptr);
-			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_WLAN_RESUME_REQ:
 			wma_resume_req(wma_handle);
