@@ -43,6 +43,9 @@
 #include <ol_htt_api.h>
 
 #include <htt_internal.h>
+#if defined(HIF_PCI)
+#include "if_pci.h"
+#endif
 
 #define HTT_HTC_PKT_POOL_INIT_SIZE 100 /* enough for a large A-MPDU */
 
@@ -392,6 +395,9 @@ htt_htc_attach(struct htt_pdev_t *pdev)
         return 1; /* failure */
     }
     pdev->htc_endpoint = response.Endpoint;
+#if defined(HIF_PCI)
+    hif_pci_save_htc_htt_config_endpoint(pdev->htc_endpoint);
+#endif
 
 #ifdef QCA_TX_HTT2_SUPPORT
     /* Start TX HTT2 service if the target support it. */

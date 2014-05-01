@@ -1875,3 +1875,16 @@ void hif_disable_aspm(void)
 	pci_read_config_dword(sc->pdev, 0x80, &lcr_val);
 	pci_write_config_dword(sc->pdev, 0x80, (lcr_val & 0xffffff00));
 }
+
+void hif_pci_save_htc_htt_config_endpoint(int htc_endpoint)
+{
+    void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+    struct ol_softc *scn =  vos_get_context(VOS_MODULE_ID_HIF, vos_context);
+
+    if (!scn || !scn->hif_sc) {
+        printk(KERN_ERR "%s: error: scn or scn->hif_sc is NULL!\n", __func__);
+        return;
+    }
+
+    scn->hif_sc->htc_endpoint = htc_endpoint;
+}

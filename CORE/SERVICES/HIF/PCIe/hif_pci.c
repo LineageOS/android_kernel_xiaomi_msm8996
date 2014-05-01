@@ -1480,6 +1480,16 @@ hif_send_buffer_cleanup_on_pipe(struct HIF_CE_pipe_info *pipe_info)
     {
         if (netbuf != CE_SENDLIST_ITEM_CTXT)
         {
+            /*
+             * Packets enqueued by htt_h2t_ver_req_msg() and
+             * htt_h2t_rx_ring_cfg_msg_ll() have already been freed in
+             * htt_htc_misc_pkt_pool_free() in WLANTL_Close(), so do not
+             * free them here again by checking whether it's the EndPoint
+             * which they are queued in.
+             */
+            if (id == hif_state->sc->htc_endpoint) {
+                return;
+            }
             /* Indicate the completion to higer layer to free the buffer */
             hif_state->msg_callbacks_current.txCompletionHandler(
                 hif_state->msg_callbacks_current.Context, netbuf, id);
