@@ -169,6 +169,22 @@ static const struct sdio_device_id ar6k_id_table[] = {
     {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_AR6320_BASE | 0xD))  },
     {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_AR6320_BASE | 0xE))  },
     {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_AR6320_BASE | 0xF))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0x0))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0x1))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0x2))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0x3))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0x4))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0x5))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0x6))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0x7))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0x8))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0x9))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0xA))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0xB))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0xC))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0xD))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0xE))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0xF))  },
     /* TODO: just for compatible with old image which ManufacturerID is 0, should delete later */
     {  SDIO_DEVICE(MANUFACTURER_CODE, (0 | 0x0))  },
     {  SDIO_DEVICE(MANUFACTURER_CODE, (0 | 0x1))  },
@@ -864,7 +880,7 @@ static int SdioEnable4bits(HIF_DEVICE *device,  int enable)
             setAsyncIRQ = 1;
             ret = Func0_CMD52WriteByte(func->card, CCCR_SDIO_IRQ_MODE_REG_AR6003,
                     enable ? SDIO_IRQ_MODE_ASYNC_4BIT_IRQ_AR6003 : 0);
-        } else if (manufacturer_id == MANUFACTURER_ID_AR6320_BASE) {
+        } else if (manufacturer_id == MANUFACTURER_ID_AR6320_BASE || manufacturer_id == MANUFACTURER_ID_QCA9377_BASE) {
             unsigned char data = 0;
             setAsyncIRQ = 1;
             ret = Func0_CMD52ReadByte(func->card, CCCR_SDIO_IRQ_MODE_REG_AR6320, &data);
@@ -1134,6 +1150,12 @@ static void hifAssignTargetHeaders(A_UINT16 SDIO_ID)
              hif_register_tbl_attach(HIF_TYPE_AR6320);
          break;
 
+         case MANUFACTURER_ID_QCA9377_BASE:
+             /* do nothing here as hif_register_tbl_attach
+              * will be done later
+              */
+         break;
+
          default:
              A_ASSERT(FALSE);
          break;
@@ -1288,6 +1310,15 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
             device->host->ios.clock = clock_set;
             device->host->ops->set_ios(device->host, &device->host->ios);
 */
+            /* only when mmcclock module parameter is specified,
+             * set the clock explicitly
+             */
+            if (mmcclock > 0) {
+                AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Decrease host clock from %d to %d(%d,%d)\n",
+                        clock, clock_set, func->card->cis.max_dtr, device->host->f_max));
+                device->host->ios.clock = clock_set;
+                device->host->ops->set_ios(device->host, &device->host->ios);
+            }
 
 // Set SDIO3.0
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)
@@ -1309,7 +1340,9 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
                     }
                     device->host->ios.bus_width = MMC_BUS_WIDTH_4;
                     device->host->ops->set_ios(device->host, &device->host->ios);
-                } else if (mmcbuswidth == 8 && (device->host->caps & MMC_CAP_8_BIT_DATA)){
+                }
+#ifdef SDIO_BUS_WIDTH_8BIT
+                else if (mmcbuswidth == 8 && (device->host->caps & MMC_CAP_8_BIT_DATA)){
                     ret = Func0_CMD52WriteByte(func->card, SDIO_CCCR_IF, SDIO_BUS_CD_DISABLE|SDIO_BUS_WIDTH_8BIT);
                     if (ret){
                         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("%s: CMD52 to set bus width failed: %d \n", __func__, ret));
@@ -1317,7 +1350,9 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
                     }
                     device->host->ios.bus_width = MMC_BUS_WIDTH_8;
                     device->host->ops->set_ios(device->host, &device->host->ios);
-                } else {
+                }
+#endif /* SDIO_BUS_WIDTH_8BIT */
+                else {
                     AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("%s: MMC bus width %d is not supported. \n", __func__, mmcbuswidth));
                     return ret = -1;
                 }
@@ -1368,7 +1403,7 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
 
                 ret = Func0_CMD52ReadByte(func->card, SDIO_CCCR_SPEED, &speed);
                 if (ret){
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("%s: CMD52 to get CCCR SPEED failed: %d, cap_uhs: %lu, sd3_bus_mode: %x \n", __func__, ret, func->card->host->caps & (MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR12), func->card->sw_caps.sd3_bus_mode));
+                    AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("%s: CMD52 to get CCCR SPEED failed: %d, cap_uhs: %lu, sd3_bus_mode: %x \n", __func__, ret, (long unsigned int)(func->card->host->caps & (MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR12)), func->card->sw_caps.sd3_bus_mode));
                     return ret;
                 }
 
@@ -2206,5 +2241,10 @@ void HIFDumpCCCR(HIF_DEVICE *hif_device)
    }
 */
    printk("\n");
+}
+
+void HIFsuspendwow(HIF_DEVICE *hif_device)
+{
+    printk(KERN_INFO "HIFsuspendwow TODO\n");
 }
 

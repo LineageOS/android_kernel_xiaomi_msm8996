@@ -4224,9 +4224,14 @@ bool wma_check_scan_in_progress(WMA_HANDLE handle)
 	tp_wma_handle wma_handle = handle;
 	int i;
 
-	for (i = 0; i < wma_handle->max_bssid; i++)
-		if (wma_handle->interfaces[i].scan_info.scan_id)
+	for (i = 0; i < wma_handle->max_bssid; i++){
+		if (wma_handle->interfaces[i].scan_info.scan_id){
+
+			WMA_LOGE("%s: scan in progress on interface[%d],scanid = %d",
+			__func__, i, wma_handle->interfaces[i].scan_info.scan_id );
 			return true;
+		}
+	}
 	return false;
 }
 

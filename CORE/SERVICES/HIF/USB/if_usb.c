@@ -165,6 +165,7 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	ol_sc->enableuartprint = 1;
 	ol_sc->enablefwlog = 0;
 	ol_sc->enablesinglebinary = FALSE;
+	ol_sc->max_no_of_peers = 1;
 
 	init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
 

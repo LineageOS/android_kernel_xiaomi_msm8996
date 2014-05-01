@@ -550,15 +550,26 @@ void hdd_conf_hostoffload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
                     pHddCtx->configuredMcastBcastFilter &=
                             ~(HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST);
                 }
+
 #endif
+                /*
+                * This variable saves the state if offload were configured
+                * or not. helps in recovering when pcie fails to suspend
+                * because of ongoing scan and state is no longer associated.
+                */
+                pAdapter->offloads_configured = TRUE;
             }
         }
         else
         {
             //Disable ARPOFFLOAD
-            if (eConnectionState_Associated ==
-                    (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState)
+            if ( (eConnectionState_Associated ==
+                 (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) ||
+                 (pAdapter->offloads_configured == TRUE)
+               )
             {
+                pAdapter->offloads_configured = FALSE;
+
                 if (pHddCtx->cfg_ini->fhostArpOffload)
                 {
                     vstatus = hdd_conf_arp_offload(pAdapter, fenable);

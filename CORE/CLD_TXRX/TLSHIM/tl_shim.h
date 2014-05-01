@@ -57,6 +57,7 @@ struct tlshim_sta_info {
 	struct list_head cached_bufq;
 	unsigned long flags;
 	v_S7_t first_rssi;
+	v_U8_t vdev_id;
 };
 
 #ifdef QCA_LL_TX_FLOW_CT
