@@ -4524,6 +4524,12 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	int len;
 	tSirScanOffloadEvent *scan_event;
 
+	if (scan_req->sessionId > wma_handle->max_bssid) {
+		WMA_LOGE("%s: Invalid vdev_id %d", __func__,
+			scan_req->sessionId);
+		goto error1;
+	}
+
 	/* Sanity check to find whether vdev id active or not */
 	if (!wma_handle->interfaces[scan_req->sessionId].handle) {
 		WMA_LOGA("vdev id [%d] is not active", scan_req->sessionId);
