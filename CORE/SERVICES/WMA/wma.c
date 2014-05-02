@@ -1037,16 +1037,20 @@ static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 
 	/* remove all remote peers of SAP */
 	adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
-	TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
-		if (peer != TAILQ_FIRST(&vdev->peer_list)) {
-			adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
-			adf_os_atomic_init(&peer->ref_cnt);
-			adf_os_atomic_inc(&peer->ref_cnt);
-			wma_remove_peer(wma, peer->mac_addr.raw,
-					vdev_id, peer);
-			adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
+	while ((peer = TAILQ_LAST(&vdev->peer_list, peer_list_t))) {
+		/* self peer is deleted by caller */
+		if (peer == TAILQ_FIRST(&vdev->peer_list)){
+			WMA_LOGE("%s: self peer removed by caller ", __func__);
+			break;
 		}
+		adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
+		adf_os_atomic_init(&peer->ref_cnt);
+		adf_os_atomic_inc(&peer->ref_cnt);
+		wma_remove_peer(wma, peer->mac_addr.raw,
+					vdev_id, peer);
+		adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
 	}
+
 	adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
 }
 
