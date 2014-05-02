@@ -10572,33 +10572,35 @@ static void hdd_bus_bw_compute_cbk(void *priv)
     hdd_adapter_t *pAdapter = NULL;
     uint64_t tx_packets= 0, rx_packets= 0;
     unsigned long flags;
-    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+    hdd_adapter_list_node_t *pAdapterNode = NULL;
     VOS_STATUS status = 0;
     v_BOOL_t connected = FALSE;
 
     spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
 
-    status = hdd_get_front_adapter( pHddCtx, &pAdapterNode );
-    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status ) {
-        pAdapter = pAdapterNode->pAdapter;
-        if (pAdapter && (pAdapter->device_mode == WLAN_HDD_INFRA_STATION ||
+    for (status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
+            NULL != pAdapterNode && VOS_STATUS_SUCCESS == status;
+            status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pAdapterNode))
+    {
+
+        if ((pAdapter = pAdapterNode->pAdapter) == NULL)
+            continue;
+
+        if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION ||
                     pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) &&
                 WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)->conn_info.connState
                 != eConnectionState_Associated) {
 
-            status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
-            pAdapterNode = pNext;
             continue;
         }
 
-        if (pAdapter && (pAdapter->device_mode == WLAN_HDD_SOFTAP ||
+        if ((pAdapter->device_mode == WLAN_HDD_SOFTAP ||
                     pAdapter->device_mode == WLAN_HDD_P2P_GO) &&
                 WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->bApActive == VOS_FALSE) {
 
-            status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
-            pAdapterNode = pNext;
             continue;
         }
+
         tx_packets += HDD_BW_GET_DIFF(pAdapter->stats.tx_packets,
                 pAdapter->prev_tx_packets);
         rx_packets += HDD_BW_GET_DIFF(pAdapter->stats.rx_packets,
@@ -10607,10 +10609,8 @@ static void hdd_bus_bw_compute_cbk(void *priv)
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
         connected = TRUE;
-
-        status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
-        pAdapterNode = pNext;
     }
+
     spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
 
     if (!connected) {
