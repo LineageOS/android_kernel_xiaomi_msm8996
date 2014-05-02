@@ -654,8 +654,8 @@ again:
 #endif
 
     /* Disable L1SS, temporary solution for PCI reset issues */
-    pci_read_config_dword(pdev, 0x80, &lcr_val);
-    pci_write_config_dword(pdev, 0x80, (lcr_val & ~0x00000002));
+    pci_read_config_dword(pdev, 0x188, &lcr_val);
+    pci_write_config_dword(pdev, 0x188, (lcr_val & ~0x0000000f));
 
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);
@@ -977,8 +977,8 @@ again:
 #endif
 
     /* Disable L1SS, temporary solution for PCI reset issues */
-    pci_read_config_dword(pdev, 0x80, &lcr_val);
-    pci_write_config_dword(pdev, 0x80, (lcr_val & ~0x00000002));
+    pci_read_config_dword(pdev, 0x188, &lcr_val);
+    pci_write_config_dword(pdev, 0x188, (lcr_val & ~0x0000000f));
 
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);
