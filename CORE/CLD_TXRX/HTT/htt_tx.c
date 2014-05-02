@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -374,6 +374,27 @@ htt_tx_send_nonstd(
 
 #else  /*ATH_11AC_TXCOMPACT*/
 
+#ifdef QCA_TX_HTT2_SUPPORT
+static inline HTC_ENDPOINT_ID
+htt_tx_htt2_get_ep_id(
+    htt_pdev_handle pdev,
+    adf_nbuf_t msdu)
+{
+    /*
+     * TX HTT2 service mainly for small sized frame and check if
+     * this candidate frame allow or not.
+     */
+    if ((pdev->htc_tx_htt2_endpoint != ENDPOINT_UNUSED) &&
+        adf_nbuf_get_tx_parallel_dnload_frm(msdu) &&
+        (adf_nbuf_len(msdu) < pdev->htc_tx_htt2_max_size))
+        return pdev->htc_tx_htt2_endpoint;
+    else
+        return pdev->htc_endpoint;
+}
+#else
+#define htt_tx_htt2_get_ep_id(pdev, msdu)     (pdev->htc_endpoint)
+#endif /* QCA_TX_HTT2_SUPPORT */
+
 static inline int
 htt_tx_send_base(
     htt_pdev_handle pdev,
@@ -384,6 +405,7 @@ htt_tx_send_base(
     struct htt_host_tx_desc_t *htt_host_tx_desc;
     struct htt_htc_pkt *pkt;
     int packet_len;
+    HTC_ENDPOINT_ID ep_id;
 
     /*
      * The HTT tx descriptor was attached as the prefix fragment to the
@@ -415,12 +437,14 @@ htt_tx_send_base(
         download_len = packet_len;
     }
 
+    ep_id = htt_tx_htt2_get_ep_id(pdev, msdu);
+
     SET_HTC_PACKET_INFO_TX(
         &pkt->htc_pkt,
         pdev->tx_send_complete_part2,
         (unsigned char *) htt_host_tx_desc,
         download_len - HTC_HDR_LENGTH,
-        pdev->htc_endpoint,
+        ep_id,
         1); /* tag - not relevant here */
 
     SET_HTC_PACKET_NET_BUF_CONTEXT(&pkt->htc_pkt, msdu);

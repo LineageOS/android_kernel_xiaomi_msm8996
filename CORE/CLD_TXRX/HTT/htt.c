@@ -393,6 +393,39 @@ htt_htc_attach(struct htt_pdev_t *pdev)
     }
     pdev->htc_endpoint = response.Endpoint;
 
+#ifdef QCA_TX_HTT2_SUPPORT
+    /* Start TX HTT2 service if the target support it. */
+    if (pdev->cfg.is_high_latency) {
+        adf_os_mem_set(&connect, 0, sizeof(connect));
+        adf_os_mem_set(&response, 0, sizeof(response));
+
+        /* The same as HTT service but no RX. */
+        connect.EpCallbacks.pContext = pdev;
+        connect.EpCallbacks.EpTxComplete = htt_h2t_send_complete;
+        connect.EpCallbacks.EpSendFull = htt_h2t_full;
+        connect.MaxSendQueueDepth = HTT_MAX_SEND_QUEUE_DEPTH;
+
+        /* Should NOT support credit flow control. */
+        connect.ConnectionFlags |= HTC_CONNECT_FLAGS_DISABLE_CREDIT_FLOW_CTRL;
+
+        connect.ServiceID = HTT_DATA2_MSG_SVC;
+
+        status = HTCConnectService(pdev->htc_pdev, &connect, &response);
+        if (status != A_OK) {
+            pdev->htc_tx_htt2_endpoint = ENDPOINT_UNUSED;
+            pdev->htc_tx_htt2_max_size = 0;
+        } else {
+            pdev->htc_tx_htt2_endpoint = response.Endpoint;
+            pdev->htc_tx_htt2_max_size = HTC_TX_HTT2_MAX_SIZE;
+        }
+
+        adf_os_print("TX HTT %s, ep %d size %d\n",
+                     (status == A_OK ? "ON" : "OFF"),
+                     pdev->htc_tx_htt2_endpoint,
+                     pdev->htc_tx_htt2_max_size);
+    }
+#endif /* QCA_TX_HTT2_SUPPORT */
+
     return 0; /* success */
 }
 

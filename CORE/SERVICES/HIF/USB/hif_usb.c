@@ -771,6 +771,15 @@ HIFMapServiceToPipe(HIF_DEVICE *hif_device, a_uint16_t ServiceId,
 		else
 			*DLPipe = HIF_RX_DATA2_PIPE;
 		break;
+#ifdef QCA_TX_HTT2_SUPPORT
+	case HTT_DATA2_MSG_SVC:
+		*ULPipe = HIF_TX_DATA_HP_PIPE;
+		if (hif_usb_disable_rxdata2)
+			*DLPipe = HIF_RX_DATA_PIPE;
+		else
+			*DLPipe = HIF_RX_DATA2_PIPE;
+		break;
+#endif /* QCA_TX_HTT2_SUPPORT */
 	default:
 		status = A_ENOTSUP;
 		break;

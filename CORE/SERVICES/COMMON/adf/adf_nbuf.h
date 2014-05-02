@@ -1106,4 +1106,31 @@ adf_nbuf_trace_update(adf_nbuf_t buf, char *event_string)
     __adf_nbuf_trace_update(buf, event_string);
 }
 
+/**
+ * @brief This function stores a flag specifying this TX frame
+ *        is suitable for downloading though a 2nd TX data pipe
+ *        that is used for short frames for protocols that can
+ *        accept out-of-order delivery.
+ *
+ * @param[in] buf        buffer
+ * @param[in] candi      candidate of parallel download frame
+ */
+static inline void
+adf_nbuf_set_tx_parallel_dnload_frm(adf_nbuf_t buf, uint8_t candi)
+{
+   __adf_nbuf_set_tx_htt2_frm(buf, candi);
+}
+
+/**
+ * @brief This function return whether this TX frame is allow
+ *        to download though a 2nd TX data pipe or not.
+ *
+ * @param[in] buf    buffer
+ */
+static inline uint8_t
+adf_nbuf_get_tx_parallel_dnload_frm(adf_nbuf_t buf)
+{
+   return __adf_nbuf_get_tx_htt2_frm(buf);
+}
+
 #endif

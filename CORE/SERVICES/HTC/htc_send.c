@@ -1310,8 +1310,11 @@ static HTC_PACKET *HTCLookupTxPacket(HTC_TARGET *target, HTC_ENDPOINT *pEndpoint
     UNLOCK_HTC_TX(target);
 
     ITERATE_OVER_LIST_ALLOW_REMOVE(&lookupQueue.QueueHead,pPacket,HTC_PACKET,ListLink) {
-        if (NULL == pPacket)
-            return NULL;
+
+        if (NULL == pPacket){
+            pFoundPacket = pPacket;
+            break;
+        }
             /* check for removal */
         if (netbuf == (adf_nbuf_t)GET_HTC_PACKET_NET_BUF_CONTEXT(pPacket)) {
                 /* found it */

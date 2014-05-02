@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -94,6 +94,43 @@ ol_tx_classify_mgmt_extension(
 #define OL_TX_CLASSIFY_EXTENSION(vdev, tx_desc, netbuf, msdu_info, txq)
 #define OL_TX_CLASSIFY_MGMT_EXTENSION(vdev, tx_desc, netbuf, msdu_info, txq)
 #endif /* QCA_WIFI_ISOC */
+
+#ifdef QCA_TX_HTT2_SUPPORT
+static void
+ol_tx_classify_htt2_frm(
+    struct ol_txrx_vdev_t *vdev,
+    adf_nbuf_t tx_nbuf,
+    struct ol_txrx_msdu_info_t *tx_msdu_info)
+{
+    struct htt_msdu_info_t *htt = &tx_msdu_info->htt;
+    A_UINT8 candi_frm = 0;
+
+    /*
+     * Offload the frame re-order to L3 protocol and ONLY support
+     * TCP protocol now.
+     */
+    if ((htt->info.l2_hdr_type == htt_pkt_type_ethernet) &&
+        (htt->info.frame_type == htt_frm_type_data) &&
+        htt->info.is_unicast &&
+        (htt->info.ethertype == ETHERTYPE_IPV4))
+    {
+        struct ipv4_hdr_t *ipHdr;
+
+        ipHdr = (struct ipv4_hdr_t *)(adf_nbuf_data(tx_nbuf) +
+                                        htt->info.l3_hdr_offset);
+        if (ipHdr->protocol == IP_PROTOCOL_TCP) {
+            candi_frm = 1;
+        }
+    }
+
+    adf_nbuf_set_tx_parallel_dnload_frm(tx_nbuf, candi_frm);
+}
+
+#define OL_TX_CLASSIFY_HTT2_EXTENSION(vdev, netbuf, msdu_info)      \
+    ol_tx_classify_htt2_frm(vdev, netbuf, msdu_info);
+#else
+#define OL_TX_CLASSIFY_HTT2_EXTENSION(vdev, netbuf, msdu_info)      /* no-op */
+#endif /* QCA_TX_HTT2_SUPPORT */
 
 /* EAPOL go with voice priority: WMM_AC_TO_TID1(WMM_AC_VO);*/
 #define TX_EAPOL_TID  6
@@ -445,6 +482,10 @@ ol_tx_classify(
         /* Making peer NULL in case if multicast non STA mode */
         tx_msdu_info->peer = NULL;
     }
+
+    /* Whether this frame can download though HTT2 data pipe or not. */
+    OL_TX_CLASSIFY_HTT2_EXTENSION(vdev, tx_nbuf, tx_msdu_info);
+
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
     return txq;
 }
@@ -519,6 +560,10 @@ ol_tx_classify_mgmt(
      * indicate an error.
      */
     OL_TX_CLASSIFY_MGMT_EXTENSION(vdev, tx_desc, tx_nbuf, tx_msdu_info, txq);
+
+    /* Whether this frame can download though HTT2 data pipe or not. */
+    OL_TX_CLASSIFY_HTT2_EXTENSION(vdev, tx_nbuf, tx_msdu_info);
+
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
     return txq;
 }
