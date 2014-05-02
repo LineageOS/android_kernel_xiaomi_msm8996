@@ -45,6 +45,7 @@
 #define MANUFACTURER_ID_AR6003_BASE        0x300
 #define MANUFACTURER_ID_AR6004_BASE        0x400
 #define MANUFACTURER_ID_AR6320_BASE        0x500    /* AR6320_TBDXXX */
+#define MANUFACTURER_ID_QCA9377_BASE       0x700    /* QCA9377 */
 #define MANUFACTURER_ID_AR6K_BASE_MASK     0xFF00
 #define MANUFACTURER_ID_AR6K_REV_MASK      0x00FF
 #define FUNCTION_CLASS                     0x0
@@ -163,6 +164,15 @@ static INLINE void SetExtendedMboxWindowInfo(A_UINT16 Manfid, HIF_DEVICE_MBOX_IN
             pInfo->GMboxSize = HIF_GMBOX_WIDTH;
             break;
         }
+        case MANUFACTURER_ID_QCA9377_BASE :
+            pInfo->MboxProp[0].ExtendedAddress = HIF_MBOX0_EXTENDED_BASE_ADDR_AR6320;
+            pInfo->MboxProp[0].ExtendedSize = HIF_MBOX0_EXTENDED_WIDTH_AR6320_ROME_2_0;
+            pInfo->MboxProp[1].ExtendedAddress = pInfo->MboxProp[0].ExtendedAddress +
+                    pInfo->MboxProp[0].ExtendedSize + HIF_MBOX_DUMMY_SPACE_SIZE_AR6320;
+            pInfo->MboxProp[1].ExtendedSize = HIF_MBOX1_EXTENDED_WIDTH_AR6320;
+            pInfo->GMboxAddress = HIF_GMBOX_BASE_ADDR;
+            pInfo->GMboxSize = HIF_GMBOX_WIDTH;
+            break;
         default:
             A_ASSERT(FALSE);
             break;

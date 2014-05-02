@@ -809,6 +809,11 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 
 		/* Flush the cached frames to HDD before passing new rx frame */
 		tl_shim_flush_rx_frames(vos_ctx, tl_shim, staid, 0);
+
+		if (!adf_os_atomic_read(&tl_shim->vdev_active[sta_info->vdev_id])) {
+			TLSHIM_LOGW("INACTIVE VDEV");
+			goto drop_rx_buf;
+		}
 		ret = data_rx(vos_ctx, rx_buf_list, staid);
 		if (ret == VOS_STATUS_E_INVAL) {
 #endif
@@ -1588,6 +1593,7 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 	sta_info->data_rx = rxcb;
 	sta_info->registered = true;
 	sta_info->first_rssi = rssi;
+	sta_info->vdev_id = peer->vdev->vdev_id;
 	adf_os_spin_unlock_bh(&sta_info->stainfo_lock);
 
 	param.qos_capable =  sta_desc->ucQosEnabled;
