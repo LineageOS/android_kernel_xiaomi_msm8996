@@ -588,10 +588,10 @@ CE_completed_recv_next(struct CE_handle *copyeng,
     int status;
 
 
-    adf_os_spin_lock(&sc->target_lock);
+    adf_os_spin_lock_bh(&sc->target_lock);
     status = CE_completed_recv_next_nolock(CE_state, per_CE_contextp, per_transfer_contextp,
                                                bufferp, nbytesp, transfer_idp, flagsp);
-    adf_os_spin_unlock(&sc->target_lock);
+    adf_os_spin_unlock_bh(&sc->target_lock);
 
     return status;
 }
@@ -802,11 +802,11 @@ CE_completed_send_next(struct CE_handle *copyeng,
     int status;
 
 
-    adf_os_spin_lock(&sc->target_lock);
+    adf_os_spin_lock_bh(&sc->target_lock);
     status = CE_completed_send_next_nolock(CE_state, per_CE_contextp, per_transfer_contextp,
                                                bufferp, nbytesp, transfer_idp,
                                                sw_idx, hw_idx);
-    adf_os_spin_unlock(&sc->target_lock);
+    adf_os_spin_unlock_bh(&sc->target_lock);
 
     return status;
 }
