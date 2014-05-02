@@ -107,6 +107,8 @@ hif_pci_interrupt_handler(int irq, void *arg)
     struct hif_pci_softc *sc = (struct hif_pci_softc *) arg;
     struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
     volatile int tmp;
+    A_UINT16 val;
+    A_UINT32 bar0;
 
     if (LEGACY_INTERRUPTS(sc)) {
 
@@ -123,6 +125,29 @@ hif_pci_interrupt_handler(int irq, void *arg)
 
         if (tmp == 0xdeadbeef) {
             printk(KERN_ERR "BUG(%s): SoC returns 0xdeadbeef!!\n", __func__);
+
+            pci_read_config_word(sc->pdev, PCI_VENDOR_ID, &val);
+            printk(KERN_ERR "%s: PCI Vendor ID = 0x%04x\n", __func__, val);
+
+            pci_read_config_word(sc->pdev, PCI_DEVICE_ID, &val);
+            printk(KERN_ERR "%s: PCI Device ID = 0x%04x\n", __func__, val);
+
+            pci_read_config_word(sc->pdev, PCI_COMMAND, &val);
+            printk(KERN_ERR "%s: PCI Command = 0x%04x\n", __func__, val);
+
+            pci_read_config_word(sc->pdev, PCI_STATUS, &val);
+            printk(KERN_ERR "%s: PCI Status = 0x%04x\n", __func__, val);
+
+            pci_read_config_dword(sc->pdev, PCI_BASE_ADDRESS_0, &bar0);
+            printk(KERN_ERR "%s: PCI BAR0 = 0x%08x\n", __func__, bar0);
+
+            printk(KERN_ERR "%s: RTC_STATE_ADDRESS = 0x%08x, "
+                "PCIE_SOC_WAKE_ADDRESS = 0x%08x\n", __func__,
+                A_PCI_READ32(sc->mem + PCIE_LOCAL_BASE_ADDRESS
+                    + RTC_STATE_ADDRESS),
+                A_PCI_READ32(sc->mem + PCIE_LOCAL_BASE_ADDRESS
+                    + PCIE_SOC_WAKE_ADDRESS));
+
             VOS_BUG(0);
         }
         if (sc->hif_init_done == TRUE)
