@@ -2074,6 +2074,22 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    }
 #endif
 
+   /* Try to get an adapter from mode ID */
+   pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
+   if (!pAdapter)
+   {
+      pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
+      if (!pAdapter)
+      {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                   "%s: Failed to get Adapter!", __func__);
+         goto err_re_init;
+      }
+   }
+
+   /* Get WLAN HW/FW version */
+   hdd_wlan_get_version(pAdapter, NULL, NULL);
+
    /* Re-open VOSS, it is a re-open b'se control transport was never closed. */
    vosStatus = vos_open(&pVosContext, 0);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -2173,24 +2189,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
       goto err_vosclose;
    }
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-
-   /* Get the Adapter context based on hardware address */
-   pAdapter = hdd_get_adapter_by_macaddr(pHddCtx,
-           pHddCtx->cfg_ini->intfMacAddr[0].bytes);
-
-   if ((NULL == pAdapter))
-   {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-               "invalid adapter ");
-       goto err_vosclose;
-   }
-   /* Get the wlan hw/fw version */
-   hdd_wlan_get_version(pAdapter, NULL, NULL);
-#else
-   /* Exchange capability info between Host and FW and also get versioning info from FW */
-   hdd_exchange_version_and_caps(pHddCtx);
-#endif
 
    vosStatus = hdd_post_voss_start_config( pHddCtx );
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
