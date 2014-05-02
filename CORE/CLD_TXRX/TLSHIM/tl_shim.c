@@ -406,6 +406,38 @@ next_nbuf:
 /*AR9888/AR6320  noise floor approx value*/
 #define TLSHIM_TGT_NOISE_FLOOR_DBM (-96)
 
+#ifdef WLAN_FEATURE_11W
+
+/*
+ * @brief - This routine will find the iface based on vdev id of provided bssid
+ * @param - vos_ctx - vos context
+ * @param - mac_addr - bss MAC address of received frame
+ * @param - vdev_id - virtual device id
+ */
+static struct wma_txrx_node*
+tlshim_mgmt_find_iface(void *vos_ctx, u_int8_t *mac_addr, u_int32_t *vdev_id)
+{
+	struct ol_txrx_vdev_t *vdev = NULL;
+	struct wma_txrx_node *iface = NULL;
+	tp_wma_handle wma = NULL;
+
+	wma = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+	if (wma) {
+		/*
+		 * Based on received frame's bssid, we will try to
+		 * retrieve the vdev id. If we find the vdev then we will
+		 * override with found vdev_id else we will use supplied
+		 * vdev_id
+		 */
+		vdev = tl_shim_get_vdev_by_addr(vos_ctx, mac_addr);
+		if (vdev) {
+			*vdev_id = vdev->vdev_id;
+		}
+		iface = &wma->interfaces[*vdev_id];
+	}
+	return iface;
+}
+#endif
 static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 				       u_int32_t data_len, bool saved_beacon, u_int32_t vdev_id)
 {
@@ -415,10 +447,9 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	WMI_MGMT_RX_EVENTID_param_tlvs *param_tlvs = NULL;
 	wmi_mgmt_rx_hdr *hdr = NULL;
 #ifdef WLAN_FEATURE_11W
-        struct wma_txrx_node *iface = NULL;
-	tp_wma_handle wma;
+	struct wma_txrx_node *iface = NULL;
 	u_int8_t *efrm, *orig_hdr;
-        u_int16_t key_id;
+	u_int16_t key_id;
 #endif /* WLAN_FEATURE_11W */
 
 	vos_pkt_t *rx_pkt;
@@ -577,77 +608,78 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	}
 
 #ifdef WLAN_FEATURE_11W
-	wma = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
-	if (wma)
-	        iface = &wma->interfaces[vdev_id];
-	if (iface && iface->rmfEnabled && mgt_type == IEEE80211_FC0_TYPE_MGT &&
+	if (mgt_type == IEEE80211_FC0_TYPE_MGT &&
 		(mgt_subtype == IEEE80211_FC0_SUBTYPE_DISASSOC ||
 		 mgt_subtype == IEEE80211_FC0_SUBTYPE_DEAUTH ||
 		 mgt_subtype == IEEE80211_FC0_SUBTYPE_ACTION))
 	{
-		if ((wh)->i_fc[1] & IEEE80211_FC1_WEP)
+		iface = tlshim_mgmt_find_iface(vos_ctx, wh->i_addr3, &vdev_id);
+		if (iface && iface->rmfEnabled)
 		{
-			orig_hdr = (u_int8_t*) adf_nbuf_data(wbuf);
-
-			/* Strip privacy headers (and trailer)
-			   for a received frame */
-			vos_mem_move(orig_hdr + IEEE80211_CCMP_HEADERLEN,
-					wh, sizeof(*wh));
-			adf_nbuf_pull_head(wbuf, IEEE80211_CCMP_HEADERLEN);
-			adf_nbuf_trim_tail(wbuf, IEEE80211_CCMP_MICLEN);
-
-			rx_pkt->pkt_meta.mpdu_hdr_ptr = adf_nbuf_data(wbuf);
-			rx_pkt->pkt_meta.mpdu_len = adf_nbuf_len(wbuf);
-			rx_pkt->pkt_meta.mpdu_data_len =
-				rx_pkt->pkt_meta.mpdu_len -
-				rx_pkt->pkt_meta.mpdu_hdr_len;
-			rx_pkt->pkt_meta.mpdu_data_ptr =
-				rx_pkt->pkt_meta.mpdu_hdr_ptr +
-				rx_pkt->pkt_meta.mpdu_hdr_len;
-			rx_pkt->pkt_buf = wbuf;
-		}
-		else
-		{
-			if (IEEE80211_IS_BROADCAST(wh->i_addr1) ||
-				 IEEE80211_IS_MULTICAST(wh->i_addr1))
+			if ((wh)->i_fc[1] & IEEE80211_FC1_WEP)
 			{
-				efrm = adf_nbuf_data(wbuf) + adf_nbuf_len(wbuf);
+				orig_hdr = (u_int8_t*) adf_nbuf_data(wbuf);
 
-				key_id = (u_int16_t)*(efrm - vos_get_mmie_size() + 2);
-				if (!((key_id == WMA_IGTK_KEY_INDEX_4) ||
-					(key_id == WMA_IGTK_KEY_INDEX_5))) {
-					TLSHIM_LOGE("Invalid KeyID(%d)"
-					" dropping the frame", key_id);
-					vos_pkt_return_packet(rx_pkt);
-					return 0;
-				}
+				/* Strip privacy headers (and trailer)
+				   for a received frame */
+				vos_mem_move(orig_hdr + IEEE80211_CCMP_HEADERLEN,
+						wh, sizeof(*wh));
+				adf_nbuf_pull_head(wbuf, IEEE80211_CCMP_HEADERLEN);
+				adf_nbuf_trim_tail(wbuf, IEEE80211_CCMP_MICLEN);
 
-				if (vos_is_mmie_valid(iface->key.key,
-				    iface->key.key_id[key_id - WMA_IGTK_KEY_INDEX_4].ipn,
-					 (u_int8_t *)wh, efrm))
-				{
-					TLSHIM_LOGD("Protected BC/MC frame MMIE"
-						" validation successful");
-
-					/* Remove MMIE */
-					adf_nbuf_trim_tail(wbuf,
-						vos_get_mmie_size());
-				}
-				else
-				{
-					TLSHIM_LOGE("BC/MC MIC error or MMIE"
-					" not present, dropping the frame");
-					vos_pkt_return_packet(rx_pkt);
-					return 0;
-				}
+				rx_pkt->pkt_meta.mpdu_hdr_ptr = adf_nbuf_data(wbuf);
+				rx_pkt->pkt_meta.mpdu_len = adf_nbuf_len(wbuf);
+				rx_pkt->pkt_meta.mpdu_data_len =
+					rx_pkt->pkt_meta.mpdu_len -
+					rx_pkt->pkt_meta.mpdu_hdr_len;
+				rx_pkt->pkt_meta.mpdu_data_ptr =
+					rx_pkt->pkt_meta.mpdu_hdr_ptr +
+					rx_pkt->pkt_meta.mpdu_hdr_len;
+				rx_pkt->pkt_buf = wbuf;
 			}
 			else
 			{
-				TLSHIM_LOGD("Rx unprotected unicast mgmt frame");
-				rx_pkt->pkt_meta.dpuFeedback =
-					 DPU_FEEDBACK_UNPROTECTED_ERROR;
-			}
+				if (IEEE80211_IS_BROADCAST(wh->i_addr1) ||
+					 IEEE80211_IS_MULTICAST(wh->i_addr1))
+				{
+					efrm = adf_nbuf_data(wbuf) + adf_nbuf_len(wbuf);
 
+					key_id = (u_int16_t)*(efrm - vos_get_mmie_size() + 2);
+					if (!((key_id == WMA_IGTK_KEY_INDEX_4) ||
+						(key_id == WMA_IGTK_KEY_INDEX_5))) {
+						TLSHIM_LOGE("Invalid KeyID(%d)"
+						" dropping the frame", key_id);
+						vos_pkt_return_packet(rx_pkt);
+						return 0;
+					}
+
+					if (vos_is_mmie_valid(iface->key.key,
+					    iface->key.key_id[key_id - WMA_IGTK_KEY_INDEX_4].ipn,
+						 (u_int8_t *)wh, efrm))
+					{
+						TLSHIM_LOGD("Protected BC/MC frame MMIE"
+							" validation successful");
+
+						/* Remove MMIE */
+						adf_nbuf_trim_tail(wbuf,
+							vos_get_mmie_size());
+					}
+					else
+					{
+						TLSHIM_LOGE("BC/MC MIC error or MMIE"
+						" not present, dropping the frame");
+						vos_pkt_return_packet(rx_pkt);
+						return 0;
+					}
+				}
+				else
+				{
+					TLSHIM_LOGD("Rx unprotected unicast mgmt frame");
+					rx_pkt->pkt_meta.dpuFeedback =
+						 DPU_FEEDBACK_UNPROTECTED_ERROR;
+				}
+
+			}
 		}
 	}
 #endif /* WLAN_FEATURE_11W */
