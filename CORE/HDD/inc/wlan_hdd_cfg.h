@@ -2887,6 +2887,7 @@ typedef struct
 #endif
    v_U32_t                     fTDLSUapsdMask;    // what ACs to setup U-APSD for TDLS
    v_U32_t                     fEnableTDLSBufferSta;
+   v_U32_t                     fEnableTDLSSleepSta;
    v_U32_t                     fTDLSPuapsdInactivityTimer;
    v_U32_t                     fTDLSRxFrameThreshold;
    v_BOOL_t                    fTDLSExternalControl;

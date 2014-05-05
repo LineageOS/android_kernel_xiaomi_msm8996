@@ -63,6 +63,12 @@ should not be more than 2000 */
 #define TDLS_IS_CONNECTED(peer)  \
         ((eTDLS_LINK_CONNECTED == (peer)->link_status) || \
          (eTDLS_LINK_TEARING == (peer)->link_status))
+
+/* bit mask flag for tdls_option to FW */
+#define ENA_TDLS_OFFCHAN      (1 << 0)  /* TDLS Off Channel support */
+#define ENA_TDLS_BUFFER_STA   (1 << 1)  /* TDLS Buffer STA support */
+#define ENA_TDLS_SLEEP_STA    (1 << 2)  /* TDLS Sleep STA support */
+
 typedef struct
 {
     tANI_U32    tdls;

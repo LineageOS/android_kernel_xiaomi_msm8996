@@ -167,6 +167,24 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U32 reg_info_2;
 } tSmeChannelInfo;
 #ifdef FEATURE_WLAN_TDLS
+
+#define SME_TDLS_MAX_SUPP_CHANNELS       128
+#define SME_TDLS_MAX_SUPP_OPER_CLASSES   32
+
+typedef struct _smeTdlsPeerCapParams {
+   tANI_U8 isPeerResponder;
+   tANI_U8 peerUapsdQueue;
+   tANI_U8 peerMaxSp;
+   tANI_U8 peerBuffStaSupport;
+   tANI_U8 peerOffChanSupport;
+   tANI_U8 peerCurrOperClass;
+   tANI_U8 selfCurrOperClass;
+   tANI_U8 peerChanLen;
+   tANI_U8 peerChan[SME_TDLS_MAX_SUPP_CHANNELS];
+   tANI_U8 peerOperClassLen;
+   tANI_U8 peerOperClass[SME_TDLS_MAX_SUPP_OPER_CLASSES];
+} tSmeTdlsPeerCapParams;
+
 typedef enum
 {
     eSME_TDLS_PEER_STATE_PEERING,
@@ -179,6 +197,7 @@ typedef struct _smeTdlsPeerStateParams
     tANI_U32 vdevId;
     tSirMacAddr peerMacAddr;
     tANI_U32 peerState;
+    tSmeTdlsPeerCapParams peerCap;
 } tSmeTdlsPeerStateParams;
 #endif /* FEATURE_WLAN_TDLS */
 #endif /* QCA_WIFI_2_0 */

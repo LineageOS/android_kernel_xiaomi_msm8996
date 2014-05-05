@@ -10661,6 +10661,7 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     tTdlsPeerStateParams *pTdlsPeerStateParams = NULL;
     vos_msg_t vosMessage;
+    tANI_U8 i;
 
     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
     {
@@ -10703,17 +10704,46 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
               return eHAL_STATUS_FAILURE;
        }
 
-        vosMessage.type = WDA_UPDATE_TDLS_PEER_STATE;
-        vosMessage.reserved = 0;
-        vosMessage.bodyptr = pTdlsPeerStateParams;
+       pTdlsPeerStateParams->peerCap.isPeerResponder =
+           peerStateParams->peerCap.isPeerResponder;
+       pTdlsPeerStateParams->peerCap.peerUapsdQueue =
+           peerStateParams->peerCap.peerUapsdQueue;
+       pTdlsPeerStateParams->peerCap.peerMaxSp =
+           peerStateParams->peerCap.peerMaxSp;
+       pTdlsPeerStateParams->peerCap.peerBuffStaSupport =
+           peerStateParams->peerCap.peerBuffStaSupport;
+       pTdlsPeerStateParams->peerCap.peerOffChanSupport =
+           peerStateParams->peerCap.peerOffChanSupport;
+       pTdlsPeerStateParams->peerCap.peerCurrOperClass =
+           peerStateParams->peerCap.peerCurrOperClass;
+       pTdlsPeerStateParams->peerCap.selfCurrOperClass =
+           peerStateParams->peerCap.selfCurrOperClass;
+       pTdlsPeerStateParams->peerCap.peerChanLen =
+           peerStateParams->peerCap.peerChanLen;
+       for (i = 0; i < SME_TDLS_MAX_SUPP_CHANNELS; i++)
+       {
+           pTdlsPeerStateParams->peerCap.peerChan[i] =
+               peerStateParams->peerCap.peerChan[i];
+       }
+       pTdlsPeerStateParams->peerCap.peerOperClassLen =
+           peerStateParams->peerCap.peerOperClassLen;
+       for (i = 0; i < HAL_TDLS_MAX_SUPP_OPER_CLASSES; i++)
+       {
+           pTdlsPeerStateParams->peerCap.peerOperClass[i] =
+               peerStateParams->peerCap.peerOperClass[i];
+       }
 
-        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
-        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-        {
-           vos_mem_free(pTdlsPeerStateParams);
-           status = eHAL_STATUS_FAILURE;
-        }
-        sme_ReleaseGlobalLock(&pMac->sme);
+       vosMessage.type = WDA_UPDATE_TDLS_PEER_STATE;
+       vosMessage.reserved = 0;
+       vosMessage.bodyptr = pTdlsPeerStateParams;
+
+       vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+       if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+       {
+          vos_mem_free(pTdlsPeerStateParams);
+          status = eHAL_STATUS_FAILURE;
+       }
+       sme_ReleaseGlobalLock(&pMac->sme);
     }
     return(status);
 }

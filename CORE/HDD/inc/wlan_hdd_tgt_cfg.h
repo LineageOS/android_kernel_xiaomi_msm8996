@@ -45,6 +45,9 @@ struct hdd_tgt_services {
         u_int32_t lte_coex_ant_share;
 #ifdef FEATURE_WLAN_TDLS
         v_BOOL_t en_tdls;
+        v_BOOL_t en_tdls_offchan;
+        v_BOOL_t en_tdls_uapsd_buf_sta;
+        v_BOOL_t en_tdls_uapsd_sleep_sta;
 #endif
 };
 
