@@ -2380,9 +2380,9 @@ static void wlan_hdd_tdls_pre_setup(struct work_struct *work)
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: discovery attempt (%d) reached max (%d) for peer "
                   MAC_ADDRESS_STR ", ignore discovery trigger from fw",
-                  __func__, MAC_ADDR_ARRAY(curr_peer->peerMac),
-                  curr_peer->discovery_attempt,
-                  pHddTdlsCtx->threshold_config.discovery_tries_n);
+                  __func__, curr_peer->discovery_attempt,
+                  pHddTdlsCtx->threshold_config.discovery_tries_n,
+                  MAC_ADDR_ARRAY(curr_peer->peerMac));
         curr_peer->tdls_support = eTDLS_CAP_NOT_SUPPORTED;
         goto done;
     }
