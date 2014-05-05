@@ -638,8 +638,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             else
             {
                 pHddApCtx->uBCStaId = pSapEvent->sapevt.sapStartBssCompleteEvent.staId;
-                pHostapdAdapter->sessionId =
-                        pSapEvent->sapevt.sapStartBssCompleteEvent.sessionId;
 
 #ifdef QCA_LL_TX_FLOW_CT
                 vos_timer_init(&pHostapdAdapter->tx_flow_control_timer,
