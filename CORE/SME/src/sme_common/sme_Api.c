@@ -2025,6 +2025,7 @@ eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac, v_U16_t msgType, void *pMsgBuf)
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tCsrRoamInfo roamInfo = {0};
     tSirSmeDfsEventInd *dfs_event;
+    tSirSmeCSAIeTxCompleteRsp *csaIeTxCompleteRsp;
     tANI_U32 sessionId = 0;
     eRoamCmdStatus roamStatus;
     eCsrRoamResult roamResult;
@@ -2055,6 +2056,15 @@ eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac, v_U16_t msgType, void *pMsgBuf)
       }
       case eWNI_SME_DFS_CSAIE_TX_COMPLETE_IND:
       {
+         csaIeTxCompleteRsp = (tSirSmeCSAIeTxCompleteRsp *)pMsgBuf;
+         if (NULL == csaIeTxCompleteRsp)
+         {
+            smsLog(pMac, LOGE,
+                   "%s: pMsg is NULL for eWNI_SME_DFS_CSAIE_TX_COMPLETE_IND",
+                   __func__);
+            return eHAL_STATUS_FAILURE;
+         }
+         sessionId = csaIeTxCompleteRsp->sessionId;
          roamStatus = eCSR_ROAM_DFS_CHAN_SW_NOTIFY;
          roamResult = eCSR_ROAM_RESULT_DFS_CHANSW_UPDATE_SUCCESS;
          break;
