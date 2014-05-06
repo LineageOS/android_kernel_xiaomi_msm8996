@@ -78,27 +78,29 @@ typedef  enum  {
     WMI_SERVICE_TX_ENCAP,             /* Packet type for TX encapsulation */
     WMI_SERVICE_AP_PS_DETECT_OUT_OF_SYNC, /* detect out-of-sync sleeping stations */
     WMI_SERVICE_EARLY_RX,             /* adaptive early-rx feature */
-    WMI_SERVICE_STA_SMPS, /* STA MIMO-PS */
+    WMI_SERVICE_STA_SMPS,             /* STA MIMO-PS */
     WMI_SERVICE_FWTEST,               /* Firmware test service */
-    WMI_SERVICE_STA_WMMAC, /* STA WMMAC */
-    WMI_SERVICE_TDLS,                   /* TDLS support */
+    WMI_SERVICE_STA_WMMAC,            /* STA WMMAC */
+    WMI_SERVICE_TDLS,                 /* TDLS support */
     WMI_SERVICE_BURST,                /* SIFS spaced burst support */
     WMI_SERVICE_MCC_BCN_INTERVAL_CHANGE,    /* Dynamic beaocn interval change for SAP/P2p GO in MCC scenario */
-    WMI_SERVICE_ADAPTIVE_OCS,    /* Service to support adaptive off-channel scheduler */
-    WMI_SERVICE_BA_SSN_SUPPORT,    /* target will provide Sequence number for the peer/tid combo */
+    WMI_SERVICE_ADAPTIVE_OCS,         /* Service to support adaptive off-channel scheduler */
+    WMI_SERVICE_BA_SSN_SUPPORT,       /* target will provide Sequence number for the peer/tid combo */
     WMI_SERVICE_FILTER_IPSEC_NATKEEPALIVE,
-    WMI_SERVICE_WLAN_HB,           /* wlan HB service */
+    WMI_SERVICE_WLAN_HB,              /* wlan HB service */
     WMI_SERVICE_LTE_ANT_SHARE_SUPPORT,       /* support LTE/WLAN antenna sharing */
-    WMI_SERVICE_BATCH_SCAN,        /*Service to support batch scan*/
-    WMI_SERVICE_QPOWER, /* QPower service */
+    WMI_SERVICE_BATCH_SCAN,           /*Service to support batch scan*/
+    WMI_SERVICE_QPOWER,               /* QPower service */
     WMI_SERVICE_PLMREQ,
     WMI_SERVICE_THERMAL_MGMT,
     WMI_SERVICE_RMC,                  /* reliable multicast support */
-    WMI_SERVICE_MHF_OFFLOAD,     /* multi-hop forwarding offload */
-    WMI_SERVICE_COEX_SAR,            /* target support SAR tx limit from WMI_PDEV_PARAM_TXPOWER_LIMITxG */
+    WMI_SERVICE_MHF_OFFLOAD,          /* multi-hop forwarding offload */
+    WMI_SERVICE_COEX_SAR,             /* target support SAR tx limit from WMI_PDEV_PARAM_TXPOWER_LIMITxG */
     WMI_SERVICE_BCN_TXRATE_OVERRIDE,  /* Will support the bcn/prb rsp rate override */
-    WMI_SERVICE_NAN, /* Neighbor Awareness Network */
-    WMI_SERVICE_L1SS_STAT,    /* L1SS statistics counter report */
+    WMI_SERVICE_NAN,                  /* Neighbor Awareness Network */
+    WMI_SERVICE_L1SS_STAT,            /* L1SS statistics counter report */
+    WMI_SERVICE_ESTIMATE_LINKSPEED,   /* Linkspeed Estimation per peer */
+    WMI_SERVICE_OBSS_SCAN,            /* Service to support OBSS scan */
     WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;
 

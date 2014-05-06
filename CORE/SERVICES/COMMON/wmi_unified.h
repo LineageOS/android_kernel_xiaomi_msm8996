@@ -172,6 +172,7 @@ typedef enum {
     WMI_GRP_OEM,
     WMI_GRP_NAN,
     WMI_GRP_COEX,
+    WMI_GRP_OBSS_OFL,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -286,6 +287,11 @@ typedef enum {
     /** request peer info from FW. FW shall respond with PEER_INFO_EVENTID */
     WMI_PEER_INFO_REQ_CMDID,
 
+    /** request the estimated link speed for the peer. FW shall respond with
+     *  WMI_PEER_ESTIMATED_LINKSPEED_EVENTID.
+     */
+    WMI_PEER_GET_ESTIMATED_LINKSPEED_CMDID,
+
     /* beacon/management specific commands */
 
     /** transmit beacon by reference . used for transmitting beacon on low latency interface like pcie */
@@ -352,6 +358,8 @@ typedef enum {
     WMI_ROAM_AP_PROFILE,
     /** set channel list for roam scans */
     WMI_ROAM_CHAN_LIST,
+    /** Stop scan command */
+    WMI_ROAM_SCAN_CMD,
 
     /** offload scan specific commands */
     /** set offload scan AP profile   */
@@ -440,6 +448,8 @@ typedef enum {
     WMI_REQUEST_STATS_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_STATS),
     /** Push MCC Adaptive Scheduler Stats to Firmware */
     WMI_MCC_SCHED_TRAFFIC_STATS_CMDID,
+    /** one time request for txrx stats */
+    WMI_REQUEST_STATS_EXT_CMDID,
 
     /** ARP OFFLOAD REQUEST*/
     WMI_SET_ARP_NS_OFFLOAD_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_ARP_NS_OFL),
@@ -593,6 +603,17 @@ typedef enum {
 
     /** Modem power state command */
     WMI_MODEM_POWER_STATE_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_COEX),
+    /**
+     *  OBSS scan offload enable/disable commands
+     *  OBSS scan enable CMD will send to FW after VDEV UP, if these conditions are true:
+     *  1.  WMI_SERVICE_OBSS_SCAN is reported by FW in service ready,
+     *  2.  STA connect to a 2.4Ghz ht20/ht40 AP,
+     *  3.  AP enable 20/40 coexistence (OBSS_IE-74 can be found in beacon or association response)
+     *  If OBSS parameters from beacon changed, also use enable CMD to update parameters.
+     *  OBSS scan disable CMD will send to FW if have enabled when tearing down connection.
+     */
+    WMI_OBSS_SCAN_ENABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_OBSS_OFL),
+    WMI_OBSS_SCAN_DISABLE_CMDID,
 } WMI_CMD_ID;
 
 typedef enum {
@@ -649,6 +670,10 @@ typedef enum {
 
     /** Event indicating that TX fail count reaching threshold */
     WMI_PEER_TX_FAIL_CNT_THR_EVENTID,
+    /** Return the estimate link speed for the Peer specified in the
+     * WMI_PEER_GET_ESTIMATED_LINKSPEED_CMDID command.
+     */
+    WMI_PEER_ESTIMATED_LINKSPEED_EVENTID,
 
     /* beacon/mgmt specific events */
     /** RX management frame. the entire frame is carried along with the event.  */
@@ -664,6 +689,9 @@ typedef enum {
     /** event after the first beacon is transmitted following
              a change in the template.*/
     WMI_OFFLOAD_BCN_TX_STATUS_EVENTID,
+    /** event after the first probe response is transmitted following
+             a change in the template.*/
+    WMI_OFFLOAD_PROB_RESP_TX_STATUS_EVENTID,
 
     /*ADDBA Related WMI Events*/
     /** Indication the completion of the prior
@@ -702,6 +730,9 @@ typedef enum {
     WMI_TSF_MEASUREMENT_REPORT_EVENTID,
     /** RTT error report */
     WMI_RTT_ERROR_REPORT_EVENTID,
+    /*STATS specific events*/
+    /** txrx stats event requested by host */
+    WMI_STATS_EXT_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_STATS),
 
     /*NLO specific events*/
     /** NLO match event after the first match */
@@ -1481,6 +1512,9 @@ typedef struct {
     A_UINT32     num_ssids;
     /** number of bytes in ie data. In the TLV ie_data[] */
     A_UINT32 ie_len;
+    /** Max number of probes to be sent */
+    A_UINT32 n_probes;
+
 
     /**
          * TLV (tag length value ) parameters follow the scan_cmd
@@ -2156,6 +2190,8 @@ typedef enum {
     WMI_PDEV_PARAM_L1SS_TRACK,
     /** set hyst at runtime, requirement from SS */
     WMI_PDEV_PARAM_HYST_EN,
+    /** Enable/ Disable POWER COLLAPSE */
+    WMI_PDEV_PARAM_POWER_COLLAPSE_ENABLE,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -3169,11 +3205,13 @@ WMI_VDEV_PARAM_ROAM_FW_OFFLOAD WMI_VDEV_PARAM **/
          } wmi_prb_tmpl_cmd_fixed_param;
 
 typedef struct {
+  /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_offload_bcn_tx_status_event_fixed_param */
     A_UINT32 tlv_header;
+  /** unique id identifying the VDEV */
     A_UINT32 vdev_id;
+  /** bcn tx status, values defined in enum WMI_FRAME_TX_STATUS */
     A_UINT32 tx_status;
-}wmi_offload_bcn_tx_status_event_fixed_param;
-
+} wmi_offload_bcn_tx_status_event_fixed_param;
 
         enum wmi_sta_ps_mode {
             /** enable power save for the given STA VDEV */
@@ -4186,6 +4224,14 @@ typedef struct {
 #define WMI_ROAM_SCAN_MODE_PERIODIC    0x1
 #define WMI_ROAM_SCAN_MODE_RSSI_CHANGE 0x2
 #define WMI_ROAM_SCAN_MODE_BOTH        0x3
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_scan_cmd_fixed_param */
+    A_UINT32 vdev_id;
+    A_UINT32 command_arg;
+} wmi_roam_scan_cmd_fixed_param;
+
+#define WMI_ROAM_SCAN_STOP_CMD 0x1
 
 /**
  * WMI_ROAM_SCAN_RSSI_THRESHOLD : set scan rssi thresold
@@ -6487,6 +6533,127 @@ enum {
     WMI_MODEM_STATE_OFF = 0,
     WMI_MODEM_STATE_ON
 };
+
+#define WMI_PEER_ESTIMATED_LINKSPEED_INVALID    0xFFFFFFFF
+
+typedef struct {
+    /* TLV tag and len; tag equals WMITLV_TAG_STRUC_ wmi_peer_get_estimated_linkspeed_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /** MAC address of the peer for which the estimated link speed is required. */
+    wmi_mac_addr peer_macaddr;
+} wmi_peer_get_estimated_linkspeed_cmd_fixed_param;
+
+typedef struct {
+    /* TLV tag and len; tag equals WMITLV_TAG_STRUC_ wmi_peer_estimated_linkspeed_event_fixed_param */
+    A_UINT32 tlv_header;
+    /** MAC address of the peer for which the estimated link speed is required.
+     */
+    wmi_mac_addr peer_macaddr;
+  /* Estimated link speed in kbps.
+   * When est_linkspeed_kbps is not valid, the value is set to WMI_PEER_ESTIMATED_LINKSPEED_INVALID.
+   */
+    A_UINT32 est_linkspeed_kbps;
+} wmi_peer_estimated_linkspeed_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals */
+    /* vdev ID */
+    A_UINT32 vdev_id;
+    A_UINT32 data_len; /** length in byte of data[]. */
+    /* This structure is used to send REQ binary blobs
+     * from application/service to firmware where Host drv is pass through .
+     * Following this structure is the TLV:
+     *     A_UINT8 data[];    // length in byte given by field data_len.
+     */
+} wmi_req_stats_ext_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_stats1_event_fix_param */
+    A_UINT32 vdev_id; /** vdev ID */
+    A_UINT32 data_len; /** length in byte of data[]. */
+    /* This structure is used to send REQ binary blobs
+     * from firmware to application/service where Host drv is pass through .
+     * Following this structure is the TLV:
+     *     A_UINT8 data[];    // length in byte given by field data_len.
+     */
+} wmi_stats_ext_event_fixed_param;
+
+enum {
+    WMI_2G4_HT40_OBSS_SCAN_PASSIVE = 0,    /** scan_type: passive */
+    WMI_2G4_HT40_OBSS_SCAN_ACTIVE, /** scan_type: active */
+};
+
+typedef struct {
+    /**
+     * TLV tag and len;
+     * tag equals WMITLV_TAG_STRUC_wmi_obss_scan_enalbe_cmd_fixed_param
+     */
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+    /**
+     * active or passive. if active all the channels are actively scanned.
+     *  if passive then all the channels are passively scanned
+     */
+    A_UINT32 scan_type;
+    /**
+     * FW can perform multiple scans with in a  OBSS scan interval.
+     * For each scan,
+     *  if the scan is passive then obss_scan_passive_dwell is minimum dwell to be used for each channel  ,
+     *  if the scan is active then obss_scan_active_dwell is minimum dwell to be used for each channel .
+     *   The unit for these 2 parameters is TUs.
+     */
+    A_UINT32 obss_scan_passive_dwell;
+    A_UINT32 obss_scan_active_dwell;
+    /**
+     * OBSS scan interval . FW needs to perform one or more OBSS scans within this interval and fulfill the
+     *  both min and total per channel dwell time requirement
+     */
+    A_UINT32 bss_channel_width_trigger_scan_interval;
+    /**
+     * FW can perform multiple scans with in a  OBSS scan interval.
+     * For each scan,
+     * the total per channel dwell time across all scans with in OBSS scan interval should be
+     * atleast obss_scan_passive_total_per channel for passive scas and obss_scan_active_total_per channel
+     * for active scans and ,
+     *   The unit for these 2 parameters is TUs.
+     */
+    A_UINT32 obss_scan_passive_total_per_channel;
+    A_UINT32 obss_scan_active_total_per_channel;
+    A_UINT32 bss_width_channel_transition_delay_factor; /** parameter to check exemption from scan */
+    A_UINT32 obss_scan_activity_threshold; /** parameter to check exemption from scan */
+    /** following two parameters used by FW to fill IEs when sending 20/40 coexistence action frame to AP */
+    A_UINT32 forty_mhz_intolerant; /** STA 40M bandwidth intolerant capability */
+    A_UINT32 current_operating_class; /** STA current operating class */
+    /** length of 2.4GHz channel list to scan at, channel list in tlv->channels[] */
+    A_UINT32 channel_len;
+    /** length of optional ie data to append to probe reqest when active scan, ie data in tlv->ie_field[] */
+    A_UINT32 ie_len;
+} wmi_obss_scan_enable_cmd_fixed_param;
+
+typedef struct {
+    /**
+    * TLV tag and len;
+    * tag equals WMITLV_TAG_STRUC_wmi_obss_scan_disalbe_cmd_fixed_param
+    */
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id;
+} wmi_obss_scan_disable_cmd_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_offload_prb_rsp_tx_status_event_fixed_param */
+    A_UINT32 tlv_header;
+    /** unique id identifying the VDEV */
+    A_UINT32 vdev_id;
+    /** prb rsp tx status, values defined in enum WMI_FRAME_TX_STATUS */
+    A_UINT32 tx_status;
+}wmi_offload_prb_rsp_tx_status_event_fixed_param;
+
+typedef enum {
+    WMI_FRAME_TX_OK,            /* frame tx ok */
+    WMI_FRAME_TX_XRETRY,        /* excessivley retried */
+    WMI_FRAME_TX_DROP,          /* frame dropped by FW due to resources */
+    WMI_FRAME_TX_FILTERED,      /* frame filtered by hardware */
+} WMI_FRAME_TX_STATUS;
 
 #ifdef __cplusplus
 }
