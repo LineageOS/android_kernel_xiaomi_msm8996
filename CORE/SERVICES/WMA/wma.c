@@ -16879,8 +16879,13 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 			/* PAUSE action, add bitmap */
 			if (ACTION_PAUSE == wmi_event->action)
 			{
+				/*
+				 * Now only support per-dev pause so it is not necessary
+				 * to pause a paused queue again.
+				 */
+				if (!wma->interfaces[vdev_id].pause_bitmap)
+					wdi_in_vdev_pause(wma->interfaces[vdev_id].handle);
 				wma->interfaces[vdev_id].pause_bitmap |= (1 << wmi_event->pause_type);
-				wdi_in_vdev_pause(wma->interfaces[vdev_id].handle);
 			}
 			/* UNPAUSE action, clean bitmap */
 			else if (ACTION_UNPAUSE == wmi_event->action)
