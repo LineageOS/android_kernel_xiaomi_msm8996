@@ -58,6 +58,78 @@
 #include "sirApi.h"
 
 /**
+ * limRemoveSsidFromScanCache()
+ *
+ *FUNCTION:
+ * This function is called by limSendSmeLfrScanRsp() to clean given
+ * ssid from scan cache.
+ *
+ *PARAMS:
+ * @param pMac         Pointer to Global MAC structure
+ * @param pSsid        SSID to clean from scan list
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ * @return entriesLeft Number of SSID left in scan cache
+ */
+tANI_S16 limRemoveSsidFromScanCache(tpAniSirGlobal pMac, tSirMacSSid *pSsid)
+{
+    tANI_U16              i = 0;
+    tLimScanResultNode    *pCurr = NULL;
+    tLimScanResultNode    *pPrev = NULL;
+    tANI_S16              entriesLeft = 0;
+
+    if (pSsid == NULL)
+    {
+        limLog(pMac, LOGW, FL("pSsid is NULL"));
+        return -1;
+    }
+
+    for (i = 0; i < LIM_MAX_NUM_OF_SCAN_RESULTS; i++)
+    {
+        if (pMac->lim.gLimCachedScanHashTable[i] != NULL)
+        {
+            pPrev = pMac->lim.gLimCachedScanHashTable[i];
+            pCurr = pPrev->next;
+            while (pCurr)
+            {
+                entriesLeft++;
+                if (vos_mem_compare((tANI_U8* ) pCurr->bssDescription.ieFields+1,
+                                   (tANI_U8 *) &pSsid->length,
+                                   (tANI_U8) (pSsid->length + 1)) == VOS_TRUE)
+                {
+                    pCurr=pCurr->next;
+                    vos_mem_free(pPrev->next);
+                    pPrev->next = pCurr;
+                    entriesLeft--;
+                }
+                else
+                {
+                    pCurr = pCurr->next;
+                    pPrev = pPrev->next;
+                }
+            } /* while(pCurr)  */
+            pCurr = pMac->lim.gLimCachedScanHashTable[i];
+            if (vos_mem_compare((tANI_U8* ) pCurr->bssDescription.ieFields+1,
+                               (tANI_U8 *) &pSsid->length,
+                               (tANI_U8) (pSsid->length + 1)) == VOS_TRUE)
+            {
+                pMac->lim.gLimCachedScanHashTable[i] = pMac->lim.gLimCachedScanHashTable[i]->next;
+                vos_mem_free(pCurr);
+            }
+            else
+            {
+                entriesLeft++;
+            }
+        } /* if( pMac->lim.gLimCachedScanHashTable[i] != NULL)  */
+    } /* for (i = 0; i < LIM_MAX_NUM_OF_SCAN_RESULTS; i++) */
+    return entriesLeft;
+}
+
+/**
  * limSendSmeRsp()
  *
  *FUNCTION:
@@ -864,6 +936,7 @@ limSendSmeLfrScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
     tANI_U16              i, bssCount;
     tANI_U8               *pbBuf;
     tSirBssDescription    *pDesc;
+    tANI_S16              scanEntriesLeft = 0;
 
     PELOG1(limLog(pMac, LOG1,
        FL("Sending message SME_SCAN_RSP with length=%d reasonCode %s\n"),
@@ -1058,6 +1131,14 @@ limSendSmeLfrScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
     }
     // Discard previously cached scan results
     limReInitLfrScanResults(pMac);
+
+    // delete the returned entries from normal cache (gLimCachedScanHashTable)
+    scanEntriesLeft = limRemoveSsidFromScanCache(pMac,
+                 &pMac->roam.roamSession[smesessionId].connectedProfile.SSID);
+    PELOG2(limLog(pMac,
+                  LOG2,
+                  FL("Scan Entries Left after cleanup: %d",
+                     scanEntriesLeft)));
 
     return;
 
