@@ -141,11 +141,12 @@ int hdd_hostapd_open (struct net_device *dev)
        goto done;
    }
 
+   WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->dfs_cac_block_tx = VOS_TRUE;
+
    //Turn ON carrier state
    netif_carrier_on(dev);
    //Enable all Tx queues
    netif_tx_start_all_queues(dev);
-
 done:
    EXIT();
    return 0;
@@ -744,10 +745,14 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             if (VOS_TRUE == pHddCtx->dfs_radar_found)
             {
                pHddCtx->dfs_radar_found = VOS_FALSE;
-               if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)
-               {
-                  netif_tx_start_all_queues(dev);
-               }
+            }
+            else
+            {
+                if (NV_CHANNEL_DFS !=
+                    vos_nv_getChannelEnabledState(pHddApCtx->operatingChannel))
+                {
+                    pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
+                }
             }
 
             //Fill the params for sending IWEVCUSTOM Event with SOFTAP.enabled
@@ -798,6 +803,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
         case eSAP_DFS_CAC_END:
             wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_END_IND);
+            pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
             break;
 
         case eSAP_DFS_RADAR_DETECT:

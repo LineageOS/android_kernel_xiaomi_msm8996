@@ -6284,8 +6284,7 @@ void hdd_dfs_indicate_radar(void *context, void *param)
             pAdapter = pAdapterNode->pAdapter;
             if (WLAN_HDD_SOFTAP == pAdapter->device_mode)
             {
-                netif_tx_stop_all_queues(pAdapter->dev);
-                return;
+                WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->dfs_cac_block_tx = VOS_TRUE;
             }
             else
             {
