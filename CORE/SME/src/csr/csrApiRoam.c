@@ -5688,6 +5688,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     roamInfo.staId = ( tANI_U8 )pJoinRsp->staId;
                     roamInfo.ucastSig = ( tANI_U8 )pJoinRsp->ucastSig;
                     roamInfo.bcastSig = ( tANI_U8 )pJoinRsp->bcastSig;
+                    roamInfo.maxRateFlags = pJoinRsp->maxRateFlags;
                     roamInfo.timingMeasCap = pJoinRsp->timingMeasCap;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
                     if (pMac->roam.configParam.cc_switch_mode
