@@ -7649,7 +7649,7 @@ void csrSetCfgValidChannelList( tpAniSirGlobal pMac, tANI_U8 *pChannelList, tANI
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                 "Scan offload is enabled, update default chan list");
-        status = csrUpdateChannelList(&pMac->scan);
+        status = csrUpdateChannelList(pMac);
         if (eHAL_STATUS_SUCCESS != status)
         {
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,

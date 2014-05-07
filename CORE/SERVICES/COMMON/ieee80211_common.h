@@ -1864,6 +1864,26 @@ enum {
 #define IEEE80211_CCMP_HEADERLEN    8
 #define IEEE80211_CCMP_MICLEN       8
 
+/*
+ * 802.11w defines a MMIE chunk to be attached at the end of
+ * any outgoing broadcast or multicast robust management frame.
+ * MMIE field is total 18 bytes in size. Following the diagram of MMIE
+ *
+ *        <------------ 18 Bytes MMIE ----------------------->
+ *        +--------+---------+---------+-----------+---------+
+ *        |Element | Length  | Key id  |   IPN     |  MIC    |
+ *        |  id    |         |         |           |         |
+ *        +--------+---------+---------+-----------+---------+
+ * bytes      1         1         2         6            8
+ *
+ */
+#define IEEE80211_MMIE_LEN          18
+#define IEEE80211_MMIE_ELEMENTIDLEN 1
+#define IEEE80211_MMIE_LENGTHLEN    1
+#define IEEE80211_MMIE_KEYIDLEN     2
+#define IEEE80211_MMIE_IPNLEN       6
+#define IEEE80211_MMIE_MICLEN       8
+
 #define IEEE80211_CRC_LEN           4
 
 #define IEEE80211_8021Q_HEADER_LEN  4

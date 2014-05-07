@@ -88,6 +88,7 @@ struct hif_pci_softc {
     atomic_t ce_suspend;
     bool hif_init_done;
     bool recovery;
+    int htc_endpoint;
 };
 #define TARGID(sc) ((A_target_id_t)(&(sc)->mem))
 #define TARGID_TO_HIF(targid) (((struct hif_pci_softc *)((char *)(targid) - (char *)&(((struct hif_pci_softc *)0)->mem)))->hif_device)
@@ -120,6 +121,8 @@ void hif_reset_soc(void *ol_sc);
 void hif_disable_aspm(void);
 
 void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc);
+
+void hif_pci_save_htc_htt_config_endpoint(int htc_endpoint);
 
 #ifndef REMOVE_PKT_LOG
 extern int pktlogmod_init(void *context);

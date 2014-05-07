@@ -930,6 +930,9 @@ int
 ol_configure_target(struct ol_softc *scn)
 {
 	u_int32_t param;
+#ifdef CONFIG_CNSS
+	struct cnss_platform_cap cap;
+#endif
 
 	/* Tell target which HTC version it is used*/
 	param = HTC_PROTOCOL_VERSION;
@@ -999,6 +1002,36 @@ ol_configure_target(struct ol_softc *scn)
 #endif /* CONFIG_CDC_MAX_PERF_WAR */
 
 #endif /*HIF_PCI*/
+
+#ifdef CONFIG_CNSS
+	{
+		int ret;
+
+		ret = cnss_get_platform_cap(&cap);
+		if (ret)
+			pr_err("platform capability info from CNSS not available\n");
+
+		if (!ret && cap.cap_flag & CNSS_HAS_EXTERNAL_SWREG) {
+			if (BMIReadMemory(scn->hif_hdl,
+				host_interest_item_address(scn->target_type,
+					offsetof(struct host_interest_s, hi_option_flag2)),
+						(A_UCHAR *)&param, 4, scn)!= A_OK) {
+				printk("BMIReadMemory for setting external SWREG failed\n");
+				return A_ERROR;
+			}
+
+			param |= HI_OPTION_USE_EXT_LDO;
+			if (BMIWriteMemory(scn->hif_hdl,
+				host_interest_item_address(scn->target_type,
+					offsetof(struct host_interest_s, hi_option_flag2)),
+						(A_UCHAR *)&param, 4, scn) != A_OK) {
+				printk("BMIWriteMemory for setting external SWREG failed\n");
+				return A_ERROR;
+			}
+		}
+	}
+#endif
+
 	/* If host is running on a BE CPU, set the host interest area */
 	{
 #ifdef BIG_ENDIAN_HOST

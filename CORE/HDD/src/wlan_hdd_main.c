@@ -9830,8 +9830,10 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
       if (hdd_ftm_stop(pHddCtx))
       {
-          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_ftm_stop Failed", __func__);
+          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_stop Failed",__func__);
+          VOS_ASSERT(0);
       }
+      pHddCtx->ftm.ftm_state = WLAN_FTM_STOPPED;
 #endif
       wlan_hdd_ftm_close(pHddCtx);
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: FTM driver unloaded", __func__);
@@ -10572,33 +10574,35 @@ static void hdd_bus_bw_compute_cbk(void *priv)
     hdd_adapter_t *pAdapter = NULL;
     uint64_t tx_packets= 0, rx_packets= 0;
     unsigned long flags;
-    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+    hdd_adapter_list_node_t *pAdapterNode = NULL;
     VOS_STATUS status = 0;
     v_BOOL_t connected = FALSE;
 
     spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
 
-    status = hdd_get_front_adapter( pHddCtx, &pAdapterNode );
-    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status ) {
-        pAdapter = pAdapterNode->pAdapter;
-        if (pAdapter && (pAdapter->device_mode == WLAN_HDD_INFRA_STATION ||
+    for (status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
+            NULL != pAdapterNode && VOS_STATUS_SUCCESS == status;
+            status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pAdapterNode))
+    {
+
+        if ((pAdapter = pAdapterNode->pAdapter) == NULL)
+            continue;
+
+        if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION ||
                     pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) &&
                 WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)->conn_info.connState
                 != eConnectionState_Associated) {
 
-            status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
-            pAdapterNode = pNext;
             continue;
         }
 
-        if (pAdapter && (pAdapter->device_mode == WLAN_HDD_SOFTAP ||
+        if ((pAdapter->device_mode == WLAN_HDD_SOFTAP ||
                     pAdapter->device_mode == WLAN_HDD_P2P_GO) &&
                 WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->bApActive == VOS_FALSE) {
 
-            status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
-            pAdapterNode = pNext;
             continue;
         }
+
         tx_packets += HDD_BW_GET_DIFF(pAdapter->stats.tx_packets,
                 pAdapter->prev_tx_packets);
         rx_packets += HDD_BW_GET_DIFF(pAdapter->stats.rx_packets,
@@ -10607,10 +10611,8 @@ static void hdd_bus_bw_compute_cbk(void *priv)
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
         connected = TRUE;
-
-        status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
-        pAdapterNode = pNext;
     }
+
     spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
 
     if (!connected) {
@@ -11225,13 +11227,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
       {
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
-          goto err_free_hdd_context;
+          goto err_free_adf_context;
       }
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
       if (hdd_ftm_start(pHddCtx))
       {
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_start Failed",__func__);
-          goto err_free_hdd_context;
+          goto err_free_ftm_open;
       }
 #endif
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded", __func__);
@@ -11676,6 +11678,14 @@ err_wdclose:
    if(pHddCtx->cfg_ini->fIsLogpEnabled)
       vos_watchdog_close(pVosContext);
 
+if (VOS_FTM_MODE == hdd_get_conparam())
+{
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
+err_free_ftm_open:
+   wlan_hdd_ftm_close(pHddCtx);
+#endif
+}
+
 err_config:
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
@@ -11684,6 +11694,7 @@ err_free_adf_context:
 #ifdef QCA_WIFI_2_0
    vos_mem_free(adf_ctx);
 #endif
+
 err_free_hdd_context:
    hdd_allow_suspend();
    wiphy_free(wiphy) ;
