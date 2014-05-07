@@ -728,13 +728,6 @@ limInitialize(tpAniSirGlobal pMac)
         return status;
     }
 
-    /*
-     * MLM will be intitalized when 'START' request comes from SME.
-     * limInitMlm calls limCreateTimers, which actually relies on
-     * CFG to be downloaded. So it should not be called as part of
-     * peStart, as CFG download is happening after peStart.
-     */
-    //limInitMlm(pMac);
     // Initializations for maintaining peers in IBSS
     limIbssInit(pMac);
 
@@ -750,34 +743,6 @@ limInitialize(tpAniSirGlobal pMac)
 #endif
 
     vos_list_init(&pMac->lim.gLimMgmtFrameRegistratinQueue);
-
-#if 0
-
-    vos_trace_setLevel(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR);
-    vos_trace_setLevel(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_WARN);
-    vos_trace_setLevel(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_FATAL);
-
-    vos_trace_setLevel(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_WARN);
-    vos_trace_setLevel(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_ERROR);
-
-    vos_trace_setLevel(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_WARN);
-    vos_trace_setLevel(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR);
-    vos_trace_setLevel(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR);
-
-    vos_trace_setLevel(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR);
-
-    vos_trace_setLevel(VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR);
-
-    vos_trace_setLevel(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR);
-    vos_trace_setLevel(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR);
-
-    vos_trace_setLevel(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR);
-
-
-    vos_trace_setLevel(VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_ERROR);
-
-    vos_trace_setLevel(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR);
-#endif
 
     //Initialize the configurations needed by PE
     if( eSIR_FAILURE == __limInitConfig(pMac))

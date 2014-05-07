@@ -379,9 +379,6 @@ __limProcessSmeStartReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         /// By default do not return after first scan match
         pMac->lim.gLimReturnAfterFirstMatch = 0;
 
-        /// Initialize MLM state machine
-        limInitMlm(pMac);
-
         /// By default return unique scan results
         pMac->lim.gLimReturnUniqueResults = true;
         pMac->lim.gLimSmeScanResultLength = 0;
@@ -854,16 +851,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         // Delete pre-auth list if any
         limDeletePreAuthList(pMac);
-
-        // Delete IBSS peer BSSdescription list if any
-        //limIbssDelete(pMac); sep 26 review
-
-
-
-#ifdef FIXME_GEN6   //following code may not be required. limInitMlm is now being invoked during peStart
-        /// Initialize MLM state machine
-        limInitMlm(pMac);
-#endif
 
         psessionEntry->htCapability = IS_DOT11_MODE_HT(pSmeStartBssReq->dot11mode);
 

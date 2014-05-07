@@ -2530,9 +2530,6 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
         }
 #endif
         limInitPeerIdxpool(pMac,psessionEntry);
-        // Create timers used by LIM
-        if (!pMac->lim.gLimTimersCreated)
-            limCreateTimers(pMac);
 
         // Start OLBC timer
         if (tx_timer_activate(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer) != TX_SUCCESS)
@@ -2645,11 +2642,7 @@ limProcessIbssMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession 
        //limInitPreAuthList(pMac);
         if (0 == psessionEntry->freePeerIdxHead)
             limInitPeerIdxpool(pMac,psessionEntry);
-        // Create timers used by LIM
-#ifdef FIXME_GEN6  //following code may not be required, as limCreateTimers is now invoked from limInitialize (peStart)
-        if (!pMac->lim.gLimTimersCreated)
-            limCreateTimers(pMac);
-#endif
+
         /* Update the lim global gLimTriggerBackgroundScanDuringQuietBss */
         if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, WNI_CFG_TRIG_STA_BK_SCAN, &val ))
             limLog( pMac, LOGP, FL("Failed to get WNI_CFG_TRIG_STA_BK_SCAN!"));
@@ -4692,9 +4685,7 @@ limProcessBtampAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession ps
         psessionEntry->bssIdx = (tANI_U8) pAddBssParams->bssIdx;
         schEdcaProfileUpdate(pMac, psessionEntry);
         limInitPeerIdxpool(pMac,psessionEntry);
-        // Create timers used by LIM
-        if (!pMac->lim.gLimTimersCreated)
-        limCreateTimers(pMac);
+
       /* Update the lim global gLimTriggerBackgroundScanDuringQuietBss */
         if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, WNI_CFG_TRIG_STA_BK_SCAN, &val ))
             limLog( pMac, LOGP, FL("Failed to get WNI_CFG_TRIG_STA_BK_SCAN!"));

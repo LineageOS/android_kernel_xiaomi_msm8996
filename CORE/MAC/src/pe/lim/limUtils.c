@@ -915,11 +915,6 @@ limInitMlm(tpAniSirGlobal pMac)
     /// Initialize MAC based Authentication STA list
     limInitPreAuthList(pMac);
 
-    //pMac->lim.gpLimMlmJoinReq = NULL;
-
-    if (pMac->lim.gLimTimersCreated)
-        return;
-
     // Create timers used by LIM
     retVal = limCreateTimers(pMac);
     if(retVal == TX_SUCCESS)
