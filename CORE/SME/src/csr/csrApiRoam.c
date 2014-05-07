@@ -17784,7 +17784,7 @@ csrRoamChannelChangeReq( tpAniSirGlobal pMac, tCsrBssid bssid,
     pMsg->messageLen = sizeof(tSirChanChangeRequest);
     pMsg->targetChannel = targetChannel;
     pMsg->cbMode = cbMode;
-    vos_mem_copy(pMsg->bssid, bssid, WNI_CFG_BSSID_LEN);
+    vos_mem_copy(pMsg->bssid, bssid, VOS_MAC_ADDR_SIZE);
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
 
@@ -17813,7 +17813,7 @@ eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac, tCsrBssid bssid,
     pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_START_BEACON_REQ);
     pMsg->messageLen = sizeof(tSirStartBeaconIndication);
     pMsg->beaconStartStatus  = dfsCacWaitStatus;
-    vos_mem_copy(pMsg->bssid, bssid, WNI_CFG_BSSID_LEN);
+    vos_mem_copy(pMsg->bssid, bssid, VOS_MAC_ADDR_SIZE);
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
 
@@ -17849,7 +17849,7 @@ csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tCsrBssid bssid,
 
     pMsg->targetChannel = targetChannel;
     pMsg->csaIeRequired = csaIeReqd;
-    vos_mem_copy(pMsg->bssid, bssid, WNI_CFG_BSSID_LEN);
+    vos_mem_copy(pMsg->bssid, bssid, VOS_MAC_ADDR_SIZE);
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
 

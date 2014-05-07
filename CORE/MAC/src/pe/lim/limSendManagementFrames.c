@@ -1361,19 +1361,6 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
 
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
 
-    #if 0
-    cfgLen = SIR_MAC_ADDR_LENGTH;
-    if ( eSIR_SUCCESS != wlan_cfgGetStr( pMac, WNI_CFG_BSSID,
-                                    ( tANI_U8* )pMacHdr->bssId, &cfgLen ) )
-    {
-        limLog( pMac, LOGP, FL("Failed to retrieve WNI_CFG_BSSID whil"
-                               "e sending an Add TS Request.") );
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-                    ( void* ) pFrame, ( void* ) pPacket );
-        return;
-    }
-    #endif //TO SUPPORT BT-AMP
-
     sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
 
 #ifdef WLAN_FEATURE_11W
@@ -2019,17 +2006,6 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
 
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
 
-
-    #if 0
-    if ( eSIR_SUCCESS != wlan_cfgGetStr( pMac, WNI_CFG_BSSID,
-                                    ( tANI_U8* )pMacHdr->bssId, &cfgLen ) )
-    {
-        limLog( pMac, LOGP, FL("Failed to retrieve WNI_CFG_BSSID whil"
-                               "e sending an Add TS Response.") );
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
-        return;                 // allocated!
-    }
-    #endif //TO SUPPORT BT-AMP
     sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
 
 #ifdef WLAN_FEATURE_11W
@@ -2211,18 +2187,6 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
 
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
 
-    #if 0
-
-    cfgLen = SIR_MAC_ADDR_LENGTH;
-    if ( eSIR_SUCCESS != wlan_cfgGetStr( pMac, WNI_CFG_BSSID,
-                                    ( tANI_U8* )pMacHdr->bssId, &cfgLen ) )
-    {
-        limLog( pMac, LOGP, FL("Failed to retrieve WNI_CFG_BSSID whil"
-                               "e sending an Add TS Response.") );
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
-        return;                 // allocated!
-    }
-    #endif //TO SUPPORT BT-AMP
     sirCopyMacAddr(pMacHdr->bssId, psessionEntry->bssId);
 
 #ifdef WLAN_FEATURE_11W
@@ -4485,13 +4449,14 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
 tSirRetStatus
 limSendMeasReportFrame(tpAniSirGlobal             pMac,
                        tpSirMacMeasReqActionFrame pMeasReqFrame,
-                       tSirMacAddr                peer)
+                       tSirMacAddr                peer,
+                       tpPESession psessionEntry)
 {
     tDot11fMeasurementReport frm;
     tANI_U8                      *pFrame;
     tSirRetStatus            nSirStatus;
     tpSirMacMgmtHdr          pMacHdr;
-    tANI_U32                      nBytes, nPayload, nStatus, nCfg;
+    tANI_U32                      nBytes, nPayload, nStatus;
     void               *pPacket;
     eHalStatus          halstatus;
 
@@ -4570,16 +4535,7 @@ limSendMeasReportFrame(tpAniSirGlobal             pMac,
 
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
 
-    nCfg = 6;
-    nSirStatus = wlan_cfgGetStr( pMac, WNI_CFG_BSSID, pMacHdr->bssId, &nCfg );
-    if ( eSIR_SUCCESS != nSirStatus )
-    {
-        limLog( pMac, LOGE, FL("Failed to retrieve WNI_CFG_BSSID from"
-                               " CFG (%d)."),
-                nSirStatus );
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
-        return eSIR_FAILURE;    // just allocated...
-    }
+    vos_mem_copy(pMacHdr->bssId, psessionEntry->bssId, sizeof(tSirMacAddr));
 
 #ifdef WLAN_FEATURE_11W
     limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
@@ -4639,13 +4595,14 @@ limSendMeasReportFrame(tpAniSirGlobal             pMac,
 
 void
 limSendTpcRequestFrame(tpAniSirGlobal pMac,
-                       tSirMacAddr    peer)
+                       tSirMacAddr    peer,
+                       tpPESession psessionEntry)
 {
     tDot11fTPCRequest  frm;
     tANI_U8                *pFrame;
     tSirRetStatus      nSirStatus;
     tpSirMacMgmtHdr    pMacHdr;
-    tANI_U32                nBytes, nPayload, nStatus, nCfg;
+    tANI_U32                nBytes, nPayload, nStatus;
     void               *pPacket;
     eHalStatus          halstatus;
 
@@ -4699,16 +4656,7 @@ limSendTpcRequestFrame(tpAniSirGlobal pMac,
 
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
 
-    nCfg = 6;
-    nSirStatus = wlan_cfgGetStr( pMac, WNI_CFG_BSSID, pMacHdr->bssId, &nCfg );
-    if ( eSIR_SUCCESS != nSirStatus )
-    {
-        limLog( pMac, LOGE, FL("Failed to retrieve WNI_CFG_BSSID from"
-                               " CFG (%d)."),
-                nSirStatus );
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
-        return;                 // just allocated...
-    }
+    vos_mem_copy(pMacHdr->bssId, psessionEntry->bssId, sizeof(tSirMacAddr));
 
 #ifdef WLAN_FEATURE_11W
     limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
@@ -4769,13 +4717,14 @@ limSendTpcRequestFrame(tpAniSirGlobal pMac,
 tSirRetStatus
 limSendTpcReportFrame(tpAniSirGlobal            pMac,
                       tpSirMacTpcReqActionFrame pTpcReqFrame,
-                      tSirMacAddr               peer)
+                      tSirMacAddr               peer,
+                      tpPESession psessionEntry)
 {
     tDot11fTPCReport frm;
     tANI_U8              *pFrame;
     tSirRetStatus    nSirStatus;
     tpSirMacMgmtHdr  pMacHdr;
-    tANI_U32              nBytes, nPayload, nStatus, nCfg;
+    tANI_U32              nBytes, nPayload, nStatus;
     void               *pPacket;
     eHalStatus          halstatus;
 
@@ -4836,16 +4785,7 @@ limSendTpcReportFrame(tpAniSirGlobal            pMac,
 
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
 
-    nCfg = 6;
-    nSirStatus = wlan_cfgGetStr( pMac, WNI_CFG_BSSID, pMacHdr->bssId, &nCfg );
-    if ( eSIR_SUCCESS != nSirStatus )
-    {
-        limLog( pMac, LOGE, FL("Failed to retrieve WNI_CFG_BSSID from"
-                               " CFG (%d)."),
-                nSirStatus );
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
-        return eSIR_FAILURE;    // just allocated...
-    }
+    vos_mem_copy(pMacHdr->bssId, psessionEntry->bssId, sizeof(tSirMacAddr));
 
 #ifdef WLAN_FEATURE_11W
     limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
@@ -4991,21 +4931,6 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
         return eSIR_FAILURE;    // just allocated...
     }
-
-#if 0
-    pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
-
-    nCfg = 6;
-    nSirStatus = wlan_cfgGetStr( pMac, WNI_CFG_BSSID, pMacHdr->bssId, &nCfg );
-    if ( eSIR_SUCCESS != nSirStatus )
-    {
-        limLog( pMac, LOGE, FL("Failed to retrieve WNI_CFG_BSSID from"
-                               " CFG (%d)."),
-                nSirStatus );
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
-        return eSIR_FAILURE;    // just allocated...
-    }
-#endif
 
 #ifdef WLAN_FEATURE_11W
     limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
@@ -5456,22 +5381,6 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
     // Update A3 with the BSSID
     pMacHdr = ( tpSirMacMgmtHdr ) pAddBAReqBuffer;
 
-    #if 0
-    cfgLen = SIR_MAC_ADDR_LENGTH;
-    if( eSIR_SUCCESS != cfgGetStr( pMac,
-        WNI_CFG_BSSID,
-        (tANI_U8 *) pMacHdr->bssId,
-        &cfgLen ))
-    {
-        limLog( pMac, LOGP,
-        FL( "Failed to retrieve WNI_CFG_BSSID while"
-          "sending an ACTION Frame" ));
-
-        // FIXME - Need to convert to tSirRetStatus
-        statusCode = eSIR_FAILURE;
-        goto returnAfterError;
-    }
-    #endif//TO SUPPORT BT-AMP
     sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
 
 #ifdef WLAN_FEATURE_11W
@@ -5674,22 +5583,6 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
 
       pMacHdr = ( tpSirMacMgmtHdr ) pAddBARspBuffer;
 
-      #if 0
-      cfgLen = SIR_MAC_ADDR_LENGTH;
-      if( eSIR_SUCCESS != wlan_cfgGetStr( pMac,
-            WNI_CFG_BSSID,
-            (tANI_U8 *) pMacHdr->bssId,
-            &cfgLen ))
-      {
-        limLog( pMac, LOGP,
-            FL( "Failed to retrieve WNI_CFG_BSSID while"
-              "sending an ACTION Frame" ));
-
-        // FIXME - Need to convert to tSirRetStatus
-        statusCode = eSIR_FAILURE;
-        goto returnAfterError;
-      }
-      #endif // TO SUPPORT BT-AMP
       sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
 
 #ifdef WLAN_FEATURE_11W
@@ -5879,22 +5772,6 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
       // Update A3 with the BSSID
       pMacHdr = ( tpSirMacMgmtHdr ) pDelBAIndBuffer;
 
-      #if 0
-      cfgLen = SIR_MAC_ADDR_LENGTH;
-      if( eSIR_SUCCESS != cfgGetStr( pMac,
-            WNI_CFG_BSSID,
-            (tANI_U8 *) pMacHdr->bssId,
-            &cfgLen ))
-      {
-        limLog( pMac, LOGP,
-            FL( "Failed to retrieve WNI_CFG_BSSID while"
-              "sending an ACTION Frame" ));
-
-        // FIXME - Need to convert to tSirRetStatus
-        statusCode = eSIR_FAILURE;
-        goto returnAfterError;
-      }
-      #endif //TO SUPPORT BT-AMP
       sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
 
 #ifdef WLAN_FEATURE_11W

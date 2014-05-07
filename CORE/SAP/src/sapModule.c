@@ -1794,7 +1794,7 @@ WLANSAP_DelKeySta
 
         vos_mem_zero(&RemoveKeyInfo, sizeof(RemoveKeyInfo));
         RemoveKeyInfo.encType = pRemoveKeyInfo->encType;
-        vos_mem_copy(RemoveKeyInfo.peerMac, pRemoveKeyInfo->peerMac, WNI_CFG_BSSID_LEN);
+        vos_mem_copy(RemoveKeyInfo.peerMac, pRemoveKeyInfo->peerMac, VOS_MAC_ADDR_SIZE);
         RemoveKeyInfo.keyId = pRemoveKeyInfo->keyId;
 
         halStatus = sme_RoamRemoveKey(hHal, pSapCtx->sessionId, &RemoveKeyInfo, &roamId);

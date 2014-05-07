@@ -5381,14 +5381,6 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
         pSta = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
 
         val = sizeof(tSirMacAddr);
-        #if 0
-        if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, peerMacAddr, &val) != eSIR_SUCCESS)
-        {
-            /// Could not get BSSID from CFG. Log error.
-            limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-            return eSIR_FAILURE;
-        }
-       #endif// TO SUPPORT BT-AMP
        sirCopyMacAddr(peerMacAddr,psessionEntry->bssId);
 
     }

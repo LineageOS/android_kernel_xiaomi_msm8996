@@ -682,15 +682,6 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 return;
             }
             val = sizeof(tSirMacAddr);
-            #if 0
-            if (cfgGetStr(pMac, WNI_CFG_BSSID,
-                          pMlmAssocReq->peerMacAddr,
-                          &val) != eSIR_SUCCESS)
-            {
-                /// Could not get BSSID from CFG. Log error.
-                limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-            }
-            #endif //SUPPORT BT-AMP
             sirCopyMacAddr(pMlmAssocReq->peerMacAddr,psessionEntry->bssId);
             if (wlan_cfgGetInt(pMac, WNI_CFG_ASSOCIATION_FAILURE_TIMEOUT,
                           (tANI_U32 *) &pMlmAssocReq->assocFailureTimeout)
@@ -2729,16 +2720,6 @@ limProcessStaMlmAddBssRspPreAssoc( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPES
                        FL("call to AllocateMemory failed for mlmAuthReq"));
                 return;
             }
-            #if 0
-            val = sizeof(tSirMacAddr);
-            if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID,
-                          pMlmAuthReq->peerMacAddr,
-                          &val) != eSIR_SUCCESS)
-            {
-                /// Could not get BSSID from CFG. Log error.
-                limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-            }
-            #endif //TO SUPPORT BT-AMP
             sirCopyMacAddr(pMlmAuthReq->peerMacAddr,psessionEntry->bssId);
 
             pMlmAuthReq->authType = authMode;

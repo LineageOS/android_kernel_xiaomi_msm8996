@@ -1263,10 +1263,10 @@ void hdd_PerformRoamSetKeyComplete(hdd_adapter_t *pAdapter)
     roamInfo.fAuthRequired = FALSE;
     vos_mem_copy(roamInfo.bssid,
                  pHddStaCtx->roam_info.bssid,
-                 WNI_CFG_BSSID_LEN);
+                 VOS_MAC_ADDR_SIZE);
     vos_mem_copy(roamInfo.peerMac,
                  pHddStaCtx->roam_info.peerMac,
-                 WNI_CFG_BSSID_LEN);
+                 VOS_MAC_ADDR_SIZE);
 
     halStatus = hdd_RoamSetKeyCompleteHandler(pAdapter,
                                   &roamInfo,
@@ -2160,7 +2160,7 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
          {
             pHddStaCtx->ibss_enc_key.keyDirection = eSIR_TX_RX;
             memcpy(&pHddStaCtx->ibss_enc_key.peerMac,
-                              pRoamInfo->peerMac, WNI_CFG_BSSID_LEN);
+                              pRoamInfo->peerMac, VOS_MAC_ADDR_SIZE);
 
             VOS_TRACE( VOS_MODULE_ID_HDD,
                VOS_TRACE_LEVEL_INFO_HIGH, "New peer joined set PTK encType=%d",
@@ -4351,9 +4351,9 @@ void hdd_indicateCckmPreAuth(hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo)
     pos += nBytes;
     freeBytes -= nBytes;
 
-    vos_mem_copy(pos, pRoamInfo->bssid, WNI_CFG_BSSID_LEN);
-    pos += WNI_CFG_BSSID_LEN;
-    freeBytes -= WNI_CFG_BSSID_LEN;
+    vos_mem_copy(pos, pRoamInfo->bssid, VOS_MAC_ADDR_SIZE);
+    pos += VOS_MAC_ADDR_SIZE;
+    freeBytes -= VOS_MAC_ADDR_SIZE;
 
     nBytes = snprintf(pos, freeBytes, " %u:%u",
              pRoamInfo->timestamp[0], pRoamInfo->timestamp[1]);

@@ -4067,15 +4067,6 @@ __limProcessSmeAddtsReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    #if 0
-    val = sizeof(tSirMacAddr);
-    if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, peerMac, &val) != eSIR_SUCCESS)
-    {
-        /// Could not get BSSID from CFG. Log error.
-        limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-        return;
-    }
-    #endif
     sirCopyMacAddr(peerMac,psessionEntry->bssId);
 
     // save the addts request

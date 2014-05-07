@@ -786,16 +786,6 @@ limSendDelStaCnf(tpAniSirGlobal pMac, tSirMacAddr staDsAddr,
     {
         // Set BSSID at CFG to null
         tSirMacAddr nullAddr = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-        #if 0
-        if (cfgSetStr(pMac, WNI_CFG_BSSID, (tANI_U8 *) &nullAddr,
-                      sizeof(tSirMacAddr)) != eSIR_SUCCESS)
-        {
-            /// Could not update BSSID at CFG. Log error.
-            limLog(pMac, LOGP, FL("could not update BSSID at CFG"));
-
-            return;
-        }
-        #endif//TO SUPPORT BT-AMP
 
         sirCopyMacAddr(nullAddr,psessionEntry->bssId);
 
@@ -1507,20 +1497,6 @@ limRestorePreReassocState(tpAniSirGlobal pMac,
 
     // 'Change' timer for future activations
     limDeactivateAndChangeTimer(pMac, eLIM_REASSOC_FAIL_TIMER);
-
-    // Update BSSID at CFG database
-    #if 0
-    if (cfgSetStr(pMac, WNI_CFG_BSSID,
-                  pMac->lim.gLimCurrentBssId,
-                  sizeof(tSirMacAddr)) != eSIR_SUCCESS)
-    {
-        /// Could not update BSSID at CFG. Log error.
-        limLog(pMac, LOGP, FL("could not update BSSID at CFG"));
-        return;
-    }
-    #endif
-
-   // chanNum = pMac->lim.gLimCurrentChannelId;
 
    /*  To support BT-AMP */
    chanNum = psessionEntry->currentOperChannel;

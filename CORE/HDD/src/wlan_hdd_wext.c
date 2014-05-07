@@ -1415,7 +1415,7 @@ void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
    pAdapter->wapi_info.nWapiMode = 0;
 #endif
 
-   vos_mem_zero((void *)(pWextState->req_bssId), WNI_CFG_BSSID_LEN);
+   vos_mem_zero((void *)(pWextState->req_bssId), VOS_MAC_ADDR_SIZE);
 
 }
 
@@ -3910,7 +3910,7 @@ static int iw_set_encodeext(struct net_device *dev,
 
     struct iw_encode_ext *ext = (struct iw_encode_ext*)extra;
 
-    v_U8_t groupmacaddr[WNI_CFG_BSSID_LEN] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+    v_U8_t groupmacaddr[VOS_MAC_ADDR_SIZE] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
     int key_index;
     struct iw_point *encoding = &wrqu->encoding;
@@ -3977,12 +3977,12 @@ static int iw_set_encodeext(struct net_device *dev,
     if(ext->ext_flags & IW_ENCODE_EXT_GROUP_KEY) {
       /*Key direction for group is RX only*/
        setKey.keyDirection = eSIR_RX_ONLY;
-       vos_mem_copy(setKey.peerMac,groupmacaddr,WNI_CFG_BSSID_LEN);
+       vos_mem_copy(setKey.peerMac,groupmacaddr, VOS_MAC_ADDR_SIZE);
     }
     else {
 
        setKey.keyDirection =  eSIR_TX_RX;
-       vos_mem_copy(setKey.peerMac,ext->addr.sa_data,WNI_CFG_BSSID_LEN);
+       vos_mem_copy(setKey.peerMac,ext->addr.sa_data, VOS_MAC_ADDR_SIZE);
     }
 
     /*For supplicant pae role is zero*/
@@ -7954,7 +7954,7 @@ static int iw_qcom_set_wapi_key(struct net_device *dev, struct iw_request_info *
         case PAIRWISE_KEY:
         {
             isConnected = hdd_connIsConnected(pHddStaCtx);
-            vos_mem_copy(setKey.peerMac,&pHddStaCtx->conn_info.bssId,WNI_CFG_BSSID_LEN);
+            vos_mem_copy(setKey.peerMac,&pHddStaCtx->conn_info.bssId, VOS_MAC_ADDR_SIZE);
             break;
         }
         case GROUP_KEY:

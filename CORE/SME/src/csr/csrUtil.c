@@ -5249,17 +5249,17 @@ tANI_BOOLEAN csrIsSsidInList( tHalHandle hHal, tSirMacSSid *pSsid, tCsrSSIDs *pS
 //like to use sirCompareMacAddr
 tANI_BOOLEAN csrIsMacAddressZero( tpAniSirGlobal pMac, tCsrBssid *pMacAddr )
 {
-    tANI_U8 bssid[WNI_CFG_BSSID_LEN] = {0, 0, 0, 0, 0, 0};
+    tANI_U8 bssid[VOS_MAC_ADDR_SIZE] = {0, 0, 0, 0, 0, 0};
 
-    return (vos_mem_compare(bssid, pMacAddr, WNI_CFG_BSSID_LEN));
+    return (vos_mem_compare(bssid, pMacAddr, VOS_MAC_ADDR_SIZE));
 }
 
 //like to use sirCompareMacAddr
 tANI_BOOLEAN csrIsMacAddressBroadcast( tpAniSirGlobal pMac, tCsrBssid *pMacAddr )
 {
-    tANI_U8 bssid[WNI_CFG_BSSID_LEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    tANI_U8 bssid[VOS_MAC_ADDR_SIZE] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-    return(vos_mem_compare(bssid, pMacAddr, WNI_CFG_BSSID_LEN));
+    return(vos_mem_compare(bssid, pMacAddr, VOS_MAC_ADDR_SIZE));
 }
 
 

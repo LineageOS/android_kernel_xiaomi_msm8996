@@ -146,7 +146,7 @@ typedef enum
 }eCsrPhyMode;
 
 
-typedef tANI_U8 tCsrBssid[WNI_CFG_BSSID_LEN];
+typedef tANI_U8 tCsrBssid[VOS_MAC_ADDR_SIZE];
 
 typedef enum
 {
@@ -354,7 +354,7 @@ typedef struct tagCsrEseCckmIe
 
 typedef struct tagCsrScanResultFilter
 {
-    tCsrBSSIDs BSSIDs;    //each bssid has a length of WNI_CFG_BSSID_LEN (6)
+    tCsrBSSIDs BSSIDs;    //each bssid has a length of VOS_MAC_ADDR_SIZE (6)
     tCsrSSIDs SSIDs;
     tCsrChannelInfo ChannelInfo;
     tCsrAuthList authType;

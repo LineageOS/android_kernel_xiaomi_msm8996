@@ -1834,19 +1834,7 @@ limProcessMlmStartReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     #endif //TO SUPPORT BT-AMP
 
 
-    // Update BSSID & SSID at CFG database
-    #if 0 //We are not using the BSSID and SSID from the config file, instead we are reading form the session table
-     if (cfgSetStr(pMac, WNI_CFG_BSSID, (tANI_U8 *) pMlmStartReq->bssId, sizeof(tSirMacAddr))
-        != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("could not update BSSID at CFG"));
-
-
-
-    vos_mem_copy(  pMac->lim.gLimCurrentBssId,
-                   pMlmStartReq->bssId,
-                   sizeof(tSirMacAddr));
-    #endif //TO SUPPORT BT-AMP
-
+    // Update SSID at CFG database
     #if 0
     if (cfgSetStr(pMac, WNI_CFG_SSID, (tANI_U8 *) &pMlmStartReq->ssId.ssId, pMlmStartReq->ssId.length)
         != eSIR_SUCCESS)
@@ -2416,15 +2404,6 @@ limProcessMlmAuthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
      * adress and requested authentication algorithm is
      * supported.
      */
-     #if 0
-    if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) !=
-                                eSIR_SUCCESS)
-    {
-        /// Could not get BSSID from CFG. Log error.
-        limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-    }
-    #endif //To SuppoRT BT-AMP
-
     sirCopyMacAddr(currentBssId,psessionEntry->bssId);
 
     if (((((psessionEntry->limSystemRole== eLIM_STA_ROLE) || (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)) &&
@@ -2607,14 +2586,6 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    #if 0
-    if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) !=
-                                eSIR_SUCCESS)
-    {
-        /// Could not get BSSID from CFG. Log error.
-        limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-    }
-    #endif //TO SUPPORT BT-AMP
     sirCopyMacAddr(currentBssId,psessionEntry->bssId);
 
     if ( (psessionEntry->limSystemRole != eLIM_AP_ROLE && psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE) &&
@@ -2776,17 +2747,6 @@ limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->limMlmState    = eLIM_MLM_WT_REASSOC_RSP_STATE;
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
 
-#if 0
-        // Update BSSID at CFG database
-        if (wlan_cfgSetStr(pMac, WNI_CFG_BSSID,
-                      pMac->lim.gLimReassocBssId,
-                      sizeof(tSirMacAddr)) != eSIR_SUCCESS)
-        {
-            /// Could not update BSSID at CFG. Log error.
-            limLog(pMac, LOGP, FL("could not update BSSID at CFG"));
-        }
-#endif //TO SUPPORT BT-AMP
-
     /* Copy Global Reassoc ID*/
    // sirCopyMacAddr(psessionEntry->reassocbssId,pMac->lim.gLimReAssocBssId);
 
@@ -2887,14 +2847,6 @@ limProcessMlmDisassocReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_
     psessionEntry->limSystemRole, psessionEntry->limMlmState,
     MAC_ADDR_ARRAY(pMlmDisassocReq->peerMacAddr));
 
-    #if 0
-    if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) !=
-                                eSIR_SUCCESS)
-    {
-        /// Could not get BSSID from CFG. Log error.
-        limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-    }
-    #endif //BT-AMP Support
     sirCopyMacAddr(currentBssId,psessionEntry->bssId);
 
     switch (psessionEntry->limSystemRole)
@@ -3210,14 +3162,6 @@ limProcessMlmDeauthReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_U3
     "mlmstate %d from: "MAC_ADDRESS_STR), pMlmDeauthReq->sessionId,
     psessionEntry->limSystemRole, psessionEntry->limMlmState,
     MAC_ADDR_ARRAY(pMlmDeauthReq->peerMacAddr));
-    #if 0
-    if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) !=
-                                eSIR_SUCCESS)
-    {
-        /// Could not get BSSID from CFG. Log error.
-        limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-    }
-    #endif //SUPPORT BT-AMP
     sirCopyMacAddr(currentBssId,psessionEntry->bssId);
 
     switch (psessionEntry->limSystemRole)
@@ -3527,12 +3471,6 @@ tpPESession        psessionEntry;
       pMlmSetKeysReq->numKeys );
   limPrintMacAddr( pMac, pMlmSetKeysReq->peerMacAddr, LOGW );
 
-    #if 0
-    if( eSIR_SUCCESS != wlan_cfgGetStr( pMac, WNI_CFG_BSSID, currentBssId, &cfg )) {
-    limLog( pMac, LOGP, FL("Could not retrieve BSSID"));
-        return;
-    }
-    #endif //TO SUPPORT BT-AMP
     sirCopyMacAddr(currentBssId,psessionEntry->bssId);
 
     switch( psessionEntry->limSystemRole ) {
@@ -3717,13 +3655,6 @@ tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
     // Hold onto the RemoveKeys request parameters
     pMac->lim.gpLimMlmRemoveKeyReq = (void *) pMlmRemoveKeyReq;
 
-    #if 0
-    if( eSIR_SUCCESS != wlan_cfgGetStr( pMac,
-        WNI_CFG_BSSID,
-        currentBssId,
-        &cfg ))
-    limLog( pMac, LOGP, FL("Could not retrieve BSSID"));
-    #endif //TO-SUPPORT BT-AMP
     sirCopyMacAddr(currentBssId,psessionEntry->bssId);
 
     switch( psessionEntry->limSystemRole )
@@ -4085,7 +4016,6 @@ static void
 limProcessJoinFailureTimeout(tpAniSirGlobal pMac)
 {
     tLimMlmJoinCnf  mlmJoinCnf;
-    tSirMacAddr bssid;
     tANI_U32 len;
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT_LIM
     vos_log_rssi_pkt_type *pRssiLog = NULL;
@@ -4113,14 +4043,6 @@ limProcessJoinFailureTimeout(tpAniSirGlobal pMac)
     if (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE)
     {
         len = sizeof(tSirMacAddr);
-
-        if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, bssid, &len) !=
-                            eSIR_SUCCESS)
-        {
-            /// Could not get BSSID from CFG. Log error.
-            limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-            return;
-        }
 
         // 'Change' timer for future activations
         limDeactivateAndChangeTimer(pMac, eLIM_JOIN_FAIL_TIMER);

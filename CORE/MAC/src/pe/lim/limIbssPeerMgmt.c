@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -557,15 +557,7 @@ ibss_bss_add(
     vos_mem_copy(psessionEntry->bssId, pHdr->bssId,
                  sizeof(tSirMacAddr));
 
-    #if 0
-    if (cfgSetStr(pMac, WNI_CFG_BSSID, (tANI_U8 *) pHdr->bssId, sizeof(tSirMacAddr))
-        != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("could not update BSSID at CFG"));
-    #endif //TO SUPPORT BT-AMP
-
     sirCopyMacAddr(pHdr->bssId,psessionEntry->bssId);
-    /* We need not use global Mac address since per seesion BSSID is available */
-    //limSetBssid(pMac, pHdr->bssId);
 
 #if 0
     if (wlan_cfgGetInt(pMac, WNI_CFG_BEACON_INTERVAL, &cfg) != eSIR_SUCCESS)
