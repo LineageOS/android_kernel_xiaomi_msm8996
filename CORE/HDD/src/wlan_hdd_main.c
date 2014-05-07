@@ -10920,7 +10920,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /*
     * cfg80211: Initialization  ...
     */
+#if !defined(HIF_USB)
    if (VOS_FTM_MODE != hdd_get_conparam())
+#endif
    {
       if (0 < wlan_hdd_cfg80211_init(dev, wiphy, pHddCtx->cfg_ini))
       {
