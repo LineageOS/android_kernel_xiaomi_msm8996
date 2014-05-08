@@ -4408,6 +4408,9 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		}
 	}
 
+	cmd->n_probes = (cmd->repeat_probe_time > 0) ?
+			    cmd->dwell_time_active/cmd->repeat_probe_time : 0;
+
 	buf_ptr += sizeof(*cmd);
 	tmp_ptr = (u_int32_t *) (buf_ptr + WMI_TLV_HDR_SIZE);
 
@@ -5294,6 +5297,7 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
         scan_params->probe_delay = 0;
         scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION; /* 30 seconds for full scan cycle */
         scan_params->idle_time = scan_params->min_rest_time;
+        scan_params->n_probes = roam_req->nProbes;
     } else {
         /* roam_req = NULL during initial or pre-assoc invocation */
         scan_params->dwell_time_active = WMA_ROAM_DWELL_TIME_ACTIVE_DEFAULT;
@@ -5306,6 +5310,7 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
         scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
         scan_params->idle_time = scan_params->min_rest_time;
         scan_params->burst_duration = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
+        scan_params->n_probes = 0;
     }
 
     scan_params->scan_ctrl_flags = WMI_SCAN_ADD_CCK_RATES | WMI_SCAN_ADD_OFDM_RATES;
@@ -5318,11 +5323,12 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
              scan_params->dwell_time_active,
              scan_params->dwell_time_passive);
     WMA_LOGI("%s: min_rest_time = %d, max_rest_time = %d,"
-             " repeat_probe_time = %d",
+             " repeat_probe_time = %d n_probes = %d",
              __func__,
              scan_params->min_rest_time,
              scan_params->max_rest_time,
-             scan_params->repeat_probe_time);
+             scan_params->repeat_probe_time,
+             scan_params->n_probes);
     WMA_LOGI("%s: max_scan_time = %d, idle_time = %d,"
              " burst_duration = %d, scan_ctrl_flags = 0x%x",
              __func__,
