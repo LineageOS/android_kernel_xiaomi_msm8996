@@ -5272,6 +5272,8 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
         scan_params->idle_time = scan_params->min_rest_time;
         scan_params->burst_duration = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
     }
+
+    scan_params->scan_ctrl_flags = WMI_SCAN_ADD_CCK_RATES | WMI_SCAN_ADD_OFDM_RATES;
     if (!pMac->roam.configParam.allowDFSChannelRoam) {
         scan_params->scan_ctrl_flags |= WMI_SCAN_BYPASS_DFS_CHN;
     }
