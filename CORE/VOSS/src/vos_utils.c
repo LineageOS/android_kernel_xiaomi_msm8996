@@ -187,6 +187,183 @@ v_U8_t vos_get_mmie_size()
     return sizeof(struct ieee80211_mmie);
 }
 
+/*--------------------------------------------------------------------------
+
+  \brief vos_increase_seq() - Increase the IPN aka Sequence number by one unit
+
+  The vos_increase_seq() function increases the IPN by one unit.
+
+  \param ipn - pointer to the IPN aka Sequence number [6 bytes]
+
+  --------------------------------------------------------------------------*/
+static void
+vos_increase_seq(v_U8_t *ipn)
+{
+     v_U64_t value = 0;
+     if (ipn)
+     {
+         value = (0xffffffffffff)& (*((v_U64_t *)ipn));
+         value = value + 1;
+         vos_mem_copy(ipn, &value, IEEE80211_MMIE_IPNLEN);
+     }
+}
+
+/*--------------------------------------------------------------------------
+
+  \brief vos_attach_mmie() - attches the complete MMIE at the end of frame
+
+  The vos_attach_mmie() calculates the entire MMIE and attaches at the end
+  of Broadcast/Multicast robust management frames.
+
+  \param igtk - pointer  group key which will be used to calculate
+                the 8 byte MIC.
+  \param ipn - pointer ipn, it is also known as sequence number
+  \param key_id - key identication number
+  \param frm - pointer to the start of the frame.
+  \param efrm - pointer to the end of the frame.
+  \param frmLen - size of the entire frame.
+
+  \return - this function will return VOS_TRUE on success and VOS_FALSE on
+            failure.
+
+  --------------------------------------------------------------------------*/
+
+v_BOOL_t
+vos_attach_mmie(v_U8_t *igtk, v_U8_t *ipn, u_int16_t key_id,
+                v_U8_t* frm, v_U8_t* efrm, u_int16_t frmLen)
+{
+    struct ieee80211_mmie  *mmie;
+    struct ieee80211_frame *wh;
+    v_U8_t aad[AAD_LEN], mic[CMAC_TLEN], *input = NULL;
+    v_U8_t previous_ipn[IEEE80211_MMIE_IPNLEN] = {0};
+    v_U16_t nBytes = 0;
+    int ret = 0;
+    struct crypto_cipher *tfm;
+
+    /*  This is how received frame look like
+     *
+     *        <------------frmLen---------------------------->
+     *
+     *        +---------------+----------------------+-------+
+     *        | 802.11 HEADER | Management framebody | MMIE  |
+     *        +---------------+----------------------+-------+
+     *                                                       ^
+     *                                                       |
+     *                                                      efrm
+     *   This is how MMIE from above frame look like
+     *
+     *
+     *        <------------ 18 Bytes----------------------------->
+     *        +--------+---------+---------+-----------+---------+
+     *        |Element | Length  | Key id  |   IPN     |  MIC    |
+     *        |  id    |         |         |           |         |
+     *        +--------+---------+---------+-----------+---------+
+     * Octet     1         1         2         6            8
+     *
+     */
+
+    /* Check if frame is invalid length */
+    if (((efrm - frm) != frmLen) || (frmLen < sizeof(*wh)))
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Invalid frame length", __func__);
+        return VOS_FALSE;
+    }
+    mmie = (struct ieee80211_mmie *)(efrm - sizeof(*mmie));
+
+    /* Copy Element id */
+    mmie->element_id = IEEE80211_ELEMID_MMIE;
+
+    /* Copy Length */
+    mmie->length = sizeof(*mmie)-2;
+
+    /* Copy Key id */
+    mmie->key_id = key_id;
+
+    /*
+     * In case of error, revert back to original IPN
+     * to do that copy the original IPN into previous_ipn
+     */
+    vos_mem_copy(&previous_ipn[0], ipn, IEEE80211_MMIE_IPNLEN);
+    vos_increase_seq(ipn);
+    vos_mem_copy(mmie->sequence_number, ipn, IEEE80211_MMIE_IPNLEN);
+
+    /*
+     * Calculate MIC and then copy
+     */
+    tfm = wcnss_wlan_crypto_alloc_cipher( "aes", 0, CRYPTO_ALG_ASYNC);
+    if (IS_ERR(tfm))
+    {
+        ret = PTR_ERR(tfm);
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,
+             "%s: crypto_alloc_cipher failed (%d)", __func__, ret);
+        goto err_tfm;
+    }
+
+    ret = crypto_cipher_setkey(tfm, igtk, AES_KEYSIZE_128);
+    if (ret) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,
+             "%s: crypto_cipher_setkey failed (%d)", __func__, ret);
+        goto err_tfm;
+    }
+
+    /* Construct AAD */
+    wh = (struct ieee80211_frame *)frm;
+
+    /* Generate BIP AAD: FC(masked) || A1 || A2 || A3 */
+
+    /* FC type/subtype */
+    aad[0] = wh->i_fc[0];
+    /* Mask FC Retry, PwrMgt, MoreData flags to zero */
+    aad[1] = wh->i_fc[1] & ~(IEEE80211_FC1_RETRY | IEEE80211_FC1_PWR_MGT |
+                             IEEE80211_FC1_MORE_DATA);
+    /* A1 || A2 || A3 */
+    vos_mem_copy(aad + 2, wh->i_addr_all, 3 * IEEE80211_ADDR_LEN);
+
+    /* MIC = AES-128-CMAC(IGTK, AAD || Management Frame Body || MMIE, 64) */
+    nBytes = AAD_LEN + (frmLen - sizeof(struct ieee80211_frame));
+    input = (v_U8_t *)vos_mem_malloc(nBytes);
+    if (NULL == input)
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Memory allocation failed", __func__);
+        ret = VOS_STATUS_E_NOMEM;
+        goto err_tfm;
+    }
+
+    /*
+     * Copy the AAD, Management frame body, and
+     * MMIE with 8 bit MIC zeroed out
+     */
+    vos_mem_zero(input, nBytes);
+    vos_mem_copy(input, aad, AAD_LEN);
+    /* Copy Management Frame Body and MMIE without MIC*/
+    vos_mem_copy(input+AAD_LEN,
+                (v_U8_t*)(efrm-(frmLen-sizeof(struct ieee80211_frame))),
+                nBytes - AAD_LEN - CMAC_TLEN);
+
+    wcnss_wlan_cmac_calc_mic(tfm, input, nBytes, mic);
+    vos_mem_free(input);
+
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+            "CMAC(T)= %02X %02X %02X %02X %02X %02X %02X %02X",
+            mic[0], mic[1], mic[2], mic[3],
+            mic[4], mic[5], mic[6], mic[7]);
+    vos_mem_copy(mmie->mic, mic, IEEE80211_MMIE_MICLEN);
+
+
+err_tfm:
+    if (ret)
+    {
+       vos_mem_copy(ipn, previous_ipn, IEEE80211_MMIE_IPNLEN);
+    }
+
+    if (tfm)
+        wcnss_wlan_crypto_free_cipher(tfm);
+
+    return !ret?VOS_TRUE:VOS_FALSE;
+}
+
 v_BOOL_t vos_is_mmie_valid(v_U8_t *igtk, v_U8_t *ipn,
                            v_U8_t* frm, v_U8_t* efrm)
 {

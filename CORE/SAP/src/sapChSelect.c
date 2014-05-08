@@ -2343,7 +2343,7 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
                     /* Give preference to Non-overlap channels */
                     if (sapFilterOverLapCh(pSapCtx,
                             pSpectInfoParams->pSpectCh[count].chNum) &&
-                        (pSpectInfoParams->pSpectCh[count].weight ==
+                        (pSpectInfoParams->pSpectCh[count].weight <=
                                  pSapCtx->acsBestChannelInfo.weight))
                     {
                         tmpChNum = pSpectInfoParams->pSpectCh[count].chNum;

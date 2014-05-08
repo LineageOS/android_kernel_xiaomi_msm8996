@@ -273,12 +273,14 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                     "Memory Header is corrupted. MemInfo: Filename %s, LineNum %d",
                                 memStruct->fileName, (int)memStruct->lineNum);
+               VOS_BUG(0);
             }
             if(0 == vos_mem_compare( (v_U8_t*)ptr + memStruct->size, &WLAN_MEM_TAIL[0], sizeof(WLAN_MEM_TAIL ) ) )
             {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                     "Memory Trailer is corrupted. MemInfo: Filename %s, LineNum %d",
                                 memStruct->fileName, (int)memStruct->lineNum);
+               VOS_BUG(0);
             }
             kfree((v_VOID_t*)memStruct);
         }
