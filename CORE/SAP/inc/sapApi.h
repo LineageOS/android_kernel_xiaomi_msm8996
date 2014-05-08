@@ -202,6 +202,8 @@ typedef enum {
     eSAP_DFS_CAC_START,
     eSAP_DFS_CAC_END,
     eSAP_DFS_RADAR_DETECT,
+    eSAP_DFS_NOL_GET,  /* Event sent when user need to get the DFS NOL from CNSS */
+    eSAP_DFS_NOL_SET,  /* Event sent when user need to set the DFS NOL to CNSS */
 } eSapHddEvent;
 
 typedef enum {
@@ -220,6 +222,11 @@ typedef enum {
     eSAP_FALSE,
     eSAP_TRUE,
 }eSapBool;
+
+typedef enum {
+    eSAP_DFS_NOL_CLEAR,
+    eSAP_DFS_NOL_RANDOMIZE,
+}eSapDfsNolType;
 
 /*---------------------------------------------------------------------------
 SAP PAL "status" and "reason" error code defines
@@ -387,6 +394,12 @@ typedef struct sap_MaxAssocExceededEvent_s {
 typedef struct sap_OperatingChannelChangeEvent_s {
    tANI_U8 operatingChannel;
 } tSap_OperatingChannelChangeEvent;
+
+typedef struct sap_DfsNolInfo_s {
+   v_U16_t   sDfsList;       /* size of pDfsList in byte */
+   v_PVOID_t pDfsList;       /* pointer to pDfsList buffer */
+} tSap_DfsNolInfo;
+
 /*
    This struct will be filled in and passed to tpWLAN_SAPEventCB that is provided during WLANSAP_StartBss call
    The event id corresponding to structure  in the union is defined in comment next to the structure
@@ -411,6 +424,7 @@ typedef struct sap_Event_s {
         tSap_UnknownSTAJoinEvent                  sapUnknownSTAJoin; /* eSAP_UNKNOWN_STA_JOIN */
         tSap_MaxAssocExceededEvent                sapMaxAssocExceeded; /* eSAP_MAX_ASSOC_EXCEEDED */
         tSap_OperatingChannelChangeEvent          sapChannelChange; /* eSAP_CHANNEL_CHANGE_EVENT */
+        tSap_DfsNolInfo                           sapDfsNolInfo;    /*eSAP_DFS_NOL_XXX */
     } sapevt;
 } tSap_Event, *tpSap_Event;
 
@@ -1785,6 +1799,50 @@ SIDE EFFECTS
 ============================================================================*/
 eCsrPhyMode sapConvertSapPhyModeToCsrPhyMode( eSapPhyMode sapPhyMode );
 
+/*==========================================================================
+  FUNCTION    WLANSAP_Get_DfsNol
+
+  DESCRIPTION
+  This API is used to dump the dfs nol
+  DEPENDENCIES
+  NA.
+
+  PARAMETERS
+  IN
+  sapContext: Pointer to vos global context structure
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_Get_DfsNol(v_PVOID_t pSapCtx);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_Set_DfsNol
+
+  DESCRIPTION
+  This API is used to set the dfs nol
+  DEPENDENCIES
+  NA.
+
+  PARAMETERS
+  IN
+  sapContext: Pointer to vos global context structure
+  conf: set type
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_Set_DfsNol(v_PVOID_t pSapCtx, eSapDfsNolType conf);
 
 #ifdef __cplusplus
  }

@@ -194,14 +194,102 @@ static inline void sapEventInit(ptWLAN_SAPEvent sapEvent)
 }
 
 /*
+ * This function randomly pick up an AVAILABLE channel
+ */
+static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
+{
+    v_U8_t available_chan_idx[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+    int available_chan_count;
+    v_U32_t random_byte = 0;
+    v_U8_t  target_channel = 0;
+    v_U8_t total_num_channels = 0;
+    v_BOOL_t isChannelNol = VOS_FALSE;
+    int i=0;
+
+    if (sapGet5GHzChannelList(sapContext))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+            "%s: get 5Ghz channel list failed",
+            __func__);
+        return sapContext->channel;
+    }
+    total_num_channels = sapContext->SapAllChnlList.numChannel;
+
+    for (i = 0, available_chan_count = 0; i< total_num_channels; i++)
+    {
+        /*
+         * Now Check if the channel is DFS and if
+         * the channel is not in NOL and add
+         * it available_chan_idx otherwise skip this
+         * channel index.
+         */
+
+        if (vos_nv_getChannelEnabledState(sapContext->SapAllChnlList
+                    .channelList[i]) ==
+                NV_CHANNEL_DFS)
+        {
+            isChannelNol = sapDfsIsChannelInNolList(sapContext,
+                    sapContext->SapAllChnlList.channelList[i]);
+            if (VOS_TRUE == isChannelNol)
+            {
+                /*
+                 * Skip this channel since it is still in
+                 * DFS Non-Occupancy-Period which is 30 mins.
+                 */
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                        "%s[%d]: index: %d, Channel = %d Present in NOL LIST",
+                        __func__, __LINE__, i,
+                        sapContext->SapAllChnlList.channelList[i]);
+
+                continue;
+            }
+        }
+        available_chan_idx[available_chan_count++] =
+            sapContext->SapAllChnlList.channelList[i];
+    }
+
+    if (available_chan_count)
+    {
+        /* to generate a random index */
+        get_random_bytes(&random_byte,1);
+        i = (random_byte + jiffies) % available_chan_count;
+
+        /*
+         * Pick the channel from the random index
+         * in available_chan_idx list
+         */
+        target_channel = (available_chan_idx[i]);
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                "%s[%d]: Target channel Index = %d target_channel = %d",
+                __func__,__LINE__, i, target_channel);
+    } else {
+        target_channel = sapContext->channel;
+    }
+
+    return target_channel;
+}
+
+
+/*
  * This Function Checks if a given channel is AVAILABLE or USABLE
  * for DFS operation.
  */
-static v_BOOL_t
+v_BOOL_t
 sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber)
 {
     int i;
     unsigned long timeElapsedSinceLastRadar,timeWhenRadarFound,currentTime = 0;
+
+    if ((sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels == 0) ||
+            (sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels >
+            NUM_5GHZ_CHANNELS))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                "%s: invalid dfs channel count %d",
+                __func__,
+                sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels);
+        return VOS_FALSE;
+    }
 
     for (i =0 ; i< sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels; i++)
     {
@@ -222,8 +310,8 @@ sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber)
                  * so, return FALSE.
                  */
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                          "%s[%d]: Channel = %d"
-                           "Not in NOL LIST, CHANNEL AVAILABLE",
+                          "%s[%d]: Channel = %d "
+                           "Not in NOL, CHANNEL AVAILABLE",
                            __func__, __LINE__, sapContext->SapDfsInfo
                                                  .sapDfsChannelNolList[i]
                                                  .dfs_channel_number);
@@ -912,6 +1000,30 @@ sapSignalHDDevent
             sapApAppEvent.sapHddEventCode = eSAP_CHANNEL_CHANGE_EVENT;
             sapApAppEvent.sapevt.sapChannelChange.operatingChannel =
                sapContext->SapDfsInfo.target_channel;
+            break;
+
+        case eSAP_DFS_NOL_GET:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "In %s, SAP event callback event = %s",
+                    __func__, "eSAP_DFS_NOL_GET");
+            sapApAppEvent.sapHddEventCode = eSAP_DFS_NOL_GET;
+            sapApAppEvent.sapevt.sapDfsNolInfo.sDfsList =
+                NUM_5GHZ_CHANNELS * sizeof(tSapDfsNolInfo);
+            sapApAppEvent.sapevt.sapDfsNolInfo.pDfsList =
+                (v_PVOID_t)(&sapContext->SapDfsInfo.sapDfsChannelNolList[0]);
+            break;
+
+        case eSAP_DFS_NOL_SET:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "In %s, SAP event callback event = %s",
+                    __func__, "eSAP_DFS_NOL_SET");
+            sapApAppEvent.sapHddEventCode = eSAP_DFS_NOL_SET;
+            sapApAppEvent.sapevt.sapDfsNolInfo.sDfsList =
+                sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels *
+                    sizeof(tSapDfsNolInfo);
+            sapApAppEvent.sapevt.sapDfsNolInfo.pDfsList =
+                (v_PVOID_t)(&sapContext->SapDfsInfo.sapDfsChannelNolList[0]);
+            break;
 
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, SAP Unknown callback event = %d",
@@ -1012,6 +1124,9 @@ sapFsm
                            }
                     }
                 }
+                /* init dfs channel nol */
+                sapInitDfsChannelNolList(sapContext);
+
                 /* Set SAP device role */
                 sapContext->sapsMachine = eSAP_CH_SELECT;
 
@@ -1022,7 +1137,7 @@ sapFsm
                 VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
                            __func__, "eSAP_DISCONNECTED", "eSAP_CH_SELECT");
             }
-            if (msg == eSAP_DFS_CHANNEL_CAC_START)
+            else if (msg == eSAP_DFS_CHANNEL_CAC_START)
             {
                /* No need of state check here, caller is expected to perform
                 * the checks before sending the event
@@ -1033,7 +1148,7 @@ sapFsm
                "ENTERTRED eSAP_DISCONNECTED-->eSAP_DFS_CAC_WAIT\n");
                sapStartDfsCacTimer(sapContext);
             }
-            if (msg == eSAP_CHANNEL_SELECTION_FAILED)
+            else if (msg == eSAP_CHANNEL_SELECTION_FAILED)
             {
                  /* Set SAP device role */
                 sapContext->sapsMachine = eSAP_CH_SELECT;
@@ -1046,6 +1161,7 @@ sapFsm
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, in state %s, event msg %d",
                              __func__, "eSAP_DISCONNECTED", msg);
             }
+
             break;
 
         case eSAP_CH_SELECT:
@@ -1072,9 +1188,9 @@ sapFsm
 
             if (msg == eSAP_MAC_SCAN_COMPLETE)
             {
+                 tHalHandle  hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
                  v_U16_t cc_ch;
-                 tHalHandle  hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
                  if (NULL != hHal &&
                      sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE)
                  {
@@ -1096,6 +1212,24 @@ sapFsm
                      }
                  }
 #endif
+                 /* check if channel is in DFS_NOL */
+                 if (sapDfsIsChannelInNolList(sapContext, sapContext->channel))
+                 {
+                     v_U8_t ch;
+
+                     /* find a new available channel */
+                     ch = sapRandomChannelSel(sapContext);
+                     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                         "%s: channel %d is in DFS_NOL, StartBss on new channel %d",
+                         __func__, sapContext->channel, ch);
+
+                     sapContext->channel = ch;
+                     sme_SelectCBMode(hHal,
+                         sapConvertSapPhyModeToCsrPhyMode(
+                             sapContext->csrRoamProfile.phyMode),
+                             sapContext->channel);
+                 }
+
                  /* Transition from eSAP_CH_SELECT to eSAP_STARTING (both without substates) */
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
                             __func__, "eSAP_CH_SELECT", "eSAP_STARTING");
@@ -1199,10 +1333,10 @@ sapFsm
             }
             else if (msg == eSAP_HDD_STOP_INFRA_BSS)
             {
-                /* Transition from eSAP_STARTING to eSAP_DISCONNECTING */
+                /* Transition from eSAP_STARTING to eSAP_DISCONNECTED */
                 VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                         "In %s, from state %s => %s",
-                        __func__, "eSAP_DFS_CAC_WAIT", "eSAP_DISCONNECTING");
+                        __func__, "eSAP_DFS_CAC_WAIT", "eSAP_DISCONNECTIED");
 
                 /* stop CAC timer */
                 sapStopDfsCacTimer(sapContext);
@@ -1290,9 +1424,9 @@ sapFsm
              }
              else if (msg == eSAP_HDD_STOP_INFRA_BSS)
              {
-                 /*Transition from eSAP_STARTING to eSAP_DISCONNECTING (both without substates)*/
+                 /*Transition from eSAP_STARTING to eSAP_DISCONNECTED (both without substates)*/
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
-                             __func__, "eSAP_STARTING", "eSAP_DISCONNECTING");
+                             __func__, "eSAP_STARTING", "eSAP_DISCONNECTED");
 
                  /*Advance outer statevar */
                  sapContext->sapsMachine = eSAP_DISCONNECTED;
@@ -1380,6 +1514,14 @@ sapFsm
                           __func__, "eSAP_DISCONNECTING", "eSAP_DISCONNECTED");
 
                 sapContext->sapsMachine = eSAP_DISCONNECTED;
+
+                /* DFS NOL is available, update to CNSS */
+                if (sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels)
+                {
+                    sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NOL_SET,
+                        (v_PVOID_t) eSAP_STATUS_SUCCESS);
+                }
+
                 /* Close the SME session*/
                 if (eSAP_TRUE == sapContext->isSapSessionOpen)
                 {
@@ -2050,12 +2192,8 @@ static VOS_STATUS sapGet5GHzChannelList(ptSapContext sapContext)
  */
 v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
 {
-    v_U8_t available_chan_idx[WNI_CFG_VALID_CHANNEL_LIST_LEN];
-    int available_chan_count, numGChannels = 0, numAChannels = 0;
-    v_U8_t total_num_channels = 0;
     v_U8_t target_channel = 0;
     int i;
-    v_BOOL_t isChannelNol = VOS_FALSE;
 
     if (NULL == sapContext || NULL == dfs_event)
     {
@@ -2084,19 +2222,6 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
         sapContext->SapDfsInfo.csaIERequired = VOS_TRUE;
 
     sapGet5GHzChannelList(sapContext);
-    total_num_channels = sapContext->SapAllChnlList.numChannel;
-
-    /*
-     * Find how many G channels are present in the channel list
-     */
-    for(i = 0; i < RF_CHAN_14; i++ )
-    {
-        if( regChannels[i].enabled )
-        {
-            numGChannels++;
-        }
-    }
-    numAChannels = (total_num_channels - numGChannels);
 
     /*
      * Mark the current channel on which Radar is found
@@ -2131,65 +2256,9 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
      * (5) Create the available channel list with the above rules
      */
 
-    for (i = 0, available_chan_count = 0; i< total_num_channels; i++)
-    {
-        if (sapContext->SapAllChnlList.channelList[i] ==
-                                       dfs_event->ieee_chan_number)
-        {
-            continue;//skip the channel on which radar is found
-        }
+    target_channel = sapRandomChannelSel(sapContext);
 
-        /*
-         * Now Check if the channel is DFS and if
-         * the channel is not in NOL list and add
-         * it available_chan_idx otherwise skip this
-         * channel index.
-         */
-
-        if (vos_nv_getChannelEnabledState(sapContext->SapAllChnlList
-                                           .channelList[i]) ==
-                                                            NV_CHANNEL_DFS)
-        {
-            isChannelNol = sapDfsIsChannelInNolList(sapContext,
-                                 sapContext->SapAllChnlList.channelList[i]);
-            if (VOS_TRUE == isChannelNol)
-            {
-                /*
-                 * Skip this channel since it is still in
-                 * DFS Non-Occupancy-Period which is 30 mins.
-                 */
-                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                          "%s[%d]: Channel = %d Present in NOL LIST",
-                           __func__, __LINE__,
-                           sapContext->SapAllChnlList.channelList[i]);
-
-                continue;
-            }
-        }
-        available_chan_idx[available_chan_count++] =
-                           sapContext->SapAllChnlList.channelList[i];
-    }
-
-    if(available_chan_count)
-    {
-        v_U32_t random_byte = 0;
-
-        /* logic to generate a random index */
-        get_random_bytes(&random_byte,1);
-        i = (random_byte + jiffies) % available_chan_count;
-
-        /*
-         * Pick the channel from the random index
-         * in available_chan_idx list
-         */
-        target_channel = (available_chan_idx[i]);
-        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                  "%s[%d]: Target channel Index = %d target_channel = %d",
-                  __func__,__LINE__, i, target_channel);
-        return target_channel;
-    }
-
-    return 0;
+    return target_channel;
 }
 
 /*
@@ -2307,31 +2376,47 @@ VOS_STATUS sapInitDfsChannelNolList(ptSapContext sapContext)
 {
     v_U8_t count = 0;
     int i;
+    v_BOOL_t bFound = FALSE;
+
     if (NULL == sapContext)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
               "Invalid sapContext pointer on sapInitDfsChannelNolList");
         return VOS_STATUS_E_FAULT;
     }
+
+    /* to indicate hdd to get cnss dfs nol */
+    if (VOS_STATUS_SUCCESS == sapSignalHDDevent(sapContext, NULL,
+                                  eSAP_DFS_NOL_GET,
+                                  (v_PVOID_t) eSAP_STATUS_SUCCESS))
+    {
+        bFound = TRUE;
+    }
+
     for ( i = RF_CHAN_36; i <= RF_CHAN_165; i++ )
     {
         if ( regChannels[i].enabled == NV_CHANNEL_DFS )
         {
-            sapContext->SapDfsInfo.sapDfsChannelNolList[count]
-               .dfs_channel_number = rfChannels[i].channelNum;
+            /* if dfs nol is not found, initialize it */
+            if (!bFound)
+            {
+                sapContext->SapDfsInfo.sapDfsChannelNolList[count]
+                   .dfs_channel_number = rfChannels[i].channelNum;
 
-            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                      "%s[%d] CHANNEL = %d", __func__, __LINE__,
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                       "%s: CHANNEL = %d", __func__,
                        sapContext->SapDfsInfo
                        .sapDfsChannelNolList[count].dfs_channel_number);
 
-            sapContext->SapDfsInfo.sapDfsChannelNolList[count]
-               .radar_status_flag = eSAP_DFS_CHANNEL_USABLE;
-            sapContext->SapDfsInfo.sapDfsChannelNolList[count]
-               .radar_found_timestamp = 0;
+                sapContext->SapDfsInfo.sapDfsChannelNolList[count]
+                   .radar_status_flag = eSAP_DFS_CHANNEL_USABLE;
+                sapContext->SapDfsInfo.sapDfsChannelNolList[count]
+                   .radar_found_timestamp = 0;
+            }
             count++;
         }
     }
+
     sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels = count;
 
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
