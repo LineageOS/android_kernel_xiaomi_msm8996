@@ -903,9 +903,17 @@ htt_rx_amsdu_pop_ll(
                                   & RX_ATTENTION_0_MSDU_DONE_MASK)))
             {
 
+#ifdef HTT_RX_RESTORE
+                adf_os_print("RX done bit error detected!\n");
+                adf_nbuf_set_next(msdu, NULL);
+                *tail_msdu = msdu;
+                pdev->rx_ring.rx_reset = 1;
+                return msdu_chained;
+#else
                 process_wma_set_command(0,(int)GEN_PARAM_CRASH_INJECT,
                                         0, GEN_CMD);
                 HTT_ASSERT_ALWAYS(0);
+#endif
             }
             pdev->rx_ring.dbg_sync_success++;
             adf_os_print("debug iter %d success %d\n", dbg_iter,
@@ -1813,6 +1821,9 @@ htt_rx_attach(struct htt_pdev_t *pdev)
 {
     adf_os_dma_addr_t paddr;
     if (!pdev->cfg.is_high_latency) {
+#ifdef HTT_RX_RESTORE
+        pdev->rx_ring.rx_reset = 0;
+#endif
         pdev->rx_ring.size = htt_rx_ring_size(pdev);
         HTT_ASSERT2(IS_PWR2(pdev->rx_ring.size));
         pdev->rx_ring.size_mask = pdev->rx_ring.size - 1;

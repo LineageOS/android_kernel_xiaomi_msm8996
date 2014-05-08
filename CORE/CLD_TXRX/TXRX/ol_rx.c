@@ -67,6 +67,24 @@
        vdev->osif_rx(vdev->osif_dev, msdus)
 #endif /* OSIF_NEED_RX_PEER_ID */
 
+#ifdef HTT_RX_RESTORE
+void ol_rx_trigger_restore(htt_pdev_handle htt_pdev, adf_nbuf_t head_msdu,
+                        adf_nbuf_t tail_msdu)
+{
+    while (1) {
+        adf_nbuf_t next;
+        next = adf_nbuf_next(head_msdu);
+        adf_os_print("freeing %p\n", head_msdu);
+        htt_rx_desc_frame_free(htt_pdev, head_msdu);
+        if (NULL == next) {
+            adf_os_print("next is NULL\n");
+            break;
+        }
+        head_msdu = next;
+    }
+}
+#endif
+
 static void ol_rx_process_inv_peer(
     ol_txrx_pdev_handle pdev,
     void *rx_mpdu_desc,
@@ -262,6 +280,12 @@ ol_rx_indication_handler(
 
                 msdu_chaining = htt_rx_amsdu_pop(
                     htt_pdev, rx_ind_msg, &head_msdu, &tail_msdu);
+#ifdef HTT_RX_RESET
+                if (htt_pdev->rx_ring.rx_reset) {
+                    ol_rx_trigger_restore(htt_pdev, head_msdu, tail_msdu);
+                    return;
+                }
+#endif
                 rx_mpdu_desc =
                     htt_rx_mpdu_desc_list_next(htt_pdev, rx_ind_msg);
 
@@ -365,6 +389,12 @@ ol_rx_indication_handler(
             for (i = 0; i < num_mpdus; i++) {
                 /* pull the MPDU's MSDUs off the buffer queue */
                 htt_rx_amsdu_pop(htt_pdev, rx_ind_msg, &msdu, &tail_msdu);
+#ifdef HTT_RX_RESTORE
+                if (htt_pdev->rx_ring.rx_reset) {
+                    ol_rx_trigger_restore(htt_pdev, msdu, tail_msdu);
+                    return;
+                }
+#endif
                 /* pull the MPDU desc off the desc queue */
                 rx_mpdu_desc =
                     htt_rx_mpdu_desc_list_next(htt_pdev, rx_ind_msg);

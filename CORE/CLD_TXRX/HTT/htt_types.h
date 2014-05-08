@@ -187,6 +187,9 @@ struct htt_pdev_t {
         u_int32_t dbg_refill_cnt;
         u_int32_t dbg_sync_success;
 #endif
+#ifdef HTT_RX_RESTORE
+        int rx_reset;
+#endif
     } rx_ring;
     int rx_desc_size_hl;
     long rx_fw_desc_offset;
