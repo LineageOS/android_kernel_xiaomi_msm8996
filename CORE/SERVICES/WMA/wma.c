@@ -13631,7 +13631,7 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 		WMA_LOGP("%s: Pending commands %d credits %d", __func__,
 				wmi_get_pending_cmds(wma->wmi_handle),
 				wmi_get_host_credits(wma->wmi_handle));
-		VOS_ASSERT(0);
+		VOS_BUG(0);
 	} else {
 		WMA_LOGD("Host wakeup received");
 	}
