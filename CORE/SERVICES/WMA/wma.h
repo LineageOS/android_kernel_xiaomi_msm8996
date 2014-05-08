@@ -615,6 +615,7 @@ typedef struct {
 #endif
 	vos_wake_lock_t wow_wake_lock;
 	int wow_nack;
+	u_int32_t ap_client_cnt;
 
 	vos_timer_t wma_scan_comp_timer;
 	scan_timer_info wma_scan_timer_info;

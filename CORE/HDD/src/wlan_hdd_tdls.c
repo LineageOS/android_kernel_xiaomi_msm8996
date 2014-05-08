@@ -822,7 +822,13 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     tInfo->rssi_teardown_threshold =
         pHddTdlsCtx->threshold_config.rssi_teardown_threshold;
     tInfo->rssi_delta = pHddTdlsCtx->threshold_config.rssi_delta;
-    tInfo->tdls_options = 0; /* TBD */
+    tInfo->tdls_options = 0;
+    if (pHddCtx->cfg_ini->fEnableTDLSOffChannel)
+        tInfo->tdls_options |= ENA_TDLS_OFFCHAN;
+    if (pHddCtx->cfg_ini->fEnableTDLSBufferSta)
+        tInfo->tdls_options |= ENA_TDLS_BUFFER_STA;
+    if (pHddCtx->cfg_ini->fEnableTDLSSleepSta)
+        tInfo->tdls_options |= ENA_TDLS_SLEEP_STA;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
               "%s: Setting tdls state and param in fw: "
@@ -909,7 +915,13 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
         tInfo->rssi_teardown_threshold =
             pHddTdlsCtx->threshold_config.rssi_teardown_threshold;
         tInfo->rssi_delta = pHddTdlsCtx->threshold_config.rssi_delta;
-        tInfo->tdls_options = 0; /* TBD */
+        tInfo->tdls_options = 0;
+        if (pHddCtx->cfg_ini->fEnableTDLSOffChannel)
+            tInfo->tdls_options |= ENA_TDLS_OFFCHAN;
+        if (pHddCtx->cfg_ini->fEnableTDLSBufferSta)
+            tInfo->tdls_options |= ENA_TDLS_BUFFER_STA;
+        if (pHddCtx->cfg_ini->fEnableTDLSSleepSta)
+            tInfo->tdls_options |= ENA_TDLS_SLEEP_STA;
 
         VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
                   "%s: Setting tdls state and param in fw: "
@@ -1590,7 +1602,13 @@ int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *confi
     tdlsParams->tx_teardown_threshold = config->idle_packet_n;
     tdlsParams->rssi_teardown_threshold = config->rssi_teardown_threshold;
     tdlsParams->rssi_delta = config->rssi_delta;
-    tdlsParams->tdls_options = 0; /* TBD */
+    tdlsParams->tdls_options = 0;
+    if (pHddCtx->cfg_ini->fEnableTDLSOffChannel)
+        tdlsParams->tdls_options |= ENA_TDLS_OFFCHAN;
+    if (pHddCtx->cfg_ini->fEnableTDLSBufferSta)
+        tdlsParams->tdls_options |= ENA_TDLS_BUFFER_STA;
+    if (pHddCtx->cfg_ini->fEnableTDLSSleepSta)
+        tdlsParams->tdls_options |= ENA_TDLS_SLEEP_STA;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
               "%s: Setting tdls state and param in fw: "
@@ -2362,9 +2380,9 @@ static void wlan_hdd_tdls_pre_setup(struct work_struct *work)
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: discovery attempt (%d) reached max (%d) for peer "
                   MAC_ADDRESS_STR ", ignore discovery trigger from fw",
-                  __func__, MAC_ADDR_ARRAY(curr_peer->peerMac),
-                  curr_peer->discovery_attempt,
-                  pHddTdlsCtx->threshold_config.discovery_tries_n);
+                  __func__, curr_peer->discovery_attempt,
+                  pHddTdlsCtx->threshold_config.discovery_tries_n,
+                  MAC_ADDR_ARRAY(curr_peer->peerMac));
         curr_peer->tdls_support = eTDLS_CAP_NOT_SUPPORTED;
         goto done;
     }

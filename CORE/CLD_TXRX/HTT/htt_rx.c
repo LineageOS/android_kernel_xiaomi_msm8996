@@ -837,7 +837,8 @@ htt_rx_amsdu_pop_ll(
     HTT_ASSERT1(htt_rx_ring_elems(pdev) != 0);
     rx_ind_data = adf_nbuf_data(rx_ind_msg);
     msg_word = (u_int32_t *)rx_ind_data;
-    num_msdu_bytes = HTT_RX_IND_FW_RX_DESC_BYTES_GET(*(msg_word + 2));
+    num_msdu_bytes = HTT_RX_IND_FW_RX_DESC_BYTES_GET(
+       *(msg_word + HTT_RX_IND_HDR_PREFIX_SIZE32 + HTT_RX_PPDU_DESC_SIZE32));
 
     msdu = *head_msdu = htt_rx_netbuf_pop(pdev);
     while (1) {
