@@ -89,7 +89,9 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
 
 
-    if ((eLIM_STA_ROLE == psessionEntry->limSystemRole) && (eLIM_SME_WT_DEAUTH_STATE == psessionEntry->limSmeState))
+    if ((eLIM_STA_ROLE == psessionEntry->limSystemRole) &&
+        ((eLIM_SME_WT_DISASSOC_STATE == psessionEntry->limSmeState) ||
+         (eLIM_SME_WT_DEAUTH_STATE == psessionEntry->limSmeState)))
     {
         /*Every 15th deauth frame will be logged in kmsg*/
         if(!(pMac->lim.deauthMsgCnt & 0xF))
