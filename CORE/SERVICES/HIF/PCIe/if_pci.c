@@ -678,9 +678,10 @@ again:
     }
 #endif
 
-    /* Disable L1SS, temporary solution for PCI reset issues */
+#ifdef DISABLE_L1SS_STATES
     pci_read_config_dword(pdev, 0x188, &lcr_val);
     pci_write_config_dword(pdev, 0x188, (lcr_val & ~0x0000000f));
+#endif
 
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);
@@ -1001,9 +1002,10 @@ again:
     }
 #endif
 
-    /* Disable L1SS, temporary solution for PCI reset issues */
+#ifdef DISABLE_L1SS_STATES
     pci_read_config_dword(pdev, 0x188, &lcr_val);
     pci_write_config_dword(pdev, 0x188, (lcr_val & ~0x0000000f));
+#endif
 
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);
@@ -1729,6 +1731,11 @@ hif_pci_resume(struct pci_dev *pdev)
         if ((val & 0x0000ff00) != 0)
             pci_write_config_dword(pdev, 0x40, val & 0xffff00ff);
     }
+
+#ifdef DISABLE_L1SS_STATES
+    pci_read_config_dword(pdev, 0x188, &val);
+    pci_write_config_dword(pdev, 0x188, (val & ~0x0000000f));
+#endif
 
     A_TARGET_ACCESS_BEGIN_RET(targid);
     val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
