@@ -1895,3 +1895,9 @@ void hif_pci_save_htc_htt_config_endpoint(int htc_endpoint)
 
     scn->hif_sc->htc_endpoint = htc_endpoint;
 }
+
+void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)
+{
+    *version = ((struct ol_softc *)ol_sc)->target_version;
+    *revision = ((struct ol_softc *)ol_sc)->target_revision;
+}

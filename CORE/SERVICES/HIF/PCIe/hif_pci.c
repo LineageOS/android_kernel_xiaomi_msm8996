@@ -2244,6 +2244,7 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 		  goto done;
 	     }
 	     if (CHIP_ID_VERSION_GET(chip_id) == 0xD) {
+             scn->target_revision = CHIP_ID_REVISION_GET(chip_id);
              switch(CHIP_ID_REVISION_GET(chip_id)) {
              case 0x2: /* ROME 1.3 */
                  /* 2 banks are switched to IRAM */
