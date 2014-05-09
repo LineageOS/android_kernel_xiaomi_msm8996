@@ -189,6 +189,7 @@ struct htt_pdev_t {
 #endif
 #ifdef HTT_RX_RESTORE
         int rx_reset;
+        u_int8_t htt_rx_restore;
 #endif
     } rx_ring;
     int rx_desc_size_hl;

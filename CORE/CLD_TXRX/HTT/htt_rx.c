@@ -1823,6 +1823,7 @@ htt_rx_attach(struct htt_pdev_t *pdev)
     if (!pdev->cfg.is_high_latency) {
 #ifdef HTT_RX_RESTORE
         pdev->rx_ring.rx_reset = 0;
+        pdev->rx_ring.htt_rx_restore = 0;
 #endif
         pdev->rx_ring.size = htt_rx_ring_size(pdev);
         HTT_ASSERT2(IS_PWR2(pdev->rx_ring.size));
