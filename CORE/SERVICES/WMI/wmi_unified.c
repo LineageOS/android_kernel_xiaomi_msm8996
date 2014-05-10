@@ -74,10 +74,11 @@ struct wmi_event_debug wmi_event_log_buffer[WMI_EVENT_DEBUG_MAX_ENTRY];
 	g_wmi_command_buf_idx++;					\
 }
 
-#define WMI_EVENT_RECORD(a) {						\
+#define WMI_EVENT_RECORD(a, b) {						\
 	if (WMI_EVENT_DEBUG_MAX_ENTRY <= g_wmi_event_buf_idx)		\
 		g_wmi_event_buf_idx = 0;				\
 	wmi_event_log_buffer[g_wmi_event_buf_idx].event = a;		\
+	adf_os_mem_copy(wmi_event_log_buffer[g_wmi_event_buf_idx].data, b , 16);\
 	wmi_event_log_buffer[g_wmi_event_buf_idx].time =		\
 		adf_os_ticks_to_msecs(adf_os_ticks());			\
 	g_wmi_event_buf_idx++;						\
@@ -782,7 +783,8 @@ void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 
 #ifdef WMI_INTERFACE_EVENT_LOGGING
 		adf_os_spin_lock_bh(&wmi_handle->wmi_record_lock);
-		WMI_EVENT_RECORD(id);
+		/* Exclude 4 bytes of TLV header */
+		WMI_EVENT_RECORD(id, ((u_int8_t *)data + 4));
 		adf_os_spin_unlock_bh(&wmi_handle->wmi_record_lock);
 #endif
 		/* Call the WMI registered event handler */
