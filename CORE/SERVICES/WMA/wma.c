@@ -986,7 +986,7 @@ static int wmi_unified_vdev_down_send(wmi_unified_t wmi, u_int8_t vdev_id)
 		adf_nbuf_free(buf);
 		return -EIO;
 	}
-	WMA_LOGI("%s: vdev_id %d", __func__, vdev_id);
+	WMA_LOGE("%s: vdev_id %d", __func__, vdev_id);
 	return 0;
 }
 
@@ -1035,6 +1035,7 @@ static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 	if (!vdev)
 		return;
 
+	WMA_LOGE("%s: vdev_id - %d", __func__, vdev_id);
 	/* remove all remote peers of SAP */
 	adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
 	while ((peer = TAILQ_LAST(&vdev->peer_list, peer_list_t))) {
@@ -3269,7 +3270,7 @@ int wma_unified_vdev_create_send(wmi_unified_t wmi_handle, u_int8_t if_id,
 	cmd->vdev_type = type;
 	cmd->vdev_subtype = subtype;
 	WMI_CHAR_ARRAY_TO_MAC_ADDR(macaddr, &cmd->vdev_macaddr);
-	WMA_LOGA("%s: ID = %d VAP Addr = %02x:%02x:%02x:%02x:%02x:%02x",
+	WMA_LOGE("%s: ID = %d VAP Addr = %02x:%02x:%02x:%02x:%02x:%02x",
 		 __func__, if_id,
 		 macaddr[0], macaddr[1], macaddr[2],
 		 macaddr[3], macaddr[4], macaddr[5]);
@@ -6410,7 +6411,8 @@ void wma_vdev_resp_timer(void *data)
 		goto free_tgt_req;
 	}
 
-	WMA_LOGA("%s: request %d is timed out", __func__, tgt_req->msg_type);
+	WMA_LOGA("%s: request %d is timed out for vdev_id - %d", __func__,
+						tgt_req->msg_type, tgt_req->vdev_id);
 	wma_find_vdev_req(wma, tgt_req->vdev_id, tgt_req->type);
 	if (tgt_req->msg_type == WDA_CHNL_SWITCH_REQ) {
 		tpSwitchChannelParams params =
@@ -6535,34 +6537,29 @@ void wma_vdev_resp_timer(void *data)
 			sizeof(tSirMacAddr));
 
 		WMA_LOGA("%s: WDA_ADD_BSS_REQ timedout", __func__);
-                peer = ol_txrx_find_peer_by_addr(pdev, params->bssId,
-                                         &peer_id);
-                if (!peer) {
-                        WMA_LOGP("%s: Failed to find peer %pM", __func__,
-                                 params->bssId);
-                }
-                msg = wma_fill_vdev_req(wma, params->sessionId,
-			WDA_DELETE_BSS_REQ, WMA_TARGET_REQ_TYPE_VDEV_STOP,
-			 del_bss_params, 1000);
-                if (!msg) {
-                        WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
-                                 __func__, params->sessionId);
-                        goto error0;
-                }
-                if (wmi_unified_vdev_stop_send(wma->wmi_handle, params->sessionId)) {
-                        WMA_LOGP("%s: %d Failed to send vdev stop",
-				__func__, __LINE__);
-                        wma_remove_vdev_req(wma, params->sessionId,
-                                            WMA_TARGET_REQ_TYPE_VDEV_STOP);
-                        goto error0;
-                }
-                WMA_LOGI("%s: bssid %pM vdev_id %d",
-                        __func__, params->bssId, params->sessionId);
-
+		peer = ol_txrx_find_peer_by_addr(pdev, params->bssId, &peer_id);
+		if (!peer) {
+			WMA_LOGP("%s: Failed to find peer %pM", __func__, params->bssId);
+		}
+		msg = wma_fill_vdev_req(wma, tgt_req->vdev_id, WDA_DELETE_BSS_REQ,
+						WMA_TARGET_REQ_TYPE_VDEV_STOP, del_bss_params, 1000);
+		if (!msg) {
+			WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
+							__func__, tgt_req->vdev_id);
+			goto error0;
+		}
+		if (wmi_unified_vdev_stop_send(wma->wmi_handle, tgt_req->vdev_id)) {
+				WMA_LOGP("%s: %d Failed to send vdev stop",	__func__, __LINE__);
+				wma_remove_vdev_req(wma, tgt_req->vdev_id,
+									WMA_TARGET_REQ_TYPE_VDEV_STOP);
+				goto error0;
+		}
+		WMA_LOGI("%s: bssid %pM vdev_id %d", __func__, params->bssId,
+						tgt_req->vdev_id);
 error0:
 		if (peer)
 			wma_remove_peer(wma, params->bssId,
-					params->sessionId, peer);
+					tgt_req->vdev_id, peer);
 		wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
 	}
 free_tgt_req:
