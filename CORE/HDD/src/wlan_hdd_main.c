@@ -12310,6 +12310,10 @@ static int hdd_driver_init( void)
    vos_wconn_trace_init();
 #endif
 
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+   wlan_logging_sock_init_svc();
+#endif
+
    ENTER();
 
    vos_wake_lock_init(&wlan_wake_lock, "wlan");
@@ -12335,6 +12339,11 @@ static int hdd_driver_init( void)
    if (max_retries >= 5) {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WCNSS driver not ready", __func__);
       vos_wake_lock_destroy(&wlan_wake_lock);
+
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+      wlan_logging_sock_deinit_svc();
+#endif
+
       return -ENODEV;
    }
 #endif
@@ -12433,6 +12442,11 @@ static int hdd_driver_init( void)
 #endif
 
       vos_wake_lock_destroy(&wlan_wake_lock);
+
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+      wlan_logging_sock_deinit_svc();
+#endif
+
       pr_err("%s: driver load failure\n", WLAN_MODULE_NAME);
    }
    else
@@ -12560,6 +12574,10 @@ static void hdd_driver_exit(void)
 
 #ifdef WCONN_TRACE_KMSG_LOG_BUFF
    vos_wconn_trace_exit();
+#endif
+
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+   wlan_logging_sock_deinit_svc();
 #endif
 
 done:
