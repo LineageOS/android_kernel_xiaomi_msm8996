@@ -2461,14 +2461,10 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
                            A_PCI_READ32(pci_addr + PCIE_LOCAL_BASE_ADDRESS
                                         + RTC_STATE_ADDRESS));
 
-#ifdef TARGET_RECOVERY_AFTER_LINK_DOWN
                     printk("%s:error, can't wakeup target\n", __func__);
                     sc->recovery = true;
                     schedule_work(&recovery_work);
                     return -EACCES;
-#else
-                    VOS_BUG(0);
-#endif
                 }
 
                 OS_DELAY(curr_delay);

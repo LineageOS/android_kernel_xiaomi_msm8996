@@ -1583,21 +1583,6 @@ void hif_pci_shutdown(struct pci_dev *pdev)
 
     mem = (void __iomem *)sc->mem;
 
-#if defined(CPU_WARM_RESET_WAR)
-    /* Currently CPU warm reset sequence is tested only for AR9888_REV2
-     * Need to enable for AR9888_REV1 once CPU warm reset sequence is
-     * verified for AR9888_REV1.
-     */
-    if (scn->target_version == AR9888_REV2_VERSION) {
-        hif_pci_device_warm_reset(sc);
-    }
-    else {
-        hif_pci_device_reset(sc);
-    }
-#else
-        hif_pci_device_reset(sc);
-#endif
-
     pci_disable_msi(pdev);
     A_FREE(scn);
     A_FREE(sc);
