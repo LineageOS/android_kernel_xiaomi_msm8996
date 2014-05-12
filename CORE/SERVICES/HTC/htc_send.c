@@ -573,7 +573,7 @@ void GetHTCSendPacketsCreditBased(HTC_TARGET        *target,
             INC_HTC_EP_STAT(pEndpoint, TxCreditsConsummed, creditsRequired);
 
                 /* check if we need credits back from the target */
-            if (pEndpoint->TxCredits < pEndpoint->TxCreditsPerMaxMsg) {
+            if (pEndpoint->TxCredits <= pEndpoint->TxCreditsPerMaxMsg) {
                     /* tell the target we need credits ASAP! */
                 sendFlags |= HTC_FLAGS_NEED_CREDIT_UPDATE;
                 INC_HTC_EP_STAT(pEndpoint, TxCreditLowIndications, 1);

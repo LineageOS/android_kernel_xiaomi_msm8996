@@ -549,6 +549,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    v_U8_t proto_type = 0;
 #endif /* QCA_PKT_PROTO_TRACE */
 
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
    /* Prevent this funtion to be called during SSR since TL context may
       not be reinitialized at this time which will lead crash. */
    if (pHddCtx->isLogpInProgress)
@@ -622,6 +623,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
    //Get TL AC corresponding to Qdisc queue index/AC.
    ac = hdd_QdiscAcToTlAC[skb->queue_mapping];
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
 
 #if defined (IPA_OFFLOAD)
    if(!(NBUF_OWNER_ID(skb) == IPA_NBUF_OWNER_ID)) {
@@ -662,6 +664,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 #endif /* QCA_PKT_PROTO_TRACE */
    pAdapter->stats.tx_bytes += skb->len;
    ++pAdapter->stats.tx_packets;
+   ++pAdapter->hdd_stats.hddTxRxStats.pkt_tx_count;
 
    if (WLANTL_SendSTA_DataFrame((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                                  STAId, skb
@@ -672,6 +675,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
         VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
                   "%s: Failed to send packet to txrx for staid:%d",
                   __func__, STAId);
+        ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
         goto drop_pkt;
    }
 
@@ -684,6 +688,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 drop_pkt:
 
    ++pAdapter->stats.tx_dropped;
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
    kfree_skb(skb);
 
    return NETDEV_TX_OK;

@@ -443,6 +443,11 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 		return 0;
 	}
 
+	if (hdr->buf_len < sizeof(struct ieee80211_frame)) {
+		TLSHIM_LOGE("Invalid rx mgmt packet");
+		return 0;
+	}
+
 	rx_pkt = vos_mem_malloc(sizeof(*rx_pkt));
 	if (!rx_pkt) {
 		TLSHIM_LOGE("Failed to allocate rx packet");

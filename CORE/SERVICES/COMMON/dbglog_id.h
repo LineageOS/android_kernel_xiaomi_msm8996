@@ -291,7 +291,8 @@ extern "C" {
 #define WHAL_ERROR_POWER_EDGE_PWR_TPSCALE          46
 #define WHAL_ERROR_POWER_CHAN_REGALLOW             47
 #define WHAL_ERROR_WAIT_REG_TIMEOUT                48
-#define WHAL_DBGID_DEFINITION_END                  49
+#define WHAL_ERROR_XTAL_SET                        49
+#define WHAL_DBGID_DEFINITION_END                  50
 
 #define COEX_DEBUGID_START              0
 #define BTCOEX_DBG_MCI_1                            1

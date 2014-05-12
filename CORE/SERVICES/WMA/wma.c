@@ -9754,6 +9754,28 @@ out:
 	wma_send_msg(wma, WDA_ADD_STA_RSP, (void *)params, 0);
 }
 
+static void wma_prevent_suspend_check(tp_wma_handle wma)
+{
+	wma->ap_client_cnt++;
+	if (wma->ap_client_cnt ==
+	    wma->wlan_resource_config.num_offload_peers) {
+		vos_wake_lock_acquire(&wma->wow_wake_lock);
+		WMA_LOGW("%s: %d clients connected, prevent suspend",
+			 __func__, wma->ap_client_cnt);
+	}
+}
+
+static void wma_allow_suspend_check(tp_wma_handle wma)
+{
+	wma->ap_client_cnt--;
+	if (wma->ap_client_cnt ==
+	    wma->wlan_resource_config.num_offload_peers - 1) {
+		vos_wake_lock_release(&wma->wow_wake_lock);
+		WMA_LOGW("%s: %d clients connected, allow suspend",
+			 __func__, wma->ap_client_cnt);
+	}
+}
+
 static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 {
 	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
@@ -9763,8 +9785,10 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
                  add_sta->bssId[0], add_sta->bssId[1], add_sta->bssId[2],
                  add_sta->bssId[3], add_sta->bssId[4], add_sta->bssId[5]);
 
-	if (wma_is_vdev_in_ap_mode(wma, add_sta->smesessionId))
+	if (wma_is_vdev_in_ap_mode(wma, add_sta->smesessionId)) {
+		wma_prevent_suspend_check(wma);
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
+	}
 #ifdef QCA_IBSS_SUPPORT
         else if (wma_is_vdev_in_ibss_mode(wma, add_sta->smesessionId))
 		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
@@ -10401,8 +10425,10 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 {
 	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
 
-	if (wma_is_vdev_in_ap_mode(wma, del_sta->smesessionId))
+	if (wma_is_vdev_in_ap_mode(wma, del_sta->smesessionId)) {
+		wma_allow_suspend_check(wma);
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
+	}
 #ifdef QCA_IBSS_SUPPORT
 	if (wma_is_vdev_in_ibss_mode(wma, del_sta->smesessionId)) {
 		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
@@ -19896,19 +19922,46 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	       WMITLV_TAG_STRUC_wmi_tdls_peer_capabilities,
 	       WMITLV_GET_STRUCT_TLVLEN(wmi_tdls_peer_capabilities));
 
-	/* peer capabilities - TODO */
-	peer_cap->peer_qos = 0;
-	peer_cap->buff_sta_support = 0;
-	peer_cap->off_chan_support = 0;
-	peer_cap->peer_curr_operclass = 0;
-	peer_cap->self_curr_operclass = 0;
-	peer_cap->peer_chan_len = 0;
+	/* peer capabilities */
+	if ((peerStateParams->peerCap.peerUapsdQueue & 0x08) >> 3)
+		WMI_SET_TDLS_VO_UAPSD(peer_cap);
+	if ((peerStateParams->peerCap.peerUapsdQueue & 0x04) >> 2)
+		WMI_SET_TDLS_VI_UAPSD(peer_cap);
+	if ((peerStateParams->peerCap.peerUapsdQueue & 0x02) >> 1)
+		WMI_SET_TDLS_BK_UAPSD(peer_cap);
+	if (peerStateParams->peerCap.peerUapsdQueue & 0x01)
+		WMI_SET_TDLS_BE_UAPSD(peer_cap);
+
+	/* Ack and More Data Ack are sent as 0, so no need to set
+	 * but fill SP
+	 */
+	WMI_SET_TDLS_SP_UAPSD(peer_cap, peerStateParams->peerCap.peerMaxSp);
+
+	peer_cap->buff_sta_support =
+		peerStateParams->peerCap.peerBuffStaSupport;
+	peer_cap->off_chan_support =
+		peerStateParams->peerCap.peerOffChanSupport;
+	peer_cap->peer_curr_operclass =
+		peerStateParams->peerCap.peerCurrOperClass;
+	peer_cap->self_curr_operclass =
+		peerStateParams->peerCap.selfCurrOperClass;
+	peer_cap->peer_chan_len =
+		peerStateParams->peerCap.peerChanLen;
+	peer_cap->peer_operclass_len =
+		peerStateParams->peerCap.peerOperClassLen;
+
+	WMA_LOGD("%s: peer_qos: 0x%x, buff_sta_support: %d, off_chan_support: %d, peer_curr_operclass: %d, self_curr_operclass: %d, peer_chan_len: %d, peer_operclass_len: %d",
+	         __func__, peer_cap->peer_qos, peer_cap->buff_sta_support,
+	         peer_cap->off_chan_support, peer_cap->peer_curr_operclass,
+	         peer_cap->self_curr_operclass, peer_cap->peer_chan_len,
+	         peer_cap->peer_operclass_len);
+
 	for (i = 0; i < WMI_TDLS_MAX_SUPP_CHANNELS; i++) {
-		peer_cap->peer_chan[i] = 0;
+		peer_cap->peer_chan[i] = peerStateParams->peerCap.peerChan[i];
 	}
-	peer_cap->peer_operclass_len = 0;
 	for (i = 0; i < WMI_TDLS_MAX_SUPP_OPER_CLASSES; i++) {
-		peer_cap->peer_operclass[i] = 0;
+		peer_cap->peer_operclass[i] =
+			peerStateParams->peerCap.peerOperClass[i];
 	}
 
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,

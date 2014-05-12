@@ -45,6 +45,8 @@ Include Files
 #include <linux/skbuff.h>
 #include <linux/list.h>
 #include <linux/debugfs.h>
+#include <linux/inetdevice.h>
+#include <linux/ip.h>
 #include <wlan_hdd_softap_tx_rx.h>
 
 #include "vos_sched.h"
@@ -157,6 +159,7 @@ struct hdd_ipa_iface_context {
 	uint8_t iface_id; /* This iface ID */
 	uint8_t sta_id; /* This iface station ID */
 	vos_spin_lock_t interface_lock;
+	uint32_t ifa_address;
 };
 
 
@@ -223,6 +226,7 @@ struct hdd_ipa_priv {
 	struct dentry *debugfs_dir;
 	struct hdd_ipa_stats stats;
 
+	struct notifier_block ipv4_notifier;
 };
 
 enum hdd_ipa_evt {
@@ -285,28 +289,48 @@ static inline struct ipa_tx_data_desc *hdd_ipa_get_desc_from_freeq(void)
 	return desc;
 }
 
-static bool hdd_ipa_can_send_to_ipa(struct hdd_ipa_priv *hdd_ipa, void *data)
+static struct iphdr * hdd_ipa_get_ip_pkt(void *data, uint16_t *eth_type)
 {
 	struct ethhdr *eth = (struct ethhdr *)data;
 	struct llc_snap_hdr *ls_hdr;
-	uint16_t eth_type;
+	struct iphdr *ip_hdr;
 
-	if (!hdd_ipa_is_pre_filter_enabled(hdd_ipa))
-		return true;
-
-	eth_type = be16_to_cpu(eth->h_proto);
-	if (eth_type < 0x600) {
+	ip_hdr = NULL;
+	*eth_type = be16_to_cpu(eth->h_proto);
+	if (*eth_type < 0x600) {
 		/* Non Ethernet II framing format */
 		ls_hdr = (struct llc_snap_hdr *)((uint8_t *)data +
 						sizeof(struct ethhdr));
 
 		if (((ls_hdr->dsap == 0xAA) && (ls_hdr->ssap == 0xAA)) ||
 			((ls_hdr->dsap == 0xAB) && (ls_hdr->ssap == 0xAB)))
-			eth_type = be16_to_cpu(ls_hdr->eth_type);
+			*eth_type = be16_to_cpu(ls_hdr->eth_type);
+		ip_hdr = (struct iphdr *)((uint8_t *)data +
+				sizeof(struct ethhdr) + sizeof(struct llc_snap_hdr));
+	} else if (*eth_type == ETH_P_IP) {
+		ip_hdr = (struct iphdr *)((uint8_t *)data +
+						sizeof(struct ethhdr));
 	}
 
-	if (eth_type == ETH_P_IP)
+	return ip_hdr;
+}
+
+static bool hdd_ipa_can_send_to_ipa(hdd_adapter_t *adapter, struct hdd_ipa_priv *hdd_ipa, void *data)
+{
+	uint16_t eth_type;
+	struct iphdr *ip_hdr = NULL;
+
+	if (!hdd_ipa_is_pre_filter_enabled(hdd_ipa))
 		return true;
+	ip_hdr = hdd_ipa_get_ip_pkt(data, &eth_type);
+
+	if (eth_type == ETH_P_IP) {
+		//Check if the dest IP address is itself, and in that case, bypass IPA
+		if (ip_hdr->daddr != ((struct hdd_ipa_iface_context *)(adapter->ipa_context))->ifa_address)
+			return true;
+		else
+			return false;
+	}
 
 	if (hdd_ipa_is_ipv6_enabled(hdd_ipa) && eth_type == ETH_P_IPV6)
 		return true;
@@ -651,7 +675,7 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 			 * IPV4 or IPV6i(if IPV6 is enabled). All other packets
 			 * will be sent to network stack directly.
 			 */
-			if (!hdd_ipa_can_send_to_ipa(hdd_ipa, buf->data)) {
+			if (!hdd_ipa_can_send_to_ipa(adapter, hdd_ipa, buf->data)) {
 				hdd_ipa->stats.prefilter++;
 				hdd_ipa_send_skb_to_network(buf, adapter);
 				buf = next_buf;
@@ -812,6 +836,70 @@ VOS_STATUS hdd_ipa_process_rxt(v_VOID_t *vosContext, adf_nbuf_t rx_buf_list,
 	hdd_ipa_process_evt(HDD_IPA_RXT_EVT, &rxt);
 
 	return VOS_STATUS_SUCCESS;
+}
+
+static void hdd_ipa_set_adapter_ip_filter(hdd_adapter_t *adapter)
+{
+	struct in_ifaddr **ifap = NULL;
+	struct in_ifaddr *ifa = NULL;
+	struct in_device *in_dev;
+	struct net_device *dev;
+	struct hdd_ipa_iface_context *iface_context;
+
+	iface_context = (struct hdd_ipa_iface_context *)adapter->ipa_context;
+	dev = adapter->dev;
+	if (!dev || !iface_context) {
+		return;
+	}
+
+	/* Get IP address */
+	if (dev->priv_flags & IFF_BRIDGE_PORT) {
+#ifdef WLAN_OPEN_SOURCE
+		rcu_read_lock();
+#endif
+		dev = netdev_master_upper_dev_get_rcu(adapter->dev);
+#ifdef WLAN_OPEN_SOURCE
+		rcu_read_unlock();
+#endif
+	}
+	if ((in_dev = __in_dev_get_rtnl(dev)) != NULL) {
+	   for (ifap = &in_dev->ifa_list; (ifa = *ifap) != NULL;
+		   ifap = &ifa->ifa_next) {
+			if (dev->name && !strcmp(dev->name, ifa->ifa_label))
+				break; /* found */
+		}
+	}
+	if(ifa && ifa->ifa_address) {
+		iface_context->ifa_address = ifa->ifa_address;
+
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,"%s: %d.%d.%d.%d\n", dev->name,
+		iface_context->ifa_address & 0x000000ff,
+		iface_context->ifa_address >> 8 & 0x000000ff,
+		iface_context->ifa_address >> 16 & 0x000000ff,
+		iface_context->ifa_address >> 24 & 0x000000ff);
+	}
+}
+
+static int hdd_ipa_ipv4_changed(struct notifier_block *nb,
+                                   unsigned long data, void *arg)
+{
+	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
+	hdd_adapter_list_node_t *padapter_node = NULL, *pnext = NULL;
+	hdd_adapter_t *padapter;
+	VOS_STATUS status;
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		"IPv4 Change detected. Updating wlan IPv4 local filters");
+
+	status = hdd_get_front_adapter(hdd_ipa->hdd_ctx, &padapter_node);
+	while (padapter_node && VOS_STATUS_SUCCESS == status) {
+		padapter = padapter_node->pAdapter;
+		if (padapter)
+			hdd_ipa_set_adapter_ip_filter(padapter);
+
+		status = hdd_get_next_adapter(hdd_ipa->hdd_ctx, padapter_node, &pnext);
+		padapter_node = pnext;
+	}
+	return 0;
 }
 
 static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
@@ -1280,6 +1368,7 @@ static void hdd_ipa_cleanup_iface(struct hdd_ipa_iface_context *iface_context)
 	iface_context->adapter = NULL;
 	iface_context->tl_context = NULL;
 	vos_spin_lock_release(&iface_context->interface_lock);
+	iface_context->ifa_address = 0;
 }
 
 
@@ -1720,6 +1809,11 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 	ret = hdd_ipa_debugfs_init(hdd_ipa);
 	if (ret)
 		goto fail_alloc_rx_pipe_desc;
+	hdd_ipa->ipv4_notifier.notifier_call = hdd_ipa_ipv4_changed;
+	ret = register_inetaddr_notifier(&hdd_ipa->ipv4_notifier);
+	if (ret)
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"WLAN IPv4 local filter register failed");
 
 	return VOS_STATUS_SUCCESS;
 fail_alloc_rx_pipe_desc:
@@ -1758,6 +1852,7 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 	hdd_ipa_teardown_sys_pipe(hdd_ipa);
 	hdd_ipa_destory_rm_resource(hdd_ipa);
 
+	unregister_inetaddr_notifier(&hdd_ipa->ipv4_notifier);
 	adf_os_mem_free(hdd_ipa);
 	hdd_ctx->hdd_ipa = NULL;
 

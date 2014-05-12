@@ -539,6 +539,12 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
    if (dfs->dfs_debug_mask & ATH_DEBUG_DFS_PHYERR_PKT)
       dump_phyerr_contents(buf, datalen);
 
+   if (chan == NULL) {
+      VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+              "%s: chan is NULL\n", __func__);
+      return;
+   }
+
    if (IEEE80211_IS_CHAN_RADAR(chan)) {
          DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,
           "%s: Radar already found in the channel, "

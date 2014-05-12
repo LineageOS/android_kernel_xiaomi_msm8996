@@ -1068,6 +1068,8 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
 #endif
 
+    wiphy->max_ap_assoc_sta = pCfg->maxNumberOfPeers;
+
     EXIT();
     return 0;
 }
@@ -9623,6 +9625,8 @@ static int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *d
 #endif /* QCA_WIFI_2_0 */
                     if (VOS_STATUS_SUCCESS == status)
                     {
+                        tANI_U8 i;
+
                         if (pTdlsPeer->is_responder == 0)
                         {
                             v_U8_t staId = (v_U8_t)pTdlsPeer->staId;
@@ -9644,7 +9648,50 @@ static int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *d
                                      &pTdlsPeer->peerMac,
                                      sizeof(tSirMacAddr));
                         smeTdlsPeerStateParams.peerState =
-                                                eSME_TDLS_PEER_STATE_CONNECTED;
+                            eSME_TDLS_PEER_STATE_CONNECTED;
+                        smeTdlsPeerStateParams.peerCap.isPeerResponder =
+                            pTdlsPeer->is_responder;
+                        smeTdlsPeerStateParams.peerCap.peerUapsdQueue =
+                            pTdlsPeer->uapsdQueues;
+                        smeTdlsPeerStateParams.peerCap.peerMaxSp =
+                            pTdlsPeer->maxSp;
+                        smeTdlsPeerStateParams.peerCap.peerBuffStaSupport =
+                            pTdlsPeer->isBufSta;
+                        smeTdlsPeerStateParams.peerCap.peerOffChanSupport =
+                            pTdlsPeer->isOffChannelSupported;
+                        smeTdlsPeerStateParams.peerCap.peerCurrOperClass = 0;
+                        smeTdlsPeerStateParams.peerCap.selfCurrOperClass = 0;
+                        smeTdlsPeerStateParams.peerCap.peerChanLen =
+                            pTdlsPeer->supported_channels_len;
+
+                        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                              "%s: Peer " MAC_ADDRESS_STR "vdevId: %d, peerState: %d, isPeerResponder: %d, uapsdQueues: 0x%x, maxSp: 0x%x, peerBuffStaSupport: %d, peerOffChanSupport: %d, peerCurrOperClass: %d, selfCurrOperClass: %d, peerChanLen: %d, peerOperClassLen: %d",
+                              __func__, MAC_ADDR_ARRAY(peer),
+                              smeTdlsPeerStateParams.vdevId,
+                              smeTdlsPeerStateParams.peerState,
+                              smeTdlsPeerStateParams.peerCap.isPeerResponder,
+                              smeTdlsPeerStateParams.peerCap.peerUapsdQueue,
+                              smeTdlsPeerStateParams.peerCap.peerMaxSp,
+                              smeTdlsPeerStateParams.peerCap.peerBuffStaSupport,
+                              smeTdlsPeerStateParams.peerCap.peerOffChanSupport,
+                              smeTdlsPeerStateParams.peerCap.peerCurrOperClass,
+                              smeTdlsPeerStateParams.peerCap.selfCurrOperClass,
+                              smeTdlsPeerStateParams.peerCap.peerChanLen,
+                              smeTdlsPeerStateParams.peerCap.peerOperClassLen);
+
+                        for (i = 0; i < pTdlsPeer->supported_channels_len; i++)
+                        {
+                            smeTdlsPeerStateParams.peerCap.peerChan[i] =
+                                pTdlsPeer->supported_channels[i];
+                        }
+                        smeTdlsPeerStateParams.peerCap.peerOperClassLen =
+                            pTdlsPeer->supported_oper_classes_len;
+                        for (i = 0; i < pTdlsPeer->supported_oper_classes_len; i++)
+                        {
+                            smeTdlsPeerStateParams.peerCap.peerOperClass[i] =
+                                pTdlsPeer->supported_oper_classes[i];
+                        }
+
                         halStatus = sme_UpdateTdlsPeerState(pHddCtx->hHal,
                                                       &smeTdlsPeerStateParams);
                         if (eHAL_STATUS_SUCCESS != halStatus)

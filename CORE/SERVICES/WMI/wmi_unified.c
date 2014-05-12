@@ -70,7 +70,7 @@ struct wmi_event_debug wmi_event_log_buffer[WMI_EVENT_DEBUG_MAX_ENTRY];
 	wmi_command_log_buffer[g_wmi_command_buf_idx].command = a;	\
 	adf_os_mem_copy(wmi_command_log_buffer[g_wmi_command_buf_idx].data, b , 16);\
 	wmi_command_log_buffer[g_wmi_command_buf_idx].time =		\
-						 adf_os_ticks();	\
+		 adf_os_ticks_to_msecs(adf_os_ticks());			\
 	g_wmi_command_buf_idx++;					\
 }
 
@@ -79,7 +79,7 @@ struct wmi_event_debug wmi_event_log_buffer[WMI_EVENT_DEBUG_MAX_ENTRY];
 		g_wmi_event_buf_idx = 0;				\
 	wmi_event_log_buffer[g_wmi_event_buf_idx].event = a;		\
 	wmi_event_log_buffer[g_wmi_event_buf_idx].time =		\
-						adf_os_ticks();		\
+		adf_os_ticks_to_msecs(adf_os_ticks());			\
 	g_wmi_event_buf_idx++;						\
 }
 

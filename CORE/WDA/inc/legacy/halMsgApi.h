@@ -1394,11 +1394,30 @@ typedef struct sAddStaSelfParams
 
 #ifdef FEATURE_WLAN_TDLS
 #ifdef QCA_WIFI_2_0
+
+#define HAL_TDLS_MAX_SUPP_CHANNELS       128
+#define HAL_TDLS_MAX_SUPP_OPER_CLASSES   32
+
+typedef struct {
+   tANI_U8 isPeerResponder;
+   tANI_U8 peerUapsdQueue;
+   tANI_U8 peerMaxSp;
+   tANI_U8 peerBuffStaSupport;
+   tANI_U8 peerOffChanSupport;
+   tANI_U8 peerCurrOperClass;
+   tANI_U8 selfCurrOperClass;
+   tANI_U8 peerChanLen;
+   tANI_U8 peerChan[HAL_TDLS_MAX_SUPP_CHANNELS];
+   tANI_U8 peerOperClassLen;
+   tANI_U8 peerOperClass[HAL_TDLS_MAX_SUPP_OPER_CLASSES];
+} tTdlsPeerCapParams;
+
 typedef struct sTdlsPeerStateParams
 {
    tANI_U32 vdevId;
    tSirMacAddr peerMacAddr;
    tANI_U32 peerState;
+   tTdlsPeerCapParams peerCap;
 }tTdlsPeerStateParams;
 #endif /* QCA_WIFI_2_0 */
 #endif /* FEATURE_WLAN_TDLS */
