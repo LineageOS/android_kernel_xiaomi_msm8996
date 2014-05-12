@@ -11078,7 +11078,7 @@ static int wma_tbttoffset_update_event_handler(void *handle, u_int8_t *event,
 	adjusted_tsf = param_buf->tbttoffset_list;
 
 	for ( ;(vdev_map); vdev_map >>= 1, if_id++) {
-		if (!(vdev_map & 0x1))
+		if (!(vdev_map & 0x1) || (!(intf[if_id].handle)))
 			continue;
 
 		bcn = intf[if_id].beacon;
