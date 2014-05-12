@@ -171,7 +171,7 @@ ol_tx_queue_discard(
     u_int16_t num;
     u_int16_t discarded, actual_discarded = 0;
 
-    adf_os_spin_lock(&pdev->tx_queue_spinlock);
+    adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
 
     if (flush_all == A_TRUE) {
         /* flush all the pending tx queues in the scheduler */
@@ -199,7 +199,7 @@ ol_tx_queue_discard(
     adf_os_atomic_add(actual_discarded, &pdev->tx_queue.rsrc_cnt);
     TX_SCHED_DEBUG_PRINT("-%s \n",__FUNCTION__);
 
-    adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+    adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
 
     if (flush_all == A_TRUE && num > 0) {
         /*
@@ -236,7 +236,7 @@ ol_tx_enqueue(
         //Discard Frames in Discard List
         ol_tx_desc_frame_list_free(pdev, &tx_descs, 1 /* error */);
     }
-    adf_os_spin_lock(&pdev->tx_queue_spinlock);
+    adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
     TAILQ_INSERT_TAIL(&txq->head, tx_desc, tx_desc_list_elem);
 
     bytes = adf_nbuf_len(tx_desc->netbuf);
@@ -257,7 +257,7 @@ ol_tx_enqueue(
     if (!ETHERTYPE_IS_EAPOL_WAPI(tx_msdu_info->htt.info.ethertype)) {
         OL_TX_QUEUE_ADDBA_CHECK(pdev, txq, tx_msdu_info);
     }
-    adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+    adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
 
@@ -323,7 +323,7 @@ ol_tx_queue_free(
 
     TAILQ_INIT(&tx_tmp_list);
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
-    adf_os_spin_lock(&pdev->tx_queue_spinlock);
+    adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
 
     notify_ctx.event = OL_TX_DELETE_QUEUE;
     notify_ctx.txq = txq;
@@ -344,7 +344,7 @@ ol_tx_queue_free(
     /* txq->head gets reset during the TAILQ_CONCAT call */
     TAILQ_CONCAT(&tx_tmp_list, &txq->head, tx_desc_list_elem);
 
-    adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+    adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
     /* free tx frames without holding tx_queue_spinlock */
     adf_os_atomic_add(frms, &pdev->tx_queue.rsrc_cnt);
     while (frms) {
@@ -421,9 +421,9 @@ ol_txrx_peer_tid_unpause_base(
              * the scheduler function takes the lock, temporarily
              * release the lock.
              */
-            adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+            adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
             ol_tx_sched(pdev);
-            adf_os_spin_lock(&pdev->tx_queue_spinlock);
+            adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
         }
     }
 }
@@ -438,11 +438,11 @@ ol_txrx_peer_pause(ol_txrx_peer_handle peer)
 
     /* acquire the mutex lock, since we'll be modifying the queues */
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
-    adf_os_spin_lock(&pdev->tx_queue_spinlock);
+    adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
 
     ol_txrx_peer_pause_base(pdev, peer);
 
-    adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+    adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
 #endif
@@ -456,7 +456,7 @@ ol_txrx_peer_tid_unpause(ol_txrx_peer_handle peer, int tid)
 
     /* acquire the mutex lock, since we'll be modifying the queues */
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
-    adf_os_spin_lock(&pdev->tx_queue_spinlock);
+    adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
 
     if (tid == -1) {
         int i;
@@ -467,7 +467,7 @@ ol_txrx_peer_tid_unpause(ol_txrx_peer_handle peer, int tid)
         ol_txrx_peer_tid_unpause_base(pdev, peer, tid);
     }
 
-    adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+    adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
 
@@ -486,11 +486,11 @@ ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev)
 #if defined(CONFIG_HL_SUPPORT)
         struct ol_txrx_pdev_t *pdev = vdev->pdev;
         struct ol_txrx_peer_t *peer;
-        adf_os_spin_lock(&pdev->tx_queue_spinlock);
+        adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
         TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
             ol_txrx_peer_pause_base(pdev, peer);
         }
-        adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+        adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
 #endif /* defined(CONFIG_HL_SUPPORT) */
     } else {
         vdev->ll_pause.is_paused = A_TRUE;
@@ -510,7 +510,7 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev)
 #if defined(CONFIG_HL_SUPPORT)
         struct ol_txrx_pdev_t *pdev = vdev->pdev;
         struct ol_txrx_peer_t *peer;
-        adf_os_spin_lock(&pdev->tx_queue_spinlock);
+        adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
 
         TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
             int i;
@@ -518,7 +518,7 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev)
                 ol_txrx_peer_tid_unpause_base(pdev, peer, i);
             }
         }
-        adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+        adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
 #endif /* defined(CONFIG_HL_SUPPORT) */
     } else {
         if (vdev->ll_pause.is_paused)
