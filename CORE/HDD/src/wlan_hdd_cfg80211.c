@@ -1077,6 +1077,18 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     return 0;
 }
 
+/*
+ * In this function, wiphy structure is updated after VOSS
+ * initialization. In wlan_hdd_cfg80211_init, only the
+ * default values will be initialized. The final initialization
+ * of all required members can be done here.
+ */
+void wlan_hdd_update_wiphy(struct wiphy *wiphy,
+                           hdd_config_t *pCfg)
+{
+    wiphy->max_ap_assoc_sta = pCfg->maxNumberOfPeers;
+}
+
 /* In this function we are registering wiphy. */
 int wlan_hdd_cfg80211_register(struct wiphy *wiphy)
 {

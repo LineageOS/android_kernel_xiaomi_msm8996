@@ -11021,6 +11021,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_vos_nv_close;
    }
 
+   wlan_hdd_update_wiphy(wiphy, pHddCtx->cfg_ini);
+
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && \
     !defined(REMOVE_PKT_LOG)
    hif_init_pdev_txrx_handle(hif_sc,
