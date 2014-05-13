@@ -11031,7 +11031,7 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
    } else if ( eCSR_DOT11_MODE_11g_ONLY == eCsrPhyMode)
       smeConfig.csrConfig.channelBondingMode24GHz = 0;
 
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
          "%s cbmode selected=%d", (channel <= 14) ? "2G" : "5G",
          (channel <= 14) ? smeConfig.csrConfig.channelBondingMode24GHz :
                         smeConfig.csrConfig.channelBondingMode5GHz);
