@@ -1712,6 +1712,9 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         msleep(10);
     }
 
+    /* Stop the HIF Sleep Timer */
+    HIFCancelDeferredTargetSleep(sc->hif_device);
+
     pci_read_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, &val);
     if ((val & 0x000000ff) != 0x3) {
         pci_save_state(pdev);
