@@ -2403,11 +2403,27 @@ eHalStatus csrScanFlushResult(tpAniSirGlobal pMac)
 {
     tANI_U8 isFlushDenied = csrScanFlushDenied(pMac);
     eHalStatus status = eHAL_STATUS_SUCCESS;
+    tSirMbMsg *pMsg;
+    tANI_U16 msgLen;
+
     if (isFlushDenied) {
         smsLog(pMac, LOGW, "%s: scan flush denied in roam state %d",
                 __func__, isFlushDenied);
         return eHAL_STATUS_FAILURE;
     }
+
+    /* prepare and send clear cached scan results msg to lim */
+    msgLen = (tANI_U16)(sizeof( tSirMbMsg ));
+    pMsg = vos_mem_malloc(msgLen);
+    if ( NULL != pMsg ) {
+        vos_mem_set((void *)pMsg, msgLen, 0);
+        pMsg->type = pal_cpu_to_be16((tANI_U16)eWNI_SME_CLEAR_LIM_SCAN_CACHE);
+        pMsg->msgLen = pal_cpu_to_be16(msgLen);
+        palSendMBMessage(pMac->hHdd, pMsg);
+    } else {
+        status = eHAL_STATUS_FAILED_ALLOC;
+    }
+
     csrLLScanPurgeResult( pMac, &pMac->scan.tempScanResults );
     csrLLScanPurgeResult( pMac, &pMac->scan.scanResultList );
     return( status );
