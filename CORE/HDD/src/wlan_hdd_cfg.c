@@ -603,13 +603,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SHORT_PREAMBLE_MIN,
                  CFG_SHORT_PREAMBLE_MAX ),
 
-   REG_VARIABLE( CFG_IBSS_AUTO_BSSID_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, fIsAutoIbssBssid,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_IBSS_AUTO_BSSID_DEFAULT,
-                 CFG_IBSS_AUTO_BSSID_MIN,
-                 CFG_IBSS_AUTO_BSSID_MAX ),
-
    REG_VARIABLE_STRING( CFG_IBSS_BSSID_NAME, WLAN_PARAM_MacAddr,
                         hdd_config_t, IbssBssid,
                         VAR_FLAGS_OPTIONAL,
@@ -4721,36 +4714,6 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
    {
       fStatus = FALSE;
       hddLog(LOGE,"Could not pass on WNI_CFG_SHORT_PREAMBLE to CCM");
-   }
-
-   if (pConfig->fIsAutoIbssBssid)
-   {
-      if (ccmCfgSetStr(pHddCtx->hHal, WNI_CFG_BSSID, (v_U8_t *)"000000000000",
-         sizeof(v_BYTE_t) * VOS_MAC_ADDR_SIZE, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-      {
-         fStatus = FALSE;
-         hddLog(LOGE,"Could not pass on WNI_CFG_BSSID to CCM");
-      }
-   }
-   else
-   {
-      if ( VOS_FALSE == vos_is_macaddr_group( &pConfig->IbssBssid ))
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                    "MAC Addr (IBSS BSSID) read from Registry is: " MAC_ADDRESS_STR,
-                    MAC_ADDR_ARRAY(pConfig->IbssBssid.bytes));
-         if (ccmCfgSetStr(pHddCtx->hHal, WNI_CFG_BSSID, pConfig->IbssBssid.bytes,
-            sizeof(v_BYTE_t) * VOS_MAC_ADDR_SIZE, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-         {
-            fStatus = FALSE;
-            hddLog(LOGE,"Could not pass on WNI_CFG_BSSID to CCM");
-         }
-      }
-      else
-      {
-         fStatus = FALSE;
-         hddLog(LOGE,"Could not pass on WNI_CFG_BSSID to CCM");
-      }
    }
 
    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_PASSIVE_MINIMUM_CHANNEL_TIME,

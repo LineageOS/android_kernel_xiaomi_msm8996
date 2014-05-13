@@ -5272,6 +5272,8 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
         scan_params->idle_time = scan_params->min_rest_time;
         scan_params->burst_duration = WMA_ROAM_DWELL_TIME_PASSIVE_DEFAULT;
     }
+
+    scan_params->scan_ctrl_flags = WMI_SCAN_ADD_CCK_RATES | WMI_SCAN_ADD_OFDM_RATES;
     if (!pMac->roam.configParam.allowDFSChannelRoam) {
         scan_params->scan_ctrl_flags |= WMI_SCAN_BYPASS_DFS_CHN;
     }
@@ -13631,7 +13633,7 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 		WMA_LOGP("%s: Pending commands %d credits %d", __func__,
 				wmi_get_pending_cmds(wma->wmi_handle),
 				wmi_get_host_credits(wma->wmi_handle));
-		VOS_ASSERT(0);
+		VOS_BUG(0);
 	} else {
 		WMA_LOGD("Host wakeup received");
 	}
@@ -16879,8 +16881,13 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 			/* PAUSE action, add bitmap */
 			if (ACTION_PAUSE == wmi_event->action)
 			{
+				/*
+				 * Now only support per-dev pause so it is not necessary
+				 * to pause a paused queue again.
+				 */
+				if (!wma->interfaces[vdev_id].pause_bitmap)
+					wdi_in_vdev_pause(wma->interfaces[vdev_id].handle);
 				wma->interfaces[vdev_id].pause_bitmap |= (1 << wmi_event->pause_type);
-				wdi_in_vdev_pause(wma->interfaces[vdev_id].handle);
 			}
 			/* UNPAUSE action, clean bitmap */
 			else if (ACTION_UNPAUSE == wmi_event->action)

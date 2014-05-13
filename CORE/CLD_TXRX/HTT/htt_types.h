@@ -185,6 +185,7 @@ struct htt_pdev_t {
         u_int32_t dbg_mpdu_count;
         u_int32_t dbg_ring_idx;
         u_int32_t dbg_refill_cnt;
+        u_int32_t dbg_sync_success;
 #endif
     } rx_ring;
     int rx_desc_size_hl;

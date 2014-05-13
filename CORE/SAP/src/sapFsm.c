@@ -120,6 +120,25 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext, v_U8_t **channelLis
 static VOS_STATUS sapGet5GHzChannelList(ptSapContext sapContext);
 
 /*==========================================================================
+  FUNCTION    sapStopDfsCacTimer
+
+  DESCRIPTION
+    Function to sttop the DFS CAC timer when SAP is stopped
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    sapContext: SAP Context
+  RETURN VALUE
+    DFS Timer start status
+  SIDE EFFECTS
+============================================================================*/
+
+static int sapStopDfsCacTimer(ptSapContext sapContext);
+
+/*==========================================================================
   FUNCTION    sapStartDfsCacTimer
 
   DESCRIPTION
@@ -1178,6 +1197,42 @@ sapFsm
                          "In %s, from state %s => %s",
                          __func__, "eSAP_DFS_CAC_WAIT", "eSAP_STARTED");
             }
+            else if (msg == eSAP_HDD_STOP_INFRA_BSS)
+            {
+                /* Transition from eSAP_STARTING to eSAP_DISCONNECTING */
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                        "In %s, from state %s => %s",
+                        __func__, "eSAP_DFS_CAC_WAIT", "eSAP_DISCONNECTING");
+
+                /* stop CAC timer */
+                sapStopDfsCacTimer(sapContext);
+
+                /*Advance outer statevar */
+                sapContext->sapsMachine = eSAP_DISCONNECTED;
+                vosStatus = sapSignalHDDevent( sapContext,
+                                                NULL,
+                                                eSAP_START_BSS_EVENT,
+                                                (v_PVOID_t)eSAP_STATUS_FAILURE);
+                vosStatus = sapGotoDisconnected(sapContext);
+                /* Close the SME session*/
+
+                if (eSAP_TRUE == sapContext->isSapSessionOpen)
+                {
+                    tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+                    if (NULL == hHal)
+                    {
+                        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                                "In %s, NULL hHal in state %s, msg %d",
+                                __func__, "eSAP_DFS_CAC_WAIT", msg);
+                    }
+                    else if (eHAL_STATUS_SUCCESS ==
+                            sme_CloseSession(hHal,
+                                sapContext->sessionId, NULL, NULL))
+                    {
+                        sapContext->isSapSessionOpen = eSAP_FALSE;
+                    }
+                }
+            }
             else
             {
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -2149,6 +2204,28 @@ void sapDfsCacTimerCallback(void *data)
         sapFsm(sapContext, &sapEvent);
     }
 
+}
+
+/*
+ * Function to stop the DFS CAC Timer
+ */
+static int sapStopDfsCacTimer(ptSapContext sapContext)
+{
+    if (sapContext == NULL)
+        return 0;
+
+    if (VOS_TIMER_STATE_RUNNING !=
+            vos_timer_getCurrentState(
+                &sapContext->SapDfsInfo.sap_dfs_cac_timer)) {
+        return 0;
+    }
+
+    vos_timer_stop(&sapContext->SapDfsInfo.sap_dfs_cac_timer);
+    sapContext->SapDfsInfo.is_dfs_cac_timer_running = 0;
+
+    vos_timer_destroy(&sapContext->SapDfsInfo.sap_dfs_cac_timer);
+
+    return 0;
 }
 
 /*
