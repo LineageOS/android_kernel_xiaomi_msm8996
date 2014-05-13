@@ -1718,6 +1718,9 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         pci_disable_device(pdev);
         pci_write_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, (val & 0xffffff00) | 0x03);
     }
+
+    printk("%s: Suspend completes\n", __func__);
+
     return 0;
 }
 
@@ -1784,6 +1787,7 @@ hif_pci_resume(struct pci_dev *pdev)
     else if (wma_disable_wow_in_fw(temp_module))
         return (-1);
 
+    printk("%s: Resume completes\n", __func__);
 
     return 0;
 }
