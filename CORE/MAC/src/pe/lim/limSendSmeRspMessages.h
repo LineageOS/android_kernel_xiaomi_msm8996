@@ -133,4 +133,11 @@ void
 limProcessBeaconTxSuccessInd(tpAniSirGlobal pMac, tANI_U16 msgType,
                                        void *event);
 
+typedef enum {
+    lim_csa_ie_present = 0x00000001,
+    lim_xcsa_ie_present = 0x00000002,
+    lim_wbw_ie_present = 0x00000004,
+    lim_cswarp_ie_present = 0x00000008,
+}lim_csa_event_ies_present_flag;
+
 #endif /* __LIM_SEND_SME_RSP_H */
