@@ -1113,15 +1113,10 @@ static void wma_recreate_ibss_vdev_and_bss_peer(tp_wma_handle wma, u_int8_t vdev
 static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 				      u32 len)
 {
-	tp_wma_handle wma = (tp_wma_handle)handle;
-	struct wma_target_req *req_msg;
 	WMI_VDEV_STOPPED_EVENTID_param_tlvs *param_buf;
-	wmi_vdev_stopped_event_fixed_param *resp_event;
-	ol_txrx_peer_handle peer;
-	ol_txrx_pdev_handle pdev;
-	u_int8_t peer_id;
-	struct wma_txrx_node *iface;
-	int32_t status = 0;
+	wmi_vdev_stopped_event_fixed_param *event;
+	u_int8_t *buf;
+	vos_msg_t vos_msg = {0};
 
 	WMA_LOGI("%s: Enter", __func__);
 	param_buf = (WMI_VDEV_STOPPED_EVENTID_param_tlvs *) cmd_param_info;
@@ -1129,8 +1124,47 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		WMA_LOGE("Invalid event buffer");
 		return -EINVAL;
 	}
+	event = param_buf->fixed_param;
+	buf = vos_mem_malloc(sizeof(wmi_vdev_stopped_event_fixed_param));
+	if (!buf) {
+		WMA_LOGE("%s: Failed alloc memory for buf", __func__);
+		return -EINVAL;
+	}
+	vos_mem_zero(buf, sizeof(wmi_vdev_stopped_event_fixed_param));
+	vos_mem_copy(buf, (u_int8_t *)event,
+					sizeof(wmi_vdev_stopped_event_fixed_param));
 
-	resp_event = param_buf->fixed_param;
+	vos_msg.type = WDA_VDEV_STOP_IND;
+	vos_msg.bodyptr = buf;
+	vos_msg.bodyval = 0;
+
+	if (VOS_STATUS_SUCCESS !=
+	    vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg)) {
+		WMA_LOGP("%s: Failed to post WDA_VDEV_STOP_IND msg", __func__);
+		vos_mem_free(buf);
+		return -1;
+	}
+	WMA_LOGD("WDA_VDEV_STOP_IND posted");
+	return 0;
+}
+
+static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
+{
+	wmi_vdev_stopped_event_fixed_param *resp_event;
+	struct wma_target_req *req_msg;
+	ol_txrx_peer_handle peer;
+	ol_txrx_pdev_handle pdev;
+	u_int8_t peer_id;
+	struct wma_txrx_node *iface;
+	int32_t status = 0;
+
+	WMA_LOGI("%s: Enter", __func__);
+	if (!buf) {
+		WMA_LOGE("Invalid event buffer");
+		return -EINVAL;
+	}
+
+	resp_event = (wmi_vdev_stopped_event_fixed_param *)buf;
 	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id,
 				    WMA_TARGET_REQ_TYPE_VDEV_STOP);
 	if (!req_msg) {
@@ -16395,6 +16429,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_MODEM_POWER_STATE_IND:
 			wma_notify_modem_power_state(wma_handle,
 					(tSirModemPowerStateInd *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_VDEV_STOP_IND:
+			wma_vdev_stop_ind(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		default:
