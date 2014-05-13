@@ -1029,9 +1029,9 @@ v_U8_t vos_freq_to_chan(v_U32_t freq)
 }
 
 
-v_U8_t vos_freq_to_band(v_U32_t freq)
+v_U8_t vos_chan_to_band(v_U32_t chan)
 {
-    if (freq <= VOS_CHAN_14_FREQ)
+    if (chan <= VOS_24_GHZ_CHANNEL_14)
         return VOS_BAND_2GHZ;
 
     return VOS_BAND_5GHZ;

@@ -4761,7 +4761,7 @@ tANI_BOOLEAN csrIsDuplicateBssDescription( tpAniSirGlobal pMac, tSirBssDescripti
     {
         if (pCap1->ess &&
                 csrIsMacAddressEqual( pMac, (tCsrBssid *)pSirBssDesc1->bssId, (tCsrBssid *)pSirBssDesc2->bssId)&&
-            (fForced || (vos_freq_to_band(pSirBssDesc1->channelId) == vos_freq_to_band((pSirBssDesc2->channelId)))))
+            (fForced || (vos_chan_to_band(pSirBssDesc1->channelId) == vos_chan_to_band((pSirBssDesc2->channelId)))))
         {
             fMatch = TRUE;
             // Check for SSID match, if exists
