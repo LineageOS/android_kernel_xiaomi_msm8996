@@ -1035,6 +1035,203 @@ extern "C" {
 #define WLAN_STATS_DBGID_EST_LINKSPEED_CALC              4
 #define WLAN_STATS_DBGID_EST_LINKSPEED_UPDATE_HOME_CHAN  5
 #define WLAN_STATS_DBGID_DEFINITION_END                  6
+/* NAN DBGIDs */
+#define NAN_DBGID_START                             0
+
+/* Debug IDs for debug logs. 3 args max, not fixed. */
+#define NAN_DBGID_DBG_LOG_FIRST                     1
+#define NAN_DBGID_FUNC_BEGIN                        NAN_DBGID_DBG_LOG_FIRST
+#define NAN_DBGID_FUNC_END                          2
+#define NAN_DBGID_MAIN_DEBUG                        3
+#define NAN_DBGID_MAC_DEBUG                         4
+#define NAN_DBGID_BLOOM_FILTER_DEBUG                5
+#define NAN_DBGID_MAC_ADDR                          6
+#define NAN_DBGID_PARAM_UPDATED                     7
+#define NAN_DBGID_NULL_PTR                          8
+#define NAN_DBGID_INVALID_FUNC_ARG                  9
+#define NAN_DBGID_INVALID_MSG_PARAM                 10
+#define NAN_DBGID_MISSING_MSG_PARAM                 11
+#define NAN_DBGID_DEPRECATED_MSG_PARAM              12
+#define NAN_DBGID_UNSUPPORTED_MSG_PARAM             13
+#define NAN_DBGID_INVALID_PKT_DATA                  14
+#define NAN_DBGID_LOG_PKT_DATA                      15
+#define NAN_DBGID_INVALID_VALUE                     16
+#define NAN_DBGID_INVALID_OPERATION                 17
+#define NAN_DBGID_INVALID_STATE                     18
+#define NAN_DBGID_FUNCTION_ENABLED                  19
+#define NAN_DBGID_FUNCTION_DISABLED                 20
+#define NAN_DBGID_INVALID_FUNCTION_STATE            21
+#define NAN_DBGID_READ_ERROR                        22
+#define NAN_DBGID_WRITE_ERROR                       23
+#define NAN_DBGID_RECEIVE_ERROR                     24
+#define NAN_DBGID_TRANSMIT_ERROR                    25
+#define NAN_DBGID_PARSE_ERROR                       26
+#define NAN_DBGID_RES_ALLOC_ERROR                   27
+/* PLEASE KEEP THIS ONE AT THE END */
+#define NAN_DBGID_DBG_LOG_LAST                      28
+
+/* Debug IDs for event logs. */
+
+#define NAN_DBGID_EVT_BASE                          NAN_DBGID_DBG_LOG_LAST
+/* args: <none> */
+#define NAN_DBGID_NAN_ENABLED                       (NAN_DBGID_EVT_BASE + 0)
+/* args: <none> */
+#define NAN_DBGID_NAN_DISABLED                      (NAN_DBGID_EVT_BASE + 1)
+/* args: <none> */
+#define NAN_DBGID_CONFIG_RESTORED                   (NAN_DBGID_EVT_BASE + 2)
+/* args: framesQueued */
+#define NAN_DBGID_SDF_QUEUED                        (NAN_DBGID_EVT_BASE + 3)
+/* args: old, new */
+#define NAN_DBGID_TW_CHANGED                        (NAN_DBGID_EVT_BASE + 4)
+/* args: <none> */
+#define NAN_DBGID_DW_START                          (NAN_DBGID_EVT_BASE + 5)
+/* args: busyDiff */
+#define NAN_DBGID_DW_END                            (NAN_DBGID_EVT_BASE + 6)
+/* args: oldClusterId, newClusterId */
+#define NAN_DBGID_CLUSTER_ID_CHANGED                (NAN_DBGID_EVT_BASE + 7)
+/* args: cmd, buffer, length */
+#define NAN_DBGID_WMI_CMD_RECEIVED                  (NAN_DBGID_EVT_BASE + 8)
+/* args: pEventPkt, pEventBuf, eventSize, dataSize */
+#define NAN_DBGID_WMI_EVT_SENT                      (NAN_DBGID_EVT_BASE + 9)
+/* args: type length, readLen */
+#define NAN_DBGID_TLV_READ                          (NAN_DBGID_EVT_BASE + 10)
+/* args: type length, writeLen */
+#define NAN_DBGID_TLV_WRITE                         (NAN_DBGID_EVT_BASE + 11)
+/* args: handle */
+#define NAN_DBGID_PUBSUB_UPDATED                    (NAN_DBGID_EVT_BASE + 12)
+/* args: handle */
+#define NAN_DBGID_PUBSUB_REMOVE_DEFERED             (NAN_DBGID_EVT_BASE + 13)
+/* args: handle */
+#define NAN_DBGID_PUBSUB_REMOVE_PENDING             (NAN_DBGID_EVT_BASE + 14)
+/* args: handle */
+#define NAN_DBGID_PUBSUB_REMOVED                    (NAN_DBGID_EVT_BASE + 15)
+/* args: handle */
+#define NAN_DBGID_PUBSUB_PROCESSED                  (NAN_DBGID_EVT_BASE + 16)
+/* args: handle, sid1, sid2, svcCtrl, length */
+#define NAN_DBGID_PUBSUB_MATCHED                    (NAN_DBGID_EVT_BASE + 17)
+/* args: handle, flags */
+#define NAN_DBGID_PUBSUB_PREPARED                   (NAN_DBGID_EVT_BASE + 18)
+/* args: handle, mac1, mac2 */
+#define NAN_DBGID_PUBSUB_FOLLOWUP_TRANSMIT          (NAN_DBGID_EVT_BASE + 19)
+/* args: handle, mac1, mac2 */
+#define NAN_DBGID_PUBSUB_FOLLOWUP_RECEIVED          (NAN_DBGID_EVT_BASE + 20)
+/* args: subscribeHandle, matchHandle, oldTimeout, newTimeout */
+#define NAN_DBGID_SUBSCRIBE_UNMATCH_TIMEOUT_UPDATE  (NAN_DBGID_EVT_BASE + 21)
+/* args: subscribeHandle, matchHandle, timestamp*/
+#define NAN_DBGID_SUBSCRIBE_MATCH_NEW               (NAN_DBGID_EVT_BASE + 22)
+/* args: subscribeHandle, matchHandle, timestamp*/
+#define NAN_DBGID_SUBSCRIBE_MATCH_REPEAT            (NAN_DBGID_EVT_BASE + 23)
+/* args: subscribeHandle, matchHandle, matchTimestamp, timestamp*/
+#define NAN_DBGID_SUBSCRIBE_MATCH_EXPIRED           (NAN_DBGID_EVT_BASE + 24)
+/* args: subscribeHandle, matchHandle, matchTimestamp, timestamp */
+#define NAN_DBGID_SUBSCRIBE_MATCH_LOG               (NAN_DBGID_EVT_BASE + 25)
+/* args: sid1, sid2 */
+#define NAN_DBGID_SERVICE_ID_CREATED                (NAN_DBGID_EVT_BASE + 26)
+/* args: size */
+#define NAN_DBGID_SD_ATTR_BUILT                     (NAN_DBGID_EVT_BASE + 27)
+/* args: offset */
+#define NAN_DBGID_SERVICE_RSP_OFFSET                (NAN_DBGID_EVT_BASE + 28)
+/* args: offset */
+#define NAN_DBGID_SERVICE_INFO_OFFSET               (NAN_DBGID_EVT_BASE + 29)
+/* args: chan, interval, start_time */
+#define NAN_DBGID_CHREQ_CREATE                      (NAN_DBGID_EVT_BASE + 30)
+/* args: start_time, status */
+#define NAN_DBGID_CHREQ_UPDATE                      (NAN_DBGID_EVT_BASE + 31)
+/* args: chan, interval, status */
+#define NAN_DBGID_CHREQ_REMOVE                      (NAN_DBGID_EVT_BASE + 32)
+/* args: type, timestamp */
+#define NAN_DBGID_CHREQ_GRANT                       (NAN_DBGID_EVT_BASE + 33)
+/* args: type, timestamp */
+#define NAN_DBGID_CHREQ_END                         (NAN_DBGID_EVT_BASE + 34)
+/* args: type, timestamp */
+#define NAN_DBGID_CHREQ_ERROR                       (NAN_DBGID_EVT_BASE + 35)
+/* args: type, length, timestamp, rssi */
+#define NAN_DBGID_RX_CALLBACK                       (NAN_DBGID_EVT_BASE + 36)
+/* args: type, handle, bufp, status, timestamp  */
+#define NAN_DBGID_TX_COMPLETE                       (NAN_DBGID_EVT_BASE + 37)
+/* args: tsf, tsf */
+#define NAN_DBGID_TSF_TIMEOUT                       (NAN_DBGID_EVT_BASE + 38)
+/* args: clusterId, clusterStart */
+#define NAN_DBGID_SYNC_START                        (NAN_DBGID_EVT_BASE + 39)
+/* args: clusterId */
+#define NAN_DBGID_SYNC_STOP                         (NAN_DBGID_EVT_BASE + 40)
+/* args: enable, scanType, rval */
+#define NAN_DBGID_NAN_SCAN                          (NAN_DBGID_EVT_BASE + 41)
+/* args: scanType */
+#define NAN_DBGID_NAN_SCAN_COMPLETE                 (NAN_DBGID_EVT_BASE + 42)
+/* args: masterPref */
+#define NAN_DBGID_MPREF_CHANGE                      (NAN_DBGID_EVT_BASE + 43)
+/* args: masterPref, randFactor */
+#define NAN_DBGID_WARMUP_EXPIRE                     (NAN_DBGID_EVT_BASE + 44)
+/* args: randFactor */
+#define NAN_DBGID_RANDOM_FACTOR_EXPIRE              (NAN_DBGID_EVT_BASE + 45)
+/* args: tsf, tsf */
+#define NAN_DBGID_DW_SKIP                           (NAN_DBGID_EVT_BASE + 46)
+/* args: type, tsfDiff */
+#define NAN_DBGID_DB_SKIP                           (NAN_DBGID_EVT_BASE + 47)
+/* args: TBD */
+#define NAN_DBGID_BEACON_RX                         (NAN_DBGID_EVT_BASE + 48)
+/* args: TBD */
+#define NAN_DBGID_BEACON_TX                         (NAN_DBGID_EVT_BASE + 49)
+/* args: clusterId */
+#define NAN_DBGID_CLUSTER_MERGE                     (NAN_DBGID_EVT_BASE + 50)
+/* args: cmd, status, value */
+#define NAN_DBGID_TEST_CMD_EXEC                     (NAN_DBGID_EVT_BASE + 51)
+/* args: tsfHi, tsfLo, age */
+#define NAN_DBGID_APPLY_BEACON_TSF                  (NAN_DBGID_EVT_BASE + 52)
+/* args: behindFlag, diff */
+#define NAN_DBGID_TSF_UPDATE                        (NAN_DBGID_EVT_BASE + 53)
+/* args: argc==4 (rawTsfHi, rawTsfLo, nanTsfHi, nanTsfLo), argc==2(offsetHi, offsetLo) */
+#define NAN_DBGID_SET_TSF                           (NAN_DBGID_EVT_BASE + 54)
+/* args: rankHi, rankLo, mp, rf */
+#define NAN_DBGID_NEW_MASTERRANK                    (NAN_DBGID_EVT_BASE + 55)
+/* args: amRankHi, amRankLo, mp, rf */
+#define NAN_DBGID_NEW_ANCHORMASTER                  (NAN_DBGID_EVT_BASE + 56)
+/* args: amRankHi, amRankLo, HC, BTT */
+#define NAN_DBGID_ANCHORMASTER_RECORD_UPDATE        (NAN_DBGID_EVT_BASE + 57)
+/* args: amRankHi, amRankLo, HC, BTT */
+#define NAN_DBGID_ANCHORMASTER_RECORD_EXPIRED       (NAN_DBGID_EVT_BASE + 58)
+/* args: reason, transitionsToAM */
+#define NAN_DBGID_BECOMING_ANCHORMASTER             (NAN_DBGID_EVT_BASE + 59)
+/* args: oldRole, newRole */
+#define NAN_DBGID_ROLE_CHANGE                       (NAN_DBGID_EVT_BASE + 60)
+/* args: TBD */
+#define NAN_DBGID_SYNC_BEACON_DW_STATS              (NAN_DBGID_EVT_BASE + 61)
+/* args: */
+#define NAN_DBGID_SPARE_62                          (NAN_DBGID_EVT_BASE + 62)
+/* args: */
+#define NAN_DBGID_SPARE_63                          (NAN_DBGID_EVT_BASE + 63)
+/* args: */
+#define NAN_DBGID_SPARE_64                          (NAN_DBGID_EVT_BASE + 64)
+/* args: */
+#define NAN_DBGID_SPARE_65                          (NAN_DBGID_EVT_BASE + 65)
+/* args: */
+#define NAN_DBGID_SPARE_66                          (NAN_DBGID_EVT_BASE + 66)
+/* args: */
+#define NAN_DBGID_SPARE_67                          (NAN_DBGID_EVT_BASE + 67)
+/* args: */
+#define NAN_DBGID_SPARE_68                          (NAN_DBGID_EVT_BASE + 68)
+/* args: */
+#define NAN_DBGID_SPARE_69                          (NAN_DBGID_EVT_BASE + 69)
+/* args: */
+#define NAN_DBGID_SPARE_70                          (NAN_DBGID_EVT_BASE + 70)
+/* PLEASE KEEP THIS ONE AT THE END */
+#define NAN_DBGID_EVT_LOG_LAST                      (NAN_DBGID_EVT_BASE + 71)
+
+/* Debug IDs for message logs. */
+#define NAN_DBGID_API_MSG_BASE                      NAN_DBGID_EVT_LOG_LAST
+#define NAN_DBGID_API_MSG_HEADER                    (NAN_DBGID_API_MSG_BASE + 0)
+#define NAN_DBGID_API_MSG_DATA                      (NAN_DBGID_API_MSG_BASE + 1)
+#define NAN_DBGID_API_MSG_LAST                      (NAN_DBGID_API_MSG_BASE + 2)
+
+/* Debug IDs for packet logs. */
+#define NAN_DBGID_OTA_PKT_BASE                      NAN_DBGID_API_MSG_LAST
+#define NAN_DBGID_OTA_PKT_HEADER                    (NAN_DBGID_OTA_PKT_BASE + 0)
+#define NAN_DBGID_OTA_PKT_DATA                      (NAN_DBGID_OTA_PKT_BASE + 1)
+#define NAN_DBGID_OTA_PKT_LAST                      (NAN_DBGID_OTA_PKT_BASE + 2)
+
+#define NAN_DBGID_END                               NAN_DBGID_OTA_PKT_LAST
+
 
 /* IBSS PS module DBGIDs*/
 #define IBSS_PS_DBGID_DEFINITION_START           0
