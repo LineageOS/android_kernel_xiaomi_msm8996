@@ -7465,6 +7465,8 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       pWlanDev->watchdog_timeo = HDD_TX_TIMEOUT;
 #ifndef QCA_WIFI_2_0
       pWlanDev->hard_header_len += LIBRA_HW_NEEDED_HEADROOM;
+#elif defined(HIF_USB)
+      pWlanDev->hard_header_len += LIBRA_HW_NEEDED_HEADROOM;
 #endif
 
 #ifdef QCA_WIFI_2_0
