@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -592,6 +592,13 @@ extern a_bool_t
  */
 extern int
 (*htt_rx_amsdu_pop)(
+    htt_pdev_handle pdev,
+    adf_nbuf_t rx_ind_msg,
+    adf_nbuf_t *head_msdu,
+    adf_nbuf_t *tail_msdu);
+
+extern int
+(*htt_rx_frag_pop)(
     htt_pdev_handle pdev,
     adf_nbuf_t rx_ind_msg,
     adf_nbuf_t *head_msdu,

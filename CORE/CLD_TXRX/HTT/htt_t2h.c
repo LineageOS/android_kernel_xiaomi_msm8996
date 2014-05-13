@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -84,6 +84,49 @@ htt_t2h_mac_addr_deswizzle(u_int8_t *tgt_mac_addr, u_int8_t *buffer)
 #endif
 }
 
+#if defined(CONFIG_HL_SUPPORT)
+#define HTT_RX_FRAG_SET_LAST_MSDU(pdev, msg) /* no-op */
+#else
+static void HTT_RX_FRAG_SET_LAST_MSDU(
+    struct htt_pdev_t *pdev, adf_nbuf_t msg)
+{
+    u_int32_t *msg_word;
+    unsigned num_msdu_bytes;
+    adf_nbuf_t msdu;
+    struct htt_host_rx_desc_base *rx_desc;
+    int start_idx;
+
+    msg_word = (u_int32_t *) adf_nbuf_data(msg);
+    num_msdu_bytes = HTT_RX_IND_FW_RX_DESC_BYTES_GET(*(msg_word + 2));
+    /*
+     * 1 word for the message header,
+     * 1 word to specify the number of MSDU bytes,
+     * 1 word for every 4 MSDU bytes (round up),
+     * 1 word for the MPDU range header
+     */
+    pdev->rx_mpdu_range_offset_words = 3 + ((num_msdu_bytes + 3) >> 2);
+    pdev->rx_ind_msdu_byte_idx = 0;
+
+    /*
+     * Fix for EV126710, in which BSOD occurs due to last_msdu bit
+     * not set while the next pointer is deliberately set to NULL
+     * before calling ol_rx_pn_check_base()
+     *
+     * For fragment frames, the HW may not have set the last_msdu bit
+     * in the rx descriptor, but the SW expects this flag to be set,
+     * since each fragment is in a separate MPDU. Thus, set the flag here,
+     * just in case the HW didn't.
+     */
+    start_idx = pdev->rx_ring.sw_rd_idx.msdu_payld;
+    msdu = pdev->rx_ring.buf.netbufs_ring[start_idx];
+    adf_nbuf_set_pktlen(msdu, HTT_RX_BUF_SIZE);
+    adf_nbuf_unmap(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
+    rx_desc = htt_rx_desc(msdu);
+    rx_desc->msdu_end.last_msdu = 1;
+    adf_nbuf_map(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
+}
+#endif /* CONFIG_HL_SUPPORT */
+
 /* Target to host Msg/event  handler  for low priority messages*/
 void
 htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
@@ -148,43 +191,12 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
         }
     case  HTT_T2H_MSG_TYPE_RX_FRAG_IND:
         {
-            unsigned num_msdu_bytes;
             u_int16_t peer_id;
             u_int8_t tid;
-            adf_nbuf_t msdu;
-            struct htt_host_rx_desc_base *rx_desc;
-            int start_idx;
 
             peer_id = HTT_RX_FRAG_IND_PEER_ID_GET(*msg_word);
             tid = HTT_RX_FRAG_IND_EXT_TID_GET(*msg_word);
-
-            num_msdu_bytes = HTT_RX_IND_FW_RX_DESC_BYTES_GET(*(msg_word + 2));
-            /*
-             * 1 word for the message header,
-             * 1 word to specify the number of MSDU bytes,
-             * 1 word for every 4 MSDU bytes (round up),
-             * 1 word for the MPDU range header
-             */
-            pdev->rx_mpdu_range_offset_words = 3 + ((num_msdu_bytes + 3) >> 2);
-            pdev->rx_ind_msdu_byte_idx = 0;
-
-            /*
-             * Fix for EV126710, in which BSOD occurs due to last_msdu bit
-             * not set while the next pointer is deliberately set to NULL
-             * before calling ol_rx_pn_check_base()
-             *
-             * For fragment frames, the HW may not have set the last_msdu bit
-             * in the rx descriptor, but the SW expects this flag to be set,
-             * since each fragment is in a separate MPDU. Thus, set the flag here,
-             * just in case the HW didn't.
-             */
-            start_idx = pdev->rx_ring.sw_rd_idx.msdu_payld;
-            msdu = pdev->rx_ring.buf.netbufs_ring[start_idx];
-            adf_nbuf_set_pktlen(msdu, HTT_RX_BUF_SIZE);
-            adf_nbuf_unmap(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
-            rx_desc = htt_rx_desc(msdu);
-            rx_desc->msdu_end.last_msdu = 1;
-            adf_nbuf_map(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
+            HTT_RX_FRAG_SET_LAST_MSDU(pdev, htt_t2h_msg);
 
             ol_rx_frag_indication_handler(
                 pdev->txrx_pdev,
