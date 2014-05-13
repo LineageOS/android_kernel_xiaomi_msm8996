@@ -99,6 +99,9 @@
 #endif
 #include "wlan_nv.h"
 #include "wlan_hdd_dev_pwr.h"
+#ifdef CONFIG_CNSS
+#include <net/cnss.h>
+#endif
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -4796,7 +4799,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     int rssi = 0;
     hdd_context_t *pHddCtx;
     int status;
-#ifdef WLAN_OPEN_SOURCE
+#ifdef CONFIG_CNSS
     struct timespec ts;
 #endif
 
@@ -4828,10 +4831,10 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
 
     memcpy(mgmt->bssid, bss_desc->bssId, ETH_ALEN);
 
-#ifdef WLAN_OPEN_SOURCE
+#ifdef CONFIG_CNSS
     /* Android does not want the timestamp from the frame.
        Instead it wants a monotonic increasing value */
-    get_monotonic_boottime(&ts);
+    cnss_get_monotonic_boottime(&ts);
     mgmt->u.probe_resp.timestamp =
          ((u64)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
 #else

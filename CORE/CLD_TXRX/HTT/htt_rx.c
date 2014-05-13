@@ -892,9 +892,15 @@ htt_rx_amsdu_pop_ll(
                       RX_ATTENTION_0_MSDU_DONE_MASK))) {
                 adf_os_mdelay(1);
 
-            adf_os_invalidate_range((void *)rx_desc,
+                adf_os_invalidate_range((void *)rx_desc,
                                     (void*)((char *)rx_desc +
                                             HTT_RX_STD_DESC_RESERVATION));
+
+                adf_os_print("debug iter %d success %d\n", dbg_iter,
+                     pdev->rx_ring.dbg_sync_success);
+                htt_rx_print_rx_indication(rx_ind_msg, pdev);
+                htt_print_rx_desc(rx_desc);
+
                 dbg_iter--;
             }
 
@@ -909,6 +915,9 @@ htt_rx_amsdu_pop_ll(
                                         0, GEN_CMD);
                 HTT_ASSERT_ALWAYS(0);
             }
+            pdev->rx_ring.dbg_sync_success++;
+            adf_os_print("debug iter %d success %d\n", dbg_iter,
+                 pdev->rx_ring.dbg_sync_success);
         }
 #else
                 HTT_ASSERT_ALWAYS(
@@ -1837,6 +1846,7 @@ htt_rx_attach(struct htt_pdev_t *pdev)
 #ifdef DEBUG_DMA_DONE
         pdev->rx_ring.dbg_ring_idx = 0;
         pdev->rx_ring.dbg_refill_cnt = 0;
+        pdev->rx_ring.dbg_sync_success = 0;
 #endif
         htt_rx_ring_fill_n(pdev, pdev->rx_ring.fill_level);
 

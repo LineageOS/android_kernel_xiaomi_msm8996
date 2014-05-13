@@ -1993,8 +1993,8 @@ HIF_wake_target_cpu(struct hif_pci_softc *sc)
         ASSERT(rv == A_OK);
 }
 
-#define HIF_MIN_SLEEP_INACTIVITY_TIME_MS     10
-#define HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS 20
+#define HIF_MIN_SLEEP_INACTIVITY_TIME_MS     50
+#define HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS 60
 static void
 HIF_sleep_entry(void *arg)
 {
