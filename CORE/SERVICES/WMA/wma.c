@@ -6843,6 +6843,7 @@ static void wma_roam_preauth_scan_event_handler(tp_wma_handle wma_handle,
                 if (wmi_event->event &
                                 (WMI_SCAN_EVENT_COMPLETED | WMI_SCAN_EVENT_BSS_CHANNEL))
                         wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_COMPLETED;
+
                         /* There is no WDA request to complete. Next set channel request will
                          * look at this state and complete it.
                          */
@@ -16665,6 +16666,10 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 
         if (wma_handle->roam_preauth_scan_id == wmi_event->scan_id) {
                 /* This is the scan requested by roam preauth set_channel operation */
+
+		if (wmi_event->event == WMI_SCAN_EVENT_COMPLETED)
+			wma_reset_scan_info(wma_handle, vdev_id);
+
                 wma_roam_preauth_scan_event_handler(wma_handle, vdev_id, wmi_event);
                 return 0;
         }
