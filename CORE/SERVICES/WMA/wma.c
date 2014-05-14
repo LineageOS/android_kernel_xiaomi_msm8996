@@ -2988,6 +2988,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_handle->wlan_resource_config.num_offload_peers =
 		mac_params->apMaxOffloadPeers + 1;
 
+	wma_handle->wlan_resource_config.num_offload_reorder_buffs =
+		mac_params->apMaxOffloadReorderBuffs + 1;
+
 	wma_handle->ol_ini_info = mac_params->olIniInfo;
 	wma_handle->max_station = mac_params->maxStation;
 	wma_handle->max_bssid = mac_params->maxBssId;

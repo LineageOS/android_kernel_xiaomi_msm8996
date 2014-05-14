@@ -3324,6 +3324,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SAP_MAX_OFFLOAD_PEERS_MIN,
                  CFG_SAP_MAX_OFFLOAD_PEERS_MAX ),
 
+   REG_VARIABLE( CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS, WLAN_PARAM_Integer,
+                 hdd_config_t, apMaxOffloadReorderBuffs,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS_DEFAULT,
+                 CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS_MIN,
+                 CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS_MAX ),
+
    REG_VARIABLE( CFG_ADVERTISE_CONCURRENT_OPERATION_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, advertiseConcurrentOperation,
                  VAR_FLAGS_OPTIONAL,
@@ -3858,6 +3865,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableOverLapCh] Value = [%u] ",pHddCtx->cfg_ini->gEnableOverLapCh);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAcsScanBandPreference] Value = [%u] ",pHddCtx->cfg_ini->acsScanBandPreference);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gMaxOffloadPeers] Value = [%u] ",pHddCtx->cfg_ini->apMaxOffloadPeers);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gMaxOffloadReorderBuffs] value = [%u] ",pHddCtx->cfg_ini->apMaxOffloadReorderBuffs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [overrideCountryCode] Value = [%s] ",pHddCtx->cfg_ini->overrideCountryCode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAllowDFSChannelRoam] Value = [%u] ",pHddCtx->cfg_ini->allowDFSChannelRoam);
 

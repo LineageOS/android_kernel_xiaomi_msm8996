@@ -437,6 +437,9 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
    macOpenParms.apMaxOffloadPeers = pHddCtx->cfg_ini->apMaxOffloadPeers;
 
+   macOpenParms.apMaxOffloadReorderBuffs =
+                        pHddCtx->cfg_ini->apMaxOffloadReorderBuffs;
+
    macOpenParms.apDisableIntraBssFwd = pHddCtx->cfg_ini->apDisableIntraBssFwd;
 
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
