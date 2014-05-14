@@ -103,6 +103,10 @@
 #include <net/cnss.h>
 #endif
 #include "wlan_hdd_misc.h"
+#ifdef WLAN_FEATURE_NAN
+#include "nan_Api.h"
+#include "wlan_hdd_nan.h"
+#endif
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -825,6 +829,90 @@ int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+#ifdef WLAN_FEATURE_NAN
+/*
+ * FUNCTION: wlan_hdd_cfg80211_nan_request
+ * This is called when wlan driver needs to send vendor specific
+ * nan request event.
+ */
+static int wlan_hdd_cfg80211_nan_request(struct wiphy *wiphy,
+                                         struct wireless_dev *wdev,
+                                         void *data, int data_len)
+{
+    tNanRequestReq nan_req;
+    VOS_STATUS status;
+    int ret_val = -1;
+
+    nan_req.request_data_len = data_len;
+    nan_req.request_data = data;
+
+    status = sme_NanRequest(&nan_req);
+    if (VOS_STATUS_SUCCESS == status) {
+        ret_val = 0;
+    }
+    return ret_val;
+}
+
+/*
+ * FUNCTION: wlan_hdd_cfg80211_nan_callback
+ * This is a callback function and it gets called
+ * when we need to report nan response event to
+ * upper layers.
+ */
+static void wlan_hdd_cfg80211_nan_callback(void* ctx, tSirNanEvent* msg)
+{
+    hdd_context_t *pHddCtx = (hdd_context_t *)ctx;
+    struct sk_buff *vendor_event;
+    int status;
+    tSirNanEvent *data;
+
+    if (NULL == msg) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   FL(" msg received here is null"));
+        return;
+    }
+    data = msg;
+
+    status = wlan_hdd_validate_context(pHddCtx);
+
+    if (0 != status) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   FL("HDD context is not valid"));
+        return;
+    }
+
+    vendor_event = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
+                                   data->event_data_len +
+                                   NLMSG_HDRLEN,
+                                   QCA_NL80211_VENDOR_SUBCMD_NAN_INDEX,
+                                   GFP_KERNEL);
+
+    if (!vendor_event) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   FL("cfg80211_vendor_event_alloc failed"));
+        return;
+    }
+    if (nla_put(vendor_event, QCA_WLAN_VENDOR_ATTR_NAN,
+                data->event_data_len, data->event_data)) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   FL("QCA_WLAN_VENDOR_ATTR_NAN put fail"));
+        kfree_skb(vendor_event);
+        return;
+    }
+    cfg80211_vendor_event(vendor_event, GFP_KERNEL);
+}
+
+/*
+ * FUNCTION: wlan_hdd_cfg80211_nan_init
+ * This function is called to register the callback to sme layer
+ */
+void wlan_hdd_cfg80211_nan_init(hdd_context_t *pHddCtx)
+{
+    sme_NanRegisterCallback(pHddCtx->hHal, wlan_hdd_cfg80211_nan_callback);
+}
+
+#endif
+
 /* vendor specific events */
 static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
 {
@@ -834,6 +922,13 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
         .subcmd = QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY
     },
 #endif /* FEATURE_WLAN_CH_AVOID */
+
+#ifdef WLAN_FEATURE_NAN
+    [QCA_NL80211_VENDOR_SUBCMD_NAN_INDEX] = {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_NAN
+    },
+#endif
 
 #ifdef WLAN_FEATURE_STATS_EXT
     [QCA_NL80211_VENDOR_SUBCMD_STATS_EXT_INDEX] = {
@@ -3170,6 +3265,17 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
                  WIPHY_VENDOR_CMD_NEED_RUNNING,
         .doit = is_driver_dfs_capable
     },
+
+#ifdef WLAN_FEATURE_NAN
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_NAN,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV |
+                 WIPHY_VENDOR_CMD_NEED_RUNNING,
+        .doit = wlan_hdd_cfg80211_nan_request
+    },
+#endif
 
 #ifdef WLAN_FEATURE_STATS_EXT
     {

@@ -119,10 +119,17 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #include "wlan_hdd_tdls.h"
 #endif
 #ifdef FEATURE_WLAN_CH_AVOID
+#ifdef CONFIG_CNSS
 #include <net/cnss.h>
+#endif
 extern int hdd_hostapd_stop (struct net_device *dev);
 void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #endif /* FEATURE_WLAN_CH_AVOID */
+
+#ifdef WLAN_FEATURE_NAN
+#include "wlan_hdd_nan.h"
+#endif /* WLAN_FEATURE_NAN */
+
 #include "wlan_hdd_debugfs.h"
 
 #ifdef IPA_OFFLOAD
@@ -12050,6 +12057,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
              hdd_wlan_green_ap_attach(pHddCtx))) {
        hddLog(LOGE, FL("Failed to allocate Green-AP resource"));
     }
+#endif
+
+#ifdef WLAN_FEATURE_NAN
+    wlan_hdd_cfg80211_nan_init(pHddCtx);
 #endif
 
 #ifndef QCA_WIFI_ISOC

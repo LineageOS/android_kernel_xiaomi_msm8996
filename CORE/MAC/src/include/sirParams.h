@@ -710,6 +710,10 @@ typedef struct sSirMbMsgP2p
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 #define SIR_HAL_ROAM_OFFLOAD_SYNCH_CNF     (SIR_HAL_ITC_MSG_TYPES_BEGIN + 279)
 #endif
+#ifdef WLAN_FEATURE_NAN
+#define SIR_HAL_NAN_REQUEST                (SIR_HAL_ITC_MSG_TYPES_BEGIN + 280)
+#endif /* WLAN_FEATURE_NAN */
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

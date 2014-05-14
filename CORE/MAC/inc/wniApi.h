@@ -407,6 +407,9 @@ enum eWniMsgTypes
     eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_RSP,/* Roam Synch Indication Rsp
                                          from PE toSME */
 #endif
+#ifdef WLAN_FEATURE_NAN
+    eWNI_SME_NAN_EVENT,
+#endif
     eWNI_SME_MSG_TYPES_END
 };
 
