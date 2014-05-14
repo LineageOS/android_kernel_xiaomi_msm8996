@@ -363,4 +363,11 @@ void hif_reset_soc(void *ol_sc)
 {
 	/* TODO */
 }
+
+void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)
+{
+	*version = ((struct ol_softc *)ol_sc)->target_version;
+	/* Chip version should be supported, set to 0 for now */
+	*revision = 0;
+}
 MODULE_LICENSE("Dual BSD/GPL");

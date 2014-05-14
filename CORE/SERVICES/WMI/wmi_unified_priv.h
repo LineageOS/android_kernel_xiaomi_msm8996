@@ -54,6 +54,7 @@ struct wmi_command_debug{
 
 struct wmi_event_debug{
 	u_int32_t event;
+	u_int32_t data[4]; /*16 bytes of WMI event data excluding TLV header*/
 	u_int32_t time;
 };
 

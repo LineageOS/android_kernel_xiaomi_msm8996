@@ -1337,6 +1337,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #define WDA_MODEM_POWER_STATE_IND SIR_HAL_MODEM_POWER_STATE_IND
 
+#define WDA_VDEV_STOP_IND           SIR_HAL_VDEV_STOP_IND
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 

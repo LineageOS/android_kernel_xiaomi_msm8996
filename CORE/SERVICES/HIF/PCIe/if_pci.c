@@ -70,7 +70,13 @@
 #define AR6320_FW_2_0  (0x20)
 #define AR6320_FW_3_0  (0x30)
 
+#ifdef CONFIG_SLUB_DEBUG_ON
+#define MAX_NUM_OF_RECEIVES 400 /* Maximum number of Rx buf to process before*
+                                   break out in SLUB debug builds */
+#else
 #define MAX_NUM_OF_RECEIVES 1000 /* Maximum number of Rx buf to process before break out */
+#endif
+
 #define PCIE_WAKE_TIMEOUT 1000 /* Maximum ms timeout for host to wake up target */
 #define RAMDUMP_EVENT_TIMEOUT 2500
 
@@ -539,6 +545,36 @@ CE_per_engine_handler(int irq, void *arg)
     return IRQ_HANDLED;
 }
 
+#ifdef CONFIG_SLUB_DEBUG_ON
+
+/* worker thread to schedule wlan_tasklet in SLUB debug build */
+static void reschedule_tasklet_work_handler(struct work_struct *recovery)
+{
+  void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+  struct ol_softc *scn =  vos_get_context(VOS_MODULE_ID_HIF, vos_context);
+  struct hif_pci_softc *sc;
+
+  if (NULL == scn){
+         printk(KERN_ERR "%s: tasklet scn is null\n", __func__);
+         return;
+   }
+
+   sc = scn->hif_sc;
+
+   if (sc->hif_init_done == FALSE) {
+         printk(KERN_ERR "%s: wlan driver is unloaded\n", __func__);
+         return;
+   }
+
+   tasklet_schedule(&sc->intr_tq);
+   return;
+}
+
+static DECLARE_WORK(reschedule_tasklet_work, reschedule_tasklet_work_handler);
+
+#endif
+
+
 static void
 wlan_tasklet(unsigned long data)
 {
@@ -568,7 +604,11 @@ wlan_tasklet(unsigned long data)
          * any of the Copy Engine pipes.
          */
         adf_os_atomic_set(&sc->ce_suspend, 1);
+#ifdef CONFIG_SLUB_DEBUG_ON
+        schedule_work(&reschedule_tasklet_work);
+#else
         tasklet_schedule(&sc->intr_tq);
+#endif
         return;
     }
 irq_handled:
@@ -678,9 +718,10 @@ again:
     }
 #endif
 
-    /* Disable L1SS, temporary solution for PCI reset issues */
+#ifdef DISABLE_L1SS_STATES
     pci_read_config_dword(pdev, 0x188, &lcr_val);
     pci_write_config_dword(pdev, 0x188, (lcr_val & ~0x0000000f));
+#endif
 
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);
@@ -1001,9 +1042,10 @@ again:
     }
 #endif
 
-    /* Disable L1SS, temporary solution for PCI reset issues */
+#ifdef DISABLE_L1SS_STATES
     pci_read_config_dword(pdev, 0x188, &lcr_val);
     pci_write_config_dword(pdev, 0x188, (lcr_val & ~0x0000000f));
+#endif
 
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);
@@ -1541,21 +1583,6 @@ void hif_pci_shutdown(struct pci_dev *pdev)
 
     mem = (void __iomem *)sc->mem;
 
-#if defined(CPU_WARM_RESET_WAR)
-    /* Currently CPU warm reset sequence is tested only for AR9888_REV2
-     * Need to enable for AR9888_REV1 once CPU warm reset sequence is
-     * verified for AR9888_REV1.
-     */
-    if (scn->target_version == AR9888_REV2_VERSION) {
-        hif_pci_device_warm_reset(sc);
-    }
-    else {
-        hif_pci_device_reset(sc);
-    }
-#else
-        hif_pci_device_reset(sc);
-#endif
-
     pci_disable_msi(pdev);
     A_FREE(scn);
     A_FREE(sc);
@@ -1730,6 +1757,11 @@ hif_pci_resume(struct pci_dev *pdev)
             pci_write_config_dword(pdev, 0x40, val & 0xffff00ff);
     }
 
+#ifdef DISABLE_L1SS_STATES
+    pci_read_config_dword(pdev, 0x188, &val);
+    pci_write_config_dword(pdev, 0x188, (val & ~0x0000000f));
+#endif
+
     A_TARGET_ACCESS_BEGIN_RET(targid);
     val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
     A_TARGET_ACCESS_END_RET(targid);
@@ -1887,4 +1919,10 @@ void hif_pci_save_htc_htt_config_endpoint(int htc_endpoint)
     }
 
     scn->hif_sc->htc_endpoint = htc_endpoint;
+}
+
+void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)
+{
+    *version = ((struct ol_softc *)ol_sc)->target_version;
+    *revision = ((struct ol_softc *)ol_sc)->target_revision;
 }

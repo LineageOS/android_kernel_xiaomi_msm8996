@@ -2862,7 +2862,7 @@ eHalStatus csrAddPMKIDCandidateList( tpAniSirGlobal pMac, tANI_U32 sessionId,
 
                 // if yes, then add to PMKIDCandidateList
                 vos_mem_copy(pSession->PmkidCandidateInfo[pSession->NumPmkidCandidate].BSSID,
-                             pBssDesc->bssId, WNI_CFG_BSSID_LEN);
+                             pBssDesc->bssId, VOS_MAC_ADDR_SIZE);
                 // Bit 0 offirst byte - PreAuthentication Capability
                 if ( (pIes->RSN.RSN_Cap[0] >> 0) & 0x1 )
                 {
@@ -2953,7 +2953,7 @@ eHalStatus csrAddBKIDCandidateList( tpAniSirGlobal pMac, tANI_U32 sessionId,
 
                 // if yes, then add to BKIDCandidateList
                 vos_mem_copy(pSession->BkidCandidateInfo[pSession->NumBkidCandidate].BSSID,
-                             pBssDesc->bssId, WNI_CFG_BSSID_LEN);
+                             pBssDesc->bssId, VOS_MAC_ADDR_SIZE);
                 if ( pIes->WAPI.preauth )
                 {
                     pSession->BkidCandidateInfo[pSession->NumBkidCandidate].preAuthSupported
@@ -5128,7 +5128,7 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
 
 tANI_BOOLEAN csrScanIsWildCardScan( tpAniSirGlobal pMac, tSmeCmd *pCommand )
 {
-    tANI_U8 bssid[WNI_CFG_BSSID_LEN] = {0, 0, 0, 0, 0, 0};
+    tANI_U8 bssid[VOS_MAC_ADDR_SIZE] = {0, 0, 0, 0, 0, 0};
     tANI_BOOLEAN f = vos_mem_compare(pCommand->u.scanCmd.u.scanRequest.bssid,
                                      bssid, sizeof(tCsrBssid));
 
@@ -5520,12 +5520,12 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirSmeScanReq *pMsg;
     tANI_U16 msgLen;
-    tANI_U8 bssid[WNI_CFG_BSSID_LEN] = {0, 0, 0, 0, 0, 0};
+    tANI_U8 bssid[VOS_MAC_ADDR_SIZE] = {0, 0, 0, 0, 0, 0};
     tSirScanType scanType = pScanReq->scanType;
     tANI_U32 minChnTime;    //in units of milliseconds
     tANI_U32 maxChnTime;    //in units of milliseconds
     tANI_U32 i;
-    tANI_U8 selfMacAddr[WNI_CFG_BSSID_LEN];
+    tANI_U8 selfMacAddr[VOS_MAC_ADDR_SIZE];
     tANI_U8 *pSelfMac = NULL;
 
     msgLen = (tANI_U16)(sizeof( tSirSmeScanReq ) - sizeof( pMsg->channelList.channelNumber ) +
@@ -5578,11 +5578,11 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
               }
               if( CSR_ROAM_SESSION_MAX == i )
               {
-                tANI_U32 len = WNI_CFG_BSSID_LEN;
+                tANI_U32 len = VOS_MAC_ADDR_SIZE;
                 pSelfMac = selfMacAddr;
                 status = ccmCfgGetStr( pMac, WNI_CFG_STA_ID, pSelfMac, &len );
                 if( !HAL_STATUS_SUCCESS( status ) ||
-                    ( len < WNI_CFG_BSSID_LEN ) )
+                    ( len < VOS_MAC_ADDR_SIZE ) )
                 {
                   smsLog( pMac, LOGE, FL(" Can not get self MAC address from CFG status = %d"), status );
                   //Force failed status
@@ -5601,7 +5601,7 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
             }
             else
             {
-                vos_mem_copy(pMsg->bssId, pScanReq->bssid, WNI_CFG_BSSID_LEN);
+                vos_mem_copy(pMsg->bssId, pScanReq->bssid, VOS_MAC_ADDR_SIZE);
             }
             minChnTime = pScanReq->minChnTime;
             maxChnTime = pScanReq->maxChnTime;

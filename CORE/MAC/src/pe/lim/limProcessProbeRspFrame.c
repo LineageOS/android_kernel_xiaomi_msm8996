@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -244,16 +244,6 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
             * our Probe Request sent upon reaching
             * heart beat threshold
             */
-            #if 0
-            if (wlan_cfgGetStr(pMac,
-                          WNI_CFG_BSSID,
-                          currentBssId,
-                          &cfg) != eSIR_SUCCESS)
-            {
-                /// Could not get BSSID from CFG. Log error.
-                limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-            }
-            #endif //TO SUPPORT BT-AMP
             sirCopyMacAddr(currentBssId,psessionEntry->bssId);
 
             if ( !vos_mem_compare(currentBssId, pHdr->bssId, sizeof(tSirMacAddr)) )

@@ -96,4 +96,6 @@ extern int pktlogmod_init(void *context);
 extern void pktlogmod_exit(void *context);
 #endif
 
+void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
+
 #endif /* __ATH_USB_H__ */

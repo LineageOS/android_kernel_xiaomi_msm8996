@@ -488,7 +488,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
               pAdapter->sessionCtx.station.conn_info.connState ) &&
               ( VOS_TRUE == vos_mem_compare(descriptor->bssId,
                              pAdapter->sessionCtx.station.conn_info.bssId,
-                             WNI_CFG_BSSID_LEN)))
+                             VOS_MAC_ADDR_SIZE)))
    {
       event.u.qual.level = pAdapter->rssi;
    }

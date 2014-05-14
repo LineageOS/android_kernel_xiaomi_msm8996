@@ -136,9 +136,9 @@ typedef TAILQ_HEAD(ol_tx_frms_queue_list_s, ol_tx_frms_queue_t)
 #define ol_tx_sched_init                ol_tx_sched_init_wrr_adv
 #define ol_tx_sched_select_init(pdev) \
     do { \
-        adf_os_spin_lock(&pdev->tx_queue_spinlock); \
+        adf_os_spin_lock_bh(&pdev->tx_queue_spinlock); \
         ol_tx_sched_select_init_wrr_adv(pdev); \
-        adf_os_spin_unlock(&pdev->tx_queue_spinlock); \
+        adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock); \
     } while (0)
 #define ol_tx_sched_select_batch        ol_tx_sched_select_batch_wrr_adv
 #define ol_tx_sched_txq_enqueue         ol_tx_sched_txq_enqueue_wrr_adv
@@ -1246,9 +1246,9 @@ ol_tx_sched(struct ol_txrx_pdev_t *pdev)
     u_int32_t credit;
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
-    adf_os_spin_lock(&pdev->tx_queue_spinlock);
+    adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
     if (pdev->tx_sched.tx_sched_status != ol_tx_scheduler_idle) {
-        adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+        adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
         return;
     }
     pdev->tx_sched.tx_sched_status = ol_tx_scheduler_running;
@@ -1256,7 +1256,7 @@ ol_tx_sched(struct ol_txrx_pdev_t *pdev)
     OL_TX_SCHED_LOG(pdev);
     //adf_os_print("BEFORE tx sched:\n");
     //ol_tx_queues_display(pdev);
-    adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+    adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
 
     TAILQ_INIT(&sctx.head);
     sctx.frms = 0;
@@ -1264,7 +1264,7 @@ ol_tx_sched(struct ol_txrx_pdev_t *pdev)
     ol_tx_sched_select_init(pdev);
     while (adf_os_atomic_read(&pdev->target_tx_credit) > 0) {
         int num_credits;
-        adf_os_spin_lock(&pdev->tx_queue_spinlock);
+        adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
         credit = adf_os_atomic_read(&pdev->target_tx_credit);
         num_credits = ol_tx_sched_select_batch(pdev, &sctx, credit);
         if (num_credits > 0){
@@ -1276,18 +1276,18 @@ ol_tx_sched(struct ol_txrx_pdev_t *pdev)
 #endif
             adf_os_atomic_add(-num_credits, &pdev->target_tx_credit);
         }
-        adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+        adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
 
         if (num_credits == 0) break;
     }
     ol_tx_sched_dispatch(pdev, &sctx);
 
-    adf_os_spin_lock(&pdev->tx_queue_spinlock);
+    adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
     //adf_os_print("AFTER tx sched:\n");
     //ol_tx_queues_display(pdev);
 
     pdev->tx_sched.tx_sched_status = ol_tx_scheduler_idle;
-    adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+    adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
 

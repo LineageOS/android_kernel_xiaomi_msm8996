@@ -1258,14 +1258,6 @@ void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 
         // Send DELTS action frame to AP
         // 090803: Get peer MAC addr from session
-#if 0
-        cfgLen = sizeof(tSirMacAddr);
-        if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, peerMacAddr, &cfgLen) != eSIR_SUCCESS)
-        {
-            limLog(pMac, LOGP, FL("Fail to retrieve BSSID "));
-            goto end;
-        }
-#endif //TO SUPPORT BT-AMP
         sirCopyMacAddr(peerMacAddr,psessionEntry->bssId);
 
         // 090803: Add the SME Session ID

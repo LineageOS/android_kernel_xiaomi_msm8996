@@ -423,8 +423,16 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_pdev_l1ss_track_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_diag_data_container_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_modem_power_state_cmd_param,
+    WMITLV_TAG_STRUC_wmi_peer_get_estimated_linkspeed_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_peer_estimated_linkspeed_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_aggr_state_trig_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_mhf_offload_routing_table_entry,
+    WMITLV_TAG_STRUC_wmi_roam_scan_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_req_stats_ext_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_stats_ext_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_obss_scan_enable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_obss_scan_disable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_offload_prb_rsp_tx_status_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -576,7 +584,12 @@ typedef enum {
     OP(WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMDID) \
     OP(WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMDID) \
     OP(WMI_NAN_CMDID) \
-    OP(WMI_MODEM_POWER_STATE_CMDID)
+    OP(WMI_MODEM_POWER_STATE_CMDID) \
+    OP(WMI_PEER_GET_ESTIMATED_LINKSPEED_CMDID) \
+    OP(WMI_ROAM_SCAN_CMD)\
+    OP(WMI_REQUEST_STATS_EXT_CMDID) \
+    OP(WMI_OBSS_SCAN_ENABLE_CMDID) \
+    OP(WMI_OBSS_SCAN_DISABLE_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -641,7 +654,10 @@ typedef enum {
     OP(WMI_NAN_EVENTID) \
     OP(WMI_PDEV_L1SS_TRACK_EVENTID) \
     OP(WMI_DIAG_DATA_CONTAINER_EVENTID) \
-    OP(WMI_AGGR_STATE_TRIG_EVENTID)
+    OP(WMI_PEER_ESTIMATED_LINKSPEED_EVENTID) \
+    OP(WMI_AGGR_STATE_TRIG_EVENTID)\
+    OP(WMI_STATS_EXT_EVENTID) \
+    OP(WMI_OFFLOAD_PROB_RESP_TX_STATUS_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -776,6 +792,13 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SCAN_RSSI_CHANGE_THRESHOLD);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, channel_list, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_CHAN_LIST);
+
+/* Roam scan mode Cmd */
+#define WMITLV_TABLE_WMI_ROAM_SCAN_CMD(id,op,buf,len) \
+ WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_scan_cmd_fixed_param, wmi_roam_scan_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SCAN_CMD);
+
 
 #define WMITLV_TABLE_WMI_VDEV_PLMREQ_START_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_plmreq_start_cmd_fixed_param, wmi_vdev_plmreq_start_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
@@ -1534,6 +1557,29 @@ WMITLV_CREATE_PARAM_STRUC(WMI_NAN_CMDID);
    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_modem_power_state_cmd_param, wmi_modem_power_state_cmd_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_MODEM_POWER_STATE_CMDID);
 
+/* get estimated link speed cmd */
+#define WMITLV_TABLE_WMI_PEER_GET_ESTIMATED_LINKSPEED_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_get_estimated_linkspeed_cmd_fixed_param, wmi_peer_get_estimated_linkspeed_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PEER_GET_ESTIMATED_LINKSPEED_CMDID);
+
+/* ext stats Request */
+#define WMITLV_TABLE_WMI_REQUEST_STATS_EXT_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_req_stats_ext_cmd_fixed_param, wmi_req_stats_ext_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_REQUEST_STATS_EXT_CMDID);
+
+/* 2.4Ghz HT40 OBSS scan enable */
+#define WMITLV_TABLE_WMI_OBSS_SCAN_ENABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_obss_scan_enable_cmd_fixed_param, wmi_obss_scan_enable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, channels, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, ie_field, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_OBSS_SCAN_ENABLE_CMDID);
+
+/* 2.4Ghz HT40 OBSS scan disable */
+#define WMITLV_TABLE_WMI_OBSS_SCAN_DISABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_obss_scan_disable_cmd_fixed_param, wmi_obss_scan_disable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_OBSS_SCAN_DISABLE_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -1811,9 +1857,9 @@ WMITLV_CREATE_PARAM_STRUC(WMI_BATCH_SCAN_ENABLED_EVENTID);
     WMITLV_ELEM(id,op,buf,len,WMITLV_TAG_ARRAY_STRUC, wmi_batch_scan_result_network_info, network_list, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_BATCH_SCAN_RESULT_EVENTID);
 
-#define WMITLV_TABLE_WMI_OFFLOAD_BCN_TX_STATUS_EVENTID(id,op,buf,len)                                                                                                 \
-WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_offload_bcn_tx_status_event_fixed_param, wmi_offload_bcn_tx_status_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
-    WMITLV_CREATE_PARAM_STRUC(WMI_OFFLOAD_BCN_TX_STATUS_EVENTID);
+#define WMITLV_TABLE_WMI_OFFLOAD_BCN_TX_STATUS_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_offload_bcn_tx_status_event_fixed_param, wmi_offload_bcn_tx_status_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_OFFLOAD_BCN_TX_STATUS_EVENTID);
 
 /* NOA Event */
 #define WMITLV_TABLE_WMI_P2P_NOA_EVENTID(id,op,buf,len) \
@@ -1855,6 +1901,21 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_L1SS_TRACK_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_diag_data_container_event_fixed_param, wmi_diag_data_container_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)   \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_DIAG_DATA_CONTAINER_EVENTID);
+
+/* Estimated Link Speed Indication*/
+#define WMITLV_TABLE_WMI_PEER_ESTIMATED_LINKSPEED_EVENTID(id,op,buf,len)\
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_estimated_linkspeed_event_fixed_param, wmi_peer_estimated_linkspeed_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PEER_ESTIMATED_LINKSPEED_EVENTID);
+
+#define WMITLV_TABLE_WMI_STATS_EXT_EVENTID(id,op,buf,len)                                     \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_stats_ext_event_fixed_param, wmi_stats_ext_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_STATS_EXT_EVENTID);
+
+#define WMITLV_TABLE_WMI_OFFLOAD_PROB_RESP_TX_STATUS_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_offload_prb_rsp_tx_status_event_fixed_param, wmi_offload_prb_rsp_tx_status_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_OFFLOAD_PROB_RESP_TX_STATUS_EVENTID);
+
 
 #ifdef __cplusplus
 }

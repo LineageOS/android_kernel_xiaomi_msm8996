@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -123,7 +123,7 @@ tBtampHCI_Version_Info   btampHCI_Version_Info;
 //  Include the Local Supported Cmds info structure.
 tBtampHCI_Supported_Cmds  btampHCI_Supported_Cmds;
 
-static unsigned char pBtStaOwnMacAddr[WNI_CFG_BSSID_LEN];
+static unsigned char pBtStaOwnMacAddr[VOS_MAC_ADDR_SIZE];
 
  /*BT-AMP SSID; per spec should have this format: "AMP-00-0a-f5-04-05-08" */
 #define WLAN_BAP_SSID_MAX_LEN 21
@@ -1198,7 +1198,7 @@ WLANBAP_ReadMacConfig
   ptBtampContext  pBtampCtx
 )
 {
-  tANI_U32        len = WNI_CFG_BSSID_LEN;
+  tANI_U32        len = VOS_MAC_ADDR_SIZE;
   tHalHandle      pMac = NULL;
 
   /*------------------------------------------------------------------------
@@ -1223,7 +1223,7 @@ WLANBAP_ReadMacConfig
 
   ccmCfgGetStr( pMac, WNI_CFG_STA_ID, pBtStaOwnMacAddr, &len );
 
-  if (WNI_CFG_BSSID_LEN != len)
+  if (VOS_MAC_ADDR_SIZE != len)
   {
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                    "len is improper %s", __func__);

@@ -3078,7 +3078,7 @@ static int iw_set_ap_encodeext(struct net_device *dev,
     int retval = 0;
     VOS_STATUS vstatus;
     struct iw_encode_ext *ext = (struct iw_encode_ext*)extra;
-    v_U8_t groupmacaddr[WNI_CFG_BSSID_LEN] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+    v_U8_t groupmacaddr[VOS_MAC_ADDR_SIZE] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
     int key_index;
     struct iw_point *encoding = &wrqu->encoding;
     tCsrRoamSetKey  setKey;
@@ -3104,10 +3104,10 @@ static int iw_set_ap_encodeext(struct net_device *dev,
          RemoveKey.keyId = key_index;
          if(ext->ext_flags & IW_ENCODE_EXT_GROUP_KEY) {
               /*Key direction for group is RX only*/
-             vos_mem_copy(RemoveKey.peerMac,groupmacaddr,WNI_CFG_BSSID_LEN);
+             vos_mem_copy(RemoveKey.peerMac,groupmacaddr, VOS_MAC_ADDR_SIZE);
          }
          else {
-             vos_mem_copy(RemoveKey.peerMac,ext->addr.sa_data,WNI_CFG_BSSID_LEN);
+             vos_mem_copy(RemoveKey.peerMac,ext->addr.sa_data, VOS_MAC_ADDR_SIZE);
          }
          switch(ext->alg)
          {
@@ -3161,17 +3161,17 @@ static int iw_set_ap_encodeext(struct net_device *dev,
     if(ext->ext_flags & IW_ENCODE_EXT_GROUP_KEY) {
       /*Key direction for group is RX only*/
        setKey.keyDirection = eSIR_RX_ONLY;
-       vos_mem_copy(setKey.peerMac,groupmacaddr,WNI_CFG_BSSID_LEN);
+       vos_mem_copy(setKey.peerMac,groupmacaddr, VOS_MAC_ADDR_SIZE);
     }
     else {
 
        setKey.keyDirection =  eSIR_TX_RX;
-       vos_mem_copy(setKey.peerMac,ext->addr.sa_data,WNI_CFG_BSSID_LEN);
+       vos_mem_copy(setKey.peerMac,ext->addr.sa_data, VOS_MAC_ADDR_SIZE);
     }
     if(ext->ext_flags & IW_ENCODE_EXT_SET_TX_KEY)
     {
        setKey.keyDirection = eSIR_TX_DEFAULT;
-       vos_mem_copy(setKey.peerMac,ext->addr.sa_data,WNI_CFG_BSSID_LEN);
+       vos_mem_copy(setKey.peerMac,ext->addr.sa_data, VOS_MAC_ADDR_SIZE);
     }
 
     /*For supplicant pae role is zero*/

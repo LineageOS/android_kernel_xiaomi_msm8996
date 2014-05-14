@@ -682,15 +682,6 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 return;
             }
             val = sizeof(tSirMacAddr);
-            #if 0
-            if (cfgGetStr(pMac, WNI_CFG_BSSID,
-                          pMlmAssocReq->peerMacAddr,
-                          &val) != eSIR_SUCCESS)
-            {
-                /// Could not get BSSID from CFG. Log error.
-                limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-            }
-            #endif //SUPPORT BT-AMP
             sirCopyMacAddr(pMlmAssocReq->peerMacAddr,psessionEntry->bssId);
             if (wlan_cfgGetInt(pMac, WNI_CFG_ASSOCIATION_FAILURE_TIMEOUT,
                           (tANI_U32 *) &pMlmAssocReq->assocFailureTimeout)
@@ -2530,9 +2521,6 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
         }
 #endif
         limInitPeerIdxpool(pMac,psessionEntry);
-        // Create timers used by LIM
-        if (!pMac->lim.gLimTimersCreated)
-            limCreateTimers(pMac);
 
         // Start OLBC timer
         if (tx_timer_activate(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer) != TX_SUCCESS)
@@ -2645,11 +2633,7 @@ limProcessIbssMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession 
        //limInitPreAuthList(pMac);
         if (0 == psessionEntry->freePeerIdxHead)
             limInitPeerIdxpool(pMac,psessionEntry);
-        // Create timers used by LIM
-#ifdef FIXME_GEN6  //following code may not be required, as limCreateTimers is now invoked from limInitialize (peStart)
-        if (!pMac->lim.gLimTimersCreated)
-            limCreateTimers(pMac);
-#endif
+
         /* Update the lim global gLimTriggerBackgroundScanDuringQuietBss */
         if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, WNI_CFG_TRIG_STA_BK_SCAN, &val ))
             limLog( pMac, LOGP, FL("Failed to get WNI_CFG_TRIG_STA_BK_SCAN!"));
@@ -2736,16 +2720,6 @@ limProcessStaMlmAddBssRspPreAssoc( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPES
                        FL("call to AllocateMemory failed for mlmAuthReq"));
                 return;
             }
-            #if 0
-            val = sizeof(tSirMacAddr);
-            if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID,
-                          pMlmAuthReq->peerMacAddr,
-                          &val) != eSIR_SUCCESS)
-            {
-                /// Could not get BSSID from CFG. Log error.
-                limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-            }
-            #endif //TO SUPPORT BT-AMP
             sirCopyMacAddr(pMlmAuthReq->peerMacAddr,psessionEntry->bssId);
 
             pMlmAuthReq->authType = authMode;
@@ -4692,9 +4666,7 @@ limProcessBtampAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession ps
         psessionEntry->bssIdx = (tANI_U8) pAddBssParams->bssIdx;
         schEdcaProfileUpdate(pMac, psessionEntry);
         limInitPeerIdxpool(pMac,psessionEntry);
-        // Create timers used by LIM
-        if (!pMac->lim.gLimTimersCreated)
-        limCreateTimers(pMac);
+
       /* Update the lim global gLimTriggerBackgroundScanDuringQuietBss */
         if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, WNI_CFG_TRIG_STA_BK_SCAN, &val ))
             limLog( pMac, LOGP, FL("Failed to get WNI_CFG_TRIG_STA_BK_SCAN!"));

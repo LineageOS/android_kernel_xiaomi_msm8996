@@ -132,6 +132,8 @@ extern void pktlogmod_exit(void *context);
 int hif_pci_check_soc_status(struct hif_pci_softc *sc);
 void dump_CE_debug_register(struct hif_pci_softc *sc);
 
+void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
+
 /*
  * A firmware interrupt to the Host is indicated by the
  * low bit of SCRATCH_3_ADDRESS being set.

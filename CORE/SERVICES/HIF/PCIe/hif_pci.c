@@ -2244,6 +2244,7 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 		  goto done;
 	     }
 	     if (CHIP_ID_VERSION_GET(chip_id) == 0xD) {
+             scn->target_revision = CHIP_ID_REVISION_GET(chip_id);
              switch(CHIP_ID_REVISION_GET(chip_id)) {
              case 0x2: /* ROME 1.3 */
                  /* 2 banks are switched to IRAM */
@@ -2460,14 +2461,10 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
                            A_PCI_READ32(pci_addr + PCIE_LOCAL_BASE_ADDRESS
                                         + RTC_STATE_ADDRESS));
 
-#ifdef TARGET_RECOVERY_AFTER_LINK_DOWN
                     printk("%s:error, can't wakeup target\n", __func__);
                     sc->recovery = true;
                     schedule_work(&recovery_work);
                     return -EACCES;
-#else
-                    VOS_BUG(0);
-#endif
                 }
 
                 OS_DELAY(curr_delay);

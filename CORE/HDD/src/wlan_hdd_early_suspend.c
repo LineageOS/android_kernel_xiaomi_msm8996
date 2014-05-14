@@ -1531,7 +1531,7 @@ void hdd_conf_gtk_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
     {
         if ((eConnectionState_Associated == pHddStaCtx->conn_info.connState) &&
             (0 ==  memcmp(&pHddStaCtx->gtkOffloadReqParams.bssId,
-                     &pHddStaCtx->conn_info.bssId, WNI_CFG_BSSID_LEN)) &&
+                     &pHddStaCtx->conn_info.bssId, VOS_MAC_ADDR_SIZE)) &&
             (GTK_OFFLOAD_ENABLE == pHddStaCtx->gtkOffloadReqParams.ulFlags))
         {
 
