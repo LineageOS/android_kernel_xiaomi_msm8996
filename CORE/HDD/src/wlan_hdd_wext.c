@@ -524,19 +524,33 @@ enum {
 static const struct qwlan_hw qwlan_hw_list[] = {
     {
         .id = AR6320_REV1_VERSION,
+        .subid = 0,
         .name = "QCA6174_REV1",
     },
     {
         .id = AR6320_REV1_1_VERSION,
+        .subid = 0x1,
         .name = "QCA6174_REV1_1",
     },
     {
         .id = AR6320_REV1_3_VERSION,
+        .subid = 0x2,
         .name = "QCA6174_REV1_3",
     },
     {
         .id = AR6320_REV2_1_VERSION,
+        .subid = 0x4,
         .name = "QCA6174_REV2_1",
+    },
+    {
+        .id = AR6320_REV2_1_VERSION,
+        .subid = 0x5,
+        .name = "QCA6174_REV2_2",
+    },
+    {
+        .id = AR6320_REV3_VERSION,
+        .subid = 0x8,
+        .name = "QCA6174_REV3",
     }
 };
 
@@ -646,7 +660,8 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
     CRMId = pHddContext->target_fw_version & 0x7fff;
 
     for (i = 0; i < ARRAY_SIZE(qwlan_hw_list); i++) {
-        if (pHddContext->target_hw_version == qwlan_hw_list[i].id) {
+        if (pHddContext->target_hw_version == qwlan_hw_list[i].id &&
+            pHddContext->target_hw_revision == qwlan_hw_list[i].subid) {
             pHWversion = qwlan_hw_list[i].name;
             break;
         }
@@ -1400,7 +1415,7 @@ void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
    pAdapter->wapi_info.nWapiMode = 0;
 #endif
 
-   vos_mem_zero((void *)(pWextState->req_bssId), WNI_CFG_BSSID_LEN);
+   vos_mem_zero((void *)(pWextState->req_bssId), VOS_MAC_ADDR_SIZE);
 
 }
 
@@ -3895,7 +3910,7 @@ static int iw_set_encodeext(struct net_device *dev,
 
     struct iw_encode_ext *ext = (struct iw_encode_ext*)extra;
 
-    v_U8_t groupmacaddr[WNI_CFG_BSSID_LEN] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+    v_U8_t groupmacaddr[VOS_MAC_ADDR_SIZE] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
     int key_index;
     struct iw_point *encoding = &wrqu->encoding;
@@ -3962,12 +3977,12 @@ static int iw_set_encodeext(struct net_device *dev,
     if(ext->ext_flags & IW_ENCODE_EXT_GROUP_KEY) {
       /*Key direction for group is RX only*/
        setKey.keyDirection = eSIR_RX_ONLY;
-       vos_mem_copy(setKey.peerMac,groupmacaddr,WNI_CFG_BSSID_LEN);
+       vos_mem_copy(setKey.peerMac,groupmacaddr, VOS_MAC_ADDR_SIZE);
     }
     else {
 
        setKey.keyDirection =  eSIR_TX_RX;
-       vos_mem_copy(setKey.peerMac,ext->addr.sa_data,WNI_CFG_BSSID_LEN);
+       vos_mem_copy(setKey.peerMac,ext->addr.sa_data, VOS_MAC_ADDR_SIZE);
     }
 
     /*For supplicant pae role is zero*/
@@ -7939,7 +7954,7 @@ static int iw_qcom_set_wapi_key(struct net_device *dev, struct iw_request_info *
         case PAIRWISE_KEY:
         {
             isConnected = hdd_connIsConnected(pHddStaCtx);
-            vos_mem_copy(setKey.peerMac,&pHddStaCtx->conn_info.bssId,WNI_CFG_BSSID_LEN);
+            vos_mem_copy(setKey.peerMac,&pHddStaCtx->conn_info.bssId, VOS_MAC_ADDR_SIZE);
             break;
         }
         case GROUP_KEY:

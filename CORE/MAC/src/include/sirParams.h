@@ -668,6 +668,7 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_UPDATE_RX_NSS              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 257)
 #endif
 
+#define SIR_HAL_VDEV_STOP_IND              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 258)
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

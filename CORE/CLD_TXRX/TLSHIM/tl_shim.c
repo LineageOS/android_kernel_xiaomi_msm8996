@@ -487,7 +487,8 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 			      roundup(hdr->buf_len, 4),
 			      0, 4, FALSE);
 	if (!wbuf) {
-		TLSHIM_LOGE("Failed to allocate wbuf for mgmt rx");
+		TLSHIM_LOGE("%s: Failed to allocate wbuf for mgmt rx len(%u)",
+			__func__, hdr->buf_len);
 		vos_mem_free(rx_pkt);
 		return 0;
 	}
@@ -539,14 +540,39 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 		(mgt_subtype == IEEE80211_FC0_SUBTYPE_BEACON || mgt_subtype == IEEE80211_FC0_SUBTYPE_PROBE_RESP))
 	{
 	    /* remember this beacon to be used later for better_ap event */
+	    WMI_MGMT_RX_EVENTID_param_tlvs *last_tlvs =
+		(WMI_MGMT_RX_EVENTID_param_tlvs *) tl_shim->last_beacon_data;
 	    if (tl_shim->last_beacon_data) {
+		/* Free the previously allocated buffers */
+		if (last_tlvs->hdr)
+			vos_mem_free(last_tlvs->hdr);
+		if (last_tlvs->bufp)
+			vos_mem_free(last_tlvs->bufp);
                 vos_mem_free(tl_shim->last_beacon_data);
                 tl_shim->last_beacon_data = NULL;
 		tl_shim->last_beacon_len = 0;
 	    }
 	    if((tl_shim->last_beacon_data = vos_mem_malloc(data_len))) {
-			vos_mem_copy(tl_shim->last_beacon_data, data, data_len);
-			tl_shim->last_beacon_len = data_len;
+		u_int32_t buf_len = roundup(hdr->buf_len, sizeof(u_int32_t));
+
+		vos_mem_copy(tl_shim->last_beacon_data, data, data_len);
+		tl_shim->last_beacon_len = data_len;
+		last_tlvs = (WMI_MGMT_RX_EVENTID_param_tlvs *) tl_shim->last_beacon_data;
+		if ((last_tlvs->hdr = vos_mem_malloc(sizeof(wmi_mgmt_rx_hdr)))) {
+		    vos_mem_copy(last_tlvs->hdr, hdr, sizeof(wmi_mgmt_rx_hdr));
+		    if ((last_tlvs->bufp = vos_mem_malloc(buf_len))) {
+			vos_mem_copy(last_tlvs->bufp, param_tlvs->bufp, buf_len);
+		    } else {
+			vos_mem_free(last_tlvs->hdr);
+			vos_mem_free(tl_shim->last_beacon_data);
+			tl_shim->last_beacon_data = NULL;
+			tl_shim->last_beacon_len = 0;
+		    }
+		} else {
+		    vos_mem_free(tl_shim->last_beacon_data);
+		    tl_shim->last_beacon_data = NULL;
+		    tl_shim->last_beacon_len = 0;
+		}
 	    }
 	}
 
@@ -1678,6 +1704,10 @@ VOS_STATUS WLANTL_Close(void *vos_ctx)
 	wdi_in_pdev_detach(((pVosContextType) vos_ctx)->pdev_txrx_ctx, 1);
 	// Delete beacon buffer hanging off tl_shim
 	if (tl_shim->last_beacon_data) {
+		if (((WMI_MGMT_RX_EVENTID_param_tlvs *) tl_shim->last_beacon_data)->hdr)
+			vos_mem_free(((WMI_MGMT_RX_EVENTID_param_tlvs *) tl_shim->last_beacon_data)->hdr);
+		if (((WMI_MGMT_RX_EVENTID_param_tlvs *) tl_shim->last_beacon_data)->bufp)
+			vos_mem_free(((WMI_MGMT_RX_EVENTID_param_tlvs *) tl_shim->last_beacon_data)->bufp);
 		vos_mem_free(tl_shim->last_beacon_data);
 	}
 	vos_free_context(vos_ctx, VOS_MODULE_ID_TL, tl_shim);

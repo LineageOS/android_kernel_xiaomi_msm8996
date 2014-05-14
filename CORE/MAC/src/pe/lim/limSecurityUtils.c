@@ -463,13 +463,6 @@ limRestoreFromAuthState(tpAniSirGlobal pMac, tSirResultCodes resultCode, tANI_U1
     // 'Change' timer for future activations
     limDeactivateAndChangeTimer(pMac, eLIM_AUTH_FAIL_TIMER);
 
-    #if 0
-    if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) != eSIR_SUCCESS)
-    {
-        /// Could not get BSSID from CFG. Log error.
-        limLog(pMac, LOGP, FL("could not retrieve BSSID"));
-    }
-    #endif //TO SUPPORT BT-AMP
     sirCopyMacAddr(currentBssId,sessionEntry->bssId);
 
     if (sessionEntry->limSmeState == eLIM_SME_WT_PRE_AUTH_STATE)

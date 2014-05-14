@@ -1269,7 +1269,7 @@ void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
     else
     {
         isConnected = hdd_connIsConnected(pHddStaCtx);
-        vos_mem_copy(setKey.peerMac,&pHddStaCtx->conn_info.bssId,WNI_CFG_BSSID_LEN);
+        vos_mem_copy(setKey.peerMac,&pHddStaCtx->conn_info.bssId, VOS_MAC_ADDR_SIZE);
     }
     setKey.keyLength = key_Len;
     pKeyPtr = setKey.Key;
@@ -3672,14 +3672,6 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
         return -ENOTSUPP;
     }
 
-    if (pHddCtx->isLogpInProgress)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s:LOGP in Progress. Ignore!!!", __func__);
-        wlan_hdd_tdls_set_link_status(pAdapter, mac, eTDLS_LINK_IDLE);
-        return -EBUSY;
-    }
-
     pTdlsPeer = wlan_hdd_tdls_get_peer(pAdapter, mac);
 
     if ( NULL == pTdlsPeer ) {
@@ -3858,21 +3850,23 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CHANGE_STATION,
                      pAdapter->sessionId, params->listen_interval));
-    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-    if ((NULL == pHddCtx) || (NULL == pHddStaCtx))
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+    if (0 != wlan_hdd_validate_context(pHddCtx))
     {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                  "invalid HDD state or HDD station context");
-        return -EINVAL;
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: HDD context is not valid", __func__);
+       return -EINVAL;
     }
 
-    if (pHddCtx->isLogpInProgress)
+    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+    if (!pHddStaCtx)
     {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s:LOGP in Progress. Ignore!!!", __func__);
-        return -EAGAIN;
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                  "%s: HDD station context is null", __func__);
+        return -EINVAL;
     }
 
     vos_mem_copy(STAMacAddress.bytes, mac, sizeof(v_MACADDR_t));
@@ -4023,7 +4017,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev );
     tCsrRoamSetKey  setKey;
-    u8 groupmacaddr[WNI_CFG_BSSID_LEN] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+    u8 groupmacaddr[VOS_MAC_ADDR_SIZE] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
     int status;
     v_U32_t roamId= 0xFF;
 #ifndef WLAN_FEATURE_MBSSID
@@ -4167,7 +4161,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                 "%s- %d: setting Broadcast key",
                 __func__, __LINE__);
         setKey.keyDirection = eSIR_RX_ONLY;
-        vos_mem_copy(setKey.peerMac,groupmacaddr,WNI_CFG_BSSID_LEN);
+        vos_mem_copy(setKey.peerMac,groupmacaddr, VOS_MAC_ADDR_SIZE);
     }
     else
     {
@@ -4176,7 +4170,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                 "%s- %d: setting pairwise key",
                 __func__, __LINE__);
         setKey.keyDirection = eSIR_TX_RX;
-        vos_mem_copy(setKey.peerMac, mac_addr,WNI_CFG_BSSID_LEN);
+        vos_mem_copy(setKey.peerMac, mac_addr, VOS_MAC_ADDR_SIZE);
     }
     if ((WLAN_HDD_IBSS == pAdapter->device_mode) && !pairwise)
     {
@@ -4342,7 +4336,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
            )
         {
             setKey.keyDirection = eSIR_RX_ONLY;
-            vos_mem_copy(setKey.peerMac,groupmacaddr,WNI_CFG_BSSID_LEN);
+            vos_mem_copy(setKey.peerMac,groupmacaddr, VOS_MAC_ADDR_SIZE);
 
             hddLog(VOS_TRACE_LEVEL_INFO_MED,
                     "%s: set key peerMac %2x:%2x:%2x:%2x:%2x:%2x, direction %d",
@@ -4459,7 +4453,7 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
 #if 0
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev );
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
-    u8 groupmacaddr[WNI_CFG_BSSID_LEN] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+    u8 groupmacaddr[VOS_MAC_ADDR_SIZE] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
     tCsrRoamSetKey  setKey;
     v_U32_t roamId= 0xFF;
 
@@ -4480,9 +4474,9 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
     setKey.keyId = key_index;
 
     if (mac_addr)
-        vos_mem_copy(setKey.peerMac, mac_addr,WNI_CFG_BSSID_LEN);
+        vos_mem_copy(setKey.peerMac, mac_addr, VOS_MAC_ADDR_SIZE);
     else
-        vos_mem_copy(setKey.peerMac, groupmacaddr, WNI_CFG_BSSID_LEN);
+        vos_mem_copy(setKey.peerMac, groupmacaddr, VOS_MAC_ADDR_SIZE);
 
     setKey.encType = eCSR_ENCRYPT_TYPE_NONE;
 
@@ -4636,7 +4630,7 @@ static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
 
             vos_mem_copy(setKey.peerMac,
                     &pHddStaCtx->conn_info.bssId[0],
-                    WNI_CFG_BSSID_LEN);
+                    VOS_MAC_ADDR_SIZE);
 
             if (Keys->KeyLength[key_index] == CSR_WEP40_KEY_LEN &&
                pWextState->roamProfile.EncryptionType.encryptionType[0] ==
@@ -4917,7 +4911,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
              pAdapter->sessionCtx.station.conn_info.connState ) &&
              ( VOS_TRUE == vos_mem_compare(bss_desc->bssId,
                              pAdapter->sessionCtx.station.conn_info.bssId,
-                             WNI_CFG_BSSID_LEN)) &&
+                             VOS_MAC_ADDR_SIZE)) &&
                              (pHddCtx->hdd_wlan_suspended == FALSE))
     {
        /* supplicant takes the signal strength in terms of mBm(100*dBm) */
@@ -5965,17 +5959,17 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
         {
             pRoamProfile->BSSIDs.numOfBSSIDs = 1;
             vos_mem_copy((void *)(pRoamProfile->BSSIDs.bssid), bssid,
-                    WNI_CFG_BSSID_LEN);
+                    VOS_MAC_ADDR_SIZE);
             /* Save BSSID in seperate variable as well, as RoamProfile
                BSSID is getting zeroed out in the association process. And in
                case of join failure we should send valid BSSID to supplicant
              */
             vos_mem_copy((void *)(pWextState->req_bssId), bssid,
-                    WNI_CFG_BSSID_LEN);
+                    VOS_MAC_ADDR_SIZE);
         }
         else
         {
-            vos_mem_zero((void *)(pRoamProfile->BSSIDs.bssid),WNI_CFG_BSSID_LEN);
+            vos_mem_zero((void *)(pRoamProfile->BSSIDs.bssid), VOS_MAC_ADDR_SIZE);
         }
 
         hddLog(LOG1, FL("Connect to SSID: %.*s operating Channel: %u"),
@@ -8467,15 +8461,25 @@ int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 static int wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
           struct net_device *dev, u8 *mac, struct station_parameters *params)
 {
-    hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
     int status = -EPERM;
 #ifdef FEATURE_WLAN_TDLS
+    hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx = wiphy_priv(wiphy);
     u32 mask, set;
+
     ENTER();
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_ADD_STA,
                      pAdapter->sessionId, params->listen_interval));
+
+    if (0 != wlan_hdd_validate_context(pHddCtx))
+    {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: HDD context is not valid", __func__);
+       return -EINVAL;
+    }
+
     mask = params->sta_flags_mask;
 
     set = params->sta_flags_set;
@@ -8540,12 +8544,12 @@ static int wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device *d
     for (j = 0; j < PMKIDCacheIndex; j++)
     {
         if(vos_mem_compare(PMKIDCache[j].BSSID,
-                    pmksa->bssid, WNI_CFG_BSSID_LEN))
+                    pmksa->bssid, VOS_MAC_ADDR_SIZE))
         {
             /* BSSID matched previous entry.  Overwrite it. */
             BSSIDMatched = 1;
             vos_mem_copy(PMKIDCache[j].BSSID,
-                    pmksa->bssid, WNI_CFG_BSSID_LEN);
+                    pmksa->bssid, VOS_MAC_ADDR_SIZE);
             vos_mem_copy(PMKIDCache[j].PMKID,
                     pmksa->pmkid,
                     CSR_RSN_PMKID_SIZE);
@@ -8642,7 +8646,7 @@ static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *d
     {
           if (vos_mem_compare(PMKIDCache[j].BSSID,
                              pmksa->bssid,
-                             WNI_CFG_BSSID_LEN))
+                             VOS_MAC_ADDR_SIZE))
           {
              /* BSSID matched entry */
              BSSIDMatched = 1;
@@ -8652,14 +8656,14 @@ static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *d
                  /*replace the matching entry with the last entry in HDD local cache*/
                  vos_mem_copy(PMKIDCache[j].BSSID,
                               PMKIDCache[PMKIDCacheIndex-1].BSSID,
-                              WNI_CFG_BSSID_LEN);
+                              VOS_MAC_ADDR_SIZE);
                  vos_mem_copy(PMKIDCache[j].PMKID,
                               PMKIDCache[PMKIDCacheIndex-1].PMKID,
                               CSR_RSN_PMKID_SIZE);
               }
 
              /*clear the last entry in HDD cache ---[index-1]*/
-             vos_mem_zero(PMKIDCache[PMKIDCacheIndex-1].BSSID, WNI_CFG_BSSID_LEN);
+             vos_mem_zero(PMKIDCache[PMKIDCacheIndex-1].BSSID, VOS_MAC_ADDR_SIZE);
              vos_mem_zero(PMKIDCache[PMKIDCacheIndex-1].PMKID, CSR_RSN_PMKID_SIZE);
 
              /*reduce the PMKID array index*/
@@ -8750,7 +8754,7 @@ static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device 
              status = -EINVAL;
           }
           /*clear the entry in HDD cache 0--index-1 */
-          vos_mem_zero(PMKIDCache[j].BSSID, WNI_CFG_BSSID_LEN);
+          vos_mem_zero(PMKIDCache[j].BSSID, VOS_MAC_ADDR_SIZE);
           vos_mem_zero(PMKIDCache[j].PMKID, CSR_RSN_PMKID_SIZE);
     }
 
@@ -9286,19 +9290,12 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_TDLS_MGMT,
                      pAdapter->sessionId, action_code));
-    if (NULL == pHddCtx || NULL == pHddCtx->cfg_ini)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "Invalid arguments");
-        return -EINVAL;
-    }
 
-    if (pHddCtx->isLogpInProgress)
+    if (0 != wlan_hdd_validate_context(pHddCtx))
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s:LOGP in Progress. Ignore!!!", __func__);
-        wlan_hdd_tdls_set_link_status(pAdapter, peer, eTDLS_LINK_IDLE);
-        return -EBUSY;
+                  "%s: HDD context is not valid", __func__);
+        return -EINVAL;
     }
 
     if (eTDLS_SUPPORT_NOT_ENABLED == pHddCtx->tdls_mode)
@@ -10002,7 +9999,7 @@ int wlan_hdd_cfg80211_set_rekey_data(struct wiphy *wiphy, struct net_device *dev
     memcpy(pHddStaCtx->gtkOffloadReqParams.aKCK, data->kck, NL80211_KCK_LEN);
     memcpy(pHddStaCtx->gtkOffloadReqParams.aKEK, data->kek, NL80211_KEK_LEN);
     memcpy(pHddStaCtx->gtkOffloadReqParams.bssId, &pHddStaCtx->conn_info.bssId,
-          WNI_CFG_BSSID_LEN);
+          VOS_MAC_ADDR_SIZE);
     {
         /* changing from big to little endian since driver
          * works on little endian format

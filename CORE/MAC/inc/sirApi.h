@@ -3833,7 +3833,7 @@ typedef struct
 typedef struct
 {
   tSirMacSSid ssId;
-  tANI_U8     currAPbssid[WNI_CFG_BSSID_LEN];
+  tANI_U8     currAPbssid[VOS_MAC_ADDR_SIZE];
   tANI_U32    authentication;
   tANI_U8     encryption;
   tANI_U8     mcencryption;
@@ -4491,7 +4491,7 @@ typedef struct sAniHandoffReq
     tANI_U16  msgType; // message type is same as the request type
     tANI_U16  msgLen;  // length of the entire request
     tANI_U8   sessionId;
-    tANI_U8   bssid[WNI_CFG_BSSID_LEN];
+    tANI_U8   bssid[VOS_MAC_ADDR_SIZE];
     tANI_U8   channel;
 #ifndef QCA_WIFI_ISOC
     tANI_U8   handoff_src;
@@ -4837,7 +4837,7 @@ typedef struct sSirChanChangeRequest
     tANI_U16     messageLen;
     tANI_U8      targetChannel;
     tANI_U8      cbMode;
-    tANI_U8      bssid[WNI_CFG_BSSID_LEN];
+    tANI_U8      bssid[VOS_MAC_ADDR_SIZE];
 }tSirChanChangeRequest, *tpSirChanChangeRequest;
 
 typedef struct sSirChanChangeResponse
@@ -4853,7 +4853,7 @@ typedef struct sSirStartBeaconIndication
     tANI_U16     messageType;
     tANI_U16     messageLen;
     tANI_U8      beaconStartStatus;
-    tANI_U8      bssid[WNI_CFG_BSSID_LEN];
+    tANI_U8      bssid[VOS_MAC_ADDR_SIZE];
 }tSirStartBeaconIndication, *tpSirStartBeaconIndication;
 
 /* Message format for requesting channel switch announcement to lower layers */
@@ -4863,7 +4863,7 @@ typedef struct sSirDfsCsaIeRequest
     tANI_U16 msgLen;
     tANI_U8  targetChannel;
     tANI_U8  csaIeRequired;
-    tANI_U8  bssid[WNI_CFG_BSSID_LEN];
+    tANI_U8  bssid[VOS_MAC_ADDR_SIZE];
 }tSirDfsCsaIeRequest, *tpSirDfsCsaIeRequest;
 
 /* Indication from lower layer indicating the completion of first beacon send

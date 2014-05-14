@@ -213,9 +213,12 @@ static void usb_hif_usb_transmit_complete(struct urb *urb)
 	a_mem_trace(urb_context->buf);
 	buf = urb_context->buf;
 	pSendContext = urb_context->pSendContext;
-	if (pSendContext->bNewAlloc)
+
+	if (pSendContext->bNewAlloc) {
 		adf_os_mem_free((void *)pSendContext);
-	adf_nbuf_pull_head(buf, sizeof(struct HIFSendContext));
+	} else {
+		adf_nbuf_pull_head(buf, pSendContext->head_data_len);
+	}
 
 	urb_context->buf = NULL;
 	usb_hif_cleanup_transmit_urb(urb_context);
