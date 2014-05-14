@@ -851,6 +851,14 @@ static void hdd_ipa_set_adapter_ip_filter(hdd_adapter_t *adapter)
 	if (!dev || !iface_context) {
 		return;
 	}
+	/* This optimization not needed for Station mode one of
+	 * the reason being sta-usb tethered mode
+	 */
+	if (adapter->device_mode == WLAN_HDD_INFRA_STATION) {
+		iface_context->ifa_address = 0;
+		return;
+	}
+
 
 	/* Get IP address */
 	if (dev->priv_flags & IFF_BRIDGE_PORT) {
