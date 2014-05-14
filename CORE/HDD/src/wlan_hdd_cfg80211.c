@@ -2588,13 +2588,15 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
          THEN
              Fallback to 11N mode
         */
-        if (((AUTO_CHANNEL_SELECT != pConfig->channel && pConfig->channel <= 14)
+        if ((((AUTO_CHANNEL_SELECT != pConfig->channel && pConfig->channel <= 14)
                 || (AUTO_CHANNEL_SELECT == pConfig->channel &&
-                iniConfig->apOperatingBand == eSAP_RF_SUBBAND_2_4_GHZ))
-            &&
+                iniConfig->apOperatingBand == eSAP_RF_SUBBAND_2_4_GHZ)) &&
             (WLAN_HDD_GET_CTX(pHostapdAdapter)->cfg_ini->enableVhtFor24GHzBand
-                                                                     == FALSE))
+                                                                 == FALSE)) ||
+            (WLAN_HDD_GET_CTX(pHostapdAdapter)->isVHT80Allowed == FALSE))
+        {
             pConfig->SapHw_mode = eSAP_DOT11_MODE_11n;
+        }
     }
 #endif
 
