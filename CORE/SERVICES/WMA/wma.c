@@ -12931,9 +12931,14 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	host_credits = wmi_get_host_credits(wma->wmi_handle);
 	wmi_pending_cmds = wmi_get_pending_cmds(wma->wmi_handle);
 
+	WMA_LOGD("Credits:%d; Pending_Cmds: %d",
+		wmi_get_host_credits(wma->wmi_handle),
+		wmi_get_pending_cmds(wma->wmi_handle));
+
 	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
 		WMA_LOGE("%s: Host Doesn't have enough credits to Post WMI_WOW_ENABLE_CMDID! "
-			"Credits:%d, pending_cmds:%d\n", __func__, host_credits, wmi_pending_cmds);
+			"Credits:%d, pending_cmds:%d\n", __func__,
+				host_credits, wmi_pending_cmds);
 		goto error;
 	}
 
@@ -12948,6 +12953,10 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 				  WMA_TGT_SUSPEND_COMPLETE_TIMEOUT)
 				  != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to receive WoW Enable Ack from FW");
+		WMA_LOGE("Credits:%d; Pending_Cmds: %d",
+			wmi_get_host_credits(wma->wmi_handle),
+			wmi_get_pending_cmds(wma->wmi_handle));
+
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -12967,7 +12976,8 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	}
 
 
-	WMA_LOGD("WOW enabled successfully in fw");
+	WMA_LOGD("WOW enabled successfully in fw: credits:%d"
+		"pending_cmds: %d", host_credits, wmi_pending_cmds);
 
 	scn = vos_get_context(VOS_MODULE_ID_HIF, wma->vos_context);
 
@@ -13203,6 +13213,28 @@ static bool wma_is_wow_prtn_cached(tp_wma_handle wma, u_int8_t vdev_id)
 	return false;
 }
 
+static VOS_STATUS wma_resume_req(tp_wma_handle wma)
+{
+	VOS_STATUS ret = VOS_STATUS_SUCCESS;
+	u_int8_t ptrn_id;
+
+	/* Clear existing wow patterns in FW. */
+	for (ptrn_id = 0; ptrn_id < wma->wlan_resource_config.num_wow_filters;
+		ptrn_id++) {
+		ret = wma_del_wow_pattern_in_fw(wma, ptrn_id);
+		if (ret != VOS_STATUS_SUCCESS)
+			goto end;
+	}
+
+	/* Gather list of free ptrn id. This is needed while configuring
+	* default wow patterns.
+	*/
+	wma_update_free_wow_ptrn_id(wma);
+
+end:
+	return ret;
+}
+
 /*
  * Pushes wow patterns from local cache to FW and configures
  * wakeup trigger events.
@@ -13212,23 +13244,11 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 {
 	struct wma_txrx_node *iface;
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
-	u_int8_t ptrn_id, vdev_id;
+	u_int8_t vdev_id;
 	u_int8_t enable_ptrn_match = 0;
 	v_BOOL_t ap_vdev_available = FALSE;
 
 	WMA_LOGD("Clearing already configured wow patterns in fw");
-
-	/* Clear existing wow patterns in FW. */
-	for (ptrn_id = 0; ptrn_id < wma->wlan_resource_config.num_wow_filters;
-		ptrn_id++) {
-		ret = wma_del_wow_pattern_in_fw(wma, ptrn_id);
-		if(ret != VOS_STATUS_SUCCESS)
-			return ret;
-	}
-
-	/* Gather list of free ptrn id. This is needed while configuring
-	 * default wow patterns. */
-	wma_update_free_wow_ptrn_id(wma);
 
 	for (vdev_id = 0; vdev_id < wma->max_bssid; vdev_id++) {
 		iface = &wma->interfaces[vdev_id];
@@ -13268,7 +13288,7 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 		}
 
 		if (ret != VOS_STATUS_SUCCESS)
-			return ret;
+			goto end;
 	}
 
 	/*
@@ -13276,10 +13296,12 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	*/
 	ret = wma_add_wow_wakeup_event(wma, WOW_CSA_IE_EVENT, TRUE);
 
-	if (ret != VOS_STATUS_SUCCESS)
-		return ret;
-
-	WMA_LOGD("CSA IE match is enabled in fw");
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to configure WOW_CSA_IE_EVENT");
+		goto end;
+	}
+	else
+		WMA_LOGD("CSA IE match is enabled in fw");
 
 	/*
 	 * Configure pattern match wakeup event. FW does pattern match
@@ -13287,8 +13309,11 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	 */
 	ret = wma_add_wow_wakeup_event(wma, WOW_PATTERN_MATCH_EVENT,
 				       enable_ptrn_match ? TRUE : FALSE);
-	if (ret != VOS_STATUS_SUCCESS)
-		return ret;
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to Configure WOW_PATTERN_MATCH_EVENT");
+		goto end;
+	} else
+		WMA_LOGD("WOW_PATTERN_MATCH_EVENT enabled in fw");
 
 	WMA_LOGD("Pattern byte match is %s in fw",
 		 enable_ptrn_match ? "enabled" : "disabled");
@@ -13298,112 +13323,115 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 				       wma->wow.magic_ptrn_enable);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure magic pattern matching");
-	} else {
+		goto end;
+	} else
 		WMA_LOGD("Magic pattern is %s in fw",
 			wma->wow.magic_ptrn_enable ? "enabled" : "disabled");
-	}
 
 	/* Configure deauth based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_DEAUTH_RECVD_EVENT,
 				       wma->wow.deauth_enable);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure deauth based wakeup");
-	} else {
+		goto end;
+	} else
 		WMA_LOGD("Deauth based wakeup is %s in fw",
 			 wma->wow.deauth_enable ? "enabled" : "disabled");
-	}
 
 	/* Configure disassoc based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_DISASSOC_RECVD_EVENT,
 				       wma->wow.disassoc_enable);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure disassoc based wakeup");
-	} else {
+		goto end;
+	} else
 		WMA_LOGD("Disassoc based wakeup is %s in fw",
 			 wma->wow.disassoc_enable ? "enabled" : "disabled");
-	}
 
 	/* Configure beacon miss based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_BMISS_EVENT,
 				       wma->wow.bmiss_enable);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure beacon miss based wakeup");
-	} else {
+		goto end;
+	} else
 		WMA_LOGD("Beacon miss based wakeup is %s in fw",
 			 wma->wow.bmiss_enable ? "enabled" : "disabled");
-	}
+
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 	/* Configure GTK based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_GTK_ERR_EVENT,
 				       wma->wow.gtk_err_enable);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure GTK based wakeup");
-	} else {
+		goto end;
+	} else
 		WMA_LOGD("GTK based wakeup is %s in fw",
 			 wma->wow.gtk_err_enable ? "enabled" : "disabled");
-	}
 #endif
 	/* Configure probe req based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_PROBE_REQ_WPS_IE_EVENT,
 					ap_vdev_available);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure probe req based wakeup");
-	 } else {
+		goto end;
+	 } else
 		WMA_LOGD("Probe req based wakeup is %s in fw",
 			ap_vdev_available ? "enabled" : "disabled");
-	}
 
 	/* Configure auth req based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_AUTH_REQ_EVENT,
 					ap_vdev_available);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure auth req based wakeup");
-	} else {
+		goto end;
+	} else
 		WMA_LOGD("Auth req based wakeup is %s in fw",
 			ap_vdev_available ? "enabled" : "disabled");
-	}
 
 	/* Configure assoc req based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_ASSOC_REQ_EVENT,
 					ap_vdev_available);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure assoc req based wakeup");
-	} else {
+		goto end;
+	} else
 		WMA_LOGD("Assoc req based wakeup is %s in fw",
 			ap_vdev_available ? "enabled" : "disabled");
-	}
 
 	/* Configure pno based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_NLO_DETECTED_EVENT,
 					pno_in_progress);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure pno based wakeup");
-	} else {
+		goto end;
+	} else
 		WMA_LOGD("PNO based wakeup is %s in fw",
 			pno_in_progress ? "enabled" : "disabled");
-	}
 
 	/* Configure roaming scan better AP based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_BETTER_AP_EVENT,
 				       TRUE);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure roaming scan better AP based wakeup");
-	} else {
+		goto end;
+	} else
 		WMA_LOGD("Roaming scan better AP based wakeup is enabled in fw");
-	}
 
 	/* Configure ADDBA/DELBA wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_HTT_EVENT, TRUE);
 
-	if (ret != VOS_STATUS_SUCCESS)
+	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to Configure WOW_HTT_EVENT to FW");
-	else
+		goto end;
+	} else
 		WMA_LOGD("Successfully Configured WOW_HTT_EVENT to FW");
 
 	/* WOW is enabled in pcie suspend callback */
 	wma->wow.wow_enable = TRUE;
 	wma->wow.wow_enable_cmd_sent = FALSE;
 
+end:
 	return ret;
 }
 
@@ -13632,17 +13660,6 @@ enable_wow:
 		return ret;
 	}
 	vos_mem_free(info);
-
-	ret = wmi_is_suspend_ready(wma->wmi_handle);
-	if (ret) {
-		if (wmi_get_host_credits(wma->wmi_handle))
-			goto send_ready_to_suspend;
-
-		WMA_LOGE("WMI Commands are pending in the queue for long time"
-			"FW is not responding with credits; Fail to suspend");
-		VOS_ASSERT(0);
-		return VOS_STATUS_E_FAILURE;
-	}
 
 send_ready_to_suspend:
 	wma_send_ready_to_suspend_ind(wma);
@@ -16437,8 +16454,8 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
                         vos_mem_free(msg->bodyptr);
 			break;
 
-	    case WDA_SET_THERMAL_LEVEL:
-		    wma_process_set_thermal_level(wma_handle, (u_int8_t *) msg->bodyptr);
+		case WDA_SET_THERMAL_LEVEL:
+			wma_process_set_thermal_level(wma_handle, (u_int8_t *) msg->bodyptr);
 			break;
 
 		case WDA_SET_P2P_GO_NOA_REQ:
@@ -16466,6 +16483,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_VDEV_STOP_IND:
 			wma_vdev_stop_ind(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_WLAN_RESUME_REQ:
+			wma_resume_req(wma_handle);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
