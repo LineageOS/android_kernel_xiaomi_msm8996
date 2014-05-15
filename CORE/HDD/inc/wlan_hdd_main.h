@@ -301,6 +301,7 @@ extern spinlock_t hdd_context_lock;
 /* MAX OS Q block time value in msec
  * Prevent from permanent stall, resume OS Q if timer expired */
 #define WLAN_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME 1000
+#define WLAN_SAP_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME 100
 #define WLAN_HDD_TX_FLOW_CONTROL_MAX_24BAND_CH   14
 #endif /* QCA_LL_TX_FLOW_CT */
 
