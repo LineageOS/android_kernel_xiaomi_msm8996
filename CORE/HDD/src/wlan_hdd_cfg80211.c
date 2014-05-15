@@ -80,7 +80,6 @@
 #include "wlan_hdd_p2p.h"
 #include "wlan_hdd_cfg80211.h"
 #include "wlan_hdd_hostapd.h"
-#include "sapInternal.h"
 #include "wlan_hdd_softap_tx_rx.h"
 #include "wlan_hdd_main.h"
 #include "wlan_hdd_assoc.h"

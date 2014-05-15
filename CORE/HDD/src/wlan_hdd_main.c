@@ -116,8 +116,6 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #endif
 #ifdef FEATURE_WLAN_CH_AVOID
 #include <net/cnss.h>
-/* Channle/Freqency table */
-extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
 extern int hdd_hostapd_stop (struct net_device *dev);
 void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #endif /* FEATURE_WLAN_CH_AVOID */
@@ -13017,6 +13015,7 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
 {
     hdd_adapter_t *ap_pAdapter = NULL, *sta_pAdapter = (hdd_adapter_t *)data;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(sta_pAdapter);
+    tHalHandle hHal;
     hdd_ap_ctx_t *pHddApCtx;
     v_U16_t intf_ch = 0;
 
@@ -13029,6 +13028,10 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
     if (ap_pAdapter == NULL)
         return;
     pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(ap_pAdapter);
+    hHal = WLAN_HDD_GET_HAL_CTX(ap_pAdapter);
+
+    if (hHal == NULL)
+        return;
 
 #ifdef WLAN_FEATURE_MBSSID
     intf_ch = WLANSAP_CheckCCIntf(pHddApCtx->sapContext);
@@ -13039,6 +13042,9 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
         return;
 
     pHddApCtx->sapConfig.channel = intf_ch;
+    sme_SelectCBMode(hHal,
+            sapConvertSapPhyModeToCsrPhyMode(pHddApCtx->sapConfig.SapHw_mode),
+                                             pHddApCtx->sapConfig.channel);
     wlan_hdd_restart_sap(ap_pAdapter);
 }
 
