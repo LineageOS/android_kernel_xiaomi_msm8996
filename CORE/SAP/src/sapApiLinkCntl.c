@@ -820,7 +820,8 @@ WLANSAP_RoamCallback
                 eSAP_DISCONNECTING == sapContext->sapsMachine)
             {
                /* check if currently selected channel is a DFS channel */
-               if (NV_CHANNEL_DFS ==
+               if ((VOS_FALSE == sapContext->SapDfsInfo.ignore_cac) &&
+                   NV_CHANNEL_DFS ==
                      vos_nv_getChannelEnabledState(sapContext->channel))
                {
                   sapContext->sapsMachine = eSAP_DISCONNECTED;

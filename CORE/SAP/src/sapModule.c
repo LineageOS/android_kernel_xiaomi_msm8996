@@ -2748,3 +2748,24 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx)
 
     return VOS_STATUS_E_FAULT;
 }
+
+VOS_STATUS WLANSAP_Set_Dfs_Ignore_CAC(v_PVOID_t pvosGCtx, v_U8_t ignore_cac)
+{
+    ptSapContext pSapCtx = NULL;
+    if (VOS_STA_SAP_MODE == vos_get_conparam ())
+    {
+        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                     "%s: sapContext=%p", __func__, pSapCtx);
+
+        if ( NULL == pSapCtx )
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+            return VOS_STATUS_E_FAULT;
+        }
+        pSapCtx->SapDfsInfo.ignore_cac = ignore_cac >= VOS_TRUE? VOS_TRUE : VOS_FALSE;
+     }
+    return VOS_STATUS_SUCCESS;
+}
