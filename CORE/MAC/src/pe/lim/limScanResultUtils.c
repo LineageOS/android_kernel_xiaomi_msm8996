@@ -161,7 +161,8 @@ limCollectBssDescription(tpAniSirGlobal pMac,
      */
     if ((NULL != pMac->lim.gpLimMlmScanReq && pMac->lim.gpLimMlmScanReq->p2pSearch) ||
             (pMac->fScanOffload && pMac->lim.fOffloadScanPending &&
-             pMac->lim.fOffloadScanP2PSearch))
+             (pMac->lim.fOffloadScanP2PSearch ||
+              pMac->lim.fOffloadScanP2PListen)))
     {
         if (NULL == limGetP2pIEPtr(pMac, (pBody + SIR_MAC_B_PR_SSID_OFFSET), ieLen))
         {

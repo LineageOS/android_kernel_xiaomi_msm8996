@@ -5014,6 +5014,7 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
         case SCAN_EVENT_COMPLETED:
             pMac->lim.fOffloadScanPending = 0;
             pMac->lim.fOffloadScanP2PSearch = 0;
+            pMac->lim.fOffloadScanP2PListen = 0;
             if (P2P_SCAN_TYPE_LISTEN == pScanEvent->p2pScanType)
             {
                 limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RSP,

@@ -159,6 +159,10 @@ static eHalStatus limSendHalReqRemainOnChanOffload(tpAniSirGlobal pMac,
         vos_mem_free(pScanOffloadReq);
         return eHAL_STATUS_FAILURE;
     }
+
+    pMac->lim.fOffloadScanPending = 1;
+    pMac->lim.fOffloadScanP2PListen = 1;
+
     return eHAL_STATUS_SUCCESS;
 }
 
