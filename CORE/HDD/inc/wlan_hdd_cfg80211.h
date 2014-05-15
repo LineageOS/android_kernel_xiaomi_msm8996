@@ -247,7 +247,7 @@ void wlan_hdd_testmode_rx_event(void *buf, size_t buf_len);
 #endif
 
 #ifdef QCA_WIFI_2_0
-void hdd_suspend_wlan(void (*callback)(void *callbackContext),
+void hdd_suspend_wlan(void (*callback)(void *callbackContext, boolean suspended),
                       void *callbackContext);
 void hdd_resume_wlan(void);
 #endif

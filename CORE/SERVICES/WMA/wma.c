@@ -12522,7 +12522,7 @@ void wma_scan_cache_updated_ind(tp_wma_handle wma)
 
 #endif
 
-void wma_send_ready_to_suspend_ind(tp_wma_handle wma)
+static void wma_send_status_to_suspend_ind(tp_wma_handle wma, boolean suspended)
 {
 	tSirReadyToSuspendInd *ready_to_suspend;
 	VOS_STATUS status;
@@ -12541,6 +12541,7 @@ void wma_send_ready_to_suspend_ind(tp_wma_handle wma)
 
 	ready_to_suspend->mesgType = eWNI_SME_READY_TO_SUSPEND_IND;
 	ready_to_suspend->mesgLen = len;
+	ready_to_suspend->suspended = suspended;
 
 	vos_msg.type = eWNI_SME_READY_TO_SUSPEND_IND;
 	vos_msg.bodyptr = (void *) ready_to_suspend;
@@ -13737,12 +13738,13 @@ enable_wow:
 	ret = wma_feed_wow_config_to_fw(wma, pno_in_progress);
 	if (ret != VOS_STATUS_SUCCESS) {
 		vos_mem_free(info);
+		wma_send_status_to_suspend_ind(wma, FALSE);
 		return ret;
 	}
 	vos_mem_free(info);
 
 send_ready_to_suspend:
-	wma_send_ready_to_suspend_ind(wma);
+	wma_send_status_to_suspend_ind(wma, TRUE);
 
 	return VOS_STATUS_SUCCESS;
 }

@@ -4764,6 +4764,7 @@ typedef struct
 {
     tANI_U16      mesgType;
     tANI_U16      mesgLen;
+    tANI_BOOLEAN  suspended;
 }  tSirReadyToSuspendInd, *tpSirReadyToSuspendInd;
 typedef struct sSirRateUpdateInd
 {

@@ -1133,7 +1133,8 @@ void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter)
 
 static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
                                  hdd_adapter_t *pAdapter,
-                                 void (*callback)(void *callbackContext),
+                                 void (*callback)(void *callbackContext,
+                                                  boolean suspended),
                                  void *callbackContext)
 {
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
@@ -1267,7 +1268,7 @@ static void hdd_conf_resume_ind(hdd_adapter_t *pAdapter)
 }
 
 //Suspend routine registered with Android OS
-void hdd_suspend_wlan(void (*callback)(void *callbackContext),
+void hdd_suspend_wlan(void (*callback)(void *callbackContext, boolean suspended),
                       void *callbackContext)
 {
    hdd_context_t *pHddCtx = NULL;

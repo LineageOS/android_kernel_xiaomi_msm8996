@@ -1693,5 +1693,5 @@ eHalStatus csrSetBand(tHalHandle hHal, eCsrBand eBand);
 ---------------------------------------------------------------------------*/
 eCsrBand csrGetCurrentBand (tHalHandle hHal);
 
-typedef void (*csrReadyToSuspendCallback)(void *pContext);
+typedef void (*csrReadyToSuspendCallback)(void *pContext, boolean suspended);
 #endif

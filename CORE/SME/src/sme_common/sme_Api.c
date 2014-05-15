@@ -1701,7 +1701,8 @@ void sme_ProcessReadyToSuspend( tHalHandle hHal,
 
    if (NULL != pMac->readyToSuspendCallback)
    {
-       pMac->readyToSuspendCallback (pMac->readyToSuspendContext);
+       pMac->readyToSuspendCallback (pMac->readyToSuspendContext,
+                                     pReadyToSuspend->suspended);
        pMac->readyToSuspendCallback = NULL;
    }
 }
@@ -7425,23 +7426,22 @@ eHalStatus sme_ConfigureSuspendInd( tHalHandle hHal,
 
     MTRACE(vos_trace(VOS_MODULE_ID_SME,
                   TRACE_CODE_SME_RX_HDD_CONFIG_SUSPENDIND, NO_SESSION, 0));
+
+    pMac->readyToSuspendCallback = callback;
+    pMac->readyToSuspendContext = callbackContext;
+
     if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
     {
         /* serialize the req through MC thread */
         vosMessage.bodyptr = wlanSuspendParam;
         vosMessage.type    = WDA_WLAN_SUSPEND_IND;
         vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
-        if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
-        {
+        if ( !VOS_IS_STATUS_SUCCESS(vosStatus) ) {
+           pMac->readyToSuspendCallback = NULL;
+           pMac->readyToSuspendContext = NULL;
            status = eHAL_STATUS_FAILURE;
         }
         sme_ReleaseGlobalLock( &pMac->sme );
-    }
-
-    if ( VOS_IS_STATUS_SUCCESS(vosStatus) )
-    {
-        pMac->readyToSuspendCallback = callback;
-        pMac->readyToSuspendContext = callbackContext;
     }
 
     return(status);
