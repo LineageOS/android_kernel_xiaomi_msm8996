@@ -559,6 +559,19 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       goto drop_pkt;
    }
 
+   /*
+    * If the device is operating on a DFS Channel
+    * then check if SAP is in CAC WAIT state and
+    * drop the packets. In CAC WAIT state device
+    * is expected not to transmit any frames.
+    * SAP starts Tx only after the BSS START is
+    * done.
+    */
+   if (pHddApCtx->dfs_cac_block_tx)
+   {
+        goto drop_pkt;
+   }
+
    pDestMacAddress = (v_MACADDR_t*)skb->data;
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO,

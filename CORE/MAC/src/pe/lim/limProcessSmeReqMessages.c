@@ -5685,6 +5685,9 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         case eWNI_SME_CLEAR_DFS_CHANNEL_LIST:
             __limProcessClearDfsChannelList(pMac, pMsg);
             break;
+        case eWNI_SME_CLEAR_LIM_SCAN_CACHE:
+            limReInitScanResults(pMac);
+            break;
         case eWNI_SME_JOIN_REQ:
             __limProcessSmeJoinReq(pMac, pMsgBuf);
             break;

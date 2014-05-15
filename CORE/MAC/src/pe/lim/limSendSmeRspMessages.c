@@ -3190,6 +3190,12 @@ limSendSmeAPChannelSwitchResp(tpAniSirGlobal pMac,
 
     channelId = pSmeSwithChnlParams->channelNumber;
 
+    /*
+     * Pass the sme sessionID to SME instead
+     * PE session ID.
+     */
+    pSmeSwithChnlParams->peSessionId = psessionEntry->smeSessionId;
+
     mmhMsg.type = eWNI_SME_CHANNEL_CHANGE_RSP;
     mmhMsg.bodyptr = (void *)pSmeSwithChnlParams;
     mmhMsg.bodyval = 0;

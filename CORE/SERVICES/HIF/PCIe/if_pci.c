@@ -1712,12 +1712,18 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         msleep(10);
     }
 
+    /* Stop the HIF Sleep Timer */
+    HIFCancelDeferredTargetSleep(sc->hif_device);
+
     pci_read_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, &val);
     if ((val & 0x000000ff) != 0x3) {
         pci_save_state(pdev);
         pci_disable_device(pdev);
         pci_write_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, (val & 0xffffff00) | 0x03);
     }
+
+    printk("%s: Suspend completes\n", __func__);
+
     return 0;
 }
 
@@ -1784,6 +1790,7 @@ hif_pci_resume(struct pci_dev *pdev)
     else if (wma_disable_wow_in_fw(temp_module))
         return (-1);
 
+    printk("%s: Resume completes\n", __func__);
 
     return 0;
 }

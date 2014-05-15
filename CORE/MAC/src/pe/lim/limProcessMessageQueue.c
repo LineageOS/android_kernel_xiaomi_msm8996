@@ -1406,6 +1406,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_REGISTER_MGMT_FRAME_REQ:
         case eWNI_SME_UPDATE_NOA:
         case eWNI_SME_CLEAR_DFS_CHANNEL_LIST:
+        case eWNI_SME_CLEAR_LIM_SCAN_CACHE:
         case eWNI_SME_STA_STAT_REQ:
         case eWNI_SME_AGGR_STAT_REQ:
         case eWNI_SME_GLOBAL_STAT_REQ:

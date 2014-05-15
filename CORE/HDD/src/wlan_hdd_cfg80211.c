@@ -1077,6 +1077,18 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     return 0;
 }
 
+/*
+ * In this function, wiphy structure is updated after VOSS
+ * initialization. In wlan_hdd_cfg80211_init, only the
+ * default values will be initialized. The final initialization
+ * of all required members can be done here.
+ */
+void wlan_hdd_update_wiphy(struct wiphy *wiphy,
+                           hdd_config_t *pCfg)
+{
+    wiphy->max_ap_assoc_sta = pCfg->maxNumberOfPeers;
+}
+
 /* In this function we are registering wiphy. */
 int wlan_hdd_cfg80211_register(struct wiphy *wiphy)
 {
@@ -1156,11 +1168,8 @@ void wlan_hdd_cfg80211_update_reg_info(struct wiphy *wiphy)
     }
 }
 
-/* In this function we will do all post VOS start initialization.
-   In this function we will register for all frame in which supplicant
-   is interested.
-*/
-void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter)
+/* This function registers for all frame which supplicant is interested in */
+void wlan_hdd_cfg80211_register_frames(hdd_adapter_t* pAdapter)
 {
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     /* Register for all P2P action, public action etc frames */
@@ -1203,7 +1212,7 @@ void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter)
                                   WNM_BSS_ACTION_FRAME_SIZE );
 }
 
-void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter)
+void wlan_hdd_cfg80211_deregister_frames(hdd_adapter_t* pAdapter)
 {
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     /* Register for all P2P action, public action etc frames */
