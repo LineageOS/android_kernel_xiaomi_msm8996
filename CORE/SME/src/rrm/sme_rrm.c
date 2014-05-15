@@ -503,7 +503,19 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
 
    filter.fMeasurement = TRUE;
 
-   csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid*)pSmeRrmContext->sessionBssId, &sessionId );
+   /*
+    * In case this is beacon report request from last AP (before roaming)
+    * following call to csrRoamGetSessionIdFromBSSID will fail, hence use
+    * current session ID instead of one stored in SME rrm context
+    */
+   if (eHAL_STATUS_FAILURE ==
+        csrRoamGetSessionIdFromBSSID(pMac,
+                                     (tCsrBssid*)pSmeRrmContext->sessionBssId,
+                                      &sessionId )) {
+       smsLog( pMac, LOG1, FL("BSSID mismatch, using current sessionID"));
+       sessionId = pMac->roam.roamSession->sessionId;
+   }
+
    status = sme_ScanGetResult(pMac, (tANI_U8)sessionId, &filter, &pResult);
 
    if( filter.SSIDs.SSIDList )
