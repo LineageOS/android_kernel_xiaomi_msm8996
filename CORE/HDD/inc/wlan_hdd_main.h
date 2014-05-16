@@ -776,6 +776,7 @@ struct hdd_ap_ctx_s
    /* SAP Context */
    v_PVOID_t sapContext;
 #endif
+   v_BOOL_t dfs_cac_block_tx;
 };
 
 struct hdd_mon_ctx_s

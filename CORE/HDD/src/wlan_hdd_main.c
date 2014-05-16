@@ -6284,8 +6284,7 @@ void hdd_dfs_indicate_radar(void *context, void *param)
             pAdapter = pAdapterNode->pAdapter;
             if (WLAN_HDD_SOFTAP == pAdapter->device_mode)
             {
-                netif_tx_stop_all_queues(pAdapter->dev);
-                return;
+                WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->dfs_cac_block_tx = VOS_TRUE;
             }
             else
             {
@@ -9833,7 +9832,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 
          if (pAdapter != NULL)
          {
-            wlan_hdd_cfg80211_pre_voss_stop(pAdapter);
+            wlan_hdd_cfg80211_deregister_frames(pAdapter);
             hdd_UnregisterWext(pAdapter->dev);
          }
       }
@@ -11022,6 +11021,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_vos_nv_close;
    }
 
+   wlan_hdd_update_wiphy(wiphy, pHddCtx->cfg_ini);
+
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && \
     !defined(REMOVE_PKT_LOG)
    hif_init_pdev_txrx_handle(hif_sc,
@@ -11508,7 +11509,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       /* Action frame registered in one adapter which will
        * applicable to all interfaces
        */
-      wlan_hdd_cfg80211_post_voss_start(pAdapter);
+      wlan_hdd_cfg80211_register_frames(pAdapter);
    }
 
    mutex_init(&pHddCtx->sap_lock);
