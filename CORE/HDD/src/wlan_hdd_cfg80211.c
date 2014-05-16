@@ -8404,6 +8404,21 @@ static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
     else
         vos_status =  wlan_hdd_set_powersave(pAdapter, !mode);
 
+    if (!mode)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+                  "%s: DHCP start indicated through power save", __func__);
+        sme_DHCPStartInd(pHddCtx->hHal, pAdapter->device_mode,
+                         pAdapter->macAddressCurrent.bytes, pAdapter->sessionId);
+    }
+    else
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+                  "%s: DHCP stop indicated through power save", __func__);
+        sme_DHCPStopInd(pHddCtx->hHal, pAdapter->device_mode,
+                        pAdapter->macAddressCurrent.bytes, pAdapter->sessionId);
+    }
+
     EXIT();
     if (VOS_STATUS_E_FAILURE == vos_status)
     {
