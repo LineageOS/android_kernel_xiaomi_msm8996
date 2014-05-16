@@ -684,28 +684,32 @@ REG_TABLE_ENTRY g_registry_table[] =
 
    REG_VARIABLE( CFG_SAP_CHANNEL_SELECT_START_CHANNEL , WLAN_PARAM_Integer,
                  hdd_config_t, apStartChannelNum,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT
+                 | VAR_FLAGS_DYNAMIC_CFG,
                  CFG_SAP_CHANNEL_SELECT_START_CHANNEL_DEFAULT,
                  CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MIN,
                  CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MAX ),
 
    REG_VARIABLE( CFG_SAP_CHANNEL_SELECT_END_CHANNEL , WLAN_PARAM_Integer,
                  hdd_config_t, apEndChannelNum,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT
+                 | VAR_FLAGS_DYNAMIC_CFG,
                  CFG_SAP_CHANNEL_SELECT_END_CHANNEL_DEFAULT,
                  CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MIN,
                  CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MAX ),
 
    REG_VARIABLE( CFG_SAP_CHANNEL_SELECT_OPERATING_BAND , WLAN_PARAM_Integer,
                  hdd_config_t, apOperatingBand,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT
+                 | VAR_FLAGS_DYNAMIC_CFG,
                  CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_DEFAULT,
                  CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MIN,
                  CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MAX ),
 
    REG_VARIABLE( CFG_SAP_AUTO_CHANNEL_SELECTION_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, apAutoChannelSelection,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT
+                 | VAR_FLAGS_DYNAMIC_CFG,
                  CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT,
                  CFG_SAP_AUTO_CHANNEL_SELECTION_MIN,
                  CFG_SAP_AUTO_CHANNEL_SELECTION_MAX ),
@@ -3235,7 +3239,7 @@ REG_TABLE_ENTRY g_registry_table[] =
 
    REG_VARIABLE_STRING( CFG_ONLY_ALLOWED_CHANNELS, WLAN_PARAM_String,
                         hdd_config_t, acsAllowedChnls,
-                        VAR_FLAGS_OPTIONAL,
+                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_DYNAMIC_CFG,
                         (void *)CFG_ONLY_ALLOWED_CHANNELS_DEFAULT),
 
    REG_VARIABLE( CFG_REG_CHANGE_DEF_COUNTRY_NAME, WLAN_PARAM_Integer,
@@ -3247,7 +3251,8 @@ REG_TABLE_ENTRY g_registry_table[] =
 
    REG_VARIABLE( CFG_SAP_SCAN_BAND_PREFERENCE, WLAN_PARAM_Integer,
                  hdd_config_t, acsScanBandPreference,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK
+                 | VAR_FLAGS_DYNAMIC_CFG,
                  CFG_SAP_SCAN_BAND_PREFERENCE_DEFAULT,
                  CFG_SAP_SCAN_BAND_PREFERENCE_MIN,
                  CFG_SAP_SCAN_BAND_PREFERENCE_MAX ),
@@ -3305,7 +3310,8 @@ REG_TABLE_ENTRY g_registry_table[] =
 
    REG_VARIABLE( CFG_ACS_BAND_SWITCH_THRESHOLD, WLAN_PARAM_Integer,
                  hdd_config_t, acsBandSwitchThreshold,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK
+                 | VAR_FLAGS_DYNAMIC_CFG,
                  CFG_ACS_BAND_SWITCH_THRESHOLD_DEFAULT,
                  CFG_ACS_BAND_SWITCH_THRESHOLD_MIN,
                  CFG_ACS_BAND_SWITCH_THRESHOLD_MAX ),
@@ -3323,6 +3329,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SAP_MAX_OFFLOAD_PEERS_DEFAULT,
                  CFG_SAP_MAX_OFFLOAD_PEERS_MIN,
                  CFG_SAP_MAX_OFFLOAD_PEERS_MAX ),
+
+   REG_VARIABLE( CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS, WLAN_PARAM_Integer,
+                 hdd_config_t, apMaxOffloadReorderBuffs,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS_DEFAULT,
+                 CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS_MIN,
+                 CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS_MAX ),
 
    REG_VARIABLE( CFG_ADVERTISE_CONCURRENT_OPERATION_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, advertiseConcurrentOperation,
@@ -3858,6 +3871,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableOverLapCh] Value = [%u] ",pHddCtx->cfg_ini->gEnableOverLapCh);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAcsScanBandPreference] Value = [%u] ",pHddCtx->cfg_ini->acsScanBandPreference);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gMaxOffloadPeers] Value = [%u] ",pHddCtx->cfg_ini->apMaxOffloadPeers);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gMaxOffloadReorderBuffs] value = [%u] ",pHddCtx->cfg_ini->apMaxOffloadReorderBuffs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [overrideCountryCode] Value = [%s] ",pHddCtx->cfg_ini->overrideCountryCode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAllowDFSChannelRoam] Value = [%u] ",pHddCtx->cfg_ini->allowDFSChannelRoam);
 

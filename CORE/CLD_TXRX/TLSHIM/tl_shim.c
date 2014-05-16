@@ -2023,6 +2023,11 @@ void WLANTL_RegisterTXFlowControl
 		return;
 	}
 
+	if (sessionId >= wdi_out_cfg_max_vdevs(((pVosContextType)vos_ctx)->cfg_ctx)) {
+		TLSHIM_LOGE("%s : Invalid session id", __func__);
+		return;
+	}
+
 	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
 	tl_shim->session_flow_control[sessionId].flowControl = flowControl;
 	tl_shim->session_flow_control[sessionId].sessionId = sessionId;
@@ -2064,6 +2069,11 @@ void WLANTL_DeRegisterTXFlowControl
 		TLSHIM_LOGE("%s : Invalid ARG", __func__);
 		return;
 	}
+
+        if (sessionId >= wdi_out_cfg_max_vdevs(((pVosContextType)vos_ctx)->cfg_ctx)) {
+                TLSHIM_LOGE("%s : Invalid session id", __func__);
+                return;
+        }
 
 	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
 	tl_shim->session_flow_control[sessionId].flowControl = NULL;

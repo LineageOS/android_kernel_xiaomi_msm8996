@@ -1368,6 +1368,75 @@ int hdd_softap_unpackIE(
 }
 
 int
+static iw_softap_set_ini_cfg(struct net_device *dev,
+                          struct iw_request_info *info,
+                          union iwreq_data *wrqu, char *extra)
+{
+    VOS_STATUS vstatus;
+    int ret = 0; /* success */
+    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_context_t *pHddCtx;
+
+    if (pAdapter == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                                        "%s: pAdapter is NULL!", __func__);
+        return -EINVAL;
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (ret != 0)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is not valid", __func__);
+        return ret;
+    }
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+              "%s: Received data %s", __func__, extra);
+
+    vstatus = hdd_execute_config_command(pHddCtx, extra);
+    if (VOS_STATUS_SUCCESS != vstatus)
+    {
+        ret = -EINVAL;
+    }
+
+    return ret;
+}
+
+int
+static iw_softap_get_ini_cfg(struct net_device *dev,
+                          struct iw_request_info *info,
+                          union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx;
+    int ret = 0;
+
+    if (pAdapter == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                                        "%s: pAdapter is NULL!", __func__);
+        return -EINVAL;
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (ret != 0)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is not valid", __func__);
+        return ret;
+    }
+
+    hdd_cfg_get_config(pHddCtx, extra, QCSAP_IOCTL_MAX_STR_LEN);
+    wrqu->data.length = strlen(extra)+1;
+
+    return 0;
+}
+
+int
 static iw_softap_setparam(struct net_device *dev,
                           struct iw_request_info *info,
                           union iwreq_data *wrqu, char *extra)
@@ -4420,6 +4489,18 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "dataSnapshot" },
 
+    /* Set HDD CFG Ini param */
+    {   QCSAP_IOCTL_SET_INI_CFG,
+        IW_PRIV_TYPE_CHAR | QCSAP_IOCTL_MAX_STR_LEN,
+        0,
+        "setConfig" },
+
+    /* Get HDD CFG Ini param */
+    {   QCSAP_IOCTL_GET_INI_CFG,
+        0,
+        IW_PRIV_TYPE_CHAR | QCSAP_IOCTL_MAX_STR_LEN,
+        "getConfig" },
+
     /* handlers for main ioctl */
     {   QCSAP_IOCTL_SET_TRAFFIC_MONITOR,
         IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
@@ -4451,6 +4532,8 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_SET_TX_POWER - SIOCIWFIRSTPRIV]   = iw_softap_set_tx_power,
    [QCSAP_IOCTL_SET_MAX_TX_POWER - SIOCIWFIRSTPRIV]   = iw_softap_set_max_tx_power,
    [QCSAP_IOCTL_DATAPATH_SNAP_SHOT - SIOCIWFIRSTPRIV]  =   iw_display_data_path_snapshot,
+   [QCSAP_IOCTL_SET_INI_CFG - SIOCIWFIRSTPRIV]  =  iw_softap_set_ini_cfg,
+   [QCSAP_IOCTL_GET_INI_CFG - SIOCIWFIRSTPRIV]  =  iw_softap_get_ini_cfg,
    [QCSAP_IOCTL_SET_TRAFFIC_MONITOR - SIOCIWFIRSTPRIV]  =  iw_softap_set_trafficmonitor,
 };
 const struct iw_handler_def hostapd_handler_def = {

@@ -257,6 +257,7 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
 #endif
     vos_mem_copy(  pChnlParams->bssId, pSessionEntry->bssId, sizeof(tSirMacAddr) );
     pChnlParams->peSessionId = peSessionId;
+    pChnlParams->vhtCapable = pSessionEntry->vhtCapability;
 
     /*Set DFS flag for DFS channel*/
     if (vos_nv_getChannelEnabledState(chnlNumber) == NV_CHANNEL_DFS)

@@ -105,6 +105,7 @@
 #include "sme_Api.h"
 #include "wlan_qct_wda.h"
 #include "vos_trace.h"
+#include "wlan_hdd_assoc.h"
 
 #ifdef QCA_PKT_PROTO_TRACE
 #include "vos_packet.h"
@@ -9358,6 +9359,7 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
     hdd_context_t *pHddCtx;
     hdd_adapter_list_node_t *pAdapterNode, *pNext;
     eCsrBand currBand = eCSR_BAND_MAX;
+    eCsrBand connectedBand;
 
     pAdapterNode = NULL;
     pNext = NULL;
@@ -9424,12 +9426,15 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
             hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
             hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
                            eCSR_SCAN_ABORT_DUE_TO_BAND_CHANGE);
+            connectedBand =
+                hdd_connGetConnectedBand(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter));
 
             /* Handling is done only for STA and P2P */
-            if (((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
+            if ( band != eCSR_BAND_ALL &&
+                 ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
                  (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)) &&
-                 (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
-               )
+                 (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) &&
+                 (connectedBand != band))
             {
                  hdd_station_ctx_t *pHddStaCtx = &(pAdapter)->sessionCtx.station;
                  eHalStatus status = eHAL_STATUS_SUCCESS;

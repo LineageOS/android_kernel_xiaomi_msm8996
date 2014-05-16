@@ -1014,6 +1014,9 @@ typedef struct sMacOpenParameters
     /* max offload peer */
     tANI_U8 apMaxOffloadPeers;
 
+    /* max offload reorder buffs */
+    tANI_U8 apMaxOffloadReorderBuffs;
+
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters

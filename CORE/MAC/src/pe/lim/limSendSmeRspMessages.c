@@ -2874,6 +2874,8 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
 {
    tpPESession psessionEntry;
    tpCSAOffloadParams csa_params = (tpCSAOffloadParams)(MsgQ->bodyptr);
+   tpDphHashNode pStaDs = NULL ;
+   tANI_U16 aid = 0 ;
 
    if(!csa_params)
    {
@@ -2888,6 +2890,9 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
       goto err;
    }
 
+   pStaDs = dphLookupHashEntry(pMac, psessionEntry->bssId, &aid,
+                                      &psessionEntry->dph.dphHashTable);
+
    if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
    {
       psessionEntry->gLimChannelSwitch.switchMode = csa_params->switchmode;
@@ -2896,6 +2901,45 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
       psessionEntry->gLimChannelSwitch.primaryChannel = csa_params->channel;
       psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_ONLY;
       psessionEntry->gLimChannelSwitch.secondarySubBand = PHY_SINGLE_CHANNEL_CENTERED;
+
+#ifdef WLAN_FEATURE_11AC
+      if(psessionEntry->vhtCapability)
+      {
+          if ( csa_params->ies_present_flag & lim_wbw_ie_present )
+          {
+              psessionEntry->gLimWiderBWChannelSwitch.newChanWidth =
+                                          csa_params->new_ch_width;
+              psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq0 =
+                                          csa_params->new_ch_freq_seg1;
+              psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq1 =
+                                          csa_params->new_ch_freq_seg2;
+
+              psessionEntry->gLimChannelSwitch.state =
+                                     eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
+
+              psessionEntry->gLimChannelSwitch.secondarySubBand =
+                                                 limSelectCBMode(pStaDs,
+                                                     psessionEntry,
+                                                     csa_params->channel,
+                                                     csa_params->new_ch_width);
+          }
+
+      } else
+#endif
+      if (psessionEntry->htCapability) {
+          psessionEntry->gLimChannelSwitch.secondarySubBand =
+                                             limSelectCBMode(pStaDs,
+                                                 psessionEntry,
+                                                 csa_params->channel,
+                                                 csa_params->new_ch_width);
+          if (psessionEntry->gLimChannelSwitch.secondarySubBand) {
+              psessionEntry->gLimChannelSwitch.state =
+                                     eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
+          }
+      }
+      limLog(pMac, LOG1, FL("secondarySubBand = %d"),
+             psessionEntry->gLimChannelSwitch.secondarySubBand);
+
       limPrepareFor11hChannelSwitch(pMac, psessionEntry);
    }
 

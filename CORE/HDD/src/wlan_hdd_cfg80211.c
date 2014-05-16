@@ -3302,9 +3302,8 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                         return -EINVAL;
                     }
                 }
-
-#endif
                 break;
+#endif
 
 #else
                 vstatus = wlan_hdd_change_iface_to_sta_mode(ndev, type);
@@ -8004,10 +8003,11 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
             maxRate = (currentRate > maxRate)?currentRate:maxRate;
         }
         /* Get MCS Rate Set --
-           Only if we are always reporting max speed  (or)
+           Only if we are connected in non legacy mode and always reporting max speed  (or)
            if we have good rssi */
-         if ((0 == rssidx) ||
-              (eHDD_LINK_SPEED_REPORT_MAX == pCfg->reportMaxLinkSpeed))
+         if (((0 == rssidx) ||
+              (eHDD_LINK_SPEED_REPORT_MAX == pCfg->reportMaxLinkSpeed)) &&
+              !(rate_flags & eHAL_TX_RATE_LEGACY))
         {
             if (0 != ccmCfgGetStr(WLAN_HDD_GET_HAL_CTX(pAdapter), WNI_CFG_CURRENT_MCS_SET,
                                  MCSRates, &MCSLeng))
