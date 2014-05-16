@@ -2438,7 +2438,13 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_SAP_MAX_OFFLOAD_PEERS_MIN              (2)
 #define CFG_SAP_MAX_OFFLOAD_PEERS_MAX              (5)
 #define CFG_SAP_MAX_OFFLOAD_PEERS_DEFAULT          (2)
+
+#define CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS          "gMaxOffloadReorderBuffs"
+#define CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS_MIN      (0)
+#define CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS_MAX      (3)
+#define CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS_DEFAULT  (2)
 #endif
+
 //Enable Memory Debug
 #ifdef MEMORY_DEBUG
 #define CFG_ENABLE_MEMORY_DEBUG_NAME             "gEnableMemoryDebug"
@@ -2992,6 +2998,7 @@ typedef struct
    v_U16_t                     acsBandSwitchThreshold;
    v_BOOL_t                    gEnableStrictRegulatoryForFCC;
    v_U8_t                      apMaxOffloadPeers;
+   v_U8_t                      apMaxOffloadReorderBuffs;
    v_BOOL_t                    advertiseConcurrentOperation;
    v_BOOL_t                    enableHystereticMode;
 

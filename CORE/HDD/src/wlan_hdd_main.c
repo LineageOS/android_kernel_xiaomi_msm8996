@@ -10884,7 +10884,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
 
    pHddCtx->current_intf_count=0;
-   pHddCtx->max_intf_count = WLAN_MAX_INTERFACES;
+   pHddCtx->max_intf_count = CSR_ROAM_SESSION_MAX;
 
 #ifndef QCA_WIFI_2_0
    pHddCtx->cfg_ini->maxWoWFilters = WOWL_MAX_PTRNS_ALLOWED;
