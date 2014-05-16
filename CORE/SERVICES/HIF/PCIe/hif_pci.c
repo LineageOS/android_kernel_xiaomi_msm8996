@@ -2008,9 +2008,11 @@ HIF_sleep_entry(void *arg)
 		idle_ms = adf_os_ticks_to_msecs(adf_os_ticks()
 					- hif_state->sleep_ticks);
 		if (idle_ms >= HIF_MIN_SLEEP_INACTIVITY_TIME_MS) {
-			A_PCI_WRITE32(pci_addr + PCIE_LOCAL_BASE_ADDRESS +
+			if (!adf_os_atomic_read(&sc->pci_link_suspended)) {
+				A_PCI_WRITE32(pci_addr + PCIE_LOCAL_BASE_ADDRESS +
 				PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
-			hif_state->fake_sleep = FALSE;
+				hif_state->fake_sleep = FALSE;
+			}
 		} else {
 			adf_os_timer_start(&hif_state->sleep_timer,
 				HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);

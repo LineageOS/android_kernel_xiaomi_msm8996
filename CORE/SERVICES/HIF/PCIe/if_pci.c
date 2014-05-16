@@ -613,7 +613,8 @@ wlan_tasklet(unsigned long data)
     }
 irq_handled:
     if (LEGACY_INTERRUPTS(sc) && (sc->ol_sc->target_status !=
-                                  OL_TRGET_STATUS_RESET)) {
+                                  OL_TRGET_STATUS_RESET) &&
+           (!adf_os_atomic_read(&sc->pci_link_suspended))) {
 
         if (sc->hif_init_done == TRUE)
             A_TARGET_ACCESS_BEGIN(hif_state->targid);
@@ -882,6 +883,7 @@ again:
     adf_os_atomic_init(&sc->tasklet_from_intr);
     adf_os_atomic_init(&sc->wow_done);
     adf_os_atomic_init(&sc->ce_suspend);
+    adf_os_atomic_init(&sc->pci_link_suspended);
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
     init_completion(&ol_sc->ramdump_event);
 
@@ -1201,6 +1203,7 @@ again:
     adf_os_atomic_init(&sc->tasklet_from_intr);
     adf_os_atomic_init(&sc->wow_done);
     adf_os_atomic_init(&sc->ce_suspend);
+    adf_os_atomic_init(&sc->pci_link_suspended);
 
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
     init_completion(&ol_sc->ramdump_event);
@@ -1713,9 +1716,6 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         msleep(10);
     }
 
-    /* Stop the HIF Sleep Timer */
-    HIFCancelDeferredTargetSleep(sc->hif_device);
-
     /*Disable PCIe interrupts*/
     A_TARGET_ACCESS_BEGIN_RET(targid);
     A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 0);
@@ -1726,6 +1726,11 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
          VOS_ASSERT(0);
     }
     A_TARGET_ACCESS_END_RET(targid);
+
+    /* Stop the HIF Sleep Timer */
+    HIFCancelDeferredTargetSleep(sc->hif_device);
+
+    adf_os_atomic_set(&sc->pci_link_suspended, 1);
 
     pci_read_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, &val);
     if ((val & 0x000000ff) != 0x3) {
@@ -1750,6 +1755,8 @@ hif_pci_resume(struct pci_dev *pdev)
     int err;
     v_VOID_t * temp_module;
     u32 tmp;
+
+    adf_os_atomic_set(&sc->pci_link_suspended, 0);
 
     /* Enable Legacy PCI line interrupts */
     A_TARGET_ACCESS_BEGIN_RET(targid);
