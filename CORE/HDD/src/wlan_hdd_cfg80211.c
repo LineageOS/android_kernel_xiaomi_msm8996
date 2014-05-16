@@ -5618,11 +5618,11 @@ v_BOOL_t hdd_isConnectionInProgress( hdd_context_t *pHddCtx )
 }
 
 /*
- * FUNCTION: wlan_hdd_cfg80211_scan
+ * FUNCTION: __wlan_hdd_cfg80211_scan
  * this scan respond to scan trigger and update cfg80211 scan database
  * later, scan dump command can be used to recieve scan results
  */
-int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
+int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
                             struct net_device *dev,
 #endif
@@ -6011,6 +6011,24 @@ free_mem:
     return status;
 }
 
+int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+                            struct net_device *dev,
+#endif
+                            struct cfg80211_scan_request *request)
+{
+    int ret;
+
+    vos_ssr_protect(__func__);
+    ret =  __wlan_hdd_cfg80211_scan(wiphy,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+                                   dev,
+#endif
+                                   request);
+    vos_ssr_unprotect(__func__);
+
+    return ret;
+}
 
 void hdd_select_cbmode( hdd_adapter_t *pAdapter,v_U8_t operationChannel)
 {
@@ -7015,11 +7033,11 @@ static int wlan_hdd_try_disconnect( hdd_adapter_t *pAdapter )
 }
 
 /*
- * FUNCTION: wlan_hdd_cfg80211_set_privacy
+ * FUNCTION: __wlan_hdd_cfg80211_set_privacy
  * This function is used to initialize the security
  * parameters during connect operation.
  */
-static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                                       struct net_device *ndev,
                                       struct cfg80211_connect_params *req
                                       )
@@ -7134,6 +7152,17 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     return status;
 }
 
+static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
+                                      struct net_device *ndev,
+                                      struct cfg80211_connect_params *req)
+{
+    int ret;
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_cfg80211_connect(wiphy, ndev, req);
+    vos_ssr_unprotect(__func__);
+
+    return ret;
+}
 
 /*
  * FUNCTION: wlan_hdd_disconnect
@@ -7193,10 +7222,10 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
 
 
 /*
- * FUNCTION: wlan_hdd_cfg80211_disconnect
+ * FUNCTION: __wlan_hdd_cfg80211_disconnect
  * This function is used to issue a disconnect request to SME
  */
-static int wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
                                          struct net_device *dev,
                                          u16 reason
                                          )
@@ -7315,6 +7344,18 @@ static int wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
     return status;
 }
 
+static int wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
+                                         struct net_device *dev,
+                                         u16 reason
+                                         )
+{
+    int ret;
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_cfg80211_disconnect(wiphy, dev, reason);
+    vos_ssr_unprotect(__func__);
+
+    return ret;
+}
 
 /*
  * FUNCTION: wlan_hdd_cfg80211_set_privacy_ibss
