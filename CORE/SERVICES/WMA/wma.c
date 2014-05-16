@@ -4374,6 +4374,7 @@ bool wma_check_scan_in_progress(WMA_HANDLE handle)
 	return false;
 }
 
+
 /* function   : wma_get_buf_start_scan_cmd
  * Descriptin :
  * Args       :
@@ -4442,26 +4443,41 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 				WMI_SCAN_EVENT_PREEMPTED |
 				WMI_SCAN_EVENT_RESTARTED;
 
+	/* CSR sends min and max dwell time values, but expects the firmware
+	 * to use only max dwell time value. It does not send separate values
+	 * for active and passive. We use the same value for now.
+	 * CSR will pass 40 or 110 ms as maxChannelTime value to us.
+	 */
 	cmd->dwell_time_active = scan_req->maxChannelTime;
 	cmd->dwell_time_passive = scan_req->maxChannelTime;
 
+	/* Ensure correct number of probes are sent on active channel */
+	cmd->repeat_probe_time = cmd->dwell_time_active / WMA_SCAN_NPROBES_DEFAULT;
+
+	/* CSR sends only one value restTime for staying on home channel
+	 * to continue data traffic. Rome fw has facility to monitor the traffic
+	 * and move to next channel. Stay on the channel for at least half
+	 * of the requested time and then leave if there is no traffic.
+	 */
+	cmd->min_rest_time = scan_req->restTime / 2;
+	cmd->max_rest_time = scan_req->restTime;
+
+	/* Check for traffic at idle_time interval after min_rest_time.
+	 * Default value is 25 ms to allow full use of max_rest_time
+	 * when voice packets are running at 20 ms interval.
+	 */
+	cmd->idle_time = WMA_SCAN_IDLE_TIME_DEFAULT;
+
+	/* Large timeout value for full scan cycle, 30 seconds */
 	cmd->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
+
 	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES;
 
-	if (scan_req->scanType == eSIR_PASSIVE_SCAN)
-		cmd->burst_duration = 0;
-	else {
-		if (scan_req->channelList.numChannels <
-		    WMA_BURST_SCAN_MAX_NUM_OFFCHANNELS) {
-			cmd->burst_duration =
-				scan_req->channelList.numChannels *
-				scan_req->maxChannelTime;
-		} else {
-			cmd->burst_duration =
-				WMA_BURST_SCAN_MAX_NUM_OFFCHANNELS *
-				scan_req->maxChannelTime;
-		}
-	}
+	/* Do not combine multiple channels in a single burst. Come back
+	 * to home channel for data traffic after every foreign channel.
+	 * By default, prefer throughput performance over scan cycle time.
+	 */
+	cmd->burst_duration = 0;
 
 	if (!scan_req->p2pScanType) {
 		WMA_LOGD("Normal Scan request");
@@ -4471,7 +4487,6 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		if (scan_req->scanType == eSIR_PASSIVE_SCAN)
 			cmd->scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
 		cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
-		cmd->repeat_probe_time = scan_req->maxChannelTime/3;
 	}
 	else {
 		WMA_LOGD("P2P Scan");
@@ -4487,6 +4502,10 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 			WMA_LOGD("P2P_SCAN_TYPE_SEARCH");
 			cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
 			cmd->repeat_probe_time = scan_req->maxChannelTime/3;
+			/* Default P2P burst duration of 120 ms will cover
+			 * 3 channels with default max dwell time 40 ms.
+			 */
+			cmd->burst_duration = WMA_P2P_SCAN_MAX_BURST_DURATION;
 			break;
 		default:
 			WMA_LOGE("Invalid scan type");
