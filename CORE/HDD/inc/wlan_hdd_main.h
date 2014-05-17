@@ -1408,7 +1408,6 @@ struct hdd_context_s
     spinlock_t     bus_bw_lock;
 #endif
 
-    v_U8_t         drvr_miracast;
     v_U8_t         issplitscan_enabled;
 
     /* VHT80 allowed*/

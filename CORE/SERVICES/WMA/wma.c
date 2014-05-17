@@ -4394,6 +4394,8 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	u_int8_t *buf_ptr;
 	int i;
 	int len = sizeof(*cmd);
+	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
+				wma_handle->vos_context);
 
 	len += WMI_TLV_HDR_SIZE; /* Length TLV placeholder for array of uint32 */
 	/* calculate the length of buffer required */
@@ -4501,11 +4503,15 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		case P2P_SCAN_TYPE_SEARCH:
 			WMA_LOGD("P2P_SCAN_TYPE_SEARCH");
 			cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
-			cmd->repeat_probe_time = scan_req->maxChannelTime/3;
 			/* Default P2P burst duration of 120 ms will cover
 			 * 3 channels with default max dwell time 40 ms.
 			 */
 			cmd->burst_duration = WMA_P2P_SCAN_MAX_BURST_DURATION;
+			if (scan_req->channelList.numChannels == P2P_SOCIAL_CHANNELS
+			 && (!IS_MIRACAST_SESSION_PRESENT(pMac)))
+				cmd->repeat_probe_time = scan_req->maxChannelTime/5;
+			else
+				cmd->repeat_probe_time = scan_req->maxChannelTime/3;
 			break;
 		default:
 			WMA_LOGE("Invalid scan type");

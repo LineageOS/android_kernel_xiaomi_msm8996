@@ -77,6 +77,10 @@
 
 #define SIR_MDIE_SIZE               3
 
+// Increase dwell time for P2P search in ms
+#define P2P_SEARCH_DWELL_TIME_INCREASE   20
+#define P2P_SOCIAL_CHANNELS              3
+
 /* Max number of channels are 165, but to access 165th element of array,
  *array of 166 is required.
  */

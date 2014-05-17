@@ -4890,6 +4890,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if ( strncasecmp(command, "MIRACAST", 8) == 0 )
        {
+           tHalHandle hHal = WLAN_HDD_GET_CTX(pAdapter)->hHal;
+           tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
            tANI_U8 filterType = 0;
            tANI_U8 *value;
            value = command + 9;
@@ -4916,7 +4918,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                goto exit;
            }
            //Filtertype value should be either 0-Disabled, 1-Source, 2-sink
-           pHddCtx->drvr_miracast = filterType;
+           pMac->fMiracastSessionPresent = filterType;
            hdd_tx_rx_pkt_cnt_stat_timer_handler(pHddCtx);
        }
        else if (strncmp(command, "SETRMCTXRATE", 12) == 0)
