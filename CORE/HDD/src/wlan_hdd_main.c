@@ -5764,29 +5764,37 @@ void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand)
 /*
  * Mac address for multiple virtual interface is found as following
  * i) The mac address of the first interface is just the actual hw mac address.
- * ii) MSM 3 ot 4 bits of byte0 of the actual mac address are used to
+ * ii) MSM 3 or 4 bits of byte5 of the actual mac address are used to
  *     define the mac address for the remaining interfaces and locally
  *     admistered bit is set. INTF_MACADDR_MASK is based on the number of
  *     supported virtual interfaces, right now this is 0x07 (meaning 8 interface).
- *     Byte[0] of second interface will be hw_macaddr[0](bit5..7) + 1,
- *     for third interface it will be hw_macaddr[0](bit5..7) + 2, etc.
+ *     Byte[3] of second interface will be hw_macaddr[3](bit5..7) + 1,
+ *     for third interface it will be hw_macaddr[3](bit5..7) + 2, etc.
  */
 
 static void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
 {
     int8_t i;
-    u_int8_t macaddr_b0, tmp_br0;
+    u_int8_t macaddr_b3, tmp_br3;
 
     vos_mem_copy(cfg_ini->intfMacAddr[0].bytes, hw_macaddr.bytes,
                  VOS_MAC_ADDR_SIZE);
     for (i = 1; i < VOS_MAX_CONCURRENCY_PERSONA; i++) {
         vos_mem_copy(cfg_ini->intfMacAddr[i].bytes, hw_macaddr.bytes,
                      VOS_MAC_ADDR_SIZE);
-        macaddr_b0 = cfg_ini->intfMacAddr[i].bytes[0];
-        tmp_br0 = ((macaddr_b0 >> 4 & INTF_MACADDR_MASK) + i) &
+        macaddr_b3 = cfg_ini->intfMacAddr[i].bytes[3];
+        tmp_br3 = ((macaddr_b3 >> 4 & INTF_MACADDR_MASK) + i) &
                   INTF_MACADDR_MASK;
-        macaddr_b0 = (macaddr_b0 | (tmp_br0 << 4)) | 0x02;
-        cfg_ini->intfMacAddr[i].bytes[0] = macaddr_b0;
+        macaddr_b3 += tmp_br3;
+
+        /* XOR-ing bit-24 of the mac address which is bit-8 of macaddr[3]
+         * This will give enough mac address range before collision
+         */
+        macaddr_b3 ^= (1 << 8);
+
+        /* Set locally administered bit */
+        cfg_ini->intfMacAddr[i].bytes[0] |= 0x02;
+        cfg_ini->intfMacAddr[i].bytes[3] = macaddr_b3;
     }
 }
 
@@ -6285,7 +6293,9 @@ void hdd_update_tgt_cfg(void *context, void *param)
     /* This can be extended to other configurations like ht, vht cap... */
 
     if (!vos_is_macaddr_zero(&cfg->hw_macaddr))
+    {
         hdd_update_macaddr(hdd_ctx->cfg_ini, cfg->hw_macaddr);
+    }
     else {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: Invalid MAC passed from target, using MAC from ini file"
@@ -8187,6 +8197,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    switch(session_type)
    {
       case WLAN_HDD_INFRA_STATION:
+         /* Reset locally administered bit if the device mode is STA */
+         WLAN_HDD_RESET_LOCALLY_ADMINISTERED_BIT(macAddr);
+         /* fall through */
       case WLAN_HDD_P2P_CLIENT:
       case WLAN_HDD_P2P_DEVICE:
       {
@@ -8215,7 +8228,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
             hdd_deinit_adapter(pHddCtx, pAdapter);
             goto err_free_netdev;
          }
-         // Workqueue which gets scheduled in IPv4 notification callback.
+         // Workqueue which gets scheduled in IPv4 notification callback
          INIT_WORK(&pAdapter->ipv4NotifierWorkQueue, hdd_ipv4_notifier_work_queue);
 
 
@@ -10361,7 +10374,6 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
       return VOS_STATUS_E_FAILURE;
    }
 
-
    return VOS_STATUS_SUCCESS;
 }
 
@@ -10780,6 +10792,7 @@ static int hdd_generate_iface_mac_addr_auto(hdd_context_t *pHddCtx,
       hddLog(LOGE, FL("Failed to Get Serial NO"));
       return -1;
    }
+
    return 0;
 }
 #endif // WLAN_AUTOGEN_MACADDR_FEATURE && QCA_WIFI_ISOC

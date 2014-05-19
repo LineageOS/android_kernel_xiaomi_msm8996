@@ -1127,6 +1127,9 @@ struct hdd_adapter_s
         (tdlsCtx_t*)(pAdapter)->sessionCtx.station.pHddTdlsCtx : NULL)
 #endif
 
+/* Set mac address locally administered bit */
+#define WLAN_HDD_RESET_LOCALLY_ADMINISTERED_BIT(macaddr) (macaddr[0] &= 0xFD)
+
 typedef struct hdd_adapter_list_node
 {
    hdd_list_node_t node;     // MUST be first element
@@ -1459,6 +1462,7 @@ struct hdd_context_s
 #ifdef FEATURE_GREEN_AP
     hdd_green_ap_ctx_t *green_ap_ctx;
 #endif
+
 };
 
 
