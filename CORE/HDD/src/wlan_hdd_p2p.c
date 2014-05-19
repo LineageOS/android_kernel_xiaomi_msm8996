@@ -461,10 +461,11 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
      * and which is resulting in crash. So not allowing any remain on
      * channel requets when Load/Unload is in progress*/
     if (((hdd_context_t*)pAdapter->pHddCtx)->isLoadInProgress ||
-        ((hdd_context_t*)pAdapter->pHddCtx)->isUnloadInProgress)
+        ((hdd_context_t*)pAdapter->pHddCtx)->isUnloadInProgress ||
+        hdd_isConnectionInProgress((hdd_context_t *)pAdapter->pHddCtx))
     {
         hddLog( LOGE,
-                "%s: Wlan Load/Unload is in progress", __func__);
+                "%s: Wlan Load/Unload  or Connection is in progress", __func__);
         return -EBUSY;
     }
 

@@ -702,9 +702,9 @@ int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
     }
 
     vendor_event = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
-                       sizeof(tHddAvoidFreqList),
-                       QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY_INDEX,
-                       GFP_KERNEL);
+                              sizeof(tHddAvoidFreqList),
+                              QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY_INDEX,
+                              GFP_KERNEL);
     if (!vendor_event)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -731,6 +731,13 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
         .subcmd = QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY
     },
 #endif /* FEATURE_WLAN_CH_AVOID */
+
+#ifdef WLAN_FEATURE_STATS_EXT
+    {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_STATS_EXT
+    },
+#endif /* WLAN_FEATURE_STATS_EXT */
 };
 
 int is_driver_dfs_capable(struct wiphy *wiphy, struct wireless_dev *wdev,
@@ -770,6 +777,84 @@ int is_driver_dfs_capable(struct wiphy *wiphy, struct wireless_dev *wdev,
 
 }
 
+#ifdef WLAN_FEATURE_STATS_EXT
+static int wlan_hdd_cfg80211_stats_ext_request(struct wiphy *wiphy,
+                                        struct wireless_dev *wdev,
+                                        void *data, int data_len)
+{
+    tStatsExtRequestReq stats_ext_req;
+    struct net_device *dev = wdev->netdev;
+    hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+    int ret_val = -1;
+    eHalStatus status;
+
+    stats_ext_req.request_data_len = data_len;
+    stats_ext_req.request_data = data;
+
+    status = sme_StatsExtRequest(pAdapter->sessionId, &stats_ext_req);
+
+    if (eHAL_STATUS_SUCCESS == status)
+        ret_val = 0;
+
+    return ret_val;
+}
+
+static void wlan_hdd_cfg80211_stats_ext_callback(void* ctx, tStatsExtEvent* msg)
+{
+
+    hdd_context_t *pHddCtx = (hdd_context_t *)ctx;
+    struct sk_buff *vendor_event;
+    int status;
+    int ret_val;
+    tStatsExtEvent *data = msg;
+
+    status = wlan_hdd_validate_context(pHddCtx);
+
+    if (0 != status)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is not valid", __func__);
+        return;
+    }
+
+
+    vendor_event = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
+                                               data->event_data_len +
+                                               NLMSG_HDRLEN,
+                                               QCA_NL80211_VENDOR_SUBCMD_STATS_EXT_INDEX,
+                                               GFP_KERNEL);
+
+    if (!vendor_event)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: cfg80211_vendor_event_alloc failed", __func__);
+        return;
+    }
+
+    ret_val = nla_put(vendor_event, QCA_WLAN_VENDOR_ATTR_STATS_EXT,
+                      data->event_data_len, data->event_data);
+
+    if (ret_val)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: QCA_WLAN_VENDOR_ATTR_NAN put fail", __func__);
+        kfree_skb(vendor_event);
+
+        return;
+    }
+
+    cfg80211_vendor_event(vendor_event, GFP_KERNEL);
+
+}
+
+
+void wlan_hdd_cfg80211_stats_ext_init(hdd_context_t *pHddCtx)
+{
+    sme_StatsExtRegisterCallback(pHddCtx->hHal,
+                                 wlan_hdd_cfg80211_stats_ext_callback);
+}
+
+#endif
 
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 {
@@ -780,7 +865,19 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
                  WIPHY_VENDOR_CMD_NEED_NETDEV |
                  WIPHY_VENDOR_CMD_NEED_RUNNING,
         .doit = is_driver_dfs_capable
+    },
+
+#ifdef WLAN_FEATURE_STATS_EXT
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_STATS_EXT,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV |
+                 WIPHY_VENDOR_CMD_NEED_RUNNING,
+        .doit = wlan_hdd_cfg80211_stats_ext_request
     }
+#endif
+
 };
 
 
@@ -5392,11 +5489,11 @@ allow_suspend:
 }
 
 /*
- * FUNCTION: hdd_isScanAllowed
- * Go through each adapter and check if scan allowed
+ * FUNCTION: hdd_isConnectionInProgress
+ * Go through each adapter and check if Connection is in progress
  *
  */
-v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
+v_BOOL_t hdd_isConnectionInProgress( hdd_context_t *pHddCtx )
 {
     hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
     hdd_station_ctx_t *pHddStaCtx = NULL;
@@ -5408,8 +5505,8 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
     if (TRUE == pHddCtx->btCoexModeSet)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-           FL("BTCoex Mode operation in progress, Do not allow scan"));
-        return VOS_FALSE;
+           FL("BTCoex Mode operation in progress"));
+        return VOS_TRUE;
     }
 
     status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
@@ -5423,6 +5520,17 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
             hddLog(VOS_TRACE_LEVEL_INFO,
                     "%s: Adapter with device mode %d exists",
                     __func__, pAdapter->device_mode);
+            if (((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+                 (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
+                 (WLAN_HDD_P2P_DEVICE == pAdapter->device_mode)) &&
+                 (eConnectionState_Connecting ==
+                (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
+            {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                       "%s: %p(%d) Connection is in progress", __func__,
+                       WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pAdapter->sessionId);
+                return VOS_TRUE;
+            }
             if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
                     (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
                     (WLAN_HDD_P2P_DEVICE == pAdapter->device_mode))
@@ -5435,7 +5543,7 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
                     hddLog(VOS_TRACE_LEVEL_ERROR,
                            "%s: client " MAC_ADDRESS_STR " is in the middle of WPS/EAPOL exchange.",
                            __func__,MAC_ADDR_ARRAY(staMac));
-                    return VOS_FALSE;
+                    return VOS_TRUE;
                 }
             }
             else if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
@@ -5452,7 +5560,7 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
                                "%s: client " MAC_ADDRESS_STR " of SoftAP/P2P-GO is in the "
                                "middle of WPS/EAPOL exchange.", __func__,
                                 MAC_ADDR_ARRAY(staMac));
-                        return VOS_FALSE;
+                        return VOS_TRUE;
                     }
                 }
             }
@@ -5460,9 +5568,7 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
         status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
         pAdapterNode = pNext;
     }
-    hddLog(VOS_TRACE_LEVEL_INFO,
-            "%s: Scan allowed", __func__);
-    return VOS_TRUE;
+    return VOS_FALSE;
 }
 
 /*
@@ -5510,17 +5616,6 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 
     cfg_param = pHddCtx->cfg_ini;
     pScanInfo = &pAdapter->scan_info;
-
-    if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
-        (eConnectionState_Connecting ==
-           (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: %p(%d) Connection in progress: Scan request denied (EBUSY)",
-               __func__,
-                WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pAdapter->sessionId);
-        return -EBUSY;
-    }
 
 #ifdef WLAN_BTAMP_FEATURE
     //Scan not supported when AMP traffic is on.
@@ -5610,7 +5705,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 
     /* Check if scan is allowed at this point of time.
      */
-    if (!hdd_isScanAllowed(pHddCtx))
+    if (hdd_isConnectionInProgress(pHddCtx))
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Scan not allowed", __func__);
         return -EBUSY;

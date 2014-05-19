@@ -1648,6 +1648,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     u32 val;
     u32 ce_drain_wait_cnt = 0;
     v_VOID_t * temp_module;
+    u32 tmp;
 
     A_TARGET_ACCESS_BEGIN_RET(targid);
     A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
@@ -1715,6 +1716,17 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     /* Stop the HIF Sleep Timer */
     HIFCancelDeferredTargetSleep(sc->hif_device);
 
+    /*Disable PCIe interrupts*/
+    A_TARGET_ACCESS_BEGIN_RET(targid);
+    A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 0);
+    /* IMPORTANT: this extra read transaction is required to flush the posted write buffer */
+    tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
+    if (tmp == 0xffffffff) {
+         printk(KERN_ERR "%s: PCIe pcie link is down\n", __func__);
+         VOS_ASSERT(0);
+    }
+    A_TARGET_ACCESS_END_RET(targid);
+
     pci_read_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, &val);
     if ((val & 0x000000ff) != 0x3) {
         pci_save_state(pdev);
@@ -1737,6 +1749,20 @@ hif_pci_resume(struct pci_dev *pdev)
     u32 val;
     int err;
     v_VOID_t * temp_module;
+    u32 tmp;
+
+    /* Enable Legacy PCI line interrupts */
+    A_TARGET_ACCESS_BEGIN_RET(targid);
+    A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS),
+                              PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
+    /* IMPORTANT: this extra read transaction is required to flush the posted write buffer */
+    tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
+    if (tmp == 0xffffffff) {
+        printk(KERN_ERR "%s: PCIe link is down\n", __func__);
+        VOS_ASSERT(0);
+    }
+    A_TARGET_ACCESS_END_RET(targid);
+
 
     err = pci_enable_device(pdev);
     if (err)

@@ -120,17 +120,27 @@ typedef struct {
 #define QCA_NL80211_VENDOR_ID                          0x001374
 #define QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY      10
 #define QCA_NL80211_VENDOR_SUBCMD_DFS_CAPABILITY       11
+#define QCA_NL80211_VENDOR_SUBCMD_NAN                  12
+#define QCA_NL80211_VENDOR_SUBCMD_STATS_EXT            13
 
 enum qca_wlan_vendor_attr
 {
     QCA_WLAN_VENDOR_ATTR_INVALID = 0,
     /* used by QCA_NL80211_VENDOR_SUBCMD_DFS_CAPABILITY */
     QCA_WLAN_VENDOR_ATTR_DFS     = 1,
+    /* used by QCA_NL80211_VENDOR_SUBCMD_NAN */
+    QCA_WLAN_VENDOR_ATTR_NAN     = 2,
+    /* used by QCA_NL80211_VENDOR_SUBCMD_STATS_EXT */
+    QCA_WLAN_VENDOR_ATTR_STATS_EXT     = 3,
     /* keep last */
     QCA_WLAN_VENDOR_ATTR_AFTER_LAST,
     QCA_WLAN_VENDOR_ATTR_MAX       = QCA_WLAN_VENDOR_ATTR_AFTER_LAST - 1,
 };
 
+/* Vendor specific sub-command index, may change later due to NAN */
+#ifdef WLAN_FEATURE_STATS_EXT
+#define QCA_NL80211_VENDOR_SUBCMD_STATS_EXT_INDEX   1
+#endif /* WLAN_FEATURE_STATS_EXT */
 
 /* Vendor specific sub-command id and their index */
 #ifdef FEATURE_WLAN_CH_AVOID

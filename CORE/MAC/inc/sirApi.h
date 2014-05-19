@@ -4919,4 +4919,13 @@ typedef struct
     tANI_U32 param;
 } tSirModemPowerStateInd, *tpSirModemPowerStateInd;
 
+#ifdef WLAN_FEATURE_STATS_EXT
+typedef struct
+{
+    tANI_U32 event_data_len;
+    u_int8_t event_data[];
+} tSirStatsExtEvent, *tpSirStatsExtEvent;
+
+#endif
+
 #endif /* __SIR_API_H */

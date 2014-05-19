@@ -2632,6 +2632,21 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                             "nothing to process");
                 }
                 break ;
+
+#ifdef WLAN_FEATURE_STATS_EXT
+          case eWNI_SME_STATS_EXT_EVENT:
+              if (pMsg->bodyptr)
+              {
+                  status = sme_StatsExtEvent(hHal, pMsg->bodyptr);
+                  vos_mem_free(pMsg->bodyptr);
+              }
+              else
+              {
+                  smsLog( pMac, LOGE,
+                          "Empty event message for eWNI_SME_STATS_EXT_EVENT, nothing to process");
+              }
+              break;
+#endif
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -12107,3 +12122,102 @@ eHalStatus sme_ApDisableIntraBssFwd(tHalHandle hHal, tANI_U8 sessionId,
     return (status);
 }
 
+#ifdef WLAN_FEATURE_STATS_EXT
+
+/******************************************************************************
+  \fn sme_StatsExtRegisterCallback
+
+  \brief
+  a function called to register the callback that send vendor event for stats
+  ext
+
+  \param callback - callback to be registered
+******************************************************************************/
+void sme_StatsExtRegisterCallback(tHalHandle hHal, StatsExtCallback callback)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    pMac->sme.StatsExtCallback = callback;
+}
+
+/******************************************************************************
+  \fn sme_StatsExtRequest
+
+  \brief
+  a function called when HDD receives STATS EXT vendor command from userspace
+
+  \param sessionID - vdevID for the stats ext request
+
+  \param input - Stats Ext Request structure ptr
+
+  \return eHalStatus
+******************************************************************************/
+eHalStatus sme_StatsExtRequest(tANI_U8 session_id, tpStatsExtRequestReq input)
+{
+    vos_msg_t msg;
+    tpStatsExtRequest data;
+    size_t data_len;
+
+    data_len = sizeof(tStatsExtRequest) + input->request_data_len;
+    data = vos_mem_malloc(data_len);
+
+    if (data == NULL) {
+        return eHAL_STATUS_FAILURE;
+    }
+
+    vos_mem_zero(data, data_len);
+    data->vdev_id = session_id;
+    data->request_data_len = input->request_data_len;
+    if (input->request_data_len) {
+        vos_mem_copy(data->request_data,
+                     input->request_data, input->request_data_len);
+    }
+
+    msg.type = WDA_STATS_EXT_REQUEST;
+    msg.reserved = 0;
+    msg.bodyptr = data;
+
+    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA,
+                                                  &msg)) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Not able to post WDA_STATS_EXT_REQUEST message to WDA",
+                  __func__);
+        vos_mem_free(data);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+
+
+/******************************************************************************
+  \fn sme_StatsExtEvent
+
+  \brief
+  a callback function called when SME received eWNI_SME_STATS_EXT_EVENT
+  response from WDA
+
+  \param hHal - HAL handle for device
+  \param pMsg - Message body passed from WDA; includes NAN header
+  \return eHalStatus
+******************************************************************************/
+eHalStatus sme_StatsExtEvent(tHalHandle hHal, void* pMsg)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    if (NULL == pMsg) {
+        smsLog(pMac, LOGE, "in %s msg ptr is NULL", __func__);
+        status = eHAL_STATUS_FAILURE;
+    } else {
+        smsLog(pMac, LOG2, "SME: entering %s", __func__);
+
+        if (pMac->sme.StatsExtCallback) {
+            pMac->sme.StatsExtCallback(pMac->pAdapter, (tpStatsExtEvent)pMsg);
+        }
+    }
+
+    return status;
+}
+
+#endif

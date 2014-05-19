@@ -1339,6 +1339,11 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #define WDA_VDEV_STOP_IND           SIR_HAL_VDEV_STOP_IND
 
+#ifdef WLAN_FEATURE_STATS_EXT
+#define WDA_STATS_EXT_REQUEST              SIR_HAL_STATS_EXT_REQUEST
+#endif
+
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames

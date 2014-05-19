@@ -11628,6 +11628,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                      (void *)pHddCtx);
 #endif
 
+#ifdef WLAN_FEATURE_STATS_EXT
+   wlan_hdd_cfg80211_stats_ext_init(pHddCtx);
+#endif
+
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
    complete(&wlan_start_comp);
 #endif

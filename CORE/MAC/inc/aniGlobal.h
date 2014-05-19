@@ -929,6 +929,7 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
     tANI_U8 gLimDfsTargetChanNum;
     tANI_U8 fOffloadScanPending; /*Flag to track offload scan */
     tANI_U8 fOffloadScanP2PSearch; /*Flag to track the p2p search */
+    tANI_U8 fOffloadScanP2PListen; /*Flag to track the p2p listen */
     tANI_U8 probeCounter;
     tANI_U8 maxProbe;
 } tAniSirLim, *tpAniSirLim;

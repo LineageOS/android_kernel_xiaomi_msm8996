@@ -118,6 +118,11 @@ typedef enum eSmeState
 #define SME_IS_START(pMac)  (SME_STATE_STOP != (pMac)->sme.state)
 #define SME_IS_READY(pMac)  (SME_STATE_READY == (pMac)->sme.state)
 
+typedef struct sStatsExtEvent {
+    tANI_U32 event_data_len;
+    tANI_U8 event_data[];
+} tStatsExtEvent, *tpStatsExtEvent;
+
 typedef struct tagSmeStruct
 {
     eSmeState state;
@@ -145,6 +150,7 @@ typedef struct tagSmeStruct
 #endif /* FEATURE_WLAN_CH_AVOID */
     /* Maximum interfaces allowed by the host */
     tANI_U8 max_intf_count;
+    void (* StatsExtCallback) (void *, tStatsExtEvent *);
 } tSmeStruct, *tpSmeStruct;
 
 
