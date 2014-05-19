@@ -260,6 +260,8 @@ htt_t2h_stats_pdev_stats_print(
 	adf_os_print("comp_delivered    :\t%d\n",tx->comp_delivered);
     /* Num MSDU queued to WAL */
 	adf_os_print("msdu_enqued       :\t%d\n",tx->msdu_enqued);
+    /* Num MPDU queued to WAL */
+	adf_os_print("mpdu_enqued       :\t%d\n",tx->mpdu_enqued);
     /* Num MSDUs dropped by WMM limit */
 	adf_os_print("wmm_drop          :\t%d\n",tx->wmm_drop);
     /* Num Local frames queued */
