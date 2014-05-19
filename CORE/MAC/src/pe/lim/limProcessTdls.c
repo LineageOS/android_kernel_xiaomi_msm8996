@@ -959,6 +959,7 @@ static void PopulateDot11fTdlsHtVhtCap(tpAniSirGlobal pMac, uint32 selfDot11Mode
         {
             /* Include VHT Capability IE */
             PopulateDot11fVHTCaps( pMac, psessionEntry, vhtCap );
+            vhtCap->suBeamformeeCap = 0;
         }
         else
         {
@@ -2453,8 +2454,8 @@ limTdlsPopulateDot11fVHTCaps(tpAniSirGlobal pMac,
     pDot11f->shortGI160and80plus80MHz =  uVHTCapabilityInfo.vhtCapInfo.shortGI160and80plus80MHz;
     pDot11f->txSTBC =  uVHTCapabilityInfo.vhtCapInfo.txSTBC;
     pDot11f->rxSTBC =  uVHTCapabilityInfo.vhtCapInfo.rxSTBC;
-    pDot11f->suBeamFormerCap =  uVHTCapabilityInfo.vhtCapInfo.suBeamFormerCap;
-    pDot11f->suBeamformeeCap =  uVHTCapabilityInfo.vhtCapInfo.suBeamformeeCap;
+    pDot11f->suBeamFormerCap = 0;
+    pDot11f->suBeamformeeCap = 0;
     pDot11f->csnofBeamformerAntSup =  uVHTCapabilityInfo.vhtCapInfo.csnofBeamformerAntSup;
     pDot11f->numSoundingDim =  uVHTCapabilityInfo.vhtCapInfo.numSoundingDim;
     pDot11f->muBeamformerCap =  uVHTCapabilityInfo.vhtCapInfo.muBeamformerCap;
@@ -2682,6 +2683,7 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
     //tDot11fIEHTCaps *htCaps = &setupPeerInfo->tdlsPeerHTCaps ;
     tDot11fIEHTCaps htCap, *htCaps;
     tDot11fIEVHTCaps *pVhtCaps = NULL;
+    tDot11fIEVHTCaps *pVhtCaps_txbf = NULL;
 #ifdef WLAN_FEATURE_11AC
     tDot11fIEVHTCaps vhtCap;
     tANI_U8 cbMode;
@@ -2742,9 +2744,12 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
         }
 
         pStaDs->vhtLdpcCapable = pVhtCaps->ldpcCodingCap;
-        pStaDs->vhtBeamFormerCapable= pVhtCaps->suBeamFormerCap;
+        pStaDs->vhtBeamFormerCapable = 0;
         // TODO , is it necessary , Sunil???
         pMac->lim.gLimTdlsLinkMode = TDLS_LINK_MODE_AC;
+        pVhtCaps_txbf = (tDot11fIEVHTCaps *)(&pTdlsAddStaReq->vhtCap);
+        pVhtCaps_txbf->suBeamformeeCap = 0;
+        pVhtCaps_txbf->suBeamFormerCap = 0;
         pStaDs->vht_caps = pTdlsAddStaReq->vhtCap.vhtCapInfo;
     }
     else

@@ -392,6 +392,8 @@ enum eWniMsgTypes
     eWNI_SME_DFS_BEACON_CHAN_SW_IE_REQ, //Transmit CSA IE in beacons
     eWNI_SME_DFS_CSAIE_TX_COMPLETE_IND, //To indicate completion of CSA IE
                                         //update in beacons/probe rsp
+
+    eWNI_SME_STATS_EXT_EVENT,
     eWNI_SME_MSG_TYPES_END
 };
 
