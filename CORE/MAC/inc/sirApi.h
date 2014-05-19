@@ -4969,6 +4969,7 @@ typedef struct
 #ifdef WLAN_FEATURE_STATS_EXT
 typedef struct
 {
+    tANI_U32 vdev_id;
     tANI_U32 event_data_len;
     u_int8_t event_data[];
 } tSirStatsExtEvent, *tpSirStatsExtEvent;

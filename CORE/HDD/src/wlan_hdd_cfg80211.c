@@ -799,6 +799,7 @@ static void wlan_hdd_cfg80211_stats_ext_callback(void* ctx, tStatsExtEvent* msg)
     int status;
     int ret_val;
     tStatsExtEvent *data = msg;
+    hdd_adapter_t *pAdapter = NULL;
 
     status = wlan_hdd_validate_context(pHddCtx);
 
@@ -809,10 +810,21 @@ static void wlan_hdd_cfg80211_stats_ext_callback(void* ctx, tStatsExtEvent* msg)
         return;
     }
 
+    pAdapter = hdd_get_adapter_by_vdev( pHddCtx, data->vdev_id);
+
+    if (NULL == pAdapter)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: vdev_id %d does not exist with host",
+                  __func__, data->vdev_id);
+        return;
+    }
+
 
     vendor_event = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
                                                data->event_data_len +
-                                               NLMSG_HDRLEN,
+                                               sizeof(tANI_U32) +
+                                               NLMSG_HDRLEN + NLMSG_HDRLEN,
                                                QCA_NL80211_VENDOR_SUBCMD_STATS_EXT_INDEX,
                                                GFP_KERNEL);
 
@@ -823,13 +835,25 @@ static void wlan_hdd_cfg80211_stats_ext_callback(void* ctx, tStatsExtEvent* msg)
         return;
     }
 
+    ret_val = nla_put_u32(vendor_event, QCA_WLAN_VENDOR_ATTR_IFINDEX,
+                          pAdapter->dev->ifindex);
+    if (ret_val)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: QCA_WLAN_VENDOR_ATTR_IFINDEX put fail", __func__);
+        kfree_skb(vendor_event);
+
+        return;
+    }
+
+
     ret_val = nla_put(vendor_event, QCA_WLAN_VENDOR_ATTR_STATS_EXT,
                       data->event_data_len, data->event_data);
 
     if (ret_val)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: QCA_WLAN_VENDOR_ATTR_NAN put fail", __func__);
+                  "%s: QCA_WLAN_VENDOR_ATTR_STATS_EXT put fail", __func__);
         kfree_skb(vendor_event);
 
         return;

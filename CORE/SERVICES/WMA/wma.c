@@ -3101,6 +3101,8 @@ static int wma_stats_ext_event_handler(void *handle, u_int8_t *event_buf,
 	}
 
 	buf_ptr +=  sizeof(wmi_stats_ext_event_fixed_param) + WMI_TLV_HDR_SIZE ;
+
+	stats_ext_event->vdev_id = stats_ext_info->vdev_id;
 	stats_ext_event->event_data_len = stats_ext_info->data_len;
 	vos_mem_copy(stats_ext_event->event_data,
 		     buf_ptr,
