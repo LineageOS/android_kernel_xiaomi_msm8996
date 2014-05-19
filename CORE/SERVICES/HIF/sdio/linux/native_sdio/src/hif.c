@@ -1130,38 +1130,6 @@ static int enable_task(void *param)
     return 0;
 }
 #endif
-
-static void hifAssignTargetHeaders(A_UINT16 SDIO_ID)
-{
-     switch (SDIO_ID) {
-         case MANUFACTURER_ID_AR6002_BASE:
-             hif_register_tbl_attach(HIF_TYPE_AR6002);
-         break;
-
-         case MANUFACTURER_ID_AR6003_BASE:
-             hif_register_tbl_attach(HIF_TYPE_AR6003);
-         break;
-
-         case MANUFACTURER_ID_AR6004_BASE:
-             hif_register_tbl_attach(HIF_TYPE_AR6004);
-         break;
-
-         case MANUFACTURER_ID_AR6320_BASE:
-             hif_register_tbl_attach(HIF_TYPE_AR6320);
-         break;
-
-         case MANUFACTURER_ID_QCA9377_BASE:
-             /* do nothing here as hif_register_tbl_attach
-              * will be done later
-              */
-         break;
-
-         default:
-             A_ASSERT(FALSE);
-         break;
-    }
-}
-
 static int hifDeviceInserted(struct sdio_func *func, const struct sdio_device_id *id)
 {
     int i;
@@ -1171,7 +1139,7 @@ static int hifDeviceInserted(struct sdio_func *func, const struct sdio_device_id
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
             ("AR6000: hifDeviceInserted, Function: 0x%X, Vendor ID: 0x%X, Device ID: 0x%X, block size: 0x%X/0x%X\n",
-             func->num, func->vendor, func->device, func->max_blksize, func->cur_blksize));
+             func->num, func->vendor, id->device, func->max_blksize, func->cur_blksize));
     /*
     dma_mask should not be NULL, otherwise dma_map_single will crash.
     TODO: check why dma_mask is NULL here
@@ -1200,7 +1168,6 @@ static int hifDeviceInserted(struct sdio_func *func, const struct sdio_device_id
     if (device==NULL) {
         addHifDevice(func);
         device = getHifDevice(func);
-        hifAssignTargetHeaders(id->device);
 
         for (i=0; i<MAX_HIF_DEVICES; ++i) {
             if (hif_devices[i] == NULL) {
