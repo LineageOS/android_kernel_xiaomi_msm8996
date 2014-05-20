@@ -1822,6 +1822,7 @@ VOS_STATUS hdd_softap_rx_mul_packet_cbk(v_VOID_t *vosContext,
    while(buf)
    {
       next_buf = adf_nbuf_queue_next(buf);
+      adf_nbuf_set_next(buf, NULL); /* Add NULL terminator */
       status = hdd_softap_rx_packet_cbk(vosContext, buf, staId);
       if(!VOS_IS_STATUS_SUCCESS(status))
       {
