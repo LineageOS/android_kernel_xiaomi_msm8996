@@ -498,7 +498,7 @@ HIFPostInit(HIF_DEVICE *hif_device, void *unused, MSG_BASED_HIF_CALLBACKS *callb
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
 }
 
-void
+int
 hif_completion_thread_startup(struct HIF_CE_state *hif_state)
 {
     struct CE_handle *ce_diag = hif_state->ce_diag;
@@ -545,7 +545,7 @@ hif_completion_thread_startup(struct HIF_CE_state *hif_state)
                     A_MALLOC(completions_needed * sizeof(struct HIF_CE_completion_state));
             if (!compl_state) {
                 AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("ath ERROR: compl_state has no mem\n"));
-                return;
+                return -1;
             }
             pipe_info->completion_space = compl_state;
 
@@ -565,6 +565,7 @@ hif_completion_thread_startup(struct HIF_CE_state *hif_state)
 
     }
     A_TARGET_ACCESS_UNLIKELY(targid);
+    return 0;
 }
 
 void
@@ -1374,14 +1375,15 @@ void HIFDump(HIF_DEVICE *hif_device, u_int8_t cmd_id, bool start)
     }
 }
 
-void
+A_STATUS
 HIFStart(HIF_DEVICE *hif_device)
 {
     struct HIF_CE_state *hif_state = (struct HIF_CE_state *)hif_device;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n",__FUNCTION__));
 
-    hif_completion_thread_startup(hif_state);
+    if (hif_completion_thread_startup(hif_state))
+        return A_ERROR;
 
     hif_msg_callbacks_install(hif_device);
 
@@ -1391,6 +1393,8 @@ HIFStart(HIF_DEVICE *hif_device)
     hif_state->started = TRUE;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
+
+    return A_OK;
 }
 
 void
@@ -2008,9 +2012,11 @@ HIF_sleep_entry(void *arg)
 		idle_ms = adf_os_ticks_to_msecs(adf_os_ticks()
 					- hif_state->sleep_ticks);
 		if (idle_ms >= HIF_MIN_SLEEP_INACTIVITY_TIME_MS) {
-			A_PCI_WRITE32(pci_addr + PCIE_LOCAL_BASE_ADDRESS +
+			if (!adf_os_atomic_read(&sc->pci_link_suspended)) {
+				A_PCI_WRITE32(pci_addr + PCIE_LOCAL_BASE_ADDRESS +
 				PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
-			hif_state->fake_sleep = FALSE;
+				hif_state->fake_sleep = FALSE;
+			}
 		} else {
 			adf_os_timer_start(&hif_state->sleep_timer,
 				HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);

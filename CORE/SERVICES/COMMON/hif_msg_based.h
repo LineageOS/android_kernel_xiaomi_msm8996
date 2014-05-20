@@ -69,7 +69,7 @@ int HIF_deregister(void);
 
 void HIFPostInit(HIF_DEVICE *hifDevice, void *hHTC, MSG_BASED_HIF_CALLBACKS *callbacks);
 
-void HIFStart(HIF_DEVICE *hifDevice);
+A_STATUS HIFStart(HIF_DEVICE *hifDevice);
 
 void HIFStop(HIF_DEVICE *hifDevice);
 void HIFFlushSurpriseRemove(HIF_DEVICE *hifDevice);

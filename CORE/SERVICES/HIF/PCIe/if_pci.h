@@ -86,6 +86,7 @@ struct hif_pci_softc {
     atomic_t tasklet_from_intr;
     atomic_t wow_done;
     atomic_t ce_suspend;
+    atomic_t pci_link_suspended;
     bool hif_init_done;
     bool recovery;
     int htc_endpoint;

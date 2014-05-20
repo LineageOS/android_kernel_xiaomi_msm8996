@@ -103,10 +103,10 @@ void a_meminfo_report(int clear);
 #define A_NETIF_RX_NI(skb)              do { a_meminfo_del(skb);  netif_rx_ni(skb); } while (0)
 #else
 #define a_meminfo_report(_c)
-#define A_MALLOC(size)                  kmalloc((size), GFP_KERNEL)
+#define A_MALLOC(size)                  adf_os_mem_alloc(NULL, size)
 #define A_MALLOC_NOWAIT(size)           kmalloc((size), GFP_ATOMIC)
 #define a_mem_trace(ptr)
-#define A_FREE(addr)                    kfree(addr)
+#define A_FREE(addr)                    adf_os_mem_free(addr)
 #define A_NETIF_RX(skb)                 netif_rx(skb)
 #define A_NETIF_RX_NI(skb)              netif_rx_ni(skb)
 #endif

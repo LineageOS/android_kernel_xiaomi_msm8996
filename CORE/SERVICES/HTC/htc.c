@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -461,7 +461,11 @@ A_STATUS HTCWaitTarget(HTC_HANDLE HTCHandle)
 
     do {
 
-        HIFStart(target->hif_dev);
+        status = HIFStart(target->hif_dev);
+        if (A_FAILED(status)) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("HIFStart failed\n"));
+            break;
+        }
 
         status = HTCWaitRecvCtrlMessage(target);
 

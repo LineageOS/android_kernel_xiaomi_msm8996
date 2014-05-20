@@ -55,9 +55,13 @@
 #include "vos_trace.h"
 
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+#ifdef CONFIG_CNSS
+#include <net/cnss.h>
+#else
 #include <wcnss_api.h>
-#define WCNSS_PRE_ALLOC_GET_THRESHOLD (4*1024)
 #endif
+#endif
+
 
 #ifdef MEMORY_DEBUG
 #include "wlan_hdd_dp_utils.h"

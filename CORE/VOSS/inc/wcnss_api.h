@@ -137,16 +137,6 @@ static inline int free_riva_power_on_lock(char *driver_name)
         return 0;
 }
 
-#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
-static inline void *wcnss_prealloc_get(size_t size)
-{
-        return NULL;
-}
-static inline int wcnss_prealloc_put(void *ptr)
-{
-        return 0;
-}
-#endif
 
 #endif	/* #ifdef QCA_WIFI_ISOC */
 #endif	/* #ifndef _WCNSS_API_H_ */
