@@ -7466,7 +7466,14 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	}
 	*/
 #else
+        #if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+        if (STA_ENTRY_TDLS_PEER == params->staType)
+            ol_txrx_peer_state_update(pdev, params->staMac, ol_txrx_peer_state_auth);
+        else
+	    ol_txrx_peer_state_update(pdev, params->bssId, ol_txrx_peer_state_auth);
+        #else
 	ol_txrx_peer_state_update(pdev, params->bssId, ol_txrx_peer_state_auth);
+        #endif
 #endif
 
 #ifdef FEATURE_WLAN_WAPI
@@ -9805,7 +9812,17 @@ static void wma_add_tdls_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 
 	if (0 == add_sta->updateSta) {
 	 /* its a add sta request **/
-	 WMA_LOGD("%s: addSta, calling wma_create_peer for %pM, vdev_id %hu",
+#if defined(CONFIG_HL_SUPPORT)
+         if (add_sta->bssId && vdev->last_real_peer &&
+            (adf_os_mem_cmp((u8 *)add_sta->bssId,
+                             vdev->last_real_peer->mac_addr.raw,
+                             IEEE80211_ADDR_LEN) == 0)) {
+            adf_os_mem_copy(vdev->hl_tdls_ap_mac_addr.raw,
+                            vdev->last_real_peer->mac_addr.raw,
+                            OL_TXRX_MAC_ADDR_LEN);
+         }
+#endif
+         WMA_LOGD("%s: addSta, calling wma_create_peer for %pM, vdev_id %hu",
 	          __func__, add_sta->staMac, add_sta->smesessionId);
 
 	 status = wma_create_peer(wma, pdev, vdev, add_sta->staMac,
@@ -9823,7 +9840,15 @@ static void wma_add_tdls_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 	           __func__, add_sta->staMac);
 	  add_sta->status = VOS_STATUS_E_FAILURE;
 	  wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
-	  goto send_rsp;
+#if defined(CONFIG_HL_SUPPORT)
+          if (vdev->last_real_peer == NULL) {
+              peer = NULL;
+              peer = ol_txrx_find_peer_by_addr(pdev, vdev->hl_tdls_ap_mac_addr.raw, &peer_id);
+              if (peer && (peer->peer_ids[0] != HTT_INVALID_PEER_ID))
+                  vdev->last_real_peer = peer;
+          }
+#endif
+          goto send_rsp;
 	 }
 
 	 add_sta->staIdx = ol_txrx_local_peer_id(peer);
@@ -9853,7 +9878,15 @@ static void wma_add_tdls_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 	           __func__, add_sta->staMac);
 	  add_sta->status = VOS_STATUS_E_FAILURE;
 	  wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
-	  goto send_rsp;
+#if defined(CONFIG_HL_SUPPORT)
+          if (vdev->last_real_peer == NULL) {
+              peer = NULL;
+              peer = ol_txrx_find_peer_by_addr(pdev, vdev->hl_tdls_ap_mac_addr.raw, &peer_id);
+              if (peer && (peer->peer_ids[0] != HTT_INVALID_PEER_ID))
+                  vdev->last_real_peer = peer;
+          }
+#endif
+          goto send_rsp;
 	 }
 
 	 WMA_LOGD("%s: changeSta, calling wmi_unified_send_peer_assoc",
@@ -9863,7 +9896,15 @@ static void wma_add_tdls_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 	 if (ret) {
 	  add_sta->status = VOS_STATUS_E_FAILURE;
 	  wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
-	  goto send_rsp;
+#if defined(CONFIG_HL_SUPPORT)
+          if (vdev->last_real_peer == NULL) {
+              peer = NULL;
+              peer = ol_txrx_find_peer_by_addr(pdev, vdev->hl_tdls_ap_mac_addr.raw, &peer_id);
+              if (peer && (peer->peer_ids[0] != HTT_INVALID_PEER_ID))
+                  vdev->last_real_peer = peer;
+          }
+#endif
+          goto send_rsp;
 	 }
 	}
 
@@ -19021,7 +19062,7 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 			eFrameType frmType, eFrameTxDir txDir, u_int8_t tid,
 			pWDATxRxCompFunc tx_frm_download_comp_cb, void *pData,
 			pWDAAckFnTxComp tx_frm_ota_comp_cb, u_int8_t tx_flag,
-			u_int8_t vdev_id)
+			u_int8_t vdev_id, bool tdlsFlag)
 {
 	tp_wma_handle wma_handle = (tp_wma_handle)(wma_context);
 	int32_t status;
@@ -19061,7 +19102,11 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	if (frmType >= HAL_TXRX_FRM_MAX) {
+#if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+        txrx_vdev->hlTdlsFlag = false;
+#endif
+
+        if (frmType >= HAL_TXRX_FRM_MAX) {
 		WMA_LOGE("Invalid Frame Type Fail to send Frame");
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -19252,8 +19297,14 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		wma_handle->last_umac_data_nbuf = skb;
 
 		/* Send the Data frame to TxRx in Non Standard Path */
-		ret = ol_tx_non_std(txrx_vdev, ol_tx_spec_no_free, skb);
-		if (ret) {
+#if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+                txrx_vdev->hlTdlsFlag = tdlsFlag;
+#endif
+                ret = ol_tx_non_std(txrx_vdev, ol_tx_spec_no_free, skb);
+#if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+                txrx_vdev->hlTdlsFlag = false;
+#endif
+                if (ret) {
 			WMA_LOGE("TxRx Rejected. Fail to do Tx");
 			adf_nbuf_unmap_single(pdev->osdev, skb, ADF_OS_DMA_TO_DEVICE);
 			/* Call Download Cb so that umac can free the buffer */
@@ -20294,6 +20345,10 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	int32_t len = sizeof(wmi_tdls_peer_update_cmd_fixed_param) +
 	              sizeof(wmi_tdls_peer_capabilities);
 	int ret = 0;
+#if defined(CONFIG_HL_SUPPORT)
+        struct ol_txrx_vdev_t *vdev;
+        bool restore_last_peer = false;
+#endif
 
 	if (!wma_handle || !wma_handle->wmi_handle) {
 		WMA_LOGE("%s: WMA is closed, can not issue cmd", __func__);
@@ -20411,12 +20466,26 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 			goto end_tdls_peer_state;
 		}
 
+#if defined(CONFIG_HL_SUPPORT)
+                vdev = peer->vdev;
+                if (vdev->last_real_peer && (vdev->last_real_peer == peer))
+                        restore_last_peer = true;
+#endif
+
 		WMA_LOGD("%s: calling wma_remove_peer for peer " MAC_ADDRESS_STR
 		         " vdevId: %d", __func__,
 		         MAC_ADDR_ARRAY(peer->mac_addr.raw), peerStateParams->vdevId);
 		wma_remove_peer(wma_handle, peer->mac_addr.raw,
 		                peerStateParams->vdevId, peer);
-	}
+#if defined(CONFIG_HL_SUPPORT)
+                if (restore_last_peer && (vdev->last_real_peer == NULL)) {
+                       peer = NULL;
+                       peer = ol_txrx_find_peer_by_addr(pdev, vdev->hl_tdls_ap_mac_addr.raw, &peer_id);
+                       if (peer && (peer->peer_ids[0] != HTT_INVALID_PEER_ID))
+                            vdev->last_real_peer = peer;
+                }
+#endif
+         }
 
 end_tdls_peer_state:
 	if (peerStateParams)

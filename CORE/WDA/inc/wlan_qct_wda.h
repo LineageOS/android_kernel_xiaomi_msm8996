@@ -493,7 +493,8 @@ VOS_STATUS WDA_TxPacket(void *pWDA,
                         void *pData,
                         pWDAAckFnTxComp pAckTxComp,
                         tANI_U8 txFlag,
-                        tANI_U8 sessionId);
+                        tANI_U8 sessionId,
+                        bool tdlsflag);
 
 /*
  * FUNCTION: WDA_open
@@ -1365,10 +1366,11 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
          (pData),\
          (NULL), \
          (txFlag),\
-         (sessionid)) )
+         (sessionid),\
+         (false)) )
 
 #define halTxFrameWithTxComplete(hHal, pFrmBuf, frmLen, frmType, txDir, tid,\
-                         pCompFunc, pData, pCBackFnTxComp, txFlag, sessionid) \
+                         pCompFunc, pData, pCBackFnTxComp, txFlag, sessionid, tdlsflag) \
    (eHalStatus)( WDA_TxPacket(\
          vos_get_context(VOS_MODULE_ID_WDA,\
                          vos_get_global_context(VOS_MODULE_ID_WDA, (hHal))),\
@@ -1381,7 +1383,8 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
          (pData),\
          (pCBackFnTxComp), \
          (txFlag),\
-         (sessionid)) )
+         (sessionid),\
+         (tdlsflag)) )
 
 #ifdef QCA_WIFI_2_0
 
