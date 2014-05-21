@@ -295,7 +295,8 @@ tSirRetStatus limCreateSessionForRemainOnChn(tpAniSirGlobal pMac, tPESession **p
     if(pMac->lim.gpLimRemainOnChanReq && ppP2pSession)
     {
         if((psessionEntry = peCreateSession(pMac,
-           pMac->lim.gpLimRemainOnChanReq->selfMacAddr, &sessionId, 1)) == NULL)
+           pMac->lim.gpLimRemainOnChanReq->selfMacAddr,
+           &sessionId, 1, eSIR_INFRA_AP_MODE)) == NULL)
         {
             limLog(pMac, LOGE, FL("Session Can not be created "));
             /* send remain on chn failure */

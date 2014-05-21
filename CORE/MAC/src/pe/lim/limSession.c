@@ -90,16 +90,21 @@ void peInitBeaconParams(tpAniSirGlobal pMac, tpPESession psessionEntry)
   This function returns the session context and the session ID if the session
   corresponding to the passed BSSID is found in the PE session table.
 
-  \param pMac                   - pointer to global adapter context
-  \param bssid                   - BSSID of the new session
-  \param sessionId             -session ID is returned here, if session is created.
-
-  \return tpPESession          - pointer to the session context or NULL if session can not be created.
+  \param pMac          - pointer to global adapter context
+  \param bssid         - BSSID of the new session
+  \param sessionId     - session ID is returned here, if session is created.
+  \param bssType       - station or a
+  \return tpPESession  - pointer to the session context or NULL if session
+                         can not be created.
 
   \sa
 
   --------------------------------------------------------------------------*/
-tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid, tANI_U8* sessionId, tANI_U16 numSta)
+tpPESession peCreateSession(tpAniSirGlobal pMac,
+                            tANI_U8 *bssid,
+                            tANI_U8* sessionId,
+                            tANI_U16 numSta,
+                            tSirBssType bssType)
 {
     tANI_U8 i;
     for(i =0; i < pMac->lim.maxBssId; i++)
@@ -214,6 +219,38 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid, tANI_U8* sessio
                     limLog(pMac, LOGE,
                        FL("Failed to open ps offload for pe session %x\n"),i);
                 }
+            }
+
+            if (eSIR_INFRA_AP_MODE == bssType ||
+                    eSIR_IBSS_MODE == bssType ||
+                        eSIR_BTAMP_AP_MODE == bssType)
+            {
+                 pMac->lim.gpSession[i].pSchProbeRspTemplate =
+                                 vos_mem_malloc(SCH_MAX_PROBE_RESP_SIZE);
+                 pMac->lim.gpSession[i].pSchBeaconFrameBegin =
+                                 vos_mem_malloc(SCH_MAX_BEACON_SIZE);
+                 pMac->lim.gpSession[i].pSchBeaconFrameEnd =
+                                 vos_mem_malloc(SCH_MAX_BEACON_SIZE);
+                 if ( (NULL == pMac->lim.gpSession[i].pSchProbeRspTemplate)
+                       || (NULL == pMac->lim.gpSession[i].pSchBeaconFrameBegin)
+                       || (NULL == pMac->lim.gpSession[i].pSchBeaconFrameEnd) )
+                 {
+                     PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!"));)
+                     vos_mem_free(pMac->lim.gpSession[i].dph.dphHashTable.pHashTable);
+                     vos_mem_free(pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray);
+                     vos_mem_free(pMac->lim.gpSession[i].gpLimPeerIdxpool);
+                     vos_mem_free(pMac->lim.gpSession[i].pSchProbeRspTemplate);
+                     vos_mem_free(pMac->lim.gpSession[i].pSchBeaconFrameBegin);
+                     vos_mem_free(pMac->lim.gpSession[i].pSchBeaconFrameEnd);
+
+                     pMac->lim.gpSession[i].dph.dphHashTable.pHashTable = NULL;
+                     pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray = NULL;
+                     pMac->lim.gpSession[i].gpLimPeerIdxpool = NULL;
+                     pMac->lim.gpSession[i].pSchProbeRspTemplate = NULL;
+                     pMac->lim.gpSession[i].pSchBeaconFrameBegin = NULL;
+                     pMac->lim.gpSession[i].pSchBeaconFrameEnd = NULL;
+                     return NULL;
+                 }
             }
             return(&pMac->lim.gpSession[i]);
         }
@@ -504,6 +541,24 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
                    FL("Failed to close ps offload for pe session %x"),
                    psessionEntry->peSessionId);
         }
+    }
+
+    if (NULL != psessionEntry->pSchProbeRspTemplate)
+    {
+        vos_mem_free(psessionEntry->pSchProbeRspTemplate);
+        psessionEntry->pSchProbeRspTemplate = NULL;
+    }
+
+    if (NULL != psessionEntry->pSchBeaconFrameBegin)
+    {
+        vos_mem_free(psessionEntry->pSchBeaconFrameBegin);
+        psessionEntry->pSchBeaconFrameBegin = NULL;
+    }
+
+    if (NULL != psessionEntry->pSchBeaconFrameEnd)
+    {
+        vos_mem_free(psessionEntry->pSchBeaconFrameEnd);
+        psessionEntry->pSchBeaconFrameEnd = NULL;
     }
 
     psessionEntry->valid = FALSE;
