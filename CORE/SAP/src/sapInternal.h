@@ -245,6 +245,9 @@ typedef struct sSapContext {
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     v_U8_t             cc_switch_mode;
 #endif
+#ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
+    v_BOOL_t           dfs_ch_disable;
+#endif
     tANI_BOOLEAN       isCacEndNotified;
     tANI_BOOLEAN       isCacStartNotified;
 } *ptSapContext;

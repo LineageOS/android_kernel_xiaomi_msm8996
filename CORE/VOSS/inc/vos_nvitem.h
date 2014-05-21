@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -703,6 +703,8 @@ eNVChannelEnabledType vos_nv_getChannelEnabledState
 (
    v_U32_t    rfChannel
 );
+#define VOS_IS_DFS_CH(channel) (vos_nv_getChannelEnabledState((channel)) == \
+                                   NV_CHANNEL_DFS)
 
 VOS_STATUS vos_init_wiphy_from_nv_bin(void);
 VOS_STATUS vos_init_wiphy_from_eeprom(void);

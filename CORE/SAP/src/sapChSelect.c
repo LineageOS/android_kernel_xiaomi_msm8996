@@ -588,6 +588,7 @@ v_U8_t sapSelectPreferredChannelFromChannelList(v_U8_t bestChNum,
   PARAMETERS
 
     IN
+    halHandle          : Pointer to tHalHandle
     *pSpectInfoParams  : Pointer to tSapChSelSpectInfo structure
     sapContext: SAP Context
 
@@ -641,6 +642,16 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
             continue;
         }
 
+#ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
+        if (pSapCtx->dfs_ch_disable == VOS_TRUE) {
+            if (VOS_IS_DFS_CH(*pChans)) {
+                chSafe = VOS_FALSE;
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "In %s,  DFS Ch %d not considered for ACS", __func__,
+                          *pChans);
+            }
+        }
+#endif
 #ifdef FEATURE_WLAN_CH_AVOID
         for(i = 0; i < NUM_20MHZ_RF_CHANNELS; i++) {
             if((safeChannels[i].channelNumber == *pChans) &&

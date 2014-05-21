@@ -480,21 +480,32 @@ sapGotoChannelSel
         return VOS_STATUS_E_FAULT;
     }
 
-#ifndef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-    /*If STA-AP concurrency is enabled take the concurrent connected channel first. In other cases wpa_supplicant should take care */
     if (vos_get_concurrency_mode() == VOS_STA_SAP)
     {
+#ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
+        if (sapContext->channel == AUTO_CHANNEL_SELECT)
+            sapContext->dfs_ch_disable = VOS_TRUE;
+        else if (VOS_IS_DFS_CH(sapContext->channel)) {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                       "In %s, DFS not supported in STA_AP Mode", __func__);
+            return VOS_STATUS_E_ABORTED;
+        }
+#endif
+#ifndef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        /* If STA-AP concurrency is enabled take the concurrent connected
+         * channel first. In other cases wpa_supplicant should take care */
         channel = sme_GetConcurrentOperationChannel(hHal);
         if (channel)
         { /*if a valid channel is returned then use concurrent channel.
                   Else take whatever comes from configuartion*/
             sapContext->channel = channel;
             sme_SelectCBMode(hHal,
-                             sapConvertSapPhyModeToCsrPhyMode(sapContext->csrRoamProfile.phyMode),
-                             channel);
+                             sapConvertSapPhyModeToCsrPhyMode(
+                                 sapContext->csrRoamProfile.phyMode),
+                                 channel);
         }
-    }
 #endif
+    }
 
     if (sapContext->channel == AUTO_CHANNEL_SELECT)
     {
