@@ -876,16 +876,13 @@ htt_rx_amsdu_pop_ll(
          */
 
 #ifdef DEBUG_DMA_DONE
-        /* if done bit is not set */
         if (adf_os_unlikely(!((*(u_int32_t *) &rx_desc->attention)
                             & RX_ATTENTION_0_MSDU_DONE_MASK))) {
 
             int dbg_iter = MAX_DONE_BIT_CHECK_ITER;
 
-            htt_rx_print_rx_indication(rx_ind_msg, pdev);
-            htt_print_rx_desc(rx_desc);
 
-            adf_os_print("done bit still not set retrying...\n");
+            adf_os_print("malformed frame\n");
 
             while (dbg_iter &&
                    (!((*(u_int32_t *) &rx_desc->attention) &
@@ -898,18 +895,13 @@ htt_rx_amsdu_pop_ll(
 
                 adf_os_print("debug iter %d success %d\n", dbg_iter,
                      pdev->rx_ring.dbg_sync_success);
-                htt_rx_print_rx_indication(rx_ind_msg, pdev);
-                htt_print_rx_desc(rx_desc);
 
                 dbg_iter--;
             }
 
-            /* if the done bit is still not set, ASSERT the target */
             if (adf_os_unlikely(!((*(u_int32_t *) &rx_desc->attention)
                                   & RX_ATTENTION_0_MSDU_DONE_MASK)))
             {
-                htt_rx_print_rx_indication(rx_ind_msg, pdev);
-                htt_print_rx_desc(rx_desc);
 
                 process_wma_set_command(0,(int)GEN_PARAM_CRASH_INJECT,
                                         0, GEN_CMD);

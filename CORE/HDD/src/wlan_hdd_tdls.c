@@ -870,34 +870,37 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
 #endif
 
-    /*
-     * NOTE: The Callers of this function should ensure to acquire the
-     * tdls_lock to avoid any concurrent access to the Adapter.
-     */
-
     pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
-    if (0 != (wlan_hdd_validate_context(pHddCtx)))
+    if (!pHddCtx)
     {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 FL("pHddCtx is not valid"));
+                 FL("pHddCtx is NULL"));
        return;
     }
 
     pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
     if (NULL == pHddTdlsCtx)
     {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 FL("pHddTdlsCtx is NULL"));
-        return;
+       /* TDLS context can be null and might have been freed up during
+        * cleanup for STA adapter
+        */
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                 FL("pHddTdlsCtx is NULL, adapter device mode: %d"),
+                 pAdapter->device_mode);
+       return;
     }
 
     vos_flush_work(&pHddTdlsCtx->implicit_setup);
     vos_flush_delayed_work(&pHddCtx->tdls_scan_ctxt.tdls_scan_work);
 
+    mutex_lock(&pHddCtx->tdls_lock);
+
     /* must stop timer here before freeing peer list, because peerIdleTimer is
     part of peer list structure. */
     wlan_hdd_tdls_timers_destroy(pHddTdlsCtx);
     wlan_hdd_tdls_free_list(pHddTdlsCtx);
+
+    mutex_unlock(&pHddCtx->tdls_lock);
 
     wlan_hdd_tdls_free_scan_request(&pHddCtx->tdls_scan_ctxt);
 

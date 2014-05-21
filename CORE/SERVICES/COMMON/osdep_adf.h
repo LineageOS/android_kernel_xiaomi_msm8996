@@ -543,9 +543,9 @@ struct _NIC_DEV {
 static INLINE unsigned char *
 OS_MALLOC(osdev_t pNicDev, unsigned long ulSizeInBytes, int gfp)
 {
-    return kmalloc(ulSizeInBytes, gfp);
+    return adf_os_mem_alloc(NULL, ulSizeInBytes);
 }
-#define OS_FREE(_p)                       do { kfree(_p); _p = 0; } while (0)
+#define OS_FREE(_p)                     adf_os_mem_free(_p)
 
 #define OS_MALLOC_WITH_TAG(_ppMem, _size, _tag)    do {   \
     *(_ppMem) = adf_os_mem_alloc(NULL, _size); \

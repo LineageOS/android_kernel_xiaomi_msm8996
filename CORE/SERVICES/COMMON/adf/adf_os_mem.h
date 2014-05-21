@@ -36,6 +36,13 @@
 
 #include <adf_os_types.h>
 #include <adf_os_mem_pvt.h>
+#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+#ifdef CONFIG_CNSS
+#include <net/cnss.h>
+#else
+#include <wcnss_api.h>
+#endif
+#endif
 
 /**
  * @brief Allocate a memory buffer. Note this call can block.
@@ -47,6 +54,19 @@
 static inline void *
 adf_os_mem_alloc(adf_os_device_t osdev, adf_os_size_t size)
 {
+#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+    void *p_mem;
+#endif
+
+#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+   if (size > WCNSS_PRE_ALLOC_GET_THRESHOLD)
+   {
+       p_mem = wcnss_prealloc_get(size);
+       if (NULL != p_mem)
+           return p_mem;
+   }
+#endif
+
     return __adf_os_mem_alloc(osdev, size);
 }
 
@@ -61,6 +81,13 @@ adf_os_mem_alloc_outline(adf_os_device_t osdev, adf_os_size_t size);
 static inline void
 adf_os_mem_free(void *buf)
 {
+#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+    if (wcnss_prealloc_put(buf))
+    {
+        return;
+    }
+#endif
+
     __adf_os_mem_free(buf);
 }
 
