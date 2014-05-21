@@ -254,10 +254,6 @@ static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 	HIF_DEVICE_USB *device = usb_get_intfdata(interface);
 	void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
 
-#ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
-	hdd_suspend_wlan(NULL, NULL);
-#endif
-
 	/* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
 	if (wma_is_wow_mode_selected(vos_get_context(VOS_MODULE_ID_WDA, vos))) {
 		if (wma_enable_wow_in_fw
@@ -265,8 +261,9 @@ static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 			pr_warn("%s[%d]: fail\n", __func__, __LINE__);
 			return -1;
 		}
-	} else if (state.event == PM_EVENT_FREEZE
-		   || (PM_EVENT_SUSPEND & state.event) == PM_EVENT_SUSPEND) {
+	} else if ((PM_EVENT_FREEZE & state.event) == PM_EVENT_FREEZE ||
+		(PM_EVENT_SUSPEND & state.event) == PM_EVENT_SUSPEND ||
+		(PM_EVENT_HIBERNATE & state.event) == PM_EVENT_HIBERNATE) {
 		if (wma_suspend_target
 		    (vos_get_context(VOS_MODULE_ID_WDA, vos), 0)) {
 			pr_warn("%s[%d]: fail\n", __func__, __LINE__);
@@ -301,9 +298,19 @@ static int hif_usb_resume(struct usb_interface *interface)
 	    return (-1);
 	}
 
-#ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
-	hdd_resume_wlan();
-#endif
+	return 0;
+}
+
+static int hif_usb_reset_resume(struct usb_interface *intf)
+{
+	HIF_DEVICE_USB *device = usb_get_intfdata(intf);
+	struct hif_usb_softc *sc = device->sc;
+
+	HIFDiagWriteAccess(sc->hif_device,
+		(ROME_USB_SOC_RESET_CONTROL_COLD_RST_LSB |
+		 ROME_USB_RTC_SOC_BASE_ADDRESS),
+		 SOC_RESET_CONTROL_COLD_RST_SET(1));
+
 	return 0;
 }
 
@@ -322,6 +329,7 @@ struct usb_driver hif_usb_drv_id = {
 #ifdef ATH_BUS_PM
 	.suspend = hif_usb_suspend,
 	.resume = hif_usb_resume,
+	.reset_resume = hif_usb_reset_resume,
 #endif
 	.supports_autosuspend = true,
 };
