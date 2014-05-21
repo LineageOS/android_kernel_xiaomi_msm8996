@@ -1661,6 +1661,10 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         printk("%s: txrx_pdev is NULL\n", __func__);
         return (-1);
     }
+
+    /* Pause all vdev */
+    ol_txrx_pdev_pause(txrx_pdev);
+
     /* Wait for pending tx completion */
     while (ol_txrx_get_tx_pending(txrx_pdev)) {
         msleep(OL_ATH_TX_DRAIN_WAIT_DELAY);
@@ -1749,6 +1753,7 @@ hif_pci_resume(struct pci_dev *pdev)
 {
     struct hif_pci_softc *sc = pci_get_drvdata(pdev);
     void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+    ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_context);
     struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
     A_target_id_t targid = hif_state->targid;
     u32 val;
@@ -1822,6 +1827,13 @@ hif_pci_resume(struct pci_dev *pdev)
     }
     else if (wma_disable_wow_in_fw(temp_module))
         return (-1);
+
+    if (!txrx_pdev) {
+        printk("%s: txrx_pdev is NULL\n", __func__);
+        return (-1);
+    }
+    /* Unpause all vdev */
+    ol_txrx_pdev_unpause(txrx_pdev);
 
     printk("%s: Resume completes\n", __func__);
 
