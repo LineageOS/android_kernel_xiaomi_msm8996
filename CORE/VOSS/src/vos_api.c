@@ -434,6 +434,10 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
   if (pHddCtx->cfg_ini->ssdp)
       macOpenParms.ssdp = pHddCtx->cfg_ini->ssdp;
 #endif
+#ifdef FEATURE_WLAN_RA_FILTERING
+   macOpenParms.RArateLimitInterval = pHddCtx->cfg_ini->RArateLimitInterval;
+   macOpenParms.IsRArateLimitEnabled = pHddCtx->cfg_ini->IsRArateLimitEnabled;
+#endif
 
    macOpenParms.apMaxOffloadPeers = pHddCtx->cfg_ini->apMaxOffloadPeers;
 
