@@ -168,6 +168,10 @@ htt_attach(
     /* for efficiency, store a local copy of the is_high_latency flag */
     pdev->cfg.is_high_latency = ol_cfg_is_high_latency(pdev->ctrl_pdev);
 
+    pdev->cfg.is_full_reorder_offload =
+         ol_cfg_is_full_reorder_offload(pdev->ctrl_pdev);
+    adf_os_print("is_full_reorder_offloaded? %d\n",
+                  (int)pdev->cfg.is_full_reorder_offload);
     pdev->targetdef = htc_get_targetdef(htc_pdev);
     /*
      * Connect to HTC service.

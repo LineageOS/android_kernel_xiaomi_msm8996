@@ -2639,6 +2639,12 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_DFS_RADAR_PRI_MULTIPLIER_DEFAULT       ( 4 )
 #define CFG_DFS_RADAR_PRI_MULTIPLIER_MIN           ( 0 )
 #define CFG_DFS_RADAR_PRI_MULTIPLIER_MAX           ( 10 )
+#if !defined(QCA_WIFI_ISOC)
+#define CFG_REORDER_OFFLOAD_SUPPORT_NAME    "gReorderOffloadSupported"
+#define CFG_REORDER_OFFLOAD_SUPPORT_MIN     ( 0 )
+#define CFG_REORDER_OFFLOAD_SUPPORT_MAX     ( 1 )
+#define CFG_REORDER_OFFLOAD_SUPPORT_DEFAULT ( 0 )
+#endif
 
 /*---------------------------------------------------------------------------
   Type declarations
@@ -3206,6 +3212,9 @@ typedef struct
 #endif
 
    v_S31_t                     dfsRadarPriMultiplier;
+#if !defined(QCA_WIFI_ISOC)
+   v_U8_t                      reorderOffloadSupport;
+#endif
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

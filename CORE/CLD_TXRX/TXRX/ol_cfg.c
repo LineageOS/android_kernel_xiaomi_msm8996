@@ -38,7 +38,8 @@ EXPORT_SYMBOL(vow_config);
  * Many of these should actually be determined dynamically instead.
  */
 
-ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev)
+ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev,
+                                   struct txrx_pdev_cfg_param_t cfg_param)
 {
 	struct txrx_pdev_cfg_t *cfg_ctx;
 
@@ -77,6 +78,7 @@ ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev)
 	cfg_ctx->throttle_period_ms = 40;
 	cfg_ctx->rx_fwd_disabled = 0;
 	cfg_ctx->is_packet_log_enabled = 0;
+	cfg_ctx->is_full_reorder_offload = cfg_param.is_full_reorder_offload;
 
 	return (ol_pdev_handle) cfg_ctx;
 }
@@ -204,4 +206,10 @@ int ol_cfg_throttle_period_ms(ol_pdev_handle pdev)
 {
 	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
 	return cfg->throttle_period_ms;
+}
+
+int ol_cfg_is_full_reorder_offload(ol_pdev_handle pdev)
+{
+	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
+	return cfg->is_full_reorder_offload;
 }

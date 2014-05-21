@@ -65,9 +65,10 @@
  * 2.1 Enable msdu_ext/frag_desc banking change for WIFI2.0
  *----
  * 3.0 Remove HTT_H2T_MSG_TYPE_MGMT_TX messages
+ * 3.1 Added HTT_T2H_MSG_TYPE_RX_IN_ORD_PADDR_IND message
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
-#define HTT_CURRENT_VERSION_MINOR 0
+#define HTT_CURRENT_VERSION_MINOR 1
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -1200,6 +1201,7 @@ enum htt_t2h_msg_type {
     HTT_T2H_MSG_TYPE_TX_CREDIT_UPDATE_IND   = 0xf,
     HTT_T2H_MSG_TYPE_RX_PN_IND              = 0x10,
     HTT_T2H_MSG_TYPE_RX_OFFLOAD_DELIVER_IND = 0x11,
+    HTT_T2H_MSG_TYPE_RX_IN_ORD_PADDR_IND = 0x12,
     HTT_T2H_MSG_TYPE_TEST,
     /* keep this last */
     HTT_T2H_NUM_MSGS
@@ -1429,6 +1431,132 @@ PREPACK struct htt_rx_ind_hdr_t
  */
 #define HTT_RX_IND_FW_RX_DESC_BYTE_OFFSET HTT_RX_IND_HDR_BYTES
 
+/*@brief - target -> host HTT Rx In order indication message
+ *
+ * @details
+ *
+ * |31            24|23                 |15|14|13|12|11|10|9|8|7|6|5|4       0|
+ * |----------------+-------------------+---------------------+---------------|
+ * |                  peer ID           |     | O| ext TID    |   msg type    |
+ * |--------------------------------------------------------------------------|
+ * |                  MSDU count        |        Reserved     |   vdev id     |
+ * |--------------------------------------------------------------------------|
+ * |                        MSDU 0 Bus address                                |
+ * |--------------------------------------------------------------------------|
+ * |     Reserved   | MSDU 0 FW Desc    |         MSDU 0 Length               |
+ * |--------------------------------------------------------------------------|
+ * |                        MSDU 1 Bus address                                |
+ * |--------------------------------------------------------------------------|
+ * |     Reserved   | MSDU 1 FW Desc    |         MSDU 1 Length               |
+ * |--------------------------------------------------------------------------|
+ */
+
+struct htt_rx_in_ord_paddr_ind_hdr_t
+{
+    A_UINT32 /* word 0 */
+        msg_type:   8,
+        ext_tid:    5,
+        reserved_0: 3,
+        peer_id:    16;
+
+    A_UINT32 /* word 1 */
+        vap_id:     8,
+        reserved_1: 8,
+        msdu_cnt:   16;
+};
+
+struct htt_rx_in_ord_paddr_ind_msdu_t
+{
+    A_UINT32 dma_addr;
+    A_UINT32
+        length: 16,
+        fw_desc: 8,
+        reserved_1:8;
+};
+
+#define HTT_RX_IN_ORD_PADDR_IND_HDR_BYTES (sizeof(struct htt_rx_in_ord_paddr_ind_hdr_t))
+#define HTT_RX_IN_ORD_PADDR_IND_HDR_DWORDS (HTT_RX_IN_ORD_PADDR_IND_HDR_BYTES >> 2)
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_BYTE_OFFSET  HTT_RX_IN_ORD_PADDR_IND_HDR_BYTES
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_DWORD_OFFSET HTT_RX_IN_ORD_PADDR_IND_HDR_DWORDS
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_BYTES (sizeof(struct htt_rx_in_ord_paddr_ind_msdu_t))
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_DWORDS (HTT_RX_IN_ORD_PADDR_IND_MSDU_BYTES >> 2)
+
+#define HTT_RX_IN_ORD_PADDR_IND_EXT_TID_M      0x1f00
+#define HTT_RX_IN_ORD_PADDR_IND_EXT_TID_S      8
+#define HTT_RX_IN_ORD_PADDR_IND_PEER_ID_M      0xffff0000
+#define HTT_RX_IN_ORD_PADDR_IND_PEER_ID_S      16
+#define HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_M      0x2000
+#define HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_S      13
+#define HTT_RX_IN_ORD_PADDR_IND_VAP_ID_M       0xff
+#define HTT_RX_IN_ORD_PADDR_IND_VAP_ID_S       0
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_M     0xffff0000
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_S     16
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_M        0xffffffff
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_S        0
+#define HTT_RX_IN_ORD_PADDR_IND_FW_DESC_M      0x00ff0000
+#define HTT_RX_IN_ORD_PADDR_IND_FW_DESC_S      16
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_M     0x0000ffff
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_S     0
+
+#define HTT_RX_IN_ORD_PADDR_IND_EXT_TID_SET(word, value)                              \
+    do {                                                                        \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_EXT_TID, value);                    \
+        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_EXT_TID_S;                      \
+    } while (0)
+#define HTT_RX_IN_ORD_PADDR_IND_EXT_TID_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_EXT_TID_M) >> HTT_RX_IN_ORD_PADDR_IND_EXT_TID_S)
+
+#define HTT_RX_IN_ORD_PADDR_IND_PEER_ID_SET(word, value)                              \
+    do {                                                                        \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_PEER_ID, value);                    \
+        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_PEER_ID_S;                      \
+    } while (0)
+#define HTT_RX_IN_ORD_PADDR_IND_PEER_ID_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_PEER_ID_M) >> HTT_RX_IN_ORD_PADDR_IND_PEER_ID_S)
+
+#define HTT_RX_IN_ORD_PADDR_IND_VAP_ID_SET(word, value)                              \
+    do {                                                                       \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_VAP_ID, value);                    \
+        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_VAP_ID_S;                      \
+    } while (0)
+#define HTT_RX_IN_ORD_PADDR_IND_VAP_ID_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_VAP_ID_M) >> HTT_RX_IN_ORD_PADDR_IND_VAP_ID_S)
+
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_SET(word, value)                              \
+    do {                                                                        \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT, value);                    \
+        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_S;                      \
+    } while (0)
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_M) >> HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_S)
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_SET(word, value)                              \
+    do {                                                                        \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_PADDR, value);                    \
+        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_PADDR_S;                      \
+    } while (0)
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_PADDR_M) >> HTT_RX_IN_ORD_PADDR_IND_PADDR_S)
+#define HTT_RX_IN_ORD_PADDR_IND_FW_DESC_SET(word, value)                              \
+    do {                                                                       \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_FW_DESC, value);                    \
+        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_FW_DESC_S;                      \
+    } while (0)
+#define HTT_RX_IN_ORD_PADDR_IND_FW_DESC_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_FW_DESC_M) >> HTT_RX_IN_ORD_PADDR_IND_FW_DESC_S)
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_SET(word, value)                              \
+    do {                                                                         \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN, value);                    \
+        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_S;                      \
+    } while (0)
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_M) >> HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_S)
+#define HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_SET(word, value)                              \
+    do {                                                                        \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_IND_OFFLOAD, value);                    \
+        (word) |= (value)  << HTT_RX_IN_ORD_IND_OFFLOAD_S;                      \
+    } while (0)
+#define HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_M) >> HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_S)
 
 /**
  * @brief target -> host rx indication message definition

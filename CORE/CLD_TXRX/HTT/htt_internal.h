@@ -394,4 +394,11 @@ htt_htc_misc_pkt_pool_free(struct htt_pdev_t *pdev);
 
 void htt_htc_disable_aspm(void);
 
+int
+htt_rx_hash_list_insert(struct htt_pdev_t *pdev, u_int32_t paddr,
+     adf_nbuf_t netbuf);
+
+adf_nbuf_t
+htt_rx_hash_list_lookup(struct htt_pdev_t *pdev, u_int32_t paddr);
+
 #endif /* _HTT_INTERNAL__H_ */

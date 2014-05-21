@@ -466,37 +466,42 @@ ol_txrx_pdev_attach(
      * configuration, since the PN check needs to be done prior to
      * the rx->tx forwarding.
      */
-    if (ol_cfg_rx_pn_check(pdev->ctrl_pdev)) {
-        if (ol_cfg_rx_fwd_disabled(pdev->ctrl_pdev)) {
-            /*
-             * PN check done on host, rx->tx forwarding not done at all.
-             */
-            pdev->rx_opt_proc = ol_rx_pn_check_only;
-        } else if (ol_cfg_rx_fwd_check(pdev->ctrl_pdev)) {
-            /*
-             * Both PN check and rx->tx forwarding done on host.
-             */
-            pdev->rx_opt_proc = ol_rx_pn_check;
-        } else {
-            adf_os_print(
-                "%s: invalid config: if rx PN check is on the host,"
-                "rx->tx forwarding check needs to also be on the host.\n",
-                __func__);
-            goto fail5;
-        }
+    if (ol_cfg_is_full_reorder_offload(pdev->ctrl_pdev)) {
+        /* PN check, rx-tx forwarding and rx reorder is done by the target */
+        pdev->rx_opt_proc = ol_rx_in_order_deliver;
     } else {
-        /* PN check done on target */
-        if ((!ol_cfg_rx_fwd_disabled(pdev->ctrl_pdev)) &&
-            ol_cfg_rx_fwd_check(pdev->ctrl_pdev))
-        {
-            /*
-             * rx->tx forwarding done on host (possibly as
-             * back-up for target-side primary rx->tx forwarding)
-             */
-            pdev->rx_opt_proc = ol_rx_fwd_check;
+        if (ol_cfg_rx_pn_check(pdev->ctrl_pdev)) {
+            if (ol_cfg_rx_fwd_disabled(pdev->ctrl_pdev)) {
+                /*
+                 * PN check done on host, rx->tx forwarding not done at all.
+                 */
+                pdev->rx_opt_proc = ol_rx_pn_check_only;
+            } else if (ol_cfg_rx_fwd_check(pdev->ctrl_pdev)) {
+                /*
+                 * Both PN check and rx->tx forwarding done on host.
+                 */
+                pdev->rx_opt_proc = ol_rx_pn_check;
+            } else {
+                adf_os_print(
+                    "%s: invalid config: if rx PN check is on the host,"
+                    "rx->tx forwarding check needs to also be on the host.\n",
+                    __func__);
+                goto fail5;
+            }
         } else {
-            /* rx->tx forwarding either done in target, or not done at all */
-            pdev->rx_opt_proc = ol_rx_deliver;
+            /* PN check done on target */
+            if ((!ol_cfg_rx_fwd_disabled(pdev->ctrl_pdev)) &&
+                ol_cfg_rx_fwd_check(pdev->ctrl_pdev))
+            {
+                /*
+                 * rx->tx forwarding done on host (possibly as
+                 * back-up for target-side primary rx->tx forwarding)
+                 */
+                pdev->rx_opt_proc = ol_rx_fwd_check;
+            } else {
+                /* rx->tx forwarding either done in target, or not done at all */
+                pdev->rx_opt_proc = ol_rx_deliver;
+            }
         }
     }
 

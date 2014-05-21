@@ -3637,6 +3637,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_DFS_RADAR_PRI_MULTIPLIER_MIN,
                 CFG_DFS_RADAR_PRI_MULTIPLIER_MAX),
 
+#if !defined(QCA_WIFI_ISOC)
+   REG_VARIABLE( CFG_REORDER_OFFLOAD_SUPPORT_NAME, WLAN_PARAM_Integer,
+                        hdd_config_t, reorderOffloadSupport,
+                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                        CFG_REORDER_OFFLOAD_SUPPORT_DEFAULT,
+                        CFG_REORDER_OFFLOAD_SUPPORT_MIN,
+                        CFG_REORDER_OFFLOAD_SUPPORT_MAX ),
+#endif
 };
 
 #ifdef WLAN_FEATURE_MBSSID

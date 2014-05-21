@@ -870,6 +870,10 @@ ol_txrx_peer_stats_copy(
 #define ol_txrx_peer_stats_copy(pdev, peer, stats) A_ERROR /* failure */
 #endif /* QCA_ENABLE_OL_TXRX_PEER_STATS */
 
+/* Config parameters for txrx_pdev */
+struct txrx_pdev_cfg_param_t {
+	u_int8_t is_full_reorder_offload;
+};
 /**
  * @brief Setup configuration parameters
  * @details
@@ -878,7 +882,8 @@ ol_txrx_peer_stats_copy(
  * @param osdev - OS handle needed as an argument for some OS primitives
  * @return the control device object
  */
-ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev);
+ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev,
+                                   struct txrx_pdev_cfg_param_t cfg_param);
 
 #define OL_TXRX_INVALID_LOCAL_PEER_ID 0xffff
 #ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID

@@ -3709,6 +3709,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	v_VOID_t *wmi_handle;
 	VOS_STATUS vos_status;
 	struct ol_softc *scn;
+	struct txrx_pdev_cfg_param_t olCfg = {0};
 
 	WMA_LOGD("%s: Enter", __func__);
 
@@ -3760,8 +3761,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_set_default_tgt_config(wma_handle);
 
 	/* Allocate cfg handle */
+	olCfg.is_full_reorder_offload = mac_params->reorderOffload;
 	((pVosContextType) vos_context)->cfg_ctx =
-		ol_pdev_cfg_attach(((pVosContextType) vos_context)->adf_ctx);
+		ol_pdev_cfg_attach(((pVosContextType) vos_context)->adf_ctx, olCfg);
 	if (!(((pVosContextType) vos_context)->cfg_ctx)) {
 		WMA_LOGP("%s: failed to init cfg handle", __func__);
 		vos_status = VOS_STATUS_E_NOMEM;

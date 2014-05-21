@@ -599,4 +599,32 @@ u_int8_t
 ol_txrx_peer_qoscapable_get(struct ol_txrx_pdev_t * txrx_pdev,
     u_int16_t peer_id);
 
+/**
+ * @brief Process an rx indication message sent by the target.
+ * @details
+ *  The target sends a rx indication message to the host as a
+ *  notification that there are new rx frames available for the
+ *  host to process.
+ *  The HTT host layer locates the rx descriptors and rx frames
+ *  associated with the indication, and calls this function to
+ *  invoke the rx data processing on the new frames.
+ *  All MPDUs referenced by a rx indication message belong to the
+ *  same peer-TID. The frames indicated have been re-ordered by
+ *  the target.
+ *
+ * @param pdev - the data physical device that received the frames
+ *      (registered with HTT as a context pointer during attach time)
+ * @param rx_ind_msg - the network buffer holding the rx indication message
+ * @param peer_id - which peer sent this rx data
+ * @param tid - what (extended) traffic type the rx data is
+ * @param is_offload - is this an offload indication?
+ */
+void
+ol_rx_in_order_indication_handler(
+    ol_txrx_pdev_handle pdev,
+    adf_nbuf_t rx_ind_msg,
+    u_int16_t peer_id,
+    u_int8_t tid,
+    u_int8_t is_offload );
+
 #endif /* _OL_TXRX_HTT_API__H_ */

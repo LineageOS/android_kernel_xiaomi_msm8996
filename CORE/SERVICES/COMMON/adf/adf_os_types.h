@@ -327,4 +327,6 @@ typedef struct _adf_drv_info{
     unsigned char              *ifname;
 }adf_drv_info_t;
 
+#define adf_os_offsetof(type, field)   ((unsigned int)(&((type *)0)->field))
+
 #endif

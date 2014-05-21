@@ -69,6 +69,7 @@ struct txrx_pdev_cfg_t {
 	enum wlan_frm_fmt frame_type;
 	u8 rx_fwd_disabled;
 	u8 is_packet_log_enabled;
+	u8 is_full_reorder_offload;
 };
 
 /**
@@ -336,6 +337,19 @@ int ol_cfg_rx_host_defrag_timeout_duplicate_check(ol_pdev_handle pdev);
  * @return the total throttle period in ms
  */
 int ol_cfg_throttle_period_ms(ol_pdev_handle pdev);
+
+/**
+ * brief Check whether full reorder offload is
+ * enabled/disable by the host
+ * @details
+ *   If the host does not support receive reorder (i.e. the
+ *   target performs full receive re-ordering) this will return
+ *   "enabled"
+ *
+ * @param pdev - handle to the physical device
+ * @return 1 - enable, 0 - disable
+ */
+int ol_cfg_is_full_reorder_offload(ol_pdev_handle pdev);
 
 typedef enum {
    wlan_frm_tran_cap_raw = 0x01,
