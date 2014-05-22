@@ -982,18 +982,49 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
             if (psessionEntry->limMlmState != eLIM_MLM_WT_AUTH_FRAME2_STATE)
             {
+#ifdef WLAN_FEATURE_VOWIFI_11R
                 /**
-                 * Received Authentication frame2 in an unexpected state.
-                 * Log error and ignore the frame.
+                 * Check if a Reassociation is in progress and this is a
+                 * Pre-Auth frame
                  */
+                if (((psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
+                     (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)) &&
+                    (psessionEntry->limSmeState == eLIM_SME_WT_REASSOC_STATE) &&
+                    (pRxAuthFrameBody->authStatusCode == eSIR_MAC_SUCCESS_STATUS) &&
+                    (pMac->ft.ftPEContext.pFTPreAuthReq != NULL) &&
+                    (vos_mem_compare(pMac->ft.ftPEContext.pFTPreAuthReq->preAuthbssId,
+                                     pHdr->sa, sizeof(tSirMacAddr))))
+                {
+                    // Update the FTIEs in the saved auth response
+                    PELOGW(limLog(pMac, LOGW, FL("received another PreAuth frame2"
+                           " from peer " MAC_ADDRESS_STR" in Smestate %d"),
+                           MAC_ADDR_ARRAY(pHdr->sa), psessionEntry->limSmeState);)
 
-                // Log error
-                PELOG1(limLog(pMac, LOG1,
-                       FL("received Auth frame2 from peer in state %d, addr "),
-                       psessionEntry->limMlmState);)
-                PELOG1(limPrintMacAddr(pMac, pHdr->sa, LOG1);)
+                    pMac->ft.ftPEContext.saved_auth_rsp_length = 0;
+                    if ((pBody != NULL) && (frameLen < MAX_FTIE_SIZE))
+                    {
+                        vos_mem_copy(pMac->ft.ftPEContext.saved_auth_rsp,
+                                     pBody, frameLen);
+                        pMac->ft.ftPEContext.saved_auth_rsp_length = frameLen;
+                    }
+                }
+                else
+#endif
+                {
+                    /**
+                     * Received Authentication frame2 in an unexpected state.
+                     * Log error and ignore the frame.
+                     */
+
+                    // Log error
+                    PELOG1(limLog(pMac, LOG1,
+                           FL("received Auth frame2 from peer in state %d, addr "),
+                           psessionEntry->limMlmState);)
+                    PELOG1(limPrintMacAddr(pMac, pHdr->sa, LOG1);)
+                }
 
                 return;
+
             }
 
             if ( !vos_mem_compare((tANI_U8 *) pHdr->sa,
