@@ -131,6 +131,22 @@ ol_tx_desc_pool_size_hl(ol_pdev_handle ctrl_pdev)
     return desc_pool_size;
 }
 #ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID
+ol_txrx_peer_handle
+ol_txrx_find_peer_by_addr_and_vdev(ol_txrx_pdev_handle pdev,
+                                   ol_txrx_vdev_handle vdev,
+                                   u_int8_t *peer_addr,
+                                   u_int8_t *peer_id)
+{
+    struct ol_txrx_peer_t *peer;
+
+    peer = ol_txrx_peer_vdev_find_hash(pdev, vdev, peer_addr, 0, 1);
+    if (!peer)
+        return NULL;
+    *peer_id = peer->local_id;
+    adf_os_atomic_dec(&peer->ref_cnt);
+    return peer;
+}
+
 ol_txrx_peer_handle ol_txrx_find_peer_by_addr(ol_txrx_pdev_handle pdev,
 					 u_int8_t *peer_addr,
 					 u_int8_t *peer_id)

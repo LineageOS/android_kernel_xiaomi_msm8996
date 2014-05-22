@@ -9399,8 +9399,10 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		goto send_rsp;
 	}
 
-	peer = ol_txrx_find_peer_by_addr(pdev, add_sta->staMac,
-					 &peer_id);
+	peer = ol_txrx_find_peer_by_addr_and_vdev(pdev,
+                                                  vdev,
+                                                  add_sta->staMac,
+				                  &peer_id);
 	if (peer) {
 		wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
 		WMA_LOGE("%s: Peer already exists, Deleted peer with peer_addr %pM",
@@ -9416,8 +9418,10 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		goto send_rsp;
 	}
 
-	peer = ol_txrx_find_peer_by_addr(pdev, add_sta->staMac,
-					 &peer_id);
+	peer = ol_txrx_find_peer_by_addr_and_vdev(pdev,
+                                                  vdev,
+                                                  add_sta->staMac,
+                                                  &peer_id);
 	if (!peer) {
 		WMA_LOGE("%s: Failed to find peer handle using peer mac %pM",
 			 __func__, add_sta->staMac);
