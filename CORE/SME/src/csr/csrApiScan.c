@@ -5097,7 +5097,9 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
     }while(0);
     if ( eSIR_SME_MORE_SCAN_RESULTS_FOLLOW != pScanRsp->statusCode )
     {
-        smsLog(pMac, LOG1, " Scan received %d unique BSS scan reason is %d", csrLLCount(&pMac->scan.tempScanResults), pCommand->u.scanCmd.reason);
+        smsLog(pMac, LOGE, "Found %d BSS",
+                           csrLLCount(&pMac->scan.tempScanResults));
+        smsLog(pMac, LOG1, "scan reason is %d", pCommand->u.scanCmd.reason);
         fRemoveCommand = csrScanComplete( pMac, pScanRsp );
         fRet = eANI_BOOLEAN_TRUE;
     }//if ( eSIR_SME_MORE_SCAN_RESULTS_FOLLOW != pScanRsp->statusCode )

@@ -5572,6 +5572,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     v_U8_t* pP2pIe = NULL;
 
     ENTER();
+    hddLog(VOS_TRACE_LEVEL_ERROR, "received scan request");
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_SCAN,
