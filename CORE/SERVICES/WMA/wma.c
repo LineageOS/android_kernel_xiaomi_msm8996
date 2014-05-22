@@ -13537,7 +13537,9 @@ static VOS_STATUS wma_send_wow_patterns_to_fw(tp_wma_handle wma,
 		     WMI_TLV_HDR_SIZE +
 		     0 * sizeof(WOW_MAGIC_PATTERN_CMD) +
 		     WMI_TLV_HDR_SIZE +
-		     0 * sizeof(A_UINT32);
+		     0 * sizeof(A_UINT32) +
+		     WMI_TLV_HDR_SIZE +
+		     1 * sizeof(A_UINT32);
 
 	buf = wmi_buf_alloc(wma->wmi_handle, len);
 	if (!buf) {
@@ -13614,6 +13616,11 @@ static VOS_STATUS wma_send_wow_patterns_to_fw(tp_wma_handle wma,
 	/* Fill TLV for pattern_info_timeout but no data. */
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32, 0);
 	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Fill TLV for ra_ratelimit_interval with dummy data as this fix elem*/
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32, 1 * sizeof(A_UINT32));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	*(A_UINT32 *)buf_ptr = 0;
 
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				   WMI_WOW_ADD_WAKE_PATTERN_CMDID);
