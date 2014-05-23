@@ -3055,19 +3055,21 @@ typedef struct
    v_U32_t                     pmfSaQueryRetryInterval;
 #endif
 } hdd_config_t;
-/*---------------------------------------------------------------------------
-  Function declarations and documenation
-  -------------------------------------------------------------------------*/
-VOS_STATUS hdd_parse_config_ini(hdd_context_t *pHddCtx);
-VOS_STATUS hdd_update_mac_config(hdd_context_t *pHddCtx);
-VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx );
-VOS_STATUS hdd_set_sme_chan_list(hdd_context_t *hdd_ctx);
-v_BOOL_t hdd_update_config_dat ( hdd_context_t *pHddCtx );
-VOS_STATUS hdd_cfg_get_config(hdd_context_t *pHddCtx, char *pBuf, int buflen);
-eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode );
-VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command);
-tANI_BOOLEAN hdd_is_okc_mode_enabled(hdd_context_t *pHddCtx);
-VOS_STATUS hdd_set_idle_ps_config(hdd_context_t *pHddCtx, v_U32_t val);
+
+#ifdef WLAN_FEATURE_MBSSID
+typedef struct mbssid_sap_dyn_ini_config {
+   /* ACS Parameters */
+   v_U8_t        apStartChannelNum;
+   v_U8_t        apEndChannelNum;
+   v_U8_t        apOperatingBand;
+   v_BOOL_t      apAutoChannelSelection;
+   char          acsAllowedChnls[CFG_MAX_STR_LEN];
+   v_U8_t        acsScanBandPreference;
+   v_U16_t       acsBandSwitchThreshold;
+   /* SAP HW Mode*/
+   eHddDot11Mode sapDot11Mode;
+} mbssid_sap_dyn_ini_config_t;
+#endif
 
 #define VAR_OFFSET( _Struct, _Var ) (offsetof(_Struct, _Var))
 #define VAR_SIZE( _Struct, _Var ) (sizeof(((_Struct *)0)->_Var))
@@ -3166,6 +3168,30 @@ static __inline unsigned long utilMin( unsigned long a, unsigned long b )
   return( ( a < b ) ? a : b );
 }
 
+/*---------------------------------------------------------------------------
+  Function declarations and documenation
+  -------------------------------------------------------------------------*/
+VOS_STATUS hdd_parse_config_ini(hdd_context_t *pHddCtx);
+VOS_STATUS hdd_update_mac_config(hdd_context_t *pHddCtx);
+VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx );
+VOS_STATUS hdd_set_sme_chan_list(hdd_context_t *hdd_ctx);
+v_BOOL_t hdd_update_config_dat ( hdd_context_t *pHddCtx );
+VOS_STATUS hdd_cfg_get_global_config(hdd_context_t *pHddCtx, char *pBuf,
+                                                                    int buflen);
+#ifdef WLAN_FEATURE_MBSSID
+VOS_STATUS hdd_cfg_get_sap_dyn_config(hdd_adapter_t *pAdapter, char *pBuf,
+                                                                    int buflen);
+#endif
+eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode );
+VOS_STATUS hdd_execute_global_config_command(hdd_context_t *pHddCtx,
+                                                                 char *command);
+#ifdef WLAN_FEATURE_MBSSID
+VOS_STATUS hdd_execute_sap_dyn_config_command(hdd_adapter_t *pAdapter,
+                                                                 char *command);
+#endif
+tANI_BOOLEAN hdd_is_okc_mode_enabled(hdd_context_t *pHddCtx);
+VOS_STATUS hdd_set_idle_ps_config(hdd_context_t *pHddCtx, v_U32_t val);
+
 #if defined (QCA_WIFI_2_0) && \
    !defined (QCA_WIFI_ISOC)
 void hdd_update_tgt_cfg(void *context, void *param);
@@ -3174,5 +3200,7 @@ void hdd_dfs_indicate_radar(void *context, void *param);
 
 VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,
                tANI_U8 intArrayMaxLen );
-
+#ifdef WLAN_FEATURE_MBSSID
+v_VOID_t hdd_mbssid_apply_def_cfg_ini(hdd_adapter_t *pAdapter);
+#endif
 #endif

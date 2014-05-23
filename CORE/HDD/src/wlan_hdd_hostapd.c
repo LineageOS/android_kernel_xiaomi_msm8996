@@ -96,6 +96,7 @@ extern int process_wma_set_command(int sessid, int paramid,
 #include "wlan_hdd_trace.h"
 #include "vos_types.h"
 #include "vos_trace.h"
+#include "wlan_hdd_cfg.h"
 
 #define    IS_UP(_dev) \
     (((_dev)->flags & (IFF_RUNNING|IFF_UP)) == (IFF_RUNNING|IFF_UP))
@@ -1447,7 +1448,15 @@ static iw_softap_set_ini_cfg(struct net_device *dev,
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
               "%s: Received data %s", __func__, extra);
 
-    vstatus = hdd_execute_config_command(pHddCtx, extra);
+    vstatus = hdd_execute_global_config_command(pHddCtx, extra);
+#ifdef WLAN_FEATURE_MBSSID
+    if (vstatus == VOS_STATUS_E_PERM) {
+        vstatus = hdd_execute_sap_dyn_config_command(pAdapter, extra);
+        if (vstatus == VOS_STATUS_SUCCESS)
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                   "%s: Stored in Dynamic SAP ini config", __func__);
+    }
+#endif
     if (VOS_STATUS_SUCCESS != vstatus)
     {
         ret = -EINVAL;
@@ -1481,7 +1490,15 @@ static iw_softap_get_ini_cfg(struct net_device *dev,
         return ret;
     }
 
-    hdd_cfg_get_config(pHddCtx, extra, QCSAP_IOCTL_MAX_STR_LEN);
+#ifdef WLAN_FEATURE_MBSSID
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                   "%s: Printing Adapter MBSSID SAP Dyn INI Config", __func__);
+    hdd_cfg_get_sap_dyn_config(pAdapter, extra, QCSAP_IOCTL_MAX_STR_LEN);
+    /* Overwrite extra buffer with global ini config if need to return in buf */
+#endif
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                   "%s: Printing CLD global INI Config", __func__);
+    hdd_cfg_get_global_config(pHddCtx, extra, QCSAP_IOCTL_MAX_STR_LEN);
     wrqu->data.length = strlen(extra)+1;
 
     return 0;
@@ -1567,7 +1584,13 @@ static iw_softap_setparam(struct net_device *dev,
             }
             else
             {
-                (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apAutoChannelSelection = set_value;
+#ifdef WLAN_FEATURE_MBSSID
+                pHostapdAdapter->sap_dyn_ini_cfg.apAutoChannelSelection =
+                                                                      set_value;
+#else
+                (WLAN_HDD_GET_CTX
+                (pHostapdAdapter))->cfg_ini->apAutoChannelSelection = set_value;
+#endif
             }
             break;
 
@@ -2242,7 +2265,12 @@ static iw_softap_getparam(struct net_device *dev,
 
     case QCSAP_PARAM_AUTO_CHANNEL:
         {
-            *value = (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apAutoChannelSelection;
+#ifdef WLAN_FEATURE_MBSSID
+            *value = pHostapdAdapter->sap_dyn_ini_cfg.apAutoChannelSelection;
+#else
+            *value = (WLAN_HDD_GET_CTX
+                      (pHostapdAdapter))->cfg_ini->apAutoChannelSelection;
+#endif
              break;
         }
 

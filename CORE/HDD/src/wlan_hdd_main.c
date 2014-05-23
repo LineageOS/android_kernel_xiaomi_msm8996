@@ -8402,6 +8402,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
    if( VOS_STATUS_SUCCESS == status )
    {
+#ifdef WLAN_FEATURE_MBSSID
+      hdd_mbssid_apply_def_cfg_ini(pAdapter);
+#endif
       //Add it to the hdd's session list.
       pHddAdapterNode = vos_mem_malloc( sizeof( hdd_adapter_list_node_t ) );
       if( NULL == pHddAdapterNode )
