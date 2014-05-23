@@ -44,6 +44,7 @@
 #include "wma_api.h"
 #include "wma.h"
 #include "macTrace.h"
+#include "vos_api.h"
 #if defined(HIF_PCI)
 #include "if_pci.h"
 #elif defined(HIF_USB)
@@ -66,17 +67,17 @@ struct wmi_event_debug wmi_event_log_buffer[WMI_EVENT_DEBUG_MAX_ENTRY];
 	wmi_command_log_buffer[g_wmi_command_buf_idx].command = a;	\
 	adf_os_mem_copy(wmi_command_log_buffer[g_wmi_command_buf_idx].data, b , 16);\
 	wmi_command_log_buffer[g_wmi_command_buf_idx].time =		\
-		 adf_os_ticks_to_msecs(adf_os_ticks());			\
+		vos_get_monotonic_boottime();				\
 	g_wmi_command_buf_idx++;					\
 }
 
-#define WMI_EVENT_RECORD(a, b) {						\
+#define WMI_EVENT_RECORD(a, b) {					\
 	if (WMI_EVENT_DEBUG_MAX_ENTRY <= g_wmi_event_buf_idx)		\
 		g_wmi_event_buf_idx = 0;				\
 	wmi_event_log_buffer[g_wmi_event_buf_idx].event = a;		\
 	adf_os_mem_copy(wmi_event_log_buffer[g_wmi_event_buf_idx].data, b , 16);\
 	wmi_event_log_buffer[g_wmi_event_buf_idx].time =		\
-		adf_os_ticks_to_msecs(adf_os_ticks());			\
+		vos_get_monotonic_boottime();				\
 	g_wmi_event_buf_idx++;						\
 }
 

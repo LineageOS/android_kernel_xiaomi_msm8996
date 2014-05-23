@@ -2590,3 +2590,15 @@ v_BOOL_t vos_is_packet_log_enabled(void)
 
    return pHddCtx->cfg_ini->enablePacketLog;
 }
+
+v_U64_t vos_get_monotonic_boottime(void)
+{
+#ifdef CONFIG_CNSS
+   struct timespec ts;
+
+   cnss_get_monotonic_boottime(&ts);
+   return (((v_U64_t)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000));
+#else
+   return adf_os_ticks_to_msecs(adf_os_ticks());
+#endif
+}
