@@ -1689,10 +1689,10 @@ static iw_softap_setparam(struct net_device *dev,
 #ifdef DEBUG
          case QCSAP_FW_CRASH_INJECT:
              {
-                  hddLog(LOGE, "WE_FW_CRASH_INJECT");
+                  hddLog(LOGE, "WE_FW_CRASH_INJECT %d", set_value);
                   ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
                                                 (int)GEN_PARAM_CRASH_INJECT,
-                                                0, GEN_CMD);
+                                                set_value, GEN_CMD);
                   break;
              }
 #endif

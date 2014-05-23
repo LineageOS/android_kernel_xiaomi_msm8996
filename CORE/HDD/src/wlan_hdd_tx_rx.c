@@ -2008,6 +2008,7 @@ void hdd_tx_rx_pkt_cnt_stat_timer_handler( void *phddctx)
     hdd_station_ctx_t *pHddStaCtx = NULL;
     hdd_context_t *pHddCtx = (hdd_context_t *)phddctx;
     hdd_config_t  *cfg_param = pHddCtx->cfg_ini;
+    tpAniSirGlobal pMac = PMAC_STRUCT(phddctx->hHal);
     VOS_STATUS status;
     v_U8_t staId = 0;
     v_U8_t fconnected = 0;
@@ -2080,7 +2081,7 @@ void hdd_tx_rx_pkt_cnt_stat_timer_handler( void *phddctx)
                                        cfg_param->txRxThresholdForSplitScan) ||
                     (pAdapter->hdd_stats.hddTxRxStats.pkt_rx_count >
                                        cfg_param->txRxThresholdForSplitScan) ||
-                    pHddCtx->drvr_miracast)
+                    pMac->fMiracastSessionPresent)
                 {
                     pAdapter->hdd_stats.hddTxRxStats.pkt_tx_count = 0;
                     pAdapter->hdd_stats.hddTxRxStats.pkt_rx_count = 0;

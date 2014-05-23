@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -72,10 +72,10 @@
 #include <adf_os_time.h>      /* adf_os_time */
 
 
-#define	DEFRAG_IEEE80211_ADDR_EQ(a1, a2) \
+#define DEFRAG_IEEE80211_ADDR_EQ(a1, a2) \
     (adf_os_mem_cmp(a1, a2, IEEE80211_ADDR_LEN) == 0)
 
-#define	DEFRAG_IEEE80211_ADDR_COPY(dst, src) \
+#define DEFRAG_IEEE80211_ADDR_COPY(dst, src) \
     adf_os_mem_copy(dst, src, IEEE80211_ADDR_LEN)
 
 #define DEFRAG_IEEE80211_QOS_HAS_SEQ(wh) \
@@ -99,6 +99,90 @@ const struct ol_rx_defrag_cipher f_tkip  = {
     IEEE80211_WEP_CRCLEN,
     IEEE80211_WEP_MICLEN,
 };
+
+const struct ol_rx_defrag_cipher f_wep  = {
+    "WEP",
+    IEEE80211_WEP_IVLEN + IEEE80211_WEP_KIDLEN,
+    IEEE80211_WEP_CRCLEN,
+    0,
+};
+
+#if defined(CONFIG_HL_SUPPORT)
+static inline struct ieee80211_frame *OL_RX_FRAG_GET_MAC_HDR(
+                                    htt_pdev_handle htt_pdev, adf_nbuf_t frag)
+{
+    void *rx_desc;
+    int rx_desc_len;
+
+    rx_desc = htt_rx_msdu_desc_retrieve(htt_pdev, frag);
+    rx_desc_len = htt_rx_msdu_rx_desc_size_hl(htt_pdev, rx_desc);
+    return (struct ieee80211_frame *) (adf_nbuf_data(frag) + rx_desc_len);
+}
+static inline void OL_RX_FRAG_PULL_HDR(htt_pdev_handle htt_pdev,
+                                       adf_nbuf_t frag, int hdrsize)
+{
+    void *rx_desc;
+    int rx_desc_len;
+
+    rx_desc = htt_rx_msdu_desc_retrieve(htt_pdev, frag);
+    rx_desc_len = htt_rx_msdu_rx_desc_size_hl(htt_pdev, rx_desc);
+    adf_nbuf_pull_head(frag, rx_desc_len + hdrsize);
+}
+#define OL_RX_FRAG_CLONE(frag) \
+    adf_nbuf_clone(frag)
+#else
+#define OL_RX_FRAG_GET_MAC_HDR(pdev, frag) \
+    (struct ieee80211_frame *) adf_nbuf_data(frag)
+#define OL_RX_FRAG_PULL_HDR(pdev, frag, hdrsize) \
+    adf_nbuf_pull_head(frag, hdrsize);
+#define OL_RX_FRAG_CLONE(frag) NULL/* no-op */
+#endif /* CONFIG_HL_SUPPORT */
+
+static inline void
+ol_rx_frag_desc_adjust(
+    ol_txrx_pdev_handle pdev,
+    adf_nbuf_t msdu,
+    void **rx_desc_old_position,
+    void **ind_old_position,
+    int *rx_desc_len)
+{
+    if (pdev->cfg.is_high_latency) {
+        *rx_desc_old_position = htt_rx_msdu_desc_retrieve(pdev->htt_pdev, msdu);
+        *ind_old_position = *rx_desc_old_position - HTT_RX_IND_HL_BYTES;
+        *rx_desc_len = htt_rx_msdu_rx_desc_size_hl(pdev->htt_pdev,
+                       *rx_desc_old_position);
+    } else {
+        *rx_desc_old_position = NULL;
+        *ind_old_position = NULL;
+        *rx_desc_len = 0;
+    }
+}
+
+static inline void
+ol_rx_frag_restructure(
+    ol_txrx_pdev_handle pdev,
+    adf_nbuf_t msdu,
+    void *rx_desc_old_position,
+    void *ind_old_position,
+    const struct ol_rx_defrag_cipher *f_type,
+    int rx_desc_len)
+{
+    if (pdev->cfg.is_high_latency) {
+        if ((ind_old_position == NULL) || (rx_desc_old_position == NULL)) {
+            printk(KERN_ERR "ind_old_position,rx_desc_old_position is NULL\n");
+            ASSERT(0);
+            return;
+        }
+        /* move rx description*/
+        adf_os_mem_move(rx_desc_old_position + f_type->ic_header,
+                        rx_desc_old_position, rx_desc_len);
+        /* move rx indication*/
+        adf_os_mem_move(ind_old_position + f_type->ic_header, ind_old_position,
+                        HTT_RX_IND_HL_BYTES);
+    } else {
+        /* no op */
+    }
+}
 
 /*
  * Process incoming fragments
@@ -130,7 +214,7 @@ ol_rx_frag_indication_handler(
          ol_rx_reorder_flush_frag(htt_pdev, peer, tid, seq_num_start);
     }
     if (peer) {
-        htt_rx_amsdu_pop(htt_pdev, rx_frag_ind_msg, &head_msdu, &tail_msdu);
+        htt_rx_frag_pop(htt_pdev, rx_frag_ind_msg, &head_msdu, &tail_msdu);
         adf_os_assert(head_msdu == tail_msdu);
         rx_mpdu_desc = htt_rx_mpdu_desc_list_next(htt_pdev, rx_frag_ind_msg);
         seq_num = htt_rx_mpdu_desc_seq_num(htt_pdev, rx_mpdu_desc);
@@ -138,7 +222,7 @@ ol_rx_frag_indication_handler(
         ol_rx_reorder_store_frag(pdev, peer, tid, seq_num, head_msdu);
     } else {
         /* invalid frame - discard it */
-        htt_rx_amsdu_pop(htt_pdev, rx_frag_ind_msg, &head_msdu, &tail_msdu);
+        htt_rx_frag_pop(htt_pdev, rx_frag_ind_msg, &head_msdu, &tail_msdu);
         htt_rx_mpdu_desc_list_next(htt_pdev, rx_frag_ind_msg);
         htt_rx_desc_frame_free(htt_pdev, head_msdu);
     }
@@ -189,7 +273,7 @@ ol_rx_reorder_store_frag(
     adf_os_assert(seq == 0);
     rx_reorder_array_elem = &peer->tids_rx_reorder[tid].array[seq];
 
-    mac_hdr = (struct ieee80211_frame *) adf_nbuf_data(frag);
+    mac_hdr = (struct ieee80211_frame *)OL_RX_FRAG_GET_MAC_HDR(htt_pdev, frag);
     rxseq = adf_os_le16_to_cpu(*(u_int16_t *) mac_hdr->i_seq) >>
         IEEE80211_SEQ_SEQ_SHIFT;
     fragno = adf_os_le16_to_cpu(*(u_int16_t *) mac_hdr->i_seq) &
@@ -206,8 +290,8 @@ ol_rx_reorder_store_frag(
         return;
     }
     if (rx_reorder_array_elem->head) {
-        fmac_hdr = (struct ieee80211_frame *)
-            adf_nbuf_data(rx_reorder_array_elem->head);
+        fmac_hdr = (struct ieee80211_frame *)OL_RX_FRAG_GET_MAC_HDR(htt_pdev,
+                                                rx_reorder_array_elem->head);
         frxseq = adf_os_le16_to_cpu(*(u_int16_t *) fmac_hdr->i_seq) >>
             IEEE80211_SEQ_SEQ_SHIFT;
         if (rxseq != frxseq ||
@@ -222,6 +306,7 @@ ol_rx_reorder_store_frag(
                 (rxseq == frxseq) ? "address" : "seq number");
         }
     }
+
     ol_rx_fraglist_insert(htt_pdev, &rx_reorder_array_elem->head,
         &rx_reorder_array_elem->tail, frag, &all_frag_present);
 
@@ -258,9 +343,13 @@ ol_rx_fraglist_insert(
     struct ieee80211_frame *mac_hdr, *cmac_hdr, *next_hdr, *lmac_hdr;
     u_int8_t fragno, cur_fragno, lfragno, next_fragno;
     u_int8_t last_morefrag = 1, count = 0;
+    adf_nbuf_t frag_clone;
 
     adf_os_assert(frag);
-    mac_hdr = (struct ieee80211_frame *) adf_nbuf_data(frag);
+    frag_clone = OL_RX_FRAG_CLONE(frag);
+    frag = frag_clone ? frag_clone : frag;
+
+    mac_hdr = (struct ieee80211_frame *) OL_RX_FRAG_GET_MAC_HDR(htt_pdev, frag);
     fragno = adf_os_le16_to_cpu(*(u_int16_t *) mac_hdr->i_seq) &
         IEEE80211_SEQ_FRAG_MASK;
 
@@ -271,7 +360,8 @@ ol_rx_fraglist_insert(
         return;
     }
     /* For efficiency, compare with tail first */
-    lmac_hdr = (struct ieee80211_frame *) adf_nbuf_data(*tail_addr);
+    lmac_hdr = (struct ieee80211_frame *) OL_RX_FRAG_GET_MAC_HDR(htt_pdev,
+                                                                *tail_addr);
     lfragno = adf_os_le16_to_cpu(*(u_int16_t *) lmac_hdr->i_seq) &
         IEEE80211_SEQ_FRAG_MASK;
     if (fragno > lfragno) {
@@ -280,7 +370,8 @@ ol_rx_fraglist_insert(
         adf_nbuf_set_next(*tail_addr, NULL);
     } else {
         do {
-            cmac_hdr = (struct ieee80211_frame *) adf_nbuf_data(cur);
+            cmac_hdr = (struct ieee80211_frame *) OL_RX_FRAG_GET_MAC_HDR(
+                                                                htt_pdev, cur);
             cur_fragno = adf_os_le16_to_cpu(*(u_int16_t *) cmac_hdr->i_seq) &
                 IEEE80211_SEQ_FRAG_MASK;
             prev = cur;
@@ -297,11 +388,13 @@ ol_rx_fraglist_insert(
         }
     }
     next = adf_nbuf_next(*head_addr);
-    lmac_hdr = (struct ieee80211_frame *) adf_nbuf_data(*tail_addr);
+    lmac_hdr = (struct ieee80211_frame *) OL_RX_FRAG_GET_MAC_HDR(htt_pdev,
+                                                                *tail_addr);
     last_morefrag = lmac_hdr->i_fc[1] & IEEE80211_FC1_MORE_FRAG;
     if (!last_morefrag) {
         do {
-            next_hdr = (struct ieee80211_frame *) adf_nbuf_data(next);
+            next_hdr = (struct ieee80211_frame *) OL_RX_FRAG_GET_MAC_HDR(
+                                                                htt_pdev, next);
             next_fragno = adf_os_le16_to_cpu(*(u_int16_t *) next_hdr->i_seq) &
                 IEEE80211_SEQ_FRAG_MASK;
             count++;
@@ -438,7 +531,7 @@ ol_rx_defrag(
         cur = tmp_next;
     }
     cur = frag_list;
-    wh = (struct ieee80211_frame *) adf_nbuf_data(cur);
+    wh = (struct ieee80211_frame *) OL_RX_FRAG_GET_MAC_HDR(htt_pdev, cur);
     hdr_space = ol_rx_frag_hdrsize(wh);
     rx_desc = htt_rx_msdu_desc_retrieve(htt_pdev, frag_list);
     adf_os_assert(htt_rx_msdu_has_wlan_mcast_flag(htt_pdev, rx_desc));
@@ -452,7 +545,7 @@ ol_rx_defrag(
     case htt_sec_type_tkip_nomic:
         while (cur) {
             tmp_next = adf_nbuf_next(cur);
-            if (!ol_rx_frag_tkip_decap(cur, hdr_space)) {
+            if (!ol_rx_frag_tkip_decap(pdev, cur, hdr_space)) {
                 /* TKIP decap failed, discard frags */
                 ol_rx_frames_free(htt_pdev, frag_list);
                 TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
@@ -466,18 +559,34 @@ ol_rx_defrag(
     case htt_sec_type_aes_ccmp:
         while (cur) {
             tmp_next = adf_nbuf_next(cur);
-            if (!ol_rx_frag_ccmp_demic(cur, hdr_space)) {
+            if (!ol_rx_frag_ccmp_demic(pdev, cur, hdr_space)) {
                 /* CCMP demic failed, discard frags */
                 ol_rx_frames_free(htt_pdev, frag_list);
                 TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
                     "\n ol_rx_defrag: CCMP demic failed\n");
                 return;
             }
-            if (!ol_rx_frag_ccmp_decap(cur, hdr_space)) {
+            if (!ol_rx_frag_ccmp_decap(pdev, cur, hdr_space)) {
                 /* CCMP decap failed, discard frags */
                 ol_rx_frames_free(htt_pdev, frag_list);
                 TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
                     "\n ol_rx_defrag: CCMP decap failed\n");
+                return;
+            }
+            cur = tmp_next;
+        }
+        break;
+
+    case htt_sec_type_wep40:
+    case htt_sec_type_wep104:
+    case htt_sec_type_wep128:
+        while (cur) {
+            tmp_next = adf_nbuf_next(cur);
+            if (!ol_rx_frag_wep_decap(pdev, cur, hdr_space)) {
+                /* wep decap failed, discard frags */
+                ol_rx_frames_free(htt_pdev, frag_list);
+                TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                           "\n ol_rx_defrag: wep decap failed\n");
                 return;
             }
             cur = tmp_next;
@@ -498,7 +607,7 @@ ol_rx_defrag(
             key,
             peer->security[index].michael_key,
             sizeof(peer->security[index].michael_key));
-        if (!ol_rx_frag_tkip_demic(key, msdu, hdr_space)) {
+        if (!ol_rx_frag_tkip_demic(pdev, key, msdu, hdr_space)) {
             htt_rx_desc_frame_free(htt_pdev, msdu);
             ol_rx_err(
                 pdev->ctrl_pdev,
@@ -509,12 +618,12 @@ ol_rx_defrag(
             return;
         }
     }
-    wh = (struct ieee80211_frame *)adf_nbuf_data(msdu);
+    wh = (struct ieee80211_frame *)OL_RX_FRAG_GET_MAC_HDR(htt_pdev, msdu);
     if (DEFRAG_IEEE80211_QOS_HAS_SEQ(wh)) {
-        ol_rx_defrag_qos_decap(msdu, hdr_space);
+        ol_rx_defrag_qos_decap(pdev, msdu, hdr_space);
     }
     if (ol_cfg_frame_type(pdev->ctrl_pdev) == wlan_frm_fmt_802_3) {
-       ol_rx_defrag_nwifi_to_8023(msdu);
+        ol_rx_defrag_nwifi_to_8023(pdev, msdu);
     }
     ol_rx_fwd_check(vdev, peer, tid, msdu);
 }
@@ -523,20 +632,77 @@ ol_rx_defrag(
  * Handling TKIP processing for defragmentation
  */
 int
-ol_rx_frag_tkip_decap(adf_nbuf_t msdu, u_int16_t hdrlen)
+ol_rx_frag_tkip_decap(
+    ol_txrx_pdev_handle pdev,
+    adf_nbuf_t msdu,
+    u_int16_t hdrlen)
 {
     u_int8_t *ivp, *origHdr;
 
+    void *rx_desc_old_position = NULL;
+    void *ind_old_position = NULL;
+    int rx_desc_len = 0;
+
+    ol_rx_frag_desc_adjust(
+        pdev,
+        msdu,
+        &rx_desc_old_position,
+        &ind_old_position,
+        &rx_desc_len);
     /* Header should have extended IV */
-    origHdr = (u_int8_t*) adf_nbuf_data(msdu);
+    origHdr = (u_int8_t*) (adf_nbuf_data(msdu) + rx_desc_len);
+
     ivp = origHdr + hdrlen;
     if (!(ivp[IEEE80211_WEP_IVLEN] & IEEE80211_WEP_EXTIV)) {
         return OL_RX_DEFRAG_ERR;
     }
     adf_os_mem_move(origHdr + f_tkip.ic_header, origHdr, hdrlen);
+
+    ol_rx_frag_restructure(
+        pdev,
+        msdu,
+        rx_desc_old_position,
+        ind_old_position,
+        &f_tkip,
+        rx_desc_len);
+
     adf_nbuf_pull_head(msdu, f_tkip.ic_header);
     adf_nbuf_trim_tail(msdu, f_tkip.ic_trailer);
+    return OL_RX_DEFRAG_OK;
+}
 
+/*
+ * Handling WEP processing for defragmentation
+ */
+int
+ol_rx_frag_wep_decap(
+    ol_txrx_pdev_handle pdev,
+    adf_nbuf_t msdu,
+    u_int16_t hdrlen)
+{
+    u_int8_t *origHdr;
+    void *rx_desc_old_position = NULL;
+    void *ind_old_position = NULL;
+    int rx_desc_len = 0;
+
+    ol_rx_frag_desc_adjust(
+        pdev,
+        msdu,
+        &rx_desc_old_position,
+        &ind_old_position,
+        &rx_desc_len);
+    origHdr = (u_int8_t*) (adf_nbuf_data(msdu) + rx_desc_len);
+    adf_os_mem_move(origHdr + f_wep.ic_header, origHdr, hdrlen);
+
+    ol_rx_frag_restructure(
+        pdev,
+        msdu,
+        rx_desc_old_position,
+        ind_old_position,
+        &f_wep,
+        rx_desc_len);
+    adf_nbuf_pull_head(msdu, f_wep.ic_header);
+    adf_nbuf_trim_tail(msdu, f_wep.ic_trailer);
     return OL_RX_DEFRAG_OK;
 }
 
@@ -544,26 +710,38 @@ ol_rx_frag_tkip_decap(adf_nbuf_t msdu, u_int16_t hdrlen)
  * Verify and strip MIC from the frame.
  */
 int
-ol_rx_frag_tkip_demic(const u_int8_t *key, adf_nbuf_t msdu, u_int16_t hdrlen)
+ol_rx_frag_tkip_demic(ol_txrx_pdev_handle pdev, const u_int8_t *key,
+                            adf_nbuf_t msdu, u_int16_t hdrlen)
 {
     int status;
     u_int32_t pktlen;
     u_int8_t mic[IEEE80211_WEP_MICLEN];
     u_int8_t mic0[IEEE80211_WEP_MICLEN];
+    void *rx_desc_old_position = NULL;
+    void *ind_old_position = NULL;
+    int rx_desc_len = 0;
 
-    pktlen = ol_rx_defrag_len(msdu);
-    status = ol_rx_defrag_mic(
-        key, msdu, hdrlen, pktlen - (hdrlen + f_tkip.ic_miclen), mic);
+    ol_rx_frag_desc_adjust(
+        pdev,
+        msdu,
+        &rx_desc_old_position,
+        &ind_old_position,
+        &rx_desc_len);
+
+    pktlen = ol_rx_defrag_len(msdu) - rx_desc_len;
+
+    status = ol_rx_defrag_mic(pdev, key, msdu, hdrlen,
+                              pktlen - (hdrlen + f_tkip.ic_miclen), mic);
     if (status != OL_RX_DEFRAG_OK) {
         return OL_RX_DEFRAG_ERR;
     }
     ol_rx_defrag_copydata(
-        msdu, pktlen - f_tkip.ic_miclen, f_tkip.ic_miclen, (caddr_t) mic0);
+        msdu, pktlen - f_tkip.ic_miclen + rx_desc_len, f_tkip.ic_miclen,
+        (caddr_t) mic0);
     if (adf_os_mem_cmp(mic, mic0, f_tkip.ic_miclen)) {
         return OL_RX_DEFRAG_ERR;
     }
     adf_nbuf_trim_tail(msdu, f_tkip.ic_miclen);
-
     return OL_RX_DEFRAG_OK;
 }
 
@@ -572,17 +750,37 @@ ol_rx_frag_tkip_demic(const u_int8_t *key, adf_nbuf_t msdu, u_int16_t hdrlen)
  */
 int
 ol_rx_frag_ccmp_decap(
+    ol_txrx_pdev_handle pdev,
     adf_nbuf_t nbuf,
     u_int16_t hdrlen)
 {
     u_int8_t *ivp, *origHdr;
+    void *rx_desc_old_position = NULL;
+    void *ind_old_position = NULL;
+    int rx_desc_len = 0;
 
-    origHdr = (u_int8_t *) adf_nbuf_data(nbuf);
+    ol_rx_frag_desc_adjust(
+        pdev,
+        nbuf,
+        &rx_desc_old_position,
+        &ind_old_position,
+        &rx_desc_len);
+
+    origHdr = (u_int8_t *) (adf_nbuf_data(nbuf) + rx_desc_len);
     ivp = origHdr + hdrlen;
     if (!(ivp[IEEE80211_WEP_IVLEN] & IEEE80211_WEP_EXTIV)) {
         return OL_RX_DEFRAG_ERR;
     }
     adf_os_mem_move(origHdr + f_ccmp.ic_header, origHdr, hdrlen);
+
+    ol_rx_frag_restructure(
+        pdev,
+        nbuf,
+        rx_desc_old_position,
+        ind_old_position,
+        &f_ccmp,
+        rx_desc_len);
+
     adf_nbuf_pull_head(nbuf, f_ccmp.ic_header);
 
     return OL_RX_DEFRAG_OK;
@@ -593,12 +791,24 @@ ol_rx_frag_ccmp_decap(
  */
 int
 ol_rx_frag_ccmp_demic(
+    ol_txrx_pdev_handle pdev,
     adf_nbuf_t wbuf,
     u_int16_t hdrlen)
 {
     u_int8_t *ivp, *origHdr;
+    void *rx_desc_old_position = NULL;
+    void *ind_old_position = NULL;
+    int rx_desc_len = 0;
 
-    origHdr = (u_int8_t *) adf_nbuf_data(wbuf);
+    ol_rx_frag_desc_adjust(
+        pdev,
+        wbuf,
+        &rx_desc_old_position,
+        &ind_old_position,
+        &rx_desc_len);
+
+    origHdr = (u_int8_t *) (adf_nbuf_data(wbuf) + rx_desc_len);
+
     ivp = origHdr + hdrlen;
     if (!(ivp[IEEE80211_WEP_IVLEN] & IEEE80211_WEP_EXTIV)) {
         return OL_RX_DEFRAG_ERR;
@@ -657,6 +867,7 @@ ol_rx_defrag_michdr(
  */
 int
 ol_rx_defrag_mic(
+    ol_txrx_pdev_handle pdev,
     const u_int8_t *key,
     adf_nbuf_t wbuf,
     u_int16_t off,
@@ -667,8 +878,20 @@ ol_rx_defrag_mic(
     u_int32_t l, r;
     const u_int8_t *data;
     u_int32_t space;
+    void *rx_desc_old_position = NULL;
+    void *ind_old_position = NULL;
+    int rx_desc_len = 0;
+    htt_pdev_handle htt_pdev = pdev->htt_pdev;
 
-    ol_rx_defrag_michdr((struct ieee80211_frame *) adf_nbuf_data(wbuf), hdr);
+    ol_rx_frag_desc_adjust(
+        pdev,
+        wbuf,
+        &rx_desc_old_position,
+        &ind_old_position,
+        &rx_desc_len);
+
+    ol_rx_defrag_michdr((struct ieee80211_frame *) (adf_nbuf_data(wbuf) +
+                                                     rx_desc_len), hdr);
     l = get_le32(key);
     r = get_le32(key + 4);
 
@@ -683,8 +906,8 @@ ol_rx_defrag_mic(
     michael_block(l, r);
 
     /* first buffer has special handling */
-    data = (u_int8_t *)adf_nbuf_data(wbuf) + off;
-    space = ol_rx_defrag_len(wbuf) - off;
+    data = (u_int8_t *)adf_nbuf_data(wbuf) + rx_desc_len + off;
+    space = ol_rx_defrag_len(wbuf) - rx_desc_len - off;
     for (;;) {
         if (space > data_len) {
             space = data_len;
@@ -704,34 +927,42 @@ ol_rx_defrag_mic(
         if (wbuf == NULL) {
             return OL_RX_DEFRAG_ERR;
         }
+        if (pdev->cfg.is_high_latency) {
+            rx_desc_old_position = htt_rx_msdu_desc_retrieve(htt_pdev, wbuf);
+            rx_desc_len = htt_rx_msdu_rx_desc_size_hl(htt_pdev,
+                          rx_desc_old_position);
+        } else {
+            rx_desc_len = 0;
+        }
         if (space != 0) {
             const u_int8_t *data_next;
             /*
              * Block straddles buffers, split references.
              */
-            data_next = (u_int8_t *)adf_nbuf_data(wbuf);
-            if (ol_rx_defrag_len(wbuf) < sizeof(u_int32_t) - space) {
+            data_next = (u_int8_t *)adf_nbuf_data(wbuf) + rx_desc_len;
+            if ((ol_rx_defrag_len(wbuf) - rx_desc_len) <
+                  sizeof(u_int32_t) - space) {
                 return OL_RX_DEFRAG_ERR;
             }
             switch (space) {
-            case 1:
-                l ^= get_le32_split(
-                    data[0], data_next[0], data_next[1], data_next[2]);
-                data = data_next + 3;
-                space = ol_rx_defrag_len(wbuf) - 3;
-                break;
-            case 2:
-                l ^= get_le32_split(
-                    data[0], data[1], data_next[0], data_next[1]);
-                data = data_next + 2;
-                space = ol_rx_defrag_len(wbuf) - 2;
-                break;
-            case 3:
-                l ^= get_le32_split(
-                    data[0], data[1], data[2], data_next[0]);
-                data = data_next + 1;
-                space = ol_rx_defrag_len(wbuf) - 1;
-                break;
+                case 1:
+                    l ^= get_le32_split(
+                         data[0], data_next[0], data_next[1], data_next[2]);
+                    data = data_next + 3;
+                    space = (ol_rx_defrag_len(wbuf) - rx_desc_len) - 3;
+                    break;
+                case 2:
+                    l ^= get_le32_split(
+                             data[0], data[1], data_next[0], data_next[1]);
+                    data = data_next + 2;
+                    space = (ol_rx_defrag_len(wbuf) - rx_desc_len) - 2;
+                    break;
+                case 3:
+                    l ^= get_le32_split(
+                             data[0], data[1], data[2], data_next[0]);
+                    data = data_next + 1;
+                    space = (ol_rx_defrag_len(wbuf) - rx_desc_len) - 1;
+                    break;
             }
             michael_block(l, r);
             data_len -= sizeof(u_int32_t);
@@ -739,24 +970,24 @@ ol_rx_defrag_mic(
             /*
              * Setup for next buffer.
              */
-            data = (u_int8_t*) adf_nbuf_data(wbuf);
-            space = ol_rx_defrag_len(wbuf);
+            data = (u_int8_t*) adf_nbuf_data(wbuf) + rx_desc_len;
+            space = ol_rx_defrag_len(wbuf) - rx_desc_len;
         }
     }
     /* Last block and padding (0x5a, 4..7 x 0) */
     switch (data_len) {
-    case 0:
-        l ^= get_le32_split(0x5a, 0, 0, 0);
-        break;
-    case 1:
-        l ^= get_le32_split(data[0], 0x5a, 0, 0);
-        break;
-    case 2:
-        l ^= get_le32_split(data[0], data[1], 0x5a, 0);
-        break;
-    case 3:
-        l ^= get_le32_split(data[0], data[1], data[2], 0x5a);
-        break;
+        case 0:
+            l ^= get_le32_split(0x5a, 0, 0, 0);
+            break;
+        case 1:
+            l ^= get_le32_split(data[0], 0x5a, 0, 0);
+            break;
+        case 2:
+            l ^= get_le32_split(data[0], data[1], 0x5a, 0);
+            break;
+        case 3:
+            l ^= get_le32_split(data[0], data[1], data[2], 0x5a);
+            break;
     }
     michael_block(l, r);
     michael_block(l, r);
@@ -807,7 +1038,7 @@ ol_rx_defrag_decap_recombine(
         htt_rx_msdu_desc_free(htt_pdev, msdu);
         tmp = adf_nbuf_next(msdu);
         adf_nbuf_set_next(msdu, NULL);
-        adf_nbuf_pull_head(msdu, hdrsize);
+        OL_RX_FRAG_PULL_HDR(htt_pdev, msdu, hdrsize);
         if (!ol_rx_defrag_concat(rx_nbuf, msdu)) {
             ol_rx_frames_free(htt_pdev, tmp);
             htt_rx_desc_frame_free(htt_pdev, rx_nbuf);
@@ -816,7 +1047,7 @@ ol_rx_defrag_decap_recombine(
         }
         msdu = tmp;
     }
-    wh = (struct ieee80211_frame *) adf_nbuf_data(rx_nbuf);
+    wh = (struct ieee80211_frame *)OL_RX_FRAG_GET_MAC_HDR(htt_pdev, rx_nbuf);
     wh->i_fc[1] &= ~IEEE80211_FC1_MORE_FRAG;
     *(u_int16_t *) wh->i_seq &= ~IEEE80211_SEQ_FRAG_MASK;
 
@@ -824,46 +1055,64 @@ ol_rx_defrag_decap_recombine(
 }
 
 void
-ol_rx_defrag_nwifi_to_8023(adf_nbuf_t msdu)
+ol_rx_defrag_nwifi_to_8023(ol_txrx_pdev_handle pdev, adf_nbuf_t msdu)
 {
     struct ieee80211_frame wh;
     a_uint32_t hdrsize;
     struct llc_snap_hdr_t llchdr;
     struct ethernet_hdr_t *eth_hdr;
+    void *rx_desc_old_position = NULL;
+    void *ind_old_position = NULL;
+    int rx_desc_len = 0;
+    struct ieee80211_frame *wh_ptr;
 
-    adf_os_mem_copy(&wh, adf_nbuf_data(msdu), sizeof(wh));
+    ol_rx_frag_desc_adjust(
+        pdev,
+        msdu,
+        &rx_desc_old_position,
+        &ind_old_position,
+        &rx_desc_len);
 
-    /* Native Wifi header is 80211 non-QoS header */
+    wh_ptr = (struct ieee80211_frame *) (adf_nbuf_data(msdu) + rx_desc_len);
+    adf_os_mem_copy(&wh, wh_ptr, sizeof(wh));
     hdrsize = sizeof(struct ieee80211_frame);
-
-    adf_os_mem_copy(&llchdr, ((a_uint8_t *) adf_nbuf_data(msdu)) + hdrsize,
-        sizeof(struct llc_snap_hdr_t));
+    adf_os_mem_copy(&llchdr, ((a_uint8_t *) (adf_nbuf_data(msdu) +
+                    rx_desc_len)) + hdrsize, sizeof(struct llc_snap_hdr_t));
 
     /*
      * Now move the data pointer to the beginning of the mac header :
      * new-header = old-hdr + (wifhdrsize + llchdrsize - ethhdrsize)
      */
-    adf_nbuf_pull_head(msdu, (hdrsize +
-        sizeof(struct llc_snap_hdr_t) - sizeof(struct ethernet_hdr_t)));
+    adf_nbuf_pull_head(msdu, (rx_desc_len + hdrsize +
+                sizeof(struct llc_snap_hdr_t) - sizeof(struct ethernet_hdr_t)));
     eth_hdr = (struct ethernet_hdr_t *)(adf_nbuf_data(msdu));
     switch (wh.i_fc[1] & IEEE80211_FC1_DIR_MASK) {
-    case IEEE80211_FC1_DIR_NODS:
-        adf_os_mem_copy(eth_hdr->dest_addr, wh.i_addr1, IEEE80211_ADDR_LEN);
-        adf_os_mem_copy(eth_hdr->src_addr, wh.i_addr2, IEEE80211_ADDR_LEN);
-        break;
-    case IEEE80211_FC1_DIR_TODS:
-        adf_os_mem_copy(eth_hdr->dest_addr, wh.i_addr3, IEEE80211_ADDR_LEN);
-        adf_os_mem_copy(eth_hdr->src_addr, wh.i_addr2, IEEE80211_ADDR_LEN);
-        break;
-    case IEEE80211_FC1_DIR_FROMDS:
-        adf_os_mem_copy(eth_hdr->dest_addr, wh.i_addr1, IEEE80211_ADDR_LEN);
-        adf_os_mem_copy(eth_hdr->src_addr, wh.i_addr3, IEEE80211_ADDR_LEN);
-        break;
-    case IEEE80211_FC1_DIR_DSTODS:
-        break;
+        case IEEE80211_FC1_DIR_NODS:
+            adf_os_mem_copy(eth_hdr->dest_addr, wh.i_addr1, IEEE80211_ADDR_LEN);
+            adf_os_mem_copy(eth_hdr->src_addr, wh.i_addr2, IEEE80211_ADDR_LEN);
+            break;
+        case IEEE80211_FC1_DIR_TODS:
+            adf_os_mem_copy(eth_hdr->dest_addr, wh.i_addr3, IEEE80211_ADDR_LEN);
+            adf_os_mem_copy(eth_hdr->src_addr, wh.i_addr2, IEEE80211_ADDR_LEN);
+            break;
+        case IEEE80211_FC1_DIR_FROMDS:
+            adf_os_mem_copy(eth_hdr->dest_addr, wh.i_addr1, IEEE80211_ADDR_LEN);
+            adf_os_mem_copy(eth_hdr->src_addr, wh.i_addr3, IEEE80211_ADDR_LEN);
+            break;
+        case IEEE80211_FC1_DIR_DSTODS:
+            break;
     }
+
     adf_os_mem_copy(
         eth_hdr->ethertype, llchdr.ethertype, sizeof(llchdr.ethertype));
+    if (pdev->cfg.is_high_latency) {
+        adf_nbuf_push_head(msdu, rx_desc_len);
+        adf_os_mem_move(
+            adf_nbuf_data(msdu), rx_desc_old_position, rx_desc_len);
+        adf_os_mem_move(
+            adf_nbuf_data(msdu) - HTT_RX_IND_HL_BYTES, ind_old_position,
+            HTT_RX_IND_HL_BYTES);
+    }
 }
 
 /*
@@ -871,13 +1120,24 @@ ol_rx_defrag_nwifi_to_8023(adf_nbuf_t msdu)
  */
 void
 ol_rx_defrag_qos_decap(
+    ol_txrx_pdev_handle pdev,
     adf_nbuf_t nbuf,
     u_int16_t hdrlen)
 {
     struct ieee80211_frame *wh;
     u_int16_t qoslen;
+    void *rx_desc_old_position = NULL;
+    void *ind_old_position = NULL;
+    int rx_desc_len = 0;
 
-    wh = (struct ieee80211_frame *) adf_nbuf_data(nbuf);
+    ol_rx_frag_desc_adjust(
+        pdev,
+        nbuf,
+        &rx_desc_old_position,
+        &ind_old_position,
+        &rx_desc_len);
+
+    wh = (struct ieee80211_frame *) (adf_nbuf_data(nbuf)+rx_desc_len);
     if (DEFRAG_IEEE80211_QOS_HAS_SEQ(wh)) {
         qoslen = sizeof(struct ieee80211_qoscntl);
         /* Qos frame with Order bit set indicates a HTC frame */
@@ -888,16 +1148,31 @@ ol_rx_defrag_qos_decap(
         /* remove QoS filed from header */
         hdrlen -= qoslen;
         adf_os_mem_move((u_int8_t *) wh + qoslen, wh, hdrlen);
-        wh = (struct ieee80211_frame *) adf_nbuf_pull_head(nbuf, qoslen);
+        wh = (struct ieee80211_frame *) adf_nbuf_pull_head(nbuf,
+                rx_desc_len + qoslen);
         /* clear QoS bit */
         /*
-         * KW# 6154 'adf_nbuf_pull_head' in turn calls __adf_nbuf_pull_head, which returns NULL if there is not sufficient data to pull.
-         *  It's guaranteed that adf_nbuf_pull_head will succeed rather than returning NULL, since the entire rx frame is already present in the rx buffer.
-         *  However, to make it obvious to static analyzers that this code is safe, add an explicit check that adf_nbuf_pull_head returns a non-NULL value.
-         *  Since this part of the code is not performance-critical, adding this explicit check is okay.
+         * KW# 6154 'adf_nbuf_pull_head' in turn calls __adf_nbuf_pull_head,
+         * which returns NULL if there is not sufficient data to pull.
+         * It's guaranteed that adf_nbuf_pull_head will succeed rather than
+         * returning NULL, since the entire rx frame is already present in the
+         * rx buffer.
+         * However, to make it obvious to static analyzers that this code is
+         * safe, add an explicit check that adf_nbuf_pull_head returns a
+         * non-NULL value.
+         * Since this part of the code is not performance-critical, adding this
+         * explicit check is okay.
          */
         if (wh) {
             wh->i_fc[0] &= ~IEEE80211_FC0_SUBTYPE_QOS;
+        }
+        if (pdev->cfg.is_high_latency) {
+            adf_nbuf_push_head(nbuf, rx_desc_len);
+            adf_os_mem_move(
+                adf_nbuf_data(nbuf), rx_desc_old_position, rx_desc_len);
+            adf_os_mem_move(
+                adf_nbuf_data(nbuf)-HTT_RX_IND_HL_BYTES, ind_old_position,
+                HTT_RX_IND_HL_BYTES);
         }
     }
 }

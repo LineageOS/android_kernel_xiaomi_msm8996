@@ -811,6 +811,14 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: vos_mem_alloc failed for tInfo", __func__);
+        vos_timer_destroy(&pHddTdlsCtx->peerDiscoveryTimeoutTimer);
+#ifndef QCA_WIFI_2_0
+        vos_timer_destroy(&pHddTdlsCtx->peerUpdateTimer);
+#endif
+#ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
+        vos_timer_destroy(&pHddTdlsCtx->peerDiscoverTimer);
+#endif
+        vos_mem_free(pHddTdlsCtx);
         return -1;
     }
 
@@ -854,6 +862,14 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     if (eHAL_STATUS_SUCCESS != halStatus)
     {
         vos_mem_free(tInfo);
+        vos_timer_destroy(&pHddTdlsCtx->peerDiscoveryTimeoutTimer);
+#ifndef QCA_WIFI_2_0
+        vos_timer_destroy(&pHddTdlsCtx->peerUpdateTimer);
+#endif
+#ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
+        vos_timer_destroy(&pHddTdlsCtx->peerDiscoverTimer);
+#endif
+        vos_mem_free(pHddTdlsCtx);
         return -1;
     }
 #endif

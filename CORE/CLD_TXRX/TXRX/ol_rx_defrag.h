@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -43,8 +43,8 @@
 
 struct ol_rx_defrag_cipher {
     const char *ic_name;
-    u_int16_t	ic_header;
-    u_int8_t	ic_trailer;
+    u_int16_t   ic_header;
+    u_int8_t    ic_trailer;
     u_int8_t    ic_miclen;
 };
 
@@ -91,30 +91,41 @@ ol_rx_defrag(
 
 int
 ol_rx_frag_tkip_decap(
+    ol_txrx_pdev_handle pdev,
     adf_nbuf_t msdu,
     u_int16_t hdrlen);
 
+int
+ol_rx_frag_wep_decap(
+    ol_txrx_pdev_handle pdev,
+    adf_nbuf_t nbuf,
+    u_int16_t hdrlen);
+
 void
-ol_rx_defrag_nwifi_to_8023(adf_nbuf_t msdu);
+ol_rx_defrag_nwifi_to_8023(ol_txrx_pdev_handle pdev, adf_nbuf_t msdu);
 
 void
 ol_rx_defrag_qos_decap(
+    ol_txrx_pdev_handle pdev,
     adf_nbuf_t nbuf,
     u_int16_t hdrlen);
 
 int
 ol_rx_frag_tkip_demic(
+    ol_txrx_pdev_handle pdev,
     const u_int8_t *key,
     adf_nbuf_t msdu,
     u_int16_t hdrlen);
 
 int
 ol_rx_frag_ccmp_decap(
+    ol_txrx_pdev_handle pdev,
     adf_nbuf_t nbuf,
     u_int16_t hdrlen);
 
 int
 ol_rx_frag_ccmp_demic(
+    ol_txrx_pdev_handle pdev,
     adf_nbuf_t wbuf,
     u_int16_t hdrlen);
 
@@ -142,6 +153,7 @@ ol_rx_defrag_decap_recombine(
 
 int
 ol_rx_defrag_mic(
+    ol_txrx_pdev_handle pdev,
     const u_int8_t *key,
     adf_nbuf_t wbuf,
     u_int16_t off,
@@ -236,16 +248,16 @@ ol_rx_defrag_concat(
     return OL_RX_DEFRAG_OK;
 }
 
-#define michael_block(l, r) \
-    do { \
-	r ^= rotl(l, 17); \
-	l += r;	\
-	r ^= xswap(l); \
-	l += r;	\
-	r ^= rotl(l, 3); \
-	l += r;	\
-	r ^= rotr(l, 2); \
-	l += r;	\
-    } while (0)
+#define michael_block(l, r)	\
+	do {					\
+		r ^= rotl(l, 17);	\
+		l += r;				\
+		r ^= xswap(l);		\
+		l += r;				\
+		r ^= rotl(l, 3);	\
+		l += r;				\
+		r ^= rotr(l, 2);	\
+		l += r;				\
+	} while (0)
 
 #endif

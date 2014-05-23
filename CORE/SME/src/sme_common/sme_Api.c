@@ -11488,6 +11488,7 @@ void activeListCmdTimeoutHandle(void *userData)
         "%s: Active List command timeout Cmd List Count %d", __func__,
         csrLLCount(&((tpAniSirGlobal) userData)->sme.smeCmdActiveList) );
     smeGetCommandQStatus((tHalHandle) userData);
+    VOS_BUG(0);
 }
 
 VOS_STATUS sme_notify_modem_power_state(tHalHandle hHal, tANI_U32 value)

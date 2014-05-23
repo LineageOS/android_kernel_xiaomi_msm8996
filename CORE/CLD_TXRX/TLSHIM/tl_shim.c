@@ -1918,11 +1918,11 @@ v_BOOL_t WLANTL_GetTxResource
 		return VOS_TRUE;
 	}
 
-	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	adf_os_spin_lock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 	if (!tl_shim->session_flow_control[sessionId].vdev) {
 		TLSHIM_LOGD("%s, session id %d, VDEV NULL",
                     __func__, sessionId);
-		adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+		adf_os_spin_unlock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 		return VOS_TRUE;
 	}
 
@@ -1930,7 +1930,7 @@ v_BOOL_t WLANTL_GetTxResource
 		(struct ol_txrx_vdev_t *)tl_shim->session_flow_control[sessionId].vdev,
 		low_watermark,
 		high_watermark_offset);
-	adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	adf_os_spin_unlock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 
 	return enough_resource;
 }
@@ -1973,7 +1973,7 @@ void WLANTL_TXFlowControlCb
 		return;
 	}
 
-	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	adf_os_spin_lock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 	if ((tl_shim->session_flow_control[sessionId].sessionId == sessionId) &&
 		(tl_shim->session_flow_control[sessionId].flowControl)) {
 		flow_control_cb = tl_shim->session_flow_control[sessionId].flowControl;
@@ -1983,7 +1983,7 @@ void WLANTL_TXFlowControlCb
 	if ((flow_control_cb) && (adpter_ctxt)) {
 		flow_control_cb(adpter_ctxt, resume_tx);
 	}
-	adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	adf_os_spin_unlock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 
 	return;
 }
@@ -2031,11 +2031,11 @@ void WLANTL_RegisterTXFlowControl
 		return;
 	}
 
-	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	adf_os_spin_lock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 	tl_shim->session_flow_control[sessionId].flowControl = flowControl;
 	tl_shim->session_flow_control[sessionId].sessionId = sessionId;
 	tl_shim->session_flow_control[sessionId].adpaterCtxt = adpaterCtxt;
-	adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	adf_os_spin_unlock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 
 	return;
 }
@@ -2078,12 +2078,12 @@ void WLANTL_DeRegisterTXFlowControl
                 return;
         }
 
-	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	adf_os_spin_lock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 	tl_shim->session_flow_control[sessionId].flowControl = NULL;
 	tl_shim->session_flow_control[sessionId].sessionId = 0xFF;
 	tl_shim->session_flow_control[sessionId].adpaterCtxt = NULL;
         tl_shim->session_flow_control[sessionId].vdev = NULL;
-	adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	adf_os_spin_unlock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 
 	return;
 }
@@ -2126,17 +2126,17 @@ void WLANTL_SetAdapterMaxQDepth
 		return;
 	}
 
-	adf_os_spin_lock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	adf_os_spin_lock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 	if (!tl_shim->session_flow_control[sessionId].vdev) {
 		TLSHIM_LOGD("%s, session id %d, VDEV NULL",
                     __func__, sessionId);
-		adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+		adf_os_spin_unlock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 		return;
 	}
 	wdi_in_ll_set_tx_pause_q_depth(
 		(struct ol_txrx_vdev_t *)tl_shim->session_flow_control[sessionId].vdev,
 		max_q_depth);
-	adf_os_spin_unlock(&tl_shim->session_flow_control[sessionId].fc_lock);
+	adf_os_spin_unlock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 
 	return;
 }

@@ -1802,7 +1802,8 @@ VOS_STATUS hdd_wlan_shutdown(void)
    }
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
-    pHddCtx->isLogpInProgress = TRUE;
+   pHddCtx->isLogpInProgress = TRUE;
+   vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 #endif
 
    //Stop the traffic monitor timer

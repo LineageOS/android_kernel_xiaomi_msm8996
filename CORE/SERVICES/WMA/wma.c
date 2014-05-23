@@ -4394,6 +4394,8 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	u_int8_t *buf_ptr;
 	int i;
 	int len = sizeof(*cmd);
+	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
+				wma_handle->vos_context);
 
 	len += WMI_TLV_HDR_SIZE; /* Length TLV placeholder for array of uint32 */
 	/* calculate the length of buffer required */
@@ -4501,11 +4503,15 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		case P2P_SCAN_TYPE_SEARCH:
 			WMA_LOGD("P2P_SCAN_TYPE_SEARCH");
 			cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
-			cmd->repeat_probe_time = scan_req->maxChannelTime/3;
 			/* Default P2P burst duration of 120 ms will cover
 			 * 3 channels with default max dwell time 40 ms.
 			 */
 			cmd->burst_duration = WMA_P2P_SCAN_MAX_BURST_DURATION;
+			if (scan_req->channelList.numChannels == P2P_SOCIAL_CHANNELS
+			 && (!IS_MIRACAST_SESSION_PRESENT(pMac)))
+				cmd->repeat_probe_time = scan_req->maxChannelTime/5;
+			else
+				cmd->repeat_probe_time = scan_req->maxChannelTime/3;
 			break;
 		default:
 			WMA_LOGE("Invalid scan type");
@@ -7079,6 +7085,25 @@ static int32_t wmi_unified_send_txbf(tp_wma_handle wma,
 			*((A_UINT8 *)&txbf_en)));
 }
 
+static void wma_update_txrx_chainmask(int num_rf_chains, int *cmd_value)
+{
+	if (*cmd_value > WMA_MAX_RF_CHAINS(num_rf_chains)) {
+		WMA_LOGE("%s: Chainmask value exceeds the maximum"
+				" supported range setting it to"
+				" maximum value. Requested value %d"
+				" Updated value %d", __func__, *cmd_value,
+				WMA_MAX_RF_CHAINS(num_rf_chains));
+		*cmd_value = WMA_MAX_RF_CHAINS(num_rf_chains);
+	} else if (*cmd_value < WMA_MIN_RF_CHAINS) {
+		WMA_LOGE("%s: Chainmask value is less than the minimum"
+				" supported range setting it to"
+				" minimum value. Requested value %d"
+				" Updated value %d", __func__, *cmd_value,
+				WMA_MIN_RF_CHAINS);
+		*cmd_value = WMA_MIN_RF_CHAINS;
+	}
+}
+
 static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 					   tSirNwType nw_type,
 					   tpAddStaParams params)
@@ -7393,6 +7418,12 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
                 }
 	}
 
+	/*
+	 * Limit nss to max number of rf chain supported by target
+	 * Otherwise Fw will crash
+	 */
+	wma_update_txrx_chainmask(wma->num_rf_chains, &cmd->peer_nss);
+
 	intr->nss = cmd->peer_nss;
         cmd->peer_phymode = phymode;
 
@@ -7600,7 +7631,7 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 	return ret;
 }
 
-static int wmi_crash_inject(wmi_unified_t wmi_handle)
+static int wmi_crash_inject(wmi_unified_t wmi_handle, u_int32_t delay_time_ms)
 {
 	int ret = 0;
 	WMI_FORCE_FW_HANG_CMD_fixed_param *cmd;
@@ -7618,7 +7649,7 @@ static int wmi_crash_inject(wmi_unified_t wmi_handle)
 		WMITLV_TAG_STRUC_WMI_FORCE_FW_HANG_CMD_fixed_param,
 		WMITLV_GET_STRUCT_TLVLEN(WMI_FORCE_FW_HANG_CMD_fixed_param));
 	cmd->type = 1;
-	cmd->delay_time_ms = 0;
+	cmd->delay_time_ms = delay_time_ms;
 
 	ret = wmi_unified_cmd_send(wmi_handle, buf, len, WMI_FORCE_FW_HANG_CMDID);
 	if (ret < 0) {
@@ -7735,25 +7766,6 @@ wmi_unified_vdev_set_gtx_cfg_send(wmi_unified_t wmi_handle, u_int32_t if_id,
 	return wmi_unified_cmd_send(wmi_handle, buf, len, WMI_VDEV_SET_GTX_PARAMS_CMDID);
 }
 
-void wma_update_txrx_chainmask(int num_rf_chains, int *cmd_value)
-{
-	if (*cmd_value > WMA_MAX_RF_CHAINS(num_rf_chains)) {
-		WMA_LOGE("%s: Chainmask value exceeds the maximum"
-				" supported range setting it to"
-				" maximum value. Requested value %d"
-				" Updated value %d", __func__, *cmd_value,
-				WMA_MAX_RF_CHAINS(num_rf_chains));
-		*cmd_value = WMA_MAX_RF_CHAINS(num_rf_chains);
-	} else if (*cmd_value < WMA_MIN_RF_CHAINS) {
-		WMA_LOGE("%s: Chainmask value is less than the minimum"
-				" supported range setting it to"
-				" minimum value. Requested value %d"
-				" Updated value %d", __func__, *cmd_value,
-				WMA_MIN_RF_CHAINS);
-		*cmd_value = WMA_MIN_RF_CHAINS;
-	}
-}
-
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					wda_cli_set_cmd_t *privcmd)
 {
@@ -7858,7 +7870,7 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			HTCDump(wma->htc_handle, WD_DUMP, false);
 			break;
 		case GEN_PARAM_CRASH_INJECT:
-			ret = wmi_crash_inject(wma->wmi_handle);
+			ret = wmi_crash_inject(wma->wmi_handle, privcmd->param_value);
 			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
@@ -11599,7 +11611,6 @@ static int32_t wma_set_qpower_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, 
 	struct sAniSirGlobal *mac =
 		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
 		wma->vos_context);
-	u_int32_t tx_wake_threshold = WMA_DEFAULT_QPOWER_TX_WAKE_THRESHOLD;
 	u_int32_t pspoll_count = WMA_DEFAULT_MAX_PSPOLL_BEFORE_WAKE;
 
 	WMA_LOGE("Set QPower Force(1)/Normal(0) Sleep vdevId %d val %d",
@@ -11618,11 +11629,6 @@ static int32_t wma_set_qpower_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, 
 	}
 	if (cfg_data_val) {
 		pspoll_count = (u_int32_t)cfg_data_val;
-	}
-
-	if (enable) {
-		/* override normal configuration and force station asleep */
-		tx_wake_threshold = WMI_STA_PS_TX_WAKE_THRESHOLD_NEVER;
 	}
 
 	/* Enable QPower */
@@ -11647,17 +11653,18 @@ static int32_t wma_set_qpower_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, 
 	WMA_LOGD("Wake policy set to to pspoll/uapsd vdevId %d",
 		vdev_id);
 
-	/* Set the Tx Wake Threshold */
-	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
-					WMI_STA_PS_PARAM_TX_WAKE_THRESHOLD,
-					tx_wake_threshold);
+	if (enable) {
+		/* Set the Tx Wake Threshold */
+		ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+						WMI_STA_PS_PARAM_TX_WAKE_THRESHOLD,
+						WMI_STA_PS_TX_WAKE_THRESHOLD_NEVER);
 
-	if (ret) {
-		WMA_LOGE("Setting TxWake Threshold vdevId %d", vdev_id);
-		return ret;
+		if (ret) {
+			WMA_LOGE("Setting TxWake Threshold vdevId %d", vdev_id);
+			return ret;
+		}
+		WMA_LOGD("TxWake Threshold set to TX_WAKE_THRESHOLD_NEVER %d", vdev_id);
 	}
-	WMA_LOGD("TxWake Threshold set to %d vdevId %d",
-		tx_wake_threshold, vdev_id);
 
 	/* Set the QPower Ps Poll Count */
 	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,

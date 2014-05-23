@@ -733,6 +733,14 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                     }
                 }
 #endif
+                /* Increase dwell time in case P2P Search and Miracast is not present*/
+                if(pScanRequest->p2pSearch &&
+                    pScanRequest->ChannelInfo.numOfChannels == P2P_SOCIAL_CHANNELS
+                    && (!IS_MIRACAST_SESSION_PRESENT(pMac)))
+                {
+                    pScanRequest->maxChnTime += P2P_SEARCH_DWELL_TIME_INCREASE;
+                }
+
                  /*For Standalone wlan : channel time will remain the same.
                    For BTC with A2DP up: Channel time = Channel time * 2, if station is not already associated.
                    This has been done to provide a larger scan window for faster connection during btc.Else Scan is seen

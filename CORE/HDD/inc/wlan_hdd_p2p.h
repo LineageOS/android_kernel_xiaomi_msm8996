@@ -50,6 +50,9 @@
 #define P2P_WILDCARD_SSID_LEN                    7
 #define P2P_WILDCARD_SSID                        "DIRECT-"
 
+#define P2P_ROC_DURATION_MULTIPLIER_GO_PRESENT   2
+#define P2P_ROC_DURATION_MULTIPLIER_GO_ABSENT    5
+
 #ifdef WLAN_FEATURE_11W
 #define WLAN_HDD_SET_WEP_FRM_FC(__fc__)     ( (__fc__) = ((__fc__) | 0x40))
 #endif //WLAN_FEATURE_11W

@@ -244,6 +244,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_EARLY_RX_DRIFT_SAMPLE          82
 /* Private ioctl for packet power save */
 #define WE_PPS_5G_EBT                         83
+#define WE_SET_FW_CRASH_INJECT                84
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -367,9 +368,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_DUMP_CHANINFO_START     13
 #define WE_DUMP_CHANINFO           14
 #define WE_DUMP_WATCHDOG           15
-#ifdef DEBUG
-#define WE_SET_FW_CRASH_INJECT     16
-#endif
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -5900,6 +5898,16 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                             set_value, VDEV_CMD);
             break;
        }
+#ifdef DEBUG
+        case WE_SET_FW_CRASH_INJECT:
+        {
+           hddLog(LOGE, "WE_FW_CRASH_INJECT: %d", set_value);
+           ret = process_wma_set_command((int) pAdapter->sessionId,
+                                         (int) GEN_PARAM_CRASH_INJECT,
+                                         set_value, GEN_CMD);
+           break;
+        }
+#endif
 #endif
         default:
         {
@@ -7327,16 +7335,6 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
                                           0, GEN_CMD);
             break;
         }
-#ifdef DEBUG
-        case WE_SET_FW_CRASH_INJECT:
-        {
-           hddLog(LOGE, "WE_FW_CRASH_INJECT");
-           ret = process_wma_set_command((int) pAdapter->sessionId,
-                                         (int) GEN_PARAM_CRASH_INJECT,
-                                         0, GEN_CMD);
-           break;
-        }
-#endif
 #endif
         default:
         {
@@ -10254,6 +10252,11 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_EARLY_RX_DRIFT_SAMPLE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "erx_dri_sample" },
+#ifdef DEBUG
+    {   WE_SET_FW_CRASH_INJECT,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "crash_inject" },
+#endif
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
@@ -10738,12 +10741,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "dump_watchdog" },
-#ifdef DEBUG
-    {   WE_SET_FW_CRASH_INJECT,
-        0,
-        0,
-        "crash_inject" },
-#endif
 #endif
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_VAR_INT_GET_NONE,

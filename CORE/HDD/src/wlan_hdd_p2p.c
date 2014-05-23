@@ -533,9 +533,9 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
 
     //Extending duration for proactive extension logic for RoC
     if (isGoPresent == VOS_TRUE)
-         duration = 3 * duration;
+         duration = P2P_ROC_DURATION_MULTIPLIER_GO_PRESENT * duration;
     else
-         duration = 5 * duration;
+         duration = P2P_ROC_DURATION_MULTIPLIER_GO_ABSENT * duration;
 
 
     hdd_prevent_suspend();
