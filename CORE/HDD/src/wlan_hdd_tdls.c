@@ -837,6 +837,16 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
         tInfo->tdls_options |= ENA_TDLS_BUFFER_STA;
     if (pHddCtx->cfg_ini->fEnableTDLSSleepSta)
         tInfo->tdls_options |= ENA_TDLS_SLEEP_STA;
+    tInfo->peer_traffic_ind_window =
+        pHddCtx->cfg_ini->fTDLSPuapsdPTIWindow;
+    tInfo->peer_traffic_response_timeout =
+        pHddCtx->cfg_ini->fTDLSPuapsdPTRTimeout;
+    tInfo->puapsd_mask =
+        pHddCtx->cfg_ini->fTDLSUapsdMask;
+    tInfo->puapsd_inactivity_time =
+        pHddCtx->cfg_ini->fTDLSPuapsdInactivityTimer;
+    tInfo->puapsd_rx_frame_threshold =
+        pHddCtx->cfg_ini->fTDLSRxFrameThreshold;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
               "%s: Setting tdls state and param in fw: "
@@ -847,7 +857,12 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
               "tx_teardown_threshold: %d, "
               "rssi_teardown_threshold: %d, "
               "rssi_delta: %d, "
-              "tdls_options: 0x%x ",
+              "tdls_options: 0x%x, "
+              "peer_traffic_ind_window: %d, "
+              "peer_traffic_response_timeout: %d, "
+              "puapsd_mask: 0x%x, "
+              "puapsd_inactivity_time: %d, "
+              "puapsd_rx_frame_threshold: %d ",
               __func__,
               tInfo->vdev_id,
               tInfo->tdls_state,
@@ -856,7 +871,12 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
               tInfo->tx_teardown_threshold,
               tInfo->rssi_teardown_threshold,
               tInfo->rssi_delta,
-              tInfo->tdls_options);
+              tInfo->tdls_options,
+              tInfo->peer_traffic_ind_window,
+              tInfo->peer_traffic_response_timeout,
+              tInfo->puapsd_mask,
+              tInfo->puapsd_inactivity_time,
+              tInfo->puapsd_rx_frame_threshold);
 
     halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tInfo, TRUE);
     if (eHAL_STATUS_SUCCESS != halStatus)
@@ -921,33 +941,38 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
     wlan_hdd_tdls_free_scan_request(&pHddCtx->tdls_scan_ctxt);
 
 #ifdef QCA_WIFI_2_0
-    /*No need to post message during driver unlaod because MC thread is
-      already shutdown*/
-    if ( !pHddCtx->isUnloadInProgress)
+    tInfo = vos_mem_malloc(sizeof(tdlsInfo_t));
+    if (NULL != tInfo)
     {
-        tInfo = vos_mem_malloc(sizeof(tdlsInfo_t));
-        if (NULL != tInfo)
-        {
-            tInfo->vdev_id = pAdapter->sessionId;
-            tInfo->tdls_state = eTDLS_SUPPORT_DISABLED;
-            tInfo->notification_interval_ms =
-               pHddTdlsCtx->threshold_config.tx_period_t;
-            tInfo->tx_discovery_threshold =
-               pHddTdlsCtx->threshold_config.tx_packet_n;
-            tInfo->tx_teardown_threshold =
-               pHddTdlsCtx->threshold_config.idle_packet_n;
-            tInfo->rssi_teardown_threshold =
-               pHddTdlsCtx->threshold_config.rssi_teardown_threshold;
-            tInfo->rssi_delta = pHddTdlsCtx->threshold_config.rssi_delta;
-            tInfo->tdls_options = 0;
-            if (pHddCtx->cfg_ini->fEnableTDLSOffChannel)
-               tInfo->tdls_options |= ENA_TDLS_OFFCHAN;
-            if (pHddCtx->cfg_ini->fEnableTDLSBufferSta)
-               tInfo->tdls_options |= ENA_TDLS_BUFFER_STA;
-            if (pHddCtx->cfg_ini->fEnableTDLSSleepSta)
-               tInfo->tdls_options |= ENA_TDLS_SLEEP_STA;
+        tInfo->vdev_id = pAdapter->sessionId;
+        tInfo->tdls_state = eTDLS_SUPPORT_DISABLED;
+        tInfo->notification_interval_ms =
+            pHddTdlsCtx->threshold_config.tx_period_t;
+        tInfo->tx_discovery_threshold =
+            pHddTdlsCtx->threshold_config.tx_packet_n;
+        tInfo->tx_teardown_threshold = pHddTdlsCtx->threshold_config.idle_packet_n;
+        tInfo->rssi_teardown_threshold =
+            pHddTdlsCtx->threshold_config.rssi_teardown_threshold;
+        tInfo->rssi_delta = pHddTdlsCtx->threshold_config.rssi_delta;
+        tInfo->tdls_options = 0;
+        if (pHddCtx->cfg_ini->fEnableTDLSOffChannel)
+            tInfo->tdls_options |= ENA_TDLS_OFFCHAN;
+        if (pHddCtx->cfg_ini->fEnableTDLSBufferSta)
+            tInfo->tdls_options |= ENA_TDLS_BUFFER_STA;
+        if (pHddCtx->cfg_ini->fEnableTDLSSleepSta)
+            tInfo->tdls_options |= ENA_TDLS_SLEEP_STA;
+        tInfo->peer_traffic_ind_window =
+            pHddCtx->cfg_ini->fTDLSPuapsdPTIWindow;
+        tInfo->peer_traffic_response_timeout =
+            pHddCtx->cfg_ini->fTDLSPuapsdPTRTimeout;
+        tInfo->puapsd_mask =
+            pHddCtx->cfg_ini->fTDLSUapsdMask;
+        tInfo->puapsd_inactivity_time =
+            pHddCtx->cfg_ini->fTDLSPuapsdInactivityTimer;
+        tInfo->puapsd_rx_frame_threshold =
+            pHddCtx->cfg_ini->fTDLSRxFrameThreshold;
 
-            VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+        VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
                   "%s: Setting tdls state and param in fw: "
                   "vdev_id: %d, "
                   "tdls_state: %d, "
@@ -956,7 +981,12 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
                   "tx_teardown_threshold: %d, "
                   "rssi_teardown_threshold: %d, "
                   "rssi_delta: %d, "
-                  "tdls_options: 0x%x ",
+                  "tdls_options: 0x%x, "
+                  "peer_traffic_ind_window: %d, "
+                  "peer_traffic_response_timeout: %d, "
+                  "puapsd_mask: 0x%x, "
+                  "puapsd_inactivity_time: %d, "
+                  "puapsd_rx_frame_threshold: %d ",
                   __func__,
                   tInfo->vdev_id,
                   tInfo->tdls_state,
@@ -965,19 +995,23 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
                   tInfo->tx_teardown_threshold,
                   tInfo->rssi_teardown_threshold,
                   tInfo->rssi_delta,
-                  tInfo->tdls_options);
+                  tInfo->tdls_options,
+                  tInfo->peer_traffic_ind_window,
+                  tInfo->peer_traffic_response_timeout,
+                  tInfo->puapsd_mask,
+                  tInfo->puapsd_inactivity_time,
+                  tInfo->puapsd_rx_frame_threshold);
 
-            halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tInfo, FALSE);
-            if (eHAL_STATUS_SUCCESS != halStatus)
-            {
-               vos_mem_free(tInfo);
-            }
-        }
-        else
+        halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tInfo, FALSE);
+        if (eHAL_STATUS_SUCCESS != halStatus)
         {
-            hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: vos_mem_alloc failed for tInfo", __func__);
+           vos_mem_free(tInfo);
         }
+    }
+    else
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: vos_mem_alloc failed for tInfo", __func__);
     }
 #endif
 
@@ -1633,6 +1667,17 @@ int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *confi
         tdlsParams->tdls_options |= ENA_TDLS_BUFFER_STA;
     if (pHddCtx->cfg_ini->fEnableTDLSSleepSta)
         tdlsParams->tdls_options |= ENA_TDLS_SLEEP_STA;
+    tdlsParams->peer_traffic_ind_window =
+        pHddCtx->cfg_ini->fTDLSPuapsdPTIWindow;
+    tdlsParams->peer_traffic_response_timeout =
+        pHddCtx->cfg_ini->fTDLSPuapsdPTRTimeout;
+    tdlsParams->puapsd_mask =
+        pHddCtx->cfg_ini->fTDLSUapsdMask;
+    tdlsParams->puapsd_inactivity_time =
+        pHddCtx->cfg_ini->fTDLSPuapsdInactivityTimer;
+    tdlsParams->puapsd_rx_frame_threshold =
+        pHddCtx->cfg_ini->fTDLSRxFrameThreshold;
+
 
     VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
               "%s: Setting tdls state and param in fw: "
@@ -1643,7 +1688,12 @@ int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *confi
               "tx_teardown_threshold: %d, "
               "rssi_teardown_threshold: %d, "
               "rssi_delta: %d, "
-              "tdls_options: 0x%x ",
+              "tdls_options: 0x%x, "
+              "peer_traffic_ind_window: %d, "
+              "peer_traffic_response_timeout: %d, "
+              "puapsd_mask: 0x%x, "
+              "puapsd_inactivity_time: %d, "
+              "puapsd_rx_frame_threshold: %d ",
               __func__,
               tdlsParams->vdev_id,
               tdlsParams->tdls_state,
@@ -1652,7 +1702,12 @@ int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *confi
               tdlsParams->tx_teardown_threshold,
               tdlsParams->rssi_teardown_threshold,
               tdlsParams->rssi_delta,
-              tdlsParams->tdls_options);
+              tdlsParams->tdls_options,
+              tdlsParams->peer_traffic_ind_window,
+              tdlsParams->peer_traffic_response_timeout,
+              tdlsParams->puapsd_mask,
+              tdlsParams->puapsd_inactivity_time,
+              tdlsParams->puapsd_rx_frame_threshold);
 
     halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tdlsParams, TRUE);
     if (eHAL_STATUS_SUCCESS != halStatus)
@@ -2653,19 +2708,52 @@ int wlan_hdd_tdls_scan_callback (hdd_adapter_t *pAdapter,
         if (connectedTdlsPeers)
         {
             tANI_U8 staIdx;
+            tANI_U8 num = 0;
+            tANI_U8 i;
+            tANI_BOOLEAN allPeersBufStas = 1;
             hddTdlsPeer_t *curr_peer;
+            hddTdlsPeer_t *connectedPeerList[HDD_MAX_NUM_TDLS_STA];
 
             for (staIdx = 0; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++)
             {
                 if (pHddCtx->tdlsConnInfo[staIdx].staId)
                 {
-                    VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
-                                   ("%s: indicate TDLS teadown (staId %d)"), __func__, pHddCtx->tdlsConnInfo[staIdx].staId) ;
+                    curr_peer = wlan_hdd_tdls_find_all_peer(pHddCtx,
+                                  pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes);
+                    if (curr_peer)
+                    {
+                        connectedPeerList[num++] = curr_peer;
+                        if (!(curr_peer->isBufSta))
+                            allPeersBufStas = 0;
+                    }
+                }
+            }
 
+            if ((TDLS_MAX_CONNECTED_PEERS_TO_ALLOW_SCAN ==
+                 connectedTdlsPeers) &&
+                (pHddCtx->cfg_ini->fEnableTDLSSleepSta) &&
+                (allPeersBufStas))
+            {
+                /* All connected peers bufStas and we can be sleepSta
+                 * so allow scan
+                 */
+                VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                          "%s: All peers (num %d) bufSTAs, we can be sleep sta, so allow scan, tdls mode changed to %d",
+                          __func__, connectedTdlsPeers, pHddCtx->tdls_mode);
+                return 1;
+            }
+            else
+            {
+                for (i = 0; i < num; i++)
+                {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                              "%s: indicate TDLS teadown (staId %d)",
+                              __func__, connectedPeerList[i]->staId);
 #ifdef CONFIG_TDLS_IMPLICIT
-                    curr_peer = wlan_hdd_tdls_find_all_peer(pHddCtx, pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes);
-                    if(curr_peer)
-                        wlan_hdd_tdls_indicate_teardown(curr_peer->pHddTdlsCtx->pAdapter, curr_peer, eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON);
+                    wlan_hdd_tdls_indicate_teardown(
+                            connectedPeerList[i]->pHddTdlsCtx->pAdapter,
+                            connectedPeerList[i],
+                            eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON);
 #endif
                 }
             }

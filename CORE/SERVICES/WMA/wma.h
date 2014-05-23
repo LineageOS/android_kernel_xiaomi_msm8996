@@ -1454,6 +1454,11 @@ typedef struct wma_tdls_params
 	tANI_S32    rssi_teardown_threshold;
 	tANI_S32    rssi_delta;
 	tANI_U32    tdls_options;
+	tANI_U32    peer_traffic_ind_window;
+	tANI_U32    peer_traffic_response_timeout;
+	tANI_U32    puapsd_mask;
+	tANI_U32    puapsd_inactivity_time;
+	tANI_U32    puapsd_rx_frame_threshold;
 } t_wma_tdls_params;
 
 typedef struct {

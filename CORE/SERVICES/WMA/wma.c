@@ -761,6 +761,10 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 		CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV,
 		CFG_TGT_MAX_MULTICAST_FILTER_ENTRIES,
 		0,
+		0,
+		0,
+		CFG_TGT_NUM_TDLS_CONC_SLEEP_STAS,
+		CFG_TGT_NUM_TDLS_CONC_BUFFER_STAS,
 	};
 
 	/* Update the max number of peers */
@@ -10084,6 +10088,7 @@ static void wma_add_tdls_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 	  goto send_rsp;
 	 }
 
+	 vos_mem_zero(peerStateParams, sizeof(*peerStateParams));
 	 peerStateParams->peerState = WMI_TDLS_PEER_STATE_PEERING;
 	 peerStateParams->vdevId = vdev->vdev_id;
 	 vos_mem_copy(&peerStateParams->peerMacAddr,
@@ -10923,6 +10928,7 @@ static void wma_del_tdls_sta(tp_wma_handle wma,
 		goto send_del_rsp;
 	}
 
+	vos_mem_zero(peerStateParams, sizeof(*peerStateParams));
 	peerStateParams->peerState = WDA_TDLS_PEER_STATE_TEARDOWN;
 	peerStateParams->vdevId = vdev->vdev_id;
 	vos_mem_copy(&peerStateParams->peerMacAddr,
@@ -18684,6 +18690,13 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	/* Enable TDLS */
 	cfg->en_tdls = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 	                                      WMI_SERVICE_TDLS);
+	/* Enable advanced TDLS features */
+	cfg->en_tdls_offchan = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+	                                      WMI_SERVICE_TDLS_OFFCHAN);
+	cfg->en_tdls_uapsd_buf_sta = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+	                                      WMI_SERVICE_TDLS_UAPSD_BUFFER_STA);
+	cfg->en_tdls_uapsd_sleep_sta = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+	                                      WMI_SERVICE_TDLS_UAPSD_SLEEP_STA);
 #endif
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_BEACON_OFFLOAD))
 		cfg->beacon_offload = TRUE;
@@ -20555,15 +20568,47 @@ static int wma_update_fw_tdls_state(WMA_HANDLE handle, void *pwmaTdlsparams)
 		cmd->state = WMI_TDLS_DISABLE;
 	}
 
-	WMA_LOGD("%s: tdls_mode: %d, cmd->state: %d",
-	         __func__, tdls_mode, cmd->state);
-
 	cmd->notification_interval_ms = wma_tdls->notification_interval_ms;
 	cmd->tx_discovery_threshold = wma_tdls->tx_discovery_threshold;
 	cmd->tx_teardown_threshold = wma_tdls->tx_teardown_threshold;
 	cmd->rssi_teardown_threshold = wma_tdls->rssi_teardown_threshold;
 	cmd->rssi_delta = wma_tdls->rssi_delta;
 	cmd->tdls_options = wma_tdls->tdls_options;
+	cmd->tdls_peer_traffic_ind_window =
+	    wma_tdls->peer_traffic_ind_window;
+	cmd->tdls_peer_traffic_response_timeout_ms =
+	    wma_tdls->peer_traffic_response_timeout;
+	cmd->tdls_puapsd_mask =
+	    wma_tdls->puapsd_mask;
+	cmd->tdls_puapsd_inactivity_time_ms =
+	    wma_tdls->puapsd_inactivity_time;
+	cmd->tdls_puapsd_rx_frame_threshold =
+	    wma_tdls->puapsd_rx_frame_threshold;
+
+	WMA_LOGD("%s: tdls_mode: %d, state: %d, "
+	         "notification_interval_ms: %d, "
+	         "tx_discovery_threshold: %d, "
+	         "tx_teardown_threshold: %d, "
+	         "rssi_teardown_threshold: %d, "
+	         "rssi_delta: %d, "
+	         "tdls_options: 0x%x, "
+	         "tdls_peer_traffic_ind_window: %d, "
+	         "tdls_peer_traffic_response_timeout: %d, "
+	         "tdls_puapsd_mask: 0x%x, "
+	         "tdls_puapsd_inactivity_time: %d, "
+	         "tdls_puapsd_rx_frame_threshold: %d ",
+	         __func__, tdls_mode, cmd->state,
+	         cmd->notification_interval_ms,
+	         cmd->tx_discovery_threshold,
+	         cmd->tx_teardown_threshold,
+	         cmd->rssi_teardown_threshold,
+	         cmd->rssi_delta,
+	         cmd->tdls_options,
+	         cmd->tdls_peer_traffic_ind_window,
+	         cmd->tdls_peer_traffic_response_timeout_ms,
+	         cmd->tdls_puapsd_mask,
+	         cmd->tdls_puapsd_inactivity_time_ms,
+	         cmd->tdls_puapsd_rx_frame_threshold);
 
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
 		   WMI_TDLS_SET_STATE_CMDID)) {
@@ -20586,6 +20631,7 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
 	wmi_tdls_peer_update_cmd_fixed_param* cmd;
 	wmi_tdls_peer_capabilities *peer_cap;
+	wmi_channel *chan_info;
 	wmi_buf_t wmi_buf;
 	u_int8_t *buf_ptr;
 	u_int32_t i;
@@ -20605,6 +20651,14 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 		ret = -EINVAL;
 		goto end_tdls_peer_state;
 	}
+
+	/* peer capability info is valid only when peer state is connected */
+	if (WDA_TDLS_PEER_STATE_CONNECTED != peerStateParams->peerState) {
+		vos_mem_zero(&peerStateParams->peerCap, sizeof(tTdlsPeerCapParams));
+	}
+
+	len += WMI_TLV_HDR_SIZE +
+	       sizeof(wmi_channel) * peerStateParams->peerCap.peerChanLen;
 
 	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!wmi_buf) {
@@ -20647,20 +20701,19 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	       WMITLV_TAG_STRUC_wmi_tdls_peer_capabilities,
 	       WMITLV_GET_STRUCT_TLVLEN(wmi_tdls_peer_capabilities));
 
-	/* peer capabilities */
 	if ((peerStateParams->peerCap.peerUapsdQueue & 0x08) >> 3)
-		WMI_SET_TDLS_VO_UAPSD(peer_cap);
+		WMI_SET_TDLS_PEER_VO_UAPSD(peer_cap);
 	if ((peerStateParams->peerCap.peerUapsdQueue & 0x04) >> 2)
-		WMI_SET_TDLS_VI_UAPSD(peer_cap);
+		WMI_SET_TDLS_PEER_VI_UAPSD(peer_cap);
 	if ((peerStateParams->peerCap.peerUapsdQueue & 0x02) >> 1)
-		WMI_SET_TDLS_BK_UAPSD(peer_cap);
+		WMI_SET_TDLS_PEER_BK_UAPSD(peer_cap);
 	if (peerStateParams->peerCap.peerUapsdQueue & 0x01)
-		WMI_SET_TDLS_BE_UAPSD(peer_cap);
+		WMI_SET_TDLS_PEER_BE_UAPSD(peer_cap);
 
 	/* Ack and More Data Ack are sent as 0, so no need to set
 	 * but fill SP
 	 */
-	WMI_SET_TDLS_SP_UAPSD(peer_cap, peerStateParams->peerCap.peerMaxSp);
+	WMI_SET_TDLS_PEER_SP_UAPSD(peer_cap, peerStateParams->peerCap.peerMaxSp);
 
 	peer_cap->buff_sta_support =
 		peerStateParams->peerCap.peerBuffStaSupport;
@@ -20675,24 +20728,71 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	peer_cap->peer_operclass_len =
 		peerStateParams->peerCap.peerOperClassLen;
 
-	WMA_LOGD("%s: peer_qos: 0x%x, buff_sta_support: %d, off_chan_support: %d, peer_curr_operclass: %d, self_curr_operclass: %d, peer_chan_len: %d, peer_operclass_len: %d",
-	         __func__, peer_cap->peer_qos, peer_cap->buff_sta_support,
-	         peer_cap->off_chan_support, peer_cap->peer_curr_operclass,
-	         peer_cap->self_curr_operclass, peer_cap->peer_chan_len,
-	         peer_cap->peer_operclass_len);
-
-	for (i = 0; i < WMI_TDLS_MAX_SUPP_CHANNELS; i++) {
-		peer_cap->peer_chan[i] = peerStateParams->peerCap.peerChan[i];
-	}
 	for (i = 0; i < WMI_TDLS_MAX_SUPP_OPER_CLASSES; i++) {
 		peer_cap->peer_operclass[i] =
 			peerStateParams->peerCap.peerOperClass[i];
 	}
 
+	peer_cap->is_peer_responder =
+		peerStateParams->peerCap.isPeerResponder;
+	peer_cap->pref_offchan_num =
+		peerStateParams->peerCap.prefOffChanNum;
+	peer_cap->pref_offchan_bw =
+		peerStateParams->peerCap.prefOffChanBandwidth;
+
+	WMA_LOGD("%s: peer_qos: 0x%x, buff_sta_support: %d, off_chan_support: %d, peer_curr_operclass: %d, self_curr_operclass: %d, peer_chan_len: %d, peer_operclass_len: %d, is_peer_responder: %d, pref_offchan_num: %d, pref_offchan_bw: %d",
+		        __func__, peer_cap->peer_qos, peer_cap->buff_sta_support,
+		        peer_cap->off_chan_support, peer_cap->peer_curr_operclass,
+		        peer_cap->self_curr_operclass, peer_cap->peer_chan_len,
+		        peer_cap->peer_operclass_len, peer_cap->is_peer_responder,
+		        peer_cap->pref_offchan_num, peer_cap->pref_offchan_bw);
+
+	/* next fill variable size array of peer chan info */
+	buf_ptr += sizeof(wmi_tdls_peer_capabilities);
+	WMITLV_SET_HDR(buf_ptr,
+	       WMITLV_TAG_ARRAY_STRUC,
+	       sizeof(wmi_channel) * peerStateParams->peerCap.peerChanLen);
+	chan_info = (wmi_channel *) (buf_ptr + WMI_TLV_HDR_SIZE);
+
+	for (i = 0; i < peerStateParams->peerCap.peerChanLen; ++i) {
+		WMITLV_SET_HDR(&chan_info->tlv_header,
+			       WMITLV_TAG_STRUC_wmi_channel,
+			       WMITLV_GET_STRUCT_TLVLEN(wmi_channel));
+		chan_info->mhz =
+			vos_chan_to_freq(peerStateParams->peerCap.peerChan[i].chanId);
+		chan_info->band_center_freq1 = chan_info->mhz;
+		chan_info->band_center_freq2 = 0;
+
+		WMA_LOGD("%s: chan[%d] = %u", __func__, i, chan_info->mhz);
+
+		if (peerStateParams->peerCap.peerChan[i].dfsSet) {
+			WMI_SET_CHANNEL_FLAG(chan_info, WMI_CHAN_FLAG_PASSIVE);
+			WMA_LOGI("chan[%d] DFS[%d]\n",
+					peerStateParams->peerCap.peerChan[i].chanId,
+					peerStateParams->peerCap.peerChan[i].dfsSet);
+		}
+
+		if (chan_info->mhz < WMA_2_4_GHZ_MAX_FREQ) {
+			WMI_SET_CHANNEL_MODE(chan_info, MODE_11G);
+		} else {
+			WMI_SET_CHANNEL_MODE(chan_info, MODE_11A);
+		}
+
+		WMI_SET_CHANNEL_MAX_TX_POWER(chan_info,
+			peerStateParams->peerCap.peerChan[i].pwr);
+
+		WMI_SET_CHANNEL_REG_POWER(chan_info,
+			peerStateParams->peerCap.peerChan[i].pwr);
+		WMA_LOGD("Channel TX power[%d] = %u: %d", i, chan_info->mhz,
+			peerStateParams->peerCap.peerChan[i].pwr);
+
+		chan_info++;
+	}
+
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
 	    WMI_TDLS_PEER_UPDATE_CMDID)) {
 		WMA_LOGE("%s: failed to send tdls peer update state command",
-	          __func__);
+		         __func__);
 		adf_nbuf_free(wmi_buf);
 		ret = -EIO;
 		goto end_tdls_peer_state;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -993,6 +993,16 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "TDLS_DBGID_PEER_EVT_DRP_RSSI",
         "TDLS_DBGID_PEER_EVT_DISCOVER",
         "TDLS_DBGID_PEER_EVT_DELETE",
+        "TDLS_DBGID_PEER_CAP_UPDATE",
+        "TDLS_DBGID_UAPSD_SEND_PTI_FRAME",
+        "TDLS_DBGID_UAPSD_SEND_PTI_FRAME2PEER",
+        "TDLS_DBGID_UAPSD_START_PTR_TIMER",
+        "TDLS_DBGID_UAPSD_CANCEL_PTR_TIMER",
+        "TDLS_DBGID_UAPSD_PTR_TIMER_TIMEOUT",
+        "TDLS_DBGID_UAPSD_STA_PS_EVENT_HANDLER",
+        "TDLS_DBGID_UAPSD_PEER_EVENT_HANDLER",
+        "TDLS_DBGID_UAPSD_PS_DEFAULT_SETTINGS",
+        "TDLS_DBGID_UAPSD_GENERIC",
     },
     {   /* HB */
         "WLAN_HB_DBGID_DEFINITION_START",

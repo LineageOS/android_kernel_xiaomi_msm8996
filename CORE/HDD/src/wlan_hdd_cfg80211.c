@@ -9776,21 +9776,27 @@ static int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *d
                         smeTdlsPeerStateParams.peerCap.selfCurrOperClass = 0;
                         smeTdlsPeerStateParams.peerCap.peerChanLen =
                             pTdlsPeer->supported_channels_len;
+                        smeTdlsPeerStateParams.peerCap.prefOffChanNum =
+                            pHddCtx->cfg_ini->fTDLSPrefOffChanNum;
+                        smeTdlsPeerStateParams.peerCap.prefOffChanBandwidth =
+                            pHddCtx->cfg_ini->fTDLSPrefOffChanBandwidth;
 
                         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                              "%s: Peer " MAC_ADDRESS_STR "vdevId: %d, peerState: %d, isPeerResponder: %d, uapsdQueues: 0x%x, maxSp: 0x%x, peerBuffStaSupport: %d, peerOffChanSupport: %d, peerCurrOperClass: %d, selfCurrOperClass: %d, peerChanLen: %d, peerOperClassLen: %d",
+                           "%s: Peer " MAC_ADDRESS_STR "vdevId: %d, peerState: %d, isPeerResponder: %d, uapsdQueues: 0x%x, maxSp: 0x%x, peerBuffStaSupport: %d, peerOffChanSupport: %d, peerCurrOperClass: %d, selfCurrOperClass: %d, peerChanLen: %d, peerOperClassLen: %d, prefOffChanNum: %d, prefOffChanBandwidth: %d",
                               __func__, MAC_ADDR_ARRAY(peer),
-                              smeTdlsPeerStateParams.vdevId,
-                              smeTdlsPeerStateParams.peerState,
-                              smeTdlsPeerStateParams.peerCap.isPeerResponder,
-                              smeTdlsPeerStateParams.peerCap.peerUapsdQueue,
-                              smeTdlsPeerStateParams.peerCap.peerMaxSp,
-                              smeTdlsPeerStateParams.peerCap.peerBuffStaSupport,
-                              smeTdlsPeerStateParams.peerCap.peerOffChanSupport,
-                              smeTdlsPeerStateParams.peerCap.peerCurrOperClass,
-                              smeTdlsPeerStateParams.peerCap.selfCurrOperClass,
-                              smeTdlsPeerStateParams.peerCap.peerChanLen,
-                              smeTdlsPeerStateParams.peerCap.peerOperClassLen);
+                           smeTdlsPeerStateParams.vdevId,
+                           smeTdlsPeerStateParams.peerState,
+                           smeTdlsPeerStateParams.peerCap.isPeerResponder,
+                           smeTdlsPeerStateParams.peerCap.peerUapsdQueue,
+                           smeTdlsPeerStateParams.peerCap.peerMaxSp,
+                           smeTdlsPeerStateParams.peerCap.peerBuffStaSupport,
+                           smeTdlsPeerStateParams.peerCap.peerOffChanSupport,
+                           smeTdlsPeerStateParams.peerCap.peerCurrOperClass,
+                           smeTdlsPeerStateParams.peerCap.selfCurrOperClass,
+                           smeTdlsPeerStateParams.peerCap.peerChanLen,
+                           smeTdlsPeerStateParams.peerCap.peerOperClassLen,
+                           smeTdlsPeerStateParams.peerCap.prefOffChanNum,
+                           smeTdlsPeerStateParams.peerCap.prefOffChanBandwidth);
 
                         for (i = 0; i < pTdlsPeer->supported_channels_len; i++)
                         {

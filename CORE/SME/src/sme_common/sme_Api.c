@@ -10761,11 +10761,13 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     tTdlsPeerStateParams *pTdlsPeerStateParams = NULL;
     vos_msg_t vosMessage;
+    tANI_U8 num;
+    tANI_U8 chanId;
     tANI_U8 i;
 
     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
     {
-        pTdlsPeerStateParams = vos_mem_malloc(sizeof(tTdlsPeerStateParams));
+        pTdlsPeerStateParams = vos_mem_malloc(sizeof(*pTdlsPeerStateParams));
         if (NULL == pTdlsPeerStateParams)
         {
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
@@ -10775,6 +10777,7 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
             return eHAL_STATUS_FAILURE;
         }
 
+        vos_mem_zero(pTdlsPeerStateParams, sizeof(*pTdlsPeerStateParams));
         vos_mem_copy(&pTdlsPeerStateParams->peerMacAddr,
                      &peerStateParams->peerMacAddr,
                      sizeof(tSirMacAddr));
@@ -10818,13 +10821,32 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
            peerStateParams->peerCap.peerCurrOperClass;
        pTdlsPeerStateParams->peerCap.selfCurrOperClass =
            peerStateParams->peerCap.selfCurrOperClass;
-       pTdlsPeerStateParams->peerCap.peerChanLen =
-           peerStateParams->peerCap.peerChanLen;
-       for (i = 0; i < SME_TDLS_MAX_SUPP_CHANNELS; i++)
+
+       num = 0;
+       for (i = 0; i < peerStateParams->peerCap.peerChanLen; i++)
        {
-           pTdlsPeerStateParams->peerCap.peerChan[i] =
-               peerStateParams->peerCap.peerChan[i];
+           chanId = peerStateParams->peerCap.peerChan[i];
+           if (csrRoamIsChannelValid(pMac, chanId))
+           {
+               pTdlsPeerStateParams->peerCap.peerChan[num].chanId = chanId;
+               pTdlsPeerStateParams->peerCap.peerChan[num].pwr =
+                                         csrGetCfgMaxTxPower(pMac, chanId);
+
+               if (vos_nv_getChannelEnabledState(chanId) == NV_CHANNEL_DFS)
+               {
+                   pTdlsPeerStateParams->peerCap.peerChan[num].dfsSet =
+                                                                  VOS_TRUE;
+               }
+               else
+               {
+                   pTdlsPeerStateParams->peerCap.peerChan[num].dfsSet =
+                                                                  VOS_FALSE;
+               }
+               num++;
+           }
        }
+       pTdlsPeerStateParams->peerCap.peerChanLen = num;
+
        pTdlsPeerStateParams->peerCap.peerOperClassLen =
            peerStateParams->peerCap.peerOperClassLen;
        for (i = 0; i < HAL_TDLS_MAX_SUPP_OPER_CLASSES; i++)
@@ -10832,6 +10854,11 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
            pTdlsPeerStateParams->peerCap.peerOperClass[i] =
                peerStateParams->peerCap.peerOperClass[i];
        }
+
+       pTdlsPeerStateParams->peerCap.prefOffChanNum =
+           peerStateParams->peerCap.prefOffChanNum;
+       pTdlsPeerStateParams->peerCap.prefOffChanBandwidth =
+           peerStateParams->peerCap.prefOffChanBandwidth;
 
        vosMessage.type = WDA_UPDATE_TDLS_PEER_STATE;
        vosMessage.reserved = 0;
