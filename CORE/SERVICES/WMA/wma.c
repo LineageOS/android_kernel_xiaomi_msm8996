@@ -11611,7 +11611,6 @@ static int32_t wma_set_qpower_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, 
 	struct sAniSirGlobal *mac =
 		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
 		wma->vos_context);
-	u_int32_t tx_wake_threshold = WMA_DEFAULT_QPOWER_TX_WAKE_THRESHOLD;
 	u_int32_t pspoll_count = WMA_DEFAULT_MAX_PSPOLL_BEFORE_WAKE;
 
 	WMA_LOGE("Set QPower Force(1)/Normal(0) Sleep vdevId %d val %d",
@@ -11630,11 +11629,6 @@ static int32_t wma_set_qpower_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, 
 	}
 	if (cfg_data_val) {
 		pspoll_count = (u_int32_t)cfg_data_val;
-	}
-
-	if (enable) {
-		/* override normal configuration and force station asleep */
-		tx_wake_threshold = WMI_STA_PS_TX_WAKE_THRESHOLD_NEVER;
 	}
 
 	/* Enable QPower */
@@ -11659,17 +11653,18 @@ static int32_t wma_set_qpower_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, 
 	WMA_LOGD("Wake policy set to to pspoll/uapsd vdevId %d",
 		vdev_id);
 
-	/* Set the Tx Wake Threshold */
-	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
-					WMI_STA_PS_PARAM_TX_WAKE_THRESHOLD,
-					tx_wake_threshold);
+	if (enable) {
+		/* Set the Tx Wake Threshold */
+		ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+						WMI_STA_PS_PARAM_TX_WAKE_THRESHOLD,
+						WMI_STA_PS_TX_WAKE_THRESHOLD_NEVER);
 
-	if (ret) {
-		WMA_LOGE("Setting TxWake Threshold vdevId %d", vdev_id);
-		return ret;
+		if (ret) {
+			WMA_LOGE("Setting TxWake Threshold vdevId %d", vdev_id);
+			return ret;
+		}
+		WMA_LOGD("TxWake Threshold set to TX_WAKE_THRESHOLD_NEVER %d", vdev_id);
 	}
-	WMA_LOGD("TxWake Threshold set to %d vdevId %d",
-		tx_wake_threshold, vdev_id);
 
 	/* Set the QPower Ps Poll Count */
 	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
