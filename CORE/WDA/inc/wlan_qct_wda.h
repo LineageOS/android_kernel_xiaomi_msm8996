@@ -1252,6 +1252,9 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_DHCP_START_IND              SIR_HAL_DHCP_START_IND
 #define WDA_DHCP_STOP_IND               SIR_HAL_DHCP_STOP_IND
 
+#ifdef QCA_WIFI_2_0
+#define WDA_HIDDEN_SSID_VDEV_RESTART    SIR_HAL_HIDE_SSID_VDEV_RESTART
+#endif /* QCA_WIFI_2_0 */
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 #define WDA_GTK_OFFLOAD_REQ             SIR_HAL_GTK_OFFLOAD_REQ
