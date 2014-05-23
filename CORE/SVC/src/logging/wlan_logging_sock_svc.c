@@ -343,7 +343,6 @@ static int send_filled_buffers_to_user(void)
 			ret = -EINVAL;
 			continue;
 		}
-		spin_unlock_irqrestore(&gwlan_logging.spin_lock, flags);
 
 		wnl = (tAniNlHdr *) nlh;
 		wnl->radio = plog_msg->radio;
