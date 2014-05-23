@@ -672,6 +672,7 @@ typedef struct hostdef_s {
     A_UINT32 d_RTC_STATE_V_LSB;
     A_UINT32 d_FW_IND_EVENT_PENDING;
     A_UINT32 d_FW_IND_INITIALIZED;
+    A_UINT32 d_FW_IND_HELPER;
     A_UINT32 d_RTC_STATE_V_ON;
 #if defined(SDIO_3_0)
     A_UINT32 d_HOST_INT_STATUS_MBOX_DATA_MASK;
@@ -732,6 +733,7 @@ typedef struct hostdef_s {
 #define RTC_STATE_V_LSB                          (sc->hostdef->d_RTC_STATE_V_LSB)
 #define FW_IND_EVENT_PENDING                     (sc->hostdef->d_FW_IND_EVENT_PENDING)
 #define FW_IND_INITIALIZED                       (sc->hostdef->d_FW_IND_INITIALIZED)
+#define FW_IND_HELPER                            (sc->hostdef->d_FW_IND_HELPER)
 #define RTC_STATE_V_ON                           (sc->hostdef->d_RTC_STATE_V_ON)
 #if defined(SDIO_3_0)
 #define HOST_INT_STATUS_MBOX_DATA_MASK           (sc->hostdef->d_HOST_INT_STATUS_MBOX_DATA_MASK)

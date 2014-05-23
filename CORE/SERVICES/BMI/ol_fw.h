@@ -89,6 +89,7 @@ int ol_target_coredump(void *instance, void* memoryBlock,
 int ol_diag_read(struct ol_softc *scn, u_int8_t* buffer,
                  u_int32_t pos, size_t count);
 void ol_schedule_ramdump_work(struct ol_softc *scn);
+void ol_schedule_fw_indication_work(struct ol_softc *scn);
 int ol_copy_ramdump(struct ol_softc *scn);
 int dump_CE_register(struct ol_softc *scn);
 #endif

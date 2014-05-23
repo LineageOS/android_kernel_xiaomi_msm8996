@@ -366,6 +366,25 @@ hif_pci_device_warm_reset(struct hif_pci_softc *sc)
 }
 
 
+int hif_pci_check_fw_reg(struct hif_pci_softc *sc)
+{
+    struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
+    A_target_id_t targid = hif_state->targid;
+    void __iomem *mem = sc->mem;
+    u_int32_t val;
+
+    A_TARGET_ACCESS_BEGIN_RET(targid);
+    val = A_PCI_READ32(mem + FW_INDICATOR_ADDRESS);
+    A_TARGET_ACCESS_END_RET(targid);
+
+    printk("%s: FW_INDICATOR register is 0x%x\n", __func__, val);
+
+    if (val & FW_IND_HELPER)
+        return 0;
+
+    return 1;
+}
+
 int hif_pci_check_soc_status(struct hif_pci_softc *sc)
 {
     u_int16_t device_id;
