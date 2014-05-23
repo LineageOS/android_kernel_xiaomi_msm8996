@@ -675,7 +675,9 @@ struct ol_txrx_pdev_t {
 		u_int32_t tx_threshold;
 		/* stores time in ms of on and off phase for each throttle level*/
 		int throttle_time_ms[THROTTLE_LEVEL_MAX][THROTTLE_PHASE_MAX];
-	} tx_throttle_ll;
+		/* mark as true if traffic is paused due to thermal throttling */
+		a_bool_t is_paused;
+	} tx_throttle;
 };
 
 struct ol_txrx_vdev_t {

@@ -2101,6 +2101,25 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 
+
+        case QCASAP_SET_DFS_IGNORE_CAC:
+             {
+                  hddLog(VOS_TRACE_LEVEL_INFO, "Set Dfs ignore CAC  %d",
+                            set_value);
+
+                  if (pHostapdAdapter->device_mode != WLAN_HDD_SOFTAP)
+                       return -EINVAL;
+
+                  ret = WLANSAP_Set_Dfs_Ignore_CAC(
+#ifdef WLAN_FEATURE_MBSSID
+                                WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter),
+#else
+                                pVosContext,
+#endif
+                                set_value);
+                  break;
+             }
+
 #endif /* QCA_WIFI_2_0 */
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
@@ -4360,6 +4379,11 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "setTmLevel" },
+
+    {   QCASAP_SET_DFS_IGNORE_CAC,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setDfsIgnoreCAC" },
 
 #endif /* QCA_WIFI_2_0 */
 

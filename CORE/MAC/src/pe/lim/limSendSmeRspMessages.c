@@ -866,6 +866,7 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
 
     if(0 == bssCount)
     {
+       length = sizeof(tSirSmeScanRsp);
        limPostSmeScanRspMessage(pMac, length, resultCode, smesessionId, smetranscationId);
        if (NULL != pSirSmeScanRsp)
        {

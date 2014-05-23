@@ -566,6 +566,8 @@ extern "C" {
 #define SCAN_FWLOG_EVENT_PREEMPTED                  9
 #define SCAN_FWLOG_EVENT_RESTARTED                  10
 #define SCAN_FWLOG_EVENT_COMPLETED                  11
+#define SCAN_SM_REQ_NEXT_CH                         12
+#define SCAN_DBGID_DEFINITION_END                   13
 
 #define BEACON_EVENT_SWBA_SEND_FAILED               0
 #define BEACON_EVENT_EARLY_RX_BMISS_STATUS          1

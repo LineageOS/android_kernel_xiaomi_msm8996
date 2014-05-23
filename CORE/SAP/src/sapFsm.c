@@ -1261,7 +1261,8 @@ sapFsm
                   * running, however, the AP is still not beaconing, until
                   * CAC is done if the operating channel is DFS
                   */
-                 if (vos_nv_getChannelEnabledState(sapContext->channel) == NV_CHANNEL_DFS)
+                 if ((VOS_FALSE == sapContext->SapDfsInfo.ignore_cac) &&
+                    vos_nv_getChannelEnabledState(sapContext->channel) == NV_CHANNEL_DFS)
                  {
                      /* Move the device in CAC_WAIT_STATE */
                      sapContext->sapsMachine = eSAP_DFS_CAC_WAIT;

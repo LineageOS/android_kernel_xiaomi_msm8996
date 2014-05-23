@@ -1297,6 +1297,7 @@ struct hdd_context_s
 
 
    v_BOOL_t hdd_wlan_suspended;
+   v_BOOL_t suspended;
 
    spinlock_t filter_lock;
 

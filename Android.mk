@@ -41,7 +41,14 @@ else
        DLKM_DIR := build/dlkm
 endif
 
-# Build wlan.ko as either prima_wlan.ko or pronto_wlan.ko or qca_cld_wlan.ko
+# Copy WCNSS_cfg.dat and WCNSS_qcom_cfg.ini file from firmware_bin/ folder to target out directory.
+ifeq ($(call is-board-platform-in-list, msm8960),true)
+$(shell rm -f $(TARGET_OUT_ETC)/firmware/wlan/qca_cld/WCNSS_cfg.dat)
+$(shell rm -f $(TARGET_OUT_ETC)/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini)
+$(shell cp $(LOCAL_PATH)/firmware_bin/WCNSS_cfg.dat $(TARGET_OUT_ETC)/firmware/wlan/qca_cld)
+$(shell cp $(LOCAL_PATH)/firmware_bin/WCNSS_qcom_cfg.ini $(TARGET_OUT_ETC)/firmware/wlan/qca_cld)
+endif
+
 ###########################################################
 # This is set once per LOCAL_PATH, not per (kernel) module
 KBUILD_OPTIONS := WLAN_ROOT=../$(WLAN_BLD_DIR)/qcacld-2.0

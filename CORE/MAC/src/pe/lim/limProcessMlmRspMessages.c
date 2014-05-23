@@ -4981,7 +4981,7 @@ void limSendScanOffloadComplete(tpAniSirGlobal pMac,
     pMac->lim.gLimSmeScanResultLength +=
         pMac->lim.gLimMlmScanResultLength;
     pMac->lim.gLimRspReqd = false;
-    if ((pScanEvent->reasonCode == eSIR_SME_SUCCESS) ||
+    if ((pScanEvent->reasonCode == eSIR_SME_SUCCESS) &&
             pMac->lim.gLimSmeScanResultLength) {
         scanRspLen = sizeof(tSirSmeScanRsp) +
             pMac->lim.gLimSmeScanResultLength -

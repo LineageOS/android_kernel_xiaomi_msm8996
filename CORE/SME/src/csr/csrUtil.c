@@ -1430,6 +1430,21 @@ tANI_U8 csrGetInfraOperationChannel( tpAniSirGlobal pMac, tANI_U8 sessionId)
     return channel;
 }
 
+tANI_BOOLEAN csrIsSessionClientAndConnected(tpAniSirGlobal pMac, tANI_U8 sessionId)
+{
+    tCsrRoamSession *pSession = NULL;
+    if (CSR_IS_SESSION_VALID( pMac, sessionId) && csrIsConnStateInfra( pMac, sessionId))
+    {
+        pSession = CSR_GET_SESSION( pMac, sessionId);
+        if (NULL != pSession->pCurRoamProfile)
+        {
+            if ((pSession->pCurRoamProfile->csrPersona == VOS_STA_MODE) ||
+                (pSession->pCurRoamProfile->csrPersona == VOS_P2P_CLIENT_MODE))
+                return TRUE;
+        }
+    }
+    return FALSE;
+}
 //This routine will return operating channel on FIRST BSS that is active/operating to be used for concurrency mode.
 //If other BSS is not up or not connected it will return 0
 

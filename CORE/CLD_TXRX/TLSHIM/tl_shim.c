@@ -755,6 +755,7 @@ static void tlshim_data_rx_cb(struct txrx_tl_shim_ctx *tl_shim,
 	buf = buf_list;
 	while (buf) {
 		next_buf = adf_nbuf_queue_next(buf);
+		adf_nbuf_set_next(buf, NULL); /* Add NULL terminator */
 		ret = data_rx(vos_ctx, buf, staid);
 		if (ret != VOS_STATUS_SUCCESS) {
 			TLSHIM_LOGE("Frame Rx to HDD failed");
@@ -817,6 +818,8 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 				TLSHIM_LOGE("Failed to allocate buf to cache the rx frames");
 				adf_nbuf_free(buf);
 			} else {
+				/* Add NULL terminator */
+				adf_nbuf_set_next(buf, NULL);
 				cache_buf->buf = buf;
 				adf_os_spin_lock_bh(&tl_shim->bufq_lock);
 				list_add_tail(&cache_buf->list,
