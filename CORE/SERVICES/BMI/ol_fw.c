@@ -838,6 +838,11 @@ void ol_target_failure(void *instance, A_STATUS status)
 	scn->target_status = OL_TRGET_STATUS_RESET;
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
+		printk("%s: Loading/Unloading is in progress, ignore!\n",
+			__func__);
+		return;
+	}
 	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 #endif
 

@@ -106,7 +106,11 @@ when           who                what, where, why
 #define       MAX_TEXT_SIZE                32
 
 #define       MAX_CHANNEL_LIST_LEN         256
+#ifdef WLAN_FEATURE_MBSSID
 #define       VOS_MAX_NO_OF_SAP_MODE       2 // max # of SAP
+#else
+#define       VOS_MAX_NO_OF_SAP_MODE       1 // max # of SAP
+#endif
 
 /*--------------------------------------------------------------------------
   reasonCode take form 802.11 standard Table 7-22 to be passed to WLANSAP_DisassocSta api.

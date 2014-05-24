@@ -217,7 +217,7 @@ WLANSAP_Open
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -235,7 +235,7 @@ WLANSAP_Open
 VOS_STATUS
 WLANSAP_Start
 (
-    v_PVOID_t pvosGCtx
+    v_PVOID_t pCtx
 )
 {
     ptSapContext pSapCtx = NULL;
@@ -243,17 +243,17 @@ WLANSAP_Start
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "WLANSAP_Start invoked successfully\n");
+                 "WLANSAP_Start invoked successfully");
     /*------------------------------------------------------------------------
         Sanity check
         Extract SAP control block
     ------------------------------------------------------------------------*/
-    pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    pSapCtx = VOS_GET_SAP_CB(pCtx);
 
     if ( NULL == pSapCtx )
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer from pCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
@@ -282,7 +282,7 @@ WLANSAP_Start
     if( !VOS_IS_STATUS_SUCCESS( vos_lock_init( &pSapCtx->SapGlobalLock)))
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                 "WLANSAP_Start failed init lock\n");
+                 "WLANSAP_Start failed init lock");
         return VOS_STATUS_E_FAULT;
     }
 
@@ -303,7 +303,7 @@ WLANSAP_Start
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -320,7 +320,7 @@ WLANSAP_Start
 VOS_STATUS
 WLANSAP_Stop
 (
-    v_PVOID_t pvosGCtx
+    v_PVOID_t pCtx
 )
 {
     ptSapContext pSapCtx = NULL;
@@ -332,11 +332,11 @@ WLANSAP_Stop
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                 "WLANSAP_Stop invoked successfully ");
 
-    pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    pSapCtx = VOS_GET_SAP_CB(pCtx);
     if (NULL == pSapCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer from pCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
@@ -345,7 +345,7 @@ WLANSAP_Stop
     if( !VOS_IS_STATUS_SUCCESS( vos_lock_destroy( &pSapCtx->SapGlobalLock ) ) )
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                 "WLANSAP_Stop failed destroy lock\n");
+                 "WLANSAP_Stop failed destroy lock");
         return VOS_STATUS_E_FAULT;
     }
     /*------------------------------------------------------------------------
@@ -367,7 +367,7 @@ WLANSAP_Stop
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -384,7 +384,7 @@ WLANSAP_Stop
 VOS_STATUS
 WLANSAP_Close
 (
-    v_PVOID_t pvosGCtx
+    v_PVOID_t pCtx
 )
 {
     ptSapContext pSapCtx = NULL;
@@ -399,11 +399,11 @@ WLANSAP_Close
                  "WLANSAP_Close invoked");
 
 
-    pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    pSapCtx = VOS_GET_SAP_CB(pCtx);
     if (NULL == pSapCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer from pCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
@@ -419,7 +419,7 @@ WLANSAP_Close
     /*------------------------------------------------------------------------
         Free SAP context from VOSS global
     ------------------------------------------------------------------------*/
-    vos_free_context(pvosGCtx, VOS_MODULE_ID_SAP, pSapCtx);
+    vos_free_context(pCtx, VOS_MODULE_ID_SAP, pSapCtx);
 #endif
 
     return VOS_STATUS_SUCCESS;
@@ -441,7 +441,7 @@ WLANSAP_Close
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
 
   RETURN VALUE
     The result code associated with performing the operation
@@ -523,7 +523,7 @@ WLANSAP_pmcFullPwrReqCB
     else
     {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
-               "WLANSAP_pmcFullPwrReqCB: PMC failed to put the chip in Full power\n");
+               "WLANSAP_pmcFullPwrReqCB: PMC failed to put the chip in Full power");
 
     }
 
@@ -540,7 +540,7 @@ WLANSAP_pmcFullPwrReqCB
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -551,17 +551,17 @@ WLANSAP_pmcFullPwrReqCB
 
 v_U8_t WLANSAP_getState
 (
-    v_PVOID_t pvosGCtx
+    v_PVOID_t pCtx
 )
 {
     ptSapContext pSapCtx = NULL;
 
-    pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    pSapCtx = VOS_GET_SAP_CB(pCtx);
 
     if ( NULL == pSapCtx )
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer from pCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
     return pSapCtx->sapsMachine;
@@ -613,7 +613,7 @@ v_U16_t WLANSAP_CheckCCIntf(v_PVOID_t Ctx)
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -633,7 +633,7 @@ v_U16_t WLANSAP_CheckCCIntf(v_PVOID_t Ctx)
 VOS_STATUS
 WLANSAP_StartBss
 (
-    v_PVOID_t  pvosGCtx,//pwextCtx
+    v_PVOID_t  pCtx,//pwextCtx
     tpWLAN_SAPEventCB pSapEventCallback,
     tsap_Config_t *pConfig,
     v_PVOID_t  pUsrContext
@@ -654,7 +654,7 @@ WLANSAP_StartBss
     ------------------------------------------------------------------------*/
     if (VOS_STA_SAP_MODE == vos_get_conparam ())
     {
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
 
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                      "WLANSAP_StartBss: sapContext=%p", pSapCtx);
@@ -662,7 +662,7 @@ WLANSAP_StartBss
         if ( NULL == pSapCtx )
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
         pSapCtx->sapsMachine = eSAP_DISCONNECTED;
@@ -766,7 +766,7 @@ WLANSAP_StartBss
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -785,7 +785,7 @@ WLANSAP_StartBss
 VOS_STATUS
 WLANSAP_SetMacACL
 (
-    v_PVOID_t  pvosGCtx,   //pwextCtx
+    v_PVOID_t  pCtx,   //pwextCtx
     tsap_Config_t *pConfig
 )
 {
@@ -797,11 +797,11 @@ WLANSAP_SetMacACL
 
     if (VOS_STA_SAP_MODE == vos_get_conparam ())
     {
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if ( NULL == pSapCtx )
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
 
@@ -845,7 +845,7 @@ WLANSAP_SetMacACL
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -862,7 +862,7 @@ WLANSAP_SetMacACL
 VOS_STATUS
 WLANSAP_StopBss
 (
-    v_PVOID_t  pvosGCtx
+    v_PVOID_t  pCtx
 )
 {
     tWLAN_SAPEvent sapEvent;    /* State machine event*/
@@ -879,19 +879,19 @@ WLANSAP_StopBss
                  "WLANSAP_StopBss: sapContext=%p", pSapCtx);
 #endif
 
-    if ( NULL == pvosGCtx )
+    if ( NULL == pCtx )
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                    "%s: Invalid Global VOSS handle", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
-    pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    pSapCtx = VOS_GET_SAP_CB(pCtx);
 
     if (NULL == pSapCtx )
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer from pCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
@@ -917,7 +917,7 @@ WLANSAP_StopBss
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -938,12 +938,12 @@ WLANSAP_StopBss
 VOS_STATUS
 WLANSAP_GetAssocStations
 (
-    v_PVOID_t  pvosGCtx,
+    v_PVOID_t  pCtx,
     VOS_MODULE_ID modId,
     tpSap_AssocMacAddr pAssocStas
 )
 {
-    ptSapContext pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    ptSapContext pSapCtx = VOS_GET_SAP_CB(pCtx);
 
     /*------------------------------------------------------------------------
       Sanity check
@@ -952,7 +952,7 @@ WLANSAP_GetAssocStations
     if (NULL == pSapCtx)
     {
       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                 "%s: Invalid SAP pointer from pCtx", __func__);
       return VOS_STATUS_E_FAULT;
     }
 
@@ -978,7 +978,7 @@ WLANSAP_GetAssocStations
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -996,11 +996,11 @@ VOS_STATUS
 WLANSAP_RemoveWpsSessionOverlap
 
 (
-    v_PVOID_t  pvosGCtx,
+    v_PVOID_t  pCtx,
     v_MACADDR_t pRemoveMac
 )
 {
-    ptSapContext pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    ptSapContext pSapCtx = VOS_GET_SAP_CB(pCtx);
 
   /*------------------------------------------------------------------------
     Sanity check
@@ -1009,7 +1009,7 @@ WLANSAP_RemoveWpsSessionOverlap
   if (NULL == pSapCtx)
   {
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-               "%s: Invalid SAP pointer from pvosGCtx", __func__);
+               "%s: Invalid SAP pointer from pCtx", __func__);
     return VOS_STATUS_E_FAULT;
   }
 
@@ -1033,7 +1033,7 @@ WLANSAP_RemoveWpsSessionOverlap
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -1048,12 +1048,12 @@ WLANSAP_RemoveWpsSessionOverlap
 VOS_STATUS
 WLANSAP_getWpsSessionOverlap
 (
-    v_PVOID_t  pvosGCtx
+    v_PVOID_t  pCtx
 )
 {
     v_MACADDR_t pRemoveMac = VOS_MAC_ADDR_ZERO_INITIALIZER;
 
-    ptSapContext pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    ptSapContext pSapCtx = VOS_GET_SAP_CB(pCtx);
 
     /*------------------------------------------------------------------------
       Sanity check
@@ -1062,7 +1062,7 @@ WLANSAP_getWpsSessionOverlap
     if (NULL == pSapCtx)
     {
       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                 "%s: Invalid SAP pointer from pCtx", __func__);
       return VOS_STATUS_E_FAULT;
     }
 
@@ -1079,16 +1079,16 @@ WLANSAP_getWpsSessionOverlap
 VOS_STATUS
 WLANSAP_SetMode
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     v_U32_t mode
 )
 {
-    ptSapContext pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    ptSapContext pSapCtx = VOS_GET_SAP_CB(pCtx);
 
     if (NULL == pSapCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer from pCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
@@ -1101,10 +1101,10 @@ WLANSAP_SetMode
 VOS_STATUS
 WLANSAP_ClearACL
 (
-    v_PVOID_t pvosGCtx
+    v_PVOID_t pCtx
 )
 {
-    ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    ptSapContext  pSapCtx = VOS_GET_SAP_CB(pCtx);
     v_U8_t i;
 
     if (NULL == pSapCtx)
@@ -1140,7 +1140,7 @@ WLANSAP_ClearACL
 VOS_STATUS
 WLANSAP_ModifyACL
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     v_U8_t *pPeerStaMac,
     eSapACLType listType,
     eSapACLCmdType cmd
@@ -1148,7 +1148,7 @@ WLANSAP_ModifyACL
 {
     eSapBool staInWhiteList=eSAP_FALSE, staInBlackList=eSAP_FALSE;
     v_U8_t staWLIndex, staBLIndex;
-    ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    ptSapContext  pSapCtx = VOS_GET_SAP_CB(pCtx);
 
     if (NULL == pSapCtx)
     {
@@ -1225,7 +1225,7 @@ WLANSAP_ModifyACL
                     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "Delete from white list");
                     sapRemoveMacFromACL(pSapCtx->acceptMacList, &pSapCtx->nAcceptMac, staWLIndex);
                     /* If a client is deleted from white list and the client is connected, send deauth*/
-                    WLANSAP_DeauthSta(pvosGCtx, pPeerStaMac);
+                    WLANSAP_DeauthSta(pSapCtx, pPeerStaMac);
                     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW, "size of accept and deny lists %d %d",
                             pSapCtx->nAcceptMac, pSapCtx->nDenyMac);
                 }
@@ -1274,7 +1274,7 @@ WLANSAP_ModifyACL
                         sapRemoveMacFromACL(pSapCtx->acceptMacList, &pSapCtx->nAcceptMac, staWLIndex);
                     }
                     /* If we are adding a client to the black list; if its connected, send deauth */
-                    WLANSAP_DeauthSta(pvosGCtx, pPeerStaMac);
+                    WLANSAP_DeauthSta(pSapCtx, pPeerStaMac);
                     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
                             "... Now add to black list");
                     sapAddMacToACL(pSapCtx->denyMacList, &pSapCtx->nDenyMac, pPeerStaMac);
@@ -1333,7 +1333,7 @@ WLANSAP_ModifyACL
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -1349,11 +1349,11 @@ WLANSAP_ModifyACL
 VOS_STATUS
 WLANSAP_DisassocSta
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     v_U8_t *pPeerStaMac
 )
 {
-    ptSapContext pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    ptSapContext pSapCtx = VOS_GET_SAP_CB(pCtx);
 
     /*------------------------------------------------------------------------
       Sanity check
@@ -1362,7 +1362,7 @@ WLANSAP_DisassocSta
     if (NULL == pSapCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer from pCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
@@ -1384,7 +1384,7 @@ WLANSAP_DisassocSta
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -1400,13 +1400,13 @@ WLANSAP_DisassocSta
 VOS_STATUS
 WLANSAP_DeauthSta
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     v_U8_t *pPeerStaMac
 )
 {
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
     VOS_STATUS vosStatus = VOS_STATUS_E_FAULT;
-    ptSapContext pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    ptSapContext pSapCtx = VOS_GET_SAP_CB(pCtx);
 
     /*------------------------------------------------------------------------
       Sanity check
@@ -1415,7 +1415,7 @@ WLANSAP_DeauthSta
     if (NULL == pSapCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer from pCtx", __func__);
         return vosStatus;
     }
 
@@ -1624,7 +1624,7 @@ WLANSAP_SetChannelRange(tHalHandle hHal,v_U8_t startChannel, v_U8_t endChannel,
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -1642,11 +1642,11 @@ WLANSAP_SetChannelRange(tHalHandle hHal,v_U8_t startChannel, v_U8_t endChannel,
 VOS_STATUS
 WLANSAP_SetCounterMeasure
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     v_BOOL_t bEnable
 )
 {
-    ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    ptSapContext  pSapCtx = VOS_GET_SAP_CB(pCtx);
 
     /*------------------------------------------------------------------------
       Sanity check
@@ -1655,7 +1655,7 @@ WLANSAP_SetCounterMeasure
     if (NULL == pSapCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer from pCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
@@ -1677,7 +1677,7 @@ WLANSAP_SetCounterMeasure
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -1693,7 +1693,7 @@ WLANSAP_SetCounterMeasure
 VOS_STATUS
 WLANSAP_SetKeySta
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     tCsrRoamSetKey *pSetKeyInfo
 )
 {
@@ -1705,11 +1705,11 @@ WLANSAP_SetKeySta
 
     if (VOS_STA_SAP_MODE == vos_get_conparam ( ))
     {
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if (NULL == pSapCtx)
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
         hHal = VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
@@ -1747,7 +1747,7 @@ WLANSAP_SetKeySta
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -1763,7 +1763,7 @@ WLANSAP_SetKeySta
 VOS_STATUS
 WLANSAP_DelKeySta
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     tCsrRoamRemoveKey *pRemoveKeyInfo
 )
 {
@@ -1776,11 +1776,11 @@ WLANSAP_DelKeySta
 
     if (VOS_STA_SAP_MODE == vos_get_conparam ( ))
     {
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if (NULL == pSapCtx)
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
 
@@ -1817,7 +1817,7 @@ WLANSAP_DelKeySta
 VOS_STATUS
 WLANSap_getstationIE_information
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     v_U32_t   *pLen,
     v_U8_t    *pBuf
 )
@@ -1827,11 +1827,11 @@ WLANSap_getstationIE_information
     v_U32_t len = 0;
 
     if (VOS_STA_SAP_MODE == vos_get_conparam ( )){
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if (NULL == pSapCtx)
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
         if (pLen)
@@ -1879,7 +1879,7 @@ WLANSap_getstationIE_information
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -1895,7 +1895,7 @@ WLANSap_getstationIE_information
 VOS_STATUS
 WLANSAP_Set_WpsIe
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     tSap_WPSIE *pSap_WPSIe
 )
 {
@@ -1906,11 +1906,11 @@ WLANSAP_Set_WpsIe
             "%s, %d", __func__, __LINE__);
 
     if(VOS_STA_SAP_MODE == vos_get_conparam ( )) {
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if ( NULL == pSapCtx )
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
 
@@ -1958,7 +1958,7 @@ WLANSAP_Set_WpsIe
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -1973,7 +1973,7 @@ WLANSAP_Set_WpsIe
 VOS_STATUS
 WLANSAP_Update_WpsIe
 (
-    v_PVOID_t pvosGCtx
+    v_PVOID_t pCtx
 )
 {
     VOS_STATUS vosStatus = VOS_STATUS_E_FAULT;
@@ -1985,11 +1985,11 @@ WLANSAP_Update_WpsIe
             "%s, %d", __func__, __LINE__);
 
     if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if ( NULL == pSapCtx )
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
 
@@ -2026,7 +2026,7 @@ WLANSAP_Update_WpsIe
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -2044,7 +2044,7 @@ WLANSAP_Update_WpsIe
 VOS_STATUS
 WLANSAP_Get_WPS_State
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     v_BOOL_t *bWPSState
 )
 {
@@ -2056,11 +2056,11 @@ WLANSAP_Get_WPS_State
 
     if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
 
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if ( NULL == pSapCtx )
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
              return VOS_STATUS_E_FAULT;
         }
 
@@ -2134,7 +2134,7 @@ sap_ReleaseGlobalLock
   PARAMETERS
 
     IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -2150,7 +2150,7 @@ sap_ReleaseGlobalLock
 ============================================================================*/
 VOS_STATUS WLANSAP_Set_WPARSNIes
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     v_U8_t *pWPARSNIEs,
     v_U32_t WPARSNIEsLen
 )
@@ -2160,11 +2160,11 @@ VOS_STATUS WLANSAP_Set_WPARSNIes
     v_PVOID_t hHal = NULL;
 
     if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if ( NULL == pSapCtx )
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
 
@@ -2193,17 +2193,17 @@ VOS_STATUS WLANSAP_Set_WPARSNIes
 
 VOS_STATUS WLANSAP_GetStatistics
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     tSap_SoftapStats *statBuf,
     v_BOOL_t bReset
 )
 {
-    if (NULL == pvosGCtx)
+    if (NULL == pCtx)
     {
         return VOS_STATUS_E_FAULT;
     }
 
-    return (WLANTL_GetSoftAPStatistics(pvosGCtx, statBuf, bReset));
+    return (WLANTL_GetSoftAPStatistics(pCtx, statBuf, bReset));
 }
 
 /*==========================================================================
@@ -2219,7 +2219,7 @@ VOS_STATUS WLANSAP_GetStatistics
   PARAMETERS
 
   IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -2235,7 +2235,7 @@ VOS_STATUS WLANSAP_GetStatistics
 ============================================================================*/
 VOS_STATUS WLANSAP_SendAction
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     const tANI_U8 *pBuf,
     tANI_U32 len, tANI_U16 wait
 )
@@ -2246,11 +2246,11 @@ VOS_STATUS WLANSAP_SendAction
 
     if( VOS_STA_SAP_MODE == vos_get_conparam ( ) )
     {
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if (NULL == pSapCtx)
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
         hHal = VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
@@ -2290,7 +2290,7 @@ VOS_STATUS WLANSAP_SendAction
   PARAMETERS
 
   IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -2308,7 +2308,7 @@ VOS_STATUS WLANSAP_SendAction
 ============================================================================*/
 VOS_STATUS WLANSAP_RemainOnChannel
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     tANI_U8 channel,
     tANI_U32 duration,
     remainOnChanCallback callback,
@@ -2321,11 +2321,11 @@ VOS_STATUS WLANSAP_RemainOnChannel
 
     if( VOS_STA_SAP_MODE == vos_get_conparam ( ) )
     {
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if (NULL == pSapCtx)
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
         hHal = VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
@@ -2365,7 +2365,7 @@ VOS_STATUS WLANSAP_RemainOnChannel
   PARAMETERS
 
   IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -2379,7 +2379,7 @@ VOS_STATUS WLANSAP_RemainOnChannel
 ============================================================================*/
 VOS_STATUS WLANSAP_CancelRemainOnChannel
 (
-    v_PVOID_t pvosGCtx
+    v_PVOID_t pCtx
 )
 {
     ptSapContext pSapCtx = NULL;
@@ -2388,11 +2388,11 @@ VOS_STATUS WLANSAP_CancelRemainOnChannel
 
     if( VOS_STA_SAP_MODE == vos_get_conparam ( ) )
     {
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if (NULL == pSapCtx)
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
         hHal = VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
@@ -2432,7 +2432,7 @@ VOS_STATUS WLANSAP_CancelRemainOnChannel
   PARAMETERS
 
   IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -2449,7 +2449,7 @@ VOS_STATUS WLANSAP_CancelRemainOnChannel
 ============================================================================*/
 VOS_STATUS WLANSAP_RegisterMgmtFrame
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     tANI_U16 frameType,
     tANI_U8* matchData,
     tANI_U16 matchLen
@@ -2461,11 +2461,11 @@ VOS_STATUS WLANSAP_RegisterMgmtFrame
 
     if( VOS_STA_SAP_MODE == vos_get_conparam ( ) )
     {
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if (NULL == pSapCtx)
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
         hHal = VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
@@ -2505,7 +2505,7 @@ VOS_STATUS WLANSAP_RegisterMgmtFrame
   PARAMETERS
 
   IN
-    pvosGCtx    : Pointer to the global vos context; a handle to SAP's
+    pCtx    : Pointer to the global vos context; a handle to SAP's
                   control block can be extracted from its context
                   When MBSSID feature is enabled, SAP context is directly
                   passed to SAP APIs
@@ -2522,7 +2522,7 @@ VOS_STATUS WLANSAP_RegisterMgmtFrame
 ============================================================================*/
 VOS_STATUS WLANSAP_DeRegisterMgmtFrame
 (
-    v_PVOID_t pvosGCtx,
+    v_PVOID_t pCtx,
     tANI_U16 frameType,
     tANI_U8* matchData,
     tANI_U16 matchLen
@@ -2534,11 +2534,11 @@ VOS_STATUS WLANSAP_DeRegisterMgmtFrame
 
     if( VOS_STA_SAP_MODE == vos_get_conparam ( ) )
     {
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pSapCtx = VOS_GET_SAP_CB(pCtx);
         if (NULL == pSapCtx)
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                       "%s: Invalid SAP pointer from pCtx", __func__);
             return VOS_STATUS_E_FAULT;
         }
         hHal = VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
@@ -2583,7 +2583,7 @@ VOS_STATUS WLANSAP_DeRegisterMgmtFrame
 
   PARAMETERS
   IN
-  sapContext: Pointer to vos global context structure
+  pSapCtx: Pointer to vos global context structure
 
   RETURN VALUE
   The VOS_STATUS code associated with performing the operation
@@ -2603,7 +2603,7 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, tANI_U8 tArgetChannel)
     if ( NULL == sapContext )
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
@@ -2644,7 +2644,7 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, tANI_U8 tArgetChannel)
 PARAMETERS
 
 IN
-  pvosGCtx: Pointer to vos global context structure
+  pSapCtx: Pointer to vos global context structure
 
 RETURN VALUE
   The VOS_STATUS code associated with performing the operation
@@ -2664,7 +2664,7 @@ VOS_STATUS WLANSAP_StartBeaconReq(v_PVOID_t pSapCtx)
     if ( NULL == sapContext )
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer", __func__);
         return VOS_STATUS_E_FAULT;
     }
 
@@ -2704,7 +2704,7 @@ VOS_STATUS WLANSAP_StartBeaconReq(v_PVOID_t pSapCtx)
 
   PARAMETERS
   IN
-  sapContext: Pointer to vos global context structure
+  pSapCtx: Pointer to vos global context structure
 
   RETURN VALUE
   The VOS_STATUS code associated with performing the operation
@@ -2724,7 +2724,7 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx)
     if ( NULL == sapContext )
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+                   "%s: Invalid SAP pointer", __func__);
         return VOS_STATUS_E_FAULT;
     }
 

@@ -32,6 +32,7 @@
 #include <linux/mmc/sdio.h>
 #include <linux/kthread.h>
 #include "hif_internal.h"
+#include <adf_os_mem.h>
 #define ATH_MODULE_NAME hif
 #include "a_debug.h"
 

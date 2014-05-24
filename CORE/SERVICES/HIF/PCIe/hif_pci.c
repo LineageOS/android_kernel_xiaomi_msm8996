@@ -2385,10 +2385,8 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
     struct hif_pci_softc *sc = hif_state->sc;
 
 
-#ifdef TARGET_RECOVERY_AFTER_LINK_DOWN
     if (sc->recovery)
         return -EACCES;
-#endif
 
     if (sleep_ok) {
         adf_os_spin_lock_irqsave(&hif_state->keep_awake_lock);

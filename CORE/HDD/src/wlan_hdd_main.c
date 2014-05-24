@@ -4890,6 +4890,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if ( strncasecmp(command, "MIRACAST", 8) == 0 )
        {
+           tHalHandle hHal = WLAN_HDD_GET_CTX(pAdapter)->hHal;
+           tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
            tANI_U8 filterType = 0;
            tANI_U8 *value;
            value = command + 9;
@@ -4916,7 +4918,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                goto exit;
            }
            //Filtertype value should be either 0-Disabled, 1-Source, 2-sink
-           pHddCtx->drvr_miracast = filterType;
+           pMac->fMiracastSessionPresent = filterType;
            hdd_tx_rx_pkt_cnt_stat_timer_handler(pHddCtx);
        }
        else if (strncmp(command, "SETRMCTXRATE", 12) == 0)
@@ -9770,6 +9772,67 @@ static void hdd_full_power_callback(void *callbackContext, eHalStatus status)
    spin_unlock(&hdd_context_lock);
 }
 
+static inline VOS_STATUS hdd_UnregisterWext_all_adapters(hdd_context_t *pHddCtx)
+{
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+    VOS_STATUS status;
+    hdd_adapter_t      *pAdapter;
+
+    ENTER();
+
+    status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
+
+    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
+    {
+        pAdapter = pAdapterNode->pAdapter;
+        if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
+                (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) ||
+                (pAdapter->device_mode == WLAN_HDD_IBSS) ||
+                (pAdapter->device_mode == WLAN_HDD_P2P_DEVICE) ||
+                (pAdapter->device_mode == WLAN_HDD_SOFTAP) ||
+                (pAdapter->device_mode == WLAN_HDD_P2P_GO)) {
+            wlan_hdd_cfg80211_deregister_frames(pAdapter);
+            hdd_UnregisterWext(pAdapter->dev);
+        }
+        status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+        pAdapterNode = pNext;
+    }
+
+    EXIT();
+
+    return VOS_STATUS_SUCCESS;
+}
+static inline VOS_STATUS hdd_abort_mac_scan_all_adapters(hdd_context_t *pHddCtx)
+{
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+    VOS_STATUS status;
+    hdd_adapter_t      *pAdapter;
+
+    ENTER();
+
+    status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
+
+    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status)
+    {
+        pAdapter = pAdapterNode->pAdapter;
+        if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
+            (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) ||
+            (pAdapter->device_mode == WLAN_HDD_IBSS) ||
+            (pAdapter->device_mode == WLAN_HDD_P2P_DEVICE) ||
+            (pAdapter->device_mode == WLAN_HDD_SOFTAP) ||
+            (pAdapter->device_mode == WLAN_HDD_P2P_GO)) {
+            hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
+                               eCSR_SCAN_ABORT_DEFAULT);
+        }
+        status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+        pAdapterNode = pNext;
+    }
+
+    EXIT();
+
+    return VOS_STATUS_SUCCESS;
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_exit() - HDD WLAN exit function
@@ -9787,7 +9850,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    v_CONTEXT_t pVosContext = pHddCtx->pvosContext;
    VOS_STATUS vosStatus;
    struct wiphy *wiphy = pHddCtx->wiphy;
-   hdd_adapter_t* pAdapter;
    struct statsContext powerContext;
    long lrc;
 #if defined (QCA_WIFI_2_0) && \
@@ -9804,22 +9866,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       wlan_hdd_restart_deinit(pHddCtx);
    }
 
-   if (VOS_STA_SAP_MODE != hdd_get_conparam())
-   {
-      if (VOS_FTM_MODE != hdd_get_conparam())
-      {
-         hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
-                                      WLAN_HDD_INFRA_STATION);
-         if (pAdapter == NULL)
-            pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_CLIENT);
-
-         if (pAdapter != NULL)
-         {
-            wlan_hdd_cfg80211_deregister_frames(pAdapter);
-            hdd_UnregisterWext(pAdapter->dev);
-         }
-      }
-   }
+   hdd_UnregisterWext_all_adapters(pHddCtx);
 
    if (VOS_FTM_MODE == hdd_get_conparam())
    {
@@ -9839,30 +9886,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    //Stop the Interface TX queue.
    //netif_tx_disable(pWlanDev);
    //netif_carrier_off(pWlanDev);
-
-   if (VOS_STA_SAP_MODE == hdd_get_conparam())
-   {
-      hddLog(VOS_TRACE_LEVEL_INFO,"%s: SAP MODE",__func__);
-      pAdapter = hdd_get_adapter(pHddCtx,
-                                   WLAN_HDD_SOFTAP);
-   }
-   else
-   {
-      if (VOS_FTM_MODE != hdd_get_conparam())
-      {
-         hddLog(VOS_TRACE_LEVEL_INFO,"%s: STA MODE",__func__);
-         pAdapter = hdd_get_adapter(pHddCtx,
-                                    WLAN_HDD_INFRA_STATION);
-         if (pAdapter == NULL)
-            pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_IBSS);
-      }
-   }
-
-   if (NULL == pAdapter)
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: pAdapter is NULL", __func__);
-      goto free_hdd_ctx;
-   }
 
    /* DeRegister with platform driver as client for Suspend/Resume */
    vosStatus = hddDeregisterPmOps(pHddCtx);
@@ -9891,11 +9914,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    // we are about to Request Full Power, and since that is synchronized,
    // the expectation is that by the time Request Full Power has completed,
    // all scans will be cancelled.
-   if (NULL != pAdapter)
-      hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId, eCSR_SCAN_ABORT_DEFAULT);
-   else
-       hddLog(VOS_TRACE_LEVEL_ERROR,
-           "%s: pAdapter is NULL, cannot Abort scan", __func__);
+   hdd_abort_mac_scan_all_adapters(pHddCtx);
 
    //Stop the traffic monitor timer
    if ((pHddCtx->cfg_ini->dynSplitscan) && (VOS_TIMER_STATE_RUNNING ==
