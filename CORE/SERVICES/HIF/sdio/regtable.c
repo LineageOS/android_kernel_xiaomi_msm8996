@@ -61,6 +61,12 @@ void hif_register_tbl_attach(u32 hif_type)
 {
    ENTER("hif_type %d", hif_type);
 
+   if (NULL == sc) {
+        VOS_TRACE( VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_ERROR, "%s: sc is NULL",
+                                                                __func__);
+        return;
+}
+
     switch (hif_type) {
     case HIF_TYPE_AR9888:
         sc->hostdef = &ar9888_hostdef;

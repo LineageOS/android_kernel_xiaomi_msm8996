@@ -54,12 +54,13 @@
 
 unsigned int htc_credit_flow = 1;
 
-void HIFStart(HIF_DEVICE *hif_device)
+A_STATUS HIFStart(HIF_DEVICE *hif_device)
 {
    HIF_SDIO_DEVICE *htc_sdio_device = HIFDevFromHIF(hif_device);
    ENTER();
    HIFDevEnableInterrupts(htc_sdio_device);
    EXIT();
+   return A_OK;
 }
 
 void

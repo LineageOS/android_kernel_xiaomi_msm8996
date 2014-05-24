@@ -223,15 +223,15 @@ ol_tx_ll_queue(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
         msdu_list = ol_tx_vdev_pause_queue_append(vdev, msdu_list, 1);
     } else {
         if (vdev->ll_pause.txq.depth > 0 ||
-            vdev->pdev->tx_throttle_ll.current_throttle_level !=
+            vdev->pdev->tx_throttle.current_throttle_level !=
             THROTTLE_LEVEL_0) {
             /* not paused, but there is a backlog of frms from a prior pause or
                throttle off phase */
             msdu_list = ol_tx_vdev_pause_queue_append(vdev, msdu_list, 0);
             /* if throttle is disabled or phase is "on" send the frame */
-            if (vdev->pdev->tx_throttle_ll.current_throttle_level ==
+            if (vdev->pdev->tx_throttle.current_throttle_level ==
                 THROTTLE_LEVEL_0 ||
-                vdev->pdev->tx_throttle_ll.current_throttle_phase ==
+                vdev->pdev->tx_throttle.current_throttle_phase ==
                 THROTTLE_PHASE_ON) {
                 /* send as many frames as possible from the vdevs backlog */
                 ol_tx_vdev_ll_pause_queue_send_base(vdev);
@@ -259,12 +259,12 @@ ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
         return;
     }
 
-    if (pdev->tx_throttle_ll.current_throttle_phase == THROTTLE_PHASE_OFF) {
+    if (pdev->tx_throttle.current_throttle_phase == THROTTLE_PHASE_OFF) {
         return;
     }
 
     /* ensure that we send no more than tx_threshold frames at once */
-    max_to_send = pdev->tx_throttle_ll.tx_threshold;
+    max_to_send = pdev->tx_throttle.tx_threshold;
 
     /* round robin through the vdev queues for the given pdev */
 
@@ -325,8 +325,8 @@ ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
     TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
         adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
         if (vdev->ll_pause.txq.depth) {
-            adf_os_timer_cancel(&pdev->tx_throttle_ll.tx_timer);
-            adf_os_timer_start(&pdev->tx_throttle_ll.tx_timer,
+            adf_os_timer_cancel(&pdev->tx_throttle.tx_timer);
+            adf_os_timer_start(&pdev->tx_throttle.tx_timer,
                                OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
             adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
             return;

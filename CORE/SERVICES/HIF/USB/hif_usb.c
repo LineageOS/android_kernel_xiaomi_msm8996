@@ -642,7 +642,7 @@ static HIF_DEVICE_USB *usb_hif_create(struct usb_interface *interface)
 	return device;
 }
 
-void HIFStart(HIF_DEVICE *hifDevice)
+A_STATUS HIFStart(HIF_DEVICE *hifDevice)
 {
 	HIF_DEVICE_USB *device = (HIF_DEVICE_USB *) hifDevice;
 	int i;
@@ -658,6 +658,7 @@ void HIFStart(HIF_DEVICE *hifDevice)
 	}
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n", __func__));
+	return A_OK;
 }
 
 void HIFStop(HIF_DEVICE *hifDevice)

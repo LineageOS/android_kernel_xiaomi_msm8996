@@ -139,7 +139,6 @@ HIFDiagReadAccess(HIF_DEVICE *hifDevice, A_UINT32 address, A_UINT32 *data)
     }
 
     *data = readvalue;
-printk("add:0x%08x val:0x%08x\n",address,*data);
     return status;
 }
 

@@ -619,9 +619,7 @@ ol_txrx_pdev_attach(
 
 #ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
     /* Thermal Mitigation */
-    if (!pdev->cfg.is_high_latency) {
-        ol_tx_throttle_init(pdev);
-    }
+    ol_tx_throttle_init(pdev);
 #endif
     return pdev; /* success */
 
@@ -686,12 +684,10 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     }
 #ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
     /* Thermal Mitigation */
-    if (!pdev->cfg.is_high_latency) {
-        adf_os_timer_cancel(&pdev->tx_throttle_ll.phase_timer);
-        adf_os_timer_free(&pdev->tx_throttle_ll.phase_timer);
-        adf_os_timer_cancel(&pdev->tx_throttle_ll.tx_timer);
-        adf_os_timer_free(&pdev->tx_throttle_ll.tx_timer);
-    }
+    adf_os_timer_cancel(&pdev->tx_throttle.phase_timer);
+    adf_os_timer_free(&pdev->tx_throttle.phase_timer);
+    adf_os_timer_cancel(&pdev->tx_throttle.tx_timer);
+    adf_os_timer_free(&pdev->tx_throttle.tx_timer);
 #endif
     if (force) {
         /*
@@ -745,9 +741,7 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     adf_os_spinlock_destroy(&pdev->rx.mutex);
 #ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
     /* Thermal Mitigation */
-    if (!pdev->cfg.is_high_latency) {
-        adf_os_spinlock_destroy(&pdev->tx_throttle_ll.mutex);
-    }
+    adf_os_spinlock_destroy(&pdev->tx_throttle.mutex);
 #endif
     OL_TXRX_PEER_STATS_MUTEX_DESTROY(pdev);
 

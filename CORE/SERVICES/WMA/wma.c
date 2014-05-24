@@ -6843,6 +6843,7 @@ static void wma_roam_preauth_scan_event_handler(tp_wma_handle wma_handle,
                 if (wmi_event->event &
                                 (WMI_SCAN_EVENT_COMPLETED | WMI_SCAN_EVENT_BSS_CHANNEL))
                         wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_COMPLETED;
+
                         /* There is no WDA request to complete. Next set channel request will
                          * look at this state and complete it.
                          */
@@ -12522,7 +12523,7 @@ void wma_scan_cache_updated_ind(tp_wma_handle wma)
 
 #endif
 
-void wma_send_ready_to_suspend_ind(tp_wma_handle wma)
+static void wma_send_status_to_suspend_ind(tp_wma_handle wma, boolean suspended)
 {
 	tSirReadyToSuspendInd *ready_to_suspend;
 	VOS_STATUS status;
@@ -12541,6 +12542,7 @@ void wma_send_ready_to_suspend_ind(tp_wma_handle wma)
 
 	ready_to_suspend->mesgType = eWNI_SME_READY_TO_SUSPEND_IND;
 	ready_to_suspend->mesgLen = len;
+	ready_to_suspend->suspended = suspended;
 
 	vos_msg.type = eWNI_SME_READY_TO_SUSPEND_IND;
 	vos_msg.bodyptr = (void *) ready_to_suspend;
@@ -13012,8 +13014,7 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	wmi_pending_cmds = wmi_get_pending_cmds(wma->wmi_handle);
 
 	WMA_LOGD("Credits:%d; Pending_Cmds: %d",
-		wmi_get_host_credits(wma->wmi_handle),
-		wmi_get_pending_cmds(wma->wmi_handle));
+		host_credits, wmi_pending_cmds);
 
 	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
 		WMA_LOGE("%s: Host Doesn't have enough credits to Post WMI_WOW_ENABLE_CMDID! "
@@ -13298,6 +13299,15 @@ static VOS_STATUS wma_resume_req(tp_wma_handle wma)
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
 	u_int8_t ptrn_id;
 
+	wma->no_of_resume_ind ++;
+
+	if (wma->no_of_resume_ind < wma_get_vdev_count(wma))
+		return VOS_STATUS_SUCCESS;
+
+	wma->no_of_resume_ind = 0;
+
+	WMA_LOGD("Clearing already configured wow patterns in fw");
+
 	/* Clear existing wow patterns in FW. */
 	for (ptrn_id = 0; ptrn_id < wma->wlan_resource_config.num_wow_filters;
 		ptrn_id++) {
@@ -13305,11 +13315,6 @@ static VOS_STATUS wma_resume_req(tp_wma_handle wma)
 		if (ret != VOS_STATUS_SUCCESS)
 			goto end;
 	}
-
-	/* Gather list of free ptrn id. This is needed while configuring
-	* default wow patterns.
-	*/
-	wma_update_free_wow_ptrn_id(wma);
 
 end:
 	return ret;
@@ -13328,7 +13333,10 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	u_int8_t enable_ptrn_match = 0;
 	v_BOOL_t ap_vdev_available = FALSE;
 
-	WMA_LOGD("Clearing already configured wow patterns in fw");
+	/* Gather list of free ptrn id. This is needed while configuring
+	* default wow patterns.
+	*/
+	wma_update_free_wow_ptrn_id(wma);
 
 	for (vdev_id = 0; vdev_id < wma->max_bssid; vdev_id++) {
 		iface = &wma->interfaces[vdev_id];
@@ -13737,12 +13745,13 @@ enable_wow:
 	ret = wma_feed_wow_config_to_fw(wma, pno_in_progress);
 	if (ret != VOS_STATUS_SUCCESS) {
 		vos_mem_free(info);
+		wma_send_status_to_suspend_ind(wma, FALSE);
 		return ret;
 	}
 	vos_mem_free(info);
 
 send_ready_to_suspend:
-	wma_send_ready_to_suspend_ind(wma);
+	wma_send_status_to_suspend_ind(wma, TRUE);
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -16657,6 +16666,10 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 
         if (wma_handle->roam_preauth_scan_id == wmi_event->scan_id) {
                 /* This is the scan requested by roam preauth set_channel operation */
+
+		if (wmi_event->event == WMI_SCAN_EVENT_COMPLETED)
+			wma_reset_scan_info(wma_handle, vdev_id);
+
                 wma_roam_preauth_scan_event_handler(wma_handle, vdev_id, wmi_event);
                 return 0;
         }

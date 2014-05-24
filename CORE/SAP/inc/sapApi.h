@@ -1734,6 +1734,34 @@ VOS_STATUS WLANSAP_StartBeaconReq(v_PVOID_t pSapCtx);
 VOS_STATUS
 WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx);
 
+/*==========================================================================
+  FUNCTION    WLANSAP_Set_Dfs_Ignore_CAC
+
+  DESCRIPTION
+   This API is used to set ignore_cac flag, used for ignoring the CAC operation for DFS channel.
+   If the flag set to 1 or TRUE then it will avoid CAC.
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  pvosGCtx: Pointer to vos global context structure
+
+  PARAMETERS
+  IN
+  ignore_cac: value to be set
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+
+VOS_STATUS
+WLANSAP_Set_Dfs_Ignore_CAC(v_PVOID_t pvosGCtx, v_U8_t ignore_cac);
 
 #ifdef __cplusplus
  }

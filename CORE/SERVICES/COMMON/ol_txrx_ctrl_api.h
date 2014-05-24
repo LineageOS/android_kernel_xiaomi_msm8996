@@ -323,6 +323,35 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle data_vdev);
 #endif /* CONFIG_HL_SUPPORT */
 
 /**
+ * @brief Suspend all tx data per thermal event/timer for the
+ *  specified physical device
+ * @details
+ *  This function applies only to HL systerms, and it makes pause and
+ * unpause operations happen in pairs.
+ */
+#if defined(CONFIG_HL_SUPPORT)
+void
+ol_txrx_throttle_pause(ol_txrx_pdev_handle data_pdev);
+#else
+#define ol_txrx_throttle_pause(data_pdev) /* no-op */
+#endif /* CONFIG_HL_SUPPORT */
+
+
+/**
+ * @brief Resume all tx data per thermal event/timer for the
+ * specified physical device
+ * @details
+ *  This function applies only to HL systerms, and it makes pause and
+ * unpause operations happen in pairs.
+ */
+#if defined(CONFIG_HL_SUPPORT)
+void
+ol_txrx_throttle_unpause(ol_txrx_pdev_handle data_pdev);
+#else
+#define ol_txrx_throttle_unpause(data_pdev) /* no-op */
+#endif /* CONFIG_HL_SUPPORT */
+
+/**
  * @brief Suspend all tx data for the specified physical device.
  * @details
  *  This function applies only to HL systems - in LL systems, tx flow control
