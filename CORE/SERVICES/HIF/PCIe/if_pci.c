@@ -42,6 +42,7 @@
 #include "ol_fw.h"
 #include <osapi_linux.h>
 #include "vos_api.h"
+#include "vos_sched.h"
 #include "wma_api.h"
 #include "adf_os_atomic.h"
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
@@ -1601,6 +1602,9 @@ void hif_pci_shutdown(struct pci_dev *pdev)
         pktlogmod_exit(scn);
 #endif
 
+    if (!vos_is_ssr_ready(__func__))
+        printk("Host driver is not ready for SSR, attempting anyway\n");
+
     hdd_wlan_shutdown();
 
     mem = (void __iomem *)sc->mem;
@@ -1671,6 +1675,12 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     u32 ce_drain_wait_cnt = 0;
     v_VOID_t * temp_module;
     u32 tmp;
+    int ret = -1;
+
+    if (vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL))
+        return ret;
+
+    vos_ssr_protect(__func__);
 
     A_TARGET_ACCESS_BEGIN_RET(targid);
     A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
@@ -1678,7 +1688,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 
     if (!txrx_pdev) {
         printk("%s: txrx_pdev is NULL\n", __func__);
-        return (-1);
+        goto out;
     }
 
     /* Pause all vdev */
@@ -1689,7 +1699,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         msleep(OL_ATH_TX_DRAIN_WAIT_DELAY);
         if (++tx_drain_wait_cnt > OL_ATH_TX_DRAIN_WAIT_CNT) {
             printk("%s: tx frames are pending\n", __func__);
-            return (-1);
+            goto out;
         }
     }
 
@@ -1697,12 +1707,12 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos);
     if (!temp_module) {
         printk("%s: WDA module is NULL\n", __func__);
-        return (-1);
+        goto out;
     }
 
     if (wma_check_scan_in_progress(temp_module)) {
         printk("%s: Scan in progress. Aborting suspend\n", __func__);
-        return (-1);
+        goto out;
     }
 
     printk("\n%s: wow mode %d event %d\n", __func__,
@@ -1710,10 +1720,10 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 
     if (wma_is_wow_mode_selected(temp_module)) {
           if(wma_enable_wow_in_fw(temp_module))
-                return (-1);
+            goto out;
     } else if (state.event == PM_EVENT_FREEZE || state.event == PM_EVENT_SUSPEND) {
           if (wma_suspend_target(temp_module, 0))
-                return (-1);
+            goto out;
     }
 
     while (!adf_os_atomic_read(&sc->ce_suspend)) {
@@ -1728,11 +1738,11 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
             if (!wma_is_wow_mode_selected(temp_module) &&
                (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
                   wma_resume_target(temp_module);
-                  return -1;
+                goto out;
             }
             else {
                wma_disable_wow_in_fw(temp_module);
-               return (-1);
+               goto out;
             }
         }
         printk("%s: Waiting for CE to finish access: \n", __func__);
@@ -1763,8 +1773,11 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     }
 
     printk("%s: Suspend completes\n", __func__);
+    ret = 0;
 
-    return 0;
+out:
+    vos_ssr_unprotect(__func__);
+    return ret;
 }
 
 static int
@@ -1776,9 +1789,14 @@ hif_pci_resume(struct pci_dev *pdev)
     struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
     A_target_id_t targid = hif_state->targid;
     u32 val;
-    int err;
+    int err = 0;
     v_VOID_t * temp_module;
     u32 tmp;
+
+    if (vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL))
+        return err;
+
+    vos_ssr_protect(__func__);
 
     adf_os_atomic_set(&sc->pci_link_suspended, 0);
 
@@ -1800,7 +1818,7 @@ hif_pci_resume(struct pci_dev *pdev)
     {
         printk("\n%s %d : pci_enable_device returned failure %d\n",
            __func__, __LINE__, err);
-        return err;
+        goto out;
     }
 
     pci_read_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, &val);
@@ -1835,30 +1853,35 @@ hif_pci_resume(struct pci_dev *pdev)
     temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
     if (!temp_module) {
         printk("%s: WDA module is NULL\n", __func__);
-        return (-1);
+        goto out;
     }
 
     printk("\n%s: wow mode %d val %d\n", __func__,
        wma_is_wow_mode_selected(temp_module), val);
 
     adf_os_atomic_set(&sc->wow_done, 0);
+
     if (!wma_is_wow_mode_selected(temp_module) &&
-        (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
-        return wma_resume_target(temp_module);
-    }
-    else if (wma_disable_wow_in_fw(temp_module))
-        return (-1);
+        (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND))
+        err = wma_resume_target(temp_module);
+    else
+        err = wma_disable_wow_in_fw(temp_module);
 
-    if (!txrx_pdev) {
+    if (!txrx_pdev)
         printk("%s: txrx_pdev is NULL\n", __func__);
+    else
+        /* Unpause all vdev */
+        ol_txrx_pdev_unpause(txrx_pdev);
+
+out:
+    printk("%s: Resume completes %d\n", __func__, err);
+
+    vos_ssr_unprotect(__func__);
+
+    if (err)
         return (-1);
-    }
-    /* Unpause all vdev */
-    ol_txrx_pdev_unpause(txrx_pdev);
 
-    printk("%s: Resume completes\n", __func__);
-
-    return 0;
+    return (0);
 }
 
 /* routine to modify the initial buffer count to be allocated on an os

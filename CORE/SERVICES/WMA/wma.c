@@ -13174,7 +13174,10 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 		WMA_LOGE("%s: No Credits after HTC ACK:%d, pending_cmds:%d, "
 			"cannot resume back", __func__, host_credits, wmi_pending_cmds);
 		HTC_dump_counter_info(wma->htc_handle);
-		VOS_BUG(0);
+		if (!vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL))
+			VOS_BUG(0);
+		else
+			WMA_LOGE("%s: SSR in progress, ignore no credit issue", __func__);
 	}
 
 
@@ -13923,7 +13926,10 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 		WMA_LOGP("%s: Pending commands %d credits %d", __func__,
 				wmi_get_pending_cmds(wma->wmi_handle),
 				wmi_get_host_credits(wma->wmi_handle));
-		VOS_BUG(0);
+		if (!vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL))
+			VOS_BUG(0);
+		else
+			WMA_LOGE("%s: SSR in progress, ignore resume timeout", __func__);
 	} else {
 		WMA_LOGD("Host wakeup received");
 	}
