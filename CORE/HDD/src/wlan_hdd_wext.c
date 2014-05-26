@@ -9685,7 +9685,8 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
                   * first, then change the band*/
 
                  hddLog(VOS_TRACE_LEVEL_INFO,
-                         "%s STA (Device mode=%d) connected in band %u, Changing band to %u, Issuing Disconnect",
+                         "%s STA (Device mode=%d) connected in band %u, Changing band to %u, Issuing Disconnect"
+                         "Set HDD connState to eConnectionState_Disconnecting",
                             __func__, pAdapter->device_mode,
                             currBand, band);
 
