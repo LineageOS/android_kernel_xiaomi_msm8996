@@ -68,6 +68,13 @@ ifeq ($(KERNEL_BUILD), 0)
 	#Flag to enable new Linux Regulatory implementation
 	CONFIG_ENABLE_LINUX_REG := y
 
+        #Flag to enable Protected Managment Frames (11w) feature
+        ifeq ($(CONFIG_ROME_IF),usb)
+                CONFIG_WLAN_FEATURE_11W := y
+        endif
+        ifeq ($(CONFIG_ROME_IF),sdio)
+                CONFIG_WLAN_FEATURE_11W := y
+        endif
 endif
 
 # To enable ESE upload, dependent config

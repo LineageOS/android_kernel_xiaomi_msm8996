@@ -95,6 +95,111 @@
 /*----------------------------------------------------------------------------
    Function Definitions and Documentation
  * -------------------------------------------------------------------------*/
+#ifndef CONFIG_CNSS
+#define CMAC_TLEN 8 /* CMAC TLen = 64 bits (8 octets) */
+
+static inline void xor_128(const u8 *a, const u8 *b, u8 *out)
+{
+        u8 i;
+
+        for (i = 0; i < AES_BLOCK_SIZE; i++)
+                out[i] = a[i] ^ b[i];
+}
+
+static inline void leftshift_onebit(const u8 *input, u8 *output)
+{
+        int i, overflow = 0;
+
+        for (i = (AES_BLOCK_SIZE - 1); i >= 0; i--) {
+                output[i] = input[i] << 1;
+                output[i] |= overflow;
+                overflow = (input[i] & 0x80) ? 1 : 0;
+        }
+        return;
+}
+
+static void generate_subkey(struct crypto_cipher *tfm, u8 *k1, u8 *k2)
+{
+        u8 l[AES_BLOCK_SIZE], tmp[AES_BLOCK_SIZE];
+        u8 const_rb[AES_BLOCK_SIZE] = {
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x87};
+        u8 const_zero[AES_BLOCK_SIZE] = {
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+        crypto_cipher_encrypt_one(tfm, l, const_zero);
+
+        if ((l[0] & 0x80) == 0) { /* If MSB(l) = 0, then k1 = l << 1 */
+                leftshift_onebit(l, k1);
+        } else {    /* Else k1 = ( l << 1 ) (+) Rb */
+                leftshift_onebit(l, tmp);
+                xor_128(tmp, const_rb, k1);
+        }
+
+        if ((k1[0] & 0x80) == 0) {
+                leftshift_onebit(k1, k2);
+        } else {
+                leftshift_onebit(k1, tmp);
+                xor_128(tmp, const_rb, k2);
+        }
+}
+
+static inline void padding(u8 *lastb, u8 *pad, u16 length)
+{
+        u8 j;
+
+        /* original last block */
+        for (j = 0; j < AES_BLOCK_SIZE; j++)  {
+                if (j < length)
+                        pad[j] = lastb[j];
+                else if (j == length)
+                        pad[j] = 0x80;
+                else
+                        pad[j] = 0x00;
+        }
+}
+
+void cmac_calc_mic(struct crypto_cipher *tfm, u8 *m,
+                                u16 length, u8 *mac)
+{
+        u8 x[AES_BLOCK_SIZE], y[AES_BLOCK_SIZE];
+        u8 m_last[AES_BLOCK_SIZE], padded[AES_BLOCK_SIZE];
+        u8 k1[AES_KEYSIZE_128], k2[AES_KEYSIZE_128];
+        int cmpBlk;
+        int i, nBlocks = (length + 15)/AES_BLOCK_SIZE;
+
+        generate_subkey(tfm, k1, k2);
+
+        if (nBlocks == 0) {
+                nBlocks = 1;
+                cmpBlk = 0;
+        } else {
+                cmpBlk = ((length % AES_BLOCK_SIZE) == 0) ? 1 : 0;
+        }
+
+        if (cmpBlk) { /* Last block is complete block */
+                xor_128(&m[AES_BLOCK_SIZE * (nBlocks - 1)], k1, m_last);
+        } else { /* Last block is not complete block */
+                padding(&m[AES_BLOCK_SIZE * (nBlocks - 1)], padded,
+                        length % AES_BLOCK_SIZE);
+                xor_128(padded, k2, m_last);
+        }
+
+        for (i = 0; i < AES_BLOCK_SIZE; i++)
+                x[i] = 0;
+
+        for (i = 0; i < (nBlocks - 1); i++) {
+                xor_128(x, &m[AES_BLOCK_SIZE * i], y); /* y = Mi (+) x */
+                crypto_cipher_encrypt_one(tfm, x, y); /* x = AES-128(KEY, y) */
+        }
+
+        xor_128(x, m_last, y);
+        crypto_cipher_encrypt_one(tfm, x, y);
+
+        memcpy(mac, x, CMAC_TLEN);
+}
+#endif
 
 /*--------------------------------------------------------------------------
 
@@ -291,7 +396,11 @@ vos_attach_mmie(v_U8_t *igtk, v_U8_t *ipn, u_int16_t key_id,
     /*
      * Calculate MIC and then copy
      */
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    tfm = crypto_alloc_cipher( "aes", 0, CRYPTO_ALG_ASYNC);
+#else
     tfm = wcnss_wlan_crypto_alloc_cipher( "aes", 0, CRYPTO_ALG_ASYNC);
+#endif
     if (IS_ERR(tfm))
     {
         ret = PTR_ERR(tfm);
@@ -342,7 +451,11 @@ vos_attach_mmie(v_U8_t *igtk, v_U8_t *ipn, u_int16_t key_id,
                 (v_U8_t*)(efrm-(frmLen-sizeof(struct ieee80211_frame))),
                 nBytes - AAD_LEN - CMAC_TLEN);
 
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    cmac_calc_mic(tfm, input, nBytes, mic);
+#else
     wcnss_wlan_cmac_calc_mic(tfm, input, nBytes, mic);
+#endif
     vos_mem_free(input);
 
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -359,8 +472,11 @@ err_tfm:
     }
 
     if (tfm)
-        wcnss_wlan_crypto_free_cipher(tfm);
-
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+       crypto_free_cipher(tfm);
+#else
+       wcnss_wlan_crypto_free_cipher(tfm);
+#endif
     return !ret?VOS_TRUE:VOS_FALSE;
 }
 
@@ -405,7 +521,11 @@ v_BOOL_t vos_is_mmie_valid(v_U8_t *igtk, v_U8_t *ipn,
         return VOS_FALSE;
     }
 
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    tfm = crypto_alloc_cipher( "aes", 0, CRYPTO_ALG_ASYNC);
+#else
     tfm = wcnss_wlan_crypto_alloc_cipher( "aes", 0, CRYPTO_ALG_ASYNC);
+#endif
     if (IS_ERR(tfm)) {
         ret = PTR_ERR(tfm);
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,
@@ -449,7 +569,11 @@ v_BOOL_t vos_is_mmie_valid(v_U8_t *igtk, v_U8_t *ipn,
     vos_mem_copy(input, aad, AAD_LEN);
     vos_mem_copy(input+AAD_LEN, (v_U8_t*)(wh+1), nBytes - AAD_LEN - CMAC_TLEN);
 
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    cmac_calc_mic(tfm, input, nBytes, mic);
+#else
     wcnss_wlan_cmac_calc_mic(tfm, input, nBytes, mic);
+#endif
     vos_mem_free(input);
 
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -475,7 +599,11 @@ v_BOOL_t vos_is_mmie_valid(v_U8_t *igtk, v_U8_t *ipn,
 
 err_tfm:
     if (tfm)
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+        crypto_free_cipher(tfm);
+#else
         wcnss_wlan_crypto_free_cipher(tfm);
+#endif
 
     return !ret?VOS_TRUE:VOS_FALSE;
 }
@@ -535,8 +663,13 @@ int hmac_sha1(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
 
     init_completion(&tresult.completion);
 
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    tfm = crypto_alloc_ahash("hmac(sha1)", CRYPTO_ALG_TYPE_AHASH,
+                                        CRYPTO_ALG_TYPE_AHASH_MASK);
+#else
     tfm = wcnss_wlan_crypto_alloc_ahash("hmac(sha1)", CRYPTO_ALG_TYPE_AHASH,
                                         CRYPTO_ALG_TYPE_AHASH_MASK);
+#endif
     if (IS_ERR(tfm)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_alloc_ahash failed");
         ret = PTR_ERR(tfm);
@@ -566,7 +699,11 @@ int hmac_sha1(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
 
     if (ksize) {
         crypto_ahash_clear_flags(tfm, ~0);
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+        ret = crypto_ahash_setkey(tfm, key, ksize);
+#else
         ret = wcnss_wlan_crypto_ahash_setkey(tfm, key, ksize);
+#endif
 
         if (ret) {
             VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_ahash_setkey failed");
@@ -575,8 +712,11 @@ int hmac_sha1(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
     }
 
     ahash_request_set_crypt(req, &sg, hash_result, psize);
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    ret = crypto_ahash_digest(req);
+#else
     ret = wcnss_wlan_crypto_ahash_digest(req);
-
+#endif
     VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "ret 0x%x", ret);
 
     switch (ret) {
@@ -606,7 +746,11 @@ err_setkey:
 err_hash_buf:
     ahash_request_free(req);
 err_req:
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    crypto_free_ahash(tfm);
+#else
     wcnss_wlan_crypto_free_ahash(tfm);
+#endif
 err_tfm:
     return ret;
 }
@@ -690,8 +834,13 @@ int hmac_md5(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
 
     init_completion(&tresult.completion);
 
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    tfm = crypto_alloc_ahash("hmac(md5)", CRYPTO_ALG_TYPE_AHASH,
+                                        CRYPTO_ALG_TYPE_AHASH_MASK);
+#else
     tfm = wcnss_wlan_crypto_alloc_ahash("hmac(md5)", CRYPTO_ALG_TYPE_AHASH,
                                         CRYPTO_ALG_TYPE_AHASH_MASK);
+#endif
     if (IS_ERR(tfm)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_alloc_ahash failed");
                 ret = PTR_ERR(tfm);
@@ -721,8 +870,11 @@ int hmac_md5(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
 
     if (ksize) {
         crypto_ahash_clear_flags(tfm, ~0);
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+        ret = crypto_ahash_setkey(tfm, key, ksize);
+#else
         ret = wcnss_wlan_crypto_ahash_setkey(tfm, key, ksize);
-
+#endif
         if (ret) {
             VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_ahash_setkey failed");
             goto err_setkey;
@@ -730,7 +882,11 @@ int hmac_md5(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
     }
 
     ahash_request_set_crypt(req, &sg, hash_result, psize);
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    ret = crypto_ahash_digest(req);
+#else
     ret = wcnss_wlan_crypto_ahash_digest(req);
+#endif
 
     VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "ret 0x%x", ret);
 
@@ -761,7 +917,11 @@ err_setkey:
 err_hash_buf:
         ahash_request_free(req);
 err_req:
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+        crypto_free_ahash(tfm);
+#else
         wcnss_wlan_crypto_free_ahash(tfm);
+#endif
 err_tfm:
         return ret;
 }
@@ -850,7 +1010,11 @@ VOS_STATUS vos_encrypt_AES(v_U32_t cryptHandle, /* Handle */
 
     init_completion(&result.completion);
 
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    tfm =  crypto_alloc_ablkcipher( "cbc(aes)", 0, 0);
+#else
     tfm =  wcnss_wlan_crypto_alloc_ablkcipher( "cbc(aes)", 0, 0);
+#endif
     if (IS_ERR(tfm)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_alloc_ablkcipher failed");
         ret = PTR_ERR(tfm);
@@ -890,9 +1054,17 @@ VOS_STATUS vos_encrypt_AES(v_U32_t cryptHandle, /* Handle */
 
 // -------------------------------------
 err_setkey:
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    ablkcipher_request_free(req);
+#else
     wcnss_wlan_ablkcipher_request_free(req);
+#endif
 err_req:
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    crypto_free_ablkcipher(tfm);
+#else
     wcnss_wlan_crypto_free_ablkcipher(tfm);
+#endif
 err_tfm:
     //return ret;
     if (ret != 0) {
@@ -946,7 +1118,11 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
 
     init_completion(&result.completion);
 
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    tfm =  crypto_alloc_ablkcipher( "cbc(aes)", 0, 0);
+#else
     tfm =  wcnss_wlan_crypto_alloc_ablkcipher( "cbc(aes)", 0, 0);
+#endif
     if (IS_ERR(tfm)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_alloc_ablkcipher failed");
         ret = PTR_ERR(tfm);
@@ -986,9 +1162,17 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
 
 // -------------------------------------
 err_setkey:
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    ablkcipher_request_free(req);
+#else
     wcnss_wlan_ablkcipher_request_free(req);
+#endif
 err_req:
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_CNSS)
+    crypto_free_ablkcipher(tfm);
+#else
     wcnss_wlan_crypto_free_ablkcipher(tfm);
+#endif
 err_tfm:
     //return ret;
     if (ret != 0) {
