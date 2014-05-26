@@ -80,7 +80,7 @@
 #define WMA_TGT_SUSPEND_COMPLETE_TIMEOUT   1000
 #define WMA_WAKE_LOCK_TIMEOUT              1000
 #define WMA_MAX_RESUME_RETRY               10
-#define WMA_RESUME_TIMEOUT                 1000
+#define WMA_RESUME_TIMEOUT                 3000
 #define MAX_MEM_CHUNKS                     32
 /*
    In prima 12 HW stations are supported including BCAST STA(staId 0)

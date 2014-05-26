@@ -1801,6 +1801,8 @@ hif_pci_resume(struct pci_dev *pdev)
             pci_write_config_dword(pdev, 0x40, val & 0xffff00ff);
     }
 
+    printk("\n%s: Rome PS: %d", __func__, val);
+
 #ifdef DISABLE_L1SS_STATES
     pci_read_config_dword(pdev, 0x188, &val);
     pci_write_config_dword(pdev, 0x188, (val & ~0x0000000f));
