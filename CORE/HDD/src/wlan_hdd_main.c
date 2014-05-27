@@ -12007,6 +12007,8 @@ static void hdd_driver_exit(void)
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
    }
 
+   vos_wait_for_work_thread_completion(__func__);
+
 #ifdef QCA_WIFI_ISOC
    //Do all the cleanup before deregistering the driver
    hdd_wlan_exit(pHddCtx);
