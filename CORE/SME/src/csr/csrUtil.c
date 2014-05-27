@@ -5851,7 +5851,98 @@ tANI_BOOLEAN csrMatchBSSToConnectProfile( tHalHandle hHal, tCsrRoamConnectedProf
     return( fRC );
 }
 
+void csrAddRateBitmap(tANI_U8 rate, tANI_U16 *pRateBitmap)
+{
+    tANI_U16 rateBitmap;
+    tANI_U16 n = BITS_OFF( rate, CSR_DOT11_BASIC_RATE_MASK );
+    rateBitmap = *pRateBitmap;
+    switch(n)
+    {
+       case SIR_MAC_RATE_1:
+            rateBitmap |= SIR_MAC_RATE_1_BITMAP;
+            break;
+        case SIR_MAC_RATE_2:
+            rateBitmap |= SIR_MAC_RATE_2_BITMAP;
+            break;
+        case SIR_MAC_RATE_5_5:
+            rateBitmap |= SIR_MAC_RATE_5_5_BITMAP;
+            break;
+        case SIR_MAC_RATE_11:
+            rateBitmap |= SIR_MAC_RATE_11_BITMAP;
+            break;
+        case SIR_MAC_RATE_6:
+            rateBitmap |= SIR_MAC_RATE_6_BITMAP;
+            break;
+        case SIR_MAC_RATE_9:
+            rateBitmap |= SIR_MAC_RATE_9_BITMAP;
+            break;
+        case SIR_MAC_RATE_12:
+            rateBitmap |= SIR_MAC_RATE_12_BITMAP;
+            break;
+        case SIR_MAC_RATE_18:
+            rateBitmap |= SIR_MAC_RATE_18_BITMAP;
+            break;
+        case SIR_MAC_RATE_24:
+            rateBitmap |= SIR_MAC_RATE_24_BITMAP;
+            break;
+        case SIR_MAC_RATE_36:
+            rateBitmap |= SIR_MAC_RATE_36_BITMAP;
+            break;
+        case SIR_MAC_RATE_48:
+            rateBitmap |= SIR_MAC_RATE_48_BITMAP;
+            break;
+        case SIR_MAC_RATE_54:
+            rateBitmap |= SIR_MAC_RATE_54_BITMAP;
+            break;
+    }
+    *pRateBitmap = rateBitmap;
+}
 
+tANI_BOOLEAN csrCheckRateBitmap(tANI_U8 rate, tANI_U16 rateBitmap)
+{
+    tANI_U16 n = BITS_OFF( rate, CSR_DOT11_BASIC_RATE_MASK );
+
+    switch(n)
+    {
+        case SIR_MAC_RATE_1:
+            rateBitmap &= SIR_MAC_RATE_1_BITMAP;
+            break;
+        case SIR_MAC_RATE_2:
+            rateBitmap &= SIR_MAC_RATE_2_BITMAP;
+            break;
+        case SIR_MAC_RATE_5_5:
+            rateBitmap &= SIR_MAC_RATE_5_5_BITMAP;
+            break;
+        case SIR_MAC_RATE_11:
+            rateBitmap &= SIR_MAC_RATE_11_BITMAP;
+            break;
+        case SIR_MAC_RATE_6:
+            rateBitmap &= SIR_MAC_RATE_6_BITMAP;
+            break;
+        case SIR_MAC_RATE_9:
+            rateBitmap &= SIR_MAC_RATE_9_BITMAP;
+            break;
+        case SIR_MAC_RATE_12:
+            rateBitmap &= SIR_MAC_RATE_12_BITMAP;
+            break;
+        case SIR_MAC_RATE_18:
+            rateBitmap &= SIR_MAC_RATE_18_BITMAP;
+            break;
+        case SIR_MAC_RATE_24:
+            rateBitmap &= SIR_MAC_RATE_24_BITMAP;
+            break;
+        case SIR_MAC_RATE_36:
+            rateBitmap &= SIR_MAC_RATE_36_BITMAP;
+            break;
+        case SIR_MAC_RATE_48:
+            rateBitmap &= SIR_MAC_RATE_48_BITMAP;
+            break;
+        case SIR_MAC_RATE_54:
+            rateBitmap &= SIR_MAC_RATE_54_BITMAP;
+            break;
+    }
+    return !!rateBitmap;
+}
 
 tANI_BOOLEAN csrRatesIsDot11RateSupported( tHalHandle hHal, tANI_U8 rate )
 {
