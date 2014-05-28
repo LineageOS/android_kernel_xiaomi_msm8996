@@ -1078,6 +1078,30 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
 
 }
 
+static void
+__limProcessQosMapConfigureFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
+                                                     tpPESession psessionEntry)
+{
+     tpSirMacMgmtHdr  pHdr;
+     tANI_U32         frameLen;
+     tANI_U8          *pBody;
+     tSirRetStatus    retval;
+     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
+     frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+     retval = sirConvertQosMapConfigureFrame2Struct(pMac, pBody, frameLen,
+                                                        &pMac->QosMapSet);
+     if (retval != eSIR_SUCCESS)
+     {
+         PELOGW(limLog(pMac, LOGE,
+         FL("QosMapConfigure frame parsing failed (error %d)"), retval);)
+         return;
+     }
+     limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, (tANI_U8*)pHdr,
+                               frameLen + sizeof(tSirMacMgmtHdr), 0,
+                               WDA_GET_RX_CH( pRxPacketInfo ),
+                               psessionEntry, 0);
+}
 
 #ifdef ANI_SUPPORT_11H
 /**
@@ -2234,6 +2258,8 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
 #ifdef WLAN_FEATURE_11W
     tpSirMacMgmtHdr pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
 #endif
+    tANI_U32         frameLen;
+    frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
 
     switch (pActionHdr->category)
     {
@@ -2242,7 +2268,8 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
             if (limDropUnprotectedActionFrame(pMac, psessionEntry, pHdr, pActionHdr->category))
                 break;
 #endif
-            if (psessionEntry->limQosEnabled)
+            if ( (psessionEntry->limQosEnabled) ||
+                  (pActionHdr->actionID == SIR_MAC_QOS_MAP_CONFIGURE) )
             {
                 switch (pActionHdr->actionID)
                 {
@@ -2258,6 +2285,10 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                         __limProcessDelTsReq(pMac, (tANI_U8 *) pRxPacketInfo,psessionEntry);
                         break;
 
+                    case SIR_MAC_QOS_MAP_CONFIGURE:
+                        __limProcessQosMapConfigureFrame(pMac,
+                                   (tANI_U8 *) pRxPacketInfo, psessionEntry);
+                    break;
                     default:
                         PELOGE(limLog(pMac, LOGE, FL("Qos action %d not handled"), pActionHdr->actionID);)
                         break;
@@ -2327,6 +2358,11 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                     __limProcessDelTsReq(pMac, (tANI_U8 *) pRxPacketInfo,psessionEntry);
                     break;
 
+                case SIR_MAC_QOS_MAP_CONFIGURE:
+                    __limProcessQosMapConfigureFrame(pMac,
+                                     (tANI_U8 *) pRxPacketInfo, psessionEntry);
+                    break;
+
                 default:
                     PELOGE(limLog(pMac, LOGE, FL("WME action %d not handled"), pActionHdr->actionID);)
                     break;
@@ -2371,6 +2407,45 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         }
         break;
 
+    case SIR_MAC_ACTION_WNM:
+    {
+#ifdef WLAN_FEATURE_11W
+        if ((psessionEntry->limRmfEnabled) && (pHdr->fc.wep == 0))
+        {
+            PELOGE(limLog(pMac, LOGE, FL
+            ("Dropping unprotected Action category %d frame since RMF is enabled."),
+            pActionHdr->category);)
+            break;
+        }
+#endif
+        PELOGE(limLog(pMac, LOG1, FL("WNM Action category %d action %d."),
+                                pActionHdr->category, pActionHdr->actionID);)
+        switch (pActionHdr->actionID)
+        {
+            case SIR_MAC_WNM_BSS_TM_QUERY:
+            case SIR_MAC_WNM_BSS_TM_REQUEST:
+            case SIR_MAC_WNM_BSS_TM_RESPONSE:
+            case SIR_MAC_WNM_NOTIF_REQUEST:
+            case SIR_MAC_WNM_NOTIF_RESPONSE:
+            {
+               tpSirMacMgmtHdr     pHdr;
+               tANI_S8 rssi = WDA_GET_RX_RSSI_DB(pRxPacketInfo);
+               pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+               /* Forward to the SME to HDD to wpa_supplicant */
+               limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, (tANI_U8*)pHdr,
+                       frameLen + sizeof(tSirMacMgmtHdr), 0,
+                       WDA_GET_RX_CH( pRxPacketInfo ),
+                       psessionEntry, rssi);
+               break;
+            }
+            default:
+            PELOGE(limLog(pMac, LOGE,
+                 FL("Action ID %d not handled in WNM Action category"),
+                                                pActionHdr->actionID);)
+            break;
+        }
+        break;
+    }
 #if defined WLAN_FEATURE_VOWIFI
     case SIR_MAC_ACTION_RRM:
 #ifdef WLAN_FEATURE_11W
