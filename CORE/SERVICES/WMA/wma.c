@@ -4795,8 +4795,8 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	tSirScanOffloadEvent *scan_event;
 
 	if (scan_req->sessionId > wma_handle->max_bssid) {
-		WMA_LOGE("%s: Invalid vdev_id %d", __func__,
-			scan_req->sessionId);
+		WMA_LOGE("%s: Invalid vdev_id %d, msg_type : 0x%x", __func__,
+			scan_req->sessionId, msg_type);
 		goto error1;
 	}
 
@@ -4884,6 +4884,7 @@ error1:
                 }
                 scan_event->event = WMI_SCAN_EVENT_COMPLETED;
                 scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
+                scan_event->sessionId = scan_req->sessionId;
                 wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
         }
 	return vos_status;

@@ -59,6 +59,7 @@ eHalStatus csrMsgProcessor( tpAniSirGlobal pMac,  void *pMsgBuf )
            macTraceGetcsrRoamState(pMac->roam.curState[pSmeRsp->sessionId]),
            macTraceGetcsrRoamSubState(
            pMac->roam.curSubState[pSmeRsp->sessionId]));
+
 #ifdef FEATURE_WLAN_SCAN_PNO
     /*
      * PNO scan responses have to be handled irrespective of CSR roam state.
@@ -71,7 +72,8 @@ eHalStatus csrMsgProcessor( tpAniSirGlobal pMac,  void *pMsgBuf )
     pSession = CSR_GET_SESSION(pMac, pSmeRsp->sessionId);
     if(!pSession)
     {
-        smsLog(pMac, LOGE, FL(" session %d not found"), pSmeRsp->sessionId);
+        smsLog(pMac, LOGE, FL(" session %d not found, msgType : %d"), pSmeRsp->sessionId,
+               pMsg->type);
         return eHAL_STATUS_FAILURE;
     }
 
