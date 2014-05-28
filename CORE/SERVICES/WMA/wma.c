@@ -18085,9 +18085,15 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 #ifdef QCA_WIFI_ISOC
 	wma_hal_stop_isoc(wma_handle);
 #else
+#ifdef HIF_USB
+	/* Suspend the target and enable interrupt */
+	if (wma_suspend_target(wma_handle, 0))
+		WMA_LOGE("Failed to suspend target");
+#else
 	/* Suspend the target and disable interrupt */
 	if (wma_suspend_target(wma_handle, 1))
 		WMA_LOGE("Failed to suspend target");
+#endif
 #endif
 
 	vos_status = wma_tx_detach(wma_handle);

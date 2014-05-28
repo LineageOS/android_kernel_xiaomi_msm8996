@@ -76,6 +76,8 @@ struct hif_usb_softc {
 	struct hostdef_s *hostdef;
 	struct usb_interface *interface;
 	struct notifier_block reboot_notifier;  /* default mode before reboot */
+	pm_message_t local_state;
+	int hdd_removed;
 };
 #if defined(CONFIG_ATH_PROCFS_DIAG_SUPPORT)
 int athdiag_procfs_init(void *scn);

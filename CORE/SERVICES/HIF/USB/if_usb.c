@@ -55,6 +55,8 @@
 
 unsigned int msienable;
 module_param(msienable, int, 0644);
+struct hif_usb_softc *usb_sc;
+static int hif_usb_resume(struct usb_interface *interface);
 
 static int
 hif_usb_configure(struct hif_usb_softc *sc, hif_handle_t *hif_hdl,
@@ -105,6 +107,7 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	int vendor_id, product_id;
 
 	pr_info("hif_usb_probe\n");
+	usb_disable_lpm(pdev);
 	usb_get_dev(pdev);
 	vendor_id = le16_to_cpu(pdev->descriptor.idVendor);
 	product_id = le16_to_cpu(pdev->descriptor.idProduct);
@@ -116,7 +119,7 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 		ret = -ENOMEM;
 		goto err_alloc;
 	}
-
+	usb_sc = sc;
 	OS_MEMZERO(sc, sizeof(*sc));
 	sc->pdev = (void *)pdev;
 	sc->dev = &pdev->dev;
@@ -179,6 +182,7 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 		athdiag_procfs_remove();
 		goto err_config;
 	}
+	sc->hdd_removed = 0;
 #ifndef REMOVE_PKT_LOG
 	if (vos_get_conparam() != VOS_FTM_MODE) {
 		/*
@@ -226,6 +230,7 @@ static void hif_usb_remove(struct usb_interface *interface)
 		return;
 
 	HIFDiagWriteWARMRESET(interface, 0, 0);
+	sc->local_state.event = 0;
 	unregister_reboot_notifier(&sc->reboot_notifier);
 
 	usb_put_dev(interface_to_usbdev(interface));
@@ -234,13 +239,15 @@ static void hif_usb_remove(struct usb_interface *interface)
 	if (vos_get_conparam() != VOS_FTM_MODE)
 		pktlogmod_exit(scn);
 #endif
-
-	__hdd_wlan_exit();
+	if (usb_sc->hdd_removed == 0) {
+		__hdd_wlan_exit();
+		usb_sc->hdd_removed = 1;
+	}
 	hif_nointrs(sc);
 	HIF_USBDeviceDetached(interface, 1);
 	A_FREE(scn);
 	A_FREE(sc);
-
+	usb_sc = NULL;
 	pr_info("hif_usb_remove!!!!!!\n");
 }
 
@@ -252,12 +259,27 @@ void hdd_suspend_wlan(void (*callback) (void *callbackContext),
 static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 {
 	HIF_DEVICE_USB *device = usb_get_intfdata(interface);
+	struct hif_usb_softc *sc = device->sc;
 	void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+	v_VOID_t * temp_module;
 
+	if (vos == NULL)
+		return 0;
 	/* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
-	if (wma_is_wow_mode_selected(vos_get_context(VOS_MODULE_ID_WDA, vos))) {
-		if (wma_enable_wow_in_fw
-		    (vos_get_context(VOS_MODULE_ID_WDA, vos))) {
+	temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos);
+	if (!temp_module) {
+		printk("%s: WDA module is NULL\n", __func__);
+		return (-1);
+	}
+
+	if (wma_check_scan_in_progress(temp_module)) {
+		printk("%s: Scan in progress. Aborting suspend\n", __func__);
+		return (-1);
+	}
+	sc->local_state = state;
+	/* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
+	if (wma_is_wow_mode_selected(temp_module)) {
+		if (wma_enable_wow_in_fw(temp_module)) {
 			pr_warn("%s[%d]: fail\n", __func__, __LINE__);
 			return -1;
 		}
@@ -281,8 +303,24 @@ void hdd_resume_wlan(void);
 static int hif_usb_resume(struct usb_interface *interface)
 {
 	HIF_DEVICE_USB *device = usb_get_intfdata(interface);
-	void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+	struct hif_usb_softc *sc = device->sc;
+	void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+	v_VOID_t * temp_module;
 
+	if (vos == NULL)
+		return 0;
+	/* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
+	temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos);
+	if (!temp_module) {
+		printk("%s: WDA module is NULL\n", __func__);
+		return (-1);
+	}
+
+	if (wma_check_scan_in_progress(temp_module)) {
+		printk("%s: Scan in progress. Aborting suspend\n", __func__);
+		return (-1);
+	}
+	sc->local_state.event = 0;
 	usb_hif_start_recv_pipes(device);
 
 #ifdef USB_HIF_TEST_INTERRUPT_IN
@@ -290,11 +328,9 @@ static int hif_usb_resume(struct usb_interface *interface)
 				    HIF_USB_RX_BUFFER_SIZE);
 #endif
 	/* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
-	if (!wma_is_wow_mode_selected
-	    (vos_get_context(VOS_MODULE_ID_WDA, vos_context))) {
-		    wma_resume_target(vos_get_context
-				      (VOS_MODULE_ID_WDA, vos_context));
-	} else if (wma_disable_wow_in_fw(vos_get_context(VOS_MODULE_ID_WDA, vos_context))) {
+	if (!wma_is_wow_mode_selected(temp_module)) {
+		wma_resume_target(temp_module);
+	} else if (wma_disable_wow_in_fw(temp_module)) {
 	    return (-1);
 	}
 
@@ -308,8 +344,8 @@ static int hif_usb_reset_resume(struct usb_interface *intf)
 
 	HIFDiagWriteAccess(sc->hif_device,
 		(ROME_USB_SOC_RESET_CONTROL_COLD_RST_LSB |
-		 ROME_USB_RTC_SOC_BASE_ADDRESS),
-		 SOC_RESET_CONTROL_COLD_RST_SET(1));
+		ROME_USB_RTC_SOC_BASE_ADDRESS),
+		SOC_RESET_CONTROL_COLD_RST_SET(1));
 
 	return 0;
 }
@@ -354,6 +390,17 @@ int hif_register_driver(void)
 void hif_unregister_driver(void)
 {
 	if (is_usb_driver_register) {
+		if (usb_sc != NULL) {
+			if (usb_sc->local_state.event != 0) {
+				hif_usb_resume(usb_sc->interface);
+				usb_sc->local_state.event = 0;
+			}
+
+			if (usb_sc->hdd_removed == 0) {
+				__hdd_wlan_exit();
+				usb_sc->hdd_removed = 1;
+			}
+		}
 		is_usb_driver_register = 0;
 		usb_deregister(&hif_usb_drv_id);
 	}
