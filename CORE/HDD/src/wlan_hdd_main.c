@@ -10588,7 +10588,7 @@ void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx)
 /* Initialize channel list in sme based on the country code */
 VOS_STATUS hdd_set_sme_chan_list(hdd_context_t *hdd_ctx)
 {
-   return sme_init_chan_list(hdd_ctx->hHal);
+  return sme_init_chan_list(hdd_ctx->hHal, hdd_ctx->reg.alpha2);
 }
 
 /**---------------------------------------------------------------------------
