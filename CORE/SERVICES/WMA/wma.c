@@ -535,11 +535,10 @@ send_fail_resp:
 static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 				       u_int32_t len)
 {
-	tp_wma_handle wma = (tp_wma_handle) handle;
-	struct wma_target_req *req_msg;
 	WMI_VDEV_START_RESP_EVENTID_param_tlvs *param_buf;
 	wmi_vdev_start_response_event_fixed_param *resp_event;
-	struct wma_txrx_node *iface;
+	u_int8_t *buf;
+	vos_msg_t vos_msg = {0};
 
 	WMA_LOGI("%s: Enter", __func__);
 	param_buf = (WMI_VDEV_START_RESP_EVENTID_param_tlvs *) cmd_param_info;
@@ -549,34 +548,82 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	}
 
 	resp_event = param_buf->fixed_param;
+	buf = vos_mem_malloc(sizeof(wmi_vdev_start_response_event_fixed_param));
+	if (!buf) {
+		WMA_LOGE("%s: Failed alloc memory for buf", __func__);
+		return -EINVAL;
+	}
+	vos_mem_zero(buf, sizeof(wmi_vdev_start_response_event_fixed_param));
+	vos_mem_copy(buf, (u_int8_t *)resp_event,
+					sizeof(wmi_vdev_start_response_event_fixed_param));
 
-        if ((resp_event->vdev_id <= wma->max_bssid) &&
-        (adf_os_atomic_read(&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress)) &&
-	((wma->interfaces[resp_event->vdev_id].type == WMI_VDEV_TYPE_AP) &&
-	(wma->interfaces[resp_event->vdev_id].sub_type == 0))) {
-		WMA_LOGE("%s: vdev restart event recevied for hidden ssid set using IOCTL ", __func__);
+	vos_msg.type = WDA_VDEV_START_RSP_IND;
+	vos_msg.bodyptr = buf;
+	vos_msg.bodyval = 0;
+
+	if (VOS_STATUS_SUCCESS !=
+	    vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg)) {
+		WMA_LOGP("%s: Failed to post WDA_VDEV_START_RSP_IND msg", __func__);
+		vos_mem_free(buf);
+		return -1;
+	}
+	WMA_LOGD("WDA_VDEV_START_RSP_IND posted");
+	return 0;
+}
+
+static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
+{
+	struct wma_target_req *req_msg;
+	struct wma_txrx_node *iface;
+	wmi_vdev_start_response_event_fixed_param *resp_event;
+
+	resp_event = (wmi_vdev_start_response_event_fixed_param *)buf;
+
+	if (!resp_event) {
+		WMA_LOGE("Invalid start response event buffer");
+		return -EINVAL;
+	}
+
+	if ((resp_event->vdev_id <= wma->max_bssid) &&
+		(adf_os_atomic_read(
+		&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress)) &&
+		((wma->interfaces[resp_event->vdev_id].type == WMI_VDEV_TYPE_AP) &&
+		(wma->interfaces[resp_event->vdev_id].sub_type == 0))) {
+		WMA_LOGE(
+			"%s: vdev restart event recevied for hidden ssid set using IOCTL",
+			__func__);
 
 		if (wmi_unified_vdev_up_send(wma->wmi_handle, resp_event->vdev_id, 0,
 			wma->interfaces[resp_event->vdev_id].bssid) < 0) {
 			WMA_LOGE("%s : failed to send vdev up", __func__);
 			return -EEXIST;
 		}
-		adf_os_atomic_set(&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress,0);
+		adf_os_atomic_set(
+		&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress, 0);
 		wma->interfaces[resp_event->vdev_id].vdev_up = TRUE;
-        }
+	}
 
 	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id,
 				    WMA_TARGET_REQ_TYPE_VDEV_START);
+
 	if (!req_msg) {
-		WMA_LOGP("%s: Failed to lookup request message for vdev %d",
+		WMA_LOGE("%s: Failed to lookup request message for vdev %d",
 			 __func__, resp_event->vdev_id);
 		return -EINVAL;
 	}
+
 	vos_timer_stop(&req_msg->event_timeout);
-        iface = &wma->interfaces[resp_event->vdev_id];
+
+	iface = &wma->interfaces[resp_event->vdev_id];
 	if (req_msg->msg_type == WDA_CHNL_SWITCH_REQ) {
 		tpSwitchChannelParams params =
 			(tpSwitchChannelParams) req_msg->user_data;
+		if(!params) {
+			WMA_LOGE("%s: channel switch params is NULL for vdev %d",
+				 __func__, resp_event->vdev_id);
+			return -EINVAL;
+		}
+
 		WMA_LOGD("%s: Send channel switch resp vdev %d status %d",
 			 __func__, resp_event->vdev_id, resp_event->status);
 		params->chainMask = resp_event->chain_mask;
@@ -6687,7 +6734,14 @@ void wma_vdev_resp_timer(void *data)
 
 	WMA_LOGA("%s: request %d is timed out for vdev_id - %d", __func__,
 						tgt_req->msg_type, tgt_req->vdev_id);
-	wma_find_vdev_req(wma, tgt_req->vdev_id, tgt_req->type);
+	msg = wma_find_vdev_req(wma, tgt_req->vdev_id, tgt_req->type);
+
+	if (!msg) {
+		WMA_LOGE("%s: Failed to lookup request message - %d",
+			 __func__, tgt_req->msg_type);
+		return;
+	}
+
 	if (tgt_req->msg_type == WDA_CHNL_SWITCH_REQ) {
 		tpSwitchChannelParams params =
 			(tpSwitchChannelParams)tgt_req->user_data;
@@ -16850,6 +16904,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 					(tHalHiddenSsidVdevRestart *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_VDEV_START_RSP_IND:
+			wma_vdev_start_rsp_ind(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */

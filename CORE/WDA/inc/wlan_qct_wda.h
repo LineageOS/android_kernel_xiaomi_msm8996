@@ -1347,6 +1347,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_STATS_EXT_REQUEST              SIR_HAL_STATS_EXT_REQUEST
 #endif
 
+#define WDA_VDEV_START_RSP_IND      SIR_HAL_VDEV_START_RSP_IND
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
