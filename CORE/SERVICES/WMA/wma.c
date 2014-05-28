@@ -9238,6 +9238,8 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id,
 					maxTxPower);
 	if (ret)
 		WMA_LOGE("failed to set WMI_VDEV_PARAM_TX_PWRLIMIT");
+	else
+		intr[vdev_id].max_tx_power = maxTxPower;
 
 	/* Slot time */
 	if (shortSlotTimeSupported)

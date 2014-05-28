@@ -340,7 +340,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     tANI_U8  operMode;
     tANI_U8  chWidth = 0;
 #endif
-#if defined FEATURE_WLAN_ESE || defined FEATURE_WLAN_VOWIFI
+#if defined FEATURE_WLAN_ESE || defined WLAN_FEATURE_VOWIFI
      tPowerdBm regMax = 0,maxTxPower = 0;
 #endif
 
@@ -590,12 +590,12 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     }
 #endif
 
-#if defined (FEATURE_WLAN_ESE) || defined (FEATURE_WLAN_VOWIFI)
+#if defined (FEATURE_WLAN_ESE) || defined (WLAN_FEATURE_VOWIFI)
     /* Obtain the Max Tx power for the current regulatory  */
     regMax = cfgGetRegulatoryMaxTransmitPower( pMac, psessionEntry->currentOperChannel );
 #endif
 
-#if defined FEATURE_WLAN_VOWIFI
+#if defined WLAN_FEATURE_VOWIFI
     {
         tPowerdBm  localRRMConstraint = 0;
         if ( pMac->rrm.rrmPEContext.rrmEnable && pBeacon->powerConstraintPresent )
@@ -606,7 +606,8 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         {
             localRRMConstraint = 0;
         }
-        maxTxPower = VOS_MIN(regMax,(regMax - localRRMConstraint));
+        maxTxPower = limGetMaxTxPower(regMax, regMax - localRRMConstraint,
+                                      pMac->roam.configParam.nTxPowerCap);
     }
 #elif defined FEATURE_WLAN_ESE
     maxTxPower = regMax;
@@ -625,7 +626,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     }
 #endif
 
-#if defined (FEATURE_WLAN_ESE) || defined (FEATURE_WLAN_VOWIFI)
+#if defined (FEATURE_WLAN_ESE) || defined (WLAN_FEATURE_VOWIFI)
     {
         //If maxTxPower is increased or decreased
         if( maxTxPower != psessionEntry->maxTxPower )
