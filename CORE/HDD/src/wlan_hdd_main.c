@@ -8982,6 +8982,12 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
                                        WLAN_STATUS_ASSOC_DENIED_UNSPEC,
                                        GFP_KERNEL);
             }
+
+#ifdef QCA_LL_TX_FLOW_CT
+            WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext, hdd_tx_resume_cb,
+                                         pAdapter->sessionId, (void *)pAdapter);
+#endif
+
             break;
 
          case WLAN_HDD_SOFTAP:
