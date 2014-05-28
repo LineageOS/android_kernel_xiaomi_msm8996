@@ -297,7 +297,10 @@ static int hif_usb_resume(struct usb_interface *interface)
 	    (vos_get_context(VOS_MODULE_ID_WDA, vos_context))) {
 		    wma_resume_target(vos_get_context
 				      (VOS_MODULE_ID_WDA, vos_context));
+	} else if (wma_disable_wow_in_fw(vos_get_context(VOS_MODULE_ID_WDA, vos_context))) {
+	    return (-1);
 	}
+
 #ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
 	hdd_resume_wlan();
 #endif

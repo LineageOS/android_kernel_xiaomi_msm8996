@@ -549,6 +549,22 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	}
 
 	resp_event = param_buf->fixed_param;
+
+        if ((resp_event->vdev_id <= wma->max_bssid) &&
+        (adf_os_atomic_read(&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress)) &&
+	((wma->interfaces[resp_event->vdev_id].type == WMI_VDEV_TYPE_AP) &&
+	(wma->interfaces[resp_event->vdev_id].sub_type == 0))) {
+		WMA_LOGE("%s: vdev restart event recevied for hidden ssid set using IOCTL ", __func__);
+
+		if (wmi_unified_vdev_up_send(wma->wmi_handle, resp_event->vdev_id, 0,
+			wma->interfaces[resp_event->vdev_id].bssid) < 0) {
+			WMA_LOGE("%s : failed to send vdev up", __func__);
+			return -EEXIST;
+		}
+		adf_os_atomic_set(&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress,0);
+		wma->interfaces[resp_event->vdev_id].vdev_up = TRUE;
+        }
+
 	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id,
 				    WMA_TARGET_REQ_TYPE_VDEV_START);
 	if (!req_msg) {
@@ -1148,6 +1164,73 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	return 0;
 }
 
+void wma_hidden_ssid_vdev_restart_on_vdev_stop(tp_wma_handle wma_handle, u_int8_t sessionId)
+{
+	wmi_vdev_start_request_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	wmi_channel *chan;
+	int32_t len;
+	u_int8_t *buf_ptr;
+	struct wma_txrx_node *intr = wma_handle->interfaces;
+	int32_t ret=0;
+
+	len = sizeof(*cmd) + sizeof(wmi_channel) +
+			WMI_TLV_HDR_SIZE;
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+		adf_os_atomic_set(&intr[sessionId].vdev_restart_params.hidden_ssid_restart_in_progress,0);
+		return;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmd = (wmi_vdev_start_request_cmd_fixed_param *) buf_ptr;
+	chan = (wmi_channel *) (buf_ptr + sizeof(*cmd));
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_vdev_start_request_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+			wmi_vdev_start_request_cmd_fixed_param));
+
+	WMITLV_SET_HDR(&chan->tlv_header,
+			WMITLV_TAG_STRUC_wmi_channel,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_channel));
+
+	cmd->vdev_id = sessionId;
+	cmd->ssid.ssid_len = intr[sessionId].vdev_restart_params.ssid.ssid_len;
+	vos_mem_copy(cmd->ssid.ssid,
+		intr[sessionId].vdev_restart_params.ssid.ssid,
+		cmd->ssid.ssid_len);
+	cmd->flags = intr[sessionId].vdev_restart_params.flags;
+	if (intr[sessionId].vdev_restart_params.ssidHidden)
+		cmd->flags |= WMI_UNIFIED_VDEV_START_HIDDEN_SSID;
+	else
+		cmd->flags &= (0xFFFFFFFE);
+	cmd->requestor_id = intr[sessionId].vdev_restart_params.requestor_id;
+	cmd->disable_hw_ack = intr[sessionId].vdev_restart_params.disable_hw_ack;
+
+	chan->mhz = intr[sessionId].vdev_restart_params.chan.mhz;
+	chan->band_center_freq1 = intr[sessionId].vdev_restart_params.chan.band_center_freq1;
+	chan->band_center_freq2 = intr[sessionId].vdev_restart_params.chan.band_center_freq2;
+	chan->info = intr[sessionId].vdev_restart_params.chan.info;
+	chan->reg_info_1 = intr[sessionId].vdev_restart_params.chan.reg_info_1;
+	chan->reg_info_2 = intr[sessionId].vdev_restart_params.chan.reg_info_2;
+
+	cmd->num_noa_descriptors = 0;
+	buf_ptr = (u_int8_t *)(((u_int32_t) cmd) + sizeof(*cmd) +
+					sizeof(wmi_channel));
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+			cmd->num_noa_descriptors *
+			sizeof(wmi_p2p_noa_descriptor));
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle,buf,len,
+			WMI_VDEV_RESTART_REQUEST_CMDID);
+	if (ret < 0) {
+		WMA_LOGE("%s: Failed to send vdev restart command", __func__);
+		adf_os_atomic_set(&intr[sessionId].vdev_restart_params.hidden_ssid_restart_in_progress,0);
+		adf_nbuf_free(buf);
+	}
+}
+
 static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 {
 	wmi_vdev_stopped_event_fixed_param *resp_event;
@@ -1165,6 +1248,15 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 	}
 
 	resp_event = (wmi_vdev_stopped_event_fixed_param *)buf;
+
+	if ((resp_event->vdev_id <= wma->max_bssid) &&
+	(adf_os_atomic_read(&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress)) &&
+	((wma->interfaces[resp_event->vdev_id].type == WMI_VDEV_TYPE_AP) &&
+	(wma->interfaces[resp_event->vdev_id].sub_type == 0))) {
+		WMA_LOGE("%s: vdev stop event recevied for hidden ssid set using IOCTL ", __func__);
+		wma_hidden_ssid_vdev_restart_on_vdev_stop(wma, resp_event->vdev_id);
+	}
+
 	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id,
 				    WMA_TARGET_REQ_TYPE_VDEV_STOP);
 	if (!req_msg) {
@@ -6534,6 +6626,24 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
       return VOS_STATUS_E_FAILURE;
    }
 
+	/* Store vdev params in SAP mode which can be used in vdev restart */
+	if (intr[req->vdev_id].type == WMI_VDEV_TYPE_AP &&
+		intr[req->vdev_id].sub_type == 0) {
+		intr[req->vdev_id].vdev_restart_params.vdev_id = req->vdev_id;
+		intr[req->vdev_id].vdev_restart_params.ssid.ssid_len = cmd->ssid.ssid_len;
+		vos_mem_copy(intr[req->vdev_id].vdev_restart_params.ssid.ssid, cmd->ssid.ssid,
+				cmd->ssid.ssid_len);
+		intr[req->vdev_id].vdev_restart_params.flags = cmd->flags;
+		intr[req->vdev_id].vdev_restart_params.requestor_id = cmd->requestor_id;
+		intr[req->vdev_id].vdev_restart_params.disable_hw_ack = cmd->disable_hw_ack;
+		intr[req->vdev_id].vdev_restart_params.chan.mhz = chan->mhz;
+		intr[req->vdev_id].vdev_restart_params.chan.band_center_freq1 = chan->band_center_freq1;
+		intr[req->vdev_id].vdev_restart_params.chan.band_center_freq2 = chan->band_center_freq1;
+		intr[req->vdev_id].vdev_restart_params.chan.info = chan->info;
+		intr[req->vdev_id].vdev_restart_params.chan.reg_info_1 = chan->reg_info_1;
+		intr[req->vdev_id].vdev_restart_params.chan.reg_info_2 = chan->reg_info_2;
+	}
+
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -6693,7 +6803,7 @@ void wma_vdev_resp_timer(void *data)
 			WMA_LOGP("%s: Failed to find peer %pM", __func__, params->bssId);
 		}
 		msg = wma_fill_vdev_req(wma, tgt_req->vdev_id, WDA_DELETE_BSS_REQ,
-						WMA_TARGET_REQ_TYPE_VDEV_STOP, del_bss_params, 1000);
+						WMA_TARGET_REQ_TYPE_VDEV_STOP, del_bss_params, 2000);
 		if (!msg) {
 			WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
 							__func__, tgt_req->vdev_id);
@@ -9399,8 +9509,10 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		goto send_rsp;
 	}
 
-	peer = ol_txrx_find_peer_by_addr(pdev, add_sta->staMac,
-					 &peer_id);
+	peer = ol_txrx_find_peer_by_addr_and_vdev(pdev,
+                                                  vdev,
+                                                  add_sta->staMac,
+				                  &peer_id);
 	if (peer) {
 		wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
 		WMA_LOGE("%s: Peer already exists, Deleted peer with peer_addr %pM",
@@ -9416,8 +9528,10 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		goto send_rsp;
 	}
 
-	peer = ol_txrx_find_peer_by_addr(pdev, add_sta->staMac,
-					 &peer_id);
+	peer = ol_txrx_find_peer_by_addr_and_vdev(pdev,
+                                                  vdev,
+                                                  add_sta->staMac,
+                                                  &peer_id);
 	if (!peer) {
 		WMA_LOGE("%s: Failed to find peer handle using peer mac %pM",
 			 __func__, add_sta->staMac);
@@ -10695,7 +10809,7 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
         }
 
 	msg = wma_fill_vdev_req(wma, params->smesessionId, WDA_DELETE_BSS_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_STOP, params, 1000);
+				WMA_TARGET_REQ_TYPE_VDEV_STOP, params, 2000);
 	if (!msg) {
 		WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
 			 __func__, params->smesessionId);
@@ -13060,7 +13174,10 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 		WMA_LOGE("%s: No Credits after HTC ACK:%d, pending_cmds:%d, "
 			"cannot resume back", __func__, host_credits, wmi_pending_cmds);
 		HTC_dump_counter_info(wma->htc_handle);
-		VOS_BUG(0);
+		if (!vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL))
+			VOS_BUG(0);
+		else
+			WMA_LOGE("%s: SSR in progress, ignore no credit issue", __func__);
 	}
 
 
@@ -13809,7 +13926,10 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 		WMA_LOGP("%s: Pending commands %d credits %d", __func__,
 				wmi_get_pending_cmds(wma->wmi_handle),
 				wmi_get_host_credits(wma->wmi_handle));
-		VOS_BUG(0);
+		if (!vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL))
+			VOS_BUG(0);
+		else
+			WMA_LOGE("%s: SSR in progress, ignore resume timeout", __func__);
 	} else {
 		WMA_LOGD("Host wakeup received");
 	}
@@ -16224,6 +16344,31 @@ VOS_STATUS wma_stats_ext_req(void *wda_handle,
 
 #endif
 
+void wma_hidden_ssid_vdev_restart(tp_wma_handle wma_handle,
+                        tHalHiddenSsidVdevRestart *pReq)
+{
+        struct wma_txrx_node *intr = wma_handle->interfaces;
+
+        if ((pReq->sessionId  != intr[pReq->sessionId].vdev_restart_params.vdev_id) ||
+		!((intr[pReq->sessionId].type == WMI_VDEV_TYPE_AP) &&
+		(intr[pReq->sessionId].sub_type == 0)))
+        {
+                WMA_LOGE("%s : invalid session id", __func__);
+                return;
+        }
+
+        intr[pReq->sessionId].vdev_restart_params.ssidHidden = pReq->ssidHidden;
+        adf_os_atomic_set(&intr[pReq->sessionId].vdev_restart_params.hidden_ssid_restart_in_progress,1);
+
+        /* vdev stop -> vdev restart -> vdev up */
+        if (wmi_unified_vdev_stop_send(wma_handle->wmi_handle, pReq->sessionId)) {
+                WMA_LOGE("%s: %d Failed to send vdev stop",
+                         __func__, __LINE__);
+                adf_os_atomic_set(&intr[pReq->sessionId].vdev_restart_params.hidden_ssid_restart_in_progress,0);
+                return;
+        }
+}
+
 /*
  * function   : wma_mc_process_msg
  * Descriptin :
@@ -16642,7 +16787,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif
-
+		case WDA_HIDDEN_SSID_VDEV_RESTART:
+			wma_hidden_ssid_vdev_restart(wma_handle,
+					(tHalHiddenSsidVdevRestart *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -17987,7 +18136,6 @@ VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
 	WMA_LOGD("%s: Exit", __func__);
 	return VOS_STATUS_SUCCESS;
 }
-
 
 /*
  * Detach DFS methods

@@ -100,6 +100,15 @@ ol_txrx_peer_find_hash_find(
     int mac_addr_is_aligned,
     u_int8_t check_valid);
 
+struct
+ol_txrx_peer_t *
+ol_txrx_peer_vdev_find_hash(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_txrx_vdev_t *vdev,
+    u_int8_t *peer_mac_addr,
+    int mac_addr_is_aligned,
+    u_int8_t check_valid);
+
 void
 ol_txrx_peer_find_hash_remove(
     struct ol_txrx_pdev_t *pdev,

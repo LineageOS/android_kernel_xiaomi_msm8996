@@ -1811,7 +1811,7 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
         ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
 
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
-                 "%s:sapGetChannelList: startChannel %d,EndChannel %d,Operatingband:%d",
+                 "%s: startChannel %d,EndChannel %d,Operatingband:%d",
                  __func__,startChannelNum,endChannelNum,operatingBand);
 
         switch(operatingBand)
@@ -1819,26 +1819,36 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
             case eSAP_RF_SUBBAND_2_4_GHZ:
                bandStartChannel = RF_CHAN_1;
                bandEndChannel = RF_CHAN_14;
+               startChannelNum = (startChannelNum - 4) > 1 ? (startChannelNum - 4): 1;
+               endChannelNum = (endChannelNum + 4) <= 14 ? (endChannelNum + 4):14;
                break;
 
             case eSAP_RF_SUBBAND_5_LOW_GHZ:
                bandStartChannel = RF_CHAN_36;
                bandEndChannel = RF_CHAN_64;
+               startChannelNum = (startChannelNum - 12) > 36 ? (startChannelNum - 12):36;
+               endChannelNum = (endChannelNum + 12) <= 64? (endChannelNum + 12):64;
                break;
 
             case eSAP_RF_SUBBAND_5_MID_GHZ:
                bandStartChannel = RF_CHAN_100;
                bandEndChannel = RF_CHAN_140;
+               startChannelNum = (startChannelNum - 12) > 100 ? (startChannelNum - 12):100;
+               endChannelNum = (endChannelNum + 12) <= 140? (endChannelNum + 12):140;
                break;
 
             case eSAP_RF_SUBBAND_5_HIGH_GHZ:
                bandStartChannel = RF_CHAN_149;
                bandEndChannel = RF_CHAN_165;
+               startChannelNum = (startChannelNum - 12) > 149 ? (startChannelNum - 12):149;
+               endChannelNum = (endChannelNum + 12) <= 165? (endChannelNum + 12):165;
                break;
 
             case eSAP_RF_SUBBAND_5_ALL_GHZ:
                bandStartChannel = RF_CHAN_36;
                bandEndChannel = RF_CHAN_165;
+               startChannelNum = (startChannelNum - 12) > 36 ? (startChannelNum - 12):36;
+               endChannelNum = (endChannelNum + 12) <= 165? (endChannelNum + 12):165;
                break;
 
             default:
@@ -1847,8 +1857,14 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
                /* assume 2.4 GHz */
                bandStartChannel = RF_CHAN_1;
                bandEndChannel = RF_CHAN_14;
+               startChannelNum = (startChannelNum - 4) > 1 ? (startChannelNum - 4): 1;
+               endChannelNum = (endChannelNum + 4) <= 14 ? (endChannelNum + 4):14;
                break;
         }
+
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                 "%s: expanded startChannel %d,EndChannel %d,Operatingband:%d",
+                 __func__,startChannelNum,endChannelNum,operatingBand);
     }
     else
     {

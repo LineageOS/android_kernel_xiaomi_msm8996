@@ -2767,6 +2767,19 @@ typedef __ani_attr_pre_packed struct sSirMacQoSDelBARsp
 #define SIR_MAC_RATE_216 1006
 #define SIR_MAC_RATE_240 1007
 
+#define SIR_MAC_RATE_1_BITMAP    (1<<0)
+#define SIR_MAC_RATE_2_BITMAP    (1<<1)
+#define SIR_MAC_RATE_5_5_BITMAP  (1<<2)
+#define SIR_MAC_RATE_11_BITMAP   (1<<3)
+#define SIR_MAC_RATE_6_BITMAP    (1<<4)
+#define SIR_MAC_RATE_9_BITMAP    (1<<5)
+#define SIR_MAC_RATE_12_BITMAP   (1<<6)
+#define SIR_MAC_RATE_18_BITMAP   (1<<7)
+#define SIR_MAC_RATE_24_BITMAP   (1<<8)
+#define SIR_MAC_RATE_36_BITMAP   (1<<9)
+#define SIR_MAC_RATE_48_BITMAP   (1<<10)
+#define SIR_MAC_RATE_54_BITMAP   (1<<11)
+
 
 #define sirIsArate(x) ((((tANI_U8)x)==SIR_MAC_RATE_6) || \
                        (((tANI_U8)x)==SIR_MAC_RATE_9) || \

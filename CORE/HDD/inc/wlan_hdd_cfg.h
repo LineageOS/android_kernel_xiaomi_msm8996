@@ -2262,20 +2262,17 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 
 #ifdef IPA_OFFLOAD
 /*
- * IPA Offload
+ * IPA Offload configuration - Each bit enables a feature
+ * bit0 - IPA Enable
+ * bit1 - IPA Pre filter enable
+ * bit2 - IPv6 enable
+ * bit3 - IPA Resource Manager (RM) enable
+ * bit4 - IPA Clock scaling enable
  */
-#define CFG_IPA_OFFLOAD_NAME                     "gIPAEnable"
-#define CFG_IPA_OFFLOAD_DISABLE                  ( 0 )
-#define CFG_IPA_OFFLOAD_ENABLE                   ( 1 )
-#define CFG_IPA_OFFLOAD_DEFAULT                  ( CFG_IPA_OFFLOAD_ENABLE )
-
-/*
- * IPA IPv6 Offload
- */
-#define CFG_IPA_IPV6_OFFLOAD_NAME                "gIPAIPv6Enable"
-#define CFG_IPA_IPV6_OFFLOAD_DISABLE             ( 0 )
-#define CFG_IPA_IPV6_OFFLOAD_ENABLE              ( 1 )
-#define CFG_IPA_IPV6_OFFLOAD_DEFAULT             ( CFG_IPA_IPV6_OFFLOAD_DISABLE )
+#define CFG_IPA_OFFLOAD_CONFIG_NAME              "gIPAConfig"
+#define CFG_IPA_OFFLOAD_CONFIG_MIN               ( 0 )
+#define CFG_IPA_OFFLOAD_CONFIG_MAX               ( 0xFFFFFFFF )
+#define CFG_IPA_OFFLOAD_CONFIG_DEFAULT           ( CFG_IPA_OFFLOAD_CONFIG_MIN )
 
 /*
  * IPA DESC SIZE
@@ -2285,21 +2282,20 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_IPA_DESC_SIZE_MAX                    ( 8000 )
 #define CFG_IPA_DESC_SIZE_DEFAULT                ( 800 )
 
-/*
- * IPA PRE FILTER
- */
-#define CFG_IPA_PRE_FILTER_NAME                  "gIPAPreFilterEnable"
-#define CFG_IPA_PRE_FILTER_DISABLE               ( 0 )
-#define CFG_IPA_PRE_FILTER_ENABLE                ( 1 )
-#define CFG_IPA_PRE_FILTER_DEFAULT               ( CFG_IPA_PRE_FILTER_ENABLE )
+#define CFG_IPA_HIGH_BANDWIDTH_MBPS              "gIPAHighBandwidthMbps"
+#define CFG_IPA_HIGH_BANDWIDTH_MBPS_MIN          ( 200 )
+#define CFG_IPA_HIGH_BANDWIDTH_MBPS_MAX          ( 1000 )
+#define CFG_IPA_HIGH_BANDWIDTH_MBPS_DEFAULT      ( 400 )
 
-/*
- * IPA IPA RESOURCE MANAGER
- */
-#define CFG_IPA_RM_NAME                          "gIPARMEnable"
-#define CFG_IPA_RM_DISABLE                       ( 0 )
-#define CFG_IPA_RM_ENABLE                        ( 1 )
-#define CFG_IPA_RM_DEFAULT                       ( CFG_IPA_RM_DISABLE )
+#define CFG_IPA_MEDIUM_BANDWIDTH_MBPS            "gIPAMediumBandwidthMbps"
+#define CFG_IPA_MEDIUM_BANDWIDTH_MBPS_MIN        ( 100 )
+#define CFG_IPA_MEDIUM_BANDWIDTH_MBPS_MAX        ( 400 )
+#define CFG_IPA_MEDIUM_BANDWIDTH_MBPS_DEFAULT    ( 200 )
+
+#define CFG_IPA_LOW_BANDWIDTH_MBPS               "gIPALowBandwidthMbps"
+#define CFG_IPA_LOW_BANDWIDTH_MBPS_MIN           ( 0 )
+#define CFG_IPA_LOW_BANDWIDTH_MBPS_MAX           ( 100 )
+#define CFG_IPA_LOW_BANDWIDTH_MBPS_DEFAULT       ( 100 )
 #endif
 
 /*
@@ -2952,11 +2948,12 @@ typedef struct
    v_U32_t                     vhtMpduLen;
 #endif
 #ifdef IPA_OFFLOAD
-   v_BOOL_t                    IpaEnable;
-   v_BOOL_t                    IpaIPv6Enable;
-   v_BOOL_t                    IpaPreFilterEnable;
-   v_BOOL_t                    IpaRMEnable;
+   v_U32_t                     IpaConfig;
+   v_BOOL_t                    IpaClkScalingEnable;
    v_U32_t                     IpaDescSize;
+   v_U32_t                     IpaHighBandwidthMbps;
+   v_U32_t                     IpaMediumBandwidthMbps;
+   v_U32_t                     IpaLowBandwidthMbps;
 #endif
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
    v_U32_t                     WlanMccToSccSwitchMode;

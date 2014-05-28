@@ -112,7 +112,6 @@ when           who        what, where, why
 #define ETSI_WEATHER_CH_CAC_TIMEOUT (10 * 60 * 1000) //msecs - 10 min
 
 extern const sRegulatoryChannel *regChannels;
-extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
 
 /*----------------------------------------------------------------------------
  *  Typedefs
@@ -808,21 +807,6 @@ sap_AcquireGlobalLock( ptSapContext  pSapCtx );
 ============================================================================*/
 VOS_STATUS
 sap_ReleaseGlobalLock( ptSapContext  pSapCtx );
-
-/*==========================================================================
-FUNCTION  sapConvertSapPhyModeToCsrPhyMode
-
-DESCRIPTION Function to implement selection of CSR PhyMode using SAP PhyMode
-
-DEPENDENCIES PARAMETERS
-
-IN sapPhyMode : SAP Phy Module
-
-RETURN VALUE If SUCCESS or FAILURE
-
-SIDE EFFECTS
-============================================================================*/
-eCsrPhyMode sapConvertSapPhyModeToCsrPhyMode( eSapPhyMode sapPhyMode );
 
 #ifdef FEATURE_WLAN_CH_AVOID
 /*==========================================================================

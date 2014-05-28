@@ -1478,6 +1478,19 @@ tANI_U8 csrGetConcurrentOperationChannel( tpAniSirGlobal pMac )
   return 0;
 }
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+
+#define HALF_BW_OF(eCSR_bw_val) ((eCSR_bw_val)/2)
+
+/* calculation of center channel based on V/HT BW and WIFI channel bw=5MHz) */
+
+#define CSR_GET_HT40_PLUS_CCH(och) ((och)+2)
+#define CSR_GET_HT40_MINUS_CCH(och) ((och)-2)
+
+#define CSR_GET_HT80_PLUS_LL_CCH(och) ((och)+6)
+#define CSR_GET_HT80_PLUS_HL_CCH(och) ((och)+2)
+#define CSR_GET_HT80_MINUS_LH_CCH(och) ((och)-2)
+#define CSR_GET_HT80_MINUS_HH_CCH(och) ((och)-6)
+
 void csrGetChFromHTProfile (tpAniSirGlobal pMac, tCsrRoamHTProfile *htp,
                             tANI_U16 och, tANI_U16 *cfreq, tANI_U16 *hbw)
 {
@@ -1489,7 +1502,7 @@ void csrGetChFromHTProfile (tpAniSirGlobal pMac, tCsrRoamHTProfile *htp,
         ch_bond = pMac->roam.configParam.channelBondingMode24GHz;
 
     cch = och;
-    *hbw = 10;
+    *hbw = HALF_BW_OF(eCSR_BW_20MHz_VAL);
 
     if (!ch_bond) {
         goto ret;
@@ -1510,27 +1523,30 @@ void csrGetChFromHTProfile (tpAniSirGlobal pMac, tCsrRoamHTProfile *htp,
 #ifdef WLAN_FEATURE_11AC
     if (htp->vhtCapability) {
         cch = htp->apCenterChan;
-        *hbw = (htp->apChanWidth * 80) / 2;
+        if (htp->apChanWidth == WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ)
+            *hbw = HALF_BW_OF(eCSR_BW_80MHz_VAL);
+        else if (htp->apChanWidth == WNI_CFG_VHT_CHANNEL_WIDTH_160MHZ)
+            *hbw = HALF_BW_OF(eCSR_BW_160MHz_VAL);
 
         if (!*hbw && htp->htCapability) {
             if (htp->htSupportedChannelWidthSet == eHT_CHANNEL_WIDTH_40MHZ)
-                *hbw = 20;
+                *hbw = HALF_BW_OF(eCSR_BW_40MHz_VAL);
             else
-                *hbw = 10;
+                *hbw = HALF_BW_OF(eCSR_BW_20MHz_VAL);
         }
      } else
 #endif
     if (htp->htCapability) {
         if (htp->htSupportedChannelWidthSet == eHT_CHANNEL_WIDTH_40MHZ) {
-            *hbw = 20;
+            *hbw = HALF_BW_OF(eCSR_BW_40MHz_VAL);
             if (htp->htSecondaryChannelOffset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
-                cch = och + *hbw/10;
+                cch = CSR_GET_HT40_PLUS_CCH(och);
             else if (htp->htSecondaryChannelOffset ==
                                                 PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
-                cch = och - *hbw/10;
+                cch = CSR_GET_HT40_MINUS_CCH(och);
         } else {
             cch = och;
-            *hbw = 10;
+            *hbw = HALF_BW_OF(eCSR_BW_20MHz_VAL);
         }
     }
 
@@ -1545,15 +1561,15 @@ v_U16_t csrCheckConcurrentChannelOverlap(tpAniSirGlobal pMac, v_U16_t sap_ch,
     tCsrRoamSession *pSession = NULL;
     v_U8_t i = 0,  chb = PHY_SINGLE_CHANNEL_CENTERED;
     v_U16_t intf_ch=0, sap_hbw = 0, intf_hbw = 0, intf_cfreq = 0, sap_cfreq = 0;
-    v_U16_t sap_lfreq, sap_hfreq, intf_lfreq, intf_hfreq;
+    v_U16_t sap_lfreq, sap_hfreq, intf_lfreq, intf_hfreq, sap_cch;
 
     if (pMac->roam.configParam.cc_switch_mode == VOS_MCC_TO_SCC_SWITCH_DISABLE)
         return 0;
 
     if (sap_ch !=0) {
 
-        sap_cfreq = vos_chan_to_freq(sap_ch);
-        sap_hbw = 20/2;
+        sap_cch = sap_ch;
+        sap_hbw = HALF_BW_OF(eCSR_BW_20MHz_VAL);
 
         if (sap_ch > 14)
             chb = pMac->roam.configParam.channelBondingMode5GHz;
@@ -1562,12 +1578,51 @@ v_U16_t csrCheckConcurrentChannelOverlap(tpAniSirGlobal pMac, v_U16_t sap_ch,
 
         if (chb) {
             if (sap_phymode == eCSR_DOT11_MODE_11n ||
-                sap_phymode == eCSR_DOT11_MODE_11n_ONLY)
-                sap_hbw = 40/2;
+                sap_phymode == eCSR_DOT11_MODE_11n_ONLY) {
+
+                sap_hbw = HALF_BW_OF(eCSR_BW_40MHz_VAL);
+                if (chb == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+                    sap_cch = CSR_GET_HT40_PLUS_CCH(sap_ch);
+                else if (chb == PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
+                    sap_cch = CSR_GET_HT40_MINUS_CCH(sap_ch);
+
+            }
+#ifdef WLAN_FEATURE_11AC
             else if (sap_phymode == eCSR_DOT11_MODE_11ac ||
-                     sap_phymode == eCSR_DOT11_MODE_11ac_ONLY)
-                sap_hbw = 80/2;
+                     sap_phymode == eCSR_DOT11_MODE_11ac_ONLY) {
+                /*11AC only 80/40/20 Mhz supported in Rome */
+                if (pMac->roam.configParam.nVhtChannelWidth ==
+                                        (WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ + 1)) {
+                    sap_hbw = HALF_BW_OF(eCSR_BW_80MHz_VAL);
+                    if (chb == (PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW-1))
+                        sap_cch = CSR_GET_HT80_PLUS_LL_CCH(sap_ch);
+                    else if (chb ==
+                                 (PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW-1))
+                        sap_cch = CSR_GET_HT80_PLUS_HL_CCH(sap_ch);
+                    else if (chb ==
+                                 (PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH-1))
+                        sap_cch = CSR_GET_HT80_MINUS_LH_CCH(sap_ch);
+                    else if (chb ==
+                                (PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH-1))
+                        sap_cch = CSR_GET_HT80_MINUS_HH_CCH(sap_ch);
+                } else {
+                    sap_hbw = HALF_BW_OF(eCSR_BW_40MHz_VAL);
+                    if (chb == (PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW-1))
+                        sap_cch = CSR_GET_HT40_PLUS_CCH(sap_ch);
+                    else if (chb ==
+                                 (PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW-1))
+                        sap_cch = CSR_GET_HT40_MINUS_CCH(sap_ch);
+                    else if (chb ==
+                                 (PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH-1))
+                        sap_cch = CSR_GET_HT40_PLUS_CCH(sap_ch);
+                    else if (chb ==
+                                (PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH-1))
+                        sap_cch = CSR_GET_HT40_MINUS_CCH(sap_ch);
+                }
+            }
+#endif
         }
+        sap_cfreq = vos_chan_to_freq(sap_cch);
     }
 
     for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ ) {
@@ -5851,7 +5906,98 @@ tANI_BOOLEAN csrMatchBSSToConnectProfile( tHalHandle hHal, tCsrRoamConnectedProf
     return( fRC );
 }
 
+void csrAddRateBitmap(tANI_U8 rate, tANI_U16 *pRateBitmap)
+{
+    tANI_U16 rateBitmap;
+    tANI_U16 n = BITS_OFF( rate, CSR_DOT11_BASIC_RATE_MASK );
+    rateBitmap = *pRateBitmap;
+    switch(n)
+    {
+       case SIR_MAC_RATE_1:
+            rateBitmap |= SIR_MAC_RATE_1_BITMAP;
+            break;
+        case SIR_MAC_RATE_2:
+            rateBitmap |= SIR_MAC_RATE_2_BITMAP;
+            break;
+        case SIR_MAC_RATE_5_5:
+            rateBitmap |= SIR_MAC_RATE_5_5_BITMAP;
+            break;
+        case SIR_MAC_RATE_11:
+            rateBitmap |= SIR_MAC_RATE_11_BITMAP;
+            break;
+        case SIR_MAC_RATE_6:
+            rateBitmap |= SIR_MAC_RATE_6_BITMAP;
+            break;
+        case SIR_MAC_RATE_9:
+            rateBitmap |= SIR_MAC_RATE_9_BITMAP;
+            break;
+        case SIR_MAC_RATE_12:
+            rateBitmap |= SIR_MAC_RATE_12_BITMAP;
+            break;
+        case SIR_MAC_RATE_18:
+            rateBitmap |= SIR_MAC_RATE_18_BITMAP;
+            break;
+        case SIR_MAC_RATE_24:
+            rateBitmap |= SIR_MAC_RATE_24_BITMAP;
+            break;
+        case SIR_MAC_RATE_36:
+            rateBitmap |= SIR_MAC_RATE_36_BITMAP;
+            break;
+        case SIR_MAC_RATE_48:
+            rateBitmap |= SIR_MAC_RATE_48_BITMAP;
+            break;
+        case SIR_MAC_RATE_54:
+            rateBitmap |= SIR_MAC_RATE_54_BITMAP;
+            break;
+    }
+    *pRateBitmap = rateBitmap;
+}
 
+tANI_BOOLEAN csrCheckRateBitmap(tANI_U8 rate, tANI_U16 rateBitmap)
+{
+    tANI_U16 n = BITS_OFF( rate, CSR_DOT11_BASIC_RATE_MASK );
+
+    switch(n)
+    {
+        case SIR_MAC_RATE_1:
+            rateBitmap &= SIR_MAC_RATE_1_BITMAP;
+            break;
+        case SIR_MAC_RATE_2:
+            rateBitmap &= SIR_MAC_RATE_2_BITMAP;
+            break;
+        case SIR_MAC_RATE_5_5:
+            rateBitmap &= SIR_MAC_RATE_5_5_BITMAP;
+            break;
+        case SIR_MAC_RATE_11:
+            rateBitmap &= SIR_MAC_RATE_11_BITMAP;
+            break;
+        case SIR_MAC_RATE_6:
+            rateBitmap &= SIR_MAC_RATE_6_BITMAP;
+            break;
+        case SIR_MAC_RATE_9:
+            rateBitmap &= SIR_MAC_RATE_9_BITMAP;
+            break;
+        case SIR_MAC_RATE_12:
+            rateBitmap &= SIR_MAC_RATE_12_BITMAP;
+            break;
+        case SIR_MAC_RATE_18:
+            rateBitmap &= SIR_MAC_RATE_18_BITMAP;
+            break;
+        case SIR_MAC_RATE_24:
+            rateBitmap &= SIR_MAC_RATE_24_BITMAP;
+            break;
+        case SIR_MAC_RATE_36:
+            rateBitmap &= SIR_MAC_RATE_36_BITMAP;
+            break;
+        case SIR_MAC_RATE_48:
+            rateBitmap &= SIR_MAC_RATE_48_BITMAP;
+            break;
+        case SIR_MAC_RATE_54:
+            rateBitmap &= SIR_MAC_RATE_54_BITMAP;
+            break;
+    }
+    return !!rateBitmap;
+}
 
 tANI_BOOLEAN csrRatesIsDot11RateSupported( tHalHandle hHal, tANI_U8 rate )
 {

@@ -675,6 +675,9 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_STATS_EXT_EVENT            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 260)
 #endif /* WLAN_FEATURE_STATS_EXT */
 
+#ifdef QCA_WIFI_2_0
+#define SIR_HAL_HIDE_SSID_VDEV_RESTART     (SIR_HAL_ITC_MSG_TYPES_BEGIN + 261)
+#endif /* QCA_WIFI_2_0 */
 
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 

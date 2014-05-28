@@ -198,6 +198,14 @@ typedef enum
     eCSR_SCAN_ABORT_DUE_TO_BAND_CHANGE, //Scan aborted due to band change
 }eCsrAbortReason;
 
+typedef enum
+{
+    eCSR_BW_20MHz_VAL = 20,
+    eCSR_BW_40MHz_VAL = 40,
+    eCSR_BW_80MHz_VAL = 80,
+    eCSR_BW_160MHz_VAL = 160
+}eCSR_BW_Val;
+
 #define CSR_SCAN_TIME_DEFAULT       0
 #define CSR_VALUE_IGNORED           0xFFFFFFFF
 #define CSR_RSN_PMKID_SIZE          16

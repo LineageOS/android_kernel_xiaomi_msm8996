@@ -3051,19 +3051,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_FW_LOG_ENABLE),
 
 #ifdef IPA_OFFLOAD
-   REG_VARIABLE( CFG_IPA_OFFLOAD_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, IpaEnable,
+   REG_VARIABLE( CFG_IPA_OFFLOAD_CONFIG_NAME, WLAN_PARAM_HexInteger,
+                 hdd_config_t, IpaConfig,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_IPA_OFFLOAD_DEFAULT,
-                 CFG_IPA_OFFLOAD_DISABLE,
-                 CFG_IPA_OFFLOAD_ENABLE ),
-
-   REG_VARIABLE( CFG_IPA_IPV6_OFFLOAD_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, IpaIPv6Enable,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_IPA_IPV6_OFFLOAD_DEFAULT,
-                 CFG_IPA_IPV6_OFFLOAD_DISABLE,
-                 CFG_IPA_IPV6_OFFLOAD_ENABLE ),
+                 CFG_IPA_OFFLOAD_CONFIG_DEFAULT,
+                 CFG_IPA_OFFLOAD_CONFIG_MIN,
+                 CFG_IPA_OFFLOAD_CONFIG_MAX),
 
    REG_VARIABLE( CFG_IPA_DESC_SIZE_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, IpaDescSize,
@@ -3072,19 +3065,26 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_IPA_DESC_SIZE_MIN,
                  CFG_IPA_DESC_SIZE_MAX ),
 
-   REG_VARIABLE( CFG_IPA_PRE_FILTER_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, IpaPreFilterEnable,
+   REG_VARIABLE( CFG_IPA_HIGH_BANDWIDTH_MBPS, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaHighBandwidthMbps,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_IPA_PRE_FILTER_DEFAULT,
-                 CFG_IPA_PRE_FILTER_DISABLE,
-                 CFG_IPA_PRE_FILTER_ENABLE ),
+                 CFG_IPA_HIGH_BANDWIDTH_MBPS_DEFAULT,
+                 CFG_IPA_HIGH_BANDWIDTH_MBPS_MIN,
+                 CFG_IPA_HIGH_BANDWIDTH_MBPS_MAX),
 
-   REG_VARIABLE( CFG_IPA_RM_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, IpaRMEnable,
+   REG_VARIABLE( CFG_IPA_MEDIUM_BANDWIDTH_MBPS, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaMediumBandwidthMbps,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_IPA_RM_DEFAULT,
-                 CFG_IPA_RM_DISABLE,
-                 CFG_IPA_RM_ENABLE ),
+                 CFG_IPA_MEDIUM_BANDWIDTH_MBPS_DEFAULT,
+                 CFG_IPA_MEDIUM_BANDWIDTH_MBPS_MIN,
+                 CFG_IPA_MEDIUM_BANDWIDTH_MBPS_MAX),
+
+   REG_VARIABLE( CFG_IPA_LOW_BANDWIDTH_MBPS, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaLowBandwidthMbps,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_IPA_LOW_BANDWIDTH_MBPS_DEFAULT,
+                 CFG_IPA_LOW_BANDWIDTH_MBPS_MIN,
+                 CFG_IPA_LOW_BANDWIDTH_MBPS_MAX),
 #endif
    REG_VARIABLE( CFG_P2P_LISTEN_OFFLOAD_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fP2pListenOffload,
@@ -3862,11 +3862,11 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fDfsPhyerrFilterOffload] Value = [%u] ",pHddCtx->cfg_ini->fDfsPhyerrFilterOffload);
 
 #ifdef IPA_OFFLOAD
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAEnable] Value = [%u] ",pHddCtx->cfg_ini->IpaEnable);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAIPv6Enable] Value = [%u] ",pHddCtx->cfg_ini->IpaIPv6Enable);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPARMEnable] Value = [%u] ",pHddCtx->cfg_ini->IpaRMEnable);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAPreFilterEnable] Value = [%u] ",pHddCtx->cfg_ini->IpaPreFilterEnable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPAConfig] Value = [0x%x] ",pHddCtx->cfg_ini->IpaConfig);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIPADescSize] Value = [%u] ",pHddCtx->cfg_ini->IpaDescSize);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [IpaHighBandwidthMbpsg] Value = [%u] ",pHddCtx->cfg_ini->IpaHighBandwidthMbps);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [IpaMediumBandwidthMbps] Value = [%u] ",pHddCtx->cfg_ini->IpaMediumBandwidthMbps);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [IpaLowBandwidthMbps] Value = [%u] ",pHddCtx->cfg_ini->IpaLowBandwidthMbps);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableOverLapCh] Value = [%u] ",pHddCtx->cfg_ini->gEnableOverLapCh);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAcsScanBandPreference] Value = [%u] ",pHddCtx->cfg_ini->acsScanBandPreference);

@@ -7145,8 +7145,8 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
                        union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    int sub_cmd = wrqu->data.flags;
     int ret = 0; /* success */
+    int sub_cmd;
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
     {
@@ -7155,6 +7155,25 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
         msleep(1000);
         return -EBUSY;
     }
+
+#ifdef CONFIG_COMPAT
+    /* this ioctl is a special case where a sub-ioctl is used and both
+     * the number of get and set args is 0.  in this specific case the
+     * logic in iwpriv places the sub_cmd in the data.flags portion of
+     * the iwreq.  unfortunately the location of this field will be
+     * different between 32-bit and 64-bit userspace, and the standard
+     * compat support in the kernel does not handle this case.  so we
+     * need to explicitly handle it here. */
+    if (is_compat_task()) {
+        struct compat_iw_point *compat_iw_point =
+            (struct compat_iw_point *) &wrqu->data;
+        sub_cmd = compat_iw_point->flags;
+    } else {
+        sub_cmd = wrqu->data.flags;
+    }
+#else
+    sub_cmd = wrqu->data.flags;
+#endif
 
     switch (sub_cmd)
     {
