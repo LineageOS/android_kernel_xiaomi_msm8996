@@ -911,6 +911,9 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     }
     hdd_clearRoamProfileIe( pAdapter );
     wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
+    if (pAdapter->device_mode == WLAN_HDD_INFRA_STATION) {
+        hdd_wmm_init( pHddCtx, hddWmmDscpToUpMapInfra );
+    }
 
     // indicate 'disconnect' status to wpa_supplicant...
     hdd_SendAssociationEvent(dev,pRoamInfo);
@@ -1745,6 +1748,9 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
         /*Clear the roam profile*/
         hdd_clearRoamProfileIe( pAdapter );
+        if (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) {
+            hdd_wmm_init( pHddCtx, hddWmmDscpToUpMapInfra );
+        }
 
         netif_tx_disable(dev);
         netif_carrier_off(dev);
