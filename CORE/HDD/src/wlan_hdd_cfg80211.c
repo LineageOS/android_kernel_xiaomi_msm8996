@@ -2217,7 +2217,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     int status = VOS_STATUS_SUCCESS;
     tpWLAN_SAPEventCB pSapEventCallback;
     hdd_hostapd_state_t *pHostapdState;
-    v_U8_t wpaRsnIEdata[(SIR_MAC_MAX_IE_LENGTH * 2)+4];  //Max ie length 255 * 2(WPA+RSN) + 2 bytes (vendor specific ID) * 2
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
     struct qc_mac_acl_entry *acl_entry = NULL;
@@ -2229,6 +2228,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     v_BOOL_t MFPRequired =  VOS_FALSE;
     eHddDot11Mode sapDot11Mode =
              (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->sapDot11Mode;
+    u_int16_t prev_rsn_length = 0;
 
     ENTER();
 
@@ -2360,14 +2360,18 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pConfig->fwdWPSPBCProbeReq  = 1; // Forward WPS PBC probe request frame up
 
     pConfig->RSNWPAReqIELength = 0;
-    pConfig->pRSNWPAReqIE = NULL;
+    memset(&pConfig->RSNWPAReqIE[0], 0, sizeof(pConfig->RSNWPAReqIE));
     pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
                                        WLAN_EID_RSN);
     if(pIe && pIe[1])
     {
         pConfig->RSNWPAReqIELength = pIe[1] + 2;
-        memcpy(&wpaRsnIEdata[0], pIe, pConfig->RSNWPAReqIELength);
-        pConfig->pRSNWPAReqIE = &wpaRsnIEdata[0];
+        if (pConfig->RSNWPAReqIELength < sizeof(pConfig->RSNWPAReqIE))
+            memcpy(&pConfig->RSNWPAReqIE[0], pIe,
+                                   pConfig->RSNWPAReqIELength);
+        else
+            hddLog(LOGE, "RSNWPA IE MAX Length exceeded; length =%d",
+                                         pConfig->RSNWPAReqIELength);
         /* The actual processing may eventually be more extensive than
          * this. Right now, just consume any PMKIDs that are  sent in
          * by the app.
@@ -2379,8 +2383,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                         &RSNAuthType,
                         &MFPCapable,
                         &MFPRequired,
-                        pConfig->pRSNWPAReqIE[1]+2,
-                        pConfig->pRSNWPAReqIE );
+                        pConfig->RSNWPAReqIE[1]+2,
+                        pConfig->RSNWPAReqIE );
 
         if( VOS_STATUS_SUCCESS == status )
         {
@@ -2402,17 +2406,27 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     if(pIe && pIe[1] && (pIe[0] == DOT11F_EID_WPA))
     {
-        if (pConfig->pRSNWPAReqIE)
+        if (pConfig->RSNWPAReqIE[0])
         {
             /*Mixed mode WPA/WPA2*/
-            memcpy((&wpaRsnIEdata[0] + pConfig->RSNWPAReqIELength), pIe, pIe[1] + 2);
+            prev_rsn_length = pConfig->RSNWPAReqIELength;
             pConfig->RSNWPAReqIELength += pIe[1] + 2;
+            if (pConfig->RSNWPAReqIELength < sizeof(pConfig->RSNWPAReqIE))
+                memcpy(&pConfig->RSNWPAReqIE[0] + prev_rsn_length, pIe,
+                                                            pIe[1] + 2);
+            else
+                hddLog(LOGE, "RSNWPA IE MAX Length exceeded; length =%d",
+                                             pConfig->RSNWPAReqIELength);
         }
         else
         {
             pConfig->RSNWPAReqIELength = pIe[1] + 2;
-            memcpy(&wpaRsnIEdata[0], pIe, pConfig->RSNWPAReqIELength);
-            pConfig->pRSNWPAReqIE = &wpaRsnIEdata[0];
+            if (pConfig->RSNWPAReqIELength < sizeof(pConfig->RSNWPAReqIE))
+                memcpy(&pConfig->RSNWPAReqIE[0], pIe,
+                                       pConfig->RSNWPAReqIELength);
+            else
+               hddLog(LOGE, "RSNWPA IE MAX Length exceeded; length =%d",
+                                            pConfig->RSNWPAReqIELength);
             status = hdd_softap_unpackIE(
                           vos_get_context( VOS_MODULE_ID_SME, pVosContext),
                           &RSNEncryptType,
@@ -2420,8 +2434,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                           &RSNAuthType,
                           &MFPCapable,
                           &MFPRequired,
-                          pConfig->pRSNWPAReqIE[1]+2,
-                          pConfig->pRSNWPAReqIE );
+                          pConfig->RSNWPAReqIE[1]+2,
+                          pConfig->RSNWPAReqIE );
 
             if( VOS_STATUS_SUCCESS == status )
             {
@@ -2439,7 +2453,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         }
     }
 
-    if (pConfig->RSNWPAReqIELength > sizeof wpaRsnIEdata) {
+    if (pConfig->RSNWPAReqIELength > sizeof(pConfig->RSNWPAReqIE)) {
         hddLog( VOS_TRACE_LEVEL_ERROR, "**RSNWPAReqIELength is too large***");
         return -EINVAL;
     }

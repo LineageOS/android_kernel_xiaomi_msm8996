@@ -2749,9 +2749,11 @@ static iw_softap_commit(struct net_device *dev,
     pConfig->wps_state = pCommitConfig->wps_state;
     pConfig->fwdWPSPBCProbeReq  = 1; // Forward WPS PBC probe request frame up
     pConfig->RSNWPAReqIELength = pCommitConfig->RSNWPAReqIELength;
-    if(pConfig->RSNWPAReqIELength){
-        pConfig->pRSNWPAReqIE = &pCommitConfig->RSNWPAReqIE[0];
-        if ((pConfig->pRSNWPAReqIE[0] == DOT11F_EID_RSN) || (pConfig->pRSNWPAReqIE[0] == DOT11F_EID_WPA)){
+    if(pConfig->RSNWPAReqIELength < sizeof(pConfig->RSNWPAReqIE)){
+        memcpy(&pConfig->RSNWPAReqIE[0], &pCommitConfig->RSNWPAReqIE[0],
+                                            pConfig->RSNWPAReqIELength);
+        if ((pConfig->RSNWPAReqIE[0] == DOT11F_EID_RSN) ||
+            (pConfig->RSNWPAReqIE[0] == DOT11F_EID_WPA)) {
             // The actual processing may eventually be more extensive than this.
             // Right now, just consume any PMKIDs that are  sent in by the app.
             status = hdd_softap_unpackIE(
@@ -2761,8 +2763,8 @@ static iw_softap_commit(struct net_device *dev,
                                   &RSNAuthType,
                                   &MFPCapable,
                                   &MFPRequired,
-                                  pConfig->pRSNWPAReqIE[1]+2,
-                                  pConfig->pRSNWPAReqIE );
+                                  pConfig->RSNWPAReqIE[1]+2,
+                                  pConfig->RSNWPAReqIE );
 
             if( VOS_STATUS_SUCCESS == status )
             {
