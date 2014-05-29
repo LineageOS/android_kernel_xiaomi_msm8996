@@ -3096,7 +3096,7 @@ eHalStatus hdd_parse_plm_cmd(tANI_U8 *pValue, tSirPlmReq *pPlmRequest)
         hddLog(VOS_TRACE_LEVEL_DEBUG,
                "desiredTxPwr %d", pPlmRequest->desiredTxPwr);
 
-        for (count = 0; count < WNI_CFG_BSSID_LEN; count++)
+        for (count = 0; count < VOS_MAC_ADDR_SIZE; count++)
         {
             cmdPtr = strpbrk(cmdPtr, " ");
 
