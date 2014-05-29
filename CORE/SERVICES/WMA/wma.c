@@ -4597,13 +4597,25 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 			cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
 			/* Default P2P burst duration of 120 ms will cover
 			 * 3 channels with default max dwell time 40 ms.
+			 * Cap limit will be set by
+			 * WMA_P2P_SCAN_MAX_BURST_DURATION. Burst duration
+			 * should be such that no channel is scanned less
+			 * than the dwell time in normal scenarios.
 			 */
-			cmd->burst_duration = WMA_P2P_SCAN_MAX_BURST_DURATION;
 			if (scan_req->channelList.numChannels == P2P_SOCIAL_CHANNELS
 			 && (!IS_MIRACAST_SESSION_PRESENT(pMac)))
 				cmd->repeat_probe_time = scan_req->maxChannelTime/5;
 			else
 				cmd->repeat_probe_time = scan_req->maxChannelTime/3;
+
+			cmd->burst_duration = WMA_BURST_SCAN_MAX_NUM_OFFCHANNELS * scan_req->maxChannelTime;
+			if (cmd->burst_duration > WMA_P2P_SCAN_MAX_BURST_DURATION) {
+				u_int8_t channels = WMA_P2P_SCAN_MAX_BURST_DURATION / scan_req->maxChannelTime;
+				if (channels)
+					cmd->burst_duration = channels * scan_req->maxChannelTime;
+				else
+					cmd->burst_duration = WMA_P2P_SCAN_MAX_BURST_DURATION;
+			}
 			break;
 		default:
 			WMA_LOGE("Invalid scan type");

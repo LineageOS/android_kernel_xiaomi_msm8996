@@ -27,6 +27,7 @@
 #include <linux/module.h>
 #include <linux/usb.h>
 #include <linux/version.h>
+#include <linux/atomic.h>
 
 #include "hif_usb_internal.h"
 #include <athdefs.h>
@@ -973,6 +974,10 @@ void usb_hif_io_comp_work(struct work_struct *work)
 	adf_nbuf_t buf;
 	HIF_DEVICE_USB *device;
 	HTC_FRAME_HDR *HtcHdr;
+	A_UINT8 *data;
+	A_UINT32 *reg;
+	A_UINT32 len, i;
+	static A_UINT32 assert_pattern = 0x0000c600;
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n", __func__));
 	device = pipe->device;
@@ -1000,11 +1005,21 @@ void usb_hif_io_comp_work(struct work_struct *work)
 			AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_IN,
 					("+athusb recv callback buf:" "0x%p\n",
 					 buf));
-			device->htcCallbacks.rxCompletionHandler(
+			adf_nbuf_peek_header(buf, &data, &len);
+			if (!memcmp(data, &assert_pattern, sizeof(assert_pattern))) {
+				printk("Firmware crash detected... len %d\n", len);
+				reg = (A_UINT32 *) (data+4);
+				for (i = 0; i < 60; i++, reg++) {
+					printk("[%02d]   :  0x%08X\n", i, *reg);
+				}
+				dev_kfree_skb(buf);
+			} else {
+				device->htcCallbacks.rxCompletionHandler(
 				device->htcCallbacks.Context, buf,
 				pipe->logical_pipe_num);
-			AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_IN,
+				AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_IN,
 					("-athusb recv callback\n"));
+			}
 		}
 	}
 

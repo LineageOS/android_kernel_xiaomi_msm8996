@@ -76,7 +76,7 @@
 /* MAX iteration count to wait for Entry point to exit before
  * we proceed with SSR in WD Thread
  */
-#define MAX_SSR_WAIT_ITERATIONS 50
+#define MAX_SSR_WAIT_ITERATIONS 75
 
 static atomic_t ssr_protect_entry_count;
 
@@ -2398,7 +2398,7 @@ bool vos_is_ssr_ready(const char *caller_func)
     if (!count)
         return false;
 
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
              "Allowing SSR for %s", caller_func);
 
     return true;

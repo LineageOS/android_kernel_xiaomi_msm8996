@@ -201,8 +201,10 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
                         __func__, __LINE__, dfs->dfsdomain);
         /* Disable radar detection since we don't have a radar domain */
         dfs->dfs_proc_phyerr &= ~DFS_RADAR_EN;
-        /* returning error. return: 1-Fail, 0-Success */
-        return DFS_STATUS_FAIL;
+        /* Returning success though we are not completing init. A failure
+         * will fail dfs_attach also.
+         */
+        return DFS_STATUS_SUCCESS;
     }
 
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
