@@ -5265,6 +5265,62 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                pAdapterNode = pNext;
            }
        }
+       else if (strncmp(command, "SETDFSSCANMODE", 14) == 0)
+       {
+           tANI_U8 *value = command;
+           tANI_BOOLEAN dfsScanMode = CFG_ROAMING_DFS_CHANNEL_DEFAULT;
+
+           /* Move pointer to ahead of SETDFSSCANMODE<delimiter> */
+           value = value + 15;
+           /* Convert the value from ascii to integer */
+           ret = kstrtou8(value, 10, &dfsScanMode);
+           if (ret < 0)
+           {
+               /* If the input value is greater than max value of
+                * datatype, then also kstrtou8 fails
+                */
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: kstrtou8 failed range [%d - %d]", __func__,
+                      CFG_ROAMING_DFS_CHANNEL_MIN,
+                      CFG_ROAMING_DFS_CHANNEL_MAX);
+               ret = -EINVAL;
+               goto exit;
+           }
+
+           if ((dfsScanMode < CFG_ROAMING_DFS_CHANNEL_MIN) ||
+               (dfsScanMode > CFG_ROAMING_DFS_CHANNEL_MAX))
+           {
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "dfsScanMode value %d is out of range"
+                      " (Min: %d Max: %d)", dfsScanMode,
+                      CFG_ROAMING_DFS_CHANNEL_MIN,
+                      CFG_ROAMING_DFS_CHANNEL_MAX);
+               ret = -EINVAL;
+               goto exit;
+           }
+           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                      "%s: Received Command to Set DFS Scan Mode = %d",
+                      __func__, dfsScanMode);
+
+           pHddCtx->cfg_ini->allowDFSChannelRoam = dfsScanMode;
+           sme_UpdateDFSScanMode((tHalHandle)(pHddCtx->hHal), dfsScanMode);
+       }
+       else if (strncmp(command, "GETDFSSCANMODE", 14) == 0)
+       {
+           tANI_BOOLEAN dfsScanMode =
+                   sme_GetDFSScanMode((tHalHandle)(pHddCtx->hHal));
+           char extra[32];
+           tANI_U8 len = 0;
+
+           len = scnprintf(extra, sizeof(extra), "%s %d", command, dfsScanMode);
+           if (copy_to_user(priv_data.buf, &extra, len + 1))
+           {
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: failed to copy data to user buffer", __func__);
+               ret = -EFAULT;
+               goto exit;
+           }
+       }
        else {
            MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                             TRACE_CODE_HDD_UNSUPPORTED_IOCTL,

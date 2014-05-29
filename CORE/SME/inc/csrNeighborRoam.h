@@ -298,6 +298,7 @@ VOS_STATUS csrNeighborRoamMergeChannelLists(tpAniSirGlobal pMac,
 #define REASON_ROAM_BMISS_FIRST_BCNT_CHANGED        20
 #define REASON_ROAM_BMISS_FINAL_BCNT_CHANGED        21
 #define REASON_ROAM_BEACON_RSSI_WEIGHT_CHANGED      22
+#define REASON_ROAM_DFS_SCAN_MODE_CHANGED           23
 eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 command, tANI_U8 reason);
 eHalStatus csrNeighborRoamCandidateFoundIndHdlr(tpAniSirGlobal pMac, void* pMsg);
 eHalStatus csrNeighborRoamHandoffReqHdlr(tpAniSirGlobal pMac, void* pMsg);
