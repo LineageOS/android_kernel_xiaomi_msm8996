@@ -1216,7 +1216,7 @@ void wma_hidden_ssid_vdev_restart_on_vdev_stop(tp_wma_handle wma_handle, u_int8_
 	chan->reg_info_2 = intr[sessionId].vdev_restart_params.chan.reg_info_2;
 
 	cmd->num_noa_descriptors = 0;
-	buf_ptr = (u_int8_t *)(((u_int32_t) cmd) + sizeof(*cmd) +
+	buf_ptr = (u_int8_t *)(((u_int8_t *) cmd) + sizeof(*cmd) +
 					sizeof(wmi_channel));
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
 			cmd->num_noa_descriptors *
