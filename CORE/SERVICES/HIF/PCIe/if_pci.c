@@ -997,6 +997,11 @@ int hif_pci_reinit(struct pci_dev *pdev, const struct pci_device_id *id)
 again:
     ret = 0;
 
+    if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
+        printk("Load/unload in progress, ignore SSR reinit\n");
+        return 0;
+    }
+
 #define BAR_NUM 0
     /*
      * Without any knowledge of the Host, the Target
@@ -1597,6 +1602,13 @@ void hif_pci_shutdown(struct pci_dev *pdev)
      */
     if (!sc)
         return;
+
+    if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
+        printk("Load/unload in progress, ignore SSR shutdown\n");
+        return;
+    }
+    /* this is for cases, where shutdown invoked from CNSS */
+    vos_set_logp_in_progress(VOS_MODULE_ID_HIF, TRUE);
 
     scn = sc->ol_sc;
 

@@ -1409,14 +1409,26 @@ v_U8_t vos_is_logp_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
 
 void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
 {
+  hdd_context_t *pHddCtx = NULL;
+
   if (gpVosContext == NULL)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
         "%s: global voss context is NULL", __func__);
     return;
   }
+  gpVosContext->isLogpInProgress = value;
 
-   gpVosContext->isLogpInProgress = value;
+  /* HDD uses it's own context variable to check if SSR in progress,
+   * instead of modifying all HDD APIs set the HDD context variable
+   * here */
+   pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, gpVosContext);
+   if (!pHddCtx) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: HDD context is Null", __func__);
+      return;
+   }
+   pHddCtx->isLogpInProgress = value;
 }
 
 v_U8_t vos_is_load_unload_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
@@ -1433,14 +1445,20 @@ v_U8_t vos_is_load_unload_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleCo
 
 void vos_set_load_unload_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
 {
-  if (gpVosContext == NULL)
-  {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: global voss context is NULL", __func__);
-    return;
-  }
+    if (gpVosContext == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: global voss context is NULL", __func__);
+        return;
+    }
+    gpVosContext->isLoadUnloadInProgress = value;
 
-   gpVosContext->isLoadUnloadInProgress = value;
+#ifdef CONFIG_CNSS
+    if (value)
+        cnss_set_driver_status(CNSS_LOAD_UNLOAD);
+    else
+        cnss_set_driver_status(CNSS_INITIALIZED);
+#endif
 }
 
 v_U8_t vos_is_reinit_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
