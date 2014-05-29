@@ -92,6 +92,7 @@ struct HIF_CE_state {
     A_BOOL started;
 
     adf_os_spinlock_t keep_awake_lock;
+    adf_os_spinlock_t suspend_lock;
     unsigned int keep_awake_count;
     A_BOOL verified_awake;
     A_BOOL fake_sleep;

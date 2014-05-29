@@ -2081,6 +2081,8 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 
     adf_os_spinlock_init(&hif_state->keep_awake_lock);
 
+    adf_os_spinlock_init(&hif_state->suspend_lock);
+
     adf_os_atomic_init(&hif_state->hif_thread_idle);
     adf_os_atomic_inc(&hif_state->hif_thread_idle);
 
