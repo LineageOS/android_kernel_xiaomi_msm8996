@@ -234,6 +234,8 @@ typedef enum {
 
     /* eeprom content dump , the same to bdboard data */
     WMI_PDEV_DUMP_CMDID,
+     /* set LED configuration  */
+    WMI_PDEV_SET_LED_CONFIG_CMDID,
 
     /* VDEV(virtual device) specific commands */
     /** vdev create */
@@ -526,6 +528,8 @@ typedef enum {
     WMI_SET_MCASTBCAST_FILTER_CMDID,
     /** set thermal management params **/
     WMI_THERMAL_MGMT_CMDID,
+    /** set host auto shutdown params **/
+    WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID,
 
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
@@ -791,6 +795,8 @@ typedef enum {
 
     /* Container for QXDM/DIAG events */
     WMI_DIAG_DATA_CONTAINER_EVENTID,
+     /* host auto shutdown event */
+    WMI_HOST_AUTO_SHUTDOWN_EVENTID,
 
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
@@ -1563,6 +1569,8 @@ typedef struct {
 /**When set, certain errors are ignored and scan continues.
 * Different FW scan engine may use its own logic to decide what errors to ignore*/
 #define WMI_SCAN_CONTINUE_ON_ERROR 0x80
+/* Enable promiscous mode for CCXv4 */
+#define WMI_SCAN_FILTER_PROMISCOUS 0x100
 
 /** WMI_SCAN_CLASS_MASK must be the same value as IEEE80211_SCAN_CLASS_MASK */
 #define WMI_SCAN_CLASS_MASK 0xFF000000
@@ -2208,6 +2216,10 @@ typedef enum {
     WMI_PDEV_PARAM_HYST_EN,
     /** Enable/ Disable POWER COLLAPSE */
     WMI_PDEV_PARAM_POWER_COLLAPSE_ENABLE,
+    /** configure LED system state */
+    WMI_PDEV_PARAM_LED_SYS_STATE,
+   /** Enable/Disable LED */
+    WMI_PDEV_PARAM_LED_ENABLE,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -3920,6 +3932,8 @@ typedef struct {
 #define WMI_PEER_CRIT_PROTO_HINT_ENABLED                0x9
 /* set Tx failure count threshold for the peer - Currently unused */
 #define WMI_PEER_TX_FAIL_CNT_THR                        0xA
+/* Enable H/W retry and Enable H/W Send CTS2S before Data */
+#define WMI_PEER_SET_HW_RETRY_CTS2S                     0xB
 
 /** mimo ps values for the parameter WMI_PEER_MIMO_PS_STATE  */
 #define WMI_PEER_MIMO_PS_NONE                          0x0
@@ -4750,6 +4764,7 @@ typedef enum pattern_type_e {
     WOW_WILD_CARD_PATTERN,
     WOW_TIMER_PATTERN,
     WOW_MAGIC_PATTERN,
+    WOW_IPV6_RA_PATTERN,
     WOW_PATTERN_MAX
 }WOW_PATTERN_TYPE;
 
@@ -4769,6 +4784,8 @@ typedef enum event_type_e {
     WOW_AUTH_REQ_EVENT,
     WOW_ASSOC_REQ_EVENT,
     WOW_HTT_EVENT,
+    WOW_RA_MATCH_EVENT,
+    WOW_HOST_AUTO_SHUTDOWN_EVENT,
 }WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -4791,6 +4808,8 @@ typedef enum wake_reason_e {
     WOW_REASON_AUTH_REQ_RECV,
     WOW_REASON_ASSOC_REQ_RECV,
     WOW_REASON_HTT_EVENT,
+    WOW_REASON_RA_MATCH,
+    WOW_REASON_HOST_AUTO_SHUTDOWN,
     WOW_REASON_DEBUG_TEST = 0xFF,
 }WOW_WAKE_REASON_TYPE;
 
@@ -4851,6 +4870,7 @@ typedef struct {
      *     WOW_IPV6_SYNC_PATTERN_T    pattern_info_ipv6[];
      *     WOW_MAGIC_PATTERN_CMD      pattern_info_magic_pattern[];
      *     A_UINT32                   pattern_info_timeout[];
+     *     A_UINT32                   ra_ratelimit_interval;
      */
 }WMI_WOW_ADD_PATTERN_CMD_fixed_param;
 
@@ -5927,7 +5947,6 @@ typedef struct {
 #define WMI_GET_TDLS_SELF_MORE_DATA_ACK_UAPSD(pset_cmd) \
     WMI_TDLS_SELF_GET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_MOREDATA_FLAG)
 
-
 typedef struct {
     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_tdls_peer_update_cmd_fixed_param  */
     A_UINT32    tlv_header;
@@ -6303,6 +6322,45 @@ typedef struct {
     A_UINT32 radio_state;
 } wmi_rfkill_mode_param;
 
+typedef enum {
+    WMI_SET_LED_SYS_POWEROFF,
+    WMI_SET_LED_SYS_S3_SUSPEND,
+    WMI_SET_LED_SYS_S4_S5,
+    WMI_SET_LED_SYS_DRIVER_DISABLE,
+    WMI_SET_LED_SYS_WAKEUP,
+    WMI_SET_LED_SYS_ALWAYS_ON, //just for test!
+    WMI_SET_LED_SYS_POWERON,
+} wmi_led_sys_state_param;
+
+typedef enum {
+    WMI_CONFIG_LED_TO_VDD = 0,
+    WMI_CONFIG_LED_TO_GND = 1,
+} wmi_config_led_connect_type;
+
+typedef enum {
+   WMI_CONFIG_LED_NOT_WITH_BT = 0,
+   WMI_CONFIG_LED_WITH_BT = 1,
+} wmi_config_led_with_bt_flag;
+
+typedef enum {
+   WMI_CONFIG_LED_DISABLE = 0,
+   WMI_CONFIG_LED_ENABLE  = 1,
+} wmi_config_led_enable_flag;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_peer_info_req_cmd_fixed_param   */
+    A_UINT32 tlv_header;
+    /* Set GPIO pin */
+    A_UINT32 led_gpio_pin;
+    /* Set connect type defined in wmi_config_led_connect_type */
+    A_UINT32 connect_type;
+    /* Set flag defined in wmi_config_led_with_bt_flag*/
+    A_UINT32 with_bt;
+    /* Set LED enablement defined in wmi_config_led_enable_flag */
+    A_UINT32 led_enable;
+} wmi_pdev_set_led_config_cmd_fixed_param;
+
 /** WMI_PEER_INFO_REQ_CMDID
  *   Request FW to provide peer info */
 typedef struct {
@@ -6542,6 +6600,29 @@ typedef struct {
 
     A_UINT32 temperature_degreeC;/* temperature in degree C*/
 } wmi_thermal_mgmt_event_fixed_param;
+
+/**
+ * This command is sent from WLAN host driver to firmware to
+ * request firmware to configure auto shutdown timer in fw
+ * 0 - Disable <1-19600>-Enabled and timer value is seconds (86400 seconds = 1 day maximum>
+ */
+typedef struct {
+    A_UINT32 tlv_header;    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_host_auto_shutdown_cfg_cmd_param  */
+    A_UINT32 timer_value;   /** timer value; 0=disable */
+} wmi_host_auto_shutdown_cfg_cmd_fixed_param;
+
+enum wmi_host_auto_shutdown_reason {
+    WMI_HOST_AUTO_SHUTDOWN_REASON_UNKNOWN = 0,
+    WMI_HOST_AUTO_SHUTDOWN_REASON_TIMER_EXPIRY = 1,
+    WMI_HOST_AUTO_SHUTDOWN_REASON_MAX,
+};
+
+/* WMI_HOST_AUTO_SHUTDOWN_EVENTID  */
+typedef struct{
+    A_UINT32    tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_host_auto_shutdown_event_fixed_param  */
+    A_UINT32    shutdown_reason; /* value: wmi_host_auto_shutdown_reason */
+} wmi_host_auto_shutdown_event_fixed_param;
+
 
 typedef struct {
     A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_nan_cmd_param */

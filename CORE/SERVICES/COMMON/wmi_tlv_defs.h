@@ -433,6 +433,9 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_obss_scan_enable_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_obss_scan_disable_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_offload_prb_rsp_tx_status_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_set_led_config_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_host_auto_shutdown_cfg_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_host_auto_shutdown_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -589,7 +592,9 @@ typedef enum {
     OP(WMI_ROAM_SCAN_CMD)\
     OP(WMI_REQUEST_STATS_EXT_CMDID) \
     OP(WMI_OBSS_SCAN_ENABLE_CMDID) \
-    OP(WMI_OBSS_SCAN_DISABLE_CMDID)
+    OP(WMI_OBSS_SCAN_DISABLE_CMDID)\
+    OP(WMI_PDEV_SET_LED_CONFIG_CMDID)\
+    OP(WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -657,7 +662,8 @@ typedef enum {
     OP(WMI_PEER_ESTIMATED_LINKSPEED_EVENTID) \
     OP(WMI_AGGR_STATE_TRIG_EVENTID)\
     OP(WMI_STATS_EXT_EVENTID) \
-    OP(WMI_OFFLOAD_PROB_RESP_TX_STATUS_EVENTID)
+    OP(WMI_OFFLOAD_PROB_RESP_TX_STATUS_EVENTID) \
+    OP(WMI_HOST_AUTO_SHUTDOWN_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1263,7 +1269,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_DFS_PHYERR_FILTER_DIS_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WOW_IPV4_SYNC_PATTERN_T, pattern_info_ipv4, WMITLV_SIZE_VAR)\
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WOW_IPV6_SYNC_PATTERN_T, pattern_info_ipv6, WMITLV_SIZE_VAR)\
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WOW_MAGIC_PATTERN_CMD, pattern_info_magic_pattern, WMITLV_SIZE_VAR)\
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, pattern_info_timeout, WMITLV_SIZE_VAR)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, pattern_info_timeout, WMITLV_SIZE_VAR) \
+    WMITLV_FXAR(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, ra_ratelimit_interval, WMITLV_SIZE_FIX, 1)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_WOW_ADD_WAKE_PATTERN_CMDID);
 
@@ -1580,6 +1587,17 @@ WMITLV_CREATE_PARAM_STRUC(WMI_OBSS_SCAN_ENABLE_CMDID);
 #define WMITLV_TABLE_WMI_OBSS_SCAN_DISABLE_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_obss_scan_disable_cmd_fixed_param, wmi_obss_scan_disable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_OBSS_SCAN_DISABLE_CMDID);
+
+/* Pdev Set LED Config Cmd */
+#define WMITLV_TABLE_WMI_PDEV_SET_LED_CONFIG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_set_led_config_cmd_fixed_param, wmi_pdev_set_led_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_SET_LED_CONFIG_CMDID);
+
+/* host auto shut down config cmd */
+#define WMITLV_TABLE_WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_host_auto_shutdown_cfg_cmd_fixed_param, wmi_host_auto_shutdown_cfg_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID);
+
 
 /************************** TLV definitions of WMI events *******************************/
 
@@ -1916,6 +1934,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_STATS_EXT_EVENTID);
 #define WMITLV_TABLE_WMI_OFFLOAD_PROB_RESP_TX_STATUS_EVENTID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_offload_prb_rsp_tx_status_event_fixed_param, wmi_offload_prb_rsp_tx_status_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_OFFLOAD_PROB_RESP_TX_STATUS_EVENTID);
+
+/* host auto shut down event */
+#define WMITLV_TABLE_WMI_HOST_AUTO_SHUTDOWN_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_host_auto_shutdown_event_fixed_param, wmi_host_auto_shutdown_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_HOST_AUTO_SHUTDOWN_EVENTID);
+
 
 
 #ifdef __cplusplus
