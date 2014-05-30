@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1035,6 +1035,33 @@ extern "C" {
 #define WLAN_STATS_DBGID_EST_LINKSPEED_CALC              4
 #define WLAN_STATS_DBGID_EST_LINKSPEED_UPDATE_HOME_CHAN  5
 #define WLAN_STATS_DBGID_DEFINITION_END                  6
+
+/* IBSS PS module DBGIDs*/
+#define IBSS_PS_DBGID_DEFINITION_START           0
+#define IBSS_PS_DBGID_PEER_CREATE                1
+#define IBSS_PS_DBGID_PEER_DELETE                2
+#define IBSS_PS_DBGID_VDEV_CREATE                3
+#define IBSS_PS_DBGID_VDEV_DELETE                4
+#define IBSS_PS_DBGID_VDEV_EVENT                 5
+#define IBSS_PS_DBGID_PEER_EVENT                 6
+#define IBSS_PS_DBGID_DELIVER_CAB                7
+#define IBSS_PS_DBGID_DELIVER_UC_DATA            8
+#define IBSS_PS_DBGID_DELIVER_UC_DATA_ERROR      9
+#define IBSS_PS_DBGID_UC_INACTIVITY_TMR_RESTART 10
+#define IBSS_PS_DBGID_MC_INACTIVITY_TMR_RESTART 11
+#define IBSS_PS_DBGID_NULL_TX_COMPLETION        12
+#define IBSS_PS_DBGID_ATIM_TIMER_START          13
+#define IBSS_PS_DBGID_UC_ATIM_SEND              14
+#define IBSS_PS_DBGID_BC_ATIM_SEND              15
+#define IBSS_PS_DBGID_UC_TIMEOUT                16
+#define IBSS_PS_DBGID_PWR_COLLAPSE_ALLOWED      17
+#define IBSS_PS_DBGID_PWR_COLLAPSE_NOT_ALLOWED  18
+#define IBSS_PS_DBGID_SET_PARAM                 19
+#define IBSS_PS_DBGID_HOST_TX_PAUSE             20
+#define IBSS_PS_DBGID_HOST_TX_UNPAUSE           21
+#define IBSS_PS_DBGID_PS_DESC_BIN_HWM           22
+#define IBSS_PS_DBGID_PS_DESC_BIN_LWM           23
+#define IBSS_PS_DBGID_PS_KICKOUT_PEER           24
 
 #ifdef __cplusplus
 }
