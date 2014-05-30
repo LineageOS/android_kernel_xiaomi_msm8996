@@ -679,6 +679,8 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_HIDE_SSID_VDEV_RESTART     (SIR_HAL_ITC_MSG_TYPES_BEGIN + 261)
 #endif /* QCA_WIFI_2_0 */
 
+#define SIR_HAL_VDEV_START_RSP_IND         (SIR_HAL_ITC_MSG_TYPES_BEGIN + 262)
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

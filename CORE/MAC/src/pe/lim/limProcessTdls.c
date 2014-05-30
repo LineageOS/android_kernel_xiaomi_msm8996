@@ -658,7 +658,7 @@ tSirRetStatus limSendTdlsDisReqFrame(tpAniSirGlobal pMac, tSirMacAddr peer_mac,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
                             HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
-                            smeSessionId);
+                            smeSessionId, false );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         pMac->lim.mgmtFrameSessionId = 0xff;
@@ -1183,7 +1183,7 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
                             0,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
-                            HAL_USE_SELF_STA_REQUESTED_MASK, smeSessionId );
+                            HAL_USE_SELF_STA_REQUESTED_MASK, smeSessionId, false );
 #else
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
@@ -1191,7 +1191,7 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
                             0,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
-                            HAL_USE_SELF_STA_REQUESTED_MASK, smeSessionId );
+                            HAL_USE_SELF_STA_REQUESTED_MASK, smeSessionId, false );
 #endif
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -1448,6 +1448,7 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
             SIR_MAC_TDLS_SETUP_REQ, limTraceTdlsActionString(SIR_MAC_TDLS_SETUP_REQ) ));
 
     pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
+#if defined(CONFIG_HL_SUPPORT)
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
                             ANI_TXDIR_TODS,
@@ -1455,8 +1456,17 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
                             HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
-                            smeSessionId );
-
+                            smeSessionId, true );
+#else
+    halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
+                            HAL_TXRX_FRM_802_11_DATA,
+                            ANI_TXDIR_TODS,
+                            TID_AC_BK,
+                            limTxComplete, pFrame,
+                            limMgmtTXComplete,
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            smeSessionId, false );
+#endif
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         pMac->lim.mgmtFrameSessionId = 0xff;
@@ -1653,6 +1663,7 @@ tSirRetStatus limSendTdlsTeardownFrame(tpAniSirGlobal pMac,
          (reason == eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE) ? "AP": "DIRECT" ));
 
     pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
+#if defined(CONFIG_HL_SUPPORT)
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
                             ANI_TXDIR_TODS,
@@ -1660,7 +1671,19 @@ tSirRetStatus limSendTdlsTeardownFrame(tpAniSirGlobal pMac,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
                             HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
-                            smeSessionId );
+                            smeSessionId,
+                            (reason == eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE) ? true : false );
+#else
+    halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
+                            HAL_TXRX_FRM_802_11_DATA,
+                            ANI_TXDIR_TODS,
+                            TID_AC_VI,
+                            limTxComplete, pFrame,
+                            limMgmtTXComplete,
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            smeSessionId,
+                            false );
+#endif
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         pMac->lim.mgmtFrameSessionId = 0xff;
@@ -1877,6 +1900,7 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
          SIR_MAC_TDLS_SETUP_RSP, limTraceTdlsActionString(SIR_MAC_TDLS_SETUP_RSP) ));
 
     pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
+#if defined(CONFIG_HL_SUPPORT)
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
                             ANI_TXDIR_TODS,
@@ -1885,7 +1909,18 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
                             HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
-                            smeSessionId );
+                            smeSessionId, true );
+#else
+    halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
+                            HAL_TXRX_FRM_802_11_DATA,
+                            ANI_TXDIR_TODS,
+                            //ANI_TXDIR_IBSS,
+                            TID_AC_BK,
+                            limTxComplete, pFrame,
+                            limMgmtTXComplete,
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            smeSessionId, false );
+#endif
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         pMac->lim.mgmtFrameSessionId = 0xff;
@@ -2115,6 +2150,7 @@ tSirRetStatus limSendTdlsLinkSetupCnfFrame(tpAniSirGlobal pMac,
          SIR_MAC_TDLS_SETUP_CNF, limTraceTdlsActionString(SIR_MAC_TDLS_SETUP_CNF) ));
 
     pMac->lim.mgmtFrameSessionId = psessionEntry->peSessionId;
+#if defined(CONFIG_HL_SUPPORT)
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
                             ANI_TXDIR_TODS,
@@ -2122,8 +2158,17 @@ tSirRetStatus limSendTdlsLinkSetupCnfFrame(tpAniSirGlobal pMac,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
                             HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
-                            smeSessionId );
-
+                            smeSessionId, true );
+#else
+    halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
+                            HAL_TXRX_FRM_802_11_DATA,
+                            ANI_TXDIR_TODS,
+                            TID_AC_VI,
+                            limTxComplete, pFrame,
+                            limMgmtTXComplete,
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            smeSessionId, false );
+#endif
 
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {

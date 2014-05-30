@@ -761,6 +761,11 @@ struct ol_txrx_vdev_t {
 	u_int16_t tx_fl_lwm;
 	u_int16_t tx_fl_hwm;
 	ol_txrx_tx_flow_control_fp osif_flow_control_cb;
+
+#if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+        union ol_txrx_align_mac_addr_t hl_tdls_ap_mac_addr;
+        bool hlTdlsFlag;
+#endif
 };
 
 struct ol_rx_reorder_array_elem_t {

@@ -673,6 +673,8 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 vos_mem_set(&pScanCmd->u.scanCmd, sizeof(tScanCmd), 0);
                 pScanCmd->command = eSmeCommandScan;
                 pScanCmd->sessionId = sessionId;
+                if (pScanCmd->sessionId >= CSR_ROAM_SESSION_MAX)
+                    smsLog( pMac, LOGE, FL("Invalid Sme Session ID = %d"), sessionId);
                 pScanCmd->u.scanCmd.callback = callback;
                 pScanCmd->u.scanCmd.pContext = pContext;
                 if(eCSR_SCAN_REQUEST_11D_SCAN == pScanRequest->requestType)
@@ -5581,7 +5583,8 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
                    request on first available session */
                 pMsg->sessionId = 0;
             }
-
+            if (pMsg->sessionId >= CSR_ROAM_SESSION_MAX)
+                smsLog( pMac, LOGE, FL(" Invalid Sme Session ID = %d"), pMsg->sessionId );
             pMsg->transactionId = 0;
             pMsg->dot11mode = (tANI_U8) csrTranslateToWNICfgDot11Mode(pMac, csrFindBestPhyMode( pMac, pMac->roam.configParam.phyMode ));
             pMsg->bssType = pal_cpu_to_be32(csrTranslateBsstypeToMacType(pScanReq->BSSType));
