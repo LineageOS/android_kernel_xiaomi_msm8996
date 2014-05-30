@@ -12387,6 +12387,7 @@ eHalStatus sme_StatsExtEvent(tHalHandle hHal, void* pMsg)
 }
 
 #endif
+
 /* ---------------------------------------------------------------------------
     \fn sme_UpdateDFSScanMode
     \brief  Update DFS roam Mode
@@ -12427,6 +12428,7 @@ eHalStatus sme_UpdateDFSScanMode(tHalHandle hHal, v_BOOL_t isAllowDFSChannelRoam
 
     return status ;
 }
+
 /*--------------------------------------------------------------------------
   \brief sme_GetWESMode() - get WES Mode
   This is a synchronous call
@@ -12439,3 +12441,35 @@ v_BOOL_t sme_GetDFSScanMode(tHalHandle hHal)
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     return pMac->roam.configParam.allowDFSChannelRoam;
 }
+
+/*----------------------------------------------------------------------------
+ \fn  sme_UpdateAIE
+ \brief  This function sends msg to updates the additional IE buffers in PE
+ \param  hHal - global structure
+ \param  sessionId - SME session id
+ \param  bssid - BSSID
+ \param  additionIEBuffer - buffer containing addition IE from hostapd
+ \param  length - length of buffer
+ \param  append - append or replace completely
+ \- return Success or failure
+-----------------------------------------------------------------------------*/
+eHalStatus sme_UpdateAddIE(tHalHandle hHal,
+                         tANI_U8 sessionId,
+                         tSirMacAddr bssid,
+                         tANI_U8 *additionIEBuffer,
+                         tANI_U16 length,
+                         boolean append)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    status = sme_AcquireGlobalLock( &pMac->sme );
+
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+        status = csrRoamUpdateAddIEs(pMac, sessionId, bssid, additionIEBuffer,
+            length, append);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    return (status);
+}
+

@@ -614,6 +614,11 @@ typedef __ani_attr_pre_packed struct sSirHtConfig
    tANI_U32 unused:27;
 } __ani_attr_packed tSirHTConfig, *tpSirHTConfig;
 
+typedef __ani_attr_pre_packed struct sSirAddIeParams{
+      tANI_U16       dataLen;
+      tANI_U8       *data_buff;
+} tSirAddIeParams, *tpSirAddIeParams;
+
 /// Definition for kick starting BSS
 /// ---> MAC
 /**
@@ -676,6 +681,7 @@ typedef struct sSirSmeStartBssReq
     tANI_BOOLEAN            pmfRequired;
 #endif
 
+    tSirAddIeParams         addIeParams;
 } tSirSmeStartBssReq, *tpSirSmeStartBssReq;
 
 #define GET_IE_LEN_IN_BSS(lenInBss) ( lenInBss + sizeof(lenInBss) - \
@@ -4883,6 +4889,19 @@ typedef struct sSirStartBeaconIndication
     tANI_U8      beaconStartStatus;
     tANI_U8      bssid[VOS_MAC_ADDR_SIZE];
 }tSirStartBeaconIndication, *tpSirStartBeaconIndication;
+
+
+/* Message format for Update IE message sent to PE  */
+typedef struct sUpdateAIEs
+{
+   tANI_U16       msgType;
+   tANI_U16       msgLen;
+   tSirMacAddr    bssid;
+   tANI_U16       smeSessionId;
+   tANI_U8       *pAdditionIEBuffer;
+   tANI_U16       length;
+   boolean        append;
+}tUpdateAIEs,    *tpUpdateAIEs;
 
 /* Message format for requesting channel switch announcement to lower layers */
 typedef struct sSirDfsCsaIeRequest

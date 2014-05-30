@@ -386,6 +386,9 @@ typedef struct tagCsrRoamStartBssParams
     tANI_BOOLEAN        mfpCapable;
     tANI_BOOLEAN        mfpRequired;
 #endif
+
+    tSirAddIeParams     addIeParams;
+
 }tCsrRoamStartBssParams;
 
 
@@ -1488,4 +1491,24 @@ eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac,
 eHalStatus
 csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tCsrBssid bssid,
                      tANI_U8 targetChannel, tANI_U8 csaIeReqd);
+
+/*----------------------------------------------------------------------------
+ \fn csrRoamUpdateAddIEs
+ \brief  This function sends msg to updates the additional IE buffers in PE
+ \param  pMac - pMac global structure
+ \param  sessionId - SME session id
+ \param  bssid - BSSID
+ \param  additionIEBuffer - buffer containing addition IE from hostapd
+ \param  length - length of buffer
+ \param  append - append or replace completely
+ \- return Success or failure
+-----------------------------------------------------------------------------*/
+eHalStatus
+csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
+                  tANI_U8 sessionId,
+                  tSirMacAddr bssid,
+                  tANI_U8 *additionIEBuffer,
+                  tANI_U16 length,
+                  boolean append);
+
 #endif

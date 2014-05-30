@@ -101,6 +101,8 @@ static void limProcessSmeStartBeaconReq(tpAniSirGlobal pMac,
                                                  tANI_U32 *pMsg);
 static void limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg);
 
+static void limProcessUpdateAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg);
+
 void __limProcessSmeAssocCnfNew(tpAniSirGlobal, tANI_U32, tANI_U32 *);
 
 extern void peRegisterTLHandle(tpAniSirGlobal pMac);
@@ -575,7 +577,28 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
                 goto free;
             }
+        }
 
+        if (pSmeStartBssReq->addIeParams.dataLen > 0 &&
+            pSmeStartBssReq->addIeParams.data_buff != NULL)
+        {
+            psessionEntry->addIeParams.dataLen =
+                pSmeStartBssReq->addIeParams.dataLen;
+
+            psessionEntry->addIeParams.data_buff =
+                vos_mem_malloc(psessionEntry->addIeParams.dataLen);
+
+           if ( NULL == psessionEntry->addIeParams.data_buff  )
+           {
+                PELOGE(limLog(pMac, LOGE, FL("AllocateMemory failed for "
+                    "psessionEntry->addIeParams.data_buff "));)
+                // Send failure response to host
+                retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+                goto end;
+           }
+           vos_mem_copy(psessionEntry->addIeParams.data_buff,
+                pSmeStartBssReq->addIeParams.data_buff,
+                psessionEntry->addIeParams.dataLen);
         }
 
         /* Store the session related parameters in newly created session */
@@ -3726,6 +3749,11 @@ __limHandleSmeStopBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             limSendDisassocMgmtFrame(pMac, eSIR_MAC_DEAUTH_LEAVING_BSS_REASON, bcAddr, psessionEntry, FALSE);
     }
 
+    /* Free the buffer allocated in START_BSS_REQ */
+    vos_mem_free(psessionEntry->addIeParams.data_buff);
+    psessionEntry->addIeParams.dataLen = 0;
+    psessionEntry->addIeParams.data_buff = NULL;
+
     //limDelBss is also called as part of coalescing, when we send DEL BSS followed by Add Bss msg.
     pMac->lim.gLimIbssCoalescingHappened = false;
 
@@ -5942,6 +5970,10 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             limProcessSmeDfsCsaIeRequest(pMac, pMsgBuf);
             break;
 
+        case eWNI_SME_UPDATE_ADDITIONAL_IES:
+            limProcessUpdateAddIEs(pMac, pMsgBuf);
+            break;
+
         default:
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
             pMsg->bodyptr = NULL;
@@ -6139,6 +6171,108 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
     else
     {
         limLog(pMac, LOGE,FL("Invalid Request/maxTxPwr"));
+    }
+}
+
+/******************************************************************************
+ * limProcessUpdateAddIEs()
+ *
+ *FUNCTION:
+ * This function is called by limProcessMessageQueue(). This
+ * function update the PE buffers for additional IEs.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param  pMac      Pointer to Global MAC structure
+ * @param  *pMsgBuf  A pointer to the SME message buffer
+******************************************************************************/
+static void
+limProcessUpdateAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg)
+{
+    tpUpdateAIEs pUpdateAIEs = (tpUpdateAIEs)pMsg;
+    tANI_U8      sessionId;
+    /* incoming message has smeSession, use BSSID to find PE session*/
+    tpPESession  psessionEntry = peFindSessionByBssid(pMac,
+                                                      pUpdateAIEs->bssid,
+                                                      &sessionId);
+
+    if (NULL != psessionEntry) {
+        /* if len is 0, upper layer requested freeing of buffer */
+        if (0 == pUpdateAIEs->length) {
+            /* free old buffer */
+            vos_mem_free(psessionEntry->addIeParams.data_buff);
+            psessionEntry->addIeParams.data_buff = NULL;
+            psessionEntry->addIeParams.dataLen = 0;
+            return;
+        }
+
+        if (pUpdateAIEs->append) {
+            /* In case of append, allocate new memory with combined length */
+            tANI_U16 new_length = pUpdateAIEs->length +
+                                      psessionEntry->addIeParams.dataLen;
+            tANI_U8 *new_ptr = vos_mem_malloc(new_length);
+            if (NULL == new_ptr) {
+                limLog(pMac, LOGE, FL("Memory allocation failed."));
+                /* free incoming buffer in message */
+                vos_mem_free(pUpdateAIEs->pAdditionIEBuffer);
+                return;
+            }
+            /* append buffer to end of local buffers */
+            vos_mem_copy(new_ptr,
+                         psessionEntry->addIeParams.data_buff,
+                         psessionEntry->addIeParams.dataLen);
+            vos_mem_copy(&new_ptr[psessionEntry->addIeParams.dataLen],
+                         pUpdateAIEs->pAdditionIEBuffer,
+                         pUpdateAIEs->length);
+            /* free old memory*/
+            vos_mem_free(psessionEntry->addIeParams.data_buff);
+            /* adjust length accordingly */
+            psessionEntry->addIeParams.dataLen = new_length;
+            /* save refernece of local buffer in PE session */
+            psessionEntry->addIeParams.data_buff = new_ptr;
+            /* free incoming buffer in message */
+            vos_mem_free(pUpdateAIEs->pAdditionIEBuffer);
+            return;
+        }
+
+        if (pUpdateAIEs->length > psessionEntry->addIeParams.dataLen) {
+            psessionEntry->addIeParams.dataLen = pUpdateAIEs->length;
+            /* free old buffer */
+            vos_mem_free(psessionEntry->addIeParams.data_buff);
+            /* allocate a new */
+            psessionEntry->addIeParams.data_buff =
+                vos_mem_malloc(psessionEntry->addIeParams.dataLen);
+
+            if (NULL == psessionEntry->addIeParams.data_buff) {
+                limLog(pMac, LOGE, FL("Memory allocation failed."));
+                /* free incoming buffer in message */
+                vos_mem_free(pUpdateAIEs->pAdditionIEBuffer);
+                psessionEntry->addIeParams.dataLen = 0;
+                return;
+            }
+        }
+
+        /*
+         * copy the content of addition IE buffer in local buffer in
+         * PE session
+         */
+        psessionEntry->addIeParams.dataLen = pUpdateAIEs->length;
+        vos_mem_copy(psessionEntry->addIeParams.data_buff,
+                     pUpdateAIEs->pAdditionIEBuffer,
+                     psessionEntry->addIeParams.dataLen);
+        /* free incoming buffer in message */
+        vos_mem_free(pUpdateAIEs->pAdditionIEBuffer);
+    }
+    else
+    {
+        /* free incoming buffer in message */
+        vos_mem_free(pUpdateAIEs->pAdditionIEBuffer);
+        pUpdateAIEs->pAdditionIEBuffer = NULL;
+        limLog(pMac, LOGE, FL("Session not found for given bssid."));
     }
 }
 

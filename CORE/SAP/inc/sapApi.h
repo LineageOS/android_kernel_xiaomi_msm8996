@@ -488,6 +488,8 @@ typedef struct sap_Config {
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     v_U8_t          cc_switch_mode;
 #endif
+    v_U16_t    addnIEsBufferLen;
+    v_PVOID_t  addnIEsBuffer; /* buffer for addn ies comes from hostapd*/
 } tsap_Config_t;
 
 typedef enum {
@@ -1783,6 +1785,65 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx);
 
 VOS_STATUS
 WLANSAP_Set_Dfs_Ignore_CAC(v_PVOID_t pvosGCtx, v_U8_t ignore_cac);
+
+
+
+/*==========================================================================
+  FUNCTION    WLANSAP_UpdateSapConfigAddIE
+
+  DESCRIPTION
+   This API is used to set sap config parameter.
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN OUT
+  pConfig:  Pointer to sap config
+
+  PARAMETERS
+  IN
+  additionIEBuffer - buffer containing addition IE from hostapd
+
+  PARAMETERS
+  IN
+  additionIELength - length of buffer
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+
+VOS_STATUS WLANSAP_UpdateSapConfigAddIE(tsap_Config_t *pConfig,
+                         const tANI_U8 *additionIEBuffer,
+                         tANI_U16 additionIELength);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_ResetSapConfigAddIE
+
+  DESCRIPTION
+   This API is used to reset and clear the buffer in sap config.
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN OUT
+  pConfig:  Pointer to sap config
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+
+VOS_STATUS WLANSAP_ResetSapConfigAddIE(tsap_Config_t *pConfig );
+
 
 /*==========================================================================
 FUNCTION  sapConvertSapPhyModeToCsrPhyMode

@@ -1692,6 +1692,17 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     profile->MFPRequired = pconfig_params->mfpRequired ? 1 : 0;
 #endif
 
+    if (pconfig_params->addnIEsBufferLen > 0 &&
+        pconfig_params->addnIEsBuffer != NULL)
+    {
+        profile->addIeParams.dataLen = pconfig_params->addnIEsBufferLen;
+        profile->addIeParams.data_buff = pconfig_params->addnIEsBuffer;
+    }
+    else
+    {
+        profile->addIeParams.dataLen = 0;
+        profile->addIeParams.data_buff = NULL;
+    }
     return eSAP_STATUS_SUCCESS; /* Success.  */
 }
 

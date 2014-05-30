@@ -6378,6 +6378,9 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
             pDstProfile->MDID.mobilityDomain = pSrcProfile->MDID.mobilityDomain;
         }
 #endif
+        vos_mem_copy(&pDstProfile->addIeParams,
+                     &pSrcProfile->addIeParams,
+                     sizeof(tSirAddIeParams));
     }while(0);
 
     if(!HAL_STATUS_SUCCESS(status))
@@ -6388,6 +6391,7 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
 
     return (status);
 }
+
 eHalStatus csrRoamCopyConnectedProfile(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfile *pDstProfile )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -11976,6 +11980,9 @@ eHalStatus csrRoamIssueStartBss( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRo
     pParam->mfpRequired = (0 != pProfile->MFPRequired);
 #endif
 
+    pParam->addIeParams.dataLen = pProfile->addIeParams.dataLen;
+    pParam->addIeParams.data_buff = pProfile->addIeParams.data_buff;
+
     // When starting an IBSS, start on the channel from the Profile.
     status = csrSendMBStartBssReqMsg( pMac, sessionId, pProfile->BSSType, pParam, pBssDesc );
     return (status);
@@ -14216,9 +14223,13 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         }
 
         //HT Config
-		  vos_mem_copy(pBuf, &pSession->htConfig,
-				  sizeof(tSirHTConfig));
-		  pBuf += sizeof(tSirHTConfig);
+        vos_mem_copy(pBuf, &pSession->htConfig,
+          sizeof(tSirHTConfig));
+          pBuf += sizeof(tSirHTConfig);
+
+        vos_mem_copy(pBuf, &pParam->addIeParams, sizeof( pParam->addIeParams ));
+        pBuf += sizeof(pParam->addIeParams);
+
         msgLen = (tANI_U16)(sizeof(tANI_U32 ) + (pBuf - wTmpBuf)); //msg_header + msg
         pMsg->length = pal_cpu_to_be16(msgLen);
 
@@ -17831,6 +17842,70 @@ eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac, tCsrBssid bssid,
 
     return ( status );
 }
+
+
+/*----------------------------------------------------------------------------
+ \fn csrRoamUpdateAddIEs
+ \brief  This function sends msg to updates the additional IE buffers in PE
+ \param  pMac - pMac global structure
+ \param  sessionId - SME session id
+ \param  bssid - BSSID
+ \param  additionIEBuffer - buffer containing addition IE from hostapd
+ \param  length - length of buffer
+ \param  append - append or replace completely
+ \- return Success or failure
+-----------------------------------------------------------------------------*/
+eHalStatus
+csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
+                  tANI_U8 sessionId,
+                  tSirMacAddr bssid,
+                  tANI_U8 *additionIEBuffer,
+                  tANI_U16 length,
+                  boolean append)
+{
+    tpUpdateAIEs pUpdateAIEs = NULL;
+    tANI_U8 *pLocalBuffer = NULL;
+    eHalStatus status;
+    /* following buffer will be freed by consumer (PE) */
+    pLocalBuffer = vos_mem_malloc(length);
+
+    if (NULL == pLocalBuffer)
+    {
+       smsLog(pMac, LOGE, FL("Memory Allocation Failure!!!"));
+       return eHAL_STATUS_FAILED_ALLOC;
+    }
+
+    pUpdateAIEs = vos_mem_malloc(sizeof(tUpdateAIEs));
+    if (NULL == pUpdateAIEs)
+    {
+       smsLog(pMac, LOGE, FL("Memory Allocation Failure!!!"));
+       vos_mem_free(pLocalBuffer);
+       return eHAL_STATUS_FAILED_ALLOC;
+    }
+
+    vos_mem_copy(pLocalBuffer, additionIEBuffer, length);
+    vos_mem_zero(pUpdateAIEs, sizeof(tUpdateAIEs));
+
+    pUpdateAIEs->msgType =
+        pal_cpu_to_be16((tANI_U16)eWNI_SME_UPDATE_ADDITIONAL_IES);
+    pUpdateAIEs->msgLen = sizeof(tUpdateAIEs);
+    vos_mem_copy(pUpdateAIEs->bssid, bssid, sizeof(tSirMacAddr));
+    pUpdateAIEs->smeSessionId = sessionId;
+    pUpdateAIEs->pAdditionIEBuffer = pLocalBuffer;
+    pUpdateAIEs->length = length;
+    pUpdateAIEs->append = append;
+    status = palSendMBMessage(pMac->hHdd, pUpdateAIEs);
+    if (!HAL_STATUS_SUCCESS(status))
+    {
+       smsLog(pMac, LOGE,
+           FL("Failed to send eWNI_SME_UPDATE_ADDTIONAL_IES msg"
+           "!!! status %d"), status);
+       vos_mem_free(pLocalBuffer);
+       vos_mem_free(pUpdateAIEs);
+    }
+    return status;
+}
+
 
 /*----------------------------------------------------------------------------
  \fn csrRoamSendChanSwIERequest
