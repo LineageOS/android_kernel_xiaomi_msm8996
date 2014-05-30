@@ -921,28 +921,33 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
     wlan_hdd_tdls_free_scan_request(&pHddCtx->tdls_scan_ctxt);
 
 #ifdef QCA_WIFI_2_0
-    tInfo = vos_mem_malloc(sizeof(tdlsInfo_t));
-    if (NULL != tInfo)
+    /*No need to post message during driver unlaod because MC thread is
+      already shutdown*/
+    if ( !pHddCtx->isUnloadInProgress)
     {
-        tInfo->vdev_id = pAdapter->sessionId;
-        tInfo->tdls_state = eTDLS_SUPPORT_DISABLED;
-        tInfo->notification_interval_ms =
-            pHddTdlsCtx->threshold_config.tx_period_t;
-        tInfo->tx_discovery_threshold =
-            pHddTdlsCtx->threshold_config.tx_packet_n;
-        tInfo->tx_teardown_threshold = pHddTdlsCtx->threshold_config.idle_packet_n;
-        tInfo->rssi_teardown_threshold =
-            pHddTdlsCtx->threshold_config.rssi_teardown_threshold;
-        tInfo->rssi_delta = pHddTdlsCtx->threshold_config.rssi_delta;
-        tInfo->tdls_options = 0;
-        if (pHddCtx->cfg_ini->fEnableTDLSOffChannel)
-            tInfo->tdls_options |= ENA_TDLS_OFFCHAN;
-        if (pHddCtx->cfg_ini->fEnableTDLSBufferSta)
-            tInfo->tdls_options |= ENA_TDLS_BUFFER_STA;
-        if (pHddCtx->cfg_ini->fEnableTDLSSleepSta)
-            tInfo->tdls_options |= ENA_TDLS_SLEEP_STA;
+        tInfo = vos_mem_malloc(sizeof(tdlsInfo_t));
+        if (NULL != tInfo)
+        {
+            tInfo->vdev_id = pAdapter->sessionId;
+            tInfo->tdls_state = eTDLS_SUPPORT_DISABLED;
+            tInfo->notification_interval_ms =
+               pHddTdlsCtx->threshold_config.tx_period_t;
+            tInfo->tx_discovery_threshold =
+               pHddTdlsCtx->threshold_config.tx_packet_n;
+            tInfo->tx_teardown_threshold =
+               pHddTdlsCtx->threshold_config.idle_packet_n;
+            tInfo->rssi_teardown_threshold =
+               pHddTdlsCtx->threshold_config.rssi_teardown_threshold;
+            tInfo->rssi_delta = pHddTdlsCtx->threshold_config.rssi_delta;
+            tInfo->tdls_options = 0;
+            if (pHddCtx->cfg_ini->fEnableTDLSOffChannel)
+               tInfo->tdls_options |= ENA_TDLS_OFFCHAN;
+            if (pHddCtx->cfg_ini->fEnableTDLSBufferSta)
+               tInfo->tdls_options |= ENA_TDLS_BUFFER_STA;
+            if (pHddCtx->cfg_ini->fEnableTDLSSleepSta)
+               tInfo->tdls_options |= ENA_TDLS_SLEEP_STA;
 
-        VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+            VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
                   "%s: Setting tdls state and param in fw: "
                   "vdev_id: %d, "
                   "tdls_state: %d, "
@@ -962,16 +967,17 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
                   tInfo->rssi_delta,
                   tInfo->tdls_options);
 
-        halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tInfo, FALSE);
-        if (eHAL_STATUS_SUCCESS != halStatus)
-        {
-            vos_mem_free(tInfo);
+            halStatus = sme_UpdateFwTdlsState(pHddCtx->hHal, tInfo, FALSE);
+            if (eHAL_STATUS_SUCCESS != halStatus)
+            {
+               vos_mem_free(tInfo);
+            }
         }
-    }
-    else
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
+        else
+        {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: vos_mem_alloc failed for tInfo", __func__);
+        }
     }
 #endif
 
