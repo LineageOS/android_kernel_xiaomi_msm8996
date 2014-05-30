@@ -1093,7 +1093,8 @@ static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 {
 	ol_txrx_vdev_handle vdev;
-	ol_txrx_peer_handle peer;
+	ol_txrx_peer_handle peer, temp;
+	int32_t is_high_latency;
 
 	if (!wma || vdev_id > wma->max_bssid)
 		return;
@@ -1102,21 +1103,31 @@ static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 	if (!vdev)
 		return;
 
+	is_high_latency = wdi_out_cfg_is_high_latency(
+				vdev->pdev->ctrl_pdev);
 	WMA_LOGE("%s: vdev_id - %d", __func__, vdev_id);
 	/* remove all remote peers of SAP */
 	adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
-	while ((peer = TAILQ_LAST(&vdev->peer_list, peer_list_t))) {
+
+	temp = NULL;
+	TAILQ_FOREACH_REVERSE(peer, &vdev->peer_list, peer_list_t, peer_list_elem) {
+		if (temp) {
+			adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
+			if ((!is_high_latency)
+			   || adf_os_atomic_read(&temp->delete_in_progress) == 0){
+				adf_os_atomic_init(&temp->ref_cnt);
+				adf_os_atomic_inc(&temp->ref_cnt);
+				wma_remove_peer(wma, temp->mac_addr.raw,
+					vdev_id, peer);
+			}
+			adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
+		}
 		/* self peer is deleted by caller */
 		if (peer == TAILQ_FIRST(&vdev->peer_list)){
 			WMA_LOGE("%s: self peer removed by caller ", __func__);
 			break;
-		}
-		adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
-		adf_os_atomic_init(&peer->ref_cnt);
-		adf_os_atomic_inc(&peer->ref_cnt);
-		wma_remove_peer(wma, peer->mac_addr.raw,
-					vdev_id, peer);
-		adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
+		} else
+			temp = peer;
 	}
 
 	adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
