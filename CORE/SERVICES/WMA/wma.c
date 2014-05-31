@@ -13683,15 +13683,16 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 			 wma->wow.bmiss_enable ? "enabled" : "disabled");
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
-	/* Configure GTK based wakeup */
+	/* Configure GTK based wakeup. Passing vdev_id 0 because
+	  wma_add_wow_wakeup_event always uses vdev 0 for wow wake event id*/
 	ret = wma_add_wow_wakeup_event(wma, WOW_GTK_ERR_EVENT,
-				       wma->wow.gtk_err_enable);
+				       wma->wow.gtk_err_enable[0]);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure GTK based wakeup");
 		goto end;
 	} else
 		WMA_LOGD("GTK based wakeup is %s in fw",
-			 wma->wow.gtk_err_enable ? "enabled" : "disabled");
+			 wma->wow.gtk_err_enable[0] ? "enabled" : "disabled");
 #endif
 	/* Configure probe req based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_PROBE_REQ_WPS_IE_EVENT,
@@ -14894,7 +14895,7 @@ static VOS_STATUS wma_send_gtk_offload_req(tp_wma_handle wma, u_int8_t vdev_id,
 	/* Request target to enable GTK offload */
 	if (params->ulFlags == GTK_OFFLOAD_ENABLE) {
 		cmd->flags = GTK_OFFLOAD_ENABLE_OPCODE;
-		wma->wow.gtk_err_enable = TRUE;
+		wma->wow.gtk_err_enable[vdev_id] = TRUE;
 
 		/* Copy the keys and replay counter */
 		vos_mem_copy(cmd->KCK, params->aKCK, GTK_OFFLOAD_KCK_BYTES);
@@ -14902,7 +14903,7 @@ static VOS_STATUS wma_send_gtk_offload_req(tp_wma_handle wma, u_int8_t vdev_id,
 		vos_mem_copy(cmd->replay_counter, &params->ullKeyReplayCounter,
 			     GTK_REPLAY_COUNTER_BYTES);
 	} else {
-		wma->wow.gtk_err_enable = FALSE;
+		wma->wow.gtk_err_enable[vdev_id] = FALSE;
 		cmd->flags = GTK_OFFLOAD_DISABLE_OPCODE;
 	}
 
@@ -14933,10 +14934,17 @@ static VOS_STATUS wma_process_gtk_offload_req(tp_wma_handle wma,
 		goto out;
 	}
 
+	/* Validate vdev id */
+	if (vdev_id >= wma->max_bssid){
+		WMA_LOGE("invalid vdev_id %d for %pM", vdev_id, params->bssId);
+		status = VOS_STATUS_E_INVAL;
+		goto out;
+	}
+
 	if ((params->ulFlags == GTK_OFFLOAD_ENABLE) &&
-	    (wma->wow.gtk_err_enable == TRUE)) {
-		WMA_LOGD("%s GTK Offload already enabled. Disable it first",
-			 __func__);
+	    (wma->wow.gtk_err_enable[vdev_id] == TRUE)) {
+		WMA_LOGE("%s GTK Offload already enabled. Disable it first "
+			 "vdev_id %d", __func__, vdev_id);
 		params->ulFlags = GTK_OFFLOAD_DISABLE;
 		status = wma_send_gtk_offload_req(wma, vdev_id, params);
 		if (status != VOS_STATUS_SUCCESS) {

@@ -392,7 +392,7 @@ struct wma_wow {
 	v_BOOL_t deauth_enable;
 	v_BOOL_t disassoc_enable;
 	v_BOOL_t bmiss_enable;
-	v_BOOL_t gtk_err_enable;
+	v_BOOL_t gtk_err_enable[WMA_MAX_SUPPORTED_BSS];
 };
 #ifdef WLAN_FEATURE_11W
 #define CMAC_IPN_LEN         (6)
