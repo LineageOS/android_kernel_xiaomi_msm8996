@@ -3294,6 +3294,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
         adf_os_spinlock_init(&wma_handle->vdev_detach_lock);
 
+        adf_os_spinlock_init(&wma_handle->roam_preauth_lock);
+
 	/* Register vdev start response event handler */
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_VDEV_START_RESP_EVENTID,
@@ -3399,6 +3401,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 err_dbglog_init:
 	adf_os_spinlock_destroy(&wma_handle->vdev_respq_lock);
 	adf_os_spinlock_destroy(&wma_handle->vdev_detach_lock);
+	adf_os_spinlock_destroy(&wma_handle->roam_preauth_lock);
 err_event_init:
 	wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
 					     WMI_DEBUG_PRINT_EVENTID);
@@ -7013,6 +7016,17 @@ VOS_STATUS wma_roam_preauth_chan_set(tp_wma_handle wma_handle,
 
         WMA_LOGI("%s: channel %d", __func__, params->channelNumber);
 
+	/* Check for prior operation in progress */
+	adf_os_spin_lock_bh(&wma_handle->roam_preauth_lock);
+	if (wma_handle->roam_preauth_chan_context != NULL) {
+		adf_os_spin_unlock_bh(&wma_handle->roam_preauth_lock);
+		vos_status = VOS_STATUS_E_FAILURE;
+		WMA_LOGE("%s: Rejected request. Previous operation in progress", __func__);
+		goto send_resp;
+	}
+	wma_handle->roam_preauth_chan_context = params;
+	adf_os_spin_unlock_bh(&wma_handle->roam_preauth_lock);
+
         /* Prepare a dummy scan request and get the
          * wmi_start_scan_cmd_fixed_param structure filled properly
          */
@@ -7027,7 +7041,6 @@ VOS_STATUS wma_roam_preauth_chan_set(tp_wma_handle wma_handle,
         scan_req.scanType = eSIR_PASSIVE_SCAN;
         scan_req.p2pScanType = P2P_SCAN_TYPE_LISTEN;
         scan_req.sessionId = vdev_id;
-        wma_handle->roam_preauth_chan_context = params;
         wma_handle->roam_preauth_chanfreq = vos_chan_to_freq(params->channelNumber);
 
         /* set the state in advance before calling wma_start_scan and be ready
@@ -7037,9 +7050,22 @@ VOS_STATUS wma_roam_preauth_chan_set(tp_wma_handle wma_handle,
         wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_REQUESTED;
         vos_status = wma_start_scan(wma_handle, &scan_req, WDA_CHNL_SWITCH_REQ);
 
-        if (vos_status != VOS_STATUS_SUCCESS)
-            wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
-        return vos_status;
+        if (vos_status == VOS_STATUS_SUCCESS)
+		return vos_status;
+	wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
+	/* Failed operation. Safely clear context */
+	adf_os_spin_lock_bh(&wma_handle->roam_preauth_lock);
+        wma_handle->roam_preauth_chan_context = NULL;
+	adf_os_spin_unlock_bh(&wma_handle->roam_preauth_lock);
+
+send_resp:
+	WMA_LOGI("%s: sending WDA_SWITCH_CHANNEL_RSP, status = 0x%x",
+			__func__, vos_status);
+	params->chainMask = wma_handle->pdevconfig.txchainmask;
+	params->smpsMode = SMPS_MODE_DISABLED;
+	params->status = vos_status;
+	wma_send_msg(wma_handle, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
+	return vos_status;
 }
 
 VOS_STATUS wma_roam_preauth_chan_cancel(tp_wma_handle wma_handle,
@@ -7049,11 +7075,34 @@ VOS_STATUS wma_roam_preauth_chan_cancel(tp_wma_handle wma_handle,
         VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
         WMA_LOGI("%s: channel %d", __func__, params->channelNumber);
+	/* Check for prior operation in progress */
+	adf_os_spin_lock_bh(&wma_handle->roam_preauth_lock);
+	if (wma_handle->roam_preauth_chan_context != NULL) {
+		adf_os_spin_unlock_bh(&wma_handle->roam_preauth_lock);
+		vos_status = VOS_STATUS_E_FAILURE;
+		WMA_LOGE("%s: Rejected request. Previous operation in progress", __func__);
+		goto send_resp;
+	}
+	wma_handle->roam_preauth_chan_context = params;
+	adf_os_spin_unlock_bh(&wma_handle->roam_preauth_lock);
 
         abort_scan_req.SessionId = vdev_id;
         wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_CANCEL_REQUESTED;
-        wma_handle->roam_preauth_chan_context = params;
         vos_status = wma_stop_scan(wma_handle, &abort_scan_req);
+        if (vos_status == VOS_STATUS_SUCCESS)
+		return vos_status;
+	/* Failed operation. Safely clear context */
+	adf_os_spin_lock_bh(&wma_handle->roam_preauth_lock);
+        wma_handle->roam_preauth_chan_context = NULL;
+	adf_os_spin_unlock_bh(&wma_handle->roam_preauth_lock);
+
+send_resp:
+	WMA_LOGI("%s: sending WDA_SWITCH_CHANNEL_RSP, status = 0x%x",
+			__func__, vos_status);
+	params->chainMask = wma_handle->pdevconfig.txchainmask;
+	params->smpsMode = SMPS_MODE_DISABLED;
+	params->status = vos_status;
+	wma_send_msg(wma_handle, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
         return vos_status;
 }
 
@@ -7106,7 +7155,9 @@ static void wma_roam_preauth_scan_event_handler(tp_wma_handle wma_handle,
                 params->smpsMode = SMPS_MODE_DISABLED;
                 params->status = vos_status;
                 wma_send_msg(wma_handle, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
+		adf_os_spin_lock_bh(&wma_handle->roam_preauth_lock);
                 wma_handle->roam_preauth_chan_context = NULL;
+		adf_os_spin_unlock_bh(&wma_handle->roam_preauth_lock);
         }
 
 }

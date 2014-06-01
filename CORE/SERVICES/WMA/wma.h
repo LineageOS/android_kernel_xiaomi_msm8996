@@ -612,6 +612,7 @@ typedef struct {
         u_int32_t roam_preauth_scan_id;
         u_int16_t roam_preauth_chanfreq;
         void *roam_preauth_chan_context;
+	adf_os_spinlock_t roam_preauth_lock;
 
 	/* Here ol_ini_info is used to store ini
 	 * status of arp offload, ns offload
