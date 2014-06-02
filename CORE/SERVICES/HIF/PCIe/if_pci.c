@@ -1085,6 +1085,9 @@ again:
         goto err_iomap;
     }
 
+    /* Disable asynchronous suspend */
+    device_disable_async_suspend(&pdev->dev);
+
     sc = A_MALLOC(sizeof(*sc));
     if (!sc) {
         ret = -ENOMEM;

@@ -8982,6 +8982,12 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
                                        WLAN_STATUS_ASSOC_DENIED_UNSPEC,
                                        GFP_KERNEL);
             }
+
+#ifdef QCA_LL_TX_FLOW_CT
+            WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext, hdd_tx_resume_cb,
+                                         pAdapter->sessionId, (void *)pAdapter);
+#endif
+
             break;
 
          case WLAN_HDD_SOFTAP:
@@ -12000,6 +12006,8 @@ static void hdd_driver_exit(void)
       pHddCtx->isUnloadInProgress = TRUE;
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
    }
+
+   vos_wait_for_work_thread_completion(__func__);
 
 #ifdef QCA_WIFI_ISOC
    //Do all the cleanup before deregistering the driver
