@@ -233,8 +233,7 @@ void wma_set_dfs_regdomain(tp_wma_handle wma);
 static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
 				    t_thermal_cmd_params thermal_info);
 
-static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info,
-	                         v_BOOL_t sendResp);
+static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info);
 
 static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id);
 
@@ -3855,7 +3854,9 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 		vos_mem_set(&key_info, sizeof(key_info), 0);
 		key_info.smesessionId= vdev_id;
 		vos_mem_copy(key_info.peerMacAddr, peer_addr, ETH_ALEN);
-		wma_set_stakey(wma, &key_info, FALSE);
+        key_info.sendRsp = FALSE;
+
+		wma_set_stakey(wma, &key_info);
 	}
 #endif
 
@@ -10512,7 +10513,7 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
               * Set the PTK in 11r mode because we already have it.
               */
               if (iface->staKeyParams) {
-                  wma_set_stakey(wma, (tpSetStaKeyParams) iface->staKeyParams, FALSE);
+                  wma_set_stakey(wma, (tpSetStaKeyParams) iface->staKeyParams);
              }
 #endif
 	}
@@ -11020,7 +11021,7 @@ static void wma_set_ibsskey_helper(tp_wma_handle wma_handle, tpSetBssKeyParams k
         }
 }
 
-static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info, v_BOOL_t sendResp)
+static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 {
 	wmi_buf_t buf;
 	int32_t status, i;
@@ -11136,7 +11137,7 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info,
 	/* TODO: Should we wait till we get HTT_T2H_MSG_TYPE_SEC_IND? */
 	key_info->status = eHAL_STATUS_SUCCESS;
 out:
-        if (sendResp)
+        if (key_info->sendRsp)
             wma_send_msg(wma_handle, WDA_SET_STAKEY_RSP, (void *) key_info, 0);
 }
 
@@ -17055,7 +17056,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_SET_STAKEY_REQ:
 			wma_set_stakey(wma_handle,
-					(tpSetStaKeyParams)msg->bodyptr, TRUE);
+					(tpSetStaKeyParams)msg->bodyptr);
 			break;
 		case WDA_DELETE_STA_REQ:
 			wma_delete_sta(wma_handle,

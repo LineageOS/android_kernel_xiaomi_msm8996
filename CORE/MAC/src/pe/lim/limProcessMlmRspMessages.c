@@ -1907,7 +1907,20 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
             goto end;
         }
     if (psessionEntry->limSmeState == eLIM_SME_WT_REASSOC_STATE)
-             mesgType = LIM_MLM_REASSOC_CNF;
+    {
+#ifdef WLAN_FEATURE_VOWIFI_11R
+        // Check if we have keys (PTK) to install in case of 11r
+        tpftPEContext pftPECntxt = &pMac->ft.ftPEContext;
+        if (pftPECntxt->pftSessionEntry != NULL &&
+            pftPECntxt->PreAuthKeyInfo.extSetStaKeyParamValid == TRUE)
+        {
+            tpLimMlmSetKeysReq pMlmStaKeys = &pftPECntxt->PreAuthKeyInfo.extSetStaKeyParam;
+            limSendSetStaKeyReq(pMac, pMlmStaKeys, 0, 0, pftPECntxt->pftSessionEntry, FALSE);
+            pftPECntxt->PreAuthKeyInfo.extSetStaKeyParamValid = FALSE;
+        }
+#endif
+        mesgType = LIM_MLM_REASSOC_CNF;
+    }
         //
         // Update the DPH Hash Entry for this STA
         // with proper state info

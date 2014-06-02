@@ -100,7 +100,7 @@ typedef struct sSirFTUpdateKeyInfo
 typedef struct sSirFTPreAuthKeyInfo
 {
     tANI_U8 extSetStaKeyParamValid; //Ext Bss Config Msg if set
-    tSetStaKeyParams extSetStaKeyParam;  //SetStaKeyParams for ext bss msg
+    tLimMlmSetKeysReq extSetStaKeyParam;  //SetStaKeyParams for ext bss msg
 } tSirFTPreAuthKeyInfo, *tpSirFTPreAuthKeyInfo;
 
 /*-------------------------------------------------------------------------
@@ -113,7 +113,7 @@ typedef struct sFTPEContext
     tSirRetStatus     ftPreAuthStatus;
     tANI_U16          saved_auth_rsp_length;
     tANI_U8           saved_auth_rsp[MAX_FTIE_SIZE];
-    tSirFTPreAuthKeyInfo    *pPreAuthKeyInfo;
+    tSirFTPreAuthKeyInfo    PreAuthKeyInfo;
     // Items created for the new FT, session
     void              *pftSessionEntry;                   // Saved session created for pre-auth
     void              *pAddBssReq;                        // Save add bss req.
