@@ -868,26 +868,6 @@ limIsSmeScanReqValid(tpAniSirGlobal pMac, tpSirSmeScanReq pScanReq)
        limLog(pMac, LOGE, FL("Invalid BSS Type"));
        valid = false;
     }
-
-    if (limIsGroupAddr(pScanReq->bssId) && !limIsAddrBC(pScanReq->bssId))
-    {
-        limLog(pMac, LOGE, FL("Invalid BSS Type"));
-
-        valid = false;
-        limLog(pMac, LOGE, FL("BSSID is group addr and is not Broadcast Addr"));
-    }
-    if (!(pScanReq->scanType == eSIR_PASSIVE_SCAN || pScanReq->scanType == eSIR_ACTIVE_SCAN))
-    {
-        valid = false;
-        limLog(pMac, LOGE, FL("Invalid Scan Type"));
-    }
-
-    if (pScanReq->channelList.numChannels > SIR_MAX_NUM_CHANNELS)
-    {
-       valid = false;
-       limLog(pMac, LOGE, FL("Number of Channels > SIR_MAX_NUM_CHANNELS"));
-    }
-
     if (limIsGroupAddr(pScanReq->bssId) && !limIsAddrBC(pScanReq->bssId))
     {
         valid = false;
