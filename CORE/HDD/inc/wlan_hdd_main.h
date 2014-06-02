@@ -1373,6 +1373,8 @@ struct hdd_context_s
     eTDLSSupportMode tdls_mode;
     eTDLSSupportMode tdls_mode_last;
     tdlsConnInfo_t tdlsConnInfo[HDD_MAX_NUM_TDLS_STA];
+    /* maximum TDLS station number allowed upon runtime condition */
+    tANI_U16 max_num_tdls_sta;
     /* TDLS peer connected count */
     tANI_U16 connected_peer_count;
     tdls_scan_context_t tdls_scan_ctxt;

@@ -341,7 +341,7 @@ static v_VOID_t wlan_hdd_tdls_update_peer_cb( v_PVOID_t userData )
                     if (curr_peer->tx_pkt >=
                             pHddTdlsCtx->threshold_config.tx_packet_n) {
 
-                        if (HDD_MAX_NUM_TDLS_STA > wlan_hdd_tdlsConnectedPeers(pHddTdlsCtx->pAdapter))
+                        if (pHddCtx->max_num_tdls_sta > wlan_hdd_tdlsConnectedPeers(pHddTdlsCtx->pAdapter))
                         {
 
                             VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL, "Tput trigger TDLS pre-setup");
@@ -753,6 +753,8 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     pHddCtx->tdls_scan_ctxt.attempt = 0;
     pHddCtx->tdls_scan_ctxt.reject = 0;
     pHddCtx->tdls_scan_ctxt.scan_request = NULL;
+
+    pHddCtx->max_num_tdls_sta = HDD_MAX_NUM_TDLS_STA;
 
     for (staIdx = 0; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++)
     {
@@ -2714,7 +2716,7 @@ int wlan_hdd_tdls_scan_callback (hdd_adapter_t *pAdapter,
             hddTdlsPeer_t *curr_peer;
             hddTdlsPeer_t *connectedPeerList[HDD_MAX_NUM_TDLS_STA];
 
-            for (staIdx = 0; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++)
+            for (staIdx = 0; staIdx < pHddCtx->max_num_tdls_sta; staIdx++)
             {
                 if (pHddCtx->tdlsConnInfo[staIdx].staId)
                 {

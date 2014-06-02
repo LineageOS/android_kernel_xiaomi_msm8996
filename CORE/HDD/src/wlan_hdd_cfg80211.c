@@ -3806,14 +3806,14 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
        TODO: for now, return -EPERM looks working fine,
        but need to check if any other errno fit into this category.*/
     numCurrTdlsPeers = wlan_hdd_tdlsConnectedPeers(pAdapter);
-    if (HDD_MAX_NUM_TDLS_STA <= numCurrTdlsPeers)
+    if (pHddCtx->max_num_tdls_sta <= numCurrTdlsPeers)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: " MAC_ADDRESS_STR
                    " TDLS Max peer already connected. Request declined."
                    " Num of peers (%d), Max allowed (%d).",
                    __func__, MAC_ADDR_ARRAY(mac), numCurrTdlsPeers,
-                   HDD_MAX_NUM_TDLS_STA);
+                   pHddCtx->max_num_tdls_sta);
         goto error;
     }
     else
@@ -9454,7 +9454,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
         SIR_MAC_TDLS_SETUP_RSP == action_code )
     {
         numCurrTdlsPeers = wlan_hdd_tdlsConnectedPeers(pAdapter);
-        if (HDD_MAX_NUM_TDLS_STA <= numCurrTdlsPeers)
+        if (pHddCtx->max_num_tdls_sta <= numCurrTdlsPeers)
         {
             /* supplicant still sends tdls_mgmt(SETUP_REQ) even after
                we return error code at 'add_station()'. Hence we have this
@@ -9466,7 +9466,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
                            "%s: " MAC_ADDRESS_STR
                            " TDLS Max peer already connected. action (%d) declined. Num of peers (%d), Max allowed (%d).",
                            __func__, MAC_ADDR_ARRAY(peer), action_code,
-                           numCurrTdlsPeers, HDD_MAX_NUM_TDLS_STA);
+                           numCurrTdlsPeers, pHddCtx->max_num_tdls_sta);
                 return -EINVAL;
             }
             else
@@ -9478,7 +9478,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
                            "%s: " MAC_ADDRESS_STR
                            " TDLS Max peer already connected, send response status (%d). Num of peers (%d), Max allowed (%d).",
                            __func__, MAC_ADDR_ARRAY(peer), status_code,
-                           numCurrTdlsPeers, HDD_MAX_NUM_TDLS_STA);
+                           numCurrTdlsPeers, pHddCtx->max_num_tdls_sta);
                 max_sta_failed = -EPERM;
                 /* fall through to send setup resp with failure status
                 code */
