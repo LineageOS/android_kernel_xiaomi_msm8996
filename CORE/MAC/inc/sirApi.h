@@ -3876,6 +3876,12 @@ typedef struct SirMobilityDomainInfo
   tANI_U16 mobilityDomain;
 } tSirMobilityDomainInfo;
 
+typedef enum {
+        SIR_ROAMING_DFS_CHANNEL_DISABLED = 0,
+        SIR_ROAMING_DFS_CHANNEL_ENABLED_NORMAL = 1,
+        SIR_ROAMING_DFS_CHANNEL_ENABLED_ACTIVE = 2
+} eSirDFSRoamScanMode;
+
 typedef struct sSirRoamOffloadScanReq
 {
   eAniBoolean RoamScanOffloadEnabled;
@@ -3917,6 +3923,7 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U8   RoamBmissFirstBcnt;
   tANI_U8   RoamBmissFinalBcnt;
   tANI_U8   RoamBeaconRssiWeight;
+  eSirDFSRoamScanMode  allowDFSChannelRoam;
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 #endif //WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 

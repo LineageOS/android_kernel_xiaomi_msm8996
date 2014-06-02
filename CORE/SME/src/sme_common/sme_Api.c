@@ -12505,17 +12505,18 @@ eHalStatus sme_StatsExtEvent(tHalHandle hHal, void* pMsg)
 
 /* ---------------------------------------------------------------------------
     \fn sme_UpdateDFSScanMode
-    \brief  Update DFS roam Mode
+    \brief  Update DFS roam scan mode
             This function is called through dynamic setConfig callback function
-            to configure isAllowDFSChannelRoam.
+            to configure allowDFSChannelRoam.
     \param  hHal - HAL handle for device
-    \param  isAllowDFSChannelRoam - Enable/Disable DFS roaming scan
-    \return eHAL_STATUS_SUCCESS - SME update allowDFSChannelRoam config
+    \param  allowDFSChannelRoam - DFS roaming scan mode 0 (disable),
+            1 (passive), 2 (active)
+    \return eHAL_STATUS_SUCCESS - SME update DFS roaming scan config
             successfully.
-            Other status means SME is failed to update isAllowDFSChannelRoam.
+            Other status means SME failed to update DFS roaming scan config.
+    \sa
     -------------------------------------------------------------------------*/
-
-eHalStatus sme_UpdateDFSScanMode(tHalHandle hHal, v_BOOL_t isAllowDFSChannelRoam)
+eHalStatus sme_UpdateDFSScanMode(tHalHandle hHal, v_U8_t allowDFSChannelRoam)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     eHalStatus          status    = eHAL_STATUS_SUCCESS;
@@ -12526,11 +12527,11 @@ eHalStatus sme_UpdateDFSScanMode(tHalHandle hHal, v_BOOL_t isAllowDFSChannelRoam
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                      "LFR runtime successfully set AllowDFSChannelRoam Mode to "
                      "%d - old value is %d - roam state is %s",
-                     isAllowDFSChannelRoam,
+                     allowDFSChannelRoam,
                      pMac->roam.configParam.allowDFSChannelRoam,
                      macTraceGetNeighbourRoamState(
                      pMac->roam.neighborRoamInfo.neighborRoamState));
-        pMac->roam.configParam.allowDFSChannelRoam = isAllowDFSChannelRoam;
+        pMac->roam.configParam.allowDFSChannelRoam = allowDFSChannelRoam;
         sme_ReleaseGlobalLock( &pMac->sme );
     }
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
@@ -12545,13 +12546,13 @@ eHalStatus sme_UpdateDFSScanMode(tHalHandle hHal, v_BOOL_t isAllowDFSChannelRoam
 }
 
 /*--------------------------------------------------------------------------
-  \brief sme_GetWESMode() - get WES Mode
-  This is a synchronous call
-  \param hHal - The handle returned by macOpen
-  \return DFS roaming mode Enabled(1)/Disabled(0)
+  \brief sme_GetDFSScanMode() - get DFS roam scan mode
+            This is a synchronous call
+  \param hHal - The handle returned by macOpen.
+  \return DFS roaming scan mode 0 (disable), 1 (passive), 2 (active)
   \sa
   --------------------------------------------------------------------------*/
-v_BOOL_t sme_GetDFSScanMode(tHalHandle hHal)
+v_U8_t sme_GetDFSScanMode(tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     return pMac->roam.configParam.allowDFSChannelRoam;

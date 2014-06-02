@@ -5710,6 +5710,8 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
     }
 
     vos_mem_zero(scan_params, sizeof(wmi_start_scan_cmd_fixed_param));
+    scan_params->scan_ctrl_flags = WMI_SCAN_ADD_CCK_RATES |
+                WMI_SCAN_ADD_OFDM_RATES;
     if (roam_req != NULL) {
         /* Parameters updated after association is complete */
         WMA_LOGI("%s: Input parameters: NeighborScanChannelMinTime"
@@ -5776,7 +5778,7 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
                   channels_per_burst * scan_params->dwell_time_active;
             }
         }
-        if (pMac->roam.configParam.allowDFSChannelRoam &&
+        if (roam_req->allowDFSChannelRoam == SIR_ROAMING_DFS_CHANNEL_ENABLED_NORMAL &&
             roam_req->HomeAwayTime > 0 &&
             roam_req->ChannelCacheType != CHANNEL_LIST_STATIC) {
             /* Roaming on DFS channels is supported and it is not app channel list.
@@ -5795,6 +5797,26 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
         scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION; /* 30 seconds for full scan cycle */
         scan_params->idle_time = scan_params->min_rest_time;
         scan_params->n_probes = roam_req->nProbes;
+        if (roam_req->allowDFSChannelRoam == SIR_ROAMING_DFS_CHANNEL_DISABLED) {
+            scan_params->scan_ctrl_flags |= WMI_SCAN_BYPASS_DFS_CHN;
+        } else {
+            /* Roaming scan on DFS channel is allowed.
+             * No need to change any flags for default allowDFSChannelRoam = 1.
+             * Special case where static channel list is given by application
+             * that contains DFS channels. Assume that the application
+             * has knowledge of matching APs being active and that
+             * probe request transmission is permitted on those channel.
+             * Force active scans on those channels.
+             */
+
+            if (roam_req->allowDFSChannelRoam ==
+                SIR_ROAMING_DFS_CHANNEL_ENABLED_ACTIVE &&
+                roam_req->ChannelCacheType == CHANNEL_LIST_STATIC &&
+                roam_req->ConnectedNetwork.ChannelCount > 0) {
+                scan_params->scan_ctrl_flags |=
+                        WMI_SCAN_FLAG_FORCE_ACTIVE_ON_DFS;
+            }
+        }
     } else {
         /* roam_req = NULL during initial or pre-assoc invocation */
         scan_params->dwell_time_active = WMA_ROAM_DWELL_TIME_ACTIVE_DEFAULT;
@@ -5808,11 +5830,6 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
         scan_params->idle_time = scan_params->min_rest_time;
         scan_params->burst_duration = 0;
         scan_params->n_probes = 0;
-    }
-
-    scan_params->scan_ctrl_flags = WMI_SCAN_ADD_CCK_RATES | WMI_SCAN_ADD_OFDM_RATES;
-    if (!pMac->roam.configParam.allowDFSChannelRoam) {
-        scan_params->scan_ctrl_flags |= WMI_SCAN_BYPASS_DFS_CHN;
     }
 
     WMA_LOGI("%s: Rome roam scan parameters:"
