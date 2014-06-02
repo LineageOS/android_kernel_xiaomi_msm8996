@@ -13851,13 +13851,13 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	/* Configure GTK based wakeup. Passing vdev_id 0 because
 	  wma_add_wow_wakeup_event always uses vdev 0 for wow wake event id*/
 	ret = wma_add_wow_wakeup_event(wma, WOW_GTK_ERR_EVENT,
-				       wma->wow.gtk_err_enable[0]);
+				       wma->wow.gtk_pdev_enable);
 	if (ret != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to configure GTK based wakeup");
 		goto end;
 	} else
 		WMA_LOGD("GTK based wakeup is %s in fw",
-			 wma->wow.gtk_err_enable[0] ? "enabled" : "disabled");
+			 wma->wow.gtk_pdev_enable ? "enabled" : "disabled");
 #endif
 	/* Configure probe req based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_PROBE_REQ_WPS_IE_EVENT,
@@ -14098,7 +14098,7 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	}
 
 	wma->no_of_suspend_ind = 0;
-
+	wma->wow.gtk_pdev_enable = 0;
 	/*
 	 * Enable WOW if any one of the condition meets,
 	 *  1) Is any one of vdev in beaconning mode (in AP mode) ?
@@ -14131,6 +14131,13 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 		}
 #endif
 	}
+	for (i = 0; i < wma->max_bssid; i++) {
+		wma->wow.gtk_pdev_enable |= wma->wow.gtk_err_enable[i];
+		WMA_LOGD("VDEV_ID:%d, gtk_err_enable[%d]:%d, gtk_pdev_enable:%d",
+						i, i, wma->wow.gtk_err_enable[i],
+						wma->wow.gtk_pdev_enable);
+	}
+
 	if (!connected && !pno_in_progress) {
 		WMA_LOGD("All vdev are in disconnected state, skipping wow");
 		vos_mem_free(info);
@@ -15079,6 +15086,8 @@ static VOS_STATUS wma_send_gtk_offload_req(tp_wma_handle wma, u_int8_t vdev_id,
 		wmi_buf_free(buf);
 		status = VOS_STATUS_E_FAILURE;
 	}
+
+	WMA_LOGD("VDEVID: %d, GTK_FLAGS: x%x", vdev_id, cmd->flags);
 out:
 	WMA_LOGD("%s Exit", __func__);
 	return status;
