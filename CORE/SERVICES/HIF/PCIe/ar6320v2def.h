@@ -193,6 +193,7 @@
 #define AR6320V2_PCIE_LOCAL_BASE_ADDRESS                  0x80000
 #define AR6320V2_FW_IND_EVENT_PENDING                     1
 #define AR6320V2_FW_IND_INITIALIZED                       2
+#define AR6320V2_FW_IND_HELPER                            4
 #define AR6320V2_PCIE_INTR_ENABLE_ADDRESS                 0x0008
 #define AR6320V2_PCIE_INTR_CLR_ADDRESS                    0x0014
 #define AR6320V2_PCIE_INTR_FIRMWARE_MASK                  0x00000400
@@ -676,6 +677,7 @@ struct hostdef_s ar6320v2_hostdef = {
     .d_RTC_STATE_V_LSB =                       AR6320V2_RTC_STATE_V_LSB,
     .d_FW_IND_EVENT_PENDING =                  AR6320V2_FW_IND_EVENT_PENDING,
     .d_FW_IND_INITIALIZED =                    AR6320V2_FW_IND_INITIALIZED,
+    .d_FW_IND_HELPER =                         AR6320V2_FW_IND_HELPER,
     .d_RTC_STATE_V_ON =                        AR6320V2_RTC_STATE_V_ON,
 #if defined(SDIO_3_0)
     .d_HOST_INT_STATUS_MBOX_DATA_MASK =        AR6320V2_HOST_INT_STATUS_MBOX_DATA_MASK,

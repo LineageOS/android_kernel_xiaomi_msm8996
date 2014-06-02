@@ -1041,6 +1041,10 @@ limGetIElenFromBssDescription(tpSirBssDescription pBssDescr)
 void
 limSendBeaconInd(tpAniSirGlobal pMac, tpPESession psessionEntry);
 
+#ifdef QCA_WIFI_2_0
+void
+limSendVdevRestart(tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 sessionId);
+#endif /* QCA_WIFI_2_0 */
 
 void limGetWPSPBCSessions(tpAniSirGlobal pMac, tANI_U8 *addr, tANI_U8 *uuid_e, eWPSPBCOverlap *overlap, tpPESession psessionEntry);
 void limWPSPBCTimeout(tpAniSirGlobal pMac, tpPESession psessionEntry);

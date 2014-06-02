@@ -803,6 +803,18 @@ void ol_schedule_ramdump_work(struct ol_softc *scn)
 	ramdump_scn = scn;
 	schedule_work(&ramdump_work);
 }
+
+static void fw_indication_work_handler(struct work_struct *fw_indication)
+{
+	cnss_device_self_recovery();
+}
+
+static DECLARE_WORK(fw_indication_work, fw_indication_work_handler);
+
+void ol_schedule_fw_indication_work(struct ol_softc *scn)
+{
+	schedule_work(&fw_indication_work);
+}
 #endif
 
 #define REGISTER_DUMP_LEN_MAX   60
@@ -822,6 +834,8 @@ void ol_target_failure(void *instance, A_STATUS status)
 	A_UINT8 *dbglog_data;
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+#else
+	int ret;
 #endif
 
 	if (OL_TRGET_STATUS_RESET == scn->target_status) {
@@ -832,9 +846,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 #ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
 	if (scn->crash_shutdown)
 		printk("XXX TARGET ASSERTED because of Kernel Panic XXX\n");
-	else
 #endif
-		printk("XXX TARGET ASSERTED XXX\n");
 	scn->target_status = OL_TRGET_STATUS_RESET;
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
@@ -845,6 +857,18 @@ void ol_target_failure(void *instance, A_STATUS status)
 	}
 	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 #endif
+
+#ifdef CONFIG_CNSS
+	ret = hif_pci_check_fw_reg(scn->hif_sc);
+	if (0 == ret) {
+		ol_schedule_fw_indication_work(scn);
+		return;
+	} else if (-1 == ret) {
+		return;
+	}
+#endif
+
+	printk("XXX TARGET ASSERTED XXX\n");
 
 #ifndef CONFIG_CNSS
 	if (HIFDiagReadMem(scn->hif_hdl,

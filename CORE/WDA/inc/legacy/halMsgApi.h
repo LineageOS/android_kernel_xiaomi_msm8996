@@ -1473,6 +1473,14 @@ typedef struct sTdlsLinkEstablishParams
    tANI_U32  status;
 }tTdlsLinkEstablishParams, *tpTdlsLinkEstablishParams;
 
+#ifdef QCA_WIFI_2_0
+typedef struct tHalHiddenSsidVdevRestart
+{
+   tANI_U8   ssidHidden;
+   tANI_U8 sessionId;
+}tHalHiddenSsidVdevRestart,*tpHalHiddenSsidVdevRestart;
+#endif /* QCA_WIFI_2_0 */
+
 static inline void halGetTxTSFtimer(tpAniSirGlobal pMac,
                                                 tSirMacTimeStamp *pTime)
 {

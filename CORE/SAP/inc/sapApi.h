@@ -606,6 +606,9 @@ int sapSetPreferredChannel
     tANI_U8* ptr
 );
 
+/* Channel/Frequency table */
+extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
+
 #ifdef FEATURE_WLAN_CH_AVOID
 /* Store channel safety information */
 typedef struct
@@ -1766,6 +1769,22 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx);
 
 VOS_STATUS
 WLANSAP_Set_Dfs_Ignore_CAC(v_PVOID_t pvosGCtx, v_U8_t ignore_cac);
+
+/*==========================================================================
+FUNCTION  sapConvertSapPhyModeToCsrPhyMode
+
+DESCRIPTION Function to implement selection of CSR PhyMode using SAP PhyMode
+
+DEPENDENCIES PARAMETERS
+
+IN sapPhyMode : SAP Phy Module
+
+RETURN VALUE If SUCCESS or FAILURE
+
+SIDE EFFECTS
+============================================================================*/
+eCsrPhyMode sapConvertSapPhyModeToCsrPhyMode( eSapPhyMode sapPhyMode );
+
 
 #ifdef __cplusplus
  }

@@ -72,11 +72,11 @@
  * ------------------------------------------------------------------------*/
 #define VOS_SCHED_THREAD_HEART_BEAT    INFINITE
 /* Milli seconds to delay SSR thread when an Entry point is Active */
-#define SSR_WAIT_SLEEP_TIME 100
+#define SSR_WAIT_SLEEP_TIME 200
 /* MAX iteration count to wait for Entry point to exit before
  * we proceed with SSR in WD Thread
  */
-#define MAX_SSR_WAIT_ITERATIONS 20
+#define MAX_SSR_WAIT_ITERATIONS 50
 
 static atomic_t ssr_protect_entry_count;
 
@@ -2366,4 +2366,40 @@ void vos_ssr_unprotect(const char *caller_func)
    count = atomic_dec_return(&ssr_protect_entry_count);
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
              "%s: ENTRY INACTIVE %d", caller_func, count);
+}
+
+/**
+  @brief vos_is_ssr_ready()
+
+  This function will check if the calling execution can
+  proceed with SSR.
+
+  @param
+         caller_func - Name of calling function.
+  @return
+         true or false
+*/
+bool vos_is_ssr_ready(const char *caller_func)
+{
+    int count = MAX_SSR_WAIT_ITERATIONS;
+
+    while (count) {
+
+        if (!atomic_read(&ssr_protect_entry_count))
+            break;
+
+        if (--count) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Waiting for active entry points to exit", __func__);
+            msleep(SSR_WAIT_SLEEP_TIME);
+        }
+    }
+    /* at least one external thread is executing */
+    if (!count)
+        return false;
+
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+             "Allowing SSR for %s", caller_func);
+
+    return true;
 }

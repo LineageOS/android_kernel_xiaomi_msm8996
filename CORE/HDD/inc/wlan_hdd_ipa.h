@@ -51,6 +51,10 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 VOS_STATUS hdd_ipa_process_rxt(v_VOID_t *vosContext, adf_nbuf_t rxBuf,
 		v_U8_t sta_id);
 bool hdd_ipa_is_enabled(hdd_context_t *pHddCtx);
+
+int hdd_ipa_set_perf_level(hdd_context_t *hdd_ctx, uint64_t tx_packets,
+		uint64_t rx_packets);
+
 #endif
 
 #endif

@@ -180,6 +180,40 @@ ol_txrx_peer_find_hash_add(
 }
 
 struct ol_txrx_peer_t *
+ol_txrx_peer_vdev_find_hash(struct ol_txrx_pdev_t *pdev,
+                            struct ol_txrx_vdev_t *vdev,
+                            u_int8_t *peer_mac_addr,
+                            int mac_addr_is_aligned,
+                            u_int8_t check_valid)
+{
+    union ol_txrx_align_mac_addr_t local_mac_addr_aligned, *mac_addr;
+    unsigned index;
+    struct ol_txrx_peer_t *peer;
+
+    if (mac_addr_is_aligned) {
+        mac_addr = (union ol_txrx_align_mac_addr_t *) peer_mac_addr;
+    } else {
+        adf_os_mem_copy(
+            &local_mac_addr_aligned.raw[0],
+            peer_mac_addr, OL_TXRX_MAC_ADDR_LEN);
+        mac_addr = &local_mac_addr_aligned;
+    }
+    index = ol_txrx_peer_find_hash_index(pdev, mac_addr);
+    adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
+    TAILQ_FOREACH(peer, &pdev->peer_hash.bins[index], hash_list_elem) {
+        if (ol_txrx_peer_find_mac_addr_cmp(mac_addr, &peer->mac_addr) == 0
+            && (check_valid == 0 || peer->valid) && peer->vdev == vdev )  {
+            /* found it - increment the ref count before releasing the lock */
+            adf_os_atomic_inc(&peer->ref_cnt);
+            adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
+            return peer;
+        }
+    }
+    adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
+    return NULL; /* failure */
+}
+
+struct ol_txrx_peer_t *
 ol_txrx_peer_find_hash_find(
     struct ol_txrx_pdev_t *pdev,
     u_int8_t *peer_mac_addr,

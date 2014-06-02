@@ -1089,6 +1089,14 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   }
 #endif // WLAN_BTAMP_FEATURE
 
+#ifdef QCA_WIFI_2_0
+  if (gpVosContext->htc_ctx)
+  {
+      HTCStop(gpVosContext->htc_ctx);
+      HTCDestroy(gpVosContext->htc_ctx);
+      gpVosContext->htc_ctx = NULL;
+  }
+#endif
 
   vosStatus = WLANTL_Close(vosContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -1161,13 +1169,6 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   }
 
 #ifdef QCA_WIFI_2_0
-  if (gpVosContext->htc_ctx)
-  {
-      HTCStop(gpVosContext->htc_ctx);
-      HTCDestroy(gpVosContext->htc_ctx);
-      gpVosContext->htc_ctx = NULL;
-  }
-
   vosStatus = wma_wmi_service_close( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
@@ -2589,4 +2590,16 @@ v_BOOL_t vos_is_packet_log_enabled(void)
    }
 
    return pHddCtx->cfg_ini->enablePacketLog;
+}
+
+v_U64_t vos_get_monotonic_boottime(void)
+{
+#ifdef CONFIG_CNSS
+   struct timespec ts;
+
+   cnss_get_monotonic_boottime(&ts);
+   return (((v_U64_t)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000));
+#else
+   return adf_os_ticks_to_msecs(adf_os_ticks());
+#endif
 }
