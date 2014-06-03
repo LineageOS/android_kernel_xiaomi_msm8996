@@ -45,6 +45,10 @@
 #include "ol_params.h"
 #include <wdi_event_api.h>
 
+#ifdef CONFIG_CNSS
+#include <net/cnss.h>
+#endif
+
 #ifdef QCA_WIFI_ISOC
 #include "dmux_dxe_api.h"
 #endif
@@ -215,6 +219,9 @@ struct ol_softc {
     u_int8_t                max_no_of_peers;
     struct completion       ramdump_event;
     bool                    crash_shutdown;
+#ifdef CONFIG_CNSS
+    struct cnss_fw_files fw_files;
+#endif
 };
 
 #ifdef PERE_IP_HDR_ALIGNMENT_WAR

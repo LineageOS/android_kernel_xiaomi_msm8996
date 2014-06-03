@@ -695,6 +695,13 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
    tANI_U32 sessionId;
    tSirScanType scanType;
 
+   status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid*)pSmeRrmContext->sessionBssId, &sessionId );
+   if( status != eHAL_STATUS_SUCCESS )
+   {
+       smsLog( pMac, LOGE, "%s : Invalid sme Session ID", __func__);
+       return eHAL_STATUS_FAILURE;
+   }
+
    if ((pSmeRrmContext->currentIndex) >= pSmeRrmContext->channelList.numOfChannels)
        return status;
 
@@ -765,7 +772,6 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
        /* set requestType to full scan */
        scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
 
-       csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid*)pSmeRrmContext->sessionBssId, &sessionId );
        status = sme_ScanRequest( pMac, (tANI_U8)sessionId, &scanRequest, &scanId, &sme_RrmScanRequestCallback, NULL );
 
        if ( pSmeRrmContext->ssId.length )

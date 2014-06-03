@@ -816,6 +816,10 @@ ol_txrx_vdev_attach(
     TAILQ_INIT(&vdev->peer_list);
     vdev->last_real_peer = NULL;
 
+    #if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+    vdev->hlTdlsFlag = false;
+    #endif
+
     #ifndef CONFIG_QCA_WIFI_ISOC
     #ifdef  QCA_IBSS_SUPPORT
     vdev->ibss_peer_num = 0;

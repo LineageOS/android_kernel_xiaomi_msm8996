@@ -504,7 +504,13 @@ ol_tx_hl_base(
 //        OL_TXRX_PROT_AN_LOG(pdev->prot_an_tx_sent, msdu);
 
         if (tx_spec != ol_tx_spec_std) {
+            #if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+            if (tx_spec & ol_tx_spec_no_free) {
+                tx_desc->pkt_type = ol_tx_frm_no_free;
+            } else if (tx_spec & ol_tx_spec_tso) {
+            #else
             if (tx_spec & ol_tx_spec_tso) {
+            #endif
                 tx_desc->pkt_type = ol_tx_frm_tso;
             }
             if (OL_TXRX_TX_IS_RAW(tx_spec)) {

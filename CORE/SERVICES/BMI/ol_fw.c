@@ -319,9 +319,6 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 	u_int32_t fw_entry_size;
 	u_int8_t *tempEeprom;
 	u_int32_t board_data_size;
-#ifdef CONFIG_CNSS
-	struct cnss_fw_files fw_files;
-#endif
 #ifdef QCA_SIGNED_SPLIT_BINARY_SUPPORT
 	bool bin_sign = FALSE;
 	int bin_off, bin_len;
@@ -343,12 +340,6 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		if (ret != -ENOENT)
 			return -1;
 	}
-#ifdef CONFIG_CNSS
-	if (0 != cnss_get_fw_files(&fw_files)) {
-		printk("%s: No FW files from CNSS driver\n", __func__);
-		return -1;
-	}
-#endif
 
 	switch (file) {
 	default:
@@ -356,7 +347,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		return -1;
 	case ATH_OTP_FILE:
 #ifdef CONFIG_CNSS
-		filename = fw_files.otp_data;
+		filename = scn->fw_files.otp_data;
 #else
 		filename = QCA_OTP_FILE;
 #endif
@@ -368,7 +359,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 #ifdef QCA_WIFI_FTM
 		if (vos_get_conparam() == VOS_FTM_MODE) {
 #ifdef CONFIG_CNSS
-			filename = fw_files.utf_file;
+			filename = scn->fw_files.utf_file;
 #else
 			filename = QCA_UTF_FIRMWARE_FILE;
 #endif
@@ -381,7 +372,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		}
 #endif
 #ifdef CONFIG_CNSS
-		filename = fw_files.image_file;
+		filename = scn->fw_files.image_file;
 #else
 		filename = QCA_FIRMWARE_FILE;
 #endif
@@ -396,7 +387,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 #ifdef QCA_WIFI_FTM
 		if (vos_get_conparam() == VOS_FTM_MODE) {
 #ifdef CONFIG_CNSS
-			filename = fw_files.utf_board_data;
+			filename = scn->fw_files.utf_board_data;
 #else
 			filename = QCA_BOARD_DATA_FILE;
 #endif
@@ -409,7 +400,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 	}
 #endif /* QCA_WIFI_FTM */
 #ifdef CONFIG_CNSS
-		filename = fw_files.board_data;
+		filename = scn->fw_files.board_data;
 #else
 		filename = QCA_BOARD_DATA_FILE;
 #endif
@@ -429,8 +420,8 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 #if defined(QCA_WIFI_FTM) && defined(CONFIG_CNSS)
 		/* Try default board data file if FTM specific
 		 * board data file is not present. */
-		if (filename == fw_files.utf_board_data) {
-			filename = fw_files.board_data;
+		if (filename == scn->fw_files.utf_board_data) {
+			filename = scn->fw_files.board_data;
 			printk("%s: Trying to load default %s\n",
 				__func__, filename);
 			if (request_firmware(&fw_entry, filename,
@@ -1474,6 +1465,14 @@ int ol_download_firmware(struct ol_softc *scn)
 #endif
 #endif
 
+#ifdef CONFIG_CNSS
+		if (0 != cnss_get_fw_files_for_target(&scn->fw_files,
+						scn->target_type,
+						scn->target_version)) {
+			printk("%s: No FW files from CNSS driver\n", __func__);
+			return -1;
+		}
+#endif
 	/* Transfer Board Data from Target EEPROM to Target RAM */
 	/* Determine where in Target RAM to write Board Data */
 	BMIReadMemory(scn->hif_hdl,

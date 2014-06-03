@@ -535,11 +535,10 @@ send_fail_resp:
 static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 				       u_int32_t len)
 {
-	tp_wma_handle wma = (tp_wma_handle) handle;
-	struct wma_target_req *req_msg;
 	WMI_VDEV_START_RESP_EVENTID_param_tlvs *param_buf;
 	wmi_vdev_start_response_event_fixed_param *resp_event;
-	struct wma_txrx_node *iface;
+	u_int8_t *buf;
+	vos_msg_t vos_msg = {0};
 
 	WMA_LOGI("%s: Enter", __func__);
 	param_buf = (WMI_VDEV_START_RESP_EVENTID_param_tlvs *) cmd_param_info;
@@ -549,34 +548,82 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	}
 
 	resp_event = param_buf->fixed_param;
+	buf = vos_mem_malloc(sizeof(wmi_vdev_start_response_event_fixed_param));
+	if (!buf) {
+		WMA_LOGE("%s: Failed alloc memory for buf", __func__);
+		return -EINVAL;
+	}
+	vos_mem_zero(buf, sizeof(wmi_vdev_start_response_event_fixed_param));
+	vos_mem_copy(buf, (u_int8_t *)resp_event,
+					sizeof(wmi_vdev_start_response_event_fixed_param));
 
-        if ((resp_event->vdev_id <= wma->max_bssid) &&
-        (adf_os_atomic_read(&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress)) &&
-	((wma->interfaces[resp_event->vdev_id].type == WMI_VDEV_TYPE_AP) &&
-	(wma->interfaces[resp_event->vdev_id].sub_type == 0))) {
-		WMA_LOGE("%s: vdev restart event recevied for hidden ssid set using IOCTL ", __func__);
+	vos_msg.type = WDA_VDEV_START_RSP_IND;
+	vos_msg.bodyptr = buf;
+	vos_msg.bodyval = 0;
+
+	if (VOS_STATUS_SUCCESS !=
+	    vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg)) {
+		WMA_LOGP("%s: Failed to post WDA_VDEV_START_RSP_IND msg", __func__);
+		vos_mem_free(buf);
+		return -1;
+	}
+	WMA_LOGD("WDA_VDEV_START_RSP_IND posted");
+	return 0;
+}
+
+static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
+{
+	struct wma_target_req *req_msg;
+	struct wma_txrx_node *iface;
+	wmi_vdev_start_response_event_fixed_param *resp_event;
+
+	resp_event = (wmi_vdev_start_response_event_fixed_param *)buf;
+
+	if (!resp_event) {
+		WMA_LOGE("Invalid start response event buffer");
+		return -EINVAL;
+	}
+
+	if ((resp_event->vdev_id <= wma->max_bssid) &&
+		(adf_os_atomic_read(
+		&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress)) &&
+		((wma->interfaces[resp_event->vdev_id].type == WMI_VDEV_TYPE_AP) &&
+		(wma->interfaces[resp_event->vdev_id].sub_type == 0))) {
+		WMA_LOGE(
+			"%s: vdev restart event recevied for hidden ssid set using IOCTL",
+			__func__);
 
 		if (wmi_unified_vdev_up_send(wma->wmi_handle, resp_event->vdev_id, 0,
 			wma->interfaces[resp_event->vdev_id].bssid) < 0) {
 			WMA_LOGE("%s : failed to send vdev up", __func__);
 			return -EEXIST;
 		}
-		adf_os_atomic_set(&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress,0);
+		adf_os_atomic_set(
+		&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress, 0);
 		wma->interfaces[resp_event->vdev_id].vdev_up = TRUE;
-        }
+	}
 
 	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id,
 				    WMA_TARGET_REQ_TYPE_VDEV_START);
+
 	if (!req_msg) {
-		WMA_LOGP("%s: Failed to lookup request message for vdev %d",
+		WMA_LOGE("%s: Failed to lookup request message for vdev %d",
 			 __func__, resp_event->vdev_id);
 		return -EINVAL;
 	}
+
 	vos_timer_stop(&req_msg->event_timeout);
-        iface = &wma->interfaces[resp_event->vdev_id];
+
+	iface = &wma->interfaces[resp_event->vdev_id];
 	if (req_msg->msg_type == WDA_CHNL_SWITCH_REQ) {
 		tpSwitchChannelParams params =
 			(tpSwitchChannelParams) req_msg->user_data;
+		if(!params) {
+			WMA_LOGE("%s: channel switch params is NULL for vdev %d",
+				 __func__, resp_event->vdev_id);
+			return -EINVAL;
+		}
+
 		WMA_LOGD("%s: Send channel switch resp vdev %d status %d",
 			 __func__, resp_event->vdev_id, resp_event->status);
 		params->chainMask = resp_event->chain_mask;
@@ -1216,7 +1263,7 @@ void wma_hidden_ssid_vdev_restart_on_vdev_stop(tp_wma_handle wma_handle, u_int8_
 	chan->reg_info_2 = intr[sessionId].vdev_restart_params.chan.reg_info_2;
 
 	cmd->num_noa_descriptors = 0;
-	buf_ptr = (u_int8_t *)(((u_int32_t) cmd) + sizeof(*cmd) +
+	buf_ptr = (u_int8_t *)(((u_int8_t *) cmd) + sizeof(*cmd) +
 					sizeof(wmi_channel));
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
 			cmd->num_noa_descriptors *
@@ -4795,8 +4842,8 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	tSirScanOffloadEvent *scan_event;
 
 	if (scan_req->sessionId > wma_handle->max_bssid) {
-		WMA_LOGE("%s: Invalid vdev_id %d", __func__,
-			scan_req->sessionId);
+		WMA_LOGE("%s: Invalid vdev_id %d, msg_type : 0x%x", __func__,
+			scan_req->sessionId, msg_type);
 		goto error1;
 	}
 
@@ -4884,6 +4931,7 @@ error1:
                 }
                 scan_event->event = WMI_SCAN_EVENT_COMPLETED;
                 scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
+                scan_event->sessionId = scan_req->sessionId;
                 wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
         }
 	return vos_status;
@@ -6686,7 +6734,14 @@ void wma_vdev_resp_timer(void *data)
 
 	WMA_LOGA("%s: request %d is timed out for vdev_id - %d", __func__,
 						tgt_req->msg_type, tgt_req->vdev_id);
-	wma_find_vdev_req(wma, tgt_req->vdev_id, tgt_req->type);
+	msg = wma_find_vdev_req(wma, tgt_req->vdev_id, tgt_req->type);
+
+	if (!msg) {
+		WMA_LOGE("%s: Failed to lookup request message - %d",
+			 __func__, tgt_req->msg_type);
+		return;
+	}
+
 	if (tgt_req->msg_type == WDA_CHNL_SWITCH_REQ) {
 		tpSwitchChannelParams params =
 			(tpSwitchChannelParams)tgt_req->user_data;
@@ -7466,7 +7521,14 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	}
 	*/
 #else
+        #if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+        if (STA_ENTRY_TDLS_PEER == params->staType)
+            ol_txrx_peer_state_update(pdev, params->staMac, ol_txrx_peer_state_auth);
+        else
+	    ol_txrx_peer_state_update(pdev, params->bssId, ol_txrx_peer_state_auth);
+        #else
 	ol_txrx_peer_state_update(pdev, params->bssId, ol_txrx_peer_state_auth);
+        #endif
 #endif
 
 #ifdef FEATURE_WLAN_WAPI
@@ -9805,7 +9867,17 @@ static void wma_add_tdls_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 
 	if (0 == add_sta->updateSta) {
 	 /* its a add sta request **/
-	 WMA_LOGD("%s: addSta, calling wma_create_peer for %pM, vdev_id %hu",
+#if defined(CONFIG_HL_SUPPORT)
+         if (add_sta->bssId && vdev->last_real_peer &&
+            (adf_os_mem_cmp((u8 *)add_sta->bssId,
+                             vdev->last_real_peer->mac_addr.raw,
+                             IEEE80211_ADDR_LEN) == 0)) {
+            adf_os_mem_copy(vdev->hl_tdls_ap_mac_addr.raw,
+                            vdev->last_real_peer->mac_addr.raw,
+                            OL_TXRX_MAC_ADDR_LEN);
+         }
+#endif
+         WMA_LOGD("%s: addSta, calling wma_create_peer for %pM, vdev_id %hu",
 	          __func__, add_sta->staMac, add_sta->smesessionId);
 
 	 status = wma_create_peer(wma, pdev, vdev, add_sta->staMac,
@@ -9823,7 +9895,15 @@ static void wma_add_tdls_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 	           __func__, add_sta->staMac);
 	  add_sta->status = VOS_STATUS_E_FAILURE;
 	  wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
-	  goto send_rsp;
+#if defined(CONFIG_HL_SUPPORT)
+          if (vdev->last_real_peer == NULL) {
+              peer = NULL;
+              peer = ol_txrx_find_peer_by_addr(pdev, vdev->hl_tdls_ap_mac_addr.raw, &peer_id);
+              if (peer && (peer->peer_ids[0] != HTT_INVALID_PEER_ID))
+                  vdev->last_real_peer = peer;
+          }
+#endif
+          goto send_rsp;
 	 }
 
 	 add_sta->staIdx = ol_txrx_local_peer_id(peer);
@@ -9853,7 +9933,15 @@ static void wma_add_tdls_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 	           __func__, add_sta->staMac);
 	  add_sta->status = VOS_STATUS_E_FAILURE;
 	  wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
-	  goto send_rsp;
+#if defined(CONFIG_HL_SUPPORT)
+          if (vdev->last_real_peer == NULL) {
+              peer = NULL;
+              peer = ol_txrx_find_peer_by_addr(pdev, vdev->hl_tdls_ap_mac_addr.raw, &peer_id);
+              if (peer && (peer->peer_ids[0] != HTT_INVALID_PEER_ID))
+                  vdev->last_real_peer = peer;
+          }
+#endif
+          goto send_rsp;
 	 }
 
 	 WMA_LOGD("%s: changeSta, calling wmi_unified_send_peer_assoc",
@@ -9863,7 +9951,15 @@ static void wma_add_tdls_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 	 if (ret) {
 	  add_sta->status = VOS_STATUS_E_FAILURE;
 	  wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
-	  goto send_rsp;
+#if defined(CONFIG_HL_SUPPORT)
+          if (vdev->last_real_peer == NULL) {
+              peer = NULL;
+              peer = ol_txrx_find_peer_by_addr(pdev, vdev->hl_tdls_ap_mac_addr.raw, &peer_id);
+              if (peer && (peer->peer_ids[0] != HTT_INVALID_PEER_ID))
+                  vdev->last_real_peer = peer;
+          }
+#endif
+          goto send_rsp;
 	 }
 	}
 
@@ -13163,6 +13259,8 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 		goto error;
 	}
 
+	wmi_set_target_suspend(wma->wmi_handle, TRUE);
+
 	if (vos_wait_single_event(&wma->target_suspend,
 				  WMA_TGT_SUSPEND_COMPLETE_TIMEOUT)
 				  != VOS_STATUS_SUCCESS) {
@@ -13171,11 +13269,13 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 			wmi_get_host_credits(wma->wmi_handle),
 			wmi_get_pending_cmds(wma->wmi_handle));
 
+		wmi_set_target_suspend(wma->wmi_handle, FALSE);
 		return VOS_STATUS_E_FAILURE;
 	}
 
 	if (wma->wow_nack) {
 		WMA_LOGE("FW not ready to WOW");
+		wmi_set_target_suspend(wma->wmi_handle, FALSE);
 		return VOS_STATUS_E_AGAIN;
 	}
 
@@ -13200,6 +13300,7 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 
 	if (scn == NULL) {
 		WMA_LOGE("%s: Failed to get HIF context", __func__);
+		VOS_ASSERT(0);
 		return VOS_STATUS_E_FAULT;
 	}
 
@@ -13207,7 +13308,6 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 
 	wma->wow.wow_enable_cmd_sent = TRUE;
 
-	wmi_set_target_suspend(wma->wmi_handle, TRUE);
 	return VOS_STATUS_SUCCESS;
 
 error:
@@ -16804,6 +16904,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 					(tHalHiddenSsidVdevRestart *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_VDEV_START_RSP_IND:
+			wma_vdev_start_rsp_ind(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -18085,9 +18190,15 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 #ifdef QCA_WIFI_ISOC
 	wma_hal_stop_isoc(wma_handle);
 #else
+#ifdef HIF_USB
+	/* Suspend the target and enable interrupt */
+	if (wma_suspend_target(wma_handle, 0))
+		WMA_LOGE("Failed to suspend target");
+#else
 	/* Suspend the target and disable interrupt */
 	if (wma_suspend_target(wma_handle, 1))
 		WMA_LOGE("Failed to suspend target");
+#endif
 #endif
 
 	vos_status = wma_tx_detach(wma_handle);
@@ -19015,7 +19126,7 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 			eFrameType frmType, eFrameTxDir txDir, u_int8_t tid,
 			pWDATxRxCompFunc tx_frm_download_comp_cb, void *pData,
 			pWDAAckFnTxComp tx_frm_ota_comp_cb, u_int8_t tx_flag,
-			u_int8_t vdev_id)
+			u_int8_t vdev_id, bool tdlsFlag)
 {
 	tp_wma_handle wma_handle = (tp_wma_handle)(wma_context);
 	int32_t status;
@@ -19055,7 +19166,11 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	if (frmType >= HAL_TXRX_FRM_MAX) {
+#if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+        txrx_vdev->hlTdlsFlag = false;
+#endif
+
+        if (frmType >= HAL_TXRX_FRM_MAX) {
 		WMA_LOGE("Invalid Frame Type Fail to send Frame");
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -19246,8 +19361,14 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		wma_handle->last_umac_data_nbuf = skb;
 
 		/* Send the Data frame to TxRx in Non Standard Path */
-		ret = ol_tx_non_std(txrx_vdev, ol_tx_spec_no_free, skb);
-		if (ret) {
+#if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+                txrx_vdev->hlTdlsFlag = tdlsFlag;
+#endif
+                ret = ol_tx_non_std(txrx_vdev, ol_tx_spec_no_free, skb);
+#if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+                txrx_vdev->hlTdlsFlag = false;
+#endif
+                if (ret) {
 			WMA_LOGE("TxRx Rejected. Fail to do Tx");
 			adf_nbuf_unmap_single(pdev->osdev, skb, ADF_OS_DMA_TO_DEVICE);
 			/* Call Download Cb so that umac can free the buffer */
@@ -19500,10 +19621,15 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 		adf_nbuf_free(wmibuf);
 		return -1;
 	}
+
+
+	wmi_set_target_suspend(wma_handle->wmi_handle, TRUE);
+
 	if (vos_wait_single_event(&wma_handle->target_suspend,
 				  WMA_TGT_SUSPEND_COMPLETE_TIMEOUT)
 				  != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to get ACK from firmware for pdev suspend");
+		wmi_set_target_suspend(wma_handle->wmi_handle, FALSE);
 		return -1;
 	}
 
@@ -19511,12 +19637,12 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 
 	if (scn == NULL) {
 		WMA_LOGE("%s: Failed to get HIF context", __func__);
+		VOS_ASSERT(0);
 		return -1;
 	}
 
 	HTCCancelDeferredTargetSleep(scn);
 
-	wmi_set_target_suspend(wma_handle->wmi_handle, TRUE);
 	return 0;
 }
 
@@ -20288,6 +20414,10 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	int32_t len = sizeof(wmi_tdls_peer_update_cmd_fixed_param) +
 	              sizeof(wmi_tdls_peer_capabilities);
 	int ret = 0;
+#if defined(CONFIG_HL_SUPPORT)
+        struct ol_txrx_vdev_t *vdev;
+        bool restore_last_peer = false;
+#endif
 
 	if (!wma_handle || !wma_handle->wmi_handle) {
 		WMA_LOGE("%s: WMA is closed, can not issue cmd", __func__);
@@ -20405,12 +20535,26 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 			goto end_tdls_peer_state;
 		}
 
+#if defined(CONFIG_HL_SUPPORT)
+                vdev = peer->vdev;
+                if (vdev->last_real_peer && (vdev->last_real_peer == peer))
+                        restore_last_peer = true;
+#endif
+
 		WMA_LOGD("%s: calling wma_remove_peer for peer " MAC_ADDRESS_STR
 		         " vdevId: %d", __func__,
 		         MAC_ADDR_ARRAY(peer->mac_addr.raw), peerStateParams->vdevId);
 		wma_remove_peer(wma_handle, peer->mac_addr.raw,
 		                peerStateParams->vdevId, peer);
-	}
+#if defined(CONFIG_HL_SUPPORT)
+                if (restore_last_peer && (vdev->last_real_peer == NULL)) {
+                       peer = NULL;
+                       peer = ol_txrx_find_peer_by_addr(pdev, vdev->hl_tdls_ap_mac_addr.raw, &peer_id);
+                       if (peer && (peer->peer_ids[0] != HTT_INVALID_PEER_ID))
+                            vdev->last_real_peer = peer;
+                }
+#endif
+         }
 
 end_tdls_peer_state:
 	if (peerStateParams)

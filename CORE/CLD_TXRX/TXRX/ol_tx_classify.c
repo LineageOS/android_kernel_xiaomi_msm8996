@@ -311,6 +311,9 @@ ol_tx_classify(
     struct ol_tx_frms_queue_t *txq = NULL;
     A_UINT8 *dest_addr;
     A_UINT8 tid;
+#if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+    u_int8_t peer_id;
+#endif
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
 
@@ -414,7 +417,17 @@ ol_tx_classify(
                 peer = ol_txrx_assoc_peer_find(vdev);
             }
             #endif
+            #if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+            if (vdev->hlTdlsFlag) {
+                peer = ol_txrx_find_peer_by_addr(pdev, vdev->hl_tdls_ap_mac_addr.raw, &peer_id);
+                if (peer &&  (peer->peer_ids[0] == HTT_INVALID_PEER_ID))
+                    peer = NULL;
+            }
+            if (!peer)
+                peer = ol_txrx_assoc_peer_find(vdev);
+            #else
             peer = ol_txrx_assoc_peer_find(vdev);
+            #endif
         } else {
             peer = ol_txrx_peer_find_hash_find(pdev, dest_addr, 0, 1);
         }

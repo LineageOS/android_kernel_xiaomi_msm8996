@@ -1163,6 +1163,10 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
         pScanOffloadReq->p2pScanType = P2P_SCAN_TYPE_SEARCH;
 
     pScanOffloadReq->sessionId = pScanReq->sessionId;
+
+    if (pScanOffloadReq->sessionId >= pMac->lim.maxBssId)
+        limLog(pMac, LOGE,FL("Invalid pe sessionID : %d"), pScanOffloadReq->sessionId);
+
     pScanOffloadReq->channelList.numChannels =
         pScanReq->channelList.numChannels;
     p = &(pScanOffloadReq->channelList.channelNumber[0]);

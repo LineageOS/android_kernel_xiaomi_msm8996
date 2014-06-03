@@ -4159,7 +4159,7 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
                 ANI_TXDIR_TODS,
                 7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
                 limTxComplete, pFrame, limDisassocTxCompleteCnf,
-                txFlag, smeSessionId );
+                txFlag, smeSessionId, false );
         MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
                psessionEntry->peSessionId, halstatus));
 
@@ -4355,7 +4355,7 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
                 ANI_TXDIR_TODS,
                 7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
                 limTxComplete, pFrame, limDeauthTxCompleteCnf, txFlag,
-                smeSessionId );
+                smeSessionId, false );
         MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
                psessionEntry->peSessionId, halstatus));
         if ( ! HAL_STATUS_SUCCESS ( halstatus ) )

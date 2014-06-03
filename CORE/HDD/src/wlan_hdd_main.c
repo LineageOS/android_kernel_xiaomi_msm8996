@@ -3096,7 +3096,7 @@ eHalStatus hdd_parse_plm_cmd(tANI_U8 *pValue, tSirPlmReq *pPlmRequest)
         hddLog(VOS_TRACE_LEVEL_DEBUG,
                "desiredTxPwr %d", pPlmRequest->desiredTxPwr);
 
-        for (count = 0; count < WNI_CFG_BSSID_LEN; count++)
+        for (count = 0; count < VOS_MAC_ADDR_SIZE; count++)
         {
             cmdPtr = strpbrk(cmdPtr, " ");
 
@@ -5170,6 +5170,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            tANI_U8 *value = command;
            tCsrEseBeaconReq eseBcnReq;
            eHalStatus status = eHAL_STATUS_SUCCESS;
+
            status = hdd_parse_ese_beacon_req(value, &eseBcnReq);
            if (eHAL_STATUS_SUCCESS != status)
            {
@@ -5179,19 +5180,28 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                goto exit;
            }
 
+           if (!hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) {
+               hddLog(VOS_TRACE_LEVEL_INFO, FL("Not associated"));
+               hdd_indicateEseBcnReportNoResults (pAdapter,
+                                      eseBcnReq.bcnReq[0].measurementToken,
+                                      0x02,  //BIT(1) set for measurement done
+                                      0);    // no BSS
+               goto exit;
+           }
+
            status = sme_SetEseBeaconRequest((tHalHandle)(pHddCtx->hHal),
                                             pAdapter->sessionId,
                                             &eseBcnReq);
            if (eHAL_STATUS_SUCCESS != status)
-	   {
-	      VOS_TRACE( VOS_MODULE_ID_HDD,
-                         VOS_TRACE_LEVEL_ERROR,
-	                 "%s: sme_SetEseBeaconRequest failed (%d)",
+           {
+               VOS_TRACE( VOS_MODULE_ID_HDD,
+                          VOS_TRACE_LEVEL_ERROR,
+                          "%s: sme_SetEseBeaconRequest failed (%d)",
                          __func__,
                          status);
-	      ret = -EINVAL;
-	      goto exit;
-	   }
+               ret = -EINVAL;
+               goto exit;
+           }
        }
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
        else if (strncmp(command, "SETMCRATE", 9) == 0)

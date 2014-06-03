@@ -2458,6 +2458,7 @@ A_BOOL dbglog_coex_print_handler(
         "SCHED_WLAN_PAUSE",
         "SCHED_WLAN_POSTPAUSE",
         "SCHED_WLAN_UNPAUSE",
+        "COEX_SCHED_MWS",
     };
 
     static const char * coex_trf_mgmt_type[] = {
@@ -2465,10 +2466,15 @@ A_BOOL dbglog_coex_print_handler(
         "TRF_MGMT_SHAPE_PM",
         "TRF_MGMT_SHAPE_PSP",
         "TRF_MGMT_SHAPE_S_CTS",
+        "TRF_MGMT_SHAPE_OCS",
+        "TRF_MGMT_SHAPE_FIXED_TIME",
+        "TRF_MGMT_SHAPE_NOA",
+        "TRF_MGMT_SHAPE_OCS_CRITICAL",
+        "TRF_MGMT_NONE",
     };
 
     static const char * coex_system_status[] = {
-        "BT_OFF",
+        "ALL_OFF",
         "BTCOEX_NOT_REQD",
         "WLAN_IS_IDLE",
         "EXECUTE_SCHEME",
@@ -2476,6 +2482,7 @@ A_BOOL dbglog_coex_print_handler(
         "WLAN_SLEEPING",
         "WLAN_IS_PAUSED",
         "WAIT_FOR_NEXT_ACTION",
+        "SOC_WAKE",
     };
 
     static const char * wlan_rssi_type[] = {
@@ -2550,6 +2557,12 @@ A_BOOL dbglog_coex_print_handler(
         "BT_COEX_CRITICAL",
     };
 
+    static const char * wlan_power_state[] = {
+        "SLEEP",
+        "AWAKE",
+        "FULL_SLEEP",
+    };
+
     static const char * coex_psp_error_type[] = {
         "DISABLED_STATE",
         "VDEV_NULL",
@@ -2562,18 +2575,44 @@ A_BOOL dbglog_coex_print_handler(
         "SET_TIMER_PARAM",
     };
 
+    static const char * wlan_phymode[] = {
+        "A",
+        "G",
+        "B",
+        "G_ONLY",
+        "NA_HT20",
+        "NG_HT20",
+        "NA_HT40",
+        "NG_HT40",
+        "AC_VHT20",
+        "AC_VHT40",
+        "AC_VHT80",
+        "AC_VHT20_2G",
+        "AC_VHT40_2G",
+        "AC_VHT80_2G",
+        "UNKNOWN",
+    };
+
+    static const char * wlan_curr_band[] = {
+        "2G",
+        "5G",
+    };
+
     dbg_id_str = dbglog_get_msg(mod_id, dbg_id);
 
     switch (dbg_id) {
         case COEX_SYSTEM_UPDATE:
-            if (numargs >= 1 && args[0] < 8) {
+            if (numargs == 1 && args[0] < 9) {
                 dbglog_printf(timestamp, vap_id, "%s: %s", dbg_id_str, coex_system_status[args[0]]);
+            } else if (numargs >= 5 && args[0] < 9 && args[2] < 9) {
+                dbglog_printf(timestamp, vap_id, "%s: %s, WlanSysState(0x%x), %s, NumChains(%u), AggrLimit(%u)",
+                    dbg_id_str, coex_system_status[args[0]], args[1], coex_trf_mgmt_type[args[2]], args[3], args[4]);
             } else {
                 return FALSE;
             }
             break;
         case COEX_SCHED_START:
-           if (numargs >= 5 && args[0] < 5 && args[2] < 4 && args[3] < 4 && args[4] < 4) {
+            if (numargs >= 5 && args[0] < 5 && args[2] < 9 && args[3] < 4 && args[4] < 4) {
                 if (args[1] == 0xffffffff) {
                     dbglog_printf(timestamp, vap_id, "%s: %s, DETERMINE_DURATION, %s, %s, %s",
                         dbg_id_str, coex_sched_req[args[0]], coex_trf_mgmt_type[args[2]], wlan_rx_xput_status[args[3]], wlan_rssi_type[args[4]]);
@@ -2586,9 +2625,9 @@ A_BOOL dbglog_coex_print_handler(
             }
             break;
         case COEX_SCHED_RESULT:
-            if (numargs >= 5 && args[0] < 6) {
-                dbglog_printf(timestamp, vap_id, "%s: %s, CoexMgrPolicy(%u), WlanIsIdleOverride(%u), HidConcurTxOverride(%u), minRSSI(%u)",
-                    dbg_id_str, coex_sched_type[args[0]], args[1], args[2], args[3], args[4]);
+            if (numargs >= 5 && args[0] < 5 && args[1] < 9 && args[2] < 9) {
+                dbglog_printf(timestamp, vap_id, "%s: %s, %s, %s, CoexMgrPolicy(%u), IdleOverride(%u)",
+                    dbg_id_str, coex_sched_req[args[0]], coex_trf_mgmt_type[args[1]], coex_trf_mgmt_type[args[2]], args[3], args[4]);
             } else {
                 return FALSE;
             }
@@ -2601,17 +2640,24 @@ A_BOOL dbglog_coex_print_handler(
             }
             break;
         case COEX_TRF_FREERUN:
-        case COEX_TRF_SHAPE_PM:
-            if (numargs >= 5 && args[0] < 6) {
+            if (numargs >= 5 && args[0] < 7) {
                 dbglog_printf(timestamp, vap_id, "%s: %s, AllocatedBtIntvls(%u), BtIntvlCnt(%u), AllocatedWlanIntvls(%u), WlanIntvlCnt(%u)",
                     dbg_id_str, coex_sched_type[args[0]], args[1], args[2], args[3], args[4]);
             } else {
                 return FALSE;
             }
             break;
+        case COEX_TRF_SHAPE_PM: // used by ocs now
+            if (numargs >= 3) {
+                dbglog_printf(timestamp, vap_id, "%s: IntvlLength(%u), BtDuration(%u), WlanDuration(%u)",
+                    dbg_id_str, args[0], args[1], args[2]);
+            } else {
+                return FALSE;
+            }
+            break;
         case COEX_SYSTEM_MONITOR:
             if (numargs >= 5 && args[1] < 4 && args[4] < 4) {
-                dbglog_printf(timestamp, vap_id, "%s: WlanRxCritical(%u), %s, MinDirectRxRate(%u), XputMonitorActiveNum(%u), %s",
+                dbglog_printf(timestamp, vap_id, "%s: WlanRxCritical(%u), %s, MinDirectRxRate(%u), MonitorActiveNum(%u), %s",
                     dbg_id_str, args[0], wlan_rx_xput_status[args[1]], args[2], args[3], wlan_rssi_type[args[4]]);
             } else {
                 return FALSE;
@@ -2626,9 +2672,9 @@ A_BOOL dbglog_coex_print_handler(
             }
             break;
         case COEX_WLAN_INTERVAL_START:
-            if (numargs >= 4) {
-                dbglog_printf(timestamp, vap_id, "%s: WlanIntvlCnt(%u), XputMonitorActiveNum(%u), Duration(%u), Weight(%u)",
-                    dbg_id_str, args[0], args[1], args[2], args[3]);
+            if (numargs >= 5) {
+                dbglog_printf(timestamp, vap_id, "%s: WlanIntvlCnt(%u), Duration(%u), Weight(%u), BaseIdleOverride(%u), WeightMat[0](0x%x)",
+                    dbg_id_str, args[0], args[1], args[2], args[3], args[4]);
             } else {
                 return FALSE;
             }
@@ -2643,8 +2689,24 @@ A_BOOL dbglog_coex_print_handler(
             break;
         case COEX_BT_INTERVAL_START:
             if (numargs >= 5) {
-                dbglog_printf(timestamp, vap_id, "%s: BtIntvlCnt(%u), HidConcurrentTxOverride(%u), EnableBtBwLimit(%u), Duration(%u), Weight(%u)",
+                dbglog_printf(timestamp, vap_id, "%s: BtIntvlCnt(%u), Duration(%u), Weight(%u), BaseIdleOverride(%u), WeightMat[0](0x%x), ",
                     dbg_id_str, args[0], args[1], args[2], args[3], args[4]);
+            } else {
+                return FALSE;
+            }
+            break;
+        case COEX_POWER_CHANGE:
+            if (numargs >= 3 && args[1] < 3 && args[2] < 3) {
+                dbglog_printf(timestamp, vap_id, "%s: Event(0x%x) %s->%s",
+                    dbg_id_str, args[0], wlan_power_state[args[1]], wlan_power_state[args[2]]);
+            } else {
+                return FALSE;
+            }
+            break;
+        case COEX_CHANNEL_CHANGE:
+            if (numargs >= 5 && args[3] < 2 && args[4] < 15) {
+                dbglog_printf(timestamp, vap_id, "%s: %uMhz->%uMhz, WlanSysState(0x%x), CurrBand(%s), PhyMode(%s)",
+                    dbg_id_str, args[0], args[1], args[2], wlan_curr_band[args[3]], wlan_phymode[args[4]]);
             } else {
                 return FALSE;
             }
@@ -2653,6 +2715,48 @@ A_BOOL dbglog_coex_print_handler(
             if (numargs >= 5 && args[0] < 23 && args[1] < 6 && args[3] < 2) {
                 dbglog_printf(timestamp, vap_id, "%s: %s, %s, PsPollAvg(%u), %s, CurrT(%u)",
                     dbg_id_str, wlan_psp_stimulus[args[0]], coex_pspoll_state[args[1]], args[2], coex_scheduler_interval[args[3]], args[4]);
+            } else {
+                return FALSE;
+            }
+            break;
+        //Translate following into decimal
+        case COEX_SINGLECHAIN_DBG_1:
+        case COEX_SINGLECHAIN_DBG_2:
+        case COEX_SINGLECHAIN_DBG_3:
+        case COEX_MULTICHAIN_DBG_1:
+        case COEX_MULTICHAIN_DBG_2:
+        case COEX_MULTICHAIN_DBG_3:
+        case BTCOEX_DBG_MCI_1:
+        case BTCOEX_DBG_MCI_2:
+        case BTCOEX_DBG_MCI_3:
+        case BTCOEX_DBG_MCI_4:
+        case BTCOEX_DBG_MCI_5:
+        case BTCOEX_DBG_MCI_6:
+        case BTCOEX_DBG_MCI_7:
+        case BTCOEX_DBG_MCI_8:
+        case BTCOEX_DBG_MCI_9:
+        case BTCOEX_DBG_MCI_10:
+
+            if (numargs > 0) {
+                dbglog_printf_no_line_break(timestamp, vap_id, "%s: %u",
+                        dbg_id_str, args[0]);
+                for (i = 1; i < numargs; i++) {
+                    printk(", %u", args[i]);
+                }
+                printk("\n");
+            } else {
+                return FALSE;
+            }
+            break;
+        case COEX_LinkID:
+            if (numargs >= 4) {
+                if (args[0]) {  //Add profile
+                    dbglog_printf(timestamp, vap_id, "%s Alloc: LocalID(%u), RemoteID(%u), MinFreeLocalID(%u)",
+                        dbg_id_str, args[1], args[2], args[3]);
+                } else {  //Remove profile
+                    dbglog_printf(timestamp, vap_id, "%s Dealloc: LocalID(%u), RemoteID(%u), MinFreeLocalID(%u)",
+                        dbg_id_str, args[1], args[2], args[3]);
+                }
             } else {
                 return FALSE;
             }
@@ -2666,11 +2770,8 @@ A_BOOL dbglog_coex_print_handler(
             }
             break;
         case COEX_TRF_SHAPE_PSP:
-            if (numargs == 2 && args[0] < 6) {
-                dbglog_printf(timestamp, vap_id, "%s: %s, CurrT(%u)",
-                    dbg_id_str, coex_pspoll_state[args[0]], args[1]);
-            } else if (numargs >= 5 && args[0] < 6 && args[1] < 7) {
-                    dbglog_printf(timestamp, vap_id, "%s: %s, %s, Dur(%u), WlanOverride(%u), PrioritizeWlanDuringCollis(%u)",
+            if (numargs >= 5 && args[0] < 7 && args[1] < 7) {
+                    dbglog_printf(timestamp, vap_id, "%s: %s, %s, Dur(%u), BtTriggerRecvd(%u), PspWlanCritical(%u)",
                         dbg_id_str, coex_sched_type[args[0]], wlan_weight[args[1]], args[2], args[3], args[4]);
             } else {
                 return FALSE;
@@ -2686,7 +2787,7 @@ A_BOOL dbglog_coex_print_handler(
             break;
         case COEX_PSP_READY_STATE:
             if (numargs >= 5) {
-                dbglog_printf(timestamp, vap_id, "%s: T2BT(%u), CoexSchedulerEndTS(%u), MoreData(%u), PSPRespExpectedTS(%u), NonWlanIdleT(%u)",
+                dbglog_printf(timestamp, vap_id, "%s: T2NonWlan(%u), CoexSchedulerEndTS(%u), MoreData(%u), PSPRespExpectedTS(%u), NonWlanIdleT(%u)",
                     dbg_id_str, args[0], args[1], args[2], args[3], args[4]);
             } else {
                 return FALSE;
@@ -2737,53 +2838,6 @@ A_BOOL dbglog_coex_print_handler(
                     dbglog_printf(timestamp, vap_id, "%s: RsExpectedTS(%u), RespActualTS(%u), Underrun, RsUnderrunT(%u), RsRxDur(%u)",
                         dbg_id_str, args[0], args[1], args[3], args[4]);
                 }
-            } else {
-                return FALSE;
-            }
-            break;
-        //Translate following into decimal
-        case COEX_SINGLECHAIN_DBG_1:
-        case COEX_SINGLECHAIN_DBG_2:
-        case COEX_SINGLECHAIN_DBG_3:
-        case COEX_MULTICHAIN_DBG_1:
-        case COEX_MULTICHAIN_DBG_2:
-        case COEX_MULTICHAIN_DBG_3:
-            if (numargs > 0) {
-                dbglog_printf_no_line_break(timestamp, vap_id, "%s: %u",
-                        dbg_id_str, args[0]);
-                for (i = 1; i < numargs; i++) {
-                    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (", %u", args[i]));
-                }
-                AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("\n"));
-            } else {
-                return FALSE;
-            }
-            break;
-        case COEX_LinkID:
-            if (numargs >= 4) {
-                if (args[0]) {  //Add profile
-                    dbglog_printf(timestamp, vap_id, "%s Alloc: LocalID(%u), RemoteID(%u), MinFreeLocalID(%u)",
-                        dbg_id_str, args[1], args[2], args[3]);
-                } else {  //Remove profile
-                    dbglog_printf(timestamp, vap_id, "%s Dealloc: LocalID(%u), RemoteID(%u), MinFreeLocalID(%u)",
-                        dbg_id_str, args[1], args[2], args[3]);
-                }
-            } else {
-                return FALSE;
-            }
-            break;
-        case COEX_BT_DURATION:
-            if (numargs == 3) {
-                dbglog_printf(timestamp, vap_id, "%s: Result(%u), NumOfValidSchedMsgs(%u) PrioLowerLimit(%u)",
-                    dbg_id_str, args[0], args[1], args[2]);
-            } else {
-                return FALSE;
-            }
-            break;
-        case COEX_T2BT:
-            if (numargs == 3) {
-                dbglog_printf(timestamp, vap_id, "%s: Result(%u), BtTime1(%u), PrioLowerLimit(%u)",
-                    dbg_id_str, args[0], args[1], args[2]);
             } else {
                 return FALSE;
             }

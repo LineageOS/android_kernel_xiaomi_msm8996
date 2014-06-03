@@ -7594,10 +7594,23 @@ void csrRoamReissueRoamCommand(tpAniSirGlobal pMac)
                     csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
                 }
             }
-            else if(eCsrStopRoaming == csrRoamJoinNextBss(pMac, pCommand, eANI_BOOLEAN_TRUE))
+            else
             {
-                smsLog(pMac, LOGW, " Failed to reissue join command after disassociated");
-                csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
+                if (pSession->bRefAssocStartCnt > 0)
+                {
+                    /* bRefAssocStartCnt was incremented in csrRoamJoinNextBss
+                     * when the roam command issued previously. As part of reissuing
+                     * the roam command again csrRoamJoinNextBss is going increment
+                     * RefAssocStartCnt. So make sure to decrement the bRefAssocStartCnt
+                     */
+                    pSession->bRefAssocStartCnt--;
+                }
+
+                if(eCsrStopRoaming == csrRoamJoinNextBss(pMac, pCommand, eANI_BOOLEAN_TRUE))
+                {
+                    smsLog(pMac, LOGW, " Failed to reissue join command after disassociated");
+                    csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
+                }
             }
         }
         else
