@@ -124,6 +124,25 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
             psessionEntry->vhtCapabilityPresentInBeacon = 1;
             psessionEntry->apCenterChan = pBeaconStruct->VHTOperation.chanCenterFreqSeg1;
             psessionEntry->apChanWidth = pBeaconStruct->VHTOperation.chanWidth;
+
+            if (pBeaconStruct->Vendor1IEPresent &&
+                pBeaconStruct->Vendor2IEPresent &&
+                pBeaconStruct->Vendor3IEPresent)
+            {
+                if (((pBeaconStruct->VHTCaps.txMCSMap & VHT_MCS_3x3_MASK) ==
+                               VHT_MCS_3x3_MASK) &&
+                   ((pBeaconStruct->VHTCaps.txMCSMap & VHT_MCS_2x2_MASK) !=
+                               VHT_MCS_2x2_MASK))
+                {
+                    psessionEntry->txBFIniFeatureEnabled = 0;
+                    if (cfgSetInt(pMac, WNI_CFG_VHT_SU_BEAMFORMEE_CAP, 0)
+                                                             != eSIR_SUCCESS)
+                    {
+                        limLog(pMac, LOGP, FL("could not set "
+                                  "WNI_CFG_VHT_SU_BEAMFORMEE_CAP at CFG"));
+                    }
+                }
+            }
         }
         else
         {

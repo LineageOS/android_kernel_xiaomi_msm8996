@@ -72,6 +72,9 @@ typedef enum
     *pCurVal = (tLimBAState)(((pSta->baState >> tid*2) & 0x3));\
 }
 
+#define VHT_MCS_3x3_MASK    0x30
+#define VHT_MCS_2x2_MASK    0x0C
+
 typedef struct sAddBaInfo
 {
     tANI_U16 fBaEnable : 1;

@@ -2180,6 +2180,10 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
         vos_mem_copy( &pProbeResp->VHTExtBssLoad, &pr->VHTExtBssLoad, sizeof( tDot11fIEVHTExtBssLoad) );
     }
 #endif
+    pProbeResp->Vendor1IEPresent = pr->Vendor1IE.present;
+    pProbeResp->Vendor2IEPresent = pr->Vendor2IE.present;
+    pProbeResp->Vendor3IEPresent = pr->Vendor3IE.present;
+
     vos_mem_free(pr);
     return eSIR_SUCCESS;
 
@@ -3287,11 +3291,12 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
     }
 
 #endif
+    pBeaconStruct->Vendor1IEPresent = pBies->Vendor1IE.present;
+    pBeaconStruct->Vendor2IEPresent = pBies->Vendor2IE.present;
+    pBeaconStruct->Vendor3IEPresent = pBies->Vendor3IE.present;
+
     vos_mem_free(pBies);
-
-
     return eSIR_SUCCESS;
-
 } // End sirParseBeaconIE.
 
 tSirRetStatus
@@ -3598,6 +3603,9 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
                       sizeof( tDot11fIEWiderBWChanSwitchAnn));
     }
 #endif
+    pBeaconStruct->Vendor1IEPresent = pBeacon->Vendor1IE.present;
+    pBeaconStruct->Vendor2IEPresent = pBeacon->Vendor2IE.present;
+    pBeaconStruct->Vendor3IEPresent = pBeacon->Vendor3IE.present;
 
     vos_mem_free(pBeacon);
     return eSIR_SUCCESS;
