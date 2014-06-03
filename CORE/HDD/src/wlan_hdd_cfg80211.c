@@ -427,11 +427,13 @@ wlan_hdd_txrx_stypes[NUM_NL80211_IFTYPES] = {
 
 #ifdef WLAN_FEATURE_MBSSID
 
-/* Max. 3 devices = 1STA + 2SOFTAP */
 static const struct ieee80211_iface_limit
 wlan_hdd_iface_limit[] = {
     {
-        .max = 1,
+        /* We need 1 extra STA interface for OBSS scan when SAP starts
+         * with HT40 in STA+SAP concurrency mode
+         */
+        .max = 2,
         .types = BIT(NL80211_IFTYPE_STATION),
     },
     {
