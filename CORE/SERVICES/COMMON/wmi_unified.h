@@ -795,8 +795,12 @@ typedef enum {
 
     /* Container for QXDM/DIAG events */
     WMI_DIAG_DATA_CONTAINER_EVENTID,
+
      /* host auto shutdown event */
     WMI_HOST_AUTO_SHUTDOWN_EVENTID,
+
+    /*update mib counters together with WMI_UPDATE_STATS_EVENTID*/
+    WMI_UPDATE_WHAL_MIB_STATS_EVENTID,
 
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
@@ -1717,6 +1721,25 @@ typedef struct {
     A_UINT32 vdev_id;
 } wmi_scan_event_fixed_param;
 
+
+/*
+* If FW has multiple active channels due to MCC(multi channel concurrency),
+* then these stats are combined stats for all the active channels.
+*/
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_update_whal_mib_stats_event_fixed_param */
+    /** ack count, it is an incremental number, not accumulated number */
+    A_UINT32 ackRcvBad;
+    /** bad rts count, it is an incremental number, not accumulated number */
+    A_UINT32 rtsBad;
+    /** good rts, it is an incremental number, not accumulated number */
+    A_UINT32 rtsGood;
+    /** fcs count, it is an incremental number, not accumulated number */
+    A_UINT32 fcsBad;
+    /** beacon count, it is an incremental number, not accumulated number */
+    A_UINT32 noBeacons;
+} wmi_update_whal_mib_stats_event_fixed_param;
+
 /*
  * This defines how much headroom is kept in the
  * receive frame between the descriptor and the
@@ -2271,6 +2294,7 @@ typedef enum {
     PAUSE_TYPE_P2P_GO_PS =      0x5, /** only vdev_map is valid, actually only one vdev id is set at one time */
     PAUSE_TYPE_STA_ADD_BA =     0x6, /** only peer_id and tid_map are valid, actually only one tid is set at one time */
     PAUSE_TYPE_AP_PS =          0x7, /** for pausing AP vdev when all the connected clients are in PS. only vdev_map is valid */
+    PAUSE_TYPE_IBSS_PS =        0x8, /** for pausing IBSS vdev when all the peers are in PS. only vdev_map is valid */
     PAUSE_TYPE_HOST =           0x15,/** host is requesting vdev pause */
 } wmi_tx_pause_type;
 
@@ -3075,7 +3099,39 @@ typedef enum {
     /* Enable Aggregation State Trigger Event */
     WMI_VDEV_PARAM_AGGR_TRIG_EVENT_ENABLE,
 
+    /* This parameter indicates whether IBSS station can enter into power save
+    * mode by sending Null frame (with PM=1). When not allowed, IBSS station has to stay
+    * awake all the time and should never set PM=1 in its transmitted frames.
+    * This parameter is meaningful/valid only when WMI_VDEV_PARAM_ATIM_WINDOW_LENGTH
+    * is non-zero. */
+    WMI_VDEV_PARAM_IS_IBSS_POWER_SAVE_ALLOWED,
+
+    /* This parameter indicates if this station can enter into power collapse
+    * for the remaining beacon interval after the ATIM window.
+    * This parameter is meaningful/valid only when WMI_VDEV_PARAM_IS_IBSS_POWER_SAVE_ALLOWED
+    * is set to TRUE. */
+    WMI_VDEV_PARAM_IS_POWER_COLLAPSE_ALLOWED,
+
+    /* This parameter indicates whether IBSS station exit power save mode and
+    * enter power active state (by sending Null frame with PM=0 in the immediate ATIM Window)
+    * whenever there is a TX/RX activity. */
+    WMI_VDEV_PARAM_IS_AWAKE_ON_TXRX_ENABLED,
+
+    /* If Awake on TX/RX activity is enabled, this parameter indicates
+    * the data inactivity time in number of beacon intervals after which
+    * IBSS station reenters power save by sending Null frame with PM=1. */
+    WMI_VDEV_PARAM_INACTIVITY_CNT,
+
+    /* Inactivity time in msec after which TX Service Period (SP) is
+    * terminated by sending a Qos Null frame with EOSP.
+    * If value is 0, TX SP is terminated with the last buffered packet itself
+    * instead of waiting for the inactivity timeout. */
+    WMI_VDEV_PARAM_TXSP_END_INACTIVITY_TIME_MS,
+
 } WMI_VDEV_PARAM;
+
+/* Length of ATIM Window in TU */
+#define WMI_VDEV_PARAM_ATIM_WINDOW_LENGTH WMI_VDEV_PARAM_ATIM_WINDOW
 
 enum wmi_pkt_type {
     WMI_PKT_TYPE_RAW = 0,

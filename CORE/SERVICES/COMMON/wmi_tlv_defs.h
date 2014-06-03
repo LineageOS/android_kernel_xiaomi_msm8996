@@ -436,6 +436,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_pdev_set_led_config_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_host_auto_shutdown_cfg_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_host_auto_shutdown_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_update_whal_mib_stats_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -663,7 +664,8 @@ typedef enum {
     OP(WMI_AGGR_STATE_TRIG_EVENTID)\
     OP(WMI_STATS_EXT_EVENTID) \
     OP(WMI_OFFLOAD_PROB_RESP_TX_STATUS_EVENTID) \
-    OP(WMI_HOST_AUTO_SHUTDOWN_EVENTID)
+    OP(WMI_HOST_AUTO_SHUTDOWN_EVENTID) \
+    OP(WMI_UPDATE_WHAL_MIB_STATS_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1618,6 +1620,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_READY_EVENTID);
 #define WMITLV_TABLE_WMI_SCAN_EVENTID(id,op,buf,len)                                                                                                 \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_scan_event_fixed_param, wmi_scan_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_SCAN_EVENTID);
+
+/* Update_whal_mib_stats Event */
+#define WMITLV_TABLE_WMI_UPDATE_WHAL_MIB_STATS_EVENTID(id,op,buf,len)                                                                                                 \
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_update_whal_mib_stats_event_fixed_param, wmi_update_whal_mib_stats_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_UPDATE_WHAL_MIB_STATS_EVENTID);
 
 /* PDEV TPC Config Event */
 #define WMITLV_TABLE_WMI_PDEV_TPC_CONFIG_EVENTID(id,op,buf,len)                                                                                                 \
