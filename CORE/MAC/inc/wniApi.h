@@ -394,6 +394,7 @@ enum eWniMsgTypes
                                         //update in beacons/probe rsp
     eWNI_SME_STATS_EXT_EVENT,
     eWNI_SME_LINK_SPEED_IND,//Indicate linkspeed response from WMA
+    eWNI_SME_CSA_OFFLOAD_EVENT,
     eWNI_SME_MSG_TYPES_END
 };
 

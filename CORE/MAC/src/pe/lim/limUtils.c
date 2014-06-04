@@ -682,6 +682,8 @@ char *limMsgStr(tANI_U32 msgType)
         case eWNI_SME_GET_TSM_STATS_RSP:
             return "eWNI_SME_GET_TSM_STATS_RSP";
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
+        case eWNI_SME_CSA_OFFLOAD_EVENT:
+            return "eWNI_SME_CSA_OFFLOAD_EVENT";
         default:
             return "INVALID SME message";
     }

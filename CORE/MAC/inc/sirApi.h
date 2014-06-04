@@ -3021,6 +3021,12 @@ typedef struct sSmeMaxAssocInd
     tSirMacAddr peerMac;     // the new peer that got rejected due to softap max assoc limit reached
 } tSmeMaxAssocInd, *tpSmeMaxAssocInd;
 
+typedef struct sSmeCsaOffloadInd
+{
+    tANI_U16    mesgType;    // eWNI_SME_CSA_OFFLOAD_EVENT
+    tANI_U16    mesgLen;
+    tSirMacAddr bssId;       // BSSID
+} tSmeCsaOffloadInd, *tpSmeCsaOffloadInd;
 /*--------------------------------------------------------------------*/
 /* BootLoader message definition                                      */
 /*--------------------------------------------------------------------*/
