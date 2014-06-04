@@ -29,6 +29,8 @@
 #include "htc_internal.h"
 #include "vos_api.h"
 #include <adf_nbuf.h> /* adf_nbuf_t */
+#include <vos_getBin.h>
+#include "epping_main.h"
 
 #ifdef DEBUG
 void DebugDumpBytes(A_UCHAR *buffer, A_UINT16 length, char *pDescription)
@@ -422,6 +424,10 @@ A_STATUS HTCRxCompletionHandler(
             netbuf = NULL;
             break;
         }
+#if defined(HIF_USB)
+        if (WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+            goto _eppingout;
+#endif
 
             /* the current message based HIF architecture allocates net bufs for recv packets
              * since this layer bridges that HIF to upper layers , which expects HTC packets,
@@ -450,6 +456,10 @@ A_STATUS HTCRxCompletionHandler(
 
 #ifdef RX_SG_SUPPORT
 _out:
+#endif
+
+#if defined(HIF_USB)
+_eppingout:
 #endif
     if (netbuf != NULL) {
         adf_nbuf_free(netbuf);
