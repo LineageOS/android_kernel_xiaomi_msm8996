@@ -681,21 +681,38 @@ void WAR_PCI_WRITE32(char *addr, u32 offset, u32 value);
 #define A_TARGET_WRITE(targid, offset, value) \
         WAR_PCI_WRITE32(TARGID_TO_PCI_ADDR(targid), (offset), (value))
 #endif
+#define A_TARGET_ACCESS_BEGIN_RET(targid) \
+        do {A_target_id_t unused = (A_target_id_t)(targid); unused = unused;} while(0)
+
+#define A_TARGET_ACCESS_BEGIN_RET_EXT(targid, val) \
+        do {A_target_id_t unused = (A_target_id_t)(targid); unused = unused;} while(0)
+
+#define A_TARGET_ACCESS_BEGIN_RET_PTR(targid) \
+        do {A_target_id_t unused = (A_target_id_t)(targid); unused = unused;} while(0)
+
+#define A_TARGET_ACCESS_END_RET(targid) \
+        do {A_target_id_t unused = (A_target_id_t)(targid); unused = unused;} while(0)
+
+#define A_TARGET_ACCESS_END_RET_EXT(targid, val) \
+        do {A_target_id_t unused = (A_target_id_t)(targid); unused = unused;} while(0)
+
+#define A_TARGET_ACCESS_END_RET_PTR(targid) \
+        do {A_target_id_t unused = (A_target_id_t)(targid); unused = unused;} while(0)
 
 #else /* CONFIG_ATH_PCIE_MAX_PERF */
 
 void WAR_PCI_WRITE32(char *addr, u32 offset, u32 value);
 
 #define A_TARGET_ACCESS_BEGIN_RET_EXT(targid, val) \
-        if (Q_TARGET_ACCESS_BEGIN(targid) < 0 ) \
+        if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam()) && Q_TARGET_ACCESS_BEGIN(targid) < 0 ) \
              val = -1;
 
 #define A_TARGET_ACCESS_BEGIN_RET(targid) \
-        if (Q_TARGET_ACCESS_BEGIN(targid) < 0) \
+        if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam()) && Q_TARGET_ACCESS_BEGIN(targid) < 0) \
             return -1;
 
 #define A_TARGET_ACCESS_BEGIN_RET_PTR(targid) \
-        if (Q_TARGET_ACCESS_BEGIN(targid) < 0) \
+        if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam()) && Q_TARGET_ACCESS_BEGIN(targid) < 0) \
             return NULL;
 
 #define A_TARGET_ACCESS_BEGIN(targid) \
@@ -706,15 +723,15 @@ void WAR_PCI_WRITE32(char *addr, u32 offset, u32 value);
         HIFTargetSleepStateAdjust((targid), FALSE, TRUE)
 
 #define A_TARGET_ACCESS_END_RET(targid) \
-        if (Q_TARGET_ACCESS_END(targid) < 0) \
+        if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam()) && Q_TARGET_ACCESS_END(targid) < 0) \
             return -1;
 
 #define A_TARGET_ACCESS_END_RET_EXT(targid, val) \
-        if (Q_TARGET_ACCESS_END(targid) < 0) \
+        if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam()) && Q_TARGET_ACCESS_END(targid) < 0) \
            val = -1;
 
 #define A_TARGET_ACCESS_END_RET_PTR(targid) \
-        if (Q_TARGET_ACCESS_END(targid) < 0) \
+        if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam()) && Q_TARGET_ACCESS_END(targid) < 0) \
             return NULL;
 
 #define A_TARGET_ACCESS_END(targid) \

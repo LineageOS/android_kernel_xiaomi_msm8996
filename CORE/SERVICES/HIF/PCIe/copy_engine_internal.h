@@ -123,6 +123,10 @@ struct CE_state {
     struct CE_ring_state *src_ring;
     struct CE_ring_state *dest_ring;
     atomic_t rx_pending;
+
+    /* epping */
+    bool timer_inited;
+    adf_os_timer_t poll_timer;
 };
 
 /* Descriptor rings must be aligned to this boundary */
