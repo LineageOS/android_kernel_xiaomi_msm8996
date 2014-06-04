@@ -101,6 +101,9 @@ typedef  enum  {
     WMI_SERVICE_L1SS_STAT,            /* L1SS statistics counter report */
     WMI_SERVICE_ESTIMATE_LINKSPEED,   /* Linkspeed Estimation per peer */
     WMI_SERVICE_OBSS_SCAN,            /* Service to support OBSS scan */
+    WMI_SERVICE_TDLS_OFFCHAN,          /* TDLS off channel support */
+    WMI_SERVICE_TDLS_UAPSD_BUFFER_STA, /* TDLS UAPSD Buffer STA support */
+    WMI_SERVICE_TDLS_UAPSD_SLEEP_STA,  /* TDLS UAPSD Sleep STA support */
     WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;
 

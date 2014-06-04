@@ -1748,6 +1748,14 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
          goto done;
     }
 
+    if (0 != wlan_hdd_add_ie(pHostapdAdapter, genie,
+                &total_ielen, WMM_OUI_TYPE, WMM_OUI_TYPE_SIZE))
+    {
+        hddLog(LOGE, FL("Adding WMM IE failed"));
+        ret = -EINVAL;
+        goto done;
+    }
+
     if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)
     {
         wlan_hdd_add_hostapd_conf_vsie(pHostapdAdapter, genie, &total_ielen);
@@ -3213,7 +3221,7 @@ static int wlan_hdd_change_iface_to_sta_mode(struct net_device *ndev,
     ENTER();
 
     wdev = ndev->ieee80211_ptr;
-    hdd_stop_adapter(pHddCtx, pAdapter);
+    hdd_stop_adapter(pHddCtx, pAdapter, VOS_TRUE);
     hdd_deinit_adapter(pHddCtx, pAdapter);
     wdev->iftype = type;
     /*Check for sub-string p2p to confirm its a p2p interface*/
@@ -3444,12 +3452,12 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
 
                     if (pP2pAdapter)
                     {
-                        hdd_stop_adapter(pHddCtx, pP2pAdapter);
+                        hdd_stop_adapter(pHddCtx, pP2pAdapter, VOS_TRUE);
                         hdd_deinit_adapter(pHddCtx, pP2pAdapter);
                         hdd_close_adapter(pHddCtx, pP2pAdapter, VOS_TRUE);
                     }
                 }
-                hdd_stop_adapter( pHddCtx, pAdapter );
+                hdd_stop_adapter( pHddCtx, pAdapter, VOS_TRUE );
 
                 //De-init the adapter.
                 hdd_deinit_adapter( pHddCtx, pAdapter );
@@ -3798,14 +3806,14 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
        TODO: for now, return -EPERM looks working fine,
        but need to check if any other errno fit into this category.*/
     numCurrTdlsPeers = wlan_hdd_tdlsConnectedPeers(pAdapter);
-    if (HDD_MAX_NUM_TDLS_STA <= numCurrTdlsPeers)
+    if (pHddCtx->max_num_tdls_sta <= numCurrTdlsPeers)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: " MAC_ADDRESS_STR
                    " TDLS Max peer already connected. Request declined."
                    " Num of peers (%d), Max allowed (%d).",
                    __func__, MAC_ADDR_ARRAY(mac), numCurrTdlsPeers,
-                   HDD_MAX_NUM_TDLS_STA);
+                   pHddCtx->max_num_tdls_sta);
         goto error;
     }
     else
@@ -9446,7 +9454,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
         SIR_MAC_TDLS_SETUP_RSP == action_code )
     {
         numCurrTdlsPeers = wlan_hdd_tdlsConnectedPeers(pAdapter);
-        if (HDD_MAX_NUM_TDLS_STA <= numCurrTdlsPeers)
+        if (pHddCtx->max_num_tdls_sta <= numCurrTdlsPeers)
         {
             /* supplicant still sends tdls_mgmt(SETUP_REQ) even after
                we return error code at 'add_station()'. Hence we have this
@@ -9458,7 +9466,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
                            "%s: " MAC_ADDRESS_STR
                            " TDLS Max peer already connected. action (%d) declined. Num of peers (%d), Max allowed (%d).",
                            __func__, MAC_ADDR_ARRAY(peer), action_code,
-                           numCurrTdlsPeers, HDD_MAX_NUM_TDLS_STA);
+                           numCurrTdlsPeers, pHddCtx->max_num_tdls_sta);
                 return -EINVAL;
             }
             else
@@ -9470,7 +9478,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
                            "%s: " MAC_ADDRESS_STR
                            " TDLS Max peer already connected, send response status (%d). Num of peers (%d), Max allowed (%d).",
                            __func__, MAC_ADDR_ARRAY(peer), status_code,
-                           numCurrTdlsPeers, HDD_MAX_NUM_TDLS_STA);
+                           numCurrTdlsPeers, pHddCtx->max_num_tdls_sta);
                 max_sta_failed = -EPERM;
                 /* fall through to send setup resp with failure status
                 code */
@@ -9768,21 +9776,27 @@ static int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *d
                         smeTdlsPeerStateParams.peerCap.selfCurrOperClass = 0;
                         smeTdlsPeerStateParams.peerCap.peerChanLen =
                             pTdlsPeer->supported_channels_len;
+                        smeTdlsPeerStateParams.peerCap.prefOffChanNum =
+                            pHddCtx->cfg_ini->fTDLSPrefOffChanNum;
+                        smeTdlsPeerStateParams.peerCap.prefOffChanBandwidth =
+                            pHddCtx->cfg_ini->fTDLSPrefOffChanBandwidth;
 
                         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                              "%s: Peer " MAC_ADDRESS_STR "vdevId: %d, peerState: %d, isPeerResponder: %d, uapsdQueues: 0x%x, maxSp: 0x%x, peerBuffStaSupport: %d, peerOffChanSupport: %d, peerCurrOperClass: %d, selfCurrOperClass: %d, peerChanLen: %d, peerOperClassLen: %d",
+                           "%s: Peer " MAC_ADDRESS_STR "vdevId: %d, peerState: %d, isPeerResponder: %d, uapsdQueues: 0x%x, maxSp: 0x%x, peerBuffStaSupport: %d, peerOffChanSupport: %d, peerCurrOperClass: %d, selfCurrOperClass: %d, peerChanLen: %d, peerOperClassLen: %d, prefOffChanNum: %d, prefOffChanBandwidth: %d",
                               __func__, MAC_ADDR_ARRAY(peer),
-                              smeTdlsPeerStateParams.vdevId,
-                              smeTdlsPeerStateParams.peerState,
-                              smeTdlsPeerStateParams.peerCap.isPeerResponder,
-                              smeTdlsPeerStateParams.peerCap.peerUapsdQueue,
-                              smeTdlsPeerStateParams.peerCap.peerMaxSp,
-                              smeTdlsPeerStateParams.peerCap.peerBuffStaSupport,
-                              smeTdlsPeerStateParams.peerCap.peerOffChanSupport,
-                              smeTdlsPeerStateParams.peerCap.peerCurrOperClass,
-                              smeTdlsPeerStateParams.peerCap.selfCurrOperClass,
-                              smeTdlsPeerStateParams.peerCap.peerChanLen,
-                              smeTdlsPeerStateParams.peerCap.peerOperClassLen);
+                           smeTdlsPeerStateParams.vdevId,
+                           smeTdlsPeerStateParams.peerState,
+                           smeTdlsPeerStateParams.peerCap.isPeerResponder,
+                           smeTdlsPeerStateParams.peerCap.peerUapsdQueue,
+                           smeTdlsPeerStateParams.peerCap.peerMaxSp,
+                           smeTdlsPeerStateParams.peerCap.peerBuffStaSupport,
+                           smeTdlsPeerStateParams.peerCap.peerOffChanSupport,
+                           smeTdlsPeerStateParams.peerCap.peerCurrOperClass,
+                           smeTdlsPeerStateParams.peerCap.selfCurrOperClass,
+                           smeTdlsPeerStateParams.peerCap.peerChanLen,
+                           smeTdlsPeerStateParams.peerCap.peerOperClassLen,
+                           smeTdlsPeerStateParams.peerCap.prefOffChanNum,
+                           smeTdlsPeerStateParams.peerCap.prefOffChanBandwidth);
 
                         for (i = 0; i < pTdlsPeer->supported_channels_len; i++)
                         {

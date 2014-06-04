@@ -2450,7 +2450,7 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
             {
 
                 /* check if there is available index for this new TDLS STA */
-                for ( staIdx = 0; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++ )
+                for ( staIdx = 0; staIdx < pHddCtx->max_num_tdls_sta; staIdx++ )
                 {
                     if (0 == pHddCtx->tdlsConnInfo[staIdx].staId )
                     {
@@ -2469,7 +2469,7 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                         break ;
                     }
                 }
-                if (staIdx < HDD_MAX_NUM_TDLS_STA)
+                if (staIdx < pHddCtx->max_num_tdls_sta)
                 {
                     if (-1 == wlan_hdd_tdls_set_sta_id(pAdapter, pRoamInfo->peerMac, pRoamInfo->staId)) {
                         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,

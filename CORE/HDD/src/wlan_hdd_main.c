@@ -5265,6 +5265,62 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                pAdapterNode = pNext;
            }
        }
+       else if (strncmp(command, "SETDFSSCANMODE", 14) == 0)
+       {
+           tANI_U8 *value = command;
+           tANI_BOOLEAN dfsScanMode = CFG_ROAMING_DFS_CHANNEL_DEFAULT;
+
+           /* Move pointer to ahead of SETDFSSCANMODE<delimiter> */
+           value = value + 15;
+           /* Convert the value from ascii to integer */
+           ret = kstrtou8(value, 10, &dfsScanMode);
+           if (ret < 0)
+           {
+               /* If the input value is greater than max value of
+                * datatype, then also kstrtou8 fails
+                */
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: kstrtou8 failed range [%d - %d]", __func__,
+                      CFG_ROAMING_DFS_CHANNEL_MIN,
+                      CFG_ROAMING_DFS_CHANNEL_MAX);
+               ret = -EINVAL;
+               goto exit;
+           }
+
+           if ((dfsScanMode < CFG_ROAMING_DFS_CHANNEL_MIN) ||
+               (dfsScanMode > CFG_ROAMING_DFS_CHANNEL_MAX))
+           {
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "dfsScanMode value %d is out of range"
+                      " (Min: %d Max: %d)", dfsScanMode,
+                      CFG_ROAMING_DFS_CHANNEL_MIN,
+                      CFG_ROAMING_DFS_CHANNEL_MAX);
+               ret = -EINVAL;
+               goto exit;
+           }
+           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                      "%s: Received Command to Set DFS Scan Mode = %d",
+                      __func__, dfsScanMode);
+
+           pHddCtx->cfg_ini->allowDFSChannelRoam = dfsScanMode;
+           sme_UpdateDFSScanMode((tHalHandle)(pHddCtx->hHal), dfsScanMode);
+       }
+       else if (strncmp(command, "GETDFSSCANMODE", 14) == 0)
+       {
+           tANI_BOOLEAN dfsScanMode =
+                   sme_GetDFSScanMode((tHalHandle)(pHddCtx->hHal));
+           char extra[32];
+           tANI_U8 len = 0;
+
+           len = scnprintf(extra, sizeof(extra), "%s %d", command, dfsScanMode);
+           if (copy_to_user(priv_data.buf, &extra, len + 1))
+           {
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: failed to copy data to user buffer", __func__);
+               ret = -EFAULT;
+               goto exit;
+           }
+       }
        else {
            MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                             TRACE_CODE_HDD_UNSUPPORTED_IOCTL,
@@ -5708,29 +5764,37 @@ void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand)
 /*
  * Mac address for multiple virtual interface is found as following
  * i) The mac address of the first interface is just the actual hw mac address.
- * ii) MSM 3 ot 4 bits of byte0 of the actual mac address are used to
+ * ii) MSM 3 or 4 bits of byte5 of the actual mac address are used to
  *     define the mac address for the remaining interfaces and locally
  *     admistered bit is set. INTF_MACADDR_MASK is based on the number of
  *     supported virtual interfaces, right now this is 0x07 (meaning 8 interface).
- *     Byte[0] of second interface will be hw_macaddr[0](bit5..7) + 1,
- *     for third interface it will be hw_macaddr[0](bit5..7) + 2, etc.
+ *     Byte[3] of second interface will be hw_macaddr[3](bit5..7) + 1,
+ *     for third interface it will be hw_macaddr[3](bit5..7) + 2, etc.
  */
 
 static void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
 {
     int8_t i;
-    u_int8_t macaddr_b0, tmp_br0;
+    u_int8_t macaddr_b3, tmp_br3;
 
     vos_mem_copy(cfg_ini->intfMacAddr[0].bytes, hw_macaddr.bytes,
                  VOS_MAC_ADDR_SIZE);
     for (i = 1; i < VOS_MAX_CONCURRENCY_PERSONA; i++) {
         vos_mem_copy(cfg_ini->intfMacAddr[i].bytes, hw_macaddr.bytes,
                      VOS_MAC_ADDR_SIZE);
-        macaddr_b0 = cfg_ini->intfMacAddr[i].bytes[0];
-        tmp_br0 = ((macaddr_b0 >> 4 & INTF_MACADDR_MASK) + i) &
+        macaddr_b3 = cfg_ini->intfMacAddr[i].bytes[3];
+        tmp_br3 = ((macaddr_b3 >> 4 & INTF_MACADDR_MASK) + i) &
                   INTF_MACADDR_MASK;
-        macaddr_b0 = (macaddr_b0 | (tmp_br0 << 4)) | 0x02;
-        cfg_ini->intfMacAddr[i].bytes[0] = macaddr_b0;
+        macaddr_b3 += tmp_br3;
+
+        /* XOR-ing bit-24 of the mac address which is bit-8 of macaddr[3]
+         * This will give enough mac address range before collision
+         */
+        macaddr_b3 ^= (1 << 8);
+
+        /* Set locally administered bit */
+        cfg_ini->intfMacAddr[i].bytes[0] |= 0x02;
+        cfg_ini->intfMacAddr[i].bytes[3] = macaddr_b3;
     }
 }
 
@@ -5771,6 +5835,14 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
     else
     {
         cfg_ini->fEnableTDLSSleepSta = FALSE;
+    }
+    if (cfg_ini->fEnableTDLSSleepSta || cfg_ini->fEnableTDLSBufferSta)
+    {
+        /* Adjust max TDLS sta number if self is either sleep STA or buf STA */
+        hdd_ctx->max_num_tdls_sta = HDD_MAX_NUM_TDLS_STA_P_UAPSD;
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: P-UAPSD: sleep or buffer sta enabled, max_tdls_peer_# = %d",
+               __func__, hdd_ctx->max_num_tdls_sta);
     }
 #endif
     pMac->beacon_offload = cfg->beacon_offload;
@@ -6229,7 +6301,9 @@ void hdd_update_tgt_cfg(void *context, void *param)
     /* This can be extended to other configurations like ht, vht cap... */
 
     if (!vos_is_macaddr_zero(&cfg->hw_macaddr))
+    {
         hdd_update_macaddr(hdd_ctx->cfg_ini, cfg->hw_macaddr);
+    }
     else {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: Invalid MAC passed from target, using MAC from ini file"
@@ -6947,10 +7021,39 @@ int hdd_stop (struct net_device *dev)
       return -ENODEV;
    }
 
+   /* Nothing to be done if the interface is not opened */
+   if (VOS_FALSE == test_bit(DEVICE_IFACE_OPENED, &pAdapter->event_flags))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: NETDEV Interface is not OPENED", __func__);
+      return -ENODEV;
+   }
+
+   /* Make sure the interface is marked as closed */
    clear_bit(DEVICE_IFACE_OPENED, &pAdapter->event_flags);
    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Disabling OS Tx queues", __func__);
+
+   /* Disable TX on the interface, after this hard_start_xmit() will not
+    * be called on that interface
+    */
    netif_tx_disable(pAdapter->dev);
+
+   /* Mark the interface status as "down" for outside world */
    netif_carrier_off(pAdapter->dev);
+
+   /* The interface is marked as down for outside world (aka kernel)
+    * But the driver is pretty much alive inside. The driver needs to
+    * tear down the existing connection on the netdev (session)
+    * cleanup the data pipes and wait until the control plane is stabilized
+    * for this interface. The call also needs to wait until the above
+    * mentioned actions are completed before returning to the caller.
+    * Notice that the hdd_stop_adapter is requested not to close the session
+    * That is intentional to be able to scan if it is a STA/P2P interface
+    */
+   hdd_stop_adapter(pHddCtx, pAdapter, VOS_FALSE);
+
+   /* DeInit the adapter. This ensures datapath cleanup as well */
+   hdd_deinit_adapter(pHddCtx, pAdapter);
 
    /* SoftAP ifaces should never go in power save mode
       making sure same here. */
@@ -6966,8 +7069,9 @@ int hdd_stop (struct net_device *dev)
       return 0;
    }
 
-   /* Find if any iface is up then
-      if any iface is up then can't put device to sleep/ power save mode. */
+   /* Find if any iface is up. If any iface is up then can't put device to
+    * sleep/power save mode
+    */
    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
    while ( (NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status) )
    {
@@ -8131,6 +8235,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    switch(session_type)
    {
       case WLAN_HDD_INFRA_STATION:
+         /* Reset locally administered bit if the device mode is STA */
+         WLAN_HDD_RESET_LOCALLY_ADMINISTERED_BIT(macAddr);
+         /* fall through */
       case WLAN_HDD_P2P_CLIENT:
       case WLAN_HDD_P2P_DEVICE:
       {
@@ -8159,7 +8266,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
             hdd_deinit_adapter(pHddCtx, pAdapter);
             goto err_free_netdev;
          }
-         // Workqueue which gets scheduled in IPv4 notification callback.
+         // Workqueue which gets scheduled in IPv4 notification callback
          INIT_WORK(&pAdapter->ipv4NotifierWorkQueue, hdd_ipv4_notifier_work_queue);
 
 
@@ -8603,7 +8710,8 @@ void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
     }
 }
 
-VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
+VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
+                             const v_BOOL_t bCloseSession)
 {
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
@@ -8707,21 +8815,25 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
             pAdapter->ipv6_notifier_registered = false;
          }
 #endif
-         if (test_bit(SME_SESSION_OPENED, &pAdapter->event_flags))
+         /* It is possible that the caller of this function does not
+          * wish to close the session
+          */
+         if (VOS_TRUE == bCloseSession &&
+             test_bit(SME_SESSION_OPENED, &pAdapter->event_flags))
          {
             INIT_COMPLETION(pAdapter->session_close_comp_var);
             if (eHAL_STATUS_SUCCESS ==
-                sme_CloseSession(pHddCtx->hHal, pAdapter->sessionId,
-                                 hdd_smeCloseSessionCallback, pAdapter))
+                  sme_CloseSession(pHddCtx->hHal, pAdapter->sessionId,
+                     hdd_smeCloseSessionCallback, pAdapter))
             {
                //Block on a completion variable. Can't wait forever though.
                ret = wait_for_completion_timeout(
-                          &pAdapter->session_close_comp_var,
-                          msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+                     &pAdapter->session_close_comp_var,
+                     msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
                if (0 >= ret)
                {
                   hddLog(LOGE, "%s: failure waiting for session_close_comp_var %ld",
-                          __func__, ret);
+                        __func__, ret);
                }
             }
          }
@@ -8842,7 +8954,7 @@ VOS_STATUS hdd_stop_all_adapters( hdd_context_t *pHddCtx )
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
       pAdapter = pAdapterNode->pAdapter;
-      hdd_stop_adapter( pHddCtx, pAdapter );
+      hdd_stop_adapter( pHddCtx, pAdapter, VOS_TRUE );
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
@@ -10305,7 +10417,6 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
       return VOS_STATUS_E_FAILURE;
    }
 
-
    return VOS_STATUS_SUCCESS;
 }
 
@@ -10724,6 +10835,7 @@ static int hdd_generate_iface_mac_addr_auto(hdd_context_t *pHddCtx,
       hddLog(LOGE, FL("Failed to Get Serial NO"));
       return -1;
    }
+
    return 0;
 }
 #endif // WLAN_AUTOGEN_MACADDR_FEATURE && QCA_WIFI_ISOC

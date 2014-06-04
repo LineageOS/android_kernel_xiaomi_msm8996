@@ -199,6 +199,16 @@
 #define CFG_TGT_NUM_TDLS_CONN_TABLE_ENTRIES    32
 
 /*
+ * number of TDLS concurrent sleep STAs
+ */
+#define CFG_TGT_NUM_TDLS_CONC_SLEEP_STAS    1
+
+/*
+ * number of TDLS concurrent buffer STAs
+ */
+#define CFG_TGT_NUM_TDLS_CONC_BUFFER_STAS    1
+
+/*
  * ht enable highest MCS by default
  */
 #define CFG_TGT_DEFAULT_GTX_HT_MASK		0x8080

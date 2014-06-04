@@ -54,6 +54,7 @@
 #include <a_debug.h>
 #include "hif_pci.h"
 #include "vos_trace.h"
+#include "vos_api.h"
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 #include <net/cnss.h>
 #endif
@@ -2080,6 +2081,8 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 
     adf_os_spinlock_init(&hif_state->keep_awake_lock);
 
+    adf_os_spinlock_init(&hif_state->suspend_lock);
+
     adf_os_atomic_init(&hif_state->hif_thread_idle);
     adf_os_atomic_inc(&hif_state->hif_thread_idle);
 
@@ -2467,6 +2470,7 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
 
                     printk("%s:error, can't wakeup target\n", __func__);
                     sc->recovery = true;
+                    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
                     schedule_work(&recovery_work);
                     return -EACCES;
                 }

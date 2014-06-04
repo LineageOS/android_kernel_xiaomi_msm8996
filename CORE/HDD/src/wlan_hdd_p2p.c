@@ -541,6 +541,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     hdd_prevent_suspend();
     INIT_COMPLETION(pAdapter->rem_on_chan_ready_event);
 
+    pAdapter->is_roc_inprogress = TRUE;
     //call sme API to start remain on channel.
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
          ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
@@ -586,6 +587,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
            mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
            vos_mem_free (pRemainChanCtx);
            hdd_allow_suspend();
+           pAdapter->is_roc_inprogress = FALSE;
            return -EINVAL;
         }
 
@@ -612,7 +614,6 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         }
 
     }
-    pAdapter->is_roc_inprogress = TRUE;
     return 0;
 
 }
@@ -1683,7 +1684,7 @@ int wlan_hdd_del_virtual_intf( struct wiphy *wiphy, struct net_device *dev )
     wlan_hdd_release_intf_addr( pHddCtx,
                                  pVirtAdapter->macAddressCurrent.bytes );
 
-    hdd_stop_adapter( pHddCtx, pVirtAdapter );
+    hdd_stop_adapter( pHddCtx, pVirtAdapter, VOS_TRUE );
     hdd_close_adapter( pHddCtx, pVirtAdapter, TRUE );
     EXIT();
     return 0;

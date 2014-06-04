@@ -274,12 +274,20 @@ struct statsContext
    unsigned int magic;
 };
 
+struct linkspeedContext
+{
+   struct completion completion;
+   hdd_adapter_t *pAdapter;
+   unsigned int magic;
+};
+
 extern spinlock_t hdd_context_lock;
 
 #define STATS_CONTEXT_MAGIC 0x53544154   //STAT
 #define RSSI_CONTEXT_MAGIC  0x52535349   //RSSI
 #define POWER_CONTEXT_MAGIC 0x504F5752   //POWR
 #define SNR_CONTEXT_MAGIC   0x534E5200   //SNR
+#define LINK_CONTEXT_MAGIC  0x4C494E4B   //LINKSPEED
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
 #define HDD_BATCH_SCAN_VERSION (17)
@@ -932,6 +940,8 @@ struct hdd_adapter_s
    struct net_device_stats stats;
    /** HDD statistics*/
    hdd_stats_t hdd_stats;
+   /** linkspeed statistics */
+   tSirLinkSpeedInfo ls_stats;
    /**Mib information*/
    sHddMib_t  hdd_mib;
 
@@ -1116,6 +1126,9 @@ struct hdd_adapter_s
         ((WLAN_HDD_IS_TDLS_SUPPORTED_ADAPTER(pAdapter)) ? \
         (tdlsCtx_t*)(pAdapter)->sessionCtx.station.pHddTdlsCtx : NULL)
 #endif
+
+/* Set mac address locally administered bit */
+#define WLAN_HDD_RESET_LOCALLY_ADMINISTERED_BIT(macaddr) (macaddr[0] &= 0xFD)
 
 typedef struct hdd_adapter_list_node
 {
@@ -1360,6 +1373,8 @@ struct hdd_context_s
     eTDLSSupportMode tdls_mode;
     eTDLSSupportMode tdls_mode_last;
     tdlsConnInfo_t tdlsConnInfo[HDD_MAX_NUM_TDLS_STA];
+    /* maximum TDLS station number allowed upon runtime condition */
+    tANI_U16 max_num_tdls_sta;
     /* TDLS peer connected count */
     tANI_U16 connected_peer_count;
     tdls_scan_context_t tdls_scan_ctxt;
@@ -1449,6 +1464,7 @@ struct hdd_context_s
 #ifdef FEATURE_GREEN_AP
     hdd_green_ap_ctx_t *green_ap_ctx;
 #endif
+
 };
 
 
@@ -1495,7 +1511,8 @@ hdd_adapter_t * hdd_get_mon_adapter( hdd_context_t *pHddCtx );
 VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter );
 hdd_adapter_t * hdd_get_adapter( hdd_context_t *pHddCtx, device_mode_t mode );
 void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter );
-VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter );
+VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
+                             const v_BOOL_t bCloseSession);
 void hdd_set_station_ops( struct net_device *pWlanDev );
 tANI_U8* wlan_hdd_get_intf_addr(hdd_context_t* pHddCtx);
 void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr);

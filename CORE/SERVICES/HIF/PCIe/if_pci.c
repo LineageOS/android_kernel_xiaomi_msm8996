@@ -117,10 +117,19 @@ hif_pci_interrupt_handler(int irq, void *arg)
     A_UINT16 val;
     A_UINT32 bar0;
 
+    adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
+
+    if (adf_os_atomic_read(&sc->pci_link_suspended))
+        goto irq_handled;
+
     if (LEGACY_INTERRUPTS(sc)) {
 
-        if (sc->hif_init_done == TRUE)
-           A_TARGET_ACCESS_BEGIN_RET(hif_state->targid);
+        if (sc->hif_init_done == TRUE) {
+            if (Q_TARGET_ACCESS_BEGIN(hif_state->targid) < 0) {
+                adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
+                return IRQ_HANDLED;
+            }
+        }
 
         /* Clear Legacy PCI line interrupts */
         /* IMPORTANT: INTR_CLR regiser has to be set after INTR_ENABLE is set to 0, */
@@ -157,8 +166,13 @@ hif_pci_interrupt_handler(int irq, void *arg)
 
             VOS_BUG(0);
         }
-        if (sc->hif_init_done == TRUE)
-          A_TARGET_ACCESS_END_RET(hif_state->targid);
+
+        if (sc->hif_init_done == TRUE) {
+            if (Q_TARGET_ACCESS_END(hif_state->targid) < 0) {
+                adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
+                return IRQ_HANDLED;
+            }
+        }
     }
     /* TBDXXX: Add support for WMAC */
 
@@ -166,6 +180,8 @@ hif_pci_interrupt_handler(int irq, void *arg)
     adf_os_atomic_set(&sc->tasklet_from_intr, 1);
     tasklet_schedule(&sc->intr_tq);
 
+irq_handled:
+    adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
     return IRQ_HANDLED;
 }
 
@@ -997,6 +1013,11 @@ int hif_pci_reinit(struct pci_dev *pdev, const struct pci_device_id *id)
 again:
     ret = 0;
 
+    if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
+        printk("Load/unload in progress, ignore SSR reinit\n");
+        return 0;
+    }
+
 #define BAR_NUM 0
     /*
      * Without any knowledge of the Host, the Target
@@ -1598,6 +1619,13 @@ void hif_pci_shutdown(struct pci_dev *pdev)
     if (!sc)
         return;
 
+    if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
+        printk("Load/unload in progress, ignore SSR shutdown\n");
+        return;
+    }
+    /* this is for cases, where shutdown invoked from CNSS */
+    vos_set_logp_in_progress(VOS_MODULE_ID_HIF, TRUE);
+
     scn = sc->ol_sc;
 
 #ifndef REMOVE_PKT_LOG
@@ -1752,8 +1780,14 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         msleep(10);
     }
 
+    adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
+
     /*Disable PCIe interrupts*/
-    A_TARGET_ACCESS_BEGIN_RET(targid);
+    if (Q_TARGET_ACCESS_BEGIN(targid) < 0) {
+        adf_os_spin_unlock_irqrestore( &hif_state->suspend_lock);
+        return -1;
+    }
+
     A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 0);
     /* IMPORTANT: this extra read transaction is required to flush the posted write buffer */
     tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
@@ -1761,12 +1795,18 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
          printk(KERN_ERR "%s: PCIe pcie link is down\n", __func__);
          VOS_ASSERT(0);
     }
-    A_TARGET_ACCESS_END_RET(targid);
+
+    if (Q_TARGET_ACCESS_END(targid) < 0) {
+        adf_os_spin_unlock_irqrestore( &hif_state->suspend_lock);
+        return -1;
+    }
 
     /* Stop the HIF Sleep Timer */
     HIFCancelDeferredTargetSleep(sc->hif_device);
 
     adf_os_atomic_set(&sc->pci_link_suspended, 1);
+
+    adf_os_spin_unlock_irqrestore( &hif_state->suspend_lock);
 
     pci_read_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, &val);
     if ((val & 0x000000ff) != 0x3) {

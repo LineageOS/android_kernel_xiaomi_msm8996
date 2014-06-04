@@ -2023,6 +2023,16 @@ typedef enum
 #define CFG_TDLS_PUAPSD_RX_FRAME_THRESHOLD_MAX      (20)
 #define CFG_TDLS_PUAPSD_RX_FRAME_THRESHOLD_DEFAULT  (10)
 
+#define CFG_TDLS_PUAPSD_PEER_TRAFFIC_IND_WINDOW          "gTDLSPuapsdPTIWindow"
+#define CFG_TDLS_PUAPSD_PEER_TRAFFIC_IND_WINDOW_MIN      (1)
+#define CFG_TDLS_PUAPSD_PEER_TRAFFIC_IND_WINDOW_MAX      (5)
+#define CFG_TDLS_PUAPSD_PEER_TRAFFIC_IND_WINDOW_DEFAULT  (2)
+
+#define CFG_TDLS_PUAPSD_PEER_TRAFFIC_RSP_TIMEOUT         "gTDLSPuapsdPTRTimeout"
+#define CFG_TDLS_PUAPSD_PEER_TRAFFIC_RSP_TIMEOUT_MIN     (0)
+#define CFG_TDLS_PUAPSD_PEER_TRAFFIC_RSP_TIMEOUT_MAX     (10000)
+#define CFG_TDLS_PUAPSD_PEER_TRAFFIC_RSP_TIMEOUT_DEFAULT (5000)
+
 #define CFG_TDLS_EXTERNAL_CONTROL                   "gTDLSExternalControl"
 #define CFG_TDLS_EXTERNAL_CONTROL_MIN               (0)
 #define CFG_TDLS_EXTERNAL_CONTROL_MAX               (1)
@@ -2032,6 +2042,16 @@ typedef enum
 #define CFG_TDLS_OFF_CHANNEL_SUPPORT_ENABLE_MIN      (0)
 #define CFG_TDLS_OFF_CHANNEL_SUPPORT_ENABLE_MAX      (1)
 #define CFG_TDLS_OFF_CHANNEL_SUPPORT_ENABLE_DEFAULT  (0)
+
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM          "gTDLSPrefOffChanNum"
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MIN      (0)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MAX      (0xFF)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_DEFAULT  (36)
+
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW           "gTDLSPrefOffChanBandwidth"
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MIN      (20)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MAX      (80)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_DEFAULT  (40)
 #endif
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
@@ -2460,7 +2480,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ROAMING_DFS_CHANNEL_NAME                "gAllowDFSChannelRoam"
 #define CFG_ROAMING_DFS_CHANNEL_MIN                 (0)
 #define CFG_ROAMING_DFS_CHANNEL_MAX                 (1)
-#define CFG_ROAMING_DFS_CHANNEL_DEFAULT             (0)
+#define CFG_ROAMING_DFS_CHANNEL_DEFAULT             (1)
 
 #ifdef MSM_PLATFORM
 #define CFG_BUS_BANDWIDTH_HIGH_THRESHOLD           "gBusBandwidthHighThreshold"
@@ -2886,8 +2906,12 @@ typedef struct
    v_U32_t                     fEnableTDLSSleepSta;
    v_U32_t                     fTDLSPuapsdInactivityTimer;
    v_U32_t                     fTDLSRxFrameThreshold;
+   v_U32_t                     fTDLSPuapsdPTIWindow;
+   v_U32_t                     fTDLSPuapsdPTRTimeout;
    v_BOOL_t                    fTDLSExternalControl;
    v_U32_t                     fEnableTDLSOffChannel;
+   v_U8_t                      fTDLSPrefOffChanNum;
+   v_U8_t                      fTDLSPrefOffChanBandwidth;
 #endif
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
    v_BOOL_t                    fEnableVSTASupport;

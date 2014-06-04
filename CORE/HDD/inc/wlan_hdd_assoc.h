@@ -29,9 +29,10 @@
 #if !defined( HDD_CONNECTION_H__ )
 #define HDD_CONNECTION_H__
 #include <wlan_hdd_mib.h>
-#define HDD_MAX_NUM_IBSS_STA ( 32 )
+#define HDD_MAX_NUM_IBSS_STA          ( 32 )
 #ifdef FEATURE_WLAN_TDLS
-#define HDD_MAX_NUM_TDLS_STA ( 8 )
+#define HDD_MAX_NUM_TDLS_STA          ( 8 )
+#define HDD_MAX_NUM_TDLS_STA_P_UAPSD  ( 1 )
 #ifdef QCA_WIFI_2_0
 #define TDLS_STA_INDEX_VALID(staId) \
                           (((staId) >= 1) && ((staId) < 0xFF))

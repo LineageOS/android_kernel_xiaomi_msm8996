@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -20,7 +20,7 @@
  */
 
 /*
- * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2011-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  *
@@ -151,6 +151,9 @@ typedef struct tagSmeStruct
     /* Maximum interfaces allowed by the host */
     tANI_U8 max_intf_count;
     void (* StatsExtCallback) (void *, tStatsExtEvent *);
+    /* linkspeed callback */
+    void (*pLinkSpeedIndCb) (tSirLinkSpeedInfo *indParam, void *pDevContext);
+    void *pLinkSpeedCbContext;
 } tSmeStruct, *tpSmeStruct;
 
 

@@ -229,6 +229,9 @@ typedef enum
 #define WFD_OUI_TYPE_SIZE  4
 #endif
 
+#define WMM_OUI_TYPE   "\x00\x50\xf2\x02"
+#define WMM_OUI_TYPE_SIZE  4
+
 typedef enum
 {
     eWEXT_WPS_OFF = 0,
@@ -383,8 +386,11 @@ extern int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_inf
 extern int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra);
 
+extern VOS_STATUS wlan_hdd_get_linkspeed_for_peermac(hdd_adapter_t *pAdapter,
+                                                     tSirMacAddr macAddress);
 void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter);
 void hdd_GetClassA_statisticsCB(void *pStats, void *pContext);
+void hdd_GetLink_SpeedCB(tSirLinkSpeedInfo *pLinkSpeed, void *pContext);
 
 VOS_STATUS wlan_hdd_check_ula_done(hdd_adapter_t *pAdapter);
 
