@@ -392,7 +392,8 @@ struct wma_wow {
 	v_BOOL_t deauth_enable;
 	v_BOOL_t disassoc_enable;
 	v_BOOL_t bmiss_enable;
-	v_BOOL_t gtk_err_enable;
+	v_BOOL_t gtk_pdev_enable;
+	v_BOOL_t gtk_err_enable[WMA_MAX_SUPPORTED_BSS];
 };
 #ifdef WLAN_FEATURE_11W
 #define CMAC_IPN_LEN         (6)
@@ -612,6 +613,7 @@ typedef struct {
         u_int32_t roam_preauth_scan_id;
         u_int16_t roam_preauth_chanfreq;
         void *roam_preauth_chan_context;
+	adf_os_spinlock_t roam_preauth_lock;
 
 	/* Here ol_ini_info is used to store ini
 	 * status of arp offload, ns offload
@@ -1452,6 +1454,11 @@ typedef struct wma_tdls_params
 	tANI_S32    rssi_teardown_threshold;
 	tANI_S32    rssi_delta;
 	tANI_U32    tdls_options;
+	tANI_U32    peer_traffic_ind_window;
+	tANI_U32    peer_traffic_response_timeout;
+	tANI_U32    puapsd_mask;
+	tANI_U32    puapsd_inactivity_time;
+	tANI_U32    puapsd_rx_frame_threshold;
 } t_wma_tdls_params;
 
 typedef struct {

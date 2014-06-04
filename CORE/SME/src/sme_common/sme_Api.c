@@ -2650,6 +2650,17 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
               }
               break;
 #endif
+          case eWNI_SME_LINK_SPEED_IND:
+               if (pMac->sme.pLinkSpeedIndCb)
+               {
+                   pMac->sme.pLinkSpeedIndCb(pMsg->bodyptr,
+                                             pMac->sme.pLinkSpeedCbContext);
+               }
+               if (pMsg->bodyptr)
+               {
+                   vos_mem_free(pMsg->bodyptr);
+               }
+               break;
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -10750,11 +10761,13 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     tTdlsPeerStateParams *pTdlsPeerStateParams = NULL;
     vos_msg_t vosMessage;
+    tANI_U8 num;
+    tANI_U8 chanId;
     tANI_U8 i;
 
     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
     {
-        pTdlsPeerStateParams = vos_mem_malloc(sizeof(tTdlsPeerStateParams));
+        pTdlsPeerStateParams = vos_mem_malloc(sizeof(*pTdlsPeerStateParams));
         if (NULL == pTdlsPeerStateParams)
         {
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
@@ -10764,6 +10777,7 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
             return eHAL_STATUS_FAILURE;
         }
 
+        vos_mem_zero(pTdlsPeerStateParams, sizeof(*pTdlsPeerStateParams));
         vos_mem_copy(&pTdlsPeerStateParams->peerMacAddr,
                      &peerStateParams->peerMacAddr,
                      sizeof(tSirMacAddr));
@@ -10807,13 +10821,32 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
            peerStateParams->peerCap.peerCurrOperClass;
        pTdlsPeerStateParams->peerCap.selfCurrOperClass =
            peerStateParams->peerCap.selfCurrOperClass;
-       pTdlsPeerStateParams->peerCap.peerChanLen =
-           peerStateParams->peerCap.peerChanLen;
-       for (i = 0; i < SME_TDLS_MAX_SUPP_CHANNELS; i++)
+
+       num = 0;
+       for (i = 0; i < peerStateParams->peerCap.peerChanLen; i++)
        {
-           pTdlsPeerStateParams->peerCap.peerChan[i] =
-               peerStateParams->peerCap.peerChan[i];
+           chanId = peerStateParams->peerCap.peerChan[i];
+           if (csrRoamIsChannelValid(pMac, chanId))
+           {
+               pTdlsPeerStateParams->peerCap.peerChan[num].chanId = chanId;
+               pTdlsPeerStateParams->peerCap.peerChan[num].pwr =
+                                         csrGetCfgMaxTxPower(pMac, chanId);
+
+               if (vos_nv_getChannelEnabledState(chanId) == NV_CHANNEL_DFS)
+               {
+                   pTdlsPeerStateParams->peerCap.peerChan[num].dfsSet =
+                                                                  VOS_TRUE;
+               }
+               else
+               {
+                   pTdlsPeerStateParams->peerCap.peerChan[num].dfsSet =
+                                                                  VOS_FALSE;
+               }
+               num++;
+           }
        }
+       pTdlsPeerStateParams->peerCap.peerChanLen = num;
+
        pTdlsPeerStateParams->peerCap.peerOperClassLen =
            peerStateParams->peerCap.peerOperClassLen;
        for (i = 0; i < HAL_TDLS_MAX_SUPP_OPER_CLASSES; i++)
@@ -10821,6 +10854,11 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
            pTdlsPeerStateParams->peerCap.peerOperClass[i] =
                peerStateParams->peerCap.peerOperClass[i];
        }
+
+       pTdlsPeerStateParams->peerCap.prefOffChanNum =
+           peerStateParams->peerCap.prefOffChanNum;
+       pTdlsPeerStateParams->peerCap.prefOffChanBandwidth =
+           peerStateParams->peerCap.prefOffChanBandwidth;
 
        vosMessage.type = WDA_UPDATE_TDLS_PEER_STATE;
        vosMessage.reserved = 0;
@@ -10833,6 +10871,46 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
           status = eHAL_STATUS_FAILURE;
        }
        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return(status);
+}
+
+eHalStatus sme_GetLinkSpeed(tHalHandle hHal, tSirLinkSpeedInfo *lsReq, void *plsContext,
+                            void (*pCallbackfn)(tSirLinkSpeedInfo *indParam, void *pContext) )
+{
+
+    eHalStatus          status    = eHAL_STATUS_SUCCESS;
+    VOS_STATUS          vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal      pMac      = PMAC_STRUCT(hHal);
+    vos_msg_t           vosMessage;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status)
+    {
+        if ( (NULL == pCallbackfn) &&
+            (NULL == pMac->sme.pLinkSpeedIndCb))
+        {
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Indication Call back did not registered", __func__);
+           sme_ReleaseGlobalLock(&pMac->sme);
+           return eHAL_STATUS_FAILURE;
+        }
+        else if (NULL != pCallbackfn)
+        {
+           pMac->sme.pLinkSpeedCbContext = plsContext;
+           pMac->sme.pLinkSpeedIndCb = pCallbackfn;
+        }
+        /* serialize the req through MC thread */
+        vosMessage.bodyptr = lsReq;
+        vosMessage.type    = WDA_GET_LINK_SPEED;
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Post Link Speed msg fail", __func__);
+           status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
     }
     return(status);
 }
@@ -12286,3 +12364,55 @@ eHalStatus sme_StatsExtEvent(tHalHandle hHal, void* pMsg)
 }
 
 #endif
+/* ---------------------------------------------------------------------------
+    \fn sme_UpdateDFSScanMode
+    \brief  Update DFS roam Mode
+            This function is called through dynamic setConfig callback function
+            to configure isAllowDFSChannelRoam.
+    \param  hHal - HAL handle for device
+    \param  isAllowDFSChannelRoam - Enable/Disable DFS roaming scan
+    \return eHAL_STATUS_SUCCESS - SME update allowDFSChannelRoam config
+            successfully.
+            Other status means SME is failed to update isAllowDFSChannelRoam.
+    -------------------------------------------------------------------------*/
+
+eHalStatus sme_UpdateDFSScanMode(tHalHandle hHal, v_BOOL_t isAllowDFSChannelRoam)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus          status    = eHAL_STATUS_SUCCESS;
+
+    status = sme_AcquireGlobalLock( &pMac->sme );
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                     "LFR runtime successfully set AllowDFSChannelRoam Mode to "
+                     "%d - old value is %d - roam state is %s",
+                     isAllowDFSChannelRoam,
+                     pMac->roam.configParam.allowDFSChannelRoam,
+                     macTraceGetNeighbourRoamState(
+                     pMac->roam.neighborRoamInfo.neighborRoamState));
+        pMac->roam.configParam.allowDFSChannelRoam = isAllowDFSChannelRoam;
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+    if (pMac->roam.configParam.isRoamOffloadScanEnabled)
+    {
+       csrRoamOffloadScan(pMac, ROAM_SCAN_OFFLOAD_UPDATE_CFG,
+                          REASON_ROAM_DFS_SCAN_MODE_CHANGED);
+    }
+#endif
+
+    return status ;
+}
+/*--------------------------------------------------------------------------
+  \brief sme_GetWESMode() - get WES Mode
+  This is a synchronous call
+  \param hHal - The handle returned by macOpen
+  \return DFS roaming mode Enabled(1)/Disabled(0)
+  \sa
+  --------------------------------------------------------------------------*/
+v_BOOL_t sme_GetDFSScanMode(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    return pMac->roam.configParam.allowDFSChannelRoam;
+}

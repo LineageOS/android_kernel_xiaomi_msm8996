@@ -1414,9 +1414,11 @@ typedef struct {
    tANI_U8 peerCurrOperClass;
    tANI_U8 selfCurrOperClass;
    tANI_U8 peerChanLen;
-   tANI_U8 peerChan[HAL_TDLS_MAX_SUPP_CHANNELS];
+   tSirUpdateChanParam peerChan[HAL_TDLS_MAX_SUPP_CHANNELS];
    tANI_U8 peerOperClassLen;
    tANI_U8 peerOperClass[HAL_TDLS_MAX_SUPP_OPER_CLASSES];
+   tANI_U8 prefOffChanNum;
+   tANI_U8 prefOffChanBandwidth;
 } tTdlsPeerCapParams;
 
 typedef struct sTdlsPeerStateParams

@@ -222,7 +222,17 @@
 /*
  * number of peers that each Tdls vdev can track
  */
-#define CFG_TGT_NUM_TDLS_CONN_TABLE_ENTRIES    64
+#define CFG_TGT_NUM_TDLS_CONN_TABLE_ENTRIES    32
+/*
+ * number of TDLS concurrent sleep STAs
+ */
+#define CFG_TGT_NUM_TDLS_CONC_SLEEP_STAS    1
+
+/*
+ * number of TDLS concurrent buffer STAs
+ */
+#define CFG_TGT_NUM_TDLS_CONC_BUFFER_STAS    1
+
 #define CFG_TGT_MAX_MULTICAST_FILTER_ENTRIES 5
 /*
  * Maximum number of VDEV that beacon tx offload will support

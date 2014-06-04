@@ -382,6 +382,14 @@ htt_t2h_msg_handler(void *context, HTC_PACKET *pkt)
         return;
     }
 
+#ifdef HTT_RX_RESTORE
+if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
+        adf_os_print("rx restore ..\n");
+        adf_nbuf_free(htt_t2h_msg);
+        return;
+    }
+#endif
+
     /* confirm alignment */
     HTT_ASSERT3((((unsigned long) adf_nbuf_data(htt_t2h_msg)) & 0x3) == 0);
 

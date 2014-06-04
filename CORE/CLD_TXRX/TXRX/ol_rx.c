@@ -59,6 +59,12 @@
 #include <ipv6_defs.h>    /* IPv6 header defs */
 #include <ol_vowext_dbg_defs.h>
 
+#ifdef HTT_RX_RESTORE
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
+#include <net/cnss.h>
+#endif
+#endif
+
 #ifdef OSIF_NEED_RX_PEER_ID
 #define OL_RX_OSIF_DELIVER(vdev, peer, msdus) \
        vdev->osif_rx(vdev->osif_dev, peer->local_id, msdus)
@@ -66,6 +72,36 @@
 #define OL_RX_OSIF_DELIVER(vdev, peer, msdus) \
        vdev->osif_rx(vdev->osif_dev, msdus)
 #endif /* OSIF_NEED_RX_PEER_ID */
+
+#ifdef HTT_RX_RESTORE
+
+static void ol_rx_restore_handler(struct work_struct *htt_rx)
+{
+    adf_os_print("Enter: %s", __func__);
+    cnss_device_self_recovery();
+    adf_os_print("Exit: %s", __func__);
+}
+
+static DECLARE_WORK(ol_rx_restore_work, ol_rx_restore_handler);
+
+void ol_rx_trigger_restore(htt_pdev_handle htt_pdev, adf_nbuf_t head_msdu,
+                        adf_nbuf_t tail_msdu)
+{
+    adf_nbuf_t next;
+
+    while (head_msdu) {
+        next = adf_nbuf_next(head_msdu);
+        adf_os_print("freeing %p\n", head_msdu);
+        adf_nbuf_free(head_msdu);
+        head_msdu = next;
+    }
+
+    if ( !htt_pdev->rx_ring.htt_rx_restore){
+        htt_pdev->rx_ring.htt_rx_restore = 1;
+        schedule_work(&ol_rx_restore_work);
+    }
+}
+#endif
 
 static void ol_rx_process_inv_peer(
     ol_txrx_pdev_handle pdev,
@@ -262,6 +298,12 @@ ol_rx_indication_handler(
 
                 msdu_chaining = htt_rx_amsdu_pop(
                     htt_pdev, rx_ind_msg, &head_msdu, &tail_msdu);
+#ifdef HTT_RX_RESET
+                if (htt_pdev->rx_ring.rx_reset) {
+                    ol_rx_trigger_restore(htt_pdev, head_msdu, tail_msdu);
+                    return;
+                }
+#endif
                 rx_mpdu_desc =
                     htt_rx_mpdu_desc_list_next(htt_pdev, rx_ind_msg);
 
@@ -365,6 +407,12 @@ ol_rx_indication_handler(
             for (i = 0; i < num_mpdus; i++) {
                 /* pull the MPDU's MSDUs off the buffer queue */
                 htt_rx_amsdu_pop(htt_pdev, rx_ind_msg, &msdu, &tail_msdu);
+#ifdef HTT_RX_RESTORE
+                if (htt_pdev->rx_ring.rx_reset) {
+                    ol_rx_trigger_restore(htt_pdev, msdu, tail_msdu);
+                    return;
+                }
+#endif
                 /* pull the MPDU desc off the desc queue */
                 rx_mpdu_desc =
                     htt_rx_mpdu_desc_list_next(htt_pdev, rx_ind_msg);

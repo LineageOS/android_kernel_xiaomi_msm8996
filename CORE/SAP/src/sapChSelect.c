@@ -2471,8 +2471,15 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
                         }
                     }
                 }
+                else
+                {
+                    pSapCtx->acsBestChannelInfo.channelNum = bestChNum;
+                    pSapCtx->acsBestChannelInfo.weight =
+                                   pSpectInfoParams->pSpectCh[count].weight;
+                }
             }
-            else
+
+            if (bestChNum != SAP_CHANNEL_NOT_SELECTED)
             {
                 if (operatingBand == RF_SUBBAND_2_4_GHZ)
                 {

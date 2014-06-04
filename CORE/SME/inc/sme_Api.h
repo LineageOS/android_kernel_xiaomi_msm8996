@@ -184,6 +184,8 @@ typedef struct _smeTdlsPeerCapParams {
    tANI_U8 peerChan[SME_TDLS_MAX_SUPP_CHANNELS];
    tANI_U8 peerOperClassLen;
    tANI_U8 peerOperClass[SME_TDLS_MAX_SUPP_OPER_CLASSES];
+   tANI_U8 prefOffChanNum;
+   tANI_U8 prefOffChanBandwidth;
 } tSmeTdlsPeerCapParams;
 
 typedef enum
@@ -3561,6 +3563,17 @@ eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level );
    \- return eHalStatus
   -------------------------------------------------------------------------*/
 eHalStatus sme_TxpowerLimit( tHalHandle hHal, tSirTxPowerLimit *psmetx);
+/* ---------------------------------------------------------------------------
+   \fn sme_GetLinkSpeed
+   \brief SME API to get the linkspeed for peermac
+   \param hHal
+   \param lsReq: peermac address to retrieve linkspeed
+   \param plsContext: callback context
+   \param pCallbackfn: callback fn with response (linkspeed)
+   \- return eHalStatus
+ -------------------------------------------------------------------------*/
+eHalStatus sme_GetLinkSpeed(tHalHandle hHal,tSirLinkSpeedInfo *lsReq,void *plsContext,
+                            void (*pCallbackfn)(tSirLinkSpeedInfo *indParam, void *pContext) );
 #endif
 eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value);
 eHalStatus sme_ApDisableIntraBssFwd(tHalHandle hHal, tANI_U8 sessionId,
@@ -3584,4 +3597,28 @@ eHalStatus sme_StatsExtRequest(tANI_U8 session_id, tpStatsExtRequestReq input);
 eHalStatus sme_StatsExtEvent (tHalHandle hHal, void* pMsg);
 
 #endif
+/* ---------------------------------------------------------------------------
+    \fn sme_UpdateDFSScanMode
+    \brief  Update DFS roam Mode
+            This function is called through dynamic setConfig callback function
+            to configure isAllowDFSChannelRoam.
+    \param  hHal - HAL handle for device
+    \param  isAllowDFSChannelRoam - Enable/Disable DFS roaming scan
+    \return eHAL_STATUS_SUCCESS - SME update allowDFSChannelRoam config
+            successfully.
+            Other status means SME is failed to update isAllowDFSChannelRoam.
+    \sa
+    -------------------------------------------------------------------------*/
+eHalStatus sme_UpdateDFSScanMode(tHalHandle hHal, v_BOOL_t isAllowDFSChannelRoam);
+
+/*--------------------------------------------------------------------------
+  \brief sme_GetDFSScanMode() - get DFS SCAN Mode
+            This is a synchronous call
+  \param hHal - The handle returned by macOpen.
+  \return DFS roaming mode Enabled(1)/Disabled(0)
+  \sa
+  --------------------------------------------------------------------------*/
+v_BOOL_t sme_GetDFSScanMode(tHalHandle hHal);
+
+
 #endif //#if !defined( __SME_API_H )

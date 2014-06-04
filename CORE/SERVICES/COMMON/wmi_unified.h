@@ -1378,6 +1378,22 @@ typedef struct {
      * @brief keep_alive_pattern_size - keep alive pattern size.
      */
     A_UINT32 keep_alive_pattern_size;
+
+    /**
+     * @brief max_tdls_concurrent_sleep_sta - Number of tdls sleep sta supported
+     * @details
+     *      Each TDLS STA can become a sleep STA independently. This parameter
+     *      mentions how many such sleep STAs can be supported concurrently.
+     */
+    A_UINT32 max_tdls_concurrent_sleep_sta;
+
+    /**
+     * @brief max_tdls_concurrent_buffer_sta - Number of tdls buffer sta supported
+     * @details
+     *      Each TDLS STA can become a buffer STA independently. This parameter
+     *      mentions how many such buffer STAs can be supported concurrently.
+     */
+    A_UINT32 max_tdls_concurrent_buffer_sta;
 } wmi_resource_config;
 
 
@@ -5764,6 +5780,16 @@ typedef struct {
     /** TDLS Option Control
      * Off-Channel, Buffer STA, (later)Sleep STA support */
     A_UINT32 tdls_options;
+    /* Buffering time in number of beacon intervals */
+    A_UINT32 tdls_peer_traffic_ind_window;
+    /* Wait time for PTR frame */
+    A_UINT32 tdls_peer_traffic_response_timeout_ms;
+    /* Self PUAPSD mask */
+    A_UINT32 tdls_puapsd_mask;
+    /* Inactivity timeout */
+    A_UINT32 tdls_puapsd_inactivity_time_ms;
+    /* Max of rx frame during SP */
+    A_UINT32 tdls_puapsd_rx_frame_threshold;
 } wmi_tdls_set_state_cmd_fixed_param;
 
 /* WMI_TDLS_PEER_UPDATE_CMDID */
@@ -5781,7 +5807,6 @@ enum wmi_tdls_peer_state {
 };
 
 /* NB: These defines are fixed, and cannot be changed without breaking WMI compatibility */
-#define WMI_TDLS_MAX_SUPP_CHANNELS 128
 #define WMI_TDLS_MAX_SUPP_OPER_CLASSES 32
 typedef struct {
     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_tdls_peer_capabilities  */
@@ -5796,10 +5821,25 @@ typedef struct {
     A_UINT32 off_chan_support;
     A_UINT32 peer_curr_operclass;
     A_UINT32 self_curr_operclass;
+    /* Number of channels available for off channel operation */
     A_UINT32 peer_chan_len;
-    A_UINT8  peer_chan[WMI_TDLS_MAX_SUPP_CHANNELS];
     A_UINT32 peer_operclass_len;
     A_UINT8  peer_operclass[WMI_TDLS_MAX_SUPP_OPER_CLASSES];
+    /* Is peer initiator or responder of TDLS setup request */
+    A_UINT32 is_peer_responder;
+    /* Preferred off channel number as configured by user */
+    A_UINT32 pref_offchan_num;
+    /* Preferred off channel bandwidth as configured by user */
+    A_UINT32 pref_offchan_bw;
+
+    /** Followed by the variable length TLV peer_chan_list:
+     *  wmi_channel peer_chan_list[].
+     *  Array size would be peer_chan_len.
+     *  This array is intersected channels which is supported by both peer
+     *  and DUT. freq1 in chan_info shall be same as mhz, freq2 shall be 0.
+     *  FW shall compute BW for an offchan based on peer's ht/vht cap
+     *  received in peer_assoc cmd during change STA operation
+     */
 } wmi_tdls_peer_capabilities;
 
 #define WMI_TDLS_QOS_VO_FLAG           0
@@ -5810,43 +5850,82 @@ typedef struct {
 #define WMI_TDLS_QOS_SP_FLAG           5
 #define WMI_TDLS_QOS_MOREDATA_FLAG     7
 
-#define WMI_TDLS_SET_QOS_FLAG(ppeer_caps,flag) do { \
+#define WMI_TDLS_PEER_SET_QOS_FLAG(ppeer_caps,flag) do { \
         (ppeer_caps)->peer_qos |=  (1 << flag);      \
      } while(0)
-#define WMI_TDLS_GET_QOS_FLAG(ppeer_caps,flag)   \
+#define WMI_TDLS_PEER_GET_QOS_FLAG(ppeer_caps,flag)   \
         (((ppeer_caps)->peer_qos & (1 << flag)) >> flag)
 
-#define WMI_SET_TDLS_VO_UAPSD(ppeer_caps) \
-    WMI_TDLS_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_VO_FLAG)
-#define WMI_GET_TDLS_VO_UAPSD(ppeer_caps) \
-    WMI_TDLS_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_VO_FLAG)
-#define WMI_SET_TDLS_VI_UAPSD(ppeer_caps) \
-    WMI_TDLS_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_VI_FLAG)
-#define WMI_GET_TDLS_VI_UAPSD(ppeer_caps) \
-    WMI_TDLS_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_VI_FLAG)
-#define WMI_SET_TDLS_BK_UAPSD(ppeer_caps) \
-    WMI_TDLS_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_BK_FLAG)
-#define WMI_GET_TDLS_BK_UAPSD(ppeer_caps) \
-    WMI_TDLS_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_BK_FLAG)
-#define WMI_SET_TDLS_BE_UAPSD(ppeer_caps) \
-    WMI_TDLS_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_BE_FLAG)
-#define WMI_GET_TDLS_BE_UAPSD(ppeer_caps) \
-    WMI_TDLS_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_BE_FLAG)
-#define WMI_SET_TDLS_ACK_UAPSD(ppeer_caps) \
-    WMI_TDLS_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_ACK_FLAG)
-#define WMI_GET_TDLS_ACK_UAPSD(ppeer_caps) \
-    WMI_TDLS_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_ACK_FLAG)
+#define WMI_SET_TDLS_PEER_VO_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_VO_FLAG)
+#define WMI_GET_TDLS_PEER_VO_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_VO_FLAG)
+#define WMI_SET_TDLS_PEER_VI_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_VI_FLAG)
+#define WMI_GET_TDLS_PEER_VI_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_VI_FLAG)
+#define WMI_SET_TDLS_PEER_BK_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_BK_FLAG)
+#define WMI_GET_TDLS_PEER_BK_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_BK_FLAG)
+#define WMI_SET_TDLS_PEER_BE_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_BE_FLAG)
+#define WMI_GET_TDLS_PEER_BE_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_BE_FLAG)
+#define WMI_SET_TDLS_PEER_ACK_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_ACK_FLAG)
+#define WMI_GET_TDLS_PEER_ACK_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_ACK_FLAG)
 /* SP has 2 bits */
-#define WMI_SET_TDLS_SP_UAPSD(ppeer_caps,val) do { \
+#define WMI_SET_TDLS_PEER_SP_UAPSD(ppeer_caps,val) do { \
      (ppeer_caps)->peer_qos |=  (((val)&0x3) << WMI_TDLS_QOS_SP_FLAG); \
      } while(0)
-#define WMI_GET_TDLS_SP_UAPSD(ppeer_caps) \
+#define WMI_GET_TDLS_PEER_SP_UAPSD(ppeer_caps) \
     (((ppeer_caps)->peer_qos & (0x3 << WMI_TDLS_QOS_SP_FLAG)) >> WMI_TDLS_QOS_SP_FLAG)
 
-#define WMI_SET_TDLS_MORE_DATA_ACK_UAPSD(ppeer_caps) \
-    WMI_TDLS_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_MOREDATA_FLAG)
-#define WMI_GET_TDLS_MORE_DATA_ACK_UAPSD(ppeer_caps) \
-    WMI_TDLS_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_MOREDATA_FLAG)
+#define WMI_SET_TDLS_PEER_MORE_DATA_ACK_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_SET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_MOREDATA_FLAG)
+#define WMI_GET_TDLS_PEER_MORE_DATA_ACK_UAPSD(ppeer_caps) \
+    WMI_TDLS_PEER_GET_QOS_FLAG(ppeer_caps, WMI_TDLS_QOS_MOREDATA_FLAG)
+
+
+#define WMI_TDLS_SELF_SET_QOS_FLAG(pset_cmd,flag) do { \
+        (pset_cmd)->tdls_puapsd_mask |=  (1 << flag);      \
+    } while(0)
+#define WMI_TDLS_SELF_GET_QOS_FLAG(pset_cmd,flag)   \
+        (((pset_cmd)->tdls_puapsd_mask & (1 << flag)) >> flag)
+
+#define WMI_SET_TDLS_SELF_VO_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_SET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_VO_FLAG)
+#define WMI_GET_TDLS_SELF_VO_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_GET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_VO_FLAG)
+#define WMI_SET_TDLS_SELF_VI_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_SET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_VI_FLAG)
+#define WMI_GET_TDLS_SELF_VI_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_GET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_VI_FLAG)
+#define WMI_SET_TDLS_SELF_BK_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_SET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_BK_FLAG)
+#define WMI_GET_TDLS_SELF__BK_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_GET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_BK_FLAG)
+#define WMI_SET_TDLS_SELF_BE_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_SET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_BE_FLAG)
+#define WMI_GET_TDLS_SELF_BE_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_GET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_BE_FLAG)
+#define WMI_SET_TDLS_SELF_ACK_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_SET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_ACK_FLAG)
+#define WMI_GET_TDLS_SELF_ACK_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_GET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_ACK_FLAG)
+/* SP has 2 bits */
+#define WMI_SET_TDLS_SELF_SP_UAPSD(pset_cmd,val) do { \
+     (pset_cmd)->tdls_puapsd_mask |=  (((val)&0x3) << WMI_TDLS_QOS_SP_FLAG); \
+    } while(0)
+#define WMI_GET_TDLS_SELF_SP_UAPSD(pset_cmd) \
+    (((pset_cmd)->tdls_puapsd_mask & (0x3 << WMI_TDLS_QOS_SP_FLAG)) >> WMI_TDLS_QOS_SP_FLAG)
+
+#define WMI_SET_TDLS_SELF_MORE_DATA_ACK_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_SET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_MOREDATA_FLAG)
+#define WMI_GET_TDLS_SELF_MORE_DATA_ACK_UAPSD(pset_cmd) \
+    WMI_TDLS_SELF_GET_QOS_FLAG(pset_cmd, WMI_TDLS_QOS_MOREDATA_FLAG)
 
 
 typedef struct {
@@ -5861,6 +5940,8 @@ typedef struct {
     /* The TLV for wmi_tdls_peer_capabilities will follow.
      *     wmi_tdls_peer_capabilities  peer_caps;
      */
+    /** Followed by the variable length TLV chan_info:
+     *  wmi_channel chan_info[] */
 } wmi_tdls_peer_update_cmd_fixed_param;
 
 /** TDLS EVENTS */
@@ -5885,6 +5966,12 @@ enum wmi_tdls_peer_reason {
     WMI_TDLS_TEARDOWN_REASON_SCAN,
     /** tdls peer disconnected due to peer deletion */
     WMI_TDLS_DISCONNECTED_REASON_PEER_DELETE,
+    /** tdls peer disconnected due to PTR timeout */
+    WMI_TDLS_TEARDOWN_REASON_PTR_TIMEOUT,
+    /** tdls peer disconnected due wrong PTR format */
+    WMI_TDLS_TEARDOWN_REASON_BAD_PTR,
+    /** tdls peer not responding */
+    WMI_TDLS_TEARDOWN_REASON_NO_RESPONSE,
 };
 
 /* WMI_TDLS_PEER_EVENTID */

@@ -244,6 +244,15 @@ static void cbNotifySetEnableFastRoamInConcurrency(hdd_context_t *pHddCtx, unsig
     sme_UpdateEnableFastRoamInConcurrency((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->bFastRoamInConIniFeatureEnabled );
 }
 
+static void cbNotifySetDFSScanMode(hdd_context_t *pHddCtx, unsigned long NotifyId)
+{
+    /* at the point this routine is called, the value in the cfg_ini table has
+     * already been updated
+     */
+    sme_UpdateDFSScanMode((tHalHandle)(pHddCtx->hHal),
+                          pHddCtx->cfg_ini->allowDFSChannelRoam);
+}
+
 #endif
 
 REG_TABLE_ENTRY g_registry_table[] =
@@ -2012,6 +2021,15 @@ REG_TABLE_ENTRY g_registry_table[] =
                          CFG_ROAM_BEACON_RSSI_WEIGHT_MIN,
                          CFG_ROAM_BEACON_RSSI_WEIGHT_MAX,
                          cbNotifySetRoamBeaconRssiWeight, 0 ),
+
+   REG_DYNAMIC_VARIABLE( CFG_ROAMING_DFS_CHANNEL_NAME , WLAN_PARAM_Integer,
+                         hdd_config_t, allowDFSChannelRoam,
+                         VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                         CFG_ROAMING_DFS_CHANNEL_DEFAULT,
+                         CFG_ROAMING_DFS_CHANNEL_MIN,
+                         CFG_ROAMING_DFS_CHANNEL_MAX,
+                         cbNotifySetDFSScanMode, 0),
+
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
 
    REG_VARIABLE( CFG_QOS_WMM_BURST_SIZE_DEFN_NAME , WLAN_PARAM_Integer,
@@ -2738,6 +2756,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_TDLS_OFF_CHANNEL_SUPPORT_ENABLE_MIN,
                  CFG_TDLS_OFF_CHANNEL_SUPPORT_ENABLE_MAX ),
 
+   REG_VARIABLE( CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM, WLAN_PARAM_Integer,
+                 hdd_config_t, fTDLSPrefOffChanNum,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_DEFAULT,
+                 CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MIN,
+                 CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MAX ),
+
+   REG_VARIABLE( CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM, WLAN_PARAM_Integer,
+                 hdd_config_t, fTDLSPrefOffChanBandwidth,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_DEFAULT,
+                 CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MIN,
+                 CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MAX ),
+
    REG_VARIABLE( CFG_TDLS_PUAPSD_INACTIVITY_TIME, WLAN_PARAM_Integer,
                  hdd_config_t, fTDLSPuapsdInactivityTimer,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -2751,6 +2783,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_TDLS_PUAPSD_RX_FRAME_THRESHOLD_DEFAULT,
                  CFG_TDLS_PUAPSD_RX_FRAME_THRESHOLD_MIN,
                  CFG_TDLS_PUAPSD_RX_FRAME_THRESHOLD_MAX ),
+
+   REG_VARIABLE( CFG_TDLS_PUAPSD_PEER_TRAFFIC_IND_WINDOW, WLAN_PARAM_Integer,
+                 hdd_config_t, fTDLSPuapsdPTIWindow,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_TDLS_PUAPSD_PEER_TRAFFIC_IND_WINDOW_DEFAULT,
+                 CFG_TDLS_PUAPSD_PEER_TRAFFIC_IND_WINDOW_MIN,
+                 CFG_TDLS_PUAPSD_PEER_TRAFFIC_IND_WINDOW_MAX ),
+
+   REG_VARIABLE( CFG_TDLS_PUAPSD_PEER_TRAFFIC_RSP_TIMEOUT, WLAN_PARAM_Integer,
+                 hdd_config_t, fTDLSPuapsdPTRTimeout,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_TDLS_PUAPSD_PEER_TRAFFIC_RSP_TIMEOUT_DEFAULT,
+                 CFG_TDLS_PUAPSD_PEER_TRAFFIC_RSP_TIMEOUT_MIN,
+                 CFG_TDLS_PUAPSD_PEER_TRAFFIC_RSP_TIMEOUT_MAX ),
 
     REG_VARIABLE( CFG_TDLS_EXTERNAL_CONTROL, WLAN_PARAM_Integer,
                   hdd_config_t, fTDLSExternalControl,
@@ -3372,13 +3418,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_MEMORY_DEBUG_MAX ),
 #endif
 
-   REG_VARIABLE( CFG_ROAMING_DFS_CHANNEL_NAME , WLAN_PARAM_Integer,
-                 hdd_config_t, allowDFSChannelRoam,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_ROAMING_DFS_CHANNEL_DEFAULT,
-                 CFG_ROAMING_DFS_CHANNEL_MIN,
-                 CFG_ROAMING_DFS_CHANNEL_MAX ),
-
    REG_VARIABLE( CFG_DEBUG_P2P_REMAIN_ON_CHANNEL_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, debugP2pRemainOnChannel,
                  VAR_FLAGS_OPTIONAL,
@@ -3808,6 +3847,9 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "Name = [nRoamBeaconRssiWeight] Value = [%u] ",
             pHddCtx->cfg_ini->nRoamBeaconRssiWeight);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [allowDFSChannelRoam] Value = [%u] ",
+            pHddCtx->cfg_ini->allowDFSChannelRoam);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [burstSizeDefinition] Value = [0x%x] ",pHddCtx->cfg_ini->burstSizeDefinition);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [tsInfoAckPolicy] Value = [0x%x] ",pHddCtx->cfg_ini->tsInfoAckPolicy);
