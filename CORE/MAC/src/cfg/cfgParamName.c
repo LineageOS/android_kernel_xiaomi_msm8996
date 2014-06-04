@@ -69,7 +69,6 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"OPERATIONAL_RATE_SET",
     (unsigned char *)"EXTENDED_OPERATIONAL_RATE_SET",
     (unsigned char *)"PROPRIETARY_OPERATIONAL_RATE_SET",
-    (unsigned char *)"BSSID",
     (unsigned char *)"LISTEN_INTERVAL",
     (unsigned char *)"VALID_CHANNEL_LIST",
     (unsigned char *)"CURRENT_CHANNEL",
@@ -342,4 +341,5 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"RTT3_ENABLE",
     (unsigned char *)"DEBUG_P2P_REMAIN_ON_CHANNEL",
     (unsigned char *)"TDLS_OFF_CHANNEL_ENABLED",
+    (unsigned char *)"IBSS_ATIM_WIN_SIZE",
 };

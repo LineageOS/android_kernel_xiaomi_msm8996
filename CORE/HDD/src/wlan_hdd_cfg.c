@@ -3184,6 +3184,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_COALESING_IN_IBSS_MIN,
                  CFG_COALESING_IN_IBSS_MAX ),
 
+   REG_VARIABLE( CFG_IBSS_ATIM_WIN_SIZE_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, ibssATIMWinSize,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_IBSS_ATIM_WIN_SIZE_DEFAULT,
+                 CFG_IBSS_ATIM_WIN_SIZE_MIN,
+                 CFG_IBSS_ATIM_WIN_SIZE_MAX ),
+
    REG_VARIABLE( CFG_SAP_MAX_NO_PEERS, WLAN_PARAM_Integer,
                  hdd_config_t, maxNumberOfPeers,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -3987,6 +3994,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAmsduSupportInAMPDU] Value = [%u] ",pHddCtx->cfg_ini->isAmsduSupportInAMPDU);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nSelect5GHzMargin] Value = [%u] ",pHddCtx->cfg_ini->nSelect5GHzMargin);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gCoalesingInIBSS] Value = [%u] ",pHddCtx->cfg_ini->isCoalesingInIBSSAllowed);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssATIMWinSize] Value = [%u] ",pHddCtx->cfg_ini->ibssATIMWinSize);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fDfsPhyerrFilterOffload] Value = [%u] ",pHddCtx->cfg_ini->fDfsPhyerrFilterOffload);
 
 #ifdef IPA_OFFLOAD
@@ -5534,6 +5542,13 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
    }
 #endif
 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IBSS_ATIM_WIN_SIZE,
+                    pConfig->ibssATIMWinSize, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_IBSS_ATIM_WIN_SIZE to CCM");
+   }
    return fStatus;
 }
 

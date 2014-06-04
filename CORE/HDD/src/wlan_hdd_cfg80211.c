@@ -7505,6 +7505,17 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
     /* enable selected protection checks in IBSS mode */
     pRoamProfile->cfg_protection = IBSS_CFG_PROTECTION_ENABLE_MASK;
 
+    if (eHAL_STATUS_FAILURE == ccmCfgSetInt( pHddCtx->hHal,
+                                             WNI_CFG_IBSS_ATIM_WIN_SIZE,
+                                             pHddCtx->cfg_ini->ibssATIMWinSize,
+                                             NULL,
+                                             eANI_BOOLEAN_FALSE))
+    {
+        hddLog(LOGE,
+               "%s: Could not pass on WNI_CFG_IBSS_ATIM_WIN_SIZE to CCM",
+               __func__);
+    }
+
     /* BSSID is provided by upper layers hence no need to AUTO generate */
     if (NULL != params->bssid) {
        if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IBSS_AUTO_BSSID, 0,

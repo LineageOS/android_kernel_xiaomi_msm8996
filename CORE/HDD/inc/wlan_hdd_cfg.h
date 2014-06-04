@@ -2377,6 +2377,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_COALESING_IN_IBSS_MAX                 (1)
 #define CFG_COALESING_IN_IBSS_DEFAULT             (0) //disabled
 
+#define CFG_IBSS_ATIM_WIN_SIZE_NAME                "gIbssATIMWinSize"
+#define CFG_IBSS_ATIM_WIN_SIZE_MIN                 (0)
+#define CFG_IBSS_ATIM_WIN_SIZE_MAX                 (20)
+#define CFG_IBSS_ATIM_WIN_SIZE_DEFAULT             (0)
+
 #define CFG_SAP_MAX_NO_PEERS                       "gSoftApMaxPeers"
 #define CFG_SAP_MAX_NO_PEERS_MIN                   (1)
 #define CFG_SAP_MAX_NO_PEERS_MAX                   (32)
@@ -2961,6 +2966,7 @@ typedef struct
    v_U8_t                      isAmsduSupportInAMPDU;
    v_U8_t                      nSelect5GHzMargin;
    v_U8_t                      isCoalesingInIBSSAllowed;
+   v_U8_t                      ibssATIMWinSize;
    v_BOOL_t                    enableTCPChkSumOffld;
    v_BOOL_t                    enableIPChecksumOffload;
    v_BOOL_t                    enablePowersaveOffload;
