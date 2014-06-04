@@ -19629,7 +19629,10 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 #endif	/* #ifdef WLAN_FEATURE_11AC */
 
 #ifndef QCA_WIFI_ISOC
- hdd_tgt_cfg.target_fw_version = wma_handle->target_fw_version;
+	hdd_tgt_cfg.target_fw_version = wma_handle->target_fw_version;
+#ifdef WLAN_FEATURE_LPSS
+	hdd_tgt_cfg.lpss_support = wma_handle->lpss_support;
+#endif
 	wma_handle->tgt_cfg_update_cb(hdd_ctx, &hdd_tgt_cfg);
 #endif
 }
@@ -19816,6 +19819,12 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 		WMA_LOGE("Failed to register swba beacon event cb");
 		return;
 	}
+#endif
+
+#ifdef WLAN_FEATURE_LPSS
+	wma_handle->lpss_support =
+		WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+				       WMI_SERVICE_LPASS);
 #endif
 
 	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,

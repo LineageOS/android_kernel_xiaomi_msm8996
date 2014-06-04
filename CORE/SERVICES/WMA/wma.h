@@ -557,6 +557,9 @@ typedef struct {
 	/* The final negotiated ABI version to be used for communicating */
 	wmi_abi_version final_abi_vers;
 	v_U32_t target_fw_version; /* Target f/w build version */
+#ifdef WLAN_FEATURE_LPSS
+	v_U8_t lpss_support; /* LPSS feature is supported in target or not */
+#endif
 	bool wmi_ready;
 	u_int32_t wlan_init_status;
 	adf_os_device_t adf_dev;
