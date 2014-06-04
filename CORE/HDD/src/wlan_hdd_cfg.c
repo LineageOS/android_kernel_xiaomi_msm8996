@@ -3599,12 +3599,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ENABLE_HT_2040_COEX_MIN,
                 CFG_ENABLE_HT_2040_COEX_MAX ),
 #endif
+
    REG_VARIABLE(CFG_IGNORE_CAC_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, ignoreCAC,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                 CFG_IGNORE_CAC_DEFAULT,
                 CFG_IGNORE_CAC_MIN,
                 CFG_IGNORE_CAC_MAX),
+
+   REG_VARIABLE(CFG_ENABLE_SAP_DFS_CH_SIFS_BURST_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, IsSapDfsChSifsBurstEnabled,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_SAP_DFS_CH_SIFS_BURST_DEFAULT,
+                CFG_ENABLE_SAP_DFS_CH_SIFS_BURST_MIN,
+                CFG_ENABLE_SAP_DFS_CH_SIFS_BURST_MAX ),
 };
 
 #ifdef WLAN_FEATURE_MBSSID

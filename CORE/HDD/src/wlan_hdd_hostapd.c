@@ -803,6 +803,25 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                       "The value of dfs_cac_block_tx[%d] for ApCtx[%p]",
                       pHddApCtx->dfs_cac_block_tx, pHddApCtx);
 
+            if ((NV_CHANNEL_DFS ==
+                vos_nv_getChannelEnabledState(pHddApCtx->operatingChannel)) &&
+                (pHddCtx->cfg_ini->IsSapDfsChSifsBurstEnabled == 0))
+            {
+
+                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                           "%s: Setting SIFS Burst disable for DFS channel %d",
+                            __func__, pHddApCtx->operatingChannel);
+
+                if (process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                            (int)WMI_PDEV_PARAM_BURST_ENABLE,
+                                             0, PDEV_CMD))
+                {
+                    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                               "%s: Failed to Set SIFS Burst for DFS channel %d",
+                                __func__, pHddApCtx->operatingChannel);
+                }
+            }
+
             //Fill the params for sending IWEVCUSTOM Event with SOFTAP.enabled
             startBssEvent = "SOFTAP.enabled";
             memset(&we_custom_start_event, '\0', sizeof(we_custom_start_event));

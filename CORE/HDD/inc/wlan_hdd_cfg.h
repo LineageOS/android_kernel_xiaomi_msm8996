@@ -2584,21 +2584,21 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #endif /* MSM_PLATFORM */
 
 #ifdef WLAN_FEATURE_11W
-#define CFG_PMF_SA_QUERY_MAX_RETRIES_NAME                    "pmfSaQueryMaxRetries"
-#define CFG_PMF_SA_QUERY_MAX_RETRIES_DEFAULT                 ( 5  )
-#define CFG_PMF_SA_QUERY_MAX_RETRIES_MIN                     ( 0 )
-#define CFG_PMF_SA_QUERY_MAX_RETRIES_MAX                     ( 20  )
+#define CFG_PMF_SA_QUERY_MAX_RETRIES_NAME          "pmfSaQueryMaxRetries"
+#define CFG_PMF_SA_QUERY_MAX_RETRIES_DEFAULT       ( 5 )
+#define CFG_PMF_SA_QUERY_MAX_RETRIES_MIN           ( 0 )
+#define CFG_PMF_SA_QUERY_MAX_RETRIES_MAX           ( 20 )
 
-#define CFG_PMF_SA_QUERY_RETRY_INTERVAL_NAME                 "pmfSaQueryRetryInterval"
-#define CFG_PMF_SA_QUERY_RETRY_INTERVAL_DEFAULT              ( 200    )
-#define CFG_PMF_SA_QUERY_RETRY_INTERVAL_MIN                  ( 0 )
-#define CFG_PMF_SA_QUERY_RETRY_INTERVAL_MAX                  ( 2000  )
+#define CFG_PMF_SA_QUERY_RETRY_INTERVAL_NAME       "pmfSaQueryRetryInterval"
+#define CFG_PMF_SA_QUERY_RETRY_INTERVAL_DEFAULT    ( 200 )
+#define CFG_PMF_SA_QUERY_RETRY_INTERVAL_MIN        ( 0 )
+#define CFG_PMF_SA_QUERY_RETRY_INTERVAL_MAX        ( 2000 )
 #endif
 
-#define CFG_MAX_CONCURRENT_CONNECTIONS_NAME       "gMaxConcurrentActiveSessions"
-#define CFG_MAX_CONCURRENT_CONNECTIONS_DEFAULT    ( 2 )
-#define CFG_MAX_CONCURRENT_CONNECTIONS_MIN        ( 1 )
-#define CFG_MAX_CONCURRENT_CONNECTIONS_MAX        ( 4 )
+#define CFG_MAX_CONCURRENT_CONNECTIONS_NAME        "gMaxConcurrentActiveSessions"
+#define CFG_MAX_CONCURRENT_CONNECTIONS_DEFAULT     ( 2 )
+#define CFG_MAX_CONCURRENT_CONNECTIONS_MIN         ( 1 )
+#define CFG_MAX_CONCURRENT_CONNECTIONS_MAX         ( 4 )
 
 #ifdef QCA_HT_2040_COEX
 #define CFG_ENABLE_HT_2040_COEX                    "gHT2040CoexEnabled"
@@ -2607,10 +2607,15 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_HT_2040_COEX_DEFAULT            ( 0 )
 #endif
 
-#define CFG_IGNORE_CAC_NAME     "gIgnoreCAC"
-#define CFG_IGNORE_CAC_MIN      (0)
-#define CFG_IGNORE_CAC_MAX      (1)
-#define CFG_IGNORE_CAC_DEFAULT  (0)
+#define CFG_IGNORE_CAC_NAME                        "gIgnoreCAC"
+#define CFG_IGNORE_CAC_MIN                         ( 0 )
+#define CFG_IGNORE_CAC_MAX                         ( 1 )
+#define CFG_IGNORE_CAC_DEFAULT                     ( 0 )
+
+#define CFG_ENABLE_SAP_DFS_CH_SIFS_BURST_NAME      "gEnableSAPDfsChSifsBurst"
+#define CFG_ENABLE_SAP_DFS_CH_SIFS_BURST_MIN       ( 0 )
+#define CFG_ENABLE_SAP_DFS_CH_SIFS_BURST_MAX       ( 1 )
+#define CFG_ENABLE_SAP_DFS_CH_SIFS_BURST_DEFAULT   ( 1 )
 
 /*---------------------------------------------------------------------------
   Type declarations
@@ -3170,6 +3175,7 @@ typedef struct
    v_BOOL_t                    ht2040CoexEnabled;
 #endif
    v_U8_t      ignoreCAC;
+   v_BOOL_t                    IsSapDfsChSifsBurstEnabled;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID
