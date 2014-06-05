@@ -7981,8 +7981,17 @@ eHalStatus sme_HandleChangeCountryCodeByUser(tpAniSirGlobal pMac,
             smsLog( pMac, LOGW, FL(" incorrect country being set, nullify this request"));
 
             /* we have got a request for a country that should not have been added since the
-            STA is associated; nullify this request */
-            status = csrGetRegulatoryDomainForCountry(pMac,
+             * STA is associated; nullify this request.
+             * If both countryCode11d[0] and countryCode11d[1] are zero, revert it to World
+             * domain to avoid from causing cfg80211 call trace.
+             */
+            if ((pMac->scan.countryCode11d[0] == 0) && (pMac->scan.countryCode11d[1] == 0))
+               status = csrGetRegulatoryDomainForCountry(pMac,
+                                                  "00",
+                                                  (v_REGDOMAIN_t *) &reg_domain_id,
+                                                  COUNTRY_IE);
+            else
+               status = csrGetRegulatoryDomainForCountry(pMac,
                                                   pMac->scan.countryCode11d,
                                                   (v_REGDOMAIN_t *) &reg_domain_id,
                                                   COUNTRY_IE);
