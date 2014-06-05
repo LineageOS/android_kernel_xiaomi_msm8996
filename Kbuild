@@ -185,7 +185,7 @@ endif
 
 #Enable IPA offload
 ifeq ($(CONFIG_IPA), y)
-CONFIG_IPA_OFFLOAD := 1
+CONFIG_IPA_OFFLOAD := 0
 endif
 
 #Enable Signed firmware support for split binary format
