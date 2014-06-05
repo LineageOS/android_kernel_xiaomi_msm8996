@@ -1415,6 +1415,26 @@ struct hdd_context_s
 
 #ifdef IPA_OFFLOAD
     void *hdd_ipa;
+#ifdef IPA_UC_OFFLOAD
+    /* CE resources */
+    v_U32_t ce_sr_base_paddr;
+    v_U32_t ce_sr_ring_size;
+    v_U32_t ce_reg_paddr;
+
+    /* WLAN TX:IPA->WLAN */
+    v_U32_t tx_comp_ring_base_paddr;
+    v_U32_t tx_comp_ring_size;
+    v_U32_t tx_num_alloc_buffer;
+
+    /* WLAN RX:WLAN->IPA */
+    v_U32_t rx_rdy_ring_base_paddr;
+    v_U32_t rx_rdy_ring_size;
+    v_U32_t rx_proc_done_idx_paddr;
+
+    /* IPA UC doorbell registers paddr */
+    v_U32_t tx_comp_doorbell_paddr;
+    v_U32_t rx_ready_doorbell_paddr;
+#endif /* IPA_UC_OFFLOAD */
 #endif
     /* MC/BC Filter state variable
      * This always contains the value that is currently

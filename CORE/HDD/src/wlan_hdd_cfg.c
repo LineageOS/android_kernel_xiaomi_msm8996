@@ -3653,6 +3653,43 @@ REG_TABLE_ENTRY g_registry_table[] =
                         CFG_REORDER_OFFLOAD_SUPPORT_MIN,
                         CFG_REORDER_OFFLOAD_SUPPORT_MAX ),
 #endif
+
+#ifdef IPA_UC_OFFLOAD
+   REG_VARIABLE( CFG_IPA_UC_OFFLOAD_ENABLED_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaUcOffloadEnabled,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_IPA_UC_OFFLOAD_ENABLED_DEFAULT,
+                 CFG_IPA_UC_OFFLOAD_ENABLED_MIN,
+                 CFG_IPA_UC_OFFLOAD_ENABLED_MAX ),
+
+   REG_VARIABLE( CFG_IPA_UC_TX_BUF_COUNT_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaUcTxBufCount,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_IPA_UC_TX_BUF_COUNT_DEFAULT,
+                 CFG_IPA_UC_TX_BUF_COUNT_MIN,
+                 CFG_IPA_UC_TX_BUF_COUNT_MAX ),
+
+   REG_VARIABLE( CFG_IPA_UC_TX_BUF_SIZE_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaUcTxBufSize,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_IPA_UC_TX_BUF_SIZE_DEFAULT,
+                 CFG_IPA_UC_TX_BUF_SIZE_MIN,
+                 CFG_IPA_UC_TX_BUF_SIZE_MAX ),
+
+   REG_VARIABLE( CFG_IPA_UC_RX_IND_RING_COUNT_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaUcRxIndRingCount,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_IPA_UC_RX_IND_RING_COUNT_DEFAULT,
+                 CFG_IPA_UC_RX_IND_RING_COUNT_MIN,
+                 CFG_IPA_UC_RX_IND_RING_COUNT_MAX ),
+
+   REG_VARIABLE( CFG_IPA_UC_TX_PARTITION_BASE_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaUcTxPartitionBase,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_IPA_UC_TX_PARTITION_BASE_DEFAULT,
+                 CFG_IPA_UC_TX_PARTITION_BASE_MIN,
+                 CFG_IPA_UC_TX_PARTITION_BASE_MAX ),
+#endif /* IPA_UC_OFFLOAD */
 };
 
 #ifdef WLAN_FEATURE_MBSSID
