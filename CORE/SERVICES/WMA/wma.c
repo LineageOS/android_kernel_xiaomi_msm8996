@@ -3312,6 +3312,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	 */
 	wma_handle->dfs_phyerr_filter_offload =
 						mac_params->dfsPhyerrFilterOffload;
+	wma_handle->dfs_pri_multiplier =
+					mac_params->dfsRadarPriMultiplier;
 	wma_handle->interfaces = vos_mem_malloc(sizeof(struct wma_txrx_node) *
 						wma_handle->max_bssid);
 	if (!wma_handle->interfaces) {
@@ -7023,6 +7025,8 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
    if (req->is_dfs) {
 		WMI_SET_CHANNEL_FLAG(chan, WMI_CHAN_FLAG_DFS);
 		cmd->disable_hw_ack = VOS_TRUE;
+
+		req->dfs_pri_multiplier = wma->dfs_pri_multiplier;
 
 		/*
 		 * Configure the current operating channel
@@ -21915,6 +21919,9 @@ void wma_dfs_configure(struct ieee80211com *ic)
 		break;
 	}
 
+	rinfo.dfs_pri_multiplier = ic->dfs_pri_multiplier;
+
+
 	/*
 	 * Set the regulatory domain,
 	 * radar pulse table and enable
@@ -21996,6 +22003,8 @@ wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
         dfs_ic->ic_opmode = IEEE80211_M_HOSTAP;
         dfs_ic->vdev_id   = req->vdev_id;
     }
+
+    dfs_ic->dfs_pri_multiplier = req->dfs_pri_multiplier;
 
     /*
      * Configuring the DFS with current channel and the radar filters
