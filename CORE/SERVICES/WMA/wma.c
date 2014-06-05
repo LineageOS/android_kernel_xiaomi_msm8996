@@ -17242,10 +17242,14 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 		scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
 		break;
 	case WMI_SCAN_EVENT_PREEMPTED:
-                WMA_LOGW("%s: Unhandled Scan Event WMI_SCAN_EVENT_PREEMPTED", __func__);
+	{
+		tAbortScanParams abortScan;
+		abortScan.SessionId = vdev_id;
+		wma_stop_scan(wma_handle, &abortScan);
 		break;
+	}
 	case WMI_SCAN_EVENT_RESTARTED:
-		WMA_LOGW("%s: Unhandled Scan Event WMI_SCAN_EVENT_RESTARTED", __func__);
+		WMA_LOGW("%s: Unexpected Scan Event %u", __func__, wmi_event->event);
 		break;
 	}
 
