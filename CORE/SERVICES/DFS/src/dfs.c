@@ -583,51 +583,47 @@ int dfs_radar_enable(struct ieee80211com *ic,
          if (ext_ch) {
                             rs_ext = dfs_getchanstate(dfs, &index_ext, 1);
                    }
-            if (rs_pri != NULL && ((ext_ch==NULL)||(rs_ext != NULL))) {
-            struct ath_dfs_phyerr_param pe;
+         if (rs_pri != NULL && ((ext_ch==NULL)||(rs_ext != NULL))) {
+             struct ath_dfs_phyerr_param pe;
 
-            OS_MEMSET(&pe, '\0', sizeof(pe));
+             OS_MEMSET(&pe, '\0', sizeof(pe));
 
-            if (index_pri != dfs->dfs_curchan_radindex)
-               dfs_reset_alldelaylines(dfs);
+             if (index_pri != dfs->dfs_curchan_radindex)
+                 dfs_reset_alldelaylines(dfs);
 
-            dfs->dfs_curchan_radindex = (int16_t) index_pri;
+             dfs->dfs_curchan_radindex = (int16_t) index_pri;
+             dfs->dfs_pri_multiplier_ini = radar_info->dfs_pri_multiplier;
 
-                                if (rs_ext)
-                     dfs->dfs_extchan_radindex = (int16_t) index_ext;
+             if (rs_ext)
+                 dfs->dfs_extchan_radindex = (int16_t) index_ext;
 
-            ath_dfs_phyerr_param_copy(&pe,
-                &rs_pri->rs_param);
-            DFS_DPRINTK(dfs, ATH_DEBUG_DFS3,
-                "%s: firpwr=%d, rssi=%d, height=%d, "
-                "prssi=%d, inband=%d, relpwr=%d, "
-                "relstep=%d, maxlen=%d\n",
-                __func__,
-                pe.pe_firpwr,
-                pe.pe_rrssi,
-                pe.pe_height,
-                pe.pe_prssi,
-                pe.pe_inband,
-                pe.pe_relpwr,
-                pe.pe_relstep,
-                pe.pe_maxlen
-                );
+             ath_dfs_phyerr_param_copy(&pe,
+                     &rs_pri->rs_param);
+             DFS_DPRINTK(dfs, ATH_DEBUG_DFS3,
+                     "%s: firpwr=%d, rssi=%d, height=%d, "
+                     "prssi=%d, inband=%d, relpwr=%d, "
+                     "relstep=%d, maxlen=%d\n",
+                     __func__,
+                     pe.pe_firpwr,
+                     pe.pe_rrssi,
+                     pe.pe_height,
+                     pe.pe_prssi,
+                     pe.pe_inband,
+                     pe.pe_relpwr,
+                     pe.pe_relstep,
+                     pe.pe_maxlen
+                     );
 
-#if 0 //Not needed
-            /* Disable strong signal fast antenna diversity */
-            ath_hal_setcapability(ah, HAL_CAP_DIVERSITY,
-                        HAL_CAP_STRONG_DIV, 1, NULL);
-#endif
-            ic->ic_dfs_enable(ic, &is_fastclk, &pe);
-            DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "Enabled radar detection on channel %d\n",
-               chan->ic_freq);
-            dfs->dur_multiplier =
-                is_fastclk ? DFS_FAST_CLOCK_MULTIPLIER : DFS_NO_FAST_CLOCK_MULTIPLIER;
-            DFS_DPRINTK(dfs, ATH_DEBUG_DFS3,
-                "%s: duration multiplier is %d\n", __func__, dfs->dur_multiplier);
+             ic->ic_dfs_enable(ic, &is_fastclk, &pe);
+             DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "Enabled radar detection on channel %d\n",
+                     chan->ic_freq);
+             dfs->dur_multiplier =
+                 is_fastclk ? DFS_FAST_CLOCK_MULTIPLIER : DFS_NO_FAST_CLOCK_MULTIPLIER;
+             DFS_DPRINTK(dfs, ATH_DEBUG_DFS3,
+                     "%s: duration multiplier is %d\n", __func__, dfs->dur_multiplier);
          } else
-            DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: No more radar states left\n",
-               __func__);
+             DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: No more radar states left\n",
+                     __func__);
       }
    }
 
