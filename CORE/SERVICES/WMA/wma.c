@@ -4303,6 +4303,13 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	/* initialize default target config */
 	wma_set_default_tgt_config(wma_handle);
 
+#ifdef IPA_UC_OFFLOAD
+	olCfg.is_uc_offload_enabled = mac_params->ucOffloadEnabled;
+	olCfg.uc_tx_buffer_count = mac_params->ucTxBufCount;
+	olCfg.uc_tx_buffer_size = mac_params->ucTxBufSize;
+	olCfg.uc_rx_indication_ring_count = mac_params->ucRxIndRingCount;
+	olCfg.uc_tx_partition_base = mac_params->ucTxPartitionBase;
+#endif /* IPA_UC_OFFLOAD*/
 	/* Allocate cfg handle */
 	olCfg.is_full_reorder_offload = mac_params->reorderOffload;
 	((pVosContextType) vos_context)->cfg_ctx =
