@@ -68,6 +68,9 @@ static DEFINE_SPINLOCK(pciwar_lock);
 OSDRV_CALLBACKS HIF_osDrvcallback;
 
 #define HIF_PCI_DEBUG   ATH_DEBUG_MAKE_MODULE_MASK(0)
+#ifdef IPA_UC_OFFLOAD
+#define HIF_PCI_IPA_UC_ASSIGNED_CE  5
+#endif /* IPA_UC_OFFLOAD */
 
 #if defined(DEBUG)
 static ATH_DEBUG_MASK_DESCRIPTION g_HIFDebugDescription[] = {
@@ -124,7 +127,11 @@ static struct CE_attr host_CE_config_wlan[] =
         { /* CE2 */ CE_ATTR_FLAGS, 0, 0, 2048, 32, NULL, },/* target->host WMI */
         { /* CE3 */ CE_ATTR_FLAGS, 0, 32, 2048, 0, NULL, },/* host->target WMI */
         { /* CE4 */ CE_ATTR_FLAGS | CE_ATTR_DISABLE_INTR, 0, CE_HTT_H2T_MSG_SRC_NENTRIES , 256, 0, NULL, }, /* host->target HTT */
+#ifndef IPA_UC_OFFLOAD
         { /* CE5 */ CE_ATTR_FLAGS, 0, 0, 0, 0, NULL, },    /* unused */
+#else
+        { /* CE5 */ CE_ATTR_FLAGS | CE_ATTR_DISABLE_INTR, 0, 1024, 512, 0, NULL, },    /* ipa_uc->target HTC control */
+#endif /* IPA_UC_OFFLOAD */
         { /* CE6 */ CE_ATTR_FLAGS, 0, 0, 0, 0, NULL, },    /* Target autonomous HIF_memcpy */
         { /* CE7 */ CE_ATTR_FLAGS, 0, 2, DIAG_TRANSFER_LIMIT, 2, NULL, }, /* ce_diag, the Diagnostic Window */
 };
@@ -143,7 +150,11 @@ static struct CE_pipe_config target_CE_config_wlan[] = {
         { /* CE3 */ 3, PIPEDIR_OUT, 32, 2048, CE_ATTR_FLAGS, 0, },  /* host->target WMI */
         { /* CE4 */ 4, PIPEDIR_OUT, 256, 256, CE_ATTR_FLAGS, 0, },  /* host->target HTT */
                                    /* NB: 50% of src nentries, since tx has 2 frags */
+#ifndef IPA_UC_OFFLOAD
         { /* CE5 */ 5, PIPEDIR_OUT, 32, 2048, CE_ATTR_FLAGS, 0, },  /* unused */
+#else
+        { /* CE5 */ 5, PIPEDIR_OUT, 1024, 64, CE_ATTR_FLAGS, 0, },  /* ipa_uc->target HTC control */
+#endif /* IPA_UC_OFFLOAD */
         { /* CE6 */ 6, PIPEDIR_INOUT, 32, 4096, CE_ATTR_FLAGS, 0, },/* Reserved for target autonomous HIF_memcpy */
         /* CE7 used only by Host */
 };
@@ -864,6 +875,12 @@ HIFMapServiceToPipe(HIF_DEVICE *hif_device, a_uint16_t ServiceId, a_uint8_t *ULP
             *ULPipe = 3;
             *DLPipe = 2;
             break;
+
+#ifdef IPA_UC_OFFLOAD
+        case WDI_IPA_TX_SVC:
+            *ULPipe = 5;
+            break;
+#endif /* IPA_UC_OFFLOAD */
 
         /* pipe 5 unused   */
         /* pipe 6 reserved */
@@ -1978,7 +1995,13 @@ static struct service_to_pipe target_service_to_CE_map_wlan[] = {
         PIPEDIR_IN,  /* in = DL = target -> host */
         1,
     },
-
+#ifdef IPA_UC_OFFLOAD
+    {
+        WDI_IPA_TX_SVC,
+        PIPEDIR_OUT,  /* in = DL = target -> host */
+        5,
+    },
+#endif /* IPA_UC_OFFLOAD */
     /* (Additions here) */
 
     { /* Must be last */
@@ -2705,3 +2728,20 @@ void HIFsuspendwow(HIF_DEVICE *hif_device)
        struct hif_pci_softc *sc = hif_state->sc;
        adf_os_atomic_set(&sc->wow_done, 1);
 }
+
+#ifdef IPA_UC_OFFLOAD
+void HIFIpaGetCEResource(HIF_DEVICE *hif_device,
+                          A_UINT32 *ce_sr_base_paddr,
+                          A_UINT32 *ce_sr_ring_size,
+                          A_UINT32 *ce_reg_paddr)
+{
+    struct HIF_CE_state *hif_state = (struct HIF_CE_state *)hif_device;
+    struct HIF_CE_pipe_info *pipe_info =
+        &(hif_state->pipe_info[HIF_PCI_IPA_UC_ASSIGNED_CE]);
+    struct CE_handle *ce_hdl = pipe_info->ce_hdl;
+
+    CE_ipaGetResource(ce_hdl, ce_sr_base_paddr, ce_sr_ring_size, ce_reg_paddr);
+    return;
+}
+#endif /* IPA_UC_OFFLOAD */
+

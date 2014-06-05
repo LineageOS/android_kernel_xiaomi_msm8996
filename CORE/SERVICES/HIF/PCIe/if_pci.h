@@ -136,6 +136,15 @@ void hif_deinit_adf_ctx(void *ol_sc);
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
 void hif_set_fw_info(void *ol_sc, u32 target_fw_version);
 
+#ifdef IPA_UC_OFFLOAD
+/*
+ * Micro controller needs PCI BAR address to access CE register
+ * If Micro controller data path enabled, control path will
+ * try to get PCI BAR address and will send to IPA driver
+ */
+void hif_read_bar(struct hif_pci_softc *sc, u32 *bar_value);
+#endif /* IPA_UC_OFFLOAD */
+
 /*
  * A firmware interrupt to the Host is indicated by the
  * low bit of SCRATCH_3_ADDRESS being set.
