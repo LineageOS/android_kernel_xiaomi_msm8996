@@ -17485,6 +17485,12 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 
 	switch (wmi_event->event) {
 	case WMI_SCAN_EVENT_COMPLETED:
+		/*
+		 * return success always so that SME can pick whatever scan
+		 * results is available in scan cache(due to partial or
+		 * aborted scan)
+		 */
+		scan_event->reasonCode = eSIR_SME_SUCCESS;
 		if (wmi_event->scan_id == scan_id)
 			wma_reset_scan_info(wma_handle, vdev_id);
 		else
@@ -17495,14 +17501,10 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 		scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
 		break;
 	case WMI_SCAN_EVENT_PREEMPTED:
-	{
-		tAbortScanParams abortScan;
-		abortScan.SessionId = vdev_id;
-		wma_stop_scan(wma_handle, &abortScan);
+		WMA_LOGW("%s: Unhandled Scan Event WMI_SCAN_EVENT_PREEMPTED", __func__);
 		break;
-	}
 	case WMI_SCAN_EVENT_RESTARTED:
-		WMA_LOGW("%s: Unexpected Scan Event %u", __func__, wmi_event->event);
+		WMA_LOGW("%s: Unhandled Scan Event WMI_SCAN_EVENT_RESTARTED", __func__);
 		break;
 	}
 
@@ -17730,6 +17732,12 @@ static VOS_STATUS wma_tx_detach(tp_wma_handle wma_handle)
 static void wma_roam_better_ap_handler(tp_wma_handle wma, u_int32_t vdev_id)
 {
 	VOS_STATUS ret;
+	/* abort existing scan if any */
+	if (wma->interfaces[vdev_id].scan_info.scan_id != 0) {
+		tAbortScanParams abortScan;
+		abortScan.SessionId = vdev_id;
+		wma_stop_scan(wma, &abortScan);
+	}
 	ret = tlshim_mgmt_roam_event_ind(wma->vos_context, vdev_id);
 }
 
