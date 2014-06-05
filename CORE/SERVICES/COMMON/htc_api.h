@@ -692,4 +692,10 @@ void HTCCancelDeferredTargetSleep(void *context);
 /* Disable ASPM : Disable PCIe low power */
 void htc_disable_aspm(void);
 
+#ifdef IPA_UC_OFFLOAD
+void HTCIpaGetCEResource(HTC_HANDLE htc_handle,
+                      a_uint32_t *ce_sr_base_paddr,
+                      a_uint32_t *ce_sr_ring_size,
+                      a_uint32_t *ce_reg_paddr);
+#endif/* IPA_UC_OFFLOAD */
 #endif /* _HTC_API_H_ */

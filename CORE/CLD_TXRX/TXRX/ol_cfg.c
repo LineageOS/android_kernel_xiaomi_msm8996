@@ -79,7 +79,13 @@ ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev,
 	cfg_ctx->rx_fwd_disabled = 0;
 	cfg_ctx->is_packet_log_enabled = 0;
 	cfg_ctx->is_full_reorder_offload = cfg_param.is_full_reorder_offload;
-
+#ifdef IPA_UC_OFFLOAD
+	cfg_ctx->ipa_uc_rsc.uc_offload_enabled = cfg_param.is_uc_offload_enabled;
+	cfg_ctx->ipa_uc_rsc.tx_max_buf_cnt = cfg_param.uc_tx_buffer_count;
+	cfg_ctx->ipa_uc_rsc.tx_buf_size = cfg_param.uc_tx_buffer_size;
+	cfg_ctx->ipa_uc_rsc.rx_ind_ring_size = cfg_param.uc_rx_indication_ring_count;
+	cfg_ctx->ipa_uc_rsc.tx_partition_base = cfg_param.uc_tx_partition_base;
+#endif /* IPA_UC_OFFLOAD */
 	return (ol_pdev_handle) cfg_ctx;
 }
 
@@ -213,3 +219,36 @@ int ol_cfg_is_full_reorder_offload(ol_pdev_handle pdev)
 	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
 	return cfg->is_full_reorder_offload;
 }
+
+#ifdef IPA_UC_OFFLOAD
+unsigned int ol_cfg_ipa_uc_offload_enabled(ol_pdev_handle pdev)
+{
+	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
+	return (unsigned int)cfg->ipa_uc_rsc.uc_offload_enabled;
+}
+
+unsigned int ol_cfg_ipa_uc_tx_buf_size(ol_pdev_handle pdev)
+{
+	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
+	return cfg->ipa_uc_rsc.tx_buf_size;
+}
+
+unsigned int ol_cfg_ipa_uc_tx_max_buf_cnt(ol_pdev_handle pdev)
+{
+	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
+	return cfg->ipa_uc_rsc.tx_max_buf_cnt;
+}
+
+unsigned int ol_cfg_ipa_uc_rx_ind_ring_size(ol_pdev_handle pdev)
+{
+	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
+	return cfg->ipa_uc_rsc.rx_ind_ring_size;
+}
+
+unsigned int ol_cfg_ipa_uc_tx_partition_base(ol_pdev_handle pdev)
+{
+	struct txrx_pdev_cfg_t *cfg = (struct txrx_pdev_cfg_t *)pdev;
+	return cfg->ipa_uc_rsc.tx_partition_base;
+}
+#endif /* IPA_UC_OFFLOAD */
+

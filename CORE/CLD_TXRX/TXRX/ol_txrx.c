@@ -324,6 +324,15 @@ ol_txrx_pdev_attach(
         goto fail2;
     }
 
+#ifdef IPA_UC_OFFLOAD
+    /* Attach micro controller data path offload resource */
+    if (ol_cfg_ipa_uc_offload_enabled(ctrl_pdev)) {
+       if (htt_ipa_uc_attach(pdev->htt_pdev)) {
+           goto fail3;
+       }
+    }
+#endif /* IPA_UC_OFFLOAD */
+
     pdev->tx_desc.array = adf_os_mem_alloc(
         osdev, desc_pool_size * sizeof(union ol_tx_desc_list_elem_t));
     if (!pdev->tx_desc.array) {
@@ -663,6 +672,11 @@ fail5:
 
 fail4:
     adf_os_mem_free(pdev->tx_desc.array);
+#ifdef IPA_UC_OFFLOAD
+    if (ol_cfg_ipa_uc_offload_enabled(pdev->ctrl_pdev)) {
+       htt_ipa_uc_detach(pdev->htt_pdev);
+    }
+#endif /* IPA_UC_OFFLOAD */
 
 fail3:
     htt_detach(pdev->htt_pdev);
@@ -747,6 +761,13 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     }
 
     adf_os_mem_free(pdev->tx_desc.array);
+
+#ifdef IPA_UC_OFFLOAD
+    /* Detach micro controller data path offload resource */
+    if (ol_cfg_ipa_uc_offload_enabled(pdev->ctrl_pdev)) {
+       htt_ipa_uc_detach(pdev->htt_pdev);
+    }
+#endif /* IPA_UC_OFFLOAD */
 
     htt_detach(pdev->htt_pdev);
 
@@ -2026,3 +2047,75 @@ ol_txrx_ll_set_tx_pause_q_depth(
     return;
 }
 #endif /* QCA_LL_TX_FLOW_CT */
+
+#ifdef IPA_UC_OFFLOAD
+void
+ol_txrx_ipa_uc_get_resource(
+   ol_txrx_pdev_handle pdev,
+   u_int32_t *ce_sr_base_paddr,
+   u_int32_t *ce_sr_ring_size,
+   u_int32_t *ce_reg_paddr,
+   u_int32_t *tx_comp_ring_base_paddr,
+   u_int32_t *tx_comp_ring_size,
+   u_int32_t *tx_num_alloc_buffer,
+   u_int32_t *rx_rdy_ring_base_paddr,
+   u_int32_t *rx_rdy_ring_size,
+   u_int32_t *rx_proc_done_idx_paddr
+)
+{
+    htt_ipa_uc_get_resource(pdev->htt_pdev,
+                           ce_sr_base_paddr,
+                           ce_sr_ring_size,
+                           ce_reg_paddr,
+                           tx_comp_ring_base_paddr,
+                           tx_comp_ring_size,
+                           tx_num_alloc_buffer,
+                           rx_rdy_ring_base_paddr,
+                           rx_rdy_ring_size,
+                           rx_proc_done_idx_paddr);
+}
+
+void
+ol_txrx_ipa_uc_set_doorbell_paddr(
+   ol_txrx_pdev_handle pdev,
+   u_int32_t ipa_tx_uc_doorbell_paddr,
+   u_int32_t ipa_rx_uc_doorbell_paddr
+)
+{
+    htt_ipa_uc_set_doorbell_paddr(pdev->htt_pdev,
+                           ipa_tx_uc_doorbell_paddr,
+                           ipa_rx_uc_doorbell_paddr);
+}
+
+void
+ol_txrx_ipa_uc_set_active(
+   ol_txrx_pdev_handle pdev,
+   a_bool_t uc_active,
+   a_bool_t is_tx
+)
+{
+    htt_h2t_ipa_uc_set_active(pdev->htt_pdev,
+                          uc_active,
+                          is_tx);
+}
+
+void
+ol_txrx_ipa_uc_op_response(
+   ol_txrx_pdev_handle pdev,
+   u_int8_t op_code
+)
+{
+   pdev->ipa_uc_op_cb(op_code, pdev->osif_dev);
+}
+
+void ol_txrx_ipa_uc_register_op_cb(
+   ol_txrx_pdev_handle pdev,
+   ipa_uc_op_cb_type op_cb,
+   void *osif_dev)
+{
+   pdev->ipa_uc_op_cb = op_cb;
+   pdev->osif_dev = osif_dev;
+}
+
+#endif /* IPA_UC_OFFLOAD */
+

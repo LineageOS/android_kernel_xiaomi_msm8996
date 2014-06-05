@@ -118,6 +118,48 @@ struct htt_rx_hash_bucket {
 #endif
 };
 
+#ifdef IPA_UC_OFFLOAD
+
+/* IPA micro controller
+   wlan host driver
+   firmware shared memory structure */
+struct uc_shared_mem_t
+{
+   u_int32_t *vaddr;
+   adf_os_dma_addr_t paddr;
+   adf_os_dma_mem_context(memctx);
+};
+
+/* Micro controller datapath offload
+ * WLAN TX resources */
+struct htt_ipa_uc_tx_resource_t
+{
+   struct uc_shared_mem_t tx_ce_idx;
+   struct uc_shared_mem_t tx_comp_base;
+
+   u_int32_t           tx_comp_idx_paddr;
+   adf_nbuf_t         *tx_buf_pool_vaddr_strg;
+   u_int32_t           alloc_tx_buf_cnt;
+};
+
+/* Micro controller datapath offload
+ * WLAN RX resources */
+struct htt_ipa_uc_rx_resource_t
+{
+   adf_os_dma_addr_t  rx_rdy_idx_paddr;
+   struct uc_shared_mem_t rx_ind_ring_base;
+   struct uc_shared_mem_t rx_ipa_prc_done_idx;
+   u_int32_t          rx_ind_ring_size;
+};
+
+struct ipa_uc_rx_ring_elem_t
+{
+   u_int32_t  rx_packet_paddr;
+   u_int16_t  vdev_id;
+   u_int16_t  rx_packet_leng;
+};
+#endif /* IPA_UC_OFFLOAD */
+
 struct htt_pdev_t {
     ol_pdev_handle ctrl_pdev;
     ol_txrx_pdev_handle txrx_pdev;
@@ -266,6 +308,11 @@ struct htt_pdev_t {
     int cur_seq_num_hl;
     struct htt_tx_mgmt_desc_ctxt tx_mgmt_desc_ctxt;
     struct targetdef_s *targetdef;
+
+#ifdef IPA_UC_OFFLOAD
+    struct htt_ipa_uc_tx_resource_t ipa_uc_tx_rsc;
+    struct htt_ipa_uc_rx_resource_t ipa_uc_rx_rsc;
+#endif /* IPA_UC_OFFLOAD */
 };
 
 #endif /* _HTT_TYPES__H_ */

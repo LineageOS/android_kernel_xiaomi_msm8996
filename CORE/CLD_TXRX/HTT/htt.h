@@ -66,9 +66,11 @@
  *----
  * 3.0 Remove HTT_H2T_MSG_TYPE_MGMT_TX messages
  * 3.1 Added HTT_T2H_MSG_TYPE_RX_IN_ORD_PADDR_IND message
+ * 3.2 Added HTT_H2T_MSG_TYPE_WDI_IPA_CFG,
+ *           HTT_H2T_MSG_TYPE_WDI_IPA_OP_REQUEST messages
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
-#define HTT_CURRENT_VERSION_MINOR 1
+#define HTT_CURRENT_VERSION_MINOR 2
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -110,8 +112,9 @@ enum htt_h2t_msg_type {
     HTT_H2T_MSG_TYPE_AGGR_CFG    = 0x5,
     HTT_H2T_MSG_TYPE_FRAG_DESC_BANK_CFG = 0x6,
     DEPRECATED_HTT_H2T_MSG_TYPE_MGMT_TX = 0x7, /* no longer used */
-
-    /* keep this last */
+    HTT_H2T_MSG_TYPE_WDI_IPA_CFG        = 0x8,
+    HTT_H2T_MSG_TYPE_WDI_IPA_OP_REQ = 0x9,
+     /* keep this last */
     HTT_H2T_NUM_MSGS
 };
 
@@ -1177,6 +1180,253 @@ PREPACK struct htt_mgmt_tx_compl_ind {
         ((_var) |= ((_val) << HTT_AGGR_CFG_MAX_NUM_AMSDU_SUBFRM_S)); \
     } while (0)
 
+/**
+ * @brief HTT WDI_IPA Config Message
+ *
+ * @details
+ *  The HTT WDI_IPA config message is created/sent by host at driver
+ *  init time. It contains information about data structures used on
+ *  WDI_IPA TX and RX path.
+ *     |31            24|23            16|15             8|7              0|
+ *     |----------------+----------------+----------------+----------------|
+ *     |        tx pkt pool size         |      Rsvd      |     msg_type   |
+ *     |-------------------------------------------------------------------|
+ *     |                         tx comp ring base                         |
+ *     |-------------------------------------------------------------------|
+ *     |                         tx comp ring size                         |
+ *     |-------------------------------------------------------------------|
+ *     |                   tx comp WR_IDX physical address                 |
+ *     |-------------------------------------------------------------------|
+ *     |                   tx CE WR_IDX physical address                   |
+ *     |-------------------------------------------------------------------|
+ *     |                      rx indication ring base                      |
+ *     |-------------------------------------------------------------------|
+ *     |                      rx indication ring size                      |
+ *     |-------------------------------------------------------------------|
+ *     |                    rx ind RD_IDX physical address                 |
+ *     |-------------------------------------------------------------------|
+ *     |                    rx ind WR_IDX physical address                 |
+ *     |-------------------------------------------------------------------|
+ *
+ * Header fields:
+ * Header fields:
+ *   - MSG_TYPE
+ *     Bits 7:0
+ *     Purpose: Identifies this as WDI_IPA config message
+ *     value: = 0x8
+ *   - TX_PKT_POOL_SIZE
+ *     Bits 15:0
+ *     Purpose: Total number of TX packet buffer pool allocated by Host for
+ *              WDI_IPA TX path
+ *   - TX_COMP_RING_BASE_ADDR
+ *     Bits 31:0
+ *     Purpose: TX Completion Ring base address in DDR
+ *   - TX_COMP_RING_SIZE
+ *     Bits 31:0
+ *     Purpose: TX Completion Ring size (must be power of 2)
+ *   - TX_COMP_WR_IDX_ADDR
+ *     Bits 31:0
+ *     Purpose: IPA doorbell register address OR DDR address where WIFI FW
+ *              updates the Write Index for WDI_IPA TX completion ring
+ *   - TX_CE_WR_IDX_ADDR
+ *     Bits 31:0
+ *     Purpose: DDR address where IPA uC
+ *              updates the WR Index for TX CE ring
+ *              (needed for fusion platforms)
+ *   - RX_IND_RING_BASE_ADDR
+ *     Bits 31:0
+ *     Purpose: RX Indication Ring base address in DDR
+ *   - RX_IND_RING_SIZE
+ *     Bits 31:0
+ *     Purpose: RX Indication Ring size
+ *   - RX_IND_RD_IDX_ADDR
+ *     Bits 31:0
+ *     Purpose: DDR address where IPA uC updates the Read Index for WDI_IPA
+ *              RX indication ring
+ *   - RX_IND_WR_IDX_ADDR
+ *     Bits 31:0
+ *     Purpose: IPA doorbell register address OR DDR address where WIFI FW
+ *              updates the Write Index for WDI_IPA RX indication ring
+ */
+
+#define HTT_WDI_IPA_CFG_SZ                           36 /* bytes */
+
+#define HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_M           0xffff0000
+#define HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_S           16
+
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_M     0xffffffff
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_S     0
+
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE_M          0xffffffff
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE_S          0
+
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_M        0xffffffff
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_S        0
+
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_M          0xffffffff
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_S          0
+
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_M      0xffffffff
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_S      0
+
+#define HTT_WDI_IPA_CFG_RX_IND_RING_SIZE_M           0xffffffff
+#define HTT_WDI_IPA_CFG_RX_IND_RING_SIZE_S           0
+
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_M         0xffffffff
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_S         0
+
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_M         0xffffffff
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_S         0
+
+#define HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_M) >> HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_S)
+#define HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_S)); \
+    } while (0)
+
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_M) >> HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_S)
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_S)); \
+    } while (0)
+
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE_M) >> HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE_S)
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE_S)); \
+    } while (0)
+
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_M) >> HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_S)
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_S)); \
+    } while (0)
+
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_M) >> HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_S)
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_S)); \
+    } while (0)
+
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_M) >> HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_S)
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_S)); \
+    } while (0)
+
+#define HTT_WDI_IPA_CFG_RX_IND_RING_SIZE_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_IND_RING_SIZE_M) >> HTT_WDI_IPA_CFG_RX_IND_RING_SIZE_S)
+#define HTT_WDI_IPA_CFG_RX_IND_RING_SIZE_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_IND_RING_SIZE, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_RING_SIZE_S)); \
+    } while (0)
+
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_M) >> HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_S)
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_S)); \
+    } while (0)
+
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_M) >> HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_S)
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_S)); \
+    } while (0)
+
+PREPACK struct htt_wdi_ipa_cfg_t
+{
+    /* DWORD 0: flags and meta-data */
+    A_UINT32
+        msg_type: 8, /* HTT_H2T_MSG_TYPE_WDI_IPA_CFG */
+        reserved: 8,
+        tx_pkt_pool_size: 16;
+    /* DWORD 1 */
+    A_UINT32 tx_comp_ring_base_addr;
+    /* DWORD 2 */
+    A_UINT32 tx_comp_ring_size;
+    /* DWORD 3 */
+    A_UINT32 tx_comp_wr_idx_addr;
+    /* DWORD 4*/
+    A_UINT32 tx_ce_wr_idx_addr;
+    /* DWORD 5 */
+    A_UINT32 rx_ind_ring_base_addr;
+    /* DWORD 6 */
+    A_UINT32 rx_ind_ring_size;
+    /* DWORD 7 */
+    A_UINT32 rx_ind_rd_idx_addr;
+    /* DWORD 8 */
+    A_UINT32 rx_ind_wr_idx_addr;
+} POSTPACK;
+
+enum htt_wdi_ipa_op_code {
+    HTT_WDI_IPA_OPCODE_TX_SUSPEND           = 0,
+    HTT_WDI_IPA_OPCODE_TX_RESUME            = 1,
+    HTT_WDI_IPA_OPCODE_RX_SUSPEND           = 2,
+    HTT_WDI_IPA_OPCODE_RX_RESUME            = 3,
+    /* keep this last */
+    HTT_WDI_IPA_OPCODE_MAX
+};
+
+/**
+ * @brief HTT WDI_IPA Operation Request Message
+ *
+ * @details
+ *  HTT WDI_IPA Operation Request message is sent by host
+ *  to either suspend or resume WDI_IPA TX or RX path.
+ *     |31            24|23            16|15             8|7              0|
+ *     |----------------+----------------+----------------+----------------|
+ *     |             op_code             |      Rsvd      |     msg_type   |
+ *     |-------------------------------------------------------------------|
+ *
+ * Header fields:
+ *   - MSG_TYPE
+ *     Bits 7:0
+ *     Purpose: Identifies this as WDI_IPA Operation Request message
+ *     value: = 0x9
+ *   - OP_CODE
+ *     Bits 31:16
+ *     Purpose: Identifies operation host is requesting (e.g. TX suspend)
+ *     value: = enum htt_wdi_ipa_op_code
+ */
+
+PREPACK struct htt_wdi_ipa_op_request_t
+{
+    /* DWORD 0: flags and meta-data */
+    A_UINT32
+        msg_type: 8, /* HTT_H2T_MSG_TYPE_WDI_IPA_OP_REQUEST */
+        reserved: 8,
+        op_code: 16;
+} POSTPACK;
+
+#define HTT_WDI_IPA_OP_REQUEST_SZ                    4 /* bytes */
+
+#define HTT_WDI_IPA_OP_REQUEST_OP_CODE_M             0xffff0000
+#define HTT_WDI_IPA_OP_REQUEST_OP_CODE_S             16
+
+#define HTT_WDI_IPA_OP_REQUEST_OP_CODE_GET(_var) \
+    (((_var) & HTT_WDI_IPA_OP_REQUEST_OP_CODE_M) >> HTT_WDI_IPA_OP_REQUEST_OP_CODE_S)
+#define HTT_WDI_IPA_OP_REQUEST_OP_CODE_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_OP_REQUEST_OP_CODE, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_OP_REQUEST_OP_CODE_S)); \
+    } while (0)
 
 /*=== target -> host messages ===============================================*/
 
@@ -1201,7 +1451,9 @@ enum htt_t2h_msg_type {
     HTT_T2H_MSG_TYPE_TX_CREDIT_UPDATE_IND   = 0xf,
     HTT_T2H_MSG_TYPE_RX_PN_IND              = 0x10,
     HTT_T2H_MSG_TYPE_RX_OFFLOAD_DELIVER_IND = 0x11,
-    HTT_T2H_MSG_TYPE_RX_IN_ORD_PADDR_IND = 0x12,
+    HTT_T2H_MSG_TYPE_RX_IN_ORD_PADDR_IND    = 0x12,
+    /* 0x13 is reserved for RX_RING_LOW_IND (RX Full reordering related) */
+    HTT_T2H_MSG_TYPE_WDI_IPA_OP_RESPONSE    = 0x14,
     HTT_T2H_MSG_TYPE_TEST,
     /* keep this last */
     HTT_T2H_NUM_MSGS
@@ -3767,5 +4019,49 @@ PREPACK struct htt_tx_frag_desc_bank_cfg_t {
 #define HTT_TX_CREDIT_SIGN_BIT_NEGATIVE  0x1
 
 #define DEBUG_DMA_DONE
+
+/**
+ * @brief HTT WDI_IPA Operation Response Message
+ *
+ * @details
+ *  HTT WDI_IPA Operation Response message is sent by target
+ *  to host confirming suspend or resume operation.
+ *     |31            24|23            16|15             8|7              0|
+ *     |----------------+----------------+----------------+----------------|
+ *     |             op_code             |      Rsvd      |     msg_type   |
+ *     |-------------------------------------------------------------------|
+ *
+ * Header fields:
+ *   - MSG_TYPE
+ *     Bits 7:0
+ *     Purpose: Identifies this as WDI_IPA Operation Response message
+ *     value: = 0x13
+ *   - OP_CODE
+ *     Bits 31:16
+ *     Purpose: Identifies the operation target is responding to (e.g. TX suspend)
+ *     value: = enum htt_wdi_ipa_op_code
+ */
+
+PREPACK struct htt_wdi_ipa_op_response_t
+{
+    /* DWORD 0: flags and meta-data */
+    A_UINT32
+        msg_type: 8, /* HTT_T2H_MSG_TYPE_WDI_IPA_OP_RESPONSE */
+        reserved: 8,
+        op_code: 16;
+} POSTPACK;
+
+#define HTT_WDI_IPA_OP_RESPONSE_SZ                    4 /* bytes */
+
+#define HTT_WDI_IPA_OP_RESPONSE_OP_CODE_M             0xffff0000
+#define HTT_WDI_IPA_OP_RESPONSE_OP_CODE_S             16
+
+#define HTT_WDI_IPA_OP_RESPONSE_OP_CODE_GET(_var) \
+    (((_var) & HTT_WDI_IPA_OP_RESPONSE_OP_CODE_M) >> HTT_WDI_IPA_OP_RESPONSE_OP_CODE_S)
+#define HTT_WDI_IPA_OP_RESPONSE_OP_CODE_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_OP_RESPONSE_OP_CODE, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_OP_RESPONSE_OP_CODE_S)); \
+    } while (0)
 
 #endif

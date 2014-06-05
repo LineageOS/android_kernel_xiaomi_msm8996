@@ -551,6 +551,18 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
             ol_rx_in_order_indication_handler(pdev->txrx_pdev, htt_t2h_msg,
                                                peer_id, tid, offload_ind);
      }
+
+#ifdef IPA_UC_OFFLOAD
+    case HTT_T2H_MSG_TYPE_WDI_IPA_OP_RESPONSE:
+        {
+            u_int8_t op_code;
+
+            op_code = HTT_WDI_IPA_OP_RESPONSE_OP_CODE_GET(*msg_word);
+            ol_txrx_ipa_uc_op_response(pdev->txrx_pdev, op_code);
+            break;
+        }
+#endif /* IPA_UC_OFFLOAD */
+
     default:
         htt_t2h_lp_msg_handler(context, htt_t2h_msg);
         return ;

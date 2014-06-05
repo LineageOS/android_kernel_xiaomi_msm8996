@@ -265,6 +265,7 @@ typedef enum {
  *        ADF_OS_DMA_FROM_DEVICE (data going from memory to device)
  */
 typedef enum {
+    ADF_OS_DMA_BIDIRECTIONAL = __ADF_OS_DMA_BIDIRECTIONAL,
     ADF_OS_DMA_TO_DEVICE = __ADF_OS_DMA_TO_DEVICE,
     ADF_OS_DMA_FROM_DEVICE = __ADF_OS_DMA_FROM_DEVICE,
 } adf_os_dma_dir_t;

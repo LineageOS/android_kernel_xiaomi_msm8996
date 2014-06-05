@@ -2464,3 +2464,72 @@ fail1:
     return 1; /* failure */
 }
 
+#ifdef IPA_UC_OFFLOAD
+int htt_rx_ipa_uc_attach(struct htt_pdev_t *pdev,
+       unsigned int rx_ind_ring_elements)
+{
+   /* Allocate RX indication ring */
+   /* RX IND ring element
+    *   4bytes: pointer
+    *   2bytes: VDEV ID
+    *   2bytes: length */
+   pdev->ipa_uc_rx_rsc.rx_ind_ring_base.vaddr =
+       adf_os_mem_alloc_consistent(pdev->osdev,
+                rx_ind_ring_elements * sizeof(struct ipa_uc_rx_ring_elem_t),
+                &pdev->ipa_uc_rx_rsc.rx_ind_ring_base.paddr,
+                adf_os_get_dma_mem_context(
+                   (&pdev->ipa_uc_rx_rsc.rx_ind_ring_base), memctx));
+   if (!pdev->ipa_uc_rx_rsc.rx_ind_ring_base.vaddr) {
+      adf_os_print("%s: RX IND RING alloc fail", __func__);
+      return -1;
+   }
+
+   /* RX indication ring size, by bytes */
+   pdev->ipa_uc_rx_rsc.rx_ind_ring_size = rx_ind_ring_elements *
+       sizeof(struct ipa_uc_rx_ring_elem_t);
+
+   /* Allocate RX process done index */
+   pdev->ipa_uc_rx_rsc.rx_ipa_prc_done_idx.vaddr =
+       adf_os_mem_alloc_consistent(pdev->osdev,
+                4,
+                &pdev->ipa_uc_rx_rsc.rx_ipa_prc_done_idx.paddr,
+                adf_os_get_dma_mem_context(
+                   (&pdev->ipa_uc_rx_rsc.rx_ipa_prc_done_idx), memctx));
+   if (!pdev->ipa_uc_rx_rsc.rx_ipa_prc_done_idx.vaddr) {
+      adf_os_print("%s: RX PROC DONE IND alloc fail", __func__);
+      adf_os_mem_free_consistent(pdev->osdev,
+           pdev->ipa_uc_rx_rsc.rx_ind_ring_size,
+           pdev->ipa_uc_rx_rsc.rx_ind_ring_base.vaddr,
+           pdev->ipa_uc_rx_rsc.rx_ind_ring_base.paddr,
+           adf_os_get_dma_mem_context(
+              (&pdev->ipa_uc_rx_rsc.rx_ind_ring_base), memctx));
+      return -2;
+   }
+
+   return 0;
+}
+
+int htt_rx_ipa_uc_detach(struct htt_pdev_t *pdev)
+{
+   if (pdev->ipa_uc_rx_rsc.rx_ind_ring_base.vaddr) {
+      adf_os_mem_free_consistent(pdev->osdev,
+           pdev->ipa_uc_rx_rsc.rx_ind_ring_size,
+           pdev->ipa_uc_rx_rsc.rx_ind_ring_base.vaddr,
+           pdev->ipa_uc_rx_rsc.rx_ind_ring_base.paddr,
+           adf_os_get_dma_mem_context(
+              (&pdev->ipa_uc_rx_rsc.rx_ind_ring_base), memctx));
+   }
+
+   if (pdev->ipa_uc_rx_rsc.rx_ipa_prc_done_idx.vaddr) {
+      adf_os_mem_free_consistent(pdev->osdev,
+           4,
+           pdev->ipa_uc_rx_rsc.rx_ipa_prc_done_idx.vaddr,
+           pdev->ipa_uc_rx_rsc.rx_ipa_prc_done_idx.paddr,
+           adf_os_get_dma_mem_context(
+              (&pdev->ipa_uc_rx_rsc.rx_ipa_prc_done_idx), memctx));
+   }
+
+   return 0;
+}
+#endif /* IPA_UC_OFFLOAD */
+

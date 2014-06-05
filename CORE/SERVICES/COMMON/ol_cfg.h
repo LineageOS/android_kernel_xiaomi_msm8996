@@ -49,6 +49,16 @@ enum wlan_frm_fmt {
     wlan_frm_fmt_802_3,
 };
 
+#ifdef IPA_UC_OFFLOAD
+struct wlan_ipa_uc_rsc_t {
+   u8  uc_offload_enabled;
+   u32 tx_max_buf_cnt;
+   u32 tx_buf_size;
+   u32 rx_ind_ring_size;
+   u32 tx_partition_base;
+};
+#endif /* IPA_UC_OFFLOAD */
+
 /* Config parameters for txrx_pdev */
 struct txrx_pdev_cfg_t {
 	u8 is_high_latency;
@@ -70,6 +80,9 @@ struct txrx_pdev_cfg_t {
 	u8 rx_fwd_disabled;
 	u8 is_packet_log_enabled;
 	u8 is_full_reorder_offload;
+#ifdef IPA_UC_OFFLOAD
+	struct wlan_ipa_uc_rsc_t ipa_uc_rsc;
+#endif /* IPA_UC_OFFLOAD */
 };
 
 /**
@@ -454,4 +467,49 @@ void ol_set_cfg_packet_log_enabled(ol_pdev_handle pdev, u_int8_t val);
  */
 u_int8_t ol_cfg_is_packet_log_enabled(ol_pdev_handle pdev);
 
+#ifdef IPA_UC_OFFLOAD
+/**
+ * @brief IPA micro controller data path offload enable or not
+ * @detail
+ *  This function returns IPA micro controller data path offload
+ *  feature enabled or not
+ *
+ * @param pdev - handle to the physical device
+ */
+unsigned int ol_cfg_ipa_uc_offload_enabled(ol_pdev_handle pdev);
+/**
+ * @brief IPA micro controller data path TX buffer size
+ * @detail
+ *  This function returns IPA micro controller data path offload
+ *  TX buffer size which should be pre-allocated by driver.
+ *  Default buffer size is 2K
+ *
+ * @param pdev - handle to the physical device
+ */
+unsigned int ol_cfg_ipa_uc_tx_buf_size(ol_pdev_handle pdev);
+/**
+ * @brief IPA micro controller data path TX buffer size
+ * @detail
+ *  This function returns IPA micro controller data path offload
+ *  TX buffer count which should be pre-allocated by driver.
+ *
+ * @param pdev - handle to the physical device
+ */
+unsigned int ol_cfg_ipa_uc_tx_max_buf_cnt(ol_pdev_handle pdev);
+/**
+ * @brief IPA micro controller data path TX buffer size
+ * @detail
+ *  This function returns IPA micro controller data path offload
+ *  RX indication ring size which will notified by WLAN FW to IPA
+ *  micro controller
+ *
+ * @param pdev - handle to the physical device
+ */
+unsigned int ol_cfg_ipa_uc_rx_ind_ring_size(ol_pdev_handle pdev);
+/**
+ * @brief IPA micro controller data path TX buffer size
+ * @param pdev - handle to the physical device
+ */
+unsigned int ol_cfg_ipa_uc_tx_partition_base(ol_pdev_handle pdev);
+#endif /* IPA_UC_OFFLOAD */
 #endif /* _OL_CFG__H_ */
