@@ -6202,6 +6202,20 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
         }
         if ( (WLAN_HDD_IBSS == pAdapter->device_mode) && operatingChannel)
         {
+            /*
+             * Need to post the IBSS power save parameters
+             * to WMA. WMA will configure this parameters
+             * to firmware if power save is enabled by the
+             * firmware.
+             */
+            status = hdd_setIbssPowerSaveParams(pAdapter);
+
+            if (VOS_STATUS_SUCCESS != status)
+            {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                       "%s: Set IBSS Power Save Params Failed", __func__);
+                return -EINVAL;
+            }
             hdd_select_cbmode(pAdapter,operatingChannel);
         }
 

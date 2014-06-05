@@ -143,6 +143,8 @@ const char *dbglog_get_module_str(A_UINT32 module_id)
         return "P2P";
     case WLAN_MODULE_WOW:
         return "WoW";
+    case WLAN_MODULE_IBSS_PWRSAVE:
+        return "IBSS PS";
     default:
         return "UNKNOWN";
     }
@@ -1123,6 +1125,34 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
     {
 	    /* WLAN_MODULE_NAN */
     },
+    {
+       /* WLAN_MODULE_IBSS_PWRSAVE */
+       "IBSS_PS_DBGID_DEFINITION_START",
+       "IBSS_PS_DBGID_PEER_CREATE",
+       "IBSS_PS_DBGID_PEER_DELETE",
+       "IBSS_PS_DBGID_VDEV_CREATE",
+       "IBSS_PS_DBGID_VDEV_DELETE",
+       "IBSS_PS_DBGID_VDEV_EVENT",
+       "IBSS_PS_DBGID_PEER_EVENT",
+       "IBSS_PS_DBGID_DELIVER_CAB",
+       "IBSS_PS_DBGID_DELIVER_UC_DATA",
+       "IBSS_PS_DBGID_DELIVER_UC_DATA_ERROR",
+       "IBSS_PS_DBGID_UC_INACTIVITY_TMR_RESTART",
+       "IBSS_PS_DBGID_MC_INACTIVITY_TMR_RESTART",
+       "IBSS_PS_DBGID_NULL_TX_COMPLETION",
+       "IBSS_PS_DBGID_ATIM_TIMER_START",
+       "IBSS_PS_DBGID_UC_ATIM_SEND",
+       "IBSS_PS_DBGID_BC_ATIM_SEND",
+       "IBSS_PS_DBGID_UC_TIMEOUT",
+       "IBSS_PS_DBGID_PWR_COLLAPSE_ALLOWED",
+       "IBSS_PS_DBGID_PWR_COLLAPSE_NOT_ALLOWED",
+       "IBSS_PS_DBGID_SET_PARAM",
+       "IBSS_PS_DBGID_HOST_TX_PAUSE",
+       "IBSS_PS_DBGID_HOST_TX_UNPAUSE",
+       "IBSS_PS_DBGID_PS_DESC_BIN_HWM",
+       "IBSS_PS_DBGID_PS_DESC_BIN_LWM",
+       "IBSS_PS_DBGID_PS_KICKOUT_PEER",
+    },
 };
 
 int dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id,
@@ -1977,6 +2007,333 @@ dbglog_sta_powersave_print_handler(
         dbglog_printf(timestamp, vap_id,
                         "SPEC Poll Timer Stopped");
         break;
+    default:
+        return FALSE;
+    }
+
+    return TRUE;
+}
+/* IBSS PS sub modules */
+enum wlan_ibss_ps_sub_module {
+    WLAN_IBSS_PS_SUB_MODULE_IBSS_NW_SM = 0,
+    WLAN_IBSS_PS_SUB_MODULE_IBSS_SELF_PS = 1,
+    WLAN_IBSS_PS_SUB_MODULE_IBSS_PEER_PS = 2,
+    WLAN_IBSS_PS_SUB_MODULE_MAX = 3,
+};
+
+#define WLAN_IBSS_PS_SUB_MODULE_OFFSET  0x1E
+
+A_BOOL
+dbglog_ibss_powersave_print_handler(
+        A_UINT32 mod_id,
+        A_UINT16 vap_id,
+        A_UINT32 dbg_id,
+        A_UINT32 timestamp,
+        A_UINT16 numargs,
+        A_UINT32 *args)
+{
+    static const char *nw_states[] = {
+        "WAIT_FOR_TBTT",
+        "ATIM_WINDOW_PRE_BCN",
+        "ATIM_WINDOW_POST_BCN",
+        "OUT_OF_ATIM_WINDOW",
+    };
+
+    static const char *ps_states[] = {
+        "ACTIVE",
+        "SLEEP_TX_SEND",
+        "SLEEP_DOZE_PAUSE_PENDING",
+        "SLEEP_DOZE",
+        "SLEEP_AWAKE",
+        "ACTIVE_TX_SEND",
+    };
+
+    static const char *peer_ps_states[] = {
+        "ACTIVE",
+        "SLEEP_AWAKE",
+        "SLEEP_DOZE",
+        "PS_UNKNOWN",
+    };
+
+    static const char *events[] = {
+        "START",
+        "STOP",
+        "SWBA",
+        "TBTT",
+        "TX_BCN_CMP",
+        "SEND_COMPLETE",
+        "SEND_N_COMPLETE",
+        "PRE_SEND",
+        "RX",
+        "UC_INACTIVITY_TIMEOUT",
+        "BC_INACTIVITY_TIMEOUT",
+        "ATIM_WINDOW_BEGIN",
+        "ATIM_WINDOW_END",
+        "HWQ_EMPTY",
+        "UC_ATIM_RCVD",
+        "TRAFFIC_EXCHANGE_DONE",
+        "POWER_SAVE_STATE_CHANGE",
+        "NEW_PEER_JOIN",
+        "IBSS_VDEV_PAUSE",
+        "IBSS_VDEV_UNPAUSE",
+        "PS_STATE_CHANGE"
+    };
+
+    enum wlan_ibss_ps_sub_module sub_module;
+
+    switch (dbg_id) {
+    case DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG:
+        sub_module = (args[1] >> WLAN_IBSS_PS_SUB_MODULE_OFFSET) & 0x3;
+        switch(sub_module)
+        {
+            case WLAN_IBSS_PS_SUB_MODULE_IBSS_NW_SM:
+                dbglog_sm_print(timestamp, vap_id, numargs, args, "IBSS PS NW",
+                                nw_states, ARRAY_LENGTH(nw_states), events,
+                                ARRAY_LENGTH(events));
+                break;
+            case WLAN_IBSS_PS_SUB_MODULE_IBSS_SELF_PS:
+                dbglog_sm_print(timestamp, vap_id, numargs, args,
+                                "IBSS PS Self", ps_states, ARRAY_LENGTH(ps_states),
+                                events, ARRAY_LENGTH(events));
+                break;
+            case WLAN_IBSS_PS_SUB_MODULE_IBSS_PEER_PS:
+                dbglog_sm_print(timestamp, vap_id, numargs, args,
+                                "IBSS PS Peer", peer_ps_states,
+                                 ARRAY_LENGTH(peer_ps_states), events,
+                                 ARRAY_LENGTH(events));
+                break;
+            default:
+                break;
+        }
+        break;
+    case IBSS_PS_DBGID_PEER_CREATE:
+        if (numargs == 2) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: peer alloc failed for peer ID:%u", args[0]);
+        } else if (numargs == 1) {
+                   dbglog_printf(timestamp, vap_id,
+                                 "IBSS PS: create peer ID=%u", args[0]);
+        }
+        break;
+    case IBSS_PS_DBGID_PEER_DELETE:
+        if (numargs == 4) {
+            dbglog_printf(timestamp, vap_id,
+                "IBSS PS: delete peer ID=%u num_peers:%d num_sleeping_peers:%d ps_enabled_for_this_peer:%d",
+                          args[0], args[1], args[2], args[3]);
+        }
+        break;
+    case IBSS_PS_DBGID_VDEV_CREATE:
+        if (numargs == 1) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: vdev alloc failed",
+                          args[0]);
+        } else if (numargs == 0) {
+                   dbglog_printf(timestamp, vap_id,
+                                 "IBSS PS: vdev created");
+        }
+        break;
+    case IBSS_PS_DBGID_VDEV_DELETE:
+        dbglog_printf(timestamp, vap_id, "IBSS PS: vdev deleted");
+        break;
+
+    case IBSS_PS_DBGID_VDEV_EVENT:
+        if (numargs == 1) {
+           if (args[0] == 5) {
+               dbglog_printf(timestamp, vap_id,
+                             "IBSS PS: vdev event for peer add");
+           } else if (args[0] == 7) {
+                      dbglog_printf(timestamp, vap_id,
+                                    "IBSS PS: vdev event for peer delete");
+            }
+            else {
+                     dbglog_printf(timestamp, vap_id,
+                                   "IBSS PS: vdev event %u", args[0]);
+            }
+        }
+        break;
+
+    case IBSS_PS_DBGID_PEER_EVENT:
+        if (numargs == 4) {
+            if (args[0] == 0xFFFF) {
+                dbglog_printf(timestamp, vap_id,
+                              "IBSS PS: pre_send for peer:%u peer_type:%u sm_event_mask:%0x",
+                              args[1], args[3], args[2]);
+            } else if (args[0] == 0x20000) {
+                dbglog_printf(timestamp, vap_id,
+                              "IBSS PS: send_complete for peer:%u peer_type:%u sm_event_mask:%0x",
+                              args[1], args[3], args[2]);
+            } else if (args[0] == 0x10) {
+                dbglog_printf(timestamp, vap_id,
+                              "IBSS PS: send_n_complete for peer:%u peer_type:%u sm_event_mask:%0x",
+                              args[1], args[3], args[2]);
+            } else if (args[0] == 0x40) {
+                dbglog_printf(timestamp, vap_id,
+                              "IBSS PS: rx event for peer:%u peer_type:%u sm_event_mask:%0x",
+                              args[1], args[3], args[2]);
+            } else if (args[0] == 0x4) {
+                dbglog_printf(timestamp, vap_id,
+                              "IBSS PS: hw_q_empty for peer:%u peer_type:%u sm_event_mask:%0x",
+                              args[1], args[3], args[2]);
+            }
+        }
+        break;
+
+    case IBSS_PS_DBGID_DELIVER_CAB:
+        if (numargs == 4) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: Deliver CAB n_mpdu:%d send_flags:%0x tid_cur:%d q_depth_for_other_tid:%d",
+                          args[0], args[1], args[2], args[3]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_DELIVER_UC_DATA:
+        if (numargs == 4) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: Deliver UC data peer:%d tid:%d n_mpdu:%d send_flags:%0x",
+                          args[0], args[1], args[2], args[3]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_DELIVER_UC_DATA_ERROR:
+        if (numargs == 4) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: Deliver UC data error peer:%d tid:%d allowed_tidmask:%0x, pending_tidmap:%0x",
+                          args[0], args[1], args[2], args[3]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_UC_INACTIVITY_TMR_RESTART:
+        if (numargs == 2) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: UC timer restart peer:%d timer_val:%0x",
+                          args[0], args[1]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_MC_INACTIVITY_TMR_RESTART:
+        if (numargs == 1) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: MC timer restart timer_val:%0x",
+                          args[0]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_NULL_TX_COMPLETION:
+        if (numargs == 3) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: null tx completion peer:%d tx_completion_status:%d flags:%0x",
+                          args[0], args[1], args[2]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_ATIM_TIMER_START:
+        if (numargs == 4) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: ATIM timer start tsf:%0x %0x tbtt:%0x %0x",
+                          args[0], args[1], args[2], args[3]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_UC_ATIM_SEND:
+        if (numargs == 2) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: Send ATIM to peer:%d",
+                          args[1]);
+        } else if (numargs == 1) {
+                   dbglog_printf(timestamp, vap_id,
+                                 "IBSS PS: no peers to send UC ATIM",
+                                 args[1]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_BC_ATIM_SEND:
+        if (numargs == 2) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: MC Data, num_of_peers:%d mc_atim_sent:%d",
+                          args[1], args[0]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_UC_TIMEOUT:
+        if (numargs == 2) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: UC timeout for peer:%d send_null:%d",
+                          args[0], args[1]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_PWR_COLLAPSE_ALLOWED:
+        dbglog_printf(timestamp, vap_id, "IBSS PS: allow power collapse");
+        break;
+
+    case IBSS_PS_DBGID_PWR_COLLAPSE_NOT_ALLOWED:
+        if (numargs == 0) {
+            dbglog_printf(timestamp, vap_id,
+                           "IBSS PS: power collapse not allowed by INI");
+        } else if (numargs == 3) {
+                  if (args[0] == 2) {
+                      dbglog_printf(timestamp, vap_id,
+                                    "IBSS PS: power collapse not allowed, non-zero qdepth %d %d",
+                                    args[1], args[2]);
+                  } else if (args[0] == 3) {
+                             dbglog_printf(timestamp, vap_id,
+                                           "IBSS PS: power collapse not allowed by peer:%d peer_flags:%0x",
+                                           args[1], args[2]);
+                  }
+        } else if (numargs == 5) {
+                   dbglog_printf(timestamp, vap_id,
+                                 "IBSS PS: power collapse not allowed by state m/c nw_cur_state:%d nw_next_state:%d ps_cur_state:%d flags:%0x",
+                                 args[1], args[2], args[3], args[4]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_SET_PARAM:
+        if (numargs == 2) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: Set Param ID:%0x Value:%0x",
+                          args[0], args[1]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_HOST_TX_PAUSE:
+        if (numargs == 1) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: Pausing host, vdev_map:%0x",
+                          args[0]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_HOST_TX_UNPAUSE:
+        if (numargs == 1) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: Unpausing host, vdev_map:%0x",
+                          args[0]);
+        }
+        break;
+    case IBSS_PS_DBGID_PS_DESC_BIN_LWM:
+        if (numargs == 1) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: LWM, vdev_map:%0x",
+                          args[0]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_PS_DESC_BIN_HWM:
+        if (numargs == 1) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: HWM, vdev_map:%0x",
+                          args[0]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_PS_KICKOUT_PEER:
+        if (numargs == 3) {
+            dbglog_printf(timestamp, vap_id,
+                          "IBSS PS: Kickout peer id:%d atim_fail_cnt:%d status:%d",
+                          args[0], args[1], args[2]);
+        }
+        break;
+
     default:
         return FALSE;
     }
@@ -3490,6 +3847,8 @@ dbglog_init(wmi_unified_t wmi_handle)
     dbglog_reg_modprint(WLAN_MODULE_STA_SMPS, dbglog_smps_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_P2P, dbglog_p2p_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_PCIELP, dbglog_pcielp_print_handler);
+    dbglog_reg_modprint(WLAN_MODULE_IBSS_PWRSAVE,
+                        dbglog_ibss_powersave_print_handler);
 
     /* Register handler for F3 or debug messages */
     res = wmi_unified_register_event_handler(wmi_handle, WMI_DEBUG_MESG_EVENTID,

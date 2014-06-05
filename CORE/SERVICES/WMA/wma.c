@@ -8022,9 +8022,58 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 						);
 	}
 		break;
+	case WMA_VDEV_IBSS_SET_ATIM_WINDOW_SIZE:
+	{
+		wma_handle->wma_ibss_power_save_params.atimWindowLength =
+					privcmd->param_value;
+		WMA_LOGD("%s: IBSS power save ATIM Window = %d", __func__,
+			wma_handle->wma_ibss_power_save_params.atimWindowLength);
+	}
+		break;
+	case WMA_VDEV_IBSS_SET_POWER_SAVE_ALLOWED:
+	{
+		wma_handle->wma_ibss_power_save_params.isPowerSaveAllowed =
+					privcmd->param_value;
+		WMA_LOGD("%s: IBSS is Power Save Allowed = %d", __func__,
+			wma_handle->wma_ibss_power_save_params.isPowerSaveAllowed);
+	}
+		break;
+	case WMA_VDEV_IBSS_SET_POWER_COLLAPSE_ALLOWED:
+	{
+		wma_handle->wma_ibss_power_save_params.isPowerCollapseAllowed =
+					privcmd->param_value;
+		WMA_LOGD("%s: IBSS is Power Collapse Allowed = %d", __func__,
+			wma_handle->wma_ibss_power_save_params.isPowerCollapseAllowed);
+	}
+		break;
+	case WMA_VDEV_IBSS_SET_AWAKE_ON_TX_RX:
+	{
+		wma_handle->wma_ibss_power_save_params.isAwakeonTxRxEnabled =
+					privcmd->param_value;
+		WMA_LOGD("%s: IBSS Power Save Awake on Tx/Rx Enabled = %d", __func__,
+			wma_handle->wma_ibss_power_save_params.isAwakeonTxRxEnabled);
+	}
+		break;
+	case WMA_VDEV_IBSS_SET_INACTIVITY_TIME:
+	{
+		wma_handle->wma_ibss_power_save_params.inactivityCount =
+					privcmd->param_value;
+		WMA_LOGD("%s: IBSS Power Save Data Inactivity Count = %d", __func__,
+			wma_handle->wma_ibss_power_save_params.inactivityCount);
+	}
+		break;
+	case WMA_VDEV_IBSS_SET_TXSP_END_INACTIVITY_TIME:
+	{
+		wma_handle->wma_ibss_power_save_params.txSPEndInactivityTime =
+					privcmd->param_value;
+		WMA_LOGD("%s: IBSS Power Save Transmit EOSP inactivity time out = %d",
+			__func__,
+			wma_handle->wma_ibss_power_save_params.txSPEndInactivityTime);
+	}
+		break;
 	default:
 		WMA_LOGE("Invalid wma config command id:%d",
-			 privcmd->param_id);
+			privcmd->param_id);
 		ret = -EINVAL;
 	}
 	return ret;
@@ -9209,6 +9258,68 @@ send_fail_resp:
 }
 
 #ifdef QCA_IBSS_SUPPORT
+static VOS_STATUS
+wma_set_ibss_pwrsave_params(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	int ret;
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_ATIM_WINDOW_LENGTH,
+				wma->wma_ibss_power_save_params.atimWindowLength);
+	if (ret < 0) {
+		WMA_LOGE("Failed to set WMI_VDEV_PARAM_ATIM_WINDOW_LENGTH ret = %d",
+				ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_IS_IBSS_POWER_SAVE_ALLOWED,
+				wma->wma_ibss_power_save_params.isPowerSaveAllowed);
+	if (ret < 0) {
+		WMA_LOGE("Failed, set WMI_VDEV_PARAM_IS_IBSS_POWER_SAVE_ALLOWED ret=%d",
+				ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_IS_POWER_COLLAPSE_ALLOWED,
+				wma->wma_ibss_power_save_params.isPowerCollapseAllowed);
+	if (ret < 0) {
+		WMA_LOGE("Failed, set WMI_VDEV_PARAM_IS_POWER_COLLAPSE_ALLOWED ret=%d",
+				ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_IS_AWAKE_ON_TXRX_ENABLED,
+				wma->wma_ibss_power_save_params.isAwakeonTxRxEnabled);
+	if (ret < 0) {
+		WMA_LOGE("Failed, set WMI_VDEV_PARAM_IS_AWAKE_ON_TXRX_ENABLED ret=%d",
+				ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_INACTIVITY_CNT,
+				wma->wma_ibss_power_save_params.inactivityCount);
+	if (ret < 0) {
+		WMA_LOGE("Failed, set WMI_VDEV_PARAM_INACTIVITY_CNT ret=%d",
+				ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_TXSP_END_INACTIVITY_TIME_MS,
+				wma->wma_ibss_power_save_params.txSPEndInactivityTime);
+	if (ret < 0) {
+		WMA_LOGE("Failed, set WMI_VDEV_PARAM_TXSP_END_INACTIVITY_TIME_MS ret=%d",
+				ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
 static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 {
 	ol_txrx_pdev_handle pdev;
@@ -9320,6 +9431,21 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	WMA_LOGD("%s: vdev start request for IBSS enqueued", __func__);
 
 	add_bss->staContext.staIdx = ol_txrx_local_peer_id(peer);
+
+	/*
+	 * If IBSS Power Save is supported by firmware
+	 * set the IBSS power save params to firmware.
+	 */
+	if (WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+            WMI_SERVICE_IBSS_PWRSAVE)) {
+		status = wma_set_ibss_pwrsave_params(wma, vdev_id);
+		if (status != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("%s: Failed to Set IBSS Power Save Params to firmware",
+				__func__);
+			goto peer_cleanup;
+		}
+	}
+
 
 	vos_mem_zero(&req, sizeof(req));
 	req.vdev_id = vdev_id;

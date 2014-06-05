@@ -515,6 +515,15 @@ typedef struct {
 }scan_timer_info;
 
 typedef struct {
+	u_int32_t atimWindowLength;
+	u_int32_t isPowerSaveAllowed;
+	u_int32_t isPowerCollapseAllowed;
+	u_int32_t isAwakeonTxRxEnabled;
+	u_int32_t inactivityCount;
+	u_int32_t txSPEndInactivityTime;
+}ibss_power_save_params;
+
+typedef struct {
 	void *wmi_handle;
 	void *htc_handle;
 	void *vos_context;
@@ -642,6 +651,10 @@ typedef struct {
 
 	u_int8_t dfs_phyerr_filter_offload;
 	v_BOOL_t suitable_ap_hb_failure;
+
+	/* IBSS Power Save config Parameters */
+	ibss_power_save_params wma_ibss_power_save_params;
+
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1259,13 +1272,22 @@ typedef struct {
  * does not involve sending a wmi command.
  */
 enum wma_cfg_cmd_id {
-       WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID = WMI_CMDID_MAX,
-       WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
-       /* Set time latency and time quota for MCC home channels */
-       WMA_VDEV_MCC_SET_TIME_LATENCY,
-       WMA_VDEV_MCC_SET_TIME_QUOTA,
-       /* Add any new command before this */
-       WMA_CMD_ID_MAX
+	WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID = WMI_CMDID_MAX,
+	WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
+	/* Set time latency and time quota for MCC home channels */
+	WMA_VDEV_MCC_SET_TIME_LATENCY,
+	WMA_VDEV_MCC_SET_TIME_QUOTA,
+
+	/* IBSS Power Save Parameters */
+	WMA_VDEV_IBSS_SET_ATIM_WINDOW_SIZE,
+	WMA_VDEV_IBSS_SET_POWER_SAVE_ALLOWED,
+	WMA_VDEV_IBSS_SET_POWER_COLLAPSE_ALLOWED,
+	WMA_VDEV_IBSS_SET_AWAKE_ON_TX_RX,
+	WMA_VDEV_IBSS_SET_INACTIVITY_TIME,
+	WMA_VDEV_IBSS_SET_TXSP_END_INACTIVITY_TIME,
+
+	/* Add any new command before this */
+	WMA_CMD_ID_MAX
 };
 
 typedef struct wma_trigger_uapsd_params

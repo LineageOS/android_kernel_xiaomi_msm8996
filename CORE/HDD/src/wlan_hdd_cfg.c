@@ -3198,6 +3198,41 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SAP_MAX_NO_PEERS_MIN,
                  CFG_SAP_MAX_NO_PEERS_MAX),
 
+   REG_VARIABLE( CFG_IBSS_IS_POWER_SAVE_ALLOWED_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, isIbssPowerSaveAllowed,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_IBSS_IS_POWER_SAVE_ALLOWED_DEFAULT,
+                 CFG_IBSS_IS_POWER_SAVE_ALLOWED_MIN,
+                 CFG_IBSS_IS_POWER_SAVE_ALLOWED_MAX ),
+
+   REG_VARIABLE( CFG_IBSS_IS_POWER_COLLAPSE_ALLOWED_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, isIbssPowerCollapseAllowed,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_IBSS_IS_POWER_COLLAPSE_ALLOWED_DEFAULT,
+                 CFG_IBSS_IS_POWER_COLLAPSE_ALLOWED_MIN,
+                 CFG_IBSS_IS_POWER_COLLAPSE_ALLOWED_MAX ),
+
+   REG_VARIABLE( CFG_IBSS_AWAKE_ON_TX_RX_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, isIbssAwakeOnTxRx,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_IBSS_AWAKE_ON_TX_RX_DEFAULT,
+                 CFG_IBSS_AWAKE_ON_TX_RX_MIN,
+                 CFG_IBSS_AWAKE_ON_TX_RX_MAX ),
+
+   REG_VARIABLE( CFG_IBSS_INACTIVITY_TIME_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, ibssInactivityCount,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_IBSS_INACTIVITY_TIME_DEFAULT,
+                 CFG_IBSS_INACTIVITY_TIME_MIN,
+                 CFG_IBSS_INACTIVITY_TIME_MAX ),
+
+   REG_VARIABLE( CFG_IBSS_TXSP_END_INACTIVITY_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, ibssTxSpEndInactivityTime,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_IBSS_TXSP_END_INACTIVITY_DEFAULT,
+                 CFG_IBSS_TXSP_END_INACTIVITY_MIN,
+                 CFG_IBSS_TXSP_END_INACTIVITY_MAX ),
+
 #ifndef QCA_WIFI_ISOC
    REG_VARIABLE( CFG_THERMAL_TEMP_MIN_LEVEL0_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, thermalTempMinLevel0,
@@ -3995,6 +4030,11 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nSelect5GHzMargin] Value = [%u] ",pHddCtx->cfg_ini->nSelect5GHzMargin);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gCoalesingInIBSS] Value = [%u] ",pHddCtx->cfg_ini->isCoalesingInIBSSAllowed);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssATIMWinSize] Value = [%u] ",pHddCtx->cfg_ini->ibssATIMWinSize);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssIsPowerSaveAllowed] Value = [%u] ",pHddCtx->cfg_ini->isIbssPowerSaveAllowed);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssIsPowerCollapseAllowed] Value = [%u] ",pHddCtx->cfg_ini->isIbssPowerCollapseAllowed);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssAwakeOnTxRx] Value = [%u] ",pHddCtx->cfg_ini->isIbssAwakeOnTxRx);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssInactivityTime] Value = [%u] ",pHddCtx->cfg_ini->ibssInactivityCount);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssTxSpEndInactivityTime] Value = [%u] ",pHddCtx->cfg_ini->ibssTxSpEndInactivityTime);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fDfsPhyerrFilterOffload] Value = [%u] ",pHddCtx->cfg_ini->fDfsPhyerrFilterOffload);
 
 #ifdef IPA_OFFLOAD
