@@ -4842,13 +4842,21 @@ typedef struct sSirChAvoidIndType
 } tSirChAvoidIndType;
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+#define SIR_DFS_MAX_20M_SUB_CH 8
+
+typedef struct sSirSmeDfsChannelList
+{
+    tANI_U32    nchannels;
+    /*Channel number including bonded channels on which the RADAR is present */
+    tANI_U8     channels[SIR_DFS_MAX_20M_SUB_CH];
+}tSirSmeDfsChannelList, *tpSirSmeDfsChannelList;
+
 typedef struct sSirSmeDfsEventInd
 {
-    tANI_U32     sessionId;
-    tANI_U8      ieee_chan_number;
-    tANI_U32     chan_freq;
-    tANI_U32     dfs_radar_status;
-    int          use_nol;
+    tANI_U32                   sessionId;
+    tSirSmeDfsChannelList      chan_list;
+    tANI_U32                   dfs_radar_status;
+    int                        use_nol;
 }tSirSmeDfsEventInd, *tpSirSmeDfsEventInd;
 
 typedef struct sSirChanChangeRequest

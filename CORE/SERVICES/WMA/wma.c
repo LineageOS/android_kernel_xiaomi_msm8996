@@ -21200,8 +21200,7 @@ struct ieee80211com* wma_dfs_attach(struct ieee80211com *dfs_ic)
  * change.This Configuration enables to program
  * the DFS pattern matching module.
  */
-void
-wma_dfs_configure(struct ieee80211com *ic)
+void wma_dfs_configure(struct ieee80211com *ic)
 {
 	struct ath_dfs_radar_tab_info rinfo;
 	int dfsdomain;
@@ -21349,8 +21348,7 @@ wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
 /*
  * Configure the regulatory domain for DFS radar filter initialization
  */
-void
-wma_set_dfs_regdomain(tp_wma_handle wma)
+void wma_set_dfs_regdomain(tp_wma_handle wma)
 {
 	u_int8_t ctl;
 	u_int32_t regdmn = wma->reg_cap.eeprom_rd;
@@ -21399,67 +21397,98 @@ wma_set_dfs_regdomain(tp_wma_handle wma)
 			wma->dfs_ic->current_dfs_regdomain);
 }
 
+int wma_get_channels(struct ieee80211_channel *ichan,
+		struct wma_dfs_radar_channel_list *chan_list)
+{
+	uint8_t center_chan = vos_freq_to_chan(ichan->ic_vhtop_ch_freq_seg1);
+
+	chan_list->nchannels = 0;
+
+	if (IEEE80211_IS_CHAN_11AC_VHT80(ichan))
+	{
+		chan_list->nchannels= 4;
+		chan_list->channels[0] = center_chan - 6;
+		chan_list->channels[1] = center_chan - 2;
+		chan_list->channels[2] = center_chan + 2;
+		chan_list->channels[3] = center_chan + 6;
+	}
+	else if(IEEE80211_IS_CHAN_11N_HT40(ichan) ||
+			IEEE80211_IS_CHAN_11AC_VHT40(ichan))
+	{
+		chan_list->nchannels = 2;
+		chan_list->channels[0] = center_chan - 2;
+		chan_list->channels[1] = center_chan + 2;
+	}
+	else
+	{
+		chan_list->nchannels = 1;
+		chan_list->channels[0] = center_chan;
+	}
+
+	return chan_list->nchannels;
+}
+
+
 /*
  * Indicate Radar to SAP/HDD
  */
-int
-wma_dfs_indicate_radar(struct ieee80211com *ic,
-                                     struct ieee80211_channel *ichan)
+int wma_dfs_indicate_radar(struct ieee80211com *ic,
+		struct ieee80211_channel *ichan)
 {
-    tp_wma_handle wma;
-    void *hdd_ctx;
-    struct wma_dfs_radar_indication *radar_event;
-    struct hdd_dfs_radar_ind hdd_radar_event;
-    void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	tp_wma_handle wma;
+	void *hdd_ctx;
+	struct wma_dfs_radar_indication *radar_event;
+	struct hdd_dfs_radar_ind hdd_radar_event;
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 
-    wma = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+	wma = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 
-    if (wma == NULL)
-    {
-	    WMA_LOGE("%s: DFS- Invalid wma", __func__);
-	    return (0);
-    }
+	if (wma == NULL)
+	{
+		WMA_LOGE("%s: DFS- Invalid wma", __func__);
+		return (0);
+	}
 
-    hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD,wma->vos_context);
-    if (wma->dfs_ic != ic)
-    {
-        WMA_LOGE("%s:DFS- Invalid WMA handle",__func__);
-        return (0);
-    }
-    radar_event = (struct wma_dfs_radar_indication *)
-                   vos_mem_malloc(sizeof(struct wma_dfs_radar_indication));
-    if (radar_event == NULL)
-    {
-        WMA_LOGE("%s:DFS- Invalid radar_event",__func__);
-        return (0);
-    }
+	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD,wma->vos_context);
+	if (wma->dfs_ic != ic)
+	{
+		WMA_LOGE("%s:DFS- Invalid WMA handle",__func__);
+		return (0);
+	}
+	radar_event = (struct wma_dfs_radar_indication *)
+		vos_mem_malloc(sizeof(struct wma_dfs_radar_indication));
+	if (radar_event == NULL)
+	{
+		WMA_LOGE("%s:DFS- Invalid radar_event",__func__);
+		return (0);
+	}
 
-    /*
-     * Do not post multiple Radar events on the same channel.
-     */
-    if ( ichan->ic_ieee  != (wma->dfs_ic->last_radar_found_chan) )
-    {
-        wma->dfs_ic->last_radar_found_chan = ichan->ic_ieee;
-        /* Indicate the radar event to HDD to stop the netif Tx queues*/
-        hdd_radar_event.ieee_chan_number = ichan->ic_ieee;
-        hdd_radar_event.chan_freq = ichan->ic_freq;
-        hdd_radar_event.dfs_radar_status = WMA_DFS_RADAR_FOUND;
-        wma->dfs_radar_indication_cb(hdd_ctx,&hdd_radar_event);
-        WMA_LOGE("%s:DFS- RADAR INDICATED TO HDD",__func__);
+	/*
+	 * Do not post multiple Radar events on the same channel.
+	 */
+	if ( ichan->ic_ieee  != (wma->dfs_ic->last_radar_found_chan) )
+	{
+		wma->dfs_ic->last_radar_found_chan = ichan->ic_ieee;
+		/* Indicate the radar event to HDD to stop the netif Tx queues*/
+		hdd_radar_event.ieee_chan_number = ichan->ic_ieee;
+		hdd_radar_event.chan_freq = ichan->ic_freq;
+		hdd_radar_event.dfs_radar_status = WMA_DFS_RADAR_FOUND;
+		wma->dfs_radar_indication_cb(hdd_ctx,&hdd_radar_event);
+		WMA_LOGE("%s:DFS- RADAR INDICATED TO HDD",__func__);
 
-       /*
-        * Indicate to the radar event to SAP to
-        * select a new channel and set CSA IE
-        */
-       radar_event->vdev_id = ic->vdev_id;
-       radar_event->ieee_chan_number = ichan->ic_ieee;
-       radar_event->chan_freq = ichan->ic_freq;
-       radar_event->dfs_radar_status = WMA_DFS_RADAR_FOUND;
-       radar_event->use_nol = ic->ic_dfs_usenol(ic);
-       wma_send_msg(wma, WDA_DFS_RADAR_IND, (void *)radar_event, 0);
-       WMA_LOGE("%s:DFS- WDA_DFS_RADAR_IND Message Posted",__func__);
-   }
-   return 1;
+		/*
+		 * Indicate to the radar event to SAP to
+		 * select a new channel and set CSA IE
+		 */
+		radar_event->vdev_id = ic->vdev_id;
+		wma_get_channels(ichan, &radar_event->chan_list);
+		radar_event->dfs_radar_status = WMA_DFS_RADAR_FOUND;
+		radar_event->use_nol = ic->ic_dfs_usenol(ic);
+		wma_send_msg(wma, WDA_DFS_RADAR_IND, (void *)radar_event, 0);
+		WMA_LOGE("%s:DFS- WDA_DFS_RADAR_IND Message Posted",__func__);
+	}
+
+	return 1;
 }
 
 static eHalStatus wma_set_smps_params(tp_wma_handle wma, tANI_U8 vdev_id, int value)

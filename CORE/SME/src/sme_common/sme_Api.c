@@ -2032,6 +2032,7 @@ eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac, v_U16_t msgType, void *pMsgBuf)
     tANI_U32 sessionId = 0;
     eRoamCmdStatus roamStatus;
     eCsrRoamResult roamResult;
+    int i;
 
     switch (msgType)
     {
@@ -2048,8 +2049,14 @@ eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac, v_U16_t msgType, void *pMsgBuf)
          }
          sessionId = dfs_event->sessionId;
          roamInfo.dfs_event.sessionId = sessionId;
-         roamInfo.dfs_event.ieee_chan_number = dfs_event->ieee_chan_number;
-         roamInfo.dfs_event.chan_freq = dfs_event->chan_freq;
+         roamInfo.dfs_event.chan_list.nchannels =
+             dfs_event->chan_list.nchannels;
+         for (i = 0; i < dfs_event->chan_list.nchannels; i++)
+         {
+             roamInfo.dfs_event.chan_list.channels[i] =
+                 dfs_event->chan_list.channels[i];
+         }
+
          roamInfo.dfs_event.dfs_radar_status = dfs_event->dfs_radar_status;
          roamInfo.dfs_event.use_nol = dfs_event->use_nol;
 
