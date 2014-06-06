@@ -802,6 +802,7 @@ struct ol_txrx_peer_t {
 	struct ol_txrx_vdev_t *vdev;
 
 	adf_os_atomic_t ref_cnt;
+	adf_os_atomic_t delete_in_progress;
 
        /* The peer state tracking is used for HL systems
 	* that don't support tx and rx filtering within the target.

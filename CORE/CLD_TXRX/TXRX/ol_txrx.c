@@ -1078,6 +1078,8 @@ ol_txrx_peer_attach(
         peer->peer_ids[i] = HTT_INVALID_PEER;
     }
 
+    adf_os_atomic_init(&peer->delete_in_progress);
+
     adf_os_atomic_init(&peer->ref_cnt);
 
     /* keep one reference for attach */
@@ -1398,6 +1400,9 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
         /* cleanup the Rx reorder queues for this peer */
         ol_rx_peer_cleanup(vdev, peer);
 
+        /* peer is removed from peer_list */
+        adf_os_atomic_set(&peer->delete_in_progress, 0);
+
         /* check whether the parent vdev has no peers left */
         if (TAILQ_EMPTY(&vdev->peer_list)) {
             /*
@@ -1498,6 +1503,9 @@ ol_txrx_peer_detach(ol_txrx_peer_handle peer)
     adf_os_spin_unlock_bh(&vdev->pdev->last_real_peer_mutex);
     htt_rx_reorder_log_print(peer->vdev->pdev->htt_pdev);
 
+    /* set delete_in_progress to identify that wma
+     * is waiting for unmap massage for this peer */
+    adf_os_atomic_set(&peer->delete_in_progress, 1);
     /*
      * Remove the reference added during peer_attach.
      * The peer will still be left allocated until the

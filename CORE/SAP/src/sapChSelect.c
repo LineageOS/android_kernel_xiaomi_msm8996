@@ -581,21 +581,24 @@ v_U8_t sapSelectPreferredChannelFromChannelList(v_U8_t bestChNum,
 
     IN
     *pSpectInfoParams  : Pointer to tSapChSelSpectInfo structure
+    sapContext: SAP Context
 
   RETURN VALUE
     v_BOOL_t:  Success or FAIL
 
   SIDE EFFECTS
 ============================================================================*/
-v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoParams)
+v_BOOL_t sapChanSelInit(tHalHandle halHandle,
+                        tSapChSelSpectInfo *pSpectInfoParams,
+                        ptSapContext pSapCtx)
 {
     tSapSpectChInfo *pSpectCh = NULL;
     v_U8_t *pChans = NULL;
     v_U16_t channelnum = 0;
     tpAniSirGlobal pMac = PMAC_STRUCT(halHandle);
+    v_BOOL_t chSafe = VOS_TRUE;
 #ifdef FEATURE_WLAN_CH_AVOID
     v_U16_t i;
-    v_BOOL_t chSafe = VOS_TRUE;
 #endif /* FEATURE_WLAN_CH_AVOID */
 
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s", __func__);
@@ -625,8 +628,18 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
 
     // Fill the channel number in the spectrum in the operating freq band
     for (channelnum = 0; channelnum < pSpectInfoParams->numSpectChans; channelnum++, pChans++) {
-#ifdef FEATURE_WLAN_CH_AVOID
         chSafe = VOS_TRUE;
+
+        /* check if the channel is in NOL blacklist */
+        if((sapDfsIsChannelInNolList(pSapCtx, *pChans)))
+        {
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                "In %s, Ch %d is in NOL list", __func__, *pChans);
+            chSafe = VOS_FALSE;
+            continue;
+        }
+
+#ifdef FEATURE_WLAN_CH_AVOID
         for(i = 0; i < NUM_20MHZ_RF_CHANNELS; i++) {
             if((safeChannels[i].channelNumber == *pChans) &&
                 (VOS_FALSE == safeChannels[i].isSafe))
@@ -647,18 +660,14 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
             continue;
         }
 
-#ifdef FEATURE_WLAN_CH_AVOID
         if (VOS_TRUE == chSafe)
         {
-#endif /* FEATURE_WLAN_CH_AVOID */
             pSpectCh->chNum = *pChans;
             pSpectCh->valid = eSAP_TRUE;
             pSpectCh->rssiAgr = SOFTAP_MIN_RSSI;// Initialise for all channels
             pSpectCh->channelWidth = SOFTAP_HT20_CHANNELWIDTH; // Initialise 20MHz for all the Channels
             pSpectCh++;
-#ifdef FEATURE_WLAN_CH_AVOID
-	}
-#endif /* FEATURE_WLAN_CH_AVOID */
+        }
     }
     return eSAP_TRUE;
 }
@@ -2376,7 +2385,7 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
     }
 
     // Initialize the structure pointed by pSpectInfoParams
-    if(sapChanSelInit( halHandle, pSpectInfoParams) != eSAP_TRUE ) {
+    if(sapChanSelInit( halHandle, pSpectInfoParams, pSapCtx) != eSAP_TRUE ) {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, Ch Select initialization failed", __func__);
         return SAP_CHANNEL_NOT_SELECTED;
     }

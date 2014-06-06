@@ -2128,12 +2128,16 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
         }
         else if ( WLAN_HDD_SOFTAP == pAdapter->device_mode )
         {
-            hdd_config_t *cfg_param = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
 
             /* If auto channel selection is configured as enable/ 1 then ignore
             channel set by supplicant
             */
+#ifdef WLAN_FEATURE_MBSSID
+            if (pAdapter->sap_dyn_ini_cfg.apAutoChannelSelection)
+#else
+            hdd_config_t *cfg_param = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
             if ( cfg_param->apAutoChannelSelection )
+#endif
             {
                 (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel =
                                                           AUTO_CHANNEL_SELECT;
@@ -2217,7 +2221,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     int status = VOS_STATUS_SUCCESS;
     tpWLAN_SAPEventCB pSapEventCallback;
     hdd_hostapd_state_t *pHostapdState;
-    v_U8_t wpaRsnIEdata[(SIR_MAC_MAX_IE_LENGTH * 2)+4];  //Max ie length 255 * 2(WPA+RSN) + 2 bytes (vendor specific ID) * 2
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
     struct qc_mac_acl_entry *acl_entry = NULL;
@@ -2228,8 +2231,11 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     v_BOOL_t MFPCapable =  VOS_FALSE;
     v_BOOL_t MFPRequired =  VOS_FALSE;
     eHddDot11Mode sapDot11Mode =
+#ifdef WLAN_FEATURE_MBSSID
+             pHostapdAdapter->sap_dyn_ini_cfg.sapDot11Mode;
+#else
              (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->sapDot11Mode;
-
+#endif
     ENTER();
 
     iniConfig = pHddCtx->cfg_ini;
@@ -2258,12 +2264,20 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                                       pConfig->dtim_period);
 
     pConfig->enOverLapCh = !!pHddCtx->cfg_ini->gEnableOverLapCh;
+#ifdef WLAN_FEATURE_MBSSID
+    if (strlen(pHostapdAdapter->sap_dyn_ini_cfg.acsAllowedChnls) > 0 )
+#else
     if (strlen(iniConfig->acsAllowedChnls) > 0)
+#endif
     {
         wlan_hdd_set_acs_allowed_channels(
-                                     iniConfig->acsAllowedChnls,
-                                     pConfig->acsAllowedChnls,
-                                     sizeof(pConfig->acsAllowedChnls));
+#ifdef WLAN_FEATURE_MBSSID
+                               pHostapdAdapter->sap_dyn_ini_cfg.acsAllowedChnls,
+#else
+                               iniConfig->acsAllowedChnls,
+#endif
+                               pConfig->acsAllowedChnls,
+                               sizeof(pConfig->acsAllowedChnls));
     }
 
     if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP)
@@ -2309,9 +2323,19 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         {
              if(1 != pHddCtx->is_dynamic_channel_range_set)
              {
-                  hdd_config_t *hdd_pConfig= (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini;
-                  WLANSAP_SetChannelRange(hHal, hdd_pConfig->apStartChannelNum,
-                       hdd_pConfig->apEndChannelNum,hdd_pConfig->apOperatingBand);
+#ifdef WLAN_FEATURE_MBSSID
+                  WLANSAP_SetChannelRange(hHal,
+                             pHostapdAdapter->sap_dyn_ini_cfg.apStartChannelNum,
+                             pHostapdAdapter->sap_dyn_ini_cfg.apEndChannelNum,
+                             pHostapdAdapter->sap_dyn_ini_cfg.apOperatingBand);
+#else
+                  hdd_config_t *hdd_pConfig=
+                                   (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini;
+                  WLANSAP_SetChannelRange(hHal,
+                                          hdd_pConfig->apStartChannelNum,
+                                          hdd_pConfig->apEndChannelNum,
+                                          hdd_pConfig->apOperatingBand);
+#endif
              }
                    pHddCtx->is_dynamic_channel_range_set = 0;
         }
@@ -2360,14 +2384,18 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pConfig->fwdWPSPBCProbeReq  = 1; // Forward WPS PBC probe request frame up
 
     pConfig->RSNWPAReqIELength = 0;
-    pConfig->pRSNWPAReqIE = NULL;
+    memset(&pConfig->RSNWPAReqIE[0], 0, sizeof(pConfig->RSNWPAReqIE));
     pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
                                        WLAN_EID_RSN);
     if(pIe && pIe[1])
     {
         pConfig->RSNWPAReqIELength = pIe[1] + 2;
-        memcpy(&wpaRsnIEdata[0], pIe, pConfig->RSNWPAReqIELength);
-        pConfig->pRSNWPAReqIE = &wpaRsnIEdata[0];
+        if (pConfig->RSNWPAReqIELength < sizeof(pConfig->RSNWPAReqIE))
+            memcpy(&pConfig->RSNWPAReqIE[0], pIe,
+                                   pConfig->RSNWPAReqIELength);
+        else
+            hddLog(LOGE, "RSNWPA IE MAX Length exceeded; length =%d",
+                                         pConfig->RSNWPAReqIELength);
         /* The actual processing may eventually be more extensive than
          * this. Right now, just consume any PMKIDs that are  sent in
          * by the app.
@@ -2379,8 +2407,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                         &RSNAuthType,
                         &MFPCapable,
                         &MFPRequired,
-                        pConfig->pRSNWPAReqIE[1]+2,
-                        pConfig->pRSNWPAReqIE );
+                        pConfig->RSNWPAReqIE[1]+2,
+                        pConfig->RSNWPAReqIE );
 
         if( VOS_STATUS_SUCCESS == status )
         {
@@ -2402,17 +2430,28 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     if(pIe && pIe[1] && (pIe[0] == DOT11F_EID_WPA))
     {
-        if (pConfig->pRSNWPAReqIE)
+        if (pConfig->RSNWPAReqIE[0])
         {
             /*Mixed mode WPA/WPA2*/
-            memcpy((&wpaRsnIEdata[0] + pConfig->RSNWPAReqIELength), pIe, pIe[1] + 2);
-            pConfig->RSNWPAReqIELength += pIe[1] + 2;
+            if (pConfig->RSNWPAReqIELength < sizeof(pConfig->RSNWPAReqIE))
+            {
+                memcpy((&pConfig->RSNWPAReqIE[0] + pConfig->RSNWPAReqIELength), pIe,
+                                                            pIe[1] + 2);
+                pConfig->RSNWPAReqIELength += pIe[1] + 2;
+            }
+            else
+                hddLog(LOGE, "RSNWPA IE MAX Length exceeded; length =%d",
+                                             pConfig->RSNWPAReqIELength);
         }
         else
         {
             pConfig->RSNWPAReqIELength = pIe[1] + 2;
-            memcpy(&wpaRsnIEdata[0], pIe, pConfig->RSNWPAReqIELength);
-            pConfig->pRSNWPAReqIE = &wpaRsnIEdata[0];
+            if (pConfig->RSNWPAReqIELength < sizeof(pConfig->RSNWPAReqIE))
+                memcpy(&pConfig->RSNWPAReqIE[0], pIe,
+                                       pConfig->RSNWPAReqIELength);
+            else
+               hddLog(LOGE, "RSNWPA IE MAX Length exceeded; length =%d",
+                                            pConfig->RSNWPAReqIELength);
             status = hdd_softap_unpackIE(
                           vos_get_context( VOS_MODULE_ID_SME, pVosContext),
                           &RSNEncryptType,
@@ -2420,8 +2459,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                           &RSNAuthType,
                           &MFPCapable,
                           &MFPRequired,
-                          pConfig->pRSNWPAReqIE[1]+2,
-                          pConfig->pRSNWPAReqIE );
+                          pConfig->RSNWPAReqIE[1]+2,
+                          pConfig->RSNWPAReqIE );
 
             if( VOS_STATUS_SUCCESS == status )
             {
@@ -2439,7 +2478,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         }
     }
 
-    if (pConfig->RSNWPAReqIELength > sizeof wpaRsnIEdata) {
+    if (pConfig->RSNWPAReqIELength > sizeof(pConfig->RSNWPAReqIE)) {
         hddLog( VOS_TRACE_LEVEL_ERROR, "**RSNWPAReqIELength is too large***");
         return -EINVAL;
     }
@@ -2588,7 +2627,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         */
         if ((((AUTO_CHANNEL_SELECT != pConfig->channel && pConfig->channel <= 14)
                 || (AUTO_CHANNEL_SELECT == pConfig->channel &&
-                iniConfig->apOperatingBand == eSAP_RF_SUBBAND_2_4_GHZ)) &&
+#ifdef WLAN_FEATURE_MBSSID
+                pHostapdAdapter->sap_dyn_ini_cfg.apOperatingBand
+#else
+                iniConfig->apOperatingBand
+#endif
+                == eSAP_RF_SUBBAND_2_4_GHZ)) &&
             (WLAN_HDD_GET_CTX(pHostapdAdapter)->cfg_ini->enableVhtFor24GHzBand
                                                                  == FALSE)) ||
             (WLAN_HDD_GET_CTX(pHostapdAdapter)->isVHT80Allowed == FALSE))
@@ -2655,12 +2699,32 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     psmeConfig = (tSmeConfigParams*) vos_mem_malloc(sizeof(tSmeConfigParams));
     if ( NULL != psmeConfig)
     {
+#ifdef WLAN_FEATURE_MBSSID
+        eHalStatus halStatus = eHAL_STATUS_FAILURE;
+        sme_GetConfigParam(hHal, psmeConfig);
+        psmeConfig->csrConfig.scanBandPreference =
+                         pHostapdAdapter->sap_dyn_ini_cfg.acsScanBandPreference;
+        halStatus = sme_UpdateConfig(pHddCtx->hHal, psmeConfig);
+        if ( !HAL_STATUS_SUCCESS( halStatus )
+                                    && pConfig->channel == AUTO_CHANNEL_SELECT )
+        {
+            hddLog(LOGE, "sme_UpdateConfig() for ACS Scan band pref Fail: %d",
+                                                                     halStatus);
+            return -EAGAIN;
+        }
+        pConfig->scanBandPreference = psmeConfig->csrConfig.scanBandPreference;
+#else
         sme_GetConfigParam(hHal, psmeConfig);
         pConfig->scanBandPreference = psmeConfig->csrConfig.scanBandPreference;
+#endif
         vos_mem_free(psmeConfig);
     }
+#ifdef WLAN_FEATURE_MBSSID
+    pConfig->acsBandSwitchThreshold =
+                        pHostapdAdapter->sap_dyn_ini_cfg.acsBandSwitchThreshold;
+#else
     pConfig->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
-
+#endif
     pSapEventCallback = hdd_hostapd_SAPEventCB;
 
     status = WLANSAP_StartBss(

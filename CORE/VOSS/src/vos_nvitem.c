@@ -64,7 +64,11 @@
 static v_REGDOMAIN_t cur_reg_domain = REGDOMAIN_COUNT;
 static char linux_reg_cc[2] = {0, 0};
 static v_REGDOMAIN_t temp_reg_domain = REGDOMAIN_COUNT;
-
+/* true if init happens thru init time driver hint */
+static v_BOOL_t init_by_driver = VOS_FALSE;
+/* true if init happens thru init time  callback from regulatory core.
+   this should be set to true during driver reload */
+static v_BOOL_t init_by_reg_core = VOS_FALSE;
 #else
 
 /* Cant access pAdapter in this file so defining a new variable to wait when changing country*/
@@ -3094,13 +3098,15 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
                    (" get country information from kernel db"));
 
 
-        if (COUNTRY_INIT == source)
+        if ((COUNTRY_INIT == source) && (VOS_FALSE == init_by_reg_core))
         {
+            init_by_driver = VOS_TRUE;
+
             INIT_COMPLETION(pHddCtx->linux_reg_req);
             regulatory_hint(wiphy, country_code);
             wait_result = wait_for_completion_timeout(
                 &pHddCtx->linux_reg_req,
-                LINUX_REG_WAIT_TIME);
+                msecs_to_jiffies(LINUX_REG_WAIT_TIME));
 
             /* if the country information does not exist with the kernel,
                then the driver callback would not be called */
@@ -3114,7 +3120,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
                    domain */
 
                 VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                           ("runtime country code is found in kernel db"));
+                           ("init time regulatory hint callback got called"));
 
                 *pRegDomain = temp_reg_domain;
                 cur_reg_domain = temp_reg_domain;
@@ -3129,7 +3135,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
                    database, return failure */
 
                 VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                           ("runtime country code is not found in kernel db"));
+                           ("init time reg hint callback not called"));
 
                 /* Set to world only if kernel never respnded before*/
                 if ((linux_reg_cc[0] == 0) && (linux_reg_cc[1] == 0))
@@ -3157,6 +3163,10 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
 #else
             regulatory_hint_user(country_code);
 #endif
+            *pRegDomain = temp_reg_domain;
+        }
+        else if (COUNTRY_INIT == source)
+        {
             *pRegDomain = temp_reg_domain;
         }
 
@@ -3435,93 +3445,105 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 
     switch (request->initiator)
     {
-       case NL80211_REGDOM_SET_BY_DRIVER:
+    case NL80211_REGDOM_SET_BY_DRIVER:
 
-          isVHT80Allowed = pHddCtx->isVHT80Allowed;
-          if (create_linux_regulatory_entry(wiphy, nBandCapability) == 0)
-          {
+        if ( VOS_TRUE == init_by_driver)
+        {
+            isVHT80Allowed = pHddCtx->isVHT80Allowed;
+            if (create_linux_regulatory_entry(wiphy, nBandCapability) == 0)
+            {
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                          (" regulatory entry created"));
+            }
+            if (pHddCtx->isVHT80Allowed != isVHT80Allowed)
+            {
+                hdd_checkandupdate_phymode( pHddCtx);
+            }
+            complete(&pHddCtx->linux_reg_req);
+            break;
+        }
 
-             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                   (" regulatory entry created"));
-          }
-          if (pHddCtx->isVHT80Allowed != isVHT80Allowed)
-          {
-             hdd_checkandupdate_phymode( pHddCtx);
-          }
+        /* we purposely want to fall thru since the processing is same
+           as other 2 conditions */
 
-          complete(&pHddCtx->linux_reg_req);
-          break;
+    case NL80211_REGDOM_SET_BY_CORE:
+    case NL80211_REGDOM_SET_BY_USER:
 
-       case NL80211_REGDOM_SET_BY_USER:
-       case NL80211_REGDOM_SET_BY_CORE:
+        /* first lookup the country in the local database */
+        country_code[0] = request->alpha2[0];
+        country_code[1] = request->alpha2[1];
 
-          /* first lookup the country in the local database */
-          country_code[0] = request->alpha2[0];
-          country_code[1] = request->alpha2[1];
+        pHddCtx->reg.alpha2[0] = request->alpha2[0];
+        pHddCtx->reg.alpha2[1] = request->alpha2[1];
+        vos_update_reg_info(pHddCtx);
+        vos_reg_apply_world_flags(wiphy, request->initiator, &pHddCtx->reg);
 
-          pHddCtx->reg.alpha2[0] = request->alpha2[0];
-          pHddCtx->reg.alpha2[1] = request->alpha2[1];
-          vos_update_reg_info(pHddCtx);
-          vos_reg_apply_world_flags(wiphy, request->initiator, &pHddCtx->reg);
-
-          temp_reg_domain = REGDOMAIN_COUNT;
-          for (i = 0; i < countryInfoTable.countryCount &&
-                REGDOMAIN_COUNT == temp_reg_domain; i++)
-          {
-             if (memcmp(country_code, countryInfoTable.countryInfo[i].countryCode,
-                      VOS_COUNTRY_CODE_LEN) == 0)
-             {
+        temp_reg_domain = REGDOMAIN_COUNT;
+        for (i = 0; i < countryInfoTable.countryCount &&
+                 REGDOMAIN_COUNT == temp_reg_domain; i++)
+        {
+            if (memcmp(country_code, countryInfoTable.countryInfo[i].countryCode,
+                       VOS_COUNTRY_CODE_LEN) == 0)
+            {
                 /* country code is found */
                 /* record the temporary regulatory_domain as well */
                 temp_reg_domain = countryInfoTable.countryInfo[i].regDomain;
                 break;
-             }
-          }
+            }
+        }
 
-          if (REGDOMAIN_COUNT == temp_reg_domain)
-             temp_reg_domain = REGDOMAIN_WORLD;
+        if (REGDOMAIN_COUNT == temp_reg_domain)
+            temp_reg_domain = REGDOMAIN_WORLD;
 
-          isVHT80Allowed = pHddCtx->isVHT80Allowed;
-          if (create_linux_regulatory_entry(wiphy,
-                            nBandCapability) == 0)
-          {
-             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                   (" regulatory entry created"));
+        isVHT80Allowed = pHddCtx->isVHT80Allowed;
+        if (create_linux_regulatory_entry(wiphy,
+                                          nBandCapability) == 0)
+        {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                      (" regulatory entry created"));
 
-          }
-          if (pHddCtx->isVHT80Allowed != isVHT80Allowed)
-          {
-             hdd_checkandupdate_phymode( pHddCtx);
-          }
+        }
+        if (pHddCtx->isVHT80Allowed != isVHT80Allowed)
+        {
+            hdd_checkandupdate_phymode( pHddCtx);
+        }
 
-          cur_reg_domain = temp_reg_domain;
-          linux_reg_cc[0] = country_code[0];
-          linux_reg_cc[1] = country_code[1];
+        cur_reg_domain = temp_reg_domain;
+        linux_reg_cc[0] = country_code[0];
+        linux_reg_cc[1] = country_code[1];
 
-          /* now pass the new country information to sme */
-          if (request->alpha2[0] == '0' && request->alpha2[1] == '0')
-          {
-             sme_GenericChangeCountryCode(pHddCtx->hHal, country_code,
-                   REGDOMAIN_COUNT);
-          }
-          else
-          {
-             sme_GenericChangeCountryCode(pHddCtx->hHal, country_code,
-                   temp_reg_domain);
-          }
+        if ((VOS_TRUE == init_by_reg_core) || (VOS_TRUE == init_by_driver)) {
+            /* now pass the new country information to sme */
+            if (request->alpha2[0] == '0' && request->alpha2[1] == '0')
+            {
+                sme_GenericChangeCountryCode(pHddCtx->hHal, country_code,
+                                             REGDOMAIN_COUNT);
+            }
+            else
+            {
+                sme_GenericChangeCountryCode(pHddCtx->hHal, country_code,
+                                         temp_reg_domain);
+            }
+        }
+
+        if ((VOS_FALSE == init_by_driver) &&
+            (request->initiator != NL80211_REGDOM_SET_BY_CORE))
+            init_by_reg_core = VOS_TRUE;
+
+
 #ifndef QCA_WIFI_ISOC
-          /* send CTL info to firmware */
-          regdmn_set_regval(&pHddCtx->reg);
+        /* send CTL info to firmware */
+        regdmn_set_regval(&pHddCtx->reg);
 #endif
-       default:
-          break;
+    default:
+        break;
     }
 
     /* Mark channels 36-48 as passive for US CC */
 
-    if(request->initiator == NL80211_REGDOM_SET_BY_DRIVER ||
-       (request->initiator == NL80211_REGDOM_SET_BY_CORE)||
-       (request->initiator == NL80211_REGDOM_SET_BY_USER))
+    if ((request->initiator == NL80211_REGDOM_SET_BY_DRIVER) ||
+        (request->initiator == NL80211_REGDOM_SET_BY_CORE) ||
+        (request->initiator == NL80211_REGDOM_SET_BY_USER))
     {
        if (wiphy->bands[IEEE80211_BAND_5GHZ])
        {

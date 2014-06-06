@@ -304,7 +304,9 @@ enum {
     QCASAP_SET_DEBUG_LOG,
 #endif
     QCASAP_SET_TM_LEVEL,
-    QCASAP_SET_DFS_IGNORE_CAC
+    QCASAP_SET_DFS_IGNORE_CAC,
+    QCASAP_GET_DFS_NOL,
+    QCASAP_SET_DFS_NOL
 };
 
 int iw_softap_get_channel_list(struct net_device *dev,

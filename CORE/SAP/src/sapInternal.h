@@ -846,8 +846,20 @@ SIDE EFFECTS
 v_U8_t
 sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event);
 
+/*
+ * This function initializes the NOL list
+ * parameters required to track the radar
+ * found DFS channels in the current Reg. Domain.
+ */
 VOS_STATUS
 sapInitDfsChannelNolList(ptSapContext sapContext);
+
+/*
+ * This Function Checks if a given channel is AVAILABLE or USABLE
+ * for DFS operation.
+ */
+v_BOOL_t sapDfsIsChannelInNolList(ptSapContext sapContext,
+                v_U8_t channelNumber);
 
 #ifdef __cplusplus
 }

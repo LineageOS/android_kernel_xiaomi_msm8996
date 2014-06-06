@@ -2769,3 +2769,167 @@ VOS_STATUS WLANSAP_Set_Dfs_Ignore_CAC(v_PVOID_t pvosGCtx, v_U8_t ignore_cac)
      }
     return VOS_STATUS_SUCCESS;
 }
+
+/*==========================================================================
+  FUNCTION    WLANSAP_Get_DfsNol
+
+  DESCRIPTION
+  This API is used to dump the dfs nol
+  DEPENDENCIES
+  NA.
+
+  PARAMETERS
+  IN
+  sapContext: Pointer to vos global context structure
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_Get_DfsNol(v_PVOID_t pSapCtx)
+{
+    int i = 0;
+    ptSapContext sapContext = (ptSapContext)pSapCtx;
+
+    if (NULL == sapContext)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "%s: Invalid SAP pointer from pvosGCtx", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    if (!sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels) {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                "%s: DFS NOL is empty", __func__);
+        return VOS_STATUS_SUCCESS;
+    }
+
+    for (i = 0; i < sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels; i++)
+    {
+        if (!sapContext->SapDfsInfo.sapDfsChannelNolList[i].dfs_channel_number)
+            continue;
+
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                "%s: Channel[%d] is %s",
+                __func__,
+                sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                    dfs_channel_number,
+                (sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                    radar_status_flag > eSAP_DFS_CHANNEL_AVAILABLE) ?
+                        "UNAVAILABLE" : "AVAILABLE");
+    }
+
+    return VOS_STATUS_SUCCESS;
+}
+
+/*==========================================================================
+  FUNCTION    WLANSAP_Set_DfsNol
+
+  DESCRIPTION
+  This API is used to set the dfs nol
+  DEPENDENCIES
+  NA.
+
+  PARAMETERS
+  IN
+  sapContext: Pointer to vos global context structure
+  conf: set type
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_Set_DfsNol(v_PVOID_t pSapCtx, eSapDfsNolType conf)
+{
+    int i = 0;
+    ptSapContext sapContext = (ptSapContext)pSapCtx;
+
+    if (NULL == sapContext)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "%s: Invalid SAP pointer from pvosGCtx", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    if (!sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels) {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                "%s: DFS NOL is empty", __func__);
+        return VOS_STATUS_SUCCESS;
+    }
+
+    if (conf == eSAP_DFS_NOL_CLEAR) {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                "%s: clear the DFS NOL",
+                __func__);
+
+        for (i = 0; i < sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels;
+                i++)
+        {
+            if (!sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                    dfs_channel_number)
+                continue;
+
+            sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                radar_status_flag = eSAP_DFS_CHANNEL_AVAILABLE;
+            sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                radar_found_timestamp = 0;
+        }
+    } else if (conf == eSAP_DFS_NOL_RANDOMIZE) {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                "%s: Randomize the DFS NOL",
+                __func__);
+
+        /* random 1/0 to decide to put the channel into NOL */
+        for (i = 0; i < sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels;
+                i++)
+        {
+            v_U32_t random_bytes = 0;
+            get_random_bytes(&random_bytes, 1);
+
+            if (!sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                    dfs_channel_number)
+                continue;
+
+            if ((random_bytes + jiffies) % 2) {
+                /* mark the channel unavailable */
+                sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                    .radar_status_flag = eSAP_DFS_CHANNEL_UNAVAILABLE;
+
+                /* mark the timestamp */
+                sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                    .radar_found_timestamp = vos_timer_get_system_time();
+            } else {
+                /* mark the channel available */
+                sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                    radar_status_flag = eSAP_DFS_CHANNEL_AVAILABLE;
+
+                /* clear the timestamp */
+                sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                    radar_found_timestamp = 0;
+            }
+
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                        "%s: Set channel[%d] %s",
+                        __func__,
+                        sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                            .dfs_channel_number,
+                        (sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                            radar_status_flag > eSAP_DFS_CHANNEL_AVAILABLE) ?
+                                "UNAVAILABLE" : "AVAILABLE");
+        }
+    } else {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "%s: unsupport type %d",
+                __func__, conf);
+    }
+
+    return VOS_STATUS_SUCCESS;
+}
