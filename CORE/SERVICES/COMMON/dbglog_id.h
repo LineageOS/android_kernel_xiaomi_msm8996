@@ -1208,14 +1208,14 @@ extern "C" {
 #define NAN_DBGID_ROLE_CHANGE                       (NAN_DBGID_EVT_BASE + 60)
 /* args: TBD */
 #define NAN_DBGID_SYNC_BEACON_DW_STATS              (NAN_DBGID_EVT_BASE + 61)
-/* args: */
-#define NAN_DBGID_SPARE_62                          (NAN_DBGID_EVT_BASE + 62)
-/* args: */
-#define NAN_DBGID_SPARE_63                          (NAN_DBGID_EVT_BASE + 63)
-/* args: */
-#define NAN_DBGID_SPARE_64                          (NAN_DBGID_EVT_BASE + 64)
-/* args: */
-#define NAN_DBGID_SPARE_65                          (NAN_DBGID_EVT_BASE + 65)
+/* args: attrId */
+#define NAN_DBGID_RX_UNSUPPORTED_SDF_ATTR_ID        (NAN_DBGID_EVT_BASE + 62)
+/* args: handle, sid1, sid2, svcCtrl, length */
+#define NAN_DBGID_PUBSUB_MATCHED_SKIPPED_SSI        (NAN_DBGID_EVT_BASE + 63)
+/* args: offset */
+#define NAN_DBGID_MATCH_FILTER_OFFSET               (NAN_DBGID_EVT_BASE + 64)
+/* args: twSize, n, twIndex */
+#define NAN_DBGID_TW_PARAMS                         (NAN_DBGID_EVT_BASE + 65)
 /* args: */
 #define NAN_DBGID_BEACON_SENDER                     (NAN_DBGID_EVT_BASE + 66)
 /* args: */
@@ -1226,8 +1226,18 @@ extern "C" {
 #define NAN_DBGID_SPARE_69                          (NAN_DBGID_EVT_BASE + 69)
 /* args: */
 #define NAN_DBGID_SPARE_70                          (NAN_DBGID_EVT_BASE + 70)
+/* args: */
+#define NAN_DBGID_SPARE_71                          (NAN_DBGID_EVT_BASE + 71)
+/* args: */
+#define NAN_DBGID_SPARE_72                          (NAN_DBGID_EVT_BASE + 72)
+/* args: */
+#define NAN_DBGID_SPARE_73                          (NAN_DBGID_EVT_BASE + 73)
+/* args: */
+#define NAN_DBGID_SPARE_74                          (NAN_DBGID_EVT_BASE + 74)
+/* args: */
+#define NAN_DBGID_SPARE_75                          (NAN_DBGID_EVT_BASE + 75)
 /* PLEASE KEEP THIS ONE AT THE END */
-#define NAN_DBGID_EVT_LOG_LAST                      (NAN_DBGID_EVT_BASE + 71)
+#define NAN_DBGID_EVT_LOG_LAST                      (NAN_DBGID_EVT_BASE + 76)
 
 /* Debug IDs for message logs. */
 #define NAN_DBGID_API_MSG_BASE                      NAN_DBGID_EVT_LOG_LAST
