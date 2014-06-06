@@ -701,6 +701,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             }
             else
             {
+#ifdef FEATURE_WLAN_CH_AVOID
+                sme_ChAvoidUpdateReq(pHddCtx->hHal);
+#endif /* FEATURE_WLAN_CH_AVOID */
+
                 pHddApCtx->uBCStaId = pSapEvent->sapevt.sapStartBssCompleteEvent.staId;
 
 #ifdef QCA_LL_TX_FLOW_CT

@@ -4745,6 +4745,13 @@ typedef struct sSirLPHBInd
 } tSirLPHBInd;
 #endif /* FEATURE_WLAN_LPHB */
 
+#ifdef FEATURE_WLAN_CH_AVOID
+typedef struct sSirChAvoidUpdateReq
+{
+   tANI_U32 reserved_param;
+} tSirChAvoidUpdateReq;
+#endif /* FEATURE_WLAN_CH_AVOID */
+
 typedef struct sSirLinkSpeedInfo
 {
   /* MAC Address for the peer */

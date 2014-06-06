@@ -240,7 +240,12 @@ wmi_unified_vdev_up_send(wmi_unified_t wmi,
 void wma_set_dfs_regdomain(tp_wma_handle wma);
 
 static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
-				    t_thermal_cmd_params thermal_info);
+				t_thermal_cmd_params thermal_info);
+
+#ifdef FEATURE_WLAN_CH_AVOID
+VOS_STATUS wma_process_ch_avoid_update_req(tp_wma_handle wma_handle,
+				tSirChAvoidUpdateReq *ch_avoid_update_req);
+#endif /* FEATURE_WLAN_CH_AVOID */
 
 static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info);
 
@@ -17848,6 +17853,14 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 #endif
 
+#ifdef FEATURE_WLAN_CH_AVOID
+		case WDA_CH_AVOID_UPDATE_REQ:
+			wma_process_ch_avoid_update_req(wma_handle,
+				(tSirChAvoidUpdateReq *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+#endif
+
 		case WDA_DHCP_START_IND:
 		case WDA_DHCP_STOP_IND:
 			wma_process_dhcp_ind(wma_handle,
@@ -18970,6 +18983,58 @@ static int wma_channel_avoid_evt_handler(void *handle, u_int8_t *event,
 	}
 
 	return 0;
+}
+
+/* function   : wma_process_ch_avoid_update_req
+ * Descriptin : handles channel avoid update request
+ * Args       :
+ * Returns    :
+ */
+VOS_STATUS wma_process_ch_avoid_update_req(tp_wma_handle wma_handle,
+			tSirChAvoidUpdateReq *ch_avoid_update_req)
+{
+	int status = 0;
+	wmi_buf_t buf = NULL;
+	u_int8_t *buf_ptr;
+	wmi_chan_avoid_update_cmd_param *ch_avoid_update_fp;
+	int len = sizeof(wmi_chan_avoid_update_cmd_param);
+
+	if (ch_avoid_update_req == NULL)
+	{
+		WMA_LOGE("%s : ch_avoid_update_req is NULL", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGI("%s: WMA --> WMI_CHAN_AVOID_UPDATE",
+		__func__);
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	ch_avoid_update_fp = (wmi_chan_avoid_update_cmd_param *) buf_ptr;
+	WMITLV_SET_HDR(&ch_avoid_update_fp->tlv_header,
+	WMITLV_TAG_STRUC_wmi_chan_avoid_update_cmd_param,
+	WMITLV_GET_STRUCT_TLVLEN(
+		wmi_chan_avoid_update_cmd_param));
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+		len, WMI_CHAN_AVOID_UPDATE_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("wmi_unified_cmd_send"
+			" WMITLV_TABLE_WMI_CHAN_AVOID_UPDATE"
+			" returned Error %d",
+			status);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGI("%s: WMA --> WMI_CHAN_AVOID_UPDATE sent through WMI",
+		__func__);
+	return VOS_STATUS_SUCCESS;
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 

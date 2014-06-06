@@ -3529,6 +3529,18 @@ eHalStatus sme_AddChAvoidCallback
    tHalHandle hHal,
    void (*pCallbackfn)(void *hdd_context, void *indi_param)
 );
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ChAvoidUpdateReq
+    \API to request channel avoidance update from FW.
+    \param hHal - The handle returned by macOpen
+    \param update_type - The udpate_type parameter of this request call
+    \- return Configuration message posting status, SUCCESS or Fail
+    -------------------------------------------------------------------------*/
+eHalStatus sme_ChAvoidUpdateReq
+(
+   tHalHandle hHal
+);
 #endif /* FEATURE_WLAN_CH_AVOID */
 
 eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal, tCsrBssid bssid,
