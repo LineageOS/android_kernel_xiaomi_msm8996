@@ -1714,8 +1714,10 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
 {
     v_U8_t *genie;
     v_U8_t total_ielen = 0;
-    v_U8_t addIE[1] = {0};
     int ret = 0;
+    tsap_Config_t *pConfig;
+
+    pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
 
     genie = vos_mem_malloc(MAX_GENIE_LEN);
 
@@ -1778,124 +1780,27 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     }
 
     // Added for ProResp IE
-    if ( (params->proberesp_ies != NULL) && (params->proberesp_ies_len != 0) )
+    if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
     {
-        u16 rem_probe_resp_ie_len = params->proberesp_ies_len;
-        u8 probe_rsp_ie_len[3] = {0};
-        u8 counter = 0;
-        /* Check Probe Resp Length if it is greater then 255 then Store
-           Probe Resp IEs into WNI_CFG_PROBE_RSP_ADDNIE_DATA1 &
-           WNI_CFG_PROBE_RSP_ADDNIE_DATA2 CFG Variable As We are not able
-           Store More then 255 bytes into One Variable.
-        */
-        while ((rem_probe_resp_ie_len > 0) && (counter < 3))
+        if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pHostapdAdapter),
+                               pHostapdAdapter->sessionId,
+                               pHostapdAdapter->macAddressCurrent.bytes,
+                               (tANI_U8*)params->proberesp_ies,
+                               params->proberesp_ies_len,
+                               VOS_FALSE) == eHAL_STATUS_FAILURE)
         {
-            if (rem_probe_resp_ie_len > MAX_CFG_STRING_LEN)
-            {
-                probe_rsp_ie_len[counter++] = MAX_CFG_STRING_LEN;
-                rem_probe_resp_ie_len -= MAX_CFG_STRING_LEN;
-            }
-            else
-            {
-                probe_rsp_ie_len[counter++] = rem_probe_resp_ie_len;
-                rem_probe_resp_ie_len = 0;
-            }
+            hddLog(LOGE, FL("Could not pass on Probe Resp Add Ie"));
+            ret = -EINVAL;
+            goto done;
         }
-
-        rem_probe_resp_ie_len = 0;
-
-        if (probe_rsp_ie_len[0] > 0)
-        {
-            if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA1,
-                            (tANI_U8*)&params->proberesp_ies[rem_probe_resp_ie_len],
-                            probe_rsp_ie_len[0], NULL,
-                            eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
-            {
-                 hddLog(LOGE,
-                       "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
-                 ret = -EINVAL;
-                 goto done;
-            }
-            rem_probe_resp_ie_len += probe_rsp_ie_len[0];
-        }
-
-        if (probe_rsp_ie_len[1] > 0)
-        {
-            if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2,
-                            (tANI_U8*)&params->proberesp_ies[rem_probe_resp_ie_len],
-                            probe_rsp_ie_len[1], NULL,
-                            eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
-            {
-                 hddLog(LOGE,
-                       "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM");
-                 ret = -EINVAL;
-                 goto done;
-            }
-            rem_probe_resp_ie_len += probe_rsp_ie_len[1];
-        }
-
-        if (probe_rsp_ie_len[2] > 0)
-        {
-            if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3,
-                            (tANI_U8*)&params->proberesp_ies[rem_probe_resp_ie_len],
-                            probe_rsp_ie_len[2], NULL,
-                            eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
-            {
-                 hddLog(LOGE,
-                       "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM");
-                 ret = -EINVAL;
-                 goto done;
-            }
-            rem_probe_resp_ie_len += probe_rsp_ie_len[2];
-        }
-
-        if (probe_rsp_ie_len[1] == 0 )
-        {
-            if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2, (tANI_U8*)addIE, 0, NULL,
-                            eANI_BOOLEAN_FALSE) )
-            {
-                hddLog(LOGE,
-                   "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM");
-            }
-        }
-
-        if (probe_rsp_ie_len[2] == 0 )
-        {
-            if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3, (tANI_U8*)addIE, 0, NULL,
-                            eANI_BOOLEAN_FALSE) )
-            {
-                hddLog(LOGE,
-                   "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM");
-            }
-        }
-
-        if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-             WNI_CFG_PROBE_RSP_ADDNIE_FLAG, 1,NULL,
-             test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags) ?
-                      eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE)
-             == eHAL_STATUS_FAILURE)
-        {
-           hddLog(LOGE,
-             "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_FLAG to CCM");
-           ret = -EINVAL;
-           goto done;
-        }
+        WLANSAP_ResetSapConfigAddIE(pConfig);
     }
     else
     {
-        // Reset WNI_CFG_PROBE_RSP Flags
-        wlan_hdd_reset_prob_rspies(pHostapdAdapter);
-
-        hddLog(VOS_TRACE_LEVEL_INFO,
-               "%s: No Probe Response IE received in set beacon",
-               __func__);
+        WLANSAP_UpdateSapConfigAddIE(pConfig,
+            params->proberesp_ies,
+            params->proberesp_ies_len);
     }
-
     // Added for AssocResp IE
     if ( (params->assocresp_ies != NULL) && (params->assocresp_ies_len != 0) )
     {
@@ -2654,6 +2559,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     if ( 0 != wlan_hdd_cfg80211_update_apies(pHostapdAdapter, params) )
     {
         hddLog(LOGE, FL("SAP Not able to set AP IEs"));
+        WLANSAP_ResetSapConfigAddIE(pConfig);
         return -EINVAL;
     }
 
@@ -2686,6 +2592,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
     {
+        WLANSAP_ResetSapConfigAddIE(pConfig);
         //Bss already started. just return.
         //TODO Probably it should update some beacon params.
         hddLog( LOGE, "Bss Already started...Ignore the request");
@@ -2735,6 +2642,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                  pSapEventCallback, pConfig, (v_PVOID_t)pHostapdAdapter->dev);
     if (!VOS_IS_STATUS_SUCCESS(status))
     {
+        WLANSAP_ResetSapConfigAddIE(pConfig);
         hddLog(LOGE,FL("SAP Start Bss fail"));
         return -EINVAL;
     }
@@ -2743,6 +2651,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
            FL("Waiting for Scan to complete(auto mode) and BSS to start"));
 
     status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
+
+    WLANSAP_ResetSapConfigAddIE(pConfig);
 
     if (!VOS_IS_STATUS_SUCCESS(status))
     {
@@ -6644,86 +6554,15 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                    if ( (NULL != (genie - 2)) && (0 != eLen + 2) )
                    {
                       u16 rem_probe_resp_ie_len = eLen + 2;
-                      u8 probe_rsp_ie_len[3] = {0};
-                      u8 counter = 0;
-
-                      /* Check Probe Resp Length if it is greater then 255 then
-                         Store Probe Rsp IEs into WNI_CFG_PROBE_RSP_ADDNIE_DATA1
-                         & WNI_CFG_PROBE_RSP_ADDNIE_DATA2 CFG Variable As We are
-                         not able Store More then 255 bytes into One Variable */
-
-                      while ((rem_probe_resp_ie_len > 0) && (counter < 3))
+                      if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                        pAdapter->sessionId,
+                                        pAdapter->macAddressCurrent.bytes,
+                                        (tANI_U8*)(genie - 2),
+                                        rem_probe_resp_ie_len,
+                                        VOS_TRUE) == eHAL_STATUS_FAILURE)
                       {
-                         if (rem_probe_resp_ie_len > MAX_CFG_STRING_LEN)
-                         {
-                            probe_rsp_ie_len[counter++] = MAX_CFG_STRING_LEN;
-                            rem_probe_resp_ie_len -= MAX_CFG_STRING_LEN;
-                         }
-                         else
-                         {
-                            probe_rsp_ie_len[counter++] = rem_probe_resp_ie_len;
-                            rem_probe_resp_ie_len = 0;
-                         }
+                         hddLog(LOGE, "Could not pass ADDNIE data to PE");
                       }
-
-                      rem_probe_resp_ie_len = 0;
-
-                      if (probe_rsp_ie_len[0] > 0)
-                      {
-                         if (ccmCfgSetStr(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                          WNI_CFG_PROBE_RSP_ADDNIE_DATA1,
-                                          (tANI_U8*)(genie - 2),
-                                          probe_rsp_ie_len[0], NULL,
-                                          eANI_BOOLEAN_FALSE)
-                                          == eHAL_STATUS_FAILURE)
-                         {
-                            hddLog(LOGE,
-                                   "Could not pass"
-                                   "on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
-                         }
-                         rem_probe_resp_ie_len += probe_rsp_ie_len[0];
-                      }
-
-                      if (probe_rsp_ie_len[1] > 0)
-                      {
-                         if (ccmCfgSetStr(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                          WNI_CFG_PROBE_RSP_ADDNIE_DATA2,
-                                          (tANI_U8*)(genie - (2 + rem_probe_resp_ie_len)),
-                                          probe_rsp_ie_len[1], NULL,
-                                          eANI_BOOLEAN_FALSE)
-                                          == eHAL_STATUS_FAILURE)
-                         {
-                             hddLog(LOGE,
-                                    "Could not pass"
-                                    "on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM");
-                         }
-                         rem_probe_resp_ie_len += probe_rsp_ie_len[1];
-                      }
-
-                      if (probe_rsp_ie_len[2] > 0)
-                      {
-                         if (ccmCfgSetStr(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                          WNI_CFG_PROBE_RSP_ADDNIE_DATA3,
-                                          (tANI_U8*)(genie - (2 + rem_probe_resp_ie_len)),
-                                          probe_rsp_ie_len[2], NULL,
-                                          eANI_BOOLEAN_FALSE)
-                                          == eHAL_STATUS_FAILURE)
-                          {
-                            hddLog(LOGE,
-                                   "Could not pass"
-                                   "on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM");
-                          }
-                          rem_probe_resp_ie_len += probe_rsp_ie_len[2];
-                       }
-
-                       if (ccmCfgSetInt(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                           WNI_CFG_PROBE_RSP_ADDNIE_FLAG, 1,NULL,
-                           eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
-                       {
-                          hddLog(LOGE,
-                                "Could not pass"
-                                "on WNI_CFG_PROBE_RSP_ADDNIE_FLAG to CCM");
-                       }
                    }
                    else
                    {

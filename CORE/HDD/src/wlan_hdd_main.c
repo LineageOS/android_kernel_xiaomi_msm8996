@@ -8782,30 +8782,44 @@ VOS_STATUS hdd_close_all_adapters( hdd_context_t *pHddCtx )
 
 void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
 {
-    v_U8_t addIE[1] = {0};
-
-    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA1,(tANI_U8*)addIE, 0, NULL,
-                            eANI_BOOLEAN_FALSE) )
+    tANI_U8 *bssid = NULL;
+    switch (pHostapdAdapter->device_mode)
     {
-        hddLog(LOGE,
-           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
+    case WLAN_HDD_INFRA_STATION:
+    case WLAN_HDD_P2P_CLIENT:
+    {
+        hdd_station_ctx_t * pHddStaCtx =
+            WLAN_HDD_GET_STATION_CTX_PTR(pHostapdAdapter);
+        bssid = (tANI_U8*)&pHddStaCtx->conn_info.bssId;
+        break;
     }
-
-    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2, (tANI_U8*)addIE, 0, NULL,
-                            eANI_BOOLEAN_FALSE) )
+    case WLAN_HDD_SOFTAP:
+    case WLAN_HDD_P2P_GO:
+    case WLAN_HDD_IBSS:
     {
-        hddLog(LOGE,
-           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM");
+        bssid = pHostapdAdapter->macAddressCurrent.bytes;
+        break;
     }
-
-    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3, (tANI_U8*)addIE, 0, NULL,
-                            eANI_BOOLEAN_FALSE) )
+    case WLAN_HDD_MONITOR:
+    case WLAN_HDD_FTM:
+    case WLAN_HDD_P2P_DEVICE:
+    default:
+        /*
+         * wlan_hdd_reset_prob_rspies should not have been called
+         * for these kind of devices
+         */
+        hddLog(LOGE, FL("Unexpected request for the current device type %d"),
+               pHostapdAdapter->device_mode);
+        return;
+    }
+    if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pHostapdAdapter),
+                      pHostapdAdapter->sessionId,
+                      bssid,
+                      NULL,
+                      0,
+                      VOS_TRUE) == eHAL_STATUS_FAILURE)
     {
-        hddLog(LOGE,
-           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM");
+        hddLog(LOGE, "Could not pass on Additional IE data to PE");
     }
 }
 
