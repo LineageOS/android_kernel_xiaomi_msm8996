@@ -11418,7 +11418,7 @@ tANI_BOOLEAN csrRoamIsValid40MhzChannel(tpAniSirGlobal pMac, tANI_U8 channel)
                || (((NULL != &(pIes->WPA)) &&
                     (pIes->WPA.unicast_cipher_count == 1))
                     && ((NULL != &(pIes->WPA.unicast_ciphers[0]))
-                        && memcmp(&(pIes->WPA.unicast_ciphers[0]),
+                        && !memcmp(&(pIes->WPA.unicast_ciphers[0]),
                                   "\x00\x0f\xac\x02", 4))))
             {
                 smsLog(pMac, LOGW, " No channel bonding in TKIP mode ");
