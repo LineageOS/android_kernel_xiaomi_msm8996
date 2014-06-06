@@ -145,6 +145,7 @@
 #define WMA_SCAN_NPROBES_DEFAULT            (2)
 #define WMA_SCAN_IDLE_TIME_DEFAULT          (25)
 #define WMA_P2P_SCAN_MAX_BURST_DURATION     (180)
+#define WMA_CTS_DURATION_MS_MAX             (32)
 
 /* Roaming default values
  * All time and period values are in milliseconds.

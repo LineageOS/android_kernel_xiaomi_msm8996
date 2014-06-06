@@ -4569,6 +4569,64 @@ bool wma_check_scan_in_progress(WMA_HANDLE handle)
 	return false;
 }
 
+v_BOOL_t wma_is_SAP_active(tp_wma_handle wma_handle)
+{
+	int i;
+
+	for (i = 0; i < wma_handle->max_bssid; i++) {
+		if (!wma_handle->interfaces[i].vdev_up)
+			continue;
+		if (wma_handle->interfaces[i].type == WMI_VDEV_TYPE_AP &&
+		    wma_handle->interfaces[i].sub_type == 0)
+			return TRUE;
+	}
+	return FALSE;
+}
+
+v_BOOL_t wma_is_P2P_GO_active(tp_wma_handle wma_handle)
+{
+	int i;
+
+	for (i = 0; i < wma_handle->max_bssid; i++) {
+		if (!wma_handle->interfaces[i].vdev_up)
+			continue;
+		if (wma_handle->interfaces[i].type == WMI_VDEV_TYPE_AP &&
+		    wma_handle->interfaces[i].sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_GO)
+			return TRUE;
+	}
+	return FALSE;
+}
+
+v_BOOL_t wma_is_P2P_CLI_active(tp_wma_handle wma_handle)
+{
+	int i;
+
+	for (i = 0; i < wma_handle->max_bssid; i++) {
+		if (!wma_handle->interfaces[i].vdev_up)
+			continue;
+		if (wma_handle->interfaces[i].type == WMI_VDEV_TYPE_STA &&
+		    wma_handle->interfaces[i].sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT)
+			return TRUE;
+	}
+	return FALSE;
+}
+
+v_BOOL_t wma_is_STA_active(tp_wma_handle wma_handle)
+{
+	int i;
+
+	for (i = 0; i < wma_handle->max_bssid; i++) {
+		if (!wma_handle->interfaces[i].vdev_up)
+			continue;
+		if (wma_handle->interfaces[i].type == WMI_VDEV_TYPE_STA &&
+		    wma_handle->interfaces[i].sub_type == 0)
+			return TRUE;
+		if (wma_handle->interfaces[i].type == WMI_VDEV_TYPE_IBSS)
+			return TRUE;
+	}
+	return FALSE;
+}
+
 
 /* function   : wma_get_buf_start_scan_cmd
  * Descriptin :
@@ -4688,6 +4746,39 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		if (scan_req->scanType == eSIR_PASSIVE_SCAN)
 			cmd->scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
 		cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
+		/*
+		 * Decide burst_duration and dwell_time_active based on
+		 * what type of devices are active.
+		 */
+		do {
+		    if (wma_is_SAP_active(wma_handle)) {
+			/* Background scan while SoftAP is sending beacons.
+			 * Max duration of CTS2self is 32 ms, which limits
+			 * the dwell time.
+			 */
+		        cmd->dwell_time_active = MIN(scan_req->maxChannelTime,
+				(WMA_CTS_DURATION_MS_MAX - WMA_ROAM_SCAN_CHANNEL_SWITCH_TIME));
+			cmd->dwell_time_passive = cmd->dwell_time_active;
+			cmd->burst_duration = 0;
+			break;
+		    }
+		    if (wma_is_P2P_GO_active(wma_handle)) {
+			/* Background scan while GO is sending beacons.
+			 * Every off-channel transition has overhead of 2 beacon
+			 * intervals for NOA. Maximize number of channels in
+			 * every transition by using burst scan.
+			 */
+			cmd->burst_duration = scan_req->maxChannelTime;
+			break;
+		    }
+		    if (wma_is_STA_active(wma_handle) ||
+			wma_is_P2P_CLI_active(wma_handle)) {
+			/* Typical background scan. Disable burst scan for now. */
+			cmd->burst_duration = 0;
+			break;
+		    }
+		} while (0);
+
 	}
 	else {
 		WMA_LOGD("P2P Scan");
