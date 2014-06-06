@@ -1760,6 +1760,14 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             }
         }
 
+        if (pRoamInfo) {
+           if ((eSIR_SME_JOIN_TIMEOUT_RESULT_CODE == pRoamInfo->statusCode) ||
+               (eSIR_SME_AUTH_TIMEOUT_RESULT_CODE == pRoamInfo->statusCode) ||
+               (eSIR_SME_ASSOC_TIMEOUT_RESULT_CODE == pRoamInfo->statusCode)) {
+              wlan_hdd_cfg80211_update_bss_list(pAdapter, pRoamInfo);
+           }
+        }
+
         /*Clear the roam profile*/
         hdd_clearRoamProfileIe( pAdapter );
         if (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) {
