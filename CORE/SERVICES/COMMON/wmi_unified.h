@@ -607,6 +607,8 @@ typedef enum {
 
     /** Modem power state command */
     WMI_MODEM_POWER_STATE_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_COEX),
+    WMI_CHAN_AVOID_UPDATE_CMDID,
+
     /**
      *  OBSS scan offload enable/disable commands
      *  OBSS scan enable CMD will send to FW after VDEV UP, if these conditions are true:
@@ -6878,6 +6880,24 @@ typedef enum {
     WMI_FRAME_TX_DROP,          /* frame dropped by FW due to resources */
     WMI_FRAME_TX_FILTERED,      /* frame filtered by hardware */
 } WMI_FRAME_TX_STATUS;
+
+/**
+ * This command is sent from WLAN host driver to firmware to
+ * request firmware to send the latest channel avoidance range
+ * to host.
+ *
+ * This command is only applicable for APQ platform which has
+ * modem on the platform. If firmware doesn't support MWS Coex,
+ * this command can be dropped by firmware.
+ *
+ * Host would send this command to firmware to request a channel
+ * avoidance information update.
+ */
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_chan_avoid_update_cmd_param */
+    A_UINT32 tlv_header;
+} wmi_chan_avoid_update_cmd_param;
 
 #ifdef __cplusplus
 }

@@ -437,6 +437,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_host_auto_shutdown_cfg_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_host_auto_shutdown_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_update_whal_mib_stats_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_chan_avoid_update_cmd_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -595,7 +596,8 @@ typedef enum {
     OP(WMI_OBSS_SCAN_ENABLE_CMDID) \
     OP(WMI_OBSS_SCAN_DISABLE_CMDID)\
     OP(WMI_PDEV_SET_LED_CONFIG_CMDID)\
-    OP(WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID)
+    OP(WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID) \
+    OP(WMI_CHAN_AVOID_UPDATE_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -1600,6 +1602,10 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_SET_LED_CONFIG_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_host_auto_shutdown_cfg_cmd_fixed_param, wmi_host_auto_shutdown_cfg_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID);
 
+/* Ch avoidance update cmd */
+#define WMITLV_TABLE_WMI_CHAN_AVOID_UPDATE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_chan_avoid_update_cmd_param, wmi_chan_avoid_update_cmd_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_CHAN_AVOID_UPDATE_CMDID);
 
 /************************** TLV definitions of WMI events *******************************/
 
