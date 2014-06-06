@@ -4623,8 +4623,12 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		       WMITLV_GET_STRUCT_TLVLEN(
 			       wmi_start_scan_cmd_fixed_param));
 
+	if (wma_handle->scan_id >= WMA_MAX_SCAN_ID)
+		wma_handle->scan_id = 0;
+
 	cmd->vdev_id = scan_req->sessionId;
-	/*TODO: Populate actual values */
+	/* host cycles through the lower 12 bits of
+	   wma_handle->scan_id to generate ids */
 	cmd->scan_id = WMA_HOST_SCAN_REQID_PREFIX | ++wma_handle->scan_id;
 	cmd->scan_priority = WMA_DEFAULT_SCAN_PRIORITY;
 	cmd->scan_req_id = WMA_HOST_SCAN_REQUESTOR_ID_PREFIX |
@@ -4943,6 +4947,10 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	wma_set_scan_info(wma_handle, cmd->scan_id,
 			cmd->scan_req_id, cmd->vdev_id,
 			scan_req->p2pScanType);
+
+	WMA_LOGE("scan_id %x, vdev_id %x, scan type %x, msg_type %x",
+			cmd->scan_id, cmd->vdev_id, scan_req->p2pScanType,
+			msg_type);
 
 	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
 			len, WMI_START_SCAN_CMDID);
@@ -17142,8 +17150,11 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
         if (wma_handle->roam_preauth_scan_id == wmi_event->scan_id) {
                 /* This is the scan requested by roam preauth set_channel operation */
 
-		if (wmi_event->event == WMI_SCAN_EVENT_COMPLETED)
+		if (wmi_event->event == WMI_SCAN_EVENT_COMPLETED) {
+			WMA_LOGE(" roam scan complete - scan_id %x, vdev_id %x",
+					wmi_event->scan_id, vdev_id);
 			wma_reset_scan_info(wma_handle, vdev_id);
+		}
 
                 wma_roam_preauth_scan_event_handler(wma_handle, vdev_id, wmi_event);
                 return 0;
@@ -17194,8 +17205,9 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 
         /* Stop the scan completion timeout if the event is WMI_SCAN_EVENT_COMPLETED */
         if (scan_event->event == (tSirScanEventType)WMI_SCAN_EVENT_COMPLETED) {
-		WMA_LOGI("Received WMI_SCAN_EVENT_COMPLETED, Stoping the scan timer");
-                vos_status = vos_timer_stop(&wma_handle->wma_scan_comp_timer);
+                WMA_LOGE(" scan complete - scan_id %x, vdev_id %x",
+		wmi_event->scan_id, vdev_id);
+		 vos_status = vos_timer_stop(&wma_handle->wma_scan_comp_timer);
                 if (vos_status != VOS_STATUS_SUCCESS) {
 			WMA_LOGE("Failed to stop the scan completion timeout");
 			vos_mem_free(scan_event);

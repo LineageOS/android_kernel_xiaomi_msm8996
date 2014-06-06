@@ -124,7 +124,7 @@
 
 #ifdef WMA_DEBUG_ALWAYS
 #define WMA_LOGA(fmt, args...) \
-	printk(KERN_INFO "\n%s-%d: " fmt, __func__, __LINE__, ## args)
+	printk(KERN_INFO "%s-%d: " fmt"\n", __func__, __LINE__, ## args)
 #else
 #define WMA_LOGA(fmt, args...)
 #endif
@@ -1516,6 +1516,8 @@ u_int16_t   dfs_usenol(struct ieee80211com *ic);
 #define WMA_SMPS_MASK_LOWER_16BITS 0xFF
 #define WMA_SMPS_MASK_UPPER_3BITS 0x7
 #define WMA_SMPS_PARAM_VALUE_S 29
+
+#define WMA_MAX_SCAN_ID        0x0FFF
 
 /* U-APSD Access Categories */
 enum uapsd_ac {
