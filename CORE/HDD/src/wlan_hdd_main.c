@@ -12007,6 +12007,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #ifdef WLAN_FEATURE_STATS_EXT
    wlan_hdd_cfg80211_stats_ext_init(pHddCtx);
 #endif
+#ifdef FEATURE_WLAN_EXTSCAN
+    sme_ExtScanRegisterCallback(pHddCtx->hHal,
+                                wlan_hdd_cfg80211_extscan_callback);
+#endif /* FEATURE_WLAN_EXTSCAN */
 
 #ifdef WLAN_FEATURE_LPSS
    wlan_hdd_send_status_pkg(pAdapter, NULL, 1, 0);
