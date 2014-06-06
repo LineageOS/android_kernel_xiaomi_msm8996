@@ -255,13 +255,15 @@ eHalStatus sme_Open(tHalHandle hHal);
 
   \param hal - The handle returned by macOpen.
 
+  \param alpha2 - Country code passed by the hdd context.
+
   \return eHAL_STATUS_SUCCESS - SME is successfully initialized.
 
         Other status means SME is failed to be initialized
   \sa
 
 ---------------------------------------------------------------------------*/
-eHalStatus sme_init_chan_list(tHalHandle hal);
+eHalStatus sme_init_chan_list(tHalHandle hal, v_U8_t *alpha2);
 
 /*--------------------------------------------------------------------------
 

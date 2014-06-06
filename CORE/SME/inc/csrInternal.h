@@ -1359,7 +1359,7 @@ eHalStatus csrOpen(tpAniSirGlobal pMac);
      which, for discrete, will come from targer fw.
     \return eHalStatus
   -------------------------------------------------------------------------------*/
-eHalStatus csr_init_chan_list(tpAniSirGlobal mac);
+eHalStatus csr_init_chan_list(tpAniSirGlobal mac, v_U8_t *alpha2);
 
 /* ---------------------------------------------------------------------------
     \fn csrClose

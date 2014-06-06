@@ -895,7 +895,6 @@ typedef enum
 
 #endif
 
-
 #define WLAN_HDD_ADAPTER_MAGIC 0x574c414e //ASCII "WLAN"
 
 struct hdd_adapter_s
@@ -1092,6 +1091,10 @@ struct hdd_adapter_s
    v_U8_t configuredPsb;
 #ifdef IPA_OFFLOAD
     void *ipa_context;
+#endif
+#ifdef WLAN_FEATURE_MBSSID
+    /* this need to be adapter struct since adapter type can be dyn changed */
+    mbssid_sap_dyn_ini_config_t sap_dyn_ini_cfg;
 #endif
 #ifdef MSM_PLATFORM
     unsigned long prev_rx_packets;

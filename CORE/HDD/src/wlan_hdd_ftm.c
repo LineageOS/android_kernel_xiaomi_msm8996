@@ -875,7 +875,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
       goto err_mac_close;
    }
 
-   vStatus = sme_init_chan_list(gpVosContext->pMACContext);
+   vStatus = sme_init_chan_list(gpVosContext->pMACContext, pHddCtx->reg.alpha2);
    if (!VOS_IS_STATUS_SUCCESS(vStatus)) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to init sme channel list", __func__);
