@@ -583,7 +583,7 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 		//dump_CE_debug_register(scn->hif_sc);
 		adf_os_atomic_dec(&wmi_handle->pending_cmds);
 		pr_err("%s: MAX 1024 WMI Pending cmds reached.\n", __func__);
-		VOS_ASSERT(0);
+		VOS_BUG(0);
 		return -EBUSY;
 	}
 

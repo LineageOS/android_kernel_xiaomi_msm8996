@@ -140,6 +140,9 @@ typedef struct sSirProbeRespBeacon
     tANI_U8                   WiderBWChanSwitchAnnPresent;
     tDot11fIEWiderBWChanSwitchAnn WiderBWChanSwitchAnn;
 #endif
+    tANI_U8                   Vendor1IEPresent;
+    tANI_U8                   Vendor2IEPresent;
+    tANI_U8                   Vendor3IEPresent;
 
 } tSirProbeRespBeacon, *tpSirProbeRespBeacon;
 

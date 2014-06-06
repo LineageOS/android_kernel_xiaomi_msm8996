@@ -2019,6 +2019,18 @@ IE ESERadMgmtCap (EID_VENDOR_SPECIFIC) OUI (0x00, 0x40, 0x96, 0x01)
 
 }
 
+IE Vendor1IE (EID_VENDOR_SPECIFIC) OUI (0x00, 0x10, 0x18)
+{
+}
+
+IE Vendor2IE (EID_VENDOR_SPECIFIC) OUI (0x00, 0x90, 0x4C)
+{
+}
+
+IE Vendor3IE (EID_VENDOR_SPECIFIC) OUI (0x00, 0x16, 0x32)
+{
+}
+
 IE ESETrafStrmMet (EID_VENDOR_SPECIFIC) OUI (0x00, 0x40, 0x96, 0x07)
 {
     tsid,           1;
@@ -3342,7 +3354,10 @@ FRAME Beacon                              // C.f. Sec. 7.2.3.1
     OPTIE  ExtCap;
     OPTIE  OperatingMode;
     OPTIE  WiderBWChanSwitchAnn;
-	OPTIE  OBSSScanParameters;
+    OPTIE  OBSSScanParameters;
+    OPTIE  Vendor1IE;
+    OPTIE  Vendor2IE;
+    OPTIE  Vendor3IE;
 } // End frame Beacon.
 
 // Ok, here's  the story on  Beacon1 & Beacon2.   We presumably beacon  a lot
@@ -3422,6 +3437,9 @@ FRAME Beacon2
     OPTIE  ExtCap;
     OPTIE  OperatingMode;
     OPTIE  WiderBWChanSwitchAnn;
+    OPTIE  Vendor1IE;
+    OPTIE  Vendor2IE;
+    OPTIE  Vendor3IE;
 }
 
 // This frame is just Beacon with its Fixed Fields stripped out.  It's handy
@@ -3478,7 +3496,10 @@ FRAME BeaconIEs
     OPTIE  ExtCap;
     OPTIE  OperatingMode;
     OPTIE  WiderBWChanSwitchAnn;
-	OPTIE  OBSSScanParameters;
+    OPTIE  OBSSScanParameters;
+    OPTIE  Vendor1IE;
+    OPTIE  Vendor2IE;
+    OPTIE  Vendor3IE;
 
 } // End frame BeaconIEs.
 
@@ -3683,7 +3704,10 @@ FRAME ProbeResponse                       // 7.2.3.9
     OPTIE  VHTOperation;
     OPTIE  VHTExtBssLoad;
     OPTIE  ExtCap;
-	OPTIE  OBSSScanParameters;
+    OPTIE  OBSSScanParameters;
+    OPTIE  Vendor1IE;
+    OPTIE  Vendor2IE;
+    OPTIE  Vendor3IE;
 } // End frame ProbeResponse.
 
 FRAME Authentication                      // 7.2.3.10

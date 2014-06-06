@@ -6366,11 +6366,9 @@ void hdd_dfs_indicate_radar(void *context, void *param)
             {
                 WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->dfs_cac_block_tx = VOS_TRUE;
             }
-            else
-            {
-                status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
-                pAdapterNode = pNext;
-            }
+
+            status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+            pAdapterNode = pNext;
         }
     }
 }

@@ -600,6 +600,8 @@ eHalStatus csrScanGetBaseChannels( tpAniSirGlobal pMac, tCsrChannelInfo * pChann
 eHalStatus csrQueueSmeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fHighPriority );
 tSmeCmd *csrGetCommandBuffer( tpAniSirGlobal pMac );
 void csrReleaseCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand);
+void csrScanFlushBssEntry(tpAniSirGlobal pMac,
+                                 tpSmeCsaOffloadInd pCsaOffloadInd);
 #ifdef FEATURE_WLAN_WAPI
 tANI_BOOLEAN csrIsProfileWapi( tCsrRoamProfile *pProfile );
 #endif /* FEATURE_WLAN_WAPI */

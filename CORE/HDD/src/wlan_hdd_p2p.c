@@ -180,10 +180,14 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
 {
     hdd_adapter_t *pAdapter = (hdd_adapter_t*) pCtx;
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
-    hdd_remain_on_chan_ctx_t *pRemainChanCtx = cfgState->remain_on_chan_ctx;
+    hdd_remain_on_chan_ctx_t *pRemainChanCtx;
+
+    mutex_lock(&cfgState->remain_on_chan_ctx_lock);
+    pRemainChanCtx = cfgState->remain_on_chan_ctx;
 
     if( pRemainChanCtx == NULL )
     {
+       mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
        hddLog( LOGW,
           "%s: No Rem on channel pending for which Rsp is received", __func__);
        return eHAL_STATUS_SUCCESS;
@@ -193,7 +197,6 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
     vos_timer_stop(&pRemainChanCtx->hdd_remain_on_chan_timer);
     vos_timer_destroy(&pRemainChanCtx->hdd_remain_on_chan_timer);
 
-    mutex_lock(&cfgState->remain_on_chan_ctx_lock);
     cfgState->remain_on_chan_ctx = NULL;
     mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
 
@@ -447,21 +450,25 @@ void wlan_hdd_remain_on_chan_timeout(void *data)
     }
 
     cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+    mutex_lock(&cfgState->remain_on_chan_ctx_lock);
     pRemainChanCtx = cfgState->remain_on_chan_ctx;
 
     if(NULL == pRemainChanCtx)
     {
+        mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
         hddLog( LOGE,"%s: No Remain on channel is pending", __func__);
         return;
     }
 
     if ( TRUE == pRemainChanCtx->hdd_remain_on_chan_cancel_in_progress )
     {
+        mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
         hddLog( LOGE, FL("Cancellation already in progress"));
         return;
     }
 
     pRemainChanCtx->hdd_remain_on_chan_cancel_in_progress = TRUE;
+    mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
     hddLog( LOG1,"%s: Cancel Remain on Channel on timeout", __func__);
 
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
@@ -581,6 +588,10 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
          hddLog(VOS_TRACE_LEVEL_ERROR,
              "%s: Not able to initalize remain_on_chan timer",__func__);
     }
+
+    mutex_lock(&cfgState->remain_on_chan_ctx_lock);
+    cfgState->remain_on_chan_ctx = pRemainChanCtx;
+    mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
 
     status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
     while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )

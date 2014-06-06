@@ -230,7 +230,10 @@ static void hif_usb_remove(struct usb_interface *interface)
 		return;
 
 	HIFDiagWriteWARMRESET(interface, 0, 0);
-	sc->local_state.event = 0;
+	if (usb_sc->local_state.event != 0) {
+		hif_usb_resume(usb_sc->interface);
+		usb_sc->local_state.event = 0;
+	}
 	unregister_reboot_notifier(&sc->reboot_notifier);
 
 	usb_put_dev(interface_to_usbdev(interface));

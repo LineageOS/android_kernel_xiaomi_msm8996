@@ -158,7 +158,7 @@ struct hdd_ipa_iface_context {
 
 	uint8_t iface_id; /* This iface ID */
 	uint8_t sta_id; /* This iface station ID */
-	vos_spin_lock_t interface_lock;
+	adf_os_spinlock_t interface_lock;
 	uint32_t ifa_address;
 };
 
@@ -722,8 +722,8 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 		rxt = priv;
 
 		adapter = hdd_ipa->hdd_ctx->sta_to_adapter[rxt->sta_id];
-		if (!adapter ||
-		(adapter && adapter->magic != WLAN_HDD_ADAPTER_MAGIC)) {
+		if (!adapter || !adapter->ipa_context ||
+                        adapter->magic != WLAN_HDD_ADAPTER_MAGIC) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Invalid sta_id");
 			buf = rxt->rx_buf_list;
 			while (buf) {
@@ -739,12 +739,6 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 
 		iface_context =
 			(struct hdd_ipa_iface_context *) adapter->ipa_context;
-		if (iface_context) {
-			vos_spin_lock_acquire(&iface_context->interface_lock);
-		}
-		else {
-			return;
-		}
 
 		/* send_desc_head is a anchor node */
 		send_desc_head = hdd_ipa_get_desc_from_freeq();
@@ -767,7 +761,6 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
 			hdd_ipa->stats.rxt_dh_drop++;
 #endif
-			vos_spin_lock_release(&iface_context->interface_lock);
 			return;
 		}
 
@@ -818,7 +811,6 @@ static void hdd_ipa_process_evt(int evt, void *priv)
 #endif
 			buf = next_buf;
 		}
-		vos_spin_lock_release(&iface_context->interface_lock);
 
 #ifdef HDD_IPA_EXTRA_DP_COUNTERS
 		if (cur_cnt == 0)
@@ -1105,20 +1097,19 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 
 		hdd_ipa->stats.tx_ipa_recv++;
 
-		vos_spin_lock_acquire(&iface_context->interface_lock);
-		if (iface_context->adapter) {
-			interface_id = iface_context->adapter->sessionId;
-		}
-		else{
+		adf_os_spin_lock_bh(&iface_context->interface_lock);
+		if (!iface_context->adapter) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_WARN, "Interface Down");
 			ipa_free_skb(ipa_tx_desc);
-			vos_spin_lock_release(&iface_context->interface_lock);
+			adf_os_spin_unlock_bh(&iface_context->interface_lock);
 			return;
 		}
-		vos_spin_lock_release(&iface_context->interface_lock);
 
+		interface_id = iface_context->adapter->sessionId;
 		++iface_context->adapter->stats.tx_packets;
 		iface_context->adapter->stats.tx_bytes += ipa_tx_desc->skb->len;
+
+		adf_os_spin_unlock_bh(&iface_context->interface_lock);
 
 		skb = WLANTL_SendIPA_DataFrame(hdd_ipa->hdd_ctx->pvosContext,
 				iface_context->tl_context, ipa_tx_desc->skb, interface_id);
@@ -1485,11 +1476,11 @@ static void hdd_ipa_cleanup_iface(struct hdd_ipa_iface_context *iface_context)
 
 	hdd_ipa_clean_hdr(iface_context->adapter);
 
-	vos_spin_lock_acquire(&iface_context->interface_lock);
+	adf_os_spin_lock_bh(&iface_context->interface_lock);
 	iface_context->adapter->ipa_context = NULL;
 	iface_context->adapter = NULL;
 	iface_context->tl_context = NULL;
-	vos_spin_lock_release(&iface_context->interface_lock);
+	adf_os_spin_unlock_bh(&iface_context->interface_lock);
 	iface_context->ifa_address = 0;
 }
 
@@ -1941,7 +1932,7 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 		iface_context->prod_client =
 			hdd_ipa_adapter_2_client[i].prod_client;
 		iface_context->iface_id = i;
-		vos_spin_lock_init(&iface_context->interface_lock);
+		adf_os_spinlock_init(&iface_context->interface_lock);
 	}
 
 	ret = hdd_ipa_setup_rm(hdd_ipa);
@@ -1989,7 +1980,7 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 	/* destory the interface lock */
 	for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
 		iface_context = &hdd_ipa->iface_context[i];
-		vos_spin_lock_destroy(&iface_context->interface_lock);
+		adf_os_spinlock_destroy(&iface_context->interface_lock);
 	}
 
 	hdd_ipa_debugfs_remove(hdd_ipa);

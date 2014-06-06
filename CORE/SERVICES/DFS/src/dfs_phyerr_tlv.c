@@ -170,6 +170,7 @@ radar_summary_parse(struct ath_dfs *dfs, const char *buf, size_t len,
     struct rx_radar_status *rsu)
 {
    uint32_t rs[2];
+   int freq_centre, freq;
 
    /* Drop out if we have < 2 DWORDs available */
    if (len < sizeof(rs)) {
@@ -211,6 +212,33 @@ radar_summary_parse(struct ath_dfs *dfs, const char *buf, size_t len,
            6);
    rsu->delta_diff =
        MS(rs[RADAR_REPORT_PULSE_REG_1], RADAR_REPORT_PULSE_DELTA_DIFF);
+
+   /* WAR for FCC Type 4*/
+   /*
+    * HW is giving longer pulse duration (in case of VHT80, with traffic)
+    * which fails to detect FCC type4 radar pulses. Added a work around to
+    * fix the pulse duration and duration delta.
+    *
+    * IF VHT80
+    *   && (primary_channel==30MHz || primary_channel== -30MHz)
+    *   && -4 <= pulse_index <= 4
+    *   && !chirp
+    *   && pulse duration > 20 us
+    * THEN
+    *   Set pulse duration to 20 us
+    */
+
+   freq = ieee80211_chan2freq(dfs->ic, dfs->ic->ic_curchan);
+   freq_centre = dfs->ic->ic_curchan->ic_vhtop_ch_freq_seg1;
+
+   if ((IEEE80211_IS_CHAN_11AC_VHT80(dfs->ic->ic_curchan) &&
+            (abs(freq - freq_centre) == 30) &&
+            !rsu->is_chirp &&
+            abs(rsu->sidx) <= 4 &&
+            rsu->pulse_duration > 20)){
+      rsu->pulse_duration = 20;
+   }
+
 }
 
 static void
@@ -401,9 +429,7 @@ tlv_calc_freq_info(struct ath_dfs *dfs, struct rx_radar_status *rs)
        * appropriately!
        */
 
-      chan_centre = dfs->ic->ic_ieee2mhz(
-          dfs->ic->ic_curchan->ic_vhtop_ch_freq_seg1,
-          dfs->ic->ic_curchan->ic_flags);
+      chan_centre = dfs->ic->ic_curchan->ic_vhtop_ch_freq_seg1;
    } else {
       /* HT20/HT40 */
 
