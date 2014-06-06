@@ -432,6 +432,14 @@ typedef enum {
     WMI_WOW_ENABLE_CMDID,
     /** host woke up from sleep event to FW. Generated in response to WOW Hardware event */
     WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID,
+    /* Acer IOAC add keep alive cmd. */
+    WMI_WOW_ACER_IOAC_ADD_KEEPALIVE_CMDID,
+    /* Acer IOAC del keep alive cmd. */
+    WMI_WOW_ACER_IOAC_DEL_KEEPALIVE_CMDID,
+    /* Acer IOAC add pattern for awake */
+    WMI_WOW_ACER_IOAC_ADD_WAKE_PATTERN_CMDID,
+    /* Acer IOAC deleta a wake pattern */
+    WMI_WOW_ACER_IOAC_DEL_WAKE_PATTERN_CMDID,
 
     /* RTT measurement related cmd */
     /** reques to make an RTT measurement */
@@ -4812,8 +4820,17 @@ when comparing wifi header.*/
 #define WOW_DEFAULT_BITMASK_SIZE_DWORD        37
 #define WOW_MAX_BITMAP_FILTERS               32
 #define WOW_DEFAULT_MAGIG_PATTERN_MATCH_CNT  16
+#define WOW_ACER_EXTEND_PATTERN_MATCH_CNT    16
+#define WOW_ACER_SHORT_PATTERN_MATCH_CNT     8
 #define WOW_DEFAULT_EVT_BUF_SIZE             148  /* Maximum 148 bytes of the data is copied starting from header incase if the match is found.
                                                                                     The 148 comes from (128 - 14 )  payload size  + 8bytes LLC + 26bytes MAC header*/
+#define WOW_DEFAULT_ACER_IOAC_PATTERN_SIZE  6
+#define WOW_DEFAULT_ACER_IOAC_PATTERN_SIZE_DWORD 2
+#define WOW_DEFAULT_ACER_IOAC_RANDOM_SIZE  6
+#define WOW_DEFAULT_ACER_IOAC_RANDOM_SIZE_DWORD 2
+#define WOW_DEFAULT_ACER_IOAC_KEEP_ALIVE_PKT_SIZE   120
+#define WOW_DEFAULT_ACER_IOAC_KEEP_ALIVE_PKT_SIZE_DWORD 30
+
 typedef enum pattern_type_e {
     WOW_PATTERN_MIN = 0,
     WOW_BITMAP_PATTERN = WOW_PATTERN_MIN,
@@ -4823,6 +4840,8 @@ typedef enum pattern_type_e {
     WOW_TIMER_PATTERN,
     WOW_MAGIC_PATTERN,
     WOW_IPV6_RA_PATTERN,
+    WOW_ACER_IOAC_PKT_PATTERN,
+    WOW_ACER_IOAC_TMR_PATTERN,
     WOW_PATTERN_MAX
 }WOW_PATTERN_TYPE;
 
@@ -4844,6 +4863,10 @@ typedef enum event_type_e {
     WOW_HTT_EVENT,
     WOW_RA_MATCH_EVENT,
     WOW_HOST_AUTO_SHUTDOWN_EVENT,
+    WOW_ACER_IOAC_MAGIC_EVENT,
+    WOW_ACER_IOAC_SHORT_EVENT,
+    WOW_ACER_IOAC_EXTEND_EVENT,
+    WOW_ACER_IOAC_TIMER_EVENT,
 }WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -4868,6 +4891,10 @@ typedef enum wake_reason_e {
     WOW_REASON_HTT_EVENT,
     WOW_REASON_RA_MATCH,
     WOW_REASON_HOST_AUTO_SHUTDOWN,
+    WOW_REASON_ACER_IOAC_MAGIC_EVENT,
+    WOW_REASON_ACER_IOAC_SHORT_EVENT,
+    WOW_REASON_ACER_IOAC_EXTEND_EVENT,
+    WOW_REASON_ACER_IOAC_TIMER_EVENT,
     WOW_REASON_DEBUG_TEST = 0xFF,
 }WOW_WAKE_REASON_TYPE;
 
@@ -4913,6 +4940,64 @@ typedef struct WOW_MAGIC_PATTERN_CMD
     A_UINT32     tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WOW_MAGIC_PATTERN_CMD */
 	wmi_mac_addr macaddr;
 }WOW_MAGIC_PATTERN_CMD;
+
+typedef enum wow_ioac_pattern_type {
+    WOW_IOAC_MAGIC_PATTERN = 1,
+    WOW_IOAC_SHORT_PATTERN,
+    WOW_IOAC_EXTEND_PATTERN,
+} WOW_IOAC_PATTERN_TYPE;
+
+typedef struct acer_ioac_pkt_pattern_s {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WOW_ACER_IOAC_PKT_PATTERN_T */
+    A_UINT32 pattern_type;
+    A_UINT32 pattern[WOW_DEFAULT_ACER_IOAC_PATTERN_SIZE_DWORD];
+    A_UINT32 random[WOW_DEFAULT_ACER_IOAC_RANDOM_SIZE_DWORD];
+    A_UINT32 pattern_len;
+    A_UINT32 random_len;
+} WOW_ACER_IOAC_PKT_PATTERN_T;
+
+typedef struct acer_ioac_tmr_pattern_s {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WOW_ACER_IOAC_TMR_PATTERN_T */
+    A_UINT32 wake_in_s;
+    A_UINT32 vdev_id;
+} WOW_ACER_IOAC_TMR_PATTERN_T;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_WOW_IOAC_ADD_KEEPALIVE_CMD_fixed_param */
+    A_UINT32 nID;
+} WMI_WOW_IOAC_ADD_KEEPALIVE_CMD_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_WOW_IOAC_DEL_KEEPALIVE_CMD_fixed_param */
+    A_UINT32 nID;
+} WMI_WOW_IOAC_DEL_KEEPALIVE_CMD_fixed_param;
+
+typedef struct acer_ioac_keepalive_s {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WOW_IOAC_KEEPALIVE_T */
+    A_UINT32 keepalive_pkt_buf[WOW_DEFAULT_ACER_IOAC_KEEP_ALIVE_PKT_SIZE_DWORD];
+    A_UINT32 keepalive_pkt_len;
+    A_UINT32 period_in_ms;
+    A_UINT32 vdev_id;
+} WOW_IOAC_KEEPALIVE_T;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_WOW_ACER_IOAC_ADD_PATTERN_CMD_fixed_param */
+    A_UINT32 vdev_id;
+    A_UINT32 pattern_type;
+/*
+ * Following this struct are these TLVs. Note that they are all array of structures
+ * but can have at most one element. Which TLV is empty or has one element depends
+ * on the field pattern_type. This is to emulate an union.
+ *     WOW_ACER_IOAC_PKT_PATTERN_T pattern_info_acer_pkt[];
+ *     WOW_ACER_IOAC_TMR_PATTERN_T pattern_info_acer_tmr[];
+ */
+} WMI_WOW_ACER_IOAC_ADD_PATTERN_CMD_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_WOW_ACER_IOAC_DEL_PATTERN_CMD_fixed_param */
+    A_UINT32 vdev_id;
+    A_UINT32 pattern_type;
+} WMI_WOW_ACER_IOAC_DEL_PATTERN_CMD_fixed_param;
 
 typedef struct {
     A_UINT32        tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_WOW_ADD_PATTERN_CMD_fixed_param */
