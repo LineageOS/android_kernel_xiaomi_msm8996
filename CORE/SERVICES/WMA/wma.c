@@ -4785,7 +4785,39 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 			 * intervals for NOA. Maximize number of channels in
 			 * every transition by using burst scan.
 			 */
-			cmd->burst_duration = scan_req->maxChannelTime;
+			if (IS_MIRACAST_SESSION_PRESENT(pMac)) {
+				/* When miracast is running, burst duration
+				 * needs to be minimum to avoid any stutter
+				 * or glitch in miracast during station scan
+				 */
+				if (scan_req->maxChannelTime <=
+					WMA_GO_MIN_ACTIVE_SCAN_BURST_DURATION)
+					cmd->burst_duration =
+						scan_req->maxChannelTime;
+				else
+					cmd->burst_duration =
+					WMA_GO_MIN_ACTIVE_SCAN_BURST_DURATION;
+			}
+			else {
+				/* If miracast is not running, accomodate max
+				 * stations to make the scans faster
+				 */
+				cmd->burst_duration =
+					WMA_BURST_SCAN_MAX_NUM_OFFCHANNELS *
+					scan_req->maxChannelTime;
+				if (cmd->burst_duration >
+				WMA_GO_MAX_ACTIVE_SCAN_BURST_DURATION) {
+					u_int8_t channels =
+						WMA_P2P_SCAN_MAX_BURST_DURATION
+						/ scan_req->maxChannelTime;
+					if (channels)
+						cmd->burst_duration = channels *
+						scan_req->maxChannelTime;
+					else
+						cmd->burst_duration =
+					WMA_GO_MAX_ACTIVE_SCAN_BURST_DURATION;
+					}
+			}
 			break;
 		    }
 		    if (wma_is_STA_active(wma_handle) ||
