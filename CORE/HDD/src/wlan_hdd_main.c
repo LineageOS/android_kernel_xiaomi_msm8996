@@ -11501,6 +11501,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
           goto err_free_ftm_open;
       }
 #endif
+      vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded", __func__);
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
       complete(&wlan_start_comp);
