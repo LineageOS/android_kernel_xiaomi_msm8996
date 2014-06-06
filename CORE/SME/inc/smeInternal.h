@@ -155,6 +155,9 @@ typedef struct tagSmeStruct
     /* linkspeed callback */
     void (*pLinkSpeedIndCb) (tSirLinkSpeedInfo *indParam, void *pDevContext);
     void *pLinkSpeedCbContext;
+#ifdef FEATURE_WLAN_EXTSCAN
+    void (*pExtScanIndCb) (void *, const tANI_U16, void *);
+#endif /* FEATURE_WLAN_EXTSCAN */
 } tSmeStruct, *tpSmeStruct;
 
 

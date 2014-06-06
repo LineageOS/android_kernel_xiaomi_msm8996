@@ -3657,6 +3657,110 @@ v_BOOL_t sme_GetDFSScanMode(tHalHandle hHal);
     -------------------------------------------------------------------------*/
 tANI_BOOLEAN sme_staInMiddleOfRoaming(tHalHandle hHal);
 
+#ifdef FEATURE_WLAN_EXTSCAN
+/* ---------------------------------------------------------------------------
+    \fn sme_GetValidChannelsByBand
+    \brief  SME API to fetch all valid channel filtered by band
+    \param  hHal
+    \param  wifiBand: RF band information
+    \param  aValidChannels: Array to store channel info
+    \param  len: number of channels
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_GetValidChannelsByBand (tHalHandle hHal, tANI_U8 wifiBand,
+                              tANI_U32 *aValidChannels, tANI_U8 *pNumChannels);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ExtScanGetCapabilities
+    \brief  SME API to fetch extscan capabilities
+    \param  hHal
+    \param  pReq: extscan capabilities structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_ExtScanGetCapabilities (tHalHandle hHal,
+                                    tSirGetExtScanCapabilitiesReqParams *pReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ExtScanStart
+    \brief  SME API to issue extscan start
+    \param  hHal
+    \param  pStartCmd: extscan start structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_ExtScanStart (tHalHandle hHal,
+                          tSirWifiScanCmdReqParams *pStartCmd);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ExtScanStop
+    \brief  SME API to issue extscan stop
+    \param  hHal
+    \param  pStopReq: extscan stop structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_ExtScanStop(tHalHandle hHal,
+                           tSirExtScanStopReqParams *pStopReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetBssHotlist
+    \brief  SME API to set BSSID hotlist
+    \param  hHal
+    \param  pSetHotListReq: extscan set hotlist structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetBssHotlist (tHalHandle hHal,
+                          tSirExtScanSetBssidHotListReqParams *pSetHotListReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ResetBssHotlist
+    \brief  SME API to reset BSSID hotlist
+    \param  hHal
+    \param  pSetHotListReq: extscan set hotlist structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_ResetBssHotlist (tHalHandle hHal,
+                             tSirExtScanResetBssidHotlistReqParams *pResetReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetSignificantChange
+    \brief  SME API to set significant change
+    \param  hHal
+    \param  pSetSignificantChangeReq: extscan set significant change structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetSignificantChange (tHalHandle hHal,
+                   tSirExtScanSetSigChangeReqParams* pSetSignificantChangeReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ResetSignificantChange
+    \brief  SME API to reset significant change
+    \param  hHal
+    \param  pResetReq: extscan reset significant change structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_ResetSignificantChange (tHalHandle hHal,
+                        tSirExtScanResetSignificantChangeReqParams *pResetReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getCachedResults
+    \brief  SME API to get cached results
+    \param  hHal
+    \param  pCachedResultsReq: extscan get cached results structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_getCachedResults (tHalHandle hHal,
+                      tSirExtScanGetCachedResultsReqParams *pCachedResultsReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ExtScanRegisterCallback
+    \brief  SME API to register extscan notification callback
+    \param  pExtScanIndCb
+    \- return void
+    -------------------------------------------------------------------------*/
+eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
+                        void (*pExtScanIndCb)(void *, const tANI_U16, void *));
+
+#endif /* FEATURE_WLAN_EXTSCAN */
+
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /* ---------------------------------------------------------------------------
     \fn sme_abortRoamScan
