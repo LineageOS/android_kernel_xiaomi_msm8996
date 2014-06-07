@@ -134,6 +134,8 @@
 
 /* Prefix used by scan req ids generated on the host */
 #define WMA_HOST_SCAN_REQID_PREFIX	 0xA000
+/* Prefix used by roam scan req ids generated on the host */
+#define WMA_HOST_ROAM_SCAN_REQID_PREFIX  0xA800
 /* Prefix used by scan requestor id on host */
 #define WMA_HOST_SCAN_REQUESTOR_ID_PREFIX 0xA000
 #define WMA_HW_DEF_SCAN_MAX_DURATION	  30000 /* 30 secs */
@@ -1517,7 +1519,7 @@ u_int16_t   dfs_usenol(struct ieee80211com *ic);
 #define WMA_SMPS_MASK_UPPER_3BITS 0x7
 #define WMA_SMPS_PARAM_VALUE_S 29
 
-#define WMA_MAX_SCAN_ID        0x0FFF
+#define WMA_MAX_SCAN_ID        0x00FF
 
 /* U-APSD Access Categories */
 enum uapsd_ac {

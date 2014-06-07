@@ -4942,6 +4942,11 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	    /* Adjust parameters for channel switch scan */
 	    cmd->min_rest_time = WMA_ROAM_PREAUTH_REST_TIME;
 	    cmd->max_rest_time = WMA_ROAM_PREAUTH_REST_TIME;
+	    adf_os_spin_lock_bh(&wma_handle->roam_preauth_lock);
+	    cmd->scan_id =  ( (cmd->scan_id & WMA_MAX_SCAN_ID) |
+				WMA_HOST_ROAM_SCAN_REQID_PREFIX);
+	    wma_handle->roam_preauth_scan_id = cmd->scan_id;
+	    adf_os_spin_unlock_bh(&wma_handle->roam_preauth_lock);
 	}
 
 	wma_set_scan_info(wma_handle, cmd->scan_id,
@@ -4960,12 +4965,6 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 			status);
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto error;
-	}
-
-	if (msg_type == WDA_CHNL_SWITCH_REQ) {
-		adf_os_spin_lock_bh(&wma_handle->roam_preauth_lock);
-		wma_handle->roam_preauth_scan_id = cmd->scan_id;
-		adf_os_spin_unlock_bh(&wma_handle->roam_preauth_lock);
 	}
 
 	WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
