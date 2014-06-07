@@ -1220,12 +1220,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                         __func__, ret);
                 return VOS_STATUS_SUCCESS;
             } else {
-#endif
                 hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
                         "%s: No dfs nol entry in CNSS, ret: %d",
                         __func__, ret);
                 return VOS_STATUS_E_FAULT;
-#if defined CONFIG_CNSS
             }
 #endif
         case eSAP_DFS_NOL_SET:
