@@ -432,7 +432,8 @@ int hdd_ipa_set_perf_level(hdd_context_t *hdd_ctx, uint64_t tx_packets,
 	struct ipa_rm_perf_profile profile;
 	int ret;
 
-	if (!hdd_ipa_is_clk_scaling_enabled(hdd_ipa))
+	if (!hdd_ipa_is_enabled(hdd_ctx) ||
+			!hdd_ipa_is_clk_scaling_enabled(hdd_ipa))
 		return 0;
 
 	memset(&profile, 0, sizeof(profile));
