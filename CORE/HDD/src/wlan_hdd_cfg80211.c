@@ -7004,7 +7004,8 @@ static int wlan_hdd_try_disconnect( hdd_adapter_t *pAdapter )
                          msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
             if (0 >=  ret)
             {
-                hddLog(LOGE, FL("Failed to receive disconnect event"));
+                hddLog(LOGE, FL("Failed to receive sme disconnect event session Id %d staDebugState %d"),
+                   pAdapter->sessionId, pHddStaCtx->staDebugState);
                 return -EALREADY;
             }
         }
@@ -7016,7 +7017,8 @@ static int wlan_hdd_try_disconnect( hdd_adapter_t *pAdapter )
                      msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
         if (0 >= ret)
         {
-            hddLog(LOGE, FL("Failed to receive disconnect event"));
+            hddLog(LOGE, FL("Failed to receive wait for comp disconnect event session Id %d staDebugState %d"),
+               pAdapter->sessionId, pHddStaCtx->staDebugState);
             return -EALREADY;
         }
     }
@@ -7192,11 +7194,15 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
         hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s csrRoamDisconnect failure, returned %d",
                __func__, (int)status );
+        pHddStaCtx->staDebugState = status;
         return -EINVAL;
     }
     status = wait_for_completion_interruptible_timeout(
                 &pAdapter->disconnect_comp_var,
                 msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+
+    pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
+
     if (!status)
     {
        hddLog(VOS_TRACE_LEVEL_ERROR,

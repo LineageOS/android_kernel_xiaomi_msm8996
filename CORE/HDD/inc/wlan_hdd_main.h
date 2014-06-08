@@ -695,6 +695,9 @@ struct hdd_station_ctx
    /* PMKID Cache */
    tPmkidCacheInfo PMKIDCache[MAX_PMKSAIDS_IN_CACHE];
    tANI_U32 PMKIDCacheIndex;
+
+   /* STA ctx debug variables */
+   int staDebugState;
 };
 
 #define BSS_STOP    0
