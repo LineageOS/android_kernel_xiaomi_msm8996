@@ -80,7 +80,7 @@ extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define TL_INIT_STATE            0
 
 
-#define CSR_ACTIVE_LIST_CMD_TIMEOUT_VALUE 1000*30  //30s
+#define CSR_ACTIVE_LIST_CMD_TIMEOUT_VALUE 1000*30*4  //120s
 
 // TxMB Functions
 extern eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, tANI_U32 sessionId,
