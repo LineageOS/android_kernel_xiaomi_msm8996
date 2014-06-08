@@ -5886,6 +5886,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             /* First parameter is positive rssi value to trigger rssi based scan.
              * Opportunistic scan is started at 30 dB higher that trigger rssi.
              */
+            wma_handle->suitable_ap_hb_failure = FALSE;
 
             vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
                                                            (roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT),
@@ -5944,6 +5945,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             break;
 
         case ROAM_SCAN_OFFLOAD_STOP:
+            wma_handle->suitable_ap_hb_failure = FALSE;
             wma_roam_scan_offload_end_connect(wma_handle);
             if (roam_req->StartScanReason == REASON_OS_REQUESTED_ROAMING_NOW) {
                 vos_msg_t vosMsg;
@@ -5965,10 +5967,22 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             break;
 
         case ROAM_SCAN_OFFLOAD_RESTART:
-            /* Not needed. Rome offload engine does not stop after any scan */
+            /* Rome offload engine does not stop after any scan.
+             * If this command is sent because all preauth attempts failed
+             * and WMI_ROAM_REASON_SUITABLE_AP event was received earlier,
+             * now it is time to call it heartbeat failure.
+             */
+            if ((roam_req->StartScanReason == REASON_PREAUTH_FAILED_FOR_ALL)
+                  && wma_handle->suitable_ap_hb_failure) {
+                WMA_LOGE("%s: Sending heartbeat failure after preauth failures",
+                           __func__);
+                wma_beacon_miss_handler(wma_handle, wma_handle->roam_offload_vdev_id);
+                wma_handle->suitable_ap_hb_failure = FALSE;
+            }
             break;
 
         case ROAM_SCAN_OFFLOAD_UPDATE_CFG:
+            wma_handle->suitable_ap_hb_failure = FALSE;
             wma_roam_scan_fill_scan_params(wma_handle, pMac, roam_req, &scan_params);
             vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
                                                     WMI_ROAM_SCAN_MODE_NONE);
@@ -17511,9 +17525,11 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	case WMI_ROAM_REASON_BETTER_AP:
 		WMA_LOGD("%s:Better AP found for vdevid %x, rssi %d", __func__,
 			wmi_event->vdev_id, wmi_event->rssi);
+		wma_handle->suitable_ap_hb_failure = FALSE;
 		wma_roam_better_ap_handler(wma_handle, wmi_event->vdev_id);
 		break;
 	case WMI_ROAM_REASON_SUITABLE_AP:
+		wma_handle->suitable_ap_hb_failure = TRUE;
 		WMA_LOGD("%s:Bmiss scan AP found for vdevid %x, rssi %d", __func__,
 			wmi_event->vdev_id, wmi_event->rssi);
 		wma_roam_better_ap_handler(wma_handle, wmi_event->vdev_id);

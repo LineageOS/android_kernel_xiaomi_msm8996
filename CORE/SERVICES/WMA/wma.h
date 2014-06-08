@@ -641,7 +641,7 @@ typedef struct {
 	scan_timer_info wma_scan_timer_info;
 
 	u_int8_t dfs_phyerr_filter_offload;
-
+	v_BOOL_t suitable_ap_hb_failure;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
