@@ -552,11 +552,11 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
                 tl_shim->last_beacon_data = NULL;
 		tl_shim->last_beacon_len = 0;
 	    }
-	    if((tl_shim->last_beacon_data = vos_mem_malloc(data_len))) {
+	    if((tl_shim->last_beacon_data = vos_mem_malloc(sizeof(WMI_MGMT_RX_EVENTID_param_tlvs)))) {
 		u_int32_t buf_len = roundup(hdr->buf_len, sizeof(u_int32_t));
 
-		vos_mem_copy(tl_shim->last_beacon_data, data, data_len);
-		tl_shim->last_beacon_len = data_len;
+		vos_mem_copy(tl_shim->last_beacon_data, data, sizeof(WMI_MGMT_RX_EVENTID_param_tlvs));
+		tl_shim->last_beacon_len = sizeof(WMI_MGMT_RX_EVENTID_param_tlvs);
 		last_tlvs = (WMI_MGMT_RX_EVENTID_param_tlvs *) tl_shim->last_beacon_data;
 		if ((last_tlvs->hdr = vos_mem_malloc(sizeof(wmi_mgmt_rx_hdr)))) {
 		    vos_mem_copy(last_tlvs->hdr, hdr, sizeof(wmi_mgmt_rx_hdr));
