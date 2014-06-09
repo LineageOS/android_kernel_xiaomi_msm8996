@@ -13371,7 +13371,7 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 
 	wake_info = param_buf->fixed_param;
 
-	WMA_LOGI("WOW wakeup host event received (reason: %s) for vdev %d",
+	WMA_LOGA("WOW wakeup host event received (reason: %s) for vdev %d",
 		 wma_wow_wake_reason_str(wake_info->wake_reason),
 		 wake_info->vdev_id);
 
@@ -13440,7 +13440,7 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	if (wake_lock_duration) {
 		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock,
 					      wake_lock_duration);
-		WMA_LOGD("Holding %d msec wake_lock", wake_lock_duration);
+		WMA_LOGA("Holding %d msec wake_lock", wake_lock_duration);
 	}
 
 	return 0;
