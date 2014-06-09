@@ -1414,14 +1414,16 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 		if (params->status == eHAL_STATUS_FW_MSG_TIMEDOUT){
 			vos_mem_free(params);
 			WMA_LOGE("%s: DEL BSS from ADD BSS timeout do not send "
-				"resp to UMAC", __func__);
+					"resp to UMAC (vdev id %x)",
+					__func__, resp_event->vdev_id);
 		} else {
 			params->status = VOS_STATUS_SUCCESS;
 			wma_send_msg(wma, WDA_DELETE_BSS_RSP, (void *)params, 0);
 		}
 
 		if (iface->del_staself_req) {
-			WMA_LOGD("%s: scheduling defered deletion", __func__);
+			WMA_LOGA("scheduling defered deletion (vdev id %x)",
+					resp_event->vdev_id);
 			wma_vdev_detach(wma, iface->del_staself_req, 1);
 		}
 	}
@@ -3715,7 +3717,8 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 				vdev_id, peer);
 	}
 	if (adf_os_atomic_read(&iface->bss_status) == WMA_BSS_STATUS_STARTED) {
-		WMA_LOGA("BSS is not yet stopped. Defering vdev deletion");
+		WMA_LOGA("BSS is not yet stopped. Defering vdev(vdev id %x) deletion",
+				vdev_id);
 		iface->del_staself_req = pdel_sta_self_req_param;
 		return status;
 	}
@@ -7030,7 +7033,8 @@ void wma_vdev_resp_timer(void *data)
 		WMA_LOGA("%s: WDA_DELETE_BSS_REQ timedout", __func__);
 		wma_send_msg(wma, WDA_DELETE_BSS_RSP, (void *)params, 0);
 		if (iface->del_staself_req) {
-			WMA_LOGD("%s: scheduling defered deletion", __func__);
+			WMA_LOGA("scheduling defered deletion(vdev id %x)",
+					tgt_req->vdev_id);
 			wma_vdev_detach(wma, iface->del_staself_req, 1);
 		}
 	} else if (tgt_req->msg_type == WDA_DEL_STA_SELF_REQ) {
