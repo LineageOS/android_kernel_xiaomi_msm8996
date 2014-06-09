@@ -355,8 +355,10 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_CLEAR_STATS       1
 #define WE_INIT_AP           2
 #define WE_STOP_AP           3
+#ifdef WLAN_BTAMP_FEATURE
 #define WE_ENABLE_AMP        4
 #define WE_DISABLE_AMP       5
+#endif /* WLAN_BTAMP_FEATURE */
 #define WE_ENABLE_DXE_STALL_DETECT 6
 #define WE_DISPLAY_DXE_SNAP_SHOT   7
 #define WE_SET_REASSOC_TRIGGER     8
@@ -10879,6 +10881,7 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "exitAP" },
+#ifdef WLAN_BTAMP_FEATURE
     {   WE_ENABLE_AMP,
         0,
         0,
@@ -10887,6 +10890,7 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "disableAMP" },
+#endif /* WLAN_BTAMP_FEATURE */
     {   WE_ENABLE_DXE_STALL_DETECT,
         0,
         0,
