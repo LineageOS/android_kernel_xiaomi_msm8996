@@ -3471,7 +3471,6 @@ sme_StopBatchScanInd
 
 #endif
 
-
 /*
  * SME API to enable/disable idle mode powersave
  * This should be called only if powersave offload
@@ -3783,4 +3782,53 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
 
 eHalStatus sme_abortRoamScan(tHalHandle hHal);
 #endif //#if WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
+
+/* ---------------------------------------------------------------------------
+    \fn sme_LLStatsClearReq
+    \brief  SME API to clear Link Layer Statistics
+    \param  hHal
+    \param  pclearStatsReq: Link Layer clear stats request params structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_LLStatsClearReq (tHalHandle hHal,
+                        tSirLLStatsClearReq *pclearStatsReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_LLStatsSetReq
+    \brief  SME API to set the Link Layer Statistics
+    \param  hHal
+    \param  psetStatsReq: Link Layer set stats request params structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_LLStatsSetReq (tHalHandle hHal,
+                        tSirLLStatsSetReq *psetStatsReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_LLStatsGetReq
+    \brief  SME API to get the Link Layer Statistics
+    \param  hHal
+    \param  pgetStatsReq: Link Layer get stats request params structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_LLStatsGetReq (tHalHandle hHal,
+                        tSirLLStatsGetReq *pgetStatsReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetLinkLayerStatsIndCB
+    \brief  SME API to trigger the stats are available  after get request
+    \param  hHal
+    \param callbackRoutine - HDD callback which needs to be invoked after
+           getting status notification from FW
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetLinkLayerStatsIndCB
+(
+    tHalHandle hHal,
+    void (*callbackRoutine) (void *callbackCtx, int indType, void *pRsp)
+);
+
+#endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+
 #endif //#if !defined( __SME_API_H )

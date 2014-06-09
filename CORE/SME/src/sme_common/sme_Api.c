@@ -13166,3 +13166,226 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
 
 #endif /* FEATURE_WLAN_EXTSCAN */
 
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
+
+/* ---------------------------------------------------------------------------
+    \fn sme_LLStatsClearReq
+    \brief  SME API to clear Link Layer Statistics
+    \param  hHal
+    \param  pclearStatsReq: Link Layer clear stats request params structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_LLStatsClearReq (tHalHandle hHal,
+                        tSirLLStatsClearReq *pclearStatsReq)
+{
+    eHalStatus status    = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac  = PMAC_STRUCT(hHal);
+    vos_msg_t vosMessage;
+    tSirLLStatsClearReq *clear_stats_req;
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+              "staId = %u", pclearStatsReq->staId);
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+              "statsClearReqMask = 0x%X",
+              pclearStatsReq->statsClearReqMask);
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+              "stopReq = %u", pclearStatsReq->stopReq);
+
+    clear_stats_req = vos_mem_malloc(sizeof(*clear_stats_req));
+
+    if (!clear_stats_req)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Not able to allocate memory for WDA_LL_STATS_CLEAR_REQ",
+                  __func__);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    *clear_stats_req = *pclearStatsReq;
+
+    if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme))
+    {
+        /* Serialize the req through MC thread */
+        vosMessage.bodyptr = clear_stats_req;
+        vosMessage.type    = WDA_LINK_LAYER_STATS_CLEAR_REQ;
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+           VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                      "%s: not able to post WDA_LL_STATS_CLEAR_REQ",
+                      __func__);
+           vos_mem_free(clear_stats_req);
+           status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    else
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
+                "sme_AcquireGlobalLock error", __func__);
+        vos_mem_free(clear_stats_req);
+        status = eHAL_STATUS_FAILURE;
+    }
+
+    return status;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_LLStatsSetReq
+    \brief  SME API to set the Link Layer Statistics
+    \param  hHal
+    \param  psetStatsReq: Link Layer set stats request params structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_LLStatsSetReq (tHalHandle hHal,
+                        tSirLLStatsSetReq *psetStatsReq)
+{
+    eHalStatus status    = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac  = PMAC_STRUCT(hHal);
+    vos_msg_t vosMessage;
+    tSirLLStatsSetReq *set_stats_req;
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+      "%s:  MPDU Size = %u", __func__,
+        psetStatsReq->mpduSizeThreshold);
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+      " Aggressive Stats Collections = %u",
+      psetStatsReq->aggressiveStatisticsGathering);
+
+    set_stats_req = vos_mem_malloc(sizeof(*set_stats_req));
+
+    if (!set_stats_req)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Not able to allocate memory for WDA_LL_STATS_SET_REQ",
+                  __func__);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    *set_stats_req = *psetStatsReq;
+
+    if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme))
+    {
+        /* Serialize the req through MC thread */
+        vosMessage.bodyptr = set_stats_req;
+        vosMessage.type    = WDA_LINK_LAYER_STATS_SET_REQ;
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+           VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                      "%s: not able to post WDA_LL_STATS_SET_REQ",
+                      __func__);
+           vos_mem_free(set_stats_req);
+           status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    else
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
+                "sme_AcquireGlobalLock error", __func__);
+        vos_mem_free(set_stats_req);
+        status = eHAL_STATUS_FAILURE;
+    }
+
+    return status;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_LLStatsGetReq
+    \brief  SME API to get the Link Layer Statistics
+    \param  hHal
+    \param  pgetStatsReq: Link Layer get stats request params structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_LLStatsGetReq (tHalHandle hHal,
+                        tSirLLStatsGetReq *pgetStatsReq)
+{
+    eHalStatus status    = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac  = PMAC_STRUCT(hHal);
+    vos_msg_t vosMessage;
+    tSirLLStatsGetReq *get_stats_req;
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                  "reqId = %u", pgetStatsReq->reqId);
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+              "staId = %u", pgetStatsReq->staId);
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+              "Stats Type = %u", pgetStatsReq->paramIdMask);
+
+    get_stats_req = vos_mem_malloc(sizeof(*get_stats_req));
+
+    if (!get_stats_req)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Not able to allocate memory for WDA_LL_STATS_GET_REQ",
+                  __func__);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    *get_stats_req = *pgetStatsReq;
+
+    if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme))
+    {
+        /* Serialize the req through MC thread */
+        vosMessage.bodyptr = get_stats_req;
+        vosMessage.type    = WDA_LINK_LAYER_STATS_GET_REQ;
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+           VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                      "%s: not able to post WDA_LL_STATS_GET_REQ",
+                      __func__);
+
+           vos_mem_free(get_stats_req);
+           status = eHAL_STATUS_FAILURE;
+
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    else
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
+                "sme_AcquireGlobalLock error", __func__);
+        vos_mem_free(get_stats_req);
+        status = eHAL_STATUS_FAILURE;
+    }
+
+    return status;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetLinkLayerStatsIndCB
+    \brief  SME API to trigger the stats are available  after get request
+    \param  hHal
+    \param callbackRoutine - HDD callback which needs to be invoked after
+           getting status notification from FW
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetLinkLayerStatsIndCB
+(
+    tHalHandle hHal,
+    void (*callbackRoutine) (void *callbackCtx, int indType, void *pRsp)
+)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
+    {
+        pMac->sme.pLinkLayerStatsIndCallback = callbackRoutine;
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    else
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
+                "sme_AcquireGlobalLock error", __func__);
+    }
+
+    return(status);
+}
+
+#endif /* WLAN_FEATURE_LINK_LAYER_STATS */
