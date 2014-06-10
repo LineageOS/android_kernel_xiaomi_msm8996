@@ -4652,6 +4652,11 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
 				wma_handle->vos_context);
 
+	if (!pMac) {
+		WMA_LOGP("%s: pMac is NULL!", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
 	len += WMI_TLV_HDR_SIZE; /* Length TLV placeholder for array of uint32 */
 	/* calculate the length of buffer required */
 	if (scan_req->channelList.numChannels)
