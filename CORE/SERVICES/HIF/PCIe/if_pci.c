@@ -121,9 +121,6 @@ hif_pci_interrupt_handler(int irq, void *arg)
         adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
     }
 
-    if (adf_os_atomic_read(&sc->pci_link_suspended))
-        goto irq_handled;
-
     if (LEGACY_INTERRUPTS(sc)) {
 
         if (sc->hif_init_done == TRUE) {
@@ -182,7 +179,6 @@ hif_pci_interrupt_handler(int irq, void *arg)
     adf_os_atomic_set(&sc->tasklet_from_intr, 1);
     tasklet_schedule(&sc->intr_tq);
 
-irq_handled:
     if (sc->hif_init_done == TRUE) {
         adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
     }
@@ -1750,7 +1746,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         goto out;
     }
 
-    printk("\n%s: wow mode %d event %d\n", __func__,
+    printk("%s: wow mode %d event %d\n", __func__,
        wma_is_wow_mode_selected(temp_module), state.event);
 
     if (wma_is_wow_mode_selected(temp_module)) {
@@ -1903,7 +1899,7 @@ hif_pci_resume(struct pci_dev *pdev)
         goto out;
     }
 
-    printk("\n%s: wow mode %d val %d\n", __func__,
+    printk("%s: wow mode %d val %d\n", __func__,
        wma_is_wow_mode_selected(temp_module), val);
 
     adf_os_atomic_set(&sc->wow_done, 0);
