@@ -323,7 +323,7 @@ eHalStatus csr_init_chan_list(tpAniSirGlobal mac, v_U8_t *alpha2)
     mac->scan.countryCodeDefault[1] = alpha2[1];
     mac->scan.countryCodeDefault[2] = alpha2[2];
 
-    smsLog(mac, LOG1, FL("country Code from nvRam %.2s"),
+    smsLog(mac, LOGE, FL("init time country code %.2s"),
            mac->scan.countryCodeDefault);
 
     if ('0' == mac->scan.countryCodeDefault[0] &&

@@ -695,6 +695,9 @@ struct hdd_station_ctx
    /* PMKID Cache */
    tPmkidCacheInfo PMKIDCache[MAX_PMKSAIDS_IN_CACHE];
    tANI_U32 PMKIDCacheIndex;
+
+   /* STA ctx debug variables */
+   int staDebugState;
 };
 
 #define BSS_STOP    0
@@ -1548,6 +1551,7 @@ VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type);
 #ifdef QCA_WIFI_2_0
 void wlan_hdd_cfg80211_update_wiphy_caps(struct wiphy *wiphy);
 #endif
+VOS_STATUS hdd_setIbssPowerSaveParams(hdd_adapter_t *pAdapter);
 void wlan_hdd_cfg80211_update_reg_info(struct wiphy *wiphy);
 VOS_STATUS wlan_hdd_restart_driver(hdd_context_t *pHddCtx);
 void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx);

@@ -133,6 +133,7 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #elif defined(HIF_SDIO)
 #include "if_ath_sdio.h"
 #endif
+#include "wma.h"
 #endif
 
 #ifdef MODULE
@@ -988,6 +989,107 @@ void hdd_checkandupdate_dfssetting( hdd_adapter_t *pAdapter, char *country_code)
        sme_UpdateDfsSetting(WLAN_HDD_GET_HAL_CTX(pAdapter), cfg_param->enableDFSChnlScan);
     }
 
+}
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_setIbssPowerSaveParams - update IBSS Power Save params to WMA.
+
+  This function sets the IBSS power save config parameters to WMA
+  which will send it to firmware if FW supports IBSS power save
+  before vdev start.
+
+  \param  - hdd_adapter_t Hdd adapter.
+
+  \return - VOS_STATUS VOS_STATUS_SUCCESS on Success and VOS_STATUS_E_FAILURE
+            on failure.
+
+  --------------------------------------------------------------------------*/
+VOS_STATUS hdd_setIbssPowerSaveParams(hdd_adapter_t *pAdapter)
+{
+    VOS_STATUS ret;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
+
+    if (pHddCtx == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is null", __func__);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    ret = process_wma_set_command((int)pAdapter->sessionId,
+                             (int)WMA_VDEV_IBSS_SET_ATIM_WINDOW_SIZE,
+                             (int)pHddCtx->cfg_ini->ibssATIMWinSize,
+                             VDEV_CMD);
+    if (VOS_STATUS_SUCCESS != ret)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: WMA_VDEV_IBSS_SET_ATIM_WINDOW_SIZE failed %d",
+               __func__, ret);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    ret = process_wma_set_command((int)pAdapter->sessionId,
+                             (int)WMA_VDEV_IBSS_SET_POWER_SAVE_ALLOWED,
+                             (int)pHddCtx->cfg_ini->isIbssPowerSaveAllowed,
+                             VDEV_CMD);
+    if (VOS_STATUS_SUCCESS != ret)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: WMA_VDEV_IBSS_SET_POWER_SAVE_ALLOWED failed %d",
+               __func__, ret);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    ret = process_wma_set_command((int)pAdapter->sessionId,
+                             (int)WMA_VDEV_IBSS_SET_POWER_COLLAPSE_ALLOWED,
+                             (int)pHddCtx->cfg_ini->isIbssPowerCollapseAllowed,
+                             VDEV_CMD);
+    if (VOS_STATUS_SUCCESS != ret)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: WMA_VDEV_IBSS_SET_POWER_COLLAPSE_ALLOWED failed %d",
+               __func__, ret);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    ret = process_wma_set_command((int)pAdapter->sessionId,
+                             (int)WMA_VDEV_IBSS_SET_AWAKE_ON_TX_RX,
+                             (int)pHddCtx->cfg_ini->isIbssAwakeOnTxRx,
+                             VDEV_CMD);
+    if (VOS_STATUS_SUCCESS != ret)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: WMA_VDEV_IBSS_SET_AWAKE_ON_TX_RX failed %d",
+               __func__, ret);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    ret = process_wma_set_command((int)pAdapter->sessionId,
+                             (int)WMA_VDEV_IBSS_SET_INACTIVITY_TIME,
+                             (int)pHddCtx->cfg_ini->ibssInactivityCount,
+                             VDEV_CMD);
+    if (VOS_STATUS_SUCCESS != ret)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: WMA_VDEV_IBSS_SET_INACTIVITY_TIME failed %d",
+               __func__, ret);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    ret = process_wma_set_command((int)pAdapter->sessionId,
+                             (int)WMA_VDEV_IBSS_SET_TXSP_END_INACTIVITY_TIME,
+                             (int)pHddCtx->cfg_ini->ibssTxSpEndInactivityTime,
+                             VDEV_CMD);
+    if (VOS_STATUS_SUCCESS != ret)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: WMA_VDEV_IBSS_SET_TXSP_END_INACTIVITY_TIME failed %d",
+               __func__, ret);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    return ret;
 }
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
@@ -7570,11 +7672,7 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       vos_mem_copy(pWlanDev->dev_addr, (void *)macAddr, sizeof(tSirMacAddr));
       vos_mem_copy( pAdapter->macAddressCurrent.bytes, macAddr, sizeof(tSirMacAddr));
       pWlanDev->watchdog_timeo = HDD_TX_TIMEOUT;
-#ifndef QCA_WIFI_2_0
       pWlanDev->hard_header_len += LIBRA_HW_NEEDED_HEADROOM;
-#elif defined(HIF_USB)
-      pWlanDev->hard_header_len += LIBRA_HW_NEEDED_HEADROOM;
-#endif
 
 #ifdef QCA_WIFI_2_0
       if (pHddCtx->cfg_ini->enableIPChecksumOffload)

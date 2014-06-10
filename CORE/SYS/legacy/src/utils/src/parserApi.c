@@ -1171,11 +1171,18 @@ void
 PopulateDot11fIBSSParams(tpAniSirGlobal       pMac,
        tDot11fIEIBSSParams *pDot11f, tpPESession psessionEntry)
 {
+    tANI_U32  val = 0;
     if ( eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole )
     {
+        if(wlan_cfgGetInt(pMac,
+                          WNI_CFG_IBSS_ATIM_WIN_SIZE, &val) != eSIR_SUCCESS)
+        {
+            PELOGE(limLog(pMac, LOGE,
+                          FL("could not retrieve IBSS ATIM WIN size"));)
+        }
         pDot11f->present = 1;
         // ATIM duration is always set to 0
-        pDot11f->atim = 0;
+        pDot11f->atim = val;
     }
 
 } // End PopulateDot11fIBSSParams.

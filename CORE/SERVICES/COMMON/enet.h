@@ -120,6 +120,10 @@ struct ethernet_vlan_hdr_t {
 #define ETHERTYPE_WAI   0x88B4 /* WAPI */
 #endif
 
+#ifndef ETHERTYPE_TDLS
+#define ETHERTYPE_TDLS  0x890D /* TDLS */
+#endif
+
 #define LLC_SNAP_LSAP 0xaa
 #define LLC_UI 0x3
 
