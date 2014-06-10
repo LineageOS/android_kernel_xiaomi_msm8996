@@ -1077,50 +1077,63 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 	struct hdd_ipa_iface_context *iface_context;
 	adf_nbuf_t skb;
 	v_U8_t interface_id;
+	hdd_adapter_t  *adapter = NULL;
 
-	if (evt == IPA_RECEIVE) {
-
-		iface_context = (struct hdd_ipa_iface_context *) priv;
-		ipa_tx_desc = (struct ipa_rx_data *)data;
-		skb = ipa_tx_desc->skb;
-
-		hdd_ipa = iface_context->hdd_ipa;
-
-		adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
-		NBUF_OWNER_ID(skb) = IPA_NBUF_OWNER_ID;
-		NBUF_CALLBACK_FN(skb) = hdd_ipa_nbuf_cb;
-		NBUF_MAPPED_PADDR_LO(skb) = ipa_tx_desc->dma_addr;
-
-		NBUF_OWNER_PRIV_DATA(skb) = data;
-
-		HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_DEBUG, "i2w", skb->data, 8);
-
-		hdd_ipa->stats.tx_ipa_recv++;
-
-		adf_os_spin_lock_bh(&iface_context->interface_lock);
-		if (!iface_context->adapter) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_WARN, "Interface Down");
-			ipa_free_skb(ipa_tx_desc);
-			adf_os_spin_unlock_bh(&iface_context->interface_lock);
-			return;
-		}
-
-		interface_id = iface_context->adapter->sessionId;
-		++iface_context->adapter->stats.tx_packets;
-		iface_context->adapter->stats.tx_bytes += ipa_tx_desc->skb->len;
-
-		adf_os_spin_unlock_bh(&iface_context->interface_lock);
-
-		skb = WLANTL_SendIPA_DataFrame(hdd_ipa->hdd_ctx->pvosContext,
-				iface_context->tl_context, ipa_tx_desc->skb, interface_id);
-		if (skb) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "TLSHIM tx fail");
-			ipa_free_skb(ipa_tx_desc);
-			return;
-		}
-	} else {
+	if (evt != IPA_RECEIVE) {
 		skb = (adf_nbuf_t) data;
 		dev_kfree_skb_any(skb);
+		return;
+	}
+
+	iface_context = (struct hdd_ipa_iface_context *) priv;
+	ipa_tx_desc = (struct ipa_rx_data *)data;
+	skb = ipa_tx_desc->skb;
+
+	hdd_ipa = iface_context->hdd_ipa;
+
+	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
+	NBUF_OWNER_ID(skb) = IPA_NBUF_OWNER_ID;
+	NBUF_CALLBACK_FN(skb) = hdd_ipa_nbuf_cb;
+	NBUF_MAPPED_PADDR_LO(skb) = ipa_tx_desc->dma_addr;
+
+	NBUF_OWNER_PRIV_DATA(skb) = data;
+
+	HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_DEBUG, "i2w", skb->data, 8);
+
+	hdd_ipa->stats.tx_ipa_recv++;
+
+	adf_os_spin_lock_bh(&iface_context->interface_lock);
+	adapter = iface_context->adapter;
+	if (!adapter) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_WARN, "Interface Down");
+		ipa_free_skb(ipa_tx_desc);
+		adf_os_spin_unlock_bh(&iface_context->interface_lock);
+		return;
+	}
+
+	/*
+	 * During CAC period, data packets shouldn't be sent over the air so
+	 * drop all the packets here
+	 */
+	if (WLAN_HDD_GET_AP_CTX_PTR(adapter)->dfs_cac_block_tx) {
+		ipa_free_skb(ipa_tx_desc);
+		adf_os_spin_unlock_bh(&iface_context->interface_lock);
+		return;
+	}
+
+	interface_id = adapter->sessionId;
+	++adapter->stats.tx_packets;
+	adapter->stats.tx_bytes += ipa_tx_desc->skb->len;
+
+	adf_os_spin_unlock_bh(&iface_context->interface_lock);
+
+	skb = WLANTL_SendIPA_DataFrame(hdd_ipa->hdd_ctx->pvosContext,
+			iface_context->tl_context, ipa_tx_desc->skb,
+			interface_id);
+	if (skb) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "TLSHIM tx fail");
+		ipa_free_skb(ipa_tx_desc);
+		return;
 	}
 }
 
@@ -1491,6 +1504,14 @@ static int hdd_ipa_setup_iface(struct hdd_ipa_priv *hdd_ipa,
 	struct hdd_ipa_iface_context *iface_context = NULL;
 	void *tl_context = NULL;
 	int i, ret = 0;
+
+	/* Lower layer may send multiple START_BSS_EVENT in DFS mode or during
+	 * channel change indication. Since these indications are sent by lower
+	 * layer as SAP updates and IPA doesn't have to do anything for these
+	 * updates so ignoring!
+	 */
+	if (WLAN_HDD_SOFTAP == adapter->device_mode && adapter->ipa_context)
+		return 0;
 
 	for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
 		if (hdd_ipa->iface_context[i].adapter == NULL) {
