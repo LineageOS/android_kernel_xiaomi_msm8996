@@ -2145,7 +2145,7 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 	}
 
 	vos_mem_zero(csa_offload_event, sizeof(*csa_offload_event));
-	csa_offload_event->sessionId = vdev_id;
+	vos_mem_copy(csa_offload_event->bssId, &bssid, ETH_ALEN);
 
 	if (csa_event->ies_present_flag & WMI_CSA_IE_PRESENT) {
 		csa_ie = (struct ieee80211_channelswitch_ie *)(&csa_event->csa_ie[0]);
@@ -2170,7 +2170,9 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 
 	csa_offload_event->ies_present_flag = csa_event->ies_present_flag;
 
-	WMA_LOGD("CSA: New Channel = %d", csa_offload_event->channel);
+	WMA_LOGD("CSA: New Channel = %d BSSID:%pM",
+			csa_offload_event->channel,
+			csa_offload_event->bssId);
 	wma->interfaces[vdev_id].is_channel_switch = VOS_TRUE;
 	wma_send_msg(wma, WDA_CSA_OFFLOAD_EVENT, (void *)csa_offload_event, 0);
 	return 0;

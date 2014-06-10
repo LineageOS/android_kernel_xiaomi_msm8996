@@ -2878,6 +2878,7 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
    tpCSAOffloadParams csa_params = (tpCSAOffloadParams)(MsgQ->bodyptr);
    tpSmeCsaOffloadInd pCsaOffloadInd;
    tpDphHashNode pStaDs = NULL ;
+   tANI_U8 sessionId;
    tANI_U16 aid = 0 ;
 
    if(!csa_params)
@@ -2886,7 +2887,7 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
       return;
    }
 
-   psessionEntry = peFindSessionBySessionId(pMac, csa_params->sessionId);
+   psessionEntry = peFindSessionByBssid(pMac, csa_params->bssId, &sessionId);
    if(!psessionEntry)
    {
       limLog(pMac, LOGP, FL("Session does not exist for given sessionID"));
