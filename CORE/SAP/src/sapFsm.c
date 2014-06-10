@@ -1189,11 +1189,17 @@ sapFsm
             if (msg == eSAP_MAC_SCAN_COMPLETE)
             {
                  tHalHandle  hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
-#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-                 v_U16_t cc_ch;
-                 if (NULL != hHal &&
-                     sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE)
+                 if (NULL == hHal)
                  {
+                     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                         "In %s, NULL hHal in state %s, msg %d ", __func__,
+                         "eSAP_CH_SELECT", msg);
+                     return VOS_STATUS_E_FAULT;
+                 }
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+                 if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE)
+                 {
+                     v_U16_t cc_ch;
                      cc_ch = sme_CheckConcurrentChannelOverlap(hHal,
                          sapContext->channel,
                          sapConvertSapPhyModeToCsrPhyMode(
