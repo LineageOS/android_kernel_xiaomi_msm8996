@@ -1789,6 +1789,8 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     }
 
     A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 0);
+    A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_CLR_ADDRESS),
+                  PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
     /* IMPORTANT: this extra read transaction is required to flush the posted write buffer */
     tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
     if (tmp == 0xffffffff) {
