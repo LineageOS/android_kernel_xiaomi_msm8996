@@ -2525,20 +2525,6 @@ static iw_softap_getparam(struct net_device *dev,
         }
         break;
 
-    case QCSAP_PARAM_MODULE_DOWN_IND:
-        {
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                "%s: sending WLAN_MODULE_DOWN_IND", __func__);
-            send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
-#ifdef WLAN_BTAMP_FEATURE
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                "%s: Take down AMP PAL", __func__);
-            BSL_Deinit(vos_get_global_context(VOS_MODULE_ID_HDD, NULL));
-#endif
-            *value = 0;
-            break;
-        }
-
     case QCSAP_PARAM_GET_WLAN_DBG:
         {
             vos_trace_display();
@@ -4620,8 +4606,6 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getwlandbg" },
   { QCSAP_PARAM_AUTO_CHANNEL, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getAutoChannel" },
-  { QCSAP_PARAM_MODULE_DOWN_IND, 0,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "moduleDownInd" },
   { QCSAP_GTX_BWMASK, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_gtxBWMask" },
   { QCSAP_GTX_MINTPC, 0,
