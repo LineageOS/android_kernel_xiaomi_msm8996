@@ -107,7 +107,6 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	int vendor_id, product_id;
 
 	pr_info("hif_usb_probe\n");
-	usb_disable_lpm(pdev);
 	usb_get_dev(pdev);
 	vendor_id = le16_to_cpu(pdev->descriptor.idVendor);
 	product_id = le16_to_cpu(pdev->descriptor.idProduct);
