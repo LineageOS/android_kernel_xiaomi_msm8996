@@ -296,6 +296,7 @@ void hif_deinit_adf_ctx(void *ol_sc)
    sc->adf_dev = NULL;
 }
 
+/* Function to set the TXRX handle in the ol_sc context */
 void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle)
 {
    struct ol_softc *sc = (struct ol_softc *)ol_sc;
@@ -321,6 +322,7 @@ HIFCancelDeferredTargetSleep(HIF_DEVICE *hif_device)
 
 }
 
+/* Function to reset SoC */
 void hif_reset_soc(void *ol_sc)
 {
     ENTER("- dummy function!");
@@ -331,4 +333,9 @@ void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)
     *version = ((struct ol_softc *)ol_sc)->target_version;
     /* Chip revision should be supported, set to 0 for now */
     *revision = 0;
+}
+
+void hif_set_fw_info(void *ol_sc, u32 target_fw_version)
+{
+    ((struct ol_softc *)ol_sc)->target_fw_version = target_fw_version;
 }

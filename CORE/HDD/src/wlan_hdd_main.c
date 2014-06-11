@@ -276,10 +276,6 @@ static int hdd_parse_reassoc_command_v1_data(const tANI_U8 *pValue,
 #if defined (QCA_WIFI_2_0) && \
     !defined (QCA_WIFI_ISOC)
 struct completion wlan_start_comp;
-extern void hif_init_adf_ctx(adf_os_device_t adf_ctx, v_VOID_t *hif_sc);
-extern int hif_register_driver(void);
-extern void hif_unregister_driver(void);
-extern void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
 #ifdef QCA_WIFI_FTM
 extern int hdd_ftm_start(hdd_context_t *pHddCtx);
 extern int hdd_ftm_stop(hdd_context_t *pHddCtx);
@@ -11704,6 +11700,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    /* Get the wlan hw/fw version */
    hdd_wlan_get_version(pAdapter, NULL, NULL);
+
+   /* pass target_fw_version to HIF layer */
+   hif_set_fw_info(hif_sc, pHddCtx->target_fw_version);
 #else
    /* Exchange capability info between Host and FW and also get versioning info from FW */
    hdd_exchange_version_and_caps(pHddCtx);

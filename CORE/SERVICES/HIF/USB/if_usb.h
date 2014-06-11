@@ -89,18 +89,20 @@ static inline int athdiag_procfs_init(void *scn) { return 0; }
 static inline void athdiag_procfs_remove(void) { return; }
 #endif
 
-/* Function to set the TXRX handle in the ol_sc context */
-void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle);
-void hif_disable_isr(void *ol_sc);
-void hif_reset_soc(void *ol_sc);
-void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc);
-void hif_deinit_adf_ctx(void *ol_sc);
-
 #ifndef REMOVE_PKT_LOG
 extern int pktlogmod_init(void *context);
 extern void pktlogmod_exit(void *context);
 #endif
 
-void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
+/*These functions are exposed to HDD*/
+int hif_register_driver(void);
+void hif_unregister_driver(void);
+void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc);
+void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle);
+void hif_disable_isr(void *ol_sc);
+void hif_reset_soc(void *ol_sc);
+void hif_deinit_adf_ctx(void *ol_sc);
 
+void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
+void hif_set_fw_info(void *ol_sc, u32 target_fw_version);
 #endif /* __ATH_USB_H__ */
