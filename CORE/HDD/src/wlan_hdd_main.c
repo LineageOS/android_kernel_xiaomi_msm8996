@@ -10812,6 +10812,13 @@ boolean hdd_is_5g_supported(hdd_context_t * pHddCtx)
 }
 
 #ifdef CONFIG_ENABLE_LINUX_REG
+#ifdef QCA_WIFI_2_0
+#define WOW_MAX_FILTER_LISTS     1
+#define WOW_MAX_FILTERS_PER_LIST 4
+#define WOW_MIN_PATTERN_SIZE     6
+#define WOW_MAX_PATTERN_SIZE     64
+#endif
+
 static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
 {
    struct wiphy *wiphy;
@@ -10833,6 +10840,22 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
             "%s: vos_init_wiphy failed", __func__);
       return status;
    }
+#endif
+
+#ifdef QCA_WIFI_2_0
+    wiphy->wowlan.flags = WIPHY_WOWLAN_ANY |
+                          WIPHY_WOWLAN_MAGIC_PKT |
+                          WIPHY_WOWLAN_DISCONNECT |
+                          WIPHY_WOWLAN_SUPPORTS_GTK_REKEY |
+                          WIPHY_WOWLAN_GTK_REKEY_FAILURE |
+                          WIPHY_WOWLAN_EAP_IDENTITY_REQ |
+                          WIPHY_WOWLAN_4WAY_HANDSHAKE |
+                          WIPHY_WOWLAN_RFKILL_RELEASE;
+
+    wiphy->wowlan.n_patterns = (WOW_MAX_FILTER_LISTS *
+                          WOW_MAX_FILTERS_PER_LIST);
+    wiphy->wowlan.pattern_min_len = WOW_MIN_PATTERN_SIZE;
+    wiphy->wowlan.pattern_max_len = WOW_MAX_PATTERN_SIZE;
 #endif
 
    /* registration of wiphy dev with cfg80211 */
