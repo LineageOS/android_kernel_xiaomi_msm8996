@@ -7745,7 +7745,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	}
 
 	if (params->htCapable) {
-		cmd->peer_flags |= WMI_PEER_HT;
+		cmd->peer_flags |= (WMI_PEER_HT | WMI_PEER_QOS);
 		cmd->peer_rate_caps |= WMI_RC_HT_FLAG;
 	}
 
@@ -7759,7 +7759,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 
 #ifdef WLAN_FEATURE_11AC
 	if (params->vhtCapable) {
-		cmd->peer_flags |= (WMI_PEER_HT | WMI_PEER_VHT);
+		cmd->peer_flags |= (WMI_PEER_HT | WMI_PEER_VHT | WMI_PEER_QOS);
 		cmd->peer_rate_caps |= WMI_RC_HT_FLAG;
 	}
 
