@@ -616,6 +616,49 @@ static void *mem_alloc_copy_from_user_helper(const void *wrqu_data, size_t len)
 
 /**---------------------------------------------------------------------------
 
+  \brief hdd_priv_get_data -
+
+   Helper function to get compatible struct iw_point passed to ioctl
+
+  \param  - p_priv_data - pointer to iw_point struct to be filled
+            wrqu - Pointer to IOCTL Data received from userspace
+
+  \return - 0 if p_priv_data successfully filled
+            error otherwise
+
+  --------------------------------------------------------------------------*/
+int hdd_priv_get_data(struct iw_point *p_priv_data,
+                      union iwreq_data *wrqu)
+{
+   if ((NULL == p_priv_data) || (NULL == wrqu)) {
+      return -EINVAL;
+   }
+
+#ifdef CONFIG_COMPAT
+   if (is_compat_task()) {
+      struct compat_iw_point *p_compat_priv_data;
+
+      /* Compat task: typecast to compat structure and copy the members. */
+      p_compat_priv_data = (struct compat_iw_point *) &wrqu->data;
+
+      p_priv_data->pointer = compat_ptr(p_compat_priv_data->pointer);
+      p_priv_data->length  = p_compat_priv_data->length;
+      p_priv_data->flags   = p_compat_priv_data->flags;
+   } else {
+#endif /* #ifdef CONFIG_COMPAT */
+
+      /* Non compat task: directly copy the structure. */
+      memcpy(p_priv_data, &wrqu->data, sizeof(struct iw_point));
+
+#ifdef CONFIG_COMPAT
+   }
+#endif /* #ifdef CONFIG_COMPAT */
+
+   return 0;
+}
+
+/**---------------------------------------------------------------------------
+
   \brief hdd_wlan_get_version() -
 
    This function use to get Wlan Driver, Firmware, & Hardware Version.
