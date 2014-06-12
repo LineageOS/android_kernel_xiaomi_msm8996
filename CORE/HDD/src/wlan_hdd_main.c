@@ -6024,8 +6024,9 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     {
         pconfig->enable2x2 = 0;
     }
+    val32 = val16;
     status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO,
-                          *(tANI_U16 *)phtCapInfo, NULL, eANI_BOOLEAN_FALSE);
+                          val32, NULL, eANI_BOOLEAN_FALSE);
     if (status != eHAL_STATUS_SUCCESS)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                   "%s: could not set HT capabilty to CCM",
