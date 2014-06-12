@@ -4320,8 +4320,9 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                     pScanResult = GET_BASE_ADDR(pCommand->u.roamCmd.pRoamBssEntry, tCsrScanResult, Link);
                     /*If concurrency enabled take the concurrent connected channel first. */
                     /* Valid multichannel concurrent sessions exempted */
-                    if (vos_concurrent_sessions_running() &&
-                        !csrIsValidMcConcurrentSession(pMac, sessionId, &pScanResult->Result.BssDescriptor))
+                    if (vos_concurrent_open_sessions_running() &&
+                        !csrIsValidMcConcurrentSession(pMac, sessionId,
+                                           &pScanResult->Result.BssDescriptor))
                     {
                         concurrentChannel =
                             csrGetConcurrentOperationChannel(pMac);
@@ -6731,8 +6732,10 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     csrScanCancelIdleScan(pMac);
     //Only abort the scan if it is not used for other roam/connect purpose
     csrScanAbortMacScan(pMac, sessionId, eCSR_SCAN_ABORT_DEFAULT);
-    if (!vos_concurrent_sessions_running() && (VOS_STA_SAP_MODE == pProfile->csrPersona))//In case of AP mode we do not want idle mode scan
+    if (!vos_concurrent_open_sessions_running() &&
+       (VOS_STA_SAP_MODE == pProfile->csrPersona))
     {
+        /* In case of AP mode we do not want idle mode scan */
         csrScanDisable(pMac);
     }
     csrRoamRemoveDuplicateCommand(pMac, sessionId, NULL, eCsrHddIssued);
