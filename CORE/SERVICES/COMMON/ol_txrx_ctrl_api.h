@@ -363,7 +363,7 @@ ol_txrx_throttle_unpause(ol_txrx_pdev_handle data_pdev);
  *
  * @param data_pdev - the physical device being paused
  */
-#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
+#if defined(CONFIG_HL_SUPPORT)
 void
 ol_txrx_pdev_pause(ol_txrx_pdev_handle data_pdev);
 #else
@@ -378,7 +378,7 @@ ol_txrx_pdev_pause(ol_txrx_pdev_handle data_pdev);
  *
  * @param data_pdev - the physical device being unpaused
  */
-#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
+#if defined(CONFIG_HL_SUPPORT)
 void
 ol_txrx_pdev_unpause(ol_txrx_pdev_handle data_pdev);
 #else

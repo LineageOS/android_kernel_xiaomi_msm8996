@@ -504,6 +504,27 @@ ol_txrx_throttle_unpause(ol_txrx_pdev_handle pdev)
 #endif
     ol_txrx_pdev_unpause(pdev);
 }
+
+void
+ol_txrx_pdev_pause(ol_txrx_pdev_handle pdev)
+{
+    struct ol_txrx_vdev_t *vdev = NULL, *tmp;
+
+    TAILQ_FOREACH_SAFE(vdev, &pdev->vdev_list, vdev_list_elem, tmp) {
+        ol_txrx_vdev_pause(vdev);
+    }
+}
+
+void
+ol_txrx_pdev_unpause(ol_txrx_pdev_handle pdev)
+{
+    struct ol_txrx_vdev_t *vdev = NULL, *tmp;
+
+    TAILQ_FOREACH_SAFE(vdev, &pdev->vdev_list, vdev_list_elem, tmp) {
+        ol_txrx_vdev_unpause(vdev);
+    }
+}
+
 #endif /* defined(CONFIG_HL_SUPPORT) */
 
 #if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
@@ -584,26 +605,6 @@ ol_txrx_vdev_flush(ol_txrx_vdev_handle vdev)
         vdev->ll_pause.txq.tail = NULL;
         vdev->ll_pause.txq.depth = 0;
         adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
-    }
-}
-
-void
-ol_txrx_pdev_pause(ol_txrx_pdev_handle pdev)
-{
-    struct ol_txrx_vdev_t *vdev = NULL, *tmp;
-
-    TAILQ_FOREACH_SAFE(vdev, &pdev->vdev_list, vdev_list_elem, tmp) {
-        ol_txrx_vdev_pause(vdev);
-    }
-}
-
-void
-ol_txrx_pdev_unpause(ol_txrx_pdev_handle pdev)
-{
-    struct ol_txrx_vdev_t *vdev = NULL, *tmp;
-
-    TAILQ_FOREACH_SAFE(vdev, &pdev->vdev_list, vdev_list_elem, tmp) {
-        ol_txrx_vdev_unpause(vdev);
     }
 }
 
