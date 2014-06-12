@@ -427,11 +427,13 @@ wlan_hdd_txrx_stypes[NUM_NL80211_IFTYPES] = {
 
 #ifdef WLAN_FEATURE_MBSSID
 
-/* Max. 3 devices = 1STA + 2SOFTAP */
 static const struct ieee80211_iface_limit
 wlan_hdd_iface_limit[] = {
     {
-        .max = 1,
+        /* We need 1 extra STA interface for OBSS scan when SAP starts
+         * with HT40 in STA+SAP concurrency mode
+         */
+        .max = 2,
         .types = BIT(NL80211_IFTYPE_STATION),
     },
     {
@@ -2374,6 +2376,11 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         pConfig->wps_state = SAP_WPS_DISABLED;
     }
     pConfig->fwdWPSPBCProbeReq  = 1; // Forward WPS PBC probe request frame up
+
+    pConfig->RSNEncryptType = eCSR_ENCRYPT_TYPE_NONE;
+    pConfig->mcRSNEncryptType = eCSR_ENCRYPT_TYPE_NONE;
+    (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->ucEncryptType =
+        eCSR_ENCRYPT_TYPE_NONE;
 
     pConfig->RSNWPAReqIELength = 0;
     memset(&pConfig->RSNWPAReqIE[0], 0, sizeof(pConfig->RSNWPAReqIE));

@@ -2813,7 +2813,7 @@ WLANSAP_Get_DfsNol(v_PVOID_t pSapCtx)
         if (!sapContext->SapDfsInfo.sapDfsChannelNolList[i].dfs_channel_number)
             continue;
 
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                 "%s: Channel[%d] is %s",
                 __func__,
                 sapContext->SapDfsInfo.sapDfsChannelNolList[i].
@@ -2866,7 +2866,7 @@ WLANSAP_Set_DfsNol(v_PVOID_t pSapCtx, eSapDfsNolType conf)
     }
 
     if (conf == eSAP_DFS_NOL_CLEAR) {
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                 "%s: clear the DFS NOL",
                 __func__);
 
@@ -2883,7 +2883,7 @@ WLANSAP_Set_DfsNol(v_PVOID_t pSapCtx, eSapDfsNolType conf)
                 radar_found_timestamp = 0;
         }
     } else if (conf == eSAP_DFS_NOL_RANDOMIZE) {
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                 "%s: Randomize the DFS NOL",
                 __func__);
 
@@ -2916,7 +2916,7 @@ WLANSAP_Set_DfsNol(v_PVOID_t pSapCtx, eSapDfsNolType conf)
                     radar_found_timestamp = 0;
             }
 
-            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                         "%s: Set channel[%d] %s",
                         __func__,
                         sapContext->SapDfsInfo.sapDfsChannelNolList[i]
