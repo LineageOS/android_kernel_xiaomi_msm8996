@@ -2580,6 +2580,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_PMF_SA_QUERY_RETRY_INTERVAL_MAX                  ( 2000  )
 #endif
 
+#define CFG_MAX_CONCURRENT_CONNECTIONS_NAME       "gMaxConcurrentActiveSessions"
+#define CFG_MAX_CONCURRENT_CONNECTIONS_DEFAULT    ( 2 )
+#define CFG_MAX_CONCURRENT_CONNECTIONS_MIN        ( 1 )
+#define CFG_MAX_CONCURRENT_CONNECTIONS_MAX        ( 4 )
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3127,6 +3132,7 @@ typedef struct
    v_U32_t                     pmfSaQueryMaxRetries;
    v_U32_t                     pmfSaQueryRetryInterval;
 #endif
+   v_U8_t                      gMaxConcurrentActiveSessions;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

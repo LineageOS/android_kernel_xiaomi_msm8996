@@ -3568,6 +3568,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_PMF_SA_QUERY_RETRY_INTERVAL_MIN,
                 CFG_PMF_SA_QUERY_RETRY_INTERVAL_MAX ),
 #endif
+   REG_VARIABLE(CFG_MAX_CONCURRENT_CONNECTIONS_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, gMaxConcurrentActiveSessions,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_MAX_CONCURRENT_CONNECTIONS_DEFAULT,
+                CFG_MAX_CONCURRENT_CONNECTIONS_MIN,
+                CFG_MAX_CONCURRENT_CONNECTIONS_MAX ),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4050,6 +4056,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gMaxOffloadReorderBuffs] value = [%u] ",pHddCtx->cfg_ini->apMaxOffloadReorderBuffs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [overrideCountryCode] Value = [%s] ",pHddCtx->cfg_ini->overrideCountryCode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAllowDFSChannelRoam] Value = [%u] ",pHddCtx->cfg_ini->allowDFSChannelRoam);
+  hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gMaxConcurrentActiveSessions] Value = [%u] ", pHddCtx->cfg_ini->gMaxConcurrentActiveSessions);
 
 #ifdef MSM_PLATFORM
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
