@@ -1670,7 +1670,7 @@ struct net_device* wlan_hdd_add_virtual_intf(
     {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "%s:LOGP in Progress. Ignore!!!", __func__);
-       return NULL;
+       return ERR_PTR(-EINVAL);
     }
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
@@ -1690,7 +1690,7 @@ struct net_device* wlan_hdd_add_virtual_intf(
        hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Interface type %d already exists. "
                   "Two interfaces of same type are not supported currently.",
                   __func__, type);
-       return NULL;
+       return ERR_PTR(-EINVAL);
     }
 
     if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated &&
