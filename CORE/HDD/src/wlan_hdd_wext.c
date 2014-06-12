@@ -8964,24 +8964,34 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
     return;
 }
 
-static int iw_set_packet_filter_params(struct net_device *dev, struct iw_request_info *info,
-        union iwreq_data *wrqu, char *extra)
+static int iw_set_packet_filter_params(struct net_device *dev,
+                                       struct iw_request_info *info,
+                                       union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tpPacketFilterCfg pRequest = NULL;
     int ret;
+    struct iw_point s_priv_data;
+
+    if (hdd_priv_get_data(&s_priv_data, wrqu)) {
+       return -EINVAL;
+    }
+
+    if ((NULL == s_priv_data.pointer) || (0 == s_priv_data.length)) {
+       return -EINVAL;
+    }
 
     /* ODD number is used for set, copy data using copy_from_user */
-    pRequest = mem_alloc_copy_from_user_helper(wrqu->data.pointer,
-                                               wrqu->data.length);
-    if (NULL == pRequest)
-    {
+    pRequest = mem_alloc_copy_from_user_helper(s_priv_data.pointer,
+                                               s_priv_data.length);
+    if (NULL == pRequest) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "mem_alloc_copy_from_user_helper fail");
         return -ENOMEM;
     }
 
-    ret = wlan_hdd_set_filter(WLAN_HDD_GET_CTX(pAdapter), pRequest, pAdapter->sessionId);
+    ret = wlan_hdd_set_filter(WLAN_HDD_GET_CTX(pAdapter), pRequest,
+                              pAdapter->sessionId);
     kfree(pRequest);
 
     return ret;
