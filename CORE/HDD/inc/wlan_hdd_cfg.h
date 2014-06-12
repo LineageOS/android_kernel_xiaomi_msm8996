@@ -2377,6 +2377,70 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_COALESING_IN_IBSS_MAX                 (1)
 #define CFG_COALESING_IN_IBSS_DEFAULT             (0) //disabled
 
+#define CFG_IBSS_ATIM_WIN_SIZE_NAME                "gIbssATIMWinSize"
+#define CFG_IBSS_ATIM_WIN_SIZE_MIN                 (0)
+#define CFG_IBSS_ATIM_WIN_SIZE_MAX                 (50)
+#define CFG_IBSS_ATIM_WIN_SIZE_DEFAULT             (0)
+
+/*
+ * Indicates if IBSS Power Save is
+ * supported or not. When not allowed,
+ * IBSS station has to stay awake all
+ * the time and should never set PM=1
+ * in its transmitted frames. This
+ * parameter is meaningful/valid only
+ * when gIbssATIMWinSize is non-zero
+ */
+#define CFG_IBSS_IS_POWER_SAVE_ALLOWED_NAME        "gIbssIsPowerSaveAllowed"
+#define CFG_IBSS_IS_POWER_SAVE_ALLOWED_MIN         (0)
+#define CFG_IBSS_IS_POWER_SAVE_ALLOWED_MAX         (1)
+#define CFG_IBSS_IS_POWER_SAVE_ALLOWED_DEFAULT     (1)
+
+/*
+ * Indicates if IBSS Power Collapse
+ * is allowed or not.
+ */
+#define CFG_IBSS_IS_POWER_COLLAPSE_ALLOWED_NAME    "gIbssIsPowerCollapseAllowed"
+#define CFG_IBSS_IS_POWER_COLLAPSE_ALLOWED_MIN     (0)
+#define CFG_IBSS_IS_POWER_COLLAPSE_ALLOWED_MAX     (1)
+#define CFG_IBSS_IS_POWER_COLLAPSE_ALLOWED_DEFAULT (1)
+
+/*
+ * This parameter indicates whether IBSS station
+ * can exit power save mode and enter power active
+ * state whenever there is a TX/RX activity.
+ */
+#define CFG_IBSS_AWAKE_ON_TX_RX_NAME               "gIbssAwakeOnTxRx"
+#define CFG_IBSS_AWAKE_ON_TX_RX_MIN                (0)
+#define CFG_IBSS_AWAKE_ON_TX_RX_MAX                (1)
+#define CFG_IBSS_AWAKE_ON_TX_RX_DEFAULT            (0)
+
+/*
+ * In IBSS mode if Awake on TX/RX activity is enabled
+ * Ibss Inactivity parameter indicates the data
+ * inactivity time in number of beacon intervals
+ * after which IBSS station re-inters power save
+ * by sending Null frame with PM=1
+ */
+#define CFG_IBSS_INACTIVITY_TIME_NAME              "gIbssInactivityTime"
+#define CFG_IBSS_INACTIVITY_TIME_MIN               (1)
+#define CFG_IBSS_INACTIVITY_TIME_MAX               (10)
+#define CFG_IBSS_INACTIVITY_TIME_DEFAULT           (1)
+
+/*
+ * In IBSS mode Tx Service Period Inactivity
+ * time in msecs indicates the time after
+ * which TX Service Period is terminated by
+ * sending a Qos Null frame with EOSP.
+ * If value is 0, TX SP is terminated with the
+ * last buffered packet itself instead of waiting
+ * for the inactivity
+ */
+#define CFG_IBSS_TXSP_END_INACTIVITY_NAME          "gIbssTxSpEndInactivityTime"
+#define CFG_IBSS_TXSP_END_INACTIVITY_MIN           (0)
+#define CFG_IBSS_TXSP_END_INACTIVITY_MAX           (100)
+#define CFG_IBSS_TXSP_END_INACTIVITY_DEFAULT       (0)
+
 #define CFG_SAP_MAX_NO_PEERS                       "gSoftApMaxPeers"
 #define CFG_SAP_MAX_NO_PEERS_MIN                   (1)
 #define CFG_SAP_MAX_NO_PEERS_MAX                   (32)
@@ -2961,6 +3025,15 @@ typedef struct
    v_U8_t                      isAmsduSupportInAMPDU;
    v_U8_t                      nSelect5GHzMargin;
    v_U8_t                      isCoalesingInIBSSAllowed;
+
+   /* IBSS Power Save related parameters */
+   v_U32_t                     ibssATIMWinSize;
+   v_U8_t                      isIbssPowerSaveAllowed;
+   v_U8_t                      isIbssPowerCollapseAllowed;
+   v_U8_t                      isIbssAwakeOnTxRx;
+   v_U32_t                     ibssInactivityCount;
+   v_U32_t                     ibssTxSpEndInactivityTime;
+
    v_BOOL_t                    enableTCPChkSumOffld;
    v_BOOL_t                    enableIPChecksumOffload;
    v_BOOL_t                    enablePowersaveOffload;

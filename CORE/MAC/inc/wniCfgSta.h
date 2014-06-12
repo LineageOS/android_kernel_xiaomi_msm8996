@@ -1,29 +1,29 @@
- /*
-  * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
-  *
-  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
-  *
-  *
-  * Permission to use, copy, modify, and/or distribute this software for
-  * any purpose with or without fee is hereby granted, provided that the
-  * above copyright notice and this permission notice appear in all
-  * copies.
-  *
-  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-  * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-  * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-  * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-  * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
-  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-  * PERFORMANCE OF THIS SOFTWARE.
-  */
+/*
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 
- /*
-  * This file was originally distributed by Qualcomm Atheros, Inc.
-  * under proprietary terms before Copyright ownership was assigned
-  * to the Linux Foundation.
-  */
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
+ */
 
 /*
  * DO NOT EDIT - This file is generated automatically
@@ -350,6 +350,7 @@
 #define WNI_CFG_RTT3_ENABLE    309
 #define WNI_CFG_DEBUG_P2P_REMAIN_ON_CHANNEL    310
 #define WNI_CFG_TDLS_OFF_CHANNEL_ENABLED    311
+#define WNI_CFG_IBSS_ATIM_WIN_SIZE    312
 
 /*
  * String parameter lengths
@@ -1683,8 +1684,12 @@
 #define WNI_CFG_TDLS_OFF_CHANNEL_ENABLED_STAMAX    1
 #define WNI_CFG_TDLS_OFF_CHANNEL_ENABLED_STADEF    0
 
-#define CFG_PARAM_MAX_NUM        312
-#define CFG_STA_IBUF_MAX_SIZE    247
+#define WNI_CFG_IBSS_ATIM_WIN_SIZE_STAMIN    0
+#define WNI_CFG_IBSS_ATIM_WIN_SIZE_STAMAX    100
+#define WNI_CFG_IBSS_ATIM_WIN_SIZE_STADEF    0
+
+#define CFG_PARAM_MAX_NUM        313
+#define CFG_STA_IBUF_MAX_SIZE    248
 #define CFG_STA_SBUF_MAX_SIZE    3380
 #define CFG_SEM_MAX_NUM          19
 
