@@ -181,6 +181,9 @@ CONFIG_CHECKSUM_OFFLOAD := 1
 
 #Enable GTK offload
 CONFIG_GTK_OFFLOAD := 1
+
+#Set this to 1 to catch erroneous Target accesses during debug.
+CONFIG_ATH_PCIE_ACCESS_DEBUG := 0
 endif
 
 #Enable IPA offload
@@ -1311,6 +1314,10 @@ endif
 #Enable collecting target RAM dump after kernel panic
 ifeq ($(CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC), 1)
 CDEFINES += -DTARGET_RAMDUMP_AFTER_KERNEL_PANIC
+endif
+
+ifeq ($(CONFIG_ATH_PCIE_ACCESS_DEBUG), 1)
+CDEFINES += -DCONFIG_ATH_PCIE_ACCESS_DEBUG
 endif
 
 # Some kernel include files are being moved.  Check to see if

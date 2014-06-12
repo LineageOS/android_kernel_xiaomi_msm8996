@@ -354,6 +354,15 @@ typedef struct {
     void    *pOSDevice;
 } HIF_DEVICE_OS_DEVICE_INFO;
 
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
+typedef struct _HID_ACCESS_LOG {
+    A_UINT32     seqnum;
+    bool         is_write;
+    void         *addr;
+    A_UINT32     value;
+}HIF_ACCESS_LOG;
+#endif
+
 #define HIF_MAX_DEVICES                 1
 
 struct htc_callbacks {
@@ -620,10 +629,12 @@ inline int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *da
 #define CONFIG_PCIE_ENABLE_L1_CLOCK_GATE 1
 
 /*
- * When CONFIG_ATH_PCIE_MAX_PERF is 0:
- * Set this to 1 to catch erroneous Target accesses during debug.
+ * PCIE_ACCESS_LOG_NUM specifies the number of
+ * read/write records to store
  */
-#define CONFIG_ATH_PCIE_ACCESS_DEBUG 0
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
+#define PCIE_ACCESS_LOG_NUM 500
+#endif
 
 /* 64-bit MSI support */
 #define CONFIG_PCIE_64BIT_MSI 0
@@ -726,7 +737,7 @@ void WAR_PCI_WRITE32(char *addr, u32 offset, u32 value);
         do {unsigned long unused = (unsigned long)(targid); unused = unused;} while(0)
 #endif /* CONFIG_ATH_PCIE_ACCESS_LIKELY */
 
-#if CONFIG_ATH_PCIE_ACCESS_DEBUG
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
 extern A_UINT32 HIFTargetReadChecked(A_target_id_t targid, A_UINT32 offset);
 extern void HIFTargetWriteChecked(A_target_id_t targid, A_UINT32 offset, A_UINT32 value);
 #define A_TARGET_READ(targid, offset)         HIFTargetReadChecked((targid), (offset))

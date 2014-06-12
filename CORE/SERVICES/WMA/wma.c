@@ -133,6 +133,9 @@
 #define AGC_DUMP  1
 #define CHAN_DUMP 2
 #define WD_DUMP   3
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
+#define PCIE_DUMP 4
+#endif
 
 /* conformance test limits */
 #define FCC       0x10
@@ -8466,6 +8469,11 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case GEN_PARAM_CRASH_INJECT:
 			ret = wmi_crash_inject(wma->wmi_handle, privcmd->param_value);
 			break;
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
+		case GEN_PARAM_DUMP_PCIE_ACCESS_LOG:
+			HTCDump(wma->htc_handle, PCIE_DUMP, false);
+			break;
+#endif
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
 			break;
