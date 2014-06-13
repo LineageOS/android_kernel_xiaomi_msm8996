@@ -3316,10 +3316,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
 	INIT_LIST_HEAD(&wma_handle->vdev_resp_queue);
 	adf_os_spinlock_init(&wma_handle->vdev_respq_lock);
-
-        adf_os_spinlock_init(&wma_handle->vdev_detach_lock);
-
-        adf_os_spinlock_init(&wma_handle->roam_preauth_lock);
+	adf_os_spinlock_init(&wma_handle->vdev_detach_lock);
+	adf_os_spinlock_init(&wma_handle->roam_preauth_lock);
+	adf_os_atomic_init(&wma_handle->is_wow_bus_suspended);
 
 	/* Register vdev start response event handler */
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
@@ -13469,6 +13468,16 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	return 0;
 }
 
+static inline void wma_set_wow_bus_suspend(tp_wma_handle wma, int val) {
+
+	adf_os_atomic_set(&wma->is_wow_bus_suspended, val);
+}
+
+static inline int wma_get_wow_bus_suspend(tp_wma_handle wma) {
+
+	return adf_os_atomic_read(&wma->is_wow_bus_suspended);
+}
+
 /* Configures wow wakeup events. */
 static VOS_STATUS wma_add_wow_wakeup_event(tp_wma_handle wma,
 					   WOW_WAKE_EVENT_TYPE event,
@@ -13994,6 +14003,28 @@ static bool wma_is_wow_prtn_cached(tp_wma_handle wma, u_int8_t vdev_id)
 	return false;
 }
 
+/* Unpause all the vdev after resume */
+static void wma_unpause_vdev(tp_wma_handle wma) {
+	int8_t vdev_id;
+	struct wma_txrx_node *iface;
+
+	for (vdev_id = 0; vdev_id < wma->max_bssid; vdev_id++) {
+		if (!wma->interfaces[vdev_id].handle)
+			continue;
+
+	#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+	/* When host resume, by default, unpause all active vdev */
+		if (wma->interfaces[vdev_id].pause_bitmap) {
+			wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
+			wma->interfaces[vdev_id].pause_bitmap = 0;
+		}
+	#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
+
+		iface = &wma->interfaces[vdev_id];
+		iface->conn_state = FALSE;
+	}
+}
+
 static VOS_STATUS wma_resume_req(tp_wma_handle wma)
 {
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
@@ -14017,6 +14048,10 @@ static VOS_STATUS wma_resume_req(tp_wma_handle wma)
 	}
 
 end:
+	/* need to reset if hif_pci_suspend_fails */
+	wma_set_wow_bus_suspend(wma, 0);
+	/* unpause the vdev if left paused and hif_pci_suspend fails */
+	wma_unpause_vdev(wma);
 	return ret;
 }
 
@@ -14461,6 +14496,11 @@ enable_wow:
 send_ready_to_suspend:
 	wma_send_status_to_suspend_ind(wma, TRUE);
 
+	/* to handle race between hif_pci_suspend and
+	* unpause/pause tx handler
+	*/
+	wma_set_wow_bus_suspend(wma, 1);
+
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -14529,8 +14569,6 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 int wma_disable_wow_in_fw(WMA_HANDLE handle)
 {
 	tp_wma_handle wma = handle;
-	struct wma_txrx_node *iface;
-	int8_t vdev_id;
 	VOS_STATUS ret;
 
 	if(!wma->wow.wow_enable || !wma->wow.wow_enable_cmd_sent) {
@@ -14547,21 +14585,10 @@ int wma_disable_wow_in_fw(WMA_HANDLE handle)
 	wma->wow.wow_enable = FALSE;
 	wma->wow.wow_enable_cmd_sent = FALSE;
 
-	for (vdev_id = 0; vdev_id < wma->max_bssid; vdev_id++) {
-		if (!wma->interfaces[vdev_id].handle)
-			continue;
-
-	#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
-	/* When host resume, by default, unpause all active vdev */
-		if (wma->interfaces[vdev_id].pause_bitmap) {
-			wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
-			wma->interfaces[vdev_id].pause_bitmap = 0;
-		}
-	#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
-
-		iface = &wma->interfaces[vdev_id];
-		iface->conn_state = FALSE;
-	}
+	/* To allow the tx pause/unpause events */
+	wma_set_wow_bus_suspend(wma, 0);
+	/* Unpause the vdev as we are resuming */
+	wma_unpause_vdev(wma);
 
 	vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 2000);
 
@@ -17898,6 +17925,11 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 	{
 		WMA_LOGE("Invalid roam event buffer");
 		return -EINVAL;
+	}
+
+	if (wma_get_wow_bus_suspend(wma)) {
+		WMA_LOGD(" Suspend is in progress: Pause/Unpause Tx is NoOp");
+		return 0;
 	}
 
 	wmi_event = param_buf->fixed_param;
