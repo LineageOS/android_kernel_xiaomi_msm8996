@@ -1217,7 +1217,7 @@ extern "C" {
 /* args: */
 #define NAN_DBGID_SPARE_65                          (NAN_DBGID_EVT_BASE + 65)
 /* args: */
-#define NAN_DBGID_SPARE_66                          (NAN_DBGID_EVT_BASE + 66)
+#define NAN_DBGID_BEACON_SENDER                     (NAN_DBGID_EVT_BASE + 66)
 /* args: */
 #define NAN_DBGID_SPARE_67                          (NAN_DBGID_EVT_BASE + 67)
 /* args: */
