@@ -985,10 +985,6 @@ int wlan_hdd_mgmt_tx( struct wiphy *wiphy, struct net_device *dev,
     tActionFrmType actionFrmType;
     bool noack = 0;
     int status;
-#ifdef WLAN_FEATURE_11W
-    tANI_U8 *pTxFrmBuf = (tANI_U8 *) buf; // For SA Query, we have to set protect bit
-#endif
-
     hdd_adapter_t *goAdapter;
 
      MTRACE(vos_trace(VOS_MODULE_ID_HDD,
@@ -1274,17 +1270,7 @@ int wlan_hdd_mgmt_tx( struct wiphy *wiphy, struct net_device *dev,
                 hddLog(LOG1, "%s: HDD_GO_NEG_REQ_ACK_PENDING", __func__);
             }
         }
-#ifdef WLAN_FEATURE_11W
-        if ((type == SIR_MAC_MGMT_FRAME) &&
-                (subType == SIR_MAC_MGMT_ACTION) &&
-                (buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET] == WLAN_HDD_SA_QUERY_ACTION_FRAME))
-        {
-            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                     "%s: Calling sme_sendAction. For Category %s", __func__, "SA Query");
-            // Since this is an SA Query Action Frame, we have to protect it
-            WLAN_HDD_SET_WEP_FRM_FC(pTxFrmBuf[1]);
-        }
-#endif
+
         if (eHAL_STATUS_SUCCESS !=
                sme_sendAction( WLAN_HDD_GET_HAL_CTX(pAdapter),
                                sessionId, buf, len, extendedWait, noack))
