@@ -2201,6 +2201,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 #else
              (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->sapDot11Mode;
 #endif
+    u_int16_t prev_rsn_length = 0;
     ENTER();
 
     iniConfig = pHddCtx->cfg_ini;
@@ -2403,12 +2404,11 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         if (pConfig->RSNWPAReqIE[0])
         {
             /*Mixed mode WPA/WPA2*/
+            prev_rsn_length = pConfig->RSNWPAReqIELength;
+            pConfig->RSNWPAReqIELength += pIe[1] + 2;
             if (pConfig->RSNWPAReqIELength < sizeof(pConfig->RSNWPAReqIE))
-            {
-                memcpy((&pConfig->RSNWPAReqIE[0] + pConfig->RSNWPAReqIELength), pIe,
+                memcpy(&pConfig->RSNWPAReqIE[0] + prev_rsn_length, pIe,
                                                             pIe[1] + 2);
-                pConfig->RSNWPAReqIELength += pIe[1] + 2;
-            }
             else
                 hddLog(LOGE, "RSNWPA IE MAX Length exceeded; length =%d",
                                              pConfig->RSNWPAReqIELength);
