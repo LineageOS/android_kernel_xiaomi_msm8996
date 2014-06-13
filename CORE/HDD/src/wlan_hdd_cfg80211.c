@@ -439,16 +439,60 @@ wlan_hdd_txrx_stypes[NUM_NL80211_IFTYPES] = {
 };
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+/* Interface limits and combinations registered by the driver */
 
-#ifdef WLAN_FEATURE_MBSSID
+/* STA ( + STA ) combination */
+static const struct ieee80211_iface_limit
+wlan_hdd_sta_iface_limit[] = {
+   {
+      .max = 3, /* p2p0 is a STA as well */
+      .types = BIT(NL80211_IFTYPE_STATION),
+   },
+};
+
+/* ADHOC (IBSS) limit */
+static const struct ieee80211_iface_limit
+wlan_hdd_adhoc_iface_limit[] = {
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_STATION),
+   },
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_ADHOC),
+   },
+};
+
+/* AP ( + AP ) combination */
+static const struct ieee80211_iface_limit
+wlan_hdd_ap_iface_limit[] = {
+   {
+      .max = (VOS_MAX_NO_OF_SAP_MODE +
+              SAP_MAX_OBSS_STA_CNT),
+      .types = BIT(NL80211_IFTYPE_AP),
+   },
+};
+
+/* P2P limit */
+static const struct ieee80211_iface_limit
+wlan_hdd_p2p_iface_limit[] = {
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_P2P_CLIENT),
+   },
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_P2P_GO),
+   },
+};
 
 static const struct ieee80211_iface_limit
-wlan_hdd_iface_limit[] = {
+wlan_hdd_sta_ap_iface_limit[] = {
     {
         /* We need 1 extra STA interface for OBSS scan when SAP starts
          * with HT40 in STA+SAP concurrency mode
          */
-        .max = 2,
+        .max = (1 + SAP_MAX_OBSS_STA_CNT),
         .types = BIT(NL80211_IFTYPE_STATION),
     },
     {
@@ -457,75 +501,71 @@ wlan_hdd_iface_limit[] = {
     },
 };
 
-#else
-
+/* STA + P2P combination */
 static const struct ieee80211_iface_limit
-wlan_hdd_iface_limit[] = {
-    {
-        /* max = 4 ; Our driver create two interfaces during driver init
-         * wlan0 and p2p0 interfaces. p2p0 is considered as station
-         * interface until a group is formed. In JB architecture, once the
-         * group is formed, interface type of p2p0 is changed to P2P GO or
-         * Client.
-         * When supplicant remove the group, it first issue a set interface
-         * cmd to change the mode back to Station. In JB this works fine as
-         * we advertize two station type interface during driver init.
-         * Some vendors create separate interface for P2P GO/Client,
-         * after group formation(Third one). But while group remove
-         * supplicant first tries to change the mode(3rd interface) to STATION
-         * But as we advertized only two sta type interfaces nl80211 was
-         * returning error for the third one which was leading to failure in
-         * delete interface. Ideally while removing the group, supplicant
-         * should not try to change the 3rd interface mode to Station type.
-         * Till we get a fix in wpa_supplicant, we advertize max STA
-         * interface type to 4 to support both p2p client and p2p GO
-         * combinations.
-         */
-#ifndef QCA_WIFI_2_0
-        .max = 3,
-#else
-        .max = 4,
-#endif
-        .types = BIT(NL80211_IFTYPE_STATION),
-    },
-    {
-        .max = 1,
-        .types = BIT(NL80211_IFTYPE_ADHOC) | BIT(NL80211_IFTYPE_AP),
-    },
-    {
-#ifndef QCA_WIFI_2_0
-        .max = 1,
-#else
-        .max = 2,
-#endif
-        .types = BIT(NL80211_IFTYPE_P2P_GO) |
-                 BIT(NL80211_IFTYPE_P2P_CLIENT),
-    },
+wlan_hdd_sta_p2p_iface_limit[] = {
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_STATION)
+   },
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_P2P_GO) |
+               BIT(NL80211_IFTYPE_P2P_CLIENT),
+   },
 };
 
-#endif /* WLAN_FEATURE_MBSSID */
-
-/* By default, only single channel concurrency is allowed */
 static struct ieee80211_iface_combination
-wlan_hdd_iface_combination = {
-        .limits = wlan_hdd_iface_limit,
-        .num_different_channels = 1,
-        /*
-         * max = WLAN_MAX_INTERFACES ; JellyBean architecture creates wlan0
-         * and p2p0 interfaces during driver init
-         * Some vendors create separate interface for P2P operations.
-         * wlan0: STA interface
-         * p2p0: P2P Device interface, action frames goes
-         * through this interface.
-         * p2p-xx: P2P interface, After GO negotiation this interface is
-         * created for p2p operations(GO/CLIENT interface).
-         */
-        .max_interfaces = WLAN_MAX_INTERFACES,
-        .n_limits = ARRAY_SIZE(wlan_hdd_iface_limit),
-        .beacon_int_infra_match = false,
+wlan_hdd_iface_combination[] = {
+   /* STA */
+   {
+      .limits = wlan_hdd_sta_iface_limit,
+      .num_different_channels = 2,
+      .max_interfaces = 3,
+      .n_limits = ARRAY_SIZE(wlan_hdd_sta_iface_limit),
+   },
+   /* ADHOC */
+   {
+      .limits = wlan_hdd_adhoc_iface_limit,
+      .num_different_channels = 1,
+      .max_interfaces = 2,
+      .n_limits = ARRAY_SIZE(wlan_hdd_adhoc_iface_limit),
+   },
+   /* AP */
+   {
+      .limits = wlan_hdd_ap_iface_limit,
+      .num_different_channels = 2,
+      .max_interfaces = (SAP_MAX_OBSS_STA_CNT +
+                         VOS_MAX_NO_OF_SAP_MODE),
+      .n_limits = ARRAY_SIZE(wlan_hdd_ap_iface_limit),
+   },
+   /* P2P */
+   {
+      .limits = wlan_hdd_p2p_iface_limit,
+      .num_different_channels = 2,
+      .max_interfaces = 2,
+      .n_limits = ARRAY_SIZE(wlan_hdd_p2p_iface_limit),
+   },
+   /* STA + AP */
+   {
+      .limits = wlan_hdd_sta_ap_iface_limit,
+      .num_different_channels = 2,
+      .max_interfaces = (1 + SAP_MAX_OBSS_STA_CNT +
+                         VOS_MAX_NO_OF_SAP_MODE),
+      .n_limits = ARRAY_SIZE(wlan_hdd_sta_ap_iface_limit),
+      .beacon_int_infra_match = true,
+   },
+   /* STA + P2P */
+   {
+      .limits = wlan_hdd_sta_p2p_iface_limit,
+      .num_different_channels = 2,
+      .max_interfaces = 2,
+      .n_limits = ARRAY_SIZE(wlan_hdd_sta_p2p_iface_limit),
+      .beacon_int_infra_match = true,
+   },
 };
+#endif //(LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
 
-#endif
 
 static struct cfg80211_ops wlan_hdd_cfg80211_ops;
 
@@ -3428,17 +3468,15 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     if( pCfg->advertiseConcurrentOperation )
     {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
-        if( pCfg->enableMCC )
-        {
-            /* Currently, supports up to two channels */
-            wlan_hdd_iface_combination.num_different_channels = 2;
-
-            if( !pCfg->allowMCCGODiffBI )
-                wlan_hdd_iface_combination.beacon_int_infra_match = true;
-
-        }
-        wiphy->iface_combinations = &wlan_hdd_iface_combination;
-        wiphy->n_iface_combinations = 1;
+       if( pCfg->enableMCC ) {
+          int i;
+          for (i = 0; i < ARRAY_SIZE(wlan_hdd_iface_combination); i++) {
+             if( !pCfg->allowMCCGODiffBI )
+                wlan_hdd_iface_combination[i].beacon_int_infra_match = true;
+          }
+       }
+       wiphy->n_iface_combinations = ARRAY_SIZE(wlan_hdd_iface_combination);
+       wiphy->iface_combinations = wlan_hdd_iface_combination;
 #endif
     }
 
