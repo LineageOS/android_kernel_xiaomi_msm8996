@@ -406,46 +406,28 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
     //Check if probe response IE is present or not
-    if (wlan_cfgGetInt(pMac, WNI_CFG_PROBE_RSP_ADDNIE_FLAG, &addnIEPresent) != eSIR_SUCCESS)
-    {
-        schLog(pMac, LOGE, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_FLAG"));
-        return retCode;
-    }
-
+    addnIEPresent = (psessionEntry->addIeParams.dataLen != 0);
     if (addnIEPresent)
     {
         //Probe rsp IE available
-        addIE = vos_mem_malloc(WNI_CFG_PROBE_RSP_ADDNIE_DATA1_LEN);
+        /*need to check the data length*/
+        addIE = vos_mem_malloc(psessionEntry->addIeParams.dataLen);
         if ( NULL == addIE )
         {
              schLog(pMac, LOGE,
                  FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA1 length"));
              return retCode;
         }
+        addnIELen = psessionEntry->addIeParams.dataLen;
 
-        if (wlan_cfgGetStrLen(pMac, WNI_CFG_PROBE_RSP_ADDNIE_DATA1,
-                                               &addnIELen) != eSIR_SUCCESS)
-        {
-            schLog(pMac, LOGE,
-                FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA1 length"));
-
-            vos_mem_free(addIE);
-            return retCode;
-        }
 
         if (addnIELen <= WNI_CFG_PROBE_RSP_ADDNIE_DATA1_LEN && addnIELen &&
                                  (nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE)
         {
-            if ( eSIR_SUCCESS != wlan_cfgGetStr(pMac,
-                                    WNI_CFG_PROBE_RSP_ADDNIE_DATA1, &addIE[0],
-                                    &addnIELen) )
-            {
-               schLog(pMac, LOGE,
-                   FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA1 String"));
 
-                vos_mem_free(addIE);
-               return retCode;
-            }
+
+        vos_mem_copy(addIE, psessionEntry->addIeParams.data_buff,
+            psessionEntry->addIeParams.dataLen);
         }
     }
 

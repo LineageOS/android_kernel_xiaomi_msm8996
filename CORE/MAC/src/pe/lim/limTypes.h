@@ -389,17 +389,6 @@ typedef struct sLimMlmPurgeStaInd
     tANI_U8         sessionId;
 } tLimMlmPurgeStaInd, *tpLimMlmPurgeStaInd;
 
-typedef struct sLimMlmSetKeysReq
-{
-    tSirMacAddr     peerMacAddr;
-    tANI_U8         sessionId;      //Added For BT-AMP Support
-    tANI_U8         smesessionId;   // Added for drivers based on wmi interface
-    tANI_U16        aid;
-    tAniEdType      edType;    // Encryption/Decryption type
-    tANI_U8         numKeys;
-    tSirKeys        key[SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS];
-} tLimMlmSetKeysReq, *tpLimMlmSetKeysReq;
-
 typedef struct sLimMlmSetKeysCnf
 {
     tSirMacAddr     peerMacAddr;

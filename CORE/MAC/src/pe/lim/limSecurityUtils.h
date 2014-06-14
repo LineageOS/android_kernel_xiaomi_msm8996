@@ -64,7 +64,7 @@ void               limEncryptAuthFrame(tpAniSirGlobal, tANI_U8, tANI_U8 *, tANI_
 tANI_U8                 limDecryptAuthFrame(tpAniSirGlobal, tANI_U8 *, tANI_U8 *, tANI_U8 *, tANI_U32, tANI_U16);
 
 void limSendSetBssKeyReq( tpAniSirGlobal, tLimMlmSetKeysReq *,tpPESession );
-void limSendSetStaKeyReq( tpAniSirGlobal, tLimMlmSetKeysReq *, tANI_U16, tANI_U8,tpPESession);
+void limSendSetStaKeyReq( tpAniSirGlobal, tLimMlmSetKeysReq *, tANI_U16, tANI_U8,tpPESession, tANI_BOOLEAN sendRsp);
 void limPostSmeSetKeysCnf( tpAniSirGlobal, tLimMlmSetKeysReq *, tLimMlmSetKeysCnf * );
 
 void limSendRemoveBssKeyReq(tpAniSirGlobal pMac, tLimMlmRemoveKeyReq * pMlmRemoveKeyReq,tpPESession);

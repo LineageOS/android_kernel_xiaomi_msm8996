@@ -977,13 +977,14 @@ void limSendSetStaKeyReq( tpAniSirGlobal pMac,
     tLimMlmSetKeysReq *pMlmSetKeysReq,
     tANI_U16 staIdx,
     tANI_U8 defWEPIdx,
-    tpPESession sessionEntry)
+    tpPESession sessionEntry,
+    tANI_BOOLEAN sendRsp)
 {
-tSirMsgQ           msgQ;
-tpSetStaKeyParams  pSetStaKeyParams = NULL;
-tLimMlmSetKeysCnf  mlmSetKeysCnf;
-tSirRetStatus      retCode;
-tANI_U32 val = 0;
+  tSirMsgQ           msgQ;
+  tpSetStaKeyParams  pSetStaKeyParams = NULL;
+  tLimMlmSetKeysCnf  mlmSetKeysCnf;
+  tSirRetStatus      retCode;
+  tANI_U32 val = 0;
 
   // Package WDA_SET_STAKEY_REQ message parameters
   pSetStaKeyParams = vos_mem_malloc(sizeof( tSetStaKeyParams ));
@@ -1024,15 +1025,20 @@ tANI_U32 val = 0;
   vos_mem_copy(pSetStaKeyParams->peerMacAddr,
                pMlmSetKeysReq->peerMacAddr, sizeof(tSirMacAddr));
 
-  /** Store the Previous MlmState*/
-  sessionEntry->limPrevMlmState = sessionEntry->limMlmState;
-  SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+  if(sendRsp == eANI_BOOLEAN_TRUE)
+  {
+      /** Store the Previous MlmState*/
+      sessionEntry->limPrevMlmState = sessionEntry->limMlmState;
+      SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+  }
 
   if(sessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE && !pMlmSetKeysReq->key[0].unicast) {
-      sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_BCASTKEY_STATE;
+      if (sendRsp == eANI_BOOLEAN_TRUE)
+          sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_BCASTKEY_STATE;
       msgQ.type = WDA_SET_STA_BCASTKEY_REQ;
   }else {
-      sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
+      if (sendRsp == eANI_BOOLEAN_TRUE)
+          sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
       msgQ.type = WDA_SET_STAKEY_REQ;
   }
   MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, sessionEntry->peSessionId, sessionEntry->limMlmState));
@@ -1086,6 +1092,7 @@ tANI_U32 val = 0;
       break;
   }
 
+  pSetStaKeyParams->sendRsp = sendRsp;
 
   //
   // FIXME_GEN4
@@ -1105,7 +1112,8 @@ tANI_U32 val = 0;
   }else
       return; // Continue after WDA_SET_STAKEY_RSP...
 
-  limPostSmeSetKeysCnf( pMac, pMlmSetKeysReq, &mlmSetKeysCnf );
+  if(sendRsp == eANI_BOOLEAN_TRUE)
+      limPostSmeSetKeysCnf( pMac, pMlmSetKeysReq, &mlmSetKeysCnf );
 }
 
 /**

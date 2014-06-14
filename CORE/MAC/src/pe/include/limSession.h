@@ -423,6 +423,8 @@ typedef struct sPESession           // Added to Support BT-AMP
 #endif
 
     tANI_BOOLEAN isCiscoVendorAP;
+
+    tSirAddIeParams     addIeParams;
 }tPESession, *tpPESession;
 
 #define LIM_MAX_ACTIVE_SESSIONS 4

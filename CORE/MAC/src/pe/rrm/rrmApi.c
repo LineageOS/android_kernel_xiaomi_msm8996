@@ -281,58 +281,26 @@ rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
       return eSIR_FAILURE;
    }
    pHdr = WDA_GET_RX_MAC_HEADER( pRxPacketInfo );
-   if( (uint8)(pSessionEntry->maxTxPower) != pLinkReq->MaxTxPower.maxTxPower )
-   {
-      PELOGW(limLog( pMac,
-                     LOGW,
-                     FL(" maxTx power in link request is not same as local... "
-                        " Local = %d LinkReq = %d"),
-                     pSessionEntry->maxTxPower,
-                     pLinkReq->MaxTxPower.maxTxPower );)
-      if( (MIN_STA_PWR_CAP_DBM <= pLinkReq->MaxTxPower.maxTxPower) &&
-         (MAX_STA_PWR_CAP_DBM >= pLinkReq->MaxTxPower.maxTxPower) )
-      {
-         LinkReport.txPower = pLinkReq->MaxTxPower.maxTxPower;
-      }
-      else if( MIN_STA_PWR_CAP_DBM > pLinkReq->MaxTxPower.maxTxPower )
-      {
-         LinkReport.txPower = MIN_STA_PWR_CAP_DBM;
-      }
-      else if( MAX_STA_PWR_CAP_DBM < pLinkReq->MaxTxPower.maxTxPower )
-      {
-         LinkReport.txPower = MAX_STA_PWR_CAP_DBM;
-      }
 
-      if( (LinkReport.txPower != (uint8)(pSessionEntry->maxTxPower)) &&
-          (eSIR_SUCCESS == rrmSendSetMaxTxPowerReq ( pMac,
-                                                     (tPowerdBm)(LinkReport.txPower),
-                                                     pSessionEntry)) )
-      {
-         pSessionEntry->maxTxPower = (tPowerdBm)(LinkReport.txPower);
-      }
-   }
-   else
+   LinkReport.txPower = limGetMaxTxPower (pLinkReq->MaxTxPower.maxTxPower,
+                                          pLinkReq->MaxTxPower.maxTxPower,
+                                          pMac->roam.configParam.nTxPowerCap);
+
+   if ((LinkReport.txPower != (uint8)(pSessionEntry->maxTxPower)) &&
+       (eSIR_SUCCESS == rrmSendSetMaxTxPowerReq (pMac,
+                                                 (tPowerdBm)(LinkReport.txPower),
+                                                 pSessionEntry)))
    {
-      if( (MIN_STA_PWR_CAP_DBM <= (uint8)(pSessionEntry->maxTxPower)) &&
-         (MAX_STA_PWR_CAP_DBM >= (uint8)(pSessionEntry->maxTxPower)) )
-      {
-         LinkReport.txPower = (uint8)(pSessionEntry->maxTxPower);
-      }
-      else if( MIN_STA_PWR_CAP_DBM > (uint8)(pSessionEntry->maxTxPower) )
-      {
-         LinkReport.txPower = MIN_STA_PWR_CAP_DBM;
-      }
-      else if( MAX_STA_PWR_CAP_DBM < (uint8)(pSessionEntry->maxTxPower) )
-      {
-         LinkReport.txPower = MAX_STA_PWR_CAP_DBM;
-      }
-   }
-   PELOGW(limLog( pMac,
+       PELOGW (limLog (pMac,
                   LOGW,
-                  FL(" maxTx power in link request is not same as local... "
-                     " Local = %d Link Report TxPower = %d"),
+                  FL(" maxTx power in link report is not same as local..."
+                     " Local = %d Link Request TxPower = %d"
+                     " Link Report TxPower = %d"),
                   pSessionEntry->maxTxPower,
-                  LinkReport.txPower );)
+                  LinkReport.txPower,
+                  pLinkReq->MaxTxPower.maxTxPower);)
+       pSessionEntry->maxTxPower = (tPowerdBm)(LinkReport.txPower);
+   }
 
    LinkReport.dialogToken = pLinkReq->DialogToken.token;
    LinkReport.rxAntenna = 0;

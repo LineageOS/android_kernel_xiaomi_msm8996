@@ -121,9 +121,6 @@ hif_pci_interrupt_handler(int irq, void *arg)
         adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
     }
 
-    if (adf_os_atomic_read(&sc->pci_link_suspended))
-        goto irq_handled;
-
     if (LEGACY_INTERRUPTS(sc)) {
 
         if (sc->hif_init_done == TRUE) {
@@ -182,7 +179,6 @@ hif_pci_interrupt_handler(int irq, void *arg)
     adf_os_atomic_set(&sc->tasklet_from_intr, 1);
     tasklet_schedule(&sc->intr_tq);
 
-irq_handled:
     if (sc->hif_init_done == TRUE) {
         adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
     }
@@ -1717,9 +1713,13 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 
     vos_ssr_protect(__func__);
 
-    A_TARGET_ACCESS_BEGIN_RET(targid);
+    if (HIFTargetSleepStateAdjust(targid, FALSE, TRUE) < 0)
+        goto out;
+
     A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
-    A_TARGET_ACCESS_END_RET(targid);
+
+    if (HIFTargetSleepStateAdjust(targid, TRUE, FALSE) < 0)
+        goto out;
 
     if (!txrx_pdev) {
         printk("%s: txrx_pdev is NULL\n", __func__);
@@ -1750,7 +1750,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         goto out;
     }
 
-    printk("\n%s: wow mode %d event %d\n", __func__,
+    printk("%s: wow mode %d event %d\n", __func__,
        wma_is_wow_mode_selected(temp_module), state.event);
 
     if (wma_is_wow_mode_selected(temp_module)) {
@@ -1766,9 +1766,11 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
             printk("%s: CE still not done with access: \n", __func__);
             adf_os_atomic_set(&sc->wow_done, 0);
 
-            A_TARGET_ACCESS_BEGIN_RET(targid);
+            if (HIFTargetSleepStateAdjust(targid, FALSE, TRUE) < 0)
+                goto out;
             val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
-            A_TARGET_ACCESS_END_RET(targid);
+            if (HIFTargetSleepStateAdjust(targid, TRUE, FALSE) < 0)
+                goto out;
 
             if (!wma_is_wow_mode_selected(temp_module) &&
                (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
@@ -1787,12 +1789,13 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
 
     /*Disable PCIe interrupts*/
-    if (Q_TARGET_ACCESS_BEGIN(targid) < 0) {
-        adf_os_spin_unlock_irqrestore( &hif_state->suspend_lock);
-        return -1;
+    if (HIFTargetSleepStateAdjust(targid, FALSE, TRUE) < 0) {
+        adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
+        goto out;
     }
-
     A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS), 0);
+    A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_CLR_ADDRESS),
+                  PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
     /* IMPORTANT: this extra read transaction is required to flush the posted write buffer */
     tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
     if (tmp == 0xffffffff) {
@@ -1800,9 +1803,9 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
          VOS_ASSERT(0);
     }
 
-    if (Q_TARGET_ACCESS_END(targid) < 0) {
-        adf_os_spin_unlock_irqrestore( &hif_state->suspend_lock);
-        return -1;
+    if (HIFTargetSleepStateAdjust(targid, TRUE, FALSE) < 0) {
+        adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
+        goto out;
     }
 
     /* Stop the HIF Sleep Timer */
@@ -1848,7 +1851,8 @@ hif_pci_resume(struct pci_dev *pdev)
     adf_os_atomic_set(&sc->pci_link_suspended, 0);
 
     /* Enable Legacy PCI line interrupts */
-    A_TARGET_ACCESS_BEGIN_RET(targid);
+    if (HIFTargetSleepStateAdjust(targid, FALSE, TRUE) < 0)
+        goto out;
     A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS),
                               PCIE_INTR_FIRMWARE_MASK | PCIE_INTR_CE_MASK_ALL);
     /* IMPORTANT: this extra read transaction is required to flush the posted write buffer */
@@ -1857,7 +1861,8 @@ hif_pci_resume(struct pci_dev *pdev)
         printk(KERN_ERR "%s: PCIe link is down\n", __func__);
         VOS_ASSERT(0);
     }
-    A_TARGET_ACCESS_END_RET(targid);
+    if (HIFTargetSleepStateAdjust(targid, TRUE, FALSE) < 0)
+        goto out;
 
 
     err = pci_enable_device(pdev);
@@ -1892,9 +1897,11 @@ hif_pci_resume(struct pci_dev *pdev)
     pci_write_config_dword(pdev, 0x188, (val & ~0x0000000f));
 #endif
 
-    A_TARGET_ACCESS_BEGIN_RET(targid);
+    if (HIFTargetSleepStateAdjust(targid, FALSE, TRUE) < 0)
+        goto out;
     val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
-    A_TARGET_ACCESS_END_RET(targid);
+    if (HIFTargetSleepStateAdjust(targid, TRUE, FALSE) < 0)
+        goto out;
 
     /* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
     temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
@@ -1903,7 +1910,7 @@ hif_pci_resume(struct pci_dev *pdev)
         goto out;
     }
 
-    printk("\n%s: wow mode %d val %d\n", __func__,
+    printk("%s: wow mode %d val %d\n", __func__,
        wma_is_wow_mode_selected(temp_module), val);
 
     adf_os_atomic_set(&sc->wow_done, 0);
