@@ -4262,7 +4262,7 @@ int iw_get_softap_linkspeed(struct net_device *dev,
    int len = sizeof(v_U32_t)+1;
    tSirMacAddr macAddress;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
-   int rc, valid;
+   int rc, valid, i;
 
    pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
    valid = wlan_hdd_validate_context(pHddCtx);
@@ -4299,13 +4299,22 @@ int iw_get_softap_linkspeed(struct net_device *dev,
          hddLog(VOS_TRACE_LEVEL_ERROR, FL("String to Hex conversion Failed"));
       }
    }
-
    /* If no mac address is passed and/or its length is less than 17,
-    * return error
+    * link speed for first connected client will be returned.
     */
-   if (wrqu->data.length < 17 || !VOS_IS_STATUS_SUCCESS(status ))
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,FL("Invalid peer macaddress"));
+   if (wrqu->data.length < 17 || !VOS_IS_STATUS_SUCCESS(status )) {
+      for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
+          if (pHostapdAdapter->aStaInfo[i].isUsed &&
+             (!vos_is_macaddr_broadcast(&pHostapdAdapter->aStaInfo[i].macAddrSTA))) {
+             vos_copy_macaddr((v_MACADDR_t *)macAddress,
+                               &pHostapdAdapter->aStaInfo[i].macAddrSTA);
+             status = VOS_STATUS_SUCCESS;
+             break;
+          }
+      }
+   }
+   if (!VOS_IS_STATUS_SUCCESS(status )) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid peer macaddress"));
       return -EINVAL;
    }
    status = wlan_hdd_get_linkspeed_for_peermac(pHostapdAdapter,
