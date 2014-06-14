@@ -79,7 +79,7 @@
 #define WMA_READY_EVENTID_TIMEOUT          2000
 #define WMA_TGT_SUSPEND_COMPLETE_TIMEOUT   1000
 #define WMA_WAKE_LOCK_TIMEOUT              1000
-#define WMA_MAX_RESUME_RETRY               10
+#define WMA_MAX_RESUME_RETRY               1000
 #define WMA_RESUME_TIMEOUT                 3000
 #define MAX_MEM_CHUNKS                     32
 /*
@@ -1499,23 +1499,29 @@ typedef struct {
 
 #endif /* FEATURE_WLAN_TDLS */
 
+#define WMA_DFS_MAX_20M_SUB_CH 8
+
+struct wma_dfs_radar_channel_list {
+	A_UINT32	nchannels;
+	/*Channel number including bonded channels on which the RADAR is present */
+	u_int8_t	channels[WMA_DFS_MAX_20M_SUB_CH];
+};
+
 /*
  * Structure to indicate RADAR
  */
 
 struct wma_dfs_radar_indication {
-    /* unique id identifying the VDEV */
-    A_UINT32        vdev_id;
-    /*Channel number on which the RADAR is present */
-    u_int8_t        ieee_chan_number;
-    /* Channel Frequency*/
-    A_UINT32        chan_freq;
-    /* Flag to Indicate RADAR presence on the
-     * current operating channel
-     */
-    u_int32_t       dfs_radar_status;
-    /* Flag to indicate use NOL */
-    int             use_nol;
+	/* unique id identifying the VDEV */
+	A_UINT32        vdev_id;
+	/* Channel list on which RADAR is detected */
+	struct wma_dfs_radar_channel_list chan_list;
+	/* Flag to Indicate RADAR presence on the
+	 * current operating channel
+	 */
+	u_int32_t       dfs_radar_status;
+	/* Flag to indicate use NOL */
+	int             use_nol;
 };
 
 /*

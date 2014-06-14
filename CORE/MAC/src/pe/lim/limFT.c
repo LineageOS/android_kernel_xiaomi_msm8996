@@ -54,6 +54,13 @@
 #define LIM_FT_RIC_DESCRIPTOR_RESOURCE_TYPE_BA  1
 #define LIM_FT_RIC_DESCRIPTOR_MAX_VAR_DATA_LEN   255
 
+extern void limSendSetStaKeyReq( tpAniSirGlobal pMac,
+    tLimMlmSetKeysReq *pMlmSetKeysReq,
+    tANI_U16 staIdx,
+    tANI_U8 defWEPIdx,
+    tpPESession sessionEntry,
+    tANI_BOOLEAN sendRsp);
+
 /*--------------------------------------------------------------------------
   Initialize the FT variables.
   ------------------------------------------------------------------------*/
@@ -1456,61 +1463,86 @@ tANI_BOOLEAN limProcessFTUpdateKey(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf )
     {
         return TRUE;
     }
+
     if(pMac->ft.ftPEContext.pAddBssReq == NULL)
     {
-        limLog( pMac, LOGE,
-                FL( "pAddBssReq is NULL" ));
-        return TRUE;
+        // AddBss Req is NULL, save the keys to configure them later.
+        tpLimMlmSetKeysReq pMlmSetKeysReq = &pMac->ft.ftPEContext.PreAuthKeyInfo.extSetStaKeyParam;
+        tpPESession psessionEntry = (tPESession *)pMac->ft.ftPEContext.pftSessionEntry;
+
+        pKeyInfo = (tSirFTUpdateKeyInfo *)pMsgBuf;
+        vos_mem_zero(pMlmSetKeysReq, sizeof(tLimMlmSetKeysReq));
+        vos_mem_copy(pMlmSetKeysReq->peerMacAddr, pKeyInfo->bssId, sizeof(tSirMacAddr));
+        pMlmSetKeysReq->sessionId = psessionEntry->peSessionId;
+        pMlmSetKeysReq->smesessionId = psessionEntry->smeSessionId;
+        pMlmSetKeysReq->edType = pKeyInfo->keyMaterial.edType;
+        pMlmSetKeysReq->numKeys = pKeyInfo->keyMaterial.numKeys;
+        vos_mem_copy((tANI_U8 *) &pMlmSetKeysReq->key,
+            (tANI_U8 *) &pKeyInfo->keyMaterial.key, sizeof(tSirKeys));
+
+        pMac->ft.ftPEContext.PreAuthKeyInfo.extSetStaKeyParamValid = TRUE;
+
+        limLog( pMac, LOGE, FL( "pAddBssReq is NULL" ));
+
+        if (pMac->ft.ftPEContext.pAddStaReq == NULL)
+        {
+            limLog( pMac, LOGE, FL( "pAddStaReq is NULL" ));
+            limSendSetStaKeyReq(pMac, pMlmSetKeysReq, 0, 0, psessionEntry, FALSE);
+            pMac->ft.ftPEContext.PreAuthKeyInfo.extSetStaKeyParamValid = FALSE;
+        }
     }
-
-    pAddBssParams = pMac->ft.ftPEContext.pAddBssReq;
-    pKeyInfo = (tSirFTUpdateKeyInfo *)pMsgBuf;
-
-    /* Store the key information in the ADD BSS parameters */
-    pAddBssParams->extSetStaKeyParamValid = 1;
-    pAddBssParams->extSetStaKeyParam.encType = pKeyInfo->keyMaterial.edType;
-    vos_mem_copy((tANI_U8 *) &pAddBssParams->extSetStaKeyParam.key,
-                 (tANI_U8 *) &pKeyInfo->keyMaterial.key, sizeof(tSirKeys));
-    if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_SINGLE_TID_RC, &val))
+    else
     {
-        limLog( pMac, LOGP, FL( "Unable to read WNI_CFG_SINGLE_TID_RC" ));
-    }
+        pAddBssParams = pMac->ft.ftPEContext.pAddBssReq;
+        pKeyInfo = (tSirFTUpdateKeyInfo *)pMsgBuf;
 
-    pAddBssParams->extSetStaKeyParam.singleTidRc = val;
-    PELOG1(limLog(pMac, LOG1, FL("Key valid %d"),
-                pAddBssParams->extSetStaKeyParamValid,
-                pAddBssParams->extSetStaKeyParam.key[0].keyLength);)
+        /* Store the key information in the ADD BSS parameters */
+        pAddBssParams->extSetStaKeyParamValid = 1;
+        pAddBssParams->extSetStaKeyParam.encType = pKeyInfo->keyMaterial.edType;
+        vos_mem_copy((tANI_U8 *) &pAddBssParams->extSetStaKeyParam.key,
+                     (tANI_U8 *) &pKeyInfo->keyMaterial.key, sizeof(tSirKeys));
+        if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_SINGLE_TID_RC, &val))
+        {
+            limLog( pMac, LOGP, FL( "Unable to read WNI_CFG_SINGLE_TID_RC" ));
+        }
 
-    pAddBssParams->extSetStaKeyParam.staIdx = 0;
+        pAddBssParams->extSetStaKeyParam.singleTidRc = val;
+        PELOG1(limLog(pMac, LOG1, FL("Key valid %d"),
+                    pAddBssParams->extSetStaKeyParamValid,
+                    pAddBssParams->extSetStaKeyParam.key[0].keyLength);)
 
-    PELOG1(limLog(pMac, LOG1,
-           FL("BSSID = "MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pKeyInfo->bssId));)
+        pAddBssParams->extSetStaKeyParam.staIdx = 0;
 
-    sirCopyMacAddr(pAddBssParams->extSetStaKeyParam.peerMacAddr, pKeyInfo->bssId);
-
-    if(pAddBssParams->extSetStaKeyParam.key[0].keyLength == 16)
-    {
         PELOG1(limLog(pMac, LOG1,
-        FL("BSS key = %02X-%02X-%02X-%02X-%02X-%02X-%02X- "
-        "%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X"),
-        pAddBssParams->extSetStaKeyParam.key[0].key[0],
-        pAddBssParams->extSetStaKeyParam.key[0].key[1],
-        pAddBssParams->extSetStaKeyParam.key[0].key[2],
-        pAddBssParams->extSetStaKeyParam.key[0].key[3],
-        pAddBssParams->extSetStaKeyParam.key[0].key[4],
-        pAddBssParams->extSetStaKeyParam.key[0].key[5],
-        pAddBssParams->extSetStaKeyParam.key[0].key[6],
-        pAddBssParams->extSetStaKeyParam.key[0].key[7],
-        pAddBssParams->extSetStaKeyParam.key[0].key[8],
-        pAddBssParams->extSetStaKeyParam.key[0].key[9],
-        pAddBssParams->extSetStaKeyParam.key[0].key[10],
-        pAddBssParams->extSetStaKeyParam.key[0].key[11],
-        pAddBssParams->extSetStaKeyParam.key[0].key[12],
-        pAddBssParams->extSetStaKeyParam.key[0].key[13],
-        pAddBssParams->extSetStaKeyParam.key[0].key[14],
-        pAddBssParams->extSetStaKeyParam.key[0].key[15]);)
-    }
+               FL("BSSID = "MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pKeyInfo->bssId));)
 
+        sirCopyMacAddr(pAddBssParams->extSetStaKeyParam.peerMacAddr, pKeyInfo->bssId);
+
+        pAddBssParams->extSetStaKeyParam.sendRsp = FALSE;
+
+        if(pAddBssParams->extSetStaKeyParam.key[0].keyLength == 16)
+        {
+            PELOG1(limLog(pMac, LOG1,
+            FL("BSS key = %02X-%02X-%02X-%02X-%02X-%02X-%02X- "
+            "%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X"),
+            pAddBssParams->extSetStaKeyParam.key[0].key[0],
+            pAddBssParams->extSetStaKeyParam.key[0].key[1],
+            pAddBssParams->extSetStaKeyParam.key[0].key[2],
+            pAddBssParams->extSetStaKeyParam.key[0].key[3],
+            pAddBssParams->extSetStaKeyParam.key[0].key[4],
+            pAddBssParams->extSetStaKeyParam.key[0].key[5],
+            pAddBssParams->extSetStaKeyParam.key[0].key[6],
+            pAddBssParams->extSetStaKeyParam.key[0].key[7],
+            pAddBssParams->extSetStaKeyParam.key[0].key[8],
+            pAddBssParams->extSetStaKeyParam.key[0].key[9],
+            pAddBssParams->extSetStaKeyParam.key[0].key[10],
+            pAddBssParams->extSetStaKeyParam.key[0].key[11],
+            pAddBssParams->extSetStaKeyParam.key[0].key[12],
+            pAddBssParams->extSetStaKeyParam.key[0].key[13],
+            pAddBssParams->extSetStaKeyParam.key[0].key[14],
+            pAddBssParams->extSetStaKeyParam.key[0].key[15]);)
+        }
+    }
     return TRUE;
 }
 

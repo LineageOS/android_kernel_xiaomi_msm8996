@@ -8782,30 +8782,44 @@ VOS_STATUS hdd_close_all_adapters( hdd_context_t *pHddCtx )
 
 void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
 {
-    v_U8_t addIE[1] = {0};
-
-    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA1,(tANI_U8*)addIE, 0, NULL,
-                            eANI_BOOLEAN_FALSE) )
+    tANI_U8 *bssid = NULL;
+    switch (pHostapdAdapter->device_mode)
     {
-        hddLog(LOGE,
-           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
+    case WLAN_HDD_INFRA_STATION:
+    case WLAN_HDD_P2P_CLIENT:
+    {
+        hdd_station_ctx_t * pHddStaCtx =
+            WLAN_HDD_GET_STATION_CTX_PTR(pHostapdAdapter);
+        bssid = (tANI_U8*)&pHddStaCtx->conn_info.bssId;
+        break;
     }
-
-    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2, (tANI_U8*)addIE, 0, NULL,
-                            eANI_BOOLEAN_FALSE) )
+    case WLAN_HDD_SOFTAP:
+    case WLAN_HDD_P2P_GO:
+    case WLAN_HDD_IBSS:
     {
-        hddLog(LOGE,
-           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM");
+        bssid = pHostapdAdapter->macAddressCurrent.bytes;
+        break;
     }
-
-    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3, (tANI_U8*)addIE, 0, NULL,
-                            eANI_BOOLEAN_FALSE) )
+    case WLAN_HDD_MONITOR:
+    case WLAN_HDD_FTM:
+    case WLAN_HDD_P2P_DEVICE:
+    default:
+        /*
+         * wlan_hdd_reset_prob_rspies should not have been called
+         * for these kind of devices
+         */
+        hddLog(LOGE, FL("Unexpected request for the current device type %d"),
+               pHostapdAdapter->device_mode);
+        return;
+    }
+    if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pHostapdAdapter),
+                      pHostapdAdapter->sessionId,
+                      bssid,
+                      NULL,
+                      0,
+                      VOS_TRUE) == eHAL_STATUS_FAILURE)
     {
-        hddLog(LOGE,
-           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM");
+        hddLog(LOGE, "Could not pass on Additional IE data to PE");
     }
 }
 
@@ -9642,6 +9656,34 @@ hdd_adapter_t * hdd_get_adapter_by_name( hdd_context_t *pHddCtx, tANI_U8 *name )
 
    return NULL;
 
+}
+
+hdd_adapter_t *hdd_get_adapter_by_vdev( hdd_context_t *pHddCtx,
+                                        tANI_U32 vdev_id )
+{
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+    hdd_adapter_t *pAdapter;
+    VOS_STATUS vos_status;
+
+
+    vos_status = hdd_get_front_adapter( pHddCtx, &pAdapterNode);
+
+    while ((NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == vos_status))
+    {
+        pAdapter = pAdapterNode->pAdapter;
+
+        if (pAdapter->sessionId == vdev_id)
+            return pAdapter;
+
+        vos_status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+        pAdapterNode = pNext;
+    }
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+              "%s: vdev_id %d does not exist with host",
+              __func__, vdev_id);
+
+    return NULL;
 }
 
 hdd_adapter_t * hdd_get_adapter( hdd_context_t *pHddCtx, device_mode_t mode )
@@ -11459,6 +11501,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
           goto err_free_ftm_open;
       }
 #endif
+      vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded", __func__);
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
       complete(&wlan_start_comp);

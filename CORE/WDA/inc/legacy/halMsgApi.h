@@ -372,7 +372,19 @@ typedef struct
 
     // PE session id now added to all HAL<->PE transacations
     // HAL sends back response with no modification
+    tANI_U8     sendRsp;
 } tSetStaKeyParams, *tpSetStaKeyParams;
+
+typedef struct sLimMlmSetKeysReq
+{
+    tSirMacAddr     peerMacAddr;
+    tANI_U8         sessionId;      //Added For BT-AMP Support
+    tANI_U8         smesessionId;   // Added for drivers based on wmi interface
+    tANI_U16        aid;
+    tAniEdType      edType;    // Encryption/Decryption type
+    tANI_U8         numKeys;
+    tSirKeys        key[SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS];
+} tLimMlmSetKeysReq, *tpLimMlmSetKeysReq;
 
 //
 // Mesg header is used from tSirMsgQ
@@ -1015,7 +1027,6 @@ typedef struct
 }tSwitchChannelParams, *tpSwitchChannelParams;
 
 typedef struct CSAOffloadParams {
-   tANI_U8 sessionId;
    tANI_U8 channel;
    tANI_U8 switchmode;
    tANI_U8 sec_chan_offset;
@@ -1023,6 +1034,7 @@ typedef struct CSAOffloadParams {
    tANI_U8 new_ch_freq_seg1;   /* Channel Center frequency 1 */
    tANI_U8 new_ch_freq_seg2;   /* Channel Center frequency 2 */
    tANI_U32 ies_present_flag;   /* WMI_CSA_EVENT_IES_PRESENT_FLAG */
+   tSirMacAddr bssId;
 }*tpCSAOffloadParams, tCSAOffloadParams;
 
 typedef void (*tpSetLinkStateCallback)(tpAniSirGlobal pMac, void *msgParam );

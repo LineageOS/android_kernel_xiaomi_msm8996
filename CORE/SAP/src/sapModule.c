@@ -2770,6 +2770,52 @@ VOS_STATUS WLANSAP_Set_Dfs_Ignore_CAC(v_PVOID_t pvosGCtx, v_U8_t ignore_cac)
     return VOS_STATUS_SUCCESS;
 }
 
+VOS_STATUS WLANSAP_UpdateSapConfigAddIE(tsap_Config_t *pConfig,
+                         const tANI_U8 *pAdditionIEBuffer,
+                         tANI_U16 additionIELength)
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+    if (NULL == pConfig) {
+        return VOS_STATUS_E_FAULT;
+    }
+    if ( (pAdditionIEBuffer != NULL) && (additionIELength != 0) ) {
+        /* initialize the buffer pointer so that pe can copy*/
+        if (additionIELength > 0) {
+            pConfig->addnIEsBufferLen = additionIELength;
+            pConfig->addnIEsBuffer = vos_mem_malloc(additionIELength);
+            if (NULL == pConfig->addnIEsBuffer) {
+                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Could not copy PROBE_RSP_ADDNIE", __func__);
+                return VOS_STATUS_E_NOMEM;
+            }
+            vos_mem_copy(pConfig->addnIEsBuffer,
+                         pAdditionIEBuffer, additionIELength);
+        }
+    } else {
+        vos_mem_free(pConfig->addnIEsBuffer);
+        pConfig->addnIEsBufferLen = 0;
+        pConfig->addnIEsBuffer = NULL;
+
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+            "%s: No Probe Response IE received in set beacon", __func__);
+    }
+
+    return (status);
+}
+
+
+VOS_STATUS WLANSAP_ResetSapConfigAddIE(tsap_Config_t *pConfig )
+{
+    if (NULL == pConfig) {
+        return VOS_STATUS_E_FAULT;
+    }
+    vos_mem_free( pConfig->addnIEsBuffer);
+    pConfig->addnIEsBufferLen = 0;
+    pConfig->addnIEsBuffer = NULL;
+    return VOS_STATUS_SUCCESS;
+}
+
 /*==========================================================================
   FUNCTION    WLANSAP_Get_DfsNol
 

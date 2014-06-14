@@ -215,7 +215,7 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
     }
     total_num_channels = sapContext->SapAllChnlList.numChannel;
 
-    for (i = 0, available_chan_count = 0; i< total_num_channels; i++)
+    for (i = 0, available_chan_count = 0; i < total_num_channels; i++)
     {
         /*
          * Now Check if the channel is DFS and if
@@ -1189,11 +1189,17 @@ sapFsm
             if (msg == eSAP_MAC_SCAN_COMPLETE)
             {
                  tHalHandle  hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
-#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-                 v_U16_t cc_ch;
-                 if (NULL != hHal &&
-                     sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE)
+                 if (NULL == hHal)
                  {
+                     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                         "In %s, NULL hHal in state %s, msg %d ", __func__,
+                         "eSAP_CH_SELECT", msg);
+                     return VOS_STATUS_E_FAULT;
+                 }
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+                 if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE)
+                 {
+                     v_U16_t cc_ch;
                      cc_ch = sme_CheckConcurrentChannelOverlap(hHal,
                          sapContext->channel,
                          sapConvertSapPhyModeToCsrPhyMode(
@@ -1692,6 +1698,17 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     profile->MFPRequired = pconfig_params->mfpRequired ? 1 : 0;
 #endif
 
+    if (pconfig_params->addnIEsBufferLen > 0 &&
+        pconfig_params->addnIEsBuffer != NULL)
+    {
+        profile->addIeParams.dataLen = pconfig_params->addnIEsBufferLen;
+        profile->addIeParams.data_buff = pconfig_params->addnIEsBuffer;
+    }
+    else
+    {
+        profile->addIeParams.dataLen = 0;
+        profile->addIeParams.data_buff = NULL;
+    }
     return eSAP_STATUS_SUCCESS; /* Success.  */
 }
 
@@ -2190,10 +2207,12 @@ static VOS_STATUS sapGet5GHzChannelList(ptSapContext sapContext)
  * dfs_event - Dfs information from DFS
  * return - channel to which AP wishes to switch
  */
-v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
+v_U8_t sapIndicateRadar(ptSapContext sapContext, tSirSmeDfsEventInd *dfs_event)
 {
     v_U8_t target_channel = 0;
-    int i;
+    int i, j;
+    tSapDfsNolInfo *psapDfsChannelNolList = NULL;
+    v_U8_t nRegDomainDfsChannels;
 
     if (NULL == sapContext || NULL == dfs_event)
     {
@@ -2228,22 +2247,28 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext,tSirSmeDfsEventInd *dfs_event)
      * in the  NOL list as eSAP_DFS_CHANNEL_UNAVAILABLE.
      */
 
-    for (i = 0; i<= sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels; i++)
-    {
-        if (sapContext->SapDfsInfo.sapDfsChannelNolList[i]
-                         .dfs_channel_number ==
-                                               dfs_event->ieee_chan_number)
+    psapDfsChannelNolList = sapContext->SapDfsInfo.sapDfsChannelNolList;
+    nRegDomainDfsChannels = sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels;
+    for (i = 0; i < dfs_event->chan_list.nchannels; i++) {
+        for (j = 0; j <= nRegDomainDfsChannels; j++)
         {
-            // Capture the Radar Found timestamp on the Current Channel in ms.
-            sapContext->SapDfsInfo.sapDfsChannelNolList[i]
-                         .radar_found_timestamp = vos_timer_get_system_time();
-            // Mark the Channel to be UNAVAILABLE for next 30 mins.
-            sapContext->SapDfsInfo.sapDfsChannelNolList[i]
-                         .radar_status_flag = eSAP_DFS_CHANNEL_UNAVAILABLE;
+            if (psapDfsChannelNolList[j].dfs_channel_number ==
+                    dfs_event->chan_list.channels[i])
+            {
+                /*
+                 * Capture the Radar Found timestamp on the Current Channel in
+                 * ms.
+                 */
+                psapDfsChannelNolList[j].radar_found_timestamp =
+                    vos_timer_get_system_time();
+                /* Mark the Channel to be UNAVAILABLE for next 30 mins */
+                psapDfsChannelNolList[j].radar_status_flag =
+                    eSAP_DFS_CHANNEL_UNAVAILABLE;
 
-            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                      "%s[%d]: Channel = %d Added to NOL LIST",
-                       __func__, __LINE__, dfs_event->ieee_chan_number);
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                                FL("Channel = %d Added to NOL LIST"),
+                                dfs_event->chan_list.channels[i]);
+            }
         }
     }
 

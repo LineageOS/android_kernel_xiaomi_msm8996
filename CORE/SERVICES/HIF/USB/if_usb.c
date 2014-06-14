@@ -52,6 +52,7 @@
 #define VENDOR_ATHR             0x0CF3
 #define AR9888_DEVICE_ID (0x003c)
 #define AR6320_DEVICE_ID (0x003e)
+#define DELAY_FOR_TARGET_READY 200	/* 200ms */
 
 unsigned int msienable;
 module_param(msienable, int, 0644);
@@ -107,7 +108,6 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	int vendor_id, product_id;
 
 	pr_info("hif_usb_probe\n");
-	usb_disable_lpm(pdev);
 	usb_get_dev(pdev);
 	vendor_id = le16_to_cpu(pdev->descriptor.idVendor);
 	product_id = le16_to_cpu(pdev->descriptor.idProduct);
@@ -230,6 +230,10 @@ static void hif_usb_remove(struct usb_interface *interface)
 		return;
 
 	HIFDiagWriteWARMRESET(interface, 0, 0);
+	/* wait for target jump to boot code and finish the initialization */
+	set_current_state(TASK_INTERRUPTIBLE);
+	schedule_timeout(msecs_to_jiffies(DELAY_FOR_TARGET_READY));
+	set_current_state(TASK_RUNNING);
 	if (usb_sc->local_state.event != 0) {
 		hif_usb_resume(usb_sc->interface);
 		usb_sc->local_state.event = 0;

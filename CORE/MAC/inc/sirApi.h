@@ -614,6 +614,11 @@ typedef __ani_attr_pre_packed struct sSirHtConfig
    tANI_U32 unused:27;
 } __ani_attr_packed tSirHTConfig, *tpSirHTConfig;
 
+typedef __ani_attr_pre_packed struct sSirAddIeParams{
+      tANI_U16       dataLen;
+      tANI_U8       *data_buff;
+} tSirAddIeParams, *tpSirAddIeParams;
+
 /// Definition for kick starting BSS
 /// ---> MAC
 /**
@@ -676,6 +681,7 @@ typedef struct sSirSmeStartBssReq
     tANI_BOOLEAN            pmfRequired;
 #endif
 
+    tSirAddIeParams         addIeParams;
 } tSirSmeStartBssReq, *tpSirSmeStartBssReq;
 
 #define GET_IE_LEN_IN_BSS(lenInBss) ( lenInBss + sizeof(lenInBss) - \
@@ -4747,7 +4753,7 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8   bssid[6];     /* BSSID */
     tANI_U8   ssid[33];     /* SSID */
     tANI_U8   ch;           /* Channel */
-    tANI_U8   rssi;         /* RSSI or Level */
+    tANI_S8   rssi;         /* RSSI or Level */
     /*Timestamp when Network was found. Used to calculate age based on timestamp
       in GET_RSP msg header */
     tANI_U32  timestamp;
@@ -4842,13 +4848,21 @@ typedef struct sSirChAvoidIndType
 } tSirChAvoidIndType;
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+#define SIR_DFS_MAX_20M_SUB_CH 8
+
+typedef struct sSirSmeDfsChannelList
+{
+    tANI_U32    nchannels;
+    /*Channel number including bonded channels on which the RADAR is present */
+    tANI_U8     channels[SIR_DFS_MAX_20M_SUB_CH];
+}tSirSmeDfsChannelList, *tpSirSmeDfsChannelList;
+
 typedef struct sSirSmeDfsEventInd
 {
-    tANI_U32     sessionId;
-    tANI_U8      ieee_chan_number;
-    tANI_U32     chan_freq;
-    tANI_U32     dfs_radar_status;
-    int          use_nol;
+    tANI_U32                   sessionId;
+    tSirSmeDfsChannelList      chan_list;
+    tANI_U32                   dfs_radar_status;
+    int                        use_nol;
 }tSirSmeDfsEventInd, *tpSirSmeDfsEventInd;
 
 typedef struct sSirChanChangeRequest
@@ -4875,6 +4889,19 @@ typedef struct sSirStartBeaconIndication
     tANI_U8      beaconStartStatus;
     tANI_U8      bssid[VOS_MAC_ADDR_SIZE];
 }tSirStartBeaconIndication, *tpSirStartBeaconIndication;
+
+
+/* Message format for Update IE message sent to PE  */
+typedef struct sUpdateAIEs
+{
+   tANI_U16       msgType;
+   tANI_U16       msgLen;
+   tSirMacAddr    bssid;
+   tANI_U16       smeSessionId;
+   tANI_U8       *pAdditionIEBuffer;
+   tANI_U16       length;
+   boolean        append;
+}tUpdateAIEs,    *tpUpdateAIEs;
 
 /* Message format for requesting channel switch announcement to lower layers */
 typedef struct sSirDfsCsaIeRequest
@@ -4942,6 +4969,7 @@ typedef struct
 #ifdef WLAN_FEATURE_STATS_EXT
 typedef struct
 {
+    tANI_U32 vdev_id;
     tANI_U32 event_data_len;
     u_int8_t event_data[];
 } tSirStatsExtEvent, *tpSirStatsExtEvent;
