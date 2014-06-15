@@ -44,7 +44,7 @@ BRIEF DESCRIPTION:
 #define QWLAN_VERSION_EXTRA            ""
 #define QWLAN_VERSION_BUILD            126
 
-#define QWLAN_VERSIONSTR               "1.0.0.126"
+#define QWLAN_VERSIONSTR               "1.0.0.126A"
 
 #ifdef QCA_WIFI_2_0
 
