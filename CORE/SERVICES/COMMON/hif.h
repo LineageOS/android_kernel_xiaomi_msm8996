@@ -617,7 +617,7 @@ inline int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *da
  * To enable clock gating in L1 state, set this to 1. (less power, slightly more wakeup latency)
  * To disable clock gating in L1 state, set this to 0. (slighly more power)
  */
-#define CONFIG_PCIE_ENABLE_L1_CLOCK_GATE 0
+#define CONFIG_PCIE_ENABLE_L1_CLOCK_GATE 1
 
 /*
  * When CONFIG_ATH_PCIE_MAX_PERF is 0:

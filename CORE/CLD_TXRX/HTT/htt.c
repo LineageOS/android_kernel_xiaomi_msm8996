@@ -413,6 +413,8 @@ htt_htc_attach(struct htt_pdev_t *pdev)
 
         /* Should NOT support credit flow control. */
         connect.ConnectionFlags |= HTC_CONNECT_FLAGS_DISABLE_CREDIT_FLOW_CTRL;
+        /* Enable HTC schedule mechanism for TX HTT2 service. */
+        connect.ConnectionFlags |= HTC_CONNECT_FLAGS_ENABLE_HTC_SCHEDULE;
 
         connect.ServiceID = HTT_DATA2_MSG_SVC;
 

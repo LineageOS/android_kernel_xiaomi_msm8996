@@ -220,6 +220,8 @@ typedef PREPACK struct {
 #define HTC_CONNECT_FLAGS_THRESHOLD_LEVEL_UNITY             0x3
     /* disable credit flow control on a specific service */
 #define HTC_CONNECT_FLAGS_DISABLE_CREDIT_FLOW_CTRL          (1 << 3)
+    /* enable htc schedule on a specific service */
+#define HTC_CONNECT_FLAGS_ENABLE_HTC_SCHEDULE               (1 << 4)
 
               ServiceMetaLength : 8,   /* length of meta data that follows */
               _Pad1 : 8;

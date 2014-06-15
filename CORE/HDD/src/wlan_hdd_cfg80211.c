@@ -3274,6 +3274,10 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
     eCsrRoamBssType LastBSSType;
     hdd_config_t *pConfig = NULL;
     eMib_dot11DesiredBssType connectedBssType;
+#ifdef WLAN_FEATURE_LPSS
+    hdd_adapter_t *pDataAdapter = NULL;
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+#endif
     long ret;
     VOS_STATUS vstatus;
     eHalStatus hstatus;
@@ -3703,6 +3707,26 @@ done:
         pHddCtx->isAmpAllowed = VOS_TRUE;
     }
 #endif //WLAN_BTAMP_FEATURE
+
+#ifdef WLAN_FEATURE_LPSS
+    vstatus = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
+    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
+        pDataAdapter = pAdapterNode->pAdapter;
+        if (pDataAdapter) {
+            if (pDataAdapter->device_mode == WLAN_HDD_INFRA_STATION)
+                break;
+            if (pDataAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
+                break;
+            if (pDataAdapter->device_mode == WLAN_HDD_P2P_DEVICE)
+                break;
+        }
+        vstatus = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+        pAdapterNode = pNext;
+    }
+
+    wlan_hdd_send_status_pkg(pDataAdapter, NULL, 1, 0);
+#endif
+
     EXIT();
     return 0;
 }
