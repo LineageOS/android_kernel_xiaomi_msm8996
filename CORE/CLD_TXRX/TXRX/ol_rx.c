@@ -395,6 +395,11 @@ ol_rx_indication_handler(
                     } else {
                         ol_rx_reorder_store(
                             pdev, peer, tid, reorder_idx, head_msdu, tail_msdu);
+                        if (peer->tids_rx_reorder[tid].win_sz_mask == 0) {
+                            peer->tids_last_seq[tid] =
+                                         htt_rx_mpdu_desc_seq_num(htt_pdev,
+                                                                  rx_mpdu_desc);
+                        }
                     }
                 }
             }

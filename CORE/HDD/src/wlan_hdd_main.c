@@ -61,6 +61,9 @@
 #include <wlan_hdd_includes.h>
 #include <vos_api.h>
 #include <vos_sched.h>
+#ifdef WLAN_FEATURE_LPSS
+#include <vos_utils.h>
+#endif
 #include <linux/etherdevice.h>
 #include <linux/firmware.h>
 #include <wcnss_api.h>
@@ -6417,6 +6420,10 @@ void hdd_update_tgt_cfg(void *context, void *param)
 
     hdd_ctx->max_intf_count = cfg->max_intf_count;
 
+#ifdef WLAN_FEATURE_LPSS
+    hdd_ctx->lpss_support = cfg->lpss_support;
+#endif
+
     hdd_update_tgt_services(hdd_ctx, &cfg->services);
 
     hdd_update_tgt_ht_cap(hdd_ctx, &cfg->ht_cap);
@@ -10416,6 +10423,10 @@ void __hdd_wlan_exit(void)
 
         vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 
+#ifdef WLAN_FEATURE_LPSS
+        wlan_hdd_send_status_pkg(NULL, NULL, 0, 0);
+#endif
+
         //Do all the cleanup before deregistering the driver
         hdd_wlan_exit(pHddCtx);
 }
@@ -11880,6 +11891,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    wlan_hdd_cfg80211_stats_ext_init(pHddCtx);
 #endif
 
+#ifdef WLAN_FEATURE_LPSS
+   wlan_hdd_send_status_pkg(pAdapter, NULL, 1, 0);
+   wlan_hdd_send_version_pkg(pHddCtx->target_fw_version,
+                             pHddCtx->target_hw_version,
+                             pHddCtx->target_hw_name);
+#endif
+
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
    complete(&wlan_start_comp);
 #endif
@@ -13005,7 +13023,7 @@ void hdd_ch_avoid_cb
               {
                   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                             "%s: Restarting SAP", __func__);
-                  wlan_hdd_send_svc_nlink_msg(WLAN_SVC_LTE_COEX_IND);
+                  wlan_hdd_send_svc_nlink_msg(WLAN_SVC_LTE_COEX_IND, NULL, 0);
                   restart_sap_in_progress = 1;
                   /* current operating channel is un-safe channel, restart driver */
                   hdd_hostapd_stop(hostapd_adapter->dev);
@@ -13018,11 +13036,92 @@ void hdd_ch_avoid_cb
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 
-void wlan_hdd_send_svc_nlink_msg(int type)
+#ifdef WLAN_FEATURE_LPSS
+int wlan_hdd_gen_wlan_status_pack(struct wlan_status_data *data,
+                                  hdd_adapter_t *pAdapter,
+                                  hdd_station_ctx_t *pHddStaCtx,
+                                  v_U8_t is_on,
+                                  v_U8_t is_connected)
+{
+    hdd_context_t *pHddCtx = NULL;
+    tANI_U8 buflen = WLAN_SVC_COUNTRY_CODE_LEN;
+
+    if (!data) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: invalid data pointer", __func__);
+        return (-1);
+    }
+    if (!pAdapter) {
+        if (is_on) {
+            /* no active interface */
+            data->lpss_support = 0;
+            data->is_on = is_on;
+            return 0;
+        }
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: invalid adapter pointer", __func__);
+        return (-1);
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    data->lpss_support = pHddCtx->lpss_support;
+    data->numChannels = WLAN_SVC_MAX_NUM_CHAN;
+    sme_GetCfgValidChannels(pHddCtx->hHal, data->channel_list,
+                            &data->numChannels);
+    sme_GetCountryCode(pHddCtx->hHal, data->country_code, &buflen);
+    data->is_on = is_on;
+    data->vdev_id = pAdapter->sessionId;
+    data->vdev_mode = pAdapter->device_mode;
+    if (pHddStaCtx) {
+        data->is_connected = is_connected;
+        data->freq = vos_chan_to_freq(pHddStaCtx->conn_info.operationChannel);
+        if (WLAN_SVC_MAX_SSID_LEN >= pHddStaCtx->conn_info.SSID.SSID.length) {
+            data->ssid_len = pHddStaCtx->conn_info.SSID.SSID.length;
+            memcpy(data->ssid,
+                   pHddStaCtx->conn_info.SSID.SSID.ssId,
+                   pHddStaCtx->conn_info.SSID.SSID.length);
+        }
+        if (WLAN_SVC_MAX_BSSID_LEN >= sizeof(pHddStaCtx->conn_info.bssId))
+            memcpy(data->bssid,
+                   pHddStaCtx->conn_info.bssId,
+                   sizeof(pHddStaCtx->conn_info.bssId));
+    }
+    return 0;
+}
+
+int wlan_hdd_gen_wlan_version_pack(struct wlan_version_data *data,
+                                    v_U32_t fw_version,
+                                    v_U32_t chip_id,
+                                    const char *chip_name)
+{
+    if (!data) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: invalid data pointer", __func__);
+        return (-1);
+    }
+
+    data->chip_id = chip_id;
+    strlcpy(data->chip_name, chip_name, WLAN_SVC_MAX_STR_LEN);
+    if (strncmp(chip_name, "Unknown", 7))
+        strlcpy(data->chip_from, "Qualcomm", WLAN_SVC_MAX_STR_LEN);
+    else
+        strlcpy(data->chip_from, "Unknown", WLAN_SVC_MAX_STR_LEN);
+    strlcpy(data->host_version, QWLAN_VERSIONSTR, WLAN_SVC_MAX_STR_LEN);
+    scnprintf(data->fw_version, WLAN_SVC_MAX_STR_LEN, "%d.%d.%d.%d",
+              (fw_version & 0xf0000000) >> 28,
+              (fw_version & 0xf000000) >> 24,
+              (fw_version & 0xf00000) >> 20,
+              (fw_version & 0x7fff));
+    return 0;
+}
+#endif
+
+void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len)
 {
     struct sk_buff *skb;
     struct nlmsghdr *nlh;
     tAniMsgHdr *ani_hdr;
+    void *nl_data = NULL;
 
     skb = alloc_skb(NLMSG_SPACE(WLAN_NL_MAX_PAYLOAD), GFP_KERNEL);
 
@@ -13054,6 +13153,14 @@ void wlan_hdd_send_svc_nlink_msg(int type)
         nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr)));
         skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr)));
         break;
+    case WLAN_SVC_WLAN_STATUS_IND:
+    case WLAN_SVC_WLAN_VERSION_IND:
+        ani_hdr->length = len;
+        nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr) + len));
+        nl_data = (char *)ani_hdr + sizeof(tAniMsgHdr);
+        memcpy(nl_data, data, len);
+        skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr) + len));
+        break;
     default:
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "WLAN SVC: Attempt to send unknown nlink message %d", type);
@@ -13065,11 +13172,73 @@ void wlan_hdd_send_svc_nlink_msg(int type)
 
     return;
 }
+
+#ifdef WLAN_FEATURE_LPSS
+void wlan_hdd_send_status_pkg(hdd_adapter_t *pAdapter,
+                              hdd_station_ctx_t *pHddStaCtx,
+                              v_U8_t is_on,
+                              v_U8_t is_connected)
+{
+    int ret = 0;
+    struct wlan_status_data data;
+#ifdef CONFIG_CNSS
+    struct cnss_platform_cap cap;
+
+    ret = cnss_get_platform_cap(&cap);
+    if (ret) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: platform capability info from CNSS not available",
+                  __func__);
+        return;
+    }
+
+    if (!(cap.cap_flag & CNSS_HAS_UART_ACCESS))
+        return;
+#endif
+
+    memset(&data, 0, sizeof(struct wlan_status_data));
+    if (is_on)
+        ret = wlan_hdd_gen_wlan_status_pack(&data, pAdapter, pHddStaCtx,
+                                            is_on, is_connected);
+    if (!ret)
+        wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_STATUS_IND,
+                                    &data, sizeof(struct wlan_status_data));
+}
+
+void wlan_hdd_send_version_pkg(v_U32_t fw_version,
+                               v_U32_t chip_id,
+                               const char *chip_name)
+{
+    int ret = 0;
+    struct wlan_version_data data;
+#ifdef CONFIG_CNSS
+    struct cnss_platform_cap cap;
+
+    ret = cnss_get_platform_cap(&cap);
+    if (ret) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: platform capability info from CNSS not available",
+                  __func__);
+        return;
+    }
+
+    if (!(cap.cap_flag & CNSS_HAS_UART_ACCESS))
+        return;
+#endif
+
+    memset(&data, 0, sizeof(struct wlan_version_data));
+    ret = wlan_hdd_gen_wlan_version_pack(&data, fw_version, chip_id, chip_name);
+    if (!ret)
+        wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_VERSION_IND,
+                                    &data, sizeof(struct wlan_version_data));
+}
+#endif
+
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 v_VOID_t wlan_hdd_auto_shutdown_cb(v_PVOID_t data)
 {
     hddLog(LOGE, FL("%s: Wlan Idle. Sending Shutdown event.."),__func__);
-    wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND);
+    wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND, NULL, 0);
 }
 
 void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)

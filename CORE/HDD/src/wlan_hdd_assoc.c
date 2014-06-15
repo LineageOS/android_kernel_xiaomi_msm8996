@@ -711,6 +711,10 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         }
 #endif
 
+#ifdef WLAN_FEATURE_LPSS
+        wlan_hdd_send_status_pkg(pAdapter, pHddStaCtx, 1, 1);
+#endif
+
 #ifdef MSM_PLATFORM
 #ifdef CONFIG_CNSS
         /* start timer in sta/p2p_cli */
@@ -755,6 +759,10 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
                                      0, pAdapter->sessionId,
                                      pHddStaCtx->conn_info.operationChannel);
         }
+#endif
+
+#ifdef WLAN_FEATURE_LPSS
+        wlan_hdd_send_status_pkg(pAdapter, pHddStaCtx, 1, 0);
 #endif
 
 #ifdef MSM_PLATFORM

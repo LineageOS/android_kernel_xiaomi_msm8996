@@ -1447,6 +1447,8 @@ struct hdd_context_s
     v_U32_t target_hw_version;
     /* defining the chip/rom revision */
     v_U32_t target_hw_revision;
+    /* chip/rom name */
+    const char *target_hw_name;
 #endif
     struct regulatory reg;
 #ifdef FEATURE_WLAN_CH_AVOID
@@ -1456,6 +1458,9 @@ struct hdd_context_s
 
     v_U8_t max_intf_count;
     v_U8_t current_intf_count;
+#ifdef WLAN_FEATURE_LPSS
+    v_U8_t lpss_support;
+#endif
 
     tSirScanType ioctl_scan_mode;
 
@@ -1638,7 +1643,16 @@ void hdd_deinit_batch_scan(hdd_adapter_t *pAdapter);
 
 #endif /*End of FEATURE_WLAN_BATCH_SCAN*/
 
-void wlan_hdd_send_svc_nlink_msg(int type);
+#ifdef WLAN_FEATURE_LPSS
+void wlan_hdd_send_status_pkg(hdd_adapter_t *pAdapter,
+                              hdd_station_ctx_t *pHddStaCtx,
+                              v_U8_t is_on,
+                              v_U8_t is_connected);
+void wlan_hdd_send_version_pkg(v_U32_t fw_version,
+                               v_U32_t chip_id,
+                               const char *chip_name);
+#endif
+void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len);
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_U8_t enable);
 #endif

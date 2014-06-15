@@ -806,16 +806,16 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             goto stopbss;
 
         case eSAP_DFS_CAC_START:
-            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_START_IND);
+            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_START_IND, NULL, 0);
             break;
 
         case eSAP_DFS_CAC_END:
-            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_END_IND);
+            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_END_IND, NULL, 0);
             pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
             break;
 
         case eSAP_DFS_RADAR_DETECT:
-            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_RADAR_DETECT_IND);
+            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_RADAR_DETECT_IND, NULL, 0);
             break;
 
         case eSAP_STA_SET_KEY_EVENT:

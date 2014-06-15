@@ -62,12 +62,21 @@ ifeq ($(KERNEL_BUILD), 0)
                 CONFIG_WLAN_FEATURE_11W := y
         #Flag to enable LTE CoEx feature
                 CONFIG_QCOM_LTE_COEX := y
+        #Flag to enable LPSS feature
+                CONFIG_WLAN_FEATURE_LPSS := y
                 endif
         endif
 
 	#Flag to enable new Linux Regulatory implementation
 	CONFIG_ENABLE_LINUX_REG := y
 
+        #Flag to enable Protected Managment Frames (11w) feature
+        ifeq ($(CONFIG_ROME_IF),usb)
+                CONFIG_WLAN_FEATURE_11W := y
+        endif
+        ifeq ($(CONFIG_ROME_IF),sdio)
+                CONFIG_WLAN_FEATURE_11W := y
+        endif
 endif
 
 # To enable ESE upload, dependent config
@@ -176,7 +185,7 @@ endif
 
 #Enable IPA offload
 ifeq ($(CONFIG_IPA), y)
-CONFIG_IPA_OFFLOAD := 1
+CONFIG_IPA_OFFLOAD := 0
 endif
 
 #Enable Signed firmware support for split binary format
@@ -1104,6 +1113,10 @@ endif
 
 ifeq ($(CONFIG_QCOM_LTE_COEX),y)
 CDEFINES += -DFEATURE_WLAN_CH_AVOID
+endif
+
+ifeq ($(CONFIG_WLAN_FEATURE_LPSS),y)
+CDEFINES += -DWLAN_FEATURE_LPSS
 endif
 
 ifeq ($(PANIC_ON_BUG),1)

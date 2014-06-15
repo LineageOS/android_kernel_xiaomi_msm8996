@@ -99,6 +99,9 @@ struct hdd_tgt_cfg {
         struct hdd_tgt_vht_cap vht_cap;
 #endif
         v_U8_t max_intf_count;
+#ifdef WLAN_FEATURE_LPSS
+        v_U8_t lpss_support;
+#endif
 };
 
 struct hdd_dfs_radar_ind {
