@@ -347,8 +347,11 @@ eHalStatus csr_init_chan_list(tpAniSirGlobal mac, v_U8_t *alpha2)
     vos_mem_copy(mac->scan.countryCodeCurrent,
                  mac->scan.countryCodeDefault,
                  WNI_CFG_COUNTRY_CODE_LEN);
-
+    vos_mem_copy(mac->scan.countryCodeElected,
+                 mac->scan.countryCodeDefault,
+                 WNI_CFG_COUNTRY_CODE_LEN);
     status = csrInitGetChannels(mac);
+    csrClearVotesForCountryInfo(mac);
     return status;
 }
 
@@ -3962,7 +3965,7 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
     //Do we need to worry about sequence for OSs that are not Windows??
     if (pBssDesc)
     {
-        if (csrLearnCountryInformation(pMac, pBssDesc, pIes, eANI_BOOLEAN_TRUE))
+        if (csrLearnCountryInformation(pMac, eANI_BOOLEAN_TRUE))
         {
             //Make sure the 11d info from this BSSDesc can be applied
             pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_FALSE;

@@ -76,9 +76,6 @@
 #define CSR_SCAN_IS_OVER_BSS_LIMIT(pMac)  \
    ( (pMac)->scan.nBssLimit <= (csrLLCount(&(pMac)->scan.scanResultList)) )
 
-
-#define THIRTY_PERCENT(x)  (x*30/100);
-
 //*** This is temporary work around. It need to call CCM api to get to CFG later
 /// Get string parameter value
 extern tSirRetStatus wlan_cfgGetStr(tpAniSirGlobal, tANI_U16, tANI_U8*, tANI_U32*);
@@ -3070,11 +3067,7 @@ static void csrMoveTempScanResultsToMainList(tpAniSirGlobal pMac,
                                              tANI_U8 sessionId)
 {
     tListElem *pEntry;
-    tListElem *pEntryTemp;
-    tListElem  *pNext;
     tCsrScanResult *pBssDescription;
-    tANI_S8         cand_Bss_rssi;
-    tANI_S8         rssi_of_current_country;
     tANI_BOOLEAN    fDupBss;
 #ifdef FEATURE_WLAN_WAPI
     tANI_BOOLEAN fNewWapiBSSForCurConnection = eANI_BOOLEAN_FALSE;
@@ -3082,11 +3075,8 @@ static void csrMoveTempScanResultsToMainList(tpAniSirGlobal pMac,
     tDot11fBeaconIEs *pIesLocal = NULL;
     tAniSSID tmpSsid;
     v_TIME_t timer=0;
-    tCsrBssid bssid_temp =  {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
     tmpSsid.length = 0;
-    cand_Bss_rssi = -128; // RSSI coming from PE is -ve
-    rssi_of_current_country = pMac->scan.currentCountryRSSI;
 
     // remove the BSS descriptions from temporary list
     while( ( pEntry = csrLLRemoveTail( &pMac->scan.tempScanResults, LL_ACCESS_LOCK ) ) != NULL)
@@ -3158,43 +3148,18 @@ static void csrMoveTempScanResultsToMainList(tpAniSirGlobal pMac,
         //Find a good AP for 11d info
         if ( csrIs11dSupported( pMac ) )
         {
-            if (cand_Bss_rssi < pBssDescription->Result.BssDescriptor.rssi)
+            // check if country information element is present
+            if (pIesLocal->Country.present)
             {
-                // check if country information element is present
-                if (pIesLocal->Country.present)
-                {
-                    cand_Bss_rssi = pBssDescription->Result.BssDescriptor.rssi;
-                    smsLog(pMac, LOGW, FL("11d AP Bssid " MAC_ADDRESS_STR
-                                    " chan= %d, rssi = -%d, countryCode %c%c"),
-                                    MAC_ADDR_ARRAY( pBssDescription->Result.BssDescriptor.bssId),
-                                    pBssDescription->Result.BssDescriptor.channelId,
-                                    pBssDescription->Result.BssDescriptor.rssi * (-1),
-                                    pIesLocal->Country.country[0],pIesLocal->Country.country[1] );
-                   //Getting BSSID for best AP in scan result.
-                    vos_mem_copy(bssid_temp,
-                            pBssDescription->Result.BssDescriptor.bssId, sizeof(tSirMacAddr));
-
-                }
-
+                csrAddVoteForCountryInfo(pMac, pIesLocal->Country.country);
+                smsLog(pMac, LOGW, FL("11d AP Bssid " MAC_ADDRESS_STR
+                                " chan= %d, rssi = -%d, countryCode %c%c"),
+                                MAC_ADDR_ARRAY( pBssDescription->Result.BssDescriptor.bssId),
+                                pBssDescription->Result.BssDescriptor.channelId,
+                                pBssDescription->Result.BssDescriptor.rssi * (-1),
+                                pIesLocal->Country.country[0],pIesLocal->Country.country[1] );
             }
         }
-        //get current rssi for BSS from which country code is acquired.
-        if ( csrIs11dSupported(pMac) && (csrIsMacAddressEqual(pMac,
-                               &pMac->scan.currentCountryBssid,
-                              &pBssDescription->Result.BssDescriptor.bssId) ))
-        {
-            smsLog(pMac, LOGW, FL("Information about current country Bssid "
-                               MAC_ADDRESS_STR
-                              " chan= %d, rssi = -%d, countryCode %c%c"),
-                               MAC_ADDR_ARRAY( pBssDescription->Result.BssDescriptor.bssId),
-                               pBssDescription->Result.BssDescriptor.channelId,
-                               pBssDescription->Result.BssDescriptor.rssi * (-1),
-                               pIesLocal->Country.country[0],pIesLocal->Country.country[1] );
-            rssi_of_current_country =  pBssDescription->Result.BssDescriptor.rssi ;
-            pMac->scan.currentCountryRSSI = rssi_of_current_country;
-        }
-
-
 
         // append to main list
         csrScanAddResult(pMac, pBssDescription, pIesLocal, sessionId);
@@ -3209,62 +3174,24 @@ static void csrMoveTempScanResultsToMainList(tpAniSirGlobal pMac,
     if (csrIs11dSupported(pMac))
     {
         tCsrRoamSession *pSession;
+        tANI_U32 i;
 
-        if (CSR_IS_SESSION_VALID(pMac, sessionId)) {
-            if (csrIsConnStateConnected(pMac, sessionId)) {
-                pSession = CSR_GET_SESSION(pMac, sessionId);
-                if (csrIsBssidMatch(pMac, &pMac->scan.currentCountryBssid,
-                                    &pSession->connectedProfile.bssid)) {
-                    smsLog(pMac, LOGW, FL("No need for updating CC, we will "
-                                          "continue with current AP's CC"));
+        for (i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+        {
+            if (CSR_IS_SESSION_VALID( pMac, i ) )
+            {
+                pSession = CSR_GET_SESSION( pMac, i );
+                if (csrIsConnStateConnected(pMac, i))
+                {
+                    smsLog(pMac, LOGW, FL("No need for updating CC in"
+                                         "connected state"));
                     goto end;
                 }
             }
         }
-
-        // Calculating 30% of current rssi is an idea for not to change
-        // country code so freq.
-        if (rssi_of_current_country != -128)
-        {
-            rssi_of_current_country = rssi_of_current_country
-                                         - THIRTY_PERCENT(rssi_of_current_country);
-        }
-        //if new candidate AP has 30% better RSSI or this is the first time or
-        //AP aged out of CSR cache or we are in world CC now
-        if ((rssi_of_current_country <= cand_Bss_rssi )  || (rssi_of_current_country  == -128)
-           ||( '0' == pMac->scan.countryCode11d[ 0 ] && '0' == pMac->scan.countryCode11d[ 1 ] ))
-        {
-            csrLLLock(&pMac->scan.scanResultList);
-            pEntryTemp = csrLLPeekHead(&pMac->scan.scanResultList, LL_ACCESS_NOLOCK);
-            while ( NULL != pEntryTemp)
-            {
-                pNext = csrLLNext(&pMac->scan.scanResultList, pEntryTemp,
-                                              LL_ACCESS_NOLOCK);
-                pBssDescription = GET_BASE_ADDR( pEntryTemp, tCsrScanResult, Link );
-                pIesLocal = (tDot11fBeaconIEs *)( pBssDescription->Result.pvIes );
-                // Need to traverse whole scan list to get description for best 11d AP.
-                if (csrIsMacAddressEqual(pMac, (tCsrBssid *)&bssid_temp,
-                             (tCsrBssid *) pBssDescription->Result.BssDescriptor.bssId))
-                {
-                    // Best AP should be passed to update reg domain.
-                    csrLearnCountryInformation( pMac, &pBssDescription->Result.BssDescriptor,
-                                 pIesLocal, eANI_BOOLEAN_TRUE );
-                     //this check is to avoid the case of invalid CC set via 11d
-                     //In that case we move to world CC & we are open to any new
-                     //valid CC we can get during scan
-                     if(( '0' != pMac->scan.countryCode11d[ 0 ] && '0' != pMac->scan.countryCode11d[ 1 ] ))
-                     {
-                         vos_mem_copy(pMac->scan.currentCountryBssid,
-                                         bssid_temp, sizeof(tSirMacAddr));
-                     }
-                    break;
-                }
-                pEntryTemp = pNext;
-            }
-            csrLLUnlock(&pMac->scan.scanResultList);
-        }
+        csrElectedCountryInfo(pMac);
+        csrLearnCountryInformation( pMac, eANI_BOOLEAN_TRUE );
     }
-
 
 end:
     //If we can find the current 11d info in any of the scan results, or
@@ -3272,7 +3199,7 @@ end:
     // get into ambiguous state
     if(pMac->scan.fAmbiguous11dInfoFound)
     {
-      if((pMac->scan.fCurrent11dInfoMatch) || (cand_Bss_rssi != -128))
+      if((pMac->scan.fCurrent11dInfoMatch))
       {
         pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_FALSE;
       }
@@ -3650,6 +3577,121 @@ eHalStatus csrResetCountryCodeInformation(tpAniSirGlobal pMac, tANI_BOOLEAN *pfR
     return (status);
 }
 
+void csrClearVotesForCountryInfo(tpAniSirGlobal pMac)
+{
+    pMac->scan.countryCodeCount = 0;
+    vos_mem_set(pMac->scan.votes11d,
+                 sizeof(tCsrVotes11d) * CSR_MAX_NUM_COUNTRY_CODE, 0);
+}
+
+void csrAddVoteForCountryInfo(tpAniSirGlobal pMac, tANI_U8 *pCountryCode)
+{
+    tANI_BOOLEAN match = FALSE;
+    tANI_U8 i;
+
+    /* convert to UPPER here so we are assured
+     * the strings are always in upper case.
+     */
+    for( i = 0; i < 3; i++ )
+    {
+        pCountryCode[ i ] = (tANI_U8)csrToUpper( pCountryCode[ i ] );
+    }
+
+    /* Some of the 'old' Cisco 350 series AP's advertise NA as the
+     * country code (for North America ??). NA is not a valid country code
+     * or domain so let's allow this by changing it to the proper
+     * country code (which is US).  We've also seen some NETGEAR AP's
+     * that have "XX " as the country code with valid 2.4 GHz US channel
+     * information.  If we cannot find the country code advertised in the
+     * 11d information element, let's default to US.
+     */
+
+    if ( !HAL_STATUS_SUCCESS(csrGetRegulatoryDomainForCountry( pMac,
+                  pCountryCode, NULL,COUNTRY_QUERY ) ) )
+    {
+        pCountryCode[ 0 ] = '0';
+        pCountryCode[ 1 ] = '0';
+    }
+
+    /* We've seen some of the AP's improperly put a 0 for the
+     * third character of the country code. spec says valid charcters are
+     * 'O' (for outdoor), 'I' for Indoor, or ' ' (space; for either).
+     * if we see a 0 in this third character, let's change it to a ' '.
+     */
+    if ( 0 == pCountryCode[ 2 ] )
+    {
+        pCountryCode[ 2 ] = ' ';
+    }
+
+    for (i = 0; i < pMac->scan.countryCodeCount; i++)
+    {
+        match = (vos_mem_compare(pMac->scan.votes11d[i].countryCode,
+                          pCountryCode, 2));
+        if(match)
+        {
+            break;
+        }
+    }
+
+    if (match)
+    {
+        pMac->scan.votes11d[i].votes++;
+    }
+    else
+    {
+        vos_mem_copy( pMac->scan.votes11d[pMac->scan.countryCodeCount].countryCode,
+                       pCountryCode, 3 );
+        pMac->scan.votes11d[pMac->scan.countryCodeCount].votes = 1;
+        pMac->scan.countryCodeCount++;
+    }
+
+    return;
+}
+
+tANI_BOOLEAN csrElectedCountryInfo(tpAniSirGlobal pMac)
+{
+    tANI_BOOLEAN fRet = FALSE;
+    tANI_U8 maxVotes = 0;
+    tANI_U8 i, j=0;
+
+    if (!pMac->scan.countryCodeCount)
+    {
+        return fRet;
+    }
+    maxVotes = pMac->scan.votes11d[0].votes;
+    fRet = TRUE;
+
+    for(i = 1; i < pMac->scan.countryCodeCount; i++)
+    {
+        /* If we have a tie for max votes for 2 different country codes,
+         * pick random.we can put some more intelligence - TBD
+         */
+        if (maxVotes < pMac->scan.votes11d[i].votes)
+        {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                     " Votes for Country %c%c : %d\n",
+                    pMac->scan.votes11d[i].countryCode[0],
+                    pMac->scan.votes11d[i].countryCode[1],
+                    pMac->scan.votes11d[i].votes);
+
+            maxVotes = pMac->scan.votes11d[i].votes;
+            j = i;
+            fRet = TRUE;
+        }
+
+    }
+    if (fRet)
+    {
+        memcpy(pMac->scan.countryCodeElected,
+            pMac->scan.votes11d[j].countryCode, WNI_CFG_COUNTRY_CODE_LEN);
+        VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                 "Selected Country is %c%c With count %d\n",
+                      pMac->scan.votes11d[j].countryCode[0],
+                      pMac->scan.votes11d[j].countryCode[1],
+                      pMac->scan.votes11d[j].votes);
+    }
+    return fRet;
+}
 
 eHalStatus csrSetCountryCode(tpAniSirGlobal pMac, tANI_U8 *pCountry, tANI_BOOLEAN *pfRestartNeeded)
 {
@@ -4065,13 +4107,11 @@ void csrConstructCurrentValidChannelList( tpAniSirGlobal pMac, tDblLinkList *pCh
 /*
   * 802.11D only: Gather 11d IE via beacon or Probe response and store them in pAdapter->channels11d
 */
-tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
-                                         tDot11fBeaconIEs *pIes, tANI_BOOLEAN fForce)
+tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce)
 {
     eHalStatus status;
     tANI_BOOLEAN fRet = eANI_BOOLEAN_FALSE;
     v_REGDOMAIN_t domainId;
-    tDot11fBeaconIEs *pIesLocal = pIes;
 
     if (VOS_STA_SAP_MODE == vos_get_conparam ())
         return eHAL_STATUS_SUCCESS;
@@ -4080,137 +4120,68 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
     {
         // check if .11d support is enabled
         if( !csrIs11dSupported( pMac ) ) break;
-        if( !pIesLocal && (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal))) )
-        {
-            break;
-        }
-        // check if country information element is present
-        if(!pIesLocal->Country.present)
-        {
-            //No country info
-            break;
-        }
 
-        if( csrSave11dCountryString( pMac, pIesLocal->Country.country, fForce ) )
-        {
-            // country string changed, this should not happen
-            //Need to check whether we care about this BSS' domain info
-            //If it doesn't match of the connected profile or roaming profile, let's ignore it
-            tANI_U32 i;
-            tCsrRoamSession *pSession;
-
-            for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
-            {
-                if( CSR_IS_SESSION_VALID( pMac, i ) )
-                {
-                    pSession = CSR_GET_SESSION( pMac, i );
-                    if(pSession->pCurRoamProfile)
-                    {
-                        tCsrScanResultFilter filter;
-
-                        vos_mem_set(&filter, sizeof(tCsrScanResultFilter), 0);
-                        status = csrRoamPrepareFilterFromProfile(pMac, pSession->pCurRoamProfile, &filter);
-                        if(HAL_STATUS_SUCCESS(status))
-                        {
-                            tANI_BOOLEAN fMatch = csrMatchBSS(pMac, pSirBssDesc, &filter, NULL, NULL, NULL, NULL);
-                            //Free the resource first
-                            csrFreeScanFilter( pMac, &filter );
-                            if(fMatch)
-                            {
-                                smsLog(pMac, LOGW, "Matching roam profile "
-                                       "BSSID " MAC_ADDRESS_STR
-                                       " causing ambiguous domain info",
-                                       MAC_ADDR_ARRAY(pSirBssDesc->bssId));
-                                pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_TRUE;
-                                break;
-                            }
-                        }
-                    }
-                    else if( csrIsConnStateConnected(pMac, i))
-                    {
-                        //Reach here only when the currention is base on no profile.
-                        //User doesn't give profile and just connect to anything.
-                        if(csrMatchBSSToConnectProfile(pMac, &pSession->connectedProfile, pSirBssDesc, pIesLocal))
-                        {
-                            smsLog(pMac, LOGW, "Matching connect profile BSSID "
-                                   MAC_ADDRESS_STR
-                                   " causing ambiguous domain info",
-                                   MAC_ADDR_ARRAY(pSirBssDesc->bssId));
-                            //Tush
-                            pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_TRUE;
-                            if(csrIsBssidMatch(pMac, (tCsrBssid *)&pSirBssDesc->bssId,
-                                                &pSession->connectedProfile.bssid))
-                            {
-                                //AP changed the 11d info on the fly, modify cfg
-                                pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_FALSE;
-                                fRet = eANI_BOOLEAN_TRUE;
-                            }
-                            break;
-                        }
-                    }
-                } //valid session
-            } //for
-            if ( i == CSR_ROAM_SESSION_MAX )
-            {
-                //Check whether we can use this country's 11d information
-                if( !pMac->roam.configParam.fEnforceDefaultDomain )
-                {
-                    pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_TRUE;
-                }
-                else
-                {
-                    if (pMac->scan.domainIdCurrent != pMac->scan.domainIdDefault)
-                    {
-                       VOS_ASSERT( pMac->scan.domainIdCurrent == pMac->scan.domainIdDefault );
-                       return eANI_BOOLEAN_FALSE;
-                    }
-                    if( HAL_STATUS_SUCCESS(csrGetRegulatoryDomainForCountry(
-                                pMac, pIesLocal->Country.country, &domainId,
-                                COUNTRY_QUERY)) &&
-                                ( domainId == pMac->scan.domainIdCurrent ) )
-                    {
-                        //Two countries in the same domain
-                    }
-                }
-            }
-
-            csrGetRegulatoryDomainForCountry(pMac, pIesLocal->Country.country,
+#ifdef CONFIG_ENABLE_LINUX_REG
+            csrGetRegulatoryDomainForCountry(pMac, pMac->scan.countryCodeElected,
                                              &domainId, COUNTRY_IE);
-
-        }
-        else //Tush
+#endif
+#ifndef CONFIG_ENABLE_LINUX_REG
+        status = csrGetRegulatoryDomainForCountry(pMac,
+                       pMac->scan.countryCodeElected, &domainId, COUNTRY_IE);
+        if ( status != eHAL_STATUS_SUCCESS )
         {
-            pMac->scan.fCurrent11dInfoMatch = eANI_BOOLEAN_TRUE;
+            smsLog( pMac, LOGE, FL("  fail to get regId %d"), domainId );
+            fRet = eANI_BOOLEAN_FALSE;
+            break;
         }
-
-        //In case that some channels in 5GHz have the same channel number as 2.4GHz (<= 14)
-        if(CSR_IS_CHANNEL_5GHZ(pSirBssDesc->channelId))
+        // Checking for Domain Id change
+        if ( domainId != pMac->scan.domainIdCurrent )
         {
-            tANI_U8 iC;
-            tSirMacChanInfo* pMacChnSet = (tSirMacChanInfo *)(&pIesLocal->Country.triplets[0]);
-
-            for(iC = 0; iC < pIesLocal->Country.num_triplets; iC++)
+            vos_mem_copy(pMac->scan.countryCode11d,
+                                  pMac->scan.countryCodeElected,
+                                  sizeof( pMac->scan.countryCode11d ) );
+            /* Set Current Country code and Current Regulatory domain */
+            status = csrSetRegulatoryDomain(pMac, domainId, NULL);
+            if (eHAL_STATUS_SUCCESS != status)
             {
-                if(CSR_IS_CHANNEL_24GHZ(pMacChnSet[iC].firstChanNum))
-                {
-                    pMacChnSet[iC].firstChanNum += 200; //*** Where is this 200 defined?
-                }
+                smsLog(pMac, LOGE, "Set Reg Domain Fail %d", status);
+                fRet = eANI_BOOLEAN_FALSE;
+                break;
+            }
+            //csrSetRegulatoryDomain will fail if the country doesn't fit our domain criteria.
+            vos_mem_copy(pMac->scan.countryCodeCurrent,
+                            pMac->scan.countryCodeElected, WNI_CFG_COUNTRY_CODE_LEN);
+            //Simply set it to cfg.
+            csrSetCfgCountryCode(pMac, pMac->scan.countryCodeElected);
+
+            /* overwrite the defualt country code */
+            vos_mem_copy(pMac->scan.countryCodeDefault,
+                                      pMac->scan.countryCodeCurrent,
+                                      WNI_CFG_COUNTRY_CODE_LEN);
+            /* Set Current RegDomain */
+            status = WDA_SetRegDomain(pMac, domainId, eSIR_TRUE);
+            if ( status != eHAL_STATUS_SUCCESS )
+            {
+                smsLog( pMac, LOGE, FL("  fail to Set regId %d"), domainId );
+                fRet = eANI_BOOLEAN_FALSE;
+                break;
+            }
+             /* set to default domain ID */
+            pMac->scan.domainIdCurrent = domainId;
+            /* get the channels based on new cc */
+            status = csrInitGetChannels( pMac );
+
+            if ( status != eHAL_STATUS_SUCCESS )
+            {
+                smsLog( pMac, LOGE, FL("  fail to get Channels "));
+                fRet = eANI_BOOLEAN_FALSE;
+                break;
             }
         }
-        smsLog(pMac, LOG3, FL("  %d sets each one is %zu"), pIesLocal->Country.num_triplets, sizeof(tSirMacChanInfo));
-
-        // set the indicator of the channel where the country IE was found...
-        pMac->scan.channelOf11dInfo = pSirBssDesc->channelId;
-
+#endif
         fRet = eANI_BOOLEAN_TRUE;
 
     } while( 0 );
-
-    if( !pIes && pIesLocal )
-    {
-        //locally allocated
-        vos_mem_free(pIesLocal);
-    }
 
     return( fRet );
 }
@@ -5820,7 +5791,7 @@ eHalStatus csrScanChannels( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         }
 #endif //#ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
 
-
+        csrClearVotesForCountryInfo(pMac);
         status = csrSendMBScanReq(pMac, pCommand->sessionId,
                                 &pCommand->u.scanCmd.u.scanRequest, &scanReq);
     }while(0);
