@@ -3786,7 +3786,7 @@ done:
 
 #ifdef WLAN_FEATURE_LPSS
     vstatus = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
-    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
+    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == vstatus) {
         pDataAdapter = pAdapterNode->pAdapter;
         if (pDataAdapter) {
             if (pDataAdapter->device_mode == WLAN_HDD_INFRA_STATION)
