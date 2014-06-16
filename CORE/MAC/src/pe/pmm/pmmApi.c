@@ -3315,6 +3315,9 @@ tSirRetStatus pmmOffloadEnterBmpsReqHandler(tpAniSirGlobal pMac,
     /* Fill the Sme Session Id */
     pEnablePsReqParams->sessionid = psessionEntry->smeSessionId;
 
+    /* Fill the Last Beacon DTIM Period */
+    pEnablePsReqParams->bcnDtimPeriod = psessionEntry->lastBeaconDtimPeriod;
+
     /* Fill the additional power save setting */
     pEnablePsReqParams->psSetting = psReqData->addOnReq;
 
