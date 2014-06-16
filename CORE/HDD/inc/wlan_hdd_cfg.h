@@ -1612,6 +1612,12 @@ typedef enum
 #define CFG_ENABLE_FW_MODULE_LOG_DEFAULT  ""
 #endif
 
+#ifdef FEATURE_GREEN_AP
+#define CFG_ENABLE_GREEN_AP_FEATURE         "gEnableGreenAp"
+#define CFG_ENABLE_GREEN_AP_FEATURE_MIN     ( 0 )
+#define CFG_ENABLE_GREEN_AP_FEATURE_MAX     ( 1 )
+#define CFG_ENABLE_GREEN_AP_FEATURE_DEFAULT ( 1 )
+#endif
 
 /*
  * VOS Trace Enable Control
@@ -3176,6 +3182,11 @@ typedef struct
 #endif
    v_U8_t      ignoreCAC;
    v_BOOL_t                    IsSapDfsChSifsBurstEnabled;
+
+#ifdef FEATURE_GREEN_AP
+   v_BOOL_t                    enableGreenAP;
+#endif
+
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

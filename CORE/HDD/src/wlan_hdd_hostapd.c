@@ -626,6 +626,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     hdd_scaninfo_t *pScanInfo  = NULL;
     struct iw_michaelmicfailure msg;
     v_U8_t ignoreCAC = 0;
+    hdd_config_t *cfg = NULL;
 
 #ifdef MSM_PLATFORM
     unsigned long flags;
@@ -666,6 +667,18 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     sapEvent = pSapEvent->sapHddEventCode;
     memset(&wrqu, '\0', sizeof(wrqu));
     pHddCtx = (hdd_context_t*)(pHostapdAdapter->pHddCtx);
+
+    if (!pHddCtx) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is null"));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    cfg = pHddCtx->cfg_ini;
+
+    if (!cfg) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD config is null"));
+        return eHAL_STATUS_FAILURE;
+    }
 
     switch(sapEvent)
     {
@@ -740,11 +753,17 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             pHostapdState->bssState = BSS_START;
 
 #ifdef FEATURE_GREEN_AP
-            if (!(VOS_STA&pHddCtx->concurrency_mode))
+            if (!(VOS_STA & pHddCtx->concurrency_mode) &&
+                    cfg->enable2x2 &&
+                    cfg->enableGreenAP) {
                 hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_PS_START_EVENT);
-            else {
+            } else {
                 hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_PS_STOP_EVENT);
-                hddLog(VOS_TRACE_LEVEL_INFO, FL("Green-AP: STA interface detected, disable GreenAP"));
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                    "Green-AP: is disabled, due to sta_concurrency: %d, enable2x2: %d, enableGreenAP: %d",
+                     VOS_STA & pHddCtx->concurrency_mode,
+                     cfg->enable2x2,
+                     cfg->enableGreenAP);
             }
 #endif
             // Send current operating channel of SoftAP to BTC-ES
