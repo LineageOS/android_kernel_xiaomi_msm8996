@@ -794,13 +794,12 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             {
                pHddCtx->dfs_radar_found = VOS_FALSE;
             }
-            else
-            {
-                if (NV_CHANNEL_DFS !=
+
+            /* if START BSS even on non-DFS channel, clear the block_tx flag */
+            if (NV_CHANNEL_DFS !=
                     vos_nv_getChannelEnabledState(pHddApCtx->operatingChannel))
-                {
-                    pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
-                }
+            {
+                pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
             }
 
             //Fill the params for sending IWEVCUSTOM Event with SOFTAP.enabled
