@@ -3317,6 +3317,14 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		goto err_event_init;
 	}
 
+	/* Init tx queue empty check event */
+	vos_status = vos_event_init(&wma_handle->tx_queue_empty_event);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		WMA_LOGP("%s: failed to init tx_queue_empty_event",
+			 __func__);
+		goto err_event_init;
+	}
+
 	vos_status = vos_event_init(&wma_handle->wma_resume_event);
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("%s: wma_resume_event initialization failed", __func__);
@@ -9948,6 +9956,13 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 			ol_txrx_peer_state_update(pdev, add_bss->bssId,
 						  ol_txrx_peer_state_conn);
 #ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+			peer = ol_txrx_find_peer_by_addr(pdev, add_bss->bssId, &peer_id);
+			if (!peer) {
+				WMA_LOGE("%s:%d Failed to find peer %pM", __func__,
+					__LINE__, add_bss->bssId);
+				goto send_fail_resp;
+			}
+
 			vdev = wma_find_vdev_by_id(wma, vdev_id);
 			if (!vdev) {
 				WMA_LOGE("%s Invalid txrx vdev", __func__);
@@ -11490,7 +11505,8 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 	u_int8_t peer_id;
         ol_txrx_vdev_handle txrx_vdev;
-
+	u_int8_t max_wait_iterations = WMA_TX_Q_RECHECK_TIMER_MAX_WAIT /
+					WMA_TX_Q_RECHECK_TIMER_WAIT;
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
 	if (NULL == pdev) {
@@ -11543,6 +11559,23 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 		status = VOS_STATUS_E_NOMEM;
 		goto detach_peer;
 	}
+
+	WMA_LOGW(FL("Outstanding msdu packets: %d"),
+		 ol_txrx_get_tx_pending(pdev));
+
+	while ( ol_txrx_get_tx_pending(pdev) && max_wait_iterations )
+	{
+		vos_wait_single_event(&wma->tx_queue_empty_event,
+				      WMA_TX_Q_RECHECK_TIMER_MAX_WAIT);
+		max_wait_iterations--;
+	}
+
+	if (ol_txrx_get_tx_pending(pdev))
+	{
+		WMA_LOGW(FL("Outstanding msdu packets before VDEV_STOP : %d"),
+			 ol_txrx_get_tx_pending(pdev));
+	}
+
 	if (wmi_unified_vdev_stop_send(wma->wmi_handle, params->smesessionId)) {
 		WMA_LOGP("%s: %d Failed to send vdev stop",
 			 __func__, __LINE__);
@@ -18112,6 +18145,9 @@ static VOS_STATUS wma_tx_detach(tp_wma_handle wma_handle)
 
 	/* Destroy Tx Frame Complete event */
 	vos_event_destroy(&wma_handle->tx_frm_download_comp_event);
+
+	/* Tx queue empty check event (dummy event) */
+	vos_event_destroy(&wma_handle->tx_queue_empty_event);
 
 	/* Reset Tx Frm Callbacks */
 	wma_handle->tx_frm_download_comp_cb = NULL;
