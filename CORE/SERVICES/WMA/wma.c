@@ -6914,6 +6914,12 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 				return VOS_STATUS_E_FAILURE;
 			}
 
+			if (wma->dfs_ic->ic_curchan)
+			{
+				OS_FREE(wma->dfs_ic->ic_curchan);
+				wma->dfs_ic->ic_curchan = NULL;
+			}
+
 			/* provide the current channel to DFS */
 			wma->dfs_ic->ic_curchan =
 				wma_dfs_configure_channel(wma->dfs_ic,chan,chanmode,req);
