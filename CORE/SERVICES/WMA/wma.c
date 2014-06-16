@@ -8386,6 +8386,44 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 			wma_handle->wma_ibss_power_save_params.txSPEndInactivityTime);
 	}
 		break;
+	case WMA_VDEV_DFS_CONTROL_CMDID:
+	{
+		struct ieee80211com *dfs_ic = wma_handle->dfs_ic;
+
+		if (!dfs_ic) {
+			ret = -ENOENT;
+		} else {
+			if (dfs_ic->ic_curchan) {
+				WMA_LOGD("%s: Debug cmd: %s received on ch: %d",
+						__func__,
+						"WMA_VDEV_DFS_CONTROL_CMDID",
+						dfs_ic->ic_curchan->ic_ieee);
+
+				if (dfs_ic->ic_curchan->ic_flagext &
+						IEEE80211_CHAN_DFS) {
+					ret = wma_dfs_indicate_radar(dfs_ic,
+						dfs_ic->ic_curchan);
+				} else {
+					ret = -ENOENT;
+				}
+			} else {
+				ret = -ENOENT;
+			}
+		}
+
+		if ( ret == -ENOENT) {
+			WMA_LOGE("%s: Operating channel is not DFS capable, "
+					"ignoring %s",
+					__func__,
+					"WMA_VDEV_DFS_CONTROL_CMDID");
+		} else if (ret) {
+			WMA_LOGE("%s: Sending command %s failed with %d\n",
+					__func__,
+					"WMA_VDEV_DFS_CONTROL_CMDID",
+					ret);
+		}
+	}
+		break;
 	default:
 		WMA_LOGE("Invalid wma config command id:%d",
 			privcmd->param_id);
@@ -21986,21 +22024,21 @@ int wma_dfs_indicate_radar(struct ieee80211com *ic,
 	if (wma == NULL)
 	{
 		WMA_LOGE("%s: DFS- Invalid wma", __func__);
-		return (0);
+		return -ENOENT;
 	}
 
 	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD,wma->vos_context);
 	if (wma->dfs_ic != ic)
 	{
 		WMA_LOGE("%s:DFS- Invalid WMA handle",__func__);
-		return (0);
+		return -ENOENT;
 	}
 	radar_event = (struct wma_dfs_radar_indication *)
 		vos_mem_malloc(sizeof(struct wma_dfs_radar_indication));
 	if (radar_event == NULL)
 	{
 		WMA_LOGE("%s:DFS- Invalid radar_event",__func__);
-		return (0);
+		return -ENOENT;
 	}
 
 	/*
@@ -22028,7 +22066,7 @@ int wma_dfs_indicate_radar(struct ieee80211com *ic,
 		WMA_LOGE("%s:DFS- WDA_DFS_RADAR_IND Message Posted",__func__);
 	}
 
-	return 1;
+	return 0;
 }
 
 static eHalStatus wma_set_smps_params(tp_wma_handle wma, tANI_U8 vdev_id, int value)

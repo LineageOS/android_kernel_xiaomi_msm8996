@@ -1312,6 +1312,9 @@ enum wma_cfg_cmd_id {
 	WMA_VDEV_IBSS_SET_INACTIVITY_TIME,
 	WMA_VDEV_IBSS_SET_TXSP_END_INACTIVITY_TIME,
 
+	/* dfs control interface */
+	WMA_VDEV_DFS_CONTROL_CMDID,
+
 	/* Add any new command before this */
 	WMA_CMD_ID_MAX
 };
