@@ -588,8 +588,6 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
     limLog( pMac, LOG1, FL( "SIR_HAL_ADD_BSS_REQ with channel = %d..." ),
         pAddBssParams->currentOperChannel);
 #endif
-
-
     // Populate the STA-related parameters here
     // Note that the STA here refers to the AP
     {
@@ -1393,7 +1391,6 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
     limLog( pMac, LOG1, FL( "Sending SIR_HAL_ADD_BSS_REQ..." ));
 #endif
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
-
     retCode = wdaPostCtrlMsg( pMac, &msgQ );
     if( eSIR_SUCCESS != retCode)
     {
@@ -1840,5 +1837,123 @@ void limProcessFTAggrQoSRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     }
     return;
 }
+
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+/*------------------------------------------------------------------
+ *
+ *  This function handles the Roam Offload Synch Indication from SME
+ *
+ *------------------------------------------------------------------*/
+void limProcessFTRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
+{
+    tpSirFTRoamOffloadSynchInd pFTRoamOffloadSynchInd;
+    tpPESession psessionEntry;
+    tpPESession pftSessionEntry;
+    tANI_U8 sessionId;
+    tpSirBssDescription pbssDescription;
+    tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp;
+    tSirMsgQ mmhMsg;
+    tANI_U16 rspLen = sizeof(tSirFTRoamOffloadSynchRsp);
+
+    pFTRoamOffloadSynchInd = (tpSirFTRoamOffloadSynchInd)pMsg->bodyptr;
+
+    psessionEntry = peFindSessionByBssid(pMac,
+                                         pFTRoamOffloadSynchInd->currbssId,
+                                         &sessionId);
+    if (psessionEntry == NULL)
+    {
+        PELOGE(limLog( pMac, LOGE,
+        "%s: LFR3:Unable to find session for the following bssid", __func__);)
+        limPrintMacAddr( pMac, pFTRoamOffloadSynchInd->currbssId, LOGE );
+        return;
+    }
+
+    pbssDescription = pFTRoamOffloadSynchInd->pbssDescription;
+    if((pftSessionEntry = peCreateSession(pMac, pbssDescription->bssId,
+                               &sessionId, pMac->lim.maxStation,
+                               psessionEntry->bssType)) == NULL)
+    {
+        limLog(pMac, LOGE, FL("LFR3: Session Can not be created for new AP"
+                              "during Roam Offload Synch"));
+        limPrintMacAddr( pMac, pbssDescription->bssId, LOGE );
+        return;
+    }
+    pftSessionEntry->peSessionId = sessionId;
+    sirCopyMacAddr(pftSessionEntry->selfMacAddr, psessionEntry->selfMacAddr);
+    sirCopyMacAddr(pftSessionEntry->limReAssocbssId, pbssDescription->bssId);
+    pftSessionEntry->bssType = psessionEntry->bssType;
+    /*Set bRoamSynchInProgress here since this session is
+     * specific to roam synch indication. This flag will
+     * later be used to differentiate LFR3 with LFR2 in LIM
+     * */
+    pftSessionEntry->bRoamSynchInProgress = VOS_TRUE;
+
+    if (pftSessionEntry->bssType == eSIR_INFRASTRUCTURE_MODE)
+    {
+        pftSessionEntry->limSystemRole = eLIM_STA_ROLE;
+    }
+    else if(pftSessionEntry->bssType == eSIR_BTAMP_AP_MODE)
+    {
+        pftSessionEntry->limSystemRole = eLIM_BT_AMP_STA_ROLE;
+    }
+    else
+    {
+        limLog(pMac, LOGE, FL("LFR3:Invalid bss type"));
+        return;
+    }
+    pftSessionEntry->limPrevSmeState = pftSessionEntry->limSmeState;
+    pftSessionEntry->limSmeState = eLIM_SME_WT_REASSOC_STATE;
+    pMac->ft.ftPEContext.pftSessionEntry = pftSessionEntry;
+    PELOGE(limLog(pMac,LOGE,"LFR3:%s:created session (%p) with id = %d",
+                  __func__, pftSessionEntry, pftSessionEntry->peSessionId);)
+
+    /* Update the ReAssoc BSSID of the current session */
+    sirCopyMacAddr(psessionEntry->limReAssocbssId, pbssDescription->bssId);
+    limPrintMacAddr(pMac, psessionEntry->limReAssocbssId, LOG2);
+
+    // Prepare the session right now with as much as possible.
+    pftSessionEntry = limFillFTSession(pMac, pbssDescription, psessionEntry);
+
+    if (pftSessionEntry)
+    {
+        pftSessionEntry->is11Rconnection = psessionEntry->is11Rconnection;
+#ifdef FEATURE_WLAN_ESE
+        pftSessionEntry->isCCXconnection = psessionEntry->isESEconnection;
+#endif
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
+        pftSessionEntry->isFastTransitionEnabled =
+          psessionEntry->isFastTransitionEnabled;
+#endif
+
+#ifdef FEATURE_WLAN_LFR
+        pftSessionEntry->isFastRoamIniFeatureEnabled =
+          psessionEntry->isFastRoamIniFeatureEnabled;
+#endif
+        limFTPrepareAddBssReq( pMac, FALSE, pftSessionEntry, pbssDescription );
+        pMac->ft.ftPEContext.pftSessionEntry = pftSessionEntry;
+    }
+
+    pFTRoamOffloadSynchRsp = vos_mem_malloc(rspLen);
+    if (NULL == pFTRoamOffloadSynchRsp)
+    {
+       PELOGE(limLog( pMac, LOGE, "LFR3:Failed to allocate memory");)
+       VOS_ASSERT(pFTRoamOffloadSynchRsp != NULL);
+       return;
+    }
+    vos_mem_zero(pFTRoamOffloadSynchRsp, rspLen);
+
+    pFTRoamOffloadSynchRsp->messageType = eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_RSP;
+    pFTRoamOffloadSynchRsp->length = (tANI_U16) rspLen;
+    pFTRoamOffloadSynchRsp->pbssDescription = pbssDescription;
+
+    mmhMsg.type = pFTRoamOffloadSynchRsp->messageType;
+    mmhMsg.bodyptr = pFTRoamOffloadSynchRsp;
+    mmhMsg.bodyval = 0;
+
+    PELOGE(limLog(pMac,LOG1, "LFR3:%s:sending FT Roam Offload Sync Rsp to SME",
+                  __func__);)
+    limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
+}
+#endif
 
 #endif /* WLAN_FEATURE_VOWIFI_11R */

@@ -522,6 +522,10 @@ tANI_U8* macTraceGetSmeMsgString( tANI_U16 smeMsg )
         CASE_RETURN_STRING(eWNI_SME_GET_ROAM_RSSI_RSP);
         CASE_RETURN_STRING(eWNI_SME_GET_TSM_STATS_REQ);
         CASE_RETURN_STRING(eWNI_SME_GET_TSM_STATS_RSP);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        CASE_RETURN_STRING(eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_IND);
+        CASE_RETURN_STRING(eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_RSP);
+#endif
         default:
             return( (tANI_U8*)"UNKNOWN" );
             break;
@@ -810,6 +814,9 @@ tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg )
         CASE_RETURN_STRING(WDA_FW_STATS_IND);
         CASE_RETURN_STRING(WDA_VDEV_STOP_IND);
         CASE_RETURN_STRING(WDA_TBTT_UPDATE_IND);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        CASE_RETURN_STRING(WDA_ROAM_OFFLOAD_SYNCH_CNF);
+#endif
         default:
             return((tANI_U8*) "UNKNOWN" );
             break;

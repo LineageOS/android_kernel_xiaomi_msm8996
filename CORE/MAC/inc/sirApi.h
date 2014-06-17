@@ -5093,6 +5093,29 @@ typedef struct
 } tSirStatsExtEvent, *tpSirStatsExtEvent;
 
 #endif
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+typedef struct sSirSmeRoamOffloadSynchInd
+{
+    tANI_U16    messageType; /*eWNI_SME_ROAM_OFFLOAD_SYNCH_IND*/
+    tANI_U16    length;
+    tANI_U16    beaconProbeRespOffset;
+    tANI_U16    beaconProbeRespLength;
+    tANI_U16    reassocRespOffset;
+    tANI_U16    reassocRespLength;
+    tANI_U8     isBeacon;
+    tANI_U8     roamedVdevId;
+    tSirMacAddr bssId;
+    tANI_S8     txMgmtPower;
+    tANI_U32    authStatus;
+    tANI_U8     rssi;
+    tANI_U8     roamReason;
+} tSirSmeRoamOffloadSynchInd, *tpSirSmeRoamOffloadSynchInd;
+
+typedef struct sSirSmeRoamOffloadSynchCnf
+{
+    tANI_U8 sessionId;
+} tSirSmeRoamOffloadSynchCnf, *tpSirSmeRoamOffloadSynchCnf;
+#endif
 
 #ifdef FEATURE_WLAN_EXTSCAN
 

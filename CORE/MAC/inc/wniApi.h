@@ -400,6 +400,13 @@ enum eWniMsgTypes
 #ifdef QCA_HT_2040_COEX
     eWNI_SME_SET_HT_2040_MODE,
 #endif
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    eWNI_SME_ROAM_OFFLOAD_SYNCH_IND, /* Roam Synch Indication from WMA to SME*/
+    eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_IND,/* Hand over the Roam Synch Indication
+                                          from SME to PE*/
+    eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_RSP,/* Roam Synch Indication Rsp
+                                         from PE toSME */
+#endif
     eWNI_SME_MSG_TYPES_END
 };
 

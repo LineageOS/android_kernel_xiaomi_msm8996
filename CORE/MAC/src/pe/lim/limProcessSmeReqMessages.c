@@ -2276,7 +2276,6 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     /* Store the reassoc handle in the session Table.. 23rd sep review */
     psessionEntry->pLimReAssocReq = pReassocReq;
-
     /**
      * Reassociate request is expected
      * in link established state only.
@@ -6018,6 +6017,11 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
        case eWNI_SME_ESE_ADJACENT_AP_REPORT:
             limProcessAdjacentAPRepMsg ( pMac, pMsgBuf );
             break;
+#endif
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        case eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_IND:
+             limProcessFTRoamOffloadSynchInd(pMac, pMsg);
+             break;
 #endif
        case eWNI_SME_ADD_STA_SELF_REQ:
             __limProcessSmeAddStaSelfReq( pMac, pMsgBuf );

@@ -2149,6 +2149,10 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
     if (pMac->roam.configParam.nSelect5GHzMargin)
     {
         pMac->scan.inScanResultBestAPRssi = -128;
+#ifdef WLAN_DEBUG_ROAM_OFFLOAD
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                  FL("nSelect5GHzMargin"));
+#endif
         csrLLLock(&pMac->scan.scanResultList);
 
         /* Find out the best AP Rssi going thru the scan results */
@@ -2272,6 +2276,10 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
             if(pFilter)
             {
                 fMatch = csrMatchBSS(pMac, &pBssDesc->Result.BssDescriptor, pFilter, &auth, &uc, &mc, &pIes);
+#ifdef WLAN_DEBUG_ROAM_OFFLOAD
+                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                          FL("csrMatchBSS fmatch %d"), fMatch);
+#endif
                 if( NULL != pIes )
                 {
                     //Only save it when matching
@@ -8592,5 +8600,211 @@ void UpdateCCKMTSF(tANI_U32 *timeStamp0, tANI_U32 *timeStamp1, tANI_U32 *incr)
     timeStamp64 = (tANI_U64)(timeStamp64 + (tANI_U64)*incr);
     *timeStamp0 = (tANI_U32)(timeStamp64 & 0xffffffff);
     *timeStamp1 = (tANI_U32)((timeStamp64 >> 32) & 0xffffffff);
+}
+#endif
+
+/**
+ * csrScanSaveRoamOffloadApToScanCache
+ * This function parses the received beacon/probe response
+ * from the firmware as part of the roam synch indication.
+ * The beacon or the probe response is parsed and is also
+ * saved into the scan cache
+ *
+ * @param  pMac Pointer to Global Mac
+ * @param  pRoamOffloadSynchInd Roam Synch Indication from
+ *         firmware which also contains the beacon/probe
+ *         response
+ * @return Status
+ */
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
+            tSirSmeRoamOffloadSynchInd *pRoamOffloadSynchInd)
+{
+   v_U32_t uLen = 0;
+   tpSirProbeRespBeacon pParsedFrame;
+   tCsrScanResult *pScanResult = NULL;
+   tSirBssDescription *pBssDescr = NULL;
+   tANI_BOOLEAN fDupBss;
+   tDot11fBeaconIEs *pIesLocal = NULL;
+   tAniSSID tmpSsid;
+   v_TIME_t timer=0;
+   tpSirMacMgmtHdr macHeader;
+   tANI_U8 *pBeaconProbeResp;
+
+   pBeaconProbeResp = (tANI_U8 *)pRoamOffloadSynchInd +
+       pRoamOffloadSynchInd->beaconProbeRespOffset;
+   macHeader = (tpSirMacMgmtHdr)pBeaconProbeResp;
+   pParsedFrame =
+       (tpSirProbeRespBeacon) vos_mem_malloc(sizeof(tSirProbeRespBeacon));
+   if (NULL == pParsedFrame)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+          "%s: fail to allocate memory for frame",__func__);
+      return eHAL_STATUS_RESOURCES;
+   }
+
+   if ( pRoamOffloadSynchInd->beaconProbeRespLength <= SIR_MAC_HDR_LEN_3A )
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+         "%s: Very few bytes in synchInd beacon / probe resp frame! length=%d",
+         __func__, pRoamOffloadSynchInd->beaconProbeRespLength);
+      vos_mem_free(pParsedFrame);
+      return eHAL_STATUS_FAILURE;
+   }
+
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,"LFR3: Beacon/Prb Rsp:");
+   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                pBeaconProbeResp, pRoamOffloadSynchInd->beaconProbeRespLength);
+
+   if (pRoamOffloadSynchInd->isBeacon)
+   {
+      if (sirParseBeaconIE(
+          pMac, pParsedFrame,
+          &pBeaconProbeResp[SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET],
+          pRoamOffloadSynchInd->beaconProbeRespLength -
+          SIR_MAC_HDR_LEN_3A) != eSIR_SUCCESS || !pParsedFrame->ssidPresent)
+      {
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            "Parse error Beacon, length=%d",
+            pRoamOffloadSynchInd->beaconProbeRespLength);
+         vos_mem_free(pParsedFrame);
+         return eHAL_STATUS_FAILURE;
+      }
+   }
+   else
+   {
+      if (sirConvertProbeFrame2Struct(pMac,
+            &pBeaconProbeResp[SIR_MAC_HDR_LEN_3A],
+            pRoamOffloadSynchInd->beaconProbeRespLength - SIR_MAC_HDR_LEN_3A,
+            pParsedFrame) != eSIR_SUCCESS ||
+            !pParsedFrame->ssidPresent)
+      {
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            "Parse error ProbeResponse, length=%d",
+            pRoamOffloadSynchInd->beaconProbeRespLength);
+         vos_mem_free(pParsedFrame);
+         return eHAL_STATUS_FAILURE;
+      }
+   }
+   /* 24 byte MAC header and 12 byte to ssid IE */
+   if (pRoamOffloadSynchInd->beaconProbeRespLength >
+           (SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET))
+   {
+      uLen = pRoamOffloadSynchInd->beaconProbeRespLength -
+          (SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET);
+   }
+   pScanResult = vos_mem_malloc(sizeof(tCsrScanResult) + uLen);
+   if ( pScanResult == NULL )
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+      " fail to allocate memory for frame");
+      vos_mem_free(pParsedFrame);
+      return eHAL_STATUS_RESOURCES;
+   }
+
+   vos_mem_zero(pScanResult, sizeof(tCsrScanResult) + uLen );
+   pBssDescr = &pScanResult->Result.BssDescriptor;
+   /* Length of BSS desription is without length of
+    * length itself and length of pointer
+    * that holds the next BSS description
+    */
+   pBssDescr->length = (tANI_U16)(
+                     sizeof(tSirBssDescription) - sizeof(tANI_U16) -
+                     sizeof(tANI_U32) + uLen);
+   if (pParsedFrame->dsParamsPresent)
+   {
+      pBssDescr->channelId = pParsedFrame->channelNumber;
+   }
+   else if (pParsedFrame->HTInfo.present)
+   {
+      pBssDescr->channelId = pParsedFrame->HTInfo.primaryChannel;
+   }
+   else
+   {
+      pBssDescr->channelId = pParsedFrame->channelNumber;
+   }
+
+   if ((pBssDescr->channelId > 0) && (pBssDescr->channelId < 15))
+   {
+      int i;
+      /* 11b or 11g packet
+       * 11g if extended Rate IE is present or
+       * if there is an A rate in suppRate IE */
+      for (i = 0; i < pParsedFrame->supportedRates.numRates; i++)
+      {
+         if (sirIsArate(pParsedFrame->supportedRates.rate[i] & 0x7f))
+         {
+            pBssDescr->nwType = eSIR_11G_NW_TYPE;
+            break;
+         }
+      }
+      if (pParsedFrame->extendedRatesPresent)
+      {
+            pBssDescr->nwType = eSIR_11G_NW_TYPE;
+      }
+   }
+   else
+   {
+      /* 11a packet */
+      pBssDescr->nwType = eSIR_11A_NW_TYPE;
+   }
+
+   pBssDescr->sinr = 0;
+   pBssDescr->beaconInterval = pParsedFrame->beaconInterval;
+   pBssDescr->timeStamp[0]   = pParsedFrame->timeStamp[0];
+   pBssDescr->timeStamp[1]   = pParsedFrame->timeStamp[1];
+   vos_mem_copy(&pBssDescr->capabilityInfo,
+        &pBeaconProbeResp[SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_CAPAB_OFFSET], 2);
+   vos_mem_copy((tANI_U8 *) &pBssDescr->bssId,
+                (tANI_U8 *) macHeader->bssId,
+                sizeof(tSirMacAddr));
+   pBssDescr->nReceivedTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
+
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                                "LFR3:%s:BssDescr Info:", __func__);
+   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                                 pBssDescr->bssId, sizeof(tSirMacAddr));
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+              "chan= %d, rssi = %d",pBssDescr->channelId,pBssDescr->rssi);
+
+   if (uLen)
+   {
+      vos_mem_copy( &pBssDescr->ieFields,
+      pBeaconProbeResp + (SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET),
+      uLen);
+   }
+
+   pIesLocal = (tDot11fBeaconIEs *)( pScanResult->Result.pvIes );
+   if ( !pIesLocal &&
+       (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac,
+            &pScanResult->Result.BssDescriptor, &pIesLocal))) )
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s:Cannot Parse IEs", __func__);
+      csrFreeScanResultEntry(pMac, pScanResult);
+      vos_mem_free(pParsedFrame);
+      return eHAL_STATUS_RESOURCES;
+   }
+
+   fDupBss = csrRemoveDupBssDescription(pMac,
+                                        &pScanResult->Result.BssDescriptor,
+                                        pIesLocal, &tmpSsid, &timer, FALSE);
+   if ( CSR_SCAN_IS_OVER_BSS_LIMIT(pMac) )
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s:BSS Limit Exceed", __func__);
+      if( (pScanResult->Result.pvIes == NULL) && pIesLocal )
+      {
+            vos_mem_free(pIesLocal);
+      }
+      csrFreeScanResultEntry(pMac, pScanResult);
+      vos_mem_free(pParsedFrame);
+      return eHAL_STATUS_RESOURCES;
+   }
+   csrScanAddResult(pMac, pScanResult, pIesLocal);
+
+   vos_mem_free(pParsedFrame);
+
+   return eHAL_STATUS_SUCCESS;
 }
 #endif

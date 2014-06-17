@@ -503,7 +503,10 @@ typedef enum
     eCSR_ROAM_SET_CHANNEL_RSP,
 
     // Channel sw update notification
-    eCSR_ROAM_DFS_CHAN_SW_NOTIFY
+    eCSR_ROAM_DFS_CHAN_SW_NOTIFY,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    eCSR_ROAM_AUTHORIZED_EVENT
+#endif
 }eRoamCmdStatus;
 
 
@@ -1212,6 +1215,13 @@ typedef struct tagCsrUpdateConfigParam
    tCsr11dinfo  Csr11dinfo;
 }tCsrUpdateConfigParam;
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+#define CSR_ROAM_AUTH_STATUS_CONNECTED      0x1 /** connected,
+                                                    but not authenticated */
+#define CSR_ROAM_AUTH_STATUS_AUTHENTICATED  0x2 /** connected
+                                                    and authenticated */
+#endif
+
 typedef struct tagCsrRoamInfo
 {
     tCsrRoamProfile *pProfile;  //may be NULL
@@ -1285,6 +1295,10 @@ typedef struct tagCsrRoamInfo
     tSirSmeDfsEventInd dfs_event;
     tSirChanChangeResponse *channelChangeRespEvent;
     tANI_U8 timingMeasCap;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tANI_U8 roamSynchInProgress;
+    tANI_U8 synchAuthStatus;
+#endif
 }tCsrRoamInfo;
 
 
@@ -1712,4 +1726,8 @@ eHalStatus csrSetBand(tHalHandle hHal, eCsrBand eBand);
 eCsrBand csrGetCurrentBand (tHalHandle hHal);
 
 typedef void (*csrReadyToSuspendCallback)(void *pContext, boolean suspended);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+eHalStatus csrRoamIssueFTRoamOffloadSynch(tHalHandle hHal, tANI_U32 sessionId,
+                                          tSirBssDescription *pBssDescription);
+#endif
 #endif
