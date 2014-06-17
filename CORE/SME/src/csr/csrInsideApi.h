@@ -748,6 +748,18 @@ eHalStatus csrRoamReconnect(tpAniSirGlobal pMac, tANI_U32 sessionId);
   -------------------------------------------------------------------------------*/
 eHalStatus csrRoamSetPMKIDCache( tpAniSirGlobal pMac, tANI_U32 sessionId, tPmkidCacheInfo *pPMKIDCache, tANI_U32 numItems );
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+/* ---------------------------------------------------------------------------
+ *\fn csrRoamSetPSK
+ *\brief store PSK
+ *\param pMac  - pointer to global structure for MAC
+ *\param sessionId - Sme session id
+ *\param pPSK - pointer to an array of Psk
+ *\return eHalStatus - usually it succeed unless sessionId is not found
+ *\Note:
+ *-------------------------------------------------------------------------------*/
+eHalStatus csrRoamSetPSK (tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *pPSK);
+#endif
 /* ---------------------------------------------------------------------------
     \fn csrRoamGetWpaRsnReqIE
     \brief return the WPA or RSN IE CSR passes to PE to JOIN request or START_BSS request

@@ -843,7 +843,12 @@ eHalStatus csrRoamCopyConnectProfile(tpAniSirGlobal pMac, tANI_U32 sessionId, tC
                 {
                     vos_mem_copy (pProfile->eseCckmInfo.krk,
                                   pSession->connectedProfile.eseCckmInfo.krk,
-                                  CSR_KRK_KEY_LEN);
+                                  SIR_KRK_KEY_LEN);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+                    vos_mem_copy (pProfile->eseCckmInfo.btk,
+                                  pSession->connectedProfile.eseCckmInfo.btk,
+                                  SIR_BTK_KEY_LEN);
+#endif
                     pProfile->eseCckmInfo.reassoc_req_num=
                         pSession->connectedProfile.eseCckmInfo.reassoc_req_num;
                     pProfile->eseCckmInfo.krk_plumbed =
@@ -1857,6 +1862,10 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.cc_switch_mode = pParam->cc_switch_mode;
 #endif
         pMac->roam.configParam.allowDFSChannelRoam = pParam->allowDFSChannelRoam;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        pMac->roam.configParam.isRoamOffloadEnabled =
+                               pParam->isRoamOffloadEnabled;
+#endif
     }
 
     return status;
@@ -1999,6 +2008,10 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
                                 pMac->roam.configParam.allowDFSChannelRoam;
         pParam->nInitialDwellTime =
                                 pMac->roam.configParam.nInitialDwellTime;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        pParam->isRoamOffloadEnabled =
+                                pMac->roam.configParam.isRoamOffloadEnabled;
+#endif
         csrSetChannels(pMac, pParam);
 
         status = eHAL_STATUS_SUCCESS;
@@ -8834,6 +8847,20 @@ static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessi
             status = eHAL_STATUS_SUCCESS;
             break;
         }
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        else if (eCSR_ENCRYPT_TYPE_BTK == pSetKey->encType) {
+            if (pSetKey->keyLength < SIR_BTK_KEY_LEN) {
+                smsLog(pMac, LOGW,
+                "LFR3:Invalid BTK keylength [= %d] in SetContext call",
+                                              pSetKey->keyLength);
+                break;
+            }
+            vos_mem_copy(pSession->eseCckmInfo.btk, pSetKey->Key,
+                         SIR_BTK_KEY_LEN);
+            status = eHAL_STATUS_SUCCESS;
+            break;
+        }
+#endif
 #endif /* FEATURE_WLAN_ESE */
 
 #ifdef WLAN_FEATURE_11W
@@ -8872,6 +8899,9 @@ static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessi
          ( (!HAL_STATUS_SUCCESS( status ) )
 #ifdef FEATURE_WLAN_ESE
             || ( eCSR_ENCRYPT_TYPE_KRK == pSetKey->encType )
+#ifdef WLAN_FEATURE_WLAN_ROAM
+            || ( eCSR_ENCRYPT_TYPE_BTK == pSetKey->encType )
+#endif /* WLAN_FEATURE_WLAN_ROAM */
 #endif /* FEATURE_WLAN_ESE */
            ) )
     {
@@ -12368,6 +12398,19 @@ tANI_U32 csrRoamGetNumBKIDCache(tpAniSirGlobal pMac, tANI_U32 sessionId)
    return (pMac->roam.roamSession[sessionId].NumBkidCache);
 }
 #endif /* FEATURE_WLAN_WAPI */
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+eHalStatus csrRoamSetPSK (tpAniSirGlobal pMac, tANI_U32 sessionId,
+                                                        tANI_U8 *pPSK)
+{
+    tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
+    if (!pSession) {
+        smsLog(pMac, LOGE, FL("session %d not found"), sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+    vos_mem_copy(pSession->psk, pPSK, sizeof(pSession->psk));
+    return eHAL_STATUS_SUCCESS;
+}
+#endif /* WLAN_FEATURE_ROAM_OFFLOAD */
 eHalStatus csrRoamSetPMKIDCache( tpAniSirGlobal pMac, tANI_U32 sessionId,
                                  tPmkidCacheInfo *pPMKIDCache, tANI_U32 numItems )
 {
@@ -16318,7 +16361,42 @@ csrRoamScanOffloadPrepareProbeReqTemplate(tpAniSirGlobal pMac,
         *pusLen = nPayload + sizeof(tSirMacMgmtHdr);
         return eSIR_SUCCESS;
 }
-
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+void csrRoamOffload(tpAniSirGlobal pMac, tSirRoamOffloadScanReq *pRequestBuf,
+                                                   tCsrRoamSession *pSession)
+{
+        vos_mem_copy(pRequestBuf->PSK, pSession->psk, sizeof(pRequestBuf->PSK));
+        pRequestBuf->Prefer5GHz = pMac->roam.configParam.nRoamPrefer5GHz;
+        pRequestBuf->RoamRssiCatGap = pMac->roam.configParam.bCatRssiOffset;
+        pRequestBuf->Select5GHzMargin = pMac->roam.configParam.nSelect5GHzMargin;
+        if (wlan_cfgGetInt(pMac, WNI_CFG_REASSOCIATION_FAILURE_TIMEOUT,
+                                (tANI_U32 *)&pRequestBuf->ReassocFailureTimeout)
+                        != eSIR_SUCCESS)
+        {
+                /**
+                 * Could not get ReassocFailureTimeout value
+                 * from CFG. Log error and set some default value
+                 */
+                smsLog(pMac, LOGE, FL("could not retrieve ReassocFailureTimeout value"));
+                pRequestBuf->ReassocFailureTimeout = DEFAULT_REASSOC_FAILURE_TIMEOUT;
+        }
+#ifdef FEATURE_WLAN_ESE
+        if (csrIsAuthTypeESE(pRequestBuf->ConnectedNetwork.authentication)) {
+                vos_mem_copy(pRequestBuf->KRK,pSession->eseCckmInfo.krk, SIR_KRK_KEY_LEN);
+                vos_mem_copy(pRequestBuf->BTK,pSession->eseCckmInfo.btk, SIR_BTK_KEY_LEN);
+                pRequestBuf->IsESEConnection = eANI_BOOLEAN_TRUE;
+        }
+#endif
+        pRequestBuf->AcUapsd.acbe_uapsd =
+                SIR_UAPSD_GET(ACBE, pMac->lim.gUapsdPerAcBitmask);
+        pRequestBuf->AcUapsd.acbk_uapsd =
+                SIR_UAPSD_GET(ACBK, pMac->lim.gUapsdPerAcBitmask);
+        pRequestBuf->AcUapsd.acvi_uapsd =
+                SIR_UAPSD_GET(ACVI, pMac->lim.gUapsdPerAcBitmask);
+        pRequestBuf->AcUapsd.acvo_uapsd =
+                SIR_UAPSD_GET(ACVO, pMac->lim.gUapsdPerAcBitmask);
+}
+#endif
 eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 command, tANI_U8 reason)
 {
    vos_msg_t msg;
@@ -16631,6 +16709,13 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 command, tANI_U8 reas
                                              &pRequestBuf->us5GProbeTemplateLen,
                                              pSession);
    pRequestBuf->allowDFSChannelRoam = pMac->roam.configParam.allowDFSChannelRoam;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+   pRequestBuf->RoamOffloadEnabled = csrRoamIsRoamOffloadEnabled(pMac);
+   /* Roam Offload piggybacks upon the Roam Scan offload command.*/
+   if (pRequestBuf->RoamOffloadEnabled){
+       csrRoamOffload(pMac, pRequestBuf, pSession);
+   }
+#endif
    msg.type     = WDA_ROAM_SCAN_OFFLOAD_REQ;
    msg.reserved = 0;
    msg.bodyptr  = pRequestBuf;

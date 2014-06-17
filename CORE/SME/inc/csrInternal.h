@@ -690,6 +690,9 @@ typedef struct tagCsrConfig
     tANI_U8 cc_switch_mode;
 #endif
     tANI_U8 allowDFSChannelRoam;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tANI_BOOLEAN  isRoamOffloadEnabled;
+#endif
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo
@@ -1015,6 +1018,7 @@ typedef struct tagCsrRoamSession
 #endif
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     tCsrRoamOffloadSynchStruct roamOffloadSynchParams;
+    tANI_U8 psk[SIR_ROAM_SCAN_PSK_SIZE];
 #endif
 } tCsrRoamSession;
 

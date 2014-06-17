@@ -3928,6 +3928,33 @@ eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId, tANI_U
    }
    return (status);
 }
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+/* ---------------------------------------------------------------------------
+ *\fn sme_RoamSetPSK
+ *\brief a wrapper function to request CSR to save PSK
+ * This is a synchronous call.
+ *\param hHal - Global structure
+ *\param sessionId - SME sessionId
+ *\param pPSK - pointer to an array of Psk[]
+ *\return eHalStatus -status whether PSK is set or not
+ *---------------------------------------------------------------------------*/
+eHalStatus sme_RoamSetPSK (tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pPSK)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (HAL_STATUS_SUCCESS(status)) {
+        if (CSR_IS_SESSION_VALID(pMac, sessionId)) {
+            status = csrRoamSetPSK(pMac, sessionId, pPSK);
+        }
+        else {
+            status = eHAL_STATUS_INVALID_PARAMETER;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return (status);
+}
+#endif
 /* ---------------------------------------------------------------------------
     \fn sme_RoamGetSecurityReqIE
     \brief a wrapper function to request CSR to return the WPA or RSN or WAPI IE CSR
@@ -13416,3 +13443,34 @@ eHalStatus sme_SetLinkLayerStatsIndCB
 }
 
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+/*--------------------------------------------------------------------------
+  \brief sme_UpdateRoamOffloadEnabled() - enable/disable roam offload feaure
+  It is used at in the REG_DYNAMIC_VARIABLE macro definition of
+  \param hHal - The handle returned by macOpen.
+  \param nRoamOffloadEnabled - The boolean to update with
+  \return eHAL_STATUS_SUCCESS - SME update config successfully.
+          Other status means SME is failed to update.
+  \sa
+  --------------------------------------------------------------------------*/
+
+eHalStatus sme_UpdateRoamOffloadEnabled(tHalHandle hHal,
+        v_BOOL_t nRoamOffloadEnabled)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus status    = eHAL_STATUS_SUCCESS;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (HAL_STATUS_SUCCESS(status))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+        "%s: LFR3:gRoamOffloadEnabled is changed from %d to %d", __func__,
+                              pMac->roam.configParam.isRoamOffloadEnabled,
+                                                     nRoamOffloadEnabled);
+        pMac->roam.configParam.isRoamOffloadEnabled = nRoamOffloadEnabled;
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+
+    return status ;
+}
+#endif
