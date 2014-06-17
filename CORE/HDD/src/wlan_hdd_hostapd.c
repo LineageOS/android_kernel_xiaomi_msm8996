@@ -5063,6 +5063,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
         init_completion(&pHostapdAdapter->tx_action_cnf_event);
         init_completion(&pHostapdAdapter->cancel_rem_on_chan_var);
         init_completion(&pHostapdAdapter->rem_on_chan_ready_event);
+        init_completion(&pHostapdAdapter->ula_complete);
         init_completion(&pHostapdAdapter->offchannel_tx_event);
         init_completion(&pHostapdAdapter->scan_info.scan_req_completion_event);
         init_completion(&pHostapdAdapter->scan_info.abortscan_event_var);
