@@ -7077,6 +7077,48 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
     return status;
 }
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+static int wlan_hdd_cfg80211_key_mgmt_set_pmk(struct wiphy *wiphy,
+                                              struct net_device *ndev,
+                                              u8 *pmk)
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(ndev);
+    hdd_wext_state_t *pWextState;
+    hdd_station_ctx_t *pHddStaCtx;
+
+    ENTER();
+    if ((NULL == pAdapter)) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+          "invalid adapter");
+        return -EINVAL;
+    }
+    pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+    if ((NULL == pWextState) || (NULL == pHddStaCtx)) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                  "invalid Wext state or HDD context");
+        return -EINVAL;
+    }
+    if (pmk) {
+        tANI_U8 localPmk [SIR_ROAM_SCAN_PSK_SIZE];
+        if ((pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)
+#ifdef FEATURE_WLAN_ESE
+             && (!pWextState->isESEConnection)
+#endif
+           ) {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                       "%s: calling sme_RoamSetPSK_PMK \n", __func__);
+            vos_mem_copy(localPmk, pmk, SIR_ROAM_SCAN_PSK_SIZE);
+            sme_RoamSetPSK_PMK (WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                pAdapter->sessionId, localPmk);
+            return VOS_STATUS_SUCCESS;
+        }
+    }
+    return VOS_STATUS_SUCCESS;
+}
+#endif
+
 /*
  * FUNCTION: __wlan_hdd_cfg80211_set_default_key
  * This function is used to set the default tx key index
@@ -9507,6 +9549,28 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("connect failed"));
         return status;
     }
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    if ((eHAL_STATUS_SUCCESS == status) && (req->psk)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: psk = %p", __func__, req->psk);
+        /* since PMK is available only in cfg80211_connect(), we save it
+         * even before we know connection succeeded or not */
+        if (pHddCtx->cfg_ini->isRoamOffloadEnabled) {
+             hdd_wext_state_t *pWextState =
+                       WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+             tANI_U8 localPsk [SIR_ROAM_SCAN_PSK_SIZE];
+             if ((pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_PSK)
+#ifdef FEATURE_WLAN_ESE
+                 && (!pWextState->isESEConnection)
+#endif
+                 ) {
+                 hddLog(VOS_TRACE_LEVEL_ERROR, FL("calling sme_RoamSetPSK"));
+                 vos_mem_copy(localPsk, req->psk, SIR_ROAM_SCAN_PSK_SIZE);
+                 sme_RoamSetPSK(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                 pAdapter->sessionId, localPsk);
+             }
+        }
+    }
+#endif
     pHddCtx->isAmpAllowed = VOS_FALSE;
     EXIT();
     return status;
@@ -9917,7 +9981,6 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
                      VOS_MAC_ADDR_SIZE);
         alloc_bssid = VOS_TRUE;
     }
-
     if ((params->beacon_interval > CFG_BEACON_INTERVAL_MIN)
         && (params->beacon_interval <= CFG_BEACON_INTERVAL_MAX))
         pRoamProfile->beaconInterval = params->beacon_interval;
@@ -14650,4 +14713,7 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .set_ap_chanwidth = wlan_hdd_cfg80211_set_ap_channel_width,
 #endif
      .dump_survey = wlan_hdd_cfg80211_dump_survey,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+     .key_mgmt_set_pmk = wlan_hdd_cfg80211_key_mgmt_set_pmk,
+#endif
 };
