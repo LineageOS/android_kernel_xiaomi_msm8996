@@ -126,6 +126,10 @@ static void hdd_indicateEseBcnReportInd(const hdd_adapter_t *pAdapter,
 
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+#define KEY_REPLAY_CTR_SIZE 8
+#endif
+
 static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter,
                                                 tCsrRoamInfo *pRoamInfo,
                                                 tANI_U32 roamId,
@@ -643,7 +647,13 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
     memset(&wrqu, '\0', sizeof(wrqu));
     wrqu.ap_addr.sa_family = ARPHRD_ETHER;
     we_event = SIOCGIWAP;
-
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    if (NULL != pCsrRoamInfo)
+        if (pCsrRoamInfo->roamSynchInProgress)
+            /* change logging before release */
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+                      "LFR3:hdd_SendAssociationEvent");
+#endif
     if(eConnectionState_Associated == pHddStaCtx->conn_info.connState)/* Associated */
     {
         if (!pCsrRoamInfo)
@@ -1219,8 +1229,14 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    {
       // Connections that do not need Upper layer auth, transition TL directly
       // to 'Authenticated' state.
-      vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext, staDesc.ucSTAId,
-                                         WLANTL_STA_AUTHENTICATED );
+      vosStatus = WLANTL_ChangeSTAState(pHddCtx->pvosContext, staDesc.ucSTAId,
+                                        WLANTL_STA_AUTHENTICATED,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+                                        pRoamInfo->roamSynchInProgress
+#else
+                                        VOS_FALSE
+#endif
+                                       );
 
       pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
    }
@@ -1229,8 +1245,14 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
                  "ULA auth StaId= %d. Changing TL state to CONNECTED"
                  "at Join time", pHddStaCtx->conn_info.staId[0] );
-      vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext, staDesc.ucSTAId,
-                                      WLANTL_STA_CONNECTED );
+      vosStatus = WLANTL_ChangeSTAState(pHddCtx->pvosContext, staDesc.ucSTAId,
+                                        WLANTL_STA_CONNECTED,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+                                        pRoamInfo->roamSynchInProgress
+#else
+                                        VOS_FALSE
+#endif
+                                       );
       pHddStaCtx->conn_info.uIsAuthenticated = VOS_FALSE;
    }
    return( vosStatus );
@@ -1291,7 +1313,6 @@ static void hdd_SendReAssocEvent(struct net_device *dev, hdd_adapter_t *pAdapter
     cfg80211_roamed(dev,chan,pCsrRoamInfo->bssid,
                     reqRsnIe, reqRsnLength,
                     rspRsnIe, rspRsnLength,GFP_KERNEL);
-
 done:
     kfree(rspRsnIe);
 }
@@ -1335,7 +1356,12 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     int ft_carrier_on = FALSE;
 #endif
     int status;
-
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    if (pRoamInfo && pRoamInfo->roamSynchInProgress) {
+       /* change logging before release */
+        hddLog(VOS_TRACE_LEVEL_DEBUG, "LFR3:hdd_AssociationCompletionHandler");
+    }
+#endif
     if ( eCSR_ROAM_RESULT_ASSOCIATED == roamResult )
     {
         hdd_connSetConnectionState( pHddStaCtx, eConnectionState_Associated );
@@ -1606,9 +1632,15 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             //Reassoc successfully
             if( pRoamInfo->fAuthRequired )
             {
-                vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext,
-                                                   pHddStaCtx->conn_info.staId[ 0 ],
-                                                   WLANTL_STA_CONNECTED );
+                vosStatus = WLANTL_ChangeSTAState(pHddCtx->pvosContext,
+                                                  pHddStaCtx->conn_info.staId[0],
+                                                  WLANTL_STA_CONNECTED,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+                                                  pRoamInfo->roamSynchInProgress
+#else
+                                                  VOS_FALSE
+#endif
+                                                 );
                 pHddStaCtx->conn_info.uIsAuthenticated = VOS_FALSE;
             }
             else
@@ -1616,9 +1648,15 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                 VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                           "%s: staId: %d Changing TL state to AUTHENTICATED",
                           __func__, pHddStaCtx->conn_info.staId[ 0 ] );
-                vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext,
-                                                   pHddStaCtx->conn_info.staId[ 0 ],
-                                                   WLANTL_STA_AUTHENTICATED );
+                vosStatus = WLANTL_ChangeSTAState(pHddCtx->pvosContext,
+                                                  pHddStaCtx->conn_info.staId[0],
+                                                  WLANTL_STA_AUTHENTICATED,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+                                                  pRoamInfo->roamSynchInProgress
+#else
+                                                  VOS_FALSE
+#endif
+                                                 );
                 pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
             }
 
@@ -1629,6 +1667,11 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             }
 
             /* Start the tx queues */
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+            if (pRoamInfo->roamSynchInProgress) {
+               hddLog(VOS_TRACE_LEVEL_DEBUG, "LFR3:netif_tx_wake_all_queues");
+            }
+#endif
             netif_tx_wake_all_queues(dev);
         }
 
@@ -2070,6 +2113,16 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
          // The folloing if statement will be TRUE when setting GTK.
          // At this time we don't handle the state in detail.
          // Related CR: 174048 - TL not in authenticated state
+         vosStatus = WLANTL_ChangeSTAState(pHddCtx->pvosContext,
+                                           pHddStaCtx->conn_info.staId[0],
+                                           WLANTL_STA_AUTHENTICATED,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+                                           pRoamInfo->roamSynchInProgress
+#else
+                                           VOS_FALSE
+#endif
+                                          );
+         pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
          if ( ( eCSR_ROAM_RESULT_AUTHENTICATED == roamResult ) &&
              (pRoamInfo != NULL) && !pRoamInfo->fAuthRequired )
          {
@@ -2079,9 +2132,15 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
 
             // Connections that do not need Upper layer authentication,
             // transition TL to 'Authenticated' state after the keys are set.
-            vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext,
-                                               pHddStaCtx->conn_info.staId[ 0 ],
-                                               WLANTL_STA_AUTHENTICATED );
+            vosStatus = WLANTL_ChangeSTAState(pHddCtx->pvosContext,
+                                              pHddStaCtx->conn_info.staId[0],
+                                              WLANTL_STA_AUTHENTICATED,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+                                                  pRoamInfo->roamSynchInProgress
+#else
+                                                  VOS_FALSE
+#endif
+                                                 );
 
             pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
 
@@ -3033,7 +3092,9 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                 }
                 halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
             }
-
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+            pRoamInfo->roamSynchInProgress = VOS_FALSE;
+#endif
             break;
         case eCSR_ROAM_ASSOCIATION_FAILURE:
             halStatus = hdd_AssociationCompletionHandler( pAdapter,
@@ -3085,6 +3146,9 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                 }
                 halStatus = hdd_RoamSetKeyCompleteHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
             }
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+            pRoamInfo->roamSynchInProgress = VOS_FALSE;
+#endif
             break;
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case eCSR_ROAM_FT_RESPONSE:
@@ -3198,6 +3262,18 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             break;
          }
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+       case eCSR_ROAM_AUTHORIZED_EVENT:
+         {
+            v_U8_t keyReplayCtr [KEY_REPLAY_CTR_SIZE];
+            vos_mem_zero(keyReplayCtr, sizeof(keyReplayCtr));
+            hddLog(VOS_TRACE_LEVEL_DEBUG,
+                   "cfg80211_authorization_event NL80211_AUTHORIZED");
+            cfg80211_authorization_event(pAdapter->dev, NL80211_AUTHORIZED,
+                                         keyReplayCtr, GFP_KERNEL);
+            break;
+         }
+#endif
         default:
             break;
     }
