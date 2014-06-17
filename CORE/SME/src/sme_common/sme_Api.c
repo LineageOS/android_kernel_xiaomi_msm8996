@@ -12589,3 +12589,23 @@ eHalStatus sme_UpdateAddIE(tHalHandle hHal,
     return (status);
 }
 
+/* ---------------------------------------------------------------------------
+    \fn sme_staInMiddleOfRoaming
+    \brief  This function returns TRUE if STA is in the middle of roaming state
+    \param  hHal - HAL handle for device
+    \- return TRUE or FALSE
+    -------------------------------------------------------------------------*/
+tANI_BOOLEAN sme_staInMiddleOfRoaming(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac   = PMAC_STRUCT( hHal );
+    eHalStatus     status = eHAL_STATUS_SUCCESS;
+    tANI_BOOLEAN   ret    = FALSE;
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme))) {
+        ret = csrNeighborMiddleOfRoaming(hHal);
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return ret;
+}
+
+

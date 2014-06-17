@@ -10982,6 +10982,11 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         return -EAGAIN;
     }
 
+    if (sme_staInMiddleOfRoaming(pHddCtx->hHal)) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Roaming in progress "
+               "Do not allow suspend"));
+        return -EAGAIN;
+    }
 #ifdef QCA_WIFI_2_0
     /* Stop ongoing scan on each interface */
     status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
