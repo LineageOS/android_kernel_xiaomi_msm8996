@@ -1392,7 +1392,7 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 			wma->interfaces[resp_event->vdev_id].vdev_up = FALSE;
 		}
 		ol_txrx_vdev_flush(iface->handle);
-		wdi_in_vdev_unpause(iface->handle);
+		wdi_in_vdev_unpause(iface->handle, 0xffffffff);
 		iface->pause_bitmap = 0;
 		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
@@ -7157,7 +7157,7 @@ void wma_vdev_resp_timer(void *data)
 			wma->interfaces[tgt_req->vdev_id].vdev_up = FALSE;
 		}
 		ol_txrx_vdev_flush(iface->handle);
-		wdi_in_vdev_unpause(iface->handle);
+		wdi_in_vdev_unpause(iface->handle, 0xffffffff);
 		iface->pause_bitmap = 0;
 		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
@@ -9870,6 +9870,9 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		iface->shortSlotTimeSupported = add_bss->shortSlotTimeSupported;
                 iface->nwType = add_bss->nwType;
 		if (add_bss->reassocReq) {
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+			ol_txrx_vdev_handle vdev;
+#endif
 			// Called in preassoc state. BSSID peer is already added by set_linkstate
 			peer = ol_txrx_find_peer_by_addr(pdev, add_bss->bssId, &peer_id);
 			if (!peer) {
@@ -9913,6 +9916,15 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 							WMA_TARGET_REQ_TYPE_VDEV_START);
 				goto peer_cleanup;
 			}
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+			vdev = wma_find_vdev_by_id(wma, vdev_id);
+			if (!vdev) {
+				WMA_LOGE("%s Invalid txrx vdev", __func__);
+				goto peer_cleanup;
+			}
+			wdi_in_vdev_pause(vdev,
+					OL_TXQ_PAUSE_REASON_PEER_UNAUTHORIZED);
+#endif
 			// ADD_BSS_RESP will be deferred to completion of VDEV_START
 
 		    return;
@@ -9928,10 +9940,22 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 			ol_txrx_peer_state_update(pdev, add_bss->bssId,
 						  ol_txrx_peer_state_auth);
 		} else {
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+			ol_txrx_vdev_handle vdev;
+#endif
 			WMA_LOGD("%s: Update peer(%pM) state into conn",
 				 __func__, add_bss->bssId);
 			ol_txrx_peer_state_update(pdev, add_bss->bssId,
 						  ol_txrx_peer_state_conn);
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+			vdev = wma_find_vdev_by_id(wma, vdev_id);
+			if (!vdev) {
+				WMA_LOGE("%s Invalid txrx vdev", __func__);
+				goto peer_cleanup;
+			}
+			wdi_in_vdev_pause(vdev,
+					OL_TXQ_PAUSE_REASON_PEER_UNAUTHORIZED);
+#endif
 		}
 
 		wmi_unified_send_txbf(wma, &add_bss->staContext);
@@ -14322,7 +14346,8 @@ static void wma_unpause_vdev(tp_wma_handle wma) {
 	#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
 	/* When host resume, by default, unpause all active vdev */
 		if (wma->interfaces[vdev_id].pause_bitmap) {
-			wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
+			wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle,
+					    0xffffffff);
 			wma->interfaces[vdev_id].pause_bitmap = 0;
 		}
 	#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
@@ -18306,7 +18331,8 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 				 * to pause a paused queue again.
 				 */
 				if (!wma->interfaces[vdev_id].pause_bitmap)
-					wdi_in_vdev_pause(wma->interfaces[vdev_id].handle);
+					wdi_in_vdev_pause(wma->interfaces[vdev_id].handle,
+							OL_TXQ_PAUSE_REASON_FW);
 				wma->interfaces[vdev_id].pause_bitmap |= (1 << wmi_event->pause_type);
 			}
 			/* UNPAUSE action, clean bitmap */
@@ -18318,7 +18344,8 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 				{
 					/* PAUSE BIT MAP is cleared
 					 * UNPAUSE VDEV */
-					wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
+					wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle,
+                                                            OL_TXQ_PAUSE_REASON_FW);
 				}
 			}
 			else
@@ -22022,7 +22049,7 @@ void WDA_TxAbort(v_U8_t vdev_id)
 	}
 	WMA_LOGA("%s: vdevid %d bssid %pM", __func__, vdev_id, iface->bssid);
 	iface->pause_bitmap |= (1 << PAUSE_TYPE_HOST);
-	wdi_in_vdev_pause(iface->handle);
+	wdi_in_vdev_pause(iface->handle, OL_TXQ_PAUSE_REASON_TX_ABORT);
 
 	/* Flush all TIDs except MGMT TID for this peer in Target */
 	peer_tid_bitmap &= ~(0x1 << WMI_MGMT_TID);

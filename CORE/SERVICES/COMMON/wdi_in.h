@@ -322,12 +322,13 @@ wdi_in_tx_release(
  *  paused.
  *
  * @param data_vdev - the virtual device being paused
+ * @param reason - the reason for which vdev queue is getting paused
  */
 #if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 void
-wdi_in_vdev_pause(ol_txrx_vdev_handle data_vdev);
+wdi_in_vdev_pause(ol_txrx_vdev_handle data_vdev, u_int32_t reason);
 #else
-#define wdi_in_vdev_pause(data_vdev) /* no-op */
+#define wdi_in_vdev_pause(data_vdev, u_int32_t) /* no-op */
 #endif /* CONFIG_HL_SUPPORT */
 
 /**
@@ -337,12 +338,13 @@ wdi_in_vdev_pause(ol_txrx_vdev_handle data_vdev);
  *  is handled entirely within the target FW.
  *
  * @param data_vdev - the virtual device being unpaused
+ * @param reason - the reason for which vdev queue is getting unpaused
  */
 #if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 void
-wdi_in_vdev_unpause(ol_txrx_vdev_handle data_vdev);
+wdi_in_vdev_unpause(ol_txrx_vdev_handle data_vdev, u_int32_t reason);
 #else
-#define wdi_in_vdev_unpause(data_vdev) /* no-op */
+#define wdi_in_vdev_unpause(data_vdev, u_int32_t reason) /* no-op */
 #endif /* CONFIG_HL_SUPPORT */
 
 /**

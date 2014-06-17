@@ -1573,7 +1573,15 @@ VOS_STATUS WLANTL_ChangeSTAState(void *vos_ctx, u_int8_t sta_id,
 			TLSHIM_LOGE("Failed to set the peer state to authorized");
 			return VOS_STATUS_E_FAULT;
 		}
+
+		if (peer->vdev->opmode == wlan_op_mode_sta) {
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+			wdi_in_vdev_unpause(peer->vdev,
+				    OL_TXQ_PAUSE_REASON_PEER_UNAUTHORIZED);
+#endif
+		}
 	}
+
 	return VOS_STATUS_SUCCESS;
 }
 
