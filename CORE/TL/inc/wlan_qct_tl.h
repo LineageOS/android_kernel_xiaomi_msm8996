@@ -1149,7 +1149,8 @@ WLANTL_ChangeSTAState
 (
   v_PVOID_t             pvosGCtx,
   v_U8_t                ucSTAId,
-  WLANTL_STAStateType   tlSTAState
+  WLANTL_STAStateType   tlSTAState,
+  v_BOOL_t              roamSynchInProgress
 );
 
 /*===========================================================================
