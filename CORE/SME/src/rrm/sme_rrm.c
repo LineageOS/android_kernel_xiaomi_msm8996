@@ -75,6 +75,9 @@
 #ifdef FEATURE_WLAN_ESE
 #define RRM_ROAM_SCORE_NEIGHBOR_IAPP_LIST                       30
 #endif
+
+v_TIME_t RRM_scan_timer;
+
 /**---------------------------------------------------------------------------
 
   \brief rrmLLPurgeNeighborCache() -
@@ -582,7 +585,10 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
    while (pScanResult)
    {
       pNextResult = sme_ScanResultGetNext(pMac, pResult);
-      pScanResultsArr[counter++] = pScanResult;
+      if(pScanResult->timer >= RRM_scan_timer)
+      {
+          pScanResultsArr[counter++] = pScanResult;
+      }
       pScanResult = pNextResult; //sme_ScanResultGetNext(hHal, pResult);
       if (counter >= SIR_BCN_REPORT_MAX_BSS_DESC)
          break;
@@ -754,6 +760,8 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
        smsLog( pMac, LOG1, "Scan Type(%d) Max Dwell Time(%d)", scanRequest.scanType,
                   scanRequest.maxChnTime );
 
+       RRM_scan_timer = vos_timer_get_system_time();
+
 #if defined WLAN_VOWIFI_DEBUG
        smsLog( pMac, LOGE, "For Duration %d ", scanRequest.maxChnTime );
 #endif
@@ -784,6 +792,12 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
    }
    else if (eSIR_BEACON_TABLE == scanType)  /* beacon table */
    {
+       /*In beacon table mode, scan results are taken directly from scan cache
+         without issuing any scan request. So, it is not proper to update
+         RRM_scan_timer with latest time and hence made it to zero to satisfy
+         pScanResult->timer >= RRM_scan_timer  */
+       RRM_scan_timer = 0;
+
        if ((pSmeRrmContext->currentIndex + 1) < pSmeRrmContext->channelList.numOfChannels)
        {
            sme_RrmSendScanResult( pMac, 1, &pSmeRrmContext->channelList.ChannelList[pSmeRrmContext->currentIndex], false );
