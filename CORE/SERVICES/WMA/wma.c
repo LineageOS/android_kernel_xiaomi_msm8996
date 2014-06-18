@@ -15579,6 +15579,11 @@ static int wma_add_clear_mcbc_filter(tp_wma_handle wma_handle, uint8_t vdev_id,
 		adf_os_mem_free(buf);
 		return -EIO;
 	}
+	WMA_LOGD("Action:%d; vdev_id:%d; clearList:%d\n",
+			cmd->action, vdev_id, clearList);
+	WMA_LOGD("MCBC MAC Addr: %0x:%0x:%0x:%0x:%0x:%0x\n",
+		multicastAddr[0], multicastAddr[1], multicastAddr[2],
+		multicastAddr[3], multicastAddr[4], multicastAddr[5]);
 	return 0;
 }
 
@@ -15598,11 +15603,14 @@ static VOS_STATUS wma_process_mcbc_set_filter_req(tp_wma_handle wma_handle,
 						__func__, mcbc_param->bssId);
 		return VOS_STATUS_E_FAILURE;
 	}
+	/* set mcbc_param->action to clear MCList and reset
+	 * to configure the MCList in FW
+	*/
 
 	for (i = 0; i < mcbc_param->ulMulticastAddrCnt; i++) {
 		wma_add_clear_mcbc_filter(wma_handle, vdev_id,
 					mcbc_param->multicastAddr[i],
-					(mcbc_param->action == 1));
+					(mcbc_param->action == 0));
 	}
 	return VOS_STATUS_SUCCESS;
 }
@@ -17512,6 +17520,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_8023_MULTICAST_LIST_REQ:
 			wma_process_mcbc_set_filter_req(wma_handle,
 				       (tpSirRcvFltMcAddrList)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 		case WDA_GTK_OFFLOAD_REQ:

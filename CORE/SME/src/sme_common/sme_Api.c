@@ -8258,7 +8258,7 @@ eHalStatus sme_8023MulticastList (tHalHandle hHal, tANI_U8 sessionId, tpSirRcvFl
     if(pSession == NULL )
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Unable to find "
-            "the right session", __func__);
+            "the session Id: %d", __func__, sessionId);
         return eHAL_STATUS_FAILURE;
     }
 
