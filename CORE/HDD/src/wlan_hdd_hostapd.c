@@ -421,6 +421,35 @@ static int hdd_hostapd_ioctl(struct net_device *dev,
    return ret;
 }
 
+#ifdef QCA_HT_2040_COEX
+VOS_STATUS hdd_set_sap_ht2040_mode(hdd_adapter_t *pHostapdAdapter,
+                                   tANI_U8 channel_type)
+{
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+    v_PVOID_t hHal = NULL;
+
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: change HT20/40 mode", __func__);
+
+    if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode) {
+        hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+        if ( NULL == hHal ) {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Hal ctx is null", __func__);
+            return VOS_STATUS_E_FAULT;
+        }
+        halStatus = sme_SetHT2040Mode(hHal, pHostapdAdapter->sessionId,
+                                      channel_type);
+        if (halStatus == eHAL_STATUS_FAILURE ) {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Failed to change HT20/40 mode", __func__);
+            return VOS_STATUS_E_FAILURE;
+        }
+    }
+    return VOS_STATUS_SUCCESS;
+}
+#endif
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_hostapd_set_mac_address() -
@@ -460,7 +489,7 @@ void hdd_hostapd_inactivity_timer_cb(v_PVOID_t usrDataForCallback)
     ENTER();
 
 #ifdef DISABLE_CONCURRENCY_AUTOSAVE
-    if (vos_concurrent_sessions_running())
+    if (vos_concurrent_open_sessions_running())
     {
        /*
               This timer routine is going to be called only when AP
@@ -542,9 +571,19 @@ void hdd_clear_all_sta(hdd_adapter_t *pHostapdAdapter, v_PVOID_t usrDataForCallb
 static int hdd_stop_p2p_link(hdd_adapter_t *pHostapdAdapter,v_PVOID_t usrDataForCallback)
 {
     struct net_device *dev;
+    hdd_context_t     *pHddCtx = NULL;
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     dev = (struct net_device *)usrDataForCallback;
     ENTER();
+
+    pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    status = wlan_hdd_validate_context(pHddCtx);
+
+    if (0 != status) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+        return status;
+    }
+
     if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
     {
 #ifdef WLAN_FEATURE_MBSSID
@@ -557,6 +596,7 @@ static int hdd_stop_p2p_link(hdd_adapter_t *pHostapdAdapter,v_PVOID_t usrDataFor
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, FL("Deleting P2P link!!!!!!"));
         }
         clear_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
+        wlan_hdd_decr_active_session(pHddCtx, pHostapdAdapter->device_mode);
     }
     EXIT();
     return (status == VOS_STATUS_SUCCESS) ? 0 : -EBUSY;
@@ -2977,7 +3017,19 @@ static iw_softap_commit(struct net_device *dev,
     }
     else
     {
+        hdd_context_t     *pHddCtx = NULL;
+        VOS_STATUS         status  = VOS_STATUS_SUCCESS;
+
+        pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+        status = wlan_hdd_validate_context(pHddCtx);
+
+        if (0 != status) {
+            hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+            return status;
+        }
+
         set_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
+        wlan_hdd_incr_active_session(pHddCtx, pHostapdAdapter->device_mode);
 #ifdef WLAN_FEATURE_MBSSID
         WLANSAP_Update_WpsIe ( WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter) );
 #else
@@ -3943,7 +3995,18 @@ static int iw_softap_stopbss(struct net_device *dev,
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     VOS_STATUS status = VOS_STATUS_SUCCESS;
+    hdd_context_t *pHddCtx         = NULL;
+
     ENTER();
+
+    pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    status = wlan_hdd_validate_context(pHddCtx);
+
+    if (0 != status) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+        return status;
+    }
+
     if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
     {
 #ifdef WLAN_FEATURE_MBSSID
@@ -3965,6 +4028,7 @@ static int iw_softap_stopbss(struct net_device *dev,
             }
         }
         clear_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
+        wlan_hdd_decr_active_session(pHddCtx, pHostapdAdapter->device_mode);
     }
     EXIT();
     return (status == VOS_STATUS_SUCCESS) ? 0 : -EBUSY;
@@ -4227,7 +4291,7 @@ int iw_get_softap_linkspeed(struct net_device *dev,
    int len = sizeof(v_U32_t)+1;
    tSirMacAddr macAddress;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
-   int rc, valid;
+   int rc, valid, i;
 
    pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
    valid = wlan_hdd_validate_context(pHddCtx);
@@ -4264,13 +4328,22 @@ int iw_get_softap_linkspeed(struct net_device *dev,
          hddLog(VOS_TRACE_LEVEL_ERROR, FL("String to Hex conversion Failed"));
       }
    }
-
    /* If no mac address is passed and/or its length is less than 17,
-    * return error
+    * link speed for first connected client will be returned.
     */
-   if (wrqu->data.length < 17 || !VOS_IS_STATUS_SUCCESS(status ))
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,FL("Invalid peer macaddress"));
+   if (wrqu->data.length < 17 || !VOS_IS_STATUS_SUCCESS(status )) {
+      for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
+          if (pHostapdAdapter->aStaInfo[i].isUsed &&
+             (!vos_is_macaddr_broadcast(&pHostapdAdapter->aStaInfo[i].macAddrSTA))) {
+             vos_copy_macaddr((v_MACADDR_t *)macAddress,
+                               &pHostapdAdapter->aStaInfo[i].macAddrSTA);
+             status = VOS_STATUS_SUCCESS;
+             break;
+          }
+      }
+   }
+   if (!VOS_IS_STATUS_SUCCESS(status )) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid peer macaddress"));
       return -EINVAL;
    }
    status = wlan_hdd_get_linkspeed_for_peermac(pHostapdAdapter,

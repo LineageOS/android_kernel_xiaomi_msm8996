@@ -396,6 +396,10 @@ enum eWniMsgTypes
     eWNI_SME_LINK_SPEED_IND,//Indicate linkspeed response from WMA
     eWNI_SME_CSA_OFFLOAD_EVENT,
     eWNI_SME_UPDATE_ADDITIONAL_IES,  // indicates Additional IE from hdd to PE
+#ifdef QCA_HT_2040_COEX
+    eWNI_SME_SET_HT_2040_MODE,
+#endif
+
     eWNI_SME_MSG_TYPES_END
 };
 

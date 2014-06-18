@@ -3496,6 +3496,13 @@ ePhyChanBondState sme_GetCBPhyStateFromCBIniValue(tANI_U32 cb_ini_value);
 int sme_UpdateHTConfig(tHalHandle hHal, tANI_U8 sessionId, tANI_U16 htCapab,
                          int value);
 tANI_S16 sme_GetHTConfig(tHalHandle hHal, tANI_U8 session_id, tANI_U16 ht_capab);
+
+#ifdef QCA_HT_2040_COEX
+VOS_STATUS sme_notify_ht2040_mode(tHalHandle hHal, tANI_U16 staId,
+             v_MACADDR_t macAddrSTA, v_U8_t sessionId, tANI_U8 channel_type);
+eHalStatus sme_SetHT2040Mode(tHalHandle hHal, tANI_U8 sessionId, tANI_U8 channel_type);
+#endif
+
 #ifdef QCA_WIFI_2_0
 eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
                               tSmeChannelInfo *chanInfo);

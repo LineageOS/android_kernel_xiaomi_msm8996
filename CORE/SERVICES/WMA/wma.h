@@ -658,6 +658,10 @@ typedef struct {
 
 	/* IBSS Power Save config Parameters */
 	ibss_power_save_params wma_ibss_power_save_params;
+#ifdef FEATURE_WLAN_RA_FILTERING
+	v_BOOL_t IsRArateLimitEnabled;
+	u_int16_t RArateLimitInterval;
+#endif
 
 }t_wma_handle, *tp_wma_handle;
 
@@ -1324,7 +1328,9 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq,
 #define WMA_ASSOC_REQ_RECV_WAKE_LOCK_DURATION	(30 * 1000) /* in msec */
 #define WMA_DEAUTH_RECV_WAKE_LOCK_DURATION	(30 * 1000) /* in msec */
 #define WMA_DISASSOC_RECV_WAKE_LOCK_DURATION	(30 * 1000) /* in msec */
-
+#ifdef FEATURE_WLAN_RA_FILTERING
+#define WMA_RA_MATCH_RECV_WAKE_LOCK_DURATION    (5 * 1000) /* in msec */
+#endif
 
 /* U-APSD maximum service period of peer station */
 enum uapsd_peer_param_max_sp {
