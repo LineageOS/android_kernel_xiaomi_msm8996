@@ -1459,6 +1459,8 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
 
     ptSapContext sapContext = NULL;
     tWLAN_SAPEvent sapEvent;
+    tpAniSirGlobal pMac = NULL;
+    v_PVOID_t hHal = NULL;
 
     sapContext = VOS_GET_SAP_CB( pvosGCtx );
     if (NULL == sapContext)
@@ -1468,6 +1470,15 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
 
         return VOS_STATUS_E_FAULT;
     }
+    hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+    if (NULL == hHal)
+    {
+       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+       "%s: Invalid HAL pointer from pvosGCtx", __func__);
+       return VOS_STATUS_E_FAULT;
+    }
+    pMac = PMAC_STRUCT( hHal );
+
     /*
      * Validate if the new target channel is a valid
      * 5 Ghz Channel. We prefer to move to another
@@ -1504,12 +1515,12 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
               * Copy the requested target channel
               * to sap context.
               */
-             sapContext->SapDfsInfo.target_channel = targetChannel;
+             pMac->sap.SapDfsInfo.target_channel = targetChannel;
 
              /*
               * Set the CSA IE required flag.
               */
-             sapContext->SapDfsInfo.csaIERequired = VOS_TRUE;
+             pMac->sap.SapDfsInfo.csaIERequired = VOS_TRUE;
 
              /*
               * Set the radar found status to allow the channel
@@ -1519,7 +1530,7 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
               * that were suspended in HDD before the channel
               * request was issued.
               */
-             sapContext->SapDfsInfo.sap_radar_found_status = VOS_TRUE;
+             pMac->sap.SapDfsInfo.sap_radar_found_status = VOS_TRUE;
 
              /*
               * Post the eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START
@@ -2792,6 +2803,7 @@ VOS_STATUS WLANSAP_StartBeaconReq(v_PVOID_t pSapCtx)
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
     v_PVOID_t hHal = NULL;
     tANI_U8 dfsCacWaitStatus = 0;
+    tpAniSirGlobal pMac = NULL;
     sapContext = (ptSapContext)pSapCtx;
 
     if ( NULL == sapContext )
@@ -2808,9 +2820,10 @@ VOS_STATUS WLANSAP_StartBeaconReq(v_PVOID_t pSapCtx)
        "%s: Invalid HAL pointer from pvosGCtx", __func__);
        return VOS_STATUS_E_FAULT;
     }
+    pMac = PMAC_STRUCT( hHal );
 
     /* No Radar was found during CAC WAIT, So start Beaconing */
-    if (sapContext->SapDfsInfo.sap_radar_found_status == VOS_FALSE)
+    if (pMac->sap.SapDfsInfo.sap_radar_found_status == VOS_FALSE)
     {
        /* CAC Wait done without any Radar Detection */
        dfsCacWaitStatus = VOS_TRUE;
@@ -2852,6 +2865,7 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx)
     ptSapContext sapContext = NULL;
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
     v_PVOID_t hHal = NULL;
+    tpAniSirGlobal pMac = NULL;
     sapContext = (ptSapContext)pSapCtx;
 
     if ( NULL == sapContext )
@@ -2868,11 +2882,12 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx)
                    "%s: Invalid HAL pointer from pvosGCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
+    pMac = PMAC_STRUCT( hHal );
 
     halStatus = sme_RoamCsaIeRequest(hHal,
-                              sapContext->bssid,
-                              sapContext->SapDfsInfo.target_channel,
-                              sapContext->SapDfsInfo.csaIERequired);
+                                     sapContext->bssid,
+                                     pMac->sap.SapDfsInfo.target_channel,
+                                     pMac->sap.SapDfsInfo.csaIERequired);
 
     if (halStatus == eHAL_STATUS_SUCCESS)
     {
@@ -2882,24 +2897,132 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx)
     return VOS_STATUS_E_FAULT;
 }
 
-VOS_STATUS WLANSAP_Set_Dfs_Ignore_CAC(v_PVOID_t pvosGCtx, v_U8_t ignore_cac)
+/*==========================================================================
+  FUNCTION    WLANSAP_Get_Dfs_Ignore_CAC
+
+  DESCRIPTION
+   This API is used to get the value of ignore_cac value
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  hHal : HAL pointer
+  pIgnore_cac : pointer to ignore_cac variable
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS WLANSAP_Get_Dfs_Ignore_CAC(tHalHandle hHal,  v_U8_t *pIgnore_cac)
 {
-    ptSapContext pSapCtx = NULL;
-    if (VOS_STA_SAP_MODE == vos_get_conparam ())
+    tpAniSirGlobal pMac = NULL;
+
+    if (NULL != hHal)
     {
-        pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+        pMac = PMAC_STRUCT( hHal );
+    }
+    else
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Invalid hHal pointer", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
 
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
-                     "%s: sapContext=%p", __func__, pSapCtx);
+    *pIgnore_cac = pMac->sap.SapDfsInfo.ignore_cac;
+    return VOS_STATUS_SUCCESS;
+}
 
-        if ( NULL == pSapCtx )
-        {
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Invalid SAP pointer from pvosGCtx", __func__);
-            return VOS_STATUS_E_FAULT;
-        }
-        pSapCtx->SapDfsInfo.ignore_cac = ignore_cac >= VOS_TRUE? VOS_TRUE : VOS_FALSE;
-     }
+/*==========================================================================
+  FUNCTION    WLANSAP_Set_Dfs_Ignore_CAC
+
+  DESCRIPTION
+   This API is used to Set the value of ignore_cac value
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  hHal : HAL pointer
+  ignore_cac : value to set for ignore_cac variable in DFS global structure.
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS WLANSAP_Set_Dfs_Ignore_CAC(tHalHandle hHal, v_U8_t ignore_cac)
+{
+    tpAniSirGlobal pMac = NULL;
+
+    if (NULL != hHal)
+    {
+        pMac = PMAC_STRUCT( hHal );
+    }
+    else
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Invalid hHal pointer", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    pMac->sap.SapDfsInfo.ignore_cac = (ignore_cac >= VOS_TRUE)?
+                                       VOS_TRUE : VOS_FALSE;
+    return VOS_STATUS_SUCCESS;
+}
+
+/*==========================================================================
+  FUNCTION    WLANSAP_Set_Dfs_Target_Chnl
+
+  DESCRIPTION
+   This API is used to set next target chnl as provided channel.
+   you can provide any valid channel to this API.
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  hHal : HAL pointer
+  target_channel : target channel to be set
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS WLANSAP_Set_Dfs_Target_Chnl(tHalHandle hHal, v_U8_t target_channel)
+{
+    tpAniSirGlobal pMac = NULL;
+
+    if (NULL != hHal)
+    {
+        pMac = PMAC_STRUCT( hHal );
+    }
+    else
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Invalid hHal pointer", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+    if (target_channel > 0)
+    {
+        pMac->sap.SapDfsInfo.user_provided_target_channel = target_channel;
+    }
+    else
+    {
+        pMac->sap.SapDfsInfo.user_provided_target_channel = 0;
+    }
+
     return VOS_STATUS_SUCCESS;
 }
 
@@ -2973,6 +3096,8 @@ WLANSAP_Get_DfsNol(v_PVOID_t pSapCtx)
 {
     int i = 0;
     ptSapContext sapContext = (ptSapContext)pSapCtx;
+    v_PVOID_t hHal = NULL;
+    tpAniSirGlobal pMac = NULL;
 
     if (NULL == sapContext)
     {
@@ -2980,24 +3105,32 @@ WLANSAP_Get_DfsNol(v_PVOID_t pSapCtx)
                 "%s: Invalid SAP pointer from pvosGCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
+    hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+    if (NULL == hHal)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid HAL pointer from pvosGCtx", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+    pMac = PMAC_STRUCT( hHal );
 
-    if (!sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels) {
+    if (!pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels) {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
                 "%s: DFS NOL is empty", __func__);
         return VOS_STATUS_SUCCESS;
     }
 
-    for (i = 0; i < sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels; i++)
+    for (i = 0; i < pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels; i++)
     {
-        if (!sapContext->SapDfsInfo.sapDfsChannelNolList[i].dfs_channel_number)
+        if (!pMac->sap.SapDfsInfo.sapDfsChannelNolList[i].dfs_channel_number)
             continue;
 
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                 "%s: Channel[%d] is %s",
                 __func__,
-                sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                pMac->sap.SapDfsInfo.sapDfsChannelNolList[i].
                     dfs_channel_number,
-                (sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                (pMac->sap.SapDfsInfo.sapDfsChannelNolList[i].
                     radar_status_flag > eSAP_DFS_CHANNEL_AVAILABLE) ?
                         "UNAVAILABLE" : "AVAILABLE");
     }
@@ -3030,6 +3163,8 @@ WLANSAP_Set_DfsNol(v_PVOID_t pSapCtx, eSapDfsNolType conf)
 {
     int i = 0;
     ptSapContext sapContext = (ptSapContext)pSapCtx;
+    v_PVOID_t hHal = NULL;
+    tpAniSirGlobal pMac = NULL;
 
     if (NULL == sapContext)
     {
@@ -3037,8 +3172,16 @@ WLANSAP_Set_DfsNol(v_PVOID_t pSapCtx, eSapDfsNolType conf)
                 "%s: Invalid SAP pointer from pvosGCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
+    hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+    if (NULL == hHal)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid HAL pointer from pvosGCtx", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+    pMac = PMAC_STRUCT( hHal );
 
-    if (!sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels) {
+    if (!pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels) {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
                 "%s: DFS NOL is empty", __func__);
         return VOS_STATUS_SUCCESS;
@@ -3049,16 +3192,16 @@ WLANSAP_Set_DfsNol(v_PVOID_t pSapCtx, eSapDfsNolType conf)
                 "%s: clear the DFS NOL",
                 __func__);
 
-        for (i = 0; i < sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels;
+        for (i = 0; i < pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels;
                 i++)
         {
-            if (!sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+            if (!pMac->sap.SapDfsInfo.sapDfsChannelNolList[i].
                     dfs_channel_number)
                 continue;
 
-            sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+            pMac->sap.SapDfsInfo.sapDfsChannelNolList[i].
                 radar_status_flag = eSAP_DFS_CHANNEL_AVAILABLE;
-            sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+            pMac->sap.SapDfsInfo.sapDfsChannelNolList[i].
                 radar_found_timestamp = 0;
         }
     } else if (conf == eSAP_DFS_NOL_RANDOMIZE) {
@@ -3067,40 +3210,40 @@ WLANSAP_Set_DfsNol(v_PVOID_t pSapCtx, eSapDfsNolType conf)
                 __func__);
 
         /* random 1/0 to decide to put the channel into NOL */
-        for (i = 0; i < sapContext->SapDfsInfo.numCurrentRegDomainDfsChannels;
+        for (i = 0; i < pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels;
                 i++)
         {
             v_U32_t random_bytes = 0;
             get_random_bytes(&random_bytes, 1);
 
-            if (!sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+            if (!pMac->sap.SapDfsInfo.sapDfsChannelNolList[i].
                     dfs_channel_number)
                 continue;
 
             if ((random_bytes + jiffies) % 2) {
                 /* mark the channel unavailable */
-                sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
                     .radar_status_flag = eSAP_DFS_CHANNEL_UNAVAILABLE;
 
                 /* mark the timestamp */
-                sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
                     .radar_found_timestamp = vos_timer_get_system_time();
             } else {
                 /* mark the channel available */
-                sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                pMac->sap.SapDfsInfo.sapDfsChannelNolList[i].
                     radar_status_flag = eSAP_DFS_CHANNEL_AVAILABLE;
 
                 /* clear the timestamp */
-                sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                pMac->sap.SapDfsInfo.sapDfsChannelNolList[i].
                     radar_found_timestamp = 0;
             }
 
             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                         "%s: Set channel[%d] %s",
                         __func__,
-                        sapContext->SapDfsInfo.sapDfsChannelNolList[i]
+                        pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
                             .dfs_channel_number,
-                        (sapContext->SapDfsInfo.sapDfsChannelNolList[i].
+                        (pMac->sap.SapDfsInfo.sapDfsChannelNolList[i].
                             radar_status_flag > eSAP_DFS_CHANNEL_AVAILABLE) ?
                                 "UNAVAILABLE" : "AVAILABLE");
         }

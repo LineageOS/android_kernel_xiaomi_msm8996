@@ -6369,8 +6369,8 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 
     tpSirDfsCsaIeRequest  pDfsCsaIeRequest = (tSirDfsCsaIeRequest *)pMsg;
     tpPESession           psessionEntry = NULL;
-    int i;
     tANI_U32 chanWidth = 0;
+    tANI_U8               sessionId;
 
     if ( pMsg == NULL )
     {
@@ -6378,15 +6378,25 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
         return;
     }
 
-    for (i=0; i<pMac->lim.maxBssId; i++)
+    if ((psessionEntry =
+         peFindSessionByBssid(pMac,
+                              pDfsCsaIeRequest->bssid,
+                              &sessionId)) == NULL)
     {
-       psessionEntry = peFindSessionBySessionId(pMac, i);
-       if (psessionEntry && psessionEntry->valid &&
-           eLIM_AP_ROLE == psessionEntry->limSystemRole)
-       {
-          break;
-       }
+        limLog(pMac, LOGE,
+               FL("Session not found for given BSSID" MAC_ADDRESS_STR),
+               MAC_ADDR_ARRAY(pDfsCsaIeRequest->bssid));
+        return;
     }
+
+    if (psessionEntry->valid &&
+        eLIM_AP_ROLE != psessionEntry->limSystemRole)
+    {
+        limLog(pMac, LOGE, FL("Invalid SystemRole %d"),
+               psessionEntry->limSystemRole);
+        return;
+    }
+
     if ( psessionEntry )
     {
         /* target channel */

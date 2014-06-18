@@ -7229,7 +7229,10 @@ void limUpdateBeacon(tpAniSirGlobal pMac)
                )
             {
                 schSetFixedBeaconFields(pMac,&pMac->lim.gpSession[i]);
-                limSendBeaconInd(pMac, &pMac->lim.gpSession[i]);
+                if (VOS_FALSE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running)
+                {
+                    limSendBeaconInd(pMac, &pMac->lim.gpSession[i]);
+                }
              }
             else
             {
