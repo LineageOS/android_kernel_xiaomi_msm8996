@@ -2607,6 +2607,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_HT_2040_COEX_DEFAULT            ( 0 )
 #endif
 
+#define CFG_IGNORE_CAC_NAME     "gIgnoreCAC"
+#define CFG_IGNORE_CAC_MIN      (0)
+#define CFG_IGNORE_CAC_MAX      (1)
+#define CFG_IGNORE_CAC_DEFAULT  (0)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3164,6 +3169,7 @@ typedef struct
 #ifdef QCA_HT_2040_COEX
    v_BOOL_t                    ht2040CoexEnabled;
 #endif
+   v_U8_t      ignoreCAC;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

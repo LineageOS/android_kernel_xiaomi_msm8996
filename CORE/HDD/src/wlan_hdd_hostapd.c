@@ -625,6 +625,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     hdd_context_t *pHddCtx;
     hdd_scaninfo_t *pScanInfo  = NULL;
     struct iw_michaelmicfailure msg;
+    v_U8_t ignoreCAC = 0;
+
 #ifdef MSM_PLATFORM
     unsigned long flags;
 #endif
@@ -788,19 +790,18 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 }
            }
 
-            // We should restart OS transmit queues if we came here after
-            // radar detection and channel change
-            if (VOS_TRUE == pHddCtx->dfs_radar_found)
-            {
-               pHddCtx->dfs_radar_found = VOS_FALSE;
-            }
-
-            /* if START BSS even on non-DFS channel, clear the block_tx flag */
-            if (NV_CHANNEL_DFS !=
-                    vos_nv_getChannelEnabledState(pHddApCtx->operatingChannel))
+            pHddCtx->dfs_radar_found = VOS_FALSE;
+            WLANSAP_Get_Dfs_Ignore_CAC(pHddCtx->hHal, &ignoreCAC);
+            if ((NV_CHANNEL_DFS !=
+                vos_nv_getChannelEnabledState(pHddApCtx->operatingChannel))
+                || ignoreCAC)
             {
                 pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
             }
+
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+                      "The value of dfs_cac_block_tx[%d] for ApCtx[%p]",
+                      pHddApCtx->dfs_cac_block_tx, pHddApCtx);
 
             //Fill the params for sending IWEVCUSTOM Event with SOFTAP.enabled
             startBssEvent = "SOFTAP.enabled";
@@ -2310,13 +2311,19 @@ static iw_softap_setparam(struct net_device *dev,
                   if (pHostapdAdapter->device_mode != WLAN_HDD_SOFTAP)
                        return -EINVAL;
 
-                  ret = WLANSAP_Set_Dfs_Ignore_CAC(
-#ifdef WLAN_FEATURE_MBSSID
-                                WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter),
-#else
-                                pVosContext,
-#endif
-                                set_value);
+                  ret = WLANSAP_Set_Dfs_Ignore_CAC(hHal, set_value);
+                  break;
+             }
+
+        case QCASAP_SET_DFS_TARGET_CHNL:
+             {
+                  hddLog(VOS_TRACE_LEVEL_INFO, "Set Dfs target channel  %d",
+                            set_value);
+
+                  if (pHostapdAdapter->device_mode != WLAN_HDD_SOFTAP)
+                       return -EINVAL;
+
+                  ret = WLANSAP_Set_Dfs_Target_Chnl(hHal, set_value);
                   break;
              }
 
@@ -4698,6 +4705,11 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "setdfsnol" },
+
+    {   QCASAP_SET_DFS_TARGET_CHNL,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setNextChnl" },
 
 #endif /* QCA_WIFI_2_0 */
 
