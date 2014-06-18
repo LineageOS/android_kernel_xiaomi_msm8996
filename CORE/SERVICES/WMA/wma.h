@@ -148,6 +148,7 @@
 #define WMA_CTS_DURATION_MS_MAX             (32)
 #define WMA_GO_MIN_ACTIVE_SCAN_BURST_DURATION   (40)
 #define WMA_GO_MAX_ACTIVE_SCAN_BURST_DURATION   (120)
+#define WMA_DWELL_TIME_PASSIVE_DEFAULT          (110)
 
 /* Roaming default values
  * All time and period values are in milliseconds.

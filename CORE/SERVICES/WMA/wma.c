@@ -4663,6 +4663,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	u_int32_t *tmp_ptr, ie_len_with_pad;
 	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
 	u_int8_t *buf_ptr;
+	u_int32_t dwell_time;
 	int i;
 	int len = sizeof(*cmd);
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
@@ -4725,13 +4726,27 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 				WMI_SCAN_EVENT_PREEMPTED |
 				WMI_SCAN_EVENT_RESTARTED;
 
-	/* CSR sends min and max dwell time values, but expects the firmware
-	 * to use only max dwell time value. It does not send separate values
-	 * for active and passive. We use the same value for now.
-	 * CSR will pass 40 or 110 ms as maxChannelTime value to us.
-	 */
 	cmd->dwell_time_active = scan_req->maxChannelTime;
-	cmd->dwell_time_passive = scan_req->maxChannelTime;
+
+	if (scan_req->scanType == eSIR_ACTIVE_SCAN) {
+		/* In Active scan case, the firmware has to do passive scan on DFS channels
+		 * So the passive scan duration should be updated properly so that the duration
+		 * will be sufficient enough to receive the beacon from AP */
+
+		if (wlan_cfgGetInt(pMac, WNI_CFG_PASSIVE_MAXIMUM_CHANNEL_TIME,
+					&dwell_time) != eSIR_SUCCESS) {
+			WMA_LOGE("Failed to get passive max channel value"
+					"using default value");
+			dwell_time = WMA_DWELL_TIME_PASSIVE_DEFAULT;
+		}
+		cmd->dwell_time_passive = dwell_time;
+	}
+	else
+		cmd->dwell_time_passive = scan_req->maxChannelTime;
+
+	WMA_LOGI("Scan Type %x, Active dwell time %u, Passive dwell time %u",
+			scan_req->scanType, cmd->dwell_time_active,
+			cmd->dwell_time_passive);
 
 	/* Ensure correct number of probes are sent on active channel */
 	cmd->repeat_probe_time = cmd->dwell_time_active / WMA_SCAN_NPROBES_DEFAULT;
