@@ -226,6 +226,13 @@ void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc)
 	adf_dev->dev = hif_sc->aps_osdev.device;
 	sc->adf_dev = adf_dev;
 }
+
+void hif_deinit_adf_ctx(void *ol_sc)
+{
+	struct ol_softc *sc = (struct ol_softc *)ol_sc;
+	sc->adf_dev = NULL;
+}
+
 #define A_PCIE_LOCAL_REG_READ(mem, addr) \
         A_PCI_READ32((char *)(mem) + PCIE_LOCAL_BASE_ADDRESS + (A_UINT32)(addr))
 

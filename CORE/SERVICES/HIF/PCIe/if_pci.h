@@ -122,6 +122,7 @@ void hif_reset_soc(void *ol_sc);
 void hif_disable_aspm(void);
 
 void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc);
+void hif_deinit_adf_ctx(void *ol_sc);
 
 void hif_pci_save_htc_htt_config_endpoint(int htc_endpoint);
 

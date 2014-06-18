@@ -12042,6 +12042,7 @@ err_config:
 err_free_adf_context:
 #ifdef QCA_WIFI_2_0
    vos_mem_free(adf_ctx);
+   hif_deinit_adf_ctx(hif_sc);
 #endif
 
 err_free_hdd_context:

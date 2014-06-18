@@ -290,6 +290,12 @@ void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc)
    EXIT();
 }
 
+void hif_deinit_adf_ctx(void *ol_sc)
+{
+   struct ol_softc *sc = (struct ol_softc *)ol_sc;
+   sc->adf_dev = NULL;
+}
+
 void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle)
 {
    struct ol_softc *sc = (struct ol_softc *)ol_sc;

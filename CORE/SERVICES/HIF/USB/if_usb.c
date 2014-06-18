@@ -387,6 +387,12 @@ void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc)
 	sc->adf_dev = adf_dev;
 }
 
+void hif_deinit_adf_ctx(void *ol_sc)
+{
+	struct ol_softc *sc = (struct ol_softc *)ol_sc;
+	sc->adf_dev = NULL;
+}
+
 static int is_usb_driver_register = 0;
 int hif_register_driver(void)
 {
