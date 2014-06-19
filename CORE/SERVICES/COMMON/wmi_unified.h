@@ -3479,6 +3479,11 @@ typedef enum {
     /** DTIM policy */
     WMI_VDEV_PARAM_DTIM_POLICY,
 
+    /* When IBSS network is initialized, PS-supporting device
+    * does not enter protocol sleep state during first
+    * WMI_VDEV_PARAM_IBSS_PS_WARMUP_TIME_SECS seconds. */
+    WMI_VDEV_PARAM_IBSS_PS_WARMUP_TIME_SECS,
+
 } WMI_VDEV_PARAM;
 
 /* Length of ATIM Window in TU */
@@ -4341,6 +4346,9 @@ typedef struct {
 #define WMI_PEER_TX_FAIL_CNT_THR                        0xA
 /* Enable H/W retry and Enable H/W Send CTS2S before Data */
 #define WMI_PEER_SET_HW_RETRY_CTS2S                     0xB
+
+/* Set peer advertised IBSS atim window length */
+#define WMI_PEER_IBSS_ATIM_WINDOW_LENGTH                0xC
 
 /** mimo ps values for the parameter WMI_PEER_MIMO_PS_STATE  */
 #define WMI_PEER_MIMO_PS_NONE                          0x0
