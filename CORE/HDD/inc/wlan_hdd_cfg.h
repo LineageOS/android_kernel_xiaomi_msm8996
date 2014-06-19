@@ -2480,7 +2480,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_LL_TX_LBW_FLOW_LWM                     "TxLbwFlowLowWaterMark"
 #define CFG_LL_TX_LBW_FLOW_LWM_MIN                 ( 0 )
 #define CFG_LL_TX_LBW_FLOW_LWM_MAX                 ( 1000 )
-#define CFG_LL_TX_LBW_FLOW_LWM_DEFAULT             ( 650 )
+#define CFG_LL_TX_LBW_FLOW_LWM_DEFAULT             ( 450 )
 
 #define CFG_LL_TX_LBW_FLOW_HWM_OFFSET              "TxLbwFlowHighWaterMarkOffset"
 #define CFG_LL_TX_LBW_FLOW_HWM_OFFSET_MIN          ( 0 )
