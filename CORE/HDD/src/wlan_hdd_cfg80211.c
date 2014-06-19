@@ -3468,17 +3468,14 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                     return -EINVAL;
 
 #ifdef QCA_LL_TX_FLOW_CT
-                if (NL80211_IFTYPE_P2P_CLIENT == type)
-                {
-                   vos_timer_init(&pAdapter->tx_flow_control_timer,
+                vos_timer_init(&pAdapter->tx_flow_control_timer,
                               VOS_TIMER_TYPE_SW,
                               hdd_tx_resume_timer_expired_handler,
                               pAdapter);
-                   WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
+                WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
                               hdd_tx_resume_cb,
                               pAdapter->sessionId,
                              (void *)pAdapter);
-                }
 #endif /* QCA_LL_TX_FLOW_CT */
 
 #endif
@@ -3674,7 +3671,8 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                 }
                 hdd_enable_bmps_imps(pHddCtx);
 #ifdef QCA_LL_TX_FLOW_CT
-                if (NL80211_IFTYPE_P2P_CLIENT == type)
+                if ((NL80211_IFTYPE_P2P_CLIENT == type) ||
+                     (NL80211_IFTYPE_STATION == type))
                 {
                    vos_timer_init(&pAdapter->tx_flow_control_timer,
                               VOS_TIMER_TYPE_SW,

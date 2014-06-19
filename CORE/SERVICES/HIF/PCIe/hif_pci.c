@@ -83,8 +83,11 @@ ATH_DEBUG_INSTANTIATE_MODULE_VAR(hif,
 #endif
 
 
-#if CONFIG_ATH_PCIE_ACCESS_DEBUG
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
 spinlock_t pcie_access_log_lock;
+unsigned int pcie_access_log_seqnum = 0;
+HIF_ACCESS_LOG pcie_access_log[PCIE_ACCESS_LOG_NUM];
+static void HIFTargetDumpAccessLog(void);
 #endif
 
 /* Forward references */
@@ -103,6 +106,9 @@ static int hif_post_recv_buffers_for_pipe(struct HIF_CE_pipe_info *pipe_info);
 #define AGC_DUMP         1
 #define CHANINFO_DUMP    2
 #define BB_WATCHDOG_DUMP 3
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
+#define PCIE_ACCESS_DUMP 4
+#endif
 /*
  * Fix EV118783, poll to check whether a BMI response comes
  * other than waiting for the interruption which may be lost.
@@ -181,10 +187,6 @@ int HIFInit(OSDRV_CALLBACKS *callbacks)
     HIF_osDrvcallback.deviceResumeHandler = callbacks->deviceResumeHandler;
     HIF_osDrvcallback.deviceWakeupHandler = callbacks->deviceWakeupHandler;
     HIF_osDrvcallback.context = callbacks->context;
-
-#if CONFIG_ATH_PCIE_ACCESS_DEBUG
-    spin_lock_init(&pcie_access_log_lock);
-#endif
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
     return EOK;
@@ -492,7 +494,9 @@ HIFPostInit(HIF_DEVICE *hif_device, void *unused, MSG_BASED_HIF_CALLBACKS *callb
     struct HIF_CE_state *hif_state = (struct HIF_CE_state *)hif_device;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n",__FUNCTION__));
-
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
+    spin_lock_init(&pcie_access_log_lock);
+#endif
     /* Save callbacks for later installation */
     A_MEMCPY(&hif_state->msg_callbacks_pending, callbacks, sizeof(hif_state->msg_callbacks_pending));
 
@@ -1370,6 +1374,11 @@ void HIFDump(HIF_DEVICE *hif_device, u_int8_t cmd_id, bool start)
         priv_dump_bbwatchdog(sc);
         break;
 
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
+    case PCIE_ACCESS_DUMP:
+        HIFTargetDumpAccessLog();
+        break;
+#endif
     default:
         AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Invalid htc dump command\n"));
         break;
@@ -2520,7 +2529,7 @@ HIFTargetForcedAwake(A_target_id_t targid)
     return (awake && pcie_forced_awake);
 }
 
-#if CONFIG_ATH_PCIE_ACCESS_DEBUG
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
 A_UINT32
 HIFTargetReadChecked(A_target_id_t targid, A_UINT32 offset)
 {
@@ -2580,7 +2589,40 @@ void
 HIFdebug(void)
 {
     /* BUG_ON(1); */
-    BREAK();
+//    BREAK();
+}
+
+void
+HIFTargetDumpAccessLog(void)
+{
+    int idx, len, start_idx, cur_idx;
+    unsigned long irq_flags;
+
+    spin_lock_irqsave(&pcie_access_log_lock, irq_flags);
+    if (pcie_access_log_seqnum > PCIE_ACCESS_LOG_NUM)
+    {
+        len = PCIE_ACCESS_LOG_NUM;
+        start_idx = pcie_access_log_seqnum % PCIE_ACCESS_LOG_NUM;
+    }
+    else
+    {
+        len = pcie_access_log_seqnum;
+        start_idx = 0;
+    }
+
+    for(idx = 0; idx < len; idx++)
+    {
+        cur_idx = (start_idx + idx) % PCIE_ACCESS_LOG_NUM;
+        printk("idx:%d\t sn:%u wr:%d addr:%p val:%u.\n",
+               idx,
+               pcie_access_log[cur_idx].seqnum,
+               pcie_access_log[cur_idx].is_write,
+               pcie_access_log[cur_idx].addr,
+               pcie_access_log[cur_idx].value);
+    }
+
+    pcie_access_log_seqnum = 0;
+    spin_unlock_irqrestore(&pcie_access_log_lock, irq_flags);
 }
 #endif
 

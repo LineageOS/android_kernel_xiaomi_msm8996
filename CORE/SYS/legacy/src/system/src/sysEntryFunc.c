@@ -60,6 +60,7 @@ postPTTMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 #include "vos_types.h"
 #include "vos_packet.h"
 
+#define MAX_DEAUTH_ALLOWED 20
 // ---------------------------------------------------------------------------
 /**
  * sysInitGlobals
@@ -134,6 +135,8 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
 
     if(type == SIR_MAC_MGMT_FRAME)
     {
+            if ((subType == SIR_MAC_MGMT_DEAUTH) && (pMac->sys.gSysFrameCount[type][subType] >= MAX_DEAUTH_ALLOWED))
+                goto fail;
 
             if( (dropReason = limIsPktCandidateForDrop(pMac, pBd, subType)) != eMGMT_DROP_NO_DROP)
             {

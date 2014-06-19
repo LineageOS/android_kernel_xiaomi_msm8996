@@ -88,6 +88,45 @@ static inline unsigned int wcnss_get_serial_number(void)
         return 0;
 }
 
+#if !defined(CONFIG_CNSS) && !defined(HIF_USB) && !defined(HIF_SDIO)
+static inline void *wcnss_wlan_crypto_alloc_ahash(const char *alg_name,
+                                                  unsigned int type,
+                                                  unsigned int mask)
+{
+        return NULL;
+}
+
+static inline int wcnss_wlan_crypto_ahash_digest(void *req)
+{
+        return 0;
+}
+
+static inline void wcnss_wlan_crypto_free_ahash(void *tfm)
+{
+}
+
+static inline int wcnss_wlan_crypto_ahash_setkey(void *tfm,
+                                                 const u8 *key,
+                                                 unsigned int keylen)
+{
+        return 0;
+}
+
+static inline void *wcnss_wlan_crypto_alloc_ablkcipher(const char *alg_name,
+                                                       u32 type, u32 mask)
+{
+        return NULL;
+}
+
+static inline void wcnss_wlan_ablkcipher_request_free(void *req)
+{
+}
+
+static inline void wcnss_wlan_crypto_free_ablkcipher(void *tfm)
+{
+}
+#endif /* !CONFIG_CNSS */
+
 static inline int req_riva_power_on_lock(char *driver_name)
 {
         return 0;

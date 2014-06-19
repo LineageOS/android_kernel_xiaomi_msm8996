@@ -367,6 +367,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_DUMP_CHANINFO_START     13
 #define WE_DUMP_CHANINFO           14
 #define WE_DUMP_WATCHDOG           15
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
+#define WE_DUMP_PCIE_LOG           16
+#endif
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -7418,6 +7421,16 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
                                           0, GEN_CMD);
             break;
         }
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
+        case WE_DUMP_PCIE_LOG:
+        {
+          hddLog(LOGE, "WE_DUMP_PCIE_LOG");
+          ret = process_wma_set_command((int) pAdapter->sessionId,
+                                        (int) GEN_PARAM_DUMP_PCIE_ACCESS_LOG,
+                                        0, GEN_CMD);
+          break;
+        }
+#endif
 #endif
         default:
         {
@@ -10824,6 +10837,12 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "dump_watchdog" },
+#ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
+    {   WE_DUMP_PCIE_LOG,
+        0,
+        0,
+        "dump_pcie_log" },
+#endif
 #endif
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_VAR_INT_GET_NONE,
