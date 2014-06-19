@@ -1943,6 +1943,7 @@ v_BOOL_t WLANTL_GetTxResource
 {
 	struct txrx_tl_shim_ctx *tl_shim;
 	v_BOOL_t enough_resource = VOS_TRUE;
+	struct ol_txrx_vdev_t *vdev;
 
 	/* If low watermark is zero, TX flow control is not enabled at all
 	 * return TRUE by default */
@@ -1965,12 +1966,12 @@ v_BOOL_t WLANTL_GetTxResource
 		adf_os_spin_unlock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
 		return VOS_TRUE;
 	}
-
-	enough_resource = (v_BOOL_t)wdi_in_get_tx_resource(
-		(struct ol_txrx_vdev_t *)tl_shim->session_flow_control[sessionId].vdev,
-		low_watermark,
-		high_watermark_offset);
+	vdev = (struct ol_txrx_vdev_t *)tl_shim->session_flow_control[sessionId].vdev;
 	adf_os_spin_unlock_bh(&tl_shim->session_flow_control[sessionId].fc_lock);
+
+	enough_resource = (v_BOOL_t)wdi_in_get_tx_resource(vdev,
+							low_watermark,
+							high_watermark_offset);
 
 	return enough_resource;
 }
