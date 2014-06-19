@@ -53,6 +53,7 @@
 #define AR9888_DEVICE_ID (0x003c)
 #define AR6320_DEVICE_ID (0x003e)
 #define DELAY_FOR_TARGET_READY 200	/* 200ms */
+#define DELAY_INT_FOR_HDD_REMOVE 200	/* 200ms */
 
 unsigned int msienable;
 module_param(msienable, int, 0644);
@@ -183,6 +184,8 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 		goto err_config;
 	}
 	sc->hdd_removed = 0;
+	sc->hdd_removed_processing = 0;
+	sc->hdd_removed_wait_cnt = 0;
 #ifndef REMOVE_PKT_LOG
 	if (vos_get_conparam() != VOS_FTM_MODE) {
 		/*
@@ -228,6 +231,14 @@ static void hif_usb_remove(struct usb_interface *interface)
 	 */
 	if (!sc)
 		return;
+	/* wait __hdd_wlan_exit until finished and no more than 4 seconds*/
+	while(usb_sc->hdd_removed_processing == 1 &&
+			usb_sc->hdd_removed_wait_cnt < 20) {
+		set_current_state(TASK_INTERRUPTIBLE);
+		schedule_timeout(msecs_to_jiffies(DELAY_INT_FOR_HDD_REMOVE));
+		set_current_state(TASK_RUNNING);
+		usb_sc->hdd_removed_wait_cnt ++;
+	}
 
 	HIFDiagWriteWARMRESET(interface, 0, 0);
 	/* wait for target jump to boot code and finish the initialization */
@@ -247,7 +258,9 @@ static void hif_usb_remove(struct usb_interface *interface)
 		pktlogmod_exit(scn);
 #endif
 	if (usb_sc->hdd_removed == 0) {
+		usb_sc->hdd_removed_processing = 1;
 		__hdd_wlan_exit();
+		usb_sc->hdd_removed_processing = 0;
 		usb_sc->hdd_removed = 1;
 	}
 	hif_nointrs(sc);
@@ -404,13 +417,26 @@ void hif_unregister_driver(void)
 {
 	if (is_usb_driver_register) {
 		if (usb_sc != NULL) {
+			/* wait __hdd_wlan_exit until finished and no more than
+			 * 4 seconds
+			 */
+			while(usb_sc->hdd_removed_processing == 1 &&
+					usb_sc->hdd_removed_wait_cnt < 20) {
+				set_current_state(TASK_INTERRUPTIBLE);
+				schedule_timeout(msecs_to_jiffies(
+						DELAY_INT_FOR_HDD_REMOVE));
+				set_current_state(TASK_RUNNING);
+				usb_sc->hdd_removed_wait_cnt ++;
+			}
 			if (usb_sc->local_state.event != 0) {
 				hif_usb_resume(usb_sc->interface);
 				usb_sc->local_state.event = 0;
 			}
 
 			if (usb_sc->hdd_removed == 0) {
+				usb_sc->hdd_removed_processing = 1;
 				__hdd_wlan_exit();
+				usb_sc->hdd_removed_processing = 0;
 				usb_sc->hdd_removed = 1;
 			}
 		}

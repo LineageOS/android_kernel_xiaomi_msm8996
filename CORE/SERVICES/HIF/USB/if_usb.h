@@ -78,6 +78,8 @@ struct hif_usb_softc {
 	struct notifier_block reboot_notifier;  /* default mode before reboot */
 	pm_message_t local_state;
 	int hdd_removed;
+	int hdd_removed_processing;
+	int hdd_removed_wait_cnt;
 };
 #if defined(CONFIG_ATH_PROCFS_DIAG_SUPPORT)
 int athdiag_procfs_init(void *scn);
