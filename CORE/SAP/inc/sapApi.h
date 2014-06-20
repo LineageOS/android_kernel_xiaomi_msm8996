@@ -481,6 +481,7 @@ typedef struct sap_Config {
     v_BOOL_t        enOverLapCh;
     char            acsAllowedChnls[MAX_CHANNEL_LIST_LEN];
     v_U16_t         acsBandSwitchThreshold;
+    v_BOOL_t        apAutoChannelSelection;
 
 #ifdef WLAN_FEATURE_11W
     v_BOOL_t        mfpRequired;

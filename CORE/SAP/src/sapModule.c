@@ -675,6 +675,7 @@ WLANSAP_StartBss
         pSapCtx->scanBandPreference = pConfig->scanBandPreference;
         pSapCtx->acsBandSwitchThreshold = pConfig->acsBandSwitchThreshold;
         pSapCtx->pUsrContext = pUsrContext;
+        pSapCtx->apAutoChannelSelection = pConfig->apAutoChannelSelection;
 
         pSapCtx->enableOverLapCh = pConfig->enOverLapCh;
         if (strlen(pConfig->acsAllowedChnls) > 0)

@@ -3735,6 +3735,9 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 #else
     pConfig->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
 #endif
+
+    pConfig->apAutoChannelSelection = iniConfig->apAutoChannelSelection;
+
     pSapEventCallback = hdd_hostapd_SAPEventCB;
 
     status = WLANSAP_StartBss(
