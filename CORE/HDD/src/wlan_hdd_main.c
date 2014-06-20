@@ -5905,7 +5905,7 @@ void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand)
  *     for third interface it will be hw_macaddr[3](bit5..7) + 2, etc.
  */
 
-static void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
+void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
 {
     int8_t i;
     u_int8_t macaddr_b3, tmp_br3;
@@ -5928,6 +5928,9 @@ static void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
         /* Set locally administered bit */
         cfg_ini->intfMacAddr[i].bytes[0] |= 0x02;
         cfg_ini->intfMacAddr[i].bytes[3] = macaddr_b3;
+        hddLog(VOS_TRACE_LEVEL_INFO, "cfg_ini->intfMacAddr[%d]: "
+               MAC_ADDRESS_STR, i,
+               MAC_ADDR_ARRAY(cfg_ini->intfMacAddr[i].bytes));
     }
 }
 
