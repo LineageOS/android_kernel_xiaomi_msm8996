@@ -1211,8 +1211,11 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    // then go to 'authenticated'.  For all other authentication types
    // (those that donot require upper layer authentication) we can put
    // TL directly into 'authenticated' state.
-   if (staDesc.wSTAType != WLAN_STA_IBSS)
-      VOS_ASSERT( fConnected );
+   if (staDesc.wSTAType != WLAN_STA_IBSS) {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+                 "STA type %d fConnected %d", staDesc.wSTAType, fConnected);
+   }
+
 
    if ( !pRoamInfo->fAuthRequired )
    {
