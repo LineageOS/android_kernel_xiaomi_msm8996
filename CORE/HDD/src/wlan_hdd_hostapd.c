@@ -627,7 +627,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     struct iw_michaelmicfailure msg;
     v_U8_t ignoreCAC = 0;
     hdd_config_t *cfg = NULL;
-
+    struct wlan_dfs_info dfs_info;
+    v_U8_t cc_len = WLAN_SVC_COUNTRY_CODE_LEN;
 #ifdef MSM_PLATFORM
     unsigned long flags;
 #endif
@@ -679,6 +680,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD config is null"));
         return eHAL_STATUS_FAILURE;
     }
+
+    dfs_info.channel = pHddApCtx->operatingChannel;
+    sme_GetCountryCode(pHddCtx->hHal, dfs_info.country_code, &cc_len);
 
     switch(sapEvent)
     {
@@ -888,16 +892,19 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             goto stopbss;
 
         case eSAP_DFS_CAC_START:
-            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_START_IND, NULL, 0);
+            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_START_IND,
+                                      &dfs_info, sizeof(struct wlan_dfs_info));
             break;
 
         case eSAP_DFS_CAC_END:
-            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_END_IND, NULL, 0);
+            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_END_IND,
+                                      &dfs_info, sizeof(struct wlan_dfs_info));
             pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
             break;
 
         case eSAP_DFS_RADAR_DETECT:
-            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_RADAR_DETECT_IND, NULL, 0);
+            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_RADAR_DETECT_IND,
+                                      &dfs_info, sizeof(struct wlan_dfs_info));
             break;
 
         case eSAP_STA_SET_KEY_EVENT:

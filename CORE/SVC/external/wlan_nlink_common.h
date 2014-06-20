@@ -149,4 +149,9 @@ struct wlan_version_data {
    char fw_version[WLAN_SVC_MAX_STR_LEN];
 };
 
+struct wlan_dfs_info {
+   uint16_t channel;
+   uint8_t country_code[WLAN_SVC_COUNTRY_CODE_LEN];
+};
+
 #endif //WLAN_NLINK_COMMON_H__
