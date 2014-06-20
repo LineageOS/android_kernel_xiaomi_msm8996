@@ -6094,10 +6094,17 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 if (vos_status != VOS_STATUS_SUCCESS) {
                     break;
                 }
-                mode = WMI_ROAM_SCAN_MODE_PERIODIC | WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
+                mode = WMI_ROAM_SCAN_MODE_PERIODIC;
+                /* Don't use rssi triggered roam scans if external app
+                 * is in control of channel list.
+                 */
+                if (roam_req->ChannelCacheType != CHANNEL_LIST_STATIC) {
+                    mode |= WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
+                }
             } else {
                 mode = WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
             }
+
             /* Start new rssi triggered scan only if it changes by RoamRssiDiff value.
              * Beacon weight of 14 means average rssi is taken over 14 previous samples +
              * 2 times the current beacon's rssi.
@@ -6209,7 +6216,13 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 if (vos_status != VOS_STATUS_SUCCESS) {
                     break;
                 }
-                mode = WMI_ROAM_SCAN_MODE_PERIODIC | WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
+                mode = WMI_ROAM_SCAN_MODE_PERIODIC;
+                /* Don't use rssi triggered roam scans if external app
+                 * is in control of channel list.
+                 */
+                if (roam_req->ChannelCacheType != CHANNEL_LIST_STATIC) {
+                    mode |= WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
+                }
             } else {
                 mode = WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
             }
