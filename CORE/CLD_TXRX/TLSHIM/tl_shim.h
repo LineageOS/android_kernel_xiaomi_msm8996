@@ -94,6 +94,10 @@ struct deferred_iapp_work iapp_work;
 #ifdef QCA_LL_TX_FLOW_CT
 	struct tlshim_session_flow_Control *session_flow_control;
 #endif /* QCA_LL_TX_FLOW_CT */
+
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+	vos_event_t  *peer_authorized_events;
+#endif
 };
 
 /*
@@ -112,4 +116,11 @@ int tlshim_mgmt_roam_event_ind(void *context, u_int32_t vdev_id);
 void *tl_shim_get_vdev_by_addr(void *vos_context, uint8_t *mac_addr);
 void *tl_shim_get_vdev_by_sta_id(void *vos_context, uint8_t sta_id);
 
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+void tl_shim_set_peer_authorized_event(void *vos_ctx, v_U8_t session_id);
+#else
+static inline void tl_shim_set_peer_authorized_event(void *vos_ctx, v_U8_t session_id)
+{
+}
+#endif
 #endif
