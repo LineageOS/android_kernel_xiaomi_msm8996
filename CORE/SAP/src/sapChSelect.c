@@ -650,7 +650,6 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
         if(*pChans == 14 &&
                eCSR_DOT11_MODE_11b != sme_GetPhyMode(halHandle))
         {
-            pChans++;
             continue;
         }
 
@@ -1920,7 +1919,6 @@ void sapSortChlWeightHT80(tSapChSelSpectInfo *pSpectInfoParams)
 {
     v_U8_t i, j, n;
     tSapSpectChInfo *pSpectInfo;
-    v_U32_t minWeight;
     v_U8_t minIdx;
 
     pSpectInfo = pSpectInfoParams->pSpectCh;
@@ -1946,15 +1944,22 @@ void sapSortChlWeightHT80(tSapChSelSpectInfo *pSpectInfoParams)
                                            pSpectInfo[j+2].weight +
                                            pSpectInfo[j+3].weight;
             /* find best channel among 4 channels as the primary channel */
-            minWeight = pSpectInfo[j].weight;
-            minIdx = 0;
-            for (n=1; n<4; n++)
+            if ((pSpectInfo[j].weight + pSpectInfo[j+1].weight) <
+                    (pSpectInfo[j+2].weight + pSpectInfo[j+3].weight))
             {
-                if (minWeight > pSpectInfo[j+n].weight)
-                {
-                    minWeight = pSpectInfo[j+n].weight;
-                    minIdx = n;
-                }
+                /* lower 2 channels are better choice */
+                if (pSpectInfo[j].weight < pSpectInfo[j+1].weight)
+                    minIdx = 0;
+                else
+                    minIdx = 1;
+            }
+            else
+            {
+                /* upper 2 channels are better choice */
+                if (pSpectInfo[j+2].weight <= pSpectInfo[j+3].weight)
+                    minIdx = 2;
+                else
+                    minIdx = 3;
             }
 
             /* set all 4 channels to max value first, then reset the

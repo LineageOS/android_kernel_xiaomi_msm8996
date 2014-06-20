@@ -13519,7 +13519,7 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_pAdapter)
             }
         }
         clear_bit(SOFTAP_BSS_STARTED, &ap_pAdapter->event_flags);
-        wlan_hdd_decr_active_session(pHddCtx, pHostapdAdapter->device_mode);
+        wlan_hdd_decr_active_session(pHddCtx, ap_pAdapter->device_mode);
         hddLog(LOGE,FL("%s: SAP Stop Success"), __func__);
 
         if (WLANSAP_StartBss(
@@ -13542,7 +13542,7 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_pAdapter)
         }
         hddLog(LOGE,FL("%s: SAP Start Success"), __func__);
         set_bit(SOFTAP_BSS_STARTED, &ap_pAdapter->event_flags);
-        wlan_hdd_incr_active_session(pHddCtx, ap_pAdapter-->device_mode);
+        wlan_hdd_incr_active_session(pHddCtx, ap_pAdapter->device_mode);
         pHostapdState->bCommit = TRUE;
     }
 end:

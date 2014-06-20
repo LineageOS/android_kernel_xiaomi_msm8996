@@ -3470,6 +3470,9 @@ typedef enum {
     * instead of waiting for the inactivity timeout. */
     WMI_VDEV_PARAM_TXSP_END_INACTIVITY_TIME_MS,
 
+    /** DTIM policy */
+    WMI_VDEV_PARAM_DTIM_POLICY,
+
 } WMI_VDEV_PARAM;
 
 /* Length of ATIM Window in TU */
