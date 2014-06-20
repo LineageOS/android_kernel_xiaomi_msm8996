@@ -921,7 +921,6 @@ again:
     adf_os_atomic_init(&sc->ce_suspend);
     adf_os_atomic_init(&sc->pci_link_suspended);
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
-    init_completion(&ol_sc->ramdump_event);
 
     ret = hdd_wlan_startup(&pdev->dev, ol_sc);
 
@@ -1250,7 +1249,6 @@ again:
     adf_os_atomic_init(&sc->pci_link_suspended);
 
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
-    init_completion(&ol_sc->ramdump_event);
 
     if (VOS_STATUS_SUCCESS == hdd_wlan_re_init(ol_sc)) {
         ret = 0;
@@ -1657,7 +1655,6 @@ void hif_pci_crash_shutdown(struct pci_dev *pdev)
 #ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
     struct hif_pci_softc *sc;
     struct ol_softc *scn;
-    int status;
 
     sc = pci_get_drvdata(pdev);
     if (!sc)
@@ -1672,17 +1669,18 @@ void hif_pci_crash_shutdown(struct pci_dev *pdev)
         return;
     }
 
-    scn->crash_shutdown = true;
-    process_wma_set_command(0,(int)GEN_PARAM_CRASH_INJECT,
-                            0, GEN_CMD);
-
-    status = wait_for_completion_interruptible_timeout(
-             &scn->ramdump_event,
-             msecs_to_jiffies(RAMDUMP_EVENT_TIMEOUT));
-    if (!status) {
-        printk("%s: RAM dump collecting timeout!\n", __func__);
+#ifdef DEBUG
+    if (hif_pci_check_soc_status(scn->hif_sc)
+        || dump_CE_register(scn))
         return;
-    }
+
+    dump_CE_debug_register(scn->hif_sc);
+#endif
+
+    if (ol_copy_ramdump(scn))
+        return;
+
+    printk("%s: RAM dump collecting completed!\n", __func__);
 #else
     printk("%s: Collecting target RAM dump after kernel panic is disabled!\n",
            __func__);

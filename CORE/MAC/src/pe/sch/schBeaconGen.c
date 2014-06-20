@@ -350,7 +350,16 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
          /*PopulateDot11fWiderBWChanSwitchAnn(pMac, &pBcn2->WiderBWChanSwitchAnn,
                                             psessionEntry);*/
 #endif
-
+         /*
+          * Populate the Channel Switch Wrapper Element if
+          * SAP operates in 40/80 Mhz Channel Width.
+          */
+         if (VOS_TRUE == psessionEntry->dfsIncludeChanWrapperIe)
+         {
+            PopulateDot11fChanSwitchWrapper(pMac,
+                                     &pBcn2->ChannelSwitchWrapper,
+                                     psessionEntry);
+         }
       }
     }
 

@@ -2553,10 +2553,13 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_OVERRIDE_COUNTRY_CODE                "gStaCountryCode"
 #define CFG_OVERRIDE_COUNTRY_CODE_DEFAULT        "000"
 
-#define CFG_ROAMING_DFS_CHANNEL_NAME                "gAllowDFSChannelRoam"
-#define CFG_ROAMING_DFS_CHANNEL_MIN                 (0)
-#define CFG_ROAMING_DFS_CHANNEL_MAX                 (1)
-#define CFG_ROAMING_DFS_CHANNEL_DEFAULT             (1)
+#define CFG_ROAMING_DFS_CHANNEL_NAME               "gAllowDFSChannelRoam"
+#define CFG_ROAMING_DFS_CHANNEL_DISABLED           (0)
+#define CFG_ROAMING_DFS_CHANNEL_ENABLED_NORMAL     (1)
+#define CFG_ROAMING_DFS_CHANNEL_ENABLED_ACTIVE     (2)
+#define CFG_ROAMING_DFS_CHANNEL_MIN                (CFG_ROAMING_DFS_CHANNEL_DISABLED)
+#define CFG_ROAMING_DFS_CHANNEL_MAX                (CFG_ROAMING_DFS_CHANNEL_ENABLED_ACTIVE)
+#define CFG_ROAMING_DFS_CHANNEL_DEFAULT            (CFG_ROAMING_DFS_CHANNEL_ENABLED_NORMAL)
 
 #ifdef MSM_PLATFORM
 #define CFG_BUS_BANDWIDTH_HIGH_THRESHOLD           "gBusBandwidthHighThreshold"
@@ -3130,7 +3133,7 @@ typedef struct
    v_BOOL_t                    IsMemoryDebugSupportEnabled;
 #endif
 
-   v_BOOL_t                    allowDFSChannelRoam;
+   v_U8_t                      allowDFSChannelRoam;
 
    v_BOOL_t                    debugP2pRemainOnChannel;
 

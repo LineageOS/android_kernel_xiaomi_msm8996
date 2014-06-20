@@ -1457,6 +1457,80 @@ int hdd_softap_unpackIE(
     return VOS_STATUS_SUCCESS;
 }
 
+ /**---------------------------------------------------------------------------
+
+  \brief hdd_softap_set_channel_change() -
+   This function to support SAP channel change with CSA IE
+   set in the beacons.
+
+  \param  - dev - Pointer to the net device.
+          - target_channel - target channel number.
+  \return - 0 for success, non zero for failure
+
+  --------------------------------------------------------------------------*/
+
+static
+int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
+{
+    VOS_STATUS status;
+    int ret = 0;
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_context_t *pHddCtx = NULL;
+
+#ifndef WLAN_FEATURE_MBSSID
+    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
+#endif
+
+    pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (ret)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: invalid HDD context", __func__);
+        ret = -EBUSY;
+        return ret;
+    }
+
+    /*
+     * Set the dfs_radar_found flag to mimic channel change
+     * when a radar is found. This will enable synchronizing
+     * SAP and HDD states similar to that of radar indication.
+     * Suspend the netif queues to stop queuing Tx frames
+     * from upper layers.  netif queues will be resumed
+     * once the channel change is completed and SAP will
+     * post eSAP_START_BSS_EVENT success event to HDD.
+     */
+    pHddCtx->dfs_radar_found = VOS_TRUE;
+
+    /*
+     * Post the Channel Change request to SAP.
+     */
+    status = WLANSAP_SetChannelChangeWithCsa(
+#ifdef WLAN_FEATURE_MBSSID
+                WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter),
+#else
+                pVosContext,
+#endif
+                (v_U32_t) target_channel);
+
+    if (VOS_STATUS_SUCCESS != status)
+    {
+         hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: SAP set channel failed for channel = %d",
+                 __func__, target_channel);
+        /*
+         * If channel change command fails then clear the
+         * radar found flag and also restart the netif
+         * queues.
+         */
+
+        pHddCtx->dfs_radar_found = VOS_FALSE;
+
+        ret = -EINVAL;
+    }
+
+    return ret;
+}
+
 int
 static iw_softap_set_ini_cfg(struct net_device *dev,
                           struct iw_request_info *info,
@@ -1629,6 +1703,21 @@ static iw_softap_setparam(struct net_device *dev,
                 (WLAN_HDD_GET_CTX
                 (pHostapdAdapter))->cfg_ini->apAutoChannelSelection = set_value;
 #endif
+            }
+            break;
+
+        case QCSAP_PARAM_SET_CHANNEL_CHANGE:
+            if ( WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode )
+            {
+                hddLog(LOG1, "SET SAP Channel Change to new channel= %d",
+                              set_value);
+                ret = hdd_softap_set_channel_change(dev, set_value);
+            }
+            else
+            {
+                hddLog(LOGE, FL("%s:Channel Change Failed, Device in test mode"),
+                                 __func__);
+                ret = -EINVAL;
             }
             break;
 
@@ -4456,6 +4545,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMccQuota" },
    { QCSAP_PARAM_AUTO_CHANNEL,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setAutoChannel" },
+   { QCSAP_PARAM_SET_CHANNEL_CHANGE,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setChanChange" },
 
 #ifdef QCA_WIFI_2_0
  /* Sub-cmds DBGLOG specific commands */

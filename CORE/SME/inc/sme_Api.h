@@ -3627,26 +3627,35 @@ eHalStatus sme_StatsExtEvent (tHalHandle hHal, void* pMsg);
 #endif
 /* ---------------------------------------------------------------------------
     \fn sme_UpdateDFSScanMode
-    \brief  Update DFS roam Mode
+    \brief  Update DFS roam scan mode
             This function is called through dynamic setConfig callback function
-            to configure isAllowDFSChannelRoam.
+            to configure allowDFSChannelRoam.
     \param  hHal - HAL handle for device
-    \param  isAllowDFSChannelRoam - Enable/Disable DFS roaming scan
-    \return eHAL_STATUS_SUCCESS - SME update allowDFSChannelRoam config
+    \param  allowDFSChannelRoam - DFS roaming scan mode 0 (disable),
+            1 (passive), 2 (active)
+    \return eHAL_STATUS_SUCCESS - SME update DFS roaming scan config
             successfully.
-            Other status means SME is failed to update isAllowDFSChannelRoam.
+            Other status means SME failed to update DFS roaming scan config.
     \sa
     -------------------------------------------------------------------------*/
-eHalStatus sme_UpdateDFSScanMode(tHalHandle hHal, v_BOOL_t isAllowDFSChannelRoam);
+eHalStatus sme_UpdateDFSScanMode(tHalHandle hHal, v_U8_t allowDFSChannelRoam);
 
 /*--------------------------------------------------------------------------
-  \brief sme_GetDFSScanMode() - get DFS SCAN Mode
+  \brief sme_GetDFSScanMode() - get DFS roam scan mode
             This is a synchronous call
   \param hHal - The handle returned by macOpen.
-  \return DFS roaming mode Enabled(1)/Disabled(0)
+  \return DFS roaming mode 0 (disabled), 1 (passive), 2 (active)
   \sa
   --------------------------------------------------------------------------*/
 v_BOOL_t sme_GetDFSScanMode(tHalHandle hHal);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_staInMiddleOfRoaming
+    \brief  This function returns TRUE if STA is in the middle of roaming state
+    \param  hHal - HAL handle for device
+    \- return TRUE or FALSE
+    -------------------------------------------------------------------------*/
+tANI_BOOLEAN sme_staInMiddleOfRoaming(tHalHandle hHal);
 
 
 #endif //#if !defined( __SME_API_H )

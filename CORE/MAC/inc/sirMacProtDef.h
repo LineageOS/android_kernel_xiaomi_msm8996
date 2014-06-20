@@ -183,6 +183,7 @@
 #define SIR_MAC_QOS_ADD_TS_RSP      1
 #define SIR_MAC_QOS_DEL_TS_REQ      2
 #define SIR_MAC_QOS_SCHEDULE        3
+#define SIR_MAC_QOS_MAP_CONFIGURE   4
 // and these are proprietary
 #define SIR_MAC_QOS_DEF_BA_REQ      4
 #define SIR_MAC_QOS_DEF_BA_RSP      5
@@ -268,6 +269,13 @@
 #define SIR_MAC_TDLS_DIS_REQ             10
 #define SIR_MAC_TDLS_DIS_RSP             14
 #endif
+
+/* WNM Action field values; IEEE Std 802.11-2012, 8.5.14.1, Table 8-250 */
+#define SIR_MAC_WNM_BSS_TM_QUERY         6
+#define SIR_MAC_WNM_BSS_TM_REQUEST       7
+#define SIR_MAC_WNM_BSS_TM_RESPONSE      8
+#define SIR_MAC_WNM_NOTIF_REQUEST        26
+#define SIR_MAC_WNM_NOTIF_RESPONSE       27
 
 #define SIR_MAC_MAX_RANDOM_LENGTH   2306
 

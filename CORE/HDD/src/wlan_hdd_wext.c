@@ -1381,6 +1381,7 @@ void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
 #endif
 
    pWextState->roamProfile.bWPSAssociation = VOS_FALSE;
+   pWextState->roamProfile.bOSENAssociation = VOS_FALSE;
    pWextState->roamProfile.pAddIEScan = (tANI_U8 *)NULL;
    pWextState->roamProfile.nAddIEScanLength = 0;
    pWextState->roamProfile.pAddIEAssoc = (tANI_U8 *)NULL;
@@ -8817,6 +8818,8 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("Could not allocate Memory"));
             return;
         }
+        vos_mem_zero(pMulticastAddrs, sizeof(tSirRcvFltMcAddrList));
+        pMulticastAddrs->action = set;
 
         if (set)
         {
@@ -8853,12 +8856,26 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
              */
             if (pAdapter->mc_addr_list.isFilterApplied)
             {
+#ifdef QCA_WIFI_2_0
+                pMulticastAddrs->ulMulticastAddrCnt =
+                                 pAdapter->mc_addr_list.mc_cnt;
+                for (i = 0; i < pAdapter->mc_addr_list.mc_cnt; i++) {
+                    memcpy(pMulticastAddrs->multicastAddr[i],
+                           pAdapter->mc_addr_list.addr[i],
+                           sizeof(pAdapter->mc_addr_list.addr[i]));
+                }
+#else
                 pMulticastAddrs->ulMulticastAddrCnt = 0;
+#endif
                 sme_8023MulticastList(hHal, pAdapter->sessionId,
                                       pMulticastAddrs);
             }
 
         }
+        /* MAddrCnt is MulticastAddrCnt */
+        hddLog(VOS_TRACE_LEVEL_INFO, "smeSessionId:%d; set:%d; MCAdddrCnt :%d",
+              pAdapter->sessionId, set, pMulticastAddrs->ulMulticastAddrCnt);
+
         pAdapter->mc_addr_list.isFilterApplied = set ? TRUE : FALSE;
         vos_mem_free(pMulticastAddrs);
     }

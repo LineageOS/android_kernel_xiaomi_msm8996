@@ -376,4 +376,15 @@ v_BOOL_t sme_QosIsTSInfoAckPolicyValid(tpAniSirGlobal pMac,
 void sme_QosUpdateHandOff(v_U8_t sessionId,
      v_BOOL_t updateHandOff);
 
+
+/*--------------------------------------------------------------------------
+  \brief sme_UpdateDSCPtoUPMapping() - Function which can be called to update
+   qos mapping table maintained in HDD
+  \param hHal - The handle returned by macOpen.
+  \param dscpmapping - pointer to the qos mapping structure in HDD
+
+  \sa
+-------------------------------------------------------------------------*/
+eHalStatus sme_UpdateDSCPtoUPMapping( tHalHandle hHal,
+                                       sme_QosWmmUpType* dscpmapping);
 #endif //#if !defined( __SME_QOSAPI_H )

@@ -1428,6 +1428,139 @@ WLANSAP_DeauthSta
     }
     return vosStatus;
 }
+
+/*==========================================================================
+  FUNCTION    WLANSAP_SetChannelChangeWithCsa
+
+  DESCRIPTION
+      This api function does a channel change to the target channel specified
+      through an iwpriv. CSA IE is included in the beacons before doing a
+      channel change.
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    pvosGCtx             : Pointer to vos global context structure
+    targetChannel        : New target channel to change to.
+
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation
+
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
+{
+
+    ptSapContext sapContext = NULL;
+    tWLAN_SAPEvent sapEvent;
+
+    sapContext = VOS_GET_SAP_CB( pvosGCtx );
+    if (NULL == sapContext)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+
+        return VOS_STATUS_E_FAULT;
+    }
+    /*
+     * Validate if the new target channel is a valid
+     * 5 Ghz Channel. We prefer to move to another
+     * channel in 5 Ghz band.
+     */
+    if ( (targetChannel < rfChannels[RF_CHAN_36].channelNum)
+                             ||
+         (targetChannel > rfChannels[RF_CHAN_165].channelNum) )
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid Channel = %d passed,Channel not in 5GHz band",
+                    __func__, targetChannel);
+
+        return VOS_STATUS_E_FAULT;
+    }
+
+    /*
+     * Now, validate if the passed channel is valid in the
+     * current regulatory domain.
+     */
+    if ( (vos_nv_getChannelEnabledState(targetChannel) == NV_CHANNEL_ENABLE)
+                                    ||
+         (vos_nv_getChannelEnabledState(targetChannel) == NV_CHANNEL_DFS) )
+    {
+        /*
+         * Post a CSA IE request to SAP state machine with
+         * target channel information and also CSA IE required
+         * flag set in sapContext only, if SAP is in eSAP_STARTED
+         * state.
+         */
+         if (eSAP_STARTED == sapContext->sapsMachine)
+         {
+             /*
+              * Copy the requested target channel
+              * to sap context.
+              */
+             sapContext->SapDfsInfo.target_channel = targetChannel;
+
+             /*
+              * Set the CSA IE required flag.
+              */
+             sapContext->SapDfsInfo.csaIERequired = VOS_TRUE;
+
+             /*
+              * Set the radar found status to allow the channel
+              * change to happen same as in the case of a radar
+              * detection. Since, this will allow SAP to be in
+              * correct state and also resume the netif queues
+              * that were suspended in HDD before the channel
+              * request was issued.
+              */
+             sapContext->SapDfsInfo.sap_radar_found_status = VOS_TRUE;
+
+             /*
+              * Post the eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START
+              * to SAP state machine to process the channel
+              * request with CSA IE set in the beacons.
+              */
+             sapEvent.event = eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START;
+             sapEvent.params = 0;
+             sapEvent.u1 = 0;
+             sapEvent.u2 = 0;
+
+             sapFsm(sapContext, &sapEvent);
+
+         }
+         else
+         {
+              VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Failed to request Channel Change, since"
+                   "SAP is not in eSAP_STARTED state", __func__);
+              return VOS_STATUS_E_FAULT;
+         }
+
+    }
+    else
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Channel = %d is not valid in the current"
+                   "regulatory domain",
+                    __func__, targetChannel);
+
+        return VOS_STATUS_E_FAULT;
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "%s: Posted eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START"
+                   "successfully to sapFsm for Channel = %d",
+                    __func__, targetChannel);
+
+    return VOS_STATUS_SUCCESS;
+}
+
 /*==========================================================================
   FUNCTION    WLANSAP_SetChannelRange
 

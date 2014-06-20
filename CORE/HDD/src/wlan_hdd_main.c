@@ -5373,7 +5373,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        else if (strncmp(command, "SETDFSSCANMODE", 14) == 0)
        {
            tANI_U8 *value = command;
-           tANI_BOOLEAN dfsScanMode = CFG_ROAMING_DFS_CHANNEL_DEFAULT;
+           tANI_U8 dfsScanMode = CFG_ROAMING_DFS_CHANNEL_DEFAULT;
 
            /* Move pointer to ahead of SETDFSSCANMODE<delimiter> */
            value = value + 15;
@@ -5412,7 +5412,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if (strncmp(command, "GETDFSSCANMODE", 14) == 0)
        {
-           tANI_BOOLEAN dfsScanMode =
+           tANI_U8 dfsScanMode =
                    sme_GetDFSScanMode((tHalHandle)(pHddCtx->hHal));
            char extra[32];
            tANI_U8 len = 0;
@@ -5892,10 +5892,10 @@ static void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
                   INTF_MACADDR_MASK;
         macaddr_b3 += tmp_br3;
 
-        /* XOR-ing bit-24 of the mac address which is bit-8 of macaddr[3]
-         * This will give enough mac address range before collision
+        /* XOR-ing bit-24 of the mac address. This will give enough
+         * mac address range before collision
          */
-        macaddr_b3 ^= (1 << 8);
+        macaddr_b3 ^= (1 << 7);
 
         /* Set locally administered bit */
         cfg_ini->intfMacAddr[i].bytes[0] |= 0x02;
@@ -11402,7 +11402,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
    //Initialize the WMM module
-   status = hdd_wmm_init(pHddCtx);
+   status = hdd_wmm_init(pHddCtx, hddWmmDscpToUpMapInfra);
+   status = hdd_wmm_init(pHddCtx, hddWmmDscpToUpMapP2p);
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __func__);

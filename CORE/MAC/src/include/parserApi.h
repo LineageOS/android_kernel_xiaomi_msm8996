@@ -426,6 +426,11 @@ sirConvertDeltsReq2Struct(struct sAniSirGlobal *pMac,
                           tANI_U8 *frame,
                           tANI_U32 len,
                           tSirDeltsReqInfo *delTs);
+tSirRetStatus
+sirConvertQosMapConfigureFrame2Struct(tpAniSirGlobal    pMac,
+                          tANI_U8               *pFrame,
+                          tANI_U32               nFrame,
+                          tSirQosMapSet      *pQosMapSet);
 
 #ifdef ANI_SUPPORT_11H
 tSirRetStatus
@@ -498,6 +503,12 @@ void
 PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal          pMac,
                              tDot11fIEExtChanSwitchAnn *pDot11f,
                              tpPESession psessionEntry);
+
+/// Populate a tDot11fIEChannelSwitchWrapper
+void
+PopulateDot11fChanSwitchWrapper(tpAniSirGlobal             pMac,
+                            tDot11fIEChannelSwitchWrapper *pDot11f,
+                            tpPESession                    psessionEntry);
 
 /// Populate a tDot11fIECountry
 tSirRetStatus

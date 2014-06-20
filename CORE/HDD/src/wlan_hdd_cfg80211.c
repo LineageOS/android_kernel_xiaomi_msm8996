@@ -1328,6 +1328,11 @@ void wlan_hdd_cfg80211_register_frames(hdd_adapter_t* pAdapter)
     sme_RegisterMgmtFrame(hHal, HDD_SESSION_ID_ANY, type,
                          (v_U8_t*)WNM_BSS_ACTION_FRAME,
                                   WNM_BSS_ACTION_FRAME_SIZE );
+
+    /* WNM-Notification */
+    sme_RegisterMgmtFrame(hHal, pAdapter->sessionId, type,
+                         (v_U8_t*)WNM_NOTIFICATION_FRAME,
+                                  WNM_NOTIFICATION_FRAME_SIZE );
 }
 
 void wlan_hdd_cfg80211_deregister_frames(hdd_adapter_t* pAdapter)
@@ -1367,6 +1372,11 @@ void wlan_hdd_cfg80211_deregister_frames(hdd_adapter_t* pAdapter)
     sme_DeregisterMgmtFrame(hHal, HDD_SESSION_ID_ANY, type,
                          (v_U8_t*)P2P_ACTION_FRAME,
                                   P2P_ACTION_FRAME_SIZE );
+
+    /* WNM-Notification */
+    sme_DeregisterMgmtFrame(hHal, pAdapter->sessionId, type,
+                         (v_U8_t*)WNM_NOTIFICATION_FRAME,
+                                  WNM_NOTIFICATION_FRAME_SIZE );
 }
 
 #ifdef FEATURE_WLAN_WAPI
@@ -2191,6 +2201,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 #else
              (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->sapDot11Mode;
 #endif
+    u_int16_t prev_rsn_length = 0;
     ENTER();
 
     iniConfig = pHddCtx->cfg_ini;
@@ -2393,12 +2404,11 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         if (pConfig->RSNWPAReqIE[0])
         {
             /*Mixed mode WPA/WPA2*/
+            prev_rsn_length = pConfig->RSNWPAReqIELength;
+            pConfig->RSNWPAReqIELength += pIe[1] + 2;
             if (pConfig->RSNWPAReqIELength < sizeof(pConfig->RSNWPAReqIE))
-            {
-                memcpy((&pConfig->RSNWPAReqIE[0] + pConfig->RSNWPAReqIELength), pIe,
+                memcpy(&pConfig->RSNWPAReqIE[0] + prev_rsn_length, pIe,
                                                             pIe[1] + 2);
-                pConfig->RSNWPAReqIELength += pIe[1] + 2;
-            }
             else
                 hddLog(LOGE, "RSNWPA IE MAX Length exceeded; length =%d",
                                              pConfig->RSNWPAReqIELength);
@@ -6402,6 +6412,14 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
             pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_CCKM;
             break;
 #endif
+#ifndef WLAN_AKM_SUITE_OSEN
+#define WLAN_AKM_SUITE_OSEN         0x506f9a01 /* Should be in ieee802_11_defs.h */
+#endif
+        case WLAN_AKM_SUITE_OSEN:
+            hddLog(VOS_TRACE_LEVEL_INFO, "%s: setting key mgmt type to OSEN",
+                            __func__);
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
+            break;
 
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported key mgmt type %d",
@@ -6522,6 +6540,7 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
     /* clear previous assocAddIE */
     pWextState->assocAddIE.length = 0;
     pWextState->roamProfile.bWPSAssociation = VOS_FALSE;
+    pWextState->roamProfile.bOSENAssociation = VOS_FALSE;
 
     while (remLen >= 2)
     {
@@ -6637,6 +6656,27 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                     memcpy( pWextState->assocAddIE.addIEdata + curAddIELen, genie - 2, eLen + 2);
                     pWextState->assocAddIE.length += eLen + 2;
 
+                    pWextState->roamProfile.pAddIEAssoc = pWextState->assocAddIE.addIEdata;
+                    pWextState->roamProfile.nAddIEAssocLength = pWextState->assocAddIE.length;
+                }
+                 /* Appending OSEN Information  Element in Assiciation Request */
+                else if ( (0 == memcmp(&genie[0], OSEN_OUI_TYPE,
+                                       OSEN_OUI_TYPE_SIZE)) )
+                {
+                    v_U16_t curAddIELen = pWextState->assocAddIE.length;
+                    hddLog (VOS_TRACE_LEVEL_INFO, "%s Set OSEN IE(len %d)",
+                            __func__, eLen + 2);
+
+                    if ( SIR_MAC_MAX_IE_LENGTH < (pWextState->assocAddIE.length + eLen) ) {
+                           hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accommodate assocAddIE "
+                               "Need bigger buffer space");
+                        VOS_ASSERT(0);
+                        return -ENOMEM;
+                    }
+                    memcpy( pWextState->assocAddIE.addIEdata + curAddIELen, genie - 2, eLen + 2);
+                    pWextState->assocAddIE.length += eLen + 2;
+
+                    pWextState->roamProfile.bOSENAssociation = VOS_TRUE;
                     pWextState->roamProfile.pAddIEAssoc = pWextState->assocAddIE.addIEdata;
                     pWextState->roamProfile.nAddIEAssocLength = pWextState->assocAddIE.length;
                 }
@@ -10982,6 +11022,11 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         return -EAGAIN;
     }
 
+    if (sme_staInMiddleOfRoaming(pHddCtx->hHal)) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Roaming in progress "
+               "Do not allow suspend"));
+        return -EAGAIN;
+    }
 #ifdef QCA_WIFI_2_0
     /* Stop ongoing scan on each interface */
     status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );

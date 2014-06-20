@@ -806,6 +806,7 @@ tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg )
         CASE_RETURN_STRING(WDA_SET_SAP_INTRABSS_DIS);
         CASE_RETURN_STRING(WDA_FW_STATS_IND);
         CASE_RETURN_STRING(WDA_VDEV_STOP_IND);
+        CASE_RETURN_STRING(WDA_TBTT_UPDATE_IND);
         default:
             return((tANI_U8*) "UNKNOWN" );
             break;
