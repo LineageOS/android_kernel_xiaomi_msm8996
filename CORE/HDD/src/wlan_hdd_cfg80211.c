@@ -1186,6 +1186,11 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 
     wiphy->max_ap_assoc_sta = pCfg->maxNumberOfPeers;
 
+#ifdef QCA_HT_2040_COEX
+    if (pCfg->ht2040CoexEnabled)
+        wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
+#endif
+
     EXIT();
     return 0;
 }
@@ -2079,6 +2084,33 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                 }
                 (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
             }
+
+            /* set channel bonding mode for 2.4G */
+            if ( channel <= 14 )
+            {
+                tSmeConfigParams smeConfig;
+                sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
+
+                switch (channel_type)
+                {
+                case NL80211_CHAN_HT20:
+                    smeConfig.csrConfig.channelBondingMode24GHz = 0;
+                    sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+                    break;
+
+                case NL80211_CHAN_HT40MINUS:
+                case NL80211_CHAN_HT40PLUS:
+                    smeConfig.csrConfig.channelBondingMode24GHz = 1;
+                    sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+                    break;
+
+                default:
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                              "%s:Error!!! Invalid HT20/40 mode !",
+                              __func__);
+                    return -EINVAL;
+                }
+            }
         }
     }
     else
@@ -2624,6 +2656,11 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         return 0;
     }
 
+    if (vos_max_concurrent_connections_reached()) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
+        return -EINVAL;
+    }
+
     pConfig->persona = pHostapdAdapter->device_mode;
 
     psmeConfig = (tSmeConfigParams*) vos_mem_malloc(sizeof(tSmeConfigParams));
@@ -2689,6 +2726,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     //Succesfully started Bss update the state bit.
     set_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
+    wlan_hdd_incr_active_session(pHddCtx, pHostapdAdapter->device_mode);
 
 #ifdef WLAN_FEATURE_P2P_DEBUG
     if (pHostapdAdapter->device_mode == WLAN_HDD_P2P_GO)
@@ -2738,6 +2776,11 @@ static int wlan_hdd_cfg80211_add_beacon(struct wiphy *wiphy,
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: HDD context is not valid", __func__);
         return status;
+    }
+
+    if (vos_max_concurrent_connections_reached()) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
+        return -EINVAL;
     }
 
     if ( (pAdapter->device_mode == WLAN_HDD_SOFTAP)
@@ -2955,6 +2998,8 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
                 }
             }
             clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
+            /* BSS stopped, clear the active sessions for this device mode */
+            wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
         }
         mutex_unlock(&pHddCtx->sap_lock);
 
@@ -3049,6 +3094,11 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 
     hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: pAdapter = %p, device mode = %d",
            __func__, pAdapter, pAdapter->device_mode);
+
+    if (vos_max_concurrent_connections_reached()) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
+        return -EINVAL;
+    }
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
       || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
@@ -3161,7 +3211,7 @@ static int wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
 
 #endif //(LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0))
 
-static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
                                       struct net_device *dev,
                                       struct bss_parameters *params)
 {
@@ -3246,6 +3296,18 @@ static int wlan_hdd_change_iface_to_sta_mode(struct net_device *ndev,
     return status;
 }
 
+static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
+                                      struct net_device *dev,
+                                      struct bss_parameters *params)
+{
+    int ret;
+
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_cfg80211_change_bss(wiphy, dev, params);
+    vos_ssr_unprotect(__func__);
+
+    return ret;
+}
 /* FUNCTION: wlan_hdd_change_country_code_cd
 *  to wait for contry code completion
 */
@@ -3307,6 +3369,11 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d, IFTYPE = 0x%x",
                              __func__, pAdapter->device_mode, type);
+
+    if (vos_max_concurrent_connections_reached()) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
+        return -EINVAL;
+    }
 
     pConfig = pHddCtx->cfg_ini;
     wdev = ndev->ieee80211_ptr;
@@ -3701,7 +3768,7 @@ done:
 
 #ifdef WLAN_BTAMP_FEATURE
     if((NL80211_IFTYPE_STATION == type) && (pHddCtx->concurrency_mode <= 1) &&
-       (pHddCtx->no_of_sessions[WLAN_HDD_INFRA_STATION] <=1))
+       (pHddCtx->no_of_open_sessions[WLAN_HDD_INFRA_STATION] <=1))
     {
         //we are ok to do AMP
         pHddCtx->isAmpAllowed = VOS_TRUE;
@@ -6935,9 +7002,8 @@ static int wlan_hdd_try_disconnect( hdd_adapter_t *pAdapter )
 }
 
 /*
- * FUNCTION: __wlan_hdd_cfg80211_set_privacy
- * This function is used to initialize the security
- * parameters during connect operation.
+ * FUNCTION: __wlan_hdd_cfg80211_connect
+ * This function is used to start the association process
  */
 static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                                       struct net_device *ndev,
@@ -6951,11 +7017,10 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
 
     ENTER();
 
-    if (!pAdapter)
-    {
+    if (!pAdapter) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: Adapter context is null", __func__);
-        return VOS_STATUS_E_FAILURE;
+        return -EINVAL;
     }
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
@@ -6965,25 +7030,27 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
              "%s: device_mode = %d",__func__,pAdapter->device_mode);
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    if (!pHddCtx)
-    {
+    if (!pHddCtx) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: HDD context is null", __func__);
-        return VOS_STATUS_E_FAILURE;
+        return -EINVAL;
     }
 
     status = wlan_hdd_validate_context(pHddCtx);
-    if (0 != status)
-    {
+    if (0 != status) {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: HDD context is not valid", __func__);
         return status;
     }
 
+    if (vos_max_concurrent_connections_reached()) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
+        return -ECONNREFUSED;
+    }
+
 #ifdef WLAN_BTAMP_FEATURE
     //Infra connect not supported when AMP traffic is on.
-    if( VOS_TRUE == WLANBAP_AmpSessionOn() )
-    {
+    if (VOS_TRUE == WLANBAP_AmpSessionOn()) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                 "%s: No connection when AMP is on", __func__);
         return -ECONNREFUSED;
@@ -6994,15 +7061,14 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     //P2P Mode will be taken care in Open/close adapter
     if (!pHddCtx->cfg_ini->enablePowersaveOffload &&
         (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
-        (vos_concurrent_sessions_running()))
-    {
-        exitbmpsStatus = hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+        (vos_concurrent_open_sessions_running())) {
+        exitbmpsStatus = hdd_disable_bmps_imps(pHddCtx,
+                                               WLAN_HDD_INFRA_STATION);
     }
 
     /*Try disconnecting if already in connected state*/
     status = wlan_hdd_try_disconnect(pAdapter);
-    if ( 0 > status)
-    {
+    if ( 0 > status) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("Failed to disconnect the existing"
                 " connection"));
         return -EALREADY;
@@ -7011,42 +7077,35 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     /*initialise security parameters*/
     status = wlan_hdd_cfg80211_set_privacy(pAdapter, req);
 
-    if ( 0 > status)
-    {
+    if (0 > status) {
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: failed to set security params",
                 __func__);
         return status;
     }
 
-    if ( req->channel )
-    {
+    if (req->channel) {
         status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
                                                   req->ssid_len, req->bssid,
                                                   req->channel->hw_value);
-    }
-    else
-    {
+    } else {
         status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
                                                   req->ssid_len, req->bssid, 0);
     }
 
-    if (0 > status)
-    {
+    if (0 > status) {
         //ReEnable BMPS if disabled
         // If PS offload is enabled, fw will take care of
 // ps in cae of concurrency.
         if((VOS_STATUS_SUCCESS == exitbmpsStatus) &&
-            (NULL != pHddCtx) && !pHddCtx->cfg_ini->enablePowersaveOffload)
-        {
-            if (pHddCtx->hdd_wlan_suspended)
-            {
+            (NULL != pHddCtx) && !pHddCtx->cfg_ini->enablePowersaveOffload) {
+            if (pHddCtx->hdd_wlan_suspended) {
                 hdd_set_pwrparams(pHddCtx);
             }
            //ReEnable Bmps and Imps back
            hdd_enable_bmps_imps(pHddCtx);
         }
 
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: connect failed", __func__);
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("connect failed"));
         return status;
     }
     pHddCtx->isAmpAllowed = VOS_FALSE;
@@ -7392,6 +7451,11 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
         return -EIO;
     }
 
+    if (vos_max_concurrent_connections_reached()) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
+        return -ECONNREFUSED;
+    }
+
     /*Try disconnecting if already in connected state*/
     status = wlan_hdd_try_disconnect(pAdapter);
     if ( 0 > status)
@@ -7603,11 +7667,11 @@ static int wlan_hdd_cfg80211_leave_ibss( struct wiphy *wiphy,
 }
 
 /*
- * FUNCTION: wlan_hdd_cfg80211_set_wiphy_params
+ * FUNCTION: __wlan_hdd_cfg80211_set_wiphy_params
  * This function is used to set the phy parameters
  * (RTS Threshold/FRAG Threshold/Retry Count etc ...)
  */
-static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
         u32 changed)
 {
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
@@ -7730,14 +7794,27 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
         }
     }
 
+
     return 0;
 }
 
+static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
+                                                                u32 changed)
+{
+     int ret;
+
+     vos_ssr_protect(__func__);
+     ret = __wlan_hdd_cfg80211_set_wiphy_params(wiphy, changed);
+     vos_ssr_unprotect(__func__);
+
+     return ret;
+}
+
 /*
- * FUNCTION: wlan_hdd_cfg80211_set_txpower
+ * FUNCTION: __wlan_hdd_cfg80211_set_txpower
  * This function is used to set the txpower
  */
-static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
         struct wireless_dev *wdev,
 #endif
@@ -7801,6 +7878,34 @@ static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
     }
 
     return 0;
+}
+
+static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
+        struct wireless_dev *wdev,
+#endif
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,35)
+        enum tx_power_setting type,
+#else
+        enum nl80211_tx_power_setting type,
+#endif
+        int dbm)
+{
+    int ret;
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_cfg80211_set_txpower(wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
+                                        wdev,
+#endif
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,35)
+                                        type,
+#else
+                                        type,
+#endif
+                                        dbm);
+   vos_ssr_unprotect(__func__);
+
+   return ret;
 }
 
 /*
@@ -8625,7 +8730,7 @@ static int wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
 
 
 #ifdef FEATURE_WLAN_LFR
-static int wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device *dev,
+static int __wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device *dev,
             struct cfg80211_pmksa *pmksa)
 {
     tANI_U32 j=0;
@@ -8719,9 +8824,20 @@ static int wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device *d
     return HAL_STATUS_SUCCESS(result) ? 0 : -EINVAL;
 }
 
+static int wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device *dev,
+            struct cfg80211_pmksa *pmksa)
+{
+   int ret;
+
+   vos_ssr_protect(__func__);
+   ret = __wlan_hdd_cfg80211_set_pmksa(wiphy, dev, pmksa);
+   vos_ssr_unprotect(__func__);
+
+   return ret;
+}
 
 
-static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *dev,
+static int __wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *dev,
              struct cfg80211_pmksa *pmksa)
 {
     tANI_U32 j=0;
@@ -8825,8 +8941,20 @@ static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *d
 }
 
 
+static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *dev,
+             struct cfg80211_pmksa *pmksa)
+{
+    int ret;
 
-static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device *dev)
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_cfg80211_del_pmksa(wiphy, dev, pmksa);
+    vos_ssr_unprotect(__func__);
+
+    return ret;
+
+}
+
+static int __wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device *dev)
 {
     tANI_U32 j=0;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
@@ -8889,6 +9017,17 @@ static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device 
     pHddStaCtx->PMKIDCacheIndex = 0;
 
     return status;
+}
+
+static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device *dev)
+{
+    int ret;
+
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_cfg80211_flush_pmksa(wiphy, dev);
+    vos_ssr_unprotect(__func__);
+
+    return ret;
 }
 #endif
 
@@ -10967,6 +11106,108 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
 
     return ret;
 }
+
+#ifdef QCA_HT_2040_COEX
+int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
+                                     struct net_device *dev,
+                                     struct cfg80211_chan_def *chandef)
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx;
+    VOS_STATUS status;
+    tSmeConfigParams smeConfig;
+    int i;
+    bool cbModeChange;
+
+    if (NULL == pAdapter) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                   "%s: HDD adapter is Null", __func__);
+        return -ENODEV;
+    }
+
+    if (NULL == wiphy) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                   "%s: wiphy is Null", __func__);
+        return -ENODEV;
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    status = wlan_hdd_validate_context(pHddCtx);
+
+    if (0 != status) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is not valid", __func__);
+        return status;
+    }
+
+    if (!pHddCtx->cfg_ini->ht2040CoexEnabled)
+        return -EOPNOTSUPP;
+
+    vos_mem_zero(&smeConfig, sizeof (tSmeConfigParams));
+    sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
+    switch (chandef->width) {
+    case NL80211_CHAN_WIDTH_20:
+        if (smeConfig.csrConfig.channelBondingMode24GHz != 0) {
+            smeConfig.csrConfig.channelBondingMode24GHz = 0;
+            sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+            cbModeChange = TRUE;
+        }
+        break;
+
+    case NL80211_CHAN_WIDTH_40:
+        if (smeConfig.csrConfig.channelBondingMode24GHz != 1) {
+            smeConfig.csrConfig.channelBondingMode24GHz = 1;
+            sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+            cbModeChange = TRUE;
+        }
+        break;
+
+    default:
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                      "%s:Error!!! Invalid HT20/40 mode !",
+                      __func__);
+        return -EINVAL;
+    }
+
+    if (!cbModeChange)
+       return 0;
+
+    if (WLAN_HDD_SOFTAP != pAdapter->device_mode)
+        return 0;
+
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: channel bonding changed to %d",
+             __func__, smeConfig.csrConfig.channelBondingMode24GHz);
+
+    /* change SAP ht2040 mode */
+    status = hdd_set_sap_ht2040_mode(pAdapter,
+                                     cfg80211_get_chandef_type(chandef));
+    if (status != VOS_STATUS_SUCCESS) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s:Error!!! Cannot set SAP HT20/40 mode!",
+               __func__);
+        return -EINVAL;
+    }
+
+    for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
+        if (!pAdapter->aStaInfo[i].isUsed)
+            continue;
+
+        status = hdd_wlan_set_ht2040_mode(pAdapter,
+                                          pAdapter->aStaInfo[i].ucSTAId,
+                                          pAdapter->aStaInfo[i].macAddrSTA,
+                                          cfg80211_get_chandef_type(chandef));
+        if (status != VOS_STATUS_SUCCESS) {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                    "%s:Error!!! Cannot set HT20/40 mode for STA %d!",
+                    __func__, pAdapter->aStaInfo[i].ucSTAId);
+            return -EINVAL;
+        }
+    }
+
+    return 0;
+}
+#endif
+
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops =
 {
@@ -11033,6 +11274,9 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .set_mac_acl = wlan_hdd_cfg80211_set_mac_acl,
 #ifdef WLAN_NL80211_TESTMODE
      .testmode_cmd = wlan_hdd_cfg80211_testmode,
+#endif
+#ifdef QCA_HT_2040_COEX
+     .set_ap_chanwidth = wlan_hdd_cfg80211_set_ap_channel_width,
 #endif
      .dump_survey = wlan_hdd_cfg80211_dump_survey,
 };

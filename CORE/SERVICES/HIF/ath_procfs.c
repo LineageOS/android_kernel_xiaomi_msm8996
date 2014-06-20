@@ -178,7 +178,7 @@ int athdiag_procfs_init(void *scn)
 	}
 
 	proc_file = proc_create_data(PROCFS_NAME,
-					S_IALLUGO, proc_dir,
+					S_IRUSR | S_IWUSR, proc_dir,
 					&athdiag_fops, (void *)scn);
 	if (proc_file == NULL) {
 		remove_proc_entry(PROCFS_NAME, proc_dir);

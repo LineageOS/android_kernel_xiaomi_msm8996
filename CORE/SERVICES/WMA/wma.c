@@ -3249,7 +3249,10 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_handle->frame_xln_reqd = mac_params->frameTransRequired;
 	wma_handle->driver_type = mac_params->driverType;
 	wma_handle->ssdp = mac_params->ssdp;
-
+#ifdef FEATURE_WLAN_RA_FILTERING
+	wma_handle->IsRArateLimitEnabled = mac_params->IsRArateLimitEnabled;
+	wma_handle->RArateLimitInterval = mac_params->RArateLimitInterval;
+#endif
 	/*
 	 * Indicates if DFS Phyerr filtering offload
 	 * is Enabled/Disabed from ini
@@ -13335,6 +13338,10 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 		return "ASSOC_REQ_RECV";
 	case WOW_REASON_HTT_EVENT:
 		return "WOW_REASON_HTT_EVENT";
+#ifdef FEATURE_WLAN_RA_FILTERING
+	case  WOW_REASON_RA_MATCH:
+		return "WOW_REASON_RA_MATCH";
+#endif
 	}
 	return "unknown";
 }
@@ -13416,6 +13423,7 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	struct wma_txrx_node *node;
 #endif
 	u_int32_t wake_lock_duration = 0;
+	u_int32_t wow_buf_pkt_len = 0;
 
 	param_buf = (WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *) event;
 	if (!param_buf) {
@@ -13453,7 +13461,11 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 			 wake_info->vdev_id);
 		wma_beacon_miss_handler(wma, wake_info->vdev_id);
 		break;
-
+#ifdef FEATURE_WLAN_RA_FILTERING
+	case WOW_REASON_RA_MATCH:
+		wake_lock_duration = WMA_RA_MATCH_RECV_WAKE_LOCK_DURATION;
+		break;
+#endif
 #ifdef FEATURE_WLAN_SCAN_PNO
 	case WOW_REASON_NLOD:
 		wake_lock_duration = WMA_PNO_WAKE_LOCK_TIMEOUT;
@@ -13485,6 +13497,15 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 #endif
 
 	case WOW_REASON_HTT_EVENT:
+		break;
+	case WOW_REASON_PATTERN_MATCH_FOUND:
+		WMA_LOGD("Wake up for Rx packet, dump starting from ethernet hdr");
+		/* First 4-bytes of wow_packet_buffer is the length */
+		vos_mem_copy((u_int8_t *) &wow_buf_pkt_len,
+			     param_buf->wow_packet_buffer, 4);
+		vos_trace_hex_dump(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
+				   param_buf->wow_packet_buffer + 4,
+				   wow_buf_pkt_len);
 		break;
 
 	default:
@@ -13902,6 +13923,92 @@ static VOS_STATUS wma_wow_ap(tp_wma_handle wma, u_int8_t vdev_id,
 	return ret;
 }
 
+#ifdef FEATURE_WLAN_RA_FILTERING
+static VOS_STATUS wma_wow_sta_ra_filter(tp_wma_handle wma, u_int8_t vdev_id)
+{
+
+	WMI_WOW_ADD_PATTERN_CMD_fixed_param *cmd;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	int32_t len;
+	int ret;
+
+	len = sizeof(WMI_WOW_ADD_PATTERN_CMD_fixed_param) +
+		     WMI_TLV_HDR_SIZE +
+		     0 * sizeof(WOW_BITMAP_PATTERN_T) +
+		     WMI_TLV_HDR_SIZE +
+		     0 * sizeof(WOW_IPV4_SYNC_PATTERN_T) +
+		     WMI_TLV_HDR_SIZE +
+		     0 * sizeof(WOW_IPV6_SYNC_PATTERN_T) +
+		     WMI_TLV_HDR_SIZE +
+		     0 * sizeof(WOW_MAGIC_PATTERN_CMD) +
+		     WMI_TLV_HDR_SIZE +
+		     0 * sizeof(A_UINT32) +
+		     WMI_TLV_HDR_SIZE +
+		     1 * sizeof(A_UINT32);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (WMI_WOW_ADD_PATTERN_CMD_fixed_param *)wmi_buf_data(buf);
+	buf_ptr = (u_int8_t *)cmd;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_WMI_WOW_ADD_PATTERN_CMD_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+				WMI_WOW_ADD_PATTERN_CMD_fixed_param));
+	cmd->vdev_id = vdev_id;
+	cmd->pattern_id = 0;
+	cmd->pattern_type = WOW_IPV6_RA_PATTERN;
+	buf_ptr += sizeof(WMI_WOW_ADD_PATTERN_CMD_fixed_param);
+
+	/* Fill TLV for WMITLV_TAG_STRUC_WOW_BITMAP_PATTERN_T but no data. */
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC, 0);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Fill TLV for WMITLV_TAG_STRUC_WOW_IPV4_SYNC_PATTERN_T but no data. */
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC, 0);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Fill TLV for WMITLV_TAG_STRUC_WOW_IPV6_SYNC_PATTERN_T but no data. */
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC, 0);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Fill TLV for WMITLV_TAG_STRUC_WOW_MAGIC_PATTERN_CMD but no data. */
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC, 0);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Fill TLV for pattern_info_timeout but no data. */
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32, 0);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Fill TLV for ra_ratelimit_interval. */
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32, sizeof(A_UINT32));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+
+	*((A_UINT32 *)buf_ptr) = wma->RArateLimitInterval;
+
+	WMA_LOGD("%s: send RA rate limit [%d] to fw vdev = %d", __func__,
+			                wma->RArateLimitInterval, vdev_id);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_WOW_ADD_WAKE_PATTERN_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send RA rate limit to fw", __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+
+}
+#endif /* FEATURE_WLAN_RA_FILTERING */
+
+
 /* Configures default WOW pattern for the given vdev_id which is in STA mode. */
 static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
 			      u_int8_t *enable_ptrn_match)
@@ -14142,6 +14249,14 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 			ret = wma_wow_sta(wma, vdev_id, &enable_ptrn_match);
 		}
 
+#ifdef FEATURE_WLAN_RA_FILTERING
+		if ((ap_vdev_available == FALSE) && (wma->IsRArateLimitEnabled))
+		{
+			ret = wma_wow_sta_ra_filter(wma, vdev_id);
+
+		}
+
+#endif
 		if (ret != VOS_STATUS_SUCCESS)
 			goto end;
 	}
@@ -14282,6 +14397,20 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 		goto end;
 	} else
 		WMA_LOGD("Successfully Configured WOW_HTT_EVENT to FW");
+
+#ifdef FEATURE_WLAN_RA_FILTERING
+	/* Configure RA filter wakeup */
+	if (wma->IsRArateLimitEnabled) {
+		ret = wma_add_wow_wakeup_event(wma, WOW_RA_MATCH_EVENT, TRUE);
+
+		if (ret != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("Failed to Configure WOW_RA_MATCH_EVENT to FW");
+			goto end;
+		} else
+			WMA_LOGD("Successfully Configured WOW_RA_MATCH_EVENT to FW");
+	} else
+		WMA_LOGD("gRAFilterEnable is not set, RA filterning is disabled");
+#endif
 
 	/* WOW is enabled in pcie suspend callback */
 	wma->wow.wow_enable = TRUE;

@@ -1845,6 +1845,14 @@ typedef enum eSirMacHTChannelWidth
     eHT_MAX_CHANNEL_WIDTH
 } tSirMacHTChannelWidth;
 
+typedef enum eSirMacHTChannelType
+{
+    eHT_CHAN_NO_HT = 0,
+    eHT_CHAN_HT20  = 1,
+    eHT_CHAN_HT40MINUS = 2,
+    eHT_CHAN_HT40PLUS  = 3
+} tSirMacHTChannelType;
+
 //Packet struct for HT capability
 typedef __ani_attr_pre_packed struct sHtCaps {
     tANI_U16     advCodingCap: 1;

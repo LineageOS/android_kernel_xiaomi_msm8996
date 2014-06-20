@@ -2061,6 +2061,22 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_HOST_ARPOFFLOAD_MIN,
                  CFG_ENABLE_HOST_ARPOFFLOAD_MAX ),
 
+#ifdef FEATURE_WLAN_RA_FILTERING
+   REG_VARIABLE( CFG_RA_FILTER_ENABLE_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, IsRArateLimitEnabled,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_RA_FILTER_ENABLE_DEFAULT,
+                 CFG_RA_FILTER_ENABLE_MIN,
+                 CFG_RA_FILTER_ENABLE_MAX ),
+
+   REG_VARIABLE( CFG_RA_RATE_LIMIT_INTERVAL_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, RArateLimitInterval,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_RA_RATE_LIMIT_INTERVAL_DEFAULT,
+                 CFG_RA_RATE_LIMIT_INTERVAL_MIN,
+                 CFG_RA_RATE_LIMIT_INTERVAL_MAX ),
+#endif
+
    REG_VARIABLE( CFG_ENABLE_HOST_SSDP_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, ssdp,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -3568,6 +3584,21 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_PMF_SA_QUERY_RETRY_INTERVAL_MIN,
                 CFG_PMF_SA_QUERY_RETRY_INTERVAL_MAX ),
 #endif
+   REG_VARIABLE(CFG_MAX_CONCURRENT_CONNECTIONS_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, gMaxConcurrentActiveSessions,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_MAX_CONCURRENT_CONNECTIONS_DEFAULT,
+                CFG_MAX_CONCURRENT_CONNECTIONS_MIN,
+                CFG_MAX_CONCURRENT_CONNECTIONS_MAX ),
+
+#ifdef QCA_HT_2040_COEX
+   REG_VARIABLE(CFG_ENABLE_HT_2040_COEX, WLAN_PARAM_Integer,
+                hdd_config_t, ht2040CoexEnabled,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_HT_2040_COEX_DEFAULT,
+                CFG_ENABLE_HT_2040_COEX_MIN,
+                CFG_ENABLE_HT_2040_COEX_MAX ),
+#endif
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -3947,6 +3978,10 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [mcastBcastFilterSetting] Value = [%u] ",pHddCtx->cfg_ini->mcastBcastFilterSetting);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fhostArpOffload] Value = [%u] ",pHddCtx->cfg_ini->fhostArpOffload);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ssdp] Value = [%u] ", pHddCtx->cfg_ini->ssdp);
+#ifdef FEATURE_WLAN_RA_FILTERING
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [RArateLimitInterval] Value = [%u] ", pHddCtx->cfg_ini->RArateLimitInterval);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [IsRArateLimitEnabled] Value = [%u] ", pHddCtx->cfg_ini->IsRArateLimitEnabled);
+#endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTResourceReqSupported] Value = [%u] ",pHddCtx->cfg_ini->fFTResourceReqSupported);
 #endif
@@ -4050,6 +4085,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gMaxOffloadReorderBuffs] value = [%u] ",pHddCtx->cfg_ini->apMaxOffloadReorderBuffs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [overrideCountryCode] Value = [%s] ",pHddCtx->cfg_ini->overrideCountryCode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAllowDFSChannelRoam] Value = [%u] ",pHddCtx->cfg_ini->allowDFSChannelRoam);
+  hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gMaxConcurrentActiveSessions] Value = [%u] ", pHddCtx->cfg_ini->gMaxConcurrentActiveSessions);
 
 #ifdef MSM_PLATFORM
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -4064,6 +4100,12 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
           "Name = [gbusBandwidthComputeInterval] Value = [%u] ",
           pHddCtx->cfg_ini->busBandwidthComputeInterval);
+#endif
+
+#ifdef QCA_HT_2040_COEX
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gHT2040CoexEnabled] Value = [%u]",
+          pHddCtx->cfg_ini->ht2040CoexEnabled);
 #endif
 }
 

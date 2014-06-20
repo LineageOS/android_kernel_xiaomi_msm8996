@@ -1020,6 +1020,11 @@ typedef struct sMacOpenParameters
     /* max offload reorder buffs */
     tANI_U8 apMaxOffloadReorderBuffs;
 
+#ifdef FEATURE_WLAN_RA_FILTERING
+    tANI_U16 RArateLimitInterval;
+    v_BOOL_t IsRArateLimitEnabled;
+#endif
+
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters

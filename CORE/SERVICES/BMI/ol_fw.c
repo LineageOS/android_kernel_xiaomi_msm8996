@@ -68,8 +68,49 @@ static u_int32_t refclk_speed_to_hz[] = {
 #endif
 
 #ifdef HIF_SDIO
+static struct ol_fw_files FW_FILES_QCA6174_FW_1_1 = {
+"qwlan11.bin", "bdwlan11.bin", "otp11.bin", "utf11.bin", "utfbd11.bin"};
+static struct ol_fw_files FW_FILES_QCA6174_FW_2_0 = {
+"qwlan20.bin", "bdwlan20.bin", "otp20.bin", "utf20.bin", "utfbd20.bin"};
+static struct ol_fw_files FW_FILES_QCA6174_FW_1_3 = {
+"qwlan13.bin", "bdwlan13.bin", "otp13.bin", "utf13.bin", "utfbd13.bin"};
+static struct ol_fw_files FW_FILES_QCA6174_FW_3_0 = {
+"qwlan30.bin", "bdwlan30.bin", "otp30.bin", "utf30.bin", "utfbd30.bin"};
+static struct ol_fw_files FW_FILES_DEFAULT = {
+"qwlan.bin", "bdwlan.bin", "otp.bin", "utf.bin", "utfbd.bin"};
+
 static A_STATUS ol_sdio_extra_initialization(struct ol_softc *scn);
+
+static int ol_get_fw_files_for_target(struct ol_fw_files *pfw_files,
+                                 u32 target_version)
+{
+    if (!pfw_files)
+        return -ENODEV;
+
+    switch (target_version) {
+    case AR6320_REV1_VERSION:
+    case AR6320_REV1_1_VERSION:
+            memcpy(pfw_files, &FW_FILES_QCA6174_FW_1_1, sizeof(*pfw_files));
+            break;
+    case AR6320_REV1_3_VERSION:
+            memcpy(pfw_files, &FW_FILES_QCA6174_FW_1_3, sizeof(*pfw_files));
+            break;
+    case AR6320_REV2_1_VERSION:
+            memcpy(pfw_files, &FW_FILES_QCA6174_FW_2_0, sizeof(*pfw_files));
+            break;
+    case AR6320_REV3_VERSION:
+            memcpy(pfw_files, &FW_FILES_QCA6174_FW_3_0, sizeof(*pfw_files));
+            break;
+    default:
+            memcpy(pfw_files, &FW_FILES_DEFAULT, sizeof(*pfw_files));
+            pr_err("%s version mismatch 0x%X ",
+                            __func__, target_version);
+            break;
+    }
+    return 0;
+}
 #endif
+
 extern int
 dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *datap, u_int32_t len);
 
@@ -346,7 +387,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		printk("%s: Unknown file type\n", __func__);
 		return -1;
 	case ATH_OTP_FILE:
-#ifdef CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(HIF_SDIO)
 		filename = scn->fw_files.otp_data;
 #else
 		filename = QCA_OTP_FILE;
@@ -358,7 +399,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 	case ATH_FIRMWARE_FILE:
 #ifdef QCA_WIFI_FTM
 		if (vos_get_conparam() == VOS_FTM_MODE) {
-#ifdef CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(HIF_SDIO)
 			filename = scn->fw_files.utf_file;
 #else
 			filename = QCA_UTF_FIRMWARE_FILE;
@@ -371,7 +412,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 			break;
 		}
 #endif
-#ifdef CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(HIF_SDIO)
 		filename = scn->fw_files.image_file;
 #else
 		filename = QCA_FIRMWARE_FILE;
@@ -386,7 +427,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 	case ATH_BOARD_DATA_FILE:
 #ifdef QCA_WIFI_FTM
 		if (vos_get_conparam() == VOS_FTM_MODE) {
-#ifdef CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(HIF_SDIO)
 			filename = scn->fw_files.utf_board_data;
 #else
 			filename = QCA_BOARD_DATA_FILE;
@@ -399,7 +440,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 			break;
 	}
 #endif /* QCA_WIFI_FTM */
-#ifdef CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(HIF_SDIO)
 		filename = scn->fw_files.board_data;
 #else
 		filename = QCA_BOARD_DATA_FILE;
@@ -417,7 +458,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		if (file == ATH_OTP_FILE)
 			return -ENOENT;
 
-#if defined(QCA_WIFI_FTM) && defined(CONFIG_CNSS)
+#if defined(QCA_WIFI_FTM) && defined(CONFIG_CNSS) && defined(HIF_SDIO)
 		/* Try default board data file if FTM specific
 		 * board data file is not present. */
 		if (filename == scn->fw_files.utf_board_data) {
@@ -1472,6 +1513,12 @@ int ol_download_firmware(struct ol_softc *scn)
 			printk("%s: No FW files from CNSS driver\n", __func__);
 			return -1;
 		}
+#elif defined(HIF_SDIO)
+       if (0 != ol_get_fw_files_for_target(&scn->fw_files,
+                                              scn->target_version)) {
+                printk("%s: No FW files from driver\n", __func__);
+                return -1;
+       }
 #endif
 	/* Transfer Board Data from Target EEPROM to Target RAM */
 	/* Determine where in Target RAM to write Board Data */
