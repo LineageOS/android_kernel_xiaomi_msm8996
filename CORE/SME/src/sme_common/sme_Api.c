@@ -12659,3 +12659,34 @@ eHalStatus sme_UpdateDSCPtoUPMapping( tHalHandle hHal,
     sme_ReleaseGlobalLock( &pMac->sme);
     return status;
 }
+
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+/* ---------------------------------------------------------------------------
+    \fn sme_abortRoamScan
+    \brief  API to abort current roam scan cycle by roam scan offload module.
+    \param  hHal - The handle returned by macOpen.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+
+eHalStatus sme_abortRoamScan(tHalHandle hHal)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    smsLog(pMac, LOGW, "entering function %s", __func__);
+    if (pMac->roam.configParam.isRoamOffloadScanEnabled)
+    {
+        /* acquire the lock for the sme object */
+        status = sme_AcquireGlobalLock(&pMac->sme);
+        if(HAL_STATUS_SUCCESS(status))
+        {
+            csrRoamOffloadScan(pMac, ROAM_SCAN_OFFLOAD_ABORT_SCAN,
+                               REASON_ROAM_ABORT_ROAM_SCAN);
+            /* release the lock for the sme object */
+            sme_ReleaseGlobalLock( &pMac->sme );
+        }
+    }
+
+    return(status);
+}
+#endif //#if WLAN_FEATURE_ROAM_SCAN_OFFLOAD

@@ -3657,5 +3657,14 @@ v_BOOL_t sme_GetDFSScanMode(tHalHandle hHal);
     -------------------------------------------------------------------------*/
 tANI_BOOLEAN sme_staInMiddleOfRoaming(tHalHandle hHal);
 
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+/* ---------------------------------------------------------------------------
+    \fn sme_abortRoamScan
+    \brief  API to abort current roam scan cycle by roam scan offload module.
+    \param  hHal - The handle returned by macOpen.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
 
+eHalStatus sme_abortRoamScan(tHalHandle hHal);
+#endif //#if WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 #endif //#if !defined( __SME_API_H )

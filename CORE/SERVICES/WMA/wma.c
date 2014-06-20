@@ -6019,7 +6019,7 @@ VOS_STATUS wma_roam_scan_offload_end_connect(tp_wma_handle wma_handle)
         return VOS_STATUS_E_FAILURE;
     }
 
-    /* If roam scan is running, stop it */
+    /* If roam scan is enabled, disable it */
     if (wma_handle->roam_offload_enabled) {
 
         wma_roam_scan_fill_scan_params(wma_handle, pMac, NULL, &scan_params);
@@ -6027,6 +6027,50 @@ VOS_STATUS wma_roam_scan_offload_end_connect(tp_wma_handle wma_handle)
                                 WMI_ROAM_SCAN_MODE_NONE);
     }
     return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS wma_roam_scan_offload_command(tp_wma_handle wma_handle,
+                                                      u_int32_t command)
+{
+    VOS_STATUS vos_status;
+    wmi_roam_scan_cmd_fixed_param *cmd_fp;
+    wmi_buf_t buf = NULL;
+    int status = 0;
+    int len;
+    u_int8_t *buf_ptr;
+
+    len = sizeof(wmi_roam_scan_cmd_fixed_param);
+    buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+    if (!buf) {
+        WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+        return VOS_STATUS_E_NOMEM;
+    }
+
+    buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+
+    cmd_fp = (wmi_roam_scan_cmd_fixed_param *) buf_ptr;
+    WMITLV_SET_HDR(&cmd_fp->tlv_header,
+               WMITLV_TAG_STRUC_wmi_roam_scan_cmd_fixed_param,
+               WMITLV_GET_STRUCT_TLVLEN(wmi_roam_scan_cmd_fixed_param));
+    cmd_fp->vdev_id = wma_handle->roam_offload_vdev_id;
+    cmd_fp->command_arg = command;
+
+    status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+               len, WMI_ROAM_SCAN_CMD);
+    if (status != EOK) {
+        WMA_LOGE("wmi_unified_cmd_send WMI_ROAM_SCAN_CMD returned Error %d",
+            status);
+        vos_status = VOS_STATUS_E_FAILURE;
+        goto error;
+    }
+
+    WMA_LOGI("%s: WMA --> WMI_ROAM_SCAN_CMD", __func__);
+    return VOS_STATUS_SUCCESS;
+
+error:
+    wmi_buf_free(buf);
+
+    return vos_status;
 }
 
 /* function   : wma_process_roam_scan_req
@@ -6044,7 +6088,8 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 wma_handle->vos_context);
     u_int32_t mode = 0;
 
-    WMA_LOGI("%s: command 0x%x", __func__, roam_req->Command);
+    WMA_LOGI("%s: command 0x%x, reason %d", __func__, roam_req->Command,
+                                            roam_req->StartScanReason);
 
     if (NULL == pMac)
     {
@@ -6155,6 +6200,14 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                                __func__);
                 }
             }
+            break;
+
+        case ROAM_SCAN_OFFLOAD_ABORT_SCAN:
+            /* If roam scan is running, stop that cycle.
+             * It will continue automatically on next trigger.
+             */
+            vos_status = wma_roam_scan_offload_command(wma_handle,
+                                                   WMI_ROAM_SCAN_STOP_CMD);
             break;
 
         case ROAM_SCAN_OFFLOAD_RESTART:

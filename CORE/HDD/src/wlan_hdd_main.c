@@ -2531,9 +2531,13 @@ hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
    struct ieee80211_hdr_3addr *hdr;
    u64 cookie;
    hdd_station_ctx_t *pHddStaCtx;
+   hdd_context_t *pHddCtx;
    int ret = 0;
+   tpSirMacVendorSpecificFrameHdr pVendorSpecific =
+                   (tpSirMacVendorSpecificFrameHdr) payload;
 
    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+   pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
    /* if not associated, no need to send action frame */
    if (eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
@@ -2551,17 +2555,45 @@ hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
       goto exit;
    }
 
-   /* if the channel number is different from operating channel then
-      no need to send action frame */
-   if (channel != pHddStaCtx->conn_info.operationChannel) {
-      hddLog(VOS_TRACE_LEVEL_INFO,
-             "%s: channel(%d) is different from operating channel(%d)",
-             __func__, channel, pHddStaCtx->conn_info.operationChannel);
+   chan.center_freq = sme_ChnToFreq(channel);
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+   /* Check if it is specific action frame */
+   if (pVendorSpecific->category == SIR_MAC_ACTION_VENDOR_SPECIFIC_CATEGORY) {
+       static const tANI_U8 Oui[] = { 0x00, 0x00, 0xf0 };
+       if (vos_mem_compare(pVendorSpecific->Oui, (void *) Oui, 3)) {
+           /* if the channel number is different from operating channel then
+              no need to send action frame */
+           if (channel != 0) {
+               if (channel != pHddStaCtx->conn_info.operationChannel) {
+                   hddLog(VOS_TRACE_LEVEL_INFO,
+                     "%s: channel(%d) is different from operating channel(%d)",
+                     __func__, channel,
+                     pHddStaCtx->conn_info.operationChannel);
+                   ret = -EINVAL;
+                   goto exit;
+               }
+               /* If channel number is specified and same as home channel,
+                * ensure that action frame is sent immediately by cancelling
+                * roaming scans. Otherwise large dwell times may cause long
+                * delays in sending action frames.
+                */
+               sme_abortRoamScan(pHddCtx->hHal);
+           } else {
+               /* 0 is accepted as current home channel, delayed
+                * transmission of action frame is ok.
+                */
+               chan.center_freq =
+                       sme_ChnToFreq(pHddStaCtx->conn_info.operationChannel);
+           }
+       }
+   }
+#endif //#if WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+   if (chan.center_freq == 0) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s:invalid channel number %d",
+              __func__, channel);
       ret = -EINVAL;
       goto exit;
    }
-
-   chan.center_freq = sme_ChnToFreq(channel);
 
    frame_len = payload_len + 24;
    frame = vos_mem_malloc(frame_len);
@@ -6576,7 +6608,7 @@ hdd_parse_send_action_frame_v1_data(const tANI_U8 *pValue,
     if (1 != v) return -EINVAL;
 
     v = kstrtos32(tempBuf, 10, &tempInt);
-    if ( v < 0 || tempInt <= 0 || tempInt > WNI_CFG_CURRENT_CHANNEL_STAMAX )
+    if ( v < 0 || tempInt < 0 || tempInt > WNI_CFG_CURRENT_CHANNEL_STAMAX )
      return -EINVAL;
 
     *pChannel = tempInt;
