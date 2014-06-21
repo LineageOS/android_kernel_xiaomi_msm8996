@@ -422,6 +422,10 @@ ol_tx_classify(
                 peer = ol_txrx_find_peer_by_addr(pdev, vdev->hl_tdls_ap_mac_addr.raw, &peer_id);
                 if (peer &&  (peer->peer_ids[0] == HTT_INVALID_PEER_ID))
                     peer = NULL;
+                else {
+                    if (peer)
+                       adf_os_atomic_inc(&peer->ref_cnt);
+                }
             }
             if (!peer)
                 peer = ol_txrx_assoc_peer_find(vdev);
