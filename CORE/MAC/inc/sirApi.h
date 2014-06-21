@@ -2815,6 +2815,13 @@ typedef struct sSirGetNoiseRsp
     tSirMacNoise        noise;
 } tSirGetNoiseRsp, *tpSirGetNoiseRsp;
 
+typedef struct sSirQosMapSet
+{
+    tANI_U8      present;
+    tANI_U8      num_dscp_exceptions;
+    tANI_U8      dscp_exceptions[21][2];
+    tANI_U8      dscp_range[8][2];
+} tSirQosMapSet, *tpSirQosMapSet;
 
 //
 // PMC --> PE --> HAL
@@ -3876,6 +3883,12 @@ typedef struct SirMobilityDomainInfo
   tANI_U16 mobilityDomain;
 } tSirMobilityDomainInfo;
 
+typedef enum {
+        SIR_ROAMING_DFS_CHANNEL_DISABLED = 0,
+        SIR_ROAMING_DFS_CHANNEL_ENABLED_NORMAL = 1,
+        SIR_ROAMING_DFS_CHANNEL_ENABLED_ACTIVE = 2
+} eSirDFSRoamScanMode;
+
 typedef struct sSirRoamOffloadScanReq
 {
   eAniBoolean RoamScanOffloadEnabled;
@@ -3917,6 +3930,7 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U8   RoamBmissFirstBcnt;
   tANI_U8   RoamBmissFinalBcnt;
   tANI_U8   RoamBeaconRssiWeight;
+  eSirDFSRoamScanMode  allowDFSChannelRoam;
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 #endif //WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 

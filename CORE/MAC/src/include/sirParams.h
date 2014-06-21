@@ -683,6 +683,7 @@ typedef struct sSirMbMsgP2p
 
 #define SIR_HAL_ROAM_PREAUTH_IND           (SIR_HAL_ITC_MSG_TYPES_BEGIN + 264)
 
+#define SIR_HAL_TBTT_UPDATE_IND            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 265)
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

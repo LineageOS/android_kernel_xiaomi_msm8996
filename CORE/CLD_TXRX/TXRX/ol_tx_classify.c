@@ -272,10 +272,14 @@ ol_tx_tid(
 
     if (pdev->frame_format == wlan_frm_fmt_raw) {
         tx_msdu_info->htt.info.l2_hdr_type = htt_pkt_type_raw;
-        tid = ol_tx_tid_by_raw_type(datap, tx_msdu_info);
+        tid = tx_msdu_info->htt.info.ext_tid == ADF_NBUF_TX_EXT_TID_INVALID ?
+            ol_tx_tid_by_raw_type(datap, tx_msdu_info) :
+            tx_msdu_info->htt.info.ext_tid;
     } else if (pdev->frame_format == wlan_frm_fmt_802_3) {
         tx_msdu_info->htt.info.l2_hdr_type = htt_pkt_type_ethernet;
-        tid = ol_tx_tid_by_ether_type(datap, tx_msdu_info);
+        tid = tx_msdu_info->htt.info.ext_tid == ADF_NBUF_TX_EXT_TID_INVALID ?
+            ol_tx_tid_by_ether_type(datap, tx_msdu_info) :
+            tx_msdu_info->htt.info.ext_tid;
     } else if (pdev->frame_format == wlan_frm_fmt_native_wifi) {
         struct llc_snap_hdr_t *llc;
 

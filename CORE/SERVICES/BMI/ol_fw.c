@@ -763,18 +763,6 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		goto out_fail;
 	}
 
-#ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
-	if (ramdump_scn->crash_shutdown) {
-		if (!hif_pci_check_soc_status(ramdump_scn->hif_sc)
-			&& !ol_copy_ramdump(ramdump_scn))
-			printk("%s: RAM dump collecting completed!\n", __func__);
-
-		ramdump_scn->crash_shutdown = false;
-		complete(&ramdump_scn->ramdump_event);
-		return;
-    }
-#endif
-
 #ifdef DEBUG
 	ret = hif_pci_check_soc_status(ramdump_scn->hif_sc);
 	if (ret)
@@ -875,10 +863,6 @@ void ol_target_failure(void *instance, A_STATUS status)
 		return;
 	}
 
-#ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
-	if (scn->crash_shutdown)
-		printk("XXX TARGET ASSERTED because of Kernel Panic XXX\n");
-#endif
 	scn->target_status = OL_TRGET_STATUS_RESET;
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)

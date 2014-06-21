@@ -1115,6 +1115,33 @@ WLANSAP_DeauthSta
 );
 
 /*==========================================================================
+  FUNCTION    WLANSAP_SetChannelChangeWithCsa
+
+  DESCRIPTION
+      This api function does a channel change to the target channel specified
+      through an iwpriv. CSA IE is included in the beacons before doing a
+      channel change.
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    pvosGCtx             : Pointer to vos global context structure
+    targetChannel        : New target channel to change to.
+
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation
+
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel);
+
+/*==========================================================================
   FUNCTION    WLANSAP_SetChannelRange
 
   DESCRIPTION

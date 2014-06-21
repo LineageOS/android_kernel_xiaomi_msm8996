@@ -2244,6 +2244,13 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         limLog(pMac, LOG1,
              FL("Unable to Stripoff ExtCap IE from Assoc Req"));
     }
+    else
+    {
+        if (extractedExtCap.interworkingService)
+        {
+            extractedExtCap.qosMap = 1;
+        }
+    }
 
     caps = pMlmAssocReq->capabilityInfo;
     if ( PROP_CAPABILITY_GET( 11EQOS, psessionEntry->limCurrentBssPropCap ) )

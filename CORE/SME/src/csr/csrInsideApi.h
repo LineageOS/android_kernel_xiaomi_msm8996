@@ -111,6 +111,10 @@
 #define CSR_JOIN_RETRY_TIMEOUT_PERIOD        ( 1 *  PAL_TIMER_TO_SEC_UNIT )  // 1 second
 #endif
 
+#define CSR_ROAMING_DFS_CHANNEL_DISABLED           (0)
+#define CSR_ROAMING_DFS_CHANNEL_ENABLED_NORMAL     (1)
+#define CSR_ROAMING_DFS_CHANNEL_ENABLED_ACTIVE     (2)
+
 typedef enum
 {
     eCsrNextScanNothing,

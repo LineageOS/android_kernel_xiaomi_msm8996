@@ -6362,6 +6362,7 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
     tpSirDfsCsaIeRequest  pDfsCsaIeRequest = (tSirDfsCsaIeRequest *)pMsg;
     tpPESession           psessionEntry = NULL;
     int i;
+    tANI_U32 chanWidth = 0;
 
     if ( pMsg == NULL )
     {
@@ -6387,6 +6388,87 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
         /* Channel switch announcement needs to be included in beacon */
         psessionEntry->dfsIncludeChanSwIe = VOS_TRUE;
         psessionEntry->gLimChannelSwitch.switchCount = LIM_MAX_CSA_IE_UPDATES;
+
+        /* Validate if SAP is operating HT or VHT
+         * mode and set the Channel Switch Wrapper
+         * element with the Wide Band Switch
+         * subelement..
+         */
+#ifdef WLAN_FEATURE_11AC
+        if (VOS_TRUE == psessionEntry->vhtCapability)
+        {
+            if (WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ ==
+                                        psessionEntry->vhtTxChannelWidthSet)
+            {
+                chanWidth = eHT_CHANNEL_WIDTH_80MHZ;
+            }
+            else if (WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ ==
+                                        psessionEntry->vhtTxChannelWidthSet)
+            {
+                chanWidth = psessionEntry->htSupportedChannelWidthSet;
+            }
+
+            /*
+             * Now encode the Wider Channel BW element
+             * depending on the chanWidth.
+             */
+            switch(chanWidth)
+            {
+                case eHT_CHANNEL_WIDTH_20MHZ:
+                    /*
+                     * Wide channel BW sublement in channel
+                     * wrapper element is not required in case
+                     * of 20 Mhz operation. Currently It is set
+                     * only set in case of 40/80 Mhz Operation.
+                     */
+                    psessionEntry->dfsIncludeChanWrapperIe = VOS_FALSE;
+                    psessionEntry->gLimWiderBWChannelSwitch.newChanWidth =
+                                            WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
+                    break;
+                case eHT_CHANNEL_WIDTH_40MHZ:
+                    psessionEntry->dfsIncludeChanWrapperIe = VOS_TRUE;
+                    psessionEntry->gLimWiderBWChannelSwitch.newChanWidth =
+                                            WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
+                    break;
+                case eHT_CHANNEL_WIDTH_80MHZ:
+                    psessionEntry->dfsIncludeChanWrapperIe = VOS_TRUE;
+                    psessionEntry->gLimWiderBWChannelSwitch.newChanWidth =
+                                            WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ;
+                    break;
+                case eHT_CHANNEL_WIDTH_160MHZ:
+                    psessionEntry->dfsIncludeChanWrapperIe = VOS_TRUE;
+                    psessionEntry->gLimWiderBWChannelSwitch.newChanWidth =
+                                            WNI_CFG_VHT_CHANNEL_WIDTH_160MHZ;
+                    break;
+                default:
+                    psessionEntry->dfsIncludeChanWrapperIe = VOS_FALSE;
+                    /* Need to handle 80+80 Mhz Scenario
+                     * When 80+80 is supported set the
+                     * gLimWiderBWChannelSwitch.newChanWidth
+                     * to 3
+                     */
+                    PELOGE(limLog(pMac, LOGE, FL("Invalid Channel Width"));)
+                    break;
+            }
+            /*
+             * Fetch the center channel based on the channel width
+             */
+            psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq0 =
+                           limGetCenterChannel(pMac,
+                             pDfsCsaIeRequest->targetChannel,
+                             psessionEntry->htSecondaryChannelOffset,
+                             psessionEntry->gLimWiderBWChannelSwitch.newChanWidth);
+            /*
+             * This is not applicable for 20/40/80 Mhz.
+             * Only used when we support 80+80 Mhz
+             * operation. In case of 80+80 Mhz, this
+             * parameter indicates center channel
+             * frequency index of 80 Mhz channel
+             * of frequency segment 1.
+             */
+            psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq1 = 0;
+        }
+#endif
 
         /* Send CSA IE request from here */
         if (schSetFixedBeaconFields(pMac, psessionEntry) != eSIR_SUCCESS)

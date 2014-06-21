@@ -863,6 +863,10 @@ typedef enum {
 #define WMI_OEM_MEASUREMENT_REQ    0x03
 #define WMI_OEM_MEASUREMENT_RSP    0x04
 #define WMI_OEM_ERROR_REPORT_RSP   0x05
+#define WMI_OEM_NAN_MEAS_REQ       0x06
+#define WMI_OEM_NAN_MEAS_RSP       0x07
+#define WMI_OEM_NAN_PEER_INFO      0x08
+
 
 /* below message subtype is internal to CLD. Target should
  * never use internal response type
@@ -1597,8 +1601,10 @@ typedef struct {
 /**When set, certain errors are ignored and scan continues.
 * Different FW scan engine may use its own logic to decide what errors to ignore*/
 #define WMI_SCAN_CONTINUE_ON_ERROR 0x80
-/* Enable promiscous mode for CCXv4 */
+/** Enable promiscous mode for ese */
 #define WMI_SCAN_FILTER_PROMISCOUS 0x100
+/** allow to send probe req on DFS channel */
+#define WMI_SCAN_FLAG_FORCE_ACTIVE_ON_DFS 0x200
 
 /** WMI_SCAN_CLASS_MASK must be the same value as IEEE80211_SCAN_CLASS_MASK */
 #define WMI_SCAN_CLASS_MASK 0xFF000000
