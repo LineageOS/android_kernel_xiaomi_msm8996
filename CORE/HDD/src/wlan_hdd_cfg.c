@@ -5416,10 +5416,10 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
      phtCapInfo->rxSTBC = pConfig->enableRxSTBC;
      phtCapInfo->txSTBC = pConfig->enableTxSTBC;
      phtCapInfo->advCodingCap = pConfig->enableRxLDPC;
-
-     if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_HT_CAP_INFO,
-                     *(tANI_U16 *)phtCapInfo, NULL, eANI_BOOLEAN_FALSE)
-         ==eHAL_STATUS_FAILURE)
+     val = val16;
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_HT_CAP_INFO,
+                      val, NULL, eANI_BOOLEAN_FALSE)
+         == eHAL_STATUS_FAILURE)
      {
          fStatus = FALSE;
          hddLog(LOGE, "Could not pass on WNI_CFG_HT_CAP_INFO to CCM");

@@ -572,7 +572,11 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         }
         else
         {
-            if((psessionEntry = peCreateSession(pMac,pSmeStartBssReq->bssId,&sessionId, pMac->lim.maxStation)) == NULL)
+            if((psessionEntry = peCreateSession(pMac,
+                                                pSmeStartBssReq->bssId,
+                                                &sessionId,
+                                                pMac->lim.maxStation,
+                                                pSmeStartBssReq->bssType)) == NULL)
             {
                 limLog(pMac, LOGW, FL("Session Can not be created "));
                 retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
@@ -1771,7 +1775,11 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         else       /* Session Entry does not exist for given BSSId */
         {
             /* Try to Create a new session */
-            if((psessionEntry = peCreateSession(pMac,pSmeJoinReq->bssDescription.bssId,&sessionId, pMac->lim.maxStation)) == NULL)
+            if((psessionEntry = peCreateSession(pMac,
+                    pSmeJoinReq->bssDescription.bssId,
+                    &sessionId,
+                    pMac->lim.maxStation,
+                    eSIR_INFRASTRUCTURE_MODE )) == NULL)
             {
                 limLog(pMac, LOGE, FL("Session Can not be created "));
                 retCode = eSIR_SME_RESOURCES_UNAVAILABLE;

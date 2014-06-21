@@ -794,13 +794,12 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             {
                pHddCtx->dfs_radar_found = VOS_FALSE;
             }
-            else
-            {
-                if (NV_CHANNEL_DFS !=
+
+            /* if START BSS even on non-DFS channel, clear the block_tx flag */
+            if (NV_CHANNEL_DFS !=
                     vos_nv_getChannelEnabledState(pHddApCtx->operatingChannel))
-                {
-                    pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
-                }
+            {
+                pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
             }
 
             //Fill the params for sending IWEVCUSTOM Event with SOFTAP.enabled
@@ -5063,6 +5062,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
         init_completion(&pHostapdAdapter->tx_action_cnf_event);
         init_completion(&pHostapdAdapter->cancel_rem_on_chan_var);
         init_completion(&pHostapdAdapter->rem_on_chan_ready_event);
+        init_completion(&pHostapdAdapter->ula_complete);
         init_completion(&pHostapdAdapter->offchannel_tx_event);
         init_completion(&pHostapdAdapter->scan_info.scan_req_completion_event);
         init_completion(&pHostapdAdapter->scan_info.abortscan_event_var);

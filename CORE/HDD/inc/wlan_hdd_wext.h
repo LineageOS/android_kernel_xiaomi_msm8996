@@ -386,6 +386,9 @@ extern int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_inf
 extern int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra);
 
+extern int hdd_priv_get_data(struct iw_point *p_priv_data,
+                             union iwreq_data *wrqu);
+
 extern VOS_STATUS wlan_hdd_get_linkspeed_for_peermac(hdd_adapter_t *pAdapter,
                                                      tSirMacAddr macAddress);
 void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter);

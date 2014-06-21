@@ -610,7 +610,8 @@ limSendSmeStartBssRsp(tpAniSirGlobal pMac,
     {
         //subtract size of beaconLength + Mac Hdr + Fixed Fields before SSID
         ieOffset = sizeof(tAniBeaconStruct) + SIR_MAC_B_PR_SSID_OFFSET;
-        ieLen = pMac->sch.schObject.gSchBeaconOffsetBegin + pMac->sch.schObject.gSchBeaconOffsetEnd - ieOffset;
+        ieLen = psessionEntry->schBeaconOffsetBegin
+                    + psessionEntry->schBeaconOffsetEnd - ieOffset;
         //calculate the memory size to allocate
         size += ieLen;
 
@@ -650,14 +651,14 @@ limSendSmeStartBssRsp(tpAniSirGlobal pMac,
 
                 pSirSmeRsp->bssDescription.aniIndicator = 1;
 
-                curLen = pMac->sch.schObject.gSchBeaconOffsetBegin - ieOffset;
+                curLen = psessionEntry->schBeaconOffsetBegin - ieOffset;
                 vos_mem_copy( (tANI_U8 *) &pSirSmeRsp->bssDescription.ieFields,
-                           pMac->sch.schObject.gSchBeaconFrameBegin + ieOffset,
+                           psessionEntry->pSchBeaconFrameBegin + ieOffset,
                           (tANI_U32)curLen);
 
                 vos_mem_copy( ((tANI_U8 *) &pSirSmeRsp->bssDescription.ieFields) + curLen,
-                           pMac->sch.schObject.gSchBeaconFrameEnd,
-                          (tANI_U32)pMac->sch.schObject.gSchBeaconOffsetEnd);
+                           psessionEntry->pSchBeaconFrameEnd,
+                          (tANI_U32)psessionEntry->schBeaconOffsetEnd);
 
 
                 //subtracting size of length indicator itself and size of pointer to ieFields

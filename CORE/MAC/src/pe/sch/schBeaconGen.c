@@ -176,7 +176,7 @@ tSirRetStatus schAppendAddnIE(tpAniSirGlobal pMac, tpPESession psessionEntry,
 tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
     tpAniBeaconStruct pBeacon = (tpAniBeaconStruct)
-                                   pMac->sch.schObject.gSchBeaconFrameBegin;
+                          psessionEntry->pSchBeaconFrameBegin;
     tpSirMacMgmtHdr mac;
     tANI_U16        offset;
     tANI_U8        *ptr;
@@ -271,7 +271,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     PopulateDot11fIBSSParams( pMac, &pBcn1->IBSSParams,psessionEntry);
 
     offset = sizeof( tAniBeaconStruct );
-    ptr    = pMac->sch.schObject.gSchBeaconFrameBegin + offset;
+    ptr    = psessionEntry->pSchBeaconFrameBegin + offset;
 
     if((psessionEntry->limSystemRole == eLIM_AP_ROLE)
         && (psessionEntry->proxyProbeRspEn))
@@ -307,7 +307,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     }
     /*changed  to correct beacon corruption */
     vos_mem_set(( tANI_U8*) pBcn2, sizeof( tDot11fBeacon2 ), 0);
-    pMac->sch.schObject.gSchBeaconOffsetBegin = offset + ( tANI_U16 )nBytes;
+    psessionEntry->schBeaconOffsetBegin = offset + ( tANI_U16 )nBytes;
     schLog( pMac, LOG1, FL("Initialized beacon begin, offset %d"), offset );
 
     /*
@@ -466,7 +466,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     }
 
     nStatus = dot11fPackBeacon2( pMac, pBcn2,
-                                 pMac->sch.schObject.gSchBeaconFrameEnd,
+                                 psessionEntry->pSchBeaconFrameEnd,
                                  SCH_MAX_BEACON_SIZE, &nBytes );
     if ( DOT11F_FAILED( nStatus ) )
     {
@@ -483,15 +483,15 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
                              "t11fBeacon2 (0x%08x.)."), nStatus );
     }
 
-    pExtraIe = pMac->sch.schObject.gSchBeaconFrameEnd + nBytes;
+    pExtraIe = psessionEntry->pSchBeaconFrameEnd + nBytes;
     extraIeOffset = nBytes;
 
     //TODO: Append additional IE here.
     schAppendAddnIE(pMac, psessionEntry,
-                    pMac->sch.schObject.gSchBeaconFrameEnd + nBytes,
+                    psessionEntry->pSchBeaconFrameEnd + nBytes,
                     SCH_MAX_BEACON_SIZE, &nBytes);
 
-    pMac->sch.schObject.gSchBeaconOffsetEnd = ( tANI_U16 )nBytes;
+    psessionEntry->schBeaconOffsetEnd = ( tANI_U16 )nBytes;
 
     extraIeLen = nBytes - extraIeOffset;
 
@@ -502,7 +502,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     {
        //Update the P2P Ie Offset
        pMac->sch.schObject.p2pIeOffset =
-                    pMac->sch.schObject.gSchBeaconOffsetBegin + TIM_IE_SIZE +
+                    psessionEntry->schBeaconOffsetBegin + TIM_IE_SIZE +
                     extraIeOffset + p2pIeOffset;
     }
     else
@@ -511,7 +511,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     }
 
     schLog( pMac, LOG1, FL("Initialized beacon end, offset %d"),
-            pMac->sch.schObject.gSchBeaconOffsetEnd );
+            psessionEntry->schBeaconOffsetEnd );
 
     pMac->sch.schObject.fBeaconChanged = 1;
     vos_mem_free(pBcn1);
@@ -733,12 +733,12 @@ void writeBeaconToMemory(tpAniSirGlobal pMac, tANI_U16 size, tANI_U16 length, tp
     // copy end of beacon only if length > 0
     if (length > 0)
     {
-        for (i=0; i < pMac->sch.schObject.gSchBeaconOffsetEnd; i++)
-            pMac->sch.schObject.gSchBeaconFrameBegin[size++] = pMac->sch.schObject.gSchBeaconFrameEnd[i];
+        for (i=0; i < psessionEntry->schBeaconOffsetEnd; i++)
+            psessionEntry->pSchBeaconFrameBegin[size++] = psessionEntry->pSchBeaconFrameEnd[i];
     }
 
     // Update the beacon length
-    pBeacon = (tpAniBeaconStruct) pMac->sch.schObject.gSchBeaconFrameBegin;
+    pBeacon = (tpAniBeaconStruct) psessionEntry->pSchBeaconFrameBegin;
     // Do not include the beaconLength indicator itself
     if (length == 0)
     {
@@ -749,9 +749,9 @@ void writeBeaconToMemory(tpAniSirGlobal pMac, tANI_U16 size, tANI_U16 length, tp
     else
         pBeacon->beaconLength = (tANI_U32) size - sizeof( tANI_U32 );
 
-    // write size bytes from gSchBeaconFrameBegin
+    // write size bytes from pSchBeaconFrameBegin
     PELOG2(schLog(pMac, LOG2, FL("Beacon size - %d bytes"), size);)
-    PELOG2(sirDumpBuf(pMac, SIR_SCH_MODULE_ID, LOG2, pMac->sch.schObject.gSchBeaconFrameBegin, size);)
+    PELOG2(sirDumpBuf(pMac, SIR_SCH_MODULE_ID, LOG2, psessionEntry->pSchBeaconFrameBegin, size);)
 
     if (! pMac->sch.schObject.fBeaconChanged)
         return;
@@ -767,7 +767,7 @@ void writeBeaconToMemory(tpAniSirGlobal pMac, tANI_U16 size, tANI_U16 length, tp
         //
 
         size = (size + 3) & (~3);
-        if( eSIR_SUCCESS != schSendBeaconReq( pMac, pMac->sch.schObject.gSchBeaconFrameBegin,
+        if( eSIR_SUCCESS != schSendBeaconReq( pMac, psessionEntry->pSchBeaconFrameBegin,
                                               size, psessionEntry))
             PELOGE(schLog(pMac, LOGE, FL("schSendBeaconReq() returned an error (zsize %d)"), size);)
         else
@@ -797,7 +797,7 @@ void
 schProcessPreBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 {
     tpBeaconGenParams  pMsg = (tpBeaconGenParams)limMsg->bodyptr;
-    tANI_U32 beaconSize = pMac->sch.schObject.gSchBeaconOffsetBegin;
+    tANI_U32 beaconSize;
     tpPESession psessionEntry;
     tANI_U8 sessionId;
 
@@ -808,6 +808,7 @@ schProcessPreBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     }
 
 
+    beaconSize = psessionEntry->schBeaconOffsetBegin;
 
     // If SME is not in normal mode, no need to generate beacon
     if (psessionEntry->limSmeState  != eLIM_SME_NORMAL_STATE)
@@ -829,7 +830,7 @@ schProcessPreBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
         break;
 
     case eLIM_AP_ROLE:{
-         tANI_U8 *ptr = &pMac->sch.schObject.gSchBeaconFrameBegin[pMac->sch.schObject.gSchBeaconOffsetBegin];
+         tANI_U8 *ptr = &psessionEntry->pSchBeaconFrameBegin[psessionEntry->schBeaconOffsetBegin];
          tANI_U16 timLength = 0;
          if(psessionEntry->statypeForBss == STA_ENTRY_SELF){
              pmmGenerateTIM(pMac, &ptr, &timLength, psessionEntry->dtimPeriod);

@@ -65,9 +65,6 @@
 //                          Static Variables
 //
 //-------------------------------------------------------------------
-static tANI_U8 gSchProbeRspTemplate[SCH_MAX_PROBE_RESP_SIZE];
-static tANI_U8 gSchBeaconFrameBegin[SCH_MAX_BEACON_SIZE];
-static tANI_U8 gSchBeaconFrameEnd[SCH_MAX_BEACON_SIZE];
 
 // --------------------------------------------------------------------
 /**
@@ -185,11 +182,6 @@ schInitGlobals(tpAniSirGlobal pMac)
     pMac->sch.multipleSched = 1;
     pMac->sch.maxPollTimeouts = 20;
     pMac->sch.checkCfbFlagStuck = 0;
-
-    pMac->sch.schObject.gSchProbeRspTemplate = gSchProbeRspTemplate;
-    pMac->sch.schObject.gSchBeaconFrameBegin = gSchBeaconFrameBegin;
-    pMac->sch.schObject.gSchBeaconFrameEnd   = gSchBeaconFrameEnd;
-
 }
 
 // --------------------------------------------------------------------
@@ -305,12 +297,13 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
   }
   else
   {
-      beaconParams->timIeOffset = pMac->sch.schObject.gSchBeaconOffsetBegin;
+      beaconParams->timIeOffset = psessionEntry->schBeaconOffsetBegin;
   }
+
   /* p2pIeOffset should be atleast greater than timIeOffset */
   if ((pMac->sch.schObject.p2pIeOffset != 0) &&
           (pMac->sch.schObject.p2pIeOffset <
-           pMac->sch.schObject.gSchBeaconOffsetBegin))
+           psessionEntry->schBeaconOffsetBegin))
   {
       schLog(pMac, LOGE,FL("Invalid p2pIeOffset:[%d]"),
               pMac->sch.schObject.p2pIeOffset);
@@ -377,7 +370,7 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
                                   ,tANI_U32* IeBitmap)
 {
     tSirMsgQ  msgQ;
-    tANI_U8 *pFrame2Hal = pMac->sch.schObject.gSchProbeRspTemplate;
+    tANI_U8 *pFrame2Hal = psessionEntry->pSchProbeRspTemplate;
     tpSendProbeRespParams pprobeRespParams=NULL;
     tANI_U32  retCode = eSIR_FAILURE;
     tANI_U32             nPayload,nBytes,nStatus;

@@ -1339,39 +1339,18 @@ sapFsm
             }
             else if (msg == eSAP_HDD_STOP_INFRA_BSS)
             {
-                /* Transition from eSAP_STARTING to eSAP_DISCONNECTED */
+                /* Transition from eSAP_DFS_CAC_WAIT to eSAP_DISCONNECTING */
                 VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                         "In %s, from state %s => %s",
-                        __func__, "eSAP_DFS_CAC_WAIT", "eSAP_DISCONNECTIED");
+                        __func__,
+                        "eSAP_DFS_CAC_WAIT",
+                        "eSAP_DISCONNECTING");
 
                 /* stop CAC timer */
                 sapStopDfsCacTimer(sapContext);
 
-                /*Advance outer statevar */
-                sapContext->sapsMachine = eSAP_DISCONNECTED;
-                vosStatus = sapSignalHDDevent( sapContext,
-                                                NULL,
-                                                eSAP_START_BSS_EVENT,
-                                                (v_PVOID_t)eSAP_STATUS_FAILURE);
-                vosStatus = sapGotoDisconnected(sapContext);
-                /* Close the SME session*/
-
-                if (eSAP_TRUE == sapContext->isSapSessionOpen)
-                {
-                    tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
-                    if (NULL == hHal)
-                    {
-                        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                                "In %s, NULL hHal in state %s, msg %d",
-                                __func__, "eSAP_DFS_CAC_WAIT", msg);
-                    }
-                    else if (eHAL_STATUS_SUCCESS ==
-                            sme_CloseSession(hHal,
-                                sapContext->sessionId, NULL, NULL))
-                    {
-                        sapContext->isSapSessionOpen = eSAP_FALSE;
-                    }
-                }
+                sapContext->sapsMachine = eSAP_DISCONNECTING;
+                vosStatus = sapGotoDisconnecting(sapContext);
             }
             else
             {

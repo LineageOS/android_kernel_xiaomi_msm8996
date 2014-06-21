@@ -1458,6 +1458,9 @@ hif_recv_buffer_cleanup_on_pipe(struct HIF_CE_pipe_info *pipe_info)
     scn = sc->ol_sc;
     ce_hdl = pipe_info->ce_hdl;
 
+    if (scn->adf_dev == NULL) {
+       return;
+    }
     while (CE_revoke_recv_next(ce_hdl, &per_CE_context, (void **)&netbuf, &CE_data) == A_OK)
     {
         adf_nbuf_unmap_single(scn->adf_dev, netbuf, ADF_OS_DMA_FROM_DEVICE);

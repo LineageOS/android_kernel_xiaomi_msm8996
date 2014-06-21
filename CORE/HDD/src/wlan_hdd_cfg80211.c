@@ -4188,10 +4188,10 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
 }
 
 /*
- * FUNCTION: wlan_hdd_cfg80211_add_key
+ * FUNCTION: __wlan_hdd_cfg80211_add_key
  * This function is used to initialize the key information
  */
-static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                                       struct net_device *ndev,
                                       u8 key_index, bool pairwise,
                                       const u8 *mac_addr,
@@ -4545,11 +4545,27 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
     return 0;
 }
 
+static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
+                                      struct net_device *ndev,
+                                      u8 key_index, bool pairwise,
+                                      const u8 *mac_addr,
+                                      struct key_params *params
+                                      )
+{
+    int ret;
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_cfg80211_add_key(wiphy, ndev, key_index, pairwise,
+                                      mac_addr, params);
+    vos_ssr_unprotect(__func__);
+
+    return ret;
+}
+
 /*
- * FUNCTION: wlan_hdd_cfg80211_get_key
+ * FUNCTION: __wlan_hdd_cfg80211_get_key
  * This function is used to get the key information
  */
-static int wlan_hdd_cfg80211_get_key(
+static int __wlan_hdd_cfg80211_get_key(
                         struct wiphy *wiphy,
                         struct net_device *ndev,
                         u8 key_index, bool pairwise,
@@ -4613,6 +4629,24 @@ static int wlan_hdd_cfg80211_get_key(
     params.key = &pRoamProfile->Keys.KeyMaterial[key_index][0];
     callback(cookie, &params);
     return 0;
+}
+
+static int wlan_hdd_cfg80211_get_key(
+                        struct wiphy *wiphy,
+                        struct net_device *ndev,
+                        u8 key_index, bool pairwise,
+                        const u8 *mac_addr, void *cookie,
+                        void (*callback)(void *cookie, struct key_params*)
+                        )
+{
+    int ret;
+
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_cfg80211_get_key(wiphy, ndev, key_index, pairwise,
+                                    mac_addr, cookie, callback);
+    vos_ssr_unprotect(__func__);
+
+    return ret;
 }
 
 /*
@@ -4722,10 +4756,10 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
 }
 
 /*
- * FUNCTION: wlan_hdd_cfg80211_set_default_key
+ * FUNCTION: __wlan_hdd_cfg80211_set_default_key
  * This function is used to set the default tx key index
  */
-static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
                                               struct net_device *ndev,
                                               u8 key_index,
                                               bool unicast, bool multicast)
@@ -4862,6 +4896,20 @@ static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
     }
 
     return status;
+}
+
+static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
+                                              struct net_device *ndev,
+                                              u8 key_index,
+                                              bool unicast, bool multicast)
+{
+    int ret;
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_cfg80211_set_default_key(wiphy, ndev, key_index, unicast,
+                                              multicast);
+    vos_ssr_unprotect(__func__);
+
+    return ret;
 }
 
 /*

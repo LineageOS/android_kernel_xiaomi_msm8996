@@ -1211,8 +1211,11 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    // then go to 'authenticated'.  For all other authentication types
    // (those that donot require upper layer authentication) we can put
    // TL directly into 'authenticated' state.
-   if (staDesc.wSTAType != WLAN_STA_IBSS)
-      VOS_ASSERT( fConnected );
+   if (staDesc.wSTAType != WLAN_STA_IBSS) {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+                 "STA type %d fConnected %d", staDesc.wSTAType, fConnected);
+   }
+
 
    if ( !pRoamInfo->fAuthRequired )
    {
@@ -1733,12 +1736,23 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             }
             else
             {
-                if (pRoamInfo)
+                if (pRoamInfo) {
+                    eCsrAuthType authType =
+                        pWextState->roamProfile.AuthType.authType[0];
+                    v_BOOL_t isWep = (authType == eCSR_AUTH_TYPE_OPEN_SYSTEM) ||
+                                    (authType == eCSR_AUTH_TYPE_SHARED_KEY);
+
+                    /* In case of OPEN-WEP or SHARED-WEP authentication,
+                     * send exact protocol reason code. This enables user
+                     * applications to reconnect the station with correct
+                     * configuration.
+                     */
                     cfg80211_connect_result ( dev, pRoamInfo->bssid,
                         NULL, 0, NULL, 0,
-                        WLAN_STATUS_UNSPECIFIED_FAILURE,
+                        isWep ? pRoamInfo->reasonCode :
+                            WLAN_STATUS_UNSPECIFIED_FAILURE,
                         GFP_KERNEL );
-                else
+                } else
                     cfg80211_connect_result ( dev, pWextState->req_bssId,
                         NULL, 0, NULL, 0,
                         WLAN_STATUS_UNSPECIFIED_FAILURE,
