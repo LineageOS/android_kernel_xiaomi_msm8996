@@ -53,9 +53,6 @@
 #define HTC_TARGET_DEBUG_INTR_MASK         0x01
 #define HTC_TARGET_CREDIT_INTR_MASK        0xF0
 
-#define HTC_HOST_MAX_MSG_PER_BUNDLE        16
-#define HTC_MIN_HTC_MSGS_TO_BUNDLE         2
-
 #define MAILBOX_COUNT 4
 #define MAILBOX_FOR_BLOCK_SIZE 1
 #define MAILBOX_USED_COUNT 2
@@ -75,7 +72,8 @@ typedef PREPACK struct _MBOX_IRQ_PROC_REGISTERS {
     A_UINT8 rx_lookahead_valid;
     A_UINT8 host_int_status2;
     A_UINT8 gmbox_rx_avail;
-    A_UINT32 rx_lookahead[MAILBOX_LOOKAHEAD_SIZE_IN_WORD*MAILBOX_USED_COUNT];
+    A_UINT32 rx_lookahead[MAILBOX_LOOKAHEAD_SIZE_IN_WORD * MAILBOX_COUNT];
+    A_UINT32 int_status_enable;
 }POSTPACK MBOX_IRQ_PROC_REGISTERS;
 
 typedef PREPACK struct _MBOX_IRQ_ENABLE_REGISTERS {
@@ -84,6 +82,12 @@ typedef PREPACK struct _MBOX_IRQ_ENABLE_REGISTERS {
     A_UINT8 error_status_enable;
     A_UINT8 counter_int_status_enable;
 }POSTPACK MBOX_IRQ_ENABLE_REGISTERS;
+
+#define TOTAL_CREDIT_COUNTER_CNT 4
+
+typedef PREPACK struct _MBOX_COUNTER_REGISTERS {
+    A_UINT32 counter[TOTAL_CREDIT_COUNTER_CNT];
+}POSTPACK MBOX_COUNTER_REGISTERS;
 
 #define SDIO_NUM_DATA_RX_BUFFERS  64
 #define SDIO_DATA_RX_SIZE         1664
@@ -95,6 +99,7 @@ struct TAG_HIF_SDIO_DEVICE {
     A_MUTEX_T RxLock;
     MBOX_IRQ_PROC_REGISTERS IrqProcRegisters;
     MBOX_IRQ_ENABLE_REGISTERS IrqEnableRegisters;
+    MBOX_COUNTER_REGISTERS MailBoxCounterRegisters;
     MSG_BASED_HIF_CALLBACKS hif_callbacks;
     HIF_DEVICE_MBOX_INFO MailBoxInfo;
     A_UINT32 BlockSize;
