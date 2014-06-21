@@ -88,6 +88,7 @@ int ath_sdio_resume(void *context);
 int hif_register_driver(void);
 void hif_unregister_driver(void);
 void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc);
+void hif_deinit_adf_ctx(void *ol_sc);
 void hif_disable_isr(void *ol_sc);
 void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle);
 void hif_reset_soc(void *ol_sc);

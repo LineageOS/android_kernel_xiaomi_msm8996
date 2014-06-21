@@ -121,7 +121,8 @@ PREPACK64 struct host_interest_s {
     /* Pointer to debug logging header */
     A_UINT32               hi_dbglog_hdr;                             /* 0x08 */
 
-    A_UINT32               hi_unused0c;                               /* 0x0c */
+    /* Save SW ROM version */
+    A_UINT32               hi_sw_rom_version;                         /* 0x0c */
 
     /*
      * General-purpose flag bits, similar to SOC_OPTION_* flags.

@@ -412,6 +412,9 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    macOpenParms.driverType         = eDRIVER_TYPE_PRODUCTION;
    macOpenParms.powersaveOffloadEnabled =
       pHddCtx->cfg_ini->enablePowersaveOffload;
+   macOpenParms.staDynamicDtim = pHddCtx->cfg_ini->enableDynamicDTIM;
+   macOpenParms.staModDtim = pHddCtx->cfg_ini->enableModulatedDTIM;
+   macOpenParms.staMaxLIModDtim = pHddCtx->cfg_ini->fMaxLIModulatedDTIM;
    macOpenParms.wowEnable          = pHddCtx->cfg_ini->wowEnable;
    macOpenParms.maxWoWFilters      = pHddCtx->cfg_ini->maxWoWFilters;
   /* Here olIniInfo is used to store ini status of arp offload

@@ -723,10 +723,16 @@ int wlan_hdd_cfg80211_remain_on_channel( struct wiphy *wiphy,
 
 void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
 {
-    hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
-    hdd_remain_on_chan_ctx_t* pRemainChanCtx;
+    hdd_cfg80211_state_t *cfgState = NULL;
+    hdd_remain_on_chan_ctx_t* pRemainChanCtx = NULL;
     VOS_STATUS status;
 
+    if (NULL == pAdapter)
+    {
+        hddLog(LOGE, FL("pAdapter is NULL"));
+        return;
+    }
+    cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     hddLog( LOG1, "Ready on chan ind");
 
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);

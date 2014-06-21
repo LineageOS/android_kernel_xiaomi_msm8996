@@ -226,6 +226,13 @@ void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc)
 	adf_dev->dev = hif_sc->aps_osdev.device;
 	sc->adf_dev = adf_dev;
 }
+
+void hif_deinit_adf_ctx(void *ol_sc)
+{
+	struct ol_softc *sc = (struct ol_softc *)ol_sc;
+	sc->adf_dev = NULL;
+}
+
 #define A_PCIE_LOCAL_REG_READ(mem, addr) \
         A_PCI_READ32((char *)(mem) + PCIE_LOCAL_BASE_ADDRESS + (A_UINT32)(addr))
 
@@ -995,7 +1002,7 @@ err_region:
  * power up WLAN host driver when SSR happens. Most of this
  * function is duplicated from hif_pci_probe().
  */
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 int hif_pci_reinit(struct pci_dev *pdev, const struct pci_device_id *id)
 {
     void __iomem *mem;
@@ -1603,7 +1610,7 @@ hif_pci_remove(struct pci_dev *pdev)
  * shutdown WLAN host driver when SSR happens. Most of this
  * function is duplicated from hif_pci_remove().
  */
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 void hif_pci_shutdown(struct pci_dev *pdev)
 {
     void __iomem *mem;

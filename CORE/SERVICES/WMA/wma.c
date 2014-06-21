@@ -240,6 +240,9 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 
 static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id);
 
+static void wma_set_suspend_dtim(tp_wma_handle wma);
+static void wma_set_resume_dtim(tp_wma_handle wma);
+
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
 {
@@ -3392,6 +3395,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	 * 4 - QPower + Deepsleep Enabled
 	 */
 	wma_handle->powersave_mode = mac_params->powersaveOffloadEnabled;
+	wma_handle->staMaxLIModDtim = mac_params->staMaxLIModDtim;
+	wma_handle->staModDtim = mac_params->staModDtim;
+	wma_handle->staDynamicDtim = mac_params->staDynamicDtim;
 
 	/*
 	 * Value of mac_params->wowEnable can be,
@@ -4663,6 +4669,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	u_int32_t *tmp_ptr, ie_len_with_pad;
 	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
 	u_int8_t *buf_ptr;
+	u_int32_t dwell_time;
 	int i;
 	int len = sizeof(*cmd);
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
@@ -4725,13 +4732,27 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 				WMI_SCAN_EVENT_PREEMPTED |
 				WMI_SCAN_EVENT_RESTARTED;
 
-	/* CSR sends min and max dwell time values, but expects the firmware
-	 * to use only max dwell time value. It does not send separate values
-	 * for active and passive. We use the same value for now.
-	 * CSR will pass 40 or 110 ms as maxChannelTime value to us.
-	 */
 	cmd->dwell_time_active = scan_req->maxChannelTime;
-	cmd->dwell_time_passive = scan_req->maxChannelTime;
+
+	if (scan_req->scanType == eSIR_ACTIVE_SCAN) {
+		/* In Active scan case, the firmware has to do passive scan on DFS channels
+		 * So the passive scan duration should be updated properly so that the duration
+		 * will be sufficient enough to receive the beacon from AP */
+
+		if (wlan_cfgGetInt(pMac, WNI_CFG_PASSIVE_MAXIMUM_CHANNEL_TIME,
+					&dwell_time) != eSIR_SUCCESS) {
+			WMA_LOGE("Failed to get passive max channel value"
+					"using default value");
+			dwell_time = WMA_DWELL_TIME_PASSIVE_DEFAULT;
+		}
+		cmd->dwell_time_passive = dwell_time;
+	}
+	else
+		cmd->dwell_time_passive = scan_req->maxChannelTime;
+
+	WMA_LOGI("Scan Type %x, Active dwell time %u, Passive dwell time %u",
+			scan_req->scanType, cmd->dwell_time_active,
+			cmd->dwell_time_passive);
 
 	/* Ensure correct number of probes are sent on active channel */
 	cmd->repeat_probe_time = cmd->dwell_time_active / WMA_SCAN_NPROBES_DEFAULT;
@@ -6893,6 +6914,12 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 				return VOS_STATUS_E_FAILURE;
 			}
 
+			if (wma->dfs_ic->ic_curchan)
+			{
+				OS_FREE(wma->dfs_ic->ic_curchan);
+				wma->dfs_ic->ic_curchan = NULL;
+			}
+
 			/* provide the current channel to DFS */
 			wma->dfs_ic->ic_curchan =
 				wma_dfs_configure_channel(wma->dfs_ic,chan,chanmode,req);
@@ -8281,6 +8308,15 @@ static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
 	wmi_sta_powersave_param_cmd_fixed_param *cmd;
 	wmi_buf_t buf;
 	int32_t len = sizeof(*cmd);
+	tp_wma_handle wma;
+	struct wma_txrx_node *iface;
+	wma = vos_get_context(VOS_MODULE_ID_WDA,
+			vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+	if (NULL == wma) {
+		WMA_LOGE("%s: wma is NULL", __func__);
+		return -EIO;
+	}
+	iface = &wma->interfaces[vdev_id];
 
 	WMA_LOGD("Set Sta Ps param vdevId %d Param %d val %d",
 		      vdev_id, param, value);
@@ -8307,6 +8343,8 @@ static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
 		adf_nbuf_free(buf);
 		return -EIO;
 	}
+	/* Store the PS Status */
+	iface->ps_enabled = value ? TRUE : FALSE;
 	return 0;
 }
 
@@ -9860,17 +9898,11 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		}
 #endif /* WLAN_FEATURE_11W */
 
-		if (add_bss->staContext.encryptType == eSIR_ED_NONE) {
-			WMA_LOGD("%s: send peer authorize wmi cmd for %pM",
-				 __func__, add_bss->bssId);
-			wma_set_peer_param(wma, add_bss->bssId,
-					   WMI_PEER_AUTHORIZE, 1,
-					   add_bss->staContext.smesessionId);
-			wma_vdev_set_bss_params(wma, add_bss->staContext.smesessionId,
-					add_bss->beaconInterval, add_bss->dtimPeriod,
-					add_bss->shortSlotTimeSupported, add_bss->llbCoexist,
-					add_bss->maxTxPower);
-		}
+		wma_vdev_set_bss_params(wma, add_bss->staContext.smesessionId,
+				add_bss->beaconInterval, add_bss->dtimPeriod,
+				add_bss->shortSlotTimeSupported, add_bss->llbCoexist,
+				add_bss->maxTxPower);
+
 		/*
 		 * Store the bssid in interface table, bssid will
 		 * be used during group key setting sta mode.
@@ -10135,18 +10167,6 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		add_sta->status = VOS_STATUS_E_FAILURE;
 		wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
 		goto send_rsp;
-	}
-	if (add_sta->encryptType == eSIR_ED_NONE) {
-		ret = wma_set_peer_param(wma, add_sta->staMac,
-					 WMI_PEER_AUTHORIZE, 1,
-					 add_sta->smesessionId);
-		if (ret) {
-			add_sta->status = VOS_STATUS_E_FAILURE;
-			wma_remove_peer(wma, add_sta->staMac,
-					add_sta->smesessionId, peer);
-			goto send_rsp;
-		}
-		state = ol_txrx_peer_state_auth;
 	}
 #ifdef WLAN_FEATURE_11W
 	if (add_sta->rmfEnabled) {
@@ -10540,13 +10560,6 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 						  ol_txrx_peer_state_conn);
 		}
 
-		if (params->encryptType == eSIR_ED_NONE) {
-			WMA_LOGD("%s: send peer authorize wmi cmd for %pM",
-				 __func__, params->bssId);
-			wma_set_peer_param(wma, params->bssId,
-					   WMI_PEER_AUTHORIZE, 1,
-					   params->smesessionId);
-		}
 		wmi_unified_send_txbf(wma, params);
 
                 wmi_unified_send_peer_assoc(wma,
@@ -12523,6 +12536,7 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 	uint32_t vdev_id = ps_req->sessionid;
 	int32_t ret;
 	u_int8_t is_qpower_enabled = wma_is_qpower_enabled(wma);
+	struct wma_txrx_node *iface = &wma->interfaces[vdev_id];
 
 	if (eSIR_ADDON_NOTHING == ps_req->psSetting) {
 		WMA_LOGD("Enable Sta Mode Ps vdevId %d", vdev_id);
@@ -12545,7 +12559,6 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 		}
 	} else if (eSIR_ADDON_ENABLE_UAPSD == ps_req->psSetting) {
 		u_int32_t uapsd_val = 0;
-		struct wma_txrx_node *iface = &wma->interfaces[vdev_id];
 		uapsd_val = wma_get_uapsd_mask(&ps_req->uapsdParams);
 
 		if(uapsd_val != iface->uapsd_cached_val) {
@@ -12581,6 +12594,7 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 		}
 	}
 	ps_req->status = VOS_STATUS_SUCCESS;
+	iface->dtimPeriod = ps_req->bcnDtimPeriod;
 resp:
 	wma_send_msg(wma, WDA_ENTER_BMPS_RSP, ps_req, 0);
 }
@@ -14275,6 +14289,8 @@ static VOS_STATUS wma_resume_req(tp_wma_handle wma)
 	}
 
 end:
+	/* Reset the DTIM Parameters */
+	wma_set_resume_dtim(wma);
 	/* need to reset if hif_pci_suspend_fails */
 	wma_set_wow_bus_suspend(wma, 0);
 	/* unpause the vdev if left paused and hif_pci_suspend fails */
@@ -14743,6 +14759,8 @@ enable_wow:
 	vos_mem_free(info);
 
 send_ready_to_suspend:
+	/* Set the Suspend DTIM Parameters */
+	wma_set_suspend_dtim(wma);
 	wma_send_status_to_suspend_ind(wma, TRUE);
 
 	/* to handle race between hif_pci_suspend and
@@ -21945,3 +21963,155 @@ void WDA_TxAbort(v_U8_t vdev_id)
 	wmi_unified_peer_flush_tids_send(wma->wmi_handle, iface->bssid,
 					 peer_tid_bitmap, vdev_id);
 }
+
+static void wma_set_vdev_suspend_dtim(tp_wma_handle wma, v_U8_t vdev_id)
+{
+	struct wma_txrx_node *iface = &wma->interfaces[vdev_id];
+	u_int8_t is_qpower_enabled = wma_is_qpower_enabled(wma);
+
+	if ((iface->type == WMI_VDEV_TYPE_STA) &&
+		(iface->ps_enabled == TRUE) &&
+		!is_qpower_enabled &&
+		(iface->dtimPeriod != 0)) {
+		int32_t ret;
+		u_int32_t listen_interval;
+		u_int32_t max_mod_dtim;
+
+		if (wma->staDynamicDtim) {
+			if (iface->dtimPeriod <
+				WMA_DYNAMIC_DTIM_SETTING_THRESHOLD) {
+				/* Set DTIM Policy to Normal DTIM */
+				/* Configure LI = Dynamic DTIM Value */
+				listen_interval = wma->staDynamicDtim;
+			} else {
+				return;
+			}
+		} else if ((wma->staModDtim)&& (wma->staMaxLIModDtim)) {
+			/*
+			  * When the system is in suspend
+			  * (maximum beacon will be at 1s == 10)
+			  * If maxModulatedDTIM ((MAX_LI_VAL = 10) / AP_DTIM)
+			  * equal or larger than MDTIM (configured in WCNSS_qcom_cfg.ini)
+			  * Set LI to MDTIM * AP_DTIM
+			  * If Dtim = 2 and Mdtim = 2 then LI is 4
+			  * Else
+			  * Set LI to maxModulatedDTIM * AP_DTIM
+			  */
+			max_mod_dtim = wma->staMaxLIModDtim/iface->dtimPeriod;
+			if (max_mod_dtim >= wma->staModDtim) {
+				listen_interval =
+					(wma->staModDtim * iface->dtimPeriod);
+			} else {
+				listen_interval =
+					(max_mod_dtim * iface->dtimPeriod);
+			}
+		} else {
+			return;
+		}
+
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+							WMI_VDEV_PARAM_LISTEN_INTERVAL,
+							listen_interval);
+		if (ret) {
+			/* Even it fails continue Fw will take default LI */
+			WMA_LOGE("Failed to Set Listen Interval vdevId %d",
+				vdev_id);
+		}
+
+		WMA_LOGD("Set Listen Interval vdevId %d Listen Intv %d",
+			vdev_id, listen_interval);
+
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+							WMI_VDEV_PARAM_DTIM_POLICY ,
+							NORMAL_DTIM);
+		if (ret) {
+			/* Set it to Normal DTIM */
+			WMA_LOGE("Failed to Set to Normal DTIM vdevId %d",
+					vdev_id);
+		}
+		iface->dtim_policy = NORMAL_DTIM;
+		WMA_LOGD("Set DTIM Policy to Normal Dtim vdevId %d", vdev_id);
+	}
+}
+
+static void wma_set_suspend_dtim(tp_wma_handle wma)
+{
+	u_int8_t i;
+
+	if (NULL == wma) {
+		WMA_LOGE("%s: wma is NULL", __func__);
+		return;
+	}
+
+	for (i = 0; i < wma->max_bssid; i++) {
+		if (wma->interfaces[i].handle) {
+			wma_set_vdev_suspend_dtim(wma, i);
+		}
+	}
+}
+
+static void wma_set_vdev_resume_dtim(tp_wma_handle wma, v_U8_t vdev_id)
+{
+	struct wma_txrx_node *iface = &wma->interfaces[vdev_id];
+	u_int8_t is_qpower_enabled = wma_is_qpower_enabled(wma);
+
+	if ((iface->type == WMI_VDEV_TYPE_STA) &&
+		(iface->ps_enabled == TRUE) &&
+		!is_qpower_enabled &&
+		(iface->dtim_policy == NORMAL_DTIM)) {
+		int32_t ret;
+		tANI_U32 cfg_data_val = 0;
+		/* get mac to acess CFG data base */
+		struct sAniSirGlobal *mac =
+		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+							wma->vos_context);
+		/* Set Listen Interval */
+		if ((NULL == mac) || (wlan_cfgGetInt(mac,
+				WNI_CFG_LISTEN_INTERVAL,
+				&cfg_data_val ) != eSIR_SUCCESS)) {
+			VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get value for listen interval");
+			cfg_data_val = POWERSAVE_DEFAULT_LISTEN_INTERVAL;
+		}
+
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+							WMI_VDEV_PARAM_LISTEN_INTERVAL,
+							cfg_data_val);
+		if (ret) {
+			/* Even it fails continue Fw will take default LI */
+			WMA_LOGE("Failed to Set Listen Interval vdevId %d",
+				vdev_id);
+		}
+
+		WMA_LOGD("Set Listen Interval vdevId %d Listen Intv %d",
+			vdev_id, cfg_data_val);
+
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+							WMI_VDEV_PARAM_DTIM_POLICY ,
+							STICK_DTIM);
+		if (ret) {
+			/* Set it back to Stick DTIM */
+			WMA_LOGE("Failed to Set to Stick DTIM vdevId %d",
+				vdev_id);
+		}
+		iface->dtim_policy = STICK_DTIM;
+		WMA_LOGD("Set DTIM Policy to Stick Dtim vdevId %d", vdev_id);
+	}
+}
+
+static void wma_set_resume_dtim(tp_wma_handle wma)
+{
+	u_int8_t i;
+
+	if (NULL == wma) {
+		WMA_LOGE("%s: wma is NULL", __func__);
+		return;
+	}
+
+	for (i = 0; i < wma->max_bssid; i++) {
+		if (wma->interfaces[i].handle) {
+			wma_set_vdev_resume_dtim(wma, i);
+		}
+	}
+}
+
