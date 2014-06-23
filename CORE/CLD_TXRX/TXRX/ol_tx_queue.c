@@ -511,7 +511,7 @@ ol_txrx_pdev_pause(ol_txrx_pdev_handle pdev)
     struct ol_txrx_vdev_t *vdev = NULL, *tmp;
 
     TAILQ_FOREACH_SAFE(vdev, &pdev->vdev_list, vdev_list_elem, tmp) {
-        ol_txrx_vdev_pause(vdev);
+        ol_txrx_vdev_pause(vdev, 0);
     }
 }
 
@@ -521,7 +521,7 @@ ol_txrx_pdev_unpause(ol_txrx_pdev_handle pdev)
     struct ol_txrx_vdev_t *vdev = NULL, *tmp;
 
     TAILQ_FOREACH_SAFE(vdev, &pdev->vdev_list, vdev_list_elem, tmp) {
-        ol_txrx_vdev_unpause(vdev);
+        ol_txrx_vdev_unpause(vdev, 0);
     }
 }
 
