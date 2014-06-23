@@ -417,6 +417,13 @@ ol_tx_sched_init_rr(
 
     return scheduler;
 }
+
+void
+ol_txrx_set_wmm_param(ol_txrx_pdev_handle data_pdev, struct ol_tx_wmm_param_t wmm_param)
+{
+    adf_os_print("Dummy function when OL_TX_SCHED_RR is enabled\n");
+}
+
 #endif /* OL_TX_SCHED == OL_TX_SCHED_RR */
 
 /*--- advanced scheduler ----------------------------------------------------*/
@@ -639,6 +646,15 @@ struct ol_tx_sched_wrr_adv_t {
     struct ol_tx_sched_wrr_adv_category_info_t
         categories[OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES];
 };
+
+#define OL_TX_AIFS_DEFAULT_VO   2
+#define OL_TX_AIFS_DEFAULT_VI   2
+#define OL_TX_AIFS_DEFAULT_BE   3
+#define OL_TX_AIFS_DEFAULT_BK   7
+#define OL_TX_CW_MIN_DEFAULT_VO   3
+#define OL_TX_CW_MIN_DEFAULT_VI   7
+#define OL_TX_CW_MIN_DEFAULT_BE   15
+#define OL_TX_CW_MIN_DEFAULT_BK   15
 
 /*--- functions ---*/
 
@@ -1005,6 +1021,68 @@ ol_tx_sched_init_wrr_adv(
 
     return scheduler;
 }
+
+
+/* WMM parameters are suppposed to be passed when associate with AP.
+ * According to AIFS+CWMin, the function maps each queue to one of four default
+ * settings of the scheduler, ie. VO, VI, BE, or BK.
+ */
+void
+ol_txrx_set_wmm_param(ol_txrx_pdev_handle data_pdev, struct ol_tx_wmm_param_t wmm_param)
+{
+    struct ol_tx_sched_wrr_adv_t def_cfg;
+    struct ol_tx_sched_wrr_adv_t *scheduler = data_pdev->tx_sched.scheduler;
+    u_int32_t i, ac_selected, weight[OL_TX_NUM_WMM_AC], default_edca[OL_TX_NUM_WMM_AC];
+
+    OL_TX_SCHED_WRR_ADV_CAT_CFG_STORE(VO, (&def_cfg));
+    OL_TX_SCHED_WRR_ADV_CAT_CFG_STORE(VI, (&def_cfg));
+    OL_TX_SCHED_WRR_ADV_CAT_CFG_STORE(BE, (&def_cfg));
+    OL_TX_SCHED_WRR_ADV_CAT_CFG_STORE(BK, (&def_cfg));
+
+    // default_eca = AIFS + CWMin
+    default_edca[OL_TX_SCHED_WRR_ADV_CAT_VO] =
+                      OL_TX_AIFS_DEFAULT_VO + OL_TX_CW_MIN_DEFAULT_VO;
+    default_edca[OL_TX_SCHED_WRR_ADV_CAT_VI] =
+                      OL_TX_AIFS_DEFAULT_VI + OL_TX_CW_MIN_DEFAULT_VI;
+    default_edca[OL_TX_SCHED_WRR_ADV_CAT_BE] =
+                      OL_TX_AIFS_DEFAULT_BE + OL_TX_CW_MIN_DEFAULT_BE;
+    default_edca[OL_TX_SCHED_WRR_ADV_CAT_BK] =
+                      OL_TX_AIFS_DEFAULT_BK + OL_TX_CW_MIN_DEFAULT_BK;
+
+    weight[OL_TX_SCHED_WRR_ADV_CAT_VO] =
+             wmm_param.ac[OL_TX_WMM_AC_VO].aifs + wmm_param.ac[OL_TX_WMM_AC_VO].cwmin;
+    weight[OL_TX_SCHED_WRR_ADV_CAT_VI] =
+             wmm_param.ac[OL_TX_WMM_AC_VI].aifs + wmm_param.ac[OL_TX_WMM_AC_VI].cwmin;
+    weight[OL_TX_SCHED_WRR_ADV_CAT_BK] =
+             wmm_param.ac[OL_TX_WMM_AC_BK].aifs + wmm_param.ac[OL_TX_WMM_AC_BK].cwmin;
+    weight[OL_TX_SCHED_WRR_ADV_CAT_BE] =
+             wmm_param.ac[OL_TX_WMM_AC_BE].aifs + wmm_param.ac[OL_TX_WMM_AC_BE].cwmin;
+
+    for (i = 0; i < OL_TX_NUM_WMM_AC; i++) {
+
+        if (default_edca[OL_TX_SCHED_WRR_ADV_CAT_VO] >= weight[i]) {
+            ac_selected = OL_TX_SCHED_WRR_ADV_CAT_VO;
+        } else if (default_edca[OL_TX_SCHED_WRR_ADV_CAT_VI] >= weight[i]) {
+            ac_selected = OL_TX_SCHED_WRR_ADV_CAT_VI;
+        } else if (default_edca[OL_TX_SCHED_WRR_ADV_CAT_BE] >= weight[i]) {
+            ac_selected = OL_TX_SCHED_WRR_ADV_CAT_BE;
+        } else {
+            ac_selected = OL_TX_SCHED_WRR_ADV_CAT_BK;
+        }
+
+        scheduler->categories[i].specs.wrr_skip_weight =
+                                 def_cfg.categories[ac_selected].specs.wrr_skip_weight;
+        scheduler->categories[i].specs.credit_threshold =
+                                 def_cfg.categories[ac_selected].specs.credit_threshold;
+        scheduler->categories[i].specs.send_limit =
+                                 def_cfg.categories[ac_selected].specs.send_limit;
+        scheduler->categories[i].specs.credit_reserve =
+                                 def_cfg.categories[ac_selected].specs.credit_reserve;
+        scheduler->categories[i].specs.discard_weight =
+                                 def_cfg.categories[ac_selected].specs.discard_weight;
+    }
+}
+
 #endif /* OL_TX_SCHED == OL_TX_SCHED_WRR_ADV */
 
 /*--- congestion control discard --------------------------------------------*/

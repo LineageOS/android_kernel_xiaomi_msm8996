@@ -188,6 +188,45 @@ ol_txrx_peer_update(ol_txrx_vdev_handle data_vdev, u_int8_t *peer_mac,
 		    ol_txrx_peer_update_param_t *param,
 		    ol_txrx_peer_update_select_t select);
 
+enum {
+    OL_TX_WMM_AC_BE,
+    OL_TX_WMM_AC_BK,
+    OL_TX_WMM_AC_VI,
+    OL_TX_WMM_AC_VO,
+
+    OL_TX_NUM_WMM_AC
+};
+
+/**
+ * @brief Parameter type to pass WMM setting to wdi_in_set_wmm_param
+ * @details
+ *   The struct is used to specify informaiton to update TX WMM scheduler.
+ */
+struct ol_tx_ac_param_t {
+    u_int32_t aifs;
+    u_int32_t cwmin;
+    u_int32_t cwmax;
+};
+
+struct ol_tx_wmm_param_t {
+    struct ol_tx_ac_param_t ac[OL_TX_NUM_WMM_AC];
+};
+
+/**
+ * @brief Set paramters of WMM scheduler per AC settings.  .
+ * @details
+ *  This function applies only to HL systems.
+ *
+ * @param data_pdev - the physical device being paused
+ * @param wmm_param - the wmm parameters
+ */
+#if defined(CONFIG_HL_SUPPORT)
+void
+ol_txrx_set_wmm_param(ol_txrx_pdev_handle data_pdev, struct ol_tx_wmm_param_t wmm_param);
+#else
+#define ol_txrx_set_wmm_param(data_pdev, wmm_param) /* no-op */
+#endif /* CONFIG_HL_SUPPORT */
+
 /**
  * @brief Notify tx data SW that a peer's transmissions are suspended.
  * @details
@@ -1077,5 +1116,7 @@ ol_txrx_ll_set_tx_pause_q_depth(
     int pause_q_depth
 );
 #endif /* QCA_LL_TX_FLOW_CT */
+
+
 
 #endif /* _OL_TXRX_CTRL_API__H_ */

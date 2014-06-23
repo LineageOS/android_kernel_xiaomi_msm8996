@@ -11852,6 +11852,8 @@ static VOS_STATUS wma_process_update_edca_param_req(WMA_HANDLE handle,
 	tSirMacEdcaParamRecord *edca_record;
 	int ac;
 	int len = sizeof(*cmd);
+	ol_txrx_pdev_handle pdev;
+	struct ol_tx_wmm_param_t ol_tx_wmm_param;
 
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 
@@ -11891,11 +11893,18 @@ static VOS_STATUS wma_process_update_edca_param_req(WMA_HANDLE handle,
 		}
 
 		wma_update_edca_params_for_ac(edca_record, wmm_param, ac);
+
+		ol_tx_wmm_param.ac[ac].aifs = wmm_param->aifs;
+		ol_tx_wmm_param.ac[ac].cwmin = wmm_param->cwmin;
+		ol_tx_wmm_param.ac[ac].cwmax = wmm_param->cwmax;
 	}
 
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 				  WMI_VDEV_SET_WMM_PARAMS_CMDID))
 		goto fail;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma_handle->vos_context);
+	wdi_in_set_wmm_param(pdev, ol_tx_wmm_param);
 
 	return VOS_STATUS_SUCCESS;
 
