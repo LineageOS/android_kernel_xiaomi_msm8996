@@ -1013,7 +1013,6 @@ static int bw20_ch_index_to_bw40_ch_index(int k)
    return m;
 }
 
-
 static int create_linux_regulatory_entry(struct wiphy *wiphy,
                                          v_U8_t nBandCapability);
 
@@ -1430,8 +1429,8 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
             }
             else /* Enable is only last flag we support */
             {
-                pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[k].enabled =
-                    NV_CHANNEL_ENABLE;
+                pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
+                    channels[k].enabled = NV_CHANNEL_ENABLE;
 
                 /* max_power is in dBm */
                 pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[k].pwrLimit =
