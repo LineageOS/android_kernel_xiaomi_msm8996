@@ -170,6 +170,69 @@ ol_tx_tid_by_ipv6(
     return (IPV6_TRAFFIC_CLASS((struct ipv6_hdr_t *) pkt) >> 5) & 0x7;
 }
 
+static inline void
+ol_tx_set_ether_type(
+    A_UINT8 *datap,
+    struct ol_txrx_msdu_info_t *tx_msdu_info)
+{
+    A_UINT16 typeorlength;
+    A_UINT8 * ptr;
+    A_UINT8 *l3_data_ptr;
+
+    if (tx_msdu_info->htt.info.l2_hdr_type == htt_pkt_type_raw) {
+         /* adjust hdr_ptr to RA */
+        struct ieee80211_frame *wh = (struct ieee80211_frame *)datap;
+
+        if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_DATA) {
+            struct llc_snap_hdr_t *llc;
+            /* dot11 encapsulated frame */
+            struct ieee80211_qosframe *whqos = (struct ieee80211_qosframe *)datap;
+            if (whqos->i_fc[0] & IEEE80211_FC0_SUBTYPE_QOS) {
+                tx_msdu_info->htt.info.l3_hdr_offset =
+                    sizeof(struct ieee80211_qosframe);
+            } else {
+                tx_msdu_info->htt.info.l3_hdr_offset =
+                    sizeof(struct ieee80211_frame);
+            }
+            llc = (struct llc_snap_hdr_t *)
+                (datap + tx_msdu_info->htt.info.l3_hdr_offset);
+            tx_msdu_info->htt.info.ethertype =
+                (llc->ethertype[0] << 8) | llc->ethertype[1];
+            /*
+             * l3_hdr_offset refers to the end of the 802.3 or 802.11 header,
+             * which may be a LLC/SNAP header rather than the IP header.
+             * Thus, don't increment l3_hdr_offset += sizeof(*llc); rather,
+             * leave it as is.
+             */
+        } else {
+            /*
+             * This function should only be applied to data frames.
+             * For management frames, we already know to use HTT_TX_EXT_TID_MGMT.
+             */
+            TXRX_ASSERT2(0);
+        }
+    } else if (tx_msdu_info->htt.info.l2_hdr_type == htt_pkt_type_ethernet) {
+        ptr = (datap + ETHERNET_ADDR_LEN * 2);
+        typeorlength = (ptr[0] << 8) | ptr[1];
+        l3_data_ptr = datap + sizeof(struct ethernet_hdr_t);//ETHERNET_HDR_LEN;
+
+        if (typeorlength == ETHERTYPE_VLAN) {
+            ptr = (datap + ETHERNET_ADDR_LEN * 2 + ETHERTYPE_VLAN_LEN);
+            typeorlength = (ptr[0] << 8) | ptr[1];
+            l3_data_ptr += ETHERTYPE_VLAN_LEN;
+        }
+
+        if (!IS_ETHERTYPE(typeorlength)) { // 802.3 header
+            struct llc_snap_hdr_t *llc_hdr = (struct llc_snap_hdr_t *) l3_data_ptr;
+            typeorlength = (llc_hdr->ethertype[0] << 8) | llc_hdr->ethertype[1];
+            l3_data_ptr += sizeof(struct llc_snap_hdr_t);
+        }
+
+        tx_msdu_info->htt.info.l3_hdr_offset = (A_UINT8)(l3_data_ptr - datap);
+        tx_msdu_info->htt.info.ethertype = typeorlength;
+    }
+}
+
 static inline A_UINT8
 ol_tx_tid_by_ether_type(
     A_UINT8 *datap,
@@ -178,25 +241,9 @@ ol_tx_tid_by_ether_type(
     A_UINT8 tid;
     A_UINT8 *l3_data_ptr;
     A_UINT16 typeorlength;
-    A_UINT8 * ptr;
 
-    ptr = (datap + ETHERNET_ADDR_LEN * 2);
-    typeorlength = (ptr[0] << 8) | ptr[1];
-    l3_data_ptr = datap + sizeof(struct ethernet_hdr_t);//ETHERNET_HDR_LEN;
-
-    if (typeorlength == ETHERTYPE_VLAN) {
-        ptr = (datap + ETHERNET_ADDR_LEN * 2 + ETHERTYPE_VLAN_LEN);
-        typeorlength = (ptr[0] << 8) | ptr[1];
-        l3_data_ptr += ETHERTYPE_VLAN_LEN;
-    }
-
-    if (!IS_ETHERTYPE(typeorlength)) { // 802.3 header
-        struct llc_snap_hdr_t *llc_hdr = (struct llc_snap_hdr_t *) l3_data_ptr;
-        typeorlength = (llc_hdr->ethertype[0] << 8) | llc_hdr->ethertype[1];
-        l3_data_ptr += sizeof(struct llc_snap_hdr_t);
-    }
-    tx_msdu_info->htt.info.l3_hdr_offset = (A_UINT8)(l3_data_ptr - datap);
-    tx_msdu_info->htt.info.ethertype = typeorlength;
+    l3_data_ptr = datap + tx_msdu_info->htt.info.l3_hdr_offset;
+    typeorlength = tx_msdu_info->htt.info.ethertype;
 
     /* IP packet, do packet inspection for TID */
     if (typeorlength == ETHERTYPE_IPV4) {
@@ -229,28 +276,13 @@ ol_tx_tid_by_raw_type(
      * is not at usual location.
      */
     if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_DATA) {
-        struct llc_snap_hdr_t *llc;
         /* dot11 encapsulated frame */
         struct ieee80211_qosframe *whqos = (struct ieee80211_qosframe *)datap;
         if (whqos->i_fc[0] & IEEE80211_FC0_SUBTYPE_QOS) {
             tid = whqos->i_qos[0] & IEEE80211_QOS_TID;
-            tx_msdu_info->htt.info.l3_hdr_offset =
-                sizeof(struct ieee80211_qosframe);
         } else {
             tid = HTT_NON_QOS_TID;
-            tx_msdu_info->htt.info.l3_hdr_offset =
-                sizeof(struct ieee80211_frame);
         }
-        llc = (struct llc_snap_hdr_t *)
-            (datap + tx_msdu_info->htt.info.l3_hdr_offset);
-        tx_msdu_info->htt.info.ethertype =
-            (llc->ethertype[0] << 8) | llc->ethertype[1];
-        /*
-         * l3_hdr_offset refers to the end of the 802.3 or 802.11 header,
-         * which may be a LLC/SNAP header rather than the IP header.
-         * Thus, don't increment l3_hdr_offset += sizeof(*llc); rather,
-         * leave it as is.
-         */
     } else {
         /*
          * This function should only be applied to data frames.
@@ -272,10 +304,18 @@ ol_tx_tid(
 
     if (pdev->frame_format == wlan_frm_fmt_raw) {
         tx_msdu_info->htt.info.l2_hdr_type = htt_pkt_type_raw;
-	tid = ol_tx_tid_by_raw_type(datap, tx_msdu_info);
+
+        ol_tx_set_ether_type(datap, tx_msdu_info);
+        tid = tx_msdu_info->htt.info.ext_tid == ADF_NBUF_TX_EXT_TID_INVALID ?
+            ol_tx_tid_by_raw_type(datap, tx_msdu_info) :
+            tx_msdu_info->htt.info.ext_tid;
     } else if (pdev->frame_format == wlan_frm_fmt_802_3) {
         tx_msdu_info->htt.info.l2_hdr_type = htt_pkt_type_ethernet;
-	tid = ol_tx_tid_by_ether_type(datap, tx_msdu_info);
+
+        ol_tx_set_ether_type(datap, tx_msdu_info);
+        tid = tx_msdu_info->htt.info.ext_tid == ADF_NBUF_TX_EXT_TID_INVALID ?
+            ol_tx_tid_by_ether_type(datap, tx_msdu_info) :
+            tx_msdu_info->htt.info.ext_tid;
     } else if (pdev->frame_format == wlan_frm_fmt_native_wifi) {
         struct llc_snap_hdr_t *llc;
 
