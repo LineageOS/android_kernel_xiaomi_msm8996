@@ -518,6 +518,9 @@ ol_tx_classify(
          */
         if (tx_msdu_info->htt.info.peer_id == HTT_INVALID_PEER_ID) {
             if (peer) {
+                TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                      "%s: remove the peer for invalid peer_id %p\n",
+                      __func__, peer);
                 /* remove the peer reference added above */
                 ol_txrx_peer_unref_delete(peer);
                 tx_msdu_info->peer = NULL;
@@ -534,6 +537,9 @@ ol_tx_classify(
      */
     OL_TX_CLASSIFY_EXTENSION(vdev, tx_desc, tx_nbuf, tx_msdu_info, txq);
     if (IEEE80211_IS_MULTICAST(dest_addr) && vdev->opmode != wlan_op_mode_sta) {
+
+        TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                      "%s: remove the peer reference %p\n", __func__, peer);
         /* remove the peer reference added above */
         ol_txrx_peer_unref_delete(tx_msdu_info->peer);
         /* Making peer NULL in case if multicast non STA mode */

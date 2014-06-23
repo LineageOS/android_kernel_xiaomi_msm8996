@@ -1384,7 +1384,7 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
      */
     adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
     if (adf_os_atomic_dec_and_test(&peer->ref_cnt)) {
-        TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2,
+        TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
             "Deleting peer %p (%02x:%02x:%02x:%02x:%02x:%02x)\n",
             peer,
             peer->mac_addr.raw[0], peer->mac_addr.raw[1],
@@ -1521,6 +1521,8 @@ ol_txrx_peer_find_by_addr(struct ol_txrx_pdev_t *pdev, u_int8_t *peer_mac_addr)
     struct ol_txrx_peer_t *peer;
     peer = ol_txrx_peer_find_hash_find(pdev, peer_mac_addr, 0, 0);
     if (peer) {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                  "%s: Delete extra reference %p\n", __func__, peer);
         /* release the extra reference */
         ol_txrx_peer_unref_delete(peer);
     }
