@@ -735,7 +735,6 @@ WLANSAP_StartBss
         vos_mem_copy(pSapCtx->denyMacList, pConfig->deny_mac, sizeof(pConfig->deny_mac));
         pSapCtx->nDenyMac = pConfig->num_deny_mac;
         sapSortMacList(pSapCtx->denyMacList, pSapCtx->nDenyMac);
-
         /* Fill in the event structure for FSM */
         sapEvent.event = eSAP_HDD_START_INFRA_BSS;
         sapEvent.params = 0;//pSapPhysLinkCreate
@@ -875,11 +874,6 @@ WLANSAP_StopBss
         Sanity check
         Extract SAP control block
     ------------------------------------------------------------------------*/
-#ifdef WLAN_FEATURE_MBSSID
-    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "WLANSAP_StopBss: sapContext=%p", pSapCtx);
-#endif
-
     if ( NULL == pCtx )
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,

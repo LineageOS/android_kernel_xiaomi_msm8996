@@ -480,6 +480,21 @@ sapGotoChannelSel
         return VOS_STATUS_E_FAULT;
     }
 
+#ifdef WLAN_FEATURE_MBSSID
+    if (vos_concurrent_sap_sessions_running()) {
+        v_U16_t con_sap_ch = sme_GetConcurrentOperationChannel(hHal);
+
+        if (sapContext->channel == AUTO_CHANNEL_SELECT)
+            sapContext->dfs_ch_disable = VOS_TRUE;
+        else if (con_sap_ch && sapContext->channel != con_sap_ch &&
+                 VOS_IS_DFS_CH(sapContext->channel)) {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                       "In %s, MCC DFS not supported in AP_AP Mode", __func__);
+            return VOS_STATUS_E_ABORTED;
+        }
+    }
+#endif
+
     if (vos_get_concurrency_mode() == VOS_STA_SAP)
     {
 #ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
@@ -1624,18 +1639,19 @@ sapFsm
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
                  if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE)
                  {
-                     v_U16_t cc_ch;
-                     cc_ch = sme_CheckConcurrentChannelOverlap(hHal,
-                         sapContext->channel,
-                         sapConvertSapPhyModeToCsrPhyMode(
-                                            sapContext->csrRoamProfile.phyMode),
-                         sapContext->cc_switch_mode);
-                     if (cc_ch)
+                     v_U16_t con_ch;
+
+                     con_ch = sme_CheckConcurrentChannelOverlap(hHal,
+                                        sapContext->channel,
+                                        sapConvertSapPhyModeToCsrPhyMode(
+                                        sapContext->csrRoamProfile.phyMode),
+                                        sapContext->cc_switch_mode);
+                     if (con_ch)
                      {
                          VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                              "%s: Override Chosen Ch:%d to %d due to CC Intf!!",
-                            __func__,sapContext->channel, cc_ch);
-                         sapContext->channel = cc_ch;
+                            __func__,sapContext->channel, con_ch);
+                         sapContext->channel = con_ch;
                          sme_SelectCBMode(hHal,
                              sapConvertSapPhyModeToCsrPhyMode(
                                             sapContext->csrRoamProfile.phyMode),
@@ -1667,6 +1683,20 @@ sapFsm
                          eSAP_DOT11_MODE_11g_ONLY))
                      sapContext->csrRoamProfile.phyMode = eSAP_DOT11_MODE_11a;
 
+#ifdef WLAN_FEATURE_MBSSID
+                 /* when AP2 is started while AP1 is performing ACS, we may not
+                  * have the AP1 channel yet.So here after the completion of AP2
+                  * ACS check if AP1 ACS resulting channel is DFS and if yes
+                  * override AP2 ACS scan result with AP1 DFS channel
+                  */
+                 if (vos_concurrent_sap_sessions_running()) {
+                     v_U16_t con_ch;
+
+                     con_ch = sme_GetConcurrentOperationChannel(hHal);
+                     if (con_ch && VOS_IS_DFS_CH(con_ch))
+                         sapContext->channel = con_ch;
+                 }
+#endif
                  /* Transition from eSAP_CH_SELECT to eSAP_STARTING (both without substates) */
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
                             __func__, "eSAP_CH_SELECT", "eSAP_STARTING");
@@ -1799,16 +1829,13 @@ sapFsm
                  /*Action code for transition */
                  vosStatus = sapSignalHDDevent( sapContext, roamInfo, eSAP_START_BSS_EVENT, (v_PVOID_t)eSAP_STATUS_SUCCESS);
 
-                 /* Transition from eSAP_STARTING to eSAP_STARTED (both without substates) */
-                 VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
-                            __func__, "eSAP_STARTING", "eSAP_STARTED");
-
                   /* The upper layers have been informed that AP is up and
                   * running, however, the AP is still not beaconing, until
                   * CAC is done if the operating channel is DFS
                   */
                  if (NV_CHANNEL_DFS ==
-                     vos_nv_getChannelEnabledState(sapContext->channel))
+                     vos_nv_getChannelEnabledState(sapContext->channel)
+                    )
                  {
                     if ((VOS_FALSE == pMac->sap.SapDfsInfo.ignore_cac) &&
                         (eSAP_DFS_DO_NOT_SKIP_CAC ==
