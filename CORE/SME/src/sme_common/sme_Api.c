@@ -2062,6 +2062,8 @@ eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac, v_U16_t msgType, void *pMsgBuf)
 
          roamStatus = eCSR_ROAM_DFS_RADAR_IND;
          roamResult = eCSR_ROAM_RESULT_DFS_RADAR_FOUND_IND;
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
+                   "sapdfs: Radar indication event occured");
          break;
       }
       case eWNI_SME_DFS_CSAIE_TX_COMPLETE_IND:
@@ -2077,6 +2079,9 @@ eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac, v_U16_t msgType, void *pMsgBuf)
          sessionId = csaIeTxCompleteRsp->sessionId;
          roamStatus = eCSR_ROAM_DFS_CHAN_SW_NOTIFY;
          roamResult = eCSR_ROAM_RESULT_DFS_CHANSW_UPDATE_SUCCESS;
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
+         "sapdfs: Received eWNI_SME_DFS_CSAIE_TX_COMPLETE_IND for session id [%d]",
+                   sessionId );
          break;
       }
       default:
@@ -12126,11 +12131,17 @@ eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
 
         if (pChnlParams->status == eHAL_STATUS_SUCCESS)
         {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
+            "sapdfs: Received success eWNI_SME_CHANNEL_CHANGE_RSP for sessionId[%d]",
+                      SessionId);
             pRoamInfo.channelChangeRespEvent->channelChangeStatus = 1;
             roamResult = eCSR_ROAM_RESULT_CHANNEL_CHANGE_SUCCESS;
         }
         else
         {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
+            "sapdfs: Received failure eWNI_SME_CHANNEL_CHANGE_RSP for sessionId[%d]",
+                      SessionId);
             pRoamInfo.channelChangeRespEvent->channelChangeStatus = 0;
             roamResult = eCSR_ROAM_RESULT_CHANNEL_CHANGE_FAILURE;
         }
@@ -12659,3 +12670,34 @@ eHalStatus sme_UpdateDSCPtoUPMapping( tHalHandle hHal,
     sme_ReleaseGlobalLock( &pMac->sme);
     return status;
 }
+
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+/* ---------------------------------------------------------------------------
+    \fn sme_abortRoamScan
+    \brief  API to abort current roam scan cycle by roam scan offload module.
+    \param  hHal - The handle returned by macOpen.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+
+eHalStatus sme_abortRoamScan(tHalHandle hHal)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    smsLog(pMac, LOGW, "entering function %s", __func__);
+    if (pMac->roam.configParam.isRoamOffloadScanEnabled)
+    {
+        /* acquire the lock for the sme object */
+        status = sme_AcquireGlobalLock(&pMac->sme);
+        if(HAL_STATUS_SUCCESS(status))
+        {
+            csrRoamOffloadScan(pMac, ROAM_SCAN_OFFLOAD_ABORT_SCAN,
+                               REASON_ROAM_ABORT_ROAM_SCAN);
+            /* release the lock for the sme object */
+            sme_ReleaseGlobalLock( &pMac->sme );
+        }
+    }
+
+    return(status);
+}
+#endif //#if WLAN_FEATURE_ROAM_SCAN_OFFLOAD

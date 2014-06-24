@@ -276,10 +276,6 @@ static int hdd_parse_reassoc_command_v1_data(const tANI_U8 *pValue,
 #if defined (QCA_WIFI_2_0) && \
     !defined (QCA_WIFI_ISOC)
 struct completion wlan_start_comp;
-extern void hif_init_adf_ctx(adf_os_device_t adf_ctx, v_VOID_t *hif_sc);
-extern int hif_register_driver(void);
-extern void hif_unregister_driver(void);
-extern void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
 #ifdef QCA_WIFI_FTM
 extern int hdd_ftm_start(hdd_context_t *pHddCtx);
 extern int hdd_ftm_stop(hdd_context_t *pHddCtx);
@@ -2531,9 +2527,13 @@ hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
    struct ieee80211_hdr_3addr *hdr;
    u64 cookie;
    hdd_station_ctx_t *pHddStaCtx;
+   hdd_context_t *pHddCtx;
    int ret = 0;
+   tpSirMacVendorSpecificFrameHdr pVendorSpecific =
+                   (tpSirMacVendorSpecificFrameHdr) payload;
 
    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+   pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
    /* if not associated, no need to send action frame */
    if (eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
@@ -2551,17 +2551,45 @@ hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
       goto exit;
    }
 
-   /* if the channel number is different from operating channel then
-      no need to send action frame */
-   if (channel != pHddStaCtx->conn_info.operationChannel) {
-      hddLog(VOS_TRACE_LEVEL_INFO,
-             "%s: channel(%d) is different from operating channel(%d)",
-             __func__, channel, pHddStaCtx->conn_info.operationChannel);
+   chan.center_freq = sme_ChnToFreq(channel);
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+   /* Check if it is specific action frame */
+   if (pVendorSpecific->category == SIR_MAC_ACTION_VENDOR_SPECIFIC_CATEGORY) {
+       static const tANI_U8 Oui[] = { 0x00, 0x00, 0xf0 };
+       if (vos_mem_compare(pVendorSpecific->Oui, (void *) Oui, 3)) {
+           /* if the channel number is different from operating channel then
+              no need to send action frame */
+           if (channel != 0) {
+               if (channel != pHddStaCtx->conn_info.operationChannel) {
+                   hddLog(VOS_TRACE_LEVEL_INFO,
+                     "%s: channel(%d) is different from operating channel(%d)",
+                     __func__, channel,
+                     pHddStaCtx->conn_info.operationChannel);
+                   ret = -EINVAL;
+                   goto exit;
+               }
+               /* If channel number is specified and same as home channel,
+                * ensure that action frame is sent immediately by cancelling
+                * roaming scans. Otherwise large dwell times may cause long
+                * delays in sending action frames.
+                */
+               sme_abortRoamScan(pHddCtx->hHal);
+           } else {
+               /* 0 is accepted as current home channel, delayed
+                * transmission of action frame is ok.
+                */
+               chan.center_freq =
+                       sme_ChnToFreq(pHddStaCtx->conn_info.operationChannel);
+           }
+       }
+   }
+#endif //#if WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+   if (chan.center_freq == 0) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s:invalid channel number %d",
+              __func__, channel);
       ret = -EINVAL;
       goto exit;
    }
-
-   chan.center_freq = sme_ChnToFreq(channel);
 
    frame_len = payload_len + 24;
    frame = vos_mem_malloc(frame_len);
@@ -5877,7 +5905,7 @@ void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand)
  *     for third interface it will be hw_macaddr[3](bit5..7) + 2, etc.
  */
 
-static void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
+void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
 {
     int8_t i;
     u_int8_t macaddr_b3, tmp_br3;
@@ -5900,6 +5928,9 @@ static void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
         /* Set locally administered bit */
         cfg_ini->intfMacAddr[i].bytes[0] |= 0x02;
         cfg_ini->intfMacAddr[i].bytes[3] = macaddr_b3;
+        hddLog(VOS_TRACE_LEVEL_INFO, "cfg_ini->intfMacAddr[%d]: "
+               MAC_ADDRESS_STR, i,
+               MAC_ADDR_ARRAY(cfg_ini->intfMacAddr[i].bytes));
     }
 }
 
@@ -6576,7 +6607,7 @@ hdd_parse_send_action_frame_v1_data(const tANI_U8 *pValue,
     if (1 != v) return -EINVAL;
 
     v = kstrtos32(tempBuf, 10, &tempInt);
-    if ( v < 0 || tempInt <= 0 || tempInt > WNI_CFG_CURRENT_CHANNEL_STAMAX )
+    if ( v < 0 || tempInt < 0 || tempInt > WNI_CFG_CURRENT_CHANNEL_STAMAX )
      return -EINVAL;
 
     *pChannel = tempInt;
@@ -11672,6 +11703,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    /* Get the wlan hw/fw version */
    hdd_wlan_get_version(pAdapter, NULL, NULL);
+
+   /* pass target_fw_version to HIF layer */
+   hif_set_fw_info(hif_sc, pHddCtx->target_fw_version);
 #else
    /* Exchange capability info between Host and FW and also get versioning info from FW */
    hdd_exchange_version_and_caps(pHddCtx);

@@ -573,6 +573,14 @@ typedef struct {
 	/* Event to wait for tx download completion */
 	vos_event_t tx_frm_download_comp_event;
 
+	/*
+	 * Dummy event to wait for draining MSDUs left in hardware tx
+	 * queue and before requesting VDEV_STOP. Nobody will set this
+	 * and wait will timeout, and code will poll the pending tx
+	 * descriptors number to be zero.
+	 */
+	vos_event_t tx_queue_empty_event;
+
 	/* Ack Complete Callback registered by umac */
 	pWDAAckFnTxComp umac_ota_ack_cb[SIR_MAC_MGMT_RESERVED15];
 	pWDAAckFnTxComp umac_data_ota_ack_cb;
@@ -1593,4 +1601,7 @@ enum uapsd_up {
 
 #define WMA_TGT_INVALID_SNR (-1)
 #define WMA_DYNAMIC_DTIM_SETTING_THRESHOLD 2
+
+#define WMA_TX_Q_RECHECK_TIMER_WAIT      2    // 2 ms
+#define WMA_TX_Q_RECHECK_TIMER_MAX_WAIT  20   // 20 ms
 #endif

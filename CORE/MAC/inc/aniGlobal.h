@@ -73,6 +73,7 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #endif
 #include "csrSupport.h"
 #include "smeInternal.h"
+#include "sapApi.h"
 #include "ccmApi.h"
 #include "btcApi.h"
 #include "csrInternal.h"
@@ -1070,6 +1071,7 @@ typedef struct sAniSirGlobal
 #endif
 
     tSmeStruct sme;
+    tSapStruct sap;
     tCsrScanStruct scan;
     tCsrRoamStruct roam;
 

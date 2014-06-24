@@ -80,6 +80,7 @@
 #include "ol_fw.h"
 #include "testmode.h"
 #include "wlan_hdd_cfg80211.h"
+#include "wlan_hdd_main.h"
 #if defined(HIF_PCI)
 #include "if_pci.h"
 #elif defined(HIF_USB)
@@ -165,11 +166,11 @@ typedef struct {
    tANI_U8  tableData;
 } pttSetNvTable;
 
-
 extern const sHalNv nvDefaults;
 static int wlan_ftm_register_wext(hdd_adapter_t *pAdapter);
 static int wlan_ftm_stop(hdd_context_t *pHddCtx);
 VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len);
+static int hdd_ftm_service_registration(hdd_context_t *pHddCtx);
 
 /* for PRIMA: all the available frequency, channal pair i the table are defined for channel frequency @ RF center frequency
    Since it is associated to agc.channel_freq register for mapping.
@@ -609,6 +610,21 @@ static v_U32_t wlan_ftm_postmsg(v_U8_t *cmd_ptr, v_U16_t cmd_len)
     return VOS_STATUS_SUCCESS;
 }
 
+void wlan_hdd_ftm_update_tgt_cfg(void *context, void *param)
+{
+    hdd_context_t *hdd_ctx = (hdd_context_t *)context;
+    struct hdd_tgt_cfg *cfg = (struct hdd_tgt_cfg *)param;
+
+    if (!vos_is_macaddr_zero(&cfg->hw_macaddr)) {
+        hdd_update_macaddr(hdd_ctx->cfg_ini, cfg->hw_macaddr);
+    } else {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: Invalid MAC passed from target, using MAC from ini file"
+               MAC_ADDRESS_STR, __func__,
+               MAC_ADDR_ARRAY(hdd_ctx->cfg_ini->intfMacAddr[0].bytes));
+    }
+}
+
 /*---------------------------------------------------------------------------
 
   \brief wlan_ftm_vos_open() - Open the vOSS Module
@@ -792,7 +808,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
       pHddCtx->cfg_ini->enablePowersaveOffload;
 #ifndef QCA_WIFI_ISOC
    vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext,
-                      NULL, NULL,
+                      wlan_hdd_ftm_update_tgt_cfg, NULL,
                       &macOpenParms);
 #else
    vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext,
@@ -1466,7 +1482,6 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
 {
     VOS_STATUS vStatus       = VOS_STATUS_SUCCESS;
     pVosContextType pVosContext= NULL;
-    hdd_adapter_t *pAdapter;
 
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: Opening VOSS", __func__);
@@ -1481,7 +1496,6 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
         goto err_vos_status_failure;
     }
 
-   // Open VOSS
    vStatus = wlan_ftm_vos_open( pVosContext, 0);
 
    if ( !VOS_IS_STATUS_SUCCESS( vStatus ))
@@ -1502,6 +1516,16 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
        goto err_sal_close;
     }
 
+    return VOS_STATUS_SUCCESS;
+err_sal_close:
+    wlan_ftm_vos_close(pVosContext);
+err_vos_status_failure:
+    return VOS_STATUS_E_FAILURE;
+}
+
+static int hdd_ftm_service_registration(hdd_context_t *pHddCtx)
+{
+    hdd_adapter_t *pAdapter;
     pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_FTM, "wlan%d",
                 wlan_hdd_get_intf_addr(pHddCtx), FALSE);
     if( NULL == pAdapter )
@@ -1581,12 +1605,10 @@ err_ftm_register_wext_close:
 #endif
 hdd_UnregisterWext(pAdapter->dev);
 
-err_adapter_open_failure:
+err_sal_close:
 hdd_close_all_adapters( pHddCtx );
 
-err_sal_close:
-
-err_vos_status_failure:
+err_adapter_open_failure:
 
     return VOS_STATUS_E_FAILURE;
 }
@@ -1826,10 +1848,18 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "%s: MAC correctly started",__func__);
 
+    if (hdd_ftm_service_registration(pHddCtx)) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: failed", __func__);
+       goto err_ftm_service_reg;
+    }
 
     pHddCtx->ftm.ftm_state = WLAN_FTM_STARTED;
 
     return VOS_STATUS_SUCCESS;
+
+err_ftm_service_reg:
+    wlan_hdd_ftm_close(pHddCtx);
 
 #ifdef QCA_WIFI_ISOC
 err_wda_stop:
@@ -1868,9 +1898,7 @@ int hdd_ftm_start(hdd_context_t *pHddCtx)
 
 static int wlan_ftm_stop(hdd_context_t *pHddCtx)
 {
-#ifdef QCA_WIFI_ISOC
    VOS_STATUS vosStatus;
-#endif
 
    if(pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
    {
@@ -1883,29 +1911,20 @@ static int wlan_ftm_stop(hdd_context_t *pHddCtx)
        /*  STOP MAC only */
        v_VOID_t *hHal;
        hHal = vos_get_context( VOS_MODULE_ID_SME, pHddCtx->pvosContext );
-       if (NULL == hHal)
-       {
+       if (NULL == hHal) {
            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                       "%s: NULL hHal", __func__);
-       }
-       else
-       {
-#ifdef QCA_WIFI_ISOC
+       } else {
            vosStatus = macStop(hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP );
-           if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-           {
+           if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
                VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                           "%s: Failed to stop SYS", __func__);
                VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
            }
-#endif
        }
-
-
        WDA_stop(pHddCtx->pvosContext, HAL_STOP_TYPE_RF_KILL);
-
     }
-   return WLAN_FTM_SUCCESS;
+    return WLAN_FTM_SUCCESS;
 }
 
 #if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)

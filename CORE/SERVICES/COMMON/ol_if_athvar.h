@@ -132,6 +132,7 @@ struct ol_softc {
     struct ol_ath_stats     pkt_stats;
 
     u_int32_t target_type;  /* A_TARGET_TYPE_* */
+    u_int32_t target_fw_version;
     u_int32_t target_version;
     u_int32_t target_revision;
     u_int8_t  crm_version_string[64];  /* store pHalStartRsp->startRspParams.wcnssCrmVersionString */

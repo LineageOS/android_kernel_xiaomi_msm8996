@@ -1392,7 +1392,7 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 			wma->interfaces[resp_event->vdev_id].vdev_up = FALSE;
 		}
 		ol_txrx_vdev_flush(iface->handle);
-		wdi_in_vdev_unpause(iface->handle);
+		wdi_in_vdev_unpause(iface->handle, 0xffffffff);
 		iface->pause_bitmap = 0;
 		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
@@ -3314,6 +3314,14 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
 		WMA_LOGP("%s: failed to init tx_frm_download_comp_event",
 				__func__);
+		goto err_event_init;
+	}
+
+	/* Init tx queue empty check event */
+	vos_status = vos_event_init(&wma_handle->tx_queue_empty_event);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		WMA_LOGP("%s: failed to init tx_queue_empty_event",
+			 __func__);
 		goto err_event_init;
 	}
 
@@ -6019,7 +6027,7 @@ VOS_STATUS wma_roam_scan_offload_end_connect(tp_wma_handle wma_handle)
         return VOS_STATUS_E_FAILURE;
     }
 
-    /* If roam scan is running, stop it */
+    /* If roam scan is enabled, disable it */
     if (wma_handle->roam_offload_enabled) {
 
         wma_roam_scan_fill_scan_params(wma_handle, pMac, NULL, &scan_params);
@@ -6027,6 +6035,50 @@ VOS_STATUS wma_roam_scan_offload_end_connect(tp_wma_handle wma_handle)
                                 WMI_ROAM_SCAN_MODE_NONE);
     }
     return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS wma_roam_scan_offload_command(tp_wma_handle wma_handle,
+                                                      u_int32_t command)
+{
+    VOS_STATUS vos_status;
+    wmi_roam_scan_cmd_fixed_param *cmd_fp;
+    wmi_buf_t buf = NULL;
+    int status = 0;
+    int len;
+    u_int8_t *buf_ptr;
+
+    len = sizeof(wmi_roam_scan_cmd_fixed_param);
+    buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+    if (!buf) {
+        WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+        return VOS_STATUS_E_NOMEM;
+    }
+
+    buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+
+    cmd_fp = (wmi_roam_scan_cmd_fixed_param *) buf_ptr;
+    WMITLV_SET_HDR(&cmd_fp->tlv_header,
+               WMITLV_TAG_STRUC_wmi_roam_scan_cmd_fixed_param,
+               WMITLV_GET_STRUCT_TLVLEN(wmi_roam_scan_cmd_fixed_param));
+    cmd_fp->vdev_id = wma_handle->roam_offload_vdev_id;
+    cmd_fp->command_arg = command;
+
+    status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+               len, WMI_ROAM_SCAN_CMD);
+    if (status != EOK) {
+        WMA_LOGE("wmi_unified_cmd_send WMI_ROAM_SCAN_CMD returned Error %d",
+            status);
+        vos_status = VOS_STATUS_E_FAILURE;
+        goto error;
+    }
+
+    WMA_LOGI("%s: WMA --> WMI_ROAM_SCAN_CMD", __func__);
+    return VOS_STATUS_SUCCESS;
+
+error:
+    wmi_buf_free(buf);
+
+    return vos_status;
 }
 
 /* function   : wma_process_roam_scan_req
@@ -6044,7 +6096,8 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 wma_handle->vos_context);
     u_int32_t mode = 0;
 
-    WMA_LOGI("%s: command 0x%x", __func__, roam_req->Command);
+    WMA_LOGI("%s: command 0x%x, reason %d", __func__, roam_req->Command,
+                                            roam_req->StartScanReason);
 
     if (NULL == pMac)
     {
@@ -6094,10 +6147,17 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 if (vos_status != VOS_STATUS_SUCCESS) {
                     break;
                 }
-                mode = WMI_ROAM_SCAN_MODE_PERIODIC | WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
+                mode = WMI_ROAM_SCAN_MODE_PERIODIC;
+                /* Don't use rssi triggered roam scans if external app
+                 * is in control of channel list.
+                 */
+                if (roam_req->ChannelCacheType != CHANNEL_LIST_STATIC) {
+                    mode |= WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
+                }
             } else {
                 mode = WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
             }
+
             /* Start new rssi triggered scan only if it changes by RoamRssiDiff value.
              * Beacon weight of 14 means average rssi is taken over 14 previous samples +
              * 2 times the current beacon's rssi.
@@ -6148,6 +6208,14 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                                __func__);
                 }
             }
+            break;
+
+        case ROAM_SCAN_OFFLOAD_ABORT_SCAN:
+            /* If roam scan is running, stop that cycle.
+             * It will continue automatically on next trigger.
+             */
+            vos_status = wma_roam_scan_offload_command(wma_handle,
+                                                   WMI_ROAM_SCAN_STOP_CMD);
             break;
 
         case ROAM_SCAN_OFFLOAD_RESTART:
@@ -6209,7 +6277,13 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 if (vos_status != VOS_STATUS_SUCCESS) {
                     break;
                 }
-                mode = WMI_ROAM_SCAN_MODE_PERIODIC | WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
+                mode = WMI_ROAM_SCAN_MODE_PERIODIC;
+                /* Don't use rssi triggered roam scans if external app
+                 * is in control of channel list.
+                 */
+                if (roam_req->ChannelCacheType != CHANNEL_LIST_STATIC) {
+                    mode |= WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
+                }
             } else {
                 mode = WMI_ROAM_SCAN_MODE_RSSI_CHANGE;
             }
@@ -7091,7 +7165,7 @@ void wma_vdev_resp_timer(void *data)
 			wma->interfaces[tgt_req->vdev_id].vdev_up = FALSE;
 		}
 		ol_txrx_vdev_flush(iface->handle);
-		wdi_in_vdev_unpause(iface->handle);
+		wdi_in_vdev_unpause(iface->handle, 0xffffffff);
 		iface->pause_bitmap = 0;
 		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
@@ -9804,6 +9878,9 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		iface->shortSlotTimeSupported = add_bss->shortSlotTimeSupported;
                 iface->nwType = add_bss->nwType;
 		if (add_bss->reassocReq) {
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+			ol_txrx_vdev_handle vdev;
+#endif
 			// Called in preassoc state. BSSID peer is already added by set_linkstate
 			peer = ol_txrx_find_peer_by_addr(pdev, add_bss->bssId, &peer_id);
 			if (!peer) {
@@ -9847,6 +9924,15 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 							WMA_TARGET_REQ_TYPE_VDEV_START);
 				goto peer_cleanup;
 			}
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+			vdev = wma_find_vdev_by_id(wma, vdev_id);
+			if (!vdev) {
+				WMA_LOGE("%s Invalid txrx vdev", __func__);
+				goto peer_cleanup;
+			}
+			wdi_in_vdev_pause(vdev,
+					OL_TXQ_PAUSE_REASON_PEER_UNAUTHORIZED);
+#endif
 			// ADD_BSS_RESP will be deferred to completion of VDEV_START
 
 		    return;
@@ -9862,10 +9948,29 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 			ol_txrx_peer_state_update(pdev, add_bss->bssId,
 						  ol_txrx_peer_state_auth);
 		} else {
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+			ol_txrx_vdev_handle vdev;
+#endif
 			WMA_LOGD("%s: Update peer(%pM) state into conn",
 				 __func__, add_bss->bssId);
 			ol_txrx_peer_state_update(pdev, add_bss->bssId,
 						  ol_txrx_peer_state_conn);
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+			peer = ol_txrx_find_peer_by_addr(pdev, add_bss->bssId, &peer_id);
+			if (!peer) {
+				WMA_LOGE("%s:%d Failed to find peer %pM", __func__,
+					__LINE__, add_bss->bssId);
+				goto send_fail_resp;
+			}
+
+			vdev = wma_find_vdev_by_id(wma, vdev_id);
+			if (!vdev) {
+				WMA_LOGE("%s Invalid txrx vdev", __func__);
+				goto peer_cleanup;
+			}
+			wdi_in_vdev_pause(vdev,
+					OL_TXQ_PAUSE_REASON_PEER_UNAUTHORIZED);
+#endif
 		}
 
 		wmi_unified_send_txbf(wma, &add_bss->staContext);
@@ -11400,7 +11505,8 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 	u_int8_t peer_id;
         ol_txrx_vdev_handle txrx_vdev;
-
+	u_int8_t max_wait_iterations = WMA_TX_Q_RECHECK_TIMER_MAX_WAIT /
+					WMA_TX_Q_RECHECK_TIMER_WAIT;
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
 	if (NULL == pdev) {
@@ -11453,6 +11559,23 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 		status = VOS_STATUS_E_NOMEM;
 		goto detach_peer;
 	}
+
+	WMA_LOGW(FL("Outstanding msdu packets: %d"),
+		 ol_txrx_get_tx_pending(pdev));
+
+	while ( ol_txrx_get_tx_pending(pdev) && max_wait_iterations )
+	{
+		vos_wait_single_event(&wma->tx_queue_empty_event,
+				      WMA_TX_Q_RECHECK_TIMER_MAX_WAIT);
+		max_wait_iterations--;
+	}
+
+	if (ol_txrx_get_tx_pending(pdev))
+	{
+		WMA_LOGW(FL("Outstanding msdu packets before VDEV_STOP : %d"),
+			 ol_txrx_get_tx_pending(pdev));
+	}
+
 	if (wmi_unified_vdev_stop_send(wma->wmi_handle, params->smesessionId)) {
 		WMA_LOGP("%s: %d Failed to send vdev stop",
 			 __func__, __LINE__);
@@ -14256,7 +14379,8 @@ static void wma_unpause_vdev(tp_wma_handle wma) {
 	#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
 	/* When host resume, by default, unpause all active vdev */
 		if (wma->interfaces[vdev_id].pause_bitmap) {
-			wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
+			wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle,
+					    0xffffffff);
 			wma->interfaces[vdev_id].pause_bitmap = 0;
 		}
 	#endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
@@ -18022,6 +18146,9 @@ static VOS_STATUS wma_tx_detach(tp_wma_handle wma_handle)
 	/* Destroy Tx Frame Complete event */
 	vos_event_destroy(&wma_handle->tx_frm_download_comp_event);
 
+	/* Tx queue empty check event (dummy event) */
+	vos_event_destroy(&wma_handle->tx_queue_empty_event);
+
 	/* Reset Tx Frm Callbacks */
 	wma_handle->tx_frm_download_comp_cb = NULL;
 
@@ -18240,7 +18367,8 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 				 * to pause a paused queue again.
 				 */
 				if (!wma->interfaces[vdev_id].pause_bitmap)
-					wdi_in_vdev_pause(wma->interfaces[vdev_id].handle);
+					wdi_in_vdev_pause(wma->interfaces[vdev_id].handle,
+							OL_TXQ_PAUSE_REASON_FW);
 				wma->interfaces[vdev_id].pause_bitmap |= (1 << wmi_event->pause_type);
 			}
 			/* UNPAUSE action, clean bitmap */
@@ -18252,7 +18380,8 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 				{
 					/* PAUSE BIT MAP is cleared
 					 * UNPAUSE VDEV */
-					wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle);
+					wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle,
+                                                            OL_TXQ_PAUSE_REASON_FW);
 				}
 			}
 			else
@@ -19825,10 +19954,7 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	WMI_MAC_ADDR_TO_CHAR_ARRAY (&ev->mac_addr, wma_handle->hwaddr);
 
 #ifndef QCA_WIFI_ISOC
-#ifdef QCA_WIFI_FTM
-	if (vos_get_conparam() != VOS_FTM_MODE)
-#endif
-		wma_update_hdd_cfg(wma_handle);
+	wma_update_hdd_cfg(wma_handle);
 #endif
 
 	vos_event_set(&wma_handle->wma_ready_event);
@@ -21956,7 +22082,7 @@ void WDA_TxAbort(v_U8_t vdev_id)
 	}
 	WMA_LOGA("%s: vdevid %d bssid %pM", __func__, vdev_id, iface->bssid);
 	iface->pause_bitmap |= (1 << PAUSE_TYPE_HOST);
-	wdi_in_vdev_pause(iface->handle);
+	wdi_in_vdev_pause(iface->handle, OL_TXQ_PAUSE_REASON_TX_ABORT);
 
 	/* Flush all TIDs except MGMT TID for this peer in Target */
 	peer_tid_bitmap &= ~(0x1 << WMI_MGMT_TID);

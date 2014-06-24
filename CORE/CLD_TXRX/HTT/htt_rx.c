@@ -1699,8 +1699,16 @@ htt_rx_msdu_desc_key_id_ll(htt_pdev_handle pdev, void *mpdu_desc,
 a_bool_t
 htt_rx_msdu_desc_key_id_hl(htt_pdev_handle htt_pdev, void *mpdu_desc, u_int8_t *key_id)
 {
-   /* TODO: Implement it for HL */
-   return A_FALSE;
+    if (htt_rx_msdu_first_msdu_flag_hl(htt_pdev, mpdu_desc) == A_TRUE) {
+        /* Fix Me: only for little endian */
+        struct hl_htt_rx_desc_base *rx_desc =
+            (struct hl_htt_rx_desc_base *) mpdu_desc;
+
+        *key_id = rx_desc->key_id_oct;
+        return A_TRUE;
+    }
+
+    return A_FALSE;
 }
 
 void

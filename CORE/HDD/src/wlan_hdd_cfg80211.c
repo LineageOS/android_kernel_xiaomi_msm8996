@@ -2305,6 +2305,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
              }
                    pHddCtx->is_dynamic_channel_range_set = 0;
         }
+        WLANSAP_Set_Dfs_Ignore_CAC(hHal, iniConfig->ignoreCAC);
     }
     else
     {

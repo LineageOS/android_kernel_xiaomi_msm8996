@@ -307,7 +307,8 @@ enum {
     QCASAP_SET_DFS_IGNORE_CAC,
     QCASAP_GET_DFS_NOL,
     QCASAP_SET_DFS_NOL,
-    QCSAP_PARAM_SET_CHANNEL_CHANGE
+    QCSAP_PARAM_SET_CHANNEL_CHANGE,
+    QCASAP_SET_DFS_TARGET_CHNL,
 };
 
 int iw_softap_get_channel_list(struct net_device *dev,

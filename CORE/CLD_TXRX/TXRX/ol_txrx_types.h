@@ -751,7 +751,7 @@ struct ol_txrx_vdev_t {
 			adf_nbuf_t tail;
 			int depth;
 		} txq;
-		a_bool_t is_paused;
+		u_int32_t paused_reason;
 		adf_os_spinlock_t mutex;
 		adf_os_timer_t timer;
 		int max_q_depth;

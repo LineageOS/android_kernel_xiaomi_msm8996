@@ -111,18 +111,8 @@ irqreturn_t HIF_fw_interrupt_handler(int irq, void *arg);
  */
 adf_os_size_t initBufferCount(adf_os_size_t maxSize);
 
-/* Function to set the TXRX handle in the ol_sc context */
-void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle);
-void hif_disable_isr(void *ol_sc);
-
-/* Function to reset SoC */
-void hif_reset_soc(void *ol_sc);
-
 /* Function to disable ASPM */
 void hif_disable_aspm(void);
-
-void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc);
-void hif_deinit_adf_ctx(void *ol_sc);
 
 void hif_pci_save_htc_htt_config_endpoint(int htc_endpoint);
 
@@ -135,7 +125,16 @@ int hif_pci_check_fw_reg(struct hif_pci_softc *sc);
 int hif_pci_check_soc_status(struct hif_pci_softc *sc);
 void dump_CE_debug_register(struct hif_pci_softc *sc);
 
+/*These functions are exposed to HDD*/
+int hif_register_driver(void);
+void hif_unregister_driver(void);
+void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc);
+void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle);
+void hif_disable_isr(void *ol_sc);
+void hif_reset_soc(void *ol_sc);
+void hif_deinit_adf_ctx(void *ol_sc);
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
+void hif_set_fw_info(void *ol_sc, u32 target_fw_version);
 
 /*
  * A firmware interrupt to the Host is indicated by the

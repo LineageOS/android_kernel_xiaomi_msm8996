@@ -768,7 +768,8 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession p
         if (pAPSession->gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
             ap_beacon_process(pMac,  pRxPacketInfo, &beaconStruct, &beaconParams, pAPSession);
 
-        if (beaconParams.paramChangeBitmap)
+        if ((VOS_FALSE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running)
+            && beaconParams.paramChangeBitmap)
         {
             //Update the beacons and apply the new settings to HAL
             schSetFixedBeaconFields(pMac, pAPSession);

@@ -149,40 +149,6 @@ typedef struct sSapQosCfg {
     v_U8_t              WmmIsEnabled;
 } tSapQosCfg;
 
-typedef enum {
-        eSAP_DFS_CHANNEL_USABLE,
-        eSAP_DFS_CHANNEL_AVAILABLE,
-        eSAP_DFS_CHANNEL_UNAVAILABLE
-}eSapDfsChanStatus_t;
-
-typedef struct sSapDfsNolInfo {
-    v_U8_t              dfs_channel_number;
-    eSapDfsChanStatus_t radar_status_flag;
-    unsigned long       radar_found_timestamp;
-}tSapDfsNolInfo;
-
-typedef struct sSapDfsInfo {
-    vos_timer_t         sap_dfs_cac_timer;
-    v_U8_t              sap_radar_found_status;
-    v_U8_t              is_dfs_cac_timer_running;
-
-    /*
-     * New channel to move to when a  Radar is
-     * detected on current Channel
-     */
-    v_U8_t              target_channel;
-    v_U8_t              last_radar_found_channel;
-    v_U8_t              ignore_cac;
-
-    /* Requests for Channel Switch Announcement IE
-     * generation and transmission
-     */
-    v_U8_t              csaIERequired;
-    v_U8_t              numCurrentRegDomainDfsChannels;
-    tSapDfsNolInfo      sapDfsChannelNolList[NUM_5GHZ_CHANNELS];
-
-}tSapDfsInfo;
-
 typedef struct sSapAcsChannelInfo {
     v_U32_t             channelNum;
     v_U32_t             weight;
@@ -268,8 +234,6 @@ typedef struct sSapContext {
      */
     tSapChannelListInfo SapAllChnlList;
 
-    //Information Required for SAP DFS Master mode
-    tSapDfsInfo         SapDfsInfo;
 
     tANI_BOOLEAN       allBandScanned;
     eCsrBand           currentPreferredBand;
@@ -280,6 +244,8 @@ typedef struct sSapContext {
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     v_U8_t             cc_switch_mode;
 #endif
+    tANI_BOOLEAN       isCacEndNotified;
+    tANI_BOOLEAN       isCacStartNotified;
 } *ptSapContext;
 
 
@@ -860,6 +826,35 @@ sapInitDfsChannelNolList(ptSapContext sapContext);
  */
 v_BOOL_t sapDfsIsChannelInNolList(ptSapContext sapContext,
                 v_U8_t channelNumber);
+/*---------------------------------------------------------------------------
+FUNCTION  sapDfsCacTimerCallback
+
+DESCRIPTION Function will be called up on DFS CAC timer expiry
+
+DEPENDENCIES PARAMETERS
+      data : void pointer to the data which being passed.
+
+RETURN VALUE  : void
+
+SIDE EFFECTS
+---------------------------------------------------------------------------*/
+void sapDfsCacTimerCallback(void *data);
+
+
+/*---------------------------------------------------------------------------
+FUNCTION  sap_CacResetNotify
+
+DESCRIPTION Function will be called up on stop bss indication to clean up
+            DFS global structure.
+
+DEPENDENCIES PARAMETERS
+IN hHAL : HAL pointer
+
+RETURN VALUE  : void.
+
+SIDE EFFECTS
+---------------------------------------------------------------------------*/
+void sap_CacResetNotify(tHalHandle hHal);
 
 #ifdef __cplusplus
 }

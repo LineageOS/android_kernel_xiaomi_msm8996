@@ -3599,6 +3599,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ENABLE_HT_2040_COEX_MIN,
                 CFG_ENABLE_HT_2040_COEX_MAX ),
 #endif
+   REG_VARIABLE(CFG_IGNORE_CAC_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, ignoreCAC,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_IGNORE_CAC_DEFAULT,
+                CFG_IGNORE_CAC_MIN,
+                CFG_IGNORE_CAC_MAX),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4107,6 +4113,9 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
           "Name = [gHT2040CoexEnabled] Value = [%u]",
           pHddCtx->cfg_ini->ht2040CoexEnabled);
 #endif
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gIgnoreCAC] Value = [%u] ",
+          pHddCtx->cfg_ini->ignoreCAC);
 }
 
 
