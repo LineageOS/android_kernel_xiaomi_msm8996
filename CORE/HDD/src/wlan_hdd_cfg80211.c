@@ -4635,6 +4635,39 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             pConfig->countryCode[1] = pHddCtx->reg.alpha2[1];
             pConfig->ieee80211d = 0;
         }
+
+#ifdef WLAN_FEATURE_MBSSID
+        if (!vos_concurrent_sap_sessions_running()) {
+            /* Single AP Mode */
+            if (VOS_IS_DFS_CH(pConfig->channel))
+                 pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
+        } else {
+            /* MBSSID Mode */
+            hdd_adapter_t *con_sap_adapter;
+            v_U16_t con_ch;
+
+            con_sap_adapter = hdd_get_con_sap_adapter(pHostapdAdapter);
+            if (con_sap_adapter) {
+                /* we have active SAP running */
+                con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
+                /* If this SAP is configured for ACS use CC_SAP's DFS channel */
+                if (pConfig->channel == AUTO_CHANNEL_SELECT) {
+                    if (con_ch != 0 && VOS_IS_DFS_CH(con_ch))
+                        pConfig->channel = con_ch;
+                } else if (VOS_IS_DFS_CH(con_ch) &&
+                           (pConfig->channel != con_ch)) {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                               "%s: Only SCC AP-AP DFS Permitted (ch=%d, con_ch=%d) !!", __func__, pConfig->channel, con_ch);
+                    return -EINVAL;
+                }
+            } else {
+                /* We have idle AP interface (no active SAP running on it
+                 * When one SAP is stopped then also this condition applies */
+                if (VOS_IS_DFS_CH(pConfig->channel))
+                     pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
+            }
+        }
+#endif
         /*
         * If auto channel is configured i.e. channel is 0,
         * so skip channel validation.

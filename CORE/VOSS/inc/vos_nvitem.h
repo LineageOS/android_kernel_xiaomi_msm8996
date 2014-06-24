@@ -188,6 +188,15 @@ typedef enum
 }
 VNV_TYPE;
 
+typedef enum
+{
+/* DFS Session refers to successful SAP session operating in DFS channel */
+   DFS_CAC_NEVER_DONE,   /* CAC was never done for this current ap / ap-ap */
+   DFS_CAC_IN_PROGRESS,  /* CAC is in progress for this DFS session */
+   DFS_CAC_ALREADY_DONE, /* CAC already for SAP starting this DFS session */
+}
+eDFS_CAC_STATUS;
+
 // country code type
 typedef v_U8_t v_COUNTRYCODE_t[VOS_COUNTRY_CODE_LEN];
 

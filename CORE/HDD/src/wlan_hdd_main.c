@@ -13624,6 +13624,35 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
 }
 #endif
 
+#ifdef WLAN_FEATURE_MBSSID
+hdd_adapter_t * hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter)
+{
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(this_sap_adapter);
+    hdd_adapter_t *pAdapter, *con_sap_adapter;
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+
+    con_sap_adapter = NULL;
+
+    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status ) {
+        pAdapter = pAdapterNode->pAdapter;
+        if (pAdapter && pAdapter->device_mode == WLAN_HDD_SOFTAP) {
+            if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) {
+                if (pAdapter != this_sap_adapter) {
+                    con_sap_adapter = pAdapter;
+                    break;
+                }
+            }
+        }
+        status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext );
+        pAdapterNode = pNext;
+    }
+
+    return con_sap_adapter;
+}
+#endif
+
 #ifdef MSM_PLATFORM
 void hdd_start_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
 {

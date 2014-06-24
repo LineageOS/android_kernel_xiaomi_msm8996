@@ -141,4 +141,7 @@ v_BOOL_t vos_concurrent_open_sessions_running(void);
 v_BOOL_t vos_max_concurrent_connections_reached(void);
 void vos_clear_concurrent_session_count(void);
 
+#ifdef WLAN_FEATURE_MBSSID
+v_BOOL_t vos_concurrent_sap_sessions_running(v_VOID_t);
+#endif
 #endif // !defined __VOS_GETBIN_H
