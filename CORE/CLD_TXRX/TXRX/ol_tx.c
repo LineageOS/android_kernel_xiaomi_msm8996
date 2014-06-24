@@ -120,11 +120,11 @@ ol_tx_vdev_ll_pause_queue_send_base(struct ol_txrx_vdev_t *vdev)
 {
     int max_to_accept;
 
-    if (vdev->ll_pause.is_paused == A_TRUE) {
+    adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
+    if (vdev->ll_pause.paused_reason) {
+        adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
         return;
     }
-
-    adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
 
     /*
      * Send as much of the backlog as possible, but leave some margin
@@ -219,7 +219,25 @@ ol_tx_vdev_pause_queue_append(
 adf_nbuf_t
 ol_tx_ll_queue(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
 {
-    if (vdev->ll_pause.is_paused == A_TRUE) {
+    u_int16_t eth_type;
+    u_int32_t paused_reason;
+
+    if (msdu_list == NULL)
+        return NULL;
+
+    paused_reason = vdev->ll_pause.paused_reason;
+    if (paused_reason) {
+        if (adf_os_unlikely((paused_reason &
+            OL_TXQ_PAUSE_REASON_PEER_UNAUTHORIZED) == paused_reason)) {
+            eth_type = (((struct ethernet_hdr_t *)
+                        adf_nbuf_data(msdu_list))->ethertype[0] << 8) |
+                        (((struct ethernet_hdr_t *)
+                        adf_nbuf_data(msdu_list))->ethertype[1]);
+            if (ETHERTYPE_IS_EAPOL_WAPI(eth_type)) {
+                msdu_list = ol_tx_ll(vdev, msdu_list);
+                return msdu_list;
+            }
+        }
         msdu_list = ol_tx_vdev_pause_queue_append(vdev, msdu_list, 1);
     } else {
         if (vdev->ll_pause.txq.depth > 0 ||
@@ -279,7 +297,7 @@ ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
 
             adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
             if (vdev->ll_pause.txq.depth) {
-                if ( vdev->ll_pause.is_paused == A_TRUE ) {
+                if (vdev->ll_pause.paused_reason) {
                     adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
                     continue;
                 }

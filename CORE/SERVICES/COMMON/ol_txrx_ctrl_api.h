@@ -57,6 +57,10 @@ enum wlan_op_mode {
 	wlan_op_mode_monitor,
 };
 
+#define OL_TXQ_PAUSE_REASON_FW                (1 << 0)
+#define OL_TXQ_PAUSE_REASON_PEER_UNAUTHORIZED (1 << 1)
+#define OL_TXQ_PAUSE_REASON_TX_ABORT          (1 << 2)
+
 /**
  * @brief Set up the data SW subsystem.
  * @details
@@ -280,12 +284,13 @@ ol_txrx_tx_release(
  *  paused.
  *
  * @param data_vdev - the virtual device being paused
+ * @param reason - the reason for which vdev queue is getting paused
  */
 #if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 void
-ol_txrx_vdev_pause(ol_txrx_vdev_handle data_vdev);
+ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev, u_int32_t reason);
 #else
-#define ol_txrx_vdev_pause(data_vdev) /* no-op */
+#define ol_txrx_vdev_pause(data_vdev, reason) /* no-op */
 #endif /* CONFIG_HL_SUPPORT */
 
 /**
@@ -314,12 +319,13 @@ ol_txrx_vdev_flush(ol_txrx_vdev_handle data_vdev);
  *  LL systems that use per-vdev tx queues for MCC or thermal throttling.
  *
  * @param data_vdev - the virtual device being unpaused
+ * @param reason - the reason for which vdev queue is getting unpaused
  */
 #if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 void
-ol_txrx_vdev_unpause(ol_txrx_vdev_handle data_vdev);
+ol_txrx_vdev_unpause(ol_txrx_vdev_handle data_vdev, u_int32_t reason);
 #else
-#define ol_txrx_vdev_unpause(data_vdev) /* no-op */
+#define ol_txrx_vdev_unpause(data_vdev, reason) /* no-op */
 #endif /* CONFIG_HL_SUPPORT */
 
 /**

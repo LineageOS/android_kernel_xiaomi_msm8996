@@ -2325,7 +2325,7 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                 pResult->mcEncryptionType = mc;
                 pResult->authType = auth;
                 pResult->Result.ssId = pBssDesc->Result.ssId;
-                pResult->Result.timer = 0;
+                pResult->Result.timer = pBssDesc->Result.timer;
                 //save the pIes for later use
                 pResult->Result.pvIes = pNewIes;
                 //save bss description

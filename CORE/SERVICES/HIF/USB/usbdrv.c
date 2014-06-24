@@ -39,6 +39,8 @@
 #include "a_usb_defs.h"
 #include "htc.h"
 #include "htc_packet.h"
+#include "qwlan_version.h"
+#include "if_usb.h"
 
 #define IS_BULK_EP(attr) (((attr) & 3) == 0x02)
 #define IS_INT_EP(attr)  (((attr) & 3) == 0x03)
@@ -978,6 +980,11 @@ void usb_hif_io_comp_work(struct work_struct *work)
 	A_UINT32 *reg;
 	A_UINT32 len, i;
 	static A_UINT32 assert_pattern = 0x0000c600;
+	static A_UINT32 reg_pattern = 0x0000d600;
+	static A_UINT32 regend_pattern = 0x0000e600;
+	A_UINT32 start_addr = 0;
+	static A_UINT32 stack_dumping = 0;
+	A_UINT32 MSPId = 0, mSPId = 0, SIId = 0, CRMId = 0;
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n", __func__));
 	device = pipe->device;
@@ -1007,10 +1014,41 @@ void usb_hif_io_comp_work(struct work_struct *work)
 					 buf));
 			adf_nbuf_peek_header(buf, &data, &len);
 			if (!memcmp(data, &assert_pattern, sizeof(assert_pattern))) {
-				printk("Firmware crash detected... len %d\n", len);
+				MSPId = (device->sc->ol_sc->target_fw_version & 0xf0000000) >> 28;
+				mSPId = (device->sc->ol_sc->target_fw_version & 0xf000000) >> 24;
+				SIId = (device->sc->ol_sc->target_fw_version & 0xf00000) >> 20;
+				CRMId = device->sc->ol_sc->target_fw_version & 0x7fff;
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Firmware crash detected...\n"));
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Host SW version: %s\n", QWLAN_VERSIONSTR));
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("FW version: %d.%d.%d.%d", MSPId, mSPId, SIId, CRMId));
 				reg = (A_UINT32 *) (data+4);
-				for (i = 0; i < 60; i++, reg++) {
-					printk("[%02d]   :  0x%08X\n", i, *reg);
+				for (i = 0; i < 60; reg++, i++ ) {
+					if (i%4 == 0) {
+						AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("\n"));
+						AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("%2d: ", i));
+					}
+					AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("0x%08x ", *reg));
+				}
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("\n"));
+				dev_kfree_skb(buf);
+			} else if (!memcmp(data, &reg_pattern, sizeof(reg_pattern))) {
+				reg = (A_UINT32 *) (data+4);
+				start_addr = *reg++;
+				if(stack_dumping == 0) {
+					AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Firmware stack dump:"));
+					stack_dumping = 1;
+				}
+				for (i = 0; i < (len>>2)-2; reg++, i++ ) {
+					if (*reg == regend_pattern && (i == (len>>2)-3)) {
+						stack_dumping = 0;
+						AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("\n"));
+						break;
+					}
+					if (i%4 == 0) {
+						AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("\n"));
+						AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("0x%08X: ", start_addr + (i << 2)));
+					}
+					AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("0x%08X ", *reg));
 				}
 				dev_kfree_skb(buf);
 			} else {

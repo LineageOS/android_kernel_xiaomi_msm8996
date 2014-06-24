@@ -530,7 +530,7 @@ ol_txrx_pdev_unpause(ol_txrx_pdev_handle pdev)
 #if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 
 void
-ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev)
+ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev, u_int32_t reason)
 {
     /* TO DO: log the queue pause */
     /* acquire the mutex lock, since we'll be modifying the queues */
@@ -547,14 +547,16 @@ ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev)
         adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
 #endif /* defined(CONFIG_HL_SUPPORT) */
     } else {
-        vdev->ll_pause.is_paused = A_TRUE;
+        adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
+        vdev->ll_pause.paused_reason |= reason;
+        adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
     }
 
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
 
 void
-ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev)
+ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev, u_int32_t reason)
 {
     /* TO DO: log the queue unpause */
     /* acquire the mutex lock, since we'll be modifying the queues */
@@ -575,10 +577,18 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev)
         adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
 #endif /* defined(CONFIG_HL_SUPPORT) */
     } else {
-        if (vdev->ll_pause.is_paused)
+        adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
+        if (vdev->ll_pause.paused_reason & reason)
         {
-            vdev->ll_pause.is_paused = A_FALSE;
-            ol_tx_vdev_ll_pause_queue_send(vdev);
+            vdev->ll_pause.paused_reason &= ~reason;
+            if (!vdev->ll_pause.paused_reason) {
+                adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
+                ol_tx_vdev_ll_pause_queue_send(vdev);
+            } else {
+                adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
+            }
+        } else {
+            adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
         }
     }
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);

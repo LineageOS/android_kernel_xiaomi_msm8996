@@ -2195,7 +2195,9 @@ PREPACK struct hl_htt_rx_desc_base {
         resv0:3,
         mcast_bcast:1,
         fragment:1,
-        resv1:14;
+        key_id_oct:8,
+        resv1:6;
+
     A_UINT32
         pn_31_0;
     union {
@@ -2222,6 +2224,8 @@ PREPACK struct hl_htt_rx_desc_base {
 #define HTT_HL_RX_DESC_MCAST_BCAST_S        16
 #define HTT_HL_RX_DESC_FRAGMENT_M           0x20000
 #define HTT_HL_RX_DESC_FRAGMENT_S           17
+#define HTT_HL_RX_DESC_KEY_ID_OCT_M         0x3fc0000
+#define HTT_HL_RX_DESC_KEY_ID_OCT_S         18
 
 #define HTT_HL_RX_DESC_PN_OFFSET            offsetof(struct hl_htt_rx_desc_base, pn_31_0)
 #define HTT_HL_RX_DESC_PN_WORD_OFFSET       (HTT_HL_RX_DESC_PN_OFFSET >> 2)

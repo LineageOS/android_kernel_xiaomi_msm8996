@@ -1987,6 +1987,7 @@ void hif_unregister_driver(void)
 #endif
 }
 
+/* Function to set the TXRX handle in the ol_sc context */
 void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle)
 {
 	struct ol_softc *sc = (struct ol_softc *)ol_sc;
@@ -2011,6 +2012,7 @@ void hif_disable_isr(void *ol_sc)
 	tasklet_kill(&hif_sc->intr_tq);
 }
 
+/* Function to reset SoC */
 void hif_reset_soc(void *ol_sc)
 {
 	struct ol_softc *scn = (struct ol_softc *)ol_sc;
@@ -2069,4 +2071,9 @@ void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)
 {
     *version = ((struct ol_softc *)ol_sc)->target_version;
     *revision = ((struct ol_softc *)ol_sc)->target_revision;
+}
+
+void hif_set_fw_info(void *ol_sc, u32 target_fw_version)
+{
+    ((struct ol_softc *)ol_sc)->target_fw_version = target_fw_version;
 }

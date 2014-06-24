@@ -111,6 +111,7 @@ when           who                what, where, why
 #else
 #define       VOS_MAX_NO_OF_SAP_MODE       1 // max # of SAP
 #endif
+#define       SAP_MAX_NUM_SESSION          5
 
 /*--------------------------------------------------------------------------
   reasonCode take form 802.11 standard Table 7-22 to be passed to WLANSAP_DisassocSta api.
@@ -507,6 +508,56 @@ typedef struct sSapText {
     v_U8_t num_text;
     v_U8_t text[MAX_TEXT_SIZE];
 } tSapText;
+
+typedef enum
+{
+    eSAP_DFS_CHANNEL_USABLE,
+    eSAP_DFS_CHANNEL_AVAILABLE,
+    eSAP_DFS_CHANNEL_UNAVAILABLE
+} eSapDfsChanStatus_t;
+
+typedef struct sSapDfsNolInfo
+{
+    v_U8_t              dfs_channel_number;
+    eSapDfsChanStatus_t radar_status_flag;
+    unsigned long       radar_found_timestamp;
+} tSapDfsNolInfo;
+
+typedef struct sSapDfsInfo
+{
+    vos_timer_t         sap_dfs_cac_timer;
+    v_U8_t              sap_radar_found_status;
+    /*
+     * New channel to move to when a  Radar is
+     * detected on current Channel
+     */
+    v_U8_t              target_channel;
+    v_U8_t              last_radar_found_channel;
+    v_U8_t              ignore_cac;
+    v_U8_t              user_provided_target_channel;
+
+    /* Requests for Channel Switch Announcement IE
+     * generation and transmission
+     */
+    v_U8_t              csaIERequired;
+    v_U8_t              numCurrentRegDomainDfsChannels;
+    tSapDfsNolInfo      sapDfsChannelNolList[NUM_5GHZ_CHANNELS];
+    v_U8_t              is_dfs_cac_timer_running;
+} tSapDfsInfo;
+
+typedef struct tagSapCtxList
+{
+    v_U8_t              sessionID;
+    v_VOID_t*           pSapContext;
+    tVOS_CON_MODE       sapPersona;
+} tSapCtxList, tpSapCtxList;
+
+typedef struct tagSapStruct
+{
+    //Information Required for SAP DFS Master mode
+    tSapDfsInfo         SapDfsInfo;
+    tSapCtxList         sapCtxList[SAP_MAX_NUM_SESSION];
+} tSapStruct, *tpSapStruct;
 
 #define WPS_PROBRSP_VER_PRESENT                          0x00000001
 #define WPS_PROBRSP_STATE_PRESENT                        0x00000002
@@ -1785,6 +1836,35 @@ VOS_STATUS
 WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx);
 
 /*==========================================================================
+  FUNCTION    WLANSAP_Get_Dfs_Ignore_CAC
+
+  DESCRIPTION
+   This API is used to get ignore_cac flag.
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  pvosGCtx: Pointer to vos global context structure
+
+  PARAMETERS
+  OUT
+  pIgnore_cac: pointer to variable
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+
+VOS_STATUS
+WLANSAP_Get_Dfs_Ignore_CAC(tHalHandle hHal, v_U8_t *pIgnore_cac);
+
+
+/*==========================================================================
   FUNCTION    WLANSAP_Set_Dfs_Ignore_CAC
 
   DESCRIPTION
@@ -1811,7 +1891,37 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx);
 ============================================================================*/
 
 VOS_STATUS
-WLANSAP_Set_Dfs_Ignore_CAC(v_PVOID_t pvosGCtx, v_U8_t ignore_cac);
+WLANSAP_Set_Dfs_Ignore_CAC(tHalHandle hHal, v_U8_t ignore_cac);
+
+/*==========================================================================
+  FUNCTION   WLANSAP_Set_Dfs_Target_Chnl
+
+  DESCRIPTION
+   This API is used to set next target chnl as provided channel.
+   you can provide any valid channel to this API.
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  hHal: Pointer to HAL
+
+  PARAMETERS
+  IN
+  target_channel: target channel number
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+
+VOS_STATUS
+WLANSAP_Set_Dfs_Target_Chnl(tHalHandle hHal,
+                            v_U8_t target_channel);
 
 
 

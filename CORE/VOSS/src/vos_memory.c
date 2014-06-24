@@ -209,6 +209,7 @@ v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
       if (size > WCNSS_PRE_ALLOC_GET_THRESHOLD)
       {
+          v_VOID_t *pmem;
           pmem = wcnss_prealloc_get(size);
           if (NULL != pmem)
               return pmem;
