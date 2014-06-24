@@ -18315,7 +18315,7 @@ skip_pno_cmp_ind:
 
 #endif
 
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 /* Handle TX pause event from FW */
 static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 					u_int32_t len)
@@ -19015,7 +19015,7 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 	}
 #endif
 
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 	WMA_LOGE("MCC TX Pause Event Handler register");
 	status = wmi_unified_register_event_handler(
 			wma_handle->wmi_handle,
