@@ -3729,6 +3729,15 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_ENABLE_SIFS_BURST_DEFAULT,
               CFG_ENABLE_SIFS_BURST_MIN,
               CFG_ENABLE_SIFS_BURST_MAX ),
+
+#ifdef WLAN_FEATURE_LPSS
+   REG_VARIABLE(CFG_ENABLE_LPASS_SUPPORT, WLAN_PARAM_Integer,
+               hdd_config_t, enablelpasssupport,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_ENABLE_LPASS_SUPPORT_DEFAULT,
+               CFG_ENABLE_LPASS_SUPPORT_MIN,
+               CFG_ENABLE_LPASS_SUPPORT_MAX),
+#endif
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4249,6 +4258,12 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
            "Name = [gEnableSifsBurst] Value = [%u]",
                    pHddCtx->cfg_ini->enableSifsBurst);
+
+#ifdef WLAN_FEATURE_LPSS
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [gEnableLpassSupport] Value = [%u] ",
+            pHddCtx->cfg_ini->enablelpasssupport);
+#endif
 }
 
 #define CFG_VALUE_MAX_LEN 256
