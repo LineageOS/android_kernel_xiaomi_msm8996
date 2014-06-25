@@ -173,6 +173,7 @@ typedef enum {
     WMI_GRP_NAN,
     WMI_GRP_COEX,
     WMI_GRP_OBSS_OFL,
+    WMI_GRP_LPI,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -636,6 +637,15 @@ typedef enum {
      */
     WMI_OBSS_SCAN_ENABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_OBSS_OFL),
     WMI_OBSS_SCAN_DISABLE_CMDID,
+
+    /**LPI commands*/
+    /**LPI mgmt snooping config command*/
+    WMI_LPI_MGMT_SNOOPING_CONFIG_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_LPI),
+    /**LPI scan start command*/
+    WMI_LPI_START_SCAN_CMDID,
+    /**LPI scan stop command*/
+    WMI_LPI_STOP_SCAN_CMDID,
+
 } WMI_CMD_ID;
 
 typedef enum {
@@ -696,6 +706,10 @@ typedef enum {
      * WMI_PEER_GET_ESTIMATED_LINKSPEED_CMDID command.
      */
     WMI_PEER_ESTIMATED_LINKSPEED_EVENTID,
+    /* Return the peer state
+     * WMI_PEER_SET_PARAM_CMDID, WMI_PEER_AUTHORIZE
+     */
+    WMI_PEER_STATE_EVENTID,
 
     /* beacon/mgmt specific events */
     /** RX management frame. the entire frame is carried along with the event.  */
@@ -855,6 +869,10 @@ typedef enum {
 
     /* NAN Event */
     WMI_NAN_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_NAN),
+
+    /* LPI Event */
+    WMI_LPI_RESULT_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_LPI),
+
 } WMI_EVT_ID;
 
 /* defines for OEM message sub-types */
@@ -6777,6 +6795,115 @@ typedef struct
     A_UINT32 netWorkStartIndex;  /* indicate the start index of network info*/
 } wmi_batch_scan_result_scan_list;
 
+#define LPI_IE_BITMAP_BSSID              0x0001
+#define LPI_IE_BITMAP_SSID               0x0002
+#define LPI_IE_BITMAP_RSSI               0x0004
+#define LPI_IE_BITMAP_CHAN               0x0008
+
+typedef struct {
+    A_UINT32 tlv_header;
+    /**A_BOOL indicates LPI mgmt snooping enable/disable*/
+    A_UINT32 enable;
+    /**LPI snooping mode*/
+    A_UINT32 snooping_mode;
+    /** LPI interested IEs in snooping context */
+    A_UINT32 ie_bitmap;
+} wmi_lpi_mgmt_snooping_config_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_start_scan_cmd_fixed_param */
+    /** Scan ID */
+    A_UINT32 scan_id;
+    /** Scan requestor ID */
+    A_UINT32 scan_req_id;
+    /** VDEV id(interface) that is requesting scan */
+    A_UINT32 vdev_id;
+    /** LPI interested IEs in scan context */
+    A_UINT32 ie_bitmap;
+    /** Scan Priority, input to scan scheduler */
+    A_UINT32 scan_priority;
+    /** dwell time in msec on active channels */
+    A_UINT32 dwell_time_active;
+    /** dwell time in msec on passive channels */
+    A_UINT32 dwell_time_passive;
+    /** min time in msec on the BSS channel,only valid if atleast one VDEV is active*/
+    A_UINT32 min_rest_time;
+    /** max rest time in msec on the BSS channel,only valid if at least one VDEV is active*/
+    /** the scanner will rest on the bss channel at least min_rest_time. after min_rest_time the scanner
+     *  will start checking for tx/rx activity on all VDEVs. if there is no activity the scanner will
+     *  switch to off channel. if there is activity the scanner will let the radio on the bss channel
+     *  until max_rest_time expires.at max_rest_time scanner will switch to off channel
+     *  irrespective of activity. activity is determined by the idle_time parameter.
+     */
+    A_UINT32 max_rest_time;
+    /** time before sending next set of probe requests.
+     *   The scanner keeps repeating probe requests transmission with period specified by repeat_probe_time.
+     *   The number of probe requests specified depends on the ssid_list and bssid_list
+     */
+    A_UINT32 repeat_probe_time;
+    /** time in msec between 2 consequetive probe requests with in a set. */
+    A_UINT32 probe_spacing_time;
+    /** data inactivity time in msec on bss channel that will be used by scanner for measuring the inactivity  */
+    A_UINT32 idle_time;
+    /** maximum time in msec allowed for scan  */
+    A_UINT32 max_scan_time;
+    /** delay in msec before sending first probe request after switching to a channel */
+    A_UINT32 probe_delay;
+    /** Scan control flags */
+    A_UINT32 scan_ctrl_flags;
+    /** Burst duration time in msec*/
+    A_UINT32 burst_duration;
+
+    /** # if channels to scan. In the TLV channel_list[] */
+    A_UINT32 num_chan;
+    /** number of bssids. In the TLV bssid_list[] */
+    A_UINT32 num_bssid;
+    /** number of ssid. In the TLV ssid_list[] */
+    A_UINT32 num_ssids;
+    /** number of bytes in ie data. In the TLV ie_data[] */
+    A_UINT32 ie_len;
+
+/**
+ * TLV (tag length value ) parameters follow the scan_cmd
+ * structure. The TLV's are:
+ *     A_UINT32 channel_list[];
+ *     wmi_ssid ssid_list[];
+ *     wmi_mac_addr bssid_list[];
+ *     A_UINT8 ie_data[];
+ */
+} wmi_lpi_start_scan_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_stop_scan_cmd_fixed_param */
+    /** requestor requesting cancel  */
+    A_UINT32 requestor;
+    /** Scan ID */
+    A_UINT32 scan_id;
+    /**
+     * Req Type
+     * req_type should be WMI_SCAN_STOP_ONE, WMI_SCN_STOP_VAP_ALL or WMI_SCAN_STOP_ALL
+     * WMI_SCAN_STOP_ONE indicates to stop a specific scan with scan_id
+     * WMI_SCN_STOP_VAP_ALL indicates to stop all scan requests on a specific vDev with vdev_id
+     * WMI_SCAN_STOP_ALL indicates to stop all scan requests in both Scheduler's queue and Scan Engine
+     */
+    A_UINT32 req_type;
+    /**
+     * vDev ID
+     * used when req_type equals to WMI_SCN_STOP_VAP_ALL, it indexed the vDev on which to stop the scan
+     */
+    A_UINT32 vdev_id;
+} wmi_lpi_stop_scan_cmd_fixed_param;
+
+typedef struct
+{
+    A_UINT32 tlv_header;
+    A_UINT32 ie_bitmap;
+    A_UINT32 data_len;
+    /* This buffer is used to send lpi scan result data
+      *  A_UINT8 data[];	 // length in byte given by field data_len.
+      */
+} wmi_lpi_result_event_fixed_param;
+
 typedef struct
 {
     A_UINT32 tlv_header;
@@ -7008,6 +7135,8 @@ typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_mhf_offload_plumb_routing_table_cmd_fixed_param */
     A_UINT32 tlv_header;
+    /** vdev id*/
+    A_UINT32 vdev_id;
     /** action corresponds to values from enum
      *  wmi_mhf_ofl_table_action */
     A_UINT32 action;
@@ -7237,6 +7366,15 @@ typedef struct {
      *     A_UINT8 data[];    // length in byte given by field data_len.
      */
 } wmi_stats_ext_event_fixed_param;
+
+typedef struct {
+    /* TLV tag and len; tag equals WMITLV_TAG_STRUC_ wmi_peer_state_event_fixed_param */
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id; /* vdev ID */
+    /* MAC address of the peer for which the estimated link speed is required.*/
+    wmi_mac_addr peer_macaddr;
+    A_UINT32 state; /* peer state */
+} wmi_peer_state_event_fixed_param;
 
 enum {
     WMI_2G4_HT40_OBSS_SCAN_PASSIVE = 0,    /** scan_type: passive */
