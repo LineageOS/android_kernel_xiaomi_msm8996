@@ -457,6 +457,11 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_peer_link_stats,
     WMITLV_TAG_STRUC_wmi_wmm_ac_stats,
     WMITLV_TAG_STRUC_wmi_iface_link_stats,
+    WMITLV_TAG_STRUC_wmi_lpi_mgmt_snooping_config_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_lpi_start_scan_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_lpi_stop_scan_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_lpi_result_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_peer_state_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -623,7 +628,10 @@ typedef enum {
     OP(WMI_WOW_ACER_IOAC_DEL_WAKE_PATTERN_CMDID) \
     OP(WMI_REQUEST_LINK_STATS_CMDID) \
     OP(WMI_START_LINK_STATS_CMDID) \
-    OP(WMI_CLEAR_LINK_STATS_CMDID)
+    OP(WMI_CLEAR_LINK_STATS_CMDID) \
+    OP(WMI_LPI_MGMT_SNOOPING_CONFIG_CMDID) \
+    OP(WMI_LPI_START_SCAN_CMDID) \
+    OP(WMI_LPI_STOP_SCAN_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -696,7 +704,9 @@ typedef enum {
     OP(WMI_UPDATE_WHAL_MIB_STATS_EVENTID) \
     OP(WMI_IFACE_LINK_STATS_EVENTID) \
     OP(WMI_PEER_LINK_STATS_EVENTID) \
-    OP(WMI_RADIO_LINK_STATS_EVENTID)
+    OP(WMI_RADIO_LINK_STATS_EVENTID) \
+    OP(WMI_LPI_RESULT_EVENTID) \
+    OP(WMI_PEER_STATE_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1615,6 +1625,33 @@ WMITLV_CREATE_PARAM_STRUC(WMI_BATCH_SCAN_DISABLE_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID);
 
+/* LPI mgmt snooping config Cmd */
+#define WMITLV_TABLE_WMI_LPI_MGMT_SNOOPING_CONFIG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_lpi_mgmt_snooping_config_cmd_fixed_param, wmi_lpi_mgmt_snooping_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_LPI_MGMT_SNOOPING_CONFIG_CMDID);
+
+/* LPI start scan Cmd */
+#define WMITLV_TABLE_WMI_LPI_START_SCAN_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_lpi_start_scan_cmd_fixed_param, wmi_lpi_start_scan_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, channel_list, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_FIXED_STRUC, wmi_ssid, ssid_list, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_FIXED_STRUC, wmi_mac_addr, bssid_list, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, ie_data, WMITLV_SIZE_VAR)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_LPI_START_SCAN_CMDID);
+
+/* LPI stop scan Cmd */
+#define WMITLV_TABLE_WMI_LPI_STOP_SCAN_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_lpi_stop_scan_cmd_fixed_param, wmi_lpi_stop_scan_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_LPI_STOP_SCAN_CMDID);
+
+#define WMITLV_TABLE_WMI_LPI_RESULT_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_lpi_result_event_fixed_param, wmi_lpi_result_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_LPI_RESULT_EVENTID);
+
 /* Thermal Manager Params*/
 #define WMITLV_TABLE_WMI_THERMAL_MGMT_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_thermal_mgmt_cmd_fixed_param, wmi_thermal_mgmt_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
@@ -2049,7 +2086,10 @@ WMITLV_CREATE_PARAM_STRUC(WMI_OFFLOAD_PROB_RESP_TX_STATUS_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_host_auto_shutdown_event_fixed_param, wmi_host_auto_shutdown_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_HOST_AUTO_SHUTDOWN_EVENTID);
 
-
+/* peer state Event */
+#define WMITLV_TABLE_WMI_PEER_STATE_EVENTID(id,op,buf,len)                                     \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_state_event_fixed_param, wmi_peer_state_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PEER_STATE_EVENTID);
 
 #ifdef __cplusplus
 }

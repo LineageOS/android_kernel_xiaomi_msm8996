@@ -139,6 +139,40 @@ typedef tANI_U8 tSirVersionString[SIR_VERSION_STRING_LEN];
 #define PERIODIC_TX_PTRN_MAX_SIZE 1536
 #define MAXNUM_PERIODIC_TX_PTRNS 6
 
+
+#ifdef FEATURE_WLAN_EXTSCAN
+
+#define WLAN_EXTSCAN_MAX_CHANNELS                 16
+#define WLAN_EXTSCAN_MAX_BUCKETS                  16
+#define WLAN_EXTSCAN_MAX_HOTLIST_APS              128
+#define WLAN_EXTSCAN_MAX_SIGNIFICANT_CHANGE_APS   64
+
+typedef enum
+{
+    eSIR_EXTSCAN_INVALID,
+    eSIR_EXTSCAN_START_RSP,
+    eSIR_EXTSCAN_STOP_RSP,
+    eSIR_EXTSCAN_CACHED_RESULTS_RSP,
+    eSIR_EXTSCAN_SET_BSSID_HOTLIST_RSP,
+    eSIR_EXTSCAN_RESET_BSSID_HOTLIST_RSP,
+    eSIR_EXTSCAN_SET_SIGNIFICANT_WIFI_CHANGE_RSP,
+    eSIR_EXTSCAN_RESET_SIGNIFICANT_WIFI_CHANGE_RSP,
+
+    eSIR_EXTSCAN_GET_CAPABILITIES_IND,
+    eSIR_EXTSCAN_HOTLIST_MATCH_IND,
+    eSIR_EXTSCAN_SIGNIFICANT_WIFI_CHANGE_RESULTS_IND,
+    eSIR_EXTSCAN_CACHED_RESULTS_IND,
+    eSIR_EXTSCAN_SCAN_RES_AVAILABLE_IND,
+    eSIR_EXTSCAN_SCAN_PROGRESS_EVENT_IND,
+    eSIR_EXTSCAN_FULL_SCAN_RESULT_IND,
+
+    /* Keep this last */
+    eSIR_EXTSCAN_CALLBACK_TYPE_MAX,
+} tSirExtScanCallbackType;
+
+
+#endif /* FEATURE_WLAN_EXTSCAN */
+
 enum eSirHostMsgTypes
 {
     SIR_HAL_APP_SETUP_NTF = SIR_HAL_HOST_MSG_START,
@@ -5000,5 +5034,336 @@ typedef struct
 } tSirStatsExtEvent, *tpSirStatsExtEvent;
 
 #endif
+
+#ifdef FEATURE_WLAN_EXTSCAN
+
+typedef enum
+{
+    WIFI_BAND_UNSPECIFIED,
+    WIFI_BAND_BG             = 1,    /* 2.4 GHz */
+    WIFI_BAND_A              = 2,    /* 5 GHz without DFS */
+    WIFI_BAND_ABG            = 3,    /* 2.4 GHz + 5 GHz; no DFS */
+    WIFI_BAND_A_DFS_ONLY     = 4,    /* 5 GHz DFS only */
+    /* 5 is reserved */
+    WIFI_BAND_A_WITH_DFS     = 6,    /* 5 GHz with DFS */
+    WIFI_BAND_ABG_WITH_DFS   = 7,    /* 2.4 GHz + 5 GHz with DFS */
+
+    /* Keep it last */
+    WIFI_BAND_MAX
+} tWifiBand;
+
+/* wifi scan related events */
+typedef enum
+{
+   WIFI_SCAN_BUFFER_FULL,
+   WIFI_SCAN_COMPLETE,
+} tWifiScanEventType;
+
+typedef struct
+{
+   tSirMacAddr    bssid;
+
+   /* Low threshold */
+   tANI_S32       low;
+
+   /* High threshold */
+   tANI_S32       high;
+
+   /* Frequency in MHz*/
+   tANI_U32       channel;
+} tSirAPThresholdParam, *tpSirAPThresholdParam;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U8     sessionId;
+} tSirGetExtScanCapabilitiesReqParams, *tpSirGetExtScanCapabilitiesReqParams;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U32    status;
+
+    tANI_U32    scanCacheSize;
+    tANI_U32    scanBuckets;
+    tANI_U32    maxApPerScan;
+    tANI_U32    maxRssiSampleSize;
+    tANI_U32    maxScanReportingThreshold;
+
+    tANI_U32    maxHotlistAPs;
+    tANI_U32    maxSignificantWifiChangeAPs;
+
+    tANI_U32    maxBsidHistoryEntries;
+} tSirExtScanCapabilitiesEvent, *tpSirExtScanCapabilitiesEvent;
+
+
+typedef struct
+{
+    tANI_U32      requestId;
+    tANI_U8       sessionId;
+
+    /*
+     * 1 - return cached results and flush it
+     * 0 - return cached results and do not flush
+     */
+    tANI_BOOLEAN  flush;
+} tSirExtScanGetCachedResultsReqParams, *tpSirExtScanGetCachedResultsReqParams;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U32    status;
+} tSirExtScanGetCachedResultsRspParams, *tpSirExtScanGetCachedResultsRspParams;
+
+typedef struct
+{
+    /* Time of discovery */
+    tANI_U64      ts;
+
+    /* Null terminated SSID */
+    tANI_U8       ssid[SIR_MAC_MAX_SSID_LENGTH+1];
+
+    tSirMacAddr   bssid;
+
+    /* Frequency in MHz*/
+    tANI_U32      channel;
+
+    /* RSSI in dBm */
+    tANI_S32      rssi;
+
+    /* RTT in nanoseconds */
+    tANI_U32      rtt;
+
+    /* Standard deviation in rtt */
+    tANI_U32      rtt_sd;
+
+    /* Period advertised in the beacon */
+    tANI_U16      beaconPeriod;
+
+    /* Capabilities advertised in the beacon */
+    tANI_U16      capability;
+
+    tANI_U16      ieLength;
+
+    tANI_U8       ieData[];
+} tSirWifiScanResult, *tpSirWifiScanResult;
+
+typedef struct
+{
+    tANI_U32             requestId;
+
+    tANI_U32             numOfAps;
+
+    /*
+     * 0 - for last fragment
+     * 1 - still more fragment(s) coming
+     */
+    tANI_BOOLEAN         moreData;
+    tSirWifiScanResult   ap[];
+} tSirWifiScanResultEvent, *tpSirWifiScanResultEvent;
+
+/*
+ * Reported when each probe response is received, if reportEvents
+ * enabled in tSirWifiScanCmdReqParams
+ */
+typedef struct
+{
+    tANI_U32               requestId;
+
+    /*
+     * 0 - for last fragment
+     * 1 - still more fragment(s) coming
+     */
+    tANI_BOOLEAN           moreData;
+    tSirWifiScanResult     ap;
+} tSirWifiFullScanResultEvent, *tpSirWifiFullScanResultEvent;
+
+
+typedef struct
+{
+    /* Frequency in MHz*/
+    tANI_U32      channel;
+
+    tANI_U32      dwellTimeMs;
+
+    /* 0 => active
+       1 => passive scan; ignored for DFS */
+    tANI_BOOLEAN  passive;
+
+    tANI_U8       chnlClass;
+} tSirWifiScanChannelSpec, *tpSirWifiScanChannelSpec;
+
+typedef struct
+{
+    /* Bucket index, 0 based */
+    tANI_U8       bucket;
+
+    /* when UNSPECIFIED, use channel list */
+    tWifiBand     band;
+
+    /*
+     * Desired period, in millisecond; if this is too
+     * low, the firmware should choose to generate results as fast as
+     * it can instead of failing the command byte
+     */
+    tANI_U32      period;
+
+    /*
+     * 0 => normal reporting (reporting rssi history
+     * only, when rssi history buffer is % full)
+     * 1 => same as 0 + report a scan completion event after scanning
+     * this bucket
+     * 2 => same as 1 + forward scan results (beacons/probe responses + IEs)
+     * in real time to HAL
+     */
+    tANI_U32      reportEvents;
+
+    tANI_U32      numChannels;
+
+    /*
+     * Channels to scan; these may include DFS channels
+     */
+    tSirWifiScanChannelSpec channels[WLAN_EXTSCAN_MAX_CHANNELS];
+} tSirWifiScanBucketSpec, *tpSirWifiScanBucketSpec;
+
+typedef struct
+{
+    /* Base timer period */
+    tANI_U32                basePeriod;
+    tANI_U32                maxAPperScan;
+
+    /* in %, when buffer is this much full, wake up host */
+    tANI_U32                reportThreshold;
+    tANI_U32                requestId;
+    tANI_U8                 sessionId;
+
+    tANI_U32                numBuckets;
+    tSirWifiScanBucketSpec  buckets[WLAN_EXTSCAN_MAX_BUCKETS];
+} tSirWifiScanCmdReqParams, *tpSirWifiScanCmdReqParams;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U32    status;
+} tSirExtScanStartRspParams, *tpSirExtScanStartRspParams;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U8     sessionId;
+} tSirExtScanStopReqParams, *tpSirExtScanStopReqParams;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U32    status;
+} tSirExtScanStopRspParams, *tpSirExtScanStopRspParams;
+
+typedef struct
+{
+    tANI_U32               requestId;
+    tANI_U8                sessionId;
+
+    /* Number of hotlist APs */
+    tANI_U32               numAp;
+    tSirAPThresholdParam   ap[WLAN_EXTSCAN_MAX_HOTLIST_APS];
+} tSirExtScanSetBssidHotListReqParams, *tpSirExtScanSetBssidHotListReqParams;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U32    status;
+} tSirExtScanSetBssidHotListRspParams, *tpSirExtScanSetBssidHotListRspParams;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U8     sessionId;
+} tSirExtScanResetBssidHotlistReqParams,
+  *tpSirExtScanResetBssidHotlistReqParams;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U32    status;
+} tSirExtScanResetBssidHotlistRspParams,
+  *tpSirExtScanResetBssidHotlistRspParams;
+
+typedef struct
+{
+    tANI_U32              requestId;
+    tANI_U8               sessionId;
+
+    /* Number of samples for averaging RSSI */
+    tANI_U32              rssiSampleSize;
+
+    /* Number of missed samples to confirm AP loss */
+    tANI_U32              lostApSampleSize;
+
+    /* Number of APs breaching threshold required for firmware
+     * to generate event
+     */
+    tANI_U32              minBreaching;
+
+    tANI_U32              numAp;
+    tSirAPThresholdParam  ap[WLAN_EXTSCAN_MAX_SIGNIFICANT_CHANGE_APS];
+} tSirExtScanSetSigChangeReqParams,
+ *tpSirExtScanSetSigChangeReqParams;
+
+typedef struct
+{
+    tANI_U32      requestId;
+    tANI_U32      status;
+} tSirExtScanSetSignificantChangeRspParams,
+  *tpSirExtScanSetSignificantChangeRspParams;
+
+typedef struct
+{
+    tSirMacAddr  bssid;
+    tANI_U32     channel;
+    tANI_U32     numOfRssi;
+
+    /* Rssi history in db */
+    tANI_S32     *rssi;
+} tSirWifiSignificantChange, *tpSirWifiSignificantChange;
+
+typedef struct
+{
+    tANI_U32                      requestId;
+
+    tANI_BOOLEAN                  moreData;
+    tANI_U32                      numResults;
+    tSirWifiSignificantChange     **ap;
+} tSirWifiSignificantChangeEvent, *tpSirWifiSignificantChangeEvent;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U8     sessionId;
+} tSirExtScanResetSignificantChangeReqParams,
+  *tpSirExtScanResetSignificantChangeReqParams;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U32    status;
+} tSirExtScanResetSignificantChangeRspParams,
+  *tpSirExtScanResetSignificantChangeRspParams;
+
+typedef struct
+{
+    tANI_U32    requestId;
+    tANI_U32    numResultsAvailable;
+} tSirExtScanResultsAvailableIndParams,
+  *tpSirExtScanResultsAvailableIndParams;
+
+typedef struct
+{
+    tANI_U8    scanEventType;
+    tANI_U32   status;
+} tSirExtScanOnScanEventIndParams,
+  *tpSirExtScanOnScanEventIndParams;
+
+#endif /* FEATURE_WLAN_EXTSCAN */
 
 #endif /* __SIR_API_H */

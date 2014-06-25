@@ -91,18 +91,23 @@ PREPACK struct host_app_area_s {
 #define WMI_SET_FIELD(_msg_buf, _msg_type, _f, _val) \
     SET_FIELD(_msg_buf, _msg_type ## _ ## _f, _val)
 
+#define WMI_EP_APASS           0x0
+#define WMI_EP_LPASS           0x1
+
 /*
  * Control Path
  */
 typedef PREPACK struct {
     A_UINT32    commandId : 24,
-                reserved  : 2, /* reserved for future WMI  */
+                reserved  : 2, /* used for WMI endpoint ID */
                 plt_priv  : 6; /* platform private */
 } POSTPACK WMI_CMD_HDR;        /* used for commands and events */
 
 #define WMI_CMD_HDR_COMMANDID_LSB           0
 #define WMI_CMD_HDR_COMMANDID_MASK          0x00ffffff
 #define WMI_CMD_HDR_COMMANDID_OFFSET        0x00000000
+#define WMI_CMD_HDR_WMI_ENDPOINTID_MASK     0x03000000
+#define WMI_CMD_HDR_WMI_ENDPOINTID_OFFSET   24
 #define WMI_CMD_HDR_PLT_PRIV_LSB            24
 #define WMI_CMD_HDR_PLT_PRIV_MASK           0xff000000
 #define WMI_CMD_HDR_PLT_PRIV_OFFSET         0x00000000
