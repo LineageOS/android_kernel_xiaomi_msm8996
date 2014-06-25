@@ -532,8 +532,6 @@ void dump_CE_debug_register(struct hif_pci_softc *sc)
 
             printk("    out: %x\n", val);
         }
-
-        msleep(1);
     }
 
     printk("Debug PCIe: \n");
@@ -1662,9 +1660,14 @@ void hif_pci_crash_shutdown(struct pci_dev *pdev)
 #ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
     struct hif_pci_softc *sc;
     struct ol_softc *scn;
+    struct HIF_CE_state *hif_state;
 
     sc = pci_get_drvdata(pdev);
     if (!sc)
+        return;
+
+    hif_state = (struct HIF_CE_state *)sc->hif_device;
+    if (!hif_state)
         return;
 
     scn = sc->ol_sc;
@@ -1676,18 +1679,26 @@ void hif_pci_crash_shutdown(struct pci_dev *pdev)
         return;
     }
 
+    adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
+
 #ifdef DEBUG
     if (hif_pci_check_soc_status(scn->hif_sc)
-        || dump_CE_register(scn))
-        return;
+        || dump_CE_register(scn)) {
+        goto out;
+    }
 
     dump_CE_debug_register(scn->hif_sc);
 #endif
 
-    if (ol_copy_ramdump(scn))
-        return;
+    if (ol_copy_ramdump(scn)) {
+        goto out;
+    }
 
     printk("%s: RAM dump collecting completed!\n", __func__);
+
+out:
+    adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
+    return;
 #else
     printk("%s: Collecting target RAM dump after kernel panic is disabled!\n",
            __func__);
