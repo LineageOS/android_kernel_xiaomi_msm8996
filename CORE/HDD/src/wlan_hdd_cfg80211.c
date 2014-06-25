@@ -4702,17 +4702,6 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                 if (status != VOS_STATUS_SUCCESS)
                         return status;
 
-                // fw will take care if PS offload is enabled.
-                if (pHddCtx->cfg_ini->enablePowersaveOffload)
-                    goto done;
-                /* In case of JB, for P2P-GO, only change interface will be called,
-                 * This is the right place to enable back bmps_imps()
-                 */
-                if (pHddCtx->hdd_wlan_suspended)
-                {
-                    hdd_set_pwrparams(pHddCtx);
-                }
-                hdd_enable_bmps_imps(pHddCtx);
 #ifdef QCA_LL_TX_FLOW_CT
                 if ((NL80211_IFTYPE_P2P_CLIENT == type) ||
                      (NL80211_IFTYPE_STATION == type))
@@ -4727,6 +4716,18 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                              (void *)pAdapter);
                 }
 #endif /* QCA_LL_TX_FLOW_CT */
+
+                // fw will take care if PS offload is enabled.
+                if (pHddCtx->cfg_ini->enablePowersaveOffload)
+                    goto done;
+                /* In case of JB, for P2P-GO, only change interface will be called,
+                 * This is the right place to enable back bmps_imps()
+                 */
+                if (pHddCtx->hdd_wlan_suspended)
+                {
+                    hdd_set_pwrparams(pHddCtx);
+                }
+                hdd_enable_bmps_imps(pHddCtx);
                 goto done;
             case NL80211_IFTYPE_AP:
             case NL80211_IFTYPE_P2P_GO:
