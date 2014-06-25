@@ -5913,6 +5913,7 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
 #endif
         if ( !csrIsPhyModeMatch( pMac, pFilter->phyMode, pBssDesc, NULL, NULL, pIes ) ) break;
         if ( (!pFilter->bWPSAssociation) && (!pFilter->bOSENAssociation) &&
+#ifdef WLAN_FEATURE_11W
              !csrIsSecurityMatch( pMac, &pFilter->authType,
                                   &pFilter->EncryptionType,
                                   &pFilter->mcEncryptionType,
@@ -5920,7 +5921,16 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
                                   &pFilter->MFPRequired,
                                   &pFilter->MFPCapable,
                                   pBssDesc, pIes, pNegAuth,
-                                  pNegUc, pNegMc ) ) break;
+                                  pNegUc, pNegMc )
+#else
+             !csrIsSecurityMatch( pMac, &pFilter->authType,
+                                  &pFilter->EncryptionType,
+                                  &pFilter->mcEncryptionType,
+                                  NULL, NULL, NULL,
+                                  pBssDesc, pIes, pNegAuth,
+                                  pNegUc, pNegMc )
+#endif
+                                                   ) break;
         if ( !csrIsCapabilitiesMatch( pMac, pFilter->BSSType, pBssDesc ) ) break;
         if ( !csrIsRateSetMatch( pMac, &pIes->SuppRates, &pIes->ExtSuppRates ) ) break;
         //Tush-QoS: validate first if asked for APSD or WMM association
