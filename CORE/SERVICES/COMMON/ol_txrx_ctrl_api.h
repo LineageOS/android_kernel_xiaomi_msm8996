@@ -1039,7 +1039,7 @@ ol_tx_delay_hist(ol_txrx_pdev_handle pdev, u_int16_t *bin_values,
 }
 #endif
 
-#if defined(QCA_SUPPORT_TX_THROTTLE_LL)
+#if defined(QCA_SUPPORT_TX_THROTTLE)
 /**
  * @brief Set the thermal mitgation throttling level.
  * @details
@@ -1055,9 +1055,9 @@ static inline void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev,
 {
     /* no-op */
 }
-#endif /* QCA_SUPPORT_TX_THROTTLE_LL */
+#endif /* QCA_SUPPORT_TX_THROTTLE */
 
-#if defined(QCA_SUPPORT_TX_THROTTLE_LL)
+#if defined(QCA_SUPPORT_TX_THROTTLE)
 /**
  * @brief Configure the thermal mitgation throttling period.
  * @details
@@ -1073,7 +1073,7 @@ static inline void ol_tx_throttle_init_period(struct ol_txrx_pdev_t *pdev,
 {
     /* no-op */
 }
-#endif /* QCA_SUPPORT_TX_THROTTLE_LL */
+#endif /* QCA_SUPPORT_TX_THROTTLE */
 
 void ol_vdev_rx_set_intrabss_fwd(ol_txrx_vdev_handle vdev, a_bool_t val);
 

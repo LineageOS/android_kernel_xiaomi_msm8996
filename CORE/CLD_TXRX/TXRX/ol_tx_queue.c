@@ -476,7 +476,7 @@ ol_txrx_peer_tid_unpause(ol_txrx_peer_handle peer, int tid)
 void
 ol_txrx_throttle_pause(ol_txrx_pdev_handle pdev)
 {
-#if defined(QCA_SUPPORT_TX_THROTTLE_LL)
+#if defined(QCA_SUPPORT_TX_THROTTLE)
     adf_os_spin_lock_bh(&pdev->tx_throttle.mutex);
 
     if (pdev->tx_throttle.is_paused == TRUE) {
@@ -493,7 +493,7 @@ ol_txrx_throttle_pause(ol_txrx_pdev_handle pdev)
 void
 ol_txrx_throttle_unpause(ol_txrx_pdev_handle pdev)
 {
-#if defined(QCA_SUPPORT_TX_THROTTLE_LL)
+#if defined(QCA_SUPPORT_TX_THROTTLE)
     adf_os_spin_lock_bh(&pdev->tx_throttle.mutex);
 
     if (pdev->tx_throttle.is_paused == FALSE) {
@@ -620,10 +620,10 @@ ol_txrx_vdev_flush(ol_txrx_vdev_handle vdev)
     }
 }
 
-#endif // defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
+#endif  // defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 
 /*--- LL tx throttle queue code --------------------------------------------*/
-#if defined(QCA_SUPPORT_TX_THROTTLE_LL)
+#if defined(QCA_SUPPORT_TX_THROTTLE)
 u_int8_t ol_tx_pdev_is_target_empty(void)
 {
     /* TM TODO */
@@ -667,8 +667,10 @@ void ol_tx_pdev_throttle_phase_timer(void *context)
 
         if (pdev->cfg.is_high_latency)
             ol_txrx_throttle_unpause(pdev);
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
         else
             ol_tx_pdev_ll_pause_queue_send_all(pdev);
+#endif
 
         cur_level = pdev->tx_throttle.current_throttle_level;
         cur_phase = pdev->tx_throttle.current_throttle_phase;
@@ -680,11 +682,13 @@ void ol_tx_pdev_throttle_phase_timer(void *context)
     }
 }
 
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
 void ol_tx_pdev_throttle_tx_timer(void *context)
 {
     struct ol_txrx_pdev_t *pdev = (struct ol_txrx_pdev_t *)context;
     ol_tx_pdev_ll_pause_queue_send_all(pdev);
 }
+#endif
 
 void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev, int level)
 {
@@ -732,8 +736,7 @@ void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev, int level)
         adf_os_timer_start(&pdev->tx_throttle.phase_timer, ms);
     }
 }
-#endif // defined(QCA_SUPPORT_TX_THROTTLE_LL)
-#if defined (QCA_SUPPORT_TXRX_VDEV_LL_TXQ)
+
 /* This table stores the duty cycle for each level.
    Example "on" time for level 2 with duty period 100ms is:
    "on" time = duty_period_ms >> throttle_duty_cycle_table[2]
@@ -780,15 +783,17 @@ void ol_tx_throttle_init(struct ol_txrx_pdev_t *pdev)
             ol_tx_pdev_throttle_phase_timer,
             pdev);
 
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
     adf_os_timer_init(
             pdev->osdev,
             &pdev->tx_throttle.tx_timer,
             ol_tx_pdev_throttle_tx_timer,
             pdev);
+#endif
 
     pdev->tx_throttle.tx_threshold = THROTTLE_TX_THRESHOLD;
 }
-#endif /* QCA_SUPPORT_TXRX_VDEV_LL_TXQ */
+#endif /* QCA_SUPPORT_TX_THROTTLE */
 /*--- End of LL tx throttle queue code ---------------------------------------*/
 
 #if defined(CONFIG_HL_SUPPORT)
