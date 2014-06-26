@@ -458,7 +458,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		if (file == ATH_OTP_FILE)
 			return -ENOENT;
 
-#if defined(QCA_WIFI_FTM) && defined(CONFIG_CNSS) && defined(HIF_SDIO)
+#if defined(QCA_WIFI_FTM) && (defined(CONFIG_CNSS) || defined(HIF_SDIO))
 		/* Try default board data file if FTM specific
 		 * board data file is not present. */
 		if (filename == scn->fw_files.utf_board_data) {
