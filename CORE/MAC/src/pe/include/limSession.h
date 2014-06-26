@@ -443,6 +443,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U16 schBeaconOffsetBegin;
     // Size of the trailing portion
     tANI_U16 schBeaconOffsetEnd;
+    tANI_BOOLEAN isOSENConnection;
 
 }tPESession, *tpPESession;
 

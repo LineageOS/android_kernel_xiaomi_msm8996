@@ -674,7 +674,14 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
             pAddBssParams->staContext.wmmEnabled = 0;
 
         pAddBssParams->staContext.wpa_rsn = pBeaconStruct->rsnPresent;
+        /* For OSEN Connection AP does not advertise RSN or WPA IE
+         * so from the IEs we get from supplicant we get this info
+         * so for FW to transmit EAPOL message 4 we shall set
+         * wpa_rsn
+         */
         pAddBssParams->staContext.wpa_rsn |= (pBeaconStruct->wpaPresent << 1);
+        if ((!pAddBssParams->staContext.wpa_rsn) && (pftSessionEntry->isOSENConnection))
+            pAddBssParams->staContext.wpa_rsn = 1;
         //Update the rates
 #ifdef WLAN_FEATURE_11AC
         limPopulatePeerRateSet(pMac, &pAddBssParams->staContext.supportedRates,
@@ -779,6 +786,7 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
     pftSessionEntry->limQosEnabled = psessionEntry->limQosEnabled;
     pftSessionEntry->limWsmEnabled = psessionEntry->limWsmEnabled;
     pftSessionEntry->lim11hEnable = psessionEntry->lim11hEnable;
+    pftSessionEntry->isOSENConnection = psessionEntry->isOSENConnection;
 
     // Fields to be filled later
     pftSessionEntry->pLimJoinReq = NULL;

@@ -2120,6 +2120,9 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         /* Indicate whether spectrum management is enabled*/
         psessionEntry->spectrumMgtEnabled =
            pSmeJoinReq->spectrumMgtIndicator;
+        psessionEntry->isOSENConnection =
+           pSmeJoinReq->isOSENConnection;
+
            PELOG1(limLog(pMac,LOG1,FL("SessionId:%d MLM_JOIN_REQ is posted to MLM SM"),
                          pMlmJoinReq->sessionId));
         /* Issue LIM_MLM_JOIN_REQ to MLM */
