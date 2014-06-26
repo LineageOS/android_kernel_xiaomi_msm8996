@@ -3935,7 +3935,8 @@ static int iw_softap_stopbss(struct net_device *dev,
             if (!VOS_IS_STATUS_SUCCESS(status))
             {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                         ("ERROR: HDD vos wait for single_event failed!!"));
+                         ("%s: ERROR: HDD vos wait for single_event failed!!"),
+                         __func__);
                 VOS_ASSERT(0);
             }
         }
