@@ -1096,6 +1096,27 @@ ol_configure_target(struct ol_softc *scn)
 	}
 #endif
 
+#ifdef WLAN_FEATURE_LPSS
+	if (scn->enablelpasssupport) {
+		if (BMIReadMemory(scn->hif_hdl,
+			  host_interest_item_address(scn->target_type,
+			     offsetof(struct host_interest_s, hi_option_flag2)),
+				  (A_UCHAR *)&param, 4, scn)!= A_OK) {
+			printk("BMIReadMemory for setting LPASS Support failed\n");
+			return A_ERROR;
+		}
+
+		param |= HI_OPTION_DBUART_SUPPORT;
+		if (BMIWriteMemory(scn->hif_hdl,
+			   host_interest_item_address(scn->target_type,
+			      offsetof(struct host_interest_s, hi_option_flag2)),
+				   (A_UCHAR *)&param, 4, scn) != A_OK) {
+			printk("BMIWriteMemory for setting LPASS Support failed\n");
+			return A_ERROR;
+		}
+	}
+#endif
+
 	/* If host is running on a BE CPU, set the host interest area */
 	{
 #ifdef BIG_ENDIAN_HOST
