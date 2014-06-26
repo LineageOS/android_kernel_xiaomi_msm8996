@@ -2251,6 +2251,7 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    pHddCtx->hdd_mcastbcast_filter_set = FALSE;
    hdd_register_mcast_bcast_filter(pHddCtx);
+   wlan_hdd_global_tdls_init(pHddCtx);
    hdd_ssr_timer_del();
 
 #ifdef QCA_WIFI_ISOC
