@@ -174,6 +174,7 @@ typedef enum {
     WMI_GRP_COEX,
     WMI_GRP_OBSS_OFL,
     WMI_GRP_LPI,
+    WMI_GRP_EXTSCAN,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -646,6 +647,15 @@ typedef enum {
     /**LPI scan stop command*/
     WMI_LPI_STOP_SCAN_CMDID,
 
+     /** ExtScan commands */
+    WMI_EXTSCAN_START_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_EXTSCAN),
+    WMI_EXTSCAN_STOP_CMDID,
+    WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID,
+    WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID,
+    WMI_EXTSCAN_GET_CACHED_RESULTS_CMDID,
+    WMI_EXTSCAN_GET_WLAN_CHANGE_RESULTS_CMDID,
+    WMI_EXTSCAN_SET_CAPABILITIES_CMDID,
+    WMI_EXTSCAN_GET_CAPABILITIES_CMDID,
 } WMI_CMD_ID;
 
 typedef enum {
@@ -873,6 +883,14 @@ typedef enum {
     /* LPI Event */
     WMI_LPI_RESULT_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_LPI),
 
+     /* ExtScan events */
+    WMI_EXTSCAN_START_STOP_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_EXTSCAN),
+    WMI_EXTSCAN_OPERATION_EVENTID,
+    WMI_EXTSCAN_TABLE_USAGE_EVENTID,
+    WMI_EXTSCAN_CACHED_RESULTS_EVENTID,
+    WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID,
+    WMI_EXTSCAN_HOTLIST_MATCH_EVENTID,
+    WMI_EXTSCAN_CAPABILITIES_EVENTID,
 } WMI_EVT_ID;
 
 /* defines for OEM message sub-types */
@@ -7470,6 +7488,638 @@ typedef struct {
      *  WMITLV_TAG_STRUC_wmi_chan_avoid_update_cmd_param */
     A_UINT32 tlv_header;
 } wmi_chan_avoid_update_cmd_param;
+
+/* ExtScan operation mode */
+typedef enum {
+   WMI_EXTSCAN_MODE_NONE          = 0x0000,
+   WMI_EXTSCAN_MODE_START         = 0x0001,    // ExtScan/TableMonitoring operation started
+   WMI_EXTSCAN_MODE_STOP          = 0x0002,    // ExtScan/TableMonitoring operation stopped
+   WMI_EXTSCAN_MODE_IGNORED       = 0x0003,    // ExtScan command ignored due to error
+} wmi_extscan_operation_mode;
+
+/* Channel Mask */
+typedef enum {
+   WMI_CHANNEL_BAND_UNSPECIFIED = 0x0000,
+   WMI_CHANNEL_BAND_24          = 0x0001,    // 2.4 channel
+   WMI_CHANNEL_BAND_5_NON_DFS   = 0x0002,    // 5G Channels (No DFS channels)
+   WMI_CHANNEL_BAND_DFS         = 0x0004,    // DFS channels
+} wmi_channel_band_mask;
+
+typedef enum {
+    WMI_EXTSCAN_CYCLE_STARTED_EVENT     = 0x0001,
+    WMI_EXTSCAN_CYCLE_COMPLETED_EVENT   = 0x0002,
+    WMI_EXTSCAN_BUCKET_STARTED_EVENT    = 0x0004,
+    WMI_EXTSCAN_BUCKET_COMPLETED_EVENT  = 0x0008,
+    WMI_EXTSCAN_BUCKET_FAILED_EVENT     = 0x0010,
+    WMI_EXTSCAN_BUCKET_OVERRUN_EVENT    = 0x0020,
+
+    WMI_EXTSCAN_EVENT_MAX               = 0x8000
+} wmi_extscan_event_type;
+
+#define WMI_EXTSCAN_CYCLE_EVENTS_MASK    (WMI_EXTSCAN_CYCLE_STARTED_EVENT   | \
+                                          WMI_EXTSCAN_CYCLE_COMPLETED_EVENT)
+
+#define WMI_EXTSCAN_BUCKET_EVENTS_MASK   (WMI_EXTSCAN_BUCKET_STARTED_EVENT   | \
+                                          WMI_EXTSCAN_BUCKET_COMPLETED_EVENT | \
+                                          WMI_EXTSCAN_BUCKET_FAILED_EVENT    | \
+                                          WMI_EXTSCAN_BUCKET_OVERRUN_EVENT)
+
+typedef enum {
+    WMI_EXTSCAN_NO_FORWARDING         = 0x0000,
+    WMI_EXTSCAN_FORWARD_FRAME_TO_HOST = 0x0001
+} wmi_extscan_forwarding_flags;
+
+typedef enum {
+    WMI_EXTSCAN_USE_MSD = 0x0001,    // Use Motion Sensor Detection */
+} wmi_extscan_configuration_flags;
+
+typedef enum {
+    WMI_EXTSCAN_STATUS_OK    = 0,
+    WMI_EXTSCAN_STATUS_ERROR = 0x80000000,
+    WMI_EXTSCAN_STATUS_INVALID_PARAMETERS,
+    WMI_EXTSCAN_STATUS_INTERNAL_ERROR
+} wmi_extscan_start_stop_status;
+
+typedef struct {
+    /** Request ID - to identify command. Cannot be 0 */
+    A_UINT32     request_id;
+    /** Requestor ID - client requesting ExtScan */
+    A_UINT32     requestor_id;
+    /** VDEV id(interface) that is requesting scan */
+    A_UINT32     vdev_id;
+} wmi_extscan_command_id;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /** channel number */
+    A_UINT32    channel;
+
+    /** dwell time in msec - use defaults if 0 */
+    A_UINT32    min_dwell_time;
+    A_UINT32    max_dwell_time;
+    /** passive/active channel and other flags */
+    A_UINT32    control_flags;                        // 0 => active, 1 => passive scan; ignored for DFS
+} wmi_extscan_bucket_channel;
+
+/* Scan Bucket specification */
+typedef struct {
+    A_UINT32        tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /** Bucket ID  - 0-based */
+    A_UINT32        bucket_id;
+    /** ExtScan events subscription - events to be reported to client (see wmi_extscan_event_type) */
+    A_UINT32        notify_extscan_events;
+    /** Options to forward scan results - see wmi_extscan_forwarding_flags */
+    A_UINT32        forwarding_flags;
+    /** ExtScan configuration flags - wmi_extscan_configuration_flags */
+    A_UINT32        configuration_flags;
+    /** multiplier to be applied to the periodic scan's base period */
+    A_UINT32        base_period_multiplier;
+    /** dwell time in msec on active channels - use defaults if 0 */
+    A_UINT32        min_dwell_time_active;
+    A_UINT32        max_dwell_time_active;
+    /** dwell time in msec on passive channels - use defaults if 0 */
+    A_UINT32        min_dwell_time_passive;
+    A_UINT32        max_dwell_time_passive;
+    /** see wmi_channel_band_mask; when equal to WMI_CHANNEL_UNSPECIFIED, use channel list */
+    A_UINT32        channel_band;
+    /** number of channels (if channel_band is WMI_CHANNEL_UNSPECIFIED) */
+    A_UINT32        num_channels;
+/** Followed by the variable length TLV chan_list:
+ *  wmi_extscan_bucket_channel chan_list[] */
+} wmi_extscan_bucket;
+
+typedef struct {
+    A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_start_cmd_fixed_param */
+    /** Request ID - to identify command. Cannot be 0 */
+    A_UINT32     request_id;
+    /** Requestor ID - client requesting ExtScan */
+    A_UINT32     requestor_id;
+    /** VDEV id(interface) that is requesting scan */
+    A_UINT32     vdev_id;
+    /** table ID - to allow support for multiple simultaneous requests */
+    A_UINT32     table_id;
+    /** Base period (milliseconds) used by scan buckets to define periodicity of the scans */
+    A_UINT32     base_period;
+    /** Maximum number of iterations to run - one iteration is the scanning of the least frequent bucket */
+    A_UINT32     max_iterations;
+    /** Options to forward scan results - see wmi_extscan_forwarding_flags */
+    A_UINT32     forwarding_flags;
+    /** ExtScan configuration flags - wmi_extscan_configuration_flags */
+    A_UINT32     configuration_flags;
+    /** ExtScan events subscription - bitmask indicating which events should be send to client (see wmi_extscan_event_type) */
+    A_UINT32     notify_extscan_events;
+    /** Scan Priority, input to scan scheduler */
+    A_UINT32     scan_priority;
+    /** Maximum number of BSSIDs to cache on each scan cycle */
+    A_UINT32     max_bssids_per_scan_cycle;
+    /** Minimum RSSI value to report */
+    A_UINT32     min_rssi;
+    /** Maximum table usage in percentage */
+    A_UINT32     max_table_usage;
+    /** default dwell time in msec on active channels */
+    A_UINT32     min_dwell_time_active;
+    A_UINT32     max_dwell_time_active;
+    /** default dwell time in msec on passive channels */
+    A_UINT32     min_dwell_time_passive;
+    A_UINT32     max_dwell_time_passive;
+    /** min time in msec on the BSS channel,only valid if atleast one VDEV is active*/
+    A_UINT32     min_rest_time;
+    /** max rest time in msec on the BSS channel,only valid if at least one VDEV is active*/
+    /** the scanner will rest on the bss channel at least min_rest_time. after min_rest_time the scanner
+     *  will start checking for tx/rx activity on all VDEVs. if there is no activity the scanner will
+     *  switch to off channel. if there is activity the scanner will let the radio on the bss channel
+     *  until max_rest_time expires.at max_rest_time scanner will switch to off channel
+     *  irrespective of activity. activity is determined by the idle_time parameter.
+     */
+    A_UINT32     max_rest_time;
+    /** time before sending next set of probe requests.
+     *   The scanner keeps repeating probe requests transmission with period specified by repeat_probe_time.
+     *   The number of probe requests specified depends on the ssid_list and bssid_list
+     */
+    /** Max number of probes to be sent */
+    A_UINT32     n_probes;
+    /** time in msec between 2 sets of probe requests. */
+    A_UINT32     repeat_probe_time;
+    /** time in msec between 2 consequetive probe requests with in a set. */
+    A_UINT32     probe_spacing_time;
+    /** data inactivity time in msec on bss channel that will be used by scanner for measuring the inactivity  */
+    A_UINT32     idle_time;
+    /** maximum time in msec allowed for scan  */
+    A_UINT32     max_scan_time;
+    /** delay in msec before sending first probe request after switching to a channel */
+    A_UINT32     probe_delay;
+    /** Scan control flags */
+    A_UINT32     scan_ctrl_flags;
+    /** Burst duration time in msec*/
+    A_UINT32     burst_duration;
+
+    /** number of bssids in the TLV bssid_list[] */
+    A_UINT32     num_bssid;
+    /** number of ssid in the TLV ssid_list[] */
+    A_UINT32     num_ssids;
+    /** number of bytes in TLV ie_data[] */
+    A_UINT32     ie_len;
+    /** number of buckets in the TLV bucket_list[] */
+    A_UINT32     num_buckets;
+    /** number of channels in channel_list[] determined by the
+        sum of wmi_extscan_bucket.num_channels in array  */
+
+/**
+ * TLV (tag length value ) parameters follow the extscan_cmd
+ * structure. The TLV's are:
+ *     wmi_ssid                   ssid_list[];
+ *     wmi_mac_addr               bssid_list[];
+ *     A_UINT8                    ie_data[];
+ *     wmi_extscan_bucket         bucket_list[];
+ *     wmi_extscan_bucket_channel channel_list[];
+ */
+} wmi_extscan_start_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_stop_cmd_fixed_param */
+    /** Request ID - to match running command. 0 matches any request */
+    A_UINT32     request_id;
+    /** Requestor ID - client requesting stop */
+    A_UINT32     requestor_id;
+    /** VDEV id(interface) that is requesting scan */
+    A_UINT32     vdev_id;
+    /** table ID - to allow support for multiple simultaneous requests */
+    A_UINT32     table_id;
+} wmi_extscan_stop_cmd_fixed_param;
+
+enum wmi_extscan_get_cached_results_flags {
+    WMI_EXTSCAN_GET_CACHED_RESULTS_FLAG_NONE        = 0x0000,
+    WMI_EXTSCAN_GET_CACHED_RESULTS_FLAG_FLUSH_TABLE = 0x0001
+};
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_get_cached_results_cmd_fixed_param */
+    /** request ID - used to correlate command with events */
+    A_UINT32    request_id;
+    /** Requestor ID - client that requested results */
+    A_UINT32    requestor_id;
+    /** VDEV id(interface) that is requesting scan */
+    A_UINT32    vdev_id;
+    /** table ID - to allow support for multiple simultaneous requests */
+    A_UINT32    table_id;
+    /** maximum number of results to be returned  */
+    A_UINT32    max_results;
+    /** flush BSSID list - wmi_extscan_get_cached_results_flags */
+    A_UINT32    control_flags;    // enum wmi_extscan_get_cached_results_flags
+} wmi_extscan_get_cached_results_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_get_wlan_change_results_cmd_fixed_param */
+    /** request ID - used to correlate command with events */
+    A_UINT32    request_id;
+    /** Requestor ID - client that requested results */
+    A_UINT32    requestor_id;
+    /** VDEV id(interface) that is requesting scan */
+    A_UINT32    vdev_id;
+    /** table ID - to allow support for multiple simultaneous requests */
+    A_UINT32    table_id;
+} wmi_extscan_get_wlan_change_results_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32        tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /**bssid */
+    wmi_mac_addr    bssid;
+    /**channel number */
+    A_UINT32        channel;
+    /**upper RSSI limit */
+    A_UINT32        upper_rssi_limit;
+    /**lower RSSI limit */
+    A_UINT32        lower_rssi_limit;
+} wmi_extscan_wlan_change_bssid_param;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_configure_wlan_change_monitor_cmd_fixed_param */
+    /** Request ID - to identify command. Cannot be 0 */
+    A_UINT32    request_id;
+    /** Requestor ID - client requesting wlan change monitoring */
+    A_UINT32    requestor_id;
+    /** VDEV id(interface) that is requesting scan */
+    A_UINT32    vdev_id;
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32    table_id;
+    /** operation mode: start/stop */
+    A_UINT32    mode;    // wmi_extscan_operation_mode
+    /** number of rssi samples to store */
+    A_UINT32    max_rssi_samples;
+    /** number of samples to use to calculate RSSI average */
+    A_UINT32    rssi_averaging_samples;
+    /** number of scans to confirm loss of contact with RSSI */
+    A_UINT32    lost_ap_scan_count;
+    /** number of out-of-range BSSIDs necessary to send event */
+    A_UINT32    max_out_of_range_count;
+    /** total number of bssid signal descriptors (in all pages) */
+    A_UINT32    total_entries;
+    /** index of the first bssid entry found in the TLV wlan_change_descriptor_list*/
+    A_UINT32    first_entry_index;
+    /** number of bssid signal descriptors in this page */
+    A_UINT32    num_entries_in_page;
+    /* Following this structure is the TLV:
+     *     wmi_extscan_wlan_change_bssid_param wlan_change_descriptor_list[];    // number of elements given by field num_page_entries.
+     */
+} wmi_extscan_configure_wlan_change_monitor_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32        tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /**bssid */
+    wmi_mac_addr    bssid;
+    /**RSSI threshold for reporting */
+    A_UINT32        min_rssi;
+    /**channel number */
+    A_UINT32        channel;
+} wmi_extscan_hotlist_entry;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_configure_hotlist_monitor_cmd_fixed_param */
+    /** Request ID - to identify command. Cannot be 0 */
+    A_UINT32    request_id;
+    /** Requestor ID - client requesting hotlist monitoring */
+    A_UINT32    requestor_id;
+    /** VDEV id(interface) that is requesting scan */
+    A_UINT32    vdev_id;
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32    table_id;
+    /** operation mode: start/stop */
+    A_UINT32    mode;    // wmi_extscan_operation_mode
+    /**total number of bssids (in all pages) */
+    A_UINT32    total_entries;
+    /**index of the first bssid entry found in the TLV wmi_extscan_hotlist_entry*/
+    A_UINT32    first_entry_index;
+    /**number of bssids in this page */
+    A_UINT32    num_entries_in_page;
+    /* Following this structure is the TLV:
+     *     wmi_extscan_hotlist_entry hotlist[];    // number of elements given by field num_page_entries.
+     */
+} wmi_extscan_configure_hotlist_monitor_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32    table_id;
+    /** size in bytes of scan cache entry */
+    A_UINT32    scan_cache_entry_size;
+    /** maximum number of scan cache entries */
+    A_UINT32    max_scan_cache_entries;
+    /** maximum number of buckets per extscan request */
+    A_UINT32    max_buckets;
+    /** maximum number of BSSIDs that will be stored in each scan (best n/w as per RSSI) */
+    A_UINT32    max_bssid_per_scan;
+    /** table usage level at which indication must be sent to host */
+    A_UINT32    max_table_usage_threshold;
+} wmi_extscan_cache_capabilities;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32    table_id;
+    /** size in bytes of wlan change entry */
+    A_UINT32    wlan_change_entry_size;
+    /** maximum number of entries in wlan change table */
+    A_UINT32    max_wlan_change_entries;
+    /** number of RSSI samples used for averaging RSSI */
+    A_UINT32    max_rssi_averaging_samples;
+    /** number of BSSID/RSSI entries (BSSID pointer, RSSI, timestamp) that device can hold */
+    A_UINT32    max_rssi_history_entries;
+} wmi_extscan_wlan_change_monitor_capabilities;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32    table_id;
+    /** size in bytes of hotlist entry */
+    A_UINT32    wlan_hotlist_entry_size;
+    /** maximum number of entries in wlan change table */
+    A_UINT32    max_hotlist_entries;
+} wmi_extscan_hotlist_monitor_capabilities;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_set_capabilities_cmd_fixed_param */
+    /** Request ID - matches request ID used to start hot list monitoring */
+    A_UINT32    request_id;
+    /** Requestor ID - client requesting stop */
+    A_UINT32    requestor_id;
+    /** number of extscan caches */
+    A_UINT32    num_extscan_cache_tables;
+    /** number of wlan change lists */
+    A_UINT32    num_wlan_change_monitor_tables;
+    /** number of hotlists */
+    A_UINT32    num_hotlist_monitor_tables;
+    /** if one sided rtt data collection is supported */
+    A_UINT32    rtt_one_sided_supported;
+    /** if 11v data collection is supported */
+    A_UINT32    rtt_11v_supported;
+    /** if 11mc data collection is supported */
+    A_UINT32    rtt_ftm_supported;
+    /** number of extscan cache capabilities (one per table)  */
+    A_UINT32    num_extscan_cache_capabilities;
+    /** number of wlan change  capabilities (one per table)  */
+    A_UINT32    num_extscan_wlan_change_capabilities;
+    /** number of extscan hotlist capabilities (one per table)  */
+    A_UINT32    num_extscan_hotlist_capabilities;
+    /* Following this structure is the TLV:
+     *     wmi_extscan_cache_capabilities               extscan_cache_capabilities; // number of capabilities given by num_extscan_caches
+     *     wmi_extscan_wlan_change_monitor_capabilities wlan_change_capabilities;   // number of capabilities given by num_wlan_change_monitor_tables
+     *     wmi_extscan_hotlist_monitor_capabilities     hotlist_capabilities;       // number of capabilities given by num_hotlist_monitor_tables
+     */
+} wmi_extscan_set_capabilities_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_get_capabilities_cmd_fixed_param */
+    /** Request ID - matches request ID used to start hot list monitoring */
+    A_UINT32    request_id;
+    /** Requestor ID - client requesting capabilities */
+    A_UINT32    requestor_id;
+} wmi_extscan_get_capabilities_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_start_stop_event_fixed_param */
+    /** Request ID of the operation that was started/stopped */
+    A_UINT32     request_id;
+    /** Requestor ID of the operation that was started/stopped */
+    A_UINT32     requestor_id;
+    /** VDEV id(interface) of the operation that was started/stopped */
+    A_UINT32     vdev_id;
+    /** extscan WMI command */
+    A_UINT32     command;
+    /** operation mode: start/stop */
+    A_UINT32     mode;      // wmi_extscan_operation_mode
+    /**success/failure */
+    A_UINT32     status;    // enum wmi_extscan_start_stop_status
+    /** table ID - to allow support for multiple simultaneous requests */
+    A_UINT32     table_id;
+} wmi_extscan_start_stop_event_fixed_param;
+
+typedef struct {
+    A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_operation_event_fixed_param */
+    /** Request ID of the extscan operation that is currently running */
+    A_UINT32     request_id;
+    /** Requestor ID of the extscan operation that is currently running */
+    A_UINT32     requestor_id;
+    /** VDEV id(interface) of the extscan operation that is currently running */
+    A_UINT32     vdev_id;
+    /** scan event (wmi_scan_event_type) */
+    A_UINT32     event;    // wmi_extscan_event_type
+    /** table ID - to allow support for multiple simultaneous requests */
+    A_UINT32     table_id;
+    /**number of buckets */
+    A_UINT32     num_buckets;
+    /* Following this structure is the TLV:
+     *     A_UINT32    bucket_id[];    // number of elements given by field num_buckets.
+     */
+} wmi_extscan_operation_event_fixed_param;
+
+/* Types of extscan tables */
+typedef enum {
+    EXTSCAN_TABLE_NONE    = 0,
+    EXTSCAN_TABLE_BSSID   = 1,
+    EXTSCAN_TABLE_RSSI    = 2,
+} wmi_extscan_table_type;
+
+typedef struct {
+    A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_table_usage_event_fixed_param */
+    /** Request ID of the extscan operation that is currently running */
+    A_UINT32     request_id;
+    /** Requestor ID of the extscan operation that is currently running */
+    A_UINT32     requestor_id;
+    /** VDEV id(interface) of the extscan operation that is currently running */
+    A_UINT32     vdev_id;
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32     table_id;
+    /**see wmi_extscan_table_type for table reporting usage */
+    A_UINT32     table_type;
+    /**number of entries in use */
+    A_UINT32     entries_in_use;
+    /**maximum number of entries in table */
+    A_UINT32     maximum_entries;
+} wmi_extscan_table_usage_event_fixed_param;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /**RSSI */
+    A_UINT32    rssi;
+    /**time stamp in seconds */
+    A_UINT32    tstamp;
+} wmi_extscan_rssi_info;
+
+typedef struct {
+    A_UINT32        tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /**bssid */
+    wmi_mac_addr    bssid;
+    /**ssid */
+    wmi_ssid        ssid;
+    /**channel number */
+    A_UINT32        channel;
+    /* capabilities */
+    A_UINT32        capabilities;
+    /* beacon interval in TUs */
+    A_UINT32        beacon_interval;
+    /**time stamp in seconds - time last seen */
+    A_UINT32        tstamp;
+    /**flags - _tExtScanEntryFlags */
+    A_UINT32        flags;
+    /**RTT in ns */
+    A_UINT32        rtt;
+    /**rtt standard deviation */
+    A_UINT32        rtt_sd;
+    /* rssi information */
+    A_UINT32        number_rssi_samples;
+    /** IE length */
+    A_UINT32        ie_length;             // length of IE data
+} wmi_extscan_wlan_descriptor;
+
+typedef struct {
+    A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_cached_results_event_fixed_param */
+    /** Request ID of the WMI_EXTSCAN_GET_CACHED_RESULTS_CMDID */
+    A_UINT32     request_id;
+    /** Requestor ID of the WMI_EXTSCAN_GET_CACHED_RESULTS_CMDID */
+    A_UINT32     requestor_id;
+    /** VDEV id(interface) of the WMI_EXTSCAN_GET_CACHED_RESULTS_CMDID */
+    A_UINT32     vdev_id;
+    /** Request ID of the extscan operation that is currently running */
+    A_UINT32     extscan_request_id;
+    /** Requestor ID of the extscan operation that is currently running */
+    A_UINT32     extscan_requestor_id;
+    /** VDEV id(interface) of the extscan operation that is currently running */
+    A_UINT32     extscan_vdev_id;
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32     table_id;
+    /**current time stamp in seconds. Used to provide a baseline for the relative timestamps returned for each block and entry */
+    A_UINT32     current_tstamp;
+    /**total number of bssids (in all pages) */
+    A_UINT32     total_entries;
+    /**index of the first bssid entry found in the TLV wmi_extscan_wlan_descriptor*/
+    A_UINT32     first_entry_index;
+    /**number of bssids in this page */
+    A_UINT32     num_entries_in_page;
+    /* Followed by the variable length TLVs
+     *     wmi_extscan_wlan_descriptor    bssid_list[]
+     *     wmi_extscan_rssi_info          rssi_list[]
+     *     A_UINT8                        ie_list[]
+     */
+} wmi_extscan_cached_results_event_fixed_param;
+
+typedef enum {
+    EXTSCAN_WLAN_CHANGE_FLAG_NONE         = 0x00,
+    EXTSCAN_WLAN_CHANGE_FLAG_OUT_OF_RANGE = 0x01,
+    EXTSCAN_WLAN_CHANGE_FLAG_AP_LOST      = 0x02,
+} wmi_extscan_wlan_change_flags;
+
+typedef struct {
+    A_UINT32        tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /**bssid */
+    wmi_mac_addr    bssid;
+    /**time stamp in seconds */
+    A_UINT32        tstamp;
+    /**upper RSSI limit */
+    A_UINT32        upper_rssi_limit;
+    /**lower RSSI limit */
+    A_UINT32        lower_rssi_limit;
+    /** channel */
+    A_UINT32        channel;    /* in MHz */
+    /**current RSSI average */
+    A_UINT32        rssi_average;
+    /**flags - wmi_extscan_wlan_change_flags */
+    A_UINT32        flags;
+    /**legnth of RSSI history to follow (number of values) */
+    A_UINT32        num_rssi_samples;
+} wmi_extscan_wlan_change_result_bssid;
+
+typedef struct {
+    A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_wlan_change_results_event_fixed_param */
+    /** Request ID of the WMI_EXTSCAN_GET_WLAN_CHANGE_RESULTS_CMDID command that requested the results */
+    A_UINT32     request_id;
+    /** Requestor ID of the WMI_EXTSCAN_GET_WLAN_CHANGE_RESULTS_CMDID command that requested the results */
+    A_UINT32     requestor_id;
+    /** VDEV id(interface) of the WMI_EXTSCAN_GET_WLAN_CHANGE_RESULTS_CMDID command that requested the results */
+    A_UINT32     vdev_id;
+    /** Request ID of the WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID command that configured the table */
+    A_UINT32     config_request_id;
+    /** Requestor ID of the WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID command that configured the table */
+    A_UINT32     config_requestor_id;
+    /** VDEV id(interface) of the WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID command that configured the table */
+    A_UINT32     config_vdev_id;
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32     table_id;
+    /**number of entries with RSSI out of range or BSSID not detected */
+    A_UINT32     change_count;
+    /**total number of bssid signal descriptors (in all pages) */
+    A_UINT32     total_entries;
+    /**index of the first bssid signal descriptor entry found in the TLV wmi_extscan_wlan_descriptor*/
+    A_UINT32     first_entry_index;
+    /**number of bssids signal descriptors in this page */
+    A_UINT32     num_entries_in_page;
+    /* Following this structure is the TLV:
+     *     wmi_extscan_wlan_change_result_bssid bssid_signal_descriptor_list[];    // number of descriptors given by field num_entries_in_page.
+     * Following this structure is the list of RSSI values (each is an A_UINT8):
+     *     A_UINT8 rssi_list[];    // last N RSSI values.
+     */
+} wmi_extscan_wlan_change_results_event_fixed_param;
+
+enum _tExtScanEntryFlags
+{
+    WMI_HOTLIST_FLAG_NONE     = 0x00,
+    WMI_HOTLIST_FLAG_PRESENCE = 0x01
+};
+
+typedef struct {
+    A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_hotlist_match_event_fixed_param */
+    /** Request ID of the WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID that configured the table */
+    A_UINT32     config_request_id;
+    /** Requestor ID of the WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID that configured the table */
+    A_UINT32     config_requestor_id;
+    /** VDEV id(interface) of the WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID that configured the table */
+    A_UINT32     config_vdev_id;
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32     table_id;
+    /**total number of bssids (in all pages) */
+    A_UINT32     total_entries;
+    /**index of the first bssid entry found in the TLV wmi_extscan_wlan_descriptor*/
+    A_UINT32     first_entry_index;
+    /**number of bssids in this page */
+    A_UINT32     num_entries_in_page;
+    /* Following this structure is the TLV:
+     *     wmi_extscan_wlan_descriptor hotlist_match[];    // number of descriptors given by field num_entries_in_page.
+     */
+} wmi_extscan_hotlist_match_event_fixed_param;
+
+typedef struct {
+    A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_capabilities_event_fixed_param */
+    /** Request ID of the WMI_EXTSCAN_GET_CAPABILITIES_CMDID */
+    A_UINT32     request_id;
+    /** Requestor ID of the WMI_EXTSCAN_GET_CAPABILITIES_CMDID */
+    A_UINT32     requestor_id;
+    /** VDEV id(interface) of the WMI_EXTSCAN_GET_CAPABILITIES_CMDID */
+    A_UINT32     vdev_id;
+    /** number of extscan caches */
+    A_UINT32     num_extscan_cache_tables;
+    /** number of wlan change lists */
+    A_UINT32     num_wlan_change_monitor_tables;
+    /** number of hotlists */
+    A_UINT32     num_hotlist_monitor_tables;
+    /** if one sided rtt data collection is supported */
+    A_UINT32     rtt_one_sided_supported;
+    /** if 11v data collection is supported */
+    A_UINT32     rtt_11v_supported;
+    /** if 11mc data collection is supported */
+    A_UINT32     rtt_ftm_supported;
+    /** number of extscan cache capabilities (one per table)  */
+    A_UINT32     num_extscan_cache_capabilities;
+    /** number of wlan change  capabilities (one per table)  */
+    A_UINT32     num_extscan_wlan_change_capabilities;
+    /** number of extscan hotlist capabilities (one per table)  */
+    A_UINT32     num_extscan_hotlist_capabilities;
+    /* Following this structure are the TLVs describing the capabilities of of the various types of lists. The FW theoretically
+     * supports multiple lists of each type.
+     *
+     *     wmi_extscan_cache_capabilities               extscan_cache_capabilities[] // capabilities of extscan cache (BSSID/RSSI lists)
+     *     wmi_extscan_wlan_change_monitor_capabilities wlan_change_capabilities[]   // capabilities of wlan_change_monitor_tables
+     *     wmi_extscan_hotlist_monitor_capabilities     hotlist_capabilities[]       // capabilities of hotlist_monitor_tables
+     */
+} wmi_extscan_capabilities_event_fixed_param;
 
 #ifdef __cplusplus
 }

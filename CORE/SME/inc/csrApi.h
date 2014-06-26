@@ -387,6 +387,12 @@ typedef struct tagCsrScanResultFilter
     tCsrMobilityDomainInfo MDID;
 #endif
     tANI_BOOLEAN p2pResult;
+#ifdef WLAN_FEATURE_11W
+    // Management Frame Protection
+    tANI_BOOLEAN MFPEnabled;
+    tANI_U8 MFPRequired;
+    tANI_U8 MFPCapable;
+#endif
 }tCsrScanResultFilter;
 
 
