@@ -867,13 +867,13 @@ PopulateDot11fVHTCaps(tpAniSirGlobal           pMac,
         pDot11f->shortGI160and80plus80MHz = (nCfgValue & 0x0001);
 
         nCfgValue = 0;
-        if (psessionEntry->htConfig.ht_rx_stbc)
+        if (psessionEntry->htConfig.ht_tx_stbc)
             CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_TXSTBC, nCfgValue );
 
         pDot11f->txSTBC = (nCfgValue & 0x0001);
 
         nCfgValue = 0;
-        if (psessionEntry->htConfig.ht_tx_stbc)
+        if (psessionEntry->htConfig.ht_rx_stbc)
             CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_RXSTBC, nCfgValue );
 
         pDot11f->rxSTBC = (nCfgValue & 0x0007);

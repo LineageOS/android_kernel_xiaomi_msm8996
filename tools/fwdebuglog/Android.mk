@@ -18,7 +18,6 @@ LOCAL_SHARED_LIBRARIES := libc libcutils libdiag libhardware_legacy
 LOCAL_SRC_FILES := cld-fwlog-netlink.c parser.c
 LOCAL_CFLAGS += -DCONFIG_ANDROID_LOG
 LOCAL_LDLIBS += -llog
-LOCAL_LDLIBS := -landroid
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -32,7 +31,6 @@ LOCAL_SHARED_LIBRARIES := libc libcutils libdiag libhardware_legacy
 LOCAL_SRC_FILES := cld-fwlog-netlink.c parser.c
 LOCAL_CFLAGS += -DCONFIG_ANDROID_LOG
 LOCAL_LDLIBS += -llog
-LOCAL_LDLIBS := -landroid
 include $(BUILD_EXECUTABLE)
 
 

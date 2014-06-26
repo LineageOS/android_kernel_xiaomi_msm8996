@@ -106,6 +106,12 @@
 #include "dfs.h"
 #include "radar_filters.h"
 /* ################### defines ################### */
+/*
+ * TODO: Following constant should be shared by firwmare in
+ * wmi_unified.h. This will be done once wmi_unified.h is updated.
+ */
+#define WMI_PEER_STATE_AUTHORIZED 0x2
+
 #define WMA_2_4_GHZ_MAX_FREQ  3000
 #define WOW_CSA_EVENT_OFFSET 12
 
@@ -2897,6 +2903,42 @@ wma_register_dfs_event_handler(tp_wma_handle wma_handle)
 	return;
 }
 
+static int wma_peer_state_change_event_handler(void *handle,
+					       u_int8_t *event_buff,
+					       u_int32_t len)
+{
+	WMI_PEER_STATE_EVENTID_param_tlvs *param_buf;
+	wmi_peer_state_event_fixed_param *event;
+	ol_txrx_vdev_handle vdev;
+	tp_wma_handle wma_handle = (tp_wma_handle)handle;
+
+	param_buf = (WMI_PEER_STATE_EVENTID_param_tlvs *)event_buff;
+	if (!param_buf) {
+		WMA_LOGE("%s: Received NULL buf ptr from FW", __func__);
+		return -ENOMEM;
+	}
+
+	event = param_buf->fixed_param;
+	vdev = wma_find_vdev_by_id( wma_handle, event->vdev_id);
+	if (NULL == vdev) {
+		WMA_LOGP("%s: Couldn't find vdev for vdev_id: %d",
+		__func__, event->vdev_id);
+		return -EINVAL;
+	}
+
+	if (vdev->opmode == wlan_op_mode_sta
+		&& event->state == WMI_PEER_STATE_AUTHORIZED) {
+		/*
+		 * set event so that WLANTL_ChangeSTAState
+		 * can procced and unpause tx queue
+		 */
+		tl_shim_set_peer_authorized_event(wma_handle->vos_context,
+						  event->vdev_id);
+	}
+
+	return 0;
+}
+
 /*
  * Send WMI_DFS_PHYERR_FILTER_ENA_CMDID or
  * WMI_DFS_PHYERR_FILTER_DIS_CMDID command
@@ -3380,6 +3422,12 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	 * offload enable and disable cases.
 	 */
 	wma_register_dfs_event_handler(wma_handle);
+
+	/* Register peer change event handler */
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					   WMI_PEER_STATE_EVENTID,
+					   wma_peer_state_change_event_handler);
+
 
    /* Register beacon tx complete event id. The event is required
     * for sending channel switch announcement frames
@@ -18315,7 +18363,7 @@ skip_pno_cmp_ind:
 
 #endif
 
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 /* Handle TX pause event from FW */
 static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 					u_int32_t len)
@@ -19015,7 +19063,7 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 	}
 #endif
 
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+#if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 	WMA_LOGE("MCC TX Pause Event Handler register");
 	status = wmi_unified_register_event_handler(
 			wma_handle->wmi_handle,

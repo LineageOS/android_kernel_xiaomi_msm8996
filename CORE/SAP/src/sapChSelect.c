@@ -300,8 +300,16 @@ void sapCleanupChannelList
     }
 
     pSapCtx->SapChnlList.numChannel = 0;
-    vos_mem_free(pSapCtx->SapChnlList.channelList);
-    pSapCtx->SapChnlList.channelList = NULL;
+    if (pSapCtx->SapChnlList.channelList) {
+        vos_mem_free(pSapCtx->SapChnlList.channelList);
+        pSapCtx->SapChnlList.channelList = NULL;
+    }
+
+    pSapCtx->SapAllChnlList.numChannel = 0;
+    if (pSapCtx->SapAllChnlList.channelList) {
+        vos_mem_free(pSapCtx->SapAllChnlList.channelList);
+        pSapCtx->SapAllChnlList.channelList = NULL;
+    }
 }
 
 /*==========================================================================

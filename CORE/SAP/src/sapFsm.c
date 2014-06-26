@@ -2485,6 +2485,11 @@ static VOS_STATUS sapGet5GHzChannelList(ptSapContext sapContext)
         return VOS_STATUS_E_FAULT;
     }
 
+    if (sapContext->SapAllChnlList.channelList) {
+        vos_mem_free(sapContext->SapAllChnlList.channelList);
+        sapContext->SapAllChnlList.channelList = NULL;
+    }
+
     sapContext->SapAllChnlList.channelList =
                 (v_U8_t *)vos_mem_malloc(WNI_CFG_VALID_CHANNEL_LIST_LEN);
     if (NULL == sapContext->SapAllChnlList.channelList)
