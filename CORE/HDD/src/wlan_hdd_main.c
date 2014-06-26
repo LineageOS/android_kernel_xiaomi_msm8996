@@ -6039,8 +6039,6 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     /* Set the LDPC capability */
     phtCapInfo->advCodingCap = cfg->ht_rx_ldpc;
 
-    if (phtCapInfo->txSTBC && !cfg->ht_tx_stbc)
-        phtCapInfo->txSTBC = cfg->ht_tx_stbc;
 
     if (pconfig->ShortGI20MhzEnable && !cfg->ht_sgi_20)
         pconfig->ShortGI20MhzEnable = cfg->ht_sgi_20;
@@ -6057,6 +6055,12 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
         pconfig->enable2x2 = 0;
         pconfig->enableTxSTBC = 0;
     }
+    if (!(cfg->ht_tx_stbc && pconfig->enable2x2))
+    {
+        pconfig->enableTxSTBC = 0;
+    }
+    phtCapInfo->txSTBC = pconfig->enableTxSTBC;
+
     val32 = val16;
     status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO,
                           val32, NULL, eANI_BOOLEAN_FALSE);
