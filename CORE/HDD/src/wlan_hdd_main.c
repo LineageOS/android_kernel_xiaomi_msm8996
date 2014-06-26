@@ -11135,6 +11135,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    hdd_config_t *pConfig;
 #endif
    int ret;
+   int i;
    struct wiphy *wiphy;
 #ifdef QCA_WIFI_2_0
    adf_os_device_t adf_ctx;
@@ -11313,6 +11314,16 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
    }
 
+   /* Initialize struct for saving f/w log setting will be used
+   after ssr */
+   pHddCtx->fw_log_settings.enable = 0;
+   pHddCtx->fw_log_settings.dl_type = 0;
+   pHddCtx->fw_log_settings.dl_report = 0;
+   pHddCtx->fw_log_settings.dl_loglevel = 0;
+   pHddCtx->fw_log_settings.index = 0;
+   for (i = 0; i < MAX_MOD_LOGLEVEL; i++) {
+       pHddCtx->fw_log_settings.dl_mod_loglevel[i] = 0;
+   }
    // Update VOS trace levels based upon the cfg.ini
    hdd_vos_trace_enable(VOS_MODULE_ID_BAP,
                         pHddCtx->cfg_ini->vosTraceEnableBAP);
