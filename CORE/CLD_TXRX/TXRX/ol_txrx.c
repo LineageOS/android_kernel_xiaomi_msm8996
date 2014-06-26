@@ -893,10 +893,10 @@ void ol_txrx_osif_vdev_register(ol_txrx_vdev_handle vdev,
 	} else {
 		txrx_ops->tx.std = vdev->tx = OL_TX_LL;
 		txrx_ops->tx.non_std = ol_tx_non_std_ll;
-#ifdef QCA_LL_TX_FLOW_CT
-		vdev->osif_flow_control_cb = txrx_ops->tx.flow_control_cb;
-#endif /* QCA_LL_TX_FLOW_CT */
 	}
+	#ifdef QCA_LL_TX_FLOW_CT
+	vdev->osif_flow_control_cb = txrx_ops->tx.flow_control_cb;
+	#endif /* QCA_LL_TX_FLOW_CT */
 }
 
 void
