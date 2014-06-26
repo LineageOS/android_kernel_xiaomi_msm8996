@@ -1735,6 +1735,12 @@ static int ol_ath_get_reg_table(A_UINT32 target_version,
 					 /sizeof(ar6320v2_reg_table[0]);
 		section_len = AR6320_REV2_1_REG_SIZE;
 		break;
+	case AR6320_REV3_VERSION:
+		reg_table->section = (tgt_reg_section *)&ar6320v3_reg_table[0];
+		reg_table->section_size = sizeof(ar6320v3_reg_table)
+					/sizeof(ar6320v3_reg_table[0]);
+		section_len = AR6320_REV3_REG_SIZE;
+		break;
 	default:
 		reg_table->section = (void *)NULL;
 		reg_table->section_size = 0;
@@ -1798,9 +1804,6 @@ static int ol_diag_read_reg_loc(struct ol_softc *scn, u_int8_t *buffer,
 			}
 
 			if (fill_len) {
-				adf_os_mem_set(buffer,
-					       INVALID_REG_LOC_DUMMY_DATA,
-					       fill_len);
 				buffer += fill_len;
 				result += fill_len;
 			}
@@ -1837,11 +1840,7 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 	/*
 	* SECTION = DRAM
 	* START   = 0x00400000
-	* LENGTH  = 0x00070000
-	*
-	* SECTION = IRAM
-	* START   = 0x00980000
-	* LENGTH  = 0x00038000
+	* LENGTH  = 0x000a8000
 	*
 	* SECTION = AXI
 	* START   = 0x000a0000
@@ -1852,25 +1851,21 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 	* LENGTH  = 0x0007F820
 	*/
 
-	while ((sectionCount < 4) && (amountRead < blockLength)) {
+	while ((sectionCount < 3) && (amountRead < blockLength)) {
 		switch (sectionCount) {
 		case 0:
 			/* DRAM SECTION */
 			pos = DRAM_LOCATION;
 			readLen = DRAM_SIZE;
+			printk("%s: Dumping DRAM section...\n", __func__);
 			break;
 		case 1:
-			/* IRAM SECTION */
-			pos = IRAM_LOCATION;
-			readLen = IRAM_SIZE;
-			break;
-		case 2:
 			/* AXI SECTION */
 			pos = AXI_LOCATION;
 			readLen = AXI_SIZE;
 			printk("%s: Dumping AXI section...\n", __func__);
 			break;
-		case 3:
+		case 2:
 			/* REG SECTION */
 			pos = REGISTER_LOCATION;
 			/* ol_diag_read_reg_loc checks for buffer overrun */
