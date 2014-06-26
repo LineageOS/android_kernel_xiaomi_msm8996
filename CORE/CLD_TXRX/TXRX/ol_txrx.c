@@ -82,12 +82,6 @@
 #define OL_TX_DESC_POOL_SIZE_MAX_HL 5000
 #endif
 
-/* Here it's a temporal solution, to avoid FW overflow. */
-#undef OL_TX_DESC_POOL_SIZE_MIN_HL
-#define OL_TX_DESC_POOL_SIZE_MIN_HL 640
-#undef OL_TX_DESC_POOL_SIZE_MAX_HL
-#define OL_TX_DESC_POOL_SIZE_MAX_HL 640
-
 
 /*=== function definitions ===*/
 
