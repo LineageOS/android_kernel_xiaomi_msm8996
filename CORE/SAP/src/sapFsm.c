@@ -2356,7 +2356,7 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
             case eSAP_RF_SUBBAND_2_4_GHZ:
                bandStartChannel = RF_CHAN_1;
                bandEndChannel = RF_CHAN_14;
-               startChannelNum = (startChannelNum - 4) > 1 ? (startChannelNum - 4): 1;
+               startChannelNum = startChannelNum > 5 ? (startChannelNum - 4): 1;
                endChannelNum = (endChannelNum + 4) <= 14 ? (endChannelNum + 4):14;
                break;
 
@@ -2394,7 +2394,7 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
                /* assume 2.4 GHz */
                bandStartChannel = RF_CHAN_1;
                bandEndChannel = RF_CHAN_14;
-               startChannelNum = (startChannelNum - 4) > 1 ? (startChannelNum - 4): 1;
+               startChannelNum = startChannelNum > 5 ? (startChannelNum - 4): 1;
                endChannelNum = (endChannelNum + 4) <= 14 ? (endChannelNum + 4):14;
                break;
         }
