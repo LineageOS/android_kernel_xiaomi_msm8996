@@ -1680,8 +1680,12 @@ v_U16_t csrCheckConcurrentChannelOverlap(tpAniSirGlobal pMac, v_U16_t sap_ch,
                  vos_freq_to_chan(intf_cfreq),
                  intf_cfreq, intf_hbw*2, intf_lfreq, intf_hfreq);
 
-         if ( !((sap_lfreq >= intf_lfreq && sap_lfreq <= intf_hfreq)
-            || (sap_hfreq >= intf_lfreq && sap_hfreq <= intf_hfreq)) ) {
+         if (!(
+                ((sap_lfreq > intf_lfreq && sap_lfreq < intf_hfreq) ||
+                   (sap_hfreq > intf_lfreq && sap_hfreq < intf_hfreq))
+             || ((intf_lfreq > sap_lfreq && intf_lfreq < sap_hfreq) ||
+                   (intf_hfreq > sap_lfreq && intf_hfreq < sap_hfreq))
+            )) {
              intf_ch = 0;
          }
     }

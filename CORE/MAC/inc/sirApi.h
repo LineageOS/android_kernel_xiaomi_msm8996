@@ -1170,6 +1170,7 @@ typedef struct sSirSmeJoinReq
     tANI_U8             isAmsduSupportInAMPDU;
     tAniBool            isWMEenabled;
     tAniBool            isQosEnabled;
+    tAniBool            isOSENConnection;
     tAniTitanCBNeighborInfo cbNeighbors;
     tAniBool            spectrumMgtIndicator;
     tSirMacPowerCapInfo powerCap;
@@ -4744,6 +4745,13 @@ typedef struct sSirLPHBInd
    v_U8_t eventReason;
 } tSirLPHBInd;
 #endif /* FEATURE_WLAN_LPHB */
+
+#ifdef FEATURE_WLAN_CH_AVOID
+typedef struct sSirChAvoidUpdateReq
+{
+   tANI_U32 reserved_param;
+} tSirChAvoidUpdateReq;
+#endif /* FEATURE_WLAN_CH_AVOID */
 
 typedef struct sSirLinkSpeedInfo
 {

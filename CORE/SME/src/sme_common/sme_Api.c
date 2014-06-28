@@ -12071,6 +12071,59 @@ eHalStatus sme_AddChAvoidCallback
 
     return(status);
 }
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ChAvoidUpdateReq
+    \API to request channel avoidance update from FW.
+    \param hHal - The handle returned by macOpen
+    \param update_type - The udpate_type parameter of this request call
+    \- return Configuration message posting status, SUCCESS or Fail
+    -------------------------------------------------------------------------*/
+eHalStatus sme_ChAvoidUpdateReq
+(
+   tHalHandle hHal
+)
+{
+    eHalStatus          status    = eHAL_STATUS_SUCCESS;
+    VOS_STATUS          vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal      pMac      = PMAC_STRUCT(hHal);
+    tSirChAvoidUpdateReq *cauReq;
+    vos_msg_t           vosMessage;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status)
+    {
+        cauReq = (tSirChAvoidUpdateReq *)
+                  vos_mem_malloc(sizeof(tSirChAvoidUpdateReq));
+        if (NULL == cauReq)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s Request Buffer Alloc Fail", __func__);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+
+        cauReq->reserved_param = 0;
+
+        /* serialize the req through MC thread */
+        vosMessage.bodyptr = cauReq;
+        vosMessage.type    = WDA_CH_AVOID_UPDATE_REQ;
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Post Ch Avoid Update MSG fail", __func__);
+           vos_mem_free(cauReq);
+           sme_ReleaseGlobalLock(&pMac->sme);
+           return eHAL_STATUS_FAILURE;
+        }
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                     "%s: Posted Ch Avoid Update MSG", __func__);
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+
+    return(status);
+}
 #endif /* FEATURE_WLAN_CH_AVOID */
 
 /* -------------------------------------------------------------------------

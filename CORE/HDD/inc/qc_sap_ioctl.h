@@ -253,6 +253,7 @@ enum {
     QCASAP_SET_DFS_NOL,
     QCSAP_PARAM_SET_CHANNEL_CHANGE,
     QCASAP_SET_DFS_TARGET_CHNL,
+    QCASAP_SET_RADAR_CMD
 };
 
 int iw_softap_get_channel_list(struct net_device *dev,

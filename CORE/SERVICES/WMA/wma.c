@@ -240,7 +240,12 @@ wmi_unified_vdev_up_send(wmi_unified_t wmi,
 void wma_set_dfs_regdomain(tp_wma_handle wma);
 
 static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
-				    t_thermal_cmd_params thermal_info);
+				t_thermal_cmd_params thermal_info);
+
+#ifdef FEATURE_WLAN_CH_AVOID
+VOS_STATUS wma_process_ch_avoid_update_req(tp_wma_handle wma_handle,
+				tSirChAvoidUpdateReq *ch_avoid_update_req);
+#endif /* FEATURE_WLAN_CH_AVOID */
 
 static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info);
 
@@ -1134,7 +1139,7 @@ static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 				adf_os_atomic_init(&temp->ref_cnt);
 				adf_os_atomic_inc(&temp->ref_cnt);
 				wma_remove_peer(wma, temp->mac_addr.raw,
-					vdev_id, peer);
+					vdev_id, temp);
 			}
 			adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
 		}
@@ -8386,6 +8391,44 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 			wma_handle->wma_ibss_power_save_params.txSPEndInactivityTime);
 	}
 		break;
+	case WMA_VDEV_DFS_CONTROL_CMDID:
+	{
+		struct ieee80211com *dfs_ic = wma_handle->dfs_ic;
+
+		if (!dfs_ic) {
+			ret = -ENOENT;
+		} else {
+			if (dfs_ic->ic_curchan) {
+				WMA_LOGD("%s: Debug cmd: %s received on ch: %d",
+						__func__,
+						"WMA_VDEV_DFS_CONTROL_CMDID",
+						dfs_ic->ic_curchan->ic_ieee);
+
+				if (dfs_ic->ic_curchan->ic_flagext &
+						IEEE80211_CHAN_DFS) {
+					ret = wma_dfs_indicate_radar(dfs_ic,
+						dfs_ic->ic_curchan);
+				} else {
+					ret = -ENOENT;
+				}
+			} else {
+				ret = -ENOENT;
+			}
+		}
+
+		if ( ret == -ENOENT) {
+			WMA_LOGE("%s: Operating channel is not DFS capable, "
+					"ignoring %s",
+					__func__,
+					"WMA_VDEV_DFS_CONTROL_CMDID");
+		} else if (ret) {
+			WMA_LOGE("%s: Sending command %s failed with %d\n",
+					__func__,
+					"WMA_VDEV_DFS_CONTROL_CMDID",
+					ret);
+		}
+	}
+		break;
 	default:
 		WMA_LOGE("Invalid wma config command id:%d",
 			privcmd->param_id);
@@ -11852,6 +11895,8 @@ static VOS_STATUS wma_process_update_edca_param_req(WMA_HANDLE handle,
 	tSirMacEdcaParamRecord *edca_record;
 	int ac;
 	int len = sizeof(*cmd);
+	ol_txrx_pdev_handle pdev;
+	struct ol_tx_wmm_param_t ol_tx_wmm_param;
 
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 
@@ -11891,11 +11936,18 @@ static VOS_STATUS wma_process_update_edca_param_req(WMA_HANDLE handle,
 		}
 
 		wma_update_edca_params_for_ac(edca_record, wmm_param, ac);
+
+		ol_tx_wmm_param.ac[ac].aifs = wmm_param->aifs;
+		ol_tx_wmm_param.ac[ac].cwmin = wmm_param->cwmin;
+		ol_tx_wmm_param.ac[ac].cwmax = wmm_param->cwmax;
 	}
 
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 				  WMI_VDEV_SET_WMM_PARAMS_CMDID))
 		goto fail;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma_handle->vos_context);
+	wdi_in_set_wmm_param(pdev, ol_tx_wmm_param);
 
 	return VOS_STATUS_SUCCESS;
 
@@ -17801,6 +17853,14 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 #endif
 
+#ifdef FEATURE_WLAN_CH_AVOID
+		case WDA_CH_AVOID_UPDATE_REQ:
+			wma_process_ch_avoid_update_req(wma_handle,
+				(tSirChAvoidUpdateReq *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+#endif
+
 		case WDA_DHCP_START_IND:
 		case WDA_DHCP_STOP_IND:
 			wma_process_dhcp_ind(wma_handle,
@@ -18923,6 +18983,58 @@ static int wma_channel_avoid_evt_handler(void *handle, u_int8_t *event,
 	}
 
 	return 0;
+}
+
+/* function   : wma_process_ch_avoid_update_req
+ * Descriptin : handles channel avoid update request
+ * Args       :
+ * Returns    :
+ */
+VOS_STATUS wma_process_ch_avoid_update_req(tp_wma_handle wma_handle,
+			tSirChAvoidUpdateReq *ch_avoid_update_req)
+{
+	int status = 0;
+	wmi_buf_t buf = NULL;
+	u_int8_t *buf_ptr;
+	wmi_chan_avoid_update_cmd_param *ch_avoid_update_fp;
+	int len = sizeof(wmi_chan_avoid_update_cmd_param);
+
+	if (ch_avoid_update_req == NULL)
+	{
+		WMA_LOGE("%s : ch_avoid_update_req is NULL", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGI("%s: WMA --> WMI_CHAN_AVOID_UPDATE",
+		__func__);
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	ch_avoid_update_fp = (wmi_chan_avoid_update_cmd_param *) buf_ptr;
+	WMITLV_SET_HDR(&ch_avoid_update_fp->tlv_header,
+	WMITLV_TAG_STRUC_wmi_chan_avoid_update_cmd_param,
+	WMITLV_GET_STRUCT_TLVLEN(
+		wmi_chan_avoid_update_cmd_param));
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+		len, WMI_CHAN_AVOID_UPDATE_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("wmi_unified_cmd_send"
+			" WMITLV_TABLE_WMI_CHAN_AVOID_UPDATE"
+			" returned Error %d",
+			status);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGI("%s: WMA --> WMI_CHAN_AVOID_UPDATE sent through WMI",
+		__func__);
+	return VOS_STATUS_SUCCESS;
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 
@@ -21977,21 +22089,21 @@ int wma_dfs_indicate_radar(struct ieee80211com *ic,
 	if (wma == NULL)
 	{
 		WMA_LOGE("%s: DFS- Invalid wma", __func__);
-		return (0);
+		return -ENOENT;
 	}
 
 	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD,wma->vos_context);
 	if (wma->dfs_ic != ic)
 	{
 		WMA_LOGE("%s:DFS- Invalid WMA handle",__func__);
-		return (0);
+		return -ENOENT;
 	}
 	radar_event = (struct wma_dfs_radar_indication *)
 		vos_mem_malloc(sizeof(struct wma_dfs_radar_indication));
 	if (radar_event == NULL)
 	{
 		WMA_LOGE("%s:DFS- Invalid radar_event",__func__);
-		return (0);
+		return -ENOENT;
 	}
 
 	/*
@@ -22019,7 +22131,7 @@ int wma_dfs_indicate_radar(struct ieee80211com *ic,
 		WMA_LOGE("%s:DFS- WDA_DFS_RADAR_IND Message Posted",__func__);
 	}
 
-	return 1;
+	return 0;
 }
 
 static eHalStatus wma_set_smps_params(tp_wma_handle wma, tANI_U8 vdev_id, int value)
