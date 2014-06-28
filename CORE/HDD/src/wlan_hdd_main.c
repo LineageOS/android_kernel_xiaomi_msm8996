@@ -470,6 +470,7 @@ void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
 
     /* Confirm that power save is enabled  before doing state transitions */
     if (!green_ap->ps_enable) {
+        hddLog(VOS_TRACE_LEVEL_INFO, FL("Green-AP is disabled"));
         hdd_wlan_green_ap_update(pHddCtx,
             GREEN_AP_PS_IDLE_STATE, GREEN_AP_PS_WAIT_EVENT);
         goto done;

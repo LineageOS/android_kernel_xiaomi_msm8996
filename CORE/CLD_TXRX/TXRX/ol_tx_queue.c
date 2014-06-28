@@ -147,6 +147,8 @@ ol_tx_queue_vdev_flush(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
                     ol_tx_queue_free(pdev, txq, j);
                 }
             }
+            TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                      "%s: Delete Peer %p\n", __func__, peer);
             ol_txrx_peer_unref_delete(peers[i]);
         }
     } while (peer_count >= PEER_ARRAY_COUNT);

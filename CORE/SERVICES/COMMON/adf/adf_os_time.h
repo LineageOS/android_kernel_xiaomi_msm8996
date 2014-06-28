@@ -36,6 +36,9 @@
 #define _ADF_OS_TIME_H
 
 #include <adf_os_time_pvt.h>
+#ifdef CONFIG_CNSS
+#include <net/cnss.h>
+#endif
 
 typedef __adf_time_t   adf_os_time_t;
 
@@ -130,4 +133,25 @@ adf_os_mdelay(int msecs)
  */
 #define adf_os_time_after_eq(_a, _b)    __adf_os_time_after_eq(_a, _b)
 
+/**
+ * @brief Get kernel boot time.
+ *
+ * @return Time in microseconds
+ */
+static inline a_uint64_t adf_get_boottime(void)
+{
+#ifdef CONFIG_CNSS
+   struct timespec ts;
+
+#ifdef WLAN_OPEN_SOURCE
+   ktime_get_ts(&ts);
+#else
+   cnss_get_monotonic_boottime(&ts);
+#endif /* WLAN_OPEN_SOURCE */
+
+   return (((a_uint64_t)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000));
+#else
+   return adf_os_ticks_to_msecs(adf_os_ticks()) * 1000;
+#endif /* CONFIG_CNSS */
+}
 #endif

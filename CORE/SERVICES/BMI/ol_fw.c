@@ -458,7 +458,7 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		if (file == ATH_OTP_FILE)
 			return -ENOENT;
 
-#if defined(QCA_WIFI_FTM) && defined(CONFIG_CNSS) && defined(HIF_SDIO)
+#if defined(QCA_WIFI_FTM) && (defined(CONFIG_CNSS) || defined(HIF_SDIO))
 		/* Try default board data file if FTM specific
 		 * board data file is not present. */
 		if (filename == scn->fw_files.utf_board_data) {
@@ -711,8 +711,6 @@ int dump_CE_register(struct ol_softc *scn)
 			if (!((j+1)%5) || (CE_reg_word_size - 1) == j)
 				printk("\n");
 		}
-
-		msleep(1);
 	}
 
 	return EOK;
@@ -1706,8 +1704,6 @@ int ol_diag_read(struct ol_softc *scn, u_int8_t *buffer,
 					if (remainder < PCIE_READ_LIMIT)
 						readSize = remainder;
 				}
-
-				msleep(5);
 			}
 		} else {
 			result = HIFDiagReadMem(scn->hif_hdl, pos,
