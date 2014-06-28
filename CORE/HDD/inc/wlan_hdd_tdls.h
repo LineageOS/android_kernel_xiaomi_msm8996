@@ -219,6 +219,8 @@ typedef struct {
 
 int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter);
 
+void wlan_hdd_global_tdls_init(hdd_context_t * pHddCtx);
+
 void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter);
 
 void wlan_hdd_tdls_extract_da(struct sk_buff *skb, u8 *mac);

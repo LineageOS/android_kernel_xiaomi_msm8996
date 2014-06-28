@@ -701,6 +701,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             }
             else
             {
+#ifdef FEATURE_WLAN_CH_AVOID
+                sme_ChAvoidUpdateReq(pHddCtx->hHal);
+#endif /* FEATURE_WLAN_CH_AVOID */
+
                 pHddApCtx->uBCStaId = pSapEvent->sapevt.sapStartBssCompleteEvent.staId;
 
 #ifdef QCA_LL_TX_FLOW_CT
@@ -2378,6 +2382,33 @@ static iw_softap_setparam(struct net_device *dev,
                      );
              break;
 
+        case QCASAP_SET_RADAR_CMD:
+            {
+                hdd_context_t *pHddCtx =
+                    WLAN_HDD_GET_CTX(pHostapdAdapter);
+                v_U8_t ch =
+                    (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->operatingChannel;
+                v_BOOL_t isDfsch;
+
+                isDfsch = (NV_CHANNEL_DFS ==
+                                vos_nv_getChannelEnabledState(ch));
+
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                       FL("Set QCASAP_SET_RADAR_CMD val %d"), set_value);
+
+                if (!pHddCtx->dfs_radar_found && isDfsch) {
+                    ret = process_wma_set_command(
+                            (int)pHostapdAdapter->sessionId,
+                            (int)WMA_VDEV_DFS_CONTROL_CMDID,
+                            set_value, VDEV_CMD);
+                } else {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                        FL("Ignore command due to "
+                            "dfs_radar_found: %d, is_dfs_channel: %d"),
+                        pHddCtx->dfs_radar_found, isDfsch);
+                }
+                break;
+            }
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
                     sub_cmd, set_value);
@@ -4528,6 +4559,11 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "setNextChnl" },
+
+    {   QCASAP_SET_RADAR_CMD,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setRadar" },
 
 #endif /* QCA_WIFI_2_0 */
 

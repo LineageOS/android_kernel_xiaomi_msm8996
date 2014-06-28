@@ -10738,6 +10738,18 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
         }
     }
 
+    if (hdd_isConnectionInProgress(pHddCtx)) {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+              FL("Connection is in progress"
+              " TDLS connection is not allowed"));
+       return -EBUSY;
+    }
+
+    if (vos_max_concurrent_connections_reached()) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("Reached max concurrent connections"));
+       return -EINVAL;
+    }
+
     if (WLAN_IS_TDLS_SETUP_ACTION(action_code))
     {
         if (NULL != wlan_hdd_tdls_is_progress(pHddCtx, peer, TRUE))

@@ -1537,14 +1537,14 @@ CE_fini(struct CE_handle *copyeng)
     if (CE_state->src_ring) {
         A_FREE(CE_state->src_ring->shadow_base_unaligned);
 		pci_free_consistent(scn->sc_osdev->bdev,
-                   (CE_state->src_ring->nentries * sizeof(struct CE_dest_desc) + CE_DESC_RING_ALIGN),
-                   CE_state->src_ring->base_addr_owner_space, CE_state->src_ring->base_addr_CE_space);
+                   (CE_state->src_ring->nentries * sizeof(struct CE_src_desc) + CE_DESC_RING_ALIGN),
+                   CE_state->src_ring->base_addr_owner_space_unaligned, CE_state->src_ring->base_addr_CE_space);
         A_FREE(CE_state->src_ring);
     }
     if (CE_state->dest_ring) {
 		pci_free_consistent(scn->sc_osdev->bdev,
                    (CE_state->dest_ring->nentries * sizeof(struct CE_dest_desc) + CE_DESC_RING_ALIGN),
-                   CE_state->dest_ring->base_addr_owner_space, CE_state->dest_ring->base_addr_CE_space);
+                   CE_state->dest_ring->base_addr_owner_space_unaligned, CE_state->dest_ring->base_addr_CE_space);
         A_FREE(CE_state->dest_ring);
     }
     A_FREE(CE_state);

@@ -4083,6 +4083,13 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
         pAddBssParams->staContext.smesessionId = psessionEntry->smeSessionId;
         pAddBssParams->staContext.wpa_rsn = pBeaconStruct->rsnPresent;
         pAddBssParams->staContext.wpa_rsn |= (pBeaconStruct->wpaPresent << 1);
+        /* For OSEN Connection AP does not advertise RSN or WPA IE
+         * so from the IEs we get from supplicant we get this info
+         * so for FW to transmit EAPOL message 4 we shall set
+         * wpa_rsn
+         */
+        if ((!pAddBssParams->staContext.wpa_rsn) && (psessionEntry->isOSENConnection))
+            pAddBssParams->staContext.wpa_rsn = 1;
         vos_mem_copy(&pAddBssParams->staContext.capab_info,
                      &pAssocRsp->capabilityInfo,
                      sizeof(pAddBssParams->staContext.capab_info));
