@@ -199,6 +199,10 @@ bool
 hif_pci_targ_is_awake(struct hif_pci_softc *sc, void *__iomem *mem)
 {
     A_UINT32 val;
+
+    if(sc->recovery)
+        return false;
+
     val = A_PCI_READ32(mem + PCIE_LOCAL_BASE_ADDRESS + RTC_STATE_ADDRESS);
     return (RTC_STATE_V_GET(val) == RTC_STATE_V_ON);
 }
@@ -1621,6 +1625,8 @@ void hif_pci_shutdown(struct pci_dev *pdev)
      */
     if (!sc)
         return;
+
+    sc->recovery = true;
 
     if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
         printk("Load/unload in progress, ignore SSR shutdown\n");
