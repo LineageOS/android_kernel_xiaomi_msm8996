@@ -183,6 +183,12 @@ ibss_peer_collect(
     pPeer->wmeEdcaPresent       = pBeacon->wmeEdcaPresent;
     pPeer->wmeInfoPresent       = pBeacon->wmeInfoPresent;
 
+    if (pBeacon->IBSSParams.present)
+    {
+        pPeer->atimIePresent = pBeacon->IBSSParams.present;
+        pPeer->peerAtimWindowLength = pBeacon->IBSSParams.atim;
+    }
+
     if(IS_DOT11_MODE_HT(psessionEntry->dot11mode) &&
         (pBeacon->HTCaps.present))
     {
