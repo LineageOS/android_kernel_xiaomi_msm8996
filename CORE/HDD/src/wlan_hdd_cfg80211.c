@@ -3522,6 +3522,19 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     if (pCfg->ht2040CoexEnabled)
         wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
 #endif
+#ifdef FEATURE_WLAN_ROAM_OFFLOAD
+    if (pCfg->isRoamOffloadEnabled) {
+        wiphy->flags |= WIPHY_FLAG_HAS_KEY_MGMT_OFFLOAD;
+        wiphy->key_mgmt_offload_support |=
+                         NL80211_KEY_MGMT_OFFLOAD_SUPPORT_PSK;
+        wiphy->key_mgmt_offload_support |=
+                         NL80211_KEY_MGMT_OFFLOAD_SUPPORT_FT_PSK;
+        wiphy->key_mgmt_offload_support |=
+                         NL80211_KEY_MGMT_OFFLOAD_SUPPORT_PMKSA;
+        wiphy->key_derive_offload_support |=
+                         NL80211_KEY_DERIVE_OFFLOAD_SUPPORT_IGTK;
+    }
+#endif
 
     EXIT();
     return 0;
@@ -9483,7 +9496,36 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                    "%s: HDD context is not valid", __func__);
         return status;
     }
-
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+#define KEY_MGMT_OFFLOAD_BITMASK 0x4
+    /* Supplicant indicate its decision to offload key management
+     * by setting the third bit in flags in case of Secure connection
+     * so if the supplicant does not support this then LFR3.0 shall
+     * be disabled.if supplicant indicates support for offload
+     * of key managament then we shall enable LFR3.0.Note that
+     * supplicant set the bit in flags means driver already indicated
+     * its capability to handle the key management and LFR3.0 is
+     * enabled in INI and FW also has the capability to handle
+     * key management offload as part of LFR3.0
+     */
+    if (!(req->auth_type == NL80211_AUTHTYPE_OPEN_SYSTEM) ||
+        (req->auth_type == NL80211_AUTHTYPE_FT)) {
+        if (!(req->flags & KEY_MGMT_OFFLOAD_BITMASK)) {
+            hddLog(VOS_TRACE_LEVEL_DEBUG,
+            FL("Supplicant does not support key mgmt offload for this AP"));
+            pHddCtx->cfg_ini->isRoamOffloadEnabled = 0;
+            status =    sme_UpdateRoamOffloadEnabled(pHddCtx->hHal, FALSE);
+        } else {
+            pHddCtx->cfg_ini->isRoamOffloadEnabled = 1;
+            status =    sme_UpdateRoamOffloadEnabled(pHddCtx->hHal, TRUE);
+        }
+        if (0 != status) {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Could not update the RoamOffload enable", __func__);
+            return status;
+        }
+    }
+#endif
     if (vos_max_concurrent_connections_reached()) {
         hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
         return -ECONNREFUSED;

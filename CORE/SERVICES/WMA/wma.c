@@ -21818,6 +21818,11 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 #endif
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_BEACON_OFFLOAD))
 		cfg->beacon_offload = TRUE;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	/* Enable Roam Offload */
+	cfg->en_roam_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+	                                      WMI_SERVICE_ROAM_HO_OFFLOAD);
+#endif
 }
 
 static inline void wma_update_target_ht_cap(tp_wma_handle wh,

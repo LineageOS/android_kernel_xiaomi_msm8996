@@ -5995,6 +5995,10 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
     }
 #endif
     pMac->beacon_offload = cfg->beacon_offload;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    cfg_ini->isRoamOffloadEnabled &= cfg->en_roam_offload;
+#endif
+
 }
 
 static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
