@@ -686,7 +686,9 @@ extern "C" {
 #define WAL_DBGID_SMPS_SWSEL_CHAINMASK              65
 #define WAL_DBGID_SUSPEND                           66
 #define WAL_DBGID_RESUME                            67
-#define WAL_DBGID_DEFINITION_END                    68
+#define WAL_DBGID_PEER_TX_FAIL_CNT_THRES_EXCEEDED   68
+#define WAL_DBGID_RX_FULL_REORDER_SUPPORT           69
+#define WAL_DBGID_DEFINITION_END                    70
 
 #define ANI_DBGID_POLL                               0
 #define ANI_DBGID_CONTROL                            1
