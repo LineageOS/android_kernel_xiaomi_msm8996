@@ -2702,6 +2702,25 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                 }
                 else
                 {
+                    /* if external control is enabled then initiate TDLS
+                     * only if forced peer is set otherwise ignore
+                     * Should Discover trigger from fw
+                     */
+                    if (pHddCtx->cfg_ini->fTDLSExternalControl &&
+                        (FALSE == curr_peer->isForcedPeer))
+                    {
+                        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                                  FL("TDLS ExternalControl enabled but curr_peer is not forced, ignore SHOULD_DISCOVER"));
+                        status = eHAL_STATUS_SUCCESS;
+                        break;
+                    }
+                    else
+                    {
+                        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                                  FL("initiate TDLS setup on SHOULD_DISCOVER, fTDLSExternalControl: %d, curr_peer->isForcedPeer: %d"),
+                                  pHddCtx->cfg_ini->fTDLSExternalControl,
+                                  curr_peer->isForcedPeer);
+                    }
                     wlan_hdd_tdls_pre_setup_init_work(pHddTdlsCtx, curr_peer);
                 }
                 status = eHAL_STATUS_SUCCESS;
