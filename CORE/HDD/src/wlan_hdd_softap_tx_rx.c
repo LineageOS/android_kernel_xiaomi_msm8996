@@ -618,7 +618,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       }
    }
 
-#if defined(QCA_LL_TX_FLOW_CT) && !defined(CONFIG_HL_SUPPORT)
+#ifdef QCA_LL_TX_FLOW_CT
    if (VOS_FALSE == WLANTL_GetTxResource((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                                          pAdapter->sessionId,
                                          pAdapter->tx_flow_low_watermark,
@@ -632,7 +632,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                           WLAN_SAP_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME);
        }
    }
-#endif /* defined(QCA_LL_TX_FLOW_CT) && !defined(CONFIG_HL_SUPPORT) */
+#endif /* QCA_LL_TX_FLOW_CT */
 
    //Get TL AC corresponding to Qdisc queue index/AC.
    ac = hdd_QdiscAcToTlAC[skb->queue_mapping];
