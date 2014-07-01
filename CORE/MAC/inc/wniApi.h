@@ -397,6 +397,9 @@ enum eWniMsgTypes
     eWNI_SME_CSA_OFFLOAD_EVENT,
     eWNI_SME_UPDATE_ADDITIONAL_IES,  // indicates Additional IE from hdd to PE
     eWNI_SME_MODIFY_ADDITIONAL_IES, /* To indicate IE modify from hdd to PE */
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+    eWNI_SME_AUTO_SHUTDOWN_IND,
+#endif
 #ifdef QCA_HT_2040_COEX
     eWNI_SME_SET_HT_2040_MODE,
 #endif
