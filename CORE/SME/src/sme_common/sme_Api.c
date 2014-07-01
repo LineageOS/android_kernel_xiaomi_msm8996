@@ -11155,14 +11155,22 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
                 PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH -1;
           }
           else if ( channel == 48 || channel == 64 || channel == 112 ||
-                channel == 128 || channel == 144 || channel == 161 )
+                channel == 128 || channel == 161 )
           {
              smeConfig.csrConfig.channelBondingMode5GHz =
                 PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH - 1;
           }
-          else if ( channel == 165 )
+          else if ( channel == 165 || channel == 140 )
           {
              smeConfig.csrConfig.channelBondingMode5GHz = 0;
+          }
+          else if ( channel == 132 )
+          {
+             smeConfig.csrConfig.channelBondingMode5GHz = 2;
+          }
+          else if ( channel == 136 )
+          {
+             smeConfig.csrConfig.channelBondingMode5GHz = 1;
           }
       }
       /*TODO: Set HT40+ / HT40- for channel 5-7 based on ACS */
@@ -11185,18 +11193,18 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
           if ( channel== 40 || channel == 48 || channel == 56 ||
                 channel == 64 || channel == 104 || channel == 112 ||
                 channel == 120 || channel == 128 || channel == 136 ||
-                channel == 144 || channel == 153 || channel == 161 )
+                channel == 153 || channel == 161 )
           {
              smeConfig.csrConfig.channelBondingMode5GHz = 1;
           }
           else if ( channel== 36 || channel == 44 || channel == 52 ||
                 channel == 60 || channel == 100 || channel == 108 ||
                 channel == 116 || channel == 124 || channel == 132 ||
-                channel == 140 || channel == 149 || channel == 157 )
+                channel == 149 || channel == 157 )
           {
              smeConfig.csrConfig.channelBondingMode5GHz = 2;
           }
-          else if ( channel == 165 )
+          else if ( channel == 165 || channel == 140)
           {
              smeConfig.csrConfig.channelBondingMode5GHz = 0;
           }

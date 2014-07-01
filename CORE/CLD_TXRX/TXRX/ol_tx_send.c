@@ -117,10 +117,10 @@ do {                                                                            
         if (adf_os_atomic_read(&vdev->os_q_paused)) {                             \
             adf_os_spin_lock(&pdev->tx_mutex);                                    \
             if (pdev->tx_desc.num_free > vdev->tx_fl_hwm) {                       \
+               adf_os_atomic_set(&vdev->os_q_paused, 0);                          \
                adf_os_spin_unlock(&pdev->tx_mutex);                               \
                vdev->osif_flow_control_cb(vdev->osif_dev,                         \
                                           vdev->vdev_id, A_TRUE);                 \
-               adf_os_atomic_set(&vdev->os_q_paused, 0);                          \
             }                                                                     \
             else {                                                                \
                adf_os_spin_unlock(&pdev->tx_mutex);                               \
