@@ -58,7 +58,7 @@ OL_TX_TIMESTAMP_SET(struct ol_tx_desc_t *tx_desc)
 #endif
 
 static inline struct ol_tx_desc_t *
-ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev)
+ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
 {
     struct ol_tx_desc_t *tx_desc = NULL;
 
@@ -95,6 +95,10 @@ ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev)
     if (!tx_desc) {
         return NULL;
     }
+#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+    tx_desc->vdev = vdev;
+    adf_os_atomic_inc(&vdev->tx_desc_count);
+#endif
 
     OL_TX_TIMESTAMP_SET(tx_desc);
 
@@ -102,11 +106,11 @@ ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev)
 }
 
 static inline struct ol_tx_desc_t *
-ol_tx_desc_alloc_hl(struct ol_txrx_pdev_t *pdev)
+ol_tx_desc_alloc_hl(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
 {
     struct ol_tx_desc_t *tx_desc;
 
-    tx_desc = ol_tx_desc_alloc(pdev);
+    tx_desc = ol_tx_desc_alloc(pdev, vdev);
     if (!tx_desc) return NULL;
 
 
@@ -135,6 +139,10 @@ ol_tx_desc_free(struct ol_txrx_pdev_t *pdev, struct ol_tx_desc_t *tx_desc)
     ((union ol_tx_desc_list_elem_t *) tx_desc)->next = pdev->tx_desc.freelist;
     pdev->tx_desc.freelist = (union ol_tx_desc_list_elem_t *) tx_desc;
     pdev->tx_desc.num_free++;
+#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+    adf_os_atomic_dec(&tx_desc->vdev->tx_desc_count);
+    tx_desc->vdev = NULL;
+#endif
     adf_os_spin_unlock_bh(&pdev->tx_mutex);
 }
 
@@ -167,7 +175,7 @@ ol_tx_desc_ll(
     }
 
     /* allocate the descriptor */
-    tx_desc = ol_tx_desc_alloc(pdev);
+    tx_desc = ol_tx_desc_alloc(pdev, vdev);
     if (!tx_desc) return NULL;
 
     /* initialize the SW tx descriptor */
@@ -233,7 +241,7 @@ ol_tx_desc_hl(
     }
 
     /* allocate the descriptor */
-    tx_desc = ol_tx_desc_alloc_hl(pdev);
+    tx_desc = ol_tx_desc_alloc_hl(pdev, vdev);
     if (!tx_desc) return NULL;
 
     /* initialize the SW tx descriptor */

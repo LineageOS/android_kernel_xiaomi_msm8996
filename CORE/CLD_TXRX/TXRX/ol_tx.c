@@ -51,8 +51,6 @@
 /* internal header files relevant only for specific systems (Pronto) */
 #include <ol_txrx_encap.h>    /* OL_TX_ENCAP, etc */
 
-#define ENABLE_TX_SCHED 1
-
 #define ol_tx_prepare_ll(tx_desc, vdev, msdu, msdu_info) \
     do {                                                                      \
         struct ol_txrx_pdev_t *pdev = vdev->pdev;                             \
@@ -478,7 +476,6 @@ ol_tx_non_std_ll(
 #define TX_FILTER_CHECK(tx_msdu_info) 0 /* don't filter */
 #endif
 
-#if ENABLE_TX_SCHED
 static inline adf_nbuf_t
 ol_tx_hl_base(
     ol_txrx_vdev_handle vdev,
@@ -509,7 +506,15 @@ ol_tx_hl_base(
          */
         next = adf_nbuf_next(msdu);
 
+#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+        if (adf_os_atomic_read(&vdev->tx_desc_count) <= ((ol_tx_desc_pool_size_hl(pdev->ctrl_pdev) >> 1) - 20)) {
+            tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
+        } else {
+            tx_desc = NULL;
+        }
+#else
         tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
+#endif
         if (! tx_desc) {
             /*
              * If we're out of tx descs, there's no need to try to allocate
@@ -623,112 +628,6 @@ MSDU_LOOP_BOTTOM:
 
     return NULL; /* all MSDUs were accepted */
 }
-
-#else /* ENABLE_TX_SCHED == 0 */
-
-static inline adf_nbuf_t
-ol_tx_hl_base(
-    ol_txrx_vdev_handle vdev,
-    enum ol_tx_spec tx_spec,
-    adf_nbuf_t msdu_list)
-{
-    struct ol_txrx_pdev_t *pdev = vdev->pdev;
-    adf_nbuf_t msdu = msdu_list;
-    struct ol_txrx_msdu_info_t tx_msdu_info;
-    htt_pdev_handle htt_pdev = pdev->htt_pdev;
-    tx_msdu_info.peer = NULL;
-
-    /*
-     * The msdu_list variable could be used instead of the msdu var,
-     * but just to clarify which operations are done on a single MSDU
-     * vs. a list of MSDUs, use a distinct variable for single MSDUs
-     * within the list.
-     */
-    while (msdu) {
-        adf_nbuf_t next;
-        struct ol_tx_frms_queue_t *txq;
-        struct ol_tx_desc_t *tx_desc;
-        if (adf_os_atomic_read(&vdev->pdev->target_tx_credit) <= 0) {
-            return msdu;
-        }
-        next = adf_nbuf_next(msdu);
-
-        tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
-        if (! tx_desc) {
-            /*
-             * If we're out of tx descs, there's no need to try to allocate
-             * tx descs for the remaining MSDUs.
-             */
-            TXRX_STATS_MSDU_LIST_INCR(pdev, tx.dropped.host_reject, msdu);
-            return msdu; /* the list of unaccepted MSDUs */
-        }
-        OL_TXRX_PROT_AN_LOG(pdev->prot_an_tx_sent, msdu);
-
-        if (tx_spec != ol_tx_spec_std) {
-            if (tx_spec & ol_tx_spec_no_free) {
-                tx_desc->pkt_type = ol_tx_frm_no_free;
-            } else if (tx_spec & ol_tx_spec_tso) {
-                tx_desc->pkt_type = ol_tx_frm_tso;
-            }
-            if (OL_TXRX_TX_IS_RAW(tx_spec)) {
-                // CHECK THIS: does this need to happen after htt_tx_desc_init?
-                /* different types of raw frames */
-                u_int8_t sub_type = OL_TXRX_TX_RAW_SUBTYPE(tx_spec);
-                htt_tx_desc_type(
-                    htt_pdev, tx_desc->htt_tx_desc,
-                    htt_pkt_type_raw, sub_type);
-            }
-        }
-
-        tx_msdu_info.htt.info.ext_tid = adf_nbuf_get_tid(msdu);
-        tx_msdu_info.htt.info.vdev_id = vdev->vdev_id;
-        tx_msdu_info.htt.info.frame_type = htt_frm_type_data;
-        tx_msdu_info.htt.info.l2_hdr_type = pdev->htt_pkt_type;
-        txq = ol_tx_classify(vdev, tx_desc, msdu, &tx_msdu_info);
-        if (!txq) {
-            adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt);
-            //TXRX_STATS_MSDU_LIST_INCR(vdev->pdev, tx.dropped.no_txq, msdu);
-            ol_tx_desc_free(vdev->pdev, tx_desc);
-            if (tx_msdu_info.peer) {
-                /* remove the peer reference added above */
-                ol_txrx_peer_unref_delete(tx_msdu_info.peer);
-            }
-            return msdu; /* the list of unaccepted MSDUs */
-        }
-
-        /* Before authentication, we'll drop packets except eapol/wai frame only */
-        if (tx_msdu_info.peer && tx_msdu_info.peer->state != ol_txrx_peer_state_auth)
-        {
-            if (tx_msdu_info.htt.info.ethertype != ETHERTYPE_PAE && tx_msdu_info.htt.info.ethertype != ETHERTYPE_WAI)
-            {
-                adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt);
-                ol_tx_desc_free(vdev->pdev, tx_desc);
-                /* remove the peer reference added above */
-                ol_txrx_peer_unref_delete(tx_msdu_info.peer);
-                return msdu; /* the list of unaccepted MSDUs */
-            }
-        }
-
-        /* initialize the HW tx descriptor */
-        htt_tx_desc_init(
-            pdev->htt_pdev, tx_desc->htt_tx_desc,
-            ol_tx_desc_id(pdev, tx_desc),
-            msdu,
-            &tx_msdu_info.htt);
-        /*
-         * If debug display is enabled, show the meta-data being
-         * downloaded to the target via the HTT tx descriptor.
-         */
-        htt_tx_desc_display(tx_desc->htt_tx_desc);
-
-        ol_tx_send(pdev, tx_desc, msdu);
-MSDU_LOOP_BOTTOM:
-        msdu = next;
-    }
-    return NULL; /* all MSDUs were accepted */
-}
-
-#endif
 
 adf_nbuf_t
 ol_tx_hl(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
