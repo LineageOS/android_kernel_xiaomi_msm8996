@@ -42,12 +42,23 @@
 #include <linux/mmc/sd.h>
 #include "bmi_msg.h" /* TARGET_TYPE_ */
 #include "if_ath_sdio.h"
+#include "vos_api.h"
+
+#ifndef REMOVE_PKT_LOG
+#include "ol_txrx_types.h"
+#include "pktlog_ac_api.h"
+#include "pktlog_ac.h"
+#endif
 
 #ifndef ATH_BUS_PM
 #ifdef CONFIG_PM
 #define ATH_BUS_PM
 #endif /* CONFIG_PM */
 #endif /* ATH_BUS_PM */
+
+#ifndef REMOVE_PKT_LOG
+struct ol_pl_os_dep_funcs *g_ol_pl_os_dep_funcs = NULL;
+#endif
 
 typedef void * hif_handle_t;
 typedef void * hif_softc_t;
@@ -151,6 +162,18 @@ ath_hif_sdio_probe(void *context, void *hif_handle)
         VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_INFO," hdd_wlan_startup success!");
     }
 
+#ifndef REMOVE_PKT_LOG
+    if (vos_get_conparam() != VOS_FTM_MODE) {
+        /*
+         * pktlog initialization
+         */
+        ol_pl_sethandle(&ol_sc->pdev_txrx_handle->pl_dev, ol_sc);
+
+        if (pktlogmod_init(ol_sc))
+            printk(KERN_ERR "%s: pktlogmod_init failed\n", __func__);
+    }
+#endif
+
     return 0;
 
 err_attach2:
@@ -186,6 +209,13 @@ ath_hif_sdio_remove(void *context, void *hif_handle)
     ENTER();
 
     athdiag_procfs_remove();
+
+#ifndef REMOVE_PKT_LOG
+    if (vos_get_conparam() != VOS_FTM_MODE){
+        if (sc && sc->ol_sc)
+            pktlogmod_exit(sc->ol_sc);
+    }
+#endif
 
     if (sc && sc->ol_sc){
        A_FREE(sc->ol_sc);
