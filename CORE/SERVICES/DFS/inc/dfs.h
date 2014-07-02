@@ -599,6 +599,7 @@ struct ath_dfs {
     int        dfs_phyerr_w53_counter;
     int        dfs_pri_multiplier;      /* allow pulse if they are within multiple of PRI for the radar type */
     int        ath_dfs_nol_timeout;
+    int        dfs_pri_multiplier_ini;  /* dfs pri configuration from ini */
 };
 
 /* This should match the table from if_ath.c */

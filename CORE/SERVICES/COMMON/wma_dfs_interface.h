@@ -199,6 +199,7 @@ typedef struct ieee80211com
     HAL_DFS_DOMAIN current_dfs_regdomain;
     u_int8_t vdev_id;
     u_int8_t last_radar_found_chan;
+    int32_t dfs_pri_multiplier;
 } IEEE80211COM, *PIEEE80211COM;
 
 /*

@@ -42,8 +42,8 @@
 #define AR6320_REV1_VERSION_1        AR6320_REV1_1_VERSION
 #define AR6320_REV1_3_VERSION        0x5000003
 #define AR6320_REV2_VERSION          AR6320_REV1_1_VERSION
-#define AR6320_REV2_1_VERSION	     0x5010000
-#define AR6320_REV3_VERSION	     0x5020000
+#define AR6320_REV2_1_VERSION        0x5010000
+#define AR6320_REV3_VERSION          0x5020000
 #define AR6320_REV4_VERSION          AR6320_REV2_1_VERSION
 #define AR6320_DEV_VERSION           0x1000000
 #define QCA_FIRMWARE_FILE            "athwlan.bin"
@@ -70,7 +70,7 @@
 #define REGISTER_LOCATION       0x00000800
 
 #define DRAM_LOCATION           0x00400000
-#define DRAM_SIZE               0x00070000
+#define DRAM_SIZE               0x000a8000
 
 #define IRAM_LOCATION           0x00980000
 #define IRAM_SIZE               0x00038000

@@ -2623,6 +2623,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_SAP_DFS_CH_SIFS_BURST_MAX       ( 1 )
 #define CFG_ENABLE_SAP_DFS_CH_SIFS_BURST_DEFAULT   ( 1 )
 
+#define CFG_DFS_RADAR_PRI_MULTIPLIER_NAME          "gDFSradarMappingPriMultiplier"
+#define CFG_DFS_RADAR_PRI_MULTIPLIER_DEFAULT       ( 4 )
+#define CFG_DFS_RADAR_PRI_MULTIPLIER_MIN           ( 0 )
+#define CFG_DFS_RADAR_PRI_MULTIPLIER_MAX           ( 10 )
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3187,6 +3192,7 @@ typedef struct
    v_BOOL_t                    enableGreenAP;
 #endif
 
+   v_S31_t                     dfsRadarPriMultiplier;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

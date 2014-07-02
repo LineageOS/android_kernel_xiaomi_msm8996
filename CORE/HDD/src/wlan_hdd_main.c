@@ -6039,8 +6039,6 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     /* Set the LDPC capability */
     phtCapInfo->advCodingCap = cfg->ht_rx_ldpc;
 
-    if (phtCapInfo->txSTBC && !cfg->ht_tx_stbc)
-        phtCapInfo->txSTBC = cfg->ht_tx_stbc;
 
     if (pconfig->ShortGI20MhzEnable && !cfg->ht_sgi_20)
         pconfig->ShortGI20MhzEnable = cfg->ht_sgi_20;
@@ -6057,6 +6055,12 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
         pconfig->enable2x2 = 0;
         pconfig->enableTxSTBC = 0;
     }
+    if (!(cfg->ht_tx_stbc && pconfig->enable2x2))
+    {
+        pconfig->enableTxSTBC = 0;
+    }
+    phtCapInfo->txSTBC = pconfig->enableTxSTBC;
+
     val32 = val16;
     status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO,
                           val32, NULL, eANI_BOOLEAN_FALSE);
@@ -11131,6 +11135,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    hdd_config_t *pConfig;
 #endif
    int ret;
+   int i;
    struct wiphy *wiphy;
 #ifdef QCA_WIFI_2_0
    adf_os_device_t adf_ctx;
@@ -11309,6 +11314,16 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
    }
 
+   /* Initialize struct for saving f/w log setting will be used
+   after ssr */
+   pHddCtx->fw_log_settings.enable = 0;
+   pHddCtx->fw_log_settings.dl_type = 0;
+   pHddCtx->fw_log_settings.dl_report = 0;
+   pHddCtx->fw_log_settings.dl_loglevel = 0;
+   pHddCtx->fw_log_settings.index = 0;
+   for (i = 0; i < MAX_MOD_LOGLEVEL; i++) {
+       pHddCtx->fw_log_settings.dl_mod_loglevel[i] = 0;
+   }
    // Update VOS trace levels based upon the cfg.ini
    hdd_vos_trace_enable(VOS_MODULE_ID_BAP,
                         pHddCtx->cfg_ini->vosTraceEnableBAP);
@@ -13335,9 +13350,6 @@ void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len)
     switch(type) {
     case WLAN_SVC_FW_CRASHED_IND:
     case WLAN_SVC_LTE_COEX_IND:
-    case WLAN_SVC_DFS_CAC_START_IND:
-    case WLAN_SVC_DFS_CAC_END_IND:
-    case WLAN_SVC_DFS_RADAR_DETECT_IND:
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
     case WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND:
 #endif
@@ -13347,12 +13359,16 @@ void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len)
         break;
     case WLAN_SVC_WLAN_STATUS_IND:
     case WLAN_SVC_WLAN_VERSION_IND:
+    case WLAN_SVC_DFS_CAC_START_IND:
+    case WLAN_SVC_DFS_CAC_END_IND:
+    case WLAN_SVC_DFS_RADAR_DETECT_IND:
         ani_hdr->length = len;
         nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr) + len));
         nl_data = (char *)ani_hdr + sizeof(tAniMsgHdr);
         memcpy(nl_data, data, len);
         skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr) + len));
         break;
+
     default:
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "WLAN SVC: Attempt to send unknown nlink message %d", type);

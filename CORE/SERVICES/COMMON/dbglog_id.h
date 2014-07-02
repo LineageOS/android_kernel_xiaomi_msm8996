@@ -686,7 +686,9 @@ extern "C" {
 #define WAL_DBGID_SMPS_SWSEL_CHAINMASK              65
 #define WAL_DBGID_SUSPEND                           66
 #define WAL_DBGID_RESUME                            67
-#define WAL_DBGID_DEFINITION_END                    68
+#define WAL_DBGID_PEER_TX_FAIL_CNT_THRES_EXCEEDED   68
+#define WAL_DBGID_RX_FULL_REORDER_SUPPORT           69
+#define WAL_DBGID_DEFINITION_END                    70
 
 #define ANI_DBGID_POLL                               0
 #define ANI_DBGID_CONTROL                            1
@@ -1280,6 +1282,58 @@ extern "C" {
 #define IBSS_PS_DBGID_PS_DESC_BIN_HWM           22
 #define IBSS_PS_DBGID_PS_DESC_BIN_LWM           23
 #define IBSS_PS_DBGID_PS_KICKOUT_PEER           24
+#define IBSS_PS_DBGID_SET_PEER_PARAM            25
+#define IBSS_PS_DBGID_BCN_ATIM_WIN_MISMATCH     26
+
+/* HIF UART Interface DBGIDs */
+#define HIF_UART_DBGID_START               0
+#define HIF_UART_DBGID_POWER_STATE         1
+#define HIF_UART_DBGID_TXRX_FLOW           2
+#define HIF_UART_DBGID_TXRX_CTRL_CHAR      3
+#define HIF_UART_DBGID_TXRX_BUF_DUMP       4
+
+/* EXTSCAN DBGIDs */
+#define EXTSCAN_START                                    0
+#define EXTSCAN_STOP                                     1
+#define EXTSCAN_CLEAR_ENTRY_CONTENT                      2
+#define EXTSCAN_GET_FREE_ENTRY_SUCCESS                   3
+#define EXTSCAN_GET_FREE_ENTRY_INCONSISTENT              4
+#define EXTSCAN_GET_FREE_ENTRY_NO_MORE_ENTRIES           5
+#define EXTSCAN_CREATE_ENTRY_SUCCESS                     6
+#define EXTSCAN_CREATE_ENTRY_ERROR                       7
+#define EXTSCAN_SEARCH_SCAN_ENTRY_QUEUE                  8
+#define EXTSCAN_SEARCH_SCAN_ENTRY_KEY_FOUND              9
+#define EXTSCAN_SEARCH_SCAN_ENTRY_KEY_NOT_FOUND         10
+#define EXTSCAN_ADD_ENTRY                               11
+#define EXTSCAN_BUCKET_SEND_OPERATION_EVENT             12
+#define EXTSCAN_BUCKET_SEND_OPERATION_EVENT_FAILED      13
+#define EXTSCAN_BUCKET_START_SCAN_CYCLE                 14
+#define EXTSCAN_BUCKET_PERIODIC_TIMER                   15
+#define EXTSCAN_SEND_START_STOP_EVENT                   16
+#define EXTSCAN_NOTIFY_WLAN_CHANGE                      17
+#define EXTSCAN_NOTIFY_WLAN_HOTLIST_MATCH               18
+#define EXTSCAN_MAIN_RECEIVED_FRAME                     19
+#define EXTSCAN_MAIN_NO_SSID_IE                         20
+#define EXTSCAN_MAIN_MALFORMED_FRAME                    21
+#define EXTSCAN_FIND_BSSID_BY_REFERENCE                 22
+#define EXTSCAN_FIND_BSSID_BY_REFERENCE_ERROR           23
+#define EXTSCAN_NOTIFY_TABLE_USAGE                      24
+#define EXTSCAN_FOUND_RSSI_ENTRY                        25
+#define EXTSCAN_BSSID_FOUND_RSSI_SAMPLE                 26
+#define EXTSCAN_BSSID_ADDED_RSSI_SAMPLE                 27
+#define EXTSCAN_BSSID_REPLACED_RSSI_SAMPLE              28
+#define EXTSCAN_BSSID_TRANSFER_CURRENT_SAMPLES          29
+#define EXTSCAN_BUCKET_PROCESS_SCAN_EVENT               30
+#define EXTSCAN_BUCKET_CANNOT_FIND_BUCKET               31
+#define EXTSCAN_START_SCAN_REQUEST_FAILED               32
+#define EXTSCAN_BUCKET_STOP_CURRENT_SCANS               33
+#define EXTSCAN_BUCKET_SCAN_STOP_REQUEST                34
+#define EXTSCAN_BUCKET_PERIODIC_TIMER_ERROR             35
+#define EXTSCAN_BUCKET_START_OPERATION                  36
+#define EXTSCAN_START_INTERNAL_ERROR                    37
+#define EXTSCAN_NOTIFY_HOTLIST_MATCH                    38
+#define EXTSCAN_CONFIG_HOTLIST_TABLE                    39
+#define EXTSCAN_CONFIG_WLAN_CHANGE_TABLE                40
 
 #ifdef __cplusplus
 }

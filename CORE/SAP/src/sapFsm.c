@@ -1896,13 +1896,6 @@ sapFsm
 
                 sapContext->sapsMachine = eSAP_DISCONNECTED;
 
-                /* DFS NOL is available, update to CNSS */
-                if (pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels)
-                {
-                    sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NOL_SET,
-                        (v_PVOID_t) eSAP_STATUS_SUCCESS);
-                }
-
                 /* Close the SME session*/
                 if (eSAP_TRUE == sapContext->isSapSessionOpen)
                 {
