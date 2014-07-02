@@ -436,6 +436,7 @@ WLANSAP_RoamCallback
               pMac->sap.SapDfsInfo.target_channel =
                      pMac->sap.SapDfsInfo.user_provided_target_channel;
            }
+           pMac->sap.SapDfsInfo.cac_state = eSAP_DFS_DO_NOT_SKIP_CAC;
            sap_CacResetNotify(hHal);
            break;
 
@@ -820,7 +821,9 @@ WLANSAP_RoamCallback
                if (NV_CHANNEL_DFS ==
                      vos_nv_getChannelEnabledState(sapContext->channel))
                {
-                   if (VOS_FALSE == pMac->sap.SapDfsInfo.ignore_cac)
+                   if ((VOS_FALSE == pMac->sap.SapDfsInfo.ignore_cac) &&
+                        (eSAP_DFS_DO_NOT_SKIP_CAC ==
+                         pMac->sap.SapDfsInfo.cac_state))
                    {
                       sapContext->sapsMachine = eSAP_DISCONNECTED;
 

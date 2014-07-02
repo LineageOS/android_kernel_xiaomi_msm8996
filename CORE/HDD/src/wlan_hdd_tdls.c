@@ -2642,13 +2642,11 @@ int wlan_hdd_tdls_scan_callback (hdd_adapter_t *pAdapter,
     u16 connectedTdlsPeers;
     hddTdlsPeer_t *curr_peer;
     unsigned long delay;
+    int ret;
 
-    if (0 != (wlan_hdd_validate_context(pHddCtx)))
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                FL("pHddCtx is not valid"));
-       return 0;
-    }
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (ret)
+       return ret;
 
     /* if tdls is not enabled, then continue scan */
     if (eTDLS_SUPPORT_NOT_ENABLED == pHddCtx->tdls_mode)

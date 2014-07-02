@@ -1113,6 +1113,40 @@ sapSignalHDDevent
 } /* sapSignalApAppStartBssEvent */
 
 /*==========================================================================
+  FUNCTION  sap_find_valid_concurrent_session
+
+  DESCRIPTION
+    This function will return sapcontext of any valid sap session.
+
+  PARAMETERS
+
+    IN
+    hHal        : HAL pointer
+
+  RETURN VALUE
+    ptSapContext : valid sap context
+
+  SIDE EFFECTS
+    NA
+============================================================================*/
+ptSapContext sap_find_valid_concurrent_session (tHalHandle hHal)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    v_U8_t intf = 0;
+
+    for (intf = 0; intf < SAP_MAX_NUM_SESSION; intf++)
+    {
+         if (VOS_STA_SAP_MODE == pMac->sap.sapCtxList [intf].sapPersona &&
+             pMac->sap.sapCtxList[intf].pSapContext != NULL)
+         {
+             return pMac->sap.sapCtxList[intf].pSapContext;
+         }
+    }
+
+    return NULL;
+}
+
+/*==========================================================================
   FUNCTION   sap_CloseSession
 
   DESCRIPTION
@@ -1155,17 +1189,28 @@ eHalStatus sap_CloseSession(tHalHandle hHal,
                                      callback, sapContext);
     }
 
-    /* If timer is running then stop the timer and destory
-     * it
-     */
-    if (pMac->sap.SapDfsInfo.is_dfs_cac_timer_running)
+    sapContext->isCacStartNotified = VOS_FALSE;
+    sapContext->isCacEndNotified = VOS_FALSE;
+    pMac->sap.sapCtxList[sapContext->sessionId].pSapContext = NULL;
+
+    if (NULL == sap_find_valid_concurrent_session(hHal))
     {
-        vos_timer_stop(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
-        pMac->sap.SapDfsInfo.is_dfs_cac_timer_running = 0;
+        /* If timer is running then stop the timer and destory
+         * it
+         */
+         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
+         "sapdfs: no session are valid, so clearing dfs global structure");
+
+        if (pMac->sap.SapDfsInfo.is_dfs_cac_timer_running)
+        {
+            vos_timer_stop(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
+            pMac->sap.SapDfsInfo.is_dfs_cac_timer_running = 0;
+        }
+        pMac->sap.SapDfsInfo.cac_state = eSAP_DFS_DO_NOT_SKIP_CAC;
+        vos_timer_destroy(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
+        sap_CacResetNotify(hHal);
+        vos_mem_zero(&pMac->sap, sizeof(pMac->sap));
     }
-    vos_timer_destroy(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
-    sap_CacResetNotify(hHal);
-    vos_mem_zero(&pMac->sap, sizeof(pMac->sap));
 
     return halstatus;
 }
@@ -1331,6 +1376,15 @@ VOS_STATUS sap_CacEndNotify(tHalHandle hHal, tCsrRoamInfo *roamInfo)
                           __func__, "eSAP_DFS_CAC_WAIT", "eSAP_STARTED");
             }
       }
+      /*
+       * All APs are done with CAC timer, all APs should start beaconing.
+       * Lets assume AP1 and AP2 started beaconing on DFS channel, Now lets
+       * say AP1 goes down and comes back on same DFS channel. In this case
+       * AP1 shouldn't start CAC timer and start beacon immediately beacause
+       * AP2 is already beaconing on this channel. This case will be handled
+       * by checking against eSAP_DFS_SKIP_CAC while starting the timer.
+       */
+      pMac->sap.SapDfsInfo.cac_state = eSAP_DFS_SKIP_CAC;
       return vosStatus;
 }
 
@@ -1579,6 +1633,7 @@ sapFsm
             }
             else if (msg == eSAP_DFS_CHANNEL_CAC_RADAR_FOUND)
             {
+               v_U8_t  intf;
                /* Radar found while performing channel availability
                 * check, need to switch the channel again
                 */
@@ -1587,8 +1642,6 @@ sapFsm
                tHalHandle hHal =
                   (tHalHandle)vos_get_context(VOS_MODULE_ID_SME, sapContext->pvosGCtx);
 
-               /* SAP to be moved to DISCONNECTING state */
-               sapContext->sapsMachine = eSAP_DISCONNECTING;
 
                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
                   "ENTERTRED CAC WAIT STATE-->eSAP_DISCONNECTING\n");
@@ -1604,19 +1657,32 @@ sapFsm
                                    pMac->sap.SapDfsInfo.target_channel);
                 }
 
-               /*
-                * eSAP_DFS_CHANNEL_CAC_RADAR_FOUND:
-                * A Radar is found on current DFS Channel
-                * while in CAC WAIT period So, do a channel switch
-                * to randomly selected  target channel.
-                * Send the Channel change message to SME/PE.
-                * sap_radar_found_status is set to 1
-                */
-               sapSignalHDDevent(sapContext, NULL, eSAP_DFS_RADAR_DETECT,
-                                              (v_PVOID_t) eSAP_STATUS_SUCCESS);
+                for (intf = 0; intf < SAP_MAX_NUM_SESSION; intf++)
+                {
+                     ptSapContext sapContext;
+                     if (VOS_STA_SAP_MODE ==
+                           pMac->sap.sapCtxList[intf].sapPersona &&
+                           pMac->sap.sapCtxList [intf].pSapContext != NULL)
+                     {
+                         sapContext = pMac->sap.sapCtxList [intf].pSapContext;
+                         /* SAP to be moved to DISCONNECTING state */
+                         sapContext->sapsMachine = eSAP_DISCONNECTING;
+                         /*
+                          * eSAP_DFS_CHANNEL_CAC_RADAR_FOUND:
+                          * A Radar is found on current DFS Channel
+                          * while in CAC WAIT period So, do a channel switch
+                          * to randomly selected  target channel.
+                          * Send the Channel change message to SME/PE.
+                          * sap_radar_found_status is set to 1
+                          */
+                         sapSignalHDDevent(sapContext, NULL,
+                                           eSAP_DFS_RADAR_DETECT,
+                                           (v_PVOID_t) eSAP_STATUS_SUCCESS);
 
-               WLANSAP_ChannelChangeRequest((v_PVOID_t)sapContext,
+                         WLANSAP_ChannelChangeRequest((v_PVOID_t)sapContext,
                               pMac->sap.SapDfsInfo.target_channel);
+                     }
+                }
             }
             else if (msg == eSAP_DFS_CHANNEL_CAC_END)
             {
@@ -1631,29 +1697,22 @@ sapFsm
                         "eSAP_DFS_CAC_WAIT",
                         "eSAP_DISCONNECTING");
 
-                /* stop CAC timer */
-                sapStopDfsCacTimer(sapContext);
-
-                /*Advance outer statevar */
-                sapContext->sapsMachine = eSAP_DISCONNECTED;
-                vosStatus = sapGotoDisconnected(sapContext);
-                /* Close the SME session*/
-
-                if (eSAP_TRUE == sapContext->isSapSessionOpen)
+                /*
+                 * Stop the CAC timer only in following conditions
+                 * single AP: if there is a single AP then stop the timer
+                 * mulitple APs: incase of multiple APs, make sure that
+                 *               all APs are down.
+                 */
+                if (NULL == sap_find_valid_concurrent_session(hHal))
                 {
-                    tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
-                    if (NULL == hHal)
-                    {
-                        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                                "In %s, NULL hHal in state %s, msg %d",
-                                __func__, "eSAP_DFS_CAC_WAIT", msg);
-                    }
-                    else if (eHAL_STATUS_SUCCESS ==
-                             sap_CloseSession(hHal, sapContext, NULL, FALSE));
-                    {
-                        sapContext->isSapSessionOpen = eSAP_FALSE;
-                    }
+                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
+                              "sapdfs: no sessions are valid, stopping timer");
+
+                    sapStopDfsCacTimer(sapContext);
                 }
+
+                sapContext->sapsMachine = eSAP_DISCONNECTING;
+                vosStatus = sapGotoDisconnecting(sapContext);
             }
             else
             {
@@ -1686,7 +1745,9 @@ sapFsm
                  if (NV_CHANNEL_DFS ==
                      vos_nv_getChannelEnabledState(sapContext->channel))
                  {
-                    if (VOS_FALSE == pMac->sap.SapDfsInfo.ignore_cac)
+                    if ((VOS_FALSE == pMac->sap.SapDfsInfo.ignore_cac) &&
+                        (eSAP_DFS_DO_NOT_SKIP_CAC ==
+                         pMac->sap.SapDfsInfo.cac_state))
                     {
                         /* Move the device in CAC_WAIT_STATE */
                         sapContext->sapsMachine = eSAP_DFS_CAC_WAIT;
@@ -2295,7 +2356,7 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
             case eSAP_RF_SUBBAND_2_4_GHZ:
                bandStartChannel = RF_CHAN_1;
                bandEndChannel = RF_CHAN_14;
-               startChannelNum = (startChannelNum - 4) > 1 ? (startChannelNum - 4): 1;
+               startChannelNum = startChannelNum > 5 ? (startChannelNum - 4): 1;
                endChannelNum = (endChannelNum + 4) <= 14 ? (endChannelNum + 4):14;
                break;
 
@@ -2333,7 +2394,7 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
                /* assume 2.4 GHz */
                bandStartChannel = RF_CHAN_1;
                bandEndChannel = RF_CHAN_14;
-               startChannelNum = (startChannelNum - 4) > 1 ? (startChannelNum - 4): 1;
+               startChannelNum = startChannelNum > 5 ? (startChannelNum - 4): 1;
                endChannelNum = (endChannelNum + 4) <= 14 ? (endChannelNum + 4):14;
                break;
         }
@@ -2624,18 +2685,10 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext, tSirSmeDfsEventInd *dfs_event)
  */
 void sapDfsCacTimerCallback(void *data)
 {
-    ptSapContext sapContext = (ptSapContext)data;
+    ptSapContext sapContext;
     tWLAN_SAPEvent sapEvent;
-    tHalHandle hHal;
+    tHalHandle hHal = (tHalHandle)data;
     tpAniSirGlobal pMac;
-
-    if (NULL == sapContext)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                  "In %s invalid sapcontext", __func__);
-        return;
-    }
-    hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
 
     if (NULL == hHal)
     {
@@ -2644,6 +2697,14 @@ void sapDfsCacTimerCallback(void *data)
         return;
     }
     pMac = PMAC_STRUCT( hHal );
+    sapContext = sap_find_valid_concurrent_session(hHal);
+
+    if (NULL == sapContext)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "In %s no SAP contexts are found", __func__);
+        return;
+    }
 
     /* Check to ensure that SAP is in DFS WAIT state*/
     if (sapContext->sapsMachine == eSAP_DFS_CAC_WAIT)
@@ -2697,8 +2758,6 @@ static int sapStopDfsCacTimer(ptSapContext sapContext)
     vos_timer_stop(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
     pMac->sap.SapDfsInfo.is_dfs_cac_timer_running = 0;
 
-    vos_timer_destroy(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
-
     return 0;
 }
 
@@ -2750,7 +2809,7 @@ int sapStartDfsCacTimer(ptSapContext sapContext)
 
     vos_timer_init(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer,
                    VOS_TIMER_TYPE_SW,
-                   sapDfsCacTimerCallback, (v_PVOID_t)sapContext);
+                   sapDfsCacTimerCallback, (v_PVOID_t)hHal);
 
     /*Start the CAC timer*/
     status = vos_timer_start(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer, cacTimeOut);

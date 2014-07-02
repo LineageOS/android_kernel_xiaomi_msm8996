@@ -633,7 +633,7 @@ ol_txrx_pdev_attach(
     }
 #endif /* QCA_COMPUTE_TX_DELAY */
 
-#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
+#ifdef QCA_SUPPORT_TX_THROTTLE
     /* Thermal Mitigation */
     ol_tx_throttle_init(pdev);
 #endif
@@ -698,12 +698,14 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
         ol_tx_sched_detach(pdev);
     }
-#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
+#ifdef QCA_SUPPORT_TX_THROTTLE
     /* Thermal Mitigation */
     adf_os_timer_cancel(&pdev->tx_throttle.phase_timer);
     adf_os_timer_free(&pdev->tx_throttle.phase_timer);
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
     adf_os_timer_cancel(&pdev->tx_throttle.tx_timer);
     adf_os_timer_free(&pdev->tx_throttle.tx_timer);
+#endif
 #endif
     if (force) {
         /*
@@ -755,7 +757,7 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     adf_os_spinlock_destroy(&pdev->peer_ref_mutex);
     adf_os_spinlock_destroy(&pdev->last_real_peer_mutex);
     adf_os_spinlock_destroy(&pdev->rx.mutex);
-#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
+#ifdef QCA_SUPPORT_TX_THROTTLE
     /* Thermal Mitigation */
     adf_os_spinlock_destroy(&pdev->tx_throttle.mutex);
 #endif

@@ -1166,8 +1166,8 @@ static int wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr mac address failed"));
             goto fail;
         }
-        nla_memcpy(pReqMsg->ap[i].bssid, nla_data(
-                tb2[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_BSSID]),
+        nla_memcpy(pReqMsg->ap[i].bssid,
+                tb2[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_BSSID],
                 sizeof(tSirMacAddr));
         hddLog(VOS_TRACE_LEVEL_INFO, MAC_ADDRESS_STR,
                MAC_ADDR_ARRAY(pReqMsg->ap[i].bssid));
@@ -1320,8 +1320,8 @@ static int wlan_hdd_cfg80211_extscan_set_significant_change(
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr mac address failed"));
             goto fail;
         }
-        nla_memcpy(pReqMsg->ap[i].bssid, nla_data(
-                tb2[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_BSSID]),
+        nla_memcpy(pReqMsg->ap[i].bssid,
+                tb2[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_BSSID],
                 sizeof(tSirMacAddr));
         hddLog(VOS_TRACE_LEVEL_INFO, MAC_ADDRESS_STR,
                MAC_ADDR_ARRAY(pReqMsg->ap[i].bssid));

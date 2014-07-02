@@ -511,6 +511,12 @@ typedef struct sSapText {
 
 typedef enum
 {
+    eSAP_DFS_DO_NOT_SKIP_CAC,
+    eSAP_DFS_SKIP_CAC
+} eSapDfsCACState_t;
+
+typedef enum
+{
     eSAP_DFS_CHANNEL_USABLE,
     eSAP_DFS_CHANNEL_AVAILABLE,
     eSAP_DFS_CHANNEL_UNAVAILABLE
@@ -534,6 +540,7 @@ typedef struct sSapDfsInfo
     v_U8_t              target_channel;
     v_U8_t              last_radar_found_channel;
     v_U8_t              ignore_cac;
+    eSapDfsCACState_t   cac_state;
     v_U8_t              user_provided_target_channel;
 
     /* Requests for Channel Switch Announcement IE
