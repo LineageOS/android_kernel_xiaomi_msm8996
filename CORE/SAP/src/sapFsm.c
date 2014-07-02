@@ -1601,6 +1601,12 @@ sapFsm
                              sapContext->csrRoamProfile.phyMode),
                              sapContext->channel);
                  }
+                 if (sapContext->channel > 14 &&
+                         (sapContext->csrRoamProfile.phyMode ==
+                         eSAP_DOT11_MODE_11g ||
+                         sapContext->csrRoamProfile.phyMode ==
+                         eSAP_DOT11_MODE_11g_ONLY))
+                     sapContext->csrRoamProfile.phyMode = eSAP_DOT11_MODE_11a;
 
                  /* Transition from eSAP_CH_SELECT to eSAP_STARTING (both without substates) */
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
