@@ -107,6 +107,8 @@ typedef  enum  {
     WMI_SERVICE_IBSS_PWRSAVE,         /* IBSS power save support */
     WMI_SERVICE_LPASS,                /*Service to support LPASS*/
     WMI_SERVICE_EXTSCAN,              /* Extended Scans */
+    WMI_SERVICE_D0WOW,                /* D0-WOW Support */
+    WMI_SERVICE_HSOFFLOAD,            /* Hotspot offload feature Support */
     WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;
 
