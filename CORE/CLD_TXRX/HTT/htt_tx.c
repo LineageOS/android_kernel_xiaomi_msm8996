@@ -449,6 +449,8 @@ htt_tx_send_base(
 
     SET_HTC_PACKET_NET_BUF_CONTEXT(&pkt->htc_pkt, msdu);
 
+    adf_nbuf_trace_update(msdu, "HT:T:");
+
     HTCSendDataPkt(pdev->htc_pdev, &pkt->htc_pkt);
 
     return 0; /* success */
