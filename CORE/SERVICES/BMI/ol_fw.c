@@ -1979,8 +1979,8 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 #endif
 
 #if defined(CONFIG_HL_SUPPORT)
-#define MAX_SUPPORTED_PEERS_REV1_1 8
-#define MAX_SUPPORTED_PEERS_REV1_3 8
+#define MAX_SUPPORTED_PEERS_REV1_1 9
+#define MAX_SUPPORTED_PEERS_REV1_3 9
 #else
 #define MAX_SUPPORTED_PEERS_REV1_1 14
 #define MAX_SUPPORTED_PEERS_REV1_3 32
