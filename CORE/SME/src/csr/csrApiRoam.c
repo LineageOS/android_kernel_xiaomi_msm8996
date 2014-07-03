@@ -1138,6 +1138,7 @@ static void initConfigParam(tpAniSirGlobal pMac)
     //BMPS_WORKAROUND_NOT_NEEDED
     pMac->roam.configParam.doBMPSWorkaround = 0;
 
+    pMac->roam.configParam.nInitialDwellTime = 0;
 }
 eCsrBand csrGetCurrentBand(tHalHandle hHal)
 {
@@ -1996,6 +1997,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
                                 pMac->roam.configParam.isCoalesingInIBSSAllowed;
         pParam->allowDFSChannelRoam =
                                 pMac->roam.configParam.allowDFSChannelRoam;
+        pParam->nInitialDwellTime =
+                                pMac->roam.configParam.nInitialDwellTime;
         csrSetChannels(pMac, pParam);
 
         status = eHAL_STATUS_SUCCESS;
