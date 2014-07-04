@@ -2447,6 +2447,18 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_IBSS_TXSP_END_INACTIVITY_MAX           (100)
 #define CFG_IBSS_TXSP_END_INACTIVITY_DEFAULT       (0)
 
+/*
+ * When IBSS network is initialized, PS-supporting device
+ * does not enter protocol sleep state during first
+ * gIbssPsWarmupTime seconds.
+ */
+#define CFG_IBSS_PS_WARMUP_TIME_NAME               "gIbssPsWarmupTime"
+#define CFG_IBSS_PS_WARMUP_TIME_MIN                (0)
+/* Allow unsigned Int Max for now */
+#define CFG_IBSS_PS_WARMUP_TIME_MAX                (65535)
+#define CFG_IBSS_PS_WARMUP_TIME_DEFAULT            (0)
+
+
 #define CFG_SAP_MAX_NO_PEERS                       "gSoftApMaxPeers"
 #define CFG_SAP_MAX_NO_PEERS_MIN                   (1)
 #define CFG_SAP_MAX_NO_PEERS_MAX                   (32)
@@ -3085,6 +3097,7 @@ typedef struct
    v_U8_t                      isIbssAwakeOnTxRx;
    v_U32_t                     ibssInactivityCount;
    v_U32_t                     ibssTxSpEndInactivityTime;
+   v_U32_t                     ibssPsWarmupTime;
 
    v_BOOL_t                    enableTCPChkSumOffld;
    v_BOOL_t                    enableIPChecksumOffload;

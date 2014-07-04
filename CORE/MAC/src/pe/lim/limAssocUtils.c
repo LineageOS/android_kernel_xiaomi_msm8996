@@ -2593,6 +2593,13 @@ limAddSta(
              return eSIR_HAL_STA_DOES_NOT_EXIST;
        }
 
+       if (pPeerNode->atimIePresent)
+       {
+           pAddStaParams->atimIePresent = pPeerNode->atimIePresent;
+           pAddStaParams->peerAtimWindowLength =
+                                   pPeerNode->peerAtimWindowLength;
+       }
+
        pAddStaParams->ht_caps =
              ( pPeerNode->htSupportedChannelWidthSet <<
                                SIR_MAC_HT_CAP_CHWIDTH40_S ) |

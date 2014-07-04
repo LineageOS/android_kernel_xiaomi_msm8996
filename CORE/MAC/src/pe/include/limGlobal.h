@@ -562,6 +562,11 @@ struct tLimIbssPeerNode
     tANI_U8 vhtSupportedChannelWidthSet;
     tANI_U8 vhtBeamFormerCapable;
 #endif
+    /*
+     * Peer Atim Info
+     */
+    tANI_U8  atimIePresent;
+    tANI_U32 peerAtimWindowLength;
 };
 
 // Enums used for channel switching.

@@ -143,6 +143,7 @@ typedef struct sSirProbeRespBeacon
     tANI_U8                   Vendor1IEPresent;
     tANI_U8                   Vendor2IEPresent;
     tANI_U8                   Vendor3IEPresent;
+    tDot11fIEIBSSParams       IBSSParams;
 
 } tSirProbeRespBeacon, *tpSirProbeRespBeacon;
 
