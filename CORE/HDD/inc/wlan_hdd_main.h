@@ -1221,6 +1221,18 @@ typedef struct
 }hdd_green_ap_ctx_t;
 #endif /* FEATURE_GREEN_AP */
 
+#define  MAX_MOD_LOGLEVEL 10
+typedef struct
+{
+    v_U8_t enable;
+    v_U8_t dl_type;
+    v_U8_t dl_report;
+    v_U8_t dl_loglevel;
+    v_U8_t index;
+    v_U32_t dl_mod_loglevel[MAX_MOD_LOGLEVEL];
+
+}fw_log_info;
+
 /** Adapter stucture definition */
 
 struct hdd_context_s
@@ -1479,7 +1491,7 @@ struct hdd_context_s
 #ifdef FEATURE_GREEN_AP
     hdd_green_ap_ctx_t *green_ap_ctx;
 #endif
-
+    fw_log_info fw_log_settings;
 };
 
 

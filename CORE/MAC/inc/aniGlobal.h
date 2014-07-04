@@ -1030,6 +1030,9 @@ typedef struct sMacOpenParameters
     v_BOOL_t IsRArateLimitEnabled;
 #endif
 
+    /* dfs radar pri multiplier */
+    tANI_S32 dfsRadarPriMultiplier;
+
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters

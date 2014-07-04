@@ -5308,6 +5308,7 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                 u8 *pKey = &setKey.Key[0];
                 setKey.encType = eCSR_ENCRYPT_TYPE_TKIP;
 
+
                 vos_mem_zero(pKey, CSR_MAX_KEY_LEN);
 
                 /*Supplicant sends the 32bytes key in this order
@@ -6020,7 +6021,63 @@ static struct cfg80211_bss* wlan_hdd_cfg80211_inform_bss(
     }
 }
 
+/*
+ * FUNCTION: wlan_hdd_cfg80211_update_bss_list
+ * This function is used to inform nl80211 interface that BSS might have
+ * been lost.
+ */
+struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_list(
+   hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo)
+{
+    struct net_device *dev = pAdapter->dev;
+    struct wireless_dev *wdev = dev->ieee80211_ptr;
+    struct wiphy *wiphy = wdev->wiphy;
+    tSirBssDescription *pBssDesc = pRoamInfo->pBssDesc;
+    int chan_no;
+    unsigned int freq;
+    struct ieee80211_channel *chan;
+    struct cfg80211_bss *bss = NULL;
 
+    ENTER();
+
+    if (NULL == pBssDesc) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pBssDesc is NULL", __func__);
+        return bss;
+    }
+
+    if (NULL == pRoamInfo->pProfile) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Roam profile is NULL", __func__);
+        return bss;
+    }
+
+    chan_no = pBssDesc->channelId;
+
+    if (chan_no <= ARRAY_SIZE(hdd_channels_2_4_GHZ)) {
+        freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_2GHZ);
+    } else {
+        freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_5GHZ);
+    }
+
+    chan = __ieee80211_get_channel(wiphy, freq);
+
+    if (!chan) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s chan pointer is NULL", __func__);
+       return NULL;
+    }
+
+    bss = cfg80211_get_bss(wiphy, chan, pBssDesc->bssId,
+                           &pRoamInfo->pProfile->SSIDs.SSIDList->SSID.ssId[0],
+                           pRoamInfo->pProfile->SSIDs.SSIDList->SSID.length,
+                           WLAN_CAPABILITY_ESS, WLAN_CAPABILITY_ESS);
+    if (bss == NULL) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s BSS not present", __func__);
+    } else {
+        hddLog(VOS_TRACE_LEVEL_INFO, "%s cfg80211_unlink_bss called for BSSID "
+               MAC_ADDRESS_STR, __func__, MAC_ADDR_ARRAY(pBssDesc->bssId));
+        cfg80211_unlink_bss(wiphy, bss);
+    }
+    return bss;
+}
 
 /*
  * FUNCTION: wlan_hdd_cfg80211_inform_bss_frame

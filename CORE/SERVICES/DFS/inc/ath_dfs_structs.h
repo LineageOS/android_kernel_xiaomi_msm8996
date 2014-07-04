@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -248,5 +248,6 @@ struct ath_dfs_radar_tab_info {
     int numb5radars;
     struct dfs_bin5pulse *b5pulses;
     struct ath_dfs_phyerr_param dfs_defaultparams;
+    int dfs_pri_multiplier;
 };
 #endif  /* _DFS__STRUCTS_H_ */

@@ -65,8 +65,6 @@
 #define FREQ_5500_MHZ       5500
 
 #define DFS_MAX_FREQ_SPREAD            1375 * 1
-#define DFS_LARGE_PRI_MULTIPLIER       4
-#define DFS_W53_DEFAULT_PRI_MULTIPLIER 2
 
 static char debug_dup[33];
 static int debug_dup_cnt;
@@ -179,30 +177,30 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
             (dfs->dfs_caps.ath_chip_is_bb_tlv) &&
             (chan->ic_freq < FREQ_5500_MHZ)) {
 
-            dfs->dfs_pri_multiplier = DFS_W53_DEFAULT_PRI_MULTIPLIER;
-            /* do not process W53 pulses unless we have a minimum number of them */
+            dfs->dfs_pri_multiplier = dfs->dfs_pri_multiplier_ini;
+
+            /* do not process W53 pulses,
+               unless we have a minimum number of them
+             */
             if (dfs->dfs_phyerr_w53_counter >= 5) {
-                /*
-                  for chips that support frequency information, we can
-                  relax PRI restriction if the frequency
-                  spread is narrow.
-                */
-                if ((dfs->dfs_phyerr_freq_max - dfs->dfs_phyerr_freq_min) < DFS_MAX_FREQ_SPREAD) {
-                    dfs->dfs_pri_multiplier = DFS_LARGE_PRI_MULTIPLIER;
-                }
-                DFS_DPRINTK(dfs, ATH_DEBUG_DFS1, "%s: w53_counter=%d, freq_max=%d, freq_min=%d, pri_multiplier=%d",
-                            __func__,
-                            dfs->dfs_phyerr_w53_counter,
-                            dfs->dfs_phyerr_freq_max,
-                            dfs->dfs_phyerr_freq_min,
-                            dfs->dfs_pri_multiplier);
+               DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,
+                       "%s: w53_counter=%d, freq_max=%d, "
+                       "freq_min=%d, pri_multiplier=%d",
+                       __func__,
+                       dfs->dfs_phyerr_w53_counter,
+                       dfs->dfs_phyerr_freq_max,
+                       dfs->dfs_phyerr_freq_min,
+                       dfs->dfs_pri_multiplier);
                 dfs->dfs_phyerr_freq_min     = 0x7fffffff;
                 dfs->dfs_phyerr_freq_max     = 0;
             } else {
                 return 0;
             }
         }
-        DFS_DPRINTK(dfs, ATH_DEBUG_DFS1, "%s: pri_multiplier=%d", __func__, dfs->dfs_pri_multiplier);
+        DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,
+                    "%s: pri_multiplier=%d",
+                    __func__,
+                    dfs->dfs_pri_multiplier);
 
    ATH_DFSQ_LOCK(dfs);
    empty = STAILQ_EMPTY(&(dfs->dfs_radarq));

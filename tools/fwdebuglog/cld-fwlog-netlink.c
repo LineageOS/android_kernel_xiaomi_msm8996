@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -42,8 +42,9 @@
 #include <sys/capability.h>
 #include <linux/prctl.h>
 #include <pwd.h>
+#ifdef ANDROID
 #include <private/android_filesystem_config.h>
-#include <hardware_legacy/wifi.h>
+#endif
 #include <sys/socket.h>
 #include <linux/netlink.h>
 
@@ -61,12 +62,11 @@
 #include "diagcmd.h"
 #include "diag.h"
 
+#ifdef ANDROID
 #include "aniNlMsg.h"
 #include "aniAsfHdr.h"
 #include "aniAsfMem.h"
 
-
-#define WLAN_NL_MSG_CNSS_DIAG  27 /* Msg type between user space/wlan driver */
 /* CAPs needed
  * CAP_NET_RAW   : Use RAW and packet socket
  * CAP_NET_ADMIN : NL broadcast receive
@@ -80,6 +80,9 @@ const unsigned int capabilities = (1 << CAP_NET_RAW) | (1 << CAP_NET_ADMIN);
  * AID_WIFI      : WIFI Operation
  */
 const gid_t groups[] = {AID_INET, AID_NET_ADMIN, AID_QCOM_DIAG, AID_WIFI};
+#endif
+
+#define WLAN_NL_MSG_CNSS_DIAG  27 /* Msg type between user space/wlan driver */
 
 const char options[] =
 "Options:\n\
@@ -178,6 +181,7 @@ static size_t reorder(FILE *log_in, FILE *log_out)
     return 0;
 }
 
+#ifdef ANDROID
 /*
  * Lower the privileges for security reason
  * the service will run only in system or diag mode
@@ -233,6 +237,7 @@ cnssdiagservice_cap_handle(void)
     }
     return 0;
 }
+#endif
 
 static void cleanup(void) {
     if (sock_fd)
@@ -247,7 +252,7 @@ static void cleanup(void) {
     }
 
     reorder(log_out, fwlog_res);
-out:
+
     fclose(fwlog_res);
     fclose(log_out);
 }
@@ -271,7 +276,6 @@ void process_cnss_diag_msg(unsigned char *eventbuf)
     unsigned char *dbgbuf;
     unsigned short diag_type = 0;
     unsigned int event_id = 0;
-    unsigned int target_time = 0;
     unsigned short length = 0;
     struct dbglog_slot *slot;
     unsigned int dropped = 0;
@@ -285,7 +289,6 @@ void process_cnss_diag_msg(unsigned char *eventbuf)
     eventbuf += sizeof(unsigned short);
 
     if (diag_type == DIAG_TYPE_FW_EVENT) {
-        target_time = *(unsigned int *)eventbuf;
         eventbuf += sizeof(unsigned int);
 
         event_id = *(unsigned int *)eventbuf;
@@ -376,14 +379,12 @@ int main(int argc, char *argv[])
     unsigned int res =0;
     unsigned char *eventbuf = NULL;
     unsigned char *dbgbuf = NULL;
-    int c, rc = 0;
+    int c;
     struct dbglog_slot *slot;
 
     progname = argv[0];
     unsigned short diag_type = 0;
     unsigned short length = 0;
-    unsigned int event_id = 0;
-    unsigned int target_time = 0;
     unsigned int dropped = 0;
     unsigned int timestamp = 0;
 
@@ -398,7 +399,7 @@ int main(int argc, char *argv[])
     };
 
     while (1) {
-        c = getopt_long (argc, argv, "f:scq:r:", long_options, &option_index);
+        c = getopt_long (argc, argv, "f:scqr:", long_options, &option_index);
         if (c == -1) break;
 
         switch (c) {
@@ -441,11 +442,12 @@ int main(int argc, char *argv[])
              return -1;
         }
 
-        if(cnssdiagservice_cap_handle())
-        {
+#ifdef ANDROID
+        if(cnssdiagservice_cap_handle()) {
             printf("Cap bouncing failed EXIT!!!");
             exit(1);
         }
+#endif
     }
 
     sock_fd = create_nl_socket();

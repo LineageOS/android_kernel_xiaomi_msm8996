@@ -424,11 +424,16 @@ WLANSAP_RoamCallback
            sapSignalHDDevent(sapContext, pCsrRoamInfo,
                             eSAP_MAC_TRIG_STOP_BSS_EVENT,
                             (v_PVOID_t) eSAP_STATUS_SUCCESS );
-        break;
+           break;
 
        case eCSR_ROAM_DFS_RADAR_IND:
            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                      "In %s, Received Radar Indication", __func__);
+
+           /* sync to latest DFS-NOL */
+           sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NOL_GET,
+                   (v_PVOID_t) eSAP_STATUS_SUCCESS);
+
            pMac->sap.SapDfsInfo.target_channel =
                      sapIndicateRadar(sapContext, &pCsrRoamInfo->dfs_event);
            if (0 < pMac->sap.SapDfsInfo.user_provided_target_channel)
@@ -438,6 +443,11 @@ WLANSAP_RoamCallback
            }
            pMac->sap.SapDfsInfo.cac_state = eSAP_DFS_DO_NOT_SKIP_CAC;
            sap_CacResetNotify(hHal);
+
+           /* set DFS-NOL back to keep it update-to-date in CNSS */
+           sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NOL_SET,
+                   (v_PVOID_t) eSAP_STATUS_SUCCESS);
+
            break;
 
        case eCSR_ROAM_DFS_CHAN_SW_NOTIFY:

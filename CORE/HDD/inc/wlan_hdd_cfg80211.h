@@ -548,10 +548,14 @@ void hdd_resume_wlan(void);
 int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
                                    tHddAvoidFreqList *pAvoidFreqList);
 #endif
+
 #ifdef FEATURE_WLAN_EXTSCAN
 void wlan_hdd_cfg80211_extscan_callback(void *ctx,
                                       const tANI_U16 evType,
                                       void *pMsg);
 #endif /* FEATURE_WLAN_EXTSCAN */
+
+struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_list(
+   hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo);
 
 #endif

@@ -677,10 +677,14 @@ typedef struct {
 	u_int16_t RArateLimitInterval;
 #endif
 
+
 	/* Powersave Configuration Parameters */
 	u_int8_t staMaxLIModDtim;
 	u_int8_t staModDtim;
 	u_int8_t staDynamicDtim;
+
+	int32_t dfs_pri_multiplier;
+
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1257,6 +1261,7 @@ struct wma_vdev_start_req {
 	u_int8_t pmf_enabled;
 	u_int8_t vht_capable;
 	u_int8_t ht_capable;
+	int32_t dfs_pri_multiplier;
 };
 
 struct wma_set_key_params {
