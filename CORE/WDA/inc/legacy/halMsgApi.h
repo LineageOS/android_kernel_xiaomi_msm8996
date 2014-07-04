@@ -305,6 +305,12 @@ typedef struct
     tANI_U32   vht_caps;
     tSirNwType nwType;
     tPowerdBm  maxTxPower;
+    /*
+     * Peer Atim Info, Valid only
+     * for IBSS Mode.
+     */
+    tANI_U8  atimIePresent;
+    tANI_U32 peerAtimWindowLength;
 } tAddStaParams, *tpAddStaParams;
 
 

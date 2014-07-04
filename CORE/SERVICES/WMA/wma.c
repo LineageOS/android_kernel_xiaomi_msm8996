@@ -8449,6 +8449,16 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 		}
 	}
 		break;
+	case WMA_VDEV_IBSS_PS_SET_WARMUP_TIME_SECS:
+	{
+		wma_handle->wma_ibss_power_save_params.ibssPsWarmupTime =
+					privcmd->param_value;
+		WMA_LOGD("%s: IBSS Power Save Warm Up Time in Seconds = %d",
+			__func__,
+			wma_handle->wma_ibss_power_save_params.ibssPsWarmupTime);
+	}
+		break;
+
 	default:
 		WMA_LOGE("Invalid wma config command id:%d",
 			privcmd->param_id);
@@ -9713,6 +9723,15 @@ wma_set_ibss_pwrsave_params(tp_wma_handle wma, u_int8_t vdev_id)
 		return VOS_STATUS_E_FAILURE;
 	}
 
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+            WMI_VDEV_PARAM_IBSS_PS_WARMUP_TIME_SECS,
+            wma->wma_ibss_power_save_params.ibssPsWarmupTime);
+	if (ret < 0) {
+		WMA_LOGE("Failed, set WMI_VDEV_PARAM_IBSS_PS_WARMUP_TIME_SECS ret=%d",
+				ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -10384,6 +10403,38 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
 		goto send_rsp;
 	}
+
+#ifdef QCA_IBSS_SUPPORT
+	/*
+	 * In IBSS mode send the peer
+	 * Atim Window length if IBSS
+	 * power save is enabled by the
+	 * firmware.
+	 */
+	if ( wma_is_vdev_in_ibss_mode(wma, add_sta->smesessionId) &&
+		  WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+					WMI_SERVICE_IBSS_PWRSAVE) ) {
+		/*
+		 * If ATIM Window is present in the peer
+		 * beacon then send it to firmware else
+		 * configure Zero ATIM Window length to
+		 * firmware.
+		 */
+		if(add_sta->atimIePresent) {
+			wma_set_peer_param(wma, add_sta->staMac,
+				WMI_PEER_IBSS_ATIM_WINDOW_LENGTH,
+				add_sta->peerAtimWindowLength,
+				add_sta->smesessionId);
+		}
+		else {
+			wma_set_peer_param(wma, add_sta->staMac,
+				WMI_PEER_IBSS_ATIM_WINDOW_LENGTH,
+				0,
+				add_sta->smesessionId);
+		}
+	}
+#endif
+
 #ifdef WLAN_FEATURE_11W
 	if (add_sta->rmfEnabled) {
 		/*

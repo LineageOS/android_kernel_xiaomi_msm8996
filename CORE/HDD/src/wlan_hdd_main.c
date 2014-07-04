@@ -1089,6 +1089,18 @@ VOS_STATUS hdd_setIbssPowerSaveParams(hdd_adapter_t *pAdapter)
         return VOS_STATUS_E_FAILURE;
     }
 
+    ret = process_wma_set_command((int)pAdapter->sessionId,
+                             (int)WMA_VDEV_IBSS_PS_SET_WARMUP_TIME_SECS,
+                             (int)pHddCtx->cfg_ini->ibssPsWarmupTime,
+                             VDEV_CMD);
+    if (VOS_STATUS_SUCCESS != ret)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: WMA_VDEV_IBSS_PS_SET_WARMUP_TIME_SECS failed %d",
+               __func__, ret);
+        return VOS_STATUS_E_FAILURE;
+    }
+
     return ret;
 }
 

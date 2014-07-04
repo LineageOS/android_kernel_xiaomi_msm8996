@@ -2394,10 +2394,30 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
     {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                   "%s: No external AP present\n", __func__);
+
+#ifndef SOFTAP_CHANNEL_RANGE
+        return bestChNum;
+#else
         //scan is successfull, but no AP is present
-        ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL, &startChannelNum);
-        ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL, &endChannelNum);
-        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+        switch (pSapCtx->scanBandPreference)
+        {
+            case eCSR_BAND_24:
+                startChannelNum = 1;
+                endChannelNum = 11;
+                break;
+
+            case eCSR_BAND_5G:
+                startChannelNum = 36;
+                endChannelNum = 165;
+                break;
+
+            case eCSR_BAND_ALL:
+            default:
+                ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL, &startChannelNum);
+                ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL, &endChannelNum);
+        }
+
+         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                   "%s: start - end: %d - %d\n", __func__,
                   startChannelNum, endChannelNum);
 
@@ -2435,6 +2455,7 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
         else
             return startChannelNum;
 #endif /* !FEATURE_WLAN_CH_AVOID */
+#endif /* SOFTAP_CHANNEL_RANGE */
     }
 
     // Initialize the structure pointed by pSpectInfoParams

@@ -3674,6 +3674,15 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
                       sizeof( tDot11fIEWiderBWChanSwitchAnn));
     }
 #endif
+
+    /* IBSS Peer Params */
+    if(pBeacon->IBSSParams.present)
+    {
+        pBeaconStruct->IBSSParams.present = 1;
+        vos_mem_copy( &pBeaconStruct->IBSSParams, &pBeacon->IBSSParams,
+                      sizeof( tDot11fIEIBSSParams ));
+    }
+
     pBeaconStruct->Vendor1IEPresent = pBeacon->Vendor1IE.present;
     pBeaconStruct->Vendor2IEPresent = pBeacon->Vendor2IE.present;
     pBeaconStruct->Vendor3IEPresent = pBeacon->Vendor3IE.present;

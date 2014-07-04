@@ -1152,6 +1152,8 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
        "IBSS_PS_DBGID_PS_DESC_BIN_HWM",
        "IBSS_PS_DBGID_PS_DESC_BIN_LWM",
        "IBSS_PS_DBGID_PS_KICKOUT_PEER",
+       "IBSS_PS_DBGID_SET_PEER_PARAM",
+       "IBSS_PS_DBGID_BCN_ATIM_WIN_MISMATCH",
     },
 };
 
@@ -2037,6 +2039,8 @@ dbglog_ibss_powersave_print_handler(
         "ATIM_WINDOW_PRE_BCN",
         "ATIM_WINDOW_POST_BCN",
         "OUT_OF_ATIM_WINDOW",
+        "PAUSE_PENDING",
+        "PAUSED",
     };
 
     static const char *ps_states[] = {
@@ -2046,6 +2050,8 @@ dbglog_ibss_powersave_print_handler(
         "SLEEP_DOZE",
         "SLEEP_AWAKE",
         "ACTIVE_TX_SEND",
+        "PAUSE_TX_SEND",
+        "PAUSED",
     };
 
     static const char *peer_ps_states[] = {
@@ -2074,9 +2080,11 @@ dbglog_ibss_powersave_print_handler(
         "TRAFFIC_EXCHANGE_DONE",
         "POWER_SAVE_STATE_CHANGE",
         "NEW_PEER_JOIN",
-        "IBSS_VDEV_PAUSE",
-        "IBSS_VDEV_UNPAUSE",
-        "PS_STATE_CHANGE"
+        "IBSS_VDEV_PAUSE_REQUEST",
+        "IBSS_VDEV_PAUSE_RESPONSE",
+        "IBSS_VDEV_PAUSE_TIMEOUT",
+        "IBSS_VDEV_UNPAUSE_REQUEST",
+        "PS_STATE_CHANGE",
     };
 
     enum wlan_ibss_ps_sub_module sub_module;
@@ -2270,6 +2278,9 @@ dbglog_ibss_powersave_print_handler(
         if (numargs == 0) {
             dbglog_printf(timestamp, vap_id,
                            "IBSS PS: power collapse not allowed by INI");
+        } else if(numargs == 1) {
+            dbglog_printf(timestamp, vap_id, "IBSS PS: power collapse not allowed since peer id:%d is not PS capable",
+                args[0]);
         } else if (numargs == 3) {
                   if (args[0] == 2) {
                       dbglog_printf(timestamp, vap_id,
@@ -2331,6 +2342,25 @@ dbglog_ibss_powersave_print_handler(
             dbglog_printf(timestamp, vap_id,
                           "IBSS PS: Kickout peer id:%d atim_fail_cnt:%d status:%d",
                           args[0], args[1], args[2]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_SET_PEER_PARAM:
+        if(numargs == 3) {
+            dbglog_printf(timestamp, vap_id, "IBSS PS: Set Peer Id:%d Param ID:%0x Value:%0x",
+                args[0], args[1], args[2]);
+        }
+        break;
+
+    case IBSS_PS_DBGID_BCN_ATIM_WIN_MISMATCH:
+        if(numargs == 4) {
+            if(args[0] == 0xDEAD) {
+                dbglog_printf(timestamp, vap_id, "IBSS PS: ATIM window length mismatch, our's:%d, peer id:%d, peer's:%d",
+                    args[1], args[2], args[3]);
+            } else if(args[0] == 0xBEEF) {
+                dbglog_printf(timestamp, vap_id, "IBSS PS: Peer ATIM window length changed, peer id:%d, peer recorded atim window:%d new atim window:%d",
+                    args[1], args[2], args[3]);
+            }
         }
         break;
 
