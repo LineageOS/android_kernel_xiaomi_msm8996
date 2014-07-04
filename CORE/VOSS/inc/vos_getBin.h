@@ -139,5 +139,6 @@ tVOS_CON_MODE vos_get_conparam( void );
 tVOS_CONCURRENCY_MODE vos_get_concurrency_mode( void );
 v_BOOL_t vos_concurrent_open_sessions_running(void);
 v_BOOL_t vos_max_concurrent_connections_reached(void);
+void vos_clear_concurrent_session_count(void);
 
 #endif // !defined __VOS_GETBIN_H
