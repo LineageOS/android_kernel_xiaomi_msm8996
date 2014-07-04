@@ -798,3 +798,21 @@ void HTCCancelDeferredTargetSleep(void *context)
 #endif
 #endif
 }
+
+#ifdef IPA_UC_OFFLOAD
+void HTCIpaGetCEResource(HTC_HANDLE htc_handle,
+                      a_uint32_t *ce_sr_base_paddr,
+                      a_uint32_t *ce_sr_ring_size,
+                      a_uint32_t *ce_reg_paddr)
+{
+    HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(htc_handle);
+
+    if (target->hif_dev != NULL) {
+        HIFIpaGetCEResource(target->hif_dev,
+                            ce_sr_base_paddr,
+                            ce_sr_ring_size,
+                            ce_reg_paddr);
+    }
+}
+#endif /* IPA_UC_OFFLOAD */
+

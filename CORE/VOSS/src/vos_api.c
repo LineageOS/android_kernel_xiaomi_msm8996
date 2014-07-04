@@ -450,6 +450,9 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    macOpenParms.apDisableIntraBssFwd = pHddCtx->cfg_ini->apDisableIntraBssFwd;
 
    macOpenParms.dfsRadarPriMultiplier = pHddCtx->cfg_ini->dfsRadarPriMultiplier;
+#if !defined(QCA_WIFI_ISOC)
+   macOpenParms.reorderOffload = pHddCtx->cfg_ini->reorderOffloadSupport;
+#endif
 
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
 #if defined (QCA_WIFI_2_0) && \

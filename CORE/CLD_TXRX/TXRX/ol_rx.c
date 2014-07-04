@@ -1018,6 +1018,140 @@ ol_rx_frames_free(
     }
 }
 
+void
+ol_rx_in_order_indication_handler(
+    ol_txrx_pdev_handle pdev,
+    adf_nbuf_t rx_ind_msg,
+    u_int16_t peer_id,
+    u_int8_t tid,
+    u_int8_t is_offload )
+{
+    struct ol_txrx_vdev_t *vdev = NULL;
+    struct ol_txrx_peer_t *peer = NULL;
+    htt_pdev_handle htt_pdev = NULL;
+    int status;
+    adf_nbuf_t head_msdu, tail_msdu = NULL;
+
+    if (pdev) {
+        peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+        htt_pdev = pdev->htt_pdev;
+    } else {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                   "%s: Invalid pdev passed!\n", __FUNCTION__);
+        adf_os_assert_always(pdev);
+        return;
+    }
+
+    /*
+     * Get a linked list of the MSDUs in the rx in order indication.
+     * This also attaches each rx MSDU descriptor to the
+     * corresponding rx MSDU network buffer.
+     */
+    status = htt_rx_amsdu_pop(htt_pdev, rx_ind_msg, &head_msdu, &tail_msdu);
+    if (adf_os_unlikely(0 == status)) {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_WARN,
+                    "%s: Pop status is 0, returning here\n", __FUNCTION__);
+        return;
+    }
+
+    /* Replenish the rx buffer ring first to provide buffers to the target
+       rather than waiting for the indeterminate time taken by the OS to consume
+       the rx frames */
+    htt_rx_msdu_buff_replenish(htt_pdev);
+
+    /* Send the chain of MSDUs to the OS */
+    /* rx_opt_proc takes a NULL-terminated list of msdu netbufs */
+    adf_nbuf_set_next(tail_msdu, NULL);
+
+    /* if this is an offload indication, peer id is carried in the rx buffer */
+    if (peer) {
+        vdev = peer->vdev;
+    } else {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                   "%s: Couldn't find peer from ID 0x%x\n", __FUNCTION__,
+                   peer_id);
+        return;
+    }
+
+    peer->rx_opt_proc(vdev, peer, tid, head_msdu);
+}
+
+/* the msdu_list passed here must be NULL terminated */
+void
+ol_rx_in_order_deliver(
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_txrx_peer_t *peer,
+    unsigned tid,
+    adf_nbuf_t msdu_list)
+{
+    adf_nbuf_t msdu;
+
+    msdu = msdu_list;
+    /*
+     * Currently, this does not check each MSDU to see whether it requires
+     * special handling. MSDUs that need special handling (example: IGMP frames)
+     * should be sent via a seperate HTT message. Also, this does not do rx->tx
+     * forwarding or filtering.
+     */
+
+    while (msdu) {
+        adf_nbuf_t next = adf_nbuf_next(msdu);
+
+        OL_RX_PEER_STATS_UPDATE(peer, msdu);
+        OL_RX_ERR_STATISTICS_1(vdev->pdev, vdev, peer, rx_desc, OL_RX_ERR_NONE);
+        TXRX_STATS_MSDU_INCR(vdev->pdev, rx.delivered, msdu);
+
+        msdu = next;
+    }
+
+    OL_TXRX_FRMS_DUMP(
+        "rx delivering:",
+        pdev, deliver_list_head,
+        ol_txrx_frm_dump_tcp_seq | ol_txrx_frm_dump_contents,
+        0 /* don't print contents */);
+
+    OL_RX_OSIF_DELIVER(vdev, peer, msdu_list);
+}
+
+void
+ol_rx_offload_paddr_deliver_ind_handler(
+   htt_pdev_handle htt_pdev,
+   u_int32_t msdu_count,
+   u_int32_t * msg_word )
+{
+    int vdev_id, peer_id, tid;
+    adf_nbuf_t head_buf, tail_buf, buf;
+    struct ol_txrx_peer_t *peer;
+    struct ol_txrx_vdev_t *vdev = NULL;
+    u_int8_t fw_desc;
+    int msdu_iter = 0;
+
+    while (msdu_count) {
+        htt_rx_offload_paddr_msdu_pop_ll(
+            htt_pdev, msg_word, msdu_iter, &vdev_id,
+             &peer_id, &tid, &fw_desc, &head_buf, &tail_buf);
+
+        peer = ol_txrx_peer_find_by_id(htt_pdev->txrx_pdev, peer_id);
+        if (peer && peer->vdev) {
+            vdev = peer->vdev;
+            OL_RX_OSIF_DELIVER(vdev, peer, head_buf);
+        } else {
+            buf = head_buf;
+            while (1) {
+                adf_nbuf_t next;
+                next = adf_nbuf_next(buf);
+                htt_rx_desc_frame_free(htt_pdev, buf);
+                if (buf == tail_buf) {
+                    break;
+                }
+                buf = next;
+            }
+        }
+        msdu_iter++;
+        msdu_count--;
+    }
+    htt_rx_msdu_buff_replenish(htt_pdev);
+}
 #if 0
 /**
  * @brief populates vow ext stats in given network buffer.

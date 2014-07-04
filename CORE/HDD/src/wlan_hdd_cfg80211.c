@@ -60,6 +60,7 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/etherdevice.h>
 #include <linux/wireless.h>
 #include <wlan_hdd_includes.h>
 #include <net/arp.h>
@@ -208,14 +209,6 @@ static const u32 hdd_cipher_suites[] =
     WLAN_CIPHER_SUITE_AES_CMAC,
 #endif
 };
-
-#ifndef QCA_WIFI_2_0
-static inline int is_broadcast_ether_addr(const u8 *addr)
-{
-    return ((addr[0] == 0xff) && (addr[1] == 0xff) && (addr[2] == 0xff) &&
-            (addr[3] == 0xff) && (addr[4] == 0xff) && (addr[5] == 0xff));
-}
-#endif
 
 static struct ieee80211_channel hdd_channels_2_4_GHZ[] =
 {
@@ -1986,11 +1979,13 @@ int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand)
 
             if (IEEE80211_BAND_2GHZ == i && eCSR_BAND_5G == eBand) // 5G only
             {
+#ifdef WLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
                 // Enable Social channels for P2P
                 if (WLAN_HDD_IS_SOCIAL_CHANNEL(band->channels[j].center_freq) &&
                     NV_CHANNEL_ENABLE == channelEnabledState)
                     band->channels[j].flags &= ~IEEE80211_CHAN_DISABLED;
                 else
+#endif
                     band->channels[j].flags |= IEEE80211_CHAN_DISABLED;
                 continue;
             }
@@ -2185,10 +2180,12 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 
            if (IEEE80211_BAND_2GHZ == i && eCSR_BAND_5G == pCfg->nBandCapability) // 5G only
            {
+#ifdef WLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
                // Enable social channels for P2P
                if (WLAN_HDD_IS_SOCIAL_CHANNEL(band->channels[j].center_freq))
                    band->channels[j].flags &= ~IEEE80211_CHAN_DISABLED;
                else
+#endif
                    band->channels[j].flags |= IEEE80211_CHAN_DISABLED;
                continue;
            }
@@ -3735,6 +3732,9 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 #else
     pConfig->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
 #endif
+
+    pConfig->apAutoChannelSelection = iniConfig->apAutoChannelSelection;
+
     pSapEventCallback = hdd_hostapd_SAPEventCB;
 
     status = WLANSAP_StartBss(
@@ -10793,18 +10793,6 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
                       __func__, action_code);
             return -ENOTSUPP;
         }
-    }
-
-    if (hdd_isConnectionInProgress(pHddCtx)) {
-       hddLog(VOS_TRACE_LEVEL_ERROR,
-              FL("Connection is in progress"
-              " TDLS connection is not allowed"));
-       return -EBUSY;
-    }
-
-    if (vos_max_concurrent_connections_reached()) {
-       hddLog(VOS_TRACE_LEVEL_ERROR, FL("Reached max concurrent connections"));
-       return -EINVAL;
     }
 
     if (WLAN_IS_TDLS_SETUP_ACTION(action_code))

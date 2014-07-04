@@ -794,4 +794,27 @@ htt_rx_msdu_rx_desc_size_hl(
  */
 void htt_rx_get_vowext_stats(adf_nbuf_t msdu,struct vow_extstats *vowstats);
 
+/**
+ * @brief parses the offload message passed by the target.
+ * @param pdev - pdev handle
+ * @param paddr - physical address of the rx buffer
+ * @param vdev_id - reference to vdev id to be filled
+ * @param peer_id - reference to the peer id to be filled
+ * @param tid - reference to the tid to be filled
+ * @param fw_desc - reference to the fw descriptor to be filled
+ * @param peer_id - reference to the peer id to be filled
+ * @param head_buf - reference to the head buffer
+ * @param tail_buf - reference to the tail buffer
+ */
+int
+htt_rx_offload_paddr_msdu_pop_ll(
+    htt_pdev_handle pdev,
+    u_int32_t * msg_word,
+    int msdu_iter,
+    int *vdev_id,
+    int *peer_id,
+    int *tid,
+    u_int8_t *fw_desc,
+    adf_nbuf_t *head_buf,
+    adf_nbuf_t *tail_buf);
 #endif /* _OL_HTT_RX_API__H_ */

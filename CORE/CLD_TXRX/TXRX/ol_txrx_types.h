@@ -318,6 +318,10 @@ typedef enum _throttle_phase {
 
 #define THROTTLE_TX_THRESHOLD (100)
 
+#ifdef IPA_UC_OFFLOAD
+typedef void (*ipa_uc_op_cb_type)(u_int8_t op_code, void *osif_ctxt);
+#endif /* IPA_UC_OFFLOAD */
+
 /*
  * As depicted in the diagram below, the pdev contains an array of
  * NUM_EXT_TID ol_tx_active_queues_in_tid_t elements.
@@ -678,6 +682,11 @@ struct ol_txrx_pdev_t {
 		/* mark as true if traffic is paused due to thermal throttling */
 		a_bool_t is_paused;
 	} tx_throttle;
+
+#ifdef IPA_UC_OFFLOAD
+    ipa_uc_op_cb_type ipa_uc_op_cb;
+    void *osif_dev;
+#endif /* IPA_UC_OFFLOAD */
 };
 
 struct ol_txrx_vdev_t {

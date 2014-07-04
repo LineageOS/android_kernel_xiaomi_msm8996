@@ -3168,4 +3168,112 @@ void WLANTL_SetAdapterMaxQDepth
 #endif /* QCA_LL_TX_FLOW_CT */
 #endif /* QCA_WIFI_2_0 */
 
+#ifdef IPA_UC_OFFLOAD
+/*=============================================================================
+  FUNCTION    WLANTL_GetIpaUcResource
+
+  DESCRIPTION
+    This function will be called by TL client.
+    Data path resource will be used by FW should be allocated within lower layer.
+    Shared resource information should be propagated to IPA.
+    To propagate resource information, client will use this API
+
+  PARAMETERS
+    IN
+    vos_ctx : Global OS context context
+    ce_sr_base_paddr  : Copy Engine Source Ring base address
+    ce_sr_ring_size : Copy Engine Source Ring size
+    ce_reg_paddr : Copy engine register address
+    tx_comp_ring_base_paddr : TX COMP ring base address
+    tx_comp_ring_size : TX COMP ring size
+    tx_num_alloc_buffer : Number of TX allocated buffer
+    rx_rdy_ring_base_paddr : RX ready ring base address
+    rx_rdy_ring_size : RX ready ring size
+    rx_proc_done_idx_paddr : RX process done index physical address
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_GetIpaUcResource(void *vos_ctx,
+   v_U32_t *ce_sr_base_paddr,
+   v_U32_t *ce_sr_ring_size,
+   v_U32_t *ce_reg_paddr,
+   v_U32_t *tx_comp_ring_base_paddr,
+   v_U32_t *tx_comp_ring_size,
+   v_U32_t *tx_num_alloc_buffer,
+   v_U32_t *rx_rdy_ring_base_paddr,
+   v_U32_t *rx_rdy_ring_size,
+   v_U32_t *rx_proc_done_idx_paddr);
+
+/*=============================================================================
+  FUNCTION    WLANTL_SetUcDoorbellPaddr
+
+  DESCRIPTION
+    This function will be called by TL client.
+    UC controller should provide doorbell register address to firmware
+    TL client will call this API to pass doorbell register address to firmware
+
+  PARAMETERS
+    IN
+    vos_ctx : Global OS context context
+    ipa_tx_uc_doorbell_paddr  : Micro Controller WLAN TX COMP doorbell regiser
+    ipa_rx_uc_doorbell_paddr  : Micro Controller WLAN RX REDY doorbell regiser
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_SetUcDoorbellPaddr(void *vos_ctx,
+   v_U32_t ipa_tx_uc_doorbell_paddr,
+   v_U32_t ipa_rx_uc_doorbell_paddr);
+
+/*=============================================================================
+  FUNCTION    WLANTL_SetUcActive
+
+  DESCRIPTION
+    This function will be called by TL client.
+    Send Micro controller data path active or inactive notification to firmware
+
+  PARAMETERS
+    IN
+    vos_ctx : Global OS context context
+    uc_active  : Micro Controller data path is active or not
+    is_tx  : Micro Controller WLAN TX data path is active or not
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_SetUcActive(void *vos_ctx,
+	v_BOOL_t uc_active,
+	v_BOOL_t is_tx
+);
+
+/*=============================================================================
+  FUNCTION    WLANTL_RegisterOPCbFnc
+
+  DESCRIPTION
+    This function will be called by TL client.
+
+  PARAMETERS
+    IN
+    vos_ctx : Global OS context context
+    func : callback function pointer
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_RegisterOPCbFnc(void *vos_ctx,
+	void (*func)(v_U8_t op_code));
+#endif /* IPA_UC_OFFLOAD */
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

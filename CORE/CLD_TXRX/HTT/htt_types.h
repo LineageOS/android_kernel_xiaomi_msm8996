@@ -92,6 +92,74 @@ struct htt_tx_mgmt_desc_ctxt {
     A_UINT32    pending_cnt;
 };
 
+typedef struct _htt_list_node {
+    struct _htt_list_node * prev;
+    struct _htt_list_node * next;
+} htt_list_node;
+
+typedef htt_list_node htt_list_head;
+
+struct htt_rx_hash_entry {
+    A_UINT32    paddr;
+    adf_nbuf_t  netbuf;
+    A_UINT8     fromlist;
+    htt_list_node listnode;
+#ifdef RX_HASH_DEBUG
+    A_UINT32    cookie;
+#endif
+};
+
+struct htt_rx_hash_bucket {
+    htt_list_head listhead;
+    struct htt_rx_hash_entry * entries;
+    htt_list_head freepool;
+#ifdef RX_HASH_DEBUG
+    A_UINT32 count;
+#endif
+};
+
+#ifdef IPA_UC_OFFLOAD
+
+/* IPA micro controller
+   wlan host driver
+   firmware shared memory structure */
+struct uc_shared_mem_t
+{
+   u_int32_t *vaddr;
+   adf_os_dma_addr_t paddr;
+   adf_os_dma_mem_context(memctx);
+};
+
+/* Micro controller datapath offload
+ * WLAN TX resources */
+struct htt_ipa_uc_tx_resource_t
+{
+   struct uc_shared_mem_t tx_ce_idx;
+   struct uc_shared_mem_t tx_comp_base;
+
+   u_int32_t           tx_comp_idx_paddr;
+   adf_nbuf_t         *tx_buf_pool_vaddr_strg;
+   u_int32_t           alloc_tx_buf_cnt;
+};
+
+/* Micro controller datapath offload
+ * WLAN RX resources */
+struct htt_ipa_uc_rx_resource_t
+{
+   adf_os_dma_addr_t  rx_rdy_idx_paddr;
+   struct uc_shared_mem_t rx_ind_ring_base;
+   struct uc_shared_mem_t rx_ipa_prc_done_idx;
+   u_int32_t          rx_ind_ring_size;
+};
+
+struct ipa_uc_rx_ring_elem_t
+{
+   u_int32_t  rx_packet_paddr;
+   u_int16_t  vdev_id;
+   u_int16_t  rx_packet_leng;
+};
+#endif /* IPA_UC_OFFLOAD */
+
 struct htt_pdev_t {
     ol_pdev_handle ctrl_pdev;
     ol_txrx_pdev_handle txrx_pdev;
@@ -114,6 +182,7 @@ struct htt_pdev_t {
     struct htt_htc_pkt_union *htt_htc_pkt_freelist;
     struct {
         int is_high_latency;
+        int is_full_reorder_offload;
     } cfg;
     struct {
         u_int8_t major;
@@ -150,10 +219,28 @@ struct htt_pdev_t {
         int fill_cnt;   /* how many rx buffers (full+empty) are in the ring */
 
         /*
-         * alloc_idx - where HTT SW has deposited empty buffers
+         * target_idx -
+         * Without reorder offload:
+         * not used
+         * With reorder offload:
+         * points to the location in the rx ring from which rx buffers are
+         * available to copy into the MAC DMA ring
+         */
+        struct {
+            u_int32_t *vaddr;
+            u_int32_t paddr;
+            adf_os_dma_mem_context(memctx);
+        } target_idx;
+
+        /*
+         * alloc_idx/host_idx -
+         * Without reorder offload:
+         * where HTT SW has deposited empty buffers
          * This is allocated in consistent mem, so that the FW can read
          * this variable, and program the HW's FW_IDX reg with the value
-         * of this shadow register.
+         * of this shadow register
+         * With reorder offload:
+         * points to the end of the available free rx buffers
          */
         struct {
             u_int32_t *vaddr;
@@ -191,6 +278,8 @@ struct htt_pdev_t {
         int rx_reset;
         u_int8_t htt_rx_restore;
 #endif
+        struct htt_rx_hash_bucket * hash_table;
+        u_int32_t listnode_offset;
     } rx_ring;
     int rx_desc_size_hl;
     long rx_fw_desc_offset;
@@ -219,6 +308,11 @@ struct htt_pdev_t {
     int cur_seq_num_hl;
     struct htt_tx_mgmt_desc_ctxt tx_mgmt_desc_ctxt;
     struct targetdef_s *targetdef;
+
+#ifdef IPA_UC_OFFLOAD
+    struct htt_ipa_uc_tx_resource_t ipa_uc_tx_rsc;
+    struct htt_ipa_uc_rx_resource_t ipa_uc_rx_rsc;
+#endif /* IPA_UC_OFFLOAD */
 };
 
 #endif /* _HTT_TYPES__H_ */

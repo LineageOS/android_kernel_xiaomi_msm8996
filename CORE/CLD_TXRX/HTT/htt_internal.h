@@ -394,4 +394,29 @@ htt_htc_misc_pkt_pool_free(struct htt_pdev_t *pdev);
 
 void htt_htc_disable_aspm(void);
 
+int
+htt_rx_hash_list_insert(struct htt_pdev_t *pdev, u_int32_t paddr,
+     adf_nbuf_t netbuf);
+
+adf_nbuf_t
+htt_rx_hash_list_lookup(struct htt_pdev_t *pdev, u_int32_t paddr);
+
+#ifdef IPA_UC_OFFLOAD
+int
+htt_tx_ipa_uc_attach(struct htt_pdev_t *pdev,
+    unsigned int uc_tx_buf_sz,
+    unsigned int uc_tx_buf_cnt,
+    unsigned int uc_tx_partition_base);
+
+int
+htt_rx_ipa_uc_attach(struct htt_pdev_t *pdev,
+       unsigned int rx_ind_ring_size);
+
+int
+htt_tx_ipa_uc_detach(struct htt_pdev_t *pdev);
+
+int
+htt_rx_ipa_uc_detach(struct htt_pdev_t *pdev);
+#endif /* IPA_UC_OFFLOAD */
+
 #endif /* _HTT_INTERNAL__H_ */

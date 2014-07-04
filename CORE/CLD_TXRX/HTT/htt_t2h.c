@@ -403,6 +403,11 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
             u_int16_t peer_id;
             u_int8_t tid;
 
+            if (adf_os_unlikely(pdev->cfg.is_full_reorder_offload)) {
+                adf_os_print("HTT_T2H_MSG_TYPE_RX_IND not supported with full "
+                             "reorder offload\n");
+                break;
+            }
             peer_id = HTT_RX_IND_PEER_ID_GET(*msg_word);
             tid = HTT_RX_IND_EXT_TID_GET(*msg_word);
 
@@ -521,6 +526,43 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
             HTT_TX_SCHED(pdev);
             break;
         }
+    case HTT_T2H_MSG_TYPE_RX_IN_ORD_PADDR_IND:
+        {
+            u_int16_t peer_id;
+            u_int8_t tid;
+            u_int8_t offload_ind;
+
+            if (adf_os_unlikely(!pdev->cfg.is_full_reorder_offload)) {
+                adf_os_print("HTT_T2H_MSG_TYPE_RX_IN_ORD_PADDR_IND not supported"
+                             " when full reorder offload is disabled\n");
+                break;
+            }
+
+            if (adf_os_unlikely(pdev->cfg.is_high_latency)) {
+                adf_os_print("HTT_T2H_MSG_TYPE_RX_IN_ORD_PADDR_IND not supported"
+                             " on high latency\n");
+                break;
+            }
+
+            peer_id = HTT_RX_IN_ORD_PADDR_IND_PEER_ID_GET(*msg_word);
+            tid = HTT_RX_IN_ORD_PADDR_IND_EXT_TID_GET(*msg_word);
+            offload_ind = HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_GET(*msg_word);
+
+            ol_rx_in_order_indication_handler(pdev->txrx_pdev, htt_t2h_msg,
+                                               peer_id, tid, offload_ind);
+     }
+
+#ifdef IPA_UC_OFFLOAD
+    case HTT_T2H_MSG_TYPE_WDI_IPA_OP_RESPONSE:
+        {
+            u_int8_t op_code;
+
+            op_code = HTT_WDI_IPA_OP_RESPONSE_OP_CODE_GET(*msg_word);
+            ol_txrx_ipa_uc_op_response(pdev->txrx_pdev, op_code);
+            break;
+        }
+#endif /* IPA_UC_OFFLOAD */
+
     default:
         htt_t2h_lp_msg_handler(context, htt_t2h_msg);
         return ;
