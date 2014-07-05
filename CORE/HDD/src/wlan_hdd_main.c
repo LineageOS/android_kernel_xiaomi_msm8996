@@ -3560,17 +3560,23 @@ static int hdd_get_dwell_time(hdd_config_t *pCfg, tANI_U8 *command, char *extra,
 
 static int hdd_set_dwell_time(hdd_adapter_t *pAdapter, tANI_U8 *command)
 {
+    tHalHandle hHal;
     hdd_config_t *pCfg;
     tANI_U8 *value = command;
+    tSmeConfigParams smeConfig;
     int val = 0, ret = 0, temp = 0;
 
-    if (!pAdapter || !command || !(pCfg = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini))
+    if (!pAdapter || !command || !(pCfg = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini)
+        || !(hHal = (WLAN_HDD_GET_HAL_CTX(pAdapter))))
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
          "%s: argument passed for SETDWELLTIME is incorrect", __func__);
         ret = -EINVAL;
         return ret;
     }
+
+    vos_mem_zero(&smeConfig, sizeof(smeConfig));
+    sme_GetConfigParam(hHal, &smeConfig);
 
     if (strncmp(command, "SETDWELLTIME ACTIVE MAX", 23) == 0 )
     {
@@ -3585,6 +3591,8 @@ static int hdd_set_dwell_time(hdd_adapter_t *pAdapter, tANI_U8 *command)
             return ret;
         }
         pCfg->nActiveMaxChnTime = val;
+        smeConfig.csrConfig.nActiveMaxChnTime = val;
+        sme_UpdateConfig(hHal, &smeConfig);
     }
     else if (strncmp(command, "SETDWELLTIME ACTIVE MIN", 23) == 0)
     {
@@ -3599,6 +3607,8 @@ static int hdd_set_dwell_time(hdd_adapter_t *pAdapter, tANI_U8 *command)
             return ret;
         }
         pCfg->nActiveMinChnTime = val;
+        smeConfig.csrConfig.nActiveMinChnTime = val;
+        sme_UpdateConfig(hHal, &smeConfig);
     }
     else if (strncmp(command, "SETDWELLTIME PASSIVE MAX", 24) == 0)
     {
@@ -3613,6 +3623,8 @@ static int hdd_set_dwell_time(hdd_adapter_t *pAdapter, tANI_U8 *command)
             return ret;
         }
         pCfg->nPassiveMaxChnTime = val;
+        smeConfig.csrConfig.nPassiveMaxChnTime = val;
+        sme_UpdateConfig(hHal, &smeConfig);
     }
     else if (strncmp(command, "SETDWELLTIME PASSIVE MIN", 24) == 0)
     {
@@ -3627,6 +3639,8 @@ static int hdd_set_dwell_time(hdd_adapter_t *pAdapter, tANI_U8 *command)
             return ret;
         }
         pCfg->nPassiveMinChnTime = val;
+        smeConfig.csrConfig.nPassiveMinChnTime = val;
+        sme_UpdateConfig(hHal, &smeConfig);
     }
     else
     {
