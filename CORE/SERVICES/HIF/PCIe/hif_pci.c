@@ -120,7 +120,7 @@ static struct CE_attr host_CE_config_wlan[] =
 {
         { /* CE0 */ CE_ATTR_FLAGS, 0, 16, 256, 0, NULL, }, /* host->target HTC control and raw streams */
                                                            /* could be moved to share CE3 */
-        { /* CE1 */ CE_ATTR_FLAGS, 0, 0, 512, 512, NULL, },/* target->host HTT + HTC control */
+        { /* CE1 */ CE_ATTR_FLAGS, 0, 0, 2048, 512, NULL, },/* target->host HTT + HTC control */
         { /* CE2 */ CE_ATTR_FLAGS, 0, 0, 2048, 32, NULL, },/* target->host WMI */
         { /* CE3 */ CE_ATTR_FLAGS, 0, 32, 2048, 0, NULL, },/* host->target WMI */
         { /* CE4 */ CE_ATTR_FLAGS | CE_ATTR_DISABLE_INTR, 0, CE_HTT_H2T_MSG_SRC_NENTRIES , 256, 0, NULL, }, /* host->target HTT */
@@ -138,7 +138,7 @@ static struct CE_attr *host_CE_config = host_CE_config_wlan;
  */
 static struct CE_pipe_config target_CE_config_wlan[] = {
         { /* CE0 */ 0, PIPEDIR_OUT, 32, 256, CE_ATTR_FLAGS, 0, },   /* host->target HTC control and raw streams */
-        { /* CE1 */ 1, PIPEDIR_IN, 32, 512, CE_ATTR_FLAGS, 0, },    /* target->host HTT + HTC control */
+        { /* CE1 */ 1, PIPEDIR_IN, 32, 2048, CE_ATTR_FLAGS, 0, },    /* target->host HTT + HTC control */
         { /* CE2 */ 2, PIPEDIR_IN, 32, 2048, CE_ATTR_FLAGS, 0, },   /* target->host WMI */
         { /* CE3 */ 3, PIPEDIR_OUT, 32, 2048, CE_ATTR_FLAGS, 0, },  /* host->target WMI */
         { /* CE4 */ 4, PIPEDIR_OUT, 256, 256, CE_ATTR_FLAGS, 0, },  /* host->target HTT */

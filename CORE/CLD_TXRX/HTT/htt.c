@@ -58,6 +58,23 @@ htt_h2t_rx_ring_cfg_msg_hl(struct htt_pdev_t *pdev);
 A_STATUS (*htt_h2t_rx_ring_cfg_msg)(
         struct htt_pdev_t *pdev);
 
+#ifdef IPA_UC_OFFLOAD
+A_STATUS
+htt_ipa_config(htt_pdev_handle pdev, A_STATUS status)
+{
+    if ((A_OK == status) &&
+        ol_cfg_ipa_uc_offload_enabled(pdev->ctrl_pdev)) {
+        status = htt_h2t_ipa_uc_rsc_cfg_msg(pdev);
+    }
+    return status;
+}
+
+#define HTT_IPA_CONFIG htt_ipa_config
+#else
+#define HTT_IPA_CONFIG(pdev, status) status /* no-op */
+#endif /* IPA_UC_OFFLOAD */
+
+
 struct htt_htc_pkt *
 htt_htc_pkt_alloc(struct htt_pdev_t *pdev)
 {
@@ -168,6 +185,10 @@ htt_attach(
     /* for efficiency, store a local copy of the is_high_latency flag */
     pdev->cfg.is_high_latency = ol_cfg_is_high_latency(pdev->ctrl_pdev);
 
+    pdev->cfg.is_full_reorder_offload =
+         ol_cfg_is_full_reorder_offload(pdev->ctrl_pdev);
+    adf_os_print("is_full_reorder_offloaded? %d\n",
+                  (int)pdev->cfg.is_full_reorder_offload);
     pdev->targetdef = htc_get_targetdef(htc_pdev);
     /*
      * Connect to HTC service.
@@ -331,7 +352,10 @@ htt_attach_target(htt_pdev_handle pdev)
      * handshaking.
      */
 
-    return htt_h2t_rx_ring_cfg_msg(pdev);
+    status = htt_h2t_rx_ring_cfg_msg(pdev);
+    status = HTT_IPA_CONFIG(pdev, status);
+
+    return status;
 }
 
 void
@@ -476,3 +500,98 @@ void htt_htc_disable_aspm(void)
 {
     htc_disable_aspm();
 }
+
+#ifdef IPA_UC_OFFLOAD
+/*
+ * Attach resource for micro controller data path
+ */
+int
+htt_ipa_uc_attach(struct htt_pdev_t *pdev)
+{
+    int error;
+
+    /* TX resource attach */
+    error = htt_tx_ipa_uc_attach(pdev,
+       ol_cfg_ipa_uc_tx_buf_size(pdev->ctrl_pdev),
+       ol_cfg_ipa_uc_tx_max_buf_cnt(pdev->ctrl_pdev),
+       ol_cfg_ipa_uc_tx_partition_base(pdev->ctrl_pdev));
+    if (error) {
+        adf_os_print("HTT IPA UC TX attach fail code %d\n", error);
+        HTT_ASSERT0(0);
+        return error;
+    }
+
+    /* RX resource attach */
+    error = htt_rx_ipa_uc_attach(pdev,
+       ol_cfg_ipa_uc_rx_ind_ring_size(pdev->ctrl_pdev));
+    if (error) {
+        adf_os_print("HTT IPA UC RX attach fail code %d\n", error);
+        htt_tx_ipa_uc_detach(pdev);
+        HTT_ASSERT0(0);
+        return error;
+    }
+
+    return 0; /* success */
+}
+
+void
+htt_ipa_uc_detach(struct htt_pdev_t *pdev)
+{
+    /* TX IPA micro controller detach */
+    htt_tx_ipa_uc_detach(pdev);
+
+    /* RX IPA micro controller detach */
+    htt_rx_ipa_uc_detach(pdev);
+}
+
+/*
+ * Distribute micro controller resource to control module
+ */
+int
+htt_ipa_uc_get_resource(htt_pdev_handle pdev,
+           u_int32_t *ce_sr_base_paddr,
+           u_int32_t *ce_sr_ring_size,
+           u_int32_t *ce_reg_paddr,
+           u_int32_t *tx_comp_ring_base_paddr,
+           u_int32_t *tx_comp_ring_size,
+           u_int32_t *tx_num_alloc_buffer,
+           u_int32_t *rx_rdy_ring_base_paddr,
+           u_int32_t *rx_rdy_ring_size,
+           u_int32_t *rx_proc_done_idx_paddr)
+{
+    /* Release allocated resource to client */
+    *tx_comp_ring_base_paddr =
+        (u_int32_t)pdev->ipa_uc_tx_rsc.tx_comp_base.paddr;
+    *tx_comp_ring_size =
+        (u_int32_t)ol_cfg_ipa_uc_tx_max_buf_cnt(pdev->ctrl_pdev);
+    *tx_num_alloc_buffer =
+        (u_int32_t)pdev->ipa_uc_tx_rsc.alloc_tx_buf_cnt;
+    *rx_rdy_ring_base_paddr =
+        (u_int32_t)pdev->ipa_uc_rx_rsc.rx_ind_ring_base.paddr;
+    *rx_rdy_ring_size =
+        (u_int32_t)pdev->ipa_uc_rx_rsc.rx_ind_ring_size;
+    *rx_proc_done_idx_paddr =
+        (u_int32_t)pdev->ipa_uc_rx_rsc.rx_ipa_prc_done_idx.paddr;
+
+    /* Get copy engine, bus resource */
+    HTCIpaGetCEResource(pdev->htc_pdev,
+        ce_sr_base_paddr, ce_sr_ring_size, ce_reg_paddr);
+
+
+    return 0;
+}
+
+/*
+ * Distribute micro controller doorbell register to firmware
+ */
+int
+htt_ipa_uc_set_doorbell_paddr(htt_pdev_handle pdev,
+           u_int32_t ipa_uc_tx_doorbell_paddr,
+           u_int32_t ipa_uc_rx_doorbell_paddr)
+{
+   pdev->ipa_uc_tx_rsc.tx_comp_idx_paddr = ipa_uc_tx_doorbell_paddr;
+   pdev->ipa_uc_rx_rsc.rx_rdy_idx_paddr = ipa_uc_rx_doorbell_paddr;
+   return 0;
+}
+#endif /* IPA_UC_OFFLOAD */
+

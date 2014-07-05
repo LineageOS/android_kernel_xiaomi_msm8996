@@ -870,6 +870,21 @@ ol_txrx_peer_stats_copy(
 #define ol_txrx_peer_stats_copy(pdev, peer, stats) A_ERROR /* failure */
 #endif /* QCA_ENABLE_OL_TXRX_PEER_STATS */
 
+/* Config parameters for txrx_pdev */
+struct txrx_pdev_cfg_param_t {
+    u_int8_t is_full_reorder_offload;
+    /* IPA Micro controller data path offload enable flag */
+    u_int8_t is_uc_offload_enabled;
+    /* IPA Micro controller data path offload TX buffer count */
+    u_int32_t uc_tx_buffer_count;
+    /* IPA Micro controller data path offload TX buffer size */
+    u_int32_t uc_tx_buffer_size;
+    /* IPA Micro controller data path offload RX indication ring count */
+    u_int32_t uc_rx_indication_ring_count;
+    /* IPA Micro controller data path offload TX partition base */
+    u_int32_t uc_tx_partition_base;
+};
+
 /**
  * @brief Setup configuration parameters
  * @details
@@ -878,7 +893,8 @@ ol_txrx_peer_stats_copy(
  * @param osdev - OS handle needed as an argument for some OS primitives
  * @return the control device object
  */
-ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev);
+ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev,
+                                   struct txrx_pdev_cfg_param_t cfg_param);
 
 #define OL_TXRX_INVALID_LOCAL_PEER_ID 0xffff
 #ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID
@@ -1117,6 +1133,129 @@ ol_txrx_ll_set_tx_pause_q_depth(
 );
 #endif /* QCA_LL_TX_FLOW_CT */
 
+#ifdef IPA_UC_OFFLOAD
+/**
+ * @brief Client request resource information
+ * @details
+ *  OL client will reuqest IPA UC related resource information
+ *  Resource information will be distributted to IPA module
+ *  All of the required resources should be pre-allocated
+ *
+ * @param pdev - handle to the HTT instance
+ * @param ce_sr_base_paddr - copy engine source ring base physical address
+ * @param ce_sr_ring_size - copy engine source ring size
+ * @param ce_reg_paddr - copy engine register physical address
+ * @param tx_comp_ring_base_paddr - tx comp ring base physical address
+ * @param tx_comp_ring_size - tx comp ring size
+ * @param tx_num_alloc_buffer - number of allocated tx buffer
+ * @param rx_rdy_ring_base_paddr - rx ready ring base physical address
+ * @param rx_rdy_ring_size - rx ready ring size
+ * @param rx_proc_done_idx_paddr - rx process done index physical address
+ */
+void
+ol_txrx_ipa_uc_get_resource(
+   ol_txrx_pdev_handle pdev,
+   u_int32_t *ce_sr_base_paddr,
+   u_int32_t *ce_sr_ring_size,
+   u_int32_t *ce_reg_paddr,
+   u_int32_t *tx_comp_ring_base_paddr,
+   u_int32_t *tx_comp_ring_size,
+   u_int32_t *tx_num_alloc_buffer,
+   u_int32_t *rx_rdy_ring_base_paddr,
+   u_int32_t *rx_rdy_ring_size,
+   u_int32_t *rx_proc_done_idx_paddr
+);
 
+/**
+ * @brief Client set IPA UC doorbell register
+ * @details
+ *  IPA UC let know doorbell register physical address
+ *  WLAN firmware will use this physical address to notify IPA UC
+ *
+ * @param pdev - handle to the HTT instance
+ * @param ipa_uc_tx_doorbell_paddr - tx comp doorbell physical address
+ * @param ipa_uc_rx_doorbell_paddr - rx ready doorbell physical address
+ */
+void
+ol_txrx_ipa_uc_set_doorbell_paddr(
+   ol_txrx_pdev_handle pdev,
+   u_int32_t ipa_tx_uc_doorbell_paddr,
+   u_int32_t ipa_rx_uc_doorbell_paddr
+);
+
+/**
+ * @brief Client notify IPA UC data path active or not
+ *
+ * @param pdev - handle to the HTT instance
+ * @param uc_active - UC data path is active or not
+ * @param is_tx - UC TX is active or not
+ */
+void
+ol_txrx_ipa_uc_set_active(
+   ol_txrx_pdev_handle pdev,
+   a_bool_t uc_active,
+   a_bool_t is_tx
+);
+
+/**
+ * @brief Offload data path activation notificaiton
+ * @details
+ *  Firmware notification handler for offload datapath activity
+ *
+ * @param pdev - handle to the HTT instance
+ * @param op_code - activated for tx or rx data patrh
+ */
+void
+ol_txrx_ipa_uc_op_response(
+   ol_txrx_pdev_handle pdev,
+   u_int8_t op_code);
+
+/**
+ * @brief callback function registration
+ * @details
+ *  OSIF layer callback function registration API
+ *  OSIF layer will register firmware offload datapath activity
+ *  notification callback
+ *
+ * @param pdev - handle to the HTT instance
+ * @param ipa_uc_op_cb_type - callback function pointer should be registered
+ * @param osif_dev - osif instance pointer
+ */
+void ol_txrx_ipa_uc_register_op_cb(
+   ol_txrx_pdev_handle pdev,
+   void (*ipa_uc_op_cb_type)(u_int8_t op_code, void *osif_ctxt),
+   void *osif_dev);
+#else
+#define ol_txrx_ipa_uc_get_resource(          \
+   pdev,                                      \
+   ce_sr_base_paddr,                          \
+   ce_sr_ring_size,                           \
+   ce_reg_paddr,                              \
+   tx_comp_ring_base_paddr,                   \
+   tx_comp_ring_size,                         \
+   tx_num_alloc_buffer,                       \
+   rx_rdy_ring_base_paddr,                    \
+   rx_rdy_ring_size,                          \
+   rx_proc_done_idx_paddr) /* NO-OP */
+
+#define ol_txrx_ipa_uc_set_doorbell_paddr(    \
+   pdev,                                      \
+   ipa_tx_uc_doorbell_paddr,                  \
+   ipa_rx_uc_doorbell_paddr) /* NO-OP */
+
+#define ol_txrx_ipa_uc_set_active(            \
+   pdev,                                      \
+   uc_active,                                 \
+   is_tx) /* NO-OP */
+
+#define ol_txrx_ipa_uc_op_response(           \
+   pdev,                                      \
+   op_code) /* NO-OP */
+
+#define ol_txrx_ipa_uc_register_op_cb(        \
+   pdev,                                      \
+   ipa_uc_op_cb_type,                         \
+   osif_dev) /* NO-OP */
+#endif /* IPA_UC_OFFLOAD */
 
 #endif /* _OL_TXRX_CTRL_API__H_ */

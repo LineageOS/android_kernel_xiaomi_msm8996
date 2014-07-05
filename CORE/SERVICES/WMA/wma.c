@@ -1756,6 +1756,489 @@ static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 	WMA_LOGI("%s: Exit", __func__);
 }
 
+#ifdef FEATURE_WLAN_EXTSCAN
+static int wma_extscan_start_stop_event_handler(void *handle,
+		u_int8_t *cmd_param_info, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	WMI_EXTSCAN_START_STOP_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_start_stop_event_fixed_param *event;
+	tSirExtScanStartRspParams   *extscan_ind;
+	u_int16_t event_type;
+	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(
+					VOS_MODULE_ID_PE, wma->vos_context);
+	if (!pMac) {
+		WMA_LOGE("%s: Invalid pMac", __func__);
+		return -EINVAL;
+	}
+	if (!pMac->sme.pExtScanIndCb) {
+		WMA_LOGE("%s: Callback not registered", __func__);
+		return -EINVAL;
+        }
+	param_buf = (WMI_EXTSCAN_START_STOP_EVENTID_param_tlvs *)
+					cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid extscan event", __func__);
+		return -EINVAL;
+	}
+	event = param_buf->fixed_param;
+	extscan_ind = vos_mem_malloc(sizeof(*extscan_ind));
+	if (!extscan_ind) {
+		WMA_LOGE("%s: extscan memory allocation failed", __func__);
+		return -EINVAL;
+	}
+	switch (event->command) {
+	case WMI_EXTSCAN_START_CMDID:
+		event_type = eSIR_EXTSCAN_START_RSP;
+		extscan_ind->status = event->status;
+		extscan_ind->requestId = event->request_id;
+		break;
+	case WMI_EXTSCAN_STOP_CMDID:
+		event_type = eSIR_EXTSCAN_STOP_RSP;
+		extscan_ind->status = event->status;
+		extscan_ind->requestId = event->request_id;
+		break;
+	case WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID:
+		extscan_ind->status = event->status;
+		extscan_ind->requestId = event->request_id;
+		if (event->mode == WMI_EXTSCAN_MODE_STOP) {
+			event_type =
+				eSIR_EXTSCAN_RESET_SIGNIFICANT_WIFI_CHANGE_RSP;
+		} else {
+			event_type =
+				eSIR_EXTSCAN_SET_SIGNIFICANT_WIFI_CHANGE_RSP;
+		}
+		break;
+	case WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID:
+		extscan_ind->status = event->status;
+		extscan_ind->requestId = event->request_id;
+		if (event->mode == WMI_EXTSCAN_MODE_STOP) {
+			event_type =
+				eSIR_EXTSCAN_RESET_BSSID_HOTLIST_RSP;
+		} else {
+			event_type =
+				eSIR_EXTSCAN_SET_BSSID_HOTLIST_RSP;
+		}
+		break;
+	case WMI_EXTSCAN_GET_CACHED_RESULTS_CMDID:
+		extscan_ind->status = event->status;
+		extscan_ind->requestId = event->request_id;
+		event_type = eSIR_EXTSCAN_CACHED_RESULTS_RSP;
+		break;
+	default:
+		WMA_LOGE("%s: Unknown event(%d) from target",
+			__func__, event->status);
+		vos_mem_free(extscan_ind);
+		return -EINVAL;
+	}
+	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+				event_type, extscan_ind);
+	WMA_LOGD("%s: sending event to umac for requestid %x"
+		"with status %d", __func__,
+		extscan_ind->requestId, extscan_ind->status);
+	vos_mem_free(extscan_ind);
+	return 0;
+}
+
+static int wma_extscan_operations_event_handler(void *handle,
+		u_int8_t *cmd_param_info, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	WMI_EXTSCAN_OPERATION_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_operation_event_fixed_param *oprn_event;
+	tSirExtScanOnScanEventIndParams   *oprn_ind;
+	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(
+					VOS_MODULE_ID_PE, wma->vos_context);
+	if (!pMac) {
+		WMA_LOGE("%s: Invalid pMac", __func__);
+		return -EINVAL;
+	}
+	if (!pMac->sme.pExtScanIndCb) {
+		WMA_LOGE("%s: Callback not registered", __func__);
+		return -EINVAL;
+        }
+	param_buf = (WMI_EXTSCAN_OPERATION_EVENTID_param_tlvs *)
+					cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid scan operation event", __func__);
+		return -EINVAL;
+	}
+	oprn_event = param_buf->fixed_param;
+	oprn_ind = vos_mem_malloc(sizeof(*oprn_ind));
+	if (!oprn_ind) {
+		WMA_LOGE("%s: extscan memory allocation failed",
+			__func__);
+		vos_mem_free(oprn_ind);
+		return -EINVAL;
+	}
+	switch (oprn_event->event) {
+	case WMI_EXTSCAN_CYCLE_COMPLETED_EVENT:
+		oprn_ind->scanEventType =  WIFI_SCAN_COMPLETE;
+		oprn_ind->status = 0;
+		break;
+	case WMI_EXTSCAN_BUCKET_OVERRUN_EVENT:
+		oprn_ind->scanEventType =  WIFI_SCAN_BUFFER_FULL;
+		oprn_ind->status = 0;
+		break;
+	default:
+		WMA_LOGE("%s: Unknown event(%d) from target",
+			__func__, oprn_event->event);
+		vos_mem_free(oprn_ind);
+		return -EINVAL;
+	}
+	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+				eSIR_EXTSCAN_SCAN_PROGRESS_EVENT_IND,
+				oprn_ind);
+	WMA_LOGD("%s: sending scan progress event to hdd",
+		__func__);
+	vos_mem_free(oprn_ind);
+	return 0;
+}
+
+static int wma_extscan_table_usage_event_handler (void *handle,
+		u_int8_t  *cmd_param_info, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	WMI_EXTSCAN_TABLE_USAGE_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_table_usage_event_fixed_param  *event;
+	tSirExtScanResultsAvailableIndParams  *tbl_usg_ind;
+	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(
+					VOS_MODULE_ID_PE, wma->vos_context);
+	if (!pMac) {
+		WMA_LOGE("%s: Invalid pMac", __func__);
+		return -EINVAL;
+	}
+	if (!pMac->sme.pExtScanIndCb) {
+		WMA_LOGE("%s: Callback not registered", __func__);
+		return -EINVAL;
+        }
+	param_buf = (WMI_EXTSCAN_TABLE_USAGE_EVENTID_param_tlvs *)
+					cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid table usage event", __func__);
+		return -EINVAL;
+	}
+	event = param_buf->fixed_param;
+	tbl_usg_ind =  vos_mem_malloc(sizeof(*tbl_usg_ind));
+	if (!tbl_usg_ind) {
+		WMA_LOGE("%s: table usage allocation failed",
+			 __func__);
+		return -EINVAL;
+	}
+	tbl_usg_ind->requestId = event->request_id;
+	tbl_usg_ind->numResultsAvailable = event->maximum_entries;
+
+	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+				eSIR_EXTSCAN_SCAN_RES_AVAILABLE_IND,
+				tbl_usg_ind);
+	WMA_LOGD("%s: sending scan_res available event to hdd",
+		__func__);
+	vos_mem_free(tbl_usg_ind);
+	return 0;
+}
+
+static int wma_extscan_capabilities_event_handler (void *handle,
+			u_int8_t *cmd_param_info, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	WMI_EXTSCAN_CAPABILITIES_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_capabilities_event_fixed_param  *event;
+	wmi_extscan_cache_capabilities   *src_cache;
+	wmi_extscan_hotlist_monitor_capabilities  *src_hotlist;
+
+	tSirExtScanCapabilitiesEvent  *dest_capab;
+	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
+					VOS_MODULE_ID_PE, wma->vos_context);
+	if (!pMac) {
+		WMA_LOGE("%s: Invalid pMac", __func__);
+		return -EINVAL;
+	}
+	if (!pMac->sme.pExtScanIndCb) {
+		WMA_LOGE("%s: Callback not registered", __func__);
+		return -EINVAL;
+        }
+	param_buf = (WMI_EXTSCAN_CAPABILITIES_EVENTID_param_tlvs *)
+					cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid capabilities event", __func__);
+		return -EINVAL;
+	}
+	event = param_buf->fixed_param;
+	src_cache = param_buf->extscan_cache_capabilities;
+	src_hotlist = param_buf->hotlist_capabilities;
+
+	if (!src_cache || !src_hotlist) {
+		WMA_LOGE("%s: Invalid capabilities list", __func__);
+		return -EINVAL;
+	}
+	dest_capab = vos_mem_malloc(sizeof(*dest_capab));
+	if (!dest_capab) {
+		WMA_LOGE("%s: Allocation failed for capabilities buffer",
+			__func__);
+		return -EINVAL;
+	}
+	dest_capab->requestId = event->request_id;
+	dest_capab->scanBuckets = src_cache->max_buckets;
+	dest_capab->scanCacheSize = src_cache->scan_cache_entry_size;
+	dest_capab->maxHotlistAPs = src_hotlist->max_hotlist_entries;
+
+	WMA_LOGD("%s: Capabilities: scanBuckets: %d,"
+		 "maxHotlistAPs: %d,scanCacheSize: %d",
+		 __func__, dest_capab->scanBuckets,
+		dest_capab->maxHotlistAPs,
+		dest_capab->scanCacheSize);
+
+	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+				eSIR_EXTSCAN_GET_CAPABILITIES_IND,
+				dest_capab);
+	WMA_LOGD("%s: sending capabilities event to hdd", __func__);
+	vos_mem_free(dest_capab);
+	return 0;
+}
+
+static int wma_extscan_hotlist_match_event_handler(void *handle,
+		      u_int8_t  *cmd_param_info, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	WMI_EXTSCAN_HOTLIST_MATCH_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_hotlist_match_event_fixed_param  *event;
+	tSirWifiScanResultEvent  *dest_hotlist;
+	tSirWifiScanResult      *dest_ap;
+	wmi_extscan_wlan_descriptor    *src_hotlist;
+	int numap;
+	int j;
+	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
+					VOS_MODULE_ID_PE, wma->vos_context);
+	if (!pMac) {
+		WMA_LOGE("%s: Invalid pMac", __func__);
+		return -EINVAL;
+	}
+	if (!pMac->sme.pExtScanIndCb) {
+		WMA_LOGE("%s: Callback not registered", __func__);
+		return -EINVAL;
+        }
+	param_buf = (WMI_EXTSCAN_HOTLIST_MATCH_EVENTID_param_tlvs *)
+					cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid hotlist match event", __func__);
+		return -EINVAL;
+	}
+	event = param_buf->fixed_param;
+	src_hotlist = param_buf->hotlist_match;
+	numap = event->total_entries;
+
+	if (!src_hotlist || !numap) {
+		WMA_LOGE("%s: Hotlist AP's list invalid", __func__);
+		return -EINVAL;
+	}
+	dest_hotlist = vos_mem_malloc(sizeof(*dest_hotlist) +
+					sizeof(*dest_ap) * numap);
+	if (!dest_hotlist) {
+		WMA_LOGE("%s: Allocation failed for hotlist buffer",
+			__func__);
+		return -EINVAL;
+	}
+	dest_ap = &dest_hotlist->ap[0];
+	dest_hotlist->numOfAps = event->total_entries;
+	dest_hotlist->requestId = event->config_request_id;
+	WMA_LOGD("%s: Hotlist match: requestId: 0x%x,"
+		"numOfAps: %d", __func__,
+		 dest_hotlist->requestId, dest_hotlist->numOfAps);
+
+	for (j = 0; j < numap; j++) {
+		dest_ap->channel = src_hotlist->channel;
+		dest_ap->ts = src_hotlist->tstamp;
+		dest_ap->rtt = src_hotlist->rtt;
+		dest_ap->rtt_sd = src_hotlist->rtt_sd;
+		dest_ap->beaconPeriod = src_hotlist->beacon_interval;
+		dest_ap->capability = src_hotlist->capabilities;
+		dest_ap->ieLength = src_hotlist-> ie_length;
+		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist->bssid,
+						dest_ap->bssid);
+		if (src_hotlist->ssid.ssid_len) {
+			vos_mem_copy(dest_ap->ssid, src_hotlist->ssid.ssid,
+					src_hotlist->ssid.ssid_len);
+			dest_ap->ssid[src_hotlist->ssid.ssid_len] = '\0';
+		}
+		dest_ap++;
+		src_hotlist++;
+	}
+	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+				eSIR_EXTSCAN_HOTLIST_MATCH_IND,
+				dest_hotlist);
+	WMA_LOGD("%s: sending hotlist match event to hdd", __func__);
+	vos_mem_free(dest_hotlist);
+	return 0;
+}
+
+static int wma_extscan_cached_results_event_handler(void *handle,
+		     u_int8_t  *cmd_param_info, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_cached_results_event_fixed_param  *event;
+	tSirWifiScanResultEvent *dest_cachelist;
+	tSirWifiScanResult  *dest_ap;
+	wmi_extscan_wlan_descriptor  *src_hotlist;
+	int numap;
+	int j;
+	int moredata;
+
+	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
+					VOS_MODULE_ID_PE, wma->vos_context);
+	if (!pMac) {
+		WMA_LOGE("%s: Invalid pMac", __func__);
+		return -EINVAL;
+	}
+	if (!pMac->sme.pExtScanIndCb) {
+		WMA_LOGE("%s: Callback not registered", __func__);
+		return -EINVAL;
+        }
+	param_buf = (WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *)
+						cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid cached results event", __func__);
+		return -EINVAL;
+	}
+	event = param_buf->fixed_param;
+	src_hotlist = param_buf->bssid_list;
+	if (event->first_entry_index +
+		event->num_entries_in_page < event->total_entries) {
+		moredata = 1;
+	} else {
+		moredata = 0;
+	}
+	numap = event->num_entries_in_page;
+	if (!src_hotlist || !numap) {
+		WMA_LOGE("%s: cached results AP's list invalid", __func__);
+		return -EINVAL;
+	}
+	dest_cachelist = vos_mem_malloc(sizeof(*dest_cachelist) +
+					sizeof(*dest_ap) * numap);
+	if (!dest_cachelist) {
+		WMA_LOGE("%s: Allocation failed for cached"
+			"results event", __func__);
+		return -EINVAL;
+	}
+	dest_ap = &dest_cachelist->ap[0];
+	dest_cachelist->requestId = event->request_id;
+	dest_cachelist->numOfAps = event->num_entries_in_page;
+	dest_cachelist->moreData = moredata;
+
+	for (j = 0; j < numap; j++) {
+		dest_ap->channel = src_hotlist->channel;
+		dest_ap->ts = src_hotlist->tstamp;
+		dest_ap->rtt = src_hotlist->rtt;
+		dest_ap->rtt_sd = src_hotlist->rtt_sd;
+		dest_ap->beaconPeriod = src_hotlist->beacon_interval;
+		dest_ap->capability = src_hotlist->capabilities;
+		dest_ap->ieLength = src_hotlist-> ie_length;
+		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist->bssid, dest_ap->bssid);
+
+		if (src_hotlist->ssid.ssid_len) {
+			vos_mem_copy(dest_ap->ssid, src_hotlist->ssid.ssid,
+					src_hotlist->ssid.ssid_len);
+			dest_ap->ssid[src_hotlist->ssid.ssid_len] = '\0';
+		}
+		dest_ap++;
+		src_hotlist++;
+	}
+	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+				eSIR_EXTSCAN_CACHED_RESULTS_IND,
+				dest_cachelist);
+	WMA_LOGD("%s: sending cached results event", __func__);
+	vos_mem_free(dest_cachelist);
+	return 0;
+}
+
+static int wma_extscan_change_results_event_handler(void *handle,
+				u_int8_t  *cmd_param_info, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_wlan_change_results_event_fixed_param  *event;
+	tSirWifiSignificantChangeEvent  *dest_chglist;
+	tSirWifiSignificantChange  **dest_ap;
+	wmi_extscan_wlan_change_result_bssid    *src_chglist;
+
+	int numap;
+	int i, k;
+	u_int8_t *src_rssi;
+	int count = 0;
+	int moredata;
+	int rssi_num = 0;
+	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
+					VOS_MODULE_ID_PE, wma->vos_context);
+	if (!pMac) {
+		WMA_LOGE("%s: Invalid pMac", __func__);
+		return -EINVAL;
+	}
+	if (!pMac->sme.pExtScanIndCb) {
+		WMA_LOGE("%s: Callback not registered", __func__);
+		return -EINVAL;
+        }
+	param_buf = (WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID_param_tlvs *)
+						cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid change monitor event", __func__);
+		return -EINVAL;
+	}
+	event = param_buf->fixed_param;
+	src_chglist = param_buf->bssid_signal_descriptor_list;
+	src_rssi = param_buf->rssi_list;
+	numap = event->num_entries_in_page;
+
+	if (!src_chglist || !numap) {
+		WMA_LOGE("%s: changed monitor results AP's"
+			"list invalid", __func__);
+		return -EINVAL;
+	}
+	for (i = 0; i < numap; i++) {
+		rssi_num += src_chglist->num_rssi_samples;
+	}
+	if (event->first_entry_index +
+		event->num_entries_in_page < event->total_entries) {
+		moredata = 1;
+	} else {
+		moredata = 0;
+	}
+	dest_chglist = vos_mem_malloc(sizeof(*dest_chglist) +
+			sizeof(*dest_ap) * numap +
+			sizeof(tANI_S32) * rssi_num);
+	if (!dest_chglist) {
+		WMA_LOGE("%s: Allocation failed for change monitor",
+			__func__);
+		return -EINVAL;
+	}
+	dest_ap = &dest_chglist->ap[0];
+	for (i = 0; i < numap; i++) {
+		(*dest_ap)->channel = src_chglist->channel;
+		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_chglist->bssid,
+						(*dest_ap)->bssid);
+		(*dest_ap)->numOfRssi =
+				src_chglist->num_rssi_samples;
+		if ((*dest_ap)->numOfRssi) {
+			for (k = 0; k < (*dest_ap)->numOfRssi; k++) {
+				(*dest_ap)->rssi[k] = WMA_TGT_NOISE_FLOOR_DBM +
+							src_rssi[count++];
+			}
+		}
+		dest_ap++;
+		src_chglist++;
+	}
+	dest_chglist->requestId = event->request_id;
+	dest_chglist->moreData = moredata;
+	dest_chglist->numResults = event->total_entries;
+
+	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+				eSIR_EXTSCAN_SIGNIFICANT_WIFI_CHANGE_RESULTS_IND,
+				dest_chglist);
+	WMA_LOGD("%s: sending change monitor results", __func__);
+	vos_mem_free(dest_chglist);
+	return 0;
+}
+#endif
+
 #ifndef QCA_WIFI_ISOC
 u_int8_t *wma_add_p2p_ie(u_int8_t *frm)
 {
@@ -3176,6 +3659,42 @@ static int wma_stats_ext_event_handler(void *handle, u_int8_t *event_buf,
 }
 #endif
 
+static void
+wma_register_extscan_event_handler(tp_wma_handle wma_handle)
+{
+	if (!wma_handle) {
+		WMA_LOGE("%s: extscan wma_handle is NULL", __func__);
+		return;
+	}
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_EXTSCAN_START_STOP_EVENTID,
+				wma_extscan_start_stop_event_handler);
+
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_EXTSCAN_CAPABILITIES_EVENTID,
+				wma_extscan_capabilities_event_handler);
+
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_EXTSCAN_HOTLIST_MATCH_EVENTID,
+				wma_extscan_hotlist_match_event_handler);
+
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID,
+				wma_extscan_change_results_event_handler);
+
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_EXTSCAN_OPERATION_EVENTID,
+				wma_extscan_operations_event_handler);
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_EXTSCAN_TABLE_USAGE_EVENTID,
+				wma_extscan_table_usage_event_handler);
+
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+			WMI_EXTSCAN_CACHED_RESULTS_EVENTID,
+			wma_extscan_cached_results_event_handler);
+	return;
+}
+
 /*
  * Allocate and init wmi adaptation layer.
  */
@@ -3190,6 +3709,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	v_VOID_t *wmi_handle;
 	VOS_STATUS vos_status;
 	struct ol_softc *scn;
+	struct txrx_pdev_cfg_param_t olCfg = {0};
 
 	WMA_LOGD("%s: Enter", __func__);
 
@@ -3241,8 +3761,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_set_default_tgt_config(wma_handle);
 
 	/* Allocate cfg handle */
+	olCfg.is_full_reorder_offload = mac_params->reorderOffload;
 	((pVosContextType) vos_context)->cfg_ctx =
-		ol_pdev_cfg_attach(((pVosContextType) vos_context)->adf_ctx);
+		ol_pdev_cfg_attach(((pVosContextType) vos_context)->adf_ctx, olCfg);
 	if (!(((pVosContextType) vos_context)->cfg_ctx)) {
 		WMA_LOGP("%s: failed to init cfg handle", __func__);
 		vos_status = VOS_STATUS_E_NOMEM;
@@ -3491,6 +4012,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
         wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_STATS_EXT_EVENTID,
 					   wma_stats_ext_event_handler);
+#endif
+#ifdef FEATURE_WLAN_EXTSCAN
+	wma_register_extscan_event_handler(wma_handle);
 #endif
 
 	WMA_LOGD("%s: Exit", __func__);
@@ -17559,6 +18083,731 @@ void wma_hidden_ssid_vdev_restart(tp_wma_handle wma_handle,
         }
 }
 
+#ifdef FEATURE_WLAN_EXTSCAN
+ VOS_STATUS wma_get_buf_extscan_start_cmd(tp_wma_handle wma_handle,
+					tSirWifiScanCmdReqParams *pstart,
+					wmi_buf_t *buf,
+					int *buf_len)
+{
+	wmi_extscan_start_cmd_fixed_param *cmd;
+	wmi_extscan_bucket *dest_blist;
+	wmi_extscan_bucket_channel *dest_clist;
+	tSirWifiScanBucketSpec *src_bucket = pstart->buckets;
+	tSirWifiScanChannelSpec *src_channel = src_bucket->channels;
+	tSirWifiScanChannelSpec save_channel[WLAN_EXTSCAN_MAX_CHANNELS];
+
+	u_int8_t *buf_ptr;
+	int i, k, count = 0;
+	int len = sizeof(*cmd);
+	int nbuckets = pstart->numBuckets;
+	int nchannels = 0;
+
+	/* These TLV's are are NULL by default */
+	u_int32_t ie_len_with_pad = 0;
+	int num_ssid = 0;
+	int num_bssid = 0;
+	int ie_len = 0;
+
+	u_int32_t dwelltime = src_channel->dwellTimeMs;
+	uint32_t base_period = pstart->basePeriod;
+
+	WMA_LOGD("%s: Extscan start:num_Channels is %d",
+		__func__, src_bucket->numChannels);
+
+	WMA_LOGD("%s: Extscan start:num_Buckets is %d",
+		__func__, pstart->numBuckets);
+
+	/* TLV placeholder for ssid_list (NULL) */
+	len += WMI_TLV_HDR_SIZE;
+	len += num_ssid * sizeof(wmi_ssid);
+
+	/* TLV placeholder for bssid_list (NULL) */
+	len += WMI_TLV_HDR_SIZE;
+	len += num_bssid * sizeof(wmi_mac_addr);
+
+	/* TLV placeholder for ie_data (NULL) */
+	len += WMI_TLV_HDR_SIZE;
+	len += ie_len * sizeof(u_int32_t);
+
+	/* TLV placeholder for bucket */
+	len += WMI_TLV_HDR_SIZE;
+	len += nbuckets * sizeof(wmi_extscan_bucket);
+
+	/* TLV channel placeholder */
+	len += WMI_TLV_HDR_SIZE;
+	for (i = 0; i < nbuckets; i++) {
+		nchannels +=  src_bucket->numChannels;
+		src_bucket++;
+	}
+	len += nchannels * sizeof(wmi_extscan_bucket_channel);
+	/* Allocate the memory */
+	*buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!*buf) {
+		WMA_LOGP("%s: failed to allocate memory"
+			" for start extscan cmd",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	buf_ptr = (u_int8_t *)wmi_buf_data(*buf);
+	cmd = (wmi_extscan_start_cmd_fixed_param *) buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_extscan_start_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_extscan_start_cmd_fixed_param));
+
+	cmd->request_id = pstart->requestId;
+	cmd->vdev_id = pstart->sessionId;
+	cmd->base_period = pstart->basePeriod;
+	cmd->num_buckets = nbuckets;
+
+	cmd->min_rest_time = WMA_EXTSCAN_REST_TIME;
+	cmd->max_rest_time = WMA_EXTSCAN_REST_TIME;
+	cmd->max_bssids_per_scan_cycle = pstart->maxAPperScan;
+
+	/* The max dwell time is retrieved from the first channel
+	 * of the first bucket and kept common for all channels.
+	 */
+	cmd->min_dwell_time_active = dwelltime;
+	cmd->max_dwell_time_active = dwelltime;
+	cmd->min_dwell_time_passive = dwelltime;
+	cmd->max_dwell_time_passive = dwelltime;
+	cmd->max_bssids_per_scan_cycle = pstart->maxAPperScan;
+
+	cmd->repeat_probe_time = WMA_EXTSCAN_REPEAT_PROBE;
+	cmd->max_scan_time = WMA_EXTSCAN_MAX_SCAN_TIME;
+	cmd->probe_delay = 0;
+	cmd->repeat_probe_time = WMA_EXTSCAN_REPEAT_PROBE;
+	cmd->probe_spacing_time = 0;
+	cmd->idle_time = 0;
+	cmd->burst_duration = WMA_EXTSCAN_BURST_DURATION;
+	cmd->scan_ctrl_flags = WMI_SCAN_ADD_BCAST_PROBE_REQ |
+					WMI_SCAN_ADD_CCK_RATES |
+						WMI_SCAN_ADD_OFDM_RATES;
+	cmd->scan_priority = WMI_SCAN_PRIORITY_HIGH;
+	cmd->max_table_usage = WMA_EXTSCAN_MAX_TABLE_USAGE;
+	cmd->notify_extscan_events = WMI_EXTSCAN_CYCLE_COMPLETED_EVENT |
+					  WMI_EXTSCAN_BUCKET_OVERRUN_EVENT;
+	cmd->num_ssids = 0;
+	cmd->num_bssid = 0;
+	cmd->ie_len = 0;
+	cmd->n_probes = 1;
+
+	buf_ptr += sizeof(*cmd);
+	WMITLV_SET_HDR(buf_ptr,
+	       WMITLV_TAG_ARRAY_FIXED_STRUC,
+		num_ssid * sizeof(wmi_ssid));
+	buf_ptr += WMI_TLV_HDR_SIZE + (num_ssid * sizeof(wmi_ssid));
+
+	WMITLV_SET_HDR(buf_ptr,
+	       WMITLV_TAG_ARRAY_FIXED_STRUC,
+		num_bssid * sizeof(wmi_mac_addr));
+	buf_ptr += WMI_TLV_HDR_SIZE + (num_bssid * sizeof(wmi_mac_addr));
+
+	ie_len_with_pad = 0;
+	WMITLV_SET_HDR(buf_ptr,
+	       WMITLV_TAG_ARRAY_BYTE,
+		ie_len_with_pad);
+	buf_ptr += WMI_TLV_HDR_SIZE + ie_len_with_pad;
+
+	WMITLV_SET_HDR(buf_ptr,
+			WMITLV_TAG_ARRAY_STRUC,
+			nbuckets * sizeof(wmi_extscan_bucket));
+	dest_blist = (wmi_extscan_bucket *)
+				(buf_ptr + WMI_TLV_HDR_SIZE);
+	src_bucket = pstart->buckets;
+
+	/* Retrieve scanning information from each bucket and
+	 * channels and send it to the target
+	 */
+	for (i = 0; i < nbuckets; i++) {
+		WMITLV_SET_HDR(dest_blist,
+			WMITLV_TAG_STRUC_wmi_extscan_bucket_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_extscan_bucket));
+
+		dest_blist->bucket_id = src_bucket->bucket;
+		dest_blist->base_period_multiplier =
+				src_bucket->period / base_period;
+		dest_blist->channel_band = src_bucket->band;
+		dest_blist->num_channels = src_bucket->numChannels;
+		dest_blist->notify_extscan_events =
+				WMI_EXTSCAN_CYCLE_COMPLETED_EVENT |
+					WMI_EXTSCAN_BUCKET_OVERRUN_EVENT;
+
+		dest_blist->min_dwell_time_active = dwelltime;
+		dest_blist->max_dwell_time_active = dwelltime;
+		dest_blist->min_dwell_time_passive = dwelltime;
+		dest_blist->max_dwell_time_passive = dwelltime;
+		dest_blist->forwarding_flags = 0;
+
+		/* save the channel info to later populate
+		 * the  channel TLV
+		 */
+		for (k = 0; k < src_bucket->numChannels; k++) {
+			save_channel[count++].channel =
+					src_channel->channel;
+			src_channel++;
+		}
+		dest_blist++;
+		src_bucket++;
+	}
+	buf_ptr +=  WMI_TLV_HDR_SIZE +
+				(nbuckets * sizeof(wmi_extscan_bucket));
+	WMITLV_SET_HDR(buf_ptr,
+			WMITLV_TAG_ARRAY_STRUC,
+			nchannels * sizeof(wmi_extscan_bucket_channel));
+	dest_clist = (wmi_extscan_bucket_channel *)
+				(buf_ptr + WMI_TLV_HDR_SIZE);
+
+	/* Active or passive scan is based on the bucket dwell time
+	 * and channel specific active,passive scans are not
+	 * supported yet
+	 */
+	for (i = 0; i < nchannels; i++) {
+		WMITLV_SET_HDR(dest_clist,
+			WMITLV_TAG_STRUC_wmi_extscan_bucket_channel_event_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_extscan_bucket_channel));
+		dest_clist->channel = save_channel[i].channel;
+		dest_clist++;
+	}
+	buf_ptr +=  WMI_TLV_HDR_SIZE +
+			(nchannels * sizeof(wmi_extscan_bucket_channel));
+	*buf_len = len;
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS wma_start_extscan(tp_wma_handle wma,
+				tSirWifiScanCmdReqParams *pstart)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	wmi_buf_t buf;
+	int len;
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed,can not issue extscan cmd",
+		 __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	if (!WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+					WMI_SERVICE_EXTSCAN)) {
+		WMA_LOGE("%s: extscan feature bit not enabled",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	/* Fill individual elements of extscan request and
+	 * TLV for buckets, channel list.
+	 */
+	vos_status = wma_get_buf_extscan_start_cmd(wma, pstart,
+				&buf, &len);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("%s: Failed to get buffer for ext scan cmd",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (!buf) {
+		WMA_LOGE("%s:Failed to get buffer"
+			"for current extscan info", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf,
+				len, WMI_EXTSCAN_START_CMDID)) {
+		WMA_LOGE("%s: failed to send command", __func__);
+		adf_nbuf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS wma_stop_extscan(tp_wma_handle wma,
+				tSirExtScanStopReqParams *pstopcmd)
+{
+	wmi_extscan_stop_cmd_fixed_param *cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t   len;
+	u_int8_t *buf_ptr;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, cannot issue cmd",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	if (!WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+					WMI_SERVICE_EXTSCAN)) {
+		WMA_LOGE("%s: extscan not enabled",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	len  = sizeof(*cmd);
+	wmi_buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_buf);
+	cmd = (wmi_extscan_stop_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_extscan_stop_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_extscan_stop_cmd_fixed_param));
+
+	cmd->request_id = pstopcmd->requestId;
+	cmd->vdev_id = pstopcmd->sessionId;
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
+		WMI_EXTSCAN_STOP_CMDID)) {
+		WMA_LOGE("%s: failed to  command", __func__);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+static int wma_get_hotlist_entries_per_page(void *cmd, int numap)
+{
+	uint32_t avail_space = 0;
+	int num_entries = 0;
+
+	/* Calculate num of hot list entries that can
+	 * be passed in  wma message request.
+	 */
+	avail_space = WMA_MAX_EXTSCAN_MSG_SIZE -
+				(sizeof(*cmd) - sizeof(WMI_TLV_HDR_SIZE));
+	num_entries = avail_space / sizeof(wmi_extscan_hotlist_entry);
+	return num_entries;
+}
+
+VOS_STATUS wma_get_buf_extscan_hotlist_cmd(tp_wma_handle wma_handle,
+			tSirExtScanSetBssidHotListReqParams *photlist,
+			int *buf_len)
+{
+	wmi_extscan_configure_hotlist_monitor_cmd_fixed_param *cmd;
+	wmi_extscan_hotlist_entry  *dest_hotlist;
+	tSirAPThresholdParam  *src_ap = photlist->ap;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+
+	int j, index = 0;
+	int cmd_len = 0;
+	int num_entries = 0;
+	int min_entries = 0;
+	int numap = photlist->numAp;
+	int len = sizeof(*cmd);
+
+	len += WMI_TLV_HDR_SIZE;
+	cmd_len = len;
+
+	/* setbssid hotlist expects the bssid list
+	 * to be non zero value
+	 */
+	if (!numap) {
+		WMA_LOGE("%s: Invalid number of bssid's",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	num_entries = wma_get_hotlist_entries_per_page(
+					cmd, numap);
+
+	/* Split the hot list entry pages and send multiple command
+	 * requests if the buffer reaches  the maximum request size
+	 */
+	while (index < numap) {
+		min_entries = MIN(num_entries, numap);
+		len += min_entries * sizeof(wmi_extscan_hotlist_entry);
+		buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+		if (!buf) {
+			WMA_LOGP("%s: failed to allocate memory"
+				"for start extscan cmd",
+				__func__);
+			return VOS_STATUS_E_FAILURE;
+		}
+		buf_ptr = (u_int8_t *)wmi_buf_data(buf);
+		cmd = (wmi_extscan_configure_hotlist_monitor_cmd_fixed_param *)
+								buf_ptr;
+		WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_extscan_configure_hotlist_monitor_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_extscan_configure_hotlist_monitor_cmd_fixed_param));
+
+		/* Multiple requests are sent until the num_entries_in_page
+		 * matches the total_entries
+		 */
+		cmd->request_id = photlist->requestId;
+		cmd->vdev_id = photlist->sessionId;
+		cmd->total_entries = numap;
+		cmd->mode = 1;
+		cmd->num_entries_in_page = min_entries;
+		cmd->first_entry_index = index;
+
+		WMA_LOGD("%s: vdev id:%d total_entries: %d num_entries: %d",
+			__func__, cmd->vdev_id, cmd->total_entries,
+			cmd->num_entries_in_page);
+
+		buf_ptr += sizeof(*cmd);
+		WMITLV_SET_HDR(buf_ptr,
+		WMITLV_TAG_ARRAY_STRUC,
+			min_entries * sizeof(wmi_extscan_hotlist_entry));
+		dest_hotlist = (wmi_extscan_hotlist_entry *)
+					(buf_ptr + WMI_TLV_HDR_SIZE);
+
+		/* Populate bssid, channel info and rssi
+		 * for the bssid's that are sent as hotlists.
+		 */
+		for (j = 0; j < min_entries; j++) {
+			WMITLV_SET_HDR(dest_hotlist,
+				WMITLV_TAG_STRUC_wmi_extscan_bucket_cmd_fixed_param,
+				WMITLV_GET_STRUCT_TLVLEN(
+					wmi_extscan_hotlist_entry));
+
+			dest_hotlist->min_rssi = src_ap->low;
+			dest_hotlist->channel = src_ap->channel;
+			WMI_CHAR_ARRAY_TO_MAC_ADDR(src_ap->bssid,
+						&dest_hotlist->bssid);
+
+			WMA_LOGD("%s:channel:%d min_rssi %d",
+				__func__, dest_hotlist->channel,
+				dest_hotlist->min_rssi);
+			WMA_LOGD("%s: bssid mac_addr31to0: 0x%x, mac_addr47to32: 0x%x",
+				__func__, dest_hotlist->bssid.mac_addr31to0,
+				dest_hotlist->bssid.mac_addr47to32);
+			dest_hotlist++;
+			src_ap++;
+		}
+		buf_ptr +=  WMI_TLV_HDR_SIZE +
+				(min_entries * sizeof(wmi_extscan_hotlist_entry));
+
+		if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+					len, WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID)) {
+			WMA_LOGE("%s: failed to send command", __func__);
+			adf_nbuf_free(buf);
+			return VOS_STATUS_E_FAILURE;
+		}
+		index = index + min_entries;
+		num_entries = numap - min_entries;
+		len = cmd_len;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS wma_extscan_start_hotlist_monitor(tp_wma_handle wma,
+			tSirExtScanSetBssidHotListReqParams *photlist)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	int len;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue hotlist cmd",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	/* Fill individual elements for  hotlist request and
+	 * TLV for bssid entries
+	 */
+	vos_status = wma_get_buf_extscan_hotlist_cmd(wma, photlist,
+						&len);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("%s: Failed to get buffer"
+			"for hotlist scan cmd", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS wma_extscan_stop_hotlist_monitor(tp_wma_handle wma,
+			tSirExtScanResetBssidHotlistReqParams *photlist_reset)
+{
+	wmi_extscan_configure_hotlist_monitor_cmd_fixed_param *cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t   len;
+	u_int8_t *buf_ptr;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue  cmd",
+		__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	if (!photlist_reset) {
+		WMA_LOGE("%s: Invalid reset hotlist buffer",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	if (!WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+					WMI_SERVICE_EXTSCAN)) {
+		WMA_LOGE("%s: extscan not enabled",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	len  = sizeof(*cmd);
+	wmi_buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_buf);
+	cmd = (wmi_extscan_configure_hotlist_monitor_cmd_fixed_param *)
+						buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_extscan_configure_hotlist_monitor_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_extscan_configure_hotlist_monitor_cmd_fixed_param));
+
+	cmd->request_id = photlist_reset->requestId;
+	cmd->vdev_id = photlist_reset->sessionId;
+	cmd->mode = 0;
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
+			WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID)) {
+		WMA_LOGE("%s: failed to  command", __func__);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS wma_get_buf_extscan_change_monitor_cmd(tp_wma_handle wma_handle,
+			tSirExtScanSetSigChangeReqParams *psigchange,
+			wmi_buf_t *buf, int *buf_len)
+{
+	wmi_extscan_configure_wlan_change_monitor_cmd_fixed_param *cmd;
+	wmi_extscan_wlan_change_bssid_param  *dest_chglist;
+	u_int8_t *buf_ptr;
+	int j;
+	int len = sizeof(*cmd);
+	int numap = psigchange->numAp;
+	tSirAPThresholdParam  *src_ap = psigchange->ap;
+
+	if (!numap) {
+		WMA_LOGE("%s: Invalid number of bssid's",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	len += WMI_TLV_HDR_SIZE;
+	len += numap * sizeof(wmi_extscan_wlan_change_bssid_param);
+
+	*buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!*buf) {
+		WMA_LOGP("%s: failed to allocate memory for change monitor cmd",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(*buf);
+	cmd = (wmi_extscan_configure_wlan_change_monitor_cmd_fixed_param *)buf_ptr;
+		WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_extscan_configure_wlan_change_monitor_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_extscan_configure_wlan_change_monitor_cmd_fixed_param));
+
+	cmd->request_id = psigchange->requestId;
+	cmd->vdev_id = psigchange->sessionId;
+	cmd->total_entries = numap;
+	cmd->mode = 1;
+	cmd->num_entries_in_page = numap;
+	cmd->lost_ap_scan_count = psigchange->lostApSampleSize;
+	cmd->max_rssi_samples = psigchange->rssiSampleSize;
+	cmd->max_out_of_range_count = psigchange->minBreaching;
+
+	buf_ptr += sizeof(*cmd);
+	WMITLV_SET_HDR(buf_ptr,
+	       WMITLV_TAG_ARRAY_STRUC,
+	       numap * sizeof(wmi_extscan_wlan_change_bssid_param));
+	dest_chglist = (wmi_extscan_wlan_change_bssid_param *)
+			 (buf_ptr + WMI_TLV_HDR_SIZE);
+
+	for (j = 0; j < numap; j++) {
+		WMITLV_SET_HDR(dest_chglist,
+			WMITLV_TAG_STRUC_wmi_extscan_bucket_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_extscan_wlan_change_bssid_param));
+
+		dest_chglist->lower_rssi_limit = src_ap->low;
+		dest_chglist->upper_rssi_limit = src_ap->high;
+		dest_chglist->channel = src_ap->channel;
+		WMI_CHAR_ARRAY_TO_MAC_ADDR(src_ap->bssid,
+					&dest_chglist->bssid);
+
+		WMA_LOGD("%s:channel:%x min_rssi %d",
+			__func__, dest_chglist->channel,
+			dest_chglist->lower_rssi_limit);
+		dest_chglist++;
+		src_ap++;
+	}
+	buf_ptr +=  WMI_TLV_HDR_SIZE +
+			(numap * sizeof(wmi_extscan_wlan_change_bssid_param));
+	*buf_len = len;
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS wma_extscan_start_change_monitor(tp_wma_handle wma,
+			tSirExtScanSetSigChangeReqParams *psigchange)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	wmi_buf_t buf;
+	int len;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed,can not issue extscan cmd",
+			 __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	/* Fill individual elements of change monitor and
+	* TLV info ... */
+
+	vos_status = wma_get_buf_extscan_change_monitor_cmd(wma,
+					psigchange,  &buf, &len);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("%s: Failed to get buffer for change monitor cmd",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (!buf) {
+		WMA_LOGE("%s: Failed to get buffer", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf,
+		len, WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID)) {
+		WMA_LOGE("%s: failed to send command", __func__);
+		adf_nbuf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS wma_extscan_stop_change_monitor(tp_wma_handle wma,
+			tSirExtScanResetSignificantChangeReqParams *pResetReq)
+{
+	wmi_extscan_configure_wlan_change_monitor_cmd_fixed_param *cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t   len;
+	u_int8_t *buf_ptr;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue  cmd",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	if (!WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+					WMI_SERVICE_EXTSCAN)) {
+		WMA_LOGE("%s: ext scan not enabled",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	len  = sizeof(*cmd);
+	wmi_buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_extscan_configure_wlan_change_monitor_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_extscan_configure_wlan_change_monitor_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_extscan_configure_wlan_change_monitor_cmd_fixed_param));
+
+	cmd->request_id = pResetReq->requestId;
+	cmd->vdev_id = pResetReq->sessionId;
+	cmd->mode = 0;
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
+			WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID)) {
+		WMA_LOGE("%s: failed to  command", __func__);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS  wma_extscan_get_cached_results(tp_wma_handle wma,
+			tSirExtScanGetCachedResultsReqParams *pcached_results)
+{
+	wmi_extscan_get_cached_results_cmd_fixed_param *cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t   len;
+	u_int8_t *buf_ptr;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, cannot issue cmd",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	if (!WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+			WMI_SERVICE_EXTSCAN)) {
+		WMA_LOGE("%s: extscan not enabled",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	len  = sizeof(*cmd);
+	wmi_buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (u_int8_t *)wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_extscan_get_cached_results_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_extscan_get_cached_results_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_extscan_get_cached_results_cmd_fixed_param));
+
+	cmd->request_id = pcached_results->requestId;
+	cmd->vdev_id = pcached_results->sessionId;
+	cmd->control_flags = pcached_results->flush;
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
+			WMI_EXTSCAN_GET_CACHED_RESULTS_CMDID)) {
+		WMA_LOGE("%s: failed to  command", __func__);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS  wma_extscan_get_capabilities(tp_wma_handle wma,
+		tSirGetExtScanCapabilitiesReqParams  *pgetcapab)
+{
+	wmi_extscan_get_capabilities_cmd_fixed_param  *cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t   len;
+	u_int8_t *buf_ptr;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue  cmd",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	if (!WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+			WMI_SERVICE_EXTSCAN)) {
+		WMA_LOGE("%s: extscan not enabled",
+			__func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	len  = sizeof(*cmd);
+	wmi_buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (u_int8_t *)wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_extscan_get_capabilities_cmd_fixed_param *)buf_ptr;
+		WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_extscan_get_capabilities_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_extscan_get_capabilities_cmd_fixed_param));
+
+	cmd->request_id = pgetcapab->requestId;
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
+		WMI_EXTSCAN_GET_CAPABILITIES_CMDID)) {
+		WMA_LOGE("%s: failed to  command", __func__);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+#endif
+
 /*
  * function   : wma_mc_process_msg
  * Descriptin :
@@ -18008,6 +19257,48 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_tbtt_update_ind(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+#ifdef FEATURE_WLAN_EXTSCAN
+		case WDA_EXTSCAN_START_REQ:
+			wma_start_extscan(wma_handle,
+				(tSirWifiScanCmdReqParams *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_EXTSCAN_STOP_REQ:
+			wma_stop_extscan(wma_handle,
+				(tSirExtScanStopReqParams *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_EXTSCAN_SET_BSSID_HOTLIST_REQ:
+			wma_extscan_start_hotlist_monitor(wma_handle,
+				(tSirExtScanSetBssidHotListReqParams *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_EXTSCAN_RESET_BSSID_HOTLIST_REQ:
+			wma_extscan_stop_hotlist_monitor(wma_handle,
+			(tSirExtScanResetBssidHotlistReqParams *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_EXTSCAN_SET_SIGNF_CHANGE_REQ:
+			wma_extscan_start_change_monitor(wma_handle,
+				(tSirExtScanSetSigChangeReqParams *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_EXTSCAN_RESET_SIGNF_CHANGE_REQ:
+			wma_extscan_stop_change_monitor(wma_handle,
+				(tSirExtScanResetSignificantChangeReqParams *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_EXTSCAN_GET_CACHED_RESULTS_REQ:
+			wma_extscan_get_cached_results(wma_handle,
+				(tSirExtScanGetCachedResultsReqParams *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_EXTSCAN_GET_CAPABILITIES_REQ:
+			wma_extscan_get_capabilities(wma_handle,
+				(tSirGetExtScanCapabilitiesReqParams *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+		break;
+#endif
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */

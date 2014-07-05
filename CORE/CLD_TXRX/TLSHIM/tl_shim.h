@@ -70,6 +70,10 @@ struct tlshim_session_flow_Control {
 };
 #endif /* QCA_LL_TX_FLOW_CT */
 
+#ifdef IPA_UC_OFFLOAD
+typedef void(*ipa_uc_fw_op_cb)(v_U8_t op_code);
+#endif /* IPA_UC_OFFLOAD */
+
 struct txrx_tl_shim_ctx {
 	void *cfg_ctx;
 	ol_txrx_tx_fp tx;
@@ -98,6 +102,9 @@ struct deferred_iapp_work iapp_work;
 #ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
 	vos_event_t  *peer_authorized_events;
 #endif
+#ifdef IPA_UC_OFFLOAD
+	ipa_uc_fw_op_cb fw_op_cb;;
+#endif /* IPA_UC_OFFLOAD */
 };
 
 /*

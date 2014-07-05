@@ -4105,6 +4105,7 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
                  k = m + j;
                  if (IEEE80211_BAND_2GHZ == i && eCSR_BAND_5G == nBandCapability) // 5G only
                  {
+#ifdef WLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
                      // Enable social channels for P2P
                      if ((2412 == wiphy->bands[i]->channels[j].center_freq ||
                           2437 == wiphy->bands[i]->channels[j].center_freq ||
@@ -4114,6 +4115,7 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
                          wiphy->bands[i]->channels[j].flags &= ~IEEE80211_CHAN_DISABLED;
                      }
                      else
+#endif
                      {
                          wiphy->bands[i]->channels[j].flags |= IEEE80211_CHAN_DISABLED;
                      }

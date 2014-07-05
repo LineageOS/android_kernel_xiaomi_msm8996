@@ -817,7 +817,10 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 				   adf_nbuf_t rx_buf_list)
 {
 	struct txrx_tl_shim_ctx *tl_shim;
-#if defined(IPA_OFFLOAD) || \
+	/* Firmware data path active response will use shim RX thread
+	 * T2H MSG running on SIRQ context,
+	 * IPA kernel module API should not be called on SIRQ CTXT */
+#if (defined(IPA_OFFLOAD) && !defined(IPA_UC_OFFLOAD))|| \
     (defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD))
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, context);
 #endif
@@ -870,7 +873,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 		 * there is no cached frames have any significant impact on
 		 * performance.
 		 */
-#ifdef IPA_OFFLOAD
+#if defined (IPA_OFFLOAD) && !defined(IPA_UC_OFFLOAD)
 		VOS_STATUS ret;
 		adf_os_spin_lock_bh(&tl_shim->bufq_lock);
 		sta_info->suspend_flush = 1;
@@ -934,7 +937,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 #else /* QCA_CONFIG_SMP */
 			tlshim_data_rx_cb(tl_shim, rx_buf_list, staid);
 #endif /* QCA_CONFIG_SMP */
-#ifdef IPA_OFFLOAD
+#if defined(IPA_OFFLOAD) && !defined(IPA_UC_OFFLOAD)
 	}
 #endif
 	}
@@ -2247,3 +2250,248 @@ void tl_shim_set_peer_authorized_event(void *vos_ctx, v_U8_t session_id)
 	vos_event_set(&tl_shim->peer_authorized_events[session_id]);
 }
 #endif
+
+#ifdef IPA_UC_OFFLOAD
+/*=============================================================================
+  FUNCTION    WLANTL_GetIpaUcResource
+
+  DESCRIPTION
+    This function will be called by TL client.
+    Data path resource will be used by FW should be allocated within lower layer.
+    Shared resource information should be propagated to IPA.
+    To propagate resource information, client will use this API
+
+  PARAMETERS
+    IN
+    vos_ctx : Global OS context context
+    ce_sr_base_paddr  : Copy Engine Source Ring base address
+    ce_sr_ring_size : Copy Engine Source Ring size
+    ce_reg_paddr : Copy engine register address
+    tx_comp_ring_base_paddr : TX COMP ring base address
+    tx_comp_ring_size : TX COMP ring size
+    tx_num_alloc_buffer : Number of TX allocated buffer
+    rx_rdy_ring_base_paddr : RX ready ring base address
+    rx_rdy_ring_size : RX ready ring size
+    rx_proc_done_idx_paddr : RX process done index physical address
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_GetIpaUcResource(void *vos_ctx,
+	v_U32_t *ce_sr_base_paddr,
+	v_U32_t *ce_sr_ring_size,
+	v_U32_t *ce_reg_paddr,
+	v_U32_t *tx_comp_ring_base_paddr,
+	v_U32_t *tx_comp_ring_size,
+	v_U32_t *tx_num_alloc_buffer,
+	v_U32_t *rx_rdy_ring_base_paddr,
+	v_U32_t *rx_rdy_ring_size,
+	v_U32_t *rx_proc_done_idx_paddr)
+{
+	if (!vos_ctx || !((pVosContextType)vos_ctx)->pdev_txrx_ctx) {
+		TLSHIM_LOGE("%s: Invalid context", __func__);
+		return;
+	}
+
+	wdi_in_ipa_uc_get_resource(((pVosContextType)vos_ctx)->pdev_txrx_ctx,
+		ce_sr_base_paddr,
+		ce_sr_ring_size,
+		ce_reg_paddr,
+		tx_comp_ring_base_paddr,
+		tx_comp_ring_size,
+		tx_num_alloc_buffer,
+		rx_rdy_ring_base_paddr,
+		rx_rdy_ring_size,
+		rx_proc_done_idx_paddr);
+}
+
+/*=============================================================================
+  FUNCTION    WLANTL_SetUcDoorbellPaddr
+
+  DESCRIPTION
+    This function will be called by TL client.
+    UC controller should provide doorbell register address to firmware
+    TL client will call this API to pass doorbell register address to firmware
+
+  PARAMETERS
+    IN
+    vos_ctx : Global OS context context
+    ipa_tx_uc_doorbell_paddr  : Micro Controller WLAN TX COMP doorbell regiser
+    ipa_rx_uc_doorbell_paddr  : Micro Controller WLAN RX REDY doorbell regiser
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_SetUcDoorbellPaddr(void *vos_ctx,
+	v_U32_t ipa_tx_uc_doorbell_paddr,
+	v_U32_t ipa_rx_uc_doorbell_paddr)
+{
+	if (!vos_ctx || !((pVosContextType)vos_ctx)->pdev_txrx_ctx) {
+		TLSHIM_LOGE("%s: Invalid context", __func__);
+		return;
+	}
+
+	wdi_in_ipa_uc_set_doorbell_paddr(((pVosContextType)vos_ctx)->pdev_txrx_ctx,
+		ipa_tx_uc_doorbell_paddr,
+		ipa_rx_uc_doorbell_paddr);
+}
+
+/*=============================================================================
+  FUNCTION    WLANTL_SetUcActive
+
+  DESCRIPTION
+    This function will be called by TL client.
+    Send Micro controller data path active or inactive notification to firmware
+
+  PARAMETERS
+    IN
+    vos_ctx : Global OS context context
+    uc_active  : Micro Controller data path is active or not
+    is_tx  : Micro Controller WLAN TX data path is active or not
+    is_rx  : Micro Controller WLAN RX data path is active or not
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_SetUcActive(void *vos_ctx,
+	v_BOOL_t uc_active,
+	v_BOOL_t is_tx
+)
+{
+	if (!vos_ctx || !((pVosContextType)vos_ctx)->pdev_txrx_ctx) {
+		TLSHIM_LOGE("%s: Invalid context", __func__);
+		return;
+	}
+
+	TLSHIM_LOGD("%s, ACTIVE %d, TX %d",
+		__func__, uc_active, is_tx);
+	wdi_in_ipa_uc_set_active(((pVosContextType)vos_ctx)->pdev_txrx_ctx,
+			uc_active, is_tx);
+}
+
+/*=============================================================================
+  FUNCTION    WLANTL_IpaUcFwOpEventHandler
+
+  DESCRIPTION
+    This function will be called by TL client.
+    Firmware data path activation response handler.
+    Firmware response will be routed to upper layer
+
+  PARAMETERS
+    IN
+    context : pre-registered shim context
+    rxpkt : message pointer from firmware
+    staid : STA ID, not used
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_IpaUcFwOpEventHandler(void *context,
+	void *rxpkt,
+	u_int16_t staid)
+{
+	v_U8_t op_code;
+	struct txrx_tl_shim_ctx *tl_shim = (struct txrx_tl_shim_ctx *)context;
+
+	if (!tl_shim) {
+		TLSHIM_LOGE("%s: Invalid context", __func__);
+		return;
+	}
+
+	vos_mem_copy(&op_code, rxpkt, 1);
+	TLSHIM_LOGD("%s, opcode %d", __func__, op_code);
+	if (tl_shim->fw_op_cb) {
+		tl_shim->fw_op_cb(op_code);
+	}
+}
+
+/*=============================================================================
+  FUNCTION    WLANTL_IpaUcOpEventHandler
+
+  DESCRIPTION
+    This function will be called by TL client.
+    This API will be registered into OL layer and if firmware send any
+    Activity related notification, OL layer will call this function.
+    firmware indication will be serialized within TLSHIM RX Thread
+
+  PARAMETERS
+    IN
+    op_code : OP Code from firmware
+    shim_ctxt : shim context pointer
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_IpaUcOpEventHandler(v_U8_t op_code, void *shim_ctxt)
+{
+	pVosSchedContext sched_ctx = get_vos_sched_ctxt();
+	struct VosTlshimPkt *pkt;
+	v_U8_t *op_code_pkt;
+
+	if (unlikely(!sched_ctx))
+		return;
+
+	pkt = vos_alloc_tlshim_pkt(sched_ctx);
+	if (!pkt) {
+		TLSHIM_LOGW("No available Rx message buffer");
+		return;
+	}
+
+	op_code_pkt = (v_U8_t *)vos_mem_malloc(4);
+	vos_mem_copy(op_code_pkt, &op_code, 1);
+	pkt->callback = (vos_tlshim_cb)	WLANTL_IpaUcFwOpEventHandler;
+	pkt->context = shim_ctxt;
+	pkt->Rxpkt = (void *) op_code_pkt;
+	pkt->staId = 0;
+	vos_indicate_rxpkt(sched_ctx, pkt);
+}
+
+/*=============================================================================
+  FUNCTION    WLANTL_RegisterOPCbFnc
+
+  DESCRIPTION
+    This function will be called by TL client.
+
+  PARAMETERS
+    IN
+    vos_ctx : Global OS context context
+    func : callback function pointer
+
+  RETURN VALUE
+    NONE
+
+  SIDE EFFECTS
+
+==============================================================================*/
+void WLANTL_RegisterOPCbFnc(void *vos_ctx,
+	void (*func)(v_U8_t op_code))
+{
+	struct txrx_tl_shim_ctx *tl_shim;
+
+	if (!vos_ctx) {
+		TLSHIM_LOGE("%s: Invalid context", __func__);
+		return;
+	}
+
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	tl_shim->fw_op_cb = func;
+	wdi_in_ipa_uc_register_op_cb(((pVosContextType)vos_ctx)->pdev_txrx_ctx,
+		WLANTL_IpaUcOpEventHandler, (void *)tl_shim);
+}
+#endif /* IPA_UC_OFFLOAD */
+

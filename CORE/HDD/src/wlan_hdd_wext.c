@@ -7557,9 +7557,9 @@ void hdd_wmm_tx_snapshot(hdd_adapter_t *pAdapter)
 
 }
 
-int iw_set_var_ints_getnone(struct net_device *dev,
-                            struct iw_request_info *info,
-                            union iwreq_data *wrqu, char *extra)
+static int __iw_set_var_ints_getnone(struct net_device *dev,
+                                     struct iw_request_info *info,
+                                     union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
@@ -7740,6 +7740,19 @@ int iw_set_var_ints_getnone(struct net_device *dev,
     }
 
     return 0;
+}
+
+
+int iw_set_var_ints_getnone(struct net_device *dev,
+                            struct iw_request_info *info,
+                            union iwreq_data *wrqu, char *extra)
+{
+   int ret;
+
+   vos_ssr_protect(__func__);
+   ret = __iw_set_var_ints_getnone(dev, info, wrqu, extra);
+   vos_ssr_unprotect(__func__);
+   return ret;
 }
 
 

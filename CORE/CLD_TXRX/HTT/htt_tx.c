@@ -50,6 +50,23 @@
 #include <ol_txrx_htt_api.h> /* ol_tx_msdu_id_storage */
 #include <htt_internal.h>
 
+#ifdef IPA_UC_OFFLOAD
+/* IPA Micro controler TX data packet HTT Header Preset */
+/* 31 | 30  29 | 28 | 27 | 26  22  | 21   16 | 15  13   | 12  8       | 7 0
+ *------------------------------------------------------------------------------
+ * R  | CS  OL | R  | PP | ext TID | vdev ID | pkt type | pkt subtype | msg type
+ * 0  | 0      | 0  |    | 0x1F    | 0       | 2        | 0           | 0x01
+ *------------------------------------------------------------------------------
+ * pkt ID                                    | pkt length
+ *------------------------------------------------------------------------------
+ *                                frag_desc_ptr
+ *------------------------------------------------------------------------------
+ *                                   peer_id
+ *------------------------------------------------------------------------------
+ */
+#define HTT_IPA_UC_OFFLOAD_TX_HEADER_DEFAULT 0x07C04001
+#endif /* IPA_UC_OFFLOAD */
+
 /*--- setup / tear-down functions -------------------------------------------*/
 
 #ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
@@ -449,6 +466,8 @@ htt_tx_send_base(
 
     SET_HTC_PACKET_NET_BUF_CONTEXT(&pkt->htc_pkt, msdu);
 
+    adf_nbuf_trace_update(msdu, "HT:T:");
+
     HTCSendDataPkt(pdev->htc_pdev, &pkt->htc_pkt);
 
     return 0; /* success */
@@ -557,3 +576,163 @@ htt_tx_desc_display(void *tx_desc)
     }
 }
 #endif
+
+#ifdef IPA_UC_OFFLOAD
+int htt_tx_ipa_uc_attach(struct htt_pdev_t *pdev,
+    unsigned int uc_tx_buf_sz,
+    unsigned int uc_tx_buf_cnt,
+    unsigned int uc_tx_partition_base)
+{
+   unsigned int  tx_buffer_count;
+   adf_nbuf_t    buffer_vaddr;
+   u_int32_t     buffer_paddr;
+   u_int32_t    *header_ptr;
+   u_int32_t    *ring_vaddr;
+   int           return_code = 0;
+
+   /* Allocate CE Write Index WORD */
+   pdev->ipa_uc_tx_rsc.tx_ce_idx.vaddr =
+       adf_os_mem_alloc_consistent(pdev->osdev,
+                4,
+                &pdev->ipa_uc_tx_rsc.tx_ce_idx.paddr,
+                adf_os_get_dma_mem_context(
+                   (&pdev->ipa_uc_tx_rsc.tx_ce_idx), memctx));
+   if (!pdev->ipa_uc_tx_rsc.tx_ce_idx.vaddr) {
+      adf_os_print("%s: CE Write Index WORD alloc fail", __func__);
+      return -1;
+   }
+
+   /* Allocate TX COMP Ring */
+   pdev->ipa_uc_tx_rsc.tx_comp_base.vaddr =
+       adf_os_mem_alloc_consistent(pdev->osdev,
+                uc_tx_buf_cnt * 4,
+                &pdev->ipa_uc_tx_rsc.tx_comp_base.paddr,
+                adf_os_get_dma_mem_context(
+                   (&pdev->ipa_uc_tx_rsc.tx_comp_base), memctx));
+   if (!pdev->ipa_uc_tx_rsc.tx_comp_base.vaddr) {
+      adf_os_print("%s: TX COMP ring alloc fail", __func__);
+      return_code = -2;
+      goto free_tx_ce_idx;
+   }
+
+   adf_os_mem_zero(pdev->ipa_uc_tx_rsc.tx_comp_base.vaddr, uc_tx_buf_cnt * 4);
+
+   /* Allocate TX BUF vAddress Storage */
+   pdev->ipa_uc_tx_rsc.tx_buf_pool_vaddr_strg =
+         (adf_nbuf_t *)adf_os_mem_alloc(pdev->osdev,
+                          uc_tx_buf_cnt * sizeof(adf_nbuf_t));
+   if (!pdev->ipa_uc_tx_rsc.tx_buf_pool_vaddr_strg) {
+      adf_os_print("%s: TX BUF POOL vaddr storage alloc fail",
+                   __func__);
+      return_code = -3;
+      goto free_tx_comp_base;
+   }
+   adf_os_mem_zero(pdev->ipa_uc_tx_rsc.tx_buf_pool_vaddr_strg,
+                   uc_tx_buf_cnt * sizeof(adf_nbuf_t));
+
+   ring_vaddr = pdev->ipa_uc_tx_rsc.tx_comp_base.vaddr;
+   /* Allocate TX buffers as many as possible */
+   for (tx_buffer_count = 0;
+        tx_buffer_count < (uc_tx_buf_cnt - 1);
+        tx_buffer_count++) {
+      buffer_vaddr = adf_nbuf_alloc(pdev->osdev,
+                uc_tx_buf_sz, 0, 4, FALSE);
+      if (!buffer_vaddr)
+      {
+         adf_os_print("%s: TX BUF alloc fail, allocated buffer count %d",
+                      __func__, tx_buffer_count);
+         return 0;
+      }
+
+      /* Init buffer */
+      adf_os_mem_zero(adf_nbuf_data(buffer_vaddr), uc_tx_buf_sz);
+      header_ptr = (u_int32_t *)adf_nbuf_data(buffer_vaddr);
+
+      *header_ptr = HTT_IPA_UC_OFFLOAD_TX_HEADER_DEFAULT;
+      header_ptr++;
+      *header_ptr |= ((u_int16_t)uc_tx_partition_base + tx_buffer_count) << 16;
+
+      adf_nbuf_map(pdev->osdev, buffer_vaddr, ADF_OS_DMA_BIDIRECTIONAL);
+      buffer_paddr = adf_nbuf_get_frag_paddr_lo(buffer_vaddr, 0);
+      header_ptr++;
+      *header_ptr = (u_int32_t)(buffer_paddr + 16);
+
+      header_ptr++;
+      *header_ptr = 0xFFFFFFFF;
+
+      /* FRAG Header */
+      header_ptr++;
+      *header_ptr = buffer_paddr + 32;
+
+      *ring_vaddr = buffer_paddr;
+      printk("TX RING vADD %lx BF pADDR %x buffer_paddr %x buffer_vaddr %lx\n",
+             (unsigned long)ring_vaddr, (unsigned int)(*ring_vaddr),
+             (unsigned int)buffer_paddr, (unsigned long)adf_nbuf_data(buffer_vaddr));
+      pdev->ipa_uc_tx_rsc.tx_buf_pool_vaddr_strg[tx_buffer_count] =
+            buffer_vaddr;
+      /* Memory barrier to ensure actual value updated */
+
+      ring_vaddr++;
+   }
+
+   adf_os_print("%s: Allocated TX buffer count is %d\n",
+                __func__, tx_buffer_count);
+   pdev->ipa_uc_tx_rsc.alloc_tx_buf_cnt = tx_buffer_count;
+
+   return 0;
+
+free_tx_comp_base:
+   adf_os_mem_free_consistent(pdev->osdev,
+                   ol_cfg_ipa_uc_tx_max_buf_cnt(pdev->ctrl_pdev) * 4,
+                   pdev->ipa_uc_tx_rsc.tx_comp_base.vaddr,
+                   pdev->ipa_uc_tx_rsc.tx_comp_base.paddr,
+                   adf_os_get_dma_mem_context(
+                      (&pdev->ipa_uc_tx_rsc.tx_comp_base), memctx));
+free_tx_ce_idx:
+   adf_os_mem_free_consistent(pdev->osdev,
+                   4,
+                   pdev->ipa_uc_tx_rsc.tx_ce_idx.vaddr,
+                   pdev->ipa_uc_tx_rsc.tx_ce_idx.paddr,
+                   adf_os_get_dma_mem_context(
+                      (&pdev->ipa_uc_tx_rsc.tx_ce_idx), memctx));
+   return return_code;
+}
+
+int htt_tx_ipa_uc_detach(struct htt_pdev_t *pdev)
+{
+   u_int16_t idx;
+
+   if (pdev->ipa_uc_tx_rsc.tx_ce_idx.vaddr) {
+      adf_os_mem_free_consistent(pdev->osdev,
+                   4,
+                   pdev->ipa_uc_tx_rsc.tx_ce_idx.vaddr,
+                   pdev->ipa_uc_tx_rsc.tx_ce_idx.paddr,
+                   adf_os_get_dma_mem_context(
+                      (&pdev->ipa_uc_tx_rsc.tx_ce_idx), memctx));
+   }
+
+   if (pdev->ipa_uc_tx_rsc.tx_comp_base.vaddr) {
+     adf_os_mem_free_consistent(pdev->osdev,
+                   ol_cfg_ipa_uc_tx_max_buf_cnt(pdev->ctrl_pdev) * 4,
+                   pdev->ipa_uc_tx_rsc.tx_comp_base.vaddr,
+                   pdev->ipa_uc_tx_rsc.tx_comp_base.paddr,
+                   adf_os_get_dma_mem_context(
+                      (&pdev->ipa_uc_tx_rsc.tx_comp_base), memctx));
+   }
+
+   /* Free each single buffer */
+   for(idx = 0; idx < pdev->ipa_uc_tx_rsc.alloc_tx_buf_cnt; idx++) {
+      if (pdev->ipa_uc_tx_rsc.tx_buf_pool_vaddr_strg[idx]) {
+         adf_nbuf_unmap(pdev->osdev,
+            pdev->ipa_uc_tx_rsc.tx_buf_pool_vaddr_strg[idx],
+            ADF_OS_DMA_FROM_DEVICE);
+         adf_nbuf_free(pdev->ipa_uc_tx_rsc.tx_buf_pool_vaddr_strg[idx]);
+      }
+   }
+
+   /* Free storage */
+   adf_os_mem_free(pdev->ipa_uc_tx_rsc.tx_buf_pool_vaddr_strg);
+
+   return 0;
+}
+#endif /* IPA_UC_OFFLOAD */

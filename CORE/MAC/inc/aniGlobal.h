@@ -1029,6 +1029,10 @@ typedef struct sMacOpenParameters
     tANI_U16 RArateLimitInterval;
     v_BOOL_t IsRArateLimitEnabled;
 #endif
+#if !defined(QCA_WIFI_ISOC)
+    /* is RX re-ordering offloaded to the fw */
+    tANI_U8 reorderOffload;
+#endif
 
     /* dfs radar pri multiplier */
     tANI_S32 dfsRadarPriMultiplier;

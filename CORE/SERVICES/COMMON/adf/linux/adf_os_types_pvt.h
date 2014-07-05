@@ -179,6 +179,7 @@ enum __adf_net_wireless_evcode{
 #define __adf_os_snprint             snprintf
 #define __adf_os_vsnprint            vsnprintf
 
+#define __ADF_OS_DMA_BIDIRECTIONAL  DMA_BIDIRECTIONAL
 #define __ADF_OS_DMA_TO_DEVICE      DMA_TO_DEVICE
 #define __ADF_OS_DMA_FROM_DEVICE    DMA_FROM_DEVICE
 #define __adf_os_inline            inline

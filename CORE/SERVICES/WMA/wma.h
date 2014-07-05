@@ -178,6 +178,15 @@
 #define WMA_MAX_RF_CHAINS(x)	((1 << x) - 1)
 #define WMA_MIN_RF_CHAINS		(1)
 
+#ifdef FEATURE_WLAN_EXTSCAN
+#define WMA_MAX_EXTSCAN_MSG_SIZE        1536
+#define WMA_EXTSCAN_REST_TIME           100
+#define WMA_EXTSCAN_MAX_SCAN_TIME       50000
+#define WMA_EXTSCAN_REPEAT_PROBE        10
+#define WMA_EXTSCAN_BURST_DURATION      150
+#define WMA_EXTSCAN_MAX_TABLE_USAGE     71
+#endif
+
 typedef struct {
 	HTC_ENDPOINT_ID endpoint_id;
 }t_cfg_nv_param;

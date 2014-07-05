@@ -267,5 +267,89 @@ htt_rx_reorder_log_print(struct htt_pdev_t *pdev);
 #define htt_rx_reorder_log_print(pdev)
 #endif
 
+#ifdef IPA_UC_OFFLOAD
+/**
+ * @brief send IPA UC resource config message to firmware with HTT message
+ * @details
+ *  send IPA UC resource config message to firmware with HTT message
+ *
+ * @param pdev - handle to the HTT instance
+ */
+int
+htt_h2t_ipa_uc_rsc_cfg_msg(struct htt_pdev_t *pdev);
+
+/**
+ * @brief Client request resource information
+ * @details
+ *  OL client will reuqest IPA UC related resource information
+ *  Resource information will be distributted to IPA module
+ *  All of the required resources should be pre-allocated
+ *
+ * @param pdev - handle to the HTT instance
+ * @param ce_sr_base_paddr - copy engine source ring base physical address
+ * @param ce_sr_ring_size - copy engine source ring size
+ * @param ce_reg_paddr - copy engine register physical address
+ * @param tx_comp_ring_base_paddr - tx comp ring base physical address
+ * @param tx_comp_ring_size - tx comp ring size
+ * @param tx_num_alloc_buffer - number of allocated tx buffer
+ * @param rx_rdy_ring_base_paddr - rx ready ring base physical address
+ * @param rx_rdy_ring_size - rx ready ring size
+ * @param rx_proc_done_idx_paddr - rx process done index physical address
+ */
+int
+htt_ipa_uc_get_resource(htt_pdev_handle pdev,
+   a_uint32_t *ce_sr_base_paddr,
+   a_uint32_t *ce_sr_ring_size,
+   a_uint32_t *ce_reg_paddr,
+   a_uint32_t *tx_comp_ring_base_paddr,
+   a_uint32_t *tx_comp_ring_size,
+   a_uint32_t *tx_num_alloc_buffer,
+   a_uint32_t *rx_rdy_ring_base_paddr,
+   a_uint32_t *rx_rdy_ring_size,
+   a_uint32_t *rx_proc_done_idx_paddr);
+
+/**
+ * @brief Client set IPA UC doorbell register
+ * @details
+ *  IPA UC let know doorbell register physical address
+ *  WLAN firmware will use this physical address to notify IPA UC
+ *
+ * @param pdev - handle to the HTT instance
+ * @param ipa_uc_tx_doorbell_paddr - tx comp doorbell physical address
+ * @param ipa_uc_rx_doorbell_paddr - rx ready doorbell physical address
+ */
+int
+htt_ipa_uc_set_doorbell_paddr(htt_pdev_handle pdev,
+           a_uint32_t ipa_uc_tx_doorbell_paddr,
+           a_uint32_t ipa_uc_rx_doorbell_paddr);
+
+/**
+ * @brief Client notify IPA UC data path active or not
+ *
+ * @param pdev - handle to the HTT instance
+ * @param uc_active - UC data path is active or not
+ * @param is_tx - UC TX is active or not
+ */
+int
+htt_h2t_ipa_uc_set_active(struct htt_pdev_t *pdev,
+   a_bool_t uc_active,
+   a_bool_t is_tx);
+
+/**
+ * @brief Attach IPA UC data path
+ *
+ * @param pdev - handle to the HTT instance
+ */
+int
+htt_ipa_uc_attach(struct htt_pdev_t *pdev);
+
+/**
+ * @brief detach IPA UC data path
+ *
+ * @param pdev - handle to the HTT instance
+ */
+void
+htt_ipa_uc_detach(struct htt_pdev_t *pdev);
+#endif /* IPA_UC_OFFLOAD */
 
 #endif /* _OL_HTT_API__H_ */

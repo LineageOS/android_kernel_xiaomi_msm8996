@@ -790,6 +790,18 @@ void sim_target_register_write(struct ol_softc *scn, u_int32_t addr, u_int32_t v
 
 #endif
 
+#ifdef IPA_UC_OFFLOAD
+/*
+ * IPA micro controller data path offload feature enabled,
+ * HIF should release copy engine related resource information to IPA UC
+ * IPA UC will access hardware resource with released information
+ */
+void HIFIpaGetCEResource(HIF_DEVICE *hif_device,
+                          A_UINT32 *ce_sr_base_paddr,
+                          A_UINT32 *ce_sr_ring_size,
+                          A_UINT32 *ce_reg_paddr);
+#endif /* IPA_UC_OFFLOAD */
+
 #ifdef __cplusplus
 }
 #endif

@@ -1301,6 +1301,9 @@ else
 #Open P2P device interface only for non-MDM9630 platform
 CDEFINES += -DWLAN_OPEN_P2P_INTERFACE
 
+#Enable 2.4 GHz social channels in 5 GHz only mode for p2p usage
+CDEFINES += -DWLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
+
 endif
 
 #Enable Signed firmware support for split binary format
