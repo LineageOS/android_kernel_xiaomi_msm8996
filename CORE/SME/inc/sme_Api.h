@@ -3597,22 +3597,28 @@ eHalStatus sme_GetLinkSpeed(tHalHandle hHal,tSirLinkSpeedInfo *lsReq,void *plsCo
 #endif
 
 /*----------------------------------------------------------------------------
+ \fn  sme_ModifyAddIE
+ \brief  This function sends msg to updates the additional IE buffers in PE
+ \param  hHal - global structure
+ \param  pModifyIE - pointer to tSirModifyIE structure
+ \param  updateType - type of buffer
+ \- return Success or failure
+-----------------------------------------------------------------------------*/
+eHalStatus sme_ModifyAddIE(tHalHandle hHal,
+                           tSirModifyIE *pModifyIE,
+                           eUpdateIEsType updateType);
+
+/*----------------------------------------------------------------------------
  \fn  sme_UpdateAddIE
  \brief  This function sends msg to updates the additional IE buffers in PE
  \param  hHal - global structure
- \param  sessionId - SME session id
- \param  bssid - BSSID
- \param  additionIEBuffer - buffer containing addition IE from hostapd
- \param  length - length of buffer
- \param  append - append or replace completely
+ \param  pUpdateIE - pointer to structure tSirUpdateIE
+ \param  updateType - Type of buffer
  \- return Success or failure
 -----------------------------------------------------------------------------*/
 eHalStatus sme_UpdateAddIE(tHalHandle hHal,
-                         tANI_U8 sessionId,
-                         tSirMacAddr bssid,
-                         tANI_U8 *additionIEBuffer,
-                         tANI_U16 length,
-                         boolean append);
+                           tSirUpdateIE *pUpdateIE,
+                           eUpdateIEsType updateType);
 
 eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value);
 eHalStatus sme_ApDisableIntraBssFwd(tHalHandle hHal, tANI_U8 sessionId,

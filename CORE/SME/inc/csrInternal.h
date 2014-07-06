@@ -1493,22 +1493,30 @@ csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tCsrBssid bssid,
                      tANI_U8 targetChannel, tANI_U8 csaIeReqd);
 
 /*----------------------------------------------------------------------------
+ \fn csrRoamModifyAddIEs
+ \brief  This function sends msg to modify the additional IE buffers in PE
+ \param  pMac - pMac global structure
+ \param  pModifyIE - pointer to tSirModifyIE structure
+ \param  updateType - Type of buffer
+ \- return Success or failure
+-----------------------------------------------------------------------------*/
+eHalStatus
+csrRoamModifyAddIEs(tpAniSirGlobal pMac,
+                             tSirModifyIE *pModifyIE,
+                             eUpdateIEsType updateType);
+
+
+/*----------------------------------------------------------------------------
  \fn csrRoamUpdateAddIEs
  \brief  This function sends msg to updates the additional IE buffers in PE
  \param  pMac - pMac global structure
- \param  sessionId - SME session id
- \param  bssid - BSSID
- \param  additionIEBuffer - buffer containing addition IE from hostapd
- \param  length - length of buffer
- \param  append - append or replace completely
+ \param  pUpdateIE - pointer to tSirUpdateIE structure
+ \param  updateType, - type of buffer
  \- return Success or failure
 -----------------------------------------------------------------------------*/
 eHalStatus
 csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
-                  tANI_U8 sessionId,
-                  tSirMacAddr bssid,
-                  tANI_U8 *additionIEBuffer,
-                  tANI_U16 length,
-                  boolean append);
+                  tSirUpdateIE *pUpdateIE,
+                  eUpdateIEsType updateType);
 
 #endif

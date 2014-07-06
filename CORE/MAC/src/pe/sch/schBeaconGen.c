@@ -101,29 +101,18 @@ tSirRetStatus schAppendAddnIE(tpAniSirGlobal pMac, tpPESession psessionEntry,
     tANI_U32 present, len;
     tANI_U8 addIE[WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN];
 
-     if((status = wlan_cfgGetInt(pMac, WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG,
-                                 &present)) != eSIR_SUCCESS)
-    {
-        schLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG"));
-        return status;
-    }
-
+    present = (psessionEntry->addIeParams.probeRespBCNDataLen != 0);
     if(present)
     {
-        if((status = wlan_cfgGetStrLen(pMac, WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA,
-                                       &len)) != eSIR_SUCCESS)
-        {
-            schLog(pMac, LOGP,
-                FL("Unable to get WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA length"));
-            return status;
-        }
+        len = psessionEntry->addIeParams.probeRespBCNDataLen;
 
         if(len <= WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN && len &&
           ((len + *nBytes) <= maxBeaconSize))
         {
-            if((status = wlan_cfgGetStr(pMac,
-                          WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, &addIE[0], &len))
-                          == eSIR_SUCCESS)
+
+            vos_mem_copy(&addIE[0],
+                psessionEntry->addIeParams.probeRespBCNData_buff, len);
+
             {
                 tANI_U8* pP2pIe = limGetP2pIEPtr(pMac, &addIE[0], len);
                 if ((pP2pIe != NULL) && !pMac->beacon_offload)
@@ -148,8 +137,16 @@ tSirRetStatus schAppendAddnIE(tpAniSirGlobal pMac, tpPESession psessionEntry,
                         }
                     }
                 }
-                vos_mem_copy(pFrame, &addIE[0], len);
-                *nBytes = *nBytes + len;
+                if(len <= WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN)
+                {
+                    vos_mem_copy(pFrame, &addIE[0], len);
+                    *nBytes = *nBytes + len;
+                }
+                else
+                {
+                    schLog(pMac, LOGW, FL("Not able to insert because of"
+                        " length constraint %d"), len);
+                }
             }
         }
     }

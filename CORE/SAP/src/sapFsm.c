@@ -2122,18 +2122,49 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     profile->MFPRequired = pconfig_params->mfpRequired ? 1 : 0;
 #endif
 
-    if (pconfig_params->addnIEsBufferLen > 0 &&
-        pconfig_params->addnIEsBuffer != NULL)
+    if (pconfig_params->probeRespIEsBufferLen > 0 &&
+        pconfig_params->pProbeRespIEsBuffer != NULL)
     {
-        profile->addIeParams.dataLen = pconfig_params->addnIEsBufferLen;
-        profile->addIeParams.data_buff = pconfig_params->addnIEsBuffer;
+        profile->addIeParams.probeRespDataLen =
+            pconfig_params->probeRespIEsBufferLen;
+        profile->addIeParams.probeRespData_buff =
+            pconfig_params->pProbeRespIEsBuffer;
     }
     else
     {
-        profile->addIeParams.dataLen = 0;
-        profile->addIeParams.data_buff = NULL;
+        profile->addIeParams.probeRespDataLen = 0;
+        profile->addIeParams.probeRespData_buff = NULL;
     }
-    return eSAP_STATUS_SUCCESS; /* Success.  */
+    /*assoc resp IE */
+    if (pconfig_params->assocRespIEsLen > 0 &&
+            pconfig_params->pAssocRespIEsBuffer != NULL)
+    {
+        profile->addIeParams.assocRespDataLen =
+            pconfig_params->assocRespIEsLen;
+        profile->addIeParams.assocRespData_buff =
+            pconfig_params->pAssocRespIEsBuffer;
+    }
+    else
+    {
+        profile->addIeParams.assocRespDataLen = 0;
+        profile->addIeParams.assocRespData_buff = NULL;
+    }
+
+    if (pconfig_params->probeRespBcnIEsLen > 0 &&
+            pconfig_params->pProbeRespBcnIEsBuffer!= NULL)
+    {
+        profile->addIeParams.probeRespBCNDataLen =
+            pconfig_params->probeRespBcnIEsLen;
+        profile->addIeParams.probeRespBCNData_buff =
+            pconfig_params->pProbeRespBcnIEsBuffer;
+    }
+    else
+    {
+        profile->addIeParams.probeRespBCNDataLen = 0;
+        profile->addIeParams.probeRespBCNData_buff = NULL;
+    }
+
+    return eSAP_STATUS_SUCCESS; /* Success. */
 }
 
 /**

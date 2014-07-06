@@ -649,8 +649,12 @@ typedef __ani_attr_pre_packed struct sSirHtConfig
 } __ani_attr_packed tSirHTConfig, *tpSirHTConfig;
 
 typedef __ani_attr_pre_packed struct sSirAddIeParams{
-      tANI_U16       dataLen;
-      tANI_U8       *data_buff;
+      tANI_U16       probeRespDataLen;
+      tANI_U8       *probeRespData_buff;
+      tANI_U16       assocRespDataLen;
+      tANI_U8       *assocRespData_buff;
+      tANI_U16       probeRespBCNDataLen;
+      tANI_U8       *probeRespBCNData_buff;
 } tSirAddIeParams, *tpSirAddIeParams;
 
 /// Definition for kick starting BSS
@@ -4957,18 +4961,65 @@ typedef struct sSirStartBeaconIndication
     tANI_U8      bssid[VOS_MAC_ADDR_SIZE];
 }tSirStartBeaconIndication, *tpSirStartBeaconIndication;
 
+/* additional IE type */
+typedef enum tUpdateIEsType
+{
+    eUPDATE_IE_NONE,
+    eUPDATE_IE_PROBE_BCN,
+    eUPDATE_IE_PROBE_RESP,
+    eUPDATE_IE_ASSOC_RESP,
+
+    /* Add type above this line*/
+    /* this is used to reset all buffer */
+    eUPDATE_IE_ALL,
+    eUPDATE_IE_MAX
+} eUpdateIEsType;
+
+
+/* Modify particular IE in addition IE for prob resp Bcn */
+typedef struct sSirModifyIE
+{
+   tSirMacAddr      bssid;
+   tANI_U16         smeSessionId;
+   boolean          notify;
+   tANI_U8          ieID;
+   tANI_U8          ieIDLen;   /*ie length as per spec*/
+   tANI_U16         ieBufferlength;
+   tANI_U8         *pIEBuffer;
+
+}tSirModifyIE,    *tpSirModifyIE;
+
 
 /* Message format for Update IE message sent to PE  */
-typedef struct sUpdateAIEs
+typedef struct sSirModifyIEsInd
 {
-   tANI_U16       msgType;
-   tANI_U16       msgLen;
-   tSirMacAddr    bssid;
-   tANI_U16       smeSessionId;
-   tANI_U8       *pAdditionIEBuffer;
-   tANI_U16       length;
-   boolean        append;
-}tUpdateAIEs,    *tpUpdateAIEs;
+   tANI_U16         msgType;
+   tANI_U16         msgLen;
+   tSirModifyIE     modifyIE;
+   eUpdateIEsType   updateType;
+}tSirModifyIEsInd,    *tpSirModifyIEsInd;
+
+
+/* Message format for Update IE message sent to PE  */
+typedef struct sSirUpdateIE
+{
+   tSirMacAddr      bssid;
+   tANI_U16         smeSessionId;
+   boolean          append;
+   boolean          notify;
+   tANI_U16         ieBufferlength;
+   tANI_U8         *pAdditionIEBuffer;
+}tSirUpdateIE,  *tpSirUpdateIE;
+
+
+/* Message format for Update IE message sent to PE  */
+typedef struct sSirUpdateIEsInd
+{
+   tANI_U16         msgType;
+   tANI_U16         msgLen;
+   tSirUpdateIE     updateIE;
+   eUpdateIEsType   updateType;
+}tSirUpdateIEsInd,   *tpSirUpdateIEsInd;
 
 /* Message format for requesting channel switch announcement to lower layers */
 typedef struct sSirDfsCsaIeRequest

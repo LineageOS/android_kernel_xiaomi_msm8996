@@ -490,8 +490,16 @@ typedef struct sap_Config {
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     v_U8_t          cc_switch_mode;
 #endif
-    v_U16_t    addnIEsBufferLen;
-    v_PVOID_t  addnIEsBuffer; /* buffer for addn ies comes from hostapd*/
+
+    v_U16_t    probeRespIEsBufferLen;
+    v_PVOID_t  pProbeRespIEsBuffer; /* buffer for addn ies comes from hostapd*/
+
+    v_U16_t    assocRespIEsLen;
+    v_PVOID_t  pAssocRespIEsBuffer; /* buffer for addn ies comes from hostapd*/
+
+    v_U16_t    probeRespBcnIEsLen;
+    v_PVOID_t  pProbeRespBcnIEsBuffer; /* buffer for addn ies comes from hostapd*/
+
 } tsap_Config_t;
 
 typedef enum {
@@ -2045,6 +2053,10 @@ WLANSAP_Set_Dfs_Target_Chnl(tHalHandle hHal,
   IN
   additionIELength - length of buffer
 
+  PARAMETERS
+  IN
+  updateType - Type of buffer
+
   RETURN VALUE
   The VOS_STATUS code associated with performing the operation
 
@@ -2054,8 +2066,9 @@ WLANSAP_Set_Dfs_Target_Chnl(tHalHandle hHal,
 ============================================================================*/
 
 VOS_STATUS WLANSAP_UpdateSapConfigAddIE(tsap_Config_t *pConfig,
-                         const tANI_U8 *additionIEBuffer,
-                         tANI_U16 additionIELength);
+                         const tANI_U8 *pAdditionIEBuffer,
+                         tANI_U16 additionIELength,
+                         eUpdateIEsType updateType);
 
 /*==========================================================================
   FUNCTION    WLANSAP_ResetSapConfigAddIE
@@ -2069,7 +2082,9 @@ VOS_STATUS WLANSAP_UpdateSapConfigAddIE(tsap_Config_t *pConfig,
   PARAMETERS
   IN OUT
   pConfig:  Pointer to sap config
-
+  PARAMETERS
+  IN
+  updateType:  type buffer
   RETURN VALUE
   The VOS_STATUS code associated with performing the operation
 
@@ -2078,7 +2093,10 @@ VOS_STATUS WLANSAP_UpdateSapConfigAddIE(tsap_Config_t *pConfig,
   SIDE EFFECTS
 ============================================================================*/
 
-VOS_STATUS WLANSAP_ResetSapConfigAddIE(tsap_Config_t *pConfig );
+VOS_STATUS
+WLANSAP_ResetSapConfigAddIE(tsap_Config_t *pConfig,
+                            eUpdateIEsType updateType);
+
 
 
 /*==========================================================================

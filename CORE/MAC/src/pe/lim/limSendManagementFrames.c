@@ -877,13 +877,13 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     //In listening mode, probe rsp IEs is passed in the message from SME to PE
     else
     {
-        addnIEPresent = (psessionEntry->addIeParams.dataLen != 0);
+        addnIEPresent = (psessionEntry->addIeParams.probeRespDataLen != 0);
     }
 
     if (addnIEPresent)
     {
 
-        addIE = vos_mem_malloc(psessionEntry->addIeParams.dataLen);
+        addIE = vos_mem_malloc(psessionEntry->addIeParams.probeRespDataLen);
         if ( NULL == addIE )
         {
             PELOGE(limLog(pMac, LOGE,
@@ -892,11 +892,12 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
             return;
         }
 
-        vos_mem_copy(addIE, psessionEntry->addIeParams.data_buff,
-            psessionEntry->addIeParams.dataLen);
-        totalAddnIeLen = psessionEntry->addIeParams.dataLen;
+        vos_mem_copy(addIE, psessionEntry->addIeParams.probeRespData_buff,
+            psessionEntry->addIeParams.probeRespDataLen);
+        totalAddnIeLen = psessionEntry->addIeParams.probeRespDataLen;
 
-        if(eSIR_SUCCESS != limGetAddnIeForProbeResp(pMac, addIE, &totalAddnIeLen, probeReqP2pIe))
+        if(eSIR_SUCCESS != limGetAddnIeForProbeResp(pMac, addIE,
+            &totalAddnIeLen, probeReqP2pIe))
         {
             limLog(pMac, LOGP,
                  FL("Unable to get final Additional IE for Probe Req"));
@@ -1529,32 +1530,23 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
     if ( pAssocReq != NULL )
     {
-        if (wlan_cfgGetInt(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_FLAG,
-                    &addnIEPresent) != eSIR_SUCCESS)
-        {
-            limLog(pMac, LOGP, FL("Unable to get "
-                                  "WNI_CFG_ASSOC_RSP_ADDNIE_FLAG"));
-            return;
-        }
+        addnIEPresent = (psessionEntry->addIeParams.assocRespDataLen != 0);
 
         if (addnIEPresent)
         {
             //Assoc rsp IE available
-            if (wlan_cfgGetStrLen(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_DATA,
-                        &addnIELen) != eSIR_SUCCESS)
-            {
-                limLog(pMac, LOGP, FL("Unable to get "
-                           "WNI_CFG_ASSOC_RSP_ADDNIE_DATA length"));
-                return;
-            }
+
+            addnIELen = psessionEntry->addIeParams.assocRespDataLen;
 
             if (addnIELen <= WNI_CFG_ASSOC_RSP_ADDNIE_DATA_LEN && addnIELen &&
                     (nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE)
             {
-                if (wlan_cfgGetStr(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_DATA,
-                            &addIE[0], &addnIELen) == eSIR_SUCCESS)
-                {
+                vos_mem_copy(addIE, psessionEntry->addIeParams.assocRespData_buff,
+                           psessionEntry->addIeParams.assocRespDataLen);
 
+                if (addnIELen)
+
+                {
                     vos_mem_set(( tANI_U8* )&extractedExtCap,
                         sizeof( tDot11fIEExtCap ), 0);
 
@@ -1654,9 +1646,10 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     }
     PELOG1(limPrintMacAddr(pMac, pMacHdr->da, LOG1);)
 
-    if ( addnIEPresent )
+    if ( addnIEPresent && addnIELen <= WNI_CFG_ASSOC_RSP_ADDNIE_DATA_LEN )
     {
-        vos_mem_copy (  pFrame+sizeof(tSirMacMgmtHdr)+nPayload, &addIE[0], addnIELen ) ;
+        vos_mem_copy( pFrame+sizeof(tSirMacMgmtHdr)+nPayload,
+            &addIE[0], addnIELen ) ;
     }
 
     if( ( SIR_BAND_5_GHZ == limGetRFBand(psessionEntry->currentOperChannel))

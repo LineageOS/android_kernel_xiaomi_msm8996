@@ -12631,23 +12631,18 @@ v_U8_t sme_GetDFSScanMode(tHalHandle hHal)
     return pMac->roam.configParam.allowDFSChannelRoam;
 }
 
+
 /*----------------------------------------------------------------------------
- \fn  sme_UpdateAIE
+ \fn  sme_ModifyAddIE
  \brief  This function sends msg to updates the additional IE buffers in PE
  \param  hHal - global structure
- \param  sessionId - SME session id
- \param  bssid - BSSID
- \param  additionIEBuffer - buffer containing addition IE from hostapd
- \param  length - length of buffer
- \param  append - append or replace completely
+ \param  pModifyIE - pointer to tModifyIE structure
+ \param  updateType - type of buffer
  \- return Success or failure
 -----------------------------------------------------------------------------*/
-eHalStatus sme_UpdateAddIE(tHalHandle hHal,
-                         tANI_U8 sessionId,
-                         tSirMacAddr bssid,
-                         tANI_U8 *additionIEBuffer,
-                         tANI_U16 length,
-                         boolean append)
+eHalStatus sme_ModifyAddIE(tHalHandle hHal,
+                           tSirModifyIE *pModifyIE,
+                           eUpdateIEsType updateType)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -12655,8 +12650,32 @@ eHalStatus sme_UpdateAddIE(tHalHandle hHal,
 
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrRoamUpdateAddIEs(pMac, sessionId, bssid, additionIEBuffer,
-            length, append);
+        status = csrRoamModifyAddIEs(pMac, pModifyIE, updateType);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    return (status);
+}
+
+
+/*----------------------------------------------------------------------------
+ \fn  sme_UpdateAddIE
+ \brief  This function sends msg to updates the additional IE buffers in PE
+ \param  hHal - global structure
+ \param  pUpdateIE - pointer to structure tUpdateIE
+ \param  updateType - type of buffer
+ \- return Success or failure
+-----------------------------------------------------------------------------*/
+eHalStatus sme_UpdateAddIE(tHalHandle hHal,
+                           tSirUpdateIE *pUpdateIE,
+                           eUpdateIEsType updateType)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    status = sme_AcquireGlobalLock( &pMac->sme );
+
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+        status = csrRoamUpdateAddIEs(pMac, pUpdateIE, updateType);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
     return (status);
