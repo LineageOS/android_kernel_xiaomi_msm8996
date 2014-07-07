@@ -735,6 +735,9 @@ typedef struct sSirSmeStartBssReq
 #endif
 
     tSirAddIeParams         addIeParams;
+
+    tANI_BOOLEAN            obssEnabled;
+
 } tSirSmeStartBssReq, *tpSirSmeStartBssReq;
 
 #define GET_IE_LEN_IN_BSS(lenInBss) ( lenInBss + sizeof(lenInBss) - \
