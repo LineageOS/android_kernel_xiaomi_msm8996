@@ -4087,6 +4087,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     v_U8_t total_ielen = 0;
     int ret = 0;
     tsap_Config_t *pConfig;
+    tSirUpdateIE   updateIE;
 
     pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
 
@@ -4128,89 +4129,68 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         wlan_hdd_add_hostapd_conf_vsie(pHostapdAdapter, genie, &total_ielen);
     }
 
-    if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-       WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, genie, total_ielen, NULL,
-               eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-    {
-        hddLog(LOGE,
-               "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA to CCM");
-        ret = -EINVAL;
-        goto done;
-    }
 
-    if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-          WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 1,NULL,
-          test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags) ?
-                   eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE)
-          ==eHAL_STATUS_FAILURE)
-    {
-        hddLog(LOGE,
-            "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM");
-        ret = -EINVAL;
-        goto done;
-    }
+    vos_mem_copy(updateIE.bssid, pHostapdAdapter->macAddressCurrent.bytes,
+                   sizeof(tSirMacAddr));
+    updateIE.smeSessionId =  pHostapdAdapter->sessionId;
 
-    // Added for ProResp IE
-    if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
-    {
+    if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) {
+        updateIE.ieBufferlength = total_ielen;
+        updateIE.pAdditionIEBuffer = genie;
+        updateIE.append = VOS_FALSE;
+        updateIE.notify = VOS_TRUE;
         if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pHostapdAdapter),
-                               pHostapdAdapter->sessionId,
-                               pHostapdAdapter->macAddressCurrent.bytes,
-                               (tANI_U8*)params->proberesp_ies,
-                               params->proberesp_ies_len,
-                               VOS_FALSE) == eHAL_STATUS_FAILURE)
-        {
-            hddLog(LOGE, FL("Could not pass on Probe Resp Add Ie"));
+                &updateIE, eUPDATE_IE_PROBE_BCN) == eHAL_STATUS_FAILURE) {
+            hddLog(LOGE, FL("Could not pass on Add Ie probe beacon data"));
             ret = -EINVAL;
             goto done;
         }
-        WLANSAP_ResetSapConfigAddIE(pConfig);
-    }
-    else
-    {
+        WLANSAP_ResetSapConfigAddIE(pConfig , eUPDATE_IE_PROBE_BCN);
+    } else {
         WLANSAP_UpdateSapConfigAddIE(pConfig,
-            params->proberesp_ies,
-            params->proberesp_ies_len);
+                                     genie,
+                                     total_ielen,
+                                     eUPDATE_IE_PROBE_BCN);
     }
-    // Added for AssocResp IE
-    if ( (params->assocresp_ies != NULL) && (params->assocresp_ies_len != 0) )
-    {
-       if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-               WNI_CFG_ASSOC_RSP_ADDNIE_DATA, (tANI_U8*)params->assocresp_ies,
-               params->assocresp_ies_len, NULL,
-               eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
-       {
-            hddLog(LOGE,
-                  "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_DATA to CCM");
+
+    /* Added for Probe Response IE */
+    if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) {
+        updateIE.ieBufferlength = params->proberesp_ies_len;
+        updateIE.pAdditionIEBuffer = (tANI_U8*)params->proberesp_ies;
+        updateIE.append = VOS_FALSE;
+        updateIE.notify = VOS_FALSE;
+        if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pHostapdAdapter),
+                  &updateIE, eUPDATE_IE_PROBE_RESP) == eHAL_STATUS_FAILURE) {
+            hddLog(LOGE, FL("Could not pass on PROBE_RESP add Ie data"));
             ret = -EINVAL;
             goto done;
-       }
-
-       if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-          WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 1, NULL,
-          test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags) ?
-                   eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE)
-          == eHAL_STATUS_FAILURE)
-       {
-          hddLog(LOGE,
-            "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_FLAG to CCM");
-          ret = -EINVAL;
-          goto done;
-       }
-    }
-    else
-    {
-        hddLog(VOS_TRACE_LEVEL_INFO,
-               "%s: No Assoc Response IE received in set beacon",
-               __func__);
-
-        if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 0, NULL,
-                            eANI_BOOLEAN_FALSE) )
-        {
-            hddLog(LOGE,
-               "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_FLAG to CCM");
         }
+        WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_PROBE_RESP);
+    } else {
+        WLANSAP_UpdateSapConfigAddIE(pConfig,
+                             params->proberesp_ies,
+                             params->proberesp_ies_len,
+                             eUPDATE_IE_PROBE_RESP);
+    }
+
+    /* Assoc resp Add ie Data */
+    if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) {
+        updateIE.ieBufferlength = params->assocresp_ies_len;
+        updateIE.pAdditionIEBuffer = (tANI_U8*)params->assocresp_ies;
+        updateIE.append = VOS_FALSE;
+        updateIE.notify = VOS_FALSE;
+        if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pHostapdAdapter),
+                &updateIE, eUPDATE_IE_ASSOC_RESP) == eHAL_STATUS_FAILURE) {
+            hddLog(LOGE, FL("Could not pass on Add Ie Assoc Response data"));
+            ret = -EINVAL;
+            goto done;
+        }
+        WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ASSOC_RESP);
+    } else {
+        WLANSAP_UpdateSapConfigAddIE(pConfig,
+                         params->assocresp_ies,
+                         params->assocresp_ies_len,
+                         eUPDATE_IE_ASSOC_RESP);
     }
 
 done:
@@ -4958,7 +4938,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     if ( 0 != wlan_hdd_cfg80211_update_apies(pHostapdAdapter, params) )
     {
         hddLog(LOGE, FL("SAP Not able to set AP IEs"));
-        WLANSAP_ResetSapConfigAddIE(pConfig);
+        WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
         return -EINVAL;
     }
 
@@ -4991,7 +4971,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
     {
-        WLANSAP_ResetSapConfigAddIE(pConfig);
+        WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
         //Bss already started. just return.
         //TODO Probably it should update some beacon params.
         hddLog( LOGE, "Bss Already started...Ignore the request");
@@ -5049,7 +5029,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                  pSapEventCallback, pConfig, (v_PVOID_t)pHostapdAdapter->dev);
     if (!VOS_IS_STATUS_SUCCESS(status))
     {
-        WLANSAP_ResetSapConfigAddIE(pConfig);
+        WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
         hddLog(LOGE,FL("SAP Start Bss fail"));
         return -EINVAL;
     }
@@ -5059,7 +5039,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
 
-    WLANSAP_ResetSapConfigAddIE(pConfig);
+    WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
 
     if (!VOS_IS_STATUS_SUCCESS(status))
     {
@@ -5244,6 +5224,7 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     hdd_scaninfo_t *pScanInfo  = NULL;
     hdd_adapter_t  *staAdapter = NULL;
     VOS_STATUS status;
+    tSirUpdateIE   updateIE;
 
     ENTER();
 
@@ -5358,20 +5339,21 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
             return -EINVAL;
         }
 
-        if (ccmCfgSetInt(pHddCtx->hHal,
-            WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 0,NULL, eANI_BOOLEAN_FALSE)
-                                                    ==eHAL_STATUS_FAILURE)
-        {
-            hddLog(LOGE,
-               "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM");
+        vos_mem_copy(updateIE.bssid, pAdapter->macAddressCurrent.bytes,
+              sizeof(tSirMacAddr));
+        updateIE.smeSessionId = pAdapter->sessionId;
+        updateIE.ieBufferlength = 0;
+        updateIE.pAdditionIEBuffer = NULL;
+        updateIE.append = VOS_TRUE;
+        updateIE.notify = VOS_TRUE;
+        if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                  &updateIE, eUPDATE_IE_PROBE_BCN) == eHAL_STATUS_FAILURE) {
+            hddLog(LOGE, FL("Could not pass on PROBE_RSP_BCN data to PE"));
         }
 
-        if ( eHAL_STATUS_FAILURE == ccmCfgSetInt(pHddCtx->hHal,
-                            WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 0, NULL,
-                            eANI_BOOLEAN_FALSE) )
-        {
-            hddLog(LOGE,
-               "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_FLAG to CCM");
+        if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                  &updateIE, eUPDATE_IE_ASSOC_RESP) == eHAL_STATUS_FAILURE) {
+            hddLog(LOGE, FL("Could not pass on ASSOC_RSP data to PE"));
         }
 
         // Reset WNI_CFG_PROBE_RSP Flags
@@ -9106,53 +9088,6 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                     pWextState->roamProfile.pAddIEAssoc = pWextState->assocAddIE.addIEdata;
                     pWextState->roamProfile.nAddIEAssocLength = pWextState->assocAddIE.length;
                 }
-
-                if (WLAN_HDD_IBSS == pAdapter->device_mode) {
-
-                   /* populating as ADDIE in beacon frames */
-                   if (ccmCfgSetStr(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                       WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, genie - 2, eLen + 2,
-                       NULL, eANI_BOOLEAN_FALSE)== eHAL_STATUS_SUCCESS)
-                   {
-                       if (ccmCfgSetInt(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                           WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 1,NULL,
-                           eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
-                       {
-                           hddLog(LOGE,
-                                  "Coldn't pass "
-                                  "WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM");
-                       }
-                   }/* ccmCfgSetStr(,WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, , )*/
-                   else
-                       hddLog(LOGE,
-                              "Could not pass on "
-                              "WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA to CCM");
-
-                   /* IBSS mode doesn't contain params->proberesp_ies still
-                    beaconIE's need to be populated in probe response frames */
-                   if ( (NULL != (genie - 2)) && (0 != eLen + 2) )
-                   {
-                      u16 rem_probe_resp_ie_len = eLen + 2;
-                      if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                        pAdapter->sessionId,
-                                        pAdapter->macAddressCurrent.bytes,
-                                        (tANI_U8*)(genie - 2),
-                                        rem_probe_resp_ie_len,
-                                        VOS_TRUE) == eHAL_STATUS_FAILURE)
-                      {
-                         hddLog(LOGE, "Could not pass ADDNIE data to PE");
-                      }
-                   }
-                   else
-                   {
-                      // Reset WNI_CFG_PROBE_RSP Flags
-                      wlan_hdd_reset_prob_rspies(pAdapter);
-
-                      hddLog(VOS_TRACE_LEVEL_INFO,
-                            "%s: No Probe Response IE received in set beacon",
-                            __func__);
-                   }
-                } /* end of if (WLAN_HDD_IBSS == pAdapter->device_mode) */
                 break;
             case DOT11F_EID_RSN:
                 hddLog (VOS_TRACE_LEVEL_INFO, "%s Set RSN IE(len %d)",__func__, eLen + 2);
