@@ -158,6 +158,10 @@ htt_h2t_ver_req_msg(struct htt_pdev_t *pdev)
 #else
     HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt);
 #endif
+    if ((pdev->cfg.is_high_latency) &&
+        (!pdev->cfg.default_tx_comp_req)) {
+        ol_tx_target_credit_update(pdev->txrx_pdev, -1);
+    }
     return A_OK;
 }
 
@@ -486,6 +490,9 @@ htt_h2t_rx_ring_cfg_msg_hl(struct htt_pdev_t *pdev)
 #else
     HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt);
 #endif
+    if (!pdev->cfg.default_tx_comp_req) {
+        ol_tx_target_credit_update(pdev->txrx_pdev, -1);
+    }
     return A_OK;
 }
 
@@ -576,6 +583,10 @@ htt_h2t_dbg_stats_get(
 #else
     HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt);
 #endif
+    if ((pdev->cfg.is_high_latency) &&
+        (!pdev->cfg.default_tx_comp_req)) {
+        ol_tx_target_credit_update(pdev->txrx_pdev, -1);
+    }
     return 0;
 }
 
@@ -634,6 +645,10 @@ htt_h2t_sync_msg(struct htt_pdev_t *pdev, u_int8_t sync_cnt)
 #else
     HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt);
 #endif
+    if ((pdev->cfg.is_high_latency) &&
+        (!pdev->cfg.default_tx_comp_req)) {
+        ol_tx_target_credit_update(pdev->txrx_pdev, -1);
+    }
     return A_OK;
 }
 
@@ -701,6 +716,10 @@ htt_h2t_aggr_cfg_msg(struct htt_pdev_t *pdev,
 #else
     HTCSendPkt(pdev->htc_pdev, &pkt->htc_pkt);
 #endif
+    if ((pdev->cfg.is_high_latency) &&
+        (!pdev->cfg.default_tx_comp_req)) {
+        ol_tx_target_credit_update(pdev->txrx_pdev, -1);
+    }
     return 0;
 }
 

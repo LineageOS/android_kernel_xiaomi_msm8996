@@ -213,6 +213,7 @@ struct htt_pdev_t {
     struct {
         int is_high_latency;
         int is_full_reorder_offload;
+        int default_tx_comp_req;
     } cfg;
     struct {
         u_int8_t major;

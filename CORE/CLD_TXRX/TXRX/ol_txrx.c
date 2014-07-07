@@ -255,6 +255,7 @@ ol_txrx_pdev_attach(
 
     /* init LL/HL cfg here */
     pdev->cfg.is_high_latency = ol_cfg_is_high_latency(ctrl_pdev);
+    pdev->cfg.default_tx_comp_req = !ol_cfg_tx_free_at_download(ctrl_pdev);
 
     /* store provided params */
     pdev->ctrl_pdev = ctrl_pdev;

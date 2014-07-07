@@ -391,6 +391,7 @@ struct ol_txrx_pdev_t {
 		int is_high_latency;
 		int host_addba;
 		int ll_pause_txq_limit;
+                int default_tx_comp_req;
 	} cfg;
 
 	/* WDI subscriber's event list */

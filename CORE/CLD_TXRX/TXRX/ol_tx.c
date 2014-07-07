@@ -480,7 +480,8 @@ static inline adf_nbuf_t
 ol_tx_hl_base(
     ol_txrx_vdev_handle vdev,
     enum ol_tx_spec tx_spec,
-    adf_nbuf_t msdu_list)
+    adf_nbuf_t msdu_list,
+    int tx_comp_req)
 {
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     adf_nbuf_t msdu = msdu_list;
@@ -562,6 +563,7 @@ ol_tx_hl_base(
         tx_msdu_info.htt.info.vdev_id = vdev->vdev_id;
         tx_msdu_info.htt.info.frame_type = htt_frm_type_data;
         tx_msdu_info.htt.info.l2_hdr_type = pdev->htt_pkt_type;
+        tx_msdu_info.htt.action.tx_comp_req = tx_comp_req;
 
         txq = ol_tx_classify(vdev, tx_desc, msdu, &tx_msdu_info);
 
@@ -644,7 +646,10 @@ MSDU_LOOP_BOTTOM:
 adf_nbuf_t
 ol_tx_hl(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
 {
-    return ol_tx_hl_base(vdev, ol_tx_spec_std, msdu_list);
+    struct ol_txrx_pdev_t *pdev = vdev->pdev;
+    int tx_comp_req = pdev->cfg.default_tx_comp_req;
+
+    return ol_tx_hl_base(vdev, ol_tx_spec_std, msdu_list, tx_comp_req);
 }
 
 adf_nbuf_t
@@ -653,7 +658,16 @@ ol_tx_non_std_hl(
     enum ol_tx_spec tx_spec,
     adf_nbuf_t msdu_list)
 {
-    return ol_tx_hl_base(vdev, tx_spec, msdu_list);
+    struct ol_txrx_pdev_t *pdev = vdev->pdev;
+    int tx_comp_req = pdev->cfg.default_tx_comp_req;
+
+    if (!tx_comp_req) {
+        if ((tx_spec == ol_tx_spec_no_free) &&
+            (pdev->tx_data_callback.func)) {
+            tx_comp_req = 1;
+        }
+    }
+    return ol_tx_hl_base(vdev, tx_spec, msdu_list, tx_comp_req);
 }
 
 adf_nbuf_t
@@ -754,6 +768,7 @@ ol_txrx_mgmt_send(
 
     adf_nbuf_map_single(pdev->osdev, tx_mgmt_frm, ADF_OS_DMA_TO_DEVICE);
     if (pdev->cfg.is_high_latency) {
+        tx_msdu_info.htt.action.tx_comp_req = 1;
         tx_desc = ol_tx_desc_hl(pdev, vdev, tx_mgmt_frm, &tx_msdu_info);
     } else {
         tx_desc = ol_tx_desc_ll(pdev, vdev, tx_mgmt_frm, &tx_msdu_info);
