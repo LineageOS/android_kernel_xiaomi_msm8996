@@ -2250,10 +2250,10 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 	wmi_wmm_ac_stats *ac_stats;
 	tSirLLStatsResults *link_stats_results;
 	u_int8_t *results, *t_link_stats, *t_ac_stats;
-	u_int32_t link_stats_results_size, count;
-	u_int32_t next_res_offset, next_ac_offset;
+	u_int32_t next_res_offset, next_ac_offset, count;
 	u_int32_t roaming_offset , roaming_size;
-	u_int32_t link_stats_size, ac_stats_size, iface_info_size;
+	size_t link_stats_size, ac_stats_size, iface_info_size;
+	size_t link_stats_results_size;
 
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
 				wma_handle->vos_context);
@@ -2394,9 +2394,10 @@ static int wma_unified_link_peer_stats_event_handler(void *handle,
 	wmi_rate_stats *rate_stats;
 	tSirLLStatsResults *link_stats_results;
 	u_int8_t *results, *t_peer_stats, *t_rate_stats;
-	u_int32_t link_stats_results_size, count, num_rates=0;
+	u_int32_t count, num_rates=0;
 	u_int32_t next_res_offset, next_peer_offset, next_rate_offset;
-	u_int32_t peer_info_size, peer_stats_size, rate_stats_size;
+	size_t peer_info_size, peer_stats_size, rate_stats_size;
+	size_t link_stats_results_size;
 
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
                                 wma_handle->vos_context);
@@ -2536,9 +2537,9 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 	wmi_channel_stats *channel_stats;
 	tSirLLStatsResults *link_stats_results;
 	u_int8_t *results, *t_radio_stats, *t_channel_stats;
-	u_int32_t link_stats_results_size, count;
-	u_int32_t next_res_offset, next_chan_offset;
-	u_int32_t radio_stats_size, chan_stats_size;
+	u_int32_t next_res_offset, next_chan_offset, count;
+	size_t radio_stats_size, chan_stats_size;
+	size_t link_stats_results_size;
 
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
 				wma_handle->vos_context);
