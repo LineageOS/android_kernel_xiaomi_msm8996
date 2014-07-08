@@ -1054,15 +1054,6 @@ typedef struct sAniSirGlobal
 {
     tDriverType  gDriverType;
 
-    // we should be able to save this hddHandle in here and deprecate
-    // the pAdapter.  For now, compiles are a problem because there
-    // are dependencides on the header files that are not handling the
-    // compiler very gracefully.
-//    tHddHandle   hHdd;       // Handle to the HDD.
-    //void        *hHdd;
-    void        *pAdapter;   // deprecate this pAdapter pointer eventually...
-                             // all interfaces to the HDD should pass hHdd, which
-                             // is stored in this struct above.....
     tSirMbMsg*   pResetMsg;
     tAniSirCfg   cfg;
     tAniSirLim   lim;
@@ -1070,7 +1061,8 @@ typedef struct sAniSirGlobal
     tAniSirSch   sch;
     tAniSirSys   sys;
     tAniSirUtils utils;
-    // PAL/HDD handle
+
+    /* PAL/HDD handle */
     tHddHandle hHdd;
 
 #ifdef ANI_DVT_DEBUG

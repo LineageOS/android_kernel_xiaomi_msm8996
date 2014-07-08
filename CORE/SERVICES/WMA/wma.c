@@ -1852,7 +1852,7 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 		vos_mem_free(extscan_ind);
 		return -EINVAL;
 	}
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				event_type, extscan_ind);
 	WMA_LOGD("%s: sending event to umac for requestid %x"
 		"with status %d", __func__,
@@ -1907,7 +1907,7 @@ static int wma_extscan_operations_event_handler(void *handle,
 		vos_mem_free(oprn_ind);
 		return -EINVAL;
 	}
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_SCAN_PROGRESS_EVENT_IND,
 				oprn_ind);
 	WMA_LOGD("%s: sending scan progress event to hdd",
@@ -1949,7 +1949,7 @@ static int wma_extscan_table_usage_event_handler (void *handle,
 	tbl_usg_ind->requestId = event->request_id;
 	tbl_usg_ind->numResultsAvailable = event->maximum_entries;
 
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_SCAN_RES_AVAILABLE_IND,
 				tbl_usg_ind);
 	WMA_LOGD("%s: sending scan_res available event to hdd",
@@ -2009,7 +2009,7 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 		dest_capab->maxHotlistAPs,
 		dest_capab->scanCacheSize);
 
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_GET_CAPABILITIES_IND,
 				dest_capab);
 	WMA_LOGD("%s: sending capabilities event to hdd", __func__);
@@ -2084,7 +2084,7 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 		dest_ap++;
 		src_hotlist++;
 	}
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_HOTLIST_MATCH_IND,
 				dest_hotlist);
 	WMA_LOGD("%s: sending hotlist match event to hdd", __func__);
@@ -2164,7 +2164,7 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 		dest_ap++;
 		src_hotlist++;
 	}
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_CACHED_RESULTS_IND,
 				dest_cachelist);
 	WMA_LOGD("%s: sending cached results event", __func__);
@@ -2251,7 +2251,7 @@ static int wma_extscan_change_results_event_handler(void *handle,
 	dest_chglist->moreData = moredata;
 	dest_chglist->numResults = event->total_entries;
 
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_SIGNIFICANT_WIFI_CHANGE_RESULTS_IND,
 				dest_chglist);
 	WMA_LOGD("%s: sending change monitor results", __func__);
@@ -2396,7 +2396,7 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 	 * vdev_id/ifacId in link_stats_results will be
 	 * used to retrieve the correct HDD context
 	 */
-	pMac->sme.pLinkLayerStatsIndCallback(pMac->pAdapter,
+	pMac->sme.pLinkLayerStatsIndCallback(pMac->hHdd,
 		WDA_LINK_LAYER_STATS_RESULTS_RSP,
 		link_stats_results);
 	WMA_LOGD("%s: Iface Stats event posted to HDD", __func__);
@@ -2539,7 +2539,7 @@ static int wma_unified_link_peer_stats_event_handler(void *handle,
 	 * vdev_id/ifacId in link_stats_results will be
 	 * used to retrieve the correct HDD context
 	 */
-	pMac->sme.pLinkLayerStatsIndCallback(pMac->pAdapter,
+	pMac->sme.pLinkLayerStatsIndCallback(pMac->hHdd,
 	        WDA_LINK_LAYER_STATS_RESULTS_RSP,
 	        link_stats_results);
 	WMA_LOGD("%s: Peer Stats event posted to HDD", __func__);
@@ -2668,7 +2668,7 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 	 * vdev_id/ifacId in link_stats_results will be
 	 * used to retrieve the correct HDD context
 	 */
-	pMac->sme.pLinkLayerStatsIndCallback(pMac->pAdapter,
+	pMac->sme.pLinkLayerStatsIndCallback(pMac->hHdd,
 	        WDA_LINK_LAYER_STATS_RESULTS_RSP,
 	        link_stats_results);
 	WMA_LOGD("%s: Radio Stats event posted to HDD", __func__);
