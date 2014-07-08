@@ -7748,6 +7748,7 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       pAdapter->wdev.netdev =  pWlanDev;
       /* set pWlanDev's parent to underlying device */
       SET_NETDEV_DEV(pWlanDev, pHddCtx->parent_dev);
+      hdd_wmm_init( pAdapter );
    }
 
    return pAdapter;
@@ -8849,6 +8850,7 @@ VOS_STATUS hdd_close_all_adapters( hdd_context_t *pHddCtx )
 void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
 {
     tANI_U8 *bssid = NULL;
+    tSirUpdateIE updateIE;
     switch (pHostapdAdapter->device_mode)
     {
     case WLAN_HDD_INFRA_STATION:
@@ -8878,14 +8880,16 @@ void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
                pHostapdAdapter->device_mode);
         return;
     }
+
+    vos_mem_copy(updateIE.bssid, bssid, sizeof(tSirMacAddr));
+        updateIE.smeSessionId =  pHostapdAdapter->sessionId;
+        updateIE.ieBufferlength = 0;
+        updateIE.pAdditionIEBuffer = NULL;
+        updateIE.append = VOS_TRUE;
+        updateIE.notify = VOS_FALSE;
     if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pHostapdAdapter),
-                      pHostapdAdapter->sessionId,
-                      bssid,
-                      NULL,
-                      0,
-                      VOS_TRUE) == eHAL_STATUS_FAILURE)
-    {
-        hddLog(LOGE, "Could not pass on Additional IE data to PE");
+            &updateIE, eUPDATE_IE_PROBE_RESP) == eHAL_STATUS_FAILURE) {
+        hddLog(LOGE, FL("Could not pass on PROBE_RSP_BCN data to PE"));
     }
 }
 
@@ -8895,6 +8899,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
    union iwreq_data wrqu;
+   tSirUpdateIE updateIE ;
    long ret;
 
    ENTER();
@@ -9053,21 +9058,23 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
             clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
             wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
 
-            if (eHAL_STATUS_FAILURE ==
-                ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG,
-                             0, NULL, eANI_BOOLEAN_FALSE))
-            {
-               hddLog(LOGE,
-                      "%s: Failed to set WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG",
-                      __func__);
+            vos_mem_copy(updateIE.bssid, pAdapter->macAddressCurrent.bytes,
+                   sizeof(tSirMacAddr));
+            updateIE.smeSessionId = pAdapter->sessionId;
+            updateIE.ieBufferlength = 0;
+            updateIE.pAdditionIEBuffer = NULL;
+            updateIE.append = VOS_FALSE;
+            updateIE.notify = VOS_FALSE;
+            /* Probe bcn reset */
+            if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                              &updateIE, eUPDATE_IE_PROBE_BCN)
+                              == eHAL_STATUS_FAILURE) {
+                hddLog(LOGE, FL("Could not pass on PROBE_RSP_BCN data to PE"));
             }
-
-            if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal,
-                     WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 0, NULL,
-                     eANI_BOOLEAN_FALSE) )
-            {
-               hddLog(LOGE,
-                     "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_FLAG to CCM");
+            /* Assoc resp reset */
+            if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                    &updateIE, eUPDATE_IE_ASSOC_RESP) == eHAL_STATUS_FAILURE) {
+                hddLog(LOGE, FL("Could not pass on ASSOC_RSP data to PE"));
             }
 
             // Reset WNI_CFG_PROBE_RSP Flags
@@ -9214,6 +9221,8 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
       pAdapter = pAdapterNode->pAdapter;
+
+      hdd_wmm_init( pAdapter );
 
       switch(pAdapter->device_mode)
       {
@@ -11483,15 +11492,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_wiphy_unregister;
    }
 
-   //Initialize the WMM module
-   status = hdd_wmm_init(pHddCtx, hddWmmDscpToUpMapInfra);
-   status = hdd_wmm_init(pHddCtx, hddWmmDscpToUpMapP2p);
-   if (!VOS_IS_STATUS_SUCCESS(status))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __func__);
-      goto err_wiphy_unregister;
-   }
-
    /* In the integrated architecture we update the configuration from
       the INI file and from NV before vOSS has been started so that
       the final contents are available to send down to the cCPU   */
@@ -12040,6 +12040,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
     sme_ExtScanRegisterCallback(pHddCtx->hHal,
                                 wlan_hdd_cfg80211_extscan_callback);
 #endif /* FEATURE_WLAN_EXTSCAN */
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
+   wlan_hdd_cfg80211_link_layer_stats_init(pHddCtx);
+#endif
 
 #ifdef WLAN_FEATURE_LPSS
    wlan_hdd_send_status_pkg(pAdapter, NULL, 1, 0);

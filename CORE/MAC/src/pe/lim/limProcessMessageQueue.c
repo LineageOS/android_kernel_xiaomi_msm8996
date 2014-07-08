@@ -2182,6 +2182,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         limMsg->bodyptr = NULL;
         break;
 
+    case eWNI_SME_MODIFY_ADDITIONAL_IES:
+        limProcessSmeReqMessages(pMac, limMsg);
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        break;
+
 #ifdef QCA_HT_2040_COEX
     case eWNI_SME_SET_HT_2040_MODE:
         limProcessSmeReqMessages(pMac, limMsg);

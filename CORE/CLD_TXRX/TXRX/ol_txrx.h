@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -37,5 +37,18 @@ ol_txrx_peer_unref_delete(struct ol_txrx_peer_t *peer);
 
 u_int16_t
 ol_tx_desc_pool_size_hl(ol_pdev_handle ctrl_pdev);
+
+
+#ifndef OL_TX_AVG_FRM_BYTES
+#define OL_TX_AVG_FRM_BYTES 1000
+#endif
+
+#ifndef OL_TX_DESC_POOL_SIZE_MIN_HL
+#define OL_TX_DESC_POOL_SIZE_MIN_HL 500
+#endif
+
+#ifndef OL_TX_DESC_POOL_SIZE_MAX_HL
+#define OL_TX_DESC_POOL_SIZE_MAX_HL 5000
+#endif
 
 #endif /* _OL_TXRX__H_ */

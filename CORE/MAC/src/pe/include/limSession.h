@@ -444,6 +444,8 @@ typedef struct sPESession           // Added to Support BT-AMP
     // Size of the trailing portion
     tANI_U16 schBeaconOffsetEnd;
     tANI_BOOLEAN isOSENConnection;
+    /*  DSCP to UP mapping for HS 2.0 */
+    tSirQosMapSet QosMapSet;
 
 }tPESession, *tpPESession;
 

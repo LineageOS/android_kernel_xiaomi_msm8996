@@ -3471,7 +3471,6 @@ sme_StopBatchScanInd
 
 #endif
 
-
 /*
  * SME API to enable/disable idle mode powersave
  * This should be called only if powersave offload
@@ -3598,22 +3597,28 @@ eHalStatus sme_GetLinkSpeed(tHalHandle hHal,tSirLinkSpeedInfo *lsReq,void *plsCo
 #endif
 
 /*----------------------------------------------------------------------------
+ \fn  sme_ModifyAddIE
+ \brief  This function sends msg to updates the additional IE buffers in PE
+ \param  hHal - global structure
+ \param  pModifyIE - pointer to tSirModifyIE structure
+ \param  updateType - type of buffer
+ \- return Success or failure
+-----------------------------------------------------------------------------*/
+eHalStatus sme_ModifyAddIE(tHalHandle hHal,
+                           tSirModifyIE *pModifyIE,
+                           eUpdateIEsType updateType);
+
+/*----------------------------------------------------------------------------
  \fn  sme_UpdateAddIE
  \brief  This function sends msg to updates the additional IE buffers in PE
  \param  hHal - global structure
- \param  sessionId - SME session id
- \param  bssid - BSSID
- \param  additionIEBuffer - buffer containing addition IE from hostapd
- \param  length - length of buffer
- \param  append - append or replace completely
+ \param  pUpdateIE - pointer to structure tSirUpdateIE
+ \param  updateType - Type of buffer
  \- return Success or failure
 -----------------------------------------------------------------------------*/
 eHalStatus sme_UpdateAddIE(tHalHandle hHal,
-                         tANI_U8 sessionId,
-                         tSirMacAddr bssid,
-                         tANI_U8 *additionIEBuffer,
-                         tANI_U16 length,
-                         boolean append);
+                           tSirUpdateIE *pUpdateIE,
+                           eUpdateIEsType updateType);
 
 eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value);
 eHalStatus sme_ApDisableIntraBssFwd(tHalHandle hHal, tANI_U8 sessionId,
@@ -3783,4 +3788,53 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
 
 eHalStatus sme_abortRoamScan(tHalHandle hHal);
 #endif //#if WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
+
+/* ---------------------------------------------------------------------------
+    \fn sme_LLStatsClearReq
+    \brief  SME API to clear Link Layer Statistics
+    \param  hHal
+    \param  pclearStatsReq: Link Layer clear stats request params structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_LLStatsClearReq (tHalHandle hHal,
+                        tSirLLStatsClearReq *pclearStatsReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_LLStatsSetReq
+    \brief  SME API to set the Link Layer Statistics
+    \param  hHal
+    \param  psetStatsReq: Link Layer set stats request params structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_LLStatsSetReq (tHalHandle hHal,
+                        tSirLLStatsSetReq *psetStatsReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_LLStatsGetReq
+    \brief  SME API to get the Link Layer Statistics
+    \param  hHal
+    \param  pgetStatsReq: Link Layer get stats request params structure
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_LLStatsGetReq (tHalHandle hHal,
+                        tSirLLStatsGetReq *pgetStatsReq);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetLinkLayerStatsIndCB
+    \brief  SME API to trigger the stats are available  after get request
+    \param  hHal
+    \param callbackRoutine - HDD callback which needs to be invoked after
+           getting status notification from FW
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetLinkLayerStatsIndCB
+(
+    tHalHandle hHal,
+    void (*callbackRoutine) (void *callbackCtx, int indType, void *pRsp)
+);
+
+#endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+
 #endif //#if !defined( __SME_API_H )

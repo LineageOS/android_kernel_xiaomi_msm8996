@@ -615,6 +615,8 @@ void handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac, tpPESession psessio
 // Function to handle CFG parameter updates
 void limHandleCFGparamUpdate(tpAniSirGlobal, tANI_U32);
 
+void limHandleParamUpdate(tpAniSirGlobal pMac, eUpdateIEsType cfgId);
+
 // Function to apply CFG parameters before join/reassoc/start BSS
 void limApplyConfiguration(tpAniSirGlobal,tpPESession);
 

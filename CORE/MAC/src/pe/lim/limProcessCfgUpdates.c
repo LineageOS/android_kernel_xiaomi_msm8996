@@ -224,7 +224,48 @@ static tSirRetStatus limUpdateTriggerStaBkScanFlag(tpAniSirGlobal pMac)
 
     return eSIR_FAILURE;
 }
+/**
+ * limHandleParamUpdate()
+ *
+ *FUNCTION:
+ * This function is use to post a message whenever need indicate
+ * there is update of config parameter.
+ *
+ *PARAMS:
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ *
+ * @param  pMac  - Pointer to Global MAC structure
+ * @param  cfgId - ID of CFG parameter that got updated
+ * @return None
+ */
+void
+limHandleParamUpdate(tpAniSirGlobal pMac, eUpdateIEsType cfgId)
+{
+    tSirMsgQ msg = {0};
+    tANI_U32 status;
 
+    PELOG3(limLog(pMac, LOG3, FL("Handling CFG parameter id %X update"), cfgId);)
+    switch (cfgId)
+    {
+    case eUPDATE_IE_PROBE_BCN:
+    {
+        msg.type = SIR_LIM_UPDATE_BEACON;
+        status = limPostMsgApi(pMac, &msg);
+
+        if (status != TX_SUCCESS)
+        PELOGE(limLog(pMac, LOGE, FL("Failed limPostMsgApi %u"), status);)
+        break;
+    }
+    default:
+        break;
+    }
+}
 
 /**
  * limHandleCFGparamUpdate()

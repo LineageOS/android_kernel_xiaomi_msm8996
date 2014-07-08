@@ -1761,16 +1761,20 @@ VOS_STATUS WLANTL_Close(void *vos_ctx)
 	for (i = 0;
 		i < wdi_out_cfg_max_vdevs(((pVosContextType)vos_ctx)->cfg_ctx);
 		i++) {
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
-		vos_event_destroy(&tl_shim->peer_authorized_events[i]);
-#endif
 		adf_os_spinlock_destroy(&tl_shim->session_flow_control[i].fc_lock);
 	}
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
-	adf_os_mem_free(tl_shim->peer_authorized_events);
-#endif
 	adf_os_mem_free(tl_shim->session_flow_control);
 #endif /* QCA_LL_TX_FLOW_CT */
+
+#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+	for (i = 0;
+	     i < wdi_out_cfg_max_vdevs(((pVosContextType)vos_ctx)->cfg_ctx);
+	     i++) {
+		vos_event_destroy(&tl_shim->peer_authorized_events[i]);
+	}
+	adf_os_mem_free(tl_shim->peer_authorized_events);
+#endif
+
 	adf_os_mem_free(tl_shim->vdev_active);
 #ifdef FEATURE_WLAN_ESE
 	vos_flush_work(&tl_shim->iapp_work.deferred_work);
@@ -1852,35 +1856,40 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 		return VOS_STATUS_E_NOMEM;
 	}
 
-#ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
-	tl_shim->peer_authorized_events = adf_os_mem_alloc(NULL,
-					  max_vdev * sizeof(vos_event_t));
-	if (!tl_shim->peer_authorized_events) {
-		TLSHIM_LOGE("Failed to allocate memory for events");
-		adf_os_mem_free(tl_shim->session_flow_control);
-		vos_free_context(vos_ctx, VOS_MODULE_ID_TL, tl_shim);
-		return VOS_STATUS_E_NOMEM;
-	}
-#endif
 	for (i = 0; i < max_vdev; i++) {
 		tl_shim->session_flow_control[i].flowControl = NULL;
 		tl_shim->session_flow_control[i].sessionId = 0xFF;
 		tl_shim->session_flow_control[i].adpaterCtxt = NULL;
 		tl_shim->session_flow_control[i].vdev = NULL;
+		adf_os_spinlock_init(&tl_shim->session_flow_control[i].fc_lock);
+	}
+#endif /* QCA_LL_TX_FLOW_CT */
+
 #ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
+	tl_shim->peer_authorized_events = adf_os_mem_alloc(NULL,
+					max_vdev * sizeof(vos_event_t));
+	if (!tl_shim->peer_authorized_events) {
+		TLSHIM_LOGE("Failed to allocate memory for events");
+#ifdef QCA_LL_TX_FLOW_CT
+		adf_os_mem_free(tl_shim->session_flow_control);
+#endif
+		vos_free_context(vos_ctx, VOS_MODULE_ID_TL, tl_shim);
+		return VOS_STATUS_E_NOMEM;
+	}
+	for (i = 0; i < max_vdev; i++) {
 		status = vos_event_init(&tl_shim->peer_authorized_events[i]);
 		if (!VOS_IS_STATUS_SUCCESS(status)) {
 			TLSHIM_LOGE("%s: Failed to initialized a event.",
 				    __func__);
 			adf_os_mem_free(tl_shim->peer_authorized_events);
+#ifdef QCA_LL_TX_FLOW_CT
 			adf_os_mem_free(tl_shim->session_flow_control);
+#endif
 			vos_free_context(vos_ctx, VOS_MODULE_ID_TL, tl_shim);
 			return status;
 		}
-#endif
-		adf_os_spinlock_init(&tl_shim->session_flow_control[i].fc_lock);
 	}
-#endif /* QCA_LL_TX_FLOW_CT */
+#endif
 
 	tl_shim->ip_checksum_offload = tl_cfg->ip_checksum_offload;
 	tl_shim->delay_interval = tl_cfg->uDelayedTriggerFrmInt;

@@ -120,6 +120,7 @@ typedef struct {
  * qca_wlan_vendor_attr is open source file src/common/qca-vendor.h in
  * git://w1.fi/srv/git/hostap.git; the values here are just a copy of that
  */
+
 #define QCA_NL80211_VENDOR_ID                          0x001374
 
 enum qca_nl80211_vendor_subcmds {
@@ -160,23 +161,57 @@ enum qca_nl80211_vendor_subcmds {
     QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_RESET_SIGNIFICANT_CHANGE = 33,
 };
 
+enum qca_nl80211_vendor_subcmds_index {
+#ifdef FEATURE_WLAN_CH_AVOID
+    QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY_INDEX = 0,
+#endif /* FEATURE_WLAN_CH_AVOID */
+
+#ifdef WLAN_FEATURE_STATS_EXT
+    QCA_NL80211_VENDOR_SUBCMD_STATS_EXT_INDEX,
+#endif /* WLAN_FEATURE_STATS_EXT */
+
+#ifdef FEATURE_WLAN_EXTSCAN
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_START_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_STOP_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_GET_CAPABILITIES_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_GET_CACHED_RESULTS_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SCAN_RESULTS_AVAILABLE_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_FULL_SCAN_RESULT_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SCAN_EVENT_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_HOTLIST_AP_FOUND_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SET_BSSID_HOTLIST_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_RESET_BSSID_HOTLIST_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SIGNIFICANT_CHANGE_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SET_SIGNIFICANT_CHANGE_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_RESET_SIGNIFICANT_CHANGE_INDEX,
+#endif /* FEATURE_WLAN_EXTSCAN */
+
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
+    QCA_NL80211_VENDOR_SUBCMD_LL_STATS_SET_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_LL_STATS_GET_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_LL_STATS_CLR_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_LL_RADIO_STATS_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_LL_IFACE_STATS_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_LL_PEER_INFO_STATS_INDEX,
+#endif
+}; /* WLAN_FEATURE_LINK_LAYER_STATS */
+
 enum qca_wlan_vendor_attr {
     QCA_WLAN_VENDOR_ATTR_INVALID = 0,
     /* used by QCA_NL80211_VENDOR_SUBCMD_DFS_CAPABILITY */
-    QCA_WLAN_VENDOR_ATTR_DFS     = 1,
+    QCA_WLAN_VENDOR_ATTR_DFS = 1,
     /* used by QCA_NL80211_VENDOR_SUBCMD_NAN */
-    QCA_WLAN_VENDOR_ATTR_NAN     = 2,
+    QCA_WLAN_VENDOR_ATTR_NAN = 2,
     /* used by QCA_NL80211_VENDOR_SUBCMD_STATS_EXT */
-    QCA_WLAN_VENDOR_ATTR_STATS_EXT     = 3,
-
-    QCA_WLAN_VENDOR_ATTR_IFINDEX     = 4,
-
+    QCA_WLAN_VENDOR_ATTR_STATS_EXT = 3,
+    QCA_WLAN_VENDOR_ATTR_IFINDEX = 4,
     /* keep last */
     QCA_WLAN_VENDOR_ATTR_AFTER_LAST,
-    QCA_WLAN_VENDOR_ATTR_MAX       = QCA_WLAN_VENDOR_ATTR_AFTER_LAST - 1,
+    QCA_WLAN_VENDOR_ATTR_MAX =
+    QCA_WLAN_VENDOR_ATTR_AFTER_LAST - 1
 };
 
-
+#ifdef FEATURE_WLAN_EXTSCAN
 enum qca_wlan_vendor_attr_extscan_config_params
 {
     QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_INVALID = 0,
@@ -413,31 +448,284 @@ enum qca_wlan_vendor_attr_extscan_results
         QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_AFTER_LAST - 1,
 };
 
-enum qca_nl80211_vendor_subcmds_index {
-#ifdef FEATURE_WLAN_CH_AVOID
-    QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY_INDEX = 0,
-#endif /* FEATURE_WLAN_CH_AVOID */
+#endif
 
-#ifdef WLAN_FEATURE_STATS_EXT
-    QCA_NL80211_VENDOR_SUBCMD_STATS_EXT_INDEX,
-#endif /* WLAN_FEATURE_STATS_EXT */
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
 
-#ifdef FEATURE_WLAN_EXTSCAN
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_START_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_STOP_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_GET_CAPABILITIES_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_GET_CACHED_RESULTS_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SCAN_RESULTS_AVAILABLE_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_FULL_SCAN_RESULT_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SCAN_EVENT_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_HOTLIST_AP_FOUND_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SET_BSSID_HOTLIST_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_RESET_BSSID_HOTLIST_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SIGNIFICANT_CHANGE_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SET_SIGNIFICANT_CHANGE_INDEX,
-    QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_RESET_SIGNIFICANT_CHANGE_INDEX,
-#endif /* FEATURE_WLAN_EXTSCAN */
+enum qca_wlan_vendor_attr_ll_stats_set
+{
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_SET_INVALID = 0,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_SET_CONFIG_MPDU_SIZE_THRESHOLD = 1,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_SET_CONFIG_AGGRESSIVE_STATS_GATHERING,
+    /* keep last */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_SET_AFTER_LAST,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_SET_MAX =
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_SET_AFTER_LAST - 1
 };
+
+enum qca_wlan_vendor_attr_ll_stats_get
+{
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_INVALID = 0,
+    /* Unsigned 32bit value provided by the caller issuing the GET stats
+     * command. When reporting the stats results, the driver uses the same
+     * value to indicate which GET request the results correspond to.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_CONFIG_REQ_ID,
+    /* Unsigned 34bit value - bit mask to identify what
+     * statistics are requested for retrieval.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_CONFIG_REQ_MASK,
+    /* keep last */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_AFTER_LAST,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_MAX =
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_AFTER_LAST - 1
+};
+
+enum qca_wlan_vendor_attr_ll_stats_clr
+{
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_INVALID = 0,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_CONFIG_REQ_MASK,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_CONFIG_STOP_REQ,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_CONFIG_RSP_MASK,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_CONFIG_STOP_RSP,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_AFTER_LAST,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_MAX =
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_AFTER_LAST - 1
+};
+
+enum qca_wlan_vendor_attr_ll_stats_results
+{
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_INVALID = 0,
+    /* Unsigned 32bit value */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RESULTS_REQ_ID = 1,
+    /* Unsigned 32bit value */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_BEACON_RX,
+    /* Unsigned 32bit value */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_MGMT_RX,
+    /* Unsigned 32bit value */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_MGMT_ACTION_RX,
+    /* Unsigned 32bit value */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_MGMT_ACTION_TX,
+    /* Unsigned 32bit value */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RSSI_MGMT,
+    /* Unsigned 32bit value */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RSSI_DATA,
+    /* Unsigned 32bit value */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RSSI_ACK,
+    /* Attributes of type QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_* are
+     * nested within the interface stats.
+     */
+
+    /* Interface mode, e.g., STA, SOFTAP, IBSS, etc.
+     * Type = enum wifi_interface_mode */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_MODE,
+    /* Interface MAC address. An array of 6 Unsigned int8 */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_MAC_ADDR,
+    /* Type = enum wifi_connection_state,
+     * e.g., DISCONNECTED, AUTHENTICATING, etc.
+     * valid for STA, CLI only.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_STATE,
+    /* Type = enum wifi_roam_state. Roaming state,
+     * e.g., IDLE or ACTIVE (is that valid for STA only?)
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_ROAMING,
+    /* Unsigned 32bit value. WIFI_CAPABILITY_XXX */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_CAPABILITIES,
+    /* NULL terminated SSID. An array of 33 Unsigned 8bit values */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_SSID,
+    /* BSSID. An array of 6 Unsigned 8bit values */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_BSSID,
+    /* Country string advertised by AP. An array of 3 Unsigned 8bit values */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_AP_COUNTRY_STR,
+    /* Country string for this association. An array of 3 Unsigned 8bit values*/
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_COUNTRY_STR,
+
+    /* Attributes of type QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_* could
+     * be nested within the interface stats.
+     */
+
+    /* Type = enum wifi_traffic_ac, e.g., V0, VI, BE and BK */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_AC,
+    /* Unsigned int 32 value corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_TX_MPDU,
+    /* Unsigned int 32 value corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_RX_MPDU,
+    /* Unsigned int 32 value corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_TX_MCAST,
+    /* Unsigned int 32 value corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_RX_MCAST,
+    /* Unsigned int 32 value corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_RX_AMPDU,
+    /* Unsigned int 32 value corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_TX_AMPDU,
+    /* Unsigned int 32 value corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_MPDU_LOST,
+    /* Unsigned int 32 value corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_RETRIES,
+    /* Unsigned int 32 value corresponding to respective AC  */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_RETRIES_SHORT,
+    /* Unsigned int 32 values corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_RETRIES_LONG,
+    /* Unsigned int 32 values corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_CONTENTION_TIME_MIN,
+    /* Unsigned int 32 values corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_CONTENTION_TIME_MAX,
+    /* Unsigned int 32 values corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_CONTENTION_TIME_AVG,
+    /* Unsigned int 32 values corresponding to respective AC */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_CONTENTION_NUM_SAMPLES,
+    /* Unsigned 32bit value. Number of peers */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_NUM_PEERS,
+
+    /* Attributes of type QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO_* are
+     * nested within the interface stats.
+     */
+
+    /* Type = enum wifi_peer_type. Peer type, e.g., STA, AP, P2P GO etc. */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO_TYPE,
+    /* MAC addr corresponding to respective peer.
+     *  An array of 6 Unsigned 8bit values.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO_MAC_ADDRESS,
+    /* Unsigned int 32bit value representing capabilities
+     * corresponding to respective peer.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO_CAPABILITIES,
+    /* Unsigned 32bit value. Number of rates */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO_NUM_RATES,
+
+    /* Attributes nested within the rate stats.*/
+    /* Unsigned 8bit value */
+    /* Unsigned int 8bit value; 0: OFDM, 1:CCK, 2:HT 3:VHT 4..7 reserved */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_PREAMBLE,
+    /* Unsigned int 8bit value; 0:1x1, 1:2x2, 3:3x3, 4:4x4 */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_NSS,
+    /* Unsigned int 8bit value; 0:20MHz, 1:40Mhz, 2:80Mhz, 3:160Mhz */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_BW,
+    /* Unsigned int 8bit value; OFDM/CCK rate code would be as per IEEE Std
+     * in the units of 0.5mbps HT/VHT it would be mcs index */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_MCS_INDEX,
+
+    /* Unsigned 32bit value. Bit rate in units of 100Kbps */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_BIT_RATE,
+
+    /* Attributes of type QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_* could be
+     * nested within the peer info stats.
+     */
+
+    /* Unsigned int 32bit value. Number of successfully transmitted data pkts,
+     * i.e., with ACK received  *corresponding to the respective rate.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_TX_MPDU,
+    /* Unsigned int 32bit value. Number of received data pkts
+     * corresponding to the respective rate. */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_RX_MPDU,
+    /* Unsigned int 32bit value. Number of data pkts losses, i.e.,
+     * no ACK received corresponding to *the respective rate.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_MPDU_LOST,
+    /* Unsigned int 32bit value. Total number of data pkt retries for
+     *   the respective rate.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_RETRIES,
+    /* Unsigned int 32bit value. Total number of short data pkt retries for
+      the respective rate. */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_RETRIES_SHORT,
+    /* Unsigned int 32bit value. Total number of long data pkt retries for
+     * the respective rate.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_RETRIES_LONG,
+
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_ID,
+    /* Unsigned 32bit value. Total number of msecs the radio is awake
+     *  accruing over time.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_ON_TIME,
+    /* Unsigned 32bit value. Total number of msecs the radio is
+     * transmitting accruing over time.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_TX_TIME,
+    /* Unsigned 32bit value. Total number of msecs the radio is
+     * in active receive accruing over time.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_RX_TIME,
+    /* Unsigned 32bit value. Total number of msecs the radio is
+     * awake due to all scan accruing over time.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_ON_TIME_SCAN,
+    /* Unsigned 32bit value. Total number of msecs the radio is
+     *   awake due to NAN accruing over time.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_ON_TIME_NBD,
+    /* Unsigned 32bit value. Total number of msecs the radio is
+     * awake due to GSCAN accruing over time.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_ON_TIME_GSCAN,
+    /* Unsigned 32bit value. Total number of msecs the radio is
+     * awake due to roam scan accruing over time.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_ON_TIME_ROAM_SCAN,
+    /* Unsigned 32bit value. Total number of msecs the radio is
+     * awake due to PNO scan accruing over time.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_ON_TIME_PNO_SCAN,
+    /* Unsigned 32bit value. Total number of msecs the radio is
+     * awake due to HS2.0 scans and GAS exchange accruing over time.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_ON_TIME_HS20,
+    /* Unsigned 32bit value. Number of channels. */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_NUM_CHANNELS,
+
+    /* Attributes of type QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_INFO_
+     * could be nested within the channel stats.
+     */
+
+    /* Type = enum wifi_channel_width. Channel width, e.g., 20, 40, 80, etc.*/
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_INFO_WIDTH,
+    /* Unsigned 32bit value. Primary 20MHz channel. */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_INFO_CENTER_FREQ,
+    /* Unsigned 32bit value. Center frequency (MHz) first segment. */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_INFO_CENTER_FREQ0,
+    /* Unsigned 32bit value. Center frequency (MHz) second segment. */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_INFO_CENTER_FREQ1,
+
+    /* Attributes of type QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_ could be
+     * nested within the radio stats.
+     */
+
+    /* Unsigned int 32bit value representing total number of msecs the radio
+     * s awake on that *channel accruing over time, corresponding to
+     * the respective channel.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_ON_TIME,
+    /* Unsigned int 32bit value representing total number of msecs the
+     * CCA register is busy accruing  *over time corresponding to the
+     * respective channel.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_CCA_BUSY_TIME,
+
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_NUM_RADIOS,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_CH_INFO,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO_RATE_INFO,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_INFO,
+
+    /* Unsigned 8bit value. Used by the driver; if set to 1, it indicates that
+     * more stats, e.g., peers or radio, are to follow in the next
+     * QCA_NL80211_VENDOR_SUBCMD_LL_STATS_*_RESULTS event.
+     * Otherwise, it is set to 0.
+     */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_RESULTS_MORE_DATA,
+
+    /* keep last */
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_AFTER_LAST,
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_MAX =
+    QCA_WLAN_VENDOR_ATTR_LL_STATS_AFTER_LAST -1
+};
+
+#endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+
 
 #ifdef FEATURE_WLAN_CH_AVOID
 #define HDD_MAX_AVOID_FREQ_RANGES   4

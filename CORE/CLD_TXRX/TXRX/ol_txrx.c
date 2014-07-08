@@ -68,19 +68,7 @@
 #include <ol_tx_desc.h>            /* ol_tx_desc_frame_free */
 #include <ol_tx_queue.h>
 #include <ol_tx_sched.h>           /* ol_tx_sched_attach, etc. */
-
-/*=== local definitions ===*/
-#ifndef OL_TX_AVG_FRM_BYTES
-#define OL_TX_AVG_FRM_BYTES 1000
-#endif
-
-#ifndef OL_TX_DESC_POOL_SIZE_MIN_HL
-#define OL_TX_DESC_POOL_SIZE_MIN_HL 500
-#endif
-
-#ifndef OL_TX_DESC_POOL_SIZE_MAX_HL
-#define OL_TX_DESC_POOL_SIZE_MAX_HL 5000
-#endif
+#include <ol_txrx.h>
 
 
 /*=== function definitions ===*/
@@ -831,6 +819,9 @@ ol_txrx_vdev_attach(
     vdev->safemode = 0;
     vdev->drop_unenc = 1;
     vdev->num_filters = 0;
+#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+    adf_os_atomic_init(&vdev->tx_desc_count);
+#endif
 
     adf_os_mem_copy(
         &vdev->mac_addr.raw[0], vdev_mac_addr, OL_TXRX_MAC_ADDR_LEN);
