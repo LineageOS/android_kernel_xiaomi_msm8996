@@ -1461,12 +1461,23 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
               // Initialize this buffer
               vos_mem_set( (tANI_U8 *) pMlmScanReq, len, 0);
-              pMlmScanReq->channelList.numChannels =
-                            pScanReq->channelList.numChannels;
+              if (pScanReq->channelList.numChannels <= SIR_ESE_MAX_MEAS_IE_REQS)
+              {
+                  pMlmScanReq->channelList.numChannels =
+                           pScanReq->channelList.numChannels;
+              }
+              else
+              {
+                  limLog(pMac, LOGE,
+                    FL("numChannels is more than the size(%d)"),
+                    pScanReq->channelList.numChannels);
+                  pMlmScanReq->channelList.numChannels =
+                      SIR_ESE_MAX_MEAS_IE_REQS;
+              }
 
               vos_mem_copy( pMlmScanReq->channelList.channelNumber,
                           pScanReq->channelList.channelNumber,
-                          pScanReq->channelList.numChannels);
+                          pMlmScanReq->channelList.numChannels);
         }
 
          pMlmScanReq->uIEFieldLen = pScanReq->uIEFieldLen;
