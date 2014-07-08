@@ -213,6 +213,7 @@ err_config:
 err_attach:
 	ret = -EIO;
 err_tgtstate:
+	usb_sc = NULL;
 	A_FREE(sc);
 err_alloc:
 	usb_put_dev(pdev);
