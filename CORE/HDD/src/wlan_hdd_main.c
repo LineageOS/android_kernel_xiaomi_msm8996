@@ -140,11 +140,14 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #include "if_pci.h"
 #elif defined(HIF_USB)
 #include "if_usb.h"
-#define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
 #elif defined(HIF_SDIO)
 #include "if_ath_sdio.h"
 #endif
 #include "wma.h"
+#endif
+
+#if defined(LINUX_QCMBR)
+#define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
 #endif
 
 #ifdef MODULE
@@ -5813,7 +5816,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
       goto exit;
    }
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM) && defined(HIF_USB)
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM) && defined(LINUX_QCMBR)
    if (VOS_FTM_MODE == hdd_get_conparam()) {
        if (SIOCIOCTLTX99 == cmd) {
            ret = wlan_hdd_qcmbr_unified_ioctl(pAdapter, ifr);
@@ -11607,7 +11610,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /*
     * cfg80211: Initialization  ...
     */
-#if !defined(HIF_USB)
+#if !defined(LINUX_QCMBR)
    if (VOS_FTM_MODE != hdd_get_conparam())
 #endif
    {

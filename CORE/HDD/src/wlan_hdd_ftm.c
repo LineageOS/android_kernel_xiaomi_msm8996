@@ -522,7 +522,7 @@ static FTM_STATUS ftm_status;
 static tPttMsgbuffer *pMsgBuf;
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
-#if defined(HIF_USB)
+#if defined(LINUX_QCMBR)
 #define ATH_XIOCTL_UNIFIED_UTF_CMD  0x1000
 #define ATH_XIOCTL_UNIFIED_UTF_RSP  0x1001
 #define MAX_UTF_LENGTH              1024
@@ -1688,7 +1688,7 @@ int wlan_hdd_ftm_close(hdd_context_t *pHddCtx)
     kfree(pHddCtx->cfg_ini);
     pHddCtx->cfg_ini= NULL;
 
-#if defined(QCA_WIFI_FTM) && defined(HIF_USB)
+#if defined(QCA_WIFI_FTM) && defined(LINUX_QCMBR)
     spin_lock_bh(&qcmbr_queue_lock);
     if (!list_empty(&qcmbr_queue_head)) {
         qcmbr_queue_t *msg_buf, *tmp_buf;
@@ -5532,7 +5532,7 @@ static int wlan_ftm_register_wext(hdd_adapter_t *pAdapter)
 }
 
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
-#if defined(HIF_USB)
+#if defined(LINUX_QCMBR)
 int wlan_hdd_qcmbr_command(hdd_adapter_t *pAdapter, qcmbr_data_t *pqcmbr_data)
 {
     int ret = 0;
@@ -5678,7 +5678,7 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
     data_len = *((u_int32_t *)message);
     data = (u_int32_t *)message + 1;
 
-#if defined(HIF_USB)
+#if defined(LINUX_QCMBR)
     WLANQCMBR_McProcessMsg(message);
 #else
 #ifdef CONFIG_NL80211_TESTMODE

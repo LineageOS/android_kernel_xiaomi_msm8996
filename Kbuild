@@ -81,6 +81,10 @@ ifeq ($(KERNEL_BUILD), 0)
 	#Flag to enable NAN
 	CONFIG_FEATURE_NAN := y
 
+        #Flag to enable Linux QCMBR feature as default feature
+        ifeq ($(CONFIG_ROME_IF),usb)
+                CONFIG_LINUX_QCMBR :=y
+        endif
 endif
 
 # To enable ESE upload, dependent config
@@ -1399,6 +1403,11 @@ endif
 
 ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/mach-msm/include/mach/msm_smsm.h),)
 CDEFINES += -DEXISTS_MSM_SMSM
+endif
+
+# Enable feature support fo Linux version QCMBR
+ifeq ($(CONFIG_LINUX_QCMBR),y)
+CDEFINES += -DLINUX_QCMBR
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)
