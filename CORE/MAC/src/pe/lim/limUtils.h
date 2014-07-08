@@ -591,4 +591,6 @@ void limSetProtectedBit(tpAniSirGlobal  pMac,
                            tSirMacAddr     peer,
                            tpSirMacMgmtHdr pMacHdr);
 
+tANI_U8* lim_get_ie_ptr(tANI_U8 *pIes, int length, tANI_U8 eid);
+
 #endif /* __LIM_UTILS_H */

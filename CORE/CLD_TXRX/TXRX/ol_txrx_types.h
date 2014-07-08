@@ -151,6 +151,9 @@ struct ol_tx_desc_t {
 	/* used by tx encap, to restore the os buf start offset after tx complete*/
 	u_int8_t orig_l2_hdr_bytes;
 #endif
+#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+	struct ol_txrx_vdev_t* vdev;
+#endif
 };
 
 typedef TAILQ_HEAD(, ol_tx_desc_t) ol_tx_desc_list;
@@ -774,6 +777,9 @@ struct ol_txrx_vdev_t {
 #if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
         union ol_txrx_align_mac_addr_t hl_tdls_ap_mac_addr;
         bool hlTdlsFlag;
+#endif
+#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+	adf_os_atomic_t tx_desc_count;
 #endif
 };
 

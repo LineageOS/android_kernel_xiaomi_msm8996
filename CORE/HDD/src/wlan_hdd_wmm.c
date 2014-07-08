@@ -89,8 +89,6 @@
 #define DHCP_DESTINATION_PORT 0x4300
 
 #define HDD_WMM_UP_TO_AC_MAP_SIZE 8
-sme_QosWmmUpType hddWmmDscpToUpMapInfra[WLAN_HDD_MAX_DSCP+1];
-sme_QosWmmUpType hddWmmDscpToUpMapP2p[WLAN_HDD_MAX_DSCP+1];
 
 const v_U8_t hddWmmUpToAcMap[] = {
    WLANTL_AC_BE,
@@ -1524,15 +1522,15 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
   and status to an initial state.  The configuration can later be overwritten
   via application APIs
 
-  @param pHddCtx : [in]  pointer to HDD context
+  @param pAdapter : [in]  pointer to Adapter context
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
 
   ===========================================================================*/
-VOS_STATUS hdd_wmm_init ( hdd_context_t* pHddCtx,
-                                sme_QosWmmUpType* hddWmmDscpToUpMap )
+VOS_STATUS hdd_wmm_init ( hdd_adapter_t *pAdapter )
 {
+   sme_QosWmmUpType* hddWmmDscpToUpMap = pAdapter->hddWmmDscpToUpMap;
    v_U8_t dscp;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
@@ -1801,10 +1799,8 @@ v_VOID_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
       }
 
       dscp = (tos>>2) & 0x3f;
-      if (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
-          userPri = hddWmmDscpToUpMapInfra[dscp];
-      else
-          userPri = hddWmmDscpToUpMapP2p[dscp];
+      userPri = pAdapter->hddWmmDscpToUpMap[dscp];
+
 #ifdef HDD_WMM_DEBUG
       VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
                 "%s: tos is %d, dscp is %d, up is %d",
@@ -2265,9 +2261,13 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
 
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ));
    }
-   status = sme_UpdateDSCPtoUPMapping(pHddCtx->hHal, hddWmmDscpToUpMapInfra);
-   if (!VOS_IS_STATUS_SUCCESS( status )) {
-       hdd_wmm_init( pHddCtx, hddWmmDscpToUpMapInfra );
+
+   status = sme_UpdateDSCPtoUPMapping(pHddCtx->hHal,
+       pAdapter->hddWmmDscpToUpMap, pAdapter->sessionId);
+
+   if (!VOS_IS_STATUS_SUCCESS( status ))
+   {
+       hdd_wmm_init( pAdapter );
    }
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,

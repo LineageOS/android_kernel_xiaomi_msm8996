@@ -8010,3 +8010,32 @@ limSetProtectedBit(tpAniSirGlobal  pMac,
 } /*** end limSetProtectedBit() ***/
 #endif
 
+tANI_U8* lim_get_ie_ptr(tANI_U8 *pIes, int length, tANI_U8 eid)
+{
+    int left = length;
+    tANI_U8 *ptr = pIes;
+    tANI_U8 elem_id, elem_len;
+
+    while(left >= 2)
+    {
+        elem_id  =  ptr[0];
+        elem_len =  ptr[1];
+        left -= 2;
+        if(elem_len > left)
+        {
+            VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+                FL("****Invalid IEs eid = %d elem_len=%d left=%d*****"),
+                eid,elem_len, left);
+
+            return NULL;
+        }
+        if (elem_id == eid)
+        {
+            return ptr;
+        }
+
+        left -= elem_len;
+        ptr += (elem_len + 2);
+    }
+    return NULL;
+}

@@ -853,6 +853,13 @@ limIsSmeScanReqValid(tpAniSirGlobal pMac, tpSirSmeScanReq pScanReq)
     tANI_U8 valid = true;
     tANI_U8 i = 0;
 
+    if (pScanReq->numSsid > SIR_SCAN_MAX_NUM_SSID)
+    {
+        valid = false;
+        limLog(pMac, LOGE, FL("Number of SSIDs > SIR_SCAN_MAX_NUM_SSID"));
+        goto end;
+    }
+
     for (i = 0; i < pScanReq->numSsid; i++)
     {
         if (pScanReq->ssId[i].length > SIR_MAC_MAX_SSID_LENGTH)
@@ -863,31 +870,11 @@ limIsSmeScanReqValid(tpAniSirGlobal pMac, tpSirSmeScanReq pScanReq)
             goto end;
         }
     }
-    if (pScanReq->bssType > eSIR_AUTO_MODE)
+    if ((pScanReq->bssType < 0) || (pScanReq->bssType > eSIR_AUTO_MODE))
     {
        limLog(pMac, LOGE, FL("Invalid BSS Type"));
        valid = false;
     }
-
-    if (limIsGroupAddr(pScanReq->bssId) && !limIsAddrBC(pScanReq->bssId))
-    {
-        limLog(pMac, LOGE, FL("Invalid BSS Type"));
-
-        valid = false;
-        limLog(pMac, LOGE, FL("BSSID is group addr and is not Broadcast Addr"));
-    }
-    if (!(pScanReq->scanType == eSIR_PASSIVE_SCAN || pScanReq->scanType == eSIR_ACTIVE_SCAN))
-    {
-        valid = false;
-        limLog(pMac, LOGE, FL("Invalid Scan Type"));
-    }
-
-    if (pScanReq->channelList.numChannels > SIR_MAX_NUM_CHANNELS)
-    {
-       valid = false;
-       limLog(pMac, LOGE, FL("Number of Channels > SIR_MAX_NUM_CHANNELS"));
-    }
-
     if (limIsGroupAddr(pScanReq->bssId) && !limIsAddrBC(pScanReq->bssId))
     {
         valid = false;
@@ -903,8 +890,6 @@ limIsSmeScanReqValid(tpAniSirGlobal pMac, tpSirSmeScanReq pScanReq)
         valid = false;
         limLog(pMac, LOGE, FL("Number of Channels > SIR_MAX_NUM_CHANNELS"));
     }
-
-
 
     /*
     ** check min/max channelTime range

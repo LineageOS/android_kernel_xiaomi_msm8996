@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -375,7 +375,7 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
     tANI_U32  retCode = eSIR_FAILURE;
     tANI_U32             nPayload,nBytes,nStatus;
     tpSirMacMgmtHdr      pMacHdr;
-    tANI_U32             addnIEPresent;
+    tANI_U32             addnIEPresent = VOS_FALSE;
     tANI_U32             addnIELen=0;
     tSirRetStatus        nSirStatus;
     tANI_U8              *addIE = NULL;
@@ -399,19 +399,19 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
     //Check if probe response IE is present or not
-    addnIEPresent = (psessionEntry->addIeParams.dataLen != 0);
+    addnIEPresent = (psessionEntry->addIeParams.probeRespDataLen != 0);
     if (addnIEPresent)
     {
         //Probe rsp IE available
         /*need to check the data length*/
-        addIE = vos_mem_malloc(psessionEntry->addIeParams.dataLen);
+        addIE = vos_mem_malloc(psessionEntry->addIeParams.probeRespDataLen);
         if ( NULL == addIE )
         {
              schLog(pMac, LOGE,
                  FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA1 length"));
              return retCode;
         }
-        addnIELen = psessionEntry->addIeParams.dataLen;
+        addnIELen = psessionEntry->addIeParams.probeRespDataLen;
 
 
         if (addnIELen <= WNI_CFG_PROBE_RSP_ADDNIE_DATA1_LEN && addnIELen &&
@@ -419,8 +419,8 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
         {
 
 
-        vos_mem_copy(addIE, psessionEntry->addIeParams.data_buff,
-            psessionEntry->addIeParams.dataLen);
+        vos_mem_copy(addIE, psessionEntry->addIeParams.probeRespData_buff,
+            psessionEntry->addIeParams.probeRespDataLen);
         }
     }
 

@@ -1812,6 +1812,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 #endif
 
+   vos_clear_concurrent_session_count();
    //Stop the traffic monitor timer
    if ( VOS_TIMER_STATE_RUNNING ==
                         vos_timer_getCurrentState(&pHddCtx->tx_rx_trafficTmr))
@@ -2134,15 +2135,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    if ( VOS_STATUS_SUCCESS != vosStatus )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed hdd_set_sme_config",__func__);
-      goto err_vosclose;
-   }
-
-   /* Initialize the WMM module */
-   vosStatus = hdd_wmm_init(pHddCtx, hddWmmDscpToUpMapInfra);
-   vosStatus = hdd_wmm_init(pHddCtx, hddWmmDscpToUpMapP2p);
-   if ( !VOS_IS_STATUS_SUCCESS( vosStatus ))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __func__);
       goto err_vosclose;
    }
 

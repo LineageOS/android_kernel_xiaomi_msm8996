@@ -1138,6 +1138,7 @@ static void initConfigParam(tpAniSirGlobal pMac)
     //BMPS_WORKAROUND_NOT_NEEDED
     pMac->roam.configParam.doBMPSWorkaround = 0;
 
+    pMac->roam.configParam.nInitialDwellTime = 0;
 }
 eCsrBand csrGetCurrentBand(tHalHandle hHal)
 {
@@ -1996,6 +1997,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
                                 pMac->roam.configParam.isCoalesingInIBSSAllowed;
         pParam->allowDFSChannelRoam =
                                 pMac->roam.configParam.allowDFSChannelRoam;
+        pParam->nInitialDwellTime =
+                                pMac->roam.configParam.nInitialDwellTime;
         csrSetChannels(pMac, pParam);
 
         status = eHAL_STATUS_SUCCESS;
@@ -12020,9 +12023,30 @@ eHalStatus csrRoamIssueStartBss( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRo
     pParam->mfpRequired = (0 != pProfile->MFPRequired);
 #endif
 
-    pParam->addIeParams.dataLen = pProfile->addIeParams.dataLen;
-    pParam->addIeParams.data_buff = pProfile->addIeParams.data_buff;
+    pParam->addIeParams.probeRespDataLen =
+        pProfile->addIeParams.probeRespDataLen;
+    pParam->addIeParams.probeRespData_buff =
+        pProfile->addIeParams.probeRespData_buff;
 
+    pParam->addIeParams.assocRespDataLen =
+        pProfile->addIeParams.assocRespDataLen;
+    pParam->addIeParams.assocRespData_buff =
+        pProfile->addIeParams.assocRespData_buff;
+
+    if (CSR_IS_IBSS( pProfile ))
+    {
+        pParam->addIeParams.probeRespBCNDataLen =
+            pProfile->nWPAReqIELength;
+        pParam->addIeParams.probeRespBCNData_buff =
+            pProfile->pWPAReqIE;
+    }
+    else
+    {
+        pParam->addIeParams.probeRespBCNDataLen =
+            pProfile->addIeParams.probeRespBCNDataLen;
+        pParam->addIeParams.probeRespBCNData_buff =
+            pProfile->addIeParams.probeRespBCNData_buff;
+    }
     // When starting an IBSS, start on the channel from the Profile.
     status = csrSendMBStartBssReqMsg( pMac, sessionId, pProfile->BSSType, pParam, pBssDesc );
     return (status);
@@ -17948,29 +17972,24 @@ eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac, tCsrBssid bssid,
 
 
 /*----------------------------------------------------------------------------
- \fn csrRoamUpdateAddIEs
- \brief  This function sends msg to updates the additional IE buffers in PE
+ \fn csrRoamModifyAddIEs
+ \brief  This function sends msg to modify the additional IE buffers in PE
  \param  pMac - pMac global structure
- \param  sessionId - SME session id
- \param  bssid - BSSID
- \param  additionIEBuffer - buffer containing addition IE from hostapd
- \param  length - length of buffer
- \param  append - append or replace completely
+ \param  pModifyIE - pointer to tSirModifyIE structure
+ \param  updateType - Type of buffer
  \- return Success or failure
 -----------------------------------------------------------------------------*/
 eHalStatus
-csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
-                  tANI_U8 sessionId,
-                  tSirMacAddr bssid,
-                  tANI_U8 *additionIEBuffer,
-                  tANI_U16 length,
-                  boolean append)
+csrRoamModifyAddIEs(tpAniSirGlobal pMac,
+                    tSirModifyIE *pModifyIE,
+                    eUpdateIEsType updateType)
 {
-    tpUpdateAIEs pUpdateAIEs = NULL;
+    tpSirModifyIEsInd pModifyAddIEInd = NULL;
     tANI_U8 *pLocalBuffer = NULL;
     eHalStatus status;
+
     /* following buffer will be freed by consumer (PE) */
-    pLocalBuffer = vos_mem_malloc(length);
+    pLocalBuffer = vos_mem_malloc(pModifyIE->ieBufferlength);
 
     if (NULL == pLocalBuffer)
     {
@@ -17978,33 +17997,110 @@ csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
        return eHAL_STATUS_FAILED_ALLOC;
     }
 
-    pUpdateAIEs = vos_mem_malloc(sizeof(tUpdateAIEs));
-    if (NULL == pUpdateAIEs)
+    pModifyAddIEInd = vos_mem_malloc(sizeof(tSirModifyIEsInd));
+    if (NULL == pModifyAddIEInd)
     {
        smsLog(pMac, LOGE, FL("Memory Allocation Failure!!!"));
        vos_mem_free(pLocalBuffer);
        return eHAL_STATUS_FAILED_ALLOC;
     }
 
-    vos_mem_copy(pLocalBuffer, additionIEBuffer, length);
-    vos_mem_zero(pUpdateAIEs, sizeof(tUpdateAIEs));
+    /*copy the IE buffer */
+    vos_mem_copy(pLocalBuffer, pModifyIE->pIEBuffer, pModifyIE->ieBufferlength);
+    vos_mem_zero(pModifyAddIEInd, sizeof(tSirModifyIEsInd));
 
-    pUpdateAIEs->msgType =
-        pal_cpu_to_be16((tANI_U16)eWNI_SME_UPDATE_ADDITIONAL_IES);
-    pUpdateAIEs->msgLen = sizeof(tUpdateAIEs);
-    vos_mem_copy(pUpdateAIEs->bssid, bssid, sizeof(tSirMacAddr));
-    pUpdateAIEs->smeSessionId = sessionId;
-    pUpdateAIEs->pAdditionIEBuffer = pLocalBuffer;
-    pUpdateAIEs->length = length;
-    pUpdateAIEs->append = append;
-    status = palSendMBMessage(pMac->hHdd, pUpdateAIEs);
+    pModifyAddIEInd->msgType =
+        pal_cpu_to_be16((tANI_U16)eWNI_SME_MODIFY_ADDITIONAL_IES);
+    pModifyAddIEInd->msgLen = sizeof(tSirModifyIEsInd);
+
+    vos_mem_copy(pModifyAddIEInd->modifyIE.bssid, pModifyIE->bssid,
+        sizeof(tSirMacAddr));
+
+    pModifyAddIEInd->modifyIE.smeSessionId = pModifyIE->smeSessionId;
+    pModifyAddIEInd->modifyIE.notify = pModifyIE->notify;
+    pModifyAddIEInd->modifyIE.ieID = pModifyIE->ieID;
+    pModifyAddIEInd->modifyIE.ieIDLen = pModifyIE->ieIDLen;
+    pModifyAddIEInd->modifyIE.pIEBuffer = pLocalBuffer;
+    pModifyAddIEInd->modifyIE.ieBufferlength = pModifyIE->ieBufferlength;
+
+    pModifyAddIEInd->updateType = updateType;
+
+    status = palSendMBMessage(pMac->hHdd, pModifyAddIEInd);
     if (!HAL_STATUS_SUCCESS(status))
     {
        smsLog(pMac, LOGE,
            FL("Failed to send eWNI_SME_UPDATE_ADDTIONAL_IES msg"
            "!!! status %d"), status);
        vos_mem_free(pLocalBuffer);
-       vos_mem_free(pUpdateAIEs);
+       vos_mem_free(pModifyAddIEInd);
+    }
+    return status;
+}
+
+
+/*----------------------------------------------------------------------------
+ \fn csrRoamUpdateAddIEs
+ \brief  This function sends msg to updates the additional IE buffers in PE
+ \param  pMac - pMac global structure
+ \param  sessionId - SME session id
+ \param  bssid - BSSID
+ \param  additionIEBuffer - buffer containing addition IE from hostapd
+ \param  length - length of buffer
+ \param  updateType - Type of buffer
+ \param  append - append or replace completely
+ \- return Success or failure
+-----------------------------------------------------------------------------*/
+eHalStatus
+csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
+                    tSirUpdateIE *pUpdateIE,
+                    eUpdateIEsType updateType)
+{
+    tpSirUpdateIEsInd pUpdateAddIEs = NULL;
+    tANI_U8 *pLocalBuffer = NULL;
+    eHalStatus status;
+
+    /* following buffer will be freed by consumer (PE) */
+    pLocalBuffer = vos_mem_malloc(pUpdateIE->ieBufferlength);
+
+    if (NULL == pLocalBuffer)
+    {
+       smsLog(pMac, LOGE, FL("Memory Allocation Failure!!!"));
+       return eHAL_STATUS_FAILED_ALLOC;
+    }
+
+    pUpdateAddIEs = vos_mem_malloc(sizeof(tpSirUpdateIEsInd));
+    if (NULL == pUpdateAddIEs)
+    {
+       smsLog(pMac, LOGE, FL("Memory Allocation Failure!!!"));
+       vos_mem_free(pLocalBuffer);
+       return eHAL_STATUS_FAILED_ALLOC;
+    }
+
+    vos_mem_copy(pLocalBuffer, pUpdateIE->pAdditionIEBuffer,
+            pUpdateIE->ieBufferlength);
+    vos_mem_zero(pUpdateAddIEs, sizeof(tpSirUpdateIEsInd));
+
+    pUpdateAddIEs->msgType =
+        pal_cpu_to_be16((tANI_U16)eWNI_SME_UPDATE_ADDITIONAL_IES);
+    pUpdateAddIEs->msgLen = sizeof(tSirUpdateIEsInd);
+
+    vos_mem_copy(pUpdateAddIEs->updateIE.bssid, pUpdateIE->bssid, sizeof(tSirMacAddr));
+
+    pUpdateAddIEs->updateIE.smeSessionId = pUpdateIE->smeSessionId;
+    pUpdateAddIEs->updateIE.append = pUpdateIE->append;
+    pUpdateAddIEs->updateIE.ieBufferlength = pUpdateIE->ieBufferlength;
+    pUpdateAddIEs->updateIE.pAdditionIEBuffer = pLocalBuffer;
+
+    pUpdateAddIEs->updateType = updateType;
+
+    status = palSendMBMessage(pMac->hHdd, pUpdateAddIEs);
+    if (!HAL_STATUS_SUCCESS(status))
+    {
+       smsLog(pMac, LOGE,
+           FL("Failed to send eWNI_SME_UPDATE_ADDTIONAL_IES msg"
+           "!!! status %d"), status);
+       vos_mem_free(pLocalBuffer);
+       vos_mem_free(pUpdateAddIEs);
     }
     return status;
 }

@@ -846,6 +846,16 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT
     limDiagEventReport(pMac, WLAN_PE_DIAG_CONNECTED, psessionEntry, 0, 0);
 #endif
+    if( pAssocRsp->QosMapSet.present )
+    {
+        vos_mem_copy(&psessionEntry->QosMapSet,
+                     &pAssocRsp->QosMapSet,
+                     sizeof(tSirQosMapSet));
+    }
+    else
+    {
+       vos_mem_zero(&psessionEntry->QosMapSet, sizeof(tSirQosMapSet));
+    }
 
     if (pAssocRsp->ExtCap.present)
     {

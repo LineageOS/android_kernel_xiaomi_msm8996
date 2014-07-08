@@ -649,8 +649,12 @@ typedef __ani_attr_pre_packed struct sSirHtConfig
 } __ani_attr_packed tSirHTConfig, *tpSirHTConfig;
 
 typedef __ani_attr_pre_packed struct sSirAddIeParams{
-      tANI_U16       dataLen;
-      tANI_U8       *data_buff;
+      tANI_U16       probeRespDataLen;
+      tANI_U8       *probeRespData_buff;
+      tANI_U16       assocRespDataLen;
+      tANI_U8       *assocRespData_buff;
+      tANI_U16       probeRespBCNDataLen;
+      tANI_U8       *probeRespBCNData_buff;
 } tSirAddIeParams, *tpSirAddIeParams;
 
 /// Definition for kick starting BSS
@@ -4957,18 +4961,65 @@ typedef struct sSirStartBeaconIndication
     tANI_U8      bssid[VOS_MAC_ADDR_SIZE];
 }tSirStartBeaconIndication, *tpSirStartBeaconIndication;
 
+/* additional IE type */
+typedef enum tUpdateIEsType
+{
+    eUPDATE_IE_NONE,
+    eUPDATE_IE_PROBE_BCN,
+    eUPDATE_IE_PROBE_RESP,
+    eUPDATE_IE_ASSOC_RESP,
+
+    /* Add type above this line*/
+    /* this is used to reset all buffer */
+    eUPDATE_IE_ALL,
+    eUPDATE_IE_MAX
+} eUpdateIEsType;
+
+
+/* Modify particular IE in addition IE for prob resp Bcn */
+typedef struct sSirModifyIE
+{
+   tSirMacAddr      bssid;
+   tANI_U16         smeSessionId;
+   boolean          notify;
+   tANI_U8          ieID;
+   tANI_U8          ieIDLen;   /*ie length as per spec*/
+   tANI_U16         ieBufferlength;
+   tANI_U8         *pIEBuffer;
+
+}tSirModifyIE,    *tpSirModifyIE;
+
 
 /* Message format for Update IE message sent to PE  */
-typedef struct sUpdateAIEs
+typedef struct sSirModifyIEsInd
 {
-   tANI_U16       msgType;
-   tANI_U16       msgLen;
-   tSirMacAddr    bssid;
-   tANI_U16       smeSessionId;
-   tANI_U8       *pAdditionIEBuffer;
-   tANI_U16       length;
-   boolean        append;
-}tUpdateAIEs,    *tpUpdateAIEs;
+   tANI_U16         msgType;
+   tANI_U16         msgLen;
+   tSirModifyIE     modifyIE;
+   eUpdateIEsType   updateType;
+}tSirModifyIEsInd,    *tpSirModifyIEsInd;
+
+
+/* Message format for Update IE message sent to PE  */
+typedef struct sSirUpdateIE
+{
+   tSirMacAddr      bssid;
+   tANI_U16         smeSessionId;
+   boolean          append;
+   boolean          notify;
+   tANI_U16         ieBufferlength;
+   tANI_U8         *pAdditionIEBuffer;
+}tSirUpdateIE,  *tpSirUpdateIE;
+
+
+/* Message format for Update IE message sent to PE  */
+typedef struct sSirUpdateIEsInd
+{
+   tANI_U16         msgType;
+   tANI_U16         msgLen;
+   tSirUpdateIE     updateIE;
+   eUpdateIEsType   updateType;
+}tSirUpdateIEsInd,   *tpSirUpdateIEsInd;
 
 /* Message format for requesting channel switch announcement to lower layers */
 typedef struct sSirDfsCsaIeRequest
@@ -5373,5 +5424,384 @@ typedef struct
   *tpSirExtScanOnScanEventIndParams;
 
 #endif /* FEATURE_WLAN_EXTSCAN */
+
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
+
+typedef struct
+{
+  tANI_U32 reqId;
+  tANI_U8  staId;
+  tANI_U32 mpduSizeThreshold;
+  tANI_U32 aggressiveStatisticsGathering;
+} tSirLLStatsSetReq, *tpSirLLStatsSetReq;
+
+typedef struct
+{
+  tANI_U32 reqId;
+  tANI_U8  staId;
+  tANI_U32 paramIdMask;
+} tSirLLStatsGetReq, *tpSirLLStatsGetReq;
+
+typedef struct
+{
+  tANI_U32  reqId;
+  tANI_U8   staId;
+  tANI_U32  statsClearReqMask;
+  tANI_U8   stopReq;
+} tSirLLStatsClearReq, *tpSirLLStatsClearReq;
+
+/*---------------------------------------------------------------------------
+  WLAN_HAL_LL_NOTIFY_STATS
+---------------------------------------------------------------------------*/
+
+
+/******************************LINK LAYER Statistics**********************/
+
+typedef int tSirWifiRadio;
+typedef int tSirWifiChannel;
+typedef int tSirwifiTxRate;
+
+/* channel operating width */
+typedef enum
+{
+    WIFI_CHAN_WIDTH_20    = 0,
+    WIFI_CHAN_WIDTH_40    = 1,
+    WIFI_CHAN_WIDTH_80    = 2,
+    WIFI_CHAN_WIDTH_160   = 3,
+    WIFI_CHAN_WIDTH_80P80 = 4,
+    WIFI_CHAN_WIDTH_5     = 5,
+    WIFI_CHAN_WIDTH_10    = 6,
+} tSirWifiChannelWidth;
+
+typedef enum
+{
+    WIFI_DISCONNECTED     = 0,
+    WIFI_AUTHENTICATING   = 1,
+    WIFI_ASSOCIATING      = 2,
+    WIFI_ASSOCIATED       = 3,
+    WIFI_EAPOL_STARTED    = 4, /* if done by firmware/driver */
+    WIFI_EAPOL_COMPLETED  = 5, /* if done by firmware/driver */
+} tSirWifiConnectionState;
+
+typedef enum
+{
+    WIFI_ROAMING_IDLE     = 0,
+    WIFI_ROAMING_ACTIVE   = 1,
+} tSirWifiRoamState;
+
+typedef enum
+{
+    WIFI_INTERFACE_STA        = 0,
+    WIFI_INTERFACE_SOFTAP     = 1,
+    WIFI_INTERFACE_IBSS       = 2,
+    WIFI_INTERFACE_P2P_CLIENT = 3,
+    WIFI_INTERFACE_P2P_GO     = 4,
+    WIFI_INTERFACE_NAN        = 5,
+    WIFI_INTERFACE_MESH       = 6,
+ } tSirWifiInterfaceMode;
+
+/* set for QOS association */
+#define WIFI_CAPABILITY_QOS          0x00000001
+/* set for protected association (802.11 beacon frame control protected bit set) */
+#define WIFI_CAPABILITY_PROTECTED    0x00000002
+/* set if 802.11 Extended Capabilities element interworking bit is set */
+#define WIFI_CAPABILITY_INTERWORKING 0x00000004
+/* set for HS20 association */
+#define WIFI_CAPABILITY_HS20         0x00000008
+/* set is 802.11 Extended Capabilities element UTF-8 SSID bit is set */
+#define WIFI_CAPABILITY_SSID_UTF8    0x00000010
+/* set is 802.11 Country Element is present */
+#define WIFI_CAPABILITY_COUNTRY      0x00000020
+
+typedef struct
+{
+    /* tSirWifiInterfaceMode */
+    /* interface mode */
+    tANI_U8                  mode;
+    /* interface mac address (self) */
+    tSirMacAddr              macAddr;
+    /* tSirWifiConnectionState */
+    /* connection state (valid for STA, CLI only) */
+    tANI_U8                  state;
+    /* tSirWifiRoamState */
+    /* roaming state */
+    tANI_U32                  roaming;
+    /* WIFI_CAPABILITY_XXX (self) */
+    tANI_U32                 capabilities;
+    /* null terminated SSID */
+    tANI_U8                  ssid[33];
+    /* bssid */
+    tSirMacAddr              bssid;
+    /* country string advertised by AP */
+    tANI_U8                  apCountryStr[WNI_CFG_COUNTRY_CODE_LEN];
+    /* country string for this association */
+    tANI_U8                  countryStr[WNI_CFG_COUNTRY_CODE_LEN];
+} tSirWifiInterfaceInfo, *tpSirWifiInterfaceInfo;
+
+/* channel information */
+typedef struct
+{
+    /* channel width (20, 40, 80, 80+80, 160) */
+    tSirWifiChannelWidth      width;
+    /* primary 20 MHz channel */
+    tSirWifiChannel           centerFreq;
+    /* center frequency (MHz) first segment */
+    tSirWifiChannel           centerFreq0;
+    /* center frequency (MHz) second segment */
+    tSirWifiChannel           centerFreq1;
+} tSirWifiChannelInfo, *tpSirWifiChannelInfo;
+
+/* wifi rate info */
+typedef struct
+{
+    /* 0: OFDM, 1:CCK, 2:HT 3:VHT 4..7 reserved */
+    tANI_U32 preamble   :3;
+    /* 0:1x1, 1:2x2, 3:3x3, 4:4x4 */
+    tANI_U32 nss        :2;
+    /* 0:20MHz, 1:40Mhz, 2:80Mhz, 3:160Mhz */
+    tANI_U32 bw         :3;
+    /* OFDM/CCK rate code would be as per ieee std in the units of 0.5mbps */
+    /* HT/VHT it would be mcs index */
+    tANI_U32 rateMcsIdx :8;
+    /* reserved */
+    tANI_U32 reserved  :16;
+    /* units of 100 Kbps */
+    tANI_U32 bitrate;
+} tSirWifiRate, *tpSirWifiRate;
+
+/* channel statistics */
+typedef struct
+{
+    /* channel */
+    tSirWifiChannelInfo channel;
+    /* msecs the radio is awake (32 bits number accruing over time) */
+    tANI_U32          onTime;
+    /* msecs the CCA register is busy (32 bits number accruing over time) */
+    tANI_U32          ccaBusyTime;
+} tSirWifiChannelStats, *tpSirWifiChannelStats;
+
+/* radio statistics */
+typedef struct
+{
+    /* wifi radio (if multiple radio supported) */
+    tSirWifiRadio   radio;
+    /* msecs the radio is awake (32 bits number accruing over time) */
+    tANI_U32        onTime;
+    /* msecs the radio is transmitting
+     * (32 bits number accruing over time)
+     */
+    tANI_U32        txTime;
+    /* msecs the radio is in active receive
+     *(32 bits number accruing over time)
+     */
+    tANI_U32        rxTime;
+    /* msecs the radio is awake due to all scan
+     * (32 bits number accruing over time)
+     */
+    tANI_U32        onTimeScan;
+    /* msecs the radio is awake due to NAN
+     * (32 bits number accruing over time)
+     */
+    tANI_U32        onTimeNbd;
+    /* msecs the radio is awake due to Gscan
+     * (32 bits number accruing over time)
+     */
+    tANI_U32        onTimeGscan;
+    /* msecs the radio is awake due to roam?scan
+     * (32 bits number accruing over time)
+     */
+    tANI_U32        onTimeRoamScan;
+    /* msecs the radio is awake due to PNO scan
+     * (32 bits number accruing over time)
+     */
+    tANI_U32        onTimePnoScan;
+    /* msecs the radio is awake due to HS2.0 scans and GAS exchange
+     * (32 bits number accruing over time)
+     */
+    tANI_U32        onTimeHs20;
+    /* number of channels */
+    tANI_U32        numChannels;
+    /* channel statistics tSirWifiChannelStats */
+    tSirWifiChannelStats channels[0];
+} tSirWifiRadioStat, *tpSirWifiRadioStat;
+
+/* per rate statistics */
+typedef struct
+{
+    /* rate information */
+    tSirWifiRate rate;
+    /* number of successfully transmitted data pkts (ACK rcvd) */
+    tANI_U32 txMpdu;
+    /* number of received data pkts */
+    tANI_U32 rxMpdu;
+    /* number of data packet losses (no ACK) */
+    tANI_U32 mpduLost;
+    /* total number of data pkt retries * */
+    tANI_U32 retries;
+    /* number of short data pkt retries */
+    tANI_U32 retriesShort;
+    /* number of long data pkt retries */
+    tANI_U32 retriesLong;
+} tSirWifiRateStat, *tpSirWifiRateStat;
+
+/* access categories */
+typedef enum
+{
+    WIFI_AC_VO  = 0,
+    WIFI_AC_VI  = 1,
+    WIFI_AC_BE  = 2,
+    WIFI_AC_BK  = 3,
+    WIFI_AC_MAX = 4,
+} tSirWifiTrafficAc;
+
+/* wifi peer type */
+typedef enum
+{
+    WIFI_PEER_STA,
+    WIFI_PEER_AP,
+    WIFI_PEER_P2P_GO,
+    WIFI_PEER_P2P_CLIENT,
+    WIFI_PEER_NAN,
+    WIFI_PEER_TDLS,
+    WIFI_PEER_INVALID,
+} tSirWifiPeerType;
+
+/* per peer statistics */
+typedef struct
+{
+    /* peer type (AP, TDLS, GO etc.) */
+    tSirWifiPeerType type;
+    /* mac address */
+    tSirMacAddr    peerMacAddress;
+    /* peer WIFI_CAPABILITY_XXX */
+    tANI_U32       capabilities;
+    /* number of rates */
+    tANI_U32       numRate;
+    /* per rate statistics, number of entries  = num_rate */
+    tSirWifiRateStat rateStats[0];
+} tSirWifiPeerInfo, *tpSirWifiPeerInfo;
+
+/* per access category statistics */
+typedef struct
+{
+    /* tSirWifiTrafficAc */
+    /* access category (VI, VO, BE, BK) */
+    tANI_U32 ac;
+    /* number of successfully transmitted unicast data pkts (ACK rcvd) */
+    tANI_U32 txMpdu;
+    /* number of received unicast mpdus */
+    tANI_U32 rxMpdu;
+    /* number of succesfully transmitted multicast data packets */
+    /* STA case: implies ACK received from AP for the unicast */
+    /* packet in which mcast pkt was sent */
+    tANI_U32 txMcast;
+    /* number of received multicast data packets */
+    tANI_U32 rxMcast;
+    /* number of received unicast a-mpdus */
+    tANI_U32 rxAmpdu;
+    /* number of transmitted unicast a-mpdus */
+    tANI_U32 txAmpdu;
+    /* number of data pkt losses (no ACK) */
+    tANI_U32 mpduLost;
+    /* total number of data pkt retries */
+    tANI_U32 retries;
+    /* number of short data pkt retries */
+    tANI_U32 retriesShort;
+    /* number of long data pkt retries */
+    tANI_U32 retriesLong;
+    /* data pkt min contention time (usecs) */
+    tANI_U32 contentionTimeMin;
+    /* data pkt max contention time (usecs) */
+    tANI_U32 contentionTimeMax;
+    /* data pkt avg contention time (usecs) */
+    tANI_U32 contentionTimeAvg;
+    /* num of data pkts used for contention statistics */
+    tANI_U32 contentionNumSamples;
+} tSirWifiWmmAcStat, *tpSirWifiWmmAcStat;
+
+/* Interface statistics - corresponding to 2nd most
+ * LSB in wifi statistics bitmap  for getting statistics
+ */
+typedef struct
+{
+    /* current state of the interface */
+    tSirWifiInterfaceInfo info;
+    /* access point beacon received count from connected AP */
+    tANI_U32            beaconRx;
+    /* access point mgmt frames received count from */
+    /* connected AP (including Beacon) */
+    tANI_U32            mgmtRx;
+    /* action frames received count */
+    tANI_U32            mgmtActionRx;
+    /* action frames transmit count */
+    tANI_U32            mgmtActionTx;
+    /* access Point Beacon and Management frames RSSI (averaged) */
+    tANI_U32            rssiMgmt;
+    /* access Point Data Frames RSSI (averaged) from connected AP */
+    tANI_U32            rssiData;
+    /* access Point ACK RSSI (averaged) from connected AP */
+    tANI_U32            rssiAck;
+    /* per ac data packet statistics */
+    tSirWifiWmmAcStat    AccessclassStats[WIFI_AC_MAX];
+} tSirWifiIfaceStat, *tpSirWifiIfaceStat;
+
+/* Peer statistics - corresponding to 3rd most LSB in
+ * wifi statistics bitmap  for getting statistics
+ */
+typedef struct
+{
+    /* number of peers */
+    tANI_U32       numPeers;
+    /* per peer statistics */
+    tSirWifiPeerInfo peerInfo[0];
+} tSirWifiPeerStat, *tpSirWifiPeerStat;
+
+/* wifi statistics bitmap  for getting statistics */
+#define WMI_LINK_STATS_RADIO          0x00000001
+#define WMI_LINK_STATS_IFACE          0x00000002
+#define WMI_LINK_STATS_ALL_PEER       0x00000004
+#define WMI_LINK_STATS_PER_PEER       0x00000008
+
+/* wifi statistics bitmap  for clearing statistics */
+/* all radio statistics */
+#define WIFI_STATS_RADIO              0x00000001
+/* cca_busy_time (within radio statistics) */
+#define WIFI_STATS_RADIO_CCA          0x00000002
+/* all channel statistics (within radio statistics) */
+#define WIFI_STATS_RADIO_CHANNELS     0x00000004
+/* all scan statistics (within radio statistics) */
+#define WIFI_STATS_RADIO_SCAN         0x00000008
+/* all interface statistics */
+#define WIFI_STATS_IFACE              0x00000010
+/* all tx rate statistics (within interface statistics) */
+#define WIFI_STATS_IFACE_TXRATE       0x00000020
+/* all ac statistics (within interface statistics) */
+#define WIFI_STATS_IFACE_AC           0x00000040
+/* all contention (min, max, avg) statistics (within ac statistics) */
+#define WIFI_STATS_IFACE_CONTENTION   0x00000080
+
+typedef struct
+{
+    tANI_U32 paramId;
+    tANI_U8 ifaceId;
+    tANI_U32 rspId;
+    tANI_U32 moreResultToFollow;
+    union
+    {
+        tANI_U32 num_peers;
+        tANI_U32 num_radio;
+    };
+
+    tANI_U32 peer_event_number ;
+    /* Variable  length field - Do not add anything after this */
+    tANI_U8 results[0];
+} tSirLLStatsResults, *tpSirLLStatsResults;
+
+#endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+
+/* find the size of given member within a structure */
+#ifndef member_size
+#define member_size(type, member) (sizeof(((type *)0)->member))
+#endif
 
 #endif /* __SIR_API_H */

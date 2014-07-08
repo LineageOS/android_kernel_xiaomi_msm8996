@@ -1115,6 +1115,13 @@ struct hdd_adapter_s
     unsigned int tx_flow_high_watermark_offset;
 #endif /* QCA_LL_TX_FLOW_CT */
     v_BOOL_t offloads_configured;
+
+    /* DSCP to UP QoS Mapping */
+    sme_QosWmmUpType hddWmmDscpToUpMap[WLAN_HDD_MAX_DSCP+1];
+
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
+   v_BOOL_t isLinkLayerStatsSet;
+#endif
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
@@ -1695,6 +1702,10 @@ void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
 
 #ifdef WLAN_FEATURE_STATS_EXT
 void wlan_hdd_cfg80211_stats_ext_init(hdd_context_t *pHddCtx);
+#endif
+
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
+void wlan_hdd_cfg80211_link_layer_stats_init(hdd_context_t *pHddCtx);
 #endif
 
 void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr);

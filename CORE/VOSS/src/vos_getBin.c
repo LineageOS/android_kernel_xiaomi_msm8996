@@ -200,3 +200,17 @@ v_BOOL_t vos_max_concurrent_connections_reached (void)
     return VOS_FALSE;
 }
 
+void vos_clear_concurrent_session_count(void)
+{
+    v_U8_t i = 0;
+    hdd_context_t *pHddCtx;
+    v_CONTEXT_t pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+
+    if (NULL != pVosContext) {
+        pHddCtx = vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+        if (NULL != pHddCtx) {
+            for (i = 0; i < VOS_MAX_NO_OF_MODE; i++)
+                pHddCtx->no_of_active_sessions[i] = 0;
+       }
+    }
+}

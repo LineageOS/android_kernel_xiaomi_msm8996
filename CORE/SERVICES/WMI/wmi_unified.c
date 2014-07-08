@@ -51,12 +51,17 @@
 #endif
 
 #define WMI_MIN_HEAD_ROOM 64
-#ifdef WMI_INTERFACE_EVENT_LOGGING
 
+#ifdef WMI_INTERFACE_EVENT_LOGGING
+/* WMI commands */
 u_int32_t g_wmi_command_buf_idx = 0;
 struct wmi_command_debug wmi_command_log_buffer[WMI_EVENT_DEBUG_MAX_ENTRY];
 
+/* WMI commands TX completed */
+u_int32_t g_wmi_command_tx_cmp_buf_idx = 0;
+struct wmi_command_debug wmi_command_tx_cmp_log_buffer[WMI_EVENT_DEBUG_MAX_ENTRY];
 
+/* WMI events */
 u_int32_t g_wmi_event_buf_idx = 0;
 struct wmi_event_debug wmi_event_log_buffer[WMI_EVENT_DEBUG_MAX_ENTRY];
 
@@ -64,22 +69,32 @@ struct wmi_event_debug wmi_event_log_buffer[WMI_EVENT_DEBUG_MAX_ENTRY];
 	if (WMI_EVENT_DEBUG_MAX_ENTRY <= g_wmi_command_buf_idx)		\
 		g_wmi_command_buf_idx = 0;				\
 	wmi_command_log_buffer[g_wmi_command_buf_idx].command = a;	\
-	adf_os_mem_copy(wmi_command_log_buffer[g_wmi_command_buf_idx].data, b , 16);\
+	adf_os_mem_copy(wmi_command_log_buffer[g_wmi_command_buf_idx].data, b, 16);\
 	wmi_command_log_buffer[g_wmi_command_buf_idx].time =		\
 		adf_get_boottime();					\
 	g_wmi_command_buf_idx++;					\
+}
+
+#define WMI_COMMAND_TX_CMP_RECORD(a, b) {				\
+	if (WMI_EVENT_DEBUG_MAX_ENTRY <= g_wmi_command_tx_cmp_buf_idx)	\
+		g_wmi_command_tx_cmp_buf_idx = 0;			\
+	wmi_command_tx_cmp_log_buffer[g_wmi_command_tx_cmp_buf_idx].command = a;\
+	adf_os_mem_copy(wmi_command_tx_cmp_log_buffer			\
+		[g_wmi_command_tx_cmp_buf_idx].data, b, 16);		\
+	wmi_command_tx_cmp_log_buffer[g_wmi_command_tx_cmp_buf_idx].time =\
+		adf_get_boottime();					\
+	g_wmi_command_tx_cmp_buf_idx++;					\
 }
 
 #define WMI_EVENT_RECORD(a, b) {					\
 	if (WMI_EVENT_DEBUG_MAX_ENTRY <= g_wmi_event_buf_idx)		\
 		g_wmi_event_buf_idx = 0;				\
 	wmi_event_log_buffer[g_wmi_event_buf_idx].event = a;		\
-	adf_os_mem_copy(wmi_event_log_buffer[g_wmi_event_buf_idx].data, b , 16);\
+	adf_os_mem_copy(wmi_event_log_buffer[g_wmi_event_buf_idx].data, b, 16);\
 	wmi_event_log_buffer[g_wmi_event_buf_idx].time =		\
 		adf_get_boottime();					\
 	g_wmi_event_buf_idx++;						\
 }
-
 #endif /*WMI_INTERFACE_EVENT_LOGGING*/
 
 
@@ -904,8 +919,21 @@ void wmi_htc_tx_complete(void *ctx, HTC_PACKET *htc_pkt)
 {
 	struct wmi_unified *wmi_handle = (struct wmi_unified *)ctx;
 	wmi_buf_t wmi_cmd_buf = GET_HTC_PACKET_NET_BUF_CONTEXT(htc_pkt);
+#ifdef WMI_INTERFACE_EVENT_LOGGING
+	u_int32_t cmd_id;
+#endif
 
 	ASSERT(wmi_cmd_buf);
+#ifdef WMI_INTERFACE_EVENT_LOGGING
+	cmd_id = WMI_GET_FIELD(adf_nbuf_data(wmi_cmd_buf),
+		WMI_CMD_HDR, COMMANDID);
+	adf_os_spin_lock_bh(&wmi_handle->wmi_record_lock);
+	/* Record 16 bytes of WMI cmd tx complete data
+	   - exclude TLV and WMI headers */
+	WMI_COMMAND_TX_CMP_RECORD(cmd_id,
+		((u_int32_t *)adf_nbuf_data(wmi_cmd_buf) + 2));
+	adf_os_spin_unlock_bh(&wmi_handle->wmi_record_lock);
+#endif
 	adf_nbuf_free(wmi_cmd_buf);
 	adf_os_mem_free(htc_pkt);
 	adf_os_atomic_dec(&wmi_handle->pending_cmds);
