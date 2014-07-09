@@ -68,6 +68,9 @@ void        limProcessFTPreauthRspTimeout(tpAniSirGlobal pMac);
 tANI_BOOLEAN   limProcessFTUpdateKey(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf );
 tSirRetStatus  limProcessFTAggrQosReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf );
 void        limProcessFTAggrQoSRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+void limProcessFTRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
+#endif
 
 #endif /* __LIMFT_H__ */
 

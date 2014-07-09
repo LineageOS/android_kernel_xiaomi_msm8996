@@ -447,6 +447,9 @@ typedef struct sPESession           // Added to Support BT-AMP
     /*  DSCP to UP mapping for HS 2.0 */
     tSirQosMapSet QosMapSet;
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tANI_BOOLEAN bRoamSynchInProgress;
+#endif
 }tPESession, *tpPESession;
 
 #define LIM_MAX_ACTIVE_SESSIONS 4

@@ -1418,6 +1418,9 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
         case eWNI_SME_GET_TSM_STATS_REQ:
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        case eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_IND:
+#endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, false);   //no need to response to hdd
             break;
@@ -2044,7 +2047,11 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
        linkStateParams = (tLinkStateParams *)limMsg->bodyptr;
 #if defined WLAN_FEATURE_VOWIFI_11R
        pSession = linkStateParams->session;
-       if(linkStateParams->ft)
+       if(linkStateParams->ft
+#if defined WLAN_FEATURE_ROAM_OFFLOAD
+          && !pSession->bRoamSynchInProgress
+#endif
+         )
        {
           limSendReassocReqWithFTIEsMgmtFrame(pMac,
                                               pSession->pLimMlmReassocReq,

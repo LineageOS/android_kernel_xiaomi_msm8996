@@ -2053,7 +2053,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
       // Connections that do not need Upper layer auth, transition TL directly
       // to 'Authenticated' state.
       vosStatus = WLANTL_ChangeSTAState( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, staDesc.ucSTAId,
-                                         WLANTL_STA_AUTHENTICATED );
+                                         WLANTL_STA_AUTHENTICATED, VOS_FALSE);
 
       pAdapter->aStaInfo[staId].tlSTAState = WLANTL_STA_AUTHENTICATED;
       pAdapter->sessionCtx.ap.uIsAuthenticated = VOS_TRUE;
@@ -2065,7 +2065,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
                  "ULA auth StaId= %d.  Changing TL state to CONNECTED at Join time", pAdapter->aStaInfo[staId].ucSTAId );
 
       vosStatus = WLANTL_ChangeSTAState( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, staDesc.ucSTAId,
-                                         WLANTL_STA_CONNECTED );
+                                         WLANTL_STA_CONNECTED, VOS_FALSE);
       pAdapter->aStaInfo[staId].tlSTAState = WLANTL_STA_CONNECTED;
 
       pAdapter->sessionCtx.ap.uIsAuthenticated = VOS_FALSE;
@@ -2173,7 +2173,7 @@ VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADDR_t *pD
          return VOS_STATUS_E_FAILURE;
     }
 
-    vosStatus = WLANTL_ChangeSTAState( pVosContext, ucSTAId, state );
+    vosStatus = WLANTL_ChangeSTAState( pVosContext, ucSTAId, state, VOS_FALSE);
     VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO,
                    "%s: change station to state %d succeed", __func__, state);
 

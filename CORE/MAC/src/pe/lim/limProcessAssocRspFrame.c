@@ -315,7 +315,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     tANI_U16              caps;
     tANI_U32              frameLen;
     tSirMacAddr           currentBssId;
-    tpSirMacMgmtHdr       pHdr;
+    tpSirMacMgmtHdr       pHdr = NULL;
     tSirMacCapabilityInfo localCapabilities;
     tpDphHashNode         pStaDs;
     tpSirAssocRsp         pAssocRsp;
@@ -324,7 +324,11 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     tSchBeaconStruct *pBeaconStruct;
 
     //Initialize status code to success.
-
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    if (psessionEntry->bRoamSynchInProgress)
+        pHdr = (tpSirMacMgmtHdr)pMac->roam.pReassocResp;
+    else
+#endif
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
 
     mlmAssocCnf.resultCode = eSIR_SME_SUCCESS;
@@ -358,10 +362,20 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
         return;
     }
 
-
-    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-    frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    if (psessionEntry->bRoamSynchInProgress)
+    {
+        pHdr = (tpSirMacMgmtHdr)pMac->roam.pReassocResp;
+        frameLen = pMac->roam.reassocRespLen - SIR_MAC_HDR_LEN_3A;
+    }
+    else
+    {
+#endif
+        pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+        frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    }
+#endif
     if (((subType == LIM_ASSOC) &&
          (psessionEntry->limMlmState != eLIM_MLM_WT_ASSOC_RSP_STATE)) ||
         ((subType == LIM_REASSOC) &&
@@ -438,6 +452,11 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     }
 
     // Get pointer to Re/Association Response frame body
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    if (psessionEntry->bRoamSynchInProgress)
+        pBody = pMac->roam.pReassocResp + SIR_MAC_HDR_LEN_3A;
+    else
+#endif
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
 
     // parse Re/Association Response frame.
@@ -730,14 +749,23 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
             limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
 
             // Send the active EDCA parameters to HAL
-            if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE)
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+            if (!psessionEntry->bRoamSynchInProgress)
             {
-                limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
+#endif
+               if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE)
+               {
+                  limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,
+                                    pStaDs->bssId, eANI_BOOLEAN_TRUE);
+               }
+               else
+               {
+                  limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,
+                                    pStaDs->bssId, eANI_BOOLEAN_FALSE);
+               }
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
             }
-            else
-            {
-                limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
-            }
+#endif
             limAddFTStaSelf(pMac, (pAssocRsp->aid & 0x3FFF), psessionEntry);
             vos_mem_free(pBeaconStruct);
 

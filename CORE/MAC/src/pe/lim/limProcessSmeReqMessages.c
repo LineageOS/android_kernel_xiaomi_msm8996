@@ -1461,12 +1461,23 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
               // Initialize this buffer
               vos_mem_set( (tANI_U8 *) pMlmScanReq, len, 0);
-              pMlmScanReq->channelList.numChannels =
-                            pScanReq->channelList.numChannels;
+              if (pScanReq->channelList.numChannels <= SIR_ESE_MAX_MEAS_IE_REQS)
+              {
+                  pMlmScanReq->channelList.numChannels =
+                           pScanReq->channelList.numChannels;
+              }
+              else
+              {
+                  limLog(pMac, LOGE,
+                    FL("numChannels is more than the size(%d)"),
+                    pScanReq->channelList.numChannels);
+                  pMlmScanReq->channelList.numChannels =
+                      SIR_ESE_MAX_MEAS_IE_REQS;
+              }
 
               vos_mem_copy( pMlmScanReq->channelList.channelNumber,
                           pScanReq->channelList.channelNumber,
-                          pScanReq->channelList.numChannels);
+                          pMlmScanReq->channelList.numChannels);
         }
 
          pMlmScanReq->uIEFieldLen = pScanReq->uIEFieldLen;
@@ -2276,7 +2287,6 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     /* Store the reassoc handle in the session Table.. 23rd sep review */
     psessionEntry->pLimReAssocReq = pReassocReq;
-
     /**
      * Reassociate request is expected
      * in link established state only.
@@ -6018,6 +6028,11 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
        case eWNI_SME_ESE_ADJACENT_AP_REPORT:
             limProcessAdjacentAPRepMsg ( pMac, pMsgBuf );
             break;
+#endif
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        case eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_IND:
+             limProcessFTRoamOffloadSynchInd(pMac, pMsg);
+             break;
 #endif
        case eWNI_SME_ADD_STA_SELF_REQ:
             __limProcessSmeAddStaSelfReq( pMac, pMsgBuf );

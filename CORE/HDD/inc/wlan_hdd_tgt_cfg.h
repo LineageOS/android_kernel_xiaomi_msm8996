@@ -48,6 +48,9 @@ struct hdd_tgt_services {
         v_BOOL_t en_tdls_offchan;
         v_BOOL_t en_tdls_uapsd_buf_sta;
         v_BOOL_t en_tdls_uapsd_sleep_sta;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        v_BOOL_t en_roam_offload;
+#endif
 #endif
 };
 

@@ -501,6 +501,7 @@ struct wma_txrx_node {
 #endif
 	v_BOOL_t ps_enabled;
 	u_int32_t dtim_policy;
+	v_BOOL_t roam_synch_in_progress;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -1620,6 +1621,7 @@ enum uapsd_up {
 	UAPSD_UP_NC,
 	UAPSD_UP_MAX
 };
+
 
 #define WMA_TGT_INVALID_SNR (-1)
 #define WMA_DYNAMIC_DTIM_SETTING_THRESHOLD 2

@@ -1517,6 +1517,80 @@ DEQ_PREAUTH:
 }
 #endif  /* WLAN_FEATURE_NEIGHBOR_ROAMING */
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+/* ---------------------------------------------------------------------------
+ * \fn     csrNeighborRoamOffloadSynchRspHandler
+ * \brief  This function handle the RoamOffloadSynch from PE
+ * \param  pMac - The handle returned by macOpen.
+ * \return eHAL_STATUS_SUCCESS on success ,
+ *         eHAL_STATUS_FAILURE otherwise
+ * --------------------------------------------------------------------------*/
+eHalStatus csrNeighborRoamOffloadSynchRspHandler(
+    tpAniSirGlobal pMac, tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp)
+{
+    tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
+                                &pMac->roam.neighborRoamInfo;
+    tpCsrNeighborRoamBSSInfo pBssInfo;
+    tANI_U16 bssDescLen;
+    tpSirFTPreAuthReq pftPreAuthReq;
+
+    if (pNeighborRoamInfo->neighborRoamState !=
+                                eCSR_NEIGHBOR_ROAM_STATE_CONNECTED)
+    {
+        NEIGHBOR_ROAM_DEBUG(pMac, LOGW,
+                      FL("LFR3:Roam Offload Synch Ind received in state %d"),
+                      pNeighborRoamInfo->neighborRoamState);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    pBssInfo = vos_mem_malloc(sizeof(tCsrNeighborRoamBSSInfo));
+    if (NULL == pBssInfo)
+    {
+        smsLog(pMac, LOGE,
+               FL("LFR3:Memory allocation for Neighbor Roam BSS Info failed"));
+        return eHAL_STATUS_FAILURE;
+    }
+    bssDescLen = pFTRoamOffloadSynchRsp->pbssDescription->length +
+        sizeof(pFTRoamOffloadSynchRsp->pbssDescription->length);
+    pBssInfo->pBssDescription = vos_mem_malloc(bssDescLen);
+    if (pBssInfo->pBssDescription != NULL)
+    {
+        vos_mem_copy(pBssInfo->pBssDescription,
+                     pFTRoamOffloadSynchRsp->pbssDescription,
+                     bssDescLen);
+    }
+    else
+    {
+        smsLog(pMac, LOGE,
+              FL("LFR3:Mem alloc for Neighbor Roam BSS Descriptor failed"));
+        vos_mem_free(pBssInfo);
+        return eHAL_STATUS_FAILURE;
+
+    }
+    csrLLInsertTail(&pNeighborRoamInfo->FTRoamInfo.preAuthDoneList,
+                    &pBssInfo->List, LL_ACCESS_LOCK);
+
+    pftPreAuthReq = (tpSirFTPreAuthReq)vos_mem_malloc(sizeof(tSirFTPreAuthReq));
+    if (pftPreAuthReq == NULL)
+    {
+        smsLog(pMac, LOGE,
+               FL("LFR3:Mem alloc for FT Preauth request failed"));
+        return eHAL_STATUS_RESOURCES;
+    }
+    vos_mem_zero(pftPreAuthReq, sizeof(tSirFTPreAuthReq));
+    vos_mem_copy(&pftPreAuthReq->preAuthbssId,
+                 pFTRoamOffloadSynchRsp->pbssDescription->bssId,
+                 sizeof(tSirMacAddr));
+    pMac->ft.ftPEContext.pFTPreAuthReq = pftPreAuthReq;
+
+    CSR_NEIGHBOR_ROAM_STATE_TRANSITION(eCSR_NEIGHBOR_ROAM_STATE_PREAUTH_DONE)
+    pNeighborRoamInfo->FTRoamInfo.numPreAuthRetries = 0;
+    VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+               "LFR3:Entry added to Auth Done List");
+
+    return eHAL_STATUS_SUCCESS;
+}
+#endif
 /* ---------------------------------------------------------------------------
 
     \fn csrNeighborRoamPrepareScanProfileFilter
@@ -4386,7 +4460,7 @@ eHalStatus csrNeighborRoamIndicateDisconnect(tpAniSirGlobal pMac, tANI_U8 sessio
     /*Inform the Firmware to STOP Scanning as the host has a disconnect.*/
     if (csrRoamIsStaMode(pMac, sessionId))
     {
-       csrRoamOffloadScan(pMac, ROAM_SCAN_OFFLOAD_STOP, REASON_DISCONNECTED);
+          csrRoamOffloadScan(pMac, ROAM_SCAN_OFFLOAD_STOP, REASON_DISCONNECTED);
     }
 #endif
 
@@ -4413,11 +4487,16 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac, tANI_U8 sessionId
     tpCsrNeighborRoamControlInfo    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
     eHalStatus  status = eHAL_STATUS_SUCCESS;
     VOS_STATUS  vstatus;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tpSirSmeRoamOffloadSynchCnf pRoamOffloadSynchCnf;
+    tCsrRoamInfo roamInfo;
+    vos_msg_t msg;
+    tCsrRoamSession *pSession = &pMac->roam.roamSession[sessionId];
+#endif
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
     int  init_ft_flag = FALSE;
 #endif
-
     // if session id invalid then we need return failure
     if (NULL == pNeighborRoamInfo || !CSR_IS_SESSION_VALID(pMac, sessionId) ||
         (NULL == pMac->roam.roamSession[sessionId].pCurRoamProfile))
@@ -4454,6 +4533,37 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac, tANI_U8 sessionId
             return eHAL_STATUS_SUCCESS;
         }
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+    }
+#endif
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    if (pSession->roamOffloadSynchParams.bRoamSynchInProgress)
+    {
+       VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                  "LFR3:csrNeighborRoamIndicateConnect");
+#ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
+        if(IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE)
+        {
+           tpSirSetActiveModeSetBncFilterReq pMsg;
+           pMsg = vos_mem_malloc(sizeof(tSirSetActiveModeSetBncFilterReq));
+           if (pMsg == NULL)
+           {
+               VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+               "LFR3:Mem Alloc failed for tSirSetActiveModeSetBncFilterReq");
+               return eHAL_STATUS_FAILURE;
+           }
+           pMsg->messageType =
+                        pal_cpu_to_be16((tANI_U16)eWNI_SME_SET_BCN_FILTER_REQ);
+           pMsg->length = pal_cpu_to_be16(sizeof( tANI_U8));
+           pMsg->seesionId = sessionId;
+           status = palSendMBMessage(pMac->hHdd, pMsg );
+        }
+#endif
+        vos_mem_copy(&roamInfo.peerMac,
+                   pMac->roam.roamSession[sessionId].connectedProfile.bssid,6);
+        roamInfo.roamSynchInProgress =
+                   pSession->roamOffloadSynchParams.bRoamSynchInProgress;
+        csrRoamCallCallback(pMac, sessionId, &roamInfo, 0,
+                   eCSR_ROAM_SET_KEY_COMPLETE, eCSR_ROAM_RESULT_AUTHENTICATED);
     }
 #endif
 
@@ -4565,6 +4675,63 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac, tANI_U8 sessionId
                  if(csrRoamIsStaMode(pMac, sessionId))
                  {
                      pNeighborRoamInfo->uOsRequestedHandoff = 0;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+                     if (pSession->roamOffloadSynchParams.bRoamSynchInProgress)
+                     {
+                        VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                        "SYNCH_CNF");
+                         if (pMac->roam.pReassocResp != NULL)
+                         {
+                            VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                            "Free Reassoc Rsp");
+                             vos_mem_free(pMac->roam.pReassocResp);
+                             pMac->roam.pReassocResp = NULL;
+                         }
+                         if (eSIR_ROAM_AUTH_STATUS_AUTHENTICATED ==
+                             pSession->roamOffloadSynchParams.authStatus)
+                         {
+                             pRoamOffloadSynchCnf =
+                             vos_mem_malloc(sizeof(tSirSmeRoamOffloadSynchCnf));
+                             if (NULL == pRoamOffloadSynchCnf)
+                             {
+                                 VOS_TRACE(VOS_MODULE_ID_SME,
+                                 VOS_TRACE_LEVEL_ERROR,
+                                 "%s: not able to allocate memory for roam"
+                                 "offload synch confirmation data", __func__);
+                                 return eHAL_STATUS_FAILURE;
+                             }
+                             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                               "LFR3: Sending authorized event to supplicant");
+                             csrRoamCallCallback(pMac, sessionId, &roamInfo, 0,
+                                                eCSR_ROAM_AUTHORIZED_EVENT, 0);
+                             pRoamOffloadSynchCnf->sessionId = sessionId;
+                             msg.type     = WDA_ROAM_OFFLOAD_SYNCH_CNF;
+                             msg.reserved = 0;
+                             msg.bodyptr  = pRoamOffloadSynchCnf;
+                             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                                   "LFR3: Posting WDA_ROAM_OFFLOAD_SYNCH_CNF");
+                             if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(
+                                                    VOS_MODULE_ID_WDA, &msg)))
+                             {
+                                 VOS_TRACE(VOS_MODULE_ID_SME,
+                                 VOS_TRACE_LEVEL_DEBUG,
+                                 "%s: Not able to post"
+                                 "WDA_ROAM_OFFLOAD_SYNCH_CNF message to WDA",
+                                 __func__);
+                                 vos_mem_free(pRoamOffloadSynchCnf);
+                                 return eHAL_STATUS_FAILURE;
+                             }
+                         }
+                         pSession->roamOffloadSynchParams.bRoamSynchInProgress =
+                         VOS_FALSE;
+                         if (eSIR_ROAM_AUTH_STATUS_CONNECTED ==
+                             pSession->roamOffloadSynchParams.authStatus)
+                         {
+                             csrRoamOffloadScan(pMac, ROAM_SCAN_OFFLOAD_START,
+                                                REASON_CONNECT);
+                         }
+                     } else
+#endif
                      csrRoamOffloadScan(pMac, ROAM_SCAN_OFFLOAD_START, REASON_CONNECT);
                  }
               } else {
@@ -4914,6 +5081,8 @@ void csrNeighborRoamRequestHandoff(tpAniSirGlobal pMac)
 #ifdef FEATURE_WLAN_LFR_METRICS
     tCsrRoamInfo *roamInfoMetrics;
 #endif
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,"%s sessionId=%d",
+              __func__, sessionId);
 
     if (pMac->roam.neighborRoamInfo.neighborRoamState != eCSR_NEIGHBOR_ROAM_STATE_PREAUTH_DONE)
     {

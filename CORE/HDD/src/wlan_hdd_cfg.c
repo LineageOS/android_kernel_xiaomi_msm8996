@@ -3522,6 +3522,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_PACKET_LOG_MIN,
                  CFG_ENABLE_PACKET_LOG_MAX ),
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+   REG_VARIABLE( CFG_ROAMING_OFFLOAD_NAME,  WLAN_PARAM_Integer,
+                 hdd_config_t, isRoamOffloadEnabled,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_ROAMING_OFFLOAD_DEFAULT,
+                 CFG_ROAMING_OFFLOAD_MIN,
+                 CFG_ROAMING_OFFLOAD_MAX),
+#endif
 #ifdef MSM_PLATFORM
    REG_VARIABLE( CFG_BUS_BANDWIDTH_HIGH_THRESHOLD, WLAN_PARAM_Integer,
                  hdd_config_t, busBandwidthHighThreshold,
@@ -4162,10 +4170,12 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
           "Name = [gEnableGreenAp] Value = [%u] ",
           pHddCtx->cfg_ini->enableGreenAP);
 #endif
-
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [isRoamOffloadEnabled] Value = [%u]",
+                   pHddCtx->cfg_ini->isRoamOffloadEnabled);
+#endif
 }
-
-
 
 #define CFG_VALUE_MAX_LEN 256
 #define CFG_ENTRY_MAX_LEN (32+CFG_VALUE_MAX_LEN)
@@ -5949,6 +5959,11 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig->fEnableDebugLog = pHddCtx->cfg_ini->gEnableDebugLog;
 
    smeConfig->enable5gEBT = pHddCtx->cfg_ini->enable5gEBT;
+
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+   smeConfig->csrConfig.isRoamOffloadEnabled =
+                        pHddCtx->cfg_ini->isRoamOffloadEnabled;
+#endif
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

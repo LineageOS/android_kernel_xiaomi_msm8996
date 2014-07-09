@@ -2646,6 +2646,13 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_REORDER_OFFLOAD_SUPPORT_DEFAULT ( 0 )
 #endif
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+#define CFG_ROAMING_OFFLOAD_NAME                "gRoamOffloadEnabled"
+#define CFG_ROAMING_OFFLOAD_MIN                 (0)
+#define CFG_ROAMING_OFFLOAD_MAX                 (1)
+#define CFG_ROAMING_OFFLOAD_DEFAULT             (0)
+#endif
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3215,6 +3222,11 @@ typedef struct
 #if !defined(QCA_WIFI_ISOC)
    v_U8_t                      reorderOffloadSupport;
 #endif
+
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+   v_BOOL_t                    isRoamOffloadEnabled;
+#endif
+
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

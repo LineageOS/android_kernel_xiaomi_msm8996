@@ -1544,7 +1544,8 @@ VOS_STATUS WLANTL_STAPtkInstalled(void *vos_ctx, u_int8_t sta_id)
  * Txrx will do frame filtering.
  */
 VOS_STATUS WLANTL_ChangeSTAState(void *vos_ctx, u_int8_t sta_id,
-				 WLANTL_STAStateType sta_state)
+				 WLANTL_STAStateType sta_state,
+				 v_BOOL_t roam_synch_in_progress)
 {
 	struct ol_txrx_peer_t *peer;
 	enum ol_txrx_peer_state txrx_state = ol_txrx_peer_state_invalid;
@@ -1577,6 +1578,11 @@ VOS_STATUS WLANTL_ChangeSTAState(void *vos_ctx, u_int8_t sta_id,
 	ol_txrx_peer_state_update(peer->vdev->pdev,
 				  (u_int8_t *) peer->mac_addr.raw,
 				  txrx_state);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	if (roam_synch_in_progress)
+		return VOS_STATUS_SUCCESS;
+#endif
+
 
 	if (txrx_state == ol_txrx_peer_state_auth) {
 #ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
