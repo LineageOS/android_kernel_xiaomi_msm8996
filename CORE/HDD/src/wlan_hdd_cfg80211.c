@@ -13578,6 +13578,26 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                "Do not allow suspend"));
         return -EAGAIN;
     }
+
+    /* If RADAR detection is in progress (HDD), prevent suspend. The flag
+     * "dfs_cac_block_tx" is set to TRUE when RADAR is found and stay TRUE until
+     * CAC is done for a SoftAP which is in started state.
+     */
+    status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
+
+    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
+        pAdapter = pAdapterNode->pAdapter;
+        if (WLAN_HDD_SOFTAP == pAdapter->device_mode  &&
+              BSS_START == WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter)->bssState &&
+              VOS_TRUE == WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->dfs_cac_block_tx) {
+           hddLog(VOS_TRACE_LEVEL_DEBUG,
+                 FL("RADAR detection in progress, do not allow suspend"));
+           return -EAGAIN;
+        }
+        status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+        pAdapterNode = pNext;
+    }
+
 #ifdef QCA_WIFI_2_0
     /* Stop ongoing scan on each interface */
     status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
