@@ -9474,8 +9474,13 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	u_int32_t num_peer_11a_rates=0;
 	u_int32_t phymode;
 	u_int32_t peer_nss=1;
+	struct wma_txrx_node *intr = NULL;
 
-	struct wma_txrx_node *intr = &wma->interfaces[params->smesessionId];
+	if (NULL == params) {
+		WMA_LOGE("%s: params is NULL", __func__);
+		return -EINVAL;
+	}
+	intr = &wma->interfaces[params->smesessionId];
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -12493,9 +12498,7 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 	ol_txrx_peer_handle peer;
 	struct wma_txrx_node *iface;
 	tPowerdBm maxTxPower;
-#ifdef WLAN_FEATURE_11W
         int ret = 0;
-#endif
 
 #ifdef FEATURE_WLAN_TDLS
 	if (STA_ENTRY_TDLS_PEER == params->staType)
@@ -12556,9 +12559,16 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 #endif
 		wmi_unified_send_txbf(wma, params);
 
-                wmi_unified_send_peer_assoc(wma,
+		ret = wmi_unified_send_peer_assoc(wma,
                         iface->nwType,
                         (tAddStaParams *)iface->addBssStaContext);
+		if (ret) {
+			status = VOS_STATUS_E_FAILURE;
+			wma_remove_peer(wma, params->bssId,
+					params->smesessionId, peer, VOS_FALSE);
+			goto out;
+		}
+
 #ifdef WLAN_FEATURE_11W
 		if (params->rmfEnabled) {
 			/* when 802.11w PMF is enabled for hw encr/decr
