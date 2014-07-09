@@ -183,7 +183,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     tAniAuthType            authType;
     tSirMacCapabilityInfo   localCapabilities;
     tpDphHashNode           pStaDs = NULL;
-    tpSirAssocReq           pAssocReq;
+    tpSirAssocReq           pAssocReq, pTempAssocReq;
     tLimMlmStates           mlmPrevState;
     tDot11fIERSN            Dot11fIERSN;
     tDot11fIEWPA            Dot11fIEWPA;
@@ -1057,8 +1057,29 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
 
 sendIndToSme:
+    /*
+     * check here if the parsedAssocReq already
+     * pointing to the AssocReq and free it before
+     * assigning this new pAssocReq
+     */
+    if (psessionEntry->parsedAssocReq != NULL)
+    {
+        pTempAssocReq = psessionEntry->parsedAssocReq[pStaDs->assocId];
+        if (pTempAssocReq != NULL)
+        {
+            if (pTempAssocReq->assocReqFrame)
+            {
+                vos_mem_free(pTempAssocReq->assocReqFrame);
+                pTempAssocReq->assocReqFrame = NULL;
+                pTempAssocReq->assocReqFrameLength = 0;
+            }
+            vos_mem_free(pTempAssocReq);
+            pTempAssocReq = NULL;
+        }
 
-    psessionEntry->parsedAssocReq[pStaDs->assocId] = pAssocReq;
+        psessionEntry->parsedAssocReq[pStaDs->assocId] = pAssocReq;
+    }
+
 
     pStaDs->mlmStaContext.htCapability = pAssocReq->HTCaps.present;
 #ifdef WLAN_FEATURE_11AC
