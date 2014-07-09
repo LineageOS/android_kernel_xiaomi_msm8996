@@ -621,6 +621,15 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 		{
 			if ((wh)->i_fc[1] & IEEE80211_FC1_WEP)
 			{
+				if (IEEE80211_IS_BROADCAST(wh->i_addr1) ||
+					 IEEE80211_IS_MULTICAST(wh->i_addr1))
+				{
+					TLSHIM_LOGE("Encrypted BC/MC frame"
+					" dropping the frame");
+					vos_pkt_return_packet(rx_pkt);
+					return 0;
+				}
+
 				orig_hdr = (u_int8_t*) adf_nbuf_data(wbuf);
 
 				/* Strip privacy headers (and trailer)
