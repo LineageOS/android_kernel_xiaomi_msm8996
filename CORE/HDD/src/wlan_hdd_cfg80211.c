@@ -12953,26 +12953,29 @@ static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
 #ifdef FEATURE_WLAN_LPHB
 void wlan_hdd_cfg80211_lphb_ind_handler
 (
-   void *pAdapter,
-   void *indCont
+   void *pHddCtx,
+   tSirLPHBInd *lphbInd
 )
 {
-   tSirLPHBInd     *lphbInd;
    struct sk_buff  *skb;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
              "LPHB indication arrived");
 
-   if (NULL == indCont)
-   {
+   if (0 != wlan_hdd_validate_context((hdd_context_t *)pHddCtx)) {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "LPHB IND, invalid argument");
+                "%s: invalid argument pHddCtx", __func__);
       return;
    }
 
-   lphbInd = (tSirLPHBInd *)indCont;
+   if (NULL == lphbInd) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: invalid argument lphbInd", __func__);
+      return;
+   }
+
    skb = cfg80211_testmode_alloc_event_skb(
-                  ((hdd_adapter_t *)pAdapter)->wdev.wiphy,
+                  ((hdd_context_t *)pHddCtx)->wiphy,
                   sizeof(tSirLPHBInd),
                   GFP_ATOMIC);
    if (!skb)

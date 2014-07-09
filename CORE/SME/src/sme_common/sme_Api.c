@@ -11526,7 +11526,7 @@ eHalStatus sme_LPHBConfigReq
 (
    tHalHandle hHal,
    tSirLPHBReq *lphdReq,
-   void (*pCallbackfn)(void *pAdapter, void *indParam)
+   void (*pCallbackfn)(void *pHddCtx, tSirLPHBInd *indParam)
 )
 {
     eHalStatus          status    = eHAL_STATUS_SUCCESS;
