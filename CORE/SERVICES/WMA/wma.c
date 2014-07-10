@@ -2002,6 +2002,7 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 	dest_capab->scanBuckets = src_cache->max_buckets;
 	dest_capab->scanCacheSize = src_cache->scan_cache_entry_size;
 	dest_capab->maxHotlistAPs = src_hotlist->max_hotlist_entries;
+	dest_capab->status = 0;
 
 	WMA_LOGD("%s: Capabilities: scanBuckets: %d,"
 		 "maxHotlistAPs: %d,scanCacheSize: %d",
@@ -19660,6 +19661,7 @@ VOS_STATUS wma_extscan_stop_hotlist_monitor(tp_wma_handle wma,
 	wmi_buf_t wmi_buf;
 	uint32_t   len;
 	u_int8_t *buf_ptr;
+	int hotlist_entries = 0;
 
 	if (!wma || !wma->wmi_handle) {
 		WMA_LOGE("%s: WMA is closed, can not issue  cmd",
@@ -19678,6 +19680,11 @@ VOS_STATUS wma_extscan_stop_hotlist_monitor(tp_wma_handle wma,
 		return VOS_STATUS_E_FAILURE;
 	}
 	len  = sizeof(*cmd);
+
+	/* reset bssid hotlist with tlv set to 0 */
+	len += WMI_TLV_HDR_SIZE;
+	len += hotlist_entries * sizeof(wmi_extscan_hotlist_entry);
+
 	wmi_buf = wmi_buf_alloc(wma->wmi_handle, len);
 	if (!wmi_buf) {
 		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
@@ -19695,6 +19702,13 @@ VOS_STATUS wma_extscan_stop_hotlist_monitor(tp_wma_handle wma,
 	cmd->request_id = photlist_reset->requestId;
 	cmd->vdev_id = photlist_reset->sessionId;
 	cmd->mode = 0;
+
+	buf_ptr += sizeof(*cmd);
+	WMITLV_SET_HDR(buf_ptr,
+		WMITLV_TAG_ARRAY_STRUC,
+		hotlist_entries * sizeof(wmi_extscan_hotlist_entry));
+	buf_ptr += WMI_TLV_HDR_SIZE +
+			(hotlist_entries * sizeof(wmi_extscan_hotlist_entry));
 
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
 			WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID)) {
@@ -19820,6 +19834,7 @@ VOS_STATUS wma_extscan_stop_change_monitor(tp_wma_handle wma,
 	wmi_buf_t wmi_buf;
 	uint32_t   len;
 	u_int8_t *buf_ptr;
+	int change_list = 0;
 
 	if (!wma || !wma->wmi_handle) {
 		WMA_LOGE("%s: WMA is closed, can not issue  cmd",
@@ -19833,6 +19848,11 @@ VOS_STATUS wma_extscan_stop_change_monitor(tp_wma_handle wma,
 		return VOS_STATUS_E_FAILURE;
 	}
 	len  = sizeof(*cmd);
+
+	/* reset significant change tlv is set to 0 */
+	len += WMI_TLV_HDR_SIZE;
+	len += change_list *
+			sizeof(wmi_extscan_wlan_change_bssid_param);
 	wmi_buf = wmi_buf_alloc(wma->wmi_handle, len);
 	if (!wmi_buf) {
 		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
@@ -19849,6 +19869,14 @@ VOS_STATUS wma_extscan_stop_change_monitor(tp_wma_handle wma,
 	cmd->request_id = pResetReq->requestId;
 	cmd->vdev_id = pResetReq->sessionId;
 	cmd->mode = 0;
+
+	buf_ptr += sizeof(*cmd);
+	WMITLV_SET_HDR(buf_ptr,
+		 WMITLV_TAG_ARRAY_STRUC,
+			change_list *
+				sizeof(wmi_extscan_wlan_change_bssid_param));
+	buf_ptr += WMI_TLV_HDR_SIZE + (change_list *
+					sizeof(wmi_extscan_wlan_change_bssid_param));
 
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
 			WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID)) {
