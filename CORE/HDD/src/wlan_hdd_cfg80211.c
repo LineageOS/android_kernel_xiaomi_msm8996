@@ -505,7 +505,8 @@ wlan_hdd_sta_ap_iface_limit[] = {
 static const struct ieee80211_iface_limit
 wlan_hdd_sta_p2p_iface_limit[] = {
    {
-      .max = 1,
+      /* one reserved for dedicated P2PDEV usage */
+      .max = 2,
       .types = BIT(NL80211_IFTYPE_STATION)
    },
    {
@@ -559,7 +560,8 @@ wlan_hdd_iface_combination[] = {
    {
       .limits = wlan_hdd_sta_p2p_iface_limit,
       .num_different_channels = 2,
-      .max_interfaces = 2,
+      /* one interface reserved for P2PDEV dedicated usage */
+      .max_interfaces = 3,
       .n_limits = ARRAY_SIZE(wlan_hdd_sta_p2p_iface_limit),
       .beacon_int_infra_match = true,
    },
