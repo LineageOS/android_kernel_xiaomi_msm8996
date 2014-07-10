@@ -588,8 +588,9 @@ v_U8_t sapSelectPreferredChannelFromChannelList(v_U8_t bestChNum,
   PARAMETERS
 
     IN
+    halHandle          : Pointer to tHalHandle
     *pSpectInfoParams  : Pointer to tSapChSelSpectInfo structure
-    sapContext: SAP Context
+     pSapCtx           : Pointer to SAP Context
 
   RETURN VALUE
     v_BOOL_t:  Success or FAIL
@@ -607,7 +608,7 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
     v_BOOL_t chSafe = VOS_TRUE;
 #ifdef FEATURE_WLAN_CH_AVOID
     v_U16_t i;
-#endif /* FEATURE_WLAN_CH_AVOID */
+#endif
 
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s", __func__);
 
@@ -641,6 +642,17 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
             continue;
         }
 
+#if defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE) || defined(WLAN_FEATURE_MBSSID)
+        if (pSapCtx->dfs_ch_disable == VOS_TRUE) {
+            if (VOS_IS_DFS_CH(*pChans)) {
+                chSafe = VOS_FALSE;
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "In %s,  DFS Ch %d not considered for ACS", __func__,
+                          *pChans);
+                continue;
+            }
+        }
+#endif
 #ifdef FEATURE_WLAN_CH_AVOID
         for(i = 0; i < NUM_20MHZ_RF_CHANNELS; i++) {
             if((safeChannels[i].channelNumber == *pChans) &&
@@ -2459,7 +2471,7 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
     }
 
     // Initialize the structure pointed by pSpectInfoParams
-    if(sapChanSelInit( halHandle, pSpectInfoParams, pSapCtx) != eSAP_TRUE ) {
+    if (sapChanSelInit( halHandle, pSpectInfoParams, pSapCtx ) != eSAP_TRUE ) {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, Ch Select initialization failed", __func__);
         return SAP_CHANNEL_NOT_SELECTED;
     }

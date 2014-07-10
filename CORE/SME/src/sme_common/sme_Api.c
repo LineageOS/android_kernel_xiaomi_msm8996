@@ -2606,7 +2606,7 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
           case eWNI_SME_LPHB_IND:
                 if (pMac->sme.pLphbIndCb)
                 {
-                   pMac->sme.pLphbIndCb(pMac->pAdapter, pMsg->bodyptr);
+                   pMac->sme.pLphbIndCb(pMac->hHdd, pMsg->bodyptr);
                 }
                 vos_mem_free(pMsg->bodyptr);
 
@@ -2632,7 +2632,7 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 {
                    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                              "%s: CH avoid notification", __func__);
-                   pMac->sme.pChAvoidNotificationCb(pMac->pAdapter, pMsg->bodyptr);
+                   pMac->sme.pChAvoidNotificationCb(pMac->hHdd, pMsg->bodyptr);
                 }
                 vos_mem_free(pMsg->bodyptr);
                 break;
@@ -12607,7 +12607,7 @@ eHalStatus sme_StatsExtEvent(tHalHandle hHal, void* pMsg)
         smsLog(pMac, LOG2, "SME: entering %s", __func__);
 
         if (pMac->sme.StatsExtCallback) {
-            pMac->sme.StatsExtCallback(pMac->pAdapter, (tpStatsExtEvent)pMsg);
+            pMac->sme.StatsExtCallback(pMac->hHdd, (tpStatsExtEvent)pMsg);
         }
     }
 

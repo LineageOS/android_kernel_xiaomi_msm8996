@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -187,6 +187,15 @@ typedef enum
    VNV_TYPE_COUNT
 }
 VNV_TYPE;
+
+typedef enum
+{
+/* DFS Session refers to successful SAP session operating in DFS channel */
+   DFS_CAC_NEVER_DONE,   /* CAC was never done for this current ap / ap-ap */
+   DFS_CAC_IN_PROGRESS,  /* CAC is in progress for this DFS session */
+   DFS_CAC_ALREADY_DONE, /* CAC already for SAP starting this DFS session */
+}
+eDFS_CAC_STATUS;
 
 // country code type
 typedef v_U8_t v_COUNTRYCODE_t[VOS_COUNTRY_CODE_LEN];
@@ -703,6 +712,8 @@ eNVChannelEnabledType vos_nv_getChannelEnabledState
 (
    v_U32_t    rfChannel
 );
+#define VOS_IS_DFS_CH(channel) (vos_nv_getChannelEnabledState((channel)) == \
+                                   NV_CHANNEL_DFS)
 
 VOS_STATUS vos_init_wiphy_from_nv_bin(void);
 VOS_STATUS vos_init_wiphy_from_eeprom(void);

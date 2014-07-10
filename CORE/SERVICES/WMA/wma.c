@@ -1852,7 +1852,7 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 		vos_mem_free(extscan_ind);
 		return -EINVAL;
 	}
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				event_type, extscan_ind);
 	WMA_LOGD("%s: sending event to umac for requestid %x"
 		"with status %d", __func__,
@@ -1907,7 +1907,7 @@ static int wma_extscan_operations_event_handler(void *handle,
 		vos_mem_free(oprn_ind);
 		return -EINVAL;
 	}
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_SCAN_PROGRESS_EVENT_IND,
 				oprn_ind);
 	WMA_LOGD("%s: sending scan progress event to hdd",
@@ -1949,7 +1949,7 @@ static int wma_extscan_table_usage_event_handler (void *handle,
 	tbl_usg_ind->requestId = event->request_id;
 	tbl_usg_ind->numResultsAvailable = event->maximum_entries;
 
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_SCAN_RES_AVAILABLE_IND,
 				tbl_usg_ind);
 	WMA_LOGD("%s: sending scan_res available event to hdd",
@@ -2009,7 +2009,7 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 		dest_capab->maxHotlistAPs,
 		dest_capab->scanCacheSize);
 
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_GET_CAPABILITIES_IND,
 				dest_capab);
 	WMA_LOGD("%s: sending capabilities event to hdd", __func__);
@@ -2084,7 +2084,7 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 		dest_ap++;
 		src_hotlist++;
 	}
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_HOTLIST_MATCH_IND,
 				dest_hotlist);
 	WMA_LOGD("%s: sending hotlist match event to hdd", __func__);
@@ -2164,7 +2164,7 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 		dest_ap++;
 		src_hotlist++;
 	}
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_CACHED_RESULTS_IND,
 				dest_cachelist);
 	WMA_LOGD("%s: sending cached results event", __func__);
@@ -2251,7 +2251,7 @@ static int wma_extscan_change_results_event_handler(void *handle,
 	dest_chglist->moreData = moredata;
 	dest_chglist->numResults = event->total_entries;
 
-	pMac->sme.pExtScanIndCb(pMac->pAdapter,
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_SIGNIFICANT_WIFI_CHANGE_RESULTS_IND,
 				dest_chglist);
 	WMA_LOGD("%s: sending change monitor results", __func__);
@@ -2396,7 +2396,7 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 	 * vdev_id/ifacId in link_stats_results will be
 	 * used to retrieve the correct HDD context
 	 */
-	pMac->sme.pLinkLayerStatsIndCallback(pMac->pAdapter,
+	pMac->sme.pLinkLayerStatsIndCallback(pMac->hHdd,
 		WDA_LINK_LAYER_STATS_RESULTS_RSP,
 		link_stats_results);
 	WMA_LOGD("%s: Iface Stats event posted to HDD", __func__);
@@ -2539,7 +2539,7 @@ static int wma_unified_link_peer_stats_event_handler(void *handle,
 	 * vdev_id/ifacId in link_stats_results will be
 	 * used to retrieve the correct HDD context
 	 */
-	pMac->sme.pLinkLayerStatsIndCallback(pMac->pAdapter,
+	pMac->sme.pLinkLayerStatsIndCallback(pMac->hHdd,
 	        WDA_LINK_LAYER_STATS_RESULTS_RSP,
 	        link_stats_results);
 	WMA_LOGD("%s: Peer Stats event posted to HDD", __func__);
@@ -2668,7 +2668,7 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 	 * vdev_id/ifacId in link_stats_results will be
 	 * used to retrieve the correct HDD context
 	 */
-	pMac->sme.pLinkLayerStatsIndCallback(pMac->pAdapter,
+	pMac->sme.pLinkLayerStatsIndCallback(pMac->hHdd,
 	        WDA_LINK_LAYER_STATS_RESULTS_RSP,
 	        link_stats_results);
 	WMA_LOGD("%s: Radio Stats event posted to HDD", __func__);
@@ -6472,62 +6472,399 @@ end:
 	return vos_status;
 }
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+VOS_STATUS wma_roam_scan_fill_self_caps(tp_wma_handle wma_handle,
+		wmi_roam_offload_tlv_param *roam_offload_params,
+		tSirRoamOffloadScanReq *roam_req)
+{
+	struct sAniSirGlobal *pMac = NULL;
+	tSirMacCapabilityInfo selfCaps;
+	tANI_U32 val = 0;
+	tANI_U32 nCfgValue;
+	tANI_U16 *pCfgValue16;
+	tANI_U8  nCfgValue8, *pCfgValue8;
+	tSirMacQosInfoStation macQosInfoSta;
+	union {
+		tANI_U16			nCfgValue16;
+		tSirMacHTCapabilityInfo	 htCapInfo;
+		tSirMacExtendedHTCapabilityInfo extHtCapInfo;
+	} uHTCapabilityInfo;
+
+	vos_mem_set(&macQosInfoSta, 0, sizeof(tSirMacQosInfoStation));
+	/* Roaming is done only for INFRA STA type.
+	 * So, ess will be one and ibss will be Zero */
+	pMac = (struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+				wma_handle->vos_context);
+	if (!pMac) {
+		WMA_LOGE("%s:NULL pMac ptr. Exiting", __func__);
+		VOS_ASSERT(0);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED, &val) !=
+							eSIR_SUCCESS){
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_PRIVACY_ENABLED");
+		return VOS_STATUS_E_FAILURE;
+	}
+	selfCaps.ess = 1;
+	selfCaps.ibss = 0;
+	if (val)
+		selfCaps.privacy = 1;
+	if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_PREAMBLE, &val) !=
+						       eSIR_SUCCESS){
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_SHORT_PREAMBLE");
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (val)
+		selfCaps.shortPreamble = 1;
+
+	selfCaps.pbcc = 0;
+	selfCaps.channelAgility = 0;
+	if (wlan_cfgGetInt(pMac, WNI_CFG_11G_SHORT_SLOT_TIME_ENABLED,
+					  &val) != eSIR_SUCCESS){
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_11G_SHORT_SLOT_TIME_ENABLED");
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (val)
+		selfCaps.shortSlotTime = 1;
+	if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) != eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_11H_ENABLED");
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (val)
+		selfCaps.spectrumMgt = 1;
+	if (wlan_cfgGetInt(pMac, WNI_CFG_QOS_ENABLED, &val) != eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_QOS_ENABLED");
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (val)
+		selfCaps.qos = 1;
+	if (wlan_cfgGetInt(pMac, WNI_CFG_APSD_ENABLED, &val) != eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_APSD_ENABLED");
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (val)
+		selfCaps.apsd = 1;
+	if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_ENABLED, &val) != eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_RRM_ENABLED");
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (val)
+		selfCaps.rrm = 1;
+	if (wlan_cfgGetInt(pMac, WNI_CFG_BLOCK_ACK_ENABLED, &val) !=
+							       eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_BLOCK_ACK_ENABLED");
+		return VOS_STATUS_E_FAILURE;
+	}
+	selfCaps.delayedBA =
+		(tANI_U16)((val >> WNI_CFG_BLOCK_ACK_ENABLED_DELAYED) & 1);
+	selfCaps.immediateBA =
+		(tANI_U16)((val >> WNI_CFG_BLOCK_ACK_ENABLED_IMMEDIATE) & 1);
+	pCfgValue16 = (tANI_U16 *)&selfCaps;
+	roam_offload_params->capability = (*pCfgValue16) & 0xFFFF;
+
+	if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &nCfgValue) !=
+							    eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_HT_CAP_INFO");
+		return VOS_STATUS_E_FAILURE;
+	}
+	uHTCapabilityInfo.nCfgValue16 = nCfgValue & 0xFFFF;
+	roam_offload_params->ht_caps_info =
+				   uHTCapabilityInfo.nCfgValue16 & 0xFFFF;
+	if (wlan_cfgGetInt(pMac, WNI_CFG_HT_AMPDU_PARAMS, &nCfgValue) !=
+							    eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_HT_AMPDU_PARAMS");
+		return VOS_STATUS_E_FAILURE;
+	}
+	/* tSirMacHTParametersInfo */
+	nCfgValue8 = ( tANI_U8 ) nCfgValue;
+	roam_offload_params->ampdu_param = (nCfgValue8) & 0xFF;
+
+	val = ROAM_OFFLOAD_NUM_MCS_SET;
+	if (wlan_cfgGetStr(pMac, WNI_CFG_SUPPORTED_MCS_SET,
+			(tANI_U8*)roam_offload_params->mcsset,
+				&val) != eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_SUPPORTED_MCS_SET");
+		return VOS_STATUS_E_FAILURE;
+	}
+	if (wlan_cfgGetInt(pMac, WNI_CFG_EXT_HT_CAP_INFO, &nCfgValue) !=
+							       eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_EXT_HT_CAP_INFO");
+		return VOS_STATUS_E_FAILURE;
+	}
+	/* uHTCapabilityInfo.extHtCapInfo */
+	uHTCapabilityInfo.nCfgValue16 = nCfgValue & 0xFFFF;
+	roam_offload_params->ht_ext_cap =
+				   uHTCapabilityInfo.nCfgValue16 & 0xFFFF;
+
+	if (wlan_cfgGetInt(pMac, WNI_CFG_TX_BF_CAP, &nCfgValue) !=
+							  eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_TX_BF_CAP");
+		return VOS_STATUS_E_FAILURE;
+	}
+	/* tSirMacTxBFCapabilityInfo */
+	nCfgValue8 = ( tANI_U8 ) nCfgValue;
+	roam_offload_params->ht_txbf = nCfgValue8 & 0xFF;
+	if (wlan_cfgGetInt(pMac, WNI_CFG_AS_CAP, &nCfgValue) !=
+                                             eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_AS_CAP");
+		return VOS_STATUS_E_FAILURE;
+	}
+	/* tSirMacASCapabilityInfo */
+	nCfgValue8 = ( tANI_U8 ) nCfgValue;
+	roam_offload_params->asel_cap = nCfgValue8 & 0xFF;
+
+	/* QOS Info */
+	if (wlan_cfgGetInt(pMac, WNI_CFG_MAX_SP_LENGTH, &nCfgValue) !=
+							   eSIR_SUCCESS) {
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get WNI_CFG_MAX_SP_LENGTH");
+		return VOS_STATUS_E_FAILURE;
+	}
+	nCfgValue8 = ( tANI_U8 ) nCfgValue;
+	macQosInfoSta.maxSpLen = nCfgValue8;
+	macQosInfoSta.moreDataAck = 0;
+	macQosInfoSta.qack = 0;
+	macQosInfoSta.acbe_uapsd = roam_req->AcUapsd.acbe_uapsd;
+	macQosInfoSta.acbk_uapsd = roam_req->AcUapsd.acbk_uapsd;
+	macQosInfoSta.acvi_uapsd = roam_req->AcUapsd.acvi_uapsd;
+	macQosInfoSta.acvo_uapsd = roam_req->AcUapsd.acvo_uapsd;
+	pCfgValue8 = (tANI_U8 *)&macQosInfoSta;
+	/* macQosInfoSta Only queue_request is set.Refer to
+	 * PopulateDot11fWMMCaps for more details
+	 */
+	roam_offload_params->qos_caps = (*pCfgValue8) & 0xFF;
+	roam_offload_params->wmm_caps = 0x4 & 0xFF;
+	return VOS_STATUS_SUCCESS;
+}
+
+#endif
 /* function   : wma_roam_scan_offload_mode
  * Descriptin : send WMI_ROAM_SCAN_MODE TLV to firmware. It has a piggyback
- *            : of WMI_ROAM_SCAN_MODE.
+ *	    : of WMI_ROAM_SCAN_MODE.
  * Args       : scan_cmd_fp contains the scan parameters.
- *            : mode controls rssi based and periodic scans by roam engine.
+ *	    : mode controls rssi based and periodic scans by roam engine.
  * Returns    :
  */
 VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
-        wmi_start_scan_cmd_fixed_param *scan_cmd_fp, u_int32_t mode)
+					wmi_start_scan_cmd_fixed_param *scan_cmd_fp,
+					tSirRoamOffloadScanReq *roam_req,
+					u_int32_t mode)
 {
-    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
-    wmi_buf_t buf = NULL;
-    int status = 0;
-    int len;
-    wmi_roam_scan_mode_fixed_param *roam_scan_mode_fp;
-    u_int8_t *buf_ptr;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	wmi_buf_t buf = NULL;
+	int status = 0;
+	int len;
+	u_int8_t *buf_ptr;
+	wmi_roam_scan_mode_fixed_param *roam_scan_mode_fp;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	int auth_mode = WMI_AUTH_NONE;
+	wmi_roam_offload_tlv_param *roam_offload_params;
+	wmi_roam_11i_offload_tlv_param *roam_offload_11i;
+	wmi_roam_11r_offload_tlv_param *roam_offload_11r;
+	wmi_roam_ese_offload_tlv_param *roam_offload_ese;
+	if (roam_req)
+	    auth_mode = eCsrAuthType_to_rsn_authmode
+	    (roam_req->ConnectedNetwork.authentication,
+		 roam_req->ConnectedNetwork.encryption);
+	WMA_LOGD("%s : auth mode = %d",__func__, auth_mode);
+#endif
+	/* Need to create a buf with roam_scan command at
+	 * front and piggyback with scan command */
+	len = sizeof(wmi_roam_scan_mode_fixed_param) +
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+		(2 * WMI_TLV_HDR_SIZE) +
+#endif
+		sizeof(wmi_start_scan_cmd_fixed_param);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	if (roam_req && roam_req->RoamOffloadEnabled) {
+		len += sizeof(wmi_roam_offload_tlv_param);
+		len += WMI_TLV_HDR_SIZE;
+		if((auth_mode != WMI_AUTH_NONE) &&
+			(auth_mode != WMI_AUTH_OPEN)){
+			len += WMI_TLV_HDR_SIZE;
+			if(auth_mode == WMI_AUTH_CCKM)
+			len += sizeof(wmi_roam_ese_offload_tlv_param);
+			else if (auth_mode == WMI_AUTH_FT_RSNA ||
+			auth_mode == WMI_AUTH_FT_RSNA_PSK)
+			len += sizeof(wmi_roam_11r_offload_tlv_param);
+			else
+			len += sizeof(wmi_roam_11i_offload_tlv_param);
+		} else {
+			len += WMI_TLV_HDR_SIZE;
+		}
+	} else {
+		if (roam_req)
+		   WMA_LOGD("%s : roam offload = %d",
+			       __func__, roam_req->RoamOffloadEnabled);
+		else
+			WMA_LOGD("%s : roam_req is NULL",__func__);
+		len += (2 * WMI_TLV_HDR_SIZE);
+	}
+	if (roam_req && roam_req->RoamOffloadEnabled) {
+		mode = mode | WMI_ROAM_SCAN_MODE_ROAMOFFLOAD;
+	}
+#endif
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
 
-    /* Need to create a buf with roam_scan command at front and piggyback with scan command */
-    len = sizeof(wmi_roam_scan_mode_fixed_param) + sizeof(wmi_start_scan_cmd_fixed_param);
-    buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
-    if (!buf) {
-        WMA_LOGD("%s : wmi_buf_alloc failed", __func__);
-        return VOS_STATUS_E_NOMEM;
-    }
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	roam_scan_mode_fp = (wmi_roam_scan_mode_fixed_param *) buf_ptr;
+	WMITLV_SET_HDR(&roam_scan_mode_fp->tlv_header,
+			WMITLV_TAG_STRUC_wmi_roam_scan_mode_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_roam_scan_mode_fixed_param));
 
-    buf_ptr = (u_int8_t *) wmi_buf_data(buf);
-    roam_scan_mode_fp = (wmi_roam_scan_mode_fixed_param *) buf_ptr;
-    WMITLV_SET_HDR(&roam_scan_mode_fp->tlv_header,
-               WMITLV_TAG_STRUC_wmi_roam_scan_mode_fixed_param,
-               WMITLV_GET_STRUCT_TLVLEN(wmi_roam_scan_mode_fixed_param));
+	roam_scan_mode_fp->roam_scan_mode = mode;
+	roam_scan_mode_fp->vdev_id = wma_handle->roam_offload_vdev_id;
+	/* Fill in scan parameters suitable for roaming scan */
+	buf_ptr += sizeof(wmi_roam_scan_mode_fixed_param);
+	vos_mem_copy(buf_ptr, scan_cmd_fp, sizeof(wmi_start_scan_cmd_fixed_param));
+	/* Ensure there is no additional IEs */
+	scan_cmd_fp->ie_len = 0;
+	WMITLV_SET_HDR(buf_ptr,
+			WMITLV_TAG_STRUC_wmi_start_scan_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_start_scan_cmd_fixed_param));
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	buf_ptr += sizeof(wmi_start_scan_cmd_fixed_param);
+	if (roam_req && roam_req->RoamOffloadEnabled) {
+		WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+		sizeof(wmi_roam_offload_tlv_param));
+		buf_ptr += WMI_TLV_HDR_SIZE;
+	    roam_offload_params = (wmi_roam_offload_tlv_param *) buf_ptr;
+		 WMITLV_SET_HDR(buf_ptr,
+			WMITLV_TAG_STRUC_wmi_roam_offload_tlv_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_roam_offload_tlv_param));
+	    roam_offload_params->prefer_5g = roam_req->Prefer5GHz;
+	    roam_offload_params->rssi_cat_gap = roam_req->RoamRssiCatGap;
+	    roam_offload_params->select_5g_margin = roam_req->Select5GHzMargin;
+	    roam_offload_params->reassoc_failure_timeout =
+		roam_req->ReassocFailureTimeout;
+	    /* Fill the capabilities */
+	    wma_roam_scan_fill_self_caps(wma_handle, roam_offload_params, roam_req);
+	    buf_ptr += sizeof(wmi_roam_offload_tlv_param);
+	    /* The TLV's are in the order of 11i, 11R, ESE. Hence,
+	     * they are filled in the same order.Depending on the
+	     * authentication type, the other mode TLV's are nullified
+	     * and only headers are filled.*/
+	    if ((auth_mode != WMI_AUTH_OPEN) && (auth_mode != WMI_AUTH_NONE)) {
+			if (auth_mode == WMI_AUTH_CCKM){
+				WMITLV_SET_HDR(buf_ptr,WMITLV_TAG_ARRAY_STRUC,
+				WMITLV_GET_STRUCT_TLVLEN(0));
+				buf_ptr += WMI_TLV_HDR_SIZE;
+				WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+				WMITLV_GET_STRUCT_TLVLEN(0));
+				buf_ptr += WMI_TLV_HDR_SIZE;
+				WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+				sizeof(wmi_roam_ese_offload_tlv_param));
+				buf_ptr += WMI_TLV_HDR_SIZE;
+				roam_offload_ese =
+				  (wmi_roam_ese_offload_tlv_param *) buf_ptr;
+				vos_mem_copy (roam_offload_ese->krk, roam_req->KRK,
+							 sizeof(roam_req->KRK));
+				vos_mem_copy (roam_offload_ese->btk, roam_req->BTK,
+							 sizeof(roam_req->BTK));
+				WMITLV_SET_HDR(&roam_offload_ese->tlv_header,
+				WMITLV_TAG_STRUC_wmi_roam_ese_offload_tlv_param,
+				WMITLV_GET_STRUCT_TLVLEN
+				  (wmi_roam_ese_offload_tlv_param));
+				buf_ptr += sizeof(wmi_roam_ese_offload_tlv_param);
+			} else if (auth_mode == WMI_AUTH_FT_RSNA ||
+				auth_mode == WMI_AUTH_FT_RSNA_PSK){
+				WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC, 0);
+				buf_ptr += WMI_TLV_HDR_SIZE;
+				WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+				sizeof(wmi_roam_11r_offload_tlv_param));
+				buf_ptr += WMI_TLV_HDR_SIZE;
+				roam_offload_11r =
+				(wmi_roam_11r_offload_tlv_param *) buf_ptr;
+				roam_offload_11r->r0kh_id = 0;
+				roam_offload_11r->r0kh_id_len = 0;
+				vos_mem_copy (roam_offload_11r->psk_msk, roam_req->PSK_PMK,
+						       sizeof(roam_req->PSK_PMK));
+				WMITLV_SET_HDR(&roam_offload_11r->tlv_header,
+				WMITLV_TAG_STRUC_wmi_roam_11r_offload_tlv_param,
+				WMITLV_GET_STRUCT_TLVLEN
+				    (wmi_roam_11r_offload_tlv_param));
+				buf_ptr += sizeof(wmi_roam_11r_offload_tlv_param);
+				WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+				WMITLV_GET_STRUCT_TLVLEN(0));
+				buf_ptr += WMI_TLV_HDR_SIZE;
+			} else {
+				WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+				sizeof(wmi_roam_11i_offload_tlv_param));
+				buf_ptr += WMI_TLV_HDR_SIZE;
+				roam_offload_11i =
+				(wmi_roam_11i_offload_tlv_param *) buf_ptr;
+				WMI_SET_ROAM_OFFLOAD_OKC_ENABLED(roam_offload_11i->flags);
+				vos_mem_copy (roam_offload_11i->pmk, roam_req->PSK_PMK,
+                                             sizeof(roam_req->PSK_PMK));
+				WMITLV_SET_HDR(&roam_offload_11i->tlv_header,
+				WMITLV_TAG_STRUC_wmi_roam_11i_offload_tlv_param,
+				WMITLV_GET_STRUCT_TLVLEN
+				(wmi_roam_11i_offload_tlv_param) );
+				buf_ptr += sizeof(wmi_roam_11i_offload_tlv_param);
+				WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,0);
+				buf_ptr += WMI_TLV_HDR_SIZE;
+				WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,0);
+				buf_ptr += WMI_TLV_HDR_SIZE;
+			}
+		} else {
+			WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+			WMITLV_GET_STRUCT_TLVLEN(0));
+			buf_ptr += WMI_TLV_HDR_SIZE;
+			WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+			WMITLV_GET_STRUCT_TLVLEN(0));
+			buf_ptr += WMI_TLV_HDR_SIZE;
+			WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+			WMITLV_GET_STRUCT_TLVLEN(0));
+	    }
+	} else {
+		WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+		    WMITLV_GET_STRUCT_TLVLEN(0));
+	    buf_ptr += WMI_TLV_HDR_SIZE;
+		WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+		    WMITLV_GET_STRUCT_TLVLEN(0));
+	    buf_ptr += WMI_TLV_HDR_SIZE;
+	    WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+		    WMITLV_GET_STRUCT_TLVLEN(0));
+	    buf_ptr += WMI_TLV_HDR_SIZE;
+	    WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+		    WMITLV_GET_STRUCT_TLVLEN(0));
+	}
+#endif
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			len, WMI_ROAM_SCAN_MODE);
+	if (status != EOK) {
+		WMA_LOGE
+		("wmi_unified_cmd_send WMI_ROAM_SCAN_MODE returned Error %d",
+							     status);
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto error;
+	}
 
-    roam_scan_mode_fp->roam_scan_mode = mode;
-    roam_scan_mode_fp->vdev_id = wma_handle->roam_offload_vdev_id;
-    /* Fill in scan parameters suitable for roaming scan */
-    buf_ptr += sizeof(wmi_roam_scan_mode_fixed_param);
-    vos_mem_copy(buf_ptr, scan_cmd_fp, sizeof(wmi_start_scan_cmd_fixed_param));
-    /* Ensure there is no additional IEs */
-    scan_cmd_fp->ie_len = 0;
-    WMITLV_SET_HDR(buf_ptr,
-               WMITLV_TAG_STRUC_wmi_start_scan_cmd_fixed_param,
-               WMITLV_GET_STRUCT_TLVLEN(wmi_start_scan_cmd_fixed_param));
-    status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
-            len, WMI_ROAM_SCAN_MODE);
-    if (status != EOK) {
-        WMA_LOGE("wmi_unified_cmd_send WMI_ROAM_SCAN_MODE returned Error %d",
-            status);
-        vos_status = VOS_STATUS_E_FAILURE;
-        goto error;
-    }
-
-    WMA_LOGI("%s: WMA --> WMI_ROAM_SCAN_MODE", __func__);
-    return VOS_STATUS_SUCCESS;
+	WMA_LOGI("%s: WMA --> WMI_ROAM_SCAN_MODE", __func__);
+	return VOS_STATUS_SUCCESS;
 error:
-    wmi_buf_free(buf);
+	wmi_buf_free(buf);
 
-    return vos_status;
+	return vos_status;
 }
 
 /* function   : wma_roam_scan_offload_rssi_threshold
@@ -7164,7 +7501,7 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle)
     vos_status = wma_roam_scan_offload_ap_profile(wma_handle, &ap_profile);
 
     wma_roam_scan_fill_scan_params(wma_handle, pMac, NULL, &scan_params);
-    vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
+    vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params, NULL,
             WMI_ROAM_SCAN_MODE_PERIODIC);
     return vos_status;
 }
@@ -7191,7 +7528,7 @@ VOS_STATUS wma_roam_scan_offload_end_connect(tp_wma_handle wma_handle)
     if (wma_handle->roam_offload_enabled) {
 
         wma_roam_scan_fill_scan_params(wma_handle, pMac, NULL, &scan_params);
-        vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
+        vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params, NULL,
                                 WMI_ROAM_SCAN_MODE_NONE);
     }
     return VOS_STATUS_SUCCESS;
@@ -7345,7 +7682,8 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 
 
             wma_roam_scan_fill_scan_params(wma_handle, pMac, roam_req, &scan_params);
-            vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params, mode);
+            vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
+                                                            roam_req, mode);
             break;
 
         case ROAM_SCAN_OFFLOAD_STOP:
@@ -7397,7 +7735,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             wma_handle->suitable_ap_hb_failure = FALSE;
             wma_roam_scan_fill_scan_params(wma_handle, pMac, roam_req, &scan_params);
             vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
-                                                    WMI_ROAM_SCAN_MODE_NONE);
+                                        roam_req, WMI_ROAM_SCAN_MODE_NONE);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
@@ -7463,7 +7801,8 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             }
 
             wma_roam_scan_fill_scan_params(wma_handle, pMac, roam_req, &scan_params);
-            vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params, mode);
+            vos_status = wma_roam_scan_offload_mode(wma_handle, &scan_params,
+                                                            roam_req, mode);
 
             break;
 
