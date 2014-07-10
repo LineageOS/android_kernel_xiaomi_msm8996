@@ -488,6 +488,16 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_extscan_hotlist_monitor_capabilities_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_d0_wow_enable_disable_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_d0_wow_disable_ack_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_unit_test_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_roam_offload_tlv_param,
+    WMITLV_TAG_STRUC_wmi_roam_11i_offload_tlv_param,
+    WMITLV_TAG_STRUC_wmi_roam_11r_offload_tlv_param,
+    WMITLV_TAG_STRUC_wmi_roam_ese_offload_tlv_param,
+    WMITLV_TAG_STRUC_wmi_roam_synch_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_roam_synch_complete_fixed_param,
+    WMITLV_TAG_STRUC_wmi_extwow_enable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_extwow_set_app_type1_params_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_extwow_set_app_type2_params_cmd_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -666,7 +676,12 @@ typedef enum {
     OP(WMI_EXTSCAN_GET_WLAN_CHANGE_RESULTS_CMDID) \
     OP(WMI_EXTSCAN_SET_CAPABILITIES_CMDID) \
     OP(WMI_EXTSCAN_GET_CAPABILITIES_CMDID) \
-    OP(WMI_D0_WOW_ENABLE_DISABLE_CMDID)
+    OP(WMI_D0_WOW_ENABLE_DISABLE_CMDID) \
+    OP(WMI_UNIT_TEST_CMDID) \
+    OP(WMI_ROAM_SYNCH_COMPLETE) \
+    OP(WMI_EXTWOW_ENABLE_CMDID) \
+    OP(WMI_EXTWOW_SET_APP_TYPE1_PARAMS_CMDID) \
+    OP(WMI_EXTWOW_SET_APP_TYPE2_PARAMS_CMDID)
 
 
 /*
@@ -750,7 +765,9 @@ typedef enum {
     OP(WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID) \
     OP(WMI_EXTSCAN_HOTLIST_MATCH_EVENTID) \
     OP(WMI_EXTSCAN_CAPABILITIES_EVENTID) \
-    OP(WMI_D0_WOW_DISABLE_ACK_EVENTID)
+    OP(WMI_D0_WOW_DISABLE_ACK_EVENTID) \
+    OP(WMI_ROAM_SYNCH_EVENTID)
+
 
 /* TLV definitions of WMI commands */
 
@@ -858,7 +875,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_RMV_BCN_FILTER_CMDID);
 /* Roam scan mode Cmd */
 #define WMITLV_TABLE_WMI_ROAM_SCAN_MODE(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_scan_mode_fixed_param, wmi_roam_scan_mode_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_start_scan_cmd_fixed_param, wmi_start_scan_cmd_fixed_param, scan_params, WMITLV_SIZE_FIX)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_start_scan_cmd_fixed_param, wmi_start_scan_cmd_fixed_param, scan_params, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_roam_offload_tlv_param, offload_param, WMITLV_SIZE_VAR)  \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_roam_11i_offload_tlv_param, offload_11i_param, WMITLV_SIZE_VAR)  \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_roam_11r_offload_tlv_param, offload_11r_param, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_roam_ese_offload_tlv_param, offload_ese_param, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SCAN_MODE);
 
@@ -1254,6 +1275,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_FWTEST_VDEV_MCC_SET_TBTT_MODE_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_p2p_noa_descriptor, noa_descriptor, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_FWTEST_P2P_SET_NOA_PARAM_CMDID);
 
+/* Unit test FW */
+#define WMITLV_TABLE_WMI_UNIT_TEST_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_unit_test_cmd_fixed_param, wmi_unit_test_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, args, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_UNIT_TEST_CMDID);
+
 /* Force Fw Hang Cmd */
 #define WMITLV_TABLE_WMI_FORCE_FW_HANG_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_WMI_FORCE_FW_HANG_CMD_fixed_param, WMI_FORCE_FW_HANG_CMD_fixed_param, fixed_param, WMITLV_SIZE_FIX)
@@ -1394,6 +1421,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PEER_MCAST_GROUP_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_AP_PROFILE);
 
+/* Roam sync complete Cmd */
+#define WMITLV_TABLE_WMI_ROAM_SYNCH_COMPLETE(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_synch_complete_fixed_param, wmi_roam_synch_complete_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SYNCH_COMPLETE)
+
 /* Scan scheduler priority Table Cmd */
 #define WMITLV_TABLE_WMI_SCAN_SCH_PRIO_TBL_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_scan_sch_priority_table_cmd_fixed_param, wmi_scan_sch_priority_table_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
@@ -1463,6 +1496,24 @@ WMITLV_CREATE_PARAM_STRUC(WMI_WOW_ACER_IOAC_ADD_WAKE_PATTERN_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_WMI_WOW_ACER_IOAC_DEL_PATTERN_CMD_fixed_param, WMI_WOW_ACER_IOAC_DEL_PATTERN_CMD_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_WOW_ACER_IOAC_DEL_WAKE_PATTERN_CMDID);
+
+/* extwow enable Cmd */
+#define WMITLV_TABLE_WMI_EXTWOW_ENABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_extwow_enable_cmd_fixed_param, wmi_extwow_enable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_EXTWOW_ENABLE_CMDID);
+
+/* extwow set wakeup params cmd for app type1 */
+#define WMITLV_TABLE_WMI_EXTWOW_SET_APP_TYPE1_PARAMS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_extwow_set_app_type1_params_cmd_fixed_param, wmi_extwow_set_app_type1_params_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_EXTWOW_SET_APP_TYPE1_PARAMS_CMDID);
+
+/* extwow set wakeup params cmd for app type2 */
+#define WMITLV_TABLE_WMI_EXTWOW_SET_APP_TYPE2_PARAMS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_extwow_set_app_type2_params_cmd_fixed_param, wmi_extwow_set_app_type2_params_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_EXTWOW_SET_APP_TYPE2_PARAMS_CMDID);
 
 /* Stop scan Cmd */
 #define WMITLV_TABLE_WMI_STOP_SCAN_CMDID(id,op,buf,len) \
@@ -1980,6 +2031,13 @@ WMITLV_CREATE_PARAM_STRUC(WMI_AGGR_STATE_TRIG_EVENTID);
 #define WMITLV_TABLE_WMI_ROAM_EVENTID(id,op,buf,len)                                                         \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_event_fixed_param, wmi_roam_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_EVENTID);
+
+/* Roam Synch Event */
+#define WMITLV_TABLE_WMI_ROAM_SYNCH_EVENTID(id,op,buf,len)                                                      \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_synch_event_fixed_param, wmi_roam_synch_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bcn_probe_rsp_frame, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, reassoc_rsp_frame, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SYNCH_EVENTID);
 
 /* WOW Wakeup Host Event */
 /* NOTE: Make sure wow_bitmap_info can be zero or one elements only */
