@@ -3818,9 +3818,9 @@ __limHandleSmeStopBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     psessionEntry->addIeParams.probeRespDataLen = 0;
     psessionEntry->addIeParams.probeRespData_buff = NULL;
 
-    vos_mem_free(psessionEntry->addIeParams.probeRespBCNData_buff);
-    psessionEntry->addIeParams.probeRespBCNDataLen = 0;
-    psessionEntry->addIeParams.probeRespBCNData_buff = NULL;
+    vos_mem_free(psessionEntry->addIeParams.assocRespData_buff);
+    psessionEntry->addIeParams.assocRespDataLen = 0;
+    psessionEntry->addIeParams.assocRespData_buff = NULL;
 
     vos_mem_free(psessionEntry->addIeParams.probeRespBCNData_buff);
     psessionEntry->addIeParams.probeRespBCNDataLen = 0;

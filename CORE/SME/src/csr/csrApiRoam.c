@@ -18253,26 +18253,31 @@ csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
     tANI_U8 *pLocalBuffer = NULL;
     eHalStatus status;
 
-    /* following buffer will be freed by consumer (PE) */
-    pLocalBuffer = vos_mem_malloc(pUpdateIE->ieBufferlength);
-
-    if (NULL == pLocalBuffer)
+    if (pUpdateIE->ieBufferlength != 0)
     {
-       smsLog(pMac, LOGE, FL("Memory Allocation Failure!!!"));
-       return eHAL_STATUS_FAILED_ALLOC;
+        /* Following buffer will be freed by consumer (PE) */
+        pLocalBuffer = vos_mem_malloc(pUpdateIE->ieBufferlength);
+        if (NULL == pLocalBuffer)
+        {
+           smsLog(pMac, LOGE, FL("Memory Allocation Failure!!!"));
+           return eHAL_STATUS_FAILED_ALLOC;
+        }
+        vos_mem_copy(pLocalBuffer, pUpdateIE->pAdditionIEBuffer,
+                pUpdateIE->ieBufferlength);
     }
 
-    pUpdateAddIEs = vos_mem_malloc(sizeof(tpSirUpdateIEsInd));
+    pUpdateAddIEs = vos_mem_malloc( sizeof(tSirUpdateIEsInd) );
     if (NULL == pUpdateAddIEs)
     {
-       smsLog(pMac, LOGE, FL("Memory Allocation Failure!!!"));
-       vos_mem_free(pLocalBuffer);
+        smsLog(pMac, LOGE, FL("Memory Allocation Failure!!!"));
+        if (pLocalBuffer != NULL)
+        {
+            vos_mem_free(pLocalBuffer);
+        }
        return eHAL_STATUS_FAILED_ALLOC;
     }
 
-    vos_mem_copy(pLocalBuffer, pUpdateIE->pAdditionIEBuffer,
-            pUpdateIE->ieBufferlength);
-    vos_mem_zero(pUpdateAddIEs, sizeof(tpSirUpdateIEsInd));
+    vos_mem_zero(pUpdateAddIEs, sizeof(tSirUpdateIEsInd));
 
     pUpdateAddIEs->msgType =
         pal_cpu_to_be16((tANI_U16)eWNI_SME_UPDATE_ADDITIONAL_IES);

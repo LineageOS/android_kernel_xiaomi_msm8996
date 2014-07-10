@@ -5497,8 +5497,8 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         updateIE.smeSessionId = pAdapter->sessionId;
         updateIE.ieBufferlength = 0;
         updateIE.pAdditionIEBuffer = NULL;
-        updateIE.append = VOS_TRUE;
-        updateIE.notify = VOS_TRUE;
+        updateIE.append = VOS_FALSE;
+        updateIE.notify = VOS_FALSE;
         if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
                   &updateIE, eUPDATE_IE_PROBE_BCN) == eHAL_STATUS_FAILURE) {
             hddLog(LOGE, FL("Could not pass on PROBE_RSP_BCN data to PE"));
