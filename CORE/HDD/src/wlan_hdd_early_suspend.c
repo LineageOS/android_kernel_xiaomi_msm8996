@@ -2248,24 +2248,29 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
                                 WMI_DBGLOG_MODULE_DISABLE,
                                 pHddCtx->fw_log_settings.enable, DBG_CMD);
    }
-   process_wma_set_command(pAdapter->sessionId,
-                            WMI_DBGLOG_TYPE,
-                            pHddCtx->fw_log_settings.dl_type, DBG_CMD);
-   process_wma_set_command(pAdapter->sessionId,
-                            WMI_DBGLOG_REPORT_ENABLE,
-                            pHddCtx->fw_log_settings.dl_report, DBG_CMD);
-   process_wma_set_command(pAdapter->sessionId,
-                            WMI_DBGLOG_LOG_LEVEL,
-                            pHddCtx->fw_log_settings.dl_loglevel, DBG_CMD);
-   for (i = 0; i < MAX_MOD_LOGLEVEL; i++) {
-       if (pHddCtx->fw_log_settings.dl_mod_loglevel[i] != 0) {
-            process_wma_set_command(pAdapter->sessionId,
-                                   WMI_DBGLOG_MOD_LOG_LEVEL,
-                                   pHddCtx->fw_log_settings.dl_mod_loglevel[i],
-                                   DBG_CMD);
+   if (pHddCtx->fw_log_settings.dl_report != 0) {
+
+       process_wma_set_command(pAdapter->sessionId,
+                         WMI_DBGLOG_REPORT_ENABLE,
+                         pHddCtx->fw_log_settings.dl_report, DBG_CMD);
+
+       process_wma_set_command(pAdapter->sessionId,
+                               WMI_DBGLOG_TYPE,
+                               pHddCtx->fw_log_settings.dl_type, DBG_CMD);
+
+       process_wma_set_command(pAdapter->sessionId,
+                              WMI_DBGLOG_LOG_LEVEL,
+                              pHddCtx->fw_log_settings.dl_loglevel, DBG_CMD);
+
+       for (i = 0; i < MAX_MOD_LOGLEVEL; i++) {
+           if (pHddCtx->fw_log_settings.dl_mod_loglevel[i] != 0) {
+                process_wma_set_command(pAdapter->sessionId,
+                                  WMI_DBGLOG_MOD_LOG_LEVEL,
+                                  pHddCtx->fw_log_settings.dl_mod_loglevel[i],
+                                  DBG_CMD);
+           }
        }
    }
-
    /* end of f/w log config after ssr */
    pHddCtx->isLogpInProgress = FALSE;
    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
