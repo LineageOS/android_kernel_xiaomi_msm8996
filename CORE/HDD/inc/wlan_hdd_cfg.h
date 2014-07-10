@@ -1524,6 +1524,11 @@ typedef enum
 #define CFG_DISABLE_DFS_CH_SWITCH_MAX             ( 1 )
 #define CFG_DISABLE_DFS_CH_SWITCH_DEFAULT         ( 0 )
 
+#define CFG_ENABLE_DFS_MASTER_CAPABILITY               "gEnableDFSMasterCap"
+#define CFG_ENABLE_DFS_MASTER_CAPABILITY_MIN           ( 0 )
+#define CFG_ENABLE_DFS_MASTER_CAPABILITY_MAX           ( 1 )
+#define CFG_ENABLE_DFS_MASTER_CAPABILITY_DEFAULT       ( 0 )
+
 #define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_NAME       "dfsPhyerrFilterOffload"
 #define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MIN        ( 0 )
 #define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MAX        ( 1 )
@@ -3167,6 +3172,7 @@ typedef struct
    v_U8_t                      wowEnable;
    v_U8_t                      maxNumberOfPeers;
    v_U8_t                      disableDFSChSwitch;
+   v_U8_t                      enableDFSMasterCap;
 #ifndef QCA_WIFI_ISOC
    v_U16_t                     thermalTempMinLevel0;
    v_U16_t                     thermalTempMaxLevel0;
