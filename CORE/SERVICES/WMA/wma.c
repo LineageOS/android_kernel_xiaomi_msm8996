@@ -117,6 +117,9 @@
 
 #define WMA_DEFAULT_SCAN_PRIORITY            1
 #define WMA_DEFAULT_SCAN_REQUESTER_ID        1
+#define WMI_SCAN_FINISH_EVENTS (WMI_SCAN_EVENT_START_FAILED |\
+                                WMI_SCAN_EVENT_COMPLETED |\
+                                WMI_SCAN_EVENT_DEQUEUED)
 /* default value */
 #define DEFAULT_INFRA_STA_KEEP_ALIVE_PERIOD  20
 /* pdev vdev and peer stats*/
@@ -6238,7 +6241,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
                         tSirScanOffloadReq *scan_req, v_U16_t msg_type)
 {
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
-	wmi_buf_t buf;
+	wmi_buf_t buf = NULL;
 	wmi_start_scan_cmd_fixed_param *cmd;
 	int status = 0;
 	int len;
@@ -6285,6 +6288,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	    /* Adjust parameters for channel switch scan */
 	    cmd->min_rest_time = WMA_ROAM_PREAUTH_REST_TIME;
 	    cmd->max_rest_time = WMA_ROAM_PREAUTH_REST_TIME;
+	    cmd->max_scan_time = WMA_ROAM_PREAUTH_MAX_SCAN_TIME;
 	    adf_os_spin_lock_bh(&wma_handle->roam_preauth_lock);
 	    cmd->scan_id =  ( (cmd->scan_id & WMA_MAX_SCAN_ID) |
 				WMA_HOST_ROAM_SCAN_REQID_PREFIX);
@@ -8920,16 +8924,16 @@ static void wma_roam_preauth_scan_event_handler(tp_wma_handle wma_handle,
         VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
         tSwitchChannelParams *params;
 
-        WMA_LOGI("%s: event 0x%x, reason 0x%x",
-                    __func__, wmi_event->event, wmi_event->reason);
+        WMA_LOGI("%s: preauth_scan_state %d, event 0x%x, reason 0x%x",
+                    __func__, wma_handle->roam_preauth_scan_state,
+                    wmi_event->event, wmi_event->reason);
         switch(wma_handle->roam_preauth_scan_state) {
         case WMA_ROAM_PREAUTH_CHAN_REQUESTED:
                 if (wmi_event->event & WMI_SCAN_EVENT_FOREIGN_CHANNEL) {
                         /* complete set_chan request */
                         wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_ON_CHAN;
                         vos_status = VOS_STATUS_SUCCESS;
-                } else if (wmi_event->event &
-                               (WMI_SCAN_EVENT_START_FAILED|WMI_SCAN_EVENT_COMPLETED)){
+                } else if (wmi_event->event & WMI_SCAN_FINISH_EVENTS){
                         /* Failed to get preauth channel or finished (unlikely) */
                         wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_NONE;
                         vos_status = VOS_STATUS_E_FAILURE;
@@ -8942,8 +8946,8 @@ static void wma_roam_preauth_scan_event_handler(tp_wma_handle wma_handle,
                 break;
 
         case WMA_ROAM_PREAUTH_ON_CHAN:
-                if (wmi_event->event &
-                                (WMI_SCAN_EVENT_COMPLETED | WMI_SCAN_EVENT_BSS_CHANNEL))
+                if ((wmi_event->event & WMI_SCAN_EVENT_BSS_CHANNEL) ||
+                    (wmi_event->event & WMI_SCAN_FINISH_EVENTS))
                         wma_handle->roam_preauth_scan_state = WMA_ROAM_PREAUTH_CHAN_COMPLETED;
 
                         /* There is no WDA request to complete. Next set channel request will
@@ -9040,9 +9044,16 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 						__func__, wma->roam_preauth_scan_state);
 			if (wma->roam_preauth_scan_state ==
 				WMA_ROAM_PREAUTH_CHAN_NONE) {
-				status = wma_roam_preauth_chan_set(wma, params, vdev_id);
+				/* Is channel change required?
+				 */
+				if(vos_chan_to_freq(params->channelNumber) !=
+					wma->interfaces[vdev_id].mhz)
+				{
+				    status = wma_roam_preauth_chan_set(wma,
+							params, vdev_id);
 				/* response will be asynchronous */
 				return;
+				}
 			} else if (wma->roam_preauth_scan_state ==
 				WMA_ROAM_PREAUTH_CHAN_REQUESTED ||
 				wma->roam_preauth_scan_state == WMA_ROAM_PREAUTH_ON_CHAN) {
@@ -20534,7 +20545,7 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 		/* This is the scan requested by roam preauth set_channel operation */
 		adf_os_spin_unlock_bh(&wma_handle->roam_preauth_lock);
 
-		if (wmi_event->event == WMI_SCAN_EVENT_COMPLETED) {
+		if (wmi_event->event & WMI_SCAN_FINISH_EVENTS) {
 			WMA_LOGE(" roam scan complete - scan_id %x, vdev_id %x",
 					wmi_event->scan_id, vdev_id);
 			wma_reset_scan_info(wma_handle, vdev_id);
@@ -20593,18 +20604,16 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 
 	switch (wmi_event->event) {
 	case WMI_SCAN_EVENT_COMPLETED:
+	case WMI_SCAN_EVENT_DEQUEUED:
 		/*
 		 * return success always so that SME can pick whatever scan
 		 * results is available in scan cache(due to partial or
 		 * aborted scan)
 		 */
+		scan_event->event = WMI_SCAN_EVENT_COMPLETED;
 		scan_event->reasonCode = eSIR_SME_SUCCESS;
-		if (wmi_event->scan_id == scan_id)
-			wma_reset_scan_info(wma_handle, vdev_id);
-		else
-			WMA_LOGE("Scan id not matched for SCAN COMPLETE event");
 		break;
-	case WMI_SCAN_EVENT_DEQUEUED:
+	case WMI_SCAN_EVENT_START_FAILED:
 		scan_event->event = WMI_SCAN_EVENT_COMPLETED;
 		scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
 		break;
@@ -20614,6 +20623,13 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 	case WMI_SCAN_EVENT_RESTARTED:
 		WMA_LOGW("%s: Unhandled Scan Event WMI_SCAN_EVENT_RESTARTED", __func__);
 		break;
+	}
+
+	if (wmi_event->event & WMI_SCAN_FINISH_EVENTS) {
+		if (wmi_event->scan_id == scan_id)
+			wma_reset_scan_info(wma_handle, vdev_id);
+		else
+			WMA_LOGE("Scan id not matched for SCAN COMPLETE event");
 	}
 
         /* Stop the scan completion timeout if the event is WMI_SCAN_EVENT_COMPLETED */
