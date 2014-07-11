@@ -2874,13 +2874,6 @@ static int wlan_hdd_cfg80211_ll_stats_set(struct wiphy *wiphy,
         return -EINVAL;
     }
 
-    if (NULL == pAdapter)
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-               FL("HDD adapter is Null"));
-        return -ENODEV;
-    }
-
     if (nla_parse(tb_vendor, QCA_WLAN_VENDOR_ATTR_LL_STATS_SET_MAX,
                   (struct nlattr *)data,
                   data_len, qca_wlan_vendor_ll_set_policy))
@@ -2979,13 +2972,6 @@ static int wlan_hdd_cfg80211_ll_stats_get(struct wiphy *wiphy,
         return -EINVAL ;
     }
 
-    if (NULL == pAdapter)
-    {
-        hddLog(VOS_TRACE_LEVEL_FATAL,
-               "%s: HDD adapter is Null", __func__);
-        return -ENODEV;
-    }
-
     if (!pAdapter->isLinkLayerStatsSet)
     {
         hddLog(VOS_TRACE_LEVEL_FATAL,
@@ -3075,13 +3061,6 @@ static int wlan_hdd_cfg80211_ll_stats_clear(struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_ERROR,
                FL("HDD context is not valid"));
         return -EINVAL;
-    }
-
-    if (NULL == pAdapter)
-    {
-        hddLog(VOS_TRACE_LEVEL_FATAL,
-               "%s: HDD adapter is Null", __func__);
-        return -ENODEV;
     }
 
     if (!pAdapter->isLinkLayerStatsSet)
@@ -5405,54 +5384,47 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
                                       struct net_device *dev)
 #endif
 {
-    hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_adapter_t  *pAdapter   = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t  *pHddCtx    = NULL;
     hdd_scaninfo_t *pScanInfo  = NULL;
     hdd_adapter_t  *staAdapter = NULL;
-    VOS_STATUS status;
-    tSirUpdateIE   updateIE;
+    VOS_STATUS      status     = VOS_STATUS_E_FAILURE;
+    tSirUpdateIE    updateIE;
+    beacon_data_t  *old;
+    int             ret;
 
     ENTER();
-
-    if (NULL == pAdapter)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                   "%s: HDD adapter context is Null", __func__);
-        return -ENODEV;
-    }
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_STOP_AP,
                      pAdapter->sessionId, pAdapter->device_mode));
-    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    status = wlan_hdd_validate_context(pHddCtx);
 
-    if (0 != status)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
-        return status;
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+        return ret;
+    }
+
+    if (!(pAdapter->device_mode == WLAN_HDD_SOFTAP ||
+          pAdapter->device_mode == WLAN_HDD_P2P_GO)) {
+        return -EOPNOTSUPP;
     }
 
     staAdapter = hdd_get_adapter(pAdapter->pHddCtx, WLAN_HDD_INFRA_STATION);
-    if (NULL == staAdapter)
-    {
+    if (NULL == staAdapter) {
         staAdapter = hdd_get_adapter(pAdapter->pHddCtx, WLAN_HDD_P2P_CLIENT);
-        if (NULL == staAdapter)
-        {
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-                      "%s: HDD adapter context for STA/P2P-CLI is Null",
-                      __func__);
+        if (NULL == staAdapter) {
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                   FL("HDD adapter context for STA/P2P-CLI is Null"));
         }
     }
 
     pScanInfo =  &pAdapter->scan_info;
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
-                              __func__,pAdapter->device_mode);
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("device_mode = %d"), pAdapter->device_mode);
 
-    if ((pScanInfo != NULL) && pScanInfo->mScanPending && staAdapter)
-    {
+    if ((pScanInfo != NULL) && pScanInfo->mScanPending && staAdapter) {
         long ret;
 
         INIT_COMPLETION(pScanInfo->abortscan_event_var);
@@ -5461,104 +5433,87 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         ret = wait_for_completion_interruptible_timeout(
                            &pScanInfo->abortscan_event_var,
                            msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
-        if (ret <= 0)
-        {
-            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                       FL("Timeout occurred while waiting for abortscan %ld"),
-                          ret);
+        if (ret <= 0) {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                   FL("Timeout occurred while waiting for abortscan %ld"),
+                   ret);
             VOS_ASSERT(pScanInfo->mScanPending);
         }
     }
 
     hdd_hostapd_stop(dev);
 
-    if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
-     || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-       )
-    {
-        beacon_data_t *old;
-
-        old = pAdapter->sessionCtx.ap.beacon;
-
-        if (!old)
-        {
-            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                      FL("session(%d) beacon data points to NULL"),
-                         pAdapter->sessionId);
-            return -EINVAL;
-        }
-
-        hdd_cleanup_actionframe(pHddCtx, pAdapter);
-
-        mutex_lock(&pHddCtx->sap_lock);
-        if(test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags))
-        {
-#ifdef WLAN_FEATURE_MBSSID
-            status = WLANSAP_StopBss(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
-#else
-            status = WLANSAP_StopBss(pHddCtx->pvosContext);
-#endif
-            if (VOS_IS_STATUS_SUCCESS(status))
-            {
-                hdd_hostapd_state_t *pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
-
-                status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
-
-                if (!VOS_IS_STATUS_SUCCESS(status))
-                {
-                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                             ("%s: ERROR: HDD vos wait for single_event failed!!"),
-                             __func__);
-                    VOS_ASSERT(0);
-                }
-            }
-            clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
-            /* BSS stopped, clear the active sessions for this device mode */
-            wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
-        }
-        mutex_unlock(&pHddCtx->sap_lock);
-
-        if(status != VOS_STATUS_SUCCESS)
-        {
-            hddLog(VOS_TRACE_LEVEL_FATAL,
-                    "%s:Error!!! Stopping the BSS",__func__);
-            return -EINVAL;
-        }
-
-        vos_mem_copy(updateIE.bssid, pAdapter->macAddressCurrent.bytes,
-              sizeof(tSirMacAddr));
-        updateIE.smeSessionId = pAdapter->sessionId;
-        updateIE.ieBufferlength = 0;
-        updateIE.pAdditionIEBuffer = NULL;
-        updateIE.append = VOS_FALSE;
-        updateIE.notify = VOS_FALSE;
-        if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                  &updateIE, eUPDATE_IE_PROBE_BCN) == eHAL_STATUS_FAILURE) {
-            hddLog(LOGE, FL("Could not pass on PROBE_RSP_BCN data to PE"));
-        }
-
-        if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                  &updateIE, eUPDATE_IE_ASSOC_RESP) == eHAL_STATUS_FAILURE) {
-            hddLog(LOGE, FL("Could not pass on ASSOC_RSP data to PE"));
-        }
-
-        // Reset WNI_CFG_PROBE_RSP Flags
-        wlan_hdd_reset_prob_rspies(pAdapter);
-
-        pAdapter->sessionCtx.ap.beacon = NULL;
-        kfree(old);
-#ifdef WLAN_FEATURE_P2P_DEBUG
-        if((pAdapter->device_mode == WLAN_HDD_P2P_GO) &&
-           (globalP2PConnectionStatus == P2P_GO_COMPLETED_STATE))
-        {
-            hddLog(LOGE,"[P2P State] From GO completed to Inactive state "
-                        "GO got removed");
-            globalP2PConnectionStatus = P2P_NOT_ACTIVE;
-        }
-#endif
+    old = pAdapter->sessionCtx.ap.beacon;
+    if (!old) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               FL("Session(%d) beacon data points to NULL"),
+               pAdapter->sessionId);
+        return -EINVAL;
     }
+
+    hdd_cleanup_actionframe(pHddCtx, pAdapter);
+
+    mutex_lock(&pHddCtx->sap_lock);
+    if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) {
+#ifdef WLAN_FEATURE_MBSSID
+        status = WLANSAP_StopBss(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
+#else
+        status = WLANSAP_StopBss(pHddCtx->pvosContext);
+#endif
+        if (VOS_IS_STATUS_SUCCESS(status)) {
+            hdd_hostapd_state_t *pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
+
+            status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
+
+            if (!VOS_IS_STATUS_SUCCESS(status)) {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                       FL("HDD vos wait for single_event failed!!"));
+                VOS_ASSERT(0);
+            }
+        }
+        clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
+        /* BSS stopped, clear the active sessions for this device mode */
+        wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
+    }
+    mutex_unlock(&pHddCtx->sap_lock);
+
+    if (status != VOS_STATUS_SUCCESS) {
+        hddLog(VOS_TRACE_LEVEL_FATAL, FL("Stopping the BSS"));
+        return -EINVAL;
+    }
+
+    vos_mem_copy(updateIE.bssid, pAdapter->macAddressCurrent.bytes,
+          sizeof(tSirMacAddr));
+    updateIE.smeSessionId = pAdapter->sessionId;
+    updateIE.ieBufferlength = 0;
+    updateIE.pAdditionIEBuffer = NULL;
+    updateIE.append = VOS_TRUE;
+    updateIE.notify = VOS_TRUE;
+    if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
+              &updateIE, eUPDATE_IE_PROBE_BCN) == eHAL_STATUS_FAILURE) {
+        hddLog(LOGE, FL("Could not pass on PROBE_RSP_BCN data to PE"));
+    }
+
+    if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
+              &updateIE, eUPDATE_IE_ASSOC_RESP) == eHAL_STATUS_FAILURE) {
+        hddLog(LOGE, FL("Could not pass on ASSOC_RSP data to PE"));
+    }
+
+    // Reset WNI_CFG_PROBE_RSP Flags
+    wlan_hdd_reset_prob_rspies(pAdapter);
+
+    pAdapter->sessionCtx.ap.beacon = NULL;
+    kfree(old);
+#ifdef WLAN_FEATURE_P2P_DEBUG
+    if((pAdapter->device_mode == WLAN_HDD_P2P_GO) &&
+       (globalP2PConnectionStatus == P2P_GO_COMPLETED_STATE)) {
+        hddLog(LOGE,"[P2P State] From GO completed to Inactive state "
+                    "GO got removed");
+        globalP2PConnectionStatus = P2P_NOT_ACTIVE;
+    }
+#endif
     EXIT();
-    return status;
+    return ret;
 }
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0))
@@ -5567,26 +5522,11 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
                                       struct net_device *dev,
                                       struct cfg80211_ap_settings *params)
 {
-    hdd_adapter_t *pAdapter;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx;
     int            status;
 
     ENTER();
-
-    if (NULL == dev)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Device is Null", __func__);
-        return -ENODEV;
-    }
-
-    pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    if (NULL == pAdapter)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD adapter is Null", __func__);
-        return -ENODEV;
-    }
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_START_AP, pAdapter->sessionId,
@@ -5667,11 +5607,12 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 
 
 static int wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
-                                        struct net_device *dev,
-                                        struct cfg80211_beacon_data *params)
+                                           struct net_device *dev,
+                                           struct cfg80211_beacon_data *params)
 {
     hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx;
+    beacon_data_t *old,*new;
     int status;
 
     ENTER();
@@ -5679,53 +5620,45 @@ static int wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_CHANGE_BEACON,
                      pAdapter->sessionId, pAdapter->device_mode));
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
-                                __func__, pAdapter->device_mode);
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("device_mode = %d"), pAdapter->device_mode);
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
 
-    if (0 != status)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
+    if (0 != status) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
         return status;
     }
 
-    if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
-     || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-       )
-    {
-        beacon_data_t *old,*new;
-
-        old = pAdapter->sessionCtx.ap.beacon;
-
-        if (!old)
-        {
-            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                      FL("session(%d) beacon data points to NULL"),
-                         pAdapter->sessionId);
-            return -EINVAL;
-        }
-
-        status = wlan_hdd_cfg80211_alloc_new_beacon(pAdapter, &new, params, 0);
-
-        if(status != VOS_STATUS_SUCCESS) {
-            hddLog(VOS_TRACE_LEVEL_FATAL,
-                   "%s: Error!!! Allocating the new beacon",__func__);
-            return -EINVAL;
-       }
-
-       pAdapter->sessionCtx.ap.beacon = new;
-
-       status = wlan_hdd_cfg80211_start_bss(pAdapter, params, NULL, 0, 0);
+    if (!(pAdapter->device_mode == WLAN_HDD_SOFTAP ||
+          pAdapter->device_mode == WLAN_HDD_P2P_GO)) {
+        return -EOPNOTSUPP;
     }
+
+    old = pAdapter->sessionCtx.ap.beacon;
+
+    if (!old) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("session(%d) beacon data points to NULL"),
+                     pAdapter->sessionId);
+        return -EINVAL;
+    }
+
+    status = wlan_hdd_cfg80211_alloc_new_beacon(pAdapter, &new, params, 0);
+
+    if (status != VOS_STATUS_SUCCESS) {
+        hddLog(VOS_TRACE_LEVEL_FATAL, FL("new beacon alloc failed"));
+        return -EINVAL;
+    }
+
+    pAdapter->sessionCtx.ap.beacon = new;
+    status = wlan_hdd_cfg80211_start_bss(pAdapter, params, NULL, 0, 0);
 
     EXIT();
     return status;
 }
 
-#endif //(LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0))
+#endif /* (LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0)) */
 
 static int __wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
                                       struct net_device *dev,
@@ -5735,36 +5668,37 @@ static int __wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     int ret = 0;
     eHalStatus halStatus;
-    v_CONTEXT_t pVosContext = pHddCtx->pvosContext;
 
     ENTER();
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_CHANGE_BSS,
                      pAdapter->sessionId, params->ap_isolate));
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d, ap_isolate = %d",
-                               __func__,pAdapter->device_mode,
-                               params->ap_isolate);
-    if (!pVosContext)
-        return -EINVAL;
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("device_mode = %d, ap_isolate = %d"),
+                               pAdapter->device_mode, params->ap_isolate);
 
-    if((pAdapter->device_mode == WLAN_HDD_SOFTAP)
-     ||  (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-      )
-    {
-        /* ap_isolate == -1 means that in change bss, upper layer doesn't
-         * want to update this parameter */
-        if (-1 != params->ap_isolate)
-        {
-            pAdapter->sessionCtx.ap.apDisableIntraBssFwd = !!params->ap_isolate;
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+       return ret;
+    }
 
-            halStatus = sme_ApDisableIntraBssFwd(pHddCtx->hHal,
-                        pAdapter->sessionId,
-                        pAdapter->sessionCtx.ap.apDisableIntraBssFwd);
-            if (!HAL_STATUS_SUCCESS(halStatus))
-            {
-                ret = -EINVAL;
-            }
+    if (!(pAdapter->device_mode == WLAN_HDD_SOFTAP ||
+          pAdapter->device_mode == WLAN_HDD_P2P_GO)) {
+        return -EOPNOTSUPP;
+    }
+
+    /* ap_isolate == -1 means that in change bss, upper layer doesn't
+     * want to update this parameter */
+    if (-1 != params->ap_isolate) {
+        pAdapter->sessionCtx.ap.apDisableIntraBssFwd = !!params->ap_isolate;
+
+        halStatus = sme_ApDisableIntraBssFwd(pHddCtx->hHal,
+                    pAdapter->sessionId,
+                    pAdapter->sessionCtx.ap.apDisableIntraBssFwd);
+        if (!HAL_STATUS_SUCCESS(halStatus)) {
+            ret = -EINVAL;
         }
     }
 
@@ -5862,13 +5796,6 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
     int status;
 
     ENTER();
-
-    if (!pAdapter)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Adapter context is null", __func__);
-        return -ENODEV;
-    }
 
     pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     status = wlan_hdd_validate_context(pHddCtx);
@@ -6345,11 +6272,10 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
 
     ENTER();
 
-    if (NULL == pHddCtx || NULL == pHddCtx->cfg_ini)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "Invalid arguments");
-        return -EINVAL;
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+       return ret;
     }
 
     if ((eTDLS_SUPPORT_NOT_ENABLED == pHddCtx->tdls_mode) ||
@@ -6528,57 +6454,39 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
     tANI_U8 isBufSta = 0;
     tANI_U8 isOffChannelSupported = 0;
 #endif
-    ENTER();
+    int ret;
 
-    if ((NULL == pAdapter))
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                  "invalid adapter ");
-        return -EINVAL;
-    }
+    ENTER();
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CHANGE_STATION,
                      pAdapter->sessionId, params->listen_interval));
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-
-    if (0 != wlan_hdd_validate_context(pHddCtx))
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 "%s: HDD context is not valid", __func__);
-       return -EINVAL;
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+       return ret;
     }
 
     pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-    if (!pHddStaCtx)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                  "%s: HDD station context is null", __func__);
-        return -EINVAL;
-    }
-
     vos_mem_copy(STAMacAddress.bytes, mac, sizeof(v_MACADDR_t));
 
-    if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
-      || (pAdapter->device_mode == WLAN_HDD_P2P_GO))
-    {
-        if (params->sta_flags_set & BIT(NL80211_STA_FLAG_AUTHORIZED))
-        {
+    if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) ||
+        (pAdapter->device_mode == WLAN_HDD_P2P_GO)) {
+        if (params->sta_flags_set & BIT(NL80211_STA_FLAG_AUTHORIZED)) {
             status = hdd_softap_change_STA_state( pAdapter, &STAMacAddress,
                                                   WLANTL_STA_AUTHENTICATED);
 
-            if (status != VOS_STATUS_SUCCESS)
-            {
-                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                         "%s: Not able to change TL state to AUTHENTICATED", __func__);
+            if (status != VOS_STATUS_SUCCESS) {
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                       FL("Not able to change TL state to AUTHENTICATED"));
                 return -EINVAL;
             }
         }
-    }
-    else if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
-          || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)) {
+    } else if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
+               (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)) {
 #ifdef FEATURE_WLAN_TDLS
         if (params->sta_flags_set & BIT(NL80211_STA_FLAG_TDLS_PEER)) {
             StaParams.capability = params->capability;
@@ -6591,13 +6499,11 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
              * are an incremental of 1 else an incremental of 4 till the number
              * of channels.
              */
-            if (0 != params->supported_channels_len)
-            {
+            if (0 != params->supported_channels_len) {
                 int i = 0, j = 0, k = 0, no_of_channels = 0;
 
                 for (i = 0 ; i < params->supported_channels_len &&
-                             j < SIR_MAC_MAX_SUPP_CHANNELS; i += 2)
-                {
+                             j < SIR_MAC_MAX_SUPP_CHANNELS; i += 2) {
                     int wifi_chan_index;
 
                     StaParams.supported_channels[j] = params->supported_channels[i];
@@ -6606,8 +6512,7 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
                     no_of_channels = params->supported_channels[i + 1];
 
                     for (k = 1; k <= no_of_channels &&
-                                j <  SIR_MAC_MAX_SUPP_CHANNELS - 1; k++)
-                    {
+                                j <  SIR_MAC_MAX_SUPP_CHANNELS - 1; k++) {
                         StaParams.supported_channels[j + 1] =
                               StaParams.supported_channels[j] + wifi_chan_index;
                         j += 1;
@@ -6625,8 +6530,7 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
                 vos_mem_copy(StaParams.extn_capability, params->ext_capab,
                              sizeof(StaParams.extn_capability));
 
-            if (NULL != params->ht_capa)
-            {
+            if (NULL != params->ht_capa) {
                 StaParams.htcap_present = 1;
                 vos_mem_copy(&StaParams.HTCap, params->ht_capa, sizeof(tSirHTCap));
             }
@@ -6655,8 +6559,7 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
                                "[%d]: %0x", i, StaParams.supported_rates[i]);
             }
 
-            if (NULL != params->vht_capa)
-            {
+            if (NULL != params->vht_capa) {
                 StaParams.vhtcap_present = 1;
                 vos_mem_copy(&StaParams.VHTCap, params->vht_capa, sizeof(tSirVHTCap));
             }
@@ -6671,27 +6574,27 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
                     isOffChannelSupported = 1;
                 }
             }
-            status = wlan_hdd_tdls_set_peer_caps( pAdapter, mac,
+
+            status = wlan_hdd_tdls_set_peer_caps(pAdapter, mac,
                                                   &StaParams, isBufSta,
                                                   isOffChannelSupported);
-
             if (VOS_STATUS_SUCCESS != status) {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                          "%s: wlan_hdd_tdls_set_peer_caps failed!", __func__);
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                       FL("wlan_hdd_tdls_set_peer_caps failed!"));
                 return -EINVAL;
             }
-            status = wlan_hdd_tdls_add_station(wiphy, dev, mac, 1, &StaParams);
 
+            status = wlan_hdd_tdls_add_station(wiphy, dev, mac, 1, &StaParams);
             if (VOS_STATUS_SUCCESS != status) {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                          "%s: sme_ChangeTdlsPeerSta failed!", __func__);
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                       FL("wlan_hdd_tdls_add_station failed!"));
                 return -EINVAL;
             }
         }
 #endif
     }
     EXIT();
-    return status;
+    return ret;
 }
 
 /*
@@ -7273,11 +7176,6 @@ static int wlan_hdd_cfg80211_key_mgmt_set_pmk(struct wiphy *wiphy,
     hdd_station_ctx_t *pHddStaCtx;
 
     ENTER();
-    if ((NULL == pAdapter)) {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-          "invalid adapter");
-        return -EINVAL;
-    }
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
@@ -7321,13 +7219,6 @@ static int __wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
     hdd_context_t *pHddCtx;
 
     ENTER();
-
-    if ((NULL == pAdapter))
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-          "invalid adapter");
-       return -EINVAL;
-    }
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_SET_DEFAULT_KEY,
@@ -9649,12 +9540,6 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
 
     ENTER();
 
-    if (!pAdapter) {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Adapter context is null", __func__);
-        return -EINVAL;
-    }
-
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_CONNECT,
                      pAdapter->sessionId, pAdapter->device_mode));
@@ -9882,8 +9767,6 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
                                          )
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
-    tCsrRoamProfile  *pRoamProfile =
-                    &(WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->roamProfile;
     int status;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
@@ -9896,100 +9779,81 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_DISCONNECT,
                      pAdapter->sessionId, reason));
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
-                                    __func__,pAdapter->device_mode);
-
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Disconnect called with reason code %d",
-            __func__, reason);
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("device_mode (%d) reason code(%d)"),
+                                 pAdapter->device_mode, reason);
 
     status = wlan_hdd_validate_context(pHddCtx);
 
     if (0 != status)
     {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
         return status;
     }
 
-    if (NULL != pRoamProfile)
-    {
-        /*issue disconnect request to SME, if station is in connected state*/
-        if ((pHddStaCtx->conn_info.connState == eConnectionState_Associated) ||
-            (pHddStaCtx->conn_info.connState == eConnectionState_Connecting))
-        {
-            eCsrRoamDisconnectReason reasonCode =
-                                       eCSR_DISCONNECT_REASON_UNSPECIFIED;
-            hdd_scaninfo_t *pScanInfo;
-            switch(reason)
-            {
-                case WLAN_REASON_MIC_FAILURE:
-                    reasonCode = eCSR_DISCONNECT_REASON_MIC_ERROR;
-                    break;
+    /* Issue disconnect request to SME, if station is in connected state */
+    if ((pHddStaCtx->conn_info.connState == eConnectionState_Associated) ||
+        (pHddStaCtx->conn_info.connState == eConnectionState_Connecting)) {
+        eCsrRoamDisconnectReason reasonCode =
+                                   eCSR_DISCONNECT_REASON_UNSPECIFIED;
+        hdd_scaninfo_t *pScanInfo;
+        switch (reason) {
+        case WLAN_REASON_MIC_FAILURE:
+             reasonCode = eCSR_DISCONNECT_REASON_MIC_ERROR;
+             break;
 
-                case WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY:
-                case WLAN_REASON_DISASSOC_AP_BUSY:
-                case WLAN_REASON_CLASS3_FRAME_FROM_NONASSOC_STA:
-                    reasonCode = eCSR_DISCONNECT_REASON_DISASSOC;
-                    break;
+        case WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY:
+        case WLAN_REASON_DISASSOC_AP_BUSY:
+        case WLAN_REASON_CLASS3_FRAME_FROM_NONASSOC_STA:
+             reasonCode = eCSR_DISCONNECT_REASON_DISASSOC;
+             break;
 
-                case WLAN_REASON_PREV_AUTH_NOT_VALID:
-                case WLAN_REASON_CLASS2_FRAME_FROM_NONAUTH_STA:
-                    reasonCode = eCSR_DISCONNECT_REASON_DEAUTH;
-                    break;
+        case WLAN_REASON_PREV_AUTH_NOT_VALID:
+        case WLAN_REASON_CLASS2_FRAME_FROM_NONAUTH_STA:
+             reasonCode = eCSR_DISCONNECT_REASON_DEAUTH;
+             break;
 
-                case WLAN_REASON_DEAUTH_LEAVING:
-                default:
-                    reasonCode = eCSR_DISCONNECT_REASON_UNSPECIFIED;
-                    break;
-            }
-            pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
-            pScanInfo =  &pAdapter->scan_info;
-            if (pScanInfo->mScanPending)
-            {
-                hddLog(VOS_TRACE_LEVEL_INFO, "Disconnect is in progress, "
-                              "Aborting Scan");
-                hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
-                                   eCSR_SCAN_ABORT_DEFAULT);
-            }
+        case WLAN_REASON_DEAUTH_LEAVING:
+        default:
+             reasonCode = eCSR_DISCONNECT_REASON_UNSPECIFIED;
+            break;
+        }
+        pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
+        pScanInfo =  &pAdapter->scan_info;
+        if (pScanInfo->mScanPending) {
+            hddLog(VOS_TRACE_LEVEL_INFO, "Disconnect is in progress, "
+                          "Aborting Scan");
+            hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
+                               eCSR_SCAN_ABORT_DEFAULT);
+        }
 
 #ifdef FEATURE_WLAN_TDLS
-            /* First clean up the tdls peers if any */
-            for (staIdx = 0 ; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++)
-            {
-                if ((pHddCtx->tdlsConnInfo[staIdx].sessionId == pAdapter->sessionId) &&
-                    (pHddCtx->tdlsConnInfo[staIdx].staId))
-                {
-                    uint8 *mac;
-                    mac = pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes;
-                    VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
-                            "%s: call sme_DeleteTdlsPeerSta staId %d sessionId %d " MAC_ADDRESS_STR,
-                            __func__, pHddCtx->tdlsConnInfo[staIdx].staId, pAdapter->sessionId,
-                            MAC_ADDR_ARRAY(mac));
-                    sme_DeleteTdlsPeerSta(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                          pAdapter->sessionId,
-                                          mac);
-                }
+        /* First clean up the tdls peers if any */
+        for (staIdx = 0 ; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++) {
+            if ((pHddCtx->tdlsConnInfo[staIdx].sessionId == pAdapter->sessionId) &&
+                (pHddCtx->tdlsConnInfo[staIdx].staId)) {
+                uint8 *mac;
+                mac = pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes;
+                hddLog(TDLS_LOG_LEVEL,
+                       "%s: call sme_DeleteTdlsPeerSta staId %d sessionId %d " MAC_ADDRESS_STR,
+                       __func__, pHddCtx->tdlsConnInfo[staIdx].staId,
+                        pAdapter->sessionId,
+                        MAC_ADDR_ARRAY(mac));
+                sme_DeleteTdlsPeerSta(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                      pAdapter->sessionId,
+                                      mac);
             }
+        }
 #endif
-            hddLog(LOG1, FL("Disconnecting with reasoncode:%u"), reasonCode);
-            status = wlan_hdd_disconnect(pAdapter, reasonCode);
-            if ( 0 != status )
-            {
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                        "%s wlan_hdd_disconnect failure, returned %d",
-                        __func__, (int)status );
-                return -EINVAL;
-            }
+        hddLog(LOG1, FL("Disconnecting with reasoncode:%u"), reasonCode);
+        status = wlan_hdd_disconnect(pAdapter, reasonCode);
+        if (0 != status) {
+            hddLog(VOS_TRACE_LEVEL_ERROR, FL("failure, returned %d"), status);
+            return -EINVAL;
         }
-        else
-        {
-            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: unexpected cfg disconnect called while in state (%d)",
-                   __func__, pHddStaCtx->conn_info.connState);
-        }
-    }
-    else
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: No valid roam profile", __func__);
+    } else {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               FL("unexpected cfg disconnect called while in state (%d)"),
+               pHddStaCtx->conn_info.connState);
     }
 
     return status;
@@ -10194,9 +10058,8 @@ static int __wlan_hdd_cfg80211_join_ibss(struct wiphy *wiphy,
         params->bssid = vos_mem_malloc(sizeof(VOS_MAC_ADDR_SIZE));
         if (!params->bssid)
         {
-            hddLog (VOS_TRACE_LEVEL_ERROR,
-                    "%s:Failed memory allocation", __func__);
-            return -EIO;
+            hddLog(VOS_TRACE_LEVEL_ERROR, FL("Memory allocation failed"));
+            return -ENOMEM;
         }
         vos_mem_copy((v_U8_t *)params->bssid,
                      (v_U8_t *)&pHddCtx->cfg_ini->IbssBssid.bytes[0],
@@ -10321,6 +10184,7 @@ static int __wlan_hdd_cfg80211_leave_ibss(struct wiphy *wiphy,
     tCsrRoamProfile *pRoamProfile;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     int status;
+    eHalStatus hal_status;
 
     ENTER();
 
@@ -10328,36 +10192,35 @@ static int __wlan_hdd_cfg80211_leave_ibss(struct wiphy *wiphy,
                      TRACE_CODE_HDD_CFG80211_LEAVE_IBSS,
                      pAdapter->sessionId, eCSR_DISCONNECT_REASON_IBSS_LEAVE));
     status = wlan_hdd_validate_context(pHddCtx);
-
-    if (0 != status)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
+    if (0 != status) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
         return status;
     }
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",__func__,pAdapter->device_mode);
-    if (NULL == pWextState)
-    {
-        hddLog (VOS_TRACE_LEVEL_ERROR, "%s ERROR: Data Storage Corruption",
-                __func__);
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("device_mode = %d"), pAdapter->device_mode);
+    if (NULL == pWextState) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Data Storage Corruption"));
         return -EIO;
     }
 
     pRoamProfile = &pWextState->roamProfile;
 
     /* Issue disconnect only if interface type is set to IBSS */
-    if (eCSR_BSS_TYPE_START_IBSS != pRoamProfile->BSSType)
-    {
-        hddLog (VOS_TRACE_LEVEL_ERROR, "%s: BSS Type is not set to IBSS",
-                __func__);
+    if (eCSR_BSS_TYPE_START_IBSS != pRoamProfile->BSSType) {
+        hddLog (VOS_TRACE_LEVEL_ERROR, FL("BSS Type is not set to IBSS"));
         return -EINVAL;
     }
 
     /* Issue Disconnect request */
     INIT_COMPLETION(pAdapter->disconnect_comp_var);
-    sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId,
-                                  eCSR_DISCONNECT_REASON_IBSS_LEAVE);
+    hal_status = sme_RoamDisconnect(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                    pAdapter->sessionId,
+                                    eCSR_DISCONNECT_REASON_IBSS_LEAVE);
+    if (!HAL_STATUS_SUCCESS(hal_status)) {
+        hddLog(LOGE,
+               FL("sme_RoamDisconnect failed hal_status(%d)"), hal_status);
+        return -EAGAIN;
+    }
 
     return 0;
 }
@@ -11207,12 +11070,6 @@ static int __wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
 
     ENTER();
 
-    if (NULL == pAdapter)
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Adapter is NULL", __func__);
-        return -ENODEV;
-    }
-
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_SET_POWER_MGMT,
                      pAdapter->sessionId, timeout));
@@ -11329,12 +11186,6 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 
     ENTER();
 
-    if ( NULL == pAdapter )
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid Adapter" ,__func__);
-        return -EINVAL;
-    }
-
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_DEL_STA,
                      pAdapter->sessionId, pAdapter->device_mode));
@@ -11342,25 +11193,18 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
 
-    if (0 != status)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
+    if (0 != status) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
         return status;
     }
 
-    if ( (WLAN_HDD_SOFTAP == pAdapter->device_mode)
-       || (WLAN_HDD_P2P_GO == pAdapter->device_mode)
-       )
-    {
-        if( NULL == mac )
-        {
+    if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
+        (WLAN_HDD_P2P_GO == pAdapter->device_mode)) {
+        if (NULL == mac) {
             v_U16_t i;
-            for(i = 0; i < WLAN_MAX_STA_COUNT; i++)
-            {
+            for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
                 if ((pAdapter->aStaInfo[i].isUsed) &&
-                    (!pAdapter->aStaInfo[i].isDeauthInProgress))
-                {
+                    (!pAdapter->aStaInfo[i].isDeauthInProgress)) {
                     u8 *macAddr = pAdapter->aStaInfo[i].macAddrSTA.bytes;
                     hddLog(VOS_TRACE_LEVEL_INFO,
                            "%s: Delete STA with MAC::"
@@ -11371,13 +11215,9 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                         pAdapter->aStaInfo[i].isDeauthInProgress = TRUE;
                 }
             }
-        }
-        else
-        {
-
+        } else {
             vos_status = hdd_softap_GetStaId(pAdapter,(v_MACADDR_t *)mac, &staId);
-            if (!VOS_IS_STATUS_SUCCESS(vos_status))
-            {
+            if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
                 hddLog(VOS_TRACE_LEVEL_INFO,
                        "%s: Skip this DEL STA as this is not used::"
                        MAC_ADDRESS_STR,
@@ -11385,8 +11225,7 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                 return -ENOENT;
             }
 
-            if( pAdapter->aStaInfo[staId].isDeauthInProgress == TRUE)
-            {
+            if (pAdapter->aStaInfo[staId].isDeauthInProgress == TRUE) {
                 hddLog(VOS_TRACE_LEVEL_INFO,
                        "%s: Skip this DEL STA as deauth is in progress::"
                        MAC_ADDRESS_STR,
@@ -11403,8 +11242,7 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                                 MAC_ADDR_ARRAY(mac));
 
             vos_status = hdd_softap_sta_deauth(pAdapter, mac);
-            if (!VOS_IS_STATUS_SUCCESS(vos_status))
-            {
+            if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
                 pAdapter->aStaInfo[staId].isDeauthInProgress = FALSE;
                 hddLog(VOS_TRACE_LEVEL_INFO,
                                 "%s: STA removal failed for ::"
@@ -11413,7 +11251,6 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                                 MAC_ADDR_ARRAY(mac));
                 return -ENOENT;
             }
-
         }
     }
 
@@ -11500,44 +11337,41 @@ static int __wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device 
     tANI_U8  BSSIDMatched = 0;
     hdd_context_t *pHddCtx;
 
-    hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: set PMKSA for " MAC_ADDRESS_STR,
-           __func__, MAC_ADDR_ARRAY(pmksa->bssid));
-
-    // Validate pAdapter
-    if ( NULL == pAdapter )
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid Adapter" ,__func__);
+    if (!pmksa) {
+        hddLog(LOGE, FL("pmksa is NULL"));
         return -EINVAL;
     }
+
+    if (!pmksa->bssid || !pmksa->pmkid) {
+        hddLog(LOGE, FL("pmksa->bssid(%p) or pmksa->pmkid(%p) is NULL"),
+               pmksa->bssid, pmksa->pmkid);
+        return -EINVAL;
+    }
+    hddLog(VOS_TRACE_LEVEL_DEBUG, FL("set PMKSA for "MAC_ADDRESS_STR),
+           MAC_ADDR_ARRAY(pmksa->bssid));
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
 
-    if (0 != status)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
+    if (0 != status) {
+        hddLog(LOGE, FL("HDD context is not valid"));
         return status;
     }
 
-    // Retrieve halHandle
     halHandle = WLAN_HDD_GET_HAL_CTX(pAdapter);
     pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-    for (j = 0; j < pHddStaCtx->PMKIDCacheIndex; j++)
-    {
+    for (j = 0; j < pHddStaCtx->PMKIDCacheIndex; j++) {
         if (vos_mem_compare(pHddStaCtx->PMKIDCache[j].BSSID,
-                    pmksa->bssid, VOS_MAC_ADDR_SIZE))
-        {
-            /* BSSID matched previous entry.  Overwrite it. */
+                    pmksa->bssid, VOS_MAC_ADDR_SIZE)) {
+            /* BSSID matched previous entry. Overwrite it. */
             BSSIDMatched = 1;
             vos_mem_copy(pHddStaCtx->PMKIDCache[j].BSSID,
                     pmksa->bssid, VOS_MAC_ADDR_SIZE);
             vos_mem_copy(pHddStaCtx->PMKIDCache[j].PMKID,
                     pmksa->pmkid,
                     CSR_RSN_PMKID_SIZE);
-            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Reusing cache entry %d.",
-                    __func__, j );
+            hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reusing cache entry %d"), j);
             hddLog(VOS_TRACE_LEVEL_INFO, MAC_ADDRESS_STR,
                MAC_ADDR_ARRAY(pmksa->bssid));
             dump_pmkid(halHandle, pmksa->pmkid);
@@ -11546,35 +11380,34 @@ static int __wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device 
     }
 
     /* Check we compared all entries,if then take the first slot now */
-    if (j == MAX_PMKSAIDS_IN_CACHE) pHddStaCtx->PMKIDCacheIndex=0;
+    if (j == MAX_PMKSAIDS_IN_CACHE) pHddStaCtx->PMKIDCacheIndex = 0;
 
-    if (!BSSIDMatched)
-    {
-        // Now, we DON'T have a BSSID match, so take a new entry in the cache.
+    if (!BSSIDMatched) {
+        /* Now, we DON'T have a BSSID match, so take a new entry in the cache */
         vos_mem_copy(pHddStaCtx->PMKIDCache[pHddStaCtx->PMKIDCacheIndex].BSSID,
                 pmksa->bssid, ETHER_ADDR_LEN);
         vos_mem_copy(pHddStaCtx->PMKIDCache[pHddStaCtx->PMKIDCacheIndex].PMKID,
                 pmksa->pmkid,
                 CSR_RSN_PMKID_SIZE);
-        hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: Adding a new cache entry %d.",
-                __func__, pHddStaCtx->PMKIDCacheIndex );
+        hddLog(VOS_TRACE_LEVEL_DEBUG,
+               FL("Adding a new cache entry %d"), pHddStaCtx->PMKIDCacheIndex);
         hddLog(VOS_TRACE_LEVEL_INFO, MAC_ADDRESS_STR,
                MAC_ADDR_ARRAY(pmksa->bssid));
         dump_pmkid(halHandle, pmksa->pmkid);
-        // Increment the HDD Local Cache index
-        // The "i=0" doesn't work for the call to sme_RoamSetPMKIDCache() - LFR FIXME
-        if (pHddStaCtx->PMKIDCacheIndex <= (MAX_PMKSAIDS_IN_CACHE-1))
+        /* Increment the HDD Local Cache index */
+        if (pHddStaCtx->PMKIDCacheIndex <= (MAX_PMKSAIDS_IN_CACHE - 1))
             pHddStaCtx->PMKIDCacheIndex++;
         else
             pHddStaCtx->PMKIDCacheIndex = 0;
     }
 
 
-    // Calling csrRoamSetPMKIDCache to configure the PMKIDs into the cache
-    hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: Calling csrRoamSetPMKIDCache with %d cache entries.",
-            __func__, pHddStaCtx->PMKIDCacheIndex );
+    /* Calling csrRoamSetPMKIDCache to configure the PMKIDs into the cache */
+    hddLog(VOS_TRACE_LEVEL_DEBUG,
+           FL("Calling sme_RoamSetPMKIDCache with %d cache entries"),
+           pHddStaCtx->PMKIDCacheIndex);
 
-    // Finally set the PMKSA ID Cache in CSR
+    /* Finally set the PMKSA ID Cache in CSR */
     result = sme_RoamSetPMKIDCache(halHandle,pAdapter->sessionId,
                                     pHddStaCtx->PMKIDCache,
                                     pHddStaCtx->PMKIDCacheIndex);
@@ -11600,7 +11433,7 @@ static int wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device *d
 static int __wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *dev,
              struct cfg80211_pmksa *pmksa)
 {
-    tANI_U32 j=0;
+    tANI_U32 j = 0;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_station_ctx_t *pHddStaCtx;
     tHalHandle halHandle;
@@ -11608,52 +11441,48 @@ static int __wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device 
     hdd_context_t *pHddCtx;
     int status = 0;
 
-    hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: deleting PMKSA for " MAC_ADDRESS_STR,
-           __func__, MAC_ADDR_ARRAY(pmksa->bssid));
-
-    /* Validate pAdapter */
-    if (NULL == pAdapter)
-    {
-       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid Adapter" ,__func__);
-       return -EINVAL;
+    if (!pmksa) {
+        hddLog(LOGE, FL("pmksa is NULL"));
+        return -EINVAL;
     }
+
+    if (!pmksa->bssid) {
+        hddLog(LOGE, FL("pmksa->bssid is NULL"));
+        return -EINVAL;
+    }
+    hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Deleting PMKSA for "MAC_ADDRESS_STR),
+           MAC_ADDR_ARRAY(pmksa->bssid));
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
 
-    if (0 != status)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
+    if (0 != status) {
+        hddLog(LOGE, FL("HDD context is not valid"));
         return status;
     }
 
-    /*Retrieve halHandle*/
     halHandle = WLAN_HDD_GET_HAL_CTX(pAdapter);
     pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-    /*in case index is 0,no entry to delete*/
-    if (0 == pHddStaCtx->PMKIDCacheIndex)
-    {
-       hddLog(VOS_TRACE_LEVEL_INFO, FL("No entries to flush"));
+    /* In case index is 0,no entry to delete */
+    if (0 == pHddStaCtx->PMKIDCacheIndex) {
+       hddLog(VOS_TRACE_LEVEL_INFO, FL("No entries to delete"));
        return 0;
     }
 
-    /*find the matching PMKSA entry from j=0 to (index-1),
+    /* Find the matching PMKSA entry from j=0 to (index-1),
      * and delete the matched one
      */
-    for (j = 0; j < pHddStaCtx->PMKIDCacheIndex; j++)
-    {
+    for (j = 0; j < pHddStaCtx->PMKIDCacheIndex; j++) {
           if (vos_mem_compare(pHddStaCtx->PMKIDCache[j].BSSID,
                              pmksa->bssid,
-                             VOS_MAC_ADDR_SIZE))
-          {
+                             VOS_MAC_ADDR_SIZE)) {
              /* BSSID matched entry */
              BSSIDMatched = 1;
 
-             if (j < pHddStaCtx->PMKIDCacheIndex-1)
-             {
-                 /*replace the matching entry with the last entry in HDD local cache*/
+             if (j < pHddStaCtx->PMKIDCacheIndex-1) {
+                 /* Replace the matching entry with the last entry
+                    in HDD local cache */
                  vos_mem_copy(pHddStaCtx->PMKIDCache[j].BSSID,
                       pHddStaCtx->PMKIDCache[pHddStaCtx->PMKIDCacheIndex-1].BSSID,
                       VOS_MAC_ADDR_SIZE);
@@ -11662,21 +11491,22 @@ static int __wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device 
                       CSR_RSN_PMKID_SIZE);
               }
 
-             /*clear the last entry in HDD cache ---[index-1]*/
+             /* Clear the last entry in HDD cache ---[index-1] */
              vos_mem_zero(pHddStaCtx->PMKIDCache[pHddStaCtx->PMKIDCacheIndex-1].BSSID,
                           VOS_MAC_ADDR_SIZE);
              vos_mem_zero(pHddStaCtx->PMKIDCache[pHddStaCtx->PMKIDCacheIndex-1].PMKID,
                           CSR_RSN_PMKID_SIZE);
 
-             /*reduce the PMKID array index*/
+             /* Reduce the PMKID array index */
              pHddStaCtx->PMKIDCacheIndex--;
 
-             /*delete the last PMKID cache in CSR*/
+             /* Delete the last PMKID cache in CSR */
              if (eHAL_STATUS_SUCCESS !=
-                 sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pmksa->bssid))
+                 sme_RoamDelPMKIDfromCache(halHandle,
+                                           pAdapter->sessionId, pmksa->bssid))
              {
-                hddLog(VOS_TRACE_LEVEL_ERROR,"%s: cannot delete PMKSA %d CONTENT.",
-                          __func__, pHddStaCtx->PMKIDCacheIndex);
+                hddLog(LOGE, FL("Cannot delete PMKSA %d CONTENT"),
+                             pHddStaCtx->PMKIDCacheIndex);
                 status = -EINVAL;
              }
 
@@ -11688,14 +11518,11 @@ static int __wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device 
           }
     }
 
-    /* we compare all entries,but cannot find matching entry */
-    if (j == MAX_PMKSAIDS_IN_CACHE && !BSSIDMatched)
-    {
-       hddLog(VOS_TRACE_LEVEL_FATAL,
-              "%s: No such PMKSA entry existed " MAC_ADDRESS_STR,
-              __func__, MAC_ADDR_ARRAY(pmksa->bssid));
-       hddLog(VOS_TRACE_LEVEL_INFO, MAC_ADDRESS_STR,
-               MAC_ADDR_ARRAY(pmksa->bssid));
+    /* We compare all entries, but cannot find matching entry */
+    if (j == MAX_PMKSAIDS_IN_CACHE && !BSSIDMatched) {
+       hddLog(VOS_TRACE_LEVEL_DEBUG,
+              FL("No such PMKSA entry exists "MAC_ADDRESS_STR),
+              MAC_ADDR_ARRAY(pmksa->bssid));
        dump_pmkid(halHandle, pmksa->pmkid);
        return -EINVAL;
     }
@@ -11718,7 +11545,7 @@ static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *d
 
 static int __wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device *dev)
 {
-    tANI_U32 j=0;
+    tANI_U32 j = 0;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_station_ctx_t *pHddStaCtx;
     tHalHandle halHandle;
@@ -11726,52 +11553,39 @@ static int __wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_devic
     tANI_U8 *pBSSId;
     int status = 0;
 
-    hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: flushing PMKSA ",__func__);
-
-    /* Validate pAdapter */
-    if (NULL == pAdapter)
-    {
-       hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: Invalid Adapter" ,__func__);
-       return -EINVAL;
-    }
+    hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Flushing PMKSA"));
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
 
-    if (0 != status)
-    {
-       hddLog(VOS_TRACE_LEVEL_ERROR,
-              "%s: HDD context is not valid", __func__);
+    if (0 != status) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
        return status;
     }
 
-    /*Retrieve halHandle*/
+    /* Retrieve halHandle */
     halHandle = WLAN_HDD_GET_HAL_CTX(pAdapter);
     pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-    /*in case index is 0,no entry to delete*/
+    /* In case index is 0,no entry to delete */
     if (0 == pHddStaCtx->PMKIDCacheIndex)
     {
-       hddLog(VOS_TRACE_LEVEL_INFO, "%s: No entries to flush" ,
-              __func__);
+       hddLog(VOS_TRACE_LEVEL_INFO, FL("No entries to flush"));
        return 0;
     }
 
-    /*delete all the PMKSA one by one */
-    for (j = 0; j < pHddStaCtx->PMKIDCacheIndex; j++)
-    {
+    /* Delete all the PMKSA one by one */
+    for (j = 0; j < pHddStaCtx->PMKIDCacheIndex; j++) {
           pBSSId =(tANI_U8 *)(pHddStaCtx->PMKIDCache[j].BSSID);
 
-          /*delete the PMKID in CSR*/
+          /* Delete the PMKID in CSR */
           if (eHAL_STATUS_SUCCESS !=
-              sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pBSSId))
-          {
-             hddLog(VOS_TRACE_LEVEL_ERROR ,"%s cannot flush PMKIDCache %d.",
-                    __func__,j);
+              sme_RoamDelPMKIDfromCache(halHandle,
+                                        pAdapter->sessionId, pBSSId)) {
+             hddLog(VOS_TRACE_LEVEL_ERROR, FL("Cannot flush PMKIDCache %d"), j);
              status = -EINVAL;
           }
-          /*clear the entry in HDD cache 0--index-1 */
+          /* Clear the entry in HDD cache 0--index-1 */
           vos_mem_zero(pHddStaCtx->PMKIDCache[j].BSSID, VOS_MAC_ADDR_SIZE);
           vos_mem_zero(pHddStaCtx->PMKIDCache[j].PMKID, CSR_RSN_PMKID_SIZE);
     }
@@ -11801,15 +11615,7 @@ __wlan_hdd_cfg80211_update_ft_ies(struct wiphy *wiphy,
                                   struct cfg80211_update_ft_ies_params *ftie)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    hdd_station_ctx_t *pHddStaCtx;
-
-    if (NULL == pAdapter)
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Adapter is NULL", __func__);
-        return -ENODEV;
-    }
-
-    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_UPDATE_FT_IES,
@@ -11980,13 +11786,6 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
     int ret = 0;
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
 
-    if (NULL == pAdapter)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                  "%s: HDD adapter is Null", __func__);
-        return -ENODEV;
-    }
-
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     ret = wlan_hdd_validate_context(pHddCtx);
 
@@ -11994,7 +11793,7 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: HDD context is not valid", __func__);
-        return -EINVAL;
+        return ret;
     }
 
     hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
@@ -12237,13 +12036,6 @@ static int __wlan_hdd_cfg80211_sched_scan_stop(struct wiphy *wiphy,
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
 
     ENTER();
-
-    if (NULL == pAdapter)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                  "%s: HDD adapter is Null", __func__);
-        return -ENODEV;
-    }
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
@@ -12581,11 +12373,11 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
 
     if (SIR_MAC_TDLS_SETUP_RSP == action_code)
     {
-        wlan_hdd_tdls_set_responder(pAdapter, peerMac, TRUE);
+        return wlan_hdd_tdls_set_responder(pAdapter, peerMac, TRUE);
     }
     else if (SIR_MAC_TDLS_SETUP_CNF == action_code)
     {
-        wlan_hdd_tdls_set_responder(pAdapter, peerMac, FALSE);
+        return wlan_hdd_tdls_set_responder(pAdapter, peerMac, FALSE);
     }
 
     return 0;
@@ -13072,33 +12864,21 @@ int __wlan_hdd_cfg80211_set_rekey_data(struct wiphy *wiphy,
 
     ENTER();
 
-
-    if (NULL == pAdapter)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                   "%s: HDD adapter is Null", __func__);
-        return -ENODEV;
-    }
-
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_SET_REKEY_DATA,
                      pAdapter->sessionId, pAdapter->device_mode));
 
     result = wlan_hdd_validate_context(pHddCtx);
 
-    if (0 != result)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
+    if (0 != result) {
+        hddLog(LOGE, FL("HDD context is not valid"));
         return result;
     }
 
     pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-    if (NULL == hHal)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s: HAL context  is Null!!!", __func__);
+    if (NULL == hHal){
+        hddLog(LOGE, FL("HAL context is Null!!!"));
         return -EAGAIN;
     }
 
@@ -13115,38 +12895,28 @@ int __wlan_hdd_cfg80211_set_rekey_data(struct wiphy *wiphy,
               (tANI_U8 *)&pHddStaCtx->gtkOffloadReqParams.ullKeyReplayCounter;
         int i;
 
-        for (i = 0; i < 8; i++)
-        {
+        for (i = 0; i < 8; i++) {
             p[7-i] = data->replay_ctr[i];
         }
     }
 
-    if (TRUE == pHddCtx->hdd_wlan_suspended)
-    {
+    if (TRUE == pHddCtx->hdd_wlan_suspended) {
         /* if wlan is suspended, enable GTK offload directly from here */
         memcpy(&hddGtkOffloadReqParams, &pHddStaCtx->gtkOffloadReqParams,
               sizeof (tSirGtkOffloadParams));
         status = sme_SetGTKOffload(hHal, &hddGtkOffloadReqParams,
                        pAdapter->sessionId);
 
-        if (eHAL_STATUS_SUCCESS != status)
-        {
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                    "%s: sme_SetGTKOffload failed, returned %d",
-                    __func__, status);
-            return status;
+        if (eHAL_STATUS_SUCCESS != status) {
+            hddLog(LOGE, FL("sme_SetGTKOffload failed, status(%d)"), status);
+            return -EINVAL;
         }
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                "%s: sme_SetGTKOffload successfull", __func__);
-    }
-    else
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                "%s: wlan not suspended GTKOffload request is stored",
-                __func__);
+        hddLog(LOG1, FL("sme_SetGTKOffload successfull"));
+    } else {
+        hddLog(LOG1, FL("wlan not suspended GTKOffload request is stored"));
     }
 
-    return eHAL_STATUS_SUCCESS;
+    return result;
 }
 
 int wlan_hdd_cfg80211_set_rekey_data(struct wiphy *wiphy,
@@ -13179,13 +12949,6 @@ static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
     VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
     ENTER();
-
-    if (NULL == pAdapter)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                   "%s: HDD adapter is Null", __func__);
-        return -ENODEV;
-    }
 
     if (NULL == params)
     {
@@ -13375,17 +13138,13 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
 #endif /* FEATURE_WLAN_LPHB */
 
     err = nla_parse(tb, WLAN_HDD_TM_ATTR_MAX, data, len, wlan_hdd_tm_policy);
-    if (err)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s Testmode INV ATTR", __func__);
+    if (err) {
+        hddLog(LOGE, FL("Testmode INV ATTR"));
         return err;
     }
 
-    if (!tb[WLAN_HDD_TM_ATTR_CMD])
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s Testmode INV CMD", __func__);
+    if (!tb[WLAN_HDD_TM_ATTR_CMD]) {
+        hddLog(LOGE, FL("Testmode INV CMD"));
         return -EINVAL;
     }
 
@@ -13400,10 +13159,8 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
             tSirLPHBReq *hb_params = NULL;
             tSirLPHBReq *hb_params_temp = NULL;
 
-            if (!tb[WLAN_HDD_TM_ATTR_DATA])
-            {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                          "%s Testmode INV DATA", __func__);
+            if (!tb[WLAN_HDD_TM_ATTR_DATA]) {
+                hddLog(LOGE, FL("Testmode INV DATA"));
                 return -EINVAL;
             }
 
@@ -13416,21 +13173,17 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
                 return -EINVAL;
 
             hb_params = (tSirLPHBReq *)vos_mem_malloc(sizeof(tSirLPHBReq));
-            if (NULL == hb_params)
-            {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                          "%s Request Buffer Alloc Fail", __func__);
-                return -EINVAL;
+            if (NULL == hb_params) {
+                hddLog(LOGE, FL("Request Buffer Alloc Fail"));
+                return -ENOMEM;
             }
 
             vos_mem_copy(hb_params, buf, buf_len);
             smeStatus = sme_LPHBConfigReq((tHalHandle)(pHddCtx->hHal),
                                hb_params,
                                wlan_hdd_cfg80211_lphb_ind_handler);
-            if (eHAL_STATUS_SUCCESS != smeStatus)
-            {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                         "LPHB Config Fail, disable");
+            if (eHAL_STATUS_SUCCESS != smeStatus) {
+               hddLog(LOGE, "LPHB Config Fail, disable");
                vos_mem_free(hb_params);
             }
             return 0;
@@ -13445,9 +13198,8 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
             void *buf;
             VOS_STATUS status;
             if (!tb[WLAN_HDD_TM_ATTR_DATA]) {
-                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                       "%s: WLAN_HDD_TM_ATTR_DATA attribute is invalid",
-                       __func__);
+                    hddLog(LOGE,
+                           FL("WLAN_HDD_TM_ATTR_DATA attribute is invalid"));
                     return -EINVAL;
             }
 
@@ -13463,9 +13215,8 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
 #endif
 
         default:
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                      "%s: command %d not supported",
-                      __func__, nla_get_u32(tb[WLAN_HDD_TM_ATTR_CMD]));
+            hddLog(LOGE, FL("command %d not supported"),
+                         nla_get_u32(tb[WLAN_HDD_TM_ATTR_CMD]));
             return -EOPNOTSUPP;
     }
 
@@ -13554,14 +13305,6 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
     int status, i, j, filled = 0;
 
     ENTER();
-
-
-    if (NULL == pAdapter)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                   "%s: HDD adapter is Null", __func__);
-        return -ENODEV;
-    }
 
     if (NULL == wiphy)
     {
@@ -13670,32 +13413,29 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
     hdd_adapter_t *pAdapter;
     hdd_adapter_list_node_t *pAdapterNode, *pNext;
     VOS_STATUS status = VOS_STATUS_SUCCESS;
+    int result;
 #ifdef QCA_WIFI_2_0
     pVosSchedContext vosSchedContext = get_vos_sched_ctxt();
 #endif
 
     ENTER();
 
-    if ( NULL == pHddCtx )
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-              "%s: HddCtx validation failed", __func__);
-        return 0;
+    result = wlan_hdd_validate_context(pHddCtx);
+    if (0 != result) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+       return result;
     }
 
-    if (pHddCtx->isLogpInProgress)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: LOGP in Progress. Ignore!!!", __func__);
+    if (pHddCtx->isLogpInProgress) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("LOGP in Progress. Ignore!!!"));
         return -EAGAIN;
     }
 
     if ((pHddCtx->isLoadInProgress) ||
-        (pHddCtx->isUnloadInProgress))
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Unloading/Loading in Progress. Ignore!!!", __func__);
-        return 0;
+        (pHddCtx->isUnloadInProgress)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               FL("Unloading/Loading in Progress. Ignore!!!"));
+        return -EAGAIN;
     }
 
 #ifdef CONFIG_CNSS
@@ -13722,44 +13462,37 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
 
     spin_lock(&pHddCtx->schedScan_lock);
     pHddCtx->isWiphySuspended = FALSE;
-    if (TRUE != pHddCtx->isSchedScanUpdatePending)
-    {
+    if (TRUE != pHddCtx->isSchedScanUpdatePending) {
         spin_unlock(&pHddCtx->schedScan_lock);
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
               "%s: Return resume is not due to PNO indication", __func__);
         return 0;
     }
-    // Reset flag to avoid updatating cfg80211 data old results again
+    /* Reset flag to avoid updatating cfg80211 data old results again */
     pHddCtx->isSchedScanUpdatePending = FALSE;
     spin_unlock(&pHddCtx->schedScan_lock);
 
-    status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+    status =  hdd_get_front_adapter (pHddCtx, &pAdapterNode);
 
-    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
-    {
+    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
         pAdapter = pAdapterNode->pAdapter;
-        if ( (NULL != pAdapter) &&
-             (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) )
-        {
+        if ((NULL != pAdapter) &&
+            (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)) {
             if (0 != wlan_hdd_cfg80211_update_bss(pHddCtx->wiphy, pAdapter))
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-                      "%s: NO SCAN result", __func__);
+                hddLog(LOGW, FL("NO SCAN result"));
             else
                 cfg80211_sched_scan_results(pHddCtx->wiphy);
 
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                    "%s : cfg80211 scan result database updated", __func__);
+            hddLog(LOG1, FL("cfg80211 scan result database updated"));
 
-            return 0;
-
+            return result;
         }
         status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
         pAdapterNode = pNext;
     }
 
-    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-          "%s: Failed to find Adapter", __func__);
-    return 0;
+    hddLog(LOG1, FL("Failed to find Adapter"));
+    return result;
 }
 
 #ifdef QCA_WIFI_2_0
@@ -13799,15 +13532,14 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     hdd_adapter_t *pAdapter;
     hdd_scaninfo_t *pScanInfo;
     VOS_STATUS status;
-    int rc;
 #endif
+    int rc;
 
     ENTER();
-    if (NULL == pHddCtx)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-              "%s: HddCtx validation failed", __func__);
-        return 0;
+    rc = wlan_hdd_validate_context(pHddCtx);
+    if (0 != rc) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+       return rc;
     }
 
     if (pHddCtx->isLogpInProgress)
@@ -13976,12 +13708,6 @@ int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
     tSmeConfigParams smeConfig;
     int i;
     bool cbModeChange;
-
-    if (NULL == pAdapter) {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                   "%s: HDD adapter is Null", __func__);
-        return -ENODEV;
-    }
 
     if (NULL == wiphy) {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,

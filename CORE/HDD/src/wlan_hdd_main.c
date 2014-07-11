@@ -649,13 +649,6 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
    if (!dev->ieee80211_ptr)
       return NOTIFY_DONE;
 
-   if (NULL == pAdapter)
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD Adapter Null Pointer", __func__);
-      VOS_ASSERT(0);
-      return NOTIFY_DONE;
-   }
-
    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    if (NULL == pHddCtx)
    {
@@ -5612,17 +5605,10 @@ static int hdd_driver_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
 
 int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
-   hdd_adapter_t *pAdapter;
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_context_t *pHddCtx;
    long ret = 0;
 
-   pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-   if (NULL == pAdapter) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                 "%s: pAdapter context is Null", __func__);
-      ret = -ENODEV;
-      goto exit;
-   }
    if (dev != pAdapter->dev) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                  "%s: HDD adapter/dev inconsistency", __func__);
@@ -7143,77 +7129,52 @@ v_BOOL_t hdd_is_valid_mac_address(const tANI_U8 *pMacAddr)
 int hdd_open (struct net_device *dev)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-   hdd_context_t *pHddCtx;
+   hdd_context_t *pHddCtx =  WLAN_HDD_GET_CTX(pAdapter);
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    VOS_STATUS status;
+   int ret;
    v_BOOL_t in_standby = TRUE;
 
-   if (NULL == pAdapter)
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: HDD adapter context is Null", __func__);
-      return -ENODEV;
-   }
-
-   pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
    MTRACE(vos_trace(VOS_MODULE_ID_HDD, TRACE_CODE_HDD_OPEN_REQUEST,
                     pAdapter->sessionId, pAdapter->device_mode));
-   if (NULL == pHddCtx)
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: HDD context is Null", __func__);
-      return -ENODEV;
+
+   ret = wlan_hdd_validate_context(pHddCtx);
+   if (0 != ret) {
+       hddLog(LOGE, FL("HDD context is not valid"));
+       return ret;
    }
 
-   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
-   while ( (NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status) )
-   {
-      if (test_bit(DEVICE_IFACE_OPENED, &pAdapterNode->pAdapter->event_flags))
-      {
-         hddLog(VOS_TRACE_LEVEL_INFO, "%s: chip already out of standby",
-                __func__);
+   status = hdd_get_front_adapter (pHddCtx, &pAdapterNode);
+   while ((NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status)) {
+      if (test_bit(DEVICE_IFACE_OPENED, &pAdapterNode->pAdapter->event_flags)) {
+         hddLog(LOG1, FL("chip already out of standby"));
          in_standby = FALSE;
          break;
-      }
-      else
-      {
+      } else {
          status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
          pAdapterNode = pNext;
       }
    }
 
-   if (TRUE == in_standby)
-   {
-       if (VOS_STATUS_SUCCESS != wlan_hdd_exit_lowpower(pHddCtx, pAdapter))
-       {
-           hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to bring "
-                   "wlan out of power save", __func__);
+   if (TRUE == in_standby) {
+       if (VOS_STATUS_SUCCESS != wlan_hdd_exit_lowpower(pHddCtx, pAdapter)) {
+           hddLog(LOGE, FL("Failed to bring wlan out of power save"));
            return -EINVAL;
        }
    }
 
    set_bit(DEVICE_IFACE_OPENED, &pAdapter->event_flags);
-   if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
-   {
-       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                 "%s: Enabling Tx Queues", __func__);
+   if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) {
+       hddLog(LOG1, FL("Enabling Tx Queues"));
        /* Enable TX queues only when we are connected */
        netif_tx_start_all_queues(dev);
    }
 
-   return 0;
+   return ret;
 }
 
 int hdd_mon_open (struct net_device *dev)
 {
-   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-
-   if(pAdapter == NULL) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: HDD adapter context is Null", __func__);
-      return -EINVAL;
-   }
-
    netif_start_queue(dev);
 
    return 0;
@@ -7233,27 +7194,21 @@ int hdd_mon_open (struct net_device *dev)
 int hdd_stop (struct net_device *dev)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-   hdd_context_t *pHddCtx;
+   hdd_context_t *pHddCtx =  WLAN_HDD_GET_CTX(pAdapter);
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    VOS_STATUS status;
    v_BOOL_t enter_standby = TRUE;
+   int ret;
 
    ENTER();
 
-   if (NULL == pAdapter)
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                "%s: pAdapter context is Null", __func__);
-      return -ENODEV;
-   }
    MTRACE(vos_trace(VOS_MODULE_ID_HDD, TRACE_CODE_HDD_OPEN_REQUEST,
                     pAdapter->sessionId, pAdapter->device_mode));
-   pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
-   if (NULL == pHddCtx)
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: HDD context is Null", __func__);
-      return -ENODEV;
+
+   ret = wlan_hdd_validate_context(pHddCtx);
+   if (0 != ret) {
+       hddLog(LOGE, FL("HDD context is not valid"));
+       return ret;
    }
 
    /* Nothing to be done if the interface is not opened */
@@ -7360,13 +7315,6 @@ static void hdd_uninit (struct net_device *dev)
 
    do
    {
-      if (NULL == pAdapter)
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,
-                "%s: NULL pAdapter", __func__);
-         break;
-      }
-
       if (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,
@@ -10006,13 +9954,6 @@ static void hdd_set_multicast_list(struct net_device *dev)
    int mc_count;
    int i = 0;
    struct netdev_hw_addr *ha;
-
-   if (NULL == pAdapter)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-            "%s: Adapter context is Null", __func__);
-      return;
-   }
 
    if (dev->flags & IFF_ALLMULTI)
    {

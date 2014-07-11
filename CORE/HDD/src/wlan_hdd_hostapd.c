@@ -370,17 +370,10 @@ static int hdd_hostapd_driver_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
 static int hdd_hostapd_ioctl(struct net_device *dev,
                              struct ifreq *ifr, int cmd)
 {
-   hdd_adapter_t *pAdapter;
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_context_t *pHddCtx;
    int ret;
 
-   pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-   if (NULL == pAdapter) {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: pAdapter context is Null", __func__);
-      ret = -ENODEV;
-      goto exit;
-   }
    if (dev != pAdapter->dev) {
       hddLog(VOS_TRACE_LEVEL_ERROR,
              "%s: HDD adapter/dev inconsistency", __func__);
@@ -1654,13 +1647,6 @@ static iw_softap_get_ini_cfg(struct net_device *dev,
     hdd_context_t *pHddCtx;
     int ret = 0;
 
-    if (pAdapter == NULL)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                                        "%s: pAdapter is NULL!", __func__);
-        return -EINVAL;
-    }
-
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     ret = wlan_hdd_validate_context(pHddCtx);
     if (ret != 0)
@@ -2885,13 +2871,6 @@ static int iw_softap_set_trafficmonitor(struct net_device *dev,
     int *isSetTrafficMon = (int *)wrqu->data.pointer;
     hdd_context_t *pHddCtx;
     int status;
-
-    if (NULL == pAdapter)
-    {
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD adapter is Null", __func__);
-        return -ENODEV;
-    }
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
