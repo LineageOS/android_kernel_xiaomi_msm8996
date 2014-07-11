@@ -115,7 +115,6 @@
 #define WMA_2_4_GHZ_MAX_FREQ  3000
 #define WOW_CSA_EVENT_OFFSET 12
 
-#define WMA_DEFAULT_SCAN_PRIORITY            1
 #define WMA_DEFAULT_SCAN_REQUESTER_ID        1
 #define WMI_SCAN_FINISH_EVENTS (WMI_SCAN_EVENT_START_FAILED |\
                                 WMI_SCAN_EVENT_COMPLETED |\
@@ -5897,7 +5896,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	/* host cycles through the lower 12 bits of
 	   wma_handle->scan_id to generate ids */
 	cmd->scan_id = WMA_HOST_SCAN_REQID_PREFIX | ++wma_handle->scan_id;
-	cmd->scan_priority = WMA_DEFAULT_SCAN_PRIORITY;
+	cmd->scan_priority = WMI_SCAN_PRIORITY_LOW;
 	cmd->scan_req_id = WMA_HOST_SCAN_REQUESTOR_ID_PREFIX |
 			   WMA_DEFAULT_SCAN_REQUESTER_ID;
 
@@ -6289,6 +6288,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	    cmd->min_rest_time = WMA_ROAM_PREAUTH_REST_TIME;
 	    cmd->max_rest_time = WMA_ROAM_PREAUTH_REST_TIME;
 	    cmd->max_scan_time = WMA_ROAM_PREAUTH_MAX_SCAN_TIME;
+	    cmd->scan_priority = WMI_SCAN_PRIORITY_HIGH;
 	    adf_os_spin_lock_bh(&wma_handle->roam_preauth_lock);
 	    cmd->scan_id =  ( (cmd->scan_id & WMA_MAX_SCAN_ID) |
 				WMA_HOST_ROAM_SCAN_REQID_PREFIX);
