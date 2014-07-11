@@ -539,6 +539,7 @@ typedef struct {
 	u_int32_t inactivityCount;
 	u_int32_t txSPEndInactivityTime;
 	u_int32_t ibssPsWarmupTime;
+	u_int32_t ibssPs1RxChainInAtimEnable;
 }ibss_power_save_params;
 
 typedef struct {
@@ -1332,6 +1333,7 @@ enum wma_cfg_cmd_id {
 	WMA_VDEV_IBSS_SET_INACTIVITY_TIME,
 	WMA_VDEV_IBSS_SET_TXSP_END_INACTIVITY_TIME,
 	WMA_VDEV_IBSS_PS_SET_WARMUP_TIME_SECS,
+	WMA_VDEV_IBSS_PS_SET_1RX_CHAIN_IN_ATIM_WINDOW,
 
 	/* dfs control interface */
 	WMA_VDEV_DFS_CONTROL_CMDID,

@@ -9913,6 +9913,15 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 			wma_handle->wma_ibss_power_save_params.ibssPsWarmupTime);
 	}
 		break;
+	case WMA_VDEV_IBSS_PS_SET_1RX_CHAIN_IN_ATIM_WINDOW:
+	{
+		wma_handle->wma_ibss_power_save_params.ibssPs1RxChainInAtimEnable =
+					privcmd->param_value;
+		WMA_LOGD("%s: IBSS Power Save single RX Chain Enable In ATIM  = %d",
+			__func__,
+			wma_handle->wma_ibss_power_save_params.ibssPs1RxChainInAtimEnable);
+	}
+		break;
 
 	default:
 		WMA_LOGE("Invalid wma config command id:%d",
@@ -11185,6 +11194,15 @@ wma_set_ibss_pwrsave_params(tp_wma_handle wma, u_int8_t vdev_id)
             wma->wma_ibss_power_save_params.ibssPsWarmupTime);
 	if (ret < 0) {
 		WMA_LOGE("Failed, set WMI_VDEV_PARAM_IBSS_PS_WARMUP_TIME_SECS ret=%d",
+				ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_ENABLE,
+				wma->wma_ibss_power_save_params.ibssPs1RxChainInAtimEnable);
+	if (ret < 0) {
+		WMA_LOGE("Failed to set IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_ENABLE ret=%d",
 				ret);
 		return VOS_STATUS_E_FAILURE;
 	}
