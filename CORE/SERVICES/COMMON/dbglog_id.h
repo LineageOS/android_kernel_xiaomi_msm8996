@@ -885,12 +885,25 @@ extern "C" {
 #define ROAM_RSN_IE_PARSE_ERROR   34
 #define ROAM_WPA_IE_PARSE_ERROR   35
 #define ROAM_SCAN_CMD_FROM_HOST   36
-#define ROAM_DBGID_DEFINITION_END 37
+#define ROAM_HO_SORT_CANDIDATE    37
+#define ROAM_HO_SAVE_CANDIDATE    38
+#define ROAM_HO_GET_CANDIDATE     39
+#define ROAM_HO_OFFLOAD_SET_PARAM 40
+#define ROAM_HO_SM                41
+#define ROAM_HO_HTT_SAVED         42
+#define ROAM_HO_SYNC_START        43
+#define ROAM_HO_START             44
+#define ROAM_HO_SYNC_COMPLETE     45
+#define ROAM_HO_STOP              46
+#define ROAM_HO_HTT_FORWARD       47
+#define ROAM_DBGID_DEFINITION_END 48
 
 /* DATA_TXRX module DBGIDs*/
 #define DATA_TXRX_DBGID_DEFINITION_START         0
 #define DATA_TXRX_DBGID_RX_DATA_SEQ_LEN_INFO     1
-#define DATA_TXRX_DBGID_DEFINITION_END           2
+#define DATA_TXRX_DBGID_REPLAY_CHECK             2
+#define DATA_TXRX_DBGID_DUP_CHECK                3
+#define DATA_TXRX_DBGID_DEFINITION_END           4
 
 /* TDLS module DBGIDs*/
 #define TDLS_DBGID_DEFINITION_START             0
@@ -1039,6 +1052,29 @@ extern "C" {
 #define RMC_SET_MODE                           14
 #define RMC_SET_ACTION_PERIOD                  15
 #define RMC_DBGID_DEFINITION_END               16
+
+/* UNIT_TEST module DBGIDs */
+#define UNIT_TEST_GEN                 0
+
+/* MLME module DBGIDs */
+#define MLME_DEBUG_CMN                0
+#define MLME_DEBUG_IF                 1
+#define MLME_DEBUG_AUTH               2
+#define MLME_DEBUG_REASSOC            3
+#define MLME_DEBUG_DEAUTH             4
+#define MLME_DEBUG_DISASSOC           5
+#define MLME_DEBUG_ROAM               6
+#define MLME_DEBUG_RETRY              7
+#define MLME_DEBUG_TIMER              8
+#define MLME_DEBUG_FRAMEPARSE         9
+
+/* SUPPL module DBGIDs */
+#define SUPPL_DBGID_INIT                        0
+#define SUPPL_DBGID_RECV_EAPOL                  1
+#define SUPPL_DBGID_RECV_EAPOL_TIMEOUT          2
+#define SUPPL_DBGID_SEND_EAPOL                  3
+#define SUPPL_DBGID_MIC_MISMATCH                4
+#define SUPPL_DBGID_FINISH                      5
 
 /* Stats Module DBGIDs */
 #define WLAN_STATS_DBGID_DEFINITION_START                0
@@ -1284,6 +1320,7 @@ extern "C" {
 #define IBSS_PS_DBGID_PS_KICKOUT_PEER           24
 #define IBSS_PS_DBGID_SET_PEER_PARAM            25
 #define IBSS_PS_DBGID_BCN_ATIM_WIN_MISMATCH     26
+#define IBSS_PS_DBGID_RX_CHAINMASK_CHANGE       27
 
 /* HIF UART Interface DBGIDs */
 #define HIF_UART_DBGID_START               0
