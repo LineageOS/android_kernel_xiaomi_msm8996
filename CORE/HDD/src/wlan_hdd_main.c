@@ -1074,101 +1074,104 @@ void hdd_checkandupdate_dfssetting( hdd_adapter_t *pAdapter, char *country_code)
   --------------------------------------------------------------------------*/
 VOS_STATUS hdd_setIbssPowerSaveParams(hdd_adapter_t *pAdapter)
 {
-    VOS_STATUS ret;
+    int ret;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
 
-    if (pHddCtx == NULL)
-    {
+    if (pHddCtx == NULL) {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: HDD context is null", __func__);
         return VOS_STATUS_E_FAILURE;
     }
 
-    ret = process_wma_set_command((int)pAdapter->sessionId,
-                             (int)WMA_VDEV_IBSS_SET_ATIM_WINDOW_SIZE,
-                             (int)pHddCtx->cfg_ini->ibssATIMWinSize,
+    ret = process_wma_set_command(pAdapter->sessionId,
+                             WMA_VDEV_IBSS_SET_ATIM_WINDOW_SIZE,
+                             pHddCtx->cfg_ini->ibssATIMWinSize,
                              VDEV_CMD);
-    if (VOS_STATUS_SUCCESS != ret)
-    {
+    if (0 != ret) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: WMA_VDEV_IBSS_SET_ATIM_WINDOW_SIZE failed %d",
-               __func__, ret);
+               FL("WMA_VDEV_IBSS_SET_ATIM_WINDOW_SIZE failed %d"),
+                   ret);
         return VOS_STATUS_E_FAILURE;
     }
 
-    ret = process_wma_set_command((int)pAdapter->sessionId,
-                             (int)WMA_VDEV_IBSS_SET_POWER_SAVE_ALLOWED,
-                             (int)pHddCtx->cfg_ini->isIbssPowerSaveAllowed,
+    ret = process_wma_set_command(pAdapter->sessionId,
+                             WMA_VDEV_IBSS_SET_POWER_SAVE_ALLOWED,
+                             pHddCtx->cfg_ini->isIbssPowerSaveAllowed,
                              VDEV_CMD);
-    if (VOS_STATUS_SUCCESS != ret)
-    {
+    if (0 != ret) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: WMA_VDEV_IBSS_SET_POWER_SAVE_ALLOWED failed %d",
-               __func__, ret);
+               FL("WMA_VDEV_IBSS_SET_POWER_SAVE_ALLOWED failed %d"),
+                   ret);
         return VOS_STATUS_E_FAILURE;
     }
 
-    ret = process_wma_set_command((int)pAdapter->sessionId,
-                             (int)WMA_VDEV_IBSS_SET_POWER_COLLAPSE_ALLOWED,
-                             (int)pHddCtx->cfg_ini->isIbssPowerCollapseAllowed,
+    ret = process_wma_set_command(pAdapter->sessionId,
+                             WMA_VDEV_IBSS_SET_POWER_COLLAPSE_ALLOWED,
+                             pHddCtx->cfg_ini->isIbssPowerCollapseAllowed,
                              VDEV_CMD);
-    if (VOS_STATUS_SUCCESS != ret)
-    {
+    if (0 != ret) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: WMA_VDEV_IBSS_SET_POWER_COLLAPSE_ALLOWED failed %d",
-               __func__, ret);
+               FL("WMA_VDEV_IBSS_SET_POWER_COLLAPSE_ALLOWED failed %d"),
+                   ret);
         return VOS_STATUS_E_FAILURE;
     }
 
-    ret = process_wma_set_command((int)pAdapter->sessionId,
-                             (int)WMA_VDEV_IBSS_SET_AWAKE_ON_TX_RX,
-                             (int)pHddCtx->cfg_ini->isIbssAwakeOnTxRx,
+    ret = process_wma_set_command(pAdapter->sessionId,
+                             WMA_VDEV_IBSS_SET_AWAKE_ON_TX_RX,
+                             pHddCtx->cfg_ini->isIbssAwakeOnTxRx,
                              VDEV_CMD);
-    if (VOS_STATUS_SUCCESS != ret)
-    {
+    if (0 != ret) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: WMA_VDEV_IBSS_SET_AWAKE_ON_TX_RX failed %d",
-               __func__, ret);
+               FL("WMA_VDEV_IBSS_SET_AWAKE_ON_TX_RX failed %d"),
+                   ret);
         return VOS_STATUS_E_FAILURE;
     }
 
-    ret = process_wma_set_command((int)pAdapter->sessionId,
-                             (int)WMA_VDEV_IBSS_SET_INACTIVITY_TIME,
-                             (int)pHddCtx->cfg_ini->ibssInactivityCount,
+    ret = process_wma_set_command(pAdapter->sessionId,
+                             WMA_VDEV_IBSS_SET_INACTIVITY_TIME,
+                             pHddCtx->cfg_ini->ibssInactivityCount,
                              VDEV_CMD);
-    if (VOS_STATUS_SUCCESS != ret)
-    {
+    if (0 != ret) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: WMA_VDEV_IBSS_SET_INACTIVITY_TIME failed %d",
-               __func__, ret);
+               FL("WMA_VDEV_IBSS_SET_INACTIVITY_TIME failed %d"),
+                   ret);
         return VOS_STATUS_E_FAILURE;
     }
 
-    ret = process_wma_set_command((int)pAdapter->sessionId,
-                             (int)WMA_VDEV_IBSS_SET_TXSP_END_INACTIVITY_TIME,
-                             (int)pHddCtx->cfg_ini->ibssTxSpEndInactivityTime,
+    ret = process_wma_set_command(pAdapter->sessionId,
+                             WMA_VDEV_IBSS_SET_TXSP_END_INACTIVITY_TIME,
+                             pHddCtx->cfg_ini->ibssTxSpEndInactivityTime,
                              VDEV_CMD);
-    if (VOS_STATUS_SUCCESS != ret)
-    {
+    if (0 != ret) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: WMA_VDEV_IBSS_SET_TXSP_END_INACTIVITY_TIME failed %d",
-               __func__, ret);
+               FL("WMA_VDEV_IBSS_SET_TXSP_END_INACTIVITY_TIME failed %d"),
+                   ret);
         return VOS_STATUS_E_FAILURE;
     }
 
-    ret = process_wma_set_command((int)pAdapter->sessionId,
-                             (int)WMA_VDEV_IBSS_PS_SET_WARMUP_TIME_SECS,
-                             (int)pHddCtx->cfg_ini->ibssPsWarmupTime,
+    ret = process_wma_set_command(pAdapter->sessionId,
+                             WMA_VDEV_IBSS_PS_SET_WARMUP_TIME_SECS,
+                             pHddCtx->cfg_ini->ibssPsWarmupTime,
                              VDEV_CMD);
-    if (VOS_STATUS_SUCCESS != ret)
-    {
+    if (0 != ret) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: WMA_VDEV_IBSS_PS_SET_WARMUP_TIME_SECS failed %d",
-               __func__, ret);
+               FL("WMA_VDEV_IBSS_PS_SET_WARMUP_TIME_SECS failed %d"),
+                   ret);
         return VOS_STATUS_E_FAILURE;
     }
 
-    return ret;
+    ret = process_wma_set_command(pAdapter->sessionId,
+                            WMA_VDEV_IBSS_PS_SET_1RX_CHAIN_IN_ATIM_WINDOW,
+                            pHddCtx->cfg_ini->ibssPs1RxChainInAtimEnable,
+                            VDEV_CMD);
+    if (0 != ret) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               FL("WMA_VDEV_IBSS_PS_SET_1RX_CHAIN_IN_ATIM_WINDOW failed %d"),
+                   ret);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    return VOS_STATUS_SUCCESS;
 }
 
 #ifdef FEATURE_WLAN_BATCH_SCAN

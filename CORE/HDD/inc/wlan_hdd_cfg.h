@@ -2463,6 +2463,14 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_IBSS_PS_WARMUP_TIME_MAX                (65535)
 #define CFG_IBSS_PS_WARMUP_TIME_DEFAULT            (0)
 
+/*
+ * IBSS Power Save Enable/Disable 1 RX
+ * chain usage during the ATIM window
+ */
+#define CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_NAME    "gIbssPs1RxChainInAtim"
+#define CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_MIN     (0)
+#define CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_MAX     (1)
+#define CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_DEFAULT (0)
 
 #define CFG_SAP_MAX_NO_PEERS                       "gSoftApMaxPeers"
 #define CFG_SAP_MAX_NO_PEERS_MIN                   (1)
@@ -3166,6 +3174,7 @@ typedef struct
    v_U32_t                     ibssInactivityCount;
    v_U32_t                     ibssTxSpEndInactivityTime;
    v_U32_t                     ibssPsWarmupTime;
+   v_U32_t                     ibssPs1RxChainInAtimEnable;
 
    v_BOOL_t                    enableTCPChkSumOffld;
    v_BOOL_t                    enableIPChecksumOffload;
