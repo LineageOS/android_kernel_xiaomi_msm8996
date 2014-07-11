@@ -56,6 +56,9 @@
 #include "limAdmitControl.h"
 #include "limSendMessages.h"
 #include "limIbssPeerMgmt.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFTDefs.h"
+#endif
 #include "limSession.h"
 
 #include "vos_types.h"
@@ -2911,8 +2914,9 @@ tSirRetStatus limAddFTStaSelf(tpAniSirGlobal pMac, tANI_U16 assocId, tpPESession
     tSirMsgQ msgQ;
     tSirRetStatus     retCode = eSIR_SUCCESS;
 
-    pAddStaParams = pMac->ft.ftPEContext.pAddStaReq;
+    pAddStaParams = psessionEntry->ftPEContext.pAddStaReq;
     pAddStaParams->assocId = assocId;
+    pAddStaParams->smesessionId = psessionEntry->smeSessionId;
 
     msgQ.type = SIR_HAL_ADD_STA_REQ;
     msgQ.reserved = 0;
@@ -2935,7 +2939,7 @@ tSirRetStatus limAddFTStaSelf(tpAniSirGlobal pMac, tANI_U16 assocId, tpPESession
     }
     //
     // Dont need it any more
-    pMac->ft.ftPEContext.pAddStaReq = NULL;
+    psessionEntry->ftPEContext.pAddStaReq = NULL;
     return retCode;
 }
 

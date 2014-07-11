@@ -51,6 +51,9 @@
 #include "limPropExtsUtils.h"
 #include "limSerDesUtils.h"
 #include "limTrace.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFTDefs.h"
+#endif
 #include "limSession.h"
 #define LIM_GET_NOISE_MAX_TRY 5
 /**

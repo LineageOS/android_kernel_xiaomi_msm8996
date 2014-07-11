@@ -39,6 +39,9 @@
 #include "limUtils.h"
 #include "limSerDesUtils.h"
 #include "limApi.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFTDefs.h"
+#endif
 #include "limSession.h"
 #if defined WLAN_FEATURE_VOWIFI
 #include "rrmApi.h"

@@ -47,6 +47,9 @@
 #include "utilsApi.h"
 #include "limUtils.h"
 #include "limSecurityUtils.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFTDefs.h"
+#endif
 #include "limSession.h"
 
 

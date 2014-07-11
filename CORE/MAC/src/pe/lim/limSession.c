@@ -41,6 +41,10 @@
   ------------------------------------------------------------------------*/
 #include "aniGlobal.h"
 #include "limDebug.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFTDefs.h"
+#include "limFT.h"
+#endif
 #include "limSession.h"
 #include "limUtils.h"
 #if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
@@ -252,6 +256,12 @@ tpPESession peCreateSession(tpAniSirGlobal pMac,
                      return NULL;
                  }
             }
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+            if (eSIR_INFRASTRUCTURE_MODE == bssType) {
+               limFTOpen(pMac, &pMac->lim.gpSession[i]);
+            }
+#endif
             return(&pMac->lim.gpSession[i]);
         }
     }
@@ -423,6 +433,11 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
             }
         }
     }
+
+#if defined (WLAN_FEATURE_VOWIFI_11R)
+    /* Delete FT related information */
+    limFTCleanup(pMac, psessionEntry);
+#endif
 
     if (psessionEntry->pLimStartBssReq != NULL)
     {

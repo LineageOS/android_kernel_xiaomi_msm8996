@@ -1325,9 +1325,6 @@ eHalStatus sme_Open(tHalHandle hHal)
       }
 #endif
 
-#if defined WLAN_FEATURE_VOWIFI_11R
-      sme_FTOpen(pMac);
-#endif
       sme_p2pOpen(pMac);
       smeTraceInit(pMac);
 
@@ -2903,6 +2900,7 @@ eHalStatus sme_Close(tHalHandle hHal)
    eHalStatus fail_status = eHAL_STATUS_SUCCESS;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+   /* Note: pSession will be invalid from here on, do not access */
    status = csrClose(pMac);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
       smsLog( pMac, LOGE, "csrClose failed during sme close with status=%d",
@@ -2977,9 +2975,6 @@ eHalStatus sme_Close(tHalHandle hHal)
    }
 #endif
 
-#if defined WLAN_FEATURE_VOWIFI_11R
-   sme_FTClose(hHal);
-#endif
    sme_p2pClose(hHal);
 
    freeSmeCmdList(pMac);

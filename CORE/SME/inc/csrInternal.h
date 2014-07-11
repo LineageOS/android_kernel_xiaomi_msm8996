@@ -1015,9 +1015,15 @@ typedef struct tagCsrRoamSession
 #ifdef FEATURE_WLAN_SCAN_PNO
     tANI_BOOLEAN pnoStarted;
 #endif
+
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     tCsrRoamOffloadSynchStruct roamOffloadSynchParams;
     tANI_U8 psk_pmk[SIR_ROAM_SCAN_PSK_SIZE];
+#endif
+
+    /* SME FT Context */
+#if defined WLAN_FEATURE_VOWIFI_11R
+    tftSMEContext ftSmeContext;
 #endif
 } tCsrRoamSession;
 
@@ -1568,3 +1574,4 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
             tSirSmeRoamOffloadSynchInd *pRoamOffloadSynchInd);
 #endif
 #endif
+

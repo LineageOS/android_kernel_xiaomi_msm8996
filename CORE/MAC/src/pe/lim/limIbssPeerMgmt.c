@@ -45,6 +45,9 @@
 #include "schApi.h"          // schSetFixedBeaconFields for IBSS coalesce
 #include "limSecurityUtils.h"
 #include "limSendMessages.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFTDefs.h"
+#endif
 #include "limSession.h"
 #include "limIbssPeerMgmt.h"
 

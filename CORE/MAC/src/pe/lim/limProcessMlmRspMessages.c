@@ -50,13 +50,14 @@
 #include "limAdmitControl.h"
 #include "limSendMessages.h"
 #include "limIbssPeerMgmt.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFT.h"
+#include "limFTDefs.h"
+#endif
 #include "limSession.h"
 #include "limSessionUtils.h"
 #if defined WLAN_FEATURE_VOWIFI
 #include "rrmApi.h"
-#endif
-#if defined WLAN_FEATURE_VOWIFI_11R
-#include <limFT.h>
 #endif
 #include "wlan_qct_wda.h"
 #include "vos_utils.h"
@@ -1907,6 +1908,8 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
     tpDphHashNode   pStaDs;
     tANI_U32        mesgType = LIM_MLM_ASSOC_CNF;
     tpAddStaParams  pAddStaParams = (tpAddStaParams) limMsgQ->bodyptr;
+    tpPESession     pftSessionEntry = NULL;
+    tANI_U8         ftSessionId;
 
     if(NULL == pAddStaParams )
     {
@@ -1941,12 +1944,15 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
     {
 #ifdef WLAN_FEATURE_VOWIFI_11R
         // Check if we have keys (PTK) to install in case of 11r
-        tpftPEContext pftPECntxt = &pMac->ft.ftPEContext;
-        if (pftPECntxt->pftSessionEntry != NULL &&
+        tpftPEContext pftPECntxt = &psessionEntry->ftPEContext;
+        pftSessionEntry = peFindSessionByBssid(pMac,
+                                               psessionEntry->limReAssocbssId,
+                                               &ftSessionId);
+        if (pftSessionEntry != NULL &&
             pftPECntxt->PreAuthKeyInfo.extSetStaKeyParamValid == TRUE)
         {
             tpLimMlmSetKeysReq pMlmStaKeys = &pftPECntxt->PreAuthKeyInfo.extSetStaKeyParam;
-            limSendSetStaKeyReq(pMac, pMlmStaKeys, 0, 0, pftPECntxt->pftSessionEntry, FALSE);
+            limSendSetStaKeyReq(pMac, pMlmStaKeys, 0, 0, pftSessionEntry, FALSE);
             pftPECntxt->PreAuthKeyInfo.extSetStaKeyParamValid = FALSE;
         }
 #endif
@@ -3015,7 +3021,7 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
     pAddStaParams->maxTxPower = psessionEntry->maxTxPower;
 
     // Lets save this for when we receive the Reassoc Rsp
-    pMac->ft.ftPEContext.pAddStaReq = pAddStaParams;
+    psessionEntry->ftPEContext.pAddStaReq = pAddStaParams;
 
     if (pAddBssParams != NULL)
     {

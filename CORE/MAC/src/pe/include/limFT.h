@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -42,28 +42,27 @@
 #include <limDebug.h>
 #include <limSerDesUtils.h>
 
-
 /*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/
-extern void limFTOpen(tpAniSirGlobal pMac);
-extern void limFTCleanup(tpAniSirGlobal pMac);
-extern void limFTInit(tpAniSirGlobal pMac);
-extern int  limProcessFTPreAuthReq(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
-extern void limPerformFTPreAuth(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data,
+void limFTOpen(tpAniSirGlobal pMac, tpPESession psessionEntry);
+void limFTCleanup(tpAniSirGlobal pMac, tpPESession psessionEntry);
+void limFTCleanupPreAuthInfo(tpAniSirGlobal pMac, tpPESession psessionEntry);
+int  limProcessFTPreAuthReq(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
+void limPerformFTPreAuth(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data,
                 tpPESession psessionEntry);
-void        limPerformPostFTPreAuth(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data,
+void limPerformPostFTPreAuth(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data,
                 tpPESession psessionEntry);
-void        limFTResumeLinkCb(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
-void        limPostFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
+void limFTResumeLinkCb(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
+void limPostFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
                 tANI_U8 *auth_rsp, tANI_U16  auth_rsp_length,
                 tpPESession psessionEntry);
-void        limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
+void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
                 tANI_U8 *auth_rsp, tANI_U16  auth_rsp_len,
                 tpPESession psessionEntry);
-void        limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
+void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
                 tpPESession psessionEntry);
-void        limProcessFTPreauthRspTimeout(tpAniSirGlobal pMac);
+void limProcessFTPreauthRspTimeout(tpAniSirGlobal pMac);
 
 tANI_BOOLEAN   limProcessFTUpdateKey(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf );
 tSirRetStatus  limProcessFTAggrQosReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf );
@@ -71,6 +70,7 @@ void        limProcessFTAggrQoSRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 void limProcessFTRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 #endif
+void limFTCleanupAllFTSessions(tpAniSirGlobal pMac);
 
 #endif /* __LIMFT_H__ */
 

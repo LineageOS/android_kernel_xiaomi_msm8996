@@ -55,6 +55,9 @@
 #include "pmmApi.h"
 #include "limIbssPeerMgmt.h"
 #include "schApi.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFTDefs.h"
+#endif
 #include "limSession.h"
 #include "limSendMessages.h"
 

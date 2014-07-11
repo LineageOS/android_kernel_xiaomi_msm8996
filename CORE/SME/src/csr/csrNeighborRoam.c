@@ -4430,7 +4430,7 @@ eHalStatus csrNeighborRoamIndicateDisconnect(tpAniSirGlobal pMac, tANI_U8 sessio
 
         case eCSR_NEIGHBOR_ROAM_STATE_PREAUTH_DONE:
             /* Stop pre-auth to reassoc interval timer */
-            vos_timer_stop(&pMac->ft.ftSmeContext.preAuthReassocIntvlTimer);
+            vos_timer_stop(&pSession->ftSmeContext.preAuthReassocIntvlTimer);
         case eCSR_NEIGHBOR_ROAM_STATE_REPORT_SCAN:
         case eCSR_NEIGHBOR_ROAM_STATE_PREAUTHENTICATING:
             CSR_NEIGHBOR_ROAM_STATE_TRANSITION(eCSR_NEIGHBOR_ROAM_STATE_INIT)
@@ -5279,14 +5279,24 @@ tANI_BOOLEAN csrNeighborRoamStatePreauthDone(tpAniSirGlobal pMac)
 
     \return boolean
 ---------------------------------------------------------------------------*/
-void csrNeighborRoamTranistionPreauthDoneToDisconnected(tpAniSirGlobal pMac)
+void csrNeighborRoamTranistionPreauthDoneToDisconnected(tpAniSirGlobal pMac,
+                                                        tANI_U32 sessionId)
 {
     tpCsrNeighborRoamControlInfo    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
+    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+
+    if (!pSession)
+    {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+               FL("pSession is NULL"));
+       return;
+    }
+
     if (pMac->roam.neighborRoamInfo.neighborRoamState !=
                eCSR_NEIGHBOR_ROAM_STATE_PREAUTH_DONE) return;
 
     // Stop timer
-    vos_timer_stop(&pMac->ft.ftSmeContext.preAuthReassocIntvlTimer);
+    vos_timer_stop(&pSession->ftSmeContext.preAuthReassocIntvlTimer);
 
     // Transition to init state
     CSR_NEIGHBOR_ROAM_STATE_TRANSITION(eCSR_NEIGHBOR_ROAM_STATE_INIT)

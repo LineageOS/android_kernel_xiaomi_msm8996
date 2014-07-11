@@ -53,6 +53,9 @@
 #include "wniCfgAp.h"
 #endif
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFTDefs.h"
+#endif
 #include "limSession.h"
 #include "vos_types.h"
 #include "vos_trace.h"
@@ -2592,16 +2595,14 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     tANI_BOOLEAN          isVHTEnabled = eANI_BOOLEAN_FALSE;
     tpSirMacMgmtHdr       pMacHdr;
 
-    if (NULL == psessionEntry)
-    {
+    if (NULL == psessionEntry) {
         return;
     }
 
     smeSessionId = psessionEntry->smeSessionId;
 
     /* check this early to avoid unncessary operation */
-    if(NULL == psessionEntry->pLimReAssocReq)
-    {
+    if(NULL == psessionEntry->pLimReAssocReq) {
         return;
     }
     nAddIELen = psessionEntry->pLimReAssocReq->addIEAssoc.length;
@@ -2629,8 +2630,12 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     frm.ListenInterval.interval = pMlmReassocReq->listenInterval;
 
     // Get the old bssid of the older AP.
-    vos_mem_copy( ( tANI_U8* )frm.CurrentAPAddress.mac,
-            pMac->ft.ftPEContext.pFTPreAuthReq->currbssId, 6);
+    if (NULL != psessionEntry->ftPEContext.pFTPreAuthReq)
+    {
+       vos_mem_copy( ( tANI_U8* )frm.CurrentAPAddress.mac,
+             psessionEntry->ftPEContext.pFTPreAuthReq->currbssId,
+             sizeof(tSirMacAddr));
+    }
 
     PopulateDot11fSSID2( pMac, &frm.SSID );
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
@@ -2651,8 +2656,10 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 #if defined WLAN_FEATURE_VOWIFI
         PowerCapsPopulated = TRUE;
 
-        PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_REASSOC,psessionEntry);
-        PopulateDot11fSuppChannels( pMac, &frm.SuppChannels, LIM_REASSOC,psessionEntry);
+        PopulateDot11fPowerCaps(pMac, &frm.PowerCaps,
+                                LIM_REASSOC,psessionEntry);
+        PopulateDot11fSuppChannels(pMac, &frm.SuppChannels, LIM_REASSOC,
+                                   psessionEntry);
 #endif
     }
 
@@ -2805,7 +2812,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 
 #if defined WLAN_FEATURE_VOWIFI_11R
     if ( psessionEntry->pLimReAssocReq->bssDescription.mdiePresent &&
-         (pMac->ft.ftSmeContext.addMDIE == TRUE)
+         (pMac->roam.roamSession[smeSessionId].ftSmeContext.addMDIE == TRUE)
 #if defined FEATURE_WLAN_ESE
            && !psessionEntry->isESEconnection
 #endif
@@ -2846,13 +2853,14 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
     limLog( pMac, LOG1, FL("FT IE Reassoc Req (%d)."),
-            pMac->ft.ftSmeContext.reassoc_ft_ies_length);
+            pMac->roam.roamSession[smeSessionId].ftSmeContext.reassoc_ft_ies_length);
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI_11R
     if (psessionEntry->is11Rconnection)
     {
-        ft_ies_length = pMac->ft.ftSmeContext.reassoc_ft_ies_length;
+        ft_ies_length =
+         pMac->roam.roamSession[smeSessionId].ftSmeContext.reassoc_ft_ies_length;
     }
 #endif
 
@@ -2936,19 +2944,18 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
         psessionEntry->assocReqLen = nPayload;
     }
 
-    if (psessionEntry->is11Rconnection)
-    {
+    if (psessionEntry->is11Rconnection &&
+        pMac->roam.roamSession[smeSessionId].ftSmeContext.reassoc_ft_ies)
         {
             int i = 0;
 
             pBody = pFrame + nBytes;
             for (i=0; i<ft_ies_length; i++)
             {
-                *pBody = pMac->ft.ftSmeContext.reassoc_ft_ies[i];
+                *pBody = pMac->roam.roamSession[smeSessionId].ftSmeContext.reassoc_ft_ies[i];
                 pBody++;
             }
         }
-    }
 
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
     PELOGE(limLog(pMac, LOG1, FL("Re-assoc Req Frame is: "));
@@ -2981,7 +2988,8 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     else
     {
        //Store the Assoc request. This is sent to csr/hdd in join cnf response.
-       vos_mem_copy( psessionEntry->assocReq, pMac->ft.ftSmeContext.reassoc_ft_ies,
+       vos_mem_copy( psessionEntry->assocReq,
+                     pMac->roam.roamSession[smeSessionId].ftSmeContext.reassoc_ft_ies,
                     (ft_ies_length));
        psessionEntry->assocReqLen = (ft_ies_length);
     }
@@ -3477,18 +3485,20 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
 #if defined WLAN_FEATURE_VOWIFI_11R
             if (pAuthFrameBody->authAlgoNumber == eSIR_FT_AUTH)
             {
-                if (0 != pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies_length)
-                {
-                    frameLen += pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies_length;
-                    limLog(pMac, LOG3, FL("Auth frame, FTIES length added=%d"),
-                    pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies_length);
-                }
-                else
-                {
-                    limLog(pMac, LOG3, FL("Auth frame, Does not contain "
-                                          "FTIES!!!"));
-                    frameLen += (2+SIR_MDIE_SIZE);
-                }
+               if (NULL != psessionEntry->ftPEContext.pFTPreAuthReq &&
+                  0 != psessionEntry->ftPEContext.pFTPreAuthReq->ft_ies_length)
+               {
+                  frameLen +=
+                     psessionEntry->ftPEContext.pFTPreAuthReq->ft_ies_length;
+                  limLog(pMac, LOG3, FL("Auth frame, FTIES length added=%d"),
+                     psessionEntry->ftPEContext.pFTPreAuthReq->ft_ies_length);
+               }
+               else
+               {
+                  limLog(pMac, LOG3, FL("Auth frame, Does not contain "
+                           "FTIES!!!"));
+                  frameLen += (2+SIR_MDIE_SIZE);
+               }
             }
 #endif
                 break;
@@ -3496,7 +3506,8 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
             case SIR_MAC_AUTH_FRAME_2:
                 if ((pAuthFrameBody->authAlgoNumber == eSIR_OPEN_SYSTEM) ||
                     ((pAuthFrameBody->authAlgoNumber == eSIR_SHARED_KEY) &&
-                     (pAuthFrameBody->authStatusCode != eSIR_MAC_SUCCESS_STATUS)))
+                     (pAuthFrameBody->authStatusCode !=
+                                                eSIR_MAC_SUCCESS_STATUS)))
                 {
                     /**
                      * Allocate buffer for Authenticaton frame of size
@@ -3587,7 +3598,8 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
     pMacHdr->fc.wep = wepBit;
 
     // Prepare BSSId
-    if(  (psessionEntry->limSystemRole == eLIM_AP_ROLE)|| (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )
+    if ((psessionEntry->limSystemRole == eLIM_AP_ROLE)||
+        (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )
     {
         vos_mem_copy( (tANI_U8 *) pMacHdr->bssId,
                       (tANI_U8 *) psessionEntry->bssId,
@@ -3599,88 +3611,100 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
 
     if (wepBit == LIM_WEP_IN_FC)
     {
-        vos_mem_copy(pBody, (tANI_U8 *) pAuthFrameBody, bodyLen);
+       vos_mem_copy(pBody, (tANI_U8 *) pAuthFrameBody, bodyLen);
 
-        PELOG1(limLog(pMac, LOG1,
-           FL("*** Sending Auth seq# 3 status %d (%d) to"MAC_ADDRESS_STR),
-           pAuthFrameBody->authStatusCode,
-           (pAuthFrameBody->authStatusCode == eSIR_MAC_SUCCESS_STATUS),
-           MAC_ADDR_ARRAY(pMacHdr->da));)
+       PELOG1(limLog(pMac, LOG1,
+                FL("*** Sending Auth seq# 3 status %d (%d) to"MAC_ADDRESS_STR),
+                pAuthFrameBody->authStatusCode,
+                (pAuthFrameBody->authStatusCode == eSIR_MAC_SUCCESS_STATUS),
+                MAC_ADDR_ARRAY(pMacHdr->da));)
 
     }
     else
     {
-        *((tANI_U16 *)(pBody)) = sirSwapU16ifNeeded(pAuthFrameBody->authAlgoNumber);
-        pBody   += sizeof(tANI_U16);
-        bodyLen -= sizeof(tANI_U16);
+       *((tANI_U16 *)(pBody)) =
+               sirSwapU16ifNeeded(pAuthFrameBody->authAlgoNumber);
+       pBody   += sizeof(tANI_U16);
+       bodyLen -= sizeof(tANI_U16);
 
-        *((tANI_U16 *)(pBody)) = sirSwapU16ifNeeded(pAuthFrameBody->authTransactionSeqNumber);
-        pBody   += sizeof(tANI_U16);
-        bodyLen -= sizeof(tANI_U16);
+       *((tANI_U16 *)(pBody)) =
+               sirSwapU16ifNeeded(pAuthFrameBody->authTransactionSeqNumber);
+       pBody   += sizeof(tANI_U16);
+       bodyLen -= sizeof(tANI_U16);
 
-        *((tANI_U16 *)(pBody)) = sirSwapU16ifNeeded(pAuthFrameBody->authStatusCode);
-        pBody   += sizeof(tANI_U16);
-        bodyLen -= sizeof(tANI_U16);
-        if ( bodyLen <= (sizeof (pAuthFrameBody->type) +
-                         sizeof (pAuthFrameBody->length) +
-                         sizeof (pAuthFrameBody->challengeText)))
-            vos_mem_copy(pBody, (tANI_U8 *) &pAuthFrameBody->type, bodyLen);
+       *((tANI_U16 *)(pBody)) =
+               sirSwapU16ifNeeded(pAuthFrameBody->authStatusCode);
+       pBody   += sizeof(tANI_U16);
+       bodyLen -= sizeof(tANI_U16);
+       if ( bodyLen <= (sizeof (pAuthFrameBody->type) +
+                sizeof (pAuthFrameBody->length) +
+                sizeof (pAuthFrameBody->challengeText)))
+          vos_mem_copy(pBody, (tANI_U8 *) &pAuthFrameBody->type, bodyLen);
 
 #if defined WLAN_FEATURE_VOWIFI_11R
-        if ((pAuthFrameBody->authAlgoNumber == eSIR_FT_AUTH) &&
-                (pAuthFrameBody->authTransactionSeqNumber == SIR_MAC_AUTH_FRAME_1))
-        {
+       if ((pAuthFrameBody->authAlgoNumber == eSIR_FT_AUTH) &&
+             (pAuthFrameBody->authTransactionSeqNumber == SIR_MAC_AUTH_FRAME_1))
+       {
 
-            {
-                int i = 0;
-                if (pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies_length)
-                {
+          int i = 0;
+          if (NULL != psessionEntry->ftPEContext.pFTPreAuthReq)
+          {
+             if (psessionEntry->ftPEContext.pFTPreAuthReq->ft_ies_length)
+             {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-                    PELOG2(limLog(pMac, LOG2, FL("Auth1 Frame FTIE is: "));
-                        sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG2,
-                            (tANI_U8 *)pBody,
-                            (pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies_length));)
+                PELOG2(limLog(pMac, LOG2, FL("Auth1 Frame FTIE is: "));
+                    sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG2,
+                    (tANI_U8 *)pBody,
+                    (psessionEntry->ftPEContext.pFTPreAuthReq->ft_ies_length));)
 #endif
-                    for (i=0; i<pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies_length; i++)
-                    {
-                        *pBody = pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies[i];
-                        pBody++;
-                    }
-                }
-                else
+                   for (i = 0;
+                    i < psessionEntry->ftPEContext.pFTPreAuthReq->ft_ies_length;
+                    i++)
+                   {
+                      *pBody =
+                        psessionEntry->ftPEContext.pFTPreAuthReq->ft_ies[i];
+                      pBody++;
+                   }
+             }
+             else
+             {
+                /* MDID attr is 54*/
+                *pBody = 54;
+                pBody++;
+                *pBody = SIR_MDIE_SIZE;
+                pBody++;
+                if (NULL !=
+                  psessionEntry->ftPEContext.pFTPreAuthReq->pbssDescription)
                 {
-                    /* MDID attr is 54*/
-                    *pBody = 54;
-                    pBody++;
-                    *pBody = SIR_MDIE_SIZE;
-                    pBody++;
-                    for(i=0;i<SIR_MDIE_SIZE;i++)
-                    {
-                      *pBody = pMac->ft.ftPEContext.pFTPreAuthReq->pbssDescription->mdie[i];
-                       pBody++;
-                    }
+                   for(i=0;i<SIR_MDIE_SIZE;i++)
+                   {
+                      *pBody = psessionEntry->ftPEContext.pFTPreAuthReq->pbssDescription->mdie[i];
+                      pBody++;
+                   }
                 }
-            }
-        }
+             }
+          }
+       }
 #endif
 
-        PELOG1(limLog(pMac, LOG1,
-           FL("*** Sending Auth seq# %d status %d (%d) to "MAC_ADDRESS_STR),
-           pAuthFrameBody->authTransactionSeqNumber,
-           pAuthFrameBody->authStatusCode,
-           (pAuthFrameBody->authStatusCode == eSIR_MAC_SUCCESS_STATUS),
-           MAC_ADDR_ARRAY(pMacHdr->da));)
+       PELOG1(limLog(pMac, LOG1,
+               FL("*** Sending Auth seq# %d status %d (%d) to "MAC_ADDRESS_STR),
+               pAuthFrameBody->authTransactionSeqNumber,
+               pAuthFrameBody->authStatusCode,
+               (pAuthFrameBody->authStatusCode == eSIR_MAC_SUCCESS_STATUS),
+               MAC_ADDR_ARRAY(pMacHdr->da));)
     }
     PELOG2(sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG2, pFrame, frameLen);)
 
-    if( ( SIR_BAND_5_GHZ == limGetRFBand(psessionEntry->currentOperChannel))
-       || ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
-#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
-       || ((NULL != pMac->ft.ftPEContext.pFTPreAuthReq)
-           && ( SIR_BAND_5_GHZ == limGetRFBand(pMac->ft.ftPEContext.pFTPreAuthReq->preAuthchannelNum)))
+    if( (SIR_BAND_5_GHZ == limGetRFBand(psessionEntry->currentOperChannel)) ||
+        (psessionEntry->pePersona == VOS_P2P_CLIENT_MODE) ||
+        (psessionEntry->pePersona == VOS_P2P_GO_MODE)
+#if defined(WLAN_FEATURE_VOWIFI_11R) || defined(FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
+         ||  ((NULL != psessionEntry->ftPEContext.pFTPreAuthReq) &&
+         (SIR_BAND_5_GHZ ==
+           limGetRFBand(psessionEntry->ftPEContext.pFTPreAuthReq->preAuthchannelNum)))
 #endif
-         )
+      )
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -3813,19 +3837,23 @@ eHalStatus limSendDisassocCnf(tpAniSirGlobal pMac)
         if  ( (psessionEntry->limSystemRole == eLIM_STA_ROLE ) &&
                 (
 #ifdef FEATURE_WLAN_ESE
-                 (psessionEntry->isESEconnection ) ||
+                (psessionEntry->isESEconnection ) ||
 #endif
 #ifdef FEATURE_WLAN_LFR
-                 (psessionEntry->isFastRoamIniFeatureEnabled ) ||
+                (psessionEntry->isFastRoamIniFeatureEnabled ) ||
 #endif
-                 (psessionEntry->is11Rconnection )) &&
+                (psessionEntry->is11Rconnection )) &&
                 (pMlmDisassocReq->reasonCode !=
                  eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON))
         {
             PELOGE(limLog(pMac, LOGE,
                    FL("FT Preauth Session (%p,%d) Cleanup"),
                    psessionEntry, psessionEntry->peSessionId););
-            limFTCleanup(pMac);
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+        /* Delete FT session if there exists one */
+        limFTCleanupPreAuthInfo(pMac, psessionEntry);
+#endif
         }
         else
         {
@@ -3849,7 +3877,6 @@ eHalStatus limSendDisassocCnf(tpAniSirGlobal pMac)
                    pMlmDisassocReq->reasonCode););
         }
 #endif
-
         /// Free up buffer allocated for mlmDisassocReq
         vos_mem_free(pMlmDisassocReq);
         pMac->lim.limDisassocDeauthCnfReq.pMlmDisassocReq = NULL;

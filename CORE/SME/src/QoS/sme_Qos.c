@@ -5133,17 +5133,24 @@ eHalStatus sme_QosProcessJoinReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, void *
   \sa
 
   --------------------------------------------------------------------------*/
-eHalStatus sme_QosProcessPreauthSuccessInd(tpAniSirGlobal pMac, v_U8_t sessionId, void * pEvent_info)
+eHalStatus sme_QosProcessPreauthSuccessInd(tpAniSirGlobal pMac,
+                                           v_U8_t sessionId, void * pEvent_info)
 {
     sme_QosSessionInfo *pSession;
+    tCsrRoamSession *pSmeSession = CSR_GET_SESSION( pMac, sessionId );
     sme_QosACInfo *pACInfo;
     v_U8_t ac;
     eHalStatus  status = eHAL_STATUS_SUCCESS;
 
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: %d: invoked on session %d",
-            __func__, __LINE__,
-            sessionId);
+            FL("invoked on SME session %d"), sessionId);
+
+    if (NULL == pSmeSession)
+    {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+             FL("pSmeSession is NULL"));
+       return eHAL_STATUS_INVALID_PARAMETER;
+    }
 
     pSession = &sme_QosCb.sessionInfo[sessionId];
 
@@ -5184,13 +5191,24 @@ eHalStatus sme_QosProcessPreauthSuccessInd(tpAniSirGlobal pMac, v_U8_t sessionId
         v_U8_t  tspec_mask_status = 0;
         v_U8_t  tspec_pending_status = 0;
 
-        /* Any Block Ack info there, should have been already filled by PE and present in this buffer
-           and the ric_ies_length should contain the length of the whole RIC IEs. Filling of TSPEC info
-           should start from this length */
-        ricIE = pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies;
-        ricOffset = pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies_length;
+        /* Data is accessed from saved PreAuth Rsp */
+        if (NULL == pSmeSession->ftSmeContext.psavedFTPreAuthRsp)
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                    FL("psavedFTPreAuthRsp is NULL"));
+            return eHAL_STATUS_INVALID_PARAMETER;
+        }
 
-        /* Now we have to process the currentTspeInfo inside this session and create the RIC IEs */
+        /* Any Block Ack info there, should have been already filled by PE and
+           present in this buffer and the ric_ies_length should contain the
+           length of the whole RIC IEs. Filling of TSPEC info should start
+           from this length */
+        ricIE = pSmeSession->ftSmeContext.psavedFTPreAuthRsp->ric_ies;
+        ricOffset =
+           pSmeSession->ftSmeContext.psavedFTPreAuthRsp->ric_ies_length;
+
+        /* Now we have to process the currentTspeInfo inside this session and
+           create the RIC IEs */
         for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++)
         {
             volatile v_U8_t   tspec_index = 0;
@@ -5207,21 +5225,26 @@ eHalStatus sme_QosProcessPreauthSuccessInd(tpAniSirGlobal pMac, v_U8_t sessionId
             {
                 if (tspec_mask_status & 0x1)
                 {
-                    /* If a tspec status is pending, take requested_QoSInfo for RIC request, else use curr_QoSInfo
-                       for the RIC request */
+                    /* If a tspec status is pending, take requested_QoSInfo for
+                       RIC request, else use curr_QoSInfo for the RIC request */
                     if (tspec_pending_status & 0x1)
                     {
-                        status = sme_QosCreateTspecRICIE(pMac, &pACInfo->requested_QoSInfo[tspec_index],
-                                ricIE + ricOffset, &ricIELength, &pACInfo->ricIdentifier[tspec_index]);
+                        status = sme_QosCreateTspecRICIE(pMac,
+                                       &pACInfo->requested_QoSInfo[tspec_index],
+                                       ricIE + ricOffset, &ricIELength,
+                                       &pACInfo->ricIdentifier[tspec_index]);
                     }
                     else
                     {
-                        status = sme_QosCreateTspecRICIE(pMac, &pACInfo->curr_QoSInfo[tspec_index],
-                                ricIE + ricOffset, &ricIELength, &pACInfo->ricIdentifier[tspec_index]);
+                        status = sme_QosCreateTspecRICIE(pMac,
+                                          &pACInfo->curr_QoSInfo[tspec_index],
+                                          ricIE + ricOffset, &ricIELength,
+                                          &pACInfo->ricIdentifier[tspec_index]);
                     }
                 }
                 ricOffset += ricIELength;
-                pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies_length += ricIELength;
+                pSmeSession->ftSmeContext.psavedFTPreAuthRsp->ric_ies_length +=
+                                                                   ricIELength;
 
                 tspec_mask_status >>= 1;
                 tspec_pending_status >>= 1;
