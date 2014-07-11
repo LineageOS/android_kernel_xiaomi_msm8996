@@ -439,16 +439,60 @@ wlan_hdd_txrx_stypes[NUM_NL80211_IFTYPES] = {
 };
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+/* Interface limits and combinations registered by the driver */
 
-#ifdef WLAN_FEATURE_MBSSID
+/* STA ( + STA ) combination */
+static const struct ieee80211_iface_limit
+wlan_hdd_sta_iface_limit[] = {
+   {
+      .max = 3, /* p2p0 is a STA as well */
+      .types = BIT(NL80211_IFTYPE_STATION),
+   },
+};
+
+/* ADHOC (IBSS) limit */
+static const struct ieee80211_iface_limit
+wlan_hdd_adhoc_iface_limit[] = {
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_STATION),
+   },
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_ADHOC),
+   },
+};
+
+/* AP ( + AP ) combination */
+static const struct ieee80211_iface_limit
+wlan_hdd_ap_iface_limit[] = {
+   {
+      .max = (VOS_MAX_NO_OF_SAP_MODE +
+              SAP_MAX_OBSS_STA_CNT),
+      .types = BIT(NL80211_IFTYPE_AP),
+   },
+};
+
+/* P2P limit */
+static const struct ieee80211_iface_limit
+wlan_hdd_p2p_iface_limit[] = {
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_P2P_CLIENT),
+   },
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_P2P_GO),
+   },
+};
 
 static const struct ieee80211_iface_limit
-wlan_hdd_iface_limit[] = {
+wlan_hdd_sta_ap_iface_limit[] = {
     {
         /* We need 1 extra STA interface for OBSS scan when SAP starts
          * with HT40 in STA+SAP concurrency mode
          */
-        .max = 2,
+        .max = (1 + SAP_MAX_OBSS_STA_CNT),
         .types = BIT(NL80211_IFTYPE_STATION),
     },
     {
@@ -457,75 +501,71 @@ wlan_hdd_iface_limit[] = {
     },
 };
 
-#else
-
+/* STA + P2P combination */
 static const struct ieee80211_iface_limit
-wlan_hdd_iface_limit[] = {
-    {
-        /* max = 4 ; Our driver create two interfaces during driver init
-         * wlan0 and p2p0 interfaces. p2p0 is considered as station
-         * interface until a group is formed. In JB architecture, once the
-         * group is formed, interface type of p2p0 is changed to P2P GO or
-         * Client.
-         * When supplicant remove the group, it first issue a set interface
-         * cmd to change the mode back to Station. In JB this works fine as
-         * we advertize two station type interface during driver init.
-         * Some vendors create separate interface for P2P GO/Client,
-         * after group formation(Third one). But while group remove
-         * supplicant first tries to change the mode(3rd interface) to STATION
-         * But as we advertized only two sta type interfaces nl80211 was
-         * returning error for the third one which was leading to failure in
-         * delete interface. Ideally while removing the group, supplicant
-         * should not try to change the 3rd interface mode to Station type.
-         * Till we get a fix in wpa_supplicant, we advertize max STA
-         * interface type to 4 to support both p2p client and p2p GO
-         * combinations.
-         */
-#ifndef QCA_WIFI_2_0
-        .max = 3,
-#else
-        .max = 4,
-#endif
-        .types = BIT(NL80211_IFTYPE_STATION),
-    },
-    {
-        .max = 1,
-        .types = BIT(NL80211_IFTYPE_ADHOC) | BIT(NL80211_IFTYPE_AP),
-    },
-    {
-#ifndef QCA_WIFI_2_0
-        .max = 1,
-#else
-        .max = 2,
-#endif
-        .types = BIT(NL80211_IFTYPE_P2P_GO) |
-                 BIT(NL80211_IFTYPE_P2P_CLIENT),
-    },
+wlan_hdd_sta_p2p_iface_limit[] = {
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_STATION)
+   },
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_P2P_GO) |
+               BIT(NL80211_IFTYPE_P2P_CLIENT),
+   },
 };
 
-#endif /* WLAN_FEATURE_MBSSID */
-
-/* By default, only single channel concurrency is allowed */
 static struct ieee80211_iface_combination
-wlan_hdd_iface_combination = {
-        .limits = wlan_hdd_iface_limit,
-        .num_different_channels = 1,
-        /*
-         * max = WLAN_MAX_INTERFACES ; JellyBean architecture creates wlan0
-         * and p2p0 interfaces during driver init
-         * Some vendors create separate interface for P2P operations.
-         * wlan0: STA interface
-         * p2p0: P2P Device interface, action frames goes
-         * through this interface.
-         * p2p-xx: P2P interface, After GO negotiation this interface is
-         * created for p2p operations(GO/CLIENT interface).
-         */
-        .max_interfaces = WLAN_MAX_INTERFACES,
-        .n_limits = ARRAY_SIZE(wlan_hdd_iface_limit),
-        .beacon_int_infra_match = false,
+wlan_hdd_iface_combination[] = {
+   /* STA */
+   {
+      .limits = wlan_hdd_sta_iface_limit,
+      .num_different_channels = 2,
+      .max_interfaces = 3,
+      .n_limits = ARRAY_SIZE(wlan_hdd_sta_iface_limit),
+   },
+   /* ADHOC */
+   {
+      .limits = wlan_hdd_adhoc_iface_limit,
+      .num_different_channels = 1,
+      .max_interfaces = 2,
+      .n_limits = ARRAY_SIZE(wlan_hdd_adhoc_iface_limit),
+   },
+   /* AP */
+   {
+      .limits = wlan_hdd_ap_iface_limit,
+      .num_different_channels = 2,
+      .max_interfaces = (SAP_MAX_OBSS_STA_CNT +
+                         VOS_MAX_NO_OF_SAP_MODE),
+      .n_limits = ARRAY_SIZE(wlan_hdd_ap_iface_limit),
+   },
+   /* P2P */
+   {
+      .limits = wlan_hdd_p2p_iface_limit,
+      .num_different_channels = 2,
+      .max_interfaces = 2,
+      .n_limits = ARRAY_SIZE(wlan_hdd_p2p_iface_limit),
+   },
+   /* STA + AP */
+   {
+      .limits = wlan_hdd_sta_ap_iface_limit,
+      .num_different_channels = 2,
+      .max_interfaces = (1 + SAP_MAX_OBSS_STA_CNT +
+                         VOS_MAX_NO_OF_SAP_MODE),
+      .n_limits = ARRAY_SIZE(wlan_hdd_sta_ap_iface_limit),
+      .beacon_int_infra_match = true,
+   },
+   /* STA + P2P */
+   {
+      .limits = wlan_hdd_sta_p2p_iface_limit,
+      .num_different_channels = 2,
+      .max_interfaces = 2,
+      .n_limits = ARRAY_SIZE(wlan_hdd_sta_p2p_iface_limit),
+      .beacon_int_infra_match = true,
+   },
 };
+#endif //(LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
 
-#endif
 
 static struct cfg80211_ops wlan_hdd_cfg80211_ops;
 
@@ -3428,17 +3468,15 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     if( pCfg->advertiseConcurrentOperation )
     {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
-        if( pCfg->enableMCC )
-        {
-            /* Currently, supports up to two channels */
-            wlan_hdd_iface_combination.num_different_channels = 2;
-
-            if( !pCfg->allowMCCGODiffBI )
-                wlan_hdd_iface_combination.beacon_int_infra_match = true;
-
-        }
-        wiphy->iface_combinations = &wlan_hdd_iface_combination;
-        wiphy->n_iface_combinations = 1;
+       if( pCfg->enableMCC ) {
+          int i;
+          for (i = 0; i < ARRAY_SIZE(wlan_hdd_iface_combination); i++) {
+             if( !pCfg->allowMCCGODiffBI )
+                wlan_hdd_iface_combination[i].beacon_int_infra_match = true;
+          }
+       }
+       wiphy->n_iface_combinations = ARRAY_SIZE(wlan_hdd_iface_combination);
+       wiphy->iface_combinations = wlan_hdd_iface_combination;
 #endif
     }
 
@@ -3521,6 +3559,19 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 #ifdef QCA_HT_2040_COEX
     if (pCfg->ht2040CoexEnabled)
         wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
+#endif
+#ifdef FEATURE_WLAN_ROAM_OFFLOAD
+    if (pCfg->isRoamOffloadEnabled) {
+        wiphy->flags |= WIPHY_FLAG_HAS_KEY_MGMT_OFFLOAD;
+        wiphy->key_mgmt_offload_support |=
+                         NL80211_KEY_MGMT_OFFLOAD_SUPPORT_PSK;
+        wiphy->key_mgmt_offload_support |=
+                         NL80211_KEY_MGMT_OFFLOAD_SUPPORT_FT_PSK;
+        wiphy->key_mgmt_offload_support |=
+                         NL80211_KEY_MGMT_OFFLOAD_SUPPORT_PMKSA;
+        wiphy->key_derive_offload_support |=
+                         NL80211_KEY_DERIVE_OFFLOAD_SUPPORT_IGTK;
+    }
 #endif
 
     EXIT();
@@ -7077,6 +7128,48 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
     return status;
 }
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+static int wlan_hdd_cfg80211_key_mgmt_set_pmk(struct wiphy *wiphy,
+                                              struct net_device *ndev,
+                                              u8 *pmk)
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(ndev);
+    hdd_wext_state_t *pWextState;
+    hdd_station_ctx_t *pHddStaCtx;
+
+    ENTER();
+    if ((NULL == pAdapter)) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+          "invalid adapter");
+        return -EINVAL;
+    }
+    pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+    if ((NULL == pWextState) || (NULL == pHddStaCtx)) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                  "invalid Wext state or HDD context");
+        return -EINVAL;
+    }
+    if (pmk) {
+        tANI_U8 localPmk [SIR_ROAM_SCAN_PSK_SIZE];
+        if ((pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)
+#ifdef FEATURE_WLAN_ESE
+             && (!pWextState->isESEConnection)
+#endif
+           ) {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                       "%s: calling sme_RoamSetPSK_PMK \n", __func__);
+            vos_mem_copy(localPmk, pmk, SIR_ROAM_SCAN_PSK_SIZE);
+            sme_RoamSetPSK_PMK (WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                pAdapter->sessionId, localPmk);
+            return VOS_STATUS_SUCCESS;
+        }
+    }
+    return VOS_STATUS_SUCCESS;
+}
+#endif
+
 /*
  * FUNCTION: __wlan_hdd_cfg80211_set_default_key
  * This function is used to set the default tx key index
@@ -8675,8 +8768,13 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
          */
         if (WLAN_HDD_INFRA_STATION == pAdapter->device_mode ||
             WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                   "%s: Set HDD connState to eConnectionState_Connecting",
+                   __func__);
             hdd_connSetConnectionState(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter),
                                                  eConnectionState_Connecting);
+        }
 
         /* After 8-way handshake supplicant should give the scan command
          * in that it update the additional IEs, But because of scan
@@ -9441,7 +9539,36 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                    "%s: HDD context is not valid", __func__);
         return status;
     }
-
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+#define KEY_MGMT_OFFLOAD_BITMASK 0x4
+    /* Supplicant indicate its decision to offload key management
+     * by setting the third bit in flags in case of Secure connection
+     * so if the supplicant does not support this then LFR3.0 shall
+     * be disabled.if supplicant indicates support for offload
+     * of key managament then we shall enable LFR3.0.Note that
+     * supplicant set the bit in flags means driver already indicated
+     * its capability to handle the key management and LFR3.0 is
+     * enabled in INI and FW also has the capability to handle
+     * key management offload as part of LFR3.0
+     */
+    if (!(req->auth_type == NL80211_AUTHTYPE_OPEN_SYSTEM) ||
+        (req->auth_type == NL80211_AUTHTYPE_FT)) {
+        if (!(req->flags & KEY_MGMT_OFFLOAD_BITMASK)) {
+            hddLog(VOS_TRACE_LEVEL_DEBUG,
+            FL("Supplicant does not support key mgmt offload for this AP"));
+            pHddCtx->cfg_ini->isRoamOffloadEnabled = 0;
+            status =    sme_UpdateRoamOffloadEnabled(pHddCtx->hHal, FALSE);
+        } else {
+            pHddCtx->cfg_ini->isRoamOffloadEnabled = 1;
+            status =    sme_UpdateRoamOffloadEnabled(pHddCtx->hHal, TRUE);
+        }
+        if (0 != status) {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Could not update the RoamOffload enable", __func__);
+            return status;
+        }
+    }
+#endif
     if (vos_max_concurrent_connections_reached()) {
         hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
         return -ECONNREFUSED;
@@ -9507,6 +9634,28 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("connect failed"));
         return status;
     }
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    if ((eHAL_STATUS_SUCCESS == status) && (req->psk)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: psk = %p", __func__, req->psk);
+        /* since PMK is available only in cfg80211_connect(), we save it
+         * even before we know connection succeeded or not */
+        if (pHddCtx->cfg_ini->isRoamOffloadEnabled) {
+             hdd_wext_state_t *pWextState =
+                       WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+             tANI_U8 localPsk [SIR_ROAM_SCAN_PSK_SIZE];
+             if ((pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_PSK)
+#ifdef FEATURE_WLAN_ESE
+                 && (!pWextState->isESEConnection)
+#endif
+                 ) {
+                 hddLog(VOS_TRACE_LEVEL_ERROR, FL("calling sme_RoamSetPSK"));
+                 vos_mem_copy(localPsk, req->psk, SIR_ROAM_SCAN_PSK_SIZE);
+                 sme_RoamSetPSK(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                 pAdapter->sessionId, localPsk);
+             }
+        }
+    }
+#endif
     pHddCtx->isAmpAllowed = VOS_FALSE;
     EXIT();
     return status;
@@ -9547,6 +9696,9 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
     netif_tx_disable(pAdapter->dev);
     netif_carrier_off(pAdapter->dev);
     pHddCtx->isAmpAllowed = VOS_TRUE;
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                   "%s: Set HDD connState to eConnectionState_Disconnecting",
+                   __func__);
     pHddStaCtx->conn_info.connState = eConnectionState_Disconnecting;
     INIT_COMPLETION(pAdapter->disconnect_comp_var);
 
@@ -9917,7 +10069,6 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
                      VOS_MAC_ADDR_SIZE);
         alloc_bssid = VOS_TRUE;
     }
-
     if ((params->beacon_interval > CFG_BEACON_INTERVAL_MIN)
         && (params->beacon_interval <= CFG_BEACON_INTERVAL_MAX))
         pRoamProfile->beaconInterval = params->beacon_interval;
@@ -14650,4 +14801,7 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .set_ap_chanwidth = wlan_hdd_cfg80211_set_ap_channel_width,
 #endif
      .dump_survey = wlan_hdd_cfg80211_dump_survey,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+     .key_mgmt_set_pmk = wlan_hdd_cfg80211_key_mgmt_set_pmk,
+#endif
 };

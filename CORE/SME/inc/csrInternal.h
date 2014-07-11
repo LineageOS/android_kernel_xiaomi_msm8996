@@ -202,6 +202,9 @@ typedef enum
     eCsrLostLink1Abort,
     eCsrLostLink2Abort,
     eCsrLostLink3Abort,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    eCsrPerformRoamOffloadSynch,
+#endif
 
 }eCsrRoamReason;
 
@@ -687,6 +690,9 @@ typedef struct tagCsrConfig
     tANI_U8 cc_switch_mode;
 #endif
     tANI_U8 allowDFSChannelRoam;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tANI_BOOLEAN  isRoamOffloadEnabled;
+#endif
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo
@@ -892,6 +898,36 @@ typedef struct tagCsrTlStatsReqInfo
    tANI_U8                numClient;
 }tCsrTlStatsReqInfo;
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+typedef enum
+{
+
+    /* reassociation is done but couldn't finish security handshake */
+    eSIR_ROAM_AUTH_STATUS_CONNECTED = 1,
+
+    /* roam successfully completed by firmware */
+    eSIR_ROAM_AUTH_STATUS_AUTHENTICATED = 2,
+
+    /* unknown error */
+    eSIR_ROAM_AUTH_STATUS_UNKNOWN = 0xff
+
+} tCsrRoamOffloadAuthStatus;
+typedef struct tagCsrRoamOffloadSynchStruct
+{
+    tANI_U8 roamedVdevId; /* vdevId after roaming */
+    tANI_S8 txMgmtPower;  /* HAL fills in the tx power used for */
+    tANI_U8 rssi;  /* RSSI */
+    tANI_U8 roamReason;  /* Roam reason */
+    tANI_U8 nss;  /* no of spatial streams */
+    tANI_U16 chainMask;  /* chainmask */
+    tANI_U16 smpsMode;  /* smps.mode */
+    tSirMacAddr bssid;  /* MAC address of roamed AP */
+    tANI_BOOLEAN bRoamSynchInProgress; /* a roam offload synch*/
+    tCsrRoamOffloadAuthStatus authStatus;  /* authentication
+                                              status */
+} tCsrRoamOffloadSynchStruct;
+#endif
+
 typedef struct tagCsrRoamSession
 {
     tANI_U8 sessionId;             // Session ID
@@ -980,6 +1016,10 @@ typedef struct tagCsrRoamSession
 #ifdef FEATURE_WLAN_SCAN_PNO
     tANI_BOOLEAN pnoStarted;
 #endif
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tCsrRoamOffloadSynchStruct roamOffloadSynchParams;
+    tANI_U8 psk[SIR_ROAM_SCAN_PSK_SIZE];
+#endif
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct
@@ -1035,6 +1075,10 @@ typedef struct tagCsrRoamStruct
     tANI_BOOLEAN   isWESModeEnabled;
 #endif
     tANI_U32 deauthRspStatus;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tANI_U8 *pReassocResp;  /* reassociation response from new AP */
+    tANI_U16 reassocRespLen;  /* length of reassociation response */
+#endif
 }tCsrRoamStruct;
 
 
@@ -1519,4 +1563,9 @@ csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
                   tSirUpdateIE *pUpdateIE,
                   eUpdateIEsType updateType);
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+void csrProcessRoamOffloadSynchInd(tpAniSirGlobal pMac, void *pMsgBuf);
+eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
+            tSirSmeRoamOffloadSynchInd *pRoamOffloadSynchInd);
+#endif
 #endif

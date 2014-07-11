@@ -112,6 +112,7 @@ when           who                what, where, why
 #define       VOS_MAX_NO_OF_SAP_MODE       1 // max # of SAP
 #endif
 #define       SAP_MAX_NUM_SESSION          5
+#define       SAP_MAX_OBSS_STA_CNT         1 // max # of OBSS STA
 
 /*--------------------------------------------------------------------------
   reasonCode take form 802.11 standard Table 7-22 to be passed to WLANSAP_DisassocSta api.

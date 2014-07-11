@@ -840,6 +840,18 @@ eHalStatus sme_RoamFreeConnectProfile(tHalHandle hHal,
 eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tANI_U8 sessionId, tPmkidCacheInfo *pPMKIDCache,
                                   tANI_U32 numItems );
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+/* ---------------------------------------------------------------------------
+ * \fn sme_RoamSetPSK
+ * \brief a wrapper function to request CSR to save PSK
+ *  This is a synchronous call.
+ * \param hHal - Global structure
+ * \param sessionId - SME sessionId
+ * \param pPSK - pointer to an array of Psk[]
+ *\return eHalStatus -status whether PSK is set or not
+ * ---------------------------------------------------------------------------*/
+eHalStatus sme_RoamSetPSK ( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pPSK );
+#endif
 /* ---------------------------------------------------------------------------
     \fn sme_RoamGetSecurityReqIE
     \brief a wrapper function to request CSR to return the WPA or RSN or WAPI IE CSR
@@ -3785,7 +3797,6 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
     \param  hHal - The handle returned by macOpen.
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-
 eHalStatus sme_abortRoamScan(tHalHandle hHal);
 #endif //#if WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 
@@ -3837,4 +3848,17 @@ eHalStatus sme_SetLinkLayerStatsIndCB
 
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+/*--------------------------------------------------------------------------
+  \brief sme_UpdateRoamOffloadEnabled() - enable/disable roam offload feature
+  This is a synchronous call
+  \param hHal - The handle returned by macOpen.
+  \param nRoamOffloadEnabled - The boolean to update with
+  \return eHAL_STATUS_SUCCESS - SME update config successfully.
+          Other status means SME is failed to update.
+  \sa
+  --------------------------------------------------------------------------*/
+eHalStatus sme_UpdateRoamOffloadEnabled(tHalHandle hHal,
+                                     v_BOOL_t nRoamOffloadEnabled);
+#endif
 #endif //#if !defined( __SME_API_H )

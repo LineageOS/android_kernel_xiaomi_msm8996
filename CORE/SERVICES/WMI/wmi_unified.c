@@ -297,7 +297,6 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		CASE_RETURN_STRING(WMI_ROAM_AP_PROFILE);
 		/** set channel list for roam scans */
 		CASE_RETURN_STRING(WMI_ROAM_CHAN_LIST);
-
 		/** offload scan specific commands */
 		/** set offload scan AP profile   */
 		CASE_RETURN_STRING(WMI_OFL_SCAN_ADD_AP_PROFILE);
@@ -562,6 +561,9 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		CASE_RETURN_STRING(WMI_EXTSCAN_GET_WLAN_CHANGE_RESULTS_CMDID);
 		CASE_RETURN_STRING(WMI_EXTSCAN_SET_CAPABILITIES_CMDID);
 		CASE_RETURN_STRING(WMI_EXTSCAN_GET_CAPABILITIES_CMDID);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+		CASE_RETURN_STRING(WMI_ROAM_SYNCH_COMPLETE);
+#endif
 	}
 	return "Invalid WMI cmd";
 }

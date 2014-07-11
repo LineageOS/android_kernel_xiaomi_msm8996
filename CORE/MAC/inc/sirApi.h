@@ -173,6 +173,21 @@ typedef enum
 
 #endif /* FEATURE_WLAN_EXTSCAN */
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+#define SIR_KRK_KEY_LEN 16
+#define SIR_BTK_KEY_LEN 32
+
+#define SIR_UAPSD_BITOFFSET_ACVO     0
+#define SIR_UAPSD_BITOFFSET_ACVI     1
+#define SIR_UAPSD_BITOFFSET_ACBK     2
+#define SIR_UAPSD_BITOFFSET_ACBE     3
+
+#define SIR_UAPSD_FLAG_ACVO     (1 << SIR_UAPSD_BITOFFSET_ACVO)
+#define SIR_UAPSD_FLAG_ACVI     (1 << SIR_UAPSD_BITOFFSET_ACVI)
+#define SIR_UAPSD_FLAG_ACBK     (1 << SIR_UAPSD_BITOFFSET_ACBK)
+#define SIR_UAPSD_FLAG_ACBE     (1 << SIR_UAPSD_BITOFFSET_ACBE)
+#define SIR_UAPSD_GET(ac, mask)      (((mask) & (SIR_UAPSD_FLAG_ ## ac)) >> SIR_UAPSD_BITOFFSET_ ## ac)
+#endif
 enum eSirHostMsgTypes
 {
     SIR_HAL_APP_SETUP_NTF = SIR_HAL_HOST_MSG_START,
@@ -3626,6 +3641,9 @@ typedef struct sSirUpdateAPWPARSNIEsReq
 #define SIR_ROAM_SCAN_RESERVED_BYTES     61
 #endif //WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+#define SIR_ROAM_SCAN_PSK_SIZE    32
+#endif
 // SME -> HAL - This is the host offload request.
 #define SIR_IPV4_ARP_REPLY_OFFLOAD                  0
 #define SIR_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD         1
@@ -3903,6 +3921,16 @@ typedef struct
 } tSirPrefNetworkFoundInd, *tpSirPrefNetworkFoundInd;
 #endif //FEATURE_WLAN_SCAN_PNO
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+typedef struct {
+  tANI_U8    acvo_uapsd: 1;
+  tANI_U8    acvi_uapsd: 1;
+  tANI_U8    acbk_uapsd: 1;
+  tANI_U8    acbe_uapsd: 1;
+  tANI_U8    reserved: 4;
+} tSirAcUapsd, *tpSirAcUapsd;
+#endif
+
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 typedef struct
 {
@@ -3970,6 +3998,17 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U8   RoamBmissFinalBcnt;
   tANI_U8   RoamBeaconRssiWeight;
   eSirDFSRoamScanMode  allowDFSChannelRoam;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+  tANI_U8   RoamOffloadEnabled;
+  tANI_U8   PSK[SIR_ROAM_SCAN_PSK_SIZE];
+  tANI_U8   Prefer5GHz;
+  tANI_U8   RoamRssiCatGap;
+  tANI_U8   Select5GHzMargin;
+  tANI_U8   KRK[SIR_KRK_KEY_LEN];
+  tANI_U8   BTK[SIR_BTK_KEY_LEN];
+  tANI_U32   ReassocFailureTimeout;
+  tSirAcUapsd AcUapsd;
+#endif
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 #endif //WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 
@@ -5092,6 +5131,29 @@ typedef struct
     u_int8_t event_data[];
 } tSirStatsExtEvent, *tpSirStatsExtEvent;
 
+#endif
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+typedef struct sSirSmeRoamOffloadSynchInd
+{
+    tANI_U16    messageType; /*eWNI_SME_ROAM_OFFLOAD_SYNCH_IND*/
+    tANI_U16    length;
+    tANI_U16    beaconProbeRespOffset;
+    tANI_U16    beaconProbeRespLength;
+    tANI_U16    reassocRespOffset;
+    tANI_U16    reassocRespLength;
+    tANI_U8     isBeacon;
+    tANI_U8     roamedVdevId;
+    tSirMacAddr bssId;
+    tANI_S8     txMgmtPower;
+    tANI_U32    authStatus;
+    tANI_U8     rssi;
+    tANI_U8     roamReason;
+} tSirSmeRoamOffloadSynchInd, *tpSirSmeRoamOffloadSynchInd;
+
+typedef struct sSirSmeRoamOffloadSynchCnf
+{
+    tANI_U8 sessionId;
+} tSirSmeRoamOffloadSynchCnf, *tpSirSmeRoamOffloadSynchCnf;
 #endif
 
 #ifdef FEATURE_WLAN_EXTSCAN

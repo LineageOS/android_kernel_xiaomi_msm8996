@@ -1186,8 +1186,9 @@ regStaWithTl
 
        // Connections that do not need Upper layer auth, transition TL directly
        // to 'Authenticated' state.
-       vosStatus = WLANTL_ChangeSTAState( btampContext->pvosGCtx, staDesc.ucSTAId,
-                                            WLANTL_STA_AUTHENTICATED );
+       vosStatus = WLANTL_ChangeSTAState(btampContext->pvosGCtx,
+                                         staDesc.ucSTAId,
+                                         WLANTL_STA_AUTHENTICATED, VOS_FALSE);
     }
     else
     {
@@ -1195,8 +1196,9 @@ regStaWithTl
        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_MED,
                   "ULA auth StaId= %d.  Changing TL state to CONNECTED at Join time", btampContext->ucSTAId );
 
-       vosStatus = WLANTL_ChangeSTAState( btampContext->pvosGCtx, staDesc.ucSTAId,
-                                          WLANTL_STA_CONNECTED );
+       vosStatus = WLANTL_ChangeSTAState(btampContext->pvosGCtx,
+                                         staDesc.ucSTAId,
+                                         WLANTL_STA_CONNECTED, VOS_FALSE);
     }
 
     return VOS_STATUS_SUCCESS;
@@ -1327,10 +1329,9 @@ gotoConnected
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_MED,
                 "open/shared auth StaId= %d.  Changing TL state to AUTHENTICATED at Join time", btampContext->ucSTAId);
 
-        vosStatus = WLANTL_ChangeSTAState(
-                btampContext->pvosGCtx,
-                btampContext->ucSTAId,
-                WLANTL_STA_AUTHENTICATED );
+        vosStatus = WLANTL_ChangeSTAState(btampContext->pvosGCtx,
+                                          btampContext->ucSTAId,
+                                          WLANTL_STA_AUTHENTICATED, VOS_FALSE);
     }
 
     btampContext->dataPktPending = VOS_FALSE;

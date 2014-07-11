@@ -203,6 +203,14 @@ typedef struct
                                       ( eCSR_ENCRYPT_TYPE_WEP40 != (encType) ) && \
                                       ( eCSR_ENCRYPT_TYPE_WEP104 != (encType) ) )
 
+#define CSR_IS_DISCONNECT_COMMAND(pCommand) ( ( eSmeCommandRoam == (pCommand)->command ) &&\
+                                              ( ( eCsrForcedDisassoc == (pCommand)->u.roamCmd.roamReason ) ||\
+                                                ( eCsrForcedDeauth == (pCommand)->u.roamCmd.roamReason ) ||\
+                                                ( eCsrSmeIssuedDisassocForHandoff ==\
+                                                                        (pCommand)->u.roamCmd.roamReason ) ||\
+                                                ( eCsrForcedDisassocMICFailure ==\
+                                                                          (pCommand)->u.roamCmd.roamReason ) ) )
+
 eCsrRoamState csrRoamStateChange( tpAniSirGlobal pMac, eCsrRoamState NewRoamState, tANI_U8 sessionId);
 eHalStatus csrScanningStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf );
 void csrRoamingStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf );
@@ -748,6 +756,18 @@ eHalStatus csrRoamReconnect(tpAniSirGlobal pMac, tANI_U32 sessionId);
   -------------------------------------------------------------------------------*/
 eHalStatus csrRoamSetPMKIDCache( tpAniSirGlobal pMac, tANI_U32 sessionId, tPmkidCacheInfo *pPMKIDCache, tANI_U32 numItems );
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+/* ---------------------------------------------------------------------------
+ *\fn csrRoamSetPSK
+ *\brief store PSK
+ *\param pMac  - pointer to global structure for MAC
+ *\param sessionId - Sme session id
+ *\param pPSK - pointer to an array of Psk
+ *\return eHalStatus - usually it succeed unless sessionId is not found
+ *\Note:
+ *-------------------------------------------------------------------------------*/
+eHalStatus csrRoamSetPSK (tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *pPSK);
+#endif
 /* ---------------------------------------------------------------------------
     \fn csrRoamGetWpaRsnReqIE
     \brief return the WPA or RSN IE CSR passes to PE to JOIN request or START_BSS request
@@ -995,6 +1015,14 @@ eHalStatus csrScanCreateEntryInScanCache(tpAniSirGlobal pMac, tANI_U32 sessionId
 eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac);
 eHalStatus csrRoamDelPMKIDfromCache( tpAniSirGlobal pMac, tANI_U32 sessionId,
                                  tANI_U8 *pBSSId );
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+eHalStatus csrRoamEnqueueRoamOffloadSynch(
+    tpAniSirGlobal pMac, tANI_U32 sessionId, tpSirBssDescription pBssDescription,
+    eCsrRoamReason reason);
+eHalStatus csrRoamDequeueRoamOffloadSynch(tpAniSirGlobal pMac);
+void csrRoamFTRoamOffloadSynchRspProcessor(
+    tHalHandle hHal, tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp );
+#endif
 #endif
 
 #ifdef QCA_HT_2040_COEX

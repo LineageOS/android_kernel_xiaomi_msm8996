@@ -2020,6 +2020,9 @@ HIF_sleep_entry(void *arg)
 	struct hif_pci_softc *sc = hif_state->sc;
 	u_int32_t idle_ms;
 
+	if (sc->recovery)
+		return;
+
 	adf_os_spin_lock_irqsave(&hif_state->keep_awake_lock);
 	if (hif_state->verified_awake == FALSE) {
 		idle_ms = adf_os_ticks_to_msecs(adf_os_ticks()

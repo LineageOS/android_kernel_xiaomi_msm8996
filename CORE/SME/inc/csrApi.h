@@ -92,6 +92,9 @@ typedef enum
 #endif /* FEATURE_WLAN_WAPI */
 #ifdef FEATURE_WLAN_ESE
     eCSR_ENCRYPT_TYPE_KRK,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    eCSR_ENCRYPT_TYPE_BTK,
+#endif
 #endif /* FEATURE_WLAN_ESE */
 #ifdef WLAN_FEATURE_11W
     //11w BIP
@@ -229,7 +232,6 @@ typedef enum
 #endif
 
 
-
 typedef struct tagCsrChannelInfo
 {
     tANI_U8 numOfChannels;
@@ -347,7 +349,10 @@ typedef struct tagCsrEseCckmInfo
 {
     tANI_U32       reassoc_req_num;
     tANI_BOOLEAN   krk_plumbed;
-    tANI_U8        krk[CSR_KRK_KEY_LEN];
+    tANI_U8        krk[SIR_KRK_KEY_LEN];
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tANI_U8        btk[SIR_BTK_KEY_LEN];
+#endif
 } tCsrEseCckmInfo;
 #endif
 
@@ -503,7 +508,10 @@ typedef enum
     eCSR_ROAM_SET_CHANNEL_RSP,
 
     // Channel sw update notification
-    eCSR_ROAM_DFS_CHAN_SW_NOTIFY
+    eCSR_ROAM_DFS_CHAN_SW_NOTIFY,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    eCSR_ROAM_AUTHORIZED_EVENT
+#endif
 }eRoamCmdStatus;
 
 
@@ -1204,6 +1212,10 @@ typedef struct tagCsrConfigParam
     tANI_U8  cc_switch_mode;
 #endif
     tANI_U8  allowDFSChannelRoam;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tANI_BOOLEAN isRoamOffloadEnabled;
+#endif
+
 }tCsrConfigParam;
 
 //Tush
@@ -1211,6 +1223,19 @@ typedef struct tagCsrUpdateConfigParam
 {
    tCsr11dinfo  Csr11dinfo;
 }tCsrUpdateConfigParam;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+#define csrRoamIsRoamOffloadEnabled(pMac)\
+        (pMac->roam.configParam.isRoamOffloadEnabled)
+
+#define DEFAULT_REASSOC_FAILURE_TIMEOUT 1000
+#endif
+
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+#define CSR_ROAM_AUTH_STATUS_CONNECTED      0x1 /** connected,
+                                                    but not authenticated */
+#define CSR_ROAM_AUTH_STATUS_AUTHENTICATED  0x2 /** connected
+                                                    and authenticated */
+#endif
 
 typedef struct tagCsrRoamInfo
 {
@@ -1285,6 +1310,10 @@ typedef struct tagCsrRoamInfo
     tSirSmeDfsEventInd dfs_event;
     tSirChanChangeResponse *channelChangeRespEvent;
     tANI_U8 timingMeasCap;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tANI_U8 roamSynchInProgress;
+    tANI_U8 synchAuthStatus;
+#endif
 }tCsrRoamInfo;
 
 
@@ -1712,4 +1741,8 @@ eHalStatus csrSetBand(tHalHandle hHal, eCsrBand eBand);
 eCsrBand csrGetCurrentBand (tHalHandle hHal);
 
 typedef void (*csrReadyToSuspendCallback)(void *pContext, boolean suspended);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+eHalStatus csrRoamIssueFTRoamOffloadSynch(tHalHandle hHal, tANI_U32 sessionId,
+                                          tSirBssDescription *pBssDescription);
+#endif
 #endif

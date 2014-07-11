@@ -116,11 +116,12 @@
 #endif
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
-#define MAX_OEM_DATA_RSP_LEN 2047
+#define MAX_OEM_DATA_RSP_LEN            2047
 #endif
 
-#define HDD_FINISH_ULA_TIME_OUT    800
-
+#define HDD_FINISH_ULA_TIME_OUT         800
+#define HDD_SET_MCBC_FILTERS_TO_FW      1
+#define HDD_DELETE_MCBC_FILTERS_FROM_FW 0
 
 extern int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand);
 static int ioctl_debug;
@@ -8371,9 +8372,9 @@ static int iw_set_dynamic_mcbc_filter(struct net_device *dev,
         }
 
         if (HDD_MULTICAST_FILTER_LIST_CLEAR == pRequest->mcastBcastFilterSetting)
-            mc_addr_list_ptr->action = 1; //clear
+            mc_addr_list_ptr->action = HDD_DELETE_MCBC_FILTERS_FROM_FW; //clear
         else
-            mc_addr_list_ptr->action = 0; //set
+            mc_addr_list_ptr->action = HDD_SET_MCBC_FILTERS_TO_FW; //set
 
         ret_val = sme_8023MulticastList(hHal, pAdapter->sessionId, mc_addr_list_ptr);
         vos_mem_free(mc_addr_list_ptr);
@@ -9685,7 +9686,8 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
                   * first, then change the band*/
 
                  hddLog(VOS_TRACE_LEVEL_INFO,
-                         "%s STA (Device mode=%d) connected in band %u, Changing band to %u, Issuing Disconnect",
+                         "%s STA (Device mode=%d) connected in band %u, Changing band to %u, Issuing Disconnect"
+                         "Set HDD connState to eConnectionState_Disconnecting",
                             __func__, pAdapter->device_mode,
                             currBand, band);
 

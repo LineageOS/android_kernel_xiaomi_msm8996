@@ -95,9 +95,11 @@ static void HTT_RX_FRAG_SET_LAST_MSDU(
     adf_nbuf_t msdu;
     struct htt_host_rx_desc_base *rx_desc;
     int start_idx;
+    u_int8_t *p_fw_msdu_rx_desc = 0;
 
     msg_word = (u_int32_t *) adf_nbuf_data(msg);
-    num_msdu_bytes = HTT_RX_IND_FW_RX_DESC_BYTES_GET(*(msg_word + 2));
+    num_msdu_bytes = HTT_RX_FRAG_IND_FW_RX_DESC_BYTES_GET(*(msg_word +
+               HTT_RX_FRAG_IND_HDR_PREFIX_SIZE32));
     /*
      * 1 word for the message header,
      * 1 word to specify the number of MSDU bytes,
@@ -106,6 +108,9 @@ static void HTT_RX_FRAG_SET_LAST_MSDU(
      */
     pdev->rx_mpdu_range_offset_words = 3 + ((num_msdu_bytes + 3) >> 2);
     pdev->rx_ind_msdu_byte_idx = 0;
+
+    p_fw_msdu_rx_desc = ((u_int8_t *)(msg_word) +
+               HTT_ENDIAN_BYTE_IDX_SWAP(HTT_RX_FRAG_IND_FW_DESC_BYTE_OFFSET));
 
     /*
      * Fix for EV126710, in which BSOD occurs due to last_msdu bit
@@ -122,6 +127,7 @@ static void HTT_RX_FRAG_SET_LAST_MSDU(
     adf_nbuf_set_pktlen(msdu, HTT_RX_BUF_SIZE);
     adf_nbuf_unmap(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
     rx_desc = htt_rx_desc(msdu);
+    rx_desc->fw_desc.u.val.u.val = *p_fw_msdu_rx_desc;
     rx_desc->msdu_end.last_msdu = 1;
     adf_nbuf_map(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
 }

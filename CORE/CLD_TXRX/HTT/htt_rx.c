@@ -876,13 +876,22 @@ htt_rx_amsdu_pop_ll(
     struct htt_host_rx_desc_base *rx_desc;
     u_int8_t *rx_ind_data;
     u_int32_t *msg_word, num_msdu_bytes;
+    enum htt_t2h_msg_type msg_type;
 
     HTT_ASSERT1(htt_rx_ring_elems(pdev) != 0);
     rx_ind_data = adf_nbuf_data(rx_ind_msg);
     msg_word = (u_int32_t *)rx_ind_data;
-    num_msdu_bytes = HTT_RX_IND_FW_RX_DESC_BYTES_GET(
-       *(msg_word + HTT_RX_IND_HDR_PREFIX_SIZE32 + HTT_RX_PPDU_DESC_SIZE32));
 
+    msg_type = HTT_T2H_MSG_TYPE_GET(*msg_word);
+
+    if (adf_os_unlikely(HTT_T2H_MSG_TYPE_RX_FRAG_IND == msg_type)) {
+        num_msdu_bytes = HTT_RX_FRAG_IND_FW_RX_DESC_BYTES_GET(
+            *(msg_word + HTT_RX_FRAG_IND_HDR_PREFIX_SIZE32));
+    } else {
+        num_msdu_bytes = HTT_RX_IND_FW_RX_DESC_BYTES_GET(
+            *(msg_word + HTT_RX_IND_HDR_PREFIX_SIZE32 +
+            HTT_RX_PPDU_DESC_SIZE32));
+    }
     msdu = *head_msdu = htt_rx_netbuf_pop(pdev);
     while (1) {
         int last_msdu, msdu_len_invalid, msdu_chained;
@@ -982,9 +991,15 @@ htt_rx_amsdu_pop_ll(
          * upload.)
          */
         if (pdev->rx_ind_msdu_byte_idx < num_msdu_bytes) {
-            byte_offset = HTT_ENDIAN_BYTE_IDX_SWAP(
-                HTT_RX_IND_FW_RX_DESC_BYTE_OFFSET +
-                pdev->rx_ind_msdu_byte_idx);
+            if (adf_os_unlikely(HTT_T2H_MSG_TYPE_RX_FRAG_IND == msg_type)) {
+                byte_offset = HTT_ENDIAN_BYTE_IDX_SWAP(
+                    HTT_RX_FRAG_IND_FW_DESC_BYTE_OFFSET);
+            } else {
+                byte_offset = HTT_ENDIAN_BYTE_IDX_SWAP(
+                    HTT_RX_IND_FW_RX_DESC_BYTE_OFFSET +
+                    pdev->rx_ind_msdu_byte_idx);
+            }
+
             *((u_int8_t *) &rx_desc->fw_desc.u.val) = rx_ind_data[byte_offset];
             /*
              * The target is expected to only provide the basic per-MSDU rx
