@@ -11437,7 +11437,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    /* Initialize struct for saving f/w log setting will be used
    after ssr */
-   pHddCtx->fw_log_settings.enable = 0;
+   pHddCtx->fw_log_settings.enable = pHddCtx->cfg_ini->enablefwlog;
    pHddCtx->fw_log_settings.dl_type = 0;
    pHddCtx->fw_log_settings.dl_report = 0;
    pHddCtx->fw_log_settings.dl_loglevel = 0;

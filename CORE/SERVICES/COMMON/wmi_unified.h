@@ -442,6 +442,8 @@ typedef enum {
     WMI_WOW_ACER_IOAC_ADD_WAKE_PATTERN_CMDID,
     /* Acer IOAC deleta a wake pattern */
     WMI_WOW_ACER_IOAC_DEL_WAKE_PATTERN_CMDID,
+    /* D0-WOW enable or disable cmd */
+    WMI_D0_WOW_ENABLE_DISABLE_CMDID,
 
     /* RTT measurement related cmd */
     /** reques to make an RTT measurement */
@@ -768,6 +770,7 @@ typedef enum {
     /** WOW wake up host event.generated in response to WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID.
         will cary wake reason */
     WMI_WOW_WAKEUP_HOST_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_WOW),
+    WMI_D0_WOW_DISABLE_ACK_EVENTID,
 
     /*RTT related event ID*/
     /** RTT measurement report */
@@ -5252,6 +5255,7 @@ typedef enum event_type_e {
     WOW_ACER_IOAC_SHORT_EVENT,
     WOW_ACER_IOAC_EXTEND_EVENT,
     WOW_ACER_IOAC_TIMER_EVENT,
+    WOW_DFS_PHYERR_RADAR_EVENT,
 }WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -5280,6 +5284,7 @@ typedef enum wake_reason_e {
     WOW_REASON_ACER_IOAC_SHORT_EVENT,
     WOW_REASON_ACER_IOAC_EXTEND_EVENT,
     WOW_REASON_ACER_IOAC_TIMER_EVENT,
+    WOW_REASON_DFS_PHYERR_RADADR_EVENT,
     WOW_REASON_DEBUG_TEST = 0xFF,
 }WOW_WAKE_REASON_TYPE;
 
@@ -5445,6 +5450,33 @@ typedef struct  wow_event_info_section_bitmap_s {
     A_UINT32    value;                         /*This could be the pattern id for bitmap pattern.*/
     A_UINT32    org_len;                      /*The length of the orginal packet.*/
 }WOW_EVENT_INFO_SECTION_BITMAP;
+
+/**
+ * This command is sent from WLAN host driver to firmware to
+ * enable or disable D0-WOW. D0-WOW means APSS suspend with
+ * PCIe link and DDR being active.
+ *
+ *
+ * Entering D0-WOW Mode (based on kernel suspend request):
+ *    host->target: WMI_DO_WOW_ENABLE_DISABLE_CMDID (enable = 1)
+ *    target: Take action (e.g. dbglog suspend)
+ *    target->host: HTC_ACK (HTC_MSG_SEND_SUSPEND_COMPLETE message)
+ *
+ * Exiting D0-WOW mode (based on kernel resume OR target->host message received)
+ *    host->target: WMI_DO_WOW_ENABLE_DISABLE_CMDID (enable = 0)
+ *    target: Take action (e.g. dbglog resume)
+ *    target->host: WMI_D0_WOW_DISABLE_ACK_EVENTID
+ *
+ * This command is applicable only on the PCIE LL systems
+ * Host can enter either D0-WOW or WOW mode, but NOT both at same time
+ * Decision to enter D0-WOW or WOW is based on active interfaces
+ *
+ */
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_d0_wow_enable_disable_cmd_fixed_param  */
+    A_UINT32 enable;     /* 1 = enable, 0 = disable */
+} wmi_d0_wow_enable_disable_cmd_fixed_param;
+
 
 #define WMI_RXERR_CRC               0x01    /* CRC error on frame */
 #define WMI_RXERR_DECRYPT           0x08    /* non-Michael decrypt error */
@@ -8120,6 +8152,12 @@ typedef struct {
      *     wmi_extscan_hotlist_monitor_capabilities     hotlist_capabilities[]       // capabilities of hotlist_monitor_tables
      */
 } wmi_extscan_capabilities_event_fixed_param;
+
+/* WMI_D0_WOW_DISABLE_ACK_EVENTID  */
+typedef struct{
+    A_UINT32    tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_d0_wow_disable_ack_event_fixed_param  */
+    A_UINT32    reserved0; /* for future need */
+} wmi_d0_wow_disable_ack_event_fixed_param;
 
 #ifdef __cplusplus
 }
