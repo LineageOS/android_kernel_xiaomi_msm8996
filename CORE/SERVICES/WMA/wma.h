@@ -1622,6 +1622,9 @@ enum uapsd_up {
 	UAPSD_UP_MAX
 };
 
+A_UINT32 eCsrAuthType_to_rsn_authmode (eCsrAuthType authtype,
+                                       eCsrEncryptionType encr);
+A_UINT32 eCsrEncryptionType_to_rsn_cipherset (eCsrEncryptionType encr);
 
 #define WMA_TGT_INVALID_SNR (-1)
 #define WMA_DYNAMIC_DTIM_SETTING_THRESHOLD 2

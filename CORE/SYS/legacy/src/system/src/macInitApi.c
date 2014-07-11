@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -213,7 +213,6 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
      * dependant)
      */
     pMac->hHdd      = hHdd;
-    pMac->pAdapter  = hHdd; //This line wil be removed
     *pHalHandle     = (tHalHandle)pMac;
 
     {

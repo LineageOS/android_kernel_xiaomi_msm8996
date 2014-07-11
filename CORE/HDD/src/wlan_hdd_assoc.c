@@ -1444,7 +1444,11 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
         if (pHddCtx->cfg_ini->WlanMccToSccSwitchMode
-                != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+                != VOS_MCC_TO_SCC_SWITCH_DISABLE
+#ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
+            && !VOS_IS_DFS_CH(pHddStaCtx->conn_info.operationChannel)
+#endif
+           ) {
             adf_os_create_work(0, &pHddCtx->sta_ap_intf_check_work,
                 wlan_hdd_check_sta_ap_concurrent_ch_intf, (void *)pAdapter);
             adf_os_sched_work(0, &pHddCtx->sta_ap_intf_check_work);
