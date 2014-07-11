@@ -9783,7 +9783,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                  ) {
                  hddLog(VOS_TRACE_LEVEL_ERROR, FL("calling sme_RoamSetPSK"));
                  vos_mem_copy(localPsk, req->psk, SIR_ROAM_SCAN_PSK_SIZE);
-                 sme_RoamSetPSK(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                 sme_RoamSetPSK_PMK(WLAN_HDD_GET_HAL_CTX(pAdapter),
                  pAdapter->sessionId, localPsk);
              }
         }

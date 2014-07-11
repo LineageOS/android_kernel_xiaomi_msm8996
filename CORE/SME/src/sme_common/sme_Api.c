@@ -3935,22 +3935,22 @@ eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId, tANI_U
 }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 /* ---------------------------------------------------------------------------
- *\fn sme_RoamSetPSK
- *\brief a wrapper function to request CSR to save PSK
+ *\fn sme_RoamSetPSK_PMK
+ *\brief a wrapper function to request CSR to save PSK/PMK
  * This is a synchronous call.
  *\param hHal - Global structure
  *\param sessionId - SME sessionId
- *\param pPSK - pointer to an array of Psk[]
- *\return eHalStatus -status whether PSK is set or not
+ *\param pPSK_PMK - pointer to an array of Psk[]/Pmk
+ *\return eHalStatus -status whether PSK/PMK is set or not
  *---------------------------------------------------------------------------*/
-eHalStatus sme_RoamSetPSK (tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pPSK)
+eHalStatus sme_RoamSetPSK_PMK (tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pPSK_PMK)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     status = sme_AcquireGlobalLock(&pMac->sme);
     if (HAL_STATUS_SUCCESS(status)) {
         if (CSR_IS_SESSION_VALID(pMac, sessionId)) {
-            status = csrRoamSetPSK(pMac, sessionId, pPSK);
+            status = csrRoamSetPSK_PMK(pMac, sessionId, pPSK_PMK);
         }
         else {
             status = eHAL_STATUS_INVALID_PARAMETER;

@@ -12409,15 +12409,15 @@ tANI_U32 csrRoamGetNumBKIDCache(tpAniSirGlobal pMac, tANI_U32 sessionId)
 }
 #endif /* FEATURE_WLAN_WAPI */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-eHalStatus csrRoamSetPSK (tpAniSirGlobal pMac, tANI_U32 sessionId,
-                                                        tANI_U8 *pPSK)
+eHalStatus csrRoamSetPSK_PMK (tpAniSirGlobal pMac, tANI_U32 sessionId,
+                                                        tANI_U8 *pPSK_PMK)
 {
     tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
     if (!pSession) {
         smsLog(pMac, LOGE, FL("session %d not found"), sessionId);
         return eHAL_STATUS_FAILURE;
     }
-    vos_mem_copy(pSession->psk, pPSK, sizeof(pSession->psk));
+    vos_mem_copy(pSession->psk_pmk, pPSK_PMK, sizeof(pSession->psk_pmk));
     return eHAL_STATUS_SUCCESS;
 }
 #endif /* WLAN_FEATURE_ROAM_OFFLOAD */
@@ -16377,7 +16377,7 @@ csrRoamScanOffloadPrepareProbeReqTemplate(tpAniSirGlobal pMac,
 void csrRoamOffload(tpAniSirGlobal pMac, tSirRoamOffloadScanReq *pRequestBuf,
                                                    tCsrRoamSession *pSession)
 {
-        vos_mem_copy(pRequestBuf->PSK, pSession->psk, sizeof(pRequestBuf->PSK));
+        vos_mem_copy(pRequestBuf->PSK_PMK, pSession->psk_pmk, sizeof(pRequestBuf->PSK_PMK));
         pRequestBuf->Prefer5GHz = pMac->roam.configParam.nRoamPrefer5GHz;
         pRequestBuf->RoamRssiCatGap = pMac->roam.configParam.bCatRssiOffset;
         pRequestBuf->Select5GHzMargin = pMac->roam.configParam.nSelect5GHzMargin;
