@@ -55,6 +55,7 @@
 #include "vos_nvitem.h"
 #include "p2p_Api.h"
 #include "smeInternal.h" 
+#include "regdomain.h"
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
 #include "oemDataApi.h"
@@ -220,6 +221,7 @@ typedef struct {
     u_int8_t smeThermalMgmtEnabled;
     u_int32_t smeThrottlePeriod;
 } tSmeThermalParams;
+
 /*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/
@@ -257,13 +259,16 @@ eHalStatus sme_Open(tHalHandle hHal);
 
   \param alpha2 - Country code passed by the hdd context.
 
+  \param cc_src - Country code source passed by the hdd context.
+
   \return eHAL_STATUS_SUCCESS - SME is successfully initialized.
 
         Other status means SME is failed to be initialized
   \sa
 
 ---------------------------------------------------------------------------*/
-eHalStatus sme_init_chan_list(tHalHandle hal, v_U8_t *alpha2);
+eHalStatus sme_init_chan_list(tHalHandle hal, v_U8_t *alpha2,
+                              COUNTRY_CODE_SOURCE cc_src);
 
 /*--------------------------------------------------------------------------
 

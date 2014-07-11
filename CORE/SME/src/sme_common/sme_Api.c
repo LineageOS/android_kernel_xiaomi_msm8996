@@ -1337,10 +1337,18 @@ eHalStatus sme_Open(tHalHandle hHal)
 /*
  * sme_init_chan_list, triggers channel setup based on country code.
  */
-eHalStatus sme_init_chan_list(tHalHandle hal, v_U8_t *alpha2)
+eHalStatus sme_init_chan_list(tHalHandle hal, v_U8_t *alpha2,
+                              COUNTRY_CODE_SOURCE cc_src)
 {
-    tpAniSirGlobal mac = PMAC_STRUCT(hal);
-    return csr_init_chan_list(mac, alpha2);
+    tpAniSirGlobal pmac = PMAC_STRUCT(hal);
+
+    if ((cc_src == COUNTRY_CODE_SET_BY_USER) &&
+        (pmac->roam.configParam.fSupplicantCountryCodeHasPriority))
+    {
+        pmac->roam.configParam.Is11dSupportEnabled = eANI_BOOLEAN_FALSE;
+    }
+
+    return csr_init_chan_list(pmac, alpha2);
 }
 
 /*--------------------------------------------------------------------------
