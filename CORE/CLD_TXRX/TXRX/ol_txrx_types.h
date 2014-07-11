@@ -892,6 +892,13 @@ struct ol_txrx_peer_t {
 
         /* Bit to indicate if PN check is done in fw */
         adf_os_atomic_t fw_pn_check;
+
+#ifdef WLAN_FEATURE_11W
+	/* PN counter for Robust Management Frames */
+	u_int64_t last_rmf_pn;
+	u_int32_t rmf_pn_replays;
+	u_int8_t last_rmf_pn_valid;
+#endif
 };
 
 #endif /* _OL_TXRX_TYPES__H_ */

@@ -440,7 +440,106 @@ tlshim_mgmt_find_iface(void *vos_ctx, u_int8_t *mac_addr, u_int32_t *vdev_id)
 	}
 	return iface;
 }
+
+/*
+ * @brief - This routine will extract 6 byte PN from the CCMP header
+ * @param - ccmp_ptr - pointer to ccmp header
+ */
+static u_int64_t
+tl_shim_extract_ccmp_pn(u_int8_t *ccmp_ptr)
+{
+	u_int8_t rsvd, key, pn[6];
+	u_int64_t new_pn;
+
+	/*
+	 *   +-----+-----+------+----------+-----+-----+-----+-----+
+	 *   | PN0 | PN1 | rsvd | rsvd/key | PN2 | PN3 | PN4 | PN5 |
+	 *   +-----+-----+------+----------+-----+-----+-----+-----+
+	 *                   CCMP Header Format
+	 */
+
+	/* Extract individual bytes */
+	pn[0]  = (u_int8_t)*ccmp_ptr;
+	pn[1]  = (u_int8_t)*(ccmp_ptr+1);
+	rsvd   = (u_int8_t)*(ccmp_ptr+2);
+	key    = (u_int8_t)*(ccmp_ptr+3);
+	pn[2]  = (u_int8_t)*(ccmp_ptr+4);
+	pn[3]  = (u_int8_t)*(ccmp_ptr+5);
+	pn[4]  = (u_int8_t)*(ccmp_ptr+6);
+	pn[5]  = (u_int8_t)*(ccmp_ptr+7);
+
+	/* Form 6 byte PN with 6 individual bytes of PN */
+	new_pn = ((uint64_t)pn[0] << 40) |
+			((uint64_t)pn[1] << 32) |
+			((uint64_t)pn[2] << 24) |
+			((uint64_t)pn[3] << 16) |
+			((uint64_t)pn[4] << 8)  |
+			((uint64_t)pn[5] << 0);
+
+	TLSHIM_LOGD("PN of received packet is %llu", new_pn);
+	return new_pn;
+}
+
+/*
+ * @brief - This routine is used to detect replay attacking using PN in CCMP
+ * @param - vos_ctx - vos context
+ * @param - wh - frame header
+ * @param - ccmp_ptr - pointer to ccmp header
+ */
+static bool
+is_ccmp_pn_replay_attack(void *vos_ctx, struct ieee80211_frame *wh,
+		u_int8_t *ccmp_ptr)
+{
+	ol_txrx_pdev_handle pdev;
+	ol_txrx_vdev_handle vdev;
+	ol_txrx_peer_handle peer;
+	u_int8_t peer_id;
+	u_int8_t *last_pn_valid;
+	u_int64_t *last_pn, new_pn;
+	u_int32_t *rmf_pn_replays;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_ctx);
+	if (!pdev) {
+		TLSHIM_LOGE("%s: Failed to find pdev", __func__);
+		TLSHIM_LOGE("%s: Not able to validate PN", __func__);
+		return true;
+	}
+
+	vdev = tl_shim_get_vdev_by_addr(vos_ctx, wh->i_addr2);
+	if (!vdev) {
+		TLSHIM_LOGE("%s: Failed to find vdev", __func__);
+		TLSHIM_LOGE("%s: Not able to validate PN", __func__);
+		return true;
+	}
+
+	/* Retrieve the peer based on vdev and addr */
+	peer = ol_txrx_find_peer_by_addr_and_vdev(pdev, vdev, wh->i_addr2,
+							&peer_id);
+
+	new_pn = tl_shim_extract_ccmp_pn(ccmp_ptr);
+	last_pn_valid = &peer->last_rmf_pn_valid;
+	last_pn = &peer->last_rmf_pn;
+	rmf_pn_replays = &peer->rmf_pn_replays;
+
+	if (*last_pn_valid) {
+		if (new_pn > *last_pn) {
+			*last_pn = new_pn;
+			TLSHIM_LOGD("%s: PN validation successful", __func__);
+		} else {
+			TLSHIM_LOGE("%s: PN Replay attack detected", __func__);
+			/* per 11W amendment, keeping track of replay attacks */
+			*rmf_pn_replays += 1;
+			return true;
+		}
+	} else {
+		*last_pn_valid = 1;
+		*last_pn = new_pn;
+	}
+
+	return false;
+}
 #endif
+
 static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 				       u_int32_t data_len, bool saved_beacon, u_int32_t vdev_id)
 {
@@ -453,6 +552,7 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	struct wma_txrx_node *iface = NULL;
 	u_int8_t *efrm, *orig_hdr;
 	u_int16_t key_id;
+	u_int8_t *ccmp;
 #endif /* WLAN_FEATURE_11W */
 
 	vos_pkt_t *rx_pkt;
@@ -622,8 +722,7 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 			if ((wh)->i_fc[1] & IEEE80211_FC1_WEP)
 			{
 				if (IEEE80211_IS_BROADCAST(wh->i_addr1) ||
-					 IEEE80211_IS_MULTICAST(wh->i_addr1))
-				{
+					 IEEE80211_IS_MULTICAST(wh->i_addr1)) {
 					TLSHIM_LOGE("Encrypted BC/MC frame"
 					" dropping the frame");
 					vos_pkt_return_packet(rx_pkt);
@@ -631,6 +730,14 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 				}
 
 				orig_hdr = (u_int8_t*) adf_nbuf_data(wbuf);
+				/* Pointer to head of CCMP header */
+				ccmp = orig_hdr + sizeof(*wh);
+				if (is_ccmp_pn_replay_attack(vos_ctx, wh,
+									ccmp)) {
+					TLSHIM_LOGE("Dropping the frame");
+					vos_pkt_return_packet(rx_pkt);
+					return 0;
+				}
 
 				/* Strip privacy headers (and trailer)
 				   for a received frame */
