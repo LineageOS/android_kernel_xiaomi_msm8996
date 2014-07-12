@@ -1216,6 +1216,8 @@ typedef struct tagCsrConfigParam
     tANI_BOOLEAN isRoamOffloadEnabled;
 #endif
 
+    tANI_BOOLEAN obssEnabled;
+
 }tCsrConfigParam;
 
 //Tush

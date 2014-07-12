@@ -2094,3 +2094,13 @@ void hif_set_fw_info(void *ol_sc, u32 target_fw_version)
 {
     ((struct ol_softc *)ol_sc)->target_fw_version = target_fw_version;
 }
+
+#ifdef IPA_UC_OFFLOAD
+/* Micro controller needs PCI BAR address to access CE register */
+void hif_read_bar(struct hif_pci_softc *sc, u32 *bar_value)
+{
+    pci_read_config_dword(sc->pdev, 0x10, bar_value);
+    *bar_value = pci_resource_start(sc->pdev, 0);
+}
+#endif /* IPA_UC_OFFLOAD */
+

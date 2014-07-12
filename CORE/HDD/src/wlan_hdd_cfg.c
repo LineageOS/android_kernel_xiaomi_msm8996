@@ -2609,6 +2609,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_DISABLE_DFS_CH_SWITCH_MIN,
                  CFG_DISABLE_DFS_CH_SWITCH_MAX ),
 
+   REG_VARIABLE( CFG_ENABLE_DFS_MASTER_CAPABILITY, WLAN_PARAM_Integer,
+                 hdd_config_t, enableDFSMasterCap,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_DFS_MASTER_CAPABILITY_DEFAULT,
+                 CFG_ENABLE_DFS_MASTER_CAPABILITY_MIN,
+                 CFG_ENABLE_DFS_MASTER_CAPABILITY_MAX ),
+
    REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFirstScan2GOnly,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -3653,6 +3660,43 @@ REG_TABLE_ENTRY g_registry_table[] =
                         CFG_REORDER_OFFLOAD_SUPPORT_MIN,
                         CFG_REORDER_OFFLOAD_SUPPORT_MAX ),
 #endif
+
+#ifdef IPA_UC_OFFLOAD
+   REG_VARIABLE( CFG_IPA_UC_OFFLOAD_ENABLED_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaUcOffloadEnabled,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_IPA_UC_OFFLOAD_ENABLED_DEFAULT,
+                 CFG_IPA_UC_OFFLOAD_ENABLED_MIN,
+                 CFG_IPA_UC_OFFLOAD_ENABLED_MAX ),
+
+   REG_VARIABLE( CFG_IPA_UC_TX_BUF_COUNT_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaUcTxBufCount,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_IPA_UC_TX_BUF_COUNT_DEFAULT,
+                 CFG_IPA_UC_TX_BUF_COUNT_MIN,
+                 CFG_IPA_UC_TX_BUF_COUNT_MAX ),
+
+   REG_VARIABLE( CFG_IPA_UC_TX_BUF_SIZE_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaUcTxBufSize,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_IPA_UC_TX_BUF_SIZE_DEFAULT,
+                 CFG_IPA_UC_TX_BUF_SIZE_MIN,
+                 CFG_IPA_UC_TX_BUF_SIZE_MAX ),
+
+   REG_VARIABLE( CFG_IPA_UC_RX_IND_RING_COUNT_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaUcRxIndRingCount,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_IPA_UC_RX_IND_RING_COUNT_DEFAULT,
+                 CFG_IPA_UC_RX_IND_RING_COUNT_MIN,
+                 CFG_IPA_UC_RX_IND_RING_COUNT_MAX ),
+
+   REG_VARIABLE( CFG_IPA_UC_TX_PARTITION_BASE_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, IpaUcTxPartitionBase,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_IPA_UC_TX_PARTITION_BASE_DEFAULT,
+                 CFG_IPA_UC_TX_PARTITION_BASE_MIN,
+                 CFG_IPA_UC_TX_PARTITION_BASE_MAX ),
+#endif /* IPA_UC_OFFLOAD */
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -5314,6 +5358,15 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
         fStatus = FALSE;
         hddLog(LOGE,"Failure: Could not pass on WNI_CFG_11D_ENABLED configuration info to CCM");
     }
+
+    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_DFS_MASTER_ENABLED,
+                     pConfig->enableDFSMasterCap, NULL,
+                     eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+        fStatus = FALSE;
+        hddLog(LOGE,
+               "Failure: Could not set value for WNI_CFG_DFS_MASTER_ENABLED");
+    }
+
     if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_HEART_BEAT_THRESHOLD, pConfig->HeartbeatThresh24,
                         NULL, eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
     {

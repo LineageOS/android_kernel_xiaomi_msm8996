@@ -693,6 +693,7 @@ typedef struct tagCsrConfig
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     tANI_BOOLEAN  isRoamOffloadEnabled;
 #endif
+    tANI_BOOLEAN obssEnabled;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo

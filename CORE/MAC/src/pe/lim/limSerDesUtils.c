@@ -762,6 +762,10 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     len -= sizeof(tSirAddIeParams);
     pBuf += sizeof(tSirAddIeParams);
 
+    /* extract obssEnabled */
+    pStartBssReq->obssEnabled = *pBuf++;
+    len--;
+
     if (len)
     {
         limLog(pMac, LOGW, FL("Extra bytes left in SME_START_BSS_REQ, len=%d"), len);

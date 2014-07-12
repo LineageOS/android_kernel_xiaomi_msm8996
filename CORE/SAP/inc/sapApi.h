@@ -536,7 +536,7 @@ typedef struct sSapDfsNolInfo
 {
     v_U8_t              dfs_channel_number;
     eSapDfsChanStatus_t radar_status_flag;
-    unsigned long       radar_found_timestamp;
+    v_U64_t             radar_found_timestamp;
 } tSapDfsNolInfo;
 
 typedef struct sSapDfsInfo

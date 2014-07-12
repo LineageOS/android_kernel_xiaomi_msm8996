@@ -1183,7 +1183,11 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
       WLANTL_STA_CONNECTED : WLANTL_STA_AUTHENTICATED;
    // Register the Station with TL...
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "%s: HDD register TL ucInitState=%d", __func__, staDesc.ucInitState );
-#ifdef IPA_OFFLOAD
+
+   /* Incase Micro controller data path offload enabled,
+    * All the traffic routed to WLAN host driver, do not need to
+    * route IPA. It should be routed kernel network stack */
+#if defined(IPA_OFFLOAD) && !defined(IPA_UC_OFFLOAD)
    if (hdd_ipa_is_enabled(pHddCtx)) {
       vosStatus = WLANTL_RegisterSTAClient( pHddCtx->pvosContext,
                                          hdd_ipa_process_rxt,
@@ -2464,7 +2468,10 @@ VOS_STATUS hdd_roamRegisterTDLSSTA( hdd_adapter_t *pAdapter,
     staDesc.ucInitState = WLANTL_STA_CONNECTED ;
 
    /* Register the Station with TL...  */
-#ifdef IPA_OFFLOAD
+   /* Incase Micro controller data path offload enabled,
+    * All the traffic routed to WLAN host driver, do not need to
+    * route IPA. It should be routed kernel network stack */
+#if defined(IPA_OFFLOAD) && !defined(IPA_UC_OFFLOAD)
     if (hdd_ipa_is_enabled(pHddCtx)) {
        vosStatus = WLANTL_RegisterSTAClient( pVosContext,
                                           hdd_ipa_process_rxt,

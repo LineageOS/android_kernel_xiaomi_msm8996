@@ -2545,6 +2545,20 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
               }
            }
             break;
+
+         case SIR_MAC_ACTION_2040_BSS_COEXISTENCE:
+           {
+              tpSirMacMgmtHdr     pHdr;
+              tANI_U32            frameLen;
+
+              pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+              frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+
+              limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType,
+                    (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
+                    WDA_GET_RX_CH( pRxPacketInfo ), psessionEntry, 0);
+            }
+
 #ifdef FEATURE_WLAN_TDLS
            case SIR_MAC_TDLS_DIS_RSP:
            {

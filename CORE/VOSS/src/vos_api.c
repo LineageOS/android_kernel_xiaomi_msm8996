@@ -454,6 +454,15 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    macOpenParms.reorderOffload = pHddCtx->cfg_ini->reorderOffloadSupport;
 #endif
 
+#ifdef IPA_UC_OFFLOAD
+    /* IPA micro controller data path offload resource config item */
+    macOpenParms.ucOffloadEnabled = pHddCtx->cfg_ini->IpaUcOffloadEnabled;
+    macOpenParms.ucTxBufCount = pHddCtx->cfg_ini->IpaUcTxBufCount;
+    macOpenParms.ucTxBufSize = pHddCtx->cfg_ini->IpaUcTxBufSize;
+    macOpenParms.ucRxIndRingCount = pHddCtx->cfg_ini->IpaUcRxIndRingCount;
+    macOpenParms.ucTxPartitionBase = pHddCtx->cfg_ini->IpaUcTxPartitionBase;
+#endif /* IPA_UC_OFFLOAD */
+
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
 #if defined (QCA_WIFI_2_0) && \
    !defined (QCA_WIFI_ISOC)
@@ -581,6 +590,19 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
      VOS_ASSERT(0);
      goto err_sme_close;
    }
+
+#ifdef IPA_UC_OFFLOAD
+   WLANTL_GetIpaUcResource(gpVosContext,
+       &((hdd_context_t*)(gpVosContext->pHDDContext))->ce_sr_base_paddr,
+       &((hdd_context_t*)(gpVosContext->pHDDContext))->ce_sr_ring_size,
+       &((hdd_context_t*)(gpVosContext->pHDDContext))->ce_reg_paddr,
+       &((hdd_context_t*)(gpVosContext->pHDDContext))->tx_comp_ring_base_paddr,
+       &((hdd_context_t*)(gpVosContext->pHDDContext))->tx_comp_ring_size,
+       &((hdd_context_t*)(gpVosContext->pHDDContext))->tx_num_alloc_buffer,
+       &((hdd_context_t*)(gpVosContext->pHDDContext))->rx_rdy_ring_base_paddr,
+       &((hdd_context_t*)(gpVosContext->pHDDContext))->rx_rdy_ring_size,
+       &((hdd_context_t*)(gpVosContext->pHDDContext))->rx_proc_done_idx_paddr);
+#endif /* IPA_UC_OFFLOAD */
 
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: VOSS successfully Opened", __func__);

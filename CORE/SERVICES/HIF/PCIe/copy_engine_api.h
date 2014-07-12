@@ -424,5 +424,19 @@ struct CE_sendlist {
 #define ATH_ISR_SCHED           0x0001  /* Schedule the bottom half for execution        */
 #define ATH_ISR_NOTMINE         0x0002  /* This was not my interrupt - for shared IRQ's    */
 
+#ifdef IPA_UC_OFFLOAD
+/*
+ * Copy engine should release resource to micro controller
+ * Micro controller needs
+   - Copy engine source descriptor base address
+   - Copy engine source descriptor size
+   - PCI BAR address to access copy engine regiser
+ */
+void CE_ipaGetResource(struct CE_handle *ce,
+            a_uint32_t *ce_sr_base_paddr,
+            a_uint32_t *ce_sr_ring_size,
+            a_uint32_t *ce_reg_paddr);
+#endif /* IPA_UC_OFFLOAD */
+
 #endif /* CONFIG_COPY_ENGINE_SUPPORT */
 #endif /* __COPY_ENGINE_API_H__ */

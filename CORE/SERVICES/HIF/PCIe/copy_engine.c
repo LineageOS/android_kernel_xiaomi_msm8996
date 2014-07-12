@@ -1549,3 +1549,63 @@ CE_fini(struct CE_handle *copyeng)
     }
     A_FREE(CE_state);
 }
+
+#ifdef IPA_UC_OFFLOAD
+/*
+ * Copy engine should release resource to micro controller
+ * Micro controller needs
+   - Copy engine source descriptor base address
+   - Copy engine source descriptor size
+   - PCI BAR address to access copy engine regiser
+ */
+void CE_ipaGetResource(struct CE_handle *ce,
+            a_uint32_t *ce_sr_base_paddr,
+            a_uint32_t *ce_sr_ring_size,
+            a_uint32_t *ce_reg_paddr)
+{
+    struct CE_state *CE_state = (struct CE_state *)ce;
+    a_uint32_t ring_loop;
+    struct CE_src_desc *ce_desc;
+    a_uint32_t bar_value;
+    struct hif_pci_softc *sc = CE_state->sc;
+
+    if (CE_RUNNING != CE_state->state)
+    {
+        *ce_sr_base_paddr = 0;
+        *ce_sr_ring_size = 0;
+        return;
+    }
+
+    /* Update default value for descriptor */
+    for (ring_loop = 0; ring_loop < CE_state->src_ring->nentries; ring_loop++)
+    {
+        ce_desc = (struct CE_src_desc *)
+                  ((char *)CE_state->src_ring->base_addr_owner_space +
+                   ring_loop * (sizeof(struct CE_src_desc)));
+        /* Source pointer and ID,
+         * should be updated by uc dynamically
+         * ce_desc->src_ptr   = buffer;
+         * ce_desc->meta_data = transfer_id; */
+        /* No Byte SWAP */
+        ce_desc->byte_swap = 0;
+        /* DL size
+         * pdev->download_len =
+         *   sizeof(struct htt_host_tx_desc_t) +
+         *   HTT_TX_HDR_SIZE_OUTER_HDR_MAX +
+         *   HTT_TX_HDR_SIZE_802_1Q +
+         *   HTT_TX_HDR_SIZE_LLC_SNAP +
+         *   ol_cfg_tx_download_size(pdev->ctrl_pdev); */
+        ce_desc->nbytes = 60;
+        /* Single fragment No gather */
+        ce_desc->gather = 0;
+    }
+
+    /* Get BAR address */
+    hif_read_bar(CE_state->sc, &bar_value);
+
+    *ce_sr_base_paddr = (a_uint32_t)CE_state->src_ring->base_addr_CE_space;
+    *ce_sr_ring_size = (a_uint32_t)CE_state->src_ring->nentries;
+    *ce_reg_paddr = bar_value + CE_BASE_ADDRESS(CE_state->id) + SR_WR_INDEX_ADDRESS;
+    return;
+}
+#endif /* IPA_UC_OFFLOAD */
