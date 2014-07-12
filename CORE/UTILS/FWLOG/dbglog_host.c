@@ -1154,6 +1154,7 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
        "IBSS_PS_DBGID_PS_KICKOUT_PEER",
        "IBSS_PS_DBGID_SET_PEER_PARAM",
        "IBSS_PS_DBGID_BCN_ATIM_WIN_MISMATCH",
+       "IBSS_PS_DBGID_RX_CHAINMASK_CHANGE",
     },
 };
 
@@ -2257,7 +2258,7 @@ dbglog_ibss_powersave_print_handler(
     case IBSS_PS_DBGID_BC_ATIM_SEND:
         if (numargs == 2) {
             dbglog_printf(timestamp, vap_id,
-                          "IBSS PS: MC Data, num_of_peers:%d mc_atim_sent:%d",
+                          "IBSS PS: MC Data, num_of_peers:%d bc_atim_sent:%d",
                           args[1], args[0]);
         }
         break;
@@ -2281,6 +2282,8 @@ dbglog_ibss_powersave_print_handler(
         } else if(numargs == 1) {
             dbglog_printf(timestamp, vap_id, "IBSS PS: power collapse not allowed since peer id:%d is not PS capable",
                 args[0]);
+        } else if(numargs == 2) {
+            dbglog_printf(timestamp, vap_id, "IBSS PS: power collapse not allowed - no peers in NW");
         } else if (numargs == 3) {
                   if (args[0] == 2) {
                       dbglog_printf(timestamp, vap_id,
@@ -2360,6 +2363,16 @@ dbglog_ibss_powersave_print_handler(
             } else if(args[0] == 0xBEEF) {
                 dbglog_printf(timestamp, vap_id, "IBSS PS: Peer ATIM window length changed, peer id:%d, peer recorded atim window:%d new atim window:%d",
                     args[1], args[2], args[3]);
+            }
+        }
+        break;
+
+    case IBSS_PS_DBGID_RX_CHAINMASK_CHANGE:
+        if(numargs == 2) {
+            if(args[1] == 0x1) {
+                dbglog_printf(timestamp, vap_id, "IBSS PS: Voting for low power chainmask from :%d", args[0]);
+            } else {
+                dbglog_printf(timestamp, vap_id, "IBSS PS: Voting for high power chainmask from :%d", args[0]);
             }
         }
         break;
