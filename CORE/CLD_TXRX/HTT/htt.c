@@ -406,7 +406,9 @@ htt_htc_attach(struct htt_pdev_t *pdev)
     connect.MaxSendQueueDepth = HTT_MAX_SEND_QUEUE_DEPTH;
 
     /* disable flow control for HTT data message service */
+#ifndef HIF_SDIO
     connect.ConnectionFlags |= HTC_CONNECT_FLAGS_DISABLE_CREDIT_FLOW_CTRL;
+#endif
 
     /* connect to control service */
     connect.ServiceID = HTT_DATA_MSG_SVC;
