@@ -1257,6 +1257,13 @@ ol_tx_queue_log_display(ol_txrx_pdev_handle pdev);
 #define wdi_in_seq_num_trace_display ol_txrx_seq_num_trace_display
 #define wdi_in_pn_trace_display ol_txrx_pn_trace_display
 
+#ifdef IPA_UC_OFFLOAD
+#define wdi_in_ipa_uc_get_resource  ol_txrx_ipa_uc_get_resource
+#define wdi_in_ipa_uc_set_doorbell_paddr  ol_txrx_ipa_uc_set_doorbell_paddr
+#define wdi_in_ipa_uc_set_active ol_txrx_ipa_uc_set_active
+#define wdi_in_ipa_uc_register_op_cb ol_txrx_ipa_uc_register_op_cb
+#endif /* IPA_UC_OFFLOAD */
+
 #include <ol_txrx_osif_api.h>
 
 #define wdi_in_osif_vdev_register ol_txrx_osif_vdev_register

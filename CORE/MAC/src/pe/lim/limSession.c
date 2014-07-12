@@ -561,6 +561,26 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
         psessionEntry->pSchBeaconFrameEnd = NULL;
     }
 
+    /* Must free the buffer before peSession invalid */
+    if (NULL != psessionEntry->addIeParams.probeRespData_buff)
+    {
+        vos_mem_free(psessionEntry->addIeParams.probeRespData_buff);
+        psessionEntry->addIeParams.probeRespData_buff = NULL;
+        psessionEntry->addIeParams.probeRespDataLen = 0;
+    }
+    if (NULL != psessionEntry->addIeParams.assocRespData_buff)
+    {
+        vos_mem_free(psessionEntry->addIeParams.assocRespData_buff);
+        psessionEntry->addIeParams.assocRespData_buff = NULL;
+        psessionEntry->addIeParams.assocRespDataLen = 0;
+    }
+    if (NULL != psessionEntry->addIeParams.probeRespBCNData_buff)
+    {
+        vos_mem_free(psessionEntry->addIeParams.probeRespBCNData_buff);
+        psessionEntry->addIeParams.probeRespBCNData_buff = NULL;
+        psessionEntry->addIeParams.probeRespBCNDataLen = 0;
+    }
+
     psessionEntry->valid = FALSE;
     return;
 }

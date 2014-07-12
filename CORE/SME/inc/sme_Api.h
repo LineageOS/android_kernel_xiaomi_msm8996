@@ -3512,6 +3512,7 @@ tANI_S16 sme_GetHTConfig(tHalHandle hHal, tANI_U8 session_id, tANI_U16 ht_capab)
 VOS_STATUS sme_notify_ht2040_mode(tHalHandle hHal, tANI_U16 staId,
              v_MACADDR_t macAddrSTA, v_U8_t sessionId, tANI_U8 channel_type);
 eHalStatus sme_SetHT2040Mode(tHalHandle hHal, tANI_U8 sessionId, tANI_U8 channel_type);
+eHalStatus sme_SetPhyCBMode24G(tHalHandle hHal, ePhyChanBondState phyCBMode);
 #endif
 
 #ifdef QCA_WIFI_2_0

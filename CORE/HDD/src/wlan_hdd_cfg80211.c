@@ -3551,7 +3551,9 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->n_vendor_events = ARRAY_SIZE(wlan_hdd_cfg80211_vendor_events);
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0))
-    wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
+    if (pCfg->enableDFSMasterCap) {
+        wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
+    }
 #endif
 
     wiphy->max_ap_assoc_sta = pCfg->maxNumberOfPeers;
@@ -4126,6 +4128,54 @@ static void wlan_hdd_add_hostapd_conf_vsie(hdd_adapter_t* pHostapdAdapter,
     return;
 }
 
+static void wlan_hdd_add_obss_scan_param_ie(hdd_adapter_t* pHostapdAdapter,
+                                           v_U8_t *genie, v_U8_t *total_ielen)
+{
+    beacon_data_t *pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
+    int left = pBeacon->tail_len;
+    v_U8_t *ptr = pBeacon->tail;
+    v_U8_t elem_id, elem_len;
+    v_U16_t ielen = 0;
+
+    if ( NULL == ptr || 0 == left )
+        return;
+
+    while (left >= 2)
+    {
+        elem_id  = ptr[0];
+        elem_len = ptr[1];
+        left -= 2;
+        if (elem_len > left)
+        {
+            hddLog( VOS_TRACE_LEVEL_ERROR,
+                    "****Invalid IEs eid = %d elem_len=%d left=%d*****",
+                    elem_id, elem_len, left);
+            return;
+        }
+
+        if (WLAN_EID_OVERLAP_BSS_SCAN_PARAM == elem_id)
+        {
+            ielen = ptr[1] + 2;
+            if ((*total_ielen + ielen) <= MAX_GENIE_LEN)
+            {
+                vos_mem_copy(&genie[*total_ielen], ptr, ielen);
+                *total_ielen += ielen;
+            }
+            else
+            {
+                hddLog( VOS_TRACE_LEVEL_ERROR,
+                           "IE Length is too big "
+                           "IEs eid=%d elem_len=%d total_ie_lent=%d",
+                           elem_id, elem_len, *total_ielen);
+            }
+        }
+
+        left -= elem_len;
+        ptr += (elem_len + 2);
+    }
+    return;
+}
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
 static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
                             struct beacon_parameters *params)
@@ -4180,6 +4230,10 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         wlan_hdd_add_hostapd_conf_vsie(pHostapdAdapter, genie, &total_ielen);
     }
 
+    if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)
+    {
+        wlan_hdd_add_obss_scan_param_ie(pHostapdAdapter, genie, &total_ielen);
+    }
 
     vos_mem_copy(updateIE.bssid, pHostapdAdapter->macAddressCurrent.bytes,
                    sizeof(tSirMacAddr));
@@ -4458,23 +4512,24 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                 (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
             }
 
+#ifdef QCA_HT_2040_COEX
             /* set channel bonding mode for 2.4G */
             if ( channel <= 14 )
             {
-                tSmeConfigParams smeConfig;
-                sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
-
                 switch (channel_type)
                 {
                 case NL80211_CHAN_HT20:
-                    smeConfig.csrConfig.channelBondingMode24GHz = 0;
-                    sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+                    sme_SetPhyCBMode24G(pHddCtx->hHal,
+                                        PHY_SINGLE_CHANNEL_CENTERED);
                     break;
 
                 case NL80211_CHAN_HT40MINUS:
+                    sme_SetPhyCBMode24G(pHddCtx->hHal,
+                                        PHY_DOUBLE_CHANNEL_HIGH_PRIMARY);
+                    break;
                 case NL80211_CHAN_HT40PLUS:
-                    smeConfig.csrConfig.channelBondingMode24GHz = 1;
-                    sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+                    sme_SetPhyCBMode24G(pHddCtx->hHal,
+                                        PHY_DOUBLE_CHANNEL_LOW_PRIMARY);
                     break;
 
                 default:
@@ -4484,6 +4539,7 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                     return -EINVAL;
                 }
             }
+#endif
         }
     }
     else
@@ -4608,6 +4664,19 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                                pConfig->acsAllowedChnls,
                                sizeof(pConfig->acsAllowedChnls));
     }
+
+#ifdef QCA_HT_2040_COEX
+    if ((pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP)&&
+        pHddCtx->cfg_ini->ht2040CoexEnabled)
+    {
+       tSmeConfigParams smeConfig;
+
+       vos_mem_zero(&smeConfig, sizeof (tSmeConfigParams));
+       sme_GetConfigParam(hHal, &smeConfig);
+       smeConfig.csrConfig.obssEnabled = 1;
+       sme_UpdateConfig (hHal, &smeConfig);
+    }
+#endif
 
     if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP)
     {
@@ -5428,8 +5497,8 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         updateIE.smeSessionId = pAdapter->sessionId;
         updateIE.ieBufferlength = 0;
         updateIE.pAdditionIEBuffer = NULL;
-        updateIE.append = VOS_TRUE;
-        updateIE.notify = VOS_TRUE;
+        updateIE.append = VOS_FALSE;
+        updateIE.notify = VOS_FALSE;
         if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
                   &updateIE, eUPDATE_IE_PROBE_BCN) == eHAL_STATUS_FAILURE) {
             hddLog(LOGE, FL("Could not pass on PROBE_RSP_BCN data to PE"));
@@ -13576,6 +13645,26 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                "Do not allow suspend"));
         return -EAGAIN;
     }
+
+    /* If RADAR detection is in progress (HDD), prevent suspend. The flag
+     * "dfs_cac_block_tx" is set to TRUE when RADAR is found and stay TRUE until
+     * CAC is done for a SoftAP which is in started state.
+     */
+    status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
+
+    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
+        pAdapter = pAdapterNode->pAdapter;
+        if (WLAN_HDD_SOFTAP == pAdapter->device_mode  &&
+              BSS_START == WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter)->bssState &&
+              VOS_TRUE == WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->dfs_cac_block_tx) {
+           hddLog(VOS_TRACE_LEVEL_DEBUG,
+                 FL("RADAR detection in progress, do not allow suspend"));
+           return -EAGAIN;
+        }
+        status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+        pAdapterNode = pNext;
+    }
+
 #ifdef QCA_WIFI_2_0
     /* Stop ongoing scan on each interface */
     status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );

@@ -2000,7 +2000,10 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
    staDesc.ucIsReplayCheckValid = VOS_FALSE;
 
    // Register the Station with TL...
-#ifdef IPA_OFFLOAD
+   /* Incase Micro controller data path offload enabled,
+    * All the traffic routed to WLAN host driver, do not need to
+    * route IPA. It should be routed kernel network stack */
+#if defined(IPA_OFFLOAD) && !defined(IPA_UC_OFFLOAD)
    if (hdd_ipa_is_enabled(pHddCtx)) {
       vosStatus = WLANTL_RegisterSTAClient( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                                          hdd_ipa_process_rxt,

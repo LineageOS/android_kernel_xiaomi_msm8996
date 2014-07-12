@@ -109,12 +109,23 @@
 #define AR6320V1_REG_PART2_START_ADDR 0x27000             /*STEREO_BASE_ADDRESS*/
 #define AR6320V1_REG_PART2_LEN        (0x60000 - 0x27000) /*USB_BASE_ADDRESS - STEREO_BASE_ADDRESS*/
 
+/* For Rome version 2.x */
+
 #define AR6320V2_DRAM_START_ADDR 0x400000   // dram start
 #define AR6320V2_DUMP_DRAM_LEN   0x70000    // dram length
 #define AR6320V2_IRAM_START_ADDR 0x980000   // iram start
 #define AR6320V2_IRAM_LEN        0x38000    // iram length
 #define AR6320V2_AXI_START_ADDR  0xa0000    // axi start
 #define AR6320V2_AXI_LEN         0x18000    // axi length
+
+/* For Rome version 3.x */
+
+#define AR6320V3_DRAM_START_ADDR 0x400000 // dram start
+#define AR6320V3_DUMP_DRAM_LEN   0xa8000  // dram length
+#define AR6320V3_IRAM_START_ADDR 0x980000 // iram start
+#define AR6320V3_IRAM_LEN        0x38000  // iram length
+#define AR6320V3_AXI_START_ADDR  0xa0000  // axi start
+#define AR6320V3_AXI_LEN         0x18000  // axi length
 
 struct ath_target_reg_info {
     A_UINT32 reg_start;
@@ -140,13 +151,20 @@ static const struct ath_target_reg_info reg_ar6320_v1[] = {
 static const struct ath_target_reg_info reg_ar6320_v2[] = {
     {AR6320V2_DRAM_START_ADDR,      AR6320V2_DUMP_DRAM_LEN, "DRAM",      "fwdump_rome_v2_dram"},
     {AR6320V2_IRAM_START_ADDR,      AR6320V2_IRAM_LEN,      "IRAM",      "fwdump_rome_v2_iram"},
-    {AR6320V2_AXI_START_ADDR,       AR6320V2_AXI_LEN,       "AXI",       "fwdump_rome_v2_axi"},
+    {AR6320V2_AXI_START_ADDR,       AR6320V2_AXI_LEN,       "AXI",       "fwdump_rome_v2_axi" },
+    {0, 0, 0, 0}
+};
+
+static const struct ath_target_reg_info reg_ar6320_v3[] = {
+    {AR6320V3_DRAM_START_ADDR,      AR6320V3_DUMP_DRAM_LEN, "DRAM",      "fwdump_rome_v3_dram"},
+    {AR6320V3_IRAM_START_ADDR,      AR6320V3_IRAM_LEN,      "IRAM",      "fwdump_rome_v3_iram"},
+    {AR6320V3_AXI_START_ADDR,       AR6320V3_AXI_LEN,       "AXI" ,      "fwdump_rome_v3_axi" },
     {0, 0, 0, 0}
 };
 
 #define INVALID_TARGET_INDEX    0xffff
 #define MIN_TARGET_INDEX        0
-#define MAX_TARGET_INDEX        3
+#define MAX_TARGET_INDEX        4
 
 struct ath_target_info {
     const char *name;
@@ -157,6 +175,7 @@ static const struct ath_target_info target_info[] = {
     {"AR9888_v2", reg_ar9888_v2},
     {"AR6320_v1", reg_ar6320_v1},
     {"AR6320_v2", reg_ar6320_v2},
+    {"AR6320_v3", reg_ar6320_v3},
 };
 
 

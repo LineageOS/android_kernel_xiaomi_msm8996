@@ -1524,6 +1524,11 @@ typedef enum
 #define CFG_DISABLE_DFS_CH_SWITCH_MAX             ( 1 )
 #define CFG_DISABLE_DFS_CH_SWITCH_DEFAULT         ( 0 )
 
+#define CFG_ENABLE_DFS_MASTER_CAPABILITY               "gEnableDFSMasterCap"
+#define CFG_ENABLE_DFS_MASTER_CAPABILITY_MIN           ( 0 )
+#define CFG_ENABLE_DFS_MASTER_CAPABILITY_MAX           ( 1 )
+#define CFG_ENABLE_DFS_MASTER_CAPABILITY_DEFAULT       ( 0 )
+
 #define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_NAME       "dfsPhyerrFilterOffload"
 #define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MIN        ( 0 )
 #define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MAX        ( 1 )
@@ -2653,6 +2658,33 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ROAMING_OFFLOAD_DEFAULT             (0)
 #endif
 
+#ifdef IPA_UC_OFFLOAD
+#define CFG_IPA_UC_OFFLOAD_ENABLED_NAME            "IpaUcOffloadEnabled"
+#define CFG_IPA_UC_OFFLOAD_ENABLED_MIN             ( 0 )
+#define CFG_IPA_UC_OFFLOAD_ENABLED_MAX             ( 1 )
+#define CFG_IPA_UC_OFFLOAD_ENABLED_DEFAULT         ( 0 )
+
+#define CFG_IPA_UC_TX_BUF_COUNT_NAME               "IpaUcTxBufCount"
+#define CFG_IPA_UC_TX_BUF_COUNT_MIN                ( 0 )
+#define CFG_IPA_UC_TX_BUF_COUNT_MAX                ( 2048 )
+#define CFG_IPA_UC_TX_BUF_COUNT_DEFAULT            ( 512 )
+
+#define CFG_IPA_UC_TX_BUF_SIZE_NAME                "IpaUcTxBufSize"
+#define CFG_IPA_UC_TX_BUF_SIZE_MIN                ( 0 )
+#define CFG_IPA_UC_TX_BUF_SIZE_MAX                ( 4096 )
+#define CFG_IPA_UC_TX_BUF_SIZE_DEFAULT            ( 2048 )
+
+#define CFG_IPA_UC_RX_IND_RING_COUNT_NAME          "IpaUcRxIndRingCount"
+#define CFG_IPA_UC_RX_IND_RING_COUNT_MIN           ( 0 )
+#define CFG_IPA_UC_RX_IND_RING_COUNT_MAX           ( 2048 )
+#define CFG_IPA_UC_RX_IND_RING_COUNT_DEFAULT       ( 1024 )
+
+#define CFG_IPA_UC_TX_PARTITION_BASE_NAME          "IpaUcTxPartitionBase"
+#define CFG_IPA_UC_TX_PARTITION_BASE_MIN           ( 0 )
+#define CFG_IPA_UC_TX_PARTITION_BASE_MAX           ( 9000 )
+#define CFG_IPA_UC_TX_PARTITION_BASE_DEFAULT       ( 3000 )
+#endif /* IPA_UC_OFFLOAD */
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3140,6 +3172,7 @@ typedef struct
    v_U8_t                      wowEnable;
    v_U8_t                      maxNumberOfPeers;
    v_U8_t                      disableDFSChSwitch;
+   v_U8_t                      enableDFSMasterCap;
 #ifndef QCA_WIFI_ISOC
    v_U16_t                     thermalTempMinLevel0;
    v_U16_t                     thermalTempMaxLevel0;
@@ -3227,6 +3260,13 @@ typedef struct
    v_BOOL_t                    isRoamOffloadEnabled;
 #endif
 
+#ifdef IPA_UC_OFFLOAD
+   v_U8_t                      IpaUcOffloadEnabled;
+   v_U32_t                     IpaUcTxBufCount;
+   v_U32_t                     IpaUcTxBufSize;
+   v_U32_t                     IpaUcRxIndRingCount;
+   v_U32_t                     IpaUcTxPartitionBase;
+#endif /* IPA_UC_OFFLOAD */
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

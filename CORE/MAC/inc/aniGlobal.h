@@ -1037,6 +1037,19 @@ typedef struct sMacOpenParameters
     /* dfs radar pri multiplier */
     tANI_S32 dfsRadarPriMultiplier;
 
+#ifdef IPA_UC_OFFLOAD
+    /* IPA Micro controller data path offload enable flag */
+    tANI_U8 ucOffloadEnabled;
+    /* IPA Micro controller data path offload TX buffer count */
+    tANI_U32 ucTxBufCount;
+    /* IPA Micro controller data path offload TX buffer size */
+    tANI_U32 ucTxBufSize;
+    /* IPA Micro controller data path offload RX indication ring count */
+    tANI_U32 ucRxIndRingCount;
+    /* IPA Micro controller data path offload TX partition base */
+    tANI_U32 ucTxPartitionBase;
+#endif /* IPA_UC_OFFLOAD */
+
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters

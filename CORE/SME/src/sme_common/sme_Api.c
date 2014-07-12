@@ -11796,6 +11796,35 @@ eHalStatus sme_SetHT2040Mode(tHalHandle hHal, tANI_U8 sessionId, tANI_U8 channel
    }
    return (status);
 }
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_SetPhyCBMode24G
+
+    \brief Changes PHY channel bonding mode
+
+    \param hHal - The handle returned by macOpen.
+
+    \param cbMode new channel bonding mode which is to set
+
+    \return eHalStatus  SUCCESS.
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_SetPhyCBMode24G(tHalHandle hHal, ePhyChanBondState phyCBMode)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+    if (NULL == pMac)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "%s: invalid context", __func__);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    pMac->roam.configParam.channelBondingMode24GHz = phyCBMode;
+
+    return eHAL_STATUS_SUCCESS;
+}
 #endif
 
 /*

@@ -773,7 +773,12 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         if (pSmeStartBssReq->channelId)
         {
             channelNumber = pSmeStartBssReq->channelId;
-            psessionEntry->htSupportedChannelWidthSet = (pSmeStartBssReq->cbMode)?1:0; // This is already merged value of peer and self - done by csr in csrGetCBModeFromIes
+            if (pSmeStartBssReq->obssEnabled)
+                psessionEntry->htSupportedChannelWidthSet =
+                                 IS_DOT11_MODE_HT(psessionEntry->dot11mode)?1:0;
+            else
+                psessionEntry->htSupportedChannelWidthSet =
+                                 (pSmeStartBssReq->cbMode)?1:0;
             psessionEntry->htRecommendedTxWidthSet = psessionEntry->htSupportedChannelWidthSet;
             psessionEntry->htSecondaryChannelOffset = pSmeStartBssReq->cbMode;
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
@@ -1013,12 +1018,25 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) != eSIR_SUCCESS)
                 limLog(pMac, LOGP, FL("Fail to get WNI_CFG_11H_ENABLED "));
             psessionEntry->lim11hEnable = val;
+
+            if (psessionEntry->lim11hEnable &&
+                (eSIR_INFRA_AP_MODE == pMlmStartReq->bssType))
+            {
+                if (wlan_cfgGetInt(pMac, WNI_CFG_DFS_MASTER_ENABLED, &val) !=
+                                eSIR_SUCCESS)
+                {
+                    limLog(pMac, LOGE,
+                            FL("Fail to get WNI_CFG_DFS_MASTER_ENABLED"));
+                }
+                psessionEntry->lim11hEnable = val;
+            }
         }
 
         if (!psessionEntry->lim11hEnable)
         {
             if (cfgSetInt(pMac, WNI_CFG_LOCAL_POWER_CONSTRAINT, 0) != eSIR_SUCCESS)
-                limLog(pMac, LOGP, FL("Fail to get WNI_CFG_11H_ENABLED "));
+                limLog(pMac, LOGE, FL
+                      ("Fail to set value for WNI_CFG_LOCAL_POWER_CONSTRAINT"));
         }
 
         psessionEntry ->limPrevSmeState = psessionEntry->limSmeState;
@@ -3800,9 +3818,9 @@ __limHandleSmeStopBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     psessionEntry->addIeParams.probeRespDataLen = 0;
     psessionEntry->addIeParams.probeRespData_buff = NULL;
 
-    vos_mem_free(psessionEntry->addIeParams.probeRespBCNData_buff);
-    psessionEntry->addIeParams.probeRespBCNDataLen = 0;
-    psessionEntry->addIeParams.probeRespBCNData_buff = NULL;
+    vos_mem_free(psessionEntry->addIeParams.assocRespData_buff);
+    psessionEntry->addIeParams.assocRespDataLen = 0;
+    psessionEntry->addIeParams.assocRespData_buff = NULL;
 
     vos_mem_free(psessionEntry->addIeParams.probeRespBCNData_buff);
     psessionEntry->addIeParams.probeRespBCNDataLen = 0;
@@ -4817,19 +4835,13 @@ static void __limProcessSmeSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     switch(pSetHT2040Mode->cbMode)
     {
     case PHY_SINGLE_CHANNEL_CENTERED:
-        psessionEntry->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
         psessionEntry->htSecondaryChannelOffset = PHY_SINGLE_CHANNEL_CENTERED;
-        psessionEntry->htRecommendedTxWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
         break;
     case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
-        psessionEntry->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
         psessionEntry->htSecondaryChannelOffset = PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
-        psessionEntry->htRecommendedTxWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
         break;
     case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
-        psessionEntry->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
         psessionEntry->htSecondaryChannelOffset = PHY_DOUBLE_CHANNEL_HIGH_PRIMARY;
-        psessionEntry->htRecommendedTxWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
         break;
     default:
         limLog(pMac, LOGE,FL("Invalid cbMode"));

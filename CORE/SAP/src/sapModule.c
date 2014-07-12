@@ -3403,7 +3403,7 @@ WLANSAP_Set_DfsNol(v_PVOID_t pSapCtx, eSapDfsNolType conf)
 
                 /* mark the timestamp */
                 pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
-                    .radar_found_timestamp = vos_timer_get_system_time();
+                    .radar_found_timestamp = vos_get_monotonic_boottime();
             } else {
                 /* mark the channel available */
                 pMac->sap.SapDfsInfo.sapDfsChannelNolList[i].
