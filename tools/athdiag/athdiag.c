@@ -93,13 +93,11 @@
 #define TARGET_FLAG                     0x1000
 #define PATH_FLAG                       0x2000
 
-
 /* Limit malloc size when reading/writing file */
 #define MAX_BUF                         (8*1024)
 
 #define DUMP_DRAM_START_ADDR 0x400000
 #define DUMP_DRAM_LEN        0x50000
-
 
 #define PEREGRINE_REG_PART1_START_ADDR 0x4000
 #define PEREGRINE_REG_PART1_LEN        0x2000
@@ -111,6 +109,12 @@
 #define AR6320V1_REG_PART2_START_ADDR 0x27000             /*STEREO_BASE_ADDRESS*/
 #define AR6320V1_REG_PART2_LEN        (0x60000 - 0x27000) /*USB_BASE_ADDRESS - STEREO_BASE_ADDRESS*/
 
+#define AR6320V2_DRAM_START_ADDR 0x400000   // dram start
+#define AR6320V2_DUMP_DRAM_LEN   0x70000    // dram length
+#define AR6320V2_IRAM_START_ADDR 0x980000   // iram start
+#define AR6320V2_IRAM_LEN        0x38000    // iram length
+#define AR6320V2_AXI_START_ADDR  0xa0000    // axi start
+#define AR6320V2_AXI_LEN         0x18000    // axi length
 
 struct ath_target_reg_info {
     A_UINT32 reg_start;
@@ -133,10 +137,16 @@ static const struct ath_target_reg_info reg_ar6320_v1[] = {
     {0, 0, 0, 0}
 };
 
+static const struct ath_target_reg_info reg_ar6320_v2[] = {
+    {AR6320V2_DRAM_START_ADDR,      AR6320V2_DUMP_DRAM_LEN, "DRAM",      "fwdump_rome_v2_dram"},
+    {AR6320V2_IRAM_START_ADDR,      AR6320V2_IRAM_LEN,      "IRAM",      "fwdump_rome_v2_iram"},
+    {AR6320V2_AXI_START_ADDR,       AR6320V2_AXI_LEN,       "AXI",       "fwdump_rome_v2_axi"},
+    {0, 0, 0, 0}
+};
 
 #define INVALID_TARGET_INDEX    0xffff
 #define MIN_TARGET_INDEX        0
-#define MAX_TARGET_INDEX        2
+#define MAX_TARGET_INDEX        3
 
 struct ath_target_info {
     const char *name;
@@ -146,6 +156,7 @@ struct ath_target_info {
 static const struct ath_target_info target_info[] = {
     {"AR9888_v2", reg_ar9888_v2},
     {"AR6320_v1", reg_ar6320_v1},
+    {"AR6320_v2", reg_ar6320_v2},
 };
 
 
@@ -410,7 +421,7 @@ DumpTargetMem(int dev, unsigned int target_idx, char *pathname)
     A_UINT8 *buffer;
     unsigned int i, address, length, remaining;
 
-    if ((target_idx < MIN_TARGET_INDEX) || (target_idx >= MAX_TARGET_INDEX))
+    if (target_idx >= MAX_TARGET_INDEX)
         return;
 
     buffer = (A_UINT8 *)MALLOC(MAX_BUF);
@@ -443,7 +454,7 @@ DumpTargetMem(int dev, unsigned int target_idx, char *pathname)
                     address+length);
         }
 
-        nqprintf("DIAG Read Target (address: 0x%x, length: %d, filename: %s)\n",
+        nqprintf("DIAG Read Target (address: 0x%x, length: 0x%x, filename: %s)\n",
                     address, length, filename);
 
         while (remaining) {
@@ -488,7 +499,7 @@ parse_target_index(char *optarg)
     unsigned int i, index = INVALID_TARGET_INDEX;
 
     for (i = 0; i < sizeof(target_info)/sizeof(target_info[0]); i++) {
-        if (strncmp(optarg, target_info[i].name, sizeof(target_info[i].name)) == 0) {
+        if (strncmp(optarg, target_info[i].name, strlen(target_info[i].name)) == 0) {
             /* found */
             index = i;
             break;

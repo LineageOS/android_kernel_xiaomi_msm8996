@@ -127,7 +127,7 @@ static void HTT_RX_FRAG_SET_LAST_MSDU(
     adf_nbuf_set_pktlen(msdu, HTT_RX_BUF_SIZE);
     adf_nbuf_unmap(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
     rx_desc = htt_rx_desc(msdu);
-    rx_desc->fw_desc.u.val.u.val = *p_fw_msdu_rx_desc;
+    *((u_int8_t *) &rx_desc->fw_desc.u.val) = *p_fw_msdu_rx_desc;
     rx_desc->msdu_end.last_msdu = 1;
     adf_nbuf_map(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
 }

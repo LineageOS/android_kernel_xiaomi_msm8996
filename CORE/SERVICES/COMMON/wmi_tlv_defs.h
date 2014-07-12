@@ -486,6 +486,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_extscan_cache_capabilities_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_extscan_wlan_change_monitor_capabilities_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_extscan_hotlist_monitor_capabilities_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_d0_wow_enable_disable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_d0_wow_disable_ack_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -663,7 +665,8 @@ typedef enum {
     OP(WMI_EXTSCAN_GET_CACHED_RESULTS_CMDID) \
     OP(WMI_EXTSCAN_GET_WLAN_CHANGE_RESULTS_CMDID) \
     OP(WMI_EXTSCAN_SET_CAPABILITIES_CMDID) \
-    OP(WMI_EXTSCAN_GET_CAPABILITIES_CMDID)
+    OP(WMI_EXTSCAN_GET_CAPABILITIES_CMDID) \
+    OP(WMI_D0_WOW_ENABLE_DISABLE_CMDID)
 
 
 /*
@@ -746,7 +749,8 @@ typedef enum {
     OP(WMI_EXTSCAN_CACHED_RESULTS_EVENTID) \
     OP(WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID) \
     OP(WMI_EXTSCAN_HOTLIST_MATCH_EVENTID) \
-    OP(WMI_EXTSCAN_CAPABILITIES_EVENTID)
+    OP(WMI_EXTSCAN_CAPABILITIES_EVENTID) \
+    OP(WMI_D0_WOW_DISABLE_ACK_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1814,6 +1818,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_chan_avoid_update_cmd_param, wmi_chan_avoid_update_cmd_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_CHAN_AVOID_UPDATE_CMDID);
 
+/* D0-WOW Enable Disable Cmd */
+#define WMITLV_TABLE_WMI_D0_WOW_ENABLE_DISABLE_CMDID(id,op,buf,len)                                                         \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_d0_wow_enable_disable_cmd_fixed_param, wmi_d0_wow_enable_disable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_D0_WOW_ENABLE_DISABLE_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -2240,6 +2249,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_HOST_AUTO_SHUTDOWN_EVENTID);
 #define WMITLV_TABLE_WMI_PEER_STATE_EVENTID(id,op,buf,len)                                     \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_state_event_fixed_param, wmi_peer_state_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_PEER_STATE_EVENTID);
+
+/* D0-WOW Disable Ack event */
+#define WMITLV_TABLE_WMI_D0_WOW_DISABLE_ACK_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_d0_wow_disable_ack_event_fixed_param, wmi_d0_wow_disable_ack_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_D0_WOW_DISABLE_ACK_EVENTID);
 
 #ifdef __cplusplus
 }

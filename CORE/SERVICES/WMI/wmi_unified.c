@@ -564,6 +564,7 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 		CASE_RETURN_STRING(WMI_ROAM_SYNCH_COMPLETE);
 #endif
+		CASE_RETURN_STRING(WMI_D0_WOW_ENABLE_DISABLE_CMDID);
 	}
 	return "Invalid WMI cmd";
 }
