@@ -2353,7 +2353,7 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 	link_stats_results->paramId            = WMI_LINK_STATS_IFACE;
 	link_stats_results->rspId              = fixed_param->request_id;
 	link_stats_results->ifaceId            = fixed_param->vdev_id;
-	link_stats_results->num_peers          = 0;
+	link_stats_results->num_peers          = link_stats->num_peers;
 	link_stats_results->peer_event_number  = 0;
 	link_stats_results->moreResultToFollow = 0;
 
