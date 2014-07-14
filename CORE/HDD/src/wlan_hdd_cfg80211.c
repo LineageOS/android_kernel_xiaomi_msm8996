@@ -13691,13 +13691,12 @@ int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
 
 #ifdef FEATURE_WLAN_EXTSCAN
 
-static void wlan_hdd_cfg80211_extscan_get_capabilities_ind(void *ctx,
-                                                           void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_get_capabilities_ind(void *ctx,
+                                            tpSirExtScanCapabilitiesEvent pData)
 {
     hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
     struct sk_buff *skb     = NULL;
-    tpSirExtScanCapabilitiesEvent pData =
-                    (tpSirExtScanCapabilitiesEvent) pMsg;
 
     ENTER();
 
@@ -13772,11 +13771,11 @@ nla_put_failure:
 }
 
 
-static void wlan_hdd_cfg80211_extscan_start_rsp(void *ctx, void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_start_rsp(void *ctx, tpSirExtScanStartRspParams pData)
 {
-    tpSirExtScanStartRspParams pData = (tpSirExtScanStartRspParams) pMsg;
-    hdd_context_t *pHddCtx         = (hdd_context_t *)ctx;
-    struct sk_buff *skb            = NULL;
+    hdd_context_t *pHddCtx           = (hdd_context_t *)ctx;
+    struct sk_buff *skb              = NULL;
 
     ENTER();
 
@@ -13814,11 +13813,11 @@ nla_put_failure:
 }
 
 
-static void wlan_hdd_cfg80211_extscan_stop_rsp(void *ctx, void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_stop_rsp(void *ctx, tpSirExtScanStopRspParams pData)
 {
-    tpSirExtScanStopRspParams pData = (tpSirExtScanStopRspParams) pMsg;
-    hdd_context_t *pHddCtx        = (hdd_context_t *)ctx;
-    struct sk_buff *skb           = NULL;
+    hdd_context_t *pHddCtx          = (hdd_context_t *)ctx;
+    struct sk_buff *skb             = NULL;
 
     if (wlan_hdd_validate_context(pHddCtx) || !pData) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid "
@@ -13854,13 +13853,12 @@ nla_put_failure:
 }
 
 
-static void wlan_hdd_cfg80211_extscan_set_bss_hotlist_rsp(void *ctx,
-                                                        void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_set_bss_hotlist_rsp(void *ctx,
+                                     tpSirExtScanSetBssidHotListRspParams pData)
 {
     hdd_context_t *pHddCtx    = (hdd_context_t *)ctx;
     struct sk_buff *skb       = NULL;
-    tpSirExtScanSetBssidHotListRspParams pData =
-                    (tpSirExtScanSetBssidHotListRspParams) pMsg;
 
     ENTER();
 
@@ -13897,13 +13895,12 @@ nla_put_failure:
     return;
 }
 
-static void wlan_hdd_cfg80211_extscan_reset_bss_hotlist_rsp(void *ctx,
-                                                          void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_reset_bss_hotlist_rsp(void *ctx,
+                                   tpSirExtScanResetBssidHotlistRspParams pData)
 {
     hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
     struct sk_buff *skb     = NULL;
-    tpSirExtScanResetBssidHotlistRspParams pData =
-                    (tpSirExtScanResetBssidHotlistRspParams) pMsg;
 
     ENTER();
 
@@ -13941,13 +13938,12 @@ nla_put_failure:
 }
 
 
-static void wlan_hdd_cfg80211_extscan_set_signf_wifi_change_rsp(void *ctx,
-                                                              void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_set_signf_wifi_change_rsp(void *ctx,
+                                tpSirExtScanSetSignificantChangeRspParams pData)
 {
     hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
     struct sk_buff *skb     = NULL;
-    tpSirExtScanSetSignificantChangeRspParams pData =
-                    (tpSirExtScanSetSignificantChangeRspParams) pMsg;
 
     ENTER();
 
@@ -13986,13 +13982,12 @@ nla_put_failure:
 }
 
 
-static void wlan_hdd_cfg80211_extscan_reset_signf_wifi_change_rsp(void *ctx,
-                                                                void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_reset_signf_wifi_change_rsp(void *ctx,
+                              tpSirExtScanResetSignificantChangeRspParams pData)
 {
     hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
     struct sk_buff *skb     = NULL;
-    tpSirExtScanResetSignificantChangeRspParams pData =
-                    (tpSirExtScanResetSignificantChangeRspParams) pMsg;
 
     ENTER();
 
@@ -14030,13 +14025,13 @@ nla_put_failure:
     return;
 }
 
-static void wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
-                                                       void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
+                                             tpSirWifiScanResultEvent pData)
 {
     hdd_context_t *pHddCtx = (hdd_context_t *)ctx;
     struct sk_buff *skb    = NULL;
     tANI_U32 i;
-    tpSirWifiScanResultEvent pData = (tpSirWifiScanResultEvent) pMsg;
 
     ENTER();
 
@@ -14165,10 +14160,10 @@ fail:
     return;
 
 }
-static void wlan_hdd_cfg80211_extscan_hotlist_match_ind(void *ctx,
-                                                      void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_hotlist_match_ind(void *ctx,
+                                            tpSirWifiScanResultEvent pData)
 {
-    tpSirWifiScanResultEvent pData = (tpSirWifiScanResultEvent) pMsg;
     hdd_context_t *pHddCtx         = (hdd_context_t *)ctx;
     struct sk_buff *skb            = NULL;
     tANI_U32 i;
@@ -14280,14 +14275,17 @@ fail:
 
 }
 
-static void wlan_hdd_cfg80211_extscan_signif_wifi_change_results_ind(void *ctx,
-                                                                   void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_signif_wifi_change_results_ind(
+                                          void *ctx,
+                                          tpSirWifiSignificantChangeEvent pData)
 {
-    hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
+    hdd_context_t  *pHddCtx = (hdd_context_t *)ctx;
     struct sk_buff *skb     = NULL;
+    tSirWifiSignificantChange *ap_info;
+    tANI_S32                  *rssi;
     tANI_U32 i, j;
-    tpSirWifiSignificantChangeEvent pData =
-                                     (tpSirWifiSignificantChangeEvent) pMsg;
+
     ENTER();
 
     if (wlan_hdd_validate_context(pHddCtx) || !pData) {
@@ -14310,17 +14308,21 @@ static void wlan_hdd_cfg80211_extscan_signif_wifi_change_results_ind(void *ctx,
     hddLog(VOS_TRACE_LEVEL_INFO, "Num results (%u)", pData->numResults);
     hddLog(VOS_TRACE_LEVEL_INFO, "More Data (%u)", pData->moreData);
 
+    ap_info = &pData->ap[0];
     for (i = 0; i < pData->numResults; i++) {
         hddLog(VOS_TRACE_LEVEL_INFO, "[index=%d] "
                               "Bssid (" MAC_ADDRESS_STR ") "
                               "Channel (%u) "
                               "numOfRssi (%d)",
                               i,
-                              MAC_ADDR_ARRAY(pData->ap[i]->bssid),
-                              pData->ap[i]->channel,
-                              pData->ap[i]->numOfRssi);
-        for (j = 0; j < pData->ap[i]->numOfRssi; j++)
-            hddLog(VOS_TRACE_LEVEL_INFO, "Rssi (%d)", pData->ap[i]->rssi[j]);
+                              MAC_ADDR_ARRAY(ap_info->bssid),
+                              ap_info->channel,
+                              ap_info->numOfRssi);
+        rssi = &(ap_info)->rssi[0];
+        for (j = 0; j < ap_info->numOfRssi; j++)
+            hddLog(VOS_TRACE_LEVEL_INFO, "Rssi (%d)", *rssi++);
+
+        ap_info += ap_info->numOfRssi * sizeof(*rssi);
     }
 
     if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
@@ -14339,6 +14341,7 @@ static void wlan_hdd_cfg80211_extscan_signif_wifi_change_results_ind(void *ctx,
         if (!aps)
             goto fail;
 
+        ap_info = &pData->ap[0];
         for (i = 0; i < pData->numResults; i++) {
             struct nlattr *ap;
 
@@ -14348,19 +14351,21 @@ static void wlan_hdd_cfg80211_extscan_signif_wifi_change_results_ind(void *ctx,
 
             if (nla_put(skb,
                   QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SIGNIFICANT_CHANGE_RESULT_BSSID,
-                sizeof(tSirMacAddr), pData->ap[i]->bssid) ||
+                sizeof(tSirMacAddr), ap_info->bssid) ||
                 nla_put_u32(skb,
                   QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SIGNIFICANT_CHANGE_RESULT_CHANNEL,
-                pData->ap[i]->channel) ||
+                ap_info->channel) ||
                 nla_put_u32(skb,
                   QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SIGNIFICANT_CHANGE_RESULT_NUM_RSSI,
-                pData->ap[i]->numOfRssi) ||
+                ap_info->numOfRssi) ||
                 nla_put(skb,
                   QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SIGNIFICANT_CHANGE_RESULT_RSSI_LIST,
-                  sizeof(s32) * pData->ap[i]->numOfRssi, pData->ap[i]->rssi))
+                  sizeof(s32) * ap_info->numOfRssi, &(ap_info)->rssi[0]))
                 goto fail;
 
               nla_nest_end(skb, ap);
+
+            ap_info += ap_info->numOfRssi * sizeof(*rssi);
         }
         nla_nest_end(skb, aps);
 
@@ -14379,13 +14384,12 @@ fail:
 
 }
 
-static void wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
-                                                           void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
+                                             tpSirWifiFullScanResultEvent pData)
 {
     hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
     struct sk_buff *skb     = NULL;
-    tpSirWifiFullScanResultEvent pData =
-                    (tpSirWifiFullScanResultEvent) pMsg;
 
     ENTER();
 
@@ -14475,13 +14479,12 @@ nla_put_failure:
     return;
 }
 
-static void wlan_hdd_cfg80211_extscan_scan_res_available_event(void *ctx,
-                                                             void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_scan_res_available_event(void *ctx,
+                                    tpSirExtScanResultsAvailableIndParams pData)
 {
     hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
     struct sk_buff *skb     = NULL;
-    tpSirExtScanResultsAvailableIndParams pData =
-                    (tpSirExtScanResultsAvailableIndParams) pMsg;
 
     ENTER();
 
@@ -14522,13 +14525,12 @@ nla_put_failure:
     return;
 }
 
-static void wlan_hdd_cfg80211_extscan_scan_progress_event(void *ctx,
-                                                          void *pMsg)
+static void
+wlan_hdd_cfg80211_extscan_scan_progress_event(void *ctx,
+                                         tpSirExtScanOnScanEventIndParams pData)
 {
     hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
     struct sk_buff *skb     = NULL;
-    tpSirExtScanOnScanEventIndParams pData =
-                                   (tpSirExtScanOnScanEventIndParams) pMsg;
 
     ENTER();
 
@@ -14548,10 +14550,13 @@ static void wlan_hdd_cfg80211_extscan_scan_progress_event(void *ctx,
                   FL("cfg80211_vendor_event_alloc failed"));
         return;
     }
+    hddLog(VOS_TRACE_LEVEL_INFO, "Request Id (%u)", pData->requestId);
     hddLog(VOS_TRACE_LEVEL_INFO, "Scan event type (%u)", pData->scanEventType);
     hddLog(VOS_TRACE_LEVEL_INFO, "Scan event status (%u)", pData->status);
 
-    if (nla_put_u8(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_EVENT_TYPE,
+    if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
+                    pData->requestId) ||
+        nla_put_u8(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_EVENT_TYPE,
                    pData->scanEventType) ||
         nla_put_u32(skb,
                     QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_EVENT_STATUS,
@@ -14570,7 +14575,7 @@ nla_put_failure:
 
 
 void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
-                                      void *pMsg)
+                                        void *pMsg)
 {
     hdd_context_t *pHddCtx = (hdd_context_t *)ctx;
 
@@ -14584,11 +14589,13 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
 
     switch (evType) {
     case eSIR_EXTSCAN_START_RSP:
-            wlan_hdd_cfg80211_extscan_start_rsp(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_start_rsp(ctx,
+                                              (tpSirExtScanStartRspParams)pMsg);
             break;
 
     case eSIR_EXTSCAN_STOP_RSP:
-            wlan_hdd_cfg80211_extscan_stop_rsp(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_stop_rsp(ctx,
+                                              (tpSirExtScanStopRspParams)pMsg);
             break;
 
     case eSIR_EXTSCAN_CACHED_RESULTS_RSP:
@@ -14599,48 +14606,59 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
             break;
 
     case eSIR_EXTSCAN_SET_BSSID_HOTLIST_RSP:
-            wlan_hdd_cfg80211_extscan_set_bss_hotlist_rsp(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_set_bss_hotlist_rsp(ctx,
+                                    (tpSirExtScanSetBssidHotListRspParams)pMsg);
             break;
 
     case eSIR_EXTSCAN_RESET_BSSID_HOTLIST_RSP:
-            wlan_hdd_cfg80211_extscan_reset_bss_hotlist_rsp(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_reset_bss_hotlist_rsp(ctx,
+                                  (tpSirExtScanResetBssidHotlistRspParams)pMsg);
             break;
 
     case eSIR_EXTSCAN_SET_SIGNIFICANT_WIFI_CHANGE_RSP:
-            wlan_hdd_cfg80211_extscan_set_signf_wifi_change_rsp(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_set_signf_wifi_change_rsp(ctx,
+                               (tpSirExtScanSetSignificantChangeRspParams)pMsg);
             break;
 
     case eSIR_EXTSCAN_RESET_SIGNIFICANT_WIFI_CHANGE_RSP:
-            wlan_hdd_cfg80211_extscan_reset_signf_wifi_change_rsp(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_reset_signf_wifi_change_rsp(ctx,
+                             (tpSirExtScanResetSignificantChangeRspParams)pMsg);
             break;
 
     case eSIR_EXTSCAN_GET_CAPABILITIES_IND:
-            wlan_hdd_cfg80211_extscan_get_capabilities_ind(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_get_capabilities_ind(ctx,
+                                           (tpSirExtScanCapabilitiesEvent)pMsg);
             break;
 
     case eSIR_EXTSCAN_HOTLIST_MATCH_IND:
-            wlan_hdd_cfg80211_extscan_hotlist_match_ind(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_hotlist_match_ind(ctx,
+                                            (tpSirWifiScanResultEvent)pMsg);
             break;
 
     case eSIR_EXTSCAN_SIGNIFICANT_WIFI_CHANGE_RESULTS_IND:
-            wlan_hdd_cfg80211_extscan_signif_wifi_change_results_ind(ctx,
-                                                                     pMsg);
+            wlan_hdd_cfg80211_extscan_signif_wifi_change_results_ind(
+                                         ctx,
+                                         (tpSirWifiSignificantChangeEvent)pMsg);
             break;
 
     case eSIR_EXTSCAN_CACHED_RESULTS_IND:
-            wlan_hdd_cfg80211_extscan_cached_results_ind(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_cached_results_ind(ctx,
+                                                (tpSirWifiScanResultEvent)pMsg);
             break;
 
     case eSIR_EXTSCAN_SCAN_RES_AVAILABLE_IND:
-            wlan_hdd_cfg80211_extscan_scan_res_available_event(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_scan_res_available_event(ctx,
+                                   (tpSirExtScanResultsAvailableIndParams)pMsg);
             break;
 
     case eSIR_EXTSCAN_FULL_SCAN_RESULT_IND:
-            wlan_hdd_cfg80211_extscan_full_scan_result_event(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_full_scan_result_event(ctx,
+                                   (tpSirWifiFullScanResultEvent)pMsg);
             break;
 
     case eSIR_EXTSCAN_SCAN_PROGRESS_EVENT_IND:
-            wlan_hdd_cfg80211_extscan_scan_progress_event(ctx, pMsg);
+            wlan_hdd_cfg80211_extscan_scan_progress_event(ctx,
+                                   (tpSirExtScanOnScanEventIndParams)pMsg);
             break;
 
     default:

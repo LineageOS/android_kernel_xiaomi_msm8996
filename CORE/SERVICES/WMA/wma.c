@@ -2233,6 +2233,9 @@ static int wma_extscan_operations_event_handler(void *handle,
 		vos_mem_free(oprn_ind);
 		return -EINVAL;
 	}
+
+	oprn_ind->requestId = oprn_event->request_id;
+
 	switch (oprn_event->event) {
 	case WMI_EXTSCAN_CYCLE_COMPLETED_EVENT:
 		oprn_ind->scanEventType =  WIFI_SCAN_COMPLETE;
@@ -2538,7 +2541,7 @@ static int wma_extscan_change_results_event_handler(void *handle,
 	WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID_param_tlvs *param_buf;
 	wmi_extscan_wlan_change_results_event_fixed_param  *event;
 	tSirWifiSignificantChangeEvent  *dest_chglist;
-	tSirWifiSignificantChange  **dest_ap;
+	tSirWifiSignificantChange  *dest_ap;
 	wmi_extscan_wlan_change_result_bssid    *src_chglist;
 
 	int numap;
@@ -2592,18 +2595,18 @@ static int wma_extscan_change_results_event_handler(void *handle,
 	}
 	dest_ap = &dest_chglist->ap[0];
 	for (i = 0; i < numap; i++) {
-		(*dest_ap)->channel = src_chglist->channel;
+		dest_ap->channel = src_chglist->channel;
 		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_chglist->bssid,
-						(*dest_ap)->bssid);
-		(*dest_ap)->numOfRssi =
+						dest_ap->bssid);
+		dest_ap->numOfRssi =
 				src_chglist->num_rssi_samples;
-		if ((*dest_ap)->numOfRssi) {
-			for (k = 0; k < (*dest_ap)->numOfRssi; k++) {
-				(*dest_ap)->rssi[k] = WMA_TGT_NOISE_FLOOR_DBM +
+		if (dest_ap->numOfRssi) {
+			for (k = 0; k < dest_ap->numOfRssi; k++) {
+				dest_ap->rssi[k] = WMA_TGT_NOISE_FLOOR_DBM +
 							src_rssi[count++];
 			}
 		}
-		dest_ap++;
+		dest_ap += dest_ap->numOfRssi * sizeof(tANI_S32);
 		src_chglist++;
 	}
 	dest_chglist->requestId = event->request_id;

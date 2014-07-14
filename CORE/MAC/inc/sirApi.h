@@ -5049,7 +5049,7 @@ typedef struct
     tANI_U32     numOfRssi;
 
     /* Rssi history in db */
-    tANI_S32     *rssi;
+    tANI_S32     rssi[];
 } tSirWifiSignificantChange, *tpSirWifiSignificantChange;
 
 typedef struct
@@ -5058,7 +5058,7 @@ typedef struct
 
     tANI_BOOLEAN                  moreData;
     tANI_U32                      numResults;
-    tSirWifiSignificantChange     **ap;
+    tSirWifiSignificantChange     ap[];
 } tSirWifiSignificantChangeEvent, *tpSirWifiSignificantChangeEvent;
 
 typedef struct
@@ -5096,8 +5096,9 @@ typedef struct
 
 typedef struct
 {
-    tANI_U8    scanEventType;
+    tANI_U32   requestId;
     tANI_U32   status;
+    tANI_U8    scanEventType;
 } tSirExtScanOnScanEventIndParams,
   *tpSirExtScanOnScanEventIndParams;
 
