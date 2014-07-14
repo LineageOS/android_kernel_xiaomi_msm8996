@@ -5968,6 +5968,7 @@ typedef struct wmi_nlo_config {
     A_UINT32    slow_scan_period; /* specific to windows */
     A_UINT32    no_of_ssids;
     A_UINT32    num_of_channels;
+    A_UINT32    delay_start_time; /* NLO scan start delay time in milliseconds */
     /* The TLVs will follow.
         * nlo_configured_parameters nlo_list[];
         * A_UINT32 channel_list[];
@@ -6253,6 +6254,7 @@ typedef enum {
     RECOVERY_SIM_EMPTY_POINT     = 0x04,
     RECOVERY_SIM_STACK_OV        = 0x05,
     RECOVERY_SIM_INFINITE_LOOP   = 0x06,
+    RECOVERY_SIM_PCIE_LINKDOWN   = 0x07,
 } RECOVERY_SIM_TYPE;
 
 /* WMI_FORCE_FW_HANG_CMDID */
