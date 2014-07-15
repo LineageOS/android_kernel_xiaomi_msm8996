@@ -3152,6 +3152,8 @@ tSirRetStatus pmmOffloadEnterBmpsRespHandler(tpAniSirGlobal pMac,
     {
         pmmLog(pMac, LOGE,
                " No PE Session for given BSSID : Invalid Enter Bmps Request");
+        limSendSmeRsp(pMac, eWNI_PMC_ENTER_BMPS_RSP, eSIR_SME_INVALID_STATE,
+                      psRespData->sessionid, 0);
         return eSIR_FAILURE;
     }
 
@@ -3377,6 +3379,8 @@ tSirRetStatus pmmOffloadExitBmpsRespHandler(tpAniSirGlobal pMac,
     {
         pmmLog(pMac, LOGE,
                " No PE Session for given BSSID : Invalid Exit Bmps Request");
+        limSendSmeRsp(pMac, eWNI_PMC_EXIT_BMPS_RSP, eSIR_SME_INVALID_STATE,
+                      psRespData->sessionid, 0);
         return eSIR_FAILURE;
     }
 
@@ -3504,6 +3508,8 @@ tSirRetStatus pmmOffloadEnterUapsdRespHandler(tpAniSirGlobal pMac,
     {
         pmmLog(pMac, LOGE,
                " No PE Session for given BSSID : Invalid Enter Uapsd Request");
+        limSendSmeRsp(pMac, eWNI_PMC_ENTER_UAPSD_RSP, eSIR_SME_INVALID_STATE,
+                      psRespData->sessionid, 0);
         return eSIR_FAILURE;
     }
 
@@ -3653,6 +3659,8 @@ tSirRetStatus pmmOffloadExitUapsdRespHandler(tpAniSirGlobal pMac,
     {
         pmmLog(pMac, LOGE,
                " No PE Session for given BSSID : Invalid Exit Uapsd Request");
+        limSendSmeRsp(pMac, eWNI_PMC_EXIT_UAPSD_RSP, eSIR_SME_INVALID_STATE,
+                      psRespData->sessionid, 0);
         return eSIR_FAILURE;
     }
 
