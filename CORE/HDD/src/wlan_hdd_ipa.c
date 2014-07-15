@@ -287,6 +287,7 @@ struct hdd_ipa_priv {
 	struct work_struct rm_work;
 	enum ipa_client_type prod_client;
 
+	atomic_t tx_ref_cnt;
 	uint32_t pending_hw_desc_cnt;
 	uint32_t hw_desc_cnt;
 	spinlock_t q_lock;
@@ -893,6 +894,9 @@ static int hdd_ipa_rm_try_release(struct hdd_ipa_priv *hdd_ipa)
 	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
 		return 0;
 
+	if (atomic_read(&hdd_ipa->tx_ref_cnt))
+		return -EAGAIN;
+
 	spin_lock_bh(&hdd_ipa->q_lock);
 	if (hdd_ipa->pending_hw_desc_cnt || hdd_ipa->pend_q_cnt) {
 		spin_unlock_bh(&hdd_ipa->q_lock);
@@ -1138,6 +1142,7 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 
 	adf_os_spinlock_init(&hdd_ipa->rm_lock);
 	hdd_ipa->rm_state = HDD_IPA_RM_RELEASED;
+	atomic_set(&hdd_ipa->tx_ref_cnt, 0);
 
 	return ret;
 
@@ -1553,6 +1558,10 @@ static void hdd_ipa_nbuf_cb(adf_nbuf_t skb)
 	ipa_free_skb((struct ipa_rx_data *) NBUF_OWNER_PRIV_DATA(skb));
 
 	hdd_ipa->stats.num_tx_comp_cnt++;
+
+	atomic_dec(&hdd_ipa->tx_ref_cnt);
+
+	hdd_ipa_rm_try_release(hdd_ipa);
 }
 
 static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
@@ -1623,6 +1632,17 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 		iface_context->stats.num_tx_err++;
 		return;
 	}
+
+	atomic_inc(&hdd_ipa->tx_ref_cnt);
+
+	/*
+	 * If PROD resource is not requested here then there may be cases where
+	 * IPA hardware may be clocked down because of not having proper
+	 * dependency graph between WLAN CONS and modem PROD pipes. Adding the
+	 * workaround to request PROD resource while data is going over CONS
+	 * pipe to prevent the IPA hardware clockdown.
+	 */
+	hdd_ipa_rm_request(hdd_ipa);
 
 	iface_context->stats.num_tx++;
 }
@@ -2372,6 +2392,9 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 
 	len += scnprintf(buf + len, buf_len - len, "%30s: %s\n", "rm_state",
 			hdd_ipa_rm_state_to_str(hdd_ipa->rm_state));
+
+	len += scnprintf(buf + len, buf_len - len, "%30s: %d\n", "tx_ref_cnt",
+			atomic_read(&hdd_ipa->tx_ref_cnt));
 
 	len += HDD_IPA_STATS(buf + len, buf_len - len, hdd_ipa, num_rm_grant);
 	len += HDD_IPA_STATS(buf + len, buf_len - len, hdd_ipa, num_rm_release);
