@@ -3583,7 +3583,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     if (pCfg->ht2040CoexEnabled)
         wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
 #endif
-#ifdef FEATURE_WLAN_ROAM_OFFLOAD
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
     if (pCfg->isRoamOffloadEnabled) {
         wiphy->flags |= WIPHY_FLAG_HAS_KEY_MGMT_OFFLOAD;
         wiphy->key_mgmt_offload_support |=
@@ -3594,6 +3594,9 @@ int wlan_hdd_cfg80211_init(struct device *dev,
                          NL80211_KEY_MGMT_OFFLOAD_SUPPORT_PMKSA;
         wiphy->key_derive_offload_support |=
                          NL80211_KEY_DERIVE_OFFLOAD_SUPPORT_IGTK;
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+            "%s: LFR3:Driver key mgmt offload capability flags %x",
+                         __func__,wiphy->key_mgmt_offload_support);
     }
 #endif
 
@@ -9581,6 +9584,9 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
      * enabled in INI and FW also has the capability to handle
      * key management offload as part of LFR3.0
      */
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+            "%s: LFR3:Supplicant key mgmt offload capability flags %x",
+                                                  __func__,req->flags);
     if (!(req->auth_type == NL80211_AUTHTYPE_OPEN_SYSTEM) ||
         (req->auth_type == NL80211_AUTHTYPE_FT)) {
         if (!(req->flags & KEY_MGMT_OFFLOAD_BITMASK)) {
