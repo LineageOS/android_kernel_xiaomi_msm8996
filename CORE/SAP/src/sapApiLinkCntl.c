@@ -153,7 +153,7 @@ WLANSAP_ScanCallback
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR scanStatus = %s (%d)", __func__, "eCSR_SCAN_SUCCESS", scanStatus);
 
             // Get scan results, Run channel selection algorithm, select channel and keep in pSapContext->Channel
-            scanGetResultStatus = sme_ScanGetResult(halHandle, 0, NULL, &pResult);
+            scanGetResultStatus = sme_ScanGetResult(halHandle, psapContext->sessionId, NULL, &pResult);
 
             if ((scanGetResultStatus != eHAL_STATUS_SUCCESS)&& (scanGetResultStatus != eHAL_STATUS_E_NULL_VALUE))
             {
@@ -166,6 +166,7 @@ WLANSAP_ScanCallback
             operChannel = sapSelectChannel(halHandle, psapContext, pResult);
 
             sme_ScanResultPurge(halHandle, pResult);
+            sme_ScanFlushResult(halHandle, psapContext->sessionId);
             event = eSAP_MAC_SCAN_COMPLETE;
             break;
 
