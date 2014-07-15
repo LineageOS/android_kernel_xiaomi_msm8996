@@ -3660,7 +3660,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                         CFG_REORDER_OFFLOAD_SUPPORT_MIN,
                         CFG_REORDER_OFFLOAD_SUPPORT_MAX ),
 #endif
-
 #ifdef IPA_UC_OFFLOAD
    REG_VARIABLE( CFG_IPA_UC_OFFLOAD_ENABLED_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, IpaUcOffloadEnabled,
@@ -3697,6 +3696,28 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_IPA_UC_TX_PARTITION_BASE_MIN,
                  CFG_IPA_UC_TX_PARTITION_BASE_MAX ),
 #endif /* IPA_UC_OFFLOAD */
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+   REG_VARIABLE(CFG_WLAN_LOGGING_SUPPORT_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, wlanLoggingEnable,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_WLAN_LOGGING_SUPPORT_DEFAULT,
+                CFG_WLAN_LOGGING_SUPPORT_DISABLE,
+                CFG_WLAN_LOGGING_SUPPORT_ENABLE ),
+
+   REG_VARIABLE(CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, wlanLoggingFEToConsole,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_DEFAULT,
+                CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_DISABLE,
+                CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_ENABLE ),
+
+   REG_VARIABLE(CFG_WLAN_LOGGING_NUM_BUF_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, wlanLoggingNumBuf,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_WLAN_LOGGING_NUM_BUF_DEFAULT,
+                CFG_WLAN_LOGGING_NUM_BUF_MIN,
+                CFG_WLAN_LOGGING_NUM_BUF_MAX ),
+#endif /* WLAN_LOGGING_SOCK_SVC_ENABLE */
 };
 
 #ifdef WLAN_FEATURE_MBSSID

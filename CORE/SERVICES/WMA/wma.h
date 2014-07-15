@@ -697,6 +697,9 @@ typedef struct {
 
 	int32_t dfs_pri_multiplier;
 
+	u_int32_t hw_bd_id;
+	u_int32_t hw_bd_info[HW_BD_INFO_SIZE];
+
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

@@ -758,15 +758,15 @@ eHalStatus csrRoamSetPMKIDCache( tpAniSirGlobal pMac, tANI_U32 sessionId, tPmkid
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 /* ---------------------------------------------------------------------------
- *\fn csrRoamSetPSK
- *\brief store PSK
+ *\fn csrRoamSetPSK_PMK
+ *\brief store PSK/PMK
  *\param pMac  - pointer to global structure for MAC
  *\param sessionId - Sme session id
- *\param pPSK - pointer to an array of Psk
+ *\param pPSK_PMK - pointer to an array of Psk/Pmk
  *\return eHalStatus - usually it succeed unless sessionId is not found
  *\Note:
  *-------------------------------------------------------------------------------*/
-eHalStatus csrRoamSetPSK (tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *pPSK);
+eHalStatus csrRoamSetPSK_PMK (tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *pPSK_PMK);
 #endif
 /* ---------------------------------------------------------------------------
     \fn csrRoamGetWpaRsnReqIE

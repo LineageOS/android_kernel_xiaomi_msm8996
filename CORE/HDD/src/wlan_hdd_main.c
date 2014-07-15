@@ -75,6 +75,7 @@
 #include <wlan_hdd_cfg.h>
 #include <wlan_ptt_sock_svc.h>
 #include <dbglog_host.h>
+#include <wlan_logging_sock_svc.h>
 #include <wlan_hdd_wowl.h>
 #include <wlan_hdd_misc.h>
 #include <wlan_hdd_wext.h>
@@ -10507,6 +10508,12 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 #endif /* WLAN_KD_READY_NOTIFIER */
 
 
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+   if (pHddCtx->cfg_ini->wlanLoggingEnable) {
+      wlan_logging_sock_deactivate_svc();
+   }
+#endif
+
    hdd_close_all_adapters( pHddCtx );
 
 #ifdef IPA_OFFLOAD
@@ -12008,6 +12015,18 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_nl_srv;
    }
 
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+   if (pHddCtx->cfg_ini->wlanLoggingEnable) {
+      if (wlan_logging_sock_activate_svc(
+              pHddCtx->cfg_ini->wlanLoggingFEToConsole,
+              pHddCtx->cfg_ini->wlanLoggingNumBuf)) {
+         hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: wlan_logging_sock_activate_svc failed", __func__);
+         goto err_nl_srv;
+      }
+   }
+#endif
+
    hdd_register_mcast_bcast_filter(pHddCtx);
    if (VOS_STA_SAP_MODE != hdd_get_conparam())
    {
@@ -12287,8 +12306,8 @@ static int hdd_driver_init( void)
    int max_retries = 0;
 #endif
 
-#ifdef WCONN_TRACE_KMSG_LOG_BUFF
-   vos_wconn_trace_init();
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+   wlan_logging_sock_init_svc();
 #endif
 
    ENTER();
@@ -12316,6 +12335,11 @@ static int hdd_driver_init( void)
    if (max_retries >= 5) {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WCNSS driver not ready", __func__);
       vos_wake_lock_destroy(&wlan_wake_lock);
+
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+      wlan_logging_sock_deinit_svc();
+#endif
+
       return -ENODEV;
    }
 #endif
@@ -12414,6 +12438,11 @@ static int hdd_driver_init( void)
 #endif
 
       vos_wake_lock_destroy(&wlan_wake_lock);
+
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+      wlan_logging_sock_deinit_svc();
+#endif
+
       pr_err("%s: driver load failure\n", WLAN_MODULE_NAME);
    }
    else
@@ -12539,8 +12568,8 @@ static void hdd_driver_exit(void)
    vos_mem_exit();
 #endif
 
-#ifdef WCONN_TRACE_KMSG_LOG_BUFF
-   vos_wconn_trace_exit();
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+   wlan_logging_sock_deinit_svc();
 #endif
 
 done:

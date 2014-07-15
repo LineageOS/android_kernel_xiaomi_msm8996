@@ -22545,7 +22545,24 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 
 	wma_handle->target_fw_version = ev->fw_build_vers;
 
-        WMA_LOGD("%s: Firmware build version : %08x", __func__, ev->fw_build_vers);
+	WMA_LOGE("%s: Firmware build version : %08x",
+			__func__, ev->fw_build_vers);
+
+	if (ev->hw_bd_id) {
+		wma_handle->hw_bd_id = ev->hw_bd_id;
+		vos_mem_copy(wma_handle->hw_bd_info,
+				ev->hw_bd_info, sizeof(ev->hw_bd_info));
+
+		WMA_LOGE("%s: Board version: %x.%x",
+			__func__,
+			wma_handle->hw_bd_info[0],
+			wma_handle->hw_bd_info[1]);
+	} else {
+		wma_handle->hw_bd_id = 0;
+		vos_mem_zero(wma_handle->hw_bd_info,
+				sizeof(wma_handle->hw_bd_info));
+		WMA_LOGE("%s: Board version is unknown!", __func__);
+	}
 
 	 /* TODO: Recheck below line to dump service ready event */
 	 /* dbg_print_wmi_service_11ac(ev); */
