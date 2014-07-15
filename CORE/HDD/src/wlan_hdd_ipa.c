@@ -285,6 +285,7 @@ struct hdd_ipa_priv {
 	 */
 	adf_os_spinlock_t rm_lock;
 	struct work_struct rm_work;
+	vos_wake_lock_t wake_lock;
 	enum ipa_client_type prod_client;
 
 	atomic_t tx_ref_cnt;
@@ -884,6 +885,8 @@ static int hdd_ipa_rm_request(struct hdd_ipa_priv *hdd_ipa)
 	}
 	adf_os_spin_unlock_bh(&hdd_ipa->rm_lock);
 
+	vos_wake_lock_acquire(&hdd_ipa->wake_lock);
+
 	return ret;
 }
 
@@ -932,6 +935,8 @@ static int hdd_ipa_rm_try_release(struct hdd_ipa_priv *hdd_ipa)
 		adf_os_spin_unlock_bh(&hdd_ipa->rm_lock);
 		WARN_ON(1);
 	}
+
+	vos_wake_lock_release(&hdd_ipa->wake_lock);
 
 	return ret;
 }
@@ -1140,6 +1145,7 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 		goto set_perf_failed;
 	}
 
+	vos_wake_lock_init(&hdd_ipa->wake_lock, "wlan_ipa");
 	adf_os_spinlock_init(&hdd_ipa->rm_lock);
 	hdd_ipa->rm_state = HDD_IPA_RM_RELEASED;
 	atomic_set(&hdd_ipa->tx_ref_cnt, 0);
@@ -1165,6 +1171,8 @@ static void hdd_ipa_destory_rm_resource(struct hdd_ipa_priv *hdd_ipa)
 
 	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
 		return;
+
+	vos_wake_lock_destroy(&hdd_ipa->wake_lock);
 
 	ipa_rm_inactivity_timer_destroy(IPA_RM_RESOURCE_WLAN_PROD);
 
