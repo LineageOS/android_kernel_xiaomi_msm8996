@@ -427,12 +427,15 @@ static void usb_hif_flush_pending_transfers(HIF_USB_PIPE *pipe)
 void usb_hif_flush_all(HIF_DEVICE_USB *device)
 {
 	int i;
-
+	HIF_USB_PIPE *pipe;
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n", __func__));
 
 	for (i = 0; i < HIF_USB_PIPE_MAX; i++) {
-		if (device->pipes[i].device != NULL)
+		if (device->pipes[i].device != NULL) {
 			usb_hif_flush_pending_transfers(&device->pipes[i]);
+			pipe = &device->pipes[i];
+			flush_work(&pipe->io_complete_work);
+		}
 	}
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n", __func__));

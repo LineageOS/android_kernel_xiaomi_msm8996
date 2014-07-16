@@ -1091,6 +1091,8 @@ static int reg_init_from_eeprom(hdd_context_t *pHddCtx, struct regulatory *reg,
       return ret_val;
    }
 
+   reg->cc_src = COUNTRY_CODE_SET_BY_DRIVER;
+
    /* update default country code */
    pnvEFSTable->halnv.tables.defaultCountryTable.countryCode[0] =
       reg->alpha2[0];
@@ -3493,6 +3495,13 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 
         pHddCtx->reg.alpha2[0] = request->alpha2[0];
         pHddCtx->reg.alpha2[1] = request->alpha2[1];
+
+        if (NL80211_REGDOM_SET_BY_CORE == request->initiator)
+            pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_CORE;
+        else if (NL80211_REGDOM_SET_BY_DRIVER == request->initiator)
+            pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_DRIVER;
+        else pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_USER;
+
         vos_update_reg_info(pHddCtx);
         vos_reg_apply_world_flags(wiphy, request->initiator, &pHddCtx->reg);
 
@@ -3666,6 +3675,7 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void)
        pnvEFSTable->halnv.tables.defaultCountryTable.countryCode[0];
     pHddCtx->reg.alpha2[1] =
        pnvEFSTable->halnv.tables.defaultCountryTable.countryCode[1];
+    pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_DRIVER;
 
     vos_update_reg_info(pHddCtx);
 

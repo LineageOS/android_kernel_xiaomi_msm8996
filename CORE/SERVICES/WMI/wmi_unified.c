@@ -561,10 +561,12 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		CASE_RETURN_STRING(WMI_EXTSCAN_GET_WLAN_CHANGE_RESULTS_CMDID);
 		CASE_RETURN_STRING(WMI_EXTSCAN_SET_CAPABILITIES_CMDID);
 		CASE_RETURN_STRING(WMI_EXTSCAN_GET_CAPABILITIES_CMDID);
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
 		CASE_RETURN_STRING(WMI_ROAM_SYNCH_COMPLETE);
-#endif
 		CASE_RETURN_STRING(WMI_D0_WOW_ENABLE_DISABLE_CMDID);
+		CASE_RETURN_STRING(WMI_EXTWOW_ENABLE_CMDID);
+		CASE_RETURN_STRING(WMI_EXTWOW_SET_APP_TYPE1_PARAMS_CMDID);
+		CASE_RETURN_STRING(WMI_EXTWOW_SET_APP_TYPE2_PARAMS_CMDID);
+		CASE_RETURN_STRING(WMI_UNIT_TEST_CMDID);
 	}
 	return "Invalid WMI cmd";
 }
@@ -586,15 +588,11 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 		return -EBUSY;
 	}
 
-	/* Do sanity check on the TLV parameter structure. Can be #ifdef DEBUG if desired */
+	/* Do sanity check on the TLV parameter structure */
 	{
 		void *buf_ptr = (void *) adf_nbuf_data(buf);
-#if 0
+
 		if (wmitlv_check_command_tlv_params(NULL, buf_ptr, len, cmd_id) != 0)
-#else
-		/* TODO: Once all the TLV's are converted use #if 0 condition checking not equal to zero */
-		if (wmitlv_check_command_tlv_params(NULL, buf_ptr, len, cmd_id) < 0)
-#endif
 		{
 			adf_os_print("\nERROR: %s: Invalid WMI Parameter Buffer for Cmd:%d\n",
 				     __func__, cmd_id);
@@ -800,17 +798,10 @@ void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 							data, len, id,
 							&wmi_cmd_struct_ptr);
 	if (tlv_ok_status != 0) {
-		if (tlv_ok_status == 1) {
-			pr_err("%s No TLV definition for command %d\n",
-			       __func__, id);
-			wmi_cmd_struct_ptr = data;
-		} else {
 			pr_err("%s: Error: id=0x%d, wmitlv_check_and_pad_tlvs ret=%d\n",
 				__func__, id, tlv_ok_status);
 			goto end;
-		}
 	}
-
 	if (id >= WMI_EVT_GRP_START_ID(WMI_GRP_START)) {
 		u_int32_t idx = 0;
 

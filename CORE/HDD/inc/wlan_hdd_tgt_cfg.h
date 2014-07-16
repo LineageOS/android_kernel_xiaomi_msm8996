@@ -82,13 +82,6 @@ struct hdd_tgt_vht_cap {
 };
 #endif
 
-struct regulatory {
-	u_int32_t reg_domain;
-	u_int32_t eeprom_rd_ext;
-	u_int16_t country_code;
-	u_int8_t alpha2[3];
-	const void *regpair;
-};
 
 struct hdd_tgt_cfg {
         u_int32_t target_fw_version;

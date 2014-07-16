@@ -1670,14 +1670,14 @@ struct net_device* wlan_hdd_add_virtual_intf(
 {
     hdd_context_t *pHddCtx = (hdd_context_t*) wiphy_priv(wiphy);
     hdd_adapter_t* pAdapter = NULL;
+    int ret;
 
     ENTER();
 
-    if (pHddCtx->isLogpInProgress)
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s:LOGP in Progress. Ignore!!!", __func__);
-       return ERR_PTR(-EINVAL);
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+        return ERR_PTR(ret);
     }
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,

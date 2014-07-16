@@ -45,7 +45,7 @@ extern "C" {
 typedef  enum  {
     WMI_SERVICE_BEACON_OFFLOAD=0,     /* beacon offload */
     WMI_SERVICE_SCAN_OFFLOAD,         /* scan offload */
-    WMI_SERVICE_ROAM_OFFLOAD,         /* roam offload */
+    WMI_SERVICE_ROAM_SCAN_OFFLOAD,    /* roam scan offload */
     WMI_SERVICE_BCN_MISS_OFFLOAD,     /* beacon miss offload */
     WMI_SERVICE_STA_PWRSAVE,          /* fake sleep + basic power save */
     WMI_SERVICE_STA_ADVANCED_PWRSAVE, /* uapsd, pspoll, force sleep */
@@ -109,11 +109,13 @@ typedef  enum  {
     WMI_SERVICE_EXTSCAN,              /* Extended Scans */
     WMI_SERVICE_D0WOW,                /* D0-WOW Support */
     WMI_SERVICE_HSOFFLOAD,            /* Hotspot offload feature Support */
+    WMI_SERVICE_ROAM_HO_OFFLOAD,      /* roam handover offload */
     WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;
 
 #define WMI_SERVICE_BM_SIZE   ((WMI_MAX_SERVICE + sizeof(A_UINT32)- 1)/sizeof(A_UINT32))
 
+#define WMI_SERVICE_ROAM_OFFLOAD WMI_SERVICE_ROAM_SCAN_OFFLOAD /* depreciated the name WMI_SERVICE_ROAM_OFFLOAD, but here to help compiling with old host driver */
 
 /*
  * turn on the WMI service bit corresponding to  the WMI service.

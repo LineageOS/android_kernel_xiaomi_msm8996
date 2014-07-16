@@ -254,12 +254,13 @@ static void hif_usb_remove(struct usb_interface *interface)
 
 	usb_put_dev(interface_to_usbdev(interface));
 	scn = sc->ol_sc;
-#ifndef REMOVE_PKT_LOG
-	if (vos_get_conparam() != VOS_FTM_MODE)
-		pktlogmod_exit(scn);
-#endif
+
 	if (usb_sc->hdd_removed == 0) {
 		usb_sc->hdd_removed_processing = 1;
+#ifndef REMOVE_PKT_LOG
+		if (vos_get_conparam() != VOS_FTM_MODE)
+			pktlogmod_exit(scn);
+#endif
 		__hdd_wlan_exit();
 		usb_sc->hdd_removed_processing = 0;
 		usb_sc->hdd_removed = 1;
@@ -436,6 +437,10 @@ void hif_unregister_driver(void)
 
 			if (usb_sc->hdd_removed == 0) {
 				usb_sc->hdd_removed_processing = 1;
+#ifndef REMOVE_PKT_LOG
+				if (vos_get_conparam() != VOS_FTM_MODE)
+					pktlogmod_exit(usb_sc->ol_sc);
+#endif
 				__hdd_wlan_exit();
 				usb_sc->hdd_removed_processing = 0;
 				usb_sc->hdd_removed = 1;

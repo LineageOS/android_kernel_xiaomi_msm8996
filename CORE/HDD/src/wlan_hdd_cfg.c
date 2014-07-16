@@ -3263,6 +3263,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_IBSS_PS_WARMUP_TIME_MIN,
                  CFG_IBSS_PS_WARMUP_TIME_MAX ),
 
+   REG_VARIABLE( CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, ibssPs1RxChainInAtimEnable,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_DEFAULT,
+                 CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_MIN,
+                 CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_MAX ),
+
 #ifndef QCA_WIFI_ISOC
    REG_VARIABLE( CFG_THERMAL_TEMP_MIN_LEVEL0_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, thermalTempMinLevel0,
@@ -3718,6 +3725,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_WLAN_LOGGING_NUM_BUF_MIN,
                 CFG_WLAN_LOGGING_NUM_BUF_MAX ),
 #endif /* WLAN_LOGGING_SOCK_SVC_ENABLE */
+
+   REG_VARIABLE( CFG_ENABLE_SIFS_BURST, WLAN_PARAM_Integer,
+              hdd_config_t, enableSifsBurst,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_ENABLE_SIFS_BURST_DEFAULT,
+              CFG_ENABLE_SIFS_BURST_MIN,
+              CFG_ENABLE_SIFS_BURST_MAX ),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4190,6 +4204,9 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssInactivityTime] Value = [%u] ",pHddCtx->cfg_ini->ibssInactivityCount);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssTxSpEndInactivityTime] Value = [%u] ",pHddCtx->cfg_ini->ibssTxSpEndInactivityTime);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssPsWarmupTime] Value = [%u] ",pHddCtx->cfg_ini->ibssPsWarmupTime);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gIbssPs1RxChainInAtim] Value = [%u] ",
+          pHddCtx->cfg_ini->ibssPs1RxChainInAtimEnable);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fDfsPhyerrFilterOffload] Value = [%u] ",pHddCtx->cfg_ini->fDfsPhyerrFilterOffload);
 
 #ifdef IPA_OFFLOAD
@@ -4240,6 +4257,9 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
            "Name = [isRoamOffloadEnabled] Value = [%u]",
                    pHddCtx->cfg_ini->isRoamOffloadEnabled);
 #endif
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gEnableSifsBurst] Value = [%u]",
+                   pHddCtx->cfg_ini->enableSifsBurst);
 }
 
 #define CFG_VALUE_MAX_LEN 256

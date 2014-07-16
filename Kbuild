@@ -1351,6 +1351,11 @@ ifeq ($(CONFIG_ATH_PCIE_ACCESS_DEBUG), 1)
 CDEFINES += -DCONFIG_ATH_PCIE_ACCESS_DEBUG
 endif
 
+#Flag to enable/disable WLAN D0-WOW
+ifeq ($(CONFIG_PCI_MSM), y)
+CDEFINES += -DFEATURE_WLAN_D0WOW
+endif
+
 # Some kernel include files are being moved.  Check to see if
 # the old version of the files are present
 

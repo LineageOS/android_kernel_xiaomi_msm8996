@@ -170,12 +170,7 @@ wmitlv_check_tlv_params(
     {
         wmi_tlv_print_error("%s: ERROR: Couldn't get expected number of TLVs for Cmd=%d\n",
                            __func__, wmi_cmd_event_id);
-#if 1
-        // TODO: Just keep the #else part code instead of returning 1 once all events/commands converted to TLV format
-        return 1;
-#else
         goto Error_wmitlv_check_tlv_params;
-#endif
     }
 
     /* NOTE: the returned number of TLVs is in "attr_struct_ptr.cmd_num_tlv" */
@@ -326,9 +321,8 @@ wmitlv_check_tlv_params(
 
     if (tlv_index!=expected_num_tlvs)
     {
-        wmi_tlv_print_error("%s: ERROR: Invalid num of TLV for Cmd=0x%x Given %d Expected %d\n",
+        wmi_tlv_print_verbose("%s: INFO: Less number of TLVs filled for Cmd=0x%x Filled %d Expected=%d\n",
                __func__, wmi_cmd_event_id, tlv_index, expected_num_tlvs);
-        goto Error_wmitlv_check_tlv_params;
     }
 
     return(0);
@@ -367,7 +361,6 @@ wmitlv_check_command_tlv_params(
  * Helper Function to vaidate the TLV's coming for an event/command and also pads data to TLV's if necessary
  * Return 0 if success.
               <0 if failure.
-              1 if TLVs are not defined for the specific event/command (TODO: remove returning 1 once all events/commands converted to TLV format)
  */
 static int
 wmitlv_check_and_pad_tlvs(
@@ -388,8 +381,7 @@ wmitlv_check_and_pad_tlvs(
     {
         wmi_tlv_print_error("%s: ERROR: Couldn't get expected number of TLVs for Cmd=%d\n",
                            __func__, wmi_cmd_event_id);
-        // TODO: return -1 instead of 1 once all events/commands converted to TLV format
-        return 1;
+        return -1;
     }
     /* NOTE: the returned number of TLVs is in "attr_struct_ptr.cmd_num_tlv" */
 
@@ -735,7 +727,6 @@ Error_wmitlv_check_and_pad_tlvs:
  * Helper Function to validate and pad(if necessary) for incoming WMI Event TLVs
  * Return 0 if success.
               <0 if failure.
-              1 if TLVs are not defined for the specific event/command (TODO: remove returning 1 once all events/commands converted to TLV format)
  */
 int
 wmitlv_check_and_pad_event_tlvs(
@@ -749,7 +740,6 @@ wmitlv_check_and_pad_event_tlvs(
  * Helper Function to validate and pad(if necessary) for incoming WMI Command TLVs
  * Return 0 if success.
               <0 if failure.
-              1 if TLVs are not defined for the specific event/command (TODO: remove returning 1 once all events/commands converted to TLV format)
  */
 int
 wmitlv_check_and_pad_command_tlvs(
