@@ -2302,6 +2302,7 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
                  banks_switched = 6;
                  break;
              case 0x8: /* ROME 3.0 */
+             case 0x9: /* ROME 3.1 */
                  banks_switched = 9;
                  break;
              case 0x0: /* ROME 1.0 */
