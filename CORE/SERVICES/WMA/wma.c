@@ -2515,7 +2515,6 @@ static int wma_unified_link_peer_stats_event_handler(void *handle,
 		WMA_LOGD("peer_type %u capabilities %u num_rates %u",
 				peer_stats->peer_type, peer_stats->capabilities,
 				peer_stats->num_rates);
-		peer_stats++;
 
 		vos_mem_copy(results + next_res_offset,
 				t_peer_stats + next_peer_offset,
@@ -2541,6 +2540,7 @@ static int wma_unified_link_peer_stats_event_handler(void *handle,
 			next_rate_offset += sizeof(*rate_stats);
 		}
 		next_peer_offset += sizeof(*peer_stats);
+		peer_stats++;
 	}
 
 	/* call hdd callback with Link Layer Statistics
