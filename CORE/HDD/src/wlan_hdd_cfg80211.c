@@ -5951,10 +5951,6 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
     eCsrRoamBssType LastBSSType;
     hdd_config_t *pConfig = NULL;
     eMib_dot11DesiredBssType connectedBssType;
-#ifdef WLAN_FEATURE_LPSS
-    hdd_adapter_t *pDataAdapter = NULL;
-    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
-#endif
     unsigned long rc;
     VOS_STATUS vstatus;
     eHalStatus hstatus;
@@ -6275,22 +6271,7 @@ done:
 #endif /* WLAN_BTAMP_FEATURE */
 
 #ifdef WLAN_FEATURE_LPSS
-    vstatus = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
-    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == vstatus) {
-        pDataAdapter = pAdapterNode->pAdapter;
-        if (pDataAdapter) {
-            if (pDataAdapter->device_mode == WLAN_HDD_INFRA_STATION)
-                break;
-            if (pDataAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
-                break;
-            if (pDataAdapter->device_mode == WLAN_HDD_P2P_DEVICE)
-                break;
-        }
-        vstatus = hdd_get_next_adapter (pHddCtx, pAdapterNode, &pNext);
-        pAdapterNode = pNext;
-    }
-
-    wlan_hdd_send_status_pkg(pDataAdapter, NULL, 1, 0);
+    wlan_hdd_send_all_scan_intf_info(pHddCtx);
 #endif
 
     EXIT();
@@ -10511,6 +10492,10 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
     eDataRate11ACMaxMcs vhtMaxMcs;
 #endif /* WLAN_FEATURE_11AC */
 
+#ifdef WLAN_FEATURE_LPSS
+    v_S7_t last_rssi_send;
+#endif /* WLAN_FEATURE_LPSS */
+
     ENTER();
 
     if ((eConnectionState_Associated != pHddStaCtx->conn_info.connState) ||
@@ -10531,8 +10516,19 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
         return status;
     }
 
+#ifdef WLAN_FEATURE_LPSS
+    last_rssi_send = pAdapter->last_rssi_send;
+#endif
     wlan_hdd_get_rssi(pAdapter, &sinfo->signal);
     sinfo->filled |= STATION_INFO_SIGNAL;
+
+#ifdef WLAN_FEATURE_LPSS
+    if ((pAdapter->rssi >= last_rssi_send + HDD_RSSI_THRESHOLD) ||
+        (pAdapter->rssi <= last_rssi_send - HDD_RSSI_THRESHOLD)) {
+        pAdapter->last_rssi_send = pAdapter->rssi;
+        wlan_hdd_send_status_pkg(pAdapter, pHddStaCtx, 1, 1);
+    }
+#endif
 
     wlan_hdd_get_station_stats(pAdapter);
     rate_flags = pAdapter->hdd_stats.ClassA_stat.tx_rate_flags;
