@@ -924,6 +924,21 @@ again:
 #endif
     ol_sc->max_no_of_peers = 1;
 
+#ifdef CONFIG_CNSS
+    /* Get RAM dump memory address and size */
+    if (!cnss_get_ramdump_mem(&ol_sc->ramdump_address, &ol_sc->ramdump_size)) {
+        ol_sc->ramdump_base = ioremap(ol_sc->ramdump_address,
+            ol_sc->ramdump_size);
+        if (!ol_sc->ramdump_base) {
+            pr_err("%s: Cannot map ramdump_address 0x%lx!\n",
+                __func__, ol_sc->ramdump_address);
+        }
+    } else {
+        pr_info("%s: Failed to get RAM dump memory address or size!\n",
+            __func__);
+    }
+#endif
+
     adf_os_atomic_init(&sc->tasklet_from_intr);
     adf_os_atomic_init(&sc->wow_done);
     adf_os_atomic_init(&sc->ce_suspend);
@@ -1251,6 +1266,21 @@ again:
     ol_sc->enablesinglebinary = FALSE;
 #endif
     ol_sc->max_no_of_peers = 1;
+
+#ifdef CONFIG_CNSS
+    /* Get RAM dump memory address and size */
+    if (!cnss_get_ramdump_mem(&ol_sc->ramdump_address, &ol_sc->ramdump_size)) {
+        ol_sc->ramdump_base = ioremap(ol_sc->ramdump_address,
+            ol_sc->ramdump_size);
+        if (!ol_sc->ramdump_base) {
+            pr_err("%s: Cannot map ramdump_address 0x%lx!\n",
+                __func__, ol_sc->ramdump_address);
+        }
+    } else {
+        pr_info("%s: Failed to get RAM dump memory address or size!\n",
+            __func__);
+    }
+#endif
 
     adf_os_atomic_init(&sc->tasklet_from_intr);
     adf_os_atomic_init(&sc->wow_done);
@@ -1601,6 +1631,12 @@ hif_pci_remove(struct pci_dev *pdev)
     mem = (void __iomem *)sc->mem;
 
     pci_disable_msi(pdev);
+
+#ifdef CONFIG_CNSS
+    if (scn->ramdump_base)
+        iounmap(scn->ramdump_base);
+#endif
+
     A_FREE(scn);
     A_FREE(sc->hif_device);
     A_FREE(sc);
@@ -1656,6 +1692,12 @@ void hif_pci_shutdown(struct pci_dev *pdev)
     mem = (void __iomem *)sc->mem;
 
     pci_disable_msi(pdev);
+
+#ifdef CONFIG_CNSS
+    if (scn->ramdump_base)
+        iounmap(scn->ramdump_base);
+#endif
+
     A_FREE(scn);
     A_FREE(sc);
     pci_set_drvdata(pdev, NULL);
