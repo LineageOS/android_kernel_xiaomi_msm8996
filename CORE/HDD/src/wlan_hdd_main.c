@@ -11680,6 +11680,11 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
    }
 
+#ifdef IPA_OFFLOAD
+   if (hdd_ipa_init(pHddCtx) == VOS_STATUS_E_FAILURE)
+	goto err_wiphy_unregister;
+#endif
+
    /*Start VOSS which starts up the SME/MAC/HAL modules and everything else */
    status = vos_start( pHddCtx->pvosContext );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
@@ -12051,10 +12056,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
       hdd_set_idle_ps_config(pHddCtx, TRUE);
    }
-#ifdef IPA_OFFLOAD
-   if (hdd_ipa_init(pHddCtx) == VOS_STATUS_E_FAILURE)
-	goto err_nl_srv;
-#endif
 
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
     if (pHddCtx->cfg_ini->WlanAutoShutdown != 0) {
