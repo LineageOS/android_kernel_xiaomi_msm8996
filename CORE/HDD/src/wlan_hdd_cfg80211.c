@@ -2206,6 +2206,7 @@ static bool put_wifi_interface_info(tpSirWifiInterfaceInfo stats,
 }
 
 static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
+                                 u32 num_peers,
                                  struct sk_buff *vendor_event)
 {
     int i = 0;
@@ -2223,6 +2224,9 @@ static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
     }
 
     if (nla_put_u32(vendor_event,
+                    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_NUM_PEERS,
+                    num_peers) ||
+        nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_BEACON_RX,
                     pWifiIfaceStat->beaconRx) ||
         nla_put_u32(vendor_event,
@@ -2531,7 +2535,8 @@ static void hdd_link_layer_process_peer_stats(hdd_adapter_t *pAdapter,
  * layers.
  */
 static void hdd_link_layer_process_iface_stats(hdd_adapter_t *pAdapter,
-                                               tpSirWifiIfaceStat pData)
+                                               tpSirWifiIfaceStat pData,
+                                               u32 num_peers)
 {
     tpSirWifiIfaceStat  pWifiIfaceStat;
     struct sk_buff *vendor_event;
@@ -2581,6 +2586,7 @@ static void hdd_link_layer_process_iface_stats(hdd_adapter_t *pAdapter,
     }
 
     hddLog(VOS_TRACE_LEVEL_INFO,
+           " Num peers %u "
            "LL_STATS_IFACE: "
            " Mode %u "
            " MAC %pM "
@@ -2589,6 +2595,7 @@ static void hdd_link_layer_process_iface_stats(hdd_adapter_t *pAdapter,
            " capabilities 0x%x "
            " SSID %s "
            " BSSID %pM",
+           num_peers,
            pWifiIfaceStat->info.mode,
            pWifiIfaceStat->info.macAddr,
            pWifiIfaceStat->info.state,
@@ -2656,7 +2663,7 @@ static void hdd_link_layer_process_iface_stats(hdd_adapter_t *pAdapter,
                pWifiIfaceStat->AccessclassStats[i].contentionNumSamples);
     }
 
-    if (FALSE == put_wifi_iface_stats(pWifiIfaceStat, vendor_event)) {
+    if (FALSE == put_wifi_iface_stats(pWifiIfaceStat, num_peers, vendor_event)) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                FL("put_wifi_iface_stats fail"));
         kfree_skb(vendor_event);
@@ -2915,8 +2922,9 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx,
             else if (linkLayerStatsResults->paramId & WMI_LINK_STATS_IFACE )
             {
                 hdd_link_layer_process_iface_stats(pAdapter,
-                                                (tpSirWifiIfaceStat)
-                                                linkLayerStatsResults->results);
+                                                   (tpSirWifiIfaceStat)
+                                                   linkLayerStatsResults->results,
+                                                   linkLayerStatsResults->num_peers);
             }
             else if (linkLayerStatsResults->paramId & WMI_LINK_STATS_ALL_PEER )
             {
