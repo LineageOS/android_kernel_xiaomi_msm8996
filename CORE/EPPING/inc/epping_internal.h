@@ -57,7 +57,7 @@
 
 #define EPPING_LOG_MASK (1<<EPPING_CMD_CAPTURE_RECV_CNT)
 #define EPPING_STATS_LOG_COUNT 50000
-#define EPPING_KTID_KILL_WAIT_TIME_US 50000
+#define EPPING_KTID_KILL_WAIT_TIME_MS 50
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/
