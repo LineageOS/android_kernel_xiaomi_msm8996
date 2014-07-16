@@ -22427,6 +22427,9 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	/* Proactive ARP response */
 	gFwWlanFeatCaps |= (1 << WLAN_PERIODIC_TX_PTRN);
 
+	/* Enable WOW */
+	gFwWlanFeatCaps |= (1 << WOW);
+
 	/* ARP offload */
 	cfg->arp_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 						  WMI_SERVICE_ARPNS_OFFLOAD);
