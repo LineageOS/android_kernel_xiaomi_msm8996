@@ -3465,4 +3465,6 @@ VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,
 #ifdef WLAN_FEATURE_MBSSID
 v_VOID_t hdd_mbssid_apply_def_cfg_ini(hdd_adapter_t *pAdapter);
 #endif
+
+void print_hdd_cfg(hdd_context_t *pHddCtx);
 #endif

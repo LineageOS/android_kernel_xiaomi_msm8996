@@ -6048,6 +6048,8 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
 
 #ifdef FEATURE_WLAN_SCAN_PNO
     /* PNO offload */
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: PNO Capability in f/w = %d",
+           __func__,cfg->pno_offload);
     if (cfg->pno_offload)
         cfg_ini->PnoOffload = TRUE;
 #endif
@@ -11464,6 +11466,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    hdd_wdi_trace_enable(eWLAN_MODULE_PAL,
                         pHddCtx->cfg_ini->wdiTraceEnablePAL);
 
+   print_hdd_cfg(pHddCtx);
 
    if (VOS_FTM_MODE == hdd_get_conparam())
        goto ftm_processing;
