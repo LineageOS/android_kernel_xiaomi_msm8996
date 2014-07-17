@@ -139,13 +139,11 @@ typedef struct epping_adapter_s {
    struct net_device *dev;
    v_MACADDR_t macAddressCurrent;
    tANI_U8 sessionId;
-#if !defined(HIF_USB)
    /* for mboxping */
    adf_os_spinlock_t       data_lock;
    adf_nbuf_queue_t        nodrop_queue;
    adf_os_timer_t          epping_timer;
    epping_tx_timer_state_t epping_timer_state;
-#endif
    bool registered;
    bool started;
    struct net_device_stats stats;
