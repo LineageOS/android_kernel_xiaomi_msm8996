@@ -185,7 +185,6 @@
 #define WMA_EXTSCAN_MAX_SCAN_TIME       50000
 #define WMA_EXTSCAN_REPEAT_PROBE        10
 #define WMA_EXTSCAN_BURST_DURATION      150
-#define WMA_EXTSCAN_MAX_TABLE_USAGE     71
 #endif
 
 typedef struct {

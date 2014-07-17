@@ -1973,6 +1973,7 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 	wmi_extscan_capabilities_event_fixed_param  *event;
 	wmi_extscan_cache_capabilities   *src_cache;
 	wmi_extscan_hotlist_monitor_capabilities  *src_hotlist;
+	wmi_extscan_wlan_change_monitor_capabilities *src_change;
 
 	tSirExtScanCapabilitiesEvent  *dest_capab;
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
@@ -1994,8 +1995,9 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 	event = param_buf->fixed_param;
 	src_cache = param_buf->extscan_cache_capabilities;
 	src_hotlist = param_buf->hotlist_capabilities;
+	src_change = param_buf->wlan_change_capabilities;
 
-	if (!src_cache || !src_hotlist) {
+	if (!src_cache || !src_hotlist || !src_change) {
 		WMA_LOGE("%s: Invalid capabilities list", __func__);
 		return -EINVAL;
 	}
@@ -2008,7 +2010,17 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 	dest_capab->requestId = event->request_id;
 	dest_capab->scanBuckets = src_cache->max_buckets;
 	dest_capab->scanCacheSize = src_cache->scan_cache_entry_size;
+	dest_capab->maxApPerScan = src_cache->max_bssid_per_scan;
+	dest_capab->maxScanReportingThreshold =
+				src_cache->max_table_usage_threshold;
+
 	dest_capab->maxHotlistAPs = src_hotlist->max_hotlist_entries;
+	dest_capab->maxRssiSampleSize =
+				src_change->max_rssi_averaging_samples;
+	dest_capab->maxBsidHistoryEntries =
+				src_change->max_rssi_history_entries;
+	dest_capab->maxSignificantWifiChangeAPs =
+				src_change->max_wlan_change_entries;
 	dest_capab->status = 0;
 
 	WMA_LOGD("%s: Capabilities: scanBuckets: %d,"
@@ -2084,11 +2096,9 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 		dest_ap->ieLength = src_hotlist-> ie_length;
 		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist->bssid,
 						dest_ap->bssid);
-		if (src_hotlist->ssid.ssid_len) {
-			vos_mem_copy(dest_ap->ssid, src_hotlist->ssid.ssid,
+		vos_mem_copy(dest_ap->ssid, src_hotlist->ssid.ssid,
 					src_hotlist->ssid.ssid_len);
-			dest_ap->ssid[src_hotlist->ssid.ssid_len] = '\0';
-		}
+		dest_ap->ssid[src_hotlist->ssid.ssid_len] = '\0';
 		dest_ap++;
 		src_hotlist++;
 	}
@@ -2109,6 +2119,7 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	tSirWifiScanResultEvent *dest_cachelist;
 	tSirWifiScanResult  *dest_ap;
 	wmi_extscan_wlan_descriptor  *src_hotlist;
+	wmi_extscan_rssi_info  *src_rssi;
 	int numap;
 	int j;
 	int moredata;
@@ -2131,6 +2142,12 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	}
 	event = param_buf->fixed_param;
 	src_hotlist = param_buf->bssid_list;
+	src_rssi = param_buf->rssi_list;
+	if (!src_hotlist || !src_rssi) {
+		WMA_LOGE("%s: Cached_results AP's list invalid",
+			__func__);
+		return -EINVAL;
+        }
 	if (event->first_entry_index +
 		event->num_entries_in_page < event->total_entries) {
 		moredata = 1;
@@ -2162,15 +2179,15 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 		dest_ap->beaconPeriod = src_hotlist->beacon_interval;
 		dest_ap->capability = src_hotlist->capabilities;
 		dest_ap->ieLength = src_hotlist-> ie_length;
+		dest_ap->rssi = src_rssi->rssi;
 		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist->bssid, dest_ap->bssid);
 
-		if (src_hotlist->ssid.ssid_len) {
-			vos_mem_copy(dest_ap->ssid, src_hotlist->ssid.ssid,
+		vos_mem_copy(dest_ap->ssid, src_hotlist->ssid.ssid,
 					src_hotlist->ssid.ssid_len);
-			dest_ap->ssid[src_hotlist->ssid.ssid_len] = '\0';
-		}
+		dest_ap->ssid[src_hotlist->ssid.ssid_len] = '\0';
 		dest_ap++;
 		src_hotlist++;
+		src_rssi++;
 	}
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_CACHED_RESULTS_IND,
@@ -19643,6 +19660,7 @@ static VOS_STATUS wma_process_ll_stats_getReq
 	cmd->min_dwell_time_passive = dwelltime;
 	cmd->max_dwell_time_passive = dwelltime;
 	cmd->max_bssids_per_scan_cycle = pstart->maxAPperScan;
+	cmd->max_table_usage = pstart->reportThreshold;
 
 	cmd->repeat_probe_time = WMA_EXTSCAN_REPEAT_PROBE;
 	cmd->max_scan_time = WMA_EXTSCAN_MAX_SCAN_TIME;
@@ -19655,7 +19673,6 @@ static VOS_STATUS wma_process_ll_stats_getReq
 					WMI_SCAN_ADD_CCK_RATES |
 						WMI_SCAN_ADD_OFDM_RATES;
 	cmd->scan_priority = WMI_SCAN_PRIORITY_HIGH;
-	cmd->max_table_usage = WMA_EXTSCAN_MAX_TABLE_USAGE;
 	cmd->notify_extscan_events = WMI_EXTSCAN_CYCLE_COMPLETED_EVENT |
 					  WMI_EXTSCAN_BUCKET_OVERRUN_EVENT;
 	cmd->num_ssids = 0;
@@ -19709,6 +19726,7 @@ static VOS_STATUS wma_process_ll_stats_getReq
 		dest_blist->min_dwell_time_passive = dwelltime;
 		dest_blist->max_dwell_time_passive = dwelltime;
 		dest_blist->forwarding_flags = 0;
+		src_channel = src_bucket->channels;
 
 		/* save the channel info to later populate
 		 * the  channel TLV
