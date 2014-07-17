@@ -211,7 +211,9 @@ static const u32 hdd_cipher_suites[] =
     WLAN_CIPHER_SUITE_WEP104,
     WLAN_CIPHER_SUITE_TKIP,
 #ifdef FEATURE_WLAN_ESE
+#define WLAN_CIPHER_SUITE_BTK 0x004096fe /* use for BTK */
 #define WLAN_CIPHER_SUITE_KRK 0x004096ff /* use for KRK */
+    WLAN_CIPHER_SUITE_BTK,
     WLAN_CIPHER_SUITE_KRK,
     WLAN_CIPHER_SUITE_CCMP,
 #else
@@ -6853,6 +6855,9 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         case WLAN_CIPHER_SUITE_KRK:
             setKey.encType = eCSR_ENCRYPT_TYPE_KRK;
             break;
+        case WLAN_CIPHER_SUITE_BTK:
+            setKey.encType = eCSR_ENCRYPT_TYPE_BTK;
+            break;
 #endif
 
 #ifdef WLAN_FEATURE_11W
@@ -9141,6 +9146,9 @@ static int wlan_hdd_cfg80211_set_cipher( hdd_adapter_t *pAdapter,
 #ifdef FEATURE_WLAN_ESE
         case WLAN_CIPHER_SUITE_KRK:
             encryptionType = eCSR_ENCRYPT_TYPE_KRK;
+            break;
+        case WLAN_CIPHER_SUITE_BTK:
+            encryptionType = eCSR_ENCRYPT_TYPE_BTK;
             break;
 #endif
             default:

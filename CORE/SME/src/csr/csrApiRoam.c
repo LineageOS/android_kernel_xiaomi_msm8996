@@ -4860,8 +4860,6 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         break;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     case eCsrPerformRoamOffloadSynch:
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-             "LFR3:%s: Attempting Roam Offload Sync", __func__);
         status = csrRoamIssueFTRoamOffloadSynch(pMac, sessionId,
                                             pCommand->u.roamCmd.pLastRoamBss);
         break;
@@ -8940,9 +8938,9 @@ static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessi
          ( (!HAL_STATUS_SUCCESS( status ) )
 #ifdef FEATURE_WLAN_ESE
             || ( eCSR_ENCRYPT_TYPE_KRK == pSetKey->encType )
-#ifdef WLAN_FEATURE_WLAN_ROAM
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
             || ( eCSR_ENCRYPT_TYPE_BTK == pSetKey->encType )
-#endif /* WLAN_FEATURE_WLAN_ROAM */
+#endif /* WLAN_FEATURE_ROAM_OFFLOAD */
 #endif /* FEATURE_WLAN_ESE */
            ) )
     {
@@ -16427,7 +16425,6 @@ void csrRoamOffload(tpAniSirGlobal pMac, tSirRoamOffloadScanReq *pRequestBuf,
         if (csrIsAuthTypeESE(pRequestBuf->ConnectedNetwork.authentication)) {
                 vos_mem_copy(pRequestBuf->KRK,pSession->eseCckmInfo.krk, SIR_KRK_KEY_LEN);
                 vos_mem_copy(pRequestBuf->BTK,pSession->eseCckmInfo.btk, SIR_BTK_KEY_LEN);
-                pRequestBuf->IsESEConnection = eANI_BOOLEAN_TRUE;
         }
 #endif
         pRequestBuf->AcUapsd.acbe_uapsd =
@@ -18424,8 +18421,9 @@ eHalStatus csrRoamDequeueRoamOffloadSynch(tpAniSirGlobal pMac)
         if ( (eSmeCommandRoam == pCommand->command) &&
                 (eCsrPerformRoamOffloadSynch == pCommand->u.roamCmd.roamReason))
         {
-            smsLog( pMac, LOGE, FL("DQ-Command = %d, Reason = %d"),
-                    pCommand->command, pCommand->u.roamCmd.roamReason);
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                      "LFR3:DQ-Command = %d, Reason = %d",
+                       pCommand->command, pCommand->u.roamCmd.roamReason);
             if (csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK )) {
                 csrReleaseCommand( pMac, pCommand );
             }
@@ -18525,9 +18523,9 @@ void csrProcessRoamOffloadSynchInd(tpAniSirGlobal pMac, void *pMsgBuf)
                 smeRoamOffloadSynchInd->reassocRespOffset,
                 pMac->roam.reassocRespLen);
 
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
              "LFR3:%s: the reassoc resp frame data:", __func__);
-   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
               pMac->roam.pReassocResp,
               pMac->roam.reassocRespLen);
 
