@@ -2181,6 +2181,12 @@ eHalStatus sme_SetEseBeaconRequest(tHalHandle hHal, const tANI_U8 sessionId,
    tCsrRoamSession         *pSession         = CSR_GET_SESSION(pMac, sessionId);
    tpRrmSMEContext          pSmeRrmContext   = &pMac->rrm.rrmSmeContext;
 
+   if (pSmeRrmContext->eseBcnReqInProgress == TRUE)
+   {
+      smsLog(pMac, LOGE, "A Beacon Report Req is already in progress");
+      return eHAL_STATUS_RESOURCES;
+   }
+
    /* Store the info in RRM context */
    vos_mem_copy(&pSmeRrmContext->eseBcnReqInfo, pEseBcnReq, sizeof(tCsrEseBeaconReq));
 
@@ -2191,6 +2197,8 @@ eHalStatus sme_SetEseBeaconRequest(tHalHandle hHal, const tANI_U8 sessionId,
       smsLog(pMac, LOGP, "Memory Allocation Failure!!! ESE  BcnReq Ind to SME");
       return eSIR_FAILURE;
    }
+
+   pSmeRrmContext->eseBcnReqInProgress = TRUE;
 
    smsLog(pMac, LOGE, "Sending Beacon Report Req to SME");
    vos_mem_zero( pSmeBcnReportReq, sizeof( tSirBeaconReportReqInd ));
@@ -2210,7 +2218,11 @@ eHalStatus sme_SetEseBeaconRequest(tHalHandle hHal, const tANI_U8 sessionId,
         pSmeBcnReportReq->channelList.channelNumber[counter] = pBeaconReq->channel;
    }
 
-   sme_RrmProcessBeaconReportReqInd(pMac, pSmeBcnReportReq);
+   status = sme_RrmProcessBeaconReportReqInd(pMac, pSmeBcnReportReq);
+
+   if(status != eHAL_STATUS_SUCCESS)
+      pSmeRrmContext->eseBcnReqInProgress = FALSE;
+
    return status;
 }
 

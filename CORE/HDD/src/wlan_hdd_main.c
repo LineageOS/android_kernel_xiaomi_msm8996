@@ -5418,8 +5418,14 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            status = sme_SetEseBeaconRequest((tHalHandle)(pHddCtx->hHal),
                                             pAdapter->sessionId,
                                             &eseBcnReq);
-           if (eHAL_STATUS_SUCCESS != status)
-           {
+
+           if (eHAL_STATUS_RESOURCES == status) {
+               hddLog(VOS_TRACE_LEVEL_INFO,
+                      FL("sme_SetEseBeaconRequest failed (%d),"
+                      " a request already in progress"), status);
+               ret = -EBUSY;
+               goto exit;
+           } else if (eHAL_STATUS_SUCCESS != status) {
                VOS_TRACE( VOS_MODULE_ID_HDD,
                           VOS_TRACE_LEVEL_ERROR,
                           "%s: sme_SetEseBeaconRequest failed (%d)",
