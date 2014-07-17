@@ -5115,6 +5115,7 @@ __limProcessSmeDelStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
    if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
    {
       limLog(pMac, LOGP, FL("wdaPostCtrlMsg failed"));
+      vos_mem_free(pDelStaSelfParams);
    }
    return;
 } /*** end __limProcessSmeDelStaSelfReq() ***/
