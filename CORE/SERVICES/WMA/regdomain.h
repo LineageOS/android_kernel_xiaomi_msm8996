@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -92,9 +92,6 @@ enum {
 #define    SUPER_DOMAIN_MASK    0x0fff
 #define    COUNTRY_CODE_MASK    0x3fff
 #define CF_INTERFERENCE         (CHANNEL_CW_INT | CHANNEL_RADAR_INT)
-#define CHANNEL_14              (2484)    /* 802.11g operation is not permitted on channel 14 */
-#define IS_11G_CH14(_ch,_cf) \
-    (((_ch) == CHANNEL_14) && ((_cf) == CHANNEL_G))
 
 /*
  * The following describe the bit masks for different passive scan
@@ -309,6 +306,21 @@ typedef struct {
     u_int8_t  pwrlvl;
 } COMMON_MODE_POWER;
 
+typedef enum
+{
+    COUNTRY_CODE_SET_BY_CORE,
+    COUNTRY_CODE_SET_BY_DRIVER,
+    COUNTRY_CODE_SET_BY_USER
+} COUNTRY_CODE_SOURCE;
+
+struct regulatory {
+    u_int32_t reg_domain;
+    u_int32_t eeprom_rd_ext;
+    u_int16_t country_code;
+    u_int8_t alpha2[3];
+    const void *regpair;
+    COUNTRY_CODE_SOURCE cc_src;
+};
 /* Multi-Device RegDomain Support */
 typedef struct ath_hal_reg_dmn_tables {
     /* regDomainPairs: Map of 8-bit regdomain values to unitary reg domain */

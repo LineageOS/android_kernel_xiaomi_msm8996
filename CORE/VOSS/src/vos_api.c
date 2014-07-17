@@ -2655,3 +2655,12 @@ v_U64_t vos_get_monotonic_boottime(void)
    return adf_os_ticks_to_msecs(adf_os_ticks());
 #endif
 }
+
+#ifdef FEATURE_WLAN_D0WOW
+v_VOID_t vos_pm_control(v_BOOL_t vote)
+{
+#ifdef CONFIG_CNSS
+    cnss_wlan_pm_control(vote);
+#endif
+}
+#endif

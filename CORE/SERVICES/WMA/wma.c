@@ -167,6 +167,11 @@
 #define WMI_MAX_HOST_CREDITS 2
 #define WMI_WOW_REQUIRED_CREDITS 1
 
+#ifdef FEATURE_WLAN_D0WOW
+#define DISABLE_PCIE_POWER_COLLAPSE 1
+#define ENABLE_PCIE_POWER_COLLAPSE  0
+#endif
+
 static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
 
@@ -9908,6 +9913,15 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 			wma_handle->wma_ibss_power_save_params.ibssPsWarmupTime);
 	}
 		break;
+	case WMA_VDEV_IBSS_PS_SET_1RX_CHAIN_IN_ATIM_WINDOW:
+	{
+		wma_handle->wma_ibss_power_save_params.ibssPs1RxChainInAtimEnable =
+					privcmd->param_value;
+		WMA_LOGD("%s: IBSS Power Save single RX Chain Enable In ATIM  = %d",
+			__func__,
+			wma_handle->wma_ibss_power_save_params.ibssPs1RxChainInAtimEnable);
+	}
+		break;
 
 	default:
 		WMA_LOGE("Invalid wma config command id:%d",
@@ -11184,6 +11198,15 @@ wma_set_ibss_pwrsave_params(tp_wma_handle wma, u_int8_t vdev_id)
 		return VOS_STATUS_E_FAILURE;
 	}
 
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_ENABLE,
+				wma->wma_ibss_power_save_params.ibssPs1RxChainInAtimEnable);
+	if (ret < 0) {
+		WMA_LOGE("Failed to set IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_ENABLE ret=%d",
+				ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -12416,6 +12439,25 @@ out:
 	wma_send_msg(wma, WDA_ADD_STA_RSP, (void *)params, 0);
 }
 
+#ifdef FEATURE_WLAN_D0WOW
+static void wma_add_pm_vote(tp_wma_handle wma)
+{
+	if (++wma->ap_client_cnt == 1)
+		vos_pm_control(DISABLE_PCIE_POWER_COLLAPSE);
+}
+
+static void wma_del_pm_vote(tp_wma_handle wma)
+{
+	if (--wma->ap_client_cnt == 0)
+		vos_pm_control(ENABLE_PCIE_POWER_COLLAPSE);
+}
+
+int wma_get_client_count(WMA_HANDLE handle)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	return wma->ap_client_cnt;
+}
+#else
 static void wma_prevent_suspend_check(tp_wma_handle wma)
 {
 	wma->ap_client_cnt++;
@@ -12437,6 +12479,7 @@ static void wma_allow_suspend_check(tp_wma_handle wma)
 			 __func__, wma->ap_client_cnt);
 	}
 }
+#endif /* FEATURE_WLAN_D0WOW */
 
 static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 {
@@ -12448,7 +12491,11 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
                  add_sta->bssId[3], add_sta->bssId[4], add_sta->bssId[5]);
 
 	if (wma_is_vdev_in_ap_mode(wma, add_sta->smesessionId)) {
+#ifdef FEATURE_WLAN_D0WOW
+		wma_add_pm_vote(wma);
+#else
 		wma_prevent_suspend_check(wma);
+#endif
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
 	}
 #ifdef QCA_IBSS_SUPPORT
@@ -13099,7 +13146,11 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
 
 	if (wma_is_vdev_in_ap_mode(wma, del_sta->smesessionId)) {
+#ifdef FEATURE_WLAN_D0WOW
+		wma_del_pm_vote(wma);
+#else
 		wma_allow_suspend_check(wma);
+#endif
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
 	}
 #ifdef QCA_IBSS_SUPPORT
@@ -15319,6 +15370,30 @@ static int wma_lphb_handler(tp_wma_handle wma, u_int8_t *event)
 }
 #endif /* FEATURE_WLAN_LPHB */
 
+#ifdef FEATURE_WLAN_D0WOW
+/*
+ * Handler to catch D0-WOW disable ACK event.
+ */
+static int wma_d0_wow_disable_ack_event(void *handle, u_int8_t *event,
+					u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	WMI_D0_WOW_DISABLE_ACK_EVENTID_param_tlvs *param_buf;
+	wmi_d0_wow_disable_ack_event_fixed_param *resp_data;
+
+	param_buf = (WMI_D0_WOW_DISABLE_ACK_EVENTID_param_tlvs *)event;
+	if (!param_buf) {
+		WMA_LOGE("Invalid D0-WOW disable ACK event buffer!");
+		return -EINVAL;
+	}
+
+	resp_data = param_buf->fixed_param;
+	vos_event_set(&wma->wma_resume_event);
+	WMA_LOGD("Received D0-WOW disable ACK");
+	return 0;
+}
+#endif
+
 /*
  * Handler to catch wow wakeup host event. This event will have
  * reason why the firmware has woken the host.
@@ -15645,6 +15720,78 @@ static VOS_STATUS wma_del_wow_pattern_in_fw(tp_wma_handle wma,
 	return VOS_STATUS_SUCCESS;
 }
 
+#ifdef FEATURE_WLAN_D0WOW
+/* Enable D0-WOW in firmware. */
+VOS_STATUS wma_enable_d0wow_in_fw(tp_wma_handle wma)
+{
+	wmi_d0_wow_enable_disable_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len;
+	int host_credits;
+	int wmi_pending_cmds;
+	int ret = 0;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+
+	len = sizeof(wmi_d0_wow_enable_disable_cmd_fixed_param);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed to allocate WMI buffer!", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_d0_wow_enable_disable_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_d0_wow_enable_disable_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_d0_wow_enable_disable_cmd_fixed_param));
+	cmd->enable = 1;
+
+	vos_event_reset(&wma->target_suspend);
+
+	host_credits = wmi_get_host_credits(wma->wmi_handle);
+	wmi_pending_cmds = wmi_get_pending_cmds(wma->wmi_handle);
+	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
+		WMA_LOGE("%s: Doesn't have enough credits to Post "
+			"WMI_D0_WOW_ENABLE_DISABLE_CMDID! "
+			"Credits: %d, pending_cmds: %d\n", __func__,
+			host_credits, wmi_pending_cmds);
+		goto error;
+	}
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+		WMI_D0_WOW_ENABLE_DISABLE_CMDID);
+	if (ret) {
+		WMA_LOGE("Failed to enable D0-WOW in FW!");
+		goto error;
+	}
+
+	vos_status = vos_wait_single_event(&wma->target_suspend,
+		WMA_TGT_SUSPEND_COMPLETE_TIMEOUT);
+	if (VOS_STATUS_SUCCESS != vos_status) {
+		WMA_LOGE("Failed to receive D0-WoW enable ACK from FW!");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	host_credits = wmi_get_host_credits(wma->wmi_handle);
+	wmi_pending_cmds = wmi_get_pending_cmds(wma->wmi_handle);
+	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
+		WMA_LOGE("%s: No credits after HTC ACK: %d, pending_cmds: %d, "
+			"cannot resume back!", __func__, host_credits,
+			wmi_pending_cmds);
+		HTC_dump_counter_info(wma->htc_handle);
+		VOS_BUG(0);
+	}
+
+	wma->wow.wow_enable_cmd_sent = TRUE;
+	WMA_LOGD("D0-WOW is enabled successfully in FW.");
+	return vos_status;
+
+error:
+	wmi_buf_free(buf);
+	return VOS_STATUS_E_FAILURE;
+}
+#endif /* FEATURE_WLAN_D0WOW */
+
 /* Enables WOW in firmware. */
 int wma_enable_wow_in_fw(WMA_HANDLE handle)
 {
@@ -15656,6 +15803,14 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	struct ol_softc *scn;
 	int host_credits;
 	int wmi_pending_cmds;
+
+#ifdef FEATURE_WLAN_D0WOW
+	if (wma->ap_client_cnt > 0) {
+		WMA_LOGD("Entering D0-WOW since client count is %d.",
+			wma->ap_client_cnt);
+		return wma_enable_d0wow_in_fw(wma);
+}
+#endif
 
 	len = sizeof(wmi_wow_enable_cmd_fixed_param);
 
@@ -16640,8 +16795,74 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 	return vos_status;
 }
 
-/* Disable wow in PCIe resume context.*/
+#ifdef FEATURE_WLAN_D0WOW
+/* Disable D0-WOW in firmware. */
+VOS_STATUS wma_disable_d0wow_in_fw(tp_wma_handle wma)
+{
+	wmi_d0_wow_enable_disable_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len;
+	int host_credits;
+	int wmi_pending_cmds;
+	int ret = 0;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
+	len = sizeof(wmi_d0_wow_enable_disable_cmd_fixed_param);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed to allocate WMI buffer!", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_d0_wow_enable_disable_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_d0_wow_enable_disable_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_d0_wow_enable_disable_cmd_fixed_param));
+	cmd->enable = 0;
+
+	host_credits = wmi_get_host_credits(wma->wmi_handle);
+	wmi_pending_cmds = wmi_get_pending_cmds(wma->wmi_handle);
+	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
+		WMA_LOGE("%s: No Credits when resume: %d, pending_cmds: %d, "
+			"cannot resume back", __func__, host_credits,
+			wmi_pending_cmds);
+		HTC_dump_counter_info(wma->htc_handle);
+		VOS_BUG(0);
+	}
+
+	vos_event_reset(&wma->wma_resume_event);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+		WMI_D0_WOW_ENABLE_DISABLE_CMDID);
+	if (ret) {
+		WMA_LOGE("Failed to disable D0-WOW in FW!");
+		goto error;
+	}
+
+	vos_status = vos_wait_single_event(&(wma->wma_resume_event),
+		WMA_RESUME_TIMEOUT);
+	if (VOS_STATUS_SUCCESS != vos_status) {
+		WMA_LOGP("%s: Timeout waiting for resume event from FW!",
+			__func__);
+		WMA_LOGP("%s: Pending commands: %d credits: %d", __func__,
+			wmi_get_pending_cmds(wma->wmi_handle),
+			wmi_get_host_credits(wma->wmi_handle));
+		VOS_BUG(0);
+	}
+
+	wma->wow.wow_enable = FALSE;
+	wma->wow.wow_enable_cmd_sent = FALSE;
+	WMA_LOGD("D0-WOW is disabled successfully in FW.");
+	return vos_status;
+
+error:
+	wmi_buf_free(buf);
+	return VOS_STATUS_E_FAILURE;
+}
+#endif /* FEATURE_WLAN_D0WOW */
+
+/* Disable wow in PCIe resume context. */
 int wma_disable_wow_in_fw(WMA_HANDLE handle)
 {
 	tp_wma_handle wma = handle;
@@ -16652,6 +16873,14 @@ int wma_disable_wow_in_fw(WMA_HANDLE handle)
 	}
 
 	WMA_LOGD("WoW Resume in PCIe Context\n");
+
+#ifdef FEATURE_WLAN_D0WOW
+	if (wma->ap_client_cnt > 0) {
+		WMA_LOGD("Exiting D0-WOW since client count is %d.",
+			wma->ap_client_cnt);
+		return wma_disable_d0wow_in_fw(wma);
+	}
+#endif
 
 	ret = wma_send_host_wakeup_ind_to_fw(wma);
 
@@ -21725,6 +21954,18 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto end;
 	}
+
+#ifdef FEATURE_WLAN_D0WOW
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					WMI_D0_WOW_DISABLE_ACK_EVENTID,
+					wma_d0_wow_disable_ack_event);
+	if (status) {
+		WMA_LOGE("%s: Failed to register D0-WOW disable event handler!",
+			__func__);
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+#endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,

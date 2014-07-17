@@ -277,6 +277,12 @@ PREPACK64 struct host_interest_s {
     /* remaining bytes of DRAM */
     A_UINT32               hi_dynamic_mem_remaining;                /* 0x110 */
 
+    /* memory track count, configured by host */
+    A_UINT32               hi_dynamic_mem_track_max;                /* 0x114 */
+
+    /* minidump buffer */
+    A_UINT32               hi_minidump;                             /* 0x118 */
+
 } POSTPACK64;
 
 /* bitmap for hi_test_apps_related */

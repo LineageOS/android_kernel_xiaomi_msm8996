@@ -1804,6 +1804,20 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
         msleep(10);
     }
 
+#ifdef FEATURE_WLAN_D0WOW
+    if (wma_get_client_count(temp_module)) {
+        if (enable_irq_wake(pdev->irq)) {
+            pr_err("%s: Fail to enable wake IRQ!\n", __func__);
+            ret = -1;
+            goto out;
+        }
+
+        pr_info("%s: Suspend completes (D0WOW)\n", __func__);
+        ret = 0;
+        goto out;
+    }
+#endif
+
     adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
 
     /*Disable PCIe interrupts*/
@@ -1937,6 +1951,16 @@ hif_pci_resume(struct pci_dev *pdev)
         err = wma_resume_target(temp_module);
     else
         err = wma_disable_wow_in_fw(temp_module);
+
+#ifdef FEATURE_WLAN_D0WOW
+    if (wma_get_client_count(temp_module)) {
+        if (disable_irq_wake(pdev->irq)) {
+            pr_err("%s: Fail to disable wake IRQ!\n", __func__);
+            err = -1;
+            goto out;
+        }
+    }
+#endif
 
 out:
     printk("%s: Resume completes %d\n", __func__, err);
