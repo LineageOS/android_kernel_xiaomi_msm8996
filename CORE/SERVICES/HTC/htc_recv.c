@@ -424,10 +424,6 @@ A_STATUS HTCRxCompletionHandler(
             netbuf = NULL;
             break;
         }
-#if defined(HIF_USB)
-        if (WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
-            goto _eppingout;
-#endif
 
             /* the current message based HIF architecture allocates net bufs for recv packets
              * since this layer bridges that HIF to upper layers , which expects HTC packets,
@@ -458,9 +454,6 @@ A_STATUS HTCRxCompletionHandler(
 _out:
 #endif
 
-#if defined(HIF_USB)
-_eppingout:
-#endif
     if (netbuf != NULL) {
         adf_nbuf_free(netbuf);
     }

@@ -329,60 +329,35 @@ A_STATUS HTCSetupTargetBufferAssignments(HTC_TARGET *target)
     pEntry->CreditAllocation = credits;
 
     if (WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
+        /* endpoint ping is a testing tool directly on top of HTC in
+         * both target and host sides.
+         * In target side, the endppint ping fw has no wlan stack and the
+         * FW mboxping app directly sits on HTC and it simply drops
+         * or loops back TX packets. For rx perf, FW mboxping app
+         * generates packets and passes packets to HTC to send to host.
+         * There is no WMI mesage exchanges between host and target
+         * in endpoint ping case.
+         * In host side, the endpoint ping driver is a Ethernet driver
+         * and it directly sits on HTC. Only HIF, HTC, VOSS, ADF are
+         * used by the endpoint ping driver. There is no wifi stack
+         * at all in host side also. For tx perf use case,
+         * the user space mboxping app sends the raw packets to endpoint
+         * ping driver and it directly forwards to HTC for transmission
+         * to stress the bus. For the rx perf, HTC passes the received
+         * packets to endpoint ping driver and it is passed to the user
+         * space through the Ethernet interface.
+         * For credit allocation, in SDIO bus case, only BE service is
+         * used for tx/rx perf testing so that all credits are given
+         * to BE service. In PCIe bus case, endpoint ping uses both
+         * BE and BK services to stress the bus so that the total credits
+         * are equally distributed to BE and BK services.
+         */
 #if !defined(HIF_USB)
         pEntry++;
         pEntry->ServiceID = WMI_DATA_BE_SVC;
         pEntry->CreditAllocation = credits;
 #endif
-#if defined(HIF_USB)
-        do {
-            pEntry++;
-            pEntry->ServiceID = WMI_DATA_VI_SVC;
-            pEntry->CreditAllocation = credits / 4;
-            if (pEntry->CreditAllocation == 0) {
-                pEntry->CreditAllocation++;
-            }
-            credits -= (int)pEntry->CreditAllocation;
-            if (credits <= 0) {
-                break;
-            }
-            pEntry++;
-            pEntry->ServiceID = WMI_DATA_VO_SVC;
-            pEntry->CreditAllocation = credits / 3;
-            if (pEntry->CreditAllocation == 0) {
-                pEntry->CreditAllocation++;
-            }
-            credits -= (int)pEntry->CreditAllocation;
-            if (credits <= 0) {
-                break;
-            }
-            pEntry++;
-            pEntry->ServiceID = WMI_DATA_BK_SVC;
-            pEntry->CreditAllocation = credits / 2;
-            credits -= (int)pEntry->CreditAllocation;
-            if (credits <= 0) {
-                break;
-            }
-            /*
-             * HTT_DATA_MSG_SVG is unidirectional from target -> host,
-             * so no target buffers are needed.
-             */
-            pEntry++;
-            pEntry->ServiceID = WMI_DATA_BE_SVC;
-            pEntry->CreditAllocation = credits / 2;
-            credits -= (int)pEntry->CreditAllocation;
-            if (credits <= 0) {
-                break;
-            }
-            /* leftovers go to best effort */
-            pEntry++;
-            pEntry->ServiceID = WMI_CONTROL_SVC;
-            pEntry->CreditAllocation = (A_UINT8)credits;
-            status = A_OK;
-        } while (FALSE);
- #endif
  #if defined(HIF_PCI)
-        //pEntry++;
         pEntry->ServiceID = WMI_DATA_BE_SVC;
         pEntry->CreditAllocation = (credits >> 1);
 
@@ -586,11 +561,6 @@ A_STATUS HTCWaitTarget(HTC_HANDLE HTCHandle)
                                    &resp);
 
     } while (FALSE);
-
-#if defined(HIF_USB)
-    if (WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
-        HIFStart_INPipe(target->hif_dev);
-#endif
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("HTCWaitTarget - Exit (%d)\n",status));
     AR_DEBUG_PRINTF(ATH_DEBUG_ANY, ("-HWT\n"));
