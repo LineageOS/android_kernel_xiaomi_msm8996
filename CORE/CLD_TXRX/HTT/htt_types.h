@@ -39,6 +39,8 @@
 #include <ol_ctrl_api.h>  /* ol_pdev_handle */
 #include <ol_txrx_api.h>  /* ol_txrx_pdev_handle */
 
+#define DEBUG_DMA_DONE
+
 #define HTT_TX_MUTEX_TYPE adf_os_spinlock_t
 
 #ifdef QCA_TX_HTT2_SUPPORT
@@ -47,6 +49,34 @@
 #define HTC_TX_HTT2_MAX_SIZE    (120)
 #endif
 #endif /* QCA_TX_HTT2_SUPPORT */
+
+#define HTT_INVALID_PEER    0xffff
+#define HTT_INVALID_VDEV    0xff
+#define HTT_NON_QOS_TID     16
+#define HTT_INVALID_TID     31
+
+#define HTT_TX_EXT_TID_DEFAULT              0
+#define HTT_TX_EXT_TID_NON_QOS_MCAST_BCAST 16
+#define HTT_TX_EXT_TID_MGMT                17
+#define HTT_TX_EXT_TID_INVALID             31
+
+/**
+ * @brief General specification of the tx frame contents
+ *
+ * @details
+ * for efficiency, the HTT packet type values correspond
+ * to the bit positions of the WAL packet type values, so the
+ * translation is a simple shift operation.
+ */
+enum htt_pkt_type {
+    htt_pkt_type_raw = 0,
+    htt_pkt_type_native_wifi = 1,
+    htt_pkt_type_ethernet = 2,
+    htt_pkt_type_mgmt = 3,
+
+    /* keep this last */
+    htt_pkt_num_types
+};
 
 struct htt_pdev_t;
 
