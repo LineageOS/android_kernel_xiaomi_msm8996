@@ -54,6 +54,10 @@
 #define AR6320_DEVICE_ID (0x003e)
 #define DELAY_FOR_TARGET_READY 200	/* 200ms */
 #define DELAY_INT_FOR_HDD_REMOVE 200	/* 200ms */
+#define HIFDiagWriteCOLDRESET(hifdevice) HIFDiagWriteAccess(sc->hif_device, \
+				(ROME_USB_SOC_RESET_CONTROL_COLD_RST_LSB | \
+				ROME_USB_RTC_SOC_BASE_ADDRESS), \
+				SOC_RESET_CONTROL_COLD_RST_SET(1))
 
 unsigned int msienable;
 module_param(msienable, int, 0644);
@@ -94,7 +98,8 @@ static int hif_usb_reboot(struct notifier_block *nb, unsigned long val,
 {
 	struct hif_usb_softc *sc;
 	sc = container_of(nb, struct hif_usb_softc, reboot_notifier);
-	HIFDiagWriteWARMRESET(sc->interface, 0, 0);
+	/* do cold reset */
+	HIFDiagWriteCOLDRESET(sc->hif_device);
 	return NOTIFY_DONE;
 }
 
@@ -240,8 +245,8 @@ static void hif_usb_remove(struct usb_interface *interface)
 		set_current_state(TASK_RUNNING);
 		usb_sc->hdd_removed_wait_cnt ++;
 	}
-
-	HIFDiagWriteWARMRESET(interface, 0, 0);
+	/* do cold reset */
+	HIFDiagWriteCOLDRESET(sc->hif_device);
 	/* wait for target jump to boot code and finish the initialization */
 	set_current_state(TASK_INTERRUPTIBLE);
 	schedule_timeout(msecs_to_jiffies(DELAY_FOR_TARGET_READY));
@@ -364,10 +369,7 @@ static int hif_usb_reset_resume(struct usb_interface *intf)
 	HIF_DEVICE_USB *device = usb_get_intfdata(intf);
 	struct hif_usb_softc *sc = device->sc;
 
-	HIFDiagWriteAccess(sc->hif_device,
-		(ROME_USB_SOC_RESET_CONTROL_COLD_RST_LSB |
-		ROME_USB_RTC_SOC_BASE_ADDRESS),
-		SOC_RESET_CONTROL_COLD_RST_SET(1));
+	HIFDiagWriteCOLDRESET(sc->hif_device);
 
 	return 0;
 }
