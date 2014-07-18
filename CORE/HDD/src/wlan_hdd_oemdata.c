@@ -45,9 +45,7 @@
 #include <net/arp.h>
 #include "qwlan_version.h"
 
-#ifdef QCA_WIFI_2_0
 static struct hdd_context_s *pHddCtx;
-#endif /* QCA_WIFI_2_0 */
 
 
 /*---------------------------------------------------------------------------------------------
@@ -249,7 +247,6 @@ int iw_set_oem_data_req(
     return rc;
 }
 
-#ifdef QCA_WIFI_2_0
 
 /* Forward declaration */
 static int oem_msg_callback(struct sk_buff *skb);
@@ -1053,5 +1050,4 @@ int oem_msg_callback(struct sk_buff *skb)
    return 0;
 }
 
-#endif /* QCA_WIFI_2_0 */
 #endif

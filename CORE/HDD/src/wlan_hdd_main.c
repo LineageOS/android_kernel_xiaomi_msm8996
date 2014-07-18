@@ -135,7 +135,6 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #ifdef IPA_OFFLOAD
 #include <wlan_hdd_ipa.h>
 #endif
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #if defined(HIF_PCI)
 #include "if_pci.h"
 #elif defined(HIF_USB)
@@ -144,7 +143,6 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #include "if_ath_sdio.h"
 #endif
 #include "wma.h"
-#endif
 
 #if defined(LINUX_QCMBR)
 #define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
@@ -284,13 +282,10 @@ static int hdd_parse_reassoc_command_v1_data(const tANI_U8 *pValue,
                                              tANI_U8 *pChannel);
 #endif
 
-#if defined (QCA_WIFI_2_0) && \
-    !defined (QCA_WIFI_ISOC)
 struct completion wlan_start_comp;
 #ifdef QCA_WIFI_FTM
 extern int hdd_ftm_start(hdd_context_t *pHddCtx);
 extern int hdd_ftm_stop(hdd_context_t *pHddCtx);
-#endif
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 v_VOID_t wlan_hdd_auto_shutdown_cb(v_VOID_t);
@@ -2468,9 +2463,7 @@ hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid, const tANI_U8 channel
       hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
       handoffInfo.channel = channel;
-#ifndef QCA_WIFI_ISOC
       handoffInfo.src = REASSOC;
-#endif
       memcpy(handoffInfo.bssid, bssid, sizeof(tSirMacAddr));
       sme_HandoffRequest(pHddCtx->hHal, pAdapter->sessionId, &handoffInfo);
    }
@@ -3819,16 +3812,6 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if (strncmp(command, "SETSUSPENDMODE", 14) == 0)
        {
-#ifndef QCA_WIFI_2_0
-           int suspend = 0;
-           tANI_U8 *ptr = (tANI_U8*)command + 15;
-
-           suspend = *ptr - '0';
-           MTRACE(vos_trace(VOS_MODULE_ID_HDD,
-                            TRACE_CODE_HDD_SETSUSPENDMODE_IOCTL,
-                            pAdapter->sessionId, suspend));
-           hdd_set_wlan_suspend_mode(suspend);
-#endif
        }
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
        else if (strncmp(command, "SETROAMTRIGGER", 14) == 0)
@@ -4925,7 +4908,6 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
        else if (strncmp(command, "FASTREASSOC", 11) == 0)
        {
-#ifndef QCA_WIFI_ISOC
            tANI_U8 *value = command;
            tANI_U8 channel = 0;
            tSirMacAddr targetApBssid;
@@ -4977,48 +4959,6 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            handoffInfo.src = FASTREASSOC;
            vos_mem_copy(handoffInfo.bssid, targetApBssid, sizeof(tSirMacAddr));
            sme_HandoffRequest(pHddCtx->hHal, pAdapter->sessionId, &handoffInfo);
-#endif
-#else
-           tANI_U8 *value = command;
-           tSirMacAddr targetApBssid;
-           tANI_U8 trigger = 0;
-           hdd_station_ctx_t *pHddStaCtx = NULL;
-           pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-
-           /* if not associated, no need to proceed with reassoc */
-           if (eConnectionState_Associated != pHddStaCtx->conn_info.connState)
-           {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s:Not associated!",__func__);
-               ret = -EINVAL;
-               goto exit;
-           }
-
-           ret = hdd_parse_reassoc_command_v1_data(value, targetApBssid,
-                                                   &trigger);
-           if (ret)
-           {
-               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Failed to parse reassoc command data", __func__);
-               goto exit;
-           }
-
-           /* if the target bssid is same as currently associated AP,
-              then no need to proceed with reassoc */
-           if (VOS_TRUE == vos_mem_compare(targetApBssid,
-                                           pHddStaCtx->conn_info.bssId, sizeof(tSirMacAddr)))
-           {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                         "%s:11r Reassoc BSSID is same as currently associated AP bssid",
-                         __func__);
-               ret = -EINVAL;
-               goto exit;
-           }
-
-           /* Proceed with scan/roam */
-           smeIssueFastRoamNeighborAPEvent(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                           &targetApBssid[0],
-                                           (tSmeFastRoamTrigger)(trigger),
-                                           pAdapter->sessionId);
 #endif
        }
 #endif
@@ -5816,7 +5756,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
       goto exit;
    }
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM) && defined(LINUX_QCMBR)
+#if  defined(QCA_WIFI_FTM) && defined(LINUX_QCMBR)
    if (VOS_FTM_MODE == hdd_get_conparam()) {
        if (SIOCIOCTLTX99 == cmd) {
            ret = wlan_hdd_qcmbr_unified_ioctl(pAdapter, ifr);
@@ -6157,7 +6097,6 @@ void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand)
     }
 }
 
-#if defined (QCA_WIFI_2_0) && !defined (QCA_WIFI_ISOC)
 /*
  * Mac address for multiple virtual interface is found as following
  * i) The mac address of the first interface is just the actual hw mac address.
@@ -6808,7 +6747,6 @@ void hdd_dfs_indicate_radar(void *context, void *param)
         }
     }
 }
-#endif  /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
 
 
 /**---------------------------------------------------------------------------
@@ -7938,9 +7876,7 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       init_completion(&pHddCtx->mc_sus_event_var);
       init_completion(&pHddCtx->tx_sus_event_var);
       init_completion(&pHddCtx->rx_sus_event_var);
-#ifdef QCA_WIFI_2_0
       init_completion(&pHddCtx->ready_to_suspend);
-#endif
       init_completion(&pAdapter->ula_complete);
       init_completion(&pAdapter->change_country_code);
 
@@ -7970,15 +7906,11 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       pWlanDev->watchdog_timeo = HDD_TX_TIMEOUT;
       pWlanDev->hard_header_len += LIBRA_HW_NEEDED_HEADROOM;
 
-#ifdef QCA_WIFI_2_0
       if (pHddCtx->cfg_ini->enableIPChecksumOffload)
          pWlanDev->features |= NETIF_F_HW_CSUM;
       else if (pHddCtx->cfg_ini->enableTCPChkSumOffld)
          pWlanDev->features |= NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM;
-#ifndef QCA_WIFI_ISOC
          pWlanDev->features |= NETIF_F_RXCSUM;
-#endif
-#endif
       hdd_set_station_ops( pAdapter->dev );
 
       pWlanDev->destructor = free_netdev;
@@ -8884,7 +8816,6 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 #endif
    }
 
-#ifdef QCA_WIFI_2_0
    if ((vos_get_conparam() != VOS_FTM_MODE) && (!pHddCtx->cfg_ini->enable2x2))
    {
 #define HDD_DTIM_1CHAIN_RX_ID 0x5
@@ -8942,7 +8873,6 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
        }
   }
 
-#endif
 
 #ifdef CONFIG_FW_LOGS_BASED_ON_INI
 
@@ -10432,10 +10362,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    struct wiphy *wiphy = pHddCtx->wiphy;
    struct statsContext powerContext;
    unsigned long rc;
-#if defined (QCA_WIFI_2_0) && \
-    defined (QCA_WIFI_ISOC)
-   adf_os_device_t adf_ctx;
-#endif
    hdd_config_t *pConfig = pHddCtx->cfg_ini;
 
    ENTER();
@@ -10451,7 +10377,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    if (VOS_FTM_MODE == hdd_get_conparam())
    {
       hddLog(VOS_TRACE_LEVEL_INFO, "%s: FTM MODE", __func__);
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
       if (hdd_ftm_stop(pHddCtx))
       {
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_stop Failed",__func__);
@@ -10682,15 +10608,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
 
-#if defined (QCA_WIFI_2_0) && \
-    defined (QCA_WIFI_ISOC)
-   /*
-    * Free ADF context here only for ISOC case. For discrete
-    * it should be freed after PCI remove
-    */
-   adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, pVosContext);
-   vos_mem_free(adf_ctx);
-#endif
 
    /* free the power on lock from platform driver */
    if (free_riva_power_on_lock("wlan"))
@@ -10720,8 +10637,6 @@ free_hdd_ctx:
    hdd_set_ssr_required (VOS_FALSE);
 }
 
-#if defined (QCA_WIFI_2_0) && \
-   !defined (QCA_WIFI_ISOC)
 void __hdd_wlan_exit(void)
 {
    hdd_context_t *pHddCtx = NULL;
@@ -10789,7 +10704,6 @@ void __hdd_wlan_exit(void)
 
    EXIT();
 }
-#endif  /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
 
 #ifdef QCA_HT_2040_COEX
 /**--------------------------------------------------------------------------
@@ -11153,30 +11067,14 @@ boolean hdd_is_5g_supported(hdd_context_t * pHddCtx)
    /* If wcnss_wlan_iris_xo_mode() returns WCNSS_XO_48MHZ(1);
     * then hardware support 5Ghz.
    */
-#ifdef QCA_WIFI_ISOC
-   if (WCNSS_XO_48MHZ == wcnss_wlan_iris_xo_mode())
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Hardware supports 5Ghz", __func__);
-      return true;
-   }
-   else
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Hardware doesn't supports 5Ghz",
-             __func__);
-      return false;
-   }
-#else
    return true;
-#endif
 }
 
 #ifdef CONFIG_ENABLE_LINUX_REG
-#ifdef QCA_WIFI_2_0
 #define WOW_MAX_FILTER_LISTS     1
 #define WOW_MAX_FILTERS_PER_LIST 4
 #define WOW_MIN_PATTERN_SIZE     6
 #define WOW_MAX_PATTERN_SIZE     64
-#endif
 
 static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
 {
@@ -11190,7 +11088,6 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
       from the NV.bin data. The channel information in
       wiphy needs to be initialized before wiphy registration */
 
-#ifndef QCA_WIFI_ISOC
    status = vos_init_wiphy_from_eeprom();
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
@@ -11199,9 +11096,7 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
             "%s: vos_init_wiphy failed", __func__);
       return status;
    }
-#endif
 
-#ifdef QCA_WIFI_2_0
     wiphy->wowlan.flags = WIPHY_WOWLAN_ANY |
                           WIPHY_WOWLAN_MAGIC_PKT |
                           WIPHY_WOWLAN_DISCONNECT |
@@ -11215,7 +11110,6 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
                           WOW_MAX_FILTERS_PER_LIST);
     wiphy->wowlan.pattern_min_len = WOW_MIN_PATTERN_SIZE;
     wiphy->wowlan.pattern_max_len = WOW_MAX_PATTERN_SIZE;
-#endif
 
    /* registration of wiphy dev with cfg80211 */
    if (0 > wlan_hdd_cfg80211_register(wiphy))
@@ -11318,69 +11212,6 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 }
 #endif
 
-#if defined(WLAN_AUTOGEN_MACADDR_FEATURE) && defined (QCA_WIFI_ISOC)
-/**---------------------------------------------------------------------------
-
-  \brief hdd_generate_iface_mac_addr_auto() - HDD Mac Interface Auto
-                                              generate function
-
-  This is generate the random mac address for WLAN interface
-
-  \param  - pHddCtx  - Pointer to HDD context
-            idx      - Start interface index to get auto
-                       generated mac addr.
-            mac_addr - Mac address
-
-  \return -  0 for success, < 0 for failure
-
-  --------------------------------------------------------------------------*/
-
-static int hdd_generate_iface_mac_addr_auto(hdd_context_t *pHddCtx,
-                                            int idx, v_MACADDR_t mac_addr)
-{
-   int i;
-   unsigned int serialno;
-   serialno = wcnss_get_serial_number();
-
-   if (0 != serialno)
-   {
-      /* MAC address has 3 bytes of OUI so we have a maximum of 3
-         bytes of the serial number that can be used to generate
-         the other 3 bytes of the MAC address.  Mask off all but
-         the lower 3 bytes (this will also make sure we don't
-         overflow in the next step) */
-      serialno &= 0x00FFFFFF;
-
-      /* we need a unique address for each session */
-      serialno *= VOS_MAX_CONCURRENCY_PERSONA;
-
-      /* autogen other Mac addresses */
-      for (i = idx; i < VOS_MAX_CONCURRENCY_PERSONA; i++)
-      {
-         /* start with the entire default address */
-         pHddCtx->cfg_ini->intfMacAddr[i] = mac_addr;
-         /* then replace the lower 3 bytes */
-         pHddCtx->cfg_ini->intfMacAddr[i].bytes[3] = (serialno >> 16) & 0xFF;
-         pHddCtx->cfg_ini->intfMacAddr[i].bytes[4] = (serialno >> 8) & 0xFF;
-         pHddCtx->cfg_ini->intfMacAddr[i].bytes[5] = serialno & 0xFF;
-
-         serialno++;
-         hddLog(VOS_TRACE_LEVEL_ERROR,
-                   "%s: Derived Mac Addr: "
-                   MAC_ADDRESS_STR, __func__,
-                   MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[i].bytes));
-      }
-
-   }
-   else
-   {
-      hddLog(LOGE, FL("Failed to Get Serial NO"));
-      return -1;
-   }
-
-   return 0;
-}
-#endif // WLAN_AUTOGEN_MACADDR_FEATURE && QCA_WIFI_ISOC
 
 /**---------------------------------------------------------------------------
   \brief hdd_11d_scan_done - callback to be executed when 11d scan is
@@ -11439,16 +11270,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    int i;
    struct wiphy *wiphy;
    unsigned long rc;
-#ifdef QCA_WIFI_2_0
    adf_os_device_t adf_ctx;
-#endif
-#ifndef QCA_WIFI_ISOC
    tSmeThermalParams thermalParam;
    tSirTxPowerLimit *hddtxlimit;
-#endif
-#if defined(WLAN_AUTOGEN_MACADDR_FEATURE) && defined (QCA_WIFI_ISOC)
-   v_MACADDR_t mac_addr;
-#endif
 
    ENTER();
 
@@ -11521,7 +11345,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    mutex_init(&pHddCtx->tdls_lock);
 #endif
 
-#ifdef QCA_WIFI_2_0
    /* Initialize the adf_ctx handle */
    adf_ctx = vos_mem_malloc(sizeof(*adf_ctx));
 
@@ -11530,17 +11353,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_free_hdd_context;
    }
    vos_mem_zero(adf_ctx, sizeof(*adf_ctx));
-#ifdef QCA_WIFI_ISOC
-   adf_ctx->dev = dev;
-#else
    hif_init_adf_ctx(adf_ctx, hif_sc);
    ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
 
    /* store target type and target version info in hdd ctx */
    pHddCtx->target_type = ((struct ol_softc *)hif_sc)->target_type;
-#endif
    ((VosContextType*)(pVosContext))->adf_ctx = adf_ctx;
-#endif /* QCA_WIFI_2_0 */
 
    // Load all config first as TL config is needed during vos_open
    pHddCtx->cfg_ini = (hdd_config_t*) kmalloc(sizeof(hdd_config_t), GFP_KERNEL);
@@ -11572,9 +11390,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    pHddCtx->current_intf_count=0;
    pHddCtx->max_intf_count = CSR_ROAM_SESSION_MAX;
 
-#ifndef QCA_WIFI_2_0
-   pHddCtx->cfg_ini->maxWoWFilters = WOWL_MAX_PTRNS_ALLOWED;
-#endif
    /* INI has been read, initialise the configuredMcastBcastFilter with
     * INI value as this will serve as the default value
     */
@@ -11699,16 +11514,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_wdclose;
    }
 
-#ifdef QCA_WIFI_ISOC
-   status = vos_init_wiphy_from_nv_bin();
-   if (!VOS_IS_STATUS_SUCCESS(status))
-   {
-      /* NV module cannot be initialized */
-      hddLog( VOS_TRACE_LEVEL_FATAL,
-            "%s: vos_init_wiphy failed", __func__);
-      goto err_vos_nv_close;
-   }
-#endif
 #endif
 
    status = vos_open( &pVosContext, 0);
@@ -11720,8 +11525,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    wlan_hdd_update_wiphy(wiphy, pHddCtx->cfg_ini);
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && \
-    !defined(REMOVE_PKT_LOG)
+#if      !defined(REMOVE_PKT_LOG)
    hif_init_pdev_txrx_handle(hif_sc,
                              vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
 #endif
@@ -11793,71 +11597,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
    // Get mac addr from platform driver
-#if defined(WLAN_AUTOGEN_MACADDR_FEATURE) && defined (QCA_WIFI_ISOC)
-   ret = wcnss_get_wlan_mac_address((char*)&mac_addr.bytes);
-
-   if ((0 == ret) && (!vos_is_macaddr_zero(&mac_addr)))
-   {
-      /* Store the mac addr for first interface */
-      pHddCtx->cfg_ini->intfMacAddr[0] = mac_addr;
-
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: WLAN Mac Addr: "
-             MAC_ADDRESS_STR, __func__,
-             MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[0].bytes));
-
-      /* Here, passing Arg2 as 1 because we do not want to change the
-         last 3 bytes (means non OUI bytes) of first interface mac
-         addr.
-       */
-      if (0 != hdd_generate_iface_mac_addr_auto(pHddCtx, 1, mac_addr))
-      {
-         hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to generate wlan interface mac addr "
-                "using MAC from ini file ", __func__);
-      }
-   }
-   else
-#endif // WLAN_AUTOGEN_MACADDR_FEATURE && QCA_WIFI_ISOC
    if (VOS_STATUS_SUCCESS != hdd_update_config_from_nv(pHddCtx))
    {
       // Apply the NV to cfg.dat
       /* Prima Update MAC address only at here */
-#if defined(WLAN_AUTOGEN_MACADDR_FEATURE) && defined (QCA_WIFI_ISOC)
-      /* There was not a valid set of MAC Addresses in NV.  See if the
-         default addresses were modified by the cfg.ini settings.  If so,
-         we'll use them, but if not, we'll autogenerate a set of MAC
-         addresses based upon the device serial number */
-
-      static const v_MACADDR_t default_address =
-         {{0x00, 0x0A, 0xF5, 0x89, 0x89, 0xFF}};
-
-      if (0 == memcmp(&default_address, &pHddCtx->cfg_ini->intfMacAddr[0],
-                   sizeof(default_address)))
-      {
-         /* cfg.ini has the default address, invoke autogen logic */
-
-         /* Here, passing Arg2 as 0 because we want to change the
-            last 3 bytes (means non OUI bytes) of all the interfaces
-            mac addr.
-          */
-         if (0 != hdd_generate_iface_mac_addr_auto(pHddCtx, 0,
-                                                            default_address))
-         {
-            hddLog(VOS_TRACE_LEVEL_ERROR,
-                   "%s: Failed to generate wlan interface mac addr "
-                   "using MAC from ini file " MAC_ADDRESS_STR, __func__,
-                   MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[0].bytes));
-         }
-      }
-      else
-      {
-         hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: Invalid MAC address in NV, using MAC from ini file "
-                MAC_ADDRESS_STR, __func__,
-                MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[0].bytes));
-      }
-#endif //WLAN_AUTOGEN_MACADDR_FEATURE && QCA_WIFI_ISOC
    }
 
    if ( VOS_STATUS_SUCCESS != hdd_update_mac_config( pHddCtx ) )
@@ -11918,9 +11661,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #ifndef CONFIG_ENABLE_LINUX_REG
    wlan_hdd_cfg80211_update_reg_info( wiphy );
 
-#ifdef QCA_WIFI_2_0
    wlan_hdd_cfg80211_update_wiphy_caps( wiphy );
-#endif
 
    /* registration of wiphy dev with cfg80211 */
    if (0 > wlan_hdd_cfg80211_register(wiphy))
@@ -11942,7 +11683,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
           goto err_free_adf_context;
       }
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
       if (hdd_ftm_start(pHddCtx))
       {
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_start Failed",__func__);
@@ -11951,9 +11692,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded", __func__);
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
       complete(&wlan_start_comp);
-#endif
       return VOS_STATUS_SUCCESS;
    }
 
@@ -12018,7 +11757,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_close_adapter;
    }
 
-#ifdef QCA_WIFI_2_0
 
    /* target hw version/revision would only be retrieved after firmware donwload */
    hif_get_hw_info(hif_sc, &pHddCtx->target_hw_version,
@@ -12029,10 +11767,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    /* pass target_fw_version to HIF layer */
    hif_set_fw_info(hif_sc, pHddCtx->target_fw_version);
-#else
-   /* Exchange capability info between Host and FW and also get versioning info from FW */
-   hdd_exchange_version_and_caps(pHddCtx);
-#endif
 
    if (country_code)
    {
@@ -12173,7 +11907,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
-#ifdef QCA_WIFI_2_0
    //Initialize the OEM service
    if (oem_activate_service(pHddCtx) != 0)
    {
@@ -12181,7 +11914,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
              "%s: oem_activate_service failed", __func__);
       goto err_nl_srv;
    }
-#endif
 #endif
 
 #ifdef PTT_SOCK_SVC_ENABLE
@@ -12279,7 +12011,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
     wlan_hdd_cfg80211_nan_init(pHddCtx);
 #endif
 
-#ifndef QCA_WIFI_ISOC
    /* Thermal Mitigation */
    thermalParam.smeThermalMgmtEnabled =
        pHddCtx->cfg_ini->thermalMitigationEnable;
@@ -12325,7 +12056,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
         hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: Error setting txlimit in sme", __func__);
    }
-#endif /*#ifndef QCA_WIFI_ISOC*/
 
 #ifdef MSM_PLATFORM
    spin_lock_init(&pHddCtx->bus_bw_lock);
@@ -12353,9 +12083,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                              pHddCtx->target_hw_name);
 #endif
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
    complete(&wlan_start_comp);
-#endif
    goto success;
 
 err_nl_srv:
@@ -12423,7 +12151,7 @@ err_wdclose:
 
 if (VOS_FTM_MODE == hdd_get_conparam())
 {
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
 err_free_ftm_open:
    wlan_hdd_ftm_close(pHddCtx);
 #endif
@@ -12434,10 +12162,8 @@ err_config:
    pHddCtx->cfg_ini= NULL;
 
 err_free_adf_context:
-#ifdef QCA_WIFI_2_0
    vos_mem_free(adf_ctx);
    hif_deinit_adf_ctx(hif_sc);
-#endif
 
 err_free_hdd_context:
    hdd_allow_suspend();
@@ -12482,8 +12208,7 @@ static int hdd_driver_init( void)
 {
    VOS_STATUS status;
    v_CONTEXT_t pVosContext = NULL;
-#if defined (QCA_WIFI_ISOC) || \
-    defined (ANI_BUS_TYPE_PCI)
+#if      defined (ANI_BUS_TYPE_PCI)
    struct device *dev = NULL;
 #endif
    int ret_status = 0;
@@ -12535,13 +12260,6 @@ static int hdd_driver_init( void)
 
 
    do {
-#ifdef QCA_WIFI_ISOC
-      if (NULL == dev) {
-         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN device not found!!",__func__);
-         ret_status = -1;
-         break;
-      }
-#endif
 
 #ifndef MODULE
       if (WLAN_IS_EPPING_ENABLED(con_mode)) {
@@ -12581,8 +12299,6 @@ static int hdd_driver_init( void)
       hdd_set_conparam((v_UINT_t)con_mode);
 #endif
 
-#if defined(QCA_WIFI_2_0) && \
-    !defined(QCA_WIFI_ISOC)
 #ifdef HIF_SDIO
 #define WLAN_WAIT_TIME_WLANSTART 10000
 #else
@@ -12616,19 +12332,7 @@ static int hdd_driver_init( void)
        pr_info("%s: driver loaded\n", WLAN_MODULE_NAME);
        return 0;
    }
-#endif
 
-#ifdef QCA_WIFI_ISOC
-      // Call our main init function
-      if (hdd_wlan_startup(dev, NULL))
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
-                __func__);
-         vos_preClose( &pVosContext );
-         ret_status = -1;
-         break;
-      }
-#endif
 
    } while (0);
 
@@ -12702,9 +12406,7 @@ static void hdd_driver_exit(void)
 {
    hdd_context_t *pHddCtx = NULL;
    int retry = 0;
-#ifndef QCA_WIFI_ISOC
    adf_os_device_t adf_ctx;
-#endif
    v_CONTEXT_t pVosContext = NULL;
 
    pr_info("%s: unloading driver v%s\n", WLAN_MODULE_NAME, QWLAN_VERSIONSTR);
@@ -12754,10 +12456,6 @@ static void hdd_driver_exit(void)
 
    vos_wait_for_work_thread_completion(__func__);
 
-#ifdef QCA_WIFI_ISOC
-   //Do all the cleanup before deregistering the driver
-   hdd_wlan_exit(pHddCtx);
-#else
    hif_unregister_driver();
 
    /*
@@ -12766,7 +12464,6 @@ static void hdd_driver_exit(void)
     */
    adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, pVosContext);
    vos_mem_free(adf_ctx);
-#endif
 
    vos_preClose( &pVosContext );
 
@@ -12809,7 +12506,7 @@ static int fwpath_changed_handler(const char *kmessage,
    return param_set_copystring(kmessage, kp);
 }
 
-#if !(defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC))
+#if ! defined(QCA_WIFI_FTM)
 static int con_mode_handler(const char *kmessage,
                                  struct kernel_param *kp)
 {
@@ -12869,7 +12566,7 @@ static int fwpath_changed_handler(const char *kmessage,
    return ret;
 }
 
-#if !(defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC))
+#if ! defined(QCA_WIFI_FTM)
 /**---------------------------------------------------------------------------
 
   \brief con_mode_handler() -
@@ -14107,7 +13804,7 @@ MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Qualcomm Atheros, Inc.");
 MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");
 
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+#if  defined(QCA_WIFI_FTM)
 module_param(con_mode, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 #else
 module_param_call(con_mode, con_mode_handler, param_get_int, &con_mode,

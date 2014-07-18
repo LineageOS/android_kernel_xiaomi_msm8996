@@ -108,7 +108,6 @@
 #define WLAN_WAIT_TIME_SESSIONOPENCLOSE  15000
 #define WLAN_WAIT_TIME_ABORTSCAN  2000
 
-#ifdef QCA_WIFI_2_0
 
 /** Maximum time(ms) to wait for mc thread suspend **/
 #define WLAN_WAIT_TIME_MCTHREAD_SUSPEND  1200
@@ -116,7 +115,6 @@
 /** Maximum time(ms) to wait for target to be ready for suspend **/
 #define WLAN_WAIT_TIME_READY_TO_SUSPEND  2000
 
-#endif
 
 /** Maximum time(ms) to wait for tdls add sta to complete **/
 #define WAIT_TIME_TDLS_ADD_STA      1500
@@ -204,14 +202,10 @@
 #define HDD_MOD_EXIT_SSR_MAX_RETRIES 30
 
 /* Maximum number of interfaces allowed(STA, P2P Device, P2P Interfaces) */
-#ifndef QCA_WIFI_2_0
-#define WLAN_MAX_INTERFACES 3
-#else
 #ifndef WLAN_OPEN_P2P_INTERFACE
 #define WLAN_MAX_INTERFACES 3
 #else
 #define WLAN_MAX_INTERFACES 4
-#endif
 #endif
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
@@ -300,9 +294,6 @@ extern spinlock_t hdd_context_lock;
 #define HDD_GET_BATCH_SCAN_RSP_TIME_OUT (15000) /*Batch scan req timeout in ms*/
 #define HDD_BATCH_SCAN_AP_META_INFO_SIZE (150) /*AP meta info size in string*/
 
-#ifndef QCA_WIFI_2_0
-#define MIN(a, b) (a > b ? b : a)
-#endif
 #endif
 
 #ifdef QCA_LL_TX_FLOW_CT
@@ -1346,13 +1337,11 @@ struct hdd_context_s
 #endif /* WLAN_KD_READY_NOTIFIER */
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
-#ifdef QCA_WIFI_2_0
    /* OEM App registered or not */
    v_BOOL_t oem_app_registered;
 
    /* OEM App Process ID */
    v_SINT_t oem_pid;
-#endif
 #endif
 
    v_U8_t change_iface;
@@ -1477,7 +1466,6 @@ struct hdd_context_s
     v_BOOL_t isVHT80Allowed;
 
     struct completion ready_to_suspend;
-#ifdef QCA_WIFI_2_0
     /* defining the solution type */
     v_U32_t target_type;
 
@@ -1491,7 +1479,6 @@ struct hdd_context_s
     v_U32_t target_hw_revision;
     /* chip/rom name */
     const char *target_hw_name;
-#endif
     struct regulatory reg;
 #ifdef FEATURE_WLAN_CH_AVOID
     v_U16_t unsafe_channel_count;
@@ -1600,9 +1587,7 @@ void hdd_set_ssr_required(e_hdd_ssr_required value);
 VOS_STATUS hdd_enable_bmps_imps(hdd_context_t *pHddCtx);
 VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type);
 
-#ifdef QCA_WIFI_2_0
 void wlan_hdd_cfg80211_update_wiphy_caps(struct wiphy *wiphy);
-#endif
 VOS_STATUS hdd_setIbssPowerSaveParams(hdd_adapter_t *pAdapter);
 void wlan_hdd_cfg80211_update_reg_info(struct wiphy *wiphy);
 VOS_STATUS wlan_hdd_restart_driver(hdd_context_t *pHddCtx);

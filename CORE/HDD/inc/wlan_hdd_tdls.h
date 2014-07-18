@@ -82,9 +82,7 @@ typedef struct
     tANI_U32    rssi_hysteresis;
     tANI_S32    rssi_trigger_threshold;
     tANI_S32    rssi_teardown_threshold;
-#ifdef QCA_WIFI_2_0
     tANI_S32    rssi_delta;
-#endif
 } tdls_config_params_t;
 
 typedef struct
@@ -148,9 +146,6 @@ typedef struct {
 #ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
     vos_timer_t     peerDiscoverTimer;
 #endif
-#ifndef QCA_WIFI_2_0
-    vos_timer_t     peerUpdateTimer;
-#endif
     vos_timer_t     peerDiscoveryTimeoutTimer;
     tdls_config_params_t threshold_config;
     tANI_S32        discovery_peer_cnt;
@@ -183,9 +178,6 @@ typedef struct _hddTdlsPeer_t {
     tANI_U8     supported_channels[SIR_MAC_MAX_SUPP_CHANNELS];
     tANI_U8     supported_oper_classes_len;
     tANI_U8     supported_oper_classes[SIR_MAC_MAX_SUPP_OPER_CLASSES];
-#ifndef QCA_WIFI_2_0
-    vos_timer_t     peerIdleTimer;
-#endif
     vos_timer_t     initiatorWaitTimeoutTimer;
     tANI_BOOLEAN isForcedPeer;
 } hddTdlsPeer_t;
@@ -199,7 +191,6 @@ typedef struct {
     v_MACADDR_t peerMac;
 } tdlsConnInfo_t;
 
-#ifdef QCA_WIFI_2_0
 typedef struct {
     tANI_U32 vdev_id;
     tANI_U32 tdls_state;
@@ -215,7 +206,6 @@ typedef struct {
     tANI_U32 puapsd_inactivity_time;
     tANI_U32 puapsd_rx_frame_threshold;
 } tdlsInfo_t;
-#endif
 
 int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter);
 
@@ -316,11 +306,9 @@ void wlan_hdd_tdls_indicate_teardown(hdd_adapter_t *pAdapter,
                                            hddTdlsPeer_t *curr_peer,
                                            tANI_U16 reason);
 
-#ifdef QCA_WIFI_2_0
 #ifdef CONFIG_TDLS_IMPLICIT
 void wlan_hdd_tdls_pre_setup_init_work(tdlsCtx_t *pHddTdlsCtx,
                                        hddTdlsPeer_t *curr_candidate);
-#endif
 #endif
 
 int wlan_hdd_tdls_set_force_peer(hdd_adapter_t *pAdapter, u8 *mac,

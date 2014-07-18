@@ -179,7 +179,6 @@ typedef struct
 
 #define QCSAP_IOCTL_MAX_STR_LEN 1024
 
-#ifdef QCA_WIFI_2_0
 
 #define RC_2_RATE_IDX(_rc)              ((_rc) & 0x7)
 #define HT_RC_2_STREAMS(_rc)            ((((_rc) & 0x78) >> 3) + 1)
@@ -187,7 +186,6 @@ typedef struct
 #define RC_2_RATE_IDX_11AC(_rc)         ((_rc) & 0xf)
 #define HT_RC_2_STREAMS_11AC(_rc)       ((((_rc) & 0x30) >> 4) + 1)
 
-#endif /* QCA_WIFI_2_0 */
 
 enum {
     QCSAP_PARAM_MAX_ASSOC = 1,

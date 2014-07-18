@@ -210,13 +210,9 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
                                     pAc->wmmAcTspecInfo.ts_info.up,
                                     service_interval,
                                     suspension_interval,
-#ifdef QCA_WIFI_2_0
                                     direction,
                                     psb,
                                     pAdapter->sessionId);
-#else
-                                    direction);
-#endif
 
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
@@ -266,12 +262,8 @@ static void hdd_wmm_disable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    {
       status = WLANTL_DisableUAPSDForAC((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                                         (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.staId[0],
-#ifdef QCA_WIFI_2_0
                                         acType,
                                         pAdapter->sessionId);
-#else
-                                        acType);
-#endif
 
       if ( !VOS_IS_STATUS_SUCCESS( status ) )
       {
@@ -388,60 +380,6 @@ static void hdd_wmm_notify_app (hdd_wmm_qos_context_t* pQosContext)
 }
 
 
-#ifndef QCA_WIFI_2_0
-/**
-  @brief hdd_wmm_is_access_allowed() - function which determines if access
-  is allowed for the given AC.  this is designed to be called during SME
-  callback processing since that is when access can be granted or removed
-
-  @param pAdapter    : [in] pointer to adapter context
-  @param pAc         : [in] pointer to the per-AC status
-
-  @return            : VOS_TRUE - access is allowed
-                     : VOS_FALSE - access is not allowed
-  None
-*/
-static v_BOOL_t hdd_wmm_is_access_allowed(hdd_adapter_t* pAdapter,
-                                          hdd_wmm_ac_status_t* pAc)
-{
-   // if we don't want QoS or the AP doesn't support QoS
-   // or we don't want to do implicit QoS
-   // or if AP doesn't require admission for this AC
-   // then we have access
-   if (!hdd_wmm_is_active(pAdapter) ||
-       !(WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->bImplicitQosEnabled ||
-       !pAc->wmmAcAccessRequired)
-   {
-      return VOS_TRUE;
-   }
-
-   // if implicit QoS has already completed, successfully or not,
-   // then access is allowed
-   if (pAc->wmmAcAccessGranted || pAc->wmmAcAccessFailed)
-   {
-      return VOS_TRUE;
-   }
-
-   // admission is required and implicit QoS hasn't completed
-   // however explicit QoS may have completed and we'll have
-   // a Tspec
-   // if we don't have a Tspec then access is not allowed
-   if (!pAc->wmmAcTspecValid)
-   {
-      return VOS_FALSE;
-   }
-
-   // we have a Tspec -- does it allow upstream or bidirectional traffic?
-   // if it only allows downstream traffic then access is not allowed
-   if (pAc->wmmAcTspecInfo.ts_info.direction == SME_QOS_WMM_TS_DIR_DOWNLINK)
-   {
-      return VOS_FALSE;
-   }
-
-   // we meet all of the criteria for access
-   return VOS_TRUE;
-}
-#endif /* QCA_WIFI_2_0 */
 
 #ifdef FEATURE_WLAN_ESE
 /**
@@ -1219,13 +1157,6 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       VOS_ASSERT(0);
    }
 
-#ifndef QCA_WIFI_2_0
-   // our access to the particular access category may have changed.
-   // some of the implicit QoS cases above may have already set this
-   // prior to invoking TL (so that we will properly service the
-   // Tx queues) but let's consistently handle all cases here
-   pAc->wmmAcAccessAllowed = hdd_wmm_is_access_allowed(pAdapter, pAc);
-#else
    // if Tspec only allows downstream traffic then access is not allowed
    if (pAc->wmmAcTspecValid &&
        (pAc->wmmAcTspecInfo.ts_info.direction == SME_QOS_WMM_TS_DIR_DOWNLINK)) {
@@ -1238,7 +1169,6 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
        !pAc->wmmAcAccessRequired) {
          pAc->wmmAcAccessAllowed = VOS_TRUE;
    }
-#endif
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
              "%s: complete, access for TL AC %d is%sallowed",
@@ -2191,13 +2121,9 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         7,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdVoSrvIntv,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdVoSuspIntv,
-#ifdef QCA_WIFI_2_0
                                         WLANTL_BI_DIR,
                                         1,
                                         pAdapter->sessionId);
-#else
-                                        WLANTL_BI_DIR);
-#endif
 
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ));
    }
@@ -2211,13 +2137,9 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         5,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdViSrvIntv,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdViSuspIntv,
-#ifdef QCA_WIFI_2_0
                                         WLANTL_BI_DIR,
                                         1,
                                         pAdapter->sessionId);
-#else
-                                        WLANTL_BI_DIR);
-#endif
 
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ));
    }
@@ -2231,13 +2153,9 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         2,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdBkSrvIntv,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdBkSuspIntv,
-#ifdef QCA_WIFI_2_0
                                         WLANTL_BI_DIR,
                                         1,
                                         pAdapter->sessionId);
-#else
-                                        WLANTL_BI_DIR);
-#endif
 
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ));
    }
@@ -2251,13 +2169,9 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         3,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdBeSrvIntv,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdBeSuspIntv,
-#ifdef QCA_WIFI_2_0
                                         WLANTL_BI_DIR,
                                         1,
                                         pAdapter->sessionId);
-#else
-                                        WLANTL_BI_DIR);
-#endif
 
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ));
    }

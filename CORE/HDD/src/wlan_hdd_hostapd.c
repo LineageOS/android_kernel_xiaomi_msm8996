@@ -85,14 +85,12 @@
 #include <net/cnss.h>
 #endif
 
-#ifdef QCA_WIFI_2_0
 #include "wma.h"
 #ifdef DEBUG
 #include "wma_api.h"
 #endif
 extern int process_wma_set_command(int sessid, int paramid,
                                    int sval, int vpdev);
-#endif /* QCA_WIFI_2_0 */
 #include "wlan_hdd_trace.h"
 #include "vos_types.h"
 #include "vos_trace.h"
@@ -1070,7 +1068,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 hdd_abort_mac_scan(pHddCtx, pHostapdAdapter->sessionId,
                                    eCSR_SCAN_ABORT_DEFAULT);
             }
-#ifdef QCA_WIFI_2_0
             if (pHostapdAdapter->device_mode == WLAN_HDD_P2P_GO)
             {
                 /* send peer status indication to oem app */
@@ -1080,7 +1077,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                   pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.timingMeasCap,
                   pHostapdAdapter->sessionId, pHddApCtx->operatingChannel);
             }
-#endif
 
 #ifdef FEATURE_GREEN_AP
             hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_ADD_STA_EVENT);
@@ -1166,7 +1162,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 hddLog(LOGE, "%s: failed to update Beacon interval %d",
                        __func__, vos_status);
             }
-#ifdef QCA_WIFI_2_0
             if (pHostapdAdapter->device_mode == WLAN_HDD_P2P_GO)
             {
                 /* send peer status indication to oem app */
@@ -1175,7 +1170,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                   ePeerDisconnected, 0,
                   pHostapdAdapter->sessionId, pHddApCtx->operatingChannel);
             }
-#endif
 
 #ifdef MSM_PLATFORM
             /*stop timer in sap/p2p_go */
@@ -1920,7 +1914,6 @@ static iw_softap_setparam(struct net_device *dev,
                 break;
             }
 
-#ifdef QCA_WIFI_2_0
          case QCSAP_PARAM_SET_TXRX_FW_STATS:
              {
                   hddLog(LOG1, "QCSAP_PARAM_SET_TXRX_FW_STATS val %d", set_value);
@@ -2407,11 +2400,7 @@ static iw_softap_setparam(struct net_device *dev,
              {
                   hddLog(VOS_TRACE_LEVEL_INFO, "Set Thermal Mitigation Level %d",
                             set_value);
-#ifdef QCA_WIFI_ISOC
-                  hddLog(VOS_TRACE_LEVEL_ERROR, " 'setTmLevel' Command Not supported for this mode");
-#else
                   (void)sme_SetThermalLevel(hHal, set_value);
-#endif
                   break;
              }
 
@@ -2440,7 +2429,6 @@ static iw_softap_setparam(struct net_device *dev,
                   break;
              }
 
-#endif /* QCA_WIFI_2_0 */
 
         case QCASAP_SET_DFS_NOL:
              WLANSAP_Set_DfsNol(
@@ -4091,66 +4079,6 @@ static int iw_set_ap_genie(struct net_device *dev,
     EXIT();
     return halStatus;
 }
-#ifdef QCA_WIFI_ISOC
-static VOS_STATUS  wlan_hdd_get_classAstats_for_station(hdd_adapter_t *pAdapter, u8 staid)
-{
-   eHalStatus hstatus;
-   unsigned long rc;
-   struct statsContext context;
-
-   if (NULL == pAdapter)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: pAdapter is NULL", __func__);
-      return VOS_STATUS_E_FAULT;
-   }
-
-   init_completion(&context.completion);
-   context.pAdapter = pAdapter;
-   context.magic = STATS_CONTEXT_MAGIC;
-   hstatus = sme_GetStatistics( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                  eCSR_HDD,
-                                  SME_GLOBAL_CLASSA_STATS,
-                                  hdd_GetClassA_statisticsCB,
-                                  0, // not periodic
-                                  FALSE, //non-cached results
-                                  staid,
-                                  &context,
-                                  pAdapter->sessionId );
-   if (eHAL_STATUS_SUCCESS != hstatus)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-            "%s: Unable to retrieve statistics for link speed",
-            __func__);
-   }
-   else
-   {
-      rc = wait_for_completion_timeout(&context.completion,
-            msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
-      if (!rc) {
-         hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: SME timed out while retrieving link speed",
-              __func__);
-      }
-   }
-
-   /* either we never sent a request, we sent a request and received a
-      response or we sent a request and timed out.  if we never sent a
-      request or if we sent a request and got a response, we want to
-      clear the magic out of paranoia.  if we timed out there is a
-      race condition such that the callback function could be
-      executing at the same time we are. of primary concern is if the
-      callback function had already verified the "magic" but had not
-      yet set the completion variable when a timeout occurred. we
-      serialize these activities by invalidating the magic while
-      holding a shared spinlock which will cause us to block if the
-      callback is currently executing */
-   spin_lock(&hdd_context_lock);
-   context.magic = 0;
-   spin_unlock(&hdd_context_lock);
-
-   return VOS_STATUS_SUCCESS;
-}
-#endif
 
 VOS_STATUS  wlan_hdd_get_linkspeed_for_peermac(hdd_adapter_t *pAdapter,
                                                tSirMacAddr macAddress)
@@ -4399,7 +4327,6 @@ static const struct iw_priv_args hostapd_private_args[] = {
    { QCSAP_PARAM_SET_CHANNEL_CHANGE,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setChanChange" },
 
-#ifdef QCA_WIFI_2_0
  /* Sub-cmds DBGLOG specific commands */
     {   QCSAP_DBGLOG_LOG_LEVEL ,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
@@ -4561,7 +4488,6 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "setRadar" },
 
-#endif /* QCA_WIFI_2_0 */
 
   { QCSAP_IOCTL_GETPARAM, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
