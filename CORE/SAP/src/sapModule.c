@@ -3245,8 +3245,10 @@ WLANSAP_Get_DfsNol(v_PVOID_t pSapCtx)
     ptSapContext sapContext = (ptSapContext)pSapCtx;
     v_PVOID_t hHal = NULL;
     tpAniSirGlobal pMac = NULL;
-    unsigned long current_time, elapsed_time, found_time, left_time;
+    v_U64_t current_time, found_time, elapsed_time;
+    unsigned long left_time;
     tSapDfsNolInfo *dfs_nol = NULL;
+    v_BOOL_t bAvailable = FALSE;
 
     if (NULL == sapContext)
     {
@@ -3282,13 +3284,20 @@ WLANSAP_Get_DfsNol(v_PVOID_t pSapCtx)
         if (!dfs_nol[i].dfs_channel_number)
             continue;
 
-        current_time = vos_timer_get_system_time();
+        current_time = vos_get_monotonic_boottime();
         found_time = dfs_nol[i].radar_found_timestamp;
 
         elapsed_time = abs(current_time - found_time);
 
-        /* check if it is out of non occupancy period */
-        if (elapsed_time >= SAP_DFS_NON_OCCUPANCY_PERIOD)
+        /* check if channel is available
+         * if either channel is usable or available, or timer expired 30mins
+         */
+        bAvailable =
+            ((dfs_nol[i].radar_status_flag == eSAP_DFS_CHANNEL_AVAILABLE) ||
+             (dfs_nol[i].radar_status_flag == eSAP_DFS_CHANNEL_USABLE)    ||
+             (elapsed_time >= SAP_DFS_NON_OCCUPANCY_PERIOD));
+
+        if (bAvailable)
         {
             dfs_nol[i].radar_status_flag = eSAP_DFS_CHANNEL_AVAILABLE;
             dfs_nol[i].radar_found_timestamp  = 0;
@@ -3301,10 +3310,10 @@ WLANSAP_Get_DfsNol(v_PVOID_t pSapCtx)
 
             /* the time left in min */
             left_time = SAP_DFS_NON_OCCUPANCY_PERIOD - elapsed_time;
-            left_time = left_time / (60 * 1000);
+            left_time = left_time / (60 * 1000 * 1000);
 
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                "%s: Channel[%d] is UNAVAILABLE [%ld min left]",
+                "%s: Channel[%d] is UNAVAILABLE [%lu min left]",
                 __func__,
                 dfs_nol[i].dfs_channel_number,
                 left_time);
@@ -3428,6 +3437,10 @@ WLANSAP_Set_DfsNol(v_PVOID_t pSapCtx, eSapDfsNolType conf)
                 "%s: unsupport type %d",
                 __func__, conf);
     }
+
+    /* set DFS-NOL back to keep it update-to-date in CNSS */
+    sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NOL_SET,
+        (v_PVOID_t) eSAP_STATUS_SUCCESS);
 
     return VOS_STATUS_SUCCESS;
 }

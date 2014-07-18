@@ -69,6 +69,8 @@ typedef enum
     PHY_CHANNEL_BONDING_STATE_MAX   = 11
 }ePhyChanBondState;
 
+#define MAX_BONDED_CHANNELS 4
+
 #define SIR_MIN(a,b)   (((a) < (b)) ? (a) : (b))
 #define SIR_MAX(a,b)   (((a) > (b)) ? (a) : (b))
 

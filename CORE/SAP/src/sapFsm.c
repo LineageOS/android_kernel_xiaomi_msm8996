@@ -869,7 +869,8 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
                 NV_CHANNEL_DFS)
         {
             isChannelNol = sapDfsIsChannelInNolList(sapContext,
-                    sapContext->SapAllChnlList.channelList[i]);
+                    sapContext->SapAllChnlList.channelList[i],
+                    PHY_SINGLE_CHANNEL_CENTERED);
             if (VOS_TRUE == isChannelNol)
             {
                 /*
@@ -969,16 +970,176 @@ sapAcsChannelCheck(ptSapContext sapContext, v_U8_t channelNumber)
 }
 
 /*
- * This Function Checks if a given channel is AVAILABLE or USABLE
+ * Mark the channels in NOL with time and eSAP_DFS_CHANNEL_UNAVAILABLE
+ */
+void sapMarkDfsChannels(ptSapContext sapContext, v_U8_t* channels,
+        v_U8_t numChannels, v_U64_t time)
+{
+    int i, j;
+    tSapDfsNolInfo *psapDfsChannelNolList = NULL;
+    v_U8_t nRegDomainDfsChannels;
+    tHalHandle hHal;
+    tpAniSirGlobal pMac;
+
+    hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+
+    if (NULL == channels)
+       return;
+
+    if (NULL == hHal) {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   FL("invalid hHal"));
+        return;
+    }
+
+    pMac = PMAC_STRUCT(hHal);
+    if (NULL == pMac) {
+         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   FL("invalid pMac"));
+        return;
+    }
+
+    /*
+     * Mark the current channel on which Radar is found
+     * in the NOL list as eSAP_DFS_CHANNEL_UNAVAILABLE.
+     */
+
+    psapDfsChannelNolList = pMac->sap.SapDfsInfo.sapDfsChannelNolList;
+    nRegDomainDfsChannels = pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels;
+
+    for (i = 0; i < numChannels; i++) {
+        for (j = 0; j <= nRegDomainDfsChannels; j++)
+        {
+            if (psapDfsChannelNolList[j].dfs_channel_number ==
+                    channels[i])
+            {
+                /* If channel is already in NOL, don't update it again.
+                 * This is useful when marking bonding channels which are
+                 * already unavailable.
+                 */
+                if( psapDfsChannelNolList[j].radar_status_flag ==
+                        eSAP_DFS_CHANNEL_UNAVAILABLE)
+                {
+                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                            FL("Channel=%d already in NOL"),
+                            channels[i]);
+                }
+                else
+                {
+                    /*
+                     * Capture the Radar Found timestamp on the Current
+                     * Channel in ms.
+                     */
+                    psapDfsChannelNolList[j].radar_found_timestamp = time;
+                    /* Mark the Channel to be UNAVAILABLE for next 30 mins */
+                    psapDfsChannelNolList[j].radar_status_flag =
+                        eSAP_DFS_CHANNEL_UNAVAILABLE;
+
+                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                            FL("Channel=%d Added to NOL LIST"),
+                            channels[i]);
+                }
+            }
+        }
+    }
+}
+
+
+/*
+ * This Function is to get bonding channels from primary channel.
+ *
+ */
+v_U8_t sapGetBondingChannels(ptSapContext sapContext, v_U8_t channel,
+        v_U8_t* channels, v_U8_t size, ePhyChanBondState chanBondState)
+{
+   tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+   tpAniSirGlobal pMac;
+   v_U8_t numChannel;
+
+   if(channels == NULL)
+      return 0;
+
+   if(size < MAX_BONDED_CHANNELS) return 0;
+
+   if (NULL != hHal)
+   {
+      pMac = PMAC_STRUCT( hHal );
+   }
+   else
+      return 0;
+
+   VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+           FL("cbmode: %d, channel: %d"),
+           chanBondState, channel);
+
+   switch (chanBondState) {
+      case PHY_SINGLE_CHANNEL_CENTERED:
+         numChannel = 1;
+         channels[0] = channel;
+         break;
+      case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
+         numChannel = 2;
+         channels[0] = channel - 4;
+         channels[1] = channel;
+         break;
+      case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
+         numChannel = 2;
+         channels[0] = channel;
+         channels[1] = channel + 4;
+         break;
+#ifdef WLAN_FEATURE_11AC
+      case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
+         numChannel = 4;
+         channels[0] = channel;
+         channels[1] = channel + 4;
+         channels[2] = channel + 8;
+         channels[3] = channel + 12;
+         break;
+      case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW:
+         numChannel = 4;
+         channels[0] = channel - 4;
+         channels[1] = channel;
+         channels[2] = channel + 4;
+         channels[3] = channel + 8;
+         break;
+      case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH:
+         numChannel = 4;
+         channels[0] = channel - 8;
+         channels[1] = channel - 4;
+         channels[2] = channel;
+         channels[3] = channel + 4;
+         break;
+      case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH:
+         numChannel = 4;
+         channels[0] = channel - 12;
+         channels[1] = channel - 8;
+         channels[2] = channel - 4;
+         channels[3] = channel;
+         break;
+#endif
+      default:
+         numChannel = 1;
+         channels[0] = channel;
+         break;
+   }
+
+   return numChannel;
+}
+
+/*
+ * This Function Checks if a given bonded channel is AVAILABLE or USABLE
  * for DFS operation.
  */
 v_BOOL_t
-sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber)
+sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber,
+        ePhyChanBondState chanBondState)
 {
-    int i;
-    unsigned long timeElapsedSinceLastRadar,timeWhenRadarFound,currentTime = 0;
+    int i, j;
+    v_U64_t timeElapsedSinceLastRadar,timeWhenRadarFound,currentTime = 0;
     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
     tpAniSirGlobal pMac;
+    v_U8_t channels[MAX_BONDED_CHANNELS];
+    v_U8_t numChannels;
 
     if (NULL == hHal)
     {
@@ -1002,17 +1163,24 @@ sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber)
         return VOS_FALSE;
     }
 
-    for (i =0 ; i< pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels; i++)
+    /* get the bonded channels */
+    numChannels = sapGetBondingChannels(sapContext, channelNumber, channels,
+          MAX_BONDED_CHANNELS, chanBondState );
+
+    /* check for NOL, first on will break the loop */
+    for (j=0; j < numChannels; j++)
     {
-        if(pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
-                                 .dfs_channel_number == channelNumber)
-        {
-            if ( (pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
-                        .radar_status_flag == eSAP_DFS_CHANNEL_USABLE)
-                                           ||
-                 (pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
-                        .radar_status_flag == eSAP_DFS_CHANNEL_AVAILABLE) )
-            {
+       for (i =0 ; i< pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels; i++)
+       {
+          if(pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
+                .dfs_channel_number == channels[j])
+          {
+             if ( (pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
+                      .radar_status_flag == eSAP_DFS_CHANNEL_USABLE)
+                   ||
+                   (pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
+                    .radar_status_flag == eSAP_DFS_CHANNEL_AVAILABLE) )
+             {
                 /*
                  * Allow SAP operation on this channel
                  * either the DFS channel has not been used
@@ -1021,16 +1189,13 @@ sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber)
                  * so, return FALSE.
                  */
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                          "%s[%d]: Channel = %d"
-                           "Not in NOL LIST, CHANNEL AVAILABLE",
-                           __func__, __LINE__, pMac->sap.SapDfsInfo
-                                                 .sapDfsChannelNolList[i]
-                                                 .dfs_channel_number);
-                return VOS_FALSE;
-            }
-            else if (pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
-                        .radar_status_flag == eSAP_DFS_CHANNEL_UNAVAILABLE)
-            {
+                      FL("Channel = %d not in NOL, CHANNEL AVAILABLE"),
+                      pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
+                      .dfs_channel_number);
+             }
+             else if (pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
+                   .radar_status_flag == eSAP_DFS_CHANNEL_UNAVAILABLE)
+             {
                 /*
                  * If a DFS Channel is UNAVAILABLE then
                  * check to see if it is past Non-occupancy-period
@@ -1039,43 +1204,66 @@ sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber)
                  * as the channel is not anymore in NON-Occupancy-Period.
                  */
                 timeWhenRadarFound = pMac->sap.SapDfsInfo
-                                     .sapDfsChannelNolList[i]
-                                     .radar_found_timestamp;
-                currentTime = vos_timer_get_system_time();
+                   .sapDfsChannelNolList[i]
+                   .radar_found_timestamp;
+                currentTime = vos_get_monotonic_boottime();
                 timeElapsedSinceLastRadar = currentTime - timeWhenRadarFound;
-                if (timeElapsedSinceLastRadar >=  SAP_DFS_NON_OCCUPANCY_PERIOD)
+                if (timeElapsedSinceLastRadar >= SAP_DFS_NON_OCCUPANCY_PERIOD)
                 {
-                    pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
-                           .radar_status_flag = eSAP_DFS_CHANNEL_AVAILABLE;
+                   pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
+                      .radar_status_flag = eSAP_DFS_CHANNEL_AVAILABLE;
+                   pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
+                      .radar_found_timestamp = 0;
 
-                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                              "%s[%d]:Channel=%d"
-                               "Not in NOL LIST,CHANNEL AVAILABLE",
-                               __func__, __LINE__, pMac->sap.SapDfsInfo
-                                                   .sapDfsChannelNolList[i]
-                                                   .dfs_channel_number);
-                    return VOS_FALSE;
+                   VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                         FL("Channel=%d not in NOL, CHANNEL AVAILABLE"),
+                         pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
+                         .dfs_channel_number);
                 }
                 else
                 {
-                    /*
-                     * Channel is not still available for SAP operation
-                     * so return TRUE; As the Channel is still
-                     * in Non-occupancy-Period.
-                     */
-                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                              "%s[%d]:Channel=%d"
-                              "still in NOL LIST,CHANNEL UNAVAILABLE",
-                               __func__, __LINE__, pMac->sap.SapDfsInfo
-                                                  .sapDfsChannelNolList[i]
-                                                  .dfs_channel_number);
-                    return VOS_TRUE;
+                   /*
+                    * Channel is not still available for SAP operation
+                    * so return TRUE; As the Channel is still
+                    * in Non-occupancy-Period.
+                    */
+                   VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                         FL("Channel=%d still in NOL, CHANNEL UNAVAILABLE"),
+                         pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
+                         .dfs_channel_number);
+                   break;
                 }
-            }
-        }
+             }
+          } /* if */
+       } /* loop for dfs channels */
+
+       if (i < pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels)
+          break;
+
+    } /* loop for bonded channels */
+
+    /* if any of the channel is not available, mark all available channels as
+     * unavailable with same time stamp.
+     */
+    if (j < numChannels &&
+          i < pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels)
+    {
+       sapMarkDfsChannels(sapContext,
+             channels,
+             numChannels,
+             pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
+                .radar_found_timestamp);
+
+       /* set DFS-NOL back to keep it update-to-date in CNSS */
+       sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NOL_SET,
+             (v_PVOID_t) eSAP_STATUS_SUCCESS);
+
+      return VOS_TRUE;
     }
+
     return VOS_FALSE;
 }
+
 
 /*==========================================================================
   FUNCTION    sapGotoChannelSel
@@ -2151,6 +2339,7 @@ sapFsm
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
     tpAniSirGlobal pMac;
+    v_U32_t cbMode;
 
     if (NULL == hHal)
     {
@@ -2309,16 +2498,24 @@ sapFsm
                      }
                  }
 #endif
+
+                 /* get the bonding mode */
+                 if (sapContext->channel <= 14)
+                    cbMode = sme_GetChannelBondingMode24G(hHal);
+                 else
+                    cbMode = sme_GetChannelBondingMode5G(hHal);
+
                  /* check if channel is in DFS_NOL */
-                 if (sapDfsIsChannelInNolList(sapContext, sapContext->channel))
+                 if (sapDfsIsChannelInNolList(sapContext, sapContext->channel,
+                             cbMode))
                  {
                      v_U8_t ch;
 
                      /* find a new available channel */
                      ch = sapRandomChannelSel(sapContext);
                      VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                         "%s: channel %d is in DFS_NOL, StartBss on new channel %d",
-                         __func__, sapContext->channel, ch);
+                         FL("channel %d is in NOL, StartBss on new channel %d"),
+                         sapContext->channel, ch);
 
                      sapContext->channel = ch;
                      sme_SelectCBMode(hHal,
@@ -3358,9 +3555,6 @@ static VOS_STATUS sapGet5GHzChannelList(ptSapContext sapContext)
 v_U8_t sapIndicateRadar(ptSapContext sapContext, tSirSmeDfsEventInd *dfs_event)
 {
     v_U8_t target_channel = 0;
-    int i, j;
-    tSapDfsNolInfo *psapDfsChannelNolList = NULL;
-    v_U8_t nRegDomainDfsChannels;
     tHalHandle hHal;
     tpAniSirGlobal pMac;
 
@@ -3401,35 +3595,8 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext, tSirSmeDfsEventInd *dfs_event)
 
     sapGet5GHzChannelList(sapContext);
 
-    /*
-     * Mark the current channel on which Radar is found
-     * in the  NOL list as eSAP_DFS_CHANNEL_UNAVAILABLE.
-     */
-
-    psapDfsChannelNolList = pMac->sap.SapDfsInfo.sapDfsChannelNolList;
-    nRegDomainDfsChannels = pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels;
-    for (i = 0; i < dfs_event->chan_list.nchannels; i++) {
-        for (j = 0; j <= nRegDomainDfsChannels; j++)
-        {
-            if (psapDfsChannelNolList[j].dfs_channel_number ==
-                    dfs_event->chan_list.channels[i])
-            {
-                /*
-                 * Capture the Radar Found timestamp on the Current Channel in
-                 * ms.
-                 */
-                psapDfsChannelNolList[j].radar_found_timestamp =
-                    vos_timer_get_system_time();
-                /* Mark the Channel to be UNAVAILABLE for next 30 mins */
-                psapDfsChannelNolList[j].radar_status_flag =
-                    eSAP_DFS_CHANNEL_UNAVAILABLE;
-
-                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                                FL("Channel = %d Added to NOL LIST"),
-                                dfs_event->chan_list.channels[i]);
-            }
-        }
-    }
+    sapMarkDfsChannels(sapContext, dfs_event->chan_list.channels,
+          dfs_event->chan_list.nchannels, vos_get_monotonic_boottime());
 
     /*
      * (1) skip static turbo channel as it will require STA to be in
@@ -3513,7 +3680,7 @@ static int sapStopDfsCacTimer(ptSapContext sapContext)
                    "In %s invalid hHal", __func__);
         return 0;
     }
-    pMac = PMAC_STRUCT( hHal );
+    pMac = PMAC_STRUCT(hHal);
 
     if (VOS_TIMER_STATE_RUNNING !=
             vos_timer_getCurrentState(
