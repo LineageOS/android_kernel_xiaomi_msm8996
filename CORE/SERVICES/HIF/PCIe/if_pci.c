@@ -52,6 +52,7 @@
 #ifdef CONFIG_CNSS
 #include <net/cnss.h>
 #endif
+#include "epping_main.h"
 
 #ifdef WLAN_BTAMP_FEATURE
 #include "wlan_btc_svc.h"
@@ -214,11 +215,10 @@ bool hif_pci_targ_is_present(A_target_id_t targetid, void *__iomem *mem)
 
 bool hif_max_num_receives_reached(unsigned int count)
 {
-#ifdef EPPING_TEST
-    return (count > 120);
-#else
-    return (count > MAX_NUM_OF_RECEIVES);
-#endif
+    if (WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+        return (count > 120);
+    else
+        return (count > MAX_NUM_OF_RECEIVES);
 }
 
 void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc)
@@ -689,10 +689,9 @@ hif_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
     int probe_again = 0;
     u_int16_t device_id;
     u_int16_t revision_id;
-
     u_int32_t lcr_val;
 
-    printk(KERN_INFO "hif_pci_probe\n");
+    printk(KERN_INFO "%s:, con_mode= 0x%x\n", __func__, vos_get_conparam());
 
 again:
     ret = 0;
@@ -943,7 +942,8 @@ again:
     pci_write_config_dword(pdev, 0x80, lcr_val);
 
 #ifndef REMOVE_PKT_LOG
-    if (vos_get_conparam() != VOS_FTM_MODE) {
+    if (vos_get_conparam() != VOS_FTM_MODE &&
+        !WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
         /*
          * pktlog initialization
          */
@@ -1272,7 +1272,8 @@ again:
     }
 
 #ifndef REMOVE_PKT_LOG
-    if (vos_get_conparam() != VOS_FTM_MODE) {
+    if (vos_get_conparam() != VOS_FTM_MODE &&
+        !WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
         /*
          * pktlog initialization
          */
@@ -1335,10 +1336,12 @@ err_region:
 
 void hif_pci_notify_handler(struct pci_dev *pdev, int state)
 {
-   int ret = 0;
-   ret = hdd_wlan_notify_modem_power_state(state);
-   if (ret < 0)
-      printk(KERN_ERR "%s: Fail to send notify\n", __func__);
+   if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
+       int ret = 0;
+       ret = hdd_wlan_notify_modem_power_state(state);
+       if (ret < 0)
+          printk(KERN_ERR "%s: Fail to send notify\n", __func__);
+   }
 }
 
 void
@@ -1588,7 +1591,8 @@ hif_pci_remove(struct pci_dev *pdev)
     scn = sc->ol_sc;
 
 #ifndef REMOVE_PKT_LOG
-    if (vos_get_conparam() != VOS_FTM_MODE)
+    if (vos_get_conparam() != VOS_FTM_MODE &&
+        !WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
         pktlogmod_exit(scn);
 #endif
 
@@ -1638,14 +1642,16 @@ void hif_pci_shutdown(struct pci_dev *pdev)
     scn = sc->ol_sc;
 
 #ifndef REMOVE_PKT_LOG
-    if (vos_get_conparam() != VOS_FTM_MODE)
+    if (vos_get_conparam() != VOS_FTM_MODE &&
+        !WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
         pktlogmod_exit(scn);
 #endif
 
     if (!vos_is_ssr_ready(__func__))
         printk("Host driver is not ready for SSR, attempting anyway\n");
 
-    hdd_wlan_shutdown();
+    if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+        hdd_wlan_shutdown();
 
     mem = (void __iomem *)sc->mem;
 

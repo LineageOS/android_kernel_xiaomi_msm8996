@@ -49,7 +49,7 @@
 #include "fw_one_bin.h"
 #include "bin_sig.h"
 #include "ar6320v2_dbg_regtable.h"
-
+#include "epping_main.h"
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 #include <net/cnss.h>
 #endif
@@ -397,6 +397,12 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 #endif
 		break;
 	case ATH_FIRMWARE_FILE:
+		if (WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
+			filename = QCA_FIRMWARE_EPPING_FILE;
+			printk(KERN_INFO "%s: Loading epping firmware file %s\n",
+				__func__, filename);
+			break;
+		}
 #ifdef QCA_WIFI_FTM
 		if (vos_get_conparam() == VOS_FTM_MODE) {
 #if defined(CONFIG_CNSS) || defined(HIF_SDIO)
@@ -1596,7 +1602,9 @@ int ol_download_firmware(struct ol_softc *scn)
 				(u_int8_t *)&address, 4, scn);
 	}
 
-	if (scn->enableuartprint) {
+	if (scn->enableuartprint ||
+		(WLAN_IS_EPPING_ENABLED(vos_get_conparam()) &&
+		WLAN_IS_EPPING_FW_UART(vos_get_conparam()))) {
 		switch (scn->target_version){
 			case AR6004_VERSION_REV1_3:
 				param = 11;

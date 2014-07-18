@@ -51,6 +51,7 @@
 #define QCA_BOARD_DATA_FILE          "fakeboar.bin"
 #define QCA_OTP_FILE                 "otp.bin"
 #define AR61X4_SINGLE_FILE           "qca61x4.bin"
+#define QCA_FIRMWARE_EPPING_FILE     "endpointping.bin"
 
 /* Configuration for statistics pushed by firmware */
 #define PDEV_DEFAULT_STATS_UPDATE_PERIOD    500

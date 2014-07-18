@@ -3867,4 +3867,21 @@ eHalStatus sme_SetLinkLayerStatsIndCB
 eHalStatus sme_UpdateRoamOffloadEnabled(tHalHandle hHal,
                                      v_BOOL_t nRoamOffloadEnabled);
 #endif
+
+#ifdef WLAN_FEATURE_NAN
+/******************************************************************************
+  \fn sme_NanEvent
+
+  \brief
+  a callback function called when SME received eWNI_SME_NAN_EVENT
+  event from WDA
+
+  \param hHal - HAL handle for device
+  \param pMsg - Message body passed from WDA; includes NAN header
+
+  \return VOS_STATUS
+******************************************************************************/
+VOS_STATUS sme_NanEvent(tHalHandle hHal, void* pMsg);
+#endif /* WLAN_FEATURE_NAN */
+
 #endif //#if !defined( __SME_API_H )

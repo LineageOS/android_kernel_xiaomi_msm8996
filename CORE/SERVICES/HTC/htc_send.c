@@ -30,6 +30,8 @@
 #include "htc_internal.h"
 #include <adf_nbuf.h> /* adf_nbuf_t */
 #include <adf_os_mem.h> /* adf_os_mem_alloc */
+#include <vos_getBin.h>
+#include "epping_main.h"
 
 //#define USB_HIF_SINGLE_PIPE_DATA_SCHED
 //#ifdef USB_HIF_SINGLE_PIPE_DATA_SCHED
@@ -135,12 +137,41 @@ static void DoSendCompletion(HTC_ENDPOINT       *pEndpoint,
 
 }
 
+#if defined(HIF_USB)
+extern unsigned int txCompleteCounter;
+extern unsigned int txCounter;
+extern NDIS_EVENT   TXcompleteEvent;
+extern unsigned int checkTXcompleteEvent;
+#endif
 static void SendPacketCompletion(HTC_TARGET *target, HTC_PACKET *pPacket)
 {
     HTC_ENDPOINT    *pEndpoint = &target->EndPoint[pPacket->Endpoint];
     HTC_PACKET_QUEUE container;
+#if defined(HIF_USB)
+    EPPING_HEADER   *pktHeader;
+    adf_nbuf_t       nbuf;
+#endif
+
     RestoreTxPacket(target, pPacket);
     INIT_HTC_PACKET_QUEUE_AND_ADD(&container,pPacket);
+
+#if defined(HIF_USB)
+    if (WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
+        pktHeader = (EPPING_HEADER *)(pPacket->pBuffer);
+        if (IS_EPPING_PACKET(pktHeader))
+        {
+            txCompleteCounter++;
+            if ((txCounter == txCompleteCounter) && (checkTXcompleteEvent)) {
+                checkTXcompleteEvent = 0;
+            }
+        }
+        nbuf = GET_HTC_PACKET_NET_BUF_CONTEXT(pPacket);
+        if (nbuf != NULL) {
+          adf_nbuf_free(nbuf);
+        }
+        A_FREE(pPacket);
+    }
+#endif
     /* do completion */
     DoSendCompletion(pEndpoint,&container);
 }
@@ -379,8 +410,85 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
 
     AR_DEBUG_PRINTF(ATH_DEBUG_SEND, ("+HTCIssuePackets: Queue: %p, Pkts %d \n",
                     pPktQueue, HTC_PACKET_QUEUE_DEPTH(pPktQueue)));
+#if defined(HIF_USB)
+    if (htc_bundle_send &&
+        (WLAN_IS_EPPING_ENABLED(vos_get_conparam()) ||
+           pEndpoint->UL_PipeID != 0)) {
+        adf_nbuf_t msg_bundle[HTC_MAX_MSG_PER_BUNDLE];
+        unsigned int  msg_length[HTC_MAX_MSG_PER_BUNDLE];
+        int msgs_to_bundle = 0;
 
+        while ((!HTC_QUEUE_EMPTY(pPktQueue)) &&
+               (msgs_to_bundle < HTC_MAX_MSG_PER_BUNDLE)) {
+            pPacket = HTC_PACKET_DEQUEUE(pPktQueue);
+            if(NULL == pPacket){
+                break;
+            }
+            netbuf = GET_HTC_PACKET_NET_BUF_CONTEXT(pPacket);
+            AR_DEBUG_ASSERT(netbuf);
+            /* Non-credit enabled endpoints have been mapped
+             * and setup by now, so no need to revisit
+             * the HTC headers */
+#if AR6004_HW
+            pPacket->PktInfo.AsTx.SendFlags |= HTC_FLAGS_SEND_BUNDLE;
+#endif
+            if (IS_TX_CREDIT_FLOW_ENABLED(pEndpoint)) {
+                payloadLen = pPacket->ActualLength;
+                /* setup HTC frame header */
 
+                pHtcHdr =
+                    (HTC_FRAME_HDR *) adf_nbuf_get_frag_vaddr(netbuf, 0);
+                AR_DEBUG_ASSERT(pHtcHdr);
+
+                HTC_WRITE32(pHtcHdr, SM(payloadLen,
+                    HTC_FRAME_HDR_PAYLOADLEN) |
+                    SM(pPacket->PktInfo.AsTx.SendFlags,
+                        HTC_FRAME_HDR_FLAGS) |
+                    SM(pPacket->Endpoint, HTC_FRAME_HDR_ENDPOINTID));
+                HTC_WRITE32(((A_UINT32 *)pHtcHdr) + 1,
+                    SM(pPacket->PktInfo.AsTx.SeqNo,
+                    HTC_FRAME_HDR_CONTROLBYTES1));
+
+                /*
+                 * Now that the HTC frame header has been added,
+                 * the netbuf can be mapped.  This only applies to
+                 * non-data frames, since data frames were already
+                 * mapped as they entered into the driver.
+                 * Check the "FIXUP_NETBUF" flag to see
+                 * whether this is a data netbuf that is already mapped,
+                 * or a non-data netbuf that needs to be mapped.
+                 */
+                if ((pPacket->PktInfo.AsTx.Flags &
+                    HTC_TX_PACKET_FLAG_FIXUP_NETBUF)) {
+                    adf_nbuf_map(
+                        target->osdev,
+                        GET_HTC_PACKET_NET_BUF_CONTEXT(pPacket),
+                        ADF_OS_DMA_TO_DEVICE);
+                }
+            }
+            LOCK_HTC_TX(target);
+            /* store in look up queue to match completions */
+            HTC_PACKET_ENQUEUE(&pEndpoint->TxLookupQueue,pPacket);
+            INC_HTC_EP_STAT(pEndpoint,TxIssued,1);
+            sdio_bundling_stats.TxIssued += 1;
+            pEndpoint->ul_outstanding_cnt++;
+            UNLOCK_HTC_TX(target);
+            /* pPktQueue is less than HTC_MAX_MSG_PER_BUNDLE */
+            msg_bundle[msgs_to_bundle] = netbuf;
+            msg_length[msgs_to_bundle] = HTC_HDR_LENGTH +
+                pPacket->ActualLength;
+            msgs_to_bundle++;
+        }
+
+        sdio_bundling_stats.TxPacketsBundled += msgs_to_bundle;
+        sdio_bundling_stats.TxBundles += 1;
+        HIFSendMultiple_head(target->hif_dev,
+            pEndpoint->UL_PipeID, pEndpoint->Id,
+            msg_bundle,
+            msg_length,
+            msgs_to_bundle);
+    } else {
+#endif
     while (TRUE) {
 #if ENABLE_BUNDLE_TX
         if(IS_TX_CREDIT_FLOW_ENABLED(pEndpoint) &&
@@ -472,6 +580,9 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
         }
 
     }
+#if defined(HIF_USB)
+    }
+#endif
 
     if (adf_os_unlikely(A_FAILED(status))) {
 #if defined(HIF_USB)

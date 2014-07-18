@@ -58,6 +58,8 @@
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
 #include <net/cnss.h>
 #endif
+#include <vos_getBin.h>
+#include "epping_main.h"
 
 /* use credit flow control over HTC */
 unsigned int htc_credit_flow = 1;
@@ -161,6 +163,55 @@ static struct CE_pipe_config target_CE_config_wlan[] = {
 
 static struct CE_pipe_config *target_CE_config = target_CE_config_wlan;
 static int target_CE_config_sz = sizeof(target_CE_config_wlan);
+
+/*
+ * CE config for endpoint-ping test
+ * EP-ping is used to verify HTC/HIF basic functionality and could be used to
+ * measure interface performance. Here comes some notes.
+ * 1. In theory, each CE could be used to test. However, due to the limitation
+ *    of target memory EP-ping only focus on CE 1/2/3/4 which are used for
+ *    WMI/HTT services
+ * 2. The EP-ping CE config does not share the same CE config with WLAN
+ *    application since the max_size and entries requirement for EP-ping
+ *    is different.
+ */
+#define EPPING_CE_FLAGS_POLL CE_ATTR_DISABLE_INTR|CE_ATTR_ENABLE_POLL|CE_ATTR_FLAGS
+static struct CE_attr host_CE_config_wlan_epping_poll[] =
+{
+        { /* CE0 */ CE_ATTR_FLAGS, 0, 16,   256, 0,   NULL, }, /* host->target HTC control and raw streams */
+        { /* CE1 */ EPPING_CE_FLAGS_POLL, 0, 0,   2048, 128, NULL, }, /* target->host EP-ping */
+        { /* CE2 */ EPPING_CE_FLAGS_POLL, 0, 0,   2048, 128, NULL, }, /* target->host EP-ping */
+        { /* CE3 */ CE_ATTR_FLAGS, 0, 128, 2048, 0,   NULL, }, /* host->target EP-ping */
+        { /* CE4 */ CE_ATTR_FLAGS, 0, 128, 2048, 0,   NULL, }, /* host->target EP-ping */
+        { /* CE5 */ CE_ATTR_FLAGS, 0, 0,   2048, 128, NULL, }, /* EP-ping heartbeat */
+        { /* CE6 */ CE_ATTR_FLAGS, 0, 0,      0, 0,   NULL, }, /* unused */
+        { /* CE7 */ CE_ATTR_FLAGS, 0, 2, DIAG_TRANSFER_LIMIT, 2, NULL, }, /* ce_diag, the Diagnostic Window */
+};
+
+static struct CE_attr host_CE_config_wlan_epping_irq[] =
+{
+        { /* CE0 */ CE_ATTR_FLAGS, 0, 16,   256, 0,   NULL, }, /* host->target HTC control and raw streams */
+        { /* CE1 */ CE_ATTR_FLAGS, 0, 0,   2048, 128, NULL, }, /* target->host EP-ping */
+        { /* CE2 */ CE_ATTR_FLAGS, 0, 0,   2048, 128, NULL, }, /* target->host EP-ping */
+        { /* CE3 */ CE_ATTR_FLAGS, 0, 128, 2048, 0,   NULL, }, /* host->target EP-ping */
+        { /* CE4 */ CE_ATTR_FLAGS, 0, 128, 2048, 0,   NULL, }, /* host->target EP-ping */
+        { /* CE5 */ CE_ATTR_FLAGS, 0, 0,   2048, 128, NULL, }, /* EP-ping heartbeat */
+        { /* CE6 */ CE_ATTR_FLAGS, 0, 0,      0, 0,   NULL, }, /* unused */
+        { /* CE7 */ CE_ATTR_FLAGS, 0, 2, DIAG_TRANSFER_LIMIT, 2, NULL, }, /* ce_diag, the Diagnostic Window */
+};
+/*
+ * EP-ping firmware's CE configuration
+ */
+static struct CE_pipe_config target_CE_config_wlan_epping[] = {
+        { /* CE0 */ 0, PIPEDIR_OUT,  16,  256, CE_ATTR_FLAGS, 0, }, /* host->target HTC control and raw streams */
+        { /* CE1 */ 1, PIPEDIR_IN,  128, 2048, CE_ATTR_FLAGS, 0, }, /* target->host EP-ping */
+        { /* CE2 */ 2, PIPEDIR_IN,  128, 2048, CE_ATTR_FLAGS, 0, }, /* target->host EP-ping */
+        { /* CE3 */ 3, PIPEDIR_OUT, 128, 2048, CE_ATTR_FLAGS, 0, }, /* host->target EP-ping */
+        { /* CE4 */ 4, PIPEDIR_OUT, 128, 2048, CE_ATTR_FLAGS, 0, }, /* host->target EP-ping */
+        { /* CE5 */ 5, PIPEDIR_IN,  128, 2048, CE_ATTR_FLAGS, 0, }, /* EP-ping heartbeat */
+        { /* CE6 */ 6, PIPEDIR_INOUT, 0,    0, CE_ATTR_FLAGS, 0, }, /* unused */
+        /* CE7 used only by Host */
+};
 
 int hif_completion_thread(struct HIF_CE_state *hif_state);
 static int hif_post_recv_buffers(HIF_DEVICE *hif_device);
@@ -867,6 +918,16 @@ HIFMapServiceToPipe(HIF_DEVICE *hif_device, a_uint16_t ServiceId, a_uint8_t *ULP
             break;
 
         case WMI_DATA_BK_SVC:
+            /*
+             * To avoid some confusions, better to introduce new EP-ping
+             * service instead of using existed services. Until the main
+             * framework support this, keep this design.
+             */
+            if (WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
+                *ULPipe = 4;
+                *DLPipe = 1;
+                break;
+            }
         case WMI_DATA_BE_SVC:
         case WMI_DATA_VI_SVC:
         case WMI_DATA_VO_SVC:
@@ -2014,6 +2075,26 @@ static struct service_to_pipe target_service_to_CE_map_wlan[] = {
 static struct service_to_pipe *target_service_to_CE_map = target_service_to_CE_map_wlan;
 static int target_service_to_CE_map_sz = sizeof(target_service_to_CE_map_wlan);
 
+static struct service_to_pipe target_service_to_CE_map_wlan_epping[] = {
+    { WMI_DATA_VO_SVC, PIPEDIR_OUT, 3, },     /* out = UL = host -> target */
+    { WMI_DATA_VO_SVC, PIPEDIR_IN, 2, },      /* in = DL = target -> host */
+    { WMI_DATA_BK_SVC, PIPEDIR_OUT, 4, },     /* out = UL = host -> target */
+    { WMI_DATA_BK_SVC, PIPEDIR_IN, 1, },      /* in = DL = target -> host */
+    { WMI_DATA_BE_SVC, PIPEDIR_OUT, 3, },     /* out = UL = host -> target */
+    { WMI_DATA_BE_SVC, PIPEDIR_IN, 2, },      /* in = DL = target -> host */
+    { WMI_DATA_VI_SVC, PIPEDIR_OUT, 3, },     /* out = UL = host -> target */
+    { WMI_DATA_VI_SVC, PIPEDIR_IN, 2, },      /* in = DL = target -> host */
+    { WMI_CONTROL_SVC, PIPEDIR_OUT, 3, },     /* out = UL = host -> target */
+    { WMI_CONTROL_SVC, PIPEDIR_IN, 2, },      /* in = DL = target -> host */
+    { HTC_CTRL_RSVD_SVC, PIPEDIR_OUT, 0, },   /* out = UL = host -> target */
+    { HTC_CTRL_RSVD_SVC, PIPEDIR_IN, 1, },    /* in = DL = target -> host */
+    { HTC_RAW_STREAMS_SVC, PIPEDIR_OUT, 0, }, /* out = UL = host -> target */
+    { HTC_RAW_STREAMS_SVC, PIPEDIR_IN, 1, },  /* in = DL = target -> host */
+    { HTT_DATA_MSG_SVC, PIPEDIR_OUT, 4, },    /* out = UL = host -> target */
+    { HTT_DATA_MSG_SVC, PIPEDIR_IN, 1, },     /* in = DL = target -> host */
+    { 0, 0, 0, },                             /* Must be last */
+};
+
 /*
  * Send an interrupt to the device to wake up the Target CPU
  * so it has an opportunity to notice any changed state.
@@ -2106,6 +2187,18 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
     struct ol_softc *scn = sc->ol_sc;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n",__FUNCTION__));
+
+    /* if epping is enabled we need to use the epping configuration. */
+    if (WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
+        if (WLAN_IS_EPPING_IRQ(vos_get_conparam()))
+            host_CE_config = host_CE_config_wlan_epping_irq;
+        else
+            host_CE_config = host_CE_config_wlan_epping_poll;
+        target_CE_config = target_CE_config_wlan_epping;
+        target_CE_config_sz = sizeof(target_CE_config_wlan_epping);
+        target_service_to_CE_map = target_service_to_CE_map_wlan_epping;
+        target_service_to_CE_map_sz = sizeof(target_service_to_CE_map_wlan_epping);
+    }
 
     hif_state = (struct HIF_CE_state *)A_MALLOC(sizeof(*hif_state));
     if (!hif_state) {
@@ -2302,6 +2395,7 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
                  banks_switched = 6;
                  break;
              case 0x8: /* ROME 3.0 */
+             case 0x9: /* ROME 3.1 */
                  banks_switched = 9;
                  break;
              case 0x0: /* ROME 1.0 */

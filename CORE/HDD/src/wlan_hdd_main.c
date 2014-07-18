@@ -119,11 +119,19 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #include "wlan_hdd_tdls.h"
 #endif
 #ifdef FEATURE_WLAN_CH_AVOID
+#ifdef CONFIG_CNSS
 #include <net/cnss.h>
+#endif
 extern int hdd_hostapd_stop (struct net_device *dev);
 void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #endif /* FEATURE_WLAN_CH_AVOID */
+
+#ifdef WLAN_FEATURE_NAN
+#include "wlan_hdd_nan.h"
+#endif /* WLAN_FEATURE_NAN */
+
 #include "wlan_hdd_debugfs.h"
+#include "epping_main.h"
 
 #ifdef IPA_OFFLOAD
 #include <wlan_hdd_ipa.h>
@@ -10533,6 +10541,12 @@ void __hdd_wlan_exit(void)
 
    //Get the global vos context
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+   if (!pVosContext)
+      return;
+   if (WLAN_IS_EPPING_ENABLED(con_mode)) {
+      epping_exit(pVosContext);
+      return;
+   }
 
    if(NULL == pVosContext) {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
@@ -11232,6 +11246,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
 
    ENTER();
+
+   if (WLAN_IS_EPPING_ENABLED(con_mode)) {
+       /* if epping enabled redirect start to epping module */
+      ret = epping_wlan_startup(dev, hif_sc);
+      EXIT();
+      return ret;
+   }
    /*
     * cfg80211: wiphy allocation
     */
@@ -12052,6 +12073,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
     }
 #endif
 
+#ifdef WLAN_FEATURE_NAN
+    wlan_hdd_cfg80211_nan_init(pHddCtx);
+#endif
+
 #ifndef QCA_WIFI_ISOC
    /* Thermal Mitigation */
    thermalParam.smeThermalMgmtEnabled =
@@ -12313,6 +12338,24 @@ static int hdd_driver_init( void)
       }
 #endif
 
+#ifndef MODULE
+      if (WLAN_IS_EPPING_ENABLED(con_mode)) {
+         ret_status =  epping_driver_init(con_mode, &wlan_wake_lock,
+                          WLAN_MODULE_NAME);
+         if (ret_status < 0)
+            vos_wake_lock_destroy(&wlan_wake_lock);
+         return ret_status;
+      }
+#else
+      if (WLAN_IS_EPPING_ENABLED(hdd_get_conparam())) {
+         ret_status = epping_driver_init(hdd_get_conparam(),
+                         &wlan_wake_lock, WLAN_MODULE_NAME);
+         if (ret_status < 0)
+            vos_wake_lock_destroy(&wlan_wake_lock);
+         return ret_status;
+      }
+#endif
+
 #ifdef TIMER_MANAGER
       vos_timer_manager_init();
 #endif
@@ -12467,6 +12510,11 @@ static void hdd_driver_exit(void)
    if(!pVosContext)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
+      goto done;
+   }
+
+   if (WLAN_IS_EPPING_ENABLED(con_mode)) {
+      epping_driver_exit(pVosContext);
       goto done;
    }
 

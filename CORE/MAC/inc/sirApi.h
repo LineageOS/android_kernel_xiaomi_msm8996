@@ -5133,7 +5133,14 @@ typedef struct
     tANI_U32 event_data_len;
     u_int8_t event_data[];
 } tSirStatsExtEvent, *tpSirStatsExtEvent;
+#endif
 
+#ifdef WLAN_FEATURE_NAN
+typedef struct
+{
+    tANI_U16 event_data_len;
+    tANI_U8  event_data[];
+} tSirNanEvent, *tpSirNanEvent;
 #endif
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 typedef struct sSirSmeRoamOffloadSynchInd

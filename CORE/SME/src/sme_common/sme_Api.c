@@ -70,6 +70,9 @@
 #include "vos_utils.h"
 #include "sapApi.h"
 #include "macTrace.h"
+#ifdef WLAN_FEATURE_NAN
+#include "nan_Api.h"
+#endif
 
 
 extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
@@ -2701,6 +2704,15 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    vos_mem_free(pMsg->bodyptr);
                }
                break;
+#ifdef WLAN_FEATURE_NAN
+          case eWNI_SME_NAN_EVENT:
+                if (pMsg->bodyptr)
+                {
+                    sme_NanEvent(hHal, pMsg->bodyptr);
+                    vos_mem_free(pMsg->bodyptr);
+                }
+                break;
+#endif /* WLAN_FEATURE_NAN */
 
           default:
 
