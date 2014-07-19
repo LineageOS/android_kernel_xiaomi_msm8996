@@ -2096,7 +2096,9 @@ ol_txrx_ipa_uc_op_response(
    u_int8_t op_code
 )
 {
-   pdev->ipa_uc_op_cb(op_code, pdev->osif_dev);
+   if (pdev->ipa_uc_op_cb) {
+      pdev->ipa_uc_op_cb(op_code, pdev->osif_dev);
+   }
 }
 
 void ol_txrx_ipa_uc_register_op_cb(

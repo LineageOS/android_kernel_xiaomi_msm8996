@@ -77,9 +77,7 @@ int epping_cookie_init(epping_context_t*pEpping_ctx)
          vos_mem_malloc(sizeof(struct epping_cookie)*MAX_COOKIE_SLOT_SIZE);
       if (pEpping_ctx->s_cookie_mem == NULL) {
          EPPING_LOG(VOS_TRACE_LEVEL_FATAL,
-            "%s: no mem for cookie (idx = %d, size = %d)",
-            __func__, i,
-            sizeof(struct epping_cookie)*MAX_COOKIE_SLOT_SIZE);
+            "%s: no mem for cookie (idx = %d)", __func__, i);
          goto error;
       }
       vos_mem_zero(pEpping_ctx->s_cookie_mem[i],
@@ -280,7 +278,7 @@ void epping_unregister_tx_copier(HTC_ENDPOINT_ID eid, epping_context_t *pEpping_
    epping_poll->done = true;
    if (epping_poll->inited) {
       epping_tx_copier_schedule(pEpping_ctx, eid, NULL);
-      usleep(EPPING_KTID_KILL_WAIT_TIME_US);
+      msleep(EPPING_KTID_KILL_WAIT_TIME_MS);
    }
    if (epping_poll->skb)
       adf_nbuf_free(epping_poll->skb);

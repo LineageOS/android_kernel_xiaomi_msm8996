@@ -349,6 +349,8 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 		unsigned long data);
 static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		unsigned long data);
+static void hdd_ipa_msg_free_fn(void *buff, uint32_t len, uint32_t type);
+
 #ifdef IPA_UC_OFFLOAD
 static void hdd_ipa_uc_rm_notify_handler(void *context,
 	void *rxpkt,
@@ -469,6 +471,8 @@ static bool hdd_ipa_can_send_to_ipa(hdd_adapter_t *adapter, struct hdd_ipa_priv 
 static int hdd_ipa_uc_enable_pipes(struct hdd_ipa_priv *hdd_ipa)
 {
 	int result;
+	struct ipa_msg_meta meta;
+	struct ipa_wlan_msg *msg;
 
 	/* ACTIVATE TX PIPE */
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
@@ -510,12 +514,54 @@ static int hdd_ipa_uc_enable_pipes(struct hdd_ipa_priv *hdd_ipa)
 	WLANTL_SetUcActive(hdd_ipa->hdd_ctx->pvosContext,
 		VOS_TRUE, VOS_FALSE);
 
+	/* This should be handled async manner */
+	meta.msg_len = sizeof(struct ipa_wlan_msg);
+	msg = adf_os_mem_alloc(NULL, meta.msg_len);
+	if (msg == NULL) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"msg allocation failed");
+		return -ENOMEM;
+	}
+
+	meta.msg_type = SW_ROUTING_ENABLE;
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d",
+		msg->name, meta.msg_type);
+	result = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
+	if (result) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL,
+			"%s: Evt: %d fail:%d",
+			msg->name, meta.msg_type,  result);
+		adf_os_mem_free(msg);
+		return result;
+	}
 	return 0;
 }
 
 static int hdd_ipa_uc_disable_pipes(struct hdd_ipa_priv *hdd_ipa)
 {
 	int result;
+	struct ipa_msg_meta meta;
+	struct ipa_wlan_msg *msg;
+
+	meta.msg_len = sizeof(struct ipa_wlan_msg);
+	msg = adf_os_mem_alloc(NULL, meta.msg_len);
+	if (msg == NULL) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"msg allocation failed");
+		return -ENOMEM;
+	}
+
+	meta.msg_type = SW_ROUTING_DISABLE;
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d",
+		msg->name, meta.msg_type);
+
+	result = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
+	if (result) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d fail:%d",
+			msg->name, meta.msg_type,  result);
+		adf_os_mem_free(msg);
+		return result;
+	}
 
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 		"%s: Disable RX PIPE", __func__);
@@ -675,6 +721,11 @@ void hdd_ipa_uc_rm_notify_defer(void *hdd_ipa, enum ipa_rm_event event)
 
 static void hdd_ipa_uc_op_cb(v_U8_t op_code)
 {
+	if (HDD_IPA_UC_OPCODE_MAX <= op_code) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s, INVALID OPCODE %d", __func__, op_code);
+		return;
+	}
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
 		"%s, OPCODE %s", __func__, op_string[op_code]);
 }
@@ -2200,8 +2251,8 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 #ifdef IPA_UC_OFFLOAD
 		if (!hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-				"%s: Evt: %d, IPA UC OFFLOAD NOT ENABLED",
-				msg_ex->name, meta.msg_type);
+				"%s: IPA UC OFFLOAD NOT ENABLED",
+				msg_ex->name);
 			return 0;
 		}
 		hdd_ipa->sap_num_connected_sta--;
