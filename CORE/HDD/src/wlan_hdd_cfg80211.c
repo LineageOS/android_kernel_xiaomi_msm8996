@@ -4753,11 +4753,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     v_BOOL_t MFPCapable =  VOS_FALSE;
     v_BOOL_t MFPRequired =  VOS_FALSE;
     eHddDot11Mode sapDot11Mode =
-#ifdef WLAN_FEATURE_MBSSID
-             pHostapdAdapter->sap_dyn_ini_cfg.sapDot11Mode;
-#else
              (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->sapDot11Mode;
-#endif
     u_int16_t prev_rsn_length = 0;
     ENTER();
 
