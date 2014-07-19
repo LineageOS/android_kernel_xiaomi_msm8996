@@ -897,6 +897,8 @@ typedef enum {
 
     /* LPI Event */
     WMI_LPI_RESULT_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_LPI),
+    WMI_LPI_STATUS_EVENTID,
+    WMI_LPI_HANDOFF_EVENTID,
 
      /* ExtScan events */
     WMI_EXTSCAN_START_STOP_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_EXTSCAN),
@@ -7018,10 +7020,23 @@ typedef struct
     A_UINT32 netWorkStartIndex;  /* indicate the start index of network info*/
 } wmi_batch_scan_result_scan_list;
 
-#define LPI_IE_BITMAP_BSSID              0x0001
-#define LPI_IE_BITMAP_SSID               0x0002
-#define LPI_IE_BITMAP_RSSI               0x0004
-#define LPI_IE_BITMAP_CHAN               0x0008
+#define LPI_IE_BITMAP_BSSID                  0x0001
+#define LPI_IE_BITMAP_IS_PROBE               0x0002
+#define LPI_IE_BITMAP_SSID                   0x0004
+#define LPI_IE_BITMAP_RSSI                   0x0008
+#define LPI_IE_BITMAP_CHAN                   0x0010
+#define LPI_IE_BITMAP_AP_TX_PWR              0x0020
+#define LPI_IE_BITMAP_TX_RATE                0x0040
+#define LPI_IE_BITMAP_80211_MC_SUPPORT       0x0080
+#define LPI_IE_BITMAP_TSF_TIMER_VALUE        0x0100
+#define LPI_IE_BITMAP_AGE_OF_MESAUREMENT     0x0200
+#define LPI_IE_BITMAP_CONN_STATUS            0x0400
+#define LPI_IE_BITMAP_MSAP_IE                0x0800
+#define LPI_IE_BITMAP_SEC_STATUS             0x1000
+#define LPI_IE_BITMAP_DEVICE_TYPE            0x2000
+#define LPI_IE_BITMAP_CHAN_IS_PASSIVE        0x4000
+#define LPI_IE_BITMAP_DWELL_TIME             0x8000
+#define LPI_IE_BITMAP_ALL                    0xFFFF
 
 typedef struct {
     A_UINT32 tlv_header;
@@ -7098,8 +7113,8 @@ typedef struct {
 
 typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_stop_scan_cmd_fixed_param */
-    /** requestor requesting cancel  */
-    A_UINT32 requestor;
+    /** Scan requestor ID */
+    A_UINT32 scan_req_id;
     /** Scan ID */
     A_UINT32 scan_id;
     /**
@@ -7117,15 +7132,56 @@ typedef struct {
     A_UINT32 vdev_id;
 } wmi_lpi_stop_scan_cmd_fixed_param;
 
+typedef enum {
+   WMI_LPI_DEVICE_TYPE_AP = 1,
+   WMI_LPI_DEVICE_TYPE_P2P = 2,
+   WMI_LPI_DEVICE_TYPE_NAN = 3,
+}wmi_lpi_device_type;
+
 typedef struct
 {
     A_UINT32 tlv_header;
+    /** Scan requestor ID */
+    A_UINT32 scan_req_id;
     A_UINT32 ie_bitmap;
     A_UINT32 data_len;
-    /* This buffer is used to send lpi scan result data
-      *  A_UINT8 data[];	 // length in byte given by field data_len.
-      */
 } wmi_lpi_result_event_fixed_param;
+
+typedef enum {
+   /** User scan Request completed */
+   WMI_LPI_STATUS_SCAN_REQ_COMPLED = 0,
+   /** User Request was never serviced */
+   WMI_LPI_STATUS_DROPPED_REQ = 1,
+   /** Illegal channel Req */
+   WMI_LPI_STATUS_ILLEGAL_CHAN_REQ = 2,
+   /** Illegal Operation Req */
+   WMI_LPI_STATUS_ILLEGAL_OPER_REQ = 3,
+   /** Request Aborted */
+   WMI_LPI_STATUS_REQ_ABORTED = 4,
+   /** Request Timed Out */
+   WMI_LPI_STATUS_REQ_TIME_OUT = 5,
+   /** Medium Bussy, already there
+    * is a scan is going on */
+   WMI_LPI_STATUS_MEDIUM_BUSSY = 6,
+}wmi_lpi_staus;
+
+typedef struct
+{
+    A_UINT32      tlv_header;
+    wmi_lpi_staus status;
+    /** Scan requestor ID */
+    A_UINT32      scan_req_id;
+}  wmi_lpi_status_event_fixed_param;
+
+
+typedef struct
+{
+    A_UINT32      tlv_header;
+    wmi_mac_addr  bssid;
+    wmi_ssid      ssid;
+    A_UINT16      freq;
+    A_UINT32      rssi;
+}  wmi_lpi_handoff_event_fixed_param;
 
 typedef struct
 {

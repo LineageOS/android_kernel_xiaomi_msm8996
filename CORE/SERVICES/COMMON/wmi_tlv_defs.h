@@ -461,6 +461,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_lpi_start_scan_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_lpi_stop_scan_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_lpi_result_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_lpi_status_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_lpi_handoff_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_peer_state_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_extscan_bucket_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_extscan_bucket_channel_event_fixed_param,
@@ -757,6 +759,8 @@ typedef enum {
     OP(WMI_PEER_LINK_STATS_EVENTID) \
     OP(WMI_RADIO_LINK_STATS_EVENTID) \
     OP(WMI_LPI_RESULT_EVENTID) \
+    OP(WMI_LPI_STATUS_EVENTID) \
+    OP(WMI_LPI_HANDOFF_EVENTID) \
     OP(WMI_PEER_STATE_EVENTID) \
     OP(WMI_EXTSCAN_START_STOP_EVENTID) \
     OP(WMI_EXTSCAN_OPERATION_EVENTID) \
@@ -1804,6 +1808,16 @@ WMITLV_CREATE_PARAM_STRUC(WMI_LPI_STOP_SCAN_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_lpi_result_event_fixed_param, wmi_lpi_result_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_LPI_RESULT_EVENTID);
+
+/* LPI Status Event */
+#define WMITLV_TABLE_WMI_LPI_STATUS_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_lpi_status_event_fixed_param, wmi_lpi_status_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_LPI_STATUS_EVENTID);
+
+/* LPI Handoff Event */
+#define WMITLV_TABLE_WMI_LPI_HANDOFF_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_lpi_handoff_event_fixed_param, wmi_lpi_handoff_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_LPI_HANDOFF_EVENTID);
 
 /* Thermal Manager Params*/
 #define WMITLV_TABLE_WMI_THERMAL_MGMT_CMDID(id,op,buf,len) \
