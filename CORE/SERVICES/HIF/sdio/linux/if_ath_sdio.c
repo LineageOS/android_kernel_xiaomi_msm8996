@@ -49,6 +49,7 @@
 #include "pktlog_ac_api.h"
 #include "pktlog_ac.h"
 #endif
+#include "epping_main.h"
 
 #ifndef ATH_BUS_PM
 #ifdef CONFIG_PM
@@ -162,6 +163,12 @@ ath_hif_sdio_probe(void *context, void *hif_handle)
         VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_INFO," hdd_wlan_startup success!");
     }
 
+	/* epping is minimum ethernet driver and the
+	 * epping fw does not support pktlog, etc.
+	 * After hdd_wladriver is epping directly return. */
+	if (WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+		goto end;
+
 #ifndef REMOVE_PKT_LOG
     if (vos_get_conparam() != VOS_FTM_MODE) {
         /*
@@ -173,7 +180,7 @@ ath_hif_sdio_probe(void *context, void *hif_handle)
             printk(KERN_ERR "%s: pktlogmod_init failed\n", __func__);
     }
 #endif
-
+end:
     return 0;
 
 err_attach2:
@@ -211,7 +218,8 @@ ath_hif_sdio_remove(void *context, void *hif_handle)
     athdiag_procfs_remove();
 
 #ifndef REMOVE_PKT_LOG
-    if (vos_get_conparam() != VOS_FTM_MODE){
+    if (vos_get_conparam() != VOS_FTM_MODE &&
+		!WLAN_IS_EPPING_ENABLED(vos_get_conparam())){
         if (sc && sc->ol_sc)
             pktlogmod_exit(sc->ol_sc);
     }
