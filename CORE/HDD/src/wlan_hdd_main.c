@@ -7889,7 +7889,7 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
    tANI_U32 type, subType;
-   long rc = 0;
+   unsigned long rc = 0;
    int ret_val;
 
    INIT_COMPLETION(pAdapter->session_open_comp_var);
@@ -7914,11 +7914,10 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
    }
 
    //Block on a completion variable. Can't wait forever though.
-   rc = wait_for_completion_interruptible_timeout(
+   rc = wait_for_completion_timeout(
                         &pAdapter->session_open_comp_var,
                         msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
-   if (rc <= 0)
-   {
+   if (!rc) {
       hddLog(VOS_TRACE_LEVEL_FATAL,
              FL("Session is not opened within timeout period code %ld"),
              rc );
