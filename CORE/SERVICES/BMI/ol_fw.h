@@ -50,6 +50,7 @@
 #define QCA_UTF_FIRMWARE_FILE        "utf.bin"
 #define QCA_BOARD_DATA_FILE          "fakeboar.bin"
 #define QCA_OTP_FILE                 "otp.bin"
+#define QCA_SETUP_FILE               "athsetup.bin"
 #define AR61X4_SINGLE_FILE           "qca61x4.bin"
 #define QCA_FIRMWARE_EPPING_FILE     "endpointping.bin"
 
