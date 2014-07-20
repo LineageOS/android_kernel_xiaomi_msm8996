@@ -1549,17 +1549,21 @@ typedef __ani_attr_pre_packed struct sDisableIntraBssFwd
    tANI_BOOLEAN disableintrabssfwd;
 } __ani_attr_packed tDisableIntraBssFwd, *tpDisableIntraBssFwd;
 
-
 #ifdef WLAN_FEATURE_STATS_EXT
-
 typedef struct sStatsExtRequest
 {
     tANI_U32 vdev_id;
     tANI_U32 request_data_len;
     tANI_U8 request_data[];
 } tStatsExtRequest, *tpStatsExtRequest;
+#endif
 
-
+#ifdef WLAN_FEATURE_NAN
+typedef struct sNanRequest
+{
+    tANI_U16 request_data_len;
+    tANI_U8  request_data[];
+} tNanRequest, *tpNanRequest;
 #endif
 
 #endif /* _HALMSGAPI_H_ */

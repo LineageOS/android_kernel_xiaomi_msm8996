@@ -31,6 +31,8 @@
 #include <adf_nbuf.h>     /* adf_nbuf_t */
 #include <adf_os_types.h> /* adf_os_print */
 #include <hif_msg_based.h> /* HIFFlushSurpriseRemove */
+#include <vos_getBin.h>
+#include "epping_main.h"
 
 #ifdef DEBUG
 static ATH_DEBUG_MASK_DESCRIPTION g_HTCDebugDescription[] = {
@@ -308,7 +310,7 @@ A_STATUS HTCSetupTargetBufferAssignments(HTC_TARGET *target)
 #if defined(HIF_USB)
     target->avail_tx_credits = target->TotalTransmitCredits - 1 ;
 #endif
-#if !(defined(HIF_PCI) || defined(HIF_SIM) || defined(CONFIG_HL_SUPPORT) || (defined(HIF_USB) && !defined(EPPING_TEST)))
+#if !(defined(HIF_PCI) || defined(HIF_SIM) || defined(CONFIG_HL_SUPPORT) || (defined(HIF_USB)))
     status = A_NO_RESOURCE;
 #endif
 
@@ -325,6 +327,70 @@ A_STATUS HTCSetupTargetBufferAssignments(HTC_TARGET *target)
     pEntry++;
     pEntry->ServiceID = WMI_CONTROL_SVC;
     pEntry->CreditAllocation = credits;
+
+    if (WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
+#if !defined(HIF_USB)
+        pEntry++;
+        pEntry->ServiceID = WMI_DATA_BE_SVC;
+        pEntry->CreditAllocation = credits;
+#endif
+#if defined(HIF_USB)
+        do {
+            pEntry++;
+            pEntry->ServiceID = WMI_DATA_VI_SVC;
+            pEntry->CreditAllocation = credits / 4;
+            if (pEntry->CreditAllocation == 0) {
+                pEntry->CreditAllocation++;
+            }
+            credits -= (int)pEntry->CreditAllocation;
+            if (credits <= 0) {
+                break;
+            }
+            pEntry++;
+            pEntry->ServiceID = WMI_DATA_VO_SVC;
+            pEntry->CreditAllocation = credits / 3;
+            if (pEntry->CreditAllocation == 0) {
+                pEntry->CreditAllocation++;
+            }
+            credits -= (int)pEntry->CreditAllocation;
+            if (credits <= 0) {
+                break;
+            }
+            pEntry++;
+            pEntry->ServiceID = WMI_DATA_BK_SVC;
+            pEntry->CreditAllocation = credits / 2;
+            credits -= (int)pEntry->CreditAllocation;
+            if (credits <= 0) {
+                break;
+            }
+            /*
+             * HTT_DATA_MSG_SVG is unidirectional from target -> host,
+             * so no target buffers are needed.
+             */
+            pEntry++;
+            pEntry->ServiceID = WMI_DATA_BE_SVC;
+            pEntry->CreditAllocation = credits / 2;
+            credits -= (int)pEntry->CreditAllocation;
+            if (credits <= 0) {
+                break;
+            }
+            /* leftovers go to best effort */
+            pEntry++;
+            pEntry->ServiceID = WMI_CONTROL_SVC;
+            pEntry->CreditAllocation = (A_UINT8)credits;
+            status = A_OK;
+        } while (FALSE);
+ #endif
+ #if defined(HIF_PCI)
+        //pEntry++;
+        pEntry->ServiceID = WMI_DATA_BE_SVC;
+        pEntry->CreditAllocation = (credits >> 1);
+
+        pEntry++;
+        pEntry->ServiceID = WMI_DATA_BK_SVC;
+        pEntry->CreditAllocation = (credits >> 1);
+ #endif
+    }
 
 #else
     do {
@@ -520,6 +586,11 @@ A_STATUS HTCWaitTarget(HTC_HANDLE HTCHandle)
                                    &resp);
 
     } while (FALSE);
+
+#if defined(HIF_USB)
+    if (WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+        HIFStart_INPipe(target->hif_dev);
+#endif
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("HTCWaitTarget - Exit (%d)\n",status));
     AR_DEBUG_PRINTF(ATH_DEBUG_ANY, ("-HWT\n"));

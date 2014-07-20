@@ -77,6 +77,10 @@ ifeq ($(KERNEL_BUILD), 0)
         ifeq ($(CONFIG_ROME_IF),sdio)
                 CONFIG_WLAN_FEATURE_11W := y
         endif
+
+	#Flag to enable NAN
+	CONFIG_FEATURE_NAN := y
+
 endif
 
 # To enable ESE upload, dependent config
@@ -389,6 +393,20 @@ ifeq ($(CONFIG_QCOM_TDLS),y)
 HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_tdls.o
 endif
 
+############ EPPING ############
+EPPING_DIR :=	CORE/EPPING
+EPPING_INC_DIR :=	$(EPPING_DIR)/inc
+EPPING_SRC_DIR :=	$(EPPING_DIR)/src
+
+EPPING_INC := 	-I$(WLAN_ROOT)/$(EPPING_INC_DIR)
+
+EPPING_OBJS := $(EPPING_SRC_DIR)/epping_main.o \
+		$(EPPING_SRC_DIR)/epping_txrx.o \
+		$(EPPING_SRC_DIR)/epping_tx.o \
+		$(EPPING_SRC_DIR)/epping_rx.o \
+		$(EPPING_SRC_DIR)/epping_helper.o \
+
+
 ############ MAC ############
 MAC_DIR :=	CORE/MAC
 MAC_INC_DIR :=	$(MAC_DIR)/inc
@@ -558,6 +576,10 @@ SME_P2P_OBJS = $(SME_SRC_DIR)/p2p/p2p_Api.o
 
 SME_RRM_OBJS := $(SME_SRC_DIR)/rrm/sme_rrm.o
 
+ifeq ($(CONFIG_FEATURE_NAN),y)
+SME_NAN_OBJS = $(SME_SRC_DIR)/nan/nan_Api.o
+endif
+
 SME_OBJS :=	$(SME_BTC_OBJS) \
 		$(SME_CCM_OBJS) \
 		$(SME_CMN_OBJS) \
@@ -566,7 +588,8 @@ SME_OBJS :=	$(SME_BTC_OBJS) \
 		$(SME_P2P_OBJS) \
 		$(SME_PMC_OBJS) \
 		$(SME_QOS_OBJS) \
-		$(SME_RRM_OBJS)
+		$(SME_RRM_OBJS) \
+		$(SME_NAN_OBJS)
 
 ############ SVC ############
 SVC_DIR :=	CORE/SVC
@@ -879,6 +902,7 @@ LINUX_INC :=	-Iinclude/linux
 INCS :=		$(BAP_INC) \
 		$(DXE_INC) \
 		$(HDD_INC) \
+		$(EPPING_INC) \
 		$(LINUX_INC) \
 		$(MAC_INC) \
 		$(WCNSS_INC) \
@@ -923,6 +947,7 @@ endif
 
 OBJS :=		$(BAP_OBJS) \
 		$(HDD_OBJS) \
+		$(EPPING_OBJS) \
 		$(MAC_OBJS) \
 		$(SAP_OBJS) \
 		$(SME_OBJS) \
@@ -1163,6 +1188,10 @@ endif
 
 ifeq ($(CONFIG_FEATURE_STATS_EXT), 1)
 CDEFINES += -DWLAN_FEATURE_STATS_EXT
+endif
+
+ifeq ($(CONFIG_FEATURE_NAN),y)
+CDEFINES += -DWLAN_FEATURE_NAN
 endif
 
 ifeq ($(CONFIG_QCA_WIFI_2_0), 1)

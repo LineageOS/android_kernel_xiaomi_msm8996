@@ -103,6 +103,10 @@
 #include <net/cnss.h>
 #endif
 #include "wlan_hdd_misc.h"
+#ifdef WLAN_FEATURE_NAN
+#include "nan_Api.h"
+#include "wlan_hdd_nan.h"
+#endif
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -825,6 +829,90 @@ int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+#ifdef WLAN_FEATURE_NAN
+/*
+ * FUNCTION: wlan_hdd_cfg80211_nan_request
+ * This is called when wlan driver needs to send vendor specific
+ * nan request event.
+ */
+static int wlan_hdd_cfg80211_nan_request(struct wiphy *wiphy,
+                                         struct wireless_dev *wdev,
+                                         void *data, int data_len)
+{
+    tNanRequestReq nan_req;
+    VOS_STATUS status;
+    int ret_val = -1;
+
+    nan_req.request_data_len = data_len;
+    nan_req.request_data = data;
+
+    status = sme_NanRequest(&nan_req);
+    if (VOS_STATUS_SUCCESS == status) {
+        ret_val = 0;
+    }
+    return ret_val;
+}
+
+/*
+ * FUNCTION: wlan_hdd_cfg80211_nan_callback
+ * This is a callback function and it gets called
+ * when we need to report nan response event to
+ * upper layers.
+ */
+static void wlan_hdd_cfg80211_nan_callback(void* ctx, tSirNanEvent* msg)
+{
+    hdd_context_t *pHddCtx = (hdd_context_t *)ctx;
+    struct sk_buff *vendor_event;
+    int status;
+    tSirNanEvent *data;
+
+    if (NULL == msg) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   FL(" msg received here is null"));
+        return;
+    }
+    data = msg;
+
+    status = wlan_hdd_validate_context(pHddCtx);
+
+    if (0 != status) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   FL("HDD context is not valid"));
+        return;
+    }
+
+    vendor_event = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
+                                   data->event_data_len +
+                                   NLMSG_HDRLEN,
+                                   QCA_NL80211_VENDOR_SUBCMD_NAN_INDEX,
+                                   GFP_KERNEL);
+
+    if (!vendor_event) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   FL("cfg80211_vendor_event_alloc failed"));
+        return;
+    }
+    if (nla_put(vendor_event, QCA_WLAN_VENDOR_ATTR_NAN,
+                data->event_data_len, data->event_data)) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   FL("QCA_WLAN_VENDOR_ATTR_NAN put fail"));
+        kfree_skb(vendor_event);
+        return;
+    }
+    cfg80211_vendor_event(vendor_event, GFP_KERNEL);
+}
+
+/*
+ * FUNCTION: wlan_hdd_cfg80211_nan_init
+ * This function is called to register the callback to sme layer
+ */
+void wlan_hdd_cfg80211_nan_init(hdd_context_t *pHddCtx)
+{
+    sme_NanRegisterCallback(pHddCtx->hHal, wlan_hdd_cfg80211_nan_callback);
+}
+
+#endif
+
 /* vendor specific events */
 static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
 {
@@ -834,6 +922,13 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
         .subcmd = QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY
     },
 #endif /* FEATURE_WLAN_CH_AVOID */
+
+#ifdef WLAN_FEATURE_NAN
+    [QCA_NL80211_VENDOR_SUBCMD_NAN_INDEX] = {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_NAN
+    },
+#endif
 
 #ifdef WLAN_FEATURE_STATS_EXT
     [QCA_NL80211_VENDOR_SUBCMD_STATS_EXT_INDEX] = {
@@ -2111,6 +2206,7 @@ static bool put_wifi_interface_info(tpSirWifiInterfaceInfo stats,
 }
 
 static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
+                                 u32 num_peers,
                                  struct sk_buff *vendor_event)
 {
     int i = 0;
@@ -2128,6 +2224,9 @@ static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
     }
 
     if (nla_put_u32(vendor_event,
+                    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_NUM_PEERS,
+                    num_peers) ||
+        nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_BEACON_RX,
                     pWifiIfaceStat->beaconRx) ||
         nla_put_u32(vendor_event,
@@ -2436,7 +2535,8 @@ static void hdd_link_layer_process_peer_stats(hdd_adapter_t *pAdapter,
  * layers.
  */
 static void hdd_link_layer_process_iface_stats(hdd_adapter_t *pAdapter,
-                                               tpSirWifiIfaceStat pData)
+                                               tpSirWifiIfaceStat pData,
+                                               u32 num_peers)
 {
     tpSirWifiIfaceStat  pWifiIfaceStat;
     struct sk_buff *vendor_event;
@@ -2486,6 +2586,7 @@ static void hdd_link_layer_process_iface_stats(hdd_adapter_t *pAdapter,
     }
 
     hddLog(VOS_TRACE_LEVEL_INFO,
+           " Num peers %u "
            "LL_STATS_IFACE: "
            " Mode %u "
            " MAC %pM "
@@ -2494,6 +2595,7 @@ static void hdd_link_layer_process_iface_stats(hdd_adapter_t *pAdapter,
            " capabilities 0x%x "
            " SSID %s "
            " BSSID %pM",
+           num_peers,
            pWifiIfaceStat->info.mode,
            pWifiIfaceStat->info.macAddr,
            pWifiIfaceStat->info.state,
@@ -2561,7 +2663,7 @@ static void hdd_link_layer_process_iface_stats(hdd_adapter_t *pAdapter,
                pWifiIfaceStat->AccessclassStats[i].contentionNumSamples);
     }
 
-    if (FALSE == put_wifi_iface_stats(pWifiIfaceStat, vendor_event)) {
+    if (FALSE == put_wifi_iface_stats(pWifiIfaceStat, num_peers, vendor_event)) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                FL("put_wifi_iface_stats fail"));
         kfree_skb(vendor_event);
@@ -2820,8 +2922,9 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx,
             else if (linkLayerStatsResults->paramId & WMI_LINK_STATS_IFACE )
             {
                 hdd_link_layer_process_iface_stats(pAdapter,
-                                                (tpSirWifiIfaceStat)
-                                                linkLayerStatsResults->results);
+                                                   (tpSirWifiIfaceStat)
+                                                   linkLayerStatsResults->results,
+                                                   linkLayerStatsResults->num_peers);
             }
             else if (linkLayerStatsResults->paramId & WMI_LINK_STATS_ALL_PEER )
             {
@@ -3170,6 +3273,17 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
                  WIPHY_VENDOR_CMD_NEED_RUNNING,
         .doit = is_driver_dfs_capable
     },
+
+#ifdef WLAN_FEATURE_NAN
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_NAN,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV |
+                 WIPHY_VENDOR_CMD_NEED_RUNNING,
+        .doit = wlan_hdd_cfg80211_nan_request
+    },
+#endif
 
 #ifdef WLAN_FEATURE_STATS_EXT
     {
@@ -3583,7 +3697,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     if (pCfg->ht2040CoexEnabled)
         wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
 #endif
-#ifdef FEATURE_WLAN_ROAM_OFFLOAD
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
     if (pCfg->isRoamOffloadEnabled) {
         wiphy->flags |= WIPHY_FLAG_HAS_KEY_MGMT_OFFLOAD;
         wiphy->key_mgmt_offload_support |=
@@ -3594,6 +3708,9 @@ int wlan_hdd_cfg80211_init(struct device *dev,
                          NL80211_KEY_MGMT_OFFLOAD_SUPPORT_PMKSA;
         wiphy->key_derive_offload_support |=
                          NL80211_KEY_DERIVE_OFFLOAD_SUPPORT_IGTK;
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+            "%s: LFR3:Driver key mgmt offload capability flags %x",
+                         __func__,wiphy->key_mgmt_offload_support);
     }
 #endif
 
@@ -9581,6 +9698,9 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
      * enabled in INI and FW also has the capability to handle
      * key management offload as part of LFR3.0
      */
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+            "%s: LFR3:Supplicant key mgmt offload capability flags %x",
+                                                  __func__,req->flags);
     if (!(req->auth_type == NL80211_AUTHTYPE_OPEN_SYSTEM) ||
         (req->auth_type == NL80211_AUTHTYPE_FT)) {
         if (!(req->flags & KEY_MGMT_OFFLOAD_BITMASK)) {

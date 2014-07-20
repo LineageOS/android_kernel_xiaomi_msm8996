@@ -53,4 +53,8 @@ config CONFIG_ENABLE_LINUX_REG
 	bool "Enable linux regulatory feature"
 	default n
 
+config CONFIG_FEATURE_NAN
+	bool "Enable NAN feature"
+	default n
+
 endif # PRIMA_WLAN || PRONTO_WLAN

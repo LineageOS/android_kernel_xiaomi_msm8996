@@ -1063,6 +1063,11 @@ ol_rx_in_order_indication_handler(
     /* rx_opt_proc takes a NULL-terminated list of msdu netbufs */
     adf_nbuf_set_next(tail_msdu, NULL);
 
+    /* Pktlog */
+#ifdef WDI_EVENT_ENABLE
+     wdi_event_handler(WDI_EVENT_RX_DESC_REMOTE, pdev, head_msdu);
+#endif
+
     /* if this is an offload indication, peer id is carried in the rx buffer */
     if (peer) {
         vdev = peer->vdev;
