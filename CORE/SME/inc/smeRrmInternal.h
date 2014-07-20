@@ -101,6 +101,7 @@ typedef struct sRrmSMEContext
 
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
    tCsrEseBeaconReq  eseBcnReqInfo;
+   tANI_BOOLEAN eseBcnReqInProgress;
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
    tRrmMsgReqSource msgSource;
 }tRrmSMEContext, *tpRrmSMEContext;
