@@ -2531,7 +2531,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_LL_TX_HBW_FLOW_HWM_OFFSET              "TxHbwFlowHighWaterMarkOffset"
 #define CFG_LL_TX_HBW_FLOW_HWM_OFFSET_MIN          ( 0 )
 #define CFG_LL_TX_HBW_FLOW_HWM_OFFSET_MAX          ( 300 )
-#define CFG_LL_TX_HBW_FLOW_HWM_OFFSET_DEFAULT      ( 50 )
+#define CFG_LL_TX_HBW_FLOW_HWM_OFFSET_DEFAULT      ( 94 )
 
 #define CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH             "TxHbwFlowMaxQueueDepth"
 #define CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH_MIN         ( 400 )

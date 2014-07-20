@@ -204,7 +204,8 @@ endif
 
 #Enable IPA offload
 ifeq ($(CONFIG_IPA), y)
-CONFIG_IPA_OFFLOAD := 0
+CONFIG_IPA_OFFLOAD := 1
+CONFIG_IPA_UC_OFFLOAD := 1
 endif
 
 #Enable Signed firmware support for split binary format
@@ -1313,6 +1314,10 @@ endif
 #Enable Checksum Offload support
 ifeq ($(CONFIG_IPA_OFFLOAD), 1)
 CDEFINES += -DIPA_OFFLOAD -DHDD_IPA_USE_IPA_RM_TIMER
+endif
+
+ifeq ($(CONFIG_IPA_UC_OFFLOAD), 1)
+CDEFINES += -DIPA_UC_OFFLOAD
 endif
 
 #Enable GTK Offload

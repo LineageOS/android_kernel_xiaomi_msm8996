@@ -729,28 +729,16 @@ static struct ol_softc *ramdump_scn;
 
 int ol_copy_ramdump(struct ol_softc *scn)
 {
-	void __iomem *ramdump_base;
-	unsigned long address;
-	unsigned long size;
 	int ret;
 
-	/* Get RAM dump memory address and size */
-	if (cnss_get_ramdump_mem(&address, &size)) {
-		printk("No RAM dump will be collected since failed to get "
-			"memory address or size!\n");
+	if (!scn->ramdump_base || !scn->ramdump_size) {
+		pr_info("%s: No RAM dump will be collected since ramdump_base "
+			"is NULL or ramdump_size is 0!\n", __func__);
 		ret = -EACCES;
 		goto out;
 	}
 
-	ramdump_base = ioremap(address, size);
-	if (!ramdump_base) {
-		printk("No RAM dump will be collected since ramdump_base is NULL!\n");
-		ret = -EACCES;
-		goto out;
-	}
-
-	ret = ol_target_coredump(scn, ramdump_base, size);
-	iounmap(ramdump_base);
+	ret = ol_target_coredump(scn, scn->ramdump_base, scn->ramdump_size);
 
 out:
 	return ret;

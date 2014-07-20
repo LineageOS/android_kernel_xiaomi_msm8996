@@ -608,6 +608,7 @@ static void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
             }
         }
         clear_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags);
+        wlan_hdd_decr_active_session(pHddCtx, ap_adapter->device_mode);
         hddLog(LOGE, FL("SAP Stop Success"));
 
         if (WLANSAP_StartBss(
@@ -630,6 +631,7 @@ static void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
         }
         hddLog(LOGE, FL("SAP Start Success"));
         set_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags);
+        wlan_hdd_incr_active_session(pHddCtx, ap_adapter->device_mode);
         pHostapdState->bCommit = TRUE;
     }
 end:
@@ -10784,7 +10786,7 @@ void hdd_allow_suspend(void)
     vos_wake_lock_release(&wlan_wake_lock);
 }
 
-void hdd_allow_suspend_timeout(v_U32_t timeout)
+void hdd_prevent_suspend_timeout(v_U32_t timeout)
 {
     vos_wake_lock_timeout_acquire(&wlan_wake_lock, timeout);
 }
@@ -11680,6 +11682,11 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
    }
 
+#ifdef IPA_OFFLOAD
+   if (hdd_ipa_init(pHddCtx) == VOS_STATUS_E_FAILURE)
+	goto err_wiphy_unregister;
+#endif
+
    /*Start VOSS which starts up the SME/MAC/HAL modules and everything else */
    status = vos_start( pHddCtx->pvosContext );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
@@ -12051,10 +12058,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
       hdd_set_idle_ps_config(pHddCtx, TRUE);
    }
-#ifdef IPA_OFFLOAD
-   if (hdd_ipa_init(pHddCtx) == VOS_STATUS_E_FAILURE)
-	goto err_nl_srv;
-#endif
 
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
     if (pHddCtx->cfg_ini->WlanAutoShutdown != 0) {

@@ -484,9 +484,9 @@ sapGotoChannelSel
     if (vos_concurrent_sap_sessions_running()) {
         v_U16_t con_sap_ch = sme_GetConcurrentOperationChannel(hHal);
 
-        if (sapContext->channel == AUTO_CHANNEL_SELECT)
+        if (con_sap_ch && sapContext->channel == AUTO_CHANNEL_SELECT) {
             sapContext->dfs_ch_disable = VOS_TRUE;
-        else if (con_sap_ch && sapContext->channel != con_sap_ch &&
+        } else if (con_sap_ch && sapContext->channel != con_sap_ch &&
                  VOS_IS_DFS_CH(sapContext->channel)) {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
                        "In %s, MCC DFS not supported in AP_AP Mode", __func__);

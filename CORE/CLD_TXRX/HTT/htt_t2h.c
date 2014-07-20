@@ -556,6 +556,7 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
 
             ol_rx_in_order_indication_handler(pdev->txrx_pdev, htt_t2h_msg,
                                                peer_id, tid, offload_ind);
+            break;
      }
 
 #ifdef IPA_UC_OFFLOAD
