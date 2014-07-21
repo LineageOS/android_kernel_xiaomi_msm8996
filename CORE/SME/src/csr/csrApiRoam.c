@@ -6795,7 +6795,7 @@ eHalStatus csrRoamEnqueuePreauth(tpAniSirGlobal pMac, tANI_U32 sessionId, tpSirB
     return (status);
 }
 
-eHalStatus csrRoamDequeuePreauth(tpAniSirGlobal pMac)
+eHalStatus csrDequeueRoamCommand(tpAniSirGlobal pMac, eCsrRoamReason reason)
 {
     tListElem *pEntry;
     tSmeCmd *pCommand;
@@ -6804,14 +6804,24 @@ eHalStatus csrRoamDequeuePreauth(tpAniSirGlobal pMac)
     {
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         if ( (eSmeCommandRoam == pCommand->command) &&
-                (eCsrPerformPreauth == pCommand->u.roamCmd.roamReason))
+                (eCsrPerformPreauth == reason))
         {
             smsLog( pMac, LOG1, FL("DQ-Command = %d, Reason = %d"),
                     pCommand->command, pCommand->u.roamCmd.roamReason);
             if (csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK )) {
                 csrReleaseCommandPreauth( pMac, pCommand );
             }
-        } else  {
+        }
+        else if ((eSmeCommandRoam == pCommand->command) &&
+                (eCsrSmeIssuedFTReassoc == reason))
+        {
+            smsLog( pMac, LOG1, FL("DQ-Command = %d, Reason = %d"),
+                    pCommand->command, pCommand->u.roamCmd.roamReason);
+            if (csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK )) {
+                csrReleaseCommandRoam( pMac, pCommand );
+            }
+        }
+        else  {
             smsLog( pMac, LOGE, FL("Command = %d, Reason = %d "),
                     pCommand->command, pCommand->u.roamCmd.roamReason);
         }

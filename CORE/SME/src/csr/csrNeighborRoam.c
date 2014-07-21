@@ -1512,7 +1512,7 @@ eHalStatus csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac, tSirRetStatus l
 #endif
 
 DEQ_PREAUTH:
-    csrRoamDequeuePreauth(pMac);
+    csrDequeueRoamCommand(pMac, eCsrPerformPreauth);
     return preauthProcessed;
 }
 #endif  /* WLAN_FEATURE_NEIGHBOR_ROAMING */
