@@ -622,6 +622,7 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
      * was found.
      */
 	rx_pkt->pkt_meta.roamCandidateInd = saved_beacon ? 1 : 0;
+	rx_pkt->pkt_meta.sessionId = vdev_id;
 	/* Why not just use rx_event->hdr.buf_len? */
 	wbuf = adf_nbuf_alloc(NULL,
 			      roundup(hdr->buf_len, 4),

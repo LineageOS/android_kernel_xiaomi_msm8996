@@ -7915,9 +7915,16 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             wma_roam_scan_offload_end_connect(wma_handle);
             if (roam_req->StartScanReason == REASON_OS_REQUESTED_ROAMING_NOW) {
                 vos_msg_t vosMsg;
+                tSirRoamOffloadScanRsp *scan_offload_rsp;
+                scan_offload_rsp = vos_mem_malloc(sizeof(*scan_offload_rsp));
+                if (!scan_offload_rsp) {
+                    WMA_LOGE("%s: Alloc failed for scan_offload_rsp", __func__);
+                    return VOS_STATUS_E_NOMEM;
+                }
                 vosMsg.type = eWNI_SME_ROAM_SCAN_OFFLOAD_RSP;
-                vosMsg.bodyptr = NULL;
-                vosMsg.bodyval = roam_req->StartScanReason;
+                scan_offload_rsp->sessionId = roam_req->sessionId;
+                scan_offload_rsp->reason = roam_req->StartScanReason;
+                vosMsg.bodyptr = scan_offload_rsp;
                 /*
                  * Since REASSOC request is processed in Roam_Scan_Offload_Rsp
                  * post a dummy rsp msg back to SME with proper reason code.
@@ -15387,7 +15394,7 @@ static void wma_config_plm(tp_wma_handle wma, tpSirPlmReq plm)
  * check for PNO completion (by checking NLO match event) and post PNO
  * completion back to SME if PNO operation is completed successfully.
  */
-void wma_scan_cache_updated_ind(tp_wma_handle wma)
+void wma_scan_cache_updated_ind(tp_wma_handle wma, u_int8_t sessionId)
 {
 	tSirPrefNetworkFoundInd *nw_found_ind;
 	VOS_STATUS status;
@@ -15417,6 +15424,7 @@ void wma_scan_cache_updated_ind(tp_wma_handle wma)
 
 	nw_found_ind->mesgType = eWNI_SME_PREF_NETWORK_FOUND_IND;
 	nw_found_ind->mesgLen = len;
+	nw_found_ind->sessionId = sessionId;
 
 	vos_msg.type = eWNI_SME_PREF_NETWORK_FOUND_IND;
 	vos_msg.bodyptr = (void *) nw_found_ind;
@@ -20708,7 +20716,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 
 		case WDA_SME_SCAN_CACHE_UPDATED:
-			wma_scan_cache_updated_ind(wma_handle);
+			wma_scan_cache_updated_ind(wma_handle, msg->bodyval);
 			break;
 #endif
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
