@@ -8089,7 +8089,10 @@ VOS_STATUS wlan_hdd_cfg80211_roam_metrics_handover(hdd_adapter_t * pAdapter,
  *
  */
 static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
-        void *pContext, tANI_U32 scanId, eCsrScanStatus status)
+                                                  void *pContext,
+                                                  tANI_U8 sessionId,
+                                                  tANI_U32 scanId,
+                                                  eCsrScanStatus status)
 {
     struct net_device *dev = (struct net_device *) pContext;
     //struct wireless_dev *wdev = dev->ieee80211_ptr;
@@ -9727,6 +9730,10 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
         return -ECONNREFUSED;
     }
+
+#if defined(FEATURE_WLAN_LFR) && defined(WLAN_FEATURE_ROAM_SCAN_OFFLOAD)
+    wlan_hdd_disable_roaming(pAdapter);
+#endif
 
 #ifdef WLAN_BTAMP_FEATURE
     //Infra connect not supported when AMP traffic is on.
@@ -13731,12 +13738,6 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         return -EAGAIN;
     }
 
-    if (sme_staInMiddleOfRoaming(pHddCtx->hHal)) {
-        hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Roaming in progress "
-               "Do not allow suspend"));
-        return -EAGAIN;
-    }
-
     /* If RADAR detection is in progress (HDD), prevent suspend. The flag
      * "dfs_cac_block_tx" is set to TRUE when RADAR is found and stay TRUE until
      * CAC is done for a SoftAP which is in started state.
@@ -13764,6 +13765,10 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         pAdapter = pAdapterNode->pAdapter;
         pScanInfo = &pAdapter->scan_info;
 
+        if (sme_staInMiddleOfRoaming(pHddCtx->hHal, pAdapter->sessionId)) {
+            hddLog(LOG1, FL("Roaming in progress, do not allow suspend"));
+            return -EAGAIN;
+        }
         if (pScanInfo->mScanPending && pAdapter->request)
         {
            INIT_COMPLETION(pScanInfo->abortscan_event_var);

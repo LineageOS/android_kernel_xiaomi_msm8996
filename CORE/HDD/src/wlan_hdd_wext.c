@@ -6917,11 +6917,14 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                         macTraceGetHDDWlanConnState(
                                 pHddStaCtx->conn_info.connState),
                         macTraceGetNeighbourRoamState(
-                                pMac->roam.neighborRoamInfo.neighborRoamState),
+                              sme_getNeighborRoamState(hHal,
+                                  useAdapter->sessionId)),
                         macTraceGetcsrRoamState(
-                                pMac->roam.curState[useAdapter->sessionId]),
+                              sme_getCurrentRoamState(hHal,
+                                  useAdapter->sessionId)),
                         macTraceGetcsrRoamSubState(
-                                pMac->roam.curSubState[useAdapter->sessionId]),
+                              sme_getCurrentRoamSubState(hHal,
+                                  useAdapter->sessionId)),
                         pHddStaCtx->conn_info.staId[0],
                         macTraceGetTLState(tlState)
                         );
@@ -6936,24 +6939,24 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                         "\n Global Sme State - %s "\
                         "\n Global mlm State - %s "\
                         "\n",
-                        macTraceGetLimSmeState(pMac->lim.gLimSmeState),
-                        macTraceGetLimMlmState(pMac->lim.gLimMlmState)
+                        macTraceGetLimSmeState(sme_getLimSmeState(hHal)),
+                        macTraceGetLimMlmState(sme_getLimSmeState(hHal))
                         );
                 len += buf;
 
-                /*printing the PE Sme and Mlm states for valid lim sessions*/
-                while ( check < 3 && count < 255)
-                {
-                    if ( pMac->lim.gpSession[count].valid )
-                    {
+                /* Printing the PE Sme and Mlm states for valid lim sessions */
+                while (check < 3 && count < 255) {
+                    if (sme_IsLimSessionValid(hHal, count)) {
                         buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
                             "\n Lim Valid Session %d:-"
                             "\n PE Sme State - %s "
                             "\n PE Mlm State - %s "
                             "\n",
                             check,
-                            macTraceGetLimSmeState(pMac->lim.gpSession[count].limSmeState),
-                            macTraceGetLimMlmState(pMac->lim.gpSession[count].limMlmState)
+                            macTraceGetLimSmeState(sme_getLimSmeSessionState(
+                                                                  hHal, count)),
+                            macTraceGetLimMlmState(sme_getLimMlmSessionState(
+                                                                  hHal, count))
                             );
 
                         len += buf;
@@ -9365,11 +9368,10 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
             pAdapterNode = pNext;
         }
 
-        if (eHAL_STATUS_SUCCESS != sme_SetFreqBand(hHal, band))
-        {
+        if (eHAL_STATUS_SUCCESS != sme_SetFreqBand(hHal, pAdapter->sessionId,
+                                                   band)) {
              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                     "%s: failed to set the band value to %u ",
-                        __func__, band);
+                     FL("Failed to set the band value to %u"), band);
              return -EINVAL;
         }
         wlan_hdd_cfg80211_update_band(pHddCtx->wiphy, (eCsrBand)band);

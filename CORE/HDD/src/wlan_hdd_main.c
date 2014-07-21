@@ -2472,7 +2472,7 @@ hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid, const tANI_U8 channel
       handoffInfo.src = REASSOC;
 #endif
       memcpy(handoffInfo.bssid, bssid, sizeof(tSirMacAddr));
-      sme_HandoffRequest(pHddCtx->hHal, &handoffInfo);
+      sme_HandoffRequest(pHddCtx->hHal, pAdapter->sessionId, &handoffInfo);
    }
 #endif
  exit:
@@ -2665,7 +2665,7 @@ hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
                 * roaming scans. Otherwise large dwell times may cause long
                 * delays in sending action frames.
                 */
-               sme_abortRoamScan(pHddCtx->hHal);
+               sme_abortRoamScan(pHddCtx->hHal, pAdapter->sessionId);
            } else {
                /* 0 is accepted as current home channel, delayed
                 * transmission of action frame is ok.
@@ -2897,8 +2897,8 @@ hdd_parse_set_roam_scan_channels_v1(hdd_adapter_t *pAdapter,
       goto exit;
    }
 
-   status = sme_ChangeRoamScanChannelList(pHddCtx->hHal, channel_list,
-                                          num_chan);
+   status = sme_ChangeRoamScanChannelList(pHddCtx->hHal, pAdapter->sessionId,
+                                          channel_list, num_chan);
    if (eHAL_STATUS_SUCCESS != status) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                  "%s: Failed to update channel list information", __func__);
@@ -2968,8 +2968,8 @@ hdd_parse_set_roam_scan_channels_v2(hdd_adapter_t *pAdapter,
       }
       channel_list[i] = channel;
    }
-   status = sme_ChangeRoamScanChannelList(pHddCtx->hHal, channel_list,
-                                          num_chan);
+   status = sme_ChangeRoamScanChannelList(pHddCtx->hHal, pAdapter->sessionId,
+                                          channel_list, num_chan);
    if (eHAL_STATUS_SUCCESS != status) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                  "%s: Failed to update channel list information", __func__);
@@ -3879,7 +3879,9 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       " (Neighbor lookup threshold) = %d", __func__, lookUpThreshold);
 
            pHddCtx->cfg_ini->nNeighborLookupRssiThreshold = lookUpThreshold;
-           status = sme_setNeighborLookupRssiThreshold((tHalHandle)(pHddCtx->hHal), lookUpThreshold);
+           status = sme_setNeighborLookupRssiThreshold(pHddCtx->hHal,
+                                                       pAdapter->sessionId,
+                                                       lookUpThreshold);
            if (eHAL_STATUS_SUCCESS != status)
            {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -3889,11 +3891,14 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            }
 
            /* Set Reassoc threshold to (lookup rssi threshold + 5 dBm) */
-           sme_setNeighborReassocRssiThreshold((tHalHandle)(pHddCtx->hHal), lookUpThreshold + 5);
+           sme_setNeighborReassocRssiThreshold(pHddCtx->hHal,
+                                               pAdapter->sessionId,
+                                               lookUpThreshold + 5);
        }
        else if (strncmp(command, "GETROAMTRIGGER", 14) == 0)
        {
-           tANI_U8 lookUpThreshold = sme_getNeighborLookupRssiThreshold((tHalHandle)(pHddCtx->hHal));
+           tANI_U8 lookUpThreshold =
+                              sme_getNeighborLookupRssiThreshold(pHddCtx->hHal);
            int rssi = (-1) * lookUpThreshold;
            char extra[32];
            tANI_U8 len = 0;
@@ -3954,11 +3959,14 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       " (Empty Scan refresh period) = %d", __func__, roamScanPeriod);
 
            pHddCtx->cfg_ini->nEmptyScanRefreshPeriod = neighborEmptyScanRefreshPeriod;
-           sme_UpdateEmptyScanRefreshPeriod((tHalHandle)(pHddCtx->hHal), neighborEmptyScanRefreshPeriod);
+           sme_UpdateEmptyScanRefreshPeriod(pHddCtx->hHal,
+                                            pAdapter->sessionId,
+                                            neighborEmptyScanRefreshPeriod);
        }
        else if (strncmp(command, "GETROAMSCANPERIOD", 17) == 0)
        {
-           tANI_U16 nEmptyScanRefreshPeriod = sme_getEmptyScanRefreshPeriod((tHalHandle)(pHddCtx->hHal));
+           tANI_U16 nEmptyScanRefreshPeriod =
+                                   sme_getEmptyScanRefreshPeriod(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4019,11 +4027,13 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       " (Scan refresh period) = %d", __func__, roamScanRefreshPeriod);
 
            pHddCtx->cfg_ini->nNeighborResultsRefreshPeriod = neighborScanRefreshPeriod;
-           sme_setNeighborScanRefreshPeriod((tHalHandle)(pHddCtx->hHal), neighborScanRefreshPeriod);
+           sme_setNeighborScanRefreshPeriod(pHddCtx->hHal,
+                                            pAdapter->sessionId,
+                                            neighborScanRefreshPeriod);
        }
        else if (strncmp(command, "GETROAMSCANREFRESHPERIOD", 24) == 0)
        {
-           tANI_U16 value = sme_getNeighborScanRefreshPeriod((tHalHandle)(pHddCtx->hHal));
+           tANI_U16 value = sme_getNeighborScanRefreshPeriod(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4088,12 +4098,14 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 	       roamMode = CFG_LFR_FEATURE_ENABLED_MIN;    /* Roam disable */
 
 	   pHddCtx->cfg_ini->isFastRoamIniFeatureEnabled = roamMode;
-           sme_UpdateIsFastRoamIniFeatureEnabled((tHalHandle)(pHddCtx->hHal), roamMode);
+           sme_UpdateIsFastRoamIniFeatureEnabled(pHddCtx->hHal,
+                                                 pAdapter->sessionId,
+                                                 roamMode);
        }
        /* GETROAMMODE */
        else if (strncmp(priv_data.buf, "GETROAMMODE", SIZE_OF_GETROAMMODE) == 0)
        {
-	   tANI_BOOLEAN roamMode = sme_getIsLfrFeatureEnabled((tHalHandle)(pHddCtx->hHal));
+	   tANI_BOOLEAN roamMode = sme_getIsLfrFeatureEnabled(pHddCtx->hHal);
 	   char extra[32];
 	   tANI_U8 len = 0;
 
@@ -4154,11 +4166,12 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to Set roam rssi diff = %d", __func__, roamRssiDiff);
 
            pHddCtx->cfg_ini->RoamRssiDiff = roamRssiDiff;
-           sme_UpdateRoamRssiDiff((tHalHandle)(pHddCtx->hHal), roamRssiDiff);
+           sme_UpdateRoamRssiDiff(pHddCtx->hHal,
+                                  pAdapter->sessionId, roamRssiDiff);
        }
        else if (strncmp(priv_data.buf, "GETROAMDELTA", 12) == 0)
        {
-           tANI_U8 roamRssiDiff = sme_getRoamRssiDiff((tHalHandle)(pHddCtx->hHal));
+           tANI_U8 roamRssiDiff = sme_getRoamRssiDiff(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4208,8 +4221,11 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            char extra[128] = {0};
            int len;
 
-           if (eHAL_STATUS_SUCCESS != sme_getRoamScanChannelList( (tHalHandle)(pHddCtx->hHal),
-                                              ChannelList, &numChannels ))
+           if (eHAL_STATUS_SUCCESS != sme_getRoamScanChannelList(
+                                                           pHddCtx->hHal,
+                                                           ChannelList,
+                                                           &numChannels,
+                                                           pAdapter->sessionId))
            {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                   "%s: failed to get roam scan channel list", __func__);
@@ -4239,7 +4255,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if (strncmp(command, "GETCCXMODE", 10) == 0)
        {
-           tANI_BOOLEAN eseMode = sme_getIsEseFeatureEnabled((tHalHandle)(pHddCtx->hHal));
+           tANI_BOOLEAN eseMode = sme_getIsEseFeatureEnabled(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4247,7 +4263,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
               then this operation is not permitted (return FAILURE) */
            if (eseMode &&
                hdd_is_okc_mode_enabled(pHddCtx) &&
-               sme_getIsFtFeatureEnabled((tHalHandle)(pHddCtx->hHal)))
+               sme_getIsFtFeatureEnabled(pHddCtx->hHal))
            {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                   "%s: OKC/ESE/11R are supported simultaneously"
@@ -4275,8 +4291,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            /* Check if the features OKC/ESE/11R are supported simultaneously,
               then this operation is not permitted (return FAILURE) */
            if (okcMode &&
-               sme_getIsEseFeatureEnabled((tHalHandle)(pHddCtx->hHal)) &&
-               sme_getIsFtFeatureEnabled((tHalHandle)(pHddCtx->hHal)))
+               sme_getIsEseFeatureEnabled(pHddCtx->hHal) &&
+               sme_getIsFtFeatureEnabled(pHddCtx->hHal))
            {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                   "%s: OKC/ESE/11R are supported simultaneously"
@@ -4297,7 +4313,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if (strncmp(command, "GETFASTROAM", 11) == 0)
        {
-           tANI_BOOLEAN lfrMode = sme_getIsLfrFeatureEnabled((tHalHandle)(pHddCtx->hHal));
+           tANI_BOOLEAN lfrMode = sme_getIsLfrFeatureEnabled(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4313,7 +4329,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if (strncmp(command, "GETFASTTRANSITION", 17) == 0)
        {
-           tANI_BOOLEAN ft = sme_getIsFtFeatureEnabled((tHalHandle)(pHddCtx->hHal));
+           tANI_BOOLEAN ft = sme_getIsFtFeatureEnabled(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4366,7 +4382,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to change channel min time = %d", __func__, minTime);
 
            pHddCtx->cfg_ini->nNeighborScanMinChanTime = minTime;
-           sme_setNeighborScanMinChanTime((tHalHandle)(pHddCtx->hHal), minTime);
+           sme_setNeighborScanMinChanTime(pHddCtx->hHal,
+                                          minTime, pAdapter->sessionId);
        }
        else if (strncmp(command, "SENDACTIONFRAME", 15) == 0)
        {
@@ -4374,7 +4391,9 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if (strncmp(command, "GETROAMSCANCHANNELMINTIME", 25) == 0)
        {
-           tANI_U16 val = sme_getNeighborScanMinChanTime((tHalHandle)(pHddCtx->hHal));
+           tANI_U16 val = sme_getNeighborScanMinChanTime(
+                                         pHddCtx->hHal,
+                                         pAdapter->sessionId);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4429,11 +4448,13 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to change channel max time = %d", __func__, maxTime);
 
            pHddCtx->cfg_ini->nNeighborScanMaxChanTime = maxTime;
-           sme_setNeighborScanMaxChanTime((tHalHandle)(pHddCtx->hHal), maxTime);
+           sme_setNeighborScanMaxChanTime(pHddCtx->hHal,
+                                          pAdapter->sessionId, maxTime);
        }
        else if (strncmp(command, "GETSCANCHANNELTIME", 18) == 0)
        {
-           tANI_U16 val = sme_getNeighborScanMaxChanTime((tHalHandle)(pHddCtx->hHal));
+           tANI_U16 val = sme_getNeighborScanMaxChanTime(pHddCtx->hHal,
+                                                         pAdapter->sessionId);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4485,11 +4506,13 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to change scan home time = %d", __func__, val);
 
            pHddCtx->cfg_ini->nNeighborScanPeriod = val;
-           sme_setNeighborScanPeriod((tHalHandle)(pHddCtx->hHal), val);
+           sme_setNeighborScanPeriod(pHddCtx->hHal,
+                                     pAdapter->sessionId, val);
        }
        else if (strncmp(command, "GETSCANHOMETIME", 15) == 0)
        {
-           tANI_U16 val = sme_getNeighborScanPeriod((tHalHandle)(pHddCtx->hHal));
+           tANI_U16 val = sme_getNeighborScanPeriod(pHddCtx->hHal,
+                                                    pAdapter->sessionId);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4540,11 +4563,11 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to change intra band = %d", __func__, val);
 
            pHddCtx->cfg_ini->nRoamIntraBand = val;
-           sme_setRoamIntraBand((tHalHandle)(pHddCtx->hHal), val);
+           sme_setRoamIntraBand(pHddCtx->hHal, val);
        }
        else if (strncmp(command, "GETROAMINTRABAND", 16) == 0)
        {
-           tANI_U16 val = sme_getRoamIntraBand((tHalHandle)(pHddCtx->hHal));
+           tANI_U16 val = sme_getRoamIntraBand(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4596,11 +4619,12 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to Set nProbes = %d", __func__, nProbes);
 
            pHddCtx->cfg_ini->nProbes = nProbes;
-           sme_UpdateRoamScanNProbes((tHalHandle)(pHddCtx->hHal), nProbes);
+           sme_UpdateRoamScanNProbes(pHddCtx->hHal, pAdapter->sessionId,
+                                     nProbes);
        }
        else if (strncmp(priv_data.buf, "GETSCANNPROBES", 14) == 0)
        {
-           tANI_U8 val = sme_getRoamScanNProbes((tHalHandle)(pHddCtx->hHal));
+           tANI_U8 val = sme_getRoamScanNProbes(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4652,12 +4676,14 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            if (pHddCtx->cfg_ini->nRoamScanHomeAwayTime != homeAwayTime)
            {
                pHddCtx->cfg_ini->nRoamScanHomeAwayTime = homeAwayTime;
-               sme_UpdateRoamScanHomeAwayTime((tHalHandle)(pHddCtx->hHal), homeAwayTime, eANI_BOOLEAN_TRUE);
+               sme_UpdateRoamScanHomeAwayTime(pHddCtx->hHal,
+                                              pAdapter->sessionId,
+                                              homeAwayTime, eANI_BOOLEAN_TRUE);
            }
        }
        else if (strncmp(priv_data.buf, "GETSCANHOMEAWAYTIME", 19) == 0)
        {
-           tANI_U16 val = sme_getRoamScanHomeAwayTime((tHalHandle)(pHddCtx->hHal));
+           tANI_U16 val = sme_getRoamScanHomeAwayTime(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4710,11 +4736,11 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to Set WES Mode rssi diff = %d", __func__, wesMode);
 
            pHddCtx->cfg_ini->isWESModeEnabled = wesMode;
-           sme_UpdateWESMode((tHalHandle)(pHddCtx->hHal), wesMode);
+           sme_UpdateWESMode(pHddCtx->hHal, wesMode, pAdapter->sessionId);
        }
        else if (strncmp(priv_data.buf, "GETWESMODE", 10) == 0)
        {
-           tANI_BOOLEAN wesMode = sme_GetWESMode((tHalHandle)(pHddCtx->hHal));
+           tANI_BOOLEAN wesMode = sme_GetWESMode(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4749,14 +4775,16 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                       "%s: Received Command to Set Opportunistic Threshold diff = %d",
                       __func__,
-                      nOpportunisticThresholdDiff);
+                nOpportunisticThresholdDiff);
 
-           sme_SetRoamOpportunisticScanThresholdDiff((tHalHandle)(pHddCtx->hHal),
-                                                        nOpportunisticThresholdDiff);
+           sme_SetRoamOpportunisticScanThresholdDiff(pHddCtx->hHal,
+                                                   pAdapter->sessionId,
+                                                   nOpportunisticThresholdDiff);
        }
        else if (strncmp(priv_data.buf, "GETOPPORTUNISTICRSSIDIFF", 24) == 0)
        {
-           tANI_S8 val = sme_GetRoamOpportunisticScanThresholdDiff((tHalHandle)(pHddCtx->hHal));
+           tANI_S8 val = sme_GetRoamOpportunisticScanThresholdDiff(
+                                                                 pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4792,12 +4820,13 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to Set Roam Rescan RSSI Diff = %d",
                       __func__,
                       nRoamRescanRssiDiff);
-           sme_SetRoamRescanRssiDiff((tHalHandle)(pHddCtx->hHal),
+           sme_SetRoamRescanRssiDiff(pHddCtx->hHal,
+                                     pAdapter->sessionId,
                                      nRoamRescanRssiDiff);
        }
        else if (strncmp(priv_data.buf, "GETROAMRESCANRSSIDIFF", 21) == 0)
        {
-           tANI_U8 val = sme_GetRoamRescanRssiDiff((tHalHandle)(pHddCtx->hHal));
+           tANI_U8 val = sme_GetRoamRescanRssiDiff(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -4849,7 +4878,9 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to change lfr mode = %d", __func__, lfrMode);
 
            pHddCtx->cfg_ini->isFastRoamIniFeatureEnabled = lfrMode;
-           sme_UpdateIsFastRoamIniFeatureEnabled((tHalHandle)(pHddCtx->hHal), lfrMode);
+           sme_UpdateIsFastRoamIniFeatureEnabled(pHddCtx->hHal,
+                                                 pAdapter->sessionId,
+                                                 lfrMode);
        }
 #endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
@@ -4890,7 +4921,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to change ft mode = %d", __func__, ft);
 
            pHddCtx->cfg_ini->isFastTransitionEnabled = ft;
-           sme_UpdateFastTransitionEnabled((tHalHandle)(pHddCtx->hHal), ft);
+           sme_UpdateFastTransitionEnabled(pHddCtx->hHal, ft);
        }
 
        else if (strncmp(command, "FASTREASSOC", 11) == 0)
@@ -4946,7 +4977,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            handoffInfo.channel = channel;
            handoffInfo.src = FASTREASSOC;
            vos_mem_copy(handoffInfo.bssid, targetApBssid, sizeof(tSirMacAddr));
-           sme_HandoffRequest(pHddCtx->hHal, &handoffInfo);
+           sme_HandoffRequest(pHddCtx->hHal, pAdapter->sessionId, &handoffInfo);
 #endif
 #else
            tANI_U8 *value = command;
@@ -4987,7 +5018,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            /* Proceed with scan/roam */
            smeIssueFastRoamNeighborAPEvent(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                            &targetApBssid[0],
-                                           (tSmeFastRoamTrigger)(trigger));
+                                           (tSmeFastRoamTrigger)(trigger),
+                                           pAdapter->sessionId);
 #endif
        }
 #endif
@@ -5013,7 +5045,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            }
            pPlmRequest->sessionId = pAdapter->sessionId;
 
-           status = sme_SetPlmRequest((tHalHandle)(pHddCtx->hHal), pPlmRequest);
+           status = sme_SetPlmRequest(pHddCtx->hHal, pPlmRequest);
            if (eHAL_STATUS_SUCCESS != status)
            {
                vos_mem_free(pPlmRequest);
@@ -5031,9 +5063,9 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
            /* Check if the features OKC/ESE/11R are supported simultaneously,
               then this operation is not permitted (return FAILURE) */
-           if (sme_getIsEseFeatureEnabled((tHalHandle)(pHddCtx->hHal)) &&
+           if (sme_getIsEseFeatureEnabled(pHddCtx->hHal) &&
                hdd_is_okc_mode_enabled(pHddCtx) &&
-               sme_getIsFtFeatureEnabled((tHalHandle)(pHddCtx->hHal)))
+               sme_getIsFtFeatureEnabled(pHddCtx->hHal))
            {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                   "%s: OKC/ESE/11R are supported simultaneously"
@@ -5072,7 +5104,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to change ese mode = %d", __func__, eseMode);
 
            pHddCtx->cfg_ini->isEseIniFeatureEnabled = eseMode;
-           sme_UpdateIsEseFeatureEnabled((tHalHandle)(pHddCtx->hHal), eseMode);
+           sme_UpdateIsEseFeatureEnabled(pHddCtx->hHal, eseMode);
        }
 #endif
        else if (strncmp(command, "SETROAMSCANCONTROL", 18) == 0)
@@ -5103,7 +5135,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                goto exit;
            }
 
-           sme_SetRoamScanControl((tHalHandle)(pHddCtx->hHal), roamScanControl);
+           sme_SetRoamScanControl(pHddCtx->hHal,
+                                  pAdapter->sessionId, roamScanControl);
        }
 #ifdef FEATURE_WLAN_OKC
        else if (strncmp(command, "SETOKCMODE", 10) == 0)
@@ -5113,9 +5146,9 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
            /* Check if the features OKC/ESE/11R are supported simultaneously,
               then this operation is not permitted (return FAILURE) */
-           if (sme_getIsEseFeatureEnabled((tHalHandle)(pHddCtx->hHal)) &&
+           if (sme_getIsEseFeatureEnabled(pHddCtx->hHal) &&
                hdd_is_okc_mode_enabled(pHddCtx) &&
-               sme_getIsFtFeatureEnabled((tHalHandle)(pHddCtx->hHal)))
+               sme_getIsFtFeatureEnabled(pHddCtx->hHal))
            {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                   "%s: OKC/ESE/11R are supported simultaneously"
@@ -5160,7 +5193,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 #endif  /* FEATURE_WLAN_OKC */
        else if (strncmp(priv_data.buf, "GETROAMSCANCONTROL", 18) == 0)
        {
-           tANI_BOOLEAN roamScanControl = sme_GetRoamScanControl((tHalHandle)(pHddCtx->hHal));
+           tANI_BOOLEAN roamScanControl = sme_GetRoamScanControl(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -5380,7 +5413,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                ret = -EINVAL;
                goto exit;
            }
-           status = sme_SetEseRoamScanChannelList((tHalHandle)(pHddCtx->hHal),
+           status = sme_SetEseRoamScanChannelList(pHddCtx->hHal,
+                                                  pAdapter->sessionId,
                                                   ChannelList,
                                                   numChannels);
            if (eHAL_STATUS_SUCCESS != status)
@@ -5524,10 +5558,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                ret = -EINVAL;
                goto exit;
            }
-           sme_SetCCKMIe((tHalHandle)(pHddCtx->hHal),
-                         pAdapter->sessionId,
-                         cckmIe,
-                         cckmIeLen);
+           sme_SetCCKMIe(pHddCtx->hHal, pAdapter->sessionId, cckmIe, cckmIeLen);
            if (NULL != cckmIe)
            {
                vos_mem_free(cckmIe);
@@ -5558,7 +5589,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                goto exit;
            }
 
-           status = sme_SetEseBeaconRequest((tHalHandle)(pHddCtx->hHal),
+           status = sme_SetEseBeaconRequest(pHddCtx->hHal,
                                             pAdapter->sessionId,
                                             &eseBcnReq);
 
@@ -5678,12 +5709,12 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       __func__, dfsScanMode);
 
            pHddCtx->cfg_ini->allowDFSChannelRoam = dfsScanMode;
-           sme_UpdateDFSScanMode((tHalHandle)(pHddCtx->hHal), dfsScanMode);
+           sme_UpdateDFSScanMode(pHddCtx->hHal, pAdapter->sessionId,
+                                 dfsScanMode);
        }
        else if (strncmp(command, "GETDFSSCANMODE", 14) == 0)
        {
-           tANI_U8 dfsScanMode =
-                   sme_GetDFSScanMode((tHalHandle)(pHddCtx->hHal));
+           tANI_U8 dfsScanMode = sme_GetDFSScanMode(pHddCtx->hHal);
            char extra[32];
            tANI_U8 len = 0;
 
@@ -11359,7 +11390,8 @@ static int hdd_generate_iface_mac_addr_auto(hdd_context_t *pHddCtx,
 
   --------------------------------------------------------------------------*/
 static eHalStatus hdd_11d_scan_done(tHalHandle halHandle, void *pContext,
-                         tANI_U32 scanId, eCsrScanStatus status)
+                                    tANI_U8 sessionId, tANI_U32 scanId,
+                                    eCsrScanStatus status)
 {
     ENTER();
 
@@ -13007,8 +13039,8 @@ tVOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void )
 v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_context_t* pHddCtx)
 {
     tPmcState pmcState = pmcGetPmcState(pHddCtx->hHal);
-    tANI_BOOLEAN scanRspPending = csrNeighborRoamScanRspPending(pHddCtx->hHal);
-    tANI_BOOLEAN inMiddleOfRoaming = csrNeighborMiddleOfRoaming(pHddCtx->hHal);
+    tANI_BOOLEAN scanRspPending;
+    tANI_BOOLEAN inMiddleOfRoaming;
     hdd_config_t *pConfig = pHddCtx->cfg_ini;
     hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
     hdd_adapter_t *pAdapter = NULL;
@@ -13035,6 +13067,10 @@ v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_context_t* pHddCtx)
         if ( (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
           || (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )
         {
+            scanRspPending = csrNeighborRoamScanRspPending(pHddCtx->hHal,
+                                                    pAdapter->sessionId);
+            inMiddleOfRoaming = csrNeighborMiddleOfRoaming(pHddCtx->hHal,
+                                                    pAdapter->sessionId);
             if (((pConfig->fIsImpsEnabled || pConfig->fIsBmpsEnabled)
                  && (pmcState != IMPS && pmcState != BMPS
                   &&  pmcState != STOPPED && pmcState != STANDBY)) ||
@@ -13629,6 +13665,110 @@ int wlan_hdd_gen_wlan_version_pack(struct wlan_version_data *data,
     return 0;
 }
 #endif
+
+#if defined(FEATURE_WLAN_LFR) && defined(WLAN_FEATURE_ROAM_SCAN_OFFLOAD)
+/**---------------------------------------------------------------------------
+
+  \brief wlan_hdd_disable_roaming()
+
+  This function loop through each adapter and disable roaming on each STA
+  device mode except the input adapter.
+  Note: On the input adapter roaming is not enabled yet hence no need to
+        disable.
+
+  \param  - pAdapter HDD adapter pointer
+
+  \return - None
+
+  --------------------------------------------------------------------------*/
+void wlan_hdd_disable_roaming(hdd_adapter_t *pAdapter)
+{
+    hdd_context_t           *pHddCtx      = WLAN_HDD_GET_CTX(pAdapter);
+    hdd_adapter_t           *pAdapterIdx  = NULL;
+    hdd_adapter_list_node_t *pAdapterNode = NULL;
+    hdd_adapter_list_node_t *pNext        = NULL;
+    VOS_STATUS status;
+
+    if (pHddCtx->cfg_ini->isFastRoamIniFeatureEnabled &&
+        pHddCtx->cfg_ini->isRoamOffloadScanEnabled &&
+        WLAN_HDD_INFRA_STATION == pAdapter->device_mode &&
+        vos_is_sta_active_connection_exists()) {
+        hddLog(LOG1, FL("Connect received on STA sessionId(%d)"),
+               pAdapter->sessionId);
+        /* Loop through adapter and disable roaming for each STA device mode
+           except the input adapter. */
+
+        status = hdd_get_front_adapter (pHddCtx, &pAdapterNode);
+
+        while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
+            pAdapterIdx = pAdapterNode->pAdapter;
+
+            if (WLAN_HDD_INFRA_STATION == pAdapterIdx->device_mode &&
+               pAdapter->sessionId != pAdapterIdx->sessionId) {
+               hddLog(LOG1, FL("Disable Roaming on sessionId(%d)"),
+                      pAdapterIdx->sessionId);
+               sme_stopRoaming(WLAN_HDD_GET_HAL_CTX(pAdapterIdx),
+                               pAdapterIdx->sessionId, 0);
+            }
+
+            status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+            pAdapterNode = pNext;
+        }
+    }
+}
+
+/**---------------------------------------------------------------------------
+
+  \brief wlan_hdd_enable_roaming()
+
+  This function loop through each adapter and enable roaming on each STA
+  device mode except the input adapter.
+  Note: On the input adapter no need to enable roaming because link got
+        disconnected on this.
+
+  \param  - pAdapter HDD adapter pointer
+
+  \return - None
+
+  --------------------------------------------------------------------------*/
+void wlan_hdd_enable_roaming(hdd_adapter_t *pAdapter)
+{
+    hdd_context_t           *pHddCtx      = WLAN_HDD_GET_CTX(pAdapter);
+    hdd_adapter_t           *pAdapterIdx  = NULL;
+    hdd_adapter_list_node_t *pAdapterNode = NULL;
+    hdd_adapter_list_node_t *pNext        = NULL;
+    VOS_STATUS status;
+
+    if (pHddCtx->cfg_ini->isFastRoamIniFeatureEnabled &&
+        pHddCtx->cfg_ini->isRoamOffloadScanEnabled &&
+        WLAN_HDD_INFRA_STATION == pAdapter->device_mode &&
+        vos_is_sta_active_connection_exists()) {
+        hddLog(LOG1, FL("Disconnect received on STA sessionId(%d)"),
+               pAdapter->sessionId);
+        /* Loop through adapter and enable roaming for each STA device mode
+           except the input adapter. */
+
+        status = hdd_get_front_adapter (pHddCtx, &pAdapterNode);
+
+        while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
+            pAdapterIdx = pAdapterNode->pAdapter;
+
+            if (WLAN_HDD_INFRA_STATION == pAdapterIdx->device_mode &&
+               pAdapter->sessionId != pAdapterIdx->sessionId) {
+               hddLog(LOG1, FL("Enabling Roaming on sessionId(%d)"),
+                      pAdapterIdx->sessionId);
+               sme_startRoaming(WLAN_HDD_GET_HAL_CTX(pAdapterIdx),
+                               pAdapterIdx->sessionId,
+                               REASON_CONNECT);
+            }
+
+            status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+            pAdapterNode = pNext;
+        }
+    }
+}
+#endif
+
 
 void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len)
 {

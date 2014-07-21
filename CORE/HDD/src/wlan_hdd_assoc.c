@@ -752,6 +752,10 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         pr_info("wlan: disconnected\n");
         type = WLAN_STA_DISASSOC_DONE_IND;
         memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
+        wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
+#if defined(FEATURE_WLAN_LFR) && defined(WLAN_FEATURE_ROAM_SCAN_OFFLOAD)
+        wlan_hdd_enable_roaming(pAdapter);
+#endif
 
 #ifdef IPA_OFFLOAD
         if (hdd_ipa_is_enabled(pHddCtx))
@@ -924,7 +928,6 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
         pHddCtx->isAmpAllowed = VOS_TRUE;
     }
     hdd_clearRoamProfileIe( pAdapter );
-    wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
     hdd_wmm_init( pAdapter );
 
     // indicate 'disconnect' status to wpa_supplicant...
