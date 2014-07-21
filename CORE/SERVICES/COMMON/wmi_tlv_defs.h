@@ -461,8 +461,6 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_lpi_start_scan_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_lpi_stop_scan_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_lpi_result_event_fixed_param,
-    WMITLV_TAG_STRUC_wmi_lpi_status_event_fixed_param,
-    WMITLV_TAG_STRUC_wmi_lpi_handoff_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_peer_state_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_extscan_bucket_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_extscan_bucket_channel_event_fixed_param,
@@ -500,6 +498,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_extwow_enable_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_extwow_set_app_type1_params_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_extwow_set_app_type2_params_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_lpi_status_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_lpi_handoff_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -759,8 +759,6 @@ typedef enum {
     OP(WMI_PEER_LINK_STATS_EVENTID) \
     OP(WMI_RADIO_LINK_STATS_EVENTID) \
     OP(WMI_LPI_RESULT_EVENTID) \
-    OP(WMI_LPI_STATUS_EVENTID) \
-    OP(WMI_LPI_HANDOFF_EVENTID) \
     OP(WMI_PEER_STATE_EVENTID) \
     OP(WMI_EXTSCAN_START_STOP_EVENTID) \
     OP(WMI_EXTSCAN_OPERATION_EVENTID) \
@@ -770,7 +768,9 @@ typedef enum {
     OP(WMI_EXTSCAN_HOTLIST_MATCH_EVENTID) \
     OP(WMI_EXTSCAN_CAPABILITIES_EVENTID) \
     OP(WMI_D0_WOW_DISABLE_ACK_EVENTID) \
-    OP(WMI_ROAM_SYNCH_EVENTID)
+    OP(WMI_ROAM_SYNCH_EVENTID) \
+    OP(WMI_LPI_STATUS_EVENTID) \
+    OP(WMI_LPI_HANDOFF_EVENTID)
 
 
 /* TLV definitions of WMI commands */
