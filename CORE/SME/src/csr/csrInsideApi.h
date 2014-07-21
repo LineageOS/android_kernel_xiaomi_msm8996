@@ -247,9 +247,11 @@ eHalStatus csrScanRequestLostLink3( tpAniSirGlobal pMac, tANI_U32 sessionId );
 eHalStatus csrScanHandleFailedLostlink1(tpAniSirGlobal pMac, tANI_U32 sessionId);
 eHalStatus csrScanHandleFailedLostlink2(tpAniSirGlobal pMac, tANI_U32 sessionId);
 eHalStatus csrScanHandleFailedLostlink3(tpAniSirGlobal pMac, tANI_U32 sessionId);
-tCsrScanResult *csrScanAppendBssDescription( tpAniSirGlobal pMac,
-                                             tSirBssDescription *pSirBssDescription,
-                                             tDot11fBeaconIEs *pIes, tANI_BOOLEAN fForced);
+tCsrScanResult *csrScanAppendBssDescription(tpAniSirGlobal pMac,
+                                         tSirBssDescription *pSirBssDescription,
+                                         tDot11fBeaconIEs *pIes,
+                                         tANI_BOOLEAN fForced,
+                                         tANI_U8 sessionId);
 void csrScanCallCallback(tpAniSirGlobal pMac, tSmeCmd *pCommand, eCsrScanStatus scanStatus);
 eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCsrScanRequest *pSrcReq);
 eHalStatus csrScanFreeRequest(tpAniSirGlobal pMac, tCsrScanRequest *pReq);
@@ -481,9 +483,11 @@ eHalStatus csrScanGetResult(tpAniSirGlobal, tCsrScanResultFilter *pFilter, tScan
 /* ---------------------------------------------------------------------------
     \fn csrScanFlushResult
     \brief Clear scan results.
+    \param pMac - pMac global pointer
+    \param sessionId - Session Identifier
     \return eHalStatus
   -------------------------------------------------------------------------------*/
-eHalStatus csrScanFlushResult(tpAniSirGlobal);
+eHalStatus csrScanFlushResult(tpAniSirGlobal, tANI_U8 sessionId);
 /* ---------------------------------------------------------------------------
  *  \fn csrScanFilterResults
  *  \brief Filter scan results based on valid channel list.
@@ -1002,9 +1006,12 @@ eHalStatus csrRoamEnqueuePreauth(tpAniSirGlobal pMac, tANI_U32 sessionId, tpSirB
                                 eCsrRoamReason reason, tANI_BOOLEAN fImmediate);
 eHalStatus csrDequeueRoamCommand(tpAniSirGlobal pMac,  eCsrRoamReason reason);
 #ifdef FEATURE_WLAN_LFR
-void csrInitOccupiedChannelsList(tpAniSirGlobal pMac);
-tANI_BOOLEAN csrNeighborRoamIsNewConnectedProfile(tpAniSirGlobal pMac);
-tANI_BOOLEAN csrNeighborRoamConnectedProfileMatch(tpAniSirGlobal pMac, tCsrScanResult *pResult,
+void csrInitOccupiedChannelsList(tpAniSirGlobal pMac, tANI_U8 sessionId);
+tANI_BOOLEAN csrNeighborRoamIsNewConnectedProfile(tpAniSirGlobal pMac,
+                                                  tANI_U8 sessionId);
+tANI_BOOLEAN csrNeighborRoamConnectedProfileMatch(tpAniSirGlobal pMac,
+                                                  tANI_U8 sessionId,
+                                                  tCsrScanResult *pResult,
                                                   tDot11fBeaconIEs *pIes);
 #endif
 eHalStatus csrSetTxPower(tpAniSirGlobal pMac, v_U8_t sessionId, v_U8_t mW);

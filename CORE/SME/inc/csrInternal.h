@@ -802,7 +802,8 @@ typedef struct tagCsrScanStruct
 #ifdef WLAN_AP_STA_CONCURRENCY
     tDblLinkList scanCmdPendingList;
 #endif
-    tCsrChannel occupiedChannels;   //This includes all channels on which candidate APs are found
+    /* This includes all channels on which candidate APs are found */
+    tCsrChannel occupiedChannels[CSR_ROAM_SESSION_MAX];
     tANI_S8     inScanResultBestAPRssi;
     eCsrBand  scanBandPreference;  //This defines the band perference for scan
     csrScanCompleteCallback callback11dScanDone;
@@ -1067,7 +1068,7 @@ typedef struct tagCsrRoamStruct
     tCsrRoamSession   *roamSession;
     tANI_U32 transactionId;        // Current transaction ID for internal use.
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
-    tCsrNeighborRoamControlInfo neighborRoamInfo;
+    tCsrNeighborRoamControlInfo neighborRoamInfo[CSR_ROAM_SESSION_MAX];
 #endif
 #ifdef FEATURE_WLAN_LFR
     tANI_U8   isFastRoamIniFeatureEnabled;
@@ -1497,14 +1498,14 @@ eHalStatus csrScanSavePreferredNetworkFound(tpAniSirGlobal pMac,
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 //Returns whether the current association is a 11r assoc or not
-tANI_BOOLEAN csrRoamIs11rAssoc(tpAniSirGlobal pMac);
+tANI_BOOLEAN csrRoamIs11rAssoc(tpAniSirGlobal pMac, tANI_U8 sessionId);
 #endif
 
 #ifdef FEATURE_WLAN_ESE
 //Returns whether the current association is a ESE assoc or not
-tANI_BOOLEAN csrRoamIsESEAssoc(tpAniSirGlobal pMac);
+tANI_BOOLEAN csrRoamIsESEAssoc(tpAniSirGlobal pMac, tANI_U8 sessionId);
 tANI_BOOLEAN csrRoamIsEseIniFeatureEnabled(tpAniSirGlobal pMac);
-tANI_BOOLEAN csrNeighborRoamIsESEAssoc(tpAniSirGlobal pMac);
+tANI_BOOLEAN csrNeighborRoamIsESEAssoc(tpAniSirGlobal pMac, tANI_U8 sessionId);
 #endif
 
 //Remove this code once SLM_Sessionization is supported
@@ -1522,8 +1523,10 @@ VOS_STATUS csrAddToChannelListFront( tANI_U8 *pChannelList, int  numChannels, tA
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 eHalStatus csrScanRequestLfrResult(tpAniSirGlobal pMac, tANI_U32 sessionId,
                                    csrScanCompleteCallback callback, void *pContext);
-eHalStatus csrRoamOffloadScanRspHdlr(tpAniSirGlobal pMac, tANI_U8 reason);
-eHalStatus csrHandoffRequest(tpAniSirGlobal pMac, tCsrHandoffRequest *pHandoffInfo);
+eHalStatus csrRoamOffloadScanRspHdlr(tpAniSirGlobal pMac,
+                                     tpSirRoamOffloadScanRsp scanOffloadRsp);
+eHalStatus csrHandoffRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
+                             tCsrHandoffRequest *pHandoffInfo);
 #endif
 tANI_BOOLEAN csrRoamIsStaMode(tpAniSirGlobal pMac, tANI_U32 sessionId);
 #endif

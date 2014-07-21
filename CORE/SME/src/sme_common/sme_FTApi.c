@@ -53,18 +53,30 @@ void sme_FTOpen(tHalHandle hHal, tANI_U32 sessionId)
       /* Clear existing context data if any */
       pSession = CSR_GET_SESSION( pMac, sessionId );
       if (NULL != pSession) {
-
          /* Clean up the context */
          vos_mem_set(&pSession->ftSmeContext, sizeof(tftSMEContext), 0);
+
+         pSession->ftSmeContext.pUsrCtx = vos_mem_malloc(
+                                            sizeof(tFTRoamCallbackUsrCtx));
+
+         if (NULL == pSession->ftSmeContext.pUsrCtx) {
+             smsLog(pMac, LOGE, FL("Memory allocation failure"));
+             return;
+         }
+         pSession->ftSmeContext.pUsrCtx->pMac = pMac;
+         pSession->ftSmeContext.pUsrCtx->sessionId = sessionId;
 
          status =
             vos_timer_init(&pSession->ftSmeContext.preAuthReassocIntvlTimer,
             VOS_TIMER_TYPE_SW,
-            sme_PreauthReassocIntvlTimerCallback, (void *)pMac);
+            sme_PreauthReassocIntvlTimerCallback,
+            (void *)pSession->ftSmeContext.pUsrCtx);
 
          if (eHAL_STATUS_SUCCESS != status) {
             smsLog(pMac, LOGE,
                   FL("Preauth Reassoc interval Timer allocation failed"));
+            vos_mem_free(pSession->ftSmeContext.pUsrCtx);
+            pSession->ftSmeContext.pUsrCtx = NULL;
             return;
          }
       }
@@ -97,6 +109,13 @@ void sme_FTClose(tHalHandle hHal, tANI_U32 sessionId)
             vos_timer_destroy(&pSession->ftSmeContext.preAuthReassocIntvlTimer))
       {
          smsLog(pMac, LOGE, FL("preAuthReAssocTimer destroy failed"));
+      }
+
+      if (pSession->ftSmeContext.pUsrCtx != NULL) {
+          smsLog(pMac, LOG1,
+                 FL("Freeing ftSmeContext.pUsrCtx and setting to NULL"));
+          vos_mem_free(pSession->ftSmeContext.pUsrCtx);
+          pSession->ftSmeContext.pUsrCtx = NULL;
       }
    }
 }
@@ -537,10 +556,12 @@ void sme_GetRICIEs(tHalHandle hHal, tANI_U32 sessionId, tANI_U8 *ric_ies,
  *------------------------------------------------------------------------*/
 void sme_PreauthReassocIntvlTimerCallback(void *context)
 {
-
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
-    tpAniSirGlobal pMac = (tpAniSirGlobal )context;
-    csrNeighborRoamRequestHandoff(pMac);
+    tFTRoamCallbackUsrCtx *pUsrCtx = (tFTRoamCallbackUsrCtx *)context;
+
+    if (pUsrCtx) {
+        csrNeighborRoamRequestHandoff(pUsrCtx->pMac, pUsrCtx->sessionId);
+    }
 #endif
     return;
 }

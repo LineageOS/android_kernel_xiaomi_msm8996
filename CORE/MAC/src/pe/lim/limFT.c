@@ -320,18 +320,17 @@ int limProcessFTPreAuthReq(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
     /* Dont need to suspend if APs are in same channel */
     if (psessionEntry->currentOperChannel !=
-         psessionEntry->ftPEContext.pFTPreAuthReq->preAuthchannelNum) {
+        psessionEntry->ftPEContext.pFTPreAuthReq->preAuthchannelNum) {
        /* Need to suspend link only if the channels are different */
        PELOG2(limLog(pMac, LOG2, FL("Performing pre-auth on different"
-                   " channel (session %p)"), psessionEntry);)
+               " channel (session %p)"), psessionEntry);)
        limSuspendLink(pMac, eSIR_CHECK_ROAMING_SCAN,
                       limFTPreAuthSuspendLinkHandler,
                       (tANI_U32 *)psessionEntry);
-    }
-    else {
+    } else {
        PELOG2(limLog(pMac, LOG2, FL("Performing pre-auth on same"
                 " channel (session %p)"), psessionEntry);)
-          /* We are in the same channel. Perform pre-auth */
+        /* We are in the same channel. Perform pre-auth */
        limPerformFTPreAuth(pMac, eHAL_STATUS_SUCCESS, NULL, psessionEntry);
     }
 
@@ -790,6 +789,7 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
     pAddBssParams->respReqd = true;
 
     pAddBssParams->staContext.sessionId = pftSessionEntry->peSessionId;
+    pAddBssParams->staContext.smesessionId = pftSessionEntry->smeSessionId;
     pAddBssParams->sessionId = pftSessionEntry->peSessionId;
 
     // Set a new state for MLME
@@ -849,7 +849,7 @@ void limFillFTSession(tpAniSirGlobal pMac,
 
    // Fields to be filled later
    pftSessionEntry->pLimJoinReq = NULL;
-   pftSessionEntry->smeSessionId = 0;
+   pftSessionEntry->smeSessionId = psessionEntry->smeSessionId;
    pftSessionEntry->transactionId = 0;
 
    limExtractApCapabilities( pMac,
@@ -1075,7 +1075,6 @@ void limFTProcessPreAuthResult(tpAniSirGlobal pMac, eHalStatus status,
    limPostFTPreAuthRsp(pMac, psessionEntry->ftPEContext.ftPreAuthStatus,
          psessionEntry->ftPEContext.saved_auth_rsp,
          psessionEntry->ftPEContext.saved_auth_rsp_length, psessionEntry);
-
 }
 
 /*------------------------------------------------------------------

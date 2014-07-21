@@ -2846,11 +2846,6 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
         PELOGE(limLog(pMac, LOGE, FL("Invalid parameters"));)
         goto end;
     }
-    if((psessionEntry = peFindSessionBySessionId(pMac,pAddBssParams->sessionId))== NULL)
-    {
-        limLog( pMac, LOGE, FL( "Session Does not exist for given sessionId" ));
-        goto end;
-    }
     if ( eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE != psessionEntry->limMlmState )
     {
         goto end;
@@ -2951,6 +2946,7 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
 
     /* Update  PE session ID */
     pAddStaParams->sessionId = psessionEntry->peSessionId;
+    pAddStaParams->smesessionId = psessionEntry->smeSessionId;
 
     // This will indicate HAL to "allocate" a new STA index
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
@@ -5039,13 +5035,14 @@ limSendBeaconInd(tpAniSirGlobal pMac, tpPESession psessionEntry){
  *
  * @return None
  */
-void limSendSmeScanCacheUpdatedInd(void)
+void limSendSmeScanCacheUpdatedInd(tANI_U8 sessionId)
 {
     vos_msg_t msg;
 
     msg.type     = WDA_SME_SCAN_CACHE_UPDATED;
     msg.reserved = 0;
     msg.bodyptr  = NULL;
+    msg.bodyval  = sessionId;
 
     if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
@@ -5074,7 +5071,7 @@ void limSendScanOffloadComplete(tpAniSirGlobal pMac,
             pScanEvent->sessionId,
             0);
 #ifdef FEATURE_WLAN_SCAN_PNO
-    limSendSmeScanCacheUpdatedInd();
+    limSendSmeScanCacheUpdatedInd(pScanEvent->sessionId);
 #endif
 }
 

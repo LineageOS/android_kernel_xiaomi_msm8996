@@ -2378,10 +2378,11 @@ tANI_BOOLEAN sme_IsChannelValid(tHalHandle hHal, tANI_U8 channel);
     \fn sme_SetFreqBand
     \brief  Used to set frequency band.
     \param  hHal
+    \sessionId Session identifier
     \eBand  band value to be configured
     \- return eHalStatus
     -------------------------------------------------------------------------*/
-eHalStatus sme_SetFreqBand(tHalHandle hHal, eCsrBand eBand);
+eHalStatus sme_SetFreqBand(tHalHandle hHal, tANI_U8 sessionId, eCsrBand eBand);
 
 /* ---------------------------------------------------------------------------
     \fn sme_GetFreqBand
@@ -2631,10 +2632,12 @@ eHalStatus sme_setRoamIntraBand(tHalHandle hHal, const v_BOOL_t nRoamIntraBand);
             This function is called through dynamic setConfig callback function
             to update roam scan N probes
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  nProbes number of probe requests to be sent out
     \- return Success or failure
     -------------------------------------------------------------------------*/
-eHalStatus sme_UpdateRoamScanNProbes(tHalHandle hHal, const v_U8_t nProbes);
+eHalStatus sme_UpdateRoamScanNProbes(tHalHandle hHal, tANI_U8 sessionId,
+                                     const v_U8_t nProbes);
 
 /* ---------------------------------------------------------------------------
     \fn sme_UpdateRoamScanHomeAwayTime
@@ -2642,10 +2645,11 @@ eHalStatus sme_UpdateRoamScanNProbes(tHalHandle hHal, const v_U8_t nProbes);
             This function is called through dynamic setConfig callback function
             to update roam scan home away time
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  nRoamScanAwayTime Scan home away time
     \- return Success or failure
     -------------------------------------------------------------------------*/
-eHalStatus sme_UpdateRoamScanHomeAwayTime(tHalHandle hHal,
+eHalStatus sme_UpdateRoamScanHomeAwayTime(tHalHandle hHal, tANI_U8 sessionId,
                                           const v_U16_t nRoamScanHomeAwayTime,
                                           const eAniBoolean bSendOffloadCmd);
 
@@ -2682,10 +2686,13 @@ v_U16_t sme_getRoamScanHomeAwayTime(tHalHandle hHal);
     \param  hHal - HAL handle for device
     \param  nImmediateRoamRssiDiff - minimum rssi difference between potential
             candidate and current AP.
+    \param  sessionId - Session identifier
     \- return Success or failure
     -------------------------------------------------------------------------*/
 
-eHalStatus sme_UpdateImmediateRoamRssiDiff(tHalHandle hHal, v_U8_t nImmediateRoamRssiDiff);
+eHalStatus sme_UpdateImmediateRoamRssiDiff(tHalHandle hHal,
+                                           v_U8_t nImmediateRoamRssiDiff,
+                                           tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_UpdateRoamRssiDiff
@@ -2694,12 +2701,14 @@ eHalStatus sme_UpdateImmediateRoamRssiDiff(tHalHandle hHal, v_U8_t nImmediateRoa
             to configure RoamRssiDiff
             Usage: adb shell iwpriv wlan0 setConfig RoamRssiDiff=[0 .. 125]
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  RoamRssiDiff - minimum rssi difference between potential
             candidate and current AP.
     \- return Success or failure
     -------------------------------------------------------------------------*/
 
-eHalStatus sme_UpdateRoamRssiDiff(tHalHandle hHal, v_U8_t RoamRssiDiff);
+eHalStatus sme_UpdateRoamRssiDiff(tHalHandle hHal, tANI_U8 sessionId,
+                                  v_U8_t RoamRssiDiff);
 
 /*--------------------------------------------------------------------------
   \brief sme_UpdateFastTransitionEnabled() - enable/disable Fast Transition support at runtime
@@ -2722,9 +2731,11 @@ eHalStatus sme_UpdateFastTransitionEnabled(tHalHandle hHal,
             to configure isWESModeEnabled
     \param  hHal - HAL handle for device
     \param  isWESModeEnabled - Enable/Disable WES Mode
+    \param  sessionId - Session identifier
     \- return Success or failure
     -------------------------------------------------------------------------*/
-eHalStatus sme_UpdateWESMode(tHalHandle hHal, v_BOOL_t isWESModeEnabled);
+eHalStatus sme_UpdateWESMode(tHalHandle hHal, v_BOOL_t isWESModeEnabled,
+                               tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_SetRoamScanControl
@@ -2733,10 +2744,12 @@ eHalStatus sme_UpdateWESMode(tHalHandle hHal, v_BOOL_t isWESModeEnabled);
             if roam scan control is set to 0, roaming scan cache is cleared
             any value other than 0 is treated as invalid value
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \return eHAL_STATUS_SUCCESS - SME update config successfully.
           Other status means SME failure to update
     -------------------------------------------------------------------------*/
-eHalStatus sme_SetRoamScanControl(tHalHandle hHal, v_BOOL_t roamScanControl);
+eHalStatus sme_SetRoamScanControl(tHalHandle hHal, tANI_U8 sessionId,
+                                  v_BOOL_t roamScanControl);
 #endif /* (WLAN_FEATURE_VOWIFI_11R) || (FEATURE_WLAN_ESE) || (FEATURE_WLAN_LFR) */
 
 #ifdef FEATURE_WLAN_LFR
@@ -2744,14 +2757,16 @@ eHalStatus sme_SetRoamScanControl(tHalHandle hHal, v_BOOL_t roamScanControl);
   \brief sme_UpdateIsFastRoamIniFeatureEnabled() - enable/disable LFR support at runtime
   It is used at in the REG_DYNAMIC_VARIABLE macro definition of
   isFastRoamIniFeatureEnabled.
-  This is a synchronuous call
+  This is a synchronous call
   \param hHal - The handle returned by macOpen.
+  \param  sessionId - Session identifier
   \return eHAL_STATUS_SUCCESS - SME update isFastRoamIniFeatureEnabled config successfully.
           Other status means SME is failed to update isFastRoamIniFeatureEnabled.
   \sa
   --------------------------------------------------------------------------*/
 
 eHalStatus sme_UpdateIsFastRoamIniFeatureEnabled(tHalHandle hHal,
+                                                 tANI_U8 sessionId,
         const v_BOOL_t isFastRoamIniFeatureEnabled);
 
 /*--------------------------------------------------------------------------
@@ -2770,8 +2785,35 @@ eHalStatus sme_UpdateIsMAWCIniFeatureEnabled(tHalHandle hHal,
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /*--------------------------------------------------------------------------
-  \brief sme_UpdateEnableFastRoamInConcurrency() - enable/disable LFR if Concurrent session exists
-  This is a synchronuous call
+  \brief sme_stopRoaming() - Stop roaming for a given sessionId
+   This is a synchronous call
+  \param hHal      - The handle returned by macOpen
+  \param sessionId - sessionId
+  \param reason - reason
+  \return eHAL_STATUS_SUCCESS on success
+          Other status on failure
+  \sa
+  --------------------------------------------------------------------------*/
+eHalStatus sme_stopRoaming(tHalHandle hHal, tANI_U8 sessionId,
+                           tANI_U8 reason);
+
+/*--------------------------------------------------------------------------
+  \brief sme_startRoaming() - Start roaming for a given sessionId
+   This is a synchronous call
+  \param hHal      - The handle returned by macOpen
+  \param sessionId - sessionId
+  \param reason - reason
+  \return eHAL_STATUS_SUCCESS on success
+          Other status on failure
+  \sa
+  --------------------------------------------------------------------------*/
+eHalStatus sme_startRoaming(tHalHandle hHal, tANI_U8 sessionId,
+                            tANI_U8 reason);
+
+/*--------------------------------------------------------------------------
+  \brief sme_UpdateEnableFastRoamInConcurrency() - enable/disable LFR if
+  Concurrent session exists
+  This is a synchronous call
   \param hHal - The handle returned by macOpen.
   \return eHAL_STATUS_SUCCESS
           Other status means SME is failed
@@ -2821,6 +2863,7 @@ eHalStatus sme_UpdateConfigFwRssiMonitoring(tHalHandle hHal,
             This function is called through dynamic setConfig callback function
             to configure nRoamRescanRssiDiff
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  nRoamRescanRssiDiff - Roam Rescan Rssi Diff
     \return eHAL_STATUS_SUCCESS - SME update nRoamRescanRssiDiff config
             successfully.
@@ -2828,6 +2871,7 @@ eHalStatus sme_UpdateConfigFwRssiMonitoring(tHalHandle hHal,
     -------------------------------------------------------------------------*/
 
 eHalStatus sme_SetRoamRescanRssiDiff(tHalHandle hHal,
+                                     tANI_U8 sessionId,
                                      const v_U8_t nRoamRescanRssiDiff);
 
 /*--------------------------------------------------------------------------
@@ -2847,6 +2891,7 @@ v_U8_t sme_GetRoamRescanRssiDiff(tHalHandle hHal);
             This function is called through dynamic setConfig callback function
             to configure  nOpportunisticThresholdDiff
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  nOpportunisticThresholdDiff - Opportunistic Scan threshold diff
     \return eHAL_STATUS_SUCCESS - SME update nOpportunisticThresholdDiff config
             successfully.
@@ -2854,6 +2899,7 @@ v_U8_t sme_GetRoamRescanRssiDiff(tHalHandle hHal);
     -------------------------------------------------------------------------*/
 
 eHalStatus sme_SetRoamOpportunisticScanThresholdDiff(tHalHandle hHal,
+                            tANI_U8 sessionId,
                             const v_U8_t nOpportunisticThresholdDiff);
 
 /*--------------------------------------------------------------------------
@@ -2870,27 +2916,31 @@ v_U8_t sme_GetRoamOpportunisticScanThresholdDiff(tHalHandle hHal);
   \brief sme_setNeighborLookupRssiThreshold() - update neighbor lookup rssi threshold
   This is a synchronuous call
   \param hHal - The handle returned by macOpen.
+  \param  sessionId - Session identifier
   \return eHAL_STATUS_SUCCESS - SME update config successful.
           Other status means SME is failed to update
   \sa
   --------------------------------------------------------------------------*/
 eHalStatus sme_setNeighborLookupRssiThreshold(tHalHandle hHal,
-        v_U8_t neighborLookupRssiThreshold);
+                                              tANI_U8 sessionId,
+                                           v_U8_t neighborLookupRssiThreshold);
 
 /*--------------------------------------------------------------------------
   \brief sme_setNeighborReassocRssiThreshold() - update neighbor reassoc rssi threshold
-  This is a synchronuous call
+  This is a synchronous call
   \param hHal - The handle returned by macOpen.
+  \param  sessionId - Session identifier
   \return eHAL_STATUS_SUCCESS - SME update config successful.
           Other status means SME is failed to update
   \sa
   --------------------------------------------------------------------------*/
 eHalStatus sme_setNeighborReassocRssiThreshold(tHalHandle hHal,
+                                               tANI_U8 sessionId,
         v_U8_t neighborReassocRssiThreshold);
 
 /*--------------------------------------------------------------------------
   \brief sme_getNeighborLookupRssiThreshold() - get neighbor lookup rssi threshold
-  This is a synchronuous call
+  This is a synchronous call
   \param hHal - The handle returned by macOpen.
   \return eHAL_STATUS_SUCCESS - SME update config successful.
           Other status means SME is failed to update
@@ -2902,11 +2952,13 @@ v_U8_t sme_getNeighborLookupRssiThreshold(tHalHandle hHal);
   \brief sme_setNeighborScanRefreshPeriod() - set neighbor scan results refresh period
   This is a synchronuous call
   \param hHal - The handle returned by macOpen.
+  \param  sessionId - Session identifier
   \return eHAL_STATUS_SUCCESS - SME update config successful.
           Other status means SME is failed to update
   \sa
   --------------------------------------------------------------------------*/
 eHalStatus sme_setNeighborScanRefreshPeriod(tHalHandle hHal,
+                                            tANI_U8 sessionId,
         v_U16_t neighborScanResultsRefreshPeriod);
 
 /*--------------------------------------------------------------------------
@@ -2936,10 +2988,12 @@ v_U16_t sme_getEmptyScanRefreshPeriod(tHalHandle hHal);
             to configure nEmptyScanRefreshPeriod
             Usage: adb shell iwpriv wlan0 setConfig nEmptyScanRefreshPeriod=[0 .. 60]
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  nEmptyScanRefreshPeriod - scan period following empty scan results.
     \- return Success or failure
     -------------------------------------------------------------------------*/
-eHalStatus sme_UpdateEmptyScanRefreshPeriod(tHalHandle hHal, v_U16_t nEmptyScanRefreshPeriod);
+eHalStatus sme_UpdateEmptyScanRefreshPeriod(tHalHandle hHal,tANI_U8 sessionId,
+                                            v_U16_t nEmptyScanRefreshPeriod);
 
 /* ---------------------------------------------------------------------------
     \fn sme_setNeighborScanMinChanTime
@@ -2949,9 +3003,12 @@ eHalStatus sme_UpdateEmptyScanRefreshPeriod(tHalHandle hHal, v_U16_t nEmptyScanR
             Usage: adb shell iwpriv wlan0 setConfig gNeighborScanChannelMinTime=[0 .. 60]
     \param  hHal - HAL handle for device
     \param  nNeighborScanMinChanTime - Channel minimum dwell time
+    \param  sessionId - Session identifier
     \- return Success or failure
     -------------------------------------------------------------------------*/
-eHalStatus sme_setNeighborScanMinChanTime(tHalHandle hHal, const v_U16_t nNeighborScanMinChanTime);
+eHalStatus sme_setNeighborScanMinChanTime(tHalHandle hHal,
+                                        const v_U16_t nNeighborScanMinChanTime,
+                                        tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_setNeighborScanMaxChanTime
@@ -2960,26 +3017,100 @@ eHalStatus sme_setNeighborScanMinChanTime(tHalHandle hHal, const v_U16_t nNeighb
             to configure gNeighborScanChannelMaxTime
             Usage: adb shell iwpriv wlan0 setConfig gNeighborScanChannelMaxTime=[0 .. 60]
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  nNeighborScanMinChanTime - Channel maximum dwell time
     \- return Success or failure
     -------------------------------------------------------------------------*/
-eHalStatus sme_setNeighborScanMaxChanTime(tHalHandle hHal, const v_U16_t nNeighborScanMaxChanTime);
+eHalStatus sme_setNeighborScanMaxChanTime(tHalHandle hHal, tANI_U8 sessionId,
+                                       const v_U16_t nNeighborScanMaxChanTime);
 
 /* ---------------------------------------------------------------------------
     \fn sme_getNeighborScanMinChanTime
     \brief  get neighbor scan min channel time
     \param hHal - The handle returned by macOpen.
+    \param  sessionId - Session identifier
     \return v_U16_t - channel min time value
     -------------------------------------------------------------------------*/
-v_U16_t sme_getNeighborScanMinChanTime(tHalHandle hHal);
+v_U16_t sme_getNeighborScanMinChanTime(tHalHandle hHal, tANI_U8 sessionId);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getNeighborRoamState
+    \brief  get neighbor roam state
+    \param hHal - The handle returned by macOpen.
+    \param  sessionId - Session Identifier
+    \return v_U32_t - neighbor roam state
+    -------------------------------------------------------------------------*/
+v_U32_t sme_getNeighborRoamState(tHalHandle hHal, tANI_U8 sessionId);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getCurrentRoamState
+    \brief  get current roam state
+    \param hHal - The handle returned by macOpen.
+    \param  sessionId - Session Identifier
+    \return v_U32_t - current roam state
+    -------------------------------------------------------------------------*/
+v_U32_t sme_getCurrentRoamState(tHalHandle hHal, tANI_U8 sessionId);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getCurrentRoamSubState
+    \brief  get neighbor roam sub state
+    \param hHal - The handle returned by macOpen.
+    \param  sessionId - Session Identifier
+    \return v_U32_t - current roam sub state
+    -------------------------------------------------------------------------*/
+v_U32_t sme_getCurrentRoamSubState(tHalHandle hHal, tANI_U8 sessionId);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getLimSmeState
+    \brief  get Lim Sme state
+    \param hHal - The handle returned by macOpen.
+    \return v_U32_t - Lim Sme state
+    -------------------------------------------------------------------------*/
+v_U32_t sme_getLimSmeState(tHalHandle hHal);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getLimMlmState
+    \brief  get Lim Mlm state
+    \param hHal - The handle returned by macOpen.
+    \return v_U32_t - Lim Mlm state
+    -------------------------------------------------------------------------*/
+v_U32_t sme_getLimMlmState(tHalHandle hHal);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_IsLimSessionValid
+    \brief  is Lim session valid
+    \param hHal - The handle returned by macOpen.
+    \param  sessionId - Session Identifier
+    \return v_BOOL_t - true or false
+    -------------------------------------------------------------------------*/
+v_BOOL_t sme_IsLimSessionValid(tHalHandle hHal, tANI_U8 sessionId);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getLimSmeSessionState
+    \brief  get Lim Sme session state
+    \param hHal - The handle returned by macOpen.
+    \param  sessionId - Session Identifier
+    \return v_U32_t - Lim Sme session state
+    -------------------------------------------------------------------------*/
+v_U32_t sme_getLimSmeSessionState(tHalHandle hHal, tANI_U8 sessionId);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getLimMlmSessionState
+    \brief  get Lim Mlm session state
+    \param hHal - The handle returned by macOpen.
+    \param  sessionId - Session Identifier
+    \return v_U32_t - Lim Mlm session state
+    -------------------------------------------------------------------------*/
+v_U32_t sme_getLimMlmSessionState(tHalHandle hHal, tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_getNeighborScanMaxChanTime
     \brief  get neighbor scan max channel time
     \param hHal - The handle returned by macOpen.
+    \param  sessionId - Session identifier
     \return v_U16_t - channel max time value
     -------------------------------------------------------------------------*/
-v_U16_t sme_getNeighborScanMaxChanTime(tHalHandle hHal);
+v_U16_t sme_getNeighborScanMaxChanTime(tHalHandle hHal, tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_setNeighborScanPeriod
@@ -2988,18 +3119,21 @@ v_U16_t sme_getNeighborScanMaxChanTime(tHalHandle hHal);
             to configure nNeighborScanPeriod
             Usage: adb shell iwpriv wlan0 setConfig nNeighborScanPeriod=[0 .. 60]
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  nNeighborScanPeriod - neighbor scan period
     \- return Success or failure
     -------------------------------------------------------------------------*/
-eHalStatus sme_setNeighborScanPeriod(tHalHandle hHal, const v_U16_t nNeighborScanPeriod);
+eHalStatus sme_setNeighborScanPeriod(tHalHandle hHal, tANI_U8 sessionId,
+                                     const v_U16_t nNeighborScanPeriod);
 
 /* ---------------------------------------------------------------------------
     \fn sme_getNeighborScanPeriod
     \brief  get neighbor scan period
     \param hHal - The handle returned by macOpen.
+    \param  sessionId - Session identifier
     \return v_U16_t - neighbor scan period
     -------------------------------------------------------------------------*/
-v_U16_t sme_getNeighborScanPeriod(tHalHandle hHal);
+v_U16_t sme_getNeighborScanPeriod(tHalHandle hHal, tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn     sme_SetRoamBmissFirstBcnt
@@ -3007,6 +3141,7 @@ v_U16_t sme_getNeighborScanPeriod(tHalHandle hHal);
             This function is called through dynamic setConfig callback function
             to configure nRoamBmissFirstBcnt
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  nRoamBmissFirstBcnt - Roam first bmiss count
     \return eHAL_STATUS_SUCCESS - SME update nRoamBmissFirstBcnt
             successfully.
@@ -3014,6 +3149,7 @@ v_U16_t sme_getNeighborScanPeriod(tHalHandle hHal);
     -------------------------------------------------------------------------*/
 
 eHalStatus sme_SetRoamBmissFirstBcnt(tHalHandle hHal,
+                                     tANI_U8 sessionId,
                                      const v_U8_t nRoamBmissFirstBcnt);
 
 /*--------------------------------------------------------------------------
@@ -3032,13 +3168,14 @@ v_U8_t sme_GetRoamBmissFirstBcnt(tHalHandle hHal);
             This function is called through dynamic setConfig callback function
             to configure nRoamBmissFinalBcnt
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  nRoamBmissFinalBcnt - Roam final bmiss count
     \return eHAL_STATUS_SUCCESS - SME update nRoamBmissFinalBcnt
             successfully.
             else SME is failed to update nRoamBmissFinalBcnt
     -------------------------------------------------------------------------*/
 
-eHalStatus sme_SetRoamBmissFinalBcnt(tHalHandle hHal,
+eHalStatus sme_SetRoamBmissFinalBcnt(tHalHandle hHal, tANI_U8 sessionId,
                                      const v_U8_t nRoamBmissFinalBcnt);
 
 /*--------------------------------------------------------------------------
@@ -3057,13 +3194,14 @@ v_U8_t sme_GetRoamBmissFinalBcnt(tHalHandle hHal);
             This function is called through dynamic setConfig callback function
             to configure nRoamBeaconRssiWeight
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  nRoamBeaconRssiWeight - Roam beacon rssi weight
     \return eHAL_STATUS_SUCCESS - SME update nRoamBeaconRssiWeight config
             successfully.
             else SME is failed to update nRoamBeaconRssiWeight
     -------------------------------------------------------------------------*/
 
-eHalStatus sme_SetRoamBeaconRssiWeight(tHalHandle hHal,
+eHalStatus sme_SetRoamBeaconRssiWeight(tHalHandle hHal, tANI_U8 sessionId,
                                      const v_U8_t nRoamBeaconRssiWeight);
 
 /*--------------------------------------------------------------------------
@@ -3080,7 +3218,7 @@ v_U8_t sme_GetRoamBeaconRssiWeight(tHalHandle hHal);
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 /*--------------------------------------------------------------------------
   \brief sme_getRoamRssiDiff() - get Roam rssi diff
-  This is a synchronuous call
+  This is a synchronous call
   \param hHal - The handle returned by macOpen.
   \return eHAL_STATUS_SUCCESS - SME update config successful.
           Other status means SME is failed to update
@@ -3090,43 +3228,49 @@ v_U8_t sme_getRoamRssiDiff(tHalHandle hHal);
 
 /*--------------------------------------------------------------------------
   \brief sme_ChangeRoamScanChannelList() - Change roam scan channel list
-  This is a synchronuous call
+  This is a synchronous call
   \param hHal - The handle returned by macOpen.
+  \param  sessionId - Session identifier
   \return eHAL_STATUS_SUCCESS - SME update config successful.
           Other status means SME is failed to update
   \sa
   --------------------------------------------------------------------------*/
-eHalStatus sme_ChangeRoamScanChannelList(tHalHandle hHal, tANI_U8 *pChannelList,
+eHalStatus sme_ChangeRoamScanChannelList(tHalHandle hHal, tANI_U8 sessionId,
+                                         tANI_U8 *pChannelList,
                                          tANI_U8 numChannels);
 
 #ifdef FEATURE_WLAN_ESE_UPLOAD
 /*--------------------------------------------------------------------------
   \brief sme_SetEseRoamScanChannelList() - set ese roam scan channel list
-  This is a synchronuous call
+  This is a synchronous call
   \param hHal - The handle returned by macOpen.
+  \param  sessionId - Session identifier
   \return eHAL_STATUS_SUCCESS - SME update config successful.
           Other status means SME is failed to update
   \sa
   --------------------------------------------------------------------------*/
-eHalStatus sme_SetEseRoamScanChannelList(tHalHandle hHal,
+eHalStatus sme_SetEseRoamScanChannelList(tHalHandle hHal, tANI_U8 sessionId,
                                                    tANI_U8 *pChannelList,
                                                    tANI_U8 numChannels);
 #endif
 
 /*--------------------------------------------------------------------------
   \brief sme_getRoamScanChannelList() - get roam scan channel list
-  This is a synchronuous call
+  This is a synchronous call
   \param hHal - The handle returned by macOpen.
+  \param pChannelList - Output channel list
+  \param pNumChannels - Output number of channels
+  \param  sessionId - Session identifier
   \return eHAL_STATUS_SUCCESS - SME update config successful.
           Other status means SME is failed to update
   \sa
   --------------------------------------------------------------------------*/
 eHalStatus sme_getRoamScanChannelList(tHalHandle hHal, tANI_U8 *pChannelList,
-                                         tANI_U8 *pNumChannels);
+                                      tANI_U8 *pNumChannels, tANI_U8 sessionId);
 
 /*--------------------------------------------------------------------------
   \brief sme_getIsEseFeatureEnabled() - get ESE feature enabled or not
-  This is a synchronuous call
+  This is a synchronous call
   \param hHal - The handle returned by macOpen.
   \return TRUE (1) - if the ESE feature is enabled
           FALSE (0) - if feature is disabled (compile or runtime)
@@ -3346,6 +3490,7 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
   from CSR.
   This is a synchronous call
   \param hHal - The handle returned by macOpen
+  \param  sessionId - Session identifier
   \param pHandoffInfo - info provided by HDD with the handoff request (namely:
   BSSID, channel etc.)
   \return eHAL_STATUS_SUCCESS - SME passed the request to CSR successfully.
@@ -3353,7 +3498,8 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
   \sa
   --------------------------------------------------------------------------*/
 
-eHalStatus sme_HandoffRequest(tHalHandle hHal, tCsrHandoffRequest *pHandoffInfo);
+eHalStatus sme_HandoffRequest(tHalHandle hHal, tANI_U8 sessionId,
+                              tCsrHandoffRequest *pHandoffInfo);
 #endif
 /*--------------------------------------------------------------------------
   \brief sme_isSta_p2p_clientConnected() - a wrapper function to check if there
@@ -3427,7 +3573,8 @@ eHalStatus sme_SendRateUpdateInd(tHalHandle hHal, tSirRateUpdateInd *rateUpdateP
 */
 eHalStatus smeIssueFastRoamNeighborAPEvent (tHalHandle hHal,
                                             tANI_U8 *bssid,
-                                            tSmeFastRoamTrigger fastRoamTrig);
+                                            tSmeFastRoamTrigger fastRoamTrig,
+                                            tANI_U8 sessionId);
 
 eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pBSSId );
 
@@ -3686,6 +3833,7 @@ eHalStatus sme_StatsExtEvent (tHalHandle hHal, void* pMsg);
             This function is called through dynamic setConfig callback function
             to configure allowDFSChannelRoam.
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \param  allowDFSChannelRoam - DFS roaming scan mode 0 (disable),
             1 (passive), 2 (active)
     \return eHAL_STATUS_SUCCESS - SME update DFS roaming scan config
@@ -3693,7 +3841,9 @@ eHalStatus sme_StatsExtEvent (tHalHandle hHal, void* pMsg);
             Other status means SME failed to update DFS roaming scan config.
     \sa
     -------------------------------------------------------------------------*/
-eHalStatus sme_UpdateDFSScanMode(tHalHandle hHal, v_U8_t allowDFSChannelRoam);
+eHalStatus sme_UpdateDFSScanMode(tHalHandle hHal,
+                                 tANI_U8 sessionId,
+                                 v_U8_t allowDFSChannelRoam);
 
 /*--------------------------------------------------------------------------
   \brief sme_GetDFSScanMode() - get DFS roam scan mode
@@ -3708,9 +3858,10 @@ v_BOOL_t sme_GetDFSScanMode(tHalHandle hHal);
     \fn sme_staInMiddleOfRoaming
     \brief  This function returns TRUE if STA is in the middle of roaming state
     \param  hHal - HAL handle for device
+    \param  sessionId - Session identifier
     \- return TRUE or FALSE
     -------------------------------------------------------------------------*/
-tANI_BOOLEAN sme_staInMiddleOfRoaming(tHalHandle hHal);
+tANI_BOOLEAN sme_staInMiddleOfRoaming(tHalHandle hHal, tANI_U8 sessionId);
 
 #ifdef FEATURE_WLAN_EXTSCAN
 /* ---------------------------------------------------------------------------
@@ -3821,9 +3972,10 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
     \fn sme_abortRoamScan
     \brief  API to abort current roam scan cycle by roam scan offload module.
     \param  hHal - The handle returned by macOpen.
+    \param  sessionId - Session identifier
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_abortRoamScan(tHalHandle hHal);
+eHalStatus sme_abortRoamScan(tHalHandle hHal, tANI_U8 sessionId);
 #endif //#if WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS

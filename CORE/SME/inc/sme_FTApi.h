@@ -49,6 +49,12 @@ typedef enum eFTIEState
                                     // supplicant. Waiting for the keys.
 } tFTIEStates;
 
+/* FT neighbor roam callback user context */
+typedef struct sFTRoamCallbackUsrCtx
+{
+    tpAniSirGlobal pMac;
+    tANI_U8        sessionId;
+} tFTRoamCallbackUsrCtx, *tpFTRoamCallbackUsrCtx;
 
 typedef struct sFTSMEContext
 {
@@ -74,6 +80,9 @@ typedef struct sFTSMEContext
     vos_timer_t       preAuthReassocIntvlTimer;
 
     v_BOOL_t          addMDIE;
+
+    /* User context for the timer callback */
+    tpFTRoamCallbackUsrCtx  pUsrCtx;
 } tftSMEContext, *tpftSMEContext;
 
 /*--------------------------------------------------------------------------

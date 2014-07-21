@@ -1577,7 +1577,10 @@ typedef struct tagCsrEseBeaconReq
 
 //void *p2 -- the second context pass in for the caller
 //***what if callback is called before requester gets the scanId??
-typedef eHalStatus (*csrScanCompleteCallback)(tHalHandle, void *p2, tANI_U32 scanID, eCsrScanStatus status);
+typedef eHalStatus (*csrScanCompleteCallback)(tHalHandle, void *p2,
+                                              tANI_U8 sessionId,
+                                              tANI_U32 scanID,
+                                              eCsrScanStatus status);
 
 
 
@@ -1747,10 +1750,11 @@ eHalStatus csrRoamIssueFTPreauthReq(tHalHandle hHal, tANI_U32 sessionId, tpSirBs
 
   \param hHal - handle to Hal context
   \param eBand - band value
+  \param sessionId - Session Identifier
   \return  eHalStatus
 
 ---------------------------------------------------------------------------*/
-eHalStatus csrSetBand(tHalHandle hHal, eCsrBand eBand);
+eHalStatus csrSetBand(tHalHandle hHal, tANI_U8 sessionId, eCsrBand eBand);
 
 /*---------------------------------------------------------------------------
   This is the function to get the current operating band value

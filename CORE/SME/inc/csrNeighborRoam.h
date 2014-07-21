@@ -213,57 +213,74 @@ typedef struct sCsrNeighborRoamControlInfo
     tANI_U8                     currentRoamBeaconRssiWeight;
 } tCsrNeighborRoamControlInfo, *tpCsrNeighborRoamControlInfo;
 
-
 /* All the necessary Function declarations are here */
 eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac,
                                          tANI_U8 sessionId, VOS_STATUS status);
 eHalStatus csrNeighborRoamIndicateDisconnect(tpAniSirGlobal pMac,
                                          tANI_U8 sessionId);
-tANI_BOOLEAN csrNeighborRoamIsHandoffInProgress(tpAniSirGlobal pMac);
-void csrNeighborRoamRequestHandoff(tpAniSirGlobal pMac);
-eHalStatus csrNeighborRoamInit(tpAniSirGlobal pMac);
-void csrNeighborRoamClose(tpAniSirGlobal pMac);
+tANI_BOOLEAN csrNeighborRoamIsHandoffInProgress(tpAniSirGlobal pMac,
+                                                tANI_U8 sessionId);
+void csrNeighborRoamRequestHandoff(tpAniSirGlobal pMac, tANI_U8 sessionId);
+eHalStatus csrNeighborRoamInit(tpAniSirGlobal pMac, tANI_U8 sessionId);
+void csrNeighborRoamClose(tpAniSirGlobal pMac, tANI_U8 sessionId);
 void csrNeighborRoamPurgePreauthFailedList(tpAniSirGlobal pMac);
-VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac);
+VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac,
+                                               tANI_U8 sessionId);
 VOS_STATUS csrNeighborRoamTransitionToPreauthDone(tpAniSirGlobal pMac);
 eHalStatus csrNeighborRoamPrepareScanProfileFilter(tpAniSirGlobal pMac,
-                                          tCsrScanResultFilter *pScanFilter);
+                                              tCsrScanResultFilter *pScanFilter,
+                                              tANI_U8 sessionId);
 void csrNeighborRoamGetHandoffAPInfo(tpAniSirGlobal pMac,
-                                     tpCsrNeighborRoamBSSInfo pHandoffNode);
+                                     tpCsrNeighborRoamBSSInfo pHandoffNode,
+                                     tANI_U8 sessionId);
 eHalStatus csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac,
-                                     tSirRetStatus limStatus);
+                                            tANI_U8 sessionId,
+                                            tSirRetStatus limStatus);
 #ifdef WLAN_FEATURE_VOWIFI_11R
-tANI_BOOLEAN csrNeighborRoamIs11rAssoc(tpAniSirGlobal pMac);
+tANI_BOOLEAN csrNeighborRoamIs11rAssoc(tpAniSirGlobal pMac,
+                                       tANI_U8 sessionId);
 #endif
-VOS_STATUS csrNeighborRoamCreateChanListFromNeighborReport(tpAniSirGlobal pMac);
+VOS_STATUS csrNeighborRoamCreateChanListFromNeighborReport(tpAniSirGlobal pMac,
+                                                           tANI_U8 sessionId);
 void csrNeighborRoamTranistionPreauthDoneToDisconnected(tpAniSirGlobal pMac,
-                                                         tANI_U32 sessionId);
-tANI_BOOLEAN csrNeighborRoamStatePreauthDone(tpAniSirGlobal pMac);
-tANI_BOOLEAN csrNeighborRoamScanRspPending(tHalHandle hHal);
-tANI_BOOLEAN csrNeighborMiddleOfRoaming(tHalHandle hHal);
+                                                        tANI_U8 sessionId);
+tANI_BOOLEAN csrNeighborRoamStatePreauthDone(tpAniSirGlobal pMac,
+                                             tANI_U8 sessionId);
+tANI_BOOLEAN csrNeighborRoamScanRspPending(tHalHandle hHal,
+                                           tANI_U8 sessionId);
+tANI_BOOLEAN csrNeighborMiddleOfRoaming(tHalHandle hHal, tANI_U8 sessionId);
 VOS_STATUS csrNeighborRoamSetLookupRssiThreshold(tpAniSirGlobal pMac,
-                                           v_U8_t neighborLookupRssiThreshold);
+                                    tANI_U8 sessionId,
+                                    v_U8_t neighborLookupRssiThreshold);
 VOS_STATUS
 csrNeighborRoamSetOpportunisticScanThresholdDiff(tpAniSirGlobal pMac,
+                                        tANI_U8 sessionId,
                                         v_U8_t nOpportunisticThresholdDiff);
 VOS_STATUS
 csrNeighborRoamSetRoamRescanRssiDiff(tpAniSirGlobal pMac,
+                                     tANI_U8 sessionId,
                                      v_U8_t nRoamRescanRssiDiff);
 VOS_STATUS
 csrNeighborRoamSetRoamBmissFirstBcnt(tpAniSirGlobal pMac,
+                                     tANI_U8 sessionId,
                                      v_U8_t nRoamBmissFirstBcnt);
 VOS_STATUS
 csrNeighborRoamSetRoamBmissFinalBcnt(tpAniSirGlobal pMac,
+                                     tANI_U8 sessionId,
                                      v_U8_t nRoamBmissFinalBcnt);
 VOS_STATUS
 csrNeighborRoamSetRoamBeaconRssiWeight(tpAniSirGlobal pMac,
+                                     tANI_U8 sessionId,
                                      v_U8_t nRoamBeaconRssiWeight);
 VOS_STATUS csrNeighborRoamUpdateFastRoamingEnabled(tpAniSirGlobal pMac,
-                                     const v_BOOL_t fastRoamEnabled);
+                                                 tANI_U8 sessionId,
+                                               const v_BOOL_t fastRoamEnabled);
 VOS_STATUS csrNeighborRoamUpdateEseModeEnabled(tpAniSirGlobal pMac,
-                                     const v_BOOL_t eseMode);
+                                               tANI_U32 sessionId,
+                                               const v_BOOL_t eseMode);
 VOS_STATUS csrNeighborRoamChannelsFilterByCurrentBand(
                       tpAniSirGlobal pMac,
+                      tANI_U8   sessionId,
                       tANI_U8*  pInputChannelList,
                       tANI_U8   inputNumOfChannels,
                       tANI_U8*  pOutputChannelList,
@@ -310,19 +327,25 @@ VOS_STATUS csrNeighborRoamMergeChannelLists(tpAniSirGlobal pMac,
 #define REASON_ROAM_BEACON_RSSI_WEIGHT_CHANGED      22
 #define REASON_ROAM_DFS_SCAN_MODE_CHANGED           23
 #define REASON_ROAM_ABORT_ROAM_SCAN                 24
-eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 command, tANI_U8 reason);
-eHalStatus csrNeighborRoamCandidateFoundIndHdlr(tpAniSirGlobal pMac, void* pMsg);
+eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
+                              tANI_U8 command, tANI_U8 reason);
+eHalStatus csrNeighborRoamCandidateFoundIndHdlr(tpAniSirGlobal pMac,
+                                                void* pMsg);
 eHalStatus csrNeighborRoamHandoffReqHdlr(tpAniSirGlobal pMac, void* pMsg);
-eHalStatus csrNeighborRoamProceedWithHandoffReq(tpAniSirGlobal pMac);
-eHalStatus csrNeighborRoamSssidScanDone(tpAniSirGlobal pMac, eHalStatus status);
-eHalStatus csrNeighborRoamStartLfrScan(tpAniSirGlobal pMac);
+eHalStatus csrNeighborRoamProceedWithHandoffReq(tpAniSirGlobal pMac,
+                                                tANI_U8 sessionId);
+eHalStatus csrNeighborRoamSssidScanDone(tpAniSirGlobal pMac,
+                                        tANI_U8 sessionId,
+                                        eHalStatus status);
+eHalStatus csrNeighborRoamStartLfrScan(tpAniSirGlobal pMac, tANI_U8 sessionId);
 #endif
 
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 VOS_STATUS csrSetCCKMIe(tpAniSirGlobal pMac, const tANI_U8 sessionId,
                             const tANI_U8 *pCckmIe,
                             const tANI_U8 ccKmIeLen);
-VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp);
+VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
+                          const tANI_U8 sessionId);
 #endif /*FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 eHalStatus csrNeighborRoamOffloadSynchRspHandler(tpAniSirGlobal pMac,

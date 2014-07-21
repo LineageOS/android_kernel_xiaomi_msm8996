@@ -4597,20 +4597,20 @@ eHalStatus sme_QosProcessReassocSuccessEv(tpAniSirGlobal pMac, v_U8_t sessionId,
 #ifdef WLAN_FEATURE_VOWIFI_11R
    if (pSession->ftHandoffInProgress)
    {
-       if (csrRoamIs11rAssoc(pMac))
-       {
-           if (pCsrRoamSession && pCsrRoamSession->connectedInfo.nRICRspLength)
-           {
-               status = sme_QosProcessFTReassocRspEv(pMac, sessionId, pEvent_info);
+       if (csrRoamIs11rAssoc(pMac, sessionId)) {
+           if (pCsrRoamSession &&
+               pCsrRoamSession->connectedInfo.nRICRspLength) {
+               status = sme_QosProcessFTReassocRspEv(pMac, sessionId,
+                                                     pEvent_info);
            }
        }
 #ifdef FEATURE_WLAN_ESE
        // If ESE association check for TSPEC IEs in the reassoc rsp frame
-       if (csrRoamIsESEAssoc(pMac))
-       {
-           if (pCsrRoamSession && pCsrRoamSession->connectedInfo.nTspecIeLength)
-           {
-               status = sme_QosESEProcessReassocTspecRsp(pMac, sessionId, pEvent_info);
+       if (csrRoamIsESEAssoc(pMac, sessionId)) {
+           if (pCsrRoamSession &&
+               pCsrRoamSession->connectedInfo.nTspecIeLength) {
+               status = sme_QosESEProcessReassocTspecRsp(pMac, sessionId,
+                                                         pEvent_info);
            }
        }
 #endif
@@ -5183,8 +5183,7 @@ eHalStatus sme_QosProcessPreauthSuccessInd(tpAniSirGlobal pMac,
     pSession->ftHandoffInProgress = VOS_TRUE;
 
     // Check if its a 11R roaming before preparing the RIC IEs
-    if (csrRoamIs11rAssoc(pMac))
-    {
+    if (csrRoamIs11rAssoc(pMac, sessionId)) {
         v_U16_t ricOffset = 0;
         v_U32_t ricIELength = 0;
         v_U8_t  *ricIE;

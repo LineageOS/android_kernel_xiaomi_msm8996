@@ -291,6 +291,7 @@ typedef struct sWLAN_SAPEvent {
     tHalHandle:  the tHalHandle passed in with the scan request
     *p2: the second context pass in for the caller, opaque sap Handle here
     scanID:
+    sessionId: Session identifier
     status: Status of scan -success, failure or abort
 
   RETURN VALUE
@@ -306,6 +307,7 @@ WLANSAP_ScanCallback
 (
   tHalHandle halHandle,
   void *pContext,
+  v_U8_t sessionId,
   v_U32_t scanID,
   eCsrScanStatus scanStatus
 );

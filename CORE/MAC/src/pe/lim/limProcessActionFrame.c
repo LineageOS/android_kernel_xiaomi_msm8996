@@ -96,7 +96,7 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
 
     if( NULL == psessionEntry )
     {
-      limLog(pMac, LOGE, FL("Session %d  not active\n "), sessionId);
+      limLog(pMac, LOGE, FL("Session %d not active"), sessionId);
       return;
     }
 
