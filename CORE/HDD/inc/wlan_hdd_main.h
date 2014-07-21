@@ -1317,6 +1317,8 @@ struct hdd_context_s
 
    v_BOOL_t isUnloadInProgress;
 
+   v_BOOL_t isCleanUpDone;
+
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;
 
