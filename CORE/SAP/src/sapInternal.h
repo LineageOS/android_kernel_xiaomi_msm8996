@@ -863,6 +863,22 @@ void sap_CacResetNotify(tHalHandle hHal);
 
 v_BOOL_t sapAcsChannelCheck(ptSapContext sapContext, v_U8_t channelNumber);
 
+/*
+ * This function is added to check if channel is in tx leak range
+ *
+ * PARAMETERS
+ * IN
+ * sapContext: Pointer to vos global context structure
+ * target_channel: the target channel to switch to
+ *
+ * RETURN VALUE
+ * BOOLEAN to indicate if the target channel is good or bad to switch
+ *
+ * TRUE: the channel is above the tx leak threshold
+ * FALSE: good to be used
+ */
+v_BOOL_t
+sapChannelMatrixCheck(ptSapContext sapContext, v_U8_t target_channel);
 #ifdef __cplusplus
 }
 #endif
