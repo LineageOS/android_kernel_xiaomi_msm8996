@@ -8245,8 +8245,10 @@ static void csrRoamRoamingStateReassocRspProcessor( tpAniSirGlobal pMac, tpSirSm
                 if (pNeighborRoamInfo)
                 {
                         vos_mem_zero(&roamInfo, sizeof(tCsrRoamInfo));
-                        csrRoamCallCallback(pMac, pNeighborRoamInfo->csrSessionId,
-                                        &roamInfo, roamId, eCSR_ROAM_FT_REASSOC_FAILED, eSIR_SME_SUCCESS);
+                        csrRoamCallCallback(pMac, pSmeJoinRsp->sessionId,
+                                            &roamInfo, roamId,
+                                            eCSR_ROAM_FT_REASSOC_FAILED,
+                                            eSIR_SME_SUCCESS);
                         /*
                          * Since the above callback sends a disconnect
                          * to HDD, we should clean-up our state
@@ -18647,7 +18649,7 @@ void csrProcessRoamOffloadSynchInd(tpAniSirGlobal pMac, void *pMsgBuf)
 
    if (pEntry)
        csrRoamEnqueueRoamOffloadSynch(
-       pMac, pMac->roam.neighborRoamInfo.csrSessionId,
+       pMac, smeRoamOffloadSynchInd->roamedVdevId,
        &pBssDesc->Result.BssDescriptor, eCsrPerformRoamOffloadSynch);
 }
 

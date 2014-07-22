@@ -179,7 +179,6 @@ typedef struct sCsrNeighborRoamControlInfo
     tANI_BOOLEAN                scanRspPending;
     tANI_TIMESTAMP              scanRequestTimeStamp;
     tDblLinkList                roamableAPList;    // List of current FT candidates
-    tANI_U32                    csrSessionId;
     tCsrRoamProfile             csrNeighborRoamProfile;
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tANI_BOOLEAN                is11rAssoc;
