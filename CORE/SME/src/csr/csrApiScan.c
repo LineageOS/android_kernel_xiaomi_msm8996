@@ -8652,8 +8652,8 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
       return eHAL_STATUS_FAILURE;
    }
 
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,"LFR3: Beacon/Prb Rsp:");
-   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,"LFR3: Beacon/Prb Rsp:");
+   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                 pBeaconProbeResp, pRoamOffloadSynchInd->beaconProbeRespLength);
 
    if (pRoamOffloadSynchInd->isBeacon)
@@ -8760,9 +8760,9 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
                 sizeof(tSirMacAddr));
    pBssDescr->nReceivedTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
 
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                                 "LFR3:%s:BssDescr Info:", __func__);
-   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                                  pBssDescr->bssId, sizeof(tSirMacAddr));
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
               "chan= %d, rssi = %d",pBssDescr->channelId,pBssDescr->rssi);

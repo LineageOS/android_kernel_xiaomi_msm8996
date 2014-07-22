@@ -1904,9 +1904,9 @@ void limProcessFTRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     pftSessionEntry->limPrevSmeState = pftSessionEntry->limSmeState;
     pftSessionEntry->limSmeState = eLIM_SME_WT_REASSOC_STATE;
     pMac->ft.ftPEContext.pftSessionEntry = pftSessionEntry;
-    PELOGE(limLog(pMac,LOGE,"LFR3:%s:created session (%p) with id = %d",
-                  __func__, pftSessionEntry, pftSessionEntry->peSessionId);)
-
+    VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
+              "LFR3:%s:created session (%p) with id = %d",
+              __func__, pftSessionEntry, pftSessionEntry->peSessionId);
     /* Update the ReAssoc BSSID of the current session */
     sirCopyMacAddr(psessionEntry->limReAssocbssId, pbssDescription->bssId);
     limPrintMacAddr(pMac, psessionEntry->limReAssocbssId, LOG2);
@@ -1918,7 +1918,7 @@ void limProcessFTRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     {
         pftSessionEntry->is11Rconnection = psessionEntry->is11Rconnection;
 #ifdef FEATURE_WLAN_ESE
-        pftSessionEntry->isCCXconnection = psessionEntry->isESEconnection;
+        pftSessionEntry->isESEconnection = psessionEntry->isESEconnection;
 #endif
 #if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
         pftSessionEntry->isFastTransitionEnabled =

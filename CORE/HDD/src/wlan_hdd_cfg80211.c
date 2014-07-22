@@ -211,7 +211,9 @@ static const u32 hdd_cipher_suites[] =
     WLAN_CIPHER_SUITE_WEP104,
     WLAN_CIPHER_SUITE_TKIP,
 #ifdef FEATURE_WLAN_ESE
+#define WLAN_CIPHER_SUITE_BTK 0x004096fe /* use for BTK */
 #define WLAN_CIPHER_SUITE_KRK 0x004096ff /* use for KRK */
+    WLAN_CIPHER_SUITE_BTK,
     WLAN_CIPHER_SUITE_KRK,
     WLAN_CIPHER_SUITE_CCMP,
 #else
@@ -4753,11 +4755,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     v_BOOL_t MFPCapable =  VOS_FALSE;
     v_BOOL_t MFPRequired =  VOS_FALSE;
     eHddDot11Mode sapDot11Mode =
-#ifdef WLAN_FEATURE_MBSSID
-             pHostapdAdapter->sap_dyn_ini_cfg.sapDot11Mode;
-#else
              (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->sapDot11Mode;
-#endif
     u_int16_t prev_rsn_length = 0;
     ENTER();
 
@@ -6856,6 +6854,9 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
 #ifdef FEATURE_WLAN_ESE
         case WLAN_CIPHER_SUITE_KRK:
             setKey.encType = eCSR_ENCRYPT_TYPE_KRK;
+            break;
+        case WLAN_CIPHER_SUITE_BTK:
+            setKey.encType = eCSR_ENCRYPT_TYPE_BTK;
             break;
 #endif
 
@@ -9145,6 +9146,9 @@ static int wlan_hdd_cfg80211_set_cipher( hdd_adapter_t *pAdapter,
 #ifdef FEATURE_WLAN_ESE
         case WLAN_CIPHER_SUITE_KRK:
             encryptionType = eCSR_ENCRYPT_TYPE_KRK;
+            break;
+        case WLAN_CIPHER_SUITE_BTK:
+            encryptionType = eCSR_ENCRYPT_TYPE_BTK;
             break;
 #endif
             default:

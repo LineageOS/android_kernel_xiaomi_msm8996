@@ -153,6 +153,9 @@ typedef struct tagSmeStruct
     void(*pLinkLayerStatsIndCallback)(void *callbackContext,
                                         int indType, void *pRsp);
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+    void (*pAutoShutdownNotificationCb) (void);
+#endif
     /* Maximum interfaces allowed by the host */
     tANI_U8 max_intf_count;
     void (* StatsExtCallback) (void *, tStatsExtEvent *);

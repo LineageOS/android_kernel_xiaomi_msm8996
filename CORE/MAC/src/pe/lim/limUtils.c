@@ -7199,13 +7199,6 @@ void limProcessAddStaRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
         vos_mem_free(pAddStaParams);
         return;
     }
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-    if (psessionEntry->bRoamSynchInProgress)
-    {
-       /* change logging before release */
-       limLog(pMac, LOGE, FL("LFR3:limProcessAddStaRsp"));
-    }
-#endif
     psessionEntry->csaOffloadEnable = pAddStaParams->csaOffloadEnable;
     if (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
         (void) limIbssAddStaRsp(pMac, limMsgQ->bodyptr,psessionEntry);

@@ -3319,8 +3319,6 @@ typedef struct mbssid_sap_dyn_ini_config {
    char          acsAllowedChnls[CFG_MAX_STR_LEN];
    v_U8_t        acsScanBandPreference;
    v_U16_t       acsBandSwitchThreshold;
-   /* SAP HW Mode*/
-   eHddDot11Mode sapDot11Mode;
 } mbssid_sap_dyn_ini_config_t;
 #endif
 
