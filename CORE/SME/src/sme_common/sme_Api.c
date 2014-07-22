@@ -13440,6 +13440,14 @@ VOS_STATUS sme_UpdateDSCPtoUPMapping( tHalHandle hHal,
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
+        pCsrSession = CSR_GET_SESSION( pMac, sessionId );
+        if (pCsrSession == NULL)
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Session lookup fails for CSR session", __func__);
+            sme_ReleaseGlobalLock( &pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
         if (!CSR_IS_SESSION_VALID( pMac, sessionId ))
         {
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
@@ -13447,7 +13455,6 @@ VOS_STATUS sme_UpdateDSCPtoUPMapping( tHalHandle hHal,
             sme_ReleaseGlobalLock( &pMac->sme);
             return eHAL_STATUS_FAILURE;
         }
-        pCsrSession = CSR_GET_SESSION( pMac, sessionId );
 
         pSession = peFindSessionByBssid( pMac,
             pCsrSession->connectedProfile.bssid, &peSessionId );
