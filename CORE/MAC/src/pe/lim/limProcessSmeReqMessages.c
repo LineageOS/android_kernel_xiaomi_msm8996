@@ -4810,6 +4810,10 @@ static void __limProcessSmeSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tpSirSetHT2040Mode     pSetHT2040Mode;
     tpPESession             psessionEntry;
     tANI_U8  sessionId = 0;
+    vos_msg_t msg;
+    tUpdateVHTOpMode *pHtOpMode = NULL;
+    tANI_U16                staId = 0;
+    tpDphHashNode pStaDs = NULL;
 
     PELOG1(limLog(pMac, LOG1,
            FL("received Set HT 20/40 mode message")););
@@ -4851,6 +4855,54 @@ static void __limProcessSmeSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     /* Update beacon */
     schSetFixedBeaconFields(pMac, psessionEntry);
     limSendBeaconInd(pMac, psessionEntry);
+
+    /* update OP Mode for each associated peer */
+    for (staId = 0; staId < psessionEntry->dph.dphHashTable.size; staId++)
+    {
+        pStaDs = dphGetHashEntry(pMac, staId, &psessionEntry->dph.dphHashTable);
+        if (NULL == pStaDs)
+            continue;
+
+        if (pStaDs->valid && pStaDs->htSupportedChannelWidthSet)
+        {
+            pHtOpMode = vos_mem_malloc(sizeof(tUpdateVHTOpMode));
+            if ( NULL == pHtOpMode )
+            {
+                limLog(pMac, LOGE,
+                      FL("%s: Not able to allocate memory for setting OP mode"),
+                      __func__);
+                return;
+            }
+            pHtOpMode->opMode = (psessionEntry->htSecondaryChannelOffset ==
+                          PHY_SINGLE_CHANNEL_CENTERED)?
+                          eHT_CHANNEL_WIDTH_20MHZ:eHT_CHANNEL_WIDTH_40MHZ;
+            pHtOpMode->staId = staId;
+            vos_mem_copy(pHtOpMode->peer_mac, &pStaDs->staAddr,
+                 sizeof(tSirMacAddr));
+            pHtOpMode->smesessionId = sessionId;
+
+            msg.type     = WDA_UPDATE_OP_MODE;
+            msg.reserved = 0;
+            msg.bodyptr  = pHtOpMode;
+            if (!VOS_IS_STATUS_SUCCESS(
+                     vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+            {
+                 limLog(pMac, LOGE,
+                   FL("%s: Not able to post WDA_UPDATE_OP_MODE message to WDA"),
+                   __func__);
+                 vos_mem_free(pHtOpMode);
+                 return;
+            }
+            limLog(pMac, LOG1,
+                        FL("%s: Notifed FW about OP mode: %d for staId=%d"),
+                        __func__, pHtOpMode->opMode, staId);
+
+         }
+         else
+            limLog(pMac, LOG1, FL("%s: station %d does not support HT40\n"),
+                        __func__, staId);
+    }
+
     return;
 }
 #endif

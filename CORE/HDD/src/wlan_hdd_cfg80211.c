@@ -13888,7 +13888,6 @@ int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
     hdd_context_t *pHddCtx;
     VOS_STATUS status;
     tSmeConfigParams smeConfig;
-    int i;
     bool cbModeChange;
 
     if (NULL == wiphy) {
@@ -13913,16 +13912,24 @@ int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
     sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
     switch (chandef->width) {
     case NL80211_CHAN_WIDTH_20:
-        if (smeConfig.csrConfig.channelBondingMode24GHz != 0) {
-            smeConfig.csrConfig.channelBondingMode24GHz = 0;
+        if (smeConfig.csrConfig.channelBondingMode24GHz !=
+                      eCSR_INI_SINGLE_CHANNEL_CENTERED) {
+            smeConfig.csrConfig.channelBondingMode24GHz =
+                      eCSR_INI_SINGLE_CHANNEL_CENTERED;
             sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
             cbModeChange = TRUE;
         }
         break;
 
     case NL80211_CHAN_WIDTH_40:
-        if (smeConfig.csrConfig.channelBondingMode24GHz != 1) {
-            smeConfig.csrConfig.channelBondingMode24GHz = 1;
+        if (smeConfig.csrConfig.channelBondingMode24GHz ==
+                      eCSR_INI_SINGLE_CHANNEL_CENTERED) {
+            if ( NL80211_CHAN_HT40MINUS == cfg80211_get_chandef_type(chandef))
+                smeConfig.csrConfig.channelBondingMode24GHz =
+                      eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+            else
+                smeConfig.csrConfig.channelBondingMode24GHz =
+                      eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
             sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
             cbModeChange = TRUE;
         }
@@ -13952,22 +13959,6 @@ int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
                "%s:Error!!! Cannot set SAP HT20/40 mode!",
                __func__);
         return -EINVAL;
-    }
-
-    for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
-        if (!pAdapter->aStaInfo[i].isUsed)
-            continue;
-
-        status = hdd_wlan_set_ht2040_mode(pAdapter,
-                                          pAdapter->aStaInfo[i].ucSTAId,
-                                          pAdapter->aStaInfo[i].macAddrSTA,
-                                          cfg80211_get_chandef_type(chandef));
-        if (status != VOS_STATUS_SUCCESS) {
-                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "%s:Error!!! Cannot set HT20/40 mode for STA %d!",
-                    __func__, pAdapter->aStaInfo[i].ucSTAId);
-            return -EINVAL;
-        }
     }
 
     return 0;
