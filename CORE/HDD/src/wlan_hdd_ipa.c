@@ -1397,7 +1397,8 @@ drop_pkts:
 		adf_nbuf_free(buf);
 		buf = next_buf;
 		hdd_ipa->stats.num_rx_drop++;
-		adapter->stats.rx_dropped++;
+		if (adapter)
+			adapter->stats.rx_dropped++;
 	}
 
 	return VOS_STATUS_E_FAILURE;
@@ -1434,6 +1435,8 @@ static void hdd_ipa_set_adapter_ip_filter(hdd_adapter_t *adapter)
 #ifdef WLAN_OPEN_SOURCE
 		rcu_read_unlock();
 #endif
+		if (!dev)
+			return;
 	}
 	if ((in_dev = __in_dev_get_rtnl(dev)) != NULL) {
 	   for (ifap = &in_dev->ifa_list; (ifa = *ifap) != NULL;
@@ -1918,8 +1921,8 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 	ipa_hdr->commit = 0;
 	ipa_hdr->num_hdrs = 1;
 
-#ifdef IPA_UC_OFFLOAD
 	if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
+#ifdef IPA_UC_OFFLOAD
 		uc_tx_hdr = (struct hdd_ipa_uc_tx_hdr *)ipa_hdr->hdr[0].hdr;
 		memcpy(uc_tx_hdr, &ipa_uc_tx_hdr, HDD_IPA_UC_WLAN_TX_HDR_LEN);
 		memcpy(uc_tx_hdr->eth.h_source, mac_addr, ETH_ALEN);
@@ -1929,9 +1932,8 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 		ipa_hdr->hdr[0].is_partial = 1;
 		ipa_hdr->hdr[0].hdr_hdl = 0;
 		ret = ipa_add_hdr(ipa_hdr);
-	} else
 #endif /* IPA_UC_OFFLOAD */
-	{
+	} else {
 		tx_hdr = (struct hdd_ipa_tx_hdr *)ipa_hdr->hdr[0].hdr;
 
 		/* Set the Source MAC */
@@ -1964,6 +1966,7 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 
 		if (!hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			/* Set the type to IPV6 in the header*/
+			tx_hdr = (struct hdd_ipa_tx_hdr *)ipa_hdr->hdr[0].hdr;
 			tx_hdr->llc_snap.eth_type = cpu_to_be16(ETH_P_IPV6);
 		}
 
