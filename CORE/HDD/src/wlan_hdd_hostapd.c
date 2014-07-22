@@ -3077,10 +3077,8 @@ int iw_softap_get_channel_list(struct net_device *dev,
     v_U8_t i = 0;
     v_U8_t bandStartChannel = RF_CHAN_1;
     v_U8_t bandEndChannel = RF_CHAN_165;
-    v_U32_t temp_num_channels = 0;
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
-    v_REGDOMAIN_t domainIdCurrentSoftap;
     tpChannelListInfo channel_list = (tpChannelListInfo) extra;
     eCsrBand curBand = eCSR_BAND_ALL;
 
@@ -3116,33 +3114,6 @@ int iw_softap_get_channel_list(struct net_device *dev,
         }
     }
 
-    /* remove indoor channels if the domain is FCC, channels 36 - 48 */
-
-    temp_num_channels = num_channels;
-
-    if(eHAL_STATUS_SUCCESS != sme_getSoftApDomain(hHal,(v_REGDOMAIN_t *) &domainIdCurrentSoftap))
-    {
-        hddLog(LOGE,FL("Failed to get Domain ID, %d "),domainIdCurrentSoftap);
-        return -EIO;
-    }
-
-    if(REGDOMAIN_FCC == domainIdCurrentSoftap)
-    {
-        for(i = 0; i < temp_num_channels; i++)
-        {
-
-           if((channel_list->channels[i] > 35) &&
-              (channel_list->channels[i] < 49))
-           {
-               vos_mem_move(&channel_list->channels[i],
-                            &channel_list->channels[i+1],
-                            temp_num_channels - (i-1));
-               num_channels--;
-               temp_num_channels--;
-               i--;
-           }
-        }
-    }
 
     hddLog(LOG1,FL(" number of channels %d"), num_channels);
 

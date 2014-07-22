@@ -203,7 +203,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define  WE_PPS_DELIM_CRC_FAIL          51
 #define  WE_PPS_GID_NSTS_ZERO           52
 #define  WE_PPS_RSSI_CHECK              53
-#define WE_ENABLE_STRICT_FCC_REG        54
+/* 54 is unused */
 #define WE_SET_HTSMPS                   55
 /* Private ioctl for QPower */
 #define WE_SET_QPOWER_MAX_PSPOLL_COUNT            56
@@ -4947,43 +4947,6 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            break;
         }
 
-        case WE_ENABLE_STRICT_FCC_REG:
-        {
-           hdd_context_t *hddCtxt = WLAN_HDD_GET_CTX(pAdapter);
-           struct wiphy *wiphy = NULL;
-           long lrc;
-           int status;
-
-           wiphy = hddCtxt->wiphy;
-           if(wiphy == NULL)
-           {
-               hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy is NULL ", __func__);
-               break;
-           }
-           init_completion(&hddCtxt->wiphy_channel_update_event);
-
-           hddCtxt->nEnableStrictRegulatoryForFCC = set_value;
-
-           status = regulatory_hint(wiphy, "00");
-           if(status < 0)
-           {
-               hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failure in setting regulatory rule ", __func__);
-               break;
-           }
-
-           /* Wait for completion */
-           lrc = wait_for_completion_interruptible_timeout(&hddCtxt->wiphy_channel_update_event,
-                                       msecs_to_jiffies(WLAN_WAIT_TIME_CHANNEL_UPDATE));
-           if (lrc <= 0)
-           {
-               hddLog(VOS_TRACE_LEVEL_ERROR,"%s: SME %s while setting strict FCC regulatory rule ",
-                      __func__, (0 == lrc) ? "Timeout" : "Interrupt");
-               return (0 == lrc) ? -ETIMEDOUT : -EINTR;
-           }
-           hddLog(VOS_TRACE_LEVEL_INFO,"%s: SUCCESS in setting strict FCC regulatory rule", __func__);
-
-           break;
-        }
 #ifdef QCA_WIFI_2_0
         case WE_SET_PHYMODE:
         {
@@ -9748,11 +9711,6 @@ static const iw_handler we_private[] = {
 
 /*Maximum command length can be only 15 */
 static const struct iw_priv_args we_private_args[] = {
-
-    {   WE_ENABLE_STRICT_FCC_REG,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        0,
-        "setStrictFCCreg" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_INT_GET_NONE,
