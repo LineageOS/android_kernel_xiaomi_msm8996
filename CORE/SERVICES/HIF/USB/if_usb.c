@@ -61,7 +61,18 @@
 
 unsigned int msienable;
 module_param(msienable, int, 0644);
-struct hif_usb_softc *usb_sc;
+#define HIF_USB_UNLOAD_TIMEOUT		(2*HZ)
+enum hif_usb_drv_unload_state {
+	HIF_USB_UNLOAD_STATE_NULL = 0,
+	HIF_USB_UNLOAD_STATE_DRV_DEREG,
+	HIF_USB_UNLOAD_STATE_TARGET_RESET,
+	HIF_USB_UNLOAD_STATE_DEV_DISCONNECTED,
+};
+
+static int hif_usb_unload_dev_num = -1;
+static wait_queue_head_t hif_usb_unload_event_wq;
+static atomic_t hif_usb_unload_state;
+struct hif_usb_softc *usb_sc = NULL;
 static int hif_usb_resume(struct usb_interface *interface);
 
 static int
@@ -69,6 +80,7 @@ hif_usb_configure(struct hif_usb_softc *sc, hif_handle_t *hif_hdl,
 		  struct usb_interface *interface)
 {
 	int ret = 0;
+	struct usb_device *dev = interface_to_usbdev(interface);
 
 	if (HIF_USBDeviceInserted(interface, sc)) {
 		pr_err("ath: %s: Target probe failed.\n", __func__);
@@ -80,7 +92,7 @@ hif_usb_configure(struct hif_usb_softc *sc, hif_handle_t *hif_hdl,
 		pr_err("athdiag_procfs_init failed\n");
 		return A_ERROR;
 	}
-
+	hif_usb_unload_dev_num = dev->devnum;
 	*hif_hdl = sc->hif_device;
 	return 0;
 
@@ -125,7 +137,7 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 		ret = -ENOMEM;
 		goto err_alloc;
 	}
-	usb_sc = sc;
+
 	OS_MEMZERO(sc, sizeof(*sc));
 	sc->pdev = (void *)pdev;
 	sc->dev = &pdev->dev;
@@ -179,7 +191,6 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
 
 	ret = hdd_wlan_startup(&pdev->dev, ol_sc);
-
 	if (ret) {
 		hif_nointrs(sc);
 		if (sc->hif_device != NULL) {
@@ -211,6 +222,8 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	sc->interface = interface;
 	sc->reboot_notifier.notifier_call = hif_usb_reboot;
 	register_reboot_notifier(&sc->reboot_notifier);
+
+	usb_sc = sc;
 	return 0;
 
 err_config:
@@ -218,7 +231,6 @@ err_config:
 err_attach:
 	ret = -EIO;
 err_tgtstate:
-	usb_sc = NULL;
 	A_FREE(sc);
 err_alloc:
 	usb_put_dev(pdev);
@@ -256,8 +268,11 @@ static void hif_usb_remove(struct usb_interface *interface)
 		usb_sc->local_state.event = 0;
 	}
 	unregister_reboot_notifier(&sc->reboot_notifier);
-
 	usb_put_dev(interface_to_usbdev(interface));
+	if (atomic_read(&hif_usb_unload_state) ==
+			HIF_USB_UNLOAD_STATE_DRV_DEREG)
+		atomic_set(&hif_usb_unload_state,
+			   HIF_USB_UNLOAD_STATE_TARGET_RESET);
 	scn = sc->ol_sc;
 
 	if (usb_sc->hdd_removed == 0) {
@@ -410,16 +425,47 @@ void hif_deinit_adf_ctx(void *ol_sc)
 	sc->adf_dev = NULL;
 }
 
+static int hif_usb_dev_notify(struct notifier_block *nb,
+				 unsigned long action, void *dev)
+{
+	struct usb_device *udev;
+	int ret = NOTIFY_DONE;
+
+	if (action != USB_DEVICE_REMOVE)
+		goto done;
+
+	udev = (struct usb_device *) dev;
+	if (hif_usb_unload_dev_num != udev->devnum)
+		goto done;
+
+	if (atomic_read(&hif_usb_unload_state) ==
+			HIF_USB_UNLOAD_STATE_TARGET_RESET) {
+		atomic_set(&hif_usb_unload_state,
+			   HIF_USB_UNLOAD_STATE_DEV_DISCONNECTED);
+		wake_up(&hif_usb_unload_event_wq);
+	}
+
+done:
+	return ret;
+}
+
+static struct notifier_block hif_usb_dev_nb = {
+	.notifier_call = hif_usb_dev_notify,
+};
 static int is_usb_driver_register = 0;
 int hif_register_driver(void)
 {
 	is_usb_driver_register = 1;
+	init_waitqueue_head(&hif_usb_unload_event_wq);
+	atomic_set(&hif_usb_unload_state, HIF_USB_UNLOAD_STATE_NULL);
+	usb_register_notify(&hif_usb_dev_nb);
 	return usb_register(&hif_usb_drv_id);
 }
 
 void hif_unregister_driver(void)
 {
 	if (is_usb_driver_register) {
+		long timeleft = 0;
 		if (usb_sc != NULL) {
 			/* wait __hdd_wlan_exit until finished and no more than
 			 * 4 seconds
@@ -449,7 +495,23 @@ void hif_unregister_driver(void)
 			}
 		}
 		is_usb_driver_register = 0;
+		atomic_set(&hif_usb_unload_state,
+			   HIF_USB_UNLOAD_STATE_DRV_DEREG);
 		usb_deregister(&hif_usb_drv_id);
+		if (atomic_read(&hif_usb_unload_state) !=
+				HIF_USB_UNLOAD_STATE_TARGET_RESET)
+			goto finish;
+		timeleft = wait_event_interruptible_timeout(
+				hif_usb_unload_event_wq,
+				atomic_read(&hif_usb_unload_state) ==
+				HIF_USB_UNLOAD_STATE_DEV_DISCONNECTED,
+				HIF_USB_UNLOAD_TIMEOUT);
+		if (timeleft <= 0)
+			pr_err("Fail to wait from DRV_DEREG to DISCONNECT,"
+				"timeleft = %ld \n\r",
+				timeleft);
+finish:
+		usb_unregister_notify(&hif_usb_dev_nb);
 	}
 }
 
