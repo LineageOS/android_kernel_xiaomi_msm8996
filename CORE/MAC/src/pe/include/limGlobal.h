@@ -72,7 +72,7 @@
 #define LIM_HASH_MISS_TIMER_MS                  10000
 
 // Deferred Message Queue Length
-#define MAX_DEFERRED_QUEUE_LEN                  20
+#define MAX_DEFERRED_QUEUE_LEN                  80
 
 // Maximum Buffer size
 #define LIM_MAX_BUF_SIZE                        8192
