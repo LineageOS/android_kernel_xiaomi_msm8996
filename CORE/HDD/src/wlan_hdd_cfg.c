@@ -3796,6 +3796,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                CFG_ENABLE_LPASS_SUPPORT_MIN,
                CFG_ENABLE_LPASS_SUPPORT_MAX),
 #endif
+   REG_VARIABLE( CFG_ENABLE_SELF_RECOVERY, WLAN_PARAM_Integer,
+              hdd_config_t, enableSelfRecovery,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_ENABLE_SELF_RECOVERY_DEFAULT,
+              CFG_ENABLE_SELF_RECOVERY_MIN,
+              CFG_ENABLE_SELF_RECOVERY_MAX ),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4333,6 +4339,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
             "Name = [gEnableLpassSupport] Value = [%u] ",
             pHddCtx->cfg_ini->enablelpasssupport);
 #endif
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gEnableSelfRecovery] Value = [%u]",
+                   pHddCtx->cfg_ini->enableSelfRecovery);
 }
 
 #define CFG_VALUE_MAX_LEN 256
@@ -6124,6 +6133,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    smeConfig->enable5gEBT = pHddCtx->cfg_ini->enable5gEBT;
 
+   smeConfig->enableSelfRecovery = pHddCtx->cfg_ini->enableSelfRecovery;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
    smeConfig->csrConfig.isRoamOffloadEnabled =
                         pHddCtx->cfg_ini->isRoamOffloadEnabled;

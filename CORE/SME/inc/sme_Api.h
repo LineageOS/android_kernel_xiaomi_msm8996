@@ -133,6 +133,7 @@ typedef struct _smeConfigParams
     tANI_U8       fEnableDebugLog;
     tANI_U8       max_intf_count;
     tANI_BOOLEAN  enable5gEBT;
+    tANI_BOOLEAN  enableSelfRecovery;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum
@@ -1819,6 +1820,15 @@ VOS_STATUS sme_BtcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig);
     \return void
   ---------------------------------------------------------------------------*/
 void sme_SetCfgPrivacy(tHalHandle hHal, tCsrRoamProfile *pProfile, tANI_BOOLEAN fPrivacy);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getRecoveryStats
+    \brief  API to get recovery stats for SME stuck cmds.
+    \param  hHal - The handle returned by macOpen.
+
+    \return void
+  ---------------------------------------------------------------------------*/
+void sme_getRecoveryStats(tHalHandle hHal);
 
 #if defined WLAN_FEATURE_VOWIFI
 /* ---------------------------------------------------------------------------
