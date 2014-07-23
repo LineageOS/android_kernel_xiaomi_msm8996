@@ -379,6 +379,11 @@ int epping_wlan_startup(struct device *parent_dev, v_VOID_t *hif_sc)
       return -1;
    }
    pEpping_ctx->HTCHandle = vos_get_context(VOS_MODULE_ID_HTC, pVosContext);
+   if (pEpping_ctx->HTCHandle == NULL) {
+      EPPING_LOG(VOS_TRACE_LEVEL_FATAL,
+         "%s: HTCHandle is NULL", __func__);
+      return -1;
+   }
    scn->htc_handle = pEpping_ctx->HTCHandle;
 
    HIFClaimDevice(scn->hif_hdl, scn);
