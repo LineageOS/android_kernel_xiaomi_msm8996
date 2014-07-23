@@ -4845,7 +4845,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         if (!vos_concurrent_sap_sessions_running()) {
             /* Single AP Mode */
             if (VOS_IS_DFS_CH(pConfig->channel))
-                 pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
+                pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
         } else {
             /* MBSSID Mode */
             hdd_adapter_t *con_sap_adapter;
@@ -4855,21 +4855,21 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             if (con_sap_adapter) {
                 /* we have active SAP running */
                 con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
-                /* If this SAP is configured for ACS use CC_SAP's DFS channel */
-                if (pConfig->channel == AUTO_CHANNEL_SELECT) {
-                    if (con_ch != 0 && VOS_IS_DFS_CH(con_ch))
-                        pConfig->channel = con_ch;
-                } else if (VOS_IS_DFS_CH(con_ch) &&
-                           (pConfig->channel != con_ch)) {
+                if (con_ch != 0 && VOS_IS_DFS_CH(con_ch)) {
+                    /* AP-AP DFS: secondary AP has to follow primary AP's
+                     * channel */
                     hddLog(VOS_TRACE_LEVEL_ERROR,
-                               "%s: Only SCC AP-AP DFS Permitted (ch=%d, con_ch=%d) !!", __func__, pConfig->channel, con_ch);
-                    return -EINVAL;
+                            "%s: Only SCC AP-AP DFS Permitted (chan=%d, con_ch=%d) !!, overriding guest AP's channel",
+                            __func__,
+                            pConfig->channel,
+                            con_ch);
+                    pConfig->channel = con_ch;
                 }
             } else {
                 /* We have idle AP interface (no active SAP running on it
                  * When one SAP is stopped then also this condition applies */
                 if (VOS_IS_DFS_CH(pConfig->channel))
-                     pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
+                    pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
             }
         }
 #endif
