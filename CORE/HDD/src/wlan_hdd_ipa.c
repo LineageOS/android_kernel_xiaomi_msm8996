@@ -538,7 +538,7 @@ static int hdd_ipa_uc_enable_pipes(struct hdd_ipa_priv *hdd_ipa)
 		return -ENOMEM;
 	}
 
-	meta.msg_type = SW_ROUTING_ENABLE;
+	meta.msg_type = SW_ROUTING_DISABLE;
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d",
 		msg->name, meta.msg_type);
 	result = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
@@ -566,17 +566,17 @@ static int hdd_ipa_uc_disable_pipes(struct hdd_ipa_priv *hdd_ipa)
 		return -ENOMEM;
 	}
 
-	meta.msg_type = SW_ROUTING_DISABLE;
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d",
-		msg->name, meta.msg_type);
+	meta.msg_type = SW_ROUTING_ENABLE;
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: SW PATH ENA", __func__);
 
 	result = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
 	if (result) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d fail:%d",
-			msg->name, meta.msg_type,  result);
+				msg->name, meta.msg_type,  result);
 		adf_os_mem_free(msg);
 		return result;
 	}
+
 
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 		"%s: Disable RX PIPE", __func__);
