@@ -319,6 +319,10 @@ extern spinlock_t hdd_context_lock;
 /* Max PMKSAIDS available in cache */
 #define MAX_PMKSAIDS_IN_CACHE 8
 
+#define HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1       390
+#define HDD_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_1_1       390
+
+
 typedef struct hdd_tx_rx_stats_s
 {
    // start_xmit stats

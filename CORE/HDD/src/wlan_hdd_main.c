@@ -6295,6 +6295,26 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     {
         pconfig->enable2x2 = 0;
         pconfig->enableTxSTBC = 0;
+
+        /* 1x1 */
+        /* Update Rx Highest Long GI data Rate */
+        if (ccmCfgSetInt(hdd_ctx->hHal,
+                    WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE,
+                    HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+        {
+            hddLog(LOGE, "Could not pass on "
+                    "WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE to CCM");
+        }
+
+        /* Update Tx Highest Long GI data Rate */
+        if (ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE,
+                    HDD_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_1_1, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+        {
+            hddLog(LOGE, "Could not pass on "
+                    "HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1 to CCM");
+        }
     }
     if (!(cfg->ht_tx_stbc && pconfig->enable2x2))
     {
