@@ -150,4 +150,18 @@ typedef struct sSapChSelParams {
     v_U16_t numChannels;
 } tSapChSelParams;
 
+#define SAP_TX_LEAKAGE_THRES 310
+#define SAP_TX_LEAKAGE_MAX  1000
+#define SAP_TX_LEAKAGE_MIN  200
+
+typedef struct sSapTxLeakInfo {
+    v_U8_t  leak_chan;      /* leak channel */
+    v_U32_t leak_lvl;       /* tx leakage lvl */
+} tSapTxLeakInfo;
+
+typedef struct sSapChanMatrixInfo {
+    v_U8_t channel;         /* channel to switch from */
+    tSapTxLeakInfo chan_matrix[RF_CHAN_140 - RF_CHAN_36 + 1];
+} tSapChanMatrixInfo;
+
 #endif // if !defined __SAP_CH_SELECT_H

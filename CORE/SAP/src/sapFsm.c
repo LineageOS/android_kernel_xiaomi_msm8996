@@ -89,6 +89,530 @@ extern sapSafeChannelType safeChannels[];
  * Static Variable Definitions
  * -------------------------------------------------------------------------*/
 
+/* channel tx leakage table - ht80 */
+tSapChanMatrixInfo ht80_chan[] =
+{
+ {52,
+   {{36, 148},            {40, 199},
+    {44, 193},            {48, 197},
+    {52, SAP_TX_LEAKAGE_MIN}, {56, 153},
+    {60, 137},            {64, 134},
+    {100, 358},           {104, 350},
+    {108, 404},           {112, 344},
+    {116, 424},           {120, 429},
+    {124, 437},           {128, 435},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+
+ {56,
+   {{36, 171},            {40, 178},
+    {44, 171},            {48, 178},
+    {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
+    {60, SAP_TX_LEAKAGE_MIN}, {64, 280},
+    {100, 351},           {104, 376},
+    {108, 362},           {112, 362},
+    {116, 403},           {120, 397},
+    {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+
+ {60,
+   {{36, 156},            {40, 146},
+    {44, SAP_TX_LEAKAGE_MIN}, {48, SAP_TX_LEAKAGE_MIN},
+    {52, 180},            {56, SAP_TX_LEAKAGE_MIN},
+    {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
+    {100, 376},           {104, 360},
+    {108, SAP_TX_LEAKAGE_MAX},{112, SAP_TX_LEAKAGE_MAX},
+    {116, 395},           {120, 399},
+    {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+
+ {64,
+   {{36, 217},            {40, 221},
+    {44, SAP_TX_LEAKAGE_MIN}, {48, SAP_TX_LEAKAGE_MIN},
+    {52, 176},            {56, 176},
+    {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
+    {100, 384},           {104, 390},
+    {108, SAP_TX_LEAKAGE_MAX},{112, SAP_TX_LEAKAGE_MAX},
+    {116, 375},           {120, 374},
+    {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+
+ {100,
+   {{36, 357},            {40, 326},
+    {44, 321},            {48, 326},
+    {52, 378},            {56, 396},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
+    {108, 196},           {112, 116},
+    {116, 166},           {120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+
+ {104,
+   {{36, 325},            {40, 325},
+    {44, 305},            {48, 352},
+    {52, 411},            {56, 411},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, 460},
+    {116, 198},           {120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+
+ {108,
+   {{36, 304},            {40, 332},
+    {44, 310},            {48, 335},
+    {52, 431},            {56, 391},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, 280},           {104, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, 185},           {120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+
+ {112,
+   {{36, 327},            {40, 335},
+    {44, 331},            {48, 345},
+    {52, 367},            {56, 401},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, 131},           {104, 132},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, 189},           {120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+
+ {116,
+   {{36, 384},            {40, 372},
+    {44, 389},            {48, 396},
+    {52, 348},            {56, 336},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, 172},           {104, 169},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+
+ {120,
+   {{36, 395},            {40, 419},
+    {44, 439},            {48, 407},
+    {52, 321},            {56, 334},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, 134},           {104, 186},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, 159},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+
+ {124,
+   {{36, 469},            {40, 433},
+    {44, 434},            {48, 435},
+    {52, 332},            {56, 345},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, 146},           {104, 177},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, 350},           {120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, 138},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+
+ {128,
+   {{36, 408},            {40, 434},
+    {44, 449},            {48, 444},
+    {52, 341},            {56, 374},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, 205},           {104, 208},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, 142},           {120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+ {132,
+   {{36, SAP_TX_LEAKAGE_MAX },            {40, SAP_TX_LEAKAGE_MAX },
+    {44, SAP_TX_LEAKAGE_MAX },            {48, SAP_TX_LEAKAGE_MAX },
+    {52, SAP_TX_LEAKAGE_MAX }, {56, SAP_TX_LEAKAGE_MAX },
+    {60, SAP_TX_LEAKAGE_MIN }, {64, SAP_TX_LEAKAGE_MIN },
+    {100, SAP_TX_LEAKAGE_MIN },{104, SAP_TX_LEAKAGE_MIN },
+    {108, SAP_TX_LEAKAGE_MIN },           {112, SAP_TX_LEAKAGE_MIN },
+    {116, SAP_TX_LEAKAGE_MIN },{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN }}},
+ {136,
+   {{36, SAP_TX_LEAKAGE_MAX },            {40, SAP_TX_LEAKAGE_MAX },
+    {44, SAP_TX_LEAKAGE_MAX },            {48, SAP_TX_LEAKAGE_MAX },
+    {52, SAP_TX_LEAKAGE_MAX }, {56, SAP_TX_LEAKAGE_MAX },
+    {60, SAP_TX_LEAKAGE_MIN }, {64, SAP_TX_LEAKAGE_MIN },
+    {100, SAP_TX_LEAKAGE_MIN },{104, SAP_TX_LEAKAGE_MIN },
+    {108, SAP_TX_LEAKAGE_MIN },{112, SAP_TX_LEAKAGE_MIN },
+    {116, SAP_TX_LEAKAGE_MIN },           {120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN }}},
+ {140,
+   {{36, SAP_TX_LEAKAGE_MAX },            {40, SAP_TX_LEAKAGE_MAX },
+    {44, SAP_TX_LEAKAGE_MAX },            {48, SAP_TX_LEAKAGE_MAX },
+    {52, SAP_TX_LEAKAGE_MAX },            {56, SAP_TX_LEAKAGE_MAX },
+    {60, SAP_TX_LEAKAGE_MIN },            {64, SAP_TX_LEAKAGE_MIN },
+    {100, SAP_TX_LEAKAGE_MIN },{104, SAP_TX_LEAKAGE_MIN },
+    {108, SAP_TX_LEAKAGE_MIN },{112, SAP_TX_LEAKAGE_MIN },
+    {116, SAP_TX_LEAKAGE_MIN },           {120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN}}},
+};
+
+/* channel tx leakage table - ht40 */
+tSapChanMatrixInfo ht40_chan[] =
+{
+ {52,
+   {{36, 328},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 230},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
+    {60, 323},            {64, SAP_TX_LEAKAGE_MIN },
+    {100, 625},           {104, SAP_TX_LEAKAGE_MIN },
+    {108, 646},{112, SAP_TX_LEAKAGE_MIN },
+    {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
+    {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+ {56,
+   {{36, 446},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 300},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
+    {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
+    {100, 611},{104, SAP_TX_LEAKAGE_MIN },
+    {108, 617},{112, SAP_TX_LEAKAGE_MIN },
+    {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
+    {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+ {60,
+   {{36, 481},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 407},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 190}, {56, SAP_TX_LEAKAGE_MIN},
+    {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
+    {100, 608},{104, SAP_TX_LEAKAGE_MIN },
+    {108, 623},{112, SAP_TX_LEAKAGE_MIN },
+    {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
+    {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+ {64,
+   {{36, 524},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 527},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 295},            {56, SAP_TX_LEAKAGE_MIN },
+    {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
+    {100, 594},           {104, SAP_TX_LEAKAGE_MIN },
+    {108, 625},{112, SAP_TX_LEAKAGE_MIN },
+    {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
+    {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+
+ {100,
+   {{36, 618},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 604},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 596},            {56, SAP_TX_LEAKAGE_MIN },
+    {60, 584},            {64, SAP_TX_LEAKAGE_MIN },
+    {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN },
+    {108, 299},           {112, SAP_TX_LEAKAGE_MIN },
+    {116, 486},           {120, SAP_TX_LEAKAGE_MIN },
+    {124, 498},           {128, SAP_TX_LEAKAGE_MIN },
+    {132, 538},           {136, SAP_TX_LEAKAGE_MIN },
+    {140, 598}}},
+ {104,
+   {{36, 636},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 601},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 616}, {56, SAP_TX_LEAKAGE_MIN },
+    {60, 584}, {64, SAP_TX_LEAKAGE_MIN },
+    {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, 396},{120, SAP_TX_LEAKAGE_MIN },
+    {124, 483},           {128, SAP_TX_LEAKAGE_MIN },
+    {132, 553},           {136, SAP_TX_LEAKAGE_MIN },
+    {140, 568}}},
+ {108,
+   {{36, 600},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 627},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 611}, {56, SAP_TX_LEAKAGE_MIN },
+    {60, 611}, {64, SAP_TX_LEAKAGE_MIN },
+    {100, 214},{104, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, 323},{120, SAP_TX_LEAKAGE_MIN},
+    {124, 494},{128, SAP_TX_LEAKAGE_MIN},
+    {132, 566},{136, SAP_TX_LEAKAGE_MIN },
+    {140, 534}}},
+ {112,
+   {{36, 645},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 641},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 618}, {56, SAP_TX_LEAKAGE_MIN },
+    {60, 612}, {64, SAP_TX_LEAKAGE_MIN },
+    {100, 293},{104, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, 414},{128, SAP_TX_LEAKAGE_MIN},
+    {132, 533},{136, SAP_TX_LEAKAGE_MIN },
+    {140, 521}}},
+ {116,
+   {{36, 661},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 624},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 634}, {56, SAP_TX_LEAKAGE_MIN },
+    {60, 611},            {64, SAP_TX_LEAKAGE_MIN },
+    {100, 371},{104, SAP_TX_LEAKAGE_MIN},
+    {108, 217},{112, SAP_TX_LEAKAGE_MIN },
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, 309},{128, SAP_TX_LEAKAGE_MIN },
+    {132, 412},{136, SAP_TX_LEAKAGE_MIN},
+    {140, 509}}},
+ {120,
+   {{36, 667},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 645},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 633}, {56, SAP_TX_LEAKAGE_MIN },
+    {60, 619}, {64, SAP_TX_LEAKAGE_MIN },
+    {100, 467},           {104, SAP_TX_LEAKAGE_MIN},
+    {108, 291},{112, SAP_TX_LEAKAGE_MIN},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, 434},{136, SAP_TX_LEAKAGE_MIN},
+    {140, 514}}},
+ {124,
+   {{36, 676},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 668},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 595}, {56, SAP_TX_LEAKAGE_MIN },
+    {60, 622}, {64, SAP_TX_LEAKAGE_MIN },
+    {100, 494},           {104, SAP_TX_LEAKAGE_MIN},
+    {108, 393},{112, SAP_TX_LEAKAGE_MIN},
+    {116, 225},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, 327},{136, SAP_TX_LEAKAGE_MIN},
+    {140, 468}}},
+ {128,
+   {{36, 678},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 664},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 651}, {56, SAP_TX_LEAKAGE_MIN },
+    {60, 643}, {64, SAP_TX_LEAKAGE_MIN },
+    {100, 502},           {104, SAP_TX_LEAKAGE_MIN },
+    {108, 503},{112, SAP_TX_LEAKAGE_MIN},
+    {116, 293},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, 415}}},
+ {132,
+   {{36, 689},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 669},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 662}, {56, SAP_TX_LEAKAGE_MIN },
+    {60, 609}, {64, SAP_TX_LEAKAGE_MIN },
+    {100, 538},{104, SAP_TX_LEAKAGE_MIN },
+    {108, 534},           {112, SAP_TX_LEAKAGE_MIN },
+    {116, 428},{120, SAP_TX_LEAKAGE_MIN},
+    {124, 247},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN }}},
+ {136,
+   {{36, 703},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 688},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 671}, {56, SAP_TX_LEAKAGE_MIN },
+    {60, 658}, {64, SAP_TX_LEAKAGE_MIN },
+    {100, 504},{104, SAP_TX_LEAKAGE_MIN },
+    {108, 513},{112, SAP_TX_LEAKAGE_MIN },
+    {116, 428},           {120, SAP_TX_LEAKAGE_MIN},
+    {124, 289},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN }}},
+ {140,
+   {{36, 695},            {40, SAP_TX_LEAKAGE_MIN },
+    {44, 684},            {48, SAP_TX_LEAKAGE_MIN },
+    {52, 664},            {56, SAP_TX_LEAKAGE_MIN },
+    {60, 658},            {64, SAP_TX_LEAKAGE_MIN },
+    {100, 601},{104, SAP_TX_LEAKAGE_MIN },
+    {108, 545},{112, SAP_TX_LEAKAGE_MIN },
+    {116, 529},           {120, SAP_TX_LEAKAGE_MIN},
+    {124, 432},{128, SAP_TX_LEAKAGE_MIN},
+    {132, 262},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN }}},
+};
+
+
+/* channel tx leakage table - ht20 */
+tSapChanMatrixInfo ht20_chan[] =
+{
+ {52,
+   {{36, 398},            {40, 286},
+    {44, 225},            {48, 121},
+    {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
+    {60, 300},            {64, 335},
+    {100, 637},           {104, SAP_TX_LEAKAGE_MAX},
+    {108, SAP_TX_LEAKAGE_MAX},{112, SAP_TX_LEAKAGE_MAX},
+    {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
+    {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+ {56,
+   {{36, 468},            {40, 413},
+    {44, 374},            {48, 206},
+    {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
+    {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
+    {100, SAP_TX_LEAKAGE_MAX},{104, SAP_TX_LEAKAGE_MAX},
+    {108, SAP_TX_LEAKAGE_MAX},{112, SAP_TX_LEAKAGE_MAX},
+    {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
+    {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+ {60,
+   {{36, 507},            {40, 440},
+    {44, 431},            {48, 313},
+    {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
+    {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
+    {100, SAP_TX_LEAKAGE_MAX},{104, SAP_TX_LEAKAGE_MAX},
+    {108, SAP_TX_LEAKAGE_MAX},{112, SAP_TX_LEAKAGE_MAX},
+    {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
+    {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+ {64,
+   {{36, 516},            {40, 520},
+    {44, 506},            {48, 424},
+    {52, 301},            {56, 258},
+    {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
+    {100, 620},           {104, 617},
+    {108, SAP_TX_LEAKAGE_MAX},{112, SAP_TX_LEAKAGE_MAX},
+    {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
+    {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
+    {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+
+ {100,
+   {{36, 616},            {40, 601},
+    {44, 604},            {48, 589},
+    {52, 612},            {56, 592},
+    {60, 590},            {64, 582},
+    {100, SAP_TX_LEAKAGE_MIN},{104, 131},
+    {108, 327},           {112, 380},
+    {116, 462},           {120, 522},
+    {124, 571},           {128, 589},
+    {132, 593},           {136, 598},
+    {140, 594}}},
+ {104,
+   {{36, 622},            {40, 624},
+    {44, 618},            {48, 610},
+    {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, 523},           {128, 565},
+    {132, 570},           {136, 588},
+    {140, 585}}},
+ {108,
+   {{36, 620},            {40, 638},
+    {44, 611},            {48, 614},
+    {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, 577},
+    {140, 603}}},
+ {112,
+   {{36, 636},            {40, 623},
+    {44, 638},            {48, 628},
+    {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, 606},
+    {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, 561},
+    {140, 583}}},
+ {116,
+   {{36, 646},            {40, 648},
+    {44, 633},            {48, 634},
+    {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
+    {60, 615},            {64, SAP_TX_LEAKAGE_MAX},
+    {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, 574}}},
+ {120,
+   {{36, 643},            {40, 649},
+    {44, 654},            {48, 629},
+    {52, SAP_TX_LEAKAGE_MAX}, {56, 621},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, 565},           {104, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+ {124,
+   {{36, 638},            {40, 657},
+    {44, 663},            {48, 649},
+    {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, 581},           {104, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+ {128,
+   {{36, 651},            {40, 651},
+    {44, 674},            {48, 640},
+    {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, 603},           {104, 560},
+    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+ {132,
+   {{36, 643},            {40, 668},
+    {44, 651},            {48, 657},
+    {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, SAP_TX_LEAKAGE_MAX},{104, 602},
+    {108, 578},           {112, 570},
+    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+ {136,
+   {{36, 654},            {40, 667},
+    {44, 666},            {48, 642},
+    {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
+    {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
+    {100, SAP_TX_LEAKAGE_MAX},{104, SAP_TX_LEAKAGE_MAX},
+    {108, SAP_TX_LEAKAGE_MAX},{112, 596},
+    {116, 555},           {120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MAX}}},
+ {140,
+   {{36, 679},            {40, 673},
+    {44, 667},            {48, 656},
+    {52, 634},            {56, 663},
+    {60, 662},            {64, SAP_TX_LEAKAGE_MAX},
+    {100, SAP_TX_LEAKAGE_MAX},{104, SAP_TX_LEAKAGE_MAX},
+    {108, SAP_TX_LEAKAGE_MAX},{112, 590},
+    {116, 573},           {120, SAP_TX_LEAKAGE_MIN},
+    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {140, SAP_TX_LEAKAGE_MIN}}},
+};
+
+
 /*----------------------------------------------------------------------------
  * Static Function Declarations and Definitions
  * -------------------------------------------------------------------------*/
@@ -194,6 +718,121 @@ static inline void sapEventInit(ptWLAN_SAPEvent sapEvent)
 }
 
 /*
+ * This function is added to check if channel is in tx leak range
+ *
+ * PARAMETERS
+ * IN
+ * sapContext: Pointer to vos global context structure
+ * target_channel: the target channel to switch to
+ *
+ * RETURN VALUE
+ * BOOLEAN to indicate if the target channel is good or bad to switch
+ *
+ * TRUE: the channel is above the tx leak threshold
+ * FALSE: good to be used
+ */
+v_BOOL_t
+sapChannelMatrixCheck(ptSapContext sapContext, v_U8_t target_channel)
+{
+    tSapTxLeakInfo *target_chan_matrix = NULL;
+    tSapChanMatrixInfo *pchan_matrix = NULL;
+    v_U32_t     num_channel = (RF_CHAN_140 - RF_CHAN_36) + 1;
+    v_U32_t     nchan_matrix;
+    ePhyChanBondState cbMode;
+    tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+    int i = 0;
+
+    if (NULL == hHal) {
+        VOS_ASSERT(0);
+        return VOS_FALSE;
+    }
+
+    cbMode = sme_GetCBPhyStateFromCBIniValue(
+                sme_GetChannelBondingMode5G(hHal));
+
+    switch (cbMode) {
+        case PHY_SINGLE_CHANNEL_CENTERED:
+            /* HT20 */
+            pchan_matrix = ht20_chan;
+            nchan_matrix = sizeof(ht20_chan)/sizeof(tSapChanMatrixInfo);
+        break;
+        case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
+        case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
+            /* HT40 */
+            pchan_matrix = ht40_chan;
+            nchan_matrix = sizeof(ht40_chan)/sizeof(tSapChanMatrixInfo);
+        break;
+#ifdef WLAN_FEATURE_11AC
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH:
+            /* HT80 */
+            pchan_matrix = ht80_chan;
+            nchan_matrix = sizeof(ht80_chan)/sizeof(tSapChanMatrixInfo);
+        break;
+#endif
+        default:
+            /* handle exception and fall back to HT20 table */
+            pchan_matrix = ht20_chan;
+            nchan_matrix = sizeof(ht20_chan)/sizeof(tSapChanMatrixInfo);
+        break;
+    }
+
+    for (i = 0; i < nchan_matrix; i++)
+    {
+        /* find the SAP channel to map the leakage matrix */
+        if (sapContext->channel == pchan_matrix[i].channel)
+        {
+            target_chan_matrix = pchan_matrix[i].chan_matrix;
+            break;
+        }
+    }
+
+    if (NULL == target_chan_matrix)
+    {
+        /* should never happen, we should ind a table here,
+         * if we don't, need a fix here!
+         */
+
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+            FL("Shouldn't see this message! something went wrong here!"));
+
+        VOS_ASSERT(0);
+        return VOS_FALSE;
+    }
+
+    for (i = 0; i < num_channel; i++)
+    {
+        if (target_channel == target_chan_matrix[i].leak_chan)
+        {
+            if (target_chan_matrix[i].leak_lvl > SAP_TX_LEAKAGE_THRES) {
+                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                        FL("Channel=%d is good"),
+                            target_channel);
+
+                    return VOS_FALSE;
+            } else {
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                    FL("Channel=%d has leakage=-%d dBm"),
+                        target_channel, (target_chan_matrix[i].leak_lvl/10));
+                return VOS_TRUE;
+            }
+        }
+    }
+
+    /* should never happen, we should find a table here,
+     * if we don't, need a fix here
+     */
+    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+        FL("Channel=%d is not in the list"),
+        target_channel);
+
+    return VOS_FALSE;
+}
+
+
+/*
  * This function randomly pick up an AVAILABLE channel
  */
 static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
@@ -259,6 +898,17 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
                       __func__, __LINE__, i,
                       sapContext->SapAllChnlList.channelList[i]);
 
+            continue;
+        }
+
+        /* check the channel matrix */
+        if (VOS_TRUE == sapChannelMatrixCheck(sapContext,
+                    sapContext->SapAllChnlList.channelList[i]))
+        {
+            /* skip this channel, it is out of tx leak threshold  */
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                     FL("Channel=%d has tx leakage"),
+                      sapContext->SapAllChnlList.channelList[i]);
             continue;
         }
 
