@@ -618,7 +618,8 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
     pSpectCh = (tSapSpectChInfo *)vos_mem_malloc((pSpectInfoParams->numSpectChans) * sizeof(*pSpectCh));
 
     if(pSpectCh == NULL) {
-        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, VOS_MALLOC_ERR", __func__);
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "In %s, VOS_MALLOC_ERR", __func__);
         return eSAP_FALSE;
     }
 
@@ -630,11 +631,14 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
     pChans = pMac->scan.base20MHzChannels.channelList;
 
     // Fill the channel number in the spectrum in the operating freq band
-    for (channelnum = 0; channelnum < pSpectInfoParams->numSpectChans; channelnum++, pChans++) {
+    for (channelnum = 0;
+            channelnum < pSpectInfoParams->numSpectChans;
+                channelnum++, pChans++) {
         chSafe = VOS_TRUE;
 
         /* check if the channel is in NOL blacklist */
-        if((sapDfsIsChannelInNolList(pSapCtx, *pChans)))
+        if(sapDfsIsChannelInNolList(pSapCtx, *pChans,
+                        PHY_SINGLE_CHANNEL_CENTERED))
         {
             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                 "In %s, Ch %d is in NOL list", __func__, *pChans);
@@ -647,7 +651,7 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
             if (VOS_IS_DFS_CH(*pChans)) {
                 chSafe = VOS_FALSE;
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                          "In %s,  DFS Ch %d not considered for ACS", __func__,
+                          "In %s, DFS Ch %d not considered for ACS", __func__,
                           *pChans);
                 continue;
             }
@@ -658,7 +662,8 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
             if((safeChannels[i].channelNumber == *pChans) &&
                 (VOS_FALSE == safeChannels[i].isSafe))
             {
-                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Ch %d is not safe",
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                        "In %s, Ch %d is not safe",
                           __func__, *pChans);
                 chSafe = VOS_FALSE;
                 break;

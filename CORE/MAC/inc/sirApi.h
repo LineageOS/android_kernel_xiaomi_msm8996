@@ -1233,6 +1233,9 @@ typedef struct sSirSmeJoinRsp
     /*Broadcast DPU signature*/
     tANI_U8            bcastSig;
 
+    /*to report MAX link-speed populate rate-flags from ASSOC RSP frame*/
+    tANI_U32            maxRateFlags;
+
     /*Timing measurement capability*/
     tANI_U8            timingMeasCap;
 

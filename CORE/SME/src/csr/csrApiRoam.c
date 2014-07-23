@@ -5688,6 +5688,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     roamInfo.staId = ( tANI_U8 )pJoinRsp->staId;
                     roamInfo.ucastSig = ( tANI_U8 )pJoinRsp->ucastSig;
                     roamInfo.bcastSig = ( tANI_U8 )pJoinRsp->bcastSig;
+                    roamInfo.maxRateFlags = pJoinRsp->maxRateFlags;
                     roamInfo.timingMeasCap = pJoinRsp->timingMeasCap;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
                     if (pMac->roam.configParam.cc_switch_mode
@@ -6795,7 +6796,7 @@ eHalStatus csrRoamEnqueuePreauth(tpAniSirGlobal pMac, tANI_U32 sessionId, tpSirB
     return (status);
 }
 
-eHalStatus csrRoamDequeuePreauth(tpAniSirGlobal pMac)
+eHalStatus csrDequeueRoamCommand(tpAniSirGlobal pMac, eCsrRoamReason reason)
 {
     tListElem *pEntry;
     tSmeCmd *pCommand;
@@ -6804,14 +6805,24 @@ eHalStatus csrRoamDequeuePreauth(tpAniSirGlobal pMac)
     {
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         if ( (eSmeCommandRoam == pCommand->command) &&
-                (eCsrPerformPreauth == pCommand->u.roamCmd.roamReason))
+                (eCsrPerformPreauth == reason))
         {
             smsLog( pMac, LOG1, FL("DQ-Command = %d, Reason = %d"),
                     pCommand->command, pCommand->u.roamCmd.roamReason);
             if (csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK )) {
                 csrReleaseCommandPreauth( pMac, pCommand );
             }
-        } else  {
+        }
+        else if ((eSmeCommandRoam == pCommand->command) &&
+                (eCsrSmeIssuedFTReassoc == reason))
+        {
+            smsLog( pMac, LOG1, FL("DQ-Command = %d, Reason = %d"),
+                    pCommand->command, pCommand->u.roamCmd.roamReason);
+            if (csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK )) {
+                csrReleaseCommandRoam( pMac, pCommand );
+            }
+        }
+        else  {
             smsLog( pMac, LOGE, FL("Command = %d, Reason = %d "),
                     pCommand->command, pCommand->u.roamCmd.roamReason);
         }

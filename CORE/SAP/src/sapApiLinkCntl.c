@@ -429,7 +429,7 @@ WLANSAP_RoamCallback
 
        case eCSR_ROAM_DFS_RADAR_IND:
            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                     "In %s, Received Radar Indication", __func__);
+                   FL("Received Radar Indication"));
 
            /* sync to latest DFS-NOL */
            sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NOL_GET,
@@ -437,11 +437,15 @@ WLANSAP_RoamCallback
 
            pMac->sap.SapDfsInfo.target_channel =
                      sapIndicateRadar(sapContext, &pCsrRoamInfo->dfs_event);
+
+           /* if there is an assigned next channel hopping */
            if (0 < pMac->sap.SapDfsInfo.user_provided_target_channel)
            {
-              pMac->sap.SapDfsInfo.target_channel =
-                     pMac->sap.SapDfsInfo.user_provided_target_channel;
+               pMac->sap.SapDfsInfo.target_channel =
+                   pMac->sap.SapDfsInfo.user_provided_target_channel;
+               pMac->sap.SapDfsInfo.user_provided_target_channel = 0;
            }
+
            pMac->sap.SapDfsInfo.cac_state = eSAP_DFS_DO_NOT_SKIP_CAC;
            sap_CacResetNotify(hHal);
 

@@ -6048,6 +6048,8 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
 
 #ifdef FEATURE_WLAN_SCAN_PNO
     /* PNO offload */
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: PNO Capability in f/w = %d",
+           __func__,cfg->pno_offload);
     if (cfg->pno_offload)
         cfg_ini->PnoOffload = TRUE;
 #endif
@@ -7889,7 +7891,7 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
    tANI_U32 type, subType;
-   long rc = 0;
+   unsigned long rc = 0;
    int ret_val;
 
    INIT_COMPLETION(pAdapter->session_open_comp_var);
@@ -7914,11 +7916,10 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
    }
 
    //Block on a completion variable. Can't wait forever though.
-   rc = wait_for_completion_interruptible_timeout(
+   rc = wait_for_completion_timeout(
                         &pAdapter->session_open_comp_var,
                         msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
-   if (rc <= 0)
-   {
+   if (!rc) {
       hddLog(VOS_TRACE_LEVEL_FATAL,
              FL("Session is not opened within timeout period code %ld"),
              rc );
@@ -11465,6 +11466,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    hdd_wdi_trace_enable(eWLAN_MODULE_PAL,
                         pHddCtx->cfg_ini->wdiTraceEnablePAL);
 
+   print_hdd_cfg(pHddCtx);
 
    if (VOS_FTM_MODE == hdd_get_conparam())
        goto ftm_processing;
