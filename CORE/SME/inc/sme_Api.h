@@ -2834,9 +2834,8 @@ eHalStatus sme_UpdateEnableFastRoamInConcurrency(tHalHandle hHal,
           Other status means SME is failed to update isEseIniFeatureEnabled.
   \sa
   --------------------------------------------------------------------------*/
-
-eHalStatus sme_UpdateIsEseFeatureEnabled(tHalHandle hHal,
-        const v_BOOL_t isEseIniFeatureEnabled);
+eHalStatus sme_UpdateIsEseFeatureEnabled(tHalHandle hHal, tANI_U8 sessionId,
+                                       const v_BOOL_t isEseIniFeatureEnabled);
 
 #endif /* FEATURE_WLAN_ESE */
 

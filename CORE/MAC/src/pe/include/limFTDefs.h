@@ -150,6 +150,7 @@ typedef struct sSirFTRoamOffloadSynchRsp
 {
    tANI_U16    messageType;      /* eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_RSP */
    tANI_U16    length;
+   tANI_U8     sessionId;
    tpSirBssDescription  pbssDescription;
 } tSirFTRoamOffloadSynchRsp, *tpSirFTRoamOffloadSynchRsp;
 #endif

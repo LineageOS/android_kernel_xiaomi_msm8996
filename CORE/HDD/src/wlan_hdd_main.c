@@ -5043,7 +5043,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to change ese mode = %d", __func__, eseMode);
 
            pHddCtx->cfg_ini->isEseIniFeatureEnabled = eseMode;
-           sme_UpdateIsEseFeatureEnabled(pHddCtx->hHal, eseMode);
+           sme_UpdateIsEseFeatureEnabled(pHddCtx->hHal, pAdapter->sessionId,
+                                         eseMode);
        }
 #endif
        else if (strncmp(command, "SETROAMSCANCONTROL", 18) == 0)

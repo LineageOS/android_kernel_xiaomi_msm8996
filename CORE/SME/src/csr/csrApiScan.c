@@ -8765,6 +8765,7 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
    v_TIME_t timer=0;
    tpSirMacMgmtHdr macHeader;
    tANI_U8 *pBeaconProbeResp;
+   tANI_U8 sessionId = pRoamOffloadSynchInd->roamedVdevId;
 
    pBeaconProbeResp = (tANI_U8 *)pRoamOffloadSynchInd +
        pRoamOffloadSynchInd->beaconProbeRespOffset;
@@ -8936,7 +8937,7 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
       vos_mem_free(pParsedFrame);
       return eHAL_STATUS_RESOURCES;
    }
-   csrScanAddResult(pMac, pScanResult, pIesLocal);
+   csrScanAddResult(pMac, pScanResult, pIesLocal, sessionId);
 
    vos_mem_free(pParsedFrame);
 

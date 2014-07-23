@@ -158,7 +158,7 @@ cbNotifySetEseFeatureEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
     /* At the point this routine is called, the value in the cfg_ini
        table has already been updated */
-    sme_UpdateIsEseFeatureEnabled(pHddCtx->hHal,
+    sme_UpdateIsEseFeatureEnabled(pHddCtx->hHal, 0,
                                   pHddCtx->cfg_ini->isEseIniFeatureEnabled );
 }
 #endif

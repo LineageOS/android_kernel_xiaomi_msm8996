@@ -9735,7 +9735,8 @@ eHalStatus sme_UpdateIsEseFeatureEnabled
            pMac->roam.configParam.isEseIniFeatureEnabled,
            isEseIniFeatureEnabled);
     pMac->roam.configParam.isEseIniFeatureEnabled = isEseIniFeatureEnabled;
-    csrNeighborRoamUpdateEseModeEnabled(pMac, isEseIniFeatureEnabled);
+    csrNeighborRoamUpdateEseModeEnabled(pMac, sessionId,
+                                        isEseIniFeatureEnabled);
 
     if (TRUE == isEseIniFeatureEnabled)
     {
