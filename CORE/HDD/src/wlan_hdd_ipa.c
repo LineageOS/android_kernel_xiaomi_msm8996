@@ -1384,7 +1384,7 @@ VOS_STATUS hdd_ipa_process_rxt(v_VOID_t *vosContext, adf_nbuf_t rx_buf_list,
 	if (hdd_ipa->pend_q_cnt > hdd_ipa->stats.max_pend_q_cnt)
 		hdd_ipa->stats.max_pend_q_cnt = hdd_ipa->pend_q_cnt;
 
-	if (hdd_ipa_rm_request(hdd_ipa) == 0) {
+	if (cur_cnt && hdd_ipa_rm_request(hdd_ipa) == 0) {
 		hdd_ipa_send_pkt_to_ipa(hdd_ipa);
 	}
 
@@ -2362,7 +2362,7 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 {
 	struct  hdd_ipa_priv *hdd_ipa = file->private_data;
 	char *buf;
-	unsigned int len = 0, buf_len = 2048;
+	unsigned int len = 0, buf_len = 4096;
 	ssize_t ret_cnt;
 	int i;
 	struct hdd_ipa_iface_context *iface_context = NULL;
@@ -2371,7 +2371,6 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 
 #define HDD_IPA_IFACE_STATS(_buf, _len, _iface, _name) \
 	scnprintf(_buf, _len, "%30s: %llu\n", #_name, _iface->stats._name)
-
 
 	buf = kzalloc(buf_len, GFP_KERNEL);
 	if (!buf)
@@ -2502,8 +2501,36 @@ skip:
 #undef HDD_IPA_IFACE_STATS
 }
 
+static ssize_t hdd_ipa_debugfs_write_ipa_stats(struct file *file,
+		const char __user *user_buf, size_t count, loff_t *ppos)
+{
+	struct  hdd_ipa_priv *hdd_ipa = file->private_data;
+	struct hdd_ipa_iface_context *iface_context = NULL;
+	int ret;
+	uint32_t val;
+	int i;
+
+	ret = kstrtou32_from_user(user_buf, count, 0, &val);
+
+	if (ret)
+		return ret;
+
+	if (val == 0) {
+		for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
+			iface_context = &hdd_ipa->iface_context[i];
+			memset(&iface_context->stats, 0,
+					sizeof(iface_context->stats));
+		}
+
+		memset(&hdd_ipa->stats, 0, sizeof(hdd_ipa->stats));
+	}
+
+	return count;
+}
+
 static const struct file_operations fops_ipa_stats = {
 		.read = hdd_ipa_debugfs_read_ipa_stats,
+		.write = hdd_ipa_debugfs_write_ipa_stats,
 		.open = simple_open,
 		.owner = THIS_MODULE,
 		.llseek = default_llseek,
