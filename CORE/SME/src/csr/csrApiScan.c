@@ -8908,6 +8908,12 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
                 sizeof(tSirMacAddr));
    pBssDescr->nReceivedTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
 
+   if(pParsedFrame->mdiePresent)
+   {
+      pBssDescr->mdiePresent = pParsedFrame->mdiePresent;
+      vos_mem_copy((tANI_U8 *)pBssDescr->mdie, (tANI_U8 *)pParsedFrame->mdie, SIR_MDIE_SIZE);
+   }
+
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                                 "LFR3:%s:BssDescr Info:", __func__);
    VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,

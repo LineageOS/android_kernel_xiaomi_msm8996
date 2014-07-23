@@ -4002,6 +4002,8 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U8   BTK[SIR_BTK_KEY_LEN];
   tANI_U32   ReassocFailureTimeout;
   tSirAcUapsd AcUapsd;
+  tANI_U32  R0KH_ID;
+  tANI_U32  R0KH_ID_Length;
 #endif
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 

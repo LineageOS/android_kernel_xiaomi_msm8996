@@ -7316,10 +7316,12 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 				buf_ptr += WMI_TLV_HDR_SIZE;
 				roam_offload_11r =
 				(wmi_roam_11r_offload_tlv_param *) buf_ptr;
-				roam_offload_11r->r0kh_id = 0;
-				roam_offload_11r->r0kh_id_len = 0;
+				roam_offload_11r->r0kh_id = roam_req->R0KH_ID;
+				roam_offload_11r->r0kh_id_len = roam_req->R0KH_ID_Length;
 				vos_mem_copy (roam_offload_11r->psk_msk, roam_req->PSK_PMK,
 						       sizeof(roam_req->PSK_PMK));
+				roam_offload_11r->mdie_present = roam_req->MDID.mdiePresent;
+				roam_offload_11r->mdid = roam_req->MDID.mobilityDomain;
 				WMITLV_SET_HDR(&roam_offload_11r->tlv_header,
 				WMITLV_TAG_STRUC_wmi_roam_11r_offload_tlv_param,
 				WMITLV_GET_STRUCT_TLVLEN

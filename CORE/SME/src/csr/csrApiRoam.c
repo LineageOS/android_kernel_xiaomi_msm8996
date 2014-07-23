@@ -16326,6 +16326,8 @@ void csrRoamOffload(tpAniSirGlobal pMac, tSirRoamOffloadScanReq *pRequestBuf,
                                                    tCsrRoamSession *pSession)
 {
         vos_mem_copy(pRequestBuf->PSK_PMK, pSession->psk_pmk, sizeof(pRequestBuf->PSK_PMK));
+        pRequestBuf->R0KH_ID_Length = pSession->ftSmeContext.r0kh_id_len;
+        pRequestBuf->R0KH_ID = pSession->ftSmeContext.r0kh_id;
         pRequestBuf->Prefer5GHz = pMac->roam.configParam.nRoamPrefer5GHz;
         pRequestBuf->RoamRssiCatGap = pMac->roam.configParam.bCatRssiOffset;
         pRequestBuf->Select5GHzMargin = pMac->roam.configParam.nSelect5GHzMargin;
