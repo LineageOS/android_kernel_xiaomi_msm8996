@@ -1169,7 +1169,7 @@ static VOS_STATUS wlan_ftm_priv_enable_chain(hdd_adapter_t *pAdapter,v_U16_t cha
     VOS_STATUS status;
     v_U16_t chainSelect_save = chainSelect;
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
-    long ret;
+    unsigned long rc;
 
     if(pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
     {
@@ -1223,12 +1223,11 @@ static VOS_STATUS wlan_ftm_priv_enable_chain(hdd_adapter_t *pAdapter,v_U16_t cha
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
-                                msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret)
-    {
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
+                    msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+               FL("wait on ftm_comp_var failed"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -3561,7 +3560,8 @@ static VOS_STATUS wlan_ftm_priv_set_channel(hdd_adapter_t *pAdapter,v_U16_t chan
 {
     uPttMsgs *pMsgBody;
     VOS_STATUS status;
-    long ret;
+    unsigned long rc;
+
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
     if (pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
@@ -3600,12 +3600,11 @@ static VOS_STATUS wlan_ftm_priv_set_channel(hdd_adapter_t *pAdapter,v_U16_t chan
         goto done;
 
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
-                                msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
+                  msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                     FL("wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -3640,7 +3639,8 @@ static VOS_STATUS wlan_ftm_priv_set_pwr_cntl_mode(hdd_adapter_t *pAdapter,
 {
     uPttMsgs *pMsgBody;
     VOS_STATUS status;
-    long ret;
+    unsigned long rc;
+
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
     if (pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
@@ -3673,12 +3673,11 @@ static VOS_STATUS wlan_ftm_priv_set_pwr_cntl_mode(hdd_adapter_t *pAdapter,
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
-                                 msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
+                          msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                  FL("wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -3712,7 +3711,8 @@ static VOS_STATUS wlan_ftm_priv_set_txpower(hdd_adapter_t *pAdapter,
 {
     uPttMsgs *pMsgBody;
     VOS_STATUS status;
-    long ret;
+    unsigned long rc;
+
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
     if (pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
@@ -3756,12 +3756,11 @@ static VOS_STATUS wlan_ftm_priv_set_txpower(hdd_adapter_t *pAdapter,
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
                               msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                  FL("wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -3879,7 +3878,7 @@ static VOS_STATUS wlan_ftm_priv_start_stop_tx_pktgen(hdd_adapter_t *pAdapter,v_U
 {
     uPttMsgs *pMsgBody;
     VOS_STATUS status;
-    long ret;
+    unsigned long rc;
 
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
@@ -3921,12 +3920,11 @@ static VOS_STATUS wlan_ftm_priv_start_stop_tx_pktgen(hdd_adapter_t *pAdapter,v_U
             goto done;
         }
 
-        ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
+        rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
                                    msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-        if (0 >= ret )
-        {
+        if (!rc) {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                      FL("wait on ftm_comp_var failed %ld"), ret);
+                      FL("wait on ftm_comp_var timed out"));
         }
 
         if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -3952,13 +3950,11 @@ static VOS_STATUS wlan_ftm_priv_start_stop_tx_pktgen(hdd_adapter_t *pAdapter,v_U
         goto done;
     }
 
-    ret = wait_for_completion_interruptible_timeout(
-               &pHddCtx->ftm.ftm_comp_var,
-               msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
+                         msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                  FL("wait on ftm_comp_var timed out"));
     }
 
     if(pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -4031,7 +4027,7 @@ static VOS_STATUS wlan_ftm_priv_rx_mode(hdd_adapter_t *pAdapter,v_U16_t rxmode)
 {
     uPttMsgs *pMsgBody;
     VOS_STATUS status;
-    long ret;
+    unsigned long rc;
 
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
     if (pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
@@ -4093,12 +4089,11 @@ static VOS_STATUS wlan_ftm_priv_rx_mode(hdd_adapter_t *pAdapter,v_U16_t rxmode)
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
-                                msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
+                             msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL(" wait on ftm_comp_var failed %ld"), ret);
+                  FL(" wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -4130,7 +4125,7 @@ done:
 static VOS_STATUS wlan_ftm_priv_rx_pkt_clear(hdd_adapter_t *pAdapter,v_U16_t rx_pkt_clear)
 {
     VOS_STATUS status;
-    long ret;
+    unsigned long rc;
 
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
@@ -4162,12 +4157,11 @@ static VOS_STATUS wlan_ftm_priv_rx_pkt_clear(hdd_adapter_t *pAdapter,v_U16_t rx_
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
-                                 msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
+                             msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                  FL("wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -4198,11 +4192,11 @@ done:
 
 static VOS_STATUS wlan_ftm_priv_get_channel(hdd_adapter_t *pAdapter,v_U16_t *pChannel)
 {
+    unsigned long rc;
     uPttMsgs *pMsgBody;
     VOS_STATUS status;
     v_U16_t  freq;
     v_U8_t indx=0;
-    long ret;
 
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
@@ -4230,12 +4224,11 @@ static VOS_STATUS wlan_ftm_priv_get_channel(hdd_adapter_t *pAdapter,v_U16_t *pCh
         goto done;
 
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
-                                 msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
+                            msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                  FL("wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -4283,7 +4276,7 @@ static VOS_STATUS wlan_ftm_priv_get_txpower(hdd_adapter_t *pAdapter,v_U16_t *pTx
 {
     uPttMsgs *pMsgBody;
     VOS_STATUS status;
-    long ret;
+    unsigned long rc;
 
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
@@ -4309,12 +4302,11 @@ static VOS_STATUS wlan_ftm_priv_get_txpower(hdd_adapter_t *pAdapter,v_U16_t *pTx
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
                                  msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                       FL("wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -4353,7 +4345,7 @@ VOS_STATUS wlan_ftm_priv_get_ftm_version(hdd_adapter_t *pAdapter,char *pftmVer)
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
     int lenRes = 0;
     int lenBuf = WE_FTM_MAX_STR_LEN;
-    long ret;
+    unsigned long rc;
 
     if (pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
     {
@@ -4386,12 +4378,11 @@ VOS_STATUS wlan_ftm_priv_get_ftm_version(hdd_adapter_t *pAdapter,char *pftmVer)
         goto done;
 
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
                                  msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                         FL("wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -4420,12 +4411,11 @@ VOS_STATUS wlan_ftm_priv_get_ftm_version(hdd_adapter_t *pAdapter,char *pftmVer)
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
                                 msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                       FL("wait on ftm_comp_var timed out"));
     }
 
     lenRes = snprintf(buf, lenBuf, "%s_",WLAN_CHIP_VERSION);
@@ -4485,7 +4475,7 @@ static VOS_STATUS wlan_ftm_priv_get_txrate(hdd_adapter_t *pAdapter,char *pTxRate
     uPttMsgs *pMsgBody;
     VOS_STATUS status;
     v_U16_t rate_index,ii;
-    long ret;
+    unsigned long rc;
 
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
@@ -4518,12 +4508,11 @@ static VOS_STATUS wlan_ftm_priv_get_txrate(hdd_adapter_t *pAdapter,char *pTxRate
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
-                                msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
+                             msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                 FL("wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse == PTT_STATUS_SUCCESS) {
@@ -4574,7 +4563,7 @@ static VOS_STATUS wlan_ftm_priv_get_rx_pkt_count(hdd_adapter_t *pAdapter,v_U16_t
 {
     uPttMsgs *pMsgBody;
     VOS_STATUS status;
-    long ret;
+    unsigned long rc;
 
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
@@ -4600,12 +4589,11 @@ static VOS_STATUS wlan_ftm_priv_get_rx_pkt_count(hdd_adapter_t *pAdapter,v_U16_t
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
-                                 msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
+                             msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                         FL("wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -4640,6 +4628,7 @@ static VOS_STATUS wlan_ftm_priv_get_rx_rssi(hdd_adapter_t *pAdapter,char *buf)
     uPttMsgs *pMsgBody;
     VOS_STATUS status;
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
+    unsigned long rc;
     long ret;
 
     if (pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
@@ -4664,12 +4653,11 @@ static VOS_STATUS wlan_ftm_priv_get_rx_rssi(hdd_adapter_t *pAdapter,char *buf)
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
                                 msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                      FL("wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -4774,7 +4762,7 @@ static VOS_STATUS wlan_ftm_priv_set_mac_address(hdd_adapter_t *pAdapter,char *bu
     int macAddr[VOS_MAC_ADDRESS_LEN];
     v_U8_t *pMacAddress;
     v_U8_t  ii;
-    long ret;
+    unsigned long rc;
 
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
@@ -4821,12 +4809,11 @@ static VOS_STATUS wlan_ftm_priv_set_mac_address(hdd_adapter_t *pAdapter,char *bu
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
                                 msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("wait on ftm_comp_var failed %ld"), ret);
+                  FL("wait on ftm_comp_var timed out"));
     }
 
     if (pMsgBuf->msgResponse != PTT_STATUS_SUCCESS)
@@ -4858,12 +4845,11 @@ static VOS_STATUS wlan_ftm_priv_set_mac_address(hdd_adapter_t *pAdapter,char *bu
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    ret = wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var,
+    rc = wait_for_completion_timeout(&pHddCtx->ftm.ftm_comp_var,
                                 msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
-    if (0 >= ret )
-    {
+    if (!rc) {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 FL("wait on ftm_comp_var failed %ld"), ret);
+                 FL("wait on ftm_comp_var timed out"));
     }
 done:
 

@@ -274,7 +274,7 @@ void wlan_hdd_cancel_existing_remain_on_channel(hdd_adapter_t *pAdapter)
 {
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
-    int status = 0;
+    unsigned long rc;
 
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
     if(cfgState->remain_on_chan_ctx != NULL)
@@ -289,13 +289,12 @@ void wlan_hdd_cancel_existing_remain_on_channel(hdd_adapter_t *pAdapter)
             hddLog( LOG1,
                     "ROC timer cancellation in progress,"
                     " wait for completion");
-            status = wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
+            rc = wait_for_completion_timeout(&pAdapter->cancel_rem_on_chan_var,
                                msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
-            if (0 >= status)
-            {
+            if (!rc) {
                 hddLog( LOGE,
-                        "%s:wait on cancel_rem_on_chan_var failed %d",
-                         __func__, status);
+                        "%s:wait on cancel_rem_on_chan_var timed out",
+                         __func__);
             }
             return;
         }
@@ -306,13 +305,12 @@ void wlan_hdd_cancel_existing_remain_on_channel(hdd_adapter_t *pAdapter)
          * received and if the driver issues cancel remain on channel then lim
          * will be in unknown state.
          */
-        status = wait_for_completion_interruptible_timeout(&pAdapter->rem_on_chan_ready_event,
+        rc = wait_for_completion_timeout(&pAdapter->rem_on_chan_ready_event,
                msecs_to_jiffies(WAIT_REM_CHAN_READY));
-        if (0 >= status)
-        {
+        if (!rc) {
             hddLog( LOGE,
-                    "%s: timeout waiting for remain on channel ready indication %d",
-                    __func__, status);
+                    "%s: timeout waiting for remain on channel ready indication",
+                    __func__);
         }
 
         INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
@@ -341,14 +339,14 @@ void wlan_hdd_cancel_existing_remain_on_channel(hdd_adapter_t *pAdapter)
 #endif
         }
 
-        status = wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
+        rc = wait_for_completion_timeout(&pAdapter->cancel_rem_on_chan_var,
                msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
 
-        if (0 >= status)
-        {
+        if (!rc) {
             hddLog( LOGE,
-                    "%s: timeout waiting for cancel remain on channel ready indication %d",
-                    __func__, status);
+                    "%s: timeout waiting for cancel remain on channel ready"
+                    " indication",
+                    __func__);
         }
         hdd_allow_suspend();
     } else
@@ -383,7 +381,8 @@ int wlan_hdd_check_remain_on_channel(hdd_adapter_t *pAdapter)
 /* Clean up RoC context at hdd_stop_adapter*/
 void wlan_hdd_cleanup_remain_on_channel_ctx(hdd_adapter_t *pAdapter)
 {
-    v_U8_t status,retry = 0;
+    unsigned long rc;
+    v_U8_t retry = 0;
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR(pAdapter);
 
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
@@ -408,10 +407,9 @@ void wlan_hdd_cleanup_remain_on_channel_ctx(hdd_adapter_t *pAdapter)
                                      pAdapter->sessionId);
            }
 
-           status = wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
+           rc = wait_for_completion_timeout(&pAdapter->cancel_rem_on_chan_var,
                                              msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
-           if ((!status) || (status == -ERESTARTSYS))
-           {
+           if (!rc) {
                 hdd_remain_on_chan_ctx_t *pRemainChanCtx;
                 VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                             "%s: Timeout occurred while waiting for RoC Cancellation" ,
@@ -874,6 +872,7 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     int status;
+    unsigned long rc;
 
     hddLog( LOG1, "Cancel remain on channel req");
 
@@ -909,14 +908,13 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
             hddLog( LOG1,
                     FL("ROC timer cancellation in progress,"
                        " wait for completion"));
-            status = wait_for_completion_interruptible_timeout(
+            rc = wait_for_completion_timeout(
                                              &pAdapter->cancel_rem_on_chan_var,
                                              msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
-            if (0 >= status)
-            {
+            if (!rc) {
                 hddLog( LOGE,
-                        "%s:wait on cancel_rem_on_chan_var failed %d",
-                        __func__, status);
+                        "%s:wait on cancel_rem_on_chan_var timed out",
+                        __func__);
             }
             return 0;
         }
@@ -927,10 +925,9 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
 
     /* wait until remain on channel ready event received
      * for already issued remain on channel request */
-    status = wait_for_completion_interruptible_timeout(&pAdapter->rem_on_chan_ready_event,
+    rc = wait_for_completion_timeout(&pAdapter->rem_on_chan_ready_event,
             msecs_to_jiffies(WAIT_REM_CHAN_READY));
-    if (0 >= status)
-    {
+    if (!rc) {
         hddLog( LOGE,
                 "%s: timeout waiting for remain on channel ready indication",
                 __func__);
@@ -975,12 +972,11 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
                             __func__, pAdapter->device_mode);
        return -EIO;
     }
-    status = wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
+    rc = wait_for_completion_timeout(&pAdapter->cancel_rem_on_chan_var,
             msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
-    if (0 >= status)
-    {
+    if (!rc) {
         hddLog( LOGE,
-                "%s:wait on cancel_rem_on_chan_var failed %d", __func__, status);
+                "%s:wait on cancel_rem_on_chan_var timed out ", __func__);
     }
     hdd_allow_suspend();
     return 0;
@@ -1048,6 +1044,7 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
     tActionFrmType actionFrmType;
     bool noack = 0;
     int status;
+    unsigned long rc;
     hdd_adapter_t *goAdapter;
 
      MTRACE(vos_trace(VOS_MODULE_ID_HDD,
@@ -1215,14 +1212,13 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
                       hddLog(VOS_TRACE_LEVEL_INFO,
                           "action frame tx: waiting for completion of ROC ");
 
-                      status = wait_for_completion_interruptible_timeout(
+                      rc = wait_for_completion_timeout(
                           &pAdapter->cancel_rem_on_chan_var,
                           msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
-                      if (0 >= status)
-                      {
+                      if (!rc) {
                           hddLog( LOGE,
-                              "%s:wait on cancel_rem_on_chan_var failed %d",
-                              __func__, status);
+                              "%s:wait on cancel_rem_on_chan_var timed out",
+                              __func__);
                       }
 
                   } else
@@ -1264,12 +1260,11 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
          */
         extendedWait = (tANI_U16)wait;
         /* Wait for driver to be ready on the requested channel */
-        status = wait_for_completion_interruptible_timeout(
+        rc = wait_for_completion_timeout(
                      &pAdapter->offchannel_tx_event,
                      msecs_to_jiffies(WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX));
-        if(0 >= status)
-        {
-           hddLog( LOGE, "wait on offchannel_tx_event failed %d", status);
+        if(!rc) {
+           hddLog( LOGE, "wait on offchannel_tx_event timed out");
            goto err_rem_channel;
         }
     }

@@ -1019,7 +1019,7 @@ VOS_STATUS wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value)
    hdd_context_t *pHddCtx;
    hdd_station_ctx_t *pHddStaCtx;
    eHalStatus hstatus;
-   long lrc;
+   unsigned long rc;
 
    if (NULL == pAdapter)
    {
@@ -1055,12 +1055,11 @@ VOS_STATUS wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value)
    else
    {
        /* request was sent -- wait for the response */
-       lrc = wait_for_completion_interruptible_timeout(&context.completion,
+       rc = wait_for_completion_timeout(&context.completion,
                                     msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
-       if (lrc <= 0)
-       {
-          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: SME %s while retrieving RSSI",
-                 __func__, (0 == lrc) ? "timeout" : "interrupt");
+       if (!rc) {
+          hddLog(VOS_TRACE_LEVEL_ERROR,
+              FL("SME timed out while retrieving RSSI"));
           /* we'll now returned a cached value below */
        }
    }
@@ -1091,7 +1090,7 @@ VOS_STATUS wlan_hdd_get_snr(hdd_adapter_t *pAdapter, v_S7_t *snr)
    hdd_context_t *pHddCtx;
    hdd_station_ctx_t *pHddStaCtx;
    eHalStatus hstatus;
-   long lrc;
+   unsigned long rc;
    int valid;
 
    if (NULL == pAdapter)
@@ -1134,12 +1133,11 @@ VOS_STATUS wlan_hdd_get_snr(hdd_adapter_t *pAdapter, v_S7_t *snr)
    else
    {
        /* request was sent -- wait for the response */
-       lrc = wait_for_completion_interruptible_timeout(&context.completion,
+       rc = wait_for_completion_timeout(&context.completion,
                                     msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
-       if (lrc <= 0)
-       {
-          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: SME %s while retrieving SNR",
-                 __func__, (0 == lrc) ? "timeout" : "interrupt");
+       if (!rc) {
+          hddLog(VOS_TRACE_LEVEL_ERROR,
+              FL("SME timed out while retrieving SNR"));
           /* we'll now returned a cached value below */
        }
    }
@@ -1230,7 +1228,7 @@ VOS_STATUS wlan_hdd_get_roam_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value)
    hdd_context_t *pHddCtx = NULL;
    hdd_station_ctx_t *pHddStaCtx = NULL;
    eHalStatus hstatus;
-   long lrc;
+   unsigned long rc;
 
    if (NULL == pAdapter)
    {
@@ -1273,12 +1271,11 @@ VOS_STATUS wlan_hdd_get_roam_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value)
    else
    {
        /* request was sent -- wait for the response */
-       lrc = wait_for_completion_interruptible_timeout(&context.completion,
+       rc = wait_for_completion_timeout(&context.completion,
                                     msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
-       if (lrc <= 0)
-       {
-          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: SME %s while retrieving RSSI",
-                 __func__, (0 == lrc) ? "timeout" : "interrupt");
+       if (!rc) {
+          hddLog(VOS_TRACE_LEVEL_ERROR,
+              FL("SME timed out while retrieving RSSI"));
           /* we'll now returned a cached value below */
        }
    }
@@ -1642,13 +1639,13 @@ static int iw_set_mode(struct net_device *dev,
                                           eCSR_DISCONNECT_REASON_IBSS_LEAVE );
             if(VOS_STATUS_SUCCESS == vosStatus)
             {
-                 long ret;
-                 ret = wait_for_completion_interruptible_timeout(
+                 unsigned long rc;
+                 rc = wait_for_completion_timeout(
                                   &pAdapter->disconnect_comp_var,
                                     msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-                 if (ret <= 0)
+                 if (!rc)
                      hddLog(VOS_TRACE_LEVEL_ERROR,
-                            FL("failed wait on disconnect_comp_var %ld"), ret);
+                            FL("failed wait on disconnect_comp_var"));
             }
 }
     }
@@ -2749,7 +2746,7 @@ VOS_STATUS  wlan_hdd_get_classAstats(hdd_adapter_t *pAdapter)
 {
    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
    eHalStatus hstatus;
-   long lrc;
+   unsigned long rc;
    struct statsContext context;
 
    if (NULL == pAdapter)
@@ -2788,13 +2785,11 @@ VOS_STATUS  wlan_hdd_get_classAstats(hdd_adapter_t *pAdapter)
    else
    {
        /* request was sent -- wait for the response */
-       lrc = wait_for_completion_interruptible_timeout(&context.completion,
-                                    msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
-       if (lrc <= 0)
-       {
+       rc = wait_for_completion_timeout(&context.completion,
+                                msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
+       if (!rc) {
           hddLog(VOS_TRACE_LEVEL_ERROR,
-                 "%s: SME %s while retrieving Class A statistics",
-                 __func__, (0 == lrc) ? "timeout" : "interrupt");
+              FL("SME timed out while retrieving Class A statistics"));
       }
    }
 
@@ -2883,7 +2878,7 @@ VOS_STATUS  wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter)
 {
    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
    eHalStatus hstatus;
-   long lrc;
+   unsigned long rc;
    struct statsContext context;
 
    if (NULL == pAdapter)
@@ -2919,14 +2914,12 @@ VOS_STATUS  wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter)
    else
    {
       /* request was sent -- wait for the response */
-      lrc = wait_for_completion_interruptible_timeout(&context.completion,
-                                    msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
+      rc = wait_for_completion_timeout(&context.completion,
+                           msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
 
-      if (lrc <= 0)
-      {
-         hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: SME %s while retrieving statistics",
-                __func__, (0 == lrc) ? "timeout" : "interrupt");
+      if (!rc) {
+          hddLog(VOS_TRACE_LEVEL_ERROR,
+              FL("SME timed out while retrieving statistics"));
       }
    }
 
@@ -3155,15 +3148,15 @@ VOS_STATUS  wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode)
        sme_SetDHCPTillPowerActiveFlag(pHddCtx->hHal, TRUE);
        if (eHAL_STATUS_PMC_PENDING == status)
        {
+           unsigned long rc;
            /* request was sent -- wait for the response */
-           int lrc = wait_for_completion_interruptible_timeout(
+           rc = wait_for_completion_timeout(
                    &context.completion,
                    msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
 
-           if (lrc <= 0)
-           {
-               hddLog(VOS_TRACE_LEVEL_ERROR,"%s: SME %s while requesting fullpower ",
-                  __func__, (0 == lrc) ? "timeout" : "interrupt");
+           if (!rc) {
+               hddLog(VOS_TRACE_LEVEL_ERROR,
+                  FL("SME timed out while requesting full power"));
            }
        }
    }
@@ -3181,15 +3174,14 @@ VOS_STATUS  wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode)
                            iw_power_callback_fn, &context);
            if (eHAL_STATUS_PMC_PENDING == status)
            {
+               unsigned long rc;
                /* request was sent -- wait for the response */
-               int lrc = wait_for_completion_interruptible_timeout(
+               rc = wait_for_completion_timeout(
                            &context.completion,
                            msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
-               if (lrc <= 0)
-               {
+               if (!rc) {
                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                          "%s: SME %s while requesting BMPS",
-                          __func__, (0 == lrc) ? "timeout" : "interrupt");
+                       FL("SME timed out while requesting BMPS"));
                }
            }
        }
@@ -3463,7 +3455,7 @@ static int iw_set_priv(struct net_device *dev,
     }
     else if( strncasecmp(cmd, "COUNTRY", 7) == 0 ) {
         char *country_code;
-        long lrc;
+        unsigned long rc;
         eHalStatus eHal_status;
 
         country_code =  cmd + 8;
@@ -3479,13 +3471,12 @@ static int iw_set_priv(struct net_device *dev,
                                             eSIR_TRUE);
 
         /* Wait for completion */
-        lrc = wait_for_completion_interruptible_timeout(&pAdapter->change_country_code,
-                                    msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
+        rc = wait_for_completion_timeout(&pAdapter->change_country_code,
+                                  msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
 
-        if (lrc <= 0)
-        {
-            hddLog(VOS_TRACE_LEVEL_ERROR,"%s: SME %s while setting country code ",
-                   __func__, "Timed out");
+        if (!rc) {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+               FL("SME timedout while setting country code"));
         }
 
         if (eHAL_STATUS_SUCCESS != eHal_status)
@@ -3788,13 +3779,13 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
            status = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED );
            if(eHAL_STATUS_SUCCESS == status)
            {
-                 long ret;
-                 ret = wait_for_completion_interruptible_timeout(
-                                         &pAdapter->disconnect_comp_var,
-                                          msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-                if (ret <= 0)
+                 unsigned long rc;
+                 rc = wait_for_completion_timeout(
+                              &pAdapter->disconnect_comp_var,
+                               msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+                if (!rc)
                      hddLog(VOS_TRACE_LEVEL_ERROR,
-                            FL("failed wait on disconnect_comp_var %ld"), ret);
+                            FL("failed wait on disconnect_comp_var"));
            }
        }
 
@@ -4309,13 +4300,13 @@ static int iw_set_mlme(struct net_device *dev,
 
                 if(eHAL_STATUS_SUCCESS == status)
                 {
-                    long ret;
-                    ret = wait_for_completion_interruptible_timeout(
-                                      &pAdapter->disconnect_comp_var,
-                                       msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-                    if (ret <= 0)
+                    unsigned long rc;
+                    rc = wait_for_completion_timeout(
+                                   &pAdapter->disconnect_comp_var,
+                                   msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+                    if (!rc)
                         hddLog(VOS_TRACE_LEVEL_ERROR,
-                            FL("failed wait on disconnect_comp_var %ld"), ret);
+                            FL("failed wait on disconnect_comp_var"));
                 }
                 else
                     hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d",
@@ -4659,16 +4650,14 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                               eSME_FULL_PWR_NEEDED_BY_HDD);
                  if (eHAL_STATUS_PMC_PENDING == status)
                  {
-                    int lrc = wait_for_completion_interruptible_timeout(
-                                  &context.completion,
-                                  msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+                    unsigned long rc;
+                    rc = wait_for_completion_timeout(
+                                &context.completion,
+                                 msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
 
-                    if (lrc <= 0)
-                    {
+                    if (!rc) {
                        hddLog(VOS_TRACE_LEVEL_ERROR,
-                              "%s: SME %s while requesting fullpower",
-                              __func__, (0 == lrc) ?
-                              "timeout" : "interrupt");
+                           FL("SME timed out while requesting full power"));
                     }
                  }
                  /* either we have a response or we timed out.  if we timed
@@ -4707,15 +4696,13 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                            iw_power_callback_fn, &context);
                  if (eHAL_STATUS_PMC_PENDING == status)
                  {
-                    int lrc = wait_for_completion_interruptible_timeout(
-                                  &context.completion,
-                                  msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
-                    if (lrc <= 0)
-                    {
+                    unsigned long rc;
+                    rc = wait_for_completion_timeout(
+                              &context.completion,
+                              msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+                    if (!rc) {
                        hddLog(VOS_TRACE_LEVEL_ERROR,
-                              "%s: SME %s while requesting BMPS",
-                              __func__, (0 == lrc) ? "timeout" :
-                              "interrupt");
+                           FL("SME timed out while requesting BMPS"));
                     }
                  }
                  /* either we have a response or we timed out.  if we

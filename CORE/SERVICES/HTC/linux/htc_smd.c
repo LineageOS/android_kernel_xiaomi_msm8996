@@ -456,6 +456,7 @@ static void htc_smd_notify_callback(void *data, unsigned event)
 HTC_HANDLE HTCCreate(void *hHIF, HTC_INIT_INFO *pInfo, adf_os_device_t osdev)
 {
 	int status = 0;
+        unsigned long rc;
 	tp_htc_handle htc_handle = NULL;
 
 	HTC_LOGD("Enter");
@@ -527,11 +528,11 @@ HTC_HANDLE HTCCreate(void *hHIF, HTC_INIT_INFO *pInfo, adf_os_device_t osdev)
 		goto fail;
 	}
 	/* Wait for the event */
-	status = wait_for_completion_interruptible_timeout(
+	rc = wait_for_completion_timeout(
 			&htc_handle->htc_smd_event,
 			msecs_to_jiffies(HTC_SMD_OPEN_TIMEOUT));
 
-	if (!status) {
+	if (!rc) {
 		HTC_LOGE("Timeout occurred while waiting for SMD_SS_OPENED event.");
 		/* since we opened one end of the channel, close it */
 		status = smd_close(htc_handle->smd_channel);
@@ -643,7 +644,8 @@ void  HTCDestroy(HTC_HANDLE HTCHandle)
 	HTC_PACKET          *htc_packet;
 	int                 smd_status;
 	int                 status;
-	HTC_ENDPOINT      *endpoint;
+        unsigned long       rc;
+	HTC_ENDPOINT        *endpoint;
 
 	if ((NULL == htc_handle) || (HTC_CB_MAGIC != htc_handle->htc_magic)) {
 		HTC_LOGE("Invalid parameter");
@@ -672,10 +674,10 @@ void  HTCDestroy(HTC_HANDLE HTCHandle)
 
 	} else {
 		/* close command was sent -- wait for the callback to complete */
-		status = wait_for_completion_interruptible_timeout(
+		rc = wait_for_completion_timeout(
 				&htc_handle->htc_smd_event,
 				msecs_to_jiffies(HTC_SMD_OPEN_TIMEOUT));
-		if (!status) {
+		if (!rc) {
 			HTC_LOGE("failed to receive SMD_EVENT_REOPEN_READY %d", smd_status);
 		}
 

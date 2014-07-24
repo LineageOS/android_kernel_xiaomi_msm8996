@@ -107,6 +107,7 @@ int epping_driver_init(int con_mode, vos_wake_lock_t *g_wake_lock,
                        char *pwlan_module_name)
 {
    int ret = 0;
+   unsigned long rc;
    epping_context_t *pEpping_ctx = NULL;
    VOS_STATUS status = VOS_STATUS_SUCCESS;
 
@@ -151,10 +152,10 @@ int epping_driver_init(int con_mode, vos_wake_lock_t *g_wake_lock,
    init_completion(&pEpping_ctx->wlan_start_comp);
    ret = hif_register_driver();
    if (!ret) {
-      ret = wait_for_completion_interruptible_timeout(
+      rc = wait_for_completion_timeout(
                &pEpping_ctx->wlan_start_comp,
                msecs_to_jiffies(WLAN_WAIT_TIME_WLANSTART));
-      if (!ret) {
+      if (!rc) {
          EPPING_LOG(VOS_TRACE_LEVEL_FATAL,
             "%s: timed-out waiting for hif_register_driver", __func__);
          ret = -1;

@@ -3810,7 +3810,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
    v_CONTEXT_t pVosContext = NULL;
    hdd_context_t *pHddCtx = NULL;
    struct wiphy *wiphy = NULL;
-   int status;
+   unsigned long rc;
 
    // sanity checks
    if (NULL == pRegDomain)
@@ -3879,11 +3879,10 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
 
            INIT_COMPLETION(pHddCtx->driver_crda_req);
            regulatory_hint(wiphy, countryCode);
-           status = wait_for_completion_interruptible_timeout(
+           rc = wait_for_completion_timeout(
                    &pHddCtx->driver_crda_req,
                    msecs_to_jiffies(CRDA_WAIT_TIME));
-           if (!status)
-           {
+           if (!rc) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                        "%s: Timeout waiting for CRDA REQ", __func__);
            }
@@ -3987,6 +3986,7 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
     if (request->initiator == NL80211_REGDOM_SET_BY_USER)
     {
        int status;
+       unsigned long rc;
        wiphy_dbg(wiphy, "info: set by user\n");
        memset(ccode, 0, WNI_CFG_COUNTRY_CODE_LEN);
        memcpy(ccode, request->alpha2, 2);
@@ -4012,11 +4012,10 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
                                    eSIR_FALSE);
        if (eHAL_STATUS_SUCCESS == status)
        {
-          status = wait_for_completion_interruptible_timeout(
-                                       &change_country_code,
-                                       msecs_to_jiffies(WLAN_WAIT_TIME_COUNTRY));
-          if(status <= 0)
-          {
+          rc = wait_for_completion_timeout(
+                           &change_country_code,
+                           msecs_to_jiffies(WLAN_WAIT_TIME_COUNTRY));
+          if (!rc) {
              wiphy_dbg(wiphy, "info: set country timed out\n");
           }
        }
