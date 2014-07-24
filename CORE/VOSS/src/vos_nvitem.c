@@ -3557,10 +3557,8 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
             init_by_reg_core = VOS_TRUE;
 
 
-#ifndef QCA_WIFI_ISOC
         /* send CTL info to firmware */
         regdmn_set_regval(&pHddCtx->reg);
-#endif
     default:
         break;
     }
@@ -3596,7 +3594,6 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 #endif
 }
 
-#ifndef QCA_WIFI_ISOC
 /* initialize wiphy from EEPROM */
 VOS_STATUS vos_init_wiphy_from_eeprom(void)
 {
@@ -3641,7 +3638,6 @@ VOS_STATUS vos_init_wiphy_from_eeprom(void)
 
    return VOS_STATUS_SUCCESS;
 }
-#endif
 
 /* initialize wiphy from NV.bin */
 VOS_STATUS vos_init_wiphy_from_nv_bin(void)
