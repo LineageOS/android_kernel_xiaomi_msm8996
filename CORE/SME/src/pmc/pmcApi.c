@@ -388,39 +388,6 @@ eHalStatus pmcClose (tHalHandle hHal)
 
 /******************************************************************************
 *
-* Name:  pmcSignalPowerEvent
-*
-* Description:
-*    Signals to PMC that a power event has occurred.
-*
-* Parameters:
-*    hHal - HAL handle for device
-*    event - the event that has occurred
-*
-* Returns:
-*    eHAL_STATUS_SUCCESS - signaling successful
-*    eHAL_STATUS_FAILURE - signaling not successful
-*
-******************************************************************************/
-eHalStatus pmcSignalPowerEvent (tHalHandle hHal, tPmcPowerEvent event)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-
-    pmcLog(pMac, LOG2, FL("Entering pmcSignalPowerEvent, event %d"), event);
-
-    /* Take action based on the event being signaled. */
-    switch (event)
-    {
-    default:
-        pmcLog(pMac, LOGE, FL("Invalid event %d"), event);
-        PMC_ABORT;
-        return eHAL_STATUS_FAILURE;
-    }
-}
-
-
-/******************************************************************************
-*
 * Name:  pmcSetConfigPowerSave
 *
 * Description:

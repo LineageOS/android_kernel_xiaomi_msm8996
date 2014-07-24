@@ -306,8 +306,6 @@ extern eHalStatus pmcStop (tHalHandle hHal);
 
 extern eHalStatus pmcClose (tHalHandle hHal );
 
-extern eHalStatus pmcSignalPowerEvent (tHalHandle hHal, tPmcPowerEvent event);
-
 extern eHalStatus pmcSetConfigPowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode, void *pConfigParams);
 
 extern eHalStatus pmcGetConfigPowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode, void *pConfigParams);

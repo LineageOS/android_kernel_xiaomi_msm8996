@@ -4340,31 +4340,6 @@ eHalStatus sme_GetConfigPowerSave(tHalHandle hHal, tPmcPowerSavingMode psMode,
 }
 
 /* ---------------------------------------------------------------------------
-    \fn sme_SignalPowerEvent
-    \brief  Signals to PMC that a power event has occurred. Used for putting
-            the chip into deep sleep mode.
-    \param  hHal - The handle returned by macOpen.
-    \param  event - the event that has occurred
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_SignalPowerEvent (tHalHandle hHal, tPmcPowerEvent event)
-{
-   eHalStatus status = eHAL_STATUS_FAILURE;
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-   MTRACE(vos_trace(VOS_MODULE_ID_SME,
-             TRACE_CODE_SME_RX_HDD_SIGNAL_POWER_EVENT, NO_SESSION, 0));
-   status = sme_AcquireGlobalLock( &pMac->sme );
-   if ( HAL_STATUS_SUCCESS( status ) )
-   {
-       status = pmcSignalPowerEvent(hHal, event);
-       sme_ReleaseGlobalLock( &pMac->sme );
-   }
-
-   return (status);
-}
-
-/* ---------------------------------------------------------------------------
     \fn sme_EnablePowerSave
     \brief  Enables one of the power saving modes.
     \param  hHal - The handle returned by macOpen.
