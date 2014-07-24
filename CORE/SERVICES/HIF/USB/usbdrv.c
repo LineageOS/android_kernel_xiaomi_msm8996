@@ -41,6 +41,7 @@
 #include "htc_packet.h"
 #include "qwlan_version.h"
 #include "if_usb.h"
+#include "vos_api.h"
 
 #define IS_BULK_EP(attr) (((attr) & 3) == 0x02)
 #define IS_INT_EP(attr)  (((attr) & 3) == 0x03)
@@ -973,6 +974,107 @@ A_STATUS usb_hif_submit_ctrl_in(HIF_DEVICE_USB *device,
 	return ret;
 }
 
+#define IS_FW_CRASH_DUMP(x)    ((x == FW_ASSERT_PATTERN) || \
+                                (x == FW_REG_PATTERN) || \
+                                ((x & FW_RAMDUMP_PATTERN_MASK) == FW_RAMDUMP_PATTERN))?1:0
+
+void fw_crash_dump(HIF_DEVICE_USB *device, A_UINT8 *data, A_UINT32 len)
+{
+	A_UINT32 *reg, pattern, i, start_addr = 0, stack_addr = 0;
+	A_UINT32 MSPId = 0, mSPId = 0, SIId = 0, CRMId = 0;
+	static A_UINT8 dumping = 0;
+#ifdef USB_FW_CRASH_RAM_DUMP
+	A_UINT8 *ram_ptr = NULL;
+	static struct fw_ramdump *ramdump[FW_RAM_SEG_CNT];
+	static A_UINT8 ramdump_index = 0;
+	static char *fw_ram_seg_name[FW_RAM_SEG_CNT] = {"DRAM", "IRAM", "AXI"};
+#endif
+
+	pattern = *((A_UINT32 *) data);
+
+	if (pattern == FW_ASSERT_PATTERN) {
+		MSPId = (device->sc->ol_sc->target_fw_version & 0xf0000000) >> 28;
+		mSPId = (device->sc->ol_sc->target_fw_version & 0xf000000) >> 24;
+		SIId = (device->sc->ol_sc->target_fw_version & 0xf00000) >> 20;
+		CRMId = device->sc->ol_sc->target_fw_version & 0x7fff;
+		AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Firmware crash detected...\n"));
+		AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Host SW version: %s\n", QWLAN_VERSIONSTR));
+		AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("FW version: %d.%d.%d.%d", MSPId, mSPId, SIId, CRMId));
+		reg = (A_UINT32 *) (data+4);
+		for (i = 0; i < 60; reg++, i++ ) {
+			if (i%4 == 0) {
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("\n"));
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("%2d: ", i));
+			}
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("0x%08x ", *reg));
+		}
+		AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("\n"));
+	} else if (pattern == FW_REG_PATTERN) {
+		reg = (A_UINT32 *) (data+4);
+		start_addr = *reg++;
+		if (dumping == 0) {
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Firmware stack dump:"));
+			dumping = 1;
+			stack_addr = start_addr;
+		}
+		for (i = 0; i < (len>>2)-2; reg++, i++ ) {
+			if (*reg == FW_REG_END_PATTERN && (i == (len>>2)-3)) {
+				dumping = 0;
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+					("\nStack start address = 0x%08X\n", stack_addr));
+				break;
+			}
+			if (i%4 == 0) {
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("\n"));
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("0x%08X: ", start_addr + (i << 2)));
+			}
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("0x%08X ", *reg));
+		}
+#ifdef USB_FW_CRASH_RAM_DUMP
+	} else if ((pattern & FW_RAMDUMP_PATTERN_MASK) == FW_RAMDUMP_PATTERN) {
+		ASSERT(ramdump_index < FW_RAM_SEG_CNT);
+		i = ramdump_index;
+		reg = (A_UINT32 *) (data+4);
+
+		if (dumping == 0) {
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Firmware %s dump:\n", fw_ram_seg_name[i]));
+			dumping = 1;
+			ramdump[i] = kmalloc(sizeof(struct fw_ramdump)+FW_RAMDUMP_SEG_SIZE, GFP_KERNEL);
+			if (!ramdump[i]) {
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+						("Failed to allocate memory for ram dump"));
+				VOS_BUG(0);
+			}
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("FW %s start addr = 0x%08X\n",
+					fw_ram_seg_name[i], *reg));
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Memory addr for %s = 0x%08X\n",
+					fw_ram_seg_name[i], (A_UINT32) ramdump[i]));
+			(ramdump[i])->start_addr = *reg;
+			(ramdump[i])->length = 0;
+			(ramdump[i])->mem = (A_UINT8 *) (ramdump[i] + 1);
+		}
+
+		reg++;
+		ram_ptr = (ramdump[i])->mem + (ramdump[i])->length;
+		(ramdump[i])->length += (len - 8);
+		memcpy(ram_ptr, (A_UINT8 *) reg, len-8);
+
+		if (pattern == FW_RAMDUMP_END_PATTERN) {
+
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+					("%s memory size = %d\n",
+						fw_ram_seg_name[i], (ramdump[i])->length));
+			if (i == (FW_RAM_SEG_CNT - 1)) {
+				VOS_BUG(0);
+			}
+
+			dumping = 0;
+			ramdump_index++;
+		}
+#endif   /* USB_FW_CRASH_RAM_DUMP */
+	}
+}
+
 void usb_hif_io_comp_work(struct work_struct *work)
 {
 	HIF_USB_PIPE *pipe = container_of(work, HIF_USB_PIPE, io_complete_work);
@@ -980,14 +1082,7 @@ void usb_hif_io_comp_work(struct work_struct *work)
 	HIF_DEVICE_USB *device;
 	HTC_FRAME_HDR *HtcHdr;
 	A_UINT8 *data;
-	A_UINT32 *reg;
-	A_UINT32 len, i;
-	static A_UINT32 assert_pattern = 0x0000c600;
-	static A_UINT32 reg_pattern = 0x0000d600;
-	static A_UINT32 regend_pattern = 0x0000e600;
-	A_UINT32 start_addr = 0;
-	static A_UINT32 stack_dumping = 0;
-	A_UINT32 MSPId = 0, mSPId = 0, SIId = 0, CRMId = 0;
+	A_UINT32 len;
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n", __func__));
 	device = pipe->device;
@@ -1016,43 +1111,9 @@ void usb_hif_io_comp_work(struct work_struct *work)
 					("+athusb recv callback buf:" "0x%p\n",
 					 buf));
 			adf_nbuf_peek_header(buf, &data, &len);
-			if (!memcmp(data, &assert_pattern, sizeof(assert_pattern))) {
-				MSPId = (device->sc->ol_sc->target_fw_version & 0xf0000000) >> 28;
-				mSPId = (device->sc->ol_sc->target_fw_version & 0xf000000) >> 24;
-				SIId = (device->sc->ol_sc->target_fw_version & 0xf00000) >> 20;
-				CRMId = device->sc->ol_sc->target_fw_version & 0x7fff;
-				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Firmware crash detected...\n"));
-				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Host SW version: %s\n", QWLAN_VERSIONSTR));
-				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("FW version: %d.%d.%d.%d", MSPId, mSPId, SIId, CRMId));
-				reg = (A_UINT32 *) (data+4);
-				for (i = 0; i < 60; reg++, i++ ) {
-					if (i%4 == 0) {
-						AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("\n"));
-						AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("%2d: ", i));
-					}
-					AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("0x%08x ", *reg));
-				}
-				AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("\n"));
-				dev_kfree_skb(buf);
-			} else if (!memcmp(data, &reg_pattern, sizeof(reg_pattern))) {
-				reg = (A_UINT32 *) (data+4);
-				start_addr = *reg++;
-				if(stack_dumping == 0) {
-					AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Firmware stack dump:"));
-					stack_dumping = 1;
-				}
-				for (i = 0; i < (len>>2)-2; reg++, i++ ) {
-					if (*reg == regend_pattern && (i == (len>>2)-3)) {
-						stack_dumping = 0;
-						AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("\n"));
-						break;
-					}
-					if (i%4 == 0) {
-						AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("\n"));
-						AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("0x%08X: ", start_addr + (i << 2)));
-					}
-					AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("0x%08X ", *reg));
-				}
+
+			if (IS_FW_CRASH_DUMP(*((A_UINT32 *) data))) {
+				fw_crash_dump(device, data, len);
 				dev_kfree_skb(buf);
 			} else {
 				device->htcCallbacks.rxCompletionHandler(
