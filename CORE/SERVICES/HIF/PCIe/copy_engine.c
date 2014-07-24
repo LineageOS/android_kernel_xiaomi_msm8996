@@ -1375,7 +1375,7 @@ CE_init(struct hif_pci_softc *sc,
                       + (nentries * sizeof(void *)); /* per-send context */
             ptr = A_MALLOC(CE_nbytes);
             if (!ptr) {
-                /* cannot allocate src ring. If teh CE_state is allocated
+                /* cannot allocate src ring. If the CE_state is allocated
                  * locally free CE_State and return error. */
                 dev_err(&sc->pdev->dev, "ath ERROR: src ring has no mem\n");
                 if (malloc_CE_state) {
@@ -1412,6 +1412,10 @@ CE_init(struct hif_pci_softc *sc,
                 pci_alloc_consistent(scn->sc_osdev->bdev,
                                     (nentries * sizeof(struct CE_src_desc) + CE_DESC_RING_ALIGN),
                                     &base_addr);
+            if (src_ring->base_addr_owner_space_unaligned == NULL) {
+                dev_err(&sc->pdev->dev, "ath ERROR: src ring has no DMA mem\n");
+                goto error_no_dma_mem;
+            }
             src_ring->base_addr_CE_space_unaligned = base_addr;
 
 
@@ -1432,6 +1436,10 @@ CE_init(struct hif_pci_softc *sc,
              */
             src_ring->shadow_base_unaligned = A_MALLOC(
                 nentries * sizeof(struct CE_src_desc) + CE_DESC_RING_ALIGN);
+            if (src_ring->shadow_base_unaligned == NULL) {
+                dev_err(&sc->pdev->dev, "ath ERROR: src ring has no shadow_base mem\n");
+                goto error_no_dma_mem;
+            }
             src_ring->shadow_base = (struct CE_src_desc *)
                 (((size_t) src_ring->shadow_base_unaligned +
                 CE_DESC_RING_ALIGN-1) & ~(CE_DESC_RING_ALIGN-1));
@@ -1502,6 +1510,10 @@ CE_init(struct hif_pci_softc *sc,
                 pci_alloc_consistent(scn->sc_osdev->bdev,
                                     (nentries * sizeof(struct CE_dest_desc) + CE_DESC_RING_ALIGN),
                                     &base_addr);
+            if (dest_ring->base_addr_owner_space_unaligned == NULL) {
+                dev_err(&sc->pdev->dev, "ath ERROR: dest ring has no DMA mem\n");
+                goto error_no_dma_mem;
+            }
             dest_ring->base_addr_CE_space_unaligned = base_addr;
 
             /* Correctly initialize memory to 0 to prevent garbage data
@@ -1549,6 +1561,10 @@ CE_init(struct hif_pci_softc *sc,
     A_TARGET_ACCESS_END_RET_PTR(targid);
 
     return (struct CE_handle *)CE_state;
+
+error_no_dma_mem:
+    CE_fini((struct CE_handle *)CE_state);
+    return NULL;
 }
 
 void
@@ -1562,14 +1578,17 @@ CE_fini(struct CE_handle *copyeng)
     CE_state->state = CE_UNUSED;
     CE_state->sc->CE_id_to_state[CE_id] = NULL;
     if (CE_state->src_ring) {
-        A_FREE(CE_state->src_ring->shadow_base_unaligned);
-		pci_free_consistent(scn->sc_osdev->bdev,
+        if (CE_state->src_ring->shadow_base_unaligned)
+            A_FREE(CE_state->src_ring->shadow_base_unaligned);
+        if (CE_state->src_ring->base_addr_owner_space_unaligned)
+            pci_free_consistent(scn->sc_osdev->bdev,
                    (CE_state->src_ring->nentries * sizeof(struct CE_src_desc) + CE_DESC_RING_ALIGN),
                    CE_state->src_ring->base_addr_owner_space_unaligned, CE_state->src_ring->base_addr_CE_space);
         A_FREE(CE_state->src_ring);
     }
     if (CE_state->dest_ring) {
-		pci_free_consistent(scn->sc_osdev->bdev,
+        if (CE_state->dest_ring->base_addr_owner_space_unaligned)
+            pci_free_consistent(scn->sc_osdev->bdev,
                    (CE_state->dest_ring->nentries * sizeof(struct CE_dest_desc) + CE_DESC_RING_ALIGN),
                    CE_state->dest_ring->base_addr_owner_space_unaligned, CE_state->dest_ring->base_addr_CE_space);
         A_FREE(CE_state->dest_ring);
