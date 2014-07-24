@@ -6,6 +6,12 @@ else
 	KERNEL_BUILD := 0
 endif
 
+# This driver does not support integrated SOC
+CONFIG_QCA_WIFI_ISOC=0
+
+# This driver supports the QCACLD 2.0 software architecture
+CONFIG_QCA_WIFI_2_0=1
+
 ifeq ($(CONFIG_CLD_HL_SDIO_CORE), y)
 	CONFIG_QCA_WIFI_SDIO := 1
 endif
