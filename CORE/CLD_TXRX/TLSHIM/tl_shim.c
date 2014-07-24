@@ -677,6 +677,9 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	mgt_type    = (wh)->i_fc[0] & IEEE80211_FC0_TYPE_MASK;
 	mgt_subtype = (wh)->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK;
 
+#ifdef FEATURE_WLAN_D0WOW
+	TLSHIM_LOGD("%s: Frame subtype is 0x%x", __func__, mgt_subtype);
+#endif
 	if (!saved_beacon && mgt_type == IEEE80211_FC0_TYPE_MGT &&
 		(mgt_subtype == IEEE80211_FC0_SUBTYPE_BEACON || mgt_subtype == IEEE80211_FC0_SUBTYPE_PROBE_RESP))
 	{

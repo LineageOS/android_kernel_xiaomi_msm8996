@@ -851,6 +851,12 @@ void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 				__func__, id, tlv_ok_status);
 			goto end;
 	}
+
+#ifdef FEATURE_WLAN_D0WOW
+	if (wmi_handle->in_d0wow)
+		pr_debug("%s: WMI event ID is 0x%x\n", __func__, id);
+#endif
+
 	if (id >= WMI_EVT_GRP_START_ID(WMI_GRP_START)) {
 		u_int32_t idx = 0;
 
@@ -1036,3 +1042,10 @@ void wmi_set_target_suspend(wmi_unified_t wmi_handle, A_BOOL val)
 {
 	adf_os_atomic_set(&wmi_handle->is_target_suspended, val);
 }
+
+#ifdef FEATURE_WLAN_D0WOW
+void wmi_set_d0wow_flag(wmi_unified_t wmi_handle, A_BOOL flag)
+{
+	wmi_handle->in_d0wow = flag;
+}
+#endif

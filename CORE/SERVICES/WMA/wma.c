@@ -16046,6 +16046,7 @@ VOS_STATUS wma_enable_d0wow_in_fw(tp_wma_handle wma)
 	}
 
 	wma->wow.wow_enable_cmd_sent = TRUE;
+	wmi_set_d0wow_flag(wma->wmi_handle, TRUE);
 	WMA_LOGD("D0-WOW is enabled successfully in FW.");
 	return vos_status;
 
@@ -17123,6 +17124,7 @@ VOS_STATUS wma_disable_d0wow_in_fw(tp_wma_handle wma)
 
 	wma->wow.wow_enable = FALSE;
 	wma->wow.wow_enable_cmd_sent = FALSE;
+	wmi_set_d0wow_flag(wma->wmi_handle, FALSE);
 	WMA_LOGD("D0-WOW is disabled successfully in FW.");
 	return vos_status;
 
