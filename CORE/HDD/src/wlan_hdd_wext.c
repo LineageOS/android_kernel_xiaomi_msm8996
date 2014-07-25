@@ -1069,11 +1069,6 @@ VOS_STATUS wlan_hdd_get_snr(hdd_adapter_t *pAdapter, v_S7_t *snr)
    }
 
    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-   if (NULL == pHddStaCtx)
-   {
-       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD STA context is not valid"));
-       return VOS_STATUS_E_FAULT;
-   }
 
    init_completion(&context.completion);
    context.pAdapter = pAdapter;
@@ -1297,18 +1292,12 @@ void hdd_StatisticsCB( void *pStats, void *pContext )
       vos_mem_copy( &pStatsCache->perStaStats, pPerStaStats, sizeof( pStatsCache->perStaStats ) );
    }
 
-    if(pAdapter)
-    {
+    if (pAdapter) {
         pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-        if(pWextState)
-        {
-           vos_status = vos_event_set(&pWextState->vosevent);
-           if (!VOS_IS_STATUS_SUCCESS(vos_status))
-           {
-              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                        "%s: vos_event_set failed", __func__);
-              return;
-           }
+        vos_status = vos_event_set(&pWextState->vosevent);
+        if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+           hddLog(LOGE, FL("vos_event_set failed"));
+           return;
         }
     }
 }
@@ -1546,12 +1535,6 @@ static int iw_set_mode(struct net_device *dev,
     }
 
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-    if (pWextState == NULL)
-    {
-        hddLog(LOGE, "%s ERROR: Data Storage Corruption", __func__);
-        return -EINVAL;
-    }
-
     wdev = dev->ieee80211_ptr;
     pRoamProfile = &pWextState->roamProfile;
     LastBSSType = pRoamProfile->BSSType;
@@ -1614,16 +1597,14 @@ static int iw_set_mode(struct net_device *dev,
 }
 
 
-static int iw_get_mode(struct net_device *dev,
-                             struct iw_request_info *info,
-                             union iwreq_data *wrqu,
-                             char *extra)
+static int
+iw_get_mode(struct net_device *dev, struct iw_request_info *info,
+            union iwreq_data *wrqu, char *extra)
 {
-
     hdd_wext_state_t *pWextState;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
-    hddLog(LOG1, "In %s", __func__);
+    ENTER();
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
@@ -1632,32 +1613,25 @@ static int iw_get_mode(struct net_device *dev,
     }
 
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-    if (pWextState == NULL)
-    {
-        hddLog(LOGE, "%s ERROR: Data Storage Corruption", __func__);
-        return -EINVAL;
-    }
 
-    switch (pWextState->roamProfile.BSSType)
-    {
+    switch (pWextState->roamProfile.BSSType) {
     case eCSR_BSS_TYPE_INFRASTRUCTURE:
-        hddLog(LOG1, "%s returns IW_MODE_INFRA", __func__);
+        hddLog(LOG1, FL("returns IW_MODE_INFRA"));
         wrqu->mode = IW_MODE_INFRA;
         break;
     case eCSR_BSS_TYPE_IBSS:
     case eCSR_BSS_TYPE_START_IBSS:
-        hddLog(LOG1, "%s returns IW_MODE_ADHOC", __func__);
+        hddLog(LOG1, FL("returns IW_MODE_ADHOC"));
         wrqu->mode = IW_MODE_ADHOC;
         break;
     case eCSR_BSS_TYPE_ANY:
-        hddLog(LOG1, "%s returns IW_MODE_AUTO", __func__);
-        wrqu->mode = IW_MODE_AUTO;
-        break;
     default:
-        hddLog(LOG1, "%s returns APMODE_UNKNOWN", __func__);
+        hddLog(LOG1, FL("returns IW_MODE_AUTO"));
+        wrqu->mode = IW_MODE_AUTO;
         break;
     }
 
+    EXIT();
     return 0;
 }
 
@@ -6828,14 +6802,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                     len += buf;
                     break;
                 }
-                pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR( useAdapter );
-                if( !pHddStaCtx )
-                {
-                    buf = scnprintf(extra + len,  WE_MAX_STR_LEN - len,
-                            "\n pHddStaCtx is NULL");
-                    len += buf;
-                    break;
-                }
+                pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(useAdapter);
 
                 tlState = smeGetTLSTAState(hHal, pHddStaCtx->conn_info.staId[0]);
 
