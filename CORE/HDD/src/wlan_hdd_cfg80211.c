@@ -5301,9 +5301,15 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                         pHostapdAdapter->sap_dyn_ini_cfg.acsBandSwitchThreshold;
     pConfig->apAutoChannelSelection =
                         pHostapdAdapter->sap_dyn_ini_cfg.apAutoChannelSelection;
+    pConfig->apStartChannelNum =
+                        pHostapdAdapter->sap_dyn_ini_cfg.apStartChannelNum;
+    pConfig->apEndChannelNum =
+                        pHostapdAdapter->sap_dyn_ini_cfg.apEndChannelNum;
 #else
     pConfig->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
     pConfig->apAutoChannelSelection = iniConfig->apAutoChannelSelection;
+    pConfig->apStartChannelNum = iniConfig->apStartChannelNum;
+    pConfig->apEndChannelNum = iniConfig->apEndChannelNum;
 #endif
 
     pSapEventCallback = hdd_hostapd_SAPEventCB;

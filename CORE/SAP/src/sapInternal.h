@@ -242,6 +242,8 @@ typedef struct sSapContext {
     tSapAcsChannelInfo acsBestChannelInfo;
     tANI_BOOLEAN       enableOverLapCh;
     v_BOOL_t           apAutoChannelSelection;
+    v_U8_t             apStartChannelNum;
+    v_U8_t             apEndChannelNum;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     v_U8_t             cc_switch_mode;
 #endif

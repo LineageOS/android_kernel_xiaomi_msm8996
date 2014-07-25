@@ -941,30 +941,12 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
 v_BOOL_t
 sapAcsChannelCheck(ptSapContext sapContext, v_U8_t channelNumber)
 {
-    v_U32_t acsStartChannelNum;
-    v_U32_t acsEndChannelNum;
-    tHalHandle hHal;
-
     if (!sapContext->apAutoChannelSelection)
         return VOS_FALSE;
 
-    hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
-    if (NULL == hHal)
-    {
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-             "Invalid HAL pointer from pvosGCtx on sapGetChannelList");
-        return VOS_STATUS_E_FAULT;
-    }
-
-    ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL,
-                 &acsStartChannelNum);
-    ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL,
-                 &acsEndChannelNum);
-
-    if ((channelNumber < acsStartChannelNum) ||
-        (channelNumber > acsEndChannelNum))
+    if ((channelNumber < sapContext->apStartChannelNum) ||
+        (channelNumber > sapContext->apEndChannelNum))
         return VOS_TRUE;
-
 
     return VOS_FALSE;
 }
