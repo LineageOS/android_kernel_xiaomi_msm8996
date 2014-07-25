@@ -5488,6 +5488,18 @@ typedef struct
 } tSirExtScanResultsAvailableIndParams,
   *tpSirExtScanResultsAvailableIndParams;
 
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+typedef struct
+{
+    tANI_U32    timer_val;
+} tSirAutoShutdownCmdParams;
+
+typedef struct
+{
+    tANI_U32    shutdown_reason;
+} tSirAutoShutdownEvtParams;
+#endif
+
 typedef struct
 {
     tANI_U8    scanEventType;

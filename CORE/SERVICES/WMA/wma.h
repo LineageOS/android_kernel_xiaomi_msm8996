@@ -185,7 +185,6 @@
 #define WMA_EXTSCAN_MAX_SCAN_TIME       50000
 #define WMA_EXTSCAN_REPEAT_PROBE        10
 #define WMA_EXTSCAN_BURST_DURATION      150
-#define WMA_EXTSCAN_MAX_TABLE_USAGE     71
 #endif
 
 typedef struct {
@@ -1372,6 +1371,9 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq,
 #define WMA_ASSOC_REQ_RECV_WAKE_LOCK_DURATION	(30 * 1000) /* in msec */
 #define WMA_DEAUTH_RECV_WAKE_LOCK_DURATION	(30 * 1000) /* in msec */
 #define WMA_DISASSOC_RECV_WAKE_LOCK_DURATION	(30 * 1000) /* in msec */
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+#define WMA_AUTO_SHUTDOWN_WAKE_LOCK_DURATION    (30 * 1000) /* in msec */
+#endif
 #ifdef FEATURE_WLAN_RA_FILTERING
 #define WMA_RA_MATCH_RECV_WAKE_LOCK_DURATION    (5 * 1000) /* in msec */
 #endif

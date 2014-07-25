@@ -291,7 +291,7 @@ extern int hdd_ftm_stop(hdd_context_t *pHddCtx);
 #endif
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
-v_VOID_t wlan_hdd_auto_shutdown_cb(v_PVOID_t data);
+v_VOID_t wlan_hdd_auto_shutdown_cb(v_VOID_t);
 #endif
 
 /* Store WLAN driver version info in a global variable such that crash debugger
@@ -10489,13 +10489,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 #ifdef IPA_OFFLOAD
    hdd_ipa_cleanup(pHddCtx);
 #endif
-#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
-    if (pHddCtx->cfg_ini->WlanAutoShutdown != 0) {
-        vosStatus = vos_timer_destroy(&pHddCtx->hdd_wlan_shutdown_timer);
-        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-            hddLog(LOGE, FL("Failed to Destroy wlan auto shutdown timer"));
-    }
-#endif
    //Free up dynamically allocated members inside HDD Adapter
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
@@ -12066,13 +12059,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
-    if (pHddCtx->cfg_ini->WlanAutoShutdown != 0) {
-        status = vos_timer_init( &pHddCtx->hdd_wlan_shutdown_timer,
-                                VOS_TIMER_TYPE_SW, wlan_hdd_auto_shutdown_cb,
-                                                                        NULL);
-        if (!VOS_IS_STATUS_SUCCESS(status))
-           hddLog(LOGE, FL("Failed to init wlan auto shutdown timer"));
-    }
+   if (pHddCtx->cfg_ini->WlanAutoShutdown != 0)
+       if (sme_set_auto_shutdown_cb(pHddCtx->hHal, wlan_hdd_auto_shutdown_cb)
+           != eHAL_STATUS_SUCCESS)
+           hddLog(LOGE, FL("Auto shutdown feature could not be enabled"));
 #endif
 
 #ifdef FEATURE_GREEN_AP
@@ -13597,7 +13587,7 @@ void wlan_hdd_send_version_pkg(v_U32_t fw_version,
 #endif
 
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
-v_VOID_t wlan_hdd_auto_shutdown_cb(v_PVOID_t data)
+v_VOID_t wlan_hdd_auto_shutdown_cb(v_VOID_t)
 {
     hddLog(LOGE, FL("%s: Wlan Idle. Sending Shutdown event.."),__func__);
     wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND, NULL, 0);
@@ -13605,19 +13595,21 @@ v_VOID_t wlan_hdd_auto_shutdown_cb(v_PVOID_t data)
 
 void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
 {
-    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
     hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
     VOS_STATUS status;
     hdd_adapter_t      *pAdapter;
     v_BOOL_t ap_connected = VOS_FALSE, sta_connected = VOS_FALSE;
+    tHalHandle hHal;
+
+    hHal = hdd_ctx->hHal;
+    if (hHal == NULL)
+        return;
 
     if (hdd_ctx->cfg_ini->WlanAutoShutdown == 0)
         return;
 
     if (enable == VOS_FALSE) {
-        if (hdd_ctx->hdd_wlan_shutdown_timer.state == VOS_TIMER_STATE_RUNNING) {
-            vos_status = vos_timer_stop(&hdd_ctx->hdd_wlan_shutdown_timer);
-            if (!VOS_IS_STATUS_SUCCESS(vos_status))
+        if (sme_set_auto_shutdown_timer(hHal, 0) != eHAL_STATUS_SUCCESS) {
                hddLog(LOGE, FL("Failed to stop wlan auto shutdown timer"));
         }
         return;
@@ -13651,16 +13643,13 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
             hddLog(LOG1, FL("CC Session active. Shutdown timer not enabled"));
             return;
     } else {
-        if (hdd_ctx->hdd_wlan_shutdown_timer.state == VOS_TIMER_STATE_STOPPED) {
-            vos_status = vos_timer_start( &hdd_ctx->hdd_wlan_shutdown_timer,
-                                   hdd_ctx->cfg_ini->WlanAutoShutdown * 1000);
-
-            if (!VOS_IS_STATUS_SUCCESS(vos_status))
-               hddLog(LOGE, FL("Failed to start wlan auto shutdown timer"));
-            else
-               hddLog(LOG1, FL("CC Session Inactive. Shutdown timer enabled"));
-
-        }
+        if (sme_set_auto_shutdown_timer(hHal,
+                hdd_ctx->cfg_ini->WlanAutoShutdown)
+                != eHAL_STATUS_SUCCESS)
+           hddLog(LOGE, FL("Failed to start wlan auto shutdown timer"));
+        else
+           hddLog(LOG1, FL("Auto Shutdown timer for %d seconds enabled"),
+                                   hdd_ctx->cfg_ini->WlanAutoShutdown);
 
     }
 }

@@ -2661,6 +2661,18 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 break;
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+           case eWNI_SME_AUTO_SHUTDOWN_IND:
+                if (pMac->sme.pAutoShutdownNotificationCb)
+                {
+                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                             "%s: Auto shutdown notification", __func__);
+                   pMac->sme.pAutoShutdownNotificationCb();
+                }
+                vos_mem_free(pMsg->bodyptr);
+                break;
+#endif
+
            case eWNI_SME_DFS_RADAR_FOUND:
            case eWNI_SME_DFS_CSAIE_TX_COMPLETE_IND:
                 {
@@ -12327,6 +12339,89 @@ eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
     return status;
 }
 #endif /* QCA_WIFI_2_0 */
+
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+/* ---------------------------------------------------------------------------
+    \fn sme_auto_shutdown_cb
+    \brief  Used to plug in callback function for receiving auto shutdown evt
+    \param  hHal
+    \param  pCallbackfn : callback function pointer should be plugged in
+    \- return eHalStatus
+-------------------------------------------------------------------------*/
+eHalStatus sme_set_auto_shutdown_cb
+(
+   tHalHandle hHal,
+   void (*pCallbackfn)(void)
+)
+{
+    eHalStatus          status    = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal      pMac      = PMAC_STRUCT(hHal);
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+              "%s: Plug in Auto shutdown event callback", __func__);
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status)
+    {
+        if (NULL != pCallbackfn)
+        {
+           pMac->sme.pAutoShutdownNotificationCb = pCallbackfn;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+
+    return(status);
+}
+/* ---------------------------------------------------------------------------
+    \fn sme_set_auto_shutdown_timer
+    \API to set auto shutdown timer value in FW.
+    \param hHal - The handle returned by macOpen
+    \param timer_val - The auto shutdown timer value to be set
+    \- return Configuration message posting status, SUCCESS or Fail
+    -------------------------------------------------------------------------*/
+eHalStatus sme_set_auto_shutdown_timer(tHalHandle hHal, tANI_U32 timer_val)
+{
+    eHalStatus          status    = eHAL_STATUS_SUCCESS;
+    VOS_STATUS          vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal      pMac      = PMAC_STRUCT(hHal);
+    tSirAutoShutdownCmdParams *auto_sh_cmd;
+    vos_msg_t           vosMessage;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status)
+    {
+        auto_sh_cmd = (tSirAutoShutdownCmdParams *)
+                  vos_mem_malloc(sizeof(tSirAutoShutdownCmdParams));
+        if (auto_sh_cmd == NULL)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s Request Buffer Alloc Fail", __func__);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+
+        auto_sh_cmd->timer_val = timer_val;
+
+        /* serialize the req through MC thread */
+        vosMessage.bodyptr = auto_sh_cmd;
+        vosMessage.type    = WDA_SET_AUTO_SHUTDOWN_TIMER_REQ;
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Post Auto shutdown MSG fail", __func__);
+           vos_mem_free(auto_sh_cmd);
+           sme_ReleaseGlobalLock(&pMac->sme);
+           return eHAL_STATUS_FAILURE;
+        }
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                     "%s: Posted Auto shutdown MSG", __func__);
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+
+    return(status);
+}
+#endif
 
 #ifdef FEATURE_WLAN_CH_AVOID
 /* ---------------------------------------------------------------------------

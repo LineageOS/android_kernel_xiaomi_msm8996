@@ -3560,6 +3560,27 @@ eHalStatus sme_ChAvoidUpdateReq
 );
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+/* ---------------------------------------------------------------------------
+    \fn sme_auto_shutdown_cb
+    \brief  Used to plug in callback function for receiving auto shutdown evt
+    \param  hHal
+    \param  pCallbackfn : callback function pointer should be plugged in
+    \- return eHalStatus
+-------------------------------------------------------------------------*/
+eHalStatus sme_set_auto_shutdown_cb(tHalHandle hHal,
+   void (*pCallbackfn)(void));
+
+/* ---------------------------------------------------------------------------
+    \fn sme_set_auto_shutdown_timer
+    \API to set auto shutdown timer value in FW.
+    \param hHal - The handle returned by macOpen
+    \param timer_val - The auto shutdown timer value to be set
+    \- return Configuration message posting status, SUCCESS or Fail
+    -------------------------------------------------------------------------*/
+eHalStatus sme_set_auto_shutdown_timer(tHalHandle hHal, tANI_U32 timer_value);
+#endif
+
 eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal, tCsrBssid bssid,
                                 tANI_U8 targetChannel, eCsrPhyMode phyMode );
 
