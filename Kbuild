@@ -845,11 +845,6 @@ WDI_DIR :=	CORE/WDI
 
 WDI_CP_INC :=	-I$(WLAN_ROOT)/$(WDI_DIR)/CP/inc/
 
-WDI_CP_SRC_DIR := $(WDI_DIR)/CP/src
-WDI_CP_OBJS :=	$(WDI_CP_SRC_DIR)/wlan_qct_wdi.o \
-		$(WDI_CP_SRC_DIR)/wlan_qct_wdi_dp.o \
-		$(WDI_CP_SRC_DIR)/wlan_qct_wdi_sta.o
-
 WDI_DP_INC := -I$(WLAN_ROOT)/$(WDI_DIR)/DP/inc/
 
 WDI_DP_SRC_DIR := $(WDI_DIR)/DP/src
@@ -890,8 +885,7 @@ WDI_INC :=	$(WDI_CP_INC) \
 WDI_OBJS :=	$(WDI_WPAL_OBJS)
 
 ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
-WDI_OBJS +=	$(WDI_CP_OBJS) \
-		$(WDI_DP_OBJS) \
+WDI_OBJS +=	$(WDI_DP_OBJS) \
 		$(WDI_TRP_OBJS)
 endif
 
