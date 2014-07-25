@@ -304,9 +304,6 @@ extern spinlock_t hdd_context_lock;
 #define WLAN_HDD_TX_FLOW_CONTROL_MAX_24BAND_CH   14
 #endif /* QCA_LL_TX_FLOW_CT */
 
-/* Max PMKSAIDS available in cache */
-#define MAX_PMKSAIDS_IN_CACHE 8
-
 #define HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1       390
 #define HDD_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_1_1       390
 
@@ -688,7 +685,7 @@ struct hdd_station_ctx
    v_BOOL_t hdd_ReassocScenario;
 
    /* PMKID Cache */
-   tPmkidCacheInfo PMKIDCache[MAX_PMKSAIDS_IN_CACHE];
+   tPmkidCacheInfo PMKIDCache[CSR_MAX_PMKID_ALLOWED];
    tANI_U32 PMKIDCacheIndex;
 
    /* STA ctx debug variables */

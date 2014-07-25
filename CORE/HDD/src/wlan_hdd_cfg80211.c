@@ -11510,7 +11510,7 @@ static int __wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device 
     }
 
     /* Check we compared all entries,if then take the first slot now */
-    if (j == MAX_PMKSAIDS_IN_CACHE) pHddStaCtx->PMKIDCacheIndex = 0;
+    if (j == CSR_MAX_PMKID_ALLOWED) pHddStaCtx->PMKIDCacheIndex = 0;
 
     if (!BSSIDMatched) {
         /* Now, we DON'T have a BSSID match, so take a new entry in the cache */
@@ -11525,7 +11525,7 @@ static int __wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device 
                MAC_ADDR_ARRAY(pmksa->bssid));
         dump_pmkid(halHandle, pmksa->pmkid);
         /* Increment the HDD Local Cache index */
-        if (pHddStaCtx->PMKIDCacheIndex <= (MAX_PMKSAIDS_IN_CACHE - 1))
+        if (pHddStaCtx->PMKIDCacheIndex <= (CSR_MAX_PMKID_ALLOWED - 1))
             pHddStaCtx->PMKIDCacheIndex++;
         else
             pHddStaCtx->PMKIDCacheIndex = 0;
@@ -11649,7 +11649,7 @@ static int __wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device 
     }
 
     /* We compare all entries, but cannot find matching entry */
-    if (j == MAX_PMKSAIDS_IN_CACHE && !BSSIDMatched) {
+    if (j == CSR_MAX_PMKID_ALLOWED && !BSSIDMatched) {
        hddLog(VOS_TRACE_LEVEL_DEBUG,
               FL("No such PMKSA entry exists "MAC_ADDRESS_STR),
               MAC_ADDR_ARRAY(pmksa->bssid));
