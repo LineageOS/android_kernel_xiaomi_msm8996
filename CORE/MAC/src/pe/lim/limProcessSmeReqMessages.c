@@ -6337,7 +6337,7 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                                   pChannelChangeReq->targetChannel;
 
             limSetChannel(pMac, pChannelChangeReq->targetChannel,
-                          pChannelChangeReq->cbMode,
+                          psessionEntry->htSecondaryChannelOffset,
                           maxTxPwr,
                           psessionEntry->peSessionId);
 #endif
