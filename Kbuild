@@ -858,15 +858,6 @@ WDI_DP_OBJS :=	$(WDI_DP_SRC_DIR)/wlan_qct_wdi_bd.o \
 WDI_TRP_INC :=	-I$(WLAN_ROOT)/$(WDI_DIR)/TRP/CTS/inc/ \
 		-I$(WLAN_ROOT)/$(WDI_DIR)/TRP/DTS/inc/
 
-WDI_TRP_CTS_SRC_DIR :=	$(WDI_DIR)/TRP/CTS/src
-WDI_TRP_CTS_OBJS :=	$(WDI_TRP_CTS_SRC_DIR)/wlan_qct_wdi_cts.o
-
-WDI_TRP_DTS_SRC_DIR :=	$(WDI_DIR)/TRP/DTS/src
-WDI_TRP_DTS_OBJS :=	$(WDI_TRP_DTS_SRC_DIR)/wlan_qct_wdi_dts.o
-
-WDI_TRP_OBJS :=	$(WDI_TRP_CTS_OBJS) \
-		$(WDI_TRP_DTS_OBJS)
-
 WDI_WPAL_INC := -I$(WLAN_ROOT)/$(WDI_DIR)/WPAL/inc
 
 WDI_WPAL_SRC_DIR := $(WDI_DIR)/WPAL/src
@@ -889,8 +880,8 @@ WDI_INC :=	$(WDI_CP_INC) \
 WDI_OBJS :=	$(WDI_WPAL_OBJS)
 
 ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
-WDI_OBJS +=	$(WDI_DP_OBJS) \
-		$(WDI_TRP_OBJS)
+WDI_OBJS +=	$(WDI_CP_OBJS) \
+		$(WDI_DP_OBJS)
 endif
 
 
