@@ -128,6 +128,7 @@ WLANSAP_ScanCallback
 (
   tHalHandle halHandle,
   void *pContext,           /* Opaque SAP handle */
+  v_U8_t sessionId,
   v_U32_t scanID,
   eCsrScanStatus scanStatus
 )

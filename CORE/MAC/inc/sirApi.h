@@ -3920,6 +3920,7 @@ typedef struct
   /* Length of the beacon or probe response
    * corresponding to the candidate found by PNO */
   tANI_U32      frameLength;
+  tANI_U8       sessionId;
   /* Index to memory location where the contents of
    * beacon or probe response frame will be copied */
   tANI_U8       data[1];
@@ -4015,6 +4016,12 @@ typedef struct sSirRoamOffloadScanReq
   tSirAcUapsd AcUapsd;
 #endif
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
+
+typedef struct sSirRoamOffloadScanRsp
+{
+  tANI_U8  sessionId;
+  tANI_U32 reason;
+} tSirRoamOffloadScanRsp, *tpSirRoamOffloadScanRsp;
 #endif //WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 
 #define SIR_NOCHANGE_POWER_VALUE  0xFFFFFFFF

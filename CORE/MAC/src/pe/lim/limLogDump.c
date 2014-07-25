@@ -2075,93 +2075,111 @@ dump_lim_set_tl_data_pkt_rssi( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2
 static char *
 dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
-    static tANI_U8 macAddr[6] =  {0x00, 0xde, 0xad, 0xaf, 0xaf, 0x04};
-    tpPESession psessionEntry;
-    tSirMsgQ         msg;
-    tpSirFTPreAuthReq pftPreAuthReq;
-    tANI_U16 auth_req_len = 0;
-    tCsrRoamConnectedProfile Profile;
+   static tANI_U8 macAddr[6] =  {0x00, 0xde, 0xad, 0xaf, 0xaf, 0x04};
+   tpPESession psessionEntry;
+   tSirMsgQ         msg;
+   tpSirFTPreAuthReq pftPreAuthReq;
+   tANI_U16 auth_req_len = 0;
+   tCsrRoamConnectedProfile Profile;
+   tANI_U32  smeSessionId = arg2;
 
-    csrRoamCopyConnectProfile(pMac, arg2, &Profile);
+   if (!CSR_IS_SESSION_VALID( pMac, smeSessionId ))
+   {
+      p += log_sprintf( pMac, p, "smeSessionId is not valid\n");
+      return p;
+   }
 
-    if((psessionEntry = peFindSessionBySessionId(pMac,(tANI_U8)arg2) )== NULL)
-    {
-        p += log_sprintf( pMac,
+   csrRoamCopyConnectProfile(pMac, arg2, &Profile);
+
+   if((psessionEntry = peFindSessionBySessionId(pMac,(tANI_U8)arg2) )== NULL)
+   {
+      p += log_sprintf( pMac,
             p,"Session does not exist usage: 363 <0> sessionid channel \n");
-        return p;
-    }
+      return p;
+   }
 
-    switch (arg1)
-    {
-         case 0:
-              // Send Pre-auth event
-              {
-                   /*----------------*/
-                   p += log_sprintf( pMac,p, "Preparing Pre Auth Req message\n");
-                   auth_req_len = sizeof(tSirFTPreAuthReq);
+   switch (arg1)
+   {
+      case 0:
+         // Send Pre-auth event
+         {
+            /*----------------*/
+            p += log_sprintf( pMac,p, "Preparing Pre Auth Req message\n");
+            auth_req_len = sizeof(tSirFTPreAuthReq);
 
-                   pftPreAuthReq = vos_mem_malloc(auth_req_len);
-                   if (NULL == pftPreAuthReq)
-                   {
-                       p += log_sprintf( pMac,p,"Pre auth dump: AllocateMemory() failed \n");
-                       return p;
-                   }
-                   pftPreAuthReq->pbssDescription = vos_mem_malloc(sizeof(Profile.pBssDesc->length)+
-                                                        Profile.pBssDesc->length);
+            pftPreAuthReq = vos_mem_malloc(auth_req_len);
+            if (NULL == pftPreAuthReq)
+            {
+               p += log_sprintf( pMac, p,
+                        "Pre auth dump: AllocateMemory() failed \n");
+               return p;
+            }
+            pftPreAuthReq->pbssDescription =
+                        vos_mem_malloc(sizeof(Profile.pBssDesc->length)+
+                        Profile.pBssDesc->length);
 
-                   pftPreAuthReq->messageType = eWNI_SME_FT_PRE_AUTH_REQ;
-                   pftPreAuthReq->length = auth_req_len + sizeof(Profile.pBssDesc->length) +
-                       Profile.pBssDesc->length;
-                   pftPreAuthReq->preAuthchannelNum = 6;
+            pftPreAuthReq->messageType = eWNI_SME_FT_PRE_AUTH_REQ;
+            pftPreAuthReq->length =
+                        auth_req_len + sizeof(Profile.pBssDesc->length) +
+               Profile.pBssDesc->length;
+            pftPreAuthReq->preAuthchannelNum = 6;
 
-                   vos_mem_copy((void *) &pftPreAuthReq->currbssId,
-                                (void *)psessionEntry->bssId, 6);
-                   vos_mem_copy((void *) &pftPreAuthReq->preAuthbssId,
-                                (void *)macAddr, 6);
-                   pftPreAuthReq->ft_ies_length = (tANI_U16)pMac->ft.ftSmeContext.auth_ft_ies_length;
+            vos_mem_copy((void *) &pftPreAuthReq->currbssId,
+                  (void *)psessionEntry->bssId, 6);
+            vos_mem_copy((void *) &pftPreAuthReq->preAuthbssId,
+                  (void *)macAddr, 6);
+            pftPreAuthReq->ft_ies_length =
+               (tANI_U16)pMac->roam.roamSession[smeSessionId].ftSmeContext.auth_ft_ies_length;
 
-                   // Also setup the mac address in sme context.
-                   vos_mem_copy(pMac->ft.ftSmeContext.preAuthbssId, macAddr, 6);
+            // Also setup the mac address in sme context.
+            vos_mem_copy(
+                 pMac->roam.roamSession[smeSessionId].ftSmeContext.preAuthbssId,
+                 macAddr, 6);
 
-                   vos_mem_copy(pftPreAuthReq->ft_ies, pMac->ft.ftSmeContext.auth_ft_ies,
-                       pMac->ft.ftSmeContext.auth_ft_ies_length);
+            vos_mem_copy(pftPreAuthReq->ft_ies,
+                  pMac->roam.roamSession[smeSessionId].ftSmeContext.auth_ft_ies,
+                  pMac->roam.roamSession[smeSessionId].ftSmeContext.auth_ft_ies_length);
 
-                   vos_mem_copy(Profile.pBssDesc->bssId, macAddr, 6);
+            vos_mem_copy(Profile.pBssDesc->bssId, macAddr, 6);
 
-                   p += log_sprintf( pMac,p, "\n ----- LIM Debug Information ----- \n");
-                   p += log_sprintf( pMac, p, "%s: length = %d\n", __func__,
-                            (int)pMac->ft.ftSmeContext.auth_ft_ies_length);
-                   p += log_sprintf( pMac, p, "%s: length = %02x\n", __func__,
-                            (int)pMac->ft.ftSmeContext.auth_ft_ies[0]);
-                   p += log_sprintf( pMac, p, "%s: Auth Req %02x %02x %02x\n",
-                            __func__, pftPreAuthReq->ft_ies[0],
-                            pftPreAuthReq->ft_ies[1], pftPreAuthReq->ft_ies[2]);
+            p += log_sprintf( pMac, p,
+                     "\n ----- LIM Debug Information ----- \n");
+            p += log_sprintf( pMac, p, "%s: length = %d\n", __func__,
+                  (int)pMac->roam.roamSession[smeSessionId].ftSmeContext.auth_ft_ies_length);
+            p += log_sprintf( pMac, p, "%s: length = %02x\n", __func__,
+                  (int)pMac->roam.roamSession[smeSessionId].ftSmeContext.auth_ft_ies[0]);
+            p += log_sprintf( pMac, p, "%s: Auth Req %02x %02x %02x\n",
+                  __func__, pftPreAuthReq->ft_ies[0],
+                  pftPreAuthReq->ft_ies[1], pftPreAuthReq->ft_ies[2]);
 
-                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x\n", __func__,
-                            psessionEntry->bssId[0],
-                            psessionEntry->bssId[1], psessionEntry->bssId[2]);
-                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x %p\n", __func__,
-                            pftPreAuthReq->currbssId[0],
-                            pftPreAuthReq->currbssId[1],
-                            pftPreAuthReq->currbssId[2], pftPreAuthReq);
+            p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x\n", __func__,
+                  psessionEntry->bssId[0],
+                  psessionEntry->bssId[1], psessionEntry->bssId[2]);
+            p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x %p\n",
+                  __func__,
+                  pftPreAuthReq->currbssId[0],
+                  pftPreAuthReq->currbssId[1],
+                  pftPreAuthReq->currbssId[2], pftPreAuthReq);
 
-                   Profile.pBssDesc->channelId = (tANI_U8)arg3;
-                   vos_mem_copy((void *)pftPreAuthReq->pbssDescription, (void *)Profile.pBssDesc,
-                       Profile.pBssDesc->length);
+            Profile.pBssDesc->channelId = (tANI_U8)arg3;
+            vos_mem_copy((void *)pftPreAuthReq->pbssDescription,
+                  (void *)Profile.pBssDesc,
+                  Profile.pBssDesc->length);
 
-                   msg.type = eWNI_SME_FT_PRE_AUTH_REQ;
-                   msg.bodyptr = pftPreAuthReq;
-                   msg.bodyval = 0;
+            msg.type = eWNI_SME_FT_PRE_AUTH_REQ;
+            msg.bodyptr = pftPreAuthReq;
+            msg.bodyval = 0;
 
-                   p += log_sprintf( pMac, p, "limPostMsgApi(eWNI_SME_FT_PRE_AUTH_REQ) \n");
-                   limPostMsgApi(pMac, &msg);
-              }
-              break;
+            p += log_sprintf(pMac, p,
+                             "limPostMsgApi(eWNI_SME_FT_PRE_AUTH_REQ) \n");
+            limPostMsgApi(pMac, &msg);
+         }
+         break;
 
-         default:
-              break;
-    }
-    return p;
+      default:
+         break;
+   }
+   return p;
 }
 #endif
 static char *

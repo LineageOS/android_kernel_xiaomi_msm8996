@@ -41,6 +41,9 @@
 #include <stdarg.h>
 #include "sirMacPropExts.h"
 #include "dot11f.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFTDefs.h"
+#endif
 #include "limSession.h"
 
 #define COUNTRY_STRING_LENGTH    (  3 )

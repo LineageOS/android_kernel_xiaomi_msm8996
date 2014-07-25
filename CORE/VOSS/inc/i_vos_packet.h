@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -64,6 +64,7 @@ typedef struct
    u_int8_t  roamCandidateInd:1;
    u_int8_t  scan:1;
    u_int8_t  dpuFeedback;
+   u_int8_t  sessionId;
 }t_packetmeta, *tp_packetmeta;
 
 /* implementation specific vos packet type */

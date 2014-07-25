@@ -24,6 +24,7 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+#if defined(WLAN_FEATURE_VOWIFI_11R)
 
 #if !defined( __SME_FTAPI_H )
 #define __SME_FTAPI_H
@@ -48,50 +49,59 @@ typedef enum eFTIEState
                                     // supplicant. Waiting for the keys.
 } tFTIEStates;
 
+/* FT neighbor roam callback user context */
+typedef struct sFTRoamCallbackUsrCtx
+{
+    tpAniSirGlobal pMac;
+    tANI_U8        sessionId;
+} tFTRoamCallbackUsrCtx, *tpFTRoamCallbackUsrCtx;
 
 typedef struct sFTSMEContext
 {
+    /* Received and processed during pre-auth */
     tANI_U8           *auth_ft_ies;
     tANI_U32          auth_ft_ies_length;
 
+    /* Received and processed during re-assoc */
     tANI_U8           *reassoc_ft_ies;
     tANI_U16          reassoc_ft_ies_length;
 
-    // Pre-Auth info
+    /* Pre-Auth info */
     tFTIEStates       FTState;               // The state of FT in the current 11rAssoc
     tSirMacAddr       preAuthbssId;          // BSSID to preauth to
     tANI_U32          smeSessionId;
 
-    // Saved pFTPreAuthRsp
+    /* Saved pFTPreAuthRsp */
     tpSirFTPreAuthRsp psavedFTPreAuthRsp;
     v_BOOL_t          setFTPreAuthState;
     v_BOOL_t          setFTPTKState;
 
-    // Time to trigger reassoc once pre-auth is successful
+    /* Time to trigger reassoc once pre-auth is successful */
     vos_timer_t       preAuthReassocIntvlTimer;
-    tCsrRoamSetKey    *pCsrFTKeyInfo;
 
     v_BOOL_t          addMDIE;
+
+    /* User context for the timer callback */
+    tpFTRoamCallbackUsrCtx  pUsrCtx;
 } tftSMEContext, *tpftSMEContext;
 
 /*--------------------------------------------------------------------------
   Prototype functions
   ------------------------------------------------------------------------*/
-void sme_FTOpen(tHalHandle hHal);
-void sme_FTClose(tHalHandle hHal);
-void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, const tANI_U8 *ft_ies, tANI_U16 ft_ies_length );
-eHalStatus sme_FTUpdateKey( tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo );
-void csrFTPreAuthRspProcessor( tHalHandle hHal, tpSirFTPreAuthRsp pFTPreAuthRsp );
-void sme_GetFTPreAuthResponse( tHalHandle hHal, tANI_U8 *ft_ies, tANI_U32 ft_ies_ip_len, tANI_U16 *ft_ies_length );
-void sme_GetRICIEs( tHalHandle hHal, tANI_U8 *ric_ies, tANI_U32 ric_ies_ip_len, tANI_U32 *ric_ies_length );
+void sme_FTOpen(tHalHandle hHal, tANI_U32 sessionId);
+void sme_FTClose(tHalHandle hHal, tANI_U32 sessionId);
+void sme_FTReset(tHalHandle hHal, tANI_U32 sessionId);
+void sme_SetFTIEs( tHalHandle hHal, tANI_U32 sessionId, const tANI_U8 *ft_ies, tANI_U16 ft_ies_length );
+eHalStatus sme_FTUpdateKey( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamSetKey * pFTKeyInfo );
+void sme_GetFTPreAuthResponse(tHalHandle hHal, tANI_U32 sessionId, tANI_U8 *ft_ies,
+                             tANI_U32 ft_ies_ip_len, tANI_U16 *ft_ies_length );
+void sme_GetRICIEs(tHalHandle hHal, tANI_U32 sessionId, tANI_U8 *ric_ies,
+                  tANI_U32 ric_ies_ip_len, tANI_U32 *ric_ies_length );
 void sme_PreauthReassocIntvlTimerCallback(void *context);
-void sme_SetFTPreAuthState(tHalHandle hHal, v_BOOL_t state);
-v_BOOL_t sme_GetFTPreAuthState(tHalHandle hHal);
-v_BOOL_t sme_GetFTPTKState(tHalHandle hHal);
-void sme_SetFTPTKState(tHalHandle hHal, v_BOOL_t state);
-#if defined(WLAN_FEATURE_VOWIFI_11R)
-void sme_FTReset(tHalHandle hHal);
+void sme_SetFTPreAuthState(tHalHandle hHal, tANI_U32 sessionId, v_BOOL_t state);
+v_BOOL_t sme_GetFTPreAuthState(tHalHandle hHal, tANI_U32 sessionId);
+v_BOOL_t sme_GetFTPTKState(tHalHandle hHal, tANI_U32 sessionId);
+void sme_SetFTPTKState(tHalHandle hHal, tANI_U32 sessionId, v_BOOL_t state);
 #endif
-
 
 #endif //#if !defined( __SME_FTAPI_H )

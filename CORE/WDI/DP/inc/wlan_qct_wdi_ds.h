@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -154,6 +154,7 @@ typedef struct
    wpt_uint32 offloadScanLearn;
    wpt_uint32 roamCandidateInd;
 #endif
+   wpt_uint32 sessionId;
 } WDI_DS_RxMetaInfoType;
 
 typedef struct sPktMetaInfo

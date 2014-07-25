@@ -411,6 +411,7 @@ rrmProcessNeighborReportResponse( tpAniSirGlobal pMac,
 
    pSmeNeighborRpt->messageType = eWNI_SME_NEIGHBOR_REPORT_IND;
    pSmeNeighborRpt->length = length;
+   pSmeNeighborRpt->sessionId = pSessionEntry->smeSessionId;
    pSmeNeighborRpt->numNeighborReports = pNeighborRep->num_NeighborReport;
    vos_mem_copy(pSmeNeighborRpt->bssId, pSessionEntry->bssId, sizeof(tSirMacAddr));
 

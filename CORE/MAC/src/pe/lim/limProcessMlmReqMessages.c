@@ -151,7 +151,7 @@ limProcessMlmReqMessages(tpAniSirGlobal pMac, tpSirMsgQ Msg)
         case SIR_LIM_AUTH_RSP_TIMEOUT:      limProcessAuthRspTimeout(pMac, Msg->bodyval);  break;
         case SIR_LIM_ASSOC_FAIL_TIMEOUT:    limProcessAssocFailureTimeout(pMac, Msg->bodyval);  break;
 #ifdef WLAN_FEATURE_VOWIFI_11R
-        case SIR_LIM_FT_PREAUTH_RSP_TIMEOUT:limProcessFTPreauthRspTimeout(pMac); break;
+        case SIR_LIM_FT_PREAUTH_RSP_TIMEOUT: limProcessFTPreauthRspTimeout(pMac); break;
 #endif
         case SIR_LIM_REMAIN_CHN_TIMEOUT:    limProcessRemainOnChnTimeout(pMac); break;
         case SIR_LIM_INSERT_SINGLESHOT_NOA_TIMEOUT:

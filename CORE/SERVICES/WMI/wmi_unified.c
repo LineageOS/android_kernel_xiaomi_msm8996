@@ -764,7 +764,56 @@ void wmi_control_rx(void *ctx, HTC_PACKET *htc_packet)
 	struct wmi_unified *wmi_handle = (struct wmi_unified *)ctx;
 	wmi_buf_t evt_buf;
 
+#ifndef QCA_CONFIG_SMP
+	/* MDM is single core apps processor
+	 * As a result, PAUSE event cannot be processed fast enough
+	 * if RX process reserve CPU
+	 * To ensure PAUSE event processed fast enough
+	 * only PAUSE event should not be scheduled on worker thread */
+	u_int32_t id;
+	u_int32_t len;
+	u_int8_t *data;
+	void *wmi_cmd_struct_ptr = NULL;
+	u_int32_t idx = 0;
+	int tlv_ok_status = 0;
+#endif /* QCA_CONFIG_SMP */
+
 	evt_buf = (wmi_buf_t) htc_packet->pPktContext;
+#ifndef QCA_CONFIG_SMP
+	id = WMI_GET_FIELD(adf_nbuf_data(evt_buf), WMI_CMD_HDR, COMMANDID);
+	/* TX_PAUSE EVENT should be handled with tasklet context */
+	if (WMI_TX_PAUSE_EVENTID == id) {
+		if (adf_nbuf_pull_head(evt_buf, sizeof(WMI_CMD_HDR)) == NULL)
+			return;
+
+		data = adf_nbuf_data(evt_buf);
+		len = adf_nbuf_len(evt_buf);
+		tlv_ok_status = wmitlv_check_and_pad_event_tlvs(
+					wmi_handle->scn_handle,
+					data, len, id,
+					&wmi_cmd_struct_ptr);
+		if (tlv_ok_status != 0) {
+			if (tlv_ok_status == 1) {
+				wmi_cmd_struct_ptr = data;
+			} else {
+				return;
+			}
+		}
+
+		idx = wmi_unified_get_event_handler_ix(wmi_handle, id);
+		if (idx == -1) {
+			wmitlv_free_allocated_event_tlvs(id,
+				&wmi_cmd_struct_ptr);
+			adf_nbuf_free(evt_buf);
+			return;
+		}
+		wmi_handle->event_handler[idx](wmi_handle->scn_handle,
+			       wmi_cmd_struct_ptr, len);
+		wmitlv_free_allocated_event_tlvs(id, &wmi_cmd_struct_ptr);
+		adf_nbuf_free(evt_buf);
+		return;
+	}
+#endif /* QCA_CONFIG_SMP */
 
 #ifdef QCA_WIFI_ISOC
 	__wmi_control_rx(wmi_handle, evt_buf);

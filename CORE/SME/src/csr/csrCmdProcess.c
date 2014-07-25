@@ -54,11 +54,11 @@ eHalStatus csrMsgProcessor( tpAniSirGlobal pMac,  void *pMsgBuf )
 #endif
 
     smsLog(pMac, LOG2, FL("Message %d[0x%04X] received in curState %s"
-           " and substate %s"),
+           " and substate %s sessionId (%d)"),
            pSmeRsp->messageType, pSmeRsp->messageType,
            macTraceGetcsrRoamState(pMac->roam.curState[pSmeRsp->sessionId]),
            macTraceGetcsrRoamSubState(
-           pMac->roam.curSubState[pSmeRsp->sessionId]));
+           pMac->roam.curSubState[pSmeRsp->sessionId]), pSmeRsp->sessionId);
 
 #ifdef FEATURE_WLAN_SCAN_PNO
     /*

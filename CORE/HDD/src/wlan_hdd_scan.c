@@ -537,6 +537,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
 
   \param  - halHandle - Pointer to the Hal Handle.
               - pContext - Pointer to the data context.
+              - sessionId - Session identifier
               - scanId - Scan ID.
               - status - CSR Status.
   \return - 0 for success, non zero for failure
@@ -544,7 +545,8 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
   --------------------------------------------------------------------------*/
 
 static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
-                         tANI_U32 scanId, eCsrScanStatus status)
+                                          tANI_U8 sessionId, tANI_U32 scanId,
+                                          eCsrScanStatus status)
 {
     struct net_device *dev = (struct net_device *) pContext;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
@@ -734,7 +736,9 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
        scanRequest.pIEField = pAdapter->scan_info.scanAddIE.addIEdata;
    }
 
-   status = sme_ScanRequest( (WLAN_HDD_GET_CTX(pAdapter))->hHal, pAdapter->sessionId,&scanRequest, &scanId, &hdd_ScanRequestCallback, dev );
+   status = sme_ScanRequest((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+                             pAdapter->sessionId, &scanRequest, &scanId,
+                             &hdd_ScanRequestCallback, dev);
    if (!HAL_STATUS_SUCCESS(status))
    {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:sme_ScanRequest  fail %d!!!",__func__, status);
@@ -1112,8 +1116,9 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
             scanRequest.pIEField = pAdapter->scan_info.scanAddIE.addIEdata;
         }
 
-        status = sme_ScanRequest( (WLAN_HDD_GET_CTX(pAdapter))->hHal,
-            pAdapter->sessionId,&scanRequest, &scanId, &hdd_ScanRequestCallback, dev );
+        status = sme_ScanRequest((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+                                 pAdapter->sessionId, &scanRequest, &scanId,
+                                 &hdd_ScanRequestCallback, dev);
         if( !HAL_STATUS_SUCCESS(status) )
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s: SME scan fail status %d !!!",__func__, status);

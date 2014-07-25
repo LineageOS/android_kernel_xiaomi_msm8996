@@ -61,196 +61,254 @@
 #include <wlan_hdd_misc.h>
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
-static void cbNotifySetRoamPrefer5GHz(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetRoamPrefer5GHz(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    sme_UpdateRoamPrefer5GHz((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nRoamPrefer5GHz);
+    sme_UpdateRoamPrefer5GHz(pHddCtx->hHal, pHddCtx->cfg_ini->nRoamPrefer5GHz);
 }
 
-static void cbNotifySetImmediateRoamRssiDiff(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetImmediateRoamRssiDiff(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    sme_UpdateImmediateRoamRssiDiff((tHalHandle)(pHddCtx->hHal),
-                                    pHddCtx->cfg_ini->nImmediateRoamRssiDiff);
+    sme_UpdateImmediateRoamRssiDiff(pHddCtx->hHal,
+                                    pHddCtx->cfg_ini->nImmediateRoamRssiDiff,
+                                    0);
 }
 
-static void cbNotifySetRoamRssiDiff(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetRoamRssiDiff(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    sme_UpdateRoamRssiDiff((tHalHandle)(pHddCtx->hHal),
-                                    pHddCtx->cfg_ini->RoamRssiDiff);
+    sme_UpdateRoamRssiDiff(pHddCtx->hHal,
+                           0,
+                           pHddCtx->cfg_ini->RoamRssiDiff);
 }
 
-static void cbNotifySetFastTransitionEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetFastTransitionEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    sme_UpdateFastTransitionEnabled((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->isFastTransitionEnabled);
+    sme_UpdateFastTransitionEnabled(pHddCtx->hHal,
+                                    pHddCtx->cfg_ini->isFastTransitionEnabled);
 }
 
-static void cbNotifySetRoamIntraBand(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetRoamIntraBand(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    sme_setRoamIntraBand((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nRoamIntraBand);
+    sme_setRoamIntraBand(pHddCtx->hHal, pHddCtx->cfg_ini->nRoamIntraBand);
 }
 
-static void cbNotifySetWESMode(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetWESMode(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    // at the point this routine is called, the value in the cfg_ini table has already been updated
-    sme_UpdateWESMode((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->isWESModeEnabled);
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_UpdateWESMode(pHddCtx->hHal,
+                      pHddCtx->cfg_ini->isWESModeEnabled,
+                      0);
 }
 
-static void cbNotifySetRoamScanNProbes(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetRoamScanNProbes(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    sme_UpdateRoamScanNProbes((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nProbes);
+    sme_UpdateRoamScanNProbes(pHddCtx->hHal, 0,
+                              pHddCtx->cfg_ini->nProbes);
 }
 
-static void cbNotifySetRoamScanHomeAwayTime(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetRoamScanHomeAwayTime(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-     sme_UpdateRoamScanHomeAwayTime((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nRoamScanHomeAwayTime, eANI_BOOLEAN_TRUE);
+     sme_UpdateRoamScanHomeAwayTime(pHddCtx->hHal, 0,
+                                    pHddCtx->cfg_ini->nRoamScanHomeAwayTime,
+                                    eANI_BOOLEAN_TRUE);
 }
 #endif
 
 #ifdef FEATURE_WLAN_OKC
-static void cbNotifySetOkcFeatureEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetOkcFeatureEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    // at the point this routine is called, the value in the cfg_ini table has already been updated
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
 }
 #endif
 
 #ifdef FEATURE_WLAN_LFR
-static void NotifyIsFastRoamIniFeatureEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+NotifyIsFastRoamIniFeatureEnabled(hdd_context_t *pHddCtx,
+                                  unsigned long NotifyId)
 {
-    // at the point this routine is called, the value in the cfg_ini table has already been updated
-    sme_UpdateIsFastRoamIniFeatureEnabled((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->isFastRoamIniFeatureEnabled );
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_UpdateIsFastRoamIniFeatureEnabled(pHddCtx->hHal, 0,
+                               pHddCtx->cfg_ini->isFastRoamIniFeatureEnabled );
 }
 
-static void NotifyIsMAWCIniFeatureEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+NotifyIsMAWCIniFeatureEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    /* at the point this routine is called, the value in the cfg_ini table has already been updated */
-    sme_UpdateIsMAWCIniFeatureEnabled((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->MAWCEnabled );
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_UpdateIsMAWCIniFeatureEnabled(pHddCtx->hHal,
+                                      pHddCtx->cfg_ini->MAWCEnabled );
 }
 #endif
 
 #ifdef FEATURE_WLAN_ESE
-static void cbNotifySetEseFeatureEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetEseFeatureEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    // at the point this routine is called, the value in the cfg_ini table has already been updated
-    sme_UpdateIsEseFeatureEnabled((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->isEseIniFeatureEnabled );
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_UpdateIsEseFeatureEnabled(pHddCtx->hHal,
+                                  pHddCtx->cfg_ini->isEseIniFeatureEnabled );
 }
 #endif
 
-static void cbNotifySetFwRssiMonitoring(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetFwRssiMonitoring(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    // at the point this routine is called, the value in the cfg_ini table has already been updated
-    sme_UpdateConfigFwRssiMonitoring((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->fEnableFwRssiMonitoring );
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_UpdateConfigFwRssiMonitoring(pHddCtx->hHal,
+                                     pHddCtx->cfg_ini->fEnableFwRssiMonitoring);
 }
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
 static void cbNotifySetOpportunisticScanThresholdDiff(hdd_context_t *pHddCtx,
                                                       unsigned long NotifyId)
 {
-    /*
-     * at the point this routine is called, the value in the cfg_ini table
-     * has already been updated
-     */
-    sme_SetRoamOpportunisticScanThresholdDiff((tHalHandle)(pHddCtx->hHal),
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_SetRoamOpportunisticScanThresholdDiff(pHddCtx->hHal, 0,
                           pHddCtx->cfg_ini->nOpportunisticThresholdDiff );
 }
 
 static void cbNotifySetRoamRescanRssiDiff(hdd_context_t *pHddCtx,
                                           unsigned long NotifyId)
 {
-    /*
-     * at the point this routine is called, the value in the cfg_ini table
-     * has already been updated
-     */
-    sme_SetRoamRescanRssiDiff((tHalHandle)(pHddCtx->hHal),
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_SetRoamRescanRssiDiff(pHddCtx->hHal,
+                              0,
                               pHddCtx->cfg_ini->nRoamRescanRssiDiff);
 }
 
-static void cbNotifySetNeighborLookupRssiThreshold(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetNeighborLookupRssiThreshold(hdd_context_t *pHddCtx,
+                                       unsigned long NotifyId)
 {
-    // at the point this routine is called, the value in the cfg_ini table has already been updated
-    sme_setNeighborLookupRssiThreshold((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nNeighborLookupRssiThreshold );
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_setNeighborLookupRssiThreshold(pHddCtx->hHal, 0,
+                               pHddCtx->cfg_ini->nNeighborLookupRssiThreshold);
 }
 
-static void cbNotifySetNeighborScanPeriod(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetNeighborScanPeriod(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    // at the point this routine is called, the value in the cfg_ini table has already been updated
-    sme_setNeighborScanPeriod((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nNeighborScanPeriod );
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_setNeighborScanPeriod(pHddCtx->hHal, 0,
+                              pHddCtx->cfg_ini->nNeighborScanPeriod );
 }
 
-static void cbNotifySetNeighborResultsRefreshPeriod(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetNeighborResultsRefreshPeriod(hdd_context_t *pHddCtx,
+                                        unsigned long NotifyId)
 {
-    // at the point this routine is called, the value in the cfg_ini table has already been updated
-    sme_setNeighborScanRefreshPeriod((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nNeighborResultsRefreshPeriod );
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_setNeighborScanRefreshPeriod(pHddCtx->hHal, 0,
+                               pHddCtx->cfg_ini->nNeighborResultsRefreshPeriod);
 }
 
-static void cbNotifySetEmptyScanRefreshPeriod(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetEmptyScanRefreshPeriod(hdd_context_t *pHddCtx,
+                                  unsigned long NotifyId)
 {
-    // at the point this routine is called, the value in the cfg_ini table has already been updated
-    sme_UpdateEmptyScanRefreshPeriod((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nEmptyScanRefreshPeriod);
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_UpdateEmptyScanRefreshPeriod(pHddCtx->hHal, 0,
+                                     pHddCtx->cfg_ini->nEmptyScanRefreshPeriod);
 }
 
-static void cbNotifySetNeighborScanMinChanTime(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetNeighborScanMinChanTime(hdd_context_t *pHddCtx,
+                                   unsigned long NotifyId)
 {
-    // at the point this routine is called, the value in the cfg_ini table has already been updated
-    sme_setNeighborScanMinChanTime((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nNeighborScanMinChanTime);
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_setNeighborScanMinChanTime(pHddCtx->hHal,
+                                   pHddCtx->cfg_ini->nNeighborScanMinChanTime,
+                                   0);
 }
 
-static void cbNotifySetNeighborScanMaxChanTime(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetNeighborScanMaxChanTime(hdd_context_t *pHddCtx,
+                                   unsigned long NotifyId)
 {
-    sme_setNeighborScanMaxChanTime((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nNeighborScanMaxChanTime);
+    sme_setNeighborScanMaxChanTime(pHddCtx->hHal, 0,
+                                   pHddCtx->cfg_ini->nNeighborScanMaxChanTime);
 }
 static void cbNotifySetRoamBmissFirstBcnt(hdd_context_t *pHddCtx,
                                           unsigned long NotifyId)
 {
-    /*
-     * at the point this routine is called, the value in the cfg_ini table
-     * has already been updated
-     */
-    sme_SetRoamBmissFirstBcnt((tHalHandle)(pHddCtx->hHal),
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_SetRoamBmissFirstBcnt(pHddCtx->hHal,
+                              0,
                               pHddCtx->cfg_ini->nRoamBmissFirstBcnt);
 }
 
 static void cbNotifySetRoamBmissFinalBcnt(hdd_context_t *pHddCtx,
                                           unsigned long NotifyId)
 {
-    sme_SetRoamBmissFinalBcnt((tHalHandle)(pHddCtx->hHal),
+    sme_SetRoamBmissFinalBcnt(pHddCtx->hHal, 0,
                               pHddCtx->cfg_ini->nRoamBmissFinalBcnt);
 }
 
 static void cbNotifySetRoamBeaconRssiWeight(hdd_context_t *pHddCtx,
                                           unsigned long NotifyId)
 {
-    sme_SetRoamBeaconRssiWeight((tHalHandle)(pHddCtx->hHal),
+    sme_SetRoamBeaconRssiWeight(pHddCtx->hHal, 0,
                               pHddCtx->cfg_ini->nRoamBeaconRssiWeight);
 }
+
+static void
+cbNotifySetDFSScanMode(hdd_context_t *pHddCtx, unsigned long NotifyId)
+{
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_UpdateDFSScanMode(pHddCtx->hHal, 0,
+                          pHddCtx->cfg_ini->allowDFSChannelRoam);
+}
+
 #endif
 
 static void cbNotifySetEnableSSR(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
-    sme_UpdateEnableSSR((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->enableSSR);
+    sme_UpdateEnableSSR(pHddCtx->hHal, pHddCtx->cfg_ini->enableSSR);
 }
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-static void cbNotifyUpdateRoamScanOffloadEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifyUpdateRoamScanOffloadEnabled(hdd_context_t *pHddCtx,
+                                     unsigned long NotifyId)
 {
-    sme_UpdateRoamScanOffloadEnabled((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->isRoamOffloadScanEnabled);
-    if (0 == pHddCtx->cfg_ini->isRoamOffloadScanEnabled)
-    {
+    sme_UpdateRoamScanOffloadEnabled(pHddCtx->hHal,
+                                    pHddCtx->cfg_ini->isRoamOffloadScanEnabled);
+    if (0 == pHddCtx->cfg_ini->isRoamOffloadScanEnabled) {
         pHddCtx->cfg_ini->bFastRoamInConIniFeatureEnabled = 0;
-        sme_UpdateEnableFastRoamInConcurrency((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->bFastRoamInConIniFeatureEnabled );
+        sme_UpdateEnableFastRoamInConcurrency(pHddCtx->hHal,
+                             pHddCtx->cfg_ini->bFastRoamInConIniFeatureEnabled);
     }
 }
 
-static void cbNotifySetEnableFastRoamInConcurrency(hdd_context_t *pHddCtx, unsigned long NotifyId)
+static void
+cbNotifySetEnableFastRoamInConcurrency(hdd_context_t *pHddCtx,
+                                       unsigned long NotifyId)
 {
-    sme_UpdateEnableFastRoamInConcurrency((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->bFastRoamInConIniFeatureEnabled );
-}
-
-static void cbNotifySetDFSScanMode(hdd_context_t *pHddCtx, unsigned long NotifyId)
-{
-    /* at the point this routine is called, the value in the cfg_ini table has
-     * already been updated
-     */
-    sme_UpdateDFSScanMode((tHalHandle)(pHddCtx->hHal),
-                          pHddCtx->cfg_ini->allowDFSChannelRoam);
+    sme_UpdateEnableFastRoamInConcurrency(pHddCtx->hHal,
+                             pHddCtx->cfg_ini->bFastRoamInConIniFeatureEnabled);
 }
 
 #endif
