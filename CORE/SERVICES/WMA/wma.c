@@ -21171,7 +21171,8 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 		wma_handle->interfaces[vdev_id].scan_info.p2p_scan_type;
 	scan_event->sessionId = vdev_id;
 
-	if (wmi_event->reason == WMI_SCAN_REASON_COMPLETED)
+	if (wmi_event->reason == WMI_SCAN_REASON_COMPLETED ||
+	    wmi_event->reason == WMI_SCAN_REASON_TIMEDOUT)
 		scan_event->reasonCode = eSIR_SME_SUCCESS;
 	else
 		scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
@@ -21199,23 +21200,26 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 		break;
 	}
 
-	if (wmi_event->event & WMI_SCAN_FINISH_EVENTS) {
-		if (wmi_event->scan_id == scan_id)
-			wma_reset_scan_info(wma_handle, vdev_id);
-		else
-			WMA_LOGE("Scan id not matched for SCAN COMPLETE event");
-	}
-
         /* Stop the scan completion timeout if the event is WMI_SCAN_EVENT_COMPLETED */
         if (scan_event->event == (tSirScanEventType)WMI_SCAN_EVENT_COMPLETED) {
                 WMA_LOGE(" scan complete - scan_id %x, vdev_id %x",
 		wmi_event->scan_id, vdev_id);
-		 vos_status = vos_timer_stop(&wma_handle->wma_scan_comp_timer);
+		/*
+		 * first stop the timer then reset scan info, else there is a
+		 * race condition between, timeout handler in host and reset
+		 * operation here. because of that, sometime timeout handler
+		 * triggers and scan ID mismatch messages is printed.
+		 */
+		vos_status = vos_timer_stop(&wma_handle->wma_scan_comp_timer);
                 if (vos_status != VOS_STATUS_SUCCESS) {
 			WMA_LOGE("Failed to stop the scan completion timeout");
 			vos_mem_free(scan_event);
 			return -EPERM;
                 }
+		if (wmi_event->scan_id == scan_id)
+			wma_reset_scan_info(wma_handle, vdev_id);
+		else
+			WMA_LOGE("Scan id not matched for SCAN COMPLETE event");
         }
 
 	wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
@@ -22221,16 +22225,19 @@ void wma_scan_completion_timeout(void *data)
                 return;
         }
 
-        scan_event->event = WMI_SCAN_EVENT_COMPLETED;
-        scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
-        scan_event->scanId = wma_handle->wma_scan_timer_info.scan_id;
-        scan_event->p2pScanType = wma_handle->interfaces[vdev_id].scan_info.p2p_scan_type;
-        scan_event->sessionId = vdev_id;
+	/*
+	 * To avoid race condition between scan timeout in host and in firmware
+	 * here we should just send abort scan to firmware and do cleanup after
+	 * receiving event from firmware. Since at this moment there will be no
+	 * outstanding scans, aborting should not cause any problem in firmware.
+	 */
+	if (wma_handle->interfaces[vdev_id].scan_info.scan_id != 0) {
+		tAbortScanParams abortScan;
+		abortScan.SessionId = vdev_id;
+		WMA_LOGW("%s: Sending abort for timed out scan", __func__);
+		wma_stop_scan(wma_handle, &abortScan);
+	}
 
-        /* Reset scan info in interfaces table */
-        wma_reset_scan_info(wma_handle, vdev_id);
-
-        wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
         return;
 }
 
