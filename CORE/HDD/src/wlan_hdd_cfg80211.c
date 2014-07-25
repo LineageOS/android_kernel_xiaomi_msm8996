@@ -20,12 +20,10 @@
  */
 
 /*
- * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- *
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
-
 
 /**========================================================================
 
@@ -4845,7 +4843,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         if (!vos_concurrent_sap_sessions_running()) {
             /* Single AP Mode */
             if (VOS_IS_DFS_CH(pConfig->channel))
-                 pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
+                pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
         } else {
             /* MBSSID Mode */
             hdd_adapter_t *con_sap_adapter;
@@ -4855,21 +4853,21 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             if (con_sap_adapter) {
                 /* we have active SAP running */
                 con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
-                /* If this SAP is configured for ACS use CC_SAP's DFS channel */
-                if (pConfig->channel == AUTO_CHANNEL_SELECT) {
-                    if (con_ch != 0 && VOS_IS_DFS_CH(con_ch))
-                        pConfig->channel = con_ch;
-                } else if (VOS_IS_DFS_CH(con_ch) &&
-                           (pConfig->channel != con_ch)) {
+                if (con_ch != 0 && VOS_IS_DFS_CH(con_ch)) {
+                    /* AP-AP DFS: secondary AP has to follow primary AP's
+                     * channel */
                     hddLog(VOS_TRACE_LEVEL_ERROR,
-                               "%s: Only SCC AP-AP DFS Permitted (ch=%d, con_ch=%d) !!", __func__, pConfig->channel, con_ch);
-                    return -EINVAL;
+                            "%s: Only SCC AP-AP DFS Permitted (chan=%d, con_ch=%d) !!, overriding guest AP's channel",
+                            __func__,
+                            pConfig->channel,
+                            con_ch);
+                    pConfig->channel = con_ch;
                 }
             } else {
                 /* We have idle AP interface (no active SAP running on it
                  * When one SAP is stopped then also this condition applies */
                 if (VOS_IS_DFS_CH(pConfig->channel))
-                     pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
+                    pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
             }
         }
 #endif
@@ -5301,11 +5299,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 #ifdef WLAN_FEATURE_MBSSID
     pConfig->acsBandSwitchThreshold =
                         pHostapdAdapter->sap_dyn_ini_cfg.acsBandSwitchThreshold;
+    pConfig->apAutoChannelSelection =
+                        pHostapdAdapter->sap_dyn_ini_cfg.apAutoChannelSelection;
 #else
     pConfig->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
-#endif
-
     pConfig->apAutoChannelSelection = iniConfig->apAutoChannelSelection;
+#endif
 
     pSapEventCallback = hdd_hostapd_SAPEventCB;
 
@@ -13888,7 +13887,6 @@ int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
     hdd_context_t *pHddCtx;
     VOS_STATUS status;
     tSmeConfigParams smeConfig;
-    int i;
     bool cbModeChange;
 
     if (NULL == wiphy) {
@@ -13913,16 +13911,24 @@ int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
     sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
     switch (chandef->width) {
     case NL80211_CHAN_WIDTH_20:
-        if (smeConfig.csrConfig.channelBondingMode24GHz != 0) {
-            smeConfig.csrConfig.channelBondingMode24GHz = 0;
+        if (smeConfig.csrConfig.channelBondingMode24GHz !=
+                      eCSR_INI_SINGLE_CHANNEL_CENTERED) {
+            smeConfig.csrConfig.channelBondingMode24GHz =
+                      eCSR_INI_SINGLE_CHANNEL_CENTERED;
             sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
             cbModeChange = TRUE;
         }
         break;
 
     case NL80211_CHAN_WIDTH_40:
-        if (smeConfig.csrConfig.channelBondingMode24GHz != 1) {
-            smeConfig.csrConfig.channelBondingMode24GHz = 1;
+        if (smeConfig.csrConfig.channelBondingMode24GHz ==
+                      eCSR_INI_SINGLE_CHANNEL_CENTERED) {
+            if ( NL80211_CHAN_HT40MINUS == cfg80211_get_chandef_type(chandef))
+                smeConfig.csrConfig.channelBondingMode24GHz =
+                      eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+            else
+                smeConfig.csrConfig.channelBondingMode24GHz =
+                      eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
             sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
             cbModeChange = TRUE;
         }
@@ -13952,22 +13958,6 @@ int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
                "%s:Error!!! Cannot set SAP HT20/40 mode!",
                __func__);
         return -EINVAL;
-    }
-
-    for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
-        if (!pAdapter->aStaInfo[i].isUsed)
-            continue;
-
-        status = hdd_wlan_set_ht2040_mode(pAdapter,
-                                          pAdapter->aStaInfo[i].ucSTAId,
-                                          pAdapter->aStaInfo[i].macAddrSTA,
-                                          cfg80211_get_chandef_type(chandef));
-        if (status != VOS_STATUS_SUCCESS) {
-                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "%s:Error!!! Cannot set HT20/40 mode for STA %d!",
-                    __func__, pAdapter->aStaInfo[i].ucSTAId);
-            return -EINVAL;
-        }
     }
 
     return 0;

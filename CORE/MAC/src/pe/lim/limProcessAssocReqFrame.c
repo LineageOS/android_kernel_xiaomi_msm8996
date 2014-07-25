@@ -1588,6 +1588,26 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
             pMlmAssocInd->addIE.length = pAssocReq->addIE.length;
        }
 
+       /* Add HT Capabilities into addIE for OBSS processing in hostapd */
+       if (pAssocReq->HTCaps.present)
+       {
+           if (pMlmAssocInd->addIE.length + DOT11F_IE_HTCAPS_MIN_LEN + 2 <
+                SIR_MAC_MAX_IE_LENGTH)
+           {
+               pMlmAssocInd->addIE.addIEdata[pMlmAssocInd->addIE.length] =
+                                              SIR_MAC_HT_CAPABILITIES_EID;
+               pMlmAssocInd->addIE.addIEdata[pMlmAssocInd->addIE.length + 1] =
+                                              DOT11F_IE_HTCAPS_MIN_LEN;
+               vos_mem_copy(
+                 &pMlmAssocInd->addIE.addIEdata[pMlmAssocInd->addIE.length + 2],
+                 ((tANI_U8*)&pAssocReq->HTCaps)+1,
+                 DOT11F_IE_HTCAPS_MIN_LEN);
+               pMlmAssocInd->addIE.length += 2 + DOT11F_IE_HTCAPS_MIN_LEN;
+           }
+           else
+               limLog(pMac, LOGP, FL("Cannot add HT capabilities IE to addIE"));
+       }
+
         if(pAssocReq->wmeInfoPresent)
         {
 

@@ -20,12 +20,10 @@
  */
 
 /*
- * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- *
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
-
 
 #if !defined( WLAN_HDD_MAIN_H )
 #define WLAN_HDD_MAIN_H
@@ -318,6 +316,10 @@ extern spinlock_t hdd_context_lock;
 
 /* Max PMKSAIDS available in cache */
 #define MAX_PMKSAIDS_IN_CACHE 8
+
+#define HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1       390
+#define HDD_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_1_1       390
+
 
 typedef struct hdd_tx_rx_stats_s
 {

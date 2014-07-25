@@ -2138,10 +2138,12 @@ HIF_sleep_entry(void *arg)
 				hif_state->fake_sleep = FALSE;
 			}
 		} else {
+			adf_os_timer_cancel(&hif_state->sleep_timer);
 			adf_os_timer_start(&hif_state->sleep_timer,
 				HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);
 		}
 	} else {
+		adf_os_timer_cancel(&hif_state->sleep_timer);
 		adf_os_timer_start(&hif_state->sleep_timer,
 			HIF_SLEEP_INACTIVITY_TIMER_PERIOD_MS);
 	}

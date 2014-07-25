@@ -538,7 +538,7 @@ static int hdd_ipa_uc_enable_pipes(struct hdd_ipa_priv *hdd_ipa)
 		return -ENOMEM;
 	}
 
-	meta.msg_type = SW_ROUTING_ENABLE;
+	meta.msg_type = SW_ROUTING_DISABLE;
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d",
 		msg->name, meta.msg_type);
 	result = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
@@ -566,17 +566,17 @@ static int hdd_ipa_uc_disable_pipes(struct hdd_ipa_priv *hdd_ipa)
 		return -ENOMEM;
 	}
 
-	meta.msg_type = SW_ROUTING_DISABLE;
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d",
-		msg->name, meta.msg_type);
+	meta.msg_type = SW_ROUTING_ENABLE;
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: SW PATH ENA", __func__);
 
 	result = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
 	if (result) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d fail:%d",
-			msg->name, meta.msg_type,  result);
+				msg->name, meta.msg_type,  result);
 		adf_os_mem_free(msg);
 		return result;
 	}
+
 
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 		"%s: Disable RX PIPE", __func__);
@@ -1384,7 +1384,7 @@ VOS_STATUS hdd_ipa_process_rxt(v_VOID_t *vosContext, adf_nbuf_t rx_buf_list,
 	if (hdd_ipa->pend_q_cnt > hdd_ipa->stats.max_pend_q_cnt)
 		hdd_ipa->stats.max_pend_q_cnt = hdd_ipa->pend_q_cnt;
 
-	if (hdd_ipa_rm_request(hdd_ipa) == 0) {
+	if (cur_cnt && hdd_ipa_rm_request(hdd_ipa) == 0) {
 		hdd_ipa_send_pkt_to_ipa(hdd_ipa);
 	}
 
@@ -1397,7 +1397,8 @@ drop_pkts:
 		adf_nbuf_free(buf);
 		buf = next_buf;
 		hdd_ipa->stats.num_rx_drop++;
-		adapter->stats.rx_dropped++;
+		if (adapter)
+			adapter->stats.rx_dropped++;
 	}
 
 	return VOS_STATUS_E_FAILURE;
@@ -1434,6 +1435,8 @@ static void hdd_ipa_set_adapter_ip_filter(hdd_adapter_t *adapter)
 #ifdef WLAN_OPEN_SOURCE
 		rcu_read_unlock();
 #endif
+		if (!dev)
+			return;
 	}
 	if ((in_dev = __in_dev_get_rtnl(dev)) != NULL) {
 	   for (ifap = &in_dev->ifa_list; (ifa = *ifap) != NULL;
@@ -1918,8 +1921,8 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 	ipa_hdr->commit = 0;
 	ipa_hdr->num_hdrs = 1;
 
-#ifdef IPA_UC_OFFLOAD
 	if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
+#ifdef IPA_UC_OFFLOAD
 		uc_tx_hdr = (struct hdd_ipa_uc_tx_hdr *)ipa_hdr->hdr[0].hdr;
 		memcpy(uc_tx_hdr, &ipa_uc_tx_hdr, HDD_IPA_UC_WLAN_TX_HDR_LEN);
 		memcpy(uc_tx_hdr->eth.h_source, mac_addr, ETH_ALEN);
@@ -1929,9 +1932,8 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 		ipa_hdr->hdr[0].is_partial = 1;
 		ipa_hdr->hdr[0].hdr_hdl = 0;
 		ret = ipa_add_hdr(ipa_hdr);
-	} else
 #endif /* IPA_UC_OFFLOAD */
-	{
+	} else {
 		tx_hdr = (struct hdd_ipa_tx_hdr *)ipa_hdr->hdr[0].hdr;
 
 		/* Set the Source MAC */
@@ -1964,6 +1966,7 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 
 		if (!hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			/* Set the type to IPV6 in the header*/
+			tx_hdr = (struct hdd_ipa_tx_hdr *)ipa_hdr->hdr[0].hdr;
 			tx_hdr->llc_snap.eth_type = cpu_to_be16(ETH_P_IPV6);
 		}
 
@@ -2359,7 +2362,7 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 {
 	struct  hdd_ipa_priv *hdd_ipa = file->private_data;
 	char *buf;
-	unsigned int len = 0, buf_len = 2048;
+	unsigned int len = 0, buf_len = 4096;
 	ssize_t ret_cnt;
 	int i;
 	struct hdd_ipa_iface_context *iface_context = NULL;
@@ -2368,7 +2371,6 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 
 #define HDD_IPA_IFACE_STATS(_buf, _len, _iface, _name) \
 	scnprintf(_buf, _len, "%30s: %llu\n", #_name, _iface->stats._name)
-
 
 	buf = kzalloc(buf_len, GFP_KERNEL);
 	if (!buf)
@@ -2499,8 +2501,36 @@ skip:
 #undef HDD_IPA_IFACE_STATS
 }
 
+static ssize_t hdd_ipa_debugfs_write_ipa_stats(struct file *file,
+		const char __user *user_buf, size_t count, loff_t *ppos)
+{
+	struct  hdd_ipa_priv *hdd_ipa = file->private_data;
+	struct hdd_ipa_iface_context *iface_context = NULL;
+	int ret;
+	uint32_t val;
+	int i;
+
+	ret = kstrtou32_from_user(user_buf, count, 0, &val);
+
+	if (ret)
+		return ret;
+
+	if (val == 0) {
+		for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
+			iface_context = &hdd_ipa->iface_context[i];
+			memset(&iface_context->stats, 0,
+					sizeof(iface_context->stats));
+		}
+
+		memset(&hdd_ipa->stats, 0, sizeof(hdd_ipa->stats));
+	}
+
+	return count;
+}
+
 static const struct file_operations fops_ipa_stats = {
 		.read = hdd_ipa_debugfs_read_ipa_stats,
+		.write = hdd_ipa_debugfs_write_ipa_stats,
 		.open = simple_open,
 		.owner = THIS_MODULE,
 		.llseek = default_llseek,
