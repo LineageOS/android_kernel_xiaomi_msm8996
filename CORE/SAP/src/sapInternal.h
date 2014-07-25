@@ -89,8 +89,8 @@ when           who        what, where, why
 /*----------------------------------------------------------------------------
  *  Defines
  * -------------------------------------------------------------------------*/
-//DFS Non Occupancy Period =30 minutes, in milliseconds
-#define SAP_DFS_NON_OCCUPANCY_PERIOD      (30 * 60 * 1000 )
+//DFS Non Occupancy Period =30 minutes, in microseconds
+#define SAP_DFS_NON_OCCUPANCY_PERIOD      (30 * 60 * 1000 * 1000)
 
 #define SAP_DEBUG
 // Used to enable or disable security on the BT-AMP link
@@ -830,7 +830,7 @@ sapInitDfsChannelNolList(ptSapContext sapContext);
  * for DFS operation.
  */
 v_BOOL_t sapDfsIsChannelInNolList(ptSapContext sapContext,
-                v_U8_t channelNumber);
+      v_U8_t channelNumber, ePhyChanBondState chanBondState);
 /*---------------------------------------------------------------------------
 FUNCTION  sapDfsCacTimerCallback
 

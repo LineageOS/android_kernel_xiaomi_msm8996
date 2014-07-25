@@ -708,16 +708,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
                 pHddApCtx->uBCStaId = pSapEvent->sapevt.sapStartBssCompleteEvent.staId;
 
-#ifdef QCA_LL_TX_FLOW_CT
-                vos_timer_init(&pHostapdAdapter->tx_flow_control_timer,
-                               VOS_TIMER_TYPE_SW,
-                               hdd_tx_resume_timer_expired_handler,
-                               pHostapdAdapter);
-                WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
-                               hdd_tx_resume_cb,
-                               pHostapdAdapter->sessionId,
-                               (void *)pHostapdAdapter);
-#endif
                 //@@@ need wep logic here to set privacy bit
                 vos_status = hdd_softap_Register_BC_STA(pHostapdAdapter, pHddApCtx->uPrivacy);
                 if (!VOS_IS_STATUS_SUCCESS(vos_status))

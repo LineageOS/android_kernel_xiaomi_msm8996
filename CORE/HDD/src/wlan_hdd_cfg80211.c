@@ -9904,6 +9904,7 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
     int status;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    eConnectionState connState;
 #ifdef FEATURE_WLAN_TDLS
     tANI_U8 staIdx;
 #endif
@@ -9930,6 +9931,8 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
         eCsrRoamDisconnectReason reasonCode =
                                    eCSR_DISCONNECT_REASON_UNSPECIFIED;
         hdd_scaninfo_t *pScanInfo;
+
+        connState = pHddStaCtx->conn_info.connState;
         switch (reason) {
         case WLAN_REASON_MIC_FAILURE:
              reasonCode = eCSR_DISCONNECT_REASON_MIC_ERROR;
@@ -9943,10 +9946,10 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
 
         case WLAN_REASON_PREV_AUTH_NOT_VALID:
         case WLAN_REASON_CLASS2_FRAME_FROM_NONAUTH_STA:
+        case WLAN_REASON_DEAUTH_LEAVING:
              reasonCode = eCSR_DISCONNECT_REASON_DEAUTH;
              break;
 
-        case WLAN_REASON_DEAUTH_LEAVING:
         default:
              reasonCode = eCSR_DISCONNECT_REASON_UNSPECIFIED;
             break;
@@ -9982,6 +9985,7 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
         status = wlan_hdd_disconnect(pAdapter, reasonCode);
         if (0 != status) {
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("failure, returned %d"), status);
+            pHddStaCtx->conn_info.connState = connState;
             return -EINVAL;
         }
     } else {
@@ -10739,7 +10743,7 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     int ssidlen = pHddStaCtx->conn_info.SSID.SSID.length;
-    tANI_U8 rate_flags;
+    tANI_U32 rate_flags;
 
     hdd_context_t *pHddCtx = (hdd_context_t*) wiphy_priv(wiphy);
     hdd_config_t  *pCfg    = pHddCtx->cfg_ini;
@@ -10792,6 +10796,13 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
 
     wlan_hdd_get_station_stats(pAdapter);
     rate_flags = pAdapter->hdd_stats.ClassA_stat.tx_rate_flags;
+
+    /*overwrite rate_flags if MAX link-speed need to be reported*/
+    if ((eHDD_LINK_SPEED_REPORT_MAX == pCfg->reportMaxLinkSpeed) ||
+        (eHDD_LINK_SPEED_REPORT_MAX_SCALED == pCfg-> reportMaxLinkSpeed &&
+         sinfo->signal >= pCfg->linkSpeedRssiHigh)) {
+        rate_flags = pAdapter->maxRateFlags;
+    }
 
     //convert to the UI units of 100kbps
     myRate = pAdapter->hdd_stats.ClassA_stat.tx_rate * 5;
@@ -11140,29 +11151,29 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
             sinfo->txrate.mcs = pAdapter->hdd_stats.ClassA_stat.mcs_index;
 #ifdef WLAN_FEATURE_11AC
             sinfo->txrate.nss = nss;
+            sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
             if (rate_flags & eHAL_TX_RATE_VHT80)
-            {
-                sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
-            }
-            else
-#endif /* WLAN_FEATURE_11AC */
-            {
-                sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
-            }
-            if (rate_flags & eHAL_TX_RATE_SGI)
-            {
-                sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
-            }
-            if (rate_flags & eHAL_TX_RATE_HT40)
-            {
-                sinfo->txrate.flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
-            }
-#ifdef WLAN_FEATURE_11AC
-            else if (rate_flags & eHAL_TX_RATE_VHT80)
             {
                 sinfo->txrate.flags |= RATE_INFO_FLAGS_80_MHZ_WIDTH;
             }
+            else if (rate_flags & eHAL_TX_RATE_VHT40)
+            {
+                sinfo->txrate.flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
+            }
 #endif /* WLAN_FEATURE_11AC */
+            if (rate_flags & (eHAL_TX_RATE_HT20 | eHAL_TX_RATE_HT40))
+            {
+                sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
+                if (rate_flags & eHAL_TX_RATE_HT40)
+                {
+                    sinfo->txrate.flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
+                }
+            }
+            if (rate_flags & eHAL_TX_RATE_SGI)
+            {
+                sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
+                sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
+            }
 #ifdef LINKSPEED_DEBUG_ENABLED
             pr_info("Reporting actual MCS rate %d flags %x\n",
                     sinfo->txrate.mcs,

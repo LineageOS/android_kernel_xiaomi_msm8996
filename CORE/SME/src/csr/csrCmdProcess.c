@@ -158,7 +158,20 @@ eHalStatus csrMsgProcessor( tpAniSirGlobal pMac,  void *pMsgBuf )
             }
             else
             {
-                smsLog(pMac, LOGW, "  Message 0x%04X is not handled by CSR. CSR state is %d ", pSmeRsp->messageType, pMac->roam.curState[pSmeRsp->sessionId]);
+               smsLog(pMac, LOGE, "Message 0x%04X is not handled by CSR "
+                  " CSR state is %d session Id %d", pSmeRsp->messageType,
+                   pMac->roam.curState[pSmeRsp->sessionId], pSmeRsp->sessionId);
+
+                if (eWNI_SME_FT_PRE_AUTH_RSP == pSmeRsp->messageType) {
+                    smsLog(pMac, LOGE, "Dequeue eSmeCommandRoam command"
+                       " with reason eCsrPerformPreauth");
+                    csrDequeueRoamCommand(pMac, eCsrPerformPreauth);
+                }
+                else if (eWNI_SME_REASSOC_RSP == pSmeRsp->messageType) {
+                    smsLog(pMac, LOGE, "Dequeue eSmeCommandRoam command"
+                       " with reason eCsrSmeIssuedFTReassoc");
+                    csrDequeueRoamCommand(pMac, eCsrSmeIssuedFTReassoc);
+                }
             }
             break;
         }

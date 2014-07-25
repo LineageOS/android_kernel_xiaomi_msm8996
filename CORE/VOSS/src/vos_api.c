@@ -365,6 +365,9 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    scn->enableuartprint = pHddCtx->cfg_ini->enablefwprint;
    scn->enablefwlog     = pHddCtx->cfg_ini->enablefwlog;
    scn->max_no_of_peers = pHddCtx->cfg_ini->maxNumberOfPeers;
+#ifdef WLAN_FEATURE_LPSS
+   scn->enablelpasssupport = pHddCtx->cfg_ini->enablelpasssupport;
+#endif
 
    /* Initialize BMI and Download firmware */
    if (bmi_download_firmware(scn)) {

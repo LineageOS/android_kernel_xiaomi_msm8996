@@ -1913,6 +1913,12 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
         limLog( pMac, LOGE, FL( "Encountered NULL Pointer" ));
         return;
     }
+
+    if (psessionEntry->limSmeState == eLIM_SME_WT_REASSOC_STATE)
+    {
+        mesgType = LIM_MLM_REASSOC_CNF;
+    }
+
     if (true == psessionEntry->fDeauthReceived)
     {
       PELOGE(limLog(pMac, LOGE,
@@ -1944,7 +1950,6 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
             pftPECntxt->PreAuthKeyInfo.extSetStaKeyParamValid = FALSE;
         }
 #endif
-        mesgType = LIM_MLM_REASSOC_CNF;
     }
         //
         // Update the DPH Hash Entry for this STA
@@ -1995,7 +2000,10 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
     else
     {
         limLog( pMac, LOGE, FL( "ADD_STA failed!"));
-        mlmAssocCnf.resultCode = (tSirResultCodes) eSIR_SME_REFUSED;
+        if (psessionEntry->limSmeState == eLIM_SME_WT_REASSOC_STATE)
+          mlmAssocCnf.resultCode = (tSirResultCodes)eSIR_SME_FT_REASSOC_FAILURE;
+        else
+          mlmAssocCnf.resultCode = (tSirResultCodes)eSIR_SME_REFUSED;
     }
 end:
     if( 0 != limMsgQ->bodyptr )

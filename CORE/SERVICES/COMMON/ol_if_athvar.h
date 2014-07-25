@@ -241,6 +241,10 @@ struct ol_softc {
     unsigned long ramdump_address;
     unsigned long ramdump_size;
 #endif
+
+#ifdef WLAN_FEATURE_LPSS
+    bool                    enablelpasssupport;
+#endif
 };
 
 #ifdef PERE_IP_HDR_ALIGNMENT_WAR
