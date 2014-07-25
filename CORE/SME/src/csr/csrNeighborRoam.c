@@ -2406,7 +2406,7 @@ static VOS_STATUS csrNeighborRoamHandleEmptyScanResult(tpAniSirGlobal pMac,
             else
             {
                 smsLog(pMac, LOG2, FL("Neighbor results refresh timer started (%d ms)"),
-                        (pNeighborRoamInfo->cfgParams.neighborResultsRefreshPeriod * PAL_TIMER_TO_MS_UNIT));
+                        (pNeighborRoamInfo->cfgParams.neighborResultsRefreshPeriod * VOS_TIMER_TO_MS_UNIT));
             }
         }
     }
@@ -3767,8 +3767,6 @@ void csrNeighborRoamRRMNeighborReportResult(void *context, VOS_STATUS vosStatus)
                 pNeighborRoamInfo->scanRequestTimeStamp = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
 
                 /* Now ready for neighbor scan based on the channel list created */
-                /* Start Neighbor scan timer now. Multiplication by PAL_TIMER_TO_MS_UNIT is to convert ms to us which is
-                   what palTimerStart expects */
                 status = vos_timer_start(&pNeighborRoamInfo->neighborScanTimer,
                                 pNeighborRoamInfo->cfgParams.neighborScanPeriod);
                 if (eHAL_STATUS_SUCCESS != status)
@@ -4316,8 +4314,6 @@ VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac,
     pNeighborRoamInfo->scanRequestTimeStamp = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
 
     vos_timer_stop(&pNeighborRoamInfo->neighborScanTimer);
-    /* Start Neighbor scan timer now. Multiplication by PAL_TIMER_TO_MS_UNIT is to convert ms to us which is
-            what palTimerStart expects */
     status = vos_timer_start(&pNeighborRoamInfo->neighborScanTimer,
                     pNeighborRoamInfo->cfgParams.neighborScanPeriod);
 

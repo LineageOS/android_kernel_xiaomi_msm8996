@@ -30,7 +30,6 @@
 #define __SME_FTAPI_H
 
 #include <limFTDefs.h>
-#include <palTimer.h>
 
 /**=========================================================================
 

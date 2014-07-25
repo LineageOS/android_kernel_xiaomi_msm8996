@@ -56,6 +56,8 @@
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
 #define VOS_TIMER_STATE_COOKIE 0x12
+#define VOS_TIMER_TO_MS_UNIT   1000
+#define VOS_TIMER_TO_SEC_UNIT  1000000
 
 /*--------------------------------------------------------------------------
   Type declarations

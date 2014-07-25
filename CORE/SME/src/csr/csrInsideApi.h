@@ -75,16 +75,16 @@
 #define CSR_AGING_COUNT     3
 //The following defines are used by palTimer
 //This is used for palTimer when request to imps fails
-#define CSR_IDLE_SCAN_WAIT_TIME     (1 * PAL_TIMER_TO_SEC_UNIT)     //1 second
+#define CSR_IDLE_SCAN_WAIT_TIME     (1 * VOS_TIMER_TO_SEC_UNIT)     //1 second
 //This is used for palTimer when imps ps is disabled
 //This number shall not be smaller than 5-6 seconds in general because a full scan may take 3-4 seconds
-#define CSR_IDLE_SCAN_NO_PS_INTERVAL     (10 * PAL_TIMER_TO_SEC_UNIT)     //10 second
-#define CSR_IDLE_SCAN_NO_PS_INTERVAL_MIN (5 * PAL_TIMER_TO_SEC_UNIT)
-#define CSR_SCAN_GET_RESULT_INTERVAL    (5 * PAL_TIMER_TO_SEC_UNIT)     //5 seconds
-#define CSR_MIC_ERROR_TIMEOUT  (60 * PAL_TIMER_TO_SEC_UNIT)     //60 seconds
-#define CSR_TKIP_COUNTER_MEASURE_TIMEOUT  (60 * PAL_TIMER_TO_SEC_UNIT)     //60 seconds
-#define CSR_SCAN_RESULT_AGING_INTERVAL    (5 * PAL_TIMER_TO_SEC_UNIT)     //5 seconds
-#define CSR_SCAN_RESULT_CFG_AGING_INTERVAL    (PAL_TIMER_TO_SEC_UNIT)     // 1  second
+#define CSR_IDLE_SCAN_NO_PS_INTERVAL     (10 * VOS_TIMER_TO_SEC_UNIT)     //10 second
+#define CSR_IDLE_SCAN_NO_PS_INTERVAL_MIN (5 * VOS_TIMER_TO_SEC_UNIT)
+#define CSR_SCAN_GET_RESULT_INTERVAL    (5 * VOS_TIMER_TO_SEC_UNIT)     //5 seconds
+#define CSR_MIC_ERROR_TIMEOUT  (60 * VOS_TIMER_TO_SEC_UNIT)     //60 seconds
+#define CSR_TKIP_COUNTER_MEASURE_TIMEOUT  (60 * VOS_TIMER_TO_SEC_UNIT)     //60 seconds
+#define CSR_SCAN_RESULT_AGING_INTERVAL    (5 * VOS_TIMER_TO_SEC_UNIT)     //5 seconds
+#define CSR_SCAN_RESULT_CFG_AGING_INTERVAL    (VOS_TIMER_TO_SEC_UNIT)     // 1  second
 //the following defines are NOT used by palTimer
 #define CSR_SCAN_AGING_TIME_NOT_CONNECT_NO_PS 50     //50 seconds
 #define CSR_SCAN_AGING_TIME_NOT_CONNECT_W_PS 300     //300 seconds
@@ -108,7 +108,7 @@
 
 #ifdef FEATURE_WLAN_BTAMP_UT_RF
 #define CSR_JOIN_MAX_RETRY_COUNT             10
-#define CSR_JOIN_RETRY_TIMEOUT_PERIOD        ( 1 *  PAL_TIMER_TO_SEC_UNIT )  // 1 second
+#define CSR_JOIN_RETRY_TIMEOUT_PERIOD        ( 1 *  VOS_TIMER_TO_SEC_UNIT )  // 1 second
 #endif
 
 #define CSR_ROAMING_DFS_CHANNEL_DISABLED           (0)

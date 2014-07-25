@@ -40,7 +40,6 @@
 #ifndef __OEM_DATA_INTERNAL_H__
 #define __OEM_DATA_INTERNAL_H__
 
-#include "palTimer.h"
 #include "csrSupport.h"
 #include "vos_nvitem.h"
 #include "wlan_qct_tl.h"
