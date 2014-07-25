@@ -2368,6 +2368,7 @@ static bool hdd_get_interface_info(hdd_adapter_t *pAdapter,
  * layers.
  */
 static void hdd_link_layer_process_peer_stats(hdd_adapter_t *pAdapter,
+                                              u32 more_data,
                                               tpSirWifiPeerStat pData)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
@@ -2390,60 +2391,60 @@ static void hdd_link_layer_process_peer_stats(hdd_adapter_t *pAdapter,
     }
 
     hddLog(VOS_TRACE_LEVEL_INFO,
-           "LL_STATS_PEER_ALL : numPeers %u",
-           pWifiPeerStat->numPeers);
+           "LL_STATS_PEER_ALL : numPeers %u, more data = %u",
+           pWifiPeerStat->numPeers,
+           more_data);
+
+    for (i = 0; i < pWifiPeerStat->numPeers; i++)
     {
-        for (i = 0; i < pWifiPeerStat->numPeers; i++)
+        pWifiPeerInfo = (tpSirWifiPeerInfo)
+            ((uint8 *)pWifiPeerStat->peerInfo +
+             ( i * sizeof(tSirWifiPeerInfo)));
+
+        hddLog(VOS_TRACE_LEVEL_INFO,
+               " %d) LL_STATS Channel Stats "
+               " Peer Type %u "
+               " peerMacAddress  %pM "
+               " capabilities 0x%x "
+               " numRate %u ",
+               i,
+               pWifiPeerInfo->type,
+               pWifiPeerInfo->peerMacAddress,
+               pWifiPeerInfo->capabilities,
+               pWifiPeerInfo->numRate);
         {
-            pWifiPeerInfo = (tpSirWifiPeerInfo)
-                ((uint8 *)pWifiPeerStat->peerInfo +
-                 ( i * sizeof(tSirWifiPeerInfo)));
-
-            hddLog(VOS_TRACE_LEVEL_INFO,
-                   " %d) LL_STATS Channel Stats "
-                   " Peer Type %u "
-                   " peerMacAddress  %pM "
-                   " capabilities 0x%x "
-                   " numRate %u ",
-                   i,
-                   pWifiPeerInfo->type,
-                   pWifiPeerInfo->peerMacAddress,
-                   pWifiPeerInfo->capabilities,
-                   pWifiPeerInfo->numRate);
+            for (j = 0; j < pWifiPeerInfo->numRate; j++)
             {
-                for (j = 0; j < pWifiPeerInfo->numRate; j++)
-                {
-                    pWifiRateStat = (tpSirWifiRateStat)
-                        ((tANI_U8 *) pWifiPeerInfo->rateStats +
-                         ( j * sizeof(tSirWifiRateStat)));
+                pWifiRateStat = (tpSirWifiRateStat)
+                    ((tANI_U8 *) pWifiPeerInfo->rateStats +
+                     ( j * sizeof(tSirWifiRateStat)));
 
-                    hddLog(VOS_TRACE_LEVEL_INFO,
-                           "   peer Rate Stats "
-                           "   preamble  %u "
-                           "   nss %u "
-                           "   bw %u "
-                           "   rateMcsIdx  %u "
-                           "   reserved %u "
-                           "   bitrate %u "
-                           "   txMpdu %u "
-                           "   rxMpdu %u "
-                           "   mpduLost %u "
-                           "   retries %u "
-                           "   retriesShort %u "
-                           "   retriesLong %u",
-                           pWifiRateStat->rate.preamble,
-                           pWifiRateStat->rate.nss,
-                           pWifiRateStat->rate.bw,
-                           pWifiRateStat->rate.rateMcsIdx,
-                           pWifiRateStat->rate.reserved,
-                           pWifiRateStat->rate.bitrate,
-                           pWifiRateStat->txMpdu,
-                           pWifiRateStat->rxMpdu,
-                           pWifiRateStat->mpduLost,
-                           pWifiRateStat->retries,
-                           pWifiRateStat->retriesShort,
-                           pWifiRateStat->retriesLong);
-                }
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                       "   peer Rate Stats "
+                       "   preamble  %u "
+                       "   nss %u "
+                       "   bw %u "
+                       "   rateMcsIdx  %u "
+                       "   reserved %u "
+                       "   bitrate %u "
+                       "   txMpdu %u "
+                       "   rxMpdu %u "
+                       "   mpduLost %u "
+                       "   retries %u "
+                       "   retriesShort %u "
+                       "   retriesLong %u",
+                       pWifiRateStat->rate.preamble,
+                       pWifiRateStat->rate.nss,
+                       pWifiRateStat->rate.bw,
+                       pWifiRateStat->rate.rateMcsIdx,
+                       pWifiRateStat->rate.reserved,
+                       pWifiRateStat->rate.bitrate,
+                       pWifiRateStat->txMpdu,
+                       pWifiRateStat->rxMpdu,
+                       pWifiRateStat->mpduLost,
+                       pWifiRateStat->retries,
+                       pWifiRateStat->retriesShort,
+                       pWifiRateStat->retriesLong);
             }
         }
     }
@@ -2457,10 +2458,10 @@ static void hdd_link_layer_process_peer_stats(hdd_adapter_t *pAdapter,
      * the sizeof (tSirWifiRateStat) being 32.
      */
     vendor_event = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
-                             LL_STATS_EVENT_BUF_SIZE +
-                             NLMSG_HDRLEN,
-                             QCA_NL80211_VENDOR_SUBCMD_LL_PEER_INFO_STATS_INDEX,
-                             GFP_KERNEL);
+                          LL_STATS_EVENT_BUF_SIZE +
+                          NLMSG_HDRLEN,
+                          QCA_NL80211_VENDOR_SUBCMD_LL_PEER_INFO_STATS_INDEX,
+                          GFP_KERNEL);
 
     if (!vendor_event)
     {
@@ -2471,6 +2472,9 @@ static void hdd_link_layer_process_peer_stats(hdd_adapter_t *pAdapter,
     }
 
     if (nla_put_u32(vendor_event,
+                    QCA_WLAN_VENDOR_ATTR_LL_STATS_RESULTS_MORE_DATA,
+                    more_data) ||
+        nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_NUM_PEERS,
                     pWifiPeerStat->numPeers))
     {
@@ -2480,6 +2484,7 @@ static void hdd_link_layer_process_peer_stats(hdd_adapter_t *pAdapter,
         kfree_skb(vendor_event);
         return;
     }
+
 
     pWifiPeerInfo = (tpSirWifiPeerInfo) ((uint8 *)
                                          pWifiPeerStat->peerInfo);
@@ -2679,7 +2684,9 @@ static void hdd_link_layer_process_iface_stats(hdd_adapter_t *pAdapter,
  * layers.
  */
 static void hdd_link_layer_process_radio_stats(hdd_adapter_t *pAdapter,
-                                               tpSirWifiRadioStat pData)
+                                               u32 more_data,
+                                               tpSirWifiRadioStat pData,
+                                               u32 num_radio)
 {
     int status, i;
     tpSirWifiRadioStat  pWifiRadioStat;
@@ -2688,23 +2695,24 @@ static void hdd_link_layer_process_radio_stats(hdd_adapter_t *pAdapter,
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
     pWifiRadioStat = pData;
-
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-               FL("HDD context is not valid") );
+               FL("HDD context is not valid"));
         return;
     }
 
     hddLog(VOS_TRACE_LEVEL_INFO,
            "LL_STATS_RADIO"
-           " radio is %d onTime is %u "
-           " txTime is %u  rxTime is %u "
-           " onTimeScan is %u  onTimeNbd is %u "
-           " onTimeGscan is %u onTimeRoamScan is %u "
-           " onTimePnoScan is %u  onTimeHs20 is %u "
+           " number of radios = %u"
+           " radio is %d onTime is %u"
+           " txTime is %u  rxTime is %u"
+           " onTimeScan is %u  onTimeNbd is %u"
+           " onTimeGscan is %u onTimeRoamScan is %u"
+           " onTimePnoScan is %u  onTimeHs20 is %u"
            " numChannels is %u",
+           num_radio,
            pWifiRadioStat->radio,
            pWifiRadioStat->onTime,
            pWifiRadioStat->txTime,
@@ -2739,6 +2747,12 @@ static void hdd_link_layer_process_radio_stats(hdd_adapter_t *pAdapter,
     }
 
     if (nla_put_u32(vendor_event,
+                    QCA_WLAN_VENDOR_ATTR_LL_STATS_RESULTS_MORE_DATA,
+                    more_data)                  ||
+        nla_put_u32(vendor_event,
+                    QCA_WLAN_VENDOR_ATTR_LL_STATS_NUM_RADIOS,
+                    num_radio)                  ||
+        nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_ID,
                     pWifiRadioStat->radio)      ||
         nla_put_u32(vendor_event,
@@ -2905,30 +2919,36 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx,
                     "LL_STATS RESULTS RESPONSE respId = %u",
                     linkLayerStatsResults->rspId);
             hddLog(VOS_TRACE_LEVEL_INFO,
-                    "LL_STATS RESULTS RESPONSE moreResultToFollow = %u",
-                    linkLayerStatsResults->moreResultToFollow);
+                   "LL_STATS RESULTS RESPONSE more data = %u",
+                   linkLayerStatsResults->moreResultToFollow);
             hddLog(VOS_TRACE_LEVEL_INFO,
-                    "LL_STATS RESULTS RESPONSE result = %p",
-                    linkLayerStatsResults->results);
+                   "LL_STATS RESULTS RESPONSE num radio = %u",
+                   linkLayerStatsResults->num_radio);
+            hddLog(VOS_TRACE_LEVEL_INFO,
+                   "LL_STATS RESULTS RESPONSE result = %p",
+                   linkLayerStatsResults->results);
 
             if (linkLayerStatsResults->paramId & WMI_LINK_STATS_RADIO )
             {
                 hdd_link_layer_process_radio_stats(pAdapter,
-                                                (tpSirWifiRadioStat)
-                                                linkLayerStatsResults->results);
+                                   linkLayerStatsResults->moreResultToFollow,
+                                   (tpSirWifiRadioStat)
+                                   linkLayerStatsResults->results,
+                                   linkLayerStatsResults->num_radio);
             }
             else if (linkLayerStatsResults->paramId & WMI_LINK_STATS_IFACE )
             {
                 hdd_link_layer_process_iface_stats(pAdapter,
-                                                   (tpSirWifiIfaceStat)
-                                                   linkLayerStatsResults->results,
-                                                   linkLayerStatsResults->num_peers);
+                                   (tpSirWifiIfaceStat)
+                                   linkLayerStatsResults->results,
+                                   linkLayerStatsResults->num_peers);
             }
             else if (linkLayerStatsResults->paramId & WMI_LINK_STATS_ALL_PEER )
             {
                 hdd_link_layer_process_peer_stats(pAdapter,
-                                                (tpSirWifiPeerStat)
-                                                linkLayerStatsResults->results);
+                                   linkLayerStatsResults->moreResultToFollow,
+                                   (tpSirWifiPeerStat)
+                                   linkLayerStatsResults->results);
             }
             else
             {
