@@ -431,7 +431,7 @@ int epping_connect_service(epping_context_t *pEpping_ctx)
    }
    pEpping_ctx->EppingEndpoint[0] = response.Endpoint;
 
-#if defined(HIF_PCI)
+#if defined(HIF_PCI) || defined(HIF_USB)
    connect.ServiceID = WMI_DATA_BK_SVC;
    status = HTCConnectService(pEpping_ctx->HTCHandle,
                               &connect, &response);

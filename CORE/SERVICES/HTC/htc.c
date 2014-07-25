@@ -348,7 +348,7 @@ A_STATUS HTCSetupTargetBufferAssignments(HTC_TARGET *target)
          * space through the Ethernet interface.
          * For credit allocation, in SDIO bus case, only BE service is
          * used for tx/rx perf testing so that all credits are given
-         * to BE service. In PCIe bus case, endpoint ping uses both
+         * to BE service. In PCIe and USB bus case, endpoint ping uses both
          * BE and BK services to stress the bus so that the total credits
          * are equally distributed to BE and BK services.
          */
@@ -357,7 +357,7 @@ A_STATUS HTCSetupTargetBufferAssignments(HTC_TARGET *target)
         pEntry->ServiceID = WMI_DATA_BE_SVC;
         pEntry->CreditAllocation = credits;
 #endif
- #if defined(HIF_PCI)
+ #if defined(HIF_PCI) || defined(HIF_USB)
         pEntry->ServiceID = WMI_DATA_BE_SVC;
         pEntry->CreditAllocation = (credits >> 1);
 
