@@ -1220,18 +1220,18 @@ static void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 #define PEER_ALL_TID_BITMASK 0xffffffff
 	u_int32_t peer_tid_bitmap = PEER_ALL_TID_BITMASK;
 	u_int8_t *peer_addr = bssid;
-        if (!wma->peer_count)
+        if (!wma->interfaces[vdev_id].peer_count)
         {
              WMA_LOGE("%s: Can't remove peer with peer_addr %pM vdevid %d peer_count %d",
-                    __func__, bssid, vdev_id, wma->peer_count);
+                    __func__, bssid, vdev_id, wma->interfaces[vdev_id].peer_count);
              return;
         }
 	if (peer)
 		ol_txrx_peer_detach(peer);
 
-	wma->peer_count--;
+	wma->interfaces[vdev_id].peer_count--;
 	WMA_LOGE("%s: Removed peer with peer_addr %pM vdevid %d peer_count %d",
-                    __func__, bssid, vdev_id, wma->peer_count);
+                    __func__, bssid, vdev_id, wma->interfaces[vdev_id].peer_count);
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 	if (roam_synch_in_progress)
 		return;
@@ -5485,9 +5485,9 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 {
 	ol_txrx_peer_handle peer;
 
-	if (++wma->peer_count > wma->wlan_resource_config.num_peers) {
+	if (++wma->interfaces[vdev_id].peer_count > wma->wlan_resource_config.num_peers) {
 		WMA_LOGP("%s, the peer count exceeds the limit %d",
-			 __func__, wma->peer_count - 1);
+			 __func__, wma->interfaces[vdev_id].peer_count - 1);
 		goto err;
 	}
 	peer = ol_txrx_peer_attach(pdev, vdev, peer_addr);
@@ -5499,7 +5499,7 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 
 		WMA_LOGE("%s: Created peer with peer_addr %pM vdev_id %d,"
 				"peer_count - %d",__func__, peer_addr, vdev_id,
-				wma->peer_count);
+				wma->interfaces[vdev_id].peer_count);
 		return VOS_STATUS_SUCCESS;
 	}
 #endif
@@ -5510,7 +5510,7 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 		goto err;
 	}
 	WMA_LOGE("%s: Created peer with peer_addr %pM vdev_id %d, peer_count - %d",
-                    __func__, peer_addr, vdev_id, wma->peer_count);
+                    __func__, peer_addr, vdev_id, wma->interfaces[vdev_id].peer_count);
 
 #ifdef QCA_IBSS_SUPPORT
 	/* for each remote ibss peer, clear its keys */
@@ -5531,7 +5531,7 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 
 	return VOS_STATUS_SUCCESS;
 err:
-	wma->peer_count--;
+	wma->interfaces[vdev_id].peer_count--;
 	return VOS_STATUS_E_FAILURE;
 }
 
