@@ -143,6 +143,11 @@ static int epping_tx_send_int(adf_nbuf_t skb,
    /* prepare ep/HTC information */
    ac = eppingHdr->StreamNo_h;
    eid = pAdapter->pEpping_ctx->EppingEndpoint[ac];
+   if (eid < 0 || eid >= EPPING_MAX_NUM_EPIDS) {
+      EPPING_LOG(VOS_TRACE_LEVEL_FATAL,
+         "%s: invalid eid = %d, ac = %d\n", __func__, eid, ac);
+      return -1;
+   }
    if (tmpHdr.Cmd_h == EPPING_CMD_RESET_RECV_CNT ||
       tmpHdr.Cmd_h == EPPING_CMD_CONT_RX_START) {
       epping_set_kperf_flag(pAdapter, eid, tmpHdr.CmdBuffer_t[0]);
@@ -340,6 +345,8 @@ void epping_tx_complete_multiple(void *ctx,
 
    while (!HTC_QUEUE_EMPTY(pPacketQueue)) {
       htc_pkt = HTC_PACKET_DEQUEUE(pPacketQueue);
+      if (htc_pkt == NULL)
+         break;
       status=htc_pkt->Status;
       eid=htc_pkt->Endpoint;
       pktSkb=GET_HTC_PACKET_NET_BUF_CONTEXT(htc_pkt);
@@ -382,6 +389,8 @@ void epping_tx_complete_multiple(void *ctx,
    while (adf_nbuf_queue_len(&skb_queue)) {
       /* use non-lock version */
       pktSkb = adf_nbuf_queue_remove(&skb_queue);
+      if (pktSkb == NULL)
+         break;
       adf_nbuf_free(pktSkb);
       pEpping_ctx->total_tx_acks++;
    }
