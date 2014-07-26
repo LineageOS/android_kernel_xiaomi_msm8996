@@ -1798,6 +1798,42 @@ static iw_softap_get_ini_cfg(struct net_device *dev,
     return 0;
 }
 
+static int iw_softap_set_two_ints_getnone(struct net_device *dev,
+                                          struct iw_request_info *info,
+                                          union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx;
+    int *value = (int *)extra;
+    int sub_cmd = value[0];
+    int ret = 0;
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (ret != 0) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is not valid!", __func__);
+        goto out;
+    }
+
+    switch(sub_cmd) {
+#ifdef DEBUG
+    case QCSAP_IOCTL_SET_FW_CRASH_INJECT:
+        hddLog(LOGE, "WE_SET_FW_CRASH_INJECT: %d %d", value[1], value[2]);
+        ret = process_wma_set_command_twoargs((int) pAdapter->sessionId,
+                                           (int) GEN_PARAM_CRASH_INJECT,
+                                           value[1], value[2], GEN_CMD);
+        break;
+#endif
+    default:
+        hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd);
+        break;
+    }
+
+out:
+    return ret;
+}
+
 static void print_mac_list(v_MACADDR_t *macList, v_U8_t size)
 {
     int i;
@@ -2137,16 +2173,6 @@ static iw_softap_setparam(struct net_device *dev,
                                                set_value, DBG_CMD);
                   break;
              }
-#ifdef DEBUG
-         case QCSAP_FW_CRASH_INJECT:
-             {
-                  hddLog(LOGE, "WE_FW_CRASH_INJECT %d", set_value);
-                  ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
-                                                (int)GEN_PARAM_CRASH_INJECT,
-                                                set_value, GEN_CMD);
-                  break;
-             }
-#endif
          case QCSAP_PARAM_SET_MCC_CHANNEL_LATENCY:
              {
                   tVOS_CONCURRENCY_MODE concurrent_state = 0;
@@ -4585,12 +4611,6 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "dl_report" },
-#ifdef DEBUG
-    {   QCSAP_FW_CRASH_INJECT,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        0,
-        "crash_inject" },
-#endif
     {   QCASAP_TXRX_FWSTATS_RESET,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
@@ -4880,6 +4900,18 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "setTrafficMon" },
 
+    /* handlers for main ioctl */
+    {   QCSAP_IOCTL_SET_TWO_INT_GET_NONE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
+        0,
+        "" },
+    /* handlers for sub-ioctl */
+#ifdef DEBUG
+    {   QCSAP_IOCTL_SET_FW_CRASH_INJECT,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
+        0,
+        "crash_inject" },
+#endif
 };
 
 static const iw_handler hostapd_private[] = {
@@ -4907,6 +4939,8 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_SET_INI_CFG - SIOCIWFIRSTPRIV]  =  iw_softap_set_ini_cfg,
    [QCSAP_IOCTL_GET_INI_CFG - SIOCIWFIRSTPRIV]  =  iw_softap_get_ini_cfg,
    [QCSAP_IOCTL_SET_TRAFFIC_MONITOR - SIOCIWFIRSTPRIV]  =  iw_softap_set_trafficmonitor,
+   [QCSAP_IOCTL_SET_TWO_INT_GET_NONE - SIOCIWFIRSTPRIV] =
+                                                iw_softap_set_two_ints_getnone,
 };
 const struct iw_handler_def hostapd_handler_def = {
    .num_standard     = sizeof(hostapd_handler) / sizeof(hostapd_handler[0]),

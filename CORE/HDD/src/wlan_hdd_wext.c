@@ -240,7 +240,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_EARLY_RX_DRIFT_SAMPLE          82
 /* Private ioctl for packet power save */
 #define WE_PPS_5G_EBT                         83
-#define WE_SET_FW_CRASH_INJECT                84
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -443,6 +442,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_TWO_INT_GET_NONE   (SIOCIWFIRSTPRIV + 28)
 #define WE_SET_SMPS_PARAM    1
+#ifdef DEBUG
+#define WE_SET_FW_CRASH_INJECT    2
+#endif
 
 #define WLAN_STATS_INVALID            0
 #define WLAN_STATS_RETRY_CNT          1
@@ -4303,6 +4305,40 @@ int process_wma_set_command(int sessid, int paramid,
     return ret;
 }
 
+int process_wma_set_command_twoargs(int sessid, int paramid,
+                                    int sval, int ssecval, int vpdev)
+{
+    int ret = 0;
+    vos_msg_t msg = {0};
+    wda_cli_set_cmd_t *iwcmd = vos_mem_malloc(sizeof(*iwcmd));
+
+    if (NULL == iwcmd) {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_mem_alloc failed!", __func__);
+        ret = -EINVAL;
+        goto out;
+    }
+
+    vos_mem_zero(iwcmd, sizeof(*iwcmd));
+    iwcmd->param_value = sval;
+    iwcmd->param_sec_value = ssecval;
+    iwcmd->param_vdev_id = sessid;
+    iwcmd->param_id = paramid;
+    iwcmd->param_vp_dev = vpdev;
+    msg.type = WDA_CLI_SET_CMD;
+    msg.reserved = 0;
+    msg.bodyptr = iwcmd;
+
+    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: "
+                  "Not able to post wda_cli_set_cmd message to WDA", __func__);
+        vos_mem_free(iwcmd);
+        ret = -EIO;
+    }
+
+out:
+    return ret;
+}
+
 int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
                                    int new_phymode,
                                    hdd_context_t *phddctx)
@@ -5881,16 +5917,6 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                             set_value, VDEV_CMD);
             break;
        }
-#ifdef DEBUG
-        case WE_SET_FW_CRASH_INJECT:
-        {
-           hddLog(LOGE, "WE_FW_CRASH_INJECT: %d", set_value);
-           ret = process_wma_set_command((int) pAdapter->sessionId,
-                                         (int) GEN_PARAM_CRASH_INJECT,
-                                         set_value, GEN_CMD);
-           break;
-        }
-#endif
         default:
         {
            hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
@@ -9433,38 +9459,41 @@ VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *i
   return VOS_STATUS_SUCCESS;
 }/*iw_set_power_params*/
 
-int iw_set_two_ints_getnone(struct net_device *dev, struct iw_request_info *info,
-                       union iwreq_data *wrqu, char *extra)
+int iw_set_two_ints_getnone(struct net_device *dev,
+                            struct iw_request_info *info,
+                            union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int *value = (int *)extra;
     int sub_cmd = value[0];
     int ret = 0;
 
-    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
-    {
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                                   "%s:LOGP in Progress. Ignore!!!", __func__);
         return -EBUSY;
     }
 
-    switch(sub_cmd)
-    {
-        case WE_SET_SMPS_PARAM:
-        {
-            hddLog(LOG1, "WE_SET_SMPS_PARAM val %d %d", value[1], value[2]);
-            ret = process_wma_set_command((int)pAdapter->sessionId,
-                            (int)WMI_STA_SMPS_PARAM_CMDID,
-                             value[1] << WMA_SMPS_PARAM_VALUE_S | value[2], VDEV_CMD);
-            break;
-        }
-
-        default:
-        {
-            hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd );
-            break;
-        }
+    switch(sub_cmd) {
+    case WE_SET_SMPS_PARAM:
+        hddLog(LOG1, "WE_SET_SMPS_PARAM val %d %d", value[1], value[2]);
+        ret = process_wma_set_command((int)pAdapter->sessionId,
+                       (int)WMI_STA_SMPS_PARAM_CMDID,
+                       value[1] << WMA_SMPS_PARAM_VALUE_S | value[2], VDEV_CMD);
+        break;
+#ifdef DEBUG
+    case WE_SET_FW_CRASH_INJECT:
+        hddLog(LOGE, "WE_SET_FW_CRASH_INJECT: %d %d", value[1], value[2]);
+        ret = process_wma_set_command_twoargs((int) pAdapter->sessionId,
+                                              (int) GEN_PARAM_CRASH_INJECT,
+                                              value[1], value[2], GEN_CMD);
+        break;
+#endif
+    default:
+        hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd);
+        break;
     }
+
     return ret;
 }
 
@@ -9985,11 +10014,6 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_EARLY_RX_DRIFT_SAMPLE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "erx_dri_sample" },
-#ifdef DEBUG
-    {   WE_SET_FW_CRASH_INJECT,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        0, "crash_inject" },
-#endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
         0,
@@ -10603,7 +10627,11 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_SMPS_PARAM,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
         0, "set_smps_param" },
-
+#ifdef DEBUG
+    {   WE_SET_FW_CRASH_INJECT,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
+        0, "crash_inject" },
+#endif
 };
 
 
