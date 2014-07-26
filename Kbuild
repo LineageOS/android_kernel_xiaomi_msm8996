@@ -1366,6 +1366,10 @@ CDEFINES += -DWLAN_OPEN_P2P_INTERFACE
 #Enable 2.4 GHz social channels in 5 GHz only mode for p2p usage
 CDEFINES += -DWLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
 
+#Enable RX Full re-order OL feature only "LL and NON-MDM platform"
+ifeq ($(CONFIG_HIF_PCI), 1)
+CDEFINES += -DWLAN_FEATURE_RX_FULL_REORDER_OL
+endif
 endif
 
 #Enable Signed firmware support for split binary format

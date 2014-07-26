@@ -4511,7 +4511,15 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	olCfg.uc_tx_partition_base = mac_params->ucTxPartitionBase;
 #endif /* IPA_UC_OFFLOAD*/
 	/* Allocate cfg handle */
+
+	/* RX Full reorder should enable for PCIe, ROME3.X project only now
+	 * MDM should enable later, schedule TBD
+	 * HL also sdould be enabled, schedule TBD */
+#ifdef WLAN_FEATURE_RX_FULL_REORDER_OL
 	olCfg.is_full_reorder_offload = mac_params->reorderOffload;
+#else
+	olCfg.is_full_reorder_offload = 0;
+#endif
 	((pVosContextType) vos_context)->cfg_ctx =
 		ol_pdev_cfg_attach(((pVosContextType) vos_context)->adf_ctx, olCfg);
 	if (!(((pVosContextType) vos_context)->cfg_ctx)) {
