@@ -1023,6 +1023,12 @@ int wlan_hdd_tdls_recv_discovery_resp(hdd_adapter_t *pAdapter, u8 *mac)
             MAC_ADDR_ARRAY(curr_peer->peerMac), curr_peer->rssi,
             pHddTdlsCtx->threshold_config.rssi_trigger_threshold);
             curr_peer->link_status = eTDLS_LINK_IDLE;
+
+            /* if RSSI threshold is not met then allow further discovery
+             * attempts by decrementing count for the last attempt
+             */
+            if (curr_peer->discovery_attempt)
+                curr_peer->discovery_attempt--;
         }
     }
     else
@@ -2130,17 +2136,24 @@ static void __wlan_hdd_tdls_pre_setup(struct work_struct *work)
     if (eTDLS_CAP_UNKNOWN != curr_peer->tdls_support)
         curr_peer->link_status = eTDLS_LINK_DISCOVERING;
 
-    if (curr_peer->discovery_attempt >=
-        pHddTdlsCtx->threshold_config.discovery_tries_n)
+    /* Ignore discovery attempt if External Control is enabled, that
+     * is, peer is forced. In that case, continue discovery attempt
+     * regardless attempt count
+     */
+    if (FALSE == curr_peer->isForcedPeer)
     {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: discovery attempt (%d) reached max (%d) for peer "
-                  MAC_ADDRESS_STR ", ignore discovery trigger from fw",
-                  __func__, curr_peer->discovery_attempt,
-                  pHddTdlsCtx->threshold_config.discovery_tries_n,
-                  MAC_ADDR_ARRAY(curr_peer->peerMac));
-        curr_peer->tdls_support = eTDLS_CAP_NOT_SUPPORTED;
-        goto done;
+        if (curr_peer->discovery_attempt >=
+            pHddTdlsCtx->threshold_config.discovery_tries_n)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: discovery attempt (%d) reached max (%d) for peer "
+                      MAC_ADDRESS_STR ", ignore discovery trigger from fw",
+                      __func__, curr_peer->discovery_attempt,
+                      pHddTdlsCtx->threshold_config.discovery_tries_n,
+                      MAC_ADDR_ARRAY(curr_peer->peerMac));
+            curr_peer->tdls_support = eTDLS_CAP_NOT_SUPPORTED;
+            goto done;
+        }
     }
     curr_peer->link_status = eTDLS_LINK_DISCOVERING;
 
