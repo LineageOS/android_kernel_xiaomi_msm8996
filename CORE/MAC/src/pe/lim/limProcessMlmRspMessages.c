@@ -50,13 +50,14 @@
 #include "limAdmitControl.h"
 #include "limSendMessages.h"
 #include "limIbssPeerMgmt.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFT.h"
+#include "limFTDefs.h"
+#endif
 #include "limSession.h"
 #include "limSessionUtils.h"
 #if defined WLAN_FEATURE_VOWIFI
 #include "rrmApi.h"
-#endif
-#if defined WLAN_FEATURE_VOWIFI_11R
-#include <limFT.h>
 #endif
 #include "wlan_qct_wda.h"
 #include "vos_utils.h"
@@ -1907,6 +1908,8 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
     tpDphHashNode   pStaDs;
     tANI_U32        mesgType = LIM_MLM_ASSOC_CNF;
     tpAddStaParams  pAddStaParams = (tpAddStaParams) limMsgQ->bodyptr;
+    tpPESession     pftSessionEntry = NULL;
+    tANI_U8         ftSessionId;
 
     if(NULL == pAddStaParams )
     {
@@ -1941,12 +1944,15 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
     {
 #ifdef WLAN_FEATURE_VOWIFI_11R
         // Check if we have keys (PTK) to install in case of 11r
-        tpftPEContext pftPECntxt = &pMac->ft.ftPEContext;
-        if (pftPECntxt->pftSessionEntry != NULL &&
+        tpftPEContext pftPECntxt = &psessionEntry->ftPEContext;
+        pftSessionEntry = peFindSessionByBssid(pMac,
+                                               psessionEntry->limReAssocbssId,
+                                               &ftSessionId);
+        if (pftSessionEntry != NULL &&
             pftPECntxt->PreAuthKeyInfo.extSetStaKeyParamValid == TRUE)
         {
             tpLimMlmSetKeysReq pMlmStaKeys = &pftPECntxt->PreAuthKeyInfo.extSetStaKeyParam;
-            limSendSetStaKeyReq(pMac, pMlmStaKeys, 0, 0, pftPECntxt->pftSessionEntry, FALSE);
+            limSendSetStaKeyReq(pMac, pMlmStaKeys, 0, 0, pftSessionEntry, FALSE);
             pftPECntxt->PreAuthKeyInfo.extSetStaKeyParamValid = FALSE;
         }
 #endif
@@ -2840,11 +2846,6 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
         PELOGE(limLog(pMac, LOGE, FL("Invalid parameters"));)
         goto end;
     }
-    if((psessionEntry = peFindSessionBySessionId(pMac,pAddBssParams->sessionId))== NULL)
-    {
-        limLog( pMac, LOGE, FL( "Session Does not exist for given sessionId" ));
-        goto end;
-    }
     if ( eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE != psessionEntry->limMlmState )
     {
         goto end;
@@ -2945,6 +2946,7 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
 
     /* Update  PE session ID */
     pAddStaParams->sessionId = psessionEntry->peSessionId;
+    pAddStaParams->smesessionId = psessionEntry->smeSessionId;
 
     // This will indicate HAL to "allocate" a new STA index
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
@@ -3015,7 +3017,7 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
     pAddStaParams->maxTxPower = psessionEntry->maxTxPower;
 
     // Lets save this for when we receive the Reassoc Rsp
-    pMac->ft.ftPEContext.pAddStaReq = pAddStaParams;
+    psessionEntry->ftPEContext.pAddStaReq = pAddStaParams;
 
     if (pAddBssParams != NULL)
     {
@@ -5033,13 +5035,14 @@ limSendBeaconInd(tpAniSirGlobal pMac, tpPESession psessionEntry){
  *
  * @return None
  */
-void limSendSmeScanCacheUpdatedInd(void)
+void limSendSmeScanCacheUpdatedInd(tANI_U8 sessionId)
 {
     vos_msg_t msg;
 
     msg.type     = WDA_SME_SCAN_CACHE_UPDATED;
     msg.reserved = 0;
     msg.bodyptr  = NULL;
+    msg.bodyval  = sessionId;
 
     if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
@@ -5068,7 +5071,7 @@ void limSendScanOffloadComplete(tpAniSirGlobal pMac,
             pScanEvent->sessionId,
             0);
 #ifdef FEATURE_WLAN_SCAN_PNO
-    limSendSmeScanCacheUpdatedInd();
+    limSendSmeScanCacheUpdatedInd(pScanEvent->sessionId);
 #endif
 }
 

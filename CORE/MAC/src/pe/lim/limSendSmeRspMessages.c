@@ -3219,20 +3219,20 @@ void limSendSmeMaxAssocExceededNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
   \sa
   ----------------------------------------------------------------- */
 void
-limSendSmeCandidateFoundInd(tpAniSirGlobal pMac, tANI_U8  sessionId)
+limSendSmeCandidateFoundInd(tpAniSirGlobal pMac, tANI_U8 sessionId)
 {
     tSirMsgQ  mmhMsg;
     tSirSmeCandidateFoundInd *pSirSmeCandidateFoundInd;
 
     pSirSmeCandidateFoundInd = vos_mem_malloc(sizeof(tSirSmeCandidateFoundInd));
-    if ( NULL == pSirSmeCandidateFoundInd )
-    {
-        limLog(pMac, LOGP, FL("AllocateMemory failed for eWNI_SME_CANDIDATE_FOUND_IND\n"));
+    if (NULL == pSirSmeCandidateFoundInd) {
+        limLog(pMac, LOGP,
+               FL("AllocateMemory failed for eWNI_SME_CANDIDATE_FOUND_IND"));
         return;
     }
 
     pSirSmeCandidateFoundInd->messageType = eWNI_SME_CANDIDATE_FOUND_IND;
-    pSirSmeCandidateFoundInd->length = sizeof(tSirSmeDisassocInd);
+    pSirSmeCandidateFoundInd->length = sizeof(tSirSmeCandidateFoundInd);
 
     pSirSmeCandidateFoundInd->sessionId     =  sessionId;
 

@@ -2320,10 +2320,9 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
             // Make sure its our preauth bssid
             if (!vos_mem_compare( pReassocReq->bssDescription.bssId,
-                pMac->ft.ftPEContext.pFTPreAuthReq->preAuthbssId, 6))
+                psessionEntry->limReAssocbssId, 6))
             {
                 limPrintMacAddr(pMac, pReassocReq->bssDescription.bssId, LOGE);
-                limPrintMacAddr(pMac, pMac->ft.ftPEContext.pFTPreAuthReq->preAuthbssId, LOGE);
                 limLog(pMac, LOGP, FL("Unknown bssId in reassoc state"));
                 retCode = eSIR_SME_INVALID_PARAMETERS;
                 goto end;
@@ -2396,21 +2395,7 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                           psessionEntry->maxTxPower );
 #endif
     {
-    #if 0
-    if (wlan_cfgGetStr(pMac, WNI_CFG_SSID, pMac->lim.gLimReassocSSID.ssId,
-                  &cfgLen) != eSIR_SUCCESS)
-    {
-        /// Could not get SSID from CFG. Log error.
-        limLog(pMac, LOGP, FL("could not retrive SSID"));
-    }
-    #endif//TO SUPPORT BT-AMP
 
-    /* Copy the SSID from sessio entry to local variable */
-    #if 0
-    vos_mem_copy(  pMac->lim.gLimReassocSSID.ssId,
-                   psessionEntry->ssId.ssId,
-                   psessionEntry->ssId.length);
-    #endif
     psessionEntry->limReassocSSID.length = pReassocReq->ssId.length;
     vos_mem_copy(   psessionEntry->limReassocSSID.ssId,
                     pReassocReq->ssId.ssId, psessionEntry->limReassocSSID.length);
@@ -2898,8 +2883,11 @@ __limProcessSmeDisassocCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                      MAC_ADDR_ARRAY(smeDisassocCnf.peerMacAddr));)
             return;
         }
+
+#if defined WLAN_FEATURE_VOWIFI_11R
         /* Delete FT session if there exists one */
-        limFTCleanup(pMac);
+        limFTCleanupPreAuthInfo(pMac, psessionEntry);
+#endif
         limCleanupRxPath(pMac, pStaDs, psessionEntry);
 
         limCleanUpDisassocDeauthReq(pMac, (char*)&smeDisassocCnf.peerMacAddr, 0);
@@ -6349,7 +6337,7 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                                   pChannelChangeReq->targetChannel;
 
             limSetChannel(pMac, pChannelChangeReq->targetChannel,
-                          pChannelChangeReq->cbMode,
+                          psessionEntry->htSecondaryChannelOffset,
                           maxTxPwr,
                           psessionEntry->peSessionId);
 #endif

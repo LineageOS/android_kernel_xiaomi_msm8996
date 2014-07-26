@@ -324,18 +324,23 @@ eHalStatus csrTdlsTeardownReq(tHalHandle hHal, tANI_U8 sessionId,
 #endif /* FEATURE_WLAN_TDLS */
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
-eHalStatus csrFlushCfgBgScanRoamChannelList(tpAniSirGlobal pMac);
+eHalStatus csrFlushCfgBgScanRoamChannelList(tpAniSirGlobal pMac,
+                                            tANI_U8 sessionId);
 eHalStatus csrCreateBgScanRoamChannelList(tpAniSirGlobal pMac,
-                                            const tANI_U8 *pChannelList,
-                                            const tANI_U8 numChannels);
-eHalStatus csrUpdateBgScanConfigIniChannelList(tpAniSirGlobal pMac, eCsrBand eBand);
+                                          tANI_U8 sessionId,
+                                          const tANI_U8 *pChannelList,
+                                          const tANI_U8 numChannels);
+eHalStatus csrUpdateBgScanConfigIniChannelList(tpAniSirGlobal pMac,
+                                               tANI_U8 sessionId,
+                                               eCsrBand eBand);
 #endif
 
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 eHalStatus csrCreateRoamScanChannelList(tpAniSirGlobal pMac,
-                                                tANI_U8 *pChannelList,
-                                                tANI_U8 numChannels,
-                                                const eCsrBand eBand);
+                                        tANI_U8 sessionId,
+                                        tANI_U8 *pChannelList,
+                                        tANI_U8 numChannels,
+                                        const eCsrBand eBand);
 #endif
 
 ePhyChanBondState csrConvertCBIniValueToPhyCBState(v_U32_t cbIniValue);
@@ -345,12 +350,6 @@ eHalStatus csrPsOffloadIsFullPowerNeeded(tpAniSirGlobal pMac,
                                          tRequestFullPowerReason *pReason,
                                          tANI_BOOLEAN *pfNeedPower);
 
-#if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
-eHalStatus csrCreateRoamScanChannelList(tpAniSirGlobal pMac,
-                                                tANI_U8 *pChannelList,
-                                                tANI_U8 numChannels,
-                                                const eCsrBand eBand);
-#endif
 void activeListCmdTimeoutHandle(void *userData);
 
 #endif //#if !defined( __SMEINSIDE_H )

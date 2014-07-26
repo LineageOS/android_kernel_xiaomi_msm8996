@@ -331,9 +331,11 @@ int iw_get_oem_data_cap(
        oemDataCap.allowed_dwell_time_min = pConfig->nNeighborScanMinChanTime;
        oemDataCap.allowed_dwell_time_max = pConfig->nNeighborScanMaxChanTime;
        oemDataCap.curr_dwell_time_min =
-               sme_getNeighborScanMinChanTime(pHddContext->hHal);
+               sme_getNeighborScanMinChanTime(pHddContext->hHal,
+                                              pAdapter->sessionId);
        oemDataCap.curr_dwell_time_max =
-               sme_getNeighborScanMaxChanTime(pHddContext->hHal);
+               sme_getNeighborScanMaxChanTime(pHddContext->hHal,
+                                              pAdapter->sessionId);
        oemDataCap.supported_bands = pConfig->nBandCapability;
 
        /* request for max num of channels */

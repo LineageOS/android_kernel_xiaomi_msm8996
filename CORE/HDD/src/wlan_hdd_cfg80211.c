@@ -5301,9 +5301,15 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                         pHostapdAdapter->sap_dyn_ini_cfg.acsBandSwitchThreshold;
     pConfig->apAutoChannelSelection =
                         pHostapdAdapter->sap_dyn_ini_cfg.apAutoChannelSelection;
+    pConfig->apStartChannelNum =
+                        pHostapdAdapter->sap_dyn_ini_cfg.apStartChannelNum;
+    pConfig->apEndChannelNum =
+                        pHostapdAdapter->sap_dyn_ini_cfg.apEndChannelNum;
 #else
     pConfig->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
     pConfig->apAutoChannelSelection = iniConfig->apAutoChannelSelection;
+    pConfig->apStartChannelNum = iniConfig->apStartChannelNum;
+    pConfig->apEndChannelNum = iniConfig->apEndChannelNum;
 #endif
 
     pSapEventCallback = hdd_hostapd_SAPEventCB;
@@ -7013,7 +7019,8 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         /* The supplicant may attempt to set the PTK once pre-authentication
            is done. Save the key in the UMAC and include it in the ADD BSS
            request */
-        halStatus = sme_FTUpdateKey( WLAN_HDD_GET_HAL_CTX(pAdapter), &setKey);
+        halStatus = sme_FTUpdateKey( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                     pAdapter->sessionId, &setKey);
         if ( halStatus == eHAL_STATUS_FT_PREAUTH_KEY_SUCCESS )
         {
            hddLog(VOS_TRACE_LEVEL_INFO_MED,
@@ -8088,7 +8095,10 @@ VOS_STATUS wlan_hdd_cfg80211_roam_metrics_handover(hdd_adapter_t * pAdapter,
  *
  */
 static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
-        void *pContext, tANI_U32 scanId, eCsrScanStatus status)
+                                                  void *pContext,
+                                                  tANI_U8 sessionId,
+                                                  tANI_U32 scanId,
+                                                  eCsrScanStatus status)
 {
     struct net_device *dev = (struct net_device *) pContext;
     //struct wireless_dev *wdev = dev->ieee80211_ptr;
@@ -9727,6 +9737,10 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         return -ECONNREFUSED;
     }
 
+#if defined(FEATURE_WLAN_LFR) && defined(WLAN_FEATURE_ROAM_SCAN_OFFLOAD)
+    wlan_hdd_disable_roaming(pAdapter);
+#endif
+
 #ifdef WLAN_BTAMP_FEATURE
     //Infra connect not supported when AMP traffic is on.
     if (VOS_TRUE == WLANBAP_AmpSessionOn()) {
@@ -9835,6 +9849,7 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
     int status;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    long ret;
 
     status = wlan_hdd_validate_context(pHddCtx);
 
@@ -9859,8 +9874,13 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
 
     status = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
                                  pAdapter->sessionId, reason);
-
-    if ( 0 != status )
+    if(eHAL_STATUS_CMD_NOT_QUEUED == status)
+    {
+        hddLog(VOS_TRACE_LEVEL_INFO,
+               FL("status = %d, already disconnected"),
+                      (int)status );
+    }
+    else if ( 0 != status )
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s csrRoamDisconnect failure, returned %d",
@@ -9868,23 +9888,25 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
         pHddStaCtx->staDebugState = status;
         return -EINVAL;
     }
-    status = wait_for_completion_interruptible_timeout(
+    ret = wait_for_completion_interruptible_timeout(
                 &pAdapter->disconnect_comp_var,
                 msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
 
-    pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
-
-    if (!status)
+    if (!ret && ( eHAL_STATUS_CMD_NOT_QUEUED != status ))
     {
        hddLog(VOS_TRACE_LEVEL_ERROR,
               "%s: Failed to disconnect, timed out", __func__);
        return -ETIMEDOUT;
-    } else if (status == -ERESTARTSYS)
+    }
+    else if (ret == -ERESTARTSYS)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: Failed to disconnect, wait interrupted", __func__);
-        return status;
+        return ret;
     }
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+             FL("Set HDD connState to eConnectionState_NotConnected"));
+    pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
 
     return 0;
 }
@@ -13730,12 +13752,6 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         return -EAGAIN;
     }
 
-    if (sme_staInMiddleOfRoaming(pHddCtx->hHal)) {
-        hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Roaming in progress "
-               "Do not allow suspend"));
-        return -EAGAIN;
-    }
-
     /* If RADAR detection is in progress (HDD), prevent suspend. The flag
      * "dfs_cac_block_tx" is set to TRUE when RADAR is found and stay TRUE until
      * CAC is done for a SoftAP which is in started state.
@@ -13763,6 +13779,10 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         pAdapter = pAdapterNode->pAdapter;
         pScanInfo = &pAdapter->scan_info;
 
+        if (sme_staInMiddleOfRoaming(pHddCtx->hHal, pAdapter->sessionId)) {
+            hddLog(LOG1, FL("Roaming in progress, do not allow suspend"));
+            return -EAGAIN;
+        }
         if (pScanInfo->mScanPending && pAdapter->request)
         {
            INIT_COMPLETION(pScanInfo->abortscan_event_var);

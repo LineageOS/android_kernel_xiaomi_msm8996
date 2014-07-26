@@ -203,7 +203,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define  WE_PPS_DELIM_CRC_FAIL          51
 #define  WE_PPS_GID_NSTS_ZERO           52
 #define  WE_PPS_RSSI_CHECK              53
-#define WE_ENABLE_STRICT_FCC_REG        54
+/* 54 is unused */
 #define WE_SET_HTSMPS                   55
 /* Private ioctl for QPower */
 #define WE_SET_QPOWER_MAX_PSPOLL_COUNT            56
@@ -4120,7 +4120,8 @@ static int iw_set_encodeext(struct net_device *dev,
     /* The supplicant may attempt to set the PTK once pre-authentication
        is done. Save the key in the UMAC and include it in the ADD
        BSS request */
-    halStatus = sme_FTUpdateKey( WLAN_HDD_GET_HAL_CTX(pAdapter), &setKey);
+    halStatus = sme_FTUpdateKey(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                pAdapter->sessionId, &setKey);
     if ( halStatus == eHAL_STATUS_FT_PREAUTH_KEY_SUCCESS )
     {
         hddLog(VOS_TRACE_LEVEL_INFO_MED,
@@ -4947,43 +4948,6 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            break;
         }
 
-        case WE_ENABLE_STRICT_FCC_REG:
-        {
-           hdd_context_t *hddCtxt = WLAN_HDD_GET_CTX(pAdapter);
-           struct wiphy *wiphy = NULL;
-           long lrc;
-           int status;
-
-           wiphy = hddCtxt->wiphy;
-           if(wiphy == NULL)
-           {
-               hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy is NULL ", __func__);
-               break;
-           }
-           init_completion(&hddCtxt->wiphy_channel_update_event);
-
-           hddCtxt->nEnableStrictRegulatoryForFCC = set_value;
-
-           status = regulatory_hint(wiphy, "00");
-           if(status < 0)
-           {
-               hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failure in setting regulatory rule ", __func__);
-               break;
-           }
-
-           /* Wait for completion */
-           lrc = wait_for_completion_interruptible_timeout(&hddCtxt->wiphy_channel_update_event,
-                                       msecs_to_jiffies(WLAN_WAIT_TIME_CHANNEL_UPDATE));
-           if (lrc <= 0)
-           {
-               hddLog(VOS_TRACE_LEVEL_ERROR,"%s: SME %s while setting strict FCC regulatory rule ",
-                      __func__, (0 == lrc) ? "Timeout" : "Interrupt");
-               return (0 == lrc) ? -ETIMEDOUT : -EINTR;
-           }
-           hddLog(VOS_TRACE_LEVEL_INFO,"%s: SUCCESS in setting strict FCC regulatory rule", __func__);
-
-           break;
-        }
 #ifdef QCA_WIFI_2_0
         case WE_SET_PHYMODE:
         {
@@ -6953,11 +6917,14 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                         macTraceGetHDDWlanConnState(
                                 pHddStaCtx->conn_info.connState),
                         macTraceGetNeighbourRoamState(
-                                pMac->roam.neighborRoamInfo.neighborRoamState),
+                              sme_getNeighborRoamState(hHal,
+                                  useAdapter->sessionId)),
                         macTraceGetcsrRoamState(
-                                pMac->roam.curState[useAdapter->sessionId]),
+                              sme_getCurrentRoamState(hHal,
+                                  useAdapter->sessionId)),
                         macTraceGetcsrRoamSubState(
-                                pMac->roam.curSubState[useAdapter->sessionId]),
+                              sme_getCurrentRoamSubState(hHal,
+                                  useAdapter->sessionId)),
                         pHddStaCtx->conn_info.staId[0],
                         macTraceGetTLState(tlState)
                         );
@@ -6972,24 +6939,24 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                         "\n Global Sme State - %s "\
                         "\n Global mlm State - %s "\
                         "\n",
-                        macTraceGetLimSmeState(pMac->lim.gLimSmeState),
-                        macTraceGetLimMlmState(pMac->lim.gLimMlmState)
+                        macTraceGetLimSmeState(sme_getLimSmeState(hHal)),
+                        macTraceGetLimMlmState(sme_getLimSmeState(hHal))
                         );
                 len += buf;
 
-                /*printing the PE Sme and Mlm states for valid lim sessions*/
-                while ( check < 3 && count < 255)
-                {
-                    if ( pMac->lim.gpSession[count].valid )
-                    {
+                /* Printing the PE Sme and Mlm states for valid lim sessions */
+                while (check < 3 && count < 255) {
+                    if (sme_IsLimSessionValid(hHal, count)) {
                         buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
                             "\n Lim Valid Session %d:-"
                             "\n PE Sme State - %s "
                             "\n PE Mlm State - %s "
                             "\n",
                             check,
-                            macTraceGetLimSmeState(pMac->lim.gpSession[count].limSmeState),
-                            macTraceGetLimMlmState(pMac->lim.gpSession[count].limMlmState)
+                            macTraceGetLimSmeState(sme_getLimSmeSessionState(
+                                                                  hHal, count)),
+                            macTraceGetLimMlmState(sme_getLimMlmSessionState(
+                                                                  hHal, count))
                             );
 
                         len += buf;
@@ -9401,11 +9368,10 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
             pAdapterNode = pNext;
         }
 
-        if (eHAL_STATUS_SUCCESS != sme_SetFreqBand(hHal, band))
-        {
+        if (eHAL_STATUS_SUCCESS != sme_SetFreqBand(hHal, pAdapter->sessionId,
+                                                   band)) {
              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                     "%s: failed to set the band value to %u ",
-                        __func__, band);
+                     FL("Failed to set the band value to %u"), band);
              return -EINVAL;
         }
         wlan_hdd_cfg80211_update_band(pHddCtx->wiphy, (eCsrBand)band);
@@ -9748,11 +9714,6 @@ static const iw_handler we_private[] = {
 
 /*Maximum command length can be only 15 */
 static const struct iw_priv_args we_private_args[] = {
-
-    {   WE_ENABLE_STRICT_FCC_REG,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        0,
-        "setStrictFCCreg" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_INT_GET_NONE,

@@ -55,6 +55,9 @@
 #include "pmmApi.h"
 #include "limIbssPeerMgmt.h"
 #include "schApi.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "limFTDefs.h"
+#endif
 #include "limSession.h"
 #include "limSendMessages.h"
 
@@ -564,9 +567,8 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
     if ( WDA_GET_ROAMCANDIDATEIND(pRxPacketInfo))
     {
-        limLog( pMac, LOG2, FL("Notify SME with candidate ind"));
-        //send a session 0 for now - TBD
-        limSendSmeCandidateFoundInd(pMac, 0);
+        limLog(pMac, LOG2, FL("Notify SME with candidate ind"));
+        limSendSmeCandidateFoundInd(pMac, WDA_GET_SESSIONID(pRxPacketInfo));
         goto end;
     }
     if (WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo))
@@ -1515,14 +1517,14 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             tANI_U8             sessionId;
             if((psessionEntry = peFindSessionByStaId(pMac,pTdlsInd->staIdx,&sessionId))== NULL)
             {
-               limLog(pMac, LOG1, FL("session does not exist for given bssId\n"));
+               limLog(pMac, LOG1, FL("session does not exist for given bssId"));
                vos_mem_free(limMsg->bodyptr);
                limMsg->bodyptr = NULL;
                return;
             }
             if ((pStaDs = dphGetHashEntry(pMac, pTdlsInd->assocId, &psessionEntry->dph.dphHashTable)) == NULL)
             {
-               limLog(pMac, LOG1, FL("pStaDs Does not exist for given staId\n"));
+               limLog(pMac, LOG1, FL("pStaDs Does not exist for given staId"));
                vos_mem_free(limMsg->bodyptr);
                limMsg->bodyptr = NULL;
                return;
@@ -2107,10 +2109,11 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                                                      pTdlsLinkEstablishParams->staIdx,
                                                      &sessionId))== NULL)
             {
-                limLog(pMac, LOGE, FL("session %u  does not exist.\n"), sessionId);
-                /* Still send the eWNI_SME_TDLS_LINK_ESTABLISH_RSP message to SME
-                   with session id as zero and status as FAILURE so, that message
-                   queued in SME queue can be freed to prevent the SME cmd buffer leak */
+                limLog(pMac, LOGE, FL("session %u does not exist"), sessionId);
+                /* Still send the eWNI_SME_TDLS_LINK_ESTABLISH_RSP message to
+                 * SME with session id as zero and status as FAILURE so,
+                 * that message queued in SME queue can be freed to prevent
+                 * the SME cmd buffer leak */
                 limSendSmeTdlsLinkEstablishReqRsp(pMac,
                                                   0,
                                                   NULL,

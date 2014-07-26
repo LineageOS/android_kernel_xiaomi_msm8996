@@ -235,3 +235,60 @@ void vos_clear_concurrent_session_count(void)
        }
     }
 }
+
+/**---------------------------------------------------------------------------
+ *
+ *   \brief vos_is_multiple_active_sta_sessions()
+ *
+ *   This function checks for presence of multiple active sta connections
+ *   and it returns TRUE if the more than 1 active sta connection exists.
+ *
+ *   \param  - None
+ *
+ *   \return - TRUE or FALSE
+ *
+ * --------------------------------------------------------------------------*/
+v_BOOL_t vos_is_multiple_active_sta_sessions (void)
+{
+    hdd_context_t *pHddCtx;
+    v_U8_t         j = 0;
+
+    v_CONTEXT_t pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+    if (NULL != pVosContext) {
+        pHddCtx = vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+        if (NULL != pHddCtx) {
+            j = pHddCtx->no_of_active_sessions[VOS_STA_MODE];
+       }
+    }
+
+    return (j > 1);
+}
+
+/**---------------------------------------------------------------------------
+ *
+ *   \brief vos_is_sta_active_connection_exists()
+ *
+ *   This function checks for the presence of active sta connection
+ *   and it returns TRUE if exists.
+ *
+ *   \param  - None
+ *
+ *   \return - VOS_TRUE or VOS_FALSE
+ *
+ * --------------------------------------------------------------------------*/
+v_BOOL_t vos_is_sta_active_connection_exists (void)
+{
+    hdd_context_t *pHddCtx;
+    v_U8_t         j = 0;
+
+    v_CONTEXT_t pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+    if (NULL != pVosContext) {
+        pHddCtx = vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+        if (NULL != pHddCtx) {
+            j = pHddCtx->no_of_active_sessions[VOS_STA_MODE];
+       }
+    }
+
+    return (j ? VOS_TRUE : VOS_FALSE);
+}
+
