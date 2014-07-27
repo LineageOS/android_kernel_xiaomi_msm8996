@@ -155,6 +155,11 @@ struct hdd_ipa_rx_hdr {
 	struct ethhdr eth;
 } __packed;
 
+struct hdd_ipa_pm_tx_cb {
+	struct hdd_ipa_iface_context *iface_context;
+	struct ipa_rx_data *ipa_tx_desc;
+};
+
 #ifdef IPA_UC_OFFLOAD
 struct hdd_ipa_uc_rx_hdr {
 	struct ethhdr eth;
@@ -269,6 +274,9 @@ struct hdd_ipa_stats {
 	uint64_t max_pend_q_cnt;
 
 	uint64_t num_tx_comp_cnt;
+	uint64_t num_tx_queued;
+	uint64_t num_tx_dequeued;
+	uint64_t num_max_pm_queue;
 
 	uint64_t num_freeq_empty;
 	uint64_t num_pri_freeq_empty;
@@ -286,9 +294,17 @@ struct hdd_ipa_priv {
 	adf_os_spinlock_t rm_lock;
 	struct work_struct rm_work;
 	vos_wake_lock_t wake_lock;
+	struct delayed_work wake_lock_work;
+	bool wake_lock_released;
+
 	enum ipa_client_type prod_client;
 
 	atomic_t tx_ref_cnt;
+	adf_nbuf_queue_t pm_queue_head;
+	struct work_struct pm_work;
+	adf_os_spinlock_t pm_lock;
+	bool suspended;
+
 	uint32_t pending_hw_desc_cnt;
 	uint32_t hw_desc_cnt;
 	spinlock_t q_lock;
@@ -883,11 +899,32 @@ static int hdd_ipa_rm_request(struct hdd_ipa_priv *hdd_ipa)
 		hdd_ipa->rm_state = HDD_IPA_RM_GRANTED;
 		hdd_ipa->stats.num_rm_grant_imm++;
 	}
+
+	cancel_delayed_work(&hdd_ipa->wake_lock_work);
+	if (hdd_ipa->wake_lock_released) {
+		vos_wake_lock_acquire(&hdd_ipa->wake_lock);
+		hdd_ipa->wake_lock_released = false;
+	}
 	adf_os_spin_unlock_bh(&hdd_ipa->rm_lock);
 
-	vos_wake_lock_acquire(&hdd_ipa->wake_lock);
-
 	return ret;
+}
+
+static void hdd_ipa_wake_lock_timer_func(struct work_struct *work)
+{
+	struct hdd_ipa_priv *hdd_ipa = container_of(to_delayed_work(work),
+			struct hdd_ipa_priv, wake_lock_work);
+
+	adf_os_spin_lock_bh(&hdd_ipa->rm_lock);
+
+	if (hdd_ipa->rm_state != HDD_IPA_RM_RELEASED)
+		goto end;
+
+	hdd_ipa->wake_lock_released = true;
+	vos_wake_lock_release(&hdd_ipa->wake_lock);
+
+end:
+	adf_os_spin_unlock_bh(&hdd_ipa->rm_lock);
 }
 
 static int hdd_ipa_rm_try_release(struct hdd_ipa_priv *hdd_ipa)
@@ -906,6 +943,15 @@ static int hdd_ipa_rm_try_release(struct hdd_ipa_priv *hdd_ipa)
 		return -EAGAIN;
 	}
 	spin_unlock_bh(&hdd_ipa->q_lock);
+
+	adf_os_spin_lock_bh(&hdd_ipa->pm_lock);
+
+	if (!adf_nbuf_is_queue_empty(&hdd_ipa->pm_queue_head)) {
+		adf_os_spin_unlock_bh(&hdd_ipa->pm_lock);
+		return -EAGAIN;
+	}
+	adf_os_spin_unlock_bh(&hdd_ipa->pm_lock);
+
 
 	adf_os_spin_lock_bh(&hdd_ipa->rm_lock);
 	switch(hdd_ipa->rm_state) {
@@ -929,14 +975,22 @@ static int hdd_ipa_rm_try_release(struct hdd_ipa_priv *hdd_ipa)
 	ret = ipa_rm_inactivity_timer_release_resource(
 			IPA_RM_RESOURCE_WLAN_PROD);
 
+	adf_os_spin_lock_bh(&hdd_ipa->rm_lock);
 	if (unlikely(ret != 0)) {
-		adf_os_spin_lock_bh(&hdd_ipa->rm_lock);
 		hdd_ipa->rm_state = HDD_IPA_RM_GRANTED;
-		adf_os_spin_unlock_bh(&hdd_ipa->rm_lock);
 		WARN_ON(1);
 	}
 
-	vos_wake_lock_release(&hdd_ipa->wake_lock);
+	/*
+	 * If wake_lock is released immediately, kernel would try to suspend
+	 * immediately as well, Just avoid ping-pong between suspend-resume
+	 * while there is healthy amount of data transfer going on by
+	 * releasing the wake_lock after some delay.
+	 */
+	schedule_delayed_work(&hdd_ipa->wake_lock_work,
+			msecs_to_jiffies(HDD_IPA_RX_INACTIVITY_MSEC_DELAY));
+
+	adf_os_spin_unlock_bh(&hdd_ipa->rm_lock);
 
 	return ret;
 }
@@ -1149,8 +1203,11 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 	}
 
 	vos_wake_lock_init(&hdd_ipa->wake_lock, "wlan_ipa");
+	INIT_DELAYED_WORK(&hdd_ipa->wake_lock_work,
+			hdd_ipa_wake_lock_timer_func);
 	adf_os_spinlock_init(&hdd_ipa->rm_lock);
 	hdd_ipa->rm_state = HDD_IPA_RM_RELEASED;
+	hdd_ipa->wake_lock_released = true;
 	atomic_set(&hdd_ipa->tx_ref_cnt, 0);
 
 	return ret;
@@ -1175,7 +1232,11 @@ static void hdd_ipa_destory_rm_resource(struct hdd_ipa_priv *hdd_ipa)
 	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
 		return;
 
+	cancel_delayed_work_sync(&hdd_ipa->wake_lock_work);
 	vos_wake_lock_destroy(&hdd_ipa->wake_lock);
+
+	cancel_work_sync(&hdd_ipa->rm_work);
+	adf_os_spinlock_destroy(&hdd_ipa->rm_lock);
 
 	ipa_rm_inactivity_timer_destroy(IPA_RM_RESOURCE_WLAN_PROD);
 
@@ -1578,6 +1639,100 @@ static void hdd_ipa_nbuf_cb(adf_nbuf_t skb)
 	hdd_ipa_rm_try_release(hdd_ipa);
 }
 
+static void hdd_ipa_send_pkt_to_tl(struct hdd_ipa_iface_context *iface_context,
+		struct ipa_rx_data *ipa_tx_desc)
+{
+	struct hdd_ipa_priv *hdd_ipa = iface_context->hdd_ipa;
+	v_U8_t interface_id;
+	hdd_adapter_t  *adapter = NULL;
+	adf_nbuf_t skb;
+
+	adf_os_spin_lock_bh(&iface_context->interface_lock);
+	adapter = iface_context->adapter;
+	if (!adapter) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_WARN, "Interface Down");
+		ipa_free_skb(ipa_tx_desc);
+		iface_context->stats.num_tx_drop++;
+		adf_os_spin_unlock_bh(&iface_context->interface_lock);
+		hdd_ipa_rm_try_release(hdd_ipa);
+		return;
+	}
+
+	/*
+	 * During CAC period, data packets shouldn't be sent over the air so
+	 * drop all the packets here
+	 */
+	if (WLAN_HDD_GET_AP_CTX_PTR(adapter)->dfs_cac_block_tx) {
+		ipa_free_skb(ipa_tx_desc);
+		adf_os_spin_unlock_bh(&iface_context->interface_lock);
+		iface_context->stats.num_tx_cac_drop++;
+		hdd_ipa_rm_try_release(hdd_ipa);
+		return;
+	}
+
+	interface_id = adapter->sessionId;
+	++adapter->stats.tx_packets;
+	adapter->stats.tx_bytes += ipa_tx_desc->skb->len;
+
+	adf_os_spin_unlock_bh(&iface_context->interface_lock);
+
+	skb = ipa_tx_desc->skb;
+
+	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
+	NBUF_OWNER_ID(skb) = IPA_NBUF_OWNER_ID;
+	NBUF_CALLBACK_FN(skb) = hdd_ipa_nbuf_cb;
+	NBUF_MAPPED_PADDR_LO(skb) = ipa_tx_desc->dma_addr;
+
+	NBUF_OWNER_PRIV_DATA(skb) = (unsigned long)ipa_tx_desc;
+
+	skb = WLANTL_SendIPA_DataFrame(hdd_ipa->hdd_ctx->pvosContext,
+			iface_context->tl_context, ipa_tx_desc->skb,
+			interface_id);
+	if (skb) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "TLSHIM tx fail");
+		ipa_free_skb(ipa_tx_desc);
+		iface_context->stats.num_tx_err++;
+		hdd_ipa_rm_try_release(hdd_ipa);
+		return;
+	}
+
+	atomic_inc(&hdd_ipa->tx_ref_cnt);
+
+	iface_context->stats.num_tx++;
+
+}
+
+static void hdd_ipa_pm_send_pkt_to_tl(struct work_struct *work)
+{
+	struct hdd_ipa_priv *hdd_ipa = container_of(work,
+			struct hdd_ipa_priv, pm_work);
+	struct hdd_ipa_pm_tx_cb *pm_tx_cb = NULL;
+	adf_nbuf_t skb;
+	uint32_t dequeued = 0;
+
+	adf_os_spin_lock_bh(&hdd_ipa->pm_lock);
+
+	while (((skb = adf_nbuf_queue_remove(&hdd_ipa->pm_queue_head)) !=
+				NULL)) {
+		adf_os_spin_unlock_bh(&hdd_ipa->pm_lock);
+
+		pm_tx_cb = (struct hdd_ipa_pm_tx_cb *)skb->cb;
+
+		dequeued++;
+
+		hdd_ipa_send_pkt_to_tl(pm_tx_cb->iface_context,
+				pm_tx_cb->ipa_tx_desc);
+
+		adf_os_spin_lock_bh(&hdd_ipa->pm_lock);
+	}
+
+	adf_os_spin_unlock_bh(&hdd_ipa->pm_lock);
+
+	hdd_ipa->stats.num_tx_dequeued += dequeued;
+	if (dequeued > hdd_ipa->stats.num_max_pm_queue)
+		hdd_ipa->stats.num_max_pm_queue = dequeued;
+}
+
 static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 		unsigned long data)
 {
@@ -1585,8 +1740,7 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 	struct ipa_rx_data *ipa_tx_desc;
 	struct hdd_ipa_iface_context *iface_context;
 	adf_nbuf_t skb;
-	v_U8_t interface_id;
-	hdd_adapter_t  *adapter = NULL;
+	struct hdd_ipa_pm_tx_cb *pm_tx_cb = NULL;
 
 	if (evt != IPA_RECEIVE) {
 		skb = (adf_nbuf_t) data;
@@ -1597,7 +1751,6 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 
 	iface_context = (struct hdd_ipa_iface_context *) priv;
 	ipa_tx_desc = (struct ipa_rx_data *)data;
-	skb = ipa_tx_desc->skb;
 
 	hdd_ipa = iface_context->hdd_ipa;
 
@@ -1611,53 +1764,9 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 		return;
 	}
 
-	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
-	NBUF_OWNER_ID(skb) = IPA_NBUF_OWNER_ID;
-	NBUF_CALLBACK_FN(skb) = hdd_ipa_nbuf_cb;
-	NBUF_MAPPED_PADDR_LO(skb) = ipa_tx_desc->dma_addr;
-
-	NBUF_OWNER_PRIV_DATA(skb) = data;
+	skb = ipa_tx_desc->skb;
 
 	HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_DEBUG, "i2w", skb->data, 8);
-
-	adf_os_spin_lock_bh(&iface_context->interface_lock);
-	adapter = iface_context->adapter;
-	if (!adapter) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_WARN, "Interface Down");
-		ipa_free_skb(ipa_tx_desc);
-		iface_context->stats.num_tx_drop++;
-		adf_os_spin_unlock_bh(&iface_context->interface_lock);
-		return;
-	}
-
-	/*
-	 * During CAC period, data packets shouldn't be sent over the air so
-	 * drop all the packets here
-	 */
-	if (WLAN_HDD_GET_AP_CTX_PTR(adapter)->dfs_cac_block_tx) {
-		ipa_free_skb(ipa_tx_desc);
-		adf_os_spin_unlock_bh(&iface_context->interface_lock);
-		iface_context->stats.num_tx_cac_drop++;
-		return;
-	}
-
-	interface_id = adapter->sessionId;
-	++adapter->stats.tx_packets;
-	adapter->stats.tx_bytes += ipa_tx_desc->skb->len;
-
-	adf_os_spin_unlock_bh(&iface_context->interface_lock);
-
-	skb = WLANTL_SendIPA_DataFrame(hdd_ipa->hdd_ctx->pvosContext,
-			iface_context->tl_context, ipa_tx_desc->skb,
-			interface_id);
-	if (skb) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "TLSHIM tx fail");
-		ipa_free_skb(ipa_tx_desc);
-		iface_context->stats.num_tx_err++;
-		return;
-	}
-
-	atomic_inc(&hdd_ipa->tx_ref_cnt);
 
 	/*
 	 * If PROD resource is not requested here then there may be cases where
@@ -1668,7 +1777,82 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 	 */
 	hdd_ipa_rm_request(hdd_ipa);
 
-	iface_context->stats.num_tx++;
+
+	adf_os_spin_lock_bh(&hdd_ipa->pm_lock);
+	/*
+	 * If host is still suspended then queue the packets and these will be
+	 * drained later when resume completes. When packet is arrived here and
+	 * host is suspended, this means that there is already resume is in
+	 * progress.
+	 */
+	if (hdd_ipa->suspended) {
+		adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
+		pm_tx_cb = (struct hdd_ipa_pm_tx_cb *)skb->cb;
+		pm_tx_cb->iface_context = iface_context;
+		pm_tx_cb->ipa_tx_desc = ipa_tx_desc;
+		adf_nbuf_queue_add(&hdd_ipa->pm_queue_head, skb);
+		hdd_ipa->stats.num_tx_queued++;
+
+		adf_os_spin_unlock_bh(&hdd_ipa->pm_lock);
+		return;
+	}
+
+	adf_os_spin_unlock_bh(&hdd_ipa->pm_lock);
+
+	/*
+	 * If we are here means, host is not suspended, wait for the work queue
+	 * to finish.
+	 */
+	flush_work(&hdd_ipa->pm_work);
+
+	return hdd_ipa_send_pkt_to_tl(iface_context, ipa_tx_desc);
+}
+
+int hdd_ipa_suspend(hdd_context_t *hdd_ctx)
+{
+	struct hdd_ipa_priv *hdd_ipa = hdd_ctx->hdd_ipa;
+
+	if (!hdd_ipa_is_enabled(hdd_ctx))
+		return 0;
+
+	/*
+	 * Check if IPA is ready for suspend, If we are here means, there is
+	 * high chance that suspend would go through but just to avoid any race
+	 * condition after suspend started, these checks are conducted before
+	 * allowing to suspend.
+	 */
+	if (atomic_read(&hdd_ipa->tx_ref_cnt))
+		return -EAGAIN;
+
+	adf_os_spin_lock_bh(&hdd_ipa->rm_lock);
+
+	if (hdd_ipa->rm_state != HDD_IPA_RM_RELEASED) {
+		adf_os_spin_unlock_bh(&hdd_ipa->rm_lock);
+		return -EAGAIN;
+	}
+	adf_os_spin_unlock_bh(&hdd_ipa->rm_lock);
+
+	adf_os_spin_lock_bh(&hdd_ipa->pm_lock);
+	hdd_ipa->suspended = true;
+	adf_os_spin_unlock_bh(&hdd_ipa->pm_lock);
+
+	return 0;
+}
+
+int hdd_ipa_resume(hdd_context_t *hdd_ctx)
+{
+	struct hdd_ipa_priv *hdd_ipa = hdd_ctx->hdd_ipa;
+
+	if (!hdd_ipa_is_enabled(hdd_ctx))
+		return 0;
+
+	schedule_work(&hdd_ipa->pm_work);
+
+	adf_os_spin_lock_bh(&hdd_ipa->pm_lock);
+	hdd_ipa->suspended = false;
+	adf_os_spin_unlock_bh(&hdd_ipa->pm_lock);
+
+	return 0;
 }
 
 static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
@@ -2302,6 +2486,15 @@ static void hdd_ipa_rx_pipe_desc_free(void)
 	max_desc_cnt = hdd_ipa->hw_desc_cnt * HDD_IPA_DESC_BUFFER_RATIO;
 
 	spin_lock_bh(&hdd_ipa->q_lock);
+
+	list_for_each_entry_safe(desc, tmp, &hdd_ipa->pend_desc_head, link) {
+		list_del(&desc->link);
+		adf_nbuf_free(desc->priv);
+		spin_unlock_bh(&hdd_ipa->q_lock);
+		hdd_ipa_free_data_desc(hdd_ipa, desc);
+		spin_lock_bh(&hdd_ipa->q_lock);
+	}
+
 	list_for_each_entry_safe(desc, tmp, &hdd_ipa->free_desc_head, link) {
 		list_del(&desc->link);
 		spin_unlock_bh(&hdd_ipa->q_lock);
@@ -2416,6 +2609,9 @@ static ssize_t hdd_ipa_debugfs_read_ipa_stats(struct file *file,
 	len += scnprintf(buf + len, buf_len - len, "%30s: %s\n", "rm_state",
 			hdd_ipa_rm_state_to_str(hdd_ipa->rm_state));
 
+	len += scnprintf(buf + len, buf_len - len, "%30s: %s\n", "wake_lock",
+			hdd_ipa->wake_lock_released ? "RELEASED" : "ACQUIRED");
+
 	len += scnprintf(buf + len, buf_len - len, "%30s: %d\n", "tx_ref_cnt",
 			atomic_read(&hdd_ipa->tx_ref_cnt));
 
@@ -2460,6 +2656,12 @@ skip:
 
 	len += HDD_IPA_STATS(buf + len, buf_len - len, hdd_ipa,
 			num_tx_comp_cnt);
+	len += HDD_IPA_STATS(buf + len, buf_len - len, hdd_ipa,
+			num_tx_queued);
+	len += HDD_IPA_STATS(buf + len, buf_len - len, hdd_ipa,
+			num_tx_dequeued);
+	len += HDD_IPA_STATS(buf + len, buf_len - len, hdd_ipa,
+			num_max_pm_queue);
 
 	len += HDD_IPA_STATS(buf + len, buf_len - len, hdd_ipa,
 			num_freeq_empty);
@@ -2610,6 +2812,10 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 		adf_os_spinlock_init(&iface_context->interface_lock);
 	}
 
+	INIT_WORK(&hdd_ipa->pm_work, hdd_ipa_pm_send_pkt_to_tl);
+	adf_os_spinlock_init(&hdd_ipa->pm_lock);
+	adf_nbuf_queue_init(&hdd_ipa->pm_queue_head);
+
 	ret = hdd_ipa_setup_rm(hdd_ipa);
 	if (ret)
 		goto fail_setup_rm;
@@ -2659,9 +2865,28 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 	struct hdd_ipa_priv *hdd_ipa = hdd_ctx->hdd_ipa;
 	int i;
 	struct hdd_ipa_iface_context *iface_context = NULL;
+	adf_nbuf_t skb;
+	struct hdd_ipa_pm_tx_cb *pm_tx_cb = NULL;
 
 	if (!hdd_ipa_is_enabled(hdd_ctx))
 		return VOS_STATUS_SUCCESS;
+
+	cancel_work_sync(&hdd_ipa->pm_work);
+
+	adf_os_spin_lock_bh(&hdd_ipa->pm_lock);
+
+	while (((skb = adf_nbuf_queue_remove(&hdd_ipa->pm_queue_head)) !=
+				NULL)) {
+		adf_os_spin_unlock_bh(&hdd_ipa->pm_lock);
+
+		pm_tx_cb = (struct hdd_ipa_pm_tx_cb *)skb->cb;
+		ipa_free_skb(pm_tx_cb->ipa_tx_desc);
+
+		adf_os_spin_lock_bh(&hdd_ipa->pm_lock);
+	}
+	adf_os_spin_unlock_bh(&hdd_ipa->pm_lock);
+
+	adf_os_spinlock_destroy(&hdd_ipa->pm_lock);
 
 	/* destory the interface lock */
 	for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
