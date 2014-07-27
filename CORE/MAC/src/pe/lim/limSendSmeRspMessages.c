@@ -2962,21 +2962,25 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
    tANI_U8 sessionId;
    tANI_U16 aid = 0 ;
 
-   if(!csa_params)
-   {
+   if (!csa_params) {
       limLog(pMac, LOGE, FL("limMsgQ body ptr is NULL"));
       return;
    }
 
    psessionEntry = peFindSessionByBssid(pMac, csa_params->bssId, &sessionId);
-   if(!psessionEntry)
-   {
-      limLog(pMac, LOGP, FL("Session does not exist for given sessionID"));
+   if (!psessionEntry) {
+      limLog(pMac, LOGE, FL("Session does not exist for given sessionID"));
       goto err;
    }
 
    pStaDs = dphLookupHashEntry(pMac, psessionEntry->bssId, &aid,
                                       &psessionEntry->dph.dphHashTable);
+
+   if (!pStaDs) {
+      limLog(pMac, LOGE, FL("pStaDs does not exist for given sessionID"));
+      goto err;
+   }
+
 
    if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
    {
