@@ -11421,7 +11421,7 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
                 eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH;
           }
           else if ( channel == 48 || channel == 64 || channel == 112 ||
-                channel == 128 || channel == 161 )
+                channel == 128 || channel == 144 || channel == 161 )
           {
              smeConfig.csrConfig.channelBondingMode5GHz =
                 eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH;
