@@ -958,7 +958,9 @@ extern "C" {
 #define TXBFEE_DBGID_PACKET_IS_STEERED         16
 #define TXBFEE_UPLOADH_EVENT_ALLOC_MEM_FAIL    17
 #define TXBFEE_DBGID_SW_WAR_AID_ZERO           18
-#define TXBFEE_DBGID_END                       19
+#define TXBFEE_DBGID_BRPOLL_RECEIVED           19
+#define TXBFEE_DBGID_GID_RECEIVED              20
+#define TXBFEE_DBGID_END                       21
 
 /* SMPS module DBGIDs */
 #define STA_SMPS_DBGID_DEFINITION_START                 0
