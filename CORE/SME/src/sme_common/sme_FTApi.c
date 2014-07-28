@@ -46,39 +46,34 @@ void sme_FTOpen(tHalHandle hHal, tANI_U32 sessionId)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
    eHalStatus     status = eHAL_STATUS_SUCCESS;
-   tCsrRoamSession *pSession = NULL;
+   tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
 
-   if (CSR_IS_SESSION_VALID(pMac, sessionId))
-   {
-      /* Clear existing context data if any */
-      pSession = CSR_GET_SESSION( pMac, sessionId );
-      if (NULL != pSession) {
-         /* Clean up the context */
-         vos_mem_set(&pSession->ftSmeContext, sizeof(tftSMEContext), 0);
+   if (NULL != pSession) {
+      /* Clean up the context */
+      vos_mem_set(&pSession->ftSmeContext, sizeof(tftSMEContext), 0);
 
-         pSession->ftSmeContext.pUsrCtx = vos_mem_malloc(
-                                            sizeof(tFTRoamCallbackUsrCtx));
+      pSession->ftSmeContext.pUsrCtx = vos_mem_malloc(
+                                         sizeof(tFTRoamCallbackUsrCtx));
 
-         if (NULL == pSession->ftSmeContext.pUsrCtx) {
-             smsLog(pMac, LOGE, FL("Memory allocation failure"));
-             return;
-         }
-         pSession->ftSmeContext.pUsrCtx->pMac = pMac;
-         pSession->ftSmeContext.pUsrCtx->sessionId = sessionId;
+      if (NULL == pSession->ftSmeContext.pUsrCtx) {
+          smsLog(pMac, LOGE, FL("Memory allocation failure"));
+          return;
+      }
+      pSession->ftSmeContext.pUsrCtx->pMac = pMac;
+      pSession->ftSmeContext.pUsrCtx->sessionId = sessionId;
 
-         status =
-            vos_timer_init(&pSession->ftSmeContext.preAuthReassocIntvlTimer,
-            VOS_TIMER_TYPE_SW,
-            sme_PreauthReassocIntvlTimerCallback,
-            (void *)pSession->ftSmeContext.pUsrCtx);
+      status =
+         vos_timer_init(&pSession->ftSmeContext.preAuthReassocIntvlTimer,
+         VOS_TIMER_TYPE_SW,
+         sme_PreauthReassocIntvlTimerCallback,
+         (void *)pSession->ftSmeContext.pUsrCtx);
 
-         if (eHAL_STATUS_SUCCESS != status) {
-            smsLog(pMac, LOGE,
-                  FL("Preauth Reassoc interval Timer allocation failed"));
-            vos_mem_free(pSession->ftSmeContext.pUsrCtx);
-            pSession->ftSmeContext.pUsrCtx = NULL;
-            return;
-         }
+      if (eHAL_STATUS_SUCCESS != status) {
+         smsLog(pMac, LOGE,
+               FL("Preauth Reassoc interval Timer allocation failed"));
+         vos_mem_free(pSession->ftSmeContext.pUsrCtx);
+         pSession->ftSmeContext.pUsrCtx = NULL;
+         return;
       }
    }
 }
@@ -356,12 +351,11 @@ eHalStatus sme_FTSendUpdateKeyInd(tHalHandle hHal, tANI_U32 sessionId,
 
 v_BOOL_t sme_GetFTPTKState(tHalHandle hHal, tANI_U32 sessionId)
 {
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-   tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+   tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+   tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
 
-   if (!pSession)
-   {
-      smsLog( pMac, LOGE, FL("pSession is NULL"));
+   if (!pSession) {
+      smsLog(pMac, LOGE, FL("pSession is NULL"));
       return VOS_FALSE;
    }
    return pSession->ftSmeContext.setFTPTKState;
@@ -369,8 +363,13 @@ v_BOOL_t sme_GetFTPTKState(tHalHandle hHal, tANI_U32 sessionId)
 
 void sme_SetFTPTKState(tHalHandle hHal, tANI_U32 sessionId, v_BOOL_t state)
 {
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-   tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+   tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+   tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
+
+   if (!pSession) {
+      smsLog(pMac, LOGE, FL("pSession is NULL"));
+      return;
+   }
    pSession->ftSmeContext.setFTPTKState = state;
 }
 
@@ -571,23 +570,19 @@ void sme_PreauthReassocIntvlTimerCallback(void *context)
   ------------------------------------------------------------------------*/
 void sme_FTReset(tHalHandle hHal, tANI_U32 sessionId)
 {
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
    tCsrRoamSession *pSession = NULL;
 
-   if (pMac == NULL)
-   {
+   if (pMac == NULL) {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("pMac is NULL"));
       return;
    }
 
-   pSession = CSR_GET_SESSION( pMac, sessionId );
+   pSession = CSR_GET_SESSION(pMac, sessionId);
    if (NULL != pSession) {
-
-      if (pSession->ftSmeContext.auth_ft_ies != NULL)
-      {
-
+      if (pSession->ftSmeContext.auth_ft_ies != NULL) {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-          smsLog( pMac, LOG1, FL(" Freeing FT Auth IE %p and setting to NULL"),
+          smsLog(pMac, LOG1, FL("Freeing FT Auth IE %p and setting to NULL"),
                 pSession->ftSmeContext.auth_ft_ies);
 #endif
          vos_mem_free(pSession->ftSmeContext.auth_ft_ies);
@@ -595,11 +590,10 @@ void sme_FTReset(tHalHandle hHal, tANI_U32 sessionId)
       }
       pSession->ftSmeContext.auth_ft_ies_length = 0;
 
-      if (pSession->ftSmeContext.reassoc_ft_ies != NULL)
-      {
+      if (pSession->ftSmeContext.reassoc_ft_ies != NULL) {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
           smsLog(pMac, LOG1,
-                 FL(" Freeing FT Reassoc  IE %p and setting to NULL"),
+                 FL("Freeing FT Reassoc IE %p and setting to NULL"),
                  pSession->ftSmeContext.reassoc_ft_ies);
 #endif
          vos_mem_free(pSession->ftSmeContext.reassoc_ft_ies);
@@ -607,23 +601,21 @@ void sme_FTReset(tHalHandle hHal, tANI_U32 sessionId)
       }
       pSession->ftSmeContext.reassoc_ft_ies_length = 0;
 
-      if (pSession->ftSmeContext.psavedFTPreAuthRsp != NULL)
-      {
+      if (pSession->ftSmeContext.psavedFTPreAuthRsp != NULL) {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
           smsLog( pMac, LOG1, FL("Freeing FtPreAuthRsp %p and setting to NULL"),
                 pSession->ftSmeContext.psavedFTPreAuthRsp);
 #endif
-         vos_mem_free(pSession->ftSmeContext.psavedFTPreAuthRsp);
+          vos_mem_free(pSession->ftSmeContext.psavedFTPreAuthRsp);
           vos_mem_set(pSession->ftSmeContext.psavedFTPreAuthRsp,
                         sizeof(tSirFTPreAuthRsp), 0);
       }
-       pSession->ftSmeContext.setFTPreAuthState = VOS_FALSE;
-       pSession->ftSmeContext.setFTPTKState = VOS_FALSE;
+      pSession->ftSmeContext.setFTPreAuthState = VOS_FALSE;
+      pSession->ftSmeContext.setFTPTKState = VOS_FALSE;
 
-       vos_mem_zero(pSession->ftSmeContext.preAuthbssId, ANI_MAC_ADDR_SIZE);
-      }
-
+      vos_mem_zero(pSession->ftSmeContext.preAuthbssId, ANI_MAC_ADDR_SIZE);
       pSession->ftSmeContext.FTState = eFT_START_READY;
+   }
 }
 
 /* End of File */
