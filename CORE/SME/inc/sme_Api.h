@@ -116,9 +116,6 @@ typedef struct _smeConfigParams
 #if defined FEATURE_WLAN_ESE
     tANI_U8   isEseIniFeatureEnabled;
 #endif
-#if defined WLAN_FEATURE_P2P_INTERNAL
-   tP2PConfigParam  p2pConfig;
-#endif
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
     tANI_U8       isFastTransitionEnabled;
     tANI_U8       RoamRssiDiff;
@@ -2445,23 +2442,6 @@ tANI_U16 sme_ChnToFreq(tANI_U8 chanNum);
 
 tANI_BOOLEAN sme_IsChannelValid(tHalHandle hHal, tANI_U8 channel);
 
-#if defined WLAN_FEATURE_P2P_INTERNAL
-
-eHalStatus sme_p2pResetSession(tHalHandle hHal, tANI_U8 HDDSessionId);
-
-/* ---------------------------------------------------------------------------
-    \fn sme_p2pFlushDeviceList
-    \brief  Remove cached P2P result from scan results
-    \param  hHal - The handle returned by macOpen.
-    \param  HDDSessionId - HDD's sessionId. Currently unused.
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_p2pFlushDeviceList(tHalHandle hHal, tANI_U8 HDDSessionId);
-
-eHalStatus sme_p2pGetResultFilter(tHalHandle hHal, tANI_U8 HDDSessionId,
-                              tCsrScanResultFilter *pFilter);
-
-#endif //#if defined WLAN_FEATURE_P2P_INTERNAL
 /* ---------------------------------------------------------------------------
     \fn sme_SetMaxTxPower
     \brief  Used to set the Maximum Transmit Power dynamically. Note: this

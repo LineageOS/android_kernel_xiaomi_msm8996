@@ -1602,14 +1602,6 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
       smsLog( pMac, LOGE, "csrChangeDefaultConfigParam failed with status=%d",
               status );
    }
-#if defined WLAN_FEATURE_P2P_INTERNAL
-   status = p2pChangeDefaultConfigParam(pMac, &pSmeConfigParams->p2pConfig);
-
-   if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "p2pChangeDefaultConfigParam failed with status=%d",
-              status );
-   }
-#endif
 #if defined WLAN_FEATURE_VOWIFI
    status = rrmChangeDefaultConfigParam(hHal, &pSmeConfigParams->rrmConfig);
 
@@ -4157,15 +4149,6 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
          sme_ReleaseGlobalLock( &pMac->sme );
          return status;
       }
-#if defined WLAN_FEATURE_P2P_INTERNAL
-      status = p2pGetConfigParam(pMac, &pParam->p2pConfig);
-      if (status != eHAL_STATUS_SUCCESS)
-      {
-         smsLog( pMac, LOGE, "%s p2pGetConfigParam failed", __func__);
-         sme_ReleaseGlobalLock( &pMac->sme );
-         return status;
-      }
-#endif
       pParam->fScanOffload = pMac->fScanOffload;
       pParam->fP2pListenOffload = pMac->fP2pListenOffload;
       pParam->max_intf_count = pMac->sme.max_intf_count;
@@ -7280,9 +7263,6 @@ eHalStatus sme_RemainOnChannel(tHalHandle hHal, tANI_U8 sessionId,
   {
     status = p2pRemainOnChannel (hHal, sessionId, channel, duration, callback, pContext,
                                  isP2PProbeReqAllowed
-#ifdef WLAN_FEATURE_P2P_INTERNAL
-                                , eP2PRemainOnChnReasonUnknown
-#endif
                                 );
     sme_ReleaseGlobalLock( &pMac->sme );
   }

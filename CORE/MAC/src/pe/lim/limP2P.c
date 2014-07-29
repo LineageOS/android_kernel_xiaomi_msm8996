@@ -185,9 +185,6 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
     tANI_U8 i;
     tpPESession psessionEntry;
 #endif
-#ifdef WLAN_FEATURE_P2P_INTERNAL
-    tpPESession pP2pSession;
-#endif
 
     tSirRemainOnChnReq *MsgBuff = (tSirRemainOnChnReq *)pMsg;
     pMac->lim.gpLimRemainOnChanReq = MsgBuff;
@@ -244,14 +241,6 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                     goto error;
                 }
 
-#ifdef WLAN_FEATURE_P2P_INTERNAL
-                //Session is needed to send probe rsp
-                if(eSIR_SUCCESS != limCreateSessionForRemainOnChn(pMac, &pP2pSession))
-                {
-                    limLog( pMac, LOGE, "Unable to create session");
-                    goto error;
-                }
-#endif
 
                 if ((limSetLinkState(pMac, MsgBuff->isProbeRequestAllowed?
                                      eSIR_LINK_LISTEN_STATE:eSIR_LINK_SEND_ACTION_STATE,
