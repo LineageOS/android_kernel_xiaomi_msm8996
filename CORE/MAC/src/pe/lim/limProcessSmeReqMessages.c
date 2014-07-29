@@ -6400,8 +6400,7 @@ limProcessModifyAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 {
     tpSirModifyIEsInd pModifyAddIEs = (tpSirModifyIEsInd)pMsg;
     tANI_U8     sessionId;
-    tANI_U16    bufferLen = 0;
-    tANI_U8     *pBuffer = NULL;
+    tANI_BOOLEAN      ret = FALSE;
 
     /* Incoming message has smeSession, use BSSID to find PE session*/
     tpPESession  psessionEntry = peFindSessionByBssid(pMac,
@@ -6420,41 +6419,27 @@ limProcessModifyAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg)
             case eUPDATE_IE_PROBE_RESP:
             {
                 /* Probe resp */
-                if ((bufferLen = psessionEntry->addIeParams.probeRespDataLen)
-                    == 0)
-                {
-                    limLog(pMac, LOGE, FL("probe resp add ie not present %d"),
-                        psessionEntry->addIeParams.probeRespDataLen);
-                    break;
-                }
-                /* vendor IE and  oui 0x00, 0x16, 0x32 */
-                /* search through the buffer and modify the IE */
-                pBuffer = psessionEntry->addIeParams.probeRespData_buff;
                 break;
             }
             case eUPDATE_IE_ASSOC_RESP:
                 /* assoc resp IE */
                 if (psessionEntry->addIeParams.assocRespDataLen == 0)
                 {
-                    limLog(pMac, LOGE, FL("assoc resp add ie not present %d"),
-                        psessionEntry->addIeParams.assocRespDataLen);
+                    VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+                              FL("assoc resp add ie not present %d"),
+                              psessionEntry->addIeParams.assocRespDataLen);
                 }
                 /* search through the buffer and modify the IE */
                 break;
             case eUPDATE_IE_PROBE_BCN:
+            {
                 /*probe beacon IE*/
-                if ((bufferLen = psessionEntry->addIeParams.probeRespBCNDataLen)
-                    == 0)
+                if (ret == TRUE && pModifyAddIEs->modifyIE.notify)
                 {
-                    limLog(pMac, LOGE,
-                        FL("probe resp Bcn add ie not present %d"),
-                        psessionEntry->addIeParams.probeRespBCNDataLen);
-                    break;
+                    limHandleParamUpdate(pMac, pModifyAddIEs->updateType);
                 }
-                /* vendor IE and  oui 0x00, 0x16, 0x32 */
-                /* search through the buffer and modify the IE */
-                pBuffer = psessionEntry->addIeParams.probeRespBCNData_buff;
                 break;
+            }
             default:
                 limLog(pMac, LOGE, FL("unhandled buffer type %d."),
                     pModifyAddIEs->updateType);
@@ -6471,7 +6456,6 @@ limProcessModifyAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                             pModifyAddIEs->modifyIE.ieIDLen,
                             pModifyAddIEs->updateType);
         }
-
     }
     else
     {
