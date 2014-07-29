@@ -60,10 +60,8 @@
 #include "limTrace.h"
 #include "limUtils.h"
 #include "VossWrapper.h"
-#ifdef INTEGRATION_READY
 #include "vos_status.h" //VOS_STATUS
 #include "vos_mq.h"     //vos_mq_post_message()
-#endif
 
 #include "wlan_qct_wda.h"
 

@@ -5521,6 +5521,7 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     tSirUpdateIE    updateIE;
     beacon_data_t  *old;
     int             ret;
+    unsigned long   rc;
 
     ENTER();
 
@@ -5554,18 +5555,16 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     hddLog(VOS_TRACE_LEVEL_INFO, FL("device_mode = %d"), pAdapter->device_mode);
 
     if ((pScanInfo != NULL) && pScanInfo->mScanPending && staAdapter) {
-        long ret;
 
         INIT_COMPLETION(pScanInfo->abortscan_event_var);
         hdd_abort_mac_scan(staAdapter->pHddCtx, pAdapter->sessionId,
                            eCSR_SCAN_ABORT_DEFAULT);
-        ret = wait_for_completion_interruptible_timeout(
+        rc = wait_for_completion_timeout(
                            &pScanInfo->abortscan_event_var,
                            msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
-        if (ret <= 0) {
+        if (!rc) {
             hddLog(VOS_TRACE_LEVEL_ERROR,
-                   FL("Timeout occurred while waiting for abortscan %ld"),
-                   ret);
+                   FL("Timeout occurred while waiting for abortscan"));
             VOS_ASSERT(pScanInfo->mScanPending);
         }
     }
@@ -5919,7 +5918,7 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
     hdd_adapter_t *pDataAdapter = NULL;
     hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
 #endif
-    long ret;
+    unsigned long rc;
     VOS_STATUS vstatus;
     eHalStatus hstatus;
     int status;
@@ -6160,14 +6159,12 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                     if (eHAL_STATUS_SUCCESS == hstatus)
                     {
                         /* Wait for completion */
-                        ret = wait_for_completion_interruptible_timeout(
+                        rc = wait_for_completion_timeout(
                                        &pAdapter->change_country_code,
                                        msecs_to_jiffies(WLAN_WAIT_TIME_COUNTRY));
-                        if (ret <= 0)
-                        {
+                        if (!rc) {
                             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                                      FL("SME Timed out while setting country code %ld"),
-                                         ret);
+                               FL("SME Timed out while setting country code"));
                         }
                     }
                     else
@@ -6311,13 +6308,12 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                                 pAdapter->sessionId,
                                 eCSR_DISCONNECT_REASON_UNSPECIFIED ) )
                 {
-                    ret = wait_for_completion_interruptible_timeout(
+                    rc = wait_for_completion_timeout(
                                   &pAdapter->disconnect_comp_var,
                                   msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-                    if (ret <= 0)
-                    {
+                    if (!rc) {
                         hddLog(VOS_TRACE_LEVEL_ERROR,
-                               FL("wait on disconnect_comp_var failed %ld"), ret);
+                               FL("wait on disconnect_comp_var failed"));
                      }
 
                 }
@@ -6397,6 +6393,7 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
     VOS_STATUS status;
     hddTdlsPeer_t *pTdlsPeer;
     tANI_U16 numCurrTdlsPeers;
+    unsigned long rc;
     long ret;
 
     ENTER();
@@ -6541,14 +6538,13 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
                                        pAdapter->sessionId, mac, StaParams);
     }
 
-     ret = wait_for_completion_interruptible_timeout(&pAdapter->tdls_add_station_comp,
+     rc = wait_for_completion_timeout(&pAdapter->tdls_add_station_comp,
            msecs_to_jiffies(WAIT_TIME_TDLS_ADD_STA));
 
-    if (ret <= 0)
-    {
+    if (!rc) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: timeout waiting for tdls add station indication %ld",
-                  __func__, ret);
+                  "%s: timeout waiting for tdls add station indication",
+                  __func__);
         return -EPERM;
     }
 
@@ -8106,8 +8102,8 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
     struct cfg80211_scan_request *req = NULL;
     bool aborted = false;
+    unsigned long rc;
     int ret = 0;
-    long waitRet = 0;
 
     ENTER();
 
@@ -8119,13 +8115,12 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     pScanInfo->mScanPendingCounter = 0;
 
     //Block on scan req completion variable. Can't wait forever though.
-    waitRet = wait_for_completion_interruptible_timeout(
+    rc = wait_for_completion_timeout(
                          &pScanInfo->scan_req_completion_event,
                          msecs_to_jiffies(WLAN_WAIT_TIME_SCAN_REQ));
-    if (waitRet <= 0)
-    {
+    if (!rc) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s wait on scan_req_completion_event failed %ld", __func__, waitRet);
+               "%s wait on scan_req_completion_event timed out", __func__);
        VOS_ASSERT(pScanInfo->mScanPending);
        goto allow_suspend;
     }
@@ -9618,7 +9613,7 @@ int wlan_hdd_cfg80211_set_privacy( hdd_adapter_t *pAdapter,
  */
 static int wlan_hdd_try_disconnect( hdd_adapter_t *pAdapter )
 {
-    long ret = 0;
+    unsigned long rc;
     hdd_station_ctx_t *pHddStaCtx;
     eMib_dot11DesiredBssType connectedBssType;
 
@@ -9637,26 +9632,26 @@ static int wlan_hdd_try_disconnect( hdd_adapter_t *pAdapter )
                         pAdapter->sessionId,
                         eCSR_DISCONNECT_REASON_UNSPECIFIED ) )
         {
-            ret = wait_for_completion_interruptible_timeout(
+            rc = wait_for_completion_timeout(
                          &pAdapter->disconnect_comp_var,
                          msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-            if (0 >=  ret)
-            {
-                hddLog(LOGE, FL("Failed to receive sme disconnect event session Id %d staDebugState %d"),
-                   pAdapter->sessionId, pHddStaCtx->staDebugState);
+            if (!rc) {
+                hddLog(LOGE, FL("Sme disconnect event timed out session Id %d"
+                   " staDebugState %d"), pAdapter->sessionId,
+                   pHddStaCtx->staDebugState);
                 return -EALREADY;
             }
         }
     }
     else if(eConnectionState_Disconnecting == pHddStaCtx->conn_info.connState)
     {
-        ret = wait_for_completion_interruptible_timeout(
+        rc = wait_for_completion_timeout(
                      &pAdapter->disconnect_comp_var,
                      msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-        if (0 >= ret)
-        {
-            hddLog(LOGE, FL("Failed to receive wait for comp disconnect event session Id %d staDebugState %d"),
-               pAdapter->sessionId, pHddStaCtx->staDebugState);
+        if (!rc) {
+            hddLog(LOGE, FL("Disconnect event timed out session Id %d"
+               " staDebugState %d"), pAdapter->sessionId,
+               pHddStaCtx->staDebugState);
             return -EALREADY;
         }
     }
@@ -9847,9 +9842,9 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
 int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
 {
     int status;
+    unsigned long rc;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    long ret;
 
     status = wlan_hdd_validate_context(pHddCtx);
 
@@ -9888,21 +9883,14 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
         pHddStaCtx->staDebugState = status;
         return -EINVAL;
     }
-    ret = wait_for_completion_interruptible_timeout(
+    rc = wait_for_completion_timeout(
                 &pAdapter->disconnect_comp_var,
                 msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
 
-    if (!ret && ( eHAL_STATUS_CMD_NOT_QUEUED != status ))
-    {
+    if (!rc) {
        hddLog(VOS_TRACE_LEVEL_ERROR,
               "%s: Failed to disconnect, timed out", __func__);
        return -ETIMEDOUT;
-    }
-    else if (ret == -ERESTARTSYS)
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to disconnect, wait interrupted", __func__);
-        return ret;
     }
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
              FL("Set HDD connState to eConnectionState_NotConnected"));
@@ -11856,7 +11844,7 @@ static int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     hdd_scaninfo_t *pScanInfo = NULL;
-    int status = 0;
+    unsigned long rc;
 
     pScanInfo = &pAdapter->scan_info;
 
@@ -11866,11 +11854,10 @@ static int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter)
         hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
                            eCSR_SCAN_ABORT_DEFAULT);
 
-        status = wait_for_completion_interruptible_timeout(
+        rc = wait_for_completion_timeout(
                            &pScanInfo->abortscan_event_var,
                            msecs_to_jiffies(5000));
-        if ((!status) || (status == -ERESTARTSYS))
-        {
+        if (!rc) {
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: Timeout occurred while waiting for abort scan" ,
                   __func__);
@@ -12345,7 +12332,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
     VOS_STATUS status;
     int max_sta_failed = 0;
     int responder;
-    long rc;
+    unsigned long rc;
     tANI_U16 numCurrTdlsPeers;
 #if !(TDLS_MGMT_VERSION2)
     u32 peer_capability;
@@ -12533,14 +12520,13 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
         return -EINVAL;
     }
 
-    rc = wait_for_completion_interruptible_timeout(&pAdapter->tdls_mgmt_comp,
-                                                        msecs_to_jiffies(WAIT_TIME_TDLS_MGMT));
+    rc = wait_for_completion_timeout(&pAdapter->tdls_mgmt_comp,
+                                       msecs_to_jiffies(WAIT_TIME_TDLS_MGMT));
 
-    if ((rc <= 0) || (TRUE != pAdapter->mgmtTxCompletionStatus))
-    {
+    if ((0 == rc) || (TRUE != pAdapter->mgmtTxCompletionStatus)) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Mgmt Tx Completion failed status %ld TxCompletion %u",
-                  __func__, rc, pAdapter->mgmtTxCompletionStatus);
+                  "%s: Mgmt Tx Completion timed out TxCompletion %u",
+                  __func__, pAdapter->mgmtTxCompletionStatus);
 
         if (pHddCtx->isLogpInProgress)
         {
@@ -12632,7 +12618,7 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
         case NL80211_TDLS_ENABLE_LINK:
             {
                 VOS_STATUS status;
-                long ret;
+                unsigned long rc;
                 tCsrTdlsLinkEstablishParams tdlsLinkEstablishParams;
 
                 pTdlsPeer = wlan_hdd_tdls_find_peer(pAdapter, peer, TRUE);
@@ -12676,14 +12662,12 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                          * register with the TL on after the response for this operation
                          * is received .
                          */
-                        ret = wait_for_completion_interruptible_timeout(
+                        rc = wait_for_completion_timeout(
                                 &pAdapter->tdls_link_establish_req_comp,
                                 msecs_to_jiffies(WAIT_TIME_TDLS_LINK_ESTABLISH_REQ));
-                        if (ret <= 0)
-                        {
+                        if (!rc) {
                             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                                      "%s: Link Establish Request Faled Status %ld",
-                                      __func__, ret);
+                              "%s: Link Establish Request timed out", __func__);
                             return -EINVAL;
                         }
                     }
@@ -12834,21 +12818,19 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
 
                 if(TDLS_STA_INDEX_VALID(pTdlsPeer->staId))
                 {
-                    long status;
+                    unsigned long rc;
 
                     INIT_COMPLETION(pAdapter->tdls_del_station_comp);
 
                     sme_DeleteTdlsPeerSta( WLAN_HDD_GET_HAL_CTX(pAdapter),
                             pAdapter->sessionId, peer );
 
-                    status = wait_for_completion_interruptible_timeout(&pAdapter->tdls_del_station_comp,
+                    rc = wait_for_completion_timeout(&pAdapter->tdls_del_station_comp,
                               msecs_to_jiffies(WAIT_TIME_TDLS_DEL_STA));
-                    if (status <= 0)
-                    {
+                    if (!rc) {
                         wlan_hdd_tdls_set_peer_link_status(pTdlsPeer, eTDLS_LINK_IDLE);
                         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                                  "%s: Del station failed status %ld",
-                                  __func__, status);
+                                  "%s: Del station timed out", __func__);
                         return -EPERM;
                     }
                     wlan_hdd_tdls_set_peer_link_status(pTdlsPeer, eTDLS_LINK_IDLE);

@@ -158,7 +158,7 @@ void hdd_suspend_full_pwr_callback(void *callbackContext, eHalStatus status)
 eHalStatus hdd_exit_standby(hdd_context_t *pHddCtx)
 {
     eHalStatus status = VOS_STATUS_SUCCESS;
-    long ret;
+    unsigned long rc;
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: WLAN being resumed from standby",__func__);
     INIT_COMPLETION(pHddCtx->full_pwr_comp_var);
@@ -170,13 +170,12 @@ eHalStatus hdd_exit_standby(hdd_context_t *pHddCtx)
    if(status == eHAL_STATUS_PMC_PENDING)
    {
       //Block on a completion variable. Can't wait forever though
-      ret = wait_for_completion_interruptible_timeout(
+      rc = wait_for_completion_timeout(
                  &pHddCtx->full_pwr_comp_var,
                  msecs_to_jiffies(WLAN_WAIT_TIME_FULL_PWR));
-      if (0 >= ret)
-      {
+      if (!rc) {
           hddLog(VOS_TRACE_LEVEL_ERROR,
-                 FL("wait on full_pwr_comp_var failed %ld"), ret);
+             FL("wait on full_pwr_comp_var failed"));
       }
       status = g_full_pwr_status;
       if(g_full_pwr_status != eHAL_STATUS_SUCCESS)
@@ -208,7 +207,7 @@ VOS_STATUS hdd_enter_standby(hdd_context_t *pHddCtx)
 {
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-   long ret;
+   unsigned long rc;
 
    //Disable IMPS/BMPS as we do not want the device to enter any power
    //save mode on its own during suspend sequence
@@ -231,13 +230,12 @@ VOS_STATUS hdd_enter_standby(hdd_context_t *pHddCtx)
    if(halStatus == eHAL_STATUS_PMC_PENDING)
    {
       //Block on a completion variable. Can't wait forever though
-      ret = wait_for_completion_interruptible_timeout(
+      rc = wait_for_completion_timeout(
                  &pHddCtx->full_pwr_comp_var,
                  msecs_to_jiffies(WLAN_WAIT_TIME_FULL_PWR));
-      if (0 >= ret)
-      {
+      if (!rc) {
           hddLog(VOS_TRACE_LEVEL_ERROR,
-                 FL( "wait on full_pwr_comp_var failed %ld"), ret);
+                 FL("wait on full_pwr_comp_var failed"));
       }
 
       if(g_full_pwr_status != eHAL_STATUS_SUCCESS)
@@ -274,12 +272,11 @@ VOS_STATUS hdd_enter_standby(hdd_context_t *pHddCtx)
    if (halStatus == eHAL_STATUS_PMC_PENDING)
    {
       //Wait till WLAN device enters standby mode
-      ret = wait_for_completion_timeout(&pHddCtx->standby_comp_var,
+      rc = wait_for_completion_timeout(&pHddCtx->standby_comp_var,
          msecs_to_jiffies(WLAN_WAIT_TIME_STANDBY));
-      if (0 >= ret)
-      {
+      if (!rc) {
           hddLog(VOS_TRACE_LEVEL_ERROR,
-                 FL("wait on standby_comp_var failed %ld"), ret);
+                 FL("wait on standby_comp_var failed"));
       }
 
       if (g_standby_status != eHAL_STATUS_SUCCESS && g_standby_status != eHAL_STATUS_PMC_NOT_NOW)
@@ -318,7 +315,7 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
 {
    eHalStatus halStatus;
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-   long ret;
+   unsigned long rc;
 
    //Stop the Interface TX queue.
    netif_tx_disable(pAdapter->dev);
@@ -338,13 +335,12 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
    if(halStatus == eHAL_STATUS_PMC_PENDING)
    {
       //Block on a completion variable. Can't wait forever though
-      ret = wait_for_completion_interruptible_timeout(
+      rc = wait_for_completion_timeout(
                  &pHddCtx->full_pwr_comp_var,
                  msecs_to_jiffies(WLAN_WAIT_TIME_FULL_PWR));
-      if (0 >= ret)
-      {
+      if (!rc) {
           hddLog(VOS_TRACE_LEVEL_ERROR,
-                 FL("wait on full_pwr_comp_var failed %ld"), ret);
+              FL("wait on full_pwr_comp_var failed"));
       }
 
       if(g_full_pwr_status != eHAL_STATUS_SUCCESS){
@@ -367,13 +363,12 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
    if(halStatus == eHAL_STATUS_SUCCESS)
    {
       //Block on a completion variable. Can't wait forever though.
-      ret = wait_for_completion_interruptible_timeout(
+      rc = wait_for_completion_timeout(
                  &pAdapter->disconnect_comp_var,
                  msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-      if (0 >= ret)
-      {
+      if (!rc) {
           hddLog(VOS_TRACE_LEVEL_ERROR,
-                 FL("wait on disconnect_comp_var failed %ld"), ret);
+             FL("wait on disconnect_comp_var failed"));
       }
    }
    //None of the steps should fail after this. Continue even in case of failure

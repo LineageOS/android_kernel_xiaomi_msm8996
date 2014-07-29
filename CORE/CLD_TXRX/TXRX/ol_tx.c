@@ -510,6 +510,18 @@ ol_tx_hl_base(
         if (adf_os_atomic_read(&vdev->tx_desc_count) <= ((ol_tx_desc_pool_size_hl(pdev->ctrl_pdev) >> 1) - 20)) {
             tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
         } else {
+#ifdef QCA_LL_TX_FLOW_CT
+            adf_os_spin_lock_bh(&pdev->tx_mutex);
+            if ( !(adf_os_atomic_read(&vdev->os_q_paused)) ) {
+                /* pause netif_queue */
+                adf_os_atomic_set(&vdev->os_q_paused, 1);
+                adf_os_spin_unlock_bh(&pdev->tx_mutex);
+                vdev->osif_flow_control_cb(vdev->osif_dev,
+                                         vdev->vdev_id, A_FALSE);
+            } else {
+                adf_os_spin_unlock_bh(&pdev->tx_mutex);
+            }
+#endif /* QCA_LL_TX_FLOW_CT */
             tx_desc = NULL;
         }
 #else

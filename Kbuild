@@ -81,6 +81,10 @@ ifeq ($(KERNEL_BUILD), 0)
 	#Flag to enable NAN
 	CONFIG_FEATURE_NAN := y
 
+        #Flag to enable Linux QCMBR feature as default feature
+        ifeq ($(CONFIG_ROME_IF),usb)
+                CONFIG_LINUX_QCMBR :=y
+        endif
 endif
 
 # To enable ESE upload, dependent config
@@ -845,11 +849,6 @@ WDI_DIR :=	CORE/WDI
 
 WDI_CP_INC :=	-I$(WLAN_ROOT)/$(WDI_DIR)/CP/inc/
 
-WDI_CP_SRC_DIR := $(WDI_DIR)/CP/src
-WDI_CP_OBJS :=	$(WDI_CP_SRC_DIR)/wlan_qct_wdi.o \
-		$(WDI_CP_SRC_DIR)/wlan_qct_wdi_dp.o \
-		$(WDI_CP_SRC_DIR)/wlan_qct_wdi_sta.o
-
 WDI_DP_INC := -I$(WLAN_ROOT)/$(WDI_DIR)/DP/inc/
 
 WDI_DP_SRC_DIR := $(WDI_DIR)/DP/src
@@ -858,15 +857,6 @@ WDI_DP_OBJS :=	$(WDI_DP_SRC_DIR)/wlan_qct_wdi_bd.o \
 
 WDI_TRP_INC :=	-I$(WLAN_ROOT)/$(WDI_DIR)/TRP/CTS/inc/ \
 		-I$(WLAN_ROOT)/$(WDI_DIR)/TRP/DTS/inc/
-
-WDI_TRP_CTS_SRC_DIR :=	$(WDI_DIR)/TRP/CTS/src
-WDI_TRP_CTS_OBJS :=	$(WDI_TRP_CTS_SRC_DIR)/wlan_qct_wdi_cts.o
-
-WDI_TRP_DTS_SRC_DIR :=	$(WDI_DIR)/TRP/DTS/src
-WDI_TRP_DTS_OBJS :=	$(WDI_TRP_DTS_SRC_DIR)/wlan_qct_wdi_dts.o
-
-WDI_TRP_OBJS :=	$(WDI_TRP_CTS_OBJS) \
-		$(WDI_TRP_DTS_OBJS)
 
 WDI_WPAL_INC := -I$(WLAN_ROOT)/$(WDI_DIR)/WPAL/inc
 
@@ -891,8 +881,7 @@ WDI_OBJS :=	$(WDI_WPAL_OBJS)
 
 ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
 WDI_OBJS +=	$(WDI_CP_OBJS) \
-		$(WDI_DP_OBJS) \
-		$(WDI_TRP_OBJS)
+		$(WDI_DP_OBJS)
 endif
 
 
@@ -992,9 +981,7 @@ EXTRA_CFLAGS += $(INCS)
 CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_LITTLE_BIT_ENDIAN \
 		-DQC_WLAN_CHIPSET_QCA_CLD \
-		-DINTEGRATION_READY \
 		-DDOT11F_LITTLE_ENDIAN_HOST \
-		-DGEN6_ONWARDS \
 		-DANI_COMPILER_TYPE_GCC \
 		-DANI_OS_TYPE_ANDROID=6 \
 		-DANI_LOGDUMP \
@@ -1038,7 +1025,8 @@ CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DATH_SUPPORT_WAPI \
 		-DWLAN_FEATURE_LINK_LAYER_STATS \
 		-DWLAN_LOGGING_SOCK_SVC_ENABLE \
-		-DFEATURE_WLAN_EXTSCAN
+		-DFEATURE_WLAN_EXTSCAN \
+		-DQCA_LL_TX_FLOW_CT
 
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 CDEFINES +=     -DCONFIG_HL_SUPPORT \
@@ -1406,6 +1394,11 @@ endif
 
 ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/mach-msm/include/mach/msm_smsm.h),)
 CDEFINES += -DEXISTS_MSM_SMSM
+endif
+
+# Enable feature support fo Linux version QCMBR
+ifeq ($(CONFIG_LINUX_QCMBR),y)
+CDEFINES += -DLINUX_QCMBR
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)

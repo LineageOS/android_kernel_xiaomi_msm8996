@@ -28,31 +28,6 @@
 #ifndef _WCNSS_API_H_
 #define _WCNSS_API_H_
 
-#ifdef QCA_WIFI_ISOC
-
-#ifdef ANI_BUS_TYPE_PLATFORM
-#include <linux/wcnss_wlan.h>
-#else
-#include <wcnss_wlan.h>
-#endif  /* #ifdef ANI_BUS_TYPE_PLATFORM */
-#include <linux/crypto.h>
-#include <crypto/hash.h>
-
-extern struct crypto_ahash *wcnss_wlan_crypto_alloc_ahash(const char *alg_name,
-                                                          unsigned int type,
-                                                          unsigned int mask);
-
-extern int wcnss_wlan_crypto_ahash_digest(struct ahash_request *req);
-extern void wcnss_wlan_crypto_free_ahash(struct crypto_ahash *tfm);
-extern int wcnss_wlan_crypto_ahash_setkey(struct crypto_ahash *tfm,
-                                          const u8 *key, unsigned int keylen);
-extern struct crypto_ablkcipher *wcnss_wlan_crypto_alloc_ablkcipher(
-                                          const char *alg_name,
-                                          u32 type, u32 mask);
-extern void wcnss_wlan_ablkcipher_request_free(struct ablkcipher_request *req);
-extern void wcnss_wlan_crypto_free_ablkcipher(struct crypto_ablkcipher *tfm);
-
-#else   /* #ifdef QCA_WIFI_ISOC */
 
 /*
  * Do nothing for non ISOC
@@ -138,5 +113,4 @@ static inline int free_riva_power_on_lock(char *driver_name)
 }
 
 
-#endif	/* #ifdef QCA_WIFI_ISOC */
 #endif	/* #ifndef _WCNSS_API_H_ */

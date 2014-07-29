@@ -30,7 +30,6 @@
 
 #ifdef MSM_PLATFORM
 #ifdef QC_WLAN_CHIPSET_QCA_CLD
-#ifdef QCA_WIFI_2_0
 #define WLAN_INI_FILE              "wlan/qca_cld/WCNSS_qcom_cfg.ini"
 #define WLAN_CFG_FILE              "wlan/qca_cld/WCNSS_cfg.dat"
 #define WLAN_FW_FILE               ""
@@ -39,15 +38,6 @@
 #define WLAN_COUNTRY_INFO_FILE     "wlan/qca_cld/WCNSS_wlan_country_info.dat"
 #define WLAN_HO_CFG_FILE           "wlan/qca_cld/WCNSS_wlan_ho_config"
 #define WLAN_MAC_FILE              "wlan/qca_cld/wlan_mac.bin"
-#else
-#define WLAN_INI_FILE              "wlan/prima/WCNSS_qcom_cfg.ini"
-#define WLAN_CFG_FILE              "wlan/prima/WCNSS_cfg.dat"
-#define WLAN_FW_FILE               ""
-#define WLAN_NV_FILE               "wlan/prima/WCNSS_qcom_wlan_nv.bin"
-#define WLAN_DICT_FILE             "wlan/prima/WCNSS_qcom_wlan_dictionary.dat"
-#define WLAN_COUNTRY_INFO_FILE     "wlan/prima/WCNSS_wlan_country_info.dat"
-#define WLAN_HO_CFG_FILE           "wlan/prima/WCNSS_wlan_ho_config"
-#endif // QCA_WIFI_2_0
 #else
 #define WLAN_INI_FILE              "wlan/volans/WCN1314_qcom_cfg.ini"
 #define WLAN_CFG_FILE              "wlan/volans/WCN1314_cfg.dat"

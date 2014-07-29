@@ -3201,10 +3201,12 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 	wmi_csa_event_fixed_param *csa_event;
 	u_int8_t bssid[IEEE80211_ADDR_LEN];
 	u_int8_t vdev_id = 0;
+	u_int8_t cur_chan = 0;
 	struct ieee80211_channelswitch_ie *csa_ie;
 	tpCSAOffloadParams csa_offload_event;
 	struct ieee80211_extendedchannelswitch_ie *xcsa_ie;
 	struct ieee80211_ie_wide_bw_switch *wb_ie;
+	struct wma_txrx_node *intr = wma->interfaces;
 
 	param_buf = (WMI_CSA_HANDLING_EVENTID_param_tlvs *) event;
 
@@ -3256,6 +3258,19 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 	WMA_LOGD("CSA: New Channel = %d BSSID:%pM",
 			csa_offload_event->channel,
 			csa_offload_event->bssId);
+
+	cur_chan = vos_freq_to_chan(intr[vdev_id].mhz);
+	/*
+	 * basic sanity check: requested channel should not be 0
+	 * and equal to home channel
+	 */
+	if( (0 == csa_offload_event->channel) ||
+	    (cur_chan == csa_offload_event->channel) ) {
+		WMA_LOGE("CSA Event with channel %d. Ignore !!",
+		csa_offload_event->channel);
+		vos_mem_free(csa_offload_event);
+		return -EINVAL;
+	}
 	wma->interfaces[vdev_id].is_channel_switch = VOS_TRUE;
 	wma_send_msg(wma, WDA_CSA_OFFLOAD_EVENT, (void *)csa_offload_event, 0);
 	return 0;
@@ -16031,6 +16046,7 @@ VOS_STATUS wma_enable_d0wow_in_fw(tp_wma_handle wma)
 	}
 
 	wma->wow.wow_enable_cmd_sent = TRUE;
+	wmi_set_d0wow_flag(wma->wmi_handle, TRUE);
 	WMA_LOGD("D0-WOW is enabled successfully in FW.");
 	return vos_status;
 
@@ -17108,6 +17124,7 @@ VOS_STATUS wma_disable_d0wow_in_fw(tp_wma_handle wma)
 
 	wma->wow.wow_enable = FALSE;
 	wma->wow.wow_enable_cmd_sent = FALSE;
+	wmi_set_d0wow_flag(wma->wmi_handle, FALSE);
 	WMA_LOGD("D0-WOW is disabled successfully in FW.");
 	return vos_status;
 

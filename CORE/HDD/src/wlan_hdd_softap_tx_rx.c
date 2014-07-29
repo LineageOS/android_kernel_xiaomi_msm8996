@@ -523,6 +523,25 @@ void hdd_softap_tx_resume_cb(void *adapter_context,
 
        netif_tx_wake_all_queues(pAdapter->dev);
    }
+#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+    else if (VOS_FALSE == tx_resume)  /* Pause TX  */
+    {
+        netif_tx_stop_all_queues(pAdapter->dev);
+        if (VOS_TIMER_STATE_STOPPED ==
+            vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
+        {
+            VOS_STATUS status;
+            status = vos_timer_start(&pAdapter->tx_flow_control_timer,
+                          WLAN_SAP_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME);
+            if ( !VOS_IS_STATUS_SUCCESS(status) )
+            {
+                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to initialize tx_flow_control_timer", __func__);
+            }
+        }
+    }
+#endif
+
    return;
 }
 #endif /* QCA_LL_TX_FLOW_CT */
