@@ -8240,30 +8240,28 @@ static void csrRoamRoamingStateReassocRspProcessor( tpAniSirGlobal pMac, tpSirSm
     {
         smsLog( pMac, LOGW, "CSR SmeReassocReq failed with statusCode= 0x%08X [%d]", pSmeJoinRsp->statusCode, pSmeJoinRsp->statusCode );
         result = eCsrReassocFailure;
-#ifdef WLAN_FEATURE_VOWIFI_11R
+#if defined(WLAN_FEATURE_VOWIFI_11R) || defined(FEATURE_WLAN_ESE) || \
+    defined(FEATURE_WLAN_LFR)
         if ((eSIR_SME_FT_REASSOC_TIMEOUT_FAILURE == pSmeJoinRsp->statusCode) ||
-                        (eSIR_SME_FT_REASSOC_FAILURE == pSmeJoinRsp->statusCode))
-        {
-                // Inform HDD to turn off FT flag in HDD
-                if (pNeighborRoamInfo)
-                {
-                        vos_mem_zero(&roamInfo, sizeof(tCsrRoamInfo));
-                        csrRoamCallCallback(pMac, pSmeJoinRsp->sessionId,
-                                            &roamInfo, roamId,
-                                            eCSR_ROAM_FT_REASSOC_FAILED,
-                                            eSIR_SME_SUCCESS);
-                        /*
-                         * Since the above callback sends a disconnect
-                         * to HDD, we should clean-up our state
-                         * machine as well to be in sync with the upper
-                         * layers. There is no need to send a disassoc
-                         * since: 1) we will never reassoc to the current
-                         * AP in LFR, and 2) there is no need to issue a
-                         * disassoc to the AP with which we were trying
-                         * to reassoc.
-                         */
-                        csrRoamComplete( pMac, eCsrJoinFailure, NULL );
-                        return;
+            (eSIR_SME_FT_REASSOC_FAILURE == pSmeJoinRsp->statusCode)) {
+                /* Inform HDD to turn off FT flag in HDD */
+                if (pNeighborRoamInfo) {
+                    vos_mem_zero(&roamInfo, sizeof(tCsrRoamInfo));
+                    csrRoamCallCallback(pMac, pSmeJoinRsp->sessionId, &roamInfo,
+                                        roamId, eCSR_ROAM_FT_REASSOC_FAILED,
+                                        eSIR_SME_SUCCESS);
+                    /*
+                     * Since the above callback sends a disconnect
+                     * to HDD, we should clean-up our state
+                     * machine as well to be in sync with the upper
+                     * layers. There is no need to send a disassoc
+                     * since: 1) we will never reassoc to the current
+                     * AP in LFR, and 2) there is no need to issue a
+                     * disassoc to the AP with which we were trying
+                     * to reassoc.
+                     */
+                    csrRoamComplete(pMac, eCsrJoinFailure, NULL);
+                    return;
                 }
         }
 #endif
