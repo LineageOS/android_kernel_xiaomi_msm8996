@@ -133,6 +133,7 @@ typedef struct _smeConfigParams
     tANI_U8       fEnableDebugLog;
     tANI_U8       max_intf_count;
     tANI_BOOLEAN  enable5gEBT;
+    tANI_BOOLEAN  enableSelfRecovery;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum
@@ -1126,18 +1127,6 @@ eHalStatus sme_GetConfigPowerSave(tHalHandle hHal, tPmcPowerSavingMode psMode,
                                   void *pConfigParams);
 
 /* ---------------------------------------------------------------------------
-    \fn sme_SignalPowerEvent
-    \brief  Signals to PMC that a power event has occurred. Used for putting
-            the chip into deep sleep mode.
-    \param  hHal - The handle returned by macOpen.
-    \param  event - the event that has occurred
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-extern eHalStatus sme_SignalPowerEvent (
-   tHalHandle hHal,
-   tPmcPowerEvent event);
-
-/* ---------------------------------------------------------------------------
     \fn sme_EnablePowerSave
     \brief  Enables one of the power saving modes. This API does not cause a
             device state change. This is purely a configuration API.
@@ -1819,6 +1808,15 @@ VOS_STATUS sme_BtcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig);
     \return void
   ---------------------------------------------------------------------------*/
 void sme_SetCfgPrivacy(tHalHandle hHal, tCsrRoamProfile *pProfile, tANI_BOOLEAN fPrivacy);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getRecoveryStats
+    \brief  API to get recovery stats for SME stuck cmds.
+    \param  hHal - The handle returned by macOpen.
+
+    \return void
+  ---------------------------------------------------------------------------*/
+void sme_getRecoveryStats(tHalHandle hHal);
 
 #if defined WLAN_FEATURE_VOWIFI
 /* ---------------------------------------------------------------------------

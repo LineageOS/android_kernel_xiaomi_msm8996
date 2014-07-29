@@ -5188,6 +5188,12 @@ void limUpdateStaRunTimeHTSwitchChnlParams( tpAniSirGlobal   pMac,
     }
 #endif
 
+    if (psessionEntry->ftPEContext.ftPreAuthSession) {
+         limLog( pMac, LOGE, FL( "FT PREAUTH channel change is in progress"));
+         return;
+    }
+
+
     if ( psessionEntry->htSecondaryChannelOffset != ( tANI_U8 ) pHTInfo->secondaryChannelOffset ||
          psessionEntry->htRecommendedTxWidthSet  != ( tANI_U8 ) pHTInfo->recommendedTxWidthSet )
     {

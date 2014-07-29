@@ -92,5 +92,8 @@ struct wmi_unified {
 #endif /*WMI_INTERFACE_EVENT_LOGGING*/
 
 	adf_os_atomic_t  is_target_suspended;
+#ifdef FEATURE_WLAN_D0WOW
+	A_BOOL in_d0wow;
+#endif
 };
 #endif

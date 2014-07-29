@@ -73,9 +73,7 @@
 #include <linux/wakelock.h>
 #endif
 #include <vos_mq.h>
-#ifdef QCA_WIFI_2_0
 #include <adf_os_types.h>
-#endif
 
 #define TX_POST_EVENT_MASK               0x001
 #define TX_SUSPEND_EVENT_MASK            0x002
@@ -195,10 +193,6 @@ typedef struct _VosSchedContext
    VosMqType           sysTxMq;
 
    VosMqType           sysRxMq;
-#if defined (QCA_WIFI_2_0) && \
-    defined (QCA_WIFI_ISOC)
-   VosMqType           htcMcMq;
-#endif
 
    /* Handle of Event for MC thread to signal startup */
    struct completion   McStartEvent;
@@ -397,10 +391,7 @@ typedef struct _VosContextType
    /* WDA Context */
    v_VOID_t            *pWDAContext;
 
-#ifdef QCA_WIFI_2_0
-#ifndef QCA_WIFI_ISOC
    v_VOID_t        *pHIFContext;
-#endif
 
    v_VOID_t        *htc_ctx;
 
@@ -415,10 +406,6 @@ typedef struct _VosContextType
 
    /* Configuration handle used to get system configuration */
    v_VOID_t    *cfg_ctx;
-#else
-   /* VOS Packet Context */
-   vos_pkt_context_t    vosPacket;
-#endif	/* QCA_WIFI_2_0 */
 
    volatile v_U8_t    isLoadUnloadInProgress;
 

@@ -139,6 +139,11 @@ wmi_get_pending_cmds(wmi_unified_t wmi_handle);
 void
 wmi_set_target_suspend(wmi_unified_t wmi_handle, A_BOOL val);
 
-
-
+/**
+ WMI API to set D0WOW flag
+*/
+#ifdef FEATURE_WLAN_D0WOW
+void
+wmi_set_d0wow_flag(wmi_unified_t wmi_handle, A_BOOL flag);
+#endif
 #endif /* _WMI_UNIFIED_API_H_ */

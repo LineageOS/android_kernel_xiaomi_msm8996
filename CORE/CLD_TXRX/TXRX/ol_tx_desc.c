@@ -42,6 +42,7 @@
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
 #include <ol_txrx_encap.h>  /* OL_TX_RESTORE_HDR, etc*/
 #endif
+#include <ol_txrx.h>
 
 #ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
 extern u_int32_t *g_dbg_htt_desc_end_addr, *g_dbg_htt_desc_start_addr;
@@ -140,6 +141,16 @@ ol_tx_desc_free(struct ol_txrx_pdev_t *pdev, struct ol_tx_desc_t *tx_desc)
     pdev->tx_desc.freelist = (union ol_tx_desc_list_elem_t *) tx_desc;
     pdev->tx_desc.num_free++;
 #if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+#ifdef QCA_LL_TX_FLOW_CT
+    if ( (adf_os_atomic_read(&tx_desc->vdev->os_q_paused)) &&
+         (adf_os_atomic_read(&tx_desc->vdev->tx_desc_count) <
+                           TXRX_HL_TX_FLOW_CTRL_VDEV_LOW_WATER_MARK) ) {
+        /* wakeup netif_queue */
+        adf_os_atomic_set(&tx_desc->vdev->os_q_paused, 0);
+        tx_desc->vdev->osif_flow_control_cb(tx_desc->vdev->osif_dev,
+                                         tx_desc->vdev->vdev_id, A_TRUE);
+    }
+#endif /* QCA_LL_TX_FLOW_CT */
     adf_os_atomic_dec(&tx_desc->vdev->tx_desc_count);
     tx_desc->vdev = NULL;
 #endif

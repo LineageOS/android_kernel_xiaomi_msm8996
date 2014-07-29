@@ -51,4 +51,8 @@ ol_tx_desc_pool_size_hl(ol_pdev_handle ctrl_pdev);
 #define OL_TX_DESC_POOL_SIZE_MAX_HL 5000
 #endif
 
+#ifdef CONFIG_PER_VDEV_TX_DESC_POOL
+#define TXRX_HL_TX_FLOW_CTRL_VDEV_LOW_WATER_MARK 400
+#endif
+
 #endif /* _OL_TXRX__H_ */

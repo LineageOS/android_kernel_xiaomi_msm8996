@@ -123,6 +123,20 @@ typedef struct sStatsExtEvent {
     tANI_U8 event_data[];
 } tStatsExtEvent, *tpStatsExtEvent;
 
+#define MAX_ACTIVE_CMD_STATS    16
+
+typedef struct sActiveCmdStats {
+    eSmeCommandType command;
+    tANI_U32 reason;
+    tANI_U32 sessionId;
+    v_U64_t timestamp;
+} tActiveCmdStats;
+
+typedef struct sSelfRecoveryStats {
+    tActiveCmdStats activeCmdStats[MAX_ACTIVE_CMD_STATS];
+    tANI_U8 cmdStatsIndx;
+} tSelfRecoveryStats;
+
 typedef struct tagSmeStruct
 {
     eSmeState state;
@@ -167,6 +181,7 @@ typedef struct tagSmeStruct
 #ifdef WLAN_FEATURE_NAN
     void (*nanCallback) (void*, tSirNanEvent*);
 #endif
+    v_BOOL_t enableSelfRecovery;
 } tSmeStruct, *tpSmeStruct;
 
 

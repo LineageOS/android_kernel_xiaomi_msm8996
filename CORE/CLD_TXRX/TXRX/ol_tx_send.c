@@ -114,7 +114,8 @@
 do {                                                                              \
     struct ol_txrx_vdev_t *vdev;                                                  \
     TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {                       \
-        if (adf_os_atomic_read(&vdev->os_q_paused)) {                             \
+        if (adf_os_atomic_read(&vdev->os_q_paused) &&                            \
+                          (vdev->tx_fl_hwm != 0)) {                               \
             adf_os_spin_lock(&pdev->tx_mutex);                                    \
             if (pdev->tx_desc.num_free > vdev->tx_fl_hwm) {                       \
                adf_os_atomic_set(&vdev->os_q_paused, 0);                          \
