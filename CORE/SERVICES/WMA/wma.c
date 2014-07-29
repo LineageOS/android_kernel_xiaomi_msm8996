@@ -9313,7 +9313,8 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
         vos_mem_zero(&req, sizeof(req));
         req.vdev_id = vdev_id;
 	msg = wma_fill_vdev_req(wma, req.vdev_id, WDA_CHNL_SWITCH_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_START, params, 1000);
+				WMA_TARGET_REQ_TYPE_VDEV_START, params,
+				WMA_VDEV_START_REQUEST_TIMEOUT);
 	if (!msg) {
 		WMA_LOGP("%s: Failed to fill channel switch request for vdev %d",
 			 __func__, req.vdev_id);
@@ -11299,7 +11300,8 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		goto send_fail_resp;
 	}
 	msg = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_START, add_bss, 1000);
+				WMA_TARGET_REQ_TYPE_VDEV_START, add_bss,
+				WMA_VDEV_START_REQUEST_TIMEOUT);
 	if (!msg) {
 		WMA_LOGP("%s Failed to allocate vdev request vdev_id %d",
 			 __func__, vdev_id);
@@ -11554,7 +11556,8 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
         add_bss->operMode = BSS_OPERATIONAL_MODE_IBSS;
 
 	msg = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_START, add_bss, 1000);
+				WMA_TARGET_REQ_TYPE_VDEV_START, add_bss,
+				WMA_VDEV_START_REQUEST_TIMEOUT);
 	if (!msg) {
 		WMA_LOGP("%s Failed to allocate vdev request vdev_id %d",
 			 __func__, vdev_id);
@@ -11745,7 +11748,8 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 #endif
 			msg = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
 						WMA_TARGET_REQ_TYPE_VDEV_START,
-						add_bss, 2000);
+						add_bss,
+						WMA_VDEV_START_REQUEST_TIMEOUT);
 			if (!msg) {
 				WMA_LOGP("%s Failed to allocate vdev request vdev_id %d",
 					 __func__, vdev_id);
