@@ -2051,8 +2051,14 @@ VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
    pQosContext->qosFlowId = 0;
    pQosContext->handle = HDD_WMM_HANDLE_IMPLICIT;
    pQosContext->magic = HDD_WMM_CTX_MAGIC;
+
+#ifdef CONFIG_CNSS
+   cnss_init_work(&pQosContext->wmmAcSetupImplicitQos,
+             hdd_wmm_do_implicit_qos);
+#else
    INIT_WORK(&pQosContext->wmmAcSetupImplicitQos,
              hdd_wmm_do_implicit_qos);
+#endif
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
              "%s: Scheduling work for AC %d, context %p",

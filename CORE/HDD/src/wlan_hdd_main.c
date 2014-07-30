@@ -8615,12 +8615,23 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
             goto err_free_netdev;
          }
          // Workqueue which gets scheduled in IPv4 notification callback
-         INIT_WORK(&pAdapter->ipv4NotifierWorkQueue, hdd_ipv4_notifier_work_queue);
-
+#ifdef CONFIG_CNSS
+         cnss_init_work(&pAdapter->ipv4NotifierWorkQueue,
+                        hdd_ipv4_notifier_work_queue);
+#else
+         INIT_WORK(&pAdapter->ipv4NotifierWorkQueue,
+                   hdd_ipv4_notifier_work_queue);
+#endif
 
 #ifdef WLAN_NS_OFFLOAD
          // Workqueue which gets scheduled in IPv6 notification callback.
-         INIT_WORK(&pAdapter->ipv6NotifierWorkQueue, hdd_ipv6_notifier_work_queue);
+#ifdef CONFIG_CNSS
+         cnss_init_work(&pAdapter->ipv6NotifierWorkQueue,
+                        hdd_ipv6_notifier_work_queue);
+#else
+         INIT_WORK(&pAdapter->ipv6NotifierWorkQueue,
+                   hdd_ipv6_notifier_work_queue);
+#endif
 #endif
          //Stop the Interface TX queue.
          netif_tx_disable(pAdapter->dev);
@@ -8708,8 +8719,13 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
              return NULL;
          }
 
+#ifdef CONFIG_CNSS
+         cnss_init_work(&pAdapter->sessionCtx.monitor.pAdapterForTx->
+                        monTxWorkQueue, hdd_mon_tx_work_queue);
+#else
          INIT_WORK(&pAdapter->sessionCtx.monitor.pAdapterForTx->monTxWorkQueue,
                    hdd_mon_tx_work_queue);
+#endif
       }
          break;
       case WLAN_HDD_FTM:

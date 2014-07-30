@@ -18092,8 +18092,13 @@ wma_data_tx_ack_comp_hdlr(void *wma_context,
 		adf_os_mem_alloc(NULL, sizeof(struct wma_tx_ack_work_ctx));
 		wma_handle->ack_work_ctx = ack_work;
 		if(ack_work) {
+#ifdef CONFIG_CNSS
+			cnss_init_work(&ack_work->ack_cmp_work,
+					wma_data_tx_ack_work_handler);
+#else
 			INIT_WORK(&ack_work->ack_cmp_work,
 					wma_data_tx_ack_work_handler);
+#endif
 			ack_work->wma_handle = wma_handle;
 			ack_work->sub_type = 0;
 			ack_work->status = status;
@@ -21537,8 +21542,13 @@ wma_mgmt_tx_ack_comp_hdlr(void *wma_context,
 			adf_os_mem_alloc(NULL, sizeof(struct wma_tx_ack_work_ctx));
 
 			if(ack_work) {
+#ifdef CONFIG_CNSS
+				cnss_init_work(&ack_work->ack_cmp_work,
+						wma_mgmt_tx_ack_work_handler);
+#else
 				INIT_WORK(&ack_work->ack_cmp_work,
 						wma_mgmt_tx_ack_work_handler);
+#endif
 				ack_work->wma_handle = wma_handle;
 				ack_work->sub_type = pFc->subType;
 				ack_work->status = status;

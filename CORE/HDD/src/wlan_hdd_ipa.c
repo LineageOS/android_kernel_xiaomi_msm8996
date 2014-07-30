@@ -1096,8 +1096,11 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
 		return 0;
 
+#ifdef CONFIG_CNSS
+	cnss_init_work(&hdd_ipa->rm_work, hdd_ipa_rm_send_pkt_to_ipa);
+#else
 	INIT_WORK(&hdd_ipa->rm_work, hdd_ipa_rm_send_pkt_to_ipa);
-
+#endif
 	memset(&create_params, 0, sizeof(create_params));
 	create_params.name = IPA_RM_RESOURCE_WLAN_PROD;
 	create_params.reg_params.user_data = hdd_ipa;

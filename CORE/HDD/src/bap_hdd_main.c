@@ -4194,9 +4194,13 @@ static int BSL_Write(struct sk_buff *skb)
         // save away the pctx context...so it can be retrieved by the work procedure.
         pHciContext->pctx = pctx;
         pHciContext->magic = BT_AMP_HCI_CTX_MAGIC;
+#ifdef CONFIG_CNSS
+        cnss_init_work(&pHciContext->hciInterfaceProcessing,
+                  bslWriteFinish);
+#else
         INIT_WORK(&pHciContext->hciInterfaceProcessing,
                   bslWriteFinish);
-
+#endif
         VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                   "%s: Scheduling work for skb %p, BT-AMP Client context %p, work %p",
                   __func__, skb, pctx, pHciContext);
