@@ -1280,6 +1280,7 @@ struct wma_vdev_start_req {
 	u_int8_t vht_capable;
 	u_int8_t ht_capable;
 	int32_t dfs_pri_multiplier;
+	u_int8_t dot11_mode;
 };
 
 struct wma_set_key_params {

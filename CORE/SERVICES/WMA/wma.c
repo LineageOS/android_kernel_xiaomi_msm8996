@@ -8866,7 +8866,7 @@ VOS_STATUS wma_process_dhcp_ind(tp_wma_handle wma_handle,
 }
 
 static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
-                                      u8 vht_capable)
+                                      u8 vht_capable, u8 dot11_mode)
 {
 	WLAN_PHY_MODE phymode = MODE_UNKNOWN;
 
@@ -8874,8 +8874,29 @@ static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
 	if ((chan >= WMA_11G_CHANNEL_BEGIN) && (chan <= WMA_11G_CHANNEL_END)) {
 		switch (chan_offset) {
 		case PHY_SINGLE_CHANNEL_CENTERED:
-                        /* Configure MODE_11NG_HT20 for self vdev(for vht too) */
-			phymode = vht_capable ? MODE_11AC_VHT20_2G :MODE_11NG_HT20;
+                        /* In case of no channel bonding, use dot11_mode
+			 * to set phy mode
+			 */
+			switch (dot11_mode) {
+			case WNI_CFG_DOT11_MODE_11A:
+				phymode = MODE_11A;
+				break;
+			case WNI_CFG_DOT11_MODE_11B:
+				phymode = MODE_11B;
+				break;
+			case WNI_CFG_DOT11_MODE_11G:
+				phymode = MODE_11G;
+				break;
+			case WNI_CFG_DOT11_MODE_11G_ONLY:
+				phymode = MODE_11GONLY;
+				break;
+			default:
+			/* Configure MODE_11NG_HT20 for
+			 * self vdev(for vht too)
+			 */
+				phymode = MODE_11NG_HT20;
+				break;
+                        }
 			break;
 		case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
 		case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
@@ -8920,8 +8941,9 @@ static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
 			break;
 		}
 	}
-	WMA_LOGD("%s: phymode %d channel %d offset %d vht_capable %d", __func__,
-		 phymode, chan, chan_offset, vht_capable);
+	WMA_LOGD("%s: phymode %d channel %d offset %d vht_capable %d "
+			"dot11_mode %d", __func__, phymode, chan,
+			chan_offset, vht_capable, dot11_mode);
 
 	return phymode;
 }
@@ -8978,7 +9000,7 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	/* Fill channel info */
 	chan->mhz = vos_chan_to_freq(req->chan);
 	chanmode = wma_chan_to_mode(req->chan, req->chan_offset,
-				req->vht_capable);
+				req->vht_capable, req->dot11_mode);
 
 	intr[cmd->vdev_id].chanmode = chanmode; /* save channel mode */
 	intr[cmd->vdev_id].ht_capable = req->ht_capable;
@@ -9655,6 +9677,7 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 	req.chan = params->channelNumber;
 	req.chan_offset = params->secondaryChannelOffset;
 	req.vht_capable = params->vhtCapable;
+	req.dot11_mode = params->dot11_mode;
 #ifdef WLAN_FEATURE_VOWIFI
 	req.max_txpow = params->maxTxPower;
 #else
