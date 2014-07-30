@@ -290,12 +290,12 @@ A_STATUS HIFDevEnableInterrupts(HIF_SDIO_DEVICE *pDev)
 
     /* Set up the Error Interrupt Status Register */
     pDev->IrqEnableRegisters.error_status_enable =
-            ERROR_STATUS_ENABLE_RX_UNDERFLOW_SET(0x01)
-                    | ERROR_STATUS_ENABLE_TX_OVERFLOW_SET(0x01);
+            (ERROR_STATUS_ENABLE_RX_UNDERFLOW_SET(0x01)
+                    | ERROR_STATUS_ENABLE_TX_OVERFLOW_SET(0x01)) >> 16;
 
     /* Set up the Counter Interrupt Status Register (only for debug interrupt to catch fatal errors) */
     pDev->IrqEnableRegisters.counter_int_status_enable =
-            COUNTER_INT_STATUS_ENABLE_BIT_SET(AR6K_TARGET_DEBUG_INTR_MASK);
+            (COUNTER_INT_STATUS_ENABLE_BIT_SET(AR6K_TARGET_DEBUG_INTR_MASK)) >> 24;
 
     /* copy into our temp area */
     A_MEMCPY(&regs,
