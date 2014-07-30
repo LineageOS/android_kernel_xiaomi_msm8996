@@ -12194,7 +12194,8 @@ eHalStatus sme_PsOffloadDisablePowerSave (tHalHandle hHal, tANI_U32 sessionId)
 }
 
 eHalStatus sme_PsOffloadEnableDeferredPowerSave (tHalHandle hHal,
-                                                 tANI_U32 sessionId)
+                                                 tANI_U32 sessionId,
+                                                 tANI_BOOLEAN isReassoc)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
@@ -12202,7 +12203,8 @@ eHalStatus sme_PsOffloadEnableDeferredPowerSave (tHalHandle hHal,
    status = sme_AcquireGlobalLock(&pMac->sme);
    if (HAL_STATUS_SUCCESS( status ))
    {
-       status =  PmcOffloadEnableDeferredStaModePowerSave(hHal, sessionId);
+       status =  PmcOffloadEnableDeferredStaModePowerSave(hHal, sessionId,
+                                                          isReassoc);
        sme_ReleaseGlobalLock( &pMac->sme );
    }
    return (status);
@@ -13121,6 +13123,26 @@ tANI_BOOLEAN sme_staInMiddleOfRoaming(tHalHandle hHal, tANI_U8 sessionId)
 
     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme))) {
         ret = csrNeighborMiddleOfRoaming(hHal, sessionId);
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return ret;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_PsOffloadIsStaInPowerSave
+    \brief  This function returns TRUE if STA is in power save
+    \param  hHal - HAL handle for device
+    \param  sessionId - Session Identifier
+    \return TRUE or FALSE
+    -------------------------------------------------------------------------*/
+tANI_BOOLEAN sme_PsOffloadIsStaInPowerSave(tHalHandle hHal, tANI_U8 sessionId)
+{
+    tpAniSirGlobal pMac   = PMAC_STRUCT( hHal );
+    eHalStatus     status = eHAL_STATUS_SUCCESS;
+    tANI_BOOLEAN   ret    = FALSE;
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme))) {
+        ret = pmcOffloadIsStaInPowerSave(pMac, sessionId);
         sme_ReleaseGlobalLock(&pMac->sme);
     }
     return ret;

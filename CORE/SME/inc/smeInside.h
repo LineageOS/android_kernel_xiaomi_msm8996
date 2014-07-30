@@ -212,6 +212,7 @@ void purgeSmeSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId,
 tANI_BOOLEAN smeCommandPending(tpAniSirGlobal pMac);
 tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 tANI_BOOLEAN pmcOffloadProcessCommand(tpAniSirGlobal pMac,tSmeCmd *pCommand);
+tANI_BOOLEAN pmcOffloadIsStaInPowerSave(tpAniSirGlobal pMac, tANI_U32 sessionId);
 
 //this function is used to abort a command where the normal processing of the command
 //is terminated without going through the normal path. it is here to take care of callbacks for

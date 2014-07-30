@@ -13446,6 +13446,19 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
             hddLog(LOG1, FL("Roaming in progress, do not allow suspend"));
             return -EAGAIN;
         }
+
+        if (pHddCtx->cfg_ini->enablePowersaveOffload &&
+            pHddCtx->cfg_ini->fIsBmpsEnabled &&
+            ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+            (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode))) {
+            if (!sme_PsOffloadIsStaInPowerSave(pHddCtx->hHal,
+                                               pAdapter->sessionId)) {
+                hddLog(VOS_TRACE_LEVEL_DEBUG,
+                  FL("STA is not in power save, Do not allow suspend"));
+                return -EAGAIN;
+            }
+        }
+
         if (pScanInfo->mScanPending && pAdapter->request)
         {
            INIT_COMPLETION(pScanInfo->abortscan_event_var);

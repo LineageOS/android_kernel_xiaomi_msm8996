@@ -2224,7 +2224,8 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
             {
                sme_PsOffloadEnableDeferredPowerSave(
                                   WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                  pAdapter->sessionId);
+                                  pAdapter->sessionId,
+                                  pHddStaCtx->hdd_ReassocScenario);
             }
          }
          else
@@ -3042,6 +3043,7 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                     (WLAN_HDD_GET_CTX(pAdapter))->hdd_mcastbcast_filter_set = FALSE;
             }
             pHddStaCtx->ft_carrier_on = FALSE;
+            pHddStaCtx->hdd_ReassocScenario = FALSE;
             break;
 
         case eCSR_ROAM_FT_START:
@@ -3204,7 +3206,6 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                        before the ENTER_BMPS_REQ ensures Listen Interval is
                        regained back to LI * Modulated DTIM */
                     hdd_set_pwrparams(pHddCtx);
-                    pHddStaCtx->hdd_ReassocScenario = VOS_FALSE;
 
                     /* At this point, device should not be in BMPS;
                        if due to unexpected scenario, if we are in BMPS,
@@ -3220,6 +3221,8 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                     }
                 }
                 halStatus = hdd_RoamSetKeyCompleteHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
+                if (eCSR_ROAM_RESULT_AUTHENTICATED == roamResult)
+                    pHddStaCtx->hdd_ReassocScenario = VOS_FALSE;
             }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
             pRoamInfo->roamSynchInProgress = VOS_FALSE;
