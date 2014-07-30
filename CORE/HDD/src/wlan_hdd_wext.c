@@ -247,7 +247,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
 #define WE_GET_11D_STATE     1
 #define WE_IBSS_STATUS       2
-#define WE_PMC_STATE         3
+
 #define WE_GET_WLAN_DBG      4
 #define WE_GET_MAX_ASSOC     6
 #define WE_GET_WDI_DBG       7
@@ -6033,12 +6033,6 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "****Return IBSS Status*****");
            break;
 
-        case WE_PMC_STATE:
-        {
-             *value = pmcGetPmcState(hHal);
-             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("PMC state=%d!!"),*value);
-             break;
-        }
         case WE_GET_WLAN_DBG:
         {
            vos_trace_display();
@@ -10033,11 +10027,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "getAdhocStatus" },
-
-    {   WE_PMC_STATE,
-        0,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "pmcState" },
 
     {   WE_GET_WLAN_DBG,
         0,
