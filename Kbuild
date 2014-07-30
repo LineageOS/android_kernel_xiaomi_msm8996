@@ -643,10 +643,7 @@ VOSS_OBJS :=    $(VOSS_SRC_DIR)/vos_api.o \
 		$(VOSS_SRC_DIR)/vos_timer.o \
 		$(VOSS_SRC_DIR)/vos_trace.o \
 		$(VOSS_SRC_DIR)/vos_types.o \
-                $(VOSS_SRC_DIR)/vos_utils.o \
-                $(VOSS_SRC_DIR)/wlan_nv_parser.o \
-                $(VOSS_SRC_DIR)/wlan_nv_stream_read.o \
-                $(VOSS_SRC_DIR)/wlan_nv_template_builtin.o
+                $(VOSS_SRC_DIR)/vos_utils.o
 
 ifeq ($(BUILD_DIAG_VERSION),1)
 VOSS_OBJS += $(VOSS_SRC_DIR)/vos_diag.o
@@ -780,7 +777,9 @@ WMA_DIR :=      CORE/SERVICES/WMA
 WMA_INC :=      -I$(WLAN_ROOT)/$(WMA_DIR)
 
 WMA_OBJS :=     $(WMA_DIR)/wma.o \
-		$(WMA_DIR)/wma_dfs_interface.o
+		$(WMA_DIR)/wma_dfs_interface.o \
+		$(WMA_DIR)/wlan_nv.o
+
 
 ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
 WMA_OBJS +=     $(WMA_DIR)/wma_isoc.o
@@ -799,8 +798,7 @@ WDA_INC := 	-I$(WLAN_ROOT)/$(WDA_INC_DIR) \
 		-I$(WLAN_ROOT)/$(WDA_SRC_DIR)
 
 WDA_OBJS :=	$(WDA_SRC_DIR)/wlan_qct_wda_debug.o \
-		$(WDA_SRC_DIR)/wlan_qct_wda_legacy.o \
-		$(WDA_SRC_DIR)/wlan_nv.o
+		$(WDA_SRC_DIR)/wlan_qct_wda_legacy.o
 
 ############ WDI ############
 WDI_DIR :=	CORE/WDI

@@ -1218,8 +1218,6 @@ void wma_get_modeselect(tp_wma_handle wma, u_int32_t *modeSelect);
 VOS_STATUS wma_cfg_download_isoc(v_VOID_t *vos_context,
 		tp_wma_handle wma_handle);
 
-VOS_STATUS wma_nv_download_start(v_VOID_t *handle);
-
 VOS_STATUS wma_cfg_nv_get_hal_message_buffer(tp_wma_handle wma_handle,
 		u_int16_t uReqType, u_int16_t usBufferLen,
 		u_int8_t **pMsgBuffer, u_int16_t *pusDataOffset,

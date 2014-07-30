@@ -88,10 +88,6 @@ typedef enum {
 #define QPOWER_CMD 6
 #define GTX_CMD  7
 
-#ifdef QCA_WIFI_ISOC
-VOS_STATUS wma_nv_download_start(v_VOID_t *vos_context);
-#endif
-
 VOS_STATUS wma_pre_start(v_VOID_t *vos_context);
 
 VOS_STATUS wma_mc_process_msg( v_VOID_t *vos_context, vos_msg_t *msg );

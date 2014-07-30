@@ -7486,114 +7486,6 @@ static void hdd_uninit (struct net_device *dev)
 }
 
 /**---------------------------------------------------------------------------
-
-  \brief hdd_release_firmware() -
-
-   This function calls the release firmware API to free the firmware buffer.
-
-  \param  - pFileName Pointer to the File Name.
-                  pCtx - Pointer to the adapter .
-
-
-  \return - 0 for success, non zero for failure
-
-  --------------------------------------------------------------------------*/
-
-VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
-{
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-   hdd_context_t *pHddCtx = (hdd_context_t*)pCtx;
-   ENTER();
-
-
-   if (!strcmp(WLAN_FW_FILE, pFileName)) {
-
-       hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"%s: Loaded firmware file is %s",__func__,pFileName);
-
-       if(pHddCtx->fw) {
-          release_firmware(pHddCtx->fw);
-          pHddCtx->fw = NULL;
-       }
-       else
-          status = VOS_STATUS_E_FAILURE;
-   }
-   else if (!strcmp(WLAN_NV_FILE,pFileName)) {
-       if(pHddCtx->nv) {
-          release_firmware(pHddCtx->nv);
-          pHddCtx->nv = NULL;
-       }
-       else
-          status = VOS_STATUS_E_FAILURE;
-
-   }
-
-   EXIT();
-   return status;
-}
-
-/**---------------------------------------------------------------------------
-
-  \brief hdd_request_firmware() -
-
-   This function reads the firmware file using the request firmware
-   API and returns the the firmware data and the firmware file size.
-
-  \param  - pfileName - Pointer to the file name.
-              - pCtx - Pointer to the adapter .
-              - ppfw_data - Pointer to the pointer of the firmware data.
-              - pSize - Pointer to the file size.
-
-  \return - VOS_STATUS_SUCCESS for success, VOS_STATUS_E_FAILURE for failure
-
-  --------------------------------------------------------------------------*/
-
-
-VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_data, v_SIZE_t *pSize)
-{
-   int status;
-   VOS_STATUS retval = VOS_STATUS_SUCCESS;
-   hdd_context_t *pHddCtx = (hdd_context_t*)pCtx;
-   ENTER();
-
-   if( (!strcmp(WLAN_FW_FILE, pfileName)) ) {
-
-       status = request_firmware(&pHddCtx->fw, pfileName, pHddCtx->parent_dev);
-
-       if(status || !pHddCtx->fw || !pHddCtx->fw->data) {
-           hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Firmware %s download failed",
-                  __func__, pfileName);
-           retval = VOS_STATUS_E_FAILURE;
-       }
-
-       else {
-         *ppfw_data = (v_VOID_t *)pHddCtx->fw->data;
-         *pSize = pHddCtx->fw->size;
-          hddLog(VOS_TRACE_LEVEL_INFO, "%s: Firmware size = %d",
-                 __func__, *pSize);
-       }
-   }
-   else if(!strcmp(WLAN_NV_FILE, pfileName)) {
-
-       status = request_firmware(&pHddCtx->nv, pfileName, pHddCtx->parent_dev);
-
-       if(status || !pHddCtx->nv || !pHddCtx->nv->data) {
-           hddLog(VOS_TRACE_LEVEL_FATAL, "%s: nv %s download failed",
-                  __func__, pfileName);
-           retval = VOS_STATUS_E_FAILURE;
-       }
-
-       else {
-         *ppfw_data = (v_VOID_t *)pHddCtx->nv->data;
-         *pSize = pHddCtx->nv->size;
-          hddLog(VOS_TRACE_LEVEL_INFO, "%s: nv file size = %d",
-                 __func__, *pSize);
-       }
-   }
-
-   EXIT();
-   return retval;
-}
-/**---------------------------------------------------------------------------
      \brief hdd_full_pwr_cbk() - HDD full power callbackfunction
 
       This is the function invoked by SME to inform the result of a full power
@@ -10775,80 +10667,6 @@ int hdd_wlan_notify_modem_power_state(int state)
 
 /**---------------------------------------------------------------------------
 
-  \brief hdd_update_config_from_nv() - Function to update the contents of
-         the running configuration with parameters taken from NV storage
-
-  \param  - pHddCtx - Pointer to the HDD global context
-
-  \return - VOS_STATUS_SUCCESS if successful
-
-  --------------------------------------------------------------------------*/
-static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
-{
-   v_BOOL_t itemIsValid = VOS_FALSE;
-   VOS_STATUS status;
-   v_MACADDR_t macFromNV[VOS_MAX_CONCURRENCY_PERSONA];
-   v_U8_t      macLoop;
-
-   /*If the NV is valid then get the macaddress from nv else get it from qcom_cfg.ini*/
-   status = vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid);
-   if(status != VOS_STATUS_SUCCESS)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR," vos_nv_getValidity() failed");
-       return VOS_STATUS_E_FAILURE;
-   }
-
-   if (itemIsValid == VOS_TRUE)
-   {
-        hddLog(VOS_TRACE_LEVEL_INFO_HIGH," Reading the Macaddress from NV");
-      status = vos_nv_readMultiMacAddress((v_U8_t *)&macFromNV[0].bytes[0],
-                                          VOS_MAX_CONCURRENCY_PERSONA);
-        if(status != VOS_STATUS_SUCCESS)
-        {
-         /* Get MAC from NV fail, not update CFG info
-          * INI MAC value will be used for MAC setting */
-         hddLog(VOS_TRACE_LEVEL_ERROR," vos_nv_readMacAddress() failed");
-            return VOS_STATUS_E_FAILURE;
-        }
-
-      /* If first MAC is not valid, treat all others are not valid
-       * Then all MACs will be got from ini file */
-      if(vos_is_macaddr_zero(&macFromNV[0]))
-      {
-         /* MAC address in NV file is not configured yet */
-         hddLog(VOS_TRACE_LEVEL_WARN, "Invalid MAC in NV file");
-         return VOS_STATUS_E_INVAL;
-   }
-
-      /* Get MAC address from NV, update CFG info */
-      for(macLoop = 0; macLoop < VOS_MAX_CONCURRENCY_PERSONA; macLoop++)
-      {
-         if(vos_is_macaddr_zero(&macFromNV[macLoop]))
-         {
-            hddLog(VOS_TRACE_LEVEL_ERROR,
-                   "not valid MAC from NV for %d", macLoop);
-            /* This MAC is not valid, skip it
-             * This MAC will be got from ini file */
-         }
-         else
-         {
-            vos_mem_copy((v_U8_t *)&pHddCtx->cfg_ini->intfMacAddr[macLoop].bytes[0],
-                         (v_U8_t *)&macFromNV[macLoop].bytes[0],
-                   VOS_MAC_ADDR_SIZE);
-         }
-      }
-   }
-   else
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "NV ITEM, MAC Not valid");
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   return VOS_STATUS_SUCCESS;
-}
-
-/**---------------------------------------------------------------------------
-
   \brief hdd_post_voss_start_config() - HDD post voss start config helper
 
   \param  - pAdapter - Pointer to the HDD
@@ -11592,13 +11410,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: config update failed",__func__ );
       goto err_wiphy_unregister;
-   }
-
-   // Get mac addr from platform driver
-   if (VOS_STATUS_SUCCESS != hdd_update_config_from_nv(pHddCtx))
-   {
-      // Apply the NV to cfg.dat
-      /* Prima Update MAC address only at here */
    }
 
    if ( VOS_STATUS_SUCCESS != hdd_update_mac_config( pHddCtx ) )
