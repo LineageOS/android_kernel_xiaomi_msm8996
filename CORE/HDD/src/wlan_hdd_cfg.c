@@ -158,7 +158,7 @@ cbNotifySetEseFeatureEnabled(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
     /* At the point this routine is called, the value in the cfg_ini
        table has already been updated */
-    sme_UpdateIsEseFeatureEnabled(pHddCtx->hHal,
+    sme_UpdateIsEseFeatureEnabled(pHddCtx->hHal, 0,
                                   pHddCtx->cfg_ini->isEseIniFeatureEnabled );
 }
 #endif
@@ -2537,14 +2537,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_THERMAL_MIGRATION_ENABLE_MIN,
                  CFG_THERMAL_MIGRATION_ENABLE_MAX ),
 
-#ifndef QCA_WIFI_ISOC
    REG_VARIABLE( CFG_THROTTLE_PERIOD_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, throttlePeriod,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                  CFG_THROTTLE_PERIOD_DEFAULT,
                  CFG_THROTTLE_PERIOD_MIN,
                  CFG_THROTTLE_PERIOD_MAX ),
-#endif
 
    REG_VARIABLE( CFG_ENABLE_MODULATED_DTIM_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableModulatedDTIM,
@@ -2815,14 +2813,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MIN,
                  CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MAX ),
 
-#ifdef QCA_WIFI_2_0
    REG_VARIABLE( CFG_TDLS_RSSI_DELTA, WLAN_PARAM_SignedInteger,
                  hdd_config_t, fTDLSRSSIDelta,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                  CFG_TDLS_RSSI_DELTA_DEFAULT,
                  CFG_TDLS_RSSI_DELTA_MIN,
                  CFG_TDLS_RSSI_DELTA_MAX ),
-#endif
 
    REG_VARIABLE( CFG_TDLS_QOS_WMM_UAPSD_MASK_NAME , WLAN_PARAM_HexInteger,
                  hdd_config_t, fTDLSUapsdMask,
@@ -3328,7 +3324,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_MIN,
                  CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_MAX ),
 
-#ifndef QCA_WIFI_ISOC
    REG_VARIABLE( CFG_THERMAL_TEMP_MIN_LEVEL0_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, thermalTempMinLevel0,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -3398,7 +3393,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SET_TXPOWER_LIMIT5G_DEFAULT,
                 CFG_SET_TXPOWER_LIMIT5G_MIN,
                 CFG_SET_TXPOWER_LIMIT5G_MAX ),
-#endif /*#ifndef QCA_WIFI_ISOC*/
 
    REG_VARIABLE( CFG_ENABLE_DEBUG_CONNECT_ISSUE, WLAN_PARAM_Integer,
                  hdd_config_t, gEnableDebugLog,
@@ -3629,7 +3623,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MAX),
 #endif
 
-#ifdef QCA_WIFI_2_0
 
    REG_VARIABLE( CFG_ENABLE_FW_LOG_TYPE , WLAN_PARAM_Integer,
                 hdd_config_t, enableFwLogType,
@@ -3650,7 +3643,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                 VAR_FLAGS_OPTIONAL,
                 (void *) CFG_ENABLE_FW_MODULE_LOG_DEFAULT),
 
-#endif
 
 
 #ifdef WLAN_FEATURE_11W
@@ -3714,14 +3706,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_DFS_RADAR_PRI_MULTIPLIER_MIN,
                 CFG_DFS_RADAR_PRI_MULTIPLIER_MAX),
 
-#if !defined(QCA_WIFI_ISOC)
    REG_VARIABLE( CFG_REORDER_OFFLOAD_SUPPORT_NAME, WLAN_PARAM_Integer,
                         hdd_config_t, reorderOffloadSupport,
                         VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                         CFG_REORDER_OFFLOAD_SUPPORT_DEFAULT,
                         CFG_REORDER_OFFLOAD_SUPPORT_MIN,
                         CFG_REORDER_OFFLOAD_SUPPORT_MAX ),
-#endif
 #ifdef IPA_UC_OFFLOAD
    REG_VARIABLE( CFG_IPA_UC_OFFLOAD_ENABLED_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, IpaUcOffloadEnabled,
@@ -4847,12 +4837,9 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
       }
    }
 
-   // Keep qcacld-2.0 specific ini params disabled for non-qcacld-2.0
-#ifndef QCA_WIFI_2_0
-   pHddCtx->cfg_ini->enablePowersaveOffload = 0;
-#endif
+   print_hdd_cfg(pHddCtx);
 
-  return( ret_status );
+   return( ret_status );
 }
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -5697,11 +5684,7 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
      }
      else
      {
-#ifndef QCA_WIFI_2_0
-            val = WNI_CFG_ASSOC_STA_LIMIT_STADEF;
-#else
             val = pConfig->maxNumberOfPeers;
-#endif
 
      }
      if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ASSOC_STA_LIMIT, val,
@@ -6114,12 +6097,10 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    /* Update the Directed scan offload setting */
    smeConfig->fScanOffload =  pHddCtx->cfg_ini->fScanOffload;
 
-#ifdef QCA_WIFI_2_0
    /* Update the p2p listen offload setting */
    smeConfig->fP2pListenOffload =  pHddCtx->cfg_ini->fP2pListenOffload;
    smeConfig->csrConfig.scanBandPreference =
                               pHddCtx->cfg_ini->acsScanBandPreference;
-#endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
    /* Update PNO offoad status */

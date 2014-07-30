@@ -73,12 +73,10 @@
 #include "wlan_hdd_tdls.h"
 #endif
 
-#ifdef QCA_WIFI_2_0
 #include "ieee80211_common.h"
 #include "ol_if_athvar.h"
 #include "dbglog_host.h"
 #include "wma.h"
-#endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
@@ -255,7 +253,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_WDI_DBG       7
 #define WE_GET_SAP_AUTO_CHANNEL_SELECTION 8
 #define WE_GET_CONCURRENCY_MODE 9
-#ifdef QCA_WIFI_2_0
 #define WE_GET_NSS           11
 #define WE_GET_LDPC          12
 #define WE_GET_TX_STBC       13
@@ -303,7 +300,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_GTX_MINTPC               53
 #define WE_GET_GTX_BWMASK               54
 #define WE_GET_SCAN_BAND_PREFERENCE     55
-#endif
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_INT     (SIOCIWFIRSTPRIV + 2)
@@ -342,11 +338,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_11W_INFO      9
 #endif
 #define WE_GET_STATES        10
-#ifdef QCA_WIFI_2_0
 #define WE_GET_PHYMODE       12
 #ifdef FEATURE_OEM_DATA_SUPPORT
 #define WE_GET_OEM_DATA_CAP  13
-#endif
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -362,7 +356,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_DISPLAY_DXE_SNAP_SHOT   7
 #define WE_SET_REASSOC_TRIGGER     8
 #define WE_DISPLAY_DATAPATH_SNAP_SHOT    9
-#ifdef QCA_WIFI_2_0
 #define WE_DUMP_AGC_START          11
 #define WE_DUMP_AGC                12
 #define WE_DUMP_CHANINFO_START     13
@@ -370,7 +363,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_DUMP_WATCHDOG           15
 #ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
 #define WE_DUMP_PCIE_LOG           16
-#endif
 #endif
 #define WE_GET_RECOVERY_STAT       17
 
@@ -392,11 +384,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 
 #ifdef FEATURE_WLAN_TDLS
 #undef  MAX_VAR_ARGS
-#ifdef QCA_WIFI_2_0
 #define MAX_VAR_ARGS         11
-#else
-#define MAX_VAR_ARGS         10
-#endif
 #else
 #define MAX_VAR_ARGS         7
 #endif
@@ -674,13 +662,7 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
     const char *pSWversion;
     const char *pHWversion;
     v_U32_t MSPId = 0, mSPId = 0, SIId = 0, CRMId = 0;
-#ifndef QCA_WIFI_2_0
-    VOS_STATUS status;
-    tSirVersionString wcnss_HW_version;
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-#endif
 
-#ifdef QCA_WIFI_2_0
     hdd_context_t *pHddContext;
     int i = 0;
 
@@ -710,29 +692,6 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
 
     if (i == ARRAY_SIZE(qwlan_hw_list))
         pHWversion = "Unknown";
-#else
-    status = sme_GetWcnssSoftwareVersion(hHal, wcnss_SW_version,
-                                         sizeof(wcnss_SW_version));
-    if (VOS_IS_STATUS_SUCCESS(status))
-    {
-        pSWversion = wcnss_SW_version;
-    }
-    else
-    {
-        pSWversion = "Unknown";
-    }
-
-    status = sme_GetWcnssHardwareVersion(hHal, wcnss_HW_version,
-                                         sizeof(wcnss_HW_version));
-    if (VOS_IS_STATUS_SUCCESS(status))
-    {
-        pHWversion = wcnss_HW_version;
-    }
-    else
-    {
-        pHWversion = "Unknown";
-    }
-#endif
     pHddContext->target_hw_name = pHWversion;
 
     if (wrqu) {
@@ -4335,7 +4294,6 @@ static int iw_set_mlme(struct net_device *dev,
 
 }
 
-#ifdef QCA_WIFI_2_0
 int process_wma_set_command(int sessid, int paramid,
                                    int sval, int vpdev)
 {
@@ -4366,9 +4324,7 @@ int process_wma_set_command(int sessid, int paramid,
     }
     return ret;
 }
-#endif
 
-#ifdef QCA_WIFI_2_0
 static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
                                    int new_phymode,
                                    hdd_context_t *phddctx)
@@ -4555,7 +4511,6 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
 
     return 0;
 }
-#endif
 
 /* set param sub-ioctls */
 static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *info,
@@ -4927,16 +4882,10 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
         {
            hddLog(VOS_TRACE_LEVEL_INFO, "Set Thermal Mitigation Level %d",
                   set_value);
-#ifdef QCA_WIFI_ISOC
-           hdd_context_t *hddCtxt = WLAN_HDD_GET_CTX(pAdapter);
-           hddDevTmLevelChangedHandler(hddCtxt->parent_dev, set_value);
-#else
            (void)sme_SetThermalLevel(hHal, set_value);
-#endif
            break;
         }
 
-#ifdef QCA_WIFI_2_0
         case WE_SET_PHYMODE:
         {
            hdd_context_t *phddctx = WLAN_HDD_GET_CTX(pAdapter);
@@ -5942,7 +5891,6 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            break;
         }
 #endif
-#endif
         default:
         {
            hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
@@ -6083,10 +6031,8 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     int *value = (int *)extra;
     int ret = 0; /* success */
-#ifdef QCA_WIFI_2_0
     hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pAdapter);
     void *wmapvosContext = wmahddCtxt->pvosContext;
-#endif
     tSmeConfigParams smeConfig;
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
@@ -6160,7 +6106,6 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
            break;
         }
 
-#ifdef QCA_WIFI_2_0
         case WE_GET_NSS:
         {
            hddLog(LOG1, "GET WMI_VDEV_PARAM_NSS");
@@ -6618,7 +6563,6 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
                       "scanBandPreference = %d", *value);
             break;
         }
-#endif
 
         default:
         {
@@ -7091,7 +7035,6 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
            break;
        }
 #endif
-#ifdef QCA_WIFI_2_0
         case WE_GET_PHYMODE:
         {
            v_BOOL_t ch_bond24 = VOS_FALSE, ch_bond5g = VOS_FALSE;
@@ -7188,7 +7131,6 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             return iw_get_oem_data_cap(dev, info, wrqu, extra);
         }
 #endif /* FEATURE_OEM_DATA_SUPPORT */
-#endif
         default:
         {
             hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd );
@@ -7381,7 +7323,6 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
             return 0;
         }
 
-#ifdef QCA_WIFI_2_0
         case WE_DUMP_AGC_START:
         {
             hddLog(LOG1, "WE_DUMP_AGC_START");
@@ -7432,7 +7373,6 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
                                         0, GEN_CMD);
           break;
         }
-#endif
 #endif
         default:
         {
@@ -7647,9 +7587,7 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
                 tdlsParams.rssi_hysteresis         = apps_args[7];
                 tdlsParams.rssi_trigger_threshold  = apps_args[8];
                 tdlsParams.rssi_teardown_threshold = apps_args[9];
-#ifdef QCA_WIFI_2_0
                 tdlsParams.rssi_delta              = apps_args[10];
-#endif
 
                 wlan_hdd_tdls_set_params(dev, &tdlsParams);
             }
@@ -8617,7 +8555,6 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
              */
             if (pAdapter->mc_addr_list.isFilterApplied)
             {
-#ifdef QCA_WIFI_2_0
                 pMulticastAddrs->ulMulticastAddrCnt =
                                  pAdapter->mc_addr_list.mc_cnt;
                 for (i = 0; i < pAdapter->mc_addr_list.mc_cnt; i++) {
@@ -8625,9 +8562,6 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
                            pAdapter->mc_addr_list.addr[i],
                            sizeof(pAdapter->mc_addr_list.addr[i]));
                 }
-#else
-                pMulticastAddrs->ulMulticastAddrCnt = 0;
-#endif
                 sme_8023MulticastList(hHal, pAdapter->sessionId,
                                       pMulticastAddrs);
             }
@@ -9794,7 +9728,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "setTmLevel" },
 
-#ifdef QCA_WIFI_2_0
     {   WE_SET_PHYMODE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
@@ -10128,7 +10061,6 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "crash_inject" },
 #endif
-#endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
         0,
@@ -10176,7 +10108,6 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "getconcurrency" },
 
-#ifdef QCA_WIFI_2_0
     {   WE_GET_NSS,
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
@@ -10409,7 +10340,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_scan_pref"},
-#endif
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_CHAR_GET_NONE,
@@ -10525,7 +10455,6 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         "getPMFInfo" },
 #endif
-#ifdef QCA_WIFI_2_0
     {   WE_GET_PHYMODE,
         0,
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
@@ -10536,7 +10465,6 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         "getOemDataCap" },
 #endif /* FEATURE_OEM_DATA_SUPPORT */
-#endif
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_NONE_GET_NONE,
@@ -10588,7 +10516,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "reassoc" },
-#ifdef QCA_WIFI_2_0
     {   WE_DUMP_AGC_START,
         0,
         0,
@@ -10618,7 +10545,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "dump_pcie_log" },
-#endif
 #endif
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_VAR_INT_GET_NONE,

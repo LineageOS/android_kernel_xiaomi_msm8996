@@ -63,6 +63,7 @@ typedef struct sRrmNeighborReportDesc
    tListElem    List;
    tSirNeighborBssDescription   *pNeighborBssDescription;
    tANI_U32                     roamScore;
+   tANI_U8                      sessionId;
 } tRrmNeighborReportDesc, *tpRrmNeighborReportDesc;
 
 

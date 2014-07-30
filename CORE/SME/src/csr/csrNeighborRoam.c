@@ -441,6 +441,7 @@ VOS_STATUS csrNeighborRoamUpdateEseModeEnabled(tpAniSirGlobal pMac,
     tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
              &pMac->roam.neighborRoamInfo[sessionId];
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpFTRoamCallbackUsrCtx     pUsrCtx;
 
     if (eCSR_NEIGHBOR_ROAM_STATE_CONNECTED == pNeighborRoamInfo->neighborRoamState)
     {
@@ -1689,14 +1690,18 @@ DEQ_PREAUTH:
  * \fn     csrNeighborRoamOffloadSynchRspHandler
  * \brief  This function handle the RoamOffloadSynch from PE
  * \param  pMac - The handle returned by macOpen.
- * \return eHAL_STATUS_SUCCESS on success ,
+ * \param  pFTRoamOffloadSynchRsp - Roam offload sync response
+ * \param  sessionId - Session identifier
+ * \return eHAL_STATUS_SUCCESS on success,
  *         eHAL_STATUS_FAILURE otherwise
  * --------------------------------------------------------------------------*/
-eHalStatus csrNeighborRoamOffloadSynchRspHandler(
-    tpAniSirGlobal pMac, tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp)
+eHalStatus
+csrNeighborRoamOffloadSynchRspHandler(tpAniSirGlobal pMac,
+                              tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp,
+                              tANI_U8 sessionId)
 {
     tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
-                                &pMac->roam.neighborRoamInfo;
+                                &pMac->roam.neighborRoamInfo[sessionId];
     tpCsrNeighborRoamBSSInfo pBssInfo;
     tANI_U16 bssDescLen;
     tpSirFTPreAuthReq pftPreAuthReq;
@@ -1748,9 +1753,9 @@ eHalStatus csrNeighborRoamOffloadSynchRspHandler(
     vos_mem_copy(&pftPreAuthReq->preAuthbssId,
                  pFTRoamOffloadSynchRsp->pbssDescription->bssId,
                  sizeof(tSirMacAddr));
-    pMac->ft.ftPEContext.pFTPreAuthReq = pftPreAuthReq;
 
-    CSR_NEIGHBOR_ROAM_STATE_TRANSITION(eCSR_NEIGHBOR_ROAM_STATE_PREAUTH_DONE)
+    CSR_NEIGHBOR_ROAM_STATE_TRANSITION(eCSR_NEIGHBOR_ROAM_STATE_PREAUTH_DONE,
+                                       sessionId)
     pNeighborRoamInfo->FTRoamInfo.numPreAuthRetries = 0;
     VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                "LFR3:Entry added to Auth Done List");
@@ -5074,9 +5079,9 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac,
                          pSession->roamOffloadSynchParams.bRoamSynchInProgress =
                          VOS_FALSE;
                          if (eSIR_ROAM_AUTH_STATUS_CONNECTED ==
-                             pSession->roamOffloadSynchParams.authStatus)
-                         {
-                             csrRoamOffloadScan(pMac, ROAM_SCAN_OFFLOAD_START,
+                             pSession->roamOffloadSynchParams.authStatus) {
+                             csrRoamOffloadScan(pMac, sessionId,
+                                                ROAM_SCAN_OFFLOAD_START,
                                                 REASON_CONNECT);
                          }
                      } else

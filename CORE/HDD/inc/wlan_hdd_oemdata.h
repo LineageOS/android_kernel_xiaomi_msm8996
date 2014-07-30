@@ -40,22 +40,13 @@
 #define __WLAN_HDD_OEM_DATA_H__
 
 #ifndef OEM_DATA_REQ_SIZE
-#ifdef QCA_WIFI_2_0
 #define OEM_DATA_REQ_SIZE 280
-#else
-#define OEM_DATA_REQ_SIZE 134
-#endif
 #endif
 
 #ifndef OEM_DATA_RSP_SIZE
-#ifdef QCA_WIFI_2_0
 #define OEM_DATA_RSP_SIZE 1724
-#else
-#define OEM_DATA_RSP_SIZE 1968
-#endif
 #endif
 
-#ifdef QCA_WIFI_2_0
 #define OEM_APP_SIGNATURE_LEN      16
 #define OEM_APP_SIGNATURE_STR      "QUALCOMM-OEM-APP"
 
@@ -161,7 +152,6 @@ typedef PACKED_PRE struct PACKED_POST
     /* channel info on which peer is connected */
     tHddChannelInfo peer_chan_info;
 } tPeerStatusInfo;
-#endif /* QCA_WIFI_2_0 */
 
 struct iw_oem_data_req
 {

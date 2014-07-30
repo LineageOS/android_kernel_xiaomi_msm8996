@@ -1997,7 +1997,6 @@ void limProcessFTRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     }
     pftSessionEntry->limPrevSmeState = pftSessionEntry->limSmeState;
     pftSessionEntry->limSmeState = eLIM_SME_WT_REASSOC_STATE;
-    pMac->ft.ftPEContext.pftSessionEntry = pftSessionEntry;
     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
               "LFR3:%s:created session (%p) with id = %d",
               __func__, pftSessionEntry, pftSessionEntry->peSessionId);
@@ -2006,26 +2005,9 @@ void limProcessFTRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     limPrintMacAddr(pMac, psessionEntry->limReAssocbssId, LOG2);
 
     // Prepare the session right now with as much as possible.
-    pftSessionEntry = limFillFTSession(pMac, pbssDescription, psessionEntry);
+    limFillFTSession(pMac, pbssDescription, pftSessionEntry, psessionEntry);
 
-    if (pftSessionEntry)
-    {
-        pftSessionEntry->is11Rconnection = psessionEntry->is11Rconnection;
-#ifdef FEATURE_WLAN_ESE
-        pftSessionEntry->isESEconnection = psessionEntry->isESEconnection;
-#endif
-#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
-        pftSessionEntry->isFastTransitionEnabled =
-           psessionEntry->isFastTransitionEnabled;
-#endif
-
-#ifdef FEATURE_WLAN_LFR
-        pftSessionEntry->isFastRoamIniFeatureEnabled =
-           psessionEntry->isFastRoamIniFeatureEnabled;
-#endif
-        limFTPrepareAddBssReq( pMac, FALSE, pftSessionEntry, pbssDescription );
-        pMac->ft.ftPEContext.pftSessionEntry = pftSessionEntry;
-    }
+    limFTPrepareAddBssReq( pMac, FALSE, pftSessionEntry, pbssDescription );
 
     pFTRoamOffloadSynchRsp = vos_mem_malloc(rspLen);
     if (NULL == pFTRoamOffloadSynchRsp)
@@ -2038,6 +2020,7 @@ void limProcessFTRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
     pFTRoamOffloadSynchRsp->messageType = eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_RSP;
     pFTRoamOffloadSynchRsp->length = (tANI_U16) rspLen;
+    pFTRoamOffloadSynchRsp->sessionId = psessionEntry->smeSessionId;
     pFTRoamOffloadSynchRsp->pbssDescription = pbssDescription;
 
     mmhMsg.type = pFTRoamOffloadSynchRsp->messageType;

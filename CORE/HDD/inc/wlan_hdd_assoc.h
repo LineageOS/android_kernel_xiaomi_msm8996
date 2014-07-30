@@ -32,13 +32,8 @@
 #ifdef FEATURE_WLAN_TDLS
 #define HDD_MAX_NUM_TDLS_STA          ( 8 )
 #define HDD_MAX_NUM_TDLS_STA_P_UAPSD  ( 1 )
-#ifdef QCA_WIFI_2_0
 #define TDLS_STA_INDEX_VALID(staId) \
                           (((staId) >= 1) && ((staId) < 0xFF))
-#else
-#define TDLS_STA_INDEX_VALID(staId) \
-                          (((staId) >= 4) && ((staId) < 0xFF))
-#endif
 #endif
 #define TKIP_COUNTER_MEASURE_STARTED 1
 #define TKIP_COUNTER_MEASURE_STOPED  0
@@ -127,13 +122,11 @@ typedef struct hdd_station_ctx hdd_station_ctx_t;
 typedef struct hdd_ap_ctx_s  hdd_ap_ctx_t;
 typedef struct hdd_mon_ctx_s  hdd_mon_ctx_t;
 
-#ifdef QCA_WIFI_2_0
 typedef enum
 {
    ePeerConnected = 1,
    ePeerDisconnected
 }ePeerStatus;
-#endif /* QCA_WIFI_2_0 */
 
 extern v_BOOL_t hdd_connIsConnected( hdd_station_ctx_t *pHddStaCtx );
 eCsrBand hdd_connGetConnectedBand( hdd_station_ctx_t *pHddStaCtx );
@@ -152,13 +145,11 @@ VOS_STATUS hdd_roamRegisterTDLSSTA( hdd_adapter_t *pAdapter,
                                     tANI_U8 *peerMac, tANI_U16 staId, tANI_U8 ucastSig);
 void hdd_PerformRoamSetKeyComplete(hdd_adapter_t *pAdapter);
 
-#ifdef QCA_WIFI_2_0
 void hdd_SendPeerStatusIndToOemApp(v_MACADDR_t *peerMac,
                                    tANI_U8 peerStatus,
                                    tANI_U8 peerTimingMeasCap,
                                    tANI_U8 sessionId,
                                    tANI_U8 chanId);
-#endif /* QCA_WIFI_2_0 */
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 void hdd_indicateEseBcnReportNoResults(const hdd_adapter_t *pAdapter,
                                        const tANI_U16 measurementToken,
