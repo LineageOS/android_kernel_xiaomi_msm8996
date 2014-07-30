@@ -707,14 +707,7 @@ limSendSmeStartBssRsp(tpAniSirGlobal pMac,
 
                 limGetPhyMode(pMac, (tANI_U32 *)&pSirSmeRsp->bssDescription.nwType, psessionEntry);
 
-#if 0
-            if (wlan_cfgGetInt(pMac, WNI_CFG_CURRENT_CHANNEL, &len) != eSIR_SUCCESS)
-                limLog(pMac, LOGP, FL("could not retrieve CURRENT_CHANNEL from CFG"));
-
-#endif// TO SUPPORT BT-AMP
-
                 pSirSmeRsp->bssDescription.channelId = psessionEntry->currentOperChannel;
-
                 pSirSmeRsp->bssDescription.aniIndicator = 1;
 
                 curLen = psessionEntry->schBeaconOffsetBegin - ieOffset;
@@ -1398,45 +1391,6 @@ limSendSmeAuthRsp(tpAniSirGlobal pMac,
                   tpPESession psessionEntry,tANI_U8 smesessionId,
                   tANI_U16 smetransactionId)
 {
-#if 0
-    tSirMsgQ       mmhMsg;
-    tSirSmeAuthRsp *pSirSmeAuthRsp;
-
-    pSirSmeAuthRsp = vos_mem_malloc(sizeof(tSirSmeAuthRsp));
-    if (NULL == pSirSmeAuthRsp)
-    {
-        // Log error
-        limLog(pMac, LOGP,
-               FL("call to AllocateMemory failed for eWNI_SME_AUTH_RSP"));
-
-        return;
-    }
-
-
-
-    if(psessionEntry != NULL)
-    {
-        vos_mem_copy( (tANI_U8 *) pSirSmeAuthRsp->peerMacAddr,
-                  (tANI_U8 *) peerMacAddr, sizeof(tSirMacAddr));
-        pSirSmeAuthRsp->authType    = authType;
-
-    }
-
-    pSirSmeAuthRsp->messageType = eWNI_SME_AUTH_RSP;
-    pSirSmeAuthRsp->length      = sizeof(tSirSmeAuthRsp);
-    pSirSmeAuthRsp->statusCode  = statusCode;
-    pSirSmeAuthRsp->protStatusCode = protStatusCode;
-
-    /* Update SME session and transaction Id*/
-    pSirSmeAuthRsp->sessionId = smesessionId;
-    pSirSmeAuthRsp->transactionId = smetransactionId;
-
-    mmhMsg.type = eWNI_SME_AUTH_RSP;
-    mmhMsg.bodyptr = pSirSmeAuthRsp;
-    mmhMsg.bodyval = 0;
-    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
-    limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
-#endif
 } /*** end limSendSmeAuthRsp() ***/
 
 
@@ -2316,28 +2270,6 @@ limSendSmeRemoveKeyRsp(tpAniSirGlobal pMac,
 void
 limSendSmePromiscuousModeRsp(tpAniSirGlobal pMac)
 {
-#if 0
-    tSirMsgQ   mmhMsg;
-    tSirMbMsg  *pMbMsg;
-
-    pMbMsg = vos_mem_malloc(sizeof(tSirMbMsg));
-    if ( NULL == pMbMsg )
-    {
-        // Log error
-        limLog(pMac, LOGP, FL("call to AllocateMemory failed"));
-
-        return;
-    }
-
-    pMbMsg->type   = eWNI_SME_PROMISCUOUS_MODE_RSP;
-    pMbMsg->msgLen = 4;
-
-    mmhMsg.type = eWNI_SME_PROMISCUOUS_MODE_RSP;
-    mmhMsg.bodyptr = pMbMsg;
-    mmhMsg.bodyval = 0;
-    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
-    limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
-#endif
 } /*** end limSendSmePromiscuousModeRsp() ***/
 
 
@@ -2457,7 +2389,6 @@ limSendSmeAddtsRsp(tpAniSirGlobal pMac, tANI_U8 rspReqd, tANI_U32 status, tpPESe
     rsp->messageType = eWNI_SME_ADDTS_RSP;
     rsp->rc = status;
     rsp->rsp.status = (enum eSirMacStatusCodes) status;
-    //vos_mem_copy( (tANI_U8 *) &rsp->rsp.tspec, (tANI_U8 *) &addts->tspec, sizeof(addts->tspec));
     rsp->rsp.tspec = tspec;
     /* Update SME session Id and transcation Id */
     rsp->sessionId = smesessionId;
@@ -2890,7 +2821,6 @@ limSendSmeIBSSPeerInd(
     }
 
     mmhMsg.type    = msgType;
-//    mmhMsg.bodyval = (tANI_U32) pNewPeerInd;
     mmhMsg.bodyptr = pNewPeerInd;
     MTRACE(macTraceMsgTx(pMac, sessionId, mmhMsg.type));
     limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -469,8 +469,6 @@ ProcSetReqInternal(tpAniSirGlobal pMac, tANI_U16 length, tANI_U32 *pParam, tANI_
     tANI_U32    value, result;
 
     PELOG1(cfgLog(pMac, LOGl, FL("Rcvd cfg set request %d bytes"), length);)
-    //for (i=0; i<length/4; i++)
-      //  PELOG2(cfgLog(pMac, LOG2, FL("[%2d] 0x%08x"), i, pParam[i]);)
 
     if (!pMac->cfg.gCfgStatus)
     {

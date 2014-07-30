@@ -269,62 +269,7 @@ static void limUpdatePBCSessionEntry(tpAniSirGlobal pMac,
         pbc = pbc->next;
     }
 }
-#if 0
-/**
- * limWPSPBCTimeout
- *
- *FUNCTION:
- * This function is called when WPS PBC enrtries clean up timer is expired
- *
- *LOGIC:
- * This function remove all the entryies that more than 120 second old
- *
- *ASSUMPTIONS:
- *
- *
- *NOTE:
- *
- * @param  pMac   Pointer to Global MAC structure
- * @param  psessionEntry   A pointer to station PE session
- *
- * @return None
- */
 
-void limWPSPBCTimeout(tpAniSirGlobal pMac, tpPESession psessionEntry)
-{
-    tANI_TIMESTAMP curTime;
-    tSirWPSPBCSession *pbc, *prev = NULL;
-
-    curTime = (tANI_TIMESTAMP)(palGetTickCount(pMac->hHdd) / PAL_TICKS_PER_SECOND);
-
-    PELOG3(limLog(pMac, LOG3, FL("WPS PBC cleanup timeout curTime=%d"), curTime);)
-
-    prev = psessionEntry->pAPWPSPBCSession;
-    if(prev)
-        pbc = prev->next;
-    else
-        return;
-
-    while (pbc) {
-        if (curTime > pbc->timestamp + SIR_WPS_PBC_WALK_TIME) {
-            prev->next = NULL;
-            limRemoveTimeoutPBCsessions(pMac, pbc);
-            break;
-        }
-        prev = pbc;
-        pbc = pbc->next;
-    }
-
-    if(prev)
-    {
-         if (curTime > prev->timestamp + SIR_WPS_PBC_WALK_TIME) {
-            psessionEntry->pAPWPSPBCSession = NULL;
-            limRemoveTimeoutPBCsessions(pMac, prev);
-         }
-    }
-
-}
-#endif
 /**
  * limWPSPBCClose
  *
@@ -610,7 +555,6 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                     if(psessionEntry->ssidHidden)
                       /*We are returning from here as probe request contains the broadcast SSID.
                         So no need to send the probe resp*/
-                        //ssId.length = 0;
                            return;
                     limSendProbeRspMgmtFrame(pMac, pHdr->sa, &ssId, DPH_USE_MGMT_STAID,
                                              DPH_NON_KEEPALIVE_FRAME, psessionEntry,

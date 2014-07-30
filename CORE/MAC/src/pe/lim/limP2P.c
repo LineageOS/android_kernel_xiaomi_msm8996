@@ -1212,7 +1212,7 @@ send_frame1:
     {
         halstatus = halTxFrame( pMac, pPacket, (tANI_U16)nBytes,
                         HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
-                        7,/*SMAC_SWBD_TX_TID_MGMT_HIGH */ limTxComplete, pFrame,
+                        7, limTxComplete, pFrame,
                         txFlag, smeSessionId );
 
         if (!pMbMsg->noack)
@@ -1227,7 +1227,7 @@ send_frame1:
         pMac->lim.mgmtFrameSessionId = pMbMsg->sessionId;
         halstatus = halTxFrameWithTxComplete( pMac, pPacket, (tANI_U16)nBytes,
                         HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
-                        7,/*SMAC_SWBD_TX_TID_MGMT_HIGH */ limTxComplete, pFrame,
+                        7, limTxComplete, pFrame,
                         limP2PActionCnf, txFlag, smeSessionId, false );
 
         if ( ! HAL_STATUS_SUCCESS ( halstatus ) )

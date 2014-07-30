@@ -82,7 +82,6 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
     tANI_U32        prop;
     tANI_U32        phyMode;
     tANI_U32        val;
-    //tpSirBoardCapabilities pBoardCaps;
     tANI_BOOLEAN    qosMode;
     tANI_U16        rxHighestRate = 0;
 
@@ -103,7 +102,6 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
        }
     }
 
-       //pMac->lim.gLimMlmState         = eLIM_MLM_LINK_ESTABLISHED_STATE;
        pStaDs->mlmStaContext.authType = psessionEntry->limCurrentAuthType;
 
        // Add capabilities information, rates and AID
@@ -186,7 +184,6 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
        pStaDs->lleEnabled = 0;
 
        // update TSID to UP mapping
-       //if (pMac->lim.gLimQosEnabled)
        if (qosMode) {
            if (pAssocRsp->edcaPresent) {
                tSirRetStatus status;

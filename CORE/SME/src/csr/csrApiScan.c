@@ -6634,7 +6634,6 @@ static void csrStaApConcTimerHandler(void *pv)
              //Modify callers parameters in case of concurrency
              scanReq.scanType = eSIR_ACTIVE_SCAN;
              //Use concurrency values for min/maxChnTime.
-             //We know csrIsAnySessionConnected(pMac) returns TRUE here
              csrSetDefaultScanTiming(pMac, scanReq.scanType, &scanReq);
 
              status = csrScanCopyRequest(pMac, &pSendScanCmd->u.scanCmd.u.scanRequest, &scanReq);
@@ -6965,9 +6964,8 @@ eHalStatus csrScanTriggerIdleScan(tpAniSirGlobal pMac, tANI_U32 *pTimeInterval)
 
         return status;
     }
-    if((pMac->scan.fScanEnable) && (eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan)
-    /*&& pMac->roam.configParam.impsSleepTime*/)
-    {
+    if((pMac->scan.fScanEnable) &&
+      (eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan)) {
         //Stop get result timer because idle scan gets scan result out of PE
         csrScanStopGetResultTimer(pMac);
         if(pTimeInterval)

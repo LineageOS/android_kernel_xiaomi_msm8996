@@ -205,10 +205,6 @@ void limUpdateChannelSwitch(tpAniSirGlobal, tpSirProbeRespBeacon, tpPESession ps
 void limProcessQuietTimeout(tpAniSirGlobal);
 void limProcessQuietBssTimeout(tpAniSirGlobal);
 
-#if 0
-void limProcessWPSOverlapTimeout(tpAniSirGlobal pMac);
-#endif
-
 void limStartQuietTimer(tpAniSirGlobal pMac, tANI_U8 sessionId);
 void limSwitchPrimaryChannel(tpAniSirGlobal, tANI_U8,tpPESession);
 void limSwitchPrimarySecondaryChannel(tpAniSirGlobal, tpPESession, tANI_U8, ePhyChanBondState);

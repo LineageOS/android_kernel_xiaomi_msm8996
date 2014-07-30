@@ -1664,18 +1664,6 @@ static char *
 dump_lim_enable_quietIE( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     (void) arg2; (void) arg3; (void) arg4;
-#if 0
-    if (arg1)
-    {
-        pMac->lim.gLimSpecMgmt.fQuietEnabled = eANI_BOOLEAN_TRUE;
-        p += log_sprintf(pMac, p, "QuietIE enabled\n");
-    }
-    else
-    {
-        pMac->lim.gLimSpecMgmt.fQuietEnabled = eANI_BOOLEAN_FALSE;
-        p += log_sprintf(pMac, p, "QuietIE disabled\n");
-    }
-#endif
 
     return p;
 }

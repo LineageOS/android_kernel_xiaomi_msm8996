@@ -1460,7 +1460,6 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
                          "but should not be set yet",
                          __func__, __LINE__,
                          sessionId, ac, pACInfo->tspec_mask_status);
-               //ASSERT
                VOS_ASSERT(0);
                vos_mem_free(pentry);
                return SME_QOS_STATUS_SETUP_FAILURE_RSP;
@@ -1575,7 +1574,6 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
                          "state = %d",
                          __func__, __LINE__,
                          ac, pACInfo->curr_state);
-               //ASSERT
                VOS_ASSERT(0);
                // unable to service the request
                // nothing is pending so vote powersave back on
@@ -1714,7 +1712,6 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
                    "%s: %d: no flows running for ac = %d while in state = %d",
                    __func__, __LINE__,
                    ac, pACInfo->curr_state );
-         //ASSERT
          VOS_ASSERT(0);
          // unable to service the request
          // nothing is pending so vote powersave back on
@@ -2828,7 +2825,6 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
                 "%s: %d: release request in unexpected state = %d",
                 __func__, __LINE__,
                 pACInfo->curr_state );
-      //ASSERT
       VOS_ASSERT(0);
       // unable to service the request
       // nothing is pending so vote powersave back on
@@ -4285,7 +4281,6 @@ eHalStatus sme_QosProcessDelTsInd(tpAniSirGlobal pMac, void *pMsgBuf)
                 "%s: %d: no match found for ac = %d",
                 __func__, __LINE__,
                 search_key.key.ac_type);
-      //ASSERT
       VOS_ASSERT(0);
       return eHAL_STATUS_FAILURE;
    }
@@ -4365,7 +4360,6 @@ eHalStatus sme_QosProcessAssocCompleteEv(tpAniSirGlobal pMac, v_U8_t sessionId, 
                 pSession->ac_info[SME_QOS_EDCA_AC_BK].curr_state,
                 pSession->ac_info[SME_QOS_EDCA_AC_VI].curr_state,
                 pSession->ac_info[SME_QOS_EDCA_AC_VO].curr_state);
-      //ASSERT
       VOS_ASSERT(0);
       return status;
    }
@@ -4398,7 +4392,6 @@ eHalStatus sme_QosProcessAssocCompleteEv(tpAniSirGlobal pMac, v_U8_t sessionId, 
                          "%s: %d: On session %d AC %d is in wrong state %d",
                          __func__, __LINE__,
                          sessionId, ac, pACInfo->curr_state);
-               //ASSERT
                VOS_ASSERT(0);
                break;
          }
@@ -4512,7 +4505,6 @@ eHalStatus sme_QosProcessReassocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, voi
                       "%s: %d: On session %d AC %d is in wrong state %d",
                       __func__, __LINE__,
                       sessionId, ac, pACInfo->curr_state);
-            //ASSERT
             VOS_ASSERT(0);
             break;
       }
@@ -4682,7 +4674,6 @@ eHalStatus sme_QosProcessReassocSuccessEv(tpAniSirGlobal pMac, v_U8_t sessionId,
                             "%s: %d: no match found for ac = %d",
                             __func__, __LINE__,
                             search_key.key.ac_type);
-                  //ASSERT
                   VOS_ASSERT(0);
                   return eHAL_STATUS_FAILURE;
                }
@@ -4705,7 +4696,6 @@ eHalStatus sme_QosProcessReassocSuccessEv(tpAniSirGlobal pMac, v_U8_t sessionId,
                       "%s: %d: On session %d AC %d is in wrong state %d",
                       __func__, __LINE__,
                       sessionId, ac, pACInfo->curr_state);
-            //ASSERT
             VOS_ASSERT(0);
             break;
       }
@@ -4773,7 +4763,6 @@ eHalStatus sme_QosProcessReassocFailureEv(tpAniSirGlobal pMac, v_U8_t sessionId,
                       "%s: %d: On session %d AC %d is in wrong state %d",
                       __func__, __LINE__,
                       sessionId, ac, pACInfo->curr_state);
-            //ASSERT
             VOS_ASSERT(0);
             break;
       }
@@ -4832,7 +4821,6 @@ eHalStatus sme_QosProcessHandoffAssocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId
                       "%s: %d: On session %d AC %d is in wrong state %d",
                       __func__, __LINE__,
                       sessionId, ac, pACInfo->curr_state);
-            //ASSERT
             VOS_ASSERT(0);
             break;
       }
@@ -4916,7 +4904,6 @@ eHalStatus sme_QosProcessHandoffSuccessEv(tpAniSirGlobal pMac, v_U8_t sessionId,
                       "%s: %d: On session %d AC %d is in wrong state %d",
                       __func__, __LINE__,
                       sessionId, ac, pACInfo->curr_state);
-            //ASSERT
             VOS_ASSERT(0);
             break;
       }
@@ -4974,7 +4961,6 @@ eHalStatus sme_QosProcessHandoffFailureEv(tpAniSirGlobal pMac, v_U8_t sessionId,
                       "%s: %d: On session %d AC %d is in wrong state %d",
                       __func__, __LINE__,
                       sessionId, ac, pACInfo->curr_state);
-            //ASSERT
             VOS_ASSERT(0);
             break;
       }
@@ -5174,7 +5160,6 @@ eHalStatus sme_QosProcessPreauthSuccessInd(tpAniSirGlobal pMac,
                         "%s: %d: On session %d AC %d is in wrong state %d",
                         __func__, __LINE__,
                         sessionId, ac, pACInfo->curr_state);
-                //ASSERT
                 VOS_ASSERT(0);
                 break;
         }
@@ -5301,7 +5286,6 @@ eHalStatus sme_QosProcessAddTsFailureRsp(tpAniSirGlobal pMac,
    tspec_pending = pACInfo->tspec_pending;
    if(!tspec_pending)
    {
-      //ASSERT
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "%s: %d: On session %d an AddTS is not pending on AC %d",
                 __func__, __LINE__,
@@ -5321,7 +5305,6 @@ eHalStatus sme_QosProcessAddTsFailureRsp(tpAniSirGlobal pMac,
                 "%s: %d: On session %d no match found for ac = %d",
                 __func__, __LINE__,
                 sessionId, search_key.key.ac_type);
-      //ASSERT
       VOS_ASSERT(0);
       return eHAL_STATUS_FAILURE;
    }
@@ -5625,7 +5608,6 @@ eHalStatus sme_QosProcessAddTsSuccessRsp(tpAniSirGlobal pMac,
                 "%s: %d: On session %d no match found for ac %d",
                 __func__, __LINE__,
                 sessionId, search_key.key.ac_type);
-      //ASSERT
       VOS_ASSERT(0);
       return eHAL_STATUS_FAILURE;
    }
@@ -6589,7 +6571,6 @@ static eHalStatus sme_QosProcessBufferedCmd(v_U8_t sessionId)
                    "%s: %d: On session %d unknown cmd = %d",
                    __func__, __LINE__,
                    sessionId, pcmd->cmdInfo.command);
-         //ASSERT
          VOS_ASSERT(0);
          break;
       }
@@ -6723,7 +6704,6 @@ eHalStatus sme_QosSetupFnp(tpAniSirGlobal pMac, tListElem *pEntry)
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "%s: %d: Entry is NULL",
                 __func__, __LINE__);
-      //ASSERT
       VOS_ASSERT(0);
       return eHAL_STATUS_FAILURE;
    }
@@ -6768,7 +6748,6 @@ eHalStatus sme_QosModificationNotifyFnp(tpAniSirGlobal pMac, tListElem *pEntry)
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "%s: %d: Entry is NULL",
                 __func__, __LINE__);
-      //ASSERT
       VOS_ASSERT(0);
       return eHAL_STATUS_FAILURE;
    }
@@ -6860,7 +6839,6 @@ eHalStatus sme_QosDelTsIndFnp(tpAniSirGlobal pMac, tListElem *pEntry)
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "%s: %d: Entry is NULL",
                 __func__, __LINE__);
-      //ASSERT
       VOS_ASSERT(0);
       return eHAL_STATUS_FAILURE;
    }
@@ -6915,7 +6893,6 @@ eHalStatus sme_QosReassocSuccessEvFnp(tpAniSirGlobal pMac, tListElem *pEntry)
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "%s: %d: Entry is NULL",
                 __func__, __LINE__);
-      //ASSERT
       VOS_ASSERT(0);
       return eHAL_STATUS_FAILURE;
    }
@@ -7083,7 +7060,6 @@ eHalStatus sme_QosAddTsFailureFnp(tpAniSirGlobal pMac, tListElem *pEntry)
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "%s: %d: Entry is NULL",
                 __func__, __LINE__);
-      //ASSERT
       VOS_ASSERT(0);
       return eHAL_STATUS_FAILURE;
    }
@@ -7179,7 +7155,6 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "%s: %d: Entry is NULL",
                 __func__, __LINE__);
-      //ASSERT
       VOS_ASSERT(0);
       return eHAL_STATUS_FAILURE;
    }
@@ -7476,7 +7451,6 @@ void sme_QosPmcFullPowerCallback(void *callbackContext, eHalStatus status)
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "%s: %d: PMC failed to put the chip in Full power",
                 __func__, __LINE__);
-      //ASSERT
       VOS_ASSERT(0);
    }
 }
@@ -7494,7 +7468,6 @@ void sme_QosPmcOffloadFullPowerCallback(void *callbackContext, tANI_U32 sessionI
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "%s: %d: PMC failed to put the chip in Full power",
                 __func__, __LINE__);
-      //ASSERT
       VOS_ASSERT(0);
    }
 }

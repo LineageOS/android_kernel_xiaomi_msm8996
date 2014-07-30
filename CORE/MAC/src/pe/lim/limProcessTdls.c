@@ -332,21 +332,6 @@ const tANI_U8* limTraceTdlsActionString( tANI_U8 tdlsActionCode )
    return (const tANI_U8*)"UNKNOWN";
 }
 #endif
-#if 0
-static void printMacAddr(tSirMacAddr macAddr)
-{
-    int i = 0 ;
-    VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR, (" Mac Addr: "));
-
-    for(i = 0 ; i < 6; i++)
-    {
-        VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
-                                                 (" %02x "), macAddr[i]);
-    }
-    VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR, (""));
-    return ;
-}
-#endif
 /*
  * initialize TDLS setup list and related data structures.
  */
@@ -386,57 +371,6 @@ void limTdlsSetNegativeBehavior(tpAniSirGlobal pMac, tANI_U8 value, tANI_BOOLEAN
     }
     LIM_LOG_TDLS(VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,("%d %d -> gLimTdlsNegativeBehavior= 0x%lx"),
         value, on, pMac->lim.gLimTdlsNegativeBehavior));
-}
-#endif
-#if 0
-/*
- * This function is used for creating TDLS public Action frame to
- * transmit on Direct link
- */
-static void limPreparesActionFrameHdr(tpAniSirGlobal pMac, tANI_U8 *pFrame,
-                                         tANI_U8 type, tANI_U8 subType,
-                                                   tANI_U8 *link_iden )
-{
-    tpSirMacMgmtHdr pMacHdr ;
-    tANI_U8 *bssid = link_iden ;
-#if 0
-    tANI_U8 *staMac = (tANI_U8 *)(bssid + sizeof(tSirMacAddr)) ;
-    tANI_U8 *peerMac = (tANI_U8 *) (staMac + sizeof(tSirMacAddr)) ;
-#else
-   tANI_U8 *peerMac = (tANI_U8 *) (bssid + sizeof(tSirMacAddr)) ;
-   tANI_U8 *staMac = (tANI_U8 *)(peerMac + sizeof(tSirMacAddr)) ;
-#endif
-    tANI_U8 toDs =  ANI_TXDIR_IBSS  ;
-
-    pMacHdr = (tpSirMacMgmtHdr) (pFrame);
-
-    /*
-     * prepare 802.11 header
-     */
-    pMacHdr->fc.protVer = SIR_MAC_PROTOCOL_VERSION;
-    pMacHdr->fc.type    = type ;
-    pMacHdr->fc.subType = subType ;
-    /*
-     * TL is not setting up below fields, so we are doing it here
-     */
-    pMacHdr->fc.toDS    = toDs ;
-    pMacHdr->fc.powerMgmt = 0 ;
-
-
-    vos_mem_copy( (tANI_U8 *) pMacHdr->da, peerMac, sizeof( tSirMacAddr ));
-    vos_mem_copy( (tANI_U8 *) pMacHdr->sa,
-                   staMac, sizeof( tSirMacAddr ));
-
-    vos_mem_copy( (tANI_U8 *) pMacHdr->bssId,
-                                bssid, sizeof( tSirMacAddr ));
-
-   LIM_LOG_TDLS(VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_WARN, ("Preparing TDLS action frame\n%02x:%02x:%02x:%02x:%02x:%02x/%02x:%02x:%02x:%02x:%02x:%02x/%02x:%02x:%02x:%02x:%02x:%02x"),
-       pMacHdr->da[0], pMacHdr->da[1], pMacHdr->da[2], pMacHdr->da[3], pMacHdr->da[4], pMacHdr->da[5],
-       pMacHdr->sa[0], pMacHdr->sa[1], pMacHdr->sa[2], pMacHdr->sa[3], pMacHdr->sa[4], pMacHdr->sa[5],
-       pMacHdr->bssId[0], pMacHdr->bssId[1], pMacHdr->bssId[2],
-       pMacHdr->bssId[3], pMacHdr->bssId[4], pMacHdr->bssId[5]));
-
-    return ;
 }
 #endif
 /*
@@ -502,10 +436,6 @@ static tANI_U32 limPrepareTdlsFrameHeader(tpAniSirGlobal pMac, tANI_U8* pFrame,
         pMacHdr->addr1[0], pMacHdr->addr1[1], pMacHdr->addr1[2], pMacHdr->addr1[3], pMacHdr->addr1[4], pMacHdr->addr1[5],
         pMacHdr->addr2[0], pMacHdr->addr2[1], pMacHdr->addr2[2], pMacHdr->addr2[3], pMacHdr->addr2[4], pMacHdr->addr2[5],
         pMacHdr->addr3[0], pMacHdr->addr3[1], pMacHdr->addr3[2], pMacHdr->addr3[3], pMacHdr->addr3[4], pMacHdr->addr3[5]));
-
-    //printMacAddr(pMacHdr->bssId) ;
-    //printMacAddr(pMacHdr->sa) ;
-    //printMacAddr(pMacHdr->da) ;
 
     if (IS_QOS_ENABLED(psessionEntry))
     {
@@ -817,7 +747,6 @@ eHalStatus limTdlsDisRspTxComplete(tpAniSirGlobal pMac,
                                        ("TX complete Success for Dis RSP"));
         status = eHAL_STATUS_SUCCESS ;
     }
-    //pMac->hal.pCBackFnTxComp = NULL ;
     return status ;
 
 }
@@ -872,7 +801,6 @@ eHalStatus limTdlsSetupCnfTxComplete(tpAniSirGlobal pMac,
                                  ("TX complete Success for setup CNF"));
         status = eHAL_STATUS_SUCCESS ;
     }
-    //pMac->hal.pCBackFnTxComp = NULL ;
     return status ;
 }
 #endif
@@ -888,9 +816,7 @@ eHalStatus limTdlsTeardownTxComplete(tpAniSirGlobal pMac,
     tpDphHashNode pStaDs = NULL ;
     tLimTdlsLinkSetupPeer *peerInfo = 0 ;
     tpPESession psessionEntry = NULL ;
-    //tANI_U16 msgType = 0 ;
 
-    //tSirMacAddr peerMac = {0} ;
     /* find peer by looking into the list by expected state */
     limTdlsFindSetupPeerByState(pMac,
                              TDLS_LINK_TEARDOWN_START_STATE, &peerInfo) ;
@@ -906,9 +832,6 @@ eHalStatus limTdlsTeardownTxComplete(tpAniSirGlobal pMac,
     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
                   ("teardown peer Mac = " MAC_ADDRESS_STR),
                    MAC_ADDR_ARRAY((peerInfo)->peerMac));
-
-
-    //pMac->hal.pCBackFnTxComp = NULL ;
 
     psessionEntry = peFindSessionBySessionId(pMac, (peerInfo)->tdls_sessionId);
 
@@ -977,16 +900,6 @@ eHalStatus limTdlsTeardownTxComplete(tpAniSirGlobal pMac,
                                                 eWNI_SME_TDLS_TEARDOWN_IND) ;
     }
 
-
-#if 0
-    /* if previous state is link restart, then restart link setup again */
-    if(TDLS_LINK_SETUP_RESTART_STATE == (peerInfo)->tdls_prev_link_state)
-    {
-        tLimTdlsLinkSetupInfo *setupInfo = &pMac->lim.gLimTdlsLinkSetupInfo ;
-        limTdlsPrepareSetupReqFrame(pMac, setupInfo, 37,
-                                                   peerMac, psessionEntry) ;
-    }
-#endif
     status = eHAL_STATUS_SUCCESS ;
     return status ;
 }
@@ -1014,8 +927,6 @@ static void PopulateDot11fTdlsHtVhtCap(tpAniSirGlobal pMac, uint32 selfDot11Mode
         else
         {
             //Placeholder to support different channel bonding mode of TDLS than AP.
-            //wlan_cfgGetInt(pMac,WNI_CFG_TDLS_CHANNEL_BONDING_MODE,&tdlsChannelBondingMode);
-            //htCap->supportedChannelWidthSet = tdlsChannelBondingMode ? 1 : 0;
             htCap->supportedChannelWidthSet = 1; // hardcode it to max
         }
     }
@@ -1177,11 +1088,6 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
 
     /* Make public Action Frame */
 
-#if 0
-    limPreparesActionFrameHdr(pMac, pFrame, SIR_MAC_MGMT_FRAME,
-                                          SIR_MAC_MGMT_ACTION,
-                                            LINK_IDEN_ADDR_OFFSET(tdlsDisRsp)) ;
-#endif
     limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
               SIR_MAC_MGMT_ACTION, peerMac, psessionEntry->selfMacAddr);
 
@@ -1221,19 +1127,6 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
                                "Discovery Request (0x%08x)."), status );
     }
 
-#if 0
-    if(pMac->hal.pCBackFnTxComp == NULL)
-    {
-        pMac->hal.pCBackFnTxComp = (tpCBackFnTxComp)limTdlsDisRspTxComplete;
-
-        if(TX_SUCCESS != tx_timer_activate(&pMac->hal.txCompTimer))
-        {
-            status = eHAL_STATUS_FAILURE;
-            return status;
-
-        }
-    }
-#endif
     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
                  ("transmitting Discovery response on direct link")) ;
 
@@ -1686,23 +1579,6 @@ tSirRetStatus limSendTdlsTeardownFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGW, FL("There were warnings while packing TDLS "
                                "Teardown Request (0x%08x)."), status );
     }
-#if 0
-    if(pMac->hal.pCBackFnTxComp == NULL)
-    {
-        pMac->hal.pCBackFnTxComp = (tpCBackFnTxComp)limTdlsTeardownTxComplete;
-        if(TX_SUCCESS != tx_timer_activate(&pMac->hal.txCompTimer))
-        {
-            status = eHAL_STATUS_FAILURE;
-            return status;
-
-        }
-    }
-    else
-    {
-        VOS_ASSERT(0) ;
-        return status ;
-    }
-#endif
 
     if( addIeLen != 0 )
     {
@@ -1978,7 +1854,6 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
                             ANI_TXDIR_TODS,
-                            //ANI_TXDIR_IBSS,
                             TID_AC_BK,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
@@ -1988,7 +1863,6 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_DATA,
                             ANI_TXDIR_TODS,
-                            //ANI_TXDIR_IBSS,
                             TID_AC_BK,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
@@ -2046,14 +1920,8 @@ tSirRetStatus limSendTdlsLinkSetupCnfFrame(tpAniSirGlobal pMac,
     tdlsSetupCnf.Action.action     = SIR_MAC_TDLS_SETUP_CNF ;
     tdlsSetupCnf.DialogToken.token = dialog ;
 
-#if 1
     PopulateDot11fLinkIden( pMac, psessionEntry, &tdlsSetupCnf.LinkIdentifier,
                       peerMac, TDLS_INITIATOR) ;
-#else
-    vos_mem_copy( (tANI_U8 *)&tdlsSetupCnf.LinkIdentifier,
-                  (tANI_U8 *)&setupRsp->LinkIdentifier, sizeof(tDot11fIELinkIdentifier)) ;
-#endif
-
     /*
      * TODO: we need to see if we have to support conditions where we have
      * EDCA parameter info element is needed a) if we need different QOS
@@ -2171,23 +2039,6 @@ tSirRetStatus limSendTdlsLinkSetupCnfFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGW, FL("There were warnings while packing TDLS "
                                "Discovery Request (0x%08x)."), status );
     }
-#if 0
-    if(pMac->hal.pCBackFnTxComp == NULL)
-    {
-        pMac->hal.pCBackFnTxComp = (tpCBackFnTxComp)limTdlsSetupCnfTxComplete;
-        if(TX_SUCCESS != tx_timer_activate(&pMac->hal.txCompTimer))
-        {
-            status = eHAL_STATUS_FAILURE;
-            return status;
-
-        }
-    }
-    else
-    {
-        VOS_ASSERT(0) ;
-        return status ;
-    }
-#endif
     //Copy the additional IE.
     //TODO : addIe is added at the end of the frame. This means it doesnt
     //follow the order. This should be ok, but we should consider changing this
@@ -2626,7 +2477,6 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
     isArate=0;
     tempRateSet2.numRates = 0;
 
-    // limGetPhyMode(pMac, &phyMode);
     limGetPhyMode(pMac, &phyMode, NULL);
 
     // get own rate set
@@ -2799,7 +2649,6 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
 static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
               tSirTdlsAddStaReq *pTdlsAddStaReq, tpPESession psessionEntry)
 {
-    //tDot11fIEHTCaps *htCaps = &setupPeerInfo->tdlsPeerHTCaps ;
     tDot11fIEHTCaps htCap, *htCaps;
     tDot11fIEVHTCaps *pVhtCaps = NULL;
     tDot11fIEVHTCaps *pVhtCaps_txbf = NULL;
@@ -2864,7 +2713,6 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
 
         pStaDs->vhtLdpcCapable = pVhtCaps->ldpcCodingCap;
         pStaDs->vhtBeamFormerCapable = 0;
-        // TODO , is it necessary , Sunil???
         pMac->lim.gLimTdlsLinkMode = TDLS_LINK_MODE_AC;
         pVhtCaps_txbf = (tDot11fIEVHTCaps *)(&pTdlsAddStaReq->vhtCap);
         pVhtCaps_txbf->suBeamformeeCap = 0;
@@ -3121,7 +2969,6 @@ static tSirRetStatus limProcessTdlsDisReqFrame(tpAniSirGlobal pMac,
                  ("no Session entry for TDLS session (bssid "MAC_ADDR_ARRAY")"),
                   MAC_ADDR_ARRAY(tdlsDisReq.LinkIdentifier.bssid));
 
-        //VOS_ASSERT(0) ;
         return eSIR_FAILURE;
     }
 
@@ -3327,7 +3174,6 @@ static tSirRetStatus limProcessTdlsSetupReqFrame(tpAniSirGlobal pMac,
                   MAC_ADDRESS_STR")"),
                   MAC_ADDR_ARRAY(tdlsSetupReq.LinkIdentifier.bssid));
 
-        //VOS_ASSERT(0) ;
         return eSIR_FAILURE ;
     }
     /* TODO: we don;t need this check now, varify BSSID */
@@ -3374,7 +3220,6 @@ static tSirRetStatus limProcessTdlsSetupReqFrame(tpAniSirGlobal pMac,
                         ("Link is already setup with this peer" )) ;
         VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
                         ("state = %d"), tmpSetupPeer->tdls_link_state) ;
-        //return eSIR_FAILURE ;
 
         if(tmpSetupPeer == NULL)
         {
@@ -3426,7 +3271,7 @@ static tSirRetStatus limProcessTdlsSetupReqFrame(tpAniSirGlobal pMac,
 
                 break ;
             }
-#if 1
+
             case TDLS_LINK_SETUP_DONE_STATE:
             {
                 tpDphHashNode pStaDs = NULL ;
@@ -3438,12 +3283,6 @@ static tSirRetStatus limProcessTdlsSetupReqFrame(tpAniSirGlobal pMac,
                 tmpSetupPeer->tdls_prev_link_state =  previousState ;
                 tmpSetupPeer->tdls_link_state = currentState ;
                 setupPeer = tmpSetupPeer ;
-#if 0
-                /* Send Teardown to this Peer and Initiate new TDLS Setup */
-                limSendTdlsTeardownFrame(pMac,
-                      &tdlsSetupReq.LinkIdentifier.InitStaAddr[0],
-                        eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON, psessionEntry) ;
-#else
 
                 /* tdls_hklee: send message to HAL before it is deleted, cause  */
                 limTdlsLinkTeardown(pMac, (setupPeer)->peerMac) ;
@@ -3464,8 +3303,6 @@ static tSirRetStatus limProcessTdlsSetupReqFrame(tpAniSirGlobal pMac,
                     /* remove node from setup list */
                     limTdlsDelLinkPeer(pMac, (setupPeer)->peerMac) ;
                 }
-#endif
-                //setupPeer->tdls_prev_link_state = TDLS_LINK_SETUP_RESTART_STATE;
                 tdlsStateStatus = TDLS_LINK_IDLE_STATE ;
                 break ;
 
@@ -3477,7 +3314,6 @@ static tSirRetStatus limProcessTdlsSetupReqFrame(tpAniSirGlobal pMac,
                         ("link Setup is Recieved in unknown state" )) ;
                 break ;
             }
-#endif
         }
         if(tdlsStateStatus == TDLS_LINK_SETUP_START_STATE)
             return eSIR_FAILURE ;
@@ -3499,8 +3335,6 @@ static tSirRetStatus limProcessTdlsSetupReqFrame(tpAniSirGlobal pMac,
         }
 
         setupPeer->dialog = tdlsSetupReq.DialogToken.token ;
-        //setupPeer->tdls_prev_link_state =  setupPeer->tdls_link_state ;
-        //setupPeer->tdls_link_state = TDLS_LINK_SETUP_WAIT_STATE ;
         setupPeer->tdls_prev_link_state =  previousState ;
         setupPeer->tdls_link_state = currentState ;
         /* TDLS_sessionize: remember sessionId for future */
@@ -3544,8 +3378,6 @@ static tSirRetStatus limProcessTdlsSetupReqFrame(tpAniSirGlobal pMac,
     else
     {
         setupPeer->dialog = tdlsSetupReq.DialogToken.token ;
-        //setupPeer->tdls_prev_link_state =  setupPeer->tdls_link_state ;
-        //setupPeer->tdls_link_state = TDLS_LINK_SETUP_WAIT_STATE ;
         setupPeer->tdls_prev_link_state =  previousState ;
         setupPeer->tdls_link_state = currentState ;
         /* TDLS_sessionize: remember sessionId for future */
@@ -3621,7 +3453,6 @@ static tSirRetStatus limProcessTdlsSetupRspFrame(tpAniSirGlobal pMac,
                   MAC_ADDRESS_STR")"),
                   MAC_ADDR_ARRAY(tdlsSetupRsp.LinkIdentifier.bssid));
 
-        //VOS_ASSERT(0) ;
         return eSIR_FAILURE;
     }
 
@@ -3748,7 +3579,6 @@ static tSirRetStatus limProcessTdlsSetupCnfFrame(tpAniSirGlobal pMac,
                   MAC_ADDRESS_STR")"),
                   MAC_ADDR_ARRAY(tdlsSetupCnf.LinkIdentifier.bssid));
 
-        //VOS_ASSERT(0) ;
         return eSIR_FAILURE;
     }
 
@@ -3971,7 +3801,6 @@ static tSirRetStatus limProcessTdlsTeardownFrame(tpAniSirGlobal pMac,
                   MAC_ADDRESS_STR")"),
                   MAC_ADDR_ARRAY(tdlsTeardown.LinkIdentifier.bssid));
 
-        //VOS_ASSERT(0) ;
         return eSIR_FAILURE;
     }
 
@@ -3994,8 +3823,6 @@ static tSirRetStatus limProcessTdlsTeardownFrame(tpAniSirGlobal pMac,
 
     if(NULL == setupPeer)
     {
-        //ignore
-        //VOS_ASSERT(0) ;
         limLog( pMac, LOGE, FL("Teardown from unknown peer. --> ignored") );
 
         return eSIR_FAILURE ;
@@ -4072,7 +3899,6 @@ void limProcessTdlsFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
     tANI_U8 action     =   (pBody + pOffset + PAYLOAD_TYPE_TDLS_SIZE)[1] ;
     tANI_U32 frameLen  = WDA_GET_RX_PAYLOAD_LEN(pBd) ;
     tANI_U8 *tdlsFrameBody = (pBody + pOffset + PAYLOAD_TYPE_TDLS_SIZE) ;
-    //tANI_S8 rssi = (tANI_S8)SIR_MAC_BD_TO_RSSI_DB(pBd);
 
     if(category != SIR_MAC_ACTION_TDLS)
     {
@@ -4409,16 +4235,10 @@ static tSirRetStatus limTdlsLinkEstablish(tpAniSirGlobal pMac, tSirMacAddr peerM
     tdlsPtiTemplate.Category.category = SIR_MAC_ACTION_TDLS;
     tdlsPtiTemplate.Action.action     = SIR_MAC_TDLS_PEER_TRAFFIC_IND;
     tdlsPtiTemplate.DialogToken.token = 0 ; /* filled by firmware at the time of transmission */
-#if 1
     /* CHECK_PTI_LINK_IDENTIFIER_INITIATOR_ADDRESS: initator address should be TDLS link setup's initiator address,
     then below code makes such an way */
     PopulateDot11fLinkIden( pMac, psessionEntry, &tdlsPtiTemplate.LinkIdentifier,
         peerMac, !setupPeer->tdls_bIsResponder) ;
-#else
-   /* below code will make PTI's linkIdentifier's initiator address be selfAddr */
-    PopulateDot11fLinkIden( pMac, psessionEntry, &tdlsPtiTemplate.LinkIdentifier,
-        peerMac, TDLS_INITIATOR) ;
-#endif
 
     /* PUBufferStatus will be filled by firmware at the time of transmission */
     tdlsPtiTemplate.PUBufferStatus.present = 1;
@@ -4765,7 +4585,6 @@ static eHalStatus limSendSmeTdlsDelPeerInd(tpAniSirGlobal pMac,
 
     mmhMsg.bodyptr = peerInd ;
 
-    //peerInd->statusCode =  status ;
     mmhMsg.bodyval = 0;
     limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
     return eSIR_SUCCESS ;
@@ -5098,7 +4917,6 @@ void PopulateDot11fLinkIden(tpAniSirGlobal pMac, tpPESession psessionEntry,
                                  tDot11fIELinkIdentifier *linkIden,
                                        tSirMacAddr peerMac, tANI_U8 reqType)
 {
-    //tANI_U32 size = sizeof(tSirMacAddr) ;
     tANI_U8 *initStaAddr = NULL ;
     tANI_U8 *respStaAddr = NULL ;
 

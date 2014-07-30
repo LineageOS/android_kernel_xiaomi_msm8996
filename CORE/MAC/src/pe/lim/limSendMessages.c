@@ -482,22 +482,6 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
 \param   tSirLinkState      state
 \return  None
   -----------------------------------------------------------*/
- //Original code with out anu's change
-#if 0
-tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAddr bssId)
-{
-    tSirMsgQ msg;
-    tSirRetStatus retCode;
-    msg.type = WDA_SET_LINK_STATE;
-    msg.bodyval = (tANI_U32) state;
-    msg.bodyptr = NULL;
-    MTRACE(macTraceMsgTx(pMac, 0, msg.type));
-    retCode = wdaPostCtrlMsg(pMac, &msg);
-    if (retCode != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("Posting link state %d failed, reason = %x "), retCode);
-    return retCode;
-}
-#endif //0
 tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAddr bssId,
                               tSirMacAddr selfMacAddr, tpSetLinkStateCallback callback,
                               void *callbackArg)

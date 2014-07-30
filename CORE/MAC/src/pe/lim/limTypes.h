@@ -840,10 +840,6 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
 
 tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
     tpLimMlmDelBAReq pMlmDelBAReq ,tpPESession psessionEntry);
-#if 0
-tSirRetStatus limSendSMPowerStateFrame( tpAniSirGlobal pMac,
-      tSirMacAddr peer, tSirMacHTMIMOPowerSaveState State );
-#endif
 
 void limProcessMlmHalAddBARsp( tpAniSirGlobal pMac,
     tpSirMsgQ limMsgQ );

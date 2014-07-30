@@ -764,10 +764,6 @@ typedef struct tagCsrScanStruct
     tANI_S8 currentCountryRSSI;     // RSSI for current country code
     tANI_BOOLEAN f11dInfoApplied;
     tANI_BOOLEAN fCancelIdleScan;
-#ifdef FEATURE_WLAN_WAPI
-//    tANI_U16 NumBkidCandidate;
-//    tBkidCandidateInfo BkidCandidateInfo[CSR_MAX_BKID_ALLOWED]; /* Move this as part of SessionEntry */
-#endif /* FEATURE_WLAN_WAPI */
     tANI_U8 numBGScanChannel;   //number of valid channels in the bgScanChannelList
     tANI_U8 bgScanChannelList[WNI_CFG_BG_SCAN_CHANNEL_LIST_LEN];
     //the ChannelInfo member is not used in this structure.
