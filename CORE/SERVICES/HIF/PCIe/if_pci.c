@@ -1764,7 +1764,7 @@ out:
 #define OL_ATH_PCI_PM_CONTROL 0x44
 
 static int
-hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
+__hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 {
     struct hif_pci_softc *sc = pci_get_drvdata(pdev);
     void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
@@ -1780,8 +1780,6 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 
     if (vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL))
         return ret;
-
-    vos_ssr_protect(__func__);
 
     if (HIFTargetSleepStateAdjust(targid, FALSE, TRUE) < 0)
         goto out;
@@ -1906,12 +1904,24 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     ret = 0;
 
 out:
+    return ret;
+}
+
+static int hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
+{
+    int ret;
+
+    vos_ssr_protect(__func__);
+
+    ret = __hif_pci_suspend(pdev, state);
+
     vos_ssr_unprotect(__func__);
+
     return ret;
 }
 
 static int
-hif_pci_resume(struct pci_dev *pdev)
+__hif_pci_resume(struct pci_dev *pdev)
 {
     struct hif_pci_softc *sc = pci_get_drvdata(pdev);
     void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
@@ -1924,8 +1934,6 @@ hif_pci_resume(struct pci_dev *pdev)
 
     if (vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL))
         return err;
-
-    vos_ssr_protect(__func__);
 
     adf_os_atomic_set(&sc->pci_link_suspended, 0);
 
@@ -2013,12 +2021,24 @@ hif_pci_resume(struct pci_dev *pdev)
 out:
     printk("%s: Resume completes %d\n", __func__, err);
 
-    vos_ssr_unprotect(__func__);
-
     if (err)
         return (-1);
 
     return (0);
+}
+
+static int
+hif_pci_resume(struct pci_dev *pdev)
+{
+    int ret;
+
+    vos_ssr_protect(__func__);
+
+    ret = __hif_pci_resume(pdev);
+
+    vos_ssr_unprotect(__func__);
+
+    return ret;
 }
 
 /* routine to modify the initial buffer count to be allocated on an os
