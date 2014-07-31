@@ -2483,9 +2483,11 @@ sapFsm
 
                  /* get the bonding mode */
                  if (sapContext->channel <= 14)
-                    cbMode = sme_GetChannelBondingMode24G(hHal);
+                    cbMode = sme_GetCBPhyStateFromCBIniValue(
+                                sme_GetChannelBondingMode24G(hHal));
                  else
-                    cbMode = sme_GetChannelBondingMode5G(hHal);
+                    cbMode = sme_GetCBPhyStateFromCBIniValue(
+                                sme_GetChannelBondingMode5G(hHal));
 
                  /* check if channel is in DFS_NOL */
                  if (sapDfsIsChannelInNolList(sapContext, sapContext->channel,
