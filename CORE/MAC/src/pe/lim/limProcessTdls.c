@@ -4955,6 +4955,8 @@ void PopulateDot11fTdlsOffchannelParams(tpAniSirGlobal pMac,
     tANI_U32   numChans = WNI_CFG_VALID_CHANNEL_LIST_LEN;
     tANI_U8    validChan[WNI_CFG_VALID_CHANNEL_LIST_LEN];
     tANI_U8    i;
+    tANI_U8    valid_count = 0;
+
     if (wlan_cfgGetStr(pMac, WNI_CFG_VALID_CHANNEL_LIST,
                           validChan, &numChans) != eSIR_SUCCESS)
     {
@@ -4965,13 +4967,23 @@ void PopulateDot11fTdlsOffchannelParams(tpAniSirGlobal pMac,
          limLog(pMac, LOGP,
                 FL("could not retrieve Valid channel list"));
     }
-    suppChannels->num_bands = (tANI_U8) numChans;
 
-    for ( i = 0U; i < suppChannels->num_bands; i++)
+    /* validating the channel list for DFS channels */
+    for (i = 0U; i < numChans; i++)
     {
-        suppChannels->bands[i][0] = validChan[i];
-        suppChannels->bands[i][1] = 1;
+        if (NV_CHANNEL_DFS == vos_nv_getChannelEnabledState(validChan[i]))
+        {
+            limLog(pMac, LOG1,
+                FL("skipping DFS channel %d from the valid channel list"),
+                validChan[i]);
+            continue;
+        }
+        suppChannels->bands[valid_count][0] = validChan[i];
+        suppChannels->bands[valid_count][1] = 1;
+        valid_count++;
     }
+
+    suppChannels->num_bands = valid_count;
     suppChannels->present = 1 ;
     return ;
 }
