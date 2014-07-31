@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -39,25 +39,6 @@
 #define __PMM_GLOBAL_H__
 
 #include "sirApi.h"
-
-typedef struct sPmmStaState
-{
-    /// Whether this STA is in powersave or not
-    tANI_U8 powerSave : 1;
-    /// Whether this STA is CF-pollable or not
-    tANI_U8 cfPollable : 1;
-    /// counter to indicate PS state update due to asynchronous PS Poll
-    tANI_U8 psPollUpdate:2;
-
-    /// Reserved
-    tANI_U8 rsvd : 4;
-
-    /// Index of the next STA in PS closest to this one
-    tANI_U8 nextPS;
-} tPmmStaState, *tpPmmStaState;
-
-
-#define NO_STATE_CHANGE 0xFF
 
 typedef enum ePmmState
 {
@@ -105,16 +86,6 @@ typedef struct sPmmTim
 
 typedef struct sAniSirPmm
 {
-
-
-    //tANI_U32 disModeBeforeSleeping;
-    //tANI_U32 txMCastCtrl;
-    //tANI_U32 nListenBeforeSleeping;
-    //tANI_U32 txTrafficIdleThreshold;
-    //tANI_U32 rxTrafficIdleThreshold;
-    //tANI_U32 ledInfoBeforeSleeping;
-
-
     tANI_U64 BmpsmaxSleepTime;
     tANI_U64 BmpsavgSleepTime;
     tANI_U64 BmpsminSleepTime;

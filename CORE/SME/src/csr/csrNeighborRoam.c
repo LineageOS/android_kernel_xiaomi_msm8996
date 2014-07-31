@@ -4720,7 +4720,7 @@ eHalStatus csrNeighborRoamIndicateDisconnect(tpAniSirGlobal pMac,
                  * outside of Disassoc Handoff sub-state, then it means that
                  * this is a genuine disconnect and we need to clean up.
                  * Otherwise, we will be stuck in reassoc state which will
-                 * in-turn block scans (see csrIsScanAllowed).
+                 * in-turn block scans.
                  */
                 CSR_NEIGHBOR_ROAM_STATE_TRANSITION(
                                                   eCSR_NEIGHBOR_ROAM_STATE_INIT,

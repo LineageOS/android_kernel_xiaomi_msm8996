@@ -50,11 +50,6 @@
 
 #define CSR_MAX_STA (HAL_NUM_STA)
 
-#define CSR_SME_SCAN_FLAGS_DELETE_CACHE     0x80
-
-#define CSR_TITAN_MAX_RATE_MIMO_CB 240
-#define CSR_TITAN_MAX_RATE_MIMO    126
-
 //define scan return criteria. LIM should use these define as well
 #define CSR_SCAN_RETURN_AFTER_ALL_CHANNELS          (    0 )
 #define CSR_SCAN_RETURN_AFTER_FIRST_MATCH           ( 0x01 )
@@ -62,7 +57,6 @@
 #define CSR_SCAN_RETURN_AFTER_24_BAND_11d_FOUND     ( 0x40 )
 #define CSR_SCAN_RETURN_AFTER_EITHER_BAND_11d_FOUND ( CSR_SCAN_RETURN_AFTER_5_BAND_11d_FOUND | CSR_SCAN_RETURN_AFTER_24_BAND_11d_FOUND )
 #define CSR_NUM_RSSI_CAT        15
-#define CSR_MAX_STATISTICS_REQ        10
 #define CSR_ROAM_SCAN_CHANNEL_SWITCH_TIME        3
 
 //Support for multiple session
@@ -296,18 +290,6 @@ typedef enum
    eCSR_REASON_HANDOFF,
 
 }eCsrDiagWlanStatusEventReason;
-
-typedef enum
-{
-   eCSR_WLAN_HANDOFF_EVENT =0,
-
-}eCsrDiagWlanHandoffEventSubtype;
-
-typedef enum
-{
-   eCSR_WLAN_VCC_EVENT =0,
-
-}eCsrDiagWlanVccEventSubtype;
 
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
@@ -740,7 +722,7 @@ typedef struct tagCsrScanStruct
     tANI_U8 scanResultCfgAgingTime;
     //changes on every scan, a flag to tell whether conflict 11d info found on each BSS
     tANI_BOOLEAN fAmbiguous11dInfoFound;
-    //Tush: changes on every scan, a flag to tell whether the applied 11d info present in one of the scan results
+    //changes on every scan, a flag to tell whether the applied 11d info present in one of the scan results
     tANI_BOOLEAN fCurrent11dInfoMatch;
     tANI_BOOLEAN f11dInfoReset;     //to indicate whether the 11d info in CFG is reset to default
     tSirScanType curScanType;
@@ -1037,9 +1019,6 @@ typedef struct tagCsrRoamStruct
     eCsrRoamLinkQualityInd vccLinkQuality;
     tCsrLinkQualityIndInfo linkQualityIndInfo;
     v_CONTEXT_t gVosContext; //used for interaction with TL
-    //To specify whether an association or a IBSS is WMM enabled
-    //This parameter is only valid during a join or start BSS command is being executed
-    //tANI_BOOLEAN fWMMConnection;      /* Moving it to be part of roamsession */
     v_U8_t ucACWeights[WLANTL_MAX_AC];
     /* TODO : Upto here */
     tCsrTimerInfo WaitForKeyTimerInfo;
@@ -1348,9 +1327,6 @@ eHalStatus csrGetTsmStats(tpAniSirGlobal pMac,
                           tANI_U8 tid);
 #endif  /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 
-eHalStatus csrRoamRegisterCallback(tpAniSirGlobal pMac,
-                                   csrRoamCompleteCallback callback,
-                                   void *pContext);
 /* ---------------------------------------------------------------------------
     \fn csrGetConfigParam
     \brief HDD calls this function to get the global settings currently maintained by CSR.

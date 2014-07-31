@@ -1297,41 +1297,6 @@ void limSendSmeOemDataRsp(tpAniSirGlobal pMac, tANI_U32* pMsgBuf, tSirResultCode
 #endif
 
 
-/**
- * limSendSmeAuthRsp()
- *
- *FUNCTION:
- * This function is called by limProcessSmeMessages() to send
- * eWNI_SME_AUTH_RSP message to host
- *
- *PARAMS:
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- * NA
- *
- * @param  pMac        Pointer to Global MAC structure
- * @param statusCode   Indicates the result of previously issued
- *                     eWNI_SME_AUTH_REQ message
- *
- * @return None
- */
-void
-limSendSmeAuthRsp(tpAniSirGlobal pMac,
-                  tSirResultCodes statusCode,
-                  tSirMacAddr peerMacAddr,
-                  tAniAuthType authType,
-                  tANI_U16   protStatusCode,
-                  tpPESession psessionEntry,tANI_U8 smesessionId,
-                  tANI_U16 smetransactionId)
-{
-} /*** end limSendSmeAuthRsp() ***/
-
-
 void limSendSmeDisassocDeauthNtf( tpAniSirGlobal pMac,
                                 eHalStatus status, tANI_U32 *pCtx )
 {
@@ -2182,34 +2147,6 @@ limSendSmeRemoveKeyRsp(tpAniSirGlobal pMac,
     }
     limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
 } /*** end limSendSmeSetContextRsp() ***/
-
-
-/**
- * limSendSmePromiscuousModeRsp()
- *
- *FUNCTION:
- * This function is called by limProcessSmeMessages() to send
- * eWNI_PROMISCUOUS_MODE_RSP message to host
- *
- *PARAMS:
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- * This function is used for sending eWNI_SME_PROMISCUOUS_MODE_RSP to
- * host as a reply to eWNI_SME_PROMISCUOUS_MODE_REQ directive from it.
- *
- * @param None
- * @return None
- */
-void
-limSendSmePromiscuousModeRsp(tpAniSirGlobal pMac)
-{
-} /*** end limSendSmePromiscuousModeRsp() ***/
-
 
 
 /**

@@ -129,12 +129,6 @@ typedef struct sCsr11rAssocNeighborInfo
 } tCsr11rAssocNeighborInfo, *tpCsr11rAssocNeighborInfo;
 #endif /* WLAN_FEATURE_VOWIFI_11R */
 
-/* Below macros are used to increase the registered neighbor Lookup threshold with TL when
- * we dont see any AP during back ground scanning. The values are incremented from neighborLookupThreshold
- * from CFG, incremented by 5,10,15...50(LOOKUP_THRESHOLD_INCREMENT_MULTIPLIER_MAX *
- * NEIGHBOR_LOOKUP_THRESHOLD_INCREMENT_CONSTANT) */
-#define NEIGHBOR_LOOKUP_THRESHOLD_INCREMENT_CONSTANT    5
-#define LOOKUP_THRESHOLD_INCREMENT_MULTIPLIER_MAX       4
 /*
  * Set lookup UP threshold 5 dB higher than the configured
  * lookup DOWN threshold to minimize thrashing between

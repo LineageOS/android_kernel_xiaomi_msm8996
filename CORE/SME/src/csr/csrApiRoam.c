@@ -69,8 +69,6 @@
 #endif /* FEATURE_WLAN_ESE && !FEATURE_WLAN_ESE_UPLOAD */
 #define CSR_NUM_IBSS_START_CHANNELS_50      4
 #define CSR_NUM_IBSS_START_CHANNELS_24      3
-#define CSR_DEF_IBSS_START_CHANNEL_50       36
-#define CSR_DEF_IBSS_START_CHANNEL_24       1
 #define CSR_WAIT_FOR_KEY_TIMEOUT_PERIOD         ( 5 * PAL_TIMER_TO_SEC_UNIT )  // 5 seconds, for WPA, WPA2, CCKM
 #define CSR_WAIT_FOR_WPS_KEY_TIMEOUT_PERIOD         ( 120 * PAL_TIMER_TO_SEC_UNIT )  // 120 seconds, for WPS
 /*---------------------------------------------------------------------------
@@ -84,8 +82,7 @@
 #define CSR_MIN_GLOBAL_STAT_QUERY_PERIOD   500 //ms
 #define CSR_MIN_GLOBAL_STAT_QUERY_PERIOD_IN_BMPS 2000 //ms
 #define CSR_MIN_TL_STAT_QUERY_PERIOD       500 //ms
-#define CSR_DIAG_LOG_STAT_PERIOD           3000 //ms
-//We use constatnt 4 here
+//We use constant 4 here
 //This macro returns true when higher AC parameter is bigger than lower AC for a difference
 //The bigger the number, the less chance of TX
 //It must put lower AC as the first parameter.
@@ -6332,12 +6329,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
     return ( fReleaseCommand );
 }
 
-eHalStatus csrRoamRegisterCallback(tpAniSirGlobal pMac, csrRoamCompleteCallback callback, void *pContext)
-{
-    eHalStatus status = eHAL_STATUS_SUCCESS;
-    return (status);
-}
-
 eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile, tCsrRoamProfile *pSrcProfile)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -8147,18 +8138,6 @@ static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 res
     }//we have active entry
 }
 
-static void csrRoamRoamingStateAuthRspProcessor( tpAniSirGlobal pMac, tSirSmeAuthRsp *pSmeAuthRsp )
-{
-    //No one is sending eWNI_SME_AUTH_REQ to PE.
-    smsLog(pMac, LOGW, FL("is no-op"));
-    if (eSIR_SME_SUCCESS == pSmeAuthRsp->statusCode) {
-        smsLog(pMac, LOGW, "CSR SmeAuthReq Successful");
-    } else {
-        smsLog(pMac, LOGW, "CSR SmeAuthReq failed with statusCode= 0x%08X [%d]",
-                            pSmeAuthRsp->statusCode, pSmeAuthRsp->statusCode);
-    }
-}
-
 static void csrRoamRoamingStateReassocRspProcessor( tpAniSirGlobal pMac, tpSirSmeJoinRsp pSmeJoinRsp )
 {
     eCsrRoamCompleteResult result;
@@ -8572,14 +8551,6 @@ void csrRoamingStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
             {
                 //We sent a JOIN_REQ
                 csrRoamJoinRspProcessor( pMac, (tSirSmeJoinRsp *)pSmeRsp );
-            }
-            break;
-
-        case eWNI_SME_AUTH_RSP:       // or the Authenticate response message...
-            if (CSR_IS_ROAM_SUBSTATE_AUTH_REQ( pMac, pSmeRsp->sessionId) )
-            {
-                //We sent a AUTH_REQ
-                csrRoamRoamingStateAuthRspProcessor( pMac, (tSirSmeAuthRsp *)pSmeRsp );
             }
             break;
 

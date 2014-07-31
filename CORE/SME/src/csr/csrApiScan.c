@@ -67,35 +67,11 @@
 #define HIDDEN_TIMER (1*60*1000)
 #define CSR_SCAN_RESULT_RSSI_WEIGHT     80 // must be less than 100, represent the persentage of new RSSI
 
-/*---------------------------------------------------------------------------
-  PER filter constant fraction: it is a %
----------------------------------------------------------------------------*/
-#define CSR_SCAN_PER_FILTER_FRAC 100
-
-/*---------------------------------------------------------------------------
-  RSSI filter constant fraction: it is a %
----------------------------------------------------------------------------*/
-#define CSR_SCAN_RSSI_FILTER_FRAC 100
-
-/*---------------------------------------------------------------------------
-Convert RSSI into overall score: Since RSSI is in -dBm values, and the
-overall needs to be weighted inversely (where greater value means better
-system), we convert.
-RSSI *cannot* be more than 0xFF or less than 0 for meaningful WLAN operation
----------------------------------------------------------------------------*/
-#define CSR_SCAN_MAX_SCORE_VAL 0xFF
-#define CSR_SCAN_MIN_SCORE_VAL 0x0
-#define CSR_SCAN_HANDOFF_DELTA 10
 #define MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL 140
 #define MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL 120
 
 #define MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC 30
 #define MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC 20
-
-#define CSR_SCAN_OVERALL_SCORE( rssi )                          \
-    (( rssi < CSR_SCAN_MAX_SCORE_VAL )                          \
-     ? (CSR_SCAN_MAX_SCORE_VAL-rssi) : CSR_SCAN_MIN_SCORE_VAL)
-
 
 #define CSR_SCAN_IS_OVER_BSS_LIMIT(pMac)  \
    ( (pMac)->scan.nBssLimit <= (csrLLCount(&(pMac)->scan.scanResultList)) )
