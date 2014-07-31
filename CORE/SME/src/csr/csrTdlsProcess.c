@@ -1288,7 +1288,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
 
         }
 #endif
-#ifdef QCA_WIFI_2_0
         case eWNI_SME_TDLS_SHOULD_DISCOVER:
         {
             tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
@@ -1337,7 +1336,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
                                 eCSR_ROAM_RESULT_TDLS_SHOULD_PEER_DISCONNECTED);
             break;
         }
-#endif
         default:
         {
             break ;

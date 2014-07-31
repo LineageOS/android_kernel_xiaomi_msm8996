@@ -5919,11 +5919,9 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 if( CSR_IS_ENC_TYPE_STATIC( pProfile->negotiatedUCEncryptionType ) && !CSR_IS_INFRA_AP( pSession->pCurRoamProfile ))
                 {
                     // Issue the set Context request to LIM to establish the Broadcast STA context for the Ibss.
-#if defined (QCA_WIFI_2_0) && !defined (QCA_WIFI_ISOC)
                     // In Rome IBSS case, dummy key installation will break
                     // proper BSS key installation, so skip it.
                     if (!CSR_IS_IBSS( pSession->pCurRoamProfile ))
-#endif
                     {
                         csrRoamIssueSetContextReq( pMac, sessionId,
                                         pProfile->negotiatedMCEncryptionType,
@@ -18045,9 +18043,7 @@ eHalStatus csrHandoffRequest(tpAniSirGlobal pMac,
    pMsg->msgLen = (tANI_U16)sizeof(tAniHandoffReq);
    pMsg->sessionId = sessionId;
    pMsg->channel = pHandoffInfo->channel;
-#ifndef QCA_WIFI_ISOC
    pMsg->handoff_src = pHandoffInfo->src;
-#endif
    vos_mem_copy(pMsg->bssid,
                        pHandoffInfo->bssid,
                        6);

@@ -2174,19 +2174,8 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
             switch (currBssPersona)
             {
                 case VOS_STA_MODE:
-#ifndef QCA_WIFI_2_0
-                    if(pMac->roam.roamSession[sessionId].pCurRoamProfile &&
-                      (pMac->roam.roamSession[sessionId].pCurRoamProfile->csrPersona
-                                      == VOS_STA_MODE)) //check for P2P client mode
-                    {
-                        smsLog(pMac, LOGE, FL(" ****STA mode already exists ****"));
-                        return eHAL_STATUS_FAILURE;
-                    }
-                    break;
-#else
                     smsLog(pMac, LOG1, FL(" **** STA session ****"));
                     return eHAL_STATUS_SUCCESS;
-#endif
 
                 case VOS_STA_SAP_MODE:
 #ifndef WLAN_FEATURE_MBSSID
@@ -2256,11 +2245,9 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                         return eHAL_STATUS_FAILURE;
                     }
                     break;
-#ifdef QCA_WIFI_2_0
                 case VOS_P2P_CLIENT_MODE:
                     smsLog(pMac, LOG1, FL(" **** P2P-Client session ****"));
                     return eHAL_STATUS_SUCCESS;
-#endif
                 default :
                     smsLog(pMac, LOGE, FL("***Persona not handled = %d*****"),currBssPersona);
                     break;
@@ -2403,13 +2390,8 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                         if (pMac->roam.roamSession[sessionId].bssParams.operationChn
                                                         != channelId )
                         {
-#ifndef QCA_WIFI_2_0
-                            smsLog(pMac, LOGE, FL("***MCC is not enabled for SAP +STA****"));
-                            return eHAL_STATUS_FAILURE;
-#else
                             smsLog(pMac, LOGE, FL("*** MCC with SAP+STA sessions ****"));
                             return eHAL_STATUS_SUCCESS;
-#endif
                         }
                     }
                     else if (pMac->roam.roamSession[sessionId].bssParams.bssPersona

@@ -89,10 +89,8 @@ RSSI *cannot* be more than 0xFF or less than 0 for meaningful WLAN operation
 #define MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL 140
 #define MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL 120
 
-#ifndef QCA_WIFI_ISOC
 #define MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC 30
 #define MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC 20
-#endif
 
 #define CSR_SCAN_OVERALL_SCORE( rssi )                          \
     (( rssi < CSR_SCAN_MAX_SCORE_VAL )                          \
@@ -7508,7 +7506,7 @@ eHalStatus csrScanForSSID(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
             /* For one channel be good enpugh time to receive beacon atleast */
             if(  1 == pProfile->ChannelInfo.numOfChannels )
             {
-#if !defined(QCA_WIFI_ISOC) && defined (WLAN_FEATURE_ROAM_SCAN_OFFLOAD)
+#if  defined (WLAN_FEATURE_ROAM_SCAN_OFFLOAD)
                  if (pNeighborRoamInfo->handoffReqInfo.src == FASTREASSOC) {
                      pScanCmd->u.scanCmd.u.scanRequest.maxChnTime =
                                     MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC;
