@@ -3716,6 +3716,8 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     if (pCfg->ht2040CoexEnabled)
         wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
 #endif
+
+#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     if (pCfg->isRoamOffloadEnabled) {
         wiphy->flags |= WIPHY_FLAG_HAS_KEY_MGMT_OFFLOAD;
@@ -3731,6 +3733,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
             "%s: LFR3:Driver key mgmt offload capability flags %x",
                          __func__,wiphy->key_mgmt_offload_support);
     }
+#endif
 #endif
 
     EXIT();
@@ -7246,6 +7249,7 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
     return status;
 }
 
+#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 static int wlan_hdd_cfg80211_key_mgmt_set_pmk(struct wiphy *wiphy,
                                               struct net_device *ndev,
@@ -7281,6 +7285,7 @@ static int wlan_hdd_cfg80211_key_mgmt_set_pmk(struct wiphy *wiphy,
     }
     return VOS_STATUS_SUCCESS;
 }
+#endif
 #endif
 
 /*
@@ -9747,6 +9752,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("connect failed"));
         return status;
     }
+#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     if ((eHAL_STATUS_SUCCESS == status) && (req->psk)) {
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: psk = %p", __func__, req->psk);
@@ -9768,6 +9774,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
              }
         }
     }
+#endif
 #endif
     pHddCtx->isAmpAllowed = VOS_FALSE;
     EXIT();
@@ -14836,7 +14843,9 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .set_ap_chanwidth = wlan_hdd_cfg80211_set_ap_channel_width,
 #endif
      .dump_survey = wlan_hdd_cfg80211_dump_survey,
+#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
      .key_mgmt_set_pmk = wlan_hdd_cfg80211_key_mgmt_set_pmk,
+#endif
 #endif
 };

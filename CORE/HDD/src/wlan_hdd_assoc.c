@@ -126,10 +126,6 @@ static void hdd_indicateEseBcnReportInd(const hdd_adapter_t *pAdapter,
 
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-#define KEY_REPLAY_CTR_SIZE 8
-#endif
-
 static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter,
                                                 tCsrRoamInfo *pRoamInfo,
                                                 tANI_U32 roamId,
@@ -3304,10 +3300,11 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             break;
          }
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
+#ifdef NL80211_KEY_REPLAY_CTR_LEN /* kernel supports key mgmt offload */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
        case eCSR_ROAM_AUTHORIZED_EVENT:
          {
-            v_U8_t keyReplayCtr [KEY_REPLAY_CTR_SIZE];
+            v_U8_t keyReplayCtr [NL80211_KEY_REPLAY_CTR_LEN];
             vos_mem_zero(keyReplayCtr, sizeof(keyReplayCtr));
             hddLog(VOS_TRACE_LEVEL_DEBUG,
                    "cfg80211_authorization_event NL80211_AUTHORIZED");
@@ -3315,6 +3312,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                                          keyReplayCtr, GFP_KERNEL);
             break;
          }
+#endif
 #endif
         default:
             break;
