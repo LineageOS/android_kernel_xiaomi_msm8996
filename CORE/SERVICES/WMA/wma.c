@@ -13950,6 +13950,14 @@ static void wma_set_tx_power(WMA_HANDLE handle,
 		vos_mem_free(tx_pwr_params);
 		return;
 	}
+
+	if (!(wma_handle->interfaces[vdev_id].vdev_up)) {
+		WMA_LOGE("%s: vdev id %d is not up for %pM", __func__, vdev_id,
+				tx_pwr_params->bssId);
+		vos_mem_free(tx_pwr_params);
+		return;
+	}
+
 	if (tx_pwr_params->power == 0) {
 		/* set to default. Since the app does not care the tx power
 		 * we keep the previous setting */
