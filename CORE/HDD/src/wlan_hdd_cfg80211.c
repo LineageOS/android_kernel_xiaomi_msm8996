@@ -12386,7 +12386,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
     status = sme_SendTdlsMgmtFrame(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                    pAdapter->sessionId, peerMac, action_code,
                                    dialog_token, status_code, peer_capability,
-                                   (tANI_U8 *)buf, len, responder);
+                                   (tANI_U8 *)buf, len, !responder);
 
     if (VOS_STATUS_SUCCESS != status)
     {
@@ -12433,11 +12433,11 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
 
     if (SIR_MAC_TDLS_SETUP_RSP == action_code)
     {
-        return wlan_hdd_tdls_set_responder(pAdapter, peerMac, TRUE);
+        return wlan_hdd_tdls_set_responder(pAdapter, peerMac, FALSE);
     }
     else if (SIR_MAC_TDLS_SETUP_CNF == action_code)
     {
-        return wlan_hdd_tdls_set_responder(pAdapter, peerMac, FALSE);
+        return wlan_hdd_tdls_set_responder(pAdapter, peerMac, TRUE);
     }
 
     return 0;
