@@ -16381,6 +16381,7 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 			wmi_get_host_credits(wma->wmi_handle),
 			wmi_get_pending_cmds(wma->wmi_handle));
 
+		VOS_BUG(0);
 		wmi_set_target_suspend(wma->wmi_handle, FALSE);
 		return VOS_STATUS_E_FAILURE;
 	}
