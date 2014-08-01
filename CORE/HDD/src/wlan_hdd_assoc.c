@@ -1409,7 +1409,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                     "%s: Set HDD connState to eConnectionState_Associated",
                     __func__);
             hdd_connSetConnectionState( pHddStaCtx, eConnectionState_Associated );
-            pAdapter->maxRateFlags = pRoamInfo->maxRateFlags;
         }
 
         // Save the connection info from CSR...
