@@ -2102,6 +2102,11 @@ typedef enum
 #define CFG_VHT_CSN_BEAMFORMEE_ANT_SUPPORTED_MAX     ( WNI_CFG_VHT_CSN_BEAMFORMEE_ANT_SUPPORTED_STAMAX )
 #define CFG_VHT_CSN_BEAMFORMEE_ANT_SUPPORTED_DEFAULT ( WNI_CFG_VHT_CSN_BEAMFORMEE_ANT_SUPPORTED_STAMAX - 1)
 
+#define CFG_VHT_ENABLE_TXBF_IN_20MHZ               "gEnableTxBFin20MHz"
+#define CFG_VHT_ENABLE_TXBF_IN_20MHZ_MIN           ( 0 )
+#define CFG_VHT_ENABLE_TXBF_IN_20MHZ_MAX           ( 1 )
+#define CFG_VHT_ENABLE_TXBF_IN_20MHZ_DEFAULT       ( 0 )
+
 #endif
 
 //Enable debug for remain on channel issues
@@ -3082,6 +3087,7 @@ typedef struct
    v_BOOL_t                    enableMuBformee;
    v_BOOL_t                    enableVhtpAid;
    v_BOOL_t                    enableVhtGid;
+   v_BOOL_t                    enableTxBFin20MHz;
 #endif
    v_U8_t                      enableAmpduPs;
    v_U8_t                      enableHtSmps;

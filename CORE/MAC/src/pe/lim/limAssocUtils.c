@@ -3689,6 +3689,7 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     tANI_U8 chanWidthSupp = 0;
     tANI_U32 shortGi20MhzSupport;
     tANI_U32 shortGi40MhzSupport;
+    tANI_U32 enableTxBF20MHz;
     // Package SIR_HAL_ADD_BSS_REQ message parameters
     pAddBssParams = vos_mem_malloc(sizeof( tAddBssParams ));
     if (NULL == pAddBssParams)
@@ -3966,6 +3967,13 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             else
             {
                 pAddBssParams->staContext.txChannelWidthSet = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+                if (HAL_STATUS_SUCCESS(ccmCfgGetInt(pMac,
+                                        WNI_CFG_VHT_ENABLE_TXBF_20MHZ,
+                                        &enableTxBF20MHz))) {
+                    if (VOS_FALSE == enableTxBF20MHz) {
+                        pAddBssParams->staContext.vhtTxBFCapable = 0;
+                    }
+                }
             }
             pAddBssParams->staContext.mimoPS             = (tSirMacHTMIMOPowerSaveState)pAssocRsp->HTCaps.mimoPowerSave;
             pAddBssParams->staContext.delBASupport       = ( tANI_U8 )pAssocRsp->HTCaps.delayedBA;

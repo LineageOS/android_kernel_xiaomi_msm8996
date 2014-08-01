@@ -87,6 +87,7 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
 #if !defined WLAN_FEATURE_VOWIFI
     tANI_U32            localPowerConstraints = 0;
 #endif
+    tANI_U32 enableTxBF20MHz;
 
     pBeaconStruct = vos_mem_malloc(sizeof(tSirProbeRespBeacon));
     if ( NULL == pBeaconStruct )
@@ -143,6 +144,20 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
                     {
                         limLog(pMac, LOGP, FL("could not set "
                                   "WNI_CFG_VHT_SU_BEAMFORMEE_CAP at CFG"));
+                    }
+                }
+            }
+            if (!psessionEntry->htSupportedChannelWidthSet) {
+                if (HAL_STATUS_SUCCESS(ccmCfgGetInt(pMac,
+                                        WNI_CFG_VHT_ENABLE_TXBF_20MHZ,
+                                        &enableTxBF20MHz))) {
+                    if (VOS_FALSE == enableTxBF20MHz) {
+                        psessionEntry->txBFIniFeatureEnabled = 0;
+                        if (cfgSetInt(pMac, WNI_CFG_VHT_SU_BEAMFORMEE_CAP, 0)
+                                                             != eSIR_SUCCESS) {
+                            limLog(pMac, LOGP, FL("could not set "
+                                  "WNI_CFG_VHT_SU_BEAMFORMEE_CAP at CFG"));
+                        }
                     }
                 }
             }
