@@ -81,6 +81,7 @@
 #define WMA_WAKE_LOCK_TIMEOUT              1000
 #define WMA_MAX_RESUME_RETRY               1000
 #define WMA_RESUME_TIMEOUT                 3000
+#define WMA_TGT_WOW_TX_COMPLETE_TIMEOUT    2000
 #define MAX_MEM_CHUNKS                     32
 /*
    In prima 12 HW stations are supported including BCAST STA(staId 0)
@@ -554,6 +555,7 @@ typedef struct {
 	vos_event_t wma_ready_event;
 	vos_event_t wma_resume_event;
 	vos_event_t target_suspend;
+	vos_event_t wow_tx_complete;
 	t_cfg_nv_param cfg_nv;
 
 	v_U16_t max_station;

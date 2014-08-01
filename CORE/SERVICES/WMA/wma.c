@@ -4681,6 +4681,13 @@ wma_register_extscan_event_handler(tp_wma_handle wma_handle)
 	return;
 }
 
+void wma_wow_tx_complete(void *wma)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)wma;
+	WMA_LOGD("WOW_TX_COMPLETE DONE");
+	vos_event_set(&wma_handle->wow_tx_complete);
+}
+
 /*
  * Allocate and init wmi adaptation layer.
  */
@@ -4728,7 +4735,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	}
 
 	/* attach the wmi */
-	wmi_handle = wmi_unified_attach(wma_handle);
+	wmi_handle = wmi_unified_attach(wma_handle, wma_wow_tx_complete);
 	if (!wmi_handle) {
 		WMA_LOGP("%s: failed to attach WMI", __func__);
 		vos_status = VOS_STATUS_E_NOMEM;
@@ -4876,6 +4883,13 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
         vos_status = vos_event_init(&wma_handle->target_suspend);
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("%s: target suspend event initialization failed",
+				__func__);
+		goto err_event_init;
+	}
+
+	vos_status = vos_event_init(&wma_handle->wow_tx_complete);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGP("%s: wow_tx_complete event initialization failed",
 				__func__);
 		goto err_event_init;
 	}
@@ -16324,6 +16338,7 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	cmd->enable = TRUE;
 
 	vos_event_reset(&wma->target_suspend);
+	vos_event_reset(&wma->wow_tx_complete);
 	wma->wow_nack = 0;
 
 	host_credits = wmi_get_host_credits(wma->wmi_handle);
@@ -16344,6 +16359,16 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	if (ret) {
 		WMA_LOGE("Failed to enable wow in fw");
 		goto error;
+	}
+
+	if (vos_wait_single_event(&wma->wow_tx_complete,
+			WMA_TGT_WOW_TX_COMPLETE_TIMEOUT)
+				!= VOS_STATUS_SUCCESS) {
+		WMA_LOGE("FAILED TO RECIEVE TX COMPLETE FOR WOW");
+		WMA_LOGE("Credits:%d; Pending_Cmds:%d",
+			wmi_get_host_credits(wma->wmi_handle),
+			wmi_get_pending_cmds(wma->wmi_handle));
+		VOS_BUG(0);
 	}
 
 	wmi_set_target_suspend(wma->wmi_handle, TRUE);
@@ -22879,6 +22904,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	vos_event_destroy(&wma_handle->wma_ready_event);
 	vos_event_destroy(&wma_handle->target_suspend);
 	vos_event_destroy(&wma_handle->wma_resume_event);
+	vos_event_destroy(&wma_handle->wow_tx_complete);
 	wma_cleanup_vdev_resp(wma_handle);
 #ifdef QCA_WIFI_ISOC
 	vos_event_destroy(&wma_handle->cfg_nv_tx_complete);
