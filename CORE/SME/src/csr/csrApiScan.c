@@ -3361,6 +3361,10 @@ csrScanSaveBssDescription(tpAniSirGlobal pMac,
     {
         vos_mem_set(pCsrBssDescription, cbAllocated, 0);
         pCsrBssDescription->AgingCount = (tANI_S32)pMac->roam.configParam.agingCount;
+        smsLog(pMac, LOGW,
+           FL(" Set Aging Count = %d for BSS "MAC_ADDRESS_STR" "),
+           pCsrBssDescription->AgingCount,
+           MAC_ADDR_ARRAY(pCsrBssDescription->Result.BssDescriptor.bssId));
         vos_mem_copy(&pCsrBssDescription->Result.BssDescriptor, pBSSDescription, cbBSSDesc);
 #if defined(VOSS_ENSBALED)
         if ( NULL != pCsrBssDescription->Result.pvIes)
@@ -4821,6 +4825,10 @@ tCsrScanResult *csrScanSaveBssDescriptionToInterimList( tpAniSirGlobal pMac,
     {
         vos_mem_set(pCsrBssDescription, cbAllocated, 0);
         pCsrBssDescription->AgingCount = (tANI_S32)pMac->roam.configParam.agingCount;
+        smsLog(pMac, LOGW,
+           FL(" Set Aging Count = %d for BSS "MAC_ADDRESS_STR" "),
+           pCsrBssDescription->AgingCount,
+           MAC_ADDR_ARRAY(pCsrBssDescription->Result.BssDescriptor.bssId));
         vos_mem_copy(&pCsrBssDescription->Result.BssDescriptor, pBSSDescription, cbBSSDesc );
         //Save SSID separately for later use
         if( pIes->SSID.present && !csrIsNULLSSID(pIes->SSID.ssid, pIes->SSID.num_ssid) )
@@ -5555,6 +5563,10 @@ tANI_BOOLEAN csrScanAgeOutBss(tpAniSirGlobal pMac, tCsrScanResult *pResult)
     {
         //Reset the counter so that aging out of connected BSS won't hapeen too soon
         pResult->AgingCount = (tANI_S32)pMac->roam.configParam.agingCount;
+        smsLog(pMac, LOGW,
+           FL(" Connected BSS, Set Aging Count=%d for BSS "MAC_ADDRESS_STR" "),
+           pResult->AgingCount,
+           MAC_ADDR_ARRAY(pResult->Result.BssDescriptor.bssId));
         pResult->Result.BssDescriptor.nReceivedTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
 
         return (fRet);
@@ -5611,6 +5623,10 @@ eHalStatus csrScanAgeResults(tpAniSirGlobal pMac, tSmeGetScanChnRsp *pScanChnInf
                 else
                 {
                     pResult->AgingCount--;
+                    smsLog(pMac, LOGW,
+                     FL("Decremented AgingCount=%d for BSS "MAC_ADDRESS_STR""),
+                     pResult->AgingCount,
+                     MAC_ADDR_ARRAY(pResult->Result.BssDescriptor.bssId));
                 }
             }
             pEntry = tmpEntry;
