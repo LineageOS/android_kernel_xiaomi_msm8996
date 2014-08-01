@@ -12548,7 +12548,6 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                     rc = wait_for_completion_timeout(&pAdapter->tdls_del_station_comp,
                               msecs_to_jiffies(WAIT_TIME_TDLS_DEL_STA));
                     if (!rc) {
-                        wlan_hdd_tdls_set_peer_link_status(pTdlsPeer, eTDLS_LINK_IDLE);
                         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                                   "%s: Del station timed out", __func__);
                         return -EPERM;
