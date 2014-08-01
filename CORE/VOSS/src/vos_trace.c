@@ -61,7 +61,7 @@
 #include <vos_trace.h>
 #include <aniGlobal.h>
 #include <wlan_logging_sock_svc.h>
-
+#include "adf_os_time.h"
 /*--------------------------------------------------------------------------
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
@@ -529,7 +529,7 @@ void vos_trace(v_U8_t module, v_U8_t code, v_U8_t session, v_U32_t data)
     rec->code = code;
     rec->session = session;
     rec->data = data;
-    rec->time = vos_timer_get_system_time();
+    rec->time = adf_get_boottime();
     rec->module =  module;
     gvosTraceData.numSinceLastDump ++;
     spin_unlock_irqrestore(&ltraceLock, flags);
