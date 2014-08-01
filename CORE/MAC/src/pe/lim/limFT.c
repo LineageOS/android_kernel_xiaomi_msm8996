@@ -78,13 +78,6 @@ void limFTCleanupPreAuthInfo(tpAniSirGlobal pMac, tpPESession psessionEntry)
    tpPESession pReAssocSessionEntry = NULL;
    tANI_U8 sessionId = 0;
 
-   if (!pMac) {
-#if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-      PELOGE(limLog(pMac, LOGE, "%s: pMac is NULL", __func__);)
-#endif
-      return;
-   }
-
    if (!psessionEntry) {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
       PELOGE(limLog(pMac, LOGE, "%s: psessionEntry is NULL", __func__);)
@@ -346,7 +339,12 @@ void limPerformFTPreAuth(tpAniSirGlobal pMac, eHalStatus status,
 {
     tSirMacAuthFrameBody authFrame;
 
-    if (psessionEntry && psessionEntry->is11Rconnection &&
+    if (NULL == psessionEntry) {
+        PELOGE(limLog(pMac, LOGE, FL("psessionEntry is NULL"));)
+        return;
+    }
+
+    if (psessionEntry->is11Rconnection &&
         psessionEntry->ftPEContext.pFTPreAuthReq) {
         /* Only 11r assoc has FT IEs */
         if (psessionEntry->ftPEContext.pFTPreAuthReq->ft_ies == NULL) {
@@ -1054,8 +1052,8 @@ void limFTProcessPreAuthResult(tpAniSirGlobal pMac, eHalStatus status,
 {
    tpPESession psessionEntry = (tpPESession)data;
 
-   if (NULL == psessionEntry &&
-         NULL == psessionEntry->ftPEContext.pFTPreAuthReq)
+   if (NULL == psessionEntry ||
+       NULL == psessionEntry->ftPEContext.pFTPreAuthReq)
       return;
 
    /* Nothing to be done if the session is not in STA mode */
@@ -1117,24 +1115,25 @@ void limPostFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
    PELOGE(limLog( pMac, LOG1, FL("Auth Rsp = %p"), pFTPreAuthRsp);)
 #endif
 
-   /* Nothing to be done if the session is not in STA mode */
-   if (eLIM_STA_ROLE != psessionEntry->limSystemRole) {
+   if (psessionEntry) {
+       /* Nothing to be done if the session is not in STA mode */
+       if (eLIM_STA_ROLE != psessionEntry->limSystemRole) {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-      PELOGE(limLog(pMac, LOGE, FL("psessionEntry is not in STA mode"));)
+           PELOGE(limLog(pMac, LOGE, FL("psessionEntry is not in STA mode"));)
 #endif
-      return;
+           return;
+       }
+       pFTPreAuthRsp->smeSessionId = psessionEntry->smeSessionId;
+
+       /* The bssid of the AP we are sending Auth1 to. */
+       if (psessionEntry->ftPEContext.pFTPreAuthReq)
+          sirCopyMacAddr(pFTPreAuthRsp->preAuthbssId,
+                psessionEntry->ftPEContext.pFTPreAuthReq->preAuthbssId);
    }
 
    pFTPreAuthRsp->messageType = eWNI_SME_FT_PRE_AUTH_RSP;
    pFTPreAuthRsp->length = (tANI_U16) rspLen;
    pFTPreAuthRsp->status = status;
-   if (psessionEntry)
-      pFTPreAuthRsp->smeSessionId = psessionEntry->smeSessionId;
-
-   /* The bssid of the AP we are sending Auth1 to. */
-   if (psessionEntry->ftPEContext.pFTPreAuthReq)
-      sirCopyMacAddr(pFTPreAuthRsp->preAuthbssId,
-            psessionEntry->ftPEContext.pFTPreAuthReq->preAuthbssId);
 
    /* Attach the auth response now back to SME */
    pFTPreAuthRsp->ft_ies_length = 0;
@@ -1174,7 +1173,6 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
     tANI_U8 *auth_rsp, tANI_U16  auth_rsp_length,
     tpPESession psessionEntry)
 {
-
     tpPESession      pftSessionEntry = NULL;
     tANI_U8 sessionId = 0;
     tpSirBssDescription  pbssDescription = NULL;
@@ -1205,10 +1203,15 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
          auth_rsp_length;
    }
 
+   if (!psessionEntry->ftPEContext.pFTPreAuthReq ||
+       !psessionEntry->ftPEContext.pFTPreAuthReq->pbssDescription) {
+       limLog(pMac, LOGE,
+               FL("pFTPreAuthReq or pbssDescription is NULL"));
+       return;
+   }
+
    /* Create FT session for the re-association at this point */
-   if (psessionEntry->ftPEContext.ftPreAuthStatus == eSIR_SUCCESS &&
-        psessionEntry->ftPEContext.pFTPreAuthReq &&
-        psessionEntry->ftPEContext.pFTPreAuthReq->pbssDescription) {
+   if (psessionEntry->ftPEContext.ftPreAuthStatus == eSIR_SUCCESS) {
       pbssDescription =
          psessionEntry->ftPEContext.pFTPreAuthReq->pbssDescription;
         limPrintMacAddr(pMac, pbssDescription->bssId, LOG1);

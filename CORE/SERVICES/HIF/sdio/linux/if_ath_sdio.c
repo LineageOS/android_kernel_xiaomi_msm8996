@@ -65,6 +65,7 @@ typedef void * hif_handle_t;
 typedef void * hif_softc_t;
 
 extern int hdd_wlan_startup(struct device *dev, void *hif_sc);
+extern void __hdd_wlan_exit(void);
 
 struct ath_hif_sdio_softc *sc = NULL;
 
@@ -224,6 +225,9 @@ ath_hif_sdio_remove(void *context, void *hif_handle)
             pktlogmod_exit(sc->ol_sc);
     }
 #endif
+
+    //cleaning up the upper layers
+    __hdd_wlan_exit();
 
     if (sc && sc->ol_sc){
        A_FREE(sc->ol_sc);
