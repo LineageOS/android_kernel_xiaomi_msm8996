@@ -488,17 +488,6 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
       goto err_packet_close;
    }
 
-#ifndef CONFIG_ENABLE_LINUX_REG
-   /* initialize the NV module */
-   vStatus = vos_nv_open();
-   if (!VOS_IS_STATUS_SUCCESS(vStatus))
-   {
-     // NV module cannot be initialized
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                "%s: Failed to initialize the NV module", __func__);
-     goto err_sys_close;
-   }
-#endif
 
    /* If we arrive here, both threads dispacthing messages correctly */
 
@@ -573,12 +562,6 @@ err_mac_close:
    macClose(gpVosContext->pMACContext);
 
 err_nv_close:
-
-#ifndef CONFIG_ENABLE_LINUX_REG
-   vos_nv_close();
-
-err_sys_close:
-#endif
 
    sysClose(gpVosContext);
 
@@ -1018,16 +1001,6 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   }
 
   ((pVosContextType)vosContext)->pMACContext = NULL;
-
-#ifndef CONFIG_ENABLE_LINUX_REG
-  vosStatus = vos_nv_close();
-  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close NV", __func__);
-     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-  }
-#endif
 
   vosStatus = sysClose( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))

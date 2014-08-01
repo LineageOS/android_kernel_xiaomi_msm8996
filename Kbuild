@@ -73,8 +73,6 @@ ifeq ($(KERNEL_BUILD), 0)
                 endif
         endif
 
-	#Flag to enable new Linux Regulatory implementation
-	CONFIG_ENABLE_LINUX_REG := y
 
         #Flag to enable Protected Managment Frames (11w) feature
         ifeq ($(CONFIG_ROME_IF),usb)
@@ -1091,12 +1089,6 @@ endif
 
 ifeq ($(WLAN_OPEN_SOURCE), 1)
 CDEFINES += -DWLAN_OPEN_SOURCE
-endif
-
-ifeq ($(CONFIG_ENABLE_LINUX_REG), y)
-ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
-CDEFINES += -DCONFIG_ENABLE_LINUX_REG
-endif
 endif
 
 ifeq ($(CONFIG_FEATURE_STATS_EXT), 1)

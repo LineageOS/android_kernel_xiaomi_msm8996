@@ -7804,28 +7804,7 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
            vos_mem_zero( pMac->scan.countryCode11d, sizeof( pMac->scan.countryCode11d ) );
        }
    }
-#ifndef CONFIG_ENABLE_LINUX_REG
-   /* set to default domain ID */
-   pMac->scan.domainIdDefault = pMac->scan.domainIdCurrent;
 
-   /* get the channels based on new cc */
-   status = csrInitGetChannels( pMac );
-
-   if ( status != eHAL_STATUS_SUCCESS )
-   {
-       smsLog( pMac, LOGE, FL("  fail to get Channels "));
-       return status;
-   }
-
-   /* reset info based on new cc, and we are done */
-   csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE, eANI_BOOLEAN_TRUE);
-   /* Country code  Changed, Purge Only scan result
-    * which does not have channel number belong to 11d
-    * channel list
-    */
-   csrScanFilterResults(pMac);
-
-#endif
    if( pMsg->changeCCCallback )
    {
       ((tSmeChangeCountryCallback)(pMsg->changeCCCallback))((void *)pMsg->pDevContext);

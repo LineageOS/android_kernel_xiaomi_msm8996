@@ -2058,7 +2058,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       goto err_vosclose;
    }
 
-#ifdef CONFIG_ENABLE_LINUX_REG
    /* initialize the NV module. This is required so that
       we can initialize the channel information in wiphy
       from the NV.bin data. The channel information in
@@ -2072,7 +2071,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
              "%s: vos_init_wiphy_from_eeprom failed", __func__);
       goto err_vosclose;
    }
-#endif
 
    vosStatus = hdd_set_sme_chan_list(pHddCtx);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {

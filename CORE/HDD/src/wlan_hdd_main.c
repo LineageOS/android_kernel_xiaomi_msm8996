@@ -867,7 +867,8 @@ int wlan_hdd_validate_context(hdd_context_t *pHddCtx)
     }
     return 0;
 }
-#ifdef CONFIG_ENABLE_LINUX_REG
+
+
 void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx)
 {
    hdd_adapter_t *pAdapter = NULL;
@@ -944,77 +945,7 @@ void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx)
         }
    }
 }
-#else
-void hdd_checkandupdate_phymode( hdd_adapter_t *pAdapter, char *country_code)
-{
-    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    hdd_config_t *cfg_param;
-    eCsrPhyMode phyMode;
-    unsigned long rc;
 
-    if (NULL == pHddCtx)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                "HDD Context is null !!");
-        return ;
-    }
-
-    cfg_param = pHddCtx->cfg_ini;
-
-    if (NULL == cfg_param)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                "cfg_params not available !!");
-        return ;
-    }
-
-    phyMode = sme_GetPhyMode(WLAN_HDD_GET_HAL_CTX(pAdapter));
-
-    if (NULL != strstr(cfg_param->listOfNon11acCountryCode, country_code))
-    {
-        if ((eCSR_DOT11_MODE_AUTO == phyMode) ||
-            (eCSR_DOT11_MODE_11ac == phyMode) ||
-            (eCSR_DOT11_MODE_11ac_ONLY == phyMode))
-        {
-             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                     "Setting phymode to 11n!!");
-            sme_SetPhyMode(WLAN_HDD_GET_HAL_CTX(pAdapter), eCSR_DOT11_MODE_11n);
-        }
-    }
-    else
-    {
-        /*New country Supports 11ac as well resetting value back from .ini*/
-        sme_SetPhyMode(WLAN_HDD_GET_HAL_CTX(pAdapter),
-              hdd_cfg_xlate_to_csr_phy_mode(cfg_param->dot11Mode));
-        return ;
-    }
-
-    if ((eConnectionState_Associated == pHddStaCtx->conn_info.connState) &&
-        ((eCSR_CFG_DOT11_MODE_11AC_ONLY == pHddStaCtx->conn_info.dot11Mode) ||
-         (eCSR_CFG_DOT11_MODE_11AC == pHddStaCtx->conn_info.dot11Mode)))
-    {
-        VOS_STATUS vosStatus;
-
-        // need to issue a disconnect to CSR.
-        INIT_COMPLETION(pAdapter->disconnect_comp_var);
-        vosStatus = sme_RoamDisconnect(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                           pAdapter->sessionId,
-                           eCSR_DISCONNECT_REASON_UNSPECIFIED );
-
-        if (VOS_STATUS_SUCCESS == vosStatus)
-        {
-           rc = wait_for_completion_timeout(&pAdapter->disconnect_comp_var,
-                  msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-           if (!rc)
-           {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                        "wait on disconnect_comp_var is failed");
-           }
-        }
-    }
-}
-#endif //CONFIG_ENABLE_LINUX_REG
 
 void hdd_checkandupdate_dfssetting( hdd_adapter_t *pAdapter, char *country_code)
 {
@@ -3750,9 +3681,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
            INIT_COMPLETION(pAdapter->change_country_code);
            hdd_checkandupdate_dfssetting(pAdapter, country_code);
-#ifndef CONFIG_ENABLE_LINUX_REG
-           hdd_checkandupdate_phymode(pAdapter, country_code);
-#endif
+
            status =
               sme_ChangeCountryCode(pHddCtx->hHal,
                                     (void *)(tSmeChangeCountryCallback)
@@ -10444,7 +10373,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    /* Destroy the wake lock */
    vos_wake_lock_destroy(&pHddCtx->sap_wake_lock);
 
-#ifdef CONFIG_ENABLE_LINUX_REG
   vosStatus = vos_nv_close();
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
@@ -10452,7 +10380,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
          "%s: Failed to close NV", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
-#endif
 
    //Close VOSS
    //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
@@ -10883,7 +10810,6 @@ boolean hdd_is_5g_supported(hdd_context_t * pHddCtx)
    return true;
 }
 
-#ifdef CONFIG_ENABLE_LINUX_REG
 #define WOW_MAX_FILTER_LISTS     1
 #define WOW_MAX_FILTERS_PER_LIST 4
 #define WOW_MIN_PATTERN_SIZE     6
@@ -10933,7 +10859,7 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
 
    return status;
 }
-#endif
+
 
 #ifdef MSM_PLATFORM
 void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
@@ -11143,11 +11069,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    init_completion(&pHddCtx->standby_comp_var);
    init_completion(&pHddCtx->req_bmps_comp_var);
 
-#ifdef CONFIG_ENABLE_LINUX_REG
    init_completion(&pHddCtx->linux_reg_req);
-#else
-   init_completion(&pHddCtx->driver_crda_req);
-#endif
 
    spin_lock_init(&pHddCtx->schedScan_lock);
 
@@ -11320,7 +11242,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    pHddCtx->isLogpInProgress = FALSE;
    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 
-#ifdef CONFIG_ENABLE_LINUX_REG
    status = vos_nv_open();
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
@@ -11329,8 +11250,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
             "%s: vos_nv_open failed", __func__);
       goto err_wdclose;
    }
-
-#endif
 
    status = vos_open( &pVosContext, 0);
    if ( !VOS_IS_STATUS_SUCCESS( status ))
@@ -11361,14 +11280,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_vosclose;
    }
 
-#ifdef CONFIG_ENABLE_LINUX_REG
    status = wlan_hdd_reg_init(pHddCtx);
    if (status != VOS_STATUS_SUCCESS) {
       hddLog(VOS_TRACE_LEVEL_FATAL,
              "%s: Failed to init channel list", __func__);
       goto err_vosclose;
    }
-#endif
 
    if (0 == enable_dfs_chan_scan || 1 == enable_dfs_chan_scan)
    {
@@ -11480,19 +11397,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_vosstop;
    }
 
-#ifndef CONFIG_ENABLE_LINUX_REG
-   wlan_hdd_cfg80211_update_reg_info( wiphy );
-
-   wlan_hdd_cfg80211_update_wiphy_caps( wiphy );
-
-   /* registration of wiphy dev with cfg80211 */
-   if (0 > wlan_hdd_cfg80211_register(wiphy))
-   {
-       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy register failed", __func__);
-       goto err_vosstop;
-   }
-#endif
-
 #ifdef QCA_PKT_PROTO_TRACE
    vos_pkt_proto_trace_init();
 #endif /* QCA_PKT_PROTO_TRACE */
@@ -11596,9 +11500,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
       INIT_COMPLETION(pAdapter->change_country_code);
       hdd_checkandupdate_dfssetting(pAdapter, country_code);
-#ifndef CONFIG_ENABLE_LINUX_REG
-      hdd_checkandupdate_phymode(pAdapter, country_code);
-#endif
+
       ret = sme_ChangeCountryCode(pHddCtx->hHal,
             (void *)(tSmeChangeCountryCallback)
             wlan_hdd_change_country_code_callback,
@@ -11791,13 +11693,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    hdd_allow_suspend();
-#ifndef CONFIG_ENABLE_LINUX_REG
-   /*updating wiphy so that regulatory user hints can be processed*/
-   if (wiphy)
-   {
-       regulatory_hint(wiphy, "00");
-   }
-#endif
+
    // Initialize the restart logic
    wlan_hdd_restart_init(pHddCtx);
 
@@ -11940,17 +11836,11 @@ err_bap_close:
 err_close_adapter:
    hdd_close_all_adapters( pHddCtx );
 
-#ifndef CONFIG_ENABLE_LINUX_REG
-   wiphy_unregister(wiphy) ;
-#endif
-
 err_vosstop:
    vos_stop(pVosContext);
 
 err_wiphy_unregister:
-#ifdef CONFIG_ENABLE_LINUX_REG
    wiphy_unregister(wiphy);
-#endif
 
 err_vosclose:
    status = vos_sched_close( pVosContext );
@@ -11963,9 +11853,7 @@ err_vosclose:
 
 err_vos_nv_close:
 
-#ifdef CONFIG_ENABLE_LINUX_REG
    vos_nv_close();
-#endif
 
 err_wdclose:
    if(pHddCtx->cfg_ini->fIsLogpEnabled)

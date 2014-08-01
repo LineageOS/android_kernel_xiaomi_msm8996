@@ -3546,11 +3546,6 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 
     wiphy->mgmt_stypes = wlan_hdd_txrx_stypes;
 
-#ifndef CONFIG_ENABLE_LINUX_REG
-    /* the flag for the other case would be initialzed in
-       vos_init_wiphy_from_nv_bin */
-    wiphy->flags |= WIPHY_FLAG_STRICT_REGULATORY;
-#endif
 
     /* This will disable updating of NL channels from passive to
      * active if a beacon is received on passive channel. */
@@ -3604,7 +3599,6 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     if (vos_get_conparam() != VOS_FTM_MODE) {
 #endif
 
-#ifdef CONFIG_ENABLE_LINUX_REG
     /* even with WIPHY_FLAG_CUSTOM_REGULATORY,
        driver can still register regulatory callback and
        it will get regulatory settings in wiphy->band[], but
@@ -3612,9 +3606,6 @@ int wlan_hdd_cfg80211_init(struct device *dev,
        regulatory settings */
 
     wiphy->reg_notifier = wlan_hdd_linux_reg_notifier;
-#else
-    wiphy->reg_notifier = wlan_hdd_crda_reg_notifier;
-#endif
 
 #if  defined QCA_WIFI_FTM
     }
