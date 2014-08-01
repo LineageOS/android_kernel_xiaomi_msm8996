@@ -1253,6 +1253,8 @@ struct wma_tx_ack_work_ctx {
 #define WMA_TARGET_REQ_TYPE_VDEV_STOP  0x2
 #define WMA_TARGET_REQ_TYPE_VDEV_DEL   0x3
 
+#define WMA_VDEV_START_REQUEST_TIMEOUT (3000) /* 3 seconds */
+
 struct wma_target_req {
 	vos_timer_t event_timeout;
 	struct list_head node;

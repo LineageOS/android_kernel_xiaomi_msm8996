@@ -3195,13 +3195,11 @@ limProcessStaMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession ps
                 mlmAssocCnf.resultCode = (tSirResultCodes) eSIR_SME_REFUSED;
             }
         }
-    }
-    else
-    {
-        limLog( pMac, LOGP, FL( "SessionId:%d ADD_BSS failed!" ),
-                psessionEntry->peSessionId);
-        // Return Assoc confirm to SME with failure
-        mlmAssocCnf.resultCode = (tSirResultCodes) eSIR_SME_REFUSED;
+    } else {
+        limLog(pMac, LOGP, FL("SessionId:%d ADD_BSS failed!"),
+               psessionEntry->peSessionId);
+        /* Return Assoc confirm to SME with failure */
+        mlmAssocCnf.resultCode = eSIR_SME_FT_REASSOC_FAILURE;
     }
 
     if(mlmAssocCnf.resultCode != eSIR_SME_SUCCESS)
