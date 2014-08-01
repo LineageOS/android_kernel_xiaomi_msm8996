@@ -17882,7 +17882,7 @@ void csrRoamFTPreAuthRspProcessor( tHalHandle hHal, tpSirFTPreAuthRsp pFTPreAuth
             eCSR_ROAM_FT_RESPONSE, eCSR_ROAM_RESULT_NONE);
 
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
-   if (csrRoamIsESEAssoc(pMac))
+   if (csrRoamIsESEAssoc(pMac, pFTPreAuthRsp->smeSessionId))
    {
       /* read TSF */
       csrRoamReadTSF(pMac, (tANI_U8 *)roamInfo.timestamp,
@@ -18711,7 +18711,7 @@ void csrRoamFTRoamOffloadSynchRspProcessor(
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
     if (eHAL_STATUS_SUCCESS != csrNeighborRoamOffloadSynchRspHandler(
-        pMac, pFTRoamOffloadSynchRsp)) {
+        pMac, pFTRoamOffloadSynchRsp, pFTRoamOffloadSynchRsp->sessionId)) {
         /*
          * Bail out if Roam Offload Synch Response was not even handled.
          */
@@ -18719,7 +18719,7 @@ void csrRoamFTRoamOffloadSynchRspProcessor(
                               "was not processed"));
         goto err_synch_rsp;
     }
-    csrNeighborRoamRequestHandoff(pMac);
+    csrNeighborRoamRequestHandoff(pMac, pFTRoamOffloadSynchRsp->sessionId);
     csrRoamDequeueRoamOffloadSynch(pMac);
 
 err_synch_rsp:

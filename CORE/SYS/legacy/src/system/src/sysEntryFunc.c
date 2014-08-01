@@ -121,6 +121,12 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
     VOS_STATUS  vosStatus =
               WDA_DS_PeekRxPacketInfo( pVosPkt, (v_PVOID_t *)&pBd, VOS_FALSE );
+#ifdef WLAN_FEATURE_11W
+    tANI_U8         sessionId;
+    tpPESession     psessionEntry;
+    tpSirMacMgmtHdr pMacHdr;
+#endif /* WLAN_FEATURE_11W */
+
     pMac->sys.gSysBbtReceived++;
 
     if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
@@ -141,8 +147,21 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                 tANI_U32 timeNow = adf_os_ticks();
                 tANI_U32 timeGap = adf_os_ticks_to_msecs(timeNow -
                                               lastDeauthPacketTime);
-                if (timeGap < 1000)
-                    goto fail;
+                if (timeGap < 1000) {
+#ifdef WLAN_FEATURE_11W
+                    pMacHdr = WDA_GET_RX_MAC_HEADER(pBd);
+                    psessionEntry = peFindSessionByPeerSta(pMac,
+                                        pMacHdr->sa, &sessionId);
+                    if(!psessionEntry) {
+                        PELOGE(sysLog(pMac, LOGE,
+                            FL("session does not exist for given STA [%pM]"),
+                            pMacHdr->sa););
+                        goto fail;
+                    }
+                    if (!psessionEntry->limRmfEnabled)
+#endif /* WLAN_FEATURE_11W */
+                        goto fail;
+                }
             }
 
             if (subType == SIR_MAC_MGMT_DEAUTH)

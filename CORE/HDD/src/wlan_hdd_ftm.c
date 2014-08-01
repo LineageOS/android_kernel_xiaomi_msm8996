@@ -75,7 +75,7 @@
 #include "pttMsgApi.h"
 #include "wlan_qct_pal_device.h"
 
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
 #include "bmi.h"
 #include "ol_fw.h"
 #include "testmode.h"
@@ -521,7 +521,7 @@ static FTM_STATUS ftm_status;
 //tpAniSirGlobal pMac;
 static tPttMsgbuffer *pMsgBuf;
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
 #if defined(LINUX_QCMBR)
 #define ATH_XIOCTL_UNIFIED_UTF_CMD  0x1000
 #define ATH_XIOCTL_UNIFIED_UTF_RSP  0x1001
@@ -662,13 +662,11 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    tSirRetStatus sirStatus = eSIR_SUCCESS;
    tMacOpenParameters macOpenParms;
    pVosContextType gpVosContext = (pVosContextType)pVosContext;
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
    adf_os_device_t adf_ctx;
    HTC_INIT_INFO  htcInfo;
-#ifndef QCA_WIFI_ISOC
    v_PVOID_t pHifContext = NULL;
    v_PVOID_t pHtcContext = NULL;
-#endif
 #endif
    hdd_context_t *pHddCtx;
 
@@ -735,8 +733,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
       goto err_msg_queue;
    }
 
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
-#ifndef QCA_WIFI_ISOC
+#if  defined(QCA_WIFI_FTM)
    /* Initialize BMI and Download firmware */
    pHifContext = vos_get_context(VOS_MODULE_ID_HIF, gpVosContext);
    if (!pHifContext)
@@ -754,7 +751,6 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    htcInfo.pContext = gpVosContext->pHIFContext;
    htcInfo.TargetFailure = ol_target_failure;
    htcInfo.TargetSendSuspendComplete = wma_target_suspend_acknowledge;
-#endif
    adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, gpVosContext);
 
    /* Create HTC */
@@ -762,19 +758,15 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    if (!gpVosContext->htc_ctx) {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                  "%s: Failed to Create HTC", __func__);
-#ifndef QCA_WIFI_ISOC
            goto err_bmi_close;
-#endif
            goto err_sched_close;
    }
 
-#ifndef QCA_WIFI_ISOC
    if (bmi_done(pHifContext)) {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                  "%s: Failed to complete BMI phase", __func__);
        goto err_htc_close;
    }
-#endif
 #endif /* QCA_WIFI_2_0 && QCA_WIFI_FTM */
 
    /* Open the SYS module */
@@ -806,14 +798,9 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
 
    macOpenParms.powersaveOffloadEnabled =
       pHddCtx->cfg_ini->enablePowersaveOffload;
-#ifndef QCA_WIFI_ISOC
    vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext,
                       wlan_hdd_ftm_update_tgt_cfg, NULL,
                       &macOpenParms);
-#else
-   vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext,
-                      NULL, &macOpenParms);
-#endif
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       /* Critical Error ...  Cannot proceed further */
@@ -823,8 +810,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
       goto err_sys_close;
    }
 
-#if defined (QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) \
-   && !defined (QCA_WIFI_ISOC)
+#if  defined(QCA_WIFI_FTM)
    pHtcContext = vos_get_context(VOS_MODULE_ID_HTC, gpVosContext);
    if (!pHtcContext)
    {
@@ -919,17 +905,15 @@ err_wda_close:
 err_sys_close:
    sysClose(gpVosContext);
 
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
 err_htc_close:
    if (gpVosContext->htc_ctx) {
       HTCDestroy(gpVosContext->htc_ctx);
       gpVosContext->htc_ctx = NULL;
    }
 
-#ifndef QCA_WIFI_ISOC
 err_bmi_close:
    BMICleanup(pHifContext);
-#endif /* #ifndef QCA_WIFI_ISOC */
 #endif /* #QCA_WIFI_2_0 && QCA_WIFI_FTM */
 
 err_sched_close:
@@ -1011,7 +995,7 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+#if  defined(QCA_WIFI_FTM)
   if (gpVosContext->htc_ctx)
   {
       HTCStop(gpVosContext->htc_ctx);
@@ -1382,7 +1366,7 @@ VOS_STATUS vos_ftm_preStart( v_CONTEXT_t vosContext )
 {
    VOS_STATUS vStatus          = VOS_STATUS_SUCCESS;
    pVosContextType pVosContext = (pVosContextType)vosContext;
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
    pVosContextType gpVosContext = vos_get_global_context(VOS_MODULE_ID_VOSS,
                                                          NULL);
 #endif
@@ -1419,9 +1403,6 @@ VOS_STATUS vos_ftm_preStart( v_CONTEXT_t vosContext )
    {
       VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
              "Failed to WDA prestart ");
-#ifdef QCA_WIFI_ISOC
-      macStop(pVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
-#endif
       ccmStop(pVosContext->pMACContext);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
@@ -1445,22 +1426,17 @@ VOS_STATUS vos_ftm_preStart( v_CONTEXT_t vosContext )
       return VOS_STATUS_E_FAILURE;
    }
 
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
    vStatus = HTCStart(gpVosContext->htc_ctx);
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_FATAL,
                "Failed to Start HTC");
-#ifdef QCA_WIFI_ISOC
-      macStop(gpVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
-#endif
       ccmStop(gpVosContext->pMACContext);
       VOS_ASSERT( 0 );
       return VOS_STATUS_E_FAILURE;
    }
-#ifndef QCA_WIFI_ISOC
    wma_wait_for_ready_event(gpVosContext->pWDAContext);
-#endif
 #endif /* QCA_WIFI_2_0 && QCA_WIFI_FTM */
 
    return VOS_STATUS_SUCCESS;
@@ -1746,10 +1722,6 @@ static VOS_STATUS wlan_ftm_send_response(hdd_context_t *pHddCtx){
 static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
 {
     VOS_STATUS vStatus          = VOS_STATUS_SUCCESS;
-#ifdef QCA_WIFI_ISOC
-    tSirRetStatus sirStatus      = eSIR_SUCCESS;
-    tHalMacStartParameters halStartParams;
-#endif
     pVosContextType pVosContext = (pVosContextType)(pHddCtx->pvosContext);
 
     if (WLAN_FTM_STARTED == pHddCtx->ftm.ftm_state)
@@ -1788,34 +1760,6 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
     }
 
 
-#ifdef QCA_WIFI_ISOC
-    vStatus = WDA_NVDownload_Start(pVosContext);
-
-    if ( vStatus != VOS_STATUS_SUCCESS )
-    {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Failed to start NV Download",__func__);
-       return VOS_STATUS_E_FAILURE;
-    }
-
-    vStatus = vos_wait_single_event(&(pVosContext->wdaCompleteEvent), 1000);
-
-    if ( vStatus != VOS_STATUS_SUCCESS )
-    {
-       if ( vStatus == VOS_STATUS_E_TIMEOUT )
-       {
-          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                     "%s: Timeout occurred before WDA_NVDownload_Start complete", __func__);
-       }
-       else
-       {
-         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "%s: WDA_NVDownload_Start reporting  other error", __func__);
-       }
-       VOS_ASSERT(0);
-       goto err_status_failure;
-    }
-#endif	/* #ifdef QCA_WIFI_ISOC */
 
     vStatus = WDA_start(pVosContext);
     if (vStatus != VOS_STATUS_SUCCESS)
@@ -1825,25 +1769,6 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
        goto err_status_failure;
     }
 
-#ifdef QCA_WIFI_ISOC
-    /* Start the MAC */
-    vos_mem_zero((v_PVOID_t)&halStartParams, sizeof(tHalMacStartParameters));
-
-
-    halStartParams.driverType = eDRIVER_TYPE_MFG;
-
-    /* Start the MAC */
-    sirStatus = macStart(pVosContext->pMACContext,(v_PVOID_t)&halStartParams);
-
-
-    if (eSIR_SUCCESS != sirStatus)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-              "%s: Failed to start MAC", __func__);
-
-        goto err_wda_stop;
-    }
-#endif /* #ifdef QCA_WIFI_ISOC */
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "%s: MAC correctly started",__func__);
@@ -1861,27 +1786,6 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
 err_ftm_service_reg:
     wlan_hdd_ftm_close(pHddCtx);
 
-#ifdef QCA_WIFI_ISOC
-err_wda_stop:
-   vos_event_reset(&(pVosContext->wdaCompleteEvent));
-   WDA_stop(pVosContext, HAL_STOP_TYPE_RF_KILL);
-   vStatus = vos_wait_single_event(&(pVosContext->wdaCompleteEvent), 1000);
-   if(vStatus != VOS_STATUS_SUCCESS)
-   {
-      if(vStatus == VOS_STATUS_E_TIMEOUT)
-      {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Timeout occurred before WDA_stop complete", __func__);
-
-      }
-      else
-      {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                  "%s: WDA_stop reporting  other error", __func__);
-      }
-      VOS_ASSERT(0);
-   }
-#endif /* #ifdef QCA_WIFI_ISOC */
 
 err_status_failure:
 
@@ -1889,7 +1793,7 @@ err_status_failure:
 
 }
 
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
 int hdd_ftm_start(hdd_context_t *pHddCtx)
 {
     return wlan_hdd_ftm_start(pHddCtx);
@@ -1927,7 +1831,7 @@ static int wlan_ftm_stop(hdd_context_t *pHddCtx)
     return WLAN_FTM_SUCCESS;
 }
 
-#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
 int hdd_ftm_stop(hdd_context_t *pHddCtx)
 {
     return wlan_ftm_stop(pHddCtx);
@@ -5531,7 +5435,7 @@ static int wlan_ftm_register_wext(hdd_adapter_t *pAdapter)
     return 0;
 }
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
+#if  defined(QCA_WIFI_FTM)
 #if defined(LINUX_QCMBR)
 int wlan_hdd_qcmbr_command(hdd_adapter_t *pAdapter, qcmbr_data_t *pqcmbr_data)
 {

@@ -1821,13 +1821,11 @@ struct net_device* __wlan_hdd_add_virtual_intf(
     /*Allow addition multiple interface for WLAN_HDD_P2P_CLIENT and
       WLAN_HDD_SOFTAP session type*/
     if ((hdd_get_adapter(pHddCtx, wlan_hdd_get_session_type(type)) != NULL)
-#ifdef QCA_WIFI_2_0
 #ifdef WLAN_FEATURE_MBSSID
         && WLAN_HDD_SOFTAP != wlan_hdd_get_session_type(type)
 #endif
         && WLAN_HDD_P2P_CLIENT != wlan_hdd_get_session_type(type)
         && WLAN_HDD_INFRA_STATION != wlan_hdd_get_session_type(type)
-#endif
             )
     {
        hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Interface type %d already exists. "

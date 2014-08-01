@@ -275,7 +275,7 @@ VOS_STATUS csrNeighborRoamUpdateFastRoamingEnabled(tpAniSirGlobal pMac,
                                                  tANI_U8 sessionId,
                                                const v_BOOL_t fastRoamEnabled);
 VOS_STATUS csrNeighborRoamUpdateEseModeEnabled(tpAniSirGlobal pMac,
-                                               tANI_U32 sessionId,
+                                               tANI_U8 sessionId,
                                                const v_BOOL_t eseMode);
 VOS_STATUS csrNeighborRoamChannelsFilterByCurrentBand(
                       tpAniSirGlobal pMac,
@@ -348,7 +348,8 @@ VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
 #endif /*FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 eHalStatus csrNeighborRoamOffloadSynchRspHandler(tpAniSirGlobal pMac,
-                   tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp);
+                   tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp,
+                   tANI_U8 sessionId);
 #endif
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
 

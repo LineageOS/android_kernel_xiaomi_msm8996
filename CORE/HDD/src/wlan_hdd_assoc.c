@@ -635,9 +635,7 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 #ifdef MSM_PLATFORM
     unsigned long flags;
 #endif
-#ifdef QCA_WIFI_2_0
     v_MACADDR_t peerMacAddr;
-#endif
 
 #if defined (WLAN_FEATURE_VOWIFI_11R)
     // Added to find the auth type on the fly at run time
@@ -710,7 +708,6 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
             hdd_SendFTAssocResponse(dev, pAdapter, pCsrRoamInfo);
         }
 #endif
-#ifdef QCA_WIFI_2_0
         if (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
         {
             vos_mem_copy(peerMacAddr.bytes, pHddStaCtx->conn_info.bssId,
@@ -722,7 +719,6 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
                                    pAdapter->sessionId,
                                    pHddStaCtx->conn_info.operationChannel);
         }
-#endif
 
 #ifdef WLAN_FEATURE_LPSS
         wlan_hdd_send_status_pkg(pAdapter, pHddStaCtx, 1, 1);
@@ -766,7 +762,6 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         wlan_hdd_auto_shutdown_enable(pHddCtx, VOS_TRUE);
 #endif
 
-#ifdef QCA_WIFI_2_0
         if (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
         {
             vos_mem_copy(peerMacAddr.bytes, pHddStaCtx->conn_info.bssId,
@@ -777,7 +772,6 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
                                      0, pAdapter->sessionId,
                                      pHddStaCtx->conn_info.operationChannel);
         }
-#endif
 
 #ifdef WLAN_FEATURE_LPSS
         wlan_hdd_send_status_pkg(pAdapter, pHddStaCtx, 1, 0);
@@ -2584,12 +2578,10 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                                                   eCsrRoamResult roamResult)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-#ifdef QCA_WIFI_2_0
 #ifdef CONFIG_TDLS_IMPLICIT
     tdlsCtx_t *pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
 #endif
     tSmeTdlsPeerStateParams smeTdlsPeerStateParams;
-#endif
     eHalStatus status = eHAL_STATUS_FAILURE ;
     tANI_U8 staIdx;
 
@@ -2602,17 +2594,14 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
       roamResult == eCSR_ROAM_RESULT_DELETE_ALL_TDLS_PEER_IND? "DEL_ALL_TDLS_PEER_IND" :
       roamResult == eCSR_ROAM_RESULT_UPDATE_TDLS_PEER? "UPDATE_TDLS_PEER" :
       roamResult == eCSR_ROAM_RESULT_LINK_ESTABLISH_REQ_RSP? "LINK_ESTABLISH_REQ_RSP" :
-#ifdef QCA_WIFI_2_0
       roamResult == eCSR_ROAM_RESULT_TDLS_SHOULD_DISCOVER? "TDLS_SHOULD_DISCOVER" :
       roamResult == eCSR_ROAM_RESULT_TDLS_SHOULD_TEARDOWN? "TDLS_SHOULD_TEARDOWN" :
       roamResult == eCSR_ROAM_RESULT_TDLS_SHOULD_PEER_DISCONNECTED? "TDLS_SHOULD_PEER_DISCONNECTED" :
-#endif
       "UNKNOWN",
        pRoamInfo->staId,
        MAC_ADDR_ARRAY(pRoamInfo->peerMac)) ;
 #endif
 
-#ifdef QCA_WIFI_2_0
 #ifdef CONFIG_TDLS_IMPLICIT
     if (!pHddTdlsCtx)
     {
@@ -2621,7 +2610,6 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                   __func__, roamResult);
         return status;
     }
-#endif
 #endif
 
     switch( roamResult )
@@ -2668,13 +2656,6 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                     /* store the ucast signature , if required for further reference. */
 
                     wlan_hdd_tdls_set_signature( pAdapter, pRoamInfo->peerMac, pRoamInfo->ucastSig );
-#ifndef QCA_WIFI_2_0
-                    /* start TDLS client registration with TL */
-                    status = hdd_roamRegisterTDLSSTA( pAdapter,
-                                                      pRoamInfo->peerMac,
-                                                      pRoamInfo->staId,
-                                                      pRoamInfo->ucastSig);
-#endif /* QCA_WIFI_2_0 */
                 }
                 else
                 {
@@ -2771,7 +2752,6 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                                 MAC_ADDR_ARRAY(pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes));
                     wlan_hdd_tdls_reset_peer(pAdapter, pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes);
                     hdd_roamDeregisterTDLSSTA ( pAdapter,  pHddCtx->tdlsConnInfo[staIdx].staId );
-#ifdef QCA_WIFI_2_0
                     vos_mem_zero(&smeTdlsPeerStateParams,
                                  sizeof(smeTdlsPeerStateParams));
                     smeTdlsPeerStateParams.vdevId =
@@ -2795,7 +2775,6 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                                  MAC_ADDRESS_STR, __func__,
                                  MAC_ADDR_ARRAY(pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes));
                     }
-#endif
                     wlan_hdd_tdls_decrement_peer_count(pAdapter);
 
                     (WLAN_HDD_GET_CTX(pAdapter))->sta_to_adapter[staIdx] = NULL;
@@ -2810,7 +2789,6 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
             wlan_hdd_tdls_check_bmps(pAdapter);
             break ;
         }
-#ifdef QCA_WIFI_2_0
         case eCSR_ROAM_RESULT_TDLS_SHOULD_DISCOVER:
         {
 #ifdef CONFIG_TDLS_IMPLICIT
@@ -2936,7 +2914,6 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
 #endif
             break ;
         }
-#endif /* QCA_WIFI_2_0 */
         default:
         {
             break ;

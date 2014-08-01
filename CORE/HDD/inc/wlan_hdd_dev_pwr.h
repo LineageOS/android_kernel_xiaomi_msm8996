@@ -33,51 +33,6 @@
 #include <vos_sched.h>
 #include <vos_api.h>
 
-#ifdef QCA_WIFI_ISOC
-/*----------------------------------------------------------------------------
-
-   @brief Registration function.
-        Register suspend, resume callback functions with platform driver.
-
-   @param hdd_context_t pHddCtx
-        Global hdd context
-
-   @return General status code
-        VOS_STATUS_SUCCESS       Registration Success
-        VOS_STATUS_E_FAILURE     Registration Fail
-
-----------------------------------------------------------------------------*/
-VOS_STATUS hddRegisterPmOps(hdd_context_t *pHddCtx);
-
-/*----------------------------------------------------------------------------
-
-   @brief De-registration function.
-        Deregister the suspend, resume callback functions with platform driver
-
-   @param hdd_context_t pHddCtx
-        Global hdd context
-
-   @return General status code
-        VOS_STATUS_SUCCESS       De-Registration Success
-        VOS_STATUS_E_FAILURE     De-Registration Fail
-
-----------------------------------------------------------------------------*/
-VOS_STATUS hddDeregisterPmOps(hdd_context_t *pHddCtx);
-
-/*----------------------------------------------------------------------------
-
-   @brief TM Level Change handler
-          Received Tm Level changed notification
-
-   @param dev : Device context
-          changedTmLevel : Changed new TM level
-
-   @return
-
-----------------------------------------------------------------------------*/
-void hddDevTmLevelChangedHandler(struct device *dev, int changedTmLevel);
-
-#else
 
 /*----------------------------------------------------------------------------
 
@@ -131,7 +86,6 @@ static inline void hddDevTmLevelChangedHandler(struct device *dev,
 {
     return;
 }
-#endif  /*QCA_WIFI_ISOC*/
 
 /*----------------------------------------------------------------------------
 

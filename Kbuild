@@ -6,6 +6,12 @@ else
 	KERNEL_BUILD := 0
 endif
 
+# This driver does not support integrated SOC
+CONFIG_QCA_WIFI_ISOC=0
+
+# This driver supports the QCACLD 2.0 software architecture
+CONFIG_QCA_WIFI_2_0=1
+
 ifeq ($(CONFIG_CLD_HL_SDIO_CORE), y)
 	CONFIG_QCA_WIFI_SDIO := 1
 endif
@@ -862,15 +868,6 @@ WDI_WPAL_INC := -I$(WLAN_ROOT)/$(WDI_DIR)/WPAL/inc
 
 WDI_WPAL_SRC_DIR := $(WDI_DIR)/WPAL/src
 WDI_WPAL_OBJS := $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_trace.o
-
-ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
-WDI_WPAL_OBJS += $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_api.o \
-		 $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_device.o \
-		 $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_msg.o \
-		 $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_packet.o \
-		 $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_sync.o \
-		 $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_timer.o
-endif
 
 WDI_INC :=	$(WDI_CP_INC) \
 		$(WDI_DP_INC) \

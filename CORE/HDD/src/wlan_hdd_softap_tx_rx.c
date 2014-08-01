@@ -253,215 +253,6 @@ static VOS_STATUS hdd_softap_flush_tx_queues( hdd_adapter_t *pAdapter )
 
    return status;
 }
-#ifndef QCA_WIFI_2_0
-/**============================================================================
-  @brief hdd_softap_hard_start_xmit() - Function registered with the Linux OS for
-  transmitting packets. There are 2 versions of this function. One that uses
-  locked queue and other that uses lockless queues. Both have been retained to
-  do some performance testing
-
-  @param skb      : [in]  pointer to OS packet (sk_buff)
-  @param dev      : [in] pointer to Libra network device
-
-  @return         : NET_XMIT_DROP if packets are dropped
-                  : NET_XMIT_SUCCESS if packet is enqueued succesfully
-  ===========================================================================*/
-int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
-{
-   VOS_STATUS status;
-   WLANTL_ACEnumType ac = WLANTL_AC_BE;
-   sme_QosWmmUpType up = SME_QOS_WMM_UP_BE;
-   skb_list_node_t *pktNode = NULL;
-   v_SIZE_t pktListSize = 0;
-   v_BOOL_t txSuspended = VOS_FALSE;
-   hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
-   hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
-   vos_list_node_t *anchor = NULL;
-   v_U8_t STAId = WLAN_MAX_STA_COUNT;
-   //Extract the destination address from ethernet frame
-   v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
-   int os_status = NETDEV_TX_OK;
-
-   pDestMacAddress = (v_MACADDR_t*)skb->data;
-
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
-
-   VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO,
-              "%s: enter", __func__);
-
-   spin_lock_bh( &pAdapter->staInfo_lock );
-   if (vos_is_macaddr_broadcast( pDestMacAddress ) || vos_is_macaddr_group(pDestMacAddress))
-   {
-      //The BC/MC station ID is assigned during BSS starting phase. SAP will return the station
-      //ID used for BC/MC traffic. The station id is registered to TL as well.
-      STAId = pHddApCtx->uBCStaId;
-
-      /* Setting priority for broadcast packets which doesn't go to select_queue function */
-      skb->priority = SME_QOS_WMM_UP_BE;
-      skb->queue_mapping = HDD_LINUX_AC_BE;
-
-      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO_LOW,
-              "%s: BC/MC packet", __func__);
-   }
-   else
-   {
-      STAId = *(v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
-      if (STAId == HDD_WLAN_INVALID_STA_ID)
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                    "%s: Failed to find right station", __func__);
-         ++pAdapter->stats.tx_dropped;
-         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-         kfree_skb(skb);
-         goto xmit_done;
-      }
-      else if (FALSE == pAdapter->aStaInfo[STAId].isUsed )
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                    "%s: STA %d is unregistered", __func__, STAId);
-         ++pAdapter->stats.tx_dropped;
-         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-         kfree_skb(skb);
-         goto xmit_done;
-      }
-
-      if ( (WLANTL_STA_CONNECTED != pAdapter->aStaInfo[STAId].tlSTAState) &&
-           (WLANTL_STA_AUTHENTICATED != pAdapter->aStaInfo[STAId].tlSTAState) )
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                    "%s: Station not connected yet", __func__);
-         ++pAdapter->stats.tx_dropped;
-         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-         kfree_skb(skb);
-         goto xmit_done;
-      }
-      else if(WLANTL_STA_CONNECTED == pAdapter->aStaInfo[STAId].tlSTAState)
-      {
-        if(ntohs(skb->protocol) != HDD_ETHERTYPE_802_1_X)
-        {
-            VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                       "%s: NON-EAPOL packet in non-Authenticated state", __func__);
-            ++pAdapter->stats.tx_dropped;
-            ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-            kfree_skb(skb);
-            goto xmit_done;
-        }
-      }
-   }
-
-   //Get TL AC corresponding to Qdisc queue index/AC.
-   ac = hdd_QdiscAcToTlAC[skb->queue_mapping];
-   //user priority from IP header, which is already extracted and set from
-   //select_queue call back function
-   up = skb->priority;
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
-
-   VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO,
-              "%s: Classified as ac %d up %d", __func__, ac, up);
-
-   // If the memory differentiation mode is enabled, the memory limit of each queue will be
-   // checked. Over-limit packets will be dropped.
-    spin_lock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
-    hdd_list_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktListSize);
-    if(pktListSize >= pAdapter->aTxQueueLimit[ac])
-    {
-       VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-            "%s: station %d ac %d queue over limit %d", __func__, STAId, ac, pktListSize);
-       pAdapter->aStaInfo[STAId].txSuspended[ac] = VOS_TRUE;
-       netif_stop_subqueue(dev, skb_get_queue_mapping(skb));
-       txSuspended = VOS_TRUE;
-    }
-
-    /* If 3/4th of the max queue size is used then enable the flag.
-     * This flag indicates to place the DHCP packets in VOICE AC queue.*/
-   if (WLANTL_AC_BE == ac)
-   {
-      if (pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].count >= HDD_TX_QUEUE_LOW_WATER_MARK)
-      {
-          VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                     "%s: TX queue for Best Effort AC is 3/4th full", __func__);
-          pAdapter->aStaInfo[STAId].vosLowResource = VOS_TRUE;
-      }
-      else
-      {
-          pAdapter->aStaInfo[STAId].vosLowResource = VOS_FALSE;
-      }
-   }
-   spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
-
-   if (VOS_TRUE == txSuspended)
-   {
-       VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                  "%s: TX queue full for AC=%d Disable OS TX queue",
-                  __func__, ac );
-      os_status = NETDEV_TX_BUSY;
-      goto xmit_done;
-   }
-
-   //Use the skb->cb field to hold the list node information
-   pktNode = (skb_list_node_t *)&skb->cb;
-
-   //Stick the OS packet inside this node.
-   pktNode->skb = skb;
-
-   //Stick the User Priority inside this node
-   pktNode->userPriority = up;
-
-   INIT_LIST_HEAD(&pktNode->anchor);
-
-   spin_lock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
-   status = hdd_list_insert_back_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktNode->anchor, &pktListSize );
-   spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
-
-   if ( !VOS_IS_STATUS_SUCCESS( status ) )
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                 "%s:Insert Tx queue failed. Pkt dropped", __func__);
-      ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-      ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
-      ++pAdapter->stats.tx_dropped;
-      kfree_skb(skb);
-      goto xmit_done;
-   }
-
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueued;
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueuedAC[ac];
-   ++pAdapter->hdd_stats.hddTxRxStats.pkt_tx_count;
-
-   if (1 == pktListSize)
-   {
-      //Let TL know we have a packet to send for this AC
-      status = WLANTL_STAPktPending( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, STAId, ac );
-
-      if ( !VOS_IS_STATUS_SUCCESS( status ) )
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                    "%s: Failed to signal TL for AC=%d STAId =%d",
-                    __func__, ac, STAId );
-
-         //Remove the packet from queue. It must be at the back of the queue, as TX thread cannot preempt us in the middle
-         //as we are in a soft irq context. Also it must be the same packet that we just allocated.
-         spin_lock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
-         status = hdd_list_remove_back( &pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &anchor);
-         spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
-         ++pAdapter->stats.tx_dropped;
-         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
-         kfree_skb(skb);
-         goto xmit_done;
-      }
-   }
-   dev->trans_start = jiffies;
-
-   VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO_LOW,
-              "%s: exit", __func__);
-
-xmit_done:
-   spin_unlock_bh( &pAdapter->staInfo_lock );
-   return os_status;
-}
-
-#else
 
 #ifdef QCA_LL_TX_FLOW_CT
 /**============================================================================
@@ -726,7 +517,6 @@ drop_pkt:
 
    return NETDEV_TX_OK;
 }
-#endif
 /**============================================================================
   @brief hdd_softap_sta_2_sta_xmit This function for Transmitting the frames when the traffic is between two stations.
 
@@ -1540,202 +1330,6 @@ VOS_STATUS hdd_softap_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
 }
 
 
-#ifndef QCA_WIFI_2_0
-/**============================================================================
-  @brief hdd_softap_rx_packet_cbk() - Receive callback registered with TL.
-  TL will call this to notify the HDD when one or more packets were
-  received for a registered STA.
-
-  @param vosContext      : [in] pointer to VOS context
-  @param pVosPacketChain : [in] pointer to VOS packet chain
-  @param staId           : [in] Station Id (Adress 1 Index)
-  @param pRxMetaInfo     : [in] pointer to meta info for the received pkt(s).
-
-  @return                : VOS_STATUS_E_FAILURE if any errors encountered,
-                         : VOS_STATUS_SUCCESS otherwise
-  ===========================================================================*/
-VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
-                              vos_pkt_t *pVosPacketChain,
-                              v_U8_t staId,
-                              WLANTL_RxMetaInfoType* pRxMetaInfo )
-{
-   hdd_adapter_t *pAdapter = NULL;
-   VOS_STATUS status = VOS_STATUS_E_FAILURE;
-   int rxstat;
-   struct sk_buff *skb = NULL;
-   vos_pkt_t* pVosPacket;
-   vos_pkt_t* pNextVosPacket;
-   hdd_context_t *pHddCtx = NULL;
-   hdd_ap_ctx_t *pHddApCtx;
-
-   //Sanity check on inputs
-   if ( ( NULL == vosContext ) ||
-        ( NULL == pVosPacketChain ) ||
-        ( NULL == pRxMetaInfo ) )
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Null params being passed", __func__);
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   pHddCtx = (hdd_context_t *)vos_get_context( VOS_MODULE_ID_HDD, vosContext );
-   if ( NULL == pHddCtx )
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                 "%s: HDD adapter context is Null", __func__);
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   pAdapter = pHddCtx->sta_to_adapter[staId];
-   if( NULL == pAdapter )
-   {
-      VOS_ASSERT(0);
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   /* Monitor traffic */
-   if ( pHddCtx->cfg_ini->enableTrafficMonitor )
-   {
-      pHddCtx->traffic_monitor.lastFrameTs = vos_timer_get_system_time();
-      if ( !atomic_read(&pHddCtx->traffic_monitor.isActiveMode) )
-      {
-         vos_lock_acquire(&pHddCtx->traffic_monitor.trafficLock);
-         /* It was IDLE mode,
-          * this is new state, then switch mode from suspend to resume */
-         if ( !atomic_read(&pHddCtx->traffic_monitor.isActiveMode) )
-         {
-            hdd_set_wlan_suspend_mode(0);
-            vos_timer_start(&pHddCtx->traffic_monitor.trafficTimer,
-                            pHddCtx->cfg_ini->trafficIdleTimeout);
-            atomic_set(&pHddCtx->traffic_monitor.isActiveMode, 1);
-         }
-         vos_lock_release(&pHddCtx->traffic_monitor.trafficLock);
-      }
-   }
-
-   ++pAdapter->hdd_stats.hddTxRxStats.rxChains;
-
-   // walk the chain until all are processed
-   pVosPacket = pVosPacketChain;
-   do
-   {
-      // get the pointer to the next packet in the chain
-      // (but don't unlink the packet since we free the entire chain later)
-      status = vos_pkt_walk_packet_chain( pVosPacket, &pNextVosPacket, VOS_FALSE);
-
-      // both "success" and "empty" are acceptable results
-      if (!((status == VOS_STATUS_SUCCESS) || (status == VOS_STATUS_E_EMPTY)))
-      {
-         ++pAdapter->hdd_stats.hddTxRxStats.rxDropped;
-         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Failure walking packet chain", __func__);
-         return VOS_STATUS_E_FAILURE;
-      }
-
-      // Extract the OS packet (skb).
-      // Tell VOS to detach the OS packet from the VOS packet
-      status = vos_pkt_get_os_packet( pVosPacket, (v_VOID_t **)&skb, VOS_TRUE );
-      if(!VOS_IS_STATUS_SUCCESS( status ))
-      {
-         ++pAdapter->hdd_stats.hddTxRxStats.rxDropped;
-         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Failure extracting skb from vos pkt", __func__);
-         return VOS_STATUS_E_FAILURE;
-      }
-
-      //hdd_softap_dump_sk_buff(skb);
-
-      skb->dev = pAdapter->dev;
-
-      if(skb->dev == NULL) {
-
-          VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_FATAL,
-                     "ERROR!!Invalid netdevice");
-          return VOS_STATUS_E_FAILURE;
-      }
-      ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
-      ++pAdapter->stats.rx_packets;
-      pAdapter->stats.rx_bytes += skb->len;
-
-      pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
-
-      if (WLAN_RX_BCMC_STA_ID == pRxMetaInfo->ucDesSTAId)
-      {
-         //MC/BC packets. Duplicate a copy of packet
-         struct sk_buff *pSkbCopy;
-
-         if (!(pHddApCtx->apDisableIntraBssFwd))
-         {
-             pSkbCopy = skb_copy(skb, GFP_ATOMIC);
-             if (pSkbCopy)
-             {
-               hdd_softap_sta_2_sta_xmit(pSkbCopy, pSkbCopy->dev,
-                          pHddApCtx->uBCStaId, (pRxMetaInfo->ucUP));
-             }
-             else
-             {
-             VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                          "%s: skb allocation fails", __func__);
-             }
-         }
-
-      } //(WLAN_RX_BCMC_STA_ID == staId)
-
-      if ((WLAN_RX_BCMC_STA_ID == pRxMetaInfo->ucDesSTAId) ||
-#ifdef WLAN_FEATURE_MBSSID
-          (pHddApCtx->uBCStaId == pRxMetaInfo->ucDesSTAId))
-#else
-          (WLAN_RX_SAP_SELF_STA_ID == pRxMetaInfo->ucDesSTAId))
-#endif
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO_LOW,
-                          "%s: send one packet to kernel", __func__);
-
-         skb->protocol = eth_type_trans(skb, skb->dev);
-         skb->ip_summed = CHECKSUM_NONE;
-#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
-         vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
-                                       HDD_WAKE_LOCK_DURATION);
-#endif
-         rxstat = netif_rx_ni(skb);
-         if (NET_RX_SUCCESS == rxstat)
-         {
-            ++pAdapter->hdd_stats.hddTxRxStats.rxDelivered;
-            ++pAdapter->hdd_stats.hddTxRxStats.pkt_rx_count;
-         }
-         else
-         {
-            ++pAdapter->hdd_stats.hddTxRxStats.rxRefused;
-         }
-      }
-      else if ((WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->apDisableIntraBssFwd)
-      {
-        kfree_skb(skb);
-      }
-      else
-      {
-         //loopback traffic
-        status = hdd_softap_sta_2_sta_xmit(skb, skb->dev,
-                 pRxMetaInfo->ucDesSTAId, (pRxMetaInfo->ucUP));
-      }
-
-      // now process the next packet in the chain
-      pVosPacket = pNextVosPacket;
-
-   } while (pVosPacket);
-
-   //Return the entire VOS packet chain to the resource pool
-   status = vos_pkt_return_packet( pVosPacketChain );
-   if(!VOS_IS_STATUS_SUCCESS( status ))
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"%s: Failure returning vos pkt", __func__);
-   }
-
-   pAdapter->dev->last_rx = jiffies;
-
-   return status;
-}
-#else
 
 /**============================================================================
   @brief hdd_softap_rx_packet_cbk() - Receive callback registered with TL.
@@ -1875,15 +1469,12 @@ VOS_STATUS hdd_softap_rx_mul_packet_cbk(v_VOID_t *vosContext,
    return VOS_STATUS_SUCCESS;
 }
 #endif /* IPA_OFFLOAD */
-#endif
 
 VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
 {
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
     hdd_context_t *pHddCtx;
-#ifdef QCA_WIFI_2_0
     v_U8_t i;
-#endif
 
     if (NULL == pAdapter)
     {
@@ -1911,7 +1502,6 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
                     staId, vosStatus, vosStatus );
     }
 
-#ifdef QCA_WIFI_2_0
     if (pAdapter->aStaInfo[staId].isUsed) {
         spin_lock_bh( &pAdapter->staInfo_lock );
         vos_mem_zero(&pAdapter->aStaInfo[staId], sizeof(hdd_station_info_t));
@@ -1926,17 +1516,6 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
         }
         spin_unlock_bh( &pAdapter->staInfo_lock );
    }
-#else
-    vosStatus = hdd_softap_deinit_tx_rx_sta ( pAdapter, staId );
-    if( VOS_STATUS_E_FAILURE == vosStatus )
-    {
-        VOS_TRACE ( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                    "hdd_softap_deinit_tx_rx_sta() failed for staID %d. "
-                    "Status = %d [0x%08X]",
-                    staId, vosStatus, vosStatus );
-        return( vosStatus );
-    }
-#endif
     pHddCtx->sta_to_adapter[staId] = NULL;
 
     return( vosStatus );

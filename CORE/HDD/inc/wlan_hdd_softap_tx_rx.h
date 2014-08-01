@@ -200,26 +200,6 @@ extern VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
 extern VOS_STATUS hdd_softap_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
                                            v_VOID_t *userData );
 
-#ifndef QCA_WIFI_2_0
-/**============================================================================
-  @brief hdd_softap_rx_packet_cbk() - Receive callback registered with TL.
-  TL will call this to notify the HDD when a packet was received
-  for a registered STA.
-
-  @param vosContext   : [in] pointer to VOS context
-  @param pVosPacket   : [in] pointer to VOS packet (conatining sk_buff)
-  @param staId        : [in] Station Id
-  @param pRxMetaInfo  : [in] pointer to meta info for the received pkt(s)
-
-  @return             : VOS_STATUS_E_FAILURE if any errors encountered,
-                      : VOS_STATUS_SUCCESS otherwise
-  ===========================================================================*/
-extern VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
-                                     vos_pkt_t *pVosPacket,
-                                     v_U8_t staId,
-                                     WLANTL_RxMetaInfoType* pRxMetaInfo );
-
-#else
 /**============================================================================
   @brief hdd_softap_rx_packet_cbk() - Receive callback registered with TL.
   TL will call this to notify the HDD when a packet was received
@@ -251,7 +231,6 @@ extern VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
 VOS_STATUS hdd_softap_rx_mul_packet_cbk(v_VOID_t *vosContext,
                                     adf_nbuf_t rx_buf_list, v_U8_t staId);
 #endif /* IPA_OFFLOAD */
-#endif
 
 /**============================================================================
   @brief hdd_softap_DeregisterSTA - Deregister a station from TL block
