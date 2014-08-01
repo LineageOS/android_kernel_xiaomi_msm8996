@@ -480,6 +480,7 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
     bufLen = sizeof(tSirUpdateChanList) +
         (sizeof(tSirUpdateChanParam) * (numChan - 1));
 
+    limInitOperatingClasses((tHalHandle)pMac);
     pChanList = (tSirUpdateChanList *) vos_mem_malloc(bufLen);
     if (!pChanList)
     {
@@ -2333,7 +2334,6 @@ eHalStatus csrInitGetChannels(tpAniSirGlobal pMac)
     }
     return (status);
 }
-
 eHalStatus csrInitChannelList( tHalHandle hHal )
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -2344,7 +2344,7 @@ eHalStatus csrInitChannelList( tHalHandle hHal )
     csrSaveChannelPowerForBand(pMac, eANI_BOOLEAN_TRUE);
     // Apply the base channel list, power info, and set the Country code...
     csrApplyChannelPowerCountryInfo( pMac, &pMac->scan.base20MHzChannels, pMac->scan.countryCodeCurrent, eANI_BOOLEAN_TRUE );
-
+    limInitOperatingClasses(hHal);
     return (status);
 }
 eHalStatus csrChangeConfigParams(tpAniSirGlobal pMac,
