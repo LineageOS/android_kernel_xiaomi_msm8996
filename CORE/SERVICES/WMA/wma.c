@@ -3841,7 +3841,6 @@ static int wma_tdls_event_handler(void *handle, u_int8_t *event, u_int32_t len)
 
 	tdls_event->sessionId = peer_event->vdev_id;
 	WMI_MAC_ADDR_TO_CHAR_ARRAY(&peer_event->peer_macaddr, tdls_event->peerMac);
-	tdls_event->peer_reason = peer_event->peer_reason;
 
 	switch(peer_event->peer_status) {
 	case WMI_TDLS_SHOULD_DISCOVER:
@@ -3857,6 +3856,34 @@ static int wma_tdls_event_handler(void *handle, u_int8_t *event, u_int32_t len)
 	 WMA_LOGE("%s: Discarding unknown tdls event(%d) from target",
 	          __func__, peer_event->peer_status);
 	 return -1;
+	}
+
+	switch (peer_event->peer_reason) {
+	case WMI_TDLS_TEARDOWN_REASON_TX:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_TX;
+		break;
+	case WMI_TDLS_TEARDOWN_REASON_RSSI:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_RSSI;
+		break;
+	case WMI_TDLS_TEARDOWN_REASON_SCAN:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_SCAN;
+		break;
+	case WMI_TDLS_DISCONNECTED_REASON_PEER_DELETE:
+		tdls_event->peer_reason = eWNI_TDLS_DISCONNECTED_REASON_PEER_DELETE;
+		break;
+	case WMI_TDLS_TEARDOWN_REASON_PTR_TIMEOUT:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_PTR_TIMEOUT;
+		break;
+	case WMI_TDLS_TEARDOWN_REASON_BAD_PTR:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_BAD_PTR;
+		break;
+	case WMI_TDLS_TEARDOWN_REASON_NO_RESPONSE:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_NO_RESPONSE;
+		break;
+	default:
+		WMA_LOGE("%s: unknown reason(%d) in tdls event(%d) from target",
+		         __func__, peer_event->peer_reason, peer_event->peer_status);
+		return -1;
 	}
 
 	WMA_LOGD("%s: sending msg to umac, messageType: 0x%x, "

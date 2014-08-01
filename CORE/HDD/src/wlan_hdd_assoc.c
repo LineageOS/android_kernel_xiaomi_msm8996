@@ -2580,6 +2580,8 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
     tSmeTdlsPeerStateParams smeTdlsPeerStateParams;
     eHalStatus status = eHAL_STATUS_FAILURE ;
     tANI_U8 staIdx;
+    hddTdlsPeer_t *curr_peer;
+    tANI_U32 reason;
 
 #ifdef WLAN_FEATURE_TDLS_DEBUG
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -2690,7 +2692,6 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
         }
         case eCSR_ROAM_RESULT_DELETE_TDLS_PEER:
         {
-            hddTdlsPeer_t *curr_peer;
             for ( staIdx = 0; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++ )
             {
                 if ((pHddCtx->tdlsConnInfo[staIdx].sessionId == pRoamInfo->sessionId) &&
@@ -2722,7 +2723,6 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
         break ;
         case eCSR_ROAM_RESULT_TEARDOWN_TDLS_PEER_IND:
         {
-            hddTdlsPeer_t *curr_peer;
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                        "%s: Sending teardown to supplicant with reason code %u",
                        __func__, pRoamInfo->reasonCode);
@@ -2788,8 +2788,6 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
         case eCSR_ROAM_RESULT_TDLS_SHOULD_DISCOVER:
         {
 #ifdef CONFIG_TDLS_IMPLICIT
-            hddTdlsPeer_t *curr_peer;
-
             /* ignore TDLS_SHOULD_DISCOVER if any concurrency detected */
             if ((1 << VOS_STA_MODE) != pHddCtx->concurrency_mode)
             {
@@ -2831,9 +2829,10 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                     else
                     {
                         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-                                  FL("initiate TDLS setup on SHOULD_DISCOVER, fTDLSExternalControl: %d, curr_peer->isForcedPeer: %d"),
+                                  FL("initiate TDLS setup on SHOULD_DISCOVER, fTDLSExternalControl: %d, curr_peer->isForcedPeer: %d, reason: %d"),
                                   pHddCtx->cfg_ini->fTDLSExternalControl,
-                                  curr_peer->isForcedPeer);
+                                  curr_peer->isForcedPeer,
+                                  pRoamInfo->reasonCode);
                     }
                     wlan_hdd_tdls_pre_setup_init_work(pHddTdlsCtx, curr_peer);
                 }
@@ -2848,8 +2847,6 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
         case eCSR_ROAM_RESULT_TDLS_SHOULD_TEARDOWN:
         {
 #ifdef CONFIG_TDLS_IMPLICIT
-            hddTdlsPeer_t *curr_peer;
-
             curr_peer = wlan_hdd_tdls_find_peer(pAdapter, pRoamInfo->peerMac, TRUE);
             if (!curr_peer)
             {
@@ -2861,14 +2858,36 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
             {
                 if (eTDLS_LINK_CONNECTED == curr_peer->link_status)
                 {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                              FL("Received SHOULD_TEARDOWN for peer "
+                                  MAC_ADDRESS_STR " staId: %d, reason: %d"),
+                              MAC_ADDR_ARRAY(pRoamInfo->peerMac),
+                              pRoamInfo->staId,
+                              pRoamInfo->reasonCode);
+
+                    if (pRoamInfo->reasonCode ==
+                            eWNI_TDLS_TEARDOWN_REASON_RSSI ||
+                        pRoamInfo->reasonCode ==
+                            eWNI_TDLS_DISCONNECTED_REASON_PEER_DELETE ||
+                        pRoamInfo->reasonCode ==
+                            eWNI_TDLS_TEARDOWN_REASON_PTR_TIMEOUT ||
+                        pRoamInfo->reasonCode ==
+                            eWNI_TDLS_TEARDOWN_REASON_NO_RESPONSE)
+                    {
+                        reason = eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE;
+                    }
+                    else
+                        reason = eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON;
+
                     wlan_hdd_tdls_indicate_teardown(pHddTdlsCtx->pAdapter,
-                                        curr_peer,
-                                        eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON);
+                                                    curr_peer,
+                                                    reason);
                 }
                 else
                 {
                     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                              "%s: TDLS link is not connected, ignore SHOULD_TEARDOWN", __func__);
+                              FL("TDLS link is not connected, ignore SHOULD_TEARDOWN, reason: %d"),
+                              pRoamInfo->reasonCode);
                 }
                 status = eHAL_STATUS_SUCCESS;
             }
@@ -2881,8 +2900,6 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
         case eCSR_ROAM_RESULT_TDLS_SHOULD_PEER_DISCONNECTED:
         {
 #ifdef CONFIG_TDLS_IMPLICIT
-            hddTdlsPeer_t *curr_peer;
-
             curr_peer = wlan_hdd_tdls_find_peer(pAdapter, pRoamInfo->peerMac, TRUE);
             if (!curr_peer)
             {
@@ -2894,14 +2911,36 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
             {
                 if (eTDLS_LINK_CONNECTED == curr_peer->link_status)
                 {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                              FL("Received SHOULD_PEER_DISCONNECTED for peer "
+                                  MAC_ADDRESS_STR " staId: %d, reason: %d"),
+                              MAC_ADDR_ARRAY(pRoamInfo->peerMac),
+                              pRoamInfo->staId,
+                              pRoamInfo->reasonCode);
+
+                    if (pRoamInfo->reasonCode ==
+                            eWNI_TDLS_TEARDOWN_REASON_RSSI ||
+                        pRoamInfo->reasonCode ==
+                            eWNI_TDLS_DISCONNECTED_REASON_PEER_DELETE ||
+                        pRoamInfo->reasonCode ==
+                            eWNI_TDLS_TEARDOWN_REASON_PTR_TIMEOUT ||
+                        pRoamInfo->reasonCode ==
+                            eWNI_TDLS_TEARDOWN_REASON_NO_RESPONSE)
+                    {
+                        reason = eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE;
+                    }
+                    else
+                        reason = eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON;
+
                     wlan_hdd_tdls_indicate_teardown(pHddTdlsCtx->pAdapter,
-                                        curr_peer,
-                                        eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON);
+                                                    curr_peer,
+                                                    reason);
                 }
                 else
                 {
                     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                              "%s: TDLS link is not connected, ignore PEER_DISCONNECTED", __func__);
+                              FL("TDLS link is not connected, ignore SHOULD_PEER_DISCONNECTED, reason: %d"),
+                              pRoamInfo->reasonCode);
                 }
                 status = eHAL_STATUS_SUCCESS;
             }
