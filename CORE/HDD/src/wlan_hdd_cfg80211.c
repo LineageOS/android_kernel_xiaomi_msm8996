@@ -105,6 +105,9 @@
 #include "nan_Api.h"
 #include "wlan_hdd_nan.h"
 #endif
+#ifdef IPA_OFFLOAD
+#include <wlan_hdd_ipa.h>
+#endif
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -3716,6 +3719,8 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     if (pCfg->ht2040CoexEnabled)
         wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
 #endif
+
+#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     if (pCfg->isRoamOffloadEnabled) {
         wiphy->flags |= WIPHY_FLAG_HAS_KEY_MGMT_OFFLOAD;
@@ -3731,6 +3736,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
             "%s: LFR3:Driver key mgmt offload capability flags %x",
                          __func__,wiphy->key_mgmt_offload_support);
     }
+#endif
 #endif
 
     EXIT();
@@ -7246,6 +7252,7 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
     return status;
 }
 
+#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 static int wlan_hdd_cfg80211_key_mgmt_set_pmk(struct wiphy *wiphy,
                                               struct net_device *ndev,
@@ -7281,6 +7288,7 @@ static int wlan_hdd_cfg80211_key_mgmt_set_pmk(struct wiphy *wiphy,
     }
     return VOS_STATUS_SUCCESS;
 }
+#endif
 #endif
 
 /*
@@ -9747,6 +9755,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("connect failed"));
         return status;
     }
+#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     if ((eHAL_STATUS_SUCCESS == status) && (req->psk)) {
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: psk = %p", __func__, req->psk);
@@ -9768,6 +9777,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
              }
         }
     }
+#endif
 #endif
     pHddCtx->isAmpAllowed = VOS_FALSE;
     EXIT();
@@ -12379,7 +12389,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
     status = sme_SendTdlsMgmtFrame(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                    pAdapter->sessionId, peerMac, action_code,
                                    dialog_token, status_code, peer_capability,
-                                   (tANI_U8 *)buf, len, responder);
+                                   (tANI_U8 *)buf, len, !responder);
 
     if (VOS_STATUS_SUCCESS != status)
     {
@@ -12426,11 +12436,11 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
 
     if (SIR_MAC_TDLS_SETUP_RSP == action_code)
     {
-        return wlan_hdd_tdls_set_responder(pAdapter, peerMac, TRUE);
+        return wlan_hdd_tdls_set_responder(pAdapter, peerMac, FALSE);
     }
     else if (SIR_MAC_TDLS_SETUP_CNF == action_code)
     {
-        return wlan_hdd_tdls_set_responder(pAdapter, peerMac, FALSE);
+        return wlan_hdd_tdls_set_responder(pAdapter, peerMac, TRUE);
     }
 
     return 0;
@@ -13626,6 +13636,17 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
         pAdapterNode = pNext;
     }
+
+#ifdef IPA_OFFLOAD
+    /*
+     * Suspend IPA early before proceeding to suspend other entities like
+     * firmware to avoid any race conditions.
+     */
+    if (hdd_ipa_suspend(pHddCtx)) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG, FL("IPA not ready to suspend!"));
+        return -EAGAIN;
+    }
+#endif
 
     /* Wait for the target to be ready for suspend */
     INIT_COMPLETION(pHddCtx->ready_to_suspend);
@@ -14836,7 +14857,9 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .set_ap_chanwidth = wlan_hdd_cfg80211_set_ap_channel_width,
 #endif
      .dump_survey = wlan_hdd_cfg80211_dump_survey,
+#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
      .key_mgmt_set_pmk = wlan_hdd_cfg80211_key_mgmt_set_pmk,
+#endif
 #endif
 };

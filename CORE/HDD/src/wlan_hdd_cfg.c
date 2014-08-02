@@ -2972,6 +2972,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_VHT_SU_BEAMFORMEE_CAP_FEATURE_MIN,
                  CFG_VHT_SU_BEAMFORMEE_CAP_FEATURE_MAX ),
 
+   REG_VARIABLE( CFG_VHT_ENABLE_TXBF_IN_20MHZ, WLAN_PARAM_Integer,
+                 hdd_config_t, enableTxBFin20MHz,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_VHT_ENABLE_TXBF_IN_20MHZ_DEFAULT,
+                 CFG_VHT_ENABLE_TXBF_IN_20MHZ_MIN,
+                 CFG_VHT_ENABLE_TXBF_IN_20MHZ_MAX ),
+
    REG_VARIABLE( CFG_VHT_CSN_BEAMFORMEE_ANT_SUPPORTED, WLAN_PARAM_Integer,
                  hdd_config_t, txBFCsnValue,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -5472,6 +5479,14 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
         fStatus = FALSE;
         hddLog(LOGE,
                "Failure: Could not set value for WNI_CFG_DFS_MASTER_ENABLED");
+    }
+
+    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_ENABLE_TXBF_20MHZ,
+                     pConfig->enableTxBFin20MHz, NULL,
+                     eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+        fStatus = FALSE;
+        hddLog(LOGE,
+               "Failure: Could not set value for WNI_CFG_VHT_ENABLE_TXBF_20MHZ");
     }
 
     if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_HEART_BEAT_THRESHOLD, pConfig->HeartbeatThresh24,

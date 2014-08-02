@@ -415,6 +415,16 @@ enum eWniMsgTypes
     eWNI_SME_MSG_TYPES_END
 };
 
+typedef enum {
+  eWNI_TDLS_TEARDOWN_REASON_TX,
+  eWNI_TDLS_TEARDOWN_REASON_RSSI,
+  eWNI_TDLS_TEARDOWN_REASON_SCAN,
+  eWNI_TDLS_DISCONNECTED_REASON_PEER_DELETE,
+  eWNI_TDLS_TEARDOWN_REASON_PTR_TIMEOUT,
+  eWNI_TDLS_TEARDOWN_REASON_BAD_PTR,
+  eWNI_TDLS_TEARDOWN_REASON_NO_RESPONSE,
+} eWniTdlsTeardownReason;
+
 #define WNI_CFG_MSG_TYPES_BEGIN        0x1200
 
 /*---------------------------------------------------------------------*/

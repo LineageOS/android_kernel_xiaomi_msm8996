@@ -4683,3 +4683,11 @@ NONE
 V    RW    NP
 NONE
 0    1    0
+
+WNI_CFG_VHT_ENABLE_TXBF_20MHZ    I    4    7
+V    RW    NP
+NONE
+0    1    0
+V    RW    NP
+NONE
+0    1    0

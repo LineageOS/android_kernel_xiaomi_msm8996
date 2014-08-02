@@ -946,7 +946,7 @@ void wmi_rx_event_work(struct work_struct *work)
 /* WMI Initialization functions */
 
 void *
-wmi_unified_attach(ol_scn_t scn_handle)
+wmi_unified_attach(ol_scn_t scn_handle, wma_wow_tx_complete_cbk func)
 {
     struct wmi_unified *wmi_handle;
     wmi_handle = (struct wmi_unified *)OS_MALLOC(NULL, sizeof(struct wmi_unified), GFP_ATOMIC);
@@ -961,11 +961,16 @@ wmi_unified_attach(ol_scn_t scn_handle)
 #ifndef QCA_WIFI_ISOC
     adf_os_spinlock_init(&wmi_handle->eventq_lock);
     adf_nbuf_queue_init(&wmi_handle->event_queue);
+#ifdef CONFIG_CNSS
+    cnss_init_work(&wmi_handle->rx_event_work, wmi_rx_event_work);
+#else
     INIT_WORK(&wmi_handle->rx_event_work, wmi_rx_event_work);
+#endif
 #endif
 #ifdef WMI_INTERFACE_EVENT_LOGGING
     adf_os_spinlock_init(&wmi_handle->wmi_record_lock);
 #endif
+    wmi_handle->wma_wow_tx_complete_cbk = func;
     return wmi_handle;
 }
 
@@ -1009,6 +1014,8 @@ void wmi_htc_tx_complete(void *ctx, HTC_PACKET *htc_pkt)
 		((u_int32_t *)adf_nbuf_data(wmi_cmd_buf) + 2));
 	adf_os_spin_unlock_bh(&wmi_handle->wmi_record_lock);
 #endif
+	if (cmd_id == WMI_WOW_ENABLE_CMDID)
+		wmi_handle->wma_wow_tx_complete_cbk(wmi_handle->scn_handle);
 	adf_nbuf_free(wmi_cmd_buf);
 	adf_os_mem_free(htc_pkt);
 	adf_os_atomic_dec(&wmi_handle->pending_cmds);

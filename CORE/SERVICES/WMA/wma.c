@@ -3841,7 +3841,6 @@ static int wma_tdls_event_handler(void *handle, u_int8_t *event, u_int32_t len)
 
 	tdls_event->sessionId = peer_event->vdev_id;
 	WMI_MAC_ADDR_TO_CHAR_ARRAY(&peer_event->peer_macaddr, tdls_event->peerMac);
-	tdls_event->peer_reason = peer_event->peer_reason;
 
 	switch(peer_event->peer_status) {
 	case WMI_TDLS_SHOULD_DISCOVER:
@@ -3857,6 +3856,34 @@ static int wma_tdls_event_handler(void *handle, u_int8_t *event, u_int32_t len)
 	 WMA_LOGE("%s: Discarding unknown tdls event(%d) from target",
 	          __func__, peer_event->peer_status);
 	 return -1;
+	}
+
+	switch (peer_event->peer_reason) {
+	case WMI_TDLS_TEARDOWN_REASON_TX:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_TX;
+		break;
+	case WMI_TDLS_TEARDOWN_REASON_RSSI:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_RSSI;
+		break;
+	case WMI_TDLS_TEARDOWN_REASON_SCAN:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_SCAN;
+		break;
+	case WMI_TDLS_DISCONNECTED_REASON_PEER_DELETE:
+		tdls_event->peer_reason = eWNI_TDLS_DISCONNECTED_REASON_PEER_DELETE;
+		break;
+	case WMI_TDLS_TEARDOWN_REASON_PTR_TIMEOUT:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_PTR_TIMEOUT;
+		break;
+	case WMI_TDLS_TEARDOWN_REASON_BAD_PTR:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_BAD_PTR;
+		break;
+	case WMI_TDLS_TEARDOWN_REASON_NO_RESPONSE:
+		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_NO_RESPONSE;
+		break;
+	default:
+		WMA_LOGE("%s: unknown reason(%d) in tdls event(%d) from target",
+		         __func__, peer_event->peer_reason, peer_event->peer_status);
+		return -1;
 	}
 
 	WMA_LOGD("%s: sending msg to umac, messageType: 0x%x, "
@@ -4681,6 +4708,13 @@ wma_register_extscan_event_handler(tp_wma_handle wma_handle)
 	return;
 }
 
+void wma_wow_tx_complete(void *wma)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)wma;
+	WMA_LOGD("WOW_TX_COMPLETE DONE");
+	vos_event_set(&wma_handle->wow_tx_complete);
+}
+
 /*
  * Allocate and init wmi adaptation layer.
  */
@@ -4728,7 +4762,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	}
 
 	/* attach the wmi */
-	wmi_handle = wmi_unified_attach(wma_handle);
+	wmi_handle = wmi_unified_attach(wma_handle, wma_wow_tx_complete);
 	if (!wmi_handle) {
 		WMA_LOGP("%s: failed to attach WMI", __func__);
 		vos_status = VOS_STATUS_E_NOMEM;
@@ -4876,6 +4910,13 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
         vos_status = vos_event_init(&wma_handle->target_suspend);
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("%s: target suspend event initialization failed",
+				__func__);
+		goto err_event_init;
+	}
+
+	vos_status = vos_event_init(&wma_handle->wow_tx_complete);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGP("%s: wow_tx_complete event initialization failed",
 				__func__);
 		goto err_event_init;
 	}
@@ -16324,6 +16365,7 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	cmd->enable = TRUE;
 
 	vos_event_reset(&wma->target_suspend);
+	vos_event_reset(&wma->wow_tx_complete);
 	wma->wow_nack = 0;
 
 	host_credits = wmi_get_host_credits(wma->wmi_handle);
@@ -16346,6 +16388,16 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 		goto error;
 	}
 
+	if (vos_wait_single_event(&wma->wow_tx_complete,
+			WMA_TGT_WOW_TX_COMPLETE_TIMEOUT)
+				!= VOS_STATUS_SUCCESS) {
+		WMA_LOGE("FAILED TO RECIEVE TX COMPLETE FOR WOW");
+		WMA_LOGE("Credits:%d; Pending_Cmds:%d",
+			wmi_get_host_credits(wma->wmi_handle),
+			wmi_get_pending_cmds(wma->wmi_handle));
+		VOS_BUG(0);
+	}
+
 	wmi_set_target_suspend(wma->wmi_handle, TRUE);
 
 	if (vos_wait_single_event(&wma->target_suspend,
@@ -16356,6 +16408,7 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 			wmi_get_host_credits(wma->wmi_handle),
 			wmi_get_pending_cmds(wma->wmi_handle));
 
+		VOS_BUG(0);
 		wmi_set_target_suspend(wma->wmi_handle, FALSE);
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -18092,8 +18145,13 @@ wma_data_tx_ack_comp_hdlr(void *wma_context,
 		adf_os_mem_alloc(NULL, sizeof(struct wma_tx_ack_work_ctx));
 		wma_handle->ack_work_ctx = ack_work;
 		if(ack_work) {
+#ifdef CONFIG_CNSS
+			cnss_init_work(&ack_work->ack_cmp_work,
+					wma_data_tx_ack_work_handler);
+#else
 			INIT_WORK(&ack_work->ack_cmp_work,
 					wma_data_tx_ack_work_handler);
+#endif
 			ack_work->wma_handle = wma_handle;
 			ack_work->sub_type = 0;
 			ack_work->status = status;
@@ -21537,8 +21595,13 @@ wma_mgmt_tx_ack_comp_hdlr(void *wma_context,
 			adf_os_mem_alloc(NULL, sizeof(struct wma_tx_ack_work_ctx));
 
 			if(ack_work) {
+#ifdef CONFIG_CNSS
+				cnss_init_work(&ack_work->ack_cmp_work,
+						wma_mgmt_tx_ack_work_handler);
+#else
 				INIT_WORK(&ack_work->ack_cmp_work,
 						wma_mgmt_tx_ack_work_handler);
+#endif
 				ack_work->wma_handle = wma_handle;
 				ack_work->sub_type = pFc->subType;
 				ack_work->status = status;
@@ -22869,6 +22932,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	vos_event_destroy(&wma_handle->wma_ready_event);
 	vos_event_destroy(&wma_handle->target_suspend);
 	vos_event_destroy(&wma_handle->wma_resume_event);
+	vos_event_destroy(&wma_handle->wow_tx_complete);
 	wma_cleanup_vdev_resp(wma_handle);
 #ifdef QCA_WIFI_ISOC
 	vos_event_destroy(&wma_handle->cfg_nv_tx_complete);

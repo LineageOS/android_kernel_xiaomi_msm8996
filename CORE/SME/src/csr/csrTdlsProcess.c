@@ -1300,6 +1300,7 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
             tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
             vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
                          sizeof(tSirMacAddr));
+            roamInfo.reasonCode = tevent->peer_reason;
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                       "%s: eWNI_SME_TDLS_SHOULD_DISCOVER for peer mac: "
                       MAC_ADDRESS_STR " peer_reason: %d",
@@ -1315,6 +1316,7 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
             tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
             vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
                          sizeof(tSirMacAddr));
+            roamInfo.reasonCode = tevent->peer_reason;
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                       "%s: eWNI_SME_TDLS_SHOULD_TEARDOWN for peer mac: "
                       MAC_ADDRESS_STR " peer_reason: %d",
@@ -1330,6 +1332,7 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
             tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
             vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
                          sizeof(tSirMacAddr));
+            roamInfo.reasonCode = tevent->peer_reason;
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                       "%s: eWNI_SME_TDLS_PEER_DISCONNECTED for peer mac: "
                       MAC_ADDRESS_STR " peer_reason: %d",
