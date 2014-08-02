@@ -147,6 +147,8 @@ typedef struct _smeTdlsPeerCapParams {
    tANI_U8 peerOperClass[SME_TDLS_MAX_SUPP_OPER_CLASSES];
    tANI_U8 prefOffChanNum;
    tANI_U8 prefOffChanBandwidth;
+   tANI_U8 opClassForPrefOffChan;
+   tANI_U8 opClassForPrefOffChanIsSet;
 } tSmeTdlsPeerCapParams;
 
 typedef enum
