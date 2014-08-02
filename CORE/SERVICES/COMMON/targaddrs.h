@@ -283,6 +283,9 @@ PREPACK64 struct host_interest_s {
     /* minidump buffer */
     A_UINT32               hi_minidump;                             /* 0x118 */
 
+    /* bdata's sig and key addr */
+    A_UINT32               hi_bd_sig_key;                           /* 0x11c */
+
 } POSTPACK64;
 
 /* bitmap for hi_test_apps_related */

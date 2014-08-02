@@ -230,7 +230,7 @@ typedef enum {
     WMI_PDEV_GET_TPC_CONFIG_CMDID,
 
     /** set the base MAC address for the physical device before a VDEV is created.
-     *  For firmware that doesnt support this feature and this command, the pdev
+     *  For firmware that doesn't support this feature and this command, the pdev
      *  MAC address will not be changed. */
     WMI_PDEV_SET_BASE_MACADDR_CMDID,
 
@@ -5358,6 +5358,7 @@ typedef enum event_type_e {
     WOW_ACER_IOAC_EXTEND_EVENT,
     WOW_ACER_IOAC_TIMER_EVENT,
     WOW_DFS_PHYERR_RADAR_EVENT,
+    WOW_BEACON_EVENT,
 }WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -5388,6 +5389,7 @@ typedef enum wake_reason_e {
     WOW_REASON_ACER_IOAC_TIMER_EVENT,
     WOW_REASON_ROAM_HO,
     WOW_REASON_DFS_PHYERR_RADADR_EVENT,
+    WOW_REASON_BEACON_RECV,
     WOW_REASON_DEBUG_TEST = 0xFF,
 }WOW_WAKE_REASON_TYPE;
 
@@ -7170,7 +7172,7 @@ typedef enum {
    WMI_LPI_STATUS_REQ_TIME_OUT = 5,
    /** Medium Bussy, already there
     * is a scan is going on */
-   WMI_LPI_STATUS_MEDIUM_BUSSY = 6,
+   WMI_LPI_STATUS_MEDIUM_BUSY = 6,
 }wmi_lpi_staus;
 
 typedef struct
@@ -7187,8 +7189,9 @@ typedef struct
     A_UINT32      tlv_header;
     wmi_mac_addr  bssid;
     wmi_ssid      ssid;
-    A_UINT16      freq;
+    A_UINT32      freq;
     A_UINT32      rssi;
+    A_UINT32      vdev_id;
 }  wmi_lpi_handoff_event_fixed_param;
 
 typedef struct
@@ -8434,6 +8437,85 @@ typedef struct{
     A_UINT32    tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_d0_wow_disable_ack_event_fixed_param  */
     A_UINT32    reserved0; /* for future need */
 } wmi_d0_wow_disable_ack_event_fixed_param;
+
+/** value representing all modules */
+#define WMI_DEBUG_LOG_MODULE_ALL 0xffff
+
+/* param definitions */
+
+/**
+  * Log level for a given module. Value contains both module id and log level.
+  * here is the bitmap definition for value.
+  * module Id   : 16
+  *     Flags   :  reserved
+  *     Level   :  8
+  * if odule Id  is WMI_DEBUG_LOG_MODULE_ALL then  log level is  applied to all modules (global).
+  * WMI_DEBUG_LOG_MIDULE_ALL will overwrites per module level setting.
+  */
+#define WMI_DEBUG_LOG_PARAM_LOG_LEVEL      0x1
+
+#define WMI_DBGLOG_SET_LOG_LEVEL(val,lvl) do { \
+        (val) |=  (lvl & 0xff);                \
+     } while(0)
+
+#define WMI_DBGLOG_GET_LOG_LEVEL(val) ((val) & 0xff)
+
+#define WMI_DBGLOG_SET_MODULE_ID(val,mid) do { \
+        (val) |=  ((mid & 0xffff) << 16);        \
+     } while(0)
+
+#define WMI_DBGLOG_GET_MODULE_ID(val) (( (val) >> 16) & 0xffff)
+
+/**
+  * Enable the debug log for a given vdev. Value is vdev id
+  */
+#define WMI_DEBUG_LOG_PARAM_VDEV_ENABLE    0x2
+
+
+/**
+  * Disable the debug log for a given vdev. Value is vdev id
+  * All the log level  for a given VDEV is disabled except the ERROR log messages
+  */
+
+#define WMI_DEBUG_LOG_PARAM_VDEV_DISABLE   0x3
+
+/**
+  * set vdev enable bitmap. value is the vden enable bitmap
+  */
+#define WMI_DEBUG_LOG_PARAM_VDEV_ENABLE_BITMAP    0x4
+
+/**
+  * set a given log level to all the modules specified in the module bitmap.
+  * and set the log levle for all other modules to DBGLOG_ERR.
+  *  value: log levelt to be set.
+  *  module_id_bitmap : identifies the modules for which the log level should be set and
+  *                      modules for which the log level should be reset to DBGLOG_ERR.
+  */
+#define WMI_DEBUG_LOG_PARAM_MOD_ENABLE_BITMAP    0x5
+
+#define NUM_MODULES_PER_ENTRY ((sizeof(A_UINT32)) << 3)
+
+#define WMI_MODULE_ENABLE(pmid_bitmap,mod_id) \
+    ( (pmid_bitmap)[(mod_id)/NUM_MODULES_PER_ENTRY] |= \
+         (1 << ((mod_id)%NUM_MODULES_PER_ENTRY)) )
+
+#define WMI_MODULE_DISABLE(pmid_bitmap,mod_id)     \
+    ( (pmid_bitmap)[(mod_id)/NUM_MODULES_PER_ENTRY] &=  \
+      ( ~(1 << ((mod_id)%NUM_MODULES_PER_ENTRY)) ) )
+
+#define WMI_MODULE_IS_ENABLED(pmid_bitmap,mod_id) \
+    ( ((pmid_bitmap)[(mod_id)/NUM_MODULES_PER_ENTRY ] &  \
+       (1 << ((mod_id)%NUM_MODULES_PER_ENTRY)) ) != 0)
+
+#define MAX_MODULE_ID_BITMAP_WORDS 16 /* 16*32=512 module ids. should be more than sufficient */
+typedef struct {
+        A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_debug_log_config_cmd_fixed_param */
+        A_UINT32 dbg_log_param; /** param types are defined above */
+        A_UINT32 value;
+        /* The below array will follow this tlv ->fixed length module_id_bitmap[]
+        A_UINT32 module_id_bitmap[MAX_MODULE_ID_BITMAP_WORDS];
+     */
+} wmi_debug_log_config_cmd_fixed_param;
 
 #ifdef __cplusplus
 }
