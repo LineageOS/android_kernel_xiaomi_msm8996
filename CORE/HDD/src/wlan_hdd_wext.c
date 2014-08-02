@@ -6630,9 +6630,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
 
         case WE_GET_STATS:
         {
-            hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
             hdd_tx_rx_stats_t *pStats = &pAdapter->hdd_stats.hddTxRxStats;
-            hdd_chip_reset_stats_t *pResetStats = &pHddCtx->hddChipResetStats;
 
             snprintf(extra, WE_MAX_STR_LEN,
                      "\nTransmit"
@@ -6650,8 +6648,6 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                      "\n      flushed BK %u, BE %u, VI %u, VO %u"
                      "\n\nReceive"
                      "\nchains %u, packets %u, dropped %u, delivered %u, refused %u"
-                     "\n\nResetsStats"
-                     "\n TotalLogp %u Cmd53 %u MutexRead %u  MIF-Error %u FW-Heartbeat %u Others %u"
                      "\n",
                      pStats->txXmitCalled,
                      pStats->txXmitDropped,
@@ -6718,14 +6714,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                      pStats->rxPackets,
                      pStats->rxDropped,
                      pStats->rxDelivered,
-                     pStats->rxRefused,
-
-                     pResetStats->totalLogpResets,
-                     pResetStats->totalCMD53Failures,
-                     pResetStats->totalMutexReadFailures,
-                     pResetStats->totalMIFErrorFailures,
-                     pResetStats->totalFWHearbeatFailures,
-                     pResetStats->totalUnknownExceptions
+                     pStats->rxRefused
                      );
             wrqu->data.length = strlen(extra)+1;
             break;
