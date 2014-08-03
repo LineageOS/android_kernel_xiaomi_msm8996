@@ -12937,7 +12937,8 @@ void wlan_hdd_decr_active_session(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
    case VOS_P2P_CLIENT_MODE:
    case VOS_P2P_GO_MODE:
    case VOS_STA_SAP_MODE:
-        pHddCtx->no_of_active_sessions[mode]--;
+        if (pHddCtx->no_of_active_sessions[mode])
+            pHddCtx->no_of_active_sessions[mode]--;
         break;
    default:
         break;
