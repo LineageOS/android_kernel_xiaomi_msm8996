@@ -17756,13 +17756,21 @@ eHalStatus csrRoamUpdateWPARSNIEs( tpAniSirGlobal pMac, tANI_U32 sessionId, tSir
 }
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
-//eHalStatus csrRoamIssueFTPreauthReq(tHalHandle hHal, tANI_U32 sessionId, tCsrBssid preAuthBssid, tANI_U8 channelId)
-eHalStatus csrRoamIssueFTPreauthReq(tHalHandle hHal, tANI_U32 sessionId, tpSirBssDescription pBssDescription)
+eHalStatus
+csrRoamIssueFTPreauthReq(tHalHandle hHal, tANI_U32 sessionId,
+                         tpSirBssDescription pBssDescription)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tpSirFTPreAuthReq pftPreAuthReq;
     tANI_U16 auth_req_len = 0;
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+    tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
+
+    if (NULL == pSession) {
+        smsLog(pMac, LOGE,
+               FL("Session does not exist for session id(%d)"), sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+
     auth_req_len = sizeof(tSirFTPreAuthReq);
     pftPreAuthReq = (tpSirFTPreAuthReq)vos_mem_malloc(auth_req_len);
     if (NULL == pftPreAuthReq)

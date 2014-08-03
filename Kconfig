@@ -25,8 +25,8 @@ config PRIMA_WLAN_BTAMP
 	bool "Enable the Prima WLAN BT-AMP feature"
 	default n
 
-config PRIMA_WLAN_LFR
-	bool "Enable the Prima WLAN Legacy Fast Roaming feature"
+config QCACLD_WLAN_LFR3
+	bool "Enable the WLAN Legacy Fast Roaming feature Version 3"
 	default n
 
 config PRIMA_WLAN_OKC

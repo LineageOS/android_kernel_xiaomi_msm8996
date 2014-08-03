@@ -839,8 +839,19 @@ CE_per_engine_servicereap(struct hif_pci_softc *sc, unsigned int CE_id)
 
     A_TARGET_ACCESS_BEGIN(targid);
 
-    adf_os_spin_lock(&sc->target_lock);
+    /* Since this function is called from both user context and
+     * tasklet context the spinlock has to lock the bottom halves.
+     * This fix assumes that ATH_11AC_TXCOMPACT flag is always
+     * enabled in TX polling mode. If this is not the case, more
+     * bottom halve spin lock changes are needed. Due to data path
+     * performance concern, after internal discussion we've decided
+     * to make minimum change, i.e., only address the issue occurred
+     * in this function. The possible negative effect of this minimum
+     * change is that, in the future, if some other function will also
+     * be opened to let the user context to use, those cases need to be
+     * addressed by change spin_lock to spin_lock_bh also. */
 
+    adf_os_spin_lock_bh(&sc->target_lock);
 
     if (CE_state->send_cb) {
        {
@@ -849,22 +860,22 @@ CE_per_engine_servicereap(struct hif_pci_softc *sc, unsigned int CE_id)
                         &buf, &nbytes, &id, &sw_idx, &hw_idx) == A_OK)
             {
                 if(CE_id != CE_HTT_H2T_MSG){
-                    adf_os_spin_unlock(&sc->target_lock);
+                    adf_os_spin_unlock_bh(&sc->target_lock);
                     CE_state->send_cb((struct CE_handle *)CE_state, CE_context, transfer_context, buf, nbytes, id,
                                       sw_idx, hw_idx);
-                    adf_os_spin_lock(&sc->target_lock);
+                    adf_os_spin_lock_bh(&sc->target_lock);
                 }else{
                      struct HIF_CE_pipe_info *pipe_info = (struct HIF_CE_pipe_info *)CE_context;
 
-                     adf_os_spin_lock(&pipe_info->completion_freeq_lock);
+                     adf_os_spin_lock_bh(&pipe_info->completion_freeq_lock);
                      pipe_info->num_sends_allowed++;
-                     adf_os_spin_unlock(&pipe_info->completion_freeq_lock);
+                     adf_os_spin_unlock_bh(&pipe_info->completion_freeq_lock);
                 }
             }
         }
     }
 
-    adf_os_spin_unlock(&sc->target_lock);
+    adf_os_spin_unlock_bh(&sc->target_lock);
     A_TARGET_ACCESS_END(targid);
 }
 

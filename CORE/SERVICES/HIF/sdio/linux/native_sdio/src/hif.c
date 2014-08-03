@@ -36,8 +36,6 @@
 #include "if_ath_sdio.h"
 #include "regtable.h"
 
-extern void __hdd_wlan_exit(void );
-
 /* by default setup a bounce buffer for the data packets, if the underlying host controller driver
    does not use DMA you may be able to skip this step and save the memory allocation and transfer time */
 #define HIF_USE_DMA_BOUNCE_BUFFER 1
@@ -1976,9 +1974,6 @@ static void hifDeviceRemoved(struct sdio_func *func)
     AR_DEBUG_ASSERT(func != NULL);
 
     ENTER();
-
-    //cleaning up the upper layers
-    __hdd_wlan_exit();
 
     device = getHifDevice(func);
 

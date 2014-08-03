@@ -1598,6 +1598,16 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 
 	hdd_ipa = iface_context->hdd_ipa;
 
+	/*
+	 * When SSR is going on, just drop the packets. There is no use in
+	 * queueing the packets as STA has to connect back any way
+	 */
+	if (hdd_ipa->hdd_ctx->isLogpInProgress) {
+		ipa_free_skb(ipa_tx_desc);
+		iface_context->stats.num_tx_drop++;
+		return;
+	}
+
 	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
 	NBUF_OWNER_ID(skb) = IPA_NBUF_OWNER_ID;
 	NBUF_CALLBACK_FN(skb) = hdd_ipa_nbuf_cb;

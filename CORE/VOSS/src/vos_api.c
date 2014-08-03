@@ -2479,6 +2479,7 @@ static DECLARE_WORK(self_recovery_work, self_recovery_work_handler);
 void vos_trigger_recovery(void)
 {
 #ifdef CONFIG_CNSS
+    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
     schedule_work(&self_recovery_work);
 #endif
 }
