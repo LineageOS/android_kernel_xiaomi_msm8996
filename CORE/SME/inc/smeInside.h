@@ -152,23 +152,6 @@ typedef struct TdlsDelStaInfo
 {
   tSirMacAddr peerMac;
 } tTdlsDelStaCmdInfo;
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-typedef struct TdlsDisReqCmdinfo
-{
-      tSirMacAddr peerMac;
-          tANI_U8 tdlsDisType;
-} tTdlsDisReqCmdinfo;
-
-typedef struct tdlsLinkSetupReqCmdinfo
-{
-      tSirMacAddr peerMac;
-} tTdlsLinkSetupReqCmdinfo;
-
-typedef struct tdlsLinkTeardownCmdinfo
-{
-      tSirMacAddr peerMac;
-} tTdlsLinkTeardownCmdinfo;
-#endif
 /*
  * TDLS cmd info, CMD from SME to PE.
  */
@@ -177,11 +160,6 @@ typedef struct s_tdls_cmd
   tANI_U32 size;
   union
   {
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-    tTdlsDisReqCmdinfo tdlsDisReqCmdInfo ;
-    tTdlsLinkSetupReqCmdinfo tdlsLinkSetupReqCmdInfo ;
-    tTdlsLinkTeardownCmdinfo tdlsLinkTeardownCmdInfo ;
-#endif
     tTdlsLinkEstablishCmdInfo tdlsLinkEstablishCmdInfo;
     tTdlsSendMgmtCmdInfo tdlsSendMgmtCmdInfo;
     tTdlsAddStaCmdInfo   tdlsAddStaCmdInfo;
@@ -311,14 +289,6 @@ eHalStatus csrTdlsProcessCmd(tpAniSirGlobal pMac,tSmeCmd *pCommand );
 eHalStatus csrTdlsProcessLinkEstablish( tpAniSirGlobal pMac, tSmeCmd *cmd );
 eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,v_U16_t msg_type,
                                                            void *pMsgBuf);
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-eHalStatus csrTdlsDiscoveryReq(tHalHandle hHal, tANI_U8 sessionId,
-                                          tCsrTdlsDisRequest *tdlsDisReq);
-eHalStatus csrTdlsSetupReq(tHalHandle hHal, tANI_U8 sessionId,
-                                         tCsrTdlsSetupRequest *tdlsSetupReq);
-eHalStatus csrTdlsTeardownReq(tHalHandle hHal, tANI_U8 sessionId,
-                                         tCsrTdlsTeardownRequest *teardown);
-#endif
 #endif /* FEATURE_WLAN_TDLS */
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
