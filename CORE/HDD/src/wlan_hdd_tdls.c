@@ -536,10 +536,22 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     {
         pHddCtx->tdls_mode = eTDLS_SUPPORT_ENABLED;
     }
+
 #ifdef CONFIG_TDLS_IMPLICIT
+#ifdef CONFIG_CNSS
+    cnss_init_work(&pHddTdlsCtx->implicit_setup, wlan_hdd_tdls_pre_setup);
+#else
     INIT_WORK(&pHddTdlsCtx->implicit_setup, wlan_hdd_tdls_pre_setup);
 #endif
-    INIT_DELAYED_WORK(&pHddCtx->tdls_scan_ctxt.tdls_scan_work, wlan_hdd_tdls_schedule_scan);
+#endif
+
+#ifdef CONFIG_CNSS
+    cnss_init_delayed_work(&pHddCtx->tdls_scan_ctxt.tdls_scan_work,
+                   wlan_hdd_tdls_schedule_scan);
+#else
+    INIT_DELAYED_WORK(&pHddCtx->tdls_scan_ctxt.tdls_scan_work,
+                      wlan_hdd_tdls_schedule_scan);
+#endif
 
     /*
      * Release tdls lock before calling in SME api
@@ -1769,6 +1781,8 @@ void wlan_hdd_tdls_disconnection_callback(hdd_adapter_t *pAdapter)
     wlan_hdd_tdls_peer_timers_destroy(pHddTdlsCtx);
     wlan_hdd_tdls_free_list(pHddTdlsCtx);
 
+    pHddTdlsCtx->curr_candidate = NULL;
+
     mutex_unlock(&pHddCtx->tdls_lock);
 }
 
@@ -2078,6 +2092,7 @@ static void __wlan_hdd_tdls_pre_setup(struct work_struct *work)
     hddTdlsPeer_t *curr_peer;
     hddTdlsPeer_t *temp_peer;
     int status;
+    tSirMacAddr peer_mac;
 
     if (NULL == pHddTdlsCtx)
     {
@@ -2103,14 +2118,19 @@ static void __wlan_hdd_tdls_pre_setup(struct work_struct *work)
        return;
     }
 
+    mutex_lock(&pHddCtx->tdls_lock);
+
     curr_peer = pHddTdlsCtx->curr_candidate;
 
     if (NULL == curr_peer)
     {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 FL("pHddCtx is not valid"));
-       return;
+       goto done;
     }
+
+    vos_mem_copy(&peer_mac, curr_peer->peerMac, sizeof(peer_mac));
+
     /*
      * If Powersave Offload is enabled
      * Fw will take care incase of concurrency
@@ -2157,9 +2177,22 @@ static void __wlan_hdd_tdls_pre_setup(struct work_struct *work)
     }
     curr_peer->link_status = eTDLS_LINK_DISCOVERING;
 
+    mutex_unlock(&pHddCtx->tdls_lock);
+
     status = wlan_hdd_cfg80211_send_tdls_discover_req(pHddTdlsCtx->pAdapter->wdev.wiphy,
                                             pHddTdlsCtx->pAdapter->dev,
-                                            curr_peer->peerMac);
+                                            peer_mac);
+
+    mutex_lock(&pHddCtx->tdls_lock);
+
+    if (NULL == pHddTdlsCtx->curr_candidate)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                   "%s: current candidate Not valid any more", __func__);
+        goto done;
+    }
+
+    curr_peer = pHddTdlsCtx->curr_candidate;
 
     if (0 != status)
     {
@@ -2174,11 +2207,8 @@ static void __wlan_hdd_tdls_pre_setup(struct work_struct *work)
 
     curr_peer->discovery_attempt++;
 
-    mutex_lock(&pHddCtx->tdls_lock);
-
     wlan_hdd_tdls_check_power_save_prohibited(pHddTdlsCtx->pAdapter);
 
-    mutex_unlock(&pHddCtx->tdls_lock);
     VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL, "%s: discovery count %u timeout %u msec",
                __func__, pHddTdlsCtx->discovery_sent_cnt,
                pHddTdlsCtx->threshold_config.tx_period_t - TDLS_DISCOVERY_TIMEOUT_BEFORE_UPDATE);
@@ -2190,6 +2220,7 @@ static void __wlan_hdd_tdls_pre_setup(struct work_struct *work)
 done:
     pHddTdlsCtx->curr_candidate = NULL;
     pHddTdlsCtx->magic = 0;
+    mutex_unlock(&pHddCtx->tdls_lock);
     return;
 }
 

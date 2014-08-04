@@ -55,6 +55,9 @@ bool hdd_ipa_is_enabled(hdd_context_t *pHddCtx);
 int hdd_ipa_set_perf_level(hdd_context_t *hdd_ctx, uint64_t tx_packets,
 		uint64_t rx_packets);
 
+int hdd_ipa_suspend(hdd_context_t *hdd_ctx);
+int hdd_ipa_resume(hdd_context_t *hdd_ctx);
+
 #endif
 
 #endif
