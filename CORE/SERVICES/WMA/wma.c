@@ -13117,8 +13117,12 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
 	}
 #ifdef QCA_IBSS_SUPPORT
-        else if (wma_is_vdev_in_ibss_mode(wma, add_sta->smesessionId))
+	else if (wma_is_vdev_in_ibss_mode(wma, add_sta->smesessionId)) {
 		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
+#ifdef FEATURE_WLAN_D0WOW
+		wma_add_pm_vote(wma);
+#endif
+	}
 #endif
 
 	switch (oper_mode) {
@@ -13774,8 +13778,11 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 #ifdef QCA_IBSS_SUPPORT
 	if (wma_is_vdev_in_ibss_mode(wma, del_sta->smesessionId)) {
 		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
+#ifdef FEATURE_WLAN_D0WOW
+		wma_del_pm_vote(wma);
+#endif
 		WMA_LOGD("%s: to delete sta for IBSS mode", __func__);
-        }
+	}
 #endif
 
 	switch (oper_mode) {
@@ -15930,6 +15937,8 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 	case  WOW_REASON_RA_MATCH:
 		return "WOW_REASON_RA_MATCH";
 #endif
+	case WOW_REASON_BEACON_RECV:
+		return "WOW_REASON_IBSS_BEACON_RECV";
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 	case  WOW_REASON_HOST_AUTO_SHUTDOWN:
 		return "WOW_REASON_HOST_AUTO_SHUTDOWN";
@@ -16926,6 +16935,9 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	u_int8_t vdev_id;
 	u_int8_t enable_ptrn_match = 0;
 	v_BOOL_t ap_vdev_available = FALSE;
+#ifdef QCA_IBSS_SUPPORT
+	v_BOOL_t ibss_vdev_available = FALSE;
+#endif
 
 	/* Gather list of free ptrn id. This is needed while configuring
 	* default wow patterns.
@@ -16950,6 +16962,11 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 #endif
 		)
 			ap_vdev_available = TRUE;
+
+#ifdef QCA_IBSS_SUPPORT
+		if (wma_is_vdev_in_ibss_mode(wma, vdev_id))
+			ibss_vdev_available = TRUE;
+#endif
 
 		if (wma_is_wow_prtn_cached(wma, vdev_id)) {
 			/* Configure wow patterns provided by the user */
@@ -17139,6 +17156,20 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	} else
 		WMA_LOGE("Configure auto shutdown WOW event to FW: success");
 #endif
+
+#ifdef QCA_IBSS_SUPPORT
+	/* Configure beacon based wakeup */
+	ret = wma_add_wow_wakeup_event(wma,
+				WOW_BEACON_EVENT,ibss_vdev_available);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to configure IBSS Beacon based wakeup");
+		goto end;
+	} else {
+		WMA_LOGD("IBSS Beacon based wakeup is %s in fw",
+			ibss_vdev_available ? "enabled" : "disabled");
+	}
+#endif
+
 	/* WOW is enabled in pcie suspend callback */
 	wma->wow.wow_enable = TRUE;
 	wma->wow.wow_enable_cmd_sent = FALSE;
