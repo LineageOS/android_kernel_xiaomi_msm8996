@@ -1167,7 +1167,7 @@ typedef struct sSirSmeJoinRsp
     /*Broadcast DPU signature*/
     tANI_U8            bcastSig;
 
-    /*Timing measurement capability*/
+    /* Timing and fine Timing measurement capability clubbed together */
     tANI_U8            timingMeasCap;
 
     tANI_U8         frames[ 1 ];
@@ -1246,7 +1246,7 @@ typedef struct sSirSmeAssocInd
     tANI_U32             assocReqLength;
     tANI_U8*             assocReqPtr;
 
-    /* Timing measurement capability */
+    /* Timing and fine Timing measurement capability clubbed together */
     tANI_U8              timingMeasCap;
     tSirSmeChanInfo      chan_info;
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
@@ -5588,5 +5588,9 @@ typedef struct sAniGetLinkStatus
 #ifndef member_size
 #define member_size(type, member) (sizeof(((type *)0)->member))
 #endif
+
+#define RTT_INVALID                     0x00
+#define RTT_TIMING_MEAS_CAPABILITY      0x01
+#define RTT_FINE_TIMING_MEAS_CAPABILITY 0x02
 
 #endif /* __SIR_API_H */

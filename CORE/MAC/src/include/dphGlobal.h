@@ -506,6 +506,7 @@ typedef struct sDphHashNode
     tANI_U32 vht_caps;
 #endif
 
+    /* Timing and fine Timing measurement capability clubbed together */
     tANI_U8 timingMeasCap;
 
     /* When a station with already an existing dph entry tries to

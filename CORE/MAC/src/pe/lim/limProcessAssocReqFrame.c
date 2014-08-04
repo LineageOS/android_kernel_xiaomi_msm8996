@@ -1378,10 +1378,17 @@ if (limPopulateMatchingRateSet(pMac,
 
     if (pAssocReq->ExtCap.present)
     {
-        pStaDs->timingMeasCap = pAssocReq->ExtCap.timingMeas;
+        pStaDs->timingMeasCap = 0;
+        pStaDs->timingMeasCap |= (pAssocReq->ExtCap.timingMeas)?
+                                  RTT_TIMING_MEAS_CAPABILITY:
+                                  RTT_INVALID;
+        pStaDs->timingMeasCap |= (pAssocReq->ExtCap.fineTimingMeas)?
+                                  RTT_FINE_TIMING_MEAS_CAPABILITY:
+                                  RTT_INVALID;
         PELOG1(limLog(pMac, LOG1,
-               FL("ExtCap present, timingMeas: %d"),
-               pAssocReq->ExtCap.timingMeas);)
+               FL("ExtCap present, timingMeas: %d fineTimingMeas: %d"),
+               pAssocReq->ExtCap.timingMeas,
+               pAssocReq->ExtCap.fineTimingMeas);)
     }
     else
     {

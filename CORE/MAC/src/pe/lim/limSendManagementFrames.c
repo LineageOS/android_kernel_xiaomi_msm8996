@@ -164,10 +164,7 @@ void limUpdateExtCapIEtoStruct(tpAniSirGlobal pMac,
         return;
     }
     vos_mem_set(( tANI_U8* )&pOut[0], DOT11F_IE_EXTCAP_MAX_LEN, 0);
-    /* conversion should follow 4, 2, 2 byte order */
-    limUtilsframeshtonl(pMac, &pOut[0],*((tANI_U32*)&pBuf[2]),0);
-    limUtilsframeshtons(pMac, &pOut[4],*((tANI_U16*)&pBuf[6]),0);
-    limUtilsframeshtons(pMac, &pOut[6],*((tANI_U16*)&pBuf[8]),0);
+    vos_mem_copy(&pOut[0], &pBuf[2], DOT11F_IE_EXTCAP_MAX_LEN);
 
     if ( DOT11F_PARSE_SUCCESS != dot11fUnpackIeExtCap( pMac,
                 &pOut[0], DOT11F_IE_EXTCAP_MAX_LEN, pDst) )

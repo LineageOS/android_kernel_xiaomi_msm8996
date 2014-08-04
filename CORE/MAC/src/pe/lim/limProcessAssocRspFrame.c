@@ -917,10 +917,17 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
 
     if (pAssocRsp->ExtCap.present)
     {
-        pStaDs->timingMeasCap = pAssocRsp->ExtCap.timingMeas;
+        pStaDs->timingMeasCap = 0;
+        pStaDs->timingMeasCap |= (pAssocRsp->ExtCap.timingMeas)?
+                                  RTT_TIMING_MEAS_CAPABILITY:
+                                  RTT_INVALID;
+        pStaDs->timingMeasCap |= (pAssocRsp->ExtCap.fineTimingMeas)?
+                                  RTT_FINE_TIMING_MEAS_CAPABILITY:
+                                  RTT_INVALID;
         PELOG1(limLog(pMac, LOG1,
-               FL("ExtCap present, timingMeas: %d"),
-               pAssocRsp->ExtCap.timingMeas);)
+               FL("ExtCap present, timingMeas: %d fineTimingMeas: %d"),
+               pAssocRsp->ExtCap.timingMeas,
+               pAssocRsp->ExtCap.fineTimingMeas);)
     }
     else
     {
