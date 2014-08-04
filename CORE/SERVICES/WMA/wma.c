@@ -25995,12 +25995,13 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 	u_int16_t len;
 	len = sizeof(wmi_roam_synch_complete_fixed_param);
 
-	wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress = VOS_FALSE;
 	if (!wma_handle || !wma_handle->wmi_handle) {
 		WMA_LOGE("%s: WMA is closed, can not issue roam synch cnf",
 				__func__);
 		return;
 	}
+	wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress =
+                                                                     VOS_FALSE;
 	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!wmi_buf) {
 		WMA_LOGE("%s: wmai_buf_alloc failed", __func__);

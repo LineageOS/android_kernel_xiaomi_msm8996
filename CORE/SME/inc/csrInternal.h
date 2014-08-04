@@ -1436,15 +1436,9 @@ eHalStatus csrStop(tpAniSirGlobal pMac, tHalStopType stopType);
 eHalStatus csrReady(tpAniSirGlobal pMac);
 
 #ifdef FEATURE_WLAN_WAPI
-eHalStatus csrRoamGetBKIDCache(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 *pNum,
-                                tBkidCacheInfo *pBkidCache);
-
 
 eHalStatus csrScanGetBKIDCandidateList(tpAniSirGlobal pMac, tANI_U32 sessionId,
                                        tBkidCandidateInfo *pBkidList, tANI_U32 *pNumItems );
-tANI_U32 csrRoamGetNumBKIDCache(tpAniSirGlobal pMac, tANI_U32 sessionId);
-eHalStatus csrRoamSetBKIDCache( tpAniSirGlobal pMac, tANI_U32 sessionId, tBkidCacheInfo *pBKIDCache,
-                                 tANI_U32 numItems );
 /* ---------------------------------------------------------------------------
     \fn csrRoamGetWapiReqIE
     \brief return the WAPI IE CSR passes to PE to JOIN request or START_BSS request

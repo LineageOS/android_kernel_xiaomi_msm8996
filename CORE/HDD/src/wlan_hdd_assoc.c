@@ -1398,6 +1398,11 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
     if ( eCSR_ROAM_RESULT_ASSOCIATED == roamResult )
     {
+        if (NULL == pRoamInfo) {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      FL("pRoamInfo is NULL"));
+            return eHAL_STATUS_FAILURE;
+        }
         if ( !hddDisconInProgress )
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
