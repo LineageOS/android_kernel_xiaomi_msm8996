@@ -1134,9 +1134,6 @@ end:
 void
 rrmUpdateStartTSF ( tpAniSirGlobal pMac, tANI_U32 startTSF[2] )
 {
-#if 0 //defined WLAN_VOWIFI_DEBUG
-   limLog( pMac, LOGE, "Update Start TSF = %d %d", startTSF[0], startTSF[1] );
-#endif
    pMac->rrm.rrmPEContext.startTSF[0] = startTSF[0];
    pMac->rrm.rrmPEContext.startTSF[1] = startTSF[1];
 }
@@ -1159,9 +1156,6 @@ rrmUpdateStartTSF ( tpAniSirGlobal pMac, tANI_U32 startTSF[2] )
 void
 rrmGetStartTSF ( tpAniSirGlobal pMac, tANI_U32 *pStartTSF )
 {
-#if 0 //defined WLAN_VOWIFI_DEBUG
-   limLog( pMac, LOGE, "Get the start TSF, TSF = %d %d ", pMac->rrm.rrmPEContext.startTSF[0], pMac->rrm.rrmPEContext.startTSF[1] );
-#endif
    pStartTSF[0] = pMac->rrm.rrmPEContext.startTSF[0];
    pStartTSF[1] = pMac->rrm.rrmPEContext.startTSF[1];
 
@@ -1271,8 +1265,6 @@ rrmInitialize(tpAniSirGlobal pMac)
    pRRMCaps->BeaconTable = 1;
    pRRMCaps->APChanReport = 1;
 
-   //pRRMCaps->TCMCapability = 1;
-   //pRRMCaps->triggeredTCM = 1;
    pRRMCaps->operatingChanMax = 3;
    pRRMCaps->nonOperatingChanMax = 3;
 

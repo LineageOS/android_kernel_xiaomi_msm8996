@@ -348,16 +348,6 @@ typedef struct hdd_tx_rx_stats_s
 
 } hdd_tx_rx_stats_t;
 
-typedef struct hdd_chip_reset_stats_s
-{
-   __u32    totalLogpResets;
-   __u32    totalCMD53Failures;
-   __u32    totalMutexReadFailures;
-   __u32    totalMIFErrorFailures;
-   __u32    totalFWHearbeatFailures;
-   __u32    totalUnknownExceptions;
-} hdd_chip_reset_stats_t;
-
 #ifdef WLAN_FEATURE_11W
 typedef struct hdd_pmf_stats_s
 {
@@ -375,7 +365,6 @@ typedef struct hdd_stats_s
    tCsrGlobalClassDStatsInfo  ClassD_stat;
    tCsrPerStaStatsInfo        perStaStats;
    hdd_tx_rx_stats_t          hddTxRxStats;
-   hdd_chip_reset_stats_t     hddChipResetStats;
 #ifdef WLAN_FEATURE_11W
    hdd_pmf_stats_t            hddPmfStats;
 #endif
@@ -1349,7 +1338,6 @@ struct hdd_context_s
    v_U8_t no_of_open_sessions[VOS_MAX_NO_OF_MODE];
    v_U8_t no_of_active_sessions[VOS_MAX_NO_OF_MODE];
 
-   hdd_chip_reset_stats_t hddChipResetStats;
    /* Number of times riva restarted */
    v_U32_t  hddRivaResetStats;
 

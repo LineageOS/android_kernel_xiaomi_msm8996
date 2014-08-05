@@ -126,7 +126,6 @@ static void __limInitScanVars(tpAniSirGlobal pMac)
     /* Fill in default values */
     pMac->lim.gLimTriggerBackgroundScanDuringQuietBss = 0;
 
-
     // abort scan is used to abort an on-going scan
     pMac->lim.abortScan = 0;
     vos_mem_set(&pMac->lim.scanChnInfo, sizeof(tLimScanChnInfo), 0);
@@ -141,7 +140,6 @@ static void __limInitScanVars(tpAniSirGlobal pMac)
 
 static void __limInitBssVars(tpAniSirGlobal pMac)
 {
-
     vos_mem_set((void*)pMac->lim.gpSession,
                  sizeof(*pMac->lim.gpSession)*pMac->lim.maxBssId, 0);
 
@@ -190,8 +188,6 @@ static void __limInitStatsVars(tpAniSirGlobal pMac)
     pMac->lim.gLim11bStaAssocRejectCount = 0;
 #endif
 }
-
-
 
 static void __limInitStates(tpAniSirGlobal pMac)
 {
@@ -242,8 +238,6 @@ static void __limInitStates(tpAniSirGlobal pMac)
 
 static void __limInitVars(tpAniSirGlobal pMac)
 {
-
-
     // Place holder for Measurement Req/Rsp/Ind related info
 
     // WDS info
@@ -299,7 +293,6 @@ static void __limInitVars(tpAniSirGlobal pMac)
 static void __limInitAssocVars(tpAniSirGlobal pMac)
 {
     tANI_U32 val;
-
     if(wlan_cfgGetInt(pMac, WNI_CFG_ASSOC_STA_LIMIT, &val) != eSIR_SUCCESS)
     {
         limLog( pMac, LOGP, FL( "cfg get assoc sta limit failed" ));
@@ -839,14 +832,6 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
         return eSIR_FAILURE;
     }
 
-#if 0
-    pMac->lim.gpLimAIDpool = vos_mem_malloc(sizeof(*pMac->lim.gpLimAIDpool) * (WNI_CFG_ASSOC_STA_LIMIT_STAMAX+1));
-    if (NULL == pMac->lim.gpLimAIDpool)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!"));)
-        return eSIR_FAILURE;
-    }
-#endif
     pMac->lim.gpSession = vos_mem_malloc(sizeof(tPESession)* pMac->lim.maxBssId);
     if (NULL == pMac->lim.gpSession)
     {
@@ -856,22 +841,6 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
 
     vos_mem_set(pMac->lim.gpSession, sizeof(tPESession)*pMac->lim.maxBssId, 0);
 
-
- /*
-    pMac->dph.dphHashTable.pHashTable = vos_mem_malloc(sizeof(tpDphHashNode)*pMac->lim.maxStation);
-    if (NULL == pMac->dph.dphHashTable.pHashTable)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!"));)
-        return eSIR_FAILURE;
-    }
-
-    pMac->dph.dphHashTable.pDphNodeArray = vos_mem_malloc(sizeof(tDphHashNode)*pMac->lim.maxStation);
-    if (NULL == pMac->dph.dphHashTable.pDphNodeArray)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!"));)
-        return eSIR_FAILURE;
-    }
-    */
     pMac->pmm.gPmmTim.pTim = vos_mem_malloc(sizeof(tANI_U8)*pMac->lim.maxStation);
     if (NULL == pMac->pmm.gPmmTim.pTim)
     {
@@ -924,19 +893,9 @@ tSirRetStatus peClose(tpAniSirGlobal pMac)
     }
     vos_mem_free(pMac->lim.limTimers.gpLimCnfWaitTimer);
     pMac->lim.limTimers.gpLimCnfWaitTimer = NULL;
-#if 0
-    vos_mem_free(pMac->lim.gpLimAIDpool);
-    pMac->lim.gpLimAIDpool = NULL;
-#endif
 
     vos_mem_free(pMac->lim.gpSession);
     pMac->lim.gpSession = NULL;
-    /*
-    vos_mem_free(pMac->dph.dphHashTable.pHashTable);
-    pMac->dph.dphHashTable.pHashTable = NULL;
-    vos_mem_free(pMac->dph.dphHashTable.pDphNodeArray);
-    pMac->dph.dphHashTable.pDphNodeArray = NULL;
-    */
     vos_mem_free(pMac->pmm.gPmmTim.pTim);
     pMac->pmm.gPmmTim.pTim = NULL;
     if( !VOS_IS_STATUS_SUCCESS( vos_lock_destroy( &pMac->lim.lkPeGlobalLock ) ) )
@@ -1394,14 +1353,6 @@ limReceivedHBHandler(tpAniSirGlobal pMac, tANI_U8 channelId, tpPESession psessio
         pMac->pmm.inMissedBeaconScenario = FALSE;
 } /*** end limReceivedHBHandler() ***/
 
-
-
-#if 0
-void limResetHBPktCount(tpPESession psessionEntry)
-{
-    psessionEntry->LimRxedBeaconCntDuringHB = 0;
-}
-#endif
 
 
 /*
@@ -1864,22 +1815,6 @@ tSirRetStatus limUpdateShortSlot(tpAniSirGlobal pMac, tpSirProbeRespBeacon pBeac
   ----------------------------------------------------------------- */
 void limHandleLowRssiInd(tpAniSirGlobal pMac)
 {
-#if 0  //RSSI related indications will now go to TL and not PE
-    if ( (pMac->pmm.gPmmState == ePMM_STATE_BMPS_SLEEP) ||
-         (pMac->pmm.gPmmState == ePMM_STATE_UAPSD_SLEEP)||
-         (pMac->pmm.gPmmState == ePMM_STATE_WOWLAN) )
-    {
-        PELOG1(limLog(pMac, LOG1, FL("Sending LOW_RSSI_IND to SME "));)
-        limSendSmeRsp(pMac, eWNI_SME_LOW_RSSI_IND, eSIR_SME_SUCCESS, 0, 0);
-    }
-    else
-    {
-        limLog(pMac, LOGE,
-            FL("Received SIR_HAL_LOW_RSSI_IND while in incorrect state: %d"),
-            pMac->pmm.gPmmState);
-    }
-    return;
-#endif
 }
 
 /** -----------------------------------------------------------------
@@ -2165,12 +2100,6 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
 
     framelen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
     pBody    = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-
-#if 0
-    //Allow the mgmt frames to be queued if STA not in IBSS mode.
-    if (pMac->lim.gLimSystemRole != eLIM_STA_IN_IBSS_ROLE)
-        return eMGMT_DROP_NO_DROP;
-#endif
 
     //Drop INFRA Beacons and Probe Responses in IBSS Mode
     if( (subType == SIR_MAC_MGMT_BEACON) ||

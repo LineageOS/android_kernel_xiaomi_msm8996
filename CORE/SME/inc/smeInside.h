@@ -181,8 +181,6 @@ typedef struct s_tdls_cmd
     tTdlsDisReqCmdinfo tdlsDisReqCmdInfo ;
     tTdlsLinkSetupReqCmdinfo tdlsLinkSetupReqCmdInfo ;
     tTdlsLinkTeardownCmdinfo tdlsLinkTeardownCmdInfo ;
-    //tEnterPeerUAPSDInfo enterUapsdInfo ;
-    //tExitPeerUAPSDinfo  exitUapsdInfo ;
 #endif
     tTdlsLinkEstablishCmdInfo tdlsLinkEstablishCmdInfo;
     tTdlsSendMgmtCmdInfo tdlsSendMgmtCmdInfo;

@@ -1602,14 +1602,6 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
       smsLog( pMac, LOGE, "csrChangeDefaultConfigParam failed with status=%d",
               status );
    }
-#if defined WLAN_FEATURE_P2P_INTERNAL
-   status = p2pChangeDefaultConfigParam(pMac, &pSmeConfigParams->p2pConfig);
-
-   if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "p2pChangeDefaultConfigParam failed with status=%d",
-              status );
-   }
-#endif
 #if defined WLAN_FEATURE_VOWIFI
    status = rrmChangeDefaultConfigParam(hHal, &pSmeConfigParams->rrmConfig);
 
@@ -2543,11 +2535,9 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
           case eWNI_SME_TDLS_DEL_ALL_PEER_IND:
           case eWNI_SME_MGMT_FRM_TX_COMPLETION_IND:
           case eWNI_SME_TDLS_LINK_ESTABLISH_RSP:
-#ifdef QCA_WIFI_2_0
           case eWNI_SME_TDLS_SHOULD_DISCOVER:
           case eWNI_SME_TDLS_SHOULD_TEARDOWN:
           case eWNI_SME_TDLS_PEER_DISCONNECTED:
-#endif
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
           case eWNI_SME_TDLS_DISCOVERY_START_RSP:
           case eWNI_SME_TDLS_DISCOVERY_START_IND:
@@ -2998,24 +2988,12 @@ eHalStatus sme_Close(tHalHandle hHal)
 #ifdef FEATURE_WLAN_LFR
 tANI_BOOLEAN csrIsScanAllowed(tpAniSirGlobal pMac)
 {
-#if 0
-        switch(pMac->roam.neighborRoamInfo.neighborRoamState) {
-                case eCSR_NEIGHBOR_ROAM_STATE_REPORT_SCAN:
-                case eCSR_NEIGHBOR_ROAM_STATE_PREAUTHENTICATING:
-                case eCSR_NEIGHBOR_ROAM_STATE_PREAUTH_DONE:
-                case eCSR_NEIGHBOR_ROAM_STATE_REASSOCIATING:
-                        return eANI_BOOLEAN_FALSE;
-                default:
-                        return eANI_BOOLEAN_TRUE;
-        }
-#else
         /*
          * TODO: always return TRUE for now until
          * we figure out why we could be stuck in
          * one of the roaming states forever.
          */
         return eANI_BOOLEAN_TRUE;
-#endif
 }
 #endif
 /* ---------------------------------------------------------------------------
@@ -4171,15 +4149,6 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
          sme_ReleaseGlobalLock( &pMac->sme );
          return status;
       }
-#if defined WLAN_FEATURE_P2P_INTERNAL
-      status = p2pGetConfigParam(pMac, &pParam->p2pConfig);
-      if (status != eHAL_STATUS_SUCCESS)
-      {
-         smsLog( pMac, LOGE, "%s p2pGetConfigParam failed", __func__);
-         sme_ReleaseGlobalLock( &pMac->sme );
-         return status;
-      }
-#endif
       pParam->fScanOffload = pMac->fScanOffload;
       pParam->fP2pListenOffload = pMac->fP2pListenOffload;
       pParam->max_intf_count = pMac->sme.max_intf_count;
@@ -7294,9 +7263,6 @@ eHalStatus sme_RemainOnChannel(tHalHandle hHal, tANI_U8 sessionId,
   {
     status = p2pRemainOnChannel (hHal, sessionId, channel, duration, callback, pContext,
                                  isP2PProbeReqAllowed
-#ifdef WLAN_FEATURE_P2P_INTERNAL
-                                , eP2PRemainOnChnReasonUnknown
-#endif
                                 );
     sme_ReleaseGlobalLock( &pMac->sme );
   }
@@ -8879,7 +8845,6 @@ eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid,
    \param dBm  power to set
    \- return eHalStatus
   ---------------------------------------------------------------------------*/
-#if defined (QCA_WIFI_2_0) && !defined (QCA_WIFI_ISOC)
 eHalStatus sme_SetTxPower(tHalHandle hHal, v_U8_t sessionId,
                           tSirMacAddr pBSSId,
                           tVOS_CON_MODE dev_mode, int dBm)
@@ -8924,34 +8889,6 @@ eHalStatus sme_SetTxPower(tHalHandle hHal, v_U8_t sessionId,
 
    return eHAL_STATUS_SUCCESS;
 }
-#else
-eHalStatus sme_SetTxPower(tHalHandle hHal, v_U8_t sessionId,
-                          tSirMacAddr pBSSId,
-                          tVOS_CON_MODE dev_mode, int mW)
-{
-
-   eHalStatus status = eHAL_STATUS_FAILURE;
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-   MTRACE(vos_trace(VOS_MODULE_ID_SME,
-                 TRACE_CODE_SME_RX_HDD_SET_TXPOW, NO_SESSION, 0));
-   smsLog(pMac, LOG1, FL("set tx power %dmW"), mW);
-
-   if (mW < 0 || mW > 0xff) {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                "%s: error, invalid mW = %d", __func__, mW);
-     return eHAL_STATUS_FAILURE;
-   }
-
-   status = sme_AcquireGlobalLock(&pMac->sme);
-   if (HAL_STATUS_SUCCESS(status))
-   {
-      status = csrSetTxPower(pMac, sessionId, (v_U8_t)mW);
-      sme_ReleaseGlobalLock(&pMac->sme);
-   }
-   return status;
-}
-#endif
 
 /* ---------------------------------------------------------------------------
 
@@ -11056,7 +10993,6 @@ void sme_SetTdlsPowerSaveProhibited(tHalHandle hHal, tANI_U32 sessionId, v_BOOL_
     return;
 }
 
-#ifdef QCA_WIFI_2_0
 /* ---------------------------------------------------------------------------
   \fn    sme_UpdateFwTdlsState
 
@@ -11281,7 +11217,6 @@ eHalStatus sme_GetLinkSpeed(tHalHandle hHal, tSirLinkSpeedInfo *lsReq, void *pls
     }
     return(status);
 }
-#endif /* QCA_WIFI_2_0 */
 #endif /* FEATURE_WLAN_TDLS */
 /* ---------------------------------------------------------------------------
     \fn sme_IsPmcBmps
@@ -12569,14 +12504,6 @@ eHalStatus sme_SendRateUpdateInd(tHalHandle hHal,
     eHalStatus status;
     vos_msg_t msg;
 
-#ifdef QCA_WIFI_ISOC
-    /* For discrete solution, i.e., Rome the bit 28, 29 and 30 are used to
-     * optionally carry NSS info: 100 for 1x1, 101 for 2x2, 111 for 3x3.
-     * For Pronto we need to zero out bits 28 - 30 */
-    rateUpdateParams->mcastDataRate24GHz &= ~0x70000000;
-    rateUpdateParams->reliableMcastDataRate &= ~0x70000000;
-    rateUpdateParams->mcastDataRate5GHz &= ~0x70000000;
-#endif
 
     if (rateUpdateParams->mcastDataRate24GHz ==
             HT20_SHORT_GI_MCS7_RATE)
@@ -12609,7 +12536,6 @@ eHalStatus sme_SendRateUpdateInd(tHalHandle hHal,
     return status;
 }
 
-#ifdef QCA_WIFI_2_0
 eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
                               tSmeChannelInfo *chanInfo)
 {
@@ -12660,7 +12586,6 @@ eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
     }
     return status;
 }
-#endif /* QCA_WIFI_2_0 */
 
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 /* ---------------------------------------------------------------------------
@@ -12968,7 +12893,6 @@ eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tCsrBssid bssid,
     return (status);
 }
 
-#ifndef QCA_WIFI_ISOC
 /* ---------------------------------------------------------------------------
     \fn sme_InitThermalInfo
     \brief  SME API to initialize the thermal mitigation parameters
@@ -13112,7 +13036,6 @@ eHalStatus sme_TxpowerLimit(tHalHandle hHal, tSirTxPowerLimit *psmetx)
      }
      return(status);
 }
-#endif /* #ifndef QCA_WIFI_ISOC */
 
 eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value)
 {

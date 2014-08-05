@@ -211,7 +211,6 @@ typedef struct sRRMCaps
 typedef struct sRrmPEContext
 {
    tANI_U8  rrmEnable;
-   //tChannelList APchannelReport;
    tANI_U32   startTSF[2]; //Used during scan/measurement to store the start TSF. this is not used directly in beacon reports.
                            //This value is stored into bssdescription and beacon report gets it from bss decsription.
    tRRMCaps   rrmEnabledCaps;

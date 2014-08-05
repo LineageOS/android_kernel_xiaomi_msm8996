@@ -80,7 +80,6 @@
 //Macro to disable split scan
 #define SME_DISABLE_SPLIT_SCAN   255
 
-#ifdef QCA_WIFI_2_0
 #define SME_2_4_GHZ_MAX_FREQ    3000
 #define SME_MODE_11A            0    /* 11a mode */
 #define SME_MODE_11G            1    /* 11b/g mode */
@@ -100,7 +99,6 @@
     (psme_channel)->reg_info_1 &= 0xff00ffff;             \
     (psme_channel)->reg_info_1 |= ((val & 0xff) << 16);   \
 } while(0)
-#endif
 
 /*--------------------------------------------------------------------------
   Type declarations
@@ -117,9 +115,6 @@ typedef struct _smeConfigParams
 #endif
 #if defined FEATURE_WLAN_ESE
     tANI_U8   isEseIniFeatureEnabled;
-#endif
-#if defined WLAN_FEATURE_P2P_INTERNAL
-   tP2PConfigParam  p2pConfig;
 #endif
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
     tANI_U8       isFastTransitionEnabled;
@@ -144,7 +139,6 @@ typedef enum
     eSME_ROAM_TRIGGER_MAX
 } tSmeFastRoamTrigger;
 
-#ifdef QCA_WIFI_2_0
 typedef PACKED_PRE struct PACKED_POST
 {
     /* channel id */
@@ -204,7 +198,6 @@ typedef struct _smeTdlsPeerStateParams
     tSmeTdlsPeerCapParams peerCap;
 } tSmeTdlsPeerStateParams;
 #endif /* FEATURE_WLAN_TDLS */
-#endif /* QCA_WIFI_2_0 */
 
 /* Thermal Mitigation*/
 
@@ -2449,23 +2442,6 @@ tANI_U16 sme_ChnToFreq(tANI_U8 chanNum);
 
 tANI_BOOLEAN sme_IsChannelValid(tHalHandle hHal, tANI_U8 channel);
 
-#if defined WLAN_FEATURE_P2P_INTERNAL
-
-eHalStatus sme_p2pResetSession(tHalHandle hHal, tANI_U8 HDDSessionId);
-
-/* ---------------------------------------------------------------------------
-    \fn sme_p2pFlushDeviceList
-    \brief  Remove cached P2P result from scan results
-    \param  hHal - The handle returned by macOpen.
-    \param  HDDSessionId - HDD's sessionId. Currently unused.
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_p2pFlushDeviceList(tHalHandle hHal, tANI_U8 HDDSessionId);
-
-eHalStatus sme_p2pGetResultFilter(tHalHandle hHal, tANI_U8 HDDSessionId,
-                              tCsrScanResultFilter *pFilter);
-
-#endif //#if defined WLAN_FEATURE_P2P_INTERNAL
 /* ---------------------------------------------------------------------------
     \fn sme_SetMaxTxPower
     \brief  Used to set the Maximum Transmit Power dynamically. Note: this
@@ -3663,7 +3639,6 @@ eHalStatus sme_SetHT2040Mode(tHalHandle hHal, tANI_U8 sessionId, tANI_U8 channel
 eHalStatus sme_SetPhyCBMode24G(tHalHandle hHal, ePhyChanBondState phyCBMode);
 #endif
 
-#ifdef QCA_WIFI_2_0
 eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
                               tSmeChannelInfo *chanInfo);
 #ifdef FEATURE_WLAN_TDLS
@@ -3672,7 +3647,6 @@ eHalStatus sme_UpdateFwTdlsState(tHalHandle hHal, void *psmeTdlsParams,
 eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
                                    tSmeTdlsPeerStateParams *pPeerStateParams);
 #endif /* FEATURE_WLAN_TDLS */
-#endif /* QCA_WIFI_2_0 */
 
 #ifdef FEATURE_WLAN_CH_AVOID
 /* ---------------------------------------------------------------------------
@@ -3740,7 +3714,6 @@ eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal,
 eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tCsrBssid bssid,
                   tANI_U8 targetChannel, tANI_U8 csaIeReqd);
 
-#ifndef QCA_WIFI_ISOC
 /* ---------------------------------------------------------------------------
     \fn sme_InitThermalInfo
     \brief  SME API to initialize the thermal mitigation parameters
@@ -3776,7 +3749,6 @@ eHalStatus sme_TxpowerLimit( tHalHandle hHal, tSirTxPowerLimit *psmetx);
  -------------------------------------------------------------------------*/
 eHalStatus sme_GetLinkSpeed(tHalHandle hHal,tSirLinkSpeedInfo *lsReq,void *plsContext,
                             void (*pCallbackfn)(tSirLinkSpeedInfo *indParam, void *pContext) );
-#endif
 
 /*----------------------------------------------------------------------------
  \fn  sme_ModifyAddIE

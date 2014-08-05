@@ -70,7 +70,6 @@
  * this information. */
 static tAniBool glimTriggerBackgroundScanDuringQuietBss_Status = eSIR_TRUE;
 
-//#define LIM_MAX_ACTIVE_SESSIONS 3  //defined temporarily for BT-AMP SUPPORT
 #define SUCCESS 1                   //defined temporarily for BT-AMP
 
 #define MAX_BA_WINDOW_SIZE_FOR_CISCO 25
@@ -1051,8 +1050,6 @@ limCleanupMlm(tpAniSirGlobal pMac)
             tx_timer_delete(&pAuthNode->timer);
         }
 
-
-
         // Deactivate and delete Hash Miss throttle timer
         tx_timer_deactivate(&pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer);
@@ -1062,17 +1059,6 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_deactivate(&pMac->lim.limTimers.gLimPreAuthClnupTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimPreAuthClnupTimer);
 
-#if 0 // The WPS PBC clean up timer is disabled
-        if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
-        {
-            if(pMac->lim.limTimers.gLimWPSOverlapTimerObj.isTimerCreated == eANI_BOOLEAN_TRUE)
-            {
-                tx_timer_deactivate(&pMac->lim.limTimers.gLimWPSOverlapTimerObj.gLimWPSOverlapTimer);
-                tx_timer_delete(&pMac->lim.limTimers.gLimWPSOverlapTimerObj.gLimWPSOverlapTimer);
-                pMac->lim.limTimers.gLimWPSOverlapTimerObj.isTimerCreated = eANI_BOOLEAN_FALSE;
-            }
-        }
-#endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
         // Deactivate and delete FT Preauth response timer
         tx_timer_deactivate(&pMac->lim.limTimers.gLimFTPreAuthRspTimer);
@@ -2904,8 +2890,6 @@ void limCancelDot11hQuiet(tpAniSirGlobal pMac, tpPESession psessionEntry)
  */
 void limProcessQuietTimeout(tpAniSirGlobal pMac)
 {
-    //fetch the sessionEntry based on the sessionId
-    //priority - MEDIUM
     tpPESession psessionEntry;
 
     if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimQuietTimer.sessionId))== NULL)
@@ -3110,31 +3094,6 @@ void limProcessQuietBssTimeout( tpAniSirGlobal pMac )
  *
  * @return None
  */
-#if 0
-void limProcessWPSOverlapTimeout(tpAniSirGlobal pMac)
-{
-
-    tpPESession psessionEntry;
-    tANI_U32 sessionId;
-
-    if (tx_timer_activate(&pMac->lim.limTimers.gLimWPSOverlapTimerObj.gLimWPSOverlapTimer) != TX_SUCCESS)
-    {
-            limLog(pMac, LOGP, FL("tx_timer_activate failed"));
-    }
-
-    sessionId = pMac->lim.limTimers.gLimWPSOverlapTimerObj.sessionId;
-
-    PELOGE(limLog(pMac, LOGE, FL("WPS overlap timeout, sessionId=%d"), sessionId);)
-
-    if((psessionEntry = peFindSessionBySessionId(pMac, sessionId)) == NULL)
-    {
-        PELOGE(limLog(pMac, LOGP,FL("Session Does not exist for given sessionID"));)
-        return;
-    }
-
-    limWPSPBCTimeout(pMac, psessionEntry);
-}
-#endif
 
 /**----------------------------------------------
 \fn        limStartQuietTimer
@@ -3290,7 +3249,6 @@ void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status,
    pSirSmeSwitchChInd->length = sizeof(tSirSmeSwitchChannelInd);
    pSirSmeSwitchChInd->newChannelId = psessionEntry->gLimChannelSwitch.primaryChannel;
    pSirSmeSwitchChInd->sessionId = psessionEntry->smeSessionId;
-   //BSS ID
    vos_mem_copy( pSirSmeSwitchChInd->bssId, psessionEntry->bssId, sizeof(tSirMacAddr));
    mmhMsg.bodyptr = pSirSmeSwitchChInd;
    mmhMsg.bodyval = 0;
@@ -6284,11 +6242,6 @@ tSirMsgQ msgQ;
 
   // Post WDA_ADDBA_REQ to HAL.
   msgQ.type = WDA_ADDBA_REQ;
-  //
-  // FIXME_AMPDU
-  // A global counter (dialog token) is required to keep track of
-  // all PE <-> HAL communication(s)
-  //
   msgQ.reserved = 0;
   msgQ.bodyptr = pAddBAParams;
   msgQ.bodyval = 0;
@@ -6377,11 +6330,6 @@ tSirMsgQ msgQ;
 
   // Post WDA_DELBA_IND to HAL.
   msgQ.type = WDA_DELBA_IND;
-  //
-  // FIXME:
-  // A global counter (dialog token) is required to keep track of
-  // all PE <-> HAL communication(s)
-  //
   msgQ.reserved = 0;
   msgQ.bodyptr = pDelBAParams;
   msgQ.bodyval = 0;
@@ -7235,9 +7183,7 @@ tANI_U8 limGetCurrentOperatingChannel(tpAniSirGlobal pMac)
 
 void limProcessAddStaRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
 {
-
     tpPESession         psessionEntry;
-//    tANI_U8             sessionId;
     tpAddStaParams      pAddStaParams;
 
     pAddStaParams = (tpAddStaParams)limMsgQ->bodyptr;

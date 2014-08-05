@@ -71,11 +71,6 @@
 #error "more than one ANI_BUS_TYPE_xxx is defined for this build"
 #endif
 
-#elif !( defined( ANI_BUS_TYPE_PCIe ) || defined(ANI_BUS_TYPE_PCI) \
-         || defined( ANI_BUS_TYPE_PLATFORM ) || defined(QCA_WIFI_2_0))
-
-#error "NONE of the ANI_BUS_TYPE_xxx are defined for this build"
-
 #endif
 
 

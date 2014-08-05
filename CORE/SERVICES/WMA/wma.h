@@ -649,7 +649,6 @@ typedef struct {
 	void* pGetRssiReq;
 	v_S7_t first_rssi;
 	t_thermal_mgmt thermal_mgmt_info;
-        u_int32_t roam_offload_vdev_id;
         v_BOOL_t  roam_offload_enabled;
         t_wma_roam_preauth_chan_state_t roam_preauth_scan_state;
         u_int32_t roam_preauth_scan_id;

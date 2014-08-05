@@ -614,7 +614,7 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) sizeof(tSirMacMgmtHdr) + nPayload,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, txFlag, smeSessionId );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -1053,7 +1053,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                             ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_LOW,
+                            7,
                             limTxComplete, pFrame, txFlag, smeSessionId );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -1306,7 +1306,7 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, txFlag, smeSessionId );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            psessionEntry->peSessionId, halstatus));
@@ -1410,16 +1410,6 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
                 if ( ( ! pSta->aniPeer ) || ( ! PROP_CAPABILITY_GET( 11EQOS, pSta->propCapability ) ) )
                 {
                     PopulateDot11fEDCAParamSet( pMac, &frm.EDCAParamSet, psessionEntry);
-
-//                     FramesToDo:...
-//                     if ( fAddTS )
-//                     {
-//                         tANI_U8 *pAf = pBody;
-//                         *pAf++ = SIR_MAC_QOS_ACTION_EID;
-//                         tANI_U32 tlen;
-//                         status = sirAddtsRspFill(pMac, pAf, statusCode, &pSta->qos.addts, NULL,
-//                                                  &tlen, bufLen - frameLen);
-//                     } // End if on Add TS.
                 }
             } // End if on .11e enabled in 'pSta'.
         } // End if on QOS Mode on.
@@ -1668,7 +1658,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, txFlag, smeSessionId );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            psessionEntry->peSessionId, halstatus));
@@ -1943,7 +1933,7 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, txFlag, smeSessionId );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            psessionEntry->peSessionId, halstatus));
@@ -2120,7 +2110,7 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, txFlag, smeSessionId );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            psessionEntry->peSessionId, halstatus));
@@ -2492,13 +2482,10 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     PELOG1(limLog( pMac, LOG1, FL("*** Sending Association Request length %d"
                     "to "),
                 nBytes );)
-        //   limPrintMacAddr( pMac, bssid, LOG1 );
-
-        if( psessionEntry->assocReq != NULL )
-        {
-            vos_mem_free(psessionEntry->assocReq);
-            psessionEntry->assocReq = NULL;
-        }
+    if (psessionEntry->assocReq != NULL) {
+        vos_mem_free(psessionEntry->assocReq);
+        psessionEntry->assocReq = NULL;
+    }
 
     if( nAddIELen )
     {
@@ -2540,7 +2527,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) (sizeof(tSirMacMgmtHdr) + nPayload),
             HAL_TXRX_FRM_802_11_MGMT,
             ANI_TXDIR_TODS,
-            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+            7,
             limTxComplete, pFrame, txFlag, smeSessionId );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            psessionEntry->peSessionId, halstatus));
@@ -2999,7 +2986,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) (nBytes + ft_ies_length),
             HAL_TXRX_FRM_802_11_MGMT,
             ANI_TXDIR_TODS,
-            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+            7,
             limTxComplete, pFrame, txFlag, smeSessionId );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            psessionEntry->peSessionId, halstatus));
@@ -3378,7 +3365,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) (sizeof(tSirMacMgmtHdr) + nPayload),
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, txFlag, smeSessionId );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            psessionEntry->peSessionId, halstatus));
@@ -3720,7 +3707,7 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) frameLen,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, txFlag, smeSessionId );
      MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
             psessionEntry->peSessionId, halstatus));
@@ -4061,7 +4048,7 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
         halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                 HAL_TXRX_FRM_802_11_MGMT,
                 ANI_TXDIR_TODS,
-                7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                7,
                 limTxComplete, pFrame, limDisassocTxCompleteCnf,
                 txFlag, smeSessionId, false );
         MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
@@ -4094,7 +4081,7 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
         halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                 HAL_TXRX_FRM_802_11_MGMT,
                 ANI_TXDIR_TODS,
-                7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                7,
                 limTxComplete, pFrame, txFlag, smeSessionId );
         MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
                psessionEntry->peSessionId, halstatus));
@@ -4257,7 +4244,7 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
         halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                 HAL_TXRX_FRM_802_11_MGMT,
                 ANI_TXDIR_TODS,
-                7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                7,
                 limTxComplete, pFrame, limDeauthTxCompleteCnf, txFlag,
                 smeSessionId, false );
         MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
@@ -4306,7 +4293,7 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
             halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                 HAL_TXRX_FRM_802_11_MGMT,
                 ANI_TXDIR_IBSS,
-                7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                7,
                 limTxComplete, pFrame, txFlag, smeSessionId );
         }
         else
@@ -4316,7 +4303,7 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
             halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                     HAL_TXRX_FRM_802_11_MGMT,
                     ANI_TXDIR_TODS,
-                    7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                    7,
                     limTxComplete, pFrame, txFlag, smeSessionId );
 #ifdef FEATURE_WLAN_TDLS
         }
@@ -4467,7 +4454,7 @@ limSendMeasReportFrame(tpAniSirGlobal             pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, 0 );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            ((psessionEntry)? psessionEntry->peSessionId : NO_SESSION),
@@ -4588,7 +4575,7 @@ limSendTpcRequestFrame(tpAniSirGlobal pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, 0 );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            ((psessionEntry)? psessionEntry->peSessionId : NO_SESSION),
@@ -4638,10 +4625,6 @@ limSendTpcReportFrame(tpAniSirGlobal            pMac,
     frm.Action.action      = SIR_MAC_ACTION_TPC_REPORT_ID;
     frm.DialogToken.token  = pTpcReqFrame->actionHeader.dialogToken;
 
-    // FramesToDo: On the Gen4_TVM branch, there was a comment:
-    // "misplaced this function, need to replace:
-    // txPower = halGetRateToPwrValue(pMac, staid,
-    //     pMac->lim.gLimCurrentChannelId, 0);
     frm.TPCReport.tx_power    = 0;
     frm.TPCReport.link_margin = 0;
     frm.TPCReport.present     = 1;
@@ -4717,7 +4700,7 @@ limSendTpcReportFrame(tpAniSirGlobal            pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, 0 );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            ((psessionEntry)? psessionEntry->peSessionId : NO_SESSION),
@@ -4869,7 +4852,7 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, txFlag, smeSessionId );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            psessionEntry->peSessionId, halstatus));
@@ -4998,7 +4981,7 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, txFlag, smeSessionId );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            psessionEntry->peSessionId, halstatus));
@@ -5146,7 +5129,7 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete, pFrame, txFlag, smeSessionId );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
            psessionEntry->peSessionId, halstatus));
@@ -5334,7 +5317,7 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
                             (tANI_U16) frameLen,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete,
                             pAddBAReqBuffer, txFlag, smeSessionId);
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
@@ -5536,7 +5519,7 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
                             (tANI_U16) frameLen,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete,
                             pAddBARspBuffer, txFlag, smeSessionId);
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
@@ -5591,7 +5574,6 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
 {
     tDot11fDelBAInd frmDelBAInd;
     tANI_U8 *pDelBAIndBuffer = NULL;
-    //tANI_U32 val;
     tpSirMacMgmtHdr pMacHdr;
     tANI_U32 frameLen = 0, nStatus, nPayload;
     tSirRetStatus statusCode;
@@ -5725,7 +5707,7 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
                             (tANI_U16) frameLen,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete,
                             pDelBAIndBuffer, txFlag, smeSessionId);
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
@@ -5896,7 +5878,7 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
                             (tANI_U16) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete,
                             pFrame, txFlag, smeSessionId);
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
@@ -6069,7 +6051,7 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
                             (tANI_U16) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete,
                             pFrame, txFlag, smeSessionId);
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
@@ -6265,7 +6247,7 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
                             (tANI_U16) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            7,
                             limTxComplete,
                             pFrame, txFlag, smeSessionId);
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
@@ -6426,7 +6408,7 @@ tSirRetStatus limSendSaQueryRequestFrame( tpAniSirGlobal pMac, tANI_U8 *transId,
                            (tANI_U16) nBytes,
                            HAL_TXRX_FRM_802_11_MGMT,
                            ANI_TXDIR_TODS,
-                           7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                           7,
                            limTxComplete,
                            pFrame, txFlag, smeSessionId);
    if ( eHAL_STATUS_SUCCESS != halstatus )
@@ -6579,7 +6561,7 @@ tSirMacAddr peer,tpPESession psessionEntry)
                            (tANI_U16) nBytes,
                            HAL_TXRX_FRM_802_11_MGMT,
                            ANI_TXDIR_TODS,
-                           7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                           7,
                            limTxComplete,
                            pFrame, txFlag, smeSessionId );
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
@@ -6600,4 +6582,3 @@ returnAfterError:
    return nSirStatus;
 } // End limSendSaQueryResponseFrame
 #endif
-

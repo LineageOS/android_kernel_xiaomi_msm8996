@@ -296,7 +296,6 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     /*set channel number in beacon in case it is not present*/
     pBPR->channelNumber = pBssDescr->channelId;
 
-    //sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOGW, (tANI_U8 *) pBssDescr, pBssDescr->length + 2 );
     limLog( pMac, LOG3,
         FL("Collected BSS Description for Channel(%1d), length(%u), aniIndicator(%d), IE Fields(%u)"),
         pBssDescr->channelId,

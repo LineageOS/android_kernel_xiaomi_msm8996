@@ -45,6 +45,7 @@
 #include <htt.h>        /* needed by inline functions */
 #include <adf_net_types.h>
 #include <ol_htt_api.h> /* htt_pdev_handle */
+#include <htt_types.h>
 
 /*================ meta-info about tx MSDUs =================================*/
 

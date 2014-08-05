@@ -51,42 +51,6 @@
 
 static void limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry);
 
-#if 0
-/**
- * limGetCfgIdOfDefaultKeyid()
- *
- *FUNCTION:
- * This function is called to get CFG ID of default key id
- *
- *PARAMS:
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- * NA
- *
- * @param  dkid     - Value of default key id
- * @return dkCfgId  - CFG ID of key corresponding to default key Id
- */
-
-static tANI_U32
-limGetCfgIdOfDefaultKeyid(tANI_U32 dkid)
-{
-    if (dkid == WNI_CFG_WEP_DEFAULT_KEYID_0)
-        return WNI_CFG_WEP_DEFAULT_KEY_1;
-    else if (dkid == WNI_CFG_WEP_DEFAULT_KEYID_1)
-        return WNI_CFG_WEP_DEFAULT_KEY_2;
-    else if (dkid == WNI_CFG_WEP_DEFAULT_KEYID_2)
-        return WNI_CFG_WEP_DEFAULT_KEY_3;
-    else // dkid == WNI_CFG_WEP_DEFAULT_KEYID_3
-        return WNI_CFG_WEP_DEFAULT_KEY_4;
-} /*** end limGetCfgIdOfDefaultKeyid() ***/
-#endif
-
-
 /**
  * limSetDefaultKeyIdAndKeys()
  *
@@ -317,12 +281,8 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
                 limLog(pMac, LOGP,
                    FL("Unable to retrieve excludeUnencr from CFG"));
             }
-#if 0
-            halSetSpExclUndecrypted(pMac, (tHalBitVal) val);
-#else
             limLog(pMac, LOGE,
                    FL("Unsupported CFG: WNI_CFG_EXCLUDE_UNENCRYPTED"));
-#endif
 
             break;
 
@@ -613,8 +573,6 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve Dot11 Mode  CFG"));)
             break;
         }
-        /* TODO */
-        //psessionEntry->dot11mode = val1;    //// un comment this line ...FORBUILD -TEMPFIX.. HOW TO GET sessionEntry?????
         break;
     case WNI_CFG_ADDBA_REQ_DECLINE:
         if(wlan_cfgGetInt(pMac, WNI_CFG_ADDBA_REQ_DECLINE, &val1) != eSIR_SUCCESS) {
@@ -766,10 +724,6 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
     tANI_U32 val;
 
-    #if 0
-    if (wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, pMac->lim.gLimMyMacAddr, &len) != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("cfg get sta id failed"));
-    #endif //To SUPPORT BT-AMP
     sirCopyMacAddr(pMac->lim.gLimMyMacAddr,psessionEntry->selfMacAddr);
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_PREAMBLE, &val) != eSIR_SUCCESS)
