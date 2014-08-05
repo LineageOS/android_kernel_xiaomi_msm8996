@@ -22037,14 +22037,18 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 			/* UNPAUSE action, clean bitmap */
 			else if (ACTION_UNPAUSE == wmi_event->action)
 			{
-				wma->interfaces[vdev_id].pause_bitmap &= ~(1 << wmi_event->pause_type);
-
-				if (!wma->interfaces[vdev_id].pause_bitmap)
+				/* Handle unpause only if already paused*/
+				if(wma->interfaces[vdev_id].pause_bitmap)
 				{
-					/* PAUSE BIT MAP is cleared
-					 * UNPAUSE VDEV */
-					wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle,
-                                                            OL_TXQ_PAUSE_REASON_FW);
+					wma->interfaces[vdev_id].pause_bitmap &= ~(1 << wmi_event->pause_type);
+
+					if (!wma->interfaces[vdev_id].pause_bitmap)
+					{
+						/* PAUSE BIT MAP is cleared
+						 * UNPAUSE VDEV */
+						wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle,
+							OL_TXQ_PAUSE_REASON_FW);
+					}
 				}
 			}
 			else
