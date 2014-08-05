@@ -2770,7 +2770,10 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_EXTWOW_TCP_RX_TIMEOUT_DEFAULT          ( 200 )
 #endif
 
-
+#define CFG_ENABLE_DEAUTH_TO_DISASSOC_MAP_NAME    "gEnableDeauthToDisassocMap"
+#define CFG_ENABLE_DEAUTH_TO_DISASSOC_MAP_MIN     ( 0 )
+#define CFG_ENABLE_DEAUTH_TO_DISASSOC_MAP_MAX     ( 1 )
+#define CFG_ENABLE_DEAUTH_TO_DISASSOC_MAP_DEFAULT ( 0 )
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3373,6 +3376,7 @@ typedef struct
    v_U32_t                     extWowApp2TcpTxTimeout;
    v_U32_t                     extWowApp2TcpRxTimeout;
 #endif
+   v_BOOL_t                    gEnableDeauthToDisassocMap;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

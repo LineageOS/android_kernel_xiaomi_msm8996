@@ -9812,14 +9812,24 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
 
         case WLAN_REASON_PREV_AUTH_NOT_VALID:
         case WLAN_REASON_CLASS2_FRAME_FROM_NONAUTH_STA:
-        case WLAN_REASON_DEAUTH_LEAVING:
              reasonCode = eCSR_DISCONNECT_REASON_DEAUTH;
              break;
 
+        case WLAN_REASON_DEAUTH_LEAVING:
+             reasonCode = pHddCtx->cfg_ini->gEnableDeauthToDisassocMap ?
+                 eCSR_DISCONNECT_REASON_STA_HAS_LEFT :
+                 eCSR_DISCONNECT_REASON_DEAUTH;
+             break;
+        case WLAN_REASON_DISASSOC_STA_HAS_LEFT:
+             reasonCode = eCSR_DISCONNECT_REASON_STA_HAS_LEFT;
+             break;
         default:
              reasonCode = eCSR_DISCONNECT_REASON_UNSPECIFIED;
             break;
         }
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                  FL("convert to internal reason %d to reasonCode %d"),
+                  reason, reasonCode);
         pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
         pScanInfo =  &pAdapter->scan_info;
         if (pScanInfo->mScanPending) {
