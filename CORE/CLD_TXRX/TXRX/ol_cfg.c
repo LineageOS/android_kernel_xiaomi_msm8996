@@ -61,10 +61,8 @@ ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev,
 	 */
 	cfg_ctx->tx_download_size = 16;
 #endif
-#ifndef QCA_WIFI_ISOC
 	/* temporarily diabled PN check for Riva/Pronto */
 	cfg_ctx->rx_pn_check = 1;
-#endif
 #if CFG_TGT_DEFAULT_RX_SKIP_DEFRAG_TIMEOUT_DUP_DETECTION_CHECK
 	cfg_ctx->defrag_timeout_check = 1;
 #endif
