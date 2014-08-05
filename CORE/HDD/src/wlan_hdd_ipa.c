@@ -1203,8 +1203,13 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 	}
 
 	vos_wake_lock_init(&hdd_ipa->wake_lock, "wlan_ipa");
+#ifdef CONFIG_CNSS
+	cnss_init_delayed_work(&hdd_ipa->wake_lock_work,
+			hdd_ipa_wake_lock_timer_func);
+#else
 	INIT_DELAYED_WORK(&hdd_ipa->wake_lock_work,
 			hdd_ipa_wake_lock_timer_func);
+#endif
 	adf_os_spinlock_init(&hdd_ipa->rm_lock);
 	hdd_ipa->rm_state = HDD_IPA_RM_RELEASED;
 	hdd_ipa->wake_lock_released = true;
@@ -1235,7 +1240,9 @@ static void hdd_ipa_destory_rm_resource(struct hdd_ipa_priv *hdd_ipa)
 	cancel_delayed_work_sync(&hdd_ipa->wake_lock_work);
 	vos_wake_lock_destroy(&hdd_ipa->wake_lock);
 
+#ifdef WLAN_OPEN_SOURCE
 	cancel_work_sync(&hdd_ipa->rm_work);
+#endif
 	adf_os_spinlock_destroy(&hdd_ipa->rm_lock);
 
 	ipa_rm_inactivity_timer_destroy(IPA_RM_RESOURCE_WLAN_PROD);
@@ -1803,7 +1810,9 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 	 * If we are here means, host is not suspended, wait for the work queue
 	 * to finish.
 	 */
+#ifdef WLAN_OPEN_SOURCE
 	flush_work(&hdd_ipa->pm_work);
+#endif
 
 	return hdd_ipa_send_pkt_to_tl(iface_context, ipa_tx_desc);
 }
@@ -2812,7 +2821,11 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 		adf_os_spinlock_init(&iface_context->interface_lock);
 	}
 
+#ifdef CONFIG_CNSS
+	cnss_init_work(&hdd_ipa->pm_work, hdd_ipa_pm_send_pkt_to_tl);
+#else
 	INIT_WORK(&hdd_ipa->pm_work, hdd_ipa_pm_send_pkt_to_tl);
+#endif
 	adf_os_spinlock_init(&hdd_ipa->pm_lock);
 	adf_nbuf_queue_init(&hdd_ipa->pm_queue_head);
 
@@ -2871,7 +2884,9 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 	if (!hdd_ipa_is_enabled(hdd_ctx))
 		return VOS_STATUS_SUCCESS;
 
+#ifdef WLAN_OPEN_SOURCE
 	cancel_work_sync(&hdd_ipa->pm_work);
+#endif
 
 	adf_os_spin_lock_bh(&hdd_ipa->pm_lock);
 
