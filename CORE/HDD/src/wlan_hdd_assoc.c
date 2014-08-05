@@ -3893,8 +3893,6 @@ int iw_set_essid(struct net_device *dev,
                 hddLog( LOGE, FL("Disconnect event timed out"));
             }
         }
-    } else {
-        return -EINVAL;
     }
 
     /** when cfg80211 defined, wpa_supplicant wext driver uses
