@@ -19483,7 +19483,6 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 					u_int8_t *pThermalLevel)
 {
-	t_thermal_cmd_params thermal_params;
 	u_int8_t thermal_level;
 	ol_txrx_pdev_handle curr_pdev;
 
@@ -19501,7 +19500,7 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	WMA_LOGD("TM set level %d", thermal_level);
+	WMA_LOGE("TM set level %d", thermal_level);
 
 	/* Check if thermal mitigation is enabled */
 	if (!wma->thermal_mgmt_info.thermalMgmtEnabled) {
@@ -19523,20 +19522,6 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 	wma->thermal_mgmt_info.thermalCurrLevel = thermal_level;
 
 	ol_tx_throttle_set_level(curr_pdev, thermal_level);
-
-	/*set the thermal level in the firmware*/
-	/* Get the temperature thresholds to set in firmware */
-	thermal_params.minTemp =
-		 wma->thermal_mgmt_info.thermalLevels[thermal_level].minTempThreshold;
-	thermal_params.maxTemp =
-		 wma->thermal_mgmt_info.thermalLevels[thermal_level].maxTempThreshold;
-	thermal_params.thermalEnable =
-		 wma->thermal_mgmt_info.thermalMgmtEnabled;
-
-	if (VOS_STATUS_SUCCESS != wma_set_thermal_mgmt(wma, thermal_params)) {
-		WMA_LOGE("Could not send thermal mgmt command to the firmware!");
-		return VOS_STATUS_E_FAILURE;
-	}
 
 	return VOS_STATUS_SUCCESS;
 }
