@@ -1039,9 +1039,10 @@ static A_STATUS HIFDevServiceCPUInterrupt(HIF_SDIO_DEVICE *pDev)
 
     /* The Interrupt sent to the Host is generated via bit0 of CPU INT register*/
     if (cpu_int_status & 0x1){
-        if(pDev && pDev->hif_callbacks.fwEventHandler)
-        //this calls into HTC which propagates this to ol_target_failure()
-        pDev->hif_callbacks.fwEventHandler(pDev->hif_callbacks.Context);
+        if (pDev && pDev->hif_callbacks.fwEventHandler)
+            /* It calls into HTC which propagates this to ol_target_failure() */
+            pDev->hif_callbacks.fwEventHandler(pDev->hif_callbacks.Context,
+                                               A_ERROR);
     }
     else
     AR_DEBUG_PRINTF( ATH_DEBUG_ERROR,

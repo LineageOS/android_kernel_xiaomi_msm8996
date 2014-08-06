@@ -311,17 +311,14 @@ void HTCSetCreditDistribution(HTC_HANDLE               HTCHandle,
 }
 
 
-void HTCFwEventHandler(void *context)
+void HTCFwEventHandler(void *context, A_STATUS status)
 {
     HTC_TARGET      *target = (HTC_TARGET *)context;
     HTC_INIT_INFO   *initInfo = &target->HTCInitInfo;
 
-    /*
-     * Currently, there's only one event type (Target Failure);
-     * there's no need to discriminate between event types.
-     */
+    /* check if target failure handler exists and pass error code to it. */
     if (target->HTCInitInfo.TargetFailure != NULL) {
-        initInfo->TargetFailure(initInfo->pContext, A_ERROR);
+        initInfo->TargetFailure(initInfo->pContext, status);
     }
 }
 

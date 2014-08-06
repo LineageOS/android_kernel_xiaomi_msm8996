@@ -55,6 +55,7 @@
 #endif
 
 static struct hash_fw fw_hash;
+#include "qwlan_version.h"
 
 #ifdef HIF_PCI
 static u_int32_t refclk_speed_to_hz[] = {
@@ -961,6 +962,124 @@ void ol_schedule_fw_indication_work(struct ol_softc *scn)
 }
 #endif
 
+#ifdef HIF_USB
+/* Save memory addresses where we save FW ram dump, and then we could obtain
+ * them by symbol table. */
+A_UINT32 fw_stack_addr;
+void *fw_ram_seg_addr[FW_RAM_SEG_CNT];
+
+/* ol_ramdump_handler is to receive information of firmware crash dump, and
+ * save it in host memory. It consists of 5 parts: registers, call stack,
+ * DRAM dump, IRAM dump, and AXI dump, and they are reported to host in order.
+ *
+ * registers: wrapped in a USB packet by starting as FW_ASSERT_PATTERN and
+ *            60 registers.
+ * call stack: wrapped in multiple USB packets, and each of them starts as
+ *             FW_REG_PATTERN and contains multiple double-words. The tail
+ *             of the last packet is FW_REG_END_PATTERN.
+ * DRAM dump: wrapped in multiple USB pakcets, and each of them start as
+ *            FW_RAMDUMP_PATTERN and contains multiple double-wors. The tail
+ *            of the last packet is FW_RAMDUMP_END_PATTERN;
+ * IRAM dump and AXI dump are with the same format as DRAM dump.
+ */
+void ol_ramdump_handler(struct ol_softc *scn)
+{
+	A_UINT32 *reg, pattern, i, start_addr = 0;
+	A_UINT32 MSPId = 0, mSPId = 0, SIId = 0, CRMId = 0, len;
+	A_UINT8 *data;
+	A_UINT8 str_buf[128];
+	A_UINT8 *ram_ptr = NULL;
+	A_UINT32 remaining;
+	char *fw_ram_seg_name[FW_RAM_SEG_CNT] = {"DRAM", "IRAM", "AXI"};
+
+	data = scn->hif_sc->fw_data;
+	len = scn->hif_sc->fw_data_len;
+	pattern = *((A_UINT32 *) data);
+
+	if (pattern == FW_ASSERT_PATTERN) {
+		MSPId = (scn->target_fw_version & 0xf0000000) >> 28;
+		mSPId = (scn->target_fw_version & 0xf000000) >> 24;
+		SIId = (scn->target_fw_version & 0xf00000) >> 20;
+		CRMId = scn->target_fw_version & 0x7fff;
+		pr_err("Firmware crash detected...\n");
+		pr_err("Host SW version: %s\n", QWLAN_VERSIONSTR);
+		pr_err("FW version: %d.%d.%d.%d", MSPId, mSPId, SIId, CRMId);
+		reg = (A_UINT32 *) (data + 4);
+		print_hex_dump(KERN_DEBUG, " ", DUMP_PREFIX_OFFSET, 16, 4, reg,
+				min_t(A_UINT32, len - 4, FW_REG_DUMP_CNT),
+				false);
+		scn->fw_ram_dumping = 0;
+	}
+	else if (pattern == FW_REG_PATTERN) {
+		reg = (A_UINT32 *) (data + 4);
+		start_addr = *reg++;
+		if (scn->fw_ram_dumping == 0) {
+			pr_err("Firmware stack dump:");
+			scn->fw_ram_dumping = 1;
+			fw_stack_addr = start_addr;
+		}
+		remaining = len - 8;
+		/* len is in byte, but it's printed in double-word. */
+		for (i = 0; i < (len - 8); i += 16) {
+			if ((*reg == FW_REG_END_PATTERN) && (i == len - 12)) {
+				scn->fw_ram_dumping = 0;
+				pr_err("Stack start address = %#08x\n",
+					fw_stack_addr);
+				break;
+			}
+			hex_dump_to_buffer(reg, remaining, 16, 4, str_buf,
+						sizeof(str_buf), false);
+			pr_err("%#08x: %s\n", start_addr + i, str_buf);
+			remaining -= 16;
+			reg += 4;
+		}
+	}
+	else if ((!scn->enableFwSelfRecovery)&&
+			((pattern & FW_RAMDUMP_PATTERN_MASK) ==
+						FW_RAMDUMP_PATTERN)) {
+		VOS_ASSERT(scn->ramdump_index < FW_RAM_SEG_CNT);
+		i = scn->ramdump_index;
+		reg = (A_UINT32 *) (data + 4);
+		if (scn->fw_ram_dumping == 0) {
+			scn->fw_ram_dumping = 1;
+			pr_err("Firmware %s dump:\n", fw_ram_seg_name[i]);
+			scn->ramdump[i] = kmalloc(sizeof(struct fw_ramdump) +
+							FW_RAMDUMP_SEG_SIZE,
+							GFP_KERNEL);
+			if (!scn->ramdump[i]) {
+				pr_err("Fail to allocate memory for ram dump");
+				VOS_BUG(0);
+			}
+			fw_ram_seg_addr[i] = scn->ramdump[i];
+			pr_err("FW %s start addr = %#08x\n",
+				fw_ram_seg_name[i], *reg);
+			pr_err("Memory addr for %s = %#08x\n",
+				fw_ram_seg_name[i],
+				(A_UINT32) scn->ramdump[i]);
+			(scn->ramdump[i])->start_addr = *reg;
+			(scn->ramdump[i])->length = 0;
+			(scn->ramdump[i])->mem =
+				(A_UINT8 *) (scn->ramdump[i] + 1);
+		}
+		reg++;
+		ram_ptr = (scn->ramdump[i])->mem + (scn->ramdump[i])->length;
+		(scn->ramdump[i])->length += (len - 8);
+		memcpy(ram_ptr, (A_UINT8 *) reg, len - 8);
+
+		if (pattern == FW_RAMDUMP_END_PATTERN) {
+			pr_err("%s memory size = %d\n", fw_ram_seg_name[i],
+					(scn->ramdump[i])->length);
+			if (i == (FW_RAM_SEG_CNT - 1)) {
+				VOS_BUG(0);
+			}
+
+			scn->ramdump_index++;
+			scn->fw_ram_dumping = 0;
+		}
+	}
+}
+#endif
+
 #define REGISTER_DUMP_LEN_MAX   60
 #define REG_DUMP_COUNT		60
 
@@ -980,6 +1099,15 @@ void ol_target_failure(void *instance, A_STATUS status)
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 #else
 	int ret;
+#endif
+
+#ifdef HIF_USB
+	/* Currently, only firmware crash triggers ol_target_failure.
+	   In case, we need to dump RAM data. */
+	if (status == A_USB_ERROR) {
+		ol_ramdump_handler(scn);
+		return;
+	}
 #endif
 
 	if (OL_TRGET_STATUS_RESET == scn->target_status) {

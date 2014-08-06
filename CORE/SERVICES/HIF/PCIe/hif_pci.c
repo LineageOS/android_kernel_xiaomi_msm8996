@@ -716,7 +716,7 @@ hif_completion_thread(struct HIF_CE_state *hif_state)
              * another while we process the first.
              */
             atomic_set(&hif_state->fw_event_pending, 0);
-            msg_callbacks->fwEventHandler(msg_callbacks->Context);
+            msg_callbacks->fwEventHandler(msg_callbacks->Context, A_ERROR);
         }
 
         if (hif_state->sc->ol_sc->target_status == OL_TRGET_STATUS_RESET)

@@ -48,7 +48,7 @@ typedef struct {
 	A_STATUS (*rxCompletionHandler)(void *Context, adf_nbuf_t wbuf,
 					u_int8_t pipeID);
 	void     (*txResourceAvailHandler)(void *context, u_int8_t pipe);
-	void     (*fwEventHandler)(void *context);
+	void     (*fwEventHandler)(void *context, A_STATUS status);
 } MSG_BASED_HIF_CALLBACKS;
 
 int HIF_deregister(void);

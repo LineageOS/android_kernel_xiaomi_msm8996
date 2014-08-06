@@ -164,26 +164,4 @@ extern void usb_hif_resume(struct usb_interface *interface);
 A_STATUS HIFDiagWriteWARMRESET(struct usb_interface *interface,
 			       A_UINT32 address, A_UINT32 data);
 
-#define FW_ASSERT_PATTERN       0x0000c600
-#define FW_REG_PATTERN          0x0000d600
-#define FW_REG_END_PATTERN      0x0000e600
-#define FW_RAMDUMP_PATTERN      0x0000f600
-#define FW_RAMDUMP_END_PATTERN  0x0000f601
-#define FW_RAMDUMP_PATTERN_MASK 0xfffffff0
-
-enum {
-	FW_RAM_SEG_DRAM,
-	FW_RAM_SEG_IRAM,
-	FW_RAM_SEG_AXI,
-	FW_RAM_SEG_CNT
-};
-
-/* Allocate 384K memory to save each segment of ram dump */
-#define FW_RAMDUMP_SEG_SIZE     393216
-
-struct fw_ramdump {
-	A_UINT32 start_addr;
-	A_UINT32 length;
-	A_UINT8 *mem;
-};
 #endif
