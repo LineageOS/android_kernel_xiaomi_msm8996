@@ -113,7 +113,7 @@
 #define a_mode_rates_size (8)
 #define FREQ_BASE_80211G          (2407)
 #define FREQ_BAND_DIFF_80211G     (5)
-#define MAX_SCAN_SSID 9
+#define MAX_SCAN_SSID 10
 #define MAX_PENDING_LOG 5
 #define MAX_HT_MCS_IDX 8
 #define MAX_VHT_MCS_IDX 10
