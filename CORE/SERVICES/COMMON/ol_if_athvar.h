@@ -200,6 +200,8 @@ struct ol_softc {
 #endif
     bool                    enableuartprint;    /* enable uart/serial prints from target */
     bool                    enablefwlog;        /* enable fwlog */
+    /* enable FW self-recovery for Rome USB */
+    bool                    enableFwSelfRecovery;
     bool                    enablesinglebinary; /* Use single binary for FW */
     HAL_REG_CAPABILITIES hal_reg_capabilities;
     struct ol_regdmn *ol_regdmn_handle;

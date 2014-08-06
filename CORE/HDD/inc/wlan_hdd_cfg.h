@@ -2333,6 +2333,14 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_FW_LOG_ENABLE                 ( 1 )
 #define CFG_ENABLE_FW_LOG_DEFAULT                ( CFG_ENABLE_FW_LOG_DISABLE )
 
+/*
+ * Enable/Disable SSR for USB
+ */
+#define CFG_ENABLE_FW_SELF_RECOVERY_NAME         "gEnableFwSelfRecovery"
+#define CFG_ENABLE_FW_SELF_RECOVERY_DISABLE      ( 0 )
+#define CFG_ENABLE_FW_SELF_RECOVERY_ENABLE       ( 1 )
+#define CFG_ENABLE_FW_SELF_RECOVERY_DEFAULT      ( CFG_ENABLE_FW_SELF_RECOVERY_DISABLE )
+
 #ifdef WLAN_FEATURE_11AC
 //Macro to handle maximum receive AMPDU size configuration
 #define CFG_VHT_AMPDU_LEN_EXPONENT_NAME                "gVhtAmpduLenExponent"
@@ -3182,6 +3190,7 @@ typedef struct
    v_BOOL_t                    enablePowersaveOffload;
    v_BOOL_t                    enablefwprint;
    v_BOOL_t                    enablefwlog;
+   v_BOOL_t                    enableFwSelfRecovery;
    v_BOOL_t                    fP2pListenOffload;
 #ifdef WLAN_FEATURE_11AC
    v_U8_t                      fVhtAmpduLenExponent;
