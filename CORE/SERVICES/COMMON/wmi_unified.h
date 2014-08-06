@@ -4178,8 +4178,6 @@ typedef struct {
                                            * is assigned up to 127 */
                                           /* Reserved from 128 - 255 for
                                            * target internal use.*/
-            WMI_PEER_TYPE_ROAMOFFLOAD_TEMP = 128, /* Temporarily created
-                                                   * during offload roam */
         };
 
         typedef struct {
@@ -4637,6 +4635,7 @@ typedef struct _wlan_dcs_im_tgt_stats {
          *  and target chip is not in sleep.
          *
          */
+
     /** listen time from ANI */
     A_INT32   listen_time;
 
@@ -5044,7 +5043,7 @@ typedef struct {
     A_UINT32 tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_11r_offload_fixed_param */
     A_UINT32 mdie_present;
     A_UINT32 mdid;
-    A_UINT32 r0kh_id;
+    A_UINT32 r0kh_id[ROAM_OFFLOAD_R0KH_ID_MAX_LEN>>2];
     A_UINT32 r0kh_id_len;
     A_UINT32 psk_msk[ROAM_OFFLOAD_PSK_MSK_BYTES>>2]; /* psk/msk offload. As this 4 byte aligned, we don't declare it as tlv array */
 } wmi_roam_11r_offload_tlv_param;
