@@ -2431,6 +2431,19 @@ eHalStatus sme_SetTxPower(tHalHandle hHal, v_U8_t sessionId,
                           tSirMacAddr pBSSId,
                           tVOS_CON_MODE dev_mode, int power);
 
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_SetCustomMacAddr
+
+    \brief Set the customer Mac Address.
+
+    \param customMacAddr  customer MAC Address
+    \- return eHalStatus
+
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetCustomMacAddr(tSirMacAddr customMacAddr);
+
 /* ---------------------------------------------------------------------------
 
     \fn sme_HideSSID
