@@ -534,6 +534,7 @@ typedef struct
     tANI_U8 reassocReq;    // Set only during roaming reassociation
     tANI_U16 chainMask;
     tANI_U16 smpsMode;
+    tANI_U8 dot11_mode;
 } tAddBssParams, * tpAddBssParams;
 
 typedef struct
@@ -1022,6 +1023,8 @@ typedef struct
     tANI_U8  isDfsChannel;
 
     tANI_U8  vhtCapable;
+
+    tANI_U8  dot11_mode;
 }tSwitchChannelParams, *tpSwitchChannelParams;
 
 typedef struct CSAOffloadParams {

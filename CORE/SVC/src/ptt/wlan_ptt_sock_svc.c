@@ -263,7 +263,8 @@ static void ptt_proc_quarky_msg(tAniNlHdr *wnl, tAniHdr *wmsg, int radio)
             ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, wnl->nlh.nlmsg_pid);
             break;
          case PTT_MSG_FTM_CMDS_TYPE:
-            wlan_hdd_process_ftm_cmd(pAdapterHandle,wnl);
+            PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: unsupported FTM msg cmd [0x%X], length [0x%X]\n",
+               __func__, ani_msg_type, be16_to_cpu(wmsg->length ));
             break;
          default:
             PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Unknown ANI Msg [0x%X], length [0x%X]\n",

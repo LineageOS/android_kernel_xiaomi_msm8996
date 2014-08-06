@@ -635,7 +635,8 @@ tANI_BOOLEAN pmcOffloadIsPowerSaveEnabled (tHalHandle hHal, tANI_U32 sessionId,
                                            tPmcPowerSavingMode psMode);
 
 eHalStatus PmcOffloadEnableDeferredStaModePowerSave(tHalHandle hHal,
-                                            tANI_U32 sessionId);
+                                            tANI_U32 sessionId,
+                                            tANI_BOOLEAN isReassoc);
 
 eHalStatus PmcOffloadDisableDeferredStaModePowerSave(tHalHandle hHal,
                                              tANI_U32 sessionId);

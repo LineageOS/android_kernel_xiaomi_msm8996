@@ -739,7 +739,10 @@ const sRegulatoryChannel * regChannels = nvDefaults.tables.regDomains[0].channel
 /*----------------------------------------------------------------------------
    Function Definitions and Documentation
  * -------------------------------------------------------------------------*/
-VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len);
+VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
+{
+   return VOS_STATUS_SUCCESS;
+}
 /**------------------------------------------------------------------------
   \brief vos_nv_init() - initialize the NV module
   The \a vos_nv_init() initializes the NV module.  This read the binary

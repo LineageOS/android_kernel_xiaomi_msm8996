@@ -632,7 +632,14 @@ eHalStatus ccmCfgGetInt(tHalHandle hHal, tANI_U32 cfgId, tANI_U32 *pValue)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     eHalStatus status = eHAL_STATUS_SUCCESS ;
-    tCfgReq *req = pMac->ccm.comp[cfgId] ;
+    tCfgReq *req;
+
+    if (cfgId >= CFG_PARAM_MAX_NUM) {
+        smsLog(pMac, LOGE, FL("Invalid cfg id %d"), cfgId);
+        return eHAL_STATUS_INVALID_PARAMETER;
+    }
+
+    req = pMac->ccm.comp[cfgId] ;
 
     if (req && req->state == eCCM_REQ_DONE)
     {
@@ -658,6 +665,12 @@ eHalStatus ccmCfgGetStr(tHalHandle hHal, tANI_U32 cfgId, tANI_U8 *pBuf, tANI_U32
         return eHAL_STATUS_FAILURE;
 
     hHdd = halHandle2HddHandle(hHal);
+
+    if (cfgId >= CFG_PARAM_MAX_NUM) {
+        smsLog(pMac, LOGE, FL("Invalid cfg id %d"), cfgId);
+        return eHAL_STATUS_INVALID_PARAMETER;
+    }
+
     req = pMac->ccm.comp[cfgId] ;
 
     if (req && req->state == eCCM_REQ_DONE && (tANI_U32)req->length <= *pLength)

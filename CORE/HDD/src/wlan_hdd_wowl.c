@@ -386,6 +386,8 @@ v_BOOL_t hdd_add_wowl_ptrn_debugfs(hdd_adapter_t *pAdapter, v_U8_t pattern_idx,
   localPattern.ucPatternId = pattern_idx;
   localPattern.ucPatternByteOffset = pattern_offset;
   localPattern.ucPatternSize = pattern_len;
+  localPattern.sessionId = sessionId;
+
   if (localPattern.ucPatternSize > SIR_WOWL_BCAST_PATTERN_MAX_SIZE) {
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
              "%s: WoW pattern size (%d) greater than max (%d)",

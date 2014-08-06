@@ -1220,18 +1220,18 @@ static void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 #define PEER_ALL_TID_BITMASK 0xffffffff
 	u_int32_t peer_tid_bitmap = PEER_ALL_TID_BITMASK;
 	u_int8_t *peer_addr = bssid;
-        if (!wma->peer_count)
+        if (!wma->interfaces[vdev_id].peer_count)
         {
              WMA_LOGE("%s: Can't remove peer with peer_addr %pM vdevid %d peer_count %d",
-                    __func__, bssid, vdev_id, wma->peer_count);
+                    __func__, bssid, vdev_id, wma->interfaces[vdev_id].peer_count);
              return;
         }
 	if (peer)
 		ol_txrx_peer_detach(peer);
 
-	wma->peer_count--;
+	wma->interfaces[vdev_id].peer_count--;
 	WMA_LOGE("%s: Removed peer with peer_addr %pM vdevid %d peer_count %d",
-                    __func__, bssid, vdev_id, wma->peer_count);
+                    __func__, bssid, vdev_id, wma->interfaces[vdev_id].peer_count);
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 	if (roam_synch_in_progress)
 		return;
@@ -5485,9 +5485,9 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 {
 	ol_txrx_peer_handle peer;
 
-	if (++wma->peer_count > wma->wlan_resource_config.num_peers) {
+	if (++wma->interfaces[vdev_id].peer_count > wma->wlan_resource_config.num_peers) {
 		WMA_LOGP("%s, the peer count exceeds the limit %d",
-			 __func__, wma->peer_count - 1);
+			 __func__, wma->interfaces[vdev_id].peer_count - 1);
 		goto err;
 	}
 	peer = ol_txrx_peer_attach(pdev, vdev, peer_addr);
@@ -5499,7 +5499,7 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 
 		WMA_LOGE("%s: Created peer with peer_addr %pM vdev_id %d,"
 				"peer_count - %d",__func__, peer_addr, vdev_id,
-				wma->peer_count);
+				wma->interfaces[vdev_id].peer_count);
 		return VOS_STATUS_SUCCESS;
 	}
 #endif
@@ -5510,7 +5510,7 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 		goto err;
 	}
 	WMA_LOGE("%s: Created peer with peer_addr %pM vdev_id %d, peer_count - %d",
-                    __func__, peer_addr, vdev_id, wma->peer_count);
+                    __func__, peer_addr, vdev_id, wma->interfaces[vdev_id].peer_count);
 
 #ifdef QCA_IBSS_SUPPORT
 	/* for each remote ibss peer, clear its keys */
@@ -5531,7 +5531,7 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 
 	return VOS_STATUS_SUCCESS;
 err:
-	wma->peer_count--;
+	wma->interfaces[vdev_id].peer_count--;
 	return VOS_STATUS_E_FAILURE;
 }
 
@@ -8866,7 +8866,7 @@ VOS_STATUS wma_process_dhcp_ind(tp_wma_handle wma_handle,
 }
 
 static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
-                                      u8 vht_capable)
+                                      u8 vht_capable, u8 dot11_mode)
 {
 	WLAN_PHY_MODE phymode = MODE_UNKNOWN;
 
@@ -8874,8 +8874,29 @@ static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
 	if ((chan >= WMA_11G_CHANNEL_BEGIN) && (chan <= WMA_11G_CHANNEL_END)) {
 		switch (chan_offset) {
 		case PHY_SINGLE_CHANNEL_CENTERED:
-                        /* Configure MODE_11NG_HT20 for self vdev(for vht too) */
-			phymode = vht_capable ? MODE_11AC_VHT20_2G :MODE_11NG_HT20;
+                        /* In case of no channel bonding, use dot11_mode
+			 * to set phy mode
+			 */
+			switch (dot11_mode) {
+			case WNI_CFG_DOT11_MODE_11A:
+				phymode = MODE_11A;
+				break;
+			case WNI_CFG_DOT11_MODE_11B:
+				phymode = MODE_11B;
+				break;
+			case WNI_CFG_DOT11_MODE_11G:
+				phymode = MODE_11G;
+				break;
+			case WNI_CFG_DOT11_MODE_11G_ONLY:
+				phymode = MODE_11GONLY;
+				break;
+			default:
+			/* Configure MODE_11NG_HT20 for
+			 * self vdev(for vht too)
+			 */
+				phymode = MODE_11NG_HT20;
+				break;
+                        }
 			break;
 		case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
 		case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
@@ -8920,8 +8941,9 @@ static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
 			break;
 		}
 	}
-	WMA_LOGD("%s: phymode %d channel %d offset %d vht_capable %d", __func__,
-		 phymode, chan, chan_offset, vht_capable);
+	WMA_LOGD("%s: phymode %d channel %d offset %d vht_capable %d "
+			"dot11_mode %d", __func__, phymode, chan,
+			chan_offset, vht_capable, dot11_mode);
 
 	return phymode;
 }
@@ -8978,7 +9000,7 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	/* Fill channel info */
 	chan->mhz = vos_chan_to_freq(req->chan);
 	chanmode = wma_chan_to_mode(req->chan, req->chan_offset,
-				req->vht_capable);
+				req->vht_capable, req->dot11_mode);
 
 	intr[cmd->vdev_id].chanmode = chanmode; /* save channel mode */
 	intr[cmd->vdev_id].ht_capable = req->ht_capable;
@@ -9655,6 +9677,7 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 	req.chan = params->channelNumber;
 	req.chan_offset = params->secondaryChannelOffset;
 	req.vht_capable = params->vhtCapable;
+	req.dot11_mode = params->dot11_mode;
 #ifdef WLAN_FEATURE_VOWIFI
 	req.max_txpow = params->maxTxPower;
 #else
@@ -25995,12 +26018,13 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 	u_int16_t len;
 	len = sizeof(wmi_roam_synch_complete_fixed_param);
 
-	wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress = VOS_FALSE;
 	if (!wma_handle || !wma_handle->wmi_handle) {
 		WMA_LOGE("%s: WMA is closed, can not issue roam synch cnf",
 				__func__);
 		return;
 	}
+	wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress =
+                                                                     VOS_FALSE;
 	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!wmi_buf) {
 		WMA_LOGE("%s: wmai_buf_alloc failed", __func__);

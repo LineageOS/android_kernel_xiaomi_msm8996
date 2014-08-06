@@ -1104,13 +1104,6 @@ sme_process_cmd:
                         case eSmeCommandTdlsAddPeer:
                         case eSmeCommandTdlsDelPeer:
                         case eSmeCommandTdlsLinkEstablish:
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-                        case eSmeCommandTdlsDiscovery:
-                        case eSmeCommandTdlsLinkSetup:
-                        case eSmeCommandTdlsLinkTear:
-                        case eSmeCommandTdlsEnterUapsd:
-                        case eSmeCommandTdlsExitUapsd:
-#endif
                             {
                                 VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                                         "sending TDLS Command 0x%x to PE", pCommand->command);
@@ -2538,16 +2531,6 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
           case eWNI_SME_TDLS_SHOULD_DISCOVER:
           case eWNI_SME_TDLS_SHOULD_TEARDOWN:
           case eWNI_SME_TDLS_PEER_DISCONNECTED:
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-          case eWNI_SME_TDLS_DISCOVERY_START_RSP:
-          case eWNI_SME_TDLS_DISCOVERY_START_IND:
-          case eWNI_SME_TDLS_LINK_START_RSP:
-          case eWNI_SME_TDLS_LINK_START_IND:
-          case eWNI_SME_TDLS_TEARDOWN_RSP:
-          case eWNI_SME_TDLS_TEARDOWN_IND:
-          case eWNI_SME_ADD_TDLS_PEER_IND:
-          case eWNI_SME_DELETE_TDLS_PEER_IND:
-#endif
                 {
                     if (pMsg->bodyptr)
                     {
@@ -6376,88 +6359,6 @@ VOS_STATUS sme_GetWcnssHardwareVersion(tHalHandle hHal,
 
 
 #ifdef FEATURE_WLAN_WAPI
-/* ---------------------------------------------------------------------------
-    \fn sme_RoamSetBKIDCache
-    \brief The SME API exposed to HDD to allow HDD to provde SME the BKID
-    candidate list.
-    \param hHal - Handle to the HAL. The HAL handle is returned by the HAL after
-    it is opened (by calling halOpen).
-    \param pBKIDCache - caller allocated buffer point to an array of tBkidCacheInfo
-    \param numItems - a variable that has the number of tBkidCacheInfo allocated
-    when retruning, this is the number of items put into pBKIDCache
-    \return eHalStatus - when fail, it usually means the buffer allocated is not
-    big enough and pNumItems has the number of tBkidCacheInfo.
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamSetBKIDCache( tHalHandle hHal, tANI_U32 sessionId, tBkidCacheInfo *pBKIDCache,
-                                 tANI_U32 numItems )
-{
-   eHalStatus status = eHAL_STATUS_FAILURE;
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-   status = sme_AcquireGlobalLock( &pMac->sme );
-   if ( HAL_STATUS_SUCCESS( status ) )
-   {
-       status = csrRoamSetBKIDCache( pMac, sessionId, pBKIDCache, numItems );
-       sme_ReleaseGlobalLock( &pMac->sme );
-   }
-
-   return (status);
-}
-
-/* ---------------------------------------------------------------------------
-    \fn sme_RoamGetBKIDCache
-    \brief The SME API exposed to HDD to allow HDD to request SME to return its
-    BKID cache.
-    \param hHal - Handle to the HAL. The HAL handle is returned by the HAL after
-    it is opened (by calling halOpen).
-    \param pNum - caller allocated memory that has the space of the number of
-    tBkidCacheInfo as input. Upon returned, *pNum has the needed number of entries
-    in SME cache.
-    \param pBkidCache - Caller allocated memory that contains BKID cache, if any,
-    upon return
-    \return eHalStatus - when fail, it usually means the buffer allocated is not
-    big enough.
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetBKIDCache(tHalHandle hHal, tANI_U32 *pNum,
-                                tBkidCacheInfo *pBkidCache)
-{
-   eHalStatus status = eHAL_STATUS_FAILURE;
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-   status = sme_AcquireGlobalLock( &pMac->sme );
-   if ( HAL_STATUS_SUCCESS( status ) )
-   {
-       smsLog(pMac, LOGE, FL(" !!!!!!!!!!!!!!!!!!SessionId is hardcoded"));
-       status = csrRoamGetBKIDCache( pMac, 0, pNum, pBkidCache );
-       sme_ReleaseGlobalLock( &pMac->sme );
-   }
-
-   return (status);
-}
-
-/* ---------------------------------------------------------------------------
-    \fn sme_RoamGetNumBKIDCache
-    \brief The SME API exposed to HDD to allow HDD to request SME to return the
-    number of BKID cache entries.
-    \param hHal - Handle to the HAL. The HAL handle is returned by the HAL after
-    it is opened (by calling halOpen).
-    \return tANI_U32 - the number of BKID cache entries.
-  ---------------------------------------------------------------------------*/
-tANI_U32 sme_RoamGetNumBKIDCache(tHalHandle hHal, tANI_U32 sessionId)
-{
-   eHalStatus status = eHAL_STATUS_FAILURE;
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-   tANI_U32 numBkidCache = 0;
-
-   status = sme_AcquireGlobalLock( &pMac->sme );
-   if ( HAL_STATUS_SUCCESS( status ) )
-   {
-       numBkidCache = csrRoamGetNumBKIDCache( pMac, sessionId );
-       sme_ReleaseGlobalLock( &pMac->sme );
-   }
-
-   return (numBkidCache);
-}
 
 /* ---------------------------------------------------------------------------
     \fn sme_ScanGetBKIDCandidateList
@@ -11229,107 +11130,6 @@ v_BOOL_t sme_IsPmcBmps(tHalHandle hHal)
     return (BMPS == pmcGetPmcState(hHal));
 }
 
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-/*
- * SME API to start TDLS discovery Procedure
- */
-VOS_STATUS sme_StartTdlsDiscoveryReq(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac)
-{
-    VOS_STATUS status = VOS_STATUS_SUCCESS;
-    tCsrTdlsDisRequest disReq = {{0}} ;
-    vos_mem_copy(disReq.peerMac, peerMac, sizeof(tSirMacAddr)) ;
-    status = csrTdlsDiscoveryReq(hHal, sessionId, &disReq) ;
-
-    return status ;
-
-}
-
-/*
- * Process TDLS discovery results
- */
-v_U8_t sme_GetTdlsDiscoveryResult(tHalHandle hHal,
-                                 tSmeTdlsDisResult *disResult, v_U8_t listType)
-{
-    tCsrTdlsPeerLinkinfo *peerLinkInfo = NULL ;
-    tSirTdlsPeerInfo *peerInfo = NULL ;
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    tCsrTdlsCtxStruct *disInfo = &pMac->tdlsCtx ;
-    tDblLinkList *peerList =  &disInfo->tdlsPotentialPeerList ;
-    tListElem *pEntry = NULL ;
-    v_U8_t peerCnt = 0 ;
-
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-            ("TDLS peer count = %d"),disInfo->tdlsPeerCount ) ;
-    pEntry = csrLLPeekHead( peerList, LL_ACCESS_LOCK );
-    while(pEntry)
-    {
-        peerLinkInfo = GET_BASE_ADDR( pEntry, tCsrTdlsPeerLinkinfo,
-                tdlsPeerStaLink) ;
-        peerInfo = &peerLinkInfo->tdlsDisPeerInfo ;
-
-        switch(listType)
-        {
-            case TDLS_SETUP_LIST:
-                {
-                    if(TDLS_LINK_SETUP_STATE == peerInfo->tdlsPeerState)
-                    {
-                        vos_mem_copy(disResult[peerCnt].tdlsPeerMac,
-                                     peerInfo->peerMac, sizeof(tSirMacAddr));
-                        disResult[peerCnt].tdlsPeerRssi = peerInfo->tdlsPeerRssi ;
-                        peerCnt++ ;
-                    }
-                    break ;
-                }
-            case TDLS_DIS_LIST:
-                {
-                    vos_mem_copy(disResult[peerCnt].tdlsPeerMac,
-                                 peerInfo->peerMac, sizeof(tSirMacAddr));
-                    disResult[peerCnt].tdlsPeerRssi = peerInfo->tdlsPeerRssi ;
-                    peerCnt++ ;
-                    break ;
-                }
-            default:
-                {
-                    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                            ("unknown list type ")) ;
-                    break ;
-                }
-        }
-
-        pEntry = csrLLNext( peerList, pEntry, LL_ACCESS_LOCK) ;
-    }
-
-    return peerCnt ;
-
-}
-
-/*
- * SME API to start TDLS link setup Procedure.
- */
-VOS_STATUS sme_StartTdlsLinkSetupReq(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac)
-{
-    VOS_STATUS status = VOS_STATUS_SUCCESS;
-    tCsrTdlsSetupRequest setupReq = {{0}} ;
-    vos_mem_copy(setupReq.peerMac, peerMac, sizeof(tSirMacAddr)) ;
-    status = csrTdlsSetupReq(hHal, sessionId, &setupReq) ;
-    return status ;
-
-}
-
-/*
- * SME API to start TDLS link Teardown Procedure.
- */
-VOS_STATUS sme_StartTdlsLinkTeardownReq(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac)
-{
-    VOS_STATUS status = VOS_STATUS_SUCCESS;
-    tCsrTdlsTeardownRequest teardownReq = {{0}} ;
-    vos_mem_copy(teardownReq.peerMac, peerMac, sizeof(tSirMacAddr)) ;
-    status = csrTdlsTeardownReq(hHal, sessionId, &teardownReq) ;
-    return status ;
-
-}
-
-#endif /* FEATURE_WLAN_TDLS */
 
 eHalStatus sme_UpdateDfsSetting(tHalHandle hHal, tANI_U8 fUpdateEnableDFSChnlScan)
 {
@@ -12394,7 +12194,8 @@ eHalStatus sme_PsOffloadDisablePowerSave (tHalHandle hHal, tANI_U32 sessionId)
 }
 
 eHalStatus sme_PsOffloadEnableDeferredPowerSave (tHalHandle hHal,
-                                                 tANI_U32 sessionId)
+                                                 tANI_U32 sessionId,
+                                                 tANI_BOOLEAN isReassoc)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
@@ -12402,7 +12203,8 @@ eHalStatus sme_PsOffloadEnableDeferredPowerSave (tHalHandle hHal,
    status = sme_AcquireGlobalLock(&pMac->sme);
    if (HAL_STATUS_SUCCESS( status ))
    {
-       status =  PmcOffloadEnableDeferredStaModePowerSave(hHal, sessionId);
+       status =  PmcOffloadEnableDeferredStaModePowerSave(hHal, sessionId,
+                                                          isReassoc);
        sme_ReleaseGlobalLock( &pMac->sme );
    }
    return (status);
@@ -13321,6 +13123,26 @@ tANI_BOOLEAN sme_staInMiddleOfRoaming(tHalHandle hHal, tANI_U8 sessionId)
 
     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme))) {
         ret = csrNeighborMiddleOfRoaming(hHal, sessionId);
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return ret;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_PsOffloadIsStaInPowerSave
+    \brief  This function returns TRUE if STA is in power save
+    \param  hHal - HAL handle for device
+    \param  sessionId - Session Identifier
+    \return TRUE or FALSE
+    -------------------------------------------------------------------------*/
+tANI_BOOLEAN sme_PsOffloadIsStaInPowerSave(tHalHandle hHal, tANI_U8 sessionId)
+{
+    tpAniSirGlobal pMac   = PMAC_STRUCT( hHal );
+    eHalStatus     status = eHAL_STATUS_SUCCESS;
+    tANI_BOOLEAN   ret    = FALSE;
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme))) {
+        ret = pmcOffloadIsStaInPowerSave(pMac, sessionId);
         sme_ReleaseGlobalLock(&pMac->sme);
     }
     return ret;
