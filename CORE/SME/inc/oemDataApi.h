@@ -43,25 +43,15 @@
 #include "csrLinkList.h"
 
 #ifndef OEM_DATA_REQ_SIZE
-#ifdef QCA_WIFI_2_0
 #define OEM_DATA_REQ_SIZE 280
-#else
-#define OEM_DATA_REQ_SIZE 134
-#endif
 #endif
 
 #ifndef OEM_DATA_RSP_SIZE
-#ifdef QCA_WIFI_2_0
 #define OEM_DATA_RSP_SIZE 1724
-#else
-#define OEM_DATA_RSP_SIZE 1968
-#endif
 #endif
 
-#ifdef QCA_WIFI_2_0
 /* message subtype for internal purpose */
 #define OEM_MESSAGE_SUBTYPE_INTERNAL   0xdeadbeef
-#endif
 
 /*************************************************************************************************************
   OEM DATA REQ/RSP - DATA STRUCTURES
@@ -142,7 +132,6 @@ eHalStatus sme_HandleOemDataRsp(tHalHandle hHal, tANI_U8*);
   -------------------------------------------------------------------------------*/
 eHalStatus oemData_IsOemDataReqAllowed(tHalHandle hHal);
 
-#ifdef QCA_WIFI_2_0
 /* ---------------------------------------------------------------------------
     \fn send_oem_data_rsp_msg
     \brief This function sends oem data response message to registered
@@ -150,7 +139,6 @@ eHalStatus oemData_IsOemDataReqAllowed(tHalHandle hHal);
     \return None
   --------------------------------------------------------------------------*/
 void send_oem_data_rsp_msg(int length, tANI_U8 *oemDataRsp);
-#endif /* QCA_WIFI_2_0 */
 
 #endif //_OEM_DATA_API_H__
 

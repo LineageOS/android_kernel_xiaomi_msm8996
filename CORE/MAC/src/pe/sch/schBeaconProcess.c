@@ -831,7 +831,6 @@ tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *e
     psessionEntry->gLimEdcaParams[EDCA_AC_BK] = edca->acbk;
     psessionEntry->gLimEdcaParams[EDCA_AC_VI] = edca->acvi;
     psessionEntry->gLimEdcaParams[EDCA_AC_VO] = edca->acvo;
-//log: LOG_WLAN_QOS_EDCA_C
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
     WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_log_qos_edca_pkt_type, LOG_WLAN_QOS_EDCA_C);
     if(log_ptr)

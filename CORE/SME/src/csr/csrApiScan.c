@@ -89,10 +89,8 @@ RSSI *cannot* be more than 0xFF or less than 0 for meaningful WLAN operation
 #define MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL 140
 #define MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL 120
 
-#ifndef QCA_WIFI_ISOC
 #define MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC 30
 #define MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC 20
-#endif
 
 #define CSR_SCAN_OVERALL_SCORE( rssi )                          \
     (( rssi < CSR_SCAN_MAX_SCORE_VAL )                          \
@@ -3361,6 +3359,10 @@ csrScanSaveBssDescription(tpAniSirGlobal pMac,
     {
         vos_mem_set(pCsrBssDescription, cbAllocated, 0);
         pCsrBssDescription->AgingCount = (tANI_S32)pMac->roam.configParam.agingCount;
+        smsLog(pMac, LOGW,
+           FL(" Set Aging Count = %d for BSS "MAC_ADDRESS_STR" "),
+           pCsrBssDescription->AgingCount,
+           MAC_ADDR_ARRAY(pCsrBssDescription->Result.BssDescriptor.bssId));
         vos_mem_copy(&pCsrBssDescription->Result.BssDescriptor, pBSSDescription, cbBSSDesc);
 #if defined(VOSS_ENSBALED)
         if ( NULL != pCsrBssDescription->Result.pvIes)
@@ -4821,6 +4823,10 @@ tCsrScanResult *csrScanSaveBssDescriptionToInterimList( tpAniSirGlobal pMac,
     {
         vos_mem_set(pCsrBssDescription, cbAllocated, 0);
         pCsrBssDescription->AgingCount = (tANI_S32)pMac->roam.configParam.agingCount;
+        smsLog(pMac, LOGW,
+           FL(" Set Aging Count = %d for BSS "MAC_ADDRESS_STR" "),
+           pCsrBssDescription->AgingCount,
+           MAC_ADDR_ARRAY(pCsrBssDescription->Result.BssDescriptor.bssId));
         vos_mem_copy(&pCsrBssDescription->Result.BssDescriptor, pBSSDescription, cbBSSDesc );
         //Save SSID separately for later use
         if( pIes->SSID.present && !csrIsNULLSSID(pIes->SSID.ssid, pIes->SSID.num_ssid) )
@@ -5555,6 +5561,10 @@ tANI_BOOLEAN csrScanAgeOutBss(tpAniSirGlobal pMac, tCsrScanResult *pResult)
     {
         //Reset the counter so that aging out of connected BSS won't hapeen too soon
         pResult->AgingCount = (tANI_S32)pMac->roam.configParam.agingCount;
+        smsLog(pMac, LOGW,
+           FL(" Connected BSS, Set Aging Count=%d for BSS "MAC_ADDRESS_STR" "),
+           pResult->AgingCount,
+           MAC_ADDR_ARRAY(pResult->Result.BssDescriptor.bssId));
         pResult->Result.BssDescriptor.nReceivedTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
 
         return (fRet);
@@ -5611,6 +5621,10 @@ eHalStatus csrScanAgeResults(tpAniSirGlobal pMac, tSmeGetScanChnRsp *pScanChnInf
                 else
                 {
                     pResult->AgingCount--;
+                    smsLog(pMac, LOGW,
+                     FL("Decremented AgingCount=%d for BSS "MAC_ADDRESS_STR""),
+                     pResult->AgingCount,
+                     MAC_ADDR_ARRAY(pResult->Result.BssDescriptor.bssId));
                 }
             }
             pEntry = tmpEntry;
@@ -6634,7 +6648,6 @@ static void csrStaApConcTimerHandler(void *pv)
              //Modify callers parameters in case of concurrency
              scanReq.scanType = eSIR_ACTIVE_SCAN;
              //Use concurrency values for min/maxChnTime.
-             //We know csrIsAnySessionConnected(pMac) returns TRUE here
              csrSetDefaultScanTiming(pMac, scanReq.scanType, &scanReq);
 
              status = csrScanCopyRequest(pMac, &pSendScanCmd->u.scanCmd.u.scanRequest, &scanReq);
@@ -6965,9 +6978,8 @@ eHalStatus csrScanTriggerIdleScan(tpAniSirGlobal pMac, tANI_U32 *pTimeInterval)
 
         return status;
     }
-    if((pMac->scan.fScanEnable) && (eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan)
-    /*&& pMac->roam.configParam.impsSleepTime*/)
-    {
+    if((pMac->scan.fScanEnable) &&
+      (eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan)) {
         //Stop get result timer because idle scan gets scan result out of PE
         csrScanStopGetResultTimer(pMac);
         if(pTimeInterval)
@@ -7494,7 +7506,7 @@ eHalStatus csrScanForSSID(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
             /* For one channel be good enpugh time to receive beacon atleast */
             if(  1 == pProfile->ChannelInfo.numOfChannels )
             {
-#if !defined(QCA_WIFI_ISOC) && defined (WLAN_FEATURE_ROAM_SCAN_OFFLOAD)
+#if  defined (WLAN_FEATURE_ROAM_SCAN_OFFLOAD)
                  if (pNeighborRoamInfo->handoffReqInfo.src == FASTREASSOC) {
                      pScanCmd->u.scanCmd.u.scanRequest.maxChnTime =
                                     MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL_FASTREASSOC;

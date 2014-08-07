@@ -164,16 +164,10 @@ typedef struct sAniSirSch
     tANI_U32 gSchBcnParseErrorCnt;
     tANI_U32 gSchBcnIgnored;
 
-    // tTmpInstBuffer TIB;
-    // tANI_U16 gSchQuantum[8];
-
     tANI_U32 numPoll, numData, numCorrupt;
     tANI_U32 numBogusInt, numTxAct0;
 
 #define SCH_MAX_NUM_SCH 21
-    // tANI_U32 numSchHist[SCH_MAX_NUM_SCH];
-    // tANI_U32 defaultTxop;
-
     tANI_U32 lastBeaconLength;
     tANI_U16 rrTimeout;
     tANI_U32 pollPeriod;

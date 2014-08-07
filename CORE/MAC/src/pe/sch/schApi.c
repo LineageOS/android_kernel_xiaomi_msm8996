@@ -287,8 +287,6 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
   msgQ.reserved = 0;
 
   // Fill in tSendbeaconParams members
-  /* Knock off all pMac global addresses */
-  // limGetBssid( pMac, beaconParams->bssId);
   vos_mem_copy(beaconParams->bssId, psessionEntry->bssId, sizeof(psessionEntry->bssId));
 
   if (eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole)
@@ -487,12 +485,6 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
     }
     else
     {
-        /*
-        PELOGE(sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOGE,
-                            pFrame2Hal,
-                            nBytes);)
-        */
-
         sirCopyMacAddr( pprobeRespParams->bssId, psessionEntry->bssId);
         pprobeRespParams->pProbeRespTemplate   = pFrame2Hal;
         pprobeRespParams->probeRespTemplateLen = nBytes;

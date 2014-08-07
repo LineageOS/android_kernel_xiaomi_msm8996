@@ -2988,8 +2988,9 @@ static void iw_full_power_cbfn (void *pContext, eHalStatus status)
     }
 }
 
-eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
-                                eRoamCmdStatus roamStatus, eCsrRoamResult roamResult )
+eHalStatus
+hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
+                    eRoamCmdStatus roamStatus, eCsrRoamResult roamResult)
 {
     eHalStatus halStatus = eHAL_STATUS_SUCCESS;
     hdd_adapter_t *pAdapter = (hdd_adapter_t *)pContext;
@@ -3002,9 +3003,8 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             "CSR Callback: status= %d result= %d roamID=%d",
                     roamStatus, roamResult, roamId );
 
-    /*Sanity check*/
-    if ((NULL == pAdapter) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic))
-    {
+    /* Sanity check */
+    if ((NULL == pAdapter) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)) {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
           "invalid adapter or adapter has invalid magic");
        return eHAL_STATUS_FAILURE;
@@ -3012,13 +3012,6 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
 
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-
-    if ((NULL == pWextState) || (NULL == pHddStaCtx))
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-          "invalid WEXT state or HDD station context");
-       return eHAL_STATUS_FAILURE;
-    }
 
     switch( roamStatus )
     {
@@ -3873,32 +3866,29 @@ int iw_set_essid(struct net_device *dev,
     }
     if( SIR_MAC_MAX_SSID_LENGTH < wrqu->essid.length )
         return -EINVAL;
-    pRoamProfile = &pWextState->roamProfile;
-    if (pRoamProfile)
-    {
-        if ( hdd_connGetConnectedBssType( pHddStaCtx, &connectedBssType ) ||
-             ( eMib_dot11DesiredBssType_independent == pHddStaCtx->conn_info.connDot11DesiredBssType ))
-        {
-            VOS_STATUS vosStatus;
-            // need to issue a disconnect to CSR.
-            INIT_COMPLETION(pAdapter->disconnect_comp_var);
-            vosStatus = sme_RoamDisconnect( hHal, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED );
 
-            if (VOS_STATUS_SUCCESS == vosStatus) {
-                rc = wait_for_completion_timeout(&pAdapter->disconnect_comp_var,
+    pRoamProfile = &pWextState->roamProfile;
+    if (hdd_connGetConnectedBssType(pHddStaCtx, &connectedBssType) ||
+       (eMib_dot11DesiredBssType_independent ==
+                               pHddStaCtx->conn_info.connDot11DesiredBssType)) {
+        VOS_STATUS vosStatus;
+
+        /* Need to issue a disconnect to CSR. */
+        INIT_COMPLETION(pAdapter->disconnect_comp_var);
+        vosStatus = sme_RoamDisconnect(hHal, pAdapter->sessionId,
+                                       eCSR_DISCONNECT_REASON_UNSPECIFIED);
+
+        if (VOS_STATUS_SUCCESS == vosStatus) {
+            rc = wait_for_completion_timeout(&pAdapter->disconnect_comp_var,
                           msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-                if (!rc) {
-                    hddLog( LOGE, FL("Disconnect event timed out"));
-                }
-             }
+            if (!rc) {
+                hddLog( LOGE, FL("Disconnect event timed out"));
+            }
         }
-    }
-    /** wpa_supplicant 0.8.x, wext driver uses */
-    else
-    {
+    } else {
         return -EINVAL;
     }
-    /** wpa_supplicant 0.8.x, wext driver uses */
+
     /** when cfg80211 defined, wpa_supplicant wext driver uses
       zero-length, null-string ssid for force disconnection.
       after disconnection (if previously connected) and cleaning ssid,

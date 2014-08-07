@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -31,9 +31,7 @@
 
 #include <sirParams.h>  // needed for tSirMbMsg
 #include "wlan_qct_wda.h"
-#ifdef QCA_WIFI_2_0
 #include "adf_nbuf.h"
-#endif
 
 #ifndef FEATURE_WLAN_PAL_MEM_DISABLE
 
@@ -98,47 +96,6 @@ tANI_BOOLEAN palEqualMemory( tHddHandle hHdd, void *pMemory1, void *pMemory2, tA
 }
 #endif
 
-#ifndef QCA_WIFI_2_0
-eHalStatus palPktAlloc(tHddHandle hHdd, eFrameType frmType, tANI_U16 size, void **data, void **ppPacket)
-{
-   eHalStatus halStatus = eHAL_STATUS_FAILURE;
-   VOS_STATUS vosStatus;
-
-   vos_pkt_t *pVosPacket;
-
-   do
-   {
-      // we are only handling the 802_11_MGMT frame type for PE/LIM.  All other frame types should be
-      // ported to use the VOSS APIs directly and should not be using this palPktAlloc API.
-      VOS_ASSERT( HAL_TXRX_FRM_802_11_MGMT == frmType );
-
-      if ( HAL_TXRX_FRM_802_11_MGMT != frmType ) break;
-
-      // allocate one 802_11_MGMT VOS packet, zero the packet and fail the call if nothing is available.
-      // if we cannot get this vos packet, fail.
-      vosStatus = vos_pkt_get_packet( &pVosPacket, VOS_PKT_TYPE_TX_802_11_MGMT, size, 1, VOS_TRUE, NULL, NULL );
-      if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) ) break;
-
-      // Reserve the space at the head of the packet for the caller.  If we cannot reserve the space
-      // then we have to fail (return the packet to voss first!)
-      vosStatus = vos_pkt_reserve_head( pVosPacket, data, size );
-      if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
-      {
-         vos_pkt_return_packet( pVosPacket );
-         break;
-      }
-
-      // Everything went well if we get here.  Return the packet pointer to the caller and indicate
-      // success to the caller.
-      *ppPacket = (void *)pVosPacket;
-
-      halStatus = eHAL_STATUS_SUCCESS;
-
-   } while( 0 );
-
-   return( halStatus );
-}
-#else
 #define TX_PKT_MIN_HEADROOM 64
 eHalStatus palPktAlloc(tHddHandle hHdd, eFrameType frmType, tANI_U16 size,
                         void **data, void **ppPacket)
@@ -160,40 +117,11 @@ eHalStatus palPktAlloc(tHddHandle hHdd, eFrameType frmType, tANI_U16 size,
 
    return halStatus;
 }
-#endif
 
-#ifndef QCA_WIFI_2_0
-void palPktFree( tHddHandle hHdd, eFrameType frmType, void* buf, void *pPacket)
-{
-   vos_pkt_t *pVosPacket = (vos_pkt_t *)pPacket;
-   VOS_STATUS vosStatus;
-
-   do
-   {
-      VOS_ASSERT( pVosPacket );
-
-      if ( !pVosPacket ) break;
-
-      // we are only handling the 802_11_MGMT frame type for PE/LIM.  All other frame types should be
-      // ported to use the VOSS APIs directly and should not be using this palPktAlloc API.
-      VOS_ASSERT( HAL_TXRX_FRM_802_11_MGMT == frmType );
-      if ( HAL_TXRX_FRM_802_11_MGMT != frmType ) break;
-
-      // return the vos packet to Voss.  Nothing to do if this fails since the palPktFree does not
-      // have a return code.
-      vosStatus = vos_pkt_return_packet( pVosPacket );
-      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-
-   } while( 0 );
-
-   return;
-}
-#else
 void palPktFree( tHddHandle hHdd, eFrameType frmType, void* buf, void *pPacket)
 {
    adf_nbuf_free((adf_nbuf_t)pPacket);
 }
-#endif
 
 tANI_U32 palGetTickCount(tHddHandle hHdd)
 {

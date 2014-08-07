@@ -851,25 +851,19 @@ int wlan_hdd_validate_context(hdd_context_t *pHddCtx)
 {
     ENTER();
 
-    if (NULL == pHddCtx || NULL == pHddCtx->cfg_ini)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s: HDD context is Null", __func__);
+    if (NULL == pHddCtx || NULL == pHddCtx->cfg_ini) {
+        hddLog(LOGE, FL("HDD context is Null"));
         return -ENODEV;
     }
 
-    if (pHddCtx->isLogpInProgress)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: LOGP in Progress. Ignore!!!", __func__);
+    if (pHddCtx->isLogpInProgress) {
+        hddLog(LOGE, FL("LOGP in Progress. Ignore!!!"));
         return -EAGAIN;
     }
 
     if ((pHddCtx->isLoadInProgress) ||
-        (pHddCtx->isUnloadInProgress))
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Unloading/Loading in Progress. Ignore!!!", __func__);
+        (pHddCtx->isUnloadInProgress)) {
+        hddLog(LOGE, FL("Unloading/Loading in Progress. Ignore!!!"));
         return -EAGAIN;
     }
     return 0;
@@ -898,12 +892,6 @@ void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx)
    }
 
    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-   if (NULL == pHddStaCtx)
-   {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-               "pHddStaCtx is null !!");
-       return ;
-   }
 
    cfg_param = pHddCtx->cfg_ini;
    if (NULL == cfg_param)
@@ -8251,32 +8239,26 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
    EXIT();
 }
 
-void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_U8 rtnl_held )
+void hdd_cleanup_adapter(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
+                         tANI_U8 rtnl_held)
 {
    struct net_device *pWlanDev = NULL;
 
    if (pAdapter)
       pWlanDev = pAdapter->dev;
    else {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 "%s: HDD context is Null", __func__);
+      hddLog(LOGE, FL("pAdapter is Null"));
       return;
    }
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
-   if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
-     || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
-     || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-     || (pAdapter->device_mode == WLAN_HDD_P2P_DEVICE)
-     )
-   {
-      if (pAdapter)
-      {
-          if (eHDD_BATCH_SCAN_STATE_STARTED == pAdapter->batchScanState)
-          {
+   if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
+       (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) ||
+       (pAdapter->device_mode == WLAN_HDD_P2P_GO) ||
+       (pAdapter->device_mode == WLAN_HDD_P2P_DEVICE)) {
+       if (eHDD_BATCH_SCAN_STATE_STARTED == pAdapter->batchScanState) {
               hdd_deinit_batch_scan(pAdapter);
-          }
-      }
+       }
    }
 #endif
 
@@ -8290,17 +8272,14 @@ void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_
     */
    clear_bit(DEVICE_IFACE_OPENED, &pAdapter->event_flags);
 
-   if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) {
-      if( rtnl_held )
-      {
+   if (test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) {
+      if (rtnl_held) {
          unregister_netdevice(pWlanDev);
-      }
-      else
-      {
+      } else {
          unregister_netdev(pWlanDev);
       }
-      // note that the pAdapter is no longer valid at this point
-      // since the memory has been reclaimed
+      /* Note that the pAdapter is no longer valid at this point
+         since the memory has been reclaimed */
    }
 }
 
@@ -12937,7 +12916,8 @@ void wlan_hdd_decr_active_session(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
    case VOS_P2P_CLIENT_MODE:
    case VOS_P2P_GO_MODE:
    case VOS_STA_SAP_MODE:
-        pHddCtx->no_of_active_sessions[mode]--;
+        if (pHddCtx->no_of_active_sessions[mode])
+            pHddCtx->no_of_active_sessions[mode]--;
         break;
    default:
         break;

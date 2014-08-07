@@ -1295,7 +1295,6 @@ typedef __ani_attr_pre_packed struct sSirMacEdcaParamSetIE
     tSirMacEdcaParamRecord acvo; // voice
 } __ani_attr_packed tSirMacEdcaParamSetIE;
 
-#if 1
 typedef __ani_attr_pre_packed struct sSirMacQoSParams
 {
     tANI_U8        count;
@@ -1303,7 +1302,6 @@ typedef __ani_attr_pre_packed struct sSirMacQoSParams
     tANI_U8        CWmin[8];
     tANI_U8        AIFS[8];
 } __ani_attr_packed tSirMacQoSParams;
-#endif
 
 typedef __ani_attr_pre_packed struct sSirMacQbssLoadIE
 {
@@ -1959,57 +1957,6 @@ typedef __ani_attr_pre_packed struct _BARFrmStruct {
 }__ani_attr_packed BARFrmType;
 
 
-#if 0
-// Typedef for HT Capability IE
-// Typedef for HT Capability Info Field
-#define SUPPORT_ADVANCE_CODING_1                            1
-#define NOT_SUPPORT_ADVANCE_CODING_0                        0
-#define SUPPORT_CHANNEL_WIDTH_SET_20_40_MHZ                 1
-#define NOT_SUPPORT_CHANNEL_WIDTH_SET_20_MHZ_ONLY           0
-#define DO_NOT_SEND_MIMO_SEQ_STATIC_POWER_SAVE              0
-#define RTS_PRECEDE_MIMO_SEQ_DYN_POWER_SAVE                 1
-#define MIMO_POWER_SAVE_NA                                  2
-#define NO_LIMIT_ON_MIMO_SEQ                                3
-#define DEVICE_IS_ABLE_TO_RCVE_PPDU_WITH_GF_PREAMBLE        1
-#define DEVICE_NOT_ABLE_TO_RCVE_PPDU_WITH_GF_PREAMBLE       0
-#define SUPPORT_SHORT_GI_FOR_20_MHZ                         1
-#define NOT_SUPPORT_SHORT_GI_FOR_20_MHZ                     0
-#define SUPPORT_SHORT_GI_FOR_40_MHZ                         1
-#define NOT_SUPPORT_SHORT_GI_FOR_40_MHZ                     0
-#define TRANSMITTER_SUPPORT_STBC                            1
-#define TRANSMITTER_NOT_SUPPORT_STBC                        0
-#define RX_NOT_SUPPORT_STBC                                 0
-#define RX_SUPPORT_STBC_ONE_SPATIAL_STREAM                  1
-#define RX_SUPPORT_STBC_ONE_AND_TWO_SPATIAL_STREAM          2
-#define RX_SUPPORT_STBC_ONE_TWO_THREE_SPATIAL_STREAM        3
-#define SUPPORT_DELAYED_BA                                  1
-#define NOT_SUPPORT_DELAYED_BA                              0
-#define RECEIVER_MAX_A_MSDU_SIZE_7935                       1
-#define RECEIVER_MAX_A_MSDU_SIZE_3839                       0
-#define BSS_OR_DEVICE_ALLOW_USE_DSSS_CCK                    1
-#define BSS_OR_DEVICE_NOT_ALLOW_USE_DSSS_CCK                0
-#define BSS_OR_DEVICE_SUPPORT_USE_PSMP                      1
-#define BSS_OR_DEVICE_NOT_SUPPORT_USE_PSMP                  0
-#define BSS_OR_DEVICE_SUPPORT_USE_STBC_CONTROL_FRAME        1
-#define BSS_OR_DEVICE_NOT_SUPPORT_USE_STBC_CONTROL_FRAME    0
-#define SUPPORT_L_SIG_TXOP_PROTECTION                       1
-#define NOT_SUPPORT_L_SIG_TXOP_PROTECTION                   0
-
-// Typedef for HT Parameters Info Field
-#define MAX_RX_AMPDU_FACTOR_0                               0
-#define MAX_RX_AMPDU_FACTOR_1                               1
-#define MAX_RX_AMPDU_FACTOR_2                               2
-#define MAX_RX_AMPDU_FACTOR_3                               3
-#define MPDU_DENSITY_NO_RESTRICTION                         0
-#define MPDU_DENSITY_ONE_EIGHTH_USECOND                     1
-#define MPDU_DENSITY_ONE_FOURTH_USECOND                     2
-#define MPDU_DENSITY_ONE_HALF_USECOND                       3
-#define MPDU_DENSITY_ONE_USECOND                            4
-#define MPDU_DENSITY_TWO_USECOND                            5
-#define MPDU_DENSITY_FOUR_USECOND                           6
-#define MPDU_DENSITY_EIGHT_USECOND                          7
-#endif
-
 // Supported MCS set
 #define SIZE_OF_SUPPORTED_MCS_SET                          16
 #define SIZE_OF_BASIC_MCS_SET                              16
@@ -2017,116 +1964,6 @@ typedef __ani_attr_pre_packed struct _BARFrmStruct {
 #define MCS_RX_HIGHEST_SUPPORTED_RATE_BYTE_OFFSET          10
 // This is not clear, Count 8 based from NV supported MCS count
 #define VALID_MAX_MCS_INDEX                                8
-
-#if 0
-// Typedef Extended HT Capability Info Field
-#define SUPPORT_PCO                                             1
-#define NOT_SUPPORT_PCO                                         0
-#define TRANSITION_TIME_0                                       0
-#define STA_DOES_NOT_PROVIDE_MCS_FEEDBACK                       0
-#define RESERVE_VALUE_FOR_STA_MCS_FEEDBACK                      1
-#define STA_PROVIDE_UNSOLICITED_MCS_FEEDBACK                    2
-#define STA_PROVIDE_ON_MRQ_AND_UNSOLICITED_MCS_FEEDBACK         3
-
-// Typedef Transmit Beamforming Capability
-#define TX_BEAMFORMING_CAPABLE                                  1
-#define TX_BEAMFORMING_INCAPABLE                                0
-#define CAPABLE_RECEIVE_STAGGERED_SOUNDING                      1
-#define NOT_CAPABLE_RECEIVE_STAGGERED_SOUNDING                  0
-#define CAPABLE_TRANSMIT_STAGGERED_SOUNDING                     1
-#define NOT_CAPABLE_TRANSMIT_STAGGERED_SOUNDING                 0
-#define CAPABLE_RECEIVE_ZLF                                     1
-#define NOT_CAPABLE_RECEIVE_ZLF                                 0
-#define CAPABLE_TRANSMIT_ZLF                                    1
-#define NOT_CAPABLE_TRANSMIT_ZLF                                0
-#define CAPABLE_IMPLICIT_TXBF                                   1
-#define NOT_CAPABLE_IMPLICIT_TXBF                               0
-#define INCAPABLE_CALIBRATION                                   0
-#define LIMITED_CALIBRATION_CANNOT_INITIATE                     1
-#define LIMITED_CALIBRATION_CAN_INITIATE                        2
-#define FULLT_CAPABLE_CALIBRATION                               3
-#define CAPABLE_EXPLICIT_CSI_TXBF                               1
-#define INCAPABLE_EXPLICIT_CSI_TXBF                             0
-#define CAPABLE_EXPLICIT_UNCOMPRESSED_STEERING_MATRIX           1
-#define INCAPABLE_EXPLICIT_UNCOMPRESSED_STEERING_MATRIX         0
-#define INCAPABLE_EXPLICIT_BFCI_FEEDBACK                        0
-#define CAPABLE_UNSOLICITED_BFCI_FEEDBACK                       1
-#define CAPABLE_IMMEDIATE_BFCI_FEEDBACK                         2
-#define CAPABLE_AGGREGATE_BFCI_FEEDBACK                         4
-#define INCAPABLE_EXPLICIT_UNCOMPRESSED_STEERING_MATRIX_FEEDBAC 0
-#define CAPABLE_UNSOLICITED_UNCOMPRESSED_STEERING_MATRIX        1
-#define CAPABLE_IMMEDIATE_UNCOMPRESSED_STEERING_MATRIX          2
-#define CAPABLE_AGGREGATED_UNCOMPRESSED_STEERING_MATRIX         4
-#define INCAPABLE_EXPLICIT_COMPRESSED_STEERING_MATRIX_FEEDBAC   0
-#define CAPABLE_UNSOLICITED_COMPRESSED_STEERING_MATRIX          1
-#define CAPABLE_IMMEDIATE_COMPRESSED_STEERING_MATRIX            2
-#define CAPABLE_AGGREGATED_COMPRESSED_STEERING_MATRIX           4
-#define SUPPORT_CSI_BEAMFORMING_SINGLE_TX_ANTENNA_SOUNDING      0
-#define SUPPORT_CSI_BEAMFORMING_2_TX_ANTENNA_SOUNDING           1
-#define SUPPORT_CSI_BEAMFORMING_3_TX_ANTENNA_SOUNDING           2
-#define SUPPORT_CSI_BEAMFORMING_4_TX_ANTENNA_SOUNDING           3
-#define SUPPORT_UNCOMPRESSED_STEERING_MATRIX_1_TX_ANTENNA_SOUNDING  0
-#define SUPPORT_UNCOMPRESSED_STEERING_MATRIX_2_TX_ANTENNA_SOUNDING  1
-#define SUPPORT_UNCOMPRESSED_STEERING_MATRIX_3_TX_ANTENNA_SOUNDING  2
-#define SUPPORT_UNCOMPRESSED_STEERING_MATRIX_4_TX_ANTENNA_SOUNDING  3
-#define SUPPORT_COMPRESSED_STEERING_MATRIX_1_TX_ANTENNA_SOUNDING  0
-#define SUPPORT_COMPRESSED_STEERING_MATRIX_2_TX_ANTENNA_SOUNDING  1
-#define SUPPORT_COMPRESSED_STEERING_MATRIX_3_TX_ANTENNA_SOUNDING  2
-#define SUPPORT_COMPRESSED_STEERING_MATRIX_4_TX_ANTENNA_SOUNDING  3
-
-// Typedef Antenna Selection Capability
-#define CAPABLE_ANTENNA_SELECTION                               1
-#define INCAPABLE_ANTENNA_SELECTION                             0
-#define CAPABLE_EXPLICIT_CSI_FEEDBACK_BASED_TX_AS               1
-#define INCAPABLE_EXPLICIT_CSI_FEEDBACK_BASED_TX_AS             0
-#define CAPABLE_ANTENNA_INDICES_FEEDBACK_BASED_TX_AS            1
-#define INCAPABLE_ANTENNA_INDICES_FEEDBACK_BASED_TX_AS          0
-#define CAPABLE_EXPLICIT_CSI_FEEDBACK                           1
-#define INCAPABLE_EXPLICIT_CSI_FEEDBACK                         0
-#define CAPABLE_ANTENNA_INDICES_FEEDBACK_BASED_TX_AS            1
-#define INCAPABLE_ANTENNA_INDICES_FEEDBACK_BASED_TX_AS          0
-#define CAPABLE_RX_AS                                           1
-#define INCAPABLE_RX_AS                                         0
-#define CAPABLE_TRANSMIT_SOUNDING_PPDU                          1
-#define INCAPABLE_TRANSMIT_SOUNDING_PPDU                        0
-
-// Typedef Additional HT Infomation Elements
-#define CONTROL_CHANNEL_1                                       1
-
-#define OFFSET_NO_EXTENSION_CHANNEL_IS_PRESENT                  0
-#define OFFSET_EXTENSION_CHANNEL_ABOVE_CONTROL_CHANNEL          1
-#define OFFSET_EXTENSION_CHANNEL_BELOW_CONTROL_CHANNEL          3
-#define USE_20_MHZ_CONTROL_CHANNEL                              0
-#define USE_ANY_SUPPORTED_CHANNEL_WIDTH                         1
-#define USE_RIFS_MODE_PROHIBITED                                0
-#define USE_RIFS_MODE_PERMITTED                                 1
-#define CONTROLLED_ACCESS_NOT_ONLY_PSMP                         0
-#define CONTROLLED_ACCESS_ONLY_PSMP                             1
-#define SERVICE_INTERVAL_GRANULARITY_5MS                        0
-#define SERVICE_INTERVAL_GRANULARITY_10MS                       1
-#define SERVICE_INTERVAL_GRANULARITY_15MS                       2
-#define SERVICE_INTERVAL_GRANULARITY_20MS                       3
-#define SERVICE_INTERVAL_GRANULARITY_25MS                       4
-#define SERVICE_INTERVAL_GRANULARITY_30MS                       5
-#define SERVICE_INTERVAL_GRANULARITY_35MS                       6
-#define SERVICE_INTERVAL_GRANULARITY_40MS                       7
-
-#define OPERATION_MODE_PURE_NO_PROTECTION                       0
-#define OPERATION_MODE_OPTIONAL_PROTECTION                      1
-#define OPERATION_MODE_NO_LEGACY_STA_40MHZ_PROTECTED            2
-#define OPERATION_MODE_MIXED_PROTECTION                         3
-
-#define DUAL_CTS_PROTECTION_IS_USED                             1
-#define REGULAR_RTS_CTS_IS_USED                                 0
-#define SECONDARY_BEACON                                        1
-#define PRIMARY_BEACON                                          0
-#define LSIG_TXOP_PROTECTION_FULL_SUPPORT                       1
-#define LSIG_TXOP_PROTECTION_NOT_FULL_SUPPORT                   0
-#define PCO_IS_ACTIVATED_IN_BSS                                 1
-#define PCO_IS_NOT_ACTIVATED_IN_BSS                             0
-#define PCO_PHASE_REQUEST_SWITCH_KEEP_TO_20MHZ                  0
-#define PCO_PHASE_REQUEST_SWITCH_KEEP_TO_40MHZ                  1
-#endif
 
 //
 // The following enums will be used to get the "current" HT Capabilities of

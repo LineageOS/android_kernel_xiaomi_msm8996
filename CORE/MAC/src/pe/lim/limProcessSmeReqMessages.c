@@ -567,11 +567,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             retCode = eSIR_SME_INVALID_PARAMETERS;
             goto free;
         }
-#if 0
-       PELOG3(limLog(pMac, LOG3,
-           FL("Parsed START_BSS_REQ fields are bssType=%d, channelId=%d"),
-           pMac->lim.gpLimStartBssReq->bssType, pMac->lim.gpLimStartBssReq->channelId);)
-#endif
 
         /* This is the place where PE is going to create a session.
          * If session is not existed, then create a new session */
@@ -926,11 +921,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             || (pMlmStartReq->bssType == eSIR_INFRA_AP_MODE)
         )
         {
-            //len = sizeof(tSirMacAddr);
-            //retStatus = wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, (tANI_U8 *) pMlmStartReq->bssId, &len);
-            //if (retStatus != eSIR_SUCCESS)
-            //limLog(pMac, LOGP, FL("could not retrive BSSID, retStatus=%d"), retStatus);
-
             /* Copy the BSSId from sessionTable to mlmStartReq struct */
             sirCopyMacAddr(pMlmStartReq->bssId,psessionEntry->bssId);
         }
@@ -1006,7 +996,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         pMlmStartReq->dualCTSProtection = pMac->lim.gHTDualCTSProtection; // Unused
         pMlmStartReq->txChannelWidthSet = psessionEntry->htRecommendedTxWidthSet;
 
-        /* sep26 review */
         psessionEntry->limRFBand = limGetRFBand(channelNumber);
 
         // Initialize 11h Enable Flag
@@ -1764,8 +1753,6 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             goto end;
         }
 
-        //pMac->lim.gpLimJoinReq = pSmeJoinReq; TO SUPPORT BT-AMP, review os sep 23
-
         /* check for the existence of start BSS session  */
 #ifdef FIXME_GEN6
         if(pSmeJoinReq->bsstype == eSIR_BTAMP_AP_MODE)
@@ -1852,7 +1839,6 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                      sizeof(psessionEntry->htConfig));
 
         /* Copying of bssId is already done, while creating session */
-        //sirCopyMacAddr(psessionEntry->bssId,pSmeJoinReq->bssId);
         sirCopyMacAddr(psessionEntry->selfMacAddr,pSmeJoinReq->selfMacAddr);
         psessionEntry->bssType = pSmeJoinReq->bsstype;
 
@@ -2396,9 +2382,10 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif
     {
 
+    /* Copy the SSID from session entry to local variable */
     psessionEntry->limReassocSSID.length = pReassocReq->ssId.length;
-    vos_mem_copy(   psessionEntry->limReassocSSID.ssId,
-                    pReassocReq->ssId.ssId, psessionEntry->limReassocSSID.length);
+    vos_mem_copy(psessionEntry->limReassocSSID.ssId,
+                 pReassocReq->ssId.ssId, psessionEntry->limReassocSSID.length);
 
     }
 
@@ -3494,15 +3481,6 @@ void limProcessSmeGetAssocSTAsInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     switch (getAssocSTAsReq.modId)
     {
-/**
-        case VOS_MODULE_ID_HAL:
-            wdaPostCtrlMsg( pMac, &msgQ );
-            return;
-
-        case VOS_MODULE_ID_TL:
-            Post msg TL
-            return;
-*/
         case VOS_MODULE_ID_PE:
         default:
             break;
@@ -3884,7 +3862,6 @@ void limProcessSmeDelBssRsp(
 
     (void) body;
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
-    //TBD: get the sessionEntry
     limIbssDelete(pMac,psessionEntry);
     dphHashTableClassInit(pMac, &psessionEntry->dph.dphHashTable);
     limDeletePreAuthList(pMac);
@@ -4473,8 +4450,6 @@ __limProcessSmeGetStatisticsRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tSirMsgQ msgQ;
 
     pPEStatsReq = (tpAniGetPEStatsReq) pMsgBuf;
-
-    //pPEStatsReq->msgType should be eWNI_SME_GET_STATISTICS_REQ
 
     msgQ.type = WDA_GET_STATISTICS_REQ;
 
@@ -5513,15 +5488,6 @@ static tSirRetStatus limProcessSmeDisStartReq(tpAniSirGlobal pMac,
      * and save Dis Req info for future reference.
      */
 
-#if 0 // TDLS_hklee: D13 no need to open Addr2 unknown data packet
-    /*
-     * send message to HAL to set RXP filters to receieve frame on
-     * direct link..
-     */
-     //limSetLinkState(pMac, eSIR_LINK_TDLS_DISCOVERY_STATE,
-     //                                    psessionEntry->bssId) ;
-#endif
-
      /* save dis request message for matching dialog token */
      vos_mem_copy((tANI_U8 *) &pMac->lim.gLimTdlsDisReq,
                   (tANI_U8 *) disReq, sizeof(tSirTdlsDisReq));
@@ -5576,7 +5542,6 @@ eHalStatus limProcessSmeLinkStartReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     /* get all discovery request parameters */
     tSirTdlsSetupReq *setupReq = (tSirTdlsSetupReq *) pMsgBuf ;
     tLimTdlsLinkSetupInfo *linkSetupInfo;
-    //tLimTdlsLinkSetupPeer *setupPeer;
     tpPESession psessionEntry;
     tANI_U8      sessionId;
     eHalStatus   status;
@@ -5617,7 +5582,6 @@ eHalStatus limProcessSmeLinkStartReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
      */
      /* create node for Link setup */
     linkSetupInfo = &pMac->lim.gLimTdlsLinkSetupInfo ;
-    //setupPeer = NULL ;
 
     status = limTdlsPrepareSetupReqFrame(pMac, linkSetupInfo, setupReq->dialog,
                                           setupReq->peerMac, psessionEntry) ;
@@ -5625,49 +5589,7 @@ eHalStatus limProcessSmeLinkStartReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     /* in case of success, eWNI_SME_TDLS_LINK_START_RSP is sent back to SME later when
     TDLS setup cnf TX complete is successful. */
         return eSIR_SUCCESS;
-#if 0
 
-    /*
-    * we allocate the TDLS setup Peer Memory here, we will free'd this
-    * memory after teardown, if the link is successfully setup or
-    * free this memory if any timeout is happen in link setup procedure
-    */
-    setupPeer = vos_mem_malloc(sizeof( tLimTdlsLinkSetupPeer ));
-    if ( NULL == setupPeer )
-    {
-     limLog( pMac, LOGP,
-                  FL( "Unable to allocate memory during ADD_STA" ));
-     VOS_ASSERT(0) ;
-     return eSIR_MEM_ALLOC_FAILED;
-    }
-    setupPeer->dialog = setupReq->dialog ;
-    setupPeer->tdls_prev_link_state =  setupPeer->tdls_link_state ;
-    setupPeer->tdls_link_state = TDLS_LINK_SETUP_START_STATE ;
-    /* TDLS_sessionize: remember sessionId for future */
-    setupPeer->tdls_sessionId = psessionEntry->peSessionId;
-    setupPeer->tdls_bIsResponder = 1;
-
-    /*
-    * we only populate peer MAC, so it can assit us to find the
-    * TDLS peer after response/or after response timeout
-    */
-    vos_mem_copy(setupPeer->peerMac, setupReq->peerMac,
-                                              sizeof(tSirMacAddr)) ;
-    /* format TDLS discovery request frame and transmit it */
-    limSendTdlsLinkSetupReqFrame(pMac, setupReq->peerMac,
-                                       setupReq->dialog, psessionEntry, NULL, 0) ;
-
-    limStartTdlsTimer(pMac, psessionEntry->peSessionId,
-                        &setupPeer->gLimTdlsLinkSetupRspTimeoutTimer,
-     (tANI_U32)setupPeer->peerMac, WNI_CFG_TDLS_LINK_SETUP_RSP_TIMEOUT,
-                            SIR_LIM_TDLS_LINK_SETUP_RSP_TIMEOUT) ;
-    /* update setup peer list */
-    setupPeer->next = linkSetupInfo->tdlsLinkSetupList ;
-    linkSetupInfo->tdlsLinkSetupList = setupPeer ;
-    /* in case of success, eWNI_SME_TDLS_LINK_START_RSP is sent back to SME later when
-    TDLS setup cnf TX complete is successful. --> see limTdlsSetupCnfTxComplete() */
-    return eSIR_SUCCESS ;
-#endif
 lim_tdls_link_start_error:
     /* in case of error, return immediately to SME */
     limSendSmeTdlsLinkStartRsp(pMac, eSIR_FAILURE, setupReq->peerMac,

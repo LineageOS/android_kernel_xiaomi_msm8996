@@ -2415,16 +2415,6 @@ typedef struct sAniSummaryStatsInfo
     tANI_U32 tx_byte_cnt;          //The sum of the transmit-directed byte count, transmit-multicast byte count
                                    //and transmit-broadcast byte count. HAL will sum TPE UC/MC/BCAST global counters
                                    //to provide this.
-#if 0
-    //providing the following stats, in case of wrap around for tx_byte_cnt
-    tANI_U32 tx_unicast_lower_byte_cnt;
-    tANI_U32 tx_unicast_upper_byte_cnt;
-    tANI_U32 tx_multicast_lower_byte_cnt;
-    tANI_U32 tx_multicast_upper_byte_cnt;
-    tANI_U32 tx_broadcast_lower_byte_cnt;
-    tANI_U32 tx_broadcast_upper_byte_cnt;
-#endif
-
 }tAniSummaryStatsInfo, *tpAniSummaryStatsInfo;
 
 typedef enum eTxRateInfo

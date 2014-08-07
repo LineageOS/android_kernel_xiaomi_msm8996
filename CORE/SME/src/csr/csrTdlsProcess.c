@@ -1135,12 +1135,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_LINK_ESTABLISH_RSP:
         {
             tSirTdlsLinkEstablishReqRsp *linkEstablishReqRsp = (tSirTdlsLinkEstablishReqRsp *) pMsgBuf ;
-#if 0
-            vos_mem_copy(&roamInfo.peerMac, delStaRsp->peerMac,
-                                         sizeof(tSirMacAddr)) ;
-            roamInfo.staId = delStaRsp->staId ;
-            roamInfo.statusCode = delStaRsp->statusCode ;
-#endif
             csrRoamCallCallback(pMac, linkEstablishReqRsp->sessionId, &roamInfo, 0,
                          eCSR_ROAM_TDLS_STATUS_UPDATE,
                                eCSR_ROAM_RESULT_LINK_ESTABLISH_REQ_RSP);
@@ -1294,7 +1288,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
 
         }
 #endif
-#ifdef QCA_WIFI_2_0
         case eWNI_SME_TDLS_SHOULD_DISCOVER:
         {
             tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
@@ -1343,7 +1336,6 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
                                 eCSR_ROAM_RESULT_TDLS_SHOULD_PEER_DISCONNECTED);
             break;
         }
-#endif
         default:
         {
             break ;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -434,13 +434,6 @@ void ccmCfgCnfMsgHandler(tHalHandle hHal, void *m)
     tSirMbMsg *msg = (tSirMbMsg *)m ;
     tANI_U32 result, cfgId ;
     tCfgReq *req, *old ;
-
-#if 0
-    if (pMac->ccm.state != eCCM_STARTED)
-    {
-        return ;
-    }
-#endif
 
     result  = pal_be32_to_cpu(msg->data[0]);
     cfgId   = pal_be32_to_cpu(msg->data[1]);

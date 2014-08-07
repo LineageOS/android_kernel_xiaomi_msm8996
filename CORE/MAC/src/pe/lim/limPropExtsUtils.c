@@ -181,14 +181,6 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
         }
 #endif
         if (pBeaconStruct->powerConstraintPresent)
-#if 0
-        //Remove this check. This function is expected to return localPowerConsraints
-        //and it should just do that. Check for 11h enabled or not can be done at the caller
-#if defined WLAN_FEATURE_VOWIFI
-          && ( pMac->lim.gLim11hEnable
-           || pMac->rrm.rrmPEContext.rrmEnable
-#endif
-#endif
         {
 #if defined WLAN_FEATURE_VOWIFI
            *localConstraint -= pBeaconStruct->localPowerConstraint.localPowerConstraints;

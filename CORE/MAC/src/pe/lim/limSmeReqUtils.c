@@ -301,9 +301,6 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
 
         // Check validity of RSN IE
         if ((pRSNie->rsnIEdata[0] == SIR_MAC_RSN_EID) &&
-#if 0 // Comparison always false
-            (pRSNie->rsnIEdata[1] > SIR_MAC_RSN_IE_MAX_LENGTH) ||
-#endif
              (pRSNie->rsnIEdata[1] < SIR_MAC_RSN_IE_MIN_LENGTH))
         {
             limLog(pMac, LOGE, FL("RSN IE len %d not [%d,%d]"),
@@ -354,9 +351,6 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
             val = sirReadU32((tANI_U8 *) &pRSNie->rsnIEdata[wpaIndex + 2]);
 
             if ((pRSNie->rsnIEdata[wpaIndex] == SIR_MAC_WPA_EID) &&
-#if 0 // Comparison always false
-                (pRSNie->rsnIEdata[wpaIndex + 1] > SIR_MAC_WPA_IE_MAX_LENGTH) ||
-#endif
                 ((pRSNie->rsnIEdata[wpaIndex + 1] < SIR_MAC_WPA_IE_MIN_LENGTH) ||
                 (SIR_MAC_WPA_OUI != val)))
             {

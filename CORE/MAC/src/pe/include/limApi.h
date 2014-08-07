@@ -179,9 +179,6 @@ extern void limPostStartLearnModeMsgToSch(tpAniSirGlobal pMac);
 extern ePhyChanBondState limGet11ACPhyCBState(tpAniSirGlobal pMac, tANI_U8 channel, tANI_U8 htSecondaryChannelOffset, tANI_U8 CenterChan,tpPESession );
 #endif
 tANI_U8 limIsSystemInActiveState(tpAniSirGlobal pMac);
-#if 0 /* Currently, this function is not used but keep it around for when we do need it */
-tSirRetStatus limUpdateGlobalChannelBonding(tpAniSirGlobal pMac, tHalBitVal cbBit);
-#endif /* 0 */
 
 void limHandleLowRssiInd(tpAniSirGlobal pMac);
 void limHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);

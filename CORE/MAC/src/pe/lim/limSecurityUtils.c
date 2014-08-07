@@ -924,11 +924,6 @@ tANI_U32 val = 0;
 
   SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
   msgQ.type = WDA_SET_BSSKEY_REQ;
-  //
-  // FIXME_GEN4
-  // A global counter (dialog token) is required to keep track of
-  // all PE <-> HAL communication(s)
-  //
   msgQ.reserved = 0;
   msgQ.bodyptr = pSetBssKeyParams;
   msgQ.bodyval = 0;
@@ -1097,11 +1092,6 @@ void limSendSetStaKeyReq( tpAniSirGlobal pMac,
 
   pSetStaKeyParams->sendRsp = sendRsp;
 
-  //
-  // FIXME_GEN4
-  // A global counter (dialog token) is required to keep track of
-  // all PE <-> HAL communication(s)
-  //
   msgQ.reserved = 0;
   msgQ.bodyptr = pSetStaKeyParams;
   msgQ.bodyval = 0;
@@ -1174,11 +1164,6 @@ tSirRetStatus      retCode;
   pRemoveBssKeyParams->sessionId = psessionEntry->peSessionId;
 
   msgQ.type = WDA_REMOVE_BSSKEY_REQ;
-  //
-  // FIXME_GEN4
-  // A global counter (dialog token) is required to keep track of
-  // all PE <-> HAL communication(s)
-  //
   msgQ.reserved = 0;
   msgQ.bodyptr = pRemoveBssKeyParams;
   msgQ.bodyval = 0;
@@ -1272,11 +1257,6 @@ tSirRetStatus      retCode;
   SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
   msgQ.type = WDA_REMOVE_STAKEY_REQ;
-  //
-  // FIXME_GEN4
-  // A global counter (dialog token) is required to keep track of
-  // all PE <-> HAL communication(s)
-  //
   msgQ.reserved = 0;
   msgQ.bodyptr = pRemoveStaKeyParams;
   msgQ.bodyval = 0;

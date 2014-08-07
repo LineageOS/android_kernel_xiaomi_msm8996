@@ -594,30 +594,8 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 #if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
     if (fc.type == SIR_MAC_DATA_FRAME && isFrmFt)
     {
-#if 0 // ESE TBD Need to PORT
-        tpSirMacDot3Hdr pDataFrmHdr;
-
-        pDataFrmHdr = (tpSirMacDot3Hdr)((tANI_U8 *)pBD+ WLANHAL_RX_BD_GET_MPDU_H_OFFSET(pBD));
-        if((psessionEntry = peFindSessionByBssid(pMac,pDataFrmHdr->sa,&sessionId))== NULL)
-        {
-            limLog( pMac, LOGE, FL("Session not found for Frm type %d, subtype %d, SA: "), fc.type, fc.subType);
-            limPrintMacAddr(pMac, pDataFrmHdr->sa, LOGE);
-            limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pBD, limMsg->bodyptr);
-            return;
-        }
-
-        if (!psessionEntry->isESEconnection)
-        {
-            limLog( pMac, LOGE, FL("LIM received Type %d, Subtype %d in Non ESE connection"),
-                    fc.type, fc.subType);
-            limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pBD, limMsg->bodyptr);
-            return;
-        }
-        limLog( pMac, LOGE, FL("Processing IAPP Frm from SA:"));
-        limPrintMacAddr(pMac, pDataFrmHdr->sa, LOGE);
-#else
-        printk("%s: Need to port handling of IAPP frames to PRIMA for ESE", __func__);
-#endif
+        limLog(pMac, LOGE,
+               FL("Need to port handling of IAPP frames to QCACLD for ESE"));
     } else
 #endif
     /* Added For BT-AMP Support */
@@ -696,19 +674,6 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 
 /* Chance of crashing : to be done BT-AMP ........happens when broadcast probe req is received */
 
-#if 0
-    if (psessionEntry->limSystemRole == eLIM_UNKNOWN_ROLE) {
-        limLog( pMac, LOGW, FL( "gLimSystemRole is %d. Exiting..." ),psessionEntry->limSystemRole );
-        limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, (void *) limMsg->bodyptr);
-
-#ifdef WLAN_DEBUG
-        pMac->lim.numProtErr++;
-#endif
-        return;
-    }
- #endif     //HACK to continue scanning
-
-
 #ifdef WLAN_DEBUG
     pMac->lim.numMAC[fc.type][fc.subType]++;
 #endif
@@ -717,15 +682,6 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
     {
         case SIR_MAC_MGMT_FRAME:
         {
-                #if 0   //TBD-RAJESH fix this
-                if (limIsReassocInProgress( pMac,psessionEntry) && (fc.subType != SIR_MAC_MGMT_DISASSOC) &&
-                                                (fc.subType != SIR_MAC_MGMT_DEAUTH) && (fc.subType != SIR_MAC_MGMT_REASSOC_RSP))
-                {
-                    limLog(pMac, LOGE, FL("Frame with Type - %d, Subtype - %d received in ReAssoc Wait state, dropping..."),
-                                                                fc.type, fc.subType);
-                    return;
-            }
-                #endif   //HACK to continue scanning
             // Received Management frame
             switch (fc.subType)
             {
@@ -1710,22 +1666,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                   * normal processing
                     */
 
-            #if 0
-            PELOG1(limLog(pMac, LOG1, FL("Heartbeat timeout, SME %d, MLME %d, #bcn %d"),
-                   pMac->lim.gLimSmeState, pMac->lim.gLimMlmState,
-                   pMac->lim.gLimRxedBeaconCntDuringHB);)
-
-            if(pMac->lim.gLimSystemRole == eLIM_STA_IN_IBSS_ROLE)
-                limIbssHeartBeatHandle(pMac); //HeartBeat for peers.
-            else
-                /**
-                        * Heartbeat failure occurred on STA
-                      * This is handled by LMM sub module.
-                        */
-                limHandleHeartBeatFailure(pMac);
-
-            break;
-            #endif //TO SUPPORT BT-AMP
             if(pMac->psOffloadEnabled)
             {
                 /* Powersave Offload Case */
@@ -1849,11 +1789,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             limHandleUpdateOlbcCache(pMac);
             break;
 
-#if 0
-        case SIR_LIM_WPS_OVERLAP_TIMEOUT:
-            limProcessWPSOverlapTimeout(pMac);
-            break;
-#endif
 
 #ifdef FEATURE_WLAN_TDLS
 #ifdef QCA_WIFI_2_0
@@ -1888,11 +1823,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                                 ("Discovery Rsp timer expires ")) ;
-#if 0 // TDLS_hklee: D13 no need to open Addr2 unknown data packet
-            /* restore RXP filters */
-            limSetLinkState(pMac, eSIR_LINK_FINISH_TDLS_DISCOVERY_STATE,
-                                            psessionEntry->bssId) ;
-#endif
             limSendSmeTdlsDisRsp(pMac, eSIR_SUCCESS,
                                 eWNI_SME_TDLS_DISCOVERY_START_RSP) ;
             break ;
@@ -2315,9 +2245,8 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
     }
 
     /* limInsystemInscanState() refers the psessionEntry,  how to get session Entry????*/
-    if (((pMac->lim.gLimAddtsSent) || (limIsSystemInScanState(pMac)) /*||
-                (LIM_IS_RADAR_DETECTED(pMac))*/) && fDeferMsg)
-    {
+    if (((pMac->lim.gLimAddtsSent) || (limIsSystemInScanState(pMac))) &&
+        fDeferMsg) {
         // System is in DFS (Learn) mode or awaiting addts response
         // or if radar is detected, Defer processsing this message
         if (limDeferMsg(pMac, pLimMsg) != TX_SUCCESS)

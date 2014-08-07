@@ -78,10 +78,6 @@
 
 static tSirRetStatus
 limCalculateSvcInt(tpAniSirGlobal, tSirMacTspecIE *, tANI_U32 *);
-#if 0 //only EDCA is supported now
-static tSirRetStatus
-limValidateTspecHcca(tpAniSirGlobal, tSirMacTspecIE *);
-#endif
 static tSirRetStatus
 limValidateTspecEdca(tpAniSirGlobal, tSirMacTspecIE *, tpPESession);
 static tSirRetStatus
@@ -154,132 +150,6 @@ limCalculateSvcInt(
     return eSIR_FAILURE;
 }
 
-#if 0 //only EDCA is supported now
-/** -------------------------------------------------------------
-\fn limValidateTspecHcca
-\brief  validate the parameters in the hcca tspec
-         mandatory fields are derived from 11e Annex I (Table I.1)
-\param   tpAniSirGlobal pMac
-\param       tSirMacTspecIE *pTspec
-\return eSirRetStatus - status
-  -------------------------------------------------------------*/
-static tSirRetStatus
-limValidateTspecHcca(
-    tpAniSirGlobal  pMac,
-    tSirMacTspecIE *pTspec)
-{
-    tANI_U32 maxPhyRate, minPhyRate;
-    tANI_U32 phyMode;
-
-    tSirRetStatus retval = eSIR_SUCCESS;
-    /* make sure a TSID is being requested */
-    if (pTspec->tsinfo.traffic.tsid < SIR_MAC_HCCA_TSID_MIN)
-    {
-        limLog(pMac, LOGW, FL("tsid %d must be >%d)"),
-               pTspec->tsinfo.traffic.tsid, SIR_MAC_HCCA_TSID_MIN);
-        retval =  eSIR_FAILURE;
-    }
-    /*
-     * With Polaris, there is a limitation in that the tsid cannot be arbitary
-     * but is based on the qid. Thus, we cannot have a tspec which requests
-     * a tsid of 13 and userPrio of 7, the bottom three bits of the tsid must
-     * correspond to the userPrio
-     */
-    if (pTspec->tsinfo.traffic.userPrio !=
-        (pTspec->tsinfo.traffic.tsid - SIR_MAC_HCCA_TSID_MIN))
-    {
-        limLog(pMac, LOGE, FL("TSid=0x%x, userPrio=%d: is not allowed"),
-               pTspec->tsinfo.traffic.tsid, pTspec->tsinfo.traffic.userPrio);
-        retval = eSIR_FAILURE;
-    }
-    // an inactivity interval is mandatory
-    if (pTspec->inactInterval == 0)
-    {
-        PELOGW(limLog(pMac, LOGW, FL("inactInterval unspecified!"));)
-        retval =  eSIR_FAILURE;
-    }
-    // surplus BW must be specified if a delay Bound is specified
-    if ((pTspec->delayBound != 0) && (pTspec->surplusBw == 0))
-    {
-        limLog(pMac, LOGW, FL("delayBound %d, but surplusBw unspecified!"),
-               pTspec->delayBound);
-        retval =  eSIR_FAILURE;
-    }
-    // minPhyRate must always be specified and cannot exceed maximum supported
-    limGetPhyMode(pMac, &phyMode);
-    //limGetAvailableBw(pMac, &maxPhyRate, &minPhyRate, pMac->dph.gDphPhyMode,
-    //                  1 /* bandwidth mult factor */);
-    limGetAvailableBw(pMac, &maxPhyRate, &minPhyRate, phyMode,
-                      1 /* bandwidth mult factor */);
-    if ((pTspec->minPhyRate == 0)
-        || (pTspec->minPhyRate > maxPhyRate)
-        || (pTspec->minPhyRate < minPhyRate))
-    {
-        limLog(pMac, LOGW, FL("minPhyRate (%d) invalid"),
-               pTspec->minPhyRate);
-        retval =  eSIR_FAILURE;
-    }
-    /* NOTE: we will require all Tspec's to specify a mean data rate (and so
-     * also the min and peak data rates)
-     */
-    if ((pTspec->minDataRate  == 0) ||
-        (pTspec->meanDataRate == 0) ||
-        (pTspec->peakDataRate == 0))
-    {
-        limLog(pMac, LOGW, FL("DataRate must be specified (min %d, mean %d, peak %d)"),
-               pTspec->minDataRate, pTspec->meanDataRate, pTspec->peakDataRate);
-        retval =  eSIR_FAILURE;
-    }
-
-    // mean data rate can't be more than the min phy rate
-    if (pTspec->meanDataRate > pTspec->minPhyRate)
-    {
-        limLog(pMac, LOGW, FL("Data rate (%d) is more than Phyrate %d"),
-               pTspec->meanDataRate, pTspec->minPhyRate);
-        return eSIR_FAILURE;
-    }
-
-    /* if the tspec specifies a service interval, we won't accept tspec's
-     * with service interval less than our allowed minimum, also either both
-     * min and max must be specified or neither should be specified (in which
-     * case, HC determines the appropriate service interval
-     */
-    if ((pTspec->minSvcInterval != 0) || (pTspec->maxSvcInterval != 0))
-    {
-        // max < min is ridiculous
-        if (pTspec->maxSvcInterval < pTspec->minSvcInterval)
-        {
-            limLog(pMac, LOGW, FL("maxSvcInt %d  > minSvcInterval %d!!"),
-                   pTspec->maxSvcInterval, pTspec->minSvcInterval);
-            retval =  eSIR_FAILURE;
-        }
-        if (pTspec->maxSvcInterval < ADMIT_CONTROL_MIN_INTERVAL)
-        {
-            limLog(pMac, LOGW, FL("maxSvcInt %d must be >%d"),
-                   pTspec->maxSvcInterval, ADMIT_CONTROL_MIN_INTERVAL);
-            retval =  eSIR_FAILURE;
-        }
-    }
-    else // min and max both unspecified
-    {
-        /* no service interval is specified, so make sure the parameters
-         * needed to determine one are specified in the tspec
-         * minPhyRate, meanDataRate and nomMsduSz are needed, only nomMsduSz
-         * must be checked here since the other two are already validated
-         */
-         if (pTspec->nomMsduSz == 0)
-         {
-             PELOGW(limLog(pMac, LOGW, FL("No svcInt and no MsduSize specified"));)
-             retval = eSIR_FAILURE;
-         }
-    }
-
-    limLog(pMac, ADMIT_CONTROL_LOGLEVEL, FL("return status %d"), retval);
-    return retval;
-}
-
-#endif //only edca is supported now.
-
 /** -------------------------------------------------------------
 \fn limValidateTspecEdca
 \brief validate the parameters in the edca tspec
@@ -300,8 +170,6 @@ limValidateTspecEdca(
 
     limGetPhyMode(pMac, &phyMode, psessionEntry);
 
-    //limGetAvailableBw(pMac, &maxPhyRate, &minPhyRate, pMac->dph.gDphPhyMode,
-    //                  1 /* bandwidth mult factor */);
     limGetAvailableBw(pMac, &maxPhyRate, &minPhyRate, phyMode,
                       1 /* bandwidth mult factor */);
     // mandatory fields are derived from 11e Annex I (Table I.1)
@@ -343,11 +211,6 @@ limValidateTspec(
             break;
 
         case SIR_MAC_ACCESSPOLICY_HCCA:
-#if 0 //Not supported right now.
-            if ((retval = limValidateTspecHcca(pMac, pTspec)) != eSIR_SUCCESS)
-                PELOGW(limLog(pMac, LOGW, FL("HCCA tspec invalid"));)
-            break;
-#endif
        case SIR_MAC_ACCESSPOLICY_BOTH:
          // TBD: should we support hybrid tspec as well?? for now, just fall through
         default:
@@ -476,11 +339,9 @@ limAdmitPolicyOversubscription(
     // determine total bandwidth used so far
     limGetPhyMode(pMac, &phyMode, psessionEntry);
 
-    //limComputeMeanBwUsed(pMac, &usedbw, pMac->dph.gDphPhyMode, pTspecInfo);
     limComputeMeanBwUsed(pMac, &usedbw, phyMode, pTspecInfo, psessionEntry);
 
     // determine how much bandwidth is available based on the current phy mode
-    //limGetAvailableBw(pMac, &totalbw, &minbw, pMac->dph.gDphPhyMode, pAdmitPolicy->bw_factor);
     limGetAvailableBw(pMac, &totalbw, &minbw, phyMode, pAdmitPolicy->bw_factor);
 
     if (usedbw > totalbw) // this can't possibly happen
@@ -556,13 +417,6 @@ void limTspecDelete(tpAniSirGlobal pMac, tpLimTspecInfo pInfo)
     limLog(pMac, ADMIT_CONTROL_LOGLEVEL, FL("tspec entry = %d"), pInfo->idx);
     limLog(pMac, ADMIT_CONTROL_LOGLEVEL, FL("delete tspec %p"), pInfo);
     pInfo->inuse = 0;
-
-    // clear the hcca/parameterized queue indicator
-#if 0
-    if ((pInfo->tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_UPLINK) ||
-        (pInfo->tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_BIDIR))
-        queue[pInfo->staid][pInfo->tspec.tsinfo.traffic.userPrio][SCH_UL_QUEUE].ts = 0;
-#endif
 
     return;
 }
@@ -774,11 +628,6 @@ tSirRetStatus limTspecAdd(
      * polls where the qos control field must contain the tsid specified in the
      * tspec.
      */
-#if 0
-    if ((pTspec->tsinfo.traffic.direction == SIR_MAC_DIRECTION_UPLINK) ||
-        (pTspec->tsinfo.traffic.direction == SIR_MAC_DIRECTION_BIDIR))
-        queue[staid][pTspec->tsinfo.traffic.userPrio][SCH_UL_QUEUE].ts = 1;
-#endif
     pTspecList->inuse = 1;
     *ppInfo = pTspecList;
     limLog(pMac, ADMIT_CONTROL_LOGLEVEL, FL("added entry for HCCA AccessPolicy"));
@@ -819,12 +668,6 @@ limValidateAccessPolicy(
 
         case SIR_MAC_ACCESSPOLICY_HCCA:
         case SIR_MAC_ACCESSPOLICY_BOTH:
-#if 0 //only EDCA supported for now.
-            // TBD: check wsm doesn't support the hybrid access policy
-            if (pSta->wsmEnabled || pSta->lleEnabled)
-                retval = eSIR_SUCCESS;
-            break;
-#endif  //only EDCA supported for now.
         default:
             PELOGE(limLog(pMac, LOGE, FL("Invalid accessPolicy %d"), accessPolicy);)
             break;
@@ -1262,7 +1105,6 @@ void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 
         // 090803: Add the SME Session ID
         limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd, &pAddTsRspMsg->tspec.tsinfo, &pAddTsRspMsg->tspec,
-                //psessionEntry->smeSessionId);
                 psessionEntry);
 
         // Delete TSPEC

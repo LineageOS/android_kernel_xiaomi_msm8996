@@ -1230,6 +1230,11 @@ sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber,
     if (j < numChannels &&
           i < pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels)
     {
+       if (numChannels > MAX_BONDED_CHANNELS) {
+           VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                 FL( "numChannels > MAX_BONDED_CHANNELS so resetting"));
+           numChannels = MAX_BONDED_CHANNELS;
+       }
        sapMarkDfsChannels(sapContext,
              channels,
              numChannels,
@@ -3578,6 +3583,12 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext, tSirSmeDfsEventInd *dfs_event)
         pMac->sap.SapDfsInfo.csaIERequired = VOS_TRUE;
 
     sapGet5GHzChannelList(sapContext);
+
+    if (dfs_event->chan_list.nchannels > SIR_DFS_MAX_20M_SUB_CH) {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+              FL("nchannels >SIR_DFS_MAX_20M_SUB_CH so resetting"));
+        dfs_event->chan_list.nchannels = SIR_DFS_MAX_20M_SUB_CH;
+    }
 
     sapMarkDfsChannels(sapContext, dfs_event->chan_list.channels,
           dfs_event->chan_list.nchannels, vos_get_monotonic_boottime());

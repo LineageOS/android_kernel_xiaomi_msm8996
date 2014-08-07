@@ -134,9 +134,6 @@ void limCBScanDurationTimerHandler(void *, tANI_U32);
  */
 v_UINT_t limActivateHearBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry);
 
-#if 0
-void limWPSOverlapTimerHandler(void *pMacGlobal, tANI_U32 param);
-#endif
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
 void limMissedBeaconInActiveMode(void *pMacGlobal, tpPESession psessionEntry);
 #endif

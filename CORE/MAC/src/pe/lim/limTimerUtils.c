@@ -1063,46 +1063,24 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                        FL("Unable to deactivate min channel timer"));
             }
 
-#if 0
-            // If a background was triggered via Quiet BSS,
-            // then we need to adjust the MIN and MAX channel
-            // timer's accordingly to the Quiet duration that
-            // was specified
-            if( eLIM_QUIET_RUNNING == pMac->lim.gLimSpecMgmt.quietState &&
-                pMac->lim.gLimTriggerBackgroundScanDuringQuietBss )
-            {
-                // gLimQuietDuration is already cached in units of
-                // system ticks. No conversion is reqd...
-                val = pMac->lim.gLimSpecMgmt.quietDuration;
-            }
-            else
-            {
-#endif
-                if(pMac->lim.gpLimMlmScanReq)
-                {
-                    val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTime);
-                    if (pMac->btc.btcScanCompromise)
-                    {
-                        if (pMac->lim.gpLimMlmScanReq->minChannelTimeBtc)
-                        {
-                            val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTimeBtc);
-                            limLog(pMac, LOG1, FL("Using BTC Min Active Scan time"));
-                        }
-                        else
-                        {
-                            limLog(pMac, LOGE, FL("BTC Active Scan Min Time is Not Set"));
-                        }
+            if (pMac->lim.gpLimMlmScanReq) {
+                val =
+                     SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTime);
+                if (pMac->btc.btcScanCompromise) {
+                    if (pMac->lim.gpLimMlmScanReq->minChannelTimeBtc) {
+                        val = SYS_MS_TO_TICKS(
+                                  pMac->lim.gpLimMlmScanReq->minChannelTimeBtc);
+                        limLog(pMac, LOG1,
+                               FL("Using BTC Min Active Scan time"));
+                    } else {
+                        limLog(pMac, LOGE,
+                               FL("BTC Active Scan Min Time is Not Set"));
                     }
                 }
-                else
-                {
-                    limLog(pMac, LOGE, FL(" gpLimMlmScanReq is NULL "));
-                    //No need to change min timer. This is not a scan
-                    break;
-                }
-#if 0
+            } else {
+                limLog(pMac, LOGE, FL("gpLimMlmScanReq is NULL"));
+                break;
             }
-#endif
 
             if (tx_timer_change(&pMac->lim.limTimers.gLimMinChannelTimer,
                                 val, 0) != TX_SUCCESS)
@@ -1162,43 +1140,24 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
             // was specified
             if (pMac->lim.gLimSystemRole != eLIM_AP_ROLE)
             {
-#if 0
-
-                if( eLIM_QUIET_RUNNING == pMac->lim.gLimSpecMgmt.quietState &&
-                    pMac->lim.gLimTriggerBackgroundScanDuringQuietBss )
-                {
-                    // gLimQuietDuration is already cached in units of
-                    // system ticks. No conversion is reqd...
-                    val = pMac->lim.gLimSpecMgmt.quietDuration;
-                }
-                else
-                {
-#endif
-                    if(pMac->lim.gpLimMlmScanReq)
-                    {
-                        val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->maxChannelTime);
-                        if (pMac->btc.btcScanCompromise)
-                        {
-                            if (pMac->lim.gpLimMlmScanReq->maxChannelTimeBtc)
-                            {
-                                val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->maxChannelTimeBtc);
-                                limLog(pMac, LOG1, FL("Using BTC Max Active Scan time"));
-                            }
-                            else
-                            {
-                                limLog(pMac, LOGE, FL("BTC Active Scan Max Time is Not Set"));
-                            }
+                if (pMac->lim.gpLimMlmScanReq) {
+                    val = SYS_MS_TO_TICKS(
+                                     pMac->lim.gpLimMlmScanReq->maxChannelTime);
+                    if (pMac->btc.btcScanCompromise) {
+                        if (pMac->lim.gpLimMlmScanReq->maxChannelTimeBtc) {
+                            val = SYS_MS_TO_TICKS(
+                                  pMac->lim.gpLimMlmScanReq->maxChannelTimeBtc);
+                            limLog(pMac, LOG1,
+                                   FL("Using BTC Max Active Scan time"));
+                        } else {
+                            limLog(pMac, LOGE,
+                                   FL("BTC Active Scan Max Time is Not Set"));
                         }
                     }
-                    else
-                    {
-                        limLog(pMac, LOGE, FL(" gpLimMlmScanReq is NULL "));
-                        //No need to change max timer. This is not a scan
-                        break;
-                    }
-#if 0
+                } else {
+                    limLog(pMac, LOGE, FL("gpLimMlmScanReq is NULL"));
+                    break;
                 }
-#endif
             }
 
             if (tx_timer_change(&pMac->lim.limTimers.gLimMaxChannelTimer,
@@ -2241,21 +2200,6 @@ limQuietBssTimerHandler(void *pMacGlobal, tANI_U32 param)
         FL("Post SIR_LIM_QUIET_BSS_TIMEOUT msg. "));)
     limPostMsgApi(pMac, &msg);
 }
-#if 0
-void
-limWPSOverlapTimerHandler(void *pMacGlobal, tANI_U32 param)
-{
-    tSirMsgQ    msg;
-    tpAniSirGlobal pMac = (tpAniSirGlobal)pMacGlobal;
-
-    msg.type = SIR_LIM_WPS_OVERLAP_TIMEOUT;
-    msg.bodyval = (tANI_U32)param;
-    msg.bodyptr = NULL;
-    PELOG1(limLog(pMac, LOG1,
-        FL("Post SIR_LIM_WPS_OVERLAP_TIMEOUT msg. "));)
-    limPostMsgApi(pMac, &msg);
-}
-#endif
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
 /* ACTIVE_MODE_HB_OFFLOAD */

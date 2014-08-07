@@ -230,10 +230,6 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     for (i=0; i<6; i++)
         mac->da[i] = 0xff;
 
-    /* Knocking out Global pMac update */
-    /* limGetMyMacAddr(pMac, mac->sa); */
-    /* limGetBssid(pMac, mac->bssId); */
-
     vos_mem_copy(mac->sa, psessionEntry->selfMacAddr, sizeof(psessionEntry->selfMacAddr));
     vos_mem_copy(mac->bssId, psessionEntry->bssId, sizeof (psessionEntry->bssId));
 
@@ -616,13 +612,7 @@ void limUpdateProbeRspTemplateIeBitmapBeacon2(tpAniSirGlobal pMac,
         vos_mem_copy((void *)&prb_rsp->RSNOpaque, (void *)&beacon2->RSNOpaque,
                      sizeof(beacon2->RSNOpaque));
     }
-/*
-    // BSS load
-    if(beacon2->QBSSLoad.present)
-    {
-        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_QBSS_LOAD_EID);
-    }
-*/
+
     /* EDCA Parameter set */
     if(beacon2->EDCAParamSet.present)
     {
