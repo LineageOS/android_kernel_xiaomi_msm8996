@@ -324,7 +324,8 @@ void epping_destroy_adapter(epping_adapter_t *pAdapter)
    while (adf_nbuf_queue_len(&pAdapter->nodrop_queue)) {
       adf_nbuf_t tmp_nbuf = NULL;
       tmp_nbuf = adf_nbuf_queue_remove(&pAdapter->nodrop_queue);
-      adf_nbuf_free(tmp_nbuf);
+      if (tmp_nbuf)
+         adf_nbuf_free(tmp_nbuf);
    }
 
    free_netdev(dev);

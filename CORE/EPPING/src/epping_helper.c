@@ -273,7 +273,15 @@ void epping_register_tx_copier(HTC_ENDPOINT_ID eid, epping_context_t *pEpping_ct
 }
 void epping_unregister_tx_copier(HTC_ENDPOINT_ID eid, epping_context_t *pEpping_ctx)
 {
-   epping_poll_t *epping_poll = &pEpping_ctx->epping_poll[eid];
+   epping_poll_t *epping_poll;
+
+   if (eid < 0 || eid >= EPPING_MAX_NUM_EPIDS ) {
+      EPPING_LOG(VOS_TRACE_LEVEL_FATAL, "%s: invalid eid = %d",
+         __func__, eid);
+      return;
+   }
+
+   epping_poll = &pEpping_ctx->epping_poll[eid];
 
    epping_poll->done = true;
    if (epping_poll->inited) {

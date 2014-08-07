@@ -10,7 +10,7 @@ all:
 	$(CC) -g3 -Wall  \
 		-I ../../CORE/SERVICES/COMMON/ \
 		-I ../../CORE/SERVICES/HIF/ \
-		cld-fwlog-netlink.c parser.c -o cld-fwlog-netlink
+		cld-fwlog-netlink.c parser.c nan-parser.c -o cld-fwlog-netlink
 	$(CC) -g3 -Wall  \
 		-I ../../CORE/SERVICES/COMMON/ \
 		-I ../../CORE/SERVICES/HIF/ \
