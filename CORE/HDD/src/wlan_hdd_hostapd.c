@@ -117,6 +117,114 @@ extern int process_wma_set_command(int sessid, int paramid,
 /*---------------------------------------------------------------------------
  *   Function definitions
  *-------------------------------------------------------------------------*/
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_hostapd_channel_wakelock_init
+
+  \param  - Pointer to HDD context
+
+  \return - None
+
+  --------------------------------------------------------------------------*/
+void hdd_hostapd_channel_wakelock_init(hdd_context_t *pHddCtx)
+{
+    /* Iniitialize the wakelock */
+    vos_wake_lock_init(&pHddCtx->sap_dfs_wakelock, "sap_dfs_wakelock");
+    atomic_set(&pHddCtx->sap_dfs_ref_cnt, 0);
+}
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_hostapd_channel_allow_suspend - Allow suspend in a channel.
+
+            Called when,
+                1. BSS stopped
+                2. Channel switch
+
+  \param  - pAdapter, channel
+
+  \return - None
+
+  --------------------------------------------------------------------------*/
+void hdd_hostapd_channel_allow_suspend(hdd_adapter_t *pAdapter,
+        u_int8_t channel)
+{
+
+    hdd_context_t *pHddCtx = (hdd_context_t*)(pAdapter->pHddCtx);
+    hdd_hostapd_state_t *pHostapdState =
+        WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
+
+    /* Return if BSS is already stopped */
+    if (pHostapdState->bssState == BSS_STOP)
+        return;
+
+    /* Release wakelock when no more DFS channels are used */
+    if (NV_CHANNEL_DFS == vos_nv_getChannelEnabledState(channel)) {
+        if (atomic_dec_and_test(&pHddCtx->sap_dfs_ref_cnt)) {
+            hddLog(LOGE, FL("DFS: allowing suspend (chan %d)"), channel);
+            vos_wake_lock_release(&pHddCtx->sap_dfs_wakelock);
+        }
+    }
+}
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_hostapd_channel_prevent_suspend - Prevent suspend in a channel.
+
+            Called when,
+                1. BSS started
+                2. Channel switch
+
+  \param  - pAdapter, channel
+
+  \return - None
+
+  --------------------------------------------------------------------------*/
+void hdd_hostapd_channel_prevent_suspend(hdd_adapter_t *pAdapter,
+        u_int8_t channel)
+{
+    hdd_context_t *pHddCtx = (hdd_context_t*)(pAdapter->pHddCtx);
+    hdd_hostapd_state_t *pHostapdState =
+        WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
+
+    /* Return if BSS is already started */
+    if (pHostapdState->bssState == BSS_START)
+        return;
+
+    /* Acquire wakelock if we have at least one DFS channel in use */
+    if (NV_CHANNEL_DFS == vos_nv_getChannelEnabledState(channel)) {
+        if (atomic_inc_return(&pHddCtx->sap_dfs_ref_cnt) == 1) {
+            hddLog(LOGE, FL("DFS: preventing suspend (chan %d)"), channel);
+            vos_wake_lock_acquire(&pHddCtx->sap_dfs_wakelock);
+        }
+    }
+}
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_hostapd_channel_wakelock_deinit
+
+  \param  - Pointer to HDD context
+
+  \return - None
+
+  --------------------------------------------------------------------------*/
+void hdd_hostapd_channel_wakelock_deinit(hdd_context_t *pHddCtx)
+{
+    if (atomic_read(&pHddCtx->sap_dfs_ref_cnt)) {
+        /* Release wakelock */
+        vos_wake_lock_release(&pHddCtx->sap_dfs_wakelock);
+        /* Reset the reference count */
+        atomic_set(&pHddCtx->sap_dfs_ref_cnt, 0);
+        hddLog(LOGE, FL("DFS: allowing suspend"));
+    }
+
+    /* Destroy lock */
+    vos_wake_lock_destroy(&pHddCtx->sap_dfs_wakelock);
+}
+
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_hostapd_open() - HDD Open function for hostapd interface
@@ -743,6 +851,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             wlan_hdd_auto_shutdown_enable(pHddCtx, VOS_TRUE);
 #endif
             pHddApCtx->operatingChannel = pSapEvent->sapevt.sapStartBssCompleteEvent.operatingChannel;
+
+            hdd_hostapd_channel_prevent_suspend(pHostapdAdapter,
+                    pHddApCtx->operatingChannel);
+
             pHostapdState->bssState = BSS_START;
 
 #ifdef FEATURE_GREEN_AP
@@ -846,6 +958,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
         case eSAP_STOP_BSS_EVENT:
             hddLog(LOG1, FL("BSS stop status = %s"),pSapEvent->sapevt.sapStopBssCompleteEvent.status ?
                              "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
+
+            hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
+                    pHddApCtx->operatingChannel);
 
 #ifdef FEATURE_GREEN_AP
             hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_PS_STOP_EVENT);
@@ -1287,6 +1402,12 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
         case eSAP_CHANNEL_CHANGE_EVENT:
             hddLog(LOG1, FL("Received eSAP_CHANNEL_CHANGE_EVENT event"));
+            /* Prevent suspend for new channel */
+            hdd_hostapd_channel_prevent_suspend(pHostapdAdapter,
+                    pSapEvent->sapevt.sapChannelChange.operatingChannel);
+            /* Allow suspend for old channel */
+            hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
+                    pHddApCtx->operatingChannel);
             /* TODO Need to indicate operating channel change to hostapd */
             return VOS_STATUS_SUCCESS;
 
