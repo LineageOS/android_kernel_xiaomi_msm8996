@@ -66,6 +66,15 @@ extern int optionflag;
 
 module_dbg_print mod_print[WLAN_MODULE_ID_MAX];
 
+extern A_BOOL
+dbglog_nan_print_handler(
+    A_UINT32 mod_id,
+    A_UINT16 vap_id,
+    A_UINT32 dbg_id,
+    A_UINT32 timestamp,
+    A_UINT16 numargs,
+    A_UINT32 *args);
+
 const char *dbglog_get_module_str(A_UINT32 module_id)
 {
     switch (module_id) {
@@ -2724,6 +2733,7 @@ int parser_init()
     dbglog_reg_modprint(WLAN_MODULE_STA_SMPS, dbglog_smps_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_P2P, dbglog_p2p_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_PCIELP, dbglog_pcielp_print_handler);
+    dbglog_reg_modprint(WLAN_MODULE_NAN, dbglog_nan_print_handler);
 
     return 0;
 }
