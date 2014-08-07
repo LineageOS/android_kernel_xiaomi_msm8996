@@ -2829,6 +2829,9 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, tANI_U8 tArgetChannel)
 
     if (halStatus == eHAL_STATUS_SUCCESS)
     {
+        sapSignalHDDevent(sapContext, NULL, eSAP_CHANNEL_CHANGE_EVENT,
+                (v_PVOID_t) eSAP_STATUS_SUCCESS);
+
         return VOS_STATUS_SUCCESS;
     }
     return VOS_STATUS_E_FAULT;
