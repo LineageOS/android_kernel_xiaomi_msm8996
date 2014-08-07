@@ -76,13 +76,6 @@ typedef enum eSmeCommandType
     eSmeCommandTdlsAddPeer,
     eSmeCommandTdlsDelPeer,
     eSmeCommandTdlsLinkEstablish,
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-    eSmeCommandTdlsDiscovery,
-    eSmeCommandTdlsLinkSetup,
-    eSmeCommandTdlsLinkTear,
-    eSmeCommandTdlsEnterUapsd,
-    eSmeCommandTdlsExitUapsd,
-#endif
 #endif
     //PMC
     eSmePmcCommandMask = 0x20000, //To identify PMC commands

@@ -1721,6 +1721,9 @@ limMlmAddBss (
     pAddBssParams->extSetStaKeyParamValid = 0;
 #endif
 
+    pAddBssParams->dot11_mode = psessionEntry->dot11mode;
+    limLog(pMac, LOG2, FL("dot11_mode:%d"), pAddBssParams->dot11_mode);
+
     msgQ.type       = WDA_ADD_BSS_REQ;
     msgQ.reserved   = 0;
     msgQ.bodyptr    = pAddBssParams;

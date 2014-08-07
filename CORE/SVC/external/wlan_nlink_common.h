@@ -132,6 +132,7 @@ struct wlan_status_data {
    uint8_t is_on;
    uint8_t vdev_id;
    uint8_t is_connected;
+   int8_t rssi;
    uint8_t ssid_len;
    uint8_t country_code[WLAN_SVC_COUNTRY_CODE_LEN];
    uint32_t vdev_mode;

@@ -3707,6 +3707,9 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     pAddBssParams->llaCoexist, pAddBssParams->llbCoexist,
     pAddBssParams->llgCoexist, pAddBssParams->ht20Coexist);
 
+    pAddBssParams->dot11_mode = psessionEntry->dot11mode;
+    limLog(pMac, LOG2, FL("dot11_mode:%d"), pAddBssParams->dot11_mode);
+
     // Use the advertised capabilities from the received beacon/PR
 
 
@@ -4325,6 +4328,9 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
         " shortPreambleSupported: %d"),
         MAC_ADDR_ARRAY(pAddBssParams->staContext.staMac),
         pAddBssParams->staContext.shortPreambleSupported);
+
+        pAddBssParams->dot11_mode = psessionEntry->dot11mode;
+        limLog(pMac, LOG2, FL("dot11_mode:%d"), pAddBssParams->dot11_mode);
 
         if (IS_DOT11_MODE_HT(psessionEntry->dot11mode) && ( pBeaconStruct->HTCaps.present ))
         {

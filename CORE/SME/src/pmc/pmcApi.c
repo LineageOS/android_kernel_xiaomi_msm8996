@@ -3917,6 +3917,31 @@ eHalStatus pmcOffloadStopUapsd(tHalHandle hHal,  tANI_U32 sessionId)
     return status;
 }
 
+tANI_BOOLEAN pmcOffloadIsStaInPowerSave(tpAniSirGlobal pMac, tANI_U32 sessionId)
+{
+    tpPsOffloadPerSessionInfo pmc;
+    tANI_BOOLEAN StainPS = TRUE;
+
+    if(!CSR_IS_SESSION_VALID(pMac, sessionId))
+    {
+        smsLog(pMac, LOGE, FL("Invalid SessionId %x"), sessionId);
+        return TRUE;
+    }
+
+    /* Check whether the give session is Infra and in Connected State */
+    if(!csrIsConnStateConnectedInfra(pMac, sessionId))
+    {
+       smsLog(pMac, LOG1, FL("Sta not infra/connected state %d"), sessionId);
+       return TRUE;
+    }
+    else
+    {
+       pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
+       StainPS = (pmc->pmcState == BMPS) || (pmc->pmcState == UAPSD);
+       return StainPS;
+    }
+}
+
 tANI_BOOLEAN pmcOffloadProcessCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -4236,11 +4261,13 @@ tANI_BOOLEAN pmcOffloadIsPowerSaveEnabled (tHalHandle hHal, tANI_U32 sessionId,
 }
 
 eHalStatus PmcOffloadEnableDeferredStaModePowerSave(tHalHandle hHal,
-                                                    tANI_U32 sessionId)
+                                                    tANI_U32 sessionId,
+                                                    tANI_BOOLEAN isReassoc)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     tpPsOffloadPerSessionInfo pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
     eHalStatus status = eHAL_STATUS_FAILURE;
+    tANI_U32 timer_value;
 
     if (!pMac->pmcOffloadInfo.staPsEnabled)
     {
@@ -4249,8 +4276,16 @@ eHalStatus PmcOffloadEnableDeferredStaModePowerSave(tHalHandle hHal,
         return status;
     }
 
+    if(isReassoc)
+        timer_value = AUTO_PS_ENTRY_TIMER_DEFAULT_VALUE;
+    else
+        timer_value = AUTO_DEFERRED_PS_ENTRY_TIMER_DEFAULT_VALUE;
+
+    pmcLog(pMac, LOG1, FL("Start AutoPsTimer for %d isReassoc:%d "),
+                            timer_value, isReassoc);
+
     status = pmcOffloadStartAutoStaPsTimer(pMac, sessionId,
-                AUTO_DEFERRED_PS_ENTRY_TIMER_DEFAULT_VALUE);
+                                       timer_value);
     if (eHAL_STATUS_SUCCESS == status)
     {
        smsLog(pMac, LOG2,

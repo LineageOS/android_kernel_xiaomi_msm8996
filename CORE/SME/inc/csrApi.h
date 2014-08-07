@@ -1511,25 +1511,6 @@ typedef struct tagCsrTdlsSendMgmt
 
 }tCsrTdlsSendMgmt;
 
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-typedef struct tagCsrTdlsDisRequest
-{
-        tSirMacAddr peerMac;
-            tANI_U8 disType;
-}tCsrTdlsDisRequest;
-
-typedef struct tagCsrTdlsSetupRequest
-{
-        tSirMacAddr peerMac;
-            tANI_U8 linkIndex;
-}tCsrTdlsSetupRequest;
-
-typedef struct tagCsrTdlsTeardownRequest
-{
-        tSirMacAddr peerMac;
-            tANI_U8 linkIndex;
-}tCsrTdlsTeardownRequest ;
-#endif
 #endif
 
 typedef void * tScanResultHandle;

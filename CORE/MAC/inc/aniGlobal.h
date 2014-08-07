@@ -242,11 +242,6 @@ typedef struct sLimTimers
     TX_TIMER           gLimEseTsmTimer;
 #endif
     TX_TIMER           gLimRemainOnChannelTimer;
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-    TX_TIMER           gLimTdlsDisRspWaitTimer;
-    TX_TIMER           gLimTdlsLinkSetupRspTimeouTimer;
-    TX_TIMER           gLimTdlsLinkSetupCnfTimeoutTimer;
-#endif
 
     TX_TIMER           gLimPeriodicJoinProbeReqTimer;
     TX_TIMER           gLimDisassocAckTimer;
@@ -853,22 +848,6 @@ typedef struct sAniSirLim
 
     ////////////////////////////////  HT RELATED           //////////////////////////////////////////
 
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-    ////////////////////////////////  TDLS RELATED         //////////////////////////////////////////
-
-    tSirTdlsDisReq gLimTdlsDisReq ;
-    //tLimDisResultList *gTdlsDisResultList ;
-    tLimDisResultList *gLimTdlsDisResultList ;
-    tANI_U8 gLimTdlsDisStaCount ;
-    tANI_U8 gAddStaDisRspWait ;
-
-    tLimTdlsLinkSetupInfo  gLimTdlsLinkSetupInfo;
-
-    /* to track if direct link is b/g/n, this can be independent of AP link */
-#ifdef FEATURE_WLAN_TDLS_NEGATIVE
-    tANI_U32 gLimTdlsNegativeBehavior;
-#endif
-#endif
 #ifdef FEATURE_WLAN_TDLS
     tANI_U8 gLimAddStaTdls ;
     tANI_U8 gLimTdlsLinkMode ;
@@ -1058,9 +1037,6 @@ typedef struct sAniSirGlobal
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
     tOemDataStruct oemData;
-#endif
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-    tCsrTdlsCtxStruct tdlsCtx ;
 #endif
     tPmcInfo     pmc;
     tSmeBtcInfo  btc;
