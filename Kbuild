@@ -199,6 +199,11 @@ CONFIG_CHECKSUM_OFFLOAD := 1
 #Enable GTK offload
 CONFIG_GTK_OFFLOAD := 1
 
+#Enable EXT WOW
+ifeq ($(CONFIG_ROME_IF),pci)
+	CONFIG_EXT_WOW := 1
+endif
+
 #Set this to 1 to catch erroneous Target accesses during debug.
 CONFIG_ATH_PCIE_ACCESS_DEBUG := 0
 
@@ -1179,6 +1184,11 @@ endif
 ifeq ($(CONFIG_GTK_OFFLOAD), 1)
 CDEFINES += -DWLAN_FEATURE_GTK_OFFLOAD
 CDEFINES += -DIGTK_OFFLOAD
+endif
+
+#Enable GTK Offload
+ifeq ($(CONFIG_EXT_WOW), 1)
+CDEFINES += -DWLAN_FEATURE_EXTWOW_SUPPORT
 endif
 
 #Mark it as SMP Kernel
