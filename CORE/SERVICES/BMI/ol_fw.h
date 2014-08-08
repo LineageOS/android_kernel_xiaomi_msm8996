@@ -86,6 +86,15 @@
 #define TOTAL_DUMP_SIZE         0x00200000
 #define PCIE_READ_LIMIT         0x00005000
 
+#define SHA256_DIGEST_SIZE      32
+
+struct hash_fw {
+	u8 qwlan[SHA256_DIGEST_SIZE];
+	u8 otp[SHA256_DIGEST_SIZE];
+	u8 bdwlan[SHA256_DIGEST_SIZE];
+	u8 utf[SHA256_DIGEST_SIZE];
+};
+
 int ol_target_coredump(void *instance, void* memoryBlock,
                         u_int32_t blockLength);
 int ol_diag_read(struct ol_softc *scn, u_int8_t* buffer,
