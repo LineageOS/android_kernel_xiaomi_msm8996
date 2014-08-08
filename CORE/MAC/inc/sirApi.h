@@ -3406,6 +3406,7 @@ typedef struct sSirUpdateAPWPARSNIEsReq
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 #define SIR_ROAM_SCAN_PSK_SIZE    32
+#define SIR_ROAM_R0KH_ID_MAX_LEN  48
 #endif
 // SME -> HAL - This is the host offload request.
 #define SIR_IPV4_ARP_REPLY_OFFLOAD                  0
@@ -3764,7 +3765,7 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U8   BTK[SIR_BTK_KEY_LEN];
   tANI_U32   ReassocFailureTimeout;
   tSirAcUapsd AcUapsd;
-  tANI_U32  R0KH_ID;
+  tANI_U8   R0KH_ID[SIR_ROAM_R0KH_ID_MAX_LEN];
   tANI_U32  R0KH_ID_Length;
 #endif
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
