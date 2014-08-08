@@ -10517,6 +10517,7 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 	case WMA_VDEV_DFS_CONTROL_CMDID:
 	{
 		struct ieee80211com *dfs_ic = wma_handle->dfs_ic;
+		struct ath_dfs *dfs;
 
 		if (!dfs_ic) {
 			ret = -ENOENT;
@@ -10529,8 +10530,11 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 
 				if (dfs_ic->ic_curchan->ic_flagext &
 						IEEE80211_CHAN_DFS) {
-					ret = wma_dfs_indicate_radar(dfs_ic,
-						dfs_ic->ic_curchan);
+					dfs = (struct ath_dfs *)dfs_ic->ic_dfs;
+					dfs->dfs_bangradar = 1;
+					dfs->ath_radar_tasksched = 1;
+					OS_SET_TIMER(&dfs->ath_dfs_task_timer,
+						0);
 				} else {
 					ret = -ENOENT;
 				}
