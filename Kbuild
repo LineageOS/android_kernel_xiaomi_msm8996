@@ -618,14 +618,8 @@ SYS_OBJS :=	$(SYS_COMMON_SRC_DIR)/wlan_qct_sys.o \
 ############ TL ############
 TL_DIR :=	CORE/TL
 TL_INC_DIR :=	$(TL_DIR)/inc
-TL_SRC_DIR :=	$(TL_DIR)/src
 
-TL_INC := 	-I$(WLAN_ROOT)/$(TL_INC_DIR) \
-		-I$(WLAN_ROOT)/$(TL_SRC_DIR)
-
-TL_OBJS := 	$(TL_SRC_DIR)/wlan_qct_tl.o \
-		$(TL_SRC_DIR)/wlan_qct_tl_ba.o \
-		$(TL_SRC_DIR)/wlan_qct_tl_hosupport.o
+TL_INC := 	-I$(WLAN_ROOT)/$(TL_INC_DIR)
 
 ############ VOSS ############
 VOSS_DIR :=	CORE/VOSS
@@ -888,9 +882,6 @@ OBJS :=		$(BAP_OBJS) \
 		$(WDI_OBJS) \
 		$(DFS_OBJS)
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
-OBJS +=		$(TL_OBJS)
-else
 OBJS +=		$(WMA_OBJS) \
 		$(TLSHIM_OBJS) \
 		$(TXRX_OBJS) \
@@ -907,8 +898,6 @@ OBJS +=		$(HIF_OBJS) \
 
 ifeq ($(CONFIG_REMOVE_PKT_LOG), 0)
 OBJS +=		$(PKTLOG_OBJS)
-endif
-
 endif
 
 endif
@@ -978,9 +967,7 @@ ifeq ($(CONFIG_ARCH_MSM), y)
 CDEFINES += -DMSM_PLATFORM
 endif
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
-CDEFINES +=	-DWLANTL_DEBUG
-else
+ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 CDEFINES +=	-DOSIF_NEED_RX_PEER_ID \
 		-DQCA_SUPPORT_TXRX_LOCAL_PEER_ID
 ifeq ($(CONFIG_ROME_IF),pci)
