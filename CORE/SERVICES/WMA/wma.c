@@ -16536,16 +16536,6 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 		goto error;
 	}
 
-	if (vos_wait_single_event(&wma->wow_tx_complete,
-			WMA_TGT_WOW_TX_COMPLETE_TIMEOUT)
-				!= VOS_STATUS_SUCCESS) {
-		WMA_LOGE("FAILED TO RECIEVE TX COMPLETE FOR WOW");
-		WMA_LOGE("Credits:%d; Pending_Cmds:%d",
-			wmi_get_host_credits(wma->wmi_handle),
-			wmi_get_pending_cmds(wma->wmi_handle));
-		VOS_BUG(0);
-	}
-
 	wmi_set_target_suspend(wma->wmi_handle, TRUE);
 
 	if (vos_wait_single_event(&wma->target_suspend,
