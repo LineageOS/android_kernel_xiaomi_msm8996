@@ -48,7 +48,6 @@
 #define SIR_MAX_PACKET_SIZE     2048
 #define SIR_MAX_NUM_CHANNELS    64
 #define SIR_MAX_NUM_STA_IN_IBSS 16
-#define SIR_MAX_NUM_STA_IN_BSS  256
 #define SIR_ESE_MAX_MEAS_IE_REQS   8
 
 typedef enum
@@ -199,86 +198,6 @@ typedef struct sSirMbMsgP2p
     tANI_U32 data[1];
 } tSirMbMsgP2p, *tpSirMbMsgP2p;
 
-/// Message queue definitions
-//  msgtype(2bytes) reserved(2bytes) bodyptr(4bytes) bodyval(4bytes)
-//  NOTE tSirMsgQ should be always multiples of WORD(4Bytes)
-//  All Queue Message Size are multiples of word Size (4 bytes)
-#define SYS_MSG_SIZE            (sizeof(tSirMsgQ)/4)
-
-/// gHalMsgQ
-
-#define SYS_HAL_MSG_SIZE        SYS_MSG_SIZE
-
-/// gMMHhiPriorityMsgQ
-
-#define SYS_MMH_HI_PRI_MSG_SIZE SYS_MSG_SIZE
-
-/// gMMHprotocolMsgQ
-
-#define SYS_MMH_PROT_MSG_SIZE   SYS_MSG_SIZE
-
-/// gMMHdebugMsgQ
-
-#define SYS_MMH_DEBUG_MSG_SIZE  SYS_MSG_SIZE
-
-/// gMAINTmsgQ
-
-#define SYS_MNT_MSG_SIZE        SYS_MSG_SIZE
-
-/// LIM Message Queue
-
-#define SYS_LIM_MSG_SIZE        SYS_MSG_SIZE
-
-/// ARQ Message Queue
-
-#define SYS_ARQ_MSG_SIZE        SYS_MSG_SIZE
-
-/// Scheduler Message Queue
-
-#define SYS_SCH_MSG_SIZE        SYS_MSG_SIZE
-
-/// PMM Message Queue
-
-#define SYS_PMM_MSG_SIZE        SYS_MSG_SIZE
-
-/// TX Message Queue
-
-#define SYS_TX_MSG_SIZE         (sizeof(void *)/4)  // Message pointer size
-
-/// RX Message Queue
-
-#define SYS_RX_MSG_SIZE         (sizeof(void *)/4)  // Message pointer size
-
-/// PTT  Message Queue
-#define SYS_NIM_PTT_MSG_SIZE    SYS_MSG_SIZE  // Message pointer size
-
-
-
-/* *************************************** *
- *                                         *
- *        Block pool configuration         *
- *                                         *
- * *************************************** */
-
-// The following values specify the number of blocks to be created
-// for each block pool size.
-
-#define SIR_BUF_BLK_32_NUM           64
-#define SIR_BUF_BLK_64_NUM           128
-#define SIR_BUF_BLK_96_NUM           16
-#define SIR_BUF_BLK_128_NUM          128
-#define SIR_BUF_BLK_160_NUM          8
-#define SIR_BUF_BLK_192_NUM          0
-#define SIR_BUF_BLK_224_NUM          0
-#define SIR_BUF_BLK_256_NUM          128
-#define SIR_BUF_BLK_512_NUM          0
-#define SIR_BUF_BLK_768_NUM          0
-#define SIR_BUF_BLK_1024_NUM         2
-#define SIR_BUF_BLK_1280_NUM         0
-#define SIR_BUF_BLK_1536_NUM         2
-#define SIR_BUF_BLK_1792_NUM         0
-#define SIR_BUF_BLK_2048_NUM         2
-#define SIR_BUF_BLK_2304_NUM         0
 
 /* ******************************************* *
  *                                             *

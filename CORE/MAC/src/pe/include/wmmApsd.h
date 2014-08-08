@@ -30,19 +30,6 @@
 
 #include "aniGlobal.h"
 
-// WMM Info Element OUI subtypes
-#define WMM_APSD_INFO_ELEMENT  0
-#define WMM_APSD_PARAM_ELEMENT 1
-
-// Length of IEs (Including the EID byte).
-#define WMM_INFO_ELEMENT_LENGTH_TOTAL 8
-#define WMM_PARAM_ELEMENT_LENGTH_TOTAL 25
-
-// IE lenght.
-#define WMM_INFO_ELEMENT_LENGTH 7
-#define WMM_PARAM_ELEMENT_LENGTH 24
-
-
 // UAPSD Flag for each AC (WMM spec 2.2.1)
 #define LIM_UAPSD_BITOFFSET_ACVO     0
 #define LIM_UAPSD_BITOFFSET_ACVI     1
@@ -56,19 +43,8 @@
 
 #define LIM_UAPSD_GET(ac, mask)      (((mask) & (LIM_UAPSD_FLAG_ ## ac)) >> LIM_UAPSD_BITOFFSET_ ## ac)
 
-// Definitions for AC mode.
-#define AC_DELIVERY_ENABLED 0x1
-#define AC_TRIGGER_ENABLED  0x2
-#define ALL_AC_UAPSD_SET    0x0F
-
 // Definition for setting/clearing Uapsd Mask
 #define SET_UAPSD_MASK    1
 #define CLEAR_UAPSD_MASK  0
-
-#define ac2tcId(ac) (ac << 1)
-
-// Function prototypes.
-extern void apsdSendQosNull(tpAniSirGlobal pMac, tANI_U16 staId, tANI_U8 tcId, tANI_U8 *staAddr);
-
 
 #endif /* __WMMAPSD_H__ */

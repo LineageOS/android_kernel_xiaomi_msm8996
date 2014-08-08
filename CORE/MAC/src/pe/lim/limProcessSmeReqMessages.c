@@ -5598,18 +5598,8 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             __limProcessSmeJoinReq(pMac, pMsgBuf);
             break;
 
-        case eWNI_SME_AUTH_REQ:
-           // __limProcessSmeAuthReq(pMac, pMsgBuf);
-
-            break;
-
         case eWNI_SME_REASSOC_REQ:
             __limProcessSmeReassocReq(pMac, pMsgBuf);
-
-            break;
-
-        case eWNI_SME_PROMISCUOUS_MODE_REQ:
-            //__limProcessSmePromiscuousReq(pMac, pMsgBuf);
 
             break;
 

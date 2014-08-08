@@ -226,8 +226,6 @@ typedef enum
 }eIniChanBondState;
 
 
-#define CSR_SCAN_TIME_DEFAULT       0
-#define CSR_VALUE_IGNORED           0xFFFFFFFF
 #define CSR_RSN_PMKID_SIZE          16
 #define CSR_MAX_PMKID_ALLOWED       32
 #define CSR_WEP40_KEY_LEN       5
@@ -1324,7 +1322,6 @@ typedef struct tagCsrRoamInfo
     tANI_U8* assocReqPtr;
 
     tANI_S8 rxRssi;
-    tANI_U32 maxRateFlags;
     tSirSmeDfsEventInd dfs_event;
     tSirChanChangeResponse *channelChangeRespEvent;
     tANI_U8 timingMeasCap;

@@ -145,6 +145,14 @@ const char *dbglog_get_module_str(A_UINT32 module_id)
         return "WoW";
     case WLAN_MODULE_IBSS_PWRSAVE:
         return "IBSS PS";
+    case WLAN_MODULE_EXTSCAN:
+        return "ExtScan";
+    case WLAN_MODULE_UNIT_TEST:
+        return "UNIT_TEST";
+    case WLAN_MODULE_MLME:
+        return "MLME";
+    case WLAN_MODULE_SUPPL:
+        return "SUPPLICANT";
     default:
         return "UNKNOWN";
     }
@@ -555,6 +563,22 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "ROAM_CANCEL_LOW_PRIO_SCAN",
         "ROAM_FINAL_BMISS_RECVD",
         "ROAM_CONFIG_SCAN_MODE",
+        "ROAM_BMISS_FINAL_SCAN_ENABLE",
+        "ROAM_SUITABLE_AP_EVENT",
+        "ROAM_RSN_IE_PARSE_ERROR",
+        "ROAM_WPA_IE_PARSE_ERROR",
+        "ROAM_SCAN_CMD_FROM_HOST",
+        "ROAM_HO_SORT_CANDIDATE",
+        "ROAM_HO_SAVE_CANDIDATE",
+        "ROAM_HO_GET_CANDIDATE",
+        "ROAM_HO_OFFLOAD_SET_PARAM",
+        "ROAM_HO_SM",
+        "ROAM_HO_HTT_SAVED",
+        "ROAM_HO_SYNC_START",
+        "ROAM_HO_START",
+        "ROAM_HO_COMPLETE",
+        "ROAM_HO_STOP",
+        "ROAM_HO_HTT_FORWARD",
         "ROAM_DBGID_DEFINITION_END"
     },
     {
@@ -1165,6 +1189,10 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
        "HIF_UART_DBGID_TXRX_BUF_DUMP",
     },
     {
+       /* LPI */
+       ""
+    },
+    {
        /* EXTSCAN DBGIDs */
        "EXTSCAN_START",
        "EXTSCAN_STOP",
@@ -1207,6 +1235,29 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
        "EXTSCAN_NOTIFY_HOTLIST_MATCH",
        "EXTSCAN_CONFIG_HOTLIST_TABLE",
        "EXTSCAN_CONFIG_WLAN_CHANGE_TABLE",
+    },
+    {  /* UNIT_TEST */
+       "UNIT_TEST_GEN",
+    },
+    {  /* MLME */
+       "MLME_DEBUG_CMN",
+       "MLME_IF",
+       "MLME_AUTH",
+       "MLME_REASSOC",
+       "MLME_DEAUTH",
+       "MLME_DISASSOC",
+       "MLME_ROAM",
+       "MLME_RETRY",
+       "MLME_TIMER",
+       "MLME_FRMPARSE",
+    },
+    {  /*SUPPLICANT */
+       "SUPPL_INIT",
+       "SUPPL_RECV_EAPOL",
+       "SUPPL_RECV_EAPOL_TIMEOUT",
+       "SUPPL_SEND_EAPOL",
+       "SUPPL_MIC_MISMATCH",
+       "SUPPL_FINISH",
     },
 };
 

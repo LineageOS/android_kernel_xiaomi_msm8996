@@ -3360,8 +3360,14 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
         vos_mem_copy( &pBeaconStruct->OperatingMode, &pBies->OperatingMode,
                       sizeof( tDot11fIEOperatingMode) );
     }
-
 #endif
+
+    if( pBies->MobilityDomain.present)
+    {
+        pBeaconStruct->mdiePresent = 1;
+        vos_mem_copy( pBeaconStruct->mdie, &pBies->MobilityDomain.MDID, SIR_MDIE_SIZE);
+    }
+
     pBeaconStruct->Vendor1IEPresent = pBies->Vendor1IE.present;
     pBeaconStruct->Vendor2IEPresent = pBies->Vendor2IE.present;
     pBeaconStruct->Vendor3IEPresent = pBies->Vendor3IE.present;

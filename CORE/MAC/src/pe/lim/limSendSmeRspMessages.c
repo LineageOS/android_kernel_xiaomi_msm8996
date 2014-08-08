@@ -271,69 +271,6 @@ static void limSendSmeJoinReassocRspAfterResume( tpAniSirGlobal pMac,
     limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
 }
 
-/**
- * limGetMaxRateFlags()
- *
- *FUNCTION:
- *This function is called by limSendSmeJoinReassocRsp get rateFlags.
- *These rateflags are used when MAX link-speed need to be reported
- *to UI.
- *
- *PARAMS:
- * @param  pStaDs - Pointer to internal STA Datastructure
- * @param  psessionEntry - Pointer to the session entry
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- *
- *NOTE:
- *
- * @return rateFlags
- */
-tANI_U32 limGetMaxRateFlags(tpDphHashNode pStaDs, tpPESession psessionEntry)
-{
-    tANI_U32 rate_flags = 0;
-
-   if (NULL == psessionEntry)
-    {
-        return rate_flags;
-    }
-
-    if(!IS_DOT11_MODE_HT(psessionEntry->dot11mode) &&
-       !IS_DOT11_MODE_VHT(psessionEntry->dot11mode))
-    {
-       rate_flags |= eHAL_TX_RATE_LEGACY;
-    }
-    else
-    {
-        if(IS_DOT11_MODE_HT(psessionEntry->dot11mode))
-        {
-            if (pStaDs->htShortGI20Mhz || pStaDs->htShortGI40Mhz )
-                rate_flags |= eHAL_TX_RATE_SGI;
-
-            if (pStaDs->htDsssCckRate40MHzSupport)
-                rate_flags |=eHAL_TX_RATE_HT40;
-            else
-                rate_flags |=eHAL_TX_RATE_HT20;
-        }
-#ifdef WLAN_FEATURE_11AC
-        if(IS_DOT11_MODE_VHT(psessionEntry->dot11mode))
-        {
-            if (eHT_CHANNEL_WIDTH_80MHZ == pStaDs->vhtSupportedChannelWidthSet)
-                rate_flags |= eHAL_TX_RATE_VHT80;
-
-             if (eHT_CHANNEL_WIDTH_40MHZ == pStaDs->vhtSupportedChannelWidthSet)
-                 rate_flags |= eHAL_TX_RATE_VHT40;
-
-             if (eHT_CHANNEL_WIDTH_20MHZ == pStaDs->vhtSupportedChannelWidthSet)
-                 rate_flags |= eHAL_TX_RATE_VHT20;
-        }
-#endif
-    }
-
-     return rate_flags;
-}
 
 /**
  * limSendSmeJoinReassocRsp()
@@ -439,10 +376,6 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
                 pSirSmeJoinRsp->staId = pStaDs->staIndex;
                 pSirSmeJoinRsp->ucastSig   = pStaDs->ucUcastSig;
                 pSirSmeJoinRsp->bcastSig   = pStaDs->ucBcastSig;
-                pSirSmeJoinRsp->maxRateFlags =
-                                limGetMaxRateFlags(pStaDs, psessionEntry);
-                PELOGE(limLog(pMac, LOG1, FL("maxRateFlags: %x"),
-                                              pSirSmeJoinRsp->maxRateFlags);)
                 pSirSmeJoinRsp->timingMeasCap = pStaDs->timingMeasCap;
             }
         }
@@ -617,6 +550,7 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
 } /*** end limSendSmeJoinReassocRsp() ***/
 
 
+
 /**
  * limSendSmeStartBssRsp()
  *
@@ -786,6 +720,10 @@ limSendSmeStartBssRsp(tpAniSirGlobal pMac,
 
     limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
 } /*** end limSendSmeStartBssRsp() ***/
+
+
+
+
 
 #define LIM_MAX_NUM_OF_SCAN_RESULTS_REPORTED  20
 #define LIM_SIZE_OF_EACH_BSS  400 // this is a rough estimate
@@ -1357,41 +1295,6 @@ void limSendSmeOemDataRsp(tpAniSirGlobal pMac, tANI_U32* pMsgBuf, tSirResultCode
 }  /*** limSendSmeOemDataRsp ***/
 
 #endif
-
-
-/**
- * limSendSmeAuthRsp()
- *
- *FUNCTION:
- * This function is called by limProcessSmeMessages() to send
- * eWNI_SME_AUTH_RSP message to host
- *
- *PARAMS:
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- * NA
- *
- * @param  pMac        Pointer to Global MAC structure
- * @param statusCode   Indicates the result of previously issued
- *                     eWNI_SME_AUTH_REQ message
- *
- * @return None
- */
-void
-limSendSmeAuthRsp(tpAniSirGlobal pMac,
-                  tSirResultCodes statusCode,
-                  tSirMacAddr peerMacAddr,
-                  tAniAuthType authType,
-                  tANI_U16   protStatusCode,
-                  tpPESession psessionEntry,tANI_U8 smesessionId,
-                  tANI_U16 smetransactionId)
-{
-} /*** end limSendSmeAuthRsp() ***/
 
 
 void limSendSmeDisassocDeauthNtf( tpAniSirGlobal pMac,
@@ -2244,34 +2147,6 @@ limSendSmeRemoveKeyRsp(tpAniSirGlobal pMac,
     }
     limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
 } /*** end limSendSmeSetContextRsp() ***/
-
-
-/**
- * limSendSmePromiscuousModeRsp()
- *
- *FUNCTION:
- * This function is called by limProcessSmeMessages() to send
- * eWNI_PROMISCUOUS_MODE_RSP message to host
- *
- *PARAMS:
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- * This function is used for sending eWNI_SME_PROMISCUOUS_MODE_RSP to
- * host as a reply to eWNI_SME_PROMISCUOUS_MODE_REQ directive from it.
- *
- * @param None
- * @return None
- */
-void
-limSendSmePromiscuousModeRsp(tpAniSirGlobal pMac)
-{
-} /*** end limSendSmePromiscuousModeRsp() ***/
-
 
 
 /**

@@ -1795,28 +1795,6 @@ tSirRetStatus limUpdateShortSlot(tpAniSirGlobal pMac, tpSirProbeRespBeacon pBeac
     return eSIR_SUCCESS;
 }
 
-
-
-
-
-
-
-/** -----------------------------------------------------------------
-  \brief limHandleLowRssiInd() - handles low rssi indication
-
-  This function process the SIR_HAL_LOW_RSSI_IND message from
-  HAL, and sends a eWNI_SME_LOW_RSSI_IND to CSR.
-
-  \param pMac - global mac structure
-
-  \return
-
-  \sa
-  ----------------------------------------------------------------- */
-void limHandleLowRssiInd(tpAniSirGlobal pMac)
-{
-}
-
 /** -----------------------------------------------------------------
   \brief limHandleMissedBeaconInd() - handles missed beacon indication
 

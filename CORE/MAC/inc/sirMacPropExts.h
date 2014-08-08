@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -47,30 +47,6 @@
 
 // Proprietary IEs
 
-// Types definitions used within proprietary IE
-#define SIR_MAC_PROP_EXT_RATES_TYPE     0
-#define SIR_MAC_PROP_AP_NAME_TYPE       1
-#define SIR_MAC_PROP_LOAD_INFO_TYPE     6
-#define SIR_MAC_PROP_ASSOC_TYPE         7
-#define SIR_MAC_PROP_LOAD_BALANCE_TYPE  8
-#define SIR_MAC_PROP_LL_ATTR_TYPE       9
-#define SIR_MAC_PROP_CAPABILITY         10  // proprietary capabilities
-#define SIR_MAC_PROP_VERSION            11  // version info
-#define SIR_MAC_PROP_EDCAPARAMS         12  // edca params for 11e and wme
-#define SIR_MAC_PROP_SRCMAC             13  // sender's mac address
-#define SIR_MAC_PROP_TITAN              14  // Advertises a TITAN device
-#define SIR_MAC_PROP_CHANNEL_SWITCH     15  // proprietary channel switch info
-#define SIR_MAC_PROP_QUIET_BSS          16  // Broadcast's REQ for Quiet BSS
-#define SIR_MAC_PROP_TRIG_STA_BK_SCAN   17  // trigger station bk scan during quiet bss duration
-#define SIR_MAC_PROP_TAURUS              18  // Advertises a TAURUS device
-
-// capability ie info
-#define SIR_MAC_PROP_CAPABILITY_MIN      sizeof(tANI_U16)
-
-// trigger sta scan ie length defines
-#define SIR_MAC_PROP_TRIG_STA_BK_SCAN_EID_MIN           0
-#define SIR_MAC_PROP_TRIG_STA_BK_SCAN_EID_MAX           1
-
 // the bit map is also used as a config enable, setting a bit in the
 // propIE config variable, enables the corresponding capability in the propIE
 // the enables simply result in including the corresponding element in the
@@ -95,13 +71,6 @@
 #define SIR_MAC_PROP_CAPABILITY_LOADINFO      WNI_CFG_PROP_CAPABILITY_LOADINFO
 #define SIR_MAC_PROP_CAPABILITY_VERSION       WNI_CFG_PROP_CAPABILITY_VERSION
 #define SIR_MAC_PROP_CAPABILITY_MAXBITOFFSET  WNI_CFG_PROP_CAPABILITY_MAXBITOFFSET
-
-// macro to set/get a capability bit, bitname is one of HCF/11EQOS/etc...
-#define PROP_CAPABILITY_SET(bitname, value) \
-  ((value) = (value) | ((tANI_U16)(1 << SIR_MAC_PROP_CAPABILITY_ ## bitname)))
-
-#define PROP_CAPABILITY_RESET(bitname, value) \
-  ((value) = (value) & ~((tANI_U16)(1 << SIR_MAC_PROP_CAPABILITY_ ## bitname)))
 
 #define PROP_CAPABILITY_GET(bitname, value) \
         (((value) >> SIR_MAC_PROP_CAPABILITY_ ## bitname) & 1)
@@ -128,52 +97,9 @@
           (dot11Mode ==  WNI_CFG_DOT11_MODE_TAURUS) || \
           (dot11Mode ==  WNI_CFG_DOT11_MODE_ALL)) ? TRUE: FALSE)
 #endif
-        /*
-        * When Titan capabilities can be turned on based on the
-        * Proprietary Extensions CFG, then this macro can be used.
-        * Here Titan capabilities can be turned on for 11G/Gonly/N/NOnly mode also.
-        */
-#define IS_DOT11_MODE_TITAN_ALLOWED(dot11Mode) \
-        (((dot11Mode == WNI_CFG_DOT11_MODE_TITAN) || \
-          (dot11Mode == WNI_CFG_DOT11_MODE_TAURUS) || \
-          (dot11Mode == WNI_CFG_DOT11_MODE_11G) || \
-          (dot11Mode == WNI_CFG_DOT11_MODE_11N) || \
-          (dot11Mode == WNI_CFG_DOT11_MODE_ALL)) ? TRUE: FALSE)
-
-
-        /*
-        * When Taurus capabilities can be turned on based on the
-        * Proprietary Extensions CFG, then this macro can be used.
-        * Here Taurus capabilities can be turned on for 11N/Nonly mode also.
-        */
-#define IS_DOT11_MODE_TAURUS_ALLOWED(dot11Mode) \
-        (((dot11Mode == WNI_CFG_DOT11_MODE_TAURUS) || \
-          (dot11Mode == WNI_CFG_DOT11_MODE_11N) || \
-          (dot11Mode == WNI_CFG_DOT11_MODE_ALL)) ? TRUE: FALSE)
-
-
-
-#define IS_DOT11_MODE_POLARIS(dot11Mode)   IS_DOT11_MODE_PROPRIETARY(dot11Mode)
 
 #define IS_DOT11_MODE_11B(dot11Mode)  \
             ((dot11Mode == WNI_CFG_DOT11_MODE_11B) ? TRUE : FALSE)
-
-/// ANI proprietary Status Codes enum
-/// (present in Management response frames)
-typedef enum eSirMacPropStatusCodes
-{
-    dummy
-} tSirMacPropStatusCodes;
-
-/**
- * ANI proprietary Reason Codes enum
- * (present in Deauthentication/Disassociation Management frames)
- */
-typedef enum eSirMacPropReasonCodes
-{
-    eSIR_MAC_ULA_TIMEOUT_REASON=0xFF00
-} tSirMacPropReasonCodes;
-
 
 /// Proprietary IE definition
 typedef struct sSirMacPropIE
@@ -192,11 +118,6 @@ typedef struct sSirMacPropRateSet
 } tSirMacPropRateSet, *tpSirMacPropRateSet;
 
 
-typedef struct sSirMacPropLLSet
-{
-    tANI_U32  deferThreshold;
-} tSirMacPropLLSet, *tpSirMacPropLLSet;
-
 #define SIR_PROP_VERSION_STR_MAX 20
 typedef struct sSirMacPropVersion
 {
@@ -204,35 +125,7 @@ typedef struct sSirMacPropVersion
     tANI_U8   card_type;      // Type of Card
     tANI_U8  build_version[SIR_PROP_VERSION_STR_MAX]; //build version string
 } tSirMacPropVersion, *tpSirMacPropVersion;
-#define SIR_MAC_PROP_VERSION_MIN (SIR_PROP_VERSION_STR_MAX + sizeof(tANI_U32))
 
-
-// TCID MACRO's
-#define TCID_0   0x01
-#define TCID_1   0x02
-#define TCID_2   0x04
-#define TCID_3   0x08
-#define TCID_4   0x10
-#define TCID_5   0x20
-#define TCID_6   0x40
-#define TCID_7   0x80
-#define TCID_ALL 0xFF
-
-// Get state of Concatenation
-#define GET_CONCAT_STATE(ccBitmap,tcid) \
-        ((ccBitmap) & (tcid))
-
-// Get state of Compression
-#define GET_COMPRESSION_STATE(cpBitmap,tcid) \
-        ((cpBitmap) & (tcid))
-
-// Get/Set the state of Reverse FCS
-#define GET_RFCS_OPER_STATE(revFcsState) (revFcsState & 0x01)
-#define GET_RFCS_PATTERN_ID(revFcsState) ((revFcsState & 0x0E) >> 1)
-
-/* STA CB Legacy Bss detect states */
-#define LIM_CB_LEGACY_BSS_DETECT_IDLE                   0
-#define LIM_CB_LEGACY_BSS_DETECT_RUNNING                1
 
 /* Default value for gLimRestoreCBNumScanInterval */
 #define LIM_RESTORE_CB_NUM_SCAN_INTERVAL_DEFAULT        2

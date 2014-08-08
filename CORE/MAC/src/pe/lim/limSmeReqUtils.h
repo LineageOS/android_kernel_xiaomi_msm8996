@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012,2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -50,7 +50,6 @@ tANI_U8 limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal,
                                           tpPESession);
 tANI_U8 limIsSmeScanReqValid(tpAniSirGlobal, tpSirSmeScanReq);
 tANI_U8 limIsSmeJoinReqValid(tpAniSirGlobal, tpSirSmeJoinReq);
-tANI_U8 limIsSmeAuthReqValid(tpSirSmeAuthReq);
 tANI_U8 limIsSmeDisassocReqValid(tpAniSirGlobal, tpSirSmeDisassocReq, tpPESession);
 tANI_U8 limIsSmeDeauthReqValid(tpAniSirGlobal, tpSirSmeDeauthReq, tpPESession);
 tANI_U8 limIsSmeSetContextReqValid(tpAniSirGlobal, tpSirSmeSetContextReq);

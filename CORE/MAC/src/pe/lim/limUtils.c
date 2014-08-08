@@ -70,7 +70,6 @@
  * this information. */
 static tAniBool glimTriggerBackgroundScanDuringQuietBss_Status = eSIR_TRUE;
 
-#define SUCCESS 1                   //defined temporarily for BT-AMP
 
 #define MAX_BA_WINDOW_SIZE_FOR_CISCO 25
 
@@ -477,10 +476,6 @@ char *limMsgStr(tANI_U32 msgType)
             return "eWNI_SME_REASSOC_REQ";
         case eWNI_SME_REASSOC_RSP:
             return "eWNI_SME_REASSOC_RSP";
-        case eWNI_SME_AUTH_REQ:
-            return "eWNI_SME_AUTH_REQ";
-        case eWNI_SME_AUTH_RSP:
-            return "eWNI_SME_AUTH_RSP";
         case eWNI_SME_DISASSOC_REQ:
             return "eWNI_SME_DISASSOC_REQ";
         case eWNI_SME_DISASSOC_RSP:
@@ -523,10 +518,6 @@ char *limMsgStr(tANI_U32 msgType)
             return "eWNI_SME_STOP_BSS_REQ";
         case eWNI_SME_STOP_BSS_RSP:
             return "eWNI_SME_STOP_BSS_RSP";
-        case eWNI_SME_PROMISCUOUS_MODE_REQ:
-            return "eWNI_SME_PROMISCUOUS_MODE_REQ";
-        case eWNI_SME_PROMISCUOUS_MODE_RSP:
-            return "eWNI_SME_PROMISCUOUS_MODE_RSP";
         case eWNI_SME_NEIGHBOR_BSS_IND:
             return "eWNI_SME_NEIGHBOR_BSS_IND";
         case eWNI_SME_MEASUREMENT_REQ:
@@ -3079,21 +3070,6 @@ void limProcessQuietBssTimeout( tpAniSirGlobal pMac )
     }
   }
 }
-/**
- * limProcessWPSOverlapTimeout
- *
- * FUNCTION: This function call limWPSPBCTimeout() to clean WPS PBC probe request entries
- *
- * LOGIC:
- *
- * ASSUMPTIONS:
- *
- * NOTE:
- *
- * @param pMac - Pointer to Global MAC structure
- *
- * @return None
- */
 
 /**----------------------------------------------
 \fn        limStartQuietTimer

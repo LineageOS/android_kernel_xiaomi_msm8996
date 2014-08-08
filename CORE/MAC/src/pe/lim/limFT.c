@@ -49,11 +49,6 @@
 #include <limAdmitControl.h>
 #include "wmmApsd.h"
 
-#define LIM_FT_RIC_BA_SSN                       1
-#define LIM_FT_RIC_BA_DIALOG_TOKEN_TID_0         248
-#define LIM_FT_RIC_DESCRIPTOR_RESOURCE_TYPE_BA  1
-#define LIM_FT_RIC_DESCRIPTOR_MAX_VAR_DATA_LEN   255
-
 extern void limSendSetStaKeyReq( tpAniSirGlobal pMac,
     tLimMlmSetKeysReq *pMlmSetKeysReq,
     tANI_U16 staIdx,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -43,7 +43,6 @@
 #include <sirCommon.h>
 #include <sirTypes.h>
 #include <sirDebug.h>
-#include <wniStat.h>
 #include <utilsApi.h>
 #include <limApi.h>
 #include <schApi.h>

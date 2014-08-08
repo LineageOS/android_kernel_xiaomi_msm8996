@@ -335,7 +335,6 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8    htSmpsvalue;
     tANI_U8            spectrumMgtEnabled;
     /* *********************11H related*****************************/
-    //tANI_U32           gLim11hEnable;
     tLimSpecMgmtInfo   gLimSpecMgmt;
     // CB Primary/Secondary Channel Switch Info
     tLimChannelSwitchInfo  gLimChannelSwitch;
@@ -453,9 +452,6 @@ typedef struct sPESession           // Added to Support BT-AMP
 #endif
 
 }tPESession, *tpPESession;
-
-#define LIM_MAX_ACTIVE_SESSIONS 4
-
 
 /*-------------------------------------------------------------------------
   Function declarations and documenation
