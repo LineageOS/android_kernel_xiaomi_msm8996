@@ -21883,6 +21883,25 @@ static VOS_STATUS wma_tx_detach(tp_wma_handle wma_handle)
 	return VOS_STATUS_SUCCESS;
 }
 
+static void wma_roam_ho_fail_handler(tp_wma_handle wma, u_int32_t vdev_id)
+{
+	tSirSmeHOFailureInd *ho_failure_ind;
+
+	ho_failure_ind = (tSirSmeHOFailureInd *) vos_mem_malloc
+		                             (sizeof(tSirSmeHOFailureInd));
+
+	if (NULL == ho_failure_ind) {
+		WMA_LOGE("%s: Memory allocation failure", __func__);
+		return;
+	}
+	ho_failure_ind->messageType = WDA_HO_FAIL_IND;
+	ho_failure_ind->length = sizeof(tSirSmeHOFailureInd);
+	ho_failure_ind->sessionId = vdev_id;
+
+	wma_send_msg(wma, WDA_HO_FAIL_IND,
+		         (void *)ho_failure_ind, 0);
+}
+
 /* function   : wma_roam_better_ap_handler
  * Description : Handler for WMI_ROAM_REASON_BETTER_AP event from roam firmware in Rome.
  *            : This event means roam algorithm in Rome has found a better matching
@@ -21943,6 +21962,11 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 		WMA_LOGD("%s:Bmiss scan AP found for vdevid %x, rssi %d", __func__,
 			wmi_event->vdev_id, wmi_event->rssi);
 		wma_roam_better_ap_handler(wma_handle, wmi_event->vdev_id);
+		break;
+	case WMI_ROAM_REASON_HO_FAILED:
+		WMA_LOGE("LFR3:Hand-Off Failed for vdevid %x",
+			wmi_event->vdev_id);
+		wma_roam_ho_fail_handler(wma_handle, wmi_event->vdev_id);
 		break;
 	default:
 		WMA_LOGD("%s:Unhandled Roam Event %x for vdevid %x", __func__,
