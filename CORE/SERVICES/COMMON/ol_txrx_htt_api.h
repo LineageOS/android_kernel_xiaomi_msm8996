@@ -164,9 +164,6 @@ ol_tx_completion_handler(
     enum htt_tx_status status,
     void *tx_msdu_id_iterator);
 
-void
-ol_tx_credit_completion_handler(ol_txrx_pdev_handle pdev, int credits);
-
 /**
  * @brief Init the total amount of target credit.
  * @details

@@ -53,9 +53,6 @@ ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev,
 	cfg_ctx->is_high_latency = 1;
 	/* 802.1Q and SNAP / LLC headers are accounted for elsewhere */
 	cfg_ctx->tx_download_size = 1500;
-#ifdef HIF_SDIO
-	cfg_ctx->tx_free_at_download = 0;
-#endif
 #else
 	/*
 	 * Need to change HTT_LL_TX_HDR_SIZE_IP accordingly.
