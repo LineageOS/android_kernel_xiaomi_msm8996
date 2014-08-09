@@ -326,7 +326,14 @@ ol_tx_download_done_hl_free(
 
     tx_desc = ol_tx_desc_find(pdev, msdu_id);
     adf_os_assert(tx_desc);
-    ol_tx_desc_frame_free_nonstd(pdev, tx_desc, status != A_OK);
+
+    ol_tx_download_done_base(pdev, status, msdu, msdu_id);
+
+    if ((tx_desc->pkt_type != ol_tx_frm_no_free) &&
+        (tx_desc->pkt_type < OL_TXRX_MGMT_TYPE_BASE)) {
+        adf_os_atomic_add(1, &pdev->tx_queue.rsrc_cnt);
+        ol_tx_desc_frame_free_nonstd(pdev, tx_desc, status != A_OK);
+    }
 #if 0 /* TODO: Advanced feature */
     //ol_tx_dwl_sched(pdev, OL_TX_HL_SCHED_DOWNLOAD_DONE);
 adf_os_assert(0);
@@ -466,6 +473,17 @@ ol_tx_discard_target_frms(ol_txrx_pdev_handle pdev)
                 pdev, &pdev->tx_desc.array[i].tx_desc, 1);
         }
     }
+}
+
+void
+ol_tx_credit_completion_handler(ol_txrx_pdev_handle pdev, int credits)
+{
+    ol_tx_target_credit_update(pdev, credits);
+    if (pdev->cfg.is_high_latency) {
+        ol_tx_sched(pdev);
+    }
+    /* UNPAUSE OS Q */
+    OL_TX_FLOW_CT_UNPAUSE_OS_Q(pdev);
 }
 
 /* WARNING: ol_tx_inspect_handler()'s bahavior is similar to that of ol_tx_completion_handler().
