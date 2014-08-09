@@ -808,17 +808,12 @@ WDA_OBJS :=	$(WDA_SRC_DIR)/wlan_qct_wda_debug.o \
 		$(WDA_SRC_DIR)/wlan_qct_wda_legacy.o \
 		$(WDA_SRC_DIR)/wlan_nv.o
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
-WDA_OBJS +=	$(WDA_SRC_DIR)/wlan_qct_wda.o \
-		$(WDA_SRC_DIR)/wlan_qct_wda_ds.o
-endif
-
 ############ WDI ############
 WDI_DIR :=	CORE/WDI
 
 WDI_CP_INC :=	-I$(WLAN_ROOT)/$(WDI_DIR)/CP/inc/
 
-WDI_DP_INC := -I$(WLAN_ROOT)/$(WDI_DIR)/DP/inc/
+WDI_DP_INC :=	-I$(WLAN_ROOT)/$(WDI_DIR)/DP/inc/
 
 WDI_TRP_INC :=	-I$(WLAN_ROOT)/$(WDI_DIR)/TRP/CTS/inc/ \
 		-I$(WLAN_ROOT)/$(WDI_DIR)/TRP/DTS/inc/
