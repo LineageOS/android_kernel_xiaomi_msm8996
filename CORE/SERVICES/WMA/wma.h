@@ -431,6 +431,12 @@ struct wma_wow {
 	v_BOOL_t bmiss_enable;
 	v_BOOL_t gtk_pdev_enable;
 	v_BOOL_t gtk_err_enable[WMA_MAX_SUPPORTED_BSS];
+#ifdef FEATURE_WLAN_LPHB
+	/* currently supports only vdev 0.
+	 * cache has two entries: one for TCP and one for UDP.
+	 */
+	tSirLPHBReq lphb_cache[2];
+#endif
 };
 #ifdef WLAN_FEATURE_11W
 #define CMAC_IPN_LEN         (6)

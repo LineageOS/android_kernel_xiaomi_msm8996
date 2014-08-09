@@ -37,7 +37,6 @@
 
 #include "palTypes.h"
 #include "aniGlobal.h"
-#include "palTimer.h"
 #include "csrLinkList.h"
 #include "smsDebug.h"
 #include "pmcApi.h"

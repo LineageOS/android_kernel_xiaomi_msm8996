@@ -40,7 +40,7 @@
 
 #include "vos_types.h"
 #include "halTypes.h"
-#include "palTimer.h"
+#include "vos_timer.h"
 #include "vos_lock.h"
 
 typedef struct sP2pPsConfig{

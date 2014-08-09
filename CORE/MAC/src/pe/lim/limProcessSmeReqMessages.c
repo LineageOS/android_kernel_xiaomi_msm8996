@@ -5871,6 +5871,10 @@ limProcessSmeStartBeaconReq(tpAniSirGlobal pMac, tANI_U32 * pMsg)
          * Tx right after the WDA_ADD_BSS_RSP.
          */
         limApplyConfiguration(pMac,psessionEntry);
+        VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+               FL("Start Beacon with ssid %s Ch %d"),
+               psessionEntry->ssId.ssId,
+               psessionEntry->currentOperChannel);
         limSendBeaconInd(pMac, psessionEntry);
     }
     else

@@ -39,7 +39,7 @@
 #include "vos_status.h"
 #include "vos_lock.h"
 
-#include "palTimer.h"
+#include "vos_timer.h"
 #include "csrSupport.h"
 #include "vos_nvitem.h"
 #include "wlan_qct_tl.h"
@@ -716,7 +716,6 @@ typedef struct tagCsrScanStruct
     vos_timer_t hTimerIdleScan;
     vos_timer_t hTimerResultAging;
     vos_timer_t hTimerResultCfgAging;
-    tPalTimerHandle hTimerBgScan;
     //changes on every scan, it is used as a flag for whether 11d info is found on every scan
     tANI_U8 channelOf11dInfo;
     tANI_U8 scanResultCfgAgingTime;

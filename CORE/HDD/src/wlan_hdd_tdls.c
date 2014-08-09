@@ -2122,6 +2122,8 @@ static void __wlan_hdd_tdls_pre_setup(struct work_struct *work)
 
     vos_mem_copy(&peer_mac, curr_peer->peerMac, sizeof(peer_mac));
 
+    mutex_unlock(&pHddCtx->tdls_lock);
+
     /*
      * If Powersave Offload is enabled
      * Fw will take care incase of concurrency
@@ -2137,6 +2139,9 @@ static void __wlan_hdd_tdls_pre_setup(struct work_struct *work)
     }
 
     temp_peer = wlan_hdd_tdls_is_progress(pHddCtx, NULL, 0);
+
+    mutex_lock(&pHddCtx->tdls_lock);
+
     if (NULL != temp_peer)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL, "%s: " MAC_ADDRESS_STR " ongoing. pre_setup ignored",

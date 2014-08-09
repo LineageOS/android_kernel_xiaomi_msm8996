@@ -39,7 +39,6 @@
 #define __PMC_H__
 
 
-#include "palTimer.h"
 #include "csrLinkList.h"
 #include "pmcApi.h"
 #include "smeInternal.h"

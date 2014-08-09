@@ -3436,7 +3436,7 @@ VOS_STATUS sme_isSta_p2p_clientConnected(tHalHandle hHal);
 eHalStatus sme_LPHBConfigReq(
                       tHalHandle hHal,
                       tSirLPHBReq *lphdReq,
-                      void (*pCallbackfn)(void *pAdapter, void *indParam));
+                      void (*pCallbackfn)(void *pHddCtx, tSirLPHBInd *indParam));
 #endif /* FEATURE_WLAN_LPHB */
 
 /* ---------------------------------------------------------------------------

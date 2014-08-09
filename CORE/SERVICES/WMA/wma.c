@@ -7316,8 +7316,9 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 				buf_ptr += WMI_TLV_HDR_SIZE;
 				roam_offload_11r =
 				(wmi_roam_11r_offload_tlv_param *) buf_ptr;
-				roam_offload_11r->r0kh_id = roam_req->R0KH_ID;
 				roam_offload_11r->r0kh_id_len = roam_req->R0KH_ID_Length;
+				vos_mem_copy (roam_offload_11r->r0kh_id, roam_req->R0KH_ID,
+						roam_offload_11r->r0kh_id_len);
 				vos_mem_copy (roam_offload_11r->psk_msk, roam_req->PSK_PMK,
 						       sizeof(roam_req->PSK_PMK));
 				roam_offload_11r->mdie_present = roam_req->MDID.mdiePresent;
@@ -8403,11 +8404,15 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 #ifdef FEATURE_WLAN_LPHB
 /* function   : wma_lphb_conf_hbenable
  * Description : handles the enable command of LPHB configuration requests
- * Args       :
+ * Args       : wma_handle - WMA handle
+ *              lphb_conf_req - configuration info
+ *              by_user - whether this call is from user or cached resent
  * Returns    :
  */
 VOS_STATUS wma_lphb_conf_hbenable(tp_wma_handle wma_handle,
-				tSirLPHBReq *lphb_conf_req)
+				tSirLPHBReq *lphb_conf_req,
+				v_BOOL_t by_user)
+
 {
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	int status = 0;
@@ -8416,6 +8421,7 @@ VOS_STATUS wma_lphb_conf_hbenable(tp_wma_handle wma_handle,
 	u_int8_t *buf_ptr;
 	wmi_hb_set_enable_cmd_fixed_param *hb_enable_fp;
 	int len = sizeof(wmi_hb_set_enable_cmd_fixed_param);
+	int i;
 
 	if (lphb_conf_req == NULL)
 	{
@@ -8429,6 +8435,13 @@ VOS_STATUS wma_lphb_conf_hbenable(tp_wma_handle wma_handle,
 		ts_lphb_enable->enable,
 		ts_lphb_enable->item,
 		ts_lphb_enable->session);
+
+	if ((ts_lphb_enable->item != 1) && (ts_lphb_enable->item != 2)) {
+		WMA_LOGE("%s : LPHB configuration wrong item %d",
+		__func__,
+		ts_lphb_enable->item);
+		return VOS_STATUS_E_FAILURE;
+        }
 
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!buf) {
@@ -8456,6 +8469,29 @@ VOS_STATUS wma_lphb_conf_hbenable(tp_wma_handle wma_handle,
 			status);
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto error;
+	}
+
+	if (by_user) {
+		/* target already configured, now cache command status */
+		if (ts_lphb_enable->enable) {
+			i = ts_lphb_enable->item-1;
+			wma_handle->wow.lphb_cache[i].cmd
+				= LPHB_SET_EN_PARAMS_INDID;
+			wma_handle->wow.lphb_cache[i].params.lphbEnableReq.enable
+				= ts_lphb_enable->enable;
+			wma_handle->wow.lphb_cache[i].params.lphbEnableReq.item
+				= ts_lphb_enable->item;
+			wma_handle->wow.lphb_cache[i].params.lphbEnableReq.session
+				= ts_lphb_enable->session;
+
+			WMA_LOGI("%s: cached LPHB status in WMA context for item %d",
+				__func__, i);
+		} else {
+			vos_mem_zero((void *)&wma_handle->wow.lphb_cache,
+				sizeof(wma_handle->wow.lphb_cache));
+			WMA_LOGI("%s: cleared all cached LPHB status in WMA context",
+				__func__);
+		}
 	}
 
 	return VOS_STATUS_SUCCESS;
@@ -8778,7 +8814,7 @@ VOS_STATUS wma_process_lphb_conf_req(tp_wma_handle wma_handle,
 	switch (lphb_conf_req->cmd) {
 	case LPHB_SET_EN_PARAMS_INDID:
 		vos_status = wma_lphb_conf_hbenable(wma_handle,
-				lphb_conf_req);
+				lphb_conf_req, TRUE);
 		break;
 
 	case LPHB_SET_TCP_PARAMS_INDID:
@@ -13117,8 +13153,12 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
 	}
 #ifdef QCA_IBSS_SUPPORT
-        else if (wma_is_vdev_in_ibss_mode(wma, add_sta->smesessionId))
+	else if (wma_is_vdev_in_ibss_mode(wma, add_sta->smesessionId)) {
 		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
+#ifdef FEATURE_WLAN_D0WOW
+		wma_add_pm_vote(wma);
+#endif
+	}
 #endif
 
 	switch (oper_mode) {
@@ -13774,8 +13814,11 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 #ifdef QCA_IBSS_SUPPORT
 	if (wma_is_vdev_in_ibss_mode(wma, del_sta->smesessionId)) {
 		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
+#ifdef FEATURE_WLAN_D0WOW
+		wma_del_pm_vote(wma);
+#endif
 		WMA_LOGD("%s: to delete sta for IBSS mode", __func__);
-        }
+	}
 #endif
 
 	switch (oper_mode) {
@@ -15930,6 +15973,8 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 	case  WOW_REASON_RA_MATCH:
 		return "WOW_REASON_RA_MATCH";
 #endif
+	case WOW_REASON_BEACON_RECV:
+		return "WOW_REASON_IBSS_BEACON_RECV";
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 	case  WOW_REASON_HOST_AUTO_SHUTDOWN:
 		return "WOW_REASON_HOST_AUTO_SHUTDOWN";
@@ -16926,6 +16971,9 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	u_int8_t vdev_id;
 	u_int8_t enable_ptrn_match = 0;
 	v_BOOL_t ap_vdev_available = FALSE;
+#ifdef QCA_IBSS_SUPPORT
+	v_BOOL_t ibss_vdev_available = FALSE;
+#endif
 
 	/* Gather list of free ptrn id. This is needed while configuring
 	* default wow patterns.
@@ -16950,6 +16998,11 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 #endif
 		)
 			ap_vdev_available = TRUE;
+
+#ifdef QCA_IBSS_SUPPORT
+		if (wma_is_vdev_in_ibss_mode(wma, vdev_id))
+			ibss_vdev_available = TRUE;
+#endif
 
 		if (wma_is_wow_prtn_cached(wma, vdev_id)) {
 			/* Configure wow patterns provided by the user */
@@ -17139,6 +17192,20 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	} else
 		WMA_LOGE("Configure auto shutdown WOW event to FW: success");
 #endif
+
+#ifdef QCA_IBSS_SUPPORT
+	/* Configure beacon based wakeup */
+	ret = wma_add_wow_wakeup_event(wma,
+				WOW_BEACON_EVENT,ibss_vdev_available);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to configure IBSS Beacon based wakeup");
+		goto end;
+	} else {
+		WMA_LOGD("IBSS Beacon based wakeup is %s in fw",
+			ibss_vdev_available ? "enabled" : "disabled");
+	}
+#endif
+
 	/* WOW is enabled in pcie suspend callback */
 	wma->wow.wow_enable = TRUE;
 	wma->wow.wow_enable_cmd_sent = FALSE;
@@ -17373,6 +17440,23 @@ enable_wow:
 	 * At this point, suspend indication is received on
 	 * last vdev. It's the time to enable wow in fw.
 	 */
+#ifdef FEATURE_WLAN_LPHB
+	/* LPHB cache, if any item was enabled, should be
+	 * applied.
+	 */
+	WMA_LOGD("%s: checking LPHB cache", __func__);
+	for (i = 0; i < 2; i++) {
+		if (wma->wow.lphb_cache[i].params.lphbEnableReq.enable) {
+			WMA_LOGD("%s: LPHB cache for item %d is marked as enable",
+				__func__, i + 1);
+			wma_lphb_conf_hbenable(
+				wma,
+				&(wma->wow.lphb_cache[i]),
+				FALSE);
+		}
+	}
+#endif
+
 	ret = wma_feed_wow_config_to_fw(wma, pno_in_progress);
 	if (ret != VOS_STATUS_SUCCESS) {
 		vos_mem_free(info);
@@ -19483,7 +19567,6 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 					u_int8_t *pThermalLevel)
 {
-	t_thermal_cmd_params thermal_params;
 	u_int8_t thermal_level;
 	ol_txrx_pdev_handle curr_pdev;
 
@@ -19501,7 +19584,7 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	WMA_LOGD("TM set level %d", thermal_level);
+	WMA_LOGE("TM set level %d", thermal_level);
 
 	/* Check if thermal mitigation is enabled */
 	if (!wma->thermal_mgmt_info.thermalMgmtEnabled) {
@@ -19523,20 +19606,6 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 	wma->thermal_mgmt_info.thermalCurrLevel = thermal_level;
 
 	ol_tx_throttle_set_level(curr_pdev, thermal_level);
-
-	/*set the thermal level in the firmware*/
-	/* Get the temperature thresholds to set in firmware */
-	thermal_params.minTemp =
-		 wma->thermal_mgmt_info.thermalLevels[thermal_level].minTempThreshold;
-	thermal_params.maxTemp =
-		 wma->thermal_mgmt_info.thermalLevels[thermal_level].maxTempThreshold;
-	thermal_params.thermalEnable =
-		 wma->thermal_mgmt_info.thermalMgmtEnabled;
-
-	if (VOS_STATUS_SUCCESS != wma_set_thermal_mgmt(wma, thermal_params)) {
-		WMA_LOGE("Could not send thermal mgmt command to the firmware!");
-		return VOS_STATUS_E_FAILURE;
-	}
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -22037,14 +22106,18 @@ static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
 			/* UNPAUSE action, clean bitmap */
 			else if (ACTION_UNPAUSE == wmi_event->action)
 			{
-				wma->interfaces[vdev_id].pause_bitmap &= ~(1 << wmi_event->pause_type);
-
-				if (!wma->interfaces[vdev_id].pause_bitmap)
+				/* Handle unpause only if already paused*/
+				if(wma->interfaces[vdev_id].pause_bitmap)
 				{
-					/* PAUSE BIT MAP is cleared
-					 * UNPAUSE VDEV */
-					wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle,
-                                                            OL_TXQ_PAUSE_REASON_FW);
+					wma->interfaces[vdev_id].pause_bitmap &= ~(1 << wmi_event->pause_type);
+
+					if (!wma->interfaces[vdev_id].pause_bitmap)
+					{
+						/* PAUSE BIT MAP is cleared
+						 * UNPAUSE VDEV */
+						wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle,
+							OL_TXQ_PAUSE_REASON_FW);
+					}
 				}
 			}
 			else
@@ -24199,7 +24272,9 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
         if (wma_handle->roam_preauth_scan_state == WMA_ROAM_PREAUTH_ON_CHAN) {
                 chanfreq = wma_handle->roam_preauth_chanfreq;
                 WMA_LOGI("%s: Preauth frame on channel %d", __func__, chanfreq);
-        } else {
+        } else if(pFc->subType == SIR_MAC_MGMT_PROBE_RSP){
+		chanfreq = wma_handle->interfaces[vdev_id].mhz;
+	} else {
                 chanfreq = 0;
         }
         if (pMac->fEnableDebugLog & 0x1) {

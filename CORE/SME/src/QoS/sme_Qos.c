@@ -3221,7 +3221,7 @@ eHalStatus sme_QosESEProcessReassocTspecRsp(tpAniSirGlobal pMac, v_U8_t sessionI
     tspecIeLen = pCsrConnectedInfo->nTspecIeLength;
     if (tspecIeLen < sizeof(tDot11fIEWMMTSPEC)) {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                FL("ESE Tspec IE len %d less than min %d"),
+                FL("ESE Tspec IE len %d less than min %zu"),
                 tspecIeLen, sizeof(tDot11fIEWMMTSPEC));
         return eHAL_STATUS_FAILURE;
     }
