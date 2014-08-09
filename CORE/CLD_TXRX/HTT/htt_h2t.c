@@ -231,31 +231,13 @@ htt_h2t_rx_ring_cfg_msg_ll(struct htt_pdev_t *pdev)
 #ifndef REMOVE_PKT_LOG
  if (ol_cfg_is_packet_log_enabled(pdev->ctrl_pdev))
    {
-       if (ol_cfg_is_full_reorder_offload(pdev->ctrl_pdev)) {
-           /* In fw with full reorder offload, when pktlog is enabled mgmt/ctrl/
-              null frames are routed to fw remote ring which are discarded with
-              the error bit set. As a result they are not sent to the BA state
-              machine which causes a problem.
-              Disable ctrl/mgmt/null flag since frames with status
-              HTT_RX_IND_MPDU_STATUS_MGMT_CTRL are always dropped by the host.
-              The ppdu start and end flags are only used in monitor mode which
-              is not supported on CLD.*/
-           enable_ctrl_data = 0;
-           enable_mgmt_data = 0;
-           enable_null_data = 0;
-           enable_phy_data  = 1;
-           enable_hdr       = 1;
-           enable_ppdu_start= 0;
-           enable_ppdu_end  = 0;
-       } else {
-           enable_ctrl_data = 1;
-           enable_mgmt_data = 1;
-           enable_null_data = 1;
-           enable_phy_data  = 1;
-           enable_hdr       = 1;
-           enable_ppdu_start= 1;
-           enable_ppdu_end  = 1;
-       }
+       enable_ctrl_data = 1;
+       enable_mgmt_data = 1;
+       enable_null_data = 1;
+       enable_phy_data  = 1;
+       enable_hdr       = 1;
+       enable_ppdu_start= 1;
+       enable_ppdu_end  = 1;
        /* Disable ASPM when pkt log is enabled */
        adf_os_print("Pkt log is enabled\n");
        htt_htc_disable_aspm();
