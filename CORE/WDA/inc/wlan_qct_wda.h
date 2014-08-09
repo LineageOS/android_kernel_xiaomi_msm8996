@@ -717,9 +717,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_SET_TX_POWER_REQ                    SIR_HAL_SET_TX_POWER_REQ
 #define WDA_SET_TX_POWER_RSP                    SIR_HAL_SET_TX_POWER_RSP
 #define WDA_GET_TX_POWER_REQ                    SIR_HAL_GET_TX_POWER_REQ
-#define WDA_GET_TX_POWER_RSP                    SIR_HAL_GET_TX_POWER_RSP
 #define WDA_GET_NOISE_REQ                       SIR_HAL_GET_NOISE_REQ
-#define WDA_GET_NOISE_RSP                       SIR_HAL_GET_NOISE_RSP
 #define WDA_SET_TX_PER_TRACKING_REQ    SIR_HAL_SET_TX_PER_TRACKING_REQ
 
 /* Messages to support transmit_halt and transmit_resume */
@@ -734,7 +732,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_ENTER_UAPSD_RSP            SIR_HAL_ENTER_UAPSD_RSP
 #define WDA_EXIT_UAPSD_REQ             SIR_HAL_EXIT_UAPSD_REQ
 #define WDA_EXIT_UAPSD_RSP             SIR_HAL_EXIT_UAPSD_RSP
-#define WDA_LOW_RSSI_IND               SIR_HAL_LOW_RSSI_IND
 #define WDA_BEACON_FILTER_IND          SIR_HAL_BEACON_FILTER_IND
 /// PE <-> HAL WOWL messages
 #define WDA_WOWL_ADD_BCAST_PTRN        SIR_HAL_WOWL_ADD_BCAST_PTRN

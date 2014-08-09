@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012,2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -47,27 +47,6 @@
 #define LOG2    5
 #define LOG3    6
 #define LOG4    7
-
-#ifdef ANI_DEBUG
-#define PMM_LOG_LEVEL LOG4
-#define SCH_LOG_LEVEL LOG4
-#define ARQ_LOG_LEVEL LOG4
-#define LIM_LOG_LEVEL LOG4
-#define HAL_LOG_LEVEL LOG4
-#define SYS_LOG_LEVEL LOG4
-#define CFG_LOG_LEVEL LOG4
-#define DPH_LOG_LEVEL LOG4
-#else
-#define PMM_LOG_LEVEL LOGW
-#define SCH_LOG_LEVEL LOGW
-#define ARQ_LOG_LEVEL LOGW
-#define LIM_LOG_LEVEL LOGW
-#define HAL_LOG_LEVEL LOGW
-#define SYS_LOG_LEVEL LOGW
-#define CFG_LOG_LEVEL LOGW
-#define DPH_LOG_LEVEL LOGW
-#endif
-
 
 #ifdef  WLAN_MDM_CODE_REDUCTION_OPT
 #ifdef PE_DEBUG_LOGE

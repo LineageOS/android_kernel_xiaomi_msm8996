@@ -48,31 +48,11 @@
 #include "eseGlobal.h"
 #endif
 
-/// Maximum number of STAs allowed in the BSS
-#define SIR_MAX_NUM_STA                256
-
-/// Maximum number of Neighbors reported by STA for LB feature
-#define SIR_MAX_NUM_NEIGHBOR_BSS       3
-
-/// Maximum number of Neighbors reported by STA for LB feature
-#define SIR_MAX_NUM_ALTERNATE_RADIOS   5
-
-/// Maximum size of SCAN_RSP message
-#define SIR_MAX_SCAN_RSP_MSG_LENGTH    2600
-
 /// Start of Sirius software/Host driver message types
 #define SIR_HAL_HOST_MSG_START         0x1000
 
-/// Power save level definitions
-#define SIR_MAX_POWER_SAVE          3
-#define SIR_INTERMEDIATE_POWER_SAVE 4
-#define SIR_NO_POWER_SAVE           5
-
 /// Max supported channel list
 #define SIR_MAX_SUPPORTED_CHANNEL_LIST      96
-
-/// Maximum DTIM Factor
-#define SIR_MAX_DTIM_FACTOR         32
 
 #define SIR_MDIE_SIZE               3
 
@@ -99,16 +79,6 @@
 #define SIR_NUM_TAURUS_RATES 4 //136.5, 151.7,283.5,315
 #define SIR_NUM_PROP_RATES  (SIR_NUM_TITAN_RATES + SIR_NUM_TAURUS_RATES)
 
-#define SIR_11N_PROP_RATE_136_5 (1<<28)
-#define SIR_11N_PROP_RATE_151_7 (1<<29)
-#define SIR_11N_PROP_RATE_283_5 (1<<30)
-#define SIR_11N_PROP_RATE_315     (1<<31)
-#define SIR_11N_PROP_RATE_BITMAP 0x80000000 //only 315MBPS rate is supported today
-//Taurus is going to support 26 Titan Rates(no ESF/concat Rates will be supported)
-//First 26 bits are reserved for Titan and last 4 bits for Taurus, 2(27 and 28) bits are reserved.
-//#define SIR_TITAN_PROP_RATE_BITMAP 0x03FFFFFF
-//Disable all Titan rates
-#define SIR_TITAN_PROP_RATE_BITMAP 0
 #define SIR_CONVERT_2_U32_BITMAP(nRates) ((nRates + 31)/32)
 
 /* #tANI_U32's needed for a bitmap representation for all prop rates */
@@ -118,13 +88,9 @@
 #define SIR_PM_SLEEP_MODE   0
 #define SIR_PM_ACTIVE_MODE        1
 
-// Used by various modules to load ALL CFG's
-#define ANI_IGNORE_CFG_ID 0xFFFF
-
 //hidden SSID options
 #define SIR_SCAN_NO_HIDDEN_SSID                      0
 #define SIR_SCAN_HIDDEN_SSID_PE_DECISION             1
-#define SIR_SCAN_HIDDEN_SSID                         2
 
 #define SIR_MAC_ADDR_LEN        6
 #define SIR_IPV4_ADDR_LEN       4
@@ -881,7 +847,7 @@ typedef enum eSirLinkTrafficCheck
 #define SIR_BG_SCAN_RETURN_CACHED_RESULTS              0x0
 #define SIR_BG_SCAN_PURGE_RESUTLS                      0x80
 #define SIR_BG_SCAN_RETURN_FRESH_RESULTS               0x01
-#define SIR_SCAN_MAX_NUM_SSID                          0x09
+#define SIR_SCAN_MAX_NUM_SSID                          0x0A
 #define SIR_BG_SCAN_RETURN_LFR_CACHED_RESULTS          0x02
 #define SIR_BG_SCAN_PURGE_LFR_RESULTS                  0x40
 
@@ -1067,35 +1033,6 @@ typedef struct sSirBackgroundScanInfo {
 
 #define SIR_BACKGROUND_SCAN_INFO_SIZE        (3 * sizeof(tANI_U32))
 
-/// Definition for Authentication request
-typedef struct sSirSmeAuthReq
-{
-    tANI_U16           messageType; // eWNI_SME_AUTH_REQ
-    tANI_U16           length;
-    tANI_U8            sessionId;        // Session ID
-    tANI_U16           transactionId;    // Transaction ID for cmd
-    tSirMacAddr        bssId;            // Self BSSID
-    tSirMacAddr        peerMacAddr;
-    tAniAuthType       authType;
-    tANI_U8            channelNumber;
-} tSirSmeAuthReq, *tpSirSmeAuthReq;
-
-/// Definition for reponse message to previously issued Auth request
-typedef struct sSirSmeAuthRsp
-{
-    tANI_U16           messageType; // eWNI_SME_AUTH_RSP
-    tANI_U16           length;
-    tANI_U8            sessionId;      // Session ID
-    tANI_U16           transactionId;  // Transaction ID for cmd
-    tSirMacAddr        peerMacAddr;
-    tAniAuthType       authType;
-    tSirResultCodes    statusCode;
-    tANI_U16           protStatusCode; //It holds reasonCode when Pre-Auth fails due to deauth frame.
-                                       //Otherwise it holds status code.
-} tSirSmeAuthRsp, *tpSirSmeAuthRsp;
-
-
-
 /// Definition for Join/Reassoc info - Reshmi: need to check if this is a def which moved from elsehwere.
 typedef struct sJoinReassocInfo
 {
@@ -1232,9 +1169,6 @@ typedef struct sSirSmeJoinRsp
 
     /*Broadcast DPU signature*/
     tANI_U8            bcastSig;
-
-    /*to report MAX link-speed populate rate-flags from ASSOC RSP frame*/
-    tANI_U32            maxRateFlags;
 
     /*Timing measurement capability*/
     tANI_U8            timingMeasCap;
@@ -1660,10 +1594,6 @@ typedef struct sAniStatSummaryStruct
 //The stats are saved into here before reset. It should be tANI_U32 aligned.
 typedef struct _sPermStaStats
 {
-    //tANI_U32 sentAesBlksUcastHi;
-    //tANI_U32 sentAesBlksUcastLo;
-    //tANI_U32 recvAesBlksUcastHi;
-    //tANI_U32 recvAesBlksUcastLo;
     tANI_U32 aesFormatErrorUcastCnts;
     tANI_U32 aesReplaysUcast;
     tANI_U32 aesDecryptErrUcast;
@@ -1870,9 +1800,6 @@ typedef struct sSirSmeSetContextReq
     tANI_U16           transactionId; //Transaction ID for cmd
     tSirMacAddr        peerMacAddr;
     tSirMacAddr        bssId;      // BSSID
-    // TBD Following QOS fields to be uncommented
-    //tAniBool           qosInfoPresent;
-    //tSirQos            qos;
     tSirKeyMaterial    keyMaterial;
 } tSirSmeSetContextReq, *tpSirSmeSetContextReq;
 
@@ -2787,7 +2714,6 @@ typedef struct sSirPlmReq
 
 #if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
 
-#define SIR_QOS_NUM_TSPEC_MAX 2
 #define SIR_QOS_NUM_AC_MAX 4
 
 typedef struct sSirAggrQosReqInfo
@@ -3090,165 +3016,6 @@ typedef struct sSmeCsaOffloadInd
     tANI_U16    mesgLen;
     tSirMacAddr bssId;       // BSSID
 } tSmeCsaOffloadInd, *tpSmeCsaOffloadInd;
-/*--------------------------------------------------------------------*/
-/* BootLoader message definition                                      */
-/*--------------------------------------------------------------------*/
-
-/*--------------------------------------------------------------------*/
-/* FW image size                                                      */
-/*--------------------------------------------------------------------*/
-#define SIR_FW_IMAGE_SIZE            146332
-
-
-#define SIR_BOOT_MODULE_ID           1
-
-#define SIR_BOOT_SETUP_IND           ((SIR_BOOT_MODULE_ID << 8) | 0x11)
-#define SIR_BOOT_POST_RESULT_IND     ((SIR_BOOT_MODULE_ID << 8) | 0x12)
-#define SIR_BOOT_DNLD_RESULT_IND     ((SIR_BOOT_MODULE_ID << 8) | 0x13)
-#define SIR_BOOT_DNLD_DEV_REQ        ((SIR_BOOT_MODULE_ID << 8) | 0x41)
-#define SIR_BOOT_DNLD_DEV_RSP        ((SIR_BOOT_MODULE_ID << 8) | 0x81)
-#define SIR_BOOT_DNLD_REQ            ((SIR_BOOT_MODULE_ID << 8) | 0x42)
-#define SIR_BOOT_DNLD_RSP            ((SIR_BOOT_MODULE_ID << 8) | 0x82)
-
-/*--------------------------------------------------------------------*/
-/* Bootloader message syntax                                          */
-/*--------------------------------------------------------------------*/
-
-// Message header
-#define SIR_BOOT_MB_HEADER                 0
-#define SIR_BOOT_MB_HEADER2                1
-
-#define SIR_BOOT_MSG_HDR_MASK              0xffff0000
-#define SIR_BOOT_MSG_LEN_MASK              0x0000ffff
-
-// BOOT_SETUP_IND parameter indices
-#define SIR_BOOT_SETUP_IND_MBADDR          2
-#define SIR_BOOT_SETUP_IND_MBSIZE          3
-#define SIR_BOOT_SETUP_IND_MEMOPT          4
-#define SIR_BOOT_SETUP_IND_LEN             \
-                                      ((SIR_BOOT_SETUP_IND_MEMOPT+1)<<2)
-
-// BOOT_POST_RESULT_IND parameter indices
-#define SIR_BOOT_POST_RESULT_IND_RES       2
-#define SIR_BOOT_POST_RESULT_IND_LEN       \
-                                  ((SIR_BOOT_POST_RESULT_IND_RES+1)<<2)
-
-#define SIR_BOOT_POST_RESULT_IND_SUCCESS       1
-#define SIR_BOOT_POST_RESULT_IND_MB_FAILED     2
-#define SIR_BOOT_POST_RESULT_IND_SDRAM_FAILED  3
-#define SIR_BOOT_POST_RESULT_IND_ESRAM_FAILED  4
-
-
-// BOOT_DNLD_RESULT_IND parameter indices
-#define SIR_BOOT_DNLD_RESULT_IND_RES       2
-#define SIR_BOOT_DNLD_RESULT_IND_LEN       \
-                                   ((SIR_BOOT_DNLD_RESULT_IND_RES+1)<<2)
-
-#define SIR_BOOT_DNLD_RESULT_IND_SUCCESS   1
-#define SIR_BOOT_DNLD_RESULT_IND_HDR_ERR   2
-#define SIR_BOOT_DNLD_RESULT_IND_ERR       3
-
-// BOOT_DNLD_DEV_REQ
-#define SIR_BOOT_DNLD_DEV_REQ_SDRAMSIZE    2
-#define SIR_BOOT_DNLD_DEV_REQ_FLASHSIZE    3
-#define SIR_BOOT_DNLD_DEV_REQ_LEN          \
-                                 ((SIR_BOOT_DNLD_DEV_REQ_FLASHSIZE+1)<<2)
-
-// BOOT_DNLD_DEV_RSP
-#define SIR_BOOT_DNLD_DEV_RSP_DEVTYPE      2
-#define SIR_BOOT_DNLD_DEV_RSP_LEN          \
-                                   ((SIR_BOOT_DNLD_DEV_RSP_DEVTYPE+1)<<2)
-
-#define SIR_BOOT_DNLD_DEV_RSP_SRAM         1
-#define SIR_BOOT_DNLD_DEV_RSP_FLASH        2
-
-// BOOT_DNLD_REQ
-#define SIR_BOOT_DNLD_REQ_OFFSET           2
-#define SIR_BOOT_DNLD_REQ_WRADDR           3
-#define SIR_BOOT_DNLD_REQ_SIZE             4
-#define SIR_BOOT_DNLD_REQ_LEN              ((SIR_BOOT_DNLD_REQ_SIZE+1)<<2)
-
-// BOOT_DNLD_RSP
-#define SIR_BOOT_DNLD_RSP_SIZE             2
-#define SIR_BOOT_DNLD_RSP_LEN              ((SIR_BOOT_DNLD_RSP_SIZE+1)<<2)
-
-
-// board capabilities fields are defined here.
-typedef __ani_attr_pre_packed struct sSirBoardCapabilities
-{
-#ifndef ANI_LITTLE_BIT_ENDIAN
-    tANI_U32 concat:1;        // 0 - Concat is not supported, 1 - Concat is supported
-    tANI_U32 compression:1;   // 0 - Compression is not supported, 1 - Compression is supported
-    tANI_U32 chnlBonding:1;   // 0 - Channel Bonding is not supported, 1 - Channel Bonding is supported
-    tANI_U32 reverseFCS:1;    // 0 - Reverse FCS is not supported, 1 - Reverse FCS is supported
-    tANI_U32 rsvd1:2;
-    // (productId derives sub-category in the following three families)
-    tANI_U32 cbFamily:1;      // 0 - Not CB family, 1 - Cardbus
-    tANI_U32 apFamily:1;      // 0 - Not AP family, 1 - AP
-    tANI_U32 mpciFamily:1;    // 0 - Not MPCI family, 1 - MPCI
-    tANI_U32 bgOnly:1;        // 0 - default a/b/g; 1 - b/g only
-    tANI_U32 bbChipVer:4;     // Baseband chip version
-    tANI_U32 loType:2;        // 0 = no LO, 1 = SILABS, 2 = ORION
-    tANI_U32 radioOn:2;       // Not supported is 3 or 2, 0 = Off and 1 = On
-    tANI_U32 nReceivers:2;    // 0 based.
-    tANI_U32 nTransmitters:1; // 0 = 1 transmitter, 1 = 2 transmitters
-    tANI_U32 sdram:1;         // 0 = no SDRAM, 1 = SDRAM
-    tANI_U32 rsvd:1;
-    tANI_U32 extVsIntAnt:1;   // 0 = ext antenna, 1 = internal antenna
-#else
-
-    tANI_U32 extVsIntAnt:1;   // 0 = ext antenna, 1 = internal antenna
-    tANI_U32 rsvd:1;
-    tANI_U32 sdram:1;         // 0 = no SDRAM, 1 = SDRAM
-    tANI_U32 nTransmitters:1; // 0 = 1 transmitter, 1 = 2 transmitters
-    tANI_U32 nReceivers:2;    // 0 based.
-    tANI_U32 radioOn:2;       // Not supported is 3 or 2, 0 = Off and 1 = On
-    tANI_U32 loType:2;        // 0 = no LO, 1 = SILABS, 2 = ORION
-    tANI_U32 bbChipVer:4;     // Baseband chip version
-    tANI_U32 bgOnly:1;        // 0 - default a/b/g; 1 - b/g only
-    // (productId derives sub-category in the following three families)
-    tANI_U32 mpciFamily:1;    // 0 - Not MPCI family, 1 - MPCI
-    tANI_U32 apFamily:1;      // 0 - Not AP family, 1 - AP
-    tANI_U32 cbFamily:1;      // 0 - Not CB family, 1 - Cardbus
-    tANI_U32 rsvd1:2;
-    tANI_U32 reverseFCS:1;    // 0 - Reverse FCS is not supported, 1 - Reverse FCS is supported
-    tANI_U32 chnlBonding:1;   // 0 - Channel Bonding is not supported, 1 - Channel Bonding is supported
-    tANI_U32 compression:1;   // 0 - Compression is not supported, 1 - Compression is supported
-    tANI_U32 concat:1;        // 0 - Concat is not supported, 1 - Concat is supported
-#endif
-} __ani_attr_packed  tSirBoardCapabilities, *tpSirBoardCapabilities;
-
-# define ANI_BCAP_EXT_VS_INT_ANT_MASK   0x1
-# define ANI_BCAP_EXT_VS_INT_ANT_OFFSET 0
-
-# define ANI_BCAP_GAL_ON_BOARD_MASK     0x2
-# define ANI_BCAP_GAL_ON_BOARD_OFFSET   1
-
-# define ANI_BCAP_SDRAM_MASK            0x4
-# define ANI_BCAP_SDRAM_OFFSET          2
-
-# define ANI_BCAP_NUM_TRANSMITTERS_MASK   0x8
-# define ANI_BCAP_NUM_TRANSMITTERS_OFFSET 3
-
-# define ANI_BCAP_NUM_RECEIVERS_MASK    0x30
-# define ANI_BCAP_NUM_RECEIVERS_OFFSET  4
-
-# define ANI_BCAP_RADIO_ON_MASK         0xC0
-# define ANI_BCAP_RADIO_ON_OFFSET       6
-
-# define ANI_BCAP_LO_TYPE_MASK          0x300
-# define ANI_BCAP_LO_TYPE_OFFSET        8
-
-# define ANI_BCAP_BB_CHIP_VER_MASK      0xC00
-# define ANI_BCAP_BB_CHIP_VER_OFFSET    10
-
-# define ANI_BCAP_CYG_DATE_CODE_MASK    0xFF000
-# define ANI_BCAP_CYG_DATE_CODE_OFFSET  12
-
-# define ANI_BCAP_RADIO_OFF              0
-# define ANI_BCAP_RADIO_ON               1
-# define ANI_BCAP_RADIO_ON_NOT_SUPPORTED 3
-
 
 /// WOW related structures
 // SME -> PE <-> HAL
@@ -3684,10 +3451,6 @@ typedef struct sSirHostOffloadReq
 #define SIR_KEEP_ALIVE_NULL_PKT              1
 #define SIR_KEEP_ALIVE_UNSOLICIT_ARP_RSP     2
 
-/* Enable or disable offload. */
-#define SIR_KEEP_ALIVE_DISABLE   0
-#define SIR_KEEP_ALIVE_ENABLE    1
-
 /* Keep Alive request. */
 typedef struct sSirKeepAliveReq
 {
@@ -3824,9 +3587,6 @@ typedef struct sSirWlanSetRxpFilters
 #define SIR_PNO_MAX_SUPP_NETWORKS  16
 #define SIR_PNO_MAX_SCAN_TIMERS    10
 
-/* TODO: Need to sync max ie len size with FW */
-#define SIR_PNO_MAX_IE_LEN         500
-
 /*size based of dot11 declaration without extra IEs as we will not carry those for PNO*/
 #define SIR_PNO_MAX_PB_REQ_SIZE    450
 
@@ -3873,7 +3633,6 @@ typedef struct sSirPNOScanReq
   tSirScanTimersType  scanTimers;
   tANI_U8             sessionId;
 
-  /*added by SME*/
   tANI_U16  us24GProbeTemplateLen;
   tANI_U8   p24GProbeTemplate[SIR_PNO_MAX_PB_REQ_SIZE];
   tANI_U16  us5GProbeTemplateLen;
@@ -4005,6 +3764,8 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U8   BTK[SIR_BTK_KEY_LEN];
   tANI_U32   ReassocFailureTimeout;
   tSirAcUapsd AcUapsd;
+  tANI_U32  R0KH_ID;
+  tANI_U32  R0KH_ID_Length;
 #endif
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 
@@ -4427,6 +4188,7 @@ typedef struct sSirResetAPCapsChange
     tANI_U16       length;
     tSirMacAddr    bssId;
 } tSirResetAPCapsChange, *tpSirResetAPCapsChange;
+
 /// Definition for Candidate found indication from FW
 typedef struct sSirSmeCandidateFoundInd
 {

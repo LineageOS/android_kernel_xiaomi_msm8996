@@ -163,13 +163,13 @@ static const t_probeTime_dwellTime
 	{28, 20}, /* 1 SSID */
 	{28, 20}, /* 2 SSID */
 	{28, 20}, /* 3 SSID */
-	{28, 12}, /* 4 SSID */
-	{28, 12}, /* 5 SSID */
-	{28, 12}, /* 6 SSID */
-	{28, 12}, /* 7 SSID */
-	{28, 12}, /* 8 SSID */
-	{28, 12}, /* 9 SSID */
-	{28, 9}   /* 10 SSID */
+	{28, 20}, /* 4 SSID */
+	{28, 20}, /* 5 SSID */
+	{28, 20}, /* 6 SSID */
+	{28, 11}, /* 7 SSID */
+	{28, 11}, /* 8 SSID */
+	{28, 11}, /* 9 SSID */
+	{28, 8}   /* 10 SSID */
 };
 
 /* Roaming default values

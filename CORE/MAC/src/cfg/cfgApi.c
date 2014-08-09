@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -342,69 +342,6 @@ wlan_cfgGetInt(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 *pValue)
     return (retVal);
 
 } /*** end wlan_cfgGetInt() ***/
-
-#ifdef NOT_CURRENTLY_USED
-// ---------------------------------------------------------------------
-/**
- * cfgIncrementInt()
- *
- * FUNCTION:
- * This function is called to increment an integer parameter by n.
- *
- * LOGIC:
- *
- * ASSUMPTIONS:
- * - No range checking will be performed.
- * - Host RW permission should be checked prior to calling this
- *   function.
- *
- * NOTE:
- *
- * @param cfgId:     16-bit CFG parameter ID
- * @param value:     increment value
- *
- * @return eSIR_SUCCESS:         request completed successfully
- * @return eSIR_CFG_INVALID_ID:  invalid CFG parameter ID
- */
-
-tSirRetStatus
-cfgIncrementInt(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 value)
-{
-    tANI_U32      index;
-    tANI_U32      control;
-    tSirRetStatus  retVal;
-
-    if (cfgId >= CFG_PARAM_MAX_NUM)
-    {
-        PELOGE(cfgLog(pMac, LOGE, FL("Invalid cfg id %d"), cfgId);)
-        retVal = eSIR_CFG_INVALID_ID;
-    }
-    if (!pMac->cfg.gCfgEntry)
-    {
-        PELOGE(cfgLog(pMac, LOGE, FL("gCfgEntry is NULL"));)
-        return eSIR_CFG_INVALID_ID;
-    }
-
-    control  = pMac->cfg.gCfgEntry[cfgId].control;
-    index    = control & CFG_BUF_INDX_MASK;
-    retVal   = eSIR_SUCCESS;
-
-    // Check if parameter is valid
-    if ((control & CFG_CTL_VALID) == 0)
-    {
-        PELOGE(cfgLog(pMac, LOGE, FL("Not valid cfg id %d"), cfgId);)
-        retVal = eSIR_CFG_INVALID_ID;
-    }
-    else
-    {
-            // Increment integer value
-            pMac->cfg.gCfgIBuf[index] += value;
-
-    }
-
-    return (retVal);
-}
-#endif // NOT_CURRENTLY_USED
 
 // ---------------------------------------------------------------------
 /**

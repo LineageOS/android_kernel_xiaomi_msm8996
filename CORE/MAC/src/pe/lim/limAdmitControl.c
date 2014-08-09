@@ -47,7 +47,6 @@
 
 #define ADMIT_CONTROL_LOGLEVEL        LOG1
 #define ADMIT_CONTROL_POLICY_LOGLEVEL LOG1
-#define ADMIT_CONTROL_MIN_INTERVAL    1000 // min acceptable service interval 1mSec
 
 /* total available bandwidth in bps in each phy mode
  * these should be defined in hal or dph - replace these later

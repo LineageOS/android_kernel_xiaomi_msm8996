@@ -1267,10 +1267,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
           break;
         case eWNI_SME_START_REQ:
         case eWNI_SME_SYS_READY_IND:
-#ifndef WNI_ASKEY_NON_SUPPORT_FEATURE
         case eWNI_SME_JOIN_REQ:
-#endif
-        case eWNI_SME_AUTH_REQ:
         case eWNI_SME_REASSOC_REQ:
         case eWNI_SME_START_BSS_REQ:
         case eWNI_SME_STOP_BSS_REQ:
@@ -1279,9 +1276,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_SWITCH_CHL_CB_SECONDARY_REQ:
         case eWNI_SME_SETCONTEXT_REQ:
         case eWNI_SME_REMOVEKEY_REQ:
-#ifndef WNI_ASKEY_NON_SUPPORT_FEATURE
-        case eWNI_SME_PROMISCUOUS_MODE_REQ:
-#endif
         case eWNI_SME_DISASSOC_CNF:
         case eWNI_SME_DEAUTH_CNF:
         case eWNI_SME_ASSOC_CNF:
@@ -1520,10 +1514,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 pmmProcessMessage(pMac, limMsg);
             else
                 pmmOffloadProcessMessage(pMac, limMsg);
-            break;
-
-        case WDA_LOW_RSSI_IND:
-            //limHandleLowRssiInd(pMac);
             break;
 
         case WDA_MISSED_BEACON_IND:
@@ -1818,13 +1808,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #endif
 
 
-        case WDA_SET_MIMOPS_RSP:            //limProcessSetMimoRsp(pMac, limMsg);
-        case WDA_SET_TX_POWER_RSP:          //limProcessSetTxPowerRsp(pMac, limMsg);
-        case WDA_GET_TX_POWER_RSP:          //limProcessGetTxPowerRsp(pMac, limMsg);
-        case WDA_GET_NOISE_RSP:
+        case WDA_SET_MIMOPS_RSP:
+        case WDA_SET_TX_POWER_RSP:
             vos_mem_free((v_VOID_t*)limMsg->bodyptr);
             limMsg->bodyptr = NULL;
-            //limProcessGetNoiseRsp(pMac, limMsg);
             break;
 
         case WDA_SET_MAX_TX_POWER_RSP:
@@ -1845,10 +1832,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                    limMsg->type);
            /*a message from HAL indicating addr2 mismatch interrupt occurred
              limMsg->bodyptr contains only pointer to 48-bit addr2 field*/
-           //Dinesh fix this. the third parameter should be sessionentry.
-           //limHandleUnknownA2IndexFrames(pMac, (void *)limMsg->bodyptr);
 
-           /*Free message body pointer*/
            vos_mem_free((v_VOID_t *)(limMsg->bodyptr));
            limMsg->bodyptr = NULL;
            break;

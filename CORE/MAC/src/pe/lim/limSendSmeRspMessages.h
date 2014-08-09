@@ -52,8 +52,6 @@ void limSendSmeScanRsp(tpAniSirGlobal, tANI_U16, tSirResultCodes,tANI_U8, tANI_U
 void limSendSmeLfrScanRsp(tpAniSirGlobal, tANI_U16, tSirResultCodes,tANI_U8, tANI_U16);
 #endif
 void limPostSmeScanRspMessage(tpAniSirGlobal, tANI_U16, tSirResultCodes,tANI_U8,tANI_U16);
-void limSendSmeAuthRsp(tpAniSirGlobal, tSirResultCodes,
-                       tSirMacAddr, tAniAuthType, tANI_U16,tpPESession,tANI_U8,tANI_U16);
 
 void limSendSmeJoinReassocRsp(tpAniSirGlobal, tANI_U16, tSirResultCodes, tANI_U16,tpPESession,tANI_U8,tANI_U16);
 void limSendSmeDisassocNtf(tpAniSirGlobal, tSirMacAddr, tSirResultCodes, tANI_U16, tANI_U16,tANI_U8,tANI_U16,tpPESession);
@@ -67,7 +65,6 @@ void limSendSmeCandidateFoundInd(tpAniSirGlobal, tANI_U8);
 void limSendSmeWmStatusChangeNtf(tpAniSirGlobal, tSirSmeStatusChangeCode, tANI_U32 *, tANI_U16, tANI_U8);
 void limSendSmeSetContextRsp(tpAniSirGlobal,
                              tSirMacAddr, tANI_U16, tSirResultCodes,tpPESession,tANI_U8,tANI_U16);
-void limSendSmePromiscuousModeRsp(tpAniSirGlobal pMac);
 void limSendSmeNeighborBssInd(tpAniSirGlobal,
                               tLimScanResultNode *);
 void limHandleDeleteBssRsp(tpAniSirGlobal pMac,tpSirMsgQ MsgQ);

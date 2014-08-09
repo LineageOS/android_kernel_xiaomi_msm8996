@@ -122,8 +122,6 @@ enum eWniMsgTypes
     eWNI_SME_SETCONTEXT_RSP,
     eWNI_SME_REASSOC_REQ,
     eWNI_SME_REASSOC_RSP,
-    eWNI_SME_AUTH_REQ,
-    eWNI_SME_AUTH_RSP,
     eWNI_SME_DISASSOC_REQ,
     eWNI_SME_DISASSOC_RSP,
     eWNI_SME_DISASSOC_IND,
@@ -150,8 +148,6 @@ enum eWniMsgTypes
     eWNI_SME_DEFINE_QOS_RSP,
     eWNI_SME_DELETE_QOS_REQ,
     eWNI_SME_DELETE_QOS_RSP,
-    eWNI_SME_PROMISCUOUS_MODE_REQ,
-    eWNI_SME_PROMISCUOUS_MODE_RSP,
     eWNI_SME_LINK_TEST_START_REQ,
     eWNI_SME_LINK_TEST_START_RSP,
     eWNI_SME_LINK_TEST_STOP_REQ,
@@ -609,11 +605,6 @@ typedef enum {
 /*---------------------------------------------------------------------*/
 /* CFG definitions                                                     */
 /*---------------------------------------------------------------------*/
-#define WNI_CFG_TYPE_STR            0x0000000
-#define WNI_CFG_TYPE_INT            0x0000001
-#define WNI_CFG_HOST_RE             0x0000002
-#define WNI_CFG_HOST_WE             0x0000004
-
 
 // Shall be removed after integration of stats.
 // Get statistic response

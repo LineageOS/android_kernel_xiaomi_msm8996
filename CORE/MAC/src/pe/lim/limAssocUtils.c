@@ -1534,7 +1534,6 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
     tANI_U32 selfStaDot11Mode=0;
     wlan_cfgGetInt(pMac,WNI_CFG_DOT11_MODE,&selfStaDot11Mode);
 
-//    if(IS_DOT11_MODE_VHT(psessionEntry->dot11mode))
     if (IS_DOT11_MODE_VHT(selfStaDot11Mode))
     {
         if ( wlan_cfgGetInt( pMac,WNI_CFG_VHT_RX_MCS_MAP,&val) !=
@@ -1793,8 +1792,6 @@ limPopulateOwnRateSet(tpAniSirGlobal pMac,
 
     }
 
-
-    //if(IS_DOT11_MODE_HT(psessionEntry->dot11mode))
     if (IS_DOT11_MODE_HT(selfStaDot11Mode))
     {
         val = SIZE_OF_SUPPORTED_MCS_SET;

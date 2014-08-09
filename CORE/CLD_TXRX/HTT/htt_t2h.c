@@ -334,28 +334,14 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
 #endif
     case HTT_T2H_MSG_TYPE_TX_CREDIT_UPDATE_IND:
     {
-        A_INT16  htt_credit_delta_abs = HTT_TX_CREDIT_DELTA_ABS_GET(*msg_word);
-        struct ol_txrx_pdev_t* ptxrx_pdev = pdev->txrx_pdev;
-        if ( HTT_TX_CREDIT_SIGN_BIT_GET(*msg_word) ) {
-            /* negative delta */
-#if DEBUG_CREDIT
-            adf_os_print(" <HTT> Decrease Credit %d - %d = %d(Msg).\n",
-                    adf_os_atomic_read(&ptxrx_pdev->target_tx_credit),
-                    htt_credit_delta_abs,
-                    adf_os_atomic_read(&ptxrx_pdev->target_tx_credit) - htt_credit_delta_abs);
-#endif
-            adf_os_atomic_add((A_INT32)(-htt_credit_delta_abs), &ptxrx_pdev->target_tx_credit);
-        } else {
-            /* positive delta */
-#if DEBUG_CREDIT
-            adf_os_print(" <HTT> Increase Credit %d + %d = %d(Msg).\n",
-                    adf_os_atomic_read(&ptxrx_pdev->target_tx_credit),
-                    htt_credit_delta_abs,
-                    adf_os_atomic_read(&ptxrx_pdev->target_tx_credit) + htt_credit_delta_abs);
-#endif
-            adf_os_atomic_add((A_INT32)htt_credit_delta_abs, &ptxrx_pdev->target_tx_credit);
-        }
+        u_int32_t htt_credit_delta_abs;
+        int32_t htt_credit_delta;
+        int sign;
 
+        htt_credit_delta_abs = HTT_TX_CREDIT_DELTA_ABS_GET(*msg_word);
+        sign = HTT_TX_CREDIT_SIGN_BIT_GET(*msg_word) ? -1 : 1;
+        htt_credit_delta = sign * htt_credit_delta_abs;
+        ol_tx_credit_completion_handler(pdev->txrx_pdev, htt_credit_delta);
         break;
     }
 

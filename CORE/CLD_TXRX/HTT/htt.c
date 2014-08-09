@@ -184,6 +184,8 @@ htt_attach(
 
     /* for efficiency, store a local copy of the is_high_latency flag */
     pdev->cfg.is_high_latency = ol_cfg_is_high_latency(pdev->ctrl_pdev);
+    pdev->cfg.default_tx_comp_req =
+         !ol_cfg_tx_free_at_download(pdev->ctrl_pdev);
 
     pdev->cfg.is_full_reorder_offload =
          ol_cfg_is_full_reorder_offload(pdev->ctrl_pdev);

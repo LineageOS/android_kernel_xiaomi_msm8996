@@ -112,10 +112,6 @@ eHalStatus sme_HandlePreChannelSwitchInd(tHalHandle hHal, void *pMsgBuf);
 
 eHalStatus sme_HandlePostChannelSwitchInd(tHalHandle hHal);
 
-#ifdef FEATURE_WLAN_LFR
-tANI_BOOLEAN csrIsScanAllowed(tpAniSirGlobal pMac);
-#endif
-
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 tANI_BOOLEAN csrIsSupportedChannel(tpAniSirGlobal pMac, tANI_U8 channelId);
 #endif
@@ -2968,17 +2964,7 @@ eHalStatus sme_Close(tHalHandle hHal)
 
    return status;
 }
-#ifdef FEATURE_WLAN_LFR
-tANI_BOOLEAN csrIsScanAllowed(tpAniSirGlobal pMac)
-{
-        /*
-         * TODO: always return TRUE for now until
-         * we figure out why we could be stuck in
-         * one of the roaming states forever.
-         */
-        return eANI_BOOLEAN_TRUE;
-}
-#endif
+
 /* ---------------------------------------------------------------------------
     \fn sme_ScanRequest
     \brief a wrapper function to Request a 11d or full scan from CSR.
@@ -2995,8 +2981,6 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
-                                       &pMac->roam.neighborRoamInfo[sessionId];
     MTRACE(vos_trace(VOS_MODULE_ID_SME,
            TRACE_CODE_SME_RX_HDD_MSG_SCAN_REQ, sessionId, pscanReq->scanType));
     smsLog(pMac, LOG2, FL("enter"));
@@ -3005,38 +2989,15 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
         if(pMac->scan.fScanEnable)
         {
             status = sme_AcquireGlobalLock( &pMac->sme );
-            if ( HAL_STATUS_SUCCESS( status ) )
-            {
-                {
-#ifdef FEATURE_WLAN_LFR
-                    if(csrIsScanAllowed(pMac))
-                    {
-#endif
-                        status = csrScanRequest( hHal, sessionId, pscanReq,
-                                                 pScanRequestID, callback, pContext );
-                        if ( !HAL_STATUS_SUCCESS( status ) )
-                        {
-                           smsLog(pMac, LOGE, FL("csrScanRequest failed"
-                                  " SId=%d"), sessionId);
-                        }
-#ifdef FEATURE_WLAN_LFR
-                    }
-                    else
-                    {
-                        smsLog(pMac, LOGE, FL("Scan denied in state %s (sub-state %d)"),
-                               macTraceGetNeighbourRoamState(
-                               pNeighborRoamInfo->neighborRoamState),
-                               pMac->roam.curSubState[sessionId]);
-                        /*HandOff is in progress. So schedule this scan later*/
-                        status = eHAL_STATUS_RESOURCES;
-                    }
-#endif
+            if (HAL_STATUS_SUCCESS(status )) {
+                status = csrScanRequest(hHal, sessionId, pscanReq,
+                                        pScanRequestID, callback, pContext);
+                if (!HAL_STATUS_SUCCESS(status)) {
+                   smsLog(pMac, LOGE,
+                          FL("csrScanRequest failed sessionId(%d)"), sessionId);
                 }
-
                 sme_ReleaseGlobalLock( &pMac->sme );
-            } //sme_AcquireGlobalLock success
-            else
-            {
+            } else {
                 smsLog(pMac, LOGE, FL("sme_AcquireGlobalLock failed"));
             }
         } //if(pMac->scan.fScanEnable)
@@ -3312,21 +3273,6 @@ eHalStatus sme_RoamRegisterLinkQualityIndCallback(tHalHandle hHal, tANI_U8 sessi
                                                   void                           *pContext)
 {
    return(csrRoamRegisterLinkQualityIndCallback((tpAniSirGlobal)hHal, callback, pContext));
-}
-
-/* ---------------------------------------------------------------------------
-    \fn sme_RoamRegisterCallback
-    \brief a wrapper function to allow HDD to register a callback with CSR.
-           Unlike scan, roam has one callback for all the roam requests
-    \param callback - a callback function that roam calls upon when state changes
-    \param pContext - a pointer passed in for the callback
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamRegisterCallback(tHalHandle hHal,
-                                    csrRoamCompleteCallback callback,
-                                    void *pContext)
-{
-   return(csrRoamRegisterCallback((tpAniSirGlobal)hHal, callback, pContext));
 }
 
 eCsrPhyMode sme_GetPhyMode(tHalHandle hHal)

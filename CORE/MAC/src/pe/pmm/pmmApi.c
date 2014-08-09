@@ -232,9 +232,6 @@ void pmmInitBmpsResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg )
 
         pMac->pmm.gPmmState = ePMM_STATE_BMPS_SLEEP;
 
-        // Update sleep statistics
-        pmmUpdatePwrSaveStats(pMac);
-
         // Disable background scan mode
         pMac->sys.gSysEnableScanMode = false;
 
@@ -836,11 +833,6 @@ void pmmExitBmpsResponseHandler(tpAniSirGlobal pMac,  tpSirMsgQ limMsg)
         return;
     }
 
-
-
-    /* Update wakeup statistics */
-    pmmUpdateWakeupStats(pMac);
-
     if (NULL == limMsg->bodyptr)
     {
         pmmLog(pMac, LOGE, FL("Received SIR_HAL_EXIT_BMPS_RSP with NULL "));
@@ -885,7 +877,6 @@ void pmmExitBmpsResponseHandler(tpAniSirGlobal pMac,  tpSirMsgQ limMsg)
     }
 
     pMac->pmm.gPmmState = ePMM_STATE_BMPS_WAKEUP;
-    pmmUpdateWakeupStats(pMac);
 
     // turn on background scan
     pMac->sys.gSysEnableScanMode = true;
@@ -1050,9 +1041,7 @@ void pmmExitBmpsIndicationHandler(tpAniSirGlobal pMac, tANI_U8 mode, eHalStatus 
     PELOGW(pmmLog(pMac, LOGW,
            FL("pmmBmps: Received SIR_HAL_EXIT_BMPS_IND from HAL, Exiting BMPS sleep mode")); )
 
-
     pMac->pmm.gPmmState = ePMM_STATE_BMPS_WAKEUP;
-    pmmUpdateWakeupStats(pMac);
 
     /* turn on background scan */
     pMac->sys.gSysEnableScanMode = true;
@@ -1313,51 +1302,6 @@ pmmPostMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     }
 
     return eSIR_SUCCESS;
-}
-
-
-
-
-
-/**
- * pmmUpdatePwrSaveStats
- *
- * FUNCTION:  updated BMPS stats, when Station is going into power save state.
- *
- * LOGIC:
- *
- * ASSUMPTIONS:
- *
- * NOTE:
- *
- * @param pMac pointer to Global MAC Structure.
- * @return None
- */
-
-void pmmUpdatePwrSaveStats(tpAniSirGlobal pMac)
-{
-}
-
-
-
-
-/**
- * pmmUpdatePwrSaveStats
- *
- * FUNCTION:  updated BMPS stats, when Station is waking up.
- *
- * LOGIC:
- *
- * ASSUMPTIONS:
- *
- * NOTE:
- *
- * @param pMac pointer to Global MAC Structure.
- * @return None
- */
-
-void pmmUpdateWakeupStats(tpAniSirGlobal pMac)
-{
 }
 
 // --------------------------------------------------------------------

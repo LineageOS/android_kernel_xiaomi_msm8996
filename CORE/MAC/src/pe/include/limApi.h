@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -50,8 +50,6 @@
 #include "halMsgApi.h"
 #include "wlan_qct_wdi_ds.h"
 #include "wlan_qct_wda.h"
-#define LIM_POL_SYS_SCAN_MODE      0
-#define LIM_POL_SYS_LEARN_MODE     1
 
 /* Macro to count heartbeat */
 #define limResetHBPktCount(psessionEntry)   (psessionEntry->LimRxedBeaconCntDuringHB = 0)
@@ -79,9 +77,6 @@
 #define GET_LIM_PROCESS_DEFD_MESGS(pMac) (pMac->lim.gLimProcessDefdMsgs)
 #define SET_LIM_PROCESS_DEFD_MESGS(pMac, val) (pMac->lim.gLimProcessDefdMsgs = val)
 // LIM exported function templates
-//inline tANI_U16
-//limGetNumAniPeersInBss(tpAniSirGlobal pMac)
-//{ return pMac->lim.gLimNumOfAniSTAs; }
 #define LIM_IS_RADAR_DETECTED(pMac)         (pMac->lim.gLimSpecMgmt.fRadarDetCurOperChan)
 #define LIM_SET_RADAR_DETECTED(pMac, val)   (pMac->lim.gLimSpecMgmt.fRadarDetCurOperChan = val)
 #define LIM_MIN_BCN_PR_LENGTH  12
@@ -97,8 +92,6 @@ typedef enum eMgmtFrmDropReason
 }tMgmtFrmDropReason;
 
 
-/// During TD ring clean up at HDD in RTAI, will call this call back
-extern void limPostTdDummyPktCallbak(void* pMacGlobals, unsigned int* pBd);
 /**
  * Function to initialize LIM state machines.
  * This called upon LIM thread creation.
@@ -107,10 +100,6 @@ extern tSirRetStatus limInitialize(tpAniSirGlobal);
 tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam);
 tSirRetStatus peClose(tpAniSirGlobal pMac);
 tSirRetStatus limStart(tpAniSirGlobal pMac);
-/**
- * Function to Initialize radar interrupts.
- */
-void limRadarInit(tpAniSirGlobal pMac);
 tSirRetStatus peStart(tpAniSirGlobal pMac);
 void peStop(tpAniSirGlobal pMac);
 tSirRetStatus pePostMsgApi(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
@@ -146,9 +135,7 @@ limGetSmeState(tpAniSirGlobal pMac) { return pMac->lim.gLimSmeState; }
 /// Function used by other Sirius modules to read global system role
  static inline tLimSystemRole
 limGetSystemRole(tpPESession psessionEntry) { return psessionEntry->limSystemRole; }
-//limGetAID(tpPESession psessionEntry) { return psessionEntry->limAID; }
 extern void limReceivedHBHandler(tpAniSirGlobal, tANI_U8, tpPESession);
-//extern void limResetHBPktCount(tpPESession);
 extern void limCheckAndQuietBSS(tpAniSirGlobal);
 /// Function to send WDS info to WSM if needed
 extern void limProcessWdsInfo(tpAniSirGlobal, tSirPropIEStruct);
@@ -173,14 +160,11 @@ tSirRetStatus limUpdateShortSlot(tpAniSirGlobal pMac,
 extern void limSendAddtsReq (tpAniSirGlobal pMac, tANI_U16 staid, tANI_U8 tsid, tANI_U8 userPrio, tANI_U8 wme);
 /// creates a delts request action frame and sends it out to staid
 extern void limSendDeltsReq (tpAniSirGlobal pMac, tANI_U16 staid, tANI_U8 tsid, tANI_U8 userPrio, tANI_U8 wme);
-/// creates a SM Power State Mode update request action frame and sends it out to staid
-extern void limPostStartLearnModeMsgToSch(tpAniSirGlobal pMac);
 #ifdef WLAN_FEATURE_11AC
 extern ePhyChanBondState limGet11ACPhyCBState(tpAniSirGlobal pMac, tANI_U8 channel, tANI_U8 htSecondaryChannelOffset, tANI_U8 CenterChan,tpPESession );
 #endif
 tANI_U8 limIsSystemInActiveState(tpAniSirGlobal pMac);
 
-void limHandleLowRssiInd(tpAniSirGlobal pMac);
 void limHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 void limPsOffloadHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 void
@@ -189,10 +173,7 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
 void limMicFailureInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 /* ----------------------------------------------------------------------- */
 // These used to be in DPH
-extern void limSetBssid(tpAniSirGlobal pMac, tANI_U8 *bssId);
-extern void limGetBssid(tpAniSirGlobal pMac, tANI_U8 *bssId);
 extern void limGetMyMacAddr(tpAniSirGlobal pMac, tANI_U8 *mac);
-extern tSirRetStatus limCheckRxSeqNumber(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo);
 #define limGetQosMode(psessionEntry, pVal) (*(pVal) = (psessionEntry)->limQosEnabled)
 #define limGetWmeMode(psessionEntry, pVal) (*(pVal) = (psessionEntry)->limWmeEnabled)
 #define limGetWsmMode(psessionEntry, pVal) (*(pVal) = (psessionEntry)->limWsmEnabled)

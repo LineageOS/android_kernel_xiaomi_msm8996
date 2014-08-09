@@ -455,7 +455,6 @@ MAC_LIM_OBJS := $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o \
 		$(MAC_SRC_DIR)/pe/lim/limProcessCfgUpdates.o \
 		$(MAC_SRC_DIR)/pe/lim/limProcessDeauthFrame.o \
 		$(MAC_SRC_DIR)/pe/lim/limProcessDisassocFrame.o \
-		$(MAC_SRC_DIR)/pe/lim/limProcessLmmMessages.o \
 		$(MAC_SRC_DIR)/pe/lim/limProcessMessageQueue.o \
 		$(MAC_SRC_DIR)/pe/lim/limProcessMlmReqMessages.o \
 		$(MAC_SRC_DIR)/pe/lim/limProcessMlmRspMessages.o \

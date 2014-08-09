@@ -243,19 +243,12 @@ enum tdls_peer_capability {
 } eTdlsPeerCapability;
 
 /* some local defines */
-#define LINK_IDEN_BSSID_OFFSET      (0)
-#define PEER_MAC_OFFSET   (12)
-#define STA_MAC_OFFSET    (6)
-#define LINK_IDEN_ELE_ID  (101)
-//#define LINK_IDEN_LENGTH   (18)
 #define LINK_IDEN_ADDR_OFFSET(x) (&x.LinkIdentifier)
 #define PTI_LINK_IDEN_OFFSET     (5)
 #define PTI_BUF_STATUS_OFFSET    (25)
 
 /* TODO, Move this parameters to configuration */
 #define PEER_PSM_SUPPORT          (0)
-#define PEER_BUFFER_STA_SUPPORT   (0)
-#define CH_SWITCH_SUPPORT         (0)
 #define TDLS_SUPPORT              (1)
 #define TDLS_PROHIBITED           (0)
 #define TDLS_CH_SWITCH_PROHIBITED (1)
@@ -282,7 +275,6 @@ enum tdls_peer_capability {
 #ifdef LIM_DEBUG_TDLS
 
 #ifdef FEATURE_WLAN_TDLS
-#define WNI_CFG_TDLS_DISCOVERY_RSP_WAIT             (100)
 #define WNI_CFG_TDLS_LINK_SETUP_RSP_TIMEOUT         (800)
 #define WNI_CFG_TDLS_LINK_SETUP_CNF_TIMEOUT         (200)
 #endif

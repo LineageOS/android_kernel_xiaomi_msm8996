@@ -50,8 +50,6 @@
 
 #include "limGlobal.h"
 
-//#include "parserApi.h"
-
 #include "sirMacProtDef.h"
 
 #include "sirMacPropExts.h"
@@ -63,76 +61,6 @@
 
 #define DPH_STATS
 
-
-/// traffic category not allowed
-
-#define DPH_TID_NOTALLOWED           0xFF
-
-
-/// Periodicity of invocation of rate adaptation (in ms)
-
-#define DPH_RATE_ADAPTATION_PERIOD     20
-
-
-// Rate indices
-
-#define DPH_PHY_RATE_1_INDEX     0
-
-#define DPH_PHY_RATE_2_INDEX     1
-
-#define DPH_PHY_RATE_5_5_INDEX   2
-
-#define DPH_PHY_RATE_11_INDEX    3
-
-#define DPH_PHY_RATE_6_INDEX     4
-
-#define DPH_PHY_RATE_9_INDEX     5
-
-#define DPH_PHY_RATE_12_INDEX    6
-
-#define DPH_PHY_RATE_18_INDEX    7
-
-#define DPH_PHY_RATE_24_INDEX    8
-
-#define DPH_PHY_RATE_36_INDEX    9
-
-#define DPH_PHY_RATE_48_INDEX   10
-
-#define DPH_PHY_RATE_54_INDEX   11
-
-#define DPH_PHY_RATE_72_INDEX   12
-
-#define DPH_PHY_RATE_96_INDEX   13
-
-#define DPH_PHY_RATE_108_INDEX  14
-
-#define DPH_PHY_RATE_144_INDEX  15
-
-#define DPH_PHY_RATE_MAX_INDEX  16
-
-
-/// Maximum time to wait for a management packet to go out (ms)
-
-#define DPH_MAX_MGMT_WAIT_TIME  10000
-
-
-/// Step size for the wait time histogram (ms)
-
-#define DPH_WAIT_HIST_STEP 20
-
-
-/// Number of entries in wait time histogram
-
-#define DPH_WAIT_HIST_SIZE  100
-
-
-/// TCID for Management & Keep Alive Mgmt frames
-
-#define DPH_MGMT_TCID                      4
-
-#define DPH_KEEPALIVE_PROBE_RESPONSE_TCID  0
-
-
 /// STAID for Management frames
 
 #define DPH_USE_MGMT_STAID  -1
@@ -143,35 +71,6 @@
 #define DPH_NON_KEEPALIVE_FRAME  0
 
 #define DPH_KEEPALIVE_FRAME      1
-
-
-/// Mask for subtype, type, protocol version, order and wep fields in the mac frame control
-
-#define DPH_FC_BD_FILL_MASK  0xFFCC
-
-
-/// Enable/Disable Txop generation in TFP for HCF mode
-
-#define DPH_ENABLE_HCF_TXOP_GEN_AT_TFP   0x00
-
-#define DPH_DISABLE_HCF_TXOP_GEN_AT_TFP  0x02
-
-
-/// Enable/Disable Txop generation in TFP for EDCF mode
-
-#define DPH_ENABLE_EDCF_TXOP_GEN_AT_TFP   0x00
-
-#define DPH_DISABLE_EDCF_TXOP_GEN_AT_TFP  0x01
-
-
-#define DPH_DUMP_ALL_STA_ID     -1
-
-#define DPH_DUMP_RX_BD           0
-
-#define DPH_DUMP_TX_BD           1
-
-#define DPH_DUMP_TX_MGMT_BD      2
-
 
 //DPH Hash Index for BSS(STA's Peer) on station.
 
@@ -653,17 +552,6 @@ typedef struct sDphHashNode
 
 
 // -------------------------------------------------------------------
-
-
-// get protection overrides from config variable
-
-// bit0: force cts to self protection for tx to Airgo peers
-
-// bit1: force cts to self protection for tx to non Airgo peers
-
-#define DPH_PROT_OVERRIDE_NONANI_PEER_GET(cfgval)    ((cfgval) & 1)
-
-#define DPH_PROT_OVERRIDE_ANI_PEER_GET(cfgval) (((cfgval) & 2) >> 1)
 
 
 typedef struct sAniSirDph

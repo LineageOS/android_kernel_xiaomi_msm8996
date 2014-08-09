@@ -904,45 +904,6 @@ end:
 } /*** end limIsSmeScanReqValid() ***/
 
 
-
-/**
- * limIsSmeAuthReqValid()
- *
- *FUNCTION:
- * This function is called by limProcessSmeReqMessages() upon
- * receiving SME_AUTH_REQ message from application.
- *
- *LOGIC:
- * Message validity checks are performed in this function
- *
- *ASSUMPTIONS:
- *
- *NOTE:
- *
- * @param  pAuthReq Pointer to received SME_AUTH_REQ message
- * @return true  when received SME_AUTH_REQ is formatted correctly
- *         false otherwise
- */
-
-tANI_U8
-limIsSmeAuthReqValid(tpSirSmeAuthReq pAuthReq)
-{
-    tANI_U8 valid = true;
-
-    if (limIsGroupAddr(pAuthReq->peerMacAddr) ||
-        (pAuthReq->authType > eSIR_AUTO_SWITCH) ||
-        !pAuthReq->channelNumber)
-    {
-        valid = false;
-        goto end;
-    }
-
-end:
-    return valid;
-} /*** end limIsSmeAuthReqValid() ***/
-
-
-
 /**
  * limIsSmeSetContextReqValid()
  *

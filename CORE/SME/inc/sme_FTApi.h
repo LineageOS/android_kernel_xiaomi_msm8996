@@ -81,6 +81,11 @@ typedef struct sFTSMEContext
 
     v_BOOL_t          addMDIE;
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tANI_U32          r0kh_id_len;
+    tANI_U32          r0kh_id;
+#endif
+
     /* User context for the timer callback */
     tpFTRoamCallbackUsrCtx  pUsrCtx;
 } tftSMEContext, *tpftSMEContext;

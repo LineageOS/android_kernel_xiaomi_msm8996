@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -43,23 +43,6 @@
 #include "limGlobal.h"
 
 #include "parserApi.h"
-
-
-#define ANI_SCH_ADAPTIVE_THRESHOLD_TH_CD    0x00000001
-#define ANI_SCH_ADAPTIVE_THRESHOLD_TH_D0    0x00000002
-
-#define ANI_SCH_ADAPTIVE_THRESHOLD_ALL      (ANI_SCH_ADAPTIVE_THRESHOLD_TH_CD | ANI_SCH_ADAPTIVE_THRESHOLD_TH_D0)
-
-#define ANI_SCH_ADAPTIVE_ALGO_BAND_2GHZ     0x00000001
-#define ANI_SCH_ADAPTIVE_ALGO_BAND_5GHZ     0x00000002
-
-#define ANI_SCH_ADAPTIVE_ALGO_BAND_ALL      (ANI_SCH_ADAPTIVE_ALGO_BAND_2GHZ | ANI_SCH_ADAPTIVE_ALGO_BAND_5GHZ)
-
-
-// Diagnostic bitmap defines
-
-#define SCH_DIAG_RR_TIMEOUT_DELETE    0x1
-#define SCH_DIAG_RR_LOWER_RATE        0x2
 
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
 #define TIM_IE_SIZE 0xB
