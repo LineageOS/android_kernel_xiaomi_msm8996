@@ -435,6 +435,10 @@ limProcessMlmStartCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
              (vos_nv_getChannelEnabledState(channelId) != NV_CHANNEL_DFS)) )
         {
             //Configure beacon and send beacons to HAL
+            VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+                   FL("Start Beacon with ssid %s Ch %d"),
+                   psessionEntry->ssId.ssId,
+                   psessionEntry->currentOperChannel);
             limSendBeaconInd(pMac, psessionEntry);
         }
     }

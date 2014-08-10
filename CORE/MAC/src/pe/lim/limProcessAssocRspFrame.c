@@ -320,7 +320,6 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     tSchBeaconStruct      *pBeaconStruct;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     tANI_U8               smeSessionId = 0;
-    tANI_U32              r0kh_id_len;
 #endif
 
     //Initialize status code to success.
@@ -535,19 +534,19 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
 #endif
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-    if(pAssocRsp->FTInfo.R0KH_ID.present)
+    if (pAssocRsp->FTInfo.R0KH_ID.present)
     {
-        r0kh_id_len = pAssocRsp->FTInfo.R0KH_ID.num_PMK_R0_ID;
         pMac->roam.roamSession[smeSessionId].ftSmeContext.r0kh_id_len =
-               (r0kh_id_len >= sizeof(tANI_U32))? sizeof(tANI_U32):r0kh_id_len;
-        vos_mem_copy(&pMac->roam.roamSession[smeSessionId].ftSmeContext.r0kh_id,
-                     &pAssocRsp->FTInfo.R0KH_ID.PMK_R0_ID[0],
-                     pMac->roam.roamSession[smeSessionId].ftSmeContext.r0kh_id_len);
+                                    pAssocRsp->FTInfo.R0KH_ID.num_PMK_R0_ID;
+        vos_mem_copy(pMac->roam.roamSession[smeSessionId].ftSmeContext.r0kh_id,
+                pAssocRsp->FTInfo.R0KH_ID.PMK_R0_ID,
+                pMac->roam.roamSession[smeSessionId].ftSmeContext.r0kh_id_len);
     }
     else
     {
        pMac->roam.roamSession[smeSessionId].ftSmeContext.r0kh_id_len = 0;
-       pMac->roam.roamSession[smeSessionId].ftSmeContext.r0kh_id = 0;
+       vos_mem_zero(pMac->roam.roamSession[smeSessionId].ftSmeContext.r0kh_id,
+                    SIR_ROAM_R0KH_ID_MAX_LEN);
     }
 #endif
 

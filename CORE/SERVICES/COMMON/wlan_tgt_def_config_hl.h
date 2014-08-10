@@ -210,7 +210,17 @@
 #ifndef HIF_SDIO
 #define CFG_TGT_NUM_MSDU_DESC    (32)
 #else
-#define CFG_TGT_NUM_MSDU_DESC    (0)
+/*
+ * For SDIO Only 16 tx-buffers are hooked onto SDIO MBOX DMA engine
+ * in Firmware. So set the targe number of descriptors to map the
+ * same.
+ * This is only temporary solution.
+ * The better solution is defining CFG_TGT_NUM_MSDU_DESC to be 0
+ * and waiting for an initial TX_TARGET_CREDIT_UPDATE_IND message
+ * from the FW to know how many tx buffers the FW has provided
+ * for the host's downloads.
+ */
+#define CFG_TGT_NUM_MSDU_DESC    (16)
 #endif
 /*
  * Maximum number of frag table entries

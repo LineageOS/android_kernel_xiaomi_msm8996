@@ -46,7 +46,6 @@
 #include "vos_trace.h"
 #include "vos_memory.h"
 #include "vos_types.h"
-#include "palTimer.h"
 #include "rrmGlobal.h"
 
 /*--------------------------------------------------------------------------
