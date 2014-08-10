@@ -78,6 +78,7 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
     struct ol_txrx_msdu_info_t msdu_info;
 
     msdu_info.htt.info.l2_hdr_type = vdev->pdev->htt_pkt_type;
+    msdu_info.htt.action.tx_comp_req = 0;
     /*
      * The msdu_list variable could be used instead of the msdu var,
      * but just to clarify which operations are done on a single MSDU
@@ -398,6 +399,7 @@ ol_tx_non_std_ll(
     struct ol_txrx_msdu_info_t msdu_info;
 
     msdu_info.htt.info.l2_hdr_type = vdev->pdev->htt_pkt_type;
+    msdu_info.htt.action.tx_comp_req = 0;
 
     /*
      * The msdu_list variable could be used instead of the msdu var,
@@ -480,7 +482,8 @@ static inline adf_nbuf_t
 ol_tx_hl_base(
     ol_txrx_vdev_handle vdev,
     enum ol_tx_spec tx_spec,
-    adf_nbuf_t msdu_list)
+    adf_nbuf_t msdu_list,
+    int tx_comp_req)
 {
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     adf_nbuf_t msdu = msdu_list;
@@ -562,6 +565,7 @@ ol_tx_hl_base(
         tx_msdu_info.htt.info.vdev_id = vdev->vdev_id;
         tx_msdu_info.htt.info.frame_type = htt_frm_type_data;
         tx_msdu_info.htt.info.l2_hdr_type = pdev->htt_pkt_type;
+        tx_msdu_info.htt.action.tx_comp_req = tx_comp_req;
 
         txq = ol_tx_classify(vdev, tx_desc, msdu, &tx_msdu_info);
 
@@ -644,7 +648,10 @@ MSDU_LOOP_BOTTOM:
 adf_nbuf_t
 ol_tx_hl(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
 {
-    return ol_tx_hl_base(vdev, ol_tx_spec_std, msdu_list);
+    struct ol_txrx_pdev_t *pdev = vdev->pdev;
+    int tx_comp_req = pdev->cfg.default_tx_comp_req;
+
+    return ol_tx_hl_base(vdev, ol_tx_spec_std, msdu_list, tx_comp_req);
 }
 
 adf_nbuf_t
@@ -653,7 +660,16 @@ ol_tx_non_std_hl(
     enum ol_tx_spec tx_spec,
     adf_nbuf_t msdu_list)
 {
-    return ol_tx_hl_base(vdev, tx_spec, msdu_list);
+    struct ol_txrx_pdev_t *pdev = vdev->pdev;
+    int tx_comp_req = pdev->cfg.default_tx_comp_req;
+
+    if (!tx_comp_req) {
+        if ((tx_spec == ol_tx_spec_no_free) &&
+            (pdev->tx_data_callback.func)) {
+            tx_comp_req = 1;
+        }
+    }
+    return ol_tx_hl_base(vdev, tx_spec, msdu_list, tx_comp_req);
 }
 
 adf_nbuf_t
@@ -754,8 +770,11 @@ ol_txrx_mgmt_send(
 
     adf_nbuf_map_single(pdev->osdev, tx_mgmt_frm, ADF_OS_DMA_TO_DEVICE);
     if (pdev->cfg.is_high_latency) {
+        tx_msdu_info.htt.action.tx_comp_req = 1;
         tx_desc = ol_tx_desc_hl(pdev, vdev, tx_mgmt_frm, &tx_msdu_info);
     } else {
+        /* For LL tx_comp_req is not used so initialized to 0 */
+        tx_msdu_info.htt.action.tx_comp_req = 0;
         tx_desc = ol_tx_desc_ll(pdev, vdev, tx_mgmt_frm, &tx_msdu_info);
         /* FIX THIS -
          * The FW currently has trouble using the host's fragments table
@@ -844,6 +863,7 @@ adf_nbuf_t ol_tx_reinject(
     msdu_info.htt.info.l2_hdr_type = vdev->pdev->htt_pkt_type;
     msdu_info.htt.info.ext_tid = HTT_TX_EXT_TID_INVALID;
     msdu_info.peer = NULL;
+    msdu_info.htt.action.tx_comp_req = 0;
 
     ol_tx_prepare_ll(tx_desc, vdev, msdu, &msdu_info);
     HTT_TX_DESC_POSTPONED_SET(*((u_int32_t *)(tx_desc->htt_tx_desc)), TRUE);

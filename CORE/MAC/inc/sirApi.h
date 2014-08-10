@@ -4767,6 +4767,13 @@ typedef struct sSirSmeRoamOffloadSynchCnf
 {
     tANI_U8 sessionId;
 } tSirSmeRoamOffloadSynchCnf, *tpSirSmeRoamOffloadSynchCnf;
+
+typedef struct sSirSmeHOFailureInd
+{
+    tANI_U16 messageType;
+    tANI_U16 length;
+    tANI_U8  sessionId;
+} tSirSmeHOFailureInd, *tpSirSmeHOFailureInd;
 #endif
 
 #ifdef FEATURE_WLAN_EXTSCAN
