@@ -2004,7 +2004,20 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         limMsg->bodyptr = NULL;
         break;
 #endif
-
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    case WDA_HO_FAIL_IND:
+    {
+        tSirSmeHOFailureInd *pRoamHOFailure;
+        pRoamHOFailure = (tSirSmeHOFailureInd *)limMsg->bodyptr;
+        VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+             ("LFR3: Hand-Off Failed with AP.Tear down the link")) ;
+        limTearDownLinkWithAp(pMac,pRoamHOFailure->sessionId,
+                              eSIR_MAC_UNSPEC_FAILURE_REASON);
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        break;
+    }
+#endif
     default:
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);
         limMsg->bodyptr = NULL;
