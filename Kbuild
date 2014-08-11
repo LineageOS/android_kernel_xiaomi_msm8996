@@ -6,9 +6,6 @@ else
 	KERNEL_BUILD := 0
 endif
 
-# This driver does not support integrated SOC
-CONFIG_QCA_WIFI_ISOC=0
-
 # This driver supports the QCACLD 2.0 software architecture
 CONFIG_QCA_WIFI_2_0=1
 
@@ -762,20 +759,15 @@ endif
 endif
 
 ############ WMA ############
-WMA_DIR :=      CORE/SERVICES/WMA
+WMA_DIR :=	CORE/SERVICES/WMA
 
-WMA_INC :=      -I$(WLAN_ROOT)/$(WMA_DIR)
+WMA_INC :=	-I$(WLAN_ROOT)/$(WMA_DIR)
 
-WMA_OBJS :=     $(WMA_DIR)/wma.o \
-		$(WMA_DIR)/wma_dfs_interface.o \
-		$(WMA_DIR)/wlan_nv.o
+WMA_OBJS :=	$(WMA_DIR)/regdomain.o \
+		$(WMA_DIR)/wlan_nv.o \
+		$(WMA_DIR)/wma.o \
+		$(WMA_DIR)/wma_dfs_interface.o
 
-
-ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
-WMA_OBJS +=     $(WMA_DIR)/wma_isoc.o
-else
-WMA_OBJS +=     $(WMA_DIR)/regdomain.o
-endif
 endif
 
 ############ WDA ############
@@ -845,14 +837,11 @@ INCS +=		$(WMA_INC) \
 		$(HTC_INC) \
 		$(DFS_INC)
 
-ifeq ($(CONFIG_QCA_WIFI_ISOC), 0)
 INCS +=		$(HIF_INC) \
 		$(BMI_INC)
 
 ifeq ($(CONFIG_REMOVE_PKT_LOG), 0)
 INCS +=		$(PKTLOG_INC)
-endif
-
 endif
 
 endif
@@ -879,15 +868,12 @@ OBJS +=		$(WMA_OBJS) \
 		$(ADF_OBJS) \
 		$(DFS_OBJS)
 
-ifeq ($(CONFIG_QCA_WIFI_ISOC), 0)
 OBJS +=		$(HIF_OBJS) \
 		$(BMI_OBJS) \
 		$(HTT_OBJS)
 
 ifeq ($(CONFIG_REMOVE_PKT_LOG), 0)
 OBJS +=		$(PKTLOG_OBJS)
-endif
-
 endif
 
 EXTRA_CFLAGS += $(INCS)
@@ -1093,11 +1079,6 @@ endif
 
 ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 CDEFINES += -DQCA_WIFI_2_0
-endif
-
-ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
-CDEFINES += -DQCA_WIFI_ISOC
-CDEFINES += -DANI_BUS_TYPE_PLATFORM=1
 endif
 
 ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
