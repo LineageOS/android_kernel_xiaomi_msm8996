@@ -712,29 +712,21 @@ PKTLOG_OBJS :=	$(PKTLOG_DIR)/pktlog_ac.o \
 HTT_DIR :=      CORE/CLD_TXRX/HTT
 HTT_INC :=      -I$(WLAN_ROOT)/$(HTT_DIR)
 
-ifeq ($(CONFIG_QCA_WIFI_ISOC), 0)
 HTT_OBJS := $(HTT_DIR)/htt_tx.o \
             $(HTT_DIR)/htt.o \
             $(HTT_DIR)/htt_t2h.o \
             $(HTT_DIR)/htt_h2t.o \
             $(HTT_DIR)/htt_fw_stats.o \
             $(HTT_DIR)/htt_rx.o
-endif
 
 ############## HTC ##########
 HTC_DIR := CORE/SERVICES/HTC
-
 HTC_INC := -I$(WLAN_ROOT)/$(HTC_DIR)
 
-ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
-HTC_INC += -I$(WLAN_ROOT)/$(HTC_DIR)/linux/
-HTC_OBJS := $(HTC_DIR)/linux/htc_smd.o
-else
 HTC_OBJS := $(HTC_DIR)/htc.o \
             $(HTC_DIR)/htc_send.o \
             $(HTC_DIR)/htc_recv.o \
             $(HTC_DIR)/htc_services.o
-endif
 
 ifneq ($(CONFIG_QCA_WIFI_SDIO), 1)
 ########### HIF ###########
