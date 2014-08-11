@@ -2708,6 +2708,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_SELF_RECOVERY_MAX               ( 1 )
 #define CFG_ENABLE_SELF_RECOVERY_DEFAULT           ( 0 )
 
+#define CFG_ENABLE_SAP_SUSPEND                     "gEnableSapSuspend"
+#define CFG_ENABLE_SAP_SUSPEND_MIN                 ( 0 )
+#define CFG_ENABLE_SAP_SUSPEND_MAX                 ( 1 )
+#define CFG_ENABLE_SAP_SUSPEND_DEFAULT             ( 1 )
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3288,11 +3293,14 @@ typedef struct
 #ifdef WLAN_FEATURE_LPSS
    v_BOOL_t                    enablelpasssupport;
 #endif
+
    v_BOOL_t                    enableSelfRecovery;
 
 #ifdef FEATURE_WLAN_FORCE_SAP_SCC
    v_U8_t                      SapSccChanAvoidance;
 #endif /* FEATURE_WLAN_FORCE_SAP_SCC */
+
+   v_BOOL_t                    enableSapSuspend;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

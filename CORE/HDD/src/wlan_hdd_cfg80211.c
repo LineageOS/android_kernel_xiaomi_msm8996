@@ -13330,15 +13330,31 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
      * CAC is done for a SoftAP which is in started state.
      */
     status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
-
     while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
         pAdapter = pAdapterNode->pAdapter;
-        if (WLAN_HDD_SOFTAP == pAdapter->device_mode  &&
-              BSS_START == WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter)->bssState &&
-              VOS_TRUE == WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->dfs_cac_block_tx) {
-           hddLog(VOS_TRACE_LEVEL_DEBUG,
-                 FL("RADAR detection in progress, do not allow suspend"));
-           return -EAGAIN;
+        if (WLAN_HDD_SOFTAP == pAdapter->device_mode) {
+            if (BSS_START ==
+                    WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter)->bssState &&
+                VOS_TRUE ==
+                    WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->dfs_cac_block_tx) {
+                hddLog(VOS_TRACE_LEVEL_DEBUG,
+                    FL("RADAR detection in progress, do not allow suspend"));
+                return -EAGAIN;
+            } else if (!pHddCtx->cfg_ini->enableSapSuspend) {
+                /* return -EOPNOTSUPP if SAP does not support suspend
+                 */
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s:SAP does not support suspend!!", __func__);
+                return -EOPNOTSUPP;
+            }
+        } else if (WLAN_HDD_P2P_GO == pAdapter->device_mode) {
+            if (!pHddCtx->cfg_ini->enableSapSuspend) {
+                /* return -EOPNOTSUPP if GO does not support suspend
+                 */
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s:GO does not support suspend!!", __func__);
+                return -EOPNOTSUPP;
+            }
         }
         status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
         pAdapterNode = pNext;
