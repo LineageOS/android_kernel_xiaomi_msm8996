@@ -72,19 +72,19 @@ static u_int32_t refclk_speed_to_hz[] = {
 #ifdef HIF_SDIO
 static struct ol_fw_files FW_FILES_QCA6174_FW_1_1 = {
 	"qwlan11.bin", "bdwlan11.bin", "otp11.bin", "utf11.bin",
-	"utfbd11.bin", "qsetup11.bin"};
+	"utfbd11.bin", "qsetup11.bin", "epping11.bin"};
 static struct ol_fw_files FW_FILES_QCA6174_FW_2_0 = {
 	"qwlan20.bin", "bdwlan20.bin", "otp20.bin", "utf20.bin",
-	"utfbd20.bin", "qsetup20.bin"};
+	"utfbd20.bin", "qsetup20.bin", "epping20.bin"};
 static struct ol_fw_files FW_FILES_QCA6174_FW_1_3 = {
 	"qwlan13.bin", "bdwlan13.bin", "otp13.bin", "utf13.bin",
-	"utfbd13.bin", "qsetup13.bin"};
+	"utfbd13.bin", "qsetup13.bin", "epping13.bin"};
 static struct ol_fw_files FW_FILES_QCA6174_FW_3_0 = {
 	"qwlan30.bin", "bdwlan30.bin", "otp30.bin", "utf30.bin",
-	"utfbd30.bin", "qsetup30.bin"};
+	"utfbd30.bin", "qsetup30.bin", "epping30.bin"};
 static struct ol_fw_files FW_FILES_DEFAULT = {
 	"qwlan.bin", "bdwlan.bin", "otp.bin", "utf.bin",
-	"utfbd.bin", "qsetup.bin"};
+	"utfbd.bin", "qsetup.bin", "epping.bin"};
 
 static A_STATUS ol_sdio_extra_initialization(struct ol_softc *scn);
 
@@ -465,7 +465,7 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		break;
 	case ATH_FIRMWARE_FILE:
 		if (WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
-			filename = QCA_FIRMWARE_EPPING_FILE;
+			filename = scn->fw_files.epping_file;
 			printk(KERN_INFO "%s: Loading epping firmware file %s\n",
 				__func__, filename);
 			break;

@@ -100,6 +100,7 @@ struct ol_fw_files {
     char utf_file[MAX_FILE_NAME];
     char utf_board_data[MAX_FILE_NAME];
     char setup_file[MAX_FILE_NAME];
+    char epping_file[MAX_FILE_NAME];
 };
 #endif
 
