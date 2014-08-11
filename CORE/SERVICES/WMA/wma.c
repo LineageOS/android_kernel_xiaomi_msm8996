@@ -1954,7 +1954,7 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 
 		if (temp_mask & (1 << eCsrGlobalClassAStats)) {
 			classa_stats = (tCsrGlobalClassAStatsInfo *) stats_buf;
-			WMA_LOGE("peer tx rate:%d", peer_stats->peer_tx_rate);
+			WMA_LOGD("peer tx rate:%d", peer_stats->peer_tx_rate);
 			/*The linkspeed returned by fw is in kbps so convert
 			 *it in to units of 500kbps which is expected by UMAC*/
 			if (peer_stats->peer_tx_rate) {
@@ -1975,7 +1975,7 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 				 * rate flags */
 				classa_stats->rx_frag_cnt = node->nss;
 				classa_stats->promiscuous_rx_frag_cnt = mcsRateFlags;
-				WMA_LOGE("Computed mcs_idx:%d mcs_rate_flags:%d",
+				WMA_LOGD("Computed mcs_idx:%d mcs_rate_flags:%d",
 						classa_stats->mcs_index,
 						mcsRateFlags);
 			}
@@ -1983,7 +1983,7 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 			   Convert it back to intervals of 1 dBm */
 			classa_stats->max_pwr =
 				 roundup(classa_stats->max_pwr, 2) >> 1;
-			WMA_LOGE("peer tx rate flags:%d nss:%d max_txpwr:%d",
+			WMA_LOGD("peer tx rate flags:%d nss:%d max_txpwr:%d",
 					node->rate_flags, node->nss,
 					classa_stats->max_pwr);
 		}
