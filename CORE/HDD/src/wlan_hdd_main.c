@@ -11863,6 +11863,11 @@ err_free_adf_context:
 
 err_free_hdd_context:
    hdd_allow_suspend();
+
+   /* wiphy_free() will free the HDD context so remove global reference */
+   if (pVosContext)
+      ((VosContextType*)(pVosContext))->pHDDContext = NULL;
+
    wiphy_free(wiphy) ;
    //kfree(wdev) ;
    VOS_BUG(1);
