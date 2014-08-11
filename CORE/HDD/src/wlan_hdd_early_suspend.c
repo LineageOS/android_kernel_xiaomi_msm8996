@@ -45,7 +45,7 @@
 #include <linux/cpu.h>
 #include <wlan_hdd_includes.h>
 #include <wlan_qct_driver.h>
-#ifdef WLAN_OPEN_SOURCE
+#if defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
 #include <linux/wakelock.h>
 #endif
 #include "halTypes.h"

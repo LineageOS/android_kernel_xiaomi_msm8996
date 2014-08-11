@@ -500,7 +500,7 @@ VOS_STATUS vos_wake_lock_init(vos_wake_lock_t *pLock, const char *name)
 {
 #if defined CONFIG_CNSS
     cnss_pm_wake_lock_init(pLock, name);
-#elif defined WLAN_OPEN_SOURCE
+#elif defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
     wake_lock_init(pLock, WAKE_LOCK_SUSPEND, name);
 #endif
     return VOS_STATUS_SUCCESS;
@@ -519,7 +519,7 @@ VOS_STATUS vos_wake_lock_acquire(vos_wake_lock_t *pLock)
 {
 #if defined CONFIG_CNSS
     cnss_pm_wake_lock(pLock);
-#elif defined WLAN_OPEN_SOURCE
+#elif defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
     wake_lock(pLock);
 #endif
     return VOS_STATUS_SUCCESS;
@@ -538,7 +538,7 @@ VOS_STATUS vos_wake_lock_timeout_acquire(vos_wake_lock_t *pLock, v_U32_t msec)
 {
 #if defined CONFIG_CNSS
     cnss_pm_wake_lock_timeout(pLock, msec);
-#elif defined WLAN_OPEN_SOURCE
+#elif defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
     wake_lock_timeout(pLock, msecs_to_jiffies(msec));
 #endif
     return VOS_STATUS_SUCCESS;
@@ -557,7 +557,7 @@ VOS_STATUS vos_wake_lock_release(vos_wake_lock_t *pLock)
 {
 #if defined CONFIG_CNSS
     cnss_pm_wake_lock_release(pLock);
-#elif defined WLAN_OPEN_SOURCE
+#elif defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
     wake_unlock(pLock);
 #endif
     return VOS_STATUS_SUCCESS;
@@ -576,7 +576,7 @@ VOS_STATUS vos_wake_lock_destroy(vos_wake_lock_t *pLock)
 {
 #if defined CONFIG_CNSS
     cnss_pm_wake_lock_destroy(pLock);
-#elif defined WLAN_OPEN_SOURCE
+#elif defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
     wake_lock_destroy(pLock);
 #endif
     return VOS_STATUS_SUCCESS;
