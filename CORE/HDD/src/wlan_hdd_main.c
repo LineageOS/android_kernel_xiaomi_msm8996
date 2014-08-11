@@ -11403,6 +11403,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
 #endif
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+      pHddCtx->isLoadInProgress = FALSE;
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded", __func__);
       complete(&wlan_start_comp);
       return VOS_STATUS_SUCCESS;
@@ -13237,6 +13238,9 @@ void wlan_hdd_send_status_pkg(hdd_adapter_t *pAdapter,
         return;
 #endif
 
+    if (VOS_FTM_MODE == hdd_get_conparam())
+        return;
+
     memset(&data, 0, sizeof(struct wlan_status_data));
     if (is_on)
         ret = wlan_hdd_gen_wlan_status_pack(&data, pAdapter, pHddStaCtx,
@@ -13266,6 +13270,9 @@ void wlan_hdd_send_version_pkg(v_U32_t fw_version,
     if (!(cap.cap_flag & CNSS_HAS_UART_ACCESS))
         return;
 #endif
+
+    if (VOS_FTM_MODE == hdd_get_conparam())
+        return;
 
     memset(&data, 0, sizeof(struct wlan_version_data));
     ret = wlan_hdd_gen_wlan_version_pack(&data, fw_version, chip_id, chip_name);
