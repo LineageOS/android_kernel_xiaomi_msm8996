@@ -10501,21 +10501,8 @@ void __hdd_wlan_exit(void)
    wlan_hdd_send_status_pkg(NULL, NULL, 0, 0);
 #endif
 
-   if (pHddCtx->isCleanUpDone == FALSE ) {
-       /* Do all the cleanup before deregistering the driver */
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-           "%s: Cleaning up before driver deregistration",
-           __func__);
-       hdd_wlan_exit(pHddCtx);
-   } else {
-       /* This means driver loading has failed. Major cleanup
-        * is already done as part of driver load failure.
-        */
-       struct wiphy *wiphy = pHddCtx->wiphy;
-       hdd_close_all_adapters( pHddCtx );
-       wiphy_free(wiphy);
-   }
-
+   //Do all the cleanup before deregistering the driver
+   hdd_wlan_exit(pHddCtx);
    EXIT();
 }
 
@@ -11043,7 +11030,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    pHddCtx->wiphy = wiphy;
    hdd_prevent_suspend();
    pHddCtx->isLoadInProgress = TRUE;
-   pHddCtx->isCleanUpDone = FALSE;
    pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
@@ -11892,8 +11878,6 @@ err_free_hdd_context:
        msleep(5000);
    }
    hdd_set_ssr_required (VOS_FALSE);
-
-   pHddCtx->isCleanUpDone = TRUE;
 
    return -EIO;
 
