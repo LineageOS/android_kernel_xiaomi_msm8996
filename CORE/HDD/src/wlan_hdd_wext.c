@@ -9211,11 +9211,11 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
 
                  hddLog(VOS_TRACE_LEVEL_INFO,
                          "%s STA (Device mode=%d) connected in band %u, Changing band to %u, Issuing Disconnect"
-                         "Set HDD connState to eConnectionState_Disconnecting",
+                         "Set HDD connState to eConnectionState_NotConnected",
                             __func__, pAdapter->device_mode,
                             currBand, band);
 
-                 pHddStaCtx->conn_info.connState = eConnectionState_Disconnecting;
+                 pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
                  INIT_COMPLETION(pAdapter->disconnect_comp_var);
 
                  status = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
@@ -9238,8 +9238,6 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
                                 __func__);
                     return -ETIMEDOUT ;
                  }
-
-                 pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
             }
 
             sme_ScanFlushResult(hHal, pAdapter->sessionId);
