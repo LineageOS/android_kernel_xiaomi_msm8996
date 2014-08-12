@@ -11340,6 +11340,10 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
     uint64_t total = tx_packets + rx_packets;
     enum cnss_bus_width_type next_vote_level = CNSS_BUS_WIDTH_NONE;
 
+    uint64_t temp_rx = (rx_packets + pHddCtx->prev_rx)/2;
+    enum cnss_bus_width_type next_rx_level = CNSS_BUS_WIDTH_NONE;
+
+
     if (total > pHddCtx->cfg_ini->busBandwidthHighThreshold)
         next_vote_level = CNSS_BUS_WIDTH_HIGH;
     else if (total > pHddCtx->cfg_ini->busBandwidthMediumThreshold)
@@ -11353,6 +11357,22 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                __func__, next_vote_level, tx_packets, rx_packets);
         pHddCtx->cur_vote_level = next_vote_level;
         cnss_request_bus_bandwidth(next_vote_level);
+    }
+
+    pHddCtx->prev_rx = rx_packets;
+    if (temp_rx > pHddCtx->cfg_ini->tcpDelackThresholdHigh)
+        next_rx_level = CNSS_BUS_WIDTH_HIGH;
+    else
+        next_rx_level = CNSS_BUS_WIDTH_LOW;
+
+    if (pHddCtx->cur_rx_level != next_rx_level) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+               "%s: TCP DELACK trigger level %d, average_rx: %llu",
+               __func__, next_rx_level, temp_rx);
+        pHddCtx->cur_rx_level = next_rx_level;
+        wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_TP_IND,
+                                    &next_rx_level,
+                                    sizeof(next_rx_level));
     }
 #endif
 }
@@ -13785,6 +13805,7 @@ void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len)
     case WLAN_SVC_DFS_CAC_END_IND:
     case WLAN_SVC_DFS_RADAR_DETECT_IND:
     case WLAN_SVC_DFS_ALL_CHANNEL_UNAVAIL_IND:
+    case WLAN_SVC_WLAN_TP_IND:
         ani_hdr->length = len;
         nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr) + len));
         nl_data = (char *)ani_hdr + sizeof(tAniMsgHdr);

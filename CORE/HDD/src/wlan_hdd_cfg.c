@@ -3647,6 +3647,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_DEFAULT,
                  CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MIN,
                  CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MAX),
+
+   REG_VARIABLE( CFG_TCP_DELACK_THRESHOLD_HIGH, WLAN_PARAM_Integer,
+                hdd_config_t, tcpDelackThresholdHigh,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TCP_DELACK_THRESHOLD_HIGH_DEFAULT,
+                CFG_TCP_DELACK_THRESHOLD_HIGH_MIN,
+                CFG_TCP_DELACK_THRESHOLD_HIGH_MAX ),
+
+   REG_VARIABLE( CFG_TCP_DELACK_THRESHOLD_LOW, WLAN_PARAM_Integer,
+                hdd_config_t, tcpDelackThresholdLow,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TCP_DELACK_THRESHOLD_LOW_DEFAULT,
+                CFG_TCP_DELACK_THRESHOLD_LOW_MIN,
+                CFG_TCP_DELACK_THRESHOLD_LOW_MAX ),
 #endif
 
 
@@ -4434,6 +4448,12 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
           "Name = [gbusBandwidthComputeInterval] Value = [%u] ",
           pHddCtx->cfg_ini->busBandwidthComputeInterval);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gTcpDelAckThresholdHigh] Value = [%u] ",
+          pHddCtx->cfg_ini->tcpDelackThresholdHigh);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gTcpDelAckThresholdLow] Value = [%u] ",
+          pHddCtx->cfg_ini->tcpDelackThresholdLow);
 #endif
 
 #ifdef QCA_HT_2040_COEX
