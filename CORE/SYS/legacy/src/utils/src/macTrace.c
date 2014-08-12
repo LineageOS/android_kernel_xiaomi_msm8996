@@ -437,6 +437,8 @@ tANI_U8* macTraceGetSmeMsgString( tANI_U16 smeMsg )
         CASE_RETURN_STRING(eWNI_SME_CLEAR_LIM_SCAN_CACHE);
         CASE_RETURN_STRING(eWNI_SME_PRE_CHANNEL_SWITCH_FULL_POWER);
         CASE_RETURN_STRING(eWNI_SME_GET_SNR_REQ);
+        CASE_RETURN_STRING(eWNI_SME_LINK_STATUS_IND);
+
         CASE_RETURN_STRING(eWNI_PMC_MSG_TYPES_BEGIN);
 
         //General Power Save Messages
@@ -814,6 +816,7 @@ tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg )
         CASE_RETURN_STRING(WDA_ROAM_OFFLOAD_SYNCH_CNF);
 #endif
         CASE_RETURN_STRING(SIR_HAL_SET_BASE_MACADDR_IND);
+        CASE_RETURN_STRING(WDA_LINK_STATUS_GET_REQ);
         default:
             return((tANI_U8*) "UNKNOWN" );
             break;

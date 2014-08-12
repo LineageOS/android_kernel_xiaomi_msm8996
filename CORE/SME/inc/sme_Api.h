@@ -3991,4 +3991,16 @@ eHalStatus sme_UpdateRoamOffloadEnabled(tHalHandle hHal,
 VOS_STATUS sme_NanEvent(tHalHandle hHal, void* pMsg);
 #endif /* WLAN_FEATURE_NAN */
 
+/*--------------------------------------------------------------------------
+  \brief sme_getLinkStatus() - api to get the link status
+  \param hHal - The handle returned by macOpen.
+  \param callback - callback function for link status result from FW
+  \param pContext - The context passed with callback
+  \param sessionId - SME sessionId
+  \return eHalStatus
+  --------------------------------------------------------------------------*/
+eHalStatus sme_getLinkStatus(tHalHandle hHal,
+                             tCsrLinkStatusCallback callback,
+                             void *pContext,
+                             tANI_U8 sessionId);
 #endif //#if !defined( __SME_API_H )

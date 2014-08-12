@@ -5478,6 +5478,14 @@ typedef struct
 
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
 
+typedef struct sAniGetLinkStatus
+{
+    tANI_U16 msgType;      /* message type is same as the request type */
+    tANI_U16 msgLen;       /* length of the entire request */
+    tANI_U8 linkStatus;
+    tANI_U8 sessionId;
+} tAniGetLinkStatus, *tpAniGetLinkStatus;
+
 /* find the size of given member within a structure */
 #ifndef member_size
 #define member_size(type, member) (sizeof(((type *)0)->member))

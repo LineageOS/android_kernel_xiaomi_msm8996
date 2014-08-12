@@ -176,6 +176,10 @@
 #define MAX_VHT_MCS_IDX 10
 #define INVALID_MCS_IDX 255
 
+#define LINK_STATUS_LEGACY	0
+#define LINK_STATUS_VHT		0x1
+#define LINK_STATUS_MIMO	0x2
+#define LINK_RATE_VHT		0x3
 /* Data rate 100KBPS based on IE Index */
 struct index_data_rate_type
 {
@@ -1987,6 +1991,76 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 			wma_post_stats(wma, node);
 		}
 	}
+}
+
+static void wma_post_link_status(tAniGetLinkStatus *pGetLinkStatus,
+					u_int8_t link_status)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	vos_msg_t sme_msg = {0} ;
+
+	pGetLinkStatus->linkStatus = link_status;
+	sme_msg.type = eWNI_SME_LINK_STATUS_IND;
+	sme_msg.bodyptr = pGetLinkStatus;
+	sme_msg.bodyval = 0;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &sme_msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+	    WMA_LOGE("%s: Fail to post link status ind msg", __func__);
+	    vos_mem_free(pGetLinkStatus);
+	}
+}
+
+static int wma_link_status_event_handler(void *handle, u_int8_t *cmd_param_info,
+				   u_int32_t len)
+{
+	WMI_UPDATE_VDEV_RATE_STATS_EVENTID_param_tlvs *param_buf;
+	wmi_vdev_rate_stats_event_fixed_param *event;
+	wmi_vdev_rate_ht_info *ht_info;
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	struct wma_txrx_node *intr = wma->interfaces;
+	u_int8_t link_status = LINK_STATUS_LEGACY;
+	int i;
+
+	param_buf =
+		(WMI_UPDATE_VDEV_RATE_STATS_EVENTID_param_tlvs *)cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGA("%s: Invalid stats event", __func__);
+		return -1;
+	}
+
+	event = param_buf->fixed_param;
+	ht_info = param_buf->ht_info;
+
+	WMA_LOGD("num_vdev_stats: %d", event->num_vdev_stats);
+	for (i = 0; (i < event->num_vdev_stats) && ht_info; i++) {
+		WMA_LOGD(
+			"%s vdevId:%d  tx_nss:%d rx_nss:%d tx_preamble:%d rx_preamble:%d",
+				__func__,
+				ht_info->vdevid,
+				ht_info->tx_nss,
+				ht_info->rx_nss,
+				ht_info->tx_preamble,
+				ht_info->rx_preamble);
+		if (ht_info->vdevid < wma->max_bssid &&
+			intr[ht_info->vdevid].plink_status_req) {
+			if (ht_info->tx_nss || ht_info->rx_nss)
+				link_status = LINK_STATUS_MIMO;
+
+			if ((ht_info->tx_preamble == LINK_RATE_VHT) ||
+				(ht_info->rx_preamble == LINK_RATE_VHT))
+				link_status |= LINK_STATUS_VHT;
+
+			wma_post_link_status(intr[ht_info->vdevid].plink_status_req,
+						link_status);
+			intr[ht_info->vdevid].plink_status_req = NULL;
+			link_status = LINK_STATUS_LEGACY;
+		}
+
+		ht_info++;
+	}
+
+	return 0;
 }
 
 static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
@@ -4986,6 +5060,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
                   WMI_OFFLOAD_BCN_TX_STATUS_EVENTID,
                   wma_unified_bcntx_status_event_handler);
 
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					   WMI_UPDATE_VDEV_RATE_STATS_EVENTID,
+					   wma_link_status_event_handler);
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
 	/* Register event handler for processing Link Layer Stats
 	 * response from the FW
@@ -6656,6 +6733,49 @@ VOS_STATUS wma_get_buf_stop_scan_cmd(tp_wma_handle wma_handle,
 error:
 	return vos_status;
 
+}
+
+void wma_process_link_status_req(tp_wma_handle wma,
+					tAniGetLinkStatus *pGetLinkStatus)
+{
+	wmi_buf_t buf;
+	wmi_request_stats_cmd_fixed_param *cmd;
+	u_int8_t len = sizeof(wmi_request_stats_cmd_fixed_param);
+	struct wma_txrx_node *iface = &wma->interfaces[pGetLinkStatus->sessionId];
+
+	if (iface->plink_status_req) {
+		WMA_LOGE(
+		"%s:previous link status request is pending,deleting the new request",
+				__func__);
+		vos_mem_free(pGetLinkStatus);
+		return;
+	}
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		goto end;
+	}
+
+	iface->plink_status_req = pGetLinkStatus;
+	cmd = (wmi_request_stats_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_request_stats_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_request_stats_cmd_fixed_param));
+	cmd->stats_id = WMI_REQUEST_VDEV_RATE_STAT;
+	cmd->vdev_id = pGetLinkStatus->sessionId;
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+						WMI_REQUEST_STATS_CMDID)) {
+		WMA_LOGE("Failed to send WMI link  status request to fw");
+		wmi_buf_free(buf);
+		iface->plink_status_req = NULL;
+		goto end;
+	}
+
+	return;
+
+end:
+	wma_post_link_status(pGetLinkStatus, LINK_STATUS_LEGACY);
 }
 
 VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq,
@@ -21622,6 +21742,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_set_base_macaddr_indicate(wma_handle,
 				       (tSirMacAddr *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
+		case WDA_LINK_STATUS_GET_REQ:
+			wma_process_link_status_req(wma_handle,
+				(tAniGetLinkStatus *)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);

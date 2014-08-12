@@ -3540,6 +3540,96 @@ static int hdd_set_dwell_time(hdd_adapter_t *pAdapter, tANI_U8 *command)
     return ret;
 }
 
+static void hdd_GetLink_statusCB(v_U8_t status, void *pContext)
+{
+   struct statsContext *pLinkContext;
+   hdd_adapter_t *pAdapter;
+
+   if (NULL == pContext) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Bad pContext [%p]",
+              __func__, pContext);
+      return;
+   }
+
+   pLinkContext = pContext;
+   pAdapter     = pLinkContext->pAdapter;
+
+   spin_lock(&hdd_context_lock);
+
+   if ((NULL == pAdapter) || (LINK_STATUS_MAGIC != pLinkContext->magic)) {
+      /* the caller presumably timed out so there is nothing we can do */
+      spin_unlock(&hdd_context_lock);
+      hddLog(VOS_TRACE_LEVEL_WARN,
+             "%s: Invalid context, pAdapter [%p] magic [%08x]",
+              __func__, pAdapter, pLinkContext->magic);
+      return;
+   }
+
+   /* context is valid so caller is still waiting */
+
+   /* paranoia: invalidate the magic */
+   pLinkContext->magic = 0;
+
+   /* copy over the status */
+   pAdapter->linkStatus = status;
+
+   /* notify the caller */
+   complete(&pLinkContext->completion);
+
+   /* serialization is complete */
+   spin_unlock(&hdd_context_lock);
+}
+
+static int wlan_hdd_get_link_status(hdd_adapter_t *pAdapter)
+{
+
+   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+   struct statsContext context;
+   eHalStatus hstatus;
+   unsigned long rc;
+
+   if (pHddCtx->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+              "%s:LOGP in Progress. Ignore!!!", __func__);
+      return -EBUSY;
+   }
+
+   if (eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s:Not associated!",
+                                    __func__);
+      return -EINVAL;
+   }
+
+   init_completion(&context.completion);
+   context.pAdapter = pAdapter;
+   context.magic = LINK_STATUS_MAGIC;
+   hstatus = sme_getLinkStatus(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                               hdd_GetLink_statusCB,
+                               &context,
+                               pAdapter->sessionId);
+   if (eHAL_STATUS_SUCCESS != hstatus) {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: Unable to retrieve link status", __func__);
+       /* return a cached value */
+   } else {
+       /* request is sent -- wait for the response */
+       rc = wait_for_completion_timeout(&context.completion,
+                                msecs_to_jiffies(WLAN_WAIT_TIME_LINK_STATUS));
+       if (!rc) {
+          hddLog(VOS_TRACE_LEVEL_ERROR,
+              FL("SME timed out while retrieving link status"));
+      }
+   }
+
+   spin_lock(&hdd_context_lock);
+   context.magic = 0;
+   spin_unlock(&hdd_context_lock);
+
+   /* either callback updated pAdapter stats or it has cached data */
+   return  pAdapter->linkStatus;
+}
+
 static int hdd_driver_command(hdd_adapter_t *pAdapter,
                               hdd_priv_data_t *ppriv_data)
 {
@@ -5535,6 +5625,18 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            len = scnprintf(extra, sizeof(extra), "%s %d", command, dfsScanMode);
            if (copy_to_user(priv_data.buf, &extra, len + 1))
            {
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: failed to copy data to user buffer", __func__);
+               ret = -EFAULT;
+               goto exit;
+           }
+       }
+       else if (strncmp(command, "GETLINKSTATUS", 13) == 0) {
+           int value = wlan_hdd_get_link_status(pAdapter);
+           char extra[32];
+           tANI_U8 len = 0;
+           len = scnprintf(extra, sizeof(extra), "%s %d", command, value);
+           if (copy_to_user(priv_data.buf, &extra, len + 1)) {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: failed to copy data to user buffer", __func__);
                ret = -EFAULT;

@@ -527,6 +527,7 @@ struct wma_txrx_node {
 	u_int32_t dtim_policy;
 	u_int32_t peer_count;
 	v_BOOL_t roam_synch_in_progress;
+	void *plink_status_req;
 };
 
 #if defined(QCA_WIFI_FTM)
