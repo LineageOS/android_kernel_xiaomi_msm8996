@@ -278,8 +278,16 @@ ol_txrx_pdev_attach(
         desc_pool_size = ol_tx_desc_pool_size_hl(ctrl_pdev);
         adf_os_atomic_init(&pdev->tx_queue.rsrc_cnt);
         adf_os_atomic_add(desc_pool_size, &pdev->tx_queue.rsrc_cnt);
+#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+        /*
+         * 5% margin of unallocated desc is too much for per vdev mechanism.
+         * Define the value seperately.
+         */
+        pdev->tx_queue.rsrc_threshold_lo = TXRX_HL_TX_FLOW_CTRL_MGMT_RESERVED;
+#else
         /* always maintain a 5% margin of unallocated descriptors */
         pdev->tx_queue.rsrc_threshold_lo = (5 * desc_pool_size)/100;
+#endif
         /* when freeing up descriptors, keep going until there's a 15% margin */
         pdev->tx_queue.rsrc_threshold_hi = (15 * desc_pool_size)/100;
     } else {

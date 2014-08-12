@@ -53,6 +53,7 @@ ol_tx_desc_pool_size_hl(ol_pdev_handle ctrl_pdev);
 
 #ifdef CONFIG_PER_VDEV_TX_DESC_POOL
 #define TXRX_HL_TX_FLOW_CTRL_VDEV_LOW_WATER_MARK 400
+#define TXRX_HL_TX_FLOW_CTRL_MGMT_RESERVED 100
 #endif
 
 #endif /* _OL_TXRX__H_ */
