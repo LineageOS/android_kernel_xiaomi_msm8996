@@ -1273,6 +1273,7 @@ htt_rx_amsdu_rx_in_order_pop_ll(
     u_int32_t *msg_word;
     unsigned int msdu_count = 0;
     u_int8_t offload_ind;
+    struct htt_host_rx_desc_base *rx_desc;
 
     HTT_ASSERT1(htt_rx_in_order_ring_elems(pdev) != 0);
 
@@ -1312,6 +1313,7 @@ htt_rx_amsdu_rx_in_order_pop_ll(
 
         /* cache consistency has been taken care of by the adf_nbuf_unmap */
 
+        rx_desc = htt_rx_desc(msdu);
         /*
          * Make the netbuf's data pointer point to the payload rather
          * than the descriptor.
@@ -1321,6 +1323,9 @@ htt_rx_amsdu_rx_in_order_pop_ll(
         adf_nbuf_trim_tail(
            msdu, HTT_RX_BUF_SIZE - (RX_STD_DESC_SIZE +
                               HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_GET(*(msg_word + 1))));
+
+        *((u_int8_t *) &rx_desc->fw_desc.u.val) =
+             HTT_RX_IN_ORD_PADDR_IND_FW_DESC_GET(*(msg_word + 1));
 
         msdu_count--;
 
