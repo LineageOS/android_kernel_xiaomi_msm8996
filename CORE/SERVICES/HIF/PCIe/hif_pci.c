@@ -2609,7 +2609,9 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
                     printk("%s:error, can't wakeup target\n", __func__);
                     sc->recovery = true;
                     vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
-                    schedule_work(&recovery_work);
+#ifdef CONFIG_CNSS
+                    cnss_wlan_pci_link_down();
+#endif
                     return -EACCES;
                 }
 
