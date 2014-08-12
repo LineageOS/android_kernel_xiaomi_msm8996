@@ -2351,7 +2351,8 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 	int ret;
 
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: %s evt, MAC: %pM sta_id: %d",
-			adapter->dev->name, hdd_ipa_wlan_event_to_str(type), mac_addr,
+			adapter->dev->name, hdd_ipa_wlan_event_to_str(type),
+			mac_addr,
 			sta_id);
 
 	if (type >= IPA_WLAN_EVENT_MAX)
@@ -2359,6 +2360,13 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 
 	if (WARN_ON(is_zero_ether_addr(mac_addr)))
 		return -EINVAL;
+
+#ifdef IPA_UC_OFFLOAD
+	if (hdd_ipa_uc_is_enabled(hdd_ipa) &&
+		(WLAN_HDD_SOFTAP != adapter->device_mode)) {
+		return 0;
+	}
+#endif /* IPA_UC_OFFLOAD */
 
 	hdd_ipa->stats.event[type]++;
 
