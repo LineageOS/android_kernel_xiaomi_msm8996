@@ -11907,13 +11907,7 @@ static int hdd_driver_init( void)
 {
    VOS_STATUS status;
    v_CONTEXT_t pVosContext = NULL;
-#if      defined (ANI_BUS_TYPE_PCI)
-   struct device *dev = NULL;
-#endif
    int ret_status = 0;
-#ifdef HAVE_WCNSS_CAL_DOWNLOAD
-   int max_retries = 0;
-#endif
    unsigned long rc;
 
 #ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
@@ -11928,35 +11922,6 @@ static int hdd_driver_init( void)
 #endif
    pr_info("%s: loading driver v%s\n", WLAN_MODULE_NAME,
            QWLAN_VERSIONSTR TIMER_MANAGER_STR MEMORY_DEBUG_STR);
-
-#ifdef ANI_BUS_TYPE_PCI
-
-   dev = wcnss_wlan_get_device();
-
-#endif // ANI_BUS_TYPE_PCI
-
-#ifdef ANI_BUS_TYPE_PLATFORM
-
-#ifdef HAVE_WCNSS_CAL_DOWNLOAD
-   /* wait until WCNSS driver downloads NV */
-   while (!wcnss_device_ready() && 5 >= ++max_retries) {
-       msleep(1000);
-   }
-   if (max_retries >= 5) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WCNSS driver not ready", __func__);
-      vos_wake_lock_destroy(&wlan_wake_lock);
-
-#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
-      wlan_logging_sock_deinit_svc();
-#endif
-
-      return -ENODEV;
-   }
-#endif
-
-   dev = wcnss_wlan_get_device();
-#endif // ANI_BUS_TYPE_PLATFORM
-
 
    do {
 
