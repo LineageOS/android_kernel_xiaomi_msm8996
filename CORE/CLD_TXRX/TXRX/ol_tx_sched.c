@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -487,61 +487,6 @@ struct ol_tx_sched_wrr_adv_category_info_t {
         enum { OL_TX_SCHED_WRR_ADV_ ## cat ## _DISCARD_WEIGHT = \
             (discard_weights) }
 
-#ifdef QCA_WIFI_ISOC
-/* Riva, Pronto, Northstar:
- * For high-volume traffic flows (VI, BE, BK), use a credit threshold
- * roughly equal to a large A-MPDU (5 fragments * 64 frames) to download
- * AMPDU-sized batches of traffic.
- * For high-priority, low-volume traffic flows (VO and mgmt), use no
- * credit threshold, to minimize download latency.
- */
-/*
-* VO:
-*   - high priority (no skip)
-*   - download a.s.a.p. (don't wait for enough credit to download a batch)
-*   - allow a large number of frames to be downloaded at once
-*     (In real systems this is unneeded - voice traffic is such
-*     low bandwidth that no more than 1 frame per user will be
-*     present at a time.  However, this setting allows for large
-*     volumes of fake voice traffic during testing.)
-*   - use all available credit
-*   - don't discard, if possible
-* VI:
-*   - high priority (no skip)
-*   - wait for enough credit to download a moderately large batch
-*   - allow a moderately large batch to be downloaded at once
-*   - don't use all credit - leave enough for a single frame
-*     (which can be used by voice)
-*   - try not to discard, but if necessary discard the VI frames
-*     before VO frames
-* BK:
-*   - low priority (skip twice between actual servicing)
-*   - wait for enough credit to download a small batch
-*   - allow a small batch to be downloaded at once
-*   - don't use all credit - leave enough for a single frame
-*     (which can be used by voice)
-*   - discard these frames before VI or VO
-* BE:
-*   - moderate priority (skip once between actual servicing)
-*   - wait for enough credit to download a moderate batch
-*   - allow a moderate batch to be downloaded at once
-*   - don't use all credit - leave enough for a single frame
-*     (which can be used by voice)
-*   - discard these frames before VI or VO
-*/
-//                                            WRR           send
-//                                           skip  credit  limit credit disc
-//                                            wts  thresh (frms) reserv  wts
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(VO,           1,      1,    32,     0,  1);
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(VI,           1, (5*32),    24,     5,  4);
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(BK,           3, (5*64),    10,     5,  8);
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(BE,           2, (5*64),    16,     5,  8);
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(NON_QOS_DATA, 3, (5*64),     4,     5,  8);
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(UCAST_MGMT,   1,      1,     4,     0,  0);
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_DATA,   2, (5*64),     4,     5,  4);
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_MGMT,   1,      1,     4,     0,  1);
-
-#else
 /* Rome:
  * For high-volume traffic flows (VI, BE, BK), use a credit threshold
  * roughly equal to a large A-MPDU (occupying half the target memory
@@ -562,7 +507,6 @@ OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(UCAST_MGMT,   1,      1,     4,     0,  1);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_DATA,  10,     16,     4,     1,  4);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_MGMT,   1,      1,     4,     0,  1);
 
-#endif /* QCA_WIFI_ISOC */
 
 #if DEBUG_SCHED_STAT
 
@@ -1222,11 +1166,7 @@ ol_tx_sched_notify(
     }
 }
 
-#ifdef QCA_WIFI_ISOC
-#define OL_TX_MSDU_ID_STORAGE_ERR(ptr) 0 /* always have headroom in ISOC */
-#else
 #define OL_TX_MSDU_ID_STORAGE_ERR(ptr) (NULL == ptr)
-#endif
 
 void
 ol_tx_sched_dispatch(

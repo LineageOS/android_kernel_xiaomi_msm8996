@@ -321,46 +321,11 @@ HIF_INC := -I$(WLAN_ROOT)/$(HIF_COMMON_DIR) \
            -I$(WLAN_ROOT)/$(HIF_SDIO_NATIVE_INC_DIR) \
            -I$(WLAN_ROOT)/$(HIF_SDIO_NATIVE_SRC_DIR)
 
-HIF_OBJS := $(HIF_DIR_OBJS)\
-			$(HIF_COMMON_OBJS)\
-            $(HIF_SDIO_OBJS)\
-            $(HIF_SDIO_LINUX_OBJS)\
-            $(HIF_SDIO_NATIVE_OBJS)
-else
-############ DXE ############
-DXE_DIR :=	CORE/DXE
-DXE_INC_DIR :=	$(DXE_DIR)/inc
-DXE_SRC_DIR :=	$(DXE_DIR)/src
-
-DXE_INC := 	-I$(WLAN_ROOT)/$(DXE_INC_DIR) \
-		-I$(WLAN_ROOT)/$(DXE_SRC_DIR)
-
-HIF_DXE_DIR :=  CORE/SERVICES/HIF/DXE
-HIF_DXE_INC :=  -I$(WLAN_ROOT)/$(HIF_DXE_DIR)
-
-ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
-DXE_OBJS =      $(DXE_SRC_DIR)/wlan_qct_dxe.o \
-                $(DXE_SRC_DIR)/wlan_qct_dxe_cfg_i.o
-else
-ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
-HIF_DXE_INC :=  -I$(WLAN_ROOT)/$(HIF_DXE_DIR) \
-		-I$(WLAN_ROOT)/$(HIF_DXE_DIR)/linux
-
-HIF_DXE_OBJS:=  $(HIF_DXE_DIR)/hif_dxe.o \
-                $(HIF_DXE_DIR)/hif_dxe_config.o \
-                $(HIF_DXE_DIR)/linux/hif_dxe_os.o \
-                $(HIF_DXE_DIR)/dmux_dxe.o \
-                $(DXE_DIR)/htt_dxe_tx.o \
-                $(DXE_DIR)/htt_dxe_fw_stats.o \
-                $(DXE_DIR)/htt_dxe_h2t.o \
-                $(DXE_DIR)/htt_dxe_t2h.o \
-                $(DXE_DIR)/htt_dxe.o \
-                $(DXE_DIR)/htt_dxe_rx.o
-
-DXE_INC += $(HIF_DXE_INC)
-DXE_OBJS := $(HIF_DXE_OBJS)
-endif
-endif
+HIF_OBJS :=	$(HIF_DIR_OBJS) \
+		$(HIF_COMMON_OBJS) \
+		$(HIF_SDIO_OBJS) \
+		$(HIF_SDIO_LINUX_OBJS) \
+		$(HIF_SDIO_NATIVE_OBJS)
 endif
 
 ############ HDD ############
@@ -843,17 +808,12 @@ WDA_OBJS :=	$(WDA_SRC_DIR)/wlan_qct_wda_debug.o \
 		$(WDA_SRC_DIR)/wlan_qct_wda_legacy.o \
 		$(WDA_SRC_DIR)/wlan_nv.o
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
-WDA_OBJS +=	$(WDA_SRC_DIR)/wlan_qct_wda.o \
-		$(WDA_SRC_DIR)/wlan_qct_wda_ds.o
-endif
-
 ############ WDI ############
 WDI_DIR :=	CORE/WDI
 
 WDI_CP_INC :=	-I$(WLAN_ROOT)/$(WDI_DIR)/CP/inc/
 
-WDI_DP_INC := -I$(WLAN_ROOT)/$(WDI_DIR)/DP/inc/
+WDI_DP_INC :=	-I$(WLAN_ROOT)/$(WDI_DIR)/DP/inc/
 
 WDI_TRP_INC :=	-I$(WLAN_ROOT)/$(WDI_DIR)/TRP/CTS/inc/ \
 		-I$(WLAN_ROOT)/$(WDI_DIR)/TRP/DTS/inc/
@@ -875,7 +835,6 @@ WCNSS_INC :=	-I$(WLAN_ROOT)/wcnss/inc
 LINUX_INC :=	-Iinclude/linux
 
 INCS :=		$(BAP_INC) \
-		$(DXE_INC) \
 		$(HDD_INC) \
 		$(EPPING_INC) \
 		$(LINUX_INC) \
@@ -891,9 +850,7 @@ INCS :=		$(BAP_INC) \
 		$(WDI_INC) \
 		$(DFS_INC)
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
-INCS +=		$(DXE_INC)
-else
+ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 INCS +=		$(WMA_INC) \
 		$(COMMON_INC) \
 		$(WMI_INC) \
@@ -914,8 +871,6 @@ ifeq ($(CONFIG_REMOVE_PKT_LOG), 0)
 INCS +=		$(PKTLOG_INC)
 endif
 
-else
-INCS +=		$(DXE_INC)
 endif
 
 endif
@@ -934,8 +889,7 @@ OBJS :=		$(BAP_OBJS) \
 		$(DFS_OBJS)
 
 ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
-OBJS +=		$(DXE_OBJS) \
-		$(TL_OBJS)
+OBJS +=		$(TL_OBJS)
 else
 OBJS +=		$(WMA_OBJS) \
 		$(TLSHIM_OBJS) \
@@ -955,8 +909,6 @@ ifeq ($(CONFIG_REMOVE_PKT_LOG), 0)
 OBJS +=		$(PKTLOG_OBJS)
 endif
 
-else
-OBJS +=		$(DXE_OBJS)
 endif
 
 endif

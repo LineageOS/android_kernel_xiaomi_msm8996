@@ -54,46 +54,8 @@
 
 #if defined(CONFIG_HL_SUPPORT)
 
-#ifdef QCA_WIFI_ISOC
-
-A_STATUS
-ol_tx_classify_extension(
-    struct ol_txrx_vdev_t *vdev,
-    struct ol_tx_desc_t *tx_desc,
-    adf_nbuf_t tx_nbuf,
-    struct ol_txrx_msdu_info_t *tx_msdu_info);
-
-A_STATUS
-ol_tx_classify_mgmt_extension(
-    struct ol_txrx_vdev_t *vdev,
-    struct ol_tx_desc_t *tx_desc,
-    adf_nbuf_t tx_nbuf,
-    struct ol_txrx_msdu_info_t *tx_msdu_info);
-
-#define OL_TX_CLASSIFY_EXTENSION(vdev, tx_desc, netbuf, msdu_info, txq) \
-    do { \
-        A_STATUS status; \
-        status = ol_tx_classify_extension( \
-            vdev, tx_desc, netbuf, msdu_info); \
-        if (A_OK != status) { \
-            txq = NULL; /* error */ \
-        } \
-    } while (0)
-
-#define OL_TX_CLASSIFY_MGMT_EXTENSION(vdev, tx_desc, netbuf, msdu_info, txq) \
-    do { \
-        A_STATUS status; \
-        status = ol_tx_classify_mgmt_extension( \
-            vdev, tx_desc, netbuf, msdu_info); \
-        if (A_OK != status) { \
-            txq = NULL; /* error */ \
-        } \
-    } while (0)
-
-#else
 #define OL_TX_CLASSIFY_EXTENSION(vdev, tx_desc, netbuf, msdu_info, txq)
 #define OL_TX_CLASSIFY_MGMT_EXTENSION(vdev, tx_desc, netbuf, msdu_info, txq)
-#endif /* QCA_WIFI_ISOC */
 
 #ifdef QCA_TX_HTT2_SUPPORT
 static void

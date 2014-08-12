@@ -1555,11 +1555,7 @@ ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
         total = ol_cfg_target_tx_credit(pdev->ctrl_pdev);
     }
 
-#ifndef QCA_WIFI_ISOC
     return (total - pdev->tx_desc.num_free);
-#else
-    return total - adf_os_atomic_read(&pdev->target_tx_credit);
-#endif
 }
 
 void

@@ -159,14 +159,7 @@ ol_tx_queues_display(struct ol_txrx_pdev_t *pdev);
 #define ol_tx_queues_display(pdev) /* no-op */
 #endif
 
-#ifdef QCA_WIFI_ISOC
-void
-ol_tx_queue_decs_reinit(
-    ol_txrx_peer_handle peer,
-    u_int16_t peer_id);
-#else
 #define ol_tx_queue_decs_reinit(peer, peer_id) /* no-op */
-#endif /* CONFIG_HL_SUPPORT */
 
 #ifdef QCA_SUPPORT_TX_THROTTLE
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -92,13 +92,8 @@ typedef enum htt_isoc_t2h_msg_type {
     (*((A_UINT8 *) msg_addr))
 
 #ifndef INLINE
-#ifdef QCA_WIFI_ISOC
-/* host SW */
-#define INLINE inline
-#else
 /* target FW */
 #define INLINE __inline
-#endif
 #define HTT_ISOC_INLINE_DEF
 #endif /* INLINE */
 

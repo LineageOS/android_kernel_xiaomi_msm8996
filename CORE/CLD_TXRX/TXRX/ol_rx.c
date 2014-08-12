@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -60,7 +60,7 @@
 #include <ol_vowext_dbg_defs.h>
 
 #ifdef HTT_RX_RESTORE
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
+#if  defined(CONFIG_CNSS)
 #include <net/cnss.h>
 #endif
 #endif

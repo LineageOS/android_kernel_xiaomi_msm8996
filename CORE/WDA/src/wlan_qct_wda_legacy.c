@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -208,25 +208,3 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb)
    return eSIR_SUCCESS;
 
 } // uMacPostCtrlMsg()
-
-
-/* ---------------------------------------------------------
- * FUNCTION:  wdaGetGlobalSystemRole()
- *
- * Get the global HAL system role.
- * ---------------------------------------------------------
- */
-tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac)
-{
-   v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
-   tWDA_CbContext *wdaContext =
-                       vos_get_context(VOS_MODULE_ID_WDA, pVosContext);
-   if(NULL == wdaContext)
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                           "%s:WDA context is NULL", __func__);
-      VOS_ASSERT(0);
-      return eSYSTEM_UNKNOWN_ROLE;
-   }
-   return  wdaContext->wdaGlobalSystemRole;
-}

@@ -362,9 +362,6 @@ typedef struct
    tANI_U8              wdaMaxSta;
    tWdaTimers           wdaTimers;
 
-   /* STA, AP, IBSS, MULTI-BSS etc.*/
-   tBssSystemRole       wdaGlobalSystemRole;
-
    /* driver mode, PRODUCTION or FTM */
    tDriverType          driverMode;
 

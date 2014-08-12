@@ -82,20 +82,9 @@ ol_tx_queue_log_free(
 
 
 /*--- function prototypes for optional host ADDBA negotiation ---------------*/
-#ifdef QCA_WIFI_ISOC
-
-void
-ol_tx_queue_addba_check(
-    struct ol_txrx_pdev_t *pdev,
-    struct ol_tx_frms_queue_t *txq,
-    struct ol_txrx_msdu_info_t *tx_msdu_info);
-#define OL_TX_QUEUE_ADDBA_CHECK ol_tx_queue_addba_check
-
-#else
 
 #define OL_TX_QUEUE_ADDBA_CHECK(pdev, txq, tx_msdu_info) /* no-op */
 
-#endif /* QCA_SUPPORT_HOST_ADDBA */
 
 #ifndef container_of
 #define container_of(ptr, type, member) ((type *)( \
@@ -430,24 +419,6 @@ ol_txrx_peer_tid_unpause_base(
     }
 }
 
-#if defined(CONFIG_HL_SUPPORT) && defined(QCA_WIFI_ISOC)
-void
-ol_txrx_peer_pause(ol_txrx_peer_handle peer)
-{
-    struct ol_txrx_pdev_t *pdev = peer->vdev->pdev;
-
-    /* TO DO: log the queue pause */
-
-    /* acquire the mutex lock, since we'll be modifying the queues */
-    TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
-    adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
-
-    ol_txrx_peer_pause_base(pdev, peer);
-
-    adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
-    TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
-}
-#endif
 
 void
 ol_txrx_peer_tid_unpause(ol_txrx_peer_handle peer, int tid)
@@ -800,142 +771,6 @@ void ol_tx_throttle_init(struct ol_txrx_pdev_t *pdev)
 
 /*--- ADDBA triggering functions --------------------------------------------*/
 
-#ifdef QCA_WIFI_ISOC
-
-/**
-* Request the control SW to begin an ADDBA negotiation
-*/
-enum ol_addba_status
-ol_ctrl_addba_req(
-    ol_pdev_handle pdev,
-    u_int8_t *peer_mac_addr,
-    int tidno)
-{
-        /*
-         * TODO: Process ADDBA request and send whether the requested
-        * ADDBA negotiation was started.
-         */
-    return ol_addba_success;
-}
-
-void
-ol_tx_queue_addba_check(
-    struct ol_txrx_pdev_t *pdev,
-    struct ol_tx_frms_queue_t *txq,
-    struct ol_txrx_msdu_info_t *tx_msdu_info)
-{
-    struct ol_txrx_peer_t *peer;
-    int tid;
-    enum ol_addba_status status;
-
-    if (!pdev->cfg.host_addba || /* host doesn't handle ADDBA negotiation */
-        txq->aggr_state == ol_tx_aggr_enabled  ||  /* ADDBA already done */
-        txq->aggr_state == ol_tx_aggr_disabled ||  /* ADDBA not permitted */
-        txq->aggr_state == ol_tx_aggr_in_progress)
-    {
-        return;
-    }
-
-    /* if the tx queue is not marked as aggr_disabled, it belongs to a peer */
-    TXRX_ASSERT1(tx_msdu_info->peer);
-    peer = tx_msdu_info->peer;
-    tid = tx_msdu_info->htt.info.ext_tid;
-
-    if (ETHERTYPE_IS_EAPOL_WAPI(tx_msdu_info->htt.info.ethertype)) {
-        /*
-         * Don't start aggregation based on EAPOL frame,
-         * but do start for future real data frames.
-         */
-        txq->aggr_state = ol_tx_aggr_retry;
-        return;
-    }
-
-    if (txq->aggr_state == ol_tx_aggr_retry) {
-        if (tx_msdu_info->peer) {
-            /*
-             * The queue is probably currently unpaused.
-             * Pause it during the ADDBA negotiation.
-             */
-            ol_txrx_peer_tid_pause_base(pdev, peer, tid);
-        }
-    }
-
-    status = ol_ctrl_addba_req(
-        pdev->ctrl_pdev, &peer->mac_addr.raw[0], tid);
-    if (status == ol_addba_reject) {
-        /* Aggregation is disabled for this peer-TID. Unpause the tx queue. */
-        txq->aggr_state = ol_tx_aggr_disabled;
-        ol_txrx_peer_tid_unpause_base(pdev, peer, tid);
-    } else if (status == ol_addba_busy) {
-        if (ol_cfg_addba_retry(pdev->ctrl_pdev)) {
-            /* ADDBA negotiation can't be done now, but try again next time */
-            txq->aggr_state = ol_tx_aggr_retry;
-        } else {
-            txq->aggr_state = ol_tx_aggr_disabled;
-        }
-        /* unpause the tx queue, so the new frame can be sent */
-        ol_txrx_peer_tid_unpause_base(pdev, peer, tid);
-    } else {
-        /* ADDBA negotiation successfully started */
-        txq->aggr_state = ol_tx_aggr_in_progress;
-    }
-}
-
-void
-ol_tx_queue_decs_reinit(
-    ol_txrx_peer_handle peer,
-    u_int16_t peer_id)
-{
-    ol_tx_desc_list     *tx_descs;
-    struct ol_tx_desc_t *tx_desc, *tmp;
-
-    tx_descs = &peer->txqs[HTT_TX_EXT_TID_MGMT].head;
-
-    TAILQ_FOREACH_SAFE(tx_desc, tx_descs, tx_desc_list_elem, tmp) {
-         /* initialize the HW tx descriptor */
-        htt_tx_desc_set_peer_id((u_int32_t*)tx_desc->htt_tx_desc, peer_id);
-    }
-
-    adf_os_print("%s peer_id=%d\n", __func__, peer_id);
-}
-
-void
-ol_tx_addba_conf(ol_txrx_peer_handle peer, int tid, enum ol_addba_status status)
-{
-    if (!peer->vdev->pdev->cfg.host_addba) {
-        /*
-         * In theory, this function should never be called if the
-         * host_addba configuration flag is not set.
-         * In practice, some test framework SW may call this function
-         * even if host_addba is not set, so handle this unexpected
-         * invocation gracefully.
-         */
-        adf_os_print(
-            "UNEXPECTED CALL TO %s WHEN HOST ADDBA IS DISABLED!\n", __func__);
-        return;
-    }
-    /* mark the aggregation as being complete */
-    TXRX_ASSERT1(peer->txqs[tid].aggr_state == ol_tx_aggr_in_progress);
-    /*
-     * It's possible that the ADDBA request was rejected, but regardless of
-     * whether it was accepted, mark the tx queue to show that ADDBA
-     * negotiation has already been done, and need not be attempted again.
-     * However, if the negotiation failed to complete (i.e. was aborted),
-     * then mark tx queue to try again later, unless the status says to
-     * not try again.
-     */
-    if (status == ol_addba_success) {
-        peer->txqs[tid].aggr_state = ol_tx_aggr_enabled;
-    } else if (status == ol_addba_reject) {
-        peer->txqs[tid].aggr_state = ol_tx_aggr_disabled;
-    } else { /* busy */
-        peer->txqs[tid].aggr_state = ol_tx_aggr_retry;
-    }
-    /* unpause the tx queue */
-    ol_txrx_peer_tid_unpause(peer, tid);
-}
-
-#endif /* QCA_SUPPORT_HOST_ADDBA */
 
 /*=== debug functions =======================================================*/
 
