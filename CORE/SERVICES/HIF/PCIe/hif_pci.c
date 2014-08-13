@@ -55,7 +55,7 @@
 #include "hif_pci.h"
 #include "vos_trace.h"
 #include "vos_api.h"
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
+#if  defined(CONFIG_CNSS)
 #include <net/cnss.h>
 #endif
 #include <vos_getBin.h>
