@@ -145,6 +145,7 @@ enum EnumRd {
     APL1_ETSIC  = 0x55,
     APL2_ETSIC  = 0x56,     /* Venezuela */
     APL5_WORLD  = 0x58,     /* Chile */
+    APL13_WORLD = 0x5A,     /* Algeria */
     APL6_WORLD  = 0x5B,     /* Singapore */
     APL7_FCCA   = 0x5C,     /* Taiwan 5.47 Band */
     APL8_WORLD  = 0x5D,     /* Malaysia 5GHz */

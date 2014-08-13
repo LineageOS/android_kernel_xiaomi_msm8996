@@ -813,6 +813,7 @@ tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg )
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
         CASE_RETURN_STRING(WDA_ROAM_OFFLOAD_SYNCH_CNF);
 #endif
+        CASE_RETURN_STRING(SIR_HAL_SET_BASE_MACADDR_IND);
         default:
             return((tANI_U8*) "UNKNOWN" );
             break;

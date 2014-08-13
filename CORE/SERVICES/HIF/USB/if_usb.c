@@ -38,6 +38,7 @@
 #include "vos_api.h"
 #include "wma_api.h"
 #include "wlan_hdd_main.h"
+#include "epping_main.h"
 
 #ifdef WLAN_BTAMP_FEATURE
 #include "wlan_btc_svc.h"
@@ -203,7 +204,8 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	sc->hdd_removed_processing = 0;
 	sc->hdd_removed_wait_cnt = 0;
 #ifndef REMOVE_PKT_LOG
-	if (vos_get_conparam() != VOS_FTM_MODE) {
+	if (vos_get_conparam() != VOS_FTM_MODE &&
+        !WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
 		/*
 		 * pktlog initialization
 		 */
@@ -278,8 +280,9 @@ static void hif_usb_remove(struct usb_interface *interface)
 	if (usb_sc->hdd_removed == 0) {
 		usb_sc->hdd_removed_processing = 1;
 #ifndef REMOVE_PKT_LOG
-		if (vos_get_conparam() != VOS_FTM_MODE)
-			pktlogmod_exit(scn);
+	if (vos_get_conparam() != VOS_FTM_MODE &&
+		!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+		pktlogmod_exit(scn);
 #endif
 		__hdd_wlan_exit();
 		usb_sc->hdd_removed_processing = 0;
@@ -486,7 +489,8 @@ void hif_unregister_driver(void)
 			if (usb_sc->hdd_removed == 0) {
 				usb_sc->hdd_removed_processing = 1;
 #ifndef REMOVE_PKT_LOG
-				if (vos_get_conparam() != VOS_FTM_MODE)
+	            if (vos_get_conparam() != VOS_FTM_MODE &&
+		            !WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
 					pktlogmod_exit(usb_sc->ol_sc);
 #endif
 				__hdd_wlan_exit();

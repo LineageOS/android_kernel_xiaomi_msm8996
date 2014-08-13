@@ -773,8 +773,9 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             else
                 psessionEntry->htSupportedChannelWidthSet =
                                  (pSmeStartBssReq->cbMode)?1:0;
-            psessionEntry->htRecommendedTxWidthSet = psessionEntry->htSupportedChannelWidthSet;
             psessionEntry->htSecondaryChannelOffset = pSmeStartBssReq->cbMode;
+            psessionEntry->htRecommendedTxWidthSet =
+                                 (psessionEntry->htSecondaryChannelOffset)? 1:0;
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
                       FL("cbMode %u"), pSmeStartBssReq->cbMode);
 #ifdef WLAN_FEATURE_11AC
@@ -4802,12 +4803,15 @@ static void __limProcessSmeSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     {
     case PHY_SINGLE_CHANNEL_CENTERED:
         psessionEntry->htSecondaryChannelOffset = PHY_SINGLE_CHANNEL_CENTERED;
+        psessionEntry->htRecommendedTxWidthSet = 0;
         break;
     case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
         psessionEntry->htSecondaryChannelOffset = PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
+        psessionEntry->htRecommendedTxWidthSet = 1;
         break;
     case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
         psessionEntry->htSecondaryChannelOffset = PHY_DOUBLE_CHANNEL_HIGH_PRIMARY;
+        psessionEntry->htRecommendedTxWidthSet = 1;
         break;
     default:
         limLog(pMac, LOGE,FL("Invalid cbMode"));
