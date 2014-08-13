@@ -310,7 +310,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
                  "%s: Failed to complete BMI phase", __func__);
        goto err_htc_close;
    }
-#endif /* QCA_WIFI_2_0 && QCA_WIFI_FTM */
+#endif /* QCA_WIFI_FTM */
 
    /* Open the SYS module */
    vStatus = sysOpen(gpVosContext);

@@ -42,11 +42,7 @@
 
 /* In pronto case, IBSS owns the first peer for bss peer.
    In Rome case, IBSS uses the 2nd peer as bss peer */
-#ifdef CONFIG_QCA_WIFI_ISOC
-#define IBSS_BROADCAST_STAID 0
-#else
 #define IBSS_BROADCAST_STAID 1
-#endif
 
 typedef enum
 {
