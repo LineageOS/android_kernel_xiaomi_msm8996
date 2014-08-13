@@ -361,7 +361,9 @@ exit:
 static int ol_check_fw_hash(const u8* data, u32 data_size, ATH_BIN_FILE file)
 {
 	u8 *hash = NULL;
+#ifdef CONFIG_CNSS
 	u8 digest[SHA256_DIGEST_SIZE];
+#endif
 	u8 temp[SHA256_DIGEST_SIZE] = {};
 	int ret = 0;
 
