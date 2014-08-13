@@ -46,7 +46,6 @@ BRIEF DESCRIPTION:
 
 #define QWLAN_VERSIONSTR               "1.0.0.172"
 
-#ifdef QCA_WIFI_2_0
 
 #define AR6320_REV1_VERSION             0x5000000
 #define AR6320_REV1_1_VERSION           0x5000001
@@ -60,6 +59,5 @@ struct qwlan_hw {
     const char *name;
 };
 
-#endif
 
 #endif /* QWLAN_VERSION_H */

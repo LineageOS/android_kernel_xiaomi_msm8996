@@ -4583,7 +4583,6 @@ end:
     return;
 } /*** end __limProcessSmeUpdateAPWPSIEs(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf) ***/
 
-#ifdef QCA_WIFI_2_0
 void
 limSendVdevRestart(tpAniSirGlobal pMac,
                    tpPESession psessionEntry,
@@ -4620,7 +4619,6 @@ limSendVdevRestart(tpAniSirGlobal pMac,
         vos_mem_free(pHalHiddenSsidVdevRestart);
     }
 }
-#endif /* QCA_WIFI_2_0 */
 
 static void
 __limProcessSmeHideSSID(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
@@ -4649,10 +4647,8 @@ __limProcessSmeHideSSID(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     /* Update the session entry */
     psessionEntry->ssidHidden = pUpdateParams->ssidHidden;
 
-#ifdef QCA_WIFI_2_0
     /* Send vdev restart */
     limSendVdevRestart(pMac, psessionEntry, pUpdateParams->sessionId);
-#endif /* QCA_WIFI_2_0 */
 
     /* Update beacon */
     schSetFixedBeaconFields(pMac, psessionEntry);

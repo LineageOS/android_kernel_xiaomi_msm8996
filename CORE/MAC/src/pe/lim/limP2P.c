@@ -1111,11 +1111,9 @@ send_frame1:
     // Paranoia:
     vos_mem_set(pFrame, nBytes, 0);
 
-#ifdef QCA_WIFI_2_0
     /* Add sequence number to action frames */
     /* Frames are handed over in .11 format by supplicant already */
     limPopulateP2pMacHeader(pMac, (tANI_U8*)pMbMsg->data);
-#endif /* QCA_WIFI_2_0 */
 
     if ((noaLen > 0) && (noaLen<(SIR_MAX_NOA_ATTR_LEN + SIR_P2P_IE_HEADER_LEN)))
     {

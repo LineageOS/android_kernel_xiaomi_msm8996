@@ -115,10 +115,8 @@ void limSendSmeTdlsTeardownRsp(tpAniSirGlobal pMac, tSirResultCodes statusCode, 
 void limSendSmeTdlsLinkEstablishReqRsp(tpAniSirGlobal pMac,
                                        tANI_U8 sessionId, tSirMacAddr peerMac, tDphHashNode   *pStaDs,
                                        tANI_U8 status);
-#ifdef QCA_WIFI_2_0
 void limSendSmeTdlsEventNotify(tpAniSirGlobal pMac, tANI_U16 msgType,
                                void *events);
-#endif
 #endif
 
 void limSendSmeDfsEventNotify(tpAniSirGlobal pMac, tANI_U16 msgType,

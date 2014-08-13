@@ -119,25 +119,15 @@ tpPESession peCreateSession(tpAniSirGlobal pMac,
             vos_mem_set((void*)&pMac->lim.gpSession[i], sizeof(tPESession), 0);
 
             //Allocate space for Station Table for this session.
-#ifdef QCA_WIFI_2_0
             pMac->lim.gpSession[i].dph.dphHashTable.pHashTable = vos_mem_malloc(
                                                   sizeof(tpDphHashNode)* (numSta + 1));
-#else
-            pMac->lim.gpSession[i].dph.dphHashTable.pHashTable = vos_mem_malloc(
-                                                   sizeof(tpDphHashNode)*numSta);
-#endif
             if ( NULL == pMac->lim.gpSession[i].dph.dphHashTable.pHashTable )
             {
                 limLog(pMac, LOGE, FL("memory allocate failed!"));
                 return NULL;
             }
-#ifdef QCA_WIFI_2_0
             pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray = vos_mem_malloc(
                                                        sizeof(tDphHashNode) * (numSta + 1));
-#else
-            pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray = vos_mem_malloc(
-                                                       sizeof(tDphHashNode)*numSta);
-#endif
             if ( NULL == pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray )
             {
                 limLog(pMac, LOGE, FL("memory allocate failed!"));
@@ -146,11 +136,7 @@ tpPESession peCreateSession(tpAniSirGlobal pMac,
                 return NULL;
             }
 
-#ifdef QCA_WIFI_2_0
             pMac->lim.gpSession[i].dph.dphHashTable.size = numSta + 1;
-#else
-            pMac->lim.gpSession[i].dph.dphHashTable.size = numSta;
-#endif
 
             dphHashTableClassInit(pMac,
                            &pMac->lim.gpSession[i].dph.dphHashTable);

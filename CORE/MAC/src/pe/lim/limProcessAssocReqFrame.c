@@ -774,11 +774,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     if (pStaDs == NULL)
     {
         /// Requesting STA is not currently associated
-#ifdef QCA_WIFI_2_0
         if (peGetCurrentSTAsCount(pMac) == pMac->lim.gLimAssocStaLimit)
-#else
-        if (peGetCurrentSTAsCount(pMac) == pMac->lim.maxStation)
-#endif
         {
             /**
              * Maximum number of STAs that AP can handle reached.

@@ -975,18 +975,10 @@ typedef struct sSirSmeScanChanReq
 #ifdef FEATURE_OEM_DATA_SUPPORT
 
 #ifndef OEM_DATA_REQ_SIZE
-#ifdef QCA_WIFI_2_0
 #define OEM_DATA_REQ_SIZE 280
-#else
-#define OEM_DATA_REQ_SIZE 134
-#endif
 #endif
 #ifndef OEM_DATA_RSP_SIZE
-#ifdef QCA_WIFI_2_0
 #define OEM_DATA_RSP_SIZE 1724
-#else
-#define OEM_DATA_RSP_SIZE 1968
-#endif
 #endif
 
 typedef struct sSirOemDataReq
@@ -3019,13 +3011,8 @@ typedef struct sSmeCsaOffloadInd
 
 /// WOW related structures
 // SME -> PE <-> HAL
-#ifdef QCA_WIFI_2_0
 #define SIR_WOWL_BCAST_PATTERN_MAX_SIZE 146
 #define SIR_WOWL_BCAST_MAX_NUM_PATTERNS 19
-#else
-#define SIR_WOWL_BCAST_PATTERN_MAX_SIZE 128
-#define SIR_WOWL_BCAST_MAX_NUM_PATTERNS 16
-#endif
 // SME -> PE -> HAL - This is to add WOWL BCAST wake-up pattern.
 // SME/HDD maintains the list of the BCAST wake-up patterns.
 // This is a pass through message for PE
@@ -4164,7 +4151,6 @@ typedef struct sSirMgmtTxCompletionInd
    tANI_U32               txCompleteStatus;
 } tSirMgmtTxCompletionInd, *tpSirMgmtTxCompletionInd;
 
-#ifdef QCA_WIFI_2_0
 typedef struct sSirTdlsEventNotify
 {
    tANI_U8         sessionId;
@@ -4172,7 +4158,6 @@ typedef struct sSirTdlsEventNotify
    tANI_U16        messageType;
    tANI_U32        peer_reason;
 } tSirTdlsEventNotify;
-#endif
 #endif /* FEATURE_WLAN_TDLS */
 
 
@@ -4220,9 +4205,7 @@ typedef struct sAniHandoffReq
     tANI_U8   sessionId;
     tANI_U8   bssid[VOS_MAC_ADDR_SIZE];
     tANI_U8   channel;
-#ifndef QCA_WIFI_ISOC
     tANI_U8   handoff_src;
-#endif
 } tAniHandoffReq, *tpAniHandoffReq;
 
 typedef struct sSirScanOffloadReq {

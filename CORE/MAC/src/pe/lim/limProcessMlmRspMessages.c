@@ -62,9 +62,7 @@
 #include "wlan_qct_wda.h"
 #include "vos_utils.h"
 
-#ifdef QCA_WIFI_2_0
 #define MAX_SUPPORTED_PEERS_WEP 16
-#endif
 
 static void limHandleSmeJoinResult(tpAniSirGlobal, tSirResultCodes, tANI_U16,tpPESession);
 static void limHandleSmeReaasocResult(tpAniSirGlobal, tSirResultCodes, tANI_U16, tpPESession);
@@ -2468,9 +2466,7 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
     tLimMlmStartCnf mlmStartCnf;
     tANI_U32 val;
     tpPESession psessionEntry;
-#ifdef QCA_WIFI_2_0
     tANI_U8 isWepEnabled = FALSE;
-#endif
     tpAddBssParams pAddBssParams = (tpAddBssParams) limMsgQ->bodyptr;
     if(NULL == pAddBssParams )
     {
@@ -2525,7 +2521,6 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
             psessionEntry->limSystemRole = eLIM_STA_IN_IBSS_ROLE;
         schEdcaProfileUpdate(pMac, psessionEntry);
         limInitPreAuthList(pMac);
-#ifdef QCA_WIFI_2_0
         /* Check the SAP security configuration.If configured to
          * WEP then max clients supported is 16
          */
@@ -2543,7 +2538,6 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
                 }
             }
         }
-#endif
         limInitPeerIdxpool(pMac,psessionEntry);
 
         // Start OLBC timer
@@ -2559,13 +2553,11 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
         // Apply previously set configuration at HW
         limApplyConfiguration(pMac,psessionEntry);
 
-#ifdef QCA_WIFI_2_0
         /* In limApplyConfiguration gLimAssocStaLimit is assigned from cfg.
          * So update the value to 16 in case SoftAP is configured in WEP.
          */
         if ((pMac->lim.gLimAssocStaLimit > MAX_SUPPORTED_PEERS_WEP) && (isWepEnabled))
             pMac->lim.gLimAssocStaLimit = MAX_SUPPORTED_PEERS_WEP;
-#endif
         psessionEntry->staId = pAddBssParams->staContext.staIdx;
         mlmStartCnf.resultCode  = eSIR_SME_SUCCESS;
     }
