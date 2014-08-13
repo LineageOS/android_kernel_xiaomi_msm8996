@@ -50,7 +50,7 @@
 #include "bin_sig.h"
 #include "ar6320v2_dbg_regtable.h"
 #include "epping_main.h"
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
+#if  defined(CONFIG_CNSS)
 #include <net/cnss.h>
 #endif
 
@@ -820,7 +820,6 @@ u_int32_t host_interest_item_address(u_int32_t target_type, u_int32_t item_offse
 	}
 }
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #ifdef HIF_PCI
 int dump_CE_register(struct ol_softc *scn)
 {
@@ -856,9 +855,8 @@ int dump_CE_register(struct ol_softc *scn)
 	return EOK;
 }
 #endif
-#endif
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
+#if  defined(CONFIG_CNSS)
 static struct ol_softc *ramdump_scn;
 
 int ol_copy_ramdump(struct ol_softc *scn)
@@ -991,14 +989,12 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 	scn->target_status = OL_TRGET_STATUS_RESET;
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 		printk("%s: Loading/Unloading is in progress, ignore!\n",
 			__func__);
 		return;
 	}
 	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
-#endif
 
 #ifdef CONFIG_CNSS
 	ret = hif_pci_check_fw_reg(scn->hif_sc);
@@ -1089,7 +1085,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 	}
 #endif
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(CONFIG_CNSS)
+#if  defined(CONFIG_CNSS)
 	/* Collect the RAM dump through a workqueue */
 	ol_schedule_ramdump_work(scn);
 #endif
@@ -1264,7 +1260,6 @@ ol_check_dataset_patch(struct ol_softc *scn, u_int32_t *address)
 	return 0;
 }
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #ifdef HIF_PCI
 
 A_STATUS ol_fw_populate_clk_settings(A_refclk_speed_t refclk,
@@ -1625,16 +1620,13 @@ A_STATUS ol_patch_pll_switch(struct ol_softc * scn)
 	return status;
 }
 #endif
-#endif
 
 int ol_download_firmware(struct ol_softc *scn)
 {
 	u_int32_t param, address = 0;
 	int status = !EOK;
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #if defined(HIF_PCI)
 	A_STATUS ret;
-#endif
 #endif
 
 #ifdef CONFIG_CNSS
@@ -1662,14 +1654,12 @@ int ol_download_firmware(struct ol_softc *scn)
 		printk("%s: Target address not known! Using 0x%x\n", __func__, address);
 	}
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #if defined(HIF_PCI)
 	ret = ol_patch_pll_switch(scn);
 	if (ret) {
 		pr_err("pll switch failed. status %d\n", ret);
 		return -1;
 	}
-#endif
 #endif
 
 	if (scn->cal_in_flash) {
@@ -1838,7 +1828,6 @@ int ol_download_firmware(struct ol_softc *scn)
 	return status;
 }
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 #ifdef HIF_PCI
 int ol_diag_read(struct ol_softc *scn, u_int8_t *buffer,
 	u_int32_t pos, size_t count)
@@ -2062,7 +2051,6 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 	}
 	return ret;
 }
-#endif
 #endif
 
 #if defined(CONFIG_HL_SUPPORT)

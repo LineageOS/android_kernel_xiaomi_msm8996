@@ -59,7 +59,6 @@
 #define VDEV_DEFAULT_STATS_UPDATE_PERIOD    500
 #define PEER_DEFAULT_STATS_UPDATE_PERIOD    500
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 /*
  * Note that not all the register locations are accessible.
  * A list of accessible target registers are specified with
@@ -103,7 +102,6 @@ void ol_schedule_ramdump_work(struct ol_softc *scn);
 void ol_schedule_fw_indication_work(struct ol_softc *scn);
 int ol_copy_ramdump(struct ol_softc *scn);
 int dump_CE_register(struct ol_softc *scn);
-#endif
 int ol_download_firmware(struct ol_softc *scn);
 int ol_configure_target(struct ol_softc *scn);
 void ol_target_failure(void *instance, A_STATUS status);
