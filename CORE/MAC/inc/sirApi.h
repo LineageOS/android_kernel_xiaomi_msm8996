@@ -3758,6 +3758,7 @@ typedef struct sSirRoamOffloadScanReq
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
   tANI_U8   RoamOffloadEnabled;
   tANI_U8   PSK_PMK[SIR_ROAM_SCAN_PSK_SIZE];
+  tANI_U32  pmk_len;
   tANI_U8   Prefer5GHz;
   tANI_U8   RoamRssiCatGap;
   tANI_U8   Select5GHzMargin;

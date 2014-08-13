@@ -3891,16 +3891,20 @@ eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId, tANI_U
  *\param hHal - Global structure
  *\param sessionId - SME sessionId
  *\param pPSK_PMK - pointer to an array of Psk[]/Pmk
+ *\param pmk_len - Length could be only 16 bytes in case if LEAP
+                   connections. Need to pass this information to
+                   firmware.
  *\return eHalStatus -status whether PSK/PMK is set or not
  *---------------------------------------------------------------------------*/
-eHalStatus sme_RoamSetPSK_PMK (tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pPSK_PMK)
+eHalStatus sme_RoamSetPSK_PMK (tHalHandle hHal, tANI_U8 sessionId,
+                               tANI_U8 *pPSK_PMK, size_t pmk_len)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     status = sme_AcquireGlobalLock(&pMac->sme);
     if (HAL_STATUS_SUCCESS(status)) {
         if (CSR_IS_SESSION_VALID(pMac, sessionId)) {
-            status = csrRoamSetPSK_PMK(pMac, sessionId, pPSK_PMK);
+            status = csrRoamSetPSK_PMK(pMac, sessionId, pPSK_PMK, pmk_len);
         }
         else {
             status = eHAL_STATUS_INVALID_PARAMETER;
