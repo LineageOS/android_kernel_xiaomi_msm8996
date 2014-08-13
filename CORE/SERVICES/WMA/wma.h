@@ -299,7 +299,6 @@ struct scan_param{
 	tSirP2pScanType p2p_scan_type;
 };
 
-#ifndef QCA_WIFI_ISOC
 
 #define WMA_BCN_BUF_MAX_SIZE 2500
 #define WMA_NOA_IE_SIZE(num_desc) (2 + (13 * (num_desc)))
@@ -329,7 +328,6 @@ struct beacon_tim_ie {
 
 #define WMA_TIM_SUPPORTED_PVB_LENGTH (HAL_NUM_STA / 8) + 1
 
-#endif
 
 struct pps {
 	v_BOOL_t paid_match_enable;
@@ -477,9 +475,7 @@ struct wma_txrx_node {
 	u_int8_t addr[ETH_ALEN];
 	u_int8_t bssid[ETH_ALEN];
 	void *handle;
-#ifndef QCA_WIFI_ISOC
 	struct beacon_info *beacon;
-#endif
 	vdev_restart_params_t vdev_restart_params;
 	vdev_cli_config_t config;
 	struct scan_param scan_info;
@@ -533,7 +529,7 @@ struct wma_txrx_node {
 	v_BOOL_t roam_synch_in_progress;
 };
 
-#if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+#if defined(QCA_WIFI_FTM)
 #define MAX_UTF_EVENT_LENGTH	2048
 #define MAX_WMI_UTF_LEN		252
 #define SYS_MSG_COOKIE		(0xFACE)
@@ -576,10 +572,6 @@ typedef struct {
 	void *vos_context;
 	void *mac_context;
 
-#ifdef QCA_WIFI_ISOC
-	vos_event_t cfg_nv_tx_complete;
-	vos_event_t cfg_nv_rx_complete;
-#endif
 	vos_event_t wma_ready_event;
 	vos_event_t wma_resume_event;
 	vos_event_t target_suspend;
@@ -636,10 +628,8 @@ typedef struct {
 	adf_nbuf_t last_umac_data_nbuf;
 
 	v_BOOL_t needShutdown;
-#if !defined(QCA_WIFI_ISOC)
 	u_int32_t num_mem_chunks;
 	struct wma_mem_chunk mem_chunks[MAX_MEM_CHUNKS];
-#endif
 	wda_tgt_cfg_cb tgt_cfg_update_cb;
    /*Callback to indicate radar to HDD*/
    wda_dfs_radar_indication_cb dfs_radar_indication_cb;
@@ -657,7 +647,7 @@ typedef struct {
 #endif
 	u_int32_t num_rf_chains;
 
-#if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+#if defined(QCA_WIFI_FTM)
 	/* UTF event information */
 	struct utf_event_info utf_event_info;
 #endif
@@ -1046,138 +1036,6 @@ typedef PACKED_PRE struct PACKED_POST
    tHalHostMsgVersion msgVersion:16;
    tANI_U32         msgLen;
 } tHalMsgHeader, *tpHalMsgHeader;
-#ifdef QCA_WIFI_ISOC
-/*Version string max length (including NUL) */
-#define WLAN_HAL_VERSION_LENGTH  64
-/* Definition for HAL API Version.*/
-typedef PACKED_PRE struct PACKED_POST
-{
-	u_int8_t                  revision;
-	u_int8_t                  version;
-	u_int8_t                  minor;
-	u_int8_t                  major;
-} tWcnssWlanVersion, *tpWcnssWlanVersion;
-
-/*---------------------------------------------------------------------------
- * WLAN_HAL_DOWNLOAD_NV_REQ
- *--------------------------------------------------------------------------*/
-typedef PACKED_PRE struct PACKED_POST
-{
-    /* Fragment sequence number of the NV Image. Note that NV Image might not
-     * fit into one message due to size limitation of the SMD channel FIFO. UMAC
-     * can hence choose to chop the NV blob into multiple fragments starting with
-     * seqeunce number 0, 1, 2 etc. The last fragment MUST be indicated by
-     * marking the isLastFragment field to 1. Note that all the NV blobs would be
-     * concatenated together by HAL without any padding bytes in between.*/
-    tANI_U16 fragNumber;
-
-    /* Is this the last fragment? When set to 1 it indicates that no more fragments
-     * will be sent by UMAC and HAL can concatenate all the NV blobs rcvd & proceed
-     * with the parsing. HAL would generate a WLAN_HAL_DOWNLOAD_NV_RSP to the
-     * WLAN_HAL_DOWNLOAD_NV_REQ after it receives each fragment */
-    tANI_U16 isLastFragment;
-
-    /* NV Image size (number of bytes) */
-    tANI_U32 nvImgBufferSize;
-
-    /* Following the 'nvImageBufferSize', there should be nvImageBufferSize
-     * bytes of NV Image i.e. uint8[nvImageBufferSize] */
-} tHalNvImgDownloadReqParams, *tpHalNvImgDownloadReqParams;
-
-
-typedef PACKED_PRE struct PACKED_POST
-{
-    /* Note: The length specified in tHalNvImgDownloadReqMsg messages should be
-     * header.msgLen = sizeof(tHalNvImgDownloadReqMsg) + nvImgBufferSize */
-    tHalMsgHeader header;
-    tHalNvImgDownloadReqParams nvImageReqParams;
-} tHalNvImgDownloadReqMsg, *tpHalNvImgDownloadReqMsg;
-
-/*---------------------------------------------------------------------------
-  WLAN_HAL_STOP_REQ
----------------------------------------------------------------------------*/
-
-typedef PACKED_PRE struct PACKED_POST
-{
-	/*The reason for which the device is being stopped*/
-	tHalStopType   reason;
-} tHalMacStopReqParams, *tpHalMacStopReqParams;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-	tHalMsgHeader header;
-	tHalMacStopReqParams stopReqParams;
-} tHalMacStopReqMsg, *tpHalMacStopReqMsg;
-
-/*---------------------------------------------------------------------------
-  WLAN_HAL_STOP_RSP
----------------------------------------------------------------------------*/
-
-typedef PACKED_PRE struct PACKED_POST
-{
-	/*success or failure */
-	u_int32_t   status;
-
-} tHalMacStopRspParams, *tpHalMacStopRspParams;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-	tHalMsgHeader header;
-	tHalMacStopRspParams stopRspParams;
-}  tHalMacStopRspMsg, *tpHalMacStopRspMsg;
-
-/*---------------------------------------------------------------------------
- * WLAN_HAL_START_RSP
- *----------------------------------------------------------------------------*/
-
-typedef PACKED_PRE struct PACKED_POST sHalMacStartRspParameters
-{
-	/*success or failure */
-	u_int16_t  status;
-
-	/*Max number of STA supported by the device*/
-	u_int8_t     ucMaxStations;
-
-	/*Max number of BSS supported by the device*/
-	u_int8_t     ucMaxBssids;
-
-	/*API Version */
-	tWcnssWlanVersion wcnssWlanVersion;
-
-	/*CRM build information */
-	u_int8_t
-		wcnssCrmVersionString[WLAN_HAL_VERSION_LENGTH];
-
-	/*hardware/chipset/misc version information
-	 * */
-	u_int8_t
-		wcnssWlanVersionString[WLAN_HAL_VERSION_LENGTH];
-
-} tHalMacStartRspParams, *tpHalMacStartRspParams;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-	tHalMsgHeader header;
-	tHalMacStartRspParams startRspParams;
-}  tHalMacStartRspMsg, *tpHalMacStartRspMsg;
-
-/*---------------------------------------------------------------------------
- * WLAN_HAL_DOWNLOAD_NV_RSP
- *--------------------------------------------------------------------------*/
-typedef PACKED_PRE struct PACKED_POST
-{
-	/* Success or Failure. HAL would generate a WLAN_HAL_DOWNLOAD_NV_RSP
-	 * after each fragment */
-	u_int32_t   status;
-} tHalNvImgDownloadRspParams, *tpHalNvImgDownloadRspParams;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-	tHalMsgHeader header;
-	tHalNvImgDownloadRspParams nvImageRspParams;
-}  tHalNvImgDownloadRspMsg, *tpHalNvImgDownloadRspMsg;
-
-#endif
 
 /*---------------------------------------------------------------------------
   WLAN_HAL_START_REQ
@@ -1214,21 +1072,6 @@ extern void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
 		u_int16_t regdmn5G, int8_t ctl2G, int8_t ctl5G);
 void wma_get_modeselect(tp_wma_handle wma, u_int32_t *modeSelect);
 
-#ifdef QCA_WIFI_ISOC
-VOS_STATUS wma_cfg_download_isoc(v_VOID_t *vos_context,
-		tp_wma_handle wma_handle);
-
-VOS_STATUS wma_cfg_nv_get_hal_message_buffer(tp_wma_handle wma_handle,
-		u_int16_t uReqType, u_int16_t usBufferLen,
-		u_int8_t **pMsgBuffer, u_int16_t *pusDataOffset,
-		u_int16_t *pusBufferSize);
-
-VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
-		t_wma_start_req *wdi_start_params );
-
-VOS_STATUS wma_htc_cfg_nv_connect_service(tp_wma_handle wma_handle);
-VOS_STATUS wma_hal_stop_isoc(tp_wma_handle wma_handle);
-#endif
 
 /**
   * Frame index
@@ -1245,7 +1088,6 @@ VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
 		ol_txrx_vdev_handle tx_rx_vdev_handle, u_int8_t *mac,
 		u_int32_t vdev_type, bool add_del);
 
-#ifndef QCA_WIFI_ISOC
 int32_t regdmn_get_regdmn_for_country(u_int8_t *alpha2);
 void regdmn_get_ctl_info(struct regulatory *reg, u_int32_t modesAvail,
      u_int32_t modeSelect);
@@ -1253,7 +1095,6 @@ void regdmn_get_ctl_info(struct regulatory *reg, u_int32_t modesAvail,
 /*get the ctl from regdomain*/
 u_int8_t regdmn_get_ctl_for_regdmn(u_int32_t reg_dmn);
 u_int16_t get_regdmn_5g(u_int32_t reg_dmn);
-#endif
 
 #define WMA_FW_PHY_STATS	0x1
 #define WMA_FW_RX_REORDER_STATS 0x2
