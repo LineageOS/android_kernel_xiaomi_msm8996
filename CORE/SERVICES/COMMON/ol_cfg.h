@@ -396,32 +396,17 @@ ol_cfg_sw_encap_hdr_max_size(ol_pdev_handle pdev)
 static inline u_int8_t
 ol_cfg_tx_encap(ol_pdev_handle pdev)
 {
-#ifdef QCA_WIFI_ISOC
-    /*
-     * Tx encap done in SW for Riva.
-     * TBD: do tx encap in HW for Pronto and Northstar?
-     */
-    return 1;
-#else
     /* tx encap done in HW */
     return 0;
-#endif
 }
 
 static inline int
 ol_cfg_host_addba(ol_pdev_handle pdev)
 {
-#ifdef QCA_WIFI_ISOC
-    /*
-     * ADDBA negotiation is handled by the host SW for the Riva family.
-     */
-    return 1;
-#else
     /*
      * ADDBA negotiation is handled by the target FW for Peregrine + Rome.
      */
     return 0;
-#endif
 }
 
 /**

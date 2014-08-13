@@ -49,9 +49,6 @@
 #include <net/cnss.h>
 #endif
 
-#ifdef QCA_WIFI_ISOC
-#include "dmux_dxe_api.h"
-#endif
 
 #include "ol_ctrl_addba_api.h"
 typedef void * hif_handle_t;
@@ -282,9 +279,6 @@ struct ol_ath_vap_net80211 {
 
 struct ol_ath_node_net80211 {
     ol_txrx_peer_handle         an_txrx_handle;    /* ol data path handle */
-#ifdef QCA_WIFI_ISOC
-    ol_ctrl_addba_handle        an_ctrl_addba_handle;
-#endif /* QCA_WIFI_ISOC */
 };
 
 #define OL_ATH_NODE_NET80211(_ni)      ((struct ol_ath_node_net80211 *)(_ni))

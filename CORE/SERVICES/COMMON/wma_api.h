@@ -54,9 +54,7 @@
 #include "aniGlobal.h"
 #include "a_types.h"
 #include "wmi_unified.h"
-#ifndef QCA_WIFI_ISOC
 #include "wlan_hdd_tgt_cfg.h"
-#endif
 #ifdef NOT_YET
 #include "htc_api.h"
 #endif
@@ -121,7 +119,6 @@ eHalStatus WMA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
 
 VOS_STATUS WMA_GetWcnssSoftwareVersion(v_PVOID_t pvosGCtx, tANI_U8 *pVersion,
                                        tANI_U32 versionBufferSize);
-#ifndef QCA_WIFI_ISOC
 int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr);
 void wma_target_suspend_acknowledge(void *context);
 int wma_resume_target(WMA_HANDLE handle);
@@ -132,7 +129,6 @@ bool wma_check_scan_in_progress(WMA_HANDLE handle);
 #ifdef FEATURE_WLAN_D0WOW
 int wma_get_client_count(WMA_HANDLE handle);
 #endif
-#endif
 int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,
 			u_int32_t param_value, u_int32_t vdev_id);
 #ifdef NOT_YET
@@ -141,10 +137,8 @@ VOS_STATUS wma_update_channel_list(WMA_HANDLE handle, void *scan_chan_info);
 
 u_int8_t *wma_get_vdev_address_by_vdev_id(u_int8_t vdev_id);
 
-#ifndef QCA_WIFI_ISOC
 void *wma_get_beacon_buffer_by_vdev_id(u_int8_t vdev_id,
 				       u_int32_t *buffer_size);
-#endif	/* QCA_WIFI_ISOC */
 
 int process_wma_set_command(int sessid, int paramid,
                                    int sval, int vpdev);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -107,52 +107,11 @@ enum htt_op_mode {
    htt_op_mode_monitor,
 };
 
-#ifdef QCA_WIFI_ISOC
-/**
- * @brief Notify HTT of a new virtual device, and specify the operating mode
- * @param htt_pdev - handle to the HTT pdev the vdev belongs to
- * @param vdev_id - the ID used to identify the virtual device to the target
- * @param op_mode - is the virtual device operating as an AP, IBSS, or STA
- */
-void
-htt_vdev_attach(
-    htt_pdev_handle htt_pdev,
-    u_int8_t vdev_id,
-    enum htt_op_mode op_mode);
-
-/**
- * @brief Notify HTT that a virtual device is being deleted
- * @param htt_pdev - handle to the HTT pdev the vdev belongs to
- * @param vdev_id - the ID used to identify the virtual device to the target
- */
-void
-htt_vdev_detach(htt_pdev_handle htt_pdev, u_int8_t vdev_id);
-
-/**
- * @brief Notify HTT if a new peer is QoS-capable
- * @param htt_pdev - handle to the HTT pdev the vdev belongs to
- * @param peer_id - the ID of the new peer
- * @param qos_capable - boolean spec of whether the peer is QoS capable
- */
-void
-htt_peer_qos_update(htt_pdev_handle htt_pdev, int peer_id, u_int8_t qos_capable);
-
-/**
- * @brief Notify HTT uapsd mask
- * @param htt_pdev - handle to the HTT pdev the vdev belongs to
- * @param peer_id - the ID of the new peer
- * @param uapsd_mask - uapsd mask
- */
-void
-htt_peer_uapsdmask_update(htt_pdev_handle htt_pdev, int peer_id, u_int8_t uapsd_mask);
-
-#else
 /* no-ops */
 #define htt_vdev_attach(htt_pdev, vdev_id, op_mode)
 #define htt_vdev_detach(htt_pdev, vdev_id)
 #define htt_peer_qos_update(htt_pdev, peer_id, qos_capable)
 #define htt_peer_uapsdmask_update(htt_pdev, peer_id, uapsd_mask)
-#endif /* QCA_WIFI_ISOC */
 
 /**
  * @brief Deallocate a HTT instance.
@@ -258,14 +217,8 @@ void htt_display(htt_pdev_handle pdev, int indent);
 #define htt_display(pdev, indent)
 #endif
 
-#if defined(QCA_WIFI_ISOC) && HTT_DEBUG_LEVEL > 1
-#define HTT_DXE_RX_LOG 1
-void
-htt_rx_reorder_log_print(struct htt_pdev_t *pdev);
-#else
 #define HTT_DXE_RX_LOG 0
 #define htt_rx_reorder_log_print(pdev)
-#endif
 
 #ifdef IPA_UC_OFFLOAD
 /**

@@ -328,7 +328,7 @@ wdi_in_tx_release(
 void
 wdi_in_vdev_pause(ol_txrx_vdev_handle data_vdev, u_int32_t reason);
 #else
-#define wdi_in_vdev_pause(data_vdev, u_int32_t) /* no-op */
+#define wdi_in_vdev_pause(data_vdev, reason) /* no-op */
 #endif /* CONFIG_HL_SUPPORT */
 
 /**
@@ -344,7 +344,7 @@ wdi_in_vdev_pause(ol_txrx_vdev_handle data_vdev, u_int32_t reason);
 void
 wdi_in_vdev_unpause(ol_txrx_vdev_handle data_vdev, u_int32_t reason);
 #else
-#define wdi_in_vdev_unpause(data_vdev, u_int32_t reason) /* no-op */
+#define wdi_in_vdev_unpause(data_vdev, reason) /* no-op */
 #endif /* CONFIG_HL_SUPPORT */
 
 /**
@@ -702,30 +702,7 @@ wdi_in_peer_keyinstalled_state_update(
     ol_txrx_peer_handle data_peer,
     u_int8_t val);
 
-#ifdef QCA_WIFI_ISOC
-/**
- * @brief Confirm that a requested tx ADDBA negotiation has completed
- * @details
- *  For systems in which ADDBA-request / response handshaking is handled
- *  by the host SW, the data SW will request for the control SW to perform
- *  the ADDBA negotiation at an appropriate time.
- *  This function is used by the control SW to inform the data SW that the
- *  ADDBA negotiation has finished, and the data SW can now resume
- *  transmissions from the peer-TID tx queue in question.
- *
- * @param peer - which peer the ADDBA-negotiation was with
- * @param tid - which traffic type the ADDBA-negotiation was for
- * @param status - whether the negotiation completed or was aborted:
- *            success: the negotiation completed
- *            reject:  the negotiation completed but was rejected
- *            busy:    the negotiation was aborted - try again later
- */
-void
-ol_tx_addba_conf(
-    ol_txrx_peer_handle data_peer, int tid, enum ol_addba_status status);
-#else
 #define ol_tx_addba_conf(data_peer, tid, status) /* no-op */
-#endif
 
 /**
  * @typedef ol_txrx_tx_fp

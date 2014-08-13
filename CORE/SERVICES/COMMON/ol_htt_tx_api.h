@@ -354,16 +354,6 @@ htt_tx_send_nonstd(
  * @param msdu - the MSDU that is being prepared for transmission
  * @param msdu_info - tx MSDU meta-data
  */
-#ifdef QCA_WIFI_ISOC
-void
-htt_tx_desc_init(
-    htt_pdev_handle pdev,
-    void *htt_tx_desc,
-    u_int32_t htt_tx_desc_paddr_lo,
-    u_int16_t msdu_id,
-    adf_nbuf_t msdu,
-    struct htt_msdu_info_t *msdu_info);
-#else
 
 /*
  * Provide a constant to specify the offset of the HTT portion of the
@@ -453,7 +443,6 @@ htt_tx_desc_init(
      */
     adf_nbuf_set_frag_is_wordstream(msdu, 0, 1);
 }
-#endif /* QCA_WIFI_ISOC */
 
 /**
  * @brief Set a flag to indicate that the MSDU in question was postponed.
@@ -549,15 +538,11 @@ htt_tx_desc_frag(
     *word = frag_len;
 }
 
-#ifdef QCA_WIFI_ISOC
-#define htt_tx_desc_frags_table_set(pdev, desc, paddr, reset) /* no-op */
-#else
 void htt_tx_desc_frags_table_set(
     htt_pdev_handle pdev,
     void *desc,
     u_int32_t paddr,
     int reset);
-#endif
 
 /**
  * @brief Specify the type and subtype of a tx frame.
@@ -629,12 +614,7 @@ htt_tx_mgmt_desc_pool_free(struct htt_pdev_t *pdev);
  * @param htt_tx_desc - which frame the 802.11 header is being added to
  * @param new_l2_hdr_size - how large the buffer needs to be
  */
-#ifdef QCA_WIFI_ISOC
-volatile char *
-htt_tx_desc_mpdu_header(void *htt_tx_desc, u_int8_t new_l2_hdr_size);
-#else
 #define htt_tx_desc_mpdu_header(htt_tx_desc, new_l2_hdr_size) /*NULL*/
-#endif /* QCA_WIFI_ISOC */
 
 /**
  * @brief How many tx credits would be consumed by the specified tx frame.
@@ -642,11 +622,7 @@ htt_tx_desc_mpdu_header(void *htt_tx_desc, u_int8_t new_l2_hdr_size);
  * @param msdu - the tx frame in question
  * @return number of credits used for this tx frame
  */
-#ifdef QCA_WIFI_ISOC
-u_int32_t htt_tx_msdu_credit(adf_nbuf_t msdu);
-#else
 #define htt_tx_msdu_credit(msdu) 1 /* 1 credit per buffer */
-#endif /* QCA_WIFI_ISOC */
 
 
 
@@ -657,12 +633,6 @@ htt_tx_desc_display(void *tx_desc);
 #define htt_tx_desc_display(tx_desc)
 #endif
 
-#ifdef QCA_WIFI_ISOC
-void
-htt_tx_desc_set_peer_id(
-              u_int32_t *htt_tx_desc,
-              u_int16_t peer_id);
-#else
 static inline
 void htt_tx_desc_set_peer_id(u_int32_t *htt_tx_desc, u_int16_t peer_id)
 {
@@ -673,13 +643,6 @@ void htt_tx_desc_set_peer_id(u_int32_t *htt_tx_desc, u_int16_t peer_id)
 
     *peer_id_field_ptr = peer_id;
 }
-#endif /* QCA_WIFI_ISOC */
-#ifdef QCA_WIFI_ISOC
-void
-htt_tx_desc_set_chanfreq(
-              u_int32_t *htt_tx_desc,
-              u_int16_t chanfreq);
-#else
 static inline
 void htt_tx_desc_set_chanfreq(u_int32_t *htt_tx_desc, u_int16_t chanfreq)
 {
@@ -690,6 +653,5 @@ void htt_tx_desc_set_chanfreq(u_int32_t *htt_tx_desc, u_int16_t chanfreq)
 
     *chanfreq_field_ptr = chanfreq;
 }
-#endif /* QCA_WIFI_ISOC */
 
 #endif /* _OL_HTT_TX_API__H_ */
