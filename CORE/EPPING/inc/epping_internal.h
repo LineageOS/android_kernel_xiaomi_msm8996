@@ -46,7 +46,7 @@
 #include <linux/spinlock.h>
 #include <linux/kthread.h>
 #include <linux/semaphore.h>
-#ifdef WLAN_OPEN_SOURCE
+#if defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
 #include <linux/wakelock.h>
 #endif
 #include <wlan_hdd_ftm.h>

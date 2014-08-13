@@ -94,6 +94,18 @@ $(shell ln -sf /firmware/image/utf30.bin $(TARGET_OUT_ETC)/firmware/utf30.bin)
 $(shell ln -sf /firmware/image/qwlan30.bin $(TARGET_OUT_ETC)/firmware/qwlan30.bin)
 endif
 
+# Copy config ini files to target
+ifeq ($(call is-board-platform-in-list, msm8994),false)
+ifeq ($(WLAN_PROPRIETARY),1)
+$(shell mkdir -p $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_CHIPSET))
+$(shell mkdir -p $(TARGET_OUT)/etc/wifi)
+$(shell rm -f $(TARGET_OUT)/etc/wifi/WCNSS_qcom_cfg.ini)
+$(shell rm -f $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_SHIPSET)/WCNSS_cfg.dat)
+$(shell cp $(LOCAL_PATH)/firmware_bin/WCNSS_qcom_cfg.ini $(TARGET_OUT)/etc/wifi)
+$(shell cp $(LOCAL_PATH)/firmware_bin/WCNSS_cfg.dat $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_CHIPSET))
+endif
+endif
+
 endif # DLKM check
 
 endif # supported target check

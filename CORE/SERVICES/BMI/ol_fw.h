@@ -52,7 +52,6 @@
 #define QCA_OTP_FILE                 "otp.bin"
 #define QCA_SETUP_FILE               "athsetup.bin"
 #define AR61X4_SINGLE_FILE           "qca61x4.bin"
-#define QCA_FIRMWARE_EPPING_FILE     "epping.bin"
 
 /* Configuration for statistics pushed by firmware */
 #define PDEV_DEFAULT_STATS_UPDATE_PERIOD    500
@@ -85,6 +84,15 @@
 
 #define TOTAL_DUMP_SIZE         0x00200000
 #define PCIE_READ_LIMIT         0x00005000
+
+#define SHA256_DIGEST_SIZE      32
+
+struct hash_fw {
+	u8 qwlan[SHA256_DIGEST_SIZE];
+	u8 otp[SHA256_DIGEST_SIZE];
+	u8 bdwlan[SHA256_DIGEST_SIZE];
+	u8 utf[SHA256_DIGEST_SIZE];
+};
 
 int ol_target_coredump(void *instance, void* memoryBlock,
                         u_int32_t blockLength);

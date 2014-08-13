@@ -76,32 +76,8 @@
 #define CSR_SCAN_IS_OVER_BSS_LIMIT(pMac)  \
    ( (pMac)->scan.nBssLimit <= (csrLLCount(&(pMac)->scan.scanResultList)) )
 
-/* Maximum number of channels per country can be ignored */
-#define MAX_CHANNELS_IGNORE 10
-
-#define MAX_COUNTRY_IGNORE 5
 
 #define THIRTY_PERCENT(x)  (x*30/100);
-
-/*struct to hold the ignored channel list based on country */
-typedef struct sCsrIgnoreChannels
-{
-    tANI_U8 countryCode[NV_FIELD_COUNTRY_CODE_SIZE];
-    tANI_U16 channelList[MAX_CHANNELS_IGNORE];
-    tANI_U16 channelCount;
-}tCsrIgnoreChannels;
-
-#ifndef CONFIG_ENABLE_LINUX_REG
-static tCsrIgnoreChannels countryIgnoreList[MAX_COUNTRY_IGNORE] = {
-    { {'U','A'}, { 136, 140}, 2},
-    { {'T','W'}, { 36, 40, 44, 48, 52}, 5},
-    { {'I','D'}, { 165}, 1 },
-    { {'A','U'}, { 120, 124, 128}, 3 },
-    { {'A','R'}, { 120, 124, 128}, 3 }
-    };
-#else
-static tCsrIgnoreChannels countryIgnoreList[MAX_COUNTRY_IGNORE] = { };
-#endif //CONFIG_ENABLE_LINUX_REG
 
 //*** This is temporary work around. It need to call CCM api to get to CFG later
 /// Get string parameter value
@@ -3537,30 +3513,19 @@ void csrApplyPower2Current( tpAniSirGlobal pMac )
 
 void csrApplyChannelPowerCountryInfo( tpAniSirGlobal pMac, tCsrChannel *pChannelList, tANI_U8 *countryCode, tANI_BOOLEAN updateRiva)
 {
-    int i, j, count, countryIndex = -1;
+    int i;
     eNVChannelEnabledType channelEnabledType;
     tANI_U8 numChannels = 0;
     tANI_U8 tempNumChannels = 0;
-    tANI_U8 channelIgnore = FALSE;
     tCsrChannel ChannelList;
 
     if( pChannelList->numChannels )
     {
-        for(count=0; count < MAX_COUNTRY_IGNORE; count++)
-        {
-            if(vos_mem_compare(countryCode, countryIgnoreList[count].countryCode,
-                                                          VOS_COUNTRY_CODE_LEN))
-            {
-                countryIndex = count;
-                break;
-            }
-        }
         tempNumChannels = CSR_MIN(pChannelList->numChannels, WNI_CFG_VALID_CHANNEL_LIST_LEN);
         /* If user doesn't want to scan the DFS channels lets trim them from
         the valid channel list*/
         for(i=0; i < tempNumChannels; i++)
         {
-            channelIgnore = FALSE;
             if( FALSE == pMac->scan.fEnableDFSChnlScan )
             {
                 channelEnabledType =
@@ -3572,25 +3537,11 @@ void csrApplyChannelPowerCountryInfo( tpAniSirGlobal pMac, tCsrChannel *pChannel
             }
             if( NV_CHANNEL_ENABLE == channelEnabledType )
             {
-                if( countryIndex != -1 )
-                {
-                    for(j=0; j < countryIgnoreList[countryIndex].channelCount; j++)
-                    {
-                        if( pChannelList->channelList[i] ==
-                                countryIgnoreList[countryIndex].channelList[j] )
-                        {
-                            channelIgnore = TRUE;
-                            break;
-                        }
-                    }
-                }
-                if( FALSE == channelIgnore )
-                {
-                   ChannelList.channelList[numChannels] = pChannelList->channelList[i];
-                   numChannels++;
-                }
+                ChannelList.channelList[numChannels] = pChannelList->channelList[i];
+                numChannels++;
             }
         }
+
         ChannelList.numChannels = numChannels;
         csrSetCfgValidChannelList(pMac, ChannelList.channelList, ChannelList.numChannels);
         // extend scan capability
@@ -3869,9 +3820,7 @@ void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce )
                     smsLog( pMac, LOGE, FL("  fail to set regId %d"), domainId );
                 }
                 pMac->scan.domainIdCurrent = domainId;
-#ifndef CONFIG_ENABLE_LINUX_REG
-                csrApplyChannelPowerCountryInfo( pMac, &pMac->scan.channels11d, pMac->scan.countryCode11d, eANI_BOOLEAN_TRUE );
-#endif
+
                 // switch to active scans using this new channel list
                 pMac->scan.curScanType = eSIR_ACTIVE_SCAN;
                 pMac->scan.f11dInfoApplied = eANI_BOOLEAN_TRUE;
@@ -4224,10 +4173,10 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                     }
                 }
             }
-#ifdef CONFIG_ENABLE_LINUX_REG
+
             csrGetRegulatoryDomainForCountry(pMac, pIesLocal->Country.country,
                                              &domainId, COUNTRY_IE);
-#endif
+
         }
         else //Tush
         {
@@ -4252,68 +4201,7 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
 
         // set the indicator of the channel where the country IE was found...
         pMac->scan.channelOf11dInfo = pSirBssDesc->channelId;
-#ifndef CONFIG_ENABLE_LINUX_REG
-        status = csrGetRegulatoryDomainForCountry(pMac,
-                       pIesLocal->Country.country, &domainId, COUNTRY_IE);
-        if ( status != eHAL_STATUS_SUCCESS )
-        {
-            smsLog( pMac, LOGE, FL("  fail to get regId %d"), domainId );
-            fRet = eANI_BOOLEAN_FALSE;
-            break;
-        }
-        // Checking for Domain Id change
-        if ( domainId != pMac->scan.domainIdCurrent )
-        {
-            vos_mem_copy(pMac->scan.countryCode11d,
-                                  pIesLocal->Country.country,
-                                  sizeof( pMac->scan.countryCode11d ) );
-            /* Set Current Country code and Current Regulatory domain */
-            status = csrSetRegulatoryDomain(pMac, domainId, NULL);
-            if (eHAL_STATUS_SUCCESS != status)
-            {
-                smsLog(pMac, LOGE, "Set Reg Domain Fail %d", status);
-                fRet = eANI_BOOLEAN_FALSE;
-                break;
-            }
-            //csrSetRegulatoryDomain will fail if the country doesn't fit our domain criteria.
-            vos_mem_copy(pMac->scan.countryCodeCurrent,
-                            pIesLocal->Country.country, WNI_CFG_COUNTRY_CODE_LEN);
-            //Simply set it to cfg.
-            csrSetCfgCountryCode(pMac, pIesLocal->Country.country);
 
-            /* overwrite the defualt country code */
-            vos_mem_copy(pMac->scan.countryCodeDefault,
-                                      pMac->scan.countryCodeCurrent,
-                                      WNI_CFG_COUNTRY_CODE_LEN);
-            /* Set Current RegDomain */
-            status = WDA_SetRegDomain(pMac, domainId, eSIR_TRUE);
-            if ( status != eHAL_STATUS_SUCCESS )
-            {
-                smsLog( pMac, LOGE, FL("  fail to Set regId %d"), domainId );
-                fRet = eANI_BOOLEAN_FALSE;
-                break;
-            }
-             /* set to default domain ID */
-            pMac->scan.domainIdCurrent = domainId;
-            /* get the channels based on new cc */
-            status = csrInitGetChannels( pMac );
-
-            if ( status != eHAL_STATUS_SUCCESS )
-            {
-                smsLog( pMac, LOGE, FL("  fail to get Channels "));
-                fRet = eANI_BOOLEAN_FALSE;
-                break;
-            }
-
-            /* reset info based on new cc, and we are done */
-            csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE, eANI_BOOLEAN_TRUE);
-           /* Regulatory Domain Changed, Purge Only scan result
-            * which does not have channel number belong to 11d
-            * channel list
-            */
-            csrScanFilterResults(pMac);
-        }
-#endif
         fRet = eANI_BOOLEAN_TRUE;
 
     } while( 0 );

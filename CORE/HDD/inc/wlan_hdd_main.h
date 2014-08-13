@@ -51,7 +51,7 @@
 #include <wlan_hdd_wmm.h>
 #include <wlan_hdd_cfg.h>
 #include <linux/spinlock.h>
-#ifdef WLAN_OPEN_SOURCE
+#if defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
 #include <linux/wakelock.h>
 #endif
 #include <wlan_hdd_ftm.h>
@@ -132,11 +132,7 @@
 #define WAIT_TIME_TDLS_INITIATOR    600
 
 /* Maximum time to get linux regulatory entry settings */
-#ifdef CONFIG_ENABLE_LINUX_REG
 #define LINUX_REG_WAIT_TIME 300
-#else
-#define CRDA_WAIT_TIME 300
-#endif
 
 /* Scan Req Timeout */
 #define WLAN_WAIT_TIME_SCAN_REQ 100
@@ -1276,11 +1272,7 @@ struct hdd_context_s
    struct completion mc_sus_event_var;
 
    /* Completion variable for regulatory hint  */
-#ifdef CONFIG_ENABLE_LINUX_REG
    struct completion linux_reg_req;
-#else
-   struct completion driver_crda_req;
-#endif
 
    v_BOOL_t isWlanSuspended;
 
@@ -1299,8 +1291,6 @@ struct hdd_context_s
    v_BOOL_t isLoadInProgress;
 
    v_BOOL_t isUnloadInProgress;
-
-   v_BOOL_t isCleanUpDone;
 
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;
@@ -1599,9 +1589,7 @@ void hdd_ipv6_notifier_work_queue(struct work_struct *work);
 #endif
 
 
-#ifdef CONFIG_ENABLE_LINUX_REG
 void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);
-#endif
 
 int hdd_wmmps_helper(hdd_adapter_t *pAdapter, tANI_U8 *ptr);
 int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate);

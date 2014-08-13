@@ -54,6 +54,8 @@
 #include <net/cnss.h>
 #endif
 
+static struct hash_fw fw_hash;
+
 #ifdef HIF_PCI
 static u_int32_t refclk_speed_to_hz[] = {
 	48000000, /* SOC_REFCLK_48_MHZ */
@@ -70,19 +72,19 @@ static u_int32_t refclk_speed_to_hz[] = {
 #ifdef HIF_SDIO
 static struct ol_fw_files FW_FILES_QCA6174_FW_1_1 = {
 	"qwlan11.bin", "bdwlan11.bin", "otp11.bin", "utf11.bin",
-	"utfbd11.bin", "qsetup11.bin"};
+	"utfbd11.bin", "qsetup11.bin", "epping11.bin"};
 static struct ol_fw_files FW_FILES_QCA6174_FW_2_0 = {
 	"qwlan20.bin", "bdwlan20.bin", "otp20.bin", "utf20.bin",
-	"utfbd20.bin", "qsetup20.bin"};
+	"utfbd20.bin", "qsetup20.bin", "epping20.bin"};
 static struct ol_fw_files FW_FILES_QCA6174_FW_1_3 = {
 	"qwlan13.bin", "bdwlan13.bin", "otp13.bin", "utf13.bin",
-	"utfbd13.bin", "qsetup13.bin"};
+	"utfbd13.bin", "qsetup13.bin", "epping13.bin"};
 static struct ol_fw_files FW_FILES_QCA6174_FW_3_0 = {
 	"qwlan30.bin", "bdwlan30.bin", "otp30.bin", "utf30.bin",
-	"utfbd30.bin", "qsetup30.bin"};
+	"utfbd30.bin", "qsetup30.bin", "epping30.bin"};
 static struct ol_fw_files FW_FILES_DEFAULT = {
 	"qwlan.bin", "bdwlan.bin", "otp.bin", "utf.bin",
-	"utfbd.bin", "qsetup.bin"};
+	"utfbd.bin", "qsetup.bin", "epping.bin"};
 
 static A_STATUS ol_sdio_extra_initialization(struct ol_softc *scn);
 
@@ -356,6 +358,63 @@ exit:
 	return status;
 }
 
+static int ol_check_fw_hash(const u8* data, u32 data_size, ATH_BIN_FILE file)
+{
+	u8 *hash = NULL;
+	u8 digest[SHA256_DIGEST_SIZE];
+	u8 temp[SHA256_DIGEST_SIZE] = {};
+	int ret = 0;
+
+	switch(file) {
+	case ATH_BOARD_DATA_FILE:
+		hash = fw_hash.bdwlan;
+		break;
+	case ATH_OTP_FILE:
+		hash = fw_hash.otp;
+		break;
+	case ATH_FIRMWARE_FILE:
+#ifdef QCA_WIFI_FTM
+		if (vos_get_conparam() == VOS_FTM_MODE) {
+			hash = fw_hash.utf;
+			break;
+		}
+#endif
+		hash = fw_hash.qwlan;
+	default:
+		break;
+	}
+
+	if (!hash) {
+		pr_err("No entry for file:%d Download FW in non-secure mode\n", file);
+		goto end;
+	}
+
+	if (!OS_MEMCMP(hash, temp, SHA256_DIGEST_SIZE)) {
+		pr_err("Download FW in non-secure mode:%d\n", file);
+		goto end;
+	}
+
+#ifdef CONFIG_CNSS
+	ret = cnss_get_sha_hash(data, data_size, "sha256", digest);
+
+	if (ret) {
+		pr_err("Sha256 Hash computation fialed err:%d\n", ret);
+		goto end;
+	}
+
+	if (OS_MEMCMP(hash, digest, SHA256_DIGEST_SIZE) != 0) {
+		pr_err("Hash Mismatch");
+		vos_trace_hex_dump(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+						digest, SHA256_DIGEST_SIZE);
+		vos_trace_hex_dump(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+						hash, SHA256_DIGEST_SIZE);
+		ret = A_ERROR;
+	}
+#endif
+end:
+	return ret;
+}
+
 static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 				u_int32_t address, bool compressed)
 {
@@ -370,6 +429,9 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 	int bin_off, bin_len;
 	SIGN_HEADER_T *sign_header;
 #endif
+	u8 *fw_ptr;
+	u32 fw_size;
+
 	int ret;
 
 	if (scn->enablesinglebinary && file != ATH_BOARD_DATA_FILE) {
@@ -403,7 +465,7 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		break;
 	case ATH_FIRMWARE_FILE:
 		if (WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
-			filename = QCA_FIRMWARE_EPPING_FILE;
+			filename = scn->fw_files.epping_file;
 			printk(KERN_INFO "%s: Loading epping firmware file %s\n",
 				__func__, filename);
 			break;
@@ -520,6 +582,25 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 
 	fw_entry_size = fw_entry->size;
 	tempEeprom = NULL;
+
+	fw_size = fw_entry->size;
+	fw_ptr = OS_MALLOC(scn->sc_osdev, fw_size, GFP_ATOMIC);
+
+	if (!fw_ptr) {
+		pr_err("Failed to allocate fw_ptr memory\n");
+		status = A_ERROR;
+		goto end;
+	}
+	OS_MEMCPY(fw_ptr, fw_entry->data, fw_size);
+
+	if (ol_check_fw_hash(fw_ptr, fw_size, file)) {
+		pr_err("Hash Check failed for file:%s\n", filename);
+		status = A_ERROR;
+		OS_FREE(fw_ptr);
+		goto end;
+	}
+
+	OS_FREE(fw_ptr);
 
 	if (file == ATH_BOARD_DATA_FILE)
 	{
@@ -1979,8 +2060,8 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 #endif
 
 #if defined(CONFIG_HL_SUPPORT)
-#define MAX_SUPPORTED_PEERS_REV1_1 8
-#define MAX_SUPPORTED_PEERS_REV1_3 8
+#define MAX_SUPPORTED_PEERS_REV1_1 9
+#define MAX_SUPPORTED_PEERS_REV1_3 9
 #else
 #define MAX_SUPPORTED_PEERS_REV1_1 14
 #define MAX_SUPPORTED_PEERS_REV1_3 32
