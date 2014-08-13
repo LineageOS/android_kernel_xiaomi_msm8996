@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -791,129 +791,6 @@ WLANBAP_STAFetchPktCB
     return vosStatus;
 } /* WLANBAP_STAFetchPktCB */
 
-#ifndef QCA_WIFI_2_0
-/*----------------------------------------------------------------------------
-
-  FUNCTION    WLANBAP_STARxCB
-
-  DESCRIPTION
-    The receive callback registered with TL.
-
-    TL will call this to notify the client when a packet was received
-    for a registered STA.
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:       pointer to the global vos context; a handle to
-                    TL's or HDD's control block can be extracted from
-                    its context
-    vosDataBuff:   pointer to the VOSS data buffer that was received
-                    (it may be a linked list)
-    ucSTAId:        station id
-    pRxMetaInfo:   meta info for the received packet(s)
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-----------------------------------------------------------------------------*/
-VOS_STATUS
-WLANBAP_STARxCB
-(
-  v_PVOID_t          pvosGCtx,
-  vos_pkt_t*         vosDataBuff,
-  v_U8_t             ucSTAId,
-  WLANTL_RxMetaInfoType* pRxMetaInfo
-)
-{
-    VOS_STATUS    vosStatus;
-    ptBtampHandle bapHdl;  /* holds ptBtampHandle value returned  */
-    ptBtampContext bapContext; /* Holds the btampContext value returned */
-    v_PVOID_t     pHddHdl; /* Handle to return BSL context in */
-    ptBtampHandle            btampHandle;
-    WLANBAP_8023HeaderType   w8023Header;
-    v_U8_t                   aucLLCHeader[WLANBAP_LLC_HEADER_LEN];
-    v_U16_t                  protoType ;
-    v_SIZE_t                 llcHeaderLen = WLANBAP_LLC_HEADER_LEN ;
-
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
-                   "In WLANBAP_STARxCB");
-
-    /* Lookup the BSL and BAP contexts using the StaId */
-
-    vosStatus = WLANBAP_GetCtxFromStaId (
-            ucSTAId,  /* The StaId (used by TL, PE, and HAL) */
-            &bapHdl,  /* "handle" to return ptBtampHandle value in  */
-            &bapContext,  /* "handle" to return ptBtampContext value in  */
-            &pHddHdl); /* "handle" to return BSL context in */
-    if ( VOS_STATUS_SUCCESS != vosStatus )
-    {
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
-                   "Unable to retrieve BSL or BAP context from STA Id in WLANBAP_STARxCB");
-      /* Drop packet */
-      vos_pkt_return_packet(vosDataBuff);
-      return VOS_STATUS_E_FAULT;
-    }
-
-
-    vosStatus = vos_pkt_extract_data( vosDataBuff, sizeof(w8023Header), (v_VOID_t *)aucLLCHeader,
-                                   &llcHeaderLen);
-
-    if ( NULL == aucLLCHeader/*LLC Header*/ )
-    {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "WLANBAP_STARxCB:Cannot extract LLC header");
-        /* Drop packet */
-        vos_pkt_return_packet(vosDataBuff);
-        return VOS_STATUS_E_FAULT;
-    }
-
-    vos_mem_copy(&protoType,&aucLLCHeader[WLANBAP_LLC_PROTO_TYPE_OFFSET],WLANBAP_LLC_PROTO_TYPE_SIZE);
-    protoType = vos_be16_to_cpu(protoType);
-
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "%s: received : %d, => BAP",__func__,
-                 protoType);
-
-    if(WLANBAP_BT_AMP_TYPE_DATA == protoType)
-    {
-        if (bapContext->bapLinkSupervisionTimerInterval)
-        {
-            /* Reset Link Supervision timer */
-            //vosStatus = WLANBAP_StopLinkSupervisionTimer(bapContext);
-            //vosStatus = WLANBAP_StartLinkSupervisionTimer(bapContext,7000);
-            bapContext->dataPktPending = VOS_TRUE;//Indication for LinkSupervision module that data is pending
-            /* Invoke the callback that BSL registered with me */
-            vosStatus = (*bapContext->pfnBtamp_STARxCB)(
-                pHddHdl,
-                vosDataBuff,
-                pRxMetaInfo);
-        }
-        else
-        {
-            VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
-                     "WLANBAP_STARxCB:bapLinkSupervisionTimerInterval is 0");
-            /* Drop packet */
-            vos_pkt_return_packet(vosDataBuff);
-        }
-    }
-    else
-    {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "%s: link Supervision packet received over TL: %d, => BAP",
-                     __func__,protoType);
-          btampHandle = (ptBtampHandle)bapContext;
-          vosStatus = WLANBAP_RxProcLsPkt(
-                        btampHandle,
-                        bapContext->phy_link_handle,
-                        protoType,
-                        vosDataBuff
-                        );
-    }
-
-    return vosStatus;
-} /* WLANBAP_STARxCB */
-#else
 
 /*----------------------------------------------------------------------------
 
@@ -946,7 +823,6 @@ WLANBAP_STARxCB(v_PVOID_t pvosGCtx,
     /* TBD */
     return VOS_STATUS_SUCCESS;
 } /* WLANBAP_STARxCB */
-#endif
 
 /*----------------------------------------------------------------------------
 
