@@ -4253,19 +4253,11 @@ typedef struct
 #ifdef FEATURE_OEM_DATA_SUPPORT
 
 #ifndef OEM_DATA_REQ_SIZE
-#ifdef QCA_WIFI_2_0
 #define OEM_DATA_REQ_SIZE 280
-#else
-#define OEM_DATA_REQ_SIZE 134
-#endif
 #endif
 
 #ifndef OEM_DATA_RSP_SIZE
-#ifdef QCA_WIFI_2_0
 #define OEM_DATA_RSP_SIZE 1724
-#else
-#define OEM_DATA_RSP_SIZE 1968
-#endif
 #endif
 
 /*----------------------------------------------------------------------------
@@ -10184,14 +10176,10 @@ wpt_uint8 WDI_getHostWlanFeatCaps(wpt_uint8 feat_enum_value);
         0 - if the feature is NOT supported in FW
         any non-zero value - if the feature is SUPPORTED in FW.
 */
-#ifdef QCA_WIFI_2_0
 static inline wpt_uint8 WDI_getFwWlanFeatCaps(wpt_uint8 feat_enum_value)
 {
         return 1;
 }
-#else
-wpt_uint8 WDI_getFwWlanFeatCaps(wpt_uint8 feat_enum_value);
-#endif
 
 /**
  @brief WDI_GetWcnssCompiledApiVersion - Function to get wcnss compiled
