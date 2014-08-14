@@ -467,7 +467,11 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		break;
 	case ATH_FIRMWARE_FILE:
 		if (WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
+#if defined(CONFIG_CNSS) || defined(HIF_SDIO)
 			filename = scn->fw_files.epping_file;
+#else
+			filename = QCA_FIRMWARE_EPPING_FILE;
+#endif
 			printk(KERN_INFO "%s: Loading epping firmware file %s\n",
 				__func__, filename);
 			break;
