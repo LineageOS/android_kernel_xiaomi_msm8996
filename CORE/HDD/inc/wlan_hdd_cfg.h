@@ -1607,6 +1607,13 @@ typedef enum
 #define CFG_ENABLE_GREEN_AP_FEATURE_DEFAULT ( 1 )
 #endif
 
+#ifdef FEATURE_WLAN_FORCE_SAP_SCC
+#define CFG_SAP_SCC_CHAN_AVOIDANCE         "gSapSccChanAvoidance"
+#define CFG_SAP_SCC_CHAN_AVOIDANCE_MIN     ( 0 )
+#define CFG_SAP_SCC_CHAN_AVOIDANCE_MAX     ( 1 )
+#define CFG_SAP_SCC_CHAN_AVOIDANCE_DEFAULT ( 0 )
+#endif /* FEATURE_WLAN_FORCE_SAP_SCC */
+
 /*
  * VOS Trace Enable Control
  * Notes:
@@ -3282,6 +3289,10 @@ typedef struct
    v_BOOL_t                    enablelpasssupport;
 #endif
    v_BOOL_t                    enableSelfRecovery;
+
+#ifdef FEATURE_WLAN_FORCE_SAP_SCC
+   v_U8_t                      SapSccChanAvoidance;
+#endif /* FEATURE_WLAN_FORCE_SAP_SCC */
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

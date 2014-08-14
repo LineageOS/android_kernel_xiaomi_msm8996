@@ -4532,7 +4532,7 @@ typedef struct sSirRateUpdateInd
 
 } tSirRateUpdateInd, *tpSirRateUpdateInd;
 
-#ifdef FEATURE_WLAN_CH_AVOID
+#if defined(FEATURE_WLAN_CH_AVOID) || defined(FEATURE_WLAN_FORCE_SAP_SCC)
 #define SIR_CH_AVOID_MAX_RANGE   4
 
 typedef struct sSirChAvoidFreqType
@@ -4546,7 +4546,7 @@ typedef struct sSirChAvoidIndType
 	tANI_U32	avoid_range_count;
 	tSirChAvoidFreqType	avoid_freq_range[SIR_CH_AVOID_MAX_RANGE];
 } tSirChAvoidIndType;
-#endif /* FEATURE_WLAN_CH_AVOID */
+#endif /* FEATURE_WLAN_CH_AVOID || FEATURE_WLAN_FORCE_SAP_SCC */
 
 #define SIR_DFS_MAX_20M_SUB_CH 8
 

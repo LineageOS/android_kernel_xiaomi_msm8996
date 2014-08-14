@@ -80,7 +80,9 @@
 #include "cfgApi.h"
 #include "wniCfgAp.h"
 #include "wlan_hdd_misc.h"
-
+#ifdef FEATURE_WLAN_FORCE_SAP_SCC
+#include <vos_utils.h>
+#endif /* FEATURE_WLAN_FORCE_SAP_SCC */
 #if defined CONFIG_CNSS
 #include <net/cnss.h>
 #endif
@@ -548,6 +550,29 @@ VOS_STATUS hdd_set_sap_ht2040_mode(hdd_adapter_t *pHostapdAdapter,
     return VOS_STATUS_SUCCESS;
 }
 #endif
+
+#ifdef FEATURE_WLAN_FORCE_SAP_SCC
+/**---------------------------------------------------------------------------
+  \brief hdd_restart_softap() -
+   Restart SAP  on STA channel to support
+   STA + SAP concurrency.
+
+  --------------------------------------------------------------------------*/
+void hdd_restart_softap(hdd_context_t *pHddCtx,
+                        hdd_adapter_t *pHostapdAdapter)
+{
+   tHddAvoidFreqList   hdd_avoid_freq_list;
+
+   /* generate vendor specific event */
+   vos_mem_zero((void *)&hdd_avoid_freq_list, sizeof(tHddAvoidFreqList));
+   hdd_avoid_freq_list.avoidFreqRange[0].startFreq =
+        vos_chan_to_freq(pHostapdAdapter->sessionCtx.ap.operatingChannel);
+   hdd_avoid_freq_list.avoidFreqRange[0].endFreq =
+        vos_chan_to_freq(pHostapdAdapter->sessionCtx.ap.operatingChannel);
+   hdd_avoid_freq_list.avoidFreqRangeCount = 1;
+   wlan_hdd_send_avoid_freq_event(pHddCtx, &hdd_avoid_freq_list);
+}
+#endif /* FEATURE_WLAN_FORCE_SAP_SCC */
 
 /**---------------------------------------------------------------------------
 
