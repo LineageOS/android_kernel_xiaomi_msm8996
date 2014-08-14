@@ -1375,6 +1375,10 @@ extern "C" {
 #define EXTSCAN_CONFIG_HOTLIST_TABLE                    39
 #define EXTSCAN_CONFIG_WLAN_CHANGE_TABLE                40
 
+/* NLO DBGIDs */
+#define NLO_DBGID_SSID_TO_BE_SCANNED_LIST 0
+#define NLO_DBGID_SSID_TO_BE_SKIPPED_LIST 1
+
 #ifdef __cplusplus
 }
 #endif
