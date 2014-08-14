@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -52,7 +52,6 @@
  * ==================================================================================================================*/
 #include "wlan_qct_pal_type.h"
 #include "wlan_qct_pal_status.h"
-#include "wlan_qct_pal_trace.h"
 
 /* ====================================================================================================================
                   PREPROCESSORS AND DEFINITIONS

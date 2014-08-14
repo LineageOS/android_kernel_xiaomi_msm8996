@@ -1645,33 +1645,6 @@ typedef enum
 #define CFG_VOS_TRACE_ENABLE_MAX          (0xff)
 #define CFG_VOS_TRACE_ENABLE_DEFAULT      (0xffff)
 
-/*
- * WDI Trace Enable Control
- * Notes:
- *  the MIN/MAX/DEFAULT values apply for all modules
- *  the DEFAULT value is outside the valid range.  if the DEFAULT
- *    value is not overridden, then no change will be made to the
- *    "built in" default values compiled into the code
- *  values are a bitmap indicating which log levels are to enabled
- *    (must match order of wpt_tracelevel enumerations)
- *    00000001  FATAL
- *    00000010  ERROR
- *    00000100  WARN
- *    00001000  INFO
- *    00010000  INFO HIGH
- *    00100000  INFO MED
- *    01000000  INFO LOW
- *
- *  hence a value of 0x7F would set all bits (enable all logs)
- */
-#define CFG_WDI_TRACE_ENABLE_DAL_NAME     "wdiTraceEnableDAL"
-#define CFG_WDI_TRACE_ENABLE_CTL_NAME     "wdiTraceEnableCTL"
-#define CFG_WDI_TRACE_ENABLE_DAT_NAME     "wdiTraceEnableDAT"
-#define CFG_WDI_TRACE_ENABLE_PAL_NAME     "wdiTraceEnablePAL"
-#define CFG_WDI_TRACE_ENABLE_MIN          (0)
-#define CFG_WDI_TRACE_ENABLE_MAX          (0x7f)
-#define CFG_WDI_TRACE_ENABLE_DEFAULT      (0xffffffff)
-
 #define HDD_MCASTBCASTFILTER_FILTER_NONE                       0x00
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST              0x01
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST              0x02
@@ -3040,11 +3013,6 @@ typedef struct
    v_U16_t                     vosTraceEnableSAP;
    v_U16_t                     vosTraceEnableHDDSAP;
 
-   /* WDI Trace Control */
-   v_U32_t                     wdiTraceEnableDAL;
-   v_U32_t                     wdiTraceEnableCTL;
-   v_U32_t                     wdiTraceEnableDAT;
-   v_U32_t                     wdiTraceEnablePAL;
    v_U16_t                     nTeleBcnTransListenInterval;
    v_U16_t                     nTeleBcnMaxListenInterval;
    v_U16_t                     nTeleBcnTransLiNumIdleBeacons;

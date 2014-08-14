@@ -91,7 +91,6 @@
 
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
-#include "wlan_qct_pal_trace.h"
 #include "wlan_qct_tl.h"
 
 #include "wlan_hdd_misc.h"
@@ -250,7 +249,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 
 #define WE_GET_WLAN_DBG      4
 #define WE_GET_MAX_ASSOC     6
-#define WE_GET_WDI_DBG       7
+/* 7 is unused */
 #define WE_GET_SAP_AUTO_CHANNEL_SELECTION 8
 #define WE_GET_CONCURRENCY_MODE 9
 #define WE_GET_NSS           11
@@ -317,7 +316,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_THREE_INT_GET_NONE   (SIOCIWFIRSTPRIV + 4)
 #define WE_SET_WLAN_DBG      1
-#define WE_SET_WDI_DBG       2
+/* 2 is unused */
 #define WE_SET_SAP_CHANNELS  3
 
 /* Private ioctls and their sub-ioctls */
@@ -6057,13 +6056,6 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
             break;
         }
 
-        case WE_GET_WDI_DBG:
-        {
-           wpalTraceDisplay();
-           *value = 0;
-           break;
-        }
-
         case WE_GET_SAP_AUTO_CHANNEL_SELECTION:
         {
 #ifdef WLAN_FEATURE_MBSSID
@@ -6550,45 +6542,35 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
 }
 
 /* set param sub-ioctls */
-int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_info *info,
-                       union iwreq_data *wrqu, char *extra)
+int iw_set_three_ints_getnone(struct net_device *dev,
+                              struct iw_request_info *info,
+                              union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int *value = (int *)extra;
     int sub_cmd = value[0];
     int ret = 0;
 
-    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
-    {
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                                   "%s:LOGP in Progress. Ignore!!!", __func__);
         return -EBUSY;
     }
 
-    switch(sub_cmd)
-    {
-        case WE_SET_WLAN_DBG:
-        {
-            vos_trace_setValue( value[1], value[2], value[3]);
-            break;
-        }
-        case WE_SET_WDI_DBG:
-        {
-            wpalTraceSetLevel( value[1], value[2], value[3]);
-            break;
-        }
-        case WE_SET_SAP_CHANNELS:
-        {
-            ret = iw_softap_set_channel_range( dev, value[1], value[2], value[3]);
-            break;
-        }
+    switch(sub_cmd) {
 
+    case WE_SET_WLAN_DBG:
+       vos_trace_setValue( value[1], value[2], value[3]);
+       break;
 
-        default:
-        {
-            hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd );
-            break;
-        }
+    case WE_SET_SAP_CHANNELS:
+       ret = iw_softap_set_channel_range( dev, value[1], value[2], value[3]);
+       break;
+
+    default:
+       hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd );
+       break;
+
     }
     return ret;
 }
@@ -10080,11 +10062,6 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "getMaxAssoc" },
 
-    {   WE_GET_WDI_DBG,
-        0,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "getwdidbg" },
-
     {   WE_GET_SAP_AUTO_CHANNEL_SELECTION,
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
@@ -10373,11 +10350,6 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
         0,
         "setwlandbg" },
-
-    {   WE_SET_WDI_DBG,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
-        0,
-        "setwdidbg" },
 
     {   WE_SET_SAP_CHANNELS,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,

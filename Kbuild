@@ -794,15 +794,10 @@ WDI_TRP_INC :=	-I$(WLAN_ROOT)/$(WDI_DIR)/TRP/CTS/inc/ \
 
 WDI_WPAL_INC := -I$(WLAN_ROOT)/$(WDI_DIR)/WPAL/inc
 
-WDI_WPAL_SRC_DIR := $(WDI_DIR)/WPAL/src
-WDI_WPAL_OBJS := $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_trace.o
-
 WDI_INC :=	$(WDI_CP_INC) \
 		$(WDI_DP_INC) \
 		$(WDI_TRP_INC) \
 		$(WDI_WPAL_INC)
-
-WDI_OBJS :=	$(WDI_WPAL_OBJS)
 
 WCNSS_INC :=	-I$(WLAN_ROOT)/wcnss/inc
 
@@ -856,7 +851,6 @@ OBJS :=		$(BAP_OBJS) \
 		$(SYS_OBJS) \
 		$(VOSS_OBJS) \
 		$(WDA_OBJS) \
-		$(WDI_OBJS) \
 		$(DFS_OBJS)
 
 OBJS +=		$(WMA_OBJS) \
