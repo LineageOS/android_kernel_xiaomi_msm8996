@@ -1207,6 +1207,7 @@ enum wma_cfg_cmd_id {
 
 	/* dfs control interface */
 	WMA_VDEV_DFS_CONTROL_CMDID,
+	WMA_VDEV_TXRX_GET_IPA_UC_FW_STATS_CMDID,
 
 	/* Add any new command before this */
 	WMA_CMD_ID_MAX

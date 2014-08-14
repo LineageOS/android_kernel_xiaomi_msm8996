@@ -10687,6 +10687,18 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 	}
 		break;
 
+#ifdef IPA_UC_OFFLOAD
+	case WMA_VDEV_TXRX_GET_IPA_UC_FW_STATS_CMDID:
+	{
+		ol_txrx_pdev_handle pdev;
+
+		pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+			wma_handle->vos_context);
+		ol_txrx_ipa_uc_get_stat(pdev);
+	}
+		break;
+#endif /* IPA_UC_OFFLOAD */
+
 	default:
 		WMA_LOGE("Invalid wma config command id:%d",
 			privcmd->param_id);

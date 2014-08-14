@@ -1180,7 +1180,7 @@ ol_txrx_ipa_uc_set_active(
 void
 ol_txrx_ipa_uc_op_response(
    ol_txrx_pdev_handle pdev,
-   u_int8_t op_code);
+   u_int8_t *op_msg);
 
 /**
  * @brief callback function registration
@@ -1195,8 +1195,17 @@ ol_txrx_ipa_uc_op_response(
  */
 void ol_txrx_ipa_uc_register_op_cb(
    ol_txrx_pdev_handle pdev,
-   void (*ipa_uc_op_cb_type)(u_int8_t op_code, void *osif_ctxt),
+   void (*ipa_uc_op_cb_type)(u_int8_t *op_msg, void *osif_ctxt),
    void *osif_dev);
+
+/**
+ * @brief query uc data path stats
+ * @details
+ *  Query uc data path stats from firmware
+ *
+ * @param pdev - handle to the HTT instance
+ */
+void ol_txrx_ipa_uc_get_stat(ol_txrx_pdev_handle pdev);
 #else
 #define ol_txrx_ipa_uc_get_resource(          \
    pdev,                                      \
@@ -1222,12 +1231,14 @@ void ol_txrx_ipa_uc_register_op_cb(
 
 #define ol_txrx_ipa_uc_op_response(           \
    pdev,                                      \
-   op_code) /* NO-OP */
+   op_data) /* NO-OP */
 
 #define ol_txrx_ipa_uc_register_op_cb(        \
    pdev,                                      \
    ipa_uc_op_cb_type,                         \
    osif_dev) /* NO-OP */
+
+#define ol_txrx_ipa_uc_get_stat(pdev) /* NO-OP */
 #endif /* IPA_UC_OFFLOAD */
 
 #endif /* _OL_TXRX_CTRL_API__H_ */

@@ -2096,11 +2096,11 @@ ol_txrx_ipa_uc_set_active(
 void
 ol_txrx_ipa_uc_op_response(
    ol_txrx_pdev_handle pdev,
-   u_int8_t op_code
+   u_int8_t *op_msg
 )
 {
    if (pdev->ipa_uc_op_cb) {
-      pdev->ipa_uc_op_cb(op_code, pdev->osif_dev);
+      pdev->ipa_uc_op_cb(op_msg, pdev->osif_dev);
    }
 }
 
@@ -2111,6 +2111,11 @@ void ol_txrx_ipa_uc_register_op_cb(
 {
    pdev->ipa_uc_op_cb = op_cb;
    pdev->osif_dev = osif_dev;
+}
+
+void ol_txrx_ipa_uc_get_stat(ol_txrx_pdev_handle pdev)
+{
+   htt_h2t_ipa_uc_get_stats(pdev->htt_pdev);
 }
 
 #endif /* IPA_UC_OFFLOAD */
