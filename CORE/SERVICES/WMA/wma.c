@@ -20809,6 +20809,7 @@ VOS_STATUS wma_get_buf_extscan_change_monitor_cmd(tp_wma_handle wma_handle,
 	cmd->num_entries_in_page = numap;
 	cmd->lost_ap_scan_count = psigchange->lostApSampleSize;
 	cmd->max_rssi_samples = psigchange->rssiSampleSize;
+	cmd->rssi_averaging_samples = psigchange->rssiSampleSize;
 	cmd->max_out_of_range_count = psigchange->minBreaching;
 
 	buf_ptr += sizeof(*cmd);
