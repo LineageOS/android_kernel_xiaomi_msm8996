@@ -69,6 +69,7 @@ typedef enum {
 	HDD_IPA_UC_OPCODE_TX_RESUME  = 1,
 	HDD_IPA_UC_OPCODE_RX_SUSPEND = 2,
 	HDD_IPA_UC_OPCODE_RX_RESUME  = 3,
+	HDD_IPA_UC_OPCODE_STATS      = 4,
 	/* keep this last */
 	HDD_IPA_UC_OPCODE_MAX
 } hdd_ipa_uc_op_code;
@@ -280,7 +281,52 @@ struct hdd_ipa_stats {
 
 	uint64_t num_freeq_empty;
 	uint64_t num_pri_freeq_empty;
+	uint64_t num_rx_excep;
 };
+
+#ifdef IPA_UC_OFFLOAD
+struct op_msg_type {
+	uint8_t msg_t;
+	uint8_t rsvd;
+	uint16_t op_code;
+	uint16_t len;
+	uint16_t rsvd_snd;
+};
+
+struct ipa_uc_fw_stats {
+	uint32_t tx_comp_ring_base;
+	uint32_t tx_comp_ring_size;
+	uint32_t tx_comp_ring_dbell_addr;
+	uint32_t tx_comp_ring_dbell_ind_val;
+	uint32_t tx_comp_ring_dbell_cached_val;
+	uint32_t tx_pkts_enqueued;
+	uint32_t tx_pkts_completed;
+	uint32_t tx_is_suspend;
+	uint32_t tx_reserved;
+	uint32_t rx_ind_ring_base;
+	uint32_t rx_ind_ring_size;
+	uint32_t rx_ind_ring_dbell_addr;
+	uint32_t rx_ind_ring_dbell_ind_val;
+	uint32_t rx_ind_ring_dbell_ind_cached_val;
+	uint32_t rx_ind_ring_rdidx_addr;
+	uint32_t rx_ind_ring_rd_idx_cached_val;
+	uint32_t rx_refill_idx;
+	uint32_t rx_num_pkts_indicated;
+	uint32_t rx_buf_refilled;
+	uint32_t rx_num_ind_drop_no_space;
+	uint32_t rx_num_ind_drop_no_buf;
+	uint32_t rx_is_suspend;
+	uint32_t rx_reserved;
+};
+
+static const char *op_string[] = {
+	"TX_SUSPEND",
+	"TX_RESUME",
+	"RX_SUSPEND",
+	"RX_RESUME",
+	"STATS",
+};
+#endif /* IPA_UC_OFFLOAD */
 
 struct hdd_ipa_priv {
 	struct hdd_ipa_sys_pipe sys_pipe[HDD_IPA_MAX_SYSBAM_PIPE];
@@ -332,15 +378,6 @@ struct hdd_ipa_priv {
 	v_BOOL_t pending_cons_req;
 #endif /* IPA_UC_OFFLOAD */
 };
-
-#ifdef IPA_UC_OFFLOAD
-static const char *op_string[] = {
-	"TX_SUSPEND",
-	"TX_RESUME",
-	"RX_SUSPEND",
-	"RX_RESUME",
-};
-#endif /* IPA_UC_OFFLOAD */
 
 static struct hdd_ipa_priv *ghdd_ipa;
 
@@ -750,15 +787,203 @@ void hdd_ipa_uc_rm_notify_defer(void *hdd_ipa, enum ipa_rm_event event)
 	vos_indicate_rxpkt(sched_ctx, pkt);
 }
 
-static void hdd_ipa_uc_op_cb(v_U8_t op_code)
+static void hdd_ipa_uc_op_cb(v_U8_t *op_msg, void *usr_ctxt)
 {
-	if (HDD_IPA_UC_OPCODE_MAX <= op_code) {
+	struct op_msg_type *msg;
+	struct ipa_uc_fw_stats *uc_fw_stat;
+	struct IpaHwStatsWDIInfoData_t ipa_stat;
+	struct hdd_ipa_priv *hdd_ipa;
+	hdd_context_t *hdd_ctx;
+
+	if (!op_msg || !usr_ctxt) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-			"%s, INVALID OPCODE %d", __func__, op_code);
+			"%s, INVALID ARG", __func__);
 		return;
 	}
+
+	msg = (struct op_msg_type *)op_msg;
+	if (HDD_IPA_UC_OPCODE_MAX <= msg->op_code) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s, INVALID OPCODE %d", __func__, msg->op_code);
+		return;
+	}
+
+	hdd_ctx = (hdd_context_t *)usr_ctxt;
+	hdd_ipa = (struct hdd_ipa_priv *)hdd_ctx->hdd_ipa;
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
-		"%s, OPCODE %s", __func__, op_string[op_code]);
+		"%s, OPCODE %s", __func__, op_string[msg->op_code]);
+	if (HDD_IPA_UC_OPCODE_STATS == msg->op_code) {
+
+		/* STATs from host */
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"==== IPA_UC WLAN_HOST CE ====\n"
+			"CE RING BASE: 0x%x\n"
+			"CE RING SIZE: %d\n"
+			"CE REG ADDR : 0x%x",
+			hdd_ctx->ce_sr_base_paddr,
+			hdd_ctx->ce_sr_ring_size,
+			hdd_ctx->ce_reg_paddr);
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"==== IPA_UC WLAN_HOST TX ====\n"
+			"COMP RING BASE: 0x%x\n"
+			"COMP RING SIZE: %d\n"
+			"NUM ALLOC BUF: %d\n"
+			"COMP RING DBELL : 0x%x",
+			hdd_ctx->tx_comp_ring_base_paddr,
+			hdd_ctx->tx_comp_ring_size,
+			hdd_ctx->tx_num_alloc_buffer,
+			hdd_ctx->tx_comp_doorbell_paddr);
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"==== IPA_UC WLAN_HOST RX ====\n"
+			"IND RING BASE: 0x%x\n"
+			"IND RING SIZE: %d\n"
+			"IND RING DBELL : 0x%x\n"
+			"PROC DONE IND ADDR : 0x%x\n"
+			"NUM EXCP PKT : %llu",
+			hdd_ctx->rx_rdy_ring_base_paddr,
+			hdd_ctx->rx_rdy_ring_size,
+			hdd_ctx->rx_ready_doorbell_paddr,
+			hdd_ctx->rx_proc_done_idx_paddr,
+			hdd_ipa->stats.num_rx_excep);
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"==== IPA_UC WLAN_HOST CONTROL ====\n"
+			"NUM STAs: %d\n"
+			"TX PIPE HDL: %d\n"
+			"RX PIPE HDL : %d\n"
+			"RSC LOADING : %d\n"
+			"RSC UNLOADING : %d\n"
+			"PNDNG CNS RQT : %d",
+			hdd_ipa->sap_num_connected_sta,
+			hdd_ipa->tx_pipe_handle,
+			hdd_ipa->rx_pipe_handle,
+			(unsigned int)hdd_ipa->resource_loading,
+			(unsigned int)hdd_ipa->resource_unloading,
+			(unsigned int)hdd_ipa->pending_cons_req);
+
+		/* STATs from FW */
+		uc_fw_stat = (struct ipa_uc_fw_stats *)
+			(op_msg + sizeof(struct op_msg_type));
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"==== IPA_UC WLAN_FW TX ====\n"
+			"COMP RING BASE: 0x%x\n"
+			"COMP RING SIZE: %d\n"
+			"COMP RING DBELL : 0x%x\n"
+			"COMP RING DBELL IND VAL : %d\n"
+			"COMP RING DBELL CACHED VAL : %d\n"
+			"COMP RING DBELL CACHED VAL : %d\n"
+			"PKTS ENQ : %d\n"
+			"PKTS COMP : %d\n"
+			"IS SUSPEND : %d\n"
+			"RSVD : 0x%x",
+			uc_fw_stat->tx_comp_ring_base,
+			uc_fw_stat->tx_comp_ring_size,
+			uc_fw_stat->tx_comp_ring_dbell_addr,
+			uc_fw_stat->tx_comp_ring_dbell_ind_val,
+			uc_fw_stat->tx_comp_ring_dbell_cached_val,
+			uc_fw_stat->tx_comp_ring_dbell_cached_val,
+			uc_fw_stat->tx_pkts_enqueued,
+			uc_fw_stat->tx_pkts_completed,
+			uc_fw_stat->tx_is_suspend,
+			uc_fw_stat->tx_reserved);
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"==== IPA_UC WLAN_FW RX ====\n"
+			"IND RING BASE: 0x%x\n"
+			"IND RING SIZE: %d\n"
+			"IND RING DBELL : 0x%x\n"
+			"IND RING DBELL IND VAL : %d\n"
+			"IND RING DBELL CACHED VAL : %d\n"
+			"RDY IND ADDR : 0x%x\n"
+			"RDY IND CACHE VAL : %d\n"
+			"RFIL IND : %d\n"
+			"NUM PKT INDICAT : %d\n"
+			"BUF REFIL : %d\n"
+			"NUM DROP NO SPC : %d\n"
+			"NUM DROP NO BUF : %d\n"
+			"IS SUSPND : %d\n"
+			"RSVD : 0x%x\n",
+			uc_fw_stat->rx_ind_ring_base,
+			uc_fw_stat->rx_ind_ring_size,
+			uc_fw_stat->rx_ind_ring_dbell_addr,
+			uc_fw_stat->rx_ind_ring_dbell_ind_val,
+			uc_fw_stat->rx_ind_ring_dbell_ind_cached_val,
+			uc_fw_stat->rx_ind_ring_rdidx_addr,
+			uc_fw_stat->rx_ind_ring_rd_idx_cached_val,
+			uc_fw_stat->rx_refill_idx,
+			uc_fw_stat->rx_num_pkts_indicated,
+			uc_fw_stat->rx_buf_refilled,
+			uc_fw_stat->rx_num_ind_drop_no_space,
+			uc_fw_stat->rx_num_ind_drop_no_buf,
+			uc_fw_stat->rx_is_suspend,
+			uc_fw_stat->rx_reserved);
+		/* STATs from IPA */
+		ipa_get_wdi_stats(&ipa_stat);
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"==== IPA_UC IPA TX ====\n"
+			"NUM PROCD : %d\n"
+			"CE DBELL : 0x%x\n"
+			"NUM DBELL FIRED : %d\n"
+			"COMP RNG FULL : %d\n"
+			"COMP RNG EMPT : %d\n"
+			"COMP RNG USE HGH : %d\n"
+			"COMP RNG USE LOW : %d\n"
+			"BAM FIFO FULL : %d\n"
+			"BAM FIFO EMPT : %d\n"
+			"BAM FIFO USE HGH : %d\n"
+			"BAM FIFO USE LOW : %d\n"
+			"NUM DBELL : %d\n"
+			"NUM UNEXP DBELL : %d\n"
+			"NUM BAM INT HDL : 0x%x\n"
+			"NUM BAM INT NON-RUN : 0x%x\n"
+			"NUM QMB INT HDL : 0x%x",
+			ipa_stat.tx_ch_stats.num_pkts_processed,
+			ipa_stat.tx_ch_stats.copy_engine_doorbell_value,
+			ipa_stat.tx_ch_stats.num_db_fired,
+			ipa_stat.tx_ch_stats.tx_comp_ring_stats.ringFull,
+			ipa_stat.tx_ch_stats.tx_comp_ring_stats.ringEmpty,
+			ipa_stat.tx_ch_stats.tx_comp_ring_stats.ringUsageHigh,
+			ipa_stat.tx_ch_stats.tx_comp_ring_stats.ringUsageLow,
+			ipa_stat.tx_ch_stats.bam_stats.bamFifoFull,
+			ipa_stat.tx_ch_stats.bam_stats.bamFifoEmpty,
+			ipa_stat.tx_ch_stats.bam_stats.bamFifoUsageHigh,
+			ipa_stat.tx_ch_stats.bam_stats.bamFifoUsageLow,
+			ipa_stat.tx_ch_stats.num_db,
+			ipa_stat.tx_ch_stats.num_unexpected_db,
+			ipa_stat.tx_ch_stats.num_bam_int_handled,
+			ipa_stat.tx_ch_stats.num_bam_int_in_non_runnning_state,
+			ipa_stat.tx_ch_stats.num_qmb_int_handled);
+
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"==== IPA_UC IPA RX ====\n"
+			"MAX OST PKT : %d\n"
+			"NUM PKT PRCSD : %d\n"
+			"RNG RP : 0x%x\n"
+			"COMP RNG FULL : %d\n"
+			"COMP RNG EMPT : %d\n"
+			"COMP RNG USE HGH : %d\n"
+			"COMP RNG USE LOW : %d\n"
+			"BAM FIFO FULL : %d\n"
+			"BAM FIFO EMPT : %d\n"
+			"BAM FIFO USE HGH : %d\n"
+			"BAM FIFO USE LOW : %d\n"
+			"NUM DB : %d\n"
+			"NUM UNEXP DB : %d\n"
+			"NUM BAM INT HNDL : 0x%x\n",
+			ipa_stat.rx_ch_stats.max_outstanding_pkts,
+			ipa_stat.rx_ch_stats.num_pkts_processed,
+			ipa_stat.rx_ch_stats.rx_ring_rp_value,
+			ipa_stat.rx_ch_stats.rx_ind_ring_stats.ringFull,
+			ipa_stat.rx_ch_stats.rx_ind_ring_stats.ringEmpty,
+			ipa_stat.rx_ch_stats.rx_ind_ring_stats.ringUsageHigh,
+			ipa_stat.rx_ch_stats.rx_ind_ring_stats.ringUsageLow,
+			ipa_stat.rx_ch_stats.bam_stats.bamFifoFull,
+			ipa_stat.rx_ch_stats.bam_stats.bamFifoEmpty,
+			ipa_stat.rx_ch_stats.bam_stats.bamFifoUsageHigh,
+			ipa_stat.rx_ch_stats.bam_stats.bamFifoUsageLow,
+			ipa_stat.rx_ch_stats.num_db,
+			ipa_stat.rx_ch_stats.num_unexpected_db,
+			ipa_stat.rx_ch_stats.num_bam_int_handled);
+	}
+	vos_mem_free(op_msg);
 }
 
 static hdd_adapter_t *hdd_ipa_uc_get_adapter(struct hdd_ipa_priv *hdd_ipa,
@@ -810,12 +1035,6 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 	pipe_in.u.dl.ce_door_bell_pa = hdd_ctx->ce_reg_paddr;
 	pipe_in.u.dl.ce_ring_size = hdd_ctx->ce_sr_ring_size * 8;
 	pipe_in.u.dl.num_tx_buffers  = hdd_ctx->tx_num_alloc_buffer;
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
-		"MAX TX COMP ELEMENT %d",
-		(unsigned int)hdd_ctx->cfg_ini->IpaUcTxBufCount);
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
-		"TX COMP RING SIZE %d",
-		(unsigned int)pipe_in.u.dl.comp_ring_size);
 
 	/* Connect WDI IPA PIPE */
 	ipa_connect_wdi_pipe(&pipe_in, &pipe_out);
@@ -824,7 +1043,14 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 	/* WLAN TX PIPE Handle */
 	ipa_ctxt->tx_pipe_handle = pipe_out.clnt_hdl;
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
-		"TX COMP IPA DOORBELL %x",
+		"TX : CRBPA 0x%x, CRS %d, CERBPA 0x%x, CEDPA 0x%x,"
+		" CERZ %d, NB %d, CDBPAD 0x%x",
+		(unsigned int)pipe_in.u.dl.comp_ring_base_pa,
+		pipe_in.u.dl.comp_ring_size,
+		(unsigned int)pipe_in.u.dl.ce_ring_base_pa,
+		(unsigned int)pipe_in.u.dl.ce_door_bell_pa,
+		pipe_in.u.dl.ce_ring_size,
+		pipe_in.u.dl.num_tx_buffers,
 		(unsigned int)hdd_ctx->tx_comp_doorbell_paddr);
 
 	/* RX PIPE */
@@ -846,15 +1072,16 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 	pipe_in.u.ul.rdy_ring_base_pa = hdd_ctx->rx_rdy_ring_base_paddr;
 	pipe_in.u.ul.rdy_ring_size = hdd_ctx->rx_rdy_ring_size;
 	pipe_in.u.ul.rdy_ring_rp_pa = hdd_ctx->rx_proc_done_idx_paddr;
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
-		"RX RING SIZE %d",
-		(unsigned int)pipe_in.u.ul.rdy_ring_size);
+
 
 	ipa_connect_wdi_pipe(&pipe_in, &pipe_out);
 	hdd_ctx->rx_ready_doorbell_paddr = pipe_out.uc_door_bell_pa;
 	ipa_ctxt->rx_pipe_handle = pipe_out.clnt_hdl;
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
-		"RX READY IPA DOORBELL %x",
+		"RX : RRBPA 0x%x, RRS %d, PDIPA 0x%x, RDY_DB_PAD 0x%x",
+		(unsigned int)pipe_in.u.ul.rdy_ring_base_pa,
+		pipe_in.u.ul.rdy_ring_size,
+		(unsigned int)pipe_in.u.ul.rdy_ring_rp_pa,
 		(unsigned int)hdd_ctx->rx_ready_doorbell_paddr);
 
 	WLANTL_SetUcDoorbellPaddr((pVosContextType)(hdd_ctx->pvosContext),
@@ -862,7 +1089,7 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 			(v_U32_t)hdd_ctx->rx_ready_doorbell_paddr);
 
 	WLANTL_RegisterOPCbFnc((pVosContextType)(hdd_ctx->pvosContext),
-			hdd_ipa_uc_op_cb);
+			hdd_ipa_uc_op_cb, (void *)hdd_ctx);
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -1595,6 +1822,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 				8);
 #ifdef IPA_UC_OFFLOAD
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
+			hdd_ipa->stats.num_rx_excep++;
 			skb_pull(skb, HDD_IPA_UC_WLAN_CLD_HDR_LEN);
 		} else
 #endif /* IPA_UC_OFFLOAD */
