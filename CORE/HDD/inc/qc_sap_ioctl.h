@@ -234,7 +234,10 @@ enum {
     QCSAP_PARAM_SET_CHANNEL_CHANGE,
     QCASAP_SET_DFS_TARGET_CHNL,
     QCASAP_SET_RADAR_CMD,
-    QCSAP_GET_ACL
+    QCSAP_GET_ACL,
+    QCASAP_TX_CHAINMASK_CMD,
+    QCASAP_RX_CHAINMASK_CMD,
+    QCASAP_NSS_CMD
 };
 
 int iw_softap_get_channel_list(struct net_device *dev,
