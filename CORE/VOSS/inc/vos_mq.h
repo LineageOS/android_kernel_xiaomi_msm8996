@@ -112,9 +112,6 @@ typedef enum
   /// Message Queue ID for messages bound for the SYS module
   VOS_MQ_ID_SYS = VOS_MODULE_ID_SYS,
 
-  /// Message Queue ID for messages bound for WDI
-  VOS_MQ_ID_WDI = VOS_MODULE_ID_WDI,
-
 } VOS_MQ_ID;
 
 
@@ -168,7 +165,6 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *message );
 
   <ul>
     <li> TL
-    <li> WDI/SSC
   </ul>
 
   \param msgQueueId - identifies the message queue upon which the message
@@ -205,7 +201,7 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *message );
   to the following queue.
 
   <ul>
-    <li> WDI
+    <li> TL
   </ul>
 
   \param msgQueueId - identifies the message queue upon which the message

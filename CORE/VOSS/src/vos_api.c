@@ -1664,13 +1664,6 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
        break;
     }
 
-    /// Message Queue ID for messages bound for WDI
-    case VOS_MQ_ID_WDI:
-    {
-       pTargetMq = &(gpVosContext->vosSched.wdiMcMq);
-       break;
-    }
-
     /// Message Queue ID for messages bound for TL
     case VOS_MQ_ID_TL:
     {
@@ -1741,7 +1734,6 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
 
   <ul>
     <li> TL
-    <li> SSC/WDI
   </ul>
 
   \param msgQueueId - identifies the message queue upon which the message
@@ -1786,13 +1778,6 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
     case  VOS_MQ_ID_TL:
     {
        pTargetMq = &(gpVosContext->vosSched.tlTxMq);
-       break;
-    }
-
-    /// Message Queue ID for messages bound for SSC
-    case VOS_MQ_ID_WDI:
-    {
-       pTargetMq = &(gpVosContext->vosSched.wdiTxMq);
        break;
     }
 
@@ -1858,7 +1843,6 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
 
   <ul>
     <li> TL
-    <li> WDI
   </ul>
 
   \param msgQueueId - identifies the message queue upon which the message
@@ -1903,13 +1887,6 @@ VOS_STATUS vos_rx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
     case VOS_MQ_ID_SYS:
     {
        pTargetMq = &(gpVosContext->vosSched.sysRxMq);
-       break;
-    }
-
-    /// Message Queue ID for messages bound for WDI
-    case VOS_MQ_ID_WDI:
-    {
-       pTargetMq = &(gpVosContext->vosSched.wdiRxMq);
        break;
     }
 

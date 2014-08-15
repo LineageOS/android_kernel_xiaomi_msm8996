@@ -177,15 +177,6 @@ typedef struct _VosSchedContext
    /* SYS Message queue on the Main thread */
    VosMqType           sysMcMq;
 
-  /* WDI Message queue on the Main thread*/
-   VosMqType           wdiMcMq;
-
-   /* WDI Message queue on the Tx Thread*/
-   VosMqType           wdiTxMq;
-
-   /* WDI Message queue on the Rx Thread*/
-   VosMqType           wdiRxMq;
-
    /* TL Message queue on the Tx thread */
    VosMqType           tlTxMq;
 
