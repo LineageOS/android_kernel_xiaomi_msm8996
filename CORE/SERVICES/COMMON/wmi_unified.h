@@ -865,6 +865,9 @@ typedef enum {
     /*update mib counters together with WMI_UPDATE_STATS_EVENTID*/
     WMI_UPDATE_WHAL_MIB_STATS_EVENTID,
 
+    /*update ht/vht info based on vdev (rx and tx NSS and preamble)*/
+    WMI_UPDATE_VDEV_RATE_STATS_EVENTID,
+
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
     /** upload H_CV info WMI event
@@ -2334,6 +2337,8 @@ typedef enum {
     WMI_PDEV_PARAM_AUDIO_OVER_WLAN_LATENCY,
     /** set DIRECT AUDIO Feature ENABLE */
     WMI_PDEV_PARAM_AUDIO_OVER_WLAN_ENABLE,
+    /** ht/vht info based on vdev */
+    WMI_PDEV_PARAM_VDEV_RATE_STATS_UPDATE_PERIOD,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -2656,6 +2661,7 @@ typedef enum {
     WMI_REQUEST_PDEV_STAT = 0x04,
     WMI_REQUEST_VDEV_STAT = 0x08,
     WMI_REQUEST_BCNFLT_STAT = 0x10,
+    WMI_REQUEST_VDEV_RATE_STAT = 0x20,
 } wmi_stats_id;
 
 typedef struct {
@@ -3005,7 +3011,21 @@ typedef struct {
 } wmi_pdev_resume_cmd_fixed_param;
 
 typedef struct {
-    A_UINT32   tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_stats_event_fixed_param */
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_vdev_rate_stats_event_fixed_param,  */
+    A_UINT32 num_vdev_stats; /* number of vdevs */
+}wmi_vdev_rate_stats_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len, tag equals WMITLV_TAG_STRUC_wmi_vdev_rate_ht_info*/
+    A_UINT32 vdevid; /* Id of the wlan vdev*/
+    A_UINT32 tx_nss; /* Bit 28 of tx_rate_kbps has this info - based on last data packet transmitted*/
+    A_UINT32 rx_nss; /* Bit 24 of rx_rate_kbps - same as above*/
+    A_UINT32 tx_preamble; /* Bits 30-29 from tx_rate_kbps */
+    A_UINT32 rx_preamble; /* Bits 26-25 from rx_rate_kbps */
+} wmi_vdev_rate_ht_info;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_stats_event_fixed_param */
     wmi_stats_id stats_id;
     /** number of pdev stats event structures (wmi_pdev_stats) 0 or 1 */
     A_UINT32 num_pdev_stats;
