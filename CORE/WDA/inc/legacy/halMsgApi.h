@@ -1431,6 +1431,7 @@ typedef struct {
    tANI_U8 peerOperClass[HAL_TDLS_MAX_SUPP_OPER_CLASSES];
    tANI_U8 prefOffChanNum;
    tANI_U8 prefOffChanBandwidth;
+   tANI_U8 opClassForPrefOffChan;
 } tTdlsPeerCapParams;
 
 typedef struct sTdlsPeerStateParams

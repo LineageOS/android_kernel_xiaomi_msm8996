@@ -81,6 +81,7 @@
 #include "limAssocUtils.h"
 #include "dphHashTable.h"
 #include "wlan_qct_wda.h"
+#include "regdomain_common.h"
 
 /* define NO_PAD_TDLS_MIN_8023_SIZE to NOT padding: See CR#447630
 There was IOT issue with cisco 1252 open mode, where it pads
@@ -118,79 +119,6 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
                                   tDot11fIEVHTCaps *pPeerVHTCaps,
                                   tpPESession psessionEntry);
 ePhyChanBondState  limGetHTCBState(ePhyChanBondState aniCBMode);
-/*only 31 op classes are available, 1 entry for current op class*/
-static tDot11fIESuppOperatingClasses op_classes = {0};
-
-op_class_map_t global_op_class[] = {
-    {81, 25,  BW20,      {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
-    {82, 25,  BW20,      {14}},
-    {83, 40,  BW40PLUS,  {1, 2, 3, 4, 5, 6, 7, 8, 9}},
-    {84, 40,  BW40MINUS, {5, 6, 7, 8, 9, 10, 11, 12, 13}},
-    {115, 20, BW20,      {36, 40, 44, 48}},
-    {116, 40, BW40PLUS,  {36, 44}},
-    {117, 40, BW40MINUS, {40, 48}},
-    {118, 20, BW20,      {52, 56, 60, 64}},
-    {119, 40, BW40PLUS,  {52, 60}},
-    {120, 40, BW40MINUS, {56, 64}},
-    {121, 20, BW20,   {100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140}},
-    {122, 40, BW40PLUS,  {100, 108, 116, 124, 132}},
-    {123, 40, BW40MINUS, {104, 112, 120, 128, 136}},
-    {125, 20, BW20,      {149, 153, 157, 161, 165, 169}},
-    {126, 40, BW40PLUS,  {149, 157}},
-    {127, 40, BW40MINUS, {153, 161}},
-    {0, 0, 0, {0}},
-
-};/*end global_op_class*/
-
-op_class_map_t us_op_class[] = {
-    {1, 20,  BW20,       {36, 40, 44, 48}},
-    {2, 20,  BW20,       {52, 56, 60, 64}},
-    {4, 20,  BW20,   {100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140}},
-    {5, 20,  BW20,       {149, 153, 157, 161, 165}},
-    {22, 40, BW40PLUS,  {36, 44}},
-    {23, 40, BW40PLUS,  {52, 60}},
-    {24, 40, BW40PLUS,  {100, 108, 116, 124, 132}},
-    {26, 40, BW40PLUS,  {149, 157}},
-    {27, 40, BW40MINUS, {40, 48}},
-    {28, 40, BW40MINUS, {56, 64}},
-    {29, 40, BW40MINUS, {104, 112, 120, 128, 136}},
-    {31, 40, BW40MINUS, {153, 161}},
-    {32, 40, BW40PLUS,  {1, 2, 3, 4, 5, 6, 7}},
-    {33, 40, BW40MINUS, {5, 6, 7, 8, 9, 10, 11}},
-    {0, 0, 0, {0}},
-};/*end us_op_class*/
-
-op_class_map_t euro_op_class[] = {
-    {1, 20,  BW20,      {36, 40, 44, 48}},
-    {2, 20,  BW20,      {52, 56, 60, 64}},
-    {3, 20,  BW20,   {100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140}},
-    {4, 25,  BW20,      {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
-    {5, 40,  BW40PLUS,  {36, 44}},
-    {6, 40,  BW40PLUS,  {52, 60}},
-    {7, 40,  BW40PLUS,  {100, 108, 116, 124, 132}},
-    {8, 40,  BW40MINUS, {40, 48}},
-    {9, 40,  BW40MINUS, {56, 64}},
-    {10, 40, BW40MINUS, {104, 112, 120, 128, 136}},
-    {11, 40, BW40PLUS,  {1, 2, 3, 4, 5, 6, 7, 8, 9}},
-    {12, 40, BW40MINUS, {5, 6, 7, 8, 9, 10, 11, 12, 13}},
-    {17, 20, BW20,      {149, 153, 157, 161, 165, 169}},
-    {0, 0, 0, {0}},
-};/*end euro_op_class*/
-
-op_class_map_t japan_op_class[] = {
-    {1, 20,  BW20,      {36, 40, 44, 48}},
-    {30, 25, BW20,      {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
-    {31, 25, BW20,      {14}},
-    {32, 20, BW20,      {52, 56, 60, 64}},
-    {34, 20, BW20,   {100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140}},
-    {36, 40, BW40PLUS,  {36, 44}},
-    {37, 40, BW40PLUS,  {52, 60}},
-    {39, 40, BW40PLUS,  {100, 108, 116, 124, 132}},
-    {41, 40, BW40MINUS, {40, 48}},
-    {42, 40, BW40MINUS, {56, 64}},
-    {44, 40, BW40MINUS, {104, 112, 120, 128, 136}},
-    {0, 0, 0, {0}},
-};/*end japan_op_class*/
 
 /*
  * TDLS data frames will go out/come in as non-qos data.
@@ -2460,7 +2388,10 @@ void PopulateDot11fTdlsOffchannelParams(tpAniSirGlobal pMac,
     tANI_U8    validChan[WNI_CFG_VALID_CHANNEL_LIST_LEN];
     tANI_U8    i;
     tANI_U8    valid_count = 0;
+    tANI_U8    chanOffset;
     tANI_U8    op_class;
+    tANI_U8    numClasses;
+    tANI_U8    classes[SIR_MAC_MAX_SUPP_OPER_CLASSES];
     if (wlan_cfgGetStr(pMac, WNI_CFG_VALID_CHANNEL_LIST,
                           validChan, &numChans) != eSIR_SUCCESS)
     {
@@ -2489,33 +2420,58 @@ void PopulateDot11fTdlsOffchannelParams(tpAniSirGlobal pMac,
 
     suppChannels->num_bands = valid_count;
     suppChannels->present = 1 ;
-    /*Get present operating class based on current operating channel*/
-    op_class = limGetOPClassFromChannel(
-                                     pMac->scan.countryCodeCurrent,
-                                     psessionEntry->currentOperChannel,
-                                     psessionEntry->htSecondaryChannelOffset);
+
+    /* find channel offset and get op class for current operating channel */
+    switch (psessionEntry->htSecondaryChannelOffset)
+    {
+      case PHY_SINGLE_CHANNEL_CENTERED:
+          chanOffset = BW20;
+          break;
+
+      case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
+          chanOffset = BW40_LOW_PRIMARY;
+          break;
+
+      case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
+          chanOffset = BW40_HIGH_PRIMARY;
+          break;
+
+      default:
+          chanOffset = BWALL;
+          break;
+
+    }
+
+    op_class = regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
+                                          psessionEntry->currentOperChannel,
+                                          chanOffset);
     if (op_class == 0)
     {
-        PELOGE(limLog(pMac, LOGE, FL("Present Operating class is Wrong!!!"));)
+        PELOGE(limLog(pMac, LOGE, FL("Present Operating class is wrong, countryCodeCurrent: %s, currentOperChannel: %d, htSecondaryChannelOffset: %d, chanOffset: %d"),
+                      pMac->scan.countryCodeCurrent,
+                      psessionEntry->currentOperChannel,
+                      psessionEntry->htSecondaryChannelOffset,
+                      chanOffset);)
     }
     else
     {
-        PELOGE(limLog(pMac, LOG1, FL("Present Operating channel=%d offset=%d class=%d"),
+        PELOGE(limLog(pMac, LOG1, FL("Present Operating channel: %d chanOffset: %d, op class=%d"),
                       psessionEntry->currentOperChannel,
-                      psessionEntry->htSecondaryChannelOffset,
+                      chanOffset,
                       op_class);)
     }
     suppOperClasses->present = 1;
     suppOperClasses->classes[0] = op_class;
-    /*Fill operating classes from static array*/
-    suppOperClasses->num_classes = op_classes.num_classes;
-    for ( i = 0U; i < suppOperClasses->num_classes; i++)
-    {
-        suppOperClasses->classes[i+1] = op_classes.classes[i];
 
+    regdm_get_curr_opclasses(&numClasses, &classes[0]);
+
+    for (i = 0; i < numClasses; i++)
+    {
+        suppOperClasses->classes[i+1] = classes[i];
     }
-    /*increment for present operating class*/
-    suppOperClasses->num_classes++;
+    /* add one for present operating class, added in the beginning */
+    suppOperClasses->num_classes = numClasses + 1;
+
     return ;
 }
 /*
@@ -3094,167 +3050,6 @@ tSirRetStatus limDeleteTDLSPeers(tpAniSirGlobal pMac, tpPESession psessionEntry)
     limSendSmeTDLSDeleteAllPeerInd(pMac, psessionEntry);
 
     return eSIR_SUCCESS;
-}
-
-
-tANI_U8 limGetOPClassFromChannel(tANI_U8 *country,
-                                         tANI_U8 channel,
-                                         tANI_U8 offset)
-{
-    op_class_map_t *class = NULL;
-    tANI_U16 i = 0;
-
-    if (VOS_TRUE == vos_mem_compare(country,"US", 2))  {
-
-        class = us_op_class;
-
-    } else if (VOS_TRUE == vos_mem_compare(country,"EU", 2)) {
-
-        class = euro_op_class;
-
-    } else if (VOS_TRUE == vos_mem_compare(country,"JP", 2)) {
-
-        class = japan_op_class;
-
-    } else {
-
-        class = global_op_class;
-
-    }
-
-    while (class->op_class)
-    {
-        if ((offset == class->offset) || (offset == BWALL))
-        {
-            for (i=0; (i < 15 && class->channels[i]); i++)
-            {
-                if (channel == class->channels[i])
-                    return class->op_class;
-            }
-        }
-        class++;
-    }
-    return 0;
-}
-
-tANI_BOOLEAN  CheckAndAddOP(tANI_U8 class)
-{
-    tANI_U8 i;
-
-    for (i=0; i < (SIR_MAC_MAX_SUPP_OPER_CLASSES - 1); i++)
-    {
-        /*0 is an invalid class. If class is already present ignore*/
-        if (class == op_classes.classes[i])
-            return FALSE;
-        if(op_classes.classes[i] == 0)
-        {
-            return TRUE;
-        }
-    }
-    //limLog(pMac, LOGE, FL("No space left for class = %d"), class);
-    return FALSE;
-}
-
-void limInitOperatingClasses( tHalHandle hHal )
-{
-
-    tANI_U8 Index = 0;
-    tANI_U8 class = 0;
-    tANI_U8 i = 0;
-    tANI_U8 j = 0;
-    tANI_U8 swap = 0;
-    tANI_U8 numChannels = 0;
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    limLog(pMac, LOG1, FL("Current Country = %c%c"),
-                          pMac->scan.countryCodeCurrent[0],
-                          pMac->scan.countryCodeCurrent[1]);
-
-    vos_mem_set(op_classes.classes, sizeof(op_classes.classes), 0);
-    numChannels = pMac->scan.baseChannels.numChannels;
-    limLog(pMac, LOG1, "Num of base ch =%d", numChannels);
-    for ( Index = 0;
-          Index < numChannels && i < (SIR_MAC_MAX_SUPP_OPER_CLASSES - 1);
-          Index++)
-    {
-        class = limGetOPClassFromChannel(
-                            pMac->scan.countryCodeCurrent,
-                            pMac->scan.baseChannels.channelList[ Index ],
-                            BWALL);
-        limLog(pMac, LOG4, "ch=%d <=> %d=class",
-               pMac->scan.baseChannels.channelList[ Index ],
-               class);
-        if (CheckAndAddOP(class))
-        {
-            op_classes.classes[i]= class;
-            i++;
-        }
-    }
-
-    numChannels = pMac->scan.base20MHzChannels.numChannels;
-    limLog(pMac, LOG1, "Num of 20MHz ch =%d", numChannels);
-    for ( Index = 0;
-          Index < numChannels && i < (SIR_MAC_MAX_SUPP_OPER_CLASSES - 1);
-          Index++)
-    {
-        class = limGetOPClassFromChannel(
-                            pMac->scan.countryCodeCurrent,
-                            pMac->scan.base20MHzChannels.channelList[ Index ],
-                            BWALL);
-        limLog(pMac, LOG4, "ch=%d <=> %d=class",
-               pMac->scan.base20MHzChannels.channelList[ Index ],
-               class);
-        if (CheckAndAddOP(class))
-        {
-            op_classes.classes[i]= class;
-            i++;
-        }
-    }
-
-    numChannels = pMac->scan.base40MHzChannels.numChannels;
-    limLog(pMac, LOG1, "Num of 40MHz ch =%d", numChannels);
-    for ( Index = 0;
-          Index < numChannels && i < (SIR_MAC_MAX_SUPP_OPER_CLASSES - 1);
-          Index++)
-    {
-        class = limGetOPClassFromChannel(
-                            pMac->scan.countryCodeCurrent,
-                            pMac->scan.base40MHzChannels.channelList[ Index ],
-                            BWALL);
-        limLog(pMac, LOG4, "ch=%d <=> %d=class",
-               pMac->scan.base40MHzChannels.channelList[ Index ],
-               class);
-        if (CheckAndAddOP(class))
-        {
-            op_classes.classes[i]= class;
-            i++;
-        }
-    }
-
-    op_classes.num_classes = i;
-    limLog(pMac, LOG1, "Total number of Unique supported classes =%d",
-           op_classes.num_classes);
-    /*as per spec the operating classes should be in ascending order*/
-    /*Bubble sort is fine as we don't have many classes*/
-    for (i = 0 ; i < ( op_classes.num_classes - 1 ); i++)
-    {
-        for (j = 0 ; j < op_classes.num_classes - i - 1; j++)
-        {
-            /* For decreasing order use < */
-            if (op_classes.classes[j] > op_classes.classes[j+1])
-            {
-                swap = op_classes.classes[j];
-                op_classes.classes[j] = op_classes.classes[j+1];
-                op_classes.classes[j+1] = swap;
-            }
-        }
-    }
-    for (i=0; i < op_classes.num_classes; i++)
-    {
-
-        limLog(pMac, LOG1, "supported op_class[%d]=%d", i,
-               op_classes.classes[i]);
-
-    }
 }
 
 #endif

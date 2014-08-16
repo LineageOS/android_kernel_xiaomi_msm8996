@@ -79,6 +79,9 @@
 #include "_ieee80211_common.h"
 #include <a_types.h>
 #include "wlan_defs.h"
+
+#define MAX_CHANNELS_PER_OPERATING_CLASS  15
+
 enum EnumRd {
     /*
      * The following regulatory domain definitions are
@@ -1832,3 +1835,30 @@ static const struct cmode modes[] = {
 	{ REGDMN_MODE_11AC_VHT40_2G,       IEEE80211_CHAN_11AC_VHT40_2G},
 	{ REGDMN_MODE_11AC_VHT80_2G,       IEEE80211_CHAN_11AC_VHT80_2G},
 };
+
+typedef enum offset
+{
+	BW20 = 0,
+	BW40_LOW_PRIMARY = 1,
+	BW40_HIGH_PRIMARY = 3,
+	BWALL
+} offset_t;
+
+typedef struct _regdm_op_class_map
+{
+	u_int8_t op_class;
+	u_int8_t ch_spacing;
+	offset_t offset;
+	u_int8_t channels[MAX_CHANNELS_PER_OPERATING_CLASS];
+} regdm_op_class_map_t;
+
+typedef struct _regdm_supp_op_classes {
+	u_int8_t num_classes;
+	u_int8_t classes[SIR_MAC_MAX_SUPP_OPER_CLASSES];
+} regdm_supp_op_classes;
+
+u_int16_t regdm_get_opclass_from_channel(u_int8_t *country, u_int8_t channel,
+	u_int8_t offset);
+u_int16_t regdm_set_curr_opclasses(u_int8_t num_classes, u_int8_t *class);
+u_int16_t regdm_get_curr_opclasses(u_int8_t *num_classes, u_int8_t *class);
+
