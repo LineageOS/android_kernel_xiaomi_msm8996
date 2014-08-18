@@ -101,6 +101,7 @@ extern v_VOID_t vos_core_return_msg(v_PVOID_t pVContext, pVosMsgWrapper pMsgWrap
 
 
 #ifdef QCA_CONFIG_SMP
+#define VOS_CORE_PER_CLUSTER 4
 static int vos_set_cpus_allowed_ptr(struct task_struct *task,
                                     unsigned long cpu)
 {
@@ -120,6 +121,8 @@ static int vos_cpu_hotplug_notify(struct notifier_block *block,
    unsigned long pref_cpu = 0;
    pVosSchedContext pSchedContext = get_vos_sched_ctxt();
    int i;
+   unsigned int multi_cluster;
+   unsigned int num_cpus;
 
    if ((NULL == pSchedContext) || (NULL == pSchedContext->TlshimRxThread))
        return NOTIFY_OK;
@@ -129,16 +132,23 @@ static int vos_cpu_hotplug_notify(struct notifier_block *block,
        return NOTIFY_OK;
    }
 
+   num_cpus = num_possible_cpus();
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_LOW,
+             "%s: RX CORE %d, STATE %d, NUM CPUS %d",
+              __func__, (int)affine_cpu, (int)state, num_cpus);
+   multi_cluster = (num_cpus > VOS_CORE_PER_CLUSTER)?1:0;
+
    switch (state) {
    case CPU_ONLINE:
-       if (affine_cpu != 0)
+       if ((!multi_cluster) && (affine_cpu != 0))
            return NOTIFY_OK;
 
        for_each_online_cpu(i) {
            if (i == 0)
                continue;
            pref_cpu = i;
-           break;
+           if (!multi_cluster)
+               break;
        }
        break;
    case CPU_DEAD:
@@ -150,7 +160,8 @@ static int vos_cpu_hotplug_notify(struct notifier_block *block,
            if (i == 0)
                continue;
            pref_cpu = i;
-           break;
+           if (!multi_cluster)
+               break;
        }
    }
 
@@ -1404,19 +1415,23 @@ static int VosTlshimRxThread(void *arg)
    unsigned long pref_cpu = 0;
    bool shutdown = false;
    int status, i;
+   unsigned int num_cpus;
 
    set_user_nice(current, -1);
 #ifdef MSM_PLATFORM
    set_wake_up_idle(true);
 #endif
 
+   num_cpus = num_possible_cpus();
    /* Find the available cpu core other than cpu 0 and
     * bind the thread */
    for_each_online_cpu(i) {
        if (i == 0)
            continue;
        pref_cpu = i;
-       break;
+       if (num_cpus <= VOS_CORE_PER_CLUSTER) {
+           break;
+       }
    }
    if (pref_cpu != 0 && (!vos_set_cpus_allowed_ptr(current, pref_cpu)))
        affine_cpu = pref_cpu;
