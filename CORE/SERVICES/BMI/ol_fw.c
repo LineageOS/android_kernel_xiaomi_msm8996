@@ -461,7 +461,8 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 #endif
 		break;
 	case ATH_SETUP_FILE:
-		if (vos_get_conparam() != VOS_FTM_MODE) {
+		if (vos_get_conparam() != VOS_FTM_MODE &&
+		   !WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
 #ifdef CONFIG_CNSS
 			printk("%s: no Setup file defined\n", __func__);
 			return -1;

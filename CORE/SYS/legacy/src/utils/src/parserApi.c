@@ -1084,6 +1084,12 @@ PopulateDot11fExtCap(tpAniSirGlobal   pMac,
        pDot11f->timingMeas = 1;
     }
 
+#ifdef QCA_HT_2040_COEX
+    if (pMac->roam.configParam.obssEnabled)
+    {
+        pDot11f->bssCoexistMgmtSupport = 1;
+    }
+#endif
     return eSIR_SUCCESS;
 }
 

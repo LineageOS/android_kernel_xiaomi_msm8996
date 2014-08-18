@@ -1954,7 +1954,7 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 
 		if (temp_mask & (1 << eCsrGlobalClassAStats)) {
 			classa_stats = (tCsrGlobalClassAStatsInfo *) stats_buf;
-			WMA_LOGE("peer tx rate:%d", peer_stats->peer_tx_rate);
+			WMA_LOGD("peer tx rate:%d", peer_stats->peer_tx_rate);
 			/*The linkspeed returned by fw is in kbps so convert
 			 *it in to units of 500kbps which is expected by UMAC*/
 			if (peer_stats->peer_tx_rate) {
@@ -1975,7 +1975,7 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 				 * rate flags */
 				classa_stats->rx_frag_cnt = node->nss;
 				classa_stats->promiscuous_rx_frag_cnt = mcsRateFlags;
-				WMA_LOGE("Computed mcs_idx:%d mcs_rate_flags:%d",
+				WMA_LOGD("Computed mcs_idx:%d mcs_rate_flags:%d",
 						classa_stats->mcs_index,
 						mcsRateFlags);
 			}
@@ -1983,7 +1983,7 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 			   Convert it back to intervals of 1 dBm */
 			classa_stats->max_pwr =
 				 roundup(classa_stats->max_pwr, 2) >> 1;
-			WMA_LOGE("peer tx rate flags:%d nss:%d max_txpwr:%d",
+			WMA_LOGD("peer tx rate flags:%d nss:%d max_txpwr:%d",
 					node->rate_flags, node->nss,
 					classa_stats->max_pwr);
 		}
@@ -18243,6 +18243,40 @@ static int wma_process_receive_filter_clear_filter_req(tp_wma_handle wma_handle,
 	return 0; /* SUCCESS */
 }
 
+static int wma_set_base_macaddr_indicate(tp_wma_handle wma_handle,
+					tSirMacAddr *customAddr)
+{
+	wmi_pdev_set_base_macaddr_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int err;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, sizeof(*cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send set_base_macaddr cmd");
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_pdev_set_base_macaddr_cmd_fixed_param *) wmi_buf_data(buf);
+	vos_mem_zero(cmd, sizeof(*cmd));
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_pdev_set_base_macaddr_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_pdev_set_base_macaddr_cmd_fixed_param));
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(*customAddr, &cmd->base_macaddr);
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			sizeof(*cmd), WMI_PDEV_SET_BASE_MACADDR_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_base_macaddr cmd");
+		adf_os_mem_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("Base MAC Addr: "MAC_ADDRESS_STR,
+		MAC_ADDR_ARRAY((*customAddr)));
+
+	return 0;
+}
+
 static void wma_data_tx_ack_work_handler(struct work_struct *ack_work)
 {
 	struct wma_tx_ack_work_ctx *work;
@@ -21536,6 +21570,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif
+		case SIR_HAL_SET_BASE_MACADDR_IND:
+			wma_set_base_macaddr_indicate(wma_handle,
+				       (tSirMacAddr *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */

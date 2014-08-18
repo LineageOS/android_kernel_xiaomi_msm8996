@@ -640,6 +640,7 @@ typedef struct sSirMbMsgP2p
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 #define SIR_HAL_HO_FAIL_IND                (SIR_HAL_ITC_MSG_TYPES_BEGIN + 282)
 #endif
+#define SIR_HAL_SET_BASE_MACADDR_IND       (SIR_HAL_ITC_MSG_TYPES_BEGIN + 283)
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

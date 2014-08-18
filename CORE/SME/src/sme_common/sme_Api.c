@@ -8682,6 +8682,46 @@ eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid,
     return eHAL_STATUS_SUCCESS;
 }
 
+/* ---------------------------------------------------------------------------
+
+    \fn sme_SetCustomMacAddr
+
+    \brief Set the customer Mac Address.
+
+    \param customMacAddr  customer MAC Address
+    \- return eHalStatus
+
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetCustomMacAddr(tSirMacAddr customMacAddr)
+{
+    vos_msg_t msg;
+    tSirMacAddr *pBaseMacAddr;
+
+    pBaseMacAddr = vos_mem_malloc(sizeof(tSirMacAddr));
+    if (NULL == pBaseMacAddr)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            FL("Not able to allocate memory for pBaseMacAddr"));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    vos_mem_copy(*pBaseMacAddr, customMacAddr, sizeof(tSirMacAddr));
+
+    msg.type = SIR_HAL_SET_BASE_MACADDR_IND;
+    msg.reserved = 0;
+    msg.bodyptr = pBaseMacAddr;
+
+    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            FL("Not able to post SIR_HAL_SET_BASE_MACADDR_IND message to WDA"));
+        vos_mem_free(pBaseMacAddr);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+
 /* ----------------------------------------------------------------------------
    \fn sme_SetTxPower
    \brief Set Transmit Power dynamically.
@@ -11404,17 +11444,23 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
           }
       }
 
-      if (pMac->roam.configParam.channelBondingMode24GHz) {
-          if (channel >= 1 && channel <= 5)
-             smeConfig.csrConfig.channelBondingMode24GHz =
-                eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
-          else if (channel >= 6 && channel <= 13)
-             smeConfig.csrConfig.channelBondingMode24GHz =
-                eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
-          else if (channel ==14)
-             smeConfig.csrConfig.channelBondingMode24GHz =
-                eCSR_INI_SINGLE_CHANNEL_CENTERED;
-      }
+#ifdef QCA_HT_2040_COEX
+      /* if obss is enabled, the channel bonding mode is coming from hostapd,
+         so we don't need to hard code it here  */
+      if (!pMac->roam.configParam.obssEnabled)
+#endif
+          if (pMac->roam.configParam.channelBondingMode24GHz)
+          {
+              if (channel >= 1 && channel <= 5)
+                 smeConfig.csrConfig.channelBondingMode24GHz =
+                  eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
+              else if (channel >= 6 && channel <= 13)
+                 smeConfig.csrConfig.channelBondingMode24GHz =
+                  eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+              else if (channel ==14)
+                 smeConfig.csrConfig.channelBondingMode24GHz =
+                  eCSR_INI_SINGLE_CHANNEL_CENTERED;
+          }
    }
 
    /*

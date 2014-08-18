@@ -87,7 +87,11 @@ static char g_log2ceil[] = {
 /* reorder array elements are known to be non-NULL */
 #define OL_RX_REORDER_PTR_CHECK(ptr) /* no-op */
 #define OL_RX_REORDER_LIST_APPEND(head_msdu, tail_msdu, rx_reorder_array_elem) \
-    adf_nbuf_set_next(tail_msdu, rx_reorder_array_elem->head)
+    do { \
+        if (tail_msdu) { \
+            adf_nbuf_set_next(tail_msdu, rx_reorder_array_elem->head); \
+        } \
+    } while (0)
 
 
 /* functions called by txrx components */

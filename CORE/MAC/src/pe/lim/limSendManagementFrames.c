@@ -502,8 +502,13 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     /* Set channelbonding information as "disabled" when tunned to a 2.4 GHz channel */
     if( nChannelNum <= SIR_11B_CHANNEL_END)
     {
-        pr.HTCaps.supportedChannelWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
-        pr.HTCaps.shortGI40MHz = 0;
+        if (pMac->roam.configParam.channelBondingMode24GHz
+             == PHY_SINGLE_CHANNEL_CENTERED) {
+            pr.HTCaps.supportedChannelWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
+            pr.HTCaps.shortGI40MHz = 0;
+        } else {
+            pr.HTCaps.supportedChannelWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
+        }
     }
 
 #ifdef WLAN_FEATURE_11AC
