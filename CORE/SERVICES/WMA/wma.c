@@ -12175,12 +12175,6 @@ static void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
 							tpAddBssParams add_bss)
 {
 	iface->rate_flags = 0;
-	if (add_bss->htCapable) {
-		if (add_bss->txChannelWidthSet)
-			iface->rate_flags |= eHAL_TX_RATE_HT40;
-		else
-			iface->rate_flags |= eHAL_TX_RATE_HT20;
-	}
 
 #ifdef WLAN_FEATURE_11AC
 	if (add_bss->vhtCapable) {
@@ -12191,7 +12185,15 @@ static void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
 		else
 			iface->rate_flags |= eHAL_TX_RATE_VHT20;
 	}
+	/* avoid to conflict with htCapable flag */
+	else
 #endif
+	if (add_bss->htCapable) {
+		if (add_bss->txChannelWidthSet)
+			iface->rate_flags |= eHAL_TX_RATE_HT40;
+		else
+			iface->rate_flags |= eHAL_TX_RATE_HT20;
+	}
 
 	if (add_bss->staContext.fShortGI20Mhz ||
 		add_bss->staContext.fShortGI40Mhz)
