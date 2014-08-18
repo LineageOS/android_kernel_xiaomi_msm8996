@@ -3188,6 +3188,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_FW_LOG_DISABLE,
                  CFG_ENABLE_FW_LOG_ENABLE),
 
+   REG_VARIABLE( CFG_ENABLE_FW_SELF_RECOVERY_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, enableFwSelfRecovery,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_FW_SELF_RECOVERY_DEFAULT,
+                 CFG_ENABLE_FW_SELF_RECOVERY_DISABLE,
+                 CFG_ENABLE_FW_SELF_RECOVERY_ENABLE),
+
 #ifdef IPA_OFFLOAD
    REG_VARIABLE( CFG_IPA_OFFLOAD_CONFIG_NAME, WLAN_PARAM_HexInteger,
                  hdd_config_t, IpaConfig,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) "2012,2014" The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -41,6 +41,7 @@
 #ifndef WLAN_NV_C
 #define WLAN_NV_C
 
+#include "palTypes.h"
 #include "wlan_nv.h"
 
 const sHalNv nvDefaults =

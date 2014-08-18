@@ -69,7 +69,7 @@
 #include "i_vos_types.h"
 #include "i_vos_packet.h"
 #include <linux/wait.h>
-#ifdef WLAN_OPEN_SOURCE
+#if defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
 #include <linux/wakelock.h>
 #endif
 #include <vos_mq.h>

@@ -347,6 +347,8 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id);
 static void wma_set_suspend_dtim(tp_wma_handle wma);
 static void wma_set_resume_dtim(tp_wma_handle wma);
+static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
+				u_int32_t len);
 
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
@@ -16169,14 +16171,52 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		break;
 	case WOW_REASON_PATTERN_MATCH_FOUND:
 		WMA_LOGD("Wake up for Rx packet, dump starting from ethernet hdr");
-		/* First 4-bytes of wow_packet_buffer is the length */
-		vos_mem_copy((u_int8_t *) &wow_buf_pkt_len,
-			     param_buf->wow_packet_buffer, 4);
-		vos_trace_hex_dump(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
-				   param_buf->wow_packet_buffer + 4,
-				   wow_buf_pkt_len);
+		if (param_buf->wow_packet_buffer) {
+		    /* First 4-bytes of wow_packet_buffer is the length */
+		    vos_mem_copy((u_int8_t *) &wow_buf_pkt_len,
+			param_buf->wow_packet_buffer, 4);
+		    vos_trace_hex_dump(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
+			param_buf->wow_packet_buffer + 4,
+			wow_buf_pkt_len);
+		} else {
+			WMA_LOGE("No wow packet buffer present");
+		}
 		break;
 
+	case WOW_REASON_LOW_RSSI:
+	    {
+		/* WOW_REASON_LOW_RSSI is used for all roaming events.
+		 * WMI_ROAM_REASON_BETTER_AP, WMI_ROAM_REASON_BMISS,
+		 * WMI_ROAM_REASON_SUITABLE_AP will be handled by
+		 * wma_roam_event_callback().
+		 */
+		WMI_ROAM_EVENTID_param_tlvs param;
+		if (param_buf->wow_packet_buffer) {
+		    /* Roam event is embedded in wow_packet_buffer */
+		    WMA_LOGD("Host woken up because of roam event");
+		    vos_mem_copy((u_int8_t *) &wow_buf_pkt_len,
+				param_buf->wow_packet_buffer, 4);
+		    WMA_LOGD("wow_packet_buffer dump");
+				vos_trace_hex_dump(VOS_MODULE_ID_WDA,
+				VOS_TRACE_LEVEL_DEBUG,
+				param_buf->wow_packet_buffer, wow_buf_pkt_len);
+		    if (wow_buf_pkt_len >= sizeof(param)) {
+			param.fixed_param = (wmi_roam_event_fixed_param *)
+					(param_buf->wow_packet_buffer +4);
+			wma_roam_event_callback(handle, (u_int8_t *)&param,
+							sizeof(param));
+		    } else {
+			WMA_LOGE("Wrong length for roam event = %d bytes",
+					wow_buf_pkt_len);
+		    }
+		} else {
+		    /* No wow_packet_buffer means a better AP beacon
+		     * will follow in a later event.
+		     */
+		    WMA_LOGD("Host woken up because of better AP beacon");
+		}
+		break;
+	    }
 	default:
 		break;
 	}

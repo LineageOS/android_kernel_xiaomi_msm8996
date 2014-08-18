@@ -867,7 +867,8 @@ int wlan_hdd_validate_context(hdd_context_t *pHddCtx)
     }
     return 0;
 }
-#ifdef CONFIG_ENABLE_LINUX_REG
+
+
 void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx)
 {
    hdd_adapter_t *pAdapter = NULL;
@@ -944,77 +945,7 @@ void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx)
         }
    }
 }
-#else
-void hdd_checkandupdate_phymode( hdd_adapter_t *pAdapter, char *country_code)
-{
-    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    hdd_config_t *cfg_param;
-    eCsrPhyMode phyMode;
-    unsigned long rc;
 
-    if (NULL == pHddCtx)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                "HDD Context is null !!");
-        return ;
-    }
-
-    cfg_param = pHddCtx->cfg_ini;
-
-    if (NULL == cfg_param)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                "cfg_params not available !!");
-        return ;
-    }
-
-    phyMode = sme_GetPhyMode(WLAN_HDD_GET_HAL_CTX(pAdapter));
-
-    if (NULL != strstr(cfg_param->listOfNon11acCountryCode, country_code))
-    {
-        if ((eCSR_DOT11_MODE_AUTO == phyMode) ||
-            (eCSR_DOT11_MODE_11ac == phyMode) ||
-            (eCSR_DOT11_MODE_11ac_ONLY == phyMode))
-        {
-             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                     "Setting phymode to 11n!!");
-            sme_SetPhyMode(WLAN_HDD_GET_HAL_CTX(pAdapter), eCSR_DOT11_MODE_11n);
-        }
-    }
-    else
-    {
-        /*New country Supports 11ac as well resetting value back from .ini*/
-        sme_SetPhyMode(WLAN_HDD_GET_HAL_CTX(pAdapter),
-              hdd_cfg_xlate_to_csr_phy_mode(cfg_param->dot11Mode));
-        return ;
-    }
-
-    if ((eConnectionState_Associated == pHddStaCtx->conn_info.connState) &&
-        ((eCSR_CFG_DOT11_MODE_11AC_ONLY == pHddStaCtx->conn_info.dot11Mode) ||
-         (eCSR_CFG_DOT11_MODE_11AC == pHddStaCtx->conn_info.dot11Mode)))
-    {
-        VOS_STATUS vosStatus;
-
-        // need to issue a disconnect to CSR.
-        INIT_COMPLETION(pAdapter->disconnect_comp_var);
-        vosStatus = sme_RoamDisconnect(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                           pAdapter->sessionId,
-                           eCSR_DISCONNECT_REASON_UNSPECIFIED );
-
-        if (VOS_STATUS_SUCCESS == vosStatus)
-        {
-           rc = wait_for_completion_timeout(&pAdapter->disconnect_comp_var,
-                  msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-           if (!rc)
-           {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                        "wait on disconnect_comp_var is failed");
-           }
-        }
-    }
-}
-#endif //CONFIG_ENABLE_LINUX_REG
 
 void hdd_checkandupdate_dfssetting( hdd_adapter_t *pAdapter, char *country_code)
 {
@@ -3750,9 +3681,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
            INIT_COMPLETION(pAdapter->change_country_code);
            hdd_checkandupdate_dfssetting(pAdapter, country_code);
-#ifndef CONFIG_ENABLE_LINUX_REG
-           hdd_checkandupdate_phymode(pAdapter, country_code);
-#endif
+
            status =
               sme_ChangeCountryCode(pHddCtx->hHal,
                                     (void *)(tSmeChangeCountryCallback)
@@ -7486,114 +7415,6 @@ static void hdd_uninit (struct net_device *dev)
 }
 
 /**---------------------------------------------------------------------------
-
-  \brief hdd_release_firmware() -
-
-   This function calls the release firmware API to free the firmware buffer.
-
-  \param  - pFileName Pointer to the File Name.
-                  pCtx - Pointer to the adapter .
-
-
-  \return - 0 for success, non zero for failure
-
-  --------------------------------------------------------------------------*/
-
-VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
-{
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-   hdd_context_t *pHddCtx = (hdd_context_t*)pCtx;
-   ENTER();
-
-
-   if (!strcmp(WLAN_FW_FILE, pFileName)) {
-
-       hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"%s: Loaded firmware file is %s",__func__,pFileName);
-
-       if(pHddCtx->fw) {
-          release_firmware(pHddCtx->fw);
-          pHddCtx->fw = NULL;
-       }
-       else
-          status = VOS_STATUS_E_FAILURE;
-   }
-   else if (!strcmp(WLAN_NV_FILE,pFileName)) {
-       if(pHddCtx->nv) {
-          release_firmware(pHddCtx->nv);
-          pHddCtx->nv = NULL;
-       }
-       else
-          status = VOS_STATUS_E_FAILURE;
-
-   }
-
-   EXIT();
-   return status;
-}
-
-/**---------------------------------------------------------------------------
-
-  \brief hdd_request_firmware() -
-
-   This function reads the firmware file using the request firmware
-   API and returns the the firmware data and the firmware file size.
-
-  \param  - pfileName - Pointer to the file name.
-              - pCtx - Pointer to the adapter .
-              - ppfw_data - Pointer to the pointer of the firmware data.
-              - pSize - Pointer to the file size.
-
-  \return - VOS_STATUS_SUCCESS for success, VOS_STATUS_E_FAILURE for failure
-
-  --------------------------------------------------------------------------*/
-
-
-VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_data, v_SIZE_t *pSize)
-{
-   int status;
-   VOS_STATUS retval = VOS_STATUS_SUCCESS;
-   hdd_context_t *pHddCtx = (hdd_context_t*)pCtx;
-   ENTER();
-
-   if( (!strcmp(WLAN_FW_FILE, pfileName)) ) {
-
-       status = request_firmware(&pHddCtx->fw, pfileName, pHddCtx->parent_dev);
-
-       if(status || !pHddCtx->fw || !pHddCtx->fw->data) {
-           hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Firmware %s download failed",
-                  __func__, pfileName);
-           retval = VOS_STATUS_E_FAILURE;
-       }
-
-       else {
-         *ppfw_data = (v_VOID_t *)pHddCtx->fw->data;
-         *pSize = pHddCtx->fw->size;
-          hddLog(VOS_TRACE_LEVEL_INFO, "%s: Firmware size = %d",
-                 __func__, *pSize);
-       }
-   }
-   else if(!strcmp(WLAN_NV_FILE, pfileName)) {
-
-       status = request_firmware(&pHddCtx->nv, pfileName, pHddCtx->parent_dev);
-
-       if(status || !pHddCtx->nv || !pHddCtx->nv->data) {
-           hddLog(VOS_TRACE_LEVEL_FATAL, "%s: nv %s download failed",
-                  __func__, pfileName);
-           retval = VOS_STATUS_E_FAILURE;
-       }
-
-       else {
-         *ppfw_data = (v_VOID_t *)pHddCtx->nv->data;
-         *pSize = pHddCtx->nv->size;
-          hddLog(VOS_TRACE_LEVEL_INFO, "%s: nv file size = %d",
-                 __func__, *pSize);
-       }
-   }
-
-   EXIT();
-   return retval;
-}
-/**---------------------------------------------------------------------------
      \brief hdd_full_pwr_cbk() - HDD full power callbackfunction
 
       This is the function invoked by SME to inform the result of a full power
@@ -10552,7 +10373,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    /* Destroy the wake lock */
    vos_wake_lock_destroy(&pHddCtx->sap_wake_lock);
 
-#ifdef CONFIG_ENABLE_LINUX_REG
   vosStatus = vos_nv_close();
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
@@ -10560,7 +10380,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
          "%s: Failed to close NV", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
-#endif
 
    //Close VOSS
    //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
@@ -10682,21 +10501,8 @@ void __hdd_wlan_exit(void)
    wlan_hdd_send_status_pkg(NULL, NULL, 0, 0);
 #endif
 
-   if (pHddCtx->isCleanUpDone == FALSE ) {
-       /* Do all the cleanup before deregistering the driver */
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-           "%s: Cleaning up before driver deregistration",
-           __func__);
-       hdd_wlan_exit(pHddCtx);
-   } else {
-       /* This means driver loading has failed. Major cleanup
-        * is already done as part of driver load failure.
-        */
-       struct wiphy *wiphy = pHddCtx->wiphy;
-       hdd_close_all_adapters( pHddCtx );
-       wiphy_free(wiphy);
-   }
-
+   //Do all the cleanup before deregistering the driver
+   hdd_wlan_exit(pHddCtx);
    EXIT();
 }
 
@@ -10771,80 +10577,6 @@ int hdd_wlan_notify_modem_power_state(int state)
       return -1;
    }
    return 0;
-}
-
-/**---------------------------------------------------------------------------
-
-  \brief hdd_update_config_from_nv() - Function to update the contents of
-         the running configuration with parameters taken from NV storage
-
-  \param  - pHddCtx - Pointer to the HDD global context
-
-  \return - VOS_STATUS_SUCCESS if successful
-
-  --------------------------------------------------------------------------*/
-static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
-{
-   v_BOOL_t itemIsValid = VOS_FALSE;
-   VOS_STATUS status;
-   v_MACADDR_t macFromNV[VOS_MAX_CONCURRENCY_PERSONA];
-   v_U8_t      macLoop;
-
-   /*If the NV is valid then get the macaddress from nv else get it from qcom_cfg.ini*/
-   status = vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid);
-   if(status != VOS_STATUS_SUCCESS)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR," vos_nv_getValidity() failed");
-       return VOS_STATUS_E_FAILURE;
-   }
-
-   if (itemIsValid == VOS_TRUE)
-   {
-        hddLog(VOS_TRACE_LEVEL_INFO_HIGH," Reading the Macaddress from NV");
-      status = vos_nv_readMultiMacAddress((v_U8_t *)&macFromNV[0].bytes[0],
-                                          VOS_MAX_CONCURRENCY_PERSONA);
-        if(status != VOS_STATUS_SUCCESS)
-        {
-         /* Get MAC from NV fail, not update CFG info
-          * INI MAC value will be used for MAC setting */
-         hddLog(VOS_TRACE_LEVEL_ERROR," vos_nv_readMacAddress() failed");
-            return VOS_STATUS_E_FAILURE;
-        }
-
-      /* If first MAC is not valid, treat all others are not valid
-       * Then all MACs will be got from ini file */
-      if(vos_is_macaddr_zero(&macFromNV[0]))
-      {
-         /* MAC address in NV file is not configured yet */
-         hddLog(VOS_TRACE_LEVEL_WARN, "Invalid MAC in NV file");
-         return VOS_STATUS_E_INVAL;
-   }
-
-      /* Get MAC address from NV, update CFG info */
-      for(macLoop = 0; macLoop < VOS_MAX_CONCURRENCY_PERSONA; macLoop++)
-      {
-         if(vos_is_macaddr_zero(&macFromNV[macLoop]))
-         {
-            hddLog(VOS_TRACE_LEVEL_ERROR,
-                   "not valid MAC from NV for %d", macLoop);
-            /* This MAC is not valid, skip it
-             * This MAC will be got from ini file */
-         }
-         else
-         {
-            vos_mem_copy((v_U8_t *)&pHddCtx->cfg_ini->intfMacAddr[macLoop].bytes[0],
-                         (v_U8_t *)&macFromNV[macLoop].bytes[0],
-                   VOS_MAC_ADDR_SIZE);
-         }
-      }
-   }
-   else
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "NV ITEM, MAC Not valid");
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   return VOS_STATUS_SUCCESS;
 }
 
 /**---------------------------------------------------------------------------
@@ -11065,7 +10797,6 @@ boolean hdd_is_5g_supported(hdd_context_t * pHddCtx)
    return true;
 }
 
-#ifdef CONFIG_ENABLE_LINUX_REG
 #define WOW_MAX_FILTER_LISTS     1
 #define WOW_MAX_FILTERS_PER_LIST 4
 #define WOW_MIN_PATTERN_SIZE     6
@@ -11115,7 +10846,7 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
 
    return status;
 }
-#endif
+
 
 #ifdef MSM_PLATFORM
 void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
@@ -11299,7 +11030,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    pHddCtx->wiphy = wiphy;
    hdd_prevent_suspend();
    pHddCtx->isLoadInProgress = TRUE;
-   pHddCtx->isCleanUpDone = FALSE;
    pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
@@ -11325,11 +11055,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    init_completion(&pHddCtx->standby_comp_var);
    init_completion(&pHddCtx->req_bmps_comp_var);
 
-#ifdef CONFIG_ENABLE_LINUX_REG
    init_completion(&pHddCtx->linux_reg_req);
-#else
-   init_completion(&pHddCtx->driver_crda_req);
-#endif
 
    spin_lock_init(&pHddCtx->schedScan_lock);
 
@@ -11502,7 +11228,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    pHddCtx->isLogpInProgress = FALSE;
    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 
-#ifdef CONFIG_ENABLE_LINUX_REG
    status = vos_nv_open();
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
@@ -11511,8 +11236,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
             "%s: vos_nv_open failed", __func__);
       goto err_wdclose;
    }
-
-#endif
 
    status = vos_open( &pVosContext, 0);
    if ( !VOS_IS_STATUS_SUCCESS( status ))
@@ -11543,14 +11266,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_vosclose;
    }
 
-#ifdef CONFIG_ENABLE_LINUX_REG
    status = wlan_hdd_reg_init(pHddCtx);
    if (status != VOS_STATUS_SUCCESS) {
       hddLog(VOS_TRACE_LEVEL_FATAL,
              "%s: Failed to init channel list", __func__);
       goto err_vosclose;
    }
-#endif
 
    if (0 == enable_dfs_chan_scan || 1 == enable_dfs_chan_scan)
    {
@@ -11592,13 +11313,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: config update failed",__func__ );
       goto err_wiphy_unregister;
-   }
-
-   // Get mac addr from platform driver
-   if (VOS_STATUS_SUCCESS != hdd_update_config_from_nv(pHddCtx))
-   {
-      // Apply the NV to cfg.dat
-      /* Prima Update MAC address only at here */
    }
 
    if ( VOS_STATUS_SUCCESS != hdd_update_mac_config( pHddCtx ) )
@@ -11668,19 +11382,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
          __func__);
       goto err_vosstop;
    }
-
-#ifndef CONFIG_ENABLE_LINUX_REG
-   wlan_hdd_cfg80211_update_reg_info( wiphy );
-
-   wlan_hdd_cfg80211_update_wiphy_caps( wiphy );
-
-   /* registration of wiphy dev with cfg80211 */
-   if (0 > wlan_hdd_cfg80211_register(wiphy))
-   {
-       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy register failed", __func__);
-       goto err_vosstop;
-   }
-#endif
 
 #ifdef QCA_PKT_PROTO_TRACE
    vos_pkt_proto_trace_init();
@@ -11785,9 +11486,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
       INIT_COMPLETION(pAdapter->change_country_code);
       hdd_checkandupdate_dfssetting(pAdapter, country_code);
-#ifndef CONFIG_ENABLE_LINUX_REG
-      hdd_checkandupdate_phymode(pAdapter, country_code);
-#endif
+
       ret = sme_ChangeCountryCode(pHddCtx->hHal,
             (void *)(tSmeChangeCountryCallback)
             wlan_hdd_change_country_code_callback,
@@ -11980,13 +11679,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    hdd_allow_suspend();
-#ifndef CONFIG_ENABLE_LINUX_REG
-   /*updating wiphy so that regulatory user hints can be processed*/
-   if (wiphy)
-   {
-       regulatory_hint(wiphy, "00");
-   }
-#endif
+
    // Initialize the restart logic
    wlan_hdd_restart_init(pHddCtx);
 
@@ -12129,17 +11822,11 @@ err_bap_close:
 err_close_adapter:
    hdd_close_all_adapters( pHddCtx );
 
-#ifndef CONFIG_ENABLE_LINUX_REG
-   wiphy_unregister(wiphy) ;
-#endif
-
 err_vosstop:
    vos_stop(pVosContext);
 
 err_wiphy_unregister:
-#ifdef CONFIG_ENABLE_LINUX_REG
    wiphy_unregister(wiphy);
-#endif
 
 err_vosclose:
    status = vos_sched_close( pVosContext );
@@ -12152,9 +11839,7 @@ err_vosclose:
 
 err_vos_nv_close:
 
-#ifdef CONFIG_ENABLE_LINUX_REG
    vos_nv_close();
-#endif
 
 err_wdclose:
    if(pHddCtx->cfg_ini->fIsLogpEnabled)
@@ -12178,6 +11863,11 @@ err_free_adf_context:
 
 err_free_hdd_context:
    hdd_allow_suspend();
+
+   /* wiphy_free() will free the HDD context so remove global reference */
+   if (pVosContext)
+      ((VosContextType*)(pVosContext))->pHDDContext = NULL;
+
    wiphy_free(wiphy) ;
    //kfree(wdev) ;
    VOS_BUG(1);
@@ -12193,8 +11883,6 @@ err_free_hdd_context:
        msleep(5000);
    }
    hdd_set_ssr_required (VOS_FALSE);
-
-   pHddCtx->isCleanUpDone = TRUE;
 
    return -EIO;
 
