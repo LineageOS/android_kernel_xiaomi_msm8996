@@ -3732,8 +3732,12 @@ int wlan_hdd_cfg80211_init(struct device *dev,
                          NL80211_KEY_MGMT_OFFLOAD_SUPPORT_FT_PSK;
         wiphy->key_mgmt_offload_support |=
                          NL80211_KEY_MGMT_OFFLOAD_SUPPORT_PMKSA;
+        wiphy->key_mgmt_offload_support |=
+                         NL80211_KEY_MGMT_OFFLOAD_SUPPORT_FT_802_1X;
         wiphy->key_derive_offload_support |=
                          NL80211_KEY_DERIVE_OFFLOAD_SUPPORT_IGTK;
+        wiphy->key_derive_offload_support |=
+                         NL80211_KEY_DERIVE_OFFLOAD_SUPPORT_SHA256;
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
             "%s: LFR3:Driver key mgmt offload capability flags %x",
                          __func__,wiphy->key_mgmt_offload_support);
@@ -7182,7 +7186,7 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 static int wlan_hdd_cfg80211_key_mgmt_set_pmk(struct wiphy *wiphy,
                                               struct net_device *ndev,
-                                              u8 *pmk)
+                                              const u8 *pmk, size_t pmk_len)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(ndev);
     hdd_wext_state_t *pWextState;
@@ -7202,8 +7206,8 @@ static int wlan_hdd_cfg80211_key_mgmt_set_pmk(struct wiphy *wiphy,
             hddLog(VOS_TRACE_LEVEL_ERROR,
                        "%s: calling sme_RoamSetPSK_PMK \n", __func__);
             vos_mem_copy(localPmk, pmk, SIR_ROAM_SCAN_PSK_SIZE);
-            sme_RoamSetPSK_PMK (WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                pAdapter->sessionId, localPmk);
+            sme_RoamSetPSK_PMK(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                               pAdapter->sessionId, localPmk, pmk_len);
             return VOS_STATUS_SUCCESS;
         }
     }
@@ -9617,7 +9621,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                  hddLog(VOS_TRACE_LEVEL_ERROR, FL("calling sme_RoamSetPSK"));
                  vos_mem_copy(localPsk, req->psk, SIR_ROAM_SCAN_PSK_SIZE);
                  sme_RoamSetPSK_PMK(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                 pAdapter->sessionId, localPsk);
+                 pAdapter->sessionId, localPsk, SIR_ROAM_SCAN_PSK_SIZE);
              }
         }
     }
