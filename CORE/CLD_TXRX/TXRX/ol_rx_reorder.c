@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -71,40 +71,6 @@ static char g_log2ceil[] = {
 /*=== function definitions ===*/
 
 /*---*/
-#ifdef QCA_WIFI_ISOC
-
-#define QCA_SUPPORT_RX_REORDER_RELEASE_CHECK 1
-
-static inline void
-OL_RX_REORDER_IDX_START_SELF_SELECT(
-    struct ol_txrx_peer_t *peer, unsigned tid, unsigned *idx_start)
-{
-    /* for simplicity, always use the next_rel_idx value */
-    //if (*idx_start == ~0)
-    {
-        *idx_start = peer->tids_next_rel_idx[tid];
-    }
-}
-#define OL_RX_REORDER_IDX_WRAP(idx, win_sz, win_sz_mask) \
-   do { \
-       if (idx >= win_sz) { \
-           idx = 0; \
-       } \
-   } while (0)
-#define OL_RX_REORDER_IDX_MAX(win_sz, win_sz_mask) (win_sz - 1)
-/*
- * For "integrated SoC", the reorder index represents the offset from the
- * start of the block ack window.
- * Hence, the initial value for this index is zero.
- */
-#define OL_RX_REORDER_IDX_INIT(seq_num, win_sz, win_sz_mask) 0
-#define OL_RX_REORDER_NO_HOLES(rx_reorder) ((rx_reorder)->num_mpdus == 0)
-#define OL_RX_REORDER_MPDU_CNT_INCR(rx_reorder, incr) \
-    ((rx_reorder)->num_mpdus += (incr))
-#define OL_RX_REORDER_MPDU_CNT_DECR(rx_reorder, decr) \
-    ((rx_reorder)->num_mpdus -= (decr))
-
-#else
 
 #define QCA_SUPPORT_RX_REORDER_RELEASE_CHECK 0
 #define OL_RX_REORDER_IDX_START_SELF_SELECT(peer, tid, idx_start) /* no-op */
@@ -115,31 +81,14 @@ OL_RX_REORDER_IDX_START_SELF_SELECT(
 #define OL_RX_REORDER_MPDU_CNT_INCR(rx_reorder, incr) /* n/a */
 #define OL_RX_REORDER_MPDU_CNT_DECR(rx_reorder, decr) /* n/a */
 
-#endif /* QCA_WIFI_ISOC */
 
 /*---*/
-#if defined (QCA_WIFI_ISOC) && defined (QCA_SUPPORT_RX_REORDER_RELEASE_CHECK)
-
-/* reorder array elements could be NULL */
-#define OL_RX_REORDER_PTR_CHECK(ptr) if (ptr)
-#define OL_RX_REORDER_LIST_APPEND(head_msdu, tail_msdu, rx_reorder_array_elem) \
-    do { \
-        if (tail_msdu) { \
-            adf_nbuf_set_next(tail_msdu, rx_reorder_array_elem->head); \
-        } else { \
-            head_msdu = rx_reorder_array_elem->head; \
-            tail_msdu = rx_reorder_array_elem->tail; \
-        } \
-    } while (0)
-
-#else
 
 /* reorder array elements are known to be non-NULL */
 #define OL_RX_REORDER_PTR_CHECK(ptr) /* no-op */
 #define OL_RX_REORDER_LIST_APPEND(head_msdu, tail_msdu, rx_reorder_array_elem) \
     adf_nbuf_set_next(tail_msdu, rx_reorder_array_elem->head)
 
-#endif /* QCA_SUPPORT_RX_REORDER_RELEASE_CHECK */
 
 /* functions called by txrx components */
 
@@ -204,14 +153,6 @@ ol_rx_reorder_store(
     idx &= peer->tids_rx_reorder[tid].win_sz_mask;
     rx_reorder_array_elem = &peer->tids_rx_reorder[tid].array[idx];
     if (rx_reorder_array_elem->head) {
-#ifdef QCA_WIFI_ISOC
-        /* This should not happen in Riva/Pronto case. Because
-         * A-MSDU within a MPDU is indicated together. Defragmentation
-         * is handled by RPE. So add an Assert here to catch potential
-         * rx reorder issues.
-         */
-        TXRX_ASSERT2(0);
-#endif
         adf_nbuf_set_next(rx_reorder_array_elem->tail, head_msdu);
     } else {
         rx_reorder_array_elem->head = head_msdu;
@@ -440,23 +381,6 @@ ol_rx_reorder_peer_cleanup(
     OL_RX_REORDER_TIMEOUT_PEER_CLEANUP(peer);
 }
 
-#ifdef QCA_WIFI_ISOC
-/*
- * (Responder Role) TXRX Data Path will invoke this API after
- * Aggregation has been enabled for this peer-tid combination
- * with appropriate status code. Send ADDBA Response to Peer with
- * status.
- */
-void ol_ctrl_rx_addba_complete(ol_pdev_handle pdev,
-			       u_int8_t *peer_mac_addr,
-			       int tid, int failed)
-{
-	/*
-	 * TODO: Send Rx AddBA response to umac for the devices
-	 * which does addba processing on host (pronto).
-	 */
-}
-#endif
 
 /* functions called by HTT */
 

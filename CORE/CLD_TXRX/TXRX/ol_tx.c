@@ -469,14 +469,8 @@ ol_tx_non_std_ll(
 #define OL_TX_ENCAP_WRAPPER(pdev, vdev, tx_desc, msdu, tx_msdu_info) /* no-op */
 #endif
 
-#ifdef QCA_WIFI_ISOC
-#define TX_FILTER_CHECK(tx_msdu_info) \
-    ((tx_msdu_info)->peer && \
-     ((tx_msdu_info)->peer->tx_filter(tx_msdu_info) != A_OK))
-#else
 /* tx filtering is handled within the target FW */
 #define TX_FILTER_CHECK(tx_msdu_info) 0 /* don't filter */
-#endif
 
 static inline adf_nbuf_t
 ol_tx_hl_base(

@@ -38,10 +38,6 @@
 #include "adf_nbuf.h"
 #include "adf_os_mem.h"
 #include "adf_os_lock.h"
-#ifdef QCA_WIFI_ISOC
-#include "htt_dxe_types.h"
-#include "isoc_hw_desc.h"
-#endif
 #include "adf_nbuf.h"
 #include "wma_api.h"
 #include "vos_utils.h"
@@ -324,88 +320,6 @@ tlshim_check_n_process_iapp_frame (pVosContextType pVosGCtx,
 #endif /* defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD) */
 
 
-#ifdef QCA_WIFI_ISOC
-static void tlshim_mgmt_rx_dxe_handler(void *context, adf_nbuf_t buflist)
-{
-	adf_nbuf_t tmp_next, cur = buflist;
-	isoc_rx_bd_t *rx_bd;
-	vos_pkt_t *rx_packet;
-	u_int8_t mpdu_header_offset = 0;
-	struct txrx_tl_shim_ctx *tl_shim = (struct txrx_tl_shim_ctx *)context;
-	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, context);
-
-	while(cur) {
-		/* Store the next buf in the list */
-		tmp_next = adf_nbuf_next(cur);
-
-		/* Move to next nBuf in list */
-		adf_nbuf_set_next(cur, NULL);
-
-		/* Get the Rx Bd */
-		rx_bd = (isoc_rx_bd_t *)adf_nbuf_data(cur);
-
-		/* Get MPDU Offset in RxBd */
-		mpdu_header_offset = rx_bd->mpdu_header_offset;
-
-		/*
-		 * Allocate memory for the Rx Packet
-		 * that has to be delivered to UMAC
-		 */
-		rx_packet =
-			(vos_pkt_t *)adf_os_mem_alloc(NULL, sizeof(vos_pkt_t));
-
-		if(!rx_packet) {
-			TLSHIM_LOGE("Rx Packet Mem Alloc Failed");
-			adf_nbuf_free(cur);
-			goto next_nbuf;
-		}
-
-		/* Fill packet related Meta Info */
-		rx_packet->pkt_meta.channel = rx_bd->rx_channel;
-		rx_packet->pkt_meta.rssi = rx_bd->rssi0;
-		rx_packet->pkt_meta.snr = (((rx_bd->phy_stats1) >> 24) & 0xff);
-		rx_packet->pkt_meta.timestamp = rx_bd->rx_timestamp;
-
-		rx_packet->pkt_meta.mpdu_hdr_len = rx_bd->mpdu_header_length;
-		rx_packet->pkt_meta.mpdu_len = rx_bd->mpdu_length;
-		rx_packet->pkt_meta.mpdu_data_len =
-			rx_bd->mpdu_length - rx_bd->mpdu_header_length;
-
-		/* set the length of the packet buffer */
-		adf_nbuf_put_tail(cur,
-			mpdu_header_offset + rx_bd->mpdu_length);
-
-		/*
-		 * Rx Bd is removed from adf_nbuf
-		 * adf_nbuf is having only Rx Mgmt packet
-		 */
-		rx_packet->pkt_meta.mpdu_hdr_ptr =
-				adf_nbuf_pull_head(cur,mpdu_header_offset);
-
-		/* Store the MPDU Data Pointer in Rx Packet */
-		rx_packet->pkt_meta.mpdu_data_ptr =
-		rx_packet->pkt_meta.mpdu_hdr_ptr + rx_bd->mpdu_header_length;
-
-		/*
-		 * Rx Bd is removed from adf_nbuf data
-		 * adf_nbuf data is having only Rx Mgmt packet
-		 */
-		rx_packet->pkt_buf = cur;
-
-		/*
-                 * Call the Callback registered by umac with wma
-		 * for Rx Management Frames
-		 */
-		if(tl_shim->mgmt_rx)
-			tl_shim->mgmt_rx(vos_ctx, rx_packet);
-		else
-			vos_pkt_return_packet(rx_packet);
-next_nbuf:
-		/* Move to next nBuf in the list */
-		cur = tmp_next;
-    }
-}
-#else
 /*AR9888/AR6320  noise floor approx value*/
 #define TLSHIM_TGT_NOISE_FLOOR_DBM (-96)
 
@@ -820,7 +734,6 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 {
 	return (tlshim_mgmt_rx_process(context, data, data_len, FALSE, 0));
 }
-#endif
 /*
  * tlshim_mgmt_roam_event_ind() is called from WMA layer when
  * BETTER_AP_FOUND event is received from roam engine.
@@ -1503,12 +1416,7 @@ VOS_STATUS WLANTL_DisableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
 VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 {
 	struct txrx_tl_shim_ctx *tl_shim;
-#ifdef QCA_WIFI_ISOC
-	ol_txrx_pdev_handle txrx_pdev;
-	struct htt_dxe_pdev_t *htt_dxe_pdev;
-#else
 	tp_wma_handle wma_handle;
-#endif
 	ENTER();
 
 #ifdef QCA_WIFI_FTM
@@ -1523,22 +1431,6 @@ VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 		return VOS_STATUS_E_FAILURE;
 	}
 
-#ifdef QCA_WIFI_ISOC
-	txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
-				    vos_ctx);
-	if (!txrx_pdev) {
-		TLSHIM_LOGE("%s: Failed to get TXRX context", __func__);
-		return VOS_STATUS_E_FAILURE;
-	}
-
-	htt_dxe_pdev = txrx_pdev->htt_pdev;
-
-	if (dmux_dxe_register_callback_rx_mgmt(htt_dxe_pdev->dmux_dxe_pdev,
-					       NULL, NULL) != 0) {
-		TLSHIM_LOGE("Failed to Unregister rx mgmt handler with dxe");
-		return VOS_STATUS_E_FAILURE;
-	}
-#else
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 	if (!wma_handle) {
 		TLSHIM_LOGE("%s: Failed to get WMA context", __func__);
@@ -1550,7 +1442,6 @@ VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 		TLSHIM_LOGE("Failed to Unregister rx mgmt handler with wmi");
 		return VOS_STATUS_E_FAILURE;
 	}
-#endif
 	tl_shim->mgmt_rx = NULL;
 	return VOS_STATUS_SUCCESS;
 }
@@ -1561,26 +1452,12 @@ VOS_STATUS WLANTL_RegisterMgmtFrmClient(void *vos_ctx,
 	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
 							   vos_ctx);
 
-#ifdef QCA_WIFI_ISOC
-	ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
-							 vos_ctx);
-	struct htt_dxe_pdev_t *htt_dxe_pdev = txrx_pdev->htt_pdev;
-#else
 	tp_wma_handle wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
-#endif
 	if (!tl_shim) {
 		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
 
-#ifdef QCA_WIFI_ISOC
-	if (dmux_dxe_register_callback_rx_mgmt(htt_dxe_pdev->dmux_dxe_pdev,
-					       tlshim_mgmt_rx_dxe_handler,
-					       tl_shim) != 0) {
-		TLSHIM_LOGE("Failed to register rx mgmt handler with dxe");
-		return VOS_STATUS_E_FAILURE;
-	}
-#else
 	if (!wma_handle) {
 		TLSHIM_LOGE("%s: Failed to get WMA context", __func__);
 		return VOS_STATUS_E_FAILURE;
@@ -1592,7 +1469,6 @@ VOS_STATUS WLANTL_RegisterMgmtFrmClient(void *vos_ctx,
 		TLSHIM_LOGE("Failed to register rx mgmt handler with wmi");
 		return VOS_STATUS_E_FAILURE;
 	}
-#endif
 	tl_shim->mgmt_rx = mgmt_frm_rx;
 
 	return VOS_STATUS_SUCCESS;

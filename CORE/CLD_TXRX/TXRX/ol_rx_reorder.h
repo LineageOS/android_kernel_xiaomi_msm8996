@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -89,20 +89,6 @@ ol_rx_reorder_seq_num_check(
     unsigned tid,
     unsigned seq_num);
 
-#ifdef QCA_WIFI_ISOC
-
-/*
- * Riva, Pronto, Northstar: do sequence number checking in the host
- * for peer-TIDs with aggregation is enabled
- */
-#define OL_RX_REORDER_SEQ_NUM_CHECK(pdev, peer, tid, rx_mpdu_desc) \
-  (peer->tids_rx_reorder[tid].win_sz_mask != 0) ? \
-      ol_rx_reorder_seq_num_check( \
-          pdev, peer, tid, \
-          htt_rx_mpdu_desc_seq_num(pdev->htt_pdev, rx_mpdu_desc)) : \
-      htt_rx_status_ok
-
-#else
 
 /*
  * Peregrine and Rome: do sequence number checking in the host
@@ -115,7 +101,6 @@ ol_rx_reorder_seq_num_check(
           htt_rx_mpdu_desc_seq_num(pdev->htt_pdev, rx_mpdu_desc)) : \
       htt_rx_status_ok
 
-#endif /* QCA_WIFI_ISOC */
 
 
 #endif /* _OL_RX_REORDER__H_ */
