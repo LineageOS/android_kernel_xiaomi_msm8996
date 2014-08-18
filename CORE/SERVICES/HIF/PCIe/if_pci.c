@@ -1893,6 +1893,11 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 
     adf_os_spin_unlock_irqrestore( &hif_state->suspend_lock);
 
+#ifdef CONFIG_CNSS
+    /* Keep PCIe bus driver's shadow memory intact */
+    cnss_pcie_shadow_control(pdev, FALSE);
+#endif
+
     pci_read_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, &val);
     if ((val & 0x000000ff) != 0x3) {
         pci_save_state(pdev);
@@ -1978,6 +1983,11 @@ __hif_pci_resume(struct pci_dev *pdev)
     }
 
     printk("\n%s: Rome PS: %d", __func__, val);
+
+#ifdef CONFIG_CNSS
+    /* Keep PCIe bus driver's shadow memory intact */
+    cnss_pcie_shadow_control(pdev, TRUE);
+#endif
 
 #ifdef DISABLE_L1SS_STATES
     pci_read_config_dword(pdev, 0x188, &val);

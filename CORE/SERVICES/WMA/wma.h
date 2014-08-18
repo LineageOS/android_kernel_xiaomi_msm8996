@@ -1668,4 +1668,12 @@ A_UINT32 eCsrEncryptionType_to_rsn_cipherset (eCsrEncryptionType encr);
 
 #define WMA_TX_Q_RECHECK_TIMER_WAIT      2    // 2 ms
 #define WMA_TX_Q_RECHECK_TIMER_MAX_WAIT  20   // 20 ms
+#define WMA_MAX_NUM_ARGS 8
+typedef struct wma_unit_test_cmd
+{
+    v_UINT_t vdev_id;
+    WLAN_MODULE_ID module_id;
+    v_U32_t num_args;
+    v_U32_t args[WMA_MAX_NUM_ARGS];
+}t_wma_unit_test_cmd;
 #endif
